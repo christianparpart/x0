@@ -16,6 +16,14 @@ namespace x0 {
 
 static std::string read_file(const std::string& filename)
 {
+#if 0
+	// XXX gcc 4.4.0: ld error, can't resolv fstream.constructor or fstream.open - wtf?
+	std::fstream ifs(filename);
+	std::stringstream sstr;
+	sstr << ifs.rdbuf();
+	std::string str(sstr.str());
+	return str;
+#else
 	struct stat st;
 	if (stat(filename.c_str(), &st) != -1)
 	{
@@ -32,15 +40,7 @@ static std::string read_file(const std::string& filename)
 		}
 	}
 	return std::string();
-
-/*	XXX link error (to fstream.open) in at least gcc 4.4.0.
-	std::fstream ifs;
-	ifs.open(filename, std::ios::in);
-	std::stringstream sstr;
-	sstr << ifs.rdbuf();
-	std::string str(sstr.str());
-	return str;
-*/
+#endif
 }
 
 std::string trim(const std::string value)
