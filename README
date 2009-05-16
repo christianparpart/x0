@@ -1,0 +1,15 @@
+x0 - WEB SERVER
+-----------------------------------------------------------------------------
+
+CORE FEATURES:
+- configurable at runtime (via dbus)
+- plugin API and loadable modules
+- multiple virtual hosts
+- HTTP/1.0 and HTTP/1.1
+- plaintext and SSL connections. (and the new mixed one, that apache invented?)
+
+THREADING MODEL:
+- main thread performing I/O dispatching
+- client threads processing the client requests and actions
+- main thread and client threads communicate through queues
+- avoid lockings as much as possible (but use them where needed!)
