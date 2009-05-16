@@ -1,10 +1,10 @@
-#include <http/server.hpp>
+#include <http/listener.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 
 namespace http {
 
-server::server(boost::asio::io_service& io_service)
+listener::listener(boost::asio::io_service& io_service)
   : io_service_(io_service),
 	acceptor_(io_service),
 	connection_manager_(),
@@ -15,7 +15,7 @@ server::server(boost::asio::io_service& io_service)
 {
 }
 
-server::~server()
+listener::~listener()
 {
 	stop();
 }
@@ -28,13 +28,13 @@ static std::string itoa(T&& value)
 	return sstr.str();
 }
 
-void server::configure(const std::string& address, int port)
+void listener::configure(const std::string& address, int port)
 {
 	address_ = address;
 	port_ = port;
 }
 
-void server::start()
+void listener::start()
 {
 	boost::asio::ip::tcp::resolver resolver(io_service_);
 	boost::asio::ip::tcp::resolver::query query(address_, itoa(port_));
@@ -49,10 +49,10 @@ void server::start()
 	acceptor_.listen();
 
 	acceptor_.async_accept(new_connection_->socket(),
-		boost::bind(&server::handle_accept, this, boost::asio::placeholders::error));
+		boost::bind(&listener::handle_accept, this, boost::asio::placeholders::error));
 }
 
-void server::handle_accept(const boost::system::error_code& e)
+void listener::handle_accept(const boost::system::error_code& e)
 {
 	if (e)
 		return;
@@ -61,29 +61,29 @@ void server::handle_accept(const boost::system::error_code& e)
 	new_connection_.reset(new connection(io_service_, connection_manager_, request_handler_));
 
 	acceptor_.async_accept(new_connection_->socket(),
-		boost::bind(&server::handle_accept, this, boost::asio::placeholders::error));
+		boost::bind(&listener::handle_accept, this, boost::asio::placeholders::error));
 }
 
-void server::stop()
+void listener::stop()
 {
-	// the server is stopped by cancelling  all outstanding (async) operations.
+	// the listener is stopped by cancelling  all outstanding (async) operations.
 	// Once all operations have finished the io_servie_.run() call will exit.
-	io_service_.post(boost::bind(&server::handle_stop, this));
+	io_service_.post(boost::bind(&listener::handle_stop, this));
 }
 
-void server::handle_stop()
+void listener::handle_stop()
 {
 	acceptor_.close();
 	connection_manager_.stop_all();
 }
 
 
-std::string server::address() const
+std::string listener::address() const
 {
 	return address_;
 }
 
-int server::port() const
+int listener::port() const
 {
 	return port_;
 }

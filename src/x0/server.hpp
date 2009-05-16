@@ -1,7 +1,7 @@
 #ifndef sw_x0_server_h
 #define sw_x0_server_h
 
-#include <http/server.hpp>
+#include <http/listener.hpp>
 #include <x0/vhost.hpp>
 #include <x0/vhost_selector.hpp>
 #include <set>
@@ -29,10 +29,10 @@ public:
 	void stop();
 
 private:
-	http::server_ptr listener_by_port(int port);
+	http::listener_ptr listener_by_port(int port);
 
 private:
-	std::set<http::server_ptr> listeners_;
+	std::set<http::listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;
 	vhost_map vhosts_;
 };

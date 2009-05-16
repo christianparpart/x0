@@ -12,12 +12,12 @@
 
 namespace http {
 
-class server :
+class listener :
 	public boost::noncopyable
 {
 public:
-	explicit server(boost::asio::io_service&);
-	~server();
+	explicit listener(boost::asio::io_service&);
+	~listener();
 
 	void configure(const std::string& address = "0::0", int port = 8080);
 	void start();
@@ -30,7 +30,7 @@ private:
 	/// handle completion of an async accept operation
 	void handle_accept(const boost::system::error_code& e);
 
-	/// handle a request to stop the server.
+	/// handle a request to stop the listener.
 	void handle_stop();
 
 	boost::asio::io_service& io_service_;
@@ -42,7 +42,7 @@ private:
 	int port_;
 };
 
-typedef boost::shared_ptr<server> server_ptr;
+typedef boost::shared_ptr<listener> listener_ptr;
 
 } // namespace http
 
