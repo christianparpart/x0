@@ -1,11 +1,11 @@
-x0 - WEB SERVER
+x0 - WEB SERVER - http://code.ninchens.net/projects/x0
 -----------------------------------------------------------------------------
 
 CORE FEATURES:
 - configurable at runtime (via dbus)
 - plugin API and loadable modules
 - multiple virtual hosts
-- HTTP/1.0 and HTTP/1.1
+- HTTP/1.1 and HTTP/1.0
 - plaintext and SSL connections. (and the new mixed one, that apache invented?)
 
 THREADING MODEL:

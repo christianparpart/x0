@@ -1,6 +1,6 @@
 #include <x0/server.hpp>
 #include <x0/config.hpp>
-#include <http/listener.hpp>
+#include <x0/listener.hpp>
 #include <cstdlib>
 
 namespace x0 {
@@ -53,7 +53,7 @@ void server::configure()
 			continue;
 
 		// create a new listener
-		http::listener_ptr http_server(new http::listener(io_service_));
+		listener_ptr http_server(new listener(io_service_));
 
 		http_server->configure(address, port);
 
@@ -61,11 +61,11 @@ void server::configure()
 	}
 }
 
-http::listener_ptr server::listener_by_port(int port)
+listener_ptr server::listener_by_port(int port)
 {
 	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
-		http::listener_ptr http_server = *k;
+		listener_ptr http_server = *k;
 
 		if (http_server->port() == port)
 		{
@@ -73,7 +73,7 @@ http::listener_ptr server::listener_by_port(int port)
 		}
 	}
 
-	return http::listener_ptr();
+	return listener_ptr();
 }
 
 void server::pause()
