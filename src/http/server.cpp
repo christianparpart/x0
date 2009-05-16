@@ -7,7 +7,6 @@ namespace http {
 server::server(boost::asio::io_service& io_service)
   : io_service_(io_service),
 	acceptor_(io_service),
-	paused_(false),
 	connection_manager_(),
 	request_handler_("."),
 	new_connection_(new connection(io_service_, connection_manager_, request_handler_)),
@@ -29,13 +28,17 @@ static std::string itoa(T&& value)
 	return sstr.str();
 }
 
-void server::start(const std::string& address, int port)
+void server::configure(const std::string& address, int port)
+{
+	address_ = address;
+	port_ = port;
+}
+
+void server::start()
 {
 	boost::asio::ip::tcp::resolver resolver(io_service_);
-	boost::asio::ip::tcp::resolver::query query(address, itoa(8080));
+	boost::asio::ip::tcp::resolver::query query(address_, itoa(port_));
 	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
-
-	paused_ = false;
 
 	acceptor_.open(endpoint.protocol());
 	acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
@@ -45,13 +48,8 @@ void server::start(const std::string& address, int port)
 	acceptor_.bind(endpoint);
 	acceptor_.listen();
 
-	std::cout << "x0d server listening on: " << endpoint << std::endl;
-
 	acceptor_.async_accept(new_connection_->socket(),
 		boost::bind(&server::handle_accept, this, boost::asio::placeholders::error));
-
-	address_ = address;
-	port_ = port;
 }
 
 void server::handle_accept(const boost::system::error_code& e)
@@ -79,20 +77,6 @@ void server::handle_stop()
 	connection_manager_.stop_all();
 }
 
-void server::pause()
-{
-	paused_ = true;
-}
-
-bool server::paused() const
-{
-	return paused_;
-}
-
-void server::resume()
-{
-	paused_ = false;
-}
 
 std::string server::address() const
 {

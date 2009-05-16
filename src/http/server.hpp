@@ -13,15 +13,14 @@
 namespace http {
 
 class server :
-	public boost::noncopyable {
+	public boost::noncopyable
+{
 public:
 	explicit server(boost::asio::io_service&);
 	~server();
 
-	void start(const std::string& address = "0::0", int port = 8080);
-	void pause();
-	bool paused() const;
-	void resume();
+	void configure(const std::string& address = "0::0", int port = 8080);
+	void start();
 	void stop();
 
 	std::string address() const;
@@ -36,7 +35,6 @@ private:
 
 	boost::asio::io_service& io_service_;
 	boost::asio::ip::tcp::acceptor acceptor_;
-	bool paused_;
 	connection_manager connection_manager_;
 	request_handler request_handler_;
 	connection_ptr new_connection_;

@@ -12,13 +12,13 @@ namespace x0 {
  * implements an x0-server
  */
 class server :
-	private boost::noncopyable
+	public boost::noncopyable
 {
 private:
 	typedef std::map<vhost_selector, vhost_ptr> vhost_map;
 
 public:
-	server(boost::asio::io_service& io_service);
+	explicit server(boost::asio::io_service& io_service);
 	~server();
 
 	void configure();
@@ -27,6 +27,9 @@ public:
 	void pause();
 	void resume();
 	void stop();
+
+private:
+	http::server_ptr listener_by_port(int port);
 
 private:
 	std::set<http::server_ptr> listeners_;

@@ -21,7 +21,7 @@ void server::start()
 
 	for (auto i = listeners_.begin(); i != listeners_.end(); ++i)
 	{
-//		(*i)->start();
+		(*i)->start();
 	}
 }
 
@@ -33,37 +33,47 @@ void server::configure()
 	// populate vhosts database
 	config vhosts;
 	vhosts.load_file(global.get("service", "vhosts-file"));
-	std::cout << vhosts.serialize();
 
 	for (auto i = vhosts.cbegin(); i != vhosts.cend(); ++i)
 	{
 		std::string hostname = i->first;
 		int port = std::atoi(vhosts.get(hostname, "port").c_str());
 
-		std::cout << "vhost: " << hostname << " port " << port << std::endl;
-
 		vhosts_[vhost_selector(hostname, port)].reset(new vhost(i->second));
 	}
+
 	// populate TCP servers
 	for (auto i = vhosts_.begin(); i != vhosts_.end(); ++i)
 	{
+		std::string address = "0::0"; // bind address
 		int port = i->first.port;
 
 		// check if we already have an HTTP server listening on given port
-		for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
-		{
-			http::server_ptr http_server = *k;
+		if (listener_by_port(port))
+			continue;
 
-			if (http_server->port() == port)
-			{
-				continue;
-			}
-		}
-#if 0
 		// create a new listener
-		listeners_.insert(http::server_ptr(new http::server(io_service_)));
-#endif
+		http::server_ptr http_server(new http::server(io_service_));
+
+		http_server->configure(address, port);
+
+		listeners_.insert(http_server);
 	}
+}
+
+http::server_ptr server::listener_by_port(int port)
+{
+	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
+	{
+		http::server_ptr http_server = *k;
+
+		if (http_server->port() == port)
+		{
+			return http_server;
+		}
+	}
+
+	return http::server_ptr();
 }
 
 void server::pause()
@@ -76,6 +86,10 @@ void server::resume()
 
 void server::stop()
 {
+	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
+	{
+		(*k)->stop();
+	}
 }
 
 } // namespace x0

@@ -5,3 +5,6 @@ Testing
 Makefile
 *.a
 *.so
+src/x0d
+src/core
+src/core.*
