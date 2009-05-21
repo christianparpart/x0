@@ -2,26 +2,26 @@
 
 #include <x0/mime_types.hpp>
 #include <x0/request.hpp>
-#include <x0/reply.hpp>
+#include <x0/response.hpp>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
 #include <sstream>
 #include <string>
 
 namespace x0 {
-
+#if 1 == 0
 request_handler::request_handler(const std::string& docroot)
   : docroot_(docroot)
 {
 }
 
-void request_handler::handle_request(const request& req, reply& rep)
+void request_handler::handle_request(const request& req, response& rep)
 {
 	// decode url to path
 	std::string request_path;
 	if (!url_decode(req.uri, request_path))
 	{
-		rep = reply::stock_reply(reply::bad_request);
+		rep = response::stock_response(response::bad_request);
 		return;
 	}
 
@@ -29,7 +29,7 @@ void request_handler::handle_request(const request& req, reply& rep)
 	if (request_path.empty() || request_path[0] != '/'
 		|| request_path.find("..") != std::string::npos)
 	{
-		rep = reply::stock_reply(reply::bad_request);
+		rep = response::stock_response(response::bad_request);
 		return;
 	}
 
@@ -53,19 +53,19 @@ void request_handler::handle_request(const request& req, reply& rep)
 	std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
 	if (!is)
 	{
-		rep = reply::stock_reply(reply::not_found);
+		rep = response::stock_response(response::not_found);
 		return;
 	}
 
 	// fill response
-	rep.status = reply::ok;
+	rep.status = response::ok;
 	char buf[512];
 	while (is.read(buf, sizeof(buf)).gcount() > 0)
 		rep.content.append(buf, is.gcount());
 
 	rep.headers.resize(2);
 	rep.headers[0].name = "Content-Length";
-	rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
+	rep.headers[0].value = lexical_cast<std::string>(rep.content.size());
 	rep.headers[1].name = "Content-Type";
 	rep.headers[1].value = mime_types::extension_to_type(extension);
 }
@@ -110,4 +110,5 @@ bool request_handler::url_decode(const std::string& in, std::string& out)
 	return true;
 }
 
+#endif
 } // namespace x0

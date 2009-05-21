@@ -1,3 +1,9 @@
+/* <x0/mime_types.hpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef x0_mime_types_hpp
 #define x0_mime_types_hpp (1)
 

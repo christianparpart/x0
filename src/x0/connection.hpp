@@ -1,11 +1,18 @@
+/* <x0/connection.hpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef x0_connection_hpp
 #define x0_connection_hpp (1)
 
 #include <x0/connection.hpp>
-#include <x0/reply.hpp>
+#include <x0/response.hpp>
 #include <x0/request.hpp>
 #include <x0/request_handler.hpp>
 #include <x0/request_parser.hpp>
+#include <x0/types.hpp>
 
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
@@ -18,17 +25,20 @@ namespace x0 {
 
 class connection_manager;
 
+/**
+ * represents an HTTP connection handling incoming requests.
+ */
 class connection :
-	public boost::enable_shared_from_this<connection>,
-	private boost::noncopyable {
+	public enable_shared_from_this<connection>,
+	private noncopyable {
 public:
-	connection(boost::asio::io_service& io_service,
-		connection_manager& manager, request_handler& handler);
+	connection(io_service& io_service,
+		connection_manager& manager, const request_handler_fn& handler);
 
 	~connection();
 
 	/// get the connection socket handle
-	boost::asio::ip::tcp::socket& socket();
+	ip::tcp::socket& socket();
 
 	/// start first async operation for this connection
 	void start();
@@ -37,25 +47,20 @@ public:
 	void stop();
 
 private:
-	void handle_read(const boost::system::error_code& e, std::size_t bytes_transferred);
-	void handle_write(const boost::system::error_code& e);
+	void handle_read(const system::error_code& e, std::size_t bytes_transferred);
+	void handle_write(const system::error_code& e);
 
-	boost::asio::ip::tcp::socket socket_;
-	connection_manager& connection_manager_;
-	request_handler& request_handler_;
+	ip::tcp::socket socket_;					//!< the socket handle
+	connection_manager& connection_manager_;	//!< corresponding connection manager
+	request_handler_fn request_handler_;		//!< request handler to use
 
-	/// buffer for incoming data.
-	boost::array<char, 8192> buffer_;
+	// HTTP request
+	array<char, 8192> buffer_;			//!< buffer for incoming data.
+	request request_;					//!< parsed http request 
+	request_parser request_parser_;		//!< http request parser
 
-	/// HTTP request
-	request request_;
-
-	request_parser request_parser_;
-
-	reply reply_;
+	response_ptr response_;
 };
-
-typedef boost::shared_ptr<connection> connection_ptr;
 
 } // namespace x0
 

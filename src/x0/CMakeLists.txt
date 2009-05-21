@@ -1,9 +1,10 @@
 include_directories(..)
 add_definitions(-Wall -std=c++0x -pthread -ggdb3 -O0)
 
-link_libraries(dl pthread boost_system stdc++)
 INCLUDE(FindPkgConfig)
 pkg_check_modules(LUA lua)
+
+link_libraries(dl pthread boost_system boost_signals)
 
 add_executable(x0d
 	config.cpp
@@ -12,8 +13,11 @@ add_executable(x0d
 	listener.cpp
 	main.cpp
 	mime_types.cpp
-	reply.cpp
+	response.cpp
 	request_handler.cpp
 	request_parser.cpp
+	request.cpp
 	server.cpp
+	mod_sendfile.cpp
+	mod_vhost.cpp
 )

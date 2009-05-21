@@ -1,0 +1,90 @@
+/* <x0/handler.hpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
+#ifndef x0_handler_hpp
+#define x0_handler_hpp
+
+#include <x0/function.hpp>
+#include <x0/types.hpp>
+#include <boost/noncopyable.hpp>
+#include <list>
+
+namespace x0 {
+
+template<typename Fn>
+class handler;
+
+template<typename... Args>
+class handler<bool(Args...)> :
+	public noncopyable
+{
+public:
+	typedef function<bool(Args...)> functor;
+	typedef typename std::list<functor> list_type;
+	typedef typename list_type::iterator iterator;
+	typedef typename list_type::const_iterator const_iterator;
+
+public:
+	handler() :
+		impl_()
+	{
+	}
+
+	~handler()
+	{
+	}
+
+	bool empty() const
+	{
+		return impl_.empty();
+	}
+
+	std::size_t size() const
+	{
+		return impl_.size();
+	}
+
+	void connect(const functor&& fn)
+	{
+		impl_.push_back(fn);
+	}
+
+	void disconnect(const functor&& fn)
+	{
+		impl_.remove(fn);
+	}
+
+	handler& operator+=(const functor&& fn)
+	{
+		connect(fn);
+		return *this;
+	}
+
+	handler& operator-=(const functor&& fn)
+	{
+		disconnect(fn);
+		return *this;
+	}
+
+	bool operator()(Args... args)
+	{
+		for (const_iterator i = impl_.cbegin(); i != impl_.cend(); ++i)
+		{
+			if ((*i)(args...))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+private:
+	list_type impl_;
+};
+
+} // namespace x0
+
+#endif

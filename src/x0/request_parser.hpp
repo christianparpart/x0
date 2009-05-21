@@ -1,6 +1,13 @@
+/* <x0/request_parser.hpp>
+ * 
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef x0_http_request_parser_hpp
 #define x0_http_request_parser_hpp (1)
 
+#include <x0/types.hpp>
 #include <boost/logic/tribool.hpp>
 #include <boost/tuple/tuple.hpp>
 
@@ -16,20 +23,20 @@ public:
 	void reset();
 
 	template<typename InputIterator>
-	boost::tuple<boost::tribool, InputIterator> parse(request& req, InputIterator begin, InputIterator end)
+	tuple<tribool, InputIterator> parse(request& req, InputIterator begin, InputIterator end)
 	{
 		while (begin != end)
 		{
-			boost::tribool result = consume(req, *begin++);
+			tribool result = consume(req, *begin++);
 			if (result || !result)
-				return boost::make_tuple(result, begin);
+				return make_tuple(result, begin);
 		}
 
-		boost::tribool result = boost::indeterminate;
-		return boost::make_tuple(result, begin);
+		tribool result = indeterminate;
+		return make_tuple(result, begin);
 	}
 
-	boost::tribool consume(request& req, char input);
+	tribool consume(request& req, char input);
 
 	static bool is_char(int ch);
 	static bool is_ctl(int ch);

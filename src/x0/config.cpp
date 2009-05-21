@@ -31,7 +31,7 @@ static std::string read_file(const std::string& filename)
 		if (fd != -1)
 		{
 			char *buf = new char[st.st_size + 1];
-			if (read(fd, buf, st.st_size) != -1)
+			if (::read(fd, buf, st.st_size) != -1)
 			{
 				std::string str(buf, buf + st.st_size);
 				delete[] buf;
@@ -58,10 +58,10 @@ std::string trim(const std::string value)
 
 void config::load_file(const std::string& filename)
 {
-	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+	typedef tokenizer<char_separator<char> > tokenizer;
 
 	std::string input(read_file(filename));
-	tokenizer lines(input, boost::char_separator<char>("\n"));
+	tokenizer lines(input, char_separator<char>("\n"));
 	std::string current_title;
 
 	for (auto line = lines.begin(); line != lines.end(); ++line)

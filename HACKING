@@ -1,0 +1,18 @@
+
+CLASSES
+------------------------------------------------------------------------------
+config                  holds configuration settings being read from file
+connection              abstracts an HTTP connection (no matter how many requests it is passing/pipelining)
+connection_manager      maintains the set of available connections
+function                generic functor API
+handler                 generic handler API (e.g. used for content generator hook)
+header                  request/response header API
+listener                HTTP TCP/IP listener API
+plugin                  base class for x0 plugins
+request                 parsed HTTP request object
+request_parser          HTTP request parser
+response                HTTP response object
+server                  x0 server API
+vhost                   virtual host settings object
+vhost_selector          virtual host selector, that is, a (hostname:port)-pair
+

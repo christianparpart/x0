@@ -1,6 +1,13 @@
+/* <x0/config.hpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef x0_config_hpp
 #define x0_config_hpp (1)
 
+#include <x0/types.hpp>
 #include <string>
 #include <map>
 

@@ -1,12 +1,26 @@
 x0 - WEB SERVER - http://code.ninchens.net/projects/x0
 -----------------------------------------------------------------------------
 
-CORE FEATURES:
+CORE FEATURE ROADMAP:
 - configurable at runtime (via dbus)
 - plugin API and loadable modules
 - multiple virtual hosts
 - HTTP/1.1 and HTTP/1.0
+- HTTP pipelining
 - plaintext and SSL connections. (and the new mixed one, that apache invented?)
+- async sendfile()-use when serving static files
+
+MODULES:
+- redirect
+- rewrite
+- auth
+- user_dir
+- dbus
+- cgi/fastcgi
+- accesslog
+- directory-listing
+- directory-indexing
+- static files
 
 THREADING MODEL:
 - main thread performing I/O dispatching

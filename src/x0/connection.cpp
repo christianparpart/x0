@@ -1,87 +1,140 @@
 #include <x0/connection.hpp>
 #include <x0/connection_manager.hpp>
+#include <x0/types.hpp>
 #include <boost/bind.hpp>
 
 namespace x0 {
 
 connection::connection(
-	boost::asio::io_service& io_service, 
-	connection_manager& manager, request_handler& handler)
+	io_service& io_service, 
+	connection_manager& manager, const request_handler_fn& handler)
   : socket_(io_service),
 	connection_manager_(manager),
 	request_handler_(handler)
 {
+	request_.connection = this;
 }
 
 connection::~connection()
 {
 }
 
-boost::asio::ip::tcp::socket& connection::socket()
+/**
+ * gets the system socket handle for this connection.
+ */
+ip::tcp::socket& connection::socket()
 {
 	return socket_;
 }
 
+/**
+ * starts processing events from this connection.
+ */
 void connection::start()
 {
-	socket_.async_read_some(boost::asio::buffer(buffer_),
-		boost::bind(&connection::handle_read, shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+	socket_.async_read_some(buffer(buffer_),
+		bind(&connection::handle_read, shared_from_this(),
+			placeholders::error,
+			placeholders::bytes_transferred));
 }
 
+/**
+ * Stop this connection.
+ */
 void connection::stop()
 {
 	socket_.close();
 }
 
-void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
+/**
+ * This method gets invoked when there is data in our connection ready to read.
+ *
+ * We assume, that we are in request-parsing state.
+ */
+void connection::handle_read(const system::error_code& e, std::size_t bytes_transferred)
 {
 	if (!e)
 	{
-		boost::tribool result;
-		boost::tie(result, boost::tuples::ignore) = request_parser_.parse(
-			request_, buffer_.data(), buffer_.data() + bytes_transferred);
-
-		if (result)
+		// parse request (partial)
+		tribool result;
+		try
 		{
-			request_handler_.handle_request(request_, reply_);
-
-			boost::asio::async_write(socket_, reply_.to_buffers(),
-				boost::bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+			tie(result, tuples::ignore) = request_parser_.parse(
+				request_, buffer_.data(), buffer_.data() + bytes_transferred);
 		}
-		else if (!result)
+		catch (response_ptr reply)
 		{
-			reply_ = reply::stock_reply(reply::bad_request);
+			fprintf(stderr, "response_ptr exception caught (%d %s)\n", reply->status, response::status_cstr(reply->status));;
+			fflush(stderr);
+			response_ = reply;
 
-			boost::asio::async_write(socket_, reply_.to_buffers(),
-				boost::bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+			// initiate response sending
+			async_write(socket_, response_->to_buffers(),
+				bind(&connection::handle_write, shared_from_this(),
+					placeholders::error));
 		}
-		else
+
+		if (result) // request fully parsed
 		{
-			socket_.async_read_some(boost::asio::buffer(buffer_),
-				boost::bind(&connection::handle_read, shared_from_this(),
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
+			response_.reset(new response(0));
+			// -> handle request
+			try
+			{
+				request_handler_(request_, *response_);
+			}
+			catch (response_ptr reply)
+			{
+				fprintf(stderr, "response_ptr exception caught (%d %s)\n", reply->status, response::status_cstr(reply->status));;
+				fflush(stderr);
+				response_ = reply;
+			}
+
+			// initiate response sending
+			async_write(socket_, response_->to_buffers(),
+				bind(&connection::handle_write, shared_from_this(),
+					placeholders::error));
+		}
+		else if (!result) // received an invalid request
+		{
+			// -> send stock response: BAD_REQUEST
+			response_ = response::bad_request;
+
+			// initiate response sending
+			async_write(socket_, response_->to_buffers(),
+				bind(&connection::handle_write, shared_from_this(),
+					placeholders::error));
+		}
+		else // request still incomplete
+		{
+			// -> continue reading for request
+			socket_.async_read_some(buffer(buffer_),
+				bind(&connection::handle_read, shared_from_this(),
+					placeholders::error,
+					placeholders::bytes_transferred));
 		}
 	}
-	else if (e != boost::asio::error::operation_aborted)
+	else if (e != error::operation_aborted)
 	{
+		// some connection error (other than operation_aborted) happened
+		// -> kill this connection.
 		connection_manager_.stop(shared_from_this());
 	}
 }
 
-void connection::handle_write(const boost::system::error_code& e)
+/**
+ * this method gets invoked when response write operation has finished.
+ *
+ * We will fully shutown the TCP connection.
+ */
+void connection::handle_write(const system::error_code& e)
 {
 	if (!e)
 	{
-		boost::system::error_code ignored;
-		socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+		system::error_code ignored;
+		socket_.shutdown(ip::tcp::socket::shutdown_both, ignored);
 	}
 
-	if (e != boost::asio::error::operation_aborted)
+	if (e != error::operation_aborted)
 	{
 		connection_manager_.stop(shared_from_this());
 	}
