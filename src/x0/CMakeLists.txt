@@ -17,9 +17,8 @@ add_executable(x0d
 	request.cpp
 	server.cpp
 	strutils.cpp
-	mod_access.cpp
+	mod_accesslog.cpp
 	mod_indexfile.cpp
-	mod_mime.cpp
 	mod_sendfile.cpp
 	mod_vhost.cpp
 )

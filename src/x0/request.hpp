@@ -34,8 +34,8 @@ struct request
 	/// decoded path-part
 	std::string path;
 
-	/// the filename on disk to be served for this request.
-	std::string filename;
+	/// the final entity to be served, for example the full path to the file on disk.
+	std::string entity;
 
 	/// decoded query-part
 	std::string query;

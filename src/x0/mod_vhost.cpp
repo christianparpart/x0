@@ -27,7 +27,7 @@ public:
 		plugin(srv)
 	{
 		// setup hooks
-		server_.document_root_resolver.connect(x0::bindMember(&vhost_plugin::document_root_resolver, this));
+		server_.resolve_document_root.connect(x0::bindMember(&vhost_plugin::resolve_document_root, this));
 
 		// populate vhosts database
 		x0::config vhosts;
@@ -47,11 +47,11 @@ public:
 
 	~vhost_plugin()
 	{
-		server_.document_root_resolver.disconnect(x0::bindMember(&vhost_plugin::document_root_resolver, this));
+		server_.resolve_document_root.disconnect(x0::bindMember(&vhost_plugin::resolve_document_root, this));
 	}
 
 private:
-	void document_root_resolver(x0::request& r) {
+	void resolve_document_root(x0::request& r) {
 		if (r.document_root.empty())
 		{
 			x0::vhost_selector selector(r.get_header("Host"), r.connection->socket().local_endpoint().port());
@@ -60,7 +60,6 @@ private:
 			if (vhi != vhosts_.end())
 			{
 				r.document_root = vhi->second->config_section["document_root"];
-				// XXX maybe assign more vhost-related attributes to this request, e.g. AdminEMail, AdminName, etc.
 			}
 		}
 	}

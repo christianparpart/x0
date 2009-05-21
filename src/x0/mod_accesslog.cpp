@@ -1,4 +1,4 @@
-/* <x0/mod_access.cpp>
+/* <x0/mod_accesslog.cpp>
  *
  * This file is part of the x0 web server, released under GPLv3.
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
@@ -17,33 +17,33 @@
 
 /**
  * \ingroup modules
- * \brief implements an access log facility - in spirit of "combined" mode of apache's access logs.
+ * \brief implements an accesslog log facility - in spirit of "combined" mode of apache's accesslog logs.
  */
-class access_plugin :
+class accesslog_plugin :
 	public x0::plugin
 {
 private:
 	boost::signals::connection c;
 
 public:
-	access_plugin(x0::server& srv) :
+	accesslog_plugin(x0::server& srv) :
 		x0::plugin(srv)
 	{
-		c = srv.access_logger.connect(boost::bind(&access_plugin::access_logger, this, _1, _2));
+		c = srv.request_done.connect(boost::bind(&accesslog_plugin::request_done, this, _1, _2));
 	}
 
-	~access_plugin()
+	~accesslog_plugin()
 	{
-		server_.access_logger.disconnect(c);
+		server_.request_done.disconnect(c);
 	}
 
 	virtual void configure()
 	{
-		// TODO retrieve file to store access log to.
+		// TODO retrieve file to store accesslog log to.
 	}
 
 private:
-	void access_logger(x0::request& in, x0::response& out)
+	void request_done(x0::request& in, x0::response& out)
 	{
 		std::stringstream sstr;
 		sstr << hostname(in);
@@ -102,6 +102,6 @@ private:
 	}
 };
 
-extern "C" void access_init(x0::server& srv) {
-	srv.setup_plugin(x0::plugin_ptr(new access_plugin(srv)));
+extern "C" void accesslog_init(x0::server& srv) {
+	srv.setup_plugin(x0::plugin_ptr(new accesslog_plugin(srv)));
 }

@@ -7,9 +7,11 @@
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
+#include <x0/strutils.hpp>
 #include <x0/types.hpp>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/tokenizer.hpp>
 #include <boost/bind.hpp>
 
 #include <sys/sendfile.h>
@@ -25,20 +27,47 @@
 class sendfile_plugin :
 	public x0::plugin
 {
+private:
+	std::map<std::string, std::string> mime_types_;
+
 public:
 	sendfile_plugin(x0::server& srv) :
 		x0::plugin(srv)
 	{
-		server_.content_generator.connect(x0::bindMember(&sendfile_plugin::handler, this));
+		server_.generate_content.connect(x0::bindMember(&sendfile_plugin::sendfile, this));
 	}
 
 	~sendfile_plugin() {
-		server_.content_generator.disconnect(x0::bindMember(&sendfile_plugin::handler, this));
+		server_.generate_content.disconnect(x0::bindMember(&sendfile_plugin::sendfile, this));
+	}
+
+	virtual void configure()
+	{
+		typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+
+		std::string input(x0::read_file("/etc/mime.types"));
+		tokenizer lines(input, boost::char_separator<char>("\n"));
+
+		for (auto i = lines.begin(), e = lines.end(); i != e; ++i)
+		{
+			tokenizer columns(x0::trim(*i), boost::char_separator<char>(" \t"));
+
+			auto ci = columns.begin(), ce = columns.end();
+			std::string mime = ci != ce ? *ci++ : std::string();
+
+			if (!mime.empty() && mime[0] != '#')
+			{
+				for (; ci != ce; ++ci)
+				{
+					mime_types_[*ci] = mime;
+				}
+			}
+		}
 	}
 
 private:
-	bool handler(x0::request& in, x0::response& out) {
-		std::string path(in.filename);
+	bool sendfile(x0::request& in, x0::response& out) {
+		std::string path(in.entity);
 
 		struct stat st;
 		if (stat(path.c_str(), &st) != 0)
@@ -52,6 +81,7 @@ private:
 		}
 
 		// XXX setup some response headers
+		set_content_type(in, out);
 
 		out.content.resize(st.st_size);
 		::read(fd, &out.content[0], st.st_size);
@@ -60,6 +90,28 @@ private:
 		// XXX start async transfer through sendfile()
 
 		return true;
+	}
+
+	inline void set_content_type(x0::request& in, x0::response& out)
+	{
+		std::size_t ndot = in.entity.find_last_of(".");
+		std::size_t nslash = in.entity.find_last_of("/");
+
+		if (ndot != std::string::npos && ndot > nslash)
+		{
+			std::string extension = in.entity.substr(ndot + 1);
+			out += x0::header("Content-Type", get_mime_type(extension));
+		}
+		else
+		{
+			out += x0::header("Content-Type", "text/plain");
+		}
+	}
+
+	inline std::string get_mime_type(const std::string& ext) const
+	{
+		auto i = mime_types_.find(ext);
+		return i != mime_types_.end() ? i->second : "text/plain";
 	}
 };
 

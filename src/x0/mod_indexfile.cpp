@@ -33,12 +33,12 @@ public:
 	indexfile_plugin(x0::server& srv) :
 		x0::plugin(srv)
 	{
-		c = server_.uri_mapper.connect(boost::bind(&indexfile_plugin::indexfile, this, _1));
+		c = server_.resolve_entity.connect(boost::bind(&indexfile_plugin::indexfile, this, _1));
 	}
 
 	~indexfile_plugin()
 	{
-		server_.uri_mapper.disconnect(c);
+		server_.resolve_entity.disconnect(c);
 	}
 
 	virtual void configure()
@@ -70,7 +70,7 @@ private:
 			struct stat st2;
 			if (stat(ipath.c_str(), &st2) == 0 && S_ISREG(st2.st_mode))
 			{
-				in.filename = ipath;
+				in.entity = ipath;
 				break;
 			}
 		}

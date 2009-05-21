@@ -1,11 +1,18 @@
+DESIGN GOALS
+------------------------------------------------------------------------------
+- modular, clean, self explanary, and well documented API
+- avoid synchronous I/O as much as possible.
+- use sendfile() where possible
+- scale excellently over multiple CPUs and cores by supporting a threaded model (1 thread per CPU core)
+- caching: when caching of local files/stat's, use inotify API to invalidate those caches.
+- access control: support libwrap, if possible
+	(see external links at http://en.wikipedia.org/wiki/Libwrap)
 
 CLASSES
 ------------------------------------------------------------------------------
 config                  holds configuration settings being read from file
 connection              abstracts an HTTP connection (no matter how many requests it is passing/pipelining)
 connection_manager      maintains the set of available connections
-function                generic functor API
-handler                 generic handler API (e.g. used for content generator hook)
 header                  request/response header API
 listener                HTTP TCP/IP listener API
 plugin                  base class for x0 plugins
@@ -13,6 +20,9 @@ request                 parsed HTTP request object
 request_parser          HTTP request parser
 response                HTTP response object
 server                  x0 server API
+
 vhost                   virtual host settings object
 vhost_selector          virtual host selector, that is, a (hostname:port)-pair
 
+function                generic functor API
+handler                 generic handler API (e.g. used for content generator hook)

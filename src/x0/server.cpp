@@ -14,22 +14,22 @@
 
 // {{{ module hooks
 extern "C" void vhost_init(x0::server&);
-extern "C" void mime_init(x0::server&);
 extern "C" void sendfile_init(x0::server&);
-extern "C" void access_init(x0::server&);
+extern "C" void accesslog_init(x0::server&);
 extern "C" void indexfile_init(x0::server&);
 // }}}
 
 namespace x0 {
 
 server::server(boost::asio::io_service& io_service) :
-	pre_processor(),
-	document_root_resolver(),
-	uri_mapper(),
-	content_generator(),
-	response_header_generator(),
-	access_logger(),
-	post_processor(),
+	connection_open(),
+	pre_process(),
+	resolve_document_root(),
+	resolve_entity(),
+	generate_content(),
+	request_done(),
+	post_process(),
+	connection_close(),
 	listeners_(),
 	io_service_(io_service),
 	paused_(),
@@ -54,8 +54,7 @@ void server::configure()
 	// load modules
 	vhost_init(*this);
 	sendfile_init(*this);
-	mime_init(*this);
-	access_init(*this);
+	accesslog_init(*this);
 	indexfile_init(*this);
 
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
@@ -81,37 +80,35 @@ void server::start()
 
 void server::handle_request(request& in, response& out) {
 	// pre-request hook
-	pre_processor(in);
+	pre_process(in);
 
 	// resolve document root
-	document_root_resolver(in);
+	resolve_document_root(in);
+
 	if (in.document_root.empty())
 	{
 		// no document root assigned with this request.
 		in.document_root = "/dev/null";
 	}
 
-	in.filename = in.document_root + in.path;
-
-	// map request URI
-	uri_mapper(in);
+	// resolve entity
+	in.entity = in.document_root + in.path;
+	resolve_entity(in);
 
 	// generate response content, based on this request
-	if (!content_generator(in, out))
+	if (!generate_content(in, out))
 	{
 		// no content generator found for this request, default to 404 (Not Found)
 		out.status = response::not_found->status;
 		out.content = response::not_found->content;
 		out *= header("Content-Type", "text/html");
 	}
-	else if (!out.status)
+
+	if (!out.status)
 	{
 		// content generator found, but no status set, default to 200 (Ok)
 		out.status = 200;
 	}
-
-	// generate response header
-	response_header_generator(in, out);
 
 	if (!out.has_header("Content-Length"))
 	{
@@ -124,10 +121,10 @@ void server::handle_request(request& in, response& out) {
 	}
 
 	// log request/response
-	access_logger(in, out);
+	request_done(in, out);
 
 	// post-response hook
-	post_processor(in, out);
+	post_process(in, out);
 }
 
 /**

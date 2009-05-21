@@ -46,26 +46,29 @@ public:
 	// }}}
 
 	// {{{ signals raised on request in order
+	/** is invoked once a new client connection is established */
+	boost::signal<void(const connection_ptr&)> connection_open;
+
 	/** is called at the very beginning of a request. */
-	boost::signal<void(request&)> pre_processor;
+	boost::signal<void(request&)> pre_process;
 
 	/** resolves document_root to use for this request. */
-	boost::signal<void(request&)> document_root_resolver;
+	boost::signal<void(request&)> resolve_document_root;
 
-	/** maps a request URI to a physical path. */
-	boost::signal<void(request&)> uri_mapper;
+	/** resolves request's physical filename (maps URI to physical path). */
+	boost::signal<void(request&)> resolve_entity;
 
 	/** generates response content for this request being processed. */
-	handler<bool(request&, response&)> content_generator;
+	handler<bool(request&, response&)> generate_content;
 
-	/** generates response headers for this request being processed. */
-	boost::signal<void(request&, response&)> response_header_generator;
-
-	/** hook for generating access logs and other things to be logged per request/response. */
-	boost::signal<void(request&, response&)> access_logger;
+	/** hook for generating accesslog logs and other things to be done after the request has been served. */
+	boost::signal<void(request&, response&)> request_done;
 
 	/** is called at the very end of a request. */
-	boost::signal<void(request&, response&)> post_processor;
+	boost::signal<void(request&, response&)> post_process;
+
+	/** is called before a connection gets closed / or has been closed by remote point. */
+	boost::signal<void(const connection_ptr&)> connection_close;
 	// }}}
 
 	/** 
