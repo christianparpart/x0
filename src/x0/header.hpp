@@ -12,10 +12,13 @@
 
 namespace x0 {
 
-// represents an HTTP header (name/value pair)
+/**
+ * \ingroup core
+ * \brief represents an HTTP header (name/value pair).
+ */
 struct header {
-	std::string name;
-	std::string value;
+	std::string name;		//!< header name field
+	std::string value;		//!< header value field
 
 	header() : name(), value() { }
 	header(const header& v) : name(v.name), value(v.value) { }

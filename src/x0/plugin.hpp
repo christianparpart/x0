@@ -15,11 +15,17 @@ namespace x0 {
 
 class server;
 
+/**
+ * \ingroup core
+ * \brief base class for all plugins for use within this x0 web server.
+ *
+ * \see server, connection, request, response
+ */
 class plugin :
 	public noncopyable
 {
 public:
-	plugin(server& srv) :
+	explicit plugin(server& srv) :
 		server_(srv)
 	{
 	}

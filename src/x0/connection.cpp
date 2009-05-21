@@ -1,3 +1,9 @@
+/* <x0/connection.cpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/connection.hpp>
 #include <x0/connection_manager.hpp>
 #include <x0/types.hpp>
@@ -76,7 +82,7 @@ void connection::handle_read(const system::error_code& e, std::size_t bytes_tran
 
 		if (result) // request fully parsed
 		{
-			response_.reset(new response(0));
+			response_.reset(new response());
 			// -> handle request
 			try
 			{

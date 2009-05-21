@@ -1,3 +1,9 @@
+/* <x0/connection_manager.cpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/connection_manager.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>

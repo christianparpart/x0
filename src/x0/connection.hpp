@@ -26,7 +26,8 @@ namespace x0 {
 class connection_manager;
 
 /**
- * represents an HTTP connection handling incoming requests.
+ * \ingroup core
+ * \brief represents an HTTP connection handling incoming requests.
  */
 class connection :
 	public enable_shared_from_this<connection>,

@@ -15,6 +15,12 @@ namespace x0 {
 
 struct request;
 
+/**
+ * \ingroup core
+ * \brief implements the HTTP request parser.
+ *
+ * \see request, connection
+ */
 class request_parser
 {
 public:

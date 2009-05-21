@@ -14,7 +14,10 @@
 namespace x0 {
 
 /**
- * manages open client connections.
+ * \ingroup core
+ * \brief manages open client connections.
+ *
+ * \see connection, server
  */
 class connection_manager :
 	private noncopyable

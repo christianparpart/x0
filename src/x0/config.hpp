@@ -13,6 +13,10 @@
 
 namespace x0 {
 
+/**
+ * \ingroup core
+ * \brief configuration settings API.
+ */
 class config {
 public:
 	typedef std::map<std::string, std::string> section;

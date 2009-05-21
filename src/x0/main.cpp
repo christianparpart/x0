@@ -11,6 +11,12 @@
 #include <string>
 
 void logger(x0::request& req, x0::response&) {
+	// IP - - [DD/MMM/YYYY:hh:mm:ss REL] "GET /URI HTTP/1.1" 200 contentLength "-" "User-Agent" 
+	// "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"
+	// %l: identity (see identd service / apache's IdentityCheck)
+	// %u: username
+	// %t: timestamp
+	// %r: request line
 	std::cout << " - " << req.uri << std::endl;
 }
 
@@ -19,7 +25,7 @@ int main(int argc, char *argv[])
 	x0::io_service ios;
 	x0::server server(ios);
 
-	server.connection_logger.connect(&logger);
+	server.access_logger.connect(&logger);
 
 	server.start();
 

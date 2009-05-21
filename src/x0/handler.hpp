@@ -14,9 +14,18 @@
 
 namespace x0 {
 
+/** \addtogroup common */
+/*@{*/
+
 template<typename Fn>
 class handler;
 
+/**
+ * multi channel handler API.
+ *
+ * when being invoked, it calls all handlers being registered with this handler
+ * until the first feels responsible (that is: returns true).
+ */
 template<typename... Args>
 class handler<bool(Args...)> :
 	public noncopyable
@@ -84,6 +93,8 @@ public:
 private:
 	list_type impl_;
 };
+
+/*@}*/
 
 } // namespace x0
 

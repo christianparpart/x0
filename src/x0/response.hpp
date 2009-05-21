@@ -16,13 +16,13 @@
 
 namespace x0 {
 
-struct response;
-typedef shared_ptr<response> response_ptr;
-
 /**
- * HTTP response object.
+ * \ingroup core
+ * \brief HTTP response object.
  *
  * this response contains all information of data to be sent back to the requesting client.
+ *
+ * \see request, connection, server
  */
 struct response
 {
@@ -54,14 +54,6 @@ struct response
 	/// the content to be sent in the response.
 	std::string content;
 
-	/// adds a response header
-	response& operator+=(const header&);
-
-	// sets a response header value (overwrites existing one)
-	response& operator*=(const header&);
-
-	bool has_header(const std::string&) const;
-
 	/**
 	 * convert the response into a vector of buffers. 
 	 *
@@ -71,9 +63,26 @@ struct response
 	 */
 	std::vector<asio::const_buffer> to_buffers();
 
-	/// constructs a standard response
+public:
+	/** creates an empty response object */
+	response();
+
+	/** constructs a standard response. */
 	explicit response(int code);
 
+	/** adds a response header. */
+	response& operator+=(const header& hd);
+
+	/** sets a response header value (overwrites existing one if already defined). */
+	response& operator*=(const header& hd);
+
+	/** checks wether given response header has been already defined. */
+	bool has_header(const std::string& name) const;
+
+	/** retrieves the value of a given header by name. */
+	std::string get_header(const std::string& name) const;
+
+public:
 	static const char *status_cstr(int status);
 	static std::string status_str(int status);
 

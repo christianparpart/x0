@@ -1,3 +1,9 @@
+/* <x0/request_handler.cpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/request_handler.hpp>
 
 #include <x0/mime_types.hpp>

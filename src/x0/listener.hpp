@@ -20,6 +20,19 @@
 
 namespace x0 {
 
+/**
+ * \ingroup core
+ * \brief TCP/IP listener for the HTTP protocol.
+ *
+ * This class implements the TCP/IP listener for the HTTP protocol.
+ * It binds and listens on a given address:port pair and creates a
+ * new connection object for each new incoming TCP/IP client to process
+ * all requests incoming from this request.
+ *
+ * @see server
+ * @see connection
+ * @see connection_manager
+ */
 class listener :
 	public noncopyable
 {

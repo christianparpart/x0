@@ -14,7 +14,12 @@
 
 namespace x0 {
 
-/// a client HTTP reuqest object, holding the parsed x0 request data.
+/**
+ * \ingroup core
+ * \brief a client HTTP reuqest object, holding the parsed x0 request data.
+ *
+ * \see header, response, connection, server
+ */
 struct request
 {
 	/// the TCP/IP connection this request has been sent through

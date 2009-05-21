@@ -8,11 +8,20 @@
 #ifndef nuggad_function_h
 #define nuggad_function_h (1)
 
+#include <x0/types.hpp>
+
 namespace x0 {
+
+/** \addtogroup common */
+/*@{*/
 
 // {{{ function<Result(Args...)>
 template<typename SignatureT> class function;
 
+/**
+ * \brief functor API
+ * \see handler<bool(Args...)>
+ */
 template<typename _Result, typename... _Args>
 class function<_Result(_Args...)> {
 private:
@@ -180,6 +189,8 @@ template<typename _Return, typename _Class, typename... _Args>
 inline function<_Return(_Args...)> bindMember(_Return(_Class::*func)(_Args...), _Class *obj) {
 	return function<_Return(_Args...)>(obj, func);
 }
+
+/*@}*/
 
 } // namespace x0
 

@@ -12,12 +12,13 @@ add_executable(x0d
 	connection_manager.cpp
 	listener.cpp
 	main.cpp
-	mime_types.cpp
 	response.cpp
 	request_handler.cpp
 	request_parser.cpp
 	request.cpp
 	server.cpp
+	strutils.cpp
+	mod_mime.cpp
 	mod_sendfile.cpp
 	mod_vhost.cpp
 )

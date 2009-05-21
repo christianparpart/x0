@@ -17,24 +17,11 @@ namespace x0 {
 struct request;
 struct response;
 
+/**
+ * \ingroup core
+ * \brief request handler functor.
+ */
 typedef function<void(request&, response&)> request_handler_fn;
-
-#if 0
-// XXX old
-class request_handler :
-	private noncopyable
-{
-public:
-	explicit request_handler(const std::string& docroot);
-
-	void handle_request(const request& req, response& rep);
-
-private:
-	std::string docroot_;
-
-	static bool url_decode(const std::string& in, std::string& out);
-};
-#endif
 
 } // namespace x0
 

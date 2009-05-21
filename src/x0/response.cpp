@@ -1,3 +1,9 @@
+/* <x0/response.cpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/response.hpp>
 #include <x0/types.hpp>
 
@@ -71,6 +77,19 @@ bool response::has_header(const std::string& name) const
 	return false;
 }
 
+std::string response::get_header(const std::string& name) const
+{
+	for (auto i = headers.cbegin(); i != headers.cend(); ++i)
+	{
+		if (i->name == name)
+		{
+			return i->value;
+		}
+	}
+
+	return std::string();
+}
+
 std::vector<const_buffer> response::to_buffers()
 {
 	status_buf[0] = '0' + (status / 100);
@@ -99,6 +118,11 @@ std::vector<const_buffer> response::to_buffers()
 	buffers.push_back(buffer(content));
 
 	return buffers;
+}
+
+response::response() :
+	status(0)
+{
 }
 
 response::response(int status) :

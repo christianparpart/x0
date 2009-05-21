@@ -1,3 +1,9 @@
+/* <x0/server.cpp>
+ *
+ * This file is part of the x0 web server, released under GPLv3.
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/server.hpp>
 #include <x0/config.hpp>
 #include <x0/listener.hpp>
@@ -11,13 +17,11 @@ namespace x0 {
 
 server::server(io_service& io_service) :
 	pre_processor(),
-	uri_mapper(),
-	uri_validator(),
 	document_root_resolver(),
+	uri_mapper(),
 	content_generator(),
 	response_header_generator(),
-	response_header_validator(),
-	connection_logger(),
+	access_logger(),
 	post_processor(),
 	listeners_(),
 	io_service_(io_service),
@@ -25,7 +29,6 @@ server::server(io_service& io_service) :
 	config_(),
 	plugins_()
 {
-	response_header_generator.connect(bind(&server::generate_response_headers, this, _1, _2));
 }
 
 server::~server()
@@ -44,6 +47,12 @@ void server::configure()
 	// load modules
 	vhost_init(*this);
 	sendfile_init(*this);
+	mime_init(*this);
+
+	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+	{
+		(*i)->configure();
+	}
 }
 
 /**
@@ -62,10 +71,13 @@ void server::start()
 }
 
 void server::handle_request(request& in, response& out) {
+	// pre-request hook
 	pre_processor(in);
-	uri_mapper(in);
-	uri_validator(in);
 
+	// map request URI
+	uri_mapper(in);
+
+	// resolve document root
 	document_root_resolver(in);
 	if (in.document_root.empty())
 	{
@@ -73,6 +85,7 @@ void server::handle_request(request& in, response& out) {
 		in.document_root = "/dev/null";
 	}
 
+	// generate response content, based on this request
 	if (!content_generator(in, out))
 	{
 		// no content generator found for this request, default to 404 (Not Found)
@@ -85,14 +98,9 @@ void server::handle_request(request& in, response& out) {
 		out.status = 200;
 	}
 
+	// generate response header
 	response_header_generator(in, out);
-	response_header_validator(in, out);
-	connection_logger(in, out);
-	post_processor(in, out);
-}
 
-void server::generate_response_headers(request& in, response& out)
-{
 	if (!out.has_header("Content-Length"))
 	{
 		out += header("Content-Length", lexical_cast<std::string>(out.content.length()));
@@ -102,6 +110,12 @@ void server::generate_response_headers(request& in, response& out)
 	{
 		out += header("Content-Type", "text/plain");
 	}
+
+	// log request/response
+	access_logger(in, out);
+
+	// post-response hook
+	post_processor(in, out);
 }
 
 /**
