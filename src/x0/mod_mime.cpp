@@ -72,12 +72,12 @@ private:
 	{
 		if (!out.has_header("Content-Type"))
 		{
-			std::size_t ndot = in.path.find_last_of(".");
-			std::size_t nslash = in.path.find_last_of("/");
+			std::size_t ndot = in.filename.find_last_of(".");
+			std::size_t nslash = in.filename.find_last_of("/");
 
 			if (ndot != std::string::npos && ndot > nslash)
 			{
-				std::string extension = in.path.substr(ndot + 1);
+				std::string extension = in.filename.substr(ndot + 1);
 				out += x0::header("Content-Type", get_mime_type(extension));
 			}
 			else

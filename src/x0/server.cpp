@@ -17,6 +17,7 @@ extern "C" void vhost_init(x0::server&);
 extern "C" void mime_init(x0::server&);
 extern "C" void sendfile_init(x0::server&);
 extern "C" void access_init(x0::server&);
+extern "C" void indexfile_init(x0::server&);
 // }}}
 
 namespace x0 {
@@ -55,6 +56,7 @@ void server::configure()
 	sendfile_init(*this);
 	mime_init(*this);
 	access_init(*this);
+	indexfile_init(*this);
 
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
@@ -81,9 +83,6 @@ void server::handle_request(request& in, response& out) {
 	// pre-request hook
 	pre_processor(in);
 
-	// map request URI
-	uri_mapper(in);
-
 	// resolve document root
 	document_root_resolver(in);
 	if (in.document_root.empty())
@@ -92,12 +91,18 @@ void server::handle_request(request& in, response& out) {
 		in.document_root = "/dev/null";
 	}
 
+	in.filename = in.document_root + in.path;
+
+	// map request URI
+	uri_mapper(in);
+
 	// generate response content, based on this request
 	if (!content_generator(in, out))
 	{
 		// no content generator found for this request, default to 404 (Not Found)
-		out.content = response::not_found->status;
+		out.status = response::not_found->status;
 		out.content = response::not_found->content;
+		out *= header("Content-Type", "text/html");
 	}
 	else if (!out.status)
 	{

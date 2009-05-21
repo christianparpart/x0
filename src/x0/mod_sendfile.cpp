@@ -38,7 +38,7 @@ public:
 
 private:
 	bool handler(x0::request& in, x0::response& out) {
-		std::string path("." + in.uri);
+		std::string path(in.filename);
 
 		struct stat st;
 		if (stat(path.c_str(), &st) != 0)
