@@ -8,8 +8,6 @@
 #ifndef nuggad_function_h
 #define nuggad_function_h (1)
 
-#include <x0/types.hpp>
-
 namespace x0 {
 
 /** \addtogroup common */

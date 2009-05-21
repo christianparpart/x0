@@ -14,10 +14,10 @@ namespace x0 {
 
 void config::load_file(const std::string& filename)
 {
-	typedef tokenizer<char_separator<char> > tokenizer;
+	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 
 	std::string input(read_file(filename));
-	tokenizer lines(input, char_separator<char>("\n"));
+	tokenizer lines(input, boost::char_separator<char>("\n"));
 	std::string current_title;
 
 	for (auto line = lines.begin(); line != lines.end(); ++line)

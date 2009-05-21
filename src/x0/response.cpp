@@ -90,32 +90,32 @@ std::string response::get_header(const std::string& name) const
 	return std::string();
 }
 
-std::vector<const_buffer> response::to_buffers()
+std::vector<boost::asio::const_buffer> response::to_buffers()
 {
 	status_buf[0] = '0' + (status / 100);
 	status_buf[1] = '0' + (status / 10 % 10);
 	status_buf[2] = '0' + (status % 10);
 
-	std::vector<const_buffer> buffers;
+	std::vector<boost::asio::const_buffer> buffers;
 
-	buffers.push_back(buffer(misc_strings::http11_));
-	buffers.push_back(buffer(status_buf));
-	buffers.push_back(buffer(misc_strings::space));
-	buffers.push_back(buffer(status_cstr(status)));
-	buffers.push_back(buffer(misc_strings::crlf));
+	buffers.push_back(boost::asio::buffer(misc_strings::http11_));
+	buffers.push_back(boost::asio::buffer(status_buf));
+	buffers.push_back(boost::asio::buffer(misc_strings::space));
+	buffers.push_back(boost::asio::buffer(status_cstr(status)));
+	buffers.push_back(boost::asio::buffer(misc_strings::crlf));
 
 	for (std::size_t i = 0; i < headers.size(); ++i)
 	{
 		const header& h = headers[i];
 
-		buffers.push_back(buffer(h.name));
-		buffers.push_back(buffer(misc_strings::name_value_separator));
-		buffers.push_back(buffer(h.value));
-		buffers.push_back(buffer(misc_strings::crlf));
+		buffers.push_back(boost::asio::buffer(h.name));
+		buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
+		buffers.push_back(boost::asio::buffer(h.value));
+		buffers.push_back(boost::asio::buffer(misc_strings::crlf));
 	}
 
-	buffers.push_back(buffer(misc_strings::crlf));
-	buffers.push_back(buffer(content));
+	buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+	buffers.push_back(boost::asio::buffer(content));
 
 	return buffers;
 }

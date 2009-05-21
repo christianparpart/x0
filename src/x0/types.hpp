@@ -4,11 +4,12 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#ifndef x0_defs_h
-#define x0_defs_h (1)
+#ifndef x0_types_h
+#define x0_types_h (1)
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 
 namespace x0 {
 
@@ -27,14 +28,18 @@ namespace x0 {
  * @brief x0 web server modules.
  */
 
-using namespace boost;
-using namespace boost::asio;
-
 class connection;
+struct request;
 struct response;
 
-typedef shared_ptr<connection> connection_ptr;
-typedef shared_ptr<response> response_ptr;
+typedef boost::shared_ptr<connection> connection_ptr;
+typedef boost::shared_ptr<response> response_ptr;
+
+/**
+ * \ingroup core
+ * \brief request handler functor.
+ */
+typedef boost::function<void(request&, response&)> request_handler_fn;
 
 } // namespace x0
 

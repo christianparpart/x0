@@ -61,7 +61,7 @@ struct response
 	 * therefore the response object must remain valid and
 	 * not be changed until the write operation has completed.
 	 */
-	std::vector<asio::const_buffer> to_buffers();
+	std::vector<boost::asio::const_buffer> to_buffers();
 
 public:
 	/** creates an empty response object */

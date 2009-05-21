@@ -50,6 +50,9 @@ struct request
 
 	// -- accumulated request data
 
+	/// username this client has authenticated with.
+	std::string username;
+
 	/// the document root directory for this request.
 	std::string document_root;
 };

@@ -12,7 +12,7 @@
 namespace x0 {
 
 connection::connection(
-	io_service& io_service, 
+	boost::asio::io_service& io_service, 
 	connection_manager& manager, const request_handler_fn& handler)
   : socket_(io_service),
 	connection_manager_(manager),
@@ -28,7 +28,7 @@ connection::~connection()
 /**
  * gets the system socket handle for this connection.
  */
-ip::tcp::socket& connection::socket()
+boost::asio::ip::tcp::socket& connection::socket()
 {
 	return socket_;
 }
@@ -38,10 +38,10 @@ ip::tcp::socket& connection::socket()
  */
 void connection::start()
 {
-	socket_.async_read_some(buffer(buffer_),
+	socket_.async_read_some(boost::asio::buffer(buffer_),
 		bind(&connection::handle_read, shared_from_this(),
-			placeholders::error,
-			placeholders::bytes_transferred));
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred));
 }
 
 /**
@@ -57,15 +57,15 @@ void connection::stop()
  *
  * We assume, that we are in request-parsing state.
  */
-void connection::handle_read(const system::error_code& e, std::size_t bytes_transferred)
+void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
 {
 	if (!e)
 	{
 		// parse request (partial)
-		tribool result;
+		boost::tribool result;
 		try
 		{
-			tie(result, tuples::ignore) = request_parser_.parse(
+			boost::tie(result, boost::tuples::ignore) = request_parser_.parse(
 				request_, buffer_.data(), buffer_.data() + bytes_transferred);
 		}
 		catch (response_ptr reply)
@@ -77,7 +77,7 @@ void connection::handle_read(const system::error_code& e, std::size_t bytes_tran
 			// initiate response sending
 			async_write(socket_, response_->to_buffers(),
 				bind(&connection::handle_write, shared_from_this(),
-					placeholders::error));
+					boost::asio::placeholders::error));
 		}
 
 		if (result) // request fully parsed
@@ -98,7 +98,7 @@ void connection::handle_read(const system::error_code& e, std::size_t bytes_tran
 			// initiate response sending
 			async_write(socket_, response_->to_buffers(),
 				bind(&connection::handle_write, shared_from_this(),
-					placeholders::error));
+					boost::asio::placeholders::error));
 		}
 		else if (!result) // received an invalid request
 		{
@@ -108,18 +108,18 @@ void connection::handle_read(const system::error_code& e, std::size_t bytes_tran
 			// initiate response sending
 			async_write(socket_, response_->to_buffers(),
 				bind(&connection::handle_write, shared_from_this(),
-					placeholders::error));
+					boost::asio::placeholders::error));
 		}
 		else // request still incomplete
 		{
 			// -> continue reading for request
-			socket_.async_read_some(buffer(buffer_),
+			socket_.async_read_some(boost::asio::buffer(buffer_),
 				bind(&connection::handle_read, shared_from_this(),
-					placeholders::error,
-					placeholders::bytes_transferred));
+					boost::asio::placeholders::error,
+					boost::asio::placeholders::bytes_transferred));
 		}
 	}
-	else if (e != error::operation_aborted)
+	else if (e != boost::asio::error::operation_aborted)
 	{
 		// some connection error (other than operation_aborted) happened
 		// -> kill this connection.
@@ -132,15 +132,15 @@ void connection::handle_read(const system::error_code& e, std::size_t bytes_tran
  *
  * We will fully shutown the TCP connection.
  */
-void connection::handle_write(const system::error_code& e)
+void connection::handle_write(const boost::system::error_code& e)
 {
 	if (!e)
 	{
-		system::error_code ignored;
-		socket_.shutdown(ip::tcp::socket::shutdown_both, ignored);
+		boost::system::error_code ignored;
+		socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
 	}
 
-	if (e != error::operation_aborted)
+	if (e != boost::asio::error::operation_aborted)
 	{
 		connection_manager_.stop(shared_from_this());
 	}

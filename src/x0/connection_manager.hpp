@@ -20,7 +20,7 @@ namespace x0 {
  * \see connection, server
  */
 class connection_manager :
-	private noncopyable
+	private boost::noncopyable
 {
 public:
 	/// adds a new connection to the manager and start it.

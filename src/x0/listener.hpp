@@ -9,7 +9,6 @@
 
 #include <x0/connection.hpp>
 #include <x0/connection_manager.hpp>
-#include <x0/request_handler.hpp>
 #include <x0/types.hpp>
 
 #include <boost/noncopyable.hpp>
@@ -34,10 +33,10 @@ namespace x0 {
  * @see connection_manager
  */
 class listener :
-	public noncopyable
+	public boost::noncopyable
 {
 public:
-	explicit listener(asio::io_service&, const request_handler_fn& handler);
+	explicit listener(boost::asio::io_service&, const request_handler_fn& handler);
 	~listener();
 
 	void configure(const std::string& address = "0::0", int port = 8080);
@@ -49,13 +48,13 @@ public:
 
 private:
 	/// handle completion of an async accept operation
-	void handle_accept(const system::error_code& e);
+	void handle_accept(const boost::system::error_code& e);
 
 	/// handle a request to stop the listener.
 	void handle_stop();
 
-	asio::io_service& io_service_;
-	asio::ip::tcp::acceptor acceptor_;
+	boost::asio::io_service& io_service_;
+	boost::asio::ip::tcp::acceptor acceptor_;
 	connection_manager connection_manager_;
 	request_handler_fn handler_;
 	connection_ptr new_connection_;
@@ -63,7 +62,7 @@ private:
 	int port_;
 };
 
-typedef shared_ptr<listener> listener_ptr;
+typedef boost::shared_ptr<listener> listener_ptr;
 
 } // namespace x0
 

@@ -33,7 +33,7 @@ struct vhost
 	}
 };
 
-typedef shared_ptr<vhost> vhost_ptr;
+typedef boost::shared_ptr<vhost> vhost_ptr;
 
 } // namespace x0
 

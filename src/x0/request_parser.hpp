@@ -29,20 +29,20 @@ public:
 	void reset();
 
 	template<typename InputIterator>
-	tuple<tribool, InputIterator> parse(request& req, InputIterator begin, InputIterator end)
+	boost::tuple<boost::tribool, InputIterator> parse(request& req, InputIterator begin, InputIterator end)
 	{
 		while (begin != end)
 		{
-			tribool result = consume(req, *begin++);
+			boost::tribool result = consume(req, *begin++);
 			if (result || !result)
-				return make_tuple(result, begin);
+				return boost::make_tuple(result, begin);
 		}
 
-		tribool result = indeterminate;
-		return make_tuple(result, begin);
+		boost::tribool result = boost::indeterminate;
+		return boost::make_tuple(result, begin);
 	}
 
-	tribool consume(request& req, char input);
+	boost::tribool consume(request& req, char input);
 
 	static bool is_char(int ch);
 	static bool is_ctl(int ch);

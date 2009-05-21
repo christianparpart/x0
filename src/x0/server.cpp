@@ -4,18 +4,24 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/server.hpp>
 #include <x0/config.hpp>
 #include <x0/listener.hpp>
-#include <x0/request_handler.hpp>
+#include <x0/server.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
 #include <cstdlib>
 
+// {{{ module hooks
+extern "C" void vhost_init(x0::server&);
+extern "C" void mime_init(x0::server&);
+extern "C" void sendfile_init(x0::server&);
+extern "C" void access_init(x0::server&);
+// }}}
+
 namespace x0 {
 
-server::server(io_service& io_service) :
+server::server(boost::asio::io_service& io_service) :
 	pre_processor(),
 	document_root_resolver(),
 	uri_mapper(),
@@ -48,6 +54,7 @@ void server::configure()
 	vhost_init(*this);
 	sendfile_init(*this);
 	mime_init(*this);
+	access_init(*this);
 
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
@@ -103,7 +110,7 @@ void server::handle_request(request& in, response& out) {
 
 	if (!out.has_header("Content-Length"))
 	{
-		out += header("Content-Length", lexical_cast<std::string>(out.content.length()));
+		out += header("Content-Length", boost::lexical_cast<std::string>(out.content.length()));
 	}
 
 	if (!out.has_header("Content-Type"))
@@ -166,7 +173,7 @@ void server::setup_listener(int port, const std::string& bind_address)
 		return;
 
 	// create a new listener
-	listener_ptr lp(new listener(io_service_, bind(&server::handle_request, this, _1, _2)));
+	listener_ptr lp(new listener(io_service_, boost::bind(&server::handle_request, this, _1, _2)));
 
 	lp->configure(bind_address, port);
 

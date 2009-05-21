@@ -26,10 +26,10 @@ namespace x0 {
  * \see server::start(), server::stop()
  */
 class server :
-	public noncopyable
+	public boost::noncopyable
 {
 public:
-	explicit server(asio::io_service& io_service);
+	explicit server(boost::asio::io_service& io_service);
 	~server();
 
 	// {{{ service control
@@ -94,20 +94,13 @@ private:
 
 private:
 	std::set<listener_ptr> listeners_;
-	asio::io_service& io_service_;
+	boost::asio::io_service& io_service_;
 	bool paused_;
 	config config_;
 	std::list<plugin_ptr> plugins_;
 };
 
 } // namespace x0
-
-// {{{ module hooks
-extern "C" void vhost_init(x0::server&);
-extern "C" void mime_init(x0::server&);
-extern "C" void sendfile_init(x0::server&);
-extern "C" void accesslog_init(x0::server&);
-// }}}
 
 #endif
 // vim:syntax=cpp

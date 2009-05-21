@@ -22,7 +22,7 @@ class server;
  * \see server, connection, request, response
  */
 class plugin :
-	public noncopyable
+	public boost::noncopyable
 {
 public:
 	explicit plugin(server& srv) :
@@ -42,7 +42,7 @@ protected:
 	server& server_;
 };
 
-typedef shared_ptr<plugin> plugin_ptr;
+typedef boost::shared_ptr<plugin> plugin_ptr;
 
 } // namespace x0
 

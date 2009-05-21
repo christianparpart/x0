@@ -24,7 +24,7 @@ struct vhost_selector
 		std::size_t n = hostname.find(":");
 		if (n != std::string::npos)
 		{
-			port = lexical_cast<int>(_host.substr(n + 1));
+			port = boost::lexical_cast<int>(_host.substr(n + 1));
 			hostname = _host.substr(0, n);
 		}
 	}

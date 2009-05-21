@@ -62,7 +62,7 @@ static inline bool url_decode(std::string& url)
 	return true;
 }
 
-tribool request_parser::consume(request& r, char input)
+boost::tribool request_parser::consume(request& r, char input)
 {
 	switch (state_)
 	{
@@ -75,13 +75,13 @@ tribool request_parser::consume(request& r, char input)
 			{
 				state_ = method;
 				r.method.push_back(input);
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case method:
 			if (input == ' ')
 			{
 				state_ = uri;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
 			{
@@ -90,7 +90,7 @@ tribool request_parser::consume(request& r, char input)
 			else
 			{
 				r.method.push_back(input);
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case uri_start:
 			if (is_ctl(input))
@@ -101,7 +101,7 @@ tribool request_parser::consume(request& r, char input)
 			{
 				state_ = uri;
 				r.uri.push_back(input);
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case uri:
 			if (input == ' ')
@@ -128,7 +128,7 @@ tribool request_parser::consume(request& r, char input)
 				}
 
 				state_ = http_version_h;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (is_ctl(input))
 			{
@@ -137,13 +137,13 @@ tribool request_parser::consume(request& r, char input)
 			else
 			{
 				r.uri.push_back(input);
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case http_version_h:
 			if (input == 'H')
 			{
 				state_ = http_version_t_1;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -153,7 +153,7 @@ tribool request_parser::consume(request& r, char input)
 			if (input == 'T')
 			{
 				state_ = http_version_t_2;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -163,7 +163,7 @@ tribool request_parser::consume(request& r, char input)
 			if (input == 'T')
 			{
 				state_ = http_version_p;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -173,7 +173,7 @@ tribool request_parser::consume(request& r, char input)
 			if (input == 'P')
 			{
 				state_ = http_version_slash;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -186,7 +186,7 @@ tribool request_parser::consume(request& r, char input)
 				r.http_version_minor = 0;
 
 				state_ = http_version_major_start;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -197,7 +197,7 @@ tribool request_parser::consume(request& r, char input)
 			{
 				r.http_version_major = r.http_version_major * 10 + input - '0';
 				state_ = http_version_major;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -207,12 +207,12 @@ tribool request_parser::consume(request& r, char input)
 			if (input == '.')
 			{
 				state_ = http_version_minor_start;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (is_digit(input))
 			{
 				r.http_version_major = r.http_version_major * 10 + input - '0';
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -222,12 +222,12 @@ tribool request_parser::consume(request& r, char input)
 			if (input == '\r')
 			{
 				state_ = expecting_newline_1;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (is_digit(input))
 			{
 				r.http_version_minor = r.http_version_minor * 10 + input - '0';
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -237,7 +237,7 @@ tribool request_parser::consume(request& r, char input)
 			if (input == '\n')
 			{
 				state_ = header_line_start;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -247,12 +247,12 @@ tribool request_parser::consume(request& r, char input)
 			if (input == '\r')
 			{
 				state_ = expecting_newline_3;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (!r.headers.empty() && (input == ' ' || input == '\t'))
 			{
 				state_ = header_lws;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
 			{
@@ -263,29 +263,29 @@ tribool request_parser::consume(request& r, char input)
 				r.headers.push_back(header());
 				r.headers.back().name.push_back(input);
 				state_ = header_name;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case header_lws:
 			if (input == '\r')
 			{
 				state_ = expecting_newline_2;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (input == ' ' || input == '\t')
 			{
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
 				state_ = header_value;
 				r.headers.back().value.push_back(input);
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case header_name:
 			if (input == ':')
 			{
 				state_ = space_before_header_value;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
 			{
@@ -294,13 +294,13 @@ tribool request_parser::consume(request& r, char input)
 			else
 			{
 				r.headers.back().name.push_back(input);
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case space_before_header_value:
 			if (input == ' ')
 			{
 				state_ = header_value;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{
@@ -310,7 +310,7 @@ tribool request_parser::consume(request& r, char input)
 			if (input == '\r')
 			{
 				state_ = expecting_newline_2;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else if (is_ctl(input))
 			{
@@ -319,13 +319,13 @@ tribool request_parser::consume(request& r, char input)
 			else
 			{
 				r.headers.back().value.push_back(input);
-				return indeterminate;
+				return boost::indeterminate;
 			}
 		case expecting_newline_2:
 			if (input == '\n')
 			{
 				state_ = header_line_start;
-				return indeterminate;
+				return boost::indeterminate;
 			}
 			else
 			{

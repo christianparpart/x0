@@ -50,7 +50,6 @@ private:
 			// TODO log errno
 			return false;
 		}
-		std::cout << "sendfile:" << std::endl;
 
 		// XXX setup some response headers
 

@@ -10,7 +10,6 @@
 #include <x0/connection.hpp>
 #include <x0/response.hpp>
 #include <x0/request.hpp>
-#include <x0/request_handler.hpp>
 #include <x0/request_parser.hpp>
 #include <x0/types.hpp>
 
@@ -30,16 +29,16 @@ class connection_manager;
  * \brief represents an HTTP connection handling incoming requests.
  */
 class connection :
-	public enable_shared_from_this<connection>,
-	private noncopyable {
+	public boost::enable_shared_from_this<connection>,
+	private boost::noncopyable {
 public:
-	connection(io_service& io_service,
+	connection(boost::asio::io_service& io_service,
 		connection_manager& manager, const request_handler_fn& handler);
 
 	~connection();
 
 	/// get the connection socket handle
-	ip::tcp::socket& socket();
+	boost::asio::ip::tcp::socket& socket();
 
 	/// start first async operation for this connection
 	void start();
@@ -48,19 +47,19 @@ public:
 	void stop();
 
 private:
-	void handle_read(const system::error_code& e, std::size_t bytes_transferred);
-	void handle_write(const system::error_code& e);
+	void handle_read(const boost::system::error_code& e, std::size_t bytes_transferred);
+	void handle_write(const boost::system::error_code& e);
 
-	ip::tcp::socket socket_;					//!< the socket handle
+	boost::asio::ip::tcp::socket socket_;		//!< the socket handle
 	connection_manager& connection_manager_;	//!< corresponding connection manager
 	request_handler_fn request_handler_;		//!< request handler to use
 
 	// HTTP request
-	array<char, 8192> buffer_;			//!< buffer for incoming data.
+	boost::array<char, 8192> buffer_;	//!< buffer for incoming data.
 	request request_;					//!< parsed http request 
 	request_parser request_parser_;		//!< http request parser
 
-	response_ptr response_;
+	response_ptr response_;				//!< response object for the current request within this connection
 };
 
 } // namespace x0

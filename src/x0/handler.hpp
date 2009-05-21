@@ -28,7 +28,7 @@ class handler;
  */
 template<typename... Args>
 class handler<bool(Args...)> :
-	public noncopyable
+	public boost::noncopyable
 {
 public:
 	typedef function<bool(Args...)> functor;
