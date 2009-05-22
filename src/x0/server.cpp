@@ -14,10 +14,11 @@
 #include <cstdlib>
 
 // {{{ module hooks
-extern "C" void vhost_init(x0::server&);
-extern "C" void sendfile_init(x0::server&);
 extern "C" void accesslog_init(x0::server&);
+extern "C" void dirlisting_init(x0::server&);
 extern "C" void indexfile_init(x0::server&);
+extern "C" void sendfile_init(x0::server&);
+extern "C" void vhost_init(x0::server&);
 // }}}
 
 namespace x0 {
@@ -53,10 +54,11 @@ void server::configure()
 	config_.load_file("x0d.conf");
 
 	// load modules (currently builtin-only)
-	vhost_init(*this);
+	accesslog_init(*this);
+	dirlisting_init(*this);
 	indexfile_init(*this);
 	sendfile_init(*this);
-	accesslog_init(*this);
+	vhost_init(*this);
 
 	// setup TCP listeners
 	auto ports = split<int>(config_.get("service", "listen-ports"), ", ");

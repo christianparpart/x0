@@ -18,6 +18,7 @@ add_executable(x0d
 	server.cpp
 	strutils.cpp
 	mod_accesslog.cpp
+	mod_dirlisting.cpp
 	mod_indexfile.cpp
 	mod_sendfile.cpp
 	mod_vhost.cpp
