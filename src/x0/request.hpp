@@ -28,6 +28,9 @@ struct request
 	/// HTTP request method, e.g. GET, POST, etc.
 	std::string method;
 
+	/// denotes wether this is a secure (SSL) connection or not.
+	bool secure;
+
 	/// unparsed request uri
 	std::string uri;
 

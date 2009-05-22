@@ -111,7 +111,7 @@ void server::handle_request(request& in, response& out) {
 		// redirect physical request paths not ending with slash
 
 		std::stringstream url;
-		url << "http://" << in.get_header("Host") << in.path << '/' << in.query;
+		url << (in.secure ? "https://" : "http://") << in.get_header("Host") << in.path << '/' << in.query;
 
 		out.status = response::moved_permanently->status;
 		out.content = response::moved_permanently->content;

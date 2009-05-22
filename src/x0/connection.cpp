@@ -18,6 +18,7 @@ connection::connection(
 	connection_manager_(manager),
 	request_handler_(handler)
 {
+	request_.secure = false;
 	request_.connection = this;
 }
 
