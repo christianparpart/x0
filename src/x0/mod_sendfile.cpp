@@ -45,7 +45,7 @@ public:
 	{
 		typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 
-		std::string input(x0::read_file("/etc/mime.types"));
+		std::string input(x0::read_file(server_.get_config().get("sendfile", "mime-types")));
 		tokenizer lines(input, boost::char_separator<char>("\n"));
 
 		for (auto i = lines.begin(), e = lines.end(); i != e; ++i)
