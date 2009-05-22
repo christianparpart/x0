@@ -106,8 +106,21 @@ void server::handle_request(request& in, response& out) {
 	in.entity = in.document_root + in.path;
 	resolve_entity(in);
 
+	if (in.entity.size() > 3 && isdir(in.entity) && in.entity[in.entity.size() - 1] != '/')
+	{
+		// redirect physical request paths not ending with slash
+
+		std::stringstream url;
+		url << "http://" << in.get_header("Host") << in.path << '/' << in.query;
+
+		out.status = response::moved_permanently->status;
+		out.content = response::moved_permanently->content;
+
+		out *= header("Location", url.str());
+		out *= header("Content-Type", "text/html");
+	}
 	// generate response content, based on this request
-	if (!generate_content(in, out))
+	else if (!generate_content(in, out))
 	{
 		// no content generator found for this request, default to 404 (Not Found)
 		out.status = response::not_found->status;

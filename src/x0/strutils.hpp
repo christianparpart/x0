@@ -15,6 +15,8 @@ namespace x0 {
 /** \addtogroup common */
 /*@{*/
 
+bool isdir(const std::string& filename);
+
 /**
  * retrieves contents of given file.
  */

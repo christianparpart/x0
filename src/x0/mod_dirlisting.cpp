@@ -47,7 +47,7 @@ public:
 private:
 	bool dirlisting(x0::request& in, x0::response& out)
 	{
-		if (!isdir(in.entity)) return false;
+		if (!x0::isdir(in.entity)) return false;
 
 		if (DIR *dir = opendir(in.entity.c_str()))
 		{
@@ -64,7 +64,7 @@ private:
 
 				if (name[0] != '.')
 				{
-					if (isdir(in.entity + name)) name += "/";
+					if (x0::isdir(in.entity + name)) name += "/";
 
 					listing.push_back(name);
 				}
@@ -93,12 +93,6 @@ private:
 			return true;
 		}
 		return false;
-	}
-
-	inline bool isdir(const std::string& filename)
-	{
-		struct stat st;
-		return stat(filename.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
 	}
 };
 
