@@ -59,7 +59,7 @@ void server::configure()
 	accesslog_init(*this);
 
 	// setup TCP listeners
-	auto ports = split<int>(config_.get("service", "listen-ports"), ",");
+	auto ports = split<int>(config_.get("service", "listen-ports"), ", ");
 	for (auto i = ports.begin(), e = ports.end(); i != e; ++i)
 	{
 		setup_listener(*i);
