@@ -11,6 +11,7 @@ add_executable(x0d
 	connection.cpp
 	connection_manager.cpp
 	listener.cpp
+	logger.cpp
 	main.cpp
 	response.cpp
 	request_parser.cpp

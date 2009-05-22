@@ -5,6 +5,7 @@
  */
 
 #include <x0/config.hpp>
+#include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/server.hpp>
 #include <x0/strutils.hpp>
@@ -36,6 +37,7 @@ server::server(boost::asio::io_service& io_service) :
 	io_service_(io_service),
 	paused_(),
 	config_(),
+	logger_(),
 	plugins_()
 {
 }
@@ -52,6 +54,13 @@ void server::configure()
 {
 	// load config
 	config_.load_file("x0d.conf");
+
+	// setup error logger
+	std::string logmode(config_.get("service", "log-mode"));
+	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "log-filename")));
+	else if (logmode == "null") logger_.reset(new nulllogger());
+	else if (logmode == "stderr") logger_.reset(new filelogger("/dev/stderr"));
+	else logger_.reset(new nulllogger());
 
 	// load modules (currently builtin-only)
 	accesslog_init(*this);
@@ -87,6 +96,7 @@ void server::start()
 	{
 		(*i)->start();
 	}
+	LOG(*this, "server up and running");
 }
 
 void server::handle_request(request& in, response& out) {
@@ -181,6 +191,8 @@ void server::resume()
 
 void server::stop()
 {
+	LOG(*this, "server is shutting down");
+
 	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
 		(*k)->stop();
@@ -190,6 +202,13 @@ void server::stop()
 config& server::get_config()
 {
 	return config_;
+}
+
+void server::log(const char *filename, unsigned int line, const char *msg)
+{
+	std::string message(fstringbuilder::format("%s:%d: %s", filename, line, msg));
+
+	logger_->write(message);
 }
 
 void server::setup_listener(int port, const std::string& bind_address)

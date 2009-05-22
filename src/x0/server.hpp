@@ -8,11 +8,13 @@
 #define sw_x0_server_h
 
 #include <x0/config.hpp>
+#include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/handler.hpp>
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
 #include <boost/signals.hpp>
+#include <cstring>
 #include <set>
 
 namespace x0 {
@@ -76,6 +78,11 @@ public:
 	config& get_config();
 
 	/**
+	 * writes a log entry into the server's error log.
+	 */
+	void log(const char *filename, unsigned int line, const char *msg);
+
+	/**
 	 * sets up a TCP/IP listener on given bind_address and port.
 	 *
 	 * If there is already a listener on this bind_address:port pair
@@ -99,8 +106,11 @@ private:
 	boost::asio::io_service& io_service_;
 	bool paused_;
 	config config_;
+	logger_ptr logger_;
 	std::list<plugin_ptr> plugins_;
 };
+
+#define LOG(srv, message...) (srv).log(__FILENAME__, __LINE__, message)
 
 } // namespace x0
 

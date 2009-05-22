@@ -15,6 +15,57 @@ namespace x0 {
 /** \addtogroup common */
 /*@{*/
 
+// {{{ fstringbuilder
+
+/**
+ * a safe printf string builder.
+ */
+class fstringbuilder
+{
+public:
+	/**
+	 * formats given string.
+	 */
+	template<typename... Args>
+	static std::string format(const char *s, Args&&... args)
+	{
+		fstringbuilder fsb;
+		fsb.build(s, args...);
+		return fsb.sstr_.str();
+	}
+
+private:
+	void build(const char *s)
+	{
+		if (*s == '%' && *++s != '%')
+			throw std::runtime_error("invalid format string: missing arguments");
+
+		sstr_ << *s;
+	}
+
+	template<typename T, typename... Args>
+	void build(const char *s, const T&& value, const Args&&... args)
+	{
+		while (*s)
+		{
+			if (*s == '%' && *++s != '%')
+			{
+				sstr_ << value;
+				return build(++s, args...);
+			}
+			sstr_ << *s++;
+		}
+		throw std::runtime_error("extra arguments provided to printf");
+	}
+
+private:
+	std::stringstream sstr_;
+};
+// }}}
+
+/**
+ * checks wether given filename is a directory or not.
+ */
 bool isdir(const std::string& filename);
 
 /**
@@ -27,9 +78,15 @@ std::string read_file(const std::string& filename);
  */
 std::string trim(const std::string value);
 
+/**
+ * splits a string into pieces
+ */
 template<typename T, typename U>
 std::list<T> split(const std::basic_string<U>& list, const std::basic_string<U>& sep);
 
+/**
+ * splits a string into pieces
+ */
 template<typename T, typename U>
 std::list<T> split(const std::basic_string<U>& list, const U *sep);
 

@@ -10,6 +10,7 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+#include <cstring> // strrchr
 
 namespace x0 {
 
@@ -40,6 +41,8 @@ typedef boost::shared_ptr<response> response_ptr;
  * \brief request handler functor.
  */
 typedef boost::function<void(request&, response&)> request_handler_fn;
+
+#define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
 } // namespace x0
 
