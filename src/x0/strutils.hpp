@@ -25,8 +25,16 @@ std::string read_file(const std::string& filename);
  */
 std::string trim(const std::string value);
 
+template<typename T, typename U>
+std::list<T> split(const std::basic_string<U>& list, const std::basic_string<U>& sep);
+
+template<typename T, typename U>
+std::list<T> split(const std::basic_string<U>& list, const U *sep);
+
 /*@}*/
 
 } // namespace x0
+
+#include <x0/strutils.tcc>
 
 #endif

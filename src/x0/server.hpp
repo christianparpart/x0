@@ -7,10 +7,9 @@
 #ifndef sw_x0_server_h
 #define sw_x0_server_h
 
+#include <x0/config.hpp>
 #include <x0/listener.hpp>
 #include <x0/handler.hpp>
-#include <x0/vhost.hpp>
-#include <x0/vhost_selector.hpp>
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
 #include <boost/signals.hpp>

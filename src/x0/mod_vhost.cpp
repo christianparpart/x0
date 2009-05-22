@@ -8,9 +8,11 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/config.hpp>
-#include <x0/vhost_selector.hpp>
-#include <x0/vhost.hpp>
 #include <boost/lexical_cast.hpp>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 /**
  * \ingroup modules
@@ -20,29 +22,15 @@ class vhost_plugin :
 	public x0::plugin
 {
 private:
-	std::map<x0::vhost_selector, x0::vhost_ptr> vhosts_;
+	std::string server_root_;
+	std::string default_host_;
+	std::string document_root_;
 
 public:
 	vhost_plugin(x0::server& srv) :
 		plugin(srv)
 	{
-		// setup hooks
 		server_.resolve_document_root.connect(x0::bindMember(&vhost_plugin::resolve_document_root, this));
-
-		// populate vhosts database
-		x0::config vhosts;
-		vhosts.load_file(server_.get_config().get("service", "vhosts-file"));
-
-		for (auto i = vhosts.cbegin(); i != vhosts.cend(); ++i)
-		{
-			std::string hostname = i->first;
-			int port = std::atoi(vhosts.get(hostname, "port").c_str());
-
-			vhosts_[x0::vhost_selector(hostname, port)].reset(new x0::vhost(i->second));
-			std::cerr << "register vhost: " << hostname << " (port " << port << ")" << std::endl;
-
-			server_.setup_listener(port);
-		}
 	}
 
 	~vhost_plugin()
@@ -50,17 +38,68 @@ public:
 		server_.resolve_document_root.disconnect(x0::bindMember(&vhost_plugin::resolve_document_root, this));
 	}
 
-private:
-	void resolve_document_root(x0::request& r) {
-		if (r.document_root.empty())
-		{
-			x0::vhost_selector selector(r.get_header("Host"), r.connection->socket().local_endpoint().port());
-			auto vhi = vhosts_.find(selector);
+	virtual void configure()
+	{
+		server_root_ = server_.get_config().get("vhost", "server-root");		// e.g. /var/www/
+		default_host_ = server_.get_config().get("vhost", "default-host");		// e.g. localhost
+		document_root_ = server_.get_config().get("vhost", "document-root");	// e.g. /htdocs
 
-			if (vhi != vhosts_.end())
+		// enforce trailing slash at the end of server root
+		if (!server_root_.empty() && server_root_[server_root_.length() - 1] != '/')
+		{
+			server_root_ += '/';
+		}
+
+		if (!document_root_.empty())
+		{
+			// enforce non-trailing-slash at the end of document root
+			if (document_root_[document_root_.length() - 1] == '/')
 			{
-				r.document_root = vhi->second->config_section["document_root"];
+				document_root_ = document_root_.substr(0, document_root_.size() - 2);
 			}
+
+			// enforce leading slash at document root
+			if (document_root_[0] != '/')
+			{
+				document_root_.insert(0, "/");
+			}
+		}
+	}
+
+private:
+	void resolve_document_root(x0::request& in) {
+		if (in.document_root.empty())
+		{
+			std::string host(in.get_header("Host"));
+
+			std::string hostname(host);
+			std::size_t n = hostname.find(":");
+			if (n != std::string::npos)
+			{
+				hostname = hostname.substr(0, n);
+			}
+
+			std::string dr;
+			dr.reserve(server_root_.size() + std::max(hostname.size(), default_host_.size()) + document_root_.size());
+			dr += server_root_;
+			dr += hostname;
+			dr += document_root_;
+
+			struct stat st;
+			if (stat(dr.c_str(), &st) || !S_ISDIR(st.st_mode))
+			{
+				dr.clear();
+				dr += server_root_;
+				dr += default_host_;
+				dr += document_root_;
+
+				if (stat(dr.c_str(), &st) || !S_ISDIR(st.st_mode))
+				{
+					return;
+				}
+			}
+
+			in.document_root = dr;
 		}
 	}
 };

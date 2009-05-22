@@ -7,6 +7,7 @@
 #include <x0/config.hpp>
 #include <x0/listener.hpp>
 #include <x0/server.hpp>
+#include <x0/strutils.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
@@ -51,12 +52,20 @@ void server::configure()
 	// load config
 	config_.load_file("x0d.conf");
 
-	// load modules
+	// load modules (currently builtin-only)
 	vhost_init(*this);
+	indexfile_init(*this);
 	sendfile_init(*this);
 	accesslog_init(*this);
-	indexfile_init(*this);
 
+	// setup TCP listeners
+	auto ports = split<int>(config_.get("service", "listen-ports"), ",");
+	for (auto i = ports.begin(), e = ports.end(); i != e; ++i)
+	{
+		setup_listener(*i);
+	}
+
+	// configure modules
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
 		(*i)->configure();
