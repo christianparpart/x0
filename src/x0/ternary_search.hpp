@@ -316,7 +316,7 @@ public:
 	 * \returns an iterator referencing the resulting data value or end() if not found.
 	 * \see begin(), end()
 	 */
-	node_iterator find(const key_type&& key, int *prefix_len = NULL) const // {{{
+	node_iterator find(const key_type& key, int *prefix_len = NULL) const // {{{
 	{
 		node *longest_match = NULL;
 
@@ -399,7 +399,7 @@ public:
 	/** removes all dataset items that match given key (as found by lookup) */
 	void remove_all(const key_type& key)
 	{
-		while (auto i = find(key))
+		while (iterator i = find(key))
 			erase(i);
 	}
 
@@ -420,7 +420,7 @@ public:
 	}
 
 	/** tests wether given key is stored in this container. */
-	inline bool contains(const key_type&& key) const
+	inline bool contains(const key_type& key) const
 	{
 		return find(key) != end();
 	}
@@ -437,12 +437,12 @@ public:
 		return !size_;
 	}
 
-	const value_type&& operator[](const key_type&& key) const
+	const value_type& operator[](const key_type& key) const
 	{
 		return get(key, NULL);
 	}
 
-	value_type&& operator[](const key_type&& key)
+	value_type& operator[](const key_type& key)
 	{
 		if (!contains(key))
 			const_cast<ternary_search *>(this)->insert(key, value_type());
@@ -459,7 +459,7 @@ private:
 	std::size_t size_;
 
 private:
-	inline node *acquire_free_node(const keyelem_type&& value)
+	inline node *acquire_free_node(const keyelem_type& value)
 	{
 		if (freelist_ == NULL)
 			grow_node_free_list();
