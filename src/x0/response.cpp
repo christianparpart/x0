@@ -40,7 +40,7 @@ response& response::operator+=(const header& value)
 
 response& response::operator*=(const header& in)
 {
-	for (auto i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<header>::iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (i->name == in.name)
 		{
@@ -56,7 +56,7 @@ response& response::operator*=(const header& in)
 
 bool response::has_header(const std::string& name) const
 {
-	for (auto i = headers.cbegin(); i != headers.cend(); ++i)
+	for (std::vector<header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (i->name == name)
 		{
@@ -69,7 +69,7 @@ bool response::has_header(const std::string& name) const
 
 std::string response::get_header(const std::string& name) const
 {
-	for (auto i = headers.cbegin(); i != headers.cend(); ++i)
+	for (std::vector<header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (i->name == name)
 		{

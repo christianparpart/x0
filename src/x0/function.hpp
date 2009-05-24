@@ -51,7 +51,7 @@ private:
 		virtual TUnaryFunctor *clone() const { return new TUnaryFunctor(func); }
 
 		virtual bool equals(const TFnBase& f) const {
-			if (auto v = dynamic_cast<const TUnaryFunctor *>(&f))
+			if (const TUnaryFunctor *v = dynamic_cast<const TUnaryFunctor *>(&f))
 				return func == v->func;
 
 			return false;
@@ -73,7 +73,7 @@ private:
 		virtual TBinaryFunctor *clone() const { return new TBinaryFunctor(obj, func); }
 
 		virtual bool equals(const TFnBase& f) const {
-			if (auto v = dynamic_cast<const TBinaryFunctor<_Class> *>(&f))
+			if (const TBinaryFunctor *v = dynamic_cast<const TBinaryFunctor<_Class> *>(&f))
 				return this == v || (func == v->func && obj == v->obj);
 
 			return false;
@@ -117,14 +117,14 @@ public:
 	}
 
 	void clear() {
-		if (auto fb = func) {
+		if (TFnBase *fb = func) {
 			func = 0;
 			delete fb;
 		}
 	}
 
 	function& operator=(const function& v) {
-		auto old = func;
+		TFnBase *old = func;
 		func = &v && v.func ? v.func->clone() : 0;
 		delete old;
 

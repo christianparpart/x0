@@ -7,8 +7,8 @@
 #ifndef x0_handler_hpp
 #define x0_handler_hpp
 
-#include <x0/function.hpp>
 #include <x0/types.hpp>
+#include <x0/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <list>
 
@@ -56,23 +56,23 @@ public:
 		return impl_.size();
 	}
 
-	void connect(const functor&& fn)
+	void connect(const functor& fn)
 	{
 		impl_.push_back(fn);
 	}
 
-	void disconnect(const functor&& fn)
+	void disconnect(const functor& fn)
 	{
 		impl_.remove(fn);
 	}
 
-	handler& operator+=(const functor&& fn)
+	handler& operator+=(const functor& fn)
 	{
 		connect(fn);
 		return *this;
 	}
 
-	handler& operator-=(const functor&& fn)
+	handler& operator-=(const functor& fn)
 	{
 		disconnect(fn);
 		return *this;
@@ -80,7 +80,7 @@ public:
 
 	bool operator()(Args... args)
 	{
-		for (const_iterator i = impl_.cbegin(); i != impl_.cend(); ++i)
+		for (const_iterator i = impl_.begin(); i != impl_.end(); ++i)
 		{
 			if ((*i)(args...))
 			{

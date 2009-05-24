@@ -102,7 +102,7 @@ private:
 	listener_ptr listener_by_port(int port);
 
 private:
-	std::set<listener_ptr> listeners_;
+	std::list<listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;
 	bool paused_;
 	config config_;

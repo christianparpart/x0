@@ -10,7 +10,7 @@ namespace x0 {
 
 std::string request::get_header(const std::string& name) const
 {
-	for (auto i = headers.cbegin(), e = headers.cend(); i != e; ++i)
+	for (std::vector<header>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)
 	{
 		if (i->name == name)
 		{

@@ -1,5 +1,5 @@
 include_directories(..)
-add_definitions(-Wall -std=c++0x -pthread -ggdb3 -O0)
+add_definitions(-Wall -pthread -ggdb3 -O0)
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(LUA lua)

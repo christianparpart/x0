@@ -14,9 +14,10 @@ template<typename T, typename U>
 std::list<T> split(const std::basic_string<U>& input, const std::basic_string<U>& sep)
 {
 	std::list<T> result;
-	boost::tokenizer<boost::char_separator<char> > tk(input, boost::char_separator<U>(sep.c_str()));
+	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+	tokenizer tk(input, boost::char_separator<U>(sep.c_str()));
 
-	for (auto i = tk.begin(), e = tk.end(); i != e; ++i)
+	for (tokenizer::iterator i = tk.begin(), e = tk.end(); i != e; ++i)
 	{
 		result.push_back(boost::lexical_cast<T>(*i));
 	}

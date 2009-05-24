@@ -10,6 +10,10 @@
 #include <x0/types.hpp>
 #include <string>
 
+#if !defined(BOOST_HAS_VARIADIC_TMPL)
+# include <cstdarg>
+#endif
+
 namespace x0 {
 
 /** \addtogroup common */
@@ -26,6 +30,7 @@ public:
 	/**
 	 * formats given string.
 	 */
+#ifdef BOOST_HAS_VARIADIC_TMPL
 	template<typename... Args>
 	static std::string format(const char *s, Args&&... args)
 	{
@@ -33,7 +38,21 @@ public:
 		fsb.build(s, args...);
 		return fsb.sstr_.str();
 	}
+#else
+	static std::string format(const char *s, ...)
+	{
+		va_list va;
+		char buf[1024];
 
+		va_start(va, s);
+		snprintf(buf, sizeof(buf), s, va);
+		va_end(va);
+
+		return buf;
+	}
+#endif
+
+#ifdef BOOST_HAS_VARIADIC_TMPL
 private:
 	void build(const char *s)
 	{
@@ -60,6 +79,7 @@ private:
 
 private:
 	std::stringstream sstr_;
+#endif
 };
 // }}}
 

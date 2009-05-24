@@ -20,7 +20,7 @@ void config::load_file(const std::string& filename)
 	tokenizer lines(input, boost::char_separator<char>("\n"));
 	std::string current_title;
 
-	for (auto line = lines.begin(); line != lines.end(); ++line)
+	for (tokenizer::iterator line = lines.begin(); line != lines.end(); ++line)
 	{
 		std::string value(trim(*line));
 
@@ -59,13 +59,13 @@ std::string config::serialize() const
 {
 	std::stringstream sstr;
 
-	for (auto s = sections.cbegin(); s != sections.cend(); ++s)
+	for (map_type::const_iterator s = sections.begin(); s != sections.end(); ++s)
 	{
 		sstr << '[' << s->first << ']' << std::endl;
 
-		auto sec = s->second;
+		const section& sec = s->second;
 
-		for (auto row = sec.cbegin(); row != sec.cend(); ++row)
+		for (section::const_iterator row = sec.begin(); row != sec.end(); ++row)
 		{
 			sstr << row->first << '=' << row->second << std::endl;
 		}
@@ -105,11 +105,11 @@ void config::remove(const std::string& title)
 
 bool config::contains(const std::string& title, const std::string& key) const
 {
-	auto i = sections.find(title);
+	const_iterator i = sections.find(title);
 
 	if (i != sections.end())
 	{
-		auto s = i->second;
+		const section& s = i->second;
 
 		if (s.find(key) != s.end())
 		{
@@ -121,12 +121,12 @@ bool config::contains(const std::string& title, const std::string& key) const
 
 std::string config::get(const std::string& title, const std::string& key) const
 {
-	auto i = sections.find(title);
+	map_type::const_iterator i = sections.find(title);
 
 	if (i != sections.end())
 	{
-		auto s = i->second;
-		auto k = s.find(key);
+		const section& s = i->second;
+		section::const_iterator k = s.find(key);
 
 		if (k != s.end())
 		{
@@ -143,10 +143,10 @@ std::string config::set(const std::string& title, const std::string& key, const 
 
 void config::remove(const std::string& title, const std::string& key)
 {
-	auto si = sections.find(title);
+	map_type::iterator si = sections.find(title);
 	if (si != sections.end())
 	{
-		auto s = si->second;
+		section& s = si->second;
 		if (s.find(key) != s.end())
 		{
 			s.erase(key);
@@ -156,12 +156,12 @@ void config::remove(const std::string& title, const std::string& key)
 
 config::const_iterator config::cbegin() const
 {
-	return sections.cbegin();
+	return sections.begin();
 }
 
 config::const_iterator config::cend() const
 {
-	return sections.cend();
+	return sections.end();
 }
 
 } // namespace x0

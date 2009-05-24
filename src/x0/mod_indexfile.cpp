@@ -58,7 +58,7 @@ private:
 
 		if (!S_ISDIR(st.st_mode)) return;
 
-		for (auto i = index_files.begin(), e = index_files.end(); i != e; ++i)
+		for (std::vector<std::string>::iterator i = index_files.begin(), e = index_files.end(); i != e; ++i)
 		{
 			std::string ipath;
 			ipath.reserve(path.length() + 1 + i->length());

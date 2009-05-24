@@ -70,14 +70,14 @@ void server::configure()
 	vhost_init(*this);
 
 	// setup TCP listeners
-	auto ports = split<int>(config_.get("service", "listen-ports"), ", ");
-	for (auto i = ports.begin(), e = ports.end(); i != e; ++i)
+	std::list<int> ports = split<int>(config_.get("service", "listen-ports"), ", ");
+	for (std::list<int>::iterator i = ports.begin(), e = ports.end(); i != e; ++i)
 	{
 		setup_listener(*i);
 	}
 
 	// configure modules
-	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+	for (std::list<plugin_ptr>::iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
 		(*i)->configure();
 	}
@@ -92,7 +92,7 @@ void server::start()
 
 	paused_ = false;
 
-	for (auto i = listeners_.begin(); i != listeners_.end(); ++i)
+	for (std::list<listener_ptr>::iterator i = listeners_.begin(); i != listeners_.end(); ++i)
 	{
 		(*i)->start();
 	}
@@ -166,7 +166,7 @@ void server::handle_request(request& in, response& out) {
  */
 listener_ptr server::listener_by_port(int port)
 {
-	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
+	for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
 		listener_ptr http_server = *k;
 
@@ -193,7 +193,7 @@ void server::stop()
 {
 	LOG(*this, "server is shutting down");
 
-	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
+	for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
 		(*k)->stop();
 	}
@@ -222,7 +222,7 @@ void server::setup_listener(int port, const std::string& bind_address)
 
 	lp->configure(bind_address, port);
 
-	listeners_.insert(lp);
+	listeners_.push_back(lp);
 }
 
 void server::setup_plugin(plugin_ptr plug)

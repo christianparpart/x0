@@ -28,7 +28,8 @@ class sendfile_plugin :
 	public x0::plugin
 {
 private:
-	std::map<std::string, std::string> mime_types_;
+	typedef std::map<std::string, std::string> mime_types_type;
+	mime_types_type mime_types_;
 
 public:
 	sendfile_plugin(x0::server& srv) :
@@ -48,11 +49,11 @@ public:
 		std::string input(x0::read_file(server_.get_config().get("sendfile", "mime-types")));
 		tokenizer lines(input, boost::char_separator<char>("\n"));
 
-		for (auto i = lines.begin(), e = lines.end(); i != e; ++i)
+		for (tokenizer::iterator i = lines.begin(), e = lines.end(); i != e; ++i)
 		{
 			tokenizer columns(x0::trim(*i), boost::char_separator<char>(" \t"));
 
-			auto ci = columns.begin(), ce = columns.end();
+			tokenizer::iterator ci = columns.begin(), ce = columns.end();
 			std::string mime = ci != ce ? *ci++ : std::string();
 
 			if (!mime.empty() && mime[0] != '#')
@@ -110,7 +111,7 @@ private:
 
 	inline std::string get_mime_type(const std::string& ext) const
 	{
-		auto i = mime_types_.find(ext);
+		mime_types_type::const_iterator i = mime_types_.find(ext);
 		return i != mime_types_.end() ? i->second : "text/plain";
 	}
 };

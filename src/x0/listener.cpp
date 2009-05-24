@@ -27,7 +27,7 @@ listener::~listener()
 }
 
 template<typename T>
-static inline std::string itoa(T&& value)
+static inline std::string itoa(T& value)
 {
 	std::stringstream sstr;
 	sstr << value;

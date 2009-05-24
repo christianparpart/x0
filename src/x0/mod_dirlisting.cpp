@@ -80,7 +80,7 @@ private:
 			sstr << "<h2>" << in.path << "</h2>\n";
 			sstr << "<ul>\n";
 
-			for (auto i = listing.begin(), e = listing.end(); i != e; ++i)
+			for (std::list<std::string>::iterator i = listing.begin(), e = listing.end(); i != e; ++i)
 			{
 				sstr << "<li><a href='" << *i << "'>" << *i << "</a></li>\n";
 			}
