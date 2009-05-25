@@ -45,7 +45,7 @@ public:
 		char buf[1024];
 
 		va_start(va, s);
-		snprintf(buf, sizeof(buf), s, va);
+		vsnprintf(buf, sizeof(buf), s, va);
 		va_end(va);
 
 		return buf;
