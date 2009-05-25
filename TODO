@@ -1,0 +1,14 @@
+INTERMEDIATE TODO
+
+for a long-term todo list, see ticket system at code.ninchens.net/projects/x0
+
+- configuration system
+	- based on hierarichal contexts (with use of ternary_search<>)
+- command line argument parsing/handling
+	- either very simple, by making use of getopt or libpopt
+	- or fully featured by porting my libnuggad's argument evaluator.
+- daemonize()'ing.
+	- program arg "-X" should prevent from daemonizing.
+- logging system
+	- add syslog driver
+- multi threaded multiplexing: per-CPU model
