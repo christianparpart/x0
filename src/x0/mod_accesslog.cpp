@@ -12,6 +12,7 @@
 #include <x0/types.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
+#include <iostream>
 #include <cstring>
 #include <cerrno>
 

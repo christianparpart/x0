@@ -27,16 +27,19 @@
 class dirlisting_plugin :
 	public x0::plugin
 {
+private:
+	x0::handler::connection c;
+
 public:
 	dirlisting_plugin(x0::server& srv) :
 		x0::plugin(srv)
 	{
-		server_.generate_content.connect(x0::bindMember(&dirlisting_plugin::dirlisting, this));
+		c = server_.generate_content.connect(boost::bind(&dirlisting_plugin::dirlisting, this, _1, _2));
 	}
 
 	~dirlisting_plugin()
 	{
-		server_.generate_content.disconnect(x0::bindMember(&dirlisting_plugin::dirlisting, this));
+		server_.generate_content.disconnect(c);
 	}
 
 	virtual void configure()

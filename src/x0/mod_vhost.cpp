@@ -9,6 +9,7 @@
 #include <x0/response.hpp>
 #include <x0/config.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/bind.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -25,17 +26,18 @@ private:
 	std::string server_root_;
 	std::string default_host_;
 	std::string document_root_;
+	boost::signals::connection c;
 
 public:
 	vhost_plugin(x0::server& srv) :
 		plugin(srv)
 	{
-		server_.resolve_document_root.connect(x0::bindMember(&vhost_plugin::resolve_document_root, this));
+		c = server_.resolve_document_root.connect(boost::bind(&vhost_plugin::resolve_document_root, this, _1));
 	}
 
 	~vhost_plugin()
 	{
-		server_.resolve_document_root.disconnect(x0::bindMember(&vhost_plugin::resolve_document_root, this));
+		server_.resolve_document_root.disconnect(c);
 	}
 
 	virtual void configure()

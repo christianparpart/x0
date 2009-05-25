@@ -4,7 +4,6 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/handler.hpp>
 #include <x0/server.hpp>
 #include <boost/asio.hpp>
 #include <iostream>

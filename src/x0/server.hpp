@@ -60,7 +60,7 @@ public:
 	boost::signal<void(request&)> resolve_entity;
 
 	/** generates response content for this request being processed. */
-	handler<bool(request&, response&)> generate_content;
+	handler generate_content;
 
 	/** hook for generating accesslog logs and other things to be done after the request has been served. */
 	boost::signal<void(request&, response&)> request_done;

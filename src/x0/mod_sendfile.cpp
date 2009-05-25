@@ -30,16 +30,17 @@ class sendfile_plugin :
 private:
 	typedef std::map<std::string, std::string> mime_types_type;
 	mime_types_type mime_types_;
+	x0::handler::connection c;
 
 public:
 	sendfile_plugin(x0::server& srv) :
 		x0::plugin(srv)
 	{
-		server_.generate_content.connect(x0::bindMember(&sendfile_plugin::sendfile, this));
+		c = server_.generate_content.connect(boost::bind(&sendfile_plugin::sendfile, this, _1, _2));
 	}
 
 	~sendfile_plugin() {
-		server_.generate_content.disconnect(x0::bindMember(&sendfile_plugin::sendfile, this));
+		server_.generate_content.disconnect(c);
 	}
 
 	virtual void configure()

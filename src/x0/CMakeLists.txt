@@ -1,5 +1,5 @@
 include_directories(..)
-add_definitions(-Wall -pthread -ggdb3 -O0)
+add_definitions(-Wall -pthread -ggdb3 -O0 -I/opt/sandbox/include)
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(LUA lua)

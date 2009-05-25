@@ -8,17 +8,15 @@
 #define x0_handler_hpp
 
 #include <x0/types.hpp>
-#include <x0/function.hpp>
+#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/next_prior.hpp>
 #include <list>
 
 namespace x0 {
 
-/** \addtogroup common */
+/** \addtogroup core */
 /*@{*/
-
-template<typename Fn>
-class handler;
 
 /**
  * multi channel handler API.
@@ -26,15 +24,15 @@ class handler;
  * when being invoked, it calls all handlers being registered with this handler
  * until the first feels responsible (that is: returns true).
  */
-template<typename... Args>
-class handler<bool(Args...)> :
+class handler :
 	public boost::noncopyable
 {
 public:
-	typedef function<bool(Args...)> functor;
-	typedef typename std::list<functor> list_type;
-	typedef typename list_type::iterator iterator;
-	typedef typename list_type::const_iterator const_iterator;
+	typedef boost::function<bool(request&, response&)> functor;
+	typedef std::list<functor> list_type;
+	typedef list_type::iterator iterator;
+	typedef list_type::const_iterator const_iterator;
+	typedef list_type::iterator connection;
 
 public:
 	handler() :
@@ -56,33 +54,22 @@ public:
 		return impl_.size();
 	}
 
-	void connect(const functor& fn)
+	connection connect(const functor& fn)
 	{
 		impl_.push_back(fn);
+		return boost::prior(impl_.end());
 	}
 
-	void disconnect(const functor& fn)
+	void disconnect(connection c)
 	{
-		impl_.remove(fn);
+		impl_.erase(c);
 	}
 
-	handler& operator+=(const functor& fn)
-	{
-		connect(fn);
-		return *this;
-	}
-
-	handler& operator-=(const functor& fn)
-	{
-		disconnect(fn);
-		return *this;
-	}
-
-	bool operator()(Args... args)
+	bool operator()(request& in, response& out)
 	{
 		for (const_iterator i = impl_.begin(); i != impl_.end(); ++i)
 		{
-			if ((*i)(args...))
+			if ((*i)(in, out))
 			{
 				return true;
 			}
