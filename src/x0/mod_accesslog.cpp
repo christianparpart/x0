@@ -25,10 +25,13 @@ class accesslog_plugin :
 {
 private:
 	boost::signals::connection c;
+	std::string filename;
+	int fd;
 
 public:
 	accesslog_plugin(x0::server& srv) :
-		x0::plugin(srv)
+		x0::plugin(srv),
+		filename(), fd(-1)
 	{
 		c = srv.request_done.connect(boost::bind(&accesslog_plugin::request_done, this, _1, _2));
 	}
@@ -36,28 +39,49 @@ public:
 	~accesslog_plugin()
 	{
 		server_.request_done.disconnect(c);
+
+		if (fd != -1)
+		{
+			::close(fd);
+		}
 	}
 
 	virtual void configure()
 	{
 		// TODO retrieve file to store accesslog log to.
+		filename = server_.get_config().get("service", "access-log");
+
+		if (!filename.empty())
+		{
+			fd = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
+			if (fd == -1)
+			{
+				LOG(server_, x0::severity::error, "Could not open access log file.");
+			}
+		}
 	}
 
 private:
 	void request_done(x0::request& in, x0::response& out)
 	{
-		std::stringstream sstr;
-		sstr << hostname(in);
-		sstr << " - "; // identity as of identd
-		sstr << username(in) << ' ';
-		sstr << now() << " \"";
-		sstr << request_line(in) << "\" ";
-		sstr << out.status << ' ';
-		sstr << out.content.length() << ' ';
-		sstr << '"' << get_header(in, "Referer") << "\" ";
-		sstr << '"' << get_header(in, "User-Agent") << '"';
+		if (fd != -1)
+		{
+			std::stringstream sstr;
+			sstr << hostname(in);
+			sstr << " - "; // identity as of identd
+			sstr << username(in) << ' ';
+			sstr << now() << " \"";
+			sstr << request_line(in) << "\" ";
+			sstr << out.status << ' ';
+			sstr << out.content.length() << ' ';
+			sstr << '"' << get_header(in, "Referer") << "\" ";
+			sstr << '"' << get_header(in, "User-Agent") << '"';
+			sstr << std::endl;
 
-		std::cout << sstr.str() << std::endl;
+			std::string line(sstr.str());
+
+			::write(fd, line.c_str(), line.size());
+		}
 	}
 
 	inline std::string hostname(x0::request& in)
