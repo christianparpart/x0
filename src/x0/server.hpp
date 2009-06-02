@@ -98,6 +98,7 @@ public:
 	void setup_plugin(plugin_ptr plug);
 
 private:
+	void drop_privileges(const std::string& user, const std::string& group);
 	void handle_request(request& in, response& out);
 	listener_ptr listener_by_port(int port);
 

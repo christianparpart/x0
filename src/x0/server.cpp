@@ -13,6 +13,8 @@
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
 #include <cstdlib>
+#include <pwd.h>
+#include <grp.h>
 
 // {{{ module hooks
 extern "C" void accesslog_init(x0::server&);
@@ -81,6 +83,8 @@ void server::configure()
 	{
 		(*i)->configure();
 	}
+
+	drop_privileges(config_.get("daemon", "user"), config_.get("daemon", "group"));
 }
 
 /**
@@ -97,6 +101,44 @@ void server::start()
 		(*i)->start();
 	}
 	LOG(*this, severity::info, "server up and running");
+}
+
+void server::drop_privileges(const std::string& username, const std::string& groupname)
+{
+	if (!groupname.empty() && !getgid())
+	{
+		if (struct group *gr = getgrnam(groupname.c_str()))
+		{
+			if (setgid(gr->gr_gid) != 0)
+			{
+				throw std::runtime_error(fstringbuilder::format("could not setgid to %s: %s", groupname.c_str(), strerror(errno)));
+			}
+		}
+		else
+		{
+			throw std::runtime_error(fstringbuilder::format("Could not find group: %s", groupname.c_str()));
+		}
+	}
+
+	if (!username.empty() && !getuid())
+	{
+		if (struct passwd *pw = getpwnam(username.c_str()))
+		{
+			if (setuid(pw->pw_uid) != 0)
+			{
+				throw std::runtime_error(fstringbuilder::format("could not setgid to %s: %s", username.c_str(), strerror(errno)));
+			}
+
+			if (chdir(pw->pw_dir) < 0)
+			{
+				throw std::runtime_error(fstringbuilder::format("could not chdir to %s: %s", pw->pw_dir, strerror(errno)));
+			}
+		}
+		else
+		{
+			throw std::runtime_error(fstringbuilder::format("Could not find group: %s", groupname.c_str()));
+		}
+	}
 }
 
 void server::handle_request(request& in, response& out) {
