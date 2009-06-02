@@ -7,6 +7,7 @@
 #ifndef sw_x0_errorlog_h
 #define sw_x0_errorlog_h
 
+#include <x0/types.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <string>
@@ -30,7 +31,7 @@ public:
 	virtual void cycle() = 0;
 
 	/** writes a message into the logger. */
-	virtual void write(const std::string& message) = 0;
+	virtual void write(severity s, const std::string& message) = 0;
 
 	/** duplicates (clones) this logger. */
 	virtual logger *clone() const = 0;
@@ -51,7 +52,7 @@ public:
 	~nulllogger();
 
 	virtual void cycle();
-	virtual void write(const std::string& message);
+	virtual void write(severity s, const std::string& message);
 	virtual nulllogger *clone() const;
 };
 
@@ -69,7 +70,7 @@ public:
 	~filelogger();
 
 	virtual void cycle();
-	virtual void write(const std::string& message);
+	virtual void write(severity s, const std::string& message);
 	virtual filelogger *clone() const;
 
 private:

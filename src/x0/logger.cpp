@@ -31,7 +31,7 @@ void nulllogger::cycle()
 {
 }
 
-void nulllogger::write(const std::string& message)
+void nulllogger::write(severity /*s*/, const std::string& message)
 {
 }
 
@@ -64,7 +64,7 @@ void filelogger::cycle()
 
 	if (fd2 == -1)
 	{
-		write("Could not (re)open new logfile");
+		write(severity::error, "Could not (re)open new logfile");
 	}
 	else
 	{
@@ -77,7 +77,7 @@ void filelogger::cycle()
 	}
 }
 
-void filelogger::write(const std::string& message)
+void filelogger::write(severity /*s*/, const std::string& message)
 {
 	::write(fd_, message.c_str(), message.length());
 	::write(fd_, "\n", sizeof("\n"));

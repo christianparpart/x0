@@ -96,7 +96,7 @@ void server::start()
 	{
 		(*i)->start();
 	}
-	LOG(*this, "server up and running");
+	LOG(*this, severity::info, "server up and running");
 }
 
 void server::handle_request(request& in, response& out) {
@@ -191,7 +191,7 @@ void server::resume()
 
 void server::stop()
 {
-	LOG(*this, "server is shutting down");
+	LOG(*this, severity::info, "server is shutting down");
 
 	for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
@@ -204,11 +204,18 @@ config& server::get_config()
 	return config_;
 }
 
-void server::log(const char *filename, unsigned int line, const char *msg)
+void server::log(const char *filename, unsigned int line, severity s, const char *msg)
 {
-	std::string message(fstringbuilder::format("%s:%d: %s", filename, line, msg));
-
-	logger_->write(message);
+	// do only print filename:line: prefix if we're at debug level
+	if (s < severity::debug)
+	{
+		logger_->write(s, msg);
+	}
+	else
+	{
+		std::string message(fstringbuilder::format("%s:%d: %s", filename, line, msg));
+		logger_->write(s, message);
+	}
 }
 
 void server::setup_listener(int port, const std::string& bind_address)

@@ -80,7 +80,7 @@ public:
 	/**
 	 * writes a log entry into the server's error log.
 	 */
-	void log(const char *filename, unsigned int line, const char *msg);
+	void log(const char *filename, unsigned int line, severity s, const char *msg);
 
 	/**
 	 * sets up a TCP/IP listener on given bind_address and port.
@@ -110,7 +110,7 @@ private:
 	std::list<plugin_ptr> plugins_;
 };
 
-#define LOG(srv, message...) (srv).log(__FILENAME__, __LINE__, message)
+#define LOG(srv, severity, message...) (srv).log(__FILENAME__, __LINE__, severity, message)
 
 } // namespace x0
 
