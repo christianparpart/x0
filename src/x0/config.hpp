@@ -56,6 +56,9 @@ public:
 	/// removes given data by key from given section.
 	void remove(const std::string& title, const std::string& key);
 
+	/// retrieve a list of section titles matching given pattern.
+	std::vector<std::string> list(const std::string& pattern);
+
 	const_iterator cbegin() const;
 	const_iterator cend() const;
 

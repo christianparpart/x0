@@ -7,6 +7,7 @@
 #include <x0/config.hpp>
 #include <x0/strutils.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/xpressive/xpressive.hpp>
 #include <exception>
 #include <iostream>
 
@@ -152,6 +153,26 @@ void config::remove(const std::string& title, const std::string& key)
 			s.erase(key);
 		}
 	}
+}
+
+std::vector<std::string> config::list(const std::string& pattern)
+{
+	std::vector<std::string> result;
+
+	for (map_type::iterator i = sections.begin(), e = sections.end(); i != e; ++i)
+	{
+		std::string title = i->first;
+
+		boost::xpressive::sregex rex = boost::xpressive::sregex::compile(pattern);
+		boost::xpressive::smatch what;
+
+		if (boost::xpressive::regex_match(title, what, rex))
+		{
+			result.push_back(title);
+		}
+	}
+
+	return result;
 }
 
 config::const_iterator config::cbegin() const
