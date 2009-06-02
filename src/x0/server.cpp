@@ -57,6 +57,8 @@ void server::configure()
 	// load config
 	config_.load_file("x0d.conf");
 
+	debugging_ = config_.get("daemon", "debug") == "true";
+
 	// setup error logger
 	std::string logmode(config_.get("service", "errorlog-mode"));
 	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "errorlog-filename")));
@@ -84,7 +86,19 @@ void server::configure()
 		(*i)->configure();
 	}
 
+	int nice_ = std::atoi(config_.get("daemon", "nice").c_str());
+	if (nice_)
+	{
+		//LOG(*this, severity::debug, fstringbuilder::format("nice level: %d", nice_).c_str());
+		LOG(*this, severity::debug, "nice level: %d", nice_);
+		if (::nice(nice_) < 0)
+		{
+			throw std::runtime_error(fstringbuilder::format("could not nice process to %d: %s", nice_, strerror(errno)));
+		}
+	}
+
 	drop_privileges(config_.get("daemon", "user"), config_.get("daemon", "group"));
+	daemonize();
 }
 
 /**
@@ -137,6 +151,17 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 		else
 		{
 			throw std::runtime_error(fstringbuilder::format("Could not find group: %s", groupname.c_str()));
+		}
+	}
+}
+
+void server::daemonize()
+{
+	if (!debugging_)
+	{
+		if (::daemon(/*no chdir*/ true, /* no close */ true) < 0)
+		{
+			throw std::runtime_error(fstringbuilder::format("Could not daemonize process: %s", strerror(errno)));
 		}
 	}
 }
@@ -246,17 +271,21 @@ config& server::get_config()
 	return config_;
 }
 
-void server::log(const char *filename, unsigned int line, severity s, const char *msg)
+void server::log(const char *filename, unsigned int line, severity s, const char *msg, ...)
 {
-	// do only print filename:line: prefix if we're at debug level
-	if (s < severity::debug)
+	va_list va;
+	va_start(va, msg);
+	char buf[512];
+	vsnprintf(buf, sizeof(buf), msg, va);
+	va_end(va);
+
+	if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
 	{
-		logger_->write(s, msg);
+		logger_->write(s, buf);
 	}
-	else
+	else if (debugging_)
 	{
-		std::string message(fstringbuilder::format("%s:%d: %s", filename, line, msg));
-		logger_->write(s, message);
+		logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
 	}
 }
 

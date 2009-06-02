@@ -80,7 +80,7 @@ public:
 	/**
 	 * writes a log entry into the server's error log.
 	 */
-	void log(const char *filename, unsigned int line, severity s, const char *msg);
+	void log(const char *filename, unsigned int line, severity s, const char *msg, ...);
 
 	/**
 	 * sets up a TCP/IP listener on given bind_address and port.
@@ -99,12 +99,15 @@ public:
 
 private:
 	void drop_privileges(const std::string& user, const std::string& group);
+	void daemonize();
+
 	void handle_request(request& in, response& out);
 	listener_ptr listener_by_port(int port);
 
 private:
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;
+	bool debugging_;
 	bool paused_;
 	config config_;
 	logger_ptr logger_;
