@@ -56,8 +56,8 @@ void server::configure()
 	config_.load_file("x0d.conf");
 
 	// setup error logger
-	std::string logmode(config_.get("service", "log-mode"));
-	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "log-filename")));
+	std::string logmode(config_.get("service", "errorlog-mode"));
+	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "errorlog-filename")));
 	else if (logmode == "null") logger_.reset(new nulllogger());
 	else if (logmode == "stderr") logger_.reset(new filelogger("/dev/stderr"));
 	else logger_.reset(new nulllogger());
