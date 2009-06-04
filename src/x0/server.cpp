@@ -17,6 +17,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <getopt.h>
+#include <dlfcn.h>
 
 // {{{ module hooks
 extern "C" void accesslog_init(x0::server&);
@@ -81,30 +82,33 @@ void server::configure()
 	debugging_ = config_.get("daemon", "debug") == "true";
 
 	// setup error logger
-	std::string logmode(config_.get("service", "errorlog-mode"));
-	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "errorlog-filename")));
+	std::string logmode(config_.get("service", "log-mode"));
+	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "log-filename")));
 	else if (logmode == "null") logger_.reset(new nulllogger());
 	else if (logmode == "stderr") logger_.reset(new filelogger("/dev/stderr"));
 	else logger_.reset(new nulllogger());
 
-	// load modules (currently builtin-only)
-	accesslog_init(*this);
-	dirlisting_init(*this);
-	indexfile_init(*this);
-	sendfile_init(*this);
-	vhost_init(*this);
+	logger_->level(severity(config_.get("service", "log-level")));
+
+	// load modules (currently hardcoded-only)
+	std::vector<std::string> plugins = split<std::string>(config_.get("service", "modules-load"), ", ");
+
+	for (std::size_t i = 0; i < plugins.size(); ++i)
+	{
+		load_plugin(plugins[i]);
+	}
 
 	// setup TCP listeners
-	std::list<int> ports = split<int>(config_.get("service", "listen-ports"), ", ");
-	for (std::list<int>::iterator i = ports.begin(), e = ports.end(); i != e; ++i)
+	std::vector<int> ports = split<int>(config_.get("service", "listen-ports"), ", ");
+	for (std::vector<int>::iterator i = ports.begin(), e = ports.end(); i != e; ++i)
 	{
 		setup_listener(*i);
 	}
 
 	// configure modules
-	for (std::list<plugin_ptr>::iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+	for (plugin_map_t::iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
-		(*i)->configure();
+		i->second.first->configure();
 	}
 
 	int nice_ = std::atoi(config_.get("daemon", "nice").c_str());
@@ -386,13 +390,16 @@ void server::log(const char *filename, unsigned int line, severity s, const char
 		vsnprintf(buf, sizeof(buf), msg, va);
 		va_end(va);
 
-		if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
+		if (s <= logger_->level())
 		{
-			logger_->write(s, buf);
-		}
-		else if (debugging_)
-		{
-			logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
+			if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
+			{
+				logger_->write(s, buf);
+			}
+			else if (debugging_)
+			{
+				logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
+			}
 		}
 	}
 }
@@ -445,9 +452,85 @@ void server::setup_listener(int port, const std::string& bind_address)
 	listeners_.push_back(lp);
 }
 
-void server::setup_plugin(plugin_ptr plug)
+typedef plugin *(*plugin_create_t)(server&, const std::string&);
+
+void server::load_plugin(const std::string& name)
 {
-	plugins_.push_back(plug);
+	std::string plugindir_(config_.get("service", "modules-directory"));
+
+	if (!plugindir_.empty() && plugindir_[plugindir_.size() - 1] != '/')
+	{
+		plugindir_ += "/";
+	}
+
+	std::string filename(fstringbuilder::format("%s%s.so", plugindir_.c_str(), name.c_str()));
+	std::string plugin_create_name(fstringbuilder::format("%s_init", name.c_str()));
+
+	LOG(*this, severity::debug, "Loading plugin %s", filename.c_str());
+	if (void *handle = dlopen(filename.c_str(), RTLD_GLOBAL | RTLD_NOW))
+	{
+		plugin_create_t plugin_create = reinterpret_cast<plugin_create_t>(dlsym(handle, plugin_create_name.c_str()));
+
+		if (plugin_create)
+		{
+			plugin_ptr plugin = plugin_ptr(plugin_create(*this, name));
+			plugins_[name] = plugin_value_t(plugin, handle);
+		}
+		else
+		{
+			std::string msg(fstringbuilder::format("error loading plugin '%s' %s", name.c_str(), dlerror()));
+			dlclose(handle);
+			throw std::runtime_error(msg);
+		}
+	}
+	else
+	{
+		throw std::runtime_error(fstringbuilder::format("Cannot load plugin '%s'. %s", name.c_str(), dlerror()));
+	}
+}
+
+void server::unload_plugin(const std::string& name)
+{
+	plugin_map_t::iterator i = plugins_.find(name);
+
+	if (i != plugins_.end())
+	{
+		// clear ptr to local map, though, deallocating this plugin object
+		i->second.first = plugin_ptr();
+
+		// close system handle
+		dlclose(i->second.second);
+
+		plugins_.erase(i);
+	}
+}
+
+std::vector<std::string> server::loaded_plugins() const
+{
+	std::vector<std::string> result;
+
+	for (plugin_map_t::const_iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+		result.push_back(i->first);
+
+	return result;
 }
 
 } // namespace x0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

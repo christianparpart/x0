@@ -17,6 +17,7 @@
 #include <cstring>
 #include <string>
 #include <list>
+#include <map>
 
 namespace x0 {
 
@@ -30,6 +31,10 @@ namespace x0 {
 class server :
 	public boost::noncopyable
 {
+private:
+	typedef std::pair<plugin_ptr, void *> plugin_value_t;
+	typedef std::map<std::string, plugin_value_t> plugin_map_t;
+
 public:
 	explicit server(boost::asio::io_service& io_service);
 	~server();
@@ -94,11 +99,17 @@ public:
 	void setup_listener(int port, const std::string& bind_address = "0::0");
 
 	/**
-	 * loads a new plugin into the server.
+	 * loads a plugin into the server.
 	 *
-	 * \see plugin
+	 * \see plugin, unload_plugin(), loaded_plugins()
 	 */
-	void setup_plugin(plugin_ptr plug);
+	void load_plugin(const std::string& name);
+
+	/** safely unloads a plugin. */
+	void unload_plugin(const std::string& name);
+
+	/** retrieves a list of currently loaded plugins */
+	std::vector<std::string> loaded_plugins() const;
 
 private:
 	bool parse(int argc, char *argv[]);
@@ -121,7 +132,7 @@ private:
 	std::string configfile_;
 	int nofork_;
 	logger_ptr logger_;
-	std::list<plugin_ptr> plugins_;
+	plugin_map_t plugins_;
 };
 
 #define LOG(srv, severity, message...) (srv).log(__FILENAME__, __LINE__, severity, message)

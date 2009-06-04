@@ -11,9 +11,9 @@
 namespace x0 {
 
 template<typename T, typename U>
-std::list<T> split(const std::basic_string<U>& input, const std::basic_string<U>& sep)
+std::vector<T> split(const std::basic_string<U>& input, const std::basic_string<U>& sep)
 {
-	std::list<T> result;
+	std::vector<T> result;
 	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 	tokenizer tk(input, boost::char_separator<U>(sep.c_str()));
 
@@ -26,7 +26,7 @@ std::list<T> split(const std::basic_string<U>& input, const std::basic_string<U>
 }
 
 template<typename T, typename U>
-std::list<T> split(const std::basic_string<U>& list, const U *sep)
+std::vector<T> split(const std::basic_string<U>& list, const U *sep)
 {
 	return split<T, U>(list, std::basic_string<U>(sep));
 }

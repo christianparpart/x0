@@ -29,8 +29,8 @@ private:
 	boost::signals::connection c;
 
 public:
-	vhost_plugin(x0::server& srv) :
-		plugin(srv)
+	vhost_plugin(x0::server& srv, const std::string& name) :
+		x0::plugin(srv, name)
 	{
 		c = server_.resolve_document_root.connect(boost::bind(&vhost_plugin::resolve_document_root, this, _1));
 	}
@@ -106,6 +106,6 @@ private:
 	}
 };
 
-extern "C" void vhost_init(x0::server& srv) {
-	srv.setup_plugin(x0::plugin_ptr(new vhost_plugin(srv)));
+extern "C" x0::plugin *vhost_init(x0::server& srv, const std::string& name) {
+	return new vhost_plugin(srv, name);
 }

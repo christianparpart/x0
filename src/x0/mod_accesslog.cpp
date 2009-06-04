@@ -29,8 +29,8 @@ private:
 	int fd;
 
 public:
-	accesslog_plugin(x0::server& srv) :
-		x0::plugin(srv),
+	accesslog_plugin(x0::server& srv, const std::string& name) :
+		x0::plugin(srv, name),
 		filename(), fd(-1)
 	{
 		c = srv.request_done.connect(boost::bind(&accesslog_plugin::request_done, this, _1, _2));
@@ -127,6 +127,6 @@ private:
 	}
 };
 
-extern "C" void accesslog_init(x0::server& srv) {
-	srv.setup_plugin(x0::plugin_ptr(new accesslog_plugin(srv)));
+extern "C" x0::plugin *accesslog_init(x0::server& srv, const std::string& name) {
+	return new accesslog_plugin(srv, name);
 }

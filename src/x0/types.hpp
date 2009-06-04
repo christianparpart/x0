@@ -53,6 +53,7 @@ struct severity {
 
 	int value_;
 	severity(int value) : value_(value) { }
+	explicit severity(const std::string& name);
 	operator int() const { return value_; }
 };
 

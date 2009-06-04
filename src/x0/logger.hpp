@@ -35,6 +35,15 @@ public:
 
 	/** duplicates (clones) this logger. */
 	virtual logger *clone() const = 0;
+
+	/** retrieves the loggers severity level */
+	severity level() const { return severity_; }
+
+	/** sets the loggers severity level */
+	void level(severity value) { severity_ = value; }
+
+private:
+	severity severity_;
 };
 
 typedef boost::shared_ptr<logger> logger_ptr;

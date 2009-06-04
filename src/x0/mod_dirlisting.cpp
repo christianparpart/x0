@@ -31,8 +31,8 @@ private:
 	x0::handler::connection c;
 
 public:
-	dirlisting_plugin(x0::server& srv) :
-		x0::plugin(srv)
+	dirlisting_plugin(x0::server& srv, const std::string& name) :
+		x0::plugin(srv, name)
 	{
 		c = server_.generate_content.connect(boost::bind(&dirlisting_plugin::dirlisting, this, _1, _2));
 	}
@@ -99,6 +99,6 @@ private:
 	}
 };
 
-extern "C" void dirlisting_init(x0::server& srv) {
-	srv.setup_plugin(x0::plugin_ptr(new dirlisting_plugin(srv)));
+extern "C" x0::plugin *dirlisting_init(x0::server& srv, const std::string& name) {
+	return new dirlisting_plugin(srv, name);
 }

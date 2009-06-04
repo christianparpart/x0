@@ -30,8 +30,8 @@ private:
 	std::vector<std::string> index_files;
 
 public:
-	indexfile_plugin(x0::server& srv) :
-		x0::plugin(srv)
+	indexfile_plugin(x0::server& srv, const std::string& name) :
+		x0::plugin(srv, name)
 	{
 		c = server_.resolve_entity.connect(boost::bind(&indexfile_plugin::indexfile, this, _1));
 	}
@@ -77,6 +77,6 @@ private:
 	}
 };
 
-extern "C" void indexfile_init(x0::server& srv) {
-	srv.setup_plugin(x0::plugin_ptr(new indexfile_plugin(srv)));
+extern "C" x0::plugin *indexfile_init(x0::server& srv, const std::string& name) {
+	return new indexfile_plugin(srv, name);
 }

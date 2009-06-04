@@ -9,7 +9,8 @@
 namespace x0 {
 
 // {{{ logger
-logger::logger()
+logger::logger() :
+	severity_(severity::warn)
 {
 }
 

@@ -33,8 +33,8 @@ private:
 	x0::handler::connection c;
 
 public:
-	sendfile_plugin(x0::server& srv) :
-		x0::plugin(srv)
+	sendfile_plugin(x0::server& srv, const std::string& name) :
+		x0::plugin(srv, name)
 	{
 		c = server_.generate_content.connect(boost::bind(&sendfile_plugin::sendfile, this, _1, _2));
 	}
@@ -117,6 +117,6 @@ private:
 	}
 };
 
-extern "C" void sendfile_init(x0::server& srv) {
-	srv.setup_plugin(x0::plugin_ptr(new sendfile_plugin(srv)));
+extern "C" x0::plugin *sendfile_init(x0::server& srv, const std::string& name) {
+	return new sendfile_plugin(srv, name);
 }

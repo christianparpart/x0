@@ -9,6 +9,7 @@
 
 #include <x0/types.hpp>
 #include <string>
+#include <vector>
 
 #if !defined(BOOST_HAS_VARIADIC_TMPL)
 # include <cstdarg>
@@ -102,13 +103,13 @@ std::string trim(const std::string value);
  * splits a string into pieces
  */
 template<typename T, typename U>
-std::list<T> split(const std::basic_string<U>& list, const std::basic_string<U>& sep);
+std::vector<T> split(const std::basic_string<U>& list, const std::basic_string<U>& sep);
 
 /**
  * splits a string into pieces
  */
 template<typename T, typename U>
-std::list<T> split(const std::basic_string<U>& list, const U *sep);
+std::vector<T> split(const std::basic_string<U>& list, const U *sep);
 
 /*@}*/
 

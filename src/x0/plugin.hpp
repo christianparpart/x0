@@ -25,21 +25,31 @@ class plugin :
 	public boost::noncopyable
 {
 public:
-	explicit plugin(server& srv) :
-		server_(srv)
+	/** initializes the plugin */
+	plugin(server& srv, const std::string& name) :
+		server_(srv), name_(name)
 	{
 	}
 
+	/** finalizes the plugin */
 	~plugin()
 	{
 	}
 
+	/** retrieves the plugin's unique basename (index, userdir, sendfile, auth, etc...) */
+	std::string name() const
+	{
+		return name_;
+	}
+
+	/** gets invoked at (re)configure time */
 	virtual void configure()
 	{
 	}
 
 protected:
 	server& server_;
+	std::string name_;
 };
 
 typedef boost::shared_ptr<plugin> plugin_ptr;

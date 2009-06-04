@@ -20,12 +20,8 @@ add_executable(x0d
 	request_parser.cpp
 	request.cpp
 	server.cpp
+	severity.cpp
 	strutils.cpp
-	mod_accesslog.cpp
-	mod_dirlisting.cpp
-	mod_indexfile.cpp
-	mod_sendfile.cpp
-	mod_vhost.cpp
 )
 target_link_libraries(x0d
 	boost_system boost_signals
@@ -34,4 +30,16 @@ target_link_libraries(x0d
 )
 
 install(TARGETS x0d RUNTIME DESTINATION sbin)
-install(FILES x0d.conf DESTINATION etc)
+install(FILES x0d.conf-dist DESTINATION etc)
+
+macro(add_plugin ModuleName)
+	add_library(${ModuleName} MODULE mod_${ModuleName}.cpp)
+	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
+	install(TARGETS ${ModuleName} DESTINATION lib/x0)
+endmacro()
+
+add_plugin(accesslog)
+add_plugin(dirlisting)
+add_plugin(indexfile)
+add_plugin(sendfile)
+add_plugin(vhost)
