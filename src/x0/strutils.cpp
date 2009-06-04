@@ -48,8 +48,12 @@ std::string read_file(const std::string& filename)
 				return str;
 			}
 		}
+		throw std::runtime_error(fstringbuilder::format("cannot open file: %s (%s)", filename.c_str(), strerror(errno)));
 	}
-	return std::string();
+	else
+	{
+		throw std::runtime_error(fstringbuilder::format("cannot open file: %s (%s)", filename.c_str(), strerror(errno)));
+	}
 #endif
 }
 

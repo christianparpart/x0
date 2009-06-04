@@ -12,9 +12,11 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
+#include <iostream>
 #include <cstdlib>
 #include <pwd.h>
 #include <grp.h>
+#include <getopt.h>
 
 // {{{ module hooks
 extern "C" void accesslog_init(x0::server&);
@@ -25,6 +27,20 @@ extern "C" void vhost_init(x0::server&);
 // }}}
 
 namespace x0 {
+
+server *server::instance_ = 0;
+
+static inline std::string pathcat(const std::string& a, const std::string& b)
+{
+	if (!a.empty() && a[a.size() - 1] != '/')
+	{
+		return a + "/" + b;
+	}
+	else
+	{
+		return a + b;
+	}
+}
 
 server::server(boost::asio::io_service& io_service) :
 	connection_open(),
@@ -39,14 +55,19 @@ server::server(boost::asio::io_service& io_service) :
 	io_service_(io_service),
 	paused_(),
 	config_(),
+	configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
+	nofork_(),
 	logger_(),
 	plugins_()
 {
+	instance_ = this;
 }
 
 server::~server()
 {
 	stop();
+
+	instance_ = 0;
 }
 
 /**
@@ -55,7 +76,7 @@ server::~server()
 void server::configure()
 {
 	// load config
-	config_.load_file("x0d.conf");
+	config_.load_file(configfile_);
 
 	debugging_ = config_.get("daemon", "debug") == "true";
 
@@ -89,7 +110,6 @@ void server::configure()
 	int nice_ = std::atoi(config_.get("daemon", "nice").c_str());
 	if (nice_)
 	{
-		//LOG(*this, severity::debug, fstringbuilder::format("nice level: %d", nice_).c_str());
 		LOG(*this, severity::debug, "nice level: %d", nice_);
 		if (::nice(nice_) < 0)
 		{
@@ -98,23 +118,108 @@ void server::configure()
 	}
 
 	drop_privileges(config_.get("daemon", "user"), config_.get("daemon", "group"));
-	daemonize();
+}
+
+/**
+ * parses command line arguments.
+ */
+bool server::parse(int argc, char *argv[])
+{
+	struct option long_options[] =
+	{
+		{ "no-fork", no_argument, &nofork_, 1 },
+		{ "fork", no_argument, &nofork_, 0 },
+		//.
+		{ "version", no_argument, 0, 'v' },
+		{ "copyright", no_argument, 0, 'y' },
+		{ "config", required_argument, 0, 'c' },
+		{ "help", no_argument, 0, 'h' },
+		//.
+		{ 0, 0, 0, 0 }
+	};
+
+	static const char *package_header = 
+		"x0d: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
+	static const char *package_copyright =
+		"Copyright (c) 2009 by Christian Parpart <trapni@gentoo.org>";
+	static const char *package_license =
+		"Licensed under GPL-3 [http://gplv3.fsf.org/]";
+
+	nofork_ = 0;
+
+	for (;;)
+	{
+		int long_index = 0;
+		switch (getopt_long(argc, argv, "vyc:hX", long_options, &long_index))
+		{
+			case 'c':
+				configfile_ = optarg;
+				std::cout << "configfile: " << optarg << std::endl;
+				break;
+			case 'v':
+				std::cout
+					<< package_header << std::endl
+					<< package_copyright << std::endl;
+			case 'y':
+				std::cout << package_license << std::endl;
+				return false;
+			case 'h':
+				std::cout
+					<< package_header << std::endl
+					<< package_copyright << std::endl
+					<< package_license << std::endl
+					<< std::endl
+					<< "usage:" << std::endl
+					<< "   x0d [options ...]" << std::endl
+					<< std::endl
+					<< "options:" << std::endl
+					<< "   -h,--help        print this help" << std::endl
+					<< "   -c,--config=PATH specify a custom configuration file" << std::endl
+					<< "   -X,--no-fork     do not fork into background" << std::endl
+					<< "   -v,--version     print software version" << std::endl
+					<< "   -y,--copyright   print software copyright notice / license" << std::endl
+					<< std::endl;
+				return false;
+			case 'X':
+				nofork_ = true;
+				break;
+			case 0: // long option with (val!=NULL && flag=0)
+				break;
+			case -1: // EOF - everything parsed.
+				return true;
+			case '?': // ambiguous match / unknown arg
+			default:
+				return false;
+		}
+	}
 }
 
 /**
  * starts the server
  */
-void server::start()
+void server::start(int argc, char *argv[])
 {
-	configure();
-
-	paused_ = false;
-
-	for (std::list<listener_ptr>::iterator i = listeners_.begin(); i != listeners_.end(); ++i)
+	if (parse(argc, argv))
 	{
-		(*i)->start();
+		configure();
+
+		paused_ = false;
+
+		for (std::list<listener_ptr>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
+		{
+			(*i)->start();
+		}
+
+		if (!nofork_)
+		{
+			daemonize();
+		}
+
+		::signal(SIGHUP, &reload_handler);
+		::signal(SIGTERM, &terminate_handler);
+
+		LOG(*this, severity::info, "server up and running");
 	}
-	LOG(*this, severity::info, "server up and running");
 }
 
 void server::drop_privileges(const std::string& username, const std::string& groupname)
@@ -157,12 +262,9 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 
 void server::daemonize()
 {
-	if (!debugging_)
+	if (::daemon(/*no chdir*/ true, /* no close */ true) < 0)
 	{
-		if (::daemon(/*no chdir*/ true, /* no close */ true) < 0)
-		{
-			throw std::runtime_error(fstringbuilder::format("Could not daemonize process: %s", strerror(errno)));
-		}
+		throw std::runtime_error(fstringbuilder::format("Could not daemonize process: %s", strerror(errno)));
 	}
 }
 
@@ -256,10 +358,13 @@ void server::resume()
 	paused_ = false;
 }
 
+void server::reload()
+{
+	// TODO
+}
+
 void server::stop()
 {
-	LOG(*this, severity::info, "server is shutting down");
-
 	for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
 		(*k)->stop();
@@ -273,19 +378,56 @@ config& server::get_config()
 
 void server::log(const char *filename, unsigned int line, severity s, const char *msg, ...)
 {
-	va_list va;
-	va_start(va, msg);
-	char buf[512];
-	vsnprintf(buf, sizeof(buf), msg, va);
-	va_end(va);
+	if (logger_)
+	{
+		va_list va;
+		va_start(va, msg);
+		char buf[512];
+		vsnprintf(buf, sizeof(buf), msg, va);
+		va_end(va);
 
-	if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
-	{
-		logger_->write(s, buf);
+		if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
+		{
+			logger_->write(s, buf);
+		}
+		else if (debugging_)
+		{
+			logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
+		}
 	}
-	else if (debugging_)
+}
+
+void server::reload_handler(int)
+{
+	if (instance_)
 	{
-		logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
+		LOG(*instance_, severity::info, "SIGHUP received. Reloading configuration.");
+
+		try
+		{
+			instance_->reload();
+		}
+		catch (std::exception& e)
+		{
+			LOG(*instance_, severity::error, "uncaught exception in reload handler: %s", e.what());
+		}
+	}
+}
+
+void server::terminate_handler(int)
+{
+	if (instance_)
+	{
+		LOG(*instance_, severity::info, "SIGTERM received. Shutting down.");
+
+		try
+		{
+			instance_->stop();
+		}
+		catch (std::exception& e)
+		{
+			LOG(*instance_, severity::error, "uncaught exception in terminate handler: %s", e.what());
+		}
 	}
 }
 

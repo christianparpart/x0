@@ -1,10 +1,13 @@
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
 include_directories(..)
-add_definitions(-Wall -pthread -ggdb3 -O0 -I/opt/sandbox/include)
+include_directories(${BOOST_INCLUDEDIR})
 
-INCLUDE(FindPkgConfig)
-pkg_check_modules(LUA lua)
-
-link_libraries(dl pthread boost_system boost_signals)
+add_definitions(-Wall -pthread
+	-DPACKAGE_VERSION="${PACKAGE_VERSION}"
+	-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
+	-DSYSCONFDIR="${SYSCONFDIR}"
+	-DVERSION="${PACKAGE_VERSION}")
 
 add_executable(x0d
 	config.cpp
@@ -24,3 +27,11 @@ add_executable(x0d
 	mod_sendfile.cpp
 	mod_vhost.cpp
 )
+target_link_libraries(x0d
+	boost_system boost_signals
+	${LUA_LIBRARIES}
+	dl pthread
+)
+
+install(TARGETS x0d RUNTIME DESTINATION sbin)
+install(FILES x0d.conf DESTINATION etc)

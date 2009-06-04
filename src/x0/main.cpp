@@ -11,12 +11,20 @@
 
 int main(int argc, char *argv[])
 {
-	boost::asio::io_service ios;
-	x0::server server(ios);
+	try
+	{
+		boost::asio::io_service ios;
+		x0::server server(ios);
 
-	server.start();
+		server.start(argc, argv);
 
-	ios.run();
+		ios.run();
 
-	return 0;
+		return 0;
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+		return 1;
+	}
 }

@@ -4,7 +4,9 @@ x0 - WEB SERVER - http://code.ninchens.net/projects/x0
 CORE FEATURE ROADMAP:
 - configurable at runtime (via dbus)
 - plugin API and loadable modules
-- multiple virtual hosts
+- multiple virtual hosts, different modules for different features:
+  - simple (like lighttpd's mod_vhost_simple)
+  - customizable (my)sql based mod_vhost_sql
 - HTTP/1.1 and HTTP/1.0
 - HTTP pipelining
 - plaintext and SSL connections. (and the new mixed one, that apache invented?)

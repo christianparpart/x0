@@ -15,7 +15,8 @@
 #include <x0/types.hpp>
 #include <boost/signals.hpp>
 #include <cstring>
-#include <set>
+#include <string>
+#include <list>
 
 namespace x0 {
 
@@ -37,11 +38,13 @@ public:
 	/** configures this server as defined in the configuration section(s). */
 	void configure();
 	/** starts this server object by listening on new connections and processing them. */
-	void start();
+	void start(int argc, char *argv[]);
 	/** pauses an already active server by not accepting further new connections until resumed. */
 	void pause();
 	/** resumes a currently paused server by continueing processing new connections. */
 	void resume();
+	/** reloads server configuration */
+	void reload();
 	/** gracefully stops a running server */
 	void stop();
 	// }}}
@@ -98,18 +101,25 @@ public:
 	void setup_plugin(plugin_ptr plug);
 
 private:
+	bool parse(int argc, char *argv[]);
 	void drop_privileges(const std::string& user, const std::string& group);
 	void daemonize();
+
+	static void reload_handler(int);
+	static void terminate_handler(int);
 
 	void handle_request(request& in, response& out);
 	listener_ptr listener_by_port(int port);
 
 private:
+	static server *instance_;
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;
 	bool debugging_;
 	bool paused_;
 	config config_;
+	std::string configfile_;
+	int nofork_;
 	logger_ptr logger_;
 	std::list<plugin_ptr> plugins_;
 };
