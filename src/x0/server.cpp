@@ -79,8 +79,6 @@ void server::configure()
 	// load config
 	config_.load_file(configfile_);
 
-	debugging_ = config_.get("daemon", "debug") == "true";
-
 	// setup error logger
 	std::string logmode(config_.get("service", "log-mode"));
 	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "log-filename")));
@@ -396,7 +394,7 @@ void server::log(const char *filename, unsigned int line, severity s, const char
 			{
 				logger_->write(s, buf);
 			}
-			else if (debugging_)
+			else
 			{
 				logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
 			}

@@ -126,7 +126,6 @@ private:
 	static server *instance_;
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;
-	bool debugging_;
 	bool paused_;
 	config config_;
 	std::string configfile_;

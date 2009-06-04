@@ -6,7 +6,6 @@
 [daemon]
 group=x0d
 user=x0d
-debug=true
 chroot=/
 nice=0
 
