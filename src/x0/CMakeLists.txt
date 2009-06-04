@@ -23,13 +23,41 @@ add_executable(x0d
 	severity.cpp
 	strutils.cpp
 )
+
+set(x0d_API
+	config.hpp
+	connection.hpp
+	connection_manager.hpp
+	context.hpp
+	handler.hpp
+	header.hpp
+	listener.hpp
+	logger.hpp
+	request.hpp
+	request_parser.hpp
+	response.hpp
+	server.hpp
+	strutils.hpp
+	types.hpp
+)
+
+#	function.hpp
+#	trie.hpp
+#	ternary_search.hpp
+
+install(FILES ${x0d_API} DESTINATION include/x0)
+
 target_link_libraries(x0d
 	boost_system boost_signals
 	${LUA_LIBRARIES}
 	dl pthread
 )
 
-install(TARGETS x0d RUNTIME DESTINATION sbin)
+install(TARGETS x0d
+	RUNTIME DESTINATION sbin
+	PUBLIC_HEADER DESTINATION include/x0
+)
+
 install(FILES x0d.conf-dist DESTINATION etc)
 
 macro(add_plugin ModuleName)
