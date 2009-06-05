@@ -26,17 +26,11 @@ connection::~connection()
 {
 }
 
-/**
- * gets the system socket handle for this connection.
- */
 boost::asio::ip::tcp::socket& connection::socket()
 {
 	return socket_;
 }
 
-/**
- * starts processing events from this connection.
- */
 void connection::start()
 {
 	socket_.async_read_some(boost::asio::buffer(buffer_),
@@ -45,9 +39,6 @@ void connection::start()
 			boost::asio::placeholders::bytes_transferred));
 }
 
-/**
- * Stop this connection.
- */
 void connection::stop()
 {
 	socket_.close();

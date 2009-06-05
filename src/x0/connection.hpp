@@ -27,23 +27,41 @@ class connection_manager;
 /**
  * \ingroup core
  * \brief represents an HTTP connection handling incoming requests.
+ * \see connection_manager
  */
 class connection :
 	public boost::enable_shared_from_this<connection>,
-	private boost::noncopyable {
+	private boost::noncopyable
+{
 public:
+	/**
+	 * creates an HTTP connection object.
+	 * \param io_service a reference to the I/O service object, used for handling I/O events.
+	 * \param manager the connection manager, holding all served HTTP connections.
+	 * \param handler the request handler to be invoked for incoming requests.
+	 */
 	connection(boost::asio::io_service& io_service,
 		connection_manager& manager, const request_handler_fn& handler);
 
 	~connection();
 
-	/// get the connection socket handle
+	/** get the connection socket handle.
+	 */
 	boost::asio::ip::tcp::socket& socket();
 
-	/// start first async operation for this connection
+	/** start first async operation for this connection.
+	 *
+	 * This is done by simply registering the underlying socket to the the I/O service
+	 * to watch for available input.
+	 * \see stop()
+	 */
 	void start();
 
-	/// stop all async operations associated with this connection
+	/** stop all async operations associated with this connection.
+	 *
+	 * This is simply done by closing the underlying socket connection.
+	 * \see start()
+	 */
 	void stop();
 
 private:
