@@ -17,7 +17,6 @@ log-level=warn
 log-filename=error.log
 accesslog-filename=access.log
 listen-ports=8080, 8081
-directory-index=index.html, index.txt
 index-files=index.html, index.xml
 
 [listener:8080]
