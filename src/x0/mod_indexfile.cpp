@@ -43,9 +43,12 @@ public:
 
 	virtual void configure()
 	{
-		index_files.push_back("index.html");
-		index_files.push_back("index.htm");
-		// TODO retrieve file to store indexfile log to.
+		index_files = x0::split<std::string>(server_.get_config().get("service", "index-files"), ", ");
+
+		if (index_files.empty())
+		{
+			LOG(server_, x0::severity::warn, "indexfile module loaded, but no(/empty) configuration given.");
+		}
 	}
 
 private:
