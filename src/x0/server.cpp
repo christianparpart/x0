@@ -31,15 +31,17 @@ namespace x0 {
 
 server *server::instance_ = 0;
 
-static inline std::string pathcat(const std::string& a, const std::string& b)
+/** concats a path with a filename and optionally inserts a path seperator if path 
+ *  doesn't contain a trailing path seperator. */
+static inline std::string pathcat(const std::string& path, const std::string& filename)
 {
-	if (!a.empty() && a[a.size() - 1] != '/')
+	if (!path.empty() && path[path.size() - 1] != '/')
 	{
-		return a + "/" + b;
+		return path + "/" + filename;
 	}
 	else
 	{
-		return a + b;
+		return path + filename;
 	}
 }
 
@@ -79,7 +81,7 @@ void server::configure()
 	// load config
 	config_.load_file(configfile_);
 
-	// setup error logger
+	// setup logger
 	std::string logmode(config_.get("service", "log-mode"));
 	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "log-filename")));
 	else if (logmode == "null") logger_.reset(new nulllogger());
@@ -88,7 +90,7 @@ void server::configure()
 
 	logger_->level(severity(config_.get("service", "log-level")));
 
-	// load modules (currently hardcoded-only)
+	// load modules
 	std::vector<std::string> plugins = split<std::string>(config_.get("service", "modules-load"), ", ");
 
 	for (std::size_t i = 0; i < plugins.size(); ++i)
@@ -109,16 +111,18 @@ void server::configure()
 		i->second.first->configure();
 	}
 
-	int nice_ = std::atoi(config_.get("daemon", "nice").c_str());
-	if (nice_)
+	// setup process priority
+	if (int nice_ = std::atoi(config_.get("daemon", "nice").c_str()))
 	{
-		LOG(*this, severity::debug, "nice level: %d", nice_);
+		LOG(*this, severity::debug, "set nice level to %d", nice_);
+
 		if (::nice(nice_) < 0)
 		{
 			throw std::runtime_error(fstringbuilder::format("could not nice process to %d: %s", nice_, strerror(errno)));
 		}
 	}
 
+	// drop user privileges
 	drop_privileges(config_.get("daemon", "user"), config_.get("daemon", "group"));
 }
 
@@ -224,6 +228,7 @@ void server::start(int argc, char *argv[])
 	}
 }
 
+/** drops runtime privileges current process to given user's/group's name. */
 void server::drop_privileges(const std::string& username, const std::string& groupname)
 {
 	if (!groupname.empty() && !getgid())
@@ -262,6 +267,7 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 	}
 }
 
+/** forks server process into background. */
 void server::daemonize()
 {
 	if (::daemon(/*no chdir*/ true, /* no close */ true) < 0)
@@ -287,10 +293,9 @@ void server::handle_request(request& in, response& out) {
 	in.entity = in.document_root + in.path;
 	resolve_entity(in);
 
+	// redirect physical request paths not ending with slash
 	if (in.entity.size() > 3 && isdir(in.entity) && in.entity[in.entity.size() - 1] != '/')
 	{
-		// redirect physical request paths not ending with slash
-
 		std::stringstream url;
 		url << (in.secure ? "https://" : "http://") << in.get_header("Host") << in.path << '/' << in.query;
 
@@ -388,16 +393,13 @@ void server::log(const char *filename, unsigned int line, severity s, const char
 		vsnprintf(buf, sizeof(buf), msg, va);
 		va_end(va);
 
-		if (s <= logger_->level())
+		if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
 		{
-			if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
-			{
-				logger_->write(s, buf);
-			}
-			else
-			{
-				logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
-			}
+			logger_->write(s, buf);
+		}
+		else
+		{
+			logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
 		}
 	}
 }

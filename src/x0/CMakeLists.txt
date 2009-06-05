@@ -37,6 +37,7 @@ set(x0d_API
 	request_parser.hpp
 	response.hpp
 	server.hpp
+	severity.hpp
 	strutils.hpp strutils.tcc
 	types.hpp
 )

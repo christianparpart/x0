@@ -17,6 +17,7 @@ accesslog-filename=access.log
 modules-directory=/usr/libexec/x0/
 modules-load=accesslog, dirlisting, indexfile, sendfile, vhost
 listen-ports=8080, 8081
+directory-index=index.html, index.txt
 
 [listener:8080]
 ip.tcp.acceptor.reuse-address=true

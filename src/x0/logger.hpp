@@ -8,6 +8,7 @@
 #define sw_x0_errorlog_h
 
 #include <x0/types.hpp>
+#include <x0/severity.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <string>
@@ -85,6 +86,24 @@ public:
 private:
 	std::string filename_;
 	int fd_;
+};
+
+/**
+ * \ingroup core
+ * \brief implements a file based logger.
+ *
+ * \see logger, server
+ */
+class syslogger :
+	public logger
+{
+public:
+	syslogger();
+	~syslogger();
+
+	virtual void cycle();
+	virtual void write(severity s, const std::string& message);
+	virtual syslogger *clone() const;
 };
 
 } // namespace x0

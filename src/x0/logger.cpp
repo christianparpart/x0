@@ -1,8 +1,10 @@
 #include <x0/logger.hpp>
+#include <x0/strutils.hpp>
 #include <cstring>
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <syslog.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -78,16 +80,73 @@ void filelogger::cycle()
 	}
 }
 
-void filelogger::write(severity /*s*/, const std::string& message)
+static inline std::string _now()
 {
-	::write(fd_, message.c_str(), message.length());
-	::write(fd_, "\n", sizeof("\n"));
+	char buf[26];
+	std::time_t ts = time(0);
+
+	if (struct tm *tm = localtime(&ts))
+	{
+		if (strftime(buf, sizeof(buf), "%m/%d/%Y:%T %z", tm) != 0)
+		{
+			return buf;
+		}
+	}
+	return "-";
+}
+
+void filelogger::write(severity s, const std::string& message)
+{
+	if (s <= level())
+	{
+		std::string line(fstringbuilder::format("[%s] [%s] %s\n", _now().c_str(), s.c_str(), message.c_str()));
+		::write(fd_, line.c_str(), line.length());
+	}
 }
 
 filelogger *filelogger::clone() const
 {
 	return new filelogger(filename_);
 }
+// }}}
+
+// {{{ syslogger
+syslogger::syslogger()
+{
+}
+
+syslogger::~syslogger()
+{
+}
+
+void syslogger::cycle()
+{
+}
+
+void syslogger::write(severity s, const std::string& message)
+{
+	if (s <= level())
+	{
+		static int tr[] = {
+			LOG_DEBUG,
+			LOG_INFO,
+			LOG_NOTICE,
+			LOG_WARNING,
+			LOG_ERR,
+			LOG_CRIT,
+			LOG_ALERT,
+			LOG_EMERG
+		};
+
+		syslog(tr[s], "%s", message.c_str());
+	}
+}
+
+syslogger *syslogger::clone() const
+{
+	return new syslogger();
+}
+
 // }}}
 
 } // namespace x0
