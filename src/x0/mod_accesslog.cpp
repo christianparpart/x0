@@ -112,7 +112,7 @@ private:
 
 		if (struct tm *tm = localtime(&ts))
 		{
-			if (strftime(buf, sizeof(buf), "[%m/%d/%y:%T %z]", tm) != 0)
+			if (strftime(buf, sizeof(buf), "[%m/%d/%Y:%T %z]", tm) != 0)
 			{
 				return buf;
 			}
