@@ -14,6 +14,7 @@
 namespace x0 {
 
 class server;
+class context;
 
 /**
  * \ingroup core
@@ -44,6 +45,15 @@ public:
 
 	/** gets invoked at (re)configure time */
 	virtual void configure()
+	{
+	}
+
+	/** merges a configuration context.
+	 * \param to the context destination to merge the \p from_data to.
+	 * \param from_data the configuration from the source context.
+	 * \see context, context::merge()
+	 */
+	virtual void merge(context& to, void *from_data)
 	{
 	}
 

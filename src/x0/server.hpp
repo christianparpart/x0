@@ -11,6 +11,7 @@
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/handler.hpp>
+#include <x0/context.hpp>
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
 #include <boost/signals.hpp>
@@ -80,6 +81,42 @@ public:
 	boost::signal<void(const connection_ptr&)> connection_close;
 	// }}}
 
+	/** create server context data for given plugin. */
+	template<typename T>
+	T& create_context(plugin *plug, T *d)
+	{
+		context_.set(plug, d);
+		return context_.get<T>(plug);
+	}
+
+	/** retrieve server context data for given plugin. */
+	template<typename T>
+	T& context(plugin *plug)
+	{
+		return context<T>(plug, "/");
+	}
+
+	/** retrieve context data for given plugin at mapped file system path.
+	 * \param plug plugin data for which we want to retrieve the data for.
+	 * \param path mapped local file system path this context corresponds to. (e.g. "/var/www/")
+	 */
+	template<typename T>
+	T& context(plugin *plug, const std::string& path)
+	{
+		return context_.get<T>(plug);
+	}
+
+	template<typename T>
+	T *free_context(plugin *plug)
+	{
+		return context_.free<T>(plug);
+	}
+
+	x0::context& context()
+	{
+		return context_;
+	}
+
 	/** 
 	 * retrieves reference to server currently loaded configuration.
 	 */
@@ -124,6 +161,7 @@ private:
 
 private:
 	static server *instance_;
+	x0::context context_;
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;
 	bool paused_;

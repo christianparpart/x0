@@ -27,25 +27,32 @@ class indexfile_plugin :
 {
 private:
 	boost::signals::connection c;
-	std::vector<std::string> index_files;
+
+	struct context
+	{
+		std::vector<std::string> index_files;
+	};
 
 public:
 	indexfile_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
 		c = server_.resolve_entity.connect(boost::bind(&indexfile_plugin::indexfile, this, _1));
+		server_.create_context<context>(this, new context);
 	}
 
 	~indexfile_plugin()
 	{
 		server_.resolve_entity.disconnect(c);
+		server_.free_context<context>(this);
 	}
 
 	virtual void configure()
 	{
-		index_files = x0::split<std::string>(server_.get_config().get("service", "index-files"), ", ");
+		context& ctx = server_.context<context>(this);
+		ctx.index_files = x0::split<std::string>(server_.get_config().get("service", "index-files"), ", ");
 
-		if (index_files.empty())
+		if (ctx.index_files.empty())
 		{
 			LOG(server_, x0::severity::warn, "indexfile module loaded, but no(/empty) configuration given.");
 		}
@@ -61,7 +68,9 @@ private:
 
 		if (!S_ISDIR(st.st_mode)) return;
 
-		for (std::vector<std::string>::iterator i = index_files.begin(), e = index_files.end(); i != e; ++i)
+		context& ctx = server_.context<context>(this);
+
+		for (std::vector<std::string>::iterator i = ctx.index_files.begin(), e = ctx.index_files.end(); i != e; ++i)
 		{
 			std::string ipath;
 			ipath.reserve(path.length() + 1 + i->length());

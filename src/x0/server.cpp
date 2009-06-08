@@ -160,7 +160,6 @@ bool server::parse(int argc, char *argv[])
 		{
 			case 'c':
 				configfile_ = optarg;
-				std::cout << "configfile: " << optarg << std::endl;
 				break;
 			case 'v':
 				std::cout
