@@ -49,7 +49,7 @@ struct response
 	int status;
 
 	/// the headers to be included in the response.
-	std::vector<header> headers;
+	std::vector<x0::header> headers;
 
 	/// the content to be sent in the response.
 	std::string content;
@@ -71,16 +71,19 @@ public:
 	explicit response(int code);
 
 	/** adds a response header. */
-	response& operator+=(const header& hd);
+	response& operator+=(const x0::header& hd);
 
 	/** sets a response header value (overwrites existing one if already defined). */
-	response& operator*=(const header& hd);
+	response& operator*=(const x0::header& hd);
 
 	/** checks wether given response header has been already defined. */
 	bool has_header(const std::string& name) const;
 
 	/** retrieves the value of a given header by name. */
-	std::string get_header(const std::string& name) const;
+	std::string header(const std::string& name) const;
+
+	/** sets a response header */
+	const std::string& header(const std::string& name, const std::string& value);
 
 public:
 	static const char *status_cstr(int status);

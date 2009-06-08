@@ -31,16 +31,16 @@ response_ptr response::bad_gateway(new response(502));
 response_ptr response::service_unavailable(new response(503));
 // }}}
 
-response& response::operator+=(const header& value)
+response& response::operator+=(const x0::header& value)
 {
 	headers.push_back(value);
 
 	return *this;
 }
 
-response& response::operator*=(const header& in)
+response& response::operator*=(const x0::header& in)
 {
-	for (std::vector<header>::iterator i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<x0::header>::iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (i->name == in.name)
 		{
@@ -56,7 +56,7 @@ response& response::operator*=(const header& in)
 
 bool response::has_header(const std::string& name) const
 {
-	for (std::vector<header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<x0::header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (i->name == name)
 		{
@@ -67,9 +67,9 @@ bool response::has_header(const std::string& name) const
 	return false;
 }
 
-std::string response::get_header(const std::string& name) const
+std::string response::header(const std::string& name) const
 {
-	for (std::vector<header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<x0::header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (i->name == name)
 		{
@@ -78,6 +78,20 @@ std::string response::get_header(const std::string& name) const
 	}
 
 	return std::string();
+}
+
+const std::string& response::header(const std::string& name, const std::string& value)
+{
+	for (std::vector<x0::header>::iterator i = headers.begin(); i != headers.end(); ++i)
+	{
+		if (i->name == name)
+		{
+			return i->value = value;
+		}
+	}
+
+	headers.push_back(x0::header(name, value));
+	return headers[headers.size() - 1].value;
 }
 
 std::vector<boost::asio::const_buffer> response::to_buffers()
@@ -104,7 +118,7 @@ std::vector<boost::asio::const_buffer> response::to_buffers()
 
 	for (std::size_t i = 0; i < headers.size(); ++i)
 	{
-		const header& h = headers[i];
+		const x0::header& h = headers[i];
 
 		buffers.push_back(boost::asio::buffer(h.name));
 		buffers.push_back(boost::asio::buffer(name_value_separator));
@@ -138,7 +152,7 @@ response::response(int status) :
 	);
 	content = buf;
 
-	*this *= header("Content-Type", "text/html");
+	*this *= x0::header("Content-Type", "text/html");
 }
 
 const char *response::status_cstr(int status)

@@ -47,9 +47,10 @@ struct request
 	int http_version_minor;
 
 	/// request headers
-	std::vector<header> headers;
+	std::vector<x0::header> headers;
 
-	std::string get_header(const std::string& name) const;
+	/** retrieve value of a given request header */
+	std::string header(const std::string& name) const;
 
 	/// body
 	std::string body;

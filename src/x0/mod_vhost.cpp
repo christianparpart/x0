@@ -72,7 +72,7 @@ private:
 	void resolve_document_root(x0::request& in) {
 		if (in.document_root.empty())
 		{
-			std::string host(in.get_header("Host"));
+			std::string host(in.header("Host"));
 
 			std::string hostname(host);
 			std::size_t n = hostname.find(":");

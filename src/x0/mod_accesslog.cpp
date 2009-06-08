@@ -74,8 +74,8 @@ private:
 			sstr << request_line(in) << "\" ";
 			sstr << out.status << ' ';
 			sstr << out.content.length() << ' ';
-			sstr << '"' << get_header(in, "Referer") << "\" ";
-			sstr << '"' << get_header(in, "User-Agent") << '"';
+			sstr << '"' << getheader(in, "Referer") << "\" ";
+			sstr << '"' << getheader(in, "User-Agent") << '"';
 			sstr << std::endl;
 
 			std::string line(sstr.str());
@@ -120,9 +120,9 @@ private:
 		return "-";
 	}
 
-	inline std::string get_header(const x0::request& in, const std::string& name)
+	inline std::string getheader(const x0::request& in, const std::string& name)
 	{
-		std::string value(in.get_header(name));
+		std::string value(in.header(name));
 		return !value.empty() ? value : "-";
 	}
 };

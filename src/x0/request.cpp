@@ -8,9 +8,9 @@
 
 namespace x0 {
 
-std::string request::get_header(const std::string& name) const
+std::string request::header(const std::string& name) const
 {
-	for (std::vector<header>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)
+	for (std::vector<x0::header>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)
 	{
 		if (i->name == name)
 		{
