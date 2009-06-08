@@ -82,8 +82,9 @@ private:
 			return false;
 		}
 
-		// XXX setup some response headers
 		set_content_type(in, out);
+		out.header("Last-Modified", makeHttpTimeStamp(st.st_mtime));
+		// TODO: set other related response headers...
 
 		out.content.resize(st.st_size);
 		::read(fd, &out.content[0], st.st_size);
@@ -92,6 +93,20 @@ private:
 		// XXX start async transfer through sendfile()
 
 		return true;
+	}
+
+	inline static std::string makeHttpTimeStamp(std::time_t ts)
+	{
+		if (struct tm *tm = localtime(&ts))
+		{
+			char buf[256];
+
+			if (strftime(buf, sizeof(buf), "%a, %d-%b-%Y %T %z", tm) != 0)
+			{
+				return buf;
+			}
+		}
+		return std::string();
 	}
 
 	inline void set_content_type(x0::request& in, x0::response& out)
