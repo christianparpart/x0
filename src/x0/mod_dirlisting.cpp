@@ -80,7 +80,7 @@ private:
 				 << in.path
 				 << "</title></head>\n<body>\n";
 
-			sstr << "<h2>" << in.path << "</h2>\n";
+			sstr << "<h2>Index of " << in.path << "</h2>\n";
 			sstr << "<ul>\n";
 
 			for (std::list<std::string>::iterator i = listing.begin(), e = listing.end(); i != e; ++i)
