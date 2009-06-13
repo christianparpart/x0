@@ -26,15 +26,20 @@ private:
 
 	struct context
 	{
-		std::string prefix;
-		std::string docroot;
+		std::string prefix;			// userdir prefix (default: "~")
+		std::string docroot;		// user's document root (default: "public_html")
 	};
 
 public:
 	userdir_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.resolve_entity.connect(boost::bind(&userdir_plugin::userdir, this, _1));
+		// to connect to resolved_entity at slot-group `1`, so, that all other transforms have taken place already,
+		// that is, e.g. "userdir".
+		// XXX a better implementation of this dependency-issue surely is, to introduce
+		// another signal that would order the event sequence for us, but i'm not yet that clear about how
+		// to name this in a clean and reasonable way.
+		c = server_.resolve_entity.connect(1, boost::bind(&userdir_plugin::resolve_entity, this, _1));
 		server_.create_context<context>(this, new context);
 	}
 
@@ -74,11 +79,10 @@ public:
 				ctx.docroot = ctx.docroot.substr(0, ctx.docroot.size() - 1);
 			}
 		}
-		printf("docroot: %s\n", ctx.docroot.c_str());
 	}
 
 private:
-	void userdir(x0::request& in)
+	void resolve_entity(x0::request& in)
 	{
 		const context& ctx = server_.context<context>(this);
 
@@ -103,6 +107,7 @@ private:
 			{
 				in.document_root = pw->pw_dir + ctx.docroot;
 				in.entity = in.document_root + userPath;
+				printf("userdir: entity resolved to: %s\n", in.entity.c_str());
 			}
 		}
 	}
