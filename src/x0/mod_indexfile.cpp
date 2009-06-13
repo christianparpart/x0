@@ -37,7 +37,12 @@ public:
 	indexfile_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.resolve_entity.connect(boost::bind(&indexfile_plugin::indexfile, this, _1));
+		// to connect to resolved_entity at slot-group `1`, so, that all other transforms have taken place already,
+		// that is, e.g. "userdir".
+		// XXX a better implementation of this dependency-issue surely is, to introduce
+		// another signal that would order the event sequence for us, but i'm not yet that clear about how
+		// to name this in a clean and reasonable way.
+		c = server_.resolve_entity.connect(1, boost::bind(&indexfile_plugin::indexfile, this, _1));
 		server_.create_context<context>(this, new context);
 	}
 
@@ -61,7 +66,7 @@ public:
 private:
 	void indexfile(x0::request& in)
 	{
-		std::string path(in.document_root + in.path);
+		std::string path(in.entity);
 		struct stat st;
 
 		if (stat(path.c_str(), &st) != 0) return;
