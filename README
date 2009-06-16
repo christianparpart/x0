@@ -13,16 +13,17 @@ CORE FEATURE ROADMAP:
 - async sendfile()-use when serving static files
 
 MODULES:
-- redirect
-- rewrite
-- auth
-- user_dir
-- dbus
-- cgi/fastcgi
-- accesslog
-- directory-listing
-- directory-indexing
-- static files
+- auth: implements HTTP authentication
+- accesslog: writes HTTP requests to an access log file (in spirit of apache httpd's common access log format)
+- cgi: handles CGI requests (files ending with a specified ending, e.g. ".cgi" and alike).
+- dbus: administrative plugin to (re-)configure server at runtime.
+- dirlisting: generates a directory listing response in case the request path maps to a directory instead of a file directly.
+- indexfile: internally redirects to index.html (or other, if configured) if request path maps to a directory that contains an index file.
+- redirect:
+- rewrite:
+- sendfile: sends static files to client if requested entity maps to a local file.
+- userdir: provides access to user's ~/public_html directory as hostname/~username URL
+- vhost: implements basic virtual hosting
 
 THREADING MODEL:
 - main thread performing I/O dispatching

@@ -2,8 +2,63 @@ INTERMEDIATE TODO
 
 for a long-term todo list, see ticket system at code.ninchens.net/projects/x0
 
+- fix copy constructor problem in class response (for pre defined responses like ok, redirect, etc...)
+- add composite_buffer::iovec_chunk and optimize push_back(PodType[N])
+- async/parralel request handling
 - configuration system
 	- based on hierarichal contexts (with use of ternary_search<>)
 - logging system
 	- add syslog driver
 - multi threaded multiplexing: per-CPU model
+
+-----------------------------------------------------------
+bool chat_listener::handle_request(request& in, response& out)
+{
+	this->request = &in;
+	this->response = &out;
+
+	out.header("Content-Type", "text/html");
+
+	out.content.write(chatStreamHead());
+
+	out.incomplete(true);// explicit flush indicates that there *MIGHT* be more to come, but we flush what we have.
+	out.flush(); 
+
+	return true;
+}
+
+void chatSay()
+{
+	std::string message;
+	for (auto i = members.begin(), e = members.end(); i != e; ++i)
+	{
+		auto member = *i;
+		member->write(message);
+	}
+}
+void member::write(const std::string& message) {
+	listener->response->content.write(message);
+	listener->response->content.flush();
+}
+void ChatSession::~ChatSession() {
+	listener->response->finish();
+}
+
+response::finish() {
+	flush();
+}
+response::flush() {
+	ios.post(do_flush());
+}
+response::do_flush() {
+	// write remaining data.
+}
+
+
+
+
+
+
+
+
+k
