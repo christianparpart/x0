@@ -90,7 +90,7 @@ private:
 
 			sstr << "</ul>\n</body></html>\n";
 
-			out.content = sstr.str();
+			out.write(sstr.str());
 			out *= x0::header("Content-Type", "text/html");
 
 			return true;

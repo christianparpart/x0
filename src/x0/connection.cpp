@@ -67,9 +67,8 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 			response_ = reply;
 
 			// initiate response sending
-			async_write(socket_, response_->to_buffers(),
-				bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+			response_->async_write(socket_,
+				bind(&connection::handle_write, shared_from_this(), boost::asio::placeholders::error));
 		}
 
 		if (result) // request fully parsed
@@ -88,9 +87,8 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 			}
 
 			// initiate response sending
-			async_write(socket_, response_->to_buffers(),
-				bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+			response_->async_write(socket_,
+				bind(&connection::handle_write, shared_from_this(), boost::asio::placeholders::error));
 		}
 		else if (!result) // received an invalid request
 		{
@@ -98,9 +96,8 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 			response_ = response::bad_request;
 
 			// initiate response sending
-			async_write(socket_, response_->to_buffers(),
-				bind(&connection::handle_write, shared_from_this(),
-					boost::asio::placeholders::error));
+			response_->async_write(socket_,
+				bind(&connection::handle_write, shared_from_this(), boost::asio::placeholders::error));
 		}
 		else // request still incomplete
 		{

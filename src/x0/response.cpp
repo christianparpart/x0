@@ -94,40 +94,32 @@ const std::string& response::header(const std::string& name, const std::string& 
 	return headers[headers.size() - 1].value;
 }
 
-std::vector<boost::asio::const_buffer> response::to_buffers()
+composite_buffer response::serialize()
 {
-	// {{{ static const's
-	static const char http10_[] = { 'H', 'T', 'T', 'P', '/', '1', '.', '0', ' ' };
-	static const char http11_[] = { 'H', 'T', 'T', 'P', '/', '1', '.', '1', ' ' };
-	static const char space[] = { ' ' };
-	static const char name_value_separator[] = { ':', ' ' };
-	static const char crlf[] = { '\r', '\n' };
-	// }}}
-
 	status_buf[0] = '0' + (status / 100);
 	status_buf[1] = '0' + (status / 10 % 10);
 	status_buf[2] = '0' + (status % 10);
 
-	std::vector<boost::asio::const_buffer> buffers;
+	composite_buffer buffers;
 
-	buffers.push_back(boost::asio::buffer(http11_));
-	buffers.push_back(boost::asio::buffer(status_buf));
-	buffers.push_back(boost::asio::buffer(space));
-	buffers.push_back(boost::asio::buffer(status_cstr(status)));
-	buffers.push_back(boost::asio::buffer(crlf));
+	buffers.push_back("HTTP/1.1 ");
+	buffers.push_back(status_buf);
+	buffers.push_back(' ');
+	buffers.push_back(status_cstr(status));
+	buffers.push_back("\r\n");
 
 	for (std::size_t i = 0; i < headers.size(); ++i)
 	{
 		const x0::header& h = headers[i];
 
-		buffers.push_back(boost::asio::buffer(h.name));
-		buffers.push_back(boost::asio::buffer(name_value_separator));
-		buffers.push_back(boost::asio::buffer(h.value));
-		buffers.push_back(boost::asio::buffer(crlf));
+		buffers.push_back(h.name.data(), h.name.size());
+		buffers.push_back(": ");
+		buffers.push_back(h.value.data(), h.value.size());
+		buffers.push_back("\r\n");
 	}
 
-	buffers.push_back(boost::asio::buffer(crlf));
-	buffers.push_back(boost::asio::buffer(content));
+	buffers.push_back("\r\n");
+	buffers.push_back(content);
 
 	return buffers;
 }
@@ -143,14 +135,14 @@ response::response(int status) :
 	const char *codeStr = status_cstr(status);
 	char buf[1024];
 
-	snprintf(buf, sizeof(buf),
+	int nwritten = snprintf(buf, sizeof(buf),
 		"<html>"
 		"<head><title>%s</title></head>"
 		"<body><h1>%d %s</h1></body>"
 		"</html>",
 		codeStr, status, codeStr
 	);
-	content = buf;
+	content.push_back(buf, nwritten);
 
 	*this *= x0::header("Content-Type", "text/html");
 }

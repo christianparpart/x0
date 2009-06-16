@@ -73,7 +73,7 @@ private:
 			sstr << now() << " \"";
 			sstr << request_line(in) << "\" ";
 			sstr << out.status << ' ';
-			sstr << out.content.length() << ' ';
+			sstr << out.content_length() << ' ';
 			sstr << '"' << getheader(in, "Referer") << "\" ";
 			sstr << '"' << getheader(in, "User-Agent") << '"';
 			sstr << std::endl;

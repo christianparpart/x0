@@ -86,8 +86,7 @@ private:
 		out.header("Last-Modified", makeHttpTimeStamp(st.st_mtime));
 		// TODO: set other related response headers...
 
-		out.content.resize(st.st_size);
-		::read(fd, &out.content[0], st.st_size);
+		out.write(fd, 0, st.st_size, true);
 
 		// XXX send out headers, as they're fixed size in user space.
 		// XXX start async transfer through sendfile()

@@ -321,7 +321,7 @@ void server::handle_request(request& in, response& out) {
 
 	if (!out.has_header("Content-Length"))
 	{
-		out += header("Content-Length", boost::lexical_cast<std::string>(out.content.length()));
+		out += header("Content-Length", boost::lexical_cast<std::string>(out.content_length()));
 	}
 
 	if (!out.has_header("Content-Type"))
