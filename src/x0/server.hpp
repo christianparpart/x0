@@ -112,6 +112,7 @@ public:
 		return context_.free<T>(plug);
 	}
 
+	/** retrieve the server configuration context. */
 	x0::context& context()
 	{
 		return context_;
