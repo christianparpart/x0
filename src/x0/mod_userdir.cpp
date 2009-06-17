@@ -102,7 +102,6 @@ private:
 			{
 				in.document_root = pw->pw_dir + ctx.docroot;
 				in.entity = in.document_root + userPath;
-				printf("userdir: entity resolved to: %s\n", in.entity.c_str());
 			}
 		}
 	}
