@@ -299,29 +299,50 @@ void server::handle_request(request& in, response& out) {
 		url << (in.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
 
 		out *= header("Location", url.str());
-		out.set(response::moved_permanently);
+		out.status(response::moved_permanently);
 	}
 	// generate response content, based on this request
 	else if (!generate_content(in, out))
 	{
 		// no content generator found for this request, default to 404 (Not Found)
-		out.set(response::not_found);
+		out.status(response::not_found);
 	}
 
-	if (!out.status)
+	if (!out.status())
 	{
 		// content generator found, but no status set, default to 200 (Ok)
-		out.status = 200;
+		out.status(response::ok);
+	}
+
+	if (out.content.empty())
+	{
+		const char *codeStr = response::status_cstr(out.status()) ?: "";
+		char buf[1024];
+
+		int nwritten = snprintf(buf, sizeof(buf),
+			"<html>"
+			"<head><title>%s</title></head>"
+			"<body><h1>%d %s</h1></body>"
+			"</html>",
+			codeStr, out.status(), codeStr
+		);
+		out.write(std::string(buf, 0, nwritten));
+
+		out.header("Content-Length", boost::lexical_cast<std::string>(out.content_length()));
+		out.header("Content-Type", "text/html");
+	}
+	else if (!out.has_header("Content-Type"))
+	{
+		out += header("Content-Type", "text/plain");
 	}
 
 	if (!out.has_header("Content-Length"))
 	{
-		out += header("Content-Length", boost::lexical_cast<std::string>(out.content_length()));
+		out.header("Connection", "closed");
 	}
-
-	if (!out.has_header("Content-Type"))
+	else if (!out.has_header("Connection"))
 	{
-		out += header("Content-Type", "text/plain");
+		out.header("Connection", "keep-alive");
 	}
 
 	// log request/response

@@ -77,16 +77,16 @@ const std::string& response::header(const std::string& name, const std::string& 
 
 composite_buffer response::serialize()
 {
-	status_buf[0] = '0' + (status / 100);
-	status_buf[1] = '0' + (status / 10 % 10);
-	status_buf[2] = '0' + (status % 10);
+	status_buf[0] = '0' + (status_ / 100);
+	status_buf[1] = '0' + (status_ / 10 % 10);
+	status_buf[2] = '0' + (status_ % 10);
 
 	composite_buffer buffers;
 
 	buffers.push_back("HTTP/1.1 ");
 	buffers.push_back(status_buf);
 	buffers.push_back(' ');
-	buffers.push_back(status_cstr(status));
+	buffers.push_back(status_cstr(status_));
 	buffers.push_back("\r\n");
 
 	for (std::size_t i = 0; i < headers.size(); ++i)
@@ -106,32 +106,18 @@ composite_buffer response::serialize()
 }
 
 response::response() :
-	status(0)
+	status_(0)
 {
 }
 
-void response::set(int _status)
+void response::status(int value)
 {
-	status = _status;
-
-	const char *codeStr = status_cstr(status) ?: "";
-	char buf[1024];
-
-	int nwritten = snprintf(buf, sizeof(buf),
-		"<html>"
-		"<head><title>%s</title></head>"
-		"<body><h1>%d %s</h1></body>"
-		"</html>",
-		codeStr, status, codeStr
-	);
-	content.push_back(std::string(buf, 0, nwritten));
-
-	*this *= x0::header("Content-Type", "text/html");
+	status_ = value;
 }
 
-const char *response::status_cstr(int status)
+const char *response::status_cstr(int value)
 {
-	switch (status)
+	switch (value)
 	{
 		case 200: return "Ok";
 		case 201: return "Created";
@@ -153,9 +139,9 @@ const char *response::status_cstr(int status)
 	}
 }
 
-std::string response::status_str(int status)
+std::string response::status_str(int value)
 {
-	return std::string(status_cstr(status));
+	return std::string(status_cstr(value));
 }
 
 } // namespace x0

@@ -62,7 +62,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		}
 		catch (response_ptr reply)
 		{
-			fprintf(stderr, "response_ptr exception caught (%d %s)\n", reply->status, response::status_cstr(reply->status));;
+			fprintf(stderr, "response_ptr exception caught (%d %s)\n", reply->status(), response::status_cstr(reply->status()));;
 			fflush(stderr);
 			response_ = reply;
 
@@ -81,7 +81,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 			}
 			catch (response_ptr reply)
 			{
-				fprintf(stderr, "response_ptr exception caught (%d %s)\n", reply->status, response::status_cstr(reply->status));;
+				fprintf(stderr, "response_ptr exception caught (%d %s)\n", reply->status(), response::status_cstr(reply->status()));;
 				fflush(stderr);
 				response_ = reply;
 			}
@@ -93,7 +93,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		else if (!result) // received an invalid request
 		{
 			// -> send stock response: BAD_REQUEST
-			response_->set(response::bad_request);
+			response_->status(response::bad_request);
 
 			// initiate response sending
 			response_->async_write(socket_,

@@ -50,7 +50,7 @@ struct response
 	// }}}
 
 	/// HTTP response status code.
-	int status;
+	int status_;
 
 	/// the headers to be included in the response.
 	std::vector<x0::header> headers;
@@ -113,7 +113,10 @@ public:
 	/** sets a standard response for given status code.
 	 * \param value the response status code to initialize this response with.
 	 */
-	void set(int value);
+	void status(int value);
+
+	/** retrieves current status code. */
+	int status() const;
 
 	// {{{ header manipulation
 	/** adds a response header. */
@@ -165,6 +168,12 @@ private:
 };
 
 // {{{ inline implementation
+
+inline int response::status() const
+{
+	return status_;
+}
+
 inline size_t response::content_length() const
 {
 	return content.size();
