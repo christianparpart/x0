@@ -109,7 +109,7 @@ private:
 						<< std::endl
 						<< "options:" << std::endl
 						<< "   -h,--help        print this help" << std::endl
-						<< "   -c,--config=PATH specify a custom configuration file" << std::endl
+						<< "   -c,--config=PATH specify a custom configuration file [" << configfile_ << "]" << std::endl
 						<< "   -X,--no-fork     do not fork into background" << std::endl
 						<< "   -v,--version     print software version" << std::endl
 						<< "   -y,--copyright   print software copyright notice / license" << std::endl
