@@ -42,9 +42,9 @@ public:
 
 	// {{{ service control
 	/** configures this server as defined in the configuration section(s). */
-	void configure();
+	void configure(const std::string& configfile);
 	/** starts this server object by listening on new connections and processing them. */
-	void start(int argc, char *argv[]);
+	void start();
 	/** pauses an already active server by not accepting further new connections until resumed. */
 	void pause();
 	/** resumes a currently paused server by continueing processing new connections. */
@@ -150,9 +150,7 @@ public:
 	std::vector<std::string> loaded_plugins() const;
 
 private:
-	bool parse(int argc, char *argv[]);
 	void drop_privileges(const std::string& user, const std::string& group);
-	void daemonize();
 
 	static void reload_handler(int);
 	static void terminate_handler(int);
@@ -168,7 +166,6 @@ private:
 	bool paused_;
 	config config_;
 	std::string configfile_;
-	int nofork_;
 	logger_ptr logger_;
 	plugin_map_t plugins_;
 };

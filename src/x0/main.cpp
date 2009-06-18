@@ -5,14 +5,35 @@
  */
 
 #include <x0/server.hpp>
+#include <x0/strutils.hpp>
 #include <boost/asio.hpp>
 #include <iostream>
 #include <string>
+#include <getopt.h>
 
 class x0d
 {
+private:
+	/** concats a path with a filename and optionally inserts a path seperator if path 
+	 *  doesn't contain a trailing path seperator. */
+	static inline std::string pathcat(const std::string& path, const std::string& filename)
+	{
+		if (!path.empty() && path[path.size() - 1] != '/')
+		{
+			return path + "/" + filename;
+		}
+		else
+		{
+			return path + filename;
+		}
+	}
+
 public:
-	x0d() : ios_(), server_(ios_)
+	x0d() :
+		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
+		nofork_(false),
+		ios_(),
+		server_(ios_)
 	{
 	}
 
@@ -22,13 +43,103 @@ public:
 
 	int run(int argc, char *argv[])
 	{
-		// TODO move cmdline parsing here (so that x0::server is lib-only)
-		server_.start(argc, argv);
-		ios_.run();
-		return 0;
+		if (parse(argc, argv))
+		{
+			server_.configure(configfile_);
+			server_.start();
+
+			if (!nofork_)
+			{
+				daemonize();
+			}
+			ios_.run();
+			return 0;
+		}
+		return -1;
 	}
 
 private:
+	bool parse(int argc, char *argv[])
+	{
+		struct option long_options[] =
+		{
+			{ "no-fork", no_argument, &nofork_, 1 },
+			{ "fork", no_argument, &nofork_, 0 },
+			//.
+			{ "version", no_argument, 0, 'v' },
+			{ "copyright", no_argument, 0, 'y' },
+			{ "config", required_argument, 0, 'c' },
+			{ "help", no_argument, 0, 'h' },
+			//.
+			{ 0, 0, 0, 0 }
+		};
+
+		static const char *package_header = 
+			"x0d: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
+		static const char *package_copyright =
+			"Copyright (c) 2009 by Christian Parpart <trapni@gentoo.org>";
+		static const char *package_license =
+			"Licensed under GPL-3 [http://gplv3.fsf.org/]";
+
+		nofork_ = 0;
+
+		for (;;)
+		{
+			int long_index = 0;
+			switch (getopt_long(argc, argv, "vyc:hX", long_options, &long_index))
+			{
+				case 'c':
+					configfile_ = optarg;
+					break;
+				case 'v':
+					std::cout
+						<< package_header << std::endl
+						<< package_copyright << std::endl;
+				case 'y':
+					std::cout << package_license << std::endl;
+					return false;
+				case 'h':
+					std::cout
+						<< package_header << std::endl
+						<< package_copyright << std::endl
+						<< package_license << std::endl
+						<< std::endl
+						<< "usage:" << std::endl
+						<< "   x0d [options ...]" << std::endl
+						<< std::endl
+						<< "options:" << std::endl
+						<< "   -h,--help        print this help" << std::endl
+						<< "   -c,--config=PATH specify a custom configuration file" << std::endl
+						<< "   -X,--no-fork     do not fork into background" << std::endl
+						<< "   -v,--version     print software version" << std::endl
+						<< "   -y,--copyright   print software copyright notice / license" << std::endl
+						<< std::endl;
+					return false;
+				case 'X':
+					nofork_ = true;
+					break;
+				case 0: // long option with (val!=NULL && flag=0)
+					break;
+				case -1: // EOF - everything parsed.
+					return true;
+				case '?': // ambiguous match / unknown arg
+				default:
+					return false;
+			}
+		}
+	}
+
+	void daemonize()
+	{
+		if (::daemon(true /*no chdir*/, true /*no close*/) < 0)
+		{
+			throw std::runtime_error(x0::fstringbuilder::format("Could not daemonize process: %s", strerror(errno)));
+		}
+	}
+
+private:
+	std::string configfile_;
+	int nofork_;
 	boost::asio::io_service ios_;
 	x0::server server_;
 };

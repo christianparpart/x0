@@ -31,20 +31,6 @@ namespace x0 {
 
 server *server::instance_ = 0;
 
-/** concats a path with a filename and optionally inserts a path seperator if path 
- *  doesn't contain a trailing path seperator. */
-static inline std::string pathcat(const std::string& path, const std::string& filename)
-{
-	if (!path.empty() && path[path.size() - 1] != '/')
-	{
-		return path + "/" + filename;
-	}
-	else
-	{
-		return path + filename;
-	}
-}
-
 server::server(boost::asio::io_service& io_service) :
 	connection_open(),
 	pre_process(),
@@ -58,8 +44,6 @@ server::server(boost::asio::io_service& io_service) :
 	io_service_(io_service),
 	paused_(),
 	config_(),
-	configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
-	nofork_(),
 	logger_(),
 	plugins_()
 {
@@ -76,10 +60,10 @@ server::~server()
 /**
  * configures the server ready to be started.
  */
-void server::configure()
+void server::configure(const std::string& configfile)
 {
 	// load config
-	config_.load_file(configfile_);
+	config_.load_file(configfile);
 
 	// setup logger
 	std::string logmode(config_.get("service", "log-mode"));
@@ -127,104 +111,21 @@ void server::configure()
 }
 
 /**
- * parses command line arguments.
- */
-bool server::parse(int argc, char *argv[])
-{
-	struct option long_options[] =
-	{
-		{ "no-fork", no_argument, &nofork_, 1 },
-		{ "fork", no_argument, &nofork_, 0 },
-		//.
-		{ "version", no_argument, 0, 'v' },
-		{ "copyright", no_argument, 0, 'y' },
-		{ "config", required_argument, 0, 'c' },
-		{ "help", no_argument, 0, 'h' },
-		//.
-		{ 0, 0, 0, 0 }
-	};
-
-	static const char *package_header = 
-		"x0d: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
-	static const char *package_copyright =
-		"Copyright (c) 2009 by Christian Parpart <trapni@gentoo.org>";
-	static const char *package_license =
-		"Licensed under GPL-3 [http://gplv3.fsf.org/]";
-
-	nofork_ = 0;
-
-	for (;;)
-	{
-		int long_index = 0;
-		switch (getopt_long(argc, argv, "vyc:hX", long_options, &long_index))
-		{
-			case 'c':
-				configfile_ = optarg;
-				break;
-			case 'v':
-				std::cout
-					<< package_header << std::endl
-					<< package_copyright << std::endl;
-			case 'y':
-				std::cout << package_license << std::endl;
-				return false;
-			case 'h':
-				std::cout
-					<< package_header << std::endl
-					<< package_copyright << std::endl
-					<< package_license << std::endl
-					<< std::endl
-					<< "usage:" << std::endl
-					<< "   x0d [options ...]" << std::endl
-					<< std::endl
-					<< "options:" << std::endl
-					<< "   -h,--help        print this help" << std::endl
-					<< "   -c,--config=PATH specify a custom configuration file" << std::endl
-					<< "   -X,--no-fork     do not fork into background" << std::endl
-					<< "   -v,--version     print software version" << std::endl
-					<< "   -y,--copyright   print software copyright notice / license" << std::endl
-					<< std::endl;
-				return false;
-			case 'X':
-				nofork_ = true;
-				break;
-			case 0: // long option with (val!=NULL && flag=0)
-				break;
-			case -1: // EOF - everything parsed.
-				return true;
-			case '?': // ambiguous match / unknown arg
-			default:
-				return false;
-		}
-	}
-}
-
-/**
  * starts the server
  */
-void server::start(int argc, char *argv[])
+void server::start()
 {
-	if (parse(argc, argv))
+	paused_ = false;
+
+	for (std::list<listener_ptr>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 	{
-		configure();
-
-		paused_ = false;
-
-		for (std::list<listener_ptr>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
-		{
-			(*i)->start();
-		}
-
-		if (!nofork_)
-		{
-			daemonize();
-		}
-
-		::signal(SIGHUP, &reload_handler);
-		::signal(SIGTERM, &terminate_handler);
-
-		LOG(*this, severity::info, "server up and running");
+		(*i)->start();
 	}
+
+	::signal(SIGHUP, &reload_handler);
+	::signal(SIGTERM, &terminate_handler);
+
+	LOG(*this, severity::info, "server up and running");
 }
 
 /** drops runtime privileges current process to given user's/group's name. */
@@ -263,15 +164,6 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 		{
 			throw std::runtime_error(fstringbuilder::format("Could not find group: %s", groupname.c_str()));
 		}
-	}
-}
-
-/** forks server process into background. */
-void server::daemonize()
-{
-	if (::daemon(/*no chdir*/ true, /* no close */ true) < 0)
-	{
-		throw std::runtime_error(fstringbuilder::format("Could not daemonize process: %s", strerror(errno)));
 	}
 }
 
