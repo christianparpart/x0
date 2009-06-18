@@ -14,37 +14,42 @@
 namespace x0 {
 
 /**
- * Class for constructing and sending up to complex composite buffers from various sources.
+ * \ingroup common
+ * \brief Class for constructing and sending up to complex composite buffers from various sources.
  *
  * A composite buffer - once fully created - is meant to be sent only <b>once</b>.
  * This class shall support asynchronous I/O file.
  *
- * <code>
- * 	composite_buffer cb;
+ * \code
+ *	template<class Socket, class CompletionHandler>
+ *	void generate(Socket& socket, const CompletionHandler& handler)
+ *	{
+ * 		composite_buffer cb;
  *
- * 	cb.push_back("Hello, World");
- *  cb.push_back('\n');
+ *		cb.push_back("Hello, World");
+ *		cb.push_back('\n');
  *
- * 	struct stat st;
- * 	if (stat("somefile.txt", &st) != -1)
- * 	{
- * 		int fd = open("somefile.txt", O_RDONLY);
- * 		if (fd != -1)
+ * 		struct stat st;
+ * 		if (stat("somefile.txt", &st) != -1)
  * 		{
- * 			cb.push_back(fd, 0, st.st_size, true);
+ * 			int fd = open("somefile.txt", O_RDONLY);
+ * 			if (fd != -1)
+ * 			{
+ * 				cb.push_back(fd, 0, st.st_size, true);
+ * 			}
  * 		}
- * 	}
  *
- * 	cb.async_write(socket, completion_handler);
+ * 		cb.async_write(socket, handler);
+ * 	}
  *
  * 	void completion_handler(boost::system::error_code ec, std::size_t bytes_transferred)
  * 	{
  * 		if (ec)
  * 		{
- * 			throw std::runtime_error(strerror(errno));
+ * 			std::cerr << "error: " << strerror(errno) << std::endl;
  * 		}
  * 	}
- * </code>
+ * \endcode
  */
 class composite_buffer
 {
