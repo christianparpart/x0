@@ -93,7 +93,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		else if (!result) // received an invalid request
 		{
 			// -> send stock response: BAD_REQUEST
-			response_ = response::bad_request;
+			response_->set(response::bad_request);
 
 			// initiate response sending
 			response_->async_write(socket_,

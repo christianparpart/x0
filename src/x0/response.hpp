@@ -28,23 +28,25 @@ namespace x0 {
  */
 struct response
 {
-	// {{{ standard responses
-	static response_ptr ok;
-	static response_ptr created;
-	static response_ptr accepted;
-	static response_ptr no_content;
-	static response_ptr multiple_choices;
-	static response_ptr moved_permanently;
-	static response_ptr moved_temporarily;
-	static response_ptr not_modified;
-	static response_ptr bad_request;
-	static response_ptr unauthorized;
-	static response_ptr forbidden;
-	static response_ptr not_found;
-	static response_ptr internal_server_error;
-	static response_ptr not_implemented;
-	static response_ptr bad_gateway;
-	static response_ptr service_unavailable;
+	// {{{ standard response types
+	enum code_type {
+		ok = 200,
+		created = 201,
+		accepted = 202,
+		no_content = 204,
+		multiple_choices = 300,
+		moved_permanently = 301,
+		moved_temporarily = 302,
+		not_modified = 304,
+		bad_request = 400,
+		unauthorized = 401,
+		forbidden = 403,
+		not_found = 404,
+		internal_server_error = 500,
+		not_implemented = 501,
+		bad_gateway = 502,
+		service_unavailable = 503
+	};
 	// }}}
 
 	/// HTTP response status code.
@@ -108,8 +110,10 @@ public:
 	/** creates an empty response object */
 	response();
 
-	/** constructs a standard response. */
-	explicit response(int code);
+	/** sets a standard response for given status code.
+	 * \param value the response status code to initialize this response with.
+	 */
+	void set(int value);
 
 	// {{{ header manipulation
 	/** adds a response header. */

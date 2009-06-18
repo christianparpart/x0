@@ -12,25 +12,6 @@
 
 namespace x0 {
 
-// {{{ standard responses
-response_ptr response::ok(new response(200));
-response_ptr response::created(new response(201));
-response_ptr response::accepted(new response(202));
-response_ptr response::no_content(new response(204));
-response_ptr response::multiple_choices(new response(300));
-response_ptr response::moved_permanently(new response(301));
-response_ptr response::moved_temporarily(new response(302));
-response_ptr response::not_modified(new response(304));
-response_ptr response::bad_request(new response(400));
-response_ptr response::unauthorized(new response(401));
-response_ptr response::forbidden(new response(403));
-response_ptr response::not_found(new response(404));
-response_ptr response::internal_server_error(new response(500));
-response_ptr response::not_implemented(new response(501));
-response_ptr response::bad_gateway(new response(502));
-response_ptr response::service_unavailable(new response(503));
-// }}}
-
 response& response::operator+=(const x0::header& value)
 {
 	headers.push_back(value);
@@ -129,10 +110,11 @@ response::response() :
 {
 }
 
-response::response(int status) :
-	status(status)
+void response::set(int _status)
 {
-	const char *codeStr = status_cstr(status);
+	status = _status;
+
+	const char *codeStr = status_cstr(status) ?: "";
 	char buf[1024];
 
 	int nwritten = snprintf(buf, sizeof(buf),
@@ -142,7 +124,7 @@ response::response(int status) :
 		"</html>",
 		codeStr, status, codeStr
 	);
-	content.push_back(buf, nwritten);
+	content.push_back(std::string(buf, 0, nwritten));
 
 	*this *= x0::header("Content-Type", "text/html");
 }

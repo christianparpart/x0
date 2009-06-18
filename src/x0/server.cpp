@@ -298,19 +298,14 @@ void server::handle_request(request& in, response& out) {
 		std::stringstream url;
 		url << (in.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
 
-		out.status = response::moved_permanently->status;
-		out.content = response::moved_permanently->content;
-
 		out *= header("Location", url.str());
-		out *= header("Content-Type", "text/html");
+		out.set(response::moved_permanently);
 	}
 	// generate response content, based on this request
 	else if (!generate_content(in, out))
 	{
 		// no content generator found for this request, default to 404 (Not Found)
-		out.status = response::not_found->status;
-		out.content = response::not_found->content;
-		out *= header("Content-Type", "text/html");
+		out.set(response::not_found);
 	}
 
 	if (!out.status)
