@@ -7,6 +7,7 @@
 #include <x0/listener.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace x0 {
 
@@ -39,11 +40,14 @@ void listener::start()
 	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 
 	acceptor_.open(endpoint.protocol());
+
 	acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
 	acceptor_.set_option(boost::asio::ip::tcp::acceptor::linger(false, 0));
 	acceptor_.set_option(boost::asio::ip::tcp::no_delay(true));
 	acceptor_.set_option(boost::asio::ip::tcp::acceptor::keep_alive(true));
+
 	acceptor_.bind(endpoint);
+
 	acceptor_.listen();
 
 	acceptor_.async_accept(new_connection_->socket(),
@@ -52,19 +56,20 @@ void listener::start()
 
 void listener::handle_accept(const boost::system::error_code& e)
 {
-	if (e)
-		return;
+	if (!e)
+	{
+		connection_manager_.start(new_connection_);
 
-	connection_manager_.start(new_connection_);
-	new_connection_.reset(new connection(io_service_, connection_manager_, handler_));
+		new_connection_.reset(new connection(io_service_, connection_manager_, handler_));
 
-	acceptor_.async_accept(new_connection_->socket(),
-		bind(&listener::handle_accept, this, boost::asio::placeholders::error));
+		acceptor_.async_accept(new_connection_->socket(),
+			bind(&listener::handle_accept, this, boost::asio::placeholders::error));
+	}
 }
 
 void listener::stop()
 {
-	// the listener is stopped by cancelling  all outstanding (async) operations.
+	// the listener is stopped by cancelling all outstanding (async) operations.
 	// Once all operations have finished the io_servie_.run() call will exit.
 	io_service_.post(boost::bind(&listener::handle_stop, this));
 }
@@ -74,7 +79,6 @@ void listener::handle_stop()
 	acceptor_.close();
 	connection_manager_.stop_all();
 }
-
 
 std::string listener::address() const
 {
