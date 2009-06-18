@@ -26,14 +26,6 @@ listener::~listener()
 	stop();
 }
 
-template<typename T>
-static inline std::string itoa(T& value)
-{
-	std::stringstream sstr;
-	sstr << value;
-	return sstr.str();
-}
-
 void listener::configure(const std::string& address, int port)
 {
 	address_ = address;
@@ -43,7 +35,7 @@ void listener::configure(const std::string& address, int port)
 void listener::start()
 {
 	boost::asio::ip::tcp::resolver resolver(io_service_);
-	boost::asio::ip::tcp::resolver::query query(address_, itoa(port_));
+	boost::asio::ip::tcp::resolver::query query(address_, boost::lexical_cast<std::string>(port_));
 	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 
 	acceptor_.open(endpoint.protocol());
