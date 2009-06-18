@@ -9,18 +9,36 @@
 #include <iostream>
 #include <string>
 
+class x0d
+{
+public:
+	x0d() : ios_(), server_(ios_)
+	{
+	}
+
+	~x0d()
+	{
+	}
+
+	int run(int argc, char *argv[])
+	{
+		// TODO move cmdline parsing here (so that x0::server is lib-only)
+		server_.start(argc, argv);
+		ios_.run();
+		return 0;
+	}
+
+private:
+	boost::asio::io_service ios_;
+	x0::server server_;
+};
+
 int main(int argc, char *argv[])
 {
 	try
 	{
-		boost::asio::io_service ios;
-		x0::server server(ios);
-
-		server.start(argc, argv);
-
-		ios.run();
-
-		return 0;
+		x0d daemon;
+		return daemon.run(argc, argv);
 	}
 	catch (std::exception& e)
 	{

@@ -1,0 +1,276 @@
+#ifndef x0_property_h
+#define x0_property_h
+
+// C++ template based properties, as defined in: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2004/n1615.pdf
+
+#include <map>
+
+namespace x0 {
+
+template<class T>
+class value_property
+{
+private:
+	T value_;
+
+public:
+	value_property() : value_() {}
+	value_property(T const& v) : value_(v) {}
+
+	T operator()() const
+	{
+		return value_;
+	}
+
+	T operator()(T const& v)
+	{
+		value_ = v;
+		return value_;
+	}
+
+	T get() const
+	{
+		return value_;
+	}
+
+	T set(T const& v)
+	{
+		value_ = v;
+		return value_;
+	}
+
+	operator T() const
+	{
+		return value_;
+	}
+
+	T operator=(T const& v)
+	{
+		value_ = v;
+		return value_;
+	}
+
+	typedef T value_type;
+};
+
+template<
+	typename T,
+	typename Object,
+	T (Object::*real_get)() const
+>
+class read_property
+{
+private:
+	Object *object_;
+
+public:
+	read_property(Object *obj) : object_(obj)
+	{
+	}
+
+	void operator()(Object *obj)
+	{
+		object_ = obj;
+	}
+
+	T operator()() const
+	{
+		return (object_->*real_get)();
+	}
+
+	T get() const
+	{
+		return (object_->*real_get)();
+	}
+
+	operator T() const
+	{
+		return (object_->*real_get)();
+	}
+
+	typedef T value_type;
+};
+
+template<
+	typename T,
+	typename Object,
+	T (Object::*real_set)(T const&)
+>
+class write_property
+{
+private:
+	Object *object_;
+
+public:
+	write_property(Object *obj) : object_(obj)
+	{
+	}
+
+	write_property(Object *obj, T const & v) : object_(obj)
+	{
+		(object_->real_set)(v);
+	}
+
+	void operator()(Object *obj)
+	{
+		object_ = obj;
+	}
+
+	T operator()(T const& value)
+	{
+		return (object_->*real_set)(value);
+	}
+
+	T set(T const& value)
+	{
+		return (object_->*real_set)(value);
+	}
+
+	T operator=(T const& value)
+	{
+		return (object_->*real_set)(value);
+	}
+
+	typedef T value_type;
+};
+
+template<
+	typename T,
+	typename Object,
+	T (Object::*real_get)() const,
+	T (Object::*real_set)(T const&)
+>
+class property
+{
+private:
+	Object *object_;
+
+public:
+	property(Object *obj) : object_(obj)
+	{
+	}
+
+	property(Object *obj, T const & v) : object_(obj)
+	{
+		(object_->*real_set)(v);
+	}
+
+	void operator()(Object *obj)
+	{
+		object_ = obj;
+	}
+
+	void operator()(Object *obj, T const& value)
+	{
+		object_ = obj;
+		(object_->*real_set)(value);
+	}
+
+	T operator()() const
+	{
+		return (object_->*real_get)();
+	}
+
+	T operator()(T const& value)
+	{
+		return (object_->*real_set)(value);
+	}
+
+	T get() const
+	{
+		return (object_->*real_get)();
+	}
+
+	T set(T const& value)
+	{
+		return (object_->*real_set)(value);
+	}
+
+	operator T() const
+	{
+		return (object_->*real_get)();
+	}
+
+	T operator=(T const& value)
+	{
+		return (object_->*real_set)(value);
+	}
+
+	typedef T value_type;
+};
+
+template<
+	typename Key,
+	typename T,
+	class Compare = std::less<Key>,
+	class Allocator = std::allocator<std::pair<const Key, T> >
+>
+class indexed_property
+{
+private:
+	std::map<Key, T> data_;
+
+	typedef typename std::map<Key, T, Compare, Allocator>::iterator map_iterator;
+
+public:
+	/** retrieve value of given key. */
+	T operator()(Key const& key)
+	{
+		std::pair<map_iterator, bool> result;
+		result = data_.insert(std::make_pair(key, T()));
+		return (*result.first).second;
+	}
+
+	/** sets value for given key. */
+	T operator()(Key const& key, T const& v)
+	{
+		std::pair<map_iterator, bool> result;
+		result = data_.insert(std::make_pair(key, v));
+		return (*result.first).second;
+	}
+
+	/** retrieve value of given key. */
+	T get(Key const& key)
+	{
+		std::pair<map_iterator, bool> result;
+		result = data_.insert(std::make_pair(key, T()));
+		return (*result.first).second;
+	}
+
+	/** sets value for given key. */
+	T set(Key const& key, T const& v)
+	{
+		std::pair<map_iterator, bool> result;
+		result = data_.insert(std::make_pair(key, v));
+		return (*result.first).second;
+	}
+
+	bool has(Key const& key) const
+	{
+		return data_.find(key) != data_.end();
+	}
+
+	std::size_t size() const
+	{
+		return data_.size();
+	}
+
+	map_iterator begin() const
+	{
+		return data_.begin();
+	}
+
+	map_iterator end() const
+	{
+		return data_.end();
+	}
+
+	T& operator[](Key const& key)
+	{
+		return (*((data_.insert(std::make_pair(key, T()))).first)).second;
+	}
+};
+
+} // namespace x0
+
+#endif

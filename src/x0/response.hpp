@@ -8,6 +8,7 @@
 #define x0_response_hpp (1)
 
 #include <x0/types.hpp>
+#include <x0/property.hpp>
 #include <x0/header.hpp>
 #include <x0/composite_buffer.hpp>
 #include <boost/asio.hpp>
@@ -50,7 +51,7 @@ struct response
 	// }}}
 
 	/// HTTP response status code.
-	int status_;
+	value_property<int> status;
 
 	/// the headers to be included in the response.
 	std::vector<x0::header> headers;
@@ -110,14 +111,6 @@ public:
 	/** creates an empty response object */
 	response();
 
-	/** sets a standard response for given status code.
-	 * \param value the response status code to initialize this response with.
-	 */
-	void status(int value);
-
-	/** retrieves current status code. */
-	int status() const;
-
 	// {{{ header manipulation
 	/** adds a response header. */
 	response& operator+=(const x0::header& hd);
@@ -168,12 +161,6 @@ private:
 };
 
 // {{{ inline implementation
-
-inline int response::status() const
-{
-	return status_;
-}
-
 inline size_t response::content_length() const
 {
 	return content.size();

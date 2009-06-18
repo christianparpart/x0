@@ -72,7 +72,7 @@ private:
 			sstr << username(in) << ' ';
 			sstr << now() << " \"";
 			sstr << request_line(in) << "\" ";
-			sstr << out.status() << ' ';
+			sstr << out.status << ' ';
 			sstr << out.content_length() << ' ';
 			sstr << '"' << getheader(in, "Referer") << "\" ";
 			sstr << '"' << getheader(in, "User-Agent") << '"';

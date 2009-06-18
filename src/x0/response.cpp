@@ -77,16 +77,16 @@ const std::string& response::header(const std::string& name, const std::string& 
 
 composite_buffer response::serialize()
 {
-	status_buf[0] = '0' + (status_ / 100);
-	status_buf[1] = '0' + (status_ / 10 % 10);
-	status_buf[2] = '0' + (status_ % 10);
+	status_buf[0] = '0' + (status / 100);
+	status_buf[1] = '0' + (status / 10 % 10);
+	status_buf[2] = '0' + (status % 10);
 
 	composite_buffer buffers;
 
 	buffers.push_back("HTTP/1.1 ");
 	buffers.push_back(status_buf);
 	buffers.push_back(' ');
-	buffers.push_back(status_cstr(status_));
+	buffers.push_back(status_cstr(status));
 	buffers.push_back("\r\n");
 
 	for (std::size_t i = 0; i < headers.size(); ++i)
@@ -106,13 +106,8 @@ composite_buffer response::serialize()
 }
 
 response::response() :
-	status_(0)
+	status(0)
 {
-}
-
-void response::status(int value)
-{
-	status_ = value;
 }
 
 const char *response::status_cstr(int value)

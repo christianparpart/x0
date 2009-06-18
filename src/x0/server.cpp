@@ -299,24 +299,24 @@ void server::handle_request(request& in, response& out) {
 		url << (in.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
 
 		out *= header("Location", url.str());
-		out.status(response::moved_permanently);
+		out.status = response::moved_permanently;
 	}
 	// generate response content, based on this request
 	else if (!generate_content(in, out))
 	{
 		// no content generator found for this request, default to 404 (Not Found)
-		out.status(response::not_found);
+		out.status = response::not_found;
 	}
 
-	if (!out.status())
+	if (!out.status)
 	{
 		// content generator found, but no status set, default to 200 (Ok)
-		out.status(response::ok);
+		out.status = response::ok;
 	}
 
 	if (out.content.empty())
 	{
-		const char *codeStr = response::status_cstr(out.status()) ?: "";
+		const char *codeStr = response::status_cstr(out.status);
 		char buf[1024];
 
 		int nwritten = snprintf(buf, sizeof(buf),

@@ -2,8 +2,8 @@ DESIGN GOALS
 ------------------------------------------------------------------------------
 - modular, clean, self explanary, and well documented API
 - avoid synchronous I/O as much as possible.
-- use sendfile() where possible
-- scale excellently over multiple CPUs and cores by supporting a threaded model (1 thread per CPU core)
+- use sendfile()/splice() where possible
+- scale excellently over multiple CPUs/cores by supporting a threaded model (1 thread per CPU core)
 - caching: when caching of local files/stat's, use inotify API to invalidate those caches.
 - access control: support libwrap, if possible
 	(see external links at http://en.wikipedia.org/wiki/Libwrap)
@@ -21,8 +21,13 @@ request_parser          HTTP request parser
 response                HTTP response object
 server                  x0 server API
 
-vhost                   virtual host settings object
-vhost_selector          virtual host selector, that is, a (hostname:port)-pair
-
+SUPPORT CLASSES
+------------------------------------------------------------------------------
+composite_buffer		complex buffer creation and transmission class
 function                generic functor API
 handler                 generic handler API (e.g. used for content generator hook)
+ternary_search			generic ternary search trie class
+
+REQUEST FLOW
+------------------------------------------------------------------------------
+
