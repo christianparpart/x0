@@ -28,6 +28,124 @@ function                generic functor API
 handler                 generic handler API (e.g. used for content generator hook)
 ternary_search			generic ternary search trie class
 
-REQUEST FLOW
+value_property			basic value property
+read_property			read-only property
+write_property			write-only property
+propety					read/write property
+
+THREADING MODEL:
 ------------------------------------------------------------------------------
+- main thread *ONLY* performing I/O dispatching
+- client threads processing the client requests and actions
+- (main thread and client threads communicate through queues)
+- avoid lockings as much as possible
+
+REUQEST PROCESS FLOW (EBNF style):
+------------------------------------------------------------------------------
+
+http_connection_acceptor ::=
+	connection_open
+	(
+		pre_process
+			resolve_document_root
+			resolve_entity
+			generate_content
+			request_done
+		post_process
+	)*
+	connection_close
+
+ASYNC APPROACH:
+------------------------------------------------------------------------------
+async_acceptor ::=
+	connection_open
+	pre_process
+
+pre_process ::=
+	resolve_document_root
+	resolve_entity
+	generate_content[done_handler]
+
+generate_content ::=
+	done_handler
+
+done_handler ::=
+	request_done
+	post_process
+	( CLOSE | pre_process )
+
+------------------------------------------------------------------------------
+
+	.
+connect__>(request__>generator____________________>posthandler___)*>close
+                            connect__>(request__>generator__>posthandler__)*>close
+
+listener.accept:
+	connection_manager.start
+		connection.start
+			connection.handle_read
+				handle_request(request, new response);
+					...
+						response.done()
+
+response.done:
+	response.flush(done2) -- send remaining data
+
+response.done2:
+	delete request
+	delete response
+
+
+SOME REQUIREMENTS:
+------------------------------------------------------------------------------
+
+* the server will not fail when an incoming connection immediately closes,
+  that is, serves no requests.
+* on header connection=close we serve exactly up to this very request.
+* on header connection=keep-alive we continue to serve another request.
+* each connection must serve 0 to unlimited number of requests.
+* each request must map to exactly one response object (and vice versa)
+* request and response objects contain a reference to their connection
+* a connection holds no references to their requests being parsed or responses being served,
+  except for the reference to the currently parsed request.
+* once a request is fully parsed, we invoke the request handler which MAY return immediately
+  and process generate the response later (asynchronousely).
+* a response is considered completed when response.done() is invoked.
+* response.done() initiates post handlers and resuming the parsing of further 
+  requests within this connection.
+
+EVENT-TO-MODULE RELATION:
+------------------------------------------------------------------------------
+
+connection_open: ssl
+	pre_process:
+		resolve_document_root: vhost
+		resolve_entity: userdir, indexfile
+		generate_content: dirlisting, sendfile, cgi
+		request_done: accesslog
+	post_process:
+connection_close: ssl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
