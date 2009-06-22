@@ -271,11 +271,16 @@ private:
 
 		void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred)
 		{
-			total_bytes_transferred_ += bytes_transferred;
+			//total_bytes_transferred_ += bytes_transferred;
 
 			if (!ec && !buffer_.empty())
 			{
-				buffer_.async_write_some(socket_, *this);
+				ssize_t rv = buffer_.async_write_some(socket_, *this);
+
+				if (rv != -1)
+				{
+					total_bytes_transferred_ += rv;
+				}
 			}
 			else
 			{
@@ -293,24 +298,45 @@ private:
 	 *                and the socket is ready for new data to be transmitted.
 	 */
 	template<class Handler>
-	void async_write_some(boost::asio::ip::tcp::socket& socket, const Handler& handler)
+	ssize_t async_write_some(boost::asio::ip::tcp::socket& socket, const Handler& handler)
 	{
+		size_t nwritten = 0;
+		ssize_t rv;
+
 		if (front_)
 		{
-			ssize_t rv = front_->write_some(socket);
-
-			if (rv != -1)
+			if ((rv = front_->write_some(socket)) != -1)
 			{
 				size_ -= rv;
+				nwritten += rv;
 
+#if 1
 				if (!front_->size)
 				{
 					remove_front();
 				}
+#else
+				while (!front_->size)
+				{
+					remove_front();
+
+					if ((rv = front_->write_some(socket)) != -1)
+					{
+						size_ -= rv;
+						nwritten += rv;
+					}
+				}
+#endif
 			}
+		}
+		else
+		{
+			rv = 0;
 		}
 
 		socket.async_write_some(boost::asio::null_buffers(), handler);
+
+		return rv != -1 ? nwritten : rv;
 	}
 
 	chunk *front_;
