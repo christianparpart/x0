@@ -70,7 +70,7 @@ std::string trim(const std::string value)
 	while (std::isspace(value[right]))
 		--right;
 
-	return std::string(value.data() + left, value.data() + right + 1);
+	return std::string(value.data(), left, 1 + right - left);
 }
 
 } // namespace x0
