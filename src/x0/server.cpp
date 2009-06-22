@@ -8,6 +8,8 @@
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/server.hpp>
+#include <x0/request.hpp>
+#include <x0/response.hpp>
 #include <x0/strutils.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
@@ -19,14 +21,6 @@
 #include <grp.h>
 #include <getopt.h>
 #include <dlfcn.h>
-
-// {{{ module hooks
-extern "C" void accesslog_init(x0::server&);
-extern "C" void dirlisting_init(x0::server&);
-extern "C" void indexfile_init(x0::server&);
-extern "C" void sendfile_init(x0::server&);
-extern "C" void vhost_init(x0::server&);
-// }}}
 
 namespace x0 {
 
