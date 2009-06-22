@@ -23,12 +23,37 @@ namespace x0 {
  * \ingroup core
  * \brief HTTP response object.
  *
- * this response contains all information of data to be sent back to the requesting client.
+ * This response contains all information of data to be sent back to the requesting client.
  *
- * \see request, connection, server
+ * A response contains of three main data sections:
+ * <ul>
+ *   <li>response status</li>
+ *   <li>response headers</li>
+ *   <li>response body</li>
+ * </ul>
+ *
+ * The response status determins wether the request could be fully handled or 
+ * for whatever reason not.
+ *
+ * The response headers is a list of key/value pairs of standard HTTP/1.1 including application
+ * dependant fields.
+ *
+ * The response body contains the actual content, and must be exactly as large as specified in
+ * the "Content-Length" response header.
+ *
+ * However, if no "Content-Length" response header is specified, it is assured that 
+ * this response will be the last response being transmitted through this very connection,
+ * though, having keep-alive disabled.
+ * The response status line and headers transmission will be started automatically as soon as the
+ * first write occurs.
+ * If this response meant to contain no body, then the transmit operation may be started explicitely.
+ *
+ * \note All response headers and status information <b>must</b> be fully defined before the first content write operation.
+ * \see response::flush(), request, connection, server
  */
-struct response
+class response
 {
+public:
 	// {{{ standard response types
 	enum code_type {
 		ok = 200,
@@ -50,22 +75,22 @@ struct response
 	};
 	// }}}
 
-	/// HTTP response status code.
-	value_property<int> status;
+private:
+	/// reference to the connection this response belongs to.
+	connection_ptr connection_;
 
 	/// the headers to be included in the response.
 	std::vector<x0::header> headers;
 
 	/**
-	 * convert the response into a composite_buffer.
+	 * tests wether we've already started serializing this response.
 	 *
-	 * The buffers do not own the underlying memory blocks,
-	 * therefore the response object must remain valid and
-	 * not be changed until the write operation has completed.
+	 * did we already start serializing this response? if so, subsequent calls to serialize() will only contain 
+	 * new data being added.
 	 */
-	composite_buffer serialize();
+	bool serializing_;
 
-	class write_handler // {{{
+	class writer // {{{
 	{
 	private:
 		composite_buffer buffer_;
@@ -74,11 +99,14 @@ struct response
 		std::size_t total_transferred_;
 
 	public:
-		write_handler(
-				composite_buffer buffer,
-				boost::asio::ip::tcp::socket& socket,
-				const boost::function<void(const boost::system::error_code&, std::size_t)>& handler) :
-			buffer_(buffer), socket_(socket), handler_(handler), total_transferred_(0)
+		writer(
+			composite_buffer buffer,
+			boost::asio::ip::tcp::socket& socket,
+			const boost::function<void(const boost::system::error_code&, std::size_t)>& handler)
+		  : buffer_(buffer),
+			socket_(socket),
+			handler_(handler),
+			total_transferred_(0)
 		{
 		}
 
@@ -98,18 +126,13 @@ struct response
 		}
 	};//}}}
 
-	void async_write(
-		boost::asio::ip::tcp::socket& socket,
-		const boost::function<void(const boost::system::error_code&, std::size_t)>& handler)
-	{
-		composite_buffer cb = serialize();
-		write_handler internalWriteHandler(cb, socket, handler);
-		socket.async_write_some(boost::asio::null_buffers(), internalWriteHandler);
-	}
-
 public:
 	/** creates an empty response object */
-	response();
+	explicit response(connection_ptr conn, int _status = 0);
+	~response();
+
+	/// HTTP response status code.
+	value_property<int> status;
 
 	// {{{ header manipulation
 	/** adds a response header. */
@@ -127,6 +150,15 @@ public:
 	/** sets a response header */
 	const std::string& header(const std::string& name, const std::string& value);
 	// }}}
+
+	/**
+	 * convert the response into a composite_buffer.
+	 *
+	 * The buffers do not own the underlying memory blocks,
+	 * therefore the response object must remain valid and
+	 * not be changed until the write operation has completed.
+	 */
+	composite_buffer serialize();
 
 	/** retrieves the content length as constructed thus far. */
 	size_t content_length() const;
@@ -156,6 +188,7 @@ public:
 	static std::string status_str(int status);
 
 	composite_buffer content;
+
 private:
 	char status_buf[3];
 };

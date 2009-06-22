@@ -6,6 +6,7 @@
 
 #include <x0/connection.hpp>
 #include <x0/connection_manager.hpp>
+#include <x0/debug.hpp>
 #include <x0/types.hpp>
 #include <boost/bind.hpp>
 
@@ -14,25 +15,26 @@ namespace x0 {
 connection::connection(
 	boost::asio::io_service& io_service, 
 	connection_manager& manager, const request_handler_fn& handler)
-  : socket_(io_service),
+  : secure(false),
+	socket_(io_service),
 	connection_manager_(manager),
-	request_handler_(handler)
+	request_handler_(handler),
+	buffer_(),
+	request_(new request(*this)),
+	request_parser_(),
+	strand_(io_service)
 {
-	request_.secure = false;
-	request_.connection = this;
+	DEBUG("connection(%p)", this);
 }
 
 connection::~connection()
 {
-}
-
-boost::asio::ip::tcp::socket& connection::socket()
-{
-	return socket_;
+	DEBUG("~connection(%p)", this);
 }
 
 void connection::start()
 {
+	DEBUG("connection(%p).start()", this);
 	socket_.async_read_some(boost::asio::buffer(buffer_),
 		bind(&connection::handle_read, shared_from_this(),
 			boost::asio::placeholders::error,
@@ -41,6 +43,7 @@ void connection::start()
 
 void connection::stop()
 {
+	DEBUG("connection(%p).stop()", this);
 	socket_.close();
 }
 
@@ -51,6 +54,8 @@ void connection::stop()
  */
 void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
 {
+	DEBUG("connection(%p).handle_read(sz=%ld)", this, bytes_transferred);
+
 	if (!e)
 	{
 		// parse request (partial)
@@ -58,26 +63,24 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		try
 		{
 			boost::tie(result, boost::tuples::ignore) = request_parser_.parse(
-				request_, buffer_.data(), buffer_.data() + bytes_transferred);
+				*request_, buffer_.data(), buffer_.data() + bytes_transferred);
 		}
-		catch (response_ptr reply)
+		catch (response::code_type code)
 		{
-			fprintf(stderr, "response_ptr exception caught (%d %s)\n", reply->status(), response::status_cstr(reply->status()));;
+			// we encountered a request parsing error, bail out
+			fprintf(stderr, "response::code exception caught (%d %s)\n", code, response::status_cstr(code));;
 			fflush(stderr);
-			response_ = reply;
 
-			// initiate response sending
-			response_->async_write(socket_,
-				bind(&connection::handle_write, shared_from_this(), boost::asio::placeholders::error));
+			async_write(new response(shared_from_this(), code));
 		}
 
 		if (result) // request fully parsed
 		{
-			response_.reset(new response());
-			// -> handle request
+			//response *response_(new response(shared_from_this()));
+			response_ = new response(shared_from_this());
 			try
 			{
-				request_handler_(request_, *response_);
+				request_handler_(*request_, *response_);
 			}
 			catch (response::code_type reply)
 			{
@@ -85,19 +88,12 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 				fflush(stderr);
 				response_->status = reply;
 			}
-
-			// initiate response sending
-			response_->async_write(socket_,
-				bind(&connection::handle_write, shared_from_this(), boost::asio::placeholders::error));
+			async_write(response_);
 		}
 		else if (!result) // received an invalid request
 		{
 			// -> send stock response: BAD_REQUEST
-			response_->status = response::bad_request;
-
-			// initiate response sending
-			response_->async_write(socket_,
-				bind(&connection::handle_write, shared_from_this(), boost::asio::placeholders::error));
+			async_write(new response(shared_from_this(), response::bad_request));
 		}
 		else // request still incomplete
 		{
@@ -119,10 +115,15 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 /**
  * this method gets invoked when response write operation has finished.
  *
+ * \param response the response object just transmitted
+ * \param e transmission error code
+ *
  * We will fully shutown the TCP connection.
  */
-void connection::handle_write(const boost::system::error_code& e)
+void connection::response_transmitted(const boost::system::error_code& e)
 {
+	DEBUG("connection(%p).response_transmitted()", this);
+
 	if (!e)
 	{
 		boost::system::error_code ignored;

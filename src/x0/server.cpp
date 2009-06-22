@@ -13,6 +13,7 @@
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <cstdarg>
 #include <cstdlib>
 #include <pwd.h>
 #include <grp.h>
@@ -188,7 +189,7 @@ void server::handle_request(request& in, response& out) {
 	if (in.entity.size() > 3 && isdir(in.entity) && in.entity[in.entity.size() - 1] != '/')
 	{
 		std::stringstream url;
-		url << (in.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
+		url << (in.connection.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
 
 		out *= header("Location", url.str());
 		out.status = response::moved_permanently;
@@ -370,8 +371,8 @@ void server::load_plugin(const std::string& name)
 		plugindir_ += "/";
 	}
 
-	std::string filename(fstringbuilder::format("%s%s.so", plugindir_.c_str(), name.c_str()));
-	std::string plugin_create_name(fstringbuilder::format("%s_init", name.c_str()));
+	std::string filename(plugindir_ + name + ".so");
+	std::string plugin_create_name(name + "_init");
 
 	LOG(*this, severity::debug, "Loading plugin %s", filename.c_str());
 	if (void *handle = dlopen(filename.c_str(), RTLD_GLOBAL | RTLD_NOW))

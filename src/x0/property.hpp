@@ -53,6 +53,35 @@ public:
 	typedef T value_type;
 };
 
+/** read-only value property. */
+template<class T>
+class rvalue_read_property
+{
+private:
+	const T& value_;
+
+public:
+	template<class U>
+	explicit rvalue_read_property(U v) : value_(v) {}
+
+	T const& operator()() const
+	{
+		return value_;
+	}
+
+	T const& get() const
+	{
+		return value_;
+	}
+
+	operator T const&() const
+	{
+		return value_;
+	}
+
+	typedef T const& value_type;
+};
+
 template<
 	typename T,
 	typename Object,
@@ -269,6 +298,17 @@ public:
 	{
 		return (*((data_.insert(std::make_pair(key, T()))).first)).second;
 	}
+};
+
+template<class T> class __ro_prop {
+private:
+	T value_;
+
+public:
+	template<typename... Args> __ro_prop(Args... args) : value_(args...) {}
+	T& operator()() const { return value_; }
+	T& get() const { return value_; }
+	T *operator->() const { return &value_; }
 };
 
 } // namespace x0

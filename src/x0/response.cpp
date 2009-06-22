@@ -5,6 +5,7 @@
  */
 
 #include <x0/response.hpp>
+#include <x0/debug.hpp>
 #include <x0/types.hpp>
 
 #include <boost/lexical_cast.hpp>
@@ -14,6 +15,7 @@ namespace x0 {
 
 response::~response()
 {
+	DEBUG("response(%p, conn=%p)", this, connection_.get());
 }
 
 response& response::operator+=(const x0::header& value)
@@ -81,29 +83,35 @@ const std::string& response::header(const std::string& name, const std::string& 
 
 composite_buffer response::serialize()
 {
-	status_buf[0] = '0' + (status / 100);
-	status_buf[1] = '0' + (status / 10 % 10);
-	status_buf[2] = '0' + (status % 10);
-
 	composite_buffer buffers;
 
-	buffers.push_back("HTTP/1.1 ");
-	buffers.push_back(status_buf);
-	buffers.push_back(' ');
-	buffers.push_back(status_cstr(status));
-	buffers.push_back("\r\n");
-
-	for (std::size_t i = 0; i < headers.size(); ++i)
+	if (!serializing_)
 	{
-		const x0::header& h = headers[i];
+		status_buf[0] = '0' + (status / 100);
+		status_buf[1] = '0' + (status / 10 % 10);
+		status_buf[2] = '0' + (status % 10);
 
-		buffers.push_back(h.name.data(), h.name.size());
-		buffers.push_back(": ");
-		buffers.push_back(h.value.data(), h.value.size());
+		buffers.push_back("HTTP/1.1 ");
+		buffers.push_back(status_buf);
+		buffers.push_back(' ');
+		buffers.push_back(status_cstr(status));
 		buffers.push_back("\r\n");
+
+		for (std::size_t i = 0; i < headers.size(); ++i)
+		{
+			const x0::header& h = headers[i];
+
+			buffers.push_back(h.name.data(), h.name.size());
+			buffers.push_back(": ");
+			buffers.push_back(h.value.data(), h.value.size());
+			buffers.push_back("\r\n");
+		}
+
+		buffers.push_back("\r\n");
+
+		serializing_ = true;
 	}
 
-	buffers.push_back("\r\n");
 	buffers.push_back(content);
 
 	return buffers;
@@ -111,8 +119,11 @@ composite_buffer response::serialize()
 
 response::response(connection_ptr conn, int _status) :
 	connection_(conn),
+	headers(),
+	serializing_(false),
 	status(_status)
 {
+	DEBUG("response(%p, conn=%p)", this, connection_.get());
 }
 
 const char *response::status_cstr(int value)

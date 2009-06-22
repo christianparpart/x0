@@ -86,7 +86,7 @@ private:
 
 	inline std::string hostname(x0::request& in)
 	{
-		std::string name = in.connection->socket().remote_endpoint().address().to_string();
+		std::string name = in.connection.socket().remote_endpoint().address().to_string();
 		return !name.empty() ? name : "-";
 	}
 

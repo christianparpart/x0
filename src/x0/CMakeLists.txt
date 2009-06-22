@@ -3,7 +3,10 @@
 include_directories(..)
 include_directories(${BOOST_INCLUDEDIR})
 
-add_definitions(-Wall -pthread
+add_definitions(
+	-Wall -Wno-deprecated
+	-pthread
+	-std=c++0x
 	-DPACKAGE_VERSION="${PACKAGE_VERSION}"
 	-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
 	-DSYSCONFDIR="${SYSCONFDIR}"
