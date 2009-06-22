@@ -34,6 +34,7 @@ struct request;
 struct response;
 
 typedef boost::shared_ptr<connection> connection_ptr;
+typedef boost::shared_ptr<request> request_ptr;
 typedef boost::shared_ptr<response> response_ptr;
 
 /**
