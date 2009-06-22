@@ -41,12 +41,15 @@ std::string read_file(const std::string& filename)
 		if (fd != -1)
 		{
 			char *buf = new char[st.st_size + 1];
-			if (::read(fd, buf, st.st_size) != -1)
+			ssize_t nread = ::read(fd, buf, st.st_size);
+			if (nread != -1)
 			{
-				std::string str(buf, buf + st.st_size);
+				buf[nread] = '\0';
+				std::string str(buf, 0, nread);
 				delete[] buf;
 				return str;
 			}
+			delete[] buf;
 		}
 		throw std::runtime_error(fstringbuilder::format("cannot open file: %s (%s)", filename.c_str(), strerror(errno)));
 	}
