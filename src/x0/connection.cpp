@@ -6,6 +6,8 @@
 
 #include <x0/connection.hpp>
 #include <x0/connection_manager.hpp>
+#include <x0/request.hpp>
+#include <x0/response.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
 #include <boost/bind.hpp>
@@ -35,6 +37,19 @@ connection::~connection()
 void connection::start()
 {
 	DEBUG("connection(%p).start()", this);
+
+	socket_.async_read_some(boost::asio::buffer(buffer_),
+		bind(&connection::handle_read, shared_from_this(),
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred));
+}
+
+void connection::resume()
+{
+	DEBUG("connection(%p).resume()", this);
+
+	request_parser_.reset();
+
 	socket_.async_read_some(boost::asio::buffer(buffer_),
 		bind(&connection::handle_read, shared_from_this(),
 			boost::asio::placeholders::error,
@@ -71,29 +86,35 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 			fprintf(stderr, "response::code exception caught (%d %s)\n", code, response::status_cstr(code));;
 			fflush(stderr);
 
-			async_write(new response(shared_from_this(), code));
+			(new response(shared_from_this(), request_, code))->flush();
 		}
 
 		if (result) // request fully parsed
 		{
-			//response *response_(new response(shared_from_this()));
-			response_ = new response(shared_from_this());
-			try
+			if (response *response_ = new response(shared_from_this(), request_))
 			{
-				request_handler_(*request_, *response_);
+				try
+				{
+					request_handler_(*request_, *response_);
+				}
+				catch (response::code_type reply)
+				{
+					fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
+					fflush(stderr);
+					response_->status = reply;
+					response_->flush();
+				}
 			}
-			catch (response::code_type reply)
+			else
 			{
-				fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
-				fflush(stderr);
-				response_->status = reply;
+				// ran out of memory?
+				connection_manager_.stop(shared_from_this());
 			}
-			async_write(response_);
 		}
 		else if (!result) // received an invalid request
 		{
 			// -> send stock response: BAD_REQUEST
-			async_write(new response(shared_from_this(), response::bad_request));
+			(new response(shared_from_this(), request_, response::bad_request))->flush();
 		}
 		else // request still incomplete
 		{

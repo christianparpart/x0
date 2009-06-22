@@ -3,8 +3,8 @@
 
 #include <cstdio>
 
-//#ifndef NDEBUG
-#if 0
+#ifndef NDEBUG
+//#if 0
 
 #define DEBUG(msg...) 			\
 	do {						\

@@ -93,6 +93,8 @@ private:
 			out.write(sstr.str());
 			out *= x0::header("Content-Type", "text/html");
 
+			out.flush();
+
 			return true;
 		}
 		return false;

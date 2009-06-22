@@ -9,9 +9,9 @@
 
 #include <x0/connection.hpp>
 #include <x0/composite_buffer.hpp>
-#include <x0/response.hpp>
 #include <x0/request.hpp>
 #include <x0/request_parser.hpp>
+#include <x0/property.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
 
@@ -57,6 +57,13 @@ public:
 	 */
 	void start();
 
+	/** Resumes async operations.
+	 *
+	 * This method is being invoked on a keep-alive connection to parse further requests.
+	 * \see start()
+	 */
+	void resume();
+
 	/** stop all async operations associated with this connection.
 	 *
 	 * This is simply done by closing the underlying socket connection.
@@ -67,108 +74,12 @@ public:
 	/** true if this is a secure (HTTPS) connection, false otherwise. */
 	value_property<bool> secure;
 
-	/** get the connection socket handle. */
-	boost::asio::ip::tcp::socket& socket();
+	boost::asio::ip::tcp::socket& socket();		//!< get the connection socket handle.
+	connection_manager& manager();				//!< corresponding connection manager
 
 private:
-	template<class CompletionHandler> class writer // {{{
-	{
-	private:
-//		response *response_;
-		composite_buffer buffer_;
-		boost::asio::ip::tcp::socket& socket_;
-		CompletionHandler handler_;
-		std::size_t transfered_total_;
-//		int i_;
-
-	public:
-		writer(
-//				x0::response *response,
-				composite_buffer buffer,
-				boost::asio::ip::tcp::socket& socket,
-				const CompletionHandler& handler) :
-//			response_(),
-//			response_(response),
-			buffer_(buffer),
-			socket_(socket),
-			handler_(handler),
-			transfered_total_(0)
-//			i_(0)
-		{
-			DEBUG("connection.writer()");
-		}
-
-		writer(const writer& v) :
-//			response_(v.response_),
-			buffer_(v.buffer_),
-			socket_(v.socket_),
-			handler_(v.handler_),
-			transfered_total_(v.transfered_total_)
-//			i_(v.i_)
-		{
-			DEBUG("connection.writer(copy)");
-		}
-
-		~writer()
-		{
-			DEBUG("connection.~writer()");
-		}
-
-		// on first call, the headers have been sent, so we can start sending chunks now
-		void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred)
-		{
-			DEBUG("connection.writer.operator(ec, sz=%lu)", bytes_transferred);
-
-			transfered_total_ += bytes_transferred;
-
-			if (buffer_.empty())
-			{
-				handler_(ec);//, transfered_total_);
-			}
-			else
-			{
-				buffer_.async_write(socket_, *this);
-			}
-		}
-	};//}}}
-
 	void handle_read(const boost::system::error_code& e, std::size_t bytes_transferred);
 	void response_transmitted(const boost::system::error_code& e);
-
-	/** starts async write of given \p response.
-	 * \param response the response object to transmit (taking over ownership)
-	 * \param handler the completion handler to invoke once fully transmitted.
-	 */
-	template<class CompletionHandler>
-	void async_write(x0::response *response, const CompletionHandler& handler)
-	{
-		writer<CompletionHandler> internalHandler
-		(
-			//response,
-			response->serialize(),
-			socket_,
-			handler
-		);
-
-		socket_.async_write_some(boost::asio::null_buffers(), internalHandler);
-	}
-
-	/** starts async write of given \p response.
-	 * \param response the response object to transmit (taking over ownership)
-	 */
-	void async_write(response *response)
-	{
-		async_write
-		(
-			response,
-			boost::bind
-			(
-				&connection::response_transmitted,
-				shared_from_this(),
-				boost::asio::placeholders::error
-			)
-		);
-	}
 
 	boost::asio::ip::tcp::socket socket_;
 	connection_manager& connection_manager_;	//!< corresponding connection manager
@@ -178,15 +89,19 @@ private:
 	boost::array<char, 8192> buffer_;	//!< buffer for incoming data.
 	request *request_;					//!< currently parsed http request 
 	request_parser request_parser_;		//!< http request parser
-	response *response_;
 
 	boost::asio::strand strand_;		//!< request handler strand
 };
 
 // {{{ inlines
-inline boost::asio::ip::tcp::socket &connection::socket()
+inline boost::asio::ip::tcp::socket& connection::socket()
 {
 	return socket_;
+}
+
+inline connection_manager& connection::manager()
+{
+	return connection_manager_;
 }
 // }}}
 

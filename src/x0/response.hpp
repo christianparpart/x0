@@ -11,6 +11,8 @@
 #include <x0/property.hpp>
 #include <x0/header.hpp>
 #include <x0/composite_buffer.hpp>
+#include <x0/connection.hpp>
+#include <x0/debug.hpp>
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -79,6 +81,9 @@ private:
 	/// reference to the connection this response belongs to.
 	connection_ptr connection_;
 
+	/// reference to the related request.
+	request *request_;
+
 	/// the headers to be included in the response.
 	std::vector<x0::header> headers;
 
@@ -90,34 +95,52 @@ private:
 	 */
 	bool serializing_;
 
-	class writer // {{{
+	template<class CompletionHandler> class writer // {{{
 	{
 	private:
+//		response *response_;
 		composite_buffer buffer_;
 		boost::asio::ip::tcp::socket& socket_;
-		boost::function<void(const boost::system::error_code&, std::size_t)> handler_;
-		std::size_t total_transferred_;
+		CompletionHandler handler_;
 
 	public:
 		writer(
+//			x0::response *response,
 			composite_buffer buffer,
 			boost::asio::ip::tcp::socket& socket,
-			const boost::function<void(const boost::system::error_code&, std::size_t)>& handler)
-		  : buffer_(buffer),
+			const CompletionHandler& handler)
+		  :
+//			response_(),
+//			response_(response),
+			buffer_(buffer),
 			socket_(socket),
-			handler_(handler),
-			total_transferred_(0)
+			handler_(handler)
 		{
+			//DEBUG("response.writer()");
 		}
 
-		// on first call, the headers have been sent, so we can start sending chunks now
-		void operator()(const boost::system::error_code& ec, size_t bytes_transferred)
+		writer(const writer& v) :
+//			response_(v.response_),
+			buffer_(v.buffer_),
+			socket_(v.socket_),
+			handler_(v.handler_)
 		{
-			total_transferred_ += bytes_transferred;
+			//DEBUG("response.writer(copy)");
+		}
+
+		~writer()
+		{
+			//DEBUG("response.~writer()");
+		}
+
+		// on first call, the headers have been sent, so we can continue with sending chunks now
+		void operator()(const boost::system::error_code& ec, std::size_t /*bytes_transferred*/)
+		{
+			DEBUG("response.writer.operator(ec): buffer.empty=%d", buffer_.empty());
 
 			if (buffer_.empty())
 			{
-				handler_(ec, total_transferred_);
+				handler_(ec);
 			}
 			else
 			{
@@ -127,8 +150,15 @@ private:
 	};//}}}
 
 public:
-	/** creates an empty response object */
-	explicit response(connection_ptr conn, int _status = 0);
+	/** Creates an empty response object.
+	 *
+	 * \param connection the connection this response is going to be transmitted through
+	 * \param request the corresponding request object. <b>We take over ownership of it!</b>
+	 * \param status initial response status code.
+	 *
+	 * */
+	response(connection_ptr connection, x0::request *request, int _status = 0);
+
 	~response();
 
 	/// HTTP response status code.
@@ -150,15 +180,6 @@ public:
 	/** sets a response header */
 	const std::string& header(const std::string& name, const std::string& value);
 	// }}}
-
-	/**
-	 * convert the response into a composite_buffer.
-	 *
-	 * The buffers do not own the underlying memory blocks,
-	 * therefore the response object must remain valid and
-	 * not be changed until the write operation has completed.
-	 */
-	composite_buffer serialize();
 
 	/** retrieves the content length as constructed thus far. */
 	size_t content_length() const;
@@ -183,6 +204,41 @@ public:
 	 */
 	void write(composite_buffer& buffer);
 
+	/** asynchronously flushes this response to client connection.
+	 * \param handler the completion handler to invoke once fully transmitted.
+	 */
+	template<class CompletionHandler>
+	void flush(const CompletionHandler& handler)
+	{
+		DEBUG("response.flush(handler): serializing=%d", serializing_);
+		writer<CompletionHandler> internalHandler
+		(
+			//this,
+			serialize(),
+			connection_->socket(),
+			handler
+		);
+
+		connection_->socket().async_write_some(boost::asio::null_buffers(), internalHandler);
+	}
+
+	/** asynchronously flushes response to client connection.
+	 *
+	 * This response is considered <b>complete</b> once all data currently in queue is being transmitted.
+	 */
+	void flush()
+	{
+		flush
+		(
+			boost::bind
+			(
+				&response::transmitted,
+				this,
+				boost::asio::placeholders::error
+			)
+		);
+	}
+
 public:
 	static const char *status_cstr(int status);
 	static std::string status_str(int status);
@@ -191,6 +247,17 @@ public:
 
 private:
 	char status_buf[3];
+
+	/**
+	 * convert the response into a composite_buffer.
+	 *
+	 * The buffers do not own the underlying memory blocks,
+	 * therefore the response object must remain valid and
+	 * not be changed until the write operation has completed.
+	 */
+	composite_buffer serialize();
+
+	void transmitted(const boost::system::error_code& e);
 };
 
 // {{{ inline implementation

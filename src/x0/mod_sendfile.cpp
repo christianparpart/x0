@@ -93,6 +93,8 @@ private:
 		// XXX send out headers, as they're fixed size in user space.
 		// XXX start async transfer through sendfile()
 
+		out.flush();
+
 		return true;
 	}
 

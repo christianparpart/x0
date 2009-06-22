@@ -5,6 +5,7 @@
  */
 
 #include <x0/response.hpp>
+#include <x0/connection_manager.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
 
@@ -15,7 +16,8 @@ namespace x0 {
 
 response::~response()
 {
-	DEBUG("response(%p, conn=%p)", this, connection_.get());
+	DEBUG("~response(%p, conn=%p)", this, connection_.get());
+	delete request_;
 }
 
 response& response::operator+=(const x0::header& value)
@@ -87,6 +89,48 @@ composite_buffer response::serialize()
 
 	if (!serializing_)
 	{
+		if (!status)
+		{
+			status = 200;
+		}
+
+		if (content.empty())
+		{
+			const char *codeStr = status_cstr(status);
+			char buf[1024];
+
+			int nwritten = snprintf(buf, sizeof(buf),
+				"<html>"
+				"<head><title>%s</title></head>"
+				"<body><h1>%d %s</h1></body>"
+				"</html>",
+				codeStr, status(), codeStr
+			);
+			write(std::string(buf, 0, nwritten));
+
+			header("Content-Length", boost::lexical_cast<std::string>(content_length()));
+			header("Content-Type", "text/html");
+		}
+		else if (!has_header("Content-Type"))
+		{
+			*this += x0::header("Content-Type", "text/plain");
+		}
+
+		if (!has_header("Content-Length"))
+		{
+			header("Connection", "closed");
+		}
+		else if (!has_header("Connection"))
+		{
+			header("Connection", "keep-alive");
+		}
+
+		// log request/response
+//		request_done(*request_, *this);
+
+		// post-response hook
+//		post_process(*request_, *this);
+
 		status_buf[0] = '0' + (status / 100);
 		status_buf[1] = '0' + (status / 10 % 10);
 		status_buf[2] = '0' + (status % 10);
@@ -117,8 +161,9 @@ composite_buffer response::serialize()
 	return buffers;
 }
 
-response::response(connection_ptr conn, int _status) :
-	connection_(conn),
+response::response(connection_ptr connection, x0::request *request, int _status) :
+	connection_(connection),
+	request_(request),
 	headers(),
 	serializing_(false),
 	status(_status)
@@ -153,6 +198,21 @@ const char *response::status_cstr(int value)
 std::string response::status_str(int value)
 {
 	return std::string(status_cstr(value));
+}
+
+void response::transmitted(const boost::system::error_code& e)
+{
+	DEBUG("response(%p).transmitted()", this);
+
+	if (header("Connection") == "keep-alive")
+	{
+		connection_->resume();
+	}
+	else
+	{
+		connection_->manager().stop(connection_);
+		delete this;
+	}
 }
 
 } // namespace x0
