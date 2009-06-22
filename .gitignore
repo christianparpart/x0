@@ -10,5 +10,12 @@ src/x0d
 src/x0/x0d
 core
 core.*
+vgcore.*
 access.log
 error.log
+environ
+experimental
+*.cpp.*
+*.hpp.*
+t1.cpp
+t2.cpp
