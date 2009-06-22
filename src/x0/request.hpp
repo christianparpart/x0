@@ -22,14 +22,13 @@ namespace x0 {
  */
 struct request
 {
+	explicit request(x0::connection& connection);
+
 	/// the TCP/IP connection this request has been sent through
-	x0::connection *connection;
+	x0::connection& connection;
 
-	/// HTTP request method, e.g. GET, POST, etc.
+	/// HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
 	std::string method;
-
-	/// denotes wether this is a secure (SSL) connection or not.
-	bool secure;
 
 	/// unparsed request uri
 	std::string uri;
@@ -63,6 +62,11 @@ struct request
 	/// the document root directory for this request.
 	std::string document_root;
 };
+
+inline request::request(x0::connection& conn) :
+	connection(conn)
+{
+}
 
 } // namespace x0
 

@@ -12,6 +12,10 @@
 
 namespace x0 {
 
+response::~response()
+{
+}
+
 response& response::operator+=(const x0::header& value)
 {
 	headers.push_back(value);
@@ -105,8 +109,9 @@ composite_buffer response::serialize()
 	return buffers;
 }
 
-response::response() :
-	status(0)
+response::response(connection_ptr conn, int _status) :
+	connection_(conn),
+	status(_status)
 {
 }
 
