@@ -97,7 +97,7 @@ std::string read_file(const std::string& filename);
 /**
  * trims leading and trailing spaces off the value.
  */
-std::string trim(const std::string value);
+std::string trim(const std::string& value);
 
 /**
  * splits a string into pieces
