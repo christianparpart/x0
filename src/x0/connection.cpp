@@ -49,6 +49,7 @@ void connection::resume()
 	DEBUG("connection(%p).resume()", this);
 
 	request_parser_.reset();
+	request_ = new request(*this);
 
 	socket_.async_read_some(boost::asio::buffer(buffer_),
 		bind(&connection::handle_read, shared_from_this(),
