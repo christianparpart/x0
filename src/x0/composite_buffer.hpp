@@ -179,10 +179,22 @@ private:
 	{
 		std::vector<iovec> vec;
 		std::size_t veclimit;
+		std::vector<std::string> strings;
 
 		iovec_chunk() :
-			chunk(ciov, 0), vec(), veclimit(sysconf(_SC_IOV_MAX))
+			chunk(ciov, 0), vec(), veclimit(sysconf(_SC_IOV_MAX)), strings()
 		{
+		}
+
+		void push_back(char value)
+		{
+			push_back(std::string(1, value));
+		}
+
+		void push_back(const std::string& value)
+		{
+			strings.push_back(value);
+			push_back(strings[strings.size() - 1].data(), value.size());
 		}
 
 		void push_back(const void *p, std::size_t n)
@@ -289,6 +301,19 @@ private:
 		}
 	};
 	// }}}
+
+	void ensure_iovec_tail()
+	{
+		if (!back_)
+		{
+			front_ = back_ = new iovec_chunk();
+		}
+		else if (back_->type != chunk::ciov)
+		{
+			back_->next = new iovec_chunk();
+			back_ = back_->next;
+		}
+	}
 
 	/**
 	 * write some data into the screen.
@@ -529,7 +554,11 @@ inline bool composite_buffer::empty() const
 
 inline void composite_buffer::push_back(char value)
 {
-	push_back(std::string(1, value));
+	ensure_iovec_tail();
+
+	static_cast<iovec_chunk *>(back_)->push_back(value);
+
+	size_ += sizeof(char);
 }
 
 inline void composite_buffer::push_back(const char *value)
@@ -539,37 +568,16 @@ inline void composite_buffer::push_back(const char *value)
 
 inline void composite_buffer::push_back(const std::string& value)
 {
-	if (back_)
-	{
-		if (back_->type == chunk::cstring)
-		{
-			static_cast<string_chunk *>(back_)->value += value;
-		}
-		else
-		{
-			back_->next = new string_chunk(value);
-			back_ = back_->next;
-			size_ += back_->size;
-		}
-	}
-	else
-	{
-		front_ = back_ = new string_chunk(value);
-		size_ = back_->size;
-	}
+	ensure_iovec_tail();
+
+	static_cast<iovec_chunk *>(back_)->push_back(value);
+
+	size_ += value.size();
 }
 
 inline void composite_buffer::push_back(const void *buffer, int size)
 {
-	if (!back_)
-	{
-		front_ = back_ = new iovec_chunk();
-	}
-	else if (back_->type != chunk::ciov)
-	{
-		back_->next = new iovec_chunk();
-		back_ = back_->next;
-	}
+	ensure_iovec_tail();
 
 	static_cast<iovec_chunk *>(back_)->push_back(buffer, size);
 
