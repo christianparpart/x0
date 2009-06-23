@@ -52,7 +52,8 @@ public:
 
 		for (tokenizer::iterator i = lines.begin(), e = lines.end(); i != e; ++i)
 		{
-			tokenizer columns(x0::trim(*i), boost::char_separator<char>(" \t"));
+			std::string line(x0::trim(*i));
+			tokenizer columns(line, boost::char_separator<char>(" \t"));
 
 			tokenizer::iterator ci = columns.begin(), ce = columns.end();
 			std::string mime = ci != ce ? *ci++ : std::string();
