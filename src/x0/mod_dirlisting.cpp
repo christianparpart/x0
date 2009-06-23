@@ -90,8 +90,11 @@ private:
 
 			sstr << "</ul>\n</body></html>\n";
 
-			out.write(sstr.str());
+			std::string result(sstr.str());
+
+			out.write(result);
 			out *= x0::header("Content-Type", "text/html");
+			out *= x0::header("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
 			out.flush();
 
