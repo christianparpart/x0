@@ -60,7 +60,7 @@ std::string read_file(const std::string& filename)
 #endif
 }
 
-std::string trim(const std::string value)
+std::string trim(const std::string& value)
 {
 	std::size_t left = 0;
 	while (std::isspace(value[left]))
