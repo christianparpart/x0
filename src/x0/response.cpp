@@ -122,7 +122,14 @@ composite_buffer response::serialize()
 		}
 		else if (!has_header("Connection"))
 		{
-			header("Connection", "keep-alive");
+			if (request_->header("Connection") == "keep-alive")
+			{
+				header("Connection", "keep-alive");
+			}
+			else
+			{
+				header("Connection", "closed");
+			}
 		}
 
 		// log request/response
