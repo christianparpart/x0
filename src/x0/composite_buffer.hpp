@@ -529,7 +529,7 @@ inline bool composite_buffer::empty() const
 
 inline void composite_buffer::push_back(char value)
 {
-	push_back(&value, sizeof(value));
+	push_back(std::string(1, value));
 }
 
 inline void composite_buffer::push_back(const char *value)
