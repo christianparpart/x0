@@ -225,6 +225,9 @@ public:
 	/** asynchronously flushes response to client connection.
 	 *
 	 * This response is considered <b>complete</b> once all data currently in queue is being transmitted.
+	 *
+	 * \note this response object has been deleted after the completion of this request.
+	 * \see template<class CompletionHandler> void flush(const CompletionHandler& handler)
 	 */
 	void flush()
 	{

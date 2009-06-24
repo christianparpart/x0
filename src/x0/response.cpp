@@ -11,6 +11,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <string>
+#include <strings.h>					// strcasecmp()
 
 namespace x0 {
 
@@ -122,7 +123,7 @@ composite_buffer response::serialize()
 		}
 		else if (!has_header("Connection"))
 		{
-			if (request_->header("Connection") == "keep-alive")
+			if (strcasecmp(request_->header("Connection").c_str(), "keep-alive") == 0)
 			{
 				header("Connection", "keep-alive");
 			}
@@ -211,15 +212,16 @@ void response::transmitted(const boost::system::error_code& e)
 {
 	DEBUG("response(%p).transmitted()", this);
 
-	if (header("Connection") == "keep-alive")
+	if (strcasecmp(header("Connection").c_str(), "keep-alive") == 0)
 	{
 		connection_->resume();
 	}
 	else
 	{
 		connection_->manager().stop(connection_);
-		delete this;
 	}
+
+	delete this;
 }
 
 } // namespace x0
