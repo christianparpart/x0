@@ -129,10 +129,26 @@ private:
 		}
 	}
 
-	inline std::string get_mime_type(const std::string& ext) const
+	inline std::string get_mime_type(std::string ext) const
 	{
-		mime_types_type::const_iterator i = mime_types_.find(ext);
-		return i != mime_types_.end() ? i->second : "text/plain";
+		while (ext.size())
+		{
+			mime_types_type::const_iterator i = mime_types_.find(ext);
+
+			if (i != mime_types_.end())
+			{
+				return i->second;
+			}
+
+			if (ext[ext.size() - 1] != '~')
+			{
+				break;
+			}
+
+			ext.resize(ext.size() - 1);
+		}
+
+		return "text/plain";
 	}
 };
 
