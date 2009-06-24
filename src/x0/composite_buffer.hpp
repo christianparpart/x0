@@ -142,38 +142,7 @@ public:
 
 private:
 	// {{{ chunk implementations
-	/** string chunk. */
-	struct string_chunk :
-		public chunk
-	{
-		std::string value;
-		off_t offset;
-
-		string_chunk(const std::string _value) :
-			chunk(cstring, _value.size()), value(_value), offset(0)
-		{
-		}
-
-		void push_back(const std::string _value)
-		{
-			value += _value;
-			size += _value.size();
-		}
-
-		virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket)
-		{
-			ssize_t rv = ::sendto(socket.native(), value.data() + offset, size, MSG_NOSIGNAL, NULL, 0);
-
-			if (rv != -1)
-			{
-				offset += rv;
-				size -= rv;
-			}
-
-			return rv;
-		}
-	};
-
+	/** iovec chunk. */
 	struct iovec_chunk :
 		public chunk
 	{
@@ -223,7 +192,11 @@ private:
 		}
 	};
 
-	/** file chunk. */
+	/** file chunk.
+	 *
+	 * \note in order to have sendfile(2) to function, the input file descriptor <b>must</b> be mmap()'able,
+	 * and the output file descriptor <b>must</b> be of type socket.
+	 */
 	struct fd_chunk :
 		public chunk
 	{
@@ -254,7 +227,9 @@ private:
 				{
 					size -= rv;
 				}
-            
+
+				// TODO: implement fallback through read()/write()
+
 				return rv;
 			}
 			else
@@ -302,6 +277,7 @@ private:
 	};
 	// }}}
 
+	/** ensures that the tail of our chunk queue is of type iovec_chunk. */
 	void ensure_iovec_tail()
 	{
 		if (!back_)
