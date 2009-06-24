@@ -61,6 +61,8 @@ void connection::stop()
 {
 	DEBUG("connection(%p).stop()", this);
 	socket_.close();
+
+	delete request_;
 }
 
 /**
@@ -88,12 +90,15 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 			fflush(stderr);
 
 			(new response(shared_from_this(), request_, code))->flush();
+			request_ = 0;
 		}
 
 		if (result) // request fully parsed
 		{
 			if (response *response_ = new response(shared_from_this(), request_))
 			{
+				request_ = 0;
+
 				try
 				{
 					request_handler_(*request_, *response_);
@@ -116,6 +121,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		{
 			// -> send stock response: BAD_REQUEST
 			(new response(shared_from_this(), request_, response::bad_request))->flush();
+			request_ = 0;
 		}
 		else // request still incomplete
 		{
