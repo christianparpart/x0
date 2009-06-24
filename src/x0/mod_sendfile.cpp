@@ -20,6 +20,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+/* feature to detect origin mime types of backup files. */
+#define X0_SENDFILE_MIME_TYPES_BELOW_BACKUP 1
+
 /**
  * \ingroup modules
  * \brief serves static files from server's local filesystem to client.
@@ -30,11 +33,15 @@ class sendfile_plugin :
 private:
 	typedef std::map<std::string, std::string> mime_types_type;
 	mime_types_type mime_types_;
+	std::string default_mimetype_;
 	x0::handler::connection c;
 
 public:
 	sendfile_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+		x0::plugin(srv, name),
+		mime_types_(),
+		default_mimetype_("text/plain"),
+		c()
 	{
 		c = server_.generate_content.connect(boost::bind(&sendfile_plugin::sendfile, this, _1, _2));
 	}
@@ -85,7 +92,8 @@ private:
 			return false;
 		}
 
-		set_content_type(in, out);
+		out.header("Content-Type", get_mime_type(in));
+		out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
 		out.header("Last-Modified", makeHttpTimeStamp(st.st_mtime));
 		// TODO: set other related response headers...
 
@@ -113,19 +121,20 @@ private:
 		return std::string();
 	}
 
-	inline void set_content_type(x0::request& in, x0::response& out)
+	/** computes the mime-type(/content-type) for given request.
+	 */
+	inline std::string get_mime_type(x0::request& in) const
 	{
 		std::size_t ndot = in.entity.find_last_of(".");
 		std::size_t nslash = in.entity.find_last_of("/");
 
 		if (ndot != std::string::npos && ndot > nslash)
 		{
-			std::string extension = in.entity.substr(ndot + 1);
-			out += x0::header("Content-Type", get_mime_type(extension));
+			return get_mime_type(in.entity.substr(ndot + 1));
 		}
 		else
 		{
-			out += x0::header("Content-Type", "text/plain");
+			return default_mimetype_;
 		}
 	}
 
@@ -139,16 +148,19 @@ private:
 			{
 				return i->second;
 			}
-
+#if X0_SENDFILE_MIME_TYPES_BELOW_BACKUP
 			if (ext[ext.size() - 1] != '~')
 			{
 				break;
 			}
 
 			ext.resize(ext.size() - 1);
+#else
+			break;
+#endif
 		}
 
-		return "text/plain";
+		return default_mimetype_;
 	}
 };
 
