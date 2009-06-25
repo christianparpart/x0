@@ -95,48 +95,53 @@ private:
 	 */
 	bool serializing_;
 
-	template<class CompletionHandler> class writer // {{{
+	template<class Writer, class CompletionHandler> class write_handler // {{{
 	{
 	private:
 //		response *response_;
 		composite_buffer buffer_;
-		boost::asio::ip::tcp::socket& socket_;
+		Writer writer_;
 		CompletionHandler handler_;
 
 	public:
-		writer(
+		write_handler(
 //			x0::response *response,
 			composite_buffer buffer,
-			boost::asio::ip::tcp::socket& socket,
+			Writer writer,
 			const CompletionHandler& handler)
 		  :
 //			response_(),
 //			response_(response),
 			buffer_(buffer),
-			socket_(socket),
+			writer_(writer),
 			handler_(handler)
 		{
-			//DEBUG("response.writer()");
+			//DEBUG("response.write_handler()");
 		}
 
-		writer(const writer& v) :
+		write_handler(const write_handler& v) :
 //			response_(v.response_),
 			buffer_(v.buffer_),
-			socket_(v.socket_),
+			writer_(v.writer_),
 			handler_(v.handler_)
 		{
-			//DEBUG("response.writer(copy)");
+			//DEBUG("response.write_handler(copy)");
 		}
 
-		~writer()
+		~write_handler()
 		{
-			//DEBUG("response.~writer()");
+			//DEBUG("response.~write_handler()");
+		}
+
+		Writer& writer()
+		{
+			return writer_;
 		}
 
 		// on first call, the headers have been sent, so we can continue with sending chunks now
 		void operator()(const boost::system::error_code& ec, std::size_t /*bytes_transferred*/)
 		{
-			DEBUG("response.writer.operator(ec): buffer.empty=%d", buffer_.empty());
+			DEBUG("response.write_handler.operator(ec): buffer.empty=%d", buffer_.empty());
 
 			if (buffer_.empty())
 			{
@@ -144,7 +149,7 @@ private:
 			}
 			else
 			{
-				buffer_.async_write(socket_, *this);
+				buffer_.async_write(writer_, *this);
 			}
 		}
 	};//}}}
@@ -214,15 +219,15 @@ public:
 	void flush(const CompletionHandler& handler)
 	{
 		DEBUG("response.flush(handler): serializing=%d", serializing_);
-		writer<CompletionHandler> internalHandler
+		write_handler<composite_buffer::asio_socket_writer, CompletionHandler> internalHandler
 		(
 			//this,
 			serialize(),
-			connection_->socket(),
+			composite_buffer::asio_socket_writer(connection_->socket()),
 			handler
 		);
 
-		connection_->socket().async_write_some(boost::asio::null_buffers(), internalHandler);
+		internalHandler.writer().callback(internalHandler);
 	}
 
 	/** asynchronously flushes response to client connection.

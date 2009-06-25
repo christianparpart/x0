@@ -39,7 +39,7 @@ namespace x0 {
  * 			}
  * 		}
  *
- * 		cb.async_write(socket, handler);
+ * 		cb.async_write(composite_buffer::socket_writer<Socket>(socket), handler);
  * 	}
  *
  * 	void completion_handler(boost::system::error_code ec, std::size_t bytes_transferred)
@@ -64,6 +64,11 @@ public:
 
 	class iterator;
 
+	class visitor;
+	template<class Socket> class socket_writer;
+
+	typedef socket_writer<boost::asio::ip::tcp::socket> asio_socket_writer;
+
 private:
 	template<class Socket, class CompletionHandler> class write_handler;
 
@@ -78,8 +83,8 @@ private:
 	 * \param handler the completion handler to invoke once current data has been sent 
 	 *                and the socket is ready for new data to be transmitted.
 	 */
-	template<class Socket, class Handler>
-	ssize_t async_write_some(Socket& socket, const Handler& handler);
+	template<class Writer, class Handler>
+	ssize_t async_write_some(Writer writer, const Handler& handler);
 
 	chunk *front_;		//!< chunk at the front/beginning of the buffer
 	chunk *back_;		//!< chunk at the back/end of the buffer
@@ -180,7 +185,8 @@ public:
 	 * Every chunk fully sent to the destination file is automatically removed from this buffer, 
 	 * thus subsequent calls to sendto() will continue to sent the remaining chunks, if needed.
 	 */
-	ssize_t write(boost::asio::ip::tcp::socket& socket);
+	template<class Writer>
+	ssize_t write(Writer writer);
 
 	/** sends this buffer <b>asynchronously</b> to given destnation.
 	 * \param socket the socket to write to.
@@ -189,8 +195,8 @@ public:
 	 * Every chunk fully sent to the destination file is automatically removed from this buffer, 
 	 * thus subsequent calls to sendto() will continue to sent the remaining chunks, if needed.
 	 */
-	template<class Socket, class CompletionHandler>
-	void async_write(Socket& socket, const CompletionHandler& handler);
+	template<class Writer, class CompletionHandler>
+	void async_write(Writer writer, const CompletionHandler& handler);
 };
 
 /** chunk base class.
@@ -218,17 +224,12 @@ protected:
 public:
 	virtual ~chunk();
 
-	/** submits chunk data to given socket.
+	/**
+	 * invokes <code>v.visit(*this);</code> to let visitor \p v visit this chunk.
 	 *
-	 * \param socket the socket to write to.
+	 * \param v visitor to let visit us.
 	 */
-	ssize_t write(boost::asio::ip::tcp::socket& socket);
-
-	/** initiates chunk data submission, without blocking I/O.
-	 *
-	 * \param socket the socket to write to.
-	 */
-	virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket) = 0;
+	virtual void accept(visitor& v) = 0;
 };
 
 /** iovec chunk.
@@ -248,7 +249,7 @@ public:
 	void push_back(const std::string& value);
 	void push_back(const void *p, std::size_t n);
 
-	virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket);
+	virtual void accept(visitor& v);
 };
 
 /** fd chunk.
@@ -267,8 +268,105 @@ public:
 	fd_chunk(int _fd, off_t _offset, size_t _size, bool _close);
 	~fd_chunk();
 
-	virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket);
+	virtual void accept(visitor& v);
 };
+
+class composite_buffer::visitor
+{
+public:
+	virtual void visit(iovec_chunk&) = 0;
+	virtual void visit(fd_chunk&) = 0;
+};
+
+template<class Socket>
+class composite_buffer::socket_writer : public visitor
+{
+private:
+	Socket& socket_;
+	int rv_;
+
+public:
+	explicit socket_writer(Socket& socket);
+
+	int write(composite_buffer::chunk& chunk);
+
+	Socket& socket() const;
+	int result() const;
+
+	template<class CompletionHandler>
+	void callback(const CompletionHandler& handler);
+
+	virtual void visit(iovec_chunk&);
+	virtual void visit(fd_chunk&);
+};
+
+// {{{ socket_writer impl
+template<class Socket>
+inline composite_buffer::socket_writer<Socket>::socket_writer(Socket& socket) :
+	socket_(socket), rv_()
+{
+}
+
+template<class Socket>
+inline int composite_buffer::socket_writer<Socket>::write(composite_buffer::chunk& chunk)
+{
+	chunk.accept(*this);
+	return rv_;
+}
+
+template<class Socket>
+inline Socket& composite_buffer::socket_writer<Socket>::socket() const
+{
+	return socket_;
+}
+
+template<class Socket>
+inline int composite_buffer::socket_writer<Socket>::result() const
+{
+	return rv_;
+}
+
+template<class Socket>
+template<class CompletionHandler>
+inline void composite_buffer::socket_writer<Socket>::callback(const CompletionHandler& handler)
+{
+	socket_.async_write_some(boost::asio::null_buffers(), handler);
+}
+
+template<class Socket>
+inline void composite_buffer::socket_writer<Socket>::visit(iovec_chunk& chunk)
+{
+	rv_ = ::writev(socket_.native(), &chunk.vec[0], chunk.vec.size());
+
+	if (rv_ != -1)
+	{
+		chunk.size -= rv_;
+	}
+
+	// TODO error handling if (rv != size), that is, not everything written on O_NONBLOCK
+	// (does this even happen?)
+}
+
+template<class Socket>
+inline void composite_buffer::socket_writer<Socket>::visit(fd_chunk& chunk)
+{
+	if (chunk.size)
+	{
+		rv_ = ::sendfile(socket_.native(), chunk.fd, &chunk.offset, chunk.size);
+
+		if (rv_ != -1)
+		{
+			chunk.size -= rv_;
+		}
+
+		// TODO: implement fallback through read()/write()
+	}
+	else
+	{
+		rv_ = 0;
+	}
+}
+// }}}
 
 // {{{ chunk impl
 inline composite_buffer::chunk::chunk(chunk_type ct, std::size_t sz) :
@@ -279,25 +377,6 @@ inline composite_buffer::chunk::chunk(chunk_type ct, std::size_t sz) :
 inline composite_buffer::chunk::~chunk()
 {
 	delete next;
-}
-
-inline ssize_t composite_buffer::chunk::write(boost::asio::ip::tcp::socket& socket)
-{
-	ssize_t rv, total = 0;
-
-	while (size)
-	{
-		if ((rv = write_some(socket)) != -1)
-		{
-			total += rv;
-		}
-		else
-		{
-			return rv;
-		}
-	}
-
-	return total;
 }
 // }}}
 
@@ -329,19 +408,9 @@ inline void composite_buffer::iovec_chunk::push_back(const void *p, std::size_t 
 	size += n;
 }
 
-inline ssize_t composite_buffer::iovec_chunk::write_some(boost::asio::ip::tcp::socket& socket)
+inline void composite_buffer::iovec_chunk::accept(visitor& v)
 {
-	ssize_t rv = ::writev(socket.native(), &vec[0], vec.size());
-
-	if (rv != -1)
-	{
-		size -= rv;
-	}
-
-	// TODO error handling if (rv != size), that is, not everything written on O_NONBLOCK
-	// (does this even happen?)
-
-	return rv;
+	v.visit(*this);
 }
 // }}}
 
@@ -359,41 +428,25 @@ inline composite_buffer::fd_chunk::~fd_chunk()
 	}
 }
 
-inline ssize_t composite_buffer::fd_chunk::write_some(boost::asio::ip::tcp::socket& socket)
+inline void composite_buffer::fd_chunk::accept(visitor& v)
 {
-	if (size)
-	{
-		ssize_t rv = ::sendfile(socket.native(), fd, &offset, size);
-
-		if (rv != -1)
-		{
-			size -= rv;
-		}
-
-		// TODO: implement fallback through read()/write()
-
-		return rv;
-	}
-	else
-	{
-		return 0;
-	}
+	v.visit(*this);
 }
 // }}}
 
 // {{{ class composite_buffer::write_handler
-template<class Socket, class CompletionHandler>
+template<class Writer, class CompletionHandler>
 class composite_buffer::write_handler
 {
 private:
 	composite_buffer& buffer_;
-	Socket& socket_;
+	Writer writer_;
 	CompletionHandler handler_;
 	std::size_t total_bytes_transferred_;
 
 public:
-	write_handler(composite_buffer& buffer, Socket& socket, const CompletionHandler& handler)
-	  : buffer_(buffer), socket_(socket), handler_(handler)
+	write_handler(composite_buffer& buffer, Writer writer, const CompletionHandler& handler)
+	  : buffer_(buffer), writer_(writer), handler_(handler)
 	{
 	}
 
@@ -403,7 +456,7 @@ public:
 
 		if (!ec && !buffer_.empty())
 		{
-			ssize_t rv = buffer_.async_write_some(socket_, *this);
+			ssize_t rv = buffer_.async_write_some(writer_, *this);
 
 			if (rv != -1)
 			{
@@ -604,39 +657,20 @@ inline void composite_buffer::push_back(composite_buffer& buffer)
 	buffer.size_ = 0;
 }
 
-inline ssize_t composite_buffer::write(boost::asio::ip::tcp::socket& socket)
+template<class Writer>
+ssize_t composite_buffer::write(Writer writer)
 {
-	ssize_t rv, nwritten = 0;
-
-	while (front_)
-	{
-		if ((rv = front_->write(socket)) != -1)
-		{
-			// XXX assume(rv == front_->size);
-			nwritten += rv;
-
-			chunk *next = front_->next;
-
-			size_ -= front_->size;
-			front_->next = 0;
-			delete front_;
-
-			front_ = next;
-		}
-		else
-		{
-			return -1;
-		}
-	}
-	return nwritten;
+	// TODO
+	errno = ENOSYS;
+	return -1;
 }
 
-template<class Socket, class CompletionHandler>
-inline void composite_buffer::async_write(Socket& socket, const CompletionHandler& handler)
+template<class Writer, class CompletionHandler>
+inline void composite_buffer::async_write(Writer writer, const CompletionHandler& handler)
 {
-	write_handler<Socket, CompletionHandler> internalWriteHandler(*this, socket, handler);
+	write_handler<Writer, CompletionHandler> internalWriteHandler(*this, writer, handler);
 
-	socket.async_write_some(boost::asio::null_buffers(), internalWriteHandler);
+	writer.callback(internalWriteHandler);
 }
 
 inline void composite_buffer::ensure_iovec_tail()
@@ -652,15 +686,15 @@ inline void composite_buffer::ensure_iovec_tail()
 	}
 }
 
-template<class Socket, class CompletionHandler>
-inline ssize_t composite_buffer::async_write_some(Socket& socket, const CompletionHandler& handler)
+template<class Writer, class CompletionHandler>
+inline ssize_t composite_buffer::async_write_some(Writer writer, const CompletionHandler& handler)
 {
 	size_t nwritten = 0;
 	ssize_t rv;
 
 	if (front_)
 	{
-		rv = front_->write_some(socket);
+		rv = writer.write(*front_);
 
 		if (rv != -1)
 		{
@@ -677,7 +711,7 @@ inline ssize_t composite_buffer::async_write_some(Socket& socket, const Completi
 			{
 				remove_front();
 
-				rv = front_->write_some(socket_);
+				rv = writer.write(*front_);
 
 				if (rv != -1)
 				{
@@ -693,7 +727,7 @@ inline ssize_t composite_buffer::async_write_some(Socket& socket, const Completi
 		rv = 0;
 	}
 
-	socket.async_write_some(boost::asio::null_buffers(), handler);
+	writer.callback(handler);
 
 	return rv != -1 ? nwritten : rv;
 }
