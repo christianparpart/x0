@@ -271,13 +271,19 @@ public:
 	virtual void accept(visitor& v);
 };
 
+/**
+ * chunk visitor interface.
+ */
 class composite_buffer::visitor
 {
 public:
-	virtual void visit(iovec_chunk&) = 0;
-	virtual void visit(fd_chunk&) = 0;
+	virtual void visit(iovec_chunk&) = 0;	//!< visits an iovec_chunk object.
+	virtual void visit(fd_chunk&) = 0;		//!< visits an fd_chunk object.
 };
 
+/**
+ * implements a socket writer (writing chunks to sockets).
+ */
 template<class Socket>
 class composite_buffer::socket_writer : public visitor
 {
@@ -286,16 +292,28 @@ private:
 	int rv_;
 
 public:
+	/** creates a new socket writer.
+	 * \param socket the socket to write the chunks to.
+	 */
 	explicit socket_writer(Socket& socket);
 
+	/** writes given chunk to the socket.
+	 * \param chunk the chunk to write.
+	 * \return the number of bytes written or -1 on error.
+	 */
 	int write(composite_buffer::chunk& chunk);
 
-	Socket& socket() const;
-	int result() const;
+	Socket& socket() const; //!< retrieves the socket to write to.
+	int result() const; //!< retrieves the result of the last write operation.
 
+	/**
+	 * invokes completion handler once the writer's socket is ready for writing.
+	 * \param handler the completion handler to invoke once the socket becomes ready.
+	 */
 	template<class CompletionHandler>
 	void callback(const CompletionHandler& handler);
 
+public:
 	virtual void visit(iovec_chunk&);
 	virtual void visit(fd_chunk&);
 };
@@ -435,6 +453,9 @@ inline void composite_buffer::fd_chunk::accept(visitor& v)
 // }}}
 
 // {{{ class composite_buffer::write_handler
+/**
+ * internal write handler class, used to write chunks to the writer.
+ */
 template<class Writer, class CompletionHandler>
 class composite_buffer::write_handler
 {
@@ -472,6 +493,8 @@ public:
 // }}}
 
 // {{{ composite_buffer::iterator
+/** composite_buffer's standard chunk iteration class.
+ */
 class composite_buffer::iterator
 {
 private:
