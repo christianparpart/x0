@@ -44,7 +44,11 @@ namespace x0 {
  *
  * 	void completion_handler(boost::system::error_code ec, std::size_t bytes_transferred)
  * 	{
- * 		if (ec)
+ * 		if (!ec)
+ * 		{
+ * 			std::cerr << "write operation completed." << std::endl;
+ * 		}
+ * 		else
  * 		{
  * 			std::cerr << "error: " << strerror(errno) << std::endl;
  * 		}
@@ -54,242 +58,18 @@ namespace x0 {
 class composite_buffer
 {
 public:
-	/** chunk base class.
-	 * \see string_chunk, iovec_chunk, fd_chunk
-	 */
-	struct chunk // {{{
-	{
-		enum chunk_type { cstring, ciov, cfd } type;
-		std::size_t size;
-		chunk *next;
+	struct chunk;
+	struct iovec_chunk;
+	struct fd_chunk;
 
-		explicit chunk(chunk_type ct, std::size_t sz) :
-			type(ct), size(sz), next(0)
-		{
-		}
-
-		virtual ~chunk()
-		{
-			delete next;
-		}
-
-		/** submits chunk data to given socket.
-		 *
-		 * \param socket the socket to write to.
-		 */
-		ssize_t write(boost::asio::ip::tcp::socket& socket)
-		{
-			ssize_t rv, total = 0;
-
-			while (size)
-			{
-				if ((rv = write_some(socket)) != -1)
-				{
-					total += rv;
-				}
-				else
-				{
-					return rv;
-				}
-			}
-
-			return total;
-		}
-
-		/** initiates chunk data submission, without blocking I/O.
-		 *
-		 * \param socket the socket to write to.
-		 */
-		virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket) = 0;
-	}; // }}}
-
-	class iterator // {{{
-	{
-	private:
-		const chunk *current;
-
-	public:
-		iterator(const chunk *c) :
-			current(c)
-		{
-		}
-
-		iterator& operator++()
-		{
-			if (current)
-			{
-				current = current->next;
-			}
-
-			return *this;
-		}
-
-		const chunk *operator->() const
-		{
-			return current;
-		}
-
-		const chunk& operator*() const
-		{
-			return *current;
-		}
-
-		friend bool operator!=(const iterator& a, const iterator& b)
-		{
-			return a.current != b.current;
-		}
-	}; // }}}
+	class iterator;
 
 private:
-	// {{{ chunk implementations
-	/** iovec chunk. */
-	struct iovec_chunk :
-		public chunk
-	{
-		std::vector<iovec> vec;
-		std::size_t veclimit;
-		std::vector<std::string> strings;
+	template<class Socket, class CompletionHandler> class write_handler;
 
-		iovec_chunk() :
-			chunk(ciov, 0), vec(), veclimit(sysconf(_SC_IOV_MAX)), strings()
-		{
-		}
-
-		void push_back(char value)
-		{
-			push_back(std::string(1, value));
-		}
-
-		void push_back(const std::string& value)
-		{
-			strings.push_back(value);
-			push_back(strings[strings.size() - 1].data(), value.size());
-		}
-
-		void push_back(const void *p, std::size_t n)
-		{
-			iovec iov;
-
-			iov.iov_base = const_cast<void *>(p);
-			iov.iov_len = n;
-
-			vec.push_back(iov);
-			size += n;
-		}
-
-		virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket)
-		{
-			ssize_t rv = ::writev(socket.native(), &vec[0], vec.size());
-
-			if (rv != -1)
-			{
-				size -= rv;
-			}
-			// TODO error handling if (rv != size), that is, not everything written on O_NONBLOCK
-			// (does this even happen?)
-
-			return rv;
-		}
-	};
-
-	/** file chunk.
-	 *
-	 * \note in order to have sendfile(2) to function, the input file descriptor <b>must</b> be mmap()'able,
-	 * and the output file descriptor <b>must</b> be of type socket.
-	 */
-	struct fd_chunk :
-		public chunk
-	{
-		int fd;
-		off_t offset;
-		bool close;
-
-		fd_chunk(int _fd, off_t _offset, size_t _size, bool _close) :
-			chunk(cfd, _size), fd(_fd), offset(_offset), close(_close)
-		{
-		}
-
-		~fd_chunk()
-		{
-			if (close)
-			{
-				::close(fd);
-			}
-		}
-
-		virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket)
-		{
-			if (size)
-			{
-				ssize_t rv = ::sendfile(socket.native(), fd, &offset, size);
-
-				if (rv != -1)
-				{
-					size -= rv;
-				}
-
-				// TODO: implement fallback through read()/write()
-
-				return rv;
-			}
-			else
-			{
-				return 0;
-			}
-		}
-	};
-	// }}}
-
-	// {{{ class write_handler
-	template<class CompletionHandler>
-	class write_handler
-	{
-	private:
-		composite_buffer& buffer_;
-		boost::asio::ip::tcp::socket& socket_;
-		CompletionHandler handler_;
-		std::size_t total_bytes_transferred_;
-
-	public:
-		write_handler(composite_buffer& buffer, boost::asio::ip::tcp::socket& socket, const CompletionHandler& handler)
-		  : buffer_(buffer), socket_(socket), handler_(handler)
-		{
-		}
-
-		void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred)
-		{
-			//total_bytes_transferred_ += bytes_transferred;
-
-			if (!ec && !buffer_.empty())
-			{
-				ssize_t rv = buffer_.async_write_some(socket_, *this);
-
-				if (rv != -1)
-				{
-					total_bytes_transferred_ += rv;
-				}
-			}
-			else
-			{
-				handler_(ec, total_bytes_transferred_);
-			}
-		}
-	};
-	// }}}
-
+private:
 	/** ensures that the tail of our chunk queue is of type iovec_chunk. */
-	void ensure_iovec_tail()
-	{
-		if (!back_)
-		{
-			front_ = back_ = new iovec_chunk();
-		}
-		else if (back_->type != chunk::ciov)
-		{
-			back_->next = new iovec_chunk();
-			back_ = back_->next;
-		}
-	}
+	void ensure_iovec_tail();
 
 	/**
 	 * write some data into the screen.
@@ -298,51 +78,12 @@ private:
 	 * \param handler the completion handler to invoke once current data has been sent 
 	 *                and the socket is ready for new data to be transmitted.
 	 */
-	template<class Handler>
-	ssize_t async_write_some(boost::asio::ip::tcp::socket& socket, const Handler& handler)
-	{
-		size_t nwritten = 0;
-		ssize_t rv;
+	template<class Socket, class Handler>
+	ssize_t async_write_some(Socket& socket, const Handler& handler);
 
-		if (front_)
-		{
-			if ((rv = front_->write_some(socket)) != -1)
-			{
-				size_ -= rv;
-				nwritten += rv;
-
-#if 1
-				if (!front_->size)
-				{
-					remove_front();
-				}
-#else
-				while (!front_->size)
-				{
-					remove_front();
-
-					if ((rv = front_->write_some(socket)) != -1)
-					{
-						size_ -= rv;
-						nwritten += rv;
-					}
-				}
-#endif
-			}
-		}
-		else
-		{
-			rv = 0;
-		}
-
-		socket.async_write_some(boost::asio::null_buffers(), handler);
-
-		return rv != -1 ? nwritten : rv;
-	}
-
-	chunk *front_;
-	chunk *back_;
-	size_t size_;
+	chunk *front_;		//!< chunk at the front/beginning of the buffer
+	chunk *back_;		//!< chunk at the back/end of the buffer
+	size_t size_;		//!< total size in bytes of this buffer (sum of bytes of all buffer chunks)
 
 public:
 	/** initializes a composite buffer. */
@@ -448,11 +189,274 @@ public:
 	 * Every chunk fully sent to the destination file is automatically removed from this buffer, 
 	 * thus subsequent calls to sendto() will continue to sent the remaining chunks, if needed.
 	 */
-	template<typename CompletionHandler>
-	void async_write(boost::asio::ip::tcp::socket& socket, const CompletionHandler& handler);
+	template<class Socket, class CompletionHandler>
+	void async_write(Socket& socket, const CompletionHandler& handler);
 };
 
-// {{{ composite_buffer implementation
+/** chunk base class.
+ * \see string_chunk, iovec_chunk, fd_chunk
+ */
+struct composite_buffer::chunk
+{
+	/** chunk type. */
+	enum chunk_type { cstring, ciov, cfd } type;
+
+	/** chunk size in bytes. */
+	std::size_t size;
+
+	/** next chunk in buffer. */
+	chunk *next;
+
+protected:
+	/** initializes chunk base.
+	 *
+	 * \param ct chunk type, assigned to \p type property.
+	 * \param sz chunk size in bytes, assigned to \p size property.
+	 */
+	chunk(chunk_type ct, std::size_t sz);
+
+public:
+	virtual ~chunk();
+
+	/** submits chunk data to given socket.
+	 *
+	 * \param socket the socket to write to.
+	 */
+	ssize_t write(boost::asio::ip::tcp::socket& socket);
+
+	/** initiates chunk data submission, without blocking I/O.
+	 *
+	 * \param socket the socket to write to.
+	 */
+	virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket) = 0;
+};
+
+/** iovec chunk.
+ * \see composite_buffer::chunk, composite_buffer::fd_chunk
+ */
+struct composite_buffer::iovec_chunk :
+	public chunk
+{
+	std::vector<iovec> vec;
+	std::size_t veclimit;
+	std::vector<std::string> strings;
+
+public:
+	iovec_chunk();
+
+	void push_back(char value);
+	void push_back(const std::string& value);
+	void push_back(const void *p, std::size_t n);
+
+	virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket);
+};
+
+/** fd chunk.
+ *
+ * \note in order to have sendfile(2) to function, the input file descriptor <b>must</b> be mmap()'able,
+ * and the output file descriptor <b>must</b> be of type socket.
+ */
+struct composite_buffer::fd_chunk :
+	public chunk
+{
+	int fd;
+	off_t offset;
+	bool close;
+
+public:
+	fd_chunk(int _fd, off_t _offset, size_t _size, bool _close);
+	~fd_chunk();
+
+	virtual ssize_t write_some(boost::asio::ip::tcp::socket& socket);
+};
+
+// {{{ chunk impl
+inline composite_buffer::chunk::chunk(chunk_type ct, std::size_t sz) :
+	type(ct), size(sz), next(0)
+{
+}
+
+inline composite_buffer::chunk::~chunk()
+{
+	delete next;
+}
+
+inline ssize_t composite_buffer::chunk::write(boost::asio::ip::tcp::socket& socket)
+{
+	ssize_t rv, total = 0;
+
+	while (size)
+	{
+		if ((rv = write_some(socket)) != -1)
+		{
+			total += rv;
+		}
+		else
+		{
+			return rv;
+		}
+	}
+
+	return total;
+}
+// }}}
+
+// {{{ iovec_chunk impl
+inline composite_buffer::iovec_chunk::iovec_chunk() :
+	chunk(ciov, 0), vec(), veclimit(sysconf(_SC_IOV_MAX)), strings()
+{
+}
+
+inline void composite_buffer::iovec_chunk::push_back(char value)
+{
+	push_back(std::string(1, value));
+}
+
+inline void composite_buffer::iovec_chunk::push_back(const std::string& value)
+{
+	strings.push_back(value);
+	push_back(strings[strings.size() - 1].data(), value.size());
+}
+
+inline void composite_buffer::iovec_chunk::push_back(const void *p, std::size_t n)
+{
+	iovec iov;
+
+	iov.iov_base = const_cast<void *>(p);
+	iov.iov_len = n;
+
+	vec.push_back(iov);
+	size += n;
+}
+
+inline ssize_t composite_buffer::iovec_chunk::write_some(boost::asio::ip::tcp::socket& socket)
+{
+	ssize_t rv = ::writev(socket.native(), &vec[0], vec.size());
+
+	if (rv != -1)
+	{
+		size -= rv;
+	}
+
+	// TODO error handling if (rv != size), that is, not everything written on O_NONBLOCK
+	// (does this even happen?)
+
+	return rv;
+}
+// }}}
+
+// {{{ fd_chunk impl
+inline composite_buffer::fd_chunk::fd_chunk(int _fd, off_t _offset, size_t _size, bool _close) :
+	chunk(cfd, _size), fd(_fd), offset(_offset), close(_close)
+{
+}
+
+inline composite_buffer::fd_chunk::~fd_chunk()
+{
+	if (close)
+	{
+		::close(fd);
+	}
+}
+
+inline ssize_t composite_buffer::fd_chunk::write_some(boost::asio::ip::tcp::socket& socket)
+{
+	if (size)
+	{
+		ssize_t rv = ::sendfile(socket.native(), fd, &offset, size);
+
+		if (rv != -1)
+		{
+			size -= rv;
+		}
+
+		// TODO: implement fallback through read()/write()
+
+		return rv;
+	}
+	else
+	{
+		return 0;
+	}
+}
+// }}}
+
+// {{{ class composite_buffer::write_handler
+template<class Socket, class CompletionHandler>
+class composite_buffer::write_handler
+{
+private:
+	composite_buffer& buffer_;
+	Socket& socket_;
+	CompletionHandler handler_;
+	std::size_t total_bytes_transferred_;
+
+public:
+	write_handler(composite_buffer& buffer, Socket& socket, const CompletionHandler& handler)
+	  : buffer_(buffer), socket_(socket), handler_(handler)
+	{
+	}
+
+	void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred)
+	{
+		//total_bytes_transferred_ += bytes_transferred;
+
+		if (!ec && !buffer_.empty())
+		{
+			ssize_t rv = buffer_.async_write_some(socket_, *this);
+
+			if (rv != -1)
+			{
+				total_bytes_transferred_ += rv;
+			}
+		}
+		else
+		{
+			handler_(ec, total_bytes_transferred_);
+		}
+	}
+};
+// }}}
+
+// {{{ composite_buffer::iterator
+class composite_buffer::iterator
+{
+private:
+	const chunk *current;
+
+public:
+	iterator(const chunk *c) :
+		current(c)
+	{
+	}
+
+	iterator& operator++()
+	{
+		if (current)
+		{
+			current = current->next;
+		}
+
+		return *this;
+	}
+
+	const chunk *operator->() const
+	{
+		return current;
+	}
+
+	const chunk& operator*() const
+	{
+		return *current;
+	}
+
+	friend bool operator!=(const iterator& a, const iterator& b)
+	{
+		return a.current != b.current;
+	}
+}; // }}}
+
+// {{{ composite_buffer impl
 inline composite_buffer::composite_buffer() :
 	front_(0), back_(0), size_(0)
 {
@@ -627,31 +631,74 @@ inline ssize_t composite_buffer::write(boost::asio::ip::tcp::socket& socket)
 	return nwritten;
 }
 
-template<typename CompletionHandler>
-void composite_buffer::async_write(boost::asio::ip::tcp::socket& socket, const CompletionHandler& handler)
+template<class Socket, class CompletionHandler>
+inline void composite_buffer::async_write(Socket& socket, const CompletionHandler& handler)
 {
-	write_handler<CompletionHandler> internalWriteHandler(*this, socket, handler);
+	write_handler<Socket, CompletionHandler> internalWriteHandler(*this, socket, handler);
+
 	socket.async_write_some(boost::asio::null_buffers(), internalWriteHandler);
+}
+
+inline void composite_buffer::ensure_iovec_tail()
+{
+	if (!back_)
+	{
+		front_ = back_ = new iovec_chunk();
+	}
+	else if (back_->type != chunk::ciov)
+	{
+		back_->next = new iovec_chunk();
+		back_ = back_->next;
+	}
+}
+
+template<class Socket, class CompletionHandler>
+inline ssize_t composite_buffer::async_write_some(Socket& socket, const CompletionHandler& handler)
+{
+	size_t nwritten = 0;
+	ssize_t rv;
+
+	if (front_)
+	{
+		rv = front_->write_some(socket);
+
+		if (rv != -1)
+		{
+			size_ -= rv;
+			nwritten += rv;
+
+#if 1
+			if (!front_->size)
+			{
+				remove_front();
+			}
+#else
+			while (!front_->size)
+			{
+				remove_front();
+
+				rv = front_->write_some(socket_);
+
+				if (rv != -1)
+				{
+					size_ -= rv;
+					nwritten += rv;
+				}
+			}
+#endif
+		}
+	}
+	else
+	{
+		rv = 0;
+	}
+
+	socket.async_write_some(boost::asio::null_buffers(), handler);
+
+	return rv != -1 ? nwritten : rv;
 }
 // }}}
 
 } // namespace x0
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
