@@ -101,7 +101,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 
 				try
 				{
-					request_handler_(*request_, *response_);
+					request_handler_(response_->request(), *response_);
 				}
 				catch (response::code_type reply)
 				{

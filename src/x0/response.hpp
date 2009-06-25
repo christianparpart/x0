@@ -82,7 +82,7 @@ private:
 	connection_ptr connection_;
 
 	/// reference to the related request.
-	request *request_;
+	x0::request *request_;
 
 	/// the headers to be included in the response.
 	std::vector<x0::header> headers;
@@ -160,6 +160,9 @@ public:
 	response(connection_ptr connection, x0::request *request, int _status = 0);
 
 	~response();
+
+	/** retrieves a reference to the corresponding request object. */
+	x0::request& request() const;
 
 	/// HTTP response status code.
 	value_property<int> status;
@@ -264,6 +267,11 @@ private:
 };
 
 // {{{ inline implementation
+inline request& response::request() const
+{
+	return *request_;
+}
+
 inline size_t response::content_length() const
 {
 	return content.size();
