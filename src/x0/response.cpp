@@ -6,6 +6,7 @@
 
 #include <x0/response.hpp>
 #include <x0/connection_manager.hpp>
+#include <x0/strutils.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
 
@@ -132,6 +133,9 @@ composite_buffer response::serialize()
 				header("Connection", "closed");
 			}
 		}
+
+		// some HTTP standard response headers
+		header("Date", http_date(std::time(0)));
 
 		// log request/response
 //		request_done(*request_, *this);
