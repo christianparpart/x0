@@ -11,7 +11,7 @@
 namespace x0 {
 
 template<typename T, typename U>
-std::vector<T> split(const std::basic_string<U>& input, const std::basic_string<U>& sep)
+inline std::vector<T> split(const std::basic_string<U>& input, const std::basic_string<U>& sep)
 {
 	std::vector<T> result;
 	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -26,9 +26,23 @@ std::vector<T> split(const std::basic_string<U>& input, const std::basic_string<
 }
 
 template<typename T, typename U>
-std::vector<T> split(const std::basic_string<U>& list, const U *sep)
+inline std::vector<T> split(const std::basic_string<U>& list, const U *sep)
 {
 	return split<T, U>(list, std::basic_string<U>(sep));
+}
+
+inline std::string http_date(std::time_t ts)
+{
+	if (struct tm *tm = localtime(&ts))
+	{
+		char buf[256];
+
+		if (strftime(buf, sizeof(buf), "%a, %d-%b-%Y %T %z", tm) != 0)
+		{
+			return buf;
+		}
+	}
+	return std::string();
 }
 
 } // namespace x0

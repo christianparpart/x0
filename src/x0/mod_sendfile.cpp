@@ -94,7 +94,7 @@ private:
 
 		out.header("Content-Type", get_mime_type(in));
 		out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
-		out.header("Last-Modified", makeHttpTimeStamp(st.st_mtime));
+		out.header("Last-Modified", http_date(st.st_mtime));
 		// TODO: set other related response headers...
 
 		out.write(fd, 0, st.st_size, true);
@@ -105,20 +105,6 @@ private:
 		out.flush();
 
 		return true;
-	}
-
-	inline static std::string makeHttpTimeStamp(std::time_t ts)
-	{
-		if (struct tm *tm = localtime(&ts))
-		{
-			char buf[256];
-
-			if (strftime(buf, sizeof(buf), "%a, %d-%b-%Y %T %z", tm) != 0)
-			{
-				return buf;
-			}
-		}
-		return std::string();
 	}
 
 	/** computes the mime-type(/content-type) for given request.
