@@ -126,8 +126,34 @@ connection_open: ssl
 	post_process:
 connection_close: ssl
 
+---------------------------------------------------------------
 
+server
+	-> create listener (server.handle_accept)
 
+handle_accept
+	-> create connection (handle_read)
+		-> connection.start
+
+response.flush()
+	-> connection.close
+	-> connection.resume
+
+connection.start
+	-> socket.async_read_some(handle_read)
+
+connection.handle_read
+	-> parse_request_partial
+	-> handle_request
+	-> close
+
+handle_read(request, response)
+	-> response.flush
+
+listener
+connection
+request
+response
 
 
 

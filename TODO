@@ -4,6 +4,9 @@ for a long-term todo list, see ticket system at code.ninchens.net/projects/x0
 
 - request_done/post_process hooks need to be passed somehow to response.flush() (or response.serialize)
 - handle request body if in.header("Content-Length") is set and ~= 0
+- optimize composite_buffer appending by merging nearby iovec chunks,
+	if the left back and the right front is an iovec_chunk, and
+	if the sum of both iovec elements does not exceed the system's iovec limit to writev(2)
 - async/parralel content generator handlers
 - handle request headers Keep-Alive properly (using asio [deadline-]timers)
 - do timeout when request parsing idles for too long. -> close the connection.
