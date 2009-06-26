@@ -27,6 +27,10 @@ ip.tcp.cork=true
 
 [sendfile]
 mime-types=/etc/mime.types
+default-mime-type=text/plain
+etag-consider-mtime=true
+etag-consider-size=true
+etag-consider-inode=true
 
 [vhost]
 default-host=localhost

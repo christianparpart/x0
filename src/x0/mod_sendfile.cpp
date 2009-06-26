@@ -32,8 +32,13 @@ class sendfile_plugin :
 {
 private:
 	typedef std::map<std::string, std::string> mime_types_type;
+
 	mime_types_type mime_types_;
 	std::string default_mimetype_;
+	bool etag_consider_mtime_;
+	bool etag_consider_size_;
+	bool etag_consider_inode_;
+
 	x0::handler::connection c;
 
 public:
@@ -41,6 +46,9 @@ public:
 		x0::plugin(srv, name),
 		mime_types_(),
 		default_mimetype_("text/plain"),
+		etag_consider_mtime_(true),
+		etag_consider_size_(true),
+		etag_consider_inode_(false),
 		c()
 	{
 		c = server_.generate_content.connect(boost::bind(&sendfile_plugin::sendfile, this, _1, _2));
@@ -54,6 +62,7 @@ public:
 	{
 		typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 
+		// mime-types loading
 		std::string input(x0::read_file(server_.get_config().get("sendfile", "mime-types")));
 		tokenizer lines(input, boost::char_separator<char>("\n"));
 
@@ -72,6 +81,27 @@ public:
 					mime_types_[*ci] = mime;
 				}
 			}
+		}
+
+		if ((input = server_.get_config().get("sendfile", "default-mime-type")) != "")
+		{
+			default_mimetype_ = input;
+		}
+
+		// ETag considerations
+		if ((input = server_.get_config().get("sendfile", "etag-consider-mtime")) != "")
+		{
+			etag_consider_mtime_ = input == "true";
+		}
+
+		if ((input = server_.get_config().get("sendfile", "etag-consider-size")) != "")
+		{
+			etag_consider_size_ = input == "true";
+		}
+
+		if ((input = server_.get_config().get("sendfile", "etag-consider-inode")) != "")
+		{
+			etag_consider_inode_ = input == "true";
 		}
 	}
 
@@ -95,6 +125,7 @@ private:
 		out.header("Content-Type", get_mime_type(in));
 		out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
 		out.header("Last-Modified", x0::http_date(st.st_mtime));
+		out.header("ETag", etag_generate(st));
 		// TODO: set other related response headers...
 
 		out.write(fd, 0, st.st_size, true);
@@ -107,7 +138,44 @@ private:
 		return true;
 	}
 
+	/**
+	 * generates an ETag for given inode.
+	 * \param st stat structure to generate the ETag for.
+	 * \return an HTTP/1.1 conform ETag value.
+	 */
+	inline std::string etag_generate(const struct stat& st)
+	{
+		std::stringstream sstr;
+		int count = 0;
+
+		sstr << '"';
+
+		if (etag_consider_mtime_)
+		{
+			++count;
+			sstr << st.st_mtime;
+		}
+
+		if (etag_consider_size_)
+		{
+			if (count++) sstr << '-';
+			sstr << st.st_size;
+		}
+
+		if (etag_consider_inode_)
+		{
+			if (count++) sstr << '-';
+			sstr << st.st_ino;
+		}
+
+		sstr << '"';
+
+		return sstr.str();
+	}
+
 	/** computes the mime-type(/content-type) for given request.
+	 * \param in the request to detect the mime-type for.
+	 * \return mime-type for given request.
 	 */
 	inline std::string get_mime_type(x0::request& in) const
 	{
