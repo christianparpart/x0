@@ -119,7 +119,7 @@ std::vector<T> split(const std::basic_string<U>& list, const U *sep);
  *
  * \note Date format is equivalent to RFC 822.
  */
-inline std::string http_date(std::time_t ts);
+std::string http_date(std::time_t ts);
 
 /*@}*/
 
