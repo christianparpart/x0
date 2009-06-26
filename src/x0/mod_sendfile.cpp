@@ -94,7 +94,7 @@ private:
 
 		out.header("Content-Type", get_mime_type(in));
 		out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
-		out.header("Last-Modified", http_date(st.st_mtime));
+		out.header("Last-Modified", x0::http_date(st.st_mtime));
 		// TODO: set other related response headers...
 
 		out.write(fd, 0, st.st_size, true);
