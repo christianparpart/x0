@@ -33,11 +33,11 @@ inline std::vector<T> split(const std::basic_string<U>& list, const U *sep)
 
 inline std::string http_date(std::time_t ts)
 {
-	if (struct tm *tm = localtime(&ts))
+	if (struct tm *tm = gmtime(&ts))
 	{
 		char buf[256];
 
-		if (strftime(buf, sizeof(buf), "%a, %d-%b-%Y %T %z", tm) != 0)
+		if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0)
 		{
 			return buf;
 		}
