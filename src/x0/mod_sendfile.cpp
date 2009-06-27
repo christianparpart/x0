@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 /* feature to detect origin mime types of backup files. */
 #define X0_SENDFILE_MIME_TYPES_BELOW_BACKUP 1
@@ -106,12 +107,45 @@ public:
 	}
 
 private:
-	bool sendfile(x0::request& in, x0::response& out) {
+	/**
+	 * verifies wether the client may use its cache or not.
+	 *
+	 * \param in request object
+	 * \param out response object. this will be modified in case of cache reusability.
+	 * \param st stat structure of the requested entity.
+	 *
+	 * \throw response::not_modified, in case the client may use its cache.
+	 */
+	void verify_client_cache(x0::request& in, x0::response& out, struct stat& st)
+	{
+		// If-None-Match, If-Modified-Since
+
+		std::string value;
+		if ((value = in.header("If-Modified-Since")) != "")
+		{
+			struct tm tm;
+			tm.tm_isdst = 0;
+			if (strptime(value.c_str(), "%a, %d %b %Y %H:%M:%S GMT", &tm))
+			{
+				time_t header_ts = mktime(&tm) - timezone;
+
+				if (st.st_mtime <= header_ts)
+				{
+					throw x0::response::not_modified;
+				}
+			}
+		}
+	}
+
+	bool sendfile(x0::request& in, x0::response& out)
+	{
 		std::string path(in.entity);
 
 		struct stat st;
 		if (stat(path.c_str(), &st) != 0)
 			return false;
+
+		verify_client_cache(in, out, st);
 
 		int fd = open(path.c_str(), O_RDONLY);
 		if (fd == -1)
