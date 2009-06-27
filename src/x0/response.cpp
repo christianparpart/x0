@@ -85,6 +85,18 @@ const std::string& response::header(const std::string& name, const std::string& 
 	return headers[headers.size() - 1].value;
 }
 
+/** checks wether given code MUST not have a response body. */
+static inline bool content_forbidden(int code)
+{
+	switch (code)
+	{
+		case response::not_modified:
+			return true;
+		default:
+			return false;
+	}
+}
+
 composite_buffer response::serialize()
 {
 	composite_buffer buffers;
@@ -96,7 +108,7 @@ composite_buffer response::serialize()
 			status = 200;
 		}
 
-		if (content.empty())
+		if (content.empty() && !content_forbidden(status))
 		{
 			const char *codeStr = status_cstr(status);
 			char buf[1024];
