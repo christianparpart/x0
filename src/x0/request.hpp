@@ -61,6 +61,9 @@ struct request
 
 	/// the document root directory for this request.
 	std::string document_root;
+
+//	std::string if_modified_since;		//!< "If-Modified-Since" request header value, if specified.
+//	std::shared_ptr<range_def> range;	//!< parsed "Range" request header
 };
 
 inline request::request(x0::connection& conn) :
