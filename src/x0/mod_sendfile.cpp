@@ -7,6 +7,7 @@
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
+#include <x0/range_def.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 
@@ -186,12 +187,35 @@ private:
 		}
 
 		out.header("Content-Type", get_mime_type(in));
-		out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
 		out.header("Last-Modified", x0::http_date(st.st_mtime));
 		out.header("ETag", etag_generate(st));
 		// TODO: set other related response headers...
 
-		out.write(fd, 0, st.st_size, true);
+		if (in.header("Range") != "")
+		{
+			x0::range_def range(in.header("Range"));
+			auto last = boost::prior(range.end());
+
+			out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size)); // XXX
+
+			// write al ranges except the last
+			for (auto i = range.begin(), e = last; i != e; ++i)
+			{
+				std::pair<std::size_t, std::size_t> offsets(make_offsets(*i, st));
+				printf("write range(%ld, %ld, false)\n", offsets.first, offsets.second);
+				out.write(fd, offsets.first, offsets.second - st.st_size, false);
+			}
+
+			// write last range
+			std::pair<std::size_t, std::size_t> offsets(make_offsets(*last, st));
+			printf("write range(%ld, %ld, false)\n", offsets.first, offsets.second);
+			out.write(fd, offsets.first, offsets.second - st.st_size, true);
+		}
+		else
+		{
+			out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
+			out.write(fd, 0, st.st_size, true);
+		}
 
 		// XXX send out headers, as they're fixed size in user space.
 		// XXX start async transfer through sendfile()
@@ -199,6 +223,16 @@ private:
 		out.flush();
 
 		return true;
+	}
+
+	std::pair<std::size_t, std::size_t> make_offsets(const std::pair<std::size_t, std::size_t>& p, const struct stat& st)
+	{
+		std::pair<std::size_t, std::size_t> q;
+
+		q.first = p.first != x0::range_def::npos ? p.first : st.st_size - p.first;
+		q.second = p.second != x0::range_def::npos ? p.second : st.st_size;
+
+		return q;
 	}
 
 	/**
