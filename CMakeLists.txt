@@ -10,6 +10,7 @@ INCLUDE(FindPkgConfig)
 INCLUDE(FindDoxygen)
 
 add_subdirectory(src)
+add_subdirectory(tests)
 
 # {{{ sets
 #if (DEFINED PREFIX)
@@ -40,6 +41,7 @@ endif()
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 pkg_check_modules(LUA REQUIRED lua>=5.1)
+pkg_check_modules(CPPUNIT REQUIRED cppunit>=1.12)
 
 # ---------------------------------------------------------------------------
 message("")
