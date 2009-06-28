@@ -64,6 +64,17 @@ struct request
 
 //	std::string if_modified_since;		//!< "If-Modified-Since" request header value, if specified.
 //	std::shared_ptr<range_def> range;	//!< parsed "Range" request header
+
+	bool supports_protocol(int major, int minor) const
+	{
+		if (major == http_version_major && minor <= http_version_minor)
+			return true;
+
+		if (major < http_version_major)
+			return true;
+
+		return false;
+	}
 };
 
 inline request::request(x0::connection& conn) :

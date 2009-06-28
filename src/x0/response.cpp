@@ -159,7 +159,13 @@ composite_buffer response::serialize()
 		status_buf[1] = '0' + (status / 10 % 10);
 		status_buf[2] = '0' + (status % 10);
 
-		buffers.push_back("HTTP/1.1 ");
+		if (request_->supports_protocol(1, 1))
+			buffers.push_back("HTTP/1.1 ");
+		else if (request_->supports_protocol(1, 0))
+			buffers.push_back("HTTP/1.0 ");
+		else
+			buffers.push_back("HTTP/0.9 ");
+
 		buffers.push_back(status_buf);
 		buffers.push_back(' ');
 		buffers.push_back(status_cstr(status));
