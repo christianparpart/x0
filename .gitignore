@@ -8,6 +8,7 @@ Makefile
 docs/html/
 src/x0d
 src/x0/x0d
+tests/x0test
 core
 core.*
 vgcore.*
