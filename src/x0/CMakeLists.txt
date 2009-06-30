@@ -20,7 +20,6 @@ add_executable(x0d
 	logger.cpp
 	main.cpp
 	response.cpp
-	request_reader.cpp
 	request.cpp
 	server.cpp
 	severity.cpp
@@ -37,7 +36,6 @@ set(x0d_API
 	listener.hpp
 	logger.hpp
 	request.hpp
-	request_reader.hpp
 	response.hpp
 	server.hpp
 	severity.hpp

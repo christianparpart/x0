@@ -10,7 +10,6 @@
 #include <x0/connection.hpp>
 #include <x0/composite_buffer.hpp>
 #include <x0/request.hpp>
-#include <x0/request_reader.hpp>
 #include <x0/property.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
@@ -88,7 +87,7 @@ private:
 	// HTTP request
 	boost::array<char, 8192> buffer_;	//!< buffer for incoming data.
 	request *request_;					//!< currently parsed http request 
-	request_reader request_reader_;		//!< http request parser
+	request::reader request_reader_;	//!< http request parser
 
 	boost::asio::strand strand_;		//!< request handler strand
 };
