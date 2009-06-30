@@ -1,21 +1,21 @@
-/* <x0/request_parser.cpp>
+/* <x0/request_reader.cpp>
  *
  * This file is part of the x0 web server, released under GPLv3.
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/request_parser.hpp>
+#include <x0/request_reader.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 
 namespace x0 {
 
-request_parser::request_parser() :
+request_reader::request_reader() :
 	state_(method_start)
 {
 }
 
-void request_parser::reset()
+void request_reader::reset()
 {
 	state_ = method_start;
 }
@@ -62,7 +62,7 @@ static inline bool url_decode(std::string& url)
 	return true;
 }
 
-boost::tribool request_parser::consume(request& r, char input)
+boost::tribool request_reader::consume(request& r, char input)
 {
 	switch (state_)
 	{
@@ -338,17 +338,17 @@ boost::tribool request_parser::consume(request& r, char input)
 	}
 }
 
-bool request_parser::is_char(int ch)
+bool request_reader::is_char(int ch)
 {
 	return ch >= 0 && ch < 127;
 }
 
-bool request_parser::is_ctl(int ch)
+bool request_reader::is_ctl(int ch)
 {
 	return (ch >= 0 && ch <= 31) || ch == 127;
 }
 
-bool request_parser::is_tspecial(int ch)
+bool request_reader::is_tspecial(int ch)
 {
 	switch (ch)
 	{
@@ -377,7 +377,7 @@ bool request_parser::is_tspecial(int ch)
 	}
 }
 
-bool request_parser::is_digit(int ch)
+bool request_reader::is_digit(int ch)
 {
 	return ch >= '0' && ch <= '9';
 }

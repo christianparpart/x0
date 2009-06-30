@@ -1,11 +1,11 @@
-/* <x0/request_parser.hpp>
+/* <x0/request_reader.hpp>
  * 
  * This file is part of the x0 web server, released under GPLv3.
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#ifndef x0_http_request_parser_hpp
-#define x0_http_request_parser_hpp (1)
+#ifndef x0_http_request_reader_hpp
+#define x0_http_request_reader_hpp (1)
 
 #include <x0/types.hpp>
 #include <boost/logic/tribool.hpp>
@@ -21,10 +21,10 @@ struct request;
  *
  * \see request, connection
  */
-class request_parser
+class request_reader
 {
 public:
-	request_parser();
+	request_reader();
 
 	void reset();
 

@@ -23,7 +23,7 @@ connection::connection(
 	request_handler_(handler),
 	buffer_(),
 	request_(new request(*this)),
-	request_parser_(),
+	request_reader_(),
 	strand_(io_service)
 {
 	DEBUG("connection(%p)", this);
@@ -48,7 +48,7 @@ void connection::resume()
 {
 	DEBUG("connection(%p).resume()", this);
 
-	request_parser_.reset();
+	request_reader_.reset();
 	request_ = new request(*this);
 
 	socket_.async_read_some(boost::asio::buffer(buffer_),
@@ -80,7 +80,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		boost::tribool result;
 		try
 		{
-			boost::tie(result, boost::tuples::ignore) = request_parser_.parse(
+			boost::tie(result, boost::tuples::ignore) = request_reader_.parse(
 				*request_, buffer_.data(), buffer_.data() + bytes_transferred);
 		}
 		catch (response::code_type code)
