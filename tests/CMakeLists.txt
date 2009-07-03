@@ -15,6 +15,7 @@ add_definitions(
 add_executable(x0test
 	x0dtest.cpp
 	http11.cpp
+	ternary_search_test.cpp
 )
 
 target_link_libraries(x0test

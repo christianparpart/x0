@@ -1,0 +1,121 @@
+#include "x0/ternary_search.hpp"
+#include <cppunit/extensions/HelperMacros.h>
+#include <cppunit/extensions/TestFactoryRegistry.h>
+#include <iostream>
+#include <exception>
+#include <cassert>
+
+#if (1 == 0)
+template<typename T>
+std::string pretty(T i)
+{
+	return i ? *i : "(null)";
+}
+#endif
+
+class ternary_search_test
+	: public CPPUNIT_NS::TestFixture
+{
+public:
+	CPPUNIT_TEST_SUITE(ternary_search_test);
+		CPPUNIT_TEST(simple);
+		CPPUNIT_TEST(match_direct);
+		CPPUNIT_TEST(match_indirect);
+		CPPUNIT_TEST(not_found);
+		CPPUNIT_TEST(iterate1);
+	CPPUNIT_TEST_SUITE_END();
+
+private:
+	/** softly validates an iterator value.
+	 * \param i the iterator to test
+	 * \param e the `end()`-iterator (which \p i MUST not be)
+	 * \param c the test-value we expect \p *i to be.
+	 * \retval true \p *i equals \p c, that is, i is valid.
+	 * \retval false \p i does not represent the valid and expected value.
+	 */
+	template<typename T, typename U>
+	bool test(const T&& i, const T&& e, const U&& c)
+	{
+		if (i == e)
+			return false;
+
+		if (*i != c)
+			return false;
+
+		return true;
+	}
+
+private:
+	void simple()
+	{
+		x0::ternary_search<std::string, std::string> m;
+
+		m.insert("/", "some /");
+		m.insert("/foo/", "some /foo");
+		m.insert("/bar/", "some /bar");
+		m.insert("/block/", "some /block");
+
+		CPPUNIT_ASSERT(m.size() == 4);
+
+		CPPUNIT_ASSERT(test(m.find("/"), m.end(), "some /"));
+		CPPUNIT_ASSERT(test(m.find("/foo/"), m.end(), "some /foo"));
+		CPPUNIT_ASSERT(test(m.find("/foo/bar"), m.end(), "some /foo"));
+		CPPUNIT_ASSERT(test(m.find("/bar/"), m.end(), "some /bar"));
+		CPPUNIT_ASSERT(test(m.find("/bar/bar"), m.end(), "some /bar"));
+		CPPUNIT_ASSERT(test(m.find("/block/"), m.end(), "some /block"));
+		CPPUNIT_ASSERT(test(m.find("/blocked"), m.end(), "some /"));
+	}
+
+	void match_direct()
+	{
+		x0::ternary_search<std::string, std::string> m;
+
+		m.insert("/", "some /");
+		m.insert("/foo/", "some /foo/");
+
+		CPPUNIT_ASSERT(test(m.find("/"), m.end(), "some /"));
+		CPPUNIT_ASSERT(test(m.find("/foo/"), m.end(), "some /foo/"));
+	}
+
+	void match_indirect()
+	{
+		x0::ternary_search<std::string, std::string> m;
+
+		m.insert("/foo/", "some /foo/");
+		m.insert("/foo/bar/", "some /foo/bar/");
+
+		CPPUNIT_ASSERT(test(m.find("/foo/"), m.end(), "some /foo/"));
+		CPPUNIT_ASSERT(test(m.find("/foo/foo/"), m.end(), "some /foo/"));
+		CPPUNIT_ASSERT(test(m.find("/foo/bar"), m.end(), "some /foo/"));
+		CPPUNIT_ASSERT(test(m.find("/foo/bar/"), m.end(), "some /foo/bar/"));
+	}
+
+	void not_found()
+	{
+		x0::ternary_search<std::string, std::string> m;
+
+		CPPUNIT_ASSERT( m.find("-bad") == m.end());
+
+		m.insert("-bible", "-bible-value");
+		CPPUNIT_ASSERT( m.find("-bad") == m.end());
+	}
+
+	void iterate1()
+	{
+		x0::ternary_search<std::string, std::string> m;
+
+		CPPUNIT_ASSERT(m.begin() == m.end());
+
+		m.insert("/foo/", "some /foo/");
+		x0::ternary_search<std::string, std::string>::iterator i;
+
+		i = m.begin();
+		CPPUNIT_ASSERT(i != m.end());
+		CPPUNIT_ASSERT(*i == "some /foo/");
+
+		++i;
+		CPPUNIT_ASSERT(i == m.end());
+	}
+};
+
+CPPUNIT_TEST_SUITE_REGISTRATION(ternary_search_test);
