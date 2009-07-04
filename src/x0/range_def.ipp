@@ -28,7 +28,7 @@ inline range_def::range_def(const std::string& spec) : ranges_()
  *    <li>the last N units of the entity (-last)</li>
  * </ul>
  */
-inline void range_def::parse(const std::string& value)
+inline bool range_def::parse(const std::string& value)
 {
 	// ranges-specifier = byte-ranges-specifier
 	// byte-ranges-specifier = bytes-unit "=" byte-range-set
@@ -56,13 +56,15 @@ inline void range_def::parse(const std::string& value)
 
 			for (tokenizer::iterator i = t2.begin(), e = t2.end(); i != e; ++i)
 			{
-				ranges_.push_back(parse_range_spec(*i));
+				if (!parse_range_spec(*i))
+					return false;
 			}
 		}
 	}
+	return true;
 }
 
-inline std::pair<std::size_t, std::size_t> range_def::parse_range_spec(const std::string& spec)
+inline bool range_def::parse_range_spec(const std::string& spec)
 {
 	std::size_t a, b;
 	char *p = const_cast<char *>(spec.c_str());
@@ -78,7 +80,10 @@ inline std::pair<std::size_t, std::size_t> range_def::parse_range_spec(const std
 	}
 
 	if (*p != '-')
-		throw std::runtime_error("parse error");
+	{
+		printf("parse error: %s (%s)\n", p, spec.c_str());
+		return false;
+	}
 
 	++p;
 
@@ -92,7 +97,12 @@ inline std::pair<std::size_t, std::size_t> range_def::parse_range_spec(const std
 		b = npos;
 	}
 
-	return std::make_pair(a, b);
+	if (*p != '\0') // garbage at the end
+		return false;
+
+	ranges_.push_back(std::make_pair(a, b));
+
+	return true;
 }
 
 inline void range_def::push_back(std::size_t offset1, std::size_t offset2)

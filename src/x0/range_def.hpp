@@ -43,7 +43,7 @@ public:
 
 	value_property<std::string> unit_name;
 
-	void parse(const std::string& value);
+	bool parse(const std::string& value);
 
 	/// pushes a new range to the list of ranges
 	void push_back(std::size_t offset1, std::size_t offset2);
@@ -74,7 +74,7 @@ public:
 	std::string str() const;
 
 private:
-	std::pair<std::size_t, std::size_t> parse_range_spec(const std::string& spec);
+	inline bool parse_range_spec(const std::string& spec);
 };
 
 } // namespace x0
