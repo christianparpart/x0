@@ -176,6 +176,9 @@ private:
 		if (stat(path.c_str(), &st) != 0)
 			return false;
 
+		if (!S_ISREG(st.st_mode))
+			throw x0::response::forbidden;
+
 		verify_client_cache(in, out, st);
 
 		int fd = open(path.c_str(), O_RDONLY);
