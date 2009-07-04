@@ -13,8 +13,10 @@ namespace x0 {
 class range_def
 {
 public:
+	typedef std::pair<std::size_t, std::size_t> element_type;
+
 	/** internally used range vector type. */
-	typedef std::vector<std::pair<std::size_t, std::size_t> > vector_type;
+	typedef std::vector<element_type> vector_type;
 
 	/** range iterator. */
 	typedef vector_type::iterator iterator;
@@ -53,6 +55,9 @@ public:
 
 	bool empty() const;
 
+	/** retrieves the range element at given \p index. */
+	const element_type& operator[](std::size_t index) const;
+
 	/** iterator pointing to the first range element. */
 	const_iterator begin() const;
 
@@ -67,6 +72,9 @@ public:
 
 	/** retrieves string representation of this range. */
 	std::string str() const;
+
+private:
+	std::pair<std::size_t, std::size_t> parse_range_spec(const std::string& spec);
 };
 
 } // namespace x0

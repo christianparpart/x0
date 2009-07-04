@@ -1,7 +1,10 @@
 #ifndef x0_range_def_ipp
 #define x0_range_def_ipp
 
+// XXX http://tools.ietf.org/html/draft-fielding-http-p5-range-00
+
 #include <boost/tokenizer.hpp>
+#include <cstdlib>
 
 namespace x0 {
 
@@ -14,6 +17,17 @@ inline range_def::range_def(const std::string& spec) : ranges_()
 	parse(spec);
 }
 
+/**
+ * parses an HTTP/1.1 conform Range header \p value.
+ * \param value the HTTP header field value retrieved from the Range header field. 
+ *
+ * The following ranges can be specified:
+ * <ul>
+ *    <li>explicit range, from \em first to \em last (first-last)</li>
+ *    <li>explicit begin to the end of the entity (first-)</li>
+ *    <li>the last N units of the entity (-last)</li>
+ * </ul>
+ */
 inline void range_def::parse(const std::string& value)
 {
 	// ranges-specifier = byte-ranges-specifier
@@ -23,14 +37,62 @@ inline void range_def::parse(const std::string& value)
 	// first-byte-pos  = 1*DIGIT
 	// last-byte-pos   = 1*DIGIT
 
-	// TODO
+	// suffix-byte-range-spec = "-" suffix-length
+	// suffix-length = 1*DIGIT
+
 	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-	tokenizer spec(value, boost::char_separator<char>(" \t"));
+
+	tokenizer spec(value, boost::char_separator<char>("="));
 	tokenizer::iterator si(spec.begin());
-	if (si != spec.end() && *si == "byte")
+
+	if (si != spec.end())
 	{
-		std::string brange(*++si);
+		unit_name = *si;
+
+		if (unit_name() == "bytes")
+		{
+			std::string brange(*++si);
+			tokenizer t2(brange, boost::char_separator<char>(","));
+
+			for (tokenizer::iterator i = t2.begin(), e = t2.end(); i != e; ++i)
+			{
+				ranges_.push_back(parse_range_spec(*i));
+			}
+		}
 	}
+}
+
+inline std::pair<std::size_t, std::size_t> range_def::parse_range_spec(const std::string& spec)
+{
+	std::size_t a, b;
+	char *p = const_cast<char *>(spec.c_str());
+
+	// parse first element
+	if (std::isdigit(*p))
+	{
+		a = strtoul(p, &p, 10);
+	}
+	else
+	{
+		a = npos;
+	}
+
+	if (*p != '-')
+		throw std::runtime_error("parse error");
+
+	++p;
+
+	// parse second element
+	if (std::isdigit(*p))
+	{
+		b = strtoul(p, &p, 10);
+	}
+	else
+	{
+		b = npos;
+	}
+
+	return std::make_pair(a, b);
 }
 
 inline void range_def::push_back(std::size_t offset1, std::size_t offset2)
@@ -51,6 +113,11 @@ inline std::size_t range_def::size() const
 inline bool range_def::empty() const
 {
 	return !ranges_.size();
+}
+
+inline const range_def::element_type& range_def::operator[](std::size_t index) const
+{
+	return ranges_[index];
 }
 
 inline range_def::iterator range_def::begin()
