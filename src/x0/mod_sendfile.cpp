@@ -15,6 +15,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/bind.hpp>
 
+#include <sstream>
 #include <sys/sendfile.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -186,41 +187,100 @@ private:
 			return false;
 		}
 
-		out.header("Content-Type", get_mime_type(in));
-		out.header("Last-Modified", x0::http_date(st.st_mtime));
-		out.header("ETag", etag_generate(st));
-		// TODO: set other related response headers...
-
-		if (in.header("Range") != "")
+		try
 		{
-			x0::range_def range(in.header("Range"));
-			auto last = boost::prior(range.end());
+			out.header("Last-Modified", x0::http_date(st.st_mtime));
+			out.header("ETag", etag_generate(st));
 
-			out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size)); // XXX
-
-			// write al ranges except the last
-			for (auto i = range.begin(), e = last; i != e; ++i)
+			if (!process_range_request(in, out, st, fd))
 			{
-				std::pair<std::size_t, std::size_t> offsets(make_offsets(*i, st));
-				printf("write range(%ld, %ld, false)\n", offsets.first, offsets.second);
-				out.write(fd, offsets.first, offsets.second - st.st_size, false);
+				out.status = x0::response::ok;
+
+				out.header("Accept-Ranges", "bytes");
+				out.header("Content-Type", get_mime_type(in));
+				out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
+
+				out.write(fd, 0, st.st_size, true);
 			}
 
-			// write last range
-			std::pair<std::size_t, std::size_t> offsets(make_offsets(*last, st));
-			printf("write range(%ld, %ld, false)\n", offsets.first, offsets.second);
-			out.write(fd, offsets.first, offsets.second - st.st_size, true);
+			out.flush();
+		}
+		catch (...)
+		{
+			::close(fd);	// we would let auto-close it by last fd write,
+							// however, this won't happen when an exception got cought here.
+
+			throw;
+		}
+
+		return true;
+	}
+
+	inline bool process_range_request(x0::request& in, x0::response& out, struct stat& st, int fd)
+	{
+		std::string range_value(in.header("Range"));
+		x0::range_def range;
+
+		if (range_value.empty() || range.parse(range_value))
+			return false;
+
+		std::string mimetype(get_mime_type(in));
+
+		out.status = x0::response::partial_content;
+
+		if (range.size() > 1)
+		{
+			// generate a multipart/byteranged response, as we've more than one range to serve
+
+			x0::composite_buffer body;
+			std::string boundary(boundary_generate());
+
+			for (int i = 0, e = range.size(); i != e; )
+			{
+				std::pair<std::size_t, std::size_t> offsets(make_offsets(range[i], st));
+				std::size_t length = 1 + offsets.second - offsets.first;
+
+				body.push_back("\r\n--");
+				body.push_back(boundary);
+
+				body.push_back("\r\nContent-Type: ");
+				body.push_back(mimetype);
+
+				body.push_back("\r\nContent-Range: bytes ");
+				body.push_back(boost::lexical_cast<std::string>(offsets.first));
+				body.push_back("-");
+				body.push_back(boost::lexical_cast<std::string>(offsets.second));
+				body.push_back("/");
+				body.push_back(boost::lexical_cast<std::string>(st.st_size));
+				body.push_back("\r\n\r\n");
+
+				body.push_back(fd, offsets.first, length, ++i == e);
+			}
+			body.push_back("\r\n--");
+			body.push_back(boundary);
+			body.push_back("--\r\n");
+
+			out.header("Content-Type", "multipart/byteranges; boundary=" + boundary);
+			out.header("Content-Length", boost::lexical_cast<std::string>(body.size()));
+
+			out.write(body);
 		}
 		else
 		{
-			out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
-			out.write(fd, 0, st.st_size, true);
+			// generate a simple partial response
+
+			std::pair<std::size_t, std::size_t> offsets(make_offsets(range[0], st));
+			std::size_t length = 1 + offsets.second - offsets.first;
+
+			out.header("Content-Type", get_mime_type(in));
+			out.header("Content-Length", boost::lexical_cast<std::string>(length));
+
+			std::stringstream cr;
+			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << st.st_size;
+			out.header("Content-Range", cr.str());
+
+			out.write(fd, offsets.first, length, true);
 		}
-
-		// XXX send out headers, as they're fixed size in user space.
-		// XXX start async transfer through sendfile()
-
-		out.flush();
 
 		return true;
 	}
@@ -232,7 +292,31 @@ private:
 		q.first = p.first != x0::range_def::npos ? p.first : st.st_size - p.first;
 		q.second = p.second != x0::range_def::npos ? p.second : st.st_size;
 
+		if (q.first > q.second)
+			throw x0::response::requested_range_not_satisfiable;
+
+		if (q.second > std::size_t(st.st_size))
+			throw x0::response::requested_range_not_satisfiable;
+
 		return q;
+	}
+
+	/**
+	 * generates a boundary tag.
+	 *
+	 * \return a value usable as boundary tag.
+	 */
+	inline std::string boundary_generate() const
+	{
+		static const char *map = "0123456789abcdef";
+		char buf[16 + 1];
+
+		for (std::size_t i = 0; i < sizeof(buf) - 1; ++i)
+			buf[i] = map[random() % (sizeof(buf) - 1)];
+
+		buf[sizeof(buf) - 1] = '\0';
+
+		return std::string(buf);
 	}
 
 	/**
