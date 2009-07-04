@@ -188,9 +188,9 @@ public:
 		if (key.empty())
 			throw std::runtime_error("ternary_search: key may not be empty");
 
-		if (head_[key[0]] == NULL)
+		if (head_[int(key[0])] == NULL)
 		{
-			current_node = head_[key[0]] = acquire_free_node(key[1]);
+			current_node = head_[int(key[0])] = acquire_free_node(key[1]);
 
 			if (key[1] == EOS)
 			{
@@ -204,7 +204,7 @@ public:
 			}
 		}
 
-		current_node = head_[key[0]];
+		current_node = head_[int(key[0])];
 		int key_index = 1;
 
 		while (perform_loop)
@@ -323,11 +323,11 @@ public:
 		if (key.empty())
 			return end();
 
-		if (head_[key[0]] == 0)
+		if (head_[int(key[0])] == 0)
 			return end();
 
 		if (prefix_len) *prefix_len = 0;
-		node *current_node = head_[key[0]];
+		node *current_node = head_[int(key[0])];
 		int key_index = 1;
 
 		while (current_node != NULL)
