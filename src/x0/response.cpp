@@ -105,7 +105,7 @@ composite_buffer response::serialize()
 	{
 		if (!status)
 		{
-			status = 200;
+			status = response::ok;
 		}
 
 		if (content.empty() && !content_forbidden(status))
@@ -209,6 +209,7 @@ const char *response::status_cstr(int value)
 		case 201: return "Created";
 		case 202: return "Accepted";
 		case 204: return "No Content";
+		case 206: return "Partial Content";
 		case 300: return "Multiple Choices";
 		case 301: return "Moved Permanently";
 		case 302: return "Moved Temporarily";
@@ -217,6 +218,7 @@ const char *response::status_cstr(int value)
 		case 401: return "Unauthorized";
 		case 403: return "Forbidden";
 		case 404: return "Not Found";
+		case 416: return "Requested Range Not Satisfiable";
 		case 500: return "Internal Server Error";
 		case 501: return "Not_Implemented";
 		case 502: return "Bad Gateway";
