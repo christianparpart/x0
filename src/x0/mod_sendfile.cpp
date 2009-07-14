@@ -224,7 +224,8 @@ private:
 		std::string range_value(in.header("Range"));
 		x0::range_def range;
 
-		if (range_value.empty() || range.parse(range_value))
+		// if no range request or range request was invalid (by syntax) we fall back to a full response
+		if (range_value.empty() || !range.parse(range_value))
 			return false;
 
 		std::string mimetype(get_mime_type(in));
