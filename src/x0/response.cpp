@@ -131,7 +131,7 @@ composite_buffer response::serialize()
 			*this += x0::header("Content-Type", "text/plain");
 		}
 
-		if (!has_header("Content-Length"))
+		if (!has_header("Content-Length") && !content_forbidden(status))
 		{
 			header("Connection", "closed");
 		}
