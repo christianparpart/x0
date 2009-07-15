@@ -69,6 +69,7 @@ macro(add_plugin ModuleName)
 endmacro()
 
 add_plugin(accesslog)
+add_plugin(debug)
 add_plugin(dirlisting)
 add_plugin(indexfile)
 add_plugin(sendfile)
