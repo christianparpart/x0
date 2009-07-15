@@ -94,9 +94,6 @@ private:
 	/// reference to the related request.
 	x0::request *request_;
 
-	/// the headers to be included in the response.
-	std::vector<x0::header> headers;
-
 	/**
 	 * tests wether we've already started serializing this response.
 	 *
@@ -151,7 +148,7 @@ private:
 		// on first call, the headers have been sent, so we can continue with sending chunks now
 		void operator()(const boost::system::error_code& ec, std::size_t /*bytes_transferred*/)
 		{
-			DEBUG("response.write_handler.operator(ec): buffer.empty=%d", buffer_.empty());
+			//DEBUG("response.write_handler.operator(ec): buffer.empty=%d", buffer_.empty());
 
 			if (buffer_.empty())
 			{
@@ -183,6 +180,9 @@ public:
 	value_property<int> status;
 
 	// {{{ header manipulation
+	/// the headers to be included in the response.
+	std::vector<x0::header> headers;
+
 	/** adds a response header. */
 	response& operator+=(const x0::header& hd);
 
@@ -228,7 +228,7 @@ public:
 	template<class CompletionHandler>
 	void flush(const CompletionHandler& handler)
 	{
-		DEBUG("response.flush(handler): serializing=%d", serializing_);
+		//DEBUG("response.flush(handler): serializing=%d", serializing_);
 		write_handler<composite_buffer::asio_socket_writer, CompletionHandler> internalHandler
 		(
 			//this,

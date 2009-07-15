@@ -6,6 +6,7 @@
 
 #include <x0/response.hpp>
 #include <x0/connection_manager.hpp>
+#include <x0/server.hpp>
 #include <x0/strutils.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
@@ -18,7 +19,7 @@ namespace x0 {
 
 response::~response()
 {
-	DEBUG("~response(%p, conn=%p)", this, connection_.get());
+	//DEBUG("~response(%p, conn=%p)", this, connection_.get());
 	delete request_;
 }
 
@@ -150,10 +151,10 @@ composite_buffer response::serialize()
 		header("Date", http_date(std::time(0)));
 
 		// log request/response
-//		request_done(*request_, *this);
+		connection_->server().request_done(*request_, *this);
 
 		// post-response hook
-//		post_process(*request_, *this);
+		connection_->server().post_process(*request_, *this);
 
 		status_buf[0] = '0' + (status / 100);
 		status_buf[1] = '0' + (status / 10 % 10);
@@ -194,11 +195,11 @@ composite_buffer response::serialize()
 response::response(connection_ptr connection, x0::request *request, int _status) :
 	connection_(connection),
 	request_(request),
-	headers(),
 	serializing_(false),
-	status(_status)
+	status(_status),
+	headers()
 {
-	DEBUG("response(%p, conn=%p)", this, connection_.get());
+	//DEBUG("response(%p, conn=%p)", this, connection_.get());
 }
 
 const char *response::status_cstr(int value)
@@ -234,7 +235,7 @@ std::string response::status_str(int value)
 
 void response::transmitted(const boost::system::error_code& e)
 {
-	DEBUG("response(%p).transmitted()", this);
+	//DEBUG("response(%p).transmitted()", this);
 
 	if (strcasecmp(header("Connection").c_str(), "keep-alive") == 0)
 	{

@@ -8,35 +8,36 @@
 #include <x0/connection_manager.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
+#include <x0/server.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
 #include <boost/bind.hpp>
 
 namespace x0 {
 
-connection::connection(
-	boost::asio::io_service& io_service, 
-	connection_manager& manager, const request_handler_fn& handler)
+connection::connection(boost::asio::io_service& io_service, connection_manager& manager, x0::server& srv)
   : secure(false),
 	socket_(io_service),
 	connection_manager_(manager),
-	request_handler_(handler),
+	server_(srv),
 	buffer_(),
 	request_(new request(*this)),
 	request_reader_(),
 	strand_(io_service)
 {
-	DEBUG("connection(%p)", this);
+	//DEBUG("connection(%p)", this);
 }
 
 connection::~connection()
 {
-	DEBUG("~connection(%p)", this);
+	//DEBUG("~connection(%p)", this);
 }
 
 void connection::start()
 {
-	DEBUG("connection(%p).start()", this);
+	//DEBUG("connection(%p).start()", this);
+
+	server_.connection_open(shared_from_this());
 
 	socket_.async_read_some(boost::asio::buffer(buffer_),
 		bind(&connection::handle_read, shared_from_this(),
@@ -46,7 +47,7 @@ void connection::start()
 
 void connection::resume()
 {
-	DEBUG("connection(%p).resume()", this);
+	//DEBUG("connection(%p).resume()", this);
 
 	request_reader_.reset();
 	request_ = new request(*this);
@@ -59,7 +60,8 @@ void connection::resume()
 
 void connection::stop()
 {
-	DEBUG("connection(%p).stop()", this);
+	//DEBUG("connection(%p).stop()", this);
+	server_.connection_close(shared_from_this());
 	socket_.close();
 
 	delete request_;
@@ -72,7 +74,7 @@ void connection::stop()
  */
 void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
 {
-	DEBUG("connection(%p).handle_read(sz=%ld)", this, bytes_transferred);
+	//DEBUG("connection(%p).handle_read(sz=%ld)", this, bytes_transferred);
 
 	if (!e)
 	{
@@ -101,7 +103,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 
 				try
 				{
-					request_handler_(response_->request(), *response_);
+					server_.handle_request(response_->request(), *response_);
 				}
 				catch (response::code_type reply)
 				{
@@ -150,7 +152,7 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
  */
 void connection::response_transmitted(const boost::system::error_code& e)
 {
-	DEBUG("connection(%p).response_transmitted()", this);
+	//DEBUG("connection(%p).response_transmitted()", this);
 
 	if (!e)
 	{

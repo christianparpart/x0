@@ -57,7 +57,7 @@ public:
 
 	// {{{ signals raised on request in order
 	/** is invoked once a new client connection is established */
-	boost::signal<void(const connection_ptr&)> connection_open;
+	boost::signal<void(connection_ptr)> connection_open;
 
 	/** is called at the very beginning of a request. */
 	boost::signal<void(request&)> pre_process;
@@ -78,7 +78,7 @@ public:
 	boost::signal<void(request&, response&)> post_process;
 
 	/** is called before a connection gets closed / or has been closed by remote point. */
-	boost::signal<void(const connection_ptr&)> connection_close;
+	boost::signal<void(connection_ptr)> connection_close;
 	// }}}
 
 	/** create server context data for given plugin. */
@@ -149,17 +149,14 @@ public:
 	/** retrieves a list of currently loaded plugins */
 	std::vector<std::string> loaded_plugins() const;
 
+	void handle_request(request& in, response& out);
+
 private:
 	void drop_privileges(const std::string& user, const std::string& group);
 
-	static void reload_handler(int);
-	static void terminate_handler(int);
-
-	void handle_request(request& in, response& out);
 	listener_ptr listener_by_port(int port);
 
 private:
-	static server *instance_;
 	x0::context context_;
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;

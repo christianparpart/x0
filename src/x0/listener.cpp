@@ -5,18 +5,19 @@
  */
 
 #include <x0/listener.hpp>
+#include <x0/server.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
 namespace x0 {
 
-listener::listener(boost::asio::io_service& io_service, const request_handler_fn& handler)
-  : io_service_(io_service),
+listener::listener(server& srv, boost::asio::io_service& io_service)
+  : server_(srv),
+	io_service_(io_service),
 	acceptor_(io_service),
 	connection_manager_(),
-	handler_(handler),
-	new_connection_(new connection(io_service_, connection_manager_, handler_)),
+	new_connection_(new connection(io_service_, connection_manager_, server_)),
 	address_(),
 	port_(-1)
 {
@@ -60,7 +61,7 @@ void listener::handle_accept(const boost::system::error_code& e)
 	{
 		connection_manager_.start(new_connection_);
 
-		new_connection_.reset(new connection(io_service_, connection_manager_, handler_));
+		new_connection_.reset(new connection(io_service_, connection_manager_, server_));
 
 		acceptor_.async_accept(new_connection_->socket(),
 			bind(&listener::handle_accept, this, boost::asio::placeholders::error));

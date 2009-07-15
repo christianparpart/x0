@@ -35,10 +35,12 @@ public:
 		ios_(),
 		server_(ios_)
 	{
+		instance_ = this;
 	}
 
 	~x0d()
 	{
+		instance_ = 0;
 	}
 
 	int run(int argc, char *argv[])
@@ -52,6 +54,10 @@ public:
 			{
 				daemonize();
 			}
+
+			::signal(SIGHUP, &reload_handler);
+			::signal(SIGTERM, &terminate_handler);
+
 			ios_.run();
 			return 0;
 		}
@@ -137,12 +143,49 @@ private:
 		}
 	}
 
+	static void reload_handler(int)
+	{
+		if (instance_)
+		{
+			LOG(instance_->server_, x0::severity::info, "SIGHUP received. Reloading configuration.");
+
+			try
+			{
+				instance_->server_.reload();
+			}
+			catch (std::exception& e)
+			{
+				LOG(instance_->server_, x0::severity::error, "uncaught exception in reload handler: %s", e.what());
+			}
+		}
+	}
+
+	static void terminate_handler(int)
+	{
+		if (instance_)
+		{
+			LOG(instance_->server_, x0::severity::info, "SIGTERM received. Shutting down.");
+
+			try
+			{
+				instance_->server_.stop();
+			}
+			catch (std::exception& e)
+			{
+				LOG(instance_->server_, x0::severity::error, "uncaught exception in terminate handler: %s", e.what());
+			}
+		}
+	}
+
 private:
 	std::string configfile_;
 	int nofork_;
 	boost::asio::io_service ios_;
 	x0::server server_;
+	static x0d *instance_;
 };
+
+x0d *x0d::instance_ = 0;
 
 int main(int argc, char *argv[])
 {

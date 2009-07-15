@@ -24,8 +24,6 @@
 
 namespace x0 {
 
-server *server::instance_ = 0;
-
 server::server(boost::asio::io_service& io_service) :
 	connection_open(),
 	pre_process(),
@@ -42,14 +40,11 @@ server::server(boost::asio::io_service& io_service) :
 	logger_(),
 	plugins_()
 {
-	instance_ = this;
 }
 
 server::~server()
 {
 	stop();
-
-	instance_ = 0;
 }
 
 /**
@@ -116,9 +111,6 @@ void server::start()
 	{
 		(*i)->start();
 	}
-
-	::signal(SIGHUP, &reload_handler);
-	::signal(SIGTERM, &terminate_handler);
 
 	LOG(*this, severity::info, "server up and running");
 }
@@ -278,40 +270,6 @@ void server::log(const char *filename, unsigned int line, severity s, const char
 	}
 }
 
-void server::reload_handler(int)
-{
-	if (instance_)
-	{
-		LOG(*instance_, severity::info, "SIGHUP received. Reloading configuration.");
-
-		try
-		{
-			instance_->reload();
-		}
-		catch (std::exception& e)
-		{
-			LOG(*instance_, severity::error, "uncaught exception in reload handler: %s", e.what());
-		}
-	}
-}
-
-void server::terminate_handler(int)
-{
-	if (instance_)
-	{
-		LOG(*instance_, severity::info, "SIGTERM received. Shutting down.");
-
-		try
-		{
-			instance_->stop();
-		}
-		catch (std::exception& e)
-		{
-			LOG(*instance_, severity::error, "uncaught exception in terminate handler: %s", e.what());
-		}
-	}
-}
-
 void server::setup_listener(int port, const std::string& bind_address)
 {
 	// check if we already have an HTTP listener listening on given port
@@ -319,7 +277,7 @@ void server::setup_listener(int port, const std::string& bind_address)
 		return;
 
 	// create a new listener
-	listener_ptr lp(new listener(io_service_, boost::bind(&server::handle_request, this, _1, _2)));
+	listener_ptr lp(new listener(*this, io_service_));
 
 	lp->configure(bind_address, port);
 

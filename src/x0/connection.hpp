@@ -24,6 +24,7 @@
 
 namespace x0 {
 
+class server;
 class connection_manager;
 
 /**
@@ -40,10 +41,9 @@ public:
 	 * creates an HTTP connection object.
 	 * \param io_service a reference to the I/O service object, used for handling I/O events.
 	 * \param manager the connection manager, holding all served HTTP connections.
-	 * \param handler the request handler to be invoked for incoming requests.
+	 * \param srv a ptr to the server object this connection belongs to.
 	 */
-	connection(boost::asio::io_service& io_service,
-		connection_manager& manager, const request_handler_fn& handler);
+	connection(boost::asio::io_service& io_service, connection_manager& manager, x0::server& srv);
 
 	~connection();
 
@@ -75,6 +75,7 @@ public:
 
 	boost::asio::ip::tcp::socket& socket();		//!< get the connection socket handle.
 	connection_manager& manager();				//!< corresponding connection manager
+	x0::server& server();						//!< gets a reference to the server instance.
 
 private:
 	void handle_read(const boost::system::error_code& e, std::size_t bytes_transferred);
@@ -82,7 +83,7 @@ private:
 
 	boost::asio::ip::tcp::socket socket_;
 	connection_manager& connection_manager_;	//!< corresponding connection manager
-	request_handler_fn request_handler_;		//!< request handler to use
+	x0::server& server_;						//!< server object owning this connection
 
 	// HTTP request
 	boost::array<char, 8192> buffer_;	//!< buffer for incoming data.
@@ -101,6 +102,11 @@ inline boost::asio::ip::tcp::socket& connection::socket()
 inline connection_manager& connection::manager()
 {
 	return connection_manager_;
+}
+
+inline server& connection::server()
+{
+	return server_;
 }
 // }}}
 

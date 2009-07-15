@@ -36,7 +36,7 @@ class listener :
 	public boost::noncopyable
 {
 public:
-	explicit listener(boost::asio::io_service&, const request_handler_fn& handler);
+	explicit listener(server& srv, boost::asio::io_service&);
 	~listener();
 
 	void configure(const std::string& address = "0::0", int port = 8080);
@@ -53,6 +53,7 @@ private:
 	/// handle a request to stop the listener.
 	void handle_stop();
 
+	x0::server& server_;
 	boost::asio::io_service& io_service_;
 	boost::asio::ip::tcp::acceptor acceptor_;
 	connection_manager connection_manager_;
