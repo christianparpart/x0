@@ -74,6 +74,14 @@ static inline bool url_decode(std::string& url)
 	return true;
 }
 
+/**
+ * \param r reference to the request to fill
+ * \param input the input character to process as part of the incoming request.
+ *
+ * \retval boost::indeterminate parsed successfully but request still incomplete.
+ * \retval true parsed successfully and request is now complete.
+ * \retval false parse error
+ */
 boost::tribool request::reader::consume(request& r, char input)
 {
 	switch (state_)
@@ -344,7 +352,35 @@ boost::tribool request::reader::consume(request& r, char input)
 				return false;
 			}
 		case expecting_newline_3:
-			return input == '\n';
+			if (input == '\n')
+			{
+				std::string s(r.header("Content-Length"));
+				if (!s.empty())
+				{
+					state_ = reading_body;
+					r.body.reserve(std::atoi(s.c_str()));
+					return boost::indeterminate;
+				}
+				else
+				{
+					return true;
+				}
+			}
+			else
+			{
+				return false;
+			}
+		case reading_body:
+			r.body.push_back(input);
+
+			if (r.body.length() < r.body.capacity())
+			{
+				return boost::indeterminate;
+			}
+			else
+			{
+				return true;
+			}
 		default:
 			return false;
 	}
