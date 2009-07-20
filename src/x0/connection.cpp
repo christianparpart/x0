@@ -88,8 +88,8 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		catch (response::code_type code)
 		{
 			// we encountered a request parsing error, bail out
-			fprintf(stderr, "response::code exception caught (%d %s)\n", code, response::status_cstr(code));;
-			fflush(stderr);
+//			fprintf(stderr, "response::code exception caught (%d %s)\n", code, response::status_cstr(code));;
+//			fflush(stderr);
 
 			(new response(shared_from_this(), request_, code))->flush();
 			request_ = 0;
@@ -107,8 +107,8 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 				}
 				catch (response::code_type reply)
 				{
-					fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
-					fflush(stderr);
+//					fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
+//					fflush(stderr);
 					response_->status = reply;
 					response_->flush();
 				}
