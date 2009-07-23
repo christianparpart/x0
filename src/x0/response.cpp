@@ -147,9 +147,6 @@ composite_buffer response::serialize()
 			}
 		}
 
-		// some HTTP standard response headers
-		header("Date", http_date(std::time(0)));
-
 		// log request/response
 		connection_->server().request_done(*request_, *this);
 
@@ -200,6 +197,9 @@ response::response(connection_ptr connection, x0::request *request, int _status)
 	headers()
 {
 	//DEBUG("response(%p, conn=%p)", this, connection_.get());
+
+	*this += x0::header("Date", http_date(std::time(0)));
+	*this += x0::header("Server", connection_->server().tag());
 }
 
 const char *response::status_cstr(int value)
