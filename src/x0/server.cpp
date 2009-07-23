@@ -38,7 +38,14 @@ server::server(boost::asio::io_service& io_service) :
 	paused_(),
 	config_(),
 	logger_(),
-	plugins_()
+	plugins_(),
+	max_connections(512),
+	max_fds(1024),
+	max_keep_alive_requests(16),
+	max_keep_alive_idle(5),
+	max_read_idle(60),
+	max_write_idle(360),
+	tag("x0/" VERSION)
 {
 }
 

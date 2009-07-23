@@ -165,6 +165,15 @@ private:
 	std::string configfile_;
 	logger_ptr logger_;
 	plugin_map_t plugins_;
+
+public:
+	value_property<int> max_connections;
+	value_property<int> max_fds;
+	value_property<int> max_keep_alive_idle;
+	value_property<int> max_keep_alive_requests;
+	value_property<int> max_read_idle;
+	value_property<int> max_write_idle;
+	value_property<std::string> tag;
 };
 
 #define LOG(srv, severity, message...) (srv).log(__FILENAME__, __LINE__, severity, message)
