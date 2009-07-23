@@ -40,7 +40,6 @@ public:
 	debug_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		server_.log(__FILENAME__, __LINE__, x0::severity::info, "debug: initializing");
 		connection_open_ = server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1));
 		pre_process_ = server_.pre_process.connect(boost::bind(&debug_plugin::pre_process, this, _1));
 		post_process_ = server_.post_process.connect(boost::bind(&debug_plugin::post_process, this, _1, _2));
@@ -48,7 +47,6 @@ public:
 	}
 
 	~debug_plugin() {
-		server_.log(__FILENAME__, __LINE__, x0::severity::info, "debug: unloading");
 		server_.connection_open.disconnect(connection_open_);
 		server_.pre_process.disconnect(pre_process_);
 		server_.post_process.disconnect(post_process_);
@@ -60,9 +58,22 @@ public:
 	}
 
 private:
+	std::string client_hostname(const x0::connection_ptr& connection)
+	{
+		std::string name = connection->socket().remote_endpoint().address().to_string();
+
+		if (name.empty())
+			name = "<unknown>";
+
+		name += ":";
+		name += boost::lexical_cast<std::string>(connection->socket().remote_endpoint().port());
+
+		return name;
+	}
+
 	void connection_open(x0::connection_ptr& connection)
 	{
-		server_.log(__FILENAME__, __LINE__, x0::severity::info, "connection opened");
+		server_.log(__FILENAME__, __LINE__, x0::severity::info, "connection opened: %s", client_hostname(connection).c_str());
 	}
 
 	void pre_process(x0::request& in)
@@ -74,12 +85,16 @@ private:
 	{
 		//server_.log(__FILENAME__, __LINE__, x0::severity::info, "post process");
 
-		std::stringstream stream;
+		std::ostringstream stream;
 
 		stream << "C> " << in.method << ' ' << in.uri << " HTTP/" << in.http_version_major << '.' << in.http_version_minor << std::endl;
 		for (auto i = in.headers.begin(), e = in.headers.end(); i != e; ++i)
 		{
 			stream << "C> " << i->name << ": " << i->value << std::endl;
+		}
+		if (!in.body.empty())
+		{
+			stream << "C> " << in.body << std::endl;
 		}
 
 		stream << "S< " << out.status() << ' ' << x0::response::status_str(out.status()) << std::endl;
@@ -88,12 +103,12 @@ private:
 			stream << "S< " << i->name << ": " << i->value << std::endl;
 		}
 
-		std::cout << stream.str() << std::endl;
+		std::clog << stream.str() << std::endl;
 	}
 
 	void connection_close(x0::connection_ptr& connection)
 	{
-		server_.log(__FILENAME__, __LINE__, x0::severity::info, "connection closed");
+		server_.log(__FILENAME__, __LINE__, x0::severity::info, "connection closed: %s", client_hostname(connection).c_str());
 	}
 };
 
