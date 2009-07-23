@@ -49,7 +49,7 @@ public:
 	virtual void configure()
 	{
 		// TODO retrieve file to store accesslog log to.
-		filename = server_.get_config().get("service", "accesslog-filename");
+		filename = server_.config().get("service", "accesslog-filename");
 
 		if (!filename.empty())
 		{

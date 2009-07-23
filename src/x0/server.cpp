@@ -251,7 +251,7 @@ void server::stop()
 	}
 }
 
-config& server::get_config()
+x0::config& server::config()
 {
 	return config_;
 }

@@ -66,7 +66,7 @@ public:
 		typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 
 		// mime-types loading
-		std::string input(x0::read_file(server_.get_config().get("sendfile", "mime-types")));
+		std::string input(x0::read_file(server_.config().get("sendfile", "mime-types")));
 		tokenizer lines(input, boost::char_separator<char>("\n"));
 
 		for (tokenizer::iterator i = lines.begin(), e = lines.end(); i != e; ++i)
@@ -86,23 +86,23 @@ public:
 			}
 		}
 
-		if ((input = server_.get_config().get("sendfile", "default-mime-type")) != "")
+		if ((input = server_.config().get("sendfile", "default-mime-type")) != "")
 		{
 			default_mimetype_ = input;
 		}
 
 		// ETag considerations
-		if ((input = server_.get_config().get("sendfile", "etag-consider-mtime")) != "")
+		if ((input = server_.config().get("sendfile", "etag-consider-mtime")) != "")
 		{
 			etag_consider_mtime_ = input == "true";
 		}
 
-		if ((input = server_.get_config().get("sendfile", "etag-consider-size")) != "")
+		if ((input = server_.config().get("sendfile", "etag-consider-size")) != "")
 		{
 			etag_consider_size_ = input == "true";
 		}
 
-		if ((input = server_.get_config().get("sendfile", "etag-consider-inode")) != "")
+		if ((input = server_.config().get("sendfile", "etag-consider-inode")) != "")
 		{
 			etag_consider_inode_ = input == "true";
 		}

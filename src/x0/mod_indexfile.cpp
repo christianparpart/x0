@@ -55,7 +55,7 @@ public:
 	virtual void configure()
 	{
 		context& ctx = server_.context<context>(this);
-		ctx.index_files = x0::split<std::string>(server_.get_config().get("service", "index-files"), ", ");
+		ctx.index_files = x0::split<std::string>(server_.config().get("service", "index-files"), ", ");
 
 		if (ctx.index_files.empty())
 		{

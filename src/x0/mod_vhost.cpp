@@ -42,9 +42,9 @@ public:
 
 	virtual void configure()
 	{
-		server_root_ = server_.get_config().get("vhost", "server-root");		// e.g. /var/www/
-		default_host_ = server_.get_config().get("vhost", "default-host");		// e.g. localhost
-		document_root_ = server_.get_config().get("vhost", "document-root");	// e.g. /htdocs
+		server_root_ = server_.config().get("vhost", "server-root");		// e.g. /var/www/
+		default_host_ = server_.config().get("vhost", "default-host");		// e.g. localhost
+		document_root_ = server_.config().get("vhost", "document-root");	// e.g. /htdocs
 
 		// enforce trailing slash at the end of server root
 		if (!server_root_.empty() && server_root_[server_root_.length() - 1] != '/')

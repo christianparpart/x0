@@ -121,7 +121,7 @@ public:
 	/** 
 	 * retrieves reference to server currently loaded configuration.
 	 */
-	config& get_config();
+	x0::config& config();
 
 	/**
 	 * writes a log entry into the server's error log.
@@ -161,7 +161,7 @@ private:
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service& io_service_;
 	bool paused_;
-	config config_;
+	x0::config config_;
 	std::string configfile_;
 	logger_ptr logger_;
 	plugin_map_t plugins_;
