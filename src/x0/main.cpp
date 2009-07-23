@@ -57,6 +57,7 @@ public:
 
 			::signal(SIGHUP, &reload_handler);
 			::signal(SIGTERM, &terminate_handler);
+			::signal(SIGPIPE, SIG_IGN);
 
 			ios_.run();
 			return 0;
