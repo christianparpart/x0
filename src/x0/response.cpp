@@ -91,8 +91,8 @@ static inline bool content_forbidden(int code)
 {
 	switch (code)
 	{
-		case response::continue_;
-		case response::switching_protocols;
+		case response::continue_:
+		case response::switching_protocols:
 		case response::no_content:
 		case response::reset_content:
 		case response::not_modified:
