@@ -86,11 +86,15 @@ const std::string& response::header(const std::string& name, const std::string& 
 	return headers[headers.size() - 1].value;
 }
 
-/** checks wether given code MUST not have a response body. */
+/** checks wether given code MUST NOT have a response body. */
 static inline bool content_forbidden(int code)
 {
 	switch (code)
 	{
+		case response::continue_;
+		case response::switching_protocols;
+		case response::no_content:
+		case response::reset_content:
 		case response::not_modified:
 			return true;
 		default:
