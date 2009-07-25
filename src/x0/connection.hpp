@@ -27,12 +27,9 @@
 
 namespace x0 {
 
-class connection_manager;
-
 /**
  * \ingroup core
  * \brief represents an HTTP connection handling incoming requests.
- * \see connection_manager
  */
 class connection :
 	public boost::enable_shared_from_this<connection>,
@@ -41,11 +38,9 @@ class connection :
 public:
 	/**
 	 * creates an HTTP connection object.
-	 * \param io_service a reference to the I/O service object, used for handling I/O events.
-	 * \param manager the connection manager, holding all served HTTP connections.
 	 * \param srv a ptr to the server object this connection belongs to.
 	 */
-	connection(boost::asio::io_service& io_service, connection_manager& manager, x0::server& srv);
+	explicit connection(x0::server& srv);
 
 	~connection();
 
@@ -65,18 +60,10 @@ public:
 	 */
 	void resume();
 
-	/** stop all async operations associated with this connection.
-	 *
-	 * This is simply done by closing the underlying socket connection.
-	 * \see start()
-	 */
-	void stop();
-
 	/** true if this is a secure (HTTPS) connection, false otherwise. */
 	value_property<bool> secure;
 
 	boost::asio::ip::tcp::socket& socket();		//!< get the connection socket handle.
-	connection_manager& manager();				//!< corresponding connection manager
 	x0::server& server();						//!< gets a reference to the server instance.
 
 private:
@@ -93,9 +80,8 @@ private:
 	void write_timeout(const boost::system::error_code& ec);
 	void response_transmitted(const boost::system::error_code& e);
 
-	boost::asio::ip::tcp::socket socket_;
-	connection_manager& connection_manager_;	//!< corresponding connection manager
 	x0::server& server_;						//!< server object owning this connection
+	boost::asio::ip::tcp::socket socket_;		//!< underlying communication socket
 	boost::asio::deadline_timer timer_;			//!< deadline timer for detecting read/write timeouts.
 
 	// HTTP request
@@ -103,7 +89,7 @@ private:
 	request *request_;					//!< currently parsed http request 
 	request::reader request_reader_;	//!< http request parser
 
-	boost::asio::strand strand_;		//!< request handler strand
+//	boost::asio::strand strand_;		//!< request handler strand
 };
 
 template<class CompletionHandler>
@@ -134,11 +120,6 @@ public:
 inline boost::asio::ip::tcp::socket& connection::socket()
 {
 	return socket_;
-}
-
-inline connection_manager& connection::manager()
-{
-	return connection_manager_;
 }
 
 inline server& connection::server()

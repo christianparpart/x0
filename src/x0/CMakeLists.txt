@@ -15,7 +15,7 @@ add_definitions(
 add_executable(x0d
 	config.cpp
 	connection.cpp
-	connection_manager.cpp
+	io_service_pool.cpp
 	listener.cpp
 	logger.cpp
 	main.cpp
@@ -29,7 +29,7 @@ add_executable(x0d
 set(x0d_API
 	config.hpp
 	connection.hpp
-	connection_manager.hpp
+	io_service_pool.hpp
 	context.hpp
 	handler.hpp
 	header.hpp
@@ -50,7 +50,7 @@ set(x0d_API
 install(FILES ${x0d_API} DESTINATION include/x0)
 
 target_link_libraries(x0d
-	boost_system boost_signals
+	boost_system boost_signals boost_thread
 	${LUA_LIBRARIES}
 	dl pthread
 )

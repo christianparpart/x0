@@ -24,7 +24,7 @@
 
 namespace x0 {
 
-server::server(boost::asio::io_service& io_service) :
+server::server() :
 	connection_open(),
 	pre_process(),
 	resolve_document_root(),
@@ -34,11 +34,12 @@ server::server(boost::asio::io_service& io_service) :
 	post_process(),
 	connection_close(),
 	listeners_(),
-	io_service_(io_service),
+	io_service_pool_(),
 	paused_(),
 	config_(),
 	logger_(),
 	plugins_(),
+	num_threads(1),
 	max_connections(512),
 	max_fds(1024),
 	max_keep_alive_requests(16),
@@ -70,6 +71,11 @@ void server::configure(const std::string& configfile)
 	else logger_.reset(new nulllogger());
 
 	logger_->level(severity(config_.get("service", "log-level")));
+
+	// setup io_service_pool
+	config_.load<int>("service", "num-threads", num_threads);
+	io_service_pool_.setup(num_threads());
+	LOG(*this, severity::info, "using %d io services", num_threads());
 
 	// load limits
 	config_.load<int>("service", "max-connections", max_connections);
@@ -118,9 +124,9 @@ void server::configure(const std::string& configfile)
 }
 
 /**
- * starts the server
+ * run the server
  */
-void server::start()
+void server::run()
 {
 	paused_ = false;
 
@@ -130,6 +136,8 @@ void server::start()
 	}
 
 	LOG(*this, severity::info, "server up and running");
+
+	io_service_pool_.run();
 }
 
 /** drops runtime privileges current process to given user's/group's name. */
@@ -257,8 +265,10 @@ void server::stop()
 {
 	for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
-		(*k)->stop();
+		(*k).reset();
 	}
+
+	io_service_pool_.stop();
 }
 
 x0::config& server::config()
@@ -294,7 +304,7 @@ void server::setup_listener(int port, const std::string& bind_address)
 		return;
 
 	// create a new listener
-	listener_ptr lp(new listener(*this, io_service_));
+	listener_ptr lp(new listener(*this));
 
 	lp->configure(bind_address, port);
 

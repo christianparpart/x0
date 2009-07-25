@@ -58,7 +58,7 @@ public:
 	}
 
 private:
-	std::string client_hostname(const x0::connection_ptr& connection)
+	std::string client_hostname(x0::connection *connection)
 	{
 		std::string name = connection->socket().remote_endpoint().address().to_string();
 
@@ -73,7 +73,7 @@ private:
 
 	void connection_open(x0::connection_ptr& connection)
 	{
-		server_.log(__FILENAME__, __LINE__, x0::severity::info, "connection opened: %s", client_hostname(connection).c_str());
+		server_.log(__FILENAME__, __LINE__, x0::severity::info, "connection opened: %s", client_hostname(connection.get()).c_str());
 	}
 
 	void pre_process(x0::request& in)
@@ -106,7 +106,7 @@ private:
 		std::clog << stream.str() << std::endl;
 	}
 
-	void connection_close(x0::connection_ptr& connection)
+	void connection_close(x0::connection *connection)
 	{
 		server_.log(__FILENAME__, __LINE__, x0::severity::info, "connection closed: %s", client_hostname(connection).c_str());
 	}

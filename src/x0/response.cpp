@@ -5,7 +5,6 @@
  */
 
 #include <x0/response.hpp>
-#include <x0/connection_manager.hpp>
 #include <x0/server.hpp>
 #include <x0/strutils.hpp>
 #include <x0/debug.hpp>
@@ -247,7 +246,7 @@ void response::transmitted(const boost::system::error_code& e)
 	}
 	else
 	{
-		connection_->manager().stop(connection_);
+		// close connection
 	}
 
 	delete this;

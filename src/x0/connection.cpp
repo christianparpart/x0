@@ -5,7 +5,6 @@
  */
 
 #include <x0/connection.hpp>
-#include <x0/connection_manager.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/server.hpp>
@@ -15,16 +14,15 @@
 
 namespace x0 {
 
-connection::connection(boost::asio::io_service& io_service, connection_manager& manager, x0::server& srv)
+connection::connection(x0::server& srv)
   : secure(false),
-	socket_(io_service),
-	connection_manager_(manager),
 	server_(srv),
-	timer_(io_service),
+	socket_(server_.io_service_pool().get_service()),
+	timer_(server_.io_service_pool().get_service()),
 	buffer_(),
 	request_(new request(*this)),
-	request_reader_(),
-	strand_(io_service)
+	request_reader_()
+//	strand_(server_.io_service_pool().get_service())
 {
 	//DEBUG("connection(%p)", this);
 }
@@ -32,6 +30,11 @@ connection::connection(boost::asio::io_service& io_service, connection_manager& 
 connection::~connection()
 {
 	//DEBUG("~connection(%p)", this);
+
+	server_.connection_close(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
+	socket_.close();
+
+	delete request_;
 }
 
 void connection::start()
@@ -53,15 +56,6 @@ void connection::resume()
 	async_read_some();
 }
 
-void connection::stop()
-{
-	//DEBUG("connection(%p).stop()", this);
-	server_.connection_close(shared_from_this());
-	socket_.close();
-
-	delete request_;
-}
-
 void connection::async_read_some()
 {
 	if (server_.max_read_idle() != -1)
@@ -81,7 +75,7 @@ void connection::read_timeout(const boost::system::error_code& ec)
 	if (ec != boost::asio::error::operation_aborted)
 	{
 		//DEBUG("connection(%p): read timed out", this);
-		connection_manager_.stop(shared_from_this());
+		socket_.cancel();
 	}
 }
 
@@ -92,7 +86,7 @@ void connection::read_timeout(const boost::system::error_code& ec)
  */
 void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
 {
-	//DEBUG("connection(%p).handle_read(sz=%ld)", this, bytes_transferred);
+//	DEBUG("connection(%p).handle_read(ec=%s, sz=%ld)", this, e.message().c_str(), bytes_transferred);
 	timer_.cancel();
 
 	if (!e)
@@ -132,11 +126,6 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 					response_->flush();
 				}
 			}
-			else
-			{
-				// ran out of memory?
-				connection_manager_.stop(shared_from_this());
-			}
 		}
 		else if (!result) // received an invalid request
 		{
@@ -150,12 +139,6 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 			async_read_some();
 		}
 	}
-	else if (e != boost::asio::error::operation_aborted)
-	{
-		// some connection error (other than operation_aborted) happened
-		// -> kill this connection.
-		connection_manager_.stop(shared_from_this());
-	}
 }
 
 void connection::write_timeout(const boost::system::error_code& ec)
@@ -163,7 +146,7 @@ void connection::write_timeout(const boost::system::error_code& ec)
 	if (ec != boost::asio::error::operation_aborted)
 	{
 		//DEBUG("connection(%p): write timed out", this);
-		connection_manager_.stop(shared_from_this());
+		socket_.cancel();
 	}
 }
 
@@ -177,17 +160,12 @@ void connection::write_timeout(const boost::system::error_code& ec)
  */
 void connection::response_transmitted(const boost::system::error_code& e)
 {
-	//DEBUG("connection(%p).response_transmitted()", this);
+	DEBUG("connection(%p).response_transmitted()", this);
 
 	if (!e)
 	{
 		boost::system::error_code ignored;
 		socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
-	}
-
-	if (e != boost::asio::error::operation_aborted)
-	{
-		connection_manager_.stop(shared_from_this());
 	}
 }
 

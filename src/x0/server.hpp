@@ -10,6 +10,7 @@
 #include <x0/config.hpp>
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
+#include <x0/io_service_pool.hpp>
 #include <x0/handler.hpp>
 #include <x0/context.hpp>
 #include <x0/plugin.hpp>
@@ -28,7 +29,7 @@ namespace x0 {
  * \brief implements the x0 web server.
  *
  * \see connection, request, response, plugin
- * \see server::start(), server::stop()
+ * \see server::run(), server::stop()
  */
 class server :
 	public boost::noncopyable
@@ -38,14 +39,14 @@ private:
 	typedef std::map<std::string, plugin_value_t> plugin_map_t;
 
 public:
-	explicit server(boost::asio::io_service& io_service);
+	server();
 	~server();
 
 	// {{{ service control
 	/** configures this server as defined in the configuration section(s). */
 	void configure(const std::string& configfile);
 	/** starts this server object by listening on new connections and processing them. */
-	void start();
+	void run();
 	/** pauses an already active server by not accepting further new connections until resumed. */
 	void pause();
 	/** resumes a currently paused server by continueing processing new connections. */
@@ -79,9 +80,10 @@ public:
 	boost::signal<void(request&, response&)> post_process;
 
 	/** is called before a connection gets closed / or has been closed by remote point. */
-	boost::signal<void(connection_ptr)> connection_close;
+	boost::signal<void(connection *)> connection_close;
 	// }}}
 
+	// {{{ configuration contexts
 	/** create server context data for given plugin. */
 	template<typename T>
 	T& create_context(plugin *plug, T *d)
@@ -118,6 +120,7 @@ public:
 	{
 		return context_;
 	}
+	// }}}
 
 	/** 
 	 * retrieves reference to server currently loaded configuration.
@@ -152,6 +155,8 @@ public:
 
 	void handle_request(request& in, response& out);
 
+	x0::io_service_pool& io_service_pool();
+
 private:
 	void drop_privileges(const std::string& user, const std::string& group);
 
@@ -160,7 +165,7 @@ private:
 private:
 	x0::context context_;
 	std::list<listener_ptr> listeners_;
-	boost::asio::io_service& io_service_;
+	x0::io_service_pool io_service_pool_;
 	bool paused_;
 	x0::config config_;
 	std::string configfile_;
@@ -168,6 +173,7 @@ private:
 	plugin_map_t plugins_;
 
 public:
+	value_property<int> num_threads;
 	value_property<int> max_connections;
 	value_property<int> max_fds;
 	value_property<int> max_keep_alive_requests;
@@ -178,6 +184,13 @@ public:
 };
 
 #define LOG(srv, severity, message...) (srv).log(__FILENAME__, __LINE__, severity, message)
+
+// {{{ inlines
+inline x0::io_service_pool& server::io_service_pool()
+{
+	return io_service_pool_;
+}
+// }}}
 
 } // namespace x0
 

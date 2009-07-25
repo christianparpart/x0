@@ -32,8 +32,7 @@ public:
 	x0d() :
 		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
 		nofork_(false),
-		ios_(),
-		server_(ios_)
+		server_()
 	{
 		instance_ = this;
 	}
@@ -48,7 +47,6 @@ public:
 		if (parse(argc, argv))
 		{
 			server_.configure(configfile_);
-			server_.start();
 
 			if (!nofork_)
 			{
@@ -59,7 +57,7 @@ public:
 			::signal(SIGTERM, &terminate_handler);
 			::signal(SIGPIPE, SIG_IGN);
 
-			ios_.run();
+			server_.run();
 			return 0;
 		}
 		return -1;
@@ -181,7 +179,6 @@ private:
 private:
 	std::string configfile_;
 	int nofork_;
-	boost::asio::io_service ios_;
 	x0::server server_;
 	static x0d *instance_;
 };

@@ -7,7 +7,6 @@
 #ifndef x0_server_hpp
 #define x0_server_hpp (1)
 
-#include <x0/connection_manager.hpp>
 #include <x0/types.hpp>
 
 #include <boost/noncopyable.hpp>
@@ -31,18 +30,16 @@ class server;
  *
  * @see server
  * @see connection
- * @see connection_manager
  */
 class listener :
 	public boost::noncopyable
 {
 public:
-	explicit listener(server& srv, boost::asio::io_service&);
+	explicit listener(server& srv);
 	~listener();
 
 	void configure(const std::string& address = "0::0", int port = 8080);
 	void start();
-	void stop();
 
 	std::string address() const;
 	int port() const;
@@ -51,13 +48,8 @@ private:
 	/// handle completion of an async accept operation
 	void handle_accept(const boost::system::error_code& e);
 
-	/// handle a request to stop the listener.
-	void handle_stop();
-
 	x0::server& server_;
-	boost::asio::io_service& io_service_;
 	boost::asio::ip::tcp::acceptor acceptor_;
-	connection_manager connection_manager_;
 	request_handler_fn handler_;
 	connection_ptr new_connection_;
 	std::string address_;
