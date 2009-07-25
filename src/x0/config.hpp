@@ -10,6 +10,7 @@
 #include <x0/types.hpp>
 #include <string>
 #include <map>
+#include <boost/lexical_cast.hpp>
 
 namespace x0 {
 
@@ -50,6 +51,10 @@ public:
 	/// gets value of given section->key pair.
 	std::string get(const std::string& title, const std::string& key) const;
 
+	/// retrieves the value at (\p title - \p key) and stores it in \p result if it could be load
+	template<class T, class U>
+	void load(const std::string& title, const std::string& key, U& result) const;
+
 	/// sets value of given section->key pair.
 	std::string set(const std::string& title, const std::string& key, const std::string& value);
 
@@ -65,6 +70,17 @@ public:
 private:
 	mutable map_type sections;
 };
+
+template<class T, class U>
+inline void config::load(const std::string& title, const std::string& key, U& result) const
+{
+	std::string value(get(title, key));
+
+	if (value.size() != 0)
+	{
+		result = boost::lexical_cast<T>(value);
+	}
+}
 
 } // namespace x0
 

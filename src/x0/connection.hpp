@@ -9,11 +9,14 @@
 
 #include <x0/connection.hpp>
 #include <x0/composite_buffer.hpp>
+#include <x0/composite_buffer_async_writer.hpp>
 #include <x0/request.hpp>
+#include <x0/server.hpp>
 #include <x0/property.hpp>
 #include <x0/debug.hpp>
 #include <x0/types.hpp>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
@@ -24,7 +27,6 @@
 
 namespace x0 {
 
-class server;
 class connection_manager;
 
 /**
@@ -78,12 +80,23 @@ public:
 	x0::server& server();						//!< gets a reference to the server instance.
 
 private:
+	friend class response;
+
+	template<class CompletionHandler> class write_handler;
+
+	void async_read_some();
+	void read_timeout(const boost::system::error_code& ec);
 	void handle_read(const boost::system::error_code& e, std::size_t bytes_transferred);
+
+	template<class CompletionHandler>
+	void async_write(const composite_buffer& buffer, const CompletionHandler& handler);
+	void write_timeout(const boost::system::error_code& ec);
 	void response_transmitted(const boost::system::error_code& e);
 
 	boost::asio::ip::tcp::socket socket_;
 	connection_manager& connection_manager_;	//!< corresponding connection manager
 	x0::server& server_;						//!< server object owning this connection
+	boost::asio::deadline_timer timer_;			//!< deadline timer for detecting read/write timeouts.
 
 	// HTTP request
 	boost::array<char, 8192> buffer_;	//!< buffer for incoming data.
@@ -91,6 +104,30 @@ private:
 	request::reader request_reader_;	//!< http request parser
 
 	boost::asio::strand strand_;		//!< request handler strand
+};
+
+template<class CompletionHandler>
+class connection::write_handler
+{
+private:
+	connection_ptr connection_;
+	CompletionHandler handler_;
+
+public:
+	write_handler(connection_ptr connection, const CompletionHandler& handler) :
+		connection_(connection), handler_(handler)
+	{
+	}
+
+	~write_handler()
+	{
+	}
+
+	void operator()(const boost::system::error_code& ec, int bytes_transferred)
+	{
+		connection_->timer_.cancel();
+		handler_(ec, bytes_transferred);
+	}
 };
 
 // {{{ inlines
@@ -108,6 +145,25 @@ inline server& connection::server()
 {
 	return server_;
 }
+
+template<class CompletionHandler>
+inline void connection::async_write(const composite_buffer& buffer, const CompletionHandler& handler)
+{
+	if (server_.max_write_idle() != -1)
+	{
+		write_handler<CompletionHandler> writeHandler(shared_from_this(), handler);
+
+		timer_.expires_from_now(boost::posix_time::seconds(server_.max_write_idle()));
+		timer_.async_wait(boost::bind(&connection::write_timeout, shared_from_this(), boost::asio::placeholders::error));
+
+		x0::async_write(socket(), buffer, writeHandler);
+	}
+	else
+	{
+		x0::async_write(socket(), buffer, handler);
+	}
+}
+
 // }}}
 
 } // namespace x0

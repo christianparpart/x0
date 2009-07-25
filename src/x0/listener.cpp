@@ -5,6 +5,7 @@
  */
 
 #include <x0/listener.hpp>
+#include <x0/connection.hpp>
 #include <x0/server.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>

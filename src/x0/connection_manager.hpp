@@ -7,9 +7,8 @@
 #ifndef x0_connection_manager_hpp
 #define x0_connection_manager_hpp (1)
 
-#include <set>
-#include <x0/connection.hpp>
 #include <x0/types.hpp>
+#include <set>
 
 namespace x0 {
 

@@ -7,7 +7,6 @@
 #ifndef x0_server_hpp
 #define x0_server_hpp (1)
 
-#include <x0/connection.hpp>
 #include <x0/connection_manager.hpp>
 #include <x0/types.hpp>
 
@@ -18,6 +17,8 @@
 #include <string>
 
 namespace x0 {
+
+class server;
 
 /**
  * \ingroup core

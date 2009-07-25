@@ -102,61 +102,7 @@ private:
 	 * new data being added.
 	 */
 	bool serializing_;
-#if 1
-	template<class Writer, class CompletionHandler> class write_handler // {{{
-	{
-	private:
-//		response *response_;
-		composite_buffer buffer_;
-		Writer writer_;
-		CompletionHandler handler_;
 
-	public:
-		write_handler(
-//			x0::response *response,
-			composite_buffer buffer,
-			Writer writer,
-			const CompletionHandler& handler)
-		  :
-//			response_(),
-//			response_(response),
-			buffer_(buffer),
-			writer_(writer),
-			handler_(handler)
-		{
-			//DEBUG("response.write_handler()");
-		}
-
-		write_handler(const write_handler& v) :
-//			response_(v.response_),
-			buffer_(v.buffer_),
-			writer_(v.writer_),
-			handler_(v.handler_)
-		{
-			//DEBUG("response.write_handler(copy)");
-		}
-
-		~write_handler()
-		{
-			//DEBUG("response.~write_handler()");
-		}
-
-		// on first call, the headers have been sent, so we can continue with sending chunks now
-		void operator()(const boost::system::error_code& ec, std::size_t /*bytes_transferred*/)
-		{
-			//DEBUG("response.write_handler.operator(ec): buffer.empty=%d", buffer_.empty());
-
-			if (buffer_.empty())
-			{
-				handler_(ec);
-			}
-			else
-			{
-				async_write(writer_, buffer_, *this);
-			}
-		}
-	};//}}}
-#endif
 public:
 	/** Creates an empty response object.
 	 *
@@ -226,7 +172,7 @@ public:
 	{
 		//DEBUG("response.flush(handler): serializing=%d", serializing_);
 
-		async_write(connection_->socket(), serialize(), handler);
+		connection_->async_write(serialize(), handler);
 	}
 
 	/** asynchronously flushes response to client connection.

@@ -14,6 +14,7 @@
 #include <x0/context.hpp>
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
+#include <x0/property.hpp>
 #include <boost/signals.hpp>
 #include <cstring>
 #include <string>

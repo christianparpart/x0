@@ -71,6 +71,16 @@ void server::configure(const std::string& configfile)
 
 	logger_->level(severity(config_.get("service", "log-level")));
 
+	// load limits
+	config_.load<int>("service", "max-connections", max_connections);
+	config_.load<int>("service", "max-fds", max_fds);
+	config_.load<int>("service", "max-keep-alive-requests", max_keep_alive_requests);
+	config_.load<int>("service", "max-keep-alive-idle", max_keep_alive_idle);
+	config_.load<int>("service", "max-read-idle", max_read_idle);
+	config_.load<int>("service", "max-write-idle", max_write_idle);
+
+	config_.load<std::string>("service", "tag", tag);
+
 	// load modules
 	std::vector<std::string> plugins = split<std::string>(config_.get("service", "modules-load"), ", ");
 

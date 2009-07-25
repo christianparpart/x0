@@ -20,6 +20,7 @@ connection::connection(boost::asio::io_service& io_service, connection_manager& 
 	socket_(io_service),
 	connection_manager_(manager),
 	server_(srv),
+	timer_(io_service),
 	buffer_(),
 	request_(new request(*this)),
 	request_reader_(),
@@ -39,10 +40,7 @@ void connection::start()
 
 	server_.connection_open(shared_from_this());
 
-	socket_.async_read_some(boost::asio::buffer(buffer_),
-		bind(&connection::handle_read, shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+	async_read_some();
 }
 
 void connection::resume()
@@ -52,10 +50,7 @@ void connection::resume()
 	request_reader_.reset();
 	request_ = new request(*this);
 
-	socket_.async_read_some(boost::asio::buffer(buffer_),
-		bind(&connection::handle_read, shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+	async_read_some();
 }
 
 void connection::stop()
@@ -67,6 +62,29 @@ void connection::stop()
 	delete request_;
 }
 
+void connection::async_read_some()
+{
+	if (server_.max_read_idle() != -1)
+	{
+		timer_.expires_from_now(boost::posix_time::seconds(server_.max_read_idle()));
+		timer_.async_wait(boost::bind(&connection::read_timeout, this, boost::asio::placeholders::error));
+	}
+
+	socket_.async_read_some(boost::asio::buffer(buffer_),
+		bind(&connection::handle_read, shared_from_this(),
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred));
+}
+
+void connection::read_timeout(const boost::system::error_code& ec)
+{
+	if (ec != boost::asio::error::operation_aborted)
+	{
+		//DEBUG("connection(%p): read timed out", this);
+		connection_manager_.stop(shared_from_this());
+	}
+}
+
 /**
  * This method gets invoked when there is data in our connection ready to read.
  *
@@ -75,6 +93,7 @@ void connection::stop()
 void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
 {
 	//DEBUG("connection(%p).handle_read(sz=%ld)", this, bytes_transferred);
+	timer_.cancel();
 
 	if (!e)
 	{
@@ -128,16 +147,22 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 		else // request still incomplete
 		{
 			// -> continue reading for request
-			socket_.async_read_some(boost::asio::buffer(buffer_),
-				bind(&connection::handle_read, shared_from_this(),
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
+			async_read_some();
 		}
 	}
 	else if (e != boost::asio::error::operation_aborted)
 	{
 		// some connection error (other than operation_aborted) happened
 		// -> kill this connection.
+		connection_manager_.stop(shared_from_this());
+	}
+}
+
+void connection::write_timeout(const boost::system::error_code& ec)
+{
+	if (ec != boost::asio::error::operation_aborted)
+	{
+		//DEBUG("connection(%p): write timed out", this);
 		connection_manager_.stop(shared_from_this());
 	}
 }

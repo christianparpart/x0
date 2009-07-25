@@ -5,6 +5,7 @@
  */
 
 #include <x0/connection_manager.hpp>
+#include <x0/connection.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
 
