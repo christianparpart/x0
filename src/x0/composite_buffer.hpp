@@ -1,6 +1,8 @@
 #ifndef x0_composite_buffer_hpp
 #define x0_composite_buffer_hpp
 
+#include <x0/property.hpp>
+
 #include <string>
 #include <sys/types.h>
 #include <sys/sendfile.h>	// sendfile()
@@ -10,6 +12,7 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/buffer.hpp>
+#include <iostream> // clog
 
 namespace x0 {
 
@@ -21,10 +24,10 @@ namespace x0 {
  * This class shall support asynchronous I/O file.
  *
  * \code
- *	template<class Socket, class CompletionHandler>
- *	void generate(Socket& socket, const CompletionHandler& handler)
+ *	template<class Target, class CompletionHandler>
+ *	void generate(Target& target, const CompletionHandler& handler)
  *	{
- * 		composite_buffer cb;
+ * 		x0::composite_buffer cb;
  *
  *		cb.push_back("Hello, World");
  *		cb.push_back('\n');
@@ -39,7 +42,7 @@ namespace x0 {
  * 			}
  * 		}
  *
- * 		cb.async_write(composite_buffer::socket_writer<Socket>(socket), handler);
+ * 		x0::async_write(target, cb, handler);
  * 	}
  *
  * 	void completion_handler(boost::system::error_code ec, std::size_t bytes_transferred)
@@ -50,7 +53,7 @@ namespace x0 {
  * 		}
  * 		else
  * 		{
- * 			std::cerr << "error: " << strerror(errno) << std::endl;
+ * 			std::cerr << "error: " << ec.message() << std::endl;
  * 		}
  * 	}
  * \endcode
@@ -65,9 +68,6 @@ public:
 	class iterator;
 
 	class visitor;
-	template<class Socket> class socket_writer;
-
-	typedef socket_writer<boost::asio::ip::tcp::socket> asio_socket_writer;
 
 private:
 	template<class Socket, class CompletionHandler> class write_handler;
@@ -76,19 +76,9 @@ private:
 	/** ensures that the tail of our chunk queue is of type iovec_chunk. */
 	void ensure_iovec_tail();
 
-	/**
-	 * write some data into the screen.
-	 *
-	 * \param socket the socket to write to.
-	 * \param handler the completion handler to invoke once current data has been sent 
-	 *                and the socket is ready for new data to be transmitted.
-	 */
-	template<class Writer, class Handler>
-	ssize_t async_write_some(Writer writer, const Handler& handler);
-
 	chunk *front_;		//!< chunk at the front/beginning of the buffer
 	chunk *back_;		//!< chunk at the back/end of the buffer
-	size_t size_;		//!< total size in bytes of this buffer (sum of bytes of all buffer chunks)
+	std::size_t size_;	//!< total size in bytes of this buffer (sum of bytes of all buffer chunks)
 
 public:
 	/** initializes a composite buffer. */
@@ -130,7 +120,7 @@ public:
 	chunk *back() const;
 
 	/** retrieves the total number of bytes of all chunks. */
-	size_t size() const;
+	std::size_t size() const;
 
 	/** checks wether this composite buffer is empty or not. */
 	bool empty() const;
@@ -164,7 +154,7 @@ public:
 	 * On sendto() this chunk may be optimized to directly pass the input buffers to the output buffers
 	 * of their corresponding file descriptors by using sendfile() kernel system call.
 	 */
-	void push_back(int fd, off_t offset, size_t size, bool close);
+	void push_back(int fd, off_t offset, std::size_t size, bool close);
 
 	/** appends another composite buffer to this buffer.
 	 *
@@ -175,28 +165,11 @@ public:
 	 */
 	void push_back(composite_buffer& source);
 
+	/** appends a podtype value at the back of the chunk chain.
+	 * \param data the data to be append.
+	 */
 	template<typename PodType, std::size_t N>
 	void push_back(PodType (&data)[N]);
-
-public:
-	/** sends this buffer to given destnation.
-	 * \param socket the socket to write to.
-	 *
-	 * Every chunk fully sent to the destination file is automatically removed from this buffer, 
-	 * thus subsequent calls to sendto() will continue to sent the remaining chunks, if needed.
-	 */
-	template<class Writer>
-	ssize_t write(Writer writer);
-
-	/** sends this buffer <b>asynchronously</b> to given destnation.
-	 * \param socket the socket to write to.
-	 * \param handler the completion handler to call once all data has been sent (or an error occured).
-	 *
-	 * Every chunk fully sent to the destination file is automatically removed from this buffer, 
-	 * thus subsequent calls to sendto() will continue to sent the remaining chunks, if needed.
-	 */
-	template<class Writer, class CompletionHandler>
-	void async_write(Writer writer, const CompletionHandler& handler);
 };
 
 /** chunk base class.
@@ -204,14 +177,10 @@ public:
  */
 struct composite_buffer::chunk
 {
-	/** chunk type. */
-	enum chunk_type { cstring, ciov, cfd } type;
+public:
+	enum chunk_type { ciov, cfd };
 
-	/** chunk size in bytes. */
-	std::size_t size;
-
-	/** next chunk in buffer. */
-	chunk *next;
+private:
 
 protected:
 	/** initializes chunk base.
@@ -224,12 +193,21 @@ protected:
 public:
 	virtual ~chunk();
 
+	/** chunk type. */
+	value_property<chunk_type> type;
+
+	/** chunk size in bytes. */
+	value_property<std::size_t> size;
+
+	/** next chunk in buffer. */
+	value_property<chunk *> next;
+
 	/**
 	 * invokes <code>v.visit(*this);</code> to let visitor \p v visit this chunk.
 	 *
 	 * \param v visitor to let visit us.
 	 */
-	virtual void accept(visitor& v) = 0;
+	virtual void accept(visitor& v) const = 0;
 };
 
 /** iovec chunk.
@@ -238,18 +216,53 @@ public:
 struct composite_buffer::iovec_chunk :
 	public chunk
 {
-	std::vector<iovec> vec;
-	std::size_t veclimit;
-	std::vector<std::string> strings;
+public:
+	typedef std::vector<iovec> vector;
+	typedef vector::iterator iterator;
+	typedef vector::const_iterator const_iterator;
+
+private:
+	vector vec_;
+	std::size_t veclimit_;
+	std::vector<std::string> strings_;
 
 public:
 	iovec_chunk();
 
+	/** pushes a single character value at the end of the iovec vector.
+	 */
 	void push_back(char value);
+
+	/** pushes a string value at the end of the iovec vector.
+	 */
 	void push_back(const std::string& value);
+
+	/** pushes a const buffer \p p of size \p n at the end of the iovec vector.
+	 */
 	void push_back(const void *p, std::size_t n);
 
-	virtual void accept(visitor& v);
+	/** retrieves a reference to the internal iovec vector. */
+	const std::vector<iovec>& value() const;
+
+	/** retrieves the number of iovec-elements within this iovec_chunk. */
+	std::size_t length() const;
+
+	/** retrieves the iovec vector at given \p index. */
+	const iovec& operator[](std::size_t index) const;
+
+	/** retrieves an iterator to the beginning of the iovec vector. */
+	iterator begin();
+
+	/** retrieves an iterator to the end of the iovec vector. */
+	iterator end();
+
+	/** retrieves a const iterator to the beginning of the iovec vector. */
+	const_iterator cbegin() const;
+
+	/** retrieves a const iterator to the end of the iovec vector. */
+	const_iterator cend() const;
+
+	virtual void accept(visitor& v) const;
 };
 
 /** fd chunk.
@@ -260,15 +273,24 @@ public:
 struct composite_buffer::fd_chunk :
 	public chunk
 {
-	int fd;
-	off_t offset;
-	bool close;
+	int fd_;
+	off_t offset_;
+	bool close_;
 
 public:
-	fd_chunk(int _fd, off_t _offset, size_t _size, bool _close);
+	fd_chunk(int _fd, off_t _offset, std::size_t _size, bool _close);
 	~fd_chunk();
 
-	virtual void accept(visitor& v);
+	/** holds the file descriptor to this chunk represents its data for. */
+	value_property<int> fd;
+
+	/** holds the offset inside the data of the file descriptor to start reading at. */
+	value_property<off_t> offset;
+
+	/** boolean value, determining wether or not to close the file descriptor when this chunk is to be destructed. */
+	value_property<bool> close;
+
+	virtual void accept(visitor& v) const;
 };
 
 /**
@@ -277,114 +299,9 @@ public:
 class composite_buffer::visitor
 {
 public:
-	virtual void visit(iovec_chunk&) = 0;	//!< visits an iovec_chunk object.
-	virtual void visit(fd_chunk&) = 0;		//!< visits an fd_chunk object.
+	virtual void visit(const iovec_chunk&) = 0;	//!< visits an iovec_chunk object.
+	virtual void visit(const fd_chunk&) = 0;	//!< visits an fd_chunk object.
 };
-
-/**
- * implements a socket writer (writing chunks to sockets).
- */
-template<class Socket>
-class composite_buffer::socket_writer : public visitor
-{
-private:
-	Socket& socket_;
-	int rv_;
-
-public:
-	/** creates a new socket writer.
-	 * \param socket the socket to write the chunks to.
-	 */
-	explicit socket_writer(Socket& socket);
-
-	/** writes given chunk to the socket.
-	 * \param chunk the chunk to write.
-	 * \return the number of bytes written or -1 on error.
-	 */
-	int write(composite_buffer::chunk& chunk);
-
-	Socket& socket() const; //!< retrieves the socket to write to.
-	int result() const; //!< retrieves the result of the last write operation.
-
-	/**
-	 * invokes completion handler once the writer's socket is ready for writing.
-	 * \param handler the completion handler to invoke once the socket becomes ready.
-	 */
-	template<class CompletionHandler>
-	void callback(const CompletionHandler& handler);
-
-public:
-	virtual void visit(iovec_chunk&);
-	virtual void visit(fd_chunk&);
-};
-
-// {{{ socket_writer impl
-template<class Socket>
-inline composite_buffer::socket_writer<Socket>::socket_writer(Socket& socket) :
-	socket_(socket), rv_()
-{
-}
-
-template<class Socket>
-inline int composite_buffer::socket_writer<Socket>::write(composite_buffer::chunk& chunk)
-{
-	chunk.accept(*this);
-	return rv_;
-}
-
-template<class Socket>
-inline Socket& composite_buffer::socket_writer<Socket>::socket() const
-{
-	return socket_;
-}
-
-template<class Socket>
-inline int composite_buffer::socket_writer<Socket>::result() const
-{
-	return rv_;
-}
-
-template<class Socket>
-template<class CompletionHandler>
-inline void composite_buffer::socket_writer<Socket>::callback(const CompletionHandler& handler)
-{
-	socket_.async_write_some(boost::asio::null_buffers(), handler);
-}
-
-template<class Socket>
-inline void composite_buffer::socket_writer<Socket>::visit(iovec_chunk& chunk)
-{
-	rv_ = ::writev(socket_.native(), &chunk.vec[0], chunk.vec.size());
-
-	if (rv_ != -1)
-	{
-		chunk.size -= rv_;
-	}
-
-	// TODO error handling if (rv != size), that is, not everything written on O_NONBLOCK
-	// (does this even happen?)
-}
-
-template<class Socket>
-inline void composite_buffer::socket_writer<Socket>::visit(fd_chunk& chunk)
-{
-	if (chunk.size)
-	{
-		rv_ = ::sendfile(socket_.native(), chunk.fd, &chunk.offset, chunk.size);
-
-		if (rv_ != -1)
-		{
-			chunk.size -= rv_;
-		}
-
-		// TODO: implement fallback through read()/write()
-	}
-	else
-	{
-		rv_ = 0;
-	}
-}
-// }}}
 
 // {{{ chunk impl
 inline composite_buffer::chunk::chunk(chunk_type ct, std::size_t sz) :
@@ -400,7 +317,7 @@ inline composite_buffer::chunk::~chunk()
 
 // {{{ iovec_chunk impl
 inline composite_buffer::iovec_chunk::iovec_chunk() :
-	chunk(ciov, 0), vec(), veclimit(sysconf(_SC_IOV_MAX)), strings()
+	chunk(ciov, 0), vec_(), veclimit_(sysconf(_SC_IOV_MAX)), strings_()
 {
 }
 
@@ -411,8 +328,8 @@ inline void composite_buffer::iovec_chunk::push_back(char value)
 
 inline void composite_buffer::iovec_chunk::push_back(const std::string& value)
 {
-	strings.push_back(value);
-	push_back(strings[strings.size() - 1].data(), value.size());
+	strings_.push_back(value);
+	push_back(strings_[strings_.size() - 1].data(), value.size());
 }
 
 inline void composite_buffer::iovec_chunk::push_back(const void *p, std::size_t n)
@@ -422,18 +339,53 @@ inline void composite_buffer::iovec_chunk::push_back(const void *p, std::size_t 
 	iov.iov_base = const_cast<void *>(p);
 	iov.iov_len = n;
 
-	vec.push_back(iov);
+	vec_.push_back(iov);
 	size += n;
 }
 
-inline void composite_buffer::iovec_chunk::accept(visitor& v)
+inline const std::vector<iovec>& composite_buffer::iovec_chunk::value() const
+{
+	return vec_;
+}
+
+inline std::size_t composite_buffer::iovec_chunk::length() const
+{
+	return vec_.size();
+}
+
+inline const iovec& composite_buffer::iovec_chunk::operator[](std::size_t index) const
+{
+	return vec_[index];
+}
+
+inline composite_buffer::iovec_chunk::iterator composite_buffer::iovec_chunk::begin()
+{
+	return vec_.begin();
+}
+
+inline composite_buffer::iovec_chunk::iterator composite_buffer::iovec_chunk::end()
+{
+	return vec_.end();
+}
+
+inline composite_buffer::iovec_chunk::const_iterator composite_buffer::iovec_chunk::cbegin() const
+{
+	return vec_.cbegin();
+}
+
+inline composite_buffer::iovec_chunk::const_iterator composite_buffer::iovec_chunk::cend() const
+{
+	return vec_.cend();
+}
+
+inline void composite_buffer::iovec_chunk::accept(visitor& v) const
 {
 	v.visit(*this);
 }
 // }}}
 
 // {{{ fd_chunk impl
-inline composite_buffer::fd_chunk::fd_chunk(int _fd, off_t _offset, size_t _size, bool _close) :
+inline composite_buffer::fd_chunk::fd_chunk(int _fd, off_t _offset, std::size_t _size, bool _close) :
 	chunk(cfd, _size), fd(_fd), offset(_offset), close(_close)
 {
 }
@@ -446,50 +398,10 @@ inline composite_buffer::fd_chunk::~fd_chunk()
 	}
 }
 
-inline void composite_buffer::fd_chunk::accept(visitor& v)
+inline void composite_buffer::fd_chunk::accept(visitor& v) const
 {
 	v.visit(*this);
 }
-// }}}
-
-// {{{ class composite_buffer::write_handler
-/**
- * internal write handler class, used to write chunks to the writer.
- */
-template<class Writer, class CompletionHandler>
-class composite_buffer::write_handler
-{
-private:
-	composite_buffer& buffer_;
-	Writer writer_;
-	CompletionHandler handler_;
-	std::size_t total_bytes_transferred_;
-
-public:
-	write_handler(composite_buffer& buffer, Writer writer, const CompletionHandler& handler)
-	  : buffer_(buffer), writer_(writer), handler_(handler)
-	{
-	}
-
-	void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred)
-	{
-		//total_bytes_transferred_ += bytes_transferred;
-
-		if (!ec && !buffer_.empty())
-		{
-			ssize_t rv = buffer_.async_write_some(writer_, *this);
-
-			if (rv != -1)
-			{
-				total_bytes_transferred_ += rv;
-			}
-		}
-		else
-		{
-			handler_(ec, total_bytes_transferred_);
-		}
-	}
-};
 // }}}
 
 // {{{ composite_buffer::iterator
@@ -498,19 +410,19 @@ public:
 class composite_buffer::iterator
 {
 private:
-	const chunk *current;
+	const chunk *current_;
 
 public:
 	iterator(const chunk *c) :
-		current(c)
+		current_(c)
 	{
 	}
 
 	iterator& operator++()
 	{
-		if (current)
+		if (current_)
 		{
-			current = current->next;
+			current_ = current_->next();
 		}
 
 		return *this;
@@ -518,17 +430,17 @@ public:
 
 	const chunk *operator->() const
 	{
-		return current;
+		return current_;
 	}
 
 	const chunk& operator*() const
 	{
-		return *current;
+		return *current_;
 	}
 
 	friend bool operator!=(const iterator& a, const iterator& b)
 	{
-		return a.current != b.current;
+		return a.current_ != b.current_;
 	}
 }; // }}}
 
@@ -578,7 +490,7 @@ inline void composite_buffer::remove_front()
 {
 	if (front_)
 	{
-		chunk *new_front = front_->next;
+		chunk *new_front = front_->next();
 
 		size_ -= front_->size;
 		front_->next = 0;
@@ -598,7 +510,7 @@ inline composite_buffer::chunk *composite_buffer::back() const
 	return back_;
 }
 
-inline size_t composite_buffer::size() const
+inline std::size_t composite_buffer::size() const
 {
 	return size_;
 }
@@ -680,22 +592,6 @@ inline void composite_buffer::push_back(composite_buffer& buffer)
 	buffer.size_ = 0;
 }
 
-template<class Writer>
-ssize_t composite_buffer::write(Writer writer)
-{
-	// TODO
-	errno = ENOSYS;
-	return -1;
-}
-
-template<class Writer, class CompletionHandler>
-inline void composite_buffer::async_write(Writer writer, const CompletionHandler& handler)
-{
-	write_handler<Writer, CompletionHandler> internalWriteHandler(*this, writer, handler);
-
-	writer.callback(internalWriteHandler);
-}
-
 inline void composite_buffer::ensure_iovec_tail()
 {
 	if (!back_)
@@ -707,52 +603,6 @@ inline void composite_buffer::ensure_iovec_tail()
 		back_->next = new iovec_chunk();
 		back_ = back_->next;
 	}
-}
-
-template<class Writer, class CompletionHandler>
-inline ssize_t composite_buffer::async_write_some(Writer writer, const CompletionHandler& handler)
-{
-	size_t nwritten = 0;
-	ssize_t rv;
-
-	if (front_)
-	{
-		rv = writer.write(*front_);
-
-		if (rv != -1)
-		{
-			size_ -= rv;
-			nwritten += rv;
-
-#if 1
-			if (!front_->size)
-			{
-				remove_front();
-			}
-#else
-			while (!front_->size)
-			{
-				remove_front();
-
-				rv = writer.write(*front_);
-
-				if (rv != -1)
-				{
-					size_ -= rv;
-					nwritten += rv;
-				}
-			}
-#endif
-		}
-	}
-	else
-	{
-		rv = 0;
-	}
-
-	writer.callback(handler);
-
-	return rv != -1 ? nwritten : rv;
 }
 // }}}
 

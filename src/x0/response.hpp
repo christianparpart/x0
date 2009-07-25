@@ -11,6 +11,7 @@
 #include <x0/property.hpp>
 #include <x0/header.hpp>
 #include <x0/composite_buffer.hpp>
+#include <x0/composite_buffer_async_writer.hpp>
 #include <x0/connection.hpp>
 #include <x0/debug.hpp>
 #include <boost/asio.hpp>
@@ -101,7 +102,7 @@ private:
 	 * new data being added.
 	 */
 	bool serializing_;
-
+#if 1
 	template<class Writer, class CompletionHandler> class write_handler // {{{
 	{
 	private:
@@ -140,11 +141,6 @@ private:
 			//DEBUG("response.~write_handler()");
 		}
 
-		Writer& writer()
-		{
-			return writer_;
-		}
-
 		// on first call, the headers have been sent, so we can continue with sending chunks now
 		void operator()(const boost::system::error_code& ec, std::size_t /*bytes_transferred*/)
 		{
@@ -156,11 +152,11 @@ private:
 			}
 			else
 			{
-				buffer_.async_write(writer_, *this);
+				async_write(writer_, buffer_, *this);
 			}
 		}
 	};//}}}
-
+#endif
 public:
 	/** Creates an empty response object.
 	 *
@@ -229,15 +225,8 @@ public:
 	void flush(const CompletionHandler& handler)
 	{
 		//DEBUG("response.flush(handler): serializing=%d", serializing_);
-		write_handler<composite_buffer::asio_socket_writer, CompletionHandler> internalHandler
-		(
-			//this,
-			serialize(),
-			composite_buffer::asio_socket_writer(connection_->socket()),
-			handler
-		);
 
-		internalHandler.writer().callback(internalHandler);
+		async_write(connection_->socket(), serialize(), handler);
 	}
 
 	/** asynchronously flushes response to client connection.
