@@ -1,22 +1,46 @@
 INTERMEDIATE TODO
 
-for a long-term todo list, see ticket system at code.ninchens.net/projects/x0
+for a long-term todo list, see ticket system at http://code.ninchens.net/projects/x0
 
-- request_done/post_process hooks need to be passed somehow to response.flush() (or response.serialize)
-- handle request body if in.header("Content-Length") is set and ~= 0
-- optimize composite_buffer appending by merging nearby iovec chunks,
-	if the left back and the right front is an iovec_chunk, and
-	if the sum of both iovec elements does not exceed the system's iovec limit to writev(2)
-- async/parralel content generator handlers
-- handle request headers Keep-Alive properly (using asio [deadline-]timers)
-- do timeout when request parsing idles for too long. -> close the connection.
-- set license from GPL-3 to LGPL-3 for core and modules. keep GPL-3 for x0d daemon.
+- util:
+	- chain API (or just a std::deque/std::list?)
+	- filter chain API using the above/chain API
+- core:
+	- async/parralel content generator handlers
+	- handle request headers Keep-Alive properly (using asio [deadline-]timers)
+	- do timeout when request parsing idles for too long. -> close the connection.
+- general:
+	- set license from GPL-3 to LGPL-3 for core and modules. keep GPL-3 for x0d daemon.
+
+-----------------------------------------------------------------------------
+NOTES AND THOUGHTS:
+- sendfile plugin:
+  - rename to "localfile", as it served local files, 
+    though, leaving room for other plugins to serve static files aswell, but from a different storage source.
+- ssl plugin:
+  - idea 1: will need to hook into connection reader/writer.
+    for the latter, it will need to provide its own composite_buffer writer atop of the standard socket writer
+  - idea 2: idea: the connection class should provide read/write methods, and we'll provide a connection writer for composite_buffer instead.
+    though, the ssl plugin (and deflate, e.g.) will just need to override the reader/writer for this connection.
+  - idea 3: the ssl plugin hooks into the listener's accept() and creates an ssl aware socket, however, this REQUIRES
+    all sockets (plain and ssl) to know about sendfile/writev for composite_buffer then).
+
+-----------------------------------------------------------------------------
+OPTIMIZATION AND CACHING INITIATIVE
+
+- core optimizations:
+  - server time string for "Date" header
+  - optimize composite_buffer appending by merging nearby iovec chunks,
+      if the left back and the right front is an iovec_chunk, and
+      if the sum of both iovec elements does not exceed the system's iovec limit to writev(2)
+- sendfile optimizations:
+  - mtime strings for "Last-Modified" header
+  - ETags for files
 
 - improve configuration system
 	- based on hierarichal contexts (with use of ternary_search<>)
-- multi threaded multiplexing: per-CPU model
 
------------------------------------------------------------
+-----------------------------------------------------------------------------
 bool chat_listener::handle_request(request& in, response& out)
 {
 	this->request = &in;
