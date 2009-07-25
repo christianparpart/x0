@@ -50,6 +50,12 @@ public:
 		return value_;
 	}
 
+	T operator+=(const T& v)
+	{
+		value_ += v;
+		return value_;
+	}
+
 	typedef T value_type;
 };
 
