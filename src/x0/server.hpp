@@ -173,7 +173,6 @@ private:
 	plugin_map_t plugins_;
 
 public:
-	value_property<int> num_threads;
 	value_property<int> max_connections;
 	value_property<int> max_fds;
 	value_property<int> max_keep_alive_requests;

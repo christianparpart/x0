@@ -39,7 +39,6 @@ server::server() :
 	config_(),
 	logger_(),
 	plugins_(),
-	num_threads(1),
 	max_connections(512),
 	max_fds(1024),
 	max_keep_alive_requests(16),
@@ -73,9 +72,14 @@ void server::configure(const std::string& configfile)
 	logger_->level(severity(config_.get("service", "log-level")));
 
 	// setup io_service_pool
+	int num_threads = 1;
 	config_.load<int>("service", "num-threads", num_threads);
-	io_service_pool_.setup(num_threads());
-	LOG(*this, severity::info, "using %d io services", num_threads());
+	io_service_pool_.setup(num_threads);
+
+	if (num_threads > 1)
+		LOG(*this, severity::info, "using %d io services", num_threads);
+	else
+		LOG(*this, severity::info, "using single io service");
 
 	// load limits
 	config_.load<int>("service", "max-connections", max_connections);
