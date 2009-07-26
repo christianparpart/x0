@@ -236,17 +236,16 @@ std::string response::status_str(int value)
 	return std::string(status_cstr(value));
 }
 
-void response::transmitted(const boost::system::error_code& e)
+void response::transmitted(const boost::system::error_code& ec)
 {
-	//DEBUG("response(%p).transmitted()", this);
+	//DEBUG("response(%p).transmitted(%s)", this, ec.message().c_str());
 
-	if (strcasecmp(header("Connection").c_str(), "keep-alive") == 0)
+	if (!ec)
 	{
-		connection_->resume();
-	}
-	else
-	{
-		// close connection
+		if (strcasecmp(header("Connection").c_str(), "keep-alive") == 0)
+		{
+			connection_->resume();
+		}
 	}
 
 	delete this;
