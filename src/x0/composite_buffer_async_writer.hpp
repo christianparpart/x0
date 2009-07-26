@@ -116,42 +116,40 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::async_write_some()
 {
-	if (write_some_once())
+	if (!write_some_once())
 	{
-		while (impl_->offset_ == impl_->current_->size())
-		{
-			impl_->offset_ = 0;
-			impl_->current_ = impl_->current_->next();
-
-			if (!impl_->current_)
-			{
-				// XXX end of composite_buffer reached.
-				impl_->handler_(boost::system::error_code(), impl_->nwritten_);
-				return;
-			}
-
-			if (!write_some_once())
-			{
-				// XXX an error occured while writing
-				break;
-			}
-		}
-
-		// callback when target is ready for more writes
-		impl_->target_.async_write_some(boost::asio::null_buffers(), *this);
+		// something ill happened when writing
 		return;
 	}
 
-	// XXX in one of the above write_some_once() calls occured an error.
-	// So abort further writes and notify handler about.
-	impl_->handler_(boost::system::error_code(errno, boost::system::system_category), impl_->nwritten_);
+	while (impl_->offset_ == impl_->current_->size())
+	{
+		impl_->offset_ = 0;
+		impl_->current_ = impl_->current_->next();
+
+		if (!impl_->current_)
+		{
+			// composite_buffer fuly written.
+			impl_->handler_(boost::system::error_code(), impl_->nwritten_);
+			return;
+		}
+
+		if (!write_some_once())
+		{
+			// something ill happened when writing
+			return;
+		}
+	}
+
+	// callback when target is ready for more writes
+	impl_->target_.async_write_some(boost::asio::null_buffers(), *this);
 }
 
 /**
  * Writes some buffer from the current chunk into the target.
  *
  * \retval true the write succeed (wether partial or complete).
- * \retval false the write failed and system's errno SHOULD be set appropriately.
+ * \retval false the write failed and system's errno SHOULD be set appropriately; the completion handler has been informed about this error.
  *
  * If the write succeed, internal \p offset_ and \p nwritten_ properties are updated appropriately.
  * The \p status_ property will reflect the return code of the inners OS-level write call.
@@ -168,6 +166,9 @@ inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some
 
 		return true;
 	}
+
+	// XXX inform the completion-handler about the write error.
+	impl_->handler_(boost::system::error_code(errno, boost::system::system_category), impl_->nwritten_);
 
 	return false;
 }
@@ -189,15 +190,6 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(cons
 	std::size_t size = chunk.size() - impl_->offset_;
 
   	impl_->status_ = ::sendfile(impl_->target_.native(), chunk.fd(), &offset, size);
-	if (impl_->status_ != -1) return;
-
-#if 1
-	if (scoped_mmap map = scoped_mmap(NULL, chunk.size(), PROT_READ, MAP_PRIVATE, chunk.fd(), 0))
-	{
-		impl_->status_ = ::write(impl_->target_.native(), map.address<char>() + offset, size);
-		return;
-	}
-#endif
 }
 
 template<class Target, class CompletionHandler>
