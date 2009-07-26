@@ -31,8 +31,15 @@ connection::~connection()
 {
 	//DEBUG("~connection(%p)", this);
 
-	server_.connection_close(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
-	socket_.close();
+	try
+	{
+		server_.connection_close(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
+		socket_.close();
+	}
+	catch (...)
+	{
+		DEBUG("~connection(%p): unexpected exception", this);
+	}
 
 	delete request_;
 }
@@ -86,7 +93,7 @@ void connection::read_timeout(const boost::system::error_code& ec)
  */
 void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
 {
-//	DEBUG("connection(%p).handle_read(ec=%s, sz=%ld)", this, e.message().c_str(), bytes_transferred);
+	//DEBUG("connection(%p).handle_read(ec=%s, sz=%ld)", this, e.message().c_str(), bytes_transferred);
 	timer_.cancel();
 
 	if (!e)
@@ -158,15 +165,35 @@ void connection::write_timeout(const boost::system::error_code& ec)
  *
  * We will fully shutown the TCP connection.
  */
-void connection::response_transmitted(const boost::system::error_code& e)
+void connection::response_transmitted(const boost::system::error_code& ec)
 {
-	DEBUG("connection(%p).response_transmitted()", this);
+	//DEBUG("connection(%p).response_transmitted(%s)", this, ec.message().c_str());
 
-	if (!e)
+	if (!ec)
 	{
 		boost::system::error_code ignored;
 		socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
 	}
+}
+
+std::string connection::client_ip() const
+{
+	if (client_ip_.empty())
+	{
+		client_ip_ = socket_.remote_endpoint().address().to_string();
+	}
+
+	return client_ip_;
+}
+
+int connection::client_port() const
+{
+	if (!client_port_)
+	{
+		client_port_ = socket_.remote_endpoint().port();
+	}
+
+	return client_port_;
 }
 
 } // namespace x0

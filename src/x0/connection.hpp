@@ -63,8 +63,11 @@ public:
 	/** true if this is a secure (HTTPS) connection, false otherwise. */
 	value_property<bool> secure;
 
-	boost::asio::ip::tcp::socket& socket();		//!< get the connection socket handle.
-	x0::server& server();						//!< gets a reference to the server instance.
+	boost::asio::ip::tcp::socket& socket();		//!< Retrieves a reference to the connection socket.
+	x0::server& server();						//!< Retrieves a reference to the server instance.
+
+	std::string client_ip() const;				//!< Retrieves the IP address of the remote end point (client).
+	int client_port() const;					//!< Retrieves the TCP port numer of the remote end point (client).
 
 private:
 	friend class response;
@@ -80,16 +83,19 @@ private:
 	void write_timeout(const boost::system::error_code& ec);
 	void response_transmitted(const boost::system::error_code& e);
 
-	x0::server& server_;						//!< server object owning this connection
-	boost::asio::ip::tcp::socket socket_;		//!< underlying communication socket
-	boost::asio::deadline_timer timer_;			//!< deadline timer for detecting read/write timeouts.
+	x0::server& server_;					//!< server object owning this connection
+	boost::asio::ip::tcp::socket socket_;	//!< underlying communication socket
+	boost::asio::deadline_timer timer_;		//!< deadline timer for detecting read/write timeouts.
+
+	mutable std::string client_ip_;			//!< internal cache to client ip
+	mutable int client_port_;				//!< internal cache to client port
 
 	// HTTP request
-	boost::array<char, 8192> buffer_;	//!< buffer for incoming data.
-	request *request_;					//!< currently parsed http request 
-	request::reader request_reader_;	//!< http request parser
+	boost::array<char, 8192> buffer_;		//!< buffer for incoming data.
+	request *request_;						//!< currently parsed http request 
+	request::reader request_reader_;		//!< http request parser
 
-//	boost::asio::strand strand_;		//!< request handler strand
+//	boost::asio::strand strand_;			//!< request handler strand
 };
 
 template<class CompletionHandler>
