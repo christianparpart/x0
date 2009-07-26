@@ -19,6 +19,8 @@ connection::connection(x0::server& srv)
 	server_(srv),
 	socket_(server_.io_service_pool().get_service()),
 	timer_(server_.io_service_pool().get_service()),
+	client_ip_(),
+	client_port_(0),
 	buffer_(),
 	request_(new request(*this)),
 	request_reader_()
