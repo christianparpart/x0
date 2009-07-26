@@ -60,13 +60,13 @@ public:
 private:
 	std::string client_hostname(x0::connection *connection)
 	{
-		std::string name = connection->socket().remote_endpoint().address().to_string();
+		std::string name = connection->client_ip();
 
 		if (name.empty())
 			name = "<unknown>";
 
 		name += ":";
-		name += boost::lexical_cast<std::string>(connection->socket().remote_endpoint().port());
+		name += boost::lexical_cast<std::string>(connection->client_port());
 
 		return name;
 	}
