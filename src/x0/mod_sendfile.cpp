@@ -293,13 +293,21 @@ private:
 	{
 		std::pair<std::size_t, std::size_t> q;
 
-		q.first = p.first != x0::range_def::npos ? p.first : st.st_size - p.first;
-		q.second = p.second != x0::range_def::npos ? p.second : st.st_size;
+		if (p.first == x0::range_def::npos) // suffix-range-spec
+		{
+			q.first = st.st_size - p.second;
+			q.second = st.st_size - 1;
+		}
+		else
+		{
+			q.first = p.first;
 
-		if (q.first > q.second)
-			throw x0::response::requested_range_not_satisfiable;
+			q.second = p.second == x0::range_def::npos && p.second > std::size_t(st.st_size)
+				? st.st_size - 1
+				: p.second;
+		}
 
-		if (q.second > std::size_t(st.st_size))
+		if (q.second < q.first)
 			throw x0::response::requested_range_not_satisfiable;
 
 		return q;
