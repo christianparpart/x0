@@ -89,7 +89,12 @@ private:
 				sstr << "<li><a href='" << *i << "'>" << *i << "</a></li>\n";
 			}
 
-			sstr << "</ul>\n</body></html>\n";
+			sstr << "</ul>\n";
+
+			sstr << "<hr/>\n";
+			sstr << "<small><i>" << in.connection.server().tag() << "</i></small><br/>\n";
+
+			sstr << "</body></html>\n";
 
 			std::string result(sstr.str());
 
