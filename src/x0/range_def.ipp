@@ -1,3 +1,10 @@
+/* <x0/range_def.ipp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef x0_range_def_ipp
 #define x0_range_def_ipp
 
