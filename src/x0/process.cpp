@@ -9,6 +9,12 @@
 
 namespace x0 {
 
+/** invokes \p cmd until its not early aborted with EINTR. */
+#define EINTR_LOOP(rv, cmd) 				\
+	do {									\
+		rv = cmd;							\
+	} while (rv == -1 && errno == EINTR)
+
 process::process(boost::asio::io_service& io) :
 	input_(io), output_(io), error_(io), pid_(-1), status_(0)
 {
@@ -23,10 +29,12 @@ process::process(boost::asio::io_service& io, const std::string& exe, const para
 process::~process()
 {
 	// XXX kill child?
+	fetch_status();
 }
 
 void process::start(const std::string& exe, const params& args, const environment& env, const std::string& workdir)
 {
+	//::fprintf(stderr, "proc[%d] start(exe=%s, args=[...], workdir=%s)\n", getpid(), exe.c_str(), workdir.c_str());
 	switch (pid_ = fork())
 	{
 		case 0: // child
@@ -84,6 +92,9 @@ void process::setup_parent()
 
 void process::setup_child(const std::string& _exe, const params& _args, const environment& _env, const std::string& _workdir)
 {
+	// restore signal handler(s)
+	::signal(SIGPIPE, SIG_DFL);
+
 	// setup environment
 	int k = 0;
 	std::vector<char *> env(_env.size() + 1);
@@ -95,7 +106,8 @@ void process::setup_child(const std::string& _exe, const params& _args, const en
 		buf[i->first.size()] = '=';
 		::memcpy(buf + i->first.size() + 1, i->second.c_str(), i->second.size() + 1);
 
-		printf("proc: setting env[%d]: %s\n", k, buf);
+		//::fprintf(stderr, "proc[%d]: setting env[%d]: %s\n", getpid(), k, buf);
+		//::fflush(stderr);
 		env[k++] = buf;
 	}
 	env[_env.size()] = 0;
@@ -103,8 +115,12 @@ void process::setup_child(const std::string& _exe, const params& _args, const en
 	// setup args
 	std::vector<char *> args(_args.size() + 2);
 	args[0] = const_cast<char *>(_exe.c_str());
+	//::fprintf(stderr, "args[%d] = %s\n", 0, args[0]);
 	for (int i = 0, e = _args.size(); i != e; ++i)
+	{
 		args[i + 1] = const_cast<char *>(_args[i].c_str());
+		//::fprintf(stderr, "args[%d] = %s\n", i + 1, args[i + 1]);
+	}
 	args[args.size() - 1] = 0;
 
 	// chdir
@@ -114,23 +130,25 @@ void process::setup_child(const std::string& _exe, const params& _args, const en
 	}
 
 	// setup I/O
-	::close(STDIN_FILENO);
-	::dup2(input_.remote().native(), STDIN_FILENO);
-	input_.close();
+	int rv;
+	EINTR_LOOP(rv, ::close(STDIN_FILENO));
+	EINTR_LOOP(rv, ::close(STDOUT_FILENO));
+	EINTR_LOOP(rv, ::close(STDERR_FILENO));
 
-	::close(STDOUT_FILENO);
-	::dup2(output_.remote().native(), STDOUT_FILENO);
-	output_.close();
+	EINTR_LOOP(rv, ::dup2(input_.remote().native(), STDIN_FILENO));
+	EINTR_LOOP(rv, ::dup2(output_.remote().native(), STDOUT_FILENO));
+	EINTR_LOOP(rv, ::dup2(error_.remote().native(), STDERR_FILENO));
 
-	::close(STDERR_FILENO);
-	::dup2(error_.remote().native(), STDERR_FILENO);
-	error_.close();
+//	input_.close();
+//	output_.close();
+//	error_.close();
 
 	// finally execute
 	::execve(args[0], &args[0], &env[0]);
 
 	// OOPS
-	::printf("execve(%s) error: %s\n", args[0], strerror(errno));
+	::fprintf(stderr, "proc[%d]: execve(%s) error: %s\n", getpid(), args[0], strerror(errno));
+	::fflush(stderr);
 	::_exit(1);
 }
 
