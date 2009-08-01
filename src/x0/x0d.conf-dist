@@ -24,12 +24,17 @@ max-keep-alive-requests=16
 max-keep-alive-idle=5
 max-read-idle=60
 max-write-idle=360
+; num-threads=2
 
-[listener:8080]
-ip.tcp.acceptor.reuse-address=true
-ip.tcp.no-delay=true
-ip.tcp.linger=false
-ip.tcp.cork=false
+[cgi]
+dir-prefix=/cgi-bin/
+executable=true
+
+[cgi.mappings]
+.php=/usr/bin/php
+.pl=/usr/bin/perl
+.rb=/usr/bin/ruby
+.sh=/bin/bash
 
 [sendfile]
 mime-types=/etc/mime.types
@@ -42,13 +47,3 @@ etag-consider-inode=true
 default-host=localhost
 server-root=/var/www
 document-root=htdocs
-
-[dbus]
-enabled=true
-bus=system
-
-[vhost=localhost:8080]
-document-root=/home/trapni/projects/x0
-
-[vhost=localhost:8081]
-document-root=/home/trapni/public_html
