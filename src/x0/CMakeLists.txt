@@ -7,6 +7,7 @@ add_definitions(
 	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
+	-DPACKAGE_NAME="${PACKAGE_NAME}"
 	-DPACKAGE_VERSION="${PACKAGE_VERSION}"
 	-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
 	-DSYSCONFDIR="${SYSCONFDIR}"
@@ -19,6 +20,7 @@ add_executable(x0d
 	listener.cpp
 	logger.cpp
 	main.cpp
+	process.cpp
 	response.cpp
 	request.cpp
 	server.cpp
@@ -34,7 +36,9 @@ set(x0d_API
 	handler.hpp
 	header.hpp
 	listener.hpp
+	local_stream.hpp
 	logger.hpp
+	process.hpp
 	request.hpp
 	response.hpp
 	server.hpp
@@ -69,6 +73,7 @@ macro(add_plugin ModuleName)
 endmacro()
 
 add_plugin(accesslog)
+add_plugin(cgi)
 add_plugin(debug)
 add_plugin(dirlisting)
 add_plugin(indexfile)
