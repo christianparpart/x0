@@ -94,6 +94,4 @@ private:
 	}
 };
 
-extern "C" x0::plugin *indexfile_init(x0::server& srv, const std::string& name) {
-	return new indexfile_plugin(srv, name);
-}
+X0_EXPORT_PLUGIN(indexfile);

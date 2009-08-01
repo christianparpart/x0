@@ -107,6 +107,4 @@ private:
 	}
 };
 
-extern "C" x0::plugin *userdir_init(x0::server& srv, const std::string& name) {
-	return new userdir_plugin(srv, name);
-}
+X0_EXPORT_PLUGIN(userdir);

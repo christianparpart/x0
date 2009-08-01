@@ -104,6 +104,4 @@ private:
 	}
 };
 
-extern "C" x0::plugin *dirlisting_init(x0::server& srv, const std::string& name) {
-	return new dirlisting_plugin(srv, name);
-}
+X0_EXPORT_PLUGIN(dirlisting);

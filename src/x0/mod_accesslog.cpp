@@ -127,6 +127,4 @@ private:
 	}
 };
 
-extern "C" x0::plugin *accesslog_init(x0::server& srv, const std::string& name) {
-	return new accesslog_plugin(srv, name);
-}
+X0_EXPORT_PLUGIN(accesslog);

@@ -64,6 +64,14 @@ protected:
 
 typedef boost::shared_ptr<plugin> plugin_ptr;
 
+#define X0_EXPORT_PLUGIN(pluginName) \
+	X0_EXPORT_PLUGIN_CLASS(pluginName, pluginName##_plugin)
+
+#define X0_EXPORT_PLUGIN_CLASS(pluginName, className) \
+	extern "C" x0::plugin *pluginName##_init(x0::server& srv, const std::string& name) { \
+		return new className(srv, name); \
+	}
+
 } // namespace x0
 
 #endif
