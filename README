@@ -1,26 +1,29 @@
 x0 - WEB SERVER - http://code.ninchens.net/projects/x0
 -----------------------------------------------------------------------------
 
+x0 aims to be a low-latency scalarable web server and web service framework written in C++.
+
 CORE FEATURE ROADMAP:
-- modular web server API, extensible via its powerful plugin API
-- configurable at runtime (via dbus)
-- multiple virtual hosts, different modules for different features:
-  - simple (like lighttpd's mod_vhost_simple)
-  - customizable (my)sql based mod_vhost_sql
+- modular and extensible web server API
 - HTTP/1.1 and HTTP/1.0
 - HTTP pipelining
 - #308: plaintext and SSL connections. (and the new mixed one, that apache invented?)
 - #312: embedded library that other apps can link against to use x0 for a builtin web service.
+- multiple virtual hosts, different modules for different features/demands:
+  - simple (like lighttpd's mod_vhost_simple)
+  - customizable (my)sql based mod_vhost_sql
 
 MODULES:
 - auth: implements HTTP authentication
-- accesslog: writes HTTP requests to an access log file (in spirit of apache httpd's common access log format)
-- cgi: handles CGI requests (files ending with a specified ending, e.g. ".cgi" and alike).
-- dbus: administrative plugin to (re-)configure server at runtime.
-- dirlisting: generates a directory listing response in case the request path maps to a directory instead of a file directly.
-- indexfile: internally redirects to index.html (or other, if configured) if request path maps to a directory that contains an index file.
-- redirect:
-- rewrite:
-- sendfile: sends static files to client if requested entity maps to a local file.
-- userdir: provides access to user's ~/public_html directory as hostname/~username URL
-- vhost: implements basic virtual hosting
++ accesslog: writes HTTP requests to an access log file (in spirit of apache httpd's common access log format)
++ cgi: handles CGI requests (files ending with a specified ending, e.g. ".cgi" and alike).
++ dirlisting: generates a directory listing response in case the request path maps to a directory instead of a file directly.
+- fastcgi: FastCGI implementation.
++ indexfile: internally redirects to index.html (or other, if configured) if request path maps to a directory that contains an index file.
+- proxy: an HTTP proxy plugin.
+- redirect: external redirects via 3xx status codes.
+- rewrite: internal redirects by request path rewrites and passing the next handler(s).
++ sendfile: sends static files to client if requested and entity maps to a local file.
++ userdir: provides access to user's ~/public_html directory as hostname/~username URL
++ vhost: implements basic virtual hosting
+- webdav: implements WebDAV

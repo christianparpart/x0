@@ -1,0 +1,18 @@
+C++0x is the name of the new C++ standard, which is partially supported by 
+the GNU C++ [1] compiler already.
+
+Most importanly and though probably used by this software project:
+
+* variadic templates
+* auto typed variables
+* strongly typed enums
+* initializer lists
+* defaulted and deleted functions
+
+Not yet implemented by GCC (4.4) but very useful:
+
+* lambda expressions and closures
+* null pointer constant (nullptr)
+* concepts (especially ranges)
+
+[1] http://gcc.gnu.org/projects/cxx0x.html

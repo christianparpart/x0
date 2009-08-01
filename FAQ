@@ -1,0 +1,50 @@
+Q) Why yet another web server?
+A) x0 is not just a web server, it's a philosophy you should live through.
+I developed web server add-ins in quite a number of web servers already and even tiny
+selfcontained http server classes for some projects, each with their own focused strengths.
+Since it seems that I'm not getting out of the HTTP-topic since quite a few years and
+probably won't for quite another few, I at least want a solid web server foundation I can
+build my projects and addons on - and this includes all what x0 stands for.
+
+Q) What does the word "x0" stand for.
+A) It stands for zero (or nearly zero) latency.
+The software aims to achieve this by being as asynchronous as possible,
+and caches where possible without breaking the HTTP protocol or significantly
+loosing features.
+Although, I lay a high emphasis on using Linux-native features not available to other 
+operating systems or are even quite young if that helps me improving performance.
+Other POSIX/UNIX-like operating systems may still compile, thanks to #ifdef.
+
+Q) How to pronounce "x0".
+A) Either as those two letters (x-zero), or just zero - what you like the most.
+
+Q) Why is x0 not using Qt as underlying framework?
+A) When I decided to develop a web server application I checked quite a few development frameworks,
+including my own long year grown one, and as I don't want to maintain it for another ten years,
+I actually inspected Qt to be probably the potential dependency of choice, however.
+Whilst it comes with a great wide range of cross platform support, intuitive API and easy to read
+source code, it still sux the most when it comes to performance.
+It's not even using epoll on Linux, and this was my key reason not to use it, as well as
+the signal/slot mechanism - as cool it is - is not suited when targeting 10k concurrent
+connections.
+
+Q) Why is x0 using Boost as the underlying framework?
+A) I love standards, and mostly proposed standards. Boost has a great opportunity when it comes to
+performance and (re)usability, although, I love their function and signaling API as well as
+boost.spirit and not to forget: boost.asio - two of four which are proposed standard for C++ TR1.
+
+Q) Why is x0 using ASIO/Boost.Asio for networking I/O?
+A) It's fast! it's easy to use - once you learn how to think asynchronous - and it's the first time
+(since quite a few years) where I'm using an I/O multiplexer not written by me.
+Let me celebrate that for a moment.
+
+Q) Will there be a Win32-version of x0?
+A) Honestly, I couldn't care less. I met and read about so many ppl thinking so selfish about their
+oh so cool Windows product that they -unwillingly to learn- set words like Linux, POSIX, and UNIX
+to the same line as bad-ass.
+Let me answer that with a product they might be missing some day.
+
+Q) Why is x0 *requiring* such a new GCC version X.Y.Z?
+A) People not willing to upgrade their toolchain, are likely not brave enough to pull in security update either.
+Why bothing about those guys when newer GCC/whatever compiler provide the better C++ features, namely
+those coming from C++0x e.g.

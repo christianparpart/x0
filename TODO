@@ -3,6 +3,7 @@ INTERMEDIATE TODO
 for a long-term todo list, see ticket system at http://code.ninchens.net/projects/x0
 
 - util:
+	- rework config API to be more useful!
 	- chain API (or just a std::deque/std::list?)
 	- filter chain API using the above/chain API
 - core:
@@ -10,10 +11,14 @@ for a long-term todo list, see ticket system at http://code.ninchens.net/project
 	- handle request headers Keep-Alive properly (using asio [deadline-]timers)
 	- do timeout when request parsing idles for too long. -> close the connection.
 - general:
-	- set license from GPL-3 to LGPL-3 for core and modules. keep GPL-3 for x0d daemon.
+	- set license from GPL-3 to LGPL-3 for core. keep GPL-3 for x0d daemon and modules.
 
 -----------------------------------------------------------------------------
 NOTES AND THOUGHTS:
+- cgi plugin:
+  - find a way to get notified on SIGCHLD which should be caught in asio's io_service on EINTR's.
+    hm. or just use sigaction/etc...? but what if other plugins may want to hook into SIGCHLD aswell?
+	that's why we need a central place where we can register our check callback for it.
 - sendfile plugin:
   - rename to "localfile", as it served local files, 
     though, leaving room for other plugins to serve static files aswell, but from a different storage source.
