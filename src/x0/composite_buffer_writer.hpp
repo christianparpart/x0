@@ -1,3 +1,9 @@
+/* <x0/composite_buffer_writer.hpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
 #ifndef composite_buffer_writer_hpp
 #define composite_buffer_writer_hpp 1
 

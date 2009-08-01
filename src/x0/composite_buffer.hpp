@@ -1,3 +1,9 @@
+/* <x0/composite_buffer.hpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
 #ifndef x0_composite_buffer_hpp
 #define x0_composite_buffer_hpp
 

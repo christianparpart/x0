@@ -1,3 +1,10 @@
+/* <x0/local_stream.hpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef sw_x0_local_stream_hpp
 #define sw_x0_local_stream_hpp 1
 

@@ -1,3 +1,10 @@
+/* <x0/process.hpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef sw_x0_process_hpp
 #define sw_x0_process_hpp 1
 

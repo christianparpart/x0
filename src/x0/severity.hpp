@@ -1,3 +1,10 @@
+/* <x0/severity.hpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #ifndef x0_severity_hpp
 #define x0_severity_hpp (1)
 

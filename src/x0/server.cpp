@@ -1,6 +1,7 @@
 /* <x0/server.cpp>
  *
- * This file is part of the x0 web server, released under GPLv3.
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
@@ -11,16 +12,19 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
+
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
+
 #include <iostream>
 #include <cstdarg>
 #include <cstdlib>
+
 #include <pwd.h>
 #include <grp.h>
-#include <getopt.h>
 #include <dlfcn.h>
+#include <getopt.h>
 
 namespace x0 {
 

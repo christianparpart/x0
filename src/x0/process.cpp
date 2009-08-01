@@ -1,3 +1,10 @@
+/* <x0/process.cpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/process.hpp>
 #include <boost/asio.hpp>
 #include <string>

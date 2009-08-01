@@ -1,12 +1,13 @@
 /* <x0/function.hpp>
  *
- * This file is part of the x0 web server, released under GPLv3.
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
 // this api is project independant, however
-#ifndef nuggad_function_h
-#define nuggad_function_h (1)
+#ifndef sw_x0_function_hpp
+#define sw_x0_function_hpp (1)
 
 namespace x0 {
 

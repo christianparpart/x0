@@ -1,11 +1,12 @@
 /* <x0/server.hpp>
  *
- * This file is part of the x0 web server, released under GPLv3.
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#ifndef sw_x0_server_h
-#define sw_x0_server_h
+#ifndef sw_x0_server_hpp
+#define sw_x0_server_hpp (1)
 
 #include <x0/config.hpp>
 #include <x0/logger.hpp>
