@@ -144,6 +144,9 @@ public:
 	/** retrieves the content length as constructed thus far. */
 	size_t content_length() const;
 
+	/** returns true in case serializing the response has already been started, that is, headers has been sent out already. */
+	bool serializing() const;
+
 	/** write a string value to response content. */
 	void write(const std::string& value);
 
@@ -225,6 +228,11 @@ inline request& response::request() const
 inline size_t response::content_length() const
 {
 	return content.size();
+}
+
+inline bool response::serializing() const
+{
+	return serializing_;
 }
 
 inline void response::write(const std::string& value)
