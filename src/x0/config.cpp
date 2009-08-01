@@ -175,6 +175,22 @@ std::vector<std::string> config::list(const std::string& pattern)
 	return result;
 }
 
+std::vector<std::string> config::keys(const std::string& section) const
+{
+	map_type::const_iterator i = sections.find(section);
+	std::vector<std::string> result;
+
+	if (i != sections.end())
+	{
+		for (section::const_iterator k = i->second.begin(); k != i->second.end(); ++k)
+		{
+			result.push_back(k->first);
+		}
+	}
+
+	return result;
+}
+
 config::const_iterator config::cbegin() const
 {
 	return sections.begin();

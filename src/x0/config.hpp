@@ -64,6 +64,10 @@ public:
 	/// retrieve a list of section titles matching given pattern.
 	std::vector<std::string> list(const std::string& pattern);
 
+
+	/// retrieves a list of all keys  withing given \p section.
+	std::vector<std::string> keys(const std::string& section) const;
+
 	const_iterator cbegin() const;
 	const_iterator cend() const;
 
