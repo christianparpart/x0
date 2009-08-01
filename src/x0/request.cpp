@@ -6,6 +6,7 @@
 
 #include <x0/request.hpp>
 #include <x0/response.hpp>
+#include <strings.h>			// strcasecmp()
 
 namespace x0 {
 
@@ -13,7 +14,7 @@ std::string request::header(const std::string& name) const
 {
 	for (std::vector<x0::header>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)
 	{
-		if (i->name == name)
+		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 		{
 			return i->value;
 		}

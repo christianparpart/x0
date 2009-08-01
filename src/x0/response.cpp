@@ -33,7 +33,7 @@ response& response::operator*=(const x0::header& in)
 {
 	for (std::vector<x0::header>::iterator i = headers.begin(); i != headers.end(); ++i)
 	{
-		if (i->name == in.name)
+		if (strcasecmp(i->name.c_str(), in.name.c_str()) == 0)
 		{
 			i->value = in.value;
 			return *this;
@@ -49,7 +49,7 @@ bool response::has_header(const std::string& name) const
 {
 	for (std::vector<x0::header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
-		if (i->name == name)
+		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 		{
 			return true;
 		}
@@ -62,7 +62,7 @@ std::string response::header(const std::string& name) const
 {
 	for (std::vector<x0::header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
-		if (i->name == name)
+		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 		{
 			return i->value;
 		}
@@ -75,7 +75,7 @@ const std::string& response::header(const std::string& name, const std::string& 
 {
 	for (std::vector<x0::header>::iterator i = headers.begin(); i != headers.end(); ++i)
 	{
-		if (i->name == name)
+		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 		{
 			return i->value = value;
 		}
