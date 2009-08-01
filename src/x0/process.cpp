@@ -28,8 +28,9 @@ process::process(boost::asio::io_service& io, const std::string& exe, const para
 
 process::~process()
 {
-	// XXX kill child?
-	fetch_status();
+	int rv;
+	EINTR_LOOP(rv, ::waitpid(pid_, &status_, 0));
+	//printf("~process(): rv=%d, errno=%s\n", rv, strerror(errno));
 }
 
 void process::start(const std::string& exe, const params& args, const environment& env, const std::string& workdir)
@@ -58,18 +59,11 @@ bool process::expired()
 	if (pid_ <= 0)
 		return true;
 
-	switch (fetch_status())
-	{
-		case 0:
-			// we could fetch a status, meaning, program is still running
-			return false;
-		case -1:
-			// oops? waitpid error?
-			return false;
-		default:
-			// waidpid returned value > 0, meaning, program has returned already(?)
-			return true;
-	}
+	if ((fetch_status() == -1 && errno == ECHILD)
+			|| (WIFEXITED(status_) || WIFSIGNALED(status_)))
+		return true;
+
+	return false;
 }
 
 int process::fetch_status()
@@ -77,7 +71,7 @@ int process::fetch_status()
 	int rv;
 
 	do rv = ::waitpid(pid_, &status_, WNOHANG);
-	while (rv == -1 && (errno == EINTR || errno == ECHILD));
+	while (rv == -1 && errno == EINTR);
 
 	return rv;
 }
