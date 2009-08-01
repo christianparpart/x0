@@ -17,6 +17,7 @@ MODULES:
 - auth: implements HTTP authentication
 + accesslog: writes HTTP requests to an access log file (in spirit of apache httpd's common access log format)
 + cgi: handles CGI requests (files ending with a specified ending, e.g. ".cgi" and alike).
+- deflate: implements dynamic content compression via zlib/bzlib
 + dirlisting: generates a directory listing response in case the request path maps to a directory instead of a file directly.
 - fastcgi: FastCGI implementation.
 + indexfile: internally redirects to index.html (or other, if configured) if request path maps to a directory that contains an index file.
@@ -24,6 +25,7 @@ MODULES:
 - redirect: external redirects via 3xx status codes.
 - rewrite: internal redirects by request path rewrites and passing the next handler(s).
 + sendfile: sends static files to client if requested and entity maps to a local file.
+- ssl: implements SSL encryption using gnutls library
 + userdir: provides access to user's ~/public_html directory as hostname/~username URL
 + vhost: implements basic virtual hosting
 - webdav: implements WebDAV
