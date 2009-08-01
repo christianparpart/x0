@@ -556,7 +556,7 @@ private:
 	 */
 	bool find_interpreter(x0::request& in, std::string& interpreter)
 	{
-		unsigned rpos = in.entity.rfind('.');
+		std::string::size_type rpos = in.entity.rfind('.');
 
 		if (rpos != std::string::npos)
 		{
