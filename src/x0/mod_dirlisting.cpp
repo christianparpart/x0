@@ -104,6 +104,7 @@ private:
 
 			out.flush();
 
+			closedir(dir);
 			return true;
 		}
 		return false;
