@@ -206,7 +206,8 @@ void server::handle_request(request& in, response& out) {
 	resolve_entity(in);
 
 	// redirect physical request paths not ending with slash
-	if (in.entity.size() > 3 && isdir(in.entity) && in.entity[in.entity.size() - 1] != '/')
+	struct stat *st = stat(in.entity);
+	if (st && S_ISDIR(st->st_mode) && in.entity.size() > 3 && in.entity[in.entity.size() - 1] != '/')
 	{
 		std::stringstream url;
 		url << (in.connection.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
