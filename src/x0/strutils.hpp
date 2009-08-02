@@ -86,11 +86,6 @@ private:
 // }}}
 
 /**
- * checks wether given filename is a directory or not.
- */
-bool isdir(const std::string& filename);
-
-/**
  * retrieves contents of given file.
  */
 std::string read_file(const std::string& filename);

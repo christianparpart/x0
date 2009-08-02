@@ -19,12 +19,6 @@
 
 namespace x0 {
 
-bool isdir(const std::string& filename)
-{
-	struct stat st;
-	return stat(filename.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
-}
-
 std::string read_file(const std::string& filename)
 {
 #if 0
