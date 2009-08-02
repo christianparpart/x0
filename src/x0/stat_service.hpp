@@ -51,7 +51,7 @@ private:
 
 //		if (!bytes_transferred)
 //		{
-//			::read(in_.native(), &ev_, sizeof(ev_));
+//			::read(in_.native(), &ev_, sizeof(ev_)); // use read() instead of asio's std::readv()
 //			perror("::read: ");
 //		}
 
@@ -66,8 +66,7 @@ private:
 			}
 		}
 
-		//if (!ec && !empty())
-		if (ec != boost::asio::error::operation_aborted)
+		if (!ec)
 		{
 			printf("stat: re-assign async_read (jobs=%ld)\n", size());
 			boost::asio::async_read(in_, boost::asio::buffer(&ev_, sizeof(ev_)),
@@ -81,6 +80,8 @@ inline stat_service::stat_service(boost::asio::io_service& io, std::size_t mxcos
 	cache_(mxcost),
 	wd_()
 {
+	boost::asio::async_read(in_, boost::asio::buffer(&ev_, sizeof(ev_)),
+		boost::bind(&stat_service::invalidate, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 }
 
 inline stat_service::~stat_service()
@@ -109,12 +110,6 @@ inline struct stat *stat_service::query(const std::string& _filename)
 			{
 				printf("stat.query(%s) wd=%d\n", filename.c_str(), rv);
 				wd_[rv] = filename;
-
-				if (size() == 1) // if this is the first entry, start watching for events then
-				{
-					boost::asio::async_read(in_, boost::asio::buffer(&ev_, sizeof(ev_)),
-						boost::bind(&stat_service::invalidate, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-				}
 			}
 
 			return st;
