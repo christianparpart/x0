@@ -96,6 +96,10 @@ ELSE(BUILD_STATIC)
 ENDIF(BUILD_STATIC)
 
 # ---------------------------------------------------------------------------
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
+ADD_DEFINITIONS(-DHAVE_SYSCONFIG_H)
+
+# ---------------------------------------------------------------------------
 message("")
 message("Build type: ${CMAKE_BUILD_TYPE}")
 message("Boost include directory: ${BOOST_INCLUDEDIR}")
