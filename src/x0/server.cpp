@@ -96,6 +96,14 @@ void server::configure(const std::string& configfile)
 
 	config_.load<std::string>("service", "tag", tag);
 
+	// stat accelerator
+	std::string value;
+	if ((value = config_.get("service", "stat-cache-max-cost")) != "")
+		stat.max_cost(boost::lexical_cast<int>(value));
+
+	if ((value = config_.get("service", "stat-cache-enabled")) != "")
+		stat.caching(value == "true");
+
 	// load modules
 	std::vector<std::string> plugins = split<std::string>(config_.get("service", "modules-load"), ", ");
 

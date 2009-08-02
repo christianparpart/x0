@@ -12,7 +12,9 @@ nice=0
 [service]
 tag=x0
 modules-directory=/usr/libexec/x0/
-modules-load=accesslog, dirlisting, indexfile, sendfile, vhost
+modules-load=accesslog, dirlisting, userdir, indexfile, cgi, sendfile, vhost
+stat-cache-enabled=true
+stat-cache-max-cost=256
 log-mode=file
 log-level=warn
 log-filename=error.log
