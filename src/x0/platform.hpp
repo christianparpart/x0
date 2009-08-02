@@ -22,6 +22,7 @@
 #	define X0_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #	define X0_NO_RETURN __attribute__((no_return))
 #	define X0_DEPRECATED __attribute__((__deprecated__))
+#	define X0_PURE __attribute__((pure))
 #elif defined(__MINGW32__)
 #	define X0_NO_EXPORT /*!*/
 #	define X0_EXPORT __declspec(export)
@@ -29,6 +30,7 @@
 #	define X0_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #	define X0_NO_RETURN __attribute__((no_return))
 #	define X0_DEPRECATED __attribute__((__deprecated__))
+#	define X0_PURE __attribute__((pure))
 #elif defined(__MSVC__)
 #	define X0_NO_EXPORT /*!*/
 #	define X0_EXPORT __declspec(export)
@@ -36,6 +38,7 @@
 #	define X0_WARN_UNUSED_RESULT /*!*/
 #	define X0_NO_RETURN /*!*/
 #	define X0_DEPRECATED /*!*/
+#	define X0_PURE /*!*/
 #else
 #	warning Unknown platform
 #	define X0_NO_EXPORT /*!*/
@@ -44,6 +47,7 @@
 #	define X0_WARN_UNUSED_RESULT /*!*/
 #	define X0_NO_RETURN /*!*/
 #	define X0_DEPRECATED /*!*/
+#	define X0_PURE /*!*/
 #endif
 
 #endif
