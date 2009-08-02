@@ -49,7 +49,8 @@ server::server() :
 	max_keep_alive_idle(5),
 	max_read_idle(60),
 	max_write_idle(360),
-	tag("x0/" VERSION)
+	tag("x0/" VERSION),
+	stat(io_service_pool_.get_service())
 {
 }
 

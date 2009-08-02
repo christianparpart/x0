@@ -17,6 +17,7 @@
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
 #include <x0/property.hpp>
+#include <x0/stat_service.hpp>
 #include <boost/signals.hpp>
 #include <cstring>
 #include <string>
@@ -181,6 +182,7 @@ public:
 	value_property<int> max_read_idle;
 	value_property<int> max_write_idle;
 	value_property<std::string> tag;
+	stat_service stat;
 };
 
 #define LOG(srv, severity, message...) (srv).log(__FILENAME__, __LINE__, severity, message)

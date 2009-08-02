@@ -51,7 +51,9 @@ public:
 private:
 	bool dirlisting(x0::request& in, x0::response& out)
 	{
-		if (!x0::isdir(in.entity)) return false;
+		struct stat *st;
+		if (!(st = in.connection.server().stat(in.entity)) || !S_ISDIR(st->st_mode))
+			return false;
 
 		if (DIR *dir = opendir(in.entity.c_str()))
 		{
@@ -68,7 +70,8 @@ private:
 
 				if (name[0] != '.')
 				{
-					if (x0::isdir(in.entity + name)) name += "/";
+					if ((st = in.connection.server().stat(in.entity + name)) && S_ISDIR(st->st_mode))
+						name += "/";
 
 					listing.push_back(name);
 				}

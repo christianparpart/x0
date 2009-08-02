@@ -68,11 +68,10 @@ private:
 	void indexfile(x0::request& in)
 	{
 		std::string path(in.entity);
-		struct stat st;
 
-		if (stat(path.c_str(), &st) != 0) return;
-
-		if (!S_ISDIR(st.st_mode)) return;
+		struct stat *st = in.connection.server().stat(path);
+		if (!st || !S_ISDIR(st->st_mode))
+			return;
 
 		context& ctx = server_.context<context>(this);
 
@@ -85,8 +84,7 @@ private:
 				ipath += "/";
 			ipath += *i;
 
-			struct stat st2;
-			if (stat(ipath.c_str(), &st2) == 0 && S_ISREG(st2.st_mode))
+			if ((st = in.connection.server().stat(ipath)) && S_ISREG(st->st_mode))
 			{
 				in.entity = ipath;
 				break;

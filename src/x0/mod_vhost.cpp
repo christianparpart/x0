@@ -88,15 +88,15 @@ private:
 			dr += hostname;
 			dr += document_root_;
 
-			struct stat st;
-			if (stat(dr.c_str(), &st) || !S_ISDIR(st.st_mode))
+			struct stat *st = in.connection.server().stat(dr);
+			if (!st || S_ISDIR(st->st_mode))
 			{
 				dr.clear();
 				dr += server_root_;
 				dr += default_host_;
 				dr += document_root_;
 
-				if (stat(dr.c_str(), &st) || !S_ISDIR(st.st_mode))
+				if (!(st = in.connection.server().stat(dr)) || !S_ISDIR(st->st_mode))
 				{
 					return;
 				}

@@ -119,7 +119,7 @@ private:
 	 *
 	 * \throw response::not_modified, in case the client may use its cache.
 	 */
-	void verify_client_cache(x0::request& in, x0::response& out, struct stat& st)
+	void verify_client_cache(x0::request& in, x0::response& out, struct stat *st)
 	{
 		// If-None-Match, If-Modified-Since
 
@@ -132,7 +132,7 @@ private:
 				{
 					if (time_t date = from_http_date(value))
 					{
-						if (st.st_mtime <= date)
+						if (st->st_mtime <= date)
 						{
 							throw x0::response::not_modified;
 						}
@@ -148,7 +148,7 @@ private:
 		{
 			if (time_t date = from_http_date(value))
 			{
-				if (st.st_mtime <= date)
+				if (st->st_mtime <= date)
 				{
 					throw x0::response::not_modified;
 				}
@@ -173,11 +173,11 @@ private:
 	{
 		std::string path(in.entity);
 
-		struct stat st;
-		if (stat(path.c_str(), &st) != 0)
+		struct stat *st = in.connection.server().stat(path);
+		if (st == 0)
 			return false;
 
-		if (!S_ISREG(st.st_mode))
+		if (!S_ISREG(st->st_mode))
 			throw x0::response::forbidden;
 
 		verify_client_cache(in, out, st);
@@ -193,7 +193,7 @@ private:
 
 		try
 		{
-			out.header("Last-Modified", x0::http_date(st.st_mtime));
+			out.header("Last-Modified", x0::http_date(st->st_mtime));
 			out.header("ETag", etag_generate(st));
 
 			if (!process_range_request(in, out, st, fd))
@@ -202,9 +202,9 @@ private:
 
 				out.header("Accept-Ranges", "bytes");
 				out.header("Content-Type", get_mime_type(in));
-				out.header("Content-Length", boost::lexical_cast<std::string>(st.st_size));
+				out.header("Content-Length", boost::lexical_cast<std::string>(st->st_size));
 
-				out.write(fd, 0, st.st_size, true);
+				out.write(fd, 0, st->st_size, true);
 			}
 
 			out.flush();
@@ -220,7 +220,7 @@ private:
 		return true;
 	}
 
-	inline bool process_range_request(x0::request& in, x0::response& out, struct stat& st, int fd)
+	inline bool process_range_request(x0::request& in, x0::response& out, struct stat *st, int fd)
 	{
 		std::string range_value(in.header("Range"));
 		x0::range_def range;
@@ -256,7 +256,7 @@ private:
 				body.push_back("-");
 				body.push_back(boost::lexical_cast<std::string>(offsets.second));
 				body.push_back("/");
-				body.push_back(boost::lexical_cast<std::string>(st.st_size));
+				body.push_back(boost::lexical_cast<std::string>(st->st_size));
 				body.push_back("\r\n\r\n");
 
 				body.push_back(fd, offsets.first, length, ++i == e);
@@ -281,7 +281,7 @@ private:
 			out.header("Content-Length", boost::lexical_cast<std::string>(length));
 
 			std::stringstream cr;
-			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << st.st_size;
+			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << st->st_size;
 			out.header("Content-Range", cr.str());
 
 			out.write(fd, offsets.first, length, true);
@@ -290,21 +290,21 @@ private:
 		return true;
 	}
 
-	std::pair<std::size_t, std::size_t> make_offsets(const std::pair<std::size_t, std::size_t>& p, const struct stat& st)
+	std::pair<std::size_t, std::size_t> make_offsets(const std::pair<std::size_t, std::size_t>& p, const struct stat *st)
 	{
 		std::pair<std::size_t, std::size_t> q;
 
 		if (p.first == x0::range_def::npos) // suffix-range-spec
 		{
-			q.first = st.st_size - p.second;
-			q.second = st.st_size - 1;
+			q.first = st->st_size - p.second;
+			q.second = st->st_size - 1;
 		}
 		else
 		{
 			q.first = p.first;
 
-			q.second = p.second == x0::range_def::npos && p.second > std::size_t(st.st_size)
-				? st.st_size - 1
+			q.second = p.second == x0::range_def::npos && p.second > std::size_t(st->st_size)
+				? st->st_size - 1
 				: p.second;
 		}
 
@@ -337,7 +337,7 @@ private:
 	 * \param st stat structure to generate the ETag for.
 	 * \return an HTTP/1.1 conform ETag value.
 	 */
-	inline std::string etag_generate(const struct stat& st)
+	inline std::string etag_generate(const struct stat *st)
 	{
 		std::stringstream sstr;
 		int count = 0;
@@ -347,19 +347,19 @@ private:
 		if (etag_consider_mtime_)
 		{
 			++count;
-			sstr << st.st_mtime;
+			sstr << st->st_mtime;
 		}
 
 		if (etag_consider_size_)
 		{
 			if (count++) sstr << '-';
-			sstr << st.st_size;
+			sstr << st->st_size;
 		}
 
 		if (etag_consider_inode_)
 		{
 			if (count++) sstr << '-';
-			sstr << st.st_ino;
+			sstr << st->st_ino;
 		}
 
 		sstr << '"';

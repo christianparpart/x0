@@ -501,11 +501,11 @@ private:
 	bool generate_content(x0::request& in, x0::response& out) {
 		std::string path(in.entity);
 
-		struct stat st;
-		if (stat(path.c_str(), &st) != 0)
+		struct stat *st = in.connection.server().stat(path);;
+		if (st == 0)
 			return false;
 
-		if (!S_ISREG(st.st_mode))
+		if (!S_ISREG(st->st_mode))
 			return false;
 
 		std::string interpreter;
@@ -515,7 +515,7 @@ private:
 			return true;
 		}
 
-		bool executable = st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
+		bool executable = st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
 
 		if (executable && (process_executables_ || matches_prefix(in)))
 		{
