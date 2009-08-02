@@ -156,8 +156,16 @@ request
 response
 
 
+---------------------------------------------------------------
+LINUX SYSTEM CALLS OF INTEREST;
 
-
+- timerfd, for handling timers through file descriptors
+- eventfd, helpful for user driven event notification / main-loop interruption (instead of using pipes e.g.)
+- signalfd, for receiving signal events via file descriptor instead of sigaction/... stuff
+- inotify, file system event notification.
+- fsnotify, potential successor of inotify and dnotify
+- sendfile, most delicious when used fully async (for input and output)
+- socketpair, not quite interesting, but worth a note
 
 
 
