@@ -13,7 +13,6 @@
 #include <sys/types.h>
 #include <sys/sendfile.h>	// sendfile()
 #include <sys/socket.h>		// sendto()
-#include <sys/stat.h>		// stat()
 #include <unistd.h>			// close(), write(), sysconf()
 
 #include <boost/asio/ip/tcp.hpp>
