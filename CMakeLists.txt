@@ -128,6 +128,12 @@ ENDIF(BUILD_STATIC)
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
 ADD_DEFINITIONS(-DHAVE_SYSCONFIG_H)
 
+IF(${CMAKE_BUILD_TYPE} EQUAL "Release")
+	ADD_DEFINITIONS(-DRELEASE=1 -DNDEBUG=1)
+ELSE()
+	ADD_DEFINITIONS(-DDEBUG=1)
+ENDIF()
+
 # ---------------------------------------------------------------------------
 message("")
 message("Build type: ${CMAKE_BUILD_TYPE}")
