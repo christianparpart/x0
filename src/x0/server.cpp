@@ -256,6 +256,15 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 			throw std::runtime_error(fstringbuilder::format("Could not find group: %s", groupname.c_str()));
 		}
 	}
+
+	if (!::getuid() || !::geteuid() || !::getgid() || !::getegid())
+	{
+#if defined(RELEASE)
+		throw std::runtime_error(fstringbuilder::format("Service is not allowed to run with administrative permissionsService is still running with administrative permissions."));
+#else
+		LOG(*this, severity::warn, "Service is still running with administrative permissions.");
+#endif
+	}
 }
 
 void server::handle_request(request& in, response& out) {
