@@ -3,6 +3,15 @@
 include_directories(..)
 include_directories(${BOOST_INCLUDEDIR})
 
+SET(COMPILE_DEFINITIONS_Debug -DDEBUG=1)
+SET(COMPILE_DEFINITIONS_Release -DRELEASE=1 -DNDEBUG=1)
+
+IF(${CMAKE_BUILD_TYPE} EQUAL Release)
+	add_definitions(-DX0_RELEASE -DNDEBUG=1)
+ELSE()
+	add_definitions(-DX0_DEBUG=1)
+ENDIF()
+
 add_definitions(
 	-Wall -Wno-deprecated
 	-pthread
@@ -45,6 +54,7 @@ set(x0d_API
 	severity.hpp
 	strutils.hpp strutils.tcc
 	types.hpp
+	sysconfig.h
 )
 
 #	function.hpp

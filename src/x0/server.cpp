@@ -259,7 +259,7 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 
 	if (!::getuid() || !::geteuid() || !::getgid() || !::getegid())
 	{
-#if defined(RELEASE)
+#if defined(X0_RELEASE)
 		throw std::runtime_error(fstringbuilder::format("Service is not allowed to run with administrative permissionsService is still running with administrative permissions."));
 #else
 		LOG(*this, severity::warn, "Service is still running with administrative permissions.");
