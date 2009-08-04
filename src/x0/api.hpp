@@ -1,7 +1,7 @@
 #ifndef sw_x0_api_hpp
 #define sw_x0_api_hpp (1)
 
-#include <x0/platform.hpp>
+#include <x0/defines.hpp>
 
 // x0 exports
 #if defined(BUILD_X0)

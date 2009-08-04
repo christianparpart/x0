@@ -8,6 +8,7 @@
 #ifndef sw_x0_local_stream_hpp
 #define sw_x0_local_stream_hpp 1
 
+#include <x0/api.hpp>
 #include <boost/asio.hpp>
 #include <boost/noncopyable.hpp>
 

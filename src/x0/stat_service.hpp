@@ -2,9 +2,11 @@
 #define sw_x0_stat_service_hpp (1)
 
 #include <x0/cache.hpp>
+#include <x0/api.hpp>
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/signal.hpp>
 
 #include <sys/inotify.h>
 #include <sys/types.h>
@@ -12,7 +14,7 @@
 #include <unistd.h>
 
 #if 0
-#	define STAT_DEBUG(msg...) printf(msg)
+#	define STAT_DEBUG(msg...) printf("stat_service: " msg)
 #else
 #	define STAT_DEBUG(msg...) /*!*/
 #endif
@@ -27,7 +29,7 @@ namespace x0 {
  *
  * \note this class is not thread-safe
  */
-class stat_service :
+class X0_API stat_service :
 	public boost::noncopyable
 {
 private:
@@ -42,6 +44,8 @@ private:
 public:
 	stat_service(boost::asio::io_service& io, std::size_t mxcost = 128);
 	~stat_service();
+
+	boost::signal<void(const std::string& filename, const struct stat *st)> on_invalidate;
 
 	struct stat *query(const std::string& filename);
 	struct stat *operator()(const std::string& filename);
@@ -75,7 +79,11 @@ private:
 			if (i != wd_.end())
 			{
 				STAT_DEBUG("--stat.invalidate: wd: %d, remove: %s\n", ev->wd, i->second.c_str());
-				cache_.remove(i->second);
+
+				auto k = cache_.find(i->second);
+				on_invalidate(k->first, k->second.value_ptr);
+
+				cache_.erase(k);
 				wd_.erase(i);
 			}
 			ev += sizeof(*ev) + ev->len;
@@ -89,11 +97,19 @@ private:
 };
 
 inline stat_service::stat_service(boost::asio::io_service& io, std::size_t mxcost) :
+#if defined(X0_RELEASE)
 	in_(io, ::inotify_init1(IN_NONBLOCK | IN_CLOEXEC)),
+#else
+	in_(io, ::inotify_init()),
+#endif
 	cache_(mxcost),
 	wd_(),
 	caching_(true)
 {
+#if !defined(X0_RELEASE)
+	::fcntl(in_.native(), F_SETFL, O_NONBLOCK);
+	::fcntl(in_.native(), F_SETFD, FD_CLOEXEC);
+#endif
 	async_read();
 }
 

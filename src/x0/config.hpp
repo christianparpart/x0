@@ -9,6 +9,7 @@
 #define x0_config_hpp (1)
 
 #include <x0/types.hpp>
+#include <x0/api.hpp>
 #include <string>
 #include <map>
 #include <boost/lexical_cast.hpp>

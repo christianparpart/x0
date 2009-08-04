@@ -9,6 +9,7 @@
 #define x0_handler_hpp
 
 #include <x0/types.hpp>
+#include <x0/api.hpp>
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/next_prior.hpp>

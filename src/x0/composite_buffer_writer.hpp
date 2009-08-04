@@ -8,6 +8,7 @@
 #define composite_buffer_writer_hpp 1
 
 #include <x0/composite_buffer.hpp>
+#include <x0/api.hpp>
 
 namespace x0 {
 

@@ -8,6 +8,7 @@
 #ifndef x0_types_h
 #define x0_types_h (1)
 
+#include <x0/api.hpp>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
@@ -43,8 +44,6 @@ typedef boost::shared_ptr<response> response_ptr;
  * \brief request handler functor.
  */
 typedef boost::function<void(request&, response&)> request_handler_fn;
-
-#define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
 } // namespace x0
 

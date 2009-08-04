@@ -9,6 +9,8 @@
 #ifndef sw_x0_function_hpp
 #define sw_x0_function_hpp (1)
 
+#include <x0/api.hpp>
+
 namespace x0 {
 
 /** \addtogroup common */

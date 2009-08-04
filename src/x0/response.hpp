@@ -14,7 +14,7 @@
 #include <x0/composite_buffer.hpp>
 #include <x0/composite_buffer_async_writer.hpp>
 #include <x0/connection.hpp>
-#include <x0/debug.hpp>
+#include <x0/api.hpp>
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>

@@ -8,6 +8,7 @@
 #define x0_composite_buffer_hpp
 
 #include <x0/property.hpp>
+#include <x0/api.hpp>
 
 #include <string>
 #include <sys/types.h>

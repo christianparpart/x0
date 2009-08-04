@@ -14,8 +14,8 @@
 #include <x0/request.hpp>
 #include <x0/server.hpp>
 #include <x0/property.hpp>
-#include <x0/debug.hpp>
 #include <x0/types.hpp>
+#include <x0/api.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>

@@ -16,6 +16,7 @@
 #ifndef sw_x0_cache_hpp
 #define sw_x0_cache_hpp
 
+#include <x0/api.hpp>
 #include <boost/noncopyable.hpp>
 #include <cstddef>
 #include <vector>
@@ -43,14 +44,20 @@ private:
 	typedef typename std::map<Key, Node> hash;
 
 public:
+	typedef typename hash::iterator iterator;
+	typedef typename hash::const_iterator const_iterator;
+
+public:
 	explicit cache(std::size_t maxcost);
 	~cache();
 
 	// method based access
 	bool insert(const Key&& key, Value *value, std::size_t cost = 1);
 	bool contains(const Key&& key) const;
+	iterator find(const Key&& key);
 	Value *get(const Key&& key) const;
 	void remove(const Key&& key);
+	void erase(const iterator&& i);
 	void clear();
 
 	// index based access

@@ -54,6 +54,8 @@ set(x0d_API
 	severity.hpp
 	strutils.hpp strutils.tcc
 	types.hpp
+	defines.hpp
+	api.hpp
 	sysconfig.h
 )
 

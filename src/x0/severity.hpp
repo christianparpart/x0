@@ -9,6 +9,7 @@
 #define x0_severity_hpp (1)
 
 #include <x0/types.hpp>
+#include <x0/api.hpp>
 #include <string>
 
 namespace x0 {
@@ -18,7 +19,7 @@ namespace x0 {
  * \brief named enum `severity`, used by logging facility
  * \see logger
  */
-struct severity {
+struct X0_API severity {
 	static const int emergency = 0;
 	static const int alert = 1;
 	static const int critical = 2;

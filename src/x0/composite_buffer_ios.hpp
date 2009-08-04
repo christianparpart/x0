@@ -9,6 +9,7 @@
 
 #include <x0/composite_buffer.hpp>
 #include <x0/detail/scoped_mmap.hpp>
+#include <x0/api.hpp>
 #include <iosfwd>
 
 std::ostream& operator<<(std::ostream& os, const x0::composite_buffer& cb);

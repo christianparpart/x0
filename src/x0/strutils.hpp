@@ -9,6 +9,7 @@
 #define x0_strutils_hpp (1)
 
 #include <x0/types.hpp>
+#include <x0/api.hpp>
 #include <string>
 #include <vector>
 

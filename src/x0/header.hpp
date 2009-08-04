@@ -8,8 +8,9 @@
 #ifndef x0_header_hpp
 #define x0_header_hpp (1)
 
-#include <string>
 #include <x0/types.hpp>
+#include <x0/api.hpp>
+#include <string>
 
 namespace x0 {
 

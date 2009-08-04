@@ -10,6 +10,7 @@
 
 #include <x0/property.hpp>
 #include <x0/types.hpp>
+#include <x0/api.hpp>
 
 namespace x0 {
 

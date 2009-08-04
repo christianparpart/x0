@@ -8,6 +8,7 @@
 #define x0_context_hpp (1)
 
 #include <x0/plugin.hpp>
+#include <x0/api.hpp>
 
 namespace x0 {
 

@@ -10,6 +10,7 @@
 
 #include <x0/header.hpp>
 #include <x0/types.hpp>
+#include <x0/api.hpp>
 #include <string>
 #include <vector>
 #include <boost/tuple/tuple.hpp>

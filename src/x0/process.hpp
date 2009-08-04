@@ -9,6 +9,7 @@
 #define sw_x0_process_hpp 1
 
 #include <x0/local_stream.hpp>
+#include <x0/api.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/asio.hpp>
 #include <vector>

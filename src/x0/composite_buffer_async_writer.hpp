@@ -8,6 +8,7 @@
 #define composite_buffer_async_writer_hpp 1
 
 #include <x0/sysconfig.h>
+#include <x0/api.hpp>
 #include <x0/detail/scoped_mmap.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/ip/tcp.hpp>

@@ -8,7 +8,6 @@
 #include <x0/response.hpp>
 #include <x0/server.hpp>
 #include <x0/strutils.hpp>
-#include <x0/debug.hpp>
 #include <x0/types.hpp>
 
 #include <boost/lexical_cast.hpp>

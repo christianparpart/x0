@@ -58,6 +58,12 @@ inline bool cache<Key, Value>::contains(const Key&& key) const
 }
 
 template<typename Key, typename Value>
+inline typename cache<Key, Value>::iterator cache<Key, Value>::find(const Key&& key)
+{
+	return hash_.find(key);
+}
+
+template<typename Key, typename Value>
 inline Value *cache<Key, Value>::get(const Key&& key) const
 {
 	return const_cast<cache<Key, Value> *>(this)->relink(key);
@@ -66,8 +72,12 @@ inline Value *cache<Key, Value>::get(const Key&& key) const
 template<typename Key, typename Value>
 inline void cache<Key, Value>::remove(const Key&& key)
 {
-	auto i = hash_.find(key);
+	erase(hash_.find(key));
+}
 
+template<typename Key, typename Value>
+inline void cache<Key, Value>::erase(const iterator&& i)
+{
 	if (i != hash_.end())
 		unlink(i->second);
 }

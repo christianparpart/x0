@@ -1,5 +1,16 @@
-#ifndef sw_x0_platform_hpp
-#define sw_x0_platform_hpp (1)
+/* <x0/defines.hpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
+#ifndef sw_x0_defines_hpp
+#define sw_x0_defines_hpp (1)
+
+#include <cstddef>
+#include <cstring>
+#include <cstdio>
 
 // platforms
 #if defined(_WIN32) || defined(__WIN32__)
@@ -48,6 +59,15 @@
 #	define X0_NO_RETURN /*!*/
 #	define X0_DEPRECATED /*!*/
 #	define X0_PURE /*!*/
+#endif
+
+/// the filename only part of __FILE__ (no leading path)
+#define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
+
+#ifndef NDEBUG
+#	define DEBUG(msg...) do { std::printf(msg); std::printf("\n"); } while (false)
+#else
+#	define DEBUG(msg...) /*!*/
 #endif
 
 #endif

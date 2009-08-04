@@ -10,6 +10,7 @@
 
 #include <x0/types.hpp>
 #include <x0/severity.hpp>
+#include <x0/api.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <string>
