@@ -16,16 +16,21 @@
 #cmakedefine HAVE_SYSLOG_H
 #cmakedefine HAVE_PWD_H
 
+#cmakedefine HAVE_AIO_H
+#cmakedefine HAVE_LIBAIO_H
 #cmakedefine HAVE_ZLIB_H
 #cmakedefine HAVE_GNUTLS_H
-#cmakedefine WITH_LUA
-#cmakedefine WITH_PCRE
-#cmakedefine WITH_ZLIB
+#cmakedefine HAVE_LUA_H
+#cmakedefine HAVE_PCRE_H
 
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK
 #cmakedefine HAVE_CHROOT
 #cmakedefine HAVE_PATHCONF
 #cmakedefine HAVE_SENDFILE
+#cmakedefine HAVE_POSIX_FADVISE
+#cmakedefine HAVE_READAHEAD
+
+#cmakedefine BUILD_STATIC
 
 #endif
