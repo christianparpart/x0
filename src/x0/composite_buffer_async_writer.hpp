@@ -135,7 +135,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 
 		if (!context_->current_)
 		{
-			// composite_buffer fuly written.
+			// composite_buffer fully written.
 			context_->handler_(boost::system::error_code(), context_->nwritten_);
 			return;
 		}
