@@ -19,13 +19,26 @@ INCLUDE(CMakeDetermineCCompiler)
 add_subdirectory(src)
 add_subdirectory(tests)
 
+OPTION(WITH_INOTIFY "Build with inotify support [default: on]" ON)
+OPTION(WITH_LIBAIO "Build with libaio support [default: on]" ON)
 OPTION(WITH_LUA "With LUA 5.1+ support [default: off]")
 OPTION(WITH_PCRE "With PCRE support [default: off]")
 OPTION(WITH_SSL "With SSL support [default: on]" ON)
 OPTION(BUILD_STATIC "Build with modules statically linked in [default: off]")
 OPTION(BUILD_TESTS "Build unit tests [default: on]" ON)
 
+# we need the following definitions in order to get some special
+# OS-level features like posix_fadvise() or readahead().
+add_definitions(-DXOPEN_SOURCE=600)
+add_definitions(-DGNU_SOURCE)
+
+CHECK_INCLUDE_FILES(fcntl.h HAVE_FCNTL_H)
+
 CHECK_INCLUDE_FILES(sys/sendfile.h HAVE_SYS_SENDFILE_H)
+CHECK_FUNCTION_EXISTS(sendfile HAVE_SENDFILE)
+CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
+CHECK_FUNCTION_EXISTS(readahead HAVE_READAHEAD)
+
 CHECK_INCLUDE_FILES(sys/resource.h HAVE_SYS_RESOURCE_H)
 CHECK_INCLUDE_FILES(sys/mman.h HAVE_SYS_MMAN_H)
 CHECK_INCLUDE_FILES(sys/limits.h HAVE_SYS_LIMITS_H)
@@ -36,12 +49,25 @@ CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
 CHECK_FUNCTION_EXISTS(fork HAVE_FORK)
 CHECK_FUNCTION_EXISTS(chroot HAVE_CHROOT)
 CHECK_FUNCTION_EXISTS(pathconf HAVE_PATHCONF)
-CHECK_FUNCTION_EXISTS(sendfile HAVE_SENDFILE)
 
-CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
-IF (HAVE_SYS_INOTIFY_H)
-	CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
-ENDIF(HAVE_SYS_INOTIFY_H)
+CHECK_INCLUDE_FILES(aio.h HAVE_AIO_H)
+
+IF(WITH_INOTIFY)
+	CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
+	IF(HAVE_SYS_INOTIFY_H)
+		CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
+	ENDIF(HAVE_SYS_INOTIFY_H)
+ENDIF(WITH_INOTIFY)
+
+#IF(WITH_LIBAIO)
+	CHECK_INCLUDE_FILES(libaio.h HAVE_LIBAIO_H)
+	IF (HAVE_LIBAIO_H)
+		CHECK_FUNCTION_EXISTS(io_submit HAVE_AIO_SUBMIT)
+		CHECK_FUNCTION_EXISTS(io_getevents HAVE_GETEVENTS)
+		CHECK_LIBRARY_EXISTS(aio io_submit "" HAVE_LIBAIO)
+		CHECK_LIBRARY_EXISTS(aio io_getevents "" HAVE_LIBAIO)
+	ENDIF(HAVE_LIBAIO_H)
+#ENDIF(WITH_LIBAIO)
 
 CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
 IF (HAVE_ZLIB_H)
