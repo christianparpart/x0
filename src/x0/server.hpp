@@ -160,6 +160,7 @@ public:
 	x0::io_service_pool& io_service_pool();
 
 private:
+	void setrlimit(int resource, unsigned long long max);
 	void drop_privileges(const std::string& user, const std::string& group);
 
 	listener_ptr listener_by_port(int port);

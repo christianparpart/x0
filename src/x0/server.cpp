@@ -21,6 +21,8 @@
 #include <cstdarg>
 #include <cstdlib>
 
+#include <sys/resource.h>
+#include <sys/time.h>
 #include <pwd.h>
 #include <grp.h>
 #include <dlfcn.h>
@@ -57,6 +59,57 @@ server::server() :
 server::~server()
 {
 	stop();
+}
+
+static inline const char *rc2str(int resource)
+{
+	switch (resource)
+	{
+		case RLIMIT_CORE: return "core";
+		case RLIMIT_AS: return "address-space";
+		case RLIMIT_NOFILE: return "filedes";
+		default: return "unknown";
+	}
+}
+
+void server::setrlimit(int resource, unsigned long long value)
+{
+	struct rlimit rlim;
+	if (::getrlimit(resource, &rlim) == -1)
+	{
+		log(__FILENAME__, __LINE__, severity::warn, "Failed to retrieve current resource limit on %s (%d).",
+			rc2str(resource), resource);
+
+		return;
+	}
+
+	unsigned long long last = rlim.rlim_cur;
+
+	// patch against human readable form
+	unsigned long long hlast = last, hvalue = value;
+	switch (resource)
+	{
+		case RLIMIT_AS:
+		case RLIMIT_CORE:
+			hlast /= 1024 / 1024;
+			value *= 1024 * 1024;
+			break;
+		default:
+			break;
+	}
+
+	rlim.rlim_cur = value;
+	rlim.rlim_max = value;
+
+	if (::setrlimit(resource, &rlim) == -1) {
+		log(__FILENAME__, __LINE__, severity::warn, "Failed to set resource limit on %s (%d) from %d to %d.",
+			rc2str(resource), resource, hlast, hvalue);
+
+		return;
+	}
+
+	log(__FILENAME__, __LINE__, severity::debug, "Set resource limit on %s (%d) from %d to %d.",
+		rc2str(resource), resource, hlast, hvalue);
 }
 
 /**
@@ -96,8 +149,17 @@ void server::configure(const std::string& configfile)
 
 	config_.load<std::string>("service", "tag", tag);
 
-	// stat accelerator
 	std::string value;
+	if ((value = config_.get("service", "max-filedes")) != "")
+		setrlimit(RLIMIT_NOFILE, boost::lexical_cast<int>(value));
+
+	if ((value = config_.get("service", "max-address-space")) != "")
+		setrlimit(RLIMIT_AS, boost::lexical_cast<unsigned long long>(value)); // value in MB
+
+	if ((value = config_.get("service", "max-core")) != "")
+		setrlimit(RLIMIT_CORE, boost::lexical_cast<unsigned long long>(value)); // value in MB
+
+	// stat accelerator
 	if ((value = config_.get("service", "stat-cache-max-cost")) != "")
 		stat.max_cost(boost::lexical_cast<int>(value));
 
