@@ -7,6 +7,7 @@
 #ifndef composite_buffer_async_writer_hpp
 #define composite_buffer_async_writer_hpp 1
 
+#include <x0/sysconfig.h>
 #include <x0/detail/scoped_mmap.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -196,7 +197,16 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(cons
 	std::size_t size = chunk.size() - context_->offset_;
 	int fd = chunk.fd();
 
+#if defined(HAVE_SENDFILE)
 	int rv = ::sendfile(context_->target_.native(), fd, &offset, size);
+#else
+	char buf[8 * 1024];
+	int rv = ::pread(fd, buf_, sizeof(buf_), offset);
+	if (rv > 0)
+	{
+		rv = ::write(context_->target_.native(), buf, rv);
+	}
+#endif
 
 	if (rv > 0 && size > std::size_t(rv))
 		posix_fadvise(fd, offset, 0, POSIX_FADV_WILLNEED);
