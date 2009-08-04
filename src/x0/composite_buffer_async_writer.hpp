@@ -30,7 +30,7 @@ class composite_buffer_async_writer :
 	public composite_buffer::visitor
 {
 private:
-	struct impl
+	struct context
 	{
 		Target& target_;
 		composite_buffer cb_;
@@ -41,13 +41,13 @@ private:
 		ssize_t status_;
 		std::size_t nwritten_;
 
-		impl(Target& target, const composite_buffer& cb, CompletionHandler handler) :
+		context(Target& target, const composite_buffer& cb, CompletionHandler handler) :
 			target_(target), cb_(cb), handler_(handler),
 			current_(cb_.front()), offset_(0), status_(0), nwritten_(0)
 		{
 		}
 	};
-	boost::shared_ptr<impl> impl_;
+	boost::shared_ptr<context> context_;
 
 public:
 	composite_buffer_async_writer(Target& t, const composite_buffer& cb, CompletionHandler handler);
@@ -79,7 +79,7 @@ void async_write(Target& target, const composite_buffer& source, CompletionHandl
 // {{{ impl
 template<class Target, class CompletionHandler>
 inline composite_buffer_async_writer<Target, CompletionHandler>::composite_buffer_async_writer(Target& target, const composite_buffer& cb, CompletionHandler handler) :
-	impl_(new impl(target, cb, handler))
+	context_(new context(target, cb, handler))
 {
 }
 
@@ -89,7 +89,7 @@ inline composite_buffer_async_writer<Target, CompletionHandler>::composite_buffe
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()()
 {
-	impl_->target_.async_write_some(boost::asio::null_buffers(), *this);
+	context_->target_.async_write_some(boost::asio::null_buffers(), *this);
 }
 
 /**
@@ -104,13 +104,13 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()(const boost::system::error_code& ec, std::size_t bytes_transferred)
 {
-	if (!ec && impl_->nwritten_ < impl_->cb_.size())
+	if (!ec && context_->nwritten_ < context_->cb_.size())
 	{
 		async_write_some();
 	}
 	else
 	{
-		impl_->handler_(ec, impl_->nwritten_);
+		context_->handler_(ec, context_->nwritten_);
 	}
 }
 
@@ -128,15 +128,15 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 		return;
 	}
 
-	while (impl_->offset_ == impl_->current_->size())
+	while (context_->offset_ == context_->current_->size())
 	{
-		impl_->offset_ = 0;
-		impl_->current_ = impl_->current_->next();
+		context_->offset_ = 0;
+		context_->current_ = context_->current_->next();
 
-		if (!impl_->current_)
+		if (!context_->current_)
 		{
 			// composite_buffer fuly written.
-			impl_->handler_(boost::system::error_code(), impl_->nwritten_);
+			context_->handler_(boost::system::error_code(), context_->nwritten_);
 			return;
 		}
 
@@ -148,7 +148,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 	}
 
 	// callback when target is ready for more writes
-	impl_->target_.async_write_some(boost::asio::null_buffers(), *this);
+	context_->target_.async_write_some(boost::asio::null_buffers(), *this);
 }
 
 /**
@@ -163,18 +163,18 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 template<class Target, class CompletionHandler>
 inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some_once()
 {
-	impl_->current_->accept(*this);
+	context_->current_->accept(*this);
 
-	if (impl_->status_ != -1)
+	if (context_->status_ != -1)
 	{
-		impl_->offset_ += impl_->status_;
-		impl_->nwritten_ += impl_->status_;
+		context_->offset_ += context_->status_;
+		context_->nwritten_ += context_->status_;
 
 		return true;
 	}
 
 	// XXX inform the completion-handler about the write error.
-	impl_->handler_(boost::system::error_code(errno, boost::system::system_category), impl_->nwritten_);
+	context_->handler_(boost::system::error_code(errno, boost::system::system_category), context_->nwritten_);
 
 	return false;
 }
@@ -184,7 +184,7 @@ inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(const composite_buffer::iovec_chunk& chunk)
 {
-	impl_->status_ = ::writev(impl_->target_.native(), &chunk[0], chunk.length());
+	context_->status_ = ::writev(context_->target_.native(), &chunk[0], chunk.length());
 }
 
 /** Writes contents from a file descriptor chunk into the target.
@@ -192,15 +192,27 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(cons
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(const composite_buffer::fd_chunk& chunk)
 {
-	off_t offset = chunk.offset() + impl_->offset_;
-	std::size_t size = chunk.size() - impl_->offset_;
+	off_t offset = chunk.offset() + context_->offset_;
+	std::size_t size = chunk.size() - context_->offset_;
+	int fd = chunk.fd();
 
-  	impl_->status_ = ::sendfile(impl_->target_.native(), chunk.fd(), &offset, size);
+	int rv = ::sendfile(context_->target_.native(), fd, &offset, size);
+
+	if (rv > 0 && size > std::size_t(rv))
+		posix_fadvise(fd, offset, 0, POSIX_FADV_WILLNEED);
+
+	context_->status_ = rv;
 }
 
 template<class Target, class CompletionHandler>
 inline void async_write(Target& target, const composite_buffer& source, CompletionHandler handler)
 {
+	if (source.size() > 1)
+	{
+		int flag = 1;
+		setsockopt(target.native(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
+	}
+
 	composite_buffer_async_writer<Target, CompletionHandler>(target, source, handler)();
 }
 // }}}

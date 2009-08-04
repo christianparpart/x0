@@ -204,6 +204,7 @@ private:
 				out.header("Content-Type", get_mime_type(in));
 				out.header("Content-Length", boost::lexical_cast<std::string>(st->st_size));
 
+				posix_fadvise(fd, 0, st->st_size, POSIX_FADV_SEQUENTIAL);
 				out.write(fd, 0, st->st_size, true);
 			}
 
