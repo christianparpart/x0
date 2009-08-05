@@ -394,7 +394,7 @@ void cgi_script::receive_response(const boost::system::error_code& ec, std::size
 		if (!serial_)
 		{
 			response_.status = x0::response::internal_server_error;
-			LOG(request_.connection.server(), x0::severity::error, "CGI script generated no response: %s", request_.entity.c_str());
+			request_.connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_.entity.c_str());
 		}
 		else if (!response_.has_header("Content-Length") && !response_.serializing())
 		{
@@ -416,7 +416,7 @@ void cgi_script::receive_error(const boost::system::error_code& ec, std::size_t 
 	{
 		// maybe i should cache it and then log it line(s)-wise
 		std::string msg(outbuf_.data(), outbuf_.data() + bytes_transferred);
-		request_.connection.server().log(__FILE__, __LINE__, x0::severity::error, "CGI script error: %s", msg.c_str());
+		request_.connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
 	}
 
 	if (!ec)

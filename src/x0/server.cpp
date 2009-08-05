@@ -77,7 +77,7 @@ void server::setrlimit(int resource, unsigned long long value)
 	struct rlimit rlim;
 	if (::getrlimit(resource, &rlim) == -1)
 	{
-		log(__FILENAME__, __LINE__, severity::warn, "Failed to retrieve current resource limit on %s (%d).",
+		log(severity::warn, "Failed to retrieve current resource limit on %s (%d).",
 			rc2str(resource), resource);
 
 		return;
@@ -102,13 +102,13 @@ void server::setrlimit(int resource, unsigned long long value)
 	rlim.rlim_max = value;
 
 	if (::setrlimit(resource, &rlim) == -1) {
-		log(__FILENAME__, __LINE__, severity::warn, "Failed to set resource limit on %s (%d) from %d to %d.",
+		log(severity::warn, "Failed to set resource limit on %s (%d) from %d to %d.",
 			rc2str(resource), resource, hlast, hvalue);
 
 		return;
 	}
 
-	log(__FILENAME__, __LINE__, severity::debug, "Set resource limit on %s (%d) from %d to %d.",
+	log(severity::debug, "Set resource limit on %s (%d) from %d to %d.",
 		rc2str(resource), resource, hlast, hvalue);
 }
 
@@ -135,9 +135,9 @@ void server::configure(const std::string& configfile)
 	io_service_pool_.setup(num_threads);
 
 	if (num_threads > 1)
-		LOG(*this, severity::info, "using %d io services", num_threads);
+		log(severity::info, "using %d io services", num_threads);
 	else
-		LOG(*this, severity::info, "using single io service");
+		log(severity::info, "using single io service");
 
 	// load limits
 	config_.load<int>("service", "max-connections", max_connections);
@@ -190,7 +190,7 @@ void server::configure(const std::string& configfile)
 	// setup process priority
 	if (int nice_ = std::atoi(config_.get("daemon", "nice").c_str()))
 	{
-		LOG(*this, severity::debug, "set nice level to %d", nice_);
+		log(severity::debug, "set nice level to %d", nice_);
 
 		if (::nice(nice_) < 0)
 		{
@@ -214,7 +214,7 @@ void server::run()
 		(*i)->start();
 	}
 
-	LOG(*this, severity::info, "server up and running");
+	log(severity::info, "server up and running");
 
 	io_service_pool_.run();
 }
@@ -262,7 +262,7 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 #if defined(X0_RELEASE)
 		throw std::runtime_error(fstringbuilder::format("Service is not allowed to run with administrative permissionsService is still running with administrative permissions."));
 #else
-		LOG(*this, severity::warn, "Service is still running with administrative permissions.");
+		log(severity::warn, "Service is still running with administrative permissions.");
 #endif
 	}
 }
@@ -365,24 +365,22 @@ x0::config& server::config()
 	return config_;
 }
 
-void server::log(const char *filename, unsigned int line, severity s, const char *msg, ...)
+void server::log(severity s, const char *msg, ...)
 {
+	va_list va;
+	va_start(va, msg);
+	char buf[512];
+	vsnprintf(buf, sizeof(buf), msg, va);
+	va_end(va);
+
 	if (logger_)
 	{
-		va_list va;
-		va_start(va, msg);
-		char buf[512];
-		vsnprintf(buf, sizeof(buf), msg, va);
-		va_end(va);
-
-		if (s < severity::debug)		// do only print filename:line: prefix if we're at debug level
-		{
-			logger_->write(s, buf);
-		}
-		else
-		{
-			logger_->write(s, fstringbuilder::format("%s:%d: %s", filename, line, buf));
-		}
+		logger_->write(s, buf);
+	}
+	else
+	{
+		std::fprintf(stderr, "%s\n", msg);
+		std::fflush(stderr);
 	}
 }
 
@@ -414,7 +412,7 @@ void server::load_plugin(const std::string& name)
 	std::string filename(plugindir_ + name + ".so");
 	std::string plugin_create_name(name + "_init");
 
-	LOG(*this, severity::debug, "Loading plugin %s", filename.c_str());
+	log(severity::debug, "Loading plugin %s", filename.c_str());
 	if (void *handle = dlopen(filename.c_str(), RTLD_GLOBAL | RTLD_NOW))
 	{
 		plugin_create_t plugin_create = reinterpret_cast<plugin_create_t>(dlsym(handle, plugin_create_name.c_str()));

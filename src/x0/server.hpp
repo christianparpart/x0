@@ -133,7 +133,7 @@ public:
 	/**
 	 * writes a log entry into the server's error log.
 	 */
-	void log(const char *filename, unsigned int line, severity s, const char *msg, ...);
+	void log(severity s, const char *msg, ...);
 
 	/**
 	 * sets up a TCP/IP listener on given bind_address and port.
@@ -186,8 +186,6 @@ public:
 	value_property<std::string> tag;
 	stat_service stat;
 };
-
-#define LOG(srv, severity, message...) (srv).log(__FILENAME__, __LINE__, severity, message)
 
 // {{{ inlines
 inline x0::io_service_pool& server::io_service_pool()

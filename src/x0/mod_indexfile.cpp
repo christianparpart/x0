@@ -60,7 +60,7 @@ public:
 
 		if (ctx.index_files.empty())
 		{
-			LOG(server_, x0::severity::warn, "indexfile module loaded, but no(/empty) configuration given.");
+			server_.log(x0::severity::warn, "indexfile module loaded, but no(/empty) configuration given.");
 		}
 	}
 

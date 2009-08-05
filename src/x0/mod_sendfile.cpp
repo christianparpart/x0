@@ -185,7 +185,7 @@ private:
 		int fd = open(path.c_str(), O_RDONLY);
 		if (fd == -1)
 		{
-			server_.log(__FILENAME__, __LINE__, x0::severity::error, "Could not open file '%s': %s",
+			server_.log(x0::severity::error, "Could not open file '%s': %s",
 				path.c_str(), strerror(errno));
 
 			return false;

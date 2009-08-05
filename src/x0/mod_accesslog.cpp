@@ -57,7 +57,7 @@ public:
 			fd = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
 			if (fd == -1)
 			{
-				LOG(server_, x0::severity::error, "Could not open access log file.");
+				server_.log(x0::severity::error, "Could not open access log file.");
 			}
 		}
 	}
