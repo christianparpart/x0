@@ -217,6 +217,7 @@ private:
 						<< "   -h,--help        print this help" << std::endl
 						<< "   -c,--config=PATH specify a custom configuration file [" << configfile_ << "]" << std::endl
 						<< "   -X,--no-fork     do not fork into background" << std::endl
+						<< "   -G,--guard       do run service as child of a special guard process to watch for crashes" << std::endl
 						<< "   -v,--version     print software version" << std::endl
 						<< "   -y,--copyright   print software copyright notice / license" << std::endl
 						<< std::endl;
