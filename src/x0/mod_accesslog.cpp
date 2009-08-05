@@ -81,7 +81,8 @@ private:
 
 			std::string line(sstr.str());
 
-			::write(fd, line.c_str(), line.size());
+			if (::write(fd, line.c_str(), line.size()) == -1)
+				DEBUG("Couldn't write accesslog: %s", strerror(errno));
 		}
 	}
 
