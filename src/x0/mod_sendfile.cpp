@@ -42,6 +42,7 @@ private:
 	bool etag_consider_mtime_;
 	bool etag_consider_size_;
 	bool etag_consider_inode_;
+	std::map<const struct stat *, std::string> etag_cache_;
 
 	x0::handler::connection c;
 
@@ -53,9 +54,11 @@ public:
 		etag_consider_mtime_(true),
 		etag_consider_size_(true),
 		etag_consider_inode_(false),
+		etag_cache_(),
 		c()
 	{
 		c = server_.generate_content.connect(boost::bind(&sendfile_plugin::sendfile, this, _1, _2));
+		server_.stat.on_invalidate.connect(boost::bind(&sendfile_plugin::etag_invalidate, this, _1, _2));
 	}
 
 	~sendfile_plugin() {
@@ -340,6 +343,13 @@ private:
 	 */
 	inline std::string etag_generate(const struct stat *st)
 	{
+		{
+			auto cache_entry = etag_cache_.find(st);
+
+			if (cache_entry != etag_cache_.end())
+				return cache_entry->second;
+		}
+
 		std::stringstream sstr;
 		int count = 0;
 
@@ -365,7 +375,12 @@ private:
 
 		sstr << '"';
 
-		return sstr.str();
+		return etag_cache_[st] = sstr.str();
+	}
+
+	void etag_invalidate(const std::string& filename, const struct stat *st)
+	{
+		etag_cache_.erase(etag_cache_.find(st));
 	}
 
 	/** computes the mime-type(/content-type) for given request.
