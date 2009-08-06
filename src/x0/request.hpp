@@ -9,6 +9,7 @@
 #define x0_http_request_hpp (1)
 
 #include <x0/header.hpp>
+#include <x0/fileinfo.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <string>
@@ -43,7 +44,7 @@ struct request
 	std::string path;
 
 	/// the final entity to be served, for example the full path to the file on disk.
-	std::string entity;
+	fileinfo_ptr fileinfo;
 
 	/// decoded query-part
 	std::string query;

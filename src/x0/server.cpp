@@ -52,7 +52,8 @@ server::server() :
 	max_read_idle(60),
 	max_write_idle(360),
 	tag("x0/" VERSION),
-	stat(io_service_pool_.get_service())
+	stat(io_service_pool_.get_service()),
+	fileinfo(io_service_pool_.get_service())
 {
 }
 
@@ -159,12 +160,14 @@ void server::configure(const std::string& configfile)
 	if ((value = config_.get("service", "max-core")) != "")
 		setrlimit(RLIMIT_CORE, boost::lexical_cast<unsigned long long>(value)); // value in MB
 
-	// stat accelerator
-	if ((value = config_.get("service", "stat-cache-max-cost")) != "")
-		stat.max_cost(boost::lexical_cast<int>(value));
-
-	if ((value = config_.get("service", "stat-cache-enabled")) != "")
-		stat.caching(value == "true");
+	// fileinfo
+	fileinfo.load_mimetypes(config().get("fileinfo", "mime-types-file"));
+	fileinfo.default_mimetype(config().get("fileinfo", "default-mime-type"));
+#if 1 == 0
+	fileinfo.etag_consider_mtime(...);
+	fileinfo.etag_consider_size(...);
+	fileinfo.etag_consider_inode(...);
+#endif
 
 	// load modules
 	std::vector<std::string> plugins = split<std::string>(config_.get("service", "modules-load"), ", ");
@@ -281,12 +284,12 @@ void server::handle_request(request& in, response& out) {
 	}
 
 	// resolve entity
-	in.entity = in.document_root + in.path;
-	resolve_entity(in);
+	in.fileinfo = fileinfo(in.document_root + in.path);
+	resolve_entity(in); // translate_path
 
 	// redirect physical request paths not ending with slash
-	struct stat *st = stat(in.entity);
-	if (st && S_ISDIR(st->st_mode) && in.entity.size() > 3 && in.entity[in.entity.size() - 1] != '/')
+	std::string filename = in.fileinfo->filename();
+	if (in.fileinfo->is_directory() && filename.size() > 3 && filename[filename.size() - 1] != '/')
 	{
 		std::stringstream url;
 		url << (in.connection.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;

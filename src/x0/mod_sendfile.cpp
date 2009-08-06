@@ -67,49 +67,6 @@ public:
 
 	virtual void configure()
 	{
-		typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-
-		// mime-types loading
-		std::string input(x0::read_file(server_.config().get("sendfile", "mime-types")));
-		tokenizer lines(input, boost::char_separator<char>("\n"));
-
-		for (tokenizer::iterator i = lines.begin(), e = lines.end(); i != e; ++i)
-		{
-			std::string line(x0::trim(*i));
-			tokenizer columns(line, boost::char_separator<char>(" \t"));
-
-			tokenizer::iterator ci = columns.begin(), ce = columns.end();
-			std::string mime = ci != ce ? *ci++ : std::string();
-
-			if (!mime.empty() && mime[0] != '#')
-			{
-				for (; ci != ce; ++ci)
-				{
-					mime_types_[*ci] = mime;
-				}
-			}
-		}
-
-		if ((input = server_.config().get("sendfile", "default-mime-type")) != "")
-		{
-			default_mimetype_ = input;
-		}
-
-		// ETag considerations
-		if ((input = server_.config().get("sendfile", "etag-consider-mtime")) != "")
-		{
-			etag_consider_mtime_ = input == "true";
-		}
-
-		if ((input = server_.config().get("sendfile", "etag-consider-size")) != "")
-		{
-			etag_consider_size_ = input == "true";
-		}
-
-		if ((input = server_.config().get("sendfile", "etag-consider-inode")) != "")
-		{
-			etag_consider_inode_ = input == "true";
-		}
 	}
 
 private:
@@ -118,24 +75,23 @@ private:
 	 *
 	 * \param in request object
 	 * \param out response object. this will be modified in case of cache reusability.
-	 * \param st stat structure of the requested entity.
 	 *
 	 * \throw response::not_modified, in case the client may use its cache.
 	 */
-	void verify_client_cache(x0::request& in, x0::response& out, struct stat *st)
+	void verify_client_cache(x0::request& in, x0::response& out)
 	{
 		// If-None-Match, If-Modified-Since
 
 		std::string value;
 		if ((value = in.header("If-None-Match")) != "")
 		{
-			if (value == etag_generate(st))
+			if (value == in.fileinfo->etag())
 			{
 				if ((value = in.header("If-Modified-Since")) != "") // ETag + If-Modified-Since
 				{
 					if (time_t date = from_http_date(value))
 					{
-						if (st->st_mtime <= date)
+						if (in.fileinfo->mtime() <= date)
 						{
 							throw x0::response::not_modified;
 						}
@@ -151,7 +107,7 @@ private:
 		{
 			if (time_t date = from_http_date(value))
 			{
-				if (st->st_mtime <= date)
+				if (in.fileinfo->mtime() <= date)
 				{
 					throw x0::response::not_modified;
 				}
@@ -174,16 +130,15 @@ private:
 
 	bool sendfile(x0::request& in, x0::response& out)
 	{
-		std::string path(in.entity);
+		std::string path(in.fileinfo->filename());
 
-		struct stat *st = in.connection.server().stat(path);
-		if (st == 0)
+		if (!in.fileinfo->exists())
 			return false;
 
-		if (!S_ISREG(st->st_mode))
-			throw x0::response::forbidden;
+		if (!in.fileinfo->is_regular())
+			return false;
 
-		verify_client_cache(in, out, st);
+		verify_client_cache(in, out);
 
 		int fd = open(path.c_str(), O_RDONLY);
 		if (fd == -1)
@@ -196,19 +151,19 @@ private:
 
 		try
 		{
-			out.header("Last-Modified", x0::http_date(st->st_mtime));
-			out.header("ETag", etag_generate(st));
+			out.header("Last-Modified", in.fileinfo->last_modified());
+			out.header("ETag", in.fileinfo->etag());
 
-			if (!process_range_request(in, out, st, fd))
+			if (!process_range_request(in, out, fd))
 			{
 				out.status = x0::response::ok;
 
 				out.header("Accept-Ranges", "bytes");
-				out.header("Content-Type", get_mime_type(in));
-				out.header("Content-Length", boost::lexical_cast<std::string>(st->st_size));
+				out.header("Content-Type", in.fileinfo->mimetype());
+				out.header("Content-Length", boost::lexical_cast<std::string>(in.fileinfo->size()));
 
-				posix_fadvise(fd, 0, st->st_size, POSIX_FADV_SEQUENTIAL);
-				out.write(fd, 0, st->st_size, true);
+				posix_fadvise(fd, 0, in.fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+				out.write(fd, 0, in.fileinfo->size(), true);
 			}
 
 			out.flush();
@@ -224,7 +179,7 @@ private:
 		return true;
 	}
 
-	inline bool process_range_request(x0::request& in, x0::response& out, struct stat *st, int fd)
+	inline bool process_range_request(x0::request& in, x0::response& out, int fd)
 	{
 		std::string range_value(in.header("Range"));
 		x0::range_def range;
@@ -232,8 +187,6 @@ private:
 		// if no range request or range request was invalid (by syntax) we fall back to a full response
 		if (range_value.empty() || !range.parse(range_value))
 			return false;
-
-		std::string mimetype(get_mime_type(in));
 
 		out.status = x0::response::partial_content;
 
@@ -246,21 +199,21 @@ private:
 
 			for (int i = 0, e = range.size(); i != e; )
 			{
-				std::pair<std::size_t, std::size_t> offsets(make_offsets(range[i], st));
+				std::pair<std::size_t, std::size_t> offsets(make_offsets(range[i], in.fileinfo->size()));
 				std::size_t length = 1 + offsets.second - offsets.first;
 
 				body.push_back("\r\n--");
 				body.push_back(boundary);
 
 				body.push_back("\r\nContent-Type: ");
-				body.push_back(mimetype);
+				body.push_back(in.fileinfo->mimetype());
 
 				body.push_back("\r\nContent-Range: bytes ");
 				body.push_back(boost::lexical_cast<std::string>(offsets.first));
 				body.push_back("-");
 				body.push_back(boost::lexical_cast<std::string>(offsets.second));
 				body.push_back("/");
-				body.push_back(boost::lexical_cast<std::string>(st->st_size));
+				body.push_back(boost::lexical_cast<std::string>(in.fileinfo->size()));
 				body.push_back("\r\n\r\n");
 
 				body.push_back(fd, offsets.first, length, ++i == e);
@@ -278,14 +231,14 @@ private:
 		{
 			// generate a simple partial response
 
-			std::pair<std::size_t, std::size_t> offsets(make_offsets(range[0], st));
+			std::pair<std::size_t, std::size_t> offsets(make_offsets(range[0], in.fileinfo->size()));
 			std::size_t length = 1 + offsets.second - offsets.first;
 
-			out.header("Content-Type", get_mime_type(in));
+			out.header("Content-Type", in.fileinfo->mimetype());
 			out.header("Content-Length", boost::lexical_cast<std::string>(length));
 
 			std::stringstream cr;
-			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << st->st_size;
+			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in.fileinfo->size();
 			out.header("Content-Range", cr.str());
 
 			out.write(fd, offsets.first, length, true);
@@ -294,21 +247,21 @@ private:
 		return true;
 	}
 
-	std::pair<std::size_t, std::size_t> make_offsets(const std::pair<std::size_t, std::size_t>& p, const struct stat *st)
+	std::pair<std::size_t, std::size_t> make_offsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size)
 	{
 		std::pair<std::size_t, std::size_t> q;
 
 		if (p.first == x0::range_def::npos) // suffix-range-spec
 		{
-			q.first = st->st_size - p.second;
-			q.second = st->st_size - 1;
+			q.first = actual_size - p.second;
+			q.second = actual_size - 1;
 		}
 		else
 		{
 			q.first = p.first;
 
-			q.second = p.second == x0::range_def::npos && p.second > std::size_t(st->st_size)
-				? st->st_size - 1
+			q.second = p.second == x0::range_def::npos && p.second > actual_size
+				? actual_size - 1
 				: p.second;
 		}
 
@@ -381,50 +334,6 @@ private:
 	void etag_invalidate(const std::string& filename, const struct stat *st)
 	{
 		etag_cache_.erase(etag_cache_.find(st));
-	}
-
-	/** computes the mime-type(/content-type) for given request.
-	 * \param in the request to detect the mime-type for.
-	 * \return mime-type for given request.
-	 */
-	inline std::string get_mime_type(x0::request& in) const
-	{
-		std::size_t ndot = in.entity.find_last_of(".");
-		std::size_t nslash = in.entity.find_last_of("/");
-
-		if (ndot != std::string::npos && ndot > nslash)
-		{
-			return get_mime_type(in.entity.substr(ndot + 1));
-		}
-		else
-		{
-			return default_mimetype_;
-		}
-	}
-
-	inline std::string get_mime_type(std::string ext) const
-	{
-		while (ext.size())
-		{
-			mime_types_type::const_iterator i = mime_types_.find(ext);
-
-			if (i != mime_types_.end())
-			{
-				return i->second;
-			}
-#if X0_SENDFILE_MIME_TYPES_BELOW_BACKUP
-			if (ext[ext.size() - 1] != '~')
-			{
-				break;
-			}
-
-			ext.resize(ext.size() - 1);
-#else
-			break;
-#endif
-		}
-
-		return default_mimetype_;
 	}
 };
 

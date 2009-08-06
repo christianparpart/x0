@@ -31,10 +31,12 @@ namespace x0 {
  * @brief x0 web server modules.
  */
 
+class fileinfo;
 class connection;
 struct request;
 struct response;
 
+typedef boost::shared_ptr<fileinfo> fileinfo_ptr;
 typedef boost::shared_ptr<connection> connection_ptr;
 typedef boost::shared_ptr<request> request_ptr;
 typedef boost::shared_ptr<response> response_ptr;

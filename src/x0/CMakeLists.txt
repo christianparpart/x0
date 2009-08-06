@@ -25,6 +25,7 @@ add_definitions(
 add_executable(x0d
 	config.cpp
 	connection.cpp
+	fileinfo_service.cpp
 	io_service_pool.cpp
 	listener.cpp
 	logger.cpp
@@ -40,6 +41,8 @@ add_executable(x0d
 set(x0d_API
 	config.hpp
 	connection.hpp
+	fileinfo.hpp fileinfo.ipp
+	fileinfo_service.hpp
 	io_service_pool.hpp
 	context.hpp
 	handler.hpp

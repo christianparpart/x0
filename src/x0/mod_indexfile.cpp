@@ -67,14 +67,12 @@ public:
 private:
 	void indexfile(x0::request& in)
 	{
-		std::string path(in.entity);
-
-		struct stat *st = in.connection.server().stat(path);
-		if (!st || !S_ISDIR(st->st_mode))
+		if (!in.fileinfo->is_directory())
 			return;
 
 		context& ctx = server_.context<context>(this);
 
+		std::string path(in.fileinfo->filename());
 		for (std::vector<std::string>::iterator i = ctx.index_files.begin(), e = ctx.index_files.end(); i != e; ++i)
 		{
 			std::string ipath;
@@ -84,10 +82,13 @@ private:
 				ipath += "/";
 			ipath += *i;
 
-			if ((st = in.connection.server().stat(ipath)) && S_ISREG(st->st_mode))
+			if (x0::fileinfo_ptr fi = in.connection.server().fileinfo(ipath))
 			{
-				in.entity = ipath;
-				break;
+				if (fi->is_regular())
+				{
+					in.fileinfo = fi;
+					break;
+				}
 			}
 		}
 	}

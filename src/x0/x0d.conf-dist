@@ -1,53 +1,151 @@
-; vim:syntax=dosini
-;
-; file: x0d.conf
-; description: x0d web server configuration file
+-- vim:syntax=lua
+--
+-- file: x0d.conf
+-- description: x0d web server configuration file
 
-[daemon]
-group=x0d
-user=x0d
-chroot=/
-nice=0
+-- {{{ helper
+function KB(value)
+	return value * 1024;
+end
 
-[service]
-tag=x0
-modules-directory=/usr/libexec/x0/
-modules-load=accesslog, dirlisting, userdir, indexfile, cgi, sendfile, vhost
-stat-cache-enabled=true
-stat-cache-max-cost=256
-log-mode=file
-log-level=warn
-log-filename=error.log
-accesslog-filename=access.log
-listen-ports=8080, 8081
-index-files=index.html, index.xml
-max-filedes=1024
-max-address-space=2048
-max-core=1024
-max-keep-alive-requests=16
-max-keep-alive-idle=5
-max-read-idle=60
-max-write-idle=360
-; num-threads=2
+function MB(value)
+	return value * KB(1024);
+end
 
-[cgi]
-dir-prefix=/cgi-bin/
-executable=true
+function GB(value)
+	return value * MB(1024);
+end
 
-[cgi.mappings]
-.php=/usr/bin/php
-.pl=/usr/bin/perl
-.rb=/usr/bin/ruby
-.sh=/bin/bash
+function LoadModule(name)
+	table.insert(Modules.Load, name);
+end
 
-[sendfile]
-mime-types=/etc/mime.types
-default-mime-type=text/plain
-etag-consider-mtime=true
-etag-consider-size=true
-etag-consider-inode=true
+function PopulateErrorDocuments(codes, prefix, postfix)
+	local result = {}
 
-[vhost]
-default-host=localhost
-server-root=/var/www
-document-root=htdocs
+	for _, e in pairs(codes) do
+		result[e] = prefix .. tostring(e) .. postfix;
+	end
+
+	return result;
+end
+-- }}}
+
+PREFIX = '/usr/';
+DATADIR = PREFIX .. 'share/x0/';
+STATEDIR = '/var/run/x0d/';
+
+Daemon = {
+	Group = 'x0d';
+	User = 'x0d';
+	Chroot = '/';
+	Nice = 0;
+	PidFile = STATEDIR .. 'x0d.pid';
+};
+
+ServerTag = 'x0';
+
+Modules = {
+	Directory = '/usr/libexec/x0/';
+	Load = { 'dirlisting', 'userdir', 'indexfile', 'cgi', 'sendfile', 'vhost', 'accesslog' };
+	-- { 'dirlisting', 'userdir', 'indexfile', 'cgi', 'sendfile', 'vhost', 'accesslog', 'debug' };
+};
+
+Log = {
+	Mode = 'file';
+	FileName = 'error.log';
+	Level = 'warn';
+};
+
+Listen = 8080;
+
+AccessLogPath = 'access.log'
+
+IndexFiles = { 'index.html', 'index.xml' };
+
+Userdir = {
+	DocumentRoot = 'public_html';
+	PathPrefix = '~';
+}
+
+Resources = {
+	MaxFiles = 2048;
+	MaxAddressSpace = GB(2);
+	MaxCoreFileSize = MB(500);
+
+	MaxKeepAliveRequests = 16;
+	MaxKeepAliveIdle = 5;
+
+	MaxReadIdle = 60;
+	MaxWriteIdle = 360;
+
+	NumWorkers = 1; -- must be set to 1, currently (because this service is not yet thread safe)
+};
+
+CGI = {
+	PathPrefix = '/cgi-bin/';
+	Executable = true;
+	Mapping = {
+		['.php'] = '/usr/bin/php';
+		['.rb'] = '/usr/bin/ruby';
+		['.pl'] = '/usr/bin/perl';
+		['.sh'] = '/bin/bash';
+	};
+}
+
+FileInfo = {
+	MimeType = {
+		MimeFile = '/etc/mime.types';
+		MagicFile = '/etc/mime.magic';
+		DefaultType = 'text/plain';
+	};
+	ETag = {
+		ConsiderMtime = true;
+		ConsiderSize = true;
+		ConsiderInode = true;
+	};
+};
+
+Alias = {
+	['/error/'] = DATADIR .. 'error/';
+	['/icon/'] = DATADIR .. 'icon/';
+};
+
+ErrorDocuments = PopulateErrorDocuments({
+	300, 301, 302, 304,
+	400, 401, 403, 404, 416,
+	500, 501, 502, 503
+}, DATADIR .. 'error/', '.html');
+
+FileSystem = {
+	['/home/*/public_html'] = {
+		DirectoryListing = true;
+		AllowFrom = { '192.168.0.0/24' };
+	};
+	['/var/www/*/htdocs'] = {
+		AllowFrom = { '0.0.0.0/0' };
+	};
+};
+
+Hosts = {
+	['localhost'] = {
+		DocumentRoot = '/var/www/localhost/htdocs';
+		Aliases = {
+			['/distfiles'] = '/usr/portage/distfiles';
+		};
+	};
+	['www.cooldown.net'] = {
+		DocumentRoot = '/var/www/cooldown.net/htdocs';
+		Listen = 8081;
+	};
+};
+
+--if table.contains(Modules.Load, 'cgi') then
+--	table.insert(IndexFile, 'index.php');
+--	CGI.Mapping['.php'] = '/usr/bin/php-cgi';
+--end
+
+------------------------------------------------------
+for k, v in pairs(ErrorDocuments) do
+	print(k, v);
+end

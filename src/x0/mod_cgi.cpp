@@ -278,7 +278,7 @@ inline void cgi_script::async_run()
 	std::string workdir(request_.document_root);
 
 	x0::process::params params;
-	params.push_back(request_.entity);
+	params.push_back(request_.fileinfo->filename());
 
 	// {{{ setup request / initialize environment and handler
 	x0::process::environment environment;
@@ -293,7 +293,7 @@ inline void cgi_script::async_run()
 
 	environment["REQUEST_METHOD"] = request_.method;
 	environment["PATH_INFO"] = request_.path;
-	environment["PATH_TRANSLATED"] = request_.entity;
+	environment["PATH_TRANSLATED"] = request_.fileinfo->filename();
 	environment["SCRIPT_NAME"] = request_.path;
 	environment["QUERY_STRING"] = request_.query;			// unparsed uri
 	environment["REQUEST_URI"] = request_.uri;
@@ -327,7 +327,7 @@ inline void cgi_script::async_run()
 	}
 #endif
 
-	environment["SCRIPT_FILENAME"] = request_.entity;
+	environment["SCRIPT_FILENAME"] = request_.fileinfo->filename();
 	environment["DOCUMENT_ROOT"] = request_.document_root;
 
 	// HTTP request headers
@@ -394,7 +394,7 @@ void cgi_script::receive_response(const boost::system::error_code& ec, std::size
 		if (!serial_)
 		{
 			response_.status = x0::response::internal_server_error;
-			request_.connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_.entity.c_str());
+			request_.connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_.fileinfo->filename().c_str());
 		}
 		else if (!response_.has_header("Content-Length") && !response_.serializing())
 		{
@@ -499,7 +499,7 @@ private:
 	 * of the cgi prefix (usually /cgi-bin/).
 	 */
 	bool generate_content(x0::request& in, x0::response& out) {
-		std::string path(in.entity);
+		std::string path(in.fileinfo->filename());
 
 		struct stat *st = in.connection.server().stat(path);;
 		if (st == 0)
@@ -556,11 +556,11 @@ private:
 	 */
 	bool find_interpreter(x0::request& in, std::string& interpreter)
 	{
-		std::string::size_type rpos = in.entity.rfind('.');
+		std::string::size_type rpos = in.fileinfo->filename().rfind('.');
 
 		if (rpos != std::string::npos)
 		{
-			std::string ext(in.entity.substr(rpos));
+			std::string ext(in.fileinfo->filename().substr(rpos));
 			auto i = interpreter_.find(ext);
 
 			if (i != interpreter_.end())

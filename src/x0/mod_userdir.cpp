@@ -102,7 +102,7 @@ private:
 			if (struct passwd *pw = getpwnam(userName.c_str()))
 			{
 				in.document_root = pw->pw_dir + ctx.docroot;
-				in.entity = in.document_root + userPath;
+				in.fileinfo = server_.fileinfo(in.document_root + userPath);
 			}
 		}
 	}

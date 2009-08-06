@@ -18,6 +18,7 @@
 #include <x0/types.hpp>
 #include <x0/property.hpp>
 #include <x0/stat_service.hpp>
+#include <x0/fileinfo_service.hpp>
 #include <x0/api.hpp>
 #include <boost/signals.hpp>
 #include <cstring>
@@ -185,6 +186,7 @@ public:
 	value_property<int> max_write_idle;
 	value_property<std::string> tag;
 	stat_service stat;
+	fileinfo_service fileinfo;
 };
 
 // {{{ inlines

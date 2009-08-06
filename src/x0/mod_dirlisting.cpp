@@ -51,16 +51,15 @@ public:
 private:
 	bool dirlisting(x0::request& in, x0::response& out)
 	{
-		struct stat *st;
-		if (!(st = in.connection.server().stat(in.entity)) || !S_ISDIR(st->st_mode))
+		if (!in.fileinfo->is_directory())
 			return false;
 
-		if (DIR *dir = opendir(in.entity.c_str()))
+		if (DIR *dir = opendir(in.fileinfo->filename().c_str()))
 		{
 			std::list<std::string> listing;
 			listing.push_back("..");
 
-			int len = offsetof(dirent, d_name) + pathconf(in.entity.c_str(), _PC_NAME_MAX);
+			int len = offsetof(dirent, d_name) + pathconf(in.fileinfo->filename().c_str(), _PC_NAME_MAX);
 			dirent *dep = (dirent *)new unsigned char[len + 1];
 			dirent *res = 0;
 
@@ -70,10 +69,13 @@ private:
 
 				if (name[0] != '.')
 				{
-					if ((st = in.connection.server().stat(in.entity + name)) && S_ISDIR(st->st_mode))
-						name += "/";
+					if (x0::fileinfo_ptr fi = in.connection.server().fileinfo(in.fileinfo->filename() + name))
+					{
+						if (fi->is_directory())
+							name += "/";
 
-					listing.push_back(name);
+						listing.push_back(name);
+					}
 				}
 			}
 
