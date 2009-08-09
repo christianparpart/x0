@@ -38,6 +38,7 @@ set(x0d_API
 	fileinfo_service.hpp
 	io_service_pool.hpp
 	context.hpp
+	datetime.hpp
 	handler.hpp
 	header.hpp
 	listener.hpp

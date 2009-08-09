@@ -8,6 +8,7 @@
 #ifndef sw_x0_server_hpp
 #define sw_x0_server_hpp (1)
 
+#include <x0/datetime.hpp>
 #include <x0/settings.hpp>
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
@@ -160,6 +161,9 @@ public:
 
 	x0::io_service_pool& io_service_pool();
 
+	/** retrieves the current server time. */
+	const datetime& now() const;
+
 private:
 	long long getrlimit(int resource);
 	long long setrlimit(int resource, long long max);
@@ -177,6 +181,7 @@ private:
 	std::string configfile_;
 	logger_ptr logger_;
 	plugin_map_t plugins_;
+	datetime now_;
 
 public:
 	value_property<int> max_connections;
@@ -194,6 +199,11 @@ public:
 inline x0::io_service_pool& server::io_service_pool()
 {
 	return io_service_pool_;
+}
+
+inline const x0::datetime& server::now() const
+{
+	return now_;
 }
 // }}}
 

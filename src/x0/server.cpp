@@ -46,6 +46,7 @@ server::server() :
 	settings_(),
 	logger_(),
 	plugins_(),
+	now_(),
 	max_connections(512),
 	max_keep_alive_requests(16),
 	max_keep_alive_idle(5),
@@ -313,6 +314,9 @@ void server::handle_request(request& in, response& out)
 {
 	using boost::algorithm::ends_with;
 
+	// update server clock
+	now_.update();
+
 	// pre-request hook
 	pre_process(in);
 
@@ -508,21 +512,3 @@ std::vector<std::string> server::loaded_plugins() const
 }
 
 } // namespace x0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
