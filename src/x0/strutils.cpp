@@ -42,9 +42,11 @@ std::string read_file(const std::string& filename)
 				buf[nread] = '\0';
 				std::string str(buf, 0, nread);
 				delete[] buf;
+				::close(fd);
 				return str;
 			}
 			delete[] buf;
+			::close(fd);
 		}
 		throw std::runtime_error(fstringbuilder::format("cannot open file: %s (%s)", filename.c_str(), strerror(errno)));
 	}
