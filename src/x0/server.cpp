@@ -16,6 +16,7 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <iostream>
 #include <cstdarg>
@@ -327,7 +328,7 @@ void server::handle_request(request& in, response& out) {
 
 	// redirect physical request paths not ending with slash if mapped to directory
 	std::string filename = in.fileinfo->filename();
-	if (in.fileinfo->is_directory() && in.path.size() > 3 && in.path[in.path.size() - 1] != '/')
+	if (in.fileinfo->is_directory() && !boost::ends_with(in.path, "/"))
 	{
 		std::stringstream url;
 		url << (in.connection.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
