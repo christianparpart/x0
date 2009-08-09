@@ -19,7 +19,6 @@ add_definitions(
 add_executable(x0d
 	connection.cpp
 	fileinfo_service.cpp
-	io_service_pool.cpp
 	listener.cpp
 	logger.cpp
 	main.cpp
@@ -36,7 +35,6 @@ set(x0d_API
 	connection.hpp
 	fileinfo.hpp fileinfo.ipp
 	fileinfo_service.hpp
-	io_service_pool.hpp
 	context.hpp
 	datetime.hpp
 	handler.hpp

@@ -240,11 +240,11 @@ private:
 
 cgi_script::cgi_script(x0::request& in, x0::response& out, const std::string& hostprogram)
   : request_(in), response_(out), hostprogram_(hostprogram),
-	process_(in.connection.server().io_service_pool().get_service()),
+	process_(in.connection.server().io_service()),
 	outbuf_(), errbuf_(),
 	response_parser_(),
 	serial_(0),
-	ttl_(in.connection.server().io_service_pool().get_service())
+	ttl_(in.connection.server().io_service())
 {
 	//printf("cgi_script(entity=\"%s\", hostprogram=\"%s\")\n", request_.entity.c_str(), hostprogram_.c_str());
 

@@ -17,14 +17,13 @@ namespace x0 {
 connection::connection(x0::server& srv)
   : secure(false),
 	server_(srv),
-	socket_(server_.io_service_pool().get_service()),
-	timer_(server_.io_service_pool().get_service()),
+	socket_(server_.io_service()),
+	timer_(server_.io_service()),
 	client_ip_(),
 	client_port_(0),
 	buffer_(),
 	request_(new request(*this)),
 	request_reader_()
-//	strand_(server_.io_service_pool().get_service())
 {
 	//DEBUG("connection(%p)", this);
 }

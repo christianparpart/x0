@@ -16,7 +16,7 @@ namespace x0 {
 
 listener::listener(server& srv)
   : server_(srv),
-	acceptor_(server_.io_service_pool().get_service()),
+	acceptor_(server_.io_service()),
 	new_connection_(new connection(server_)),
 	address_(),
 	port_(-1)
@@ -36,7 +36,7 @@ void listener::configure(const std::string& address, int port)
 
 void listener::start()
 {
-	boost::asio::ip::tcp::resolver resolver(server_.io_service_pool().get_service());
+	boost::asio::ip::tcp::resolver resolver(server_.io_service());
 	boost::asio::ip::tcp::resolver::query query(address_, boost::lexical_cast<std::string>(port_));
 	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 

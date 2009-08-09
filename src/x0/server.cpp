@@ -41,7 +41,7 @@ server::server() :
 	post_process(),
 	connection_close(),
 	listeners_(),
-	io_service_pool_(),
+	io_service_(),
 	paused_(),
 	settings_(),
 	logger_(),
@@ -53,7 +53,7 @@ server::server() :
 	max_read_idle(60),
 	max_write_idle(360),
 	tag("x0/" VERSION),
-	fileinfo(io_service_pool_.get_service()),
+	fileinfo(io_service_),
 	max_fds(boost::bind(&server::getrlimit, this, RLIMIT_CORE),
 			boost::bind(&server::setrlimit, this, RLIMIT_NOFILE, _1))
 {
@@ -152,17 +152,19 @@ void server::configure(const std::string& configfile)
 
 	logger_->level(severity(settings_.get<std::string>("Log.Level")));
 
-	// setup io_service_pool
+	// setup workers
+#if 0
 	{
 		int num_workers = 1;
 		settings_.load("Resources.NumWorkers", num_workers);
-		io_service_pool_.setup(num_workers);
+		//io_service_pool_.setup(num_workers);
 
 		if (num_workers > 1)
 			log(severity::info, "using %d workers", num_workers);
 		else
 			log(severity::info, "using single worker");
 	}
+#endif
 
 	// resource limits
 	{
@@ -259,7 +261,7 @@ void server::run()
 
 	log(severity::info, "server up and running");
 
-	io_service_pool_.run();
+	io_service_.run();
 }
 
 /** drops runtime privileges current process to given user's/group's name. */
@@ -406,7 +408,7 @@ void server::stop()
 		(*k).reset();
 	}
 
-	io_service_pool_.stop();
+	io_service_.stop();
 }
 
 x0::settings& server::config()
