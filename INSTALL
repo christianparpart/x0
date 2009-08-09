@@ -1,0 +1,15 @@
+
+Install Requirements:
+
+- boost 1.39
+- LUA 5.1.3
+- cppunit
+- GCC 4.4.1 (it really must be 4.4.0 or higher)
+- cmake for building
+
+fetch the sources from gitorious (i guess you already did that).
+
+# cmake .
+# make edit_cache
+# make
+# sudo make install

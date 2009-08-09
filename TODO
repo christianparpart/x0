@@ -86,16 +86,17 @@ NOTES AND THOUGHTS:
 OPTIMIZATION AND CACHING INITIATIVE
 
 - core optimizations:
-  - server time string for "Date" header
+  - server time (server::now()) should *NOT* be updated on every request handling.
+    instead, only on each poll result.
+	This maybe implies for us not to use the standard io_service::run()
+	but something like that and call server time update right after each poll().
+	MAYBE this can be also implemented directly (w/o hacking io_service::run) by
+	calling something like post() on each update. hmmm.
   - optimize composite_buffer appending by merging nearby iovec chunks,
       if the left back and the right front is an iovec_chunk, and
       if the sum of both iovec elements does not exceed the system's iovec limit to writev(2)
-- sendfile optimizations:
-  - mtime strings for "Last-Modified" header
-  - ETags-cache for files (we could trigger these on stat invalidation in stat-cache)
-
 - improve configuration system
-	- based on hierarichal contexts (with use of ternary_search<>)
+	- dir contexts hierarichally via ternary_search<>
 
 -----------------------------------------------------------------------------
 bool chat_listener::handle_request(request& in, response& out)
