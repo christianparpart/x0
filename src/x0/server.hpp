@@ -8,7 +8,7 @@
 #ifndef sw_x0_server_hpp
 #define sw_x0_server_hpp (1)
 
-#include <x0/config.hpp>
+#include <x0/settings.hpp>
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/io_service_pool.hpp>
@@ -17,7 +17,6 @@
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
 #include <x0/property.hpp>
-#include <x0/stat_service.hpp>
 #include <x0/fileinfo_service.hpp>
 #include <x0/api.hpp>
 #include <boost/signals.hpp>
@@ -129,7 +128,7 @@ public:
 	/** 
 	 * retrieves reference to server currently loaded configuration.
 	 */
-	x0::config& config();
+	x0::settings& config();
 
 	/**
 	 * writes a log entry into the server's error log.
@@ -162,7 +161,9 @@ public:
 	x0::io_service_pool& io_service_pool();
 
 private:
-	void setrlimit(int resource, unsigned long long max);
+	long long getrlimit(int resource);
+	long long setrlimit(int resource, long long max);
+
 	void drop_privileges(const std::string& user, const std::string& group);
 
 	listener_ptr listener_by_port(int port);
@@ -172,21 +173,21 @@ private:
 	std::list<listener_ptr> listeners_;
 	x0::io_service_pool io_service_pool_;
 	bool paused_;
-	x0::config config_;
+	x0::settings settings_;
 	std::string configfile_;
 	logger_ptr logger_;
 	plugin_map_t plugins_;
 
 public:
 	value_property<int> max_connections;
-	value_property<int> max_fds;
 	value_property<int> max_keep_alive_requests;
 	value_property<int> max_keep_alive_idle;
 	value_property<int> max_read_idle;
 	value_property<int> max_write_idle;
 	value_property<std::string> tag;
-	stat_service stat;
 	fileinfo_service fileinfo;
+
+	property<unsigned long long> max_fds;
 };
 
 // {{{ inlines

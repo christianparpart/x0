@@ -11,6 +11,7 @@
 // C++ template based properties, as defined in: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2004/n1615.pdf
 
 #include <map>
+#include <boost/function.hpp>
 
 namespace x0 {
 
@@ -176,66 +177,62 @@ public:
 	typedef T value_type;
 };
 
-template<
-	typename T,
-	typename Object,
-	T (Object::*real_get)() const,
-	T (Object::*real_set)(T const&)
->
+template<typename T>
 class property
 {
 private:
-	Object *object_;
+	boost::function<T()> get_;
+	boost::function<T(const T&)> set_;
 
 public:
-	property(Object *obj) : object_(obj)
+	template<class Getter, class Setter>
+	property(Getter _get, Setter _set) :
+		get_(_get), set_(_set)
 	{
 	}
 
-	property(Object *obj, T const & v) : object_(obj)
+	template<class Getter, class Setter>
+	property(Getter _get, Setter _set, const T& v) :
+		get_(_get), set_(_set)
 	{
-		(object_->*real_set)(v);
+		set_(v);
 	}
 
-	void operator()(Object *obj)
+	template<class Getter, class Setter>
+	void bind(Getter _get, Setter _set)
 	{
-		object_ = obj;
-	}
-
-	void operator()(Object *obj, T const& value)
-	{
-		object_ = obj;
-		(object_->*real_set)(value);
+		get_ = _get;
+		set_ = _set;
 	}
 
 	T operator()() const
 	{
-		return (object_->*real_get)();
+		return get_();
 	}
 
-	T operator()(T const& value)
+	T operator()(const T& value)
 	{
-		return (object_->*real_set)(value);
+		return set_(value);
 	}
 
 	T get() const
 	{
-		return (object_->*real_get)();
+		return get_();
 	}
 
-	T set(T const& value)
+	T set(const T& value)
 	{
-		return (object_->*real_set)(value);
+		return set_(value);
 	}
 
 	operator T() const
 	{
-		return (object_->*real_get)();
+		return get_();
 	}
 
-	T operator=(T const& value)
+	T operator=(const T& value)
 	{
-		return (object_->*real_set)(value);
+		return set_(value);
 	}
 
 	typedef T value_type;

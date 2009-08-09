@@ -19,7 +19,6 @@
 #include <sstream>
 #include <sys/sendfile.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
@@ -35,30 +34,14 @@ class sendfile_plugin :
 	public x0::plugin
 {
 private:
-	typedef std::map<std::string, std::string> mime_types_type;
-
-	mime_types_type mime_types_;
-	std::string default_mimetype_;
-	bool etag_consider_mtime_;
-	bool etag_consider_size_;
-	bool etag_consider_inode_;
-	std::map<const struct stat *, std::string> etag_cache_;
-
 	x0::handler::connection c;
 
 public:
 	sendfile_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name),
-		mime_types_(),
-		default_mimetype_("text/plain"),
-		etag_consider_mtime_(true),
-		etag_consider_size_(true),
-		etag_consider_inode_(false),
-		etag_cache_(),
 		c()
 	{
 		c = server_.generate_content.connect(boost::bind(&sendfile_plugin::sendfile, this, _1, _2));
-		server_.stat.on_invalidate.connect(boost::bind(&sendfile_plugin::etag_invalidate, this, _1, _2));
 	}
 
 	~sendfile_plugin() {
@@ -287,53 +270,6 @@ private:
 		buf[sizeof(buf) - 1] = '\0';
 
 		return std::string(buf);
-	}
-
-	/**
-	 * generates an ETag for given inode.
-	 * \param st stat structure to generate the ETag for.
-	 * \return an HTTP/1.1 conform ETag value.
-	 */
-	inline std::string etag_generate(const struct stat *st)
-	{
-		{
-			auto cache_entry = etag_cache_.find(st);
-
-			if (cache_entry != etag_cache_.end())
-				return cache_entry->second;
-		}
-
-		std::stringstream sstr;
-		int count = 0;
-
-		sstr << '"';
-
-		if (etag_consider_mtime_)
-		{
-			++count;
-			sstr << st->st_mtime;
-		}
-
-		if (etag_consider_size_)
-		{
-			if (count++) sstr << '-';
-			sstr << st->st_size;
-		}
-
-		if (etag_consider_inode_)
-		{
-			if (count++) sstr << '-';
-			sstr << st->st_ino;
-		}
-
-		sstr << '"';
-
-		return etag_cache_[st] = sstr.str();
-	}
-
-	void etag_invalidate(const std::string& filename, const struct stat *st)
-	{
-		etag_cache_.erase(etag_cache_.find(st));
 	}
 };
 

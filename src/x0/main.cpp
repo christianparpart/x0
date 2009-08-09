@@ -303,4 +303,9 @@ int main(int argc, char *argv[])
 		std::cerr << e.what() << std::endl;
 		return 1;
 	}
+	catch (const char *e)
+	{
+		std::cerr << e << std::endl;
+		return 2;
+	}
 }

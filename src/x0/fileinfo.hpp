@@ -36,6 +36,7 @@ public:
 	bool exists() const;
 	bool is_directory() const;
 	bool is_regular() const;
+	bool is_executable() const;
 
 	// HTTP related high-level properties
 	std::string etag() const;

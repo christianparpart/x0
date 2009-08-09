@@ -8,7 +8,6 @@
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
-#include <x0/config.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 
@@ -43,9 +42,15 @@ public:
 
 	virtual void configure()
 	{
-		server_root_ = server_.config().get("vhost", "server-root");		// e.g. /var/www/
-		default_host_ = server_.config().get("vhost", "default-host");		// e.g. localhost
-		document_root_ = server_.config().get("vhost", "document-root");	// e.g. /htdocs
+		// setup defaults
+		server_root_ = "/var/www/";
+		default_host_ = "localhost";
+		document_root_ = "/htdocs";
+
+		// load server context
+		server_.config().load("HostTemplate.ServerRoot", server_root_); // e.g. /var/www/
+		server_.config().load("HostTemplate.DefaultHost", default_host_); // e.g. localhost
+		server_.config().load("HostTemplate.DocumentRoot", document_root_); // e.g. /htdocs
 
 		// enforce trailing slash at the end of server root
 		if (!server_root_.empty() && server_root_[server_root_.length() - 1] != '/')
@@ -88,15 +93,16 @@ private:
 			dr += hostname;
 			dr += document_root_;
 
-			struct stat *st = in.connection.server().stat(dr);
-			if (!st || S_ISDIR(st->st_mode))
+			x0::fileinfo_ptr fi = in.connection.server().fileinfo(dr);
+			if (!fi || !fi->is_directory())
 			{
 				dr.clear();
 				dr += server_root_;
 				dr += default_host_;
 				dr += document_root_;
 
-				if (!(st = in.connection.server().stat(dr)) || !S_ISDIR(st->st_mode))
+				fi = in.connection.server().fileinfo(dr);
+				if (!fi || !fi->is_directory())
 				{
 					return;
 				}

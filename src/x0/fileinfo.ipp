@@ -19,8 +19,9 @@ inline fileinfo::fileinfo(const std::string& filename) :
 	}
 	else
 	{
-		DEBUG("fileinfo: could not stat file: %s: %s", filename_.c_str(), strerror(errno));
+		//DEBUG("fileinfo: could not stat file: %s: %s", filename_.c_str(), strerror(errno));
 		exists_ = false;
+		std::memset(&st_, 0, sizeof(st_));
 	}
 }
 
@@ -52,6 +53,11 @@ inline bool fileinfo::is_directory() const
 inline bool fileinfo::is_regular() const
 {
 	return S_ISREG(st_.st_mode);
+}
+
+inline bool fileinfo::is_executable() const
+{
+	return st_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
 }
 
 inline std::string fileinfo::etag() const

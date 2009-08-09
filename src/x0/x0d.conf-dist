@@ -59,15 +59,6 @@ Log = {
 
 Listen = 8080;
 
-AccessLogPath = 'access.log'
-
-IndexFiles = { 'index.html', 'index.xml' };
-
-Userdir = {
-	DocumentRoot = 'public_html';
-	PathPrefix = '~';
-}
-
 Resources = {
 	MaxFiles = 2048;
 	MaxAddressSpace = GB(2);
@@ -82,17 +73,6 @@ Resources = {
 	NumWorkers = 1; -- must be set to 1, currently (because this service is not yet thread safe)
 };
 
-CGI = {
-	PathPrefix = '/cgi-bin/';
-	Executable = true;
-	Mapping = {
-		['.php'] = '/usr/bin/php';
-		['.rb'] = '/usr/bin/ruby';
-		['.pl'] = '/usr/bin/perl';
-		['.sh'] = '/bin/bash';
-	};
-}
-
 FileInfo = {
 	MimeType = {
 		MimeFile = '/etc/mime.types';
@@ -106,7 +86,27 @@ FileInfo = {
 	};
 };
 
-Alias = {
+AccessLog = 'access.log';
+
+IndexFiles = { 'index.html', 'index.xml' };
+
+Userdir = {
+	DocumentRoot = 'public_html';
+	PathPrefix = '~';
+};
+
+CGI = {
+	PathPrefix = '/cgi-bin/';
+	Executable = true;
+	Mappings = {
+		['.php'] = '/usr/bin/php';
+		['.rb'] = '/usr/bin/ruby';
+		['.pl'] = '/usr/bin/perl';
+		['.sh'] = '/bin/bash';
+	};
+};
+
+Aliases = {
 	['/error/'] = DATADIR .. 'error/';
 	['/icon/'] = DATADIR .. 'icon/';
 };
@@ -146,6 +146,6 @@ Hosts = {
 --end
 
 ------------------------------------------------------
-for k, v in pairs(ErrorDocuments) do
+--[[for k, v in pairs(ErrorDocuments) do
 	print(k, v);
-end
+end ]]

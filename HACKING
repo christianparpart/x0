@@ -157,7 +157,7 @@ response
 
 
 ---------------------------------------------------------------
-LINUX SYSTEM CALLS OF INTEREST;
+(LINUX) SYSTEM CALLS OF INTEREST;
 
 - timerfd, for handling timers through file descriptors
 - eventfd, helpful for user driven event notification / main-loop interruption (instead of using pipes e.g.)
@@ -166,9 +166,19 @@ LINUX SYSTEM CALLS OF INTEREST;
 - fsnotify, potential successor of inotify and dnotify
 - sendfile, most delicious when used fully async (for input and output)
 - socketpair, not quite interesting, but worth a note
+- posix_fadvise
+- readahead
+- everything around aio/libaio
 
 
 
+composite_buffer - buffer object, creation and data access
+composite_buffer_writer - synchronous writer
+composite_buffer_async_writer - asynchronous writer
+	simple_writer - writes chunks via writev, and files via read+write
+		sendfile_writer - writes files via sendfile
+		aio_sendfile_writer - writes files via aio+sendfile
+		mmap_writer - writes files via mmap+writev
 
 
 

@@ -6,12 +6,6 @@ include_directories(${BOOST_INCLUDEDIR})
 SET(COMPILE_DEFINITIONS_Debug -DDEBUG=1)
 SET(COMPILE_DEFINITIONS_Release -DRELEASE=1 -DNDEBUG=1)
 
-IF(${CMAKE_BUILD_TYPE} EQUAL Release)
-	add_definitions(-DX0_RELEASE -DNDEBUG=1)
-ELSE()
-	add_definitions(-DX0_DEBUG=1)
-ENDIF()
-
 add_definitions(
 	-Wall -Wno-deprecated
 	-pthread
@@ -23,7 +17,6 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 add_executable(x0d
-	config.cpp
 	connection.cpp
 	fileinfo_service.cpp
 	io_service_pool.cpp
@@ -34,12 +27,12 @@ add_executable(x0d
 	response.cpp
 	request.cpp
 	server.cpp
+	settings.cpp
 	severity.cpp
 	strutils.cpp
 )
 
 set(x0d_API
-	config.hpp
 	connection.hpp
 	fileinfo.hpp fileinfo.ipp
 	fileinfo_service.hpp
@@ -54,6 +47,7 @@ set(x0d_API
 	request.hpp
 	response.hpp
 	server.hpp
+	settings.hpp
 	severity.hpp
 	strutils.hpp strutils.tcc
 	types.hpp

@@ -49,8 +49,8 @@ public:
 	{
 		context& ctx = server_.context<context>(this);
 
-		ctx.prefix = server_.config().get("service", "userdir-prefix");
-		ctx.docroot = server_.config().get("service", "userdir-document-root");
+		server_.config().load("UserDir.PathPrefix", ctx.prefix);
+		server_.config().load("UserDir.DocumentRoot", ctx.docroot);
 
 		if (ctx.prefix.empty())
 		{

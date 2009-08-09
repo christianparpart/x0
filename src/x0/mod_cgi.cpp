@@ -469,17 +469,9 @@ public:
 		interpreter_.clear();
 
 		// load system config
-		server_.config().load<std::string>("cgi", "dir-prefix", prefix_);
-
-		std::string value;
-		if ((value = server_.config().get("cgi", "executable")) != "")
-			process_executables_ = value == "true" || value == "1";
-
-		std::vector<std::string> exts(server_.config().keys("cgi.mappings"));
-		for (std::size_t i = 0; i != exts.size(); ++i)
-		{
-			interpreter_[exts[i]] = server_.config().get("cgi.mappings", exts[i]);
-		}
+		server_.config().load("CGI.PathPrefix", prefix_);
+		server_.config().load("CGI.Executable", process_executables_);
+		server_.config().load("CGI.Mappings", interpreter_);
 	}
 
 private:
@@ -501,11 +493,11 @@ private:
 	bool generate_content(x0::request& in, x0::response& out) {
 		std::string path(in.fileinfo->filename());
 
-		struct stat *st = in.connection.server().stat(path);;
-		if (st == 0)
+		x0::fileinfo_ptr fi = in.connection.server().fileinfo(path);
+		if (!fi)
 			return false;
 
-		if (!S_ISREG(st->st_mode))
+		if (!fi->is_regular())
 			return false;
 
 		std::string interpreter;
@@ -515,7 +507,7 @@ private:
 			return true;
 		}
 
-		bool executable = st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
+		bool executable = fi->is_executable();
 
 		if (executable && (process_executables_ || matches_prefix(in)))
 		{

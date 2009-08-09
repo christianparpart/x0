@@ -21,7 +21,6 @@ add_subdirectory(tests)
 
 OPTION(WITH_INOTIFY "Build with inotify support [default: on]" ON)
 OPTION(WITH_LIBAIO "Build with libaio support [default: on]" ON)
-OPTION(WITH_LUA "With LUA 5.1+ support [default: off]")
 OPTION(WITH_PCRE "With PCRE support [default: off]")
 OPTION(WITH_SSL "With SSL support [default: on]" ON)
 OPTION(BUILD_STATIC "Build with modules statically linked in [default: off]")
@@ -105,9 +104,8 @@ endif()
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
-IF(WITH_LUA)
-	pkg_check_modules(LUA REQUIRED lua>=5.1)
-ENDIF(WITH_LUA)
+pkg_check_modules(LUA REQUIRED lua>=5.1)
+
 IF(WITH_PCRE)
 	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
 ENDIF(WITH_PCRE)
@@ -123,6 +121,12 @@ IF(BUILD_STATIC)
 ELSE(BUILD_STATIC)
 	CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
 ENDIF(BUILD_STATIC)
+
+IF(${CMAKE_BUILD_TYPE} EQUAL Release)
+	add_definitions(-DX0_RELEASE -DNDEBUG=1)
+ELSE()
+	add_definitions(-DX0_DEBUG=1)
+ENDIF()
 
 # ---------------------------------------------------------------------------
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)

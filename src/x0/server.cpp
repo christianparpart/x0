@@ -5,7 +5,7 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/config.hpp>
+#include <x0/settings.hpp>
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/server.hpp>
@@ -42,18 +42,18 @@ server::server() :
 	listeners_(),
 	io_service_pool_(),
 	paused_(),
-	config_(),
+	settings_(),
 	logger_(),
 	plugins_(),
 	max_connections(512),
-	max_fds(1024),
 	max_keep_alive_requests(16),
 	max_keep_alive_idle(5),
 	max_read_idle(60),
 	max_write_idle(360),
 	tag("x0/" VERSION),
-	stat(io_service_pool_.get_service()),
-	fileinfo(io_service_pool_.get_service())
+	fileinfo(io_service_pool_.get_service()),
+	max_fds(boost::bind(&server::getrlimit, this, RLIMIT_CORE),
+			boost::bind(&server::setrlimit, this, RLIMIT_NOFILE, _1))
 {
 }
 
@@ -73,7 +73,19 @@ static inline const char *rc2str(int resource)
 	}
 }
 
-void server::setrlimit(int resource, unsigned long long value)
+long long server::getrlimit(int resource)
+{
+	struct rlimit rlim;
+	if (::getrlimit(resource, &rlim) == -1)
+	{
+		log(severity::warn, "Failed to retrieve current resource limit on %s (%d).",
+			rc2str(resource), resource);
+		return 0;
+	}
+	return rlim.rlim_cur;
+}
+
+long long server::setrlimit(int resource, long long value)
 {
 	struct rlimit rlim;
 	if (::getrlimit(resource, &rlim) == -1)
@@ -81,13 +93,13 @@ void server::setrlimit(int resource, unsigned long long value)
 		log(severity::warn, "Failed to retrieve current resource limit on %s (%d).",
 			rc2str(resource), resource);
 
-		return;
+		return 0;
 	}
 
-	unsigned long long last = rlim.rlim_cur;
+	long long last = rlim.rlim_cur;
 
 	// patch against human readable form
-	unsigned long long hlast = last, hvalue = value;
+	long long hlast = last, hvalue = value;
 	switch (resource)
 	{
 		case RLIMIT_AS:
@@ -103,14 +115,16 @@ void server::setrlimit(int resource, unsigned long long value)
 	rlim.rlim_max = value;
 
 	if (::setrlimit(resource, &rlim) == -1) {
-		log(severity::warn, "Failed to set resource limit on %s (%d) from %d to %d.",
+		log(severity::warn, "Failed to set resource limit on %s (%d) from %lld to %lld.",
 			rc2str(resource), resource, hlast, hvalue);
 
-		return;
+		return 0;
 	}
 
-	log(severity::debug, "Set resource limit on %s (%d) from %d to %d.",
+	log(severity::debug, "Set resource limit on %s (%d) from %lld to %lld.",
 		rc2str(resource), resource, hlast, hvalue);
+
+	return value;
 }
 
 /**
@@ -119,69 +133,93 @@ void server::setrlimit(int resource, unsigned long long value)
 void server::configure(const std::string& configfile)
 {
 	// load config
-	config_.load_file(configfile);
+	settings_.load_file(configfile);
+
+	settings_.load<std::string>("ServerTag", tag);
 
 	// setup logger
-	std::string logmode(config_.get("service", "log-mode"));
-	if (logmode == "file") logger_.reset(new filelogger(config_.get("service", "log-filename")));
-	else if (logmode == "null") logger_.reset(new nulllogger());
-	else if (logmode == "stderr") logger_.reset(new filelogger("/dev/stderr"));
-	else logger_.reset(new nulllogger());
+	{
+		std::string logmode(settings_.get<std::string>("Log.Mode"));
 
-	logger_->level(severity(config_.get("service", "log-level")));
+		if (logmode == "file") logger_.reset(new filelogger(settings_.get<std::string>("Log.FileName")));
+		else if (logmode == "null") logger_.reset(new nulllogger());
+		else if (logmode == "stderr") logger_.reset(new filelogger("/dev/stderr"));
+		/// \todo add syslog logger
+		else logger_.reset(new nulllogger());
+	}
+
+	logger_->level(severity(settings_.get<std::string>("Log.Level")));
 
 	// setup io_service_pool
-	int num_threads = 1;
-	config_.load<int>("service", "num-threads", num_threads);
-	io_service_pool_.setup(num_threads);
+	{
+		int num_workers = 1;
+		settings_.load("Resources.NumWorkers", num_workers);
+		io_service_pool_.setup(num_workers);
 
-	if (num_threads > 1)
-		log(severity::info, "using %d io services", num_threads);
-	else
-		log(severity::info, "using single io service");
+		if (num_workers > 1)
+			log(severity::info, "using %d workers", num_workers);
+		else
+			log(severity::info, "using single worker");
+	}
 
-	// load limits
-	config_.load<int>("service", "max-connections", max_connections);
-	config_.load<int>("service", "max-fds", max_fds);
-	config_.load<int>("service", "max-keep-alive-requests", max_keep_alive_requests);
-	config_.load<int>("service", "max-keep-alive-idle", max_keep_alive_idle);
-	config_.load<int>("service", "max-read-idle", max_read_idle);
-	config_.load<int>("service", "max-write-idle", max_write_idle);
+	// resource limits
+	{
+		settings_.load("Resources.MaxConnections", max_connections);
+		settings_.load("Resources.MaxKeepAliveRequests", max_keep_alive_requests);
+		settings_.load("Resources.MaxKeepAliveIdle", max_keep_alive_idle);
+		settings_.load("Resources.MaxReadIdle", max_read_idle);
+		settings_.load("Resources.MaxWriteIdle", max_write_idle);
 
-	config_.load<std::string>("service", "tag", tag);
+		long long value;
+		if (settings_.load("Resources.MaxFiles", value))
+			setrlimit(RLIMIT_NOFILE, value);
 
-	std::string value;
-	if ((value = config_.get("service", "max-filedes")) != "")
-		setrlimit(RLIMIT_NOFILE, boost::lexical_cast<int>(value));
+		if (settings_.load("Resources.MaxAddressSpace", value))
+			setrlimit(RLIMIT_AS, value);
 
-	if ((value = config_.get("service", "max-address-space")) != "")
-		setrlimit(RLIMIT_AS, boost::lexical_cast<unsigned long long>(value)); // value in MB
-
-	if ((value = config_.get("service", "max-core")) != "")
-		setrlimit(RLIMIT_CORE, boost::lexical_cast<unsigned long long>(value)); // value in MB
+		if (settings_.load("Resources.MaxCoreFileSize", value))
+			setrlimit(RLIMIT_CORE, value);
+	}
 
 	// fileinfo
-	fileinfo.load_mimetypes(config().get("fileinfo", "mime-types-file"));
-	fileinfo.default_mimetype(config().get("fileinfo", "default-mime-type"));
-#if 1 == 0
-	fileinfo.etag_consider_mtime(...);
-	fileinfo.etag_consider_size(...);
-	fileinfo.etag_consider_inode(...);
-#endif
+	{
+		std::string value;
+		if (settings_.load("FileInfo.MimeType.MimeFile", value))
+			fileinfo.load_mimetypes(value);
+
+		if (settings_.load("FileInfo.MimeType.DefaultType", value))
+			fileinfo.default_mimetype(value);
+
+		bool flag;
+		if (settings_.load("FileInfo.ETag.ConsiderMtime", flag))
+			fileinfo.etag_consider_mtime(flag);
+
+		if (settings_.load("FileInfo.ETag.ConsiderSize", flag))
+			fileinfo.etag_consider_size(flag);
+
+		if (settings_.load("FileInfo.ETag.ConsiderInode", flag))
+			fileinfo.etag_consider_inode(flag);
+	}
 
 	// load modules
-	std::vector<std::string> plugins = split<std::string>(config_.get("service", "modules-load"), ", ");
-
-	for (std::size_t i = 0; i < plugins.size(); ++i)
 	{
-		load_plugin(plugins[i]);
+		std::vector<std::string> plugins;
+		settings_.load("Modules.Load", plugins);
+
+		for (std::size_t i = 0; i < plugins.size(); ++i)
+		{
+			load_plugin(plugins[i]);
+		}
 	}
 
 	// setup TCP listeners
-	std::vector<int> ports = split<int>(config_.get("service", "listen-ports"), ", ");
-	for (std::vector<int>::iterator i = ports.begin(), e = ports.end(); i != e; ++i)
 	{
-		setup_listener(*i);
+		std::vector<int> ports;
+		settings_.load("Listen", ports);
+		for (auto i = ports.begin(), e = ports.end(); i != e; ++i)
+		{
+			setup_listener(*i);
+		}
 	}
 
 	// configure modules
@@ -191,7 +229,7 @@ void server::configure(const std::string& configfile)
 	}
 
 	// setup process priority
-	if (int nice_ = std::atoi(config_.get("daemon", "nice").c_str()))
+	if (int nice_ = settings_.get<int>("Daemon.Nice"))
 	{
 		log(severity::debug, "set nice level to %d", nice_);
 
@@ -202,7 +240,7 @@ void server::configure(const std::string& configfile)
 	}
 
 	// drop user privileges
-	drop_privileges(config_.get("daemon", "user"), config_.get("daemon", "group"));
+	drop_privileges(settings_["Daemon.User"].as<std::string>(), settings_["Daemon.Group"].as<std::string>());
 }
 
 /**
@@ -287,9 +325,9 @@ void server::handle_request(request& in, response& out) {
 	in.fileinfo = fileinfo(in.document_root + in.path);
 	resolve_entity(in); // translate_path
 
-	// redirect physical request paths not ending with slash
+	// redirect physical request paths not ending with slash if mapped to directory
 	std::string filename = in.fileinfo->filename();
-	if (in.fileinfo->is_directory() && filename.size() > 3 && filename[filename.size() - 1] != '/')
+	if (in.fileinfo->is_directory() && in.path.size() > 3 && in.path[in.path.size() - 1] != '/')
 	{
 		std::stringstream url;
 		url << (in.connection.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
@@ -363,9 +401,9 @@ void server::stop()
 	io_service_pool_.stop();
 }
 
-x0::config& server::config()
+x0::settings& server::config()
 {
-	return config_;
+	return settings_;
 }
 
 void server::log(severity s, const char *msg, ...)
@@ -405,7 +443,8 @@ typedef plugin *(*plugin_create_t)(server&, const std::string&);
 
 void server::load_plugin(const std::string& name)
 {
-	std::string plugindir_(config_.get("service", "modules-directory"));
+	std::string plugindir_(".");
+	settings_.load("Modules.Directory", plugindir_);
 
 	if (!plugindir_.empty() && plugindir_[plugindir_.size() - 1] != '/')
 	{

@@ -49,8 +49,7 @@ public:
 
 	virtual void configure()
 	{
-		// TODO retrieve file to store accesslog log to.
-		filename = server_.config().get("service", "accesslog-filename");
+		server_.config().load("AccessLog", filename);
 
 		if (!filename.empty())
 		{
@@ -58,6 +57,14 @@ public:
 			if (fd == -1)
 			{
 				server_.log(x0::severity::error, "Could not open access log file.");
+			}
+		}
+		else
+		{
+			fd = ::dup(STDOUT_FILENO);
+			if (fd == -1)
+			{
+				server_.log(x0::severity::error, "Could not open access log file. %s", strerror(errno));
 			}
 		}
 	}
