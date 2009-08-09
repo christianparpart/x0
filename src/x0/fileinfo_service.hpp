@@ -166,11 +166,15 @@ inline fileinfo_ptr fileinfo_service::query(const std::string& _filename)
 		int rv = ::inotify_add_watch(in_.native(), filename.c_str(),
 			IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT);
 
-		if (rv == 0)
+		if (rv != -1)
 		{
 			cache_[filename] = fi;
 			FILEINFO_DEBUG("query(%s) wd=%d\n", filename.c_str(), rv);
 			wd_[rv] = filename;
+		}
+		else
+		{
+			FILEINFO_DEBUG("query(%s) inotify error: %s\n", filename.c_str(), strerror(errno));
 		}
 
 		return fi;
