@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #if 0
 #	define FILEINFO_DEBUG(msg...) printf("fileinfo_service: " msg)
@@ -113,7 +114,7 @@ private:
 };
 
 inline fileinfo_service::fileinfo_service(boost::asio::io_service& io) :
-	in_(io, ::inotify_init1(IN_NONBLOCK | IN_CLOEXEC)),
+	in_(io, ::inotify_init()),
 	cache_(),
 	wd_(),
 	inbuf_(),
@@ -124,6 +125,12 @@ inline fileinfo_service::fileinfo_service(boost::asio::io_service& io) :
 	mimetypes_(),
 	default_mimetype_("text/plain")
 {
+	if (::fcntl(in_.native(), F_SETFL, O_NONBLOCK) == -1)
+		FILEINFO_DEBUG("fcntl(O_NONBLOCK): %s", strerror(errno));
+
+	if (::fcntl(in_.native(), F_SETFD, FD_CLOEXEC) == -1)
+		FILEINFO_DEBUG("fcntl(FD_CLOEXEC): %s", strerror(errno));
+
 	async_read();
 }
 
