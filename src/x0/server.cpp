@@ -309,7 +309,10 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 	}
 }
 
-void server::handle_request(request& in, response& out) {
+void server::handle_request(request& in, response& out)
+{
+	using boost::algorithm::ends_with;
+
 	// pre-request hook
 	pre_process(in);
 
@@ -328,7 +331,7 @@ void server::handle_request(request& in, response& out) {
 
 	// redirect physical request paths not ending with slash if mapped to directory
 	std::string filename = in.fileinfo->filename();
-	if (in.fileinfo->is_directory() && !boost::ends_with(in.path, "/"))
+	if (in.fileinfo->is_directory() && !ends_with(in.path, "/"))
 	{
 		std::stringstream url;
 		url << (in.connection.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
