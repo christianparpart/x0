@@ -1,3 +1,5 @@
+#include <x0/strutils.hpp>
+
 namespace x0 {
 
 // {{{ settings
@@ -5,7 +7,7 @@ template<class T>
 inline T settings::get(const std::string& path, const T& defaultValue)
 {
 	if (contains(path))
-		return settings_value(L_, true, path).as<T>();
+		return settings_value(L_, true, split<std::string>(path, ".")).as<T>();
 	else
 		return defaultValue;
 }
@@ -16,7 +18,7 @@ inline bool settings::load(const std::string& path, T& result)
 	if (!contains(path))
 		return false;
 
-	result = settings_value(L_, true, path).as<T>();
+	result = settings_value(L_, true, split<std::string>(path, ".")).as<T>();
 	return true;
 }
 
@@ -25,7 +27,7 @@ inline bool settings::load(const std::string& path, value_property<T>& result)
 {
 	if (contains(path))
 	{
-		result = settings_value(L_, true, path).as<T>();
+		result = settings_value(L_, true, split<std::string>(path, ".")).as<T>();
 		return true;
 	}
 
@@ -39,6 +41,33 @@ inline T settings_value::as() const
 {
 	fetcher _(*this);
 	return this->as<T>(-1);
+}
+
+template<typename T>
+std::vector<T> settings_value::keys() const
+{
+	fetcher _(*this);
+
+	std::vector<T> result;
+
+	switch (lua_type(L_, -1))
+	{
+		case LUA_TTABLE:
+			break;
+		case LUA_TNIL:
+			return result;
+		default:
+			throw "cast error: expected `table`.";
+	}
+
+	lua_pushnil(L_); // initial key
+	while (lua_next(L_, -2))
+	{
+		result.push_back(as<T>(-2));
+		lua_pop(L_, 1); // pop value
+	}
+
+	return result;
 }
 
 // {{{ settings_value::as<T>(int index)

@@ -60,11 +60,10 @@ class X0_API settings_value : public settings_scope {
 private:
 	lua_State *L_;
 	bool root_;
-	std::string fieldname_;
 	std::vector<std::string> fieldnames_;
 
 private:
-	settings_value(lua_State *L, bool root, const std::string& fieldname);
+	settings_value(lua_State *L, bool root, const std::vector<std::string>& fieldnames);
 	settings_value& operator=(const settings_value&) = delete;
 
 	std::string lastFieldName() const;
@@ -94,6 +93,7 @@ public:
 
 	// value read
 	template<typename T> T as() const;
+	template<typename T> std::vector<T> keys() const;
 
 	// value write
 	settings_value& operator=(const std::string& value);

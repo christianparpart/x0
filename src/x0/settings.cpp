@@ -96,14 +96,21 @@ lua_State *settings::handle() const
 	return L_;
 }
 
+template<class T> static inline std::vector<T> make_vector(const T& v1)
+{
+	std::vector<T> result;
+	result.push_back(v1);
+	return result;
+}
+
 const settings_value settings::operator[](const std::string& _key) const
 {
-	return settings_value(L_, true, _key);
+	return settings_value(L_, true, make_vector(_key));
 }
 
 settings_value settings::operator[](const std::string& _key)
 {
-	return settings_value(L_, true, _key);
+	return settings_value(L_, true, make_vector(_key));
 }
 
 bool settings::contains(const std::string& _fieldname) const
@@ -165,15 +172,17 @@ settings_value::fetcher::~fetcher()
 // }}}
 
 // {{{ settings_value
-settings_value::settings_value(lua_State *_L, bool _root, const std::string& _fieldname) :
-	L_(_L), root_(_root),
-	fieldname_(_fieldname), fieldnames_(split<std::string>(_fieldname, "."))
+settings_value::settings_value(lua_State *_L, bool _root, const std::vector<std::string>& _fieldnames) :
+	L_(_L),
+	root_(_root),
+	fieldnames_(_fieldnames)
 {
 }
 
 settings_value::settings_value(const settings_value& v) :
-	L_(v.L_), root_(v.root_),
-	fieldname_(v.fieldname_), fieldnames_(v.fieldnames_)
+	L_(v.L_),
+	root_(v.root_),
+	fieldnames_(v.fieldnames_)
 {
 }
 
@@ -193,12 +202,18 @@ int settings_value::tableIndex() const
 
 const settings_value settings_value::operator[](const std::string& _fieldname) const
 {
-	return settings_value(L_, false, fieldname_ + "." + _fieldname);
+	std::vector<std::string> names(fieldnames_);
+	names.push_back(_fieldname);
+
+	return settings_value(L_, true, names);
 }
 
 settings_value settings_value::operator[](const std::string& _fieldname)
 {
-	return settings_value(L_, false, fieldname_ + "." + _fieldname);
+	std::vector<std::string> names(fieldnames_);
+	names.push_back(_fieldname);
+
+	return settings_value(L_, true, names);
 }
 
 bool settings_value::contains(const std::string& _fieldname) const

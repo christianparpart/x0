@@ -216,20 +216,19 @@ void server::configure(const std::string& configfile)
 		}
 	}
 
-	// setup TCP listeners
-	{
-		std::vector<int> ports;
-		settings_.load("Listen", ports);
-		for (auto i = ports.begin(), e = ports.end(); i != e; ++i)
-		{
-			setup_listener(*i);
-		}
-	}
-
 	// configure modules
 	for (plugin_map_t::iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
 		i->second.first->configure();
+	}
+
+	// check for available TCP listeners
+	{
+		if (listeners_.empty())
+		{
+			log(severity::critical, "No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
+			throw std::runtime_error("No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
+		}
 	}
 
 	// setup process priority

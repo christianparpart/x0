@@ -28,6 +28,16 @@
 
 namespace x0 {
 
+class host_not_found
+	: public std::runtime_error
+{
+public:
+	host_not_found(const std::string& hostname)
+		: std::runtime_error(hostname)
+	{
+	}
+};
+
 /**
  * \ingroup core
  * \brief implements the x0 web server.
@@ -87,7 +97,7 @@ public:
 	boost::signal<void(connection *)> connection_close;
 	// }}}
 
-	// {{{ configuration contexts
+	// {{{ context management
 	/** create server context data for given plugin. */
 	template<typename T>
 	T& create_context(plugin *plug, T *d)
@@ -96,33 +106,48 @@ public:
 		return context_.get<T>(plug);
 	}
 
-	/** retrieve server context data for given plugin. */
+	/** creates a virtual-host context for given plugin. */
 	template<typename T>
-	T& context(plugin *plug)
+	T& create_context(plugin *plug, const std::string& vhost)
 	{
-		return context<T>(plug, "/");
-	}
-
-	/** retrieve context data for given plugin at mapped file system path.
-	 * \param plug plugin data for which we want to retrieve the data for.
-	 * \param path mapped local file system path this context corresponds to. (e.g. "/var/www/")
-	 */
-	template<typename T>
-	T& context(plugin *plug, const std::string& path)
-	{
-		return context_.get<T>(plug);
-	}
-
-	template<typename T>
-	T *free_context(plugin *plug)
-	{
-		return context_.free<T>(plug);
+		vhosts_[vhost].set(plug, new T);
+		return vhosts_[vhost].get<T>(plug);
 	}
 
 	/** retrieve the server configuration context. */
 	x0::context& context()
 	{
 		return context_;
+	}
+
+	/** retrieve server context data for given plugin
+	 * \param plug plugin data for which we want to retrieve the data for.
+	 */
+	template<typename T>
+	T& context(plugin *plug)
+	{
+		return context_.get<T>(plug);
+	}
+
+	/** retrieve virtual-host context data for given plugin
+	 * \param plug plugin data for which we want to retrieve the data for.
+	 */
+	template<typename T>
+	T& context(plugin *plug, const std::string& vhostname)
+	{
+		auto vhost = vhosts_.find(vhostname);
+
+		if (vhost == vhosts_.end())
+			throw host_not_found(vhostname);
+
+		return vhost->second.get<T>(plug);
+	}
+
+	template<typename T>
+	T *free_context(plugin *plug)
+	{
+		/// \todo free all contexts owned by given plugin
+		return context_.free<T>(plug);
 	}
 	// }}}
 
@@ -173,7 +198,8 @@ private:
 	listener_ptr listener_by_port(int port);
 
 private:
-	x0::context context_;
+	x0::context context_;							//!< server context
+	std::map<std::string, x0::context>	vhosts_;	//!< vhost contexts
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service io_service_;
 	bool paused_;
