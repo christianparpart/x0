@@ -11,6 +11,7 @@
 #include <x0/api.hpp>
 
 #include <string>
+#include <utility>
 #include <sys/types.h>
 #include <sys/sendfile.h>	// sendfile()
 #include <sys/socket.h>		// sendto()
@@ -96,9 +97,13 @@ public:
 	 *
 	 * \note After this initialization, the other composite buffer \p v does not contain any chunks anymore.
 	 */
-	composite_buffer(const composite_buffer& v);
+	composite_buffer(composite_buffer&& v);
+	composite_buffer(const composite_buffer&);
+	composite_buffer& operator=(const composite_buffer&) = delete;
 
 	~composite_buffer();
+
+	void swap(composite_buffer&& v);
 
 	/** assigns this composite buffer with chunks from  \p v by taking over ownership of \p v's chunks.
 	 *
@@ -108,7 +113,7 @@ public:
 	 *
 	 * \note After this initialization, the other composite buffer \p v does not contain any chunks anymore.
 	 */
-	composite_buffer& operator=(const composite_buffer& v);
+	composite_buffer& operator=(composite_buffer&& v);
 
 	/** iterator, pointing to the front_ chunk. */
 	iterator begin() const;
@@ -185,8 +190,6 @@ struct composite_buffer::chunk
 {
 public:
 	enum chunk_type { ciov, cfd };
-
-private:
 
 protected:
 	/** initializes chunk base.
@@ -448,6 +451,11 @@ public:
 	{
 		return a.current_ != b.current_;
 	}
+
+	friend bool operator==(const iterator& a, const iterator& b)
+	{
+		return a.current_ == b.current_;
+	}
 }; // }}}
 
 // {{{ composite_buffer impl
@@ -456,25 +464,39 @@ inline composite_buffer::composite_buffer() :
 {
 }
 
+inline composite_buffer::composite_buffer(composite_buffer&& v) :
+	front_(std::move(v.front_)),
+	back_(std::move(v.back_)),
+	size_(std::move(v.size_))
+{
+}
+
 inline composite_buffer::composite_buffer(const composite_buffer& v) :
-	front_(v.front_), back_(v.back_), size_(v.size_)
+	front_(v.front_),
+	back_(v.back_),
+	size_(v.size_)
 {
 	const_cast<composite_buffer *>(&v)->front_ = 0;
 	const_cast<composite_buffer *>(&v)->back_ = 0;
 	const_cast<composite_buffer *>(&v)->size_ = 0;
 }
 
-inline composite_buffer& composite_buffer::operator=(const composite_buffer& v)
+inline composite_buffer& composite_buffer::operator=(composite_buffer&& v)
 {
-	front_ = v.front_;
-	back_ = v.back_;
-	size_ = v.size_;
-
-	const_cast<composite_buffer *>(&v)->front_ = 0;
-	const_cast<composite_buffer *>(&v)->back_ = 0;
-	const_cast<composite_buffer *>(&v)->size_ = 0;
+	front_ = std::move(v.front_);
+	back_ = std::move(v.back_);
+	size_ = std::move(v.size_);
 
 	return *this;
+}
+
+inline void composite_buffer::swap(composite_buffer&& v)
+{
+	using std::swap;
+
+	swap(front_, v.front_);
+	swap(back_, v.back_);
+	swap(size_, v.size_);
 }
 
 inline composite_buffer::~composite_buffer()
