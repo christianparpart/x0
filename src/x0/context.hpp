@@ -13,7 +13,16 @@
 namespace x0 {
 
 /**
- * a context object holds custom plugin-information.
+ * A context object holds custom plugin-information, such as configuration settings and runtime states.
+ *
+ * We maintain different kinds of configuration contexts.
+ * <ol>
+ *   <li>request context - request-local context</li>
+ *   <li>directory context - context wrt a particular directory prefix in underlying filesystem storage</li>
+ *   <li>virtual host context - context wrt a particular virtual host</li>
+ *   <li>server context - stores all globally applicable configuration settings and states</li>
+ * </ol>
+ *
  * \see server::context, request::context
  * \see plugin::merge()
  */
