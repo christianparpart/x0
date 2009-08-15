@@ -1,4 +1,4 @@
-/* <x0/mod_vhost.cpp>
+/* <x0/mod_vhost_template.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
@@ -17,9 +17,9 @@
 
 /**
  * \ingroup modules
- * \brief provides a basic virtual hosting facility.
+ * \brief provides a basic template-based mass virtual hosting facility.
  */
-class vhost_plugin :
+class vhost_template_plugin :
 	public x0::plugin
 {
 private:
@@ -29,13 +29,13 @@ private:
 	boost::signals::connection c;
 
 public:
-	vhost_plugin(x0::server& srv, const std::string& name) :
+	vhost_template_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.resolve_document_root.connect(boost::bind(&vhost_plugin::resolve_document_root, this, _1));
+		c = server_.resolve_document_root.connect(boost::bind(&vhost_template_plugin::resolve_document_root, this, _1));
 	}
 
-	~vhost_plugin()
+	~vhost_template_plugin()
 	{
 		server_.resolve_document_root.disconnect(c);
 	}
@@ -113,4 +113,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(vhost);
+X0_EXPORT_PLUGIN(vhost_template);
