@@ -44,7 +44,7 @@ public:
 		// another signal that would order the event sequence for us, but i'm not yet that clear about how
 		// to name this in a clean and reasonable way.
 		c = server_.resolve_entity.connect(1, boost::bind(&indexfile_plugin::indexfile, this, _1));
-		server_.create_context<context>(this, new context);
+		server_.create_context<context>(this);
 	}
 
 	~indexfile_plugin()

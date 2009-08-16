@@ -36,7 +36,7 @@ public:
 		x0::plugin(srv, name)
 	{
 		c = server_.resolve_entity.connect(0, boost::bind(&userdir_plugin::resolve_entity, this, _1));
-		server_.create_context<context>(this, new context);
+		server_.create_context<context>(this);
 	}
 
 	~userdir_plugin()

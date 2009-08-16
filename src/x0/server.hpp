@@ -100,9 +100,9 @@ public:
 	// {{{ context management
 	/** create server context data for given plugin. */
 	template<typename T>
-	T& create_context(plugin *plug, T *d)
+	T& create_context(plugin *plug)
 	{
-		context_.set(plug, d);
+		context_.set(plug, new T);
 		return context_.get<T>(plug);
 	}
 
