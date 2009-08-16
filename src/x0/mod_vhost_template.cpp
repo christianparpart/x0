@@ -72,6 +72,15 @@ public:
 				document_root_.insert(0, "/");
 			}
 		}
+
+		// setup listener port and bind address
+		int port(80);
+		std::string bind("0::0");
+
+		server_.config().load("HostTemplate.Listener", port);
+		server_.config().load("HostTemplate.BindAddress", bind);
+
+		server_.setup_listener(port, bind);
 	}
 
 private:
