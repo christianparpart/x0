@@ -128,7 +128,11 @@ inline std::vector<std::string> settings_value::as<std::vector<std::string>>(int
 {
 	std::vector<std::string> result;
 
-	if (lua_isstring(L_, index))
+	if (lua_isnil(L_, index))
+	{
+		return result;
+	}
+	else if (lua_isstring(L_, index))
 	{
 		result.push_back(lua_tostring(L_, index));
 		return result;
@@ -151,7 +155,11 @@ inline std::vector<int> settings_value::as<std::vector<int>>(int index) const
 {
 	std::vector<int> result;
 
-	if (lua_isnumber(L_, index))
+	if (lua_isnil(L_, index))
+	{
+		return result;
+	}
+	else if (lua_isnumber(L_, index))
 	{
 		result.push_back(lua_tonumber(L_, index));
 		return result;
