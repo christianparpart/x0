@@ -28,11 +28,29 @@ namespace x0 {
  */
 struct context
 {
-private:
+public:
 	typedef std::map<plugin *, void *> map_type;
+	typedef map_type::iterator iterator;
+
+private:
 	map_type data_;
 
 public:
+	iterator find(plugin *p)
+	{
+		return data_.find(p);
+	}
+
+	iterator begin()
+	{
+		return data_.begin();
+	}
+
+	iterator end()
+	{
+		return data_.end();
+	}
+
 	template<class T>
 	T& set(plugin *p, T *d)
 	{
@@ -48,7 +66,11 @@ public:
 	template<typename T>
 	T& get(plugin *p)
 	{
-		return *static_cast<T *>(data_[p]);
+		auto i = data_.find(p);
+		if (i != data_.end())
+			return *static_cast<T *>(i->second);
+
+		throw std::runtime_error("invalid context key");
 	}
 
 	template<typename T>
