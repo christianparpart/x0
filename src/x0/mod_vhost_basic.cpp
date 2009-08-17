@@ -52,7 +52,7 @@ private:
 
 	struct server_config
 	{
-		std::string default_host;
+		std::string default_hostid;
 		std::map<std::string, vhost_config *> mappings;
 	};
 
@@ -70,69 +70,48 @@ public:
 
 	virtual void configure()
 	{
-		auto hostnames = server_.config()["Hosts"].keys<std::string>();
-		if (hostnames.empty())
+		auto hosts = server_.config()["Hosts"].keys<std::string>();
+		if (hosts.empty())
 			return;
 
 		std::string default_bind("0::0");
 		server_.config().load("BindAddress", default_bind);
 
-		int default_port(80);
-		server_.config().load("Listen", default_port);
-
 		server_config& srvcfg = server_.create_context<server_config>(this);
 
-		server_.config().load("DefaultHost", srvcfg.default_host);
-		if (srvcfg.default_host.find(":") == std::string::npos && default_port != 80)
+		server_.config().load("DefaultHost", srvcfg.default_hostid);
+
+		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
 		{
-			srvcfg.default_host = srvcfg.default_host + ":" + boost::lexical_cast<std::string>(default_port);
-		}
+			std::string hostid = x0::make_hostid(*i);
+			int port = x0::extract_port_from_hostid(hostid);
 
-		for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
-		{
-			std::string hostname(*i);
+			auto aliases = server_.config()["Hosts"][hostid]["ServerAliases"].as<std::vector<std::string>>();
+			std::string docroot = server_.config()["Hosts"][hostid]["DocumentRoot"].as<std::string>();
+			std::string bind = server_.config()["Hosts"][hostid]["BindAddress"].get<std::string>(default_bind);
 
-			auto aliases = server_.config()["Hosts"][hostname]["ServerAliases"].as<std::vector<std::string>>();
+//			server_.log(x0::severity::debug, "port=%d: hostid[%s]: docroot[%s], alias-count=%d",
+//				port, hostid.c_str(), docroot.c_str(), aliases.size());
 
-			std::string docroot = server_.config()["Hosts"][hostname]["DocumentRoot"].as<std::string>();
-
-			std::string bind = server_.config()["Hosts"][hostname]["BindAddress"].as<std::string>();
-			if (bind.empty())
-				bind = default_bind;
-
-			int port = extract_port(hostname);
-			if (!port)
-			{
-				port = default_port;
-
-				if (port != 80)
-				{
-					hostname = hostname + ":" + boost::lexical_cast<std::string>(port);
-				}
-			}
-
-//			server_.log(x0::severity::debug, "port=%d: hostname[%s]: docroot[%s], alias-count=%d",
-//				port, hostname.c_str(), docroot.c_str(), aliases.size());
-
-			vhost_config& cfg = server_.create_context<vhost_config>(this, hostname);
+			vhost_config& cfg = server_.create_context<vhost_config>(this, hostid);
 			cfg.docroot = docroot;
 
+			srvcfg.mappings.insert({ {hostid, &cfg} });
 			for (auto k = aliases.begin(), m = aliases.end(); k != m; ++k)
 			{
-				std::string name(*k);
-				if (name.find(":") == std::string::npos && port != 80)
-				{
-					name = name + ":" + boost::lexical_cast<std::string>(port);
-				}
+				std::string hid(x0::make_hostid(*k, port));
 
-				auto f = srvcfg.mappings.find(name);
+				auto f = srvcfg.mappings.find(hid);
 				if (f == srvcfg.mappings.end())
 				{
-					srvcfg.mappings[name] = &cfg;
+					srvcfg.mappings[hid] = &cfg;
+
+					int aport = x0::extract_port_from_hostid(hid);
+					server_.setup_listener(aport, bind);
 				}
 				else
 				{
-					server_.log(x0::severity::warn, "Server alias '%s' already in use.", name.c_str());
+					server_.log(x0::severity::warn, "Server alias '%s' already in use.", hid.c_str());
 				}
 			}
 
@@ -141,33 +120,23 @@ public:
 	}
 
 private:
-	int extract_port(const std::string& hostname)
-	{
-		static std::string delim(":");
-		std::size_t n = hostname.find(delim);
-
-		if (n == std::string::npos)
-			return 0;
-
-		return boost::lexical_cast<int>(hostname.substr(n + 1));
-	}
-
 	void resolve_document_root(x0::request& in)
 	{
 		try
 		{
 			static std::string hostkey("Host");
-			std::string name(in.header(hostkey));
+			std::string hostid(x0::make_hostid(in.header(hostkey)));
 
 			server_config& srvcfg = server_.context<server_config>(this);
-			auto i = srvcfg.mappings.find(name);
+			auto i = srvcfg.mappings.find(hostid);
 			if (i != srvcfg.mappings.end())
 			{
 				in.document_root = i->second->docroot;
+				server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in.document_root.c_str());
 			}
 			else
 			{
-				in.document_root = server_.context<vhost_config>(this, name).docroot;
+				in.document_root = server_.context<vhost_config>(this, hostid).docroot;
 			}
 		}
 		catch (const x0::host_not_found&)
@@ -175,8 +144,8 @@ private:
 			try
 			{
 				// resolve to default host's document root
-				std::string default_host(server_.context<server_config>(this).default_host);
-				in.document_root = server_.context<vhost_config>(this, default_host).docroot;
+				std::string default_hostid(server_.context<server_config>(this).default_hostid);
+				in.document_root = server_.context<vhost_config>(this, default_hostid).docroot;
 				// XXX we could instead auto-redirect them.
 			}
 			catch (...) {}
