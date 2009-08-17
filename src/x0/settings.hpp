@@ -92,6 +92,8 @@ public:
 	bool contains(const std::string& AFieldName) const;
 
 	// value read
+	template<typename T> bool load(T& _value);
+	template<typename T> T get(const T& _default);
 	template<typename T> T as() const;
 	template<typename T> std::vector<T> keys() const;
 

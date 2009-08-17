@@ -36,6 +36,25 @@ inline bool settings::load(const std::string& path, value_property<T>& result)
 // }}}
 
 // {{{ settings_value
+template<typename T>
+bool settings_value::load(T& _value)
+{
+	fetcher _(*this);
+
+	if (lua_type(L_, -1) == LUA_TNIL)
+		return false;
+
+	_value = this->as<T>(-1);
+	return true;
+}
+
+template<typename T>
+T settings_value::get(const T& _default)
+{
+	T result;
+	return load(result) ? result : _default;
+}
+
 template<class T>
 inline T settings_value::as() const
 {
