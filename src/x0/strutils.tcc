@@ -45,4 +45,44 @@ inline std::string http_date(std::time_t ts)
 	return std::string();
 }
 
+inline std::string make_hostid(const std::string& hostname)
+{
+	std::size_t n = hostname.rfind(":");
+
+	if (n != std::string::npos)
+		return hostname;
+
+	return hostname + ":80";
+}
+
+inline std::string make_hostid(const std::string& hostname, int port)
+{
+	std::size_t n = hostname.rfind(":");
+
+	if (n != std::string::npos)
+		return hostname;
+
+	return hostname + ":" + boost::lexical_cast<std::string>(port);
+}
+
+inline int extract_port_from_hostid(const std::string& hostid)
+{
+	std::size_t n = hostid.rfind(":");
+
+	if (n != std::string::npos)
+		return boost::lexical_cast<int>(hostid.substr(n + 1));
+
+	throw std::runtime_error("no port specified in hostid: " + hostid);
+}
+
+inline std::string extract_host_from_hostid(const std::string& hostid)
+{
+	std::size_t n = hostid.rfind(":");
+
+	if (n != std::string::npos)
+		return hostid.substr(0, n);
+
+	return hostid;
+}
+
 } // namespace x0

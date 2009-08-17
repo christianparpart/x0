@@ -118,6 +118,11 @@ std::vector<T> split(const std::basic_string<U>& list, const U *sep);
  */
 std::string http_date(std::time_t ts);
 
+std::string make_hostid(const std::string& hostname);
+std::string make_hostid(const std::string& hostname, int port);
+int extract_port_from_hostid(const std::string& hostid);
+std::string extract_host_from_hostid(const std::string& hostid);
+
 /*@}*/
 
 } // namespace x0
