@@ -140,6 +140,11 @@ public:
 		if (vhost == vhosts_.end())
 			throw host_not_found(vhostname);
 
+		auto data = vhost->second.find(plug);
+		if (data != vhost->second.end())
+			return *static_cast<T *>(data->second);
+
+		vhost->second.set<T>(plug, new T);
 		return vhost->second.get<T>(plug);
 	}
 
