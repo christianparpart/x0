@@ -110,8 +110,18 @@ public:
 	template<typename T>
 	T& create_context(plugin *plug, const std::string& vhost)
 	{
-		vhosts_[vhost].set(plug, new T);
-		return vhosts_[vhost].get<T>(plug);
+		auto i = vhosts_.find(vhost);
+		if (i == vhosts_.end())
+			vhosts_[vhost] = std::shared_ptr<x0::context>(new x0::context);
+
+		vhosts_[vhost]->set(plug, new T);
+
+		return vhosts_[vhost]->get<T>(plug);
+	}
+
+	void link_context(const std::string& master, const std::string& alias)
+	{
+		vhosts_[alias] = vhosts_[master];
 	}
 
 	/** retrieve the server configuration context. */
@@ -140,12 +150,13 @@ public:
 		if (vhost == vhosts_.end())
 			throw host_not_found(vhostname);
 
-		auto data = vhost->second.find(plug);
-		if (data != vhost->second.end())
+		auto ctx = *vhost->second;
+		auto data = ctx.find(plug);
+		if (data != ctx.end())
 			return *static_cast<T *>(data->second);
 
-		vhost->second.set<T>(plug, new T);
-		return vhost->second.get<T>(plug);
+		ctx.set<T>(plug, new T);
+		return ctx.get<T>(plug);
 	}
 
 	template<typename T>
@@ -203,8 +214,8 @@ private:
 	listener_ptr listener_by_port(int port);
 
 private:
-	x0::context context_;							//!< server context
-	std::map<std::string, x0::context>	vhosts_;	//!< vhost contexts
+	x0::context context_;											//!< server context
+	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
 	std::list<listener_ptr> listeners_;
 	boost::asio::io_service io_service_;
 	bool paused_;
