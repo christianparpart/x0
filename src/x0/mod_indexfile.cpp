@@ -44,7 +44,6 @@ public:
 		// another signal that would order the event sequence for us, but i'm not yet that clear about how
 		// to name this in a clean and reasonable way.
 		c = server_.resolve_entity.connect(1, boost::bind(&indexfile_plugin::indexfile, this, _1));
-		server_.create_context<context>(this);
 	}
 
 	~indexfile_plugin()
@@ -55,12 +54,18 @@ public:
 
 	virtual void configure()
 	{
-		context& ctx = server_.context<context>(this);
-		server_.config().load("IndexFiles", ctx.index_files);
-
-		if (ctx.index_files.empty())
+		// read vhost-local config var
+		auto hosts = server_.config()["Hosts"].keys<std::string>();
+		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
 		{
-			server_.log(x0::severity::warn, "indexfile module loaded, but no(/empty) configuration given.");
+			std::string hostid(*i);
+			printf("hostname: %s\n", hostid.c_str());
+			context& ctx = server_.create_context<context>(this, hostid);
+
+			if (!server_.config()["Hosts"][hostid]["IndexFiles"].load(ctx.index_files))
+			{
+				server_.config()["IndexFiles"].load(ctx.index_files);
+			}
 		}
 	}
 
@@ -70,10 +75,12 @@ private:
 		if (!in.fileinfo->is_directory())
 			return;
 
-		context& ctx = server_.context<context>(this);
-
+		static std::string hostkey("Host");
+		std::string hostid(x0::make_hostid(in.header(hostkey)));
+		context& ctx = server_.context<context>(this, hostid); // XXX FIXME resolving doesn't work with aliases (yet) - need to find a solution!
 		std::string path(in.fileinfo->filename());
-		for (std::vector<std::string>::iterator i = ctx.index_files.begin(), e = ctx.index_files.end(); i != e; ++i)
+
+		for (auto i = ctx.index_files.begin(), e = ctx.index_files.end(); i != e; ++i)
 		{
 			std::string ipath;
 			ipath.reserve(path.length() + 1 + i->length());
