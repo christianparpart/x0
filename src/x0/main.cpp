@@ -300,12 +300,17 @@ int main(int argc, char *argv[])
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << e.what() << std::endl;
+		std::cerr << "Unhandled exception caught: " << e << std::endl;
 		return 1;
 	}
 	catch (const char *e)
 	{
-		std::cerr << e << std::endl;
+		std::cerr << "Unhandled exception caught: " << e << std::endl;
 		return 2;
+	}
+	catch (...)
+	{
+		std::cerr << "Unhandled unknown exception caught." << std::endl;
+		return 3;
 	}
 }
