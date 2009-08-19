@@ -105,13 +105,17 @@ public:
 				if (f == srvcfg.mappings.end())
 				{
 					srvcfg.mappings[hid] = &cfg;
+					server_.link_context(hostid, hid);
 
 					int aport = x0::extract_port_from_hostid(hid);
 					server_.setup_listener(aport, bind);
+					//server_.log(x0::severity::debug, "Server alias '%s' (for bind '%s' on port %d) added.", hid.c_str(), bind.c_str(), aport);
 				}
 				else
 				{
-					server_.log(x0::severity::warn, "Server alias '%s' already in use.", hid.c_str());
+					char msg[1024];
+					snprintf(msg, sizeof(msg), "Server alias '%s' already in use.", hid.c_str());
+					throw std::runtime_error(msg);
 				}
 			}
 
