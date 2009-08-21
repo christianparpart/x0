@@ -22,6 +22,7 @@ class X0_API datetime
 private:
 	time_t unixtime_;
 	mutable std::string http_;
+	mutable std::string htlog_;
 
 public:
 	datetime();
@@ -30,6 +31,7 @@ public:
 
 	std::time_t unixtime() const;
 	std::string http_str() const;
+	std::string htlog_str() const;
 
 	void update();
 	void update(std::time_t v);
@@ -46,19 +48,19 @@ X0_API bool operator>(const datetime& a, const datetime& b);
 
 // {{{ impl
 inline datetime::datetime() :
-	unixtime_(std::time(0)), http_()
+	unixtime_(std::time(0)), http_(), htlog_()
 {
 }
 
 /** initializes datetime object with an HTTP conform input date-time. */
 inline datetime::datetime(const std::string& v) :
-	unixtime_(), http_(v)
+	unixtime_(), http_(v), htlog_(v)
 {
 	/// \todo parse input date/time (http format)
 }
 
 inline datetime::datetime(std::time_t v) :
-	unixtime_(v), http_()
+	unixtime_(v), http_(), htlog_()
 {
 }
 
@@ -88,6 +90,32 @@ inline std::string datetime::http_str() const
 	return http_;
 }
 
+inline std::string datetime::htlog_str() const
+{
+	if (htlog_.empty())
+	{
+		if (struct tm *tm = localtime(&unixtime_))
+		{
+			char buf[256];
+
+			if (strftime(buf, sizeof(buf), "[%m/%d/%Y:%T %z]", tm) != 0)
+			{
+				htlog_ = buf;
+			}
+			else
+			{
+				htlog_ = "-";
+			}
+		}
+		else
+		{
+			htlog_ = "-";
+		}
+	}
+
+	return htlog_;
+}
+
 inline void datetime::update()
 {
 	update(std::time(0));
@@ -99,6 +127,7 @@ inline void datetime::update(std::time_t v)
 	{
 		unixtime_ = v;
 		http_.clear();
+		htlog_.clear();
 	}
 }
 
