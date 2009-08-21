@@ -142,10 +142,11 @@ void server::configure(const std::string& configfile)
 	// setup logger
 	{
 		std::string logmode(settings_.get<std::string>("Log.Mode"));
+		auto nowfn = boost::bind(&datetime::htlog_str, &now_);
 
-		if (logmode == "file") logger_.reset(new filelogger(settings_.get<std::string>("Log.FileName")));
+		if (logmode == "file") logger_.reset(new filelogger<decltype(nowfn)>(settings_.get<std::string>("Log.FileName"), nowfn));
 		else if (logmode == "null") logger_.reset(new nulllogger());
-		else if (logmode == "stderr") logger_.reset(new filelogger("/dev/stderr"));
+		else if (logmode == "stderr") logger_.reset(new filelogger<decltype(nowfn)>("/dev/stderr", nowfn));
 		/// \todo add syslog logger
 		else logger_.reset(new nulllogger());
 	}

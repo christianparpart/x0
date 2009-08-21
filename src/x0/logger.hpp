@@ -74,11 +74,12 @@ public:
  *
  * \see logger, server
  */
+template<class Now>
 class filelogger :
 	public logger
 {
 public:
-	explicit filelogger(const std::string& filename);
+	filelogger(const std::string& filename, Now now);
 	~filelogger();
 
 	virtual void cycle();
@@ -88,6 +89,7 @@ public:
 private:
 	std::string filename_;
 	int fd_;
+	Now now_;
 };
 
 /**
@@ -107,6 +109,65 @@ public:
 	virtual void write(severity s, const std::string& message);
 	virtual syslogger *clone() const;
 };
+
+// {{{ filelogger
+template<typename Now>
+inline filelogger<Now>::filelogger(const std::string& filename, Now now) :
+	filename_(filename),
+	fd_(-1),
+	now_(now)
+{
+	cycle();
+}
+
+template<typename Now>
+inline filelogger<Now>::~filelogger()
+{
+	if (fd_ != -1)
+	{
+		::close(fd_);
+		fd_ = -1;
+	}
+}
+
+template<typename Now>
+inline void filelogger<Now>::cycle()
+{
+	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
+
+	if (fd2 == -1)
+	{
+		write(severity::error, "Could not (re)open new logfile");
+	}
+	else
+	{
+		if (fd_ != -1)
+		{
+			::close(fd_);
+		}
+
+		fd_ = fd2;
+	}
+}
+
+template<typename Now>
+inline void filelogger<Now>::write(severity s, const std::string& message)
+{
+	if (s <= level())
+	{
+		std::string ts(now_());
+		char buf[4096];
+		std::size_t sz = snprintf(buf, sizeof(buf), "[%s] [%s] %s\n", ts.c_str(), s.c_str(), message.c_str());
+		sz = ::write(fd_, buf, sz);
+	}
+}
+
+template<typename Now>
+inline filelogger<Now> *filelogger<Now>::clone() const
+{
+	return new filelogger(filename_, now_);
+}
+// }}}
 
 } // namespace x0
 
