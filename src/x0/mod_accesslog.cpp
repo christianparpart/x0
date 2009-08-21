@@ -25,14 +25,76 @@ class accesslog_plugin :
 	public x0::plugin
 {
 private:
+	struct logstream
+	{
+		std::string filename_;
+		int fd_;
+
+		explicit logstream(const std::string& filename)
+		{
+			filename_ = filename;
+			fd_ = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
+		}
+
+		~logstream()
+		{
+			if (fd_)
+				::close(fd_);
+		}
+
+		void write(const std::string message)
+		{
+			if (fd_ < 0)
+				return;
+
+			if (::write(fd_, message.c_str(), message.size()) < 0)
+				DEBUG("Couldn't write accesslog(%s): %s", filename_.c_str(), strerror(errno));
+		}
+	};
+
+	struct context
+	{
+		logstream *stream;
+
+		context() : stream(0) {}
+		context(const context& v) : stream(v.stream) {}
+		~context() {}
+	};
+
+	logstream *getlogstream(const std::string& filename)
+	{
+		auto i = streams_.find(filename);
+
+		if (i != streams_.end())
+			return i->second.get();
+
+		return (streams_[filename] = std::shared_ptr<logstream>(new logstream(filename))).get();
+	}
+
+	logstream *getlogstream(x0::request& in)
+	{
+		static std::string hostkey("Host");
+		std::string hostid(x0::make_hostid(in.header(hostkey)));
+
+		try
+		{
+			context& ctx = server_.context<context>(this, hostid);
+			return ctx.stream;
+		}
+		catch (...)
+		{
+			return 0;
+		}
+	}
+
+private:
 	boost::signals::connection c;
-	std::string filename;
-	int fd;
+	std::map<std::string, std::shared_ptr<logstream>> streams_;
 
 public:
 	accesslog_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name),
-		filename(), fd(-1)
+		streams_()
 	{
 		c = srv.request_done.connect(boost::bind(&accesslog_plugin::request_done, this, _1, _2));
 	}
@@ -40,31 +102,27 @@ public:
 	~accesslog_plugin()
 	{
 		server_.request_done.disconnect(c);
-
-		if (fd != -1)
-		{
-			::close(fd);
-		}
 	}
 
 	virtual void configure()
 	{
-		server_.config().load("AccessLog", filename);
+		std::string default_filename;
+		bool has_global = server_.config().load("AccessLog", default_filename);
 
-		if (!filename.empty())
+		auto hosts = server_.config()["Hosts"].keys<std::string>();
+		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
 		{
-			fd = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
-			if (fd == -1)
+			std::string hostid(*i);
+			context& ctx = server_.create_context<context>(this, hostid);
+
+			std::string filename;
+			if (server_.config()["Hosts"][hostid]["AccessLog"].load(filename))
 			{
-				server_.log(x0::severity::error, "Could not open access log file.");
+				ctx.stream = getlogstream(filename);
 			}
-		}
-		else
-		{
-			fd = ::dup(STDOUT_FILENO);
-			if (fd == -1)
+			else if (has_global)
 			{
-				server_.log(x0::severity::error, "Could not open access log file. %s", strerror(errno));
+				ctx.stream = getlogstream(default_filename);
 			}
 		}
 	}
@@ -72,7 +130,7 @@ public:
 private:
 	void request_done(x0::request& in, x0::response& out)
 	{
-		if (fd != -1)
+		if (auto stream = getlogstream(in))
 		{
 			std::stringstream sstr;
 			sstr << hostname(in);
@@ -86,10 +144,7 @@ private:
 			sstr << '"' << getheader(in, "User-Agent") << '"';
 			sstr << std::endl;
 
-			std::string line(sstr.str());
-
-			if (::write(fd, line.c_str(), line.size()) == -1)
-				DEBUG("Couldn't write accesslog: %s", strerror(errno));
+			stream->write(sstr.str());
 		}
 	}
 
@@ -116,17 +171,7 @@ private:
 
 	inline std::string now()
 	{
-		char buf[26];
-		std::time_t ts = time(0);
-
-		if (struct tm *tm = localtime(&ts))
-		{
-			if (strftime(buf, sizeof(buf), "[%m/%d/%Y:%T %z]", tm) != 0)
-			{
-				return buf;
-			}
-		}
-		return "-";
+		return server_.now().htlog_str();
 	}
 
 	inline std::string getheader(const x0::request& in, const std::string& name)
