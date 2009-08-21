@@ -31,6 +31,11 @@ class dirlisting_plugin :
 private:
 	x0::handler::connection c;
 
+	struct context
+	{
+		bool enabled;
+	};
+
 public:
 	dirlisting_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
@@ -45,12 +50,40 @@ public:
 
 	virtual void configure()
 	{
-		// TODO get some kind of solution to let dir-listing only be used for directories we allow it for.
+		auto hosts = server_.config()["Hosts"].keys<std::string>();
+		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
+		{
+			bool enabled;
+
+			if (server_.config()["Hosts"][*i]["DirectoryListing"].load(enabled))
+			{
+				server_.create_context<context>(this, *i).enabled = enabled;
+			}
+			else if (server_.config()["DirectoryListing"].load(enabled))
+			{
+				server_.create_context<context>(this, *i).enabled = enabled;
+			}
+		}
 	}
 
 private:
+	bool enabled(x0::request& in)
+	{
+		try
+		{
+			return server_.context<context>(this, in.header("Host")).enabled;
+		}
+		catch (...)
+		{
+			return false;
+		}
+	}
+
 	bool dirlisting(x0::request& in, x0::response& out)
 	{
+		if (!enabled(in))
+			return false;
+
 		if (!in.fileinfo->is_directory())
 			return false;
 
