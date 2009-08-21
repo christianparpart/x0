@@ -55,11 +55,8 @@ public:
 		{
 			bool enabled;
 
-			if (server_.config()["Hosts"][*i]["DirectoryListing"].load(enabled))
-			{
-				server_.create_context<context>(this, *i).enabled = enabled;
-			}
-			else if (server_.config()["DirectoryListing"].load(enabled))
+			if (server_.config()["Hosts"][*i]["DirectoryListing"].load(enabled)
+			 || server_.config()["DirectoryListing"].load(enabled))
 			{
 				server_.create_context<context>(this, *i).enabled = enabled;
 			}
