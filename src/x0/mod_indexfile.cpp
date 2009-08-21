@@ -59,7 +59,6 @@ public:
 		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
 		{
 			std::string hostid(*i);
-			printf("hostname: %s\n", hostid.c_str());
 			context& ctx = server_.create_context<context>(this, hostid);
 
 			if (!server_.config()["Hosts"][hostid]["IndexFiles"].load(ctx.index_files))
@@ -77,7 +76,7 @@ private:
 
 		static std::string hostkey("Host");
 		std::string hostid(x0::make_hostid(in.header(hostkey)));
-		context& ctx = server_.context<context>(this, hostid); // XXX FIXME resolving doesn't work with aliases (yet) - need to find a solution!
+		context& ctx = server_.context<context>(this, hostid);
 		std::string path(in.fileinfo->filename());
 
 		for (auto i = ctx.index_files.begin(), e = ctx.index_files.end(); i != e; ++i)
