@@ -354,7 +354,10 @@ void server::handle_request(request& in, response& out)
 	if (!rv)
 	{
 		// no content generator found for this request, default to 404 (Not Found)
-		out.status = response::not_found;
+		if (!in.fileinfo->exists())
+			out.status = response::not_found;
+		else
+			out.status = response::forbidden;
 
 		out.flush();
 	}
