@@ -9,6 +9,7 @@
 
 #include <x0/plugin.hpp>
 #include <x0/api.hpp>
+#include <stdexcept>
 
 namespace x0 {
 
@@ -31,6 +32,12 @@ struct context
 public:
 	typedef std::map<plugin *, void *> map_type;
 	typedef map_type::iterator iterator;
+
+	class not_found_error : public std::exception
+	{
+	public:
+		virtual const char *what() const throw() { return "no context data found."; }
+	};
 
 private:
 	map_type data_;
@@ -70,7 +77,7 @@ public:
 		if (i != data_.end())
 			return *static_cast<T *>(i->second);
 
-		throw std::runtime_error("invalid context key");
+		throw not_found_error();
 	}
 
 	template<typename T>
