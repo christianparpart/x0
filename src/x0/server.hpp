@@ -13,6 +13,7 @@
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/handler.hpp>
+#include <x0/event_handler.hpp>
 #include <x0/context.hpp>
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
@@ -73,7 +74,7 @@ public:
 
 	// {{{ signals raised on request in order
 	/** is invoked once a new client connection is established */
-	boost::signal<void(connection_ptr)> connection_open;
+	event_handler<void(connection_ptr)> connection_open;
 
 	/** is called at the very beginning of a request. */
 	boost::signal<void(request&)> pre_process;

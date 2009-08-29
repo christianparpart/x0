@@ -49,9 +49,7 @@ void connection::start()
 {
 	//DEBUG("connection(%p).start()", this);
 
-	server_.connection_open(shared_from_this());
-
-	async_read_some();
+	server_.connection_open(boost::bind(&connection::async_read_some, this), shared_from_this());
 }
 
 void connection::resume()

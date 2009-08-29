@@ -32,7 +32,6 @@ class debug_plugin :
 	public x0::plugin
 {
 private:
-	boost::signals::connection connection_open_;
 	boost::signals::connection pre_process_;
 	boost::signals::connection post_process_;
 	boost::signals::connection connection_close_;
@@ -41,14 +40,13 @@ public:
 	debug_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		connection_open_ = server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1));
+		server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1, _2));
 		pre_process_ = server_.pre_process.connect(boost::bind(&debug_plugin::pre_process, this, _1));
 		post_process_ = server_.post_process.connect(boost::bind(&debug_plugin::post_process, this, _1, _2));
 		connection_close_ = server_.connection_close.connect(boost::bind(&debug_plugin::connection_close, this, _1));
 	}
 
 	~debug_plugin() {
-		server_.connection_open.disconnect(connection_open_);
 		server_.pre_process.disconnect(pre_process_);
 		server_.post_process.disconnect(post_process_);
 		server_.connection_close.disconnect(connection_close_);
@@ -72,9 +70,10 @@ private:
 		return name;
 	}
 
-	void connection_open(x0::connection_ptr& connection)
+	void connection_open(const boost::function<void()>& completed, x0::connection_ptr connection)
 	{
 		server_.log(x0::severity::info, "connection opened: %s", client_hostname(connection.get()).c_str());
+		completed();
 	}
 
 	void pre_process(x0::request& in)
