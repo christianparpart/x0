@@ -102,13 +102,10 @@ public:
 		{
 			if (node_)
 			{
-				invocation_iterator iter(node_->next_, handler_, args_);
-
 				call_unpacked(node_->handler_, std::tuple_cat(std::make_tuple(next()), args_));
 			}
-			else
+			else if (handler_) // completed invoking all handlers, so call initiators completion handler
 			{
-				// completed invoking all handlers, so call initiators completion handler
 				handler_();
 			}
 		}
@@ -139,6 +136,7 @@ public:
 	event_handler& operator+=(const handler_type& handler);
 
 	void operator()(const boost::function<void()>& completionHandler, const Args& ... args) const;
+	void operator()(const Args& ... args) const;
 };
 
 template<typename... Args>
@@ -205,6 +203,12 @@ template<typename... Args>
 inline void event_handler<void(Args...)>::operator()(const boost::function<void()>& handler, const Args& ... args) const
 {
 	invocation_iterator(first_, std::move(handler), std::move(std::make_tuple(args...)))();
+}
+
+template<typename... Args>
+inline void event_handler<void(Args...)>::operator()(const Args& ... args) const
+{
+	invocation_iterator(first_, std::move(boost::function<void()>()), std::move(std::make_tuple(args...)))();
 }
 
 /*@}*/
