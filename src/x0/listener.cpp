@@ -47,6 +47,14 @@ void listener::start()
 	acceptor_.set_option(asio::ip::tcp::no_delay(true));
 	acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
 
+#if 0
+	acceptor_.set_option(asio::ip::tcp::acceptor::defer_accept(true));
+#elif defined(TCP_DEFER_ACCEPT)
+	int on = 1;
+	if (setsockopt(acceptor_.native(), SOL_TCP, TCP_DEFER_ACCEPT, &on, sizeof(on)) < 0)
+		throw std::runtime_error(strerror(errno));
+#endif
+
 	acceptor_.bind(endpoint);
 
 	acceptor_.listen();
