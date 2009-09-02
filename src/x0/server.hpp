@@ -21,7 +21,7 @@
 #include <x0/fileinfo_service.hpp>
 #include <x0/api.hpp>
 #include <boost/signals.hpp>
-#include <boost/asio/io_service.hpp>
+#include <asio.hpp>
 #include <cstring>
 #include <string>
 #include <list>
@@ -201,7 +201,7 @@ public:
 
 	void handle_request(request& in, response& out);
 
-	boost::asio::io_service& io_service();
+	asio::io_service& io_service();
 
 	/** retrieves the current server time. */
 	const datetime& now() const;
@@ -218,7 +218,7 @@ private:
 	x0::context context_;											//!< server context
 	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
 	std::list<listener_ptr> listeners_;
-	boost::asio::io_service io_service_;
+	asio::io_service io_service_;
 	bool paused_;
 	x0::settings settings_;
 	std::string configfile_;
@@ -239,7 +239,7 @@ public:
 };
 
 // {{{ inlines
-inline boost::asio::io_service& server::io_service()
+inline asio::io_service& server::io_service()
 {
 	return io_service_;
 }

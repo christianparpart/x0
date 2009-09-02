@@ -10,8 +10,7 @@
 #include <x0/sysconfig.h>
 #include <x0/api.hpp>
 #include <x0/detail/scoped_mmap.hpp>
-#include <boost/asio/buffer.hpp>
-#include <boost/asio/ip/tcp.hpp>
+#include <asio.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace x0 {
@@ -23,7 +22,7 @@ namespace x0 {
  * The template `Target` must support:
  * <ul>
  *   <li>`ssize_t write(void *buffer, std::size_t size)` - writes buffer of given size to underlying device</li>
- *   <li>`void async_write_some(boost::asio::null_buffers(), completionHandler)` - calles back on write-readyness with nul_buffers() passed as first argument</li>
+ *   <li>`void async_write_some(asio::null_buffers(), completionHandler)` - calles back on write-readyness with nul_buffers() passed as first argument</li>
  *   <li>`int native() const` - to return the underlying device handle (file descriptor)</li>
  * </ul>
  */
@@ -55,7 +54,7 @@ public:
 	composite_buffer_async_writer(Target& t, const composite_buffer& cb, CompletionHandler handler);
 
 	void operator()();
-	void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred);
+	void operator()(const asio::error_code& ec, std::size_t bytes_transferred);
 
 private:
 	bool write_some_once();
@@ -91,7 +90,7 @@ inline composite_buffer_async_writer<Target, CompletionHandler>::composite_buffe
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()()
 {
-	context_->target_.async_write_some(boost::asio::null_buffers(), *this);
+	context_->target_.async_write_some(asio::null_buffers(), *this);
 }
 
 /**
@@ -104,7 +103,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()
  * this object will invoke itself again once the target becomes write-ready again.
  */
 template<class Target, class CompletionHandler>
-inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()(const boost::system::error_code& ec, std::size_t bytes_transferred)
+inline void composite_buffer_async_writer<Target, CompletionHandler>::operator()(const asio::error_code& ec, std::size_t bytes_transferred)
 {
 	if (!ec && context_->nwritten_ < context_->cb_.size())
 	{
@@ -138,7 +137,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 		if (!context_->current_)
 		{
 			// composite_buffer fully written.
-			context_->handler_(boost::system::error_code(), context_->nwritten_);
+			context_->handler_(asio::error_code(), context_->nwritten_);
 			return;
 		}
 
@@ -150,7 +149,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 	}
 
 	// callback when target is ready for more writes
-	context_->target_.async_write_some(boost::asio::null_buffers(), *this);
+	context_->target_.async_write_some(asio::null_buffers(), *this);
 }
 
 /**
@@ -176,7 +175,7 @@ inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some
 	}
 
 	// XXX inform the completion-handler about the write error.
-	context_->handler_(boost::system::error_code(errno, boost::system::system_category), context_->nwritten_);
+	context_->handler_(asio::error_code(errno, asio::error::system_category), context_->nwritten_);
 
 	return false;
 }

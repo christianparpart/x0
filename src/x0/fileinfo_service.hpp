@@ -6,7 +6,7 @@
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/signal.hpp>
 
@@ -36,7 +36,7 @@ class X0_API fileinfo_service :
 	public boost::noncopyable
 {
 private:
-	boost::asio::posix::stream_descriptor in_;		//!< inotify handle used for invalidating updated stat entries
+	asio::posix::stream_descriptor in_;				//!< inotify handle used for invalidating updated stat entries
 	std::map<std::string, fileinfo_ptr> cache_;		//!< cache, storing path->fileinfo pairs
 
 	std::map<int, std::string> wd_;					//!< stores wd->path/fileinfo pairs - if someone knows how to eliminate this extra map, tell me.
@@ -51,7 +51,7 @@ private:
 	std::string default_mimetype_;					//!< default mimetype for those files we could not determine the mimetype.
 
 public:
-	explicit fileinfo_service(boost::asio::io_service& io);
+	explicit fileinfo_service(asio::io_service& io);
 	~fileinfo_service();
 
 	boost::signal<void(const std::string& filename, fileinfo_ptr info)> on_invalidate;
@@ -82,7 +82,7 @@ private:
 
 	void async_read();
 
-	void invalidate(const boost::system::error_code& ec, std::size_t bytes_transferred)
+	void invalidate(const asio::error_code& ec, std::size_t bytes_transferred)
 	{
 		FILEINFO_DEBUG("invalidate(ec=%s, bt=%ld)\n", ec.message().c_str(), bytes_transferred);
 		inotify_event *ev = reinterpret_cast<inotify_event *>(inbuf_.data());
@@ -113,7 +113,7 @@ private:
 	}
 };
 
-inline fileinfo_service::fileinfo_service(boost::asio::io_service& io) :
+inline fileinfo_service::fileinfo_service(asio::io_service& io) :
 	in_(io, ::inotify_init()),
 	cache_(),
 	wd_(),
@@ -138,9 +138,9 @@ inline void fileinfo_service::async_read()
 {
 	FILEINFO_DEBUG("(re-)assign async_read (watches=%ld)\n", size());
 
-	boost::asio::async_read(in_, boost::asio::buffer(inbuf_),
-		boost::asio::transfer_at_least(sizeof(inotify_event)),
-		boost::bind(&fileinfo_service::invalidate, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	asio::async_read(in_, asio::buffer(inbuf_),
+		asio::transfer_at_least(sizeof(inotify_event)),
+		boost::bind(&fileinfo_service::invalidate, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 }
 
 inline fileinfo_service::~fileinfo_service()

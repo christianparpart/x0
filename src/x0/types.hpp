@@ -9,7 +9,7 @@
 #define x0_types_h (1)
 
 #include <x0/api.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <cstring> // strrchr

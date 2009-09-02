@@ -13,7 +13,7 @@
 
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <boost/function.hpp>
 #include <string>
 
@@ -48,10 +48,10 @@ public:
 
 private:
 	/// handle completion of an async accept operation
-	void handle_accept(const boost::system::error_code& e);
+	void handle_accept(const asio::error_code& e);
 
 	x0::server& server_;
-	boost::asio::ip::tcp::acceptor acceptor_;
+	asio::ip::tcp::acceptor acceptor_;
 	request_handler_fn handler_;
 	connection_ptr new_connection_;
 	std::string address_;

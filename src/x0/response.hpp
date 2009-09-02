@@ -15,7 +15,7 @@
 #include <x0/composite_buffer_async_writer.hpp>
 #include <x0/connection.hpp>
 #include <x0/api.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <string>
@@ -194,7 +194,7 @@ public:
 			(
 				&response::transmitted,
 				this,
-				boost::asio::placeholders::error
+				asio::placeholders::error
 			)
 		);
 	}
@@ -217,7 +217,7 @@ private:
 	 */
 	composite_buffer serialize();
 
-	void transmitted(const boost::system::error_code& e);
+	void transmitted(const asio::error_code& e);
 };
 
 // {{{ inline implementation

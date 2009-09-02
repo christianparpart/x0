@@ -67,18 +67,18 @@ void connection::async_read_some()
 	if (server_.max_read_idle() != -1)
 	{
 		timer_.expires_from_now(boost::posix_time::seconds(server_.max_read_idle()));
-		timer_.async_wait(boost::bind(&connection::read_timeout, this, boost::asio::placeholders::error));
+		timer_.async_wait(boost::bind(&connection::read_timeout, this, asio::placeholders::error));
 	}
 
-	socket_.async_read_some(boost::asio::buffer(buffer_),
+	socket_.async_read_some(asio::buffer(buffer_),
 		bind(&connection::handle_read, shared_from_this(),
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+			asio::placeholders::error,
+			asio::placeholders::bytes_transferred));
 }
 
-void connection::read_timeout(const boost::system::error_code& ec)
+void connection::read_timeout(const asio::error_code& ec)
 {
-	if (ec != boost::asio::error::operation_aborted)
+	if (ec != asio::error::operation_aborted)
 	{
 		//DEBUG("connection(%p): read timed out", this);
 		socket_.cancel();
@@ -90,7 +90,7 @@ void connection::read_timeout(const boost::system::error_code& ec)
  *
  * We assume, that we are in request-parsing state.
  */
-void connection::handle_read(const boost::system::error_code& e, std::size_t bytes_transferred)
+void connection::handle_read(const asio::error_code& e, std::size_t bytes_transferred)
 {
 	//DEBUG("connection(%p).handle_read(ec=%s, sz=%ld)", this, e.message().c_str(), bytes_transferred);
 	timer_.cancel();
@@ -147,9 +147,9 @@ void connection::handle_read(const boost::system::error_code& e, std::size_t byt
 	}
 }
 
-void connection::write_timeout(const boost::system::error_code& ec)
+void connection::write_timeout(const asio::error_code& ec)
 {
-	if (ec != boost::asio::error::operation_aborted)
+	if (ec != asio::error::operation_aborted)
 	{
 		//DEBUG("connection(%p): write timed out", this);
 		socket_.cancel();
@@ -164,14 +164,14 @@ void connection::write_timeout(const boost::system::error_code& ec)
  *
  * We will fully shutown the TCP connection.
  */
-void connection::response_transmitted(const boost::system::error_code& ec)
+void connection::response_transmitted(const asio::error_code& ec)
 {
 	//DEBUG("connection(%p).response_transmitted(%s)", this, ec.message().c_str());
 
 	if (!ec)
 	{
-		boost::system::error_code ignored;
-		socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+		asio::error_code ignored;
+		socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
 	}
 }
 

@@ -22,7 +22,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/array.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <boost/bind.hpp>
 #include <string>
 
@@ -64,7 +64,7 @@ public:
 	/** true if this is a secure (HTTPS) connection, false otherwise. */
 	value_property<bool> secure;
 
-	boost::asio::ip::tcp::socket& socket();		//!< Retrieves a reference to the connection socket.
+	asio::ip::tcp::socket& socket();		//!< Retrieves a reference to the connection socket.
 	x0::server& server();						//!< Retrieves a reference to the server instance.
 
 	std::string client_ip() const;				//!< Retrieves the IP address of the remote end point (client).
@@ -76,17 +76,17 @@ private:
 	template<class CompletionHandler> class write_handler;
 
 	void async_read_some();
-	void read_timeout(const boost::system::error_code& ec);
-	void handle_read(const boost::system::error_code& e, std::size_t bytes_transferred);
+	void read_timeout(const asio::error_code& ec);
+	void handle_read(const asio::error_code& e, std::size_t bytes_transferred);
 
 	template<class CompletionHandler>
 	void async_write(const composite_buffer& buffer, const CompletionHandler& handler);
-	void write_timeout(const boost::system::error_code& ec);
-	void response_transmitted(const boost::system::error_code& e);
+	void write_timeout(const asio::error_code& ec);
+	void response_transmitted(const asio::error_code& e);
 
 	x0::server& server_;					//!< server object owning this connection
-	boost::asio::ip::tcp::socket socket_;	//!< underlying communication socket
-	boost::asio::deadline_timer timer_;		//!< deadline timer for detecting read/write timeouts.
+	asio::ip::tcp::socket socket_;	//!< underlying communication socket
+	asio::deadline_timer timer_;		//!< deadline timer for detecting read/write timeouts.
 
 	mutable std::string client_ip_;			//!< internal cache to client ip
 	mutable int client_port_;				//!< internal cache to client port
@@ -96,7 +96,7 @@ private:
 	request *request_;						//!< currently parsed http request 
 	request::reader request_reader_;		//!< http request parser
 
-//	boost::asio::strand strand_;			//!< request handler strand
+//	asio::strand strand_;			//!< request handler strand
 };
 
 template<class CompletionHandler>
@@ -116,7 +116,7 @@ public:
 	{
 	}
 
-	void operator()(const boost::system::error_code& ec, int bytes_transferred)
+	void operator()(const asio::error_code& ec, int bytes_transferred)
 	{
 		connection_->timer_.cancel();
 		handler_(ec, bytes_transferred);
@@ -124,7 +124,7 @@ public:
 };
 
 // {{{ inlines
-inline boost::asio::ip::tcp::socket& connection::socket()
+inline asio::ip::tcp::socket& connection::socket()
 {
 	return socket_;
 }
@@ -142,7 +142,7 @@ inline void connection::async_write(const composite_buffer& buffer, const Comple
 		write_handler<CompletionHandler> writeHandler(shared_from_this(), handler);
 
 		timer_.expires_from_now(boost::posix_time::seconds(server_.max_write_idle()));
-		timer_.async_wait(boost::bind(&connection::write_timeout, shared_from_this(), boost::asio::placeholders::error));
+		timer_.async_wait(boost::bind(&connection::write_timeout, shared_from_this(), asio::placeholders::error));
 
 		x0::async_write(socket(), buffer, writeHandler);
 	}

@@ -8,7 +8,7 @@
 #include <x0/listener.hpp>
 #include <x0/connection.hpp>
 #include <x0/server.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -36,26 +36,26 @@ void listener::configure(const std::string& address, int port)
 
 void listener::start()
 {
-	boost::asio::ip::tcp::resolver resolver(server_.io_service());
-	boost::asio::ip::tcp::resolver::query query(address_, boost::lexical_cast<std::string>(port_));
-	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
+	asio::ip::tcp::resolver resolver(server_.io_service());
+	asio::ip::tcp::resolver::query query(address_, boost::lexical_cast<std::string>(port_));
+	asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 
 	acceptor_.open(endpoint.protocol());
 
-	acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-	acceptor_.set_option(boost::asio::ip::tcp::acceptor::linger(false, 0));
-	acceptor_.set_option(boost::asio::ip::tcp::no_delay(true));
-	acceptor_.set_option(boost::asio::ip::tcp::acceptor::keep_alive(true));
+	acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+	acceptor_.set_option(asio::ip::tcp::acceptor::linger(false, 0));
+	acceptor_.set_option(asio::ip::tcp::no_delay(true));
+	acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
 
 	acceptor_.bind(endpoint);
 
 	acceptor_.listen();
 
 	acceptor_.async_accept(new_connection_->socket(),
-		bind(&listener::handle_accept, this, boost::asio::placeholders::error));
+		bind(&listener::handle_accept, this, asio::placeholders::error));
 }
 
-void listener::handle_accept(const boost::system::error_code& e)
+void listener::handle_accept(const asio::error_code& e)
 {
 	if (!e)
 	{
@@ -63,7 +63,7 @@ void listener::handle_accept(const boost::system::error_code& e)
 
 		new_connection_.reset(new connection(server_));
 		acceptor_.async_accept(new_connection_->socket(),
-			bind(&listener::handle_accept, this, boost::asio::placeholders::error));
+			bind(&listener::handle_accept, this, asio::placeholders::error));
 	}
 }
 

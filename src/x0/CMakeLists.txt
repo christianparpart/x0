@@ -1,6 +1,7 @@
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include_directories(..)
+include_directories(${ASIO_INCLUDEDIR})
 include_directories(${BOOST_INCLUDEDIR})
 
 SET(COMPILE_DEFINITIONS_Debug -DDEBUG=1)
@@ -38,6 +39,8 @@ set(x0d_API
 	context.hpp
 	datetime.hpp
 	handler.hpp
+	event_handler.hpp
+	utility.hpp
 	header.hpp
 	listener.hpp
 	local_stream.hpp
@@ -90,3 +93,6 @@ add_plugin(sendfile)
 add_plugin(userdir)
 add_plugin(vhost_basic)
 add_plugin(vhost_template)
+
+#add_plugin(ssl)
+#target_link_libraries(ssl ${GNUTLS_LIBRARIES})

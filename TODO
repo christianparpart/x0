@@ -2,20 +2,31 @@
 ROADMAP
 
 0.1.0: (Spawn, 11/09)
-	- #328, solid configuration system - via LUA and must support contexts (lookup order: vhost->directory->server)
-	- #329, response stream filter chain API (required for plugins: ssl, deflate, ssi, ...)
-	- #324, finish server limit configurations (keep-alive!)
-	- complete core API documentation
+	+ #328, x0: solid configuration system
+	- #329, x0: response stream filter chain API (required for plugins: ssl, deflate, ssi, ...)
+	- #324, x0: finish server limit configurations (keep-alive!)
+	- x0: complete core API documentation
+	- x0d: add settings option to setup process' cpu affinity
+	- x0: ability to attach custom shared_ptr<>'d data to fileinfo record which is though released when its underlying inode changes.
+	  this way i could speed up repeative directory listing generation
+	  std::string data;
+	  if (!my_fileinfo->get<std::string>(this, data))
+	  {
+		  // not cached yet -> create data and cache for subsequent calls
+		  data = create_data();
+	      my_fileinfo->set(this, data);
+	  }
 0.2.0: (Takeshi, 12/09)
-	- dirlisting plugin
-		- must support content template engine
 	- #313, proxy plugin
-		- must support http backends
+		- must at least support backend: http
 		- must support realtime streaming (required for YaCS chat stream to be passed through)
-		- must support fallback nodes
+		- must support fallback (hot-spare) nodes
+		- must support load-balancing across multiple backend nodes
 	- #308, ssl plugin
 		- must use gnutls via native api
 		- must support server side certificates as passed via file (standard, just like apache etc)
+	- dirlisting plugin
+		- must support content template engine
 0.3.0: (Squeezy, 01/10)
 	- #307, deflate plugin
 		- must support dynamic content compression

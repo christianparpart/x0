@@ -129,7 +129,7 @@ private:
 		try
 		{
 			static std::string hostkey("Host");
-			std::string hostid(x0::make_hostid(in.header(hostkey)));
+			std::string hostid(x0::make_hostid(in.header(hostkey), in.connection.socket().local_endpoint().port()));
 
 			server_config& srvcfg = server_.context<server_config>(this);
 			auto i = srvcfg.mappings.find(hostid);

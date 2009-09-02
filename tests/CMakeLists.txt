@@ -1,6 +1,7 @@
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include_directories(../src)
+include_directories(${ASIO_INCLUDEDIR})
 include_directories(${BOOST_INCLUDEDIR})
 
 add_definitions(

@@ -6,7 +6,7 @@
  */
 
 #include <x0/process.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <string>
 #include <cstdlib>
 #include <sys/types.h>
@@ -22,12 +22,12 @@ namespace x0 {
 		rv = cmd;							\
 	} while (rv == -1 && errno == EINTR)
 
-process::process(boost::asio::io_service& io) :
+process::process(asio::io_service& io) :
 	input_(io), output_(io), error_(io), pid_(-1), status_(0)
 {
 }
 
-process::process(boost::asio::io_service& io, const std::string& exe, const params& args, const environment& env, const std::string& workdir) :
+process::process(asio::io_service& io, const std::string& exe, const params& args, const environment& env, const std::string& workdir) :
 	input_(io), output_(io), error_(io), pid_(-1), status_(0)
 {
 	start(exe, args, env, workdir);
@@ -49,7 +49,7 @@ void process::start(const std::string& exe, const params& args, const environmen
 			setup_child(exe, args, env, workdir);
 			break;
 		case -1: // error
-			throw boost::system::system_error(boost::system::error_code(errno, boost::system::system_category));
+			throw asio::system_error(asio::error_code(errno, asio::error::system_category));
 		default: // parent
 			setup_parent();
 			break;

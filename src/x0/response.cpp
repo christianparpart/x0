@@ -238,7 +238,7 @@ std::string response::status_str(int value)
 	return std::string(status_cstr(value));
 }
 
-void response::transmitted(const boost::system::error_code& ec)
+void response::transmitted(const asio::error_code& ec)
 {
 	//DEBUG("response(%p).transmitted(%s)", this, ec.message().c_str());
 

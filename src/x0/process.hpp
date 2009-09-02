@@ -11,7 +11,7 @@
 #include <x0/local_stream.hpp>
 #include <x0/api.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <vector>
 #include <map>
 #include <string>
@@ -45,7 +45,7 @@ public:
 	 *
 	 * \see start(const std::string& exe, const params& args, const environment& env, const std::string& workdir)
 	 */
-	explicit process(boost::asio::io_service& io);
+	explicit process(asio::io_service& io);
 
 	/** initializes this process object and actually starts a child program as specified.
 	 *
@@ -57,7 +57,7 @@ public:
 	 *
 	 * \note you may only run one child at a time per process object.
 	 */
-	process(boost::asio::io_service& io, const std::string& exe, const params& args,
+	process(asio::io_service& io, const std::string& exe, const params& args,
 		const environment& env = environment(), const std::string& workdir = std::string());
 
 	~process();

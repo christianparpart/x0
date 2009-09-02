@@ -9,7 +9,7 @@
 #define sw_x0_local_stream_hpp 1
 
 #include <x0/api.hpp>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <boost/noncopyable.hpp>
 
 namespace x0 {
@@ -18,10 +18,10 @@ class local_stream :
 	public boost::noncopyable
 {
 public:
-	typedef boost::asio::local::stream_protocol::socket socket;
+	typedef asio::local::stream_protocol::socket socket;
 
 public:
-	explicit local_stream(boost::asio::io_service& io);
+	explicit local_stream(asio::io_service& io);
 	~local_stream();
 
 	socket& local();
@@ -30,16 +30,16 @@ public:
 	void close();
 
 private:
-	boost::asio::io_service& io_;
+	asio::io_service& io_;
 	socket local_;
 	socket remote_;
 };
 
 // {{{ inlines
-inline local_stream::local_stream(boost::asio::io_service& io) :
+inline local_stream::local_stream(asio::io_service& io) :
 	io_(io), local_(io), remote_(io)
 {
-	boost::asio::local::connect_pair(local_, remote_);
+	asio::local::connect_pair(local_, remote_);
 }
 
 inline local_stream::~local_stream()

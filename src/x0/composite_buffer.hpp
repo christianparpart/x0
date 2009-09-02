@@ -17,8 +17,7 @@
 #include <sys/socket.h>		// sendto()
 #include <unistd.h>			// close(), write(), sysconf()
 
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/buffer.hpp>
+#include <asio.hpp>
 #include <iostream> // clog
 
 namespace x0 {

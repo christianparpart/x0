@@ -212,13 +212,13 @@ public:
 
 private:
 	/** feeds the HTTP request into the CGI's stdin pipe. */
-	void transmitted_request(const boost::system::error_code& ec, std::size_t bytes_transferred);
+	void transmitted_request(const asio::error_code& ec, std::size_t bytes_transferred);
 
 	/** consumes the CGI's HTTP response header and body, validates and possibly modifies it, and then passes it to the actual client. */
-	void receive_response(const boost::system::error_code& ec, std::size_t bytes_transferred);
+	void receive_response(const asio::error_code& ec, std::size_t bytes_transferred);
 
 	/** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
-	void receive_error(const boost::system::error_code& ec, std::size_t bytes_transferred);
+	void receive_error(const asio::error_code& ec, std::size_t bytes_transferred);
 
 	void assign_header(const std::string& name, const std::string& value);
 	void process_content(const char *first, const char *last);
@@ -235,7 +235,7 @@ private:
 	cgi_response_parser response_parser_;
 	unsigned long long serial_;				//!< used to detect wether the cgi process actually generated a response or not.
 
-	boost::asio::deadline_timer ttl_;
+	asio::deadline_timer ttl_;
 };
 
 cgi_script::cgi_script(x0::request& in, x0::response& out, const std::string& hostprogram)
@@ -316,8 +316,8 @@ inline void cgi_script::async_run()
 		environment["CONTENT_TYPE"] = request_.header("Content-Type");
 		environment["CONTENT_LENGTH"] = request_.header("Content-Length");
 
-		boost::asio::async_write(process_.input(), boost::asio::buffer(request_.body),
-			boost::bind(&cgi_script::transmitted_request, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+		asio::async_write(process_.input(), asio::buffer(request_.body),
+			boost::bind(&cgi_script::transmitted_request, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 	}
 
 #if X0_SSL
@@ -358,23 +358,23 @@ inline void cgi_script::async_run()
 	// }}}
 
 	// redirect process_'s stdout/stderr to own member functions to handle its response
-	boost::asio::async_read(process_.output(), boost::asio::buffer(outbuf_),
-		boost::bind(&cgi_script::receive_response, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	asio::async_read(process_.output(), asio::buffer(outbuf_),
+		boost::bind(&cgi_script::receive_response, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 
-	boost::asio::async_read(process_.error(), boost::asio::buffer(errbuf_),
-		boost::bind(&cgi_script::receive_error, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	asio::async_read(process_.error(), asio::buffer(errbuf_),
+		boost::bind(&cgi_script::receive_error, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 
 	// actually start child process
 	process_.start(hostprogram_, params, environment, workdir);
 }
 
-void cgi_script::transmitted_request(const boost::system::error_code& ec, std::size_t bytes_transferred)
+void cgi_script::transmitted_request(const asio::error_code& ec, std::size_t bytes_transferred)
 {
 	//printf("cgi_script::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_.body.size());
 	process_.input().close();
 }
 
-void cgi_script::receive_response(const boost::system::error_code& ec, std::size_t bytes_transferred)
+void cgi_script::receive_response(const asio::error_code& ec, std::size_t bytes_transferred)
 {
 	//printf("cgi_script::receive_response(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
 
@@ -386,10 +386,10 @@ void cgi_script::receive_response(const boost::system::error_code& ec, std::size
 
 	if (!ec)
 	{
-		boost::asio::async_read(process_.output(), boost::asio::buffer(outbuf_),
-			boost::bind(&cgi_script::receive_response, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+		asio::async_read(process_.output(), asio::buffer(outbuf_),
+			boost::bind(&cgi_script::receive_response, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 	}
-	else if (ec != boost::asio::error::operation_aborted)
+	else if (ec != asio::error::operation_aborted)
 	{
 		if (!serial_)
 		{
@@ -408,7 +408,7 @@ void cgi_script::receive_response(const boost::system::error_code& ec, std::size
 	}
 }
 
-void cgi_script::receive_error(const boost::system::error_code& ec, std::size_t bytes_transferred)
+void cgi_script::receive_error(const asio::error_code& ec, std::size_t bytes_transferred)
 {
 	//printf("cgi_script::receive_error(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
 
@@ -421,8 +421,8 @@ void cgi_script::receive_error(const boost::system::error_code& ec, std::size_t 
 
 	if (!ec)
 	{
-		boost::asio::async_read(process_.error(), boost::asio::buffer(errbuf_),
-			boost::bind(&cgi_script::receive_error, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+		asio::async_read(process_.error(), asio::buffer(errbuf_),
+			boost::bind(&cgi_script::receive_error, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 	}
 }
 
