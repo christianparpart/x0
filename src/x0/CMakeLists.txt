@@ -8,6 +8,7 @@ SET(COMPILE_DEFINITIONS_Debug -DDEBUG=1)
 SET(COMPILE_DEFINITIONS_Release -DRELEASE=1 -DNDEBUG=1)
 
 add_definitions(
+	-Dlinux=1
 	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
