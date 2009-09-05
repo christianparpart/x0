@@ -98,21 +98,7 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 	if (!e)
 	{
 		// parse request (partial)
-		boost::tribool result;
-		try
-		{
-			boost::tie(result, boost::tuples::ignore) = request_reader_.parse(
-				*request_, buffer_.data(), buffer_.data() + bytes_transferred);
-		}
-		catch (response::code_type code)
-		{
-			// we encountered a request parsing error, bail out
-//			fprintf(stderr, "response::code exception caught (%d %s)\n", code, response::status_cstr(code));;
-//			fflush(stderr);
-
-			(new response(shared_from_this(), request_, code))->flush();
-			request_ = 0;
-		}
+		boost::tribool result = request_reader_.parse(*request_, buffer_.data(), buffer_.data() + bytes_transferred);
 
 		if (result) // request fully parsed
 		{
