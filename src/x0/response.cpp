@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <string>
+#include <strings.h>						// strcasecmp
 
 namespace x0 {
 
@@ -35,7 +36,11 @@ response& response::operator*=(const x0::header& in)
 {
 	for (std::vector<x0::header>::iterator i = headers.begin(); i != headers.end(); ++i)
 	{
+#if 0
 		if (iequals(i->name, in.name))
+#else
+		if (strcasecmp(i->name.c_str(), in.name.c_str()) == 0)
+#endif
 		{
 			i->value = in.value;
 			return *this;
@@ -51,7 +56,11 @@ bool response::has_header(const std::string& name) const
 {
 	for (std::vector<x0::header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
+#if 0
 		if (iequals(i->name, name))
+#else
+		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
+#endif
 		{
 			return true;
 		}
