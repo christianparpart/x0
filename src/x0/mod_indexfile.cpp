@@ -27,7 +27,7 @@ class indexfile_plugin :
 	public x0::plugin
 {
 private:
-	boost::signals::connection c;
+	x0::signal<void(x0::request&)>::connection c;
 
 	struct context
 	{
@@ -43,7 +43,7 @@ public:
 		// XXX a better implementation of this dependency-issue surely is, to introduce
 		// another signal that would order the event sequence for us, but i'm not yet that clear about how
 		// to name this in a clean and reasonable way.
-		c = server_.resolve_entity.connect(1, boost::bind(&indexfile_plugin::indexfile, this, _1));
+		c = server_.resolve_entity.connect(/*FIXME 1, */ boost::bind(&indexfile_plugin::indexfile, this, _1));
 	}
 
 	~indexfile_plugin()

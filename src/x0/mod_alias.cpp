@@ -28,7 +28,7 @@ class alias_plugin :
 	public x0::plugin
 {
 private:
-	boost::signals::connection c;
+	x0::signal<void(x0::request&)>::connection c;
 
 	typedef std::map<std::string, std::string> aliasmap_type;
 
@@ -41,7 +41,7 @@ public:
 	alias_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.resolve_entity.connect(0, boost::bind(&alias_plugin::resolve_entity, this, _1));
+		c = server_.resolve_entity.connect(boost::bind(&alias_plugin::resolve_entity, this, _1));
 	}
 
 	~alias_plugin()

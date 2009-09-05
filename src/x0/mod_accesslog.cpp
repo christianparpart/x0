@@ -88,7 +88,7 @@ private:
 	}
 
 private:
-	boost::signals::connection c;
+	x0::signal<void(x0::request&, x0::response&)>::connection c;
 	std::map<std::string, std::shared_ptr<logstream>> streams_;
 
 public:

@@ -32,9 +32,9 @@ class debug_plugin :
 	public x0::plugin
 {
 private:
-	boost::signals::connection pre_process_;
-	boost::signals::connection post_process_;
-	boost::signals::connection connection_close_;
+	x0::signal<void(x0::request&)>::connection pre_process_;
+	x0::signal<void(x0::request&, x0::response&)>::connection post_process_;
+	x0::signal<void(x0::connection *)>::connection connection_close_;
 
 public:
 	debug_plugin(x0::server& srv, const std::string& name) :

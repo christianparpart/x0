@@ -43,7 +43,7 @@ class vhost_basic_plugin :
 	public x0::plugin
 {
 private:
-	boost::signals::connection c;
+	x0::signal<void(x0::request&)>::connection c;
 
 	struct vhost_config
 	{

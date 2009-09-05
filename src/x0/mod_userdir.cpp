@@ -23,7 +23,7 @@ class userdir_plugin :
 	public x0::plugin
 {
 private:
-	boost::signals::connection c;
+	x0::signal<void(x0::request&)>::connection c;
 
 	struct context
 	{
@@ -35,7 +35,7 @@ public:
 	userdir_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.resolve_entity.connect(0, boost::bind(&userdir_plugin::resolve_entity, this, _1));
+		c = server_.resolve_entity.connect(/*0, */ boost::bind(&userdir_plugin::resolve_entity, this, _1));
 		server_.create_context<context>(this);
 	}
 

@@ -13,6 +13,7 @@
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/handler.hpp>
+#include <x0/signal.hpp>
 #include <x0/event_handler.hpp>
 #include <x0/context.hpp>
 #include <x0/plugin.hpp>
@@ -77,25 +78,25 @@ public:
 	event_handler<void(connection_ptr)> connection_open;
 
 	/** is called at the very beginning of a request. */
-	boost::signal<void(request&)> pre_process;
+	x0::signal<void(request&)> pre_process;
 
 	/** resolves document_root to use for this request. */
-	boost::signal<void(request&)> resolve_document_root;
+	x0::signal<void(request&)> resolve_document_root;
 
 	/** resolves request's physical filename (maps URI to physical path). */
-	boost::signal<void(request&)> resolve_entity;
+	x0::signal<void(request&)> resolve_entity;
 
 	/** generates response content for this request being processed. */
 	handler generate_content;
 
 	/** hook for generating accesslog logs and other things to be done after the request has been served. */
-	boost::signal<void(request&, response&)> request_done;
+	x0::signal<void(request&, response&)> request_done;
 
 	/** is called at the very end of a request. */
-	boost::signal<void(request&, response&)> post_process;
+	x0::signal<void(request&, response&)> post_process;
 
 	/** is called before a connection gets closed / or has been closed by remote point. */
-	boost::signal<void(connection *)> connection_close;
+	x0::signal<void(connection *)> connection_close;
 	// }}}
 
 	// {{{ context management

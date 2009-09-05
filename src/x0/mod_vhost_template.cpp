@@ -26,7 +26,7 @@ private:
 	std::string server_root_;
 	std::string default_host_;
 	std::string document_root_;
-	boost::signals::connection c;
+	x0::signal<void(x0::request&)>::connection c;
 
 public:
 	vhost_template_plugin(x0::server& srv, const std::string& name) :
