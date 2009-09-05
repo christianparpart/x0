@@ -1,4 +1,4 @@
-/* <x0/request.hpp>
+/* <x0/response.hpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
@@ -22,6 +22,8 @@
 #include <vector>
 
 namespace x0 {
+
+class request;
 
 /**
  * \ingroup core
