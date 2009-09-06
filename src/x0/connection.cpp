@@ -125,7 +125,7 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 			(new response(shared_from_this(), request_, response::bad_request))->flush();
 			request_ = 0;
 		}
-		else // request still incomplete
+		else // result indeterminate: request still incomplete
 		{
 			// -> continue reading for request
 			async_read_some();

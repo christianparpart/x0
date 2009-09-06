@@ -30,12 +30,16 @@
 
 namespace x0 {
 
+/**
+ * \ingroup core
+ * \brief exception raised when given virtual host has not been found.
+ */
 class host_not_found
 	: public std::runtime_error
 {
 public:
 	host_not_found(const std::string& hostname)
-		: std::runtime_error(hostname)
+		: std::runtime_error("host not found: " + hostname)
 	{
 	}
 };
