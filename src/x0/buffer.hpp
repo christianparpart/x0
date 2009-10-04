@@ -103,6 +103,8 @@ public:
 	typedef char value_type;
 	typedef const value_type * iterator;
 
+	static const std::size_t npos = std::size_t(-1);
+
 private:
 	const buffer *buffer_;
 	std::size_t offset_;
@@ -118,13 +120,53 @@ public:
 	view& operator=(const buffer& v);
 	view& operator=(const view& v);
 
+	// properties
 	bool empty() const;
-
-	const value_type *data() const;
+	std::size_t offset() const;
 	std::size_t size() const;
+	const value_type *data() const;
 
+	// iterator access
 	iterator begin() const;
 	iterator end() const;
+
+	// find
+	std::size_t find(const view& value) const;
+	std::size_t find(const value_type *value) const;
+	std::size_t find(value_type value) const;
+
+	// rfind
+	std::size_t rfind(const view& value) const;
+	std::size_t rfind(const value_type *value) const;
+	std::size_t rfind(value_type value) const;
+
+	// begins / ibegins
+	bool begins(const view& value) const;
+	bool begins(const value_type *value) const;
+	bool begins(value_type value) const;
+
+	bool ibegins(const view& value) const;
+	bool ibegins(const value_type *value) const;
+	bool ibegins(value_type value) const;
+
+	// ends / iends
+	bool ends(const view& value) const;
+	bool ends(const value_type *value) const;
+	bool ends(value_type value) const;
+
+	bool iends(const view& value) const;
+	bool iends(const value_type *value) const;
+	bool iends(value_type value) const;
+
+	// sub
+	view sub(std::size_t offset);
+	view sub(std::size_t offset, std::size_t size);
+
+	// random access
+	const value_type& operator[](std::size_t offset) const;
+
+	// cloning
+	buffer clone() const;
 };
 
 bool equals(const buffer& a, const buffer& b);
@@ -371,12 +413,12 @@ inline buffer::view::view(const buffer& v) :
 {
 }
 
-buffer::view::view(const view& v) :
+inline buffer::view::view(const view& v) :
 	buffer_(v.buffer_), offset_(v.offset_), size_(v.size_)
 {
 }
 
-buffer::view::view& buffer::view::operator=(const buffer& v)
+inline buffer::view::view& buffer::view::operator=(const buffer& v)
 {
 	buffer_ = &v;
 	offset_ = 0;
@@ -385,7 +427,7 @@ buffer::view::view& buffer::view::operator=(const buffer& v)
 	return *this;
 }
 
-buffer::view::view& buffer::view::operator=(const view& v)
+inline buffer::view::view& buffer::view::operator=(const view& v)
 {
 	buffer_ = v.buffer_;
 	offset_ = v.offset_;
@@ -399,14 +441,19 @@ inline bool buffer::view::empty() const
 	return !size_;
 }
 
-inline const buffer::value_type *buffer::view::data() const
+inline std::size_t buffer::view::offset() const
 {
-	return buffer_->data() + offset_;
+	return offset_;
 }
 
 inline std::size_t buffer::view::size() const
 {
 	return size_;
+}
+
+inline const buffer::value_type *buffer::view::data() const
+{
+	return buffer_->data() + offset_;
 }
 
 inline buffer::view::iterator buffer::view::begin() const
@@ -417,6 +464,76 @@ inline buffer::view::iterator buffer::view::begin() const
 inline buffer::view::iterator buffer::view::end() const
 {
 	return buffer_->data() + offset_ + size_;
+}
+
+inline std::size_t buffer::view::find(const value_type *value) const
+{
+	if (const char *p = strstr(data(), value))
+	{
+		if (p < end())
+		{
+			return p - data();
+		}
+	}
+	return npos;
+}
+
+inline std::size_t buffer::view::find(value_type value) const
+{
+	if (const char *p = strchr(data(), value))
+	{
+		if (p < end())
+		{
+			return p - data();
+		}
+	}
+	return npos;
+}
+
+inline std::size_t buffer::view::rfind(const value_type *value) const
+{
+	assert(0 && "not implemented");
+	return npos;
+}
+
+inline std::size_t buffer::view::rfind(value_type value) const
+{
+	const char *p = data();
+	const char *q = p + size();
+
+	while (p != q)
+	{
+		if (*q == value)
+		{
+			return q - p;
+		}
+		--q;
+	}
+
+	return *p == value ? 0 : npos;
+}
+
+inline buffer::view::view buffer::view::sub(std::size_t offset)
+{
+	return buffer_->sub(offset_ + offset, size_ - offset);
+}
+
+inline buffer::view::view buffer::view::sub(std::size_t offset, std::size_t size)
+{
+	return buffer_->sub(offset_ + offset, size);
+}
+
+inline const buffer::value_type& buffer::view::operator[](std::size_t offset) const
+{
+	return data()[offset];
+}
+
+inline buffer buffer::view::clone() const
+{
+	buffer buf(size_);
+	buf.push_back(data(), size_);
+
+	return buf;
 }
 // }}}
 
