@@ -128,15 +128,14 @@ private:
 	{
 		try
 		{
-			static std::string hostkey("Host");
-			std::string hostid(x0::make_hostid(in.header(hostkey), in.connection.socket().local_endpoint().port()));
+			std::string hostid(in.hostid());
 
 			server_config& srvcfg = server_.context<server_config>(this);
 			auto i = srvcfg.mappings.find(hostid);
 			if (i != srvcfg.mappings.end())
 			{
 				in.document_root = i->second->docroot;
-				//server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in.document_root.c_str());
+				server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in.document_root.c_str());
 			}
 			else
 			{

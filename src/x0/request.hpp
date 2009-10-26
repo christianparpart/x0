@@ -78,6 +78,7 @@ public: // accumulated request data
 
 public: // utility methods
 	bool supports_protocol(int major, int minor) const;
+	std::string hostid() const;
 };
 
 /**
@@ -262,12 +263,12 @@ inline bool request::reader::url_decode(std::string& url)
 	return true;
 }
 
-request::reader::reader() :
+inline request::reader::reader() :
 	state_(method_start), buf_()
 {
 }
 
-void request::reader::reset()
+inline void request::reader::reset()
 {
 	state_ = method_start;
 	buf_.clear();

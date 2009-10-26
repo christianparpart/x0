@@ -70,9 +70,9 @@ private:
 	{
 		try
 		{
-			return &server_.context<context>(this, in.header("Host")).aliases;
+			return &server_.context<context>(this, in.hostid()).aliases;
 		}
-		catch (const x0::context::not_found_error&)
+		catch (...)
 		{
 			return 0;
 		}

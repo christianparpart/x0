@@ -7,6 +7,8 @@
 
 #include <x0/request.hpp>
 #include <x0/response.hpp>
+#include <x0/connection.hpp>
+#include <x0/strutils.hpp>
 #include <strings.h>			// strcasecmp()
 
 namespace x0 {
@@ -22,6 +24,11 @@ std::string request::header(const std::string& name) const
 	}
 
 	return std::string();
+}
+
+std::string request::hostid() const
+{
+	return x0::make_hostid(header("Host"), connection.socket().local_endpoint().port());
 }
 
 } // namespace x0
