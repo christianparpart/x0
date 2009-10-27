@@ -8,6 +8,7 @@
 #define x0_composite_buffer_hpp
 
 #include <x0/property.hpp>
+#include <x0/buffer.hpp>
 #include <x0/api.hpp>
 
 #include <string>
@@ -232,7 +233,7 @@ public:
 private:
 	vector vec_;
 	std::size_t veclimit_;
-	std::vector<std::string> strings_;
+	buffer buffer_;
 
 public:
 	iovec_chunk();
@@ -325,19 +326,24 @@ inline composite_buffer::chunk::~chunk()
 
 // {{{ iovec_chunk impl
 inline composite_buffer::iovec_chunk::iovec_chunk() :
-	chunk(ciov, 0), vec_(), veclimit_(sysconf(_SC_IOV_MAX)), strings_()
+	chunk(ciov, 0), vec_(), veclimit_(sysconf(_SC_IOV_MAX)), buffer_(buffer::CHUNK_SIZE)
 {
 }
 
 inline void composite_buffer::iovec_chunk::push_back(char value)
 {
-	push_back(std::string(1, value));
+	buffer_.push_back(value);
+	push_back(buffer_.end() - sizeof(char), sizeof(char));
 }
 
 inline void composite_buffer::iovec_chunk::push_back(const std::string& value)
 {
-	strings_.push_back(value);
-	push_back(strings_[strings_.size() - 1].data(), value.size());
+	if (!value.empty())
+	{
+		buffer_.push_back(value);
+
+		push_back(buffer_.end() - value.size(), value.size());
+	}
 }
 
 inline void composite_buffer::iovec_chunk::push_back(const void *p, std::size_t n)
