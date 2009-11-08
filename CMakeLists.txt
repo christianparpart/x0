@@ -6,33 +6,33 @@ set(PACKAGE_VERSION "0.1.0")
 set(PACKAGE_HOMEPAGE_URL "http://code.ninchens.net/projects/x0")
 set(PACKAGE_BUGTRACKER_URL "http://code.ninchens.net/projects/x0/issues")
 
-INCLUDE(FindPkgConfig)
-INCLUDE(FindDoxygen)
-INCLUDE(CheckIncludeFiles)
-INCLUDE(CheckFunctionExists)
-INCLUDE(CheckVariableExists)
-INCLUDE(CheckTypeSize)
-INCLUDE(CheckLibraryExists)
-INCLUDE(CheckCSourceCompiles)
-INCLUDE(CMakeDetermineCCompiler)
+include(FindPkgConfig)
+include(FindDoxygen)
+include(CheckIncludeFiles)
+include(CheckFunctionExists)
+include(CheckVariableExists)
+include(CheckTypeSize)
+include(CheckLibraryExists)
+include(CheckCSourceCompiles)
+include(CMakeDetermineCCompiler)
 
 add_subdirectory(src)
 add_subdirectory(tests)
 
-OPTION(WITH_INOTIFY "Build with inotify support [default: on]" ON)
-OPTION(WITH_LIBAIO "Build with libaio support [default: on]" ON)
-OPTION(WITH_PCRE "With PCRE support [default: off]")
-OPTION(WITH_SSL "With SSL support [default: on]" ON)
-OPTION(BUILD_STATIC "Build with modules statically linked in [default: off]")
-OPTION(BUILD_TESTS "Build unit tests [default: on]" ON)
+option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
+option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
+option(WITH_PCRE "With PCRE support [default: off]")
+option(WITH_SSL "With SSL support [default: on]" ON)
+option(BUILD_STATIC "Build with modules statically linked in [default: off]")
+option(BUILD_TESTS "Build unit tests [default: on]" ON)
 
 # we need the following definitions in order to get some special
 # OS-level features like posix_fadvise() or readahead().
-ADD_DEFINITIONS(-DXOPEN_SOURCE=600)
-ADD_DEFINITIONS(-DGNU_SOURCE)
+add_definitions(-DXOPEN_SOURCE=600)
+add_definitions(-DGNU_SOURCE)
 
 # enforce 64bit i/o operations, even on 32bit platforms
-ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES)
+add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES)
 
 CHECK_INCLUDE_FILES(fcntl.h HAVE_FCNTL_H)
 
@@ -54,27 +54,27 @@ CHECK_FUNCTION_EXISTS(pathconf HAVE_PATHCONF)
 
 CHECK_INCLUDE_FILES(aio.h HAVE_AIO_H)
 
-IF(WITH_INOTIFY)
+if(WITH_INOTIFY)
 	CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
-	IF(HAVE_SYS_INOTIFY_H)
+	if(HAVE_SYS_INOTIFY_H)
 		CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
-	ENDIF(HAVE_SYS_INOTIFY_H)
-ENDIF(WITH_INOTIFY)
+	endif(HAVE_SYS_INOTIFY_H)
+endif(WITH_INOTIFY)
 
-#IF(WITH_LIBAIO)
+#if(WITH_LIBAIO)
 	CHECK_INCLUDE_FILES(libaio.h HAVE_LIBAIO_H)
-	IF (HAVE_LIBAIO_H)
+	if (HAVE_LIBAIO_H)
 		CHECK_FUNCTION_EXISTS(io_submit HAVE_AIO_SUBMIT)
 		CHECK_FUNCTION_EXISTS(io_getevents HAVE_GETEVENTS)
 		CHECK_LIBRARY_EXISTS(aio io_submit "" HAVE_LIBAIO)
 		CHECK_LIBRARY_EXISTS(aio io_getevents "" HAVE_LIBAIO)
-	ENDIF(HAVE_LIBAIO_H)
-#ENDIF(WITH_LIBAIO)
+	endif(HAVE_LIBAIO_H)
+#endif(WITH_LIBAIO)
 
 CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
-IF (HAVE_ZLIB_H)
+if(HAVE_ZLIB_H)
 	CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
-ENDIF(HAVE_ZLIB_H)
+endif(HAVE_ZLIB_H)
 
 # {{{ sets
 #if (DEFINED PREFIX)
@@ -102,37 +102,38 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 # }}}
 
-set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/src/asio/boostified/boost" CACHE PATH "asio include directory")
+#set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/src/asio/include" CACHE PATH "asio include directory")
+set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/../asio/include" CACHE PATH "asio include directory")
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 pkg_check_modules(LUA REQUIRED lua>=5.1)
 
-IF(WITH_PCRE)
+if(WITH_PCRE)
 	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
-ENDIF(WITH_PCRE)
-IF(WITH_SSL)
+endif(WITH_PCRE)
+if(WITH_SSL)
 	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0 gnutls-extra>=2.0.0)
-ENDIF(WITH_SSL)
-IF(BUILD_TESTS)
+endif(WITH_SSL)
+if(BUILD_TESTS)
 	pkg_check_modules(CPPUNIT REQUIRED cppunit>=1.12)
-ENDIF(BUILD_TESTS)
+endif(BUILD_TESTS)
 
-IF(BUILD_STATIC)
+if(BUILD_STATIC)
 	# ...
-ELSE(BUILD_STATIC)
+else(BUILD_STATIC)
 	CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
-ENDIF(BUILD_STATIC)
+endif(BUILD_STATIC)
 
-IF(${CMAKE_BUILD_TYPE} EQUAL Release)
+if(${CMAKE_BUILD_TYPE} EQUAL Release)
 	add_definitions(-DX0_RELEASE -DNDEBUG=1)
-ELSE()
+else()
 	add_definitions(-DX0_DEBUG=1)
-ENDIF()
+endif()
 
 # ---------------------------------------------------------------------------
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
-ADD_DEFINITIONS(-DHAVE_SYSCONFIG_H)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
+add_definitions(-DHAVE_SYSCONFIG_H)
 
 # ---------------------------------------------------------------------------
 message("")
