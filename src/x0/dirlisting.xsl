@@ -1,4 +1,4 @@
-<?xml version='1.0'?>
+<?xml version='1.0' encoding='utf-8'?>
 
 <!--
 	<dirlisting.xsl>
@@ -19,6 +19,7 @@
 					font-family: courier;
 					background-color: white;
 					color: black;
+					font-size: 10pt;
 				}
 				a:link {
 					decoration: none;
