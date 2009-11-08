@@ -87,9 +87,10 @@ private:
 				bool xml = !ctx.xsluri.empty();
 				std::string result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
 
-				out.write(result);
 				out *= x0::header("Content-Type", xml ? "text/xml" : "text/html");
 				out *= x0::header("Content-Length", boost::lexical_cast<std::string>(result.size()));
+
+				out.write(result);
 
 				out.flush();
 				closedir(dir);
@@ -158,7 +159,7 @@ private:
 	{
 		std::stringstream xml;
 
-		xml << "<?xml version='1.0'?>\n";
+		xml << "<?xml version='1.0' encoding='" << "utf-8" << "'?>\n";
 
 		if (!ctx.xsluri.empty())
 			xml << "<?xml-stylesheet type='text/xsl' href='" << ctx.xsluri << "'?>\n";
