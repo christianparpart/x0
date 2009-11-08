@@ -74,8 +74,7 @@ private:
 		if (!in.fileinfo->is_directory())
 			return;
 
-		static std::string hostkey("Host");
-		std::string hostid(x0::make_hostid(in.header(hostkey)));
+		std::string hostid(in.hostid());
 		context& ctx = server_.context<context>(this, hostid);
 		std::string path(in.fileinfo->filename());
 

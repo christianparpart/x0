@@ -85,7 +85,22 @@
 			</xsl:if>
 
 			<!-- directory items -->
-			<xsl:for-each select='*'>
+			<xsl:for-each select='*[substring(@name, string-length(@name), 1) = "/"]'>
+				<xsl:sort select='@name'/>
+				<tr class='n{position() div 2}'>
+					<td class='name'>
+						<a href='{@name}'>
+							<xsl:value-of select='@name'/>
+						</a>
+					</td>
+					<td class='size'><xsl:value-of select='@size'/></td>
+					<td class='mtime'><xsl:value-of select='@mtime'/></td>
+					<td class='mimetype'></td>
+				</tr>
+			</xsl:for-each>
+
+			<!-- non-directory items -->
+			<xsl:for-each select='*[not(substring(@name, string-length(@name), 1) = "/")]'>
 				<xsl:sort select='@name'/>
 				<tr class='n{position() div 2}'>
 					<td class='name'>

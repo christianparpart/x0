@@ -73,12 +73,9 @@ private:
 
 	logstream *getlogstream(x0::request& in)
 	{
-		static std::string hostkey("Host");
-		std::string hostid(x0::make_hostid(in.header(hostkey)));
-
 		try
 		{
-			context& ctx = server_.context<context>(this, hostid);
+			context& ctx = server_.context<context>(this, in.hostid());
 			return ctx.stream;
 		}
 		catch (...)

@@ -74,7 +74,7 @@ private:
 	{
 		try
 		{
-			context& ctx = server_.context<context>(this, in.header("Host"));
+			context& ctx = server_.context<context>(this, in.hostid());
 
 			if (!ctx.enabled)
 				return false;
@@ -97,7 +97,7 @@ private:
 				return true;
 			}
 		}
-		catch (x0::context::not_found_error&)
+		catch (const x0::context::not_found_error&)
 		{
 			// eat up and default to `unhandled`
 		}
