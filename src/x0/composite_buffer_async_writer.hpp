@@ -41,10 +41,11 @@ private:
 		std::size_t offset_;
 		ssize_t status_;
 		std::size_t nwritten_;
+		std::size_t row_slice_, col_slice_;
 
 		context(Target& target, const composite_buffer& cb, CompletionHandler handler) :
 			target_(target), cb_(cb), handler_(handler),
-			current_(cb_.front()), offset_(0), status_(0), nwritten_(0)
+			current_(cb_.front()), offset_(0), status_(0), nwritten_(0), row_slice_(0), col_slice_(0)
 		{
 		}
 	};
@@ -129,6 +130,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 		return;
 	}
 
+	// loop through all chunk-writes long as they're complete writes
 	while (context_->offset_ == context_->current_->size())
 	{
 		context_->offset_ = 0;
@@ -185,7 +187,64 @@ inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(const composite_buffer::iovec_chunk& chunk)
 {
-	context_->status_ = ::writev(context_->target_.native(), &chunk[0], chunk.length());
+	#define DPRINTF if (context_->target_.native() == 10) printf
+	#define INC(p, n) (p) = ((char *)(p)) + (n);
+	#define DEC(p, n) (p) = ((char *)(p)) - (n);
+
+	const_cast<iovec&>(chunk[context_->row_slice_]).iov_len -= context_->col_slice_;
+	INC(const_cast<iovec&>(chunk[context_->row_slice_]).iov_base, context_->col_slice_);
+
+	DPRINTF("writev: fd=%d, row=%ld, num_rows=%ld, diff=%ld, col=%ld, offset=%ld, i0:%ld\n",
+		context_->target_.native(), 
+		context_->row_slice_, chunk.length(),
+		chunk.length() - context_->row_slice_,
+		context_->col_slice_,
+		context_->offset_,
+		chunk[context_->row_slice_].iov_len);
+	ssize_t nwritten = ::writev(context_->target_.native(),
+		&chunk[context_->row_slice_], chunk.length() - context_->row_slice_);
+
+	DEC(const_cast<iovec&>(chunk[context_->row_slice_]).iov_base, context_->col_slice_);
+	const_cast<iovec&>(chunk[context_->row_slice_]).iov_len += context_->col_slice_;
+
+	if (nwritten < 0)
+		perror("writev");
+	else
+		DPRINTF("    nwritten=%ld, nmax=%ld/%ld, nvecs=%ld\n",
+			nwritten,
+			context_->cb_.size() - context_->nwritten_,
+			context_->cb_.size(),
+			chunk.length());
+
+	context_->status_ = nwritten;
+
+	if (nwritten > 0 &&
+		static_cast<std::size_t>(nwritten) < chunk.size() - context_->nwritten_ - context_->col_slice_)
+	{
+		if (context_->col_slice_ + nwritten < chunk[context_->row_slice_].iov_len)
+		{
+			// number of actually written bytes would not exceed the current row.
+			context_->col_slice_ += nwritten;
+			nwritten = 0;
+		}
+		else
+		{
+			// search for new row/col slice
+			DPRINTF("    sub %ld bytes from row %ld\n", chunk[context_->row_slice_].iov_len - context_->col_slice_, context_->row_slice_);
+			nwritten -= chunk[context_->row_slice_++].iov_len - context_->col_slice_;
+
+			do {
+				DPRINTF("    sub %ld bytes from row %ld\n", chunk[context_->row_slice_].iov_len, context_->row_slice_);
+				nwritten -= chunk[context_->row_slice_++].iov_len;
+			}
+			while (nwritten > 0);
+
+			context_->col_slice_ = -nwritten;
+		}
+		DPRINTF("    new offsets: %ld, %ld; nremaining=%ld\n",
+			context_->row_slice_, context_->col_slice_,
+			nwritten);
+	}
 }
 
 /** Writes contents from a file descriptor chunk into the target.
