@@ -1,4 +1,4 @@
-x0 - WEB SERVER - http://code.ninchens.net/projects/x0
+x0 - WEB SERVER - http://github.com/trapni/x0
 -----------------------------------------------------------------------------
 
 x0 aims to be a low-latency scalarable web server and web service framework written in C++.
@@ -29,3 +29,23 @@ MODULES:
 + userdir: provides access to user's ~/public_html directory as hostname/~username URL
 + vhost: implements basic virtual hosting
 - webdav: implements WebDAV
+
+-----------------------------------------------------------------------------
+HOW TO BUILD:
+
+# we first need a special Asio tree:
+cvs -d:pserver:anonymous@asio.cvs.sourceforge.net:/cvsroot/asio login 
+cvs -z3 -d:pserver:anonymous@asio.cvs.sourceforge.net:/cvsroot/asio co -P asio
+cd asio/
+cvs co -r linux-perf-branch .
+cd ../
+
+# now lets fetch and compile x0
+git clone git://github.com/trapni/x0.git
+cd x0/
+cmake .
+make edit_cache # in case you've to adjust something, e.g. path to $(pwd)/../asio/include
+make
+cd src/x0/
+./x0d --no-fork --config=test.conf
+# have fun hacking.
