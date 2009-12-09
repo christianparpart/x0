@@ -1,4 +1,5 @@
 add_subdirectory(x0)
+add_subdirectory(plugins)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${ASIO_INCLUDEDIR})

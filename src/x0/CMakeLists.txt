@@ -1,6 +1,6 @@
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
-include_directories(..)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${ASIO_INCLUDEDIR})
 include_directories(${BOOST_INCLUDEDIR})
 
@@ -69,24 +69,3 @@ target_link_libraries(x0
 
 install(FILES ${x0_API} DESTINATION include/x0)
 #install(PUBLIC_HEADER DESTINATION include/x0)
-
-# ---------------------------------------------------------------------------
-macro(add_plugin ModuleName)
-	add_library(${ModuleName} MODULE mod_${ModuleName}.cpp)
-	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
-	install(TARGETS ${ModuleName} DESTINATION lib/x0)
-endmacro()
-
-add_plugin(accesslog)
-add_plugin(alias)
-add_plugin(cgi)
-add_plugin(debug)
-add_plugin(dirlisting)
-add_plugin(indexfile)
-add_plugin(sendfile)
-add_plugin(userdir)
-add_plugin(vhost_basic)
-add_plugin(vhost_template)
-
-#add_plugin(ssl)
-#target_link_libraries(ssl ${GNUTLS_LIBRARIES})

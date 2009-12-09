@@ -1,13 +1,14 @@
 
 Install Requirements:
 
-- boost 1.39
+- GCC 4.4.1 - (it really must be 4.4.0 or higher)
 - LUA 5.1.3
+- boost 1.39
+- cmake - for building
 - cppunit
-- GCC 4.4.1 (it really must be 4.4.0 or higher)
-- cmake for building
+- Asio - standalone version (ideally: linux-perf-branch)
 
-fetch the sources from gitorious (i guess you already did that).
+fetch the sources from github.com/trapni/x0 (i guess you already did that).
 
 # cmake .
 # make edit_cache
