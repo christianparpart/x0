@@ -50,6 +50,7 @@
 				}
 				td.size {
 					padding-right: 1em;
+					text-align: right;
 				}
 				td.mtime {
 					padding-right: 1em;
@@ -94,7 +95,9 @@
 							<xsl:value-of select='@name'/>
 						</a>
 					</td>
-					<td class='size'><xsl:value-of select='@size'/></td>
+					<td class='size'>
+						<xsl:value-of select='@size'/>
+					</td>
 					<td class='mtime'><xsl:value-of select='@mtime'/></td>
 					<td class='mimetype'></td>
 				</tr>
@@ -109,7 +112,19 @@
 							<xsl:value-of select='@name'/>
 						</a>
 					</td>
-					<td class='size'><xsl:value-of select='@size'/></td>
+					<td class='size'>
+						<xsl:choose>
+							<xsl:when test='@size &gt;= (1024 * 1024)'>
+								<xsl:value-of select='round(@size div (1024 * 1024))'/> MB
+							</xsl:when>
+							<xsl:when test='@size &gt;= 1024'>
+								<xsl:value-of select='round(@size div 1024)'/> KB
+							</xsl:when>
+							<xsl:otherwise>
+								<xsl:value-of select='@size'/> B
+							</xsl:otherwise>
+						</xsl:choose>
+					</td>
 					<td class='mtime'><xsl:value-of select='@mtime'/></td>
 					<td class='mimetype'><xsl:value-of select='@mimetype'/></td>
 				</tr>
