@@ -4,9 +4,6 @@ include_directories(..)
 include_directories(${ASIO_INCLUDEDIR})
 include_directories(${BOOST_INCLUDEDIR})
 
-SET(COMPILE_DEFINITIONS_Debug -DDEBUG=1)
-SET(COMPILE_DEFINITIONS_Release -DRELEASE=1 -DNDEBUG=1)
-
 add_definitions(
 	-Dlinux=1
 	-Wall -Wno-deprecated
@@ -18,12 +15,11 @@ add_definitions(
 	-DSYSCONFDIR="${SYSCONFDIR}"
 	-DVERSION="${PACKAGE_VERSION}")
 
-add_executable(x0d
+set(x0_SRC
 	connection.cpp
 	fileinfo_service.cpp
 	listener.cpp
 	logger.cpp
-	main.cpp
 	process.cpp
 	response.cpp
 	request.cpp
@@ -33,7 +29,7 @@ add_executable(x0d
 	strutils.cpp
 )
 
-set(x0d_API
+set(x0_API
 	connection.hpp
 	fileinfo.hpp fileinfo.ipp
 	fileinfo_service.hpp
@@ -63,21 +59,18 @@ set(x0d_API
 #	trie.hpp
 #	ternary_search.hpp
 
-install(FILES ${x0d_API} DESTINATION include/x0)
+add_library(x0 SHARED ${x0_SRC})
 
-target_link_libraries(x0d
+target_link_libraries(x0
 	boost_system boost_signals boost_thread
 	${LUA_LIBRARIES}
 	dl pthread
 )
 
-install(TARGETS x0d
-	RUNTIME DESTINATION sbin
-	PUBLIC_HEADER DESTINATION include/x0
-)
+install(FILES ${x0_API} DESTINATION include/x0)
+#install(PUBLIC_HEADER DESTINATION include/x0)
 
-install(FILES x0d.conf-dist DESTINATION etc)
-
+# ---------------------------------------------------------------------------
 macro(add_plugin ModuleName)
 	add_library(${ModuleName} MODULE mod_${ModuleName}.cpp)
 	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
