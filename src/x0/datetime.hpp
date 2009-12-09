@@ -98,7 +98,7 @@ inline std::string datetime::htlog_str() const
 		{
 			char buf[256];
 
-			if (strftime(buf, sizeof(buf), "[%m/%d/%Y:%T %z]", tm) != 0)
+			if (strftime(buf, sizeof(buf), "%m/%d/%Y:%T %z", tm) != 0)
 			{
 				htlog_ = buf;
 			}
