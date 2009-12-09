@@ -46,6 +46,6 @@ cd x0/
 cmake .
 make edit_cache # in case you've to adjust something, e.g. path to $(pwd)/../asio/include
 make
-cd src/x0/
+cd src/
 ./x0d --no-fork --config=test.conf
 # have fun hacking.
