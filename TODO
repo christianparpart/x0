@@ -1,10 +1,10 @@
 -----------------------------------------------------------------------------
 ROADMAP
 
-0.1.0: (Spawn, 11/09)
-	+ #328, x0: solid configuration system
-	- #329, x0: response stream filter chain API (required for plugins: ssl, deflate, ssi, ...)
-	- #324, x0: finish server limit configurations (keep-alive!)
+0.1.0: (11/09)
+	+ x0: solid configuration system
+	- x0: response stream filter chain API (required for plugins: ssl, deflate, ssi, ...)
+	- x0: finish server limit configurations (keep-alive!)
 	- x0: complete core API documentation
 	- x0d: add settings option to setup process' cpu affinity
 	- x0: ability to attach custom shared_ptr<>'d data to fileinfo record which is though released when its underlying inode changes.
@@ -16,19 +16,19 @@ ROADMAP
 		  data = create_data();
 	      my_fileinfo->set(this, data);
 	  }
-0.2.0: (Takeshi, 12/09)
-	- #313, proxy plugin
+0.2.0: (12/09)
+	- proxy plugin
 		- must at least support backend: http
 		- must support realtime streaming (required for YaCS chat stream to be passed through)
 		- must support fallback (hot-spare) nodes
 		- must support load-balancing across multiple backend nodes
-	- #308, ssl plugin
+	- ssl plugin
 		- must use gnutls via native api
 		- must support server side certificates as passed via file (standard, just like apache etc)
 	- dirlisting plugin
-		- must support content template engine
-0.3.0: (Squeezy, 01/10)
-	- #307, deflate plugin
+		- must support content template engine (extracted from libnuggad)
+0.3.0: (01/10)
+	- deflate plugin
 		- must support dynamic content compression
 	- status plugin
 		- must give some statistical/informational data about the running service
@@ -36,13 +36,31 @@ ROADMAP
 			- cpu load
 			- current number of connections and their states
 			- ...
-0.4.0: (Sifu, 02/10)
-	- #295, fastcgi plugin
-	- #332, csp plugin (C++ server pages)
+0.4.0: (02/10)
+	- fastcgi plugin
+	- csp plugin (C++ server pages)
 
-0.5.0: (Sensei, 05/10)
-	- #331, webdav plugin
+0.5.0: (05/10)
+	- webdav plugin
 	- ssi plugin
+
+
+-----------------------------------------------------------------------------
+FEATURE LIST:
+- ssl support (ssl, via gnutls)
+mapper:
+- request path aliasing (alias)
+- request path rewriting (rewrite)
+generator:
+- http proxy (proxy)
+- server status API (status)
+- cgi 1.1 support (cgi)
+- fastcgi support (fastcgi)
+- lua server pages (wsapi)
+- c++ server pages (csp)
+- directory listing
+- dynamic content compression (deflate)
+- webdav support (webdav)
 
 -----------------------------------------------------------------------------
 INTERMEDIATE TODO
