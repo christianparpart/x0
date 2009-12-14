@@ -11,9 +11,16 @@
 #include <boost/bind.hpp>
 #include <iostream>
 #include <string>
+#include <cstdarg>
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+#if !defined(NDEBUG)
+#	define X0D_DEBUG(msg...) x0d::log(x0::severity::debug, msg)
+#else
+#	define X0D_DEBUG(msg...) /*!*/ ((void)0)
+#endif
 
 class x0d
 {
@@ -47,27 +54,24 @@ public:
 		instance_ = 0;
 	}
 
+	static x0d *instance()
+	{
+		return instance_;
+	}
+
 	int run(int argc, char *argv[])
 	{
-		if (parse(argc, argv))
-		{
-			server_.configure(configfile_);
+		if (!parse(argc, argv))
+			return 1;
 
-			if (!nofork_)
-			{
-				daemonize();
-			}
+		server_.configure(configfile_);
 
-			if (doguard_)
-			{
-				return guard(boost::bind(&x0d::_run, this));
-			}
-			else
-			{
-				return _run();
-			}
-		}
-		return -1;
+		if (!nofork_)
+			daemonize();
+
+		return doguard_
+			? guard(boost::bind(&x0d::_run, this))
+			: _run();
 	}
 
 	template<class Handler>
@@ -81,8 +85,7 @@ public:
 
 			if (pid < 0) // fork failed
 			{
-				perror("fork");
-				// TODO: syslog(strerror(errno))
+				log(x0::severity::alert, "fork error: %s", strerror(errno));
 				return 1;
 			}
 			else if (pid == 0) // in child
@@ -94,7 +97,7 @@ public:
 
 			for (;;) // loop as long as waitpid() returned errno (EINTR, ...) or the program exited normally (exit(), main() leaving, ...)
 			{
-				DEBUG("Waiting on pid %d", pid);
+				X0D_DEBUG("Waiting on pid %d", pid);
 #if 0
 				rv = waitpid(pid, &status, 0);
 #else
@@ -105,18 +108,18 @@ public:
 
 				if (WIFEXITED(status))
 				{
-					DEBUG("Guarded process terminated with return code %d", WEXITSTATUS(status));
+					X0D_DEBUG("Guarded process terminated with return code %d", WEXITSTATUS(status));
 					return WEXITSTATUS(status);
 				}
 				else if (WIFSIGNALED(status))
 				{
-					DEBUG("Guarded process terminated with signal %s", sig2str(WTERMSIG(status)).c_str());
+					X0D_DEBUG("Guarded process terminated with signal %s", sig2str(WTERMSIG(status)).c_str());
 					break;
 				}
 				else if (WIFSTOPPED(status))
-					DEBUG("Guarded process stopped.");
+					X0D_DEBUG("Guarded process stopped.");
 				else if (WIFCONTINUED(status))
-					DEBUG("Guarded process continued.");
+					X0D_DEBUG("Guarded process continued.");
 			}
 		}
 #else
@@ -124,25 +127,29 @@ public:
 #endif
 	}
 
-	std::string sig2str(int sig)
+	static std::string sig2str(int sig)
 	{
 		static const char *sval[32] = {
-			"SIGHUP",	// 1-5
-			"SIGINT",
-			"SIGQUIT",
-			"SIGILL",
-			0,
-			"SIGABRT",	// 6-10
-			0,
-			"SIGFPE",
-			"SIGKILL",
-			0,
-			"SIGSEGV",	// 11-15
-			0,
-			"SIGPIPE",
-			"SIGALRM",
-			"SIGUSR1",
-			"SIGUSR2",
+			"SIGHUP",	// 1
+			"SIGINT",	// 2
+			"SIGQUIT",	// 3
+			"SIGILL",	// 4
+			0,			// 5
+			"SIGABRT",	// 6
+			0,			// 7
+			"SIGFPE",	// 8
+			"SIGKILL",	// 9
+			0,			// 10
+			"SIGSEGV",	// 11
+			0,			// 12
+			"SIGPIPE",	// 13
+			"SIGALRM",	// 14
+			"SIGTERM",	// 15
+			"SIGUSR1",	// 16
+			"SIGUSR2",	// 17
+			"SIGCHLD",	// 18
+			"SIGCONT",	// 19
+			"SIGSTOP",	// 20
 			0
 		};
 
@@ -246,11 +253,30 @@ private:
 		}
 	}
 
-	static void reload_handler(int)
+	static void log(x0::severity severity, const char *msg, ...)
+	{
+		va_list va;
+		char buf[2048];
+
+		va_start(va, msg);
+		vsnprintf(buf, sizeof(buf), msg, va);
+		va_end(va);
+
+		if (instance_)
+		{
+			instance_->server_.log(severity, "%s", buf);
+		}
+		else
+		{
+			DEBUG("%s", buf);
+		}
+	}
+
+	static void reload_handler(int signo)
 	{
 		if (instance_)
 		{
-			instance_->server_.log(x0::severity::info, "SIGHUP received. Reloading configuration.");
+			log(x0::severity::info, "%s received. Reloading configuration.", sig2str(signo).c_str());
 
 			try
 			{
@@ -258,16 +284,16 @@ private:
 			}
 			catch (std::exception& e)
 			{
-				instance_->server_.log(x0::severity::error, "uncaught exception in reload handler: %s", e.what());
+				log(x0::severity::error, "uncaught exception in reload handler: %s", e.what());
 			}
 		}
 	}
 
-	static void terminate_handler(int)
+	static void terminate_handler(int signo)
 	{
 		if (instance_)
 		{
-			instance_->server_.log(x0::severity::info, "SIGTERM received. Shutting down.");
+			log(x0::severity::info, "%s received. Shutting down.", sig2str(signo).c_str());
 
 			try
 			{
@@ -275,7 +301,7 @@ private:
 			}
 			catch (std::exception& e)
 			{
-				instance_->server_.log(x0::severity::error, "uncaught exception in terminate handler: %s", e.what());
+				log(x0::severity::error, "uncaught exception in terminate handler: %s", e.what());
 			}
 		}
 	}
