@@ -340,7 +340,12 @@ void server::handle_request(request& in, response& out)
 	if (in.fileinfo->is_directory() && !ends_with(in.path, "/"))
 	{
 		std::stringstream url;
-		url << (in.connection.secure ? "https://" : "http://") << in.header("Host") << in.path << '/' << in.query;
+
+		std::string hostname(in.header("X-Forwarded-Host"));
+		if (hostname.empty())
+			hostname = in.header("Host");
+
+		url << (in.connection.secure ? "https://" : "http://") << hostname << in.path << '/' << in.query;
 
 		out *= header("Location", url.str());
 		out.status = response::moved_permanently;
