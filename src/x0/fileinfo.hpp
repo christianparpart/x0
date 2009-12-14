@@ -6,10 +6,12 @@
 #include <boost/shared_ptr.hpp>
 #include <sys/stat.h>
 #include <string>
+#include <map>
 
 namespace x0 {
 
 class fileinfo_service;
+class plugin;
 
 class X0_API fileinfo :
 	public boost::noncopyable
@@ -22,6 +24,7 @@ private:
 	mutable std::string etag_;
 	mutable std::string mtime_;
 	mutable std::string mimetype_;
+	std::map<const plugin *, void *> data_;
 
 	friend class fileinfo_service;
 
@@ -37,6 +40,12 @@ public:
 	bool is_directory() const;
 	bool is_regular() const;
 	bool is_executable() const;
+
+	// custom-data
+	void bind(const plugin *self, void *data);
+	template<typename T> T& operator()(const plugin *self) const;
+	template<typename T> T& get(const plugin *self) const;
+	void unbind(const plugin *self);
 
 	// HTTP related high-level properties
 	std::string etag() const;
