@@ -133,7 +133,7 @@ private:
 			sstr << hostname(in);
 			sstr << " - "; // identity as of identd
 			sstr << username(in) << ' ';
-			sstr << now() << " \"";
+			sstr << server_.now().htlog_str() << " \"";
 			sstr << request_line(in) << "\" ";
 			sstr << out.status << ' ';
 			sstr << out.content_length() << ' ';
@@ -164,11 +164,6 @@ private:
 			<< " HTTP/" << in.http_version_major << '.' << in.http_version_minor;
 
 		return str.str();
-	}
-
-	inline std::string now()
-	{
-		return server_.now().htlog_str();
 	}
 
 	inline std::string getheader(const x0::request& in, const std::string& name)
