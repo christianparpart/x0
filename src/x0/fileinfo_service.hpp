@@ -164,7 +164,9 @@ inline fileinfo_ptr fileinfo_service::query(const std::string& _filename)
 		fi->etag_ = make_etag(*fi);
 
 		int rv = ::inotify_add_watch(in_.native(), filename.c_str(),
-			IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT);
+			IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
+			IN_DELETE | IN_CLOSE_WRITE |
+			IN_MOVE_SELF | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE);
 
 		if (rv != -1)
 		{
