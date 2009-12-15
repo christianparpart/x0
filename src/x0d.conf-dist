@@ -77,7 +77,7 @@ FileInfo = {
 	MimeType = {
 		MimeFile = '/etc/mime.types';
 		MagicFile = '/etc/mime.magic';
-		DefaultType = 'text/plain';
+		DefaultType = 'application/octet-stream';
 	};
 	ETag = {
 		ConsiderMtime = true;
