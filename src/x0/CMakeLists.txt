@@ -1,4 +1,5 @@
 #set(CMAKE_VERBOSE_MAKEFILE ON)
+add_subdirectory(io)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${ASIO_INCLUDEDIR})
