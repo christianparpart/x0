@@ -38,6 +38,8 @@ void listener::configure(const std::string& address, int port)
 
 void listener::start()
 {
+	server_.log(severity::notice, "Start listening on %s:%d", address_.c_str(), port_);
+
 	asio::ip::tcp::resolver resolver(server_.io_service());
 	asio::ip::tcp::resolver::query query(address_, boost::lexical_cast<std::string>(port_));
 	asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);

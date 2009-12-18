@@ -259,7 +259,7 @@ void server::run()
 		(*i)->start();
 	}
 
-	log(severity::info, "server up and running");
+	log(severity::info, "Server up and running");
 
 	io_service_.run();
 }
