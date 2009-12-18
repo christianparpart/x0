@@ -1,0 +1,50 @@
+DEFINITIONS:
+============================================================================
+
+chunk:
+	a chunk is a data block, ready to be processed by a consumer (e.g. a filter)
+
+source:
+	a source is a chunk producer, e.g. by reading sequentially from a file
+
+sink:
+	a sink is a chunk consumer, e.g. by saving chunks sequentially into a file
+
+filter: a filter is a processor, that reads from a source, and passes the received
+	data to the sink. this data may or may not be transformed befor passing to the sink.
+
+CLASS HIERARCHY PROPOSAL:
+============================================================================
+
+chunk
+	memory_chunk
+		mmap_chunk
+	fd_chunk
+source
+	buffer_source
+	fd_source
+		file_source
+		network_source
+		filtered_source
+sink
+	buffer_sink
+	fd_sink
+		file_sink
+		network_sink
+		filtered_sink
+
+filter (unidirectional data transformer)
+	base64_encoder (encodes into base64)
+	base64_decoder (decodes from base64)
+	compressor (compresses incoming data)
+	uncompressor (uncompresses incoming data)
+	quoted_printable_encoder (encodes into quoted printable)
+	quoted_printable_decoder (decodes from quoted printable)
+	web_ssi_filter (implements SSI)
+	web_template_filter (processes source template, translating into e.g. HTML)
+
+OPEN QUESTIONS:
+============================================================================
+
+1.) namespace x0 or x0::io?
+2.) how should filter/source/sink base classes be accessed. by pointer or reference counted impl (e.g. like Qt classes)
