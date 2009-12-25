@@ -13,11 +13,11 @@ add_definitions(
 	-DSYSCONFDIR="${SYSCONFDIR}"
 	-DVERSION="${PACKAGE_VERSION}")
 
+# -----------------------------------------------------------------
 add_executable(x0test
 	x0dtest.cpp
 	http11.cpp
 	range_def_test.cpp
-	ternary_search_test.cpp
 )
 
 target_link_libraries(x0test
@@ -29,4 +29,16 @@ target_link_libraries(x0test
 
 install(TARGETS x0test
 	RUNTIME DESTINATION sbin
+)
+
+# -----------------------------------------------------------------
+add_executable(x0test_common
+	x0dtest.cpp
+	ternary_search_test.cpp
+	buffer_test.cpp
+)
+
+target_link_libraries(x0test_common
+	${CPPUNIT_LIBRARIES}
+	${LUA_LIBRARIES}
 )
