@@ -34,7 +34,7 @@ public:
 	typedef value_type * iterator;
 	typedef const value_type * const_iterator;
 
-	static const std::size_t CHUNK_SIZE = 1024;
+	static const std::size_t CHUNK_SIZE = 4096;
 
 private:
 	value_type *data_;
@@ -277,7 +277,7 @@ inline std::size_t buffer::size() const
 inline void buffer::size(std::size_t value)
 {
 	if (value > capacity_)
-		capacity(value + 1);
+		reserve(value);
 
 	size_ = value;
 }
@@ -431,7 +431,9 @@ inline buffer::view buffer::sub(std::size_t offset, std::size_t count) const
 	assert(offset >= 0);
 	assert(offset + count <= size_);
 
-	return view(this, offset, count);
+	return count > 0
+		? view(this, offset, count)
+		: view();
 }
 
 inline buffer::view buffer::operator()(std::size_t offset) const
