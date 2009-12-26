@@ -1,5 +1,4 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${ASIO_INCLUDEDIR})
 include_directories(${BOOST_INCLUDEDIR})
@@ -15,10 +14,15 @@ add_definitions(
 	-DSYSCONFDIR="${SYSCONFDIR}"
 	-DVERSION="${PACKAGE_VERSION}")
 
-add_executable(x0io_test test.cpp
+add_executable(x0io_test
+	io_test.cpp
 	fd_source.cpp
 	file_source.cpp
 	fd_sink.cpp
 	file_sink.cpp
 )
-target_link_libraries(x0io_test x0)
+
+#target_link_libraries(x0io_test x0)
+target_link_libraries(x0io_test
+	${CPPUNIT_LIBRARIES}
+)

@@ -14,7 +14,10 @@ public:
 	operator bool() const;
 	bool operator !() const;
 
-	virtual chunk pull();
+	void async(bool value);
+	bool async() const;
+
+	virtual buffer::view pull(buffer& buf);
 
 protected:
 	int handle_;

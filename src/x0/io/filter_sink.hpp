@@ -10,7 +10,7 @@ public:
 	filter_sink(const filter& filter, const sink& sink) :
 		filter_(filter), sink_(sink) {}
 
-	virtual void push(const chunk& data)
+	virtual void push(const buffer& data)
 	{
 		sink_(filter_(data));
 	}

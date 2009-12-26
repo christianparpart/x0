@@ -9,8 +9,7 @@ namespace x0 {
 file_source::file_source(const std::string& filename) :
 	fd_source(open(filename.c_str(), O_RDONLY))
 {
-	fcntl(handle_, O_NONBLOCK, 1);
-	fcntl(handle_, O_CLOEXEC, 1);
+	fcntl(handle_, F_SETFL, O_CLOEXEC, 1);
 }
 
 file_source::~file_source()

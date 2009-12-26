@@ -14,7 +14,10 @@ public:
 	operator bool() const;
 	bool operator !() const;
 
-	virtual void push(const chunk& data);
+	void async(bool value);
+	bool async() const;
+
+	virtual buffer::view push(const buffer::view& data);
 
 protected:
 	int handle_;

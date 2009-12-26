@@ -1,7 +1,7 @@
 #ifndef sw_x0_io_sink_hpp
 #define sw_x0_io_sink_hpp 1
 
-#include <x0/io/chunk.hpp>
+#include <x0/buffer.hpp>
 
 namespace x0 {
 
@@ -10,9 +10,7 @@ class sink
 public:
 	virtual ~sink() {}
 
-	virtual void push(const chunk& data) = 0;
-
-	void operator()(const chunk& data) { push(data); }
+	virtual buffer::view push(const buffer::view& data) = 0;
 };
 
 } // namespace x0

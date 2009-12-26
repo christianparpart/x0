@@ -5,14 +5,14 @@
 
 namespace x0 {
 
-/** simply passes incoming chunks through */
+/** simply passes incoming buffers through */
 class null_filter :
 	public filter
 {
 public:
 	null_filter() {}
 
-	virtual chunk process(const chunk& data)
+	virtual buffer process(const buffer& data)
 	{
 		return data;
 	}
