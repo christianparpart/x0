@@ -268,7 +268,7 @@ private:
 		}
 		else
 		{
-			DEBUG("%s", buf);
+			X0D_DEBUG("%s", buf);
 		}
 	}
 
