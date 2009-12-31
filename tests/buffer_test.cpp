@@ -96,6 +96,12 @@ private:
 	// test reserve()
 	void reserve()
 	{
+		x0::buffer buf;
+
+		buf.reserve(1);
+
+		CPPUNIT_ASSERT(buf.size() == 0);
+		CPPUNIT_ASSERT(buf.capacity() == x0::buffer::CHUNK_SIZE);
 	}
 
 	void clear()
