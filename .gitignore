@@ -11,7 +11,9 @@ src/x0/x0d
 src/x0/sysconfig.h
 src/x0/test-*.*
 src/x0/test-*
+src/x0/io/x0io_test*
 tests/x0test
+tests/x0test_common
 core
 core.*
 vgcore.*
