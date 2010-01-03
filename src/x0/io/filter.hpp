@@ -7,16 +7,25 @@
 
 namespace x0 {
 
+/** unidirectional data processor.
+ *
+ * a filter is a processor, that reads from a source, and passes 
+ * the received data to the sink. this data may or may not be
+ * transformed befor passing to the sink.
+ *
+ * \see source, sink
+ */
 class filter
 {
 public:
-	virtual buffer process(const buffer& input);
-#if 0
-	buffer operator()(const buffer& input)
+	virtual buffer process(const buffer::view& input) = 0;
+
+	buffer operator()(const buffer::view& input)
 	{
 		return process(input);
 	}
 
+#if 0
 	//! pumps source through this filter, storing the result into the sink
 	void once(source& source, sink& sink)
 	{

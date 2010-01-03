@@ -18,8 +18,13 @@ add_executable(x0io_test
 	io_test.cpp
 	fd_source.cpp
 	file_source.cpp
+	buffer_source.cpp
 	fd_sink.cpp
 	file_sink.cpp
+	buffer_sink.cpp
+	filter.cpp
+	chain_filter.cpp
+	null_filter.cpp
 )
 
 #target_link_libraries(x0io_test x0)
