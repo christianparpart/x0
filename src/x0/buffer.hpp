@@ -45,7 +45,11 @@ private:
 public:
 	buffer();
 	explicit buffer(std::size_t _capacity);
-	buffer(const value_type *_data, std::size_t _size); // XXX better be private
+	buffer(const value_type *_data, std::size_t _size); // XXX better be private?
+	explicit buffer(const buffer::view& v);
+	template<typename PodType, std::size_t N> explicit buffer(PodType (&value)[N]);
+	buffer(const buffer& v);
+	buffer& operator=(const buffer& v);
 	~buffer();
 
 	// attributes
@@ -225,6 +229,32 @@ inline buffer::buffer(std::size_t _capacity) :
 inline buffer::buffer(const value_type *_data, std::size_t _size) :
 	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size), readonly_(true)
 {
+}
+
+inline buffer::buffer(const buffer::view& v) :
+	data_(0), size_(0), capacity_(0), readonly_(false)
+{
+	push_back(v.data(), v.size());
+}
+
+template<typename PodType, std::size_t N>
+inline buffer::buffer(PodType (&value)[N]) :
+	data_(value), size_(N - 1), capacity_(N - 1), readonly_(true)
+{
+}
+
+inline buffer::buffer(const buffer& v) :
+	data_(0), size_(0), capacity_(0), readonly_(false)
+{
+	push_back(v.data(), v.size());
+}
+
+inline buffer& buffer::operator=(const buffer& v)
+{
+	clear();
+	push_back(v.data(), v.size());
+
+	return *this;
 }
 
 inline buffer::~buffer()
@@ -466,7 +496,7 @@ inline std::string buffer::substr(std::size_t offset, std::size_t count) const
 // {{{ const_buffer impl
 template<typename PodType, std::size_t N>
 inline const_buffer::const_buffer(PodType (&value)[N]) :
-	buffer(value, N - 1)
+	buffer(value)
 {
 }
 // }}}
@@ -542,12 +572,12 @@ inline bool buffer::view::operator!() const
 
 inline buffer::view::iterator buffer::view::begin() const
 {
-	return buffer_->data() + offset_;
+	return buffer_ ? buffer_->data() + offset_ : 0;
 }
 
 inline buffer::view::iterator buffer::view::end() const
 {
-	return buffer_->data() + offset_ + size_;
+	return buffer_ ? buffer_->data() + offset_ + size_ : 0;
 }
 
 inline std::size_t buffer::view::find(const value_type *value) const
