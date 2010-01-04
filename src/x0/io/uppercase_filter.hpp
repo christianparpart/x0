@@ -6,7 +6,7 @@
 
 namespace x0 {
 
-/** simply passes incoming buffers through */
+/** simply transforms all letters into upper-case letters. */
 class uppercase_filter :
 	public filter
 {
