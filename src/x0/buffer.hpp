@@ -239,7 +239,7 @@ inline buffer::buffer(const buffer::view& v) :
 
 template<typename PodType, std::size_t N>
 inline buffer::buffer(PodType (&value)[N]) :
-	data_(value), size_(N - 1), capacity_(N - 1), readonly_(true)
+	data_(const_cast<char *>(value)), size_(N - 1), capacity_(N - 1), readonly_(true)
 {
 }
 
