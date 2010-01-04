@@ -12,9 +12,9 @@ class null_filter :
 public:
 	null_filter() {}
 
-	virtual buffer process(const buffer& data)
+	virtual buffer process(const buffer::view& data)
 	{
-		return data;
+		return buffer(data);
 	}
 };
 
