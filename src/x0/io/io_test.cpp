@@ -1,14 +1,19 @@
 #include <x0/io/source.hpp>
+#include <x0/io/file_source.hpp>
 #include <x0/io/sink.hpp>
+#include <x0/io/file_sink.hpp>
 #include <x0/io/filter.hpp>
 #include <x0/io/null_filter.hpp>
-#include <x0/io/file_source.hpp>
-#include <x0/io/file_sink.hpp>
+#include <x0/io/uppercase_filter.hpp>
+#include <x0/io/chain_filter.hpp>
+#include <x0/io/pump.hpp>
 
 int main(int argc, const char *argv[])
 {
 	const int MAX_ITERS = 3;
-	x0::buffer buf;
+
+	x0::chain_filter cf;
+	cf.push_back(x0::filter_ptr(new x0::uppercase_filter()));
 
 	for (int i = 1; i <= MAX_ITERS; ++i)
 	{
@@ -23,15 +28,8 @@ int main(int argc, const char *argv[])
 		x0::file_sink output(ofn);
 		output.async(true);
 
-		buf.clear();
-
-		while (x0::buffer::view chunk = input.pull(buf))
-		{
-			while (chunk = output.push(chunk))
-				std::printf(" did just a partial write: %ld bytes remaining\n", chunk.size());
-
-			std::printf("  buffer: size=%ld (capacity %ld)\n", buf.size(), buf.capacity());
-		}
+		//pump(input, output, cf);
+		pump(input, output);
 	}
 
 	//null_filter nf;
