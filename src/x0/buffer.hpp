@@ -42,6 +42,27 @@ private:
 	std::size_t capacity_;
 	bool readonly_;
 
+#if !defined(NDEBUG) // {{{ reference counting
+private:
+	mutable std::size_t refcount_;
+
+public:
+	void ref() const
+	{
+		++refcount_;
+	}
+
+	void unref() const
+	{
+		--refcount_;
+	}
+
+	std::size_t refcount() const
+	{
+		return refcount_;
+	}
+#endif // }}}
+
 public:
 	buffer();
 	explicit buffer(std::size_t _capacity);
@@ -126,6 +147,7 @@ private:
 public:
 	view();
 	view(const buffer *_buffer, std::size_t _offset, std::size_t _size);
+	~view();
 
 	view(const buffer& v);
 	view(const view& v);
@@ -217,22 +239,34 @@ bool operator==(const buffer::view& a, const char *b);
 // {{{ buffer impl
 inline buffer::buffer() :
 	data_(0), size_(0), capacity_(0), readonly_(false)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
 {
 }
 
 inline buffer::buffer(std::size_t _capacity) :
 	data_(0), size_(0), capacity_(0), readonly_(false)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
 {
 	reserve(_capacity);
 }
 
 inline buffer::buffer(const value_type *_data, std::size_t _size) :
 	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size), readonly_(true)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
 {
 }
 
 inline buffer::buffer(const buffer::view& v) :
 	data_(0), size_(0), capacity_(0), readonly_(false)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
 {
 	push_back(v.data(), v.size());
 }
@@ -240,11 +274,17 @@ inline buffer::buffer(const buffer::view& v) :
 template<typename PodType, std::size_t N>
 inline buffer::buffer(PodType (&value)[N]) :
 	data_(const_cast<char *>(value)), size_(N - 1), capacity_(N - 1), readonly_(true)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
 {
 }
 
 inline buffer::buffer(const buffer& v) :
 	data_(0), size_(0), capacity_(0), readonly_(false)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
 {
 	push_back(v.data(), v.size());
 }
@@ -267,6 +307,8 @@ inline buffer::~buffer()
 		size_ = 0;
 		capacity_ = 0;
 		data_ = 0;
+
+		assert(refcount() == 0 && "No buffer views may reference its buffer object when killing it.");
 #endif
 	}
 }
@@ -510,32 +552,77 @@ inline buffer::view::view() :
 inline buffer::view::view(const buffer *_buffer, std::size_t _offset, std::size_t _size) :
 	buffer_(_buffer), offset_(_offset), size_(_size)
 {
+#if !defined(NDEBUG)
+	if (buffer_)
+	{
+		buffer_->ref();
+		assert(offset_ + size_ <= buffer_->size());
+	}
+	else
+	{
+		assert(!offset_);
+		assert(!size_);
+	}
+#endif
+}
+
+inline buffer::view::~view()
+{
+#if !defined(NDEBUG)
+	if (buffer_)
+		buffer_->unref();
+#endif
 }
 
 inline buffer::view::view(const buffer& v) :
 	buffer_(&v), offset_(0), size_(v.size_)
 {
+#if !defined(NDEBUG)
+	buffer_->ref();
+#endif
 }
 
 inline buffer::view::view(const view& v) :
 	buffer_(v.buffer_), offset_(v.offset_), size_(v.size_)
 {
+#if !defined(NDEBUG)
+	buffer_->ref();
+#endif
 }
 
 inline buffer::view::view& buffer::view::operator=(const buffer& v)
 {
+#if !defined(NDEBUG)
+	if (buffer_)
+		buffer_->unref();
+#endif
+
 	buffer_ = &v;
 	offset_ = 0;
 	size_ = v.size_;
+
+#if !defined(NDEBUG)
+	buffer_->ref();
+#endif
 
 	return *this;
 }
 
 inline buffer::view::view& buffer::view::operator=(const view& v)
 {
+#if !defined(NDEBUG)
+	if (buffer_)
+		buffer_->unref();
+#endif
+
 	buffer_ = v.buffer_;
 	offset_ = v.offset_;
 	size_ = v.size_;
+
+#if !defined(NDEBUG)
+	if (buffer_)
+		buffer_->ref();
+#endif
 
 	return *this;
 }
