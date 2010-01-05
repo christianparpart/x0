@@ -15,7 +15,7 @@ add_definitions(
 
 # ---------------------------------------------------------------------------
 macro(add_plugin ModuleName)
-	add_library(${ModuleName} MODULE mod_${ModuleName}.cpp)
+	add_library(${ModuleName} MODULE ${ModuleName}.cpp)
 	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
 	install(TARGETS ${ModuleName} DESTINATION lib/x0)
 endmacro()
