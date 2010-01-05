@@ -7,51 +7,41 @@
 #include <x0/io/uppercase_filter.hpp>
 #include <x0/io/chain_filter.hpp>
 #include <x0/io/pump.hpp>
+#include <iostream>
+#include <memory>
 
 int main(int argc, const char *argv[])
 {
-	const int MAX_ITERS = 3;
-
-	x0::chain_filter cf;
-	cf.push_back(x0::filter_ptr(new x0::uppercase_filter()));
-
-	for (int i = 1; i <= MAX_ITERS; ++i)
+	if (argc != 3 && argc != 4)
 	{
-		std::printf("iteration# %d/%d:\n", i, MAX_ITERS);
-
-		const char *ifn = argc == 2 ? argv[1] : argv[0];
-		x0::file_source input(ifn);
-		input.async(true);
-
-		char ofn[1024];
-		snprintf(ofn, sizeof(ofn), "%s.%d.bak", ifn, i);
-		x0::file_sink output(ofn);
-		output.async(true);
-
-		//pump(input, output, cf);
-		pump(input, output);
+		std::cerr << "usage: " << argv[0] << " INPUT OUTPUT [-u]" << std::endl;
+		std::cerr << "  where INPUT and OUTPUT can be '-' to be interpreted as stdin/stdout respectively." << std::endl;
+		return 1;
 	}
 
-	//null_filter nf;
+	std::string ifn(argv[1]);
+	std::shared_ptr<x0::source> input(ifn == "-" 
+		? new x0::fd_source(STDIN_FILENO)
+		: new x0::file_source(ifn)
+	);
 
-//	auto nfc = chain(null_filter(), null_filter());
-//	nfc.all(input, output);
+	std::string ofn(argv[2]);
+	std::shared_ptr<x0::sink> output(ofn == "-"
+		? new x0::fd_sink(STDOUT_FILENO)
+		: new x0::file_sink(ofn)
+	);
 
-//-------------------------------------------------
+	if (argc >= 4 && std::string(argv[3]) == "-u")
+	{
+		x0::chain_filter cf;
+		cf.push_back(x0::filter_ptr(new x0::uppercase_filter()));
 
-	// configure filter
-//	filter f;
-//	f.chain(file_source("input.txt"));
-//	f.chain(uppercase_encoder());
-//	f.chain(base64_encoder());
-//	f.chain(file_sink("output.txt"));
-
-	// pump input source through the filter path, store result into file output.txt.
-//	f.all(file_source("input.txt"), file_sink("output.txt"));
-
-//	f.all();
-//	f.once();
-//	f.async();
+		pump(*input, *output, cf);
+	}
+	else
+	{
+		pump(*input, *output);
+	}
 
 	return 0;
 }
