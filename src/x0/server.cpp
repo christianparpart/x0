@@ -57,6 +57,7 @@ server::server() :
 	max_fds(boost::bind(&server::getrlimit, this, RLIMIT_CORE),
 			boost::bind(&server::setrlimit, this, RLIMIT_NOFILE, _1))
 {
+	response::initialize();
 }
 
 server::~server()
