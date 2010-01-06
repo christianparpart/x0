@@ -108,15 +108,10 @@ std::vector<T> split(const std::basic_string<U>& list, const std::basic_string<U
 template<typename T, typename U>
 std::vector<T> split(const std::basic_string<U>& list, const U *sep);
 
-/**
- * generates an HTTP/1.1 conform date.
- *
- * \param ts the unix timestamp to generate the HTTP date for.
- * \return string value containing HTTP/1.1 conform date equivalent to \p ts.
- *
- * \note Date format is equivalent to RFC 822.
- */
-std::string http_date(std::time_t ts);
+//@}
+
+//! \addtogroup core
+//@{
 
 std::string make_hostid(const std::string& hostname);
 std::string make_hostid(const std::string& hostname, int port);
