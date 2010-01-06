@@ -49,6 +49,10 @@ PERFORMANCE TEST TOOLS:
   when using the cached content - which should be faster on a buffered device instead of a
   application memory to socket write.
 
+
+LINKS:
+- http://en.wikipedia.org/wiki/Chunked_transfer_encoding
+
 -----------------------------------------------------------------------------
 HOW TO BUILD:
 

@@ -74,6 +74,9 @@ for a long-term todo list, see ticket system at http://code.ninchens.net/project
 		2.) develop a settings visitor who imports the settings into the context scheme to at least match server-/vhosts contexts
 	- chain API (or just a std::deque/std::list?)
 		- filter chain API using the above/chain API
+	- response::serialize():
+		- let it stream the HTTP response status line + headers into a buffer pre-allocated object.
+		+ status_buf[] computation: use pre-computed buffers instead as division/modulo operation are expensive.
 - core:
 	- rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
 	  last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
@@ -85,7 +88,7 @@ for a long-term todo list, see ticket system at http://code.ninchens.net/project
 	  (maybe use this then also for an error plugin which generates themable error pages)
 - docs:
 	- bring API docs up-to-date.
-- modules:
+- plugins:
 	- proxy (http), required to replace apache on ninchens.net server
 		- must support live streams (required for YaCS chat stream)
 		- must support fallback nodes (required for YaCS/maintenance)

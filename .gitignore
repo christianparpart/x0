@@ -14,6 +14,7 @@ src/x0/test-*
 src/x0/io/x0io_test*
 tests/x0test
 tests/x0test_common
+tests/x0test_copy
 core
 core.*
 vgcore.*
