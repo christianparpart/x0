@@ -9,6 +9,9 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
 /** unidirectional data processor.
  *
  * a filter is a processor, that reads from a source, and passes 
@@ -82,6 +85,8 @@ public:
 };
 
 typedef std::shared_ptr<filter> filter_ptr;
+
+//@}
 
 } // namespace x0
 

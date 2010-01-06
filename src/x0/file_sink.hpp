@@ -6,6 +6,11 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
+/** file sink.
+ */
 class X0_API file_sink :
 	public fd_sink
 {
@@ -13,6 +18,8 @@ public:
 	explicit file_sink(const std::string& filename);
 	~file_sink();
 };
+
+//@}
 
 } // namespace x0
 

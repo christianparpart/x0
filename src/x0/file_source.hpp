@@ -6,6 +6,11 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
+/** file source.
+ */
 class X0_API file_source :
 	public fd_source
 {
@@ -13,6 +18,8 @@ public:
 	explicit file_source(const std::string& filename);
 	~file_source();
 };
+
+//@}
 
 } // namespace x0
 

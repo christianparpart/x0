@@ -5,6 +5,11 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
+/** file descriptor stream source.
+ */
 class X0_API fd_source :
 	public source
 {
@@ -22,6 +27,8 @@ public:
 protected:
 	int handle_;
 };
+
+//@}
 
 } // namespace x0
 

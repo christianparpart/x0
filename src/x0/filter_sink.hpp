@@ -3,6 +3,11 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
+/** filter sink.
+ */
 class X0_API filter_sink :
 	public sink
 {
@@ -15,6 +20,8 @@ public:
 		sink_(filter_(data));
 	}
 };
+
+//@}
 
 } // namespace x0
 

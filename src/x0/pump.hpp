@@ -7,6 +7,9 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
 void pump(x0::source& input, x0::sink& output);
 void pump(x0::source& input, x0::sink& output, x0::filter& f);
 void pump(x0::source& input, x0::sink& output, x0::chain_filter& cf);
@@ -36,6 +39,8 @@ inline void pump(x0::source& input, x0::sink& output, x0::chain_filter& cf)
 		cf.all(input, output);
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

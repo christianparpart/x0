@@ -2,10 +2,15 @@
 #define sw_x0_io_null_filter_hpp 1
 
 #include <x0/filter.hpp>
+#include <x0/buffer.hpp>
 
 namespace x0 {
 
-/** simply passes incoming buffers through */
+//! \addtogroup io
+//@{
+
+/** simply passes incoming buffers through.
+ */
 class X0_API null_filter :
 	public filter
 {
@@ -17,6 +22,8 @@ public:
 		return buffer(data);
 	}
 };
+
+//@}
 
 } // namespace x0
 

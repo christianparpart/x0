@@ -6,6 +6,11 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
+/** filter source.
+ */
 class X0_API filter_source :
 	public source
 {
@@ -18,6 +23,8 @@ public:
 		return filter_(source_.pull(buf));
 	}
 };
+
+//@}
 
 } // namespace x0
 

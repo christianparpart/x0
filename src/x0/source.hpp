@@ -6,6 +6,9 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
 /** chunk producer.
  *
  * A source is a chunk producer, e.g. by reading sequentially from a file.
@@ -34,6 +37,8 @@ public:
 	 */
 	virtual buffer::view pull(buffer&) = 0;
 };
+
+//@}
 
 } // namespace x0
 

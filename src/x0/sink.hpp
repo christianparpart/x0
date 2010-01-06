@@ -6,6 +6,9 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
 /** chunk consumer.
  *
  * A sink is a chunk consumer, e.g. by saving chunks sequentially
@@ -30,6 +33,8 @@ public:
 	 */
 	virtual buffer::view push(const buffer::view& data) = 0;
 };
+
+//@}
 
 } // namespace x0
 

@@ -5,6 +5,11 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
+/** file descriptor stream sink.
+ */
 class X0_API fd_sink :
 	public sink
 {
@@ -22,6 +27,8 @@ public:
 protected:
 	int handle_;
 };
+
+//@}
 
 } // namespace x0
 

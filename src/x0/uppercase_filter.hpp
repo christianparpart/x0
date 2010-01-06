@@ -6,7 +6,11 @@
 
 namespace x0 {
 
-/** simply transforms all letters into upper-case letters. */
+//! \addtogroup io
+//@{
+
+/** simply transforms all letters into upper-case letters (test filter).
+ */
 class X0_API uppercase_filter :
 	public filter
 {
@@ -35,6 +39,8 @@ inline buffer uppercase_filter::process(const buffer::view& data)
 	return work_;
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

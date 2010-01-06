@@ -6,6 +6,9 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
 /** sink, storing incoming data into a buffer.
  *
  * \see sink, source
@@ -50,6 +53,8 @@ public:
 private:
 	x0::buffer buffer_;
 };
+
+//@}
 
 } // namespace x0
 

@@ -6,6 +6,9 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
 /** buffer source.
  *
  * \see source, sink
@@ -48,6 +51,8 @@ private:
 	x0::buffer buffer_;
 	std::size_t pos_;
 };
+
+//@}
 
 } // namespace x0
 

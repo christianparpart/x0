@@ -7,6 +7,11 @@
 
 namespace x0 {
 
+//! \addtogroup io
+//@{
+
+/** chaining filter API, supporting sub filters to be chained together.
+ */
 class X0_API chain_filter :
 	public filter
 {
@@ -44,6 +49,8 @@ inline bool chain_filter::empty() const
 	return filters_.empty();
 }
 //}}}
+
+//@}
 
 } // namespace x0
 
