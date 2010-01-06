@@ -1,12 +1,12 @@
 #ifndef sw_x0_io_filter_source_hpp
 #define sw_x0_io_filter_source_hpp 1
 
-#include <x0/io/source.hpp>
-#include <x0/io/filter.hpp>
+#include <x0/source.hpp>
+#include <x0/filter.hpp>
 
 namespace x0 {
 
-class filter_source :
+class X0_API filter_source :
 	public source
 {
 public:

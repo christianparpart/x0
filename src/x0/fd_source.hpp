@@ -1,11 +1,11 @@
 #ifndef sw_x0_io_fd_source_hpp
 #define sw_x0_io_fd_source_hpp 1
 
-#include <x0/io/source.hpp>
+#include <x0/source.hpp>
 
 namespace x0 {
 
-class fd_source :
+class X0_API fd_source :
 	public source
 {
 public:

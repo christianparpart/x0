@@ -2,6 +2,7 @@
 #define sw_x0_io_source_hpp 1
 
 #include <x0/buffer.hpp>
+#include <x0/api.hpp>
 
 namespace x0 {
 
@@ -10,7 +11,7 @@ namespace x0 {
  * A source is a chunk producer, e.g. by reading sequentially from a file.
  * \see file_source, sink, filter
  */
-class source
+class X0_API source
 {
 public:
 	virtual ~source() {}

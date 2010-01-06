@@ -2,6 +2,7 @@
 #define sw_x0_io_sink_hpp 1
 
 #include <x0/buffer.hpp>
+#include <x0/api.hpp>
 
 namespace x0 {
 
@@ -12,7 +13,7 @@ namespace x0 {
  *
  * \see file_sink, buffer_sink, asio_sink, source
  */
-class sink
+class X0_API sink
 {
 public:
 	virtual ~sink() {}

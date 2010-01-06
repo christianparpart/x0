@@ -1,11 +1,11 @@
 #ifndef sw_x0_io_fd_sink_hpp
 #define sw_x0_io_fd_sink_hpp 1
 
-#include <x0/io/sink.hpp>
+#include <x0/sink.hpp>
 
 namespace x0 {
 
-class fd_sink :
+class X0_API fd_sink :
 	public sink
 {
 public:

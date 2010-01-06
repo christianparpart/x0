@@ -1,4 +1,4 @@
-#include <x0/io/chain_filter.hpp>
+#include <x0/chain_filter.hpp>
 
 namespace x0 {
 

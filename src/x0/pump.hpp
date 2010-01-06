@@ -1,9 +1,9 @@
 #ifndef sw_x0_io_pump_hpp
 #define sw_x0_io_pump_hpp 1
 
-#include <x0/io/source.hpp>
-#include <x0/io/sink.hpp>
-#include <x0/io/chain_filter.hpp>
+#include <x0/source.hpp>
+#include <x0/sink.hpp>
+#include <x0/chain_filter.hpp>
 
 namespace x0 {
 

@@ -1,4 +1,4 @@
-#include <x0/io/file_sink.hpp>
+#include <x0/file_sink.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>

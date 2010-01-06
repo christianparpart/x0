@@ -3,7 +3,7 @@
 
 namespace x0 {
 
-class filter_sink :
+class X0_API filter_sink :
 	public sink
 {
 public:

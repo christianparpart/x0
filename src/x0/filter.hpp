@@ -2,8 +2,9 @@
 #define sw_x0_io_filter_hpp 1
 
 #include <x0/buffer.hpp>
-#include <x0/io/source.hpp>
-#include <x0/io/sink.hpp>
+#include <x0/source.hpp>
+#include <x0/sink.hpp>
+#include <x0/api.hpp>
 #include <memory>
 
 namespace x0 {
@@ -16,7 +17,7 @@ namespace x0 {
  *
  * \see source, sink
  */
-class filter
+class X0_API filter
 {
 public:
 	/** processes given input data through this filter. */

@@ -1,13 +1,13 @@
 #ifndef sw_x0_io_uppercase_filter_hpp
 #define sw_x0_io_uppercase_filter_hpp 1
 
-#include <x0/io/filter.hpp>
+#include <x0/filter.hpp>
 #include <cctype>
 
 namespace x0 {
 
 /** simply transforms all letters into upper-case letters. */
-class uppercase_filter :
+class X0_API uppercase_filter :
 	public filter
 {
 public:

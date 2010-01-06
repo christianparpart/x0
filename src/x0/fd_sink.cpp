@@ -1,4 +1,4 @@
-#include <x0/io/fd_sink.hpp>
+#include <x0/fd_sink.hpp>
 
 #include <stdio.h>
 #include <unistd.h>

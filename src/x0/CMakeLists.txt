@@ -1,5 +1,4 @@
 #set(CMAKE_VERBOSE_MAKEFILE ON)
-add_subdirectory(io)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${ASIO_INCLUDEDIR})
@@ -16,21 +15,49 @@ add_definitions(
 	-DSYSCONFDIR="${SYSCONFDIR}"
 	-DVERSION="${PACKAGE_VERSION}")
 
+set(x0_io_SRC
+	fd_source.cpp
+	file_source.cpp
+	buffer_source.cpp
+	fd_sink.cpp
+	file_sink.cpp
+	buffer_sink.cpp
+	filter.cpp
+	chain_filter.cpp
+	null_filter.cpp
+)
+
+set(x0_io_API
+	source.hpp
+	fd_source.hpp
+	file_source.hpp
+	buffer_source.hpp
+	sink.hpp
+	fd_sink.hpp
+	file_sink.hpp
+	buffer_sink.hpp
+	filter.hpp
+	chain_filter.hpp
+	pump.hpp
+)
+
 set(x0_SRC
+	${x0_io_SRC}
 	connection.cpp
 	fileinfo_service.cpp
 	listener.cpp
 	logger.cpp
-	process.cpp
 	response.cpp
 	request.cpp
 	server.cpp
+	process.cpp
 	settings.cpp
 	severity.cpp
 	strutils.cpp
 )
 
 set(x0_API
+	${x0_io_API}
 	connection.hpp
 	fileinfo.hpp fileinfo.ipp
 	fileinfo_service.hpp

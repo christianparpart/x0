@@ -2,7 +2,7 @@
 #define sw_x0_io_buffer_source_hpp 1
 
 #include <x0/buffer.hpp>
-#include <x0/io/source.hpp>
+#include <x0/source.hpp>
 
 namespace x0 {
 
@@ -10,7 +10,7 @@ namespace x0 {
  *
  * \see source, sink
  */
-class buffer_source :
+class X0_API buffer_source :
 	public source
 {
 public:
