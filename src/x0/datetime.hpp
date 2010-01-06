@@ -41,6 +41,8 @@ public:
 	void update();
 	void update(std::time_t v);
 
+	bool valid() const;
+
 	static int compare(const datetime& a, const datetime& b);
 };
 
@@ -144,6 +146,11 @@ inline void datetime::update(std::time_t v)
 		http_.clear();
 		htlog_.clear();
 	}
+}
+
+inline bool datetime::valid() const
+{
+	return unixtime_ != 0;
 }
 
 inline int datetime::compare(const datetime& a, const datetime& b)
