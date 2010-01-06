@@ -12,8 +12,14 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 class settings_value;
 
+/** common base class for \p settings and \p settings_value to share certain properties.
+ * \see settings, settings_value
+ */
 class X0_API settings_scope {
 public:
 	virtual const settings_value operator[](const std::string& key) const = 0;
@@ -22,6 +28,10 @@ public:
 	virtual bool contains(const std::string& fieldname) const = 0;
 };
 
+/** object storing settings ((complex) key/value pairs), loadable via LUA-based config files.
+ *
+ * \see settings_value
+ */
 class X0_API settings :
 	public boost::noncopyable,
 	public settings_scope {
@@ -114,6 +124,8 @@ private:
 	template<typename K, typename V>
 	inline std::map<K, V> toMap(int index) const;
 };
+
+//@}
 
 } // namespace x0
 

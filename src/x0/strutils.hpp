@@ -19,8 +19,8 @@
 
 namespace x0 {
 
-/** \addtogroup common */
-/*@{*/
+//! \addtogroup base
+//@{
 
 // {{{ fstringbuilder
 
@@ -123,7 +123,7 @@ std::string make_hostid(const std::string& hostname, int port);
 int extract_port_from_hostid(const std::string& hostid);
 std::string extract_host_from_hostid(const std::string& hostid);
 
-/*@}*/
+//@}
 
 } // namespace x0
 

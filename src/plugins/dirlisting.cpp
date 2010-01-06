@@ -22,7 +22,7 @@
 #include <dirent.h>
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief implements automatic content generation for raw directories
  */
 class dirlisting_plugin :

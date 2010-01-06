@@ -23,10 +23,12 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 class request;
 
 /**
- * \ingroup core
  * \brief HTTP response object.
  *
  * This response contains all information of data to be sent back to the requesting client.
@@ -268,6 +270,8 @@ inline void response::write(composite_buffer& buffer)
 	content.push_back(buffer);
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

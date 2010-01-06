@@ -20,7 +20,7 @@
 #include <unistd.h>
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief implements automatic index file resolving, if mapped request path is a path.
  */
 class indexfile_plugin :

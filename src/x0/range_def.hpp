@@ -14,8 +14,10 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 /** 
- * \ingroup core
  * \brief represents a Range-header field with high-level access.
  */
 class range_def
@@ -84,6 +86,8 @@ public:
 private:
 	inline bool parse_range_spec(const std::string& spec);
 };
+
+//@}
 
 } // namespace x0
 

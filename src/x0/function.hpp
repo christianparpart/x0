@@ -13,7 +13,7 @@
 
 namespace x0 {
 
-/** \addtogroup common */
+/** \addtogroup base */
 /*@{*/
 
 // {{{ function<Result(Args...)>

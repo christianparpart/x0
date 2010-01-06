@@ -17,8 +17,8 @@
 
 namespace x0 {
 
-/** \addtogroup common */
-/*@{*/
+//! \addtogroup base
+//@{
 
 /**
  * multi channel signal API.
@@ -87,7 +87,7 @@ private:
 	list_type impl_;
 };
 
-/*@}*/
+//@}
 
 } // namespace x0
 

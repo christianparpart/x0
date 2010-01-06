@@ -14,8 +14,10 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /**
- * \ingroup common
  * \brief a generic trie data structure
  *
  * \see http://en.wikipedia.org/wiki/Trie
@@ -249,6 +251,8 @@ private:
 		return *level = new node(key, *level);
 	}
 };
+
+//@}
 
 } // namespace x0
 

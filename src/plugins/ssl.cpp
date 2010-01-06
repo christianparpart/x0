@@ -31,7 +31,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #define SSL_DEBUG(msg...) printf("ssl: " msg)
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief implements ssl maps, mapping request paths to custom local paths (overriding resolved document_root concatation)
  */
 class ssl_plugin :

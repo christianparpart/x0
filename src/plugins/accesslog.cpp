@@ -18,7 +18,7 @@
 #include <cerrno>
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief implements an accesslog log facility - in spirit of "combined" mode of apache's accesslog logs.
  */
 class accesslog_plugin :

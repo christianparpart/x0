@@ -28,8 +28,10 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 /**
- * \ingroup core
  * \brief represents an HTTP connection handling incoming requests.
  */
 class connection :
@@ -153,6 +155,8 @@ inline void connection::async_write(const composite_buffer& buffer, const Comple
 }
 
 // }}}
+
+//@}
 
 } // namespace x0
 

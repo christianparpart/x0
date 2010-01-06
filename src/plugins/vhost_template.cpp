@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief provides a basic template-based mass virtual hosting facility.
  */
 class vhost_template_plugin :

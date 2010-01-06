@@ -15,8 +15,10 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /**
- * \ingroup common
  * \brief a generic <b>ternary search trie</b> data structure
  *
  * \see http://en.wikipedia.org/wiki/Ternary_search
@@ -498,6 +500,8 @@ private:
 		current_node->middle = NULL;
 	}
 };
+
+//@}
 
 } // namespace x0
 

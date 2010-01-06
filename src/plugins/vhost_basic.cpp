@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief provides a basic config-file based virtual hosting facility.
  *
  * <pre>

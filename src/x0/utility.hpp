@@ -12,8 +12,8 @@
 
 // meta programming / template utilities
 
-/** \addtogroup common */
-/*@{*/
+//! \addtogroup meta_programming
+//@{
 
 // --------------------------------------------------------------------
 // index_list traits
@@ -81,6 +81,6 @@ inline void call_unpacked(Functor functor, const std::tuple<Args...>& args)
 	call_impl(functor, args, typename build_indexes<sizeof...(Args)>::type());
 }
 
-/*@}*/
+//@}
 
 #endif

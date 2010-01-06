@@ -18,8 +18,10 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /**
- * \ingroup common
  * \brief defines a memory buffer construction and access API.
  *
  * This class should be used when sequentially creating and reading parts from it is the main goal
@@ -975,6 +977,8 @@ template<typename PodType, std::size_t N> bool operator==(const buffer::view& a,
 	return equals<PodType, N>(a, b);
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

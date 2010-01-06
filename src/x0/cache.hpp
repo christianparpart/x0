@@ -24,6 +24,9 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 template<class Key, class Value>
 class cache :
 	boost::noncopyable
@@ -89,6 +92,8 @@ private:
 	std::size_t max_cost_;
 	std::size_t cur_cost_;
 };
+
+//@}
 
 } // namespace x0
 

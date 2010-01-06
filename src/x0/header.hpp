@@ -14,8 +14,10 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 /**
- * \ingroup core
  * \brief represents an HTTP header (name/value pair).
  */
 struct header {
@@ -26,6 +28,8 @@ struct header {
 	header(const header& v) : name(v.name), value(v.value) { }
 	header(const std::string& name, const std::string& value) : name(name), value(value) { }
 };
+
+//@}
 
 } // namespace x0
 

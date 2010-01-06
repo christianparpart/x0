@@ -15,6 +15,9 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 template<class T>
 class value_property
 {
@@ -320,6 +323,8 @@ public:
 	T& get() const { return value_; }
 	T *operator->() const { return &value_; }
 };
+
+//@}
 
 } // namespace x0
 

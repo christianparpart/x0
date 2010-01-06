@@ -17,8 +17,8 @@
 
 namespace x0 {
 
-/** \addtogroup core */
-/*@{*/
+//! \addtogroup core
+//@{
 
 /**
  * multi channel handler API.
@@ -83,7 +83,7 @@ private:
 	list_type impl_;
 };
 
-/*@}*/
+//@}
 
 } // namespace x0
 

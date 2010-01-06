@@ -15,6 +15,9 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /**
  *
  * function object class for writing a composite_buffer to a target.
@@ -291,5 +294,7 @@ inline void async_write(Target& target, const composite_buffer& source, Completi
 // }}}
 
 } // namespace x0
+
+//@}
 
 #endif

@@ -19,10 +19,12 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 class server;
 
 /**
- * \ingroup core
  * \brief TCP/IP listener for the HTTP protocol.
  *
  * This class implements the TCP/IP listener for the HTTP protocol.
@@ -59,6 +61,8 @@ private:
 };
 
 typedef boost::shared_ptr<listener> listener_ptr;
+
+//@}
 
 } // namespace x0
 

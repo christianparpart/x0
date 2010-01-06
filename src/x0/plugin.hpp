@@ -15,11 +15,13 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 class server;
 class context;
 
 /**
- * \ingroup core
  * \brief base class for all plugins for use within this x0 web server.
  *
  * \see server, connection, request, response
@@ -73,6 +75,8 @@ typedef boost::shared_ptr<plugin> plugin_ptr;
 	extern "C" x0::plugin *pluginName##_init(x0::server& srv, const std::string& name) { \
 		return new className(srv, name); \
 	}
+
+//@}
 
 } // namespace x0
 

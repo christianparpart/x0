@@ -17,8 +17,8 @@
 namespace x0 {
 
 /**
- * @defgroup common
- * @brief common APIs that are x0 neutral but developed within and for the x0 web server.
+ * @defgroup base
+ * @brief common base APIs that are x0 neutral but developed within and for the x0 web server and framework.
  */
 
 /**
@@ -27,8 +27,8 @@ namespace x0 {
  */
 
 /**
- * @defgroup modules
- * @brief x0 web server modules.
+ * @defgroup plugins
+ * @brief x0 web server plugins.
  */
 
 class fileinfo;
@@ -36,16 +36,19 @@ class connection;
 struct request;
 struct response;
 
+//! \addtogroup core
+//@{
+
 typedef boost::shared_ptr<fileinfo> fileinfo_ptr;
 typedef boost::shared_ptr<connection> connection_ptr;
 typedef boost::shared_ptr<request> request_ptr;
 typedef boost::shared_ptr<response> response_ptr;
 
-/**
- * \ingroup core
- * \brief request handler functor.
+/** request handler functor.
  */
 typedef boost::function<void(request&, response&)> request_handler_fn;
+
+//@}
 
 } // namespace x0
 

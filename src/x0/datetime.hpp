@@ -14,6 +14,9 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /** date/time object that understands unix timestamps
  *  as well as HTTP conform dates as used in Date/Last-Modified and other headers.
  */
@@ -168,6 +171,8 @@ inline bool operator>(const datetime& a, const datetime& b)
 	return datetime::compare(a, b) > 0;
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

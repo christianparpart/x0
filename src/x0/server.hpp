@@ -30,9 +30,10 @@
 
 namespace x0 {
 
-/**
- * \ingroup core
- * \brief exception raised when given virtual host has not been found.
+//! \addtogroup core
+//@{
+
+/** exception raised when given virtual host has not been found.
  */
 class host_not_found
 	: public std::runtime_error
@@ -45,7 +46,6 @@ public:
 };
 
 /**
- * \ingroup core
  * \brief implements the x0 web server.
  *
  * \see connection, request, response, plugin
@@ -254,6 +254,8 @@ inline const x0::datetime& server::now() const
 	return now_;
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

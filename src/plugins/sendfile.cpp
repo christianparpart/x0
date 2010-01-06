@@ -27,7 +27,7 @@
 #define X0_SENDFILE_MIME_TYPES_BELOW_BACKUP 1
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
  */
 class sendfile_plugin :

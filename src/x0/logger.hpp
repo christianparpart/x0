@@ -17,11 +17,12 @@
 
 namespace x0 {
 
-/**
- * \ingroup core
- * \brief logging facility.
+//! \addtogroup base
+//@{
+
+/** logging facility.
  *
- * \see filelogger, server
+ * \see filelogger
  */
 class logger :
 	public boost::noncopyable
@@ -51,9 +52,8 @@ private:
 
 typedef boost::shared_ptr<logger> logger_ptr;
 
-/**
- * \ingroup core
- * \brief implements a NULL logger (logs nothing).
+/** implements a NULL logger (logs nothing).
+ *
  * \see logger, filelogger
  */
 class nulllogger :
@@ -68,9 +68,7 @@ public:
 	virtual nulllogger *clone() const;
 };
 
-/**
- * \ingroup core
- * \brief implements a file based logger.
+/** implements a file based logger.
  *
  * \see logger, server
  */
@@ -92,9 +90,7 @@ private:
 	Now now_;
 };
 
-/**
- * \ingroup core
- * \brief implements a file based logger.
+/** implements a file based logger.
  *
  * \see logger, server
  */
@@ -168,6 +164,8 @@ inline filelogger<Now> *filelogger<Now>::clone() const
 	return new filelogger(filename_, now_);
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

@@ -25,7 +25,7 @@
 #include <time.h>
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
  */
 class debug_plugin :

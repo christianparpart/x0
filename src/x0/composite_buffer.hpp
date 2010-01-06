@@ -23,8 +23,10 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /**
- * \ingroup common
  * \brief Class for constructing and sending up to complex composite buffers from various sources.
  *
  * A composite buffer - once fully created - is meant to be sent only <b>once</b>.
@@ -638,6 +640,8 @@ inline void composite_buffer::ensure_iovec_tail()
 	}
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

@@ -13,6 +13,13 @@ namespace x0 {
 class fileinfo_service;
 class plugin;
 
+//! \addtogroup core
+//@{
+
+/** file info cache object.
+ *
+ * \see fileinfo_service, server
+ */
 class X0_API fileinfo :
 	public boost::noncopyable
 {
@@ -55,6 +62,8 @@ public:
 private:
 	std::string get_mime_type(std::string ext) const;
 };
+
+//@}
 
 } // namespace x0
 

@@ -12,6 +12,9 @@
 #include <x0/api.hpp>
 #include <iosfwd>
 
+//! \addtogroup base
+//@{
+
 std::ostream& operator<<(std::ostream& os, const x0::composite_buffer& cb);
 std::ostream& operator<<(std::ostream& os, const x0::composite_buffer::chunk& ch);
 
@@ -54,5 +57,7 @@ inline std::ostream& operator<<(std::ostream& os, const x0::composite_buffer::ch
 
 	return os;
 }
+
+//@}
 
 #endif

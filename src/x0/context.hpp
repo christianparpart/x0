@@ -13,6 +13,9 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 /**
  * A context object holds custom plugin-information, such as configuration settings and runtime states.
  *
@@ -116,6 +119,8 @@ public:
 		}
 	}
 };
+
+//@}
 
 } // namespace x0
 

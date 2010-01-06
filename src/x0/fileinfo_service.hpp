@@ -16,13 +16,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0
+#if 1
 #	define FILEINFO_DEBUG(msg...) printf("fileinfo_service: " msg)
 #else
 #	define FILEINFO_DEBUG(msg...) /*!*/
 #endif
 
 namespace x0 {
+
+//! \addtogroup core
+//@{
 
 /** service for retrieving file information.
  *
@@ -300,6 +303,8 @@ inline std::string fileinfo_service::make_etag(const fileinfo& fi) const
 
 	return sstr.str();
 }
+
+//@}
 
 } // namespace x0
 

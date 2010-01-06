@@ -13,7 +13,7 @@
 #include <utility>
 #include <tuple>
 
-/** \addtogroup common */
+/** \addtogroup base */
 /*@{*/
 
 template<typename SignatureT>

@@ -14,6 +14,11 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
+/** provides a socket pair (local stream) API.
+ */
 class local_stream :
 	public boost::noncopyable
 {
@@ -63,6 +68,8 @@ inline void local_stream::close()
 	remote_.close();
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

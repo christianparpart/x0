@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief implements alias maps, mapping request paths to custom local paths (overriding resolved document_root concatation)
  */
 class alias_plugin :

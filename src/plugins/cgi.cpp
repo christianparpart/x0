@@ -440,7 +440,7 @@ void cgi_script::process_content(const char *first, const char *last)
 // }}}
 
 /**
- * \ingroup modules
+ * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
  */
 class cgi_plugin :

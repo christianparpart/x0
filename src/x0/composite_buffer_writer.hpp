@@ -12,6 +12,9 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /**
  *
  * function object class for writing a composite_buffer to a target.
@@ -93,6 +96,8 @@ std::size_t write(Target& t, const composite_buffer& cb)
 	return composite_buffer_writer<Target>(t, cb)();
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

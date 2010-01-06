@@ -18,9 +18,12 @@
 
 namespace x0 {
 
-/** creates, runs, and manages a child process running external programs.
+//! \addtogroup base
+//@{
+
+/** Creates, runs, and manages a child process running external programs.
  *
- * \note you may only run one child at a time per process object.
+ * \note You may only run one child at a time per \p process <b>instance</b>.
  */
 class process :
 	public boost::noncopyable
@@ -132,6 +135,8 @@ inline local_stream::socket& process::error()
 	return error_.local();
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

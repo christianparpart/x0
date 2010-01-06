@@ -19,8 +19,10 @@
 
 namespace x0 {
 
+//! \addtogroup core
+//@{
+
 /**
- * \ingroup core
  * \brief a client HTTP reuqest object, holding the parsed x0 request data.
  *
  * \see header, response, connection, server
@@ -82,7 +84,6 @@ public: // utility methods
 };
 
 /**
- * \ingroup core
  * \brief implements the HTTP request parser.
  *
  * \see request, connection
@@ -592,6 +593,8 @@ inline boost::tribool request::reader::consume(request& r, char input)
 	}
 }
 // }}}
+
+//@}
 
 } // namespace x0
 

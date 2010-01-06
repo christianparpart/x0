@@ -14,8 +14,10 @@
 
 namespace x0 {
 
+//! \addtogroup base
+//@{
+
 /**
- * \ingroup common
  * \brief named enum `severity`, used by logging facility
  * \see logger
  */
@@ -35,6 +37,8 @@ struct X0_API severity {
 	operator int() const { return value_; }
 	const char *c_str() const;
 };
+
+//@}
 
 } // namespace x0
 
