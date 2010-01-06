@@ -207,7 +207,7 @@ void server::configure(const std::string& configfile)
 			fileinfo.etag_consider_inode(flag);
 	}
 
-	// load modules
+	// load plugins
 	{
 		std::vector<std::string> plugins;
 		settings_.load("Modules.Load", plugins);
@@ -218,19 +218,17 @@ void server::configure(const std::string& configfile)
 		}
 	}
 
-	// configure modules
+	// configure plugins
 	for (plugin_map_t::iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
 		i->second.first->configure();
 	}
 
 	// check for available TCP listeners
+	if (listeners_.empty())
 	{
-		if (listeners_.empty())
-		{
-			log(severity::critical, "No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
-			throw std::runtime_error("No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
-		}
+		log(severity::critical, "No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
+		throw std::runtime_error("No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
 	}
 
 	// setup process priority
