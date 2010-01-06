@@ -92,6 +92,9 @@ public:
 	// }}}
 
 private:
+	/// pre-computed string representations of status codes, ready to be used by serializer
+	static char status_codes[512][4];
+
 	/// reference to the connection this response belongs to.
 	connection_ptr connection_;
 
@@ -201,6 +204,15 @@ public:
 		);
 	}
 
+private:
+	/** to be called <b>once</b> in order to initialize this class for instanciation.
+	 *
+	 * \note this is done automatically by server constructor.
+	 * \see server
+	 */
+	static void initialize();
+	friend class server;
+
 public:
 	static const char *status_cstr(int status);
 	static std::string status_str(int status);
@@ -208,8 +220,6 @@ public:
 	composite_buffer content;
 
 private:
-	char status_buf[3];
-
 	/**
 	 * convert the response into a composite_buffer.
 	 *

@@ -19,6 +19,8 @@ namespace x0 {
 
 using boost::algorithm::iequals;
 
+char response::status_codes[512][4];
+
 response::~response()
 {
 	//DEBUG("~response(%p, conn=%p)", this, connection_.get());
@@ -167,10 +169,6 @@ composite_buffer response::serialize()
 		// post-response hook
 		connection_->server().post_process(*request_, *this);
 
-		status_buf[0] = '0' + (status / 100);
-		status_buf[1] = '0' + (status / 10 % 10);
-		status_buf[2] = '0' + (status % 10);
-
 		if (request_->supports_protocol(1, 1))
 			buffers.push_back("HTTP/1.1 ");
 		else if (request_->supports_protocol(1, 0))
@@ -178,7 +176,7 @@ composite_buffer response::serialize()
 		else
 			buffers.push_back("HTTP/0.9 ");
 
-		buffers.push_back(status_buf);
+		buffers.push_back(status_codes[status]);
 		buffers.push_back(' ');
 		buffers.push_back(status_cstr(status));
 		buffers.push_back("\r\n");
@@ -260,6 +258,13 @@ void response::transmitted(const asio::error_code& ec)
 	}
 
 	delete this;
+}
+
+void response::initialize()
+{
+	// pre-compute string representations of status codes for use in response serialization
+	for (std::size_t i = 0; i < sizeof(status_codes) / sizeof(*status_codes); ++i)
+		snprintf(status_codes[i], sizeof(*status_codes), "%03ld", i);
 }
 
 } // namespace x0
