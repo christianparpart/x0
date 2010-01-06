@@ -43,10 +43,14 @@ public:
 	static const std::size_t CHUNK_SIZE = 4096;
 
 private:
+	enum edit_mode_t { EDIT_ALL, EDIT_NO_RESIZE, EDIT_NOTHING };
+
+private:
 	value_type *data_;
 	std::size_t size_;
 	std::size_t capacity_;
-	bool readonly_;
+
+	edit_mode_t edit_mode_;
 
 #if !defined(NDEBUG) // {{{ reference counting
 private:
@@ -157,6 +161,16 @@ class const_buffer : public buffer
 public:
 	template<typename PodType, std::size_t N>
 	explicit const_buffer(PodType (&value)[N]);
+};
+
+template<const std::size_t N>
+class fixed_buffer : public buffer
+{
+private:
+	value_type fixed_[N];
+
+public:
+	fixed_buffer();
 };
 
 class buffer::view
@@ -282,7 +296,7 @@ bool operator==(const buffer::view& a, const char *b);
 
 // {{{ buffer impl
 inline buffer::buffer() :
-	data_(0), size_(0), capacity_(0), readonly_(false)
+	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
 #if !defined(NDEBUG)
 	, refcount_(0)
 #endif
@@ -290,7 +304,7 @@ inline buffer::buffer() :
 }
 
 inline buffer::buffer(std::size_t _capacity) :
-	data_(0), size_(0), capacity_(0), readonly_(false)
+	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
 #if !defined(NDEBUG)
 	, refcount_(0)
 #endif
@@ -299,7 +313,7 @@ inline buffer::buffer(std::size_t _capacity) :
 }
 
 inline buffer::buffer(const value_type *_data, std::size_t _size) :
-	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size), readonly_(true)
+	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size), edit_mode_(EDIT_NOTHING)
 #if !defined(NDEBUG)
 	, refcount_(0)
 #endif
@@ -307,7 +321,7 @@ inline buffer::buffer(const value_type *_data, std::size_t _size) :
 }
 
 inline buffer::buffer(const buffer::view& v) :
-	data_(0), size_(0), capacity_(0), readonly_(false)
+	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
 #if !defined(NDEBUG)
 	, refcount_(0)
 #endif
@@ -317,7 +331,7 @@ inline buffer::buffer(const buffer::view& v) :
 
 template<typename PodType, std::size_t N>
 inline buffer::buffer(PodType (&value)[N]) :
-	data_(const_cast<char *>(value)), size_(N - 1), capacity_(N - 1), readonly_(true)
+	data_(const_cast<char *>(value)), size_(N - 1), capacity_(N - 1), edit_mode_(EDIT_NOTHING)
 #if !defined(NDEBUG)
 	, refcount_(0)
 #endif
@@ -325,7 +339,7 @@ inline buffer::buffer(PodType (&value)[N]) :
 }
 
 inline buffer::buffer(const buffer& v) :
-	data_(0), size_(0), capacity_(0), readonly_(false)
+	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
 #if !defined(NDEBUG)
 	, refcount_(0)
 #endif
@@ -343,7 +357,7 @@ inline buffer& buffer::operator=(const buffer& v)
 
 inline buffer::~buffer()
 {
-	if (data_ && !readonly_)
+	if (data_ && edit_mode_ == EDIT_ALL)
 	{
 		std::free(data_);
 
@@ -360,9 +374,13 @@ inline buffer::~buffer()
 inline void buffer::assertMutable()
 {
 #if !defined(NDEBUG)
-	if (readonly_)
+	switch (edit_mode_)
 	{
-		throw std::runtime_error("attempted to modify readonly buffer");
+		case EDIT_ALL:
+		case EDIT_NO_RESIZE:
+			break;
+		default:
+			throw std::runtime_error("attempted to modify readonly buffer");
 	}
 #endif
 }
@@ -405,7 +423,17 @@ inline std::size_t buffer::capacity() const
 
 inline void buffer::capacity(std::size_t value)
 {
-	assertMutable();
+#if !defined(NDEBUG)
+	switch (edit_mode_)
+	{
+		case EDIT_ALL:
+			break;
+		case EDIT_NO_RESIZE:
+		case EDIT_NOTHING:
+		default:
+			throw std::runtime_error("attempted to modify readonly buffer");
+	}
+#endif
 
 	capacity_ = value;
 
@@ -582,6 +610,18 @@ template<typename PodType, std::size_t N>
 inline const_buffer::const_buffer(PodType (&value)[N]) :
 	buffer(value)
 {
+}
+// }}}
+
+// {{{ fixed_buffer impl
+template<std::size_t N>
+inline fixed_buffer<N>::fixed_buffer() :
+	buffer()
+{
+	data_ = fixed_;
+	size_ = N;
+	capacity_ = N;
+	edit_mode_ = EDIT_NO_RESIZE;
 }
 // }}}
 
