@@ -187,7 +187,11 @@ inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some
 template<class Target, class CompletionHandler>
 inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(const composite_buffer::iovec_chunk& chunk)
 {
-	#define DPRINTF if (context_->target_.native() == 10) printf
+	#if 0
+	#	define DPRINTF if (context_->target_.native() == 10) printf
+	#else
+	#	define DPRINTF(msg...) /*!*/
+	#endif
 	#define INC(p, n) (p) = ((char *)(p)) + (n);
 	#define DEC(p, n) (p) = ((char *)(p)) - (n);
 
