@@ -1032,33 +1032,4 @@ template<typename PodType, std::size_t N> bool operator==(const buffer::view& a,
 
 } // namespace x0
 
-// {{{ ASIO helper
-// XXX this isn't actually required when using constructs like asio::buffer(my_x0_buffer) but we finally want to do
-// XXX something like my_x0_buffer only. For that to work, we need to add some (undocumented) hacks to mimmick asio's 
-// XXX mutable_buffer*/const_buffer* classes with x0::buffer
-namespace asio {
-	inline std::size_t buffer_size(const x0::buffer& value)
-	{
-		return value.size();
-	}
-
-	inline std::size_t buffer_size(const x0::buffer::view& value)
-	{
-		return value.size();
-	}
-
-	namespace detail {
-		inline void *buffer_cast(const x0::buffer& value)
-		{
-			return const_cast<char *>(value.data());
-		}
-
-		inline const void *buffer_cast(const x0::buffer::view& value)
-		{
-			return value.data();
-		}
-	}
-}
-// }}}
-
 #endif
