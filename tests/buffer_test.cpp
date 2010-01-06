@@ -69,7 +69,7 @@ private:
 		buf.push_back("hello");
 		CPPUNIT_ASSERT(buf.size() == 5);
 
-		buf.size(4);
+		buf.resize(4);
 		CPPUNIT_ASSERT(buf.size() == 4);
 		CPPUNIT_ASSERT(buf == "hell");
 
