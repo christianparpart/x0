@@ -27,6 +27,8 @@ private:
 	mutable std::string http_;
 	mutable std::string htlog_;
 
+	static time_t mktime(const char *v);
+
 public:
 	datetime();
 	explicit datetime(const std::string& http_v);
@@ -50,6 +52,17 @@ X0_API bool operator<(const datetime& a, const datetime& b);
 X0_API bool operator>(const datetime& a, const datetime& b);
 
 // {{{ impl
+inline time_t datetime::mktime(const char *v)
+{
+	struct tm tm;
+	tm.tm_isdst = 0;
+
+	if (strptime(v, "%a, %d %b %Y %H:%M:%S GMT", &tm))
+		return ::mktime(&tm) - timezone;
+
+	return 0;
+}
+
 inline datetime::datetime() :
 	unixtime_(std::time(0)), http_(), htlog_()
 {
@@ -57,9 +70,8 @@ inline datetime::datetime() :
 
 /** initializes datetime object with an HTTP conform input date-time. */
 inline datetime::datetime(const std::string& v) :
-	unixtime_(), http_(v), htlog_(v)
+	unixtime_(mktime(v.c_str())), http_(v), htlog_(v)
 {
-	/// \todo parse input date/time (http format)
 }
 
 inline datetime::datetime(std::time_t v) :
