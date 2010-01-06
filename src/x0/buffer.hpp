@@ -16,6 +16,10 @@
 #include <string>
 #include <stdexcept>
 
+#if !defined(X0_BUFFER_NO_ASIO)
+#	include <asio/buffer.hpp> // mutable_buffer
+#endif
+
 namespace x0 {
 
 //! \addtogroup base
@@ -80,7 +84,7 @@ public:
 
 	bool empty() const;
 	std::size_t size() const;
-	void size(std::size_t value);
+	void resize(std::size_t value);
 
 	std::size_t capacity() const;
 	void capacity(std::size_t value);
@@ -92,8 +96,8 @@ public:
 	bool operator!() const;
 
 	// iterator access
-	iterator begin();
-	iterator end();
+	iterator begin() const;
+	iterator end() const;
 
 	const_iterator cbegin() const;
 	const_iterator cend() const;
@@ -122,6 +126,28 @@ public:
 	std::string substr(std::size_t offset) const;
 	std::string substr(std::size_t offset, std::size_t count) const;
 
+public: // ASIO support
+#if !defined(X0_BUFFER_NO_ASIO)
+	/** casts to asio::mutable_buffer with this buffer's whole capacity.
+	 */
+	operator asio::mutable_buffer() { return asio::mutable_buffer(begin(), sizeof(value_type) * capacity()); }
+
+	/** returnes an Asio-prepared mutable buffer that maps to this buffer's begin and actually used size.
+	 *
+	 * \see begin(), size()
+	 */
+	asio::mutable_buffers_1 asio_filled() { return asio::mutable_buffers_1(asio::mutable_buffer(begin(), sizeof(value_type) * size())); }
+	asio::mutable_buffers_1 asio_buffer() { return asio_filled(); }
+
+	/** returnes an Asio-prepared mutable buffer that maps to this buffer's available capacity not yet used.
+	 *
+	 * This is usually the free space right behind the \p end() of the already used bytes in this buffer, up to \p begin() + \p capacity().
+	 *
+	 * \see end(), size(), capacity(), resize()
+	 */
+	asio::mutable_buffers_1 asio_avail() { return asio::mutable_buffers_1(asio::mutable_buffer(end(), sizeof(value_type) * (capacity() - size()))); }
+#endif
+
 private:
 	void assertMutable();
 };
@@ -137,7 +163,8 @@ class buffer::view
 {
 public:
 	typedef char value_type;
-	typedef const value_type * iterator;
+	typedef value_type * iterator;
+	typedef const value_type * const_iterator;
 
 	static const std::size_t npos = std::size_t(-1);
 
@@ -169,6 +196,9 @@ public:
 	// iterator access
 	iterator begin() const;
 	iterator end() const;
+
+	const_iterator cbegin() const;
+	const_iterator cend() const;
 
 	// find
 	std::size_t find(const view& value) const;
@@ -215,6 +245,18 @@ public:
 	std::string str() const;
 	std::string substr(std::size_t offset) const;
 	std::string substr(std::size_t offset, std::size_t count) const;
+
+public: // ASIO support
+#if !defined(X0_BUFFER_NO_ASIO)
+	/** casts this view to asio::mutable_buffer.
+	 */
+	operator asio::mutable_buffer() { return asio::mutable_buffer(begin(), sizeof(value_type) * size()); }
+
+	/** cats this view to asio::mutable_buffers_1 as required by asio's read/write functions.
+	 */
+	asio::mutable_buffers_1 asio_buffer() { return asio::mutable_buffers_1(asio::mutable_buffer(begin(), sizeof(value_type) * size())); }
+
+#endif
 };
 
 bool equals(const buffer& a, const buffer& b);
@@ -348,7 +390,7 @@ inline std::size_t buffer::size() const
 	return size_;
 }
 
-inline void buffer::size(std::size_t value)
+inline void buffer::resize(std::size_t value)
 {
 	if (value > capacity_)
 		reserve(value);
@@ -392,7 +434,7 @@ inline void buffer::reserve(std::size_t value)
 
 inline void buffer::clear()
 {
-	size(0);
+	resize(0);
 }
 
 inline buffer::operator bool() const
@@ -405,15 +447,13 @@ inline bool buffer::operator!() const
 	return empty();
 }
 
-inline buffer::iterator buffer::begin()
+inline buffer::iterator buffer::begin() const
 {
-	assertMutable();
 	return data_;
 }
 
-inline buffer::iterator buffer::end()
+inline buffer::iterator buffer::end() const
 {
-	assertMutable();
 	return data_ + size_;
 }
 
@@ -661,12 +701,22 @@ inline bool buffer::view::operator!() const
 
 inline buffer::view::iterator buffer::view::begin() const
 {
-	return buffer_ ? buffer_->data() + offset_ : 0;
+	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ : 0;
 }
 
 inline buffer::view::iterator buffer::view::end() const
 {
-	return buffer_ ? buffer_->data() + offset_ + size_ : 0;
+	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ + size_ : 0;
+}
+
+inline buffer::view::const_iterator buffer::view::cbegin() const
+{
+	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ : 0;
+}
+
+inline buffer::view::const_iterator buffer::view::cend() const
+{
+	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ + size_ : 0;
 }
 
 inline std::size_t buffer::view::find(const value_type *value) const
@@ -981,5 +1031,34 @@ template<typename PodType, std::size_t N> bool operator==(const buffer::view& a,
 //@}
 
 } // namespace x0
+
+// {{{ ASIO helper
+// XXX this isn't actually required when using constructs like asio::buffer(my_x0_buffer) but we finally want to do
+// XXX something like my_x0_buffer only. For that to work, we need to add some (undocumented) hacks to mimmick asio's 
+// XXX mutable_buffer*/const_buffer* classes with x0::buffer
+namespace asio {
+	inline std::size_t buffer_size(const x0::buffer& value)
+	{
+		return value.size();
+	}
+
+	inline std::size_t buffer_size(const x0::buffer::view& value)
+	{
+		return value.size();
+	}
+
+	namespace detail {
+		inline void *buffer_cast(const x0::buffer& value)
+		{
+			return const_cast<char *>(value.data());
+		}
+
+		inline const void *buffer_cast(const x0::buffer::view& value)
+		{
+			return value.data();
+		}
+	}
+}
+// }}}
 
 #endif
