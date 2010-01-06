@@ -21,7 +21,7 @@ connection::connection(x0::server& srv)
 	timer_(server_.io_service()),
 	client_ip_(),
 	client_port_(0),
-	buffer_(),
+	buffer_(8192),
 	request_(new request(*this)),
 	request_reader_()
 {
@@ -70,10 +70,14 @@ void connection::async_read_some()
 		timer_.async_wait(boost::bind(&connection::read_timeout, this, asio::placeholders::error));
 	}
 
-	socket_.async_read_some(asio::buffer(buffer_),
-		bind(&connection::handle_read, shared_from_this(),
+	socket_.async_read_some(
+		buffer_.asio_avail(), //(asio::buffer(buffer_),
+		bind(
+			&connection::handle_read, shared_from_this(),
 			asio::placeholders::error,
-			asio::placeholders::bytes_transferred));
+			asio::placeholders::bytes_transferred
+		)
+	);
 }
 
 void connection::read_timeout(const asio::error_code& ec)

@@ -11,6 +11,7 @@
 #include <x0/connection.hpp>
 #include <x0/composite_buffer.hpp>
 #include <x0/composite_buffer_async_writer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/request.hpp>
 #include <x0/server.hpp>
 #include <x0/property.hpp>
@@ -63,10 +64,9 @@ public:
 	 */
 	void resume();
 
-	/** true if this is a secure (HTTPS) connection, false otherwise. */
-	value_property<bool> secure;
+	value_property<bool> secure;				//!< true if this is a secure (HTTPS) connection, false otherwise.
 
-	asio::ip::tcp::socket& socket();		//!< Retrieves a reference to the connection socket.
+	asio::ip::tcp::socket& socket();			//!< Retrieves a reference to the connection socket.
 	x0::server& server();						//!< Retrieves a reference to the server instance.
 
 	std::string client_ip() const;				//!< Retrieves the IP address of the remote end point (client).
@@ -87,18 +87,18 @@ private:
 	void response_transmitted(const asio::error_code& e);
 
 	x0::server& server_;					//!< server object owning this connection
-	asio::ip::tcp::socket socket_;	//!< underlying communication socket
-	asio::deadline_timer timer_;		//!< deadline timer for detecting read/write timeouts.
+	asio::ip::tcp::socket socket_;			//!< underlying communication socket
+	asio::deadline_timer timer_;			//!< deadline timer for detecting read/write timeouts.
 
 	mutable std::string client_ip_;			//!< internal cache to client ip
 	mutable int client_port_;				//!< internal cache to client port
 
 	// HTTP request
-	boost::array<char, 8192> buffer_;		//!< buffer for incoming data.
+	buffer buffer_;							//!< buffer for incoming data.
 	request *request_;						//!< currently parsed http request 
 	request::reader request_reader_;		//!< http request parser
 
-//	asio::strand strand_;			//!< request handler strand
+//	asio::strand strand_;					//!< request handler strand
 };
 
 template<class CompletionHandler>
