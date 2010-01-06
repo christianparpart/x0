@@ -72,9 +72,11 @@ private:
 			{
 				if ((value = in.header("If-Modified-Since")) != "") // ETag + If-Modified-Since
 				{
-					if (time_t date = from_http_date(value))
+					x0::datetime date(value);
+
+					if (date.valid())
 					{
-						if (in.fileinfo->mtime() <= date)
+						if (in.fileinfo->mtime() <= date.unixtime())
 						{
 							throw x0::response::not_modified;
 						}
@@ -88,27 +90,16 @@ private:
 		}
 		else if ((value = in.header("If-Modified-Since")) != "")
 		{
-			if (time_t date = from_http_date(value))
+			x0::datetime date(value);
+
+			if (date.valid())
 			{
-				if (in.fileinfo->mtime() <= date)
+				if (in.fileinfo->mtime() <= date.unixtime())
 				{
 					throw x0::response::not_modified;
 				}
 			}
 		}
-	}
-
-	inline time_t from_http_date(const std::string& value)
-	{
-		struct tm tm;
-		tm.tm_isdst = 0;
-
-		if (strptime(value.c_str(), "%a, %d %b %Y %H:%M:%S GMT", &tm))
-		{
-			return mktime(&tm) - timezone;
-		}
-
-		return 0;
 	}
 
 	bool sendfile(x0::request& in, x0::response& out)
