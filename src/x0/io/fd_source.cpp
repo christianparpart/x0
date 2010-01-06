@@ -33,7 +33,7 @@ buffer::view fd_source::pull(buffer& buf)
 	if (nread == -1)
 		return buffer::view();
 
-	buf.size(pos + nread);
+	buf.resize(pos + nread);
 
 	return buf.sub(pos);
 }
