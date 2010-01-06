@@ -31,20 +31,6 @@ inline std::vector<T> split(const std::basic_string<U>& list, const U *sep)
 	return split<T, U>(list, std::basic_string<U>(sep));
 }
 
-inline std::string http_date(std::time_t ts)
-{
-	if (struct tm *tm = gmtime(&ts))
-	{
-		char buf[256];
-
-		if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0)
-		{
-			return buf;
-		}
-	}
-	return std::string();
-}
-
 inline std::string make_hostid(const std::string& hostname)
 {
 	std::size_t n = hostname.rfind(":");
