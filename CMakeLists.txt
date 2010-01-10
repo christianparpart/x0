@@ -76,7 +76,6 @@ if(HAVE_ZLIB_H)
 	CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
 endif(HAVE_ZLIB_H)
 
-# {{{ sets
 #if (DEFINED PREFIX)
 #	set(PREFIX ${PREFIX} CACHE PATH "installation prefix")
 #	set(CMAKE_INSTALL_PREFIX ${PREFIX})
@@ -90,17 +89,11 @@ else()
 	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
 endif()
 
-if (DEFINED BOOST_INCLUDEDIR)
-	set(BOOST_INCLUDEDIR ${BOOST_INCLUDEDIR} CACHE PATH "boost include directory")
-else()
-	set(BOOST_INCLUDEDIR "/usr/include/boost-1_39" CACHE PATH "boost include directory")
-endif()
-
-if (NOT CMAKE_BUILD_TYPE)
-	#set(CMAKE_BUILD_TYPE "Release" CACHE STRING "e.g. Release or Debug, defaults to Debug")
-	set(CMAKE_BUILD_TYPE "Release")
-endif()
-# }}}
+FIND_PACKAGE(Boost REQUIRED)
+IF(Boost_FOUND)
+	MESSAGE(STATUS "Boost library directory: " ${Boost_LIBRARY_DIRS})
+	MESSAGE(STATUS "Boost include directory: " ${Boost_INCLUDE_DIRS})
+ENDIF(Boost_FOUND)
 
 #set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/src/asio/include" CACHE PATH "asio include directory")
 set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/../asio/include" CACHE PATH "asio include directory")
@@ -125,20 +118,6 @@ else(BUILD_STATIC)
 	CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
 endif(BUILD_STATIC)
 
-if(${CMAKE_BUILD_TYPE} EQUAL Release)
-	add_definitions(-DX0_RELEASE -DNDEBUG=1)
-else()
-	add_definitions(-DX0_DEBUG=1)
-endif()
-
 # ---------------------------------------------------------------------------
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
 add_definitions(-DHAVE_SYSCONFIG_H)
-
-# ---------------------------------------------------------------------------
-message("")
-message("Build type: ${CMAKE_BUILD_TYPE}")
-message("Boost include directory: ${BOOST_INCLUDEDIR}")
-message("ASIO include dir: ${ASIO_INCLUDEDIR}")
-message("LUA version: ${LUA_VERSION}")
-message("")
