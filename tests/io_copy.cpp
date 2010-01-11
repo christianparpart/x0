@@ -5,6 +5,7 @@
 #include <x0/filter.hpp>
 #include <x0/null_filter.hpp>
 #include <x0/uppercase_filter.hpp>
+#include <x0/compress_filter.hpp>
 #include <x0/chain_filter.hpp>
 #include <x0/pump.hpp>
 #include <iostream>
@@ -31,10 +32,13 @@ int main(int argc, const char *argv[])
 		: new x0::file_sink(ofn)
 	);
 
-	if (argc >= 4 && std::string(argv[3]) == "-u")
+	if (argc >= 4)
 	{
 		x0::chain_filter cf;
-		cf.push_back(x0::filter_ptr(new x0::uppercase_filter()));
+		if (std::string(argv[3]) == "-u")
+			cf.push_back(x0::filter_ptr(new x0::uppercase_filter()));
+		else if (std::string(argv[3]) == "-d")
+			cf.push_back(x0::filter_ptr(new x0::compress_filter()));
 
 		pump(*input, *output, cf);
 	}
