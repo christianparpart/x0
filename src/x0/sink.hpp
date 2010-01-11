@@ -1,10 +1,11 @@
 #ifndef sw_x0_io_sink_hpp
 #define sw_x0_io_sink_hpp 1
 
-#include <x0/buffer.hpp>
 #include <x0/api.hpp>
 
 namespace x0 {
+
+class source;
 
 //! \addtogroup io
 //@{
@@ -21,17 +22,13 @@ class X0_API sink
 public:
 	virtual ~sink() {}
 
-	/** pushes given \p data into this sink.
+	/** pumps given source into this sink.
 	 *
-	 * \param data the data to push into this sink
+	 * \param src The source to pump intto this sink.
 	 *
-	 * \return a buffer view representing the data that could not be written
-	 * 		into the sink, e.g., because the write would block, 
-	 * 		or an error occurred.
-	 * 		If the buffer view is empty, all data could be written
-	 * 		successfully.
+	 * \return number of bytes pumped through
 	 */
-	virtual buffer::view push(const buffer::view& data) = 0;
+	virtual std::size_t pump(source& src) = 0;
 };
 
 //@}

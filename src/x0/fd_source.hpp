@@ -22,11 +22,27 @@ public:
 	void async(bool value);
 	bool async() const;
 
+	int handle() const;
+
 	virtual buffer::view pull(buffer& buf);
+
+	virtual void accept(source_visitor& v);
 
 protected:
 	int handle_;
 };
+
+// {{{ inlines
+inline fd_source::fd_source(int fd) :
+	handle_(fd)
+{
+}
+
+inline int fd_source::handle() const
+{
+	return handle_;
+}
+// }}}
 
 //@}
 

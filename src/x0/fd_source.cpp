@@ -1,15 +1,11 @@
 #include <x0/fd_source.hpp>
+#include <x0/source_visitor.hpp>
 
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 
 namespace x0 {
-
-fd_source::fd_source(int fd) :
-	handle_(fd)
-{
-}
 
 void fd_source::async(bool value)
 {
@@ -36,6 +32,11 @@ buffer::view fd_source::pull(buffer& buf)
 	buf.resize(pos + nread);
 
 	return buf.sub(pos);
+}
+
+void fd_source::accept(source_visitor& v)
+{
+	v.visit(*this);
 }
 
 } // namespace x0

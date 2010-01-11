@@ -18,9 +18,6 @@ class X0_API chain_filter :
 public:
 	virtual buffer process(const buffer::view& input);
 
-	virtual bool once(source& src, sink& snk);
-	virtual void all(source& src, sink& snk);
-
 public:
 	void push_back(std::shared_ptr<filter> f);
 
@@ -30,8 +27,6 @@ public:
 private:
 	std::vector<std::shared_ptr<filter> > filters_;
 };
-
-std::shared_ptr<chain_filter> chain(std::shared_ptr<filter> a, std::shared_ptr<filter> b);
 
 //{{{ inlines impl
 inline void chain_filter::push_back(std::shared_ptr<filter> f)

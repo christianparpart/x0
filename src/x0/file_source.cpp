@@ -1,4 +1,5 @@
 #include <x0/file_source.hpp>
+#include <x0/source_visitor.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -15,6 +16,11 @@ file_source::file_source(const std::string& filename) :
 file_source::~file_source()
 {
 	::close(handle_);
+}
+
+void file_source::accept(source_visitor& v)
+{
+	v.visit(*this);
 }
 
 } // namespace x0

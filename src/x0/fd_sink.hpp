@@ -2,6 +2,7 @@
 #define sw_x0_io_fd_sink_hpp 1
 
 #include <x0/sink.hpp>
+#include <x0/buffer.hpp>
 
 namespace x0 {
 
@@ -22,9 +23,10 @@ public:
 	void async(bool value);
 	bool async() const;
 
-	virtual buffer::view push(const buffer::view& data);
+	virtual std::size_t pump(source& src);
 
 protected:
+	buffer buf_;
 	int handle_;
 };
 

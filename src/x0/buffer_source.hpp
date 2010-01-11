@@ -3,6 +3,7 @@
 
 #include <x0/buffer.hpp>
 #include <x0/source.hpp>
+#include <x0/source_visitor.hpp>
 
 namespace x0 {
 
@@ -29,6 +30,11 @@ public:
 		pos_ = std::min(buffer_.size(), pos_ + x0::buffer::CHUNK_SIZE);
 
 		return buffer_.sub(first, pos_ - first);
+	}
+
+	virtual void accept(source_visitor& v)
+	{
+		v.visit(*this);
 	}
 
 public:

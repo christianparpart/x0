@@ -3,6 +3,7 @@
 
 #include <x0/source.hpp>
 #include <x0/sink.hpp>
+#include <x0/filter_source.hpp>
 #include <x0/chain_filter.hpp>
 
 namespace x0 {
@@ -17,18 +18,14 @@ void pump(x0::source& input, x0::sink& output, x0::chain_filter& cf);
 // {{{ inline impl
 inline void pump(x0::source& input, x0::sink& output)
 {
-	x0::buffer buf;
-
-	while (x0::buffer::view chunk = input.pull(buf))
-	{
-		while (chunk = output.push(chunk))
-			;
-	}
+	while (input.pump(output) > 0)
+		;
 }
 
 inline void pump(x0::source& input, x0::sink& output, x0::filter& f)
 {
-	f.all(input, output);
+	filter_source fs(input, f);
+	pump(fs, output);
 }
 
 inline void pump(x0::source& input, x0::sink& output, x0::chain_filter& cf)
@@ -36,7 +33,10 @@ inline void pump(x0::source& input, x0::sink& output, x0::chain_filter& cf)
 	if (cf.empty())
 		pump(input, output);
 	else
-		cf.all(input, output);
+	{
+		filter_source fs(input, cf);
+		pump(fs, output);
+	}
 }
 // }}}
 

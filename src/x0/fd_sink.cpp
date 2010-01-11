@@ -1,4 +1,5 @@
 #include <x0/fd_sink.hpp>
+#include <x0/source.hpp>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -21,17 +22,17 @@ bool fd_sink::async() const
 	return fcntl(handle_, F_GETFL, O_NONBLOCK) > 0;
 }
 
-buffer::view fd_sink::push(const buffer::view& buf)
+std::size_t fd_sink::pump(source& src)
 {
-	ssize_t nwritten = ::write(handle_, buf.data(), buf.size());
+	if (buf_.empty())
+		src.pull(buf_);
 
-	if (static_cast<std::size_t>(nwritten) != buf.size())
-		printf(" fd_sink: partial write: %ld/%ld bytes\n", nwritten, buf.size());
+	ssize_t nwritten = ::write(handle_, buf_.data(), buf_.size());
 
-	if (nwritten != -1)
-		return buf.sub(nwritten);
-	else
-		return buffer::view();
+	if (static_cast<std::size_t>(nwritten) == buf_.size())
+		buf_.clear();
+
+	return static_cast<std::size_t>(nwritten);
 }
 
 } // namespace x0

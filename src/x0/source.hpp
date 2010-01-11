@@ -2,9 +2,12 @@
 #define sw_x0_io_source_hpp 1
 
 #include <x0/buffer.hpp>
+#include <x0/sink.hpp>
 #include <x0/api.hpp>
 
 namespace x0 {
+
+class source_visitor;
 
 //! \addtogroup io
 //@{
@@ -35,8 +38,28 @@ public:
 	 *
 	 * \see sink::push()
 	 */
-	virtual buffer::view pull(buffer&) = 0;
+	virtual buffer::view pull(buffer& buf) = 0;
+
+	/** every derivate has to implement this to fullfill the visitor-pattern.
+	 *
+	 * <code>v.visit(*this); // ideal example implementation inside derived class.</code>
+	 */
+	virtual void accept(source_visitor& v) = 0;
+
+	/** pumps this source into given sink, \p output.
+	 *
+	 * \param output sink to pump the data from this source to.
+	 * \return number of bytes pumped into the sink.
+	 */
+	std::size_t pump(sink& output);
 };
+
+// {{{ inlines
+inline std::size_t source::pump(sink& output)
+{
+	return output.pump(*this);
+}
+// }}}
 
 //@}
 

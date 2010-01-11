@@ -3,6 +3,7 @@
 
 #include <x0/buffer.hpp>
 #include <x0/sink.hpp>
+#include <x0/source.hpp>
 
 namespace x0 {
 
@@ -22,11 +23,9 @@ public:
 	{
 	}
 
-	virtual x0::buffer::view push(const x0::buffer::view& data)
+	virtual std::size_t pump(source& src)
 	{
-		// we always push the whole data into our buffer
-		buffer_.push_back(data);
-		return data;
+		return src.pull(buffer_).size();
 	}
 
 public:

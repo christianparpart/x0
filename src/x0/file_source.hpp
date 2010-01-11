@@ -17,6 +17,8 @@ class X0_API file_source :
 public:
 	explicit file_source(const std::string& filename);
 	~file_source();
+
+	virtual void accept(source_visitor& v);
 };
 
 //@}

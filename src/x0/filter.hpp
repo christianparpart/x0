@@ -31,57 +31,6 @@ public:
 	{
 		return process(input);
 	}
-
-	/** pumps a single source chunk through this filter, storing the result into the sink.
-	 *
-	 * \param src the source to pull from.
-	 * \param snk the sink to push the filtered data into.
-	 *
-	 * Think of a data-flow directed graph like: source -> filter -> sink.
-	 */
-	virtual bool once(source& src, sink& snk)
-	{
-		buffer sb;
-		buffer::view chunk = src.pull(sb);
-		if (!chunk)
-			return false;
-
-		buffer pb = process(chunk);
-		if (chunk = snk.push(pb))
-			while (chunk = snk.push(chunk))
-				;
-
-		return true;
-	}
-
-	/** pumps whole source through this filter into given sink.
-	 *
-	 * \param src the source to pull from.
-	 * \param snk the sink to push the filtered data into.
-	 *
-	 * Think of a data-flow directed graph like: source -> filter -> sink.
-	 */
-	virtual void all(source& src, sink& snk)
-	{
-		buffer result;
-		while (buffer::view chunk = src.pull(result))
-		{
-			buffer p(process(chunk));
-
-			if (buffer::view v = snk.push(p))
-				while (v = snk.push(v))
-					;
-
-			p = process(buffer::view());
-			if (!p.empty())
-			//if (p = process(buffer::view()))
-				if (buffer::view v = snk.push(p))
-					while (v = snk.push(v))
-						;
-
-//			result.clear();
-		}
-	}
 };
 
 typedef std::shared_ptr<filter> filter_ptr;
