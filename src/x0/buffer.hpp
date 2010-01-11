@@ -109,6 +109,7 @@ public:
 	// buffer builders
 	void push_back(value_type value);
 	void push_back(const value_type *value);
+	void push_back(const buffer& value);
 	void push_back(const std::string& value);
 	void push_back(const void *value, std::size_t size);
 	template<typename PodType, std::size_t N> void push_back(PodType (&value)[N]);
@@ -509,6 +510,17 @@ inline void buffer::push_back(const value_type *value)
 		reserve(size_ + len);
 
 		std::memcpy(end(), value, len);
+		size_ += len;
+	}
+}
+
+inline void buffer::push_back(const buffer& value)
+{
+	if (std::size_t len = value.size())
+	{
+		reserve(size_ + len);
+
+		std::memcpy(end(), value.begin(), len);
 		size_ += len;
 	}
 }
