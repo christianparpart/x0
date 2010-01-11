@@ -25,6 +25,7 @@ set(x0_io_SRC
 	filter.cpp
 	chain_filter.cpp
 	null_filter.cpp
+	compress_filter.cpp
 )
 
 set(x0_io_API
@@ -39,6 +40,7 @@ set(x0_io_API
 	buffer_sink.hpp
 	filter.hpp
 	chain_filter.hpp
+	compress_filter.hpp
 	pump.hpp
 )
 
@@ -94,6 +96,7 @@ target_link_libraries(x0
 	boost_system boost_signals boost_thread
 	${LUA_LIBRARIES}
 	dl pthread
+	z
 )
 
 install(FILES ${x0_API} DESTINATION include/x0)
