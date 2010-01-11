@@ -32,6 +32,7 @@ set(x0_io_API
 	fd_source.hpp
 	file_source.hpp
 	buffer_source.hpp
+	filter_source.hpp
 	sink.hpp
 	fd_sink.hpp
 	file_sink.hpp
