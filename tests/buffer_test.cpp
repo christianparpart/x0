@@ -26,7 +26,7 @@ public:
 		CPPUNIT_TEST(const_iterators);
 		CPPUNIT_TEST(push_back);
 		CPPUNIT_TEST(random_access);
-		CPPUNIT_TEST(sub);
+		CPPUNIT_TEST(ref);
 		CPPUNIT_TEST(call);
 		CPPUNIT_TEST(std_string);
 
