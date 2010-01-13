@@ -21,6 +21,9 @@
 #include <asio.hpp>
 #include <iostream> // clog
 
+// XXX favor buffer_chunk over iovec_chunk, and see how it performs better in speed than iovec_chunk.
+#define COMPOSITE_BUFFER_NO_IOVEC 1
+
 namespace x0 {
 
 //! \addtogroup base
@@ -71,19 +74,20 @@ class composite_buffer
 {
 public:
 	struct chunk;
+	struct buffer_chunk;
 	struct iovec_chunk;
 	struct fd_chunk;
 
 	class iterator;
 
-	class visitor;
+	class write_visitor;
 
 private:
 	template<class Socket, class CompletionHandler> class write_handler;
 
 private:
-	/** ensures that the tail of our chunk queue is of type iovec_chunk. */
-	void ensure_iovec_tail();
+	/** ensures that the tail of our chunk queue is of type T. */
+	template<typename T> void ensure_tail();
 
 	chunk *front_;		//!< chunk at the front/beginning of the buffer
 	chunk *back_;		//!< chunk at the back/end of the buffer
@@ -191,7 +195,7 @@ public:
 struct composite_buffer::chunk
 {
 public:
-	enum chunk_type { ciov, cfd };
+	enum chunk_type { cbuffer, ciov, cfd };
 
 protected:
 	/** initializes chunk base.
@@ -199,26 +203,50 @@ protected:
 	 * \param ct chunk type, assigned to \p type property.
 	 * \param sz chunk size in bytes, assigned to \p size property.
 	 */
-	chunk(chunk_type ct, std::size_t sz);
+	explicit chunk(chunk_type ct);
 
 public:
 	virtual ~chunk();
 
 	/** chunk type. */
-	value_property<chunk_type> type;
+	chunk_type type() const;
 
 	/** chunk size in bytes. */
-	value_property<std::size_t> size;
+	virtual std::size_t size() const = 0;
 
 	/** next chunk in buffer. */
-	value_property<chunk *> next;
+	chunk *next() const;
+	void next(chunk *);
 
 	/**
-	 * invokes <code>v.visit(*this);</code> to let visitor \p v visit this chunk.
+	 * invokes <code>return v.write(*this);</code> to let write_visitor \p v visit this chunk.
 	 *
-	 * \param v visitor to let visit us.
+	 * \param v write_visitor to let visit us.
 	 */
-	virtual void accept(visitor& v) const = 0;
+	virtual ssize_t accept(write_visitor& v) const = 0;
+
+private:
+	chunk_type type_;
+	chunk *next_;
+};
+
+struct composite_buffer::buffer_chunk :
+	public chunk
+{
+private:
+	x0::buffer buffer_;
+
+public:
+	enum { type_val = cbuffer };
+
+public:
+	buffer_chunk();
+
+	x0::buffer& buffer();
+	const x0::buffer& buffer() const;
+
+	virtual std::size_t size() const;
+	virtual ssize_t accept(write_visitor& v) const;
 };
 
 /** iovec chunk.
@@ -232,8 +260,11 @@ public:
 	typedef vector::iterator iterator;
 	typedef vector::const_iterator const_iterator;
 
+	enum { type_val = ciov };
+
 private:
 	vector vec_;
+	std::size_t size_;
 	std::size_t veclimit_;
 	buffer buffer_;
 
@@ -273,7 +304,8 @@ public:
 	/** retrieves a const iterator to the end of the iovec vector. */
 	const_iterator cend() const;
 
-	virtual void accept(visitor& v) const;
+	virtual std::size_t size() const;
+	virtual ssize_t accept(write_visitor& v) const;
 };
 
 /** fd chunk.
@@ -284,9 +316,15 @@ public:
 struct composite_buffer::fd_chunk :
 	public chunk
 {
+private:
+	// TODO: code cleanup! (fd_ vs fd, offset_ vs offset, etc etc.)
 	int fd_;
 	off_t offset_;
+	std::size_t size_;
 	bool close_;
+
+public:
+	enum { type_val = cfd };
 
 public:
 	fd_chunk(int _fd, off_t _offset, std::size_t _size, bool _close);
@@ -301,34 +339,79 @@ public:
 	/** boolean value, determining wether or not to close the file descriptor when this chunk is to be destructed. */
 	value_property<bool> close;
 
-	virtual void accept(visitor& v) const;
+	virtual std::size_t size() const;
+	virtual ssize_t accept(write_visitor& v) const;
 };
 
 /**
- * chunk visitor interface.
+ * chunk write_visitor interface, used to <b>write</b> chunks into some destination.
  */
-class composite_buffer::visitor
+class composite_buffer::write_visitor
 {
 public:
-	virtual void visit(const iovec_chunk&) = 0;	//!< visits an iovec_chunk object.
-	virtual void visit(const fd_chunk&) = 0;	//!< visits an fd_chunk object.
+	virtual ssize_t write(const buffer_chunk&) = 0;//!< visits a buffer_chunk object.
+	virtual ssize_t write(const iovec_chunk&) = 0;	//!< visits an iovec_chunk object.
+	virtual ssize_t write(const fd_chunk&) = 0;	//!< visits an fd_chunk object.
 };
 
 // {{{ chunk impl
-inline composite_buffer::chunk::chunk(chunk_type ct, std::size_t sz) :
-	type(ct), size(sz), next(0)
+inline composite_buffer::chunk::chunk(chunk_type ct) :
+	type_(ct), next_(0)
 {
 }
 
 inline composite_buffer::chunk::~chunk()
 {
-	delete next;
+	delete next_;
+}
+
+inline composite_buffer::chunk::chunk_type composite_buffer::chunk::type() const
+{
+	return type_;
+}
+
+inline composite_buffer::chunk *composite_buffer::chunk::next() const
+{
+	return next_;
+}
+
+inline void composite_buffer::chunk::next(chunk *value)
+{
+	next_ = value;
+}
+// }}}
+
+// {{{ buffer_chunk impl
+inline composite_buffer::buffer_chunk::buffer_chunk() :
+	chunk(cbuffer),
+	buffer_()
+{
+}
+
+inline x0::buffer& composite_buffer::buffer_chunk::buffer()
+{
+	return buffer_;
+}
+
+inline const x0::buffer& composite_buffer::buffer_chunk::buffer() const
+{
+	return buffer_;
+}
+
+inline std::size_t composite_buffer::buffer_chunk::size() const
+{
+	return buffer_.size();
+}
+
+inline ssize_t composite_buffer::buffer_chunk::accept(write_visitor& v) const
+{
+	return v.write(*this);
 }
 // }}}
 
 // {{{ iovec_chunk impl
 inline composite_buffer::iovec_chunk::iovec_chunk() :
-	chunk(ciov, 0), vec_(), veclimit_(sysconf(_SC_IOV_MAX)), buffer_(buffer::CHUNK_SIZE)
+	chunk(ciov), vec_(), size_(0), veclimit_(sysconf(_SC_IOV_MAX)), buffer_(buffer::CHUNK_SIZE)
 {
 }
 
@@ -356,7 +439,7 @@ inline void composite_buffer::iovec_chunk::push_back(const void *p, std::size_t 
 	iov.iov_len = n;
 
 	vec_.push_back(iov);
-	size += n;
+	size_ += n;
 }
 
 inline const std::vector<iovec>& composite_buffer::iovec_chunk::value() const
@@ -394,15 +477,20 @@ inline composite_buffer::iovec_chunk::const_iterator composite_buffer::iovec_chu
 	return vec_.cend();
 }
 
-inline void composite_buffer::iovec_chunk::accept(visitor& v) const
+inline std::size_t composite_buffer::iovec_chunk::size() const
 {
-	v.visit(*this);
+	return size_;
+}
+
+inline ssize_t composite_buffer::iovec_chunk::accept(write_visitor& v) const
+{
+	return v.write(*this);
 }
 // }}}
 
 // {{{ fd_chunk impl
 inline composite_buffer::fd_chunk::fd_chunk(int _fd, off_t _offset, std::size_t _size, bool _close) :
-	chunk(cfd, _size), fd(_fd), offset(_offset), close(_close)
+	chunk(cfd), size_(_size), fd(_fd), offset(_offset), close(_close)
 {
 }
 
@@ -414,9 +502,14 @@ inline composite_buffer::fd_chunk::~fd_chunk()
 	}
 }
 
-inline void composite_buffer::fd_chunk::accept(visitor& v) const
+inline std::size_t composite_buffer::fd_chunk::size() const
 {
-	v.visit(*this);
+	return size_;
+}
+
+inline ssize_t composite_buffer::fd_chunk::accept(write_visitor& v) const
+{
+	return v.write(*this);
 }
 // }}}
 
@@ -527,8 +620,8 @@ inline void composite_buffer::remove_front()
 	{
 		chunk *new_front = front_->next();
 
-		size_ -= front_->size;
-		front_->next = 0;
+		size_ -= front_->size();
+		front_->next(0);
 		delete front_;
 
 		front_ = new_front;
@@ -557,11 +650,15 @@ inline bool composite_buffer::empty() const
 
 inline void composite_buffer::push_back(char value)
 {
-	ensure_iovec_tail();
-
+#if defined(COMPOSITE_BUFFER_NO_IOVEC) && COMPOSITE_BUFFER_NO_IOVEC
+	ensure_tail<buffer_chunk>();
+	static_cast<buffer_chunk *>(back_)->buffer().push_back(value);
+#else
+	ensure_tail<iovec_chunk>();
 	static_cast<iovec_chunk *>(back_)->push_back(value);
+#endif
 
-	size_ += sizeof(char);
+	size_ += sizeof(value);
 }
 
 inline void composite_buffer::push_back(const char *value)
@@ -571,18 +668,26 @@ inline void composite_buffer::push_back(const char *value)
 
 inline void composite_buffer::push_back(const std::string& value)
 {
-	ensure_iovec_tail();
-
+#if defined(COMPOSITE_BUFFER_NO_IOVEC) && COMPOSITE_BUFFER_NO_IOVEC
+	ensure_tail<buffer_chunk>();
+	static_cast<buffer_chunk *>(back_)->buffer().push_back(value);
+#else
+	ensure_tail<iovec_chunk>();
 	static_cast<iovec_chunk *>(back_)->push_back(value);
+#endif
 
 	size_ += value.size();
 }
 
 inline void composite_buffer::push_back(const void *buffer, int size)
 {
-	ensure_iovec_tail();
-
+#if defined(COMPOSITE_BUFFER_NO_IOVEC) && COMPOSITE_BUFFER_NO_IOVEC
+	ensure_tail<buffer_chunk>();
+	static_cast<buffer_chunk *>(back_)->buffer().push_back(buffer, size);
+#else
+	ensure_tail<iovec_chunk>();
 	static_cast<iovec_chunk *>(back_)->push_back(buffer, size);
+#endif
 
 	size_ += size;
 }
@@ -590,29 +695,29 @@ inline void composite_buffer::push_back(const void *buffer, int size)
 template<typename PodType, std::size_t N>
 inline void composite_buffer::push_back(PodType (&data)[N])
 {
-	push_back(static_cast<const void *>(data), N * sizeof(PodType));
+	push_back(static_cast<const void *>(data), sizeof(PodType) * (N - 1));
 }
 
 inline void composite_buffer::push_back(int fd, off_t offset, size_t size, bool close)
 {
 	if (back_)
 	{
-		back_->next = new fd_chunk(fd, offset, size, close);
-		back_ = back_->next;
+		back_->next(new fd_chunk(fd, offset, size, close));
+		back_ = back_->next();
 	}
 	else
 	{
 		front_ = back_ = new fd_chunk(fd, offset, size, close);
 	}
 
-	size_ += back_->size;
+	size_ += back_->size();
 }
 
 inline void composite_buffer::push_back(composite_buffer& buffer)
 {
 	if (back_)
 	{
-		back_->next = buffer.front_;
+		back_->next(buffer.front_);
 		back_ = buffer.back_;
 		size_ += buffer.size_;
 	}
@@ -627,16 +732,19 @@ inline void composite_buffer::push_back(composite_buffer& buffer)
 	buffer.size_ = 0;
 }
 
-inline void composite_buffer::ensure_iovec_tail()
+/** ensures tail chunk node is of specific type \p T by possibly appending a new chunk node to the list of chunk.
+ */
+template<typename T>
+inline void composite_buffer::ensure_tail()
 {
 	if (!back_)
 	{
-		front_ = back_ = new iovec_chunk();
+		front_ = back_ = new T();
 	}
-	else if (back_->type != chunk::ciov)
+	else if (back_->type() != static_cast<chunk::chunk_type>(T::type_val))
 	{
-		back_->next = new iovec_chunk();
-		back_ = back_->next;
+		back_->next(new T());
+		back_ = back_->next();
 	}
 }
 // }}}
