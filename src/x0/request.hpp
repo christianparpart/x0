@@ -137,26 +137,14 @@ public:
 
 	/** parses partial HTTP request.
 	 *
-	 * \param req request to fill with parsed data
-	 * \param begin iterator to first byte-wise position of the HTTP request to parse
-	 * \param end iterator marking the end of partial stream. this method will parse up to excluding this end of bytes.
+	 * \param r request to fill with parsed data
+	 * \param data buffer holding the (possibly partial) data of the request to be parsed.
 	 *
 	 * \retval true request has been fully parsed.
 	 * \retval false HTTP request parser error (should result into bad_request if possible.)
 	 * \retval indeterminate parsial request parsed successfully but more input is needed to complete parsing.
 	 */
 	inline boost::tribool parse(request& req, const buffer_ref& data);
-
-private:
-	/**
-	 * \param r reference to the request to fill
-	 * \param input the input character to process as part of the incoming request.
-	 *
-	 * \retval boost::indeterminate parsed successfully but request still incomplete.
-	 * \retval true parsed successfully and request is now complete.
-	 * \retval false parse error
-	 */
-	inline boost::tribool consume(request& r, char input);
 };
 
 // {{{ request impl
@@ -275,322 +263,317 @@ inline void request::reader::reset()
 	buf_.clear();
 }
 
-inline boost::tribool request::reader::parse(request& req, const buffer_ref& data)
+inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 {
-	for (buffer_ref::const_iterator begin = data.begin(), end = data.end(); begin != end; ++begin)
+	for (buffer_ref::const_iterator i = data.begin(), e = data.end(); i != e; ++i)
 	{
-		boost::tribool result = consume(req, *begin);
+		char input = *i;
 
-		if (!indeterminate(result))
-			return result;
-	}
-
-	return boost::indeterminate;
-}
-
-inline boost::tribool request::reader::consume(request& r, char input)
-{
-	switch (state_)
-	{
-		case method_start:
-			if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-			{
-				return false;
-			}
-			else
-			{
-				state_ = method;
-				buf_.push_back(input);
-				return boost::indeterminate;
-			}
-		case method:
-			if (input == ' ')
-			{
-				r.method = buf_;
-				buf_.clear();
-				state_ = uri;
-				return boost::indeterminate;
-			}
-			else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-			{
-				return false;
-			}
-			else
-			{
-				buf_.push_back(input);
-				return boost::indeterminate;
-			}
-		case uri_start:
-			if (is_ctl(input))
-			{
-				return false;
-			}
-			else
-			{
-				state_ = uri;
-				buf_.push_back(input);
-				return boost::indeterminate;
-			}
-		case uri:
-			if (input == ' ')
-			{
-				if (!url_decode(buf_))
-					return false;
-
-				r.uri = buf_;
-				buf_.clear();
-
-				std::size_t n = r.uri.find("?");
-				if (n != std::string::npos)
+		switch (state_)
+		{
+			case method_start:
+				if (!is_char(input) || is_ctl(input) || is_tspecial(input))
 				{
-					r.path = r.uri.substr(0, n);
-					r.query = r.uri.substr(n + 1);
+					return false;
 				}
 				else
 				{
-					r.path = r.uri;
+					state_ = method;
+					buf_.push_back(input);
 				}
-
-				if (r.path.empty() || r.path[0] != '/' || r.path.find("..") != std::string::npos)
-					return false;
-
-				state_ = http_version_h;
-				return boost::indeterminate;
-			}
-			else if (is_ctl(input))
-			{
-				return false;
-			}
-			else
-			{
-				buf_.push_back(input);
-				return boost::indeterminate;
-			}
-		case http_version_h:
-			if (input == 'H')
-			{
-				state_ = http_version_t_1;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case http_version_t_1:
-			if (input == 'T')
-			{
-				state_ = http_version_t_2;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case http_version_t_2:
-			if (input == 'T')
-			{
-				state_ = http_version_p;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case http_version_p:
-			if (input == 'P')
-			{
-				state_ = http_version_slash;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case http_version_slash:
-			if (input == '/')
-			{
-				r.http_version_major = 0;
-				r.http_version_minor = 0;
-
-				state_ = http_version_major_start;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case http_version_major_start:
-			if (is_digit(input))
-			{
-				r.http_version_major = r.http_version_major * 10 + input - '0';
-				state_ = http_version_major;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case http_version_major:
-			if (input == '.')
-			{
-				state_ = http_version_minor_start;
-				return boost::indeterminate;
-			}
-			else if (is_digit(input))
-			{
-				r.http_version_major = r.http_version_major * 10 + input - '0';
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case http_version_minor_start:
-			if (input == '\r')
-			{
-				state_ = expecting_newline_1;
-				return boost::indeterminate;
-			}
-			else if (is_digit(input))
-			{
-				r.http_version_minor = r.http_version_minor * 10 + input - '0';
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case expecting_newline_1:
-			if (input == '\n')
-			{
-				state_ = header_line_start;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case header_line_start:
-			if (input == '\r')
-			{
-				state_ = expecting_newline_3;
-				return boost::indeterminate;
-			}
-			else if (!r.headers.empty() && (input == ' ' || input == '\t'))
-			{
-				state_ = header_lws;
-				return boost::indeterminate;
-			}
-			else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-			{
-				return false;
-			}
-			else
-			{
-				r.headers.push_back(x0::header());
-				r.headers.back().name.push_back(input);
-				state_ = header_name;
-				return boost::indeterminate;
-			}
-		case header_lws:
-			if (input == '\r')
-			{
-				state_ = expecting_newline_2;
-				return boost::indeterminate;
-			}
-			else if (input == ' ' || input == '\t')
-			{
-				return boost::indeterminate;
-			}
-			else
-			{
-				state_ = header_value;
-				r.headers.back().value.push_back(input);
-				return boost::indeterminate;
-			}
-		case header_name:
-			if (input == ':')
-			{
-				state_ = space_before_header_value;
-				return boost::indeterminate;
-			}
-			else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-			{
-				return false;
-			}
-			else
-			{
-				r.headers.back().name.push_back(input);
-				return boost::indeterminate;
-			}
-		case space_before_header_value:
-			if (input == ' ')
-			{
-				state_ = header_value;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case header_value:
-			if (input == '\r')
-			{
-				state_ = expecting_newline_2;
-				return boost::indeterminate;
-			}
-			else if (is_ctl(input))
-			{
-				return false;
-			}
-			else
-			{
-				r.headers.back().value.push_back(input);
-				return boost::indeterminate;
-			}
-		case expecting_newline_2:
-			if (input == '\n')
-			{
-				state_ = header_line_start;
-				return boost::indeterminate;
-			}
-			else
-			{
-				return false;
-			}
-		case expecting_newline_3:
-			if (input == '\n')
-			{
-				std::string s(r.header("Content-Length"));
-				if (!s.empty())
+				break;
+			case method:
+				if (input == ' ')
 				{
-					state_ = reading_body;
-					r.body.reserve(std::atoi(s.c_str()));
-					return boost::indeterminate;
+					r.method = buf_;
+					buf_.clear();
+					state_ = uri;
+					break;
+				}
+				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
+				{
+					return false;
+				}
+				else
+				{
+					buf_.push_back(input);
+					break;
+				}
+			case uri_start:
+				if (is_ctl(input))
+				{
+					return false;
+				}
+				else
+				{
+					state_ = uri;
+					buf_.push_back(input);
+					break;
+				}
+			case uri:
+				if (input == ' ')
+				{
+					if (!url_decode(buf_))
+						return false;
+
+					r.uri = buf_;
+					buf_.clear();
+
+					std::size_t n = r.uri.find("?");
+					if (n != std::string::npos)
+					{
+						r.path = r.uri.substr(0, n);
+						r.query = r.uri.substr(n + 1);
+					}
+					else
+					{
+						r.path = r.uri;
+					}
+
+					if (r.path.empty() || r.path[0] != '/' || r.path.find("..") != std::string::npos)
+						return false;
+
+					state_ = http_version_h;
+					break;
+				}
+				else if (is_ctl(input))
+				{
+					return false;
+				}
+				else
+				{
+					buf_.push_back(input);
+					break;
+				}
+			case http_version_h:
+				if (input == 'H')
+				{
+					state_ = http_version_t_1;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case http_version_t_1:
+				if (input == 'T')
+				{
+					state_ = http_version_t_2;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case http_version_t_2:
+				if (input == 'T')
+				{
+					state_ = http_version_p;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case http_version_p:
+				if (input == 'P')
+				{
+					state_ = http_version_slash;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case http_version_slash:
+				if (input == '/')
+				{
+					r.http_version_major = 0;
+					r.http_version_minor = 0;
+
+					state_ = http_version_major_start;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case http_version_major_start:
+				if (is_digit(input))
+				{
+					r.http_version_major = r.http_version_major * 10 + input - '0';
+					state_ = http_version_major;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case http_version_major:
+				if (input == '.')
+				{
+					state_ = http_version_minor_start;
+					break;
+				}
+				else if (is_digit(input))
+				{
+					r.http_version_major = r.http_version_major * 10 + input - '0';
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case http_version_minor_start:
+				if (input == '\r')
+				{
+					state_ = expecting_newline_1;
+					break;
+				}
+				else if (is_digit(input))
+				{
+					r.http_version_minor = r.http_version_minor * 10 + input - '0';
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case expecting_newline_1:
+				if (input == '\n')
+				{
+					state_ = header_line_start;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case header_line_start:
+				if (input == '\r')
+				{
+					state_ = expecting_newline_3;
+					break;
+				}
+				else if (!r.headers.empty() && (input == ' ' || input == '\t'))
+				{
+					state_ = header_lws;
+					break;
+				}
+				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
+				{
+					return false;
+				}
+				else
+				{
+					r.headers.push_back(x0::header());
+					r.headers.back().name.push_back(input);
+					state_ = header_name;
+					break;
+				}
+			case header_lws:
+				if (input == '\r')
+				{
+					state_ = expecting_newline_2;
+					break;
+				}
+				else if (input == ' ' || input == '\t')
+				{
+					break;
+				}
+				else
+				{
+					state_ = header_value;
+					r.headers.back().value.push_back(input);
+					break;
+				}
+			case header_name:
+				if (input == ':')
+				{
+					state_ = space_before_header_value;
+					break;
+				}
+				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
+				{
+					return false;
+				}
+				else
+				{
+					r.headers.back().name.push_back(input);
+					break;
+				}
+			case space_before_header_value:
+				if (input == ' ')
+				{
+					state_ = header_value;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case header_value:
+				if (input == '\r')
+				{
+					state_ = expecting_newline_2;
+					break;
+				}
+				else if (is_ctl(input))
+				{
+					return false;
+				}
+				else
+				{
+					r.headers.back().value.push_back(input);
+					break;
+				}
+			case expecting_newline_2:
+				if (input == '\n')
+				{
+					state_ = header_line_start;
+					break;
+				}
+				else
+				{
+					return false;
+				}
+			case expecting_newline_3:
+				if (input == '\n')
+				{
+					std::string s(r.header("Content-Length"));
+					if (!s.empty())
+					{
+						state_ = reading_body;
+						r.body.reserve(std::atoi(s.c_str()));
+						break;
+					}
+					else
+					{
+						return true;
+					}
+				}
+				else
+				{
+					return false;
+				}
+			case reading_body:
+				r.body.push_back(input);
+
+				if (r.body.length() < r.body.capacity())
+				{
+					break;
 				}
 				else
 				{
 					return true;
 				}
-			}
-			else
-			{
+			default:
 				return false;
-			}
-		case reading_body:
-			r.body.push_back(input);
-
-			if (r.body.length() < r.body.capacity())
-			{
-				return boost::indeterminate;
-			}
-			else
-			{
-				return true;
-			}
-		default:
-			return false;
+		}
 	}
+
+	// request header parsed partially
+	return boost::indeterminate;
 }
 // }}}
 
