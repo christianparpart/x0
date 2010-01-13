@@ -8,6 +8,7 @@
 #ifndef x0_http_request_hpp
 #define x0_http_request_hpp (1)
 
+#include <x0/buffer.hpp>
 #include <x0/header.hpp>
 #include <x0/fileinfo.hpp>
 #include <x0/types.hpp>
@@ -144,8 +145,7 @@ public:
 	 * \retval false HTTP request parser error (should result into bad_request if possible.)
 	 * \retval indeterminate parsial request parsed successfully but more input is needed to complete parsing.
 	 */
-	template<typename InputIterator>
-	inline boost::tribool parse(request& req, InputIterator begin, InputIterator end);
+	inline boost::tribool parse(request& req, const buffer_ref& data);
 
 private:
 	/**
@@ -275,12 +275,12 @@ inline void request::reader::reset()
 	buf_.clear();
 }
 
-template<typename InputIterator>
-inline boost::tribool request::reader::parse(request& req, InputIterator begin, InputIterator end)
+inline boost::tribool request::reader::parse(request& req, const buffer_ref& data)
 {
-	while (begin != end)
+	for (buffer_ref::const_iterator begin = data.begin(), end = data.end(); begin != end; ++begin)
 	{
-		boost::tribool result = consume(req, *begin++);
+		boost::tribool result = consume(req, *begin);
+
 		if (!indeterminate(result))
 			return result;
 	}
