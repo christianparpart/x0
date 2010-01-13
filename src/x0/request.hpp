@@ -273,14 +273,10 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 		{
 			case method_start:
 				if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-				{
 					return false;
-				}
-				else
-				{
-					state_ = method;
-					buf_.push_back(input);
-				}
+
+				state_ = method;
+				buf_.push_back(input);
 				break;
 			case method:
 				if (input == ' ')
@@ -301,15 +297,11 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 				}
 			case uri_start:
 				if (is_ctl(input))
-				{
 					return false;
-				}
-				else
-				{
-					state_ = uri;
-					buf_.push_back(input);
-					break;
-				}
+
+				state_ = uri;
+				buf_.push_back(input);
+				break;
 			case uri:
 				if (input == ' ')
 				{
@@ -346,197 +338,122 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 					break;
 				}
 			case http_version_h:
-				if (input == 'H')
-				{
-					state_ = http_version_t_1;
-					break;
-				}
-				else
-				{
+				if (input != 'H')
 					return false;
-				}
-			case http_version_t_1:
-				if (input == 'T')
-				{
-					state_ = http_version_t_2;
-					break;
-				}
-				else
-				{
-					return false;
-				}
-			case http_version_t_2:
-				if (input == 'T')
-				{
-					state_ = http_version_p;
-					break;
-				}
-				else
-				{
-					return false;
-				}
-			case http_version_p:
-				if (input == 'P')
-				{
-					state_ = http_version_slash;
-					break;
-				}
-				else
-				{
-					return false;
-				}
-			case http_version_slash:
-				if (input == '/')
-				{
-					r.http_version_major = 0;
-					r.http_version_minor = 0;
 
-					state_ = http_version_major_start;
-					break;
-				}
-				else
-				{
+				state_ = http_version_t_1;
+				break;
+			case http_version_t_1:
+				if (input != 'T')
 					return false;
-				}
+
+				state_ = http_version_t_2;
+				break;
+			case http_version_t_2:
+				if (input != 'T')
+					return false;
+
+				state_ = http_version_p;
+				break;
+			case http_version_p:
+				if (input != 'P')
+					return false;
+
+				state_ = http_version_slash;
+				break;
+			case http_version_slash:
+				if (input != '/')
+					return false;
+
+				r.http_version_major = 0;
+				r.http_version_minor = 0;
+
+				state_ = http_version_major_start;
+				break;
 			case http_version_major_start:
-				if (is_digit(input))
-				{
-					r.http_version_major = r.http_version_major * 10 + input - '0';
-					state_ = http_version_major;
-					break;
-				}
-				else
-				{
+				if (!is_digit(input))
 					return false;
-				}
+
+				r.http_version_major = r.http_version_major * 10 + input - '0';
+				state_ = http_version_major;
+				break;
 			case http_version_major:
 				if (input == '.')
-				{
 					state_ = http_version_minor_start;
-					break;
-				}
 				else if (is_digit(input))
-				{
 					r.http_version_major = r.http_version_major * 10 + input - '0';
-					break;
-				}
 				else
-				{
 					return false;
-				}
+
+				break;
 			case http_version_minor_start:
 				if (input == '\r')
-				{
 					state_ = expecting_newline_1;
-					break;
-				}
 				else if (is_digit(input))
-				{
 					r.http_version_minor = r.http_version_minor * 10 + input - '0';
-					break;
-				}
 				else
-				{
 					return false;
-				}
+
+				break;
 			case expecting_newline_1:
-				if (input == '\n')
-				{
-					state_ = header_line_start;
-					break;
-				}
-				else
-				{
+				if (input != '\n')
 					return false;
-				}
+
+				state_ = header_line_start;
+				break;
 			case header_line_start:
 				if (input == '\r')
-				{
 					state_ = expecting_newline_3;
-					break;
-				}
 				else if (!r.headers.empty() && (input == ' ' || input == '\t'))
-				{
 					state_ = header_lws;
-					break;
-				}
 				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-				{
 					return false;
-				}
 				else
 				{
 					r.headers.push_back(x0::header());
 					r.headers.back().name.push_back(input);
 					state_ = header_name;
-					break;
 				}
+				break;
 			case header_lws:
 				if (input == '\r')
-				{
 					state_ = expecting_newline_2;
-					break;
-				}
-				else if (input == ' ' || input == '\t')
-				{
-					break;
-				}
-				else
+				else if (input != ' ' && input != '\t')
 				{
 					state_ = header_value;
 					r.headers.back().value.push_back(input);
-					break;
 				}
+				break;
 			case header_name:
 				if (input == ':')
-				{
 					state_ = space_before_header_value;
-					break;
-				}
 				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-				{
 					return false;
-				}
 				else
-				{
 					r.headers.back().name.push_back(input);
-					break;
-				}
+
+				break;
 			case space_before_header_value:
-				if (input == ' ')
-				{
-					state_ = header_value;
-					break;
-				}
-				else
-				{
+				if (input != ' ')
 					return false;
-				}
+
+				state_ = header_value;
+				break;
 			case header_value:
 				if (input == '\r')
-				{
 					state_ = expecting_newline_2;
-					break;
-				}
 				else if (is_ctl(input))
-				{
 					return false;
-				}
 				else
-				{
 					r.headers.back().value.push_back(input);
-					break;
-				}
+
+				break;
 			case expecting_newline_2:
-				if (input == '\n')
-				{
-					state_ = header_line_start;
-					break;
-				}
-				else
-				{
+				if (input != '\n')
 					return false;
-				}
+
+				state_ = header_line_start;
+				break;
 			case expecting_newline_3:
 				if (input == '\n')
 				{
