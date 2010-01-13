@@ -23,13 +23,13 @@ public:
 	{
 	}
 
-	virtual buffer::view pull(buffer& data)
+	virtual buffer_ref pull(buffer& data)
 	{
 		std::size_t first = pos_;
 
 		pos_ = std::min(buffer_.size(), pos_ + x0::buffer::CHUNK_SIZE);
 
-		return buffer_.sub(first, pos_ - first);
+		return buffer_.ref(first, pos_ - first);
 	}
 
 	virtual void accept(source_visitor& v)

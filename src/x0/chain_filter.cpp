@@ -2,7 +2,7 @@
 
 namespace x0 {
 
-buffer chain_filter::process(const buffer::view& input)
+buffer chain_filter::process(const buffer_ref& input)
 {
 	if (filters_.empty())
 		return buffer(input);

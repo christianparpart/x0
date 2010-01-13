@@ -16,7 +16,7 @@ class X0_API chain_filter :
 	public filter
 {
 public:
-	virtual buffer process(const buffer::view& input);
+	virtual buffer process(const buffer_ref& input);
 
 public:
 	void push_back(std::shared_ptr<filter> f);

@@ -24,7 +24,7 @@ public:
 
 	int handle() const;
 
-	virtual buffer::view pull(buffer& buf);
+	virtual buffer_ref pull(buffer& buf);
 
 	virtual void accept(source_visitor& v);
 

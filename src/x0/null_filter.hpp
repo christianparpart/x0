@@ -17,7 +17,7 @@ class X0_API null_filter :
 public:
 	null_filter() {}
 
-	virtual buffer process(const buffer::view& data)
+	virtual buffer process(const buffer_ref& data)
 	{
 		return buffer(data);
 	}

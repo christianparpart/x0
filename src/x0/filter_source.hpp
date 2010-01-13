@@ -19,7 +19,7 @@ public:
 	explicit filter_source(source& source, filter& filter) :
 		buffer_(), source_(source), filter_(filter) {}
 
-	virtual buffer::view pull(buffer& output)
+	virtual buffer_ref pull(buffer& output)
 	{
 		std::size_t pos = output.size();
 
@@ -27,7 +27,7 @@ public:
 
 		output.push_back(filter_(source_.pull(buffer_)));
 
-		return output.sub(pos);
+		return output.ref(pos);
 	}
 
 	virtual void accept(source_visitor& v)

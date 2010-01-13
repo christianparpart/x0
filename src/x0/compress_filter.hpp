@@ -17,7 +17,7 @@ class X0_API compress_filter :
 public:
 	compress_filter();
 
-	virtual buffer process(const buffer::view& data);
+	virtual buffer process(const buffer_ref& data);
 
 private:
 	z_stream z_;

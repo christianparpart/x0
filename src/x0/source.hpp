@@ -38,7 +38,7 @@ public:
 	 *
 	 * \see sink::push()
 	 */
-	virtual buffer::view pull(buffer& buf) = 0;
+	virtual buffer_ref pull(buffer& buf) = 0;
 
 	/** every derivate has to implement this to fullfill the visitor-pattern.
 	 *

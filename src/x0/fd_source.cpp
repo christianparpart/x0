@@ -17,7 +17,7 @@ bool fd_source::async() const
 	return fcntl(handle_, F_GETFL, O_NONBLOCK) > 0;
 }
 
-buffer::view fd_source::pull(buffer& buf)
+buffer_ref fd_source::pull(buffer& buf)
 {
 	const std::size_t pos = buf.size();
 	const std::size_t rsize = buffer::CHUNK_SIZE / 4 * 1024 * 256;
@@ -27,11 +27,11 @@ buffer::view fd_source::pull(buffer& buf)
 	ssize_t nread = ::read(handle_, buf.begin() + pos, rsize);
 
 	if (nread == -1)
-		return buffer::view();
+		return buffer_ref();
 
 	buf.resize(pos + nread);
 
-	return buf.sub(pos);
+	return buf.ref(pos);
 }
 
 void fd_source::accept(source_visitor& v)
