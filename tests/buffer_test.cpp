@@ -367,19 +367,4 @@ private: // {{{ debug helper
 	//}}}
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 CPPUNIT_TEST_SUITE_REGISTRATION(buffer_test);
