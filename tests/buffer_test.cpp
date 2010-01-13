@@ -219,15 +219,15 @@ private:
 		// test operator[](...)
 	}
 
-	void sub()
+	void ref()
 	{
 		x0::const_buffer a("hello");
 
 		CPPUNIT_ASSERT(a == "hello");
-		CPPUNIT_ASSERT(a.sub(0) == "hello");
-		CPPUNIT_ASSERT(a.sub(1) == "ello");
-		CPPUNIT_ASSERT(a.sub(2) == "llo");
-		CPPUNIT_ASSERT(a.sub(5) == "");
+		CPPUNIT_ASSERT(a.ref(0) == "hello");
+		CPPUNIT_ASSERT(a.ref(1) == "ello");
+		CPPUNIT_ASSERT(a.ref(2) == "llo");
+		CPPUNIT_ASSERT(a.ref(5) == "");
 	}
 
 	void call()
