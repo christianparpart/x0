@@ -20,7 +20,7 @@ bool fd_source::async() const
 buffer_ref fd_source::pull(buffer& buf)
 {
 	const std::size_t pos = buf.size();
-	const std::size_t rsize = buffer::CHUNK_SIZE / 4 * 1024 * 256;
+	const std::size_t rsize = buffer::CHUNK_SIZE;
 
 	buf.reserve(pos + rsize);
 
