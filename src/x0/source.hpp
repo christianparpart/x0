@@ -4,6 +4,7 @@
 #include <x0/buffer.hpp>
 #include <x0/sink.hpp>
 #include <x0/api.hpp>
+#include <memory>
 
 namespace x0 {
 
@@ -53,6 +54,8 @@ public:
 	 */
 	std::size_t pump(sink& output);
 };
+
+typedef std::shared_ptr<source> source_ptr;
 
 // {{{ inlines
 inline std::size_t source::pump(sink& output)
