@@ -44,6 +44,9 @@ public:
 
 	static const std::size_t CHUNK_SIZE = 4096;
 
+	struct helper { int i; };
+	typedef int (helper::*helper_type);
+
 private:
 	enum edit_mode_t { EDIT_ALL, EDIT_NO_RESIZE, EDIT_NOTHING };
 
@@ -100,7 +103,7 @@ public:
 	void reserve(std::size_t value);
 	void clear();
 
-	operator bool() const;
+	operator helper_type() const;
 	bool operator!() const;
 
 	// iterator access
@@ -114,6 +117,7 @@ public:
 	void push_back(value_type value);
 	void push_back(const value_type *value);
 	void push_back(const buffer& value);
+	void push_back(const buffer_ref& value);
 	void push_back(const std::string& value);
 	void push_back(const void *value, std::size_t size);
 	template<typename PodType, std::size_t N> void push_back(PodType (&value)[N]);
@@ -372,9 +376,9 @@ inline void buffer::clear()
 	resize(0);
 }
 
-inline buffer::operator bool() const
+inline buffer::operator helper_type() const
 {
-	return !empty();
+	return !empty() ? &helper::i : 0;
 }
 
 inline bool buffer::operator!() const
@@ -421,6 +425,17 @@ inline void buffer::push_back(const value_type *value)
 }
 
 inline void buffer::push_back(const buffer& value)
+{
+	if (std::size_t len = value.size())
+	{
+		reserve(size_ + len);
+
+		std::memcpy(end(), value.begin(), len);
+		size_ += len;
+	}
+}
+
+inline void buffer::push_back(const buffer_ref& value)
 {
 	if (std::size_t len = value.size())
 	{
