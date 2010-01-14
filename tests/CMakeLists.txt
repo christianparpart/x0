@@ -42,6 +42,7 @@ add_executable(x0test_common
 target_link_libraries(x0test_common
 	${CPPUNIT_LIBRARIES}
 	${LUA_LIBRARIES}
+	x0
 )
 
 # -----------------------------------------------------------------

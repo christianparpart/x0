@@ -1,9 +1,17 @@
 #include <x0/buffer.hpp>
+
 #include <x0/source.hpp>
+#include <x0/fd_source.hpp>
+#include <x0/file_source.hpp>
 #include <x0/buffer_source.hpp>
+#include <x0/filter_source.hpp>
 #include <x0/composite_source.hpp>
+
 #include <x0/sink.hpp>
+#include <x0/fd_sink.hpp>
+#include <x0/file_sink.hpp>
 #include <x0/buffer_sink.hpp>
+
 #include <x0/filter.hpp>
 
 #include <cppunit/extensions/HelperMacros.h>
@@ -52,7 +60,14 @@ private:
 
 	void test_file_source()
 	{
-		//! \todo
+		using namespace x0;
+
+		file_source in(__FILE__);
+		buffer_sink out;
+
+		while (in.pump(out)) ;
+
+		CPPUNIT_ASSERT(!out.buffer().empty());
 	}
 
 	void test_filter_source()
