@@ -116,6 +116,13 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 				{
 					server_.handle_request(response_->request(), *response_);
 				}
+				catch (const host_not_found& e)
+				{
+//					fprintf(stderr, "exception caught: %s\n", e.what());
+//					fflush(stderr);
+					response_->status = 404;
+					response_->flush();
+				}
 				catch (response::code_type reply)
 				{
 //					fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
