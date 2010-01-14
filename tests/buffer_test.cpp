@@ -122,10 +122,10 @@ private:
 	void operator_bool()
 	{
 		x0::buffer buf;
-		CPPUNIT_ASSERT(buf.operator bool() == false);
+		CPPUNIT_ASSERT(bool(buf) == false);
 
 		buf.push_back("hello");
-		CPPUNIT_ASSERT(buf.operator bool() == true);
+		CPPUNIT_ASSERT(bool(buf) == true);
 	}
 
 	void operator_not()
