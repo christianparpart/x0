@@ -12,7 +12,7 @@ namespace x0 {
 
 /** buffer source.
  *
- * \see source, sink
+ * \see buffer, source, sink
  */
 class X0_API buffer_source :
 	public source
@@ -23,13 +23,31 @@ public:
 	{
 	}
 
-	virtual buffer_ref pull(buffer& data)
+	std::size_t size() const
 	{
-		std::size_t first = pos_;
+		return buffer_.size();
+	}
 
+	const x0::buffer& buffer() const
+	{
+		return buffer_;
+	}
+
+	bool empty() const
+	{
+		return buffer_.empty();
+	}
+
+	virtual buffer_ref pull(x0::buffer& result)
+	{
+		std::size_t result_pos = result.size();
+
+		std::size_t first = pos_;
 		pos_ = std::min(buffer_.size(), pos_ + x0::buffer::CHUNK_SIZE);
 
-		return buffer_.ref(first, pos_ - first);
+		result.push_back(buffer_.ref(first, pos_ - first));
+
+		return result.ref(result_pos);
 	}
 
 	virtual void accept(source_visitor& v)
