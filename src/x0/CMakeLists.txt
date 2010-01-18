@@ -16,6 +16,7 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 set(x0_io_SRC
+	file.cpp
 	fd_source.cpp
 	file_source.cpp
 	buffer_source.cpp
@@ -29,6 +30,7 @@ set(x0_io_SRC
 )
 
 set(x0_io_API
+	file.hpp
 	source.hpp
 	fd_source.hpp
 	file_source.hpp
