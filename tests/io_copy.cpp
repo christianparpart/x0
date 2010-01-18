@@ -1,16 +1,28 @@
 #include <x0/source.hpp>
+#include <x0/fd_source.hpp>
 #include <x0/file_source.hpp>
+
 #include <x0/sink.hpp>
 #include <x0/file_sink.hpp>
+
 #include <x0/filter.hpp>
 #include <x0/null_filter.hpp>
 #include <x0/uppercase_filter.hpp>
 #include <x0/compress_filter.hpp>
 #include <x0/chain_filter.hpp>
+
 #include <x0/pump.hpp>
+
 #include <iostream>
 #include <memory>
+
 #include <getopt.h>
+
+inline x0::file_ptr getfile(const std::string ifname)
+{
+	return x0::file_ptr(new x0::file(
+		x0::fileinfo_ptr(new x0::fileinfo(ifname))));
+}
 
 int main(int argc, char *argv[])
 {
@@ -61,12 +73,12 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	std::shared_ptr<x0::source> input(ifname == "-" 
+	x0::source_ptr input(ifname == "-" 
 		? new x0::fd_source(STDIN_FILENO)
-		: new x0::file_source(ifname)
+		: new x0::file_source(getfile(ifname))
 	);
 
-	std::shared_ptr<x0::sink> output(ofname == "-"
+	x0::sink_ptr output(ofname == "-"
 		? new x0::fd_sink(STDOUT_FILENO)
 		: new x0::file_sink(ofname)
 	);
