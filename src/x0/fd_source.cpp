@@ -19,19 +19,36 @@ bool fd_source::async() const
 
 buffer_ref fd_source::pull(buffer& buf)
 {
-	const std::size_t pos = buf.size();
-	const std::size_t rsize = buffer::CHUNK_SIZE;
+	const std::size_t left = buf.size();
+	const std::size_t count = std::min(static_cast<std::size_t>(buffer::CHUNK_SIZE), count_);
 
-	buf.reserve(pos + rsize);
+	buf.reserve(left + count);
 
-	ssize_t nread = ::read(handle_, buf.begin() + pos, rsize);
+	if (offset_ != static_cast<std::size_t>(-1))
+	{
+		ssize_t nread = ::pread(handle_, buf.end(), count, offset_);
 
-	if (nread == -1)
-		return buffer_ref();
+		if (nread > 0)
+		{
+			offset_ += nread;
+			count_ -= nread;
 
-	buf.resize(pos + nread);
+			buf.resize(left + nread);
+			return buf.ref(left);
+		}
+	}
+	else
+	{
+		ssize_t nread = ::read(handle_, buf.end(), count);
 
-	return buf.ref(pos);
+		if (nread > 0)
+		{
+			buf.resize(left + nread);
+			return buf.ref(left);
+		}
+	}
+
+	return buffer_ref();
 }
 
 void fd_source::accept(source_visitor& v)
