@@ -22,6 +22,7 @@
 #include <cctype>
 #include <cassert>
 #include <strings.h>
+#include <unistd.h>
 
 class io_test :
 	public CPPUNIT_NS::TestFixture
@@ -55,14 +56,32 @@ private:
 
 	void test_fd_source()
 	{
-		//! \todo
+		int pfd[2];
+		int rv = pipe2(pfd, O_NONBLOCK);
+		CPPUNIT_ASSERT(rv != -1);
+		x0::fd_source in(pfd[0]);
+		x0::buffer output;
+
+		::write(pfd[1], "12345", 5);
+		CPPUNIT_ASSERT(in.pull(output) == "12345");
+		CPPUNIT_ASSERT(output == "12345");
+
+		::write(pfd[1], "abcd", 4);
+		CPPUNIT_ASSERT(in.pull(output) == "abcd");
+		CPPUNIT_ASSERT(output == "12345abcd");
+
+		CPPUNIT_ASSERT(in.pull(output) == "");
 	}
 
 	void test_file_source()
 	{
 		using namespace x0;
 
-		file_source in(__FILE__);
+		fileinfo_ptr info(new fileinfo(__FILE__));
+		file_ptr infile(new file(info, O_RDONLY));
+		CPPUNIT_ASSERT(infile->handle() != -1);
+
+		file_source in(infile);
 		buffer_sink out;
 
 		while (in.pump(out)) ;
