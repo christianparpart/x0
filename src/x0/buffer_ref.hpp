@@ -247,7 +247,7 @@ inline std::size_t buffer_ref::size() const
 
 inline const buffer::value_type *buffer_ref::data() const
 {
-	return buffer_->data() + offset_;
+	return buffer_ ? buffer_->data() + offset_ : NULL;
 }
 
 inline buffer_ref::operator bool() const
@@ -347,21 +347,25 @@ inline bool buffer_ref::begins(value_type value) const
 
 inline buffer_ref::buffer_ref buffer_ref::ref(std::size_t offset) const
 {
+	assert(buffer_ != 0);
 	return buffer_->ref(offset_ + offset, size_ - offset);
 }
 
 inline buffer_ref::buffer_ref buffer_ref::ref(std::size_t offset, std::size_t size) const
 {
+	assert(buffer_ != 0);
 	return buffer_->ref(offset_ + offset, size);
 }
 
 inline buffer_ref buffer_ref::operator()(std::size_t offset) const
 {
+	assert(buffer_ != 0);
 	return buffer_->ref(offset_ + offset, size_ - offset);
 }
 
 inline buffer_ref buffer_ref::operator()(std::size_t offset, std::size_t count) const
 {
+	assert(buffer_ != 0);
 	return buffer_->ref(offset_ + offset, count);
 }
 
@@ -372,6 +376,9 @@ inline const buffer::value_type& buffer_ref::operator[](std::size_t offset) cons
 
 inline buffer buffer_ref::clone() const
 {
+	if (!size_)
+		return buffer();
+
 	buffer buf(size_);
 	buf.push_back(data(), size_);
 
@@ -380,16 +387,19 @@ inline buffer buffer_ref::clone() const
 
 inline std::string buffer_ref::str() const
 {
+	assert(buffer_ != 0);
 	return substr(0);
 }
 
 inline std::string buffer_ref::substr(std::size_t offset) const
 {
+	assert(buffer_ != 0);
 	return std::string(data() + offset, size_ - std::min(offset, size_));
 }
 
 inline std::string buffer_ref::substr(std::size_t offset, std::size_t count) const
 {
+	assert(buffer_ != 0);
 	return std::string(data() + offset, std::min(count, size_));
 }
 // }}}
