@@ -71,6 +71,7 @@ private:
 		CPPUNIT_ASSERT(output == "12345abcd");
 
 		CPPUNIT_ASSERT(in.pull(output) == "");
+		CPPUNIT_ASSERT(errno == EAGAIN);
 	}
 
 	void test_file_source()
