@@ -2,6 +2,7 @@
 #define sw_x0_io_sink_hpp 1
 
 #include <x0/api.hpp>
+#include <memory>
 
 namespace x0 {
 
@@ -30,6 +31,8 @@ public:
 	 */
 	virtual std::size_t pump(source& src) = 0;
 };
+
+typedef std::shared_ptr<sink> sink_ptr;
 
 //@}
 

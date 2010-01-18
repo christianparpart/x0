@@ -36,6 +36,9 @@ class connection;
 struct request;
 struct response;
 
+struct file;
+typedef std::shared_ptr<file> file_ptr;
+
 //! \addtogroup core
 //@{
 
