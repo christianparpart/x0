@@ -31,7 +31,7 @@ namespace x0 {
  */
 template<class Target, class CompletionHandler>
 class composite_buffer_async_writer :
-	public composite_buffer::visitor
+	public composite_buffer::write_visitor
 {
 private:
 	struct context
@@ -64,8 +64,9 @@ private:
 	bool write_some_once();
 	void async_write_some();
 
-	virtual void visit(const composite_buffer::iovec_chunk&);
-	virtual void visit(const composite_buffer::fd_chunk&);
+	virtual ssize_t write(const composite_buffer::buffer_chunk&);
+	virtual ssize_t write(const composite_buffer::iovec_chunk&);
+	virtual ssize_t write(const composite_buffer::fd_chunk&);
 };
 
 /** 
@@ -169,7 +170,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::async_writ
 template<class Target, class CompletionHandler>
 inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some_once()
 {
-	context_->current_->accept(*this);
+	context_->status_ = context_->current_->accept(*this);
 
 	if (context_->status_ != -1)
 	{
@@ -188,7 +189,7 @@ inline bool composite_buffer_async_writer<Target, CompletionHandler>::write_some
 /** Writes contents from an iovec chunk into the target.
  */
 template<class Target, class CompletionHandler>
-inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(const composite_buffer::iovec_chunk& chunk)
+inline ssize_t composite_buffer_async_writer<Target, CompletionHandler>::write(const composite_buffer::iovec_chunk& chunk)
 {
 	#if 0
 	#	define DPRINTF if (context_->target_.native() == 10) printf
@@ -208,8 +209,10 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(cons
 		context_->col_slice_,
 		context_->offset_,
 		chunk[context_->row_slice_].iov_len);
-	ssize_t nwritten = ::writev(context_->target_.native(),
+	ssize_t rv = ::writev(context_->target_.native(),
 		&chunk[context_->row_slice_], chunk.length() - context_->row_slice_);
+
+	std::size_t nwritten = static_cast<std::size_t>(rv);
 
 	DEC(const_cast<iovec&>(chunk[context_->row_slice_]).iov_base, context_->col_slice_);
 	const_cast<iovec&>(chunk[context_->row_slice_]).iov_len += context_->col_slice_;
@@ -222,8 +225,6 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(cons
 			context_->cb_.size() - context_->nwritten_,
 			context_->cb_.size(),
 			chunk.length());
-
-	context_->status_ = nwritten;
 
 	if (nwritten > 0 &&
 		static_cast<std::size_t>(nwritten) < chunk.size() - context_->nwritten_ - context_->col_slice_)
@@ -252,12 +253,24 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(cons
 			context_->row_slice_, context_->col_slice_,
 			nwritten);
 	}
+
+	return rv;
+}
+
+template<class Target, class CompletionHandler>
+ssize_t composite_buffer_async_writer<Target, CompletionHandler>::write(const composite_buffer::buffer_chunk& chunk)
+{
+	return ::write(
+		context_->target_.native(),
+		chunk.buffer().data() + context_->offset_,
+		chunk.buffer().size() - context_->offset_
+	);
 }
 
 /** Writes contents from a file descriptor chunk into the target.
  */
 template<class Target, class CompletionHandler>
-inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(const composite_buffer::fd_chunk& chunk)
+inline ssize_t composite_buffer_async_writer<Target, CompletionHandler>::write(const composite_buffer::fd_chunk& chunk)
 {
 	off_t offset = chunk.offset() + context_->offset_;
 	std::size_t size = chunk.size() - context_->offset_;
@@ -277,7 +290,7 @@ inline void composite_buffer_async_writer<Target, CompletionHandler>::visit(cons
 	if (rv > 0 && size > std::size_t(rv))
 		posix_fadvise(fd, offset, 0, POSIX_FADV_WILLNEED);
 
-	context_->status_ = rv;
+	return rv;
 }
 
 template<class Target, class CompletionHandler>

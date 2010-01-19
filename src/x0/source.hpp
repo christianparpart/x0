@@ -4,6 +4,7 @@
 #include <x0/buffer.hpp>
 #include <x0/sink.hpp>
 #include <x0/api.hpp>
+#include <memory>
 
 namespace x0 {
 
@@ -38,7 +39,7 @@ public:
 	 *
 	 * \see sink::push()
 	 */
-	virtual buffer::view pull(buffer& buf) = 0;
+	virtual buffer_ref pull(buffer& buf) = 0;
 
 	/** every derivate has to implement this to fullfill the visitor-pattern.
 	 *
@@ -53,6 +54,8 @@ public:
 	 */
 	std::size_t pump(sink& output);
 };
+
+typedef std::shared_ptr<source> source_ptr;
 
 // {{{ inlines
 inline std::size_t source::pump(sink& output)

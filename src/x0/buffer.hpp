@@ -22,6 +22,8 @@
 
 namespace x0 {
 
+class buffer_ref;
+
 //! \addtogroup base
 //@{
 
@@ -34,16 +36,21 @@ namespace x0 {
 class buffer
 {
 public:
-	class view;
-
 	typedef char value_type;
 	typedef value_type * iterator;
 	typedef const value_type * const_iterator;
 
+	typedef buffer_ref view;
+
 	static const std::size_t CHUNK_SIZE = 4096;
+
+	struct helper { int i; };
+	typedef int (helper::*helper_type);
 
 private:
 	enum edit_mode_t { EDIT_ALL, EDIT_NO_RESIZE, EDIT_NOTHING };
+
+	friend class buffer_ref;
 
 private:
 	value_type *data_;
@@ -56,7 +63,7 @@ private:
 private:
 	mutable std::size_t refcount_;
 
-public:
+private:
 	void ref() const
 	{
 		++refcount_;
@@ -77,7 +84,7 @@ public:
 	buffer();
 	explicit buffer(std::size_t _capacity);
 	buffer(const value_type *_data, std::size_t _size); // XXX better be private?
-	explicit buffer(const buffer::view& v);
+	explicit buffer(const buffer_ref& v);
 	template<typename PodType, std::size_t N> explicit buffer(PodType (&value)[N]);
 	buffer(const buffer& v);
 	buffer& operator=(const buffer& v);
@@ -96,7 +103,7 @@ public:
 	void reserve(std::size_t value);
 	void clear();
 
-	operator bool() const;
+	operator helper_type() const;
 	bool operator!() const;
 
 	// iterator access
@@ -110,6 +117,7 @@ public:
 	void push_back(value_type value);
 	void push_back(const value_type *value);
 	void push_back(const buffer& value);
+	void push_back(const buffer_ref& value);
 	void push_back(const std::string& value);
 	void push_back(const void *value, std::size_t size);
 	template<typename PodType, std::size_t N> void push_back(PodType (&value)[N]);
@@ -119,11 +127,11 @@ public:
 	const value_type& operator[](std::size_t index) const;
 
 	// buffer views
-	view sub(std::size_t offset = 0) const;
-	view sub(std::size_t offset, std::size_t count) const;
+	buffer_ref ref(std::size_t offset) const;
+	buffer_ref ref(std::size_t offset, std::size_t count) const;
 
-	view operator()(std::size_t offset = 0) const;
-	view operator()(std::size_t offset, std::size_t count) const;
+	buffer_ref operator()(std::size_t offset = 0) const;
+	buffer_ref operator()(std::size_t offset, std::size_t count) const;
 
 	// STL string
 	const value_type *c_str() const;
@@ -174,126 +182,28 @@ public:
 	fixed_buffer();
 };
 
-class buffer::view
-{
-public:
-	typedef char value_type;
-	typedef value_type * iterator;
-	typedef const value_type * const_iterator;
-
-	static const std::size_t npos = std::size_t(-1);
-
-private:
-	const buffer *buffer_;
-	std::size_t offset_;
-	std::size_t size_;
-
-public:
-	view();
-	view(const buffer *_buffer, std::size_t _offset, std::size_t _size);
-	~view();
-
-	view(const buffer& v);
-	view(const view& v);
-
-	view& operator=(const buffer& v);
-	view& operator=(const view& v);
-
-	// properties
-	bool empty() const;
-	std::size_t offset() const;
-	std::size_t size() const;
-	const value_type *data() const;
-
-	operator bool() const;
-	bool operator!() const;
-
-	// iterator access
-	iterator begin() const;
-	iterator end() const;
-
-	const_iterator cbegin() const;
-	const_iterator cend() const;
-
-	// find
-	std::size_t find(const view& value) const;
-	std::size_t find(const value_type *value) const;
-	std::size_t find(value_type value) const;
-
-	// rfind
-	std::size_t rfind(const view& value) const;
-	std::size_t rfind(const value_type *value) const;
-	std::size_t rfind(value_type value) const;
-
-	// begins / ibegins
-	bool begins(const view& value) const;
-	bool begins(const value_type *value) const;
-	bool begins(value_type value) const;
-
-	bool ibegins(const view& value) const;
-	bool ibegins(const value_type *value) const;
-	bool ibegins(value_type value) const;
-
-	// ends / iends
-	bool ends(const view& value) const;
-	bool ends(const value_type *value) const;
-	bool ends(value_type value) const;
-
-	bool iends(const view& value) const;
-	bool iends(const value_type *value) const;
-	bool iends(value_type value) const;
-
-	// sub
-	view sub(std::size_t offset = 0) const;
-	view sub(std::size_t offset, std::size_t size) const;
-
-	view operator()(std::size_t offset = 0) const;
-	view operator()(std::size_t offset, std::size_t count) const;
-
-	// random access
-	const value_type& operator[](std::size_t offset) const;
-
-	// cloning
-	buffer clone() const;
-
-	// STL string
-	std::string str() const;
-	std::string substr(std::size_t offset) const;
-	std::string substr(std::size_t offset, std::size_t count) const;
-
-public: // ASIO support
-#if !defined(X0_BUFFER_NO_ASIO)
-	/** casts this view to asio::mutable_buffer.
-	 */
-	operator asio::mutable_buffer() { return asio::mutable_buffer(begin(), sizeof(value_type) * size()); }
-
-	/** cats this view to asio::mutable_buffers_1 as required by asio's read/write functions.
-	 */
-	asio::mutable_buffers_1 asio_buffer() { return asio::mutable_buffers_1(asio::mutable_buffer(begin(), sizeof(value_type) * size())); }
-
-#endif
-};
-
+// free functions
 bool equals(const buffer& a, const buffer& b);
-bool equals(const buffer& a, const buffer::view& b);
 bool equals(const buffer& a, const char *b);
 template<typename PodType, std::size_t N> bool equals(const buffer& a, PodType (&b)[N]);
 
-bool equals(const buffer::view& a, const buffer::view& b);
-bool equals(const buffer::view& a, const std::string& b);
-template<typename PodType, std::size_t N> bool equals(const buffer::view& a, PodType (&b)[N]);
-
 bool iequals(const buffer& a, const buffer& b);
-bool iequals(const buffer& a, const buffer::view& b);
 bool iequals(const buffer& a, const char *b);
 template<typename PodType, std::size_t N> bool iequals(const buffer& a, PodType (&b)[N]);
 
-bool iequals(const buffer::view& a, const buffer::view& b);
-bool iequals(const buffer::view& a, const std::string& b);
-template<typename PodType, std::size_t N> bool iequals(const buffer::view& a, PodType (&b)[N]);
-
+bool operator==(const buffer& a, const buffer& b);
 bool operator==(const buffer& a, const char *b);
-bool operator==(const buffer::view& a, const char *b);
+template<typename PodType, std::size_t N> bool operator==(const buffer& a, PodType (&b)[N]);
+
+} // namespace x0
+
+//@}
+
+#include <x0/buffer_ref.hpp>
+
+// {{{ impl
+
+namespace x0 {
 
 // {{{ buffer impl
 inline buffer::buffer() :
@@ -321,7 +231,7 @@ inline buffer::buffer(const value_type *_data, std::size_t _size) :
 {
 }
 
-inline buffer::buffer(const buffer::view& v) :
+inline buffer::buffer(const buffer_ref& v) :
 	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
 #if !defined(NDEBUG)
 	, refcount_(0)
@@ -466,9 +376,9 @@ inline void buffer::clear()
 	resize(0);
 }
 
-inline buffer::operator bool() const
+inline buffer::operator helper_type() const
 {
-	return !empty();
+	return !empty() ? &helper::i : 0;
 }
 
 inline bool buffer::operator!() const
@@ -515,6 +425,17 @@ inline void buffer::push_back(const value_type *value)
 }
 
 inline void buffer::push_back(const buffer& value)
+{
+	if (std::size_t len = value.size())
+	{
+		reserve(size_ + len);
+
+		std::memcpy(end(), value.begin(), len);
+		size_ += len;
+	}
+}
+
+inline void buffer::push_back(const buffer_ref& value)
 {
 	if (std::size_t len = value.size())
 	{
@@ -573,37 +494,37 @@ inline std::string buffer::str() const
 	return std::string(data_, data_ + size_);
 }
 
-inline buffer::view buffer::sub(std::size_t offset) const
+inline buffer_ref buffer::ref(std::size_t offset) const
 {
 	assert(offset <= size_);
 
-	return view(this, offset, size_ - offset);
+	return buffer_ref(this, offset, size_ - offset);
 }
 
-inline buffer::view buffer::sub(std::size_t offset, std::size_t count) const
+inline buffer_ref buffer::ref(std::size_t offset, std::size_t count) const
 {
 	assert(offset >= 0);
 	assert(offset + count <= size_);
 
 	return count > 0
-		? view(this, offset, count)
-		: view();
+		? buffer_ref(this, offset, count)
+		: buffer_ref();
 }
 
-inline buffer::view buffer::operator()(std::size_t offset) const
+inline buffer_ref buffer::operator()(std::size_t offset) const
 {
 	assert(offset >= 0);
 	assert(offset <= size_);
 
-	return view(this, offset, size_ - offset);
+	return buffer_ref(this, offset, size_ - offset);
 }
 
-inline buffer::view buffer::operator()(std::size_t offset, std::size_t count) const
+inline buffer_ref buffer::operator()(std::size_t offset, std::size_t count) const
 {
 	assert(offset >= 0);
 	assert(offset + count < size_);
 
-	return view(this, offset, count);
+	return buffer_ref(this, offset, count);
 }
 
 inline std::string buffer::substr(std::size_t offset) const
@@ -637,254 +558,6 @@ inline fixed_buffer<N>::fixed_buffer() :
 }
 // }}}
 
-// {{{ buffer::view impl
-inline buffer::view::view() :
-	buffer_(0), offset_(0), size_(0)
-{
-}
-
-inline buffer::view::view(const buffer *_buffer, std::size_t _offset, std::size_t _size) :
-	buffer_(_buffer), offset_(_offset), size_(_size)
-{
-#if !defined(NDEBUG)
-	if (buffer_)
-	{
-		buffer_->ref();
-		assert(offset_ + size_ <= buffer_->size());
-	}
-	else
-	{
-		assert(!offset_);
-		assert(!size_);
-	}
-#endif
-}
-
-inline buffer::view::~view()
-{
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->unref();
-#endif
-}
-
-inline buffer::view::view(const buffer& v) :
-	buffer_(&v), offset_(0), size_(v.size_)
-{
-#if !defined(NDEBUG)
-	buffer_->ref();
-#endif
-}
-
-inline buffer::view::view(const view& v) :
-	buffer_(v.buffer_), offset_(v.offset_), size_(v.size_)
-{
-#if !defined(NDEBUG)
-	buffer_->ref();
-#endif
-}
-
-inline buffer::view::view& buffer::view::operator=(const buffer& v)
-{
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->unref();
-#endif
-
-	buffer_ = &v;
-	offset_ = 0;
-	size_ = v.size_;
-
-#if !defined(NDEBUG)
-	buffer_->ref();
-#endif
-
-	return *this;
-}
-
-inline buffer::view::view& buffer::view::operator=(const view& v)
-{
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->unref();
-#endif
-
-	buffer_ = v.buffer_;
-	offset_ = v.offset_;
-	size_ = v.size_;
-
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->ref();
-#endif
-
-	return *this;
-}
-
-inline bool buffer::view::empty() const
-{
-	return !size_;
-}
-
-inline std::size_t buffer::view::offset() const
-{
-	return offset_;
-}
-
-inline std::size_t buffer::view::size() const
-{
-	return size_;
-}
-
-inline const buffer::value_type *buffer::view::data() const
-{
-	return buffer_->data() + offset_;
-}
-
-inline buffer::view::operator bool() const
-{
-	return !empty();
-}
-
-inline bool buffer::view::operator!() const
-{
-	return empty();
-}
-
-inline buffer::view::iterator buffer::view::begin() const
-{
-	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ : 0;
-}
-
-inline buffer::view::iterator buffer::view::end() const
-{
-	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ + size_ : 0;
-}
-
-inline buffer::view::const_iterator buffer::view::cbegin() const
-{
-	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ : 0;
-}
-
-inline buffer::view::const_iterator buffer::view::cend() const
-{
-	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ + size_ : 0;
-}
-
-inline std::size_t buffer::view::find(const value_type *value) const
-{
-	if (const char *p = strstr(data(), value))
-	{
-		if (p < end())
-		{
-			return p - data();
-		}
-	}
-	return npos;
-}
-
-inline std::size_t buffer::view::find(value_type value) const
-{
-	if (const char *p = strchr(data(), value))
-	{
-		if (p < end())
-		{
-			return p - data();
-		}
-	}
-	return npos;
-}
-
-inline std::size_t buffer::view::rfind(const value_type *value) const
-{
-	assert(0 && "not implemented");
-	return npos;
-}
-
-inline std::size_t buffer::view::rfind(value_type value) const
-{
-	const char *p = data();
-	const char *q = p + size();
-
-	while (p != q)
-	{
-		if (*q == value)
-		{
-			return q - p;
-		}
-		--q;
-	}
-
-	return *p == value ? 0 : npos;
-}
-
-inline bool buffer::view::begins(const view& value) const
-{
-	return memcmp(data(), value.data(), std::min(size(), value.size())) == 0;
-}
-
-inline bool buffer::view::begins(const value_type *value) const
-{
-	if (!value)
-		return true;
-
-	return memcmp(data(), value, std::min(size(), std::strlen(value))) == 0;
-}
-
-inline bool buffer::view::begins(value_type value) const
-{
-	return size() >= 1 && data()[0] == value;
-}
-
-inline buffer::view::view buffer::view::sub(std::size_t offset) const
-{
-	return buffer_->sub(offset_ + offset, size_ - offset);
-}
-
-inline buffer::view::view buffer::view::sub(std::size_t offset, std::size_t size) const
-{
-	return buffer_->sub(offset_ + offset, size);
-}
-
-inline buffer::view buffer::view::operator()(std::size_t offset) const
-{
-	return buffer_->sub(offset_ + offset, size_ - offset);
-}
-
-inline buffer::view buffer::view::operator()(std::size_t offset, std::size_t count) const
-{
-	return buffer_->sub(offset_ + offset, count);
-}
-
-inline const buffer::value_type& buffer::view::operator[](std::size_t offset) const
-{
-	return data()[offset];
-}
-
-inline buffer buffer::view::clone() const
-{
-	buffer buf(size_);
-	buf.push_back(data(), size_);
-
-	return buf;
-}
-
-inline std::string buffer::view::str() const
-{
-	return substr(0);
-}
-
-inline std::string buffer::view::substr(std::size_t offset) const
-{
-	return std::string(data() + offset, size_ - std::min(offset, size_));
-}
-
-inline std::string buffer::view::substr(std::size_t offset, std::size_t count) const
-{
-	return std::string(data() + offset, std::min(count, size_));
-}
-// }}}
-
 // {{{ free function impl
 inline bool equals(const buffer& a, const buffer& b)
 {
@@ -895,12 +568,6 @@ inline bool equals(const buffer& a, const buffer& b)
 		return false;
 
 	return std::memcmp(a.data(), b.data(), a.size()) == 0;
-}
-
-inline bool equals(const buffer& a, const buffer::view& b)
-{
-	return a.size() == b.size()
-		&& (a.data() == b.data() || std::memcmp(a.data(), b.data(), a.size()) == 0);
 }
 
 inline bool equals(const buffer& a, const char *b)
@@ -925,37 +592,6 @@ bool equals(const buffer& a, PodType (&b)[N])
 	return std::memcmp(a.data(), b, bsize) == 0;
 }
 
-// buffer::view
-inline bool equals(const buffer::view& a, const buffer::view& b)
-{
-	if (&a == &b)
-		return true;
-
-	if (a.size() != b.size())
-		return false;
-
-	return std::memcmp(a.data(), b.data(), a.size()) == 0;
-}
-
-inline bool equals(const buffer::view& a, const std::string& b)
-{
-	if (a.size() != b.size())
-		return false;
-
-	return std::memcmp(a.data(), b.data(), a.size()) == 0;
-}
-
-template<typename PodType, std::size_t N>
-bool equals(const buffer::view& a, PodType (&b)[N])
-{
-	const std::size_t bsize = N - 1;
-
-	if (a.size() != bsize)
-		return false;
-
-	return std::memcmp(a.data(), b, bsize) == 0;
-}
-
 // --------------------------------------------------------------------
 inline bool iequals(const buffer& a, const buffer& b)
 {
@@ -966,17 +602,6 @@ inline bool iequals(const buffer& a, const buffer& b)
 		return false;
 
 	return a.data() == b.data() || strncasecmp(a.data(), b.data(), a.size()) == 0;
-}
-
-inline bool iequals(const buffer& a, const buffer::view& b)
-{
-	if (a.size() != b.size())
-		return false;
-
-	if (strncasecmp(a.data(), b.data(), b.size()) != 0)
-		return false;
-
-	return true;
 }
 
 inline bool iequals(const buffer& a, const char *b)
@@ -1006,44 +631,8 @@ bool iequals(const buffer& a, PodType (&b)[N])
 	return true;
 }
 
-//.
-inline bool iequals(const buffer::view& a, const buffer::view& b)
-{
-	if (&a == &b)
-		return true;
-
-	if (a.size() != b.size())
-		return false;
-
-	return strncasecmp(a.data(), b.data(), a.size()) == 0;
-}
-
-inline bool iequals(const buffer::view& a, const std::string& b)
-{
-	if (a.size() != b.size())
-		return false;
-
-	return strncasecmp(a.data(), b.data(), a.size()) == 0;
-}
-
-template<typename PodType, std::size_t N>
-bool iequals(const buffer::view& a, PodType (&b)[N])
-{
-	const std::size_t bsize = N - 1;
-
-	if (a.size() != bsize)
-		return false;
-
-	return strncasecmp(a.data(), b, bsize) == 0;
-}
-
 // ------------------------------------------------------------------------
 inline bool operator==(const x0::buffer& a, const x0::buffer& b)
-{
-	return equals(a, b);
-}
-
-inline bool operator==(const x0::buffer& a, const x0::buffer::view& b)
 {
 	return equals(a, b);
 }
@@ -1057,31 +646,10 @@ template<typename PodType, std::size_t N> bool operator==(const buffer& a, PodTy
 {
 	return equals<PodType, N>(a, b);
 }
-
-// buffer::view
-inline bool operator==(const x0::buffer::view& a, const x0::buffer& b)
-{
-	return equals(a, b);
-}
-
-inline bool operator==(const x0::buffer::view& a, const x0::buffer::view& b)
-{
-	return equals(a, b);
-}
-
-inline bool operator==(const x0::buffer::view& a, const char *b)
-{
-	return equals(a, b);
-}
-
-template<typename PodType, std::size_t N> bool operator==(const buffer::view& a, PodType (&b)[N])
-{
-	return equals<PodType, N>(a, b);
-}
 // }}}
 
-//@}
-
 } // namespace x0
+
+// }}}
 
 #endif

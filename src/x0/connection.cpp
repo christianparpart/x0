@@ -56,6 +56,7 @@ void connection::resume()
 {
 	//DEBUG("connection(%p).resume()", this);
 
+	buffer_.clear();
 	request_reader_.reset();
 	request_ = new request(*this);
 
@@ -96,13 +97,14 @@ void connection::read_timeout(const asio::error_code& ec)
  */
 void connection::handle_read(const asio::error_code& e, std::size_t bytes_transferred)
 {
-	//DEBUG("connection(%p).handle_read(ec=%s, sz=%ld)", this, e.message().c_str(), bytes_transferred);
+	buffer_.resize(buffer_.size() + bytes_transferred);
+	//DEBUG("connection(%p).handle_read(ec=%s, sz=%ld, bs=%ld, bc=%ld)", this, e.message().c_str(), bytes_transferred, buffer_.size(), buffer_.capacity());
 	timer_.cancel();
 
 	if (!e)
 	{
 		// parse request (partial)
-		boost::tribool result = request_reader_.parse(*request_, buffer_.data(), buffer_.data() + bytes_transferred);
+		boost::tribool result = request_reader_.parse(*request_, buffer_.ref(0, bytes_transferred));
 
 		if (result) // request fully parsed
 		{
@@ -113,6 +115,13 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 				try
 				{
 					server_.handle_request(response_->request(), *response_);
+				}
+				catch (const host_not_found& e)
+				{
+//					fprintf(stderr, "exception caught: %s\n", e.what());
+//					fflush(stderr);
+					response_->status = 404;
+					response_->flush();
 				}
 				catch (response::code_type reply)
 				{

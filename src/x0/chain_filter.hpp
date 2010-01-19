@@ -16,20 +16,20 @@ class X0_API chain_filter :
 	public filter
 {
 public:
-	virtual buffer process(const buffer::view& input);
+	virtual buffer process(const buffer_ref& input);
 
 public:
-	void push_back(std::shared_ptr<filter> f);
+	void push_back(filter_ptr f);
 
 	std::size_t size() const;
 	bool empty() const;
 
 private:
-	std::vector<std::shared_ptr<filter> > filters_;
+	std::vector<filter_ptr> filters_;
 };
 
 //{{{ inlines impl
-inline void chain_filter::push_back(std::shared_ptr<filter> f)
+inline void chain_filter::push_back(filter_ptr f)
 {
 	filters_.push_back(f);
 }

@@ -11,7 +11,7 @@ compress_filter::compress_filter()
 	z_.opaque = Z_NULL;
 }
 
-buffer compress_filter::process(const buffer::view& input)
+buffer compress_filter::process(const buffer_ref& input)
 {
 	if (input.empty())
 		return buffer();

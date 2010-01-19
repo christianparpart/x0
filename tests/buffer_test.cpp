@@ -26,7 +26,7 @@ public:
 		CPPUNIT_TEST(const_iterators);
 		CPPUNIT_TEST(push_back);
 		CPPUNIT_TEST(random_access);
-		CPPUNIT_TEST(sub);
+		CPPUNIT_TEST(ref);
 		CPPUNIT_TEST(call);
 		CPPUNIT_TEST(std_string);
 
@@ -122,10 +122,10 @@ private:
 	void operator_bool()
 	{
 		x0::buffer buf;
-		CPPUNIT_ASSERT(buf.operator bool() == false);
+		CPPUNIT_ASSERT(bool(buf) == false);
 
 		buf.push_back("hello");
-		CPPUNIT_ASSERT(buf.operator bool() == true);
+		CPPUNIT_ASSERT(bool(buf) == true);
 	}
 
 	void operator_not()
@@ -219,15 +219,15 @@ private:
 		// test operator[](...)
 	}
 
-	void sub()
+	void ref()
 	{
 		x0::const_buffer a("hello");
 
 		CPPUNIT_ASSERT(a == "hello");
-		CPPUNIT_ASSERT(a.sub(0) == "hello");
-		CPPUNIT_ASSERT(a.sub(1) == "ello");
-		CPPUNIT_ASSERT(a.sub(2) == "llo");
-		CPPUNIT_ASSERT(a.sub(5) == "");
+		CPPUNIT_ASSERT(a.ref(0) == "hello");
+		CPPUNIT_ASSERT(a.ref(1) == "ello");
+		CPPUNIT_ASSERT(a.ref(2) == "llo");
+		CPPUNIT_ASSERT(a.ref(5) == "");
 	}
 
 	void call()
@@ -366,20 +366,5 @@ private: // {{{ debug helper
 	}
 	//}}}
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 CPPUNIT_TEST_SUITE_REGISTRATION(buffer_test);

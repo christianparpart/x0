@@ -9,6 +9,7 @@ class fd_source;
 class file_source;
 class buffer_source;
 class filter_source;
+class composite_source;
 
 //! \addtogroup io
 //@{
@@ -26,6 +27,7 @@ public:
 	virtual void visit(file_source&) = 0;
 	virtual void visit(buffer_source&) = 0;
 	virtual void visit(filter_source&) = 0;
+	virtual void visit(composite_source&) = 0;
 };
 
 //@}

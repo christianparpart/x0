@@ -7,10 +7,20 @@
 
 namespace x0 {
 
-file_source::file_source(const std::string& filename) :
-	fd_source(open(filename.c_str(), O_RDONLY))
+/** initializes a file source.
+ *
+ * \param f the file to stream
+ */
+file_source::file_source(const file_ptr& f) :
+	fd_source(f->handle(), 0, f->info().size()),
+	file_(f)
 {
-	fcntl(handle_, F_SETFL, O_CLOEXEC, 1);
+}
+
+file_source::file_source(const file_ptr& f, std::size_t offset, std::size_t size) :
+	fd_source(f->handle(), offset, size),
+	file_(f)
+{
 }
 
 file_source::~file_source()
