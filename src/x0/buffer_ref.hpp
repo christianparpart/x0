@@ -39,19 +39,19 @@ public:
 	static const std::size_t npos = std::size_t(-1);
 
 private:
-	const buffer *buffer_;
+	const x0::buffer *buffer_;
 	std::size_t offset_;
 	std::size_t size_;
 
 public:
 	buffer_ref();
-	buffer_ref(const buffer *_buffer, std::size_t _offset, std::size_t _size);
+	buffer_ref(const x0::buffer *_buffer, std::size_t _offset, std::size_t _size);
 	~buffer_ref();
 
-	buffer_ref(const buffer& v);
+	buffer_ref(const x0::buffer& v);
 	buffer_ref(const buffer_ref& v);
 
-	buffer_ref& operator=(const buffer& v);
+	buffer_ref& operator=(const x0::buffer& v);
 	buffer_ref& operator=(const buffer_ref& v);
 
 	// properties
@@ -59,6 +59,7 @@ public:
 	std::size_t offset() const;
 	std::size_t size() const;
 	const value_type *data() const;
+	x0::buffer& buffer() const;
 
 	operator bool() const;
 	bool operator!() const;
@@ -69,6 +70,9 @@ public:
 
 	const_iterator cbegin() const;
 	const_iterator cend() const;
+
+	void shl(ssize_t offset);
+	void shr(ssize_t offset);
 
 	// find
 	std::size_t find(const buffer_ref& value) const;
@@ -109,7 +113,7 @@ public:
 	const value_type& operator[](std::size_t offset) const;
 
 	// cloning
-	buffer clone() const;
+	x0::buffer clone() const;
 
 	// STL string
 	std::string str() const;
@@ -152,7 +156,7 @@ inline buffer_ref::buffer_ref() :
 {
 }
 
-inline buffer_ref::buffer_ref(const buffer *_buffer, std::size_t _offset, std::size_t _size) :
+inline buffer_ref::buffer_ref(const x0::buffer *_buffer, std::size_t _offset, std::size_t _size) :
 	buffer_(_buffer), offset_(_offset), size_(_size)
 {
 #if !defined(NDEBUG)
@@ -177,7 +181,7 @@ inline buffer_ref::~buffer_ref()
 #endif
 }
 
-inline buffer_ref::buffer_ref(const buffer& v) :
+inline buffer_ref::buffer_ref(const x0::buffer& v) :
 	buffer_(&v), offset_(0), size_(v.size_)
 {
 #if !defined(NDEBUG)
@@ -185,7 +189,7 @@ inline buffer_ref::buffer_ref(const buffer& v) :
 #endif
 }
 
-inline buffer_ref::buffer_ref(const buffer_ref& v) :
+inline buffer_ref::buffer_ref(const x0::buffer_ref& v) :
 	buffer_(v.buffer_), offset_(v.offset_), size_(v.size_)
 {
 #if !defined(NDEBUG)
@@ -193,7 +197,7 @@ inline buffer_ref::buffer_ref(const buffer_ref& v) :
 #endif
 }
 
-inline buffer_ref::buffer_ref& buffer_ref::operator=(const buffer& v)
+inline buffer_ref::buffer_ref& buffer_ref::operator=(const x0::buffer& v)
 {
 #if !defined(NDEBUG)
 	if (buffer_)
@@ -211,7 +215,7 @@ inline buffer_ref::buffer_ref& buffer_ref::operator=(const buffer& v)
 	return *this;
 }
 
-inline buffer_ref::buffer_ref& buffer_ref::operator=(const buffer_ref& v)
+inline buffer_ref::buffer_ref& buffer_ref::operator=(const x0::buffer_ref& v)
 {
 #if !defined(NDEBUG)
 	if (buffer_)
@@ -250,6 +254,12 @@ inline const buffer::value_type *buffer_ref::data() const
 	return buffer_ ? buffer_->data() + offset_ : NULL;
 }
 
+inline x0::buffer& buffer_ref::buffer() const
+{
+	assert(buffer_ != 0);
+	return *const_cast<x0::buffer *>(buffer_);
+}
+
 inline buffer_ref::operator bool() const
 {
 	return !empty();
@@ -278,6 +288,26 @@ inline buffer_ref::const_iterator buffer_ref::cbegin() const
 inline buffer_ref::const_iterator buffer_ref::cend() const
 {
 	return buffer_ ? const_cast<value_type *>(buffer_->data()) + offset_ + size_ : 0;
+}
+
+/** shifts view's left margin by given bytes to the left, thus, increasing view's size.
+ */
+void buffer_ref::shl(ssize_t offset)
+{
+	offset_ -= offset;
+	size_ += offset;
+
+	assert(offset_ >= 0);
+	assert(offset_ + size_ < buffer_->capacity());
+}
+
+/** shifts view's right margin by given bytes to the right, thus, increasing view's size.
+ */
+void buffer_ref::shr(ssize_t offset)
+{
+	size_ += offset;
+
+	assert(offset_ + size_ < buffer_->capacity());
 }
 
 inline std::size_t buffer_ref::find(const value_type *value) const
@@ -327,7 +357,7 @@ inline std::size_t buffer_ref::rfind(value_type value) const
 	return *p == value ? 0 : npos;
 }
 
-inline bool buffer_ref::begins(const buffer_ref& value) const
+inline bool buffer_ref::begins(const x0::buffer_ref& value) const
 {
 	return memcmp(data(), value.data(), std::min(size(), value.size())) == 0;
 }
@@ -379,7 +409,7 @@ inline buffer buffer_ref::clone() const
 	if (!size_)
 		return buffer();
 
-	buffer buf(size_);
+	x0::buffer buf(size_);
 	buf.push_back(data(), size_);
 
 	return buf;
