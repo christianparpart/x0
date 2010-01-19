@@ -37,6 +37,9 @@ buffer compress_filter::process(const buffer::view& input)
 
 	do
 	{
+		if (output.capacity() < output.size() / 2)
+			output.reserve(output.capacity() + buffer::CHUNK_SIZE);
+
 		int rv = deflate(&z_, Z_FINISH);
 		if (rv == Z_STREAM_ERROR)
 		{
