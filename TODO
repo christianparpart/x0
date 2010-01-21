@@ -1,13 +1,13 @@
 -----------------------------------------------------------------------------
 ROADMAP
 
-0.1.0: (11/09)
+0.1.0: (02/10)
 	+ x0: solid configuration system
-	- x0: response stream filter chain API (required for plugins: ssl, deflate, ssi, ...)
+	* x0: response stream filter chain API (required for plugins: ssl, deflate, ssi, ...)
 	- x0: finish server limit configurations (keep-alive!)
 	- x0: complete core API documentation
 	- x0d: add settings option to setup process' cpu affinity
-	- x0: ability to attach custom shared_ptr<>'d data to fileinfo record which is though released when its underlying inode changes.
+	* x0: ability to attach custom shared_ptr<>'d data to fileinfo record which is though released when its underlying inode changes.
 	  this way i could speed up repeative directory listing generation
 	  std::string data;
 	  if (!my_fileinfo->get<std::string>(this, data))
@@ -16,8 +16,8 @@ ROADMAP
 		  data = create_data();
 	      my_fileinfo->set(this, data);
 	  }
-0.2.0: (12/09)
-	- proxy plugin
+0.2.0: (03/10)
+	- reverse proxy plugin
 		- must at least support backend: http
 		- must support realtime streaming (required for YaCS chat stream to be passed through)
 		- must support fallback (hot-spare) nodes
@@ -27,7 +27,7 @@ ROADMAP
 		- must support server side certificates as passed via file (standard, just like apache etc)
 	- dirlisting plugin
 		- must support content template engine (extracted from libnuggad)
-0.3.0: (01/10)
+0.3.0: (06/10)
 	- deflate plugin
 		- must support dynamic content compression
 	- status plugin
@@ -36,29 +36,30 @@ ROADMAP
 			- cpu load
 			- current number of connections and their states
 			- ...
-0.4.0: (02/10)
+0.4.0: (09/10)
 	- fastcgi plugin
 	- csp plugin (C++ server pages)
 
-0.5.0: (05/10)
+0.5.0: (12/10)
 	- webdav plugin
 	- ssi plugin
 
 
 -----------------------------------------------------------------------------
 FEATURE LIST:
-- ssl support (ssl, via gnutls)
+io:
+- ssl support, via gnutls (ssl)
 mapper:
 - request path aliasing (alias)
 - request path rewriting (rewrite)
 generator:
 - http reverse proxy (proxy)
 - server status API (status)
-- cgi 1.1 support (cgi)
++ cgi 1.1 support (cgi)
 - fastcgi support (fastcgi)
 - lua server pages (wsapi)
 - c++ server pages (csp)
-- directory listing
++ directory listing
 - dynamic content compression (deflate)
 - webdav support (webdav)
 
