@@ -150,6 +150,9 @@ bool operator==(const x0::buffer& a, const x0::buffer_ref& b);
 bool operator==(const buffer_ref& a, const char *b);
 template<typename PodType, std::size_t N> bool operator==(const buffer_ref& a, PodType (&b)[N]);
 
+std::string operator+(const buffer_ref& a, const std::string& b);
+std::string operator+(const std::string& a, const buffer_ref& b);
+
 // {{{ buffer_ref impl
 inline buffer_ref::buffer_ref() :
 	buffer_(0), offset_(0), size_(0)
@@ -292,7 +295,7 @@ inline buffer_ref::const_iterator buffer_ref::cend() const
 
 /** shifts view's left margin by given bytes to the left, thus, increasing view's size.
  */
-void buffer_ref::shl(ssize_t offset)
+inline void buffer_ref::shl(ssize_t offset)
 {
 	offset_ -= offset;
 	size_ += offset;
@@ -303,7 +306,7 @@ void buffer_ref::shl(ssize_t offset)
 
 /** shifts view's right margin by given bytes to the right, thus, increasing view's size.
  */
-void buffer_ref::shr(ssize_t offset)
+inline void buffer_ref::shr(ssize_t offset)
 {
 	size_ += offset;
 
@@ -538,6 +541,16 @@ inline bool operator==(const x0::buffer_ref& a, const char *b)
 template<typename PodType, std::size_t N> inline bool operator==(const buffer_ref& a, PodType (&b)[N])
 {
 	return equals<PodType, N>(a, b);
+}
+
+inline std::string operator+(const buffer_ref& a, const std::string& b)
+{
+	return std::string(a.data(), a.size()) + b;
+}
+
+inline std::string operator+(const std::string& a, const buffer_ref& b)
+{
+	return a + std::string(b.data(), b.size());
 }
 // }}}
 
