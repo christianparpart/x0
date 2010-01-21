@@ -52,7 +52,7 @@ mapper:
 - request path aliasing (alias)
 - request path rewriting (rewrite)
 generator:
-- http proxy (proxy)
+- http reverse proxy (proxy)
 - server status API (status)
 - cgi 1.1 support (cgi)
 - fastcgi support (fastcgi)

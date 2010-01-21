@@ -8,6 +8,19 @@ DESIGN GOALS
 - access control: support libwrap, if possible
 	(see external links at http://en.wikipedia.org/wiki/Libwrap)
 
+RESPONSE FLOW
+------------------------------------------------------------------------------
+
+composite_source(response) {
+	buffer_source(status+header), 
+	filter_source(body) {,
+		compress_filter(gzip),
+		composite_source(body) {
+			file_source(/path/to/file.html)
+		}
+	}
+}
+
 CLASSES
 ------------------------------------------------------------------------------
 config                  holds configuration settings being read from file
