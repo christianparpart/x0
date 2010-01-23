@@ -131,13 +131,13 @@ public:
 
 	// {{{ header manipulation
 	/// the headers to be included in the response.
-	std::vector<x0::header> headers;
+	std::vector<x0::response_header> headers;
 
 	/** adds a response header. */
-	response& operator+=(const x0::header& hd);
+	response& operator+=(const x0::response_header& hd);
 
 	/** sets a response header value (overwrites existing one if already defined). */
-	response& operator*=(const x0::header& hd);
+	response& operator*=(const x0::response_header& hd);
 
 	/** checks wether given response header has been already defined. */
 	bool has_header(const std::string& name) const;

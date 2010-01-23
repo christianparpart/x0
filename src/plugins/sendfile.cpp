@@ -155,7 +155,7 @@ private:
 
 	inline bool process_range_request(x0::request& in, x0::response& out, int fd)
 	{
-		std::string range_value(in.header("Range"));
+		x0::buffer_ref range_value(in.header("Range"));
 		x0::range_def range;
 
 		// if no range request or range request was invalid (by syntax) we fall back to a full response

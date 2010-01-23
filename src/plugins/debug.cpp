@@ -87,10 +87,10 @@ private:
 
 		std::ostringstream stream;
 
-		stream << "C> " << in.method << ' ' << in.uri << " HTTP/" << in.http_version_major << '.' << in.http_version_minor << std::endl;
+		stream << "C> " << in.method.str() << ' ' << in.uri.str() << " HTTP/" << in.http_version_major << '.' << in.http_version_minor << std::endl;
 		for (auto i = in.headers.begin(), e = in.headers.end(); i != e; ++i)
 		{
-			stream << "C> " << i->name << ": " << i->value << std::endl;
+			stream << "C> " << i->name.str() << ": " << i->value.str() << std::endl;
 		}
 		if (!in.body.empty())
 		{

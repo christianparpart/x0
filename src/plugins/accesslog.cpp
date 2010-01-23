@@ -153,7 +153,7 @@ private:
 
 	inline std::string username(x0::request& in)
 	{
-		return !in.username.empty() ? in.username : "-";
+		return !in.username.empty() ? in.username.str() : "-";
 	}
 
 	inline std::string request_line(x0::request& in)
@@ -168,8 +168,8 @@ private:
 
 	inline std::string getheader(const x0::request& in, const std::string& name)
 	{
-		std::string value(in.header(name));
-		return !value.empty() ? value : "-";
+		x0::buffer_ref value(in.header(name));
+		return !value.empty() ? value.str() : "-";
 	}
 };
 

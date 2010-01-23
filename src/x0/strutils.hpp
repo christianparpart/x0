@@ -114,7 +114,7 @@ std::vector<T> split(const std::basic_string<U>& list, const U *sep);
 //@{
 
 std::string make_hostid(const std::string& hostname);
-std::string make_hostid(const std::string& hostname, int port);
+template<typename String> std::string make_hostid(const String& hostname, int port);
 int extract_port_from_hostid(const std::string& hostid);
 std::string extract_host_from_hostid(const std::string& hostid);
 

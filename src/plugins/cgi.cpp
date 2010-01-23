@@ -337,14 +337,12 @@ inline void cgi_script::async_run()
 		key.reserve(5 + i->name.size());
 		key += "HTTP_";
 
-		for (const char *p = i->name.c_str(); *p; ++p)
+		for (x0::buffer::const_iterator p = i->name.begin(), q = i->name.end(); p != q; ++p)
 		{
 			key += std::isalnum(*p) ? std::toupper(*p) : '_';
 		}
 
-		std::string value(i->value);
-
-		environment[key] = value;
+		environment[key] = i->value.str();
 	}
 
 	// platfrom specifics
@@ -400,7 +398,7 @@ void cgi_script::receive_response(const asio::error_code& ec, std::size_t bytes_
 		{
 			// post-inject content-length in order to preserve keep-alive in case we didn't start serializing yet and
 			// the client requested persistent connections.
-			response_ += x0::header("Content-Length", boost::lexical_cast<std::string>(response_.content_length()));
+			response_ += x0::response_header("Content-Length", boost::lexical_cast<std::string>(response_.content_length()));
 		}
 
 		response_.flush();
@@ -570,7 +568,7 @@ private:
 	 */
 	bool matches_prefix(x0::request& in)
 	{
-		if (std::strncmp(in.path.c_str(), prefix_.c_str(), prefix_.size()) == 0)
+		if (in.path.begins(prefix_))
 			return true;
 
 		return false;

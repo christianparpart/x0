@@ -41,12 +41,13 @@ inline std::string make_hostid(const std::string& hostname)
 	return hostname + ":80";
 }
 
-inline std::string make_hostid(const std::string& hostname, int port)
+template<typename String>
+inline std::string make_hostid(const String& hostname, int port)
 {
-	std::size_t n = hostname.rfind(":");
+	std::size_t n = hostname.rfind(':');
 
-	if (n != std::string::npos)
-		return hostname;
+	if (n != String::npos)
+		return std::string(hostname.data(), hostname.size());
 
 #if 0
 	return hostname + ":" + boost::lexical_cast<std::string>(port);

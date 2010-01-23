@@ -87,8 +87,8 @@ private:
 				bool xml = !ctx.xsluri.empty();
 				std::string result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
 
-				out *= x0::header("Content-Type", xml ? "text/xml" : "text/html");
-				out *= x0::header("Content-Length", boost::lexical_cast<std::string>(result.size()));
+				out *= x0::response_header("Content-Type", xml ? "text/xml" : "text/html");
+				out *= x0::response_header("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
 				out.write(result);
 

@@ -8,6 +8,9 @@
 #ifndef x0_header_hpp
 #define x0_header_hpp (1)
 
+#include <x0/buffer.hpp>
+#include <string>
+
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <string>
@@ -20,14 +23,18 @@ namespace x0 {
 /**
  * \brief represents an HTTP header (name/value pair).
  */
+template<typename T>
 struct header {
-	std::string name;		//!< header name field
-	std::string value;		//!< header value field
+	T name;			//!< header name field
+	T value;		//!< header value field
 
 	header() : name(), value() { }
 	header(const header& v) : name(v.name), value(v.value) { }
-	header(const std::string& name, const std::string& value) : name(name), value(value) { }
+	header(const T& name, const T& value) : name(name), value(value) { }
 };
+
+typedef header<buffer_ref> request_header;
+typedef header<std::string> response_header;
 
 //@}
 

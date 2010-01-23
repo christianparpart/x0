@@ -27,16 +27,16 @@ response::~response()
 	delete request_;
 }
 
-response& response::operator+=(const x0::header& value)
+response& response::operator+=(const x0::response_header& value)
 {
 	headers.push_back(value);
 
 	return *this;
 }
 
-response& response::operator*=(const x0::header& in)
+response& response::operator*=(const x0::response_header& in)
 {
-	for (std::vector<x0::header>::iterator i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<x0::response_header>::iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 #if 0
 		if (iequals(i->name, in.name))
@@ -56,7 +56,7 @@ response& response::operator*=(const x0::header& in)
 
 bool response::has_header(const std::string& name) const
 {
-	for (std::vector<x0::header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<x0::response_header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 #if 0
 		if (iequals(i->name, name))
@@ -73,7 +73,7 @@ bool response::has_header(const std::string& name) const
 
 std::string response::header(const std::string& name) const
 {
-	for (std::vector<x0::header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<x0::response_header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 		{
@@ -86,7 +86,7 @@ std::string response::header(const std::string& name) const
 
 const std::string& response::header(const std::string& name, const std::string& value)
 {
-	for (std::vector<x0::header>::iterator i = headers.begin(); i != headers.end(); ++i)
+	for (std::vector<x0::response_header>::iterator i = headers.begin(); i != headers.end(); ++i)
 	{
 		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 		{
@@ -94,7 +94,7 @@ const std::string& response::header(const std::string& name, const std::string& 
 		}
 	}
 
-	headers.push_back(x0::header(name, value));
+	headers.push_back(x0::response_header(name, value));
 	return headers[headers.size() - 1].value;
 }
 
@@ -144,7 +144,7 @@ composite_buffer response::serialize()
 		}
 		else if (!has_header("Content-Type"))
 		{
-			*this += x0::header("Content-Type", "text/plain");
+			*this += x0::response_header("Content-Type", "text/plain");
 		}
 
 		if (!has_header("Content-Length") && !content_forbidden(status))
@@ -153,7 +153,7 @@ composite_buffer response::serialize()
 		}
 		else if (!has_header("Connection"))
 		{
-			if (strcasecmp(request_->header("Connection").c_str(), "keep-alive") == 0)
+			if (iequals(request_->header("Connection"), "keep-alive"))
 			{
 				header("Connection", "keep-alive");
 			}
@@ -183,7 +183,7 @@ composite_buffer response::serialize()
 
 		for (std::size_t i = 0; i < headers.size(); ++i)
 		{
-			const x0::header& h = headers[i];
+			const x0::response_header& h = headers[i];
 
 			buffers.push_back(h.name.data(), h.name.size());
 			buffers.push_back(": ");
@@ -210,8 +210,8 @@ response::response(connection_ptr connection, x0::request *request, int _status)
 {
 	//DEBUG("response(%p, conn=%p)", this, connection_.get());
 
-	*this += x0::header("Date", connection_->server().now().http_str());
-	*this += x0::header("Server", connection_->server().tag());
+	*this += x0::response_header("Date", connection_->server().now().http_str());
+	*this += x0::response_header("Server", connection_->server().tag());
 }
 
 const char *response::status_cstr(int value)

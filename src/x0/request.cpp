@@ -13,17 +13,17 @@
 
 namespace x0 {
 
-std::string request::header(const std::string& name) const
+buffer_ref request::header(const std::string& name) const
 {
-	for (std::vector<x0::header>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)
+	for (std::vector<x0::request_header>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)
 	{
-		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
+		if (iequals(i->name, name))
 		{
 			return i->value;
 		}
 	}
 
-	return std::string();
+	return buffer_ref();
 }
 
 std::string request::hostid() const

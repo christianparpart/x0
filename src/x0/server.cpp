@@ -340,13 +340,16 @@ void server::handle_request(request& in, response& out)
 	{
 		std::stringstream url;
 
-		std::string hostname(in.header("X-Forwarded-Host"));
+		buffer_ref hostname(in.header("X-Forwarded-Host"));
 		if (hostname.empty())
 			hostname = in.header("Host");
 
-		url << (in.connection.secure ? "https://" : "http://") << hostname << in.path << '/' << in.query;
+		url << (in.connection.secure ? "https://" : "http://");
+		url << hostname.str();
+		url << in.path.str();
+		url << '/' << in.query;
 
-		out *= header("Location", url.str());
+		out *= response_header("Location", url.str());
 		out.status = response::moved_permanently;
 
 		out.flush();

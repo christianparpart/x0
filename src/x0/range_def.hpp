@@ -9,6 +9,7 @@
 #define x0_range_def_hpp
 
 #include <x0/property.hpp>
+#include <x0/buffer.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 
@@ -49,11 +50,11 @@ private:
 
 public:
 	range_def();
-	explicit range_def(const std::string& spec);
+	explicit range_def(const buffer_ref& spec);
 
 	value_property<std::string> unit_name;
 
-	bool parse(const std::string& value);
+	bool parse(const buffer_ref& value);
 
 	/// pushes a new range to the list of ranges
 	void push_back(std::size_t offset1, std::size_t offset2);

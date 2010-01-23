@@ -42,7 +42,8 @@ public:
 
 	typedef buffer_ref view;
 
-	static const std::size_t CHUNK_SIZE = 4096;
+	//static const std::size_t CHUNK_SIZE = 4096;
+	enum { CHUNK_SIZE = 4096 };
 
 	struct helper { int i; };
 	typedef int (helper::*helper_type);

@@ -41,19 +41,19 @@ public:
 
 public: // request properties
 	/// HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
-	std::string method;
+	buffer_ref method;
 
-	/// unparsed request uri
-	std::string uri;
+	/// parsed request uri
+	buffer_ref uri;
 
 	/// decoded path-part
-	std::string path;
+	buffer_ref path;
 
 	/// the final entity to be served, for example the full path to the file on disk.
 	fileinfo_ptr fileinfo;
 
 	/// decoded query-part
-	std::string query;
+	buffer_ref query;
 
 	/// HTTP protocol version major part that this request was formed in
 	int http_version_major;
@@ -61,17 +61,17 @@ public: // request properties
 	int http_version_minor;
 
 	/// request headers
-	std::vector<x0::header> headers;
+	std::vector<x0::request_header> headers;
 
 	/** retrieve value of a given request header */
-	std::string header(const std::string& name) const;
+	buffer_ref header(const std::string& name) const;
 
 	/// body
 	std::string body;
 
 public: // accumulated request data
 	/// username this client has authenticated with.
-	std::string username;
+	buffer_ref username;
 
 	/// the document root directory for this request.
 	std::string document_root;
@@ -120,7 +120,7 @@ public:
 
 private:
 	state state_;
-	std::string buf_;
+	std::size_t left_;
 
 private:
 	static inline bool is_char(int ch);
@@ -128,7 +128,7 @@ private:
 	static inline bool is_tspecial(int ch);
 	static inline bool is_digit(int ch);
 
-	static inline bool url_decode(std::string& url);
+	static inline bool url_decode(buffer_ref& url);
 
 public:
 	reader();
@@ -210,22 +210,25 @@ inline bool request::reader::is_digit(int ch)
 	return ch >= '0' && ch <= '9';
 }
 
-inline bool request::reader::url_decode(std::string& url)
+inline bool request::reader::url_decode(buffer_ref& url)
 {
-	std::string out;
-	out.reserve(url.size());
+	std::size_t left = url.offset();
+	std::size_t right = left + url.size();
+	std::size_t i = left; // read pos
+	std::size_t d = left; // write pos
+	buffer& value = url.buffer();
 
-	for (std::size_t i = 0; i < url.size(); ++i)
+	while (i != right)
 	{
-		if (url[i] == '%')
+		if (value[i] == '%')
 		{
-			if (i + 3 <= url.size())
+			if (i + 3 <= right)
 			{
-				int value;
-				std::istringstream is(url.substr(i + 1, 2));
-				if (is >> std::hex >> value)
+				int ival;
+				std::istringstream is(value.substr(i + 1, 2)); //! \todo optimize
+				if (is >> std::hex >> ival)
 				{
-					out += static_cast<char>(value);
+					value[d++] = static_cast<char>(ival);
 					i += 2;
 				}
 				else
@@ -238,36 +241,46 @@ inline bool request::reader::url_decode(std::string& url)
 				return false;
 			}
 		}
-		else if (url[i] == '+')
+		else if (value[i] == '+')
 		{
-			out += ' ';
+			value[d++] = ' ';
+			++i;
+		}
+		else if (d != i)
+		{
+			value[d++] = value[i++];
 		}
 		else
 		{
-			out += url[i];
+			++d;
+			++i;
 		}
 	}
 
-	url = out;
+	url = value.ref(left, d - left);
 	return true;
 }
 
 inline request::reader::reader() :
-	state_(method_start), buf_()
+	state_(method_start), left_(0)
 {
 }
 
 inline void request::reader::reset()
 {
 	state_ = method_start;
-	buf_.clear();
+	left_ = 0;
 }
 
 inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 {
-	for (buffer_ref::const_iterator i = data.begin(), e = data.end(); i != e; ++i)
+	std::size_t cur = data.offset();
+	std::size_t count = cur + data.size();
+	buffer_ref::const_iterator i = data.begin();
+
+	for (; cur != count; ++cur)
 	{
-		char input = *i;
+		char input = *i++;
 
 		switch (state_)
 		{
@@ -276,46 +289,38 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 					return false;
 
 				state_ = method;
-				buf_.push_back(input);
 				break;
 			case method:
 				if (input == ' ')
 				{
-					r.method = buf_;
-					buf_.clear();
+					r.method = data.buffer().ref(left_, cur - left_);
 					state_ = uri;
-					break;
+					left_ = cur + 1;
 				}
 				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-				{
 					return false;
-				}
-				else
-				{
-					buf_.push_back(input);
-					break;
-				}
+
+				break;
 			case uri_start:
 				if (is_ctl(input))
 					return false;
 
 				state_ = uri;
-				buf_.push_back(input);
 				break;
 			case uri:
 				if (input == ' ')
 				{
-					if (!url_decode(buf_))
-						return false;
+					r.uri = data.buffer().ref(left_, cur - left_);
+					left_ = cur + 1;
 
-					r.uri = buf_;
-					buf_.clear();
+					if (!url_decode(r.uri))
+						return false;
 
 					std::size_t n = r.uri.find("?");
 					if (n != std::string::npos)
 					{
-						r.path = r.uri.substr(0, n);
-						r.query = r.uri.substr(n + 1);
+						r.path = r.uri.ref(0, n);
+						r.query = r.uri.ref(n + 1);
 					}
 					else
 					{
@@ -326,17 +331,11 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 						return false;
 
 					state_ = http_version_h;
-					break;
 				}
 				else if (is_ctl(input))
-				{
 					return false;
-				}
-				else
-				{
-					buf_.push_back(input);
-					break;
-				}
+
+				break;
 			case http_version_h:
 				if (input != 'H')
 					return false;
@@ -410,8 +409,10 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 					return false;
 				else
 				{
-					r.headers.push_back(x0::header());
-					r.headers.back().name.push_back(input);
+					r.headers.push_back(x0::request_header());
+					//r.headers.back().name.push_back(input);
+					r.headers.back().name = data.buffer().ref(cur, 1);
+
 					state_ = header_name;
 				}
 				break;
@@ -421,7 +422,7 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 				else if (input != ' ' && input != '\t')
 				{
 					state_ = header_value;
-					r.headers.back().value.push_back(input);
+					r.headers.back().value = data.buffer().ref(cur, 1);
 				}
 				break;
 			case header_name:
@@ -430,7 +431,7 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
 					return false;
 				else
-					r.headers.back().name.push_back(input);
+					r.headers.back().name.shr(1);
 
 				break;
 			case space_before_header_value:
@@ -444,8 +445,10 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 					state_ = expecting_newline_2;
 				else if (is_ctl(input))
 					return false;
+				else if (r.headers.back().value.empty())
+					r.headers.back().value = data.buffer().ref(cur, 1);
 				else
-					r.headers.back().value.push_back(input);
+					r.headers.back().value.shr(1);
 
 				break;
 			case expecting_newline_2:
@@ -457,11 +460,11 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 			case expecting_newline_3:
 				if (input == '\n')
 				{
-					std::string s(r.header("Content-Length"));
+					buffer_ref s(r.header("Content-Length"));
 					if (!s.empty())
 					{
 						state_ = reading_body;
-						r.body.reserve(std::atoi(s.c_str()));
+						r.body.reserve(std::atoi(s.data()));
 						break;
 					}
 					else

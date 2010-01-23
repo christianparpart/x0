@@ -87,19 +87,18 @@ private:
 	void resolve_document_root(x0::request& in) {
 		if (in.document_root.empty())
 		{
-			std::string host(in.header("Host"));
+			x0::buffer_ref hostname(in.header("Host"));
 
-			std::string hostname(host);
 			std::size_t n = hostname.find(":");
-			if (n != std::string::npos)
+			if (n != x0::buffer_ref::npos)
 			{
-				hostname = hostname.substr(0, n);
+				hostname = hostname.ref(0, n);
 			}
 
 			std::string dr;
 			dr.reserve(server_root_.size() + std::max(hostname.size(), default_host_.size()) + document_root_.size());
 			dr += server_root_;
-			dr += hostname;
+			dr += hostname.str();
 			dr += document_root_;
 
 			x0::fileinfo_ptr fi = in.connection.server().fileinfo(dr);

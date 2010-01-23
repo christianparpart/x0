@@ -75,29 +75,35 @@ public:
 	void shr(ssize_t offset);
 
 	// find
-	std::size_t find(const buffer_ref& value) const;
-	std::size_t find(const value_type *value) const;
-	std::size_t find(value_type value) const;
+	std::size_t find(const buffer_ref& value, std::size_t offset = 0) const;
+	std::size_t find(const value_type *value, std::size_t offset = 0) const;
+	std::size_t find(value_type value, std::size_t offset = 0) const;
+	template<typename PodType, std::size_t N> std::size_t find(PodType (&value)[N]) const;
 
 	// rfind
 	std::size_t rfind(const buffer_ref& value) const;
 	std::size_t rfind(const value_type *value) const;
 	std::size_t rfind(value_type value) const;
+	template<typename PodType, std::size_t N> std::size_t rfind(PodType (&value)[N]) const;
 
 	// begins / ibegins
+	bool begins(const std::string& value) const;
 	bool begins(const buffer_ref& value) const;
 	bool begins(const value_type *value) const;
 	bool begins(value_type value) const;
 
+	bool ibegins(const std::string& value) const;
 	bool ibegins(const buffer_ref& value) const;
 	bool ibegins(const value_type *value) const;
 	bool ibegins(value_type value) const;
 
 	// ends / iends
+	bool ends(const std::string& value) const;
 	bool ends(const buffer_ref& value) const;
 	bool ends(const value_type *value) const;
 	bool ends(value_type value) const;
 
+	bool iends(const std::string& value) const;
 	bool iends(const buffer_ref& value) const;
 	bool iends(const value_type *value) const;
 	bool iends(value_type value) const;
@@ -196,7 +202,8 @@ inline buffer_ref::buffer_ref(const x0::buffer_ref& v) :
 	buffer_(v.buffer_), offset_(v.offset_), size_(v.size_)
 {
 #if !defined(NDEBUG)
-	buffer_->ref();
+	if (buffer_)
+		buffer_->ref();
 #endif
 }
 
@@ -297,6 +304,8 @@ inline buffer_ref::const_iterator buffer_ref::cend() const
  */
 inline void buffer_ref::shl(ssize_t offset)
 {
+	assert(buffer_ != 0);
+
 	offset_ -= offset;
 	size_ += offset;
 
@@ -308,14 +317,16 @@ inline void buffer_ref::shl(ssize_t offset)
  */
 inline void buffer_ref::shr(ssize_t offset)
 {
+	assert(buffer_ != 0);
+
 	size_ += offset;
 
 	assert(offset_ + size_ < buffer_->capacity());
 }
 
-inline std::size_t buffer_ref::find(const value_type *value) const
+inline std::size_t buffer_ref::find(const value_type *value, std::size_t offset) const
 {
-	if (const char *p = strstr(data(), value))
+	if (const char *p = strstr(data() + offset, value))
 	{
 		if (p < end())
 		{
@@ -325,9 +336,9 @@ inline std::size_t buffer_ref::find(const value_type *value) const
 	return npos;
 }
 
-inline std::size_t buffer_ref::find(value_type value) const
+inline std::size_t buffer_ref::find(value_type value, std::size_t offset) const
 {
-	if (const char *p = strchr(data(), value))
+	if (const char *p = strchr(data() + offset, value))
 	{
 		if (p < end())
 		{
@@ -345,6 +356,9 @@ inline std::size_t buffer_ref::rfind(const value_type *value) const
 
 inline std::size_t buffer_ref::rfind(value_type value) const
 {
+	if (!buffer_)
+		return npos;
+
 	const char *p = data();
 	const char *q = p + size();
 
@@ -358,6 +372,49 @@ inline std::size_t buffer_ref::rfind(value_type value) const
 	}
 
 	return *p == value ? 0 : npos;
+}
+
+template<typename PodType, std::size_t N>
+std::size_t buffer_ref::rfind(PodType (&value)[N]) const
+{
+	if (!buffer_)
+		return npos;
+
+	if (size() < N - 1)
+		return npos;
+
+	const char *i = end();
+	const char *e = begin() + (N - 1);
+
+	while (i != e)
+	{
+		if (*i == value[N - 1])
+		{
+			bool found = true;
+
+			for (int n = 0; n < N - 2; ++n)
+			{
+				if (i[n] != value[n])
+				{
+					found = !found;
+					break;
+				}
+			}
+
+			if (found)
+			{
+				return i - begin();
+			}
+		}
+		--i;
+	}
+
+	return npos;
+}
+
+inline bool buffer_ref::begins(const std::string& value) const
+{
+	return memcmp(data(), value.data(), std::min(size(), value.size())) == 0;
 }
 
 inline bool buffer_ref::begins(const x0::buffer_ref& value) const

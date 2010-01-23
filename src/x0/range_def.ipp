@@ -19,7 +19,7 @@ inline range_def::range_def() : ranges_()
 {
 }
 
-inline range_def::range_def(const std::string& spec) : ranges_()
+inline range_def::range_def(const buffer_ref& spec) : ranges_()
 {
 	parse(spec);
 }
@@ -35,7 +35,7 @@ inline range_def::range_def(const std::string& spec) : ranges_()
  *    <li>the last N units of the entity (-last)</li>
  * </ul>
  */
-inline bool range_def::parse(const std::string& value)
+inline bool range_def::parse(const buffer_ref& value)
 {
 	// ranges-specifier = byte-ranges-specifier
 	// byte-ranges-specifier = bytes-unit "=" byte-range-set
