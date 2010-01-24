@@ -11,6 +11,7 @@
 #include <x0/buffer.hpp>
 #include <x0/header.hpp>
 #include <x0/fileinfo.hpp>
+#include <x0/strutils.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <string>
@@ -225,8 +226,7 @@ inline bool request::reader::url_decode(buffer_ref& url)
 			if (i + 3 <= right)
 			{
 				int ival;
-				std::istringstream is(value.substr(i + 1, 2)); //! \todo optimize
-				if (is >> std::hex >> ival)
++				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival))
 				{
 					value[d++] = static_cast<char>(ival);
 					i += 3;
