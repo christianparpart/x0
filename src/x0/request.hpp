@@ -229,7 +229,7 @@ inline bool request::reader::url_decode(buffer_ref& url)
 				if (is >> std::hex >> ival)
 				{
 					value[d++] = static_cast<char>(ival);
-					i += 2;
+					i += 3;
 				}
 				else
 				{
