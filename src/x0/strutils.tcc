@@ -87,4 +87,56 @@ inline std::string extract_host_from_hostid(const std::string& hostid)
 	return hostid;
 }
 
+template<typename T, typename U>
+inline bool hex2int(const T *begin, const T *end, U& result)
+{
+	result = 0;
+
+	for (;;)
+	{
+		switch (*begin)
+		{
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				result += *begin - '0';
+				break;
+			case 'a':
+			case 'b':
+			case 'c':
+			case 'd':
+			case 'e':
+			case 'f':
+				result += 10 + *begin - 'a';
+				break;
+			case 'A':
+			case 'B':
+			case 'C':
+			case 'D':
+			case 'E':
+			case 'F':
+				result += 10 + *begin - 'A';
+				break;
+			default:
+				return false;
+		}
+
+		++begin;
+
+		if (begin == end)
+			break;
+
+		result *= 16;
+	}
+
+	return true;
+}
+
 } // namespace x0
