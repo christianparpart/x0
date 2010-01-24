@@ -102,8 +102,21 @@ private:
 		}
 	}
 
+	enum method_type {
+		HEAD,
+		GET
+	};
+
 	bool sendfile(x0::request& in, x0::response& out)
 	{
+		method_type method;
+		if (equals(in.method, "GET"))
+			method = GET;
+		else if (equals(in.method, "HEAD"))
+			method = HEAD;
+		else
+			return false;
+
 		std::string path(in.fileinfo->filename());
 
 		if (!in.fileinfo->exists())
@@ -136,8 +149,15 @@ private:
 				out.header("Content-Type", in.fileinfo->mimetype());
 				out.header("Content-Length", boost::lexical_cast<std::string>(in.fileinfo->size()));
 
-				posix_fadvise(fd, 0, in.fileinfo->size(), POSIX_FADV_SEQUENTIAL);
-				out.write(fd, 0, in.fileinfo->size(), true);
+				if (method == GET)
+				{
+					posix_fadvise(fd, 0, in.fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+					out.write(fd, 0, in.fileinfo->size(), true);
+				}
+				else
+				{
+					::close(fd);
+				}
 			}
 
 			out.flush();
