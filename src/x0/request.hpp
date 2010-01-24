@@ -226,7 +226,7 @@ inline bool request::reader::url_decode(buffer_ref& url)
 			if (i + 3 <= right)
 			{
 				int ival;
-+				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival))
+				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival))
 				{
 					value[d++] = static_cast<char>(ival);
 					i += 3;
