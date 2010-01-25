@@ -410,15 +410,15 @@ void cgi_script::receive_error(const asio::error_code& ec, std::size_t bytes_tra
 {
 	//printf("cgi_script::receive_error(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
 
-	if (bytes_transferred)
-	{
-		// maybe i should cache it and then log it line(s)-wise
-		std::string msg(outbuf_.data(), outbuf_.data() + bytes_transferred);
-		request_.connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
-	}
-
 	if (!ec)
 	{
+		if (bytes_transferred)
+		{
+			// maybe i should cache it and then log it line(s)-wise
+			std::string msg(outbuf_.data(), outbuf_.data() + bytes_transferred);
+			request_.connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
+		}
+
 		asio::async_read(process_.error(), asio::buffer(errbuf_),
 			boost::bind(&cgi_script::receive_error, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 	}
@@ -427,7 +427,20 @@ void cgi_script::receive_error(const asio::error_code& ec, std::size_t bytes_tra
 void cgi_script::assign_header(const std::string& name, const std::string& value)
 {
 	//printf("assign_header(\"%s\", \"%s\")\n", name.c_str(), value.c_str());
-	response_.header(name, value);
+
+	if (name == "Status")
+	{
+		response_.status = boost::lexical_cast<int>(value);
+	}
+	else if (name == "Location")
+	{
+		response_.status = 302;
+		response_.header(name, value);
+	}
+	else
+	{
+		response_.header(name, value);
+	}
 }
 
 void cgi_script::process_content(const char *first, const char *last)
