@@ -65,12 +65,12 @@ private:
 	mutable std::size_t refcount_;
 
 private:
-	void ref() const
+	void _ref() const
 	{
 		++refcount_;
 	}
 
-	void unref() const
+	void _unref() const
 	{
 		--refcount_;
 	}
@@ -128,7 +128,7 @@ public:
 	const value_type& operator[](std::size_t index) const;
 
 	// buffer views
-	buffer_ref ref(std::size_t offset) const;
+	buffer_ref ref(std::size_t offset = 0) const;
 	buffer_ref ref(std::size_t offset, std::size_t count) const;
 
 	buffer_ref operator()(std::size_t offset = 0) const;
@@ -171,6 +171,8 @@ class const_buffer : public buffer
 public:
 	template<typename PodType, std::size_t N>
 	explicit const_buffer(PodType (&value)[N]);
+
+	const_buffer(const value_type *value, std::size_t n);
 };
 
 template<const std::size_t N>
@@ -543,6 +545,11 @@ inline std::string buffer::substr(std::size_t offset, std::size_t count) const
 template<typename PodType, std::size_t N>
 inline const_buffer::const_buffer(PodType (&value)[N]) :
 	buffer(value)
+{
+}
+
+inline const_buffer::const_buffer(const value_type *value, std::size_t n) :
+	buffer(value, n)
 {
 }
 // }}}
