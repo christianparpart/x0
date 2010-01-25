@@ -125,7 +125,7 @@ composite_buffer response::serialize()
 			status = response::ok;
 		}
 
-		if (content.empty() && !content_forbidden(status))
+		if (content.empty() && !content_forbidden(status) && equals(request_->method, "GET"))
 		{
 			const char *codeStr = status_cstr(status);
 			char buf[1024];
