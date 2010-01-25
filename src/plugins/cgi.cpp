@@ -29,6 +29,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#if 0 // !defined(NDEBUG)
+#	define TRACE(msg...) fprintf(stderr, msg)
+#else
+#	define TRACE(msg...) /*!*/
+#endif
+
 /*
  * POSSIBLE CONFIGURATION SETTINGS
  *
@@ -99,7 +105,7 @@ inline cgi_response_parser::cgi_response_parser() :
 
 inline void cgi_response_parser::process(const char *first, const char *last)
 {
-	//printf("Processing %ld bytes (state: %d)\n", last - first, state_);
+	TRACE("Processing %ld bytes (state: %d)\n", last - first, state_);
 	//::write(STDERR_FILENO, first, last - first);
 	//printf("\nSTART PROCESSING:\n");
 
@@ -246,7 +252,7 @@ cgi_script::cgi_script(x0::request& in, x0::response& out, const std::string& ho
 	serial_(0),
 	ttl_(in.connection.server().io_service())
 {
-	//printf("cgi_script(entity=\"%s\", hostprogram=\"%s\")\n", request_.entity.c_str(), hostprogram_.c_str());
+	TRACE("cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_.path.str().c_str(), hostprogram_.c_str());
 
 	response_parser_.assign_header.connect(boost::bind(&cgi_script::assign_header, this, _1, _2));
 	response_parser_.process_content.connect(boost::bind(&cgi_script::process_content, this, _1, _2));
@@ -254,7 +260,7 @@ cgi_script::cgi_script(x0::request& in, x0::response& out, const std::string& ho
 
 cgi_script::~cgi_script()
 {
-	//printf("~cgi_script(entity=\"%s\", hostprogram=\"%s\")\n", request_.entity.c_str(), hostprogram_.c_str());
+	TRACE("~cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_.path.str().c_str(), hostprogram_.c_str());
 }
 
 void cgi_script::async_run(x0::request& in, x0::response& out, const std::string& hostprogram)
@@ -276,9 +282,18 @@ static inline void _loadenv_if(const std::string& name, x0::process::environment
 inline void cgi_script::async_run()
 {
 	std::string workdir(request_.document_root);
-
 	x0::process::params params;
-	params.push_back(request_.fileinfo->filename());
+	std::string hostprogram;
+
+	if (hostprogram_.empty())
+	{
+		hostprogram = request_.fileinfo->filename();
+	}
+	else
+	{
+		params.push_back(request_.fileinfo->filename());
+		hostprogram = hostprogram_;
+	}
 
 	// {{{ setup request / initialize environment and handler
 	x0::process::environment environment;
@@ -363,18 +378,18 @@ inline void cgi_script::async_run()
 		boost::bind(&cgi_script::receive_error, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 
 	// actually start child process
-	process_.start(hostprogram_, params, environment, workdir);
+	process_.start(hostprogram, params, environment, workdir);
 }
 
 void cgi_script::transmitted_request(const asio::error_code& ec, std::size_t bytes_transferred)
 {
-	//printf("cgi_script::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_.body.size());
+	TRACE("cgi_script::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_.body.size());
 	process_.input().close();
 }
 
 void cgi_script::receive_response(const asio::error_code& ec, std::size_t bytes_transferred)
 {
-	//printf("cgi_script::receive_response(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
+	TRACE("cgi_script::receive_response(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
 
 	if (bytes_transferred)
 	{
@@ -408,17 +423,17 @@ void cgi_script::receive_response(const asio::error_code& ec, std::size_t bytes_
 
 void cgi_script::receive_error(const asio::error_code& ec, std::size_t bytes_transferred)
 {
-	//printf("cgi_script::receive_error(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
-
-	if (bytes_transferred)
-	{
-		// maybe i should cache it and then log it line(s)-wise
-		std::string msg(outbuf_.data(), outbuf_.data() + bytes_transferred);
-		request_.connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
-	}
+	TRACE("cgi_script::receive_error(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
 
 	if (!ec)
 	{
+		if (bytes_transferred)
+		{
+			// maybe i should cache it and then log it line(s)-wise
+			std::string msg(outbuf_.data(), outbuf_.data() + bytes_transferred);
+			request_.connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
+		}
+
 		asio::async_read(process_.error(), asio::buffer(errbuf_),
 			boost::bind(&cgi_script::receive_error, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 	}
@@ -426,13 +441,26 @@ void cgi_script::receive_error(const asio::error_code& ec, std::size_t bytes_tra
 
 void cgi_script::assign_header(const std::string& name, const std::string& value)
 {
-	//printf("assign_header(\"%s\", \"%s\")\n", name.c_str(), value.c_str());
-	response_.header(name, value);
+	TRACE("assign_header(\"%s\", \"%s\")\n", name.c_str(), value.c_str());
+
+	if (name == "Status")
+	{
+		response_.status = boost::lexical_cast<int>(value);
+	}
+	else if (name == "Location")
+	{
+		response_.status = 302;
+		response_.header(name, value);
+	}
+	else
+	{
+		response_.header(name, value);
+	}
 }
 
 void cgi_script::process_content(const char *first, const char *last)
 {
-	//printf("process_content(length=%ld)\n", last - first);
+	TRACE("process_content(length=%ld)\n", last - first);
 	response_.write(std::string(first, last));
 }
 // }}}
