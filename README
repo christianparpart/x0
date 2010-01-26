@@ -3,6 +3,7 @@ x0 - HTTP WEB SERVER AND FRAMEWORK
 
 website:         http://xzero.ws/
 project manager: http://redmine.xzero.ws/projects/x0
+git url:         http://github.com/trapni/x0.git
 
 x0 aims to be a low-latency scalarable http web server and web service framework written in C++.
 
