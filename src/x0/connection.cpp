@@ -97,14 +97,15 @@ void connection::read_timeout(const asio::error_code& ec)
  */
 void connection::handle_read(const asio::error_code& e, std::size_t bytes_transferred)
 {
-	buffer_.resize(buffer_.size() + bytes_transferred);
+	std::size_t lower_bound = buffer_.size();
+	buffer_.resize(lower_bound + bytes_transferred);
 	//DEBUG("connection(%p).handle_read(ec=%s, sz=%ld, bs=%ld, bc=%ld)", this, e.message().c_str(), bytes_transferred, buffer_.size(), buffer_.capacity());
 	timer_.cancel();
 
 	if (!e)
 	{
 		// parse request (partial)
-		boost::tribool result = request_reader_.parse(*request_, buffer_.ref(0, bytes_transferred));
+		boost::tribool result = request_reader_.parse(*request_, buffer_.ref(lower_bound, bytes_transferred));
 
 		if (result) // request fully parsed
 		{
