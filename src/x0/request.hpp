@@ -404,7 +404,7 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 				if (input == '\r')
 					state_ = expecting_newline_3;
 				else if (!r.headers.empty() && (input == ' ' || input == '\t'))
-					state_ = header_lws;
+					state_ = header_lws; // header-value continuation
 				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
 					return false;
 				else
