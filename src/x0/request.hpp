@@ -11,6 +11,7 @@
 #include <x0/buffer.hpp>
 #include <x0/header.hpp>
 #include <x0/fileinfo.hpp>
+#include <x0/strutils.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <string>
@@ -225,11 +226,10 @@ inline bool request::reader::url_decode(buffer_ref& url)
 			if (i + 3 <= right)
 			{
 				int ival;
-				std::istringstream is(value.substr(i + 1, 2)); //! \todo optimize
-				if (is >> std::hex >> ival)
+				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival))
 				{
 					value[d++] = static_cast<char>(ival);
-					i += 2;
+					i += 3;
 				}
 				else
 				{
@@ -404,7 +404,7 @@ inline boost::tribool request::reader::parse(request& r, const buffer_ref& data)
 				if (input == '\r')
 					state_ = expecting_newline_3;
 				else if (!r.headers.empty() && (input == ' ' || input == '\t'))
-					state_ = header_lws;
+					state_ = header_lws; // header-value continuation
 				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
 					return false;
 				else

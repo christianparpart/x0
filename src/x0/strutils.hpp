@@ -108,6 +108,9 @@ std::vector<T> split(const std::basic_string<U>& list, const std::basic_string<U
 template<typename T, typename U>
 std::vector<T> split(const std::basic_string<U>& list, const U *sep);
 
+template<typename T, typename U>
+inline bool hex2int(const T *begin, const T *end, U& result);
+
 //@}
 
 //! \addtogroup core

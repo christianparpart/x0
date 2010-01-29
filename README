@@ -1,56 +1,14 @@
-x0 - WEB SERVER - http://github.com/trapni/x0
+x0 - HTTP WEB SERVER AND FRAMEWORK
 -----------------------------------------------------------------------------
 
-x0 aims to be a low-latency scalarable web server and web service framework written in C++.
+website:            http://xzero.ws/
+project manager:    http://redmine.xzero.ws/projects/x0
+github:             http://github.com/trapni/x0
+gitorious:          http://gitorious.org/x0
 
-CORE FEATURE ROADMAP:
-- modular and extensible web server API
-- HTTP/1.1 and HTTP/1.0
-- HTTP pipelining
-- #308: plaintext and SSL connections. (and the new mixed one, that apache invented?)
-- #312: embedded library that other apps can link against to use x0 for a builtin web service.
-- multiple virtual hosts, different modules for different features/demands:
-  - simple (like lighttpd's mod_vhost_simple)
-  - customizable (my)sql based mod_vhost_sql
+x0 aims to be a low-latency scalarable http web server and web service framework written in C++.
 
-PLUGINS:
-- auth: implements HTTP authentication
-+ accesslog: writes HTTP requests to an access log file (in spirit of apache httpd's common access log format)
-+ cgi: handles CGI requests (files ending with a specified ending, e.g. ".cgi" and alike).
-- deflate: implements dynamic content compression via zlib/bzlib/quicklz
-+ dirlisting: generates a directory listing response in case the request path maps to a directory instead of a file directly.
-- fastcgi: FastCGI implementation.
-+ indexfile: internally redirects to index.html (or other, if configured) if request path maps to a directory that contains an index file.
-- proxy: an (HTTP) proxy plugin.
-- redirect: external redirects via 3xx status codes.
-- rewrite: internal redirects by request path rewrites and passing the next handler(s).
-+ sendfile: sends static files to client if requested and entity maps to a local file.
-- ssl: implements SSL encryption using gnutls library
-+ userdir: provides access to user's ~/public_html directory as hostname/~username URL
-+ vhost: implements basic virtual hosting
-- webdav: implements WebDAV
-- lsp: LUA Server Pages (to cache compile output in fileinfo nodes)
-- csp: C Server Pages (out-of-process, server-crash-safe, simple HTTP API)
-- xsp: C++ Server Pages (in-process)
-
-PERFORMANCE CONSIDERATIONS;
-- be as non-blocking as possible (asynchronous I/O)
-- make use almost all cores/CPUs on the host (multi-threaded)
-- cache as much as possible (and reasonable)
-- avoid unnecassary memory allocations
-- reuse memory complex objects (such as buffer, composite_buffer, request, ...) if and only if possible
-- reduce amount of context switches (prefer writev() over write() compositions or single-write() plus big (re-)allocated memory)
-
-PERFORMANCE TEST TOOLS:
-- valgrind's callgrind with kcachegrind
-- http_load, http://acme.com/software/http_load/ (ideal for disk I/O code testing)
-- ab2, http benchmark of Apache HTTPd (ideal for request/response path code testing)
-- possibly store cachable response content to local file system to make use of sendfile() syscall
-  when using the cached content - which should be faster on a buffered device instead of a
-  application memory to socket write.
-
-
-LINKS:
+EXTERNAL LINKS:
 - http://en.wikipedia.org/wiki/Chunked_transfer_encoding
 
 -----------------------------------------------------------------------------

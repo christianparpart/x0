@@ -114,6 +114,12 @@ static inline bool content_forbidden(int code)
 	}
 }
 
+template<typename T>
+inline std::string make_str(T value)
+{
+	return boost::lexical_cast<std::string>(value);
+}
+
 composite_buffer response::serialize()
 {
 	composite_buffer buffers;
@@ -125,22 +131,36 @@ composite_buffer response::serialize()
 			status = response::ok;
 		}
 
-		if (content.empty() && !content_forbidden(status))
+		if (content.empty() && !content_forbidden(status) && equals(request_->method, "GET"))
 		{
-			const char *codeStr = status_cstr(status);
-			char buf[1024];
+			std::string filename(connection_->server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
+			fileinfo_ptr fi(connection_->server().fileinfo(filename));
+			int fd = ::open(filename.c_str(), O_RDONLY);
 
-			int nwritten = snprintf(buf, sizeof(buf),
-				"<html>"
-				"<head><title>%s</title></head>"
-				"<body><h1>%d %s</h1></body>"
-				"</html>",
-				codeStr, status(), codeStr
-			);
-			write(std::string(buf, 0, nwritten));
+			if (fd != -1)
+			{
+				header("Content-Type", fi->mimetype());
+				header("Content-Length", boost::lexical_cast<std::string>(fi->size()));
 
-			header("Content-Length", boost::lexical_cast<std::string>(content_length()));
-			header("Content-Type", "text/html");
+				write(fd, 0, fi->size(), true);
+			}
+			else
+			{
+				const char *codeStr = status_cstr(status);
+				char buf[1024];
+
+				int nwritten = snprintf(buf, sizeof(buf),
+					"<html>"
+					"<head><title>%s</title></head>"
+					"<body><h1>%d %s</h1></body>"
+					"</html>",
+					codeStr, status(), codeStr
+				);
+				write(std::string(buf, 0, nwritten));
+
+				header("Content-Length", boost::lexical_cast<std::string>(content_length()));
+				header("Content-Type", "text/html");
+			}
 		}
 		else if (!has_header("Content-Type"))
 		{
