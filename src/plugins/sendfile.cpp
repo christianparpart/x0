@@ -109,14 +109,6 @@ private:
 
 	bool sendfile(x0::request& in, x0::response& out)
 	{
-		method_type method;
-		if (equals(in.method, "GET"))
-			method = GET;
-		else if (equals(in.method, "HEAD"))
-			method = HEAD;
-		else
-			return false;
-
 		std::string path(in.fileinfo->filename());
 
 		if (!in.fileinfo->exists())
@@ -127,20 +119,25 @@ private:
 
 		verify_client_cache(in, out);
 
-		int fd = open(path.c_str(), O_RDONLY);
-		if (fd == -1)
-		{
-			server_.log(x0::severity::error, "Could not open file '%s': %s",
-				path.c_str(), strerror(errno));
+		out.header("Last-Modified", in.fileinfo->last_modified());
+		out.header("ETag", in.fileinfo->etag());
 
-			return false;
+		int fd;
+		if (equals(in.method, "GET"))
+		{
+			if ((fd = open(path.c_str(), O_RDONLY)) == -1)
+			{
+				server_.log(x0::severity::error, "Could not open file '%s': %s", path.c_str(), strerror(errno));
+				return false;
+			}
 		}
+		else if (equals(in.method, "HEAD"))
+			fd = -1;
+		else
+			return false;
 
 		try
 		{
-			out.header("Last-Modified", in.fileinfo->last_modified());
-			out.header("ETag", in.fileinfo->etag());
-
 			if (!process_range_request(in, out, fd))
 			{
 				out.status = x0::response::ok;
@@ -149,14 +146,10 @@ private:
 				out.header("Content-Type", in.fileinfo->mimetype());
 				out.header("Content-Length", boost::lexical_cast<std::string>(in.fileinfo->size()));
 
-				if (method == GET)
+				if (fd != -1)
 				{
 					posix_fadvise(fd, 0, in.fileinfo->size(), POSIX_FADV_SEQUENTIAL);
 					out.write(fd, 0, in.fileinfo->size(), true);
-				}
-				else
-				{
-					::close(fd);
 				}
 			}
 
@@ -164,7 +157,8 @@ private:
 		}
 		catch (...)
 		{
-			::close(fd);	// we would let auto-close it by last fd write,
+			if (fd != -1)
+				::close(fd);// we would let auto-close it by last fd write,
 							// however, this won't happen when an exception got cought here.
 
 			throw;
@@ -219,7 +213,10 @@ private:
 			out.header("Content-Type", "multipart/byteranges; boundary=" + boundary);
 			out.header("Content-Length", boost::lexical_cast<std::string>(body.size()));
 
-			out.write(body);
+			if (fd != -1)
+			{
+				out.write(body);
+			}
 		}
 		else
 		{
@@ -235,7 +232,10 @@ private:
 			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in.fileinfo->size();
 			out.header("Content-Range", cr.str());
 
-			out.write(fd, offsets.first, length, true);
+			if (fd != -1)
+			{
+				out.write(fd, offsets.first, length, true);
+			}
 		}
 
 		return true;
