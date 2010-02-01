@@ -37,45 +37,25 @@ public:
 public:
 	explicit request(x0::connection& connection);
 
-	/// the TCP/IP connection this request has been sent through
-	x0::connection& connection;
+	x0::connection& connection;					///< the TCP/IP connection this request has been sent through
 
 public: // request properties
-	/// HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
-	buffer_ref method;
-
-	/// parsed request uri
-	buffer_ref uri;
-
-	/// decoded path-part
-	buffer_ref path;
-
-	/// the final entity to be served, for example the full path to the file on disk.
-	fileinfo_ptr fileinfo;
-
-	/// decoded query-part
-	buffer_ref query;
-
-	/// HTTP protocol version major part that this request was formed in
-	int http_version_major;
-	/// HTTP protocol version minor part that this request was formed in
-	int http_version_minor;
-
-	/// request headers
-	std::vector<x0::request_header> headers;
+	buffer_ref method;							///< HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
+	buffer_ref uri;								///< parsed request uri
+	buffer_ref path;							///< decoded path-part
+	fileinfo_ptr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
+	buffer_ref query;							///< decoded query-part
+	int http_version_major;						///< HTTP protocol version major part that this request was formed in
+	int http_version_minor;						///< HTTP protocol version minor part that this request was formed in
+	std::vector<x0::request_header> headers;	///< request headers
+	std::string body;							///< body
 
 	/** retrieve value of a given request header */
 	buffer_ref header(const std::string& name) const;
 
-	/// body
-	std::string body;
-
 public: // accumulated request data
-	/// username this client has authenticated with.
-	buffer_ref username;
-
-	/// the document root directory for this request.
-	std::string document_root;
+	buffer_ref username;						///< username this client has authenticated with.
+	std::string document_root;					///< the document root directory for this request.
 
 //	std::string if_modified_since;		//!< "If-Modified-Since" request header value, if specified.
 //	std::shared_ptr<range_def> range;	//!< parsed "Range" request header
