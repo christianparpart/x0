@@ -8,8 +8,9 @@
 #ifndef sw_x0_errorlog_h
 #define sw_x0_errorlog_h
 
-#include <x0/types.hpp>
+#include <x0/buffer.hpp>
 #include <x0/severity.hpp>
+#include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
@@ -151,10 +152,16 @@ inline void filelogger<Now>::write(severity s, const std::string& message)
 {
 	if (s <= level())
 	{
-		std::string ts(now_());
-		char buf[4096];
-		std::size_t sz = snprintf(buf, sizeof(buf), "[%s] [%s] %s\n", ts.c_str(), s.c_str(), message.c_str());
-		sz = ::write(fd_, buf, sz);
+		fixed_buffer<4096> buf;
+		buf.push_back('[');
+		buf.push_back(now_());
+		buf.push_back("] [");
+		buf.push_back(s.c_str());
+		buf.push_back("] ");
+		buf.push_back(message);
+		buf.push_back('\n');
+
+		::write(fd_, buf.data(), buf.size());
 	}
 }
 
