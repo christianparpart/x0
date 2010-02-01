@@ -53,7 +53,7 @@ private:
 
 	friend class buffer_ref;
 
-private:
+protected:
 	value_type *data_;
 	std::size_t size_;
 	std::size_t capacity_;
@@ -86,9 +86,12 @@ public:
 	explicit buffer(std::size_t _capacity);
 	buffer(const value_type *_data, std::size_t _size); // XXX better be private?
 	explicit buffer(const buffer_ref& v);
+	explicit buffer(const std::string& v);
 	template<typename PodType, std::size_t N> explicit buffer(PodType (&value)[N]);
 	buffer(const buffer& v);
 	buffer& operator=(const buffer& v);
+	buffer& operator=(const std::string& v);
+	buffer& operator=(const value_type *v);
 	~buffer();
 
 	// attributes
@@ -243,6 +246,15 @@ inline buffer::buffer(const buffer_ref& v) :
 	push_back(v.data(), v.size());
 }
 
+inline buffer::buffer(const std::string& v) :
+	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
+{
+	push_back(v.data(), v.size());
+}
+
 template<typename PodType, std::size_t N>
 inline buffer::buffer(PodType (&value)[N]) :
 	data_(const_cast<char *>(value)), size_(N - 1), capacity_(N - 1), edit_mode_(EDIT_NOTHING)
@@ -265,6 +277,22 @@ inline buffer& buffer::operator=(const buffer& v)
 {
 	clear();
 	push_back(v.data(), v.size());
+
+	return *this;
+}
+
+inline buffer& buffer::operator=(const std::string& v)
+{
+	clear();
+	push_back(v.data(), v.size());
+
+	return *this;
+}
+
+inline buffer& buffer::operator=(const value_type *v)
+{
+	clear();
+	push_back(v, std::strlen(v));
 
 	return *this;
 }
@@ -294,6 +322,7 @@ inline void buffer::assertMutable()
 		case EDIT_NO_RESIZE:
 			break;
 		default:
+			assert(0 == "attempted to modify readonly buffer");
 			throw std::runtime_error("attempted to modify readonly buffer");
 	}
 #endif
@@ -337,6 +366,9 @@ inline std::size_t buffer::capacity() const
 
 inline void buffer::capacity(std::size_t value)
 {
+	if (value == capacity_)
+		return;
+
 #if !defined(NDEBUG)
 	switch (edit_mode_)
 	{
@@ -345,6 +377,7 @@ inline void buffer::capacity(std::size_t value)
 		case EDIT_NO_RESIZE:
 		case EDIT_NOTHING:
 		default:
+			assert(0 == "attempted to modify readonly buffer");
 			throw std::runtime_error("attempted to modify readonly buffer");
 	}
 #endif
@@ -560,7 +593,7 @@ inline fixed_buffer<N>::fixed_buffer() :
 	buffer()
 {
 	data_ = fixed_;
-	size_ = N;
+	size_ = 0;
 	capacity_ = N;
 	edit_mode_ = EDIT_NO_RESIZE;
 }
