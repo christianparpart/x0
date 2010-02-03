@@ -24,6 +24,34 @@
 #include <strings.h>
 #include <unistd.h>
 
+class safe_pipe
+{
+private:
+	int fd[2];
+
+public:
+	explicit safe_pipe(bool async) {
+		if (pipe2(fd, async ? O_NONBLOCK : 0) == -1) {
+			perror("pipe2");
+		}
+	}
+
+	int operator[](int i) const {
+		assert(i >= 0 && i <= 1);
+		assert(fd[i] != -1);
+		return fd[i];
+	}
+
+	int left() const { return fd[0]; }
+	int right() const { return fd[1]; }
+
+	~safe_pipe() {
+		for (int i = 0; i < 2; ++i)
+			if (fd[i] != -1)
+				::close(fd[i]);
+	}
+};
+
 class io_test :
 	public CPPUNIT_NS::TestFixture
 {
@@ -56,17 +84,15 @@ private:
 
 	void test_fd_source()
 	{
-		int pfd[2];
-		int rv = pipe2(pfd, O_NONBLOCK);
-		CPPUNIT_ASSERT(rv != -1);
-		x0::fd_source in(pfd[0]);
+		safe_pipe pfd(true);
+		x0::fd_source in(pfd.right());
 		x0::buffer output;
 
-		::write(pfd[1], "12345", 5);
+		::write(pfd.left(), "12345", 5);
 		CPPUNIT_ASSERT(in.pull(output) == "12345");
 		CPPUNIT_ASSERT(output == "12345");
 
-		::write(pfd[1], "abcd", 4);
+		::write(pfd.left(), "abcd", 4);
 		CPPUNIT_ASSERT(in.pull(output) == "abcd");
 		CPPUNIT_ASSERT(output == "12345abcd");
 
