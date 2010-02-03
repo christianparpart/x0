@@ -8,6 +8,7 @@
 #ifndef sw_x0_datetime_hpp
 #define sw_x0_datetime_hpp 1
 
+#include <x0/buffer.hpp>
 #include <x0/api.hpp>
 #include <string>
 #include <ctime>
@@ -24,19 +25,20 @@ class X0_API datetime
 {
 private:
 	time_t unixtime_;
-	mutable std::string http_;
-	mutable std::string htlog_;
+	mutable buffer http_;
+	mutable buffer htlog_;
 
 	static time_t mktime(const char *v);
 
 public:
 	datetime();
+	explicit datetime(const buffer_ref& http_v);
 	explicit datetime(const std::string& http_v);
 	explicit datetime(std::time_t v);
 
 	std::time_t unixtime() const;
-	std::string http_str() const;
-	std::string htlog_str() const;
+	const buffer& http_str() const;
+	const buffer& htlog_str() const;
 
 	void update();
 	void update(std::time_t v);
@@ -71,6 +73,12 @@ inline datetime::datetime() :
 }
 
 /** initializes datetime object with an HTTP conform input date-time. */
+inline datetime::datetime(const buffer_ref& v) :
+	unixtime_(mktime(v.data())), http_(v), htlog_()
+{
+}
+
+/** initializes datetime object with an HTTP conform input date-time. */
 inline datetime::datetime(const std::string& v) :
 	unixtime_(mktime(v.c_str())), http_(v), htlog_(v)
 {
@@ -89,7 +97,7 @@ inline std::time_t datetime::unixtime() const
 /** retrieve this dateime object as a HTTP/1.1 conform string.
  * \return HTTP/1.1 conform string value.
  */
-inline std::string datetime::http_str() const
+inline const buffer& datetime::http_str() const
 {
 	if (http_.empty())
 	{
@@ -107,7 +115,7 @@ inline std::string datetime::http_str() const
 	return http_;
 }
 
-inline std::string datetime::htlog_str() const
+inline const buffer& datetime::htlog_str() const
 {
 	if (htlog_.empty())
 	{
