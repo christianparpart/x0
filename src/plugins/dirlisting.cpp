@@ -164,7 +164,7 @@ private:
 		if (!ctx.xsluri.empty())
 			xml << "<?xml-stylesheet type='text/xsl' href='" << ctx.xsluri << "'?>\n";
 
-		xml << "<dirlisting path='" << in.path << "' tag='" << server_.tag() << "'>\n";
+		xml << "<dirlisting path='" << in.path.str() << "' tag='" << server_.tag() << "'>\n";
 
 		int len = offsetof(dirent, d_name) + pathconf(in.fileinfo->filename().c_str(), _PC_NAME_MAX);
 		dirent *dep = (dirent *)new unsigned char[len + 1];
