@@ -47,9 +47,26 @@ typedef boost::shared_ptr<connection> connection_ptr;
 typedef boost::shared_ptr<request> request_ptr;
 typedef boost::shared_ptr<response> response_ptr;
 
-/** request handler functor.
+/** completion handler.
+ *
+ * used for handlers invoked when done writing or reading from a connection.
  */
-typedef boost::function<void(request&, response&)> request_handler_fn;
+typedef boost::function<void(
+	const asio::error_code& /*ec*/,
+	std::size_t /*bytes_transferred*/)
+> completion_handler_type;
+
+/** request handler.
+ */
+typedef boost::function<void(
+	request& /*in*/,
+	response& /*out*/,
+	const boost::function<void()>& /*completionHandler*/)
+> request_handler_fn;
+
+/** TCP/IP socket.
+ */
+typedef asio::ip::tcp::socket tcp_socket;
 
 //@}
 

@@ -9,9 +9,10 @@
 #define x0_connection_hpp (1)
 
 #include <x0/connection.hpp>
-#include <x0/composite_buffer.hpp>
-#include <x0/composite_buffer_async_writer.hpp>
-#include <x0/buffer.hpp>
+#include <x0/io/sink.hpp>
+#include <x0/io/source.hpp>
+#include <x0/io/async_writer.hpp>
+#include <x0/io/buffer.hpp>
 #include <x0/request.hpp>
 #include <x0/server.hpp>
 #include <x0/property.hpp>
@@ -81,8 +82,12 @@ private:
 	void read_timeout(const asio::error_code& ec);
 	void handle_read(const asio::error_code& e, std::size_t bytes_transferred);
 
-	template<class CompletionHandler>
-	void async_write(const composite_buffer& buffer, const CompletionHandler& handler);
+	/** write something into the connection stream.
+	 * \param buffer the buffer of bytes to be written into the connection.
+	 * \param handler the completion handler to invoke once the buffer has been either fully written or an error occured.
+	 */
+	void async_write(const source_ptr& buffer, const completion_handler_type& handler);
+
 	void write_timeout(const asio::error_code& ec);
 	void response_transmitted(const asio::error_code& e);
 
@@ -136,12 +141,11 @@ inline server& connection::server()
 	return server_;
 }
 
-template<class CompletionHandler>
-inline void connection::async_write(const composite_buffer& buffer, const CompletionHandler& handler)
+inline void connection::async_write(const source_ptr& buffer, const completion_handler_type& handler)
 {
 	if (server_.max_write_idle() != -1)
 	{
-		write_handler<CompletionHandler> writeHandler(shared_from_this(), handler);
+		write_handler<completion_handler_type> writeHandler(shared_from_this(), handler);
 
 		timer_.expires_from_now(boost::posix_time::seconds(server_.max_write_idle()));
 		timer_.async_wait(boost::bind(&connection::write_timeout, shared_from_this(), asio::placeholders::error));

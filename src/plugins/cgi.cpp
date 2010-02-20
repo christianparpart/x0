@@ -10,6 +10,7 @@
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
 #include <x0/process.hpp>
+#include <x0/io/buffer_source.hpp>
 #include <x0/types.hpp>
 
 #include <boost/enable_shared_from_this.hpp>
@@ -409,14 +410,8 @@ void cgi_script::receive_response(const asio::error_code& ec, std::size_t bytes_
 			response_.status = x0::response::internal_server_error;
 			request_.connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_.fileinfo->filename().c_str());
 		}
-		else if (!response_.has_header("Content-Length") && !response_.serializing())
-		{
-			// post-inject content-length in order to preserve keep-alive in case we didn't start serializing yet and
-			// the client requested persistent connections.
-			response_ += x0::response_header("Content-Length", boost::lexical_cast<std::string>(response_.content_length()));
-		}
 
-		response_.flush();
+		response_.finish();
 		delete this; //destroy();
 	}
 }
@@ -458,10 +453,21 @@ void cgi_script::assign_header(const std::string& name, const std::string& value
 	}
 }
 
+static void content_written(const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+{
+	if (ec)
+	{
+		// kill cgi script as client disconnected.
+		// kill(SIGTERM, pid)
+	}
+}
+
 void cgi_script::process_content(const char *first, const char *last)
 {
 	TRACE("process_content(length=%ld)\n", last - first);
-	response_.write(std::string(first, last));
+//	response_.write(std::string(first, last));
+	response_.write(x0::source_ptr(new x0::buffer_source(x0::buffer::from_copy(first, last - first))),
+			content_written);
 }
 // }}}
 

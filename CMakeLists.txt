@@ -90,10 +90,10 @@ else()
 endif()
 
 FIND_PACKAGE(Boost REQUIRED)
-IF(Boost_FOUND)
-	MESSAGE(STATUS "Boost library directory: " ${Boost_LIBRARY_DIRS})
-	MESSAGE(STATUS "Boost include directory: " ${Boost_INCLUDE_DIRS})
-ENDIF(Boost_FOUND)
+if(Boost_FOUND)
+	message(STATUS "Boost library directory: " ${Boost_LIBRARY_DIRS})
+	message(STATUS "Boost include directory: " ${Boost_INCLUDE_DIRS})
+endif(Boost_FOUND)
 
 #set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/src/asio/include" CACHE PATH "asio include directory")
 set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/../asio/include" CACHE PATH "asio include directory")
@@ -101,6 +101,8 @@ set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/../asio/include" CACHE PATH "asio inc
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 pkg_check_modules(LUA REQUIRED lua>=5.1)
+message(STATUS "LUA include directory: " ${LUA_INCLUDE_DIRS})
+message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
 
 if(WITH_PCRE)
 	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)

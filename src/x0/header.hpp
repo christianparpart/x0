@@ -8,7 +8,7 @@
 #ifndef x0_header_hpp
 #define x0_header_hpp (1)
 
-#include <x0/buffer.hpp>
+#include <x0/io/buffer.hpp>
 #include <string>
 
 #include <x0/types.hpp>

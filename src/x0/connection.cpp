@@ -122,21 +122,21 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 //					fprintf(stderr, "exception caught: %s\n", e.what());
 //					fflush(stderr);
 					response_->status = 404;
-					response_->flush();
+					response_->finish();
 				}
 				catch (response::code_type reply)
 				{
 //					fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
 //					fflush(stderr);
 					response_->status = reply;
-					response_->flush();
+					response_->finish();
 				}
 			}
 		}
 		else if (!result) // received an invalid request
 		{
 			// -> send stock response: BAD_REQUEST
-			(new response(shared_from_this(), request_, response::bad_request))->flush();
+			(new response(shared_from_this(), request_, response::bad_request))->finish();
 			request_ = 0;
 		}
 		else // result indeterminate: request still incomplete

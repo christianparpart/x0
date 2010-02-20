@@ -16,46 +16,61 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 set(x0_io_SRC
-	file.cpp
-	fd_source.cpp
-	file_source.cpp
-	buffer_source.cpp
-	fd_sink.cpp
-	file_sink.cpp
-	buffer_sink.cpp
-	filter.cpp
-	chain_filter.cpp
-	null_filter.cpp
-	compress_filter.cpp
+	io/file.cpp
+	io/fd_source.cpp
+	io/file_source.cpp
+	io/buffer_source.cpp
+	io/fd_sink.cpp
+	io/file_sink.cpp
+	io/socket_sink.cpp
+	io/buffer_sink.cpp
+	io/filter.cpp
+	io/chain_filter.cpp
+	io/null_filter.cpp
+	io/compress_filter.cpp
+	io/async_writer.cpp
+	io/fileinfo_service.cpp
 )
 
 set(x0_io_API
-	file.hpp
-	source.hpp
-	fd_source.hpp
-	file_source.hpp
-	buffer_source.hpp
-	filter_source.hpp
-	sink.hpp
-	fd_sink.hpp
-	file_sink.hpp
-	buffer_sink.hpp
-	filter.hpp
-	chain_filter.hpp
-	compress_filter.hpp
-	pump.hpp
+	io/file.hpp
+	io/source.hpp
+	io/fd_source.hpp
+	io/file_source.hpp
+	io/buffer_source.hpp
+	io/filter_source.hpp
+	io/sink.hpp
+	io/fd_sink.hpp
+	io/file_sink.hpp
+	io/socket_sink.hpp
+	io/buffer_sink.hpp
+	io/filter.hpp
+	io/chain_filter.hpp
+	io/compress_filter.hpp
+	io/pump.hpp
+	io/async_writer.hpp
+	io/fileinfo.hpp io/fileinfo.ipp
+	io/fileinfo_service.hpp
+)
+
+set(x0_util_SRC
+	process.cpp
+)
+
+set(x0_util_API
+	datetime.hpp
+	process.hpp
 )
 
 set(x0_SRC
 	${x0_io_SRC}
+	${x0_util_SRC}
 	connection.cpp
-	fileinfo_service.cpp
 	listener.cpp
 	logger.cpp
 	response.cpp
 	request.cpp
 	server.cpp
-	process.cpp
 	settings.cpp
 	severity.cpp
 	strutils.cpp
@@ -63,11 +78,9 @@ set(x0_SRC
 
 set(x0_API
 	${x0_io_API}
+	${x0_util_API}
 	connection.hpp
-	fileinfo.hpp fileinfo.ipp
-	fileinfo_service.hpp
 	context.hpp
-	datetime.hpp
 	handler.hpp
 	event_handler.hpp
 	utility.hpp
@@ -75,7 +88,6 @@ set(x0_API
 	listener.hpp
 	local_stream.hpp
 	logger.hpp
-	process.hpp
 	request.hpp
 	response.hpp
 	server.hpp

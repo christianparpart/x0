@@ -9,6 +9,7 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/header.hpp>
+#include <x0/io/buffer_source.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 #include <boost/lexical_cast.hpp>
@@ -85,15 +86,15 @@ private:
 			if (DIR *dir = opendir(in.fileinfo->filename().c_str()))
 			{
 				bool xml = !ctx.xsluri.empty();
-				std::string result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
+				x0::buffer result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
 
 				out *= x0::response_header("Content-Type", xml ? "text/xml" : "text/html");
 				out *= x0::response_header("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
-				out.write(result);
-
-				out.flush();
 				closedir(dir);
+
+				out.write(x0::source_ptr(new x0::buffer_source(result)),
+					boost::bind(&dirlisting_plugin::done, this, out));
 
 				return true;
 			}
@@ -103,6 +104,11 @@ private:
 			// eat up and default to `unhandled`
 		}
 		return false;
+	}
+
+	void done(x0::response& out)
+	{
+		out.finish();
 	}
 
 	std::string mkplain(DIR *dir, x0::request& in)

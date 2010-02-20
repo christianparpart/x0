@@ -11,10 +11,12 @@
 #include <x0/types.hpp>
 #include <x0/property.hpp>
 #include <x0/header.hpp>
-#include <x0/composite_buffer.hpp>
-#include <x0/composite_buffer_async_writer.hpp>
 #include <x0/connection.hpp>
+#include <x0/io/source.hpp>
+#include <x0/io/filter_source.hpp>
+#include <x0/io/chain_filter.hpp>
 #include <x0/api.hpp>
+
 #include <asio.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -103,13 +105,8 @@ private:
 	/// reference to the related request.
 	x0::request *request_;
 
-	/**
-	 * tests wether we've already started serializing this response.
-	 *
-	 * did we already start serializing this response? if so, subsequent calls to serialize() will only contain 
-	 * new data being added.
-	 */
-	bool serializing_;
+	// state whether response headers have been already sent or not.
+	bool headers_sent_;
 
 public:
 	/** Creates an empty response object.
@@ -149,64 +146,47 @@ public:
 	const std::string& header(const std::string& name, const std::string& value);
 	// }}}
 
-	/** retrieves the content length as constructed thus far. */
-	size_t content_length() const;
-
 	/** returns true in case serializing the response has already been started, that is, headers has been sent out already. */
-	bool serializing() const;
+	bool headers_sent() const;
 
-	/** write a string value to response content. */
-	void write(const std::string& value);
-
-	/** write a buffer to response content. */
-	void write(void *buffer, int size);
-
-	/** write contents available in given system handle to response content.
+	/** write given source to response content and invoke the completion handler when done.
 	 *
-	 * \param fd file descriptor to read contents from.
-	 * \param offset initial read offset inside file descriptor.
-	 * \param size number of bytes to read from fd and write to client.
-	 * \param close indicates wether to close file descriptor upon completion.
+	 * \param source the content to push to the client
+	 * \param handler completion handler to invoke when source has been fully flushed or if an error occured
 	 */
-	void write(int fd, off_t offset, size_t size, bool close);
+	void write(const source_ptr& source, const completion_handler_type& handler);
 
-	/** write given buffer to response content.
-	 * \see composite_buffer
+	/** finishes this response by flushing the content into the stream.
+	 *
+	 * \note this also queues the underlying connection for processing the next request.
 	 */
-	void write(composite_buffer& buffer);
-
-	/** asynchronously flushes this response to client connection.
-	 * \param handler the completion handler to invoke once fully transmitted.
-	 */
-	template<class CompletionHandler>
-	void flush(const CompletionHandler& handler)
+	void finish()
 	{
-		//DEBUG("response.flush(handler): serializing=%d", serializing_);
+		if (!headers_sent_) // nothing sent to client yet -> sent default status page
+		{
+			if (!status) // no status set -> default to 404 (not found)
+				status = response::not_found;
 
-		connection_->async_write(serialize(), handler);
-	}
+			auto content = make_default_content();
+			auto handler = boost::bind(&response::finished, this, asio::placeholders::error);
+			write(content, handler);
+			//write(make_default_content(), boost::bind(&response::finished, this, asio::placeholders::error));
+		}
 
-	/** asynchronously flushes response to client connection.
-	 *
-	 * This response is considered <b>complete</b> once all data currently in queue is being transmitted.
-	 *
-	 * \note this response object has been deleted after the completion of this request.
-	 * \see template<class CompletionHandler> void flush(const CompletionHandler& handler)
-	 */
-	void flush()
-	{
-		flush
+		auto completionHandler = boost::bind
 		(
-			boost::bind
-			(
-				&response::transmitted,
-				this,
-				asio::placeholders::error
-			)
+			&response::finished,
+			this,
+			asio::placeholders::error
 		);
 	}
 
+	void finish(asio::error_code& ec);
+
 private:
+	void complete_write(const asio::error_code& ec, const source_ptr& content, const completion_handler_type& handler);
+	void write_content(const source_ptr& content, const completion_handler_type& handler);
+
 	/** to be called <b>once</b> in order to initialize this class for instanciation.
 	 *
 	 * \note this is done automatically by server constructor.
@@ -219,19 +199,21 @@ public:
 	static const char *status_cstr(int status);
 	static std::string status_str(int status);
 
-	composite_buffer content;
+	chain_filter filter_chain;
 
 private:
 	/**
-	 * convert the response into a composite_buffer.
+	 * generate response header stream.
 	 *
-	 * The buffers do not own the underlying memory blocks,
+	 * \note The buffers do not own the underlying memory blocks,
 	 * therefore the response object must remain valid and
 	 * not be changed until the write operation has completed.
 	 */
-	composite_buffer serialize();
+	source_ptr serialize();
 
-	void transmitted(const asio::error_code& e);
+	source_ptr make_default_content();
+
+	void finished(const asio::error_code& e);
 };
 
 // {{{ inline implementation
@@ -240,34 +222,33 @@ inline request& response::request() const
 	return *request_;
 }
 
-inline size_t response::content_length() const
+inline bool response::headers_sent() const
 {
-	return content.size();
+	return headers_sent_;
 }
 
-inline bool response::serializing() const
+inline void response::write(const source_ptr& content, const completion_handler_type& handler)
 {
-	return serializing_;
+	if (headers_sent_)
+		write_content(content, handler);
+	else
+		connection_->async_write(serialize(), 
+			boost::bind(&response::complete_write, this, asio::placeholders::error, content, handler));
 }
 
-inline void response::write(const std::string& value)
+inline void response::complete_write(const asio::error_code& ec, const source_ptr& content, const completion_handler_type& handler)
 {
-	content.push_back(value);
+	if (!ec)
+	{
+		write_content(content, handler);
+	}
 }
 
-inline void response::write(void *buffer, int size)
+inline void response::write_content(const source_ptr& content, const completion_handler_type& handler)
 {
-	content.push_back(buffer, size);
-}
+	source_ptr filtered(new filter_source(*content, filter_chain));
 
-inline void response::write(int fd, off_t offset, size_t size, bool close)
-{
-	content.push_back(fd, offset, size, close);
-}
-
-inline void response::write(composite_buffer& buffer)
-{
-	content.push_back(buffer);
+	connection_->async_write(filtered, handler);
 }
 // }}}
 

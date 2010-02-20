@@ -7,6 +7,9 @@
 
 #include <x0/response.hpp>
 #include <x0/server.hpp>
+#include <x0/io/file.hpp>
+#include <x0/io/file_source.hpp>
+#include <x0/io/buffer_source.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 
@@ -120,111 +123,109 @@ inline std::string make_str(T value)
 	return boost::lexical_cast<std::string>(value);
 }
 
-composite_buffer response::serialize()
+source_ptr response::make_default_content()
 {
-	composite_buffer buffers;
+	if (content_forbidden(status)) // || !equals(request_->method, "GET"))
+		return source_ptr();
 
-	if (!serializing_)
+	std::string filename(connection_->server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
+	fileinfo_ptr fi(connection_->server().fileinfo(filename));
+	if (fi->exists())
 	{
-		if (!status)
+		file_ptr f(new file(fi));
+
+		header("Content-Type", fi->mimetype());
+		header("Content-Length", boost::lexical_cast<std::string>(fi->size()));
+
+		return source_ptr(new file_source(f));
+	}
+	else
+	{
+		const char *codeStr = status_cstr(status);
+		char buf[1024];
+
+		int nwritten = snprintf(buf, sizeof(buf),
+			"<html>"
+			"<head><title>%s</title></head>"
+			"<body><h1>%d %s</h1></body>"
+			"</html>",
+			codeStr, status(), codeStr
+		);
+
+		header("Content-Type", "text/html");
+		header("Content-Length", boost::lexical_cast<std::string>(nwritten));
+
+		return source_ptr(new buffer_source(buffer::from_copy(buf, nwritten)));
+	}
+}
+
+source_ptr response::serialize()
+{
+	std::shared_ptr<buffer> buffers(new buffer);
+
+	if (!status)
+	{
+		status = response::ok;
+	}
+
+	if (!has_header("Content-Type"))
+	{
+		*this += x0::response_header("Content-Type", "text/plain");
+	}
+
+	if (!has_header("Content-Length") && !content_forbidden(status))
+	{
+		header("Connection", "closed");
+	}
+	else if (!has_header("Connection"))
+	{
+		if (iequals(request_->header("Connection"), "keep-alive"))
 		{
-			status = response::ok;
+			header("Connection", "keep-alive");
 		}
-
-		if (content.empty() && !content_forbidden(status) && equals(request_->method, "GET"))
-		{
-			std::string filename(connection_->server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
-			fileinfo_ptr fi(connection_->server().fileinfo(filename));
-			int fd = ::open(filename.c_str(), O_RDONLY);
-
-			if (fd != -1)
-			{
-				header("Content-Type", fi->mimetype());
-				header("Content-Length", boost::lexical_cast<std::string>(fi->size()));
-
-				write(fd, 0, fi->size(), true);
-			}
-			else
-			{
-				const char *codeStr = status_cstr(status);
-				char buf[1024];
-
-				int nwritten = snprintf(buf, sizeof(buf),
-					"<html>"
-					"<head><title>%s</title></head>"
-					"<body><h1>%d %s</h1></body>"
-					"</html>",
-					codeStr, status(), codeStr
-				);
-				write(std::string(buf, 0, nwritten));
-
-				header("Content-Length", boost::lexical_cast<std::string>(content_length()));
-				header("Content-Type", "text/html");
-			}
-		}
-		else if (!has_header("Content-Type"))
-		{
-			*this += x0::response_header("Content-Type", "text/plain");
-		}
-
-		if (!has_header("Content-Length") && !content_forbidden(status))
+		else
 		{
 			header("Connection", "closed");
 		}
-		else if (!has_header("Connection"))
-		{
-			if (iequals(request_->header("Connection"), "keep-alive"))
-			{
-				header("Connection", "keep-alive");
-			}
-			else
-			{
-				header("Connection", "closed");
-			}
-		}
-
-		// log request/response
-		connection_->server().request_done(*request_, *this);
-
-		// post-response hook
-		connection_->server().post_process(*request_, *this);
-
-		if (request_->supports_protocol(1, 1))
-			buffers.push_back("HTTP/1.1 ");
-		else if (request_->supports_protocol(1, 0))
-			buffers.push_back("HTTP/1.0 ");
-		else
-			buffers.push_back("HTTP/0.9 ");
-
-		buffers.push_back(status_codes[status]);
-		buffers.push_back(' ');
-		buffers.push_back(status_cstr(status));
-		buffers.push_back("\r\n");
-
-		for (std::size_t i = 0; i < headers.size(); ++i)
-		{
-			const x0::response_header& h = headers[i];
-
-			buffers.push_back(h.name.data(), h.name.size());
-			buffers.push_back(": ");
-			buffers.push_back(h.value.data(), h.value.size());
-			buffers.push_back("\r\n");
-		}
-
-		buffers.push_back("\r\n");
-
-		serializing_ = true;
 	}
 
-	buffers.push_back(content);
+	// log request/response
+	connection_->server().request_done(*request_, *this);
 
-	return buffers;
+	// post-response hook
+	connection_->server().post_process(*request_, *this);
+
+	if (request_->supports_protocol(1, 1))
+		buffers->push_back("HTTP/1.1 ");
+	else if (request_->supports_protocol(1, 0))
+		buffers->push_back("HTTP/1.0 ");
+	else
+		buffers->push_back("HTTP/0.9 ");
+
+	buffers->push_back(status_codes[status]);
+	buffers->push_back(' ');
+	buffers->push_back(status_cstr(status));
+	buffers->push_back("\r\n");
+
+	for (std::size_t i = 0, e = headers.size(); i != e; ++i)
+	{
+		const x0::response_header& h = headers[i];
+
+		buffers->push_back(h.name.data(), h.name.size());
+		buffers->push_back(": ");
+		buffers->push_back(h.value.data(), h.value.size());
+		buffers->push_back("\r\n");
+	}
+
+	buffers->push_back("\r\n");
+
+	return source_ptr(new buffer_source(buffers));
 }
 
 response::response(connection_ptr connection, x0::request *request, int _status) :
 	connection_(connection),
 	request_(request),
-	serializing_(false),
+	headers_sent_(false),
 	status(_status),
 	headers()
 {
@@ -265,9 +266,21 @@ std::string response::status_str(int value)
 	return std::string(status_cstr(value));
 }
 
-void response::transmitted(const asio::error_code& ec)
+/** handler, being invoked when this response has been fully flushed and is considered done.
+ */
+void response::finished(const asio::error_code& ec)
 {
-	//DEBUG("response(%p).transmitted(%s)", this, ec.message().c_str());
+	DEBUG("response(%p).finished(%s)", this, ec.message().c_str());
+
+	{
+		server& srv = request_->connection.server();
+
+		// log request/response
+		srv.request_done(*request_, *this);
+
+		// post-response hook
+		srv.post_process(*request_, *this);
+	}
 
 	if (!ec)
 	{

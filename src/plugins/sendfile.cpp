@@ -9,6 +9,10 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/range_def.hpp>
+#include <x0/file_source.hpp>
+#include <x0/buffer_source.hpp>
+#include <x0/composite_source.hpp>
+#include <x0/file.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 
@@ -122,52 +126,44 @@ private:
 		out.header("Last-Modified", in.fileinfo->last_modified());
 		out.header("ETag", in.fileinfo->etag());
 
-		int fd;
+		x0::file_ptr f;
 		if (equals(in.method, "GET"))
 		{
-			if ((fd = open(path.c_str(), O_RDONLY)) == -1)
+			f.reset(new x0::file(in.fileinfo));
+
+			if (f->handle() == -1)
 			{
 				server_.log(x0::severity::error, "Could not open file '%s': %s", path.c_str(), strerror(errno));
 				return false;
 			}
 		}
-		else if (equals(in.method, "HEAD"))
-			fd = -1;
-		else
+		else if (!equals(in.method, "HEAD"))
 			return false;
 
-		try
+		if (!process_range_request(in, out, f))
 		{
-			if (!process_range_request(in, out, fd))
+			out.status = x0::response::ok;
+
+			out.header("Accept-Ranges", "bytes");
+			out.header("Content-Type", in.fileinfo->mimetype());
+			out.header("Content-Length", boost::lexical_cast<std::string>(in.fileinfo->size()));
+
+			if (f)
 			{
-				out.status = x0::response::ok;
-
-				out.header("Accept-Ranges", "bytes");
-				out.header("Content-Type", in.fileinfo->mimetype());
-				out.header("Content-Length", boost::lexical_cast<std::string>(in.fileinfo->size()));
-
-				if (fd != -1)
-				{
-					posix_fadvise(fd, 0, in.fileinfo->size(), POSIX_FADV_SEQUENTIAL);
-					out.write(fd, 0, in.fileinfo->size(), true);
-				}
+				posix_fadvise(f->handle(), 0, in.fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+				out.write(
+					std::make_shared<x0::file_source>(f, 0, in.fileinfo->size()),
+					boost::bind(&x0::response::finish, this, asio::placeholders::error)
+				);
 			}
-
-			out.flush();
 		}
-		catch (...)
-		{
-			if (fd != -1)
-				::close(fd);// we would let auto-close it by last fd write,
-							// however, this won't happen when an exception got cought here.
 
-			throw;
-		}
+		out.flush();
 
 		return true;
 	}
 
-	inline bool process_range_request(x0::request& in, x0::response& out, int fd)
+	inline bool process_range_request(x0::request& in, x0::response& out, x0::file_ptr& f)
 	{
 		x0::buffer_ref range_value(in.header("Range"));
 		x0::range_def range;
@@ -182,40 +178,51 @@ private:
 		{
 			// generate a multipart/byteranged response, as we've more than one range to serve
 
-			x0::composite_buffer body;
+			x0::buffer buf;
+			x0::source_ptr content(new x0::composite_source);
+			x0::composite_source& cc = *static_cast<x0::composite_source *>(content.get());
 			std::string boundary(boundary_generate());
+			std::size_t content_length = 0;
 
 			for (int i = 0, e = range.size(); i != e; )
 			{
 				std::pair<std::size_t, std::size_t> offsets(make_offsets(range[i], in.fileinfo->size()));
 				std::size_t length = 1 + offsets.second - offsets.first;
 
-				body.push_back("\r\n--");
-				body.push_back(boundary);
+				buf.clear();
+				buf.push_back("\r\n--");
+				buf.push_back(boundary);
+				buf.push_back("\r\nContent-Type: ");
+				buf.push_back(in.fileinfo->mimetype());
 
-				body.push_back("\r\nContent-Type: ");
-				body.push_back(in.fileinfo->mimetype());
+				buf.push_back("\r\nContent-Range: bytes ");
+				buf.push_back(boost::lexical_cast<std::string>(offsets.first));
+				buf.push_back("-");
+				buf.push_back(boost::lexical_cast<std::string>(offsets.second));
+				buf.push_back("/");
+				buf.push_back(boost::lexical_cast<std::string>(in.fileinfo->size()));
+				buf.push_back("\r\n\r\n");
 
-				body.push_back("\r\nContent-Range: bytes ");
-				body.push_back(boost::lexical_cast<std::string>(offsets.first));
-				body.push_back("-");
-				body.push_back(boost::lexical_cast<std::string>(offsets.second));
-				body.push_back("/");
-				body.push_back(boost::lexical_cast<std::string>(in.fileinfo->size()));
-				body.push_back("\r\n\r\n");
-
-				body.push_back(fd, offsets.first, length, ++i == e);
+				cc.push_back(source_ptr(new x0::buffer_source(buf)));
+				cc.push_back(source_ptr(new x0::file_source(f, offsets.first, length)));
+				content_length += buf.size() + length;
 			}
-			body.push_back("\r\n--");
-			body.push_back(boundary);
-			body.push_back("--\r\n");
+
+			buf.clear();
+			buf.push_back("\r\n--");
+			buf.push_back(boundary);
+			buf.push_back("--\r\n");
+
+			cc.push_back(source_ptr(new buffer_source(buf)));
+			content_length += buf.size();
 
 			out.header("Content-Type", "multipart/byteranges; boundary=" + boundary);
-			out.header("Content-Length", boost::lexical_cast<std::string>(body.size()));
+			out.header("Content-Length", boost::lexical_cast<std::string>(content_length));
 
-			if (fd != -1)
+			if (f)
 			{
-				out.write(body);
+				// TODO it sould wrap finish to check error_code of the write result
+				out.write(content, boost::bind(&response::finish, this));
 			}
 		}
 		else
@@ -232,9 +239,12 @@ private:
 			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in.fileinfo->size();
 			out.header("Content-Range", cr.str());
 
-			if (fd != -1)
+			if (f)
 			{
-				out.write(fd, offsets.first, length, true);
+				out.write(
+					std::make_shared<x0::file_source>(f, offsets.first, length),
+					boost::bind(response::finish, &out, asio::placeholders::error)
+				);
 			}
 		}
 

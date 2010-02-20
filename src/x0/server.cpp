@@ -352,7 +352,7 @@ void server::handle_request(request& in, response& out)
 		out *= response_header("Location", url.str());
 		out.status = response::moved_permanently;
 
-		out.flush();
+		out.finish();
 		return;
 	}
 
@@ -361,22 +361,10 @@ void server::handle_request(request& in, response& out)
 	if (!rv)
 	{
 		// no content generator found for this request, default to 404 (Not Found)
-		if (!in.fileinfo->exists())
-			out.status = response::not_found;
-		else
-			out.status = response::forbidden;
-
-		out.flush();
+		out.status = response::not_found;
+		out.finish();
 	}
 }
-#if 0
-	// log request/response
-	request_done(in, out);
-
-	// post-response hook
-	post_process(in, out);
-}
-#endif
 
 /**
  * retrieves the listener object that is responsible for the given port number, or null otherwise.
