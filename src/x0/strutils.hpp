@@ -66,7 +66,7 @@ private:
 	}
 
 	template<typename T, typename... Args>
-	void build(const char *s, const T&& value, const Args&&... args)
+	void build(const char *s, T&& value, Args&&... args)
 	{
 		while (*s)
 		{
