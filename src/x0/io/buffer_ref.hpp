@@ -207,7 +207,7 @@ inline buffer_ref::buffer_ref(const x0::buffer_ref& v) :
 #endif
 }
 
-inline buffer_ref::buffer_ref& buffer_ref::operator=(const x0::buffer& v)
+inline buffer_ref& buffer_ref::operator=(const x0::buffer& v)
 {
 #if !defined(NDEBUG)
 	if (buffer_)
@@ -225,7 +225,7 @@ inline buffer_ref::buffer_ref& buffer_ref::operator=(const x0::buffer& v)
 	return *this;
 }
 
-inline buffer_ref::buffer_ref& buffer_ref::operator=(const x0::buffer_ref& v)
+inline buffer_ref& buffer_ref::operator=(const x0::buffer_ref& v)
 {
 #if !defined(NDEBUG)
 	if (buffer_)
@@ -435,13 +435,13 @@ inline bool buffer_ref::begins(value_type value) const
 	return size() >= 1 && data()[0] == value;
 }
 
-inline buffer_ref::buffer_ref buffer_ref::ref(std::size_t offset) const
+inline buffer_ref buffer_ref::ref(std::size_t offset) const
 {
 	assert(buffer_ != 0);
 	return buffer_->ref(offset_ + offset, size_ - offset);
 }
 
-inline buffer_ref::buffer_ref buffer_ref::ref(std::size_t offset, std::size_t size) const
+inline buffer_ref buffer_ref::ref(std::size_t offset, std::size_t size) const
 {
 	assert(buffer_ != 0);
 	return buffer_->ref(offset_ + offset, size);
