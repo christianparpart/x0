@@ -1,4 +1,4 @@
-/* <x0/utility.hpp>
+/* <x0/event_handler.hpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
@@ -9,15 +9,18 @@
 #define sw_x0_event_handler_hpp (1)
 
 #include <x0/utility.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <utility>
+#include <memory>
 #include <tuple>
 
-/** \addtogroup base */
-/*@{*/
+namespace x0 {
 
 template<typename SignatureT>
 class event_handler;
+
+/** \addtogroup base */
+/*@{*/
 
 /*! 
  * \brief Asynchronous Event Handler Dispatching API
@@ -32,22 +35,26 @@ class event_handler;
  * currently not implemented.
  *
  * \code
- * void hook(const boost::function<void()>& complete, int level, std::string msg) {
+ * void hook(const std::function<void()>& complete, int level, std::string msg) {
  *     std::clog << level << ": " << msg << std::endl;
  *     // ...
  *     complete();
  * }
  *
- * void handler_done() {
- *     std::clog << "handler done" << std::endl;
+ * void footer(const std::function<void()>&, int level, std::string msg) {
+ *     std::clog << "footer" << std::endl;
+ *     complete();
  * }
  *
  * void test() {
+ *     using namespace std::placeholders;
+ *
  *     event_handler<int, std::string> handler;
  *
- *     handler.connect(hook);
+ *     handler.connect(std::bind(&hook, _1, _2, _3));
+ *     handler.connect(std::bind(&footer, _1, _2, _3));
  *
- *     handler(handler_done, 42, "hello, world");
+ *     handler(42, "hello, world");
  * }
  * \endcode
  */
@@ -55,68 +62,16 @@ template<typename... Args>
 class event_handler<void(Args...)>
 {
 public:
+	struct node;
+	class invokation_iterator;
+	class connection;
+
 	/** handlers who are to register to this event handling dispatcher must conform to this type.
 	 *
 	 * The first argument is the local completion handler to be invoked once this handler has finished its job
 	 * and the remaining function arguments are the application supplied arguments.
 	 */
-	typedef boost::function<void(const boost::function<void()>&, const Args&...)> handler_type;
-
-private:
-	/** internal node containing a single event handler and a ptr to the next node if available, 
-	 * or nullptr otherwise. */
-	struct node
-	{
-		handler_type handler_;
-		node *next_;
-
-		template<typename Sig> node(Sig&& fn) : handler_(fn), next_(0) {}
-	};
-
-public:
-	/*!
-	 * \brief an object of this type is passed to each event handler as first argument to be invoked once completed.
-	 *
-	 * An invokation of this function object will trigger the next handler to be invoked or the initiators completion handler
-	 * if the last event handler has been invoked.
-	 */
-	class invocation_iterator
-	{
-	private:
-		node *node_;						//!< current handler node to invoke
-		boost::function<void()> handler_;	//!< initiator's completion handler
-		std::tuple<Args...> args_;			//!< handler arguments passed from the initiator
-
-	public:
-		invocation_iterator() = delete;
-
-		invocation_iterator(node *n, const boost::function<void()>& handler, const std::tuple<Args...>& args) :
-			node_(n),
-			handler_(std::move(handler)),
-			args_(args)
-		{
-		}
-
-		/** invokes the handler this iterator points to and passes it a completion handler to the next node in list. */
-		void operator()()
-		{
-			if (node_)
-			{
-				call_unpacked(node_->handler_, std::tuple_cat(std::make_tuple(next()), args_));
-			}
-			else if (handler_) // completed invoking all handlers, so call initiators completion handler
-			{
-				handler_();
-			}
-		}
-
-		/** creates the sibling iterator next to this that can be invoked as completion handler.
-		 */
-		invocation_iterator next()
-		{
-			return invocation_iterator(node_ ? node_->next_ : 0, handler_, args_);
-		}
-	};
+	typedef std::function<void(invokation_iterator, Args...)> handler_type;
 
 private:
 	node *first_;		//!< link to the first event-handler node in list
@@ -130,15 +85,136 @@ public:
 	std::size_t size() const;
 	bool empty() const;
 
-	void connect(const handler_type& handler);
+	connection connect(const handler_type& handler);
+	void disconnect(connection con);
+
 	void clear();
 
 	event_handler& operator+=(const handler_type& handler);
 
-	void operator()(const boost::function<void()>& completionHandler, const Args& ... args) const;
-	void operator()(const Args& ... args) const;
+	void operator()(Args ... args) const;
 };
 
+// {{{ struct node
+/** internal node containing a single event handler and a ptr to the next node if available, 
+ * or nullptr otherwise. */
+template<typename... Args>
+struct event_handler<void(Args...)>::node
+{
+	handler_type handler_;
+	node *next_;
+
+	template<typename Sig> node(Sig&& fn) : handler_(fn), next_(0) {}
+};
+// }}}
+
+// {{{ class invokation_iterator
+/*!
+ * \brief an object of this type is passed to each event handler as first argument to be invoked once completed.
+ *
+ * An invokation of this function object will trigger the next handler to be invoked or the initiators completion handler
+ * if the last event handler has been invoked.
+ */
+template<typename... Args>
+class event_handler<void(Args...)>::invokation_iterator
+{
+private:
+	node *current_;								//!< current handler node to invoke
+	std::shared_ptr<std::tuple<Args...>> args_;	//!< handler arguments passed from the initiator
+
+public:
+	invokation_iterator() = delete;
+
+	invokation_iterator(node *n, const std::shared_ptr<std::tuple<Args...>>& args) :
+		current_(n),
+		args_(args)
+	{
+	}
+
+	/** invokes the handler this iterator points to and passes it a completion handler to the next node in list. */
+	void operator()()
+	{
+		if (current_)
+		{
+			call_unpacked(current_->handler_, std::tuple_cat(std::make_tuple(next()), *args_));
+		}
+	}
+
+	/** creates the sibling iterator next to this that can be invoked as completion handler.
+	 */
+	invokation_iterator next()
+	{
+		return invokation_iterator(current_ ? current_->next_ : 0, args_);
+	}
+};
+// }}}
+
+// {{{ connection
+template<typename... Args>
+struct event_handler<void(Args...)>::connection
+{
+	event_handler<void(Args...)> *owner_;
+	node *node_;
+
+	connection() :
+		owner_(0), node_(0)
+	{
+	}
+
+	connection(event_handler *o, node *n) :
+		owner_(o), node_(n)
+	{
+	}
+
+	~connection()
+	{
+		disconnect();
+	}
+
+	void detach()
+	{
+		owner_ = 0;
+		node_ = 0;
+	}
+
+	void disconnect()
+	{
+		if (owner_)
+		{
+			if (node *n = owner_->first_)
+			{
+				if (n == node_)
+				{
+					owner_->first_ = n->next_;
+					node_->next_ = 0;
+					--owner_->size_;
+					if (owner_->size_ == 0)
+						owner_->last_ = 0;
+
+					delete node_;
+				}
+				else while (n->next_)
+				{
+					if (n->next_ == node_)
+					{
+						n->next_ = node_->next_;
+						node_->next_ = 0;
+						--owner_->size_;
+						if (node_ == owner_->last_)
+							owner_->last_ = n;
+						delete node_;
+						break;
+					}
+				}
+			}
+			owner_ = 0;
+			node_ = 0;
+		}
+	}
+};
+// }}}
+
+// {{{ event_handler<void(Args...)> impl
 template<typename... Args>
 inline event_handler<void(Args...)>::event_handler() :
 	first_(0),
@@ -166,7 +242,7 @@ inline bool event_handler<void(Args...)>::empty() const
 }
 
 template<typename... Args>
-inline void event_handler<void(Args...)>::connect(const handler_type& handler)
+inline typename event_handler<void(Args...)>::connection event_handler<void(Args...)>::connect(const handler_type& handler)
 {
 	if (last_)
 	{
@@ -179,8 +255,11 @@ inline void event_handler<void(Args...)>::connect(const handler_type& handler)
 	}
 
 	++size_;
+
+	return connection(this, last_);
 }
 
+/** removes all callbacks from the list. */
 template<typename... Args>
 inline void event_handler<void(Args...)>::clear()
 {
@@ -190,6 +269,9 @@ inline void event_handler<void(Args...)>::clear()
 		delete first_;
 		first_ = next;
 	}
+
+	last_ = 0;
+	size_ = 0;
 }
 
 template<typename... Args>
@@ -199,18 +281,19 @@ inline event_handler<void(Args...)>& event_handler<void(Args...)>::operator+=(co
 	return *this;
 }
 
+/** invokes all registered callbacks with the given arguments.
+ *
+ * \param args the arguments to pass to the registered callbacks.
+ */
 template<typename... Args>
-inline void event_handler<void(Args...)>::operator()(const boost::function<void()>& handler, const Args& ... args) const
+inline void event_handler<void(Args...)>::operator()(Args ... args) const
 {
-	invocation_iterator(first_, std::move(handler), std::move(std::make_tuple(args...)))();
+	invokation_iterator(first_, std::make_shared<std::tuple<Args...>>(std::make_tuple(std::move(args)...)))();
 }
-
-template<typename... Args>
-inline void event_handler<void(Args...)>::operator()(const Args& ... args) const
-{
-	invocation_iterator(first_, std::move(boost::function<void()>()), std::move(std::make_tuple(args...)))();
-}
+// }}}
 
 /*@}*/
+
+} // namespace x0
 
 #endif
