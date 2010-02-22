@@ -60,9 +60,9 @@ template<> struct build_indexes<0> {
 
 /** internal helper function for call_unpacked(). */
 template<typename Functor, typename... Args, int... Indexes>
-inline void call_impl(Functor functor, const std::tuple<Args...>& args, index_list<Indexes...>)
+inline void call_impl(Functor functor, std::tuple<Args...>&& args, index_list<Indexes...>)
 {
-	functor(std::get<Indexes>(args)...);
+	functor(std::get<Indexes>(std::move(args))...);
 }
 
 /** 
@@ -76,9 +76,9 @@ inline void call_impl(Functor functor, const std::tuple<Args...>& args, index_li
  * \endcode
  */
 template<typename Functor, typename... Args>
-inline void call_unpacked(Functor functor, const std::tuple<Args...>& args)
+inline void call_unpacked(Functor functor, std::tuple<Args...>&& args)
 {
-	call_impl(functor, args, typename build_indexes<sizeof...(Args)>::type());
+	call_impl(functor, std::move(args), typename build_indexes<sizeof...(Args)>::type());
 }
 
 //@}
