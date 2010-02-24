@@ -34,7 +34,7 @@ private:
 	 * \retval false \p i does not represent the valid and expected value.
 	 */
 	template<typename T, typename U>
-	bool test(const T&& i, const T&& e, const U&& c)
+	bool test(T&& i, T&& e, U&& c)
 	{
 		if (i == e)
 			return false;
