@@ -1,18 +1,18 @@
-#include <x0/buffer.hpp>
+#include <x0/io/buffer.hpp>
 
-#include <x0/source.hpp>
-#include <x0/fd_source.hpp>
-#include <x0/file_source.hpp>
-#include <x0/buffer_source.hpp>
-#include <x0/filter_source.hpp>
-#include <x0/composite_source.hpp>
+#include <x0/io/source.hpp>
+#include <x0/io/fd_source.hpp>
+#include <x0/io/file_source.hpp>
+#include <x0/io/buffer_source.hpp>
+#include <x0/io/filter_source.hpp>
+#include <x0/io/composite_source.hpp>
 
-#include <x0/sink.hpp>
-#include <x0/fd_sink.hpp>
-#include <x0/file_sink.hpp>
-#include <x0/buffer_sink.hpp>
+#include <x0/io/sink.hpp>
+#include <x0/io/fd_sink.hpp>
+#include <x0/io/file_sink.hpp>
+#include <x0/io/buffer_sink.hpp>
 
-#include <x0/filter.hpp>
+#include <x0/io/filter.hpp>
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
@@ -42,8 +42,8 @@ public:
 		return fd[i];
 	}
 
-	int left() const { return fd[0]; }
-	int right() const { return fd[1]; }
+	int reader() const { return fd[0]; }
+	int writer() const { return fd[1]; }
 
 	~safe_pipe() {
 		for (int i = 0; i < 2; ++i)
@@ -85,14 +85,14 @@ private:
 	void test_fd_source()
 	{
 		safe_pipe pfd(true);
-		x0::fd_source in(pfd.right());
+		x0::fd_source in(pfd.reader());
 		x0::buffer output;
 
-		::write(pfd.left(), "12345", 5);
+		::write(pfd.writer(), "12345", 5);
 		CPPUNIT_ASSERT(in.pull(output) == "12345");
 		CPPUNIT_ASSERT(output == "12345");
 
-		::write(pfd.left(), "abcd", 4);
+		::write(pfd.writer(), "abcd", 4);
 		CPPUNIT_ASSERT(in.pull(output) == "abcd");
 		CPPUNIT_ASSERT(output == "12345abcd");
 
@@ -164,24 +164,24 @@ private: // {{{ debug helper
 	void print(const x0::buffer& b, const char *msg = 0)
 	{
 		if (msg && *msg)
-			printf("buffer(%s): '%s'\n", msg, b.str().c_str());
+			printf("\nbuffer(%s): '%s'\n", msg, b.str().c_str());
 		else
-			printf("buffer: '%s'\n", b.str().c_str());
+			printf("\nbuffer: '%s'\n", b.str().c_str());
 	}
 
 	void print(const x0::buffer_ref& v, const char *msg = 0)
 	{
 		char prefix[64];
 		if (msg && *msg)
-			snprintf(prefix, sizeof(prefix), "buffer.view(%s)", msg);
+			snprintf(prefix, sizeof(prefix), "\nbuffer.view(%s)", msg);
 		else
-			snprintf(prefix, sizeof(prefix), "buffer.view");
+			snprintf(prefix, sizeof(prefix), "\nbuffer.view");
 
 		if (v)
-			printf("%s: '%s' (offset=%ld, size=%ld)\n",
+			printf("\n%s: '%s' (offset=%ld, size=%ld)\n",
 				prefix, v.str().c_str(), v.offset(), v.size());
 		else
-			printf("%s: NULL\n", prefix);
+			printf("\n%s: NULL\n", prefix);
 	}
 	//}}}
 };
