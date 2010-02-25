@@ -1,4 +1,4 @@
-#include <x0/buffer.hpp>
+#include <x0/io/buffer.hpp>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
