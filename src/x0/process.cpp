@@ -56,18 +56,27 @@ void process::start(const std::string& exe, const params& args, const environmen
 	}
 }
 
+/** sends SIGTERM (terminate signal) to the child process.
+ */
 void process::terminate()
 {
 	::kill(pid_, SIGTERM);
 }
 
+/** tests whether child process has exited already.
+ */
 bool process::expired()
 {
 	if (pid_ <= 0)
 		return true;
 
-	if ((fetch_status() == -1 && errno == ECHILD)
-			|| (WIFEXITED(status_) || WIFSIGNALED(status_)))
+	if (fetch_status() == -1 && errno == ECHILD)
+		return true;
+
+	if (WIFEXITED(status_))
+		return true;
+
+	if (WIFSIGNALED(status_))
 		return true;
 
 	return false;
