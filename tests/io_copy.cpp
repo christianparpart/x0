@@ -1,17 +1,17 @@
-#include <x0/source.hpp>
-#include <x0/fd_source.hpp>
-#include <x0/file_source.hpp>
+#include <x0/io/source.hpp>
+#include <x0/io/fd_source.hpp>
+#include <x0/io/file_source.hpp>
 
-#include <x0/sink.hpp>
-#include <x0/file_sink.hpp>
+#include <x0/io/sink.hpp>
+#include <x0/io/file_sink.hpp>
 
-#include <x0/filter.hpp>
-#include <x0/null_filter.hpp>
-#include <x0/uppercase_filter.hpp>
-#include <x0/compress_filter.hpp>
-#include <x0/chain_filter.hpp>
+#include <x0/io/filter.hpp>
+#include <x0/io/null_filter.hpp>
+#include <x0/io/uppercase_filter.hpp>
+#include <x0/io/compress_filter.hpp>
+#include <x0/io/chain_filter.hpp>
 
-#include <x0/pump.hpp>
+#include <x0/io/pump.hpp>
 
 #include <iostream>
 #include <memory>
