@@ -46,6 +46,10 @@ public:
 		doguard_(false),
 		server_()
 	{
+#ifndef NDEBUG
+		nofork_ = true;
+		configfile_ = "test.conf";
+#endif
 		instance_ = this;
 	}
 
@@ -192,8 +196,6 @@ private:
 			"Copyright (c) 2009 by Christian Parpart <trapni@gentoo.org>";
 		static const char *package_license =
 			"Licensed under GPL-3 [http://gplv3.fsf.org/]";
-
-		nofork_ = 0;
 
 		for (;;)
 		{
