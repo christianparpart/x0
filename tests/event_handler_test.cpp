@@ -16,6 +16,7 @@ public:
 		CPPUNIT_TEST(ctor0);
 		CPPUNIT_TEST(asyncness);
 		CPPUNIT_TEST(connection);
+		CPPUNIT_TEST(completion_handler);
 	CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -38,6 +39,11 @@ private:
 		++*i;
 
 		done();
+	}
+
+	void done(int *i)
+	{
+		++*i;
 	}
 
 private:
@@ -66,6 +72,32 @@ private:
 
 		eh.connect(std::bind(&event_handler_test::inc, this, _1, _2)).detach();
 		CPPUNIT_ASSERT(eh.size() == 1);
+	}
+
+	void completion_handler()
+	{
+		using namespace std::placeholders;
+
+		x0::event_handler<void(int *)> eh;
+		auto c1 = eh.connect(std::bind(&event_handler_test::inc, this, _1, _2));
+		int i = 0;
+
+		// no completion handler
+		eh(&i);
+		CPPUNIT_ASSERT(i == 1);
+
+		// via std::bind()
+		eh(std::bind(&event_handler_test::done, this, &i), &i);
+		CPPUNIT_ASSERT(i == 3);
+
+#if CC_SUPPORTS_LAMBDA
+		auto lambda = [&]() {
+			CPPUNIT_ASSERT(i == 4);
+			++i;
+		};
+		eh(lambda, &i);
+		CPPUNIT_ASSERT(i == 5);
+#endif
 	}
 
 	void asyncness()

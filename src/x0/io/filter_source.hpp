@@ -16,7 +16,7 @@ class X0_API filter_source :
 	public source
 {
 public:
-	explicit filter_source(source& source, filter& filter) :
+	explicit filter_source(const source_ptr& source, filter& filter) :
 		buffer_(), source_(source), filter_(filter) {}
 
 	virtual buffer_ref pull(buffer& output)
@@ -25,7 +25,7 @@ public:
 
 		buffer_.clear();
 
-		output.push_back(filter_(source_.pull(buffer_)));
+		output.push_back(filter_(source_->pull(buffer_)));
 
 		return output.ref(pos);
 	}
@@ -37,7 +37,7 @@ public:
 
 protected:
 	buffer buffer_;
-	source& source_;
+	source_ptr source_;
 	filter& filter_;
 };
 

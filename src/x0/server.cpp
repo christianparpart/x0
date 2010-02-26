@@ -327,6 +327,7 @@ void server::handle_request(request& in, response& out)
 	if (in.document_root.empty())
 	{
 		// no document root assigned with this request.
+		// -> make sure it is not exploited.
 		in.document_root = "/dev/null";
 	}
 
@@ -357,13 +358,7 @@ void server::handle_request(request& in, response& out)
 	}
 
 	// generate response content, based on this request
-	bool rv = generate_content(in, out);//, boost::bind(server::generated, this, in, out));
-	if (!rv)
-	{
-		// no content generator found for this request, default to 404 (Not Found)
-		out.status = response::not_found;
-		out.finish();
-	}
+	generate_content(std::bind(&response::finish, &out), &in, &out);
 }
 
 /**

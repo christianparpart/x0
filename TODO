@@ -1,3 +1,7 @@
+TODO ASAP:
+- process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
+- plugins/cgi: pass completion handler to cgi_script::async_run(...)
+
 -----------------------------------------------------------------------------
 ROADMAP
 
@@ -100,6 +104,7 @@ for a long-term todo list, see ticket system at http://code.ninchens.net/project
 NOTES AND THOUGHTS:
 - should the upcoming (lua driven) template engine be part of x0 core?
   (we'll have more sources than just error documents being generated from templates, that is plugins like: dirlisting.
+- evaluate the use of signalfd(2) with regards to cgi plugin (for watching child process termination) and possibly others
 - cgi plugin:
   - find a way to get notified on SIGCHLD which should be caught in asio's io_service on EINTR's.
     hm. or just use sigaction/etc...? but what if other plugins may want to hook into SIGCHLD aswell?

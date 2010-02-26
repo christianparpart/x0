@@ -61,6 +61,18 @@
 #	define X0_PURE /*!*/
 #endif
 
+#if defined(__GNUC__)
+	#define GCC_VERSION(major, minor) ( \
+		(__GNUC__ > (major)) || \
+		(__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)) \
+	)
+	#define CC_SUPPORTS_LAMBDA GCC_VERSION(4, 5)
+#else
+	#define GCC_VERSION(major, minor) (0)
+	#define CC_SUPPORTS_LAMBDA (0)
+#endif
+
+
 /// the filename only part of __FILE__ (no leading path)
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 

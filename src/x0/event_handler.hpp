@@ -9,6 +9,8 @@
 #define sw_x0_event_handler_hpp (1)
 
 #include <x0/utility.hpp>
+#include <x0/api.hpp>
+
 #include <functional>
 #include <utility>
 #include <memory>
@@ -59,12 +61,12 @@ class event_handler;
  * \endcode
  */
 template<typename... Args>
-class event_handler<void(Args...)>
+class X0_API event_handler<void(Args...)>
 {
 public:
-	struct node;
-	class invokation_iterator;
-	class connection;
+	struct X0_API node;
+	class X0_API invokation_iterator;
+	class X0_API connection;
 
 	/** handlers who are to register to this event handling dispatcher must conform to this type.
 	 *
@@ -92,14 +94,15 @@ public:
 
 	event_handler& operator+=(const handler_type& handler);
 
-	void operator()(Args ... args) const;
+	void operator()(Args&& ... args) const;
+	void operator()(const std::function<void()>& handler, Args&& ... args) const;
 };
 
 // {{{ struct node
 /** internal node containing a single event handler and a ptr to the next node if available, 
  * or nullptr otherwise. */
 template<typename... Args>
-struct event_handler<void(Args...)>::node
+struct X0_API event_handler<void(Args...)>::node
 {
 	handler_type handler_;
 	node *next_;
@@ -116,18 +119,27 @@ struct event_handler<void(Args...)>::node
  * if the last event handler has been invoked.
  */
 template<typename... Args>
-class event_handler<void(Args...)>::invokation_iterator
+class X0_API event_handler<void(Args...)>::invokation_iterator
 {
 private:
 	node *current_;								//!< current handler node to invoke
 	std::shared_ptr<std::tuple<Args...>> args_;	//!< handler arguments passed from the initiator
+	std::function<void()> handler_;				//!< completion handler
 
 public:
 	invokation_iterator() = delete;
 
 	invokation_iterator(node *n, const std::shared_ptr<std::tuple<Args...>>& args) :
 		current_(n),
-		args_(args)
+		args_(args),
+		handler_()
+	{
+	}
+
+	invokation_iterator(node *n, const std::shared_ptr<std::tuple<Args...>>& args, const std::function<void()>& handler) :
+		current_(n),
+		args_(args),
+		handler_(handler)
 	{
 	}
 
@@ -138,24 +150,38 @@ public:
 		{
 			call_unpacked(current_->handler_, std::tuple_cat(std::make_tuple(next()), *args_));
 		}
+		else
+		{
+			done();
+		}
 	}
 
+	/** invokes the completion handler (if passed) of this iteration. */
+	void done()
+	{
+		if (handler_)
+			handler_();
+	}
+
+private:
 	/** creates the sibling iterator next to this that can be invoked as completion handler.
 	 */
 	invokation_iterator next()
 	{
-		return invokation_iterator(current_ ? current_->next_ : 0, args_);
+		return invokation_iterator(current_ ? current_->next_ : 0, args_, handler_);
 	}
 };
 // }}}
 
 // {{{ connection
 template<typename... Args>
-struct event_handler<void(Args...)>::connection
+class X0_API event_handler<void(Args...)>::connection
 {
+private:
 	event_handler<void(Args...)> *owner_;
 	node *node_;
 
+public:
 	connection() :
 		owner_(0), node_(0)
 	{
@@ -164,6 +190,27 @@ struct event_handler<void(Args...)>::connection
 	connection(event_handler *o, node *n) :
 		owner_(o), node_(n)
 	{
+	}
+
+	connection(const connection&) = delete;
+	connection& operator=(const connection& c) = delete;
+
+	connection(connection&& c) :
+		owner_(c.owner_), node_(c.node_)
+	{
+		c.owner_ = 0;
+		c.node_ = 0;
+	}
+
+	connection& operator=(connection&& c)
+	{
+		owner_ = c.owner_;
+		node_ = c.node_;
+
+		c.owner_ = 0;
+		c.node_ = 0;
+
+		return *this;
 	}
 
 	~connection()
@@ -286,9 +333,20 @@ inline event_handler<void(Args...)>& event_handler<void(Args...)>::operator+=(co
  * \param args the arguments to pass to the registered callbacks.
  */
 template<typename... Args>
-inline void event_handler<void(Args...)>::operator()(Args ... args) const
+inline void event_handler<void(Args...)>::operator()(Args&& ... args) const
 {
 	invokation_iterator(first_, std::make_shared<std::tuple<Args...>>(std::make_tuple(std::move(args)...)))();
+}
+
+/** invokes all registered callbacks with the given arguments.
+ *
+ * \param handler completion handler to invoke when every subscriber has been called.
+ * \param args the arguments to pass to the registered callbacks.
+ */
+template<typename... Args>
+inline void event_handler<void(Args...)>::operator()(const std::function<void()>& handler, Args&& ... args) const
+{
+	invokation_iterator(first_, std::make_shared<std::tuple<Args...>>(std::make_tuple(std::move(args)...)), handler)();
 }
 // }}}
 

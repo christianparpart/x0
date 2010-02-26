@@ -12,9 +12,9 @@
 #include <x0/settings.hpp>
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
-#include <x0/handler.hpp>
 #include <x0/signal.hpp>
 #include <x0/event_handler.hpp>
+#include <x0/request_handler.hpp>
 #include <x0/context.hpp>
 #include <x0/plugin.hpp>
 #include <x0/types.hpp>
@@ -79,7 +79,7 @@ public:
 
 	// {{{ signals raised on request in order
 	/** is invoked once a new client connection is established */
-	event_handler<void(connection_ptr)> connection_open;
+	x0::signal<void(connection_ptr)> connection_open;
 
 	/** is called at the very beginning of a request. */
 	x0::signal<void(request&)> pre_process;
@@ -91,7 +91,7 @@ public:
 	x0::signal<void(request&)> resolve_entity;
 
 	/** generates response content for this request being processed. */
-	handler generate_content;
+	request_handler generate_content;
 
 	/** hook for generating accesslog logs and other things to be done after the request has been served. */
 	x0::signal<void(request&, response&)> request_done;

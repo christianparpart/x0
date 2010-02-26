@@ -115,9 +115,9 @@ public:
 	 * \param request the corresponding request object. <b>We take over ownership of it!</b>
 	 * \param status initial response status code.
 	 *
-	 * */
+	 * \note this response object takes over ownership of the request object.
+	 */
 	response(connection_ptr connection, x0::request *request, int _status = 0);
-
 	~response();
 
 	/** retrieves a reference to the corresponding request object. */
@@ -151,11 +151,14 @@ public:
 
 	/** write given source to response content and invoke the completion handler when done.
 	 *
+	 * \note this implicitely flushes the response-headers if not yet done, thus, making it impossible to modify them after this write.
+	 *
 	 * \param source the content to push to the client
 	 * \param handler completion handler to invoke when source has been fully flushed or if an error occured
 	 */
 	void write(const source_ptr& source, const completion_handler_type& handler);
 
+private:
 	/** finishes this response by flushing the content into the stream.
 	 *
 	 * \note this also queues the underlying connection for processing the next request.
@@ -167,23 +170,14 @@ public:
 			if (!status) // no status set -> default to 404 (not found)
 				status = response::not_found;
 
-			auto content = make_default_content();
-			auto handler = boost::bind(&response::finished, this, asio::placeholders::error);
-			write(content, handler);
-			//write(make_default_content(), boost::bind(&response::finished, this, asio::placeholders::error));
+			write(make_default_content(), boost::bind(&response::finished, this, asio::placeholders::error));
 		}
-
-		auto completionHandler = boost::bind
-		(
-			&response::finished,
-			this,
-			asio::placeholders::error
-		);
+		else
+		{
+			finished(asio::error_code());
+		}
 	}
 
-	void finish(asio::error_code& ec);
-
-private:
 	void complete_write(const asio::error_code& ec, const source_ptr& content, const completion_handler_type& handler);
 	void write_content(const source_ptr& content, const completion_handler_type& handler);
 
@@ -194,6 +188,7 @@ private:
 	 */
 	static void initialize();
 	friend class server;
+	friend class connection;
 
 public:
 	static const char *status_cstr(int status);
@@ -236,17 +231,26 @@ inline void response::write(const source_ptr& content, const completion_handler_
 			boost::bind(&response::complete_write, this, asio::placeholders::error, content, handler));
 }
 
+/** is invoked as completion handler when sending response headers. */
 inline void response::complete_write(const asio::error_code& ec, const source_ptr& content, const completion_handler_type& handler)
 {
+	headers_sent_ = true;
+
 	if (!ec)
 	{
+		// write response content
 		write_content(content, handler);
+	}
+	else
+	{
+		// an error occured -> notify completion handler about the error
+		handler(ec, 0);
 	}
 }
 
 inline void response::write_content(const source_ptr& content, const completion_handler_type& handler)
 {
-	source_ptr filtered(new filter_source(*content, filter_chain));
+	source_ptr filtered(new filter_source(content, filter_chain));
 
 	connection_->async_write(filtered, handler);
 }

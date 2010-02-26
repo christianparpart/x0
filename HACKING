@@ -195,14 +195,23 @@ composite_buffer_async_writer - asynchronous writer
 
 
 
+---------------------------------------------------------------
+REQUEST HANDLERS / CONTENT GENERATORS:
 
+They hook into server's content_genreator property by invoking server.generate_content.connect(...);
+Do not forget to store the result of connect() (of type connection).
 
+void my_request_handler(x0::request_handler::invokation_iterator next, x0::request& in, x0::response& out)
+{
+	if (in.path() != "/")
+		return next();
 
+	out.status = x0::response::ok;
+	out.header("Content-Type", "text/plain");
 
+	out.write(std::make_shared<buffer_source>("Hello, World\n"), [&](const asio::error_code& ec, int nwritten) {
 
-
-
-
-
-
+		next.done();
+	});
+}
 

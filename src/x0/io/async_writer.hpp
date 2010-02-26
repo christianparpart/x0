@@ -24,12 +24,14 @@ private:
 	std::shared_ptr<socket_sink> sink_;
 	source_ptr source_;
 	completion_handler_type handler_;
+	std::size_t bytes_transferred_;
 
 public:
 	async_writer(std::shared_ptr<socket_sink> snk, const source_ptr& src, const completion_handler_type& handler) :
 		sink_(snk),
 		source_(src),
-		handler_(handler)
+		handler_(handler),
+		bytes_transferred_(0)
 	{
 	}
 
@@ -38,12 +40,7 @@ public:
 	{
 		async_writer writer(snk, src, handler);
 
-		int rv = snk->pump(*src);
-
-		if (rv != -1 || errno != EAGAIN)
-		{
-			snk->on_ready(writer);
-		}
+		writer.write();
 	}
 
 public:
@@ -51,16 +48,34 @@ public:
 	{
 		if (!ec)
 		{
-			int rv = sink_->pump(*source_);
-
-			if (rv != -1 || errno == EAGAIN)
-			{
-				// call back as soon as sink is ready for more writes
-				sink_->on_ready(*this);
-			}
+			write();
 		}
 		else
 		{
+			handler_(ec, bytes_transferred);
+		}
+	}
+
+private:
+	void write()
+	{
+		int rv = sink_->pump(*source_);
+
+		if (rv == 0)
+		{
+			// finished
+			handler_(asio::error_code(), bytes_transferred_);
+		}
+		else if (rv > 0)
+		{
+			// we wrote something (if not even all) -> call back when fully transmitted
+			bytes_transferred_ += rv;
+			sink_->on_ready(*this);
+		}
+		else if (errno == EAGAIN || errno == EINTR)
+		{
+			// call back as soon as sink is ready for more writes
+			sink_->on_ready(*this);
 		}
 	}
 };

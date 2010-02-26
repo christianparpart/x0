@@ -486,11 +486,11 @@ public:
 		prefix_(),
 		ttl_()
 	{
-		c = server_.generate_content.connect(boost::bind(&cgi_plugin::generate_content, this, _1, _2));
+		c = server_.generate_content.connect(std::bind(&cgi_plugin::generate_content, this));
 	}
 
 	~cgi_plugin() {
-		server_.generate_content.disconnect(c);
+		c.disconnect();
 	}
 
 	virtual void configure()
@@ -522,37 +522,38 @@ private:
 	 * and either processing executables is globally allowed or request path is part
 	 * of the cgi prefix (usually /cgi-bin/).
 	 */
-	bool generate_content(x0::request& in, x0::response& out) {
+	void generate_content(const request_handler::invokation_iterator& done, x0::request& in, x0::response& out) {
 		std::string path(in.fileinfo->filename());
 
 		x0::fileinfo_ptr fi = in.connection.server().fileinfo(path);
 		if (!fi)
-			return false;
+			goto done;
 
 		if (!fi->is_regular())
-			return false;
+			goto done;
 
 		std::string interpreter;
 		if (find_interpreter(in, interpreter))
 		{
-			cgi_script::async_run(in, out, interpreter);
-			return true;
+			cgi_script::async_run(/*done, */in, out, interpreter);
+			return;
 		}
 
 		bool executable = fi->is_executable();
 
 		if (executable && (process_executables_ || matches_prefix(in)))
 		{
-			cgi_script::async_run(in, out);
-			return true;
+			cgi_script::async_run(/*done, */in, out);
+			return;
 		}
 
-		return false;
+done:
+		done();
 	}
 
 private:
 	/** signal connection holder for this plugin's content generator. */
-	x0::handler::connection c;
+	x0::request_handler::connection c;
 
 	/** a set of extension-to-interpreter mappings. */
 	std::map<std::string, std::string> interpreter_;

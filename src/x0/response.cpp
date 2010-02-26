@@ -189,9 +189,6 @@ source_ptr response::serialize()
 		}
 	}
 
-	// log request/response
-	connection_->server().request_done(*request_, *this);
-
 	// post-response hook
 	connection_->server().post_process(*request_, *this);
 
@@ -270,16 +267,13 @@ std::string response::status_str(int value)
  */
 void response::finished(const asio::error_code& ec)
 {
-	DEBUG("response(%p).finished(%s)", this, ec.message().c_str());
+//	DEBUG("response(%p).finished(%s)", this, ec.message().c_str());
 
 	{
 		server& srv = request_->connection.server();
 
 		// log request/response
 		srv.request_done(*request_, *this);
-
-		// post-response hook
-		srv.post_process(*request_, *this);
 	}
 
 	if (!ec)

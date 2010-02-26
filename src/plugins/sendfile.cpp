@@ -9,16 +9,15 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/range_def.hpp>
-#include <x0/file_source.hpp>
-#include <x0/buffer_source.hpp>
-#include <x0/composite_source.hpp>
-#include <x0/file.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
+#include <x0/io/file_source.hpp>
+#include <x0/io/buffer_source.hpp>
+#include <x0/io/composite_source.hpp>
+#include <x0/io/file.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/bind.hpp>
 
 #include <sstream>
 #include <sys/sendfile.h>
@@ -38,18 +37,18 @@ class sendfile_plugin :
 	public x0::plugin
 {
 private:
-	x0::handler::connection c;
+	x0::request_handler::connection c;
 
 public:
 	sendfile_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name),
 		c()
 	{
-		c = server_.generate_content.connect(boost::bind(&sendfile_plugin::sendfile, this, _1, _2));
+		c = server_.generate_content.connect(&sendfile_plugin::sendfile, this);
 	}
 
 	~sendfile_plugin() {
-		server_.generate_content.disconnect(c);
+		c.disconnect();
 	}
 
 	virtual void configure()
@@ -65,7 +64,7 @@ private:
 	 *
 	 * \throw response::not_modified, in case the client may use its cache.
 	 */
-	void verify_client_cache(x0::request& in, x0::response& out)
+	void verify_client_cache(x0::request& in, x0::response& out) // {{{
 	{
 		// If-None-Match, If-Modified-Since
 
@@ -104,67 +103,72 @@ private:
 				}
 			}
 		}
-	}
+	} // }}}
 
 	enum method_type {
 		HEAD,
 		GET
 	};
 
-	bool sendfile(x0::request& in, x0::response& out)
+	void sendfile(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out) // {{{
 	{
-		std::string path(in.fileinfo->filename());
+		std::string path(in->fileinfo->filename());
 
-		if (!in.fileinfo->exists())
-			return false;
+		if (!in->fileinfo->exists())
+			return next();
 
-		if (!in.fileinfo->is_regular())
-			return false;
+		if (!in->fileinfo->is_regular())
+			return next();
 
-		verify_client_cache(in, out);
+		verify_client_cache(*in, *out);
 
-		out.header("Last-Modified", in.fileinfo->last_modified());
-		out.header("ETag", in.fileinfo->etag());
+		out->header("Last-Modified", in->fileinfo->last_modified());
+		out->header("ETag", in->fileinfo->etag());
 
 		x0::file_ptr f;
-		if (equals(in.method, "GET"))
+		if (equals(in->method, "GET"))
 		{
-			f.reset(new x0::file(in.fileinfo));
+			f.reset(new x0::file(in->fileinfo));
 
 			if (f->handle() == -1)
 			{
 				server_.log(x0::severity::error, "Could not open file '%s': %s", path.c_str(), strerror(errno));
-				return false;
+				return next();
 			}
 		}
-		else if (!equals(in.method, "HEAD"))
-			return false;
+		else if (!equals(in->method, "HEAD"))
+			return next();
 
-		if (!process_range_request(in, out, f))
+		if (!process_range_request(*in, *out, f))
 		{
-			out.status = x0::response::ok;
+			out->status = x0::response::ok;
 
-			out.header("Accept-Ranges", "bytes");
-			out.header("Content-Type", in.fileinfo->mimetype());
-			out.header("Content-Length", boost::lexical_cast<std::string>(in.fileinfo->size()));
+			out->header("Accept-Ranges", "bytes");
+			out->header("Content-Type", in->fileinfo->mimetype());
+			out->header("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
-			if (f)
-			{
-				posix_fadvise(f->handle(), 0, in.fileinfo->size(), POSIX_FADV_SEQUENTIAL);
-				out.write(
-					std::make_shared<x0::file_source>(f, 0, in.fileinfo->size()),
-					boost::bind(&x0::response::finish, this, asio::placeholders::error)
-				);
-			}
+			if (!f)
+				return next.done();
+
+			posix_fadvise(f->handle(), 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+
+			out->write(
+				std::make_shared<x0::file_source>(f, 0, in->fileinfo->size()),
+				std::bind(&sendfile_plugin::done, this, next)
+			);
 		}
+	} // }}}
 
-		out.flush();
-
-		return true;
+	void done(x0::request_handler::invokation_iterator next)
+	{
+		next.done();
 	}
 
-	inline bool process_range_request(x0::request& in, x0::response& out, x0::file_ptr& f)
+	inline bool process_range_request(x0::request& in, x0::response& out, x0::file_ptr& f) //{{{
 	{
+#if 1
+		return false;
+#else
 		x0::buffer_ref range_value(in.header("Range"));
 		x0::range_def range;
 
@@ -203,8 +207,8 @@ private:
 				buf.push_back(boost::lexical_cast<std::string>(in.fileinfo->size()));
 				buf.push_back("\r\n\r\n");
 
-				cc.push_back(source_ptr(new x0::buffer_source(buf)));
-				cc.push_back(source_ptr(new x0::file_source(f, offsets.first, length)));
+				cc.push_back(x0::source_ptr(new x0::buffer_source(buf)));
+				cc.push_back(x0::source_ptr(new x0::file_source(f, offsets.first, length)));
 				content_length += buf.size() + length;
 			}
 
@@ -213,7 +217,7 @@ private:
 			buf.push_back(boundary);
 			buf.push_back("--\r\n");
 
-			cc.push_back(source_ptr(new buffer_source(buf)));
+			cc.push_back(x0::source_ptr(new x0::buffer_source(buf)));
 			content_length += buf.size();
 
 			out.header("Content-Type", "multipart/byteranges; boundary=" + boundary);
@@ -222,7 +226,7 @@ private:
 			if (f)
 			{
 				// TODO it sould wrap finish to check error_code of the write result
-				out.write(content, boost::bind(&response::finish, this));
+				out.write(content, std::bind(&x0::response::finish, this));
 			}
 		}
 		else
@@ -243,13 +247,14 @@ private:
 			{
 				out.write(
 					std::make_shared<x0::file_source>(f, offsets.first, length),
-					boost::bind(response::finish, &out, asio::placeholders::error)
+					std::bind(response::finish, &out, asio::placeholders::error)
 				);
 			}
 		}
 
 		return true;
-	}
+#endif
+	}//}}}
 
 	std::pair<std::size_t, std::size_t> make_offsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size)
 	{
