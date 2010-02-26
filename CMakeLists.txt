@@ -16,9 +16,6 @@ include(CheckLibraryExists)
 include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
-add_subdirectory(src)
-add_subdirectory(tests)
-
 option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
 option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
 option(WITH_PCRE "With PCRE support [default: off]")
@@ -123,3 +120,6 @@ endif(BUILD_STATIC)
 # ---------------------------------------------------------------------------
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
 add_definitions(-DHAVE_SYSCONFIG_H)
+
+add_subdirectory(src)
+add_subdirectory(tests)
