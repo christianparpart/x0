@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1
+#if 0
 #	define FILEINFO_DEBUG(msg...) printf("fileinfo_service: " msg)
 #else
 #	define FILEINFO_DEBUG(msg...) /*!*/
