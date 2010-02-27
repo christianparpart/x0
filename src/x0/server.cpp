@@ -319,10 +319,10 @@ void server::handle_request(request *in, response *out)
 	now_.update();
 
 	// pre-request hook
-	pre_process(in);
+	pre_process(const_cast<x0::request *>(in));
 
 	// resolve document root
-	resolve_document_root(in);
+	resolve_document_root(const_cast<x0::request *>(in));
 
 	if (in->document_root.empty())
 	{
@@ -333,7 +333,7 @@ void server::handle_request(request *in, response *out)
 
 	// resolve entity
 	in->fileinfo = fileinfo(in->document_root + in->path);
-	resolve_entity(in); // translate_path
+	resolve_entity(const_cast<x0::request *>(in)); // translate_path
 
 	// redirect physical request paths not ending with slash if mapped to directory
 	std::string filename = in->fileinfo->filename();
@@ -359,7 +359,7 @@ void server::handle_request(request *in, response *out)
 	}
 
 	// generate response content, based on this request
-	generate_content(std::bind(&response::finish, out), in, out);
+	generate_content(std::bind(&response::finish, out), const_cast<x0::request *>(in), const_cast<x0::response *>(out));
 }
 
 /**

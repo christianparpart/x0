@@ -116,7 +116,7 @@ source_ptr response::serialize()
 	}
 
 	// post-response hook
-	connection_->server().post_process(request_, this);
+	connection_->server().post_process(const_cast<x0::request *>(request_), this);
 
 	if (request_->supports_protocol(1, 1))
 		buffers->push_back("HTTP/1.1 ");
@@ -196,12 +196,12 @@ void response::finished(const asio::error_code& ec)
 		server& srv = request_->connection.server();
 
 		// log request/response
-		srv.request_done(request_, this);
+		srv.request_done(const_cast<x0::request *>(request_), this);
 	}
 
 	if (!ec)
 	{
-		if (strcasecmp(header("Connection").c_str(), "keep-alive") == 0)
+		if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
 		{
 			connection_->resume();
 		}
