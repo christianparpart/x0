@@ -71,11 +71,11 @@ private:
 		return (streams_[filename] = std::shared_ptr<logstream>(new logstream(filename))).get();
 	}
 
-	logstream *getlogstream(x0::request& in)
+	logstream *getlogstream(x0::request *in)
 	{
 		try
 		{
-			context& ctx = server_.context<context>(this, in.hostid());
+			context& ctx = server_.context<context>(this, in->hostid());
 			return ctx.stream;
 		}
 		catch (...)
@@ -85,7 +85,7 @@ private:
 	}
 
 private:
-	x0::signal<void(x0::request&, x0::response&)>::connection c;
+	x0::server::request_post_hook::connection c;
 	std::map<std::string, std::shared_ptr<logstream>> streams_;
 
 public:
@@ -125,7 +125,7 @@ public:
 	}
 
 private:
-	void request_done(x0::request& in, x0::response& out)
+	void request_done(x0::request *in, x0::response *out)
 	{
 		if (auto stream = getlogstream(in))
 		{
@@ -135,8 +135,8 @@ private:
 			sstr << username(in) << ' ';
 			sstr << server_.now().htlog_str() << " \"";
 			sstr << request_line(in) << "\" ";
-			sstr << out.status << ' ';
-			sstr << out.header("Content-Length") << ' ';
+			sstr << out->status << ' ';
+			sstr << out->headers["Content-Length"] << ' ';
 			sstr << '"' << getheader(in, "Referer") << "\" ";
 			sstr << '"' << getheader(in, "User-Agent") << '"';
 			sstr << std::endl;
@@ -145,30 +145,30 @@ private:
 		}
 	}
 
-	inline std::string hostname(x0::request& in)
+	inline std::string hostname(x0::request *in)
 	{
-		std::string name = in.connection.socket().remote_endpoint().address().to_string();
+		std::string name = in->connection.socket().remote_endpoint().address().to_string();
 		return !name.empty() ? name : "-";
 	}
 
-	inline std::string username(x0::request& in)
+	inline std::string username(x0::request *in)
 	{
-		return !in.username.empty() ? in.username.str() : "-";
+		return !in->username.empty() ? in->username.str() : "-";
 	}
 
-	inline std::string request_line(x0::request& in)
+	inline std::string request_line(x0::request *in)
 	{
 		std::stringstream str;
 
-		str << in.method << ' ' << in.uri
-			<< " HTTP/" << in.http_version_major << '.' << in.http_version_minor;
+		str << in->method << ' ' << in->uri
+			<< " HTTP/" << in->http_version_major << '.' << in->http_version_minor;
 
 		return str.str();
 	}
 
-	inline std::string getheader(const x0::request& in, const std::string& name)
+	inline std::string getheader(const x0::request *in, const std::string& name)
 	{
-		x0::buffer_ref value(in.header(name));
+		x0::buffer_ref value(in->header(name));
 		return !value.empty() ? value.str() : "-";
 	}
 };

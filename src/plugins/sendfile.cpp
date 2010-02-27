@@ -122,8 +122,8 @@ private:
 
 		verify_client_cache(*in, *out);
 
-		out->header("Last-Modified", in->fileinfo->last_modified());
-		out->header("ETag", in->fileinfo->etag());
+		out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
+		out->headers.push_back("ETag", in->fileinfo->etag());
 
 		x0::file_ptr f;
 		if (equals(in->method, "GET"))
@@ -143,9 +143,9 @@ private:
 		{
 			out->status = x0::response::ok;
 
-			out->header("Accept-Ranges", "bytes");
-			out->header("Content-Type", in->fileinfo->mimetype());
-			out->header("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
+			out->headers.push_back("Accept-Ranges", "bytes");
+			out->headers.push_back("Content-Type", in->fileinfo->mimetype());
+			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
 			if (!f)
 				return next.done();

@@ -43,7 +43,7 @@ class vhost_basic_plugin :
 	public x0::plugin
 {
 private:
-	x0::signal<void(x0::request&)>::connection c;
+	x0::server::request_parse_hook::connection c;
 
 	struct vhost_config
 	{
@@ -124,22 +124,22 @@ public:
 	}
 
 private:
-	void resolve_document_root(x0::request& in)
+	void resolve_document_root(x0::request *in)
 	{
 		try
 		{
-			std::string hostid(in.hostid());
+			std::string hostid(in->hostid());
 
 			server_config& srvcfg = server_.context<server_config>(this);
 			auto i = srvcfg.mappings.find(hostid);
 			if (i != srvcfg.mappings.end())
 			{
-				in.document_root = i->second->docroot;
-				server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in.document_root.c_str());
+				in->document_root = i->second->docroot;
+				server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in->document_root.c_str());
 			}
 			else
 			{
-				in.document_root = server_.context<vhost_config>(this, hostid).docroot;
+				in->document_root = server_.context<vhost_config>(this, hostid).docroot;
 			}
 		}
 		catch (const x0::host_not_found&)
@@ -148,7 +148,7 @@ private:
 			{
 				// resolve to default host's document root
 				std::string default_hostid(server_.context<server_config>(this).default_hostid);
-				in.document_root = server_.context<vhost_config>(this, default_hostid).docroot;
+				in->document_root = server_.context<vhost_config>(this, default_hostid).docroot;
 				// XXX we could instead auto-redirect them.
 			}
 			catch (...) {}
