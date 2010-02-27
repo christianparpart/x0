@@ -64,22 +64,22 @@ private:
 	 *
 	 * \throw response::not_modified, in case the client may use its cache.
 	 */
-	void verify_client_cache(x0::request& in, x0::response& out) // {{{
+	void verify_client_cache(x0::request *in, x0::response *out) // {{{
 	{
 		// If-None-Match, If-Modified-Since
 
 		std::string value;
-		if ((value = in.header("If-None-Match")) != "")
+		if ((value = in->header("If-None-Match")) != "")
 		{
-			if (value == in.fileinfo->etag())
+			if (value == in->fileinfo->etag())
 			{
-				if ((value = in.header("If-Modified-Since")) != "") // ETag + If-Modified-Since
+				if ((value = in->header("If-Modified-Since")) != "") // ETag + If-Modified-Since
 				{
 					x0::datetime date(value);
 
 					if (date.valid())
 					{
-						if (in.fileinfo->mtime() <= date.unixtime())
+						if (in->fileinfo->mtime() <= date.unixtime())
 						{
 							throw x0::response::not_modified;
 						}
@@ -91,13 +91,13 @@ private:
 				}
 			}
 		}
-		else if ((value = in.header("If-Modified-Since")) != "")
+		else if ((value = in->header("If-Modified-Since")) != "")
 		{
 			x0::datetime date(value);
 
 			if (date.valid())
 			{
-				if (in.fileinfo->mtime() <= date.unixtime())
+				if (in->fileinfo->mtime() <= date.unixtime())
 				{
 					throw x0::response::not_modified;
 				}
@@ -120,7 +120,7 @@ private:
 		if (!in->fileinfo->is_regular())
 			return next();
 
-		verify_client_cache(*in, *out);
+		verify_client_cache(in, out);
 
 		out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
 		out->headers.push_back("ETag", in->fileinfo->etag());
@@ -139,7 +139,7 @@ private:
 		else if (!equals(in->method, "HEAD"))
 			return next();
 
-		if (!process_range_request(*in, *out, f))
+		if (!process_range_request(next, in, out, f))
 		{
 			out->status = x0::response::ok;
 
@@ -164,51 +164,47 @@ private:
 		next.done();
 	}
 
-	inline bool process_range_request(x0::request& in, x0::response& out, x0::file_ptr& f) //{{{
+	inline bool process_range_request(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out, x0::file_ptr& f) //{{{
 	{
-#if 1
-		return false;
-#else
-		x0::buffer_ref range_value(in.header("Range"));
+		x0::buffer_ref range_value(in->header("Range"));
 		x0::range_def range;
 
 		// if no range request or range request was invalid (by syntax) we fall back to a full response
 		if (range_value.empty() || !range.parse(range_value))
 			return false;
 
-		out.status = x0::response::partial_content;
+		out->status = x0::response::partial_content;
 
 		if (range.size() > 1)
 		{
 			// generate a multipart/byteranged response, as we've more than one range to serve
 
+			auto content = std::make_shared<x0::composite_source>();
 			x0::buffer buf;
-			x0::source_ptr content(new x0::composite_source);
-			x0::composite_source& cc = *static_cast<x0::composite_source *>(content.get());
 			std::string boundary(boundary_generate());
 			std::size_t content_length = 0;
 
-			for (int i = 0, e = range.size(); i != e; )
+			for (int i = 0, e = range.size(); i != e; ++i)
 			{
-				std::pair<std::size_t, std::size_t> offsets(make_offsets(range[i], in.fileinfo->size()));
+				std::pair<std::size_t, std::size_t> offsets(make_offsets(range[i], in->fileinfo->size()));
 				std::size_t length = 1 + offsets.second - offsets.first;
 
 				buf.clear();
 				buf.push_back("\r\n--");
 				buf.push_back(boundary);
 				buf.push_back("\r\nContent-Type: ");
-				buf.push_back(in.fileinfo->mimetype());
+				buf.push_back(in->fileinfo->mimetype());
 
 				buf.push_back("\r\nContent-Range: bytes ");
 				buf.push_back(boost::lexical_cast<std::string>(offsets.first));
 				buf.push_back("-");
 				buf.push_back(boost::lexical_cast<std::string>(offsets.second));
 				buf.push_back("/");
-				buf.push_back(boost::lexical_cast<std::string>(in.fileinfo->size()));
+				buf.push_back(boost::lexical_cast<std::string>(in->fileinfo->size()));
 				buf.push_back("\r\n\r\n");
 
-				cc.push_back(x0::source_ptr(new x0::buffer_source(buf)));
-				cc.push_back(x0::source_ptr(new x0::file_source(f, offsets.first, length)));
+				content->push_back(std::make_shared<x0::buffer_source>(buf));
+				content->push_back(std::make_shared<x0::file_source>(f, offsets.first, length));
 				content_length += buf.size() + length;
 			}
 
@@ -217,43 +213,41 @@ private:
 			buf.push_back(boundary);
 			buf.push_back("--\r\n");
 
-			cc.push_back(x0::source_ptr(new x0::buffer_source(buf)));
+			content->push_back(std::make_shared<x0::buffer_source>(buf));
 			content_length += buf.size();
 
-			out.header("Content-Type", "multipart/byteranges; boundary=" + boundary);
-			out.header("Content-Length", boost::lexical_cast<std::string>(content_length));
+			out->headers.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
+			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
 
 			if (f)
 			{
-				// TODO it sould wrap finish to check error_code of the write result
-				out.write(content, std::bind(&x0::response::finish, this));
+				out->write(content, std::bind(&sendfile_plugin::done, this, next));
 			}
 		}
 		else
 		{
 			// generate a simple partial response
 
-			std::pair<std::size_t, std::size_t> offsets(make_offsets(range[0], in.fileinfo->size()));
+			std::pair<std::size_t, std::size_t> offsets(make_offsets(range[0], in->fileinfo->size()));
 			std::size_t length = 1 + offsets.second - offsets.first;
 
-			out.header("Content-Type", in.fileinfo->mimetype());
-			out.header("Content-Length", boost::lexical_cast<std::string>(length));
+			out->headers.push_back("Content-Type", in->fileinfo->mimetype());
+			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(length));
 
 			std::stringstream cr;
-			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in.fileinfo->size();
-			out.header("Content-Range", cr.str());
+			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in->fileinfo->size();
+			out->headers.push_back("Content-Range", cr.str());
 
 			if (f)
 			{
-				out.write(
+				out->write(
 					std::make_shared<x0::file_source>(f, offsets.first, length),
-					std::bind(response::finish, &out, asio::placeholders::error)
+					std::bind(&sendfile_plugin::done, this, next)
 				);
 			}
 		}
 
 		return true;
-#endif
 	}//}}}
 
 	std::pair<std::size_t, std::size_t> make_offsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size)
