@@ -229,10 +229,15 @@ private:
 	{
 		if (!headers_sent_) // nothing sent to client yet -> sent default status page
 		{
-			if (!status) // no status set -> default to 404 (not found)
+			if (!status)
+			{
 				status = response::not_found;
-
-			write(make_default_content(), boost::bind(&response::finished, this, asio::placeholders::error));
+				write(make_default_content(), boost::bind(&response::finished, this, asio::placeholders::error));
+			}
+			else
+			{
+				connection_->async_write(serialize(), boost::bind(&response::finished, this, asio::placeholders::error));
+			}
 		}
 		else
 		{

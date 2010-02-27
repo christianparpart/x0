@@ -203,8 +203,11 @@ private:
 				buf.push_back(boost::lexical_cast<std::string>(in->fileinfo->size()));
 				buf.push_back("\r\n\r\n");
 
-				content->push_back(std::make_shared<x0::buffer_source>(buf));
-				content->push_back(std::make_shared<x0::file_source>(f, offsets.first, length));
+				if (f)
+				{
+					content->push_back(std::make_shared<x0::buffer_source>(buf));
+					content->push_back(std::make_shared<x0::file_source>(f, offsets.first, length));
+				}
 				content_length += buf.size() + length;
 			}
 
@@ -222,6 +225,10 @@ private:
 			if (f)
 			{
 				out->write(content, std::bind(&sendfile_plugin::done, this, next));
+			}
+			else
+			{
+				next.done();
 			}
 		}
 		else
@@ -244,6 +251,10 @@ private:
 					std::make_shared<x0::file_source>(f, offsets.first, length),
 					std::bind(&sendfile_plugin::done, this, next)
 				);
+			}
+			else
+			{
+				next.done();
 			}
 		}
 
