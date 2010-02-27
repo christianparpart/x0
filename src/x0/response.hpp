@@ -95,6 +95,85 @@ public:
 	};
 	// }}}
 
+public:
+	class header_list // {{{
+	{
+	public:
+		typedef std::vector<response_header> impl_type;
+		typedef impl_type::iterator iterator;
+		typedef impl_type::const_iterator const_iterator;
+
+	private:
+		impl_type list_;
+
+	public:
+		std::size_t size() const
+		{
+			return list_.size();
+		}
+
+		bool contains(const std::string& name) const
+		{
+			for (std::size_t i = 0, e = list_.size(); i != e; ++i)
+				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
+					return true;
+
+			return false;
+		}
+
+		const std::string& operator[](const std::string& name) const
+		{
+			for (std::size_t i = 0, e = list_.size(); i != e; ++i)
+				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
+					return list_[i].value;
+
+			static std::string not_found;
+			return not_found;
+		}
+
+		std::string& operator[](const std::string& name)
+		{
+			std::size_t e = list_.size();
+
+			for (std::size_t i = 0; i != e; ++i)
+				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
+					return list_[i].value;
+
+			list_.push_back(response_header(name, std::string()));
+			return list_[e].value;
+		}
+
+		void push_back(const std::string& name, const std::string& value)
+		{
+			list_.push_back(response_header(name, value));
+		}
+
+		void set(const std::string& name, const std::string& value)
+		{
+			operator[](name) = value;
+		}
+
+		// iterators
+		iterator begin() { return list_.begin(); }
+		iterator end() { return list_.end(); }
+
+#if GCC_VERSION(4, 5)
+		const_iterator cbegin() const { return list_.cbegin(); }
+		const_iterator cend() const { return list_.cend(); }
+#endif
+
+	public:
+		const std::string& operator()(const std::string& name) const
+		{
+			return operator[](name);
+		}
+
+		void operator()(const std::string& name, const std::string& value)
+		{
+			operator[](name) = value;
+		}
+	}; // }}}
+
 private:
 	/// pre-computed string representations of status codes, ready to be used by serializer
 	static char status_codes[512][4];
@@ -121,30 +200,13 @@ public:
 	~response();
 
 	/** retrieves a reference to the corresponding request object. */
-	x0::request& request() const;
+	x0::request *request() const;
 
 	/// HTTP response status code.
 	value_property<int> status;
 
-	// {{{ header manipulation
 	/// the headers to be included in the response.
-	std::vector<x0::response_header> headers;
-
-	/** adds a response header. */
-	response& operator+=(const x0::response_header& hd);
-
-	/** sets a response header value (overwrites existing one if already defined). */
-	response& operator*=(const x0::response_header& hd);
-
-	/** checks wether given response header has been already defined. */
-	bool has_header(const std::string& name) const;
-
-	/** retrieves the value of a given header by name. */
-	std::string header(const std::string& name) const;
-
-	/** sets a response header */
-	const std::string& header(const std::string& name, const std::string& value);
-	// }}}
+	header_list headers;
 
 	/** returns true in case serializing the response has already been started, that is, headers has been sent out already. */
 	bool headers_sent() const;
@@ -212,9 +274,9 @@ private:
 };
 
 // {{{ inline implementation
-inline request& response::request() const
+inline request *response::request() const
 {
-	return *request_;
+	return request_;
 }
 
 inline bool response::headers_sent() const

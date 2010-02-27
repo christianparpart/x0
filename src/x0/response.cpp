@@ -15,8 +15,9 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include <string>
 #include <strings.h>						// strcasecmp
+#include <string>
+#include <algorithm>
 
 namespace x0 {
 
@@ -28,77 +29,6 @@ response::~response()
 {
 	//DEBUG("~response(%p, conn=%p)", this, connection_.get());
 	delete request_;
-}
-
-response& response::operator+=(const x0::response_header& value)
-{
-	headers.push_back(value);
-
-	return *this;
-}
-
-response& response::operator*=(const x0::response_header& in)
-{
-	for (std::vector<x0::response_header>::iterator i = headers.begin(); i != headers.end(); ++i)
-	{
-#if 0
-		if (iequals(i->name, in.name))
-#else
-		if (strcasecmp(i->name.c_str(), in.name.c_str()) == 0)
-#endif
-		{
-			i->value = in.value;
-			return *this;
-		}
-	}
-
-	headers.push_back(in);
-	return *this;
-}
-
-
-bool response::has_header(const std::string& name) const
-{
-	for (std::vector<x0::response_header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
-	{
-#if 0
-		if (iequals(i->name, name))
-#else
-		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
-#endif
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-std::string response::header(const std::string& name) const
-{
-	for (std::vector<x0::response_header>::const_iterator i = headers.begin(); i != headers.end(); ++i)
-	{
-		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
-		{
-			return i->value;
-		}
-	}
-
-	return std::string();
-}
-
-const std::string& response::header(const std::string& name, const std::string& value)
-{
-	for (std::vector<x0::response_header>::iterator i = headers.begin(); i != headers.end(); ++i)
-	{
-		if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
-		{
-			return i->value = value;
-		}
-	}
-
-	headers.push_back(x0::response_header(name, value));
-	return headers[headers.size() - 1].value;
 }
 
 /** checks wether given code MUST NOT have a response body. */
@@ -134,8 +64,8 @@ source_ptr response::make_default_content()
 	{
 		file_ptr f(new file(fi));
 
-		header("Content-Type", fi->mimetype());
-		header("Content-Length", boost::lexical_cast<std::string>(fi->size()));
+		headers.set("Content-Type", fi->mimetype());
+		headers.set("Content-Length", boost::lexical_cast<std::string>(fi->size()));
 
 		return source_ptr(new file_source(f));
 	}
@@ -152,8 +82,8 @@ source_ptr response::make_default_content()
 			codeStr, status(), codeStr
 		);
 
-		header("Content-Type", "text/html");
-		header("Content-Length", boost::lexical_cast<std::string>(nwritten));
+		headers.set("Content-Type", "text/html");
+		headers.set("Content-Length", boost::lexical_cast<std::string>(nwritten));
 
 		return source_ptr(new buffer_source(buffer::from_copy(buf, nwritten)));
 	}
@@ -168,29 +98,25 @@ source_ptr response::serialize()
 		status = response::ok;
 	}
 
-	if (!has_header("Content-Type"))
+	if (!headers.contains("Content-Type"))
 	{
-		*this += x0::response_header("Content-Type", "text/plain");
+		headers.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
 	}
 
-	if (!has_header("Content-Length") && !content_forbidden(status))
+	if (!headers.contains("Content-Length") && !content_forbidden(status))
 	{
-		header("Connection", "closed");
+		headers.set("Connection", "closed");
 	}
-	else if (!has_header("Connection"))
+	else if (!headers.contains("Connection"))
 	{
 		if (iequals(request_->header("Connection"), "keep-alive"))
-		{
-			header("Connection", "keep-alive");
-		}
+			headers.push_back("Connection", "keep-alive");
 		else
-		{
-			header("Connection", "closed");
-		}
+			headers.push_back("Connection", "closed");
 	}
 
 	// post-response hook
-	connection_->server().post_process(*request_, *this);
+	connection_->server().post_process(request_, this);
 
 	if (request_->supports_protocol(1, 1))
 		buffers->push_back("HTTP/1.1 ");
@@ -204,15 +130,12 @@ source_ptr response::serialize()
 	buffers->push_back(status_cstr(status));
 	buffers->push_back("\r\n");
 
-	for (std::size_t i = 0, e = headers.size(); i != e; ++i)
-	{
-		const x0::response_header& h = headers[i];
-
+	std::for_each(headers.begin(), headers.end(), [&](response_header& h) {
 		buffers->push_back(h.name.data(), h.name.size());
 		buffers->push_back(": ");
 		buffers->push_back(h.value.data(), h.value.size());
 		buffers->push_back("\r\n");
-	}
+	});
 
 	buffers->push_back("\r\n");
 
@@ -228,8 +151,8 @@ response::response(connection_ptr connection, x0::request *request, int _status)
 {
 	//DEBUG("response(%p, conn=%p)", this, connection_.get());
 
-	*this += x0::response_header("Date", connection_->server().now().http_str().str());
-	*this += x0::response_header("Server", connection_->server().tag());
+	headers.push_back("Date", connection_->server().now().http_str().str());
+	headers.push_back("Server", connection_->server().tag());
 }
 
 const char *response::status_cstr(int value)
@@ -273,7 +196,7 @@ void response::finished(const asio::error_code& ec)
 		server& srv = request_->connection.server();
 
 		// log request/response
-		srv.request_done(*request_, *this);
+		srv.request_done(request_, this);
 	}
 
 	if (!ec)

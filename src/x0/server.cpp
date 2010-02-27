@@ -37,8 +37,8 @@ server::server() :
 	resolve_document_root(),
 	resolve_entity(),
 	generate_content(),
-	request_done(),
 	post_process(),
+	request_done(),
 	connection_close(),
 	listeners_(),
 	io_service_(),
@@ -311,7 +311,7 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 	}
 }
 
-void server::handle_request(request& in, response& out)
+void server::handle_request(request *in, response *out)
 {
 	using boost::algorithm::ends_with;
 
@@ -324,41 +324,42 @@ void server::handle_request(request& in, response& out)
 	// resolve document root
 	resolve_document_root(in);
 
-	if (in.document_root.empty())
+	if (in->document_root.empty())
 	{
 		// no document root assigned with this request.
 		// -> make sure it is not exploited.
-		in.document_root = "/dev/null";
+		in->document_root = "/dev/null";
 	}
 
 	// resolve entity
-	in.fileinfo = fileinfo(in.document_root + in.path);
+	in->fileinfo = fileinfo(in->document_root + in->path);
 	resolve_entity(in); // translate_path
 
 	// redirect physical request paths not ending with slash if mapped to directory
-	std::string filename = in.fileinfo->filename();
-	if (in.fileinfo->is_directory() && !ends_with(in.path, "/"))
+	std::string filename = in->fileinfo->filename();
+	if (in->fileinfo->is_directory() && !ends_with(in->path, "/"))
 	{
 		std::stringstream url;
 
-		buffer_ref hostname(in.header("X-Forwarded-Host"));
+		buffer_ref hostname(in->header("X-Forwarded-Host"));
 		if (hostname.empty())
-			hostname = in.header("Host");
+			hostname = in->header("Host");
 
-		url << (in.connection.secure ? "https://" : "http://");
+		url << (in->connection.secure ? "https://" : "http://");
 		url << hostname.str();
-		url << in.path.str();
-		url << '/' << in.query;
+		url << in->path.str();
+		url << '/' << in->query;
 
-		out *= response_header("Location", url.str());
-		out.status = response::moved_permanently;
+		//*out *= response_header("Location", url.str());
+		out->headers.set("Location", url.str());
+		out->status = response::moved_permanently;
 
-		out.finish();
+		out->finish();
 		return;
 	}
 
 	// generate response content, based on this request
-	generate_content(std::bind(&response::finish, &out), &in, &out);
+	generate_content(std::bind(&response::finish, out), in, out);
 }
 
 /**

@@ -3,6 +3,7 @@
 if [ "$1" == "clean" ]; then
 	find . -name 'CMakeCache.txt' -print | xargs rm -vrf &>/dev/null
 	find . -name 'CMakeFiles*' -print | xargs rm -vrf &>/dev/null
+	rm -f cmake_install.cmake
 else
 	cmake . \
 		-DASIO_INCLUDEDIR="$(dirname $(pwd))/asio/include" \

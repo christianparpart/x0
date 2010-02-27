@@ -59,6 +59,11 @@ private:
 	typedef std::map<std::string, plugin_value_t> plugin_map_t;
 
 public:
+	typedef x0::signal<void(connection *)> connection_hook;
+	typedef x0::signal<void(request *)> request_parse_hook;
+	typedef x0::signal<void(request *, response *)> request_post_hook;
+
+public:
 	server();
 	~server();
 
@@ -78,29 +83,14 @@ public:
 	// }}}
 
 	// {{{ signals raised on request in order
-	/** is invoked once a new client connection is established */
-	x0::signal<void(connection_ptr)> connection_open;
-
-	/** is called at the very beginning of a request. */
-	x0::signal<void(request&)> pre_process;
-
-	/** resolves document_root to use for this request. */
-	x0::signal<void(request&)> resolve_document_root;
-
-	/** resolves request's physical filename (maps URI to physical path). */
-	x0::signal<void(request&)> resolve_entity;
-
-	/** generates response content for this request being processed. */
-	request_handler generate_content;
-
-	/** hook for generating accesslog logs and other things to be done after the request has been served. */
-	x0::signal<void(request&, response&)> request_done;
-
-	/** is called at the very end of a request. */
-	x0::signal<void(request&, response&)> post_process;
-
-	/** is called before a connection gets closed / or has been closed by remote point. */
-	x0::signal<void(connection *)> connection_close;
+	connection_hook connection_open;		//!< This hook is invoked once a new client has connected.
+	request_parse_hook pre_process; 		//!< is called at the very beginning of a request.
+	request_parse_hook resolve_document_root;//!< resolves document_root to use for this request.
+	request_parse_hook resolve_entity;		//!< maps the request URI into local physical path.
+	request_handler generate_content;		//!< generates response content for this request being processed.
+	request_post_hook post_process;			//!< gets invoked right before serializing headers
+	request_post_hook request_done;			//!< this hook is invoked once the request has been <b>fully</b> served to the client.
+	connection_hook connection_close;		//!< is called before a connection gets closed / or has been closed by remote point.
 	// }}}
 
 	// {{{ context management
@@ -204,8 +194,6 @@ public:
 	/** retrieves a list of currently loaded plugins */
 	std::vector<std::string> loaded_plugins() const;
 
-	void handle_request(request& in, response& out);
-
 	asio::io_service& io_service();
 
 	/** retrieves the current server time. */
@@ -219,7 +207,11 @@ private:
 
 	listener_ptr listener_by_port(int port);
 
+	friend class connection;
+
 private:
+	void handle_request(request *in, response *out);
+
 	x0::context context_;											//!< server context
 	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
 	std::list<listener_ptr> listeners_;

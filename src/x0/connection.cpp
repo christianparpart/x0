@@ -49,7 +49,7 @@ void connection::start()
 {
 	//DEBUG("connection(%p).start()", this);
 
-	server_.connection_open(shared_from_this());
+	server_.connection_open(this);
 
 	async_read_some();
 }
@@ -117,7 +117,7 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 
 				try
 				{
-					server_.handle_request(response_->request(), *response_);
+					server_.handle_request(response_->request(), response_);
 				}
 				catch (const host_not_found& e)
 				{
