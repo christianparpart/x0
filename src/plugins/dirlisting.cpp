@@ -30,7 +30,7 @@ class dirlisting_plugin :
 	public x0::plugin
 {
 private:
-	x0::handler::connection c;
+	x0::request_handler::connection c;
 
 	struct context
 	{
@@ -42,12 +42,12 @@ public:
 	dirlisting_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.generate_content.connect(boost::bind(&dirlisting_plugin::dirlisting, this, _1, _2));
+		c = server_.generate_content.connect(&dirlisting_plugin::dirlisting, this);
 	}
 
 	~dirlisting_plugin()
 	{
-		server_.generate_content.disconnect(c);
+		c.disconnect();
 	}
 
 	virtual void configure()
@@ -71,52 +71,53 @@ public:
 	}
 
 private:
-	bool dirlisting(x0::request& in, x0::response& out)
+	void dirlisting(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
 		try
 		{
-			context& ctx = server_.context<context>(this, in.hostid());
+			context& ctx = server_.context<context>(this, in->hostid());
 
 			if (!ctx.enabled)
-				return false;
+				return next();
 
-			if (!in.fileinfo->is_directory())
-				return false;
+			if (!in->fileinfo->is_directory())
+				return next();
 
-			if (DIR *dir = opendir(in.fileinfo->filename().c_str()))
+			if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
 			{
 				bool xml = !ctx.xsluri.empty();
 				x0::buffer result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
 
-				out *= x0::response_header("Content-Type", xml ? "text/xml" : "text/html");
-				out *= x0::response_header("Content-Length", boost::lexical_cast<std::string>(result.size()));
-
 				closedir(dir);
 
-				out.write(x0::source_ptr(new x0::buffer_source(result)),
-					boost::bind(&dirlisting_plugin::done, this, out));
+				out->status = x0::response::ok;
+				out->headers.push_back("Content-Type", xml ? "text/xml" : "text/html");
+				out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
-				return true;
+				return out->write(
+					std::make_shared<x0::buffer_source>(result),
+					std::bind(&dirlisting_plugin::done, this, next)
+				);
 			}
 		}
 		catch (const x0::context::not_found_error&)
 		{
 			// eat up and default to `unhandled`
 		}
-		return false;
+		return next();
 	}
 
-	void done(x0::response& out)
+	void done(x0::request_handler::invokation_iterator next)
 	{
-		out.finish();
+		next.done();
 	}
 
-	std::string mkplain(DIR *dir, x0::request& in)
+	std::string mkplain(DIR *dir, x0::request *in)
 	{
 		std::list<std::string> listing;
 		listing.push_back("..");
 
-		int len = offsetof(dirent, d_name) + pathconf(in.fileinfo->filename().c_str(), _PC_NAME_MAX);
+		int len = offsetof(dirent, d_name) + pathconf(in->fileinfo->filename().c_str(), _PC_NAME_MAX);
 		dirent *dep = (dirent *)new unsigned char[len + 1];
 		dirent *res = 0;
 
@@ -126,7 +127,7 @@ private:
 
 			if (name[0] != '.')
 			{
-				if (x0::fileinfo_ptr fi = in.connection.server().fileinfo(in.fileinfo->filename() + "/" + name))
+				if (x0::fileinfo_ptr fi = in->connection.server().fileinfo(in->fileinfo->filename() + "/" + name))
 				{
 					if (fi->is_directory())
 						name += "/";
@@ -140,10 +141,10 @@ private:
 
 		std::stringstream sstr;
 		sstr << "<html><head><title>Directory: "
-			 << in.path
+			 << in->path
 			 << "</title></head>\n<body>\n";
 
-		sstr << "<h2>Index of " << in.path << "</h2>\n";
+		sstr << "<h2>Index of " << in->path << "</h2>\n";
 		sstr << "<br/><ul>\n";
 
 		for (std::list<std::string>::iterator i = listing.begin(), e = listing.end(); i != e; ++i)
@@ -154,14 +155,14 @@ private:
 		sstr << "</ul>\n";
 
 		sstr << "<hr/>\n";
-		sstr << "<small><i>" << in.connection.server().tag() << "</i></small><br/>\n";
+		sstr << "<small><i>" << in->connection.server().tag() << "</i></small><br/>\n";
 
 		sstr << "</body></html>\n";
 
 		return sstr.str();
 	}
 
-	std::string mkxml(DIR *dir, context& ctx, x0::request& in)
+	std::string mkxml(DIR *dir, context& ctx, x0::request *in)
 	{
 		std::stringstream xml;
 
@@ -170,9 +171,9 @@ private:
 		if (!ctx.xsluri.empty())
 			xml << "<?xml-stylesheet type='text/xsl' href='" << ctx.xsluri << "'?>\n";
 
-		xml << "<dirlisting path='" << in.path.str() << "' tag='" << server_.tag() << "'>\n";
+		xml << "<dirlisting path='" << in->path.str() << "' tag='" << server_.tag() << "'>\n";
 
-		int len = offsetof(dirent, d_name) + pathconf(in.fileinfo->filename().c_str(), _PC_NAME_MAX);
+		int len = offsetof(dirent, d_name) + pathconf(in->fileinfo->filename().c_str(), _PC_NAME_MAX);
 		dirent *dep = (dirent *)new unsigned char[len + 1];
 		dirent *res = 0;
 
@@ -183,7 +184,7 @@ private:
 			if (name[0] == '.')
 				continue;
 
-			if (x0::fileinfo_ptr fi = in.connection.server().fileinfo(in.fileinfo->filename() + "/" + name))
+			if (x0::fileinfo_ptr fi = in->connection.server().fileinfo(in->fileinfo->filename() + "/" + name))
 			{
 				if (fi->is_directory())
 					name += "/";

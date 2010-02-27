@@ -23,7 +23,7 @@ class userdir_plugin :
 	public x0::plugin
 {
 private:
-	x0::signal<void(x0::request&)>::connection c;
+	x0::server::request_parse_hook::connection c;
 
 	struct context
 	{
@@ -78,31 +78,31 @@ public:
 	}
 
 private:
-	void resolve_entity(x0::request& in)
+	void resolve_entity(x0::request *in)
 	{
 		const context& ctx = server_.context<context>(this);
 
-		if (in.path.size() > 2 && std::strncmp(&in.path[1], ctx.prefix.c_str(), ctx.prefix.length()) == 0)
+		if (in->path.size() > 2 && std::strncmp(&in->path[1], ctx.prefix.c_str(), ctx.prefix.length()) == 0)
 		{
 			const int prefix_len1 = ctx.prefix.length() + 1;
-			const std::size_t i = in.path.find("/", prefix_len1);
+			const std::size_t i = in->path.find("/", prefix_len1);
 			std::string userName, userPath;
 
 			if (i != std::string::npos)
 			{
-				userName = in.path.substr(prefix_len1, i - prefix_len1);
-				userPath = in.path.substr(i);
+				userName = in->path.substr(prefix_len1, i - prefix_len1);
+				userPath = in->path.substr(i);
 			}
 			else
 			{
-				userName = in.path.substr(prefix_len1);
+				userName = in->path.substr(prefix_len1);
 				userPath = "";
 			}
 
 			if (struct passwd *pw = getpwnam(userName.c_str()))
 			{
-				in.document_root = pw->pw_dir + ctx.docroot;
-				in.fileinfo = server_.fileinfo(in.document_root + userPath);
+				in->document_root = pw->pw_dir + ctx.docroot;
+				in->fileinfo = server_.fileinfo(in->document_root + userPath);
 			}
 		}
 	}
