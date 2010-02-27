@@ -27,7 +27,7 @@ class indexfile_plugin :
 	public x0::plugin
 {
 private:
-	x0::signal<void(x0::request&)>::connection c;
+	x0::server::request_parse_hook::connection c;
 
 	struct context
 	{
@@ -69,14 +69,14 @@ public:
 	}
 
 private:
-	void indexfile(x0::request& in)
+	void indexfile(x0::request *in)
 	{
-		if (!in.fileinfo->is_directory())
+		if (!in->fileinfo->is_directory())
 			return;
 
-		std::string hostid(in.hostid());
+		std::string hostid(in->hostid());
 		context& ctx = server_.context<context>(this, hostid);
-		std::string path(in.fileinfo->filename());
+		std::string path(in->fileinfo->filename());
 
 		for (auto i = ctx.index_files.begin(), e = ctx.index_files.end(); i != e; ++i)
 		{
@@ -87,11 +87,11 @@ private:
 				ipath += "/";
 			ipath += *i;
 
-			if (x0::fileinfo_ptr fi = in.connection.server().fileinfo(ipath))
+			if (x0::fileinfo_ptr fi = in->connection.server().fileinfo(ipath))
 			{
 				if (fi->is_regular())
 				{
-					in.fileinfo = fi;
+					in->fileinfo = fi;
 					break;
 				}
 			}

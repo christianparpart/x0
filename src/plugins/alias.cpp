@@ -28,7 +28,7 @@ class alias_plugin :
 	public x0::plugin
 {
 private:
-	x0::signal<void(x0::request&)>::connection c;
+	x0::server::request_parse_hook::connection c;
 
 	typedef std::map<std::string, std::string> aliasmap_type;
 
@@ -66,11 +66,11 @@ public:
 	}
 
 private:
-	inline aliasmap_type *get_aliases(x0::request& in)
+	inline aliasmap_type *get_aliases(x0::request *in)
 	{
 		try
 		{
-			return &server_.context<context>(this, in.hostid()).aliases;
+			return &server_.context<context>(this, in->hostid()).aliases;
 		}
 		catch (...)
 		{
@@ -78,7 +78,7 @@ private:
 		}
 	}
 
-	void resolve_entity(x0::request& in)
+	void resolve_entity(x0::request *in)
 	{
 		using boost::algorithm::starts_with;
 
@@ -86,9 +86,9 @@ private:
 		{
 			for (auto i = aliases->begin(), e = aliases->end(); i != e; ++i)
 			{
-				if (starts_with(in.path, i->first))
+				if (starts_with(in->path, i->first))
 				{
-					in.fileinfo = server_.fileinfo(i->second + in.path.substr(i->first.size()));
+					in->fileinfo = server_.fileinfo(i->second + in->path.substr(i->first.size()));
 				}
 			}
 		}

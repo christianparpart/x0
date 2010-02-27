@@ -26,7 +26,7 @@ private:
 	std::string server_root_;
 	std::string default_host_;
 	std::string document_root_;
-	x0::signal<void(x0::request&)>::connection c;
+	x0::server::request_parse_hook::connection c;
 
 public:
 	vhost_template_plugin(x0::server& srv, const std::string& name) :
@@ -84,10 +84,10 @@ public:
 	}
 
 private:
-	void resolve_document_root(x0::request& in) {
-		if (in.document_root.empty())
+	void resolve_document_root(x0::request *in) {
+		if (in->document_root.empty())
 		{
-			x0::buffer_ref hostname(in.header("Host"));
+			x0::buffer_ref hostname(in->header("Host"));
 
 			std::size_t n = hostname.find(":");
 			if (n != x0::buffer_ref::npos)
@@ -101,7 +101,7 @@ private:
 			dr += hostname.str();
 			dr += document_root_;
 
-			x0::fileinfo_ptr fi = in.connection.server().fileinfo(dr);
+			x0::fileinfo_ptr fi = in->connection.server().fileinfo(dr);
 			if (!fi || !fi->is_directory())
 			{
 				dr.clear();
@@ -109,14 +109,14 @@ private:
 				dr += default_host_;
 				dr += document_root_;
 
-				fi = in.connection.server().fileinfo(dr);
+				fi = in->connection.server().fileinfo(dr);
 				if (!fi || !fi->is_directory())
 				{
 					return;
 				}
 			}
 
-			in.document_root = dr;
+			in->document_root = dr;
 		}
 	}
 };

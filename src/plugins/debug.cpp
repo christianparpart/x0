@@ -32,21 +32,23 @@ class debug_plugin :
 	public x0::plugin
 {
 private:
-	x0::signal<void(x0::request&)>::connection pre_process_;
-	x0::signal<void(x0::request&, x0::response&)>::connection post_process_;
-	x0::signal<void(x0::connection *)>::connection connection_close_;
+	x0::server::connection_hook::connection connection_open_;
+	x0::server::request_parse_hook::connection pre_process_;
+	x0::server::request_post_hook::connection post_process_;
+	x0::server::connection_hook::connection connection_close_;
 
 public:
 	debug_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1, _2));
+		connection_open_ = server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1));
 		pre_process_ = server_.pre_process.connect(boost::bind(&debug_plugin::pre_process, this, _1));
 		post_process_ = server_.post_process.connect(boost::bind(&debug_plugin::post_process, this, _1, _2));
 		connection_close_ = server_.connection_close.connect(boost::bind(&debug_plugin::connection_close, this, _1));
 	}
 
 	~debug_plugin() {
+		server_.connection_open.disconnect(connection_open_);
 		server_.pre_process.disconnect(pre_process_);
 		server_.post_process.disconnect(post_process_);
 		server_.connection_close.disconnect(connection_close_);
@@ -70,40 +72,39 @@ private:
 		return name;
 	}
 
-	void connection_open(const boost::function<void()>& completed, x0::connection_ptr connection)
+	void connection_open(x0::connection *connection)
 	{
-		server_.log(x0::severity::info, "connection opened: %s", client_hostname(connection.get()).c_str());
-		completed();
+		server_.log(x0::severity::info, "connection opened: %s", client_hostname(connection).c_str());
 	}
 
-	void pre_process(x0::request& in)
+	void pre_process(x0::request *in)
 	{
-		//server_.log(x0::severity::info, "pre process");
+		server_.log(x0::severity::info, "pre processing request from: %s", client_hostname(&in->connection).c_str());
 	}
 
-	void post_process(x0::request& in, x0::response& out)
+	void post_process(x0::request *in, x0::response *out)
 	{
 		//server_.log(x0::severity::info, "post process");
 
 		std::ostringstream stream;
 
-		stream << "C> " << in.method.str() << ' ' << in.uri.str() << " HTTP/" << in.http_version_major << '.' << in.http_version_minor << std::endl;
-		for (auto i = in.headers.begin(), e = in.headers.end(); i != e; ++i)
+		stream << "C> " << in->method.str() << ' ' << in->uri.str() << " HTTP/" << in->http_version_major << '.' << in->http_version_minor << std::endl;
+		for (auto i = in->headers.begin(), e = in->headers.end(); i != e; ++i)
 		{
 			stream << "C> " << i->name.str() << ": " << i->value.str() << std::endl;
 		}
-		if (!in.body.empty())
+		if (!in->body.empty())
 		{
-			stream << "C> " << in.body << std::endl;
+			stream << "C> " << in->body << std::endl;
 		}
 
-		stream << "S< " << out.status() << ' ' << x0::response::status_str(out.status()) << std::endl;
-		for (auto i = out.headers.begin(), e = out.headers.end(); i != e; ++i)
+		stream << "S< " << out->status() << ' ' << x0::response::status_str(out->status()) << std::endl;
+		for (auto i = out->headers.begin(), e = out->headers.end(); i != e; ++i)
 		{
 			stream << "S< " << i->name << ": " << i->value << std::endl;
 		}
 
-		std::clog << stream.str() << std::endl;
+		std::clog << stream.str();
 	}
 
 	void connection_close(x0::connection *connection)
