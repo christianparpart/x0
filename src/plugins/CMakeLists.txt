@@ -22,7 +22,7 @@ endmacro()
 
 add_plugin(accesslog)
 add_plugin(alias)
-#add_plugin(cgi)
+add_plugin(cgi)
 add_plugin(debug)
 add_plugin(dirlisting)
 add_plugin(indexfile)

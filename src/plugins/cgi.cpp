@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #	define TRACE(msg...) fprintf(stderr, msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -207,7 +207,7 @@ class cgi_script :
 	public boost::noncopyable
 {
 public:
-	cgi_script(x0::request& in, x0::response& out, const std::string& hostprogram = "");
+	cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram = "");
 	~cgi_script();
 
 	template<class CompletionHandler>
@@ -215,7 +215,7 @@ public:
 
 	void async_run();
 
-	static void async_run(x0::request& in, x0::response& out, const std::string& hostprogram = "");
+	static void async_run(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram = "");
 
 private:
 	/** feeds the HTTP request into the CGI's stdin pipe. */
@@ -229,10 +229,13 @@ private:
 
 	void assign_header(const std::string& name, const std::string& value);
 	void process_content(const char *first, const char *last);
+	void content_written(const asio::error_code& ec, std::size_t bytes_transferred);
+
+	void destroy(bool hard);
 
 private:
-	x0::request& request_;
-	x0::response& response_;
+	x0::request *request_;
+	x0::response *response_;
 	std::string hostprogram_;
 
 	x0::process process_;
@@ -243,17 +246,20 @@ private:
 	unsigned long long serial_;				//!< used to detect wether the cgi process actually generated a response or not.
 
 	asio::deadline_timer ttl_;
+	std::function<void()> done_;			//!< should call at least next.done()
+	bool destroy_pending_;
 };
 
-cgi_script::cgi_script(x0::request& in, x0::response& out, const std::string& hostprogram)
+cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram)
   : request_(in), response_(out), hostprogram_(hostprogram),
-	process_(in.connection.server().io_service()),
+	process_(in->connection.server().io_service()),
 	outbuf_(), errbuf_(),
 	response_parser_(),
 	serial_(0),
-	ttl_(in.connection.server().io_service())
+	ttl_(in->connection.server().io_service()),
+	done_(done)
 {
-	TRACE("cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_.path.str().c_str(), hostprogram_.c_str());
+	TRACE("cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_->path.str().c_str(), hostprogram_.c_str());
 
 	response_parser_.assign_header.connect(boost::bind(&cgi_script::assign_header, this, _1, _2));
 	response_parser_.process_content.connect(boost::bind(&cgi_script::process_content, this, _1, _2));
@@ -261,12 +267,13 @@ cgi_script::cgi_script(x0::request& in, x0::response& out, const std::string& ho
 
 cgi_script::~cgi_script()
 {
-	TRACE("~cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_.path.str().c_str(), hostprogram_.c_str());
+	TRACE("~cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_->path.str().c_str(), hostprogram_.c_str());
+	done_();
 }
 
-void cgi_script::async_run(x0::request& in, x0::response& out, const std::string& hostprogram)
+void cgi_script::async_run(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram)
 {
-	if (cgi_script *cgi = new cgi_script(in, out, hostprogram))
+	if (cgi_script *cgi = new cgi_script(done, in, out, hostprogram))
 	{
 		cgi->async_run();
 	}
@@ -282,17 +289,17 @@ static inline void _loadenv_if(const std::string& name, x0::process::environment
 
 inline void cgi_script::async_run()
 {
-	std::string workdir(request_.document_root);
+	std::string workdir(request_->document_root);
 	x0::process::params params;
 	std::string hostprogram;
 
 	if (hostprogram_.empty())
 	{
-		hostprogram = request_.fileinfo->filename();
+		hostprogram = request_->fileinfo->filename();
 	}
 	else
 	{
-		params.push_back(request_.fileinfo->filename());
+		params.push_back(request_->fileinfo->filename());
 		hostprogram = hostprogram_;
 	}
 
@@ -300,54 +307,54 @@ inline void cgi_script::async_run()
 	x0::process::environment environment;
 
 	environment["SERVER_SOFTWARE"] = PACKAGE_NAME "/" PACKAGE_VERSION;
-	environment["SERVER_NAME"] = request_.header("Host");
+	environment["SERVER_NAME"] = request_->header("Host");
 	environment["GATEWAY_INTERFACE"] = "CGI/1.1";
 
 	environment["SERVER_PROTOCOL"] = "1.1"; // XXX or 1.0
 	environment["SERVER_ADDR"] = "localhost";
 	environment["SERVER_PORT"] = "8080";
 
-	environment["REQUEST_METHOD"] = request_.method;
-	environment["PATH_INFO"] = request_.path;
-	environment["PATH_TRANSLATED"] = request_.fileinfo->filename();
-	environment["SCRIPT_NAME"] = request_.path;
-	environment["QUERY_STRING"] = request_.query;			// unparsed uri
-	environment["REQUEST_URI"] = request_.uri;
+	environment["REQUEST_METHOD"] = request_->method;
+	environment["PATH_INFO"] = request_->path;
+	environment["PATH_TRANSLATED"] = request_->fileinfo->filename();
+	environment["SCRIPT_NAME"] = request_->path;
+	environment["QUERY_STRING"] = request_->query;			// unparsed uri
+	environment["REQUEST_URI"] = request_->uri;
 
 	//environment["REMOTE_HOST"] = "";  // optional
-	environment["REMOTE_ADDR"] = request_.connection.client_ip();
-	environment["REMOTE_PORT"] = boost::lexical_cast<std::string>(request_.connection.client_port());
+	environment["REMOTE_ADDR"] = request_->connection.client_ip();
+	environment["REMOTE_PORT"] = boost::lexical_cast<std::string>(request_->connection.client_port());
 
 	//environment["AUTH_TYPE"] = "";
 	//environment["REMOTE_USER"] = "";
 	//environment["REMOTE_IDENT"] = "";
 
-	if (request_.body.empty())
+	if (request_->body.empty())
 	{
 		environment["CONTENT_LENGTH"] = "0";
 		process_.input().close();
 	}
 	else
 	{
-		environment["CONTENT_TYPE"] = request_.header("Content-Type");
-		environment["CONTENT_LENGTH"] = request_.header("Content-Length");
+		environment["CONTENT_TYPE"] = request_->header("Content-Type");
+		environment["CONTENT_LENGTH"] = request_->header("Content-Length");
 
-		asio::async_write(process_.input(), asio::buffer(request_.body),
+		asio::async_write(process_.input(), asio::buffer(request_->body),
 			boost::bind(&cgi_script::transmitted_request, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 	}
 
 #if X0_SSL
-	if (request_.connection.secure())
+	if (request_->connection.secure())
 	{
 		environment["HTTPS"] = "1";
 	}
 #endif
 
-	environment["SCRIPT_FILENAME"] = request_.fileinfo->filename();
-	environment["DOCUMENT_ROOT"] = request_.document_root;
+	environment["SCRIPT_FILENAME"] = request_->fileinfo->filename();
+	environment["DOCUMENT_ROOT"] = request_->document_root;
 
 	// HTTP request headers
-	for (auto i = request_.headers.begin(), e = request_.headers.end(); i != e; ++i)
+	for (auto i = request_->headers.begin(), e = request_->headers.end(); i != e; ++i)
 	{
 		std::string key;
 		key.reserve(5 + i->name.size());
@@ -384,7 +391,7 @@ inline void cgi_script::async_run()
 
 void cgi_script::transmitted_request(const asio::error_code& ec, std::size_t bytes_transferred)
 {
-	TRACE("cgi_script::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_.body.size());
+	TRACE("cgi_script::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_->body.size());
 	process_.input().close();
 }
 
@@ -407,12 +414,11 @@ void cgi_script::receive_response(const asio::error_code& ec, std::size_t bytes_
 	{
 		if (!serial_)
 		{
-			response_.status = x0::response::internal_server_error;
-			request_.connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_.fileinfo->filename().c_str());
+			response_->status = x0::response::internal_server_error;
+			request_->connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 		}
 
-		response_.finish();
-		delete this; //destroy();
+		destroy(false);
 	}
 }
 
@@ -426,7 +432,7 @@ void cgi_script::receive_error(const asio::error_code& ec, std::size_t bytes_tra
 		{
 			// maybe i should cache it and then log it line(s)-wise
 			std::string msg(outbuf_.data(), outbuf_.data() + bytes_transferred);
-			request_.connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
+			request_->connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
 		}
 
 		asio::async_read(process_.error(), asio::buffer(errbuf_),
@@ -440,34 +446,56 @@ void cgi_script::assign_header(const std::string& name, const std::string& value
 
 	if (name == "Status")
 	{
-		response_.status = boost::lexical_cast<int>(value);
+		response_->status = boost::lexical_cast<int>(value);
 	}
-	else if (name == "Location")
+	else 
 	{
-		response_.status = 302;
-		response_.header(name, value);
-	}
-	else
-	{
-		response_.header(name, value);
-	}
-}
+		if (name == "Location")
+			response_->status = 302;
 
-static void content_written(const asio::error_code& ec, std::size_t /*bytes_transferred*/)
-{
-	if (ec)
-	{
-		// kill cgi script as client disconnected.
-		// kill(SIGTERM, pid)
+		response_->headers.push_back(name, value);
 	}
 }
 
 void cgi_script::process_content(const char *first, const char *last)
 {
 	TRACE("process_content(length=%ld)\n", last - first);
-//	response_.write(std::string(first, last));
-	response_.write(x0::source_ptr(new x0::buffer_source(x0::buffer::from_copy(first, last - first))),
-			content_written);
+
+	response_->write(
+		std::make_shared<x0::buffer_source>(x0::buffer::from_copy(first, last - first)),
+		std::bind(&cgi_script::content_written, this, std::placeholders::_1, std::placeholders::_2)
+	);
+}
+
+/** completion handler for the response content stream.
+ */
+void cgi_script::content_written(const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+{
+	TRACE("content_written(ec=%s)\n", ec.message().c_str());
+
+	//! \todo continue reading from cgi_script
+
+	if (ec)
+	{
+		// kill cgi script as client disconnected.
+		// kill(SIGTERM, pid)
+	}
+
+	if (destroy_pending_)
+		destroy(true);
+}
+
+/** initiates destruction of this object, or even actually destructs right now. */
+void cgi_script::destroy(bool hard)
+{
+	if (!hard)
+	{
+		destroy_pending_ = true;
+	}
+	else //if (!serial_)
+	{
+		delete this;
+	}
 }
 // }}}
 
@@ -486,7 +514,7 @@ public:
 		prefix_(),
 		ttl_()
 	{
-		c = server_.generate_content.connect(std::bind(&cgi_plugin::generate_content, this));
+		c = server_.generate_content.connect(&cgi_plugin::generate_content, this);
 	}
 
 	~cgi_plugin() {
@@ -522,20 +550,20 @@ private:
 	 * and either processing executables is globally allowed or request path is part
 	 * of the cgi prefix (usually /cgi-bin/).
 	 */
-	void generate_content(const request_handler::invokation_iterator& done, x0::request& in, x0::response& out) {
-		std::string path(in.fileinfo->filename());
+	void generate_content(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out) {
+		std::string path(in->fileinfo->filename());
 
-		x0::fileinfo_ptr fi = in.connection.server().fileinfo(path);
+		x0::fileinfo_ptr fi = in->connection.server().fileinfo(path);
 		if (!fi)
-			goto done;
+			return next();
 
 		if (!fi->is_regular())
-			goto done;
+			return next();
 
 		std::string interpreter;
 		if (find_interpreter(in, interpreter))
 		{
-			cgi_script::async_run(/*done, */in, out, interpreter);
+			cgi_script::async_run(std::bind(&cgi_plugin::done, this, next), in, out, interpreter);
 			return;
 		}
 
@@ -543,12 +571,16 @@ private:
 
 		if (executable && (process_executables_ || matches_prefix(in)))
 		{
-			cgi_script::async_run(/*done, */in, out);
+			cgi_script::async_run(std::bind(&cgi_plugin::done, this, next), in, out);
 			return;
 		}
 
-done:
-		done();
+		return next();
+	}
+
+	void done(x0::request_handler::invokation_iterator next)
+	{
+		next.done();
 	}
 
 private:
@@ -579,13 +611,13 @@ private:
 	 * this request maps to. If this extension is known/mapped to any interpreter in the local database,
 	 * this value is used.
 	 */
-	bool find_interpreter(x0::request& in, std::string& interpreter)
+	bool find_interpreter(x0::request *in, std::string& interpreter)
 	{
-		std::string::size_type rpos = in.fileinfo->filename().rfind('.');
+		std::string::size_type rpos = in->fileinfo->filename().rfind('.');
 
 		if (rpos != std::string::npos)
 		{
-			std::string ext(in.fileinfo->filename().substr(rpos));
+			std::string ext(in->fileinfo->filename().substr(rpos));
 			auto i = interpreter_.find(ext);
 
 			if (i != interpreter_.end())
@@ -601,9 +633,9 @@ private:
 	 * \retval true yes, it matches.
 	 * \retval false no, it doesn't match.
 	 */
-	bool matches_prefix(x0::request& in)
+	bool matches_prefix(x0::request *in)
 	{
-		if (in.path.begins(prefix_))
+		if (in->path.begins(prefix_))
 			return true;
 
 		return false;
