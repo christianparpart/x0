@@ -122,7 +122,7 @@ source_ptr response::serialize()
 	// enable chunked transfer encoding if required and possible
 	if (!headers.contains("Content-Length"))
 	{
-		if (!request_->supports_protocol(1, 1)
+		if (request_->supports_protocol(1, 1)
 			&& !headers.contains("Transfer-Encoding"))
 		{
 			headers.push_back("Transfer-Encoding", "chunked");
