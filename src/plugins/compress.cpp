@@ -19,6 +19,8 @@
 
 #include <sstream>
 #include <iostream>
+#include <algorithm>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -55,13 +57,32 @@ private:
 	{
 		if (x0::buffer_ref r = in->header("Accept-Encoding"))
 		{
+			typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
+
+			std::vector<std::string> items(x0::split<std::string>(r.str(), ", "));
+
+			if (std::find(items.begin(), items.end(), "gzip") != items.end())
+			{
+				out->headers.set("Content-Encoding", "gzip");
+				out->filter_chain.push_back(std::make_shared<x0::compress_filter>(/*gzip*/));
+			}
+			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
+			{
+				out->headers.set("Content-Encoding", "deflate");
+				out->filter_chain.push_back(std::make_shared<x0::compress_filter>(/*deflate*/));
+			}
+			else
+				return;
+
 			out->headers.set("Vary", "Accept-Encoding");
-			out->headers.set("Content-Encoding", "gzip");
 
 			//! \todo overwrite Content-Length to the actual (compressed) size, or use Chunked-Encoding.
+			// this is a temporary fix to work around the missing bits above.
+			out->headers.remove("Content-Length");
+			out->headers.set("Connection", "closed");
+
 			//! \todo cache compressed result if static file (maybe as part of compress_filter class?)
 
-			out->filter_chain.push_back(std::make_shared<x0::compress_filter>());
 		}
 	}
 };
