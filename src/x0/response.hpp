@@ -22,6 +22,7 @@
 #include <boost/shared_ptr.hpp>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace x0 {
 
@@ -151,6 +152,25 @@ public:
 		void set(const std::string& name, const std::string& value)
 		{
 			operator[](name) = value;
+		}
+
+		void remove(const std::string& name)
+		{
+#if 0
+			//! \bug doesn't really work: it actually removes \p name but doubles another entry ("Vary" in our test-case)
+			std::remove_if(begin(), end(), [&](const response_header& i) -> bool {
+				return strcasecmp(i.name.c_str(), name.c_str()) == 0;
+			});
+#else
+			for (iterator i = begin(), e = end(); i != e; ++i)
+			{
+				if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
+				{
+					list_.erase(i);
+					return;
+				}
+			}
+#endif
 		}
 
 		// iterators
