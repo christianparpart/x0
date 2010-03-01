@@ -34,7 +34,7 @@ class debug_plugin :
 private:
 	x0::server::connection_hook::connection connection_open_;
 	x0::server::request_parse_hook::connection pre_process_;
-	x0::server::request_post_hook::connection post_process_;
+	x0::server::request_post_hook::connection request_done_;
 	x0::server::connection_hook::connection connection_close_;
 
 public:
@@ -43,14 +43,14 @@ public:
 	{
 		connection_open_ = server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1));
 		pre_process_ = server_.pre_process.connect(boost::bind(&debug_plugin::pre_process, this, _1));
-		post_process_ = server_.post_process.connect(boost::bind(&debug_plugin::post_process, this, _1, _2));
+		request_done_ = server_.request_done.connect(boost::bind(&debug_plugin::request_done, this, _1, _2));
 		connection_close_ = server_.connection_close.connect(boost::bind(&debug_plugin::connection_close, this, _1));
 	}
 
 	~debug_plugin() {
 		server_.connection_open.disconnect(connection_open_);
 		server_.pre_process.disconnect(pre_process_);
-		server_.post_process.disconnect(post_process_);
+		server_.request_done.disconnect(request_done_);
 		server_.connection_close.disconnect(connection_close_);
 	}
 
@@ -82,7 +82,7 @@ private:
 		server_.log(x0::severity::info, "pre processing request from: %s", client_hostname(&in->connection).c_str());
 	}
 
-	void post_process(x0::request *in, x0::response *out)
+	void request_done(x0::request *in, x0::response *out)
 	{
 		//server_.log(x0::severity::info, "post process");
 
