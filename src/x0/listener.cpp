@@ -83,6 +83,9 @@ void listener::handle_accept(const asio::error_code& e)
 {
 	if (!e)
 	{
+		int flag = 1;
+		setsockopt(new_connection_->socket().native(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
+
 		new_connection_->start();
 
 		new_connection_.reset(new connection(server_));
