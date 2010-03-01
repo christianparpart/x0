@@ -55,6 +55,9 @@ public:
 private:
 	void post_process(x0::request *in, x0::response *out)
 	{
+		if (out->headers.contains("Content-Encoding"))
+			return; // do not double-encode content
+
 		if (x0::buffer_ref r = in->header("Accept-Encoding"))
 		{
 			typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
@@ -63,26 +66,27 @@ private:
 
 			if (std::find(items.begin(), items.end(), "gzip") != items.end())
 			{
-				out->headers.set("Content-Encoding", "gzip");
+				out->headers.push_back("Content-Encoding", "gzip");
 				out->filter_chain.push_back(std::make_shared<x0::compress_filter>(/*gzip*/));
 			}
 			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
 			{
-				out->headers.set("Content-Encoding", "deflate");
+				out->headers.push_back("Content-Encoding", "deflate");
 				out->filter_chain.push_back(std::make_shared<x0::compress_filter>(/*deflate*/));
 			}
 			else
 				return;
 
-			out->headers.set("Vary", "Accept-Encoding");
+			// response might change according to Accept-Encoding
+			if (!out->headers.contains("Vary"))
+				out->headers.push_back("Vary", "Accept-Encoding");
+			else
+				out->headers["Vary"] += ",Accept-Encoding";
 
-			//! \todo overwrite Content-Length to the actual (compressed) size, or use Chunked-Encoding.
-			// this is a temporary fix to work around the missing bits above.
+			// removing content-length implicitely enables chunked encoding
 			out->headers.remove("Content-Length");
-			out->headers.set("Connection", "closed");
 
-			//! \todo cache compressed result if static file (maybe as part of compress_filter class?)
-
+			//! \todo cache compressed result if static file (maybe as part of compress_filter class / sendfile plugin?)
 		}
 	}
 };
