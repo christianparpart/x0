@@ -1,0 +1,2971 @@
+
+
+
+
+
+
+Network Working Group                                      M. Nottingham
+Request for Comments: 4229                                      J. Mogul
+Category: Informational                                          HP Labs
+                                                           December 2005
+
+                    HTTP Header Field Registrations
+
+Status of This Memo
+
+   This memo provides information for the Internet community.  It does
+   not specify an Internet standard of any kind.  Distribution of this
+   memo is unlimited.
+
+Copyright Notice
+
+   Copyright (C) The Internet Society (2005).
+
+Abstract
+
+   This document defines the initial contents of a permanent IANA
+   registry for HTTP header fields and a provisional repository for HTTP
+   header fields, per RFC 3864.
+
+Table of Contents
+
+   1. Introduction ....................................................4
+   2. Registration Templates ..........................................4
+      2.1. Permanent HTTP Header Field Registrations ..................5
+         2.1.1. Header field: A-IM ....................................7
+         2.1.2. Header field: Accept ..................................8
+         2.1.3. Header field: Accept-Additions ........................8
+         2.1.4. Header field: Accept-Charset ..........................8
+         2.1.5. Header field: Accept-Encoding .........................9
+         2.1.6. Header field: Accept-Features .........................9
+         2.1.7. Header field: Accept-Language .........................9
+         2.1.8. Header field: Accept-Ranges ..........................10
+         2.1.9. Header field: Age ....................................10
+         2.1.10. Header field: Allow .................................10
+         2.1.11. Header field: Alternates ............................10
+         2.1.12. Header field: Authentication-Info ...................11
+         2.1.13. Header field: Authorization .........................11
+         2.1.14. Header field: C-Ext .................................11
+         2.1.15. Header field: C-Man .................................12
+         2.1.16. Header field: C-Opt .................................12
+         2.1.17. Header field: C-PEP .................................12
+         2.1.18. Header field: C-PEP-Info ............................13
+         2.1.19. Header field: Cache-Control .........................13
+         2.1.20. Header field: Connection ............................13
+
+
+
+Nottingham & Mogul           Informational                      [Page 1]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+         2.1.21. Header field: Content-Base ..........................14
+         2.1.22. Header field: Content-Disposition ...................14
+         2.1.23. Header field: Content-Encoding ......................14
+         2.1.24. Header field: Content-ID ............................14
+         2.1.25. Header field: Content-Language ......................15
+         2.1.26. Header field: Content-Length ........................15
+         2.1.27. Header field: Content-Location ......................15
+         2.1.28. Header field: Content-MD5 ...........................16
+         2.1.29. Header field: Content-Range .........................16
+         2.1.30. Header field: Content-Script-Type ...................16
+         2.1.31. Header field: Content-Style-Type ....................17
+         2.1.32. Header field: Content-Type ..........................17
+         2.1.33. Header field: Content-Version .......................17
+         2.1.34. Header field: Cookie ................................17
+         2.1.35. Header field: Cookie2 ...............................18
+         2.1.36. Header field: DAV ...................................18
+         2.1.37. Header field: Date ..................................18
+         2.1.38. Header field: Default-Style .........................19
+         2.1.39. Header field: Delta-Base ............................19
+         2.1.40. Header field: Depth .................................19
+         2.1.41. Header field: Derived-From ..........................19
+         2.1.42. Header field: Destination ...........................20
+         2.1.43. Header field: Differential-ID .......................20
+         2.1.44. Header field: Digest ................................20
+         2.1.45. Header field: ETag ..................................21
+         2.1.46. Header field: Expect ................................21
+         2.1.47. Header field: Expires ...............................21
+         2.1.48. Header field: Ext ...................................22
+         2.1.49. Header field: From ..................................22
+         2.1.50. Header field: GetProfile ............................22
+         2.1.51. Header field: Host ..................................23
+         2.1.52. Header field: IM ....................................23
+         2.1.53. Header field: If ....................................23
+         2.1.54. Header field: If-Match ..............................23
+         2.1.55. Header field: If-Modified-Since .....................24
+         2.1.56. Header field: If-None-Match .........................24
+         2.1.57. Header field: If-Range ..............................24
+         2.1.58. Header field: If-Unmodified-Since ...................25
+         2.1.59. Header field: Keep-Alive ............................25
+         2.1.60. Header field: Label .................................25
+         2.1.61. Header field: Last-Modified .........................25
+         2.1.62. Header field: Link ..................................26
+         2.1.63. Header field: Location ..............................26
+         2.1.64. Header field: Lock-Token ............................26
+         2.1.65. Header field: MIME-Version ..........................27
+         2.1.66. Header field: Man ...................................27
+         2.1.67. Header field: Max-Forwards ..........................27
+         2.1.68. Header field: Meter .................................27
+
+
+
+Nottingham & Mogul           Informational                      [Page 2]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+         2.1.69. Header field: Negotiate .............................28
+         2.1.70. Header field: Opt ...................................28
+         2.1.71. Header field: Ordering-Type .........................28
+         2.1.72. Header field: Overwrite .............................29
+         2.1.73. Header field: P3P ...................................29
+         2.1.74. Header field: PEP ...................................29
+         2.1.75. Header field: PICS-Label ............................30
+         2.1.76. Header field: Pep-Info ..............................30
+         2.1.77. Header field: Position ..............................30
+         2.1.78. Header field: Pragma ................................31
+         2.1.79. Header field: ProfileObject .........................31
+         2.1.80. Header field: Protocol ..............................31
+         2.1.81. Header field: Protocol-Info .........................32
+         2.1.82. Header field: Protocol-Query ........................32
+         2.1.83. Header field: Protocol-Request ......................32
+         2.1.84. Header field: Proxy-Authenticate ....................32
+         2.1.85. Header field: Proxy-Authentication-Info .............33
+         2.1.86. Header field: Proxy-Authorization ...................33
+         2.1.87. Header field: Proxy-Features ........................33
+         2.1.88. Header field: Proxy-Instruction .....................34
+         2.1.89. Header field: Public ................................34
+         2.1.90. Header field: Range .................................34
+         2.1.91. Header field: Referer ...............................34
+         2.1.92. Header field: Retry-After ...........................35
+         2.1.93. Header field: Safe ..................................35
+         2.1.94. Header field: Security-Scheme .......................35
+         2.1.95. Header field: Server ................................36
+         2.1.96. Header field: Set-Cookie ............................36
+         2.1.97. Header field: Set-Cookie2 ...........................36
+         2.1.98. Header field: SetProfile ............................36
+         2.1.99. Header field: SoapAction ............................37
+         2.1.100. Header field: Status-URI ...........................37
+         2.1.101. Header field: Surrogate-Capability .................38
+         2.1.102. Header field: Surrogate-Control ....................38
+         2.1.103. Header field: TCN ..................................38
+         2.1.104. Header field: TE ...................................39
+         2.1.105. Header field: Timeout ..............................39
+         2.1.106. Header field: Trailer ..............................39
+         2.1.107. Header field: Transfer-Encoding ....................39
+         2.1.108. Header field: URI ..................................40
+         2.1.109. Header field: Upgrade ..............................40
+         2.1.110. Header field: User-Agent ...........................40
+         2.1.111. Header field: Variant-Vary .........................41
+         2.1.112. Header field: Vary .................................41
+         2.1.113. Header field: Via ..................................41
+         2.1.114. Header field: WWW-Authenticate .....................41
+         2.1.115. Header field: Want-Digest ..........................42
+         2.1.116. Header field: Warning ..............................42
+
+
+
+Nottingham & Mogul           Informational                      [Page 3]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+      2.2. Provisional HTTP Header Field Submissions .................43
+         2.2.1. Header field: Compliance .............................43
+         2.2.2. Header field: Content-Transfer-Encoding ..............43
+         2.2.3. Header field: Cost ...................................44
+         2.2.4. Header field: Message-ID .............................44
+         2.2.5. Header field: Non-Compliance .........................44
+         2.2.6. Header field: Optional ...............................44
+         2.2.7. Header field: Resolution-Hint ........................45
+         2.2.8. Header field: Resolver-Location ......................45
+         2.2.9. Header field: SubOK ..................................46
+         2.2.10. Header field: Subst .................................46
+         2.2.11. Header field: Title .................................46
+         2.2.12. Header field: UA-Color ..............................46
+         2.2.13. Header field: UA-Media ..............................47
+         2.2.14. Header field: UA-Pixels .............................47
+         2.2.15. Header field: UA-Resolution .........................48
+         2.2.16. Header field: UA-Windowpixels .......................48
+         2.2.17. Header field: Version ...............................48
+   3. IANA Considerations ............................................49
+   4. Security Considerations ........................................49
+   5. Acknowledgements ...............................................49
+   6. Informative References .........................................49
+
+1.  Introduction
+
+   HTTP/1.0 [3] and HTTP/1.1 [11] define protocol constructs
+   (respectively, the HTTP-header and message-header BNF rules) that are
+   used as message headers.  These specifications also define a number
+   of HTTP headers themselves, and they provide for extension through
+   the use of new field-names.
+
+   This document defines the initial contents of an IANA registry that
+   catalogs permanent HTTP header field-names, and of an IANA repository
+   that catalogs provisional HTTP header field-names.  Both are operated
+   according to Registration Procedures for Message Header Fields [1].
+
+   Note that neither tracks the syntax or semantics of field-values.
+   Also, while some HTTP headers have different semantics depending on
+   their context (e.g., Cache-Control in requests and responses), both
+   registries consider the HTTP header field-name name space singular.
+
+   Also, some contact details listed may no longer be correct.
+
+2.  Registration Templates
+
+   Header field entries are summarized in tabular form for convenience
+   of reference and presented in full in the following sections.
+
+
+
+
+Nottingham & Mogul           Informational                      [Page 4]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.  Permanent HTTP Header Field Registrations
+
+   Header name             Protocol
+   -----------             --------
+   A-IM                      http
+   Accept                    http
+   Accept-Additions          http
+   Accept-Charset            http
+   Accept-Encoding           http
+   Accept-Features           http
+   Accept-Language           http
+   Accept-Ranges             http
+   Age                       http
+   Allow                     http
+   Alternates                http
+   Authentication-Info       http
+   Authorization             http
+   C-Ext                     http
+   C-Man                     http
+   C-Opt                     http
+   C-PEP                     http
+   C-PEP-Info                http
+   Cache-Control             http
+   Connection                http
+   Content-Base              http
+   Content-Disposition       http
+   Content-Encoding          http
+   Content-ID                http
+   Content-Language          http
+   Content-Length            http
+   Content-Location          http
+   Content-MD5               http
+   Content-Range             http
+   Content-Script-Type       http
+   Content-Style-Type        http
+   Content-Type              http
+   Content-Version           http
+   Cookie                    http
+   Cookie2                   http
+   DAV                       http
+   Date                      http
+   Default-Style             http
+   Delta-Base                http
+   Depth                     http
+   Derived-From              http
+   Destination               http
+   Differential-ID           http
+   Digest                    http
+
+
+
+Nottingham & Mogul           Informational                      [Page 5]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   ETag                      http
+   Expect                    http
+   Expires                   http
+   Ext                       http
+   From                      http
+   GetProfile                http
+   Host                      http
+   IM                        http
+   If                        http
+   If-Match                  http
+   If-Modified-Since         http
+   If-None-Match             http
+   If-Range                  http
+   If-Unmodified-Since       http
+   Keep-Alive                http
+   Label                     http
+   Last-Modified             http
+   Link                      http
+   Location                  http
+   Lock-Token                http
+   MIME-Version              http
+   Man                       http
+   Max-Forwards              http
+   Meter                     http
+   Negotiate                 http
+   Opt                       http
+   Ordering-Type             http
+   Overwrite                 http
+   P3P                       http
+   PEP                       http
+   PICS-Label                http
+   Pep-Info                  http
+   Position                  http
+   Pragma                    http
+   ProfileObject             http
+   Protocol                  http
+   Protocol-Info             http
+   Protocol-Query            http
+   Protocol-Request          http
+   Proxy-Authenticate        http
+   Proxy-Authentication-Info http
+   Proxy-Authorization       http
+   Proxy-Features            http
+   Proxy-Instruction         http
+   Public                    http
+   Range                     http
+   Referer                   http
+   Retry-After               http
+
+
+
+Nottingham & Mogul           Informational                      [Page 6]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Safe                      http
+   Security-Scheme           http
+   Server                    http
+   Set-Cookie                http
+   Set-Cookie2               http
+   SetProfile                http
+   SoapAction                http
+   Status-URI                http
+   Surrogate-Capability      http
+   Surrogate-Control         http
+   TCN                       http
+   TE                        http
+   Timeout                   http
+   Trailer                   http
+   Transfer-Encoding         http
+   URI                       http
+   Upgrade                   http
+   User-Agent                http
+   Variant-Vary              http
+   Vary                      http
+   Via                       http
+   WWW-Authenticate          http
+   Want-Digest               http
+   Warning                   http
+
+2.1.1.  Header field: A-IM
+
+   Applicable protocol:     http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC3229 [16]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                      [Page 7]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.2.  Header field: Accept
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.3.  Header field: Accept-Additions
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2324 [9]
+
+   Related information: spoof
+
+2.1.4.  Header field: Accept-Charset
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                      [Page 8]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.5.  Header field: Accept-Encoding
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.6.  Header field: Accept-Features
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Koen Holtman  (koen@win.tue.nl)
+
+   Specification document(s):
+      RFC2295 [7]
+
+2.1.7.  Header field: Accept-Language
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                      [Page 9]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.8.  Header field: Accept-Ranges
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.9.  Header field: Age
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.10.  Header field: Allow
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.11.  Header field: Alternates
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 10]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Koen Holtman  (koen@win.tue.nl)
+
+   Specification document(s):
+      RFC2295 [7]
+
+2.1.12.  Header field: Authentication-Info
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2617 [12]
+
+2.1.13.  Header field: Authorization
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.14.  Header field: C-Ext
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@microsoft.com)
+      Paul J. Leach  (paulle@microsoft.com)
+      Scott Lawrence  (lawrence@agranat.com)
+
+   Specification document(s):
+      RFC2774 [14]
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 11]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.15.  Header field: C-Man
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@microsoft.com)
+      Paul J. Leach  (paulle@microsoft.com)
+      Scott Lawrence  (lawrence@agranat.com)
+
+   Specification document(s):
+      RFC2774 [14]
+
+2.1.16.  Header field: C-Opt
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@microsoft.com)
+      Paul J. Leach  (paulle@microsoft.com)
+      Scott Lawrence  (lawrence@agranat.com)
+
+   Specification document(s):
+      RFC2774 [14]
+
+2.1.17.  Header field: C-PEP
+
+   Applicable protocol: http [11]
+
+   Status: deprecated
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Dan Connolly  (connolly@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Rohit Khare  (khare@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Eric Prud'hommeaux  (eric@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+
+   Specification document(s):
+      PEP [29]
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 12]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.18.  Header field: C-PEP-Info
+
+   Applicable protocol: http [11]
+
+   Status: deprecated
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Dan Connolly  (connolly@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Rohit Khare  (khare@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Eric Prud'hommeaux  (eric@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+
+      Specification document(s):
+         PEP [29]
+
+2.1.19.  Header field: Cache-Control
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.20.  Header field: Connection
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 13]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.21.  Header field: Content-Base
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2068 [4]
+
+2.1.22.  Header field: Content-Disposition
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.23.  Header field: Content-Encoding
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.24.  Header field: Content-ID
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 14]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      Arthur van Hoff  (avh@marimba.com)
+      Marimba Inc.
+      John Giannandrea  (jg@netscape.com)
+      Netscape Inc.
+      Mark Hapner  (mark.hapner@sun.com)
+      Sun Microsystems Inc.
+      Steve Carter  (srcarter@novell.com)
+      Novell Inc.
+      Milo Medin  (medin@home.net)
+      At Home Corp
+
+   Specification document(s):
+      DRP [20]
+
+2.1.25.  Header field: Content-Language
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.26.  Header field: Content-Length
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.27.  Header field: Content-Location
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 15]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.28.  Header field: Content-MD5
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.29.  Header field: Content-Range
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.30.  Header field: Content-Script-Type
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      W3C  (web-human@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      HTML 4 [21]
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 16]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.31.  Header field: Content-Style-Type
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      W3C  (web-human@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      HTML 4 [21]
+
+2.1.32.  Header field: Content-Type
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.33.  Header field: Content-Version
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2068 [4]
+
+2.1.34.  Header field: Cookie
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 17]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2965 [15]
+
+2.1.35.  Header field: Cookie2
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2965 [15]
+
+2.1.36.  Header field: DAV
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+2.1.37.  Header field: Date
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 18]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.38.  Header field: Default-Style
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      W3C  (web-human@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      HTML 4 [21]
+
+2.1.39.  Header field: Delta-Base
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC3229 [16]
+
+2.1.40.  Header field: Depth
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+2.1.41.  Header field: Derived-From
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 19]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2068 [4]
+
+2.1.42.  Header field: Destination
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+2.1.43.  Header field: Differential-ID
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Arthur van Hoff  (avh@marimba.com)
+      Marimba Inc.
+      John Giannandrea  (jg@netscape.com)
+      Netscape Inc.
+      Mark Hapner  (mark.hapner@sun.com)
+      Sun Microsystems Inc.
+      Steve Carter  (srcarter@novell.com)
+      Novell Inc.
+      Milo Medin  (medin@home.net)
+      At Home Corp
+
+   Specification document(s):
+      DRP [20]
+
+2.1.44.  Header field: Digest
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 20]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC3230 [17]
+
+2.1.45.  Header field: ETag
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.46.  Header field: Expect
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.47.  Header field: Expires
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 21]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.48.  Header field: Ext
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@microsoft.com)
+      Paul J. Leach  (paulle@microsoft.com)
+      Scott Lawrence  (lawrence@agranat.com)
+
+   Specification document(s):
+      RFC2774 [14]
+
+2.1.49.  Header field: From
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.50.  Header field: GetProfile
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Pat Hensley  (hensley@firefly.net)
+      FireFly Network, Inc.
+      Max Metral  (max@firefly.net)
+      FireFly Network, Inc.
+      Upendra Shardanand  (shard@firefly.net)
+      FireFly Network, Inc.
+      Donna Converse  (converse@netscape.com)
+      Netscape Communications
+      Mike Myers  (mmyers@verisign.com)
+      Verisign, Inc.
+
+   Specification document(s):
+      OPS over HTTP [22]
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 22]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.51.  Header field: Host
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.52.  Header field: IM
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC3229 [16]
+
+2.1.53.  Header field: If
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+2.1.54.  Header field: If-Match
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 23]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.55.  Header field: If-Modified-Since
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.56.  Header field: If-None-Match
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.57.  Header field: If-Range
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 24]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.58.  Header field: If-Unmodified-Since
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.59.  Header field: Keep-Alive
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2068 [4]
+
+2.1.60.  Header field: Label
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC3253 [18]
+
+2.1.61.  Header field: Last-Modified
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 25]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.62.  Header field: Link
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2068 [4]
+
+2.1.63.  Header field: Location
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.64.  Header field: Lock-Token
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 26]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.65.  Header field: MIME-Version
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.66.  Header field: Man
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@microsoft.com)
+      Paul J. Leach  (paulle@microsoft.com)
+      Scott Lawrence  (lawrence@agranat.com)
+
+   Specification document(s):
+      RFC2774 [14]
+
+2.1.67.  Header field: Max-Forwards
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.68.  Header field: Meter
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 27]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2227 [6]
+
+2.1.69.  Header field: Negotiate
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Koen Holtman  (koen@win.tue.nl)
+
+   Specification document(s):
+      RFC2295 [7]
+
+2.1.70.  Header field: Opt
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@microsoft.com)
+      Paul J. Leach  (paulle@microsoft.com)
+      Scott Lawrence  (lawrence@agranat.com)
+
+   Specification document(s):
+      RFC2774 [14]
+
+2.1.71.  Header field: Ordering-Type
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC3648 [19]
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 28]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.72.  Header field: Overwrite
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+2.1.73.  Header field: P3P
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      W3C  (web-human@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      P3P [23]
+
+2.1.74.  Header field: PEP
+
+   Applicable protocol: http [11]
+
+   Status: deprecated
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Dan Connolly  (connolly@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Rohit Khare  (khare@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Eric Prud'hommeaux  (eric@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+
+   Specification document(s):
+      PEP [29]
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 29]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.75.  Header field: PICS-Label
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      W3C  (web-human@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      PICSLabels [24]
+
+2.1.76.  Header field: Pep-Info
+
+   Applicable protocol: http [11]
+
+   Status: deprecated
+
+   Author/change controller:
+      Henrik Frystyk Nielsen  (frystyk@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Dan Connolly  (connolly@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Rohit Khare  (khare@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+      Eric Prud'hommeaux  (eric@w3.org)
+      World Wide Web Consortium, MIT Laboratory for Computer Science
+
+   Specification document(s):  PEP [29]
+
+2.1.77.  Header field: Position
+
+      Applicable protocol: http [11]
+
+      Status: standard
+
+      Author/change controller:
+         IETF  (iesg@ietf.org)
+         Internet Engineering Task Force
+
+      Specification document(s):
+         RFC3648 [19]
+
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 30]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.78.  Header field: Pragma
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.79.  Header field: ProfileObject
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Pat Hensley  (hensley@firefly.net)
+      FireFly Network, Inc.
+      Max Metral  (max@firefly.net)
+      FireFly Network, Inc.
+      Upendra Shardanand  (shard@firefly.net)
+      FireFly Network, Inc.
+      Donna Converse  (converse@netscape.com)
+      Netscape Communications
+      Mike Myers  (mmyers@verisign.com)
+      Verisign, Inc.
+
+   Specification document(s):
+      OPS over HTTP [22]
+
+2.1.80.  Header field: Protocol
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      W3C  (web-human@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      PICSLabels [24]
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 31]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.81.  Header field: Protocol-Info
+
+   Applicable protocol: http [11]
+
+   Status: deprecated
+
+   Author/change controller:
+      Don Eastlake  (dee@cybercash.com)
+      Rohit Khare  (khare@w3.org)
+      Jim Miller  (jmiller@w3.org)
+
+   Specification document(s):
+      Selecting Payment Mechanisms [26]
+
+2.1.82.  Header field: Protocol-Query
+
+   Applicable protocol: http [11]
+
+   Status: deprecated
+
+   Author/change controller:
+      Don Eastlake  (dee@cybercash.com)
+      Rohit Khare  (khare@w3.org)
+      Jim Miller  (jmiller@w3.org)
+
+   Specification document(s):
+      Selecting Payment Mechanisms [26]
+
+2.1.83.  Header field: Protocol-Request
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      W3C  (web-human@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      PICSLabels [24]
+
+2.1.84.  Header field: Proxy-Authenticate
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 32]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.85.  Header field: Proxy-Authentication-Info
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2617 [12]
+
+2.1.86.  Header field: Proxy-Authorization
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.87.  Header field: Proxy-Features
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Phillip M. Hallam-Baker  (hallam@w3.org)
+      W3C
+
+   Specification document(s):
+      Proxy Notification [27]
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 33]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.88.  Header field: Proxy-Instruction
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Phillip M. Hallam-Baker  (hallam@w3.org)
+      W3C
+
+   Specification document(s):
+      Proxy Notification [27]
+
+2.1.89.  Header field: Public
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2068 [4]
+
+2.1.90.  Header field: Range
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.91.  Header field: Referer
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 34]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.92.  Header field: Retry-After
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.93.  Header field: Safe
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Koen Holtman  (koen@win.tue.nl)
+
+   Specification document(s):
+      RFC2310 [8]
+
+2.1.94.  Header field: Security-Scheme
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Eric Rescorla  (ekr@rtfm.com)
+      A. Schiffman  (ams@terisa.com)
+
+   Specification document(s):
+      RFC2660 [13]
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 35]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.95.  Header field: Server
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.96.  Header field: Set-Cookie
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2109 [5]
+
+2.1.97.  Header field: Set-Cookie2
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2965 [15]
+
+2.1.98.  Header field: SetProfile
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 36]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      Pat Hensley  (hensley@firefly.net)
+      FireFly Network, Inc.
+      Max Metral  (max@firefly.net)
+      FireFly Network, Inc.
+      Upendra Shardanand  (shard@firefly.net)
+      FireFly Network, Inc.
+      Donna Converse  (converse@netscape.com)
+      Netscape Communications
+      Mike Myers  (mmyers@verisign.com)
+      Verisign, Inc.
+
+   Specification document(s):
+      OPS over HTTP [22]
+
+2.1.99.  Header field: SoapAction
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Don Box  (dbox@develop.com)
+      DevelopMentor
+      David Ehnebuske  (davide@us.ibm.com)
+      IBM
+      Gopal Kakivaya  (gopalk@microsoft.com)
+      Microsoft
+      Andrew Layman  (andrewl@microsoft.com)
+      Microsoft
+      Noah Mendelsohn  (Noah_Mendelsohn@lotus.com)
+      Lotus Development Corp.
+      Hernik Frystyk Nielsen  (frystyk@microsoft.com)
+      Microsoft
+      Satish Thatte  (satisht@microsoft.com)
+      Microsoft
+      Dave Winer  (dave@userland.com)
+      UserLand Software, Inc.
+
+   Specification document(s):
+      SOAP [28]
+
+2.1.100.  Header field: Status-URI
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 37]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+2.1.101.  Header field: Surrogate-Capability
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Mark Nottingham  (mnot@akamai.com)
+      Akamai
+      Xiang Liu  (xiang.liu@oracle.com)
+      Oracle
+
+   Specification document(s):
+      edge-arch [25]
+
+2.1.102.  Header field: Surrogate-Control
+
+   Applicable protocol: http [11]
+
+   Status: informational
+
+   Author/change controller:
+      Mark Nottingham  (mnot@akamai.com)
+      Akamai
+      Xiang Liu  (xiang.liu@oracle.com)
+      Oracle
+
+   Specification document(s):
+      edge-arch [25]
+
+2.1.103.  Header field: TCN
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Koen Holtman  (koen@win.tue.nl)
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 38]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Specification document(s):
+      RFC2295 [7]
+
+2.1.104.  Header field: TE
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.105.  Header field: Timeout
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2518 [10]
+
+2.1.106.  Header field: Trailer
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.107.  Header field: Transfer-Encoding
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 39]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.108.  Header field: URI
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2068 [4]
+
+2.1.109.  Header field: Upgrade
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.110.  Header field: User-Agent
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 40]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.1.111.  Header field: Variant-Vary
+
+   Applicable protocol: http [11]
+
+   Status: experimental
+
+   Author/change controller:
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Koen Holtman  (koen@win.tue.nl)
+
+   Specification document(s):
+      RFC2295 [7]
+
+2.1.112.  Header field: Vary
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.113.  Header field: Via
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.114.  Header field: WWW-Authenticate
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 41]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+2.1.115.  Header field: Want-Digest
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC3230 [17]
+
+2.1.116.  Header field: Warning
+
+   Applicable protocol: http [11]
+
+   Status: standard
+
+   Author/change controller:
+      IETF  (iesg@ietf.org)
+      Internet Engineering Task Force
+
+   Specification document(s):
+      RFC2616 [11]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 42]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.2.  Provisional HTTP Header Field Submissions
+
+   Header name             Protocol
+   -----------             --------
+   Compliance                http
+   Content-Transfer-Encoding http
+   Cost                      http
+   Message-ID                http
+   Non-Compliance            http
+   Optional                  http
+   Resolution-Hint           http
+   Resolver-Location         http
+   SubOK                     http
+   Subst                     http
+   Title                     http
+   UA-Color                  http
+   UA-Media                  http
+   UA-Pixels                 http
+   UA-Resolution             http
+   UA-Windowpixels           http
+   Version                   http
+
+2.2.1.  Header field: Compliance
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:  Jeffrey C. Mogul  (mogul@wrl.dec.com)
+      Western Research Laboratory, Digital Equipment Corporation Josh
+      Cohen  (josh@netscape.com) Netscape Communications Corporation
+      Scott Lawrence  (lawrence@agranat.com) Agranat Systems, Inc.
+
+   Specification document(s):
+      OPTIONS messages [31]
+
+2.2.2.  Header field: Content-Transfer-Encoding
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Tim Berners-Lee  (timbl@w3.org)
+      MIT Laboratory for Computer Science
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 43]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Specification document(s):
+      Object Headers [2]
+
+2.2.3.  Header field: Cost
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Tim Berners-Lee  (timbl@w3.org)
+      MIT Laboratory for Computer Science
+
+   Specification document(s):
+      Object Headers [2]
+
+2.2.4.  Header field: Message-ID
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Tim Berners-Lee  (timbl@w3.org)
+      MIT Laboratory for Computer Science
+
+   Specification document(s):
+      Object Headers [2]
+
+2.2.5.  Header field: Non-Compliance
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:  Jeffrey C. Mogul  (mogul@wrl.dec.com)
+      Western Research Laboratory, Digital Equipment Corporation Josh
+      Cohen  (josh@netscape.com) Netscape Communications Corporation
+      Scott Lawrence  (lawrence@agranat.com) Agranat Systems, Inc.
+
+   Specification document(s):
+      OPTIONS messages [31]
+
+2.2.6.  Header field: Optional
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+
+
+Nottingham & Mogul           Informational                     [Page 44]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      John Mallery  (jcma@ai.mit.edu)
+      MIT Artificial Intelligence Laboratory
+      Lewis Girod  (girod@lcs.mit.edu)
+      MIT Laboratory for Computer Science
+      Benjie Chen  (benjie@lcs.mit.edu)
+      MIT Laboratory for Computer Science
+      Henrik Frystyk Nielsen  (frystyk@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      WIRE [32]
+
+2.2.7.  Header field: Resolution-Hint
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      John Mallery  (jcma@ai.mit.edu)
+      MIT Artificial Intelligence Laboratory
+      Lewis Girod  (girod@lcs.mit.edu)
+      MIT Laboratory for Computer Science
+      Benjie Chen  (benjie@lcs.mit.edu)
+      MIT Laboratory for Computer Science
+      Henrik Frystyk Nielsen  (frystyk@w3.org)
+      World Wide Web Consortium
+
+   Specification document(s):
+      WIRE [32]
+
+2.2.8.  Header field: Resolver-Location
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      John Mallery  (jcma@ai.mit.edu)
+      MIT Artificial Intelligence Laboratory
+      Lewis Girod  (girod@lcs.mit.edu)
+      MIT Laboratory for Computer Science
+      Benjie Chen  (benjie@lcs.mit.edu)
+      MIT Laboratory for Computer Science
+      Henrik Frystyk Nielsen  (frystyk@w3.org)
+      World Wide Web Consortium
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 45]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Specification document(s):
+      WIRE [32]
+
+2.2.9.  Header field: SubOK
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:  Jeffrey C. Mogul  (mogul@wrl.dec.com)
+      Western Research Laboratory, Digital Equipment Corporation Arthur
+      van Hoff  (avh@marimba.com) Marimba, Inc.
+
+   Specification document(s):
+      Duplicate Suppression [33]
+
+2.2.10.  Header field: Subst
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:  Jeffrey C. Mogul  (mogul@wrl.dec.com)
+      Western Research Laboratory, Digital Equipment Corporation Arthur
+      van Hoff  (avh@marimba.com) Marimba, Inc.
+
+   Specification document(s):
+      Duplicate Suppression [33]
+
+2.2.11.  Header field: Title
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Tim Berners-Lee  (timbl@w3.org)
+      MIT Laboratory for Computer Science
+
+   Specification document(s):
+      Object Headers [2]
+
+2.2.12.  Header field: UA-Color
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 46]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   Author/change controller:
+      Larry Masinter  (LMM@acm.org)
+      Adobe Systems
+      Lou Montulli  (montulli@netscape.com)
+      Netscape Communications Corp.
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Hewlett-Packard Company
+
+   Specification document(s):
+      UA Attributes [30]
+
+2.2.13.  Header field: UA-Media
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Larry Masinter  (LMM@acm.org)
+      Adobe Systems
+      Lou Montulli  (montulli@netscape.com)
+      Netscape Communications Corp.
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Hewlett-Packard Company
+
+   Specification document(s):
+      UA Attributes [30]
+
+2.2.14.  Header field: UA-Pixels
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Larry Masinter  (LMM@acm.org)
+      Adobe Systems
+      Lou Montulli  (montulli@netscape.com)
+      Netscape Communications Corp.
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Hewlett-Packard Company
+
+   Specification document(s):
+      UA Attributes [31]
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 47]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+2.2.15.  Header field: UA-Resolution
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Larry Masinter  (LMM@acm.org)
+      Adobe Systems
+      Lou Montulli  (montulli@netscape.com)
+      Netscape Communications Corp.
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Hewlett-Packard Company
+
+   Specification document(s):
+      UA Attributes [30]
+
+2.2.16.  Header field: UA-Windowpixels
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Larry Masinter  (LMM@acm.org)
+      Adobe Systems
+      Lou Montulli  (montulli@netscape.com)
+      Netscape Communications Corp.
+      Andrew H. Mutz  (mutz@hpl.hp.com)
+      Hewlett-Packard Company
+
+   Specification document(s):
+      UA Attributes [30]
+
+2.2.17.  Header field: Version
+
+   Applicable protocol: http [11]
+
+   Status: provisional
+
+   Author/change controller:
+      Tim Berners-Lee  (timbl@w3.org)
+      MIT Laboratory for Computer Science
+
+   Specification document(s):
+      Object Headers [2]
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 48]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+3.  IANA Considerations
+
+   This specification provides initial registrations of HTTP header
+   fields in the "Permanent Message Header Field Registry", defined by
+   Registration Procedures for Message Header Fields [1].
+
+   It also provides initial submissions of HTTP header fields in the
+   "Provisional Message Header Field Repository", defined by the same
+   document.
+
+4.  Security Considerations
+
+   No security considerations are introduced by this document beyond
+   those already inherent in use of the HTTP header fields referenced.
+
+5.  Acknowledgements
+
+   The authors would like to thank Graham Klyne for his work in defining
+   the message header registries, his input and help in preparing this
+   document, and the registry generation software.
+
+6.  Informative References
+
+   [1]   Klyne, G., Nottingham, M., and J. Mogul, "Registration
+         Procedures for Message Header Fields", BCP 90, RFC 3864,
+         September 2004.
+
+   [2]   Berners-Lee, T., "Object Header lines in HTTP", May 1994,
+         <http://www.w3.org/Protocols/HTTP/Object_Headers.html>.
+
+   [3]   Berners-Lee, T., Fielding, R., and H. Nielsen, "Hypertext
+         Transfer Protocol -- HTTP/1.0", RFC 1945, May 1996.
+
+   [4]   Fielding, R., Gettys, J., Mogul, J., Nielsen, H., and T.
+         Berners-Lee, "Hypertext Transfer Protocol -- HTTP/1.1", RFC
+         2068, January 1997.
+
+   [5]   Kristol, D. and L. Montulli, "HTTP State Management Mechanism",
+         RFC 2109, February 1997.
+
+   [6]   Mogul, J. and P. Leach, "Simple Hit-Metering and Usage-Limiting
+         for HTTP", RFC 2227, October 1997.
+
+   [7]   Holtman, K. and A. Mutz, "Transparent Content Negotiation in
+         HTTP", RFC 2295, March 1998.
+
+   [8]   Holtman, K., "The Safe Response Header Field", RFC 2310, April
+         1998.
+
+
+
+Nottingham & Mogul           Informational                     [Page 49]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   [9]   Masinter, L., "Hyper Text Coffee Pot Control Protocol
+         (HTCPCP/1.0)", RFC 2324, April 1998.
+
+   [10]  Goland, Y., Whitehead, E., Faizi, A., Carter, S., and D.
+         Jensen, "HTTP Extensions for Distributed Authoring -- WEBDAV",
+         RFC 2518, February 1999.
+
+   [11]  Fielding, R., Gettys, J., Mogul, J., Frystyk, H., Masinter, L.,
+         Leach, P., and T. Berners-Lee, "Hypertext Transfer Protocol --
+         HTTP/1.1", RFC 2616, June 1999.
+
+   [12]  Franks, J., Hallam-Baker, P., Hostetler, J., Lawrence, S.,
+         Leach, P., Luotonen, A., and L. Stewart, "HTTP Authentication:
+         Basic and Digest Access Authentication", RFC 2617, June 1999.
+
+   [13]  Rescorla, E. and A. Schiffman, "The Secure HyperText Transfer
+         Protocol", RFC 2660, August 1999.
+
+   [14]  Nielsen, H., Leach, P., and S. Lawrence, "An HTTP Extension
+         Framework", RFC 2774, February 2000.
+
+   [15]  Kristol, D. and L. Montulli, "HTTP State Management Mechanism",
+         RFC 2965, October 2000.
+
+   [16]  Mogul, J., Krishnamurthy, B., Douglis, F., Feldmann, A.,
+         Goland, Y., van Hoff, A., and D. Hellerstein, "Delta encoding
+         in HTTP", RFC 3229, January 2002.
+
+   [17]  Mogul, J. and A. Van Hoff, "Instance Digests in HTTP", RFC
+         3230, January 2002.
+
+   [18]  Clemm, G., Amsden, J., Ellison, T., Kaler, C., and J.
+         Whitehead, "Versioning Extensions to WebDAV (Web Distributed
+         Authoring and Versioning)", RFC 3253, March 2002.
+
+   [19]  Whitehead, J. and J. Reschke, Ed., "Web Distributed Authoring
+         and Versioning (WebDAV) Ordered Collections Protocol", RFC
+         3648, December 2003.
+
+   [20]  Hoff, A., Payne, J., Hapner, M., Carter, S., and M. Medin, "The
+         HTTP Distribution and Replication Protocol", W3C NOTE NOTE-
+         drp-19970825, August 1997.
+
+   [21]  Raggett, D., Hors, A., and I. Jacobs, "HTML 4.01
+         Specification", W3C REC REC-html401-19991224, December 1999.
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 50]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+   [22]  Hensley, P., Metral, M., Shardanand, U., Converse, D., and M.
+         Myers, "Implementation of OPS Over HTTP", W3C NOTE NOTE-OPS-
+         OverHTTP, June 1997.
+
+   [23]  Marchiori, M., "The Platform for Privacy Preferences 1.0
+         (P3P1.0) Specification", W3C REC REC-P3P-20020416, April 2002.
+
+   [24]  Krauskopf, T., Miller, J., Resnick, P., and W. Treese, "PICS
+         1.1 Label Distribution -- Label Syntax and Communication
+         Protocols", W3C REC REC-PICS-labels-961031, October 1996.
+
+   [25]  Nottingham, M. and X. Liu, "Edge Architecture Specification",
+         W3C NOTE NOTE-edge-arch-20010804, August 2001.
+
+   [26]  Chung, E. and D. Dardailler, "White Paper: Joint Electronic
+         Payment Initiative", W3C NOTE NOTE-jepi-970519, May 1997.
+
+   [27]  Hallam-Baker, P., "Notification for Proxy Caches", W3C NOTE WD-
+         proxy-960221, February 1996.
+
+   [28]  Box, D., Ehnebuske, D., Kakivaya, G., Layman, A., Mendelsohn,
+         N., Nielsen, H., Thatte, S., and D. Winer, "Simple Object
+         Access Protocol (SOAP) 1.1", W3C NOTE NOTE-SOAP-20000508, May
+         2000.
+
+   [29]  Connolly, D., Prod'hommeaux, E., Nielsen, H., and R. Khare,
+         "PEP Specification: an Extension Mechanism for HTTP", Nov 1998,
+         <http://www.w3.org/TR/WD-http-pep>.
+
+   [30]  Masinter, L., Montulli, L., and A. Mutz, "User-Agent Display
+         Attributes Headers", Work in Progress, November 1996.
+
+   [31]  Mogul, J., Cohen, J., and S. Lawrence, "Specification of
+         HTTP/1.1 OPTIONS messages", Work in Progress, August 1997.
+
+   [32]  Girod, L., Chen, B., Henrik, H., and J. Mallery, "WIRE - W3
+         Identifier Resolution Extensions", Work in Progress, March
+         1998.
+
+   [33]  Mogul, J. and A. van Hoff, "Duplicate Suppression in HTTP",
+         Work in Progress, April 1998.
+
+
+
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 51]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+Authors' Addresses
+
+   Mark Nottingham
+
+   EMail: mnot@pobox.com
+   URI:   http://www.mnot.net/
+
+
+   Jeffrey C. Mogul
+   HP Labs
+   1501 Page Mill Road
+   Palo Alto, CA  94304
+   US
+
+   EMail: JeffMogul@acm.org
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 52]
+
+RFC 4229                   HTTP Header Fields              December 2005
+
+
+Full Copyright Statement
+
+   Copyright (C) The Internet Society (2005).
+
+   This document is subject to the rights, licenses and restrictions
+   contained in BCP 78, and except as set forth therein, the authors
+   retain all their rights.
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+Intellectual Property
+
+   The IETF takes no position regarding the validity or scope of any
+   Intellectual Property Rights or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; nor does it represent that it has
+   made any independent effort to identify any such rights.  Information
+   on the procedures with respect to rights in RFC documents can be
+   found in BCP 78 and BCP 79.
+
+   Copies of IPR disclosures made to the IETF Secretariat and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementers or users of this
+   specification can be obtained from the IETF on-line IPR repository at
+   http://www.ietf.org/ipr.
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights that may cover technology that may be required to implement
+   this standard.  Please address the information to the IETF at ietf-
+   ipr@ietf.org.
+
+Acknowledgement
+
+   Funding for the RFC Editor function is currently provided by the
+   Internet Society.
+
+
+
+
+
+
+
+Nottingham & Mogul           Informational                     [Page 53]
+
