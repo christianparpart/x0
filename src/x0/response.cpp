@@ -120,12 +120,18 @@ source_ptr response::serialize()
 	connection_->server().post_process(const_cast<x0::request *>(request_), this);
 
 	// enable chunked transfer encoding if required and possible
-	if (request_->supports_protocol(1, 1)
-			&& !headers.contains("Content-Length")
-			&& !headers.contains("Transfer-Encoding"))
+	if (!headers.contains("Content-Length"))
 	{
-		headers.push_back("Transfer-Encoding", "chunked");
-		filter_chain.push_back(std::make_shared<chunked_filter>());
+		if (!request_->supports_protocol(1, 1)
+			&& !headers.contains("Transfer-Encoding"))
+		{
+			headers.push_back("Transfer-Encoding", "chunked");
+			filter_chain.push_back(std::make_shared<chunked_filter>());
+		}
+		else
+		{
+			headers.set("Connection", "closed");
+		}
 	}
 
 	if (request_->supports_protocol(1, 1))
