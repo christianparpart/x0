@@ -28,6 +28,7 @@ set(x0_io_SRC
 	io/chain_filter.cpp
 	io/null_filter.cpp
 	io/compress_filter.cpp
+	io/chunked_filter.cpp
 	io/async_writer.cpp
 	io/fileinfo_service.cpp
 )
@@ -47,6 +48,7 @@ set(x0_io_API
 	io/filter.hpp
 	io/chain_filter.hpp
 	io/compress_filter.hpp
+	io/chunked_filter.hpp
 	io/pump.hpp
 	io/async_writer.hpp
 	io/fileinfo.hpp io/fileinfo.ipp

@@ -10,6 +10,7 @@
 #include <x0/io/file.hpp>
 #include <x0/io/file_source.hpp>
 #include <x0/io/buffer_source.hpp>
+#include <x0/io/chunked_filter.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 
@@ -117,6 +118,15 @@ source_ptr response::serialize()
 
 	// post-response hook
 	connection_->server().post_process(const_cast<x0::request *>(request_), this);
+
+	// enable chunked transfer encoding if required and possible
+	if (request_->supports_protocol(1, 1)
+			&& !headers.contains("Content-Length")
+			&& !headers.contains("Transfer-Encoding"))
+	{
+		headers.push_back("Transfer-Encoding", "chunked");
+		filter_chain.push_back(std::make_shared<chunked_filter>());
+	}
 
 	if (request_->supports_protocol(1, 1))
 		buffers->push_back("HTTP/1.1 ");
