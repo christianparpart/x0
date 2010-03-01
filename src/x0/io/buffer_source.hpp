@@ -19,6 +19,7 @@ class X0_API buffer_source :
 	public source
 {
 public:
+	template<typename PodType, std::size_t N> explicit buffer_source(PodType (&value)[N]);
 	explicit buffer_source(const x0::buffer& data);
 	explicit buffer_source(std::shared_ptr<x0::buffer> data);
 
@@ -44,6 +45,12 @@ private:
 //@}
 
 // {{{ inlines
+template<typename PodType, std::size_t N>
+inline buffer_source::buffer_source(PodType (&value)[N]) :
+	buffer_(std::make_shared<x0::const_buffer>(value, N - 1)), pos_(0)
+{
+}
+
 inline buffer_source::buffer_source(const x0::buffer& data) :
 	buffer_(std::make_shared<x0::buffer>(data)), pos_(0)
 {
