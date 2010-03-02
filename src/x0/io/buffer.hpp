@@ -300,11 +300,13 @@ inline buffer::buffer(buffer&& v) :
 inline buffer& buffer::operator=(buffer&& v)
 {
 #if !defined(NDEBUG)
+	//sometimes intentional to still have (an unused) ref to this buffer.
 	assert(refcount_ == 0);
 	assert(v.refcount_ == 0);
 #endif
 
 	clear();
+
 	data_ = v.data_;
 	size_ = v.size_;
 	capacity_ = v.capacity_;

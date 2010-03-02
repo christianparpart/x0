@@ -7,12 +7,21 @@ buffer chain_filter::process(const buffer_ref& input)
 	if (filters_.empty())
 		return buffer(input);
 
-	buffer b(filters_[0]->process(input));
+	auto i = filters_.begin();
+	auto e = filters_.end();
+	buffer result((*i++)->process(input));
 
-	for (std::size_t i = 1; i < filters_.size(); ++i)
-		b = filters_[i]->process(b);
+	while (i != e)
+	{
+#if 1 // !defined(NDEBUG)
+		buffer tmp((*i++)->process(result));
+		result = std::move(tmp);
+#else
+		result = (*i++)->process(result.ref());
+#endif
+	}
 
-	return b;
+	return result;
 }
 
 } // namespace x0
