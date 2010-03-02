@@ -95,6 +95,13 @@ Userdir = {
 	PathPrefix = '~';
 };
 
+Compress = {
+	Mimes = { 'text/plain', 'text/html' };
+	Level = 9;
+	MinSize = 256;
+	MaxSize = MB(128);
+};
+
 CGI = {
 	PathPrefix = '/cgi-bin/';
 	Executable = true;
