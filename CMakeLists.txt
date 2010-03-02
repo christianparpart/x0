@@ -122,4 +122,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURR
 add_definitions(-DHAVE_SYSCONFIG_H)
 
 add_subdirectory(src)
+add_subdirectory(examples)
 add_subdirectory(tests)
