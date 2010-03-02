@@ -31,7 +31,11 @@
 
 namespace x0 {
 
-server::server() :
+/** initializes the HTTP server object.
+ * \param io_service an Asio io_service to use or NULL to create our own one.
+ * \see server::run()
+ */
+server::server(asio::io_service *io_service) :
 	connection_open(),
 	pre_process(),
 	resolve_document_root(),
@@ -41,8 +45,9 @@ server::server() :
 	request_done(),
 	connection_close(),
 	listeners_(),
-	io_service_(),
-	paused_(),
+	io_service_ptr_(io_service ? 0 : new asio::io_service()),
+	io_service_(io_service ? *io_service : *io_service_ptr_),
+	active_(false),
 	settings_(),
 	logger_(),
 	plugins_(),
@@ -246,19 +251,35 @@ void server::configure(const std::string& configfile)
 	drop_privileges(settings_["Daemon.User"].as<std::string>(), settings_["Daemon.Group"].as<std::string>());
 }
 
-/**
- * run the server
+void server::start()
+{
+	if (!active_)
+	{
+		active_ = true;
+
+		for (std::list<listener_ptr>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
+		{
+			(*i)->start();
+		}
+	}
+}
+
+/** tests whether this server has been started or not.
+ * \see start(), run()
+ */
+bool server::active() const
+{
+	return active_;
+}
+
+/** calls run on the internally referenced io_service.
+ * \note use this if you do not have your own main loop.
+ * \note automatically starts the server if it wasn't started via \p start() yet.
  */
 void server::run()
 {
-	paused_ = false;
-
-	for (std::list<listener_ptr>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
-	{
-		(*i)->start();
-	}
-
-	log(severity::info, "Server up and running");
+	if (!active_)
+		start();
 
 	io_service_.run();
 }
@@ -382,27 +403,33 @@ listener_ptr server::listener_by_port(int port)
 
 void server::pause()
 {
-	paused_ = true;
+	active_ = false;
 }
 
 void server::resume()
 {
-	paused_ = false;
+	active_ = true;
 }
 
 void server::reload()
 {
-	// TODO
+	//! \todo implementation
 }
 
+/** unregisters all listeners from the underlying io_service and calls stop on it.
+ * \see start(), active(), run()
+ */
 void server::stop()
 {
-	for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
+	if (active_)
 	{
-		(*k).reset();
-	}
+		for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
+		{
+			(*k).reset();
+		}
 
-	io_service_.stop();
+		io_service_.stop();
+	}
 }
 
 x0::settings& server::config()
