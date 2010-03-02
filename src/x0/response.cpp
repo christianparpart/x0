@@ -68,7 +68,7 @@ source_ptr response::make_default_content()
 		headers.set("Content-Type", fi->mimetype());
 		headers.set("Content-Length", boost::lexical_cast<std::string>(fi->size()));
 
-		return source_ptr(new file_source(f));
+		return std::make_shared<file_source>(f);
 	}
 	else
 	{
@@ -86,7 +86,7 @@ source_ptr response::make_default_content()
 		headers.set("Content-Type", "text/html");
 		headers.set("Content-Length", boost::lexical_cast<std::string>(nwritten));
 
-		return source_ptr(new buffer_source(buffer::from_copy(buf, nwritten)));
+		return std::make_shared<buffer_source>(buffer::from_copy(buf, nwritten));
 	}
 }
 
