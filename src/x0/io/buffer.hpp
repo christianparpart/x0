@@ -89,6 +89,8 @@ public:
 	explicit buffer(const std::string& v);
 	template<typename PodType, std::size_t N> explicit buffer(PodType (&value)[N]);
 	buffer(const buffer& v);
+	buffer(buffer&& v);
+	buffer& operator=(buffer&& v);
 	buffer& operator=(const buffer& v);
 	buffer& operator=(const std::string& v);
 	buffer& operator=(const value_type *v);
@@ -274,6 +276,45 @@ inline buffer::buffer(const buffer& v) :
 #endif
 {
 	push_back(v.data(), v.size());
+}
+
+inline buffer::buffer(buffer&& v) :
+	data_(v.data_),
+	size_(v.size_),
+	capacity_(v.capacity_),
+	edit_mode_(v.edit_mode_)
+#if !defined(NDEBUG)
+	, refcount_(0)
+#endif
+{
+#if !defined(NDEBUG)
+	assert(v.refcount_ == 0);
+#endif
+
+	v.data_ = 0;
+	v.size_ = 0;
+	v.capacity_ = 0;
+	v.edit_mode_ = EDIT_ALL;
+}
+
+inline buffer& buffer::operator=(buffer&& v)
+{
+#if !defined(NDEBUG)
+	assert(refcount_ == 0);
+	assert(v.refcount_ == 0);
+#endif
+
+	clear();
+	data_ = v.data_;
+	size_ = v.size_;
+	capacity_ = v.capacity_;
+	edit_mode_ = v.edit_mode_;
+
+	v.data_ = 0;
+	v.size_ = 0;
+	v.capacity_ = 0;
+
+	return *this;
 }
 
 inline buffer& buffer::operator=(const buffer& v)

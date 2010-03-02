@@ -95,7 +95,7 @@ private:
 				out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
 				return out->write(
-					std::make_shared<x0::buffer_source>(result),
+					std::make_shared<x0::buffer_source>(std::move(result)),
 					std::bind(&dirlisting_plugin::done, this, next)
 				);
 			}

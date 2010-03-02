@@ -205,7 +205,7 @@ private:
 
 				if (f)
 				{
-					content->push_back(std::make_shared<x0::buffer_source>(buf));
+					content->push_back(std::make_shared<x0::buffer_source>(std::move(buf)));
 					content->push_back(std::make_shared<x0::file_source>(f, offsets.first, length));
 				}
 				content_length += buf.size() + length;
@@ -216,7 +216,7 @@ private:
 			buf.push_back(boundary);
 			buf.push_back("--\r\n");
 
-			content->push_back(std::make_shared<x0::buffer_source>(buf));
+			content->push_back(std::make_shared<x0::buffer_source>(std::move(buf)));
 			content_length += buf.size();
 
 			out->headers.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);

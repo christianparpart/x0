@@ -92,7 +92,7 @@ source_ptr response::make_default_content()
 
 source_ptr response::serialize()
 {
-	std::shared_ptr<buffer> buffers(new buffer);
+	buffer buffers;
 
 	if (!status)
 	{
@@ -135,27 +135,27 @@ source_ptr response::serialize()
 	}
 
 	if (request_->supports_protocol(1, 1))
-		buffers->push_back("HTTP/1.1 ");
+		buffers.push_back("HTTP/1.1 ");
 	else if (request_->supports_protocol(1, 0))
-		buffers->push_back("HTTP/1.0 ");
+		buffers.push_back("HTTP/1.0 ");
 	else
-		buffers->push_back("HTTP/0.9 ");
+		buffers.push_back("HTTP/0.9 ");
 
-	buffers->push_back(status_codes[status]);
-	buffers->push_back(' ');
-	buffers->push_back(status_cstr(status));
-	buffers->push_back("\r\n");
+	buffers.push_back(status_codes[status]);
+	buffers.push_back(' ');
+	buffers.push_back(status_cstr(status));
+	buffers.push_back("\r\n");
 
 	std::for_each(headers.begin(), headers.end(), [&](response_header& h) {
-		buffers->push_back(h.name.data(), h.name.size());
-		buffers->push_back(": ");
-		buffers->push_back(h.value.data(), h.value.size());
-		buffers->push_back("\r\n");
+		buffers.push_back(h.name.data(), h.name.size());
+		buffers.push_back(": ");
+		buffers.push_back(h.value.data(), h.value.size());
+		buffers.push_back("\r\n");
 	});
 
-	buffers->push_back("\r\n");
+	buffers.push_back("\r\n");
 
-	return source_ptr(new buffer_source(buffers));
+	return std::make_shared<buffer_source>(std::move(buffers));
 }
 
 response::response(connection_ptr connection, x0::request *request, int _status) :
