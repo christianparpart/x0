@@ -337,9 +337,13 @@ inline void response::complete_write(const asio::error_code& ec, const source_pt
 
 inline void response::write_content(const source_ptr& content, const completion_handler_type& handler)
 {
-	source_ptr filtered(new filter_source(content, filter_chain));
-
-	connection_->async_write(filtered, handler);
+	if (filter_chain.empty())
+		connection_->async_write(content, handler);
+	else
+	{
+		source_ptr filtered(new filter_source(content, filter_chain));
+		connection_->async_write(filtered, handler);
+	}
 }
 // }}}
 
