@@ -100,11 +100,6 @@ public:
 		server_.config()["Compress"]["Level"].load(cx.level_);
 		server_.config()["Compress"]["MinSize"].load(cx.min_size_);
 		server_.config()["Compress"]["MaxSize"].load(cx.max_size_);
-
-		printf("Compress.Mimes = %s\n", tostring(cx.mimes_).c_str());
-		printf("Compress.Level = %d\n", cx.level_);
-		printf("Compress.MinSize = %lld\n", cx.min_size_);
-		printf("Compress.MaxSize = %lld\n", cx.max_size_);
 	}
 
 private:
