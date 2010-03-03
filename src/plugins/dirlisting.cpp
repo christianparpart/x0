@@ -58,7 +58,7 @@ public:
 		auto hosts = server_.config()["Hosts"].keys<std::string>();
 		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
 		{
-			bool enabled;
+			bool enabled = true;
 
 			if (server_.config()["Hosts"][*i]["DirectoryListing"]["Enabled"].load(enabled)
 			 || server_.config()["DirectoryListing"]["Enabled"].load(enabled))

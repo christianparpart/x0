@@ -135,7 +135,7 @@ private:
 			if (i != srvcfg.mappings.end())
 			{
 				in->document_root = i->second->docroot;
-				server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in->document_root.c_str());
+				//server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in->document_root.c_str());
 			}
 			else
 			{

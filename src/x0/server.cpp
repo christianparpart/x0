@@ -181,7 +181,7 @@ void server::configure(const std::string& configfile)
 		settings_.load("Resources.MaxReadIdle", max_read_idle);
 		settings_.load("Resources.MaxWriteIdle", max_write_idle);
 
-		long long value;
+		long long value = 0;
 		if (settings_.load("Resources.MaxFiles", value))
 			setrlimit(RLIMIT_NOFILE, value);
 
@@ -201,7 +201,7 @@ void server::configure(const std::string& configfile)
 		if (settings_.load("FileInfo.MimeType.DefaultType", value))
 			fileinfo.default_mimetype(value);
 
-		bool flag;
+		bool flag = false;
 		if (settings_.load("FileInfo.ETag.ConsiderMtime", flag))
 			fileinfo.etag_consider_mtime(flag);
 
