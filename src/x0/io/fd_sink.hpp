@@ -20,11 +20,11 @@ public:
 	void async(bool value);
 	bool async() const;
 
-	virtual std::size_t pump(source& src);
+	virtual ssize_t pump(source& src);
 
 protected:
 	buffer buf_;
-	std::size_t offset_;
+	off_t offset_;
 	int handle_;
 };
 

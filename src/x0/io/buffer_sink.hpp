@@ -23,7 +23,7 @@ public:
 	{
 	}
 
-	virtual std::size_t pump(source& src)
+	virtual ssize_t pump(source& src)
 	{
 		return src.pull(buffer_).size();
 	}

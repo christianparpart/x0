@@ -2,6 +2,7 @@
 #define sw_x0_io_socket_sink_hpp 1
 
 #include <x0/io/fd_sink.hpp>
+#include <x0/io/source_visitor.hpp>
 #include <x0/io/buffer.hpp>
 #include <x0/types.hpp>
 
@@ -13,7 +14,8 @@ namespace x0 {
 /** file descriptor stream sink.
  */
 class X0_API socket_sink :
-	public fd_sink
+	public fd_sink,
+	public source_visitor
 {
 public:
 	explicit socket_sink(tcp_socket& sock);
@@ -23,8 +25,18 @@ public:
 	template<typename CompletionHandler>
 	void on_ready(CompletionHandler handler);
 
+	virtual ssize_t pump(source& src);
+
+public:
+	virtual void visit(fd_source& v);
+	virtual void visit(file_source& v);
+	virtual void visit(buffer_source& v);
+	virtual void visit(filter_source& v);
+	virtual void visit(composite_source& v);
+
 protected:
 	tcp_socket& socket_;
+	ssize_t rv_;
 };
 
 //@}
@@ -32,7 +44,8 @@ protected:
 // {{{ impl
 inline socket_sink::socket_sink(tcp_socket& sock) :
 	fd_sink(sock.native()),
-	socket_(sock)
+	socket_(sock),
+	rv_()
 {
 }
 

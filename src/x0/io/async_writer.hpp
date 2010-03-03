@@ -59,7 +59,7 @@ public:
 private:
 	void write()
 	{
-		int rv = sink_->pump(*source_);
+		ssize_t rv = sink_->pump(*source_);
 
 		if (rv == 0)
 		{

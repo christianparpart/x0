@@ -29,7 +29,7 @@ public:
 	 *
 	 * \return number of bytes pumped through
 	 */
-	virtual std::size_t pump(source& src) = 0;
+	virtual ssize_t pump(source& src) = 0;
 };
 
 typedef std::shared_ptr<sink> sink_ptr;

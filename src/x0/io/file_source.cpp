@@ -25,7 +25,6 @@ file_source::file_source(const file_ptr& f, std::size_t offset, std::size_t size
 
 file_source::~file_source()
 {
-	::close(handle_);
 }
 
 void file_source::accept(source_visitor& v)

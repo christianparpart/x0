@@ -24,12 +24,15 @@ bool fd_sink::async() const
 	return fcntl(handle_, F_GETFL, O_NONBLOCK) > 0;
 }
 
-std::size_t fd_sink::pump(source& src)
+ssize_t fd_sink::pump(source& src)
 {
 	if (buf_.empty())
 		src.pull(buf_);
 
 	std::size_t remaining = buf_.size() - offset_;
+	if (!remaining)
+		return 0;
+
 	ssize_t nwritten = ::write(handle_, buf_.data() + offset_, remaining);
 
 	if (nwritten != -1)

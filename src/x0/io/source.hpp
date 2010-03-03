@@ -52,13 +52,13 @@ public:
 	 * \param output sink to pump the data from this source to.
 	 * \return number of bytes pumped into the sink.
 	 */
-	std::size_t pump(sink& output);
+	ssize_t pump(sink& output);
 };
 
 typedef std::shared_ptr<source> source_ptr;
 
 // {{{ inlines
-inline std::size_t source::pump(sink& output)
+inline ssize_t source::pump(sink& output)
 {
 	return output.pump(*this);
 }

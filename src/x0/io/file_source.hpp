@@ -23,10 +23,17 @@ public:
 	file_source(const file_ptr& f, std::size_t offset, std::size_t count);
 	~file_source();
 
+	file_ptr file() const;
+
 	virtual void accept(source_visitor& v);
 };
 
 //@}
+
+inline file_ptr file_source::file() const
+{
+	return file_;
+}
 
 } // namespace x0
 

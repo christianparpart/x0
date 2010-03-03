@@ -21,6 +21,7 @@ file::~file()
 	if (fd_ != -1)
 	{
 		::close(fd_);
+		fd_ = -1;
 	}
 }
 
