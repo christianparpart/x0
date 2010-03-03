@@ -105,15 +105,8 @@ private:
 		}
 	} // }}}
 
-	enum method_type {
-		HEAD,
-		GET
-	};
-
 	void sendfile(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out) // {{{
 	{
-		std::string path(in->fileinfo->filename());
-
 		if (!in->fileinfo->exists())
 			return next();
 
@@ -122,9 +115,6 @@ private:
 
 		verify_client_cache(in, out);
 
-		out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
-		out->headers.push_back("ETag", in->fileinfo->etag());
-
 		x0::file_ptr f;
 		if (equals(in->method, "GET"))
 		{
@@ -132,12 +122,17 @@ private:
 
 			if (f->handle() == -1)
 			{
-				server_.log(x0::severity::error, "Could not open file '%s': %s", path.c_str(), strerror(errno));
-				return next();
+				server_.log(x0::severity::error, "Could not open file '%s': %s",
+					in->fileinfo->filename().c_str(), strerror(errno));
+
+				throw x0::response::forbidden;
 			}
 		}
 		else if (!equals(in->method, "HEAD"))
 			return next();
+
+		out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
+		out->headers.push_back("ETag", in->fileinfo->etag());
 
 		if (!process_range_request(next, in, out, f))
 		{
@@ -147,7 +142,7 @@ private:
 			out->headers.push_back("Content-Type", in->fileinfo->mimetype());
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
-			if (!f)
+			if (!f) // HEAD request
 				return next.done();
 
 			posix_fadvise(f->handle(), 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
