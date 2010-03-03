@@ -1,25 +1,34 @@
 #include <x0/io/compress_filter.hpp>
 #include <cassert>
+
 #include <zlib.h>
 
 namespace x0 {
 
-compress_filter::compress_filter()
+deflate_filter::deflate_filter(int level, bool raw) :
+	compress_filter(level),
+	raw_(raw)
 {
 	z_.zalloc = Z_NULL;
 	z_.zfree = Z_NULL;
 	z_.opaque = Z_NULL;
 }
 
-buffer compress_filter::process(const buffer_ref& input)
+deflate_filter::deflate_filter(int level) :
+	compress_filter(level),
+	raw_(true)
+{
+}
+
+buffer deflate_filter::process(const buffer_ref& input)
 {
 	if (input.empty())
 		return buffer();
 
 	int rv = deflateInit2(&z_,
-		Z_DEFAULT_COMPRESSION,	// compression level
+		level(),				// compression level
 		Z_DEFLATED,				// method
-		15 + 16,				// window bits
+		raw_ ? -15 : 15+16,		// window bits (15=gzip compression, 16=simple header, -15=raw deflate)
 		9,						// memory level (1..9)
 		Z_FILTERED				// strategy
 	);
@@ -31,7 +40,7 @@ buffer compress_filter::process(const buffer_ref& input)
 	z_.next_in = reinterpret_cast<Bytef *>(input.begin());
 	z_.avail_in = input.size();
 
-	buffer output(input.size());
+	buffer output(input.size() * 1.1 + 12 + 18);
 	z_.next_out = reinterpret_cast<Bytef *>(output.end());
 	z_.avail_out = output.capacity();
 
@@ -54,6 +63,61 @@ buffer compress_filter::process(const buffer_ref& input)
 	output.resize(z_.total_out);
 
 	deflateEnd(&z_);
+	return output;
+}
+
+// --------------------------------------------------------------------------
+bzip2_filter::bzip2_filter(int level) :
+	compress_filter(level)
+{
+	bz_.bzalloc = Z_NULL;
+	bz_.bzfree = Z_NULL;
+	bz_.opaque = Z_NULL;
+}
+
+
+buffer bzip2_filter::process(const buffer_ref& input)
+{
+	if (input.empty())
+		return buffer();
+
+	int rv = BZ2_bzCompressInit(&bz_,
+		level(),						// compression level
+		0,								// no output
+		0								// work factor
+	);
+
+	if (rv != BZ_OK)
+		return buffer();
+
+
+	bz_.next_in = input.begin();
+	bz_.avail_in = input.size();
+	bz_.total_in_lo32 = 0;
+	bz_.total_in_hi32 = 0;
+
+	buffer output(input.size() * 1.1 + 12);
+	bz_.next_out = output.end();
+	bz_.avail_out = output.capacity();
+	bz_.total_out_lo32 = 0;
+	bz_.total_out_hi32 = 0;
+
+	rv = BZ2_bzCompress(&bz_, BZ_FINISH);
+	if (rv != BZ_STREAM_END)
+	{
+		BZ2_bzCompressEnd(&bz_);
+		return buffer();
+	}
+
+	if (bz_.total_out_hi32)
+		return buffer(); // file too large
+
+	output.resize(bz_.total_out_lo32);
+
+	rv = BZ2_bzCompressEnd(&bz_);
+	if (rv != BZ_OK)
+		return buffer();
+
 	return output;
 }
 

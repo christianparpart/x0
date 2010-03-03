@@ -12,6 +12,7 @@
 #include <x0/strutils.hpp>
 #include <x0/io/compress_filter.hpp>
 #include <x0/types.hpp>
+#include <x0/sysconfig.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
@@ -26,6 +27,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+
+#if !defined(HAVE_BZLIB_H) && !defined(HAVE_ZLIB_H)
+#	warning No compression headers available!
+#endif
 
 /**
  * \ingroup plugins
@@ -48,8 +53,53 @@ public:
 		server_.post_process.disconnect(post_process_);
 	}
 
+	struct context
+	{
+		std::vector<std::string> mimes_;
+		int level_;
+		long long min_size_;
+		long long max_size_;
+
+		context() :
+			mimes_(),
+			level_(9),						// best compression
+			min_size_(1024),				// 1 KB
+			max_size_(128 * 1024 * 1024)	// 128 MB
+		{
+		}
+
+		bool contains_mime(const std::string& value) const
+		{
+			for (auto i = mimes_.begin(), e = mimes_.end(); i != e; ++i)
+				if (*i == value)
+					return true;
+
+			return false;
+		}
+	};
+
+	std::string tostring(const std::vector<std::string>& v)
+	{
+		std::string result;
+
+		std::for_each(v.begin(), v.end(), [&](std::string v) {
+			if (result.size())
+				result += ", ";
+
+			result += v;
+		});
+
+		return result;
+	}
+
 	virtual void configure()
 	{
+		context& cx = server_.create_context<context>(this);
+
+		server_.config()["Compress"]["Mimes"].load(cx.mimes_);
+		server_.config()["Compress"]["Level"].load(cx.level_);
+		server_.config()["Compress"]["MinSize"].load(cx.min_size_);
+		server_.config()["Compress"]["MaxSize"].load(cx.max_size_);
 	}
 
 private:
@@ -58,23 +108,47 @@ private:
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content
 
+		long long size = 0;
+		if (out->headers.contains("Content-Length"))
+			size = boost::lexical_cast<int>(out->headers["Content-Length"]);
+
+		const context& cx = server_.context<context>(this);
+		if (size < cx.min_size_)
+			return;
+
+		if (size > cx.max_size_)
+			return;
+
+		if (!cx.contains_mime(out->headers("Content-Type")))
+			return;
+
 		if (x0::buffer_ref r = in->header("Accept-Encoding"))
 		{
 			typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
 
 			std::vector<std::string> items(x0::split<std::string>(r.str(), ", "));
 
+#if defined(HAVE_BZLIB_H)
+			if (std::find(items.begin(), items.end(), "bzip2") != items.end())
+			{
+				out->headers.push_back("Content-Encoding", "bzip2");
+				out->filter_chain.push_back(std::make_shared<x0::bzip2_filter>(9));
+			}
+			else
+#endif
+#if defined(HAVE_ZLIB_H)
 			if (std::find(items.begin(), items.end(), "gzip") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "gzip");
-				out->filter_chain.push_back(std::make_shared<x0::compress_filter>(/*gzip*/));
+				out->filter_chain.push_back(std::make_shared<x0::gzip_filter>(9));
 			}
 			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "deflate");
-				out->filter_chain.push_back(std::make_shared<x0::compress_filter>(/*deflate*/));
+				out->filter_chain.push_back(std::make_shared<x0::deflate_filter>(9));
 			}
 			else
+#endif
 				return;
 
 			// response might change according to Accept-Encoding

@@ -19,6 +19,7 @@
 #cmakedefine HAVE_AIO_H
 #cmakedefine HAVE_LIBAIO_H
 #cmakedefine HAVE_ZLIB_H
+#cmakedefine HAVE_BZLIB_H
 #cmakedefine HAVE_GNUTLS_H
 #cmakedefine HAVE_LUA_H
 #cmakedefine HAVE_PCRE_H

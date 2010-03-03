@@ -1,6 +1,25 @@
 TODO ASAP:
+- add response::bytes_transferred (unsigned), which is updated automatically by write() (or something deeper) to
+  match the bytes written to the client.
+  This is required by the accesslog plugin to log the number of bytes sent (which is not actually content-length, or is it?)
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
 - plugins/cgi: pass completion handler to cgi_script::async_run(...)
+- boost::bind() vs std::bind and asio: I'd like to use std::bind() but asio doesn't seem to like it, so I've to stick with boost::bind() until fixed.
+- file -> filereader; fileinfo -> file; fileinfo_service -> file_service
+- proper HTTP POST reader API: as part of request class
+  - should consume the body automatically if not read by a handler until response headers are flushed
+  - buffer_ref body_read(buffer& output);
+  - std::size_t body_available() const; // number of bytes still in stream to read until fully *consumed*
+  - bool consume(); // true=fully consumed, false=partially consumed
+  - bool on_body_read(CompletionHandler handler); // registers callback when more *body* data is available for read
+- proper protocol "Upgrade"-API, as required for web sockets
+- response body: support Chunked-Encoding
+- connection: add read/write hooks, as required for the upcoming ssl plugin. these functors do standard I/O if not overridden.
+	int read(const char *buf, std::size_t nbytes);
+	int read(char *buf, std::size_t nbytes);
+- add integrity-checks for lazy programmers to check object healthy:
+	- If response Content-Length was given: do not write more bytes than expected to.
+	- Do not modify response headers/state once serialization has been initiated.
 
 -----------------------------------------------------------------------------
 ROADMAP

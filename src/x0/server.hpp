@@ -25,6 +25,7 @@
 #include <asio.hpp>
 #include <cstring>
 #include <string>
+#include <memory>
 #include <list>
 #include <map>
 
@@ -64,21 +65,17 @@ public:
 	typedef x0::signal<void(request *, response *)> request_post_hook;
 
 public:
-	server();
+	explicit server(asio::io_service *io_service = 0);
 	~server();
 
 	// {{{ service control
-	/** configures this server as defined in the configuration section(s). */
 	void configure(const std::string& configfile);
-	/** starts this server object by listening on new connections and processing them. */
+	void start();
+	bool active() const;
 	void run();
-	/** pauses an already active server by not accepting further new connections until resumed. */
 	void pause();
-	/** resumes a currently paused server by continueing processing new connections. */
 	void resume();
-	/** reloads server configuration */
 	void reload();
-	/** gracefully stops a running server */
 	void stop();
 	// }}}
 
@@ -215,8 +212,9 @@ private:
 	x0::context context_;											//!< server context
 	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
 	std::list<listener_ptr> listeners_;
-	asio::io_service io_service_;
-	bool paused_;
+	std::shared_ptr<asio::io_service> io_service_ptr_;
+	asio::io_service& io_service_;
+	bool active_;
 	x0::settings settings_;
 	std::string configfile_;
 	logger_ptr logger_;

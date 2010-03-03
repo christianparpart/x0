@@ -1,3 +1,78 @@
+1.) REQUEST PROCESSING:
+
+1.1) Request Processing Cycle:
+
+Incoming requests are processed in multiple smaller sets and in most of them you may hook into to do or override
+certain actions, such as translating the request URI into a local physical path, generating content based on
+request URI or other certain criteria, or simply logging the request.
+
+All hooks are defined in the server class, which you can connect to.
+Each connect() returns a connection object which is strongly adviced to keep and store it in your plugin instance
+to ensure automatic disconnection.
+
+1.1.1) connection_open
+
+Once a new client connects to the server, the connection_open hook is invoked and the pointer to the connection
+object is passed.
+
+1.1.2) pre_process
+
+Before a request is being parsed, the pre_process hook is invoked with the request in question. 
+At this point, the request line and headers have been fully parsed but not yet interpreted, though,
+you're the first to catch them.
+
+1.1.3) resolve_document_root
+
+Right after pre processing the new request, the document root needs to be resolved, usually by interpreting
+the Host request-header.
+
+If no handler has filled the request's document_root property it will be set to "/dev/null" by default to
+prevent breaking out of jail.
+
+1.1.4) resolve_entity
+
+As we have now the document root for this request, we need to map the request URI to a local physical path,
+usually by concating document_root and the URI's path part together.
+
+Use this hook to customize the behaviour.
+
+1.1.5) generate_content
+
+This is by far the most interesting hook for most of the plugin developers, as you can now generate
+the actual response by modifying response headers and writing to the body.
+Remember, that once something is written to the body, no header modification may be done anymore as 
+they've been already serialized.
+
+Usually we have multiple handlers registered and we need to iterate sequentially through most of them.
+Which is why an iterator is being passed to the hook to call when do you don't feel responsible
+for this request. But if you *do* feel responsible - and are done handling this request! - you need to invoke
+the iterator's done() member method to notify the x0 core about.
+
+1.1.6) post_process
+
+The post_process hook is being invoked right before the response status line and headers are to be serialized.
+You should not modify the headers anymore unless you know what you're doing. Usually you can use this
+for diagnostics and logging.
+
+The Content-Length header is not always set at this point, though, loggers interested in the bytes transferred 
+should better connect to the request_done hook.
+
+1.1.7) request_done
+
+Once the response has been *fully* written to the client and is considered *done*, the request_done hook is
+being invoked and can do some cleanup or logging - just like the standard accesslog plugin hooks in here
+to log all requests.
+Although, the bytes transferred (and Content-Length) is definitely known at this point.
+
+Now, if this was a keep-alive connection, the connection's request parser is being invoked to resume()
+parsing, otherwise, the connection is being closed.
+
+1.1.8) connection_close
+
+If either the client aborts abnormally or the connection is to be closed server-side intentionally,
+this hook is being invoked, and meant to be the very last point right before connection destruction.
+
+==============================================================================================================
 DESIGN GOALS
 ------------------------------------------------------------------------------
 - modular, clean, self explanary, and well documented API
