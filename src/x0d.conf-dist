@@ -96,7 +96,7 @@ Userdir = {
 };
 
 Compress = {
-	Mimes = { 'text/plain', 'text/html' };
+	ContentTypes = { 'text/plain', 'text/html' };
 	Level = 9;
 	MinSize = 256;
 	MaxSize = MB(128);

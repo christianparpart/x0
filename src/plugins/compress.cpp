@@ -55,13 +55,13 @@ public:
 
 	struct context
 	{
-		std::vector<std::string> mimes_;
+		std::vector<std::string> content_types_;
 		int level_;
 		long long min_size_;
 		long long max_size_;
 
 		context() :
-			mimes_(),
+			content_types_(),
 			level_(9),						// best compression
 			min_size_(1024),				// 1 KB
 			max_size_(128 * 1024 * 1024)	// 128 MB
@@ -70,7 +70,7 @@ public:
 
 		bool contains_mime(const std::string& value) const
 		{
-			for (auto i = mimes_.begin(), e = mimes_.end(); i != e; ++i)
+			for (auto i = content_types_.begin(), e = content_types_.end(); i != e; ++i)
 				if (*i == value)
 					return true;
 
@@ -78,25 +78,11 @@ public:
 		}
 	};
 
-	std::string tostring(const std::vector<std::string>& v)
-	{
-		std::string result;
-
-		std::for_each(v.begin(), v.end(), [&](std::string v) {
-			if (result.size())
-				result += ", ";
-
-			result += v;
-		});
-
-		return result;
-	}
-
 	virtual void configure()
 	{
 		context& cx = server_.create_context<context>(this);
 
-		server_.config()["Compress"]["Mimes"].load(cx.mimes_);
+		server_.config()["Compress"]["ContentTypes"].load(cx.content_types_);
 		server_.config()["Compress"]["Level"].load(cx.level_);
 		server_.config()["Compress"]["MinSize"].load(cx.min_size_);
 		server_.config()["Compress"]["MaxSize"].load(cx.max_size_);
@@ -159,8 +145,6 @@ private:
 
 			// removing content-length implicitely enables chunked encoding
 			out->headers.remove("Content-Length");
-
-			//! \todo cache compressed result if static file (maybe as part of compress_filter class / sendfile plugin?)
 		}
 	}
 };
