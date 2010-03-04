@@ -91,6 +91,7 @@ set(x0_API
 	local_stream.hpp
 	logger.hpp
 	request.hpp
+	request_parser.hpp
 	response.hpp
 	server.hpp
 	settings.hpp

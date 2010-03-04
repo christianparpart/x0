@@ -9,6 +9,7 @@
 #define x0_connection_hpp (1)
 
 #include <x0/connection.hpp>
+#include <x0/request_parser.hpp>
 #include <x0/io/sink.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/async_writer.hpp>
@@ -101,7 +102,7 @@ private:
 	// HTTP request
 	buffer buffer_;							//!< buffer for incoming data.
 	request *request_;						//!< currently parsed http request 
-	request::reader request_reader_;		//!< http request parser
+	request_parser request_parser_;			//!< http request parser
 
 //	asio::strand strand_;					//!< request handler strand
 };
