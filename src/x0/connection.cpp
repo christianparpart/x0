@@ -23,7 +23,7 @@ connection::connection(x0::server& srv)
 	client_port_(0),
 	buffer_(8192),
 	request_(new request(*this)),
-	request_reader_()
+	request_parser_()
 {
 	//DEBUG("connection(%p)", this);
 }
@@ -59,7 +59,7 @@ void connection::resume()
 	//DEBUG("connection(%p).resume()", this);
 
 	buffer_.clear();
-	request_reader_.reset();
+	request_parser_.reset();
 	request_ = new request(*this);
 
 	async_read_some();
@@ -107,7 +107,7 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 	if (!e)
 	{
 		// parse request (partial)
-		boost::tribool result = request_reader_.parse(*request_, buffer_.ref(lower_bound, bytes_transferred));
+		boost::tribool result = request_parser_.parse(*request_, buffer_.ref(lower_bound, bytes_transferred));
 
 		if (result) // request fully parsed
 		{

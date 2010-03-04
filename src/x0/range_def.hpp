@@ -13,6 +13,9 @@
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 
+#include <vector>
+#include <sstream>
+
 namespace x0 {
 
 //! \addtogroup core
