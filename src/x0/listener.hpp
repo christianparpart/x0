@@ -1,21 +1,21 @@
-/* <x0/server.hpp>
+/* <x0/listener.hpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#ifndef x0_server_hpp
-#define x0_server_hpp (1)
+#ifndef x0_listener_hpp
+#define x0_listener_hpp (1)
 
+#include <x0/server.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <asio.hpp>
-#include <boost/function.hpp>
+#include <functional>
+#include <memory>
 #include <string>
+#include <ev++.h>
 
 namespace x0 {
 
@@ -35,32 +35,53 @@ class server;
  * @see server
  * @see connection
  */
-class listener :
-	public boost::noncopyable
+class listener
 {
 public:
-	explicit listener(server& srv);
+	explicit listener(x0::server& srv);
 	~listener();
 
 	void configure(const std::string& address = "0::0", int port = 8080);
 	void start();
+	void stop();
 
 	std::string address() const;
 	int port() const;
 
-private:
-	/// handle completion of an async accept operation
-	void handle_accept(const asio::error_code& e);
+	x0::server& server() const;
 
+	int handle() const;
+
+private:
+	void handle_accept();
+
+	void callback(ev::io& watcher, int revents);
+
+	struct ::ev_loop *loop() const;
+
+private:
+	ev::io watcher_;
+	int fd_;
 	x0::server& server_;
-	asio::ip::tcp::acceptor acceptor_;
-	request_handler_fn handler_;
-	connection_ptr new_connection_;
 	std::string address_;
 	int port_;
+	request_handler_fn handler_;
 };
 
-typedef boost::shared_ptr<listener> listener_ptr;
+inline struct ::ev_loop *listener::loop() const
+{
+	return server_.loop();
+}
+
+inline x0::server& listener::server() const
+{
+	return server_;
+}
+
+inline int listener::handle() const
+{
+	return fd_;
+}
 
 //@}
 

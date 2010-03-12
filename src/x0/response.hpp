@@ -17,9 +17,9 @@
 #include <x0/io/chain_filter.hpp>
 #include <x0/api.hpp>
 
-#include <asio.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
+#include <functional>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -199,7 +199,7 @@ private:
 	static char status_codes[512][4];
 
 	/// reference to the connection this response belongs to.
-	connection_ptr connection_;
+	connection *connection_;
 
 	/// reference to the related request.
 	x0::request *request_;
@@ -216,7 +216,7 @@ public:
 	 *
 	 * \note this response object takes over ownership of the request object.
 	 */
-	response(connection_ptr connection, x0::request *request, int _status = 0);
+	response(connection *connection, x0::request *request, int _status = 0);
 	~response();
 
 	/** retrieves a reference to the corresponding request object. */
@@ -252,20 +252,20 @@ private:
 			if (!status)
 			{
 				status = response::not_found;
-				write(make_default_content(), boost::bind(&response::finished, this, asio::placeholders::error));
+				write(make_default_content(), std::bind(&response::finished, this, std::placeholders::_1));
 			}
 			else
 			{
-				connection_->async_write(serialize(), boost::bind(&response::finished, this, asio::placeholders::error));
+				connection_->async_write(serialize(), std::bind(&response::finished, this, std::placeholders::_1));
 			}
 		}
 		else
 		{
-			finished(asio::error_code());
+			finished(0);
 		}
 	}
 
-	void complete_write(const asio::error_code& ec, const source_ptr& content, const completion_handler_type& handler);
+	void complete_write(int ec, const source_ptr& content, const completion_handler_type& handler);
 	void write_content(const source_ptr& content, const completion_handler_type& handler);
 
 	/** to be called <b>once</b> in order to initialize this class for instanciation.
@@ -295,7 +295,7 @@ private:
 
 	source_ptr make_default_content();
 
-	void finished(const asio::error_code& e);
+	void finished(int ec);
 };
 
 // {{{ inline implementation
@@ -315,11 +315,11 @@ inline void response::write(const source_ptr& content, const completion_handler_
 		write_content(content, handler);
 	else
 		connection_->async_write(serialize(), 
-			boost::bind(&response::complete_write, this, asio::placeholders::error, content, handler));
+			std::bind(&response::complete_write, this, std::placeholders::_1, content, handler));
 }
 
 /** is invoked as completion handler when sending response headers. */
-inline void response::complete_write(const asio::error_code& ec, const source_ptr& content, const completion_handler_type& handler)
+inline void response::complete_write(int ec, const source_ptr& content, const completion_handler_type& handler)
 {
 	headers_sent_ = true;
 

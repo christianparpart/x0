@@ -6,26 +6,64 @@
  */
 
 #include <x0/connection.hpp>
+#include <x0/listener.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/server.hpp>
 #include <x0/types.hpp>
-#include <boost/bind.hpp>
+#include <functional>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
 
 namespace x0 {
 
-connection::connection(x0::server& srv)
-  : secure(false),
-	server_(srv),
-	socket_(server_.io_service()),
-	timer_(server_.io_service()),
-	client_ip_(),
-	client_port_(0),
+connection::connection(x0::listener& lst) :
+	secure(false),
+	listener_(lst),
+	server_(lst.server()),
+//	socket_(), // initialized in constructor body
+	remote_ip_(),
+	remote_port_(0),
 	buffer_(8192),
 	request_(new request(*this)),
-	request_parser_()
+	request_parser_(),
+	watcher_(server_.loop()),
+	timer_(server_.loop())
 {
 	//DEBUG("connection(%p)", this);
+
+	socklen_t slen = sizeof(saddr_);
+	memset(&saddr_, 0, slen);
+
+	socket_ = accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
+
+	if (socket_ < 0)
+		throw std::runtime_error(strerror(errno));
+
+	if (fcntl(socket_, F_SETFL, O_NONBLOCK) < 0)
+		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
+
+#if defined(TCP_CORK)
+	{
+		int flag = 1;
+		setsockopt(socket_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
+	}
+#endif
+
+#if defined(TCP_NODELAY)
+	{
+		int flag = 1;
+		setsockopt(socket_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag));
+	}
+#endif
+
+	watcher_.set<connection, &connection::io_callback>(this);
+	timer_.set<connection, &connection::timeout_callback>(this);
+
+	server_.connection_open(this);
 }
 
 connection::~connection()
@@ -35,30 +73,50 @@ connection::~connection()
 	try
 	{
 		server_.connection_close(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
-		socket_.close();
 	}
 	catch (...)
 	{
 		DEBUG("~connection(%p): unexpected exception", this);
 	}
 
-	delete request_;
+	::close(socket_);
+
+	if (request_) {
+		delete request_;
+	}
+}
+
+void connection::io_callback(ev::io& w, int revents)
+{
+	watcher_.stop();
+	timer_.stop();
+	//ev_unloop(loop(), EVUNLOOP_ONE);
+
+	if (revents & ev::READ)
+		handle_read();
+
+	if (revents & ev::WRITE)
+		handle_write();
+}
+
+void connection::timeout_callback(ev::timer& watcher, int revents)
+{
+	handle_timeout();
 }
 
 void connection::start()
 {
 	//DEBUG("connection(%p).start()", this);
 
-	server_.connection_open(this);
-
 	async_read_some();
 }
 
+/** processes the next request on the connection. */
 void connection::resume()
 {
 	//DEBUG("connection(%p).resume()", this);
 
-	buffer_.clear();
+	buffer_.clear(); //! \todo on pipelined HTTP requests, this shouldn't be done.
 	request_parser_.reset();
 	request_ = new request(*this);
 
@@ -68,28 +126,40 @@ void connection::resume()
 void connection::async_read_some()
 {
 	if (server_.max_read_idle() != -1)
-	{
-		timer_.expires_from_now(boost::posix_time::seconds(server_.max_read_idle()));
-		timer_.async_wait(boost::bind(&connection::read_timeout, this, asio::placeholders::error));
-	}
+		timer_.start(server_.max_read_idle(), 0.0);
 
-	socket_.async_read_some(
-		buffer_.asio_avail(), //(asio::buffer(buffer_),
-		bind(
-			&connection::handle_read, shared_from_this(),
-			asio::placeholders::error,
-			asio::placeholders::bytes_transferred
-		)
-	);
+	watcher_.start(socket_, ev::READ);
 }
 
-void connection::read_timeout(const asio::error_code& ec)
+void connection::async_write_some()
 {
-	if (ec != asio::error::operation_aborted)
+	if (server_.max_write_idle() != -1)
+		timer_.start(server_.max_write_idle(), 0.0);
+
+	watcher_.start(socket_, ev::WRITE);
+}
+
+void connection::handle_write()
+{
+	//DEBUG("connection(%p).handle_write()", this);
+
+#if 0
+	buffer write_buffer_;
+	int write_offset_ = 0;
+
+	int rv = ::write(socket_, write_buffer_.begin() + write_offset_, write_buffer_.size() - write_offset_);
+
+	if (rv < 0)
+		; // error
+	else
 	{
-		//DEBUG("connection(%p): read timed out", this);
-		socket_.cancel();
+		write_offset_ += rv;
+		async_write_some();
 	}
+#else
+	if (write_some)
+		write_some(this);
+#endif
 }
 
 /**
@@ -97,21 +167,28 @@ void connection::read_timeout(const asio::error_code& ec)
  *
  * We assume, that we are in request-parsing state.
  */
-void connection::handle_read(const asio::error_code& e, std::size_t bytes_transferred)
+void connection::handle_read()
 {
-	std::size_t lower_bound = buffer_.size();
-	buffer_.resize(lower_bound + bytes_transferred);
-	//DEBUG("connection(%p).handle_read(ec=%s, sz=%ld, bs=%ld, bc=%ld)", this, e.message().c_str(), bytes_transferred, buffer_.size(), buffer_.capacity());
-	timer_.cancel();
+	//DEBUG("connection(%p).handle_read()", this);
 
-	if (!e)
+	std::size_t lower_bound = buffer_.size();
+
+	int rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
+//	printf("connection::handle_read(): read %d bytes (%s)\n", rv, strerror(errno));
+	if (rv < 0)
+		; // error
+	else if (rv == 0)
+		; // EOF
+	else
 	{
+		buffer_.resize(lower_bound + rv);
+
 		// parse request (partial)
-		boost::tribool result = request_parser_.parse(*request_, buffer_.ref(lower_bound, bytes_transferred));
+		boost::tribool result = request_parser_.parse(*request_, buffer_.ref(lower_bound, rv));
 
 		if (result) // request fully parsed
 		{
-			if (response *response_ = new response(shared_from_this(), request_))
+			if (response *response_ = new response(this, request_))
 			{
 				request_ = 0;
 
@@ -138,7 +215,7 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 		else if (!result) // received an invalid request
 		{
 			// -> send stock response: BAD_REQUEST
-			(new response(shared_from_this(), request_, response::bad_request))->finish();
+			(new response(this, request_, response::bad_request))->finish();
 			request_ = 0;
 		}
 		else // result indeterminate: request still incomplete
@@ -149,52 +226,47 @@ void connection::handle_read(const asio::error_code& e, std::size_t bytes_transf
 	}
 }
 
-void connection::write_timeout(const asio::error_code& ec)
+void connection::handle_timeout()
 {
-	if (ec != asio::error::operation_aborted)
-	{
-		//DEBUG("connection(%p): write timed out", this);
-		socket_.cancel();
-	}
+	//DEBUG("connection(%p): timed out", this);
+
+	watcher_.stop();
+	ev_unloop(loop(), EVUNLOOP_ONE);
+
+	delete this;
 }
 
-/**
- * this method gets invoked when response write operation has finished.
- *
- * \param response the response object just transmitted
- * \param e transmission error code
- *
- * We will fully shutown the TCP connection.
- */
-void connection::response_transmitted(const asio::error_code& ec)
+std::string connection::remote_ip() const
 {
-	//DEBUG("connection(%p).response_transmitted(%s)", this, ec.message().c_str());
-
-	if (!ec)
+	if (remote_ip_.empty())
 	{
-		asio::error_code ignored;
-		socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
+		char buf[128];
+
+		if (inet_ntop(AF_INET6, &saddr_.sin6_addr, buf, sizeof(buf)))
+			remote_ip_ = buf;
 	}
+
+	return remote_ip_;
 }
 
-std::string connection::client_ip() const
+int connection::remote_port() const
 {
-	if (client_ip_.empty())
+	if (!remote_port_)
 	{
-		client_ip_ = socket_.remote_endpoint().address().to_string();
+		remote_port_ = ntohs(saddr_.sin6_port);
 	}
 
-	return client_ip_;
+	return remote_port_;
 }
 
-int connection::client_port() const
+std::string connection::local_ip() const
 {
-	if (!client_port_)
-	{
-		client_port_ = socket_.remote_endpoint().port();
-	}
+	return std::string(); //! \todo implementation
+}
 
-	return client_port_;
+int connection::local_port() const
+{
+	return 0; //! \todo implementation
 }
 
 } // namespace x0

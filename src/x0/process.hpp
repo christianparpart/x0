@@ -11,10 +11,10 @@
 #include <x0/local_stream.hpp>
 #include <x0/api.hpp>
 #include <boost/noncopyable.hpp>
-#include <asio.hpp>
 #include <vector>
 #include <map>
 #include <string>
+#include <ev++.h>
 
 namespace x0 {
 
@@ -35,9 +35,6 @@ public:
 	/// string map used for storing custom environment variables.
 	typedef std::map<std::string, std::string> environment;
 
-	/// stream type used for redirecting the child processes stdio (in/out/err)
-	typedef local_stream::socket iostream;
-
 public:
 	/** initializes the process object without actually starting any child.
 	 *
@@ -48,7 +45,7 @@ public:
 	 *
 	 * \see start(const std::string& exe, const params& args, const environment& env, const std::string& workdir)
 	 */
-	explicit process(asio::io_service& io);
+	explicit process(struct ev_loop *loop);
 
 	/** initializes this process object and actually starts a child program as specified.
 	 *
@@ -60,19 +57,19 @@ public:
 	 *
 	 * \note you may only run one child at a time per process object.
 	 */
-	process(asio::io_service& io, const std::string& exe, const params& args,
+	process(struct ev_loop *loop, const std::string& exe, const params& args,
 		const environment& env = environment(), const std::string& workdir = std::string());
 
 	~process();
 
 	/** socket handle to the STDIN of the child. */
-	iostream& input();
+	int input();
 
 	/** socket handle to the STDOUT of the child. */
-	iostream& output();
+	int output();
 
 	/** socket handle to the STDERR of the child. */
-	iostream& error();
+	int error();
 
 	/** executes a program as a child process as specified.
 	 *
@@ -84,7 +81,7 @@ public:
 	 *
 	 * \note you may only run one child at a time per process object.
 	 */
-	void start(const std::string& exe, const params& args,
+	int start(const std::string& exe, const params& args,
 		const environment& env = environment(), const std::string& workdir = std::string());
 
 	/** sends a terminate signal to the child process. */
@@ -112,6 +109,7 @@ private:
 	int fetch_status();
 
 private:
+	struct ev_loop *loop_;
 	local_stream input_;		//!< redirected stdin stream
 	local_stream output_;		//!< redirected stdout stream
 	local_stream error_;		//!< redirected stderr stream
@@ -120,17 +118,17 @@ private:
 };
 
 // {{{ inlines
-inline local_stream::socket& process::input()
+inline int process::input()
 {
 	return input_.local();
 }
 
-inline local_stream::socket& process::output()
+inline int process::output()
 {
 	return output_.local();
 }
 
-inline local_stream::socket& process::error()
+inline int process::error()
 {
 	return error_.local();
 }

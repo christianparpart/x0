@@ -61,13 +61,13 @@ public:
 private:
 	std::string client_hostname(x0::connection *connection)
 	{
-		std::string name = connection->client_ip();
+		std::string name = connection->remote_ip();
 
 		if (name.empty())
 			name = "<unknown>";
 
 		name += ":";
-		name += boost::lexical_cast<std::string>(connection->client_port());
+		name += boost::lexical_cast<std::string>(connection->remote_port());
 
 		return name;
 	}
@@ -80,6 +80,14 @@ private:
 	void pre_process(x0::request *in)
 	{
 		server_.log(x0::severity::info, "pre processing request from: %s", client_hostname(&in->connection).c_str());
+
+		std::ostringstream stream;
+		stream << "C> " << in->method.str() << ' ' << in->uri.str() << " HTTP/" << in->http_version_major << '.' << in->http_version_minor << std::endl;
+		for (auto i = in->headers.begin(), e = in->headers.end(); i != e; ++i)
+		{
+			stream << "C> " << i->name.str() << ": " << i->value.str() << std::endl;
+		}
+		std::clog << stream.str();
 	}
 
 	void request_done(x0::request *in, x0::response *out)
@@ -88,11 +96,6 @@ private:
 
 		std::ostringstream stream;
 
-		stream << "C> " << in->method.str() << ' ' << in->uri.str() << " HTTP/" << in->http_version_major << '.' << in->http_version_minor << std::endl;
-		for (auto i = in->headers.begin(), e = in->headers.end(); i != e; ++i)
-		{
-			stream << "C> " << i->name.str() << ": " << i->value.str() << std::endl;
-		}
 		if (!in->body.empty())
 		{
 			stream << "C> " << in->body << std::endl;

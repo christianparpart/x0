@@ -6,25 +6,6 @@
 
 namespace x0 {
 
-inline fileinfo::fileinfo(const std::string& filename) :
-	filename_(filename),
-	exists_(),
-	etag_(),
-	mtime_(),
-	mimetype_()
-{
-	if (::stat(filename_.c_str(), &st_) == 0)
-	{
-		exists_ = true;
-	}
-	else
-	{
-		//DEBUG("fileinfo: could not stat file: %s: %s", filename_.c_str(), strerror(errno));
-		exists_ = false;
-		std::memset(&st_, 0, sizeof(st_));
-	}
-}
-
 inline std::string fileinfo::filename() const
 {
 	return filename_;
@@ -37,27 +18,32 @@ inline bool fileinfo::exists() const
 
 inline std::size_t fileinfo::size() const
 {
-	return st_.st_size;
+	return watcher_.attr.st_size;
 }
 
 inline time_t fileinfo::mtime() const
 {
-	return st_.st_mtime;
+	return watcher_.attr.st_mtime;
 }
 
 inline bool fileinfo::is_directory() const
 {
-	return S_ISDIR(st_.st_mode);
+	return S_ISDIR(watcher_.attr.st_mode);
 }
 
 inline bool fileinfo::is_regular() const
 {
-	return S_ISREG(st_.st_mode);
+	return S_ISREG(watcher_.attr.st_mode);
 }
 
 inline bool fileinfo::is_executable() const
 {
-	return st_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
+	return watcher_.attr.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
+}
+
+inline const ev_statdata *fileinfo::operator->() const
+{
+	return &watcher_.attr;
 }
 
 inline std::string fileinfo::etag() const
@@ -89,7 +75,7 @@ inline std::string fileinfo::last_modified() const
 {
 	if (mtime_.empty())
 	{
-		if (struct tm *tm = std::gmtime(&st_.st_mtime))
+		if (struct tm *tm = std::gmtime(&watcher_.attr.st_mtime))
 		{
 			char buf[256];
 

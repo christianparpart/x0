@@ -16,6 +16,10 @@
 #include <boost/shared_ptr.hpp>
 #include <string>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 namespace x0 {
 
 //! \addtogroup base
@@ -161,7 +165,7 @@ inline void filelogger<Now>::write(severity s, const std::string& message)
 		buf.push_back(message);
 		buf.push_back('\n');
 
-		::write(fd_, buf.data(), buf.size());
+		(void) ::write(fd_, buf.data(), buf.size());
 	}
 }
 

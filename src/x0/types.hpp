@@ -9,9 +9,8 @@
 #define x0_types_h (1)
 
 #include <x0/api.hpp>
-#include <asio.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
+#include <memory>
+#include <functional>
 #include <cstring> // strrchr
 
 namespace x0 {
@@ -32,41 +31,35 @@ namespace x0 {
  */
 
 class fileinfo;
+class listener;
 class connection;
 struct request;
 struct response;
 
 struct file;
-typedef std::shared_ptr<file> file_ptr;
 
 //! \addtogroup core
 //@{
 
-typedef boost::shared_ptr<fileinfo> fileinfo_ptr;
-typedef boost::shared_ptr<connection> connection_ptr;
-typedef boost::shared_ptr<request> request_ptr;
-typedef boost::shared_ptr<response> response_ptr;
+typedef std::shared_ptr<file> file_ptr;
+typedef std::shared_ptr<fileinfo> fileinfo_ptr;
 
 /** completion handler.
  *
  * used for handlers invoked when done writing or reading from a connection.
  */
-typedef boost::function<void(
-	const asio::error_code& /*ec*/,
+typedef std::function<void(
+	int /*errno*/, // const asio::error_code& /*ec*/,
 	std::size_t /*bytes_transferred*/)
 > completion_handler_type;
 
 /** request handler.
  */
-typedef boost::function<void(
+typedef std::function<void(
 	request& /*in*/,
 	response& /*out*/,
-	const boost::function<void()>& /*completionHandler*/)
+	const std::function<void()>& /*completionHandler*/)
 > request_handler_fn;
-
-/** TCP/IP socket.
- */
-typedef asio::ip::tcp::socket tcp_socket;
 
 //@}
 

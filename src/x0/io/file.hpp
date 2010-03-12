@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 
+#include <fcntl.h> // O_RDONLY
+
 namespace x0 {
 
 /** file resource object.

@@ -9,8 +9,9 @@
 #define sw_x0_local_stream_hpp 1
 
 #include <x0/api.hpp>
-#include <asio.hpp>
-#include <boost/noncopyable.hpp>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 namespace x0 {
 
@@ -19,32 +20,31 @@ namespace x0 {
 
 /** provides a socket pair (local stream) API.
  */
-class local_stream :
-	public boost::noncopyable
+class local_stream
 {
-public:
-	typedef asio::local::stream_protocol::socket socket;
+	local_stream& operator=(const local_stream& v) = delete;
+	local_stream(const local_stream&) = delete;
 
 public:
-	explicit local_stream(asio::io_service& io);
+	local_stream();
 	~local_stream();
 
-	socket& local();
-	socket& remote();
+	int local();
+	int remote();
 
 	void close();
 
 private:
-	asio::io_service& io_;
-	socket local_;
-	socket remote_;
+	int pfd_[2];
 };
 
 // {{{ inlines
-inline local_stream::local_stream(asio::io_service& io) :
-	io_(io), local_(io), remote_(io)
+inline local_stream::local_stream()
 {
-	asio::local::connect_pair(local_, remote_);
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pfd_) < 0)
+	{
+		pfd_[0] = pfd_[1] = -1;
+	}
 }
 
 inline local_stream::~local_stream()
@@ -52,20 +52,23 @@ inline local_stream::~local_stream()
 	close();
 }
 
-inline local_stream::socket& local_stream::local()
+inline int local_stream::local()
 {
-	return local_;
+	return pfd_[0];
 }
 
-inline local_stream::socket& local_stream::remote()
+inline int local_stream::remote()
 {
-	return remote_;
+	return pfd_[1];
 }
 
 inline void local_stream::close()
 {
-	local_.close();
-	remote_.close();
+	if (pfd_[0] != -1)
+		::close(pfd_[0]);
+
+	if (pfd_[1] != -1)
+		::close(pfd_[1]);
 }
 // }}}
 

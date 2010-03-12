@@ -28,7 +28,7 @@ buffer_ref request::header(const std::string& name) const
 
 std::string request::hostid() const
 {
-	return x0::make_hostid(header("Host"), connection.socket().local_endpoint().port());
+	return x0::make_hostid(header("Host"), connection.local_port());
 }
 
 } // namespace x0

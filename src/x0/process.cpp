@@ -6,7 +6,6 @@
  */
 
 #include <x0/process.hpp>
-#include <asio.hpp>
 #include <string>
 #include <cstdlib>
 #include <sys/types.h>
@@ -22,13 +21,23 @@ namespace x0 {
 		rv = cmd;							\
 	} while (rv == -1 && errno == EINTR)
 
-process::process(asio::io_service& io) :
-	input_(io), output_(io), error_(io), pid_(-1), status_(0)
+process::process(struct ev_loop *loop) :
+	loop_(loop),
+	input_(),
+	output_(),
+	error_(),
+	pid_(-1),
+	status_(0)
 {
 }
 
-process::process(asio::io_service& io, const std::string& exe, const params& args, const environment& env, const std::string& workdir) :
-	input_(io), output_(io), error_(io), pid_(-1), status_(0)
+process::process(struct ev_loop *loop, const std::string& exe, const params& args, const environment& env, const std::string& workdir) :
+	loop_(loop),
+	input_(),
+	output_(),
+	error_(),
+	pid_(-1),
+	status_(0)
 {
 	start(exe, args, env, workdir);
 }
@@ -40,7 +49,7 @@ process::~process()
 	//printf("~process(): rv=%d, errno=%s\n", rv, strerror(errno));
 }
 
-void process::start(const std::string& exe, const params& args, const environment& env, const std::string& workdir)
+int process::start(const std::string& exe, const params& args, const environment& env, const std::string& workdir)
 {
 	//::fprintf(stderr, "proc[%d] start(exe=%s, args=[...], workdir=%s)\n", getpid(), exe.c_str(), workdir.c_str());
 	switch (pid_ = fork())
@@ -49,11 +58,12 @@ void process::start(const std::string& exe, const params& args, const environmen
 			setup_child(exe, args, env, workdir);
 			break;
 		case -1: // error
-			throw asio::system_error(asio::error_code(errno, asio::error::system_category));
+			return -1;
 		default: // parent
 			setup_parent();
 			break;
 	}
+	return 0;
 }
 
 /** sends SIGTERM (terminate signal) to the child process.
@@ -95,9 +105,9 @@ int process::fetch_status()
 void process::setup_parent()
 {
 	// setup I/O
-	input_.remote().close();
-	output_.remote().close();
-	error_.remote().close();
+	::close(input_.remote());
+	::close(output_.remote());
+	::close(error_.remote());
 }
 
 void process::setup_child(const std::string& _exe, const params& _args, const environment& _env, const std::string& _workdir)
@@ -145,9 +155,9 @@ void process::setup_child(const std::string& _exe, const params& _args, const en
 	EINTR_LOOP(rv, ::close(STDOUT_FILENO));
 	EINTR_LOOP(rv, ::close(STDERR_FILENO));
 
-	EINTR_LOOP(rv, ::dup2(input_.remote().native(), STDIN_FILENO));
-	EINTR_LOOP(rv, ::dup2(output_.remote().native(), STDOUT_FILENO));
-	EINTR_LOOP(rv, ::dup2(error_.remote().native(), STDERR_FILENO));
+	EINTR_LOOP(rv, ::dup2(input_.remote(), STDIN_FILENO));
+	EINTR_LOOP(rv, ::dup2(output_.remote(), STDOUT_FILENO));
+	EINTR_LOOP(rv, ::dup2(error_.remote(), STDERR_FILENO));
 
 //	input_.close();
 //	output_.close();

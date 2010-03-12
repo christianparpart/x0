@@ -16,10 +16,6 @@
 #include <string>
 #include <stdexcept>
 
-#if !defined(X0_BUFFER_NO_ASIO)
-#	include <asio/buffer.hpp> // mutable_buffer
-#endif
-
 namespace x0 {
 
 class buffer_ref;
@@ -147,28 +143,6 @@ public:
 
 	// statics
 	static buffer from_copy(const value_type *data, std::size_t count);
-
-public: // ASIO support
-#if !defined(X0_BUFFER_NO_ASIO)
-	/** casts to asio::mutable_buffer with this buffer's whole capacity.
-	 */
-	operator asio::mutable_buffer() { return asio::mutable_buffer(begin(), sizeof(value_type) * capacity()); }
-
-	/** returnes an Asio-prepared mutable buffer that maps to this buffer's begin and actually used size.
-	 *
-	 * \see begin(), size()
-	 */
-	asio::mutable_buffers_1 asio_filled() { return asio::mutable_buffers_1(asio::mutable_buffer(begin(), sizeof(value_type) * size())); }
-	asio::mutable_buffers_1 asio_buffer() { return asio_filled(); }
-
-	/** returnes an Asio-prepared mutable buffer that maps to this buffer's available capacity not yet used.
-	 *
-	 * This is usually the free space right behind the \p end() of the already used bytes in this buffer, up to \p begin() + \p capacity().
-	 *
-	 * \see end(), size(), capacity(), resize()
-	 */
-	asio::mutable_buffers_1 asio_avail() { return asio::mutable_buffers_1(asio::mutable_buffer(end(), sizeof(value_type) * (capacity() - size()))); }
-#endif
 
 private:
 	void assertMutable();

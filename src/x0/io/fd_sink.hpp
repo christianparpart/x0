@@ -20,6 +20,8 @@ public:
 	void async(bool value);
 	bool async() const;
 
+	int handle() const;
+
 	virtual ssize_t pump(source& src);
 
 protected:
@@ -29,6 +31,11 @@ protected:
 };
 
 //@}
+
+inline int fd_sink::handle() const
+{
+	return handle_;
+}
 
 } // namespace x0
 

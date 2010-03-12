@@ -11,7 +11,6 @@
 #include <x0/datetime.hpp>
 #include <x0/settings.hpp>
 #include <x0/logger.hpp>
-#include <x0/listener.hpp>
 #include <x0/signal.hpp>
 #include <x0/event_handler.hpp>
 #include <x0/request_handler.hpp>
@@ -22,12 +21,12 @@
 #include <x0/io/fileinfo_service.hpp>
 #include <x0/api.hpp>
 #include <boost/signals.hpp>
-#include <asio.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
 #include <list>
 #include <map>
+#include <ev.h>
 
 namespace x0 {
 
@@ -65,7 +64,7 @@ public:
 	typedef x0::signal<void(request *, response *)> request_post_hook;
 
 public:
-	explicit server(asio::io_service *io_service = 0);
+	explicit server(struct ::ev_loop *loop = 0);
 	~server();
 
 	// {{{ service control
@@ -191,7 +190,7 @@ public:
 	/** retrieves a list of currently loaded plugins */
 	std::vector<std::string> loaded_plugins() const;
 
-	asio::io_service& io_service();
+	struct ::ev_loop *loop() const;
 
 	/** retrieves the current server time. */
 	const datetime& now() const;
@@ -202,7 +201,7 @@ private:
 
 	void drop_privileges(const std::string& user, const std::string& group);
 
-	listener_ptr listener_by_port(int port);
+	listener *listener_by_port(int port);
 
 	friend class connection;
 
@@ -211,9 +210,8 @@ private:
 
 	x0::context context_;											//!< server context
 	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
-	std::list<listener_ptr> listeners_;
-	std::shared_ptr<asio::io_service> io_service_ptr_;
-	asio::io_service& io_service_;
+	std::list<listener *> listeners_;
+	struct ::ev_loop *loop_;
 	bool active_;
 	x0::settings settings_;
 	std::string configfile_;
@@ -234,9 +232,9 @@ public:
 };
 
 // {{{ inlines
-inline asio::io_service& server::io_service()
+inline struct ::ev_loop *server::loop() const
 {
-	return io_service_;
+	return loop_;
 }
 
 inline const x0::datetime& server::now() const

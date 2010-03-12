@@ -18,10 +18,6 @@
 #include <string>
 #include <stdexcept>
 
-#if !defined(X0_BUFFER_NO_ASIO)
-#	include <asio/buffer.hpp> // mutable_buffer
-#endif
-
 namespace x0 {
 
 //! \addtogroup base
@@ -125,18 +121,6 @@ public:
 	std::string str() const;
 	std::string substr(std::size_t offset) const;
 	std::string substr(std::size_t offset, std::size_t count) const;
-
-public: // ASIO support
-#if !defined(X0_BUFFER_NO_ASIO)
-	/** casts this buffer_ref to asio::mutable_buffer.
-	 */
-	operator asio::mutable_buffer() { return asio::mutable_buffer(begin(), sizeof(value_type) * size()); }
-
-	/** cats this buffer_ref to asio::mutable_buffers_1 as required by asio's read/write functions.
-	 */
-	asio::mutable_buffers_1 asio_buffer() { return asio::mutable_buffers_1(asio::mutable_buffer(begin(), sizeof(value_type) * size())); }
-
-#endif
 };
 
 // free functions

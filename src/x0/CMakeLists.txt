@@ -22,7 +22,7 @@ set(x0_io_SRC
 	io/buffer_source.cpp
 	io/fd_sink.cpp
 	io/file_sink.cpp
-	io/socket_sink.cpp
+	io/connection_sink.cpp
 	io/buffer_sink.cpp
 	io/filter.cpp
 	io/chain_filter.cpp
@@ -31,6 +31,7 @@ set(x0_io_SRC
 	io/chunked_filter.cpp
 	io/async_writer.cpp
 	io/fileinfo_service.cpp
+	io/fileinfo.cpp
 )
 
 set(x0_io_API
@@ -43,7 +44,7 @@ set(x0_io_API
 	io/sink.hpp
 	io/fd_sink.hpp
 	io/file_sink.hpp
-	io/socket_sink.hpp
+	io/connection_sink.hpp
 	io/buffer_sink.hpp
 	io/filter.hpp
 	io/chain_filter.hpp
@@ -115,6 +116,7 @@ target_link_libraries(x0
 	dl pthread
 	${ZLIB_LIBS}
 	${BZIP2_LIBS}
+	${LIBEV_LIBS}
 )
 
 install(FILES ${x0_API} DESTINATION include/x0)

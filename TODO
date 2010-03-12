@@ -1,10 +1,13 @@
 TODO ASAP:
+* verify fileinfo_service functionality. it should properly invalidate/recompute cached values and 
+  possibly destruct fileinfo objects on rename/move/delete
+* verify connection (read/write) timeout handlers
+* reduce number of syscalls during a single request-processing
 - add response::bytes_transferred (unsigned), which is updated automatically by write() (or something deeper) to
   match the bytes written to the client.
   This is required by the accesslog plugin to log the number of bytes sent (which is not actually content-length, or is it?)
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
 - plugins/cgi: pass completion handler to cgi_script::async_run(...)
-- boost::bind() vs std::bind and asio: I'd like to use std::bind() but asio doesn't seem to like it, so I've to stick with boost::bind() until fixed.
 - file -> filereader; fileinfo -> file; fileinfo_service -> file_service
 - proper HTTP POST reader API: as part of request class
   - should consume the body automatically if not read by a handler until response headers are flushed

@@ -5,6 +5,8 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
+// http://antti-juhani.kaijanaho.fi/newblog/archives/532
+
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
@@ -110,11 +112,27 @@ private:
 		if (rv == GNUTLS_E_AGAIN || rv == GNUTLS_E_INTERRUPTED)
 			; /// \todo notify core that we need to be invoked again (once data-read becomes ready && before http protocol layer starts processing)
 
-		gnutls_transport_set_ptr(session, reinterpret_cast<void *>(conn->socket().native()));
+		gnutls_transport_set_ptr(session, reinterpret_cast<void *>(conn));
+		gnutls_transport_set_lowat(session, 0);//0 = ptr is no native socket, 1 = ptr is native socket (default)
+
+		gnutls_transport_set_push_function(session, &gnutls_push);
+		gnutls_transport_set_pull_function(session, &gnutls_pull);
 
 		/// \todo hook into connection's read*() / write*() functions
 
 		completed();
+	}
+
+	static ssize_t gnutls_pull(void *th, void *b, size_t n)
+	{
+		errno = EBADF;
+		return -1;
+	}
+
+	static ssize_t gnutls_push(void *th, void *b, size_t n)
+	{
+		errno = EBADF;
+		return -1;
 	}
 
 	void connection_close(x0::connection *conn)

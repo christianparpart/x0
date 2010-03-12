@@ -11,6 +11,7 @@
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <string>
+#include <sstream>
 #include <vector>
 
 #if !defined(BOOST_HAS_VARIADIC_TMPL)

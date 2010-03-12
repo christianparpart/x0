@@ -2,7 +2,7 @@
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2009-2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
 #ifndef sw_x0_sysconfig_h
@@ -16,6 +16,7 @@
 #cmakedefine HAVE_SYSLOG_H
 #cmakedefine HAVE_PWD_H
 
+#cmakedefine HAVE_NETDB_H
 #cmakedefine HAVE_AIO_H
 #cmakedefine HAVE_LIBAIO_H
 #cmakedefine HAVE_ZLIB_H

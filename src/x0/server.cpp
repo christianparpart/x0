@@ -35,7 +35,7 @@ namespace x0 {
  * \param io_service an Asio io_service to use or NULL to create our own one.
  * \see server::run()
  */
-server::server(asio::io_service *io_service) :
+server::server(struct ::ev_loop *loop) :
 	connection_open(),
 	pre_process(),
 	resolve_document_root(),
@@ -45,8 +45,7 @@ server::server(asio::io_service *io_service) :
 	request_done(),
 	connection_close(),
 	listeners_(),
-	io_service_ptr_(io_service ? 0 : new asio::io_service()),
-	io_service_(io_service ? *io_service : *io_service_ptr_),
+	loop_(loop ? loop : ev_default_loop(0)),
 	active_(false),
 	settings_(),
 	logger_(),
@@ -58,7 +57,7 @@ server::server(asio::io_service *io_service) :
 	max_read_idle(60),
 	max_write_idle(360),
 	tag("x0/" VERSION),
-	fileinfo(io_service_),
+	fileinfo(loop_),
 	max_fds(boost::bind(&server::getrlimit, this, RLIMIT_CORE),
 			boost::bind(&server::setrlimit, this, RLIMIT_NOFILE, _1))
 {
@@ -68,6 +67,9 @@ server::server(asio::io_service *io_service) :
 server::~server()
 {
 	stop();
+
+	for (std::list<listener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
+		delete *k;
 }
 
 static inline const char *rc2str(int resource)
@@ -257,7 +259,7 @@ void server::start()
 	{
 		active_ = true;
 
-		for (std::list<listener_ptr>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
+		for (std::list<listener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 		{
 			(*i)->start();
 		}
@@ -281,7 +283,8 @@ void server::run()
 	if (!active_)
 		start();
 
-	io_service_.run();
+	while (active_)
+		ev_loop(loop_, 0);
 }
 
 /** drops runtime privileges current process to given user's/group's name. */
@@ -386,11 +389,11 @@ void server::handle_request(request *in, response *out)
 /**
  * retrieves the listener object that is responsible for the given port number, or null otherwise.
  */
-listener_ptr server::listener_by_port(int port)
+listener *server::listener_by_port(int port)
 {
-	for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
+	for (std::list<listener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
-		listener_ptr http_server = *k;
+		listener *http_server = *k;
 
 		if (http_server->port() == port)
 		{
@@ -398,7 +401,7 @@ listener_ptr server::listener_by_port(int port)
 		}
 	}
 
-	return listener_ptr();
+	return 0;
 }
 
 void server::pause()
@@ -423,12 +426,12 @@ void server::stop()
 {
 	if (active_)
 	{
-		for (std::list<listener_ptr>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
+		for (std::list<listener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 		{
-			(*k).reset();
+			(*k)->stop();
 		}
 
-		io_service_.stop();
+		active_ = false;
 	}
 }
 
@@ -463,7 +466,7 @@ void server::setup_listener(int port, const std::string& bind_address)
 		return;
 
 	// create a new listener
-	listener_ptr lp(new listener(*this));
+	listener *lp = new listener(*this);
 
 	lp->configure(bind_address, port);
 

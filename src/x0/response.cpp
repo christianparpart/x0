@@ -28,8 +28,13 @@ char response::status_codes[512][4];
 
 response::~response()
 {
-	//DEBUG("~response(%p, conn=%p)", this, connection_.get());
+	//DEBUG("~response(%p, conn=%p)", this, connection_);
 	delete request_;
+
+	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
+		connection_->resume();
+	else
+		delete connection_;
 }
 
 /** checks wether given code MUST NOT have a response body. */
@@ -146,26 +151,28 @@ source_ptr response::serialize()
 	buffers.push_back(status_cstr(status));
 	buffers.push_back("\r\n");
 
-	std::for_each(headers.begin(), headers.end(), [&](response_header& h) {
+	for (auto i = headers.begin(), e = headers.end(); i != e; ++i)
+	{
+		const response_header& h = *i;
 		buffers.push_back(h.name.data(), h.name.size());
 		buffers.push_back(": ");
 		buffers.push_back(h.value.data(), h.value.size());
 		buffers.push_back("\r\n");
-	});
+	};
 
 	buffers.push_back("\r\n");
 
 	return std::make_shared<buffer_source>(std::move(buffers));
 }
 
-response::response(connection_ptr connection, x0::request *request, int _status) :
+response::response(connection *connection, x0::request *request, int _status) :
 	connection_(connection),
 	request_(request),
 	headers_sent_(false),
 	status(_status),
 	headers()
 {
-	//DEBUG("response(%p, conn=%p)", this, connection_.get());
+	//DEBUG("response(%p, conn=%p)", this, connection_);
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
 	headers.push_back("Server", connection_->server().tag());
@@ -204,23 +211,15 @@ std::string response::status_str(int value)
 
 /** handler, being invoked when this response has been fully flushed and is considered done.
  */
-void response::finished(const asio::error_code& ec)
+void response::finished(int ec)
 {
-//	DEBUG("response(%p).finished(%s)", this, ec.message().c_str());
+	//DEBUG("response(%p).finished(%d)", this, ec);
 
 	{
 		server& srv = request_->connection.server();
 
 		// log request/response
 		srv.request_done(const_cast<x0::request *>(request_), this);
-	}
-
-	if (!ec)
-	{
-		if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
-		{
-			connection_->resume();
-		}
 	}
 
 	delete this;

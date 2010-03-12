@@ -1,20 +1,12 @@
 #ifndef sw_x0_fileinfo_service_hpp
 #define sw_x0_fileinfo_service_hpp (1)
 
-#include <x0/io/fileinfo.hpp>
 #include <x0/cache.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
+#include <string>
 
-#include <asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/signal.hpp>
-
-#include <sys/inotify.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <ev.h>
 
 #if 0
 #	define FILEINFO_DEBUG(msg...) printf("fileinfo_service: " msg)
@@ -39,12 +31,9 @@ class X0_API fileinfo_service :
 	public boost::noncopyable
 {
 private:
-	asio::posix::stream_descriptor in_;				//!< inotify handle used for invalidating updated stat entries
-	std::map<std::string, fileinfo_ptr> cache_;		//!< cache, storing path->fileinfo pairs
+	struct ::ev_loop *loop_;
 
-	std::map<int, std::string> wd_;					//!< stores wd->path/fileinfo pairs - if someone knows how to eliminate this extra map, tell me.
-	boost::array<char, 8192> inbuf_;				//!< internal read-buffer for retrieving inotify events
-	inotify_event ev_;								//!< used to store a new inotify event
+	std::map<std::string, fileinfo_ptr> cache_;		//!< cache, storing path->fileinfo pairs
 
 	bool etag_consider_mtime_;						//!< flag, specifying wether or not the file modification-time is part of the ETag
 	bool etag_consider_size_;						//!< flag, specifying wether or not the file size is part of the ETag
@@ -54,10 +43,8 @@ private:
 	std::string default_mimetype_;					//!< default mimetype for those files we could not determine the mimetype.
 
 public:
-	explicit fileinfo_service(asio::io_service& io);
+	explicit fileinfo_service(struct ::ev_loop *loop);
 	~fileinfo_service();
-
-	boost::signal<void(const std::string& filename, fileinfo_ptr info)> on_invalidate;
 
 	fileinfo_ptr query(const std::string& filename);
 	fileinfo_ptr operator()(const std::string& filename);
@@ -80,70 +67,30 @@ public:
 	void default_mimetype(const std::string& value);
 
 private:
+	friend class fileinfo;
+
 	std::string get_mimetype(const std::string& ext) const;
 	std::string make_etag(const fileinfo& fi) const;
-
-	void async_read();
-
-	void invalidate(const asio::error_code& ec, std::size_t bytes_transferred)
-	{
-		FILEINFO_DEBUG("invalidate(ec=%s, bt=%ld)\n", ec.message().c_str(), bytes_transferred);
-		inotify_event *ev = reinterpret_cast<inotify_event *>(inbuf_.data());
-		inotify_event *ee = ev + bytes_transferred;
-
-		while (ev < ee && ev->wd != 0)
-		{
-			FILEINFO_DEBUG("--invalidate(len=%d, fn=%s)\n", ev->len, ev->name);
-			auto i = wd_.find(ev->wd);
-
-			if (i != wd_.end())
-			{
-				FILEINFO_DEBUG("--invalidate: wd: %d, remove: %s\n", ev->wd, i->second.c_str());
-
-				auto k = cache_.find(i->second);
-				on_invalidate(k->first, k->second);
-
-				cache_.erase(k);
-				wd_.erase(i);
-			}
-			ev += sizeof(*ev) + ev->len;
-		}
-
-		if (!ec)
-		{
-			async_read();
-		}
-	}
 };
 
-inline fileinfo_service::fileinfo_service(asio::io_service& io) :
-	in_(io, ::inotify_init()),
+} // namespace x0
+
+//@}
+
+// {{{ implementation
+#include <x0/io/fileinfo.hpp>
+
+namespace x0 {
+
+inline fileinfo_service::fileinfo_service(struct ::ev_loop *loop) :
+	loop_(loop),
 	cache_(),
-	wd_(),
-	inbuf_(),
-	// ev_(),
 	etag_consider_mtime_(true),
 	etag_consider_size_(true),
 	etag_consider_inode_(false),
 	mimetypes_(),
 	default_mimetype_("text/plain")
 {
-	if (::fcntl(in_.native(), F_SETFL, O_NONBLOCK) == -1)
-		FILEINFO_DEBUG("fcntl(O_NONBLOCK): %s", strerror(errno));
-
-	if (::fcntl(in_.native(), F_SETFD, FD_CLOEXEC) == -1)
-		FILEINFO_DEBUG("fcntl(FD_CLOEXEC): %s", strerror(errno));
-
-	async_read();
-}
-
-inline void fileinfo_service::async_read()
-{
-	FILEINFO_DEBUG("(re-)assign async_read (watches=%ld)\n", size());
-
-	asio::async_read(in_, asio::buffer(inbuf_),
-		asio::transfer_at_least(sizeof(inotify_event)),
-		boost::bind(&fileinfo_service::invalidate, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
 }
 
 inline fileinfo_service::~fileinfo_service()
@@ -161,26 +108,13 @@ inline fileinfo_ptr fileinfo_service::query(const std::string& _filename)
 		return i->second;
 	}
 
-	if (fileinfo_ptr fi = fileinfo_ptr(new fileinfo(filename)))
+	if (fileinfo_ptr fi = fileinfo_ptr(new fileinfo(*this, filename)))
 	{
+		FILEINFO_DEBUG("query(%s).new\n", filename.c_str());
 		fi->mimetype_ = get_mimetype(filename);
 		fi->etag_ = make_etag(*fi);
 
-		int rv = ::inotify_add_watch(in_.native(), filename.c_str(),
-			IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
-			IN_DELETE | IN_CLOSE_WRITE |
-			IN_MOVE_SELF | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE);
-
-		if (rv != -1)
-		{
-			cache_[filename] = fi;
-			FILEINFO_DEBUG("query(%s) wd=%d\n", filename.c_str(), rv);
-			wd_[rv] = filename;
-		}
-		else
-		{
-			FILEINFO_DEBUG("query(%s) inotify error: %s\n", filename.c_str(), strerror(errno));
-		}
+		cache_[filename] = fi;
 
 		return fi;
 	}
@@ -282,19 +216,19 @@ inline std::string fileinfo_service::make_etag(const fileinfo& fi) const
 	if (etag_consider_mtime_)
 	{
 		if (count++) sstr << '-';
-		sstr << fi.st_.st_mtime;
+		sstr << fi->st_mtime;
 	}
 
 	if (etag_consider_size_)
 	{
 		if (count++) sstr << '-';
-		sstr << fi.st_.st_size;
+		sstr << fi->st_size;
 	}
 
 	if (etag_consider_inode_)
 	{
 		if (count++) sstr << '-';
-		sstr << fi.st_.st_ino;
+		sstr << fi->st_ino;
 	}
 
 	/// \todo support checksum etags (crc, md5, sha1, ...) - although, btrfs supports checksums directly on filesystem level!
@@ -304,8 +238,8 @@ inline std::string fileinfo_service::make_etag(const fileinfo& fi) const
 	return sstr.str();
 }
 
-//@}
-
 } // namespace x0
+
+// }}}
 
 #endif
