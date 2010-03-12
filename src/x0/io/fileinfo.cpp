@@ -8,15 +8,18 @@ fileinfo::fileinfo(fileinfo_service& service, const std::string& filename) :
 	watcher_(service.loop_),
 	filename_(filename),
 	exists_(),
-	etag_(service_.make_etag(*this)),
+	etag_(),
 	mtime_(),
-	mimetype_(service_.get_mimetype(filename_))
+	mimetype_()
 {
 	watcher_.set<fileinfo, &fileinfo::callback>(this);
 	watcher_.set(filename_.c_str());
 	watcher_.start();
 
-	exists_ = watcher_.attr.st_nlink > 0;
+	if ((exists_ = watcher_.attr.st_nlink > 0))
+		etag_ = service_.make_etag(*this);
+
+	mimetype_ = service_.get_mimetype(filename_);
 }
 
 
