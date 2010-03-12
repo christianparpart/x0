@@ -47,5 +47,5 @@ target_link_libraries(x0test_common
 )
 
 # -----------------------------------------------------------------
-add_executable(x0test_copy io_copy.cpp)
-target_link_libraries(x0test_copy x0)
+#add_executable(x0test_copy io_copy.cpp)
+#target_link_libraries(x0test_copy x0)

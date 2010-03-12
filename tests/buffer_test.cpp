@@ -1,4 +1,5 @@
 #include <x0/io/buffer.hpp>
+#include <x0/io/buffer_ref.hpp>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
@@ -31,8 +32,9 @@ public:
 		CPPUNIT_TEST(std_string);
 
 		// buffer::view
-		CPPUNIT_TEST(view_ctor);
-		CPPUNIT_TEST(view_begins);
+		CPPUNIT_TEST(ref_ctor);
+		CPPUNIT_TEST(ref_begins);
+		CPPUNIT_TEST(ref_find_value_ptr);
 	CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -255,83 +257,93 @@ private:
 	// }}}
 
 	// {{{ buffer::view tests
-	void view_ctor()
+	void ref_ctor()
 	{
 	}
 
-	void view_ctor1()
+	void ref_ctor1()
 	{
 	}
 
-	void view_ctor_buffer()
+	void ref_ctor_buffer()
 	{
 	}
 
-	void view_ctor_ctor()
+	void ref_ctor_ctor()
 	{
 	}
 
-	void view_operator_asn_buffer()
+	void ref_operator_asn_buffer()
 	{
 	}
 
-	void view_operator_asn_view()
+	void ref_operator_asn_view()
 	{
 	}
 
-	void view_empty()
+	void ref_empty()
 	{
 	}
 
-	void view_offset()
+	void ref_offset()
 	{
 	}
 
-	void view_size()
+	void ref_size()
 	{
 	}
 
-	void view_data()
+	void ref_data()
 	{
 	}
 
-	void view_operator_bool()
+	void ref_operator_bool()
 	{
 	}
 
-	void view_operator_not()
+	void ref_operator_not()
 	{
 	}
 
-	void view_iterator()
+	void ref_iterator()
 	{
 	}
 
-	void view_find_view()
+	void ref_find_ref()
 	{
 	}
 
-	void view_find_value_ptr()
+	void ref_find_value_ptr()
+	{
+		x0::const_buffer buf("012345");
+		x0::buffer_ref ref = buf.ref(1);
+
+		int i = ref.find("34");
+		CPPUNIT_ASSERT(i == 2);
+
+		CPPUNIT_ASSERT(ref.find("1") == 0);
+		CPPUNIT_ASSERT(ref.find("12") == 0);
+		CPPUNIT_ASSERT(ref.find("12345") == 0);
+		CPPUNIT_ASSERT(ref.find("11") == x0::buffer_ref::npos);
+	}
+
+	void ref_find_value()
 	{
 	}
 
-	void view_find_value()
+	void ref_rfind_view()
 	{
 	}
 
-	void view_rfind_view()
+	void ref_rfind_value_ptr()
 	{
 	}
 
-	void view_rfind_value_ptr()
+	void ref_rfind_value()
 	{
 	}
 
-	void view_rfind_value()
-	{
-	}
-
-	void view_begins()
+	void ref_begins()
 	{
 		x0::const_buffer b("hello");
 		x0::buffer::view v(b);
@@ -341,7 +353,7 @@ private:
 		CPPUNIT_ASSERT(v.begins("hello"));
 	}
 
-	void view_ibegins()
+	void ref_ibegins()
 	{
 	}
 	// }}}
