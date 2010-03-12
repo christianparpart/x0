@@ -71,16 +71,17 @@ public:
 	void shr(ssize_t offset);
 
 	// find
+	template<typename PodType, std::size_t N>
+	std::size_t find(PodType (&value)[N], std::size_t offset = 0) const;
+//	std::size_t find(const value_type *value, std::size_t offset = 0) const;
 	std::size_t find(const buffer_ref& value, std::size_t offset = 0) const;
-	std::size_t find(const value_type *value, std::size_t offset = 0) const;
 	std::size_t find(value_type value, std::size_t offset = 0) const;
-	template<typename PodType, std::size_t N> std::size_t find(PodType (&value)[N]) const;
 
 	// rfind
-	std::size_t rfind(const buffer_ref& value) const;
-	std::size_t rfind(const value_type *value) const;
-	std::size_t rfind(value_type value) const;
 	template<typename PodType, std::size_t N> std::size_t rfind(PodType (&value)[N]) const;
+	std::size_t rfind(const value_type *value) const;
+	std::size_t rfind(const buffer_ref& value) const;
+	std::size_t rfind(value_type value) const;
 
 	// begins / ibegins
 	bool begins(const std::string& value) const;
@@ -308,17 +309,36 @@ inline void buffer_ref::shr(ssize_t offset)
 	assert(offset_ + size_ < buffer_->capacity());
 }
 
+#if 0
 inline std::size_t buffer_ref::find(const value_type *value, std::size_t offset) const
 {
-	if (const char *p = strstr(data() + offset, value))
+	const char *i = data() + offset;
+	const char *e = i + size() - offset;
+	const int value_length = strlen(value);
+
+	while (i != e)
 	{
-		if (p < end())
+		if (*i == *value)
 		{
-			return p - data();
+			const char *p = i + 1;
+			const char *q = value + 1; 
+			const char *qe = i + value_length;
+
+			while (*p == *q && p != qe)
+			{
+				++p;
+				++q;
+			}
+
+			if (p == qe)
+				return i - data();
 		}
+		++i;
 	}
+
 	return npos;
 }
+#endif
 
 inline std::size_t buffer_ref::find(value_type value, std::size_t offset) const
 {
@@ -329,6 +349,36 @@ inline std::size_t buffer_ref::find(value_type value, std::size_t offset) const
 			return p - data();
 		}
 	}
+	return npos;
+}
+
+template<typename PodType, std::size_t N>
+inline std::size_t buffer_ref::find(PodType (&value)[N], std::size_t offset) const
+{
+	printf("find(%s)\n", value);
+	const char *i = data() + offset;
+	const char *e = i + size() - offset;
+
+	while (i != e)
+	{
+		if (*i == *value)
+		{
+			const char *p = i + 1;
+			const char *q = value + 1; 
+			const char *qe = i + N - 1;
+
+			while (*p == *q && p != qe)
+			{
+				++p;
+				++q;
+			}
+
+			if (p == qe)
+				return i - data();
+		}
+		++i;
+	}
+
 	return npos;
 }
 
