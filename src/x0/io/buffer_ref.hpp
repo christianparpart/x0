@@ -511,8 +511,12 @@ inline buffer buffer_ref::clone() const
 
 inline std::string buffer_ref::str() const
 {
-	assert(buffer_ != 0);
-	return substr(0);
+	if (size_)
+	{
+		assert(buffer_ != 0);
+		return substr(0);
+	}
+	return std::string();
 }
 
 inline std::string buffer_ref::substr(std::size_t offset) const
