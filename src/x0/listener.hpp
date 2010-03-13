@@ -11,11 +11,17 @@
 #include <x0/server.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
+#include <x0/sysconfig.h>
+
+#if defined(WITH_SSL)
+#	include <gnutls/gnutls.h>
+#endif
+
+#include <ev++.h>
 
 #include <functional>
 #include <memory>
 #include <string>
-#include <ev++.h>
 
 namespace x0 {
 
@@ -23,6 +29,7 @@ namespace x0 {
 //@{
 
 class server;
+class connection;
 
 /**
  * \brief TCP/IP listener for the HTTP protocol.
@@ -52,6 +59,11 @@ public:
 
 	int handle() const;
 
+#if defined(WITH_SSL)
+	bool secure() const;
+	void secure(bool value);
+#endif
+
 private:
 	void handle_accept();
 
@@ -65,7 +77,18 @@ private:
 	x0::server& server_;
 	std::string address_;
 	int port_;
+
+#if defined(WITH_SSL)
+	bool secure_;
+
+	gnutls_certificate_credentials_t x509_cred_;
+	gnutls_dh_params_t dh_params_;
+	gnutls_priority_t priority_cache_;
+#endif
+
 	request_handler_fn handler_;
+
+	friend class connection;
 };
 
 inline struct ::ev_loop *listener::loop() const

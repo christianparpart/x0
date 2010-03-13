@@ -24,6 +24,9 @@
 #cmakedefine HAVE_GNUTLS_H
 #cmakedefine HAVE_LUA_H
 #cmakedefine HAVE_PCRE_H
+#cmakedefine HAVE_SYS_UTSNAME_H
+
+#cmakedefine WITH_SSL
 
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK

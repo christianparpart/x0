@@ -5,8 +5,13 @@
 #include <x0/io/buffer_source.hpp>
 #include <x0/io/filter_source.hpp>
 #include <x0/io/composite_source.hpp>
+#include <x0/sysconfig.h>
 
 #include <sys/sendfile.h>
+
+#if defined(WITH_SSL)
+#	include <gnutls/gnutls.h>
+#endif
 
 namespace x0 {
 
@@ -19,8 +24,37 @@ connection_sink::connection_sink(x0::connection *conn) :
 
 ssize_t connection_sink::pump(source& src)
 {
+#if defined(WITH_SSL)
+	if (connection_->ssl_enabled())
+	{
+		if (buf_.empty())
+			src.pull(buf_);
+
+		std::size_t remaining = buf_.size() - offset_;
+		if (!remaining)
+			return 0;
+
+		ssize_t nwritten = ::gnutls_write(connection_->ssl_session_, buf_.data() + offset_, remaining);
+
+		if (nwritten != -1)
+		{
+			if (static_cast<std::size_t>(nwritten) == remaining)
+			{
+				buf_.clear();
+				offset_ = 0;
+			}
+			else
+				offset_ += nwritten;
+		}
+
+		return static_cast<std::size_t>(nwritten);
+	}
+	else
+		src.accept(*this);
+#else
 	// call pump-handler
 	src.accept(*this);
+#endif
 
 	return rv_;
 }
