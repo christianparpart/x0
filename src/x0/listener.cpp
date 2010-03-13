@@ -79,11 +79,6 @@ void listener::start()
 	setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, 1);
 #endif
 
-#if defined(TCP_NODELAY)
-	//! \todo TCP_NODELAY: could be configurable
-	setsockopt(fd_, SOL_TCP, TCP_NODELAY, 1);
-#endif
-
 #if defined(TCP_QUICKACK)
 	//! \todo TCP_QUICKACK: could be configurable
 	setsockopt(fd_, SOL_TCP, TCP_QUICKACK, 1);
