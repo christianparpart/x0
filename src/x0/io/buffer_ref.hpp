@@ -469,6 +469,11 @@ inline bool buffer_ref::begins(value_type value) const
 	return size() >= 1 && data()[0] == value;
 }
 
+inline bool buffer_ref::ends(value_type value) const
+{
+	return size() >= 1 && data()[size() - 1] == value;
+}
+
 inline buffer_ref buffer_ref::ref(std::size_t offset) const
 {
 	assert(buffer_ != 0);
