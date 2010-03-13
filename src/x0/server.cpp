@@ -12,15 +12,24 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
-
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string.hpp>
+#include <x0/sysconfig.h>
 
 #include <iostream>
 #include <cstdarg>
 #include <cstdlib>
+
+#if defined(WITH_SSL)
+#	include <gnutls/gnutls.h>
+#	include <gnutls/gnutls.h>
+#	include <gnutls/extra.h>
+#	include <pthread.h>
+#	include <gcrypt.h>
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+#endif
+
+#if defined(HAVE_SYS_UTSNAME_H)
+#	include <sys/utsname.h>
+#endif
 
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -58,10 +67,26 @@ server::server(struct ::ev_loop *loop) :
 	max_write_idle(360),
 	tag("x0/" VERSION),
 	fileinfo(loop_),
-	max_fds(boost::bind(&server::getrlimit, this, RLIMIT_CORE),
-			boost::bind(&server::setrlimit, this, RLIMIT_NOFILE, _1))
+	max_fds(std::bind(&server::getrlimit, this, RLIMIT_CORE),
+			std::bind(&server::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
 	response::initialize();
+
+#if defined(WITH_SSL)
+	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+
+	int rv = gnutls_global_init();
+	if (rv != GNUTLS_E_SUCCESS)
+		throw std::runtime_error("could not initialize gnutls library");
+
+	gnutls_global_init_extra();
+#endif
+}
+
+void server::gnutls_log(int level, const char *msg)
+{
+	fprintf(stderr, "gnutls log[%d]: %s", level, msg);
+	fflush(stderr);
 }
 
 server::~server()
@@ -145,12 +170,52 @@ void server::configure(const std::string& configfile)
 	// load config
 	settings_.load_file(configfile);
 
-	settings_.load<std::string>("ServerTag", tag);
+	{
+		std::vector<std::string> components;
+
+		settings_.load<std::vector<std::string>>("ServerTags", components);
+
+#if defined(WITH_SSL)
+		components.insert(components.begin(), std::string("GnuTLS/") + gnutls_check_version(NULL));
+#endif
+
+		//! \todo add zlib version
+		//! \todo add bzip2 version
+
+#if defined(HAVE_SYS_UTSNAME_H)
+		{
+			utsname utsname;
+			if (uname(&utsname) == 0)
+			{
+				components.insert(components.begin(), 
+					std::string(utsname.sysname) + "/" + utsname.release
+				);
+			}
+		}
+#endif
+
+		tag = std::string("x0/" VERSION);
+
+		if (!components.empty())
+		{
+			tag = tag() + " (";
+
+			for (int i = 0, e = components.size(); i != e; ++i)
+			{
+				if (i)
+					tag = tag() + ", ";
+
+				tag = tag() + components[i];
+			}
+
+			tag = tag() + ")";
+		}
+	}
 
 	// setup logger
 	{
 		std::string logmode(settings_.get<std::string>("Log.Mode"));
-		auto nowfn = boost::bind(&datetime::htlog_str, &now_);
+		auto nowfn = std::bind(&datetime::htlog_str, &now_);
 
 		if (logmode == "file") logger_.reset(new filelogger<decltype(nowfn)>(settings_.get<std::string>("Log.FileName"), nowfn));
 		else if (logmode == "null") logger_.reset(new nulllogger());
@@ -160,6 +225,12 @@ void server::configure(const std::string& configfile)
 	}
 
 	logger_->level(severity(settings_.get<std::string>("Log.Level")));
+
+#if defined(WITH_SSL)
+	// gnutls debug level (int, 0=off)
+//	gnutls_global_set_log_level(10);
+//	gnutls_global_set_log_function(&server::gnutls_log);
+#endif
 
 	// setup workers
 #if 0
@@ -337,8 +408,6 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 
 void server::handle_request(request *in, response *out)
 {
-	using boost::algorithm::ends_with;
-
 	// update server clock
 	now_.update();
 
@@ -361,7 +430,7 @@ void server::handle_request(request *in, response *out)
 
 	// redirect physical request paths not ending with slash if mapped to directory
 	std::string filename = in->fileinfo->filename();
-	if (in->fileinfo->is_directory() && !ends_with(in->path, "/"))
+	if (in->fileinfo->is_directory() && !in->path.ends('/'))
 	{
 		std::stringstream url;
 
@@ -459,11 +528,11 @@ void server::log(severity s, const char *msg, ...)
 	}
 }
 
-void server::setup_listener(int port, const std::string& bind_address)
+listener *server::setup_listener(int port, const std::string& bind_address)
 {
 	// check if we already have an HTTP listener listening on given port
-	if (listener_by_port(port))
-		return;
+	if (listener *lp = listener_by_port(port))
+		return lp;
 
 	// create a new listener
 	listener *lp = new listener(*this);
@@ -471,6 +540,8 @@ void server::setup_listener(int port, const std::string& bind_address)
 	lp->configure(bind_address, port);
 
 	listeners_.push_back(lp);
+
+	return lp;
 }
 
 typedef plugin *(*plugin_create_t)(server&, const std::string&);

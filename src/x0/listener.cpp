@@ -10,6 +10,10 @@
 #include <x0/server.hpp>
 #include <x0/sysconfig.h>
 
+#if defined(WITH_SSL)
+#	include <gnutls/gnutls.h>
+#endif
+
 #include <arpa/inet.h>		// inet_pton()
 #include <netinet/tcp.h>	// TCP_QUICKACK, TCP_DEFER_ACCEPT
 #include <sys/ioctl.h>
@@ -26,6 +30,9 @@ listener::listener(x0::server& srv) :
 	server_(srv),
 	address_(),
 	port_(-1),
+#if defined(WITH_SSL)
+	secure_(false),
+#endif
 	handler_()
 {
 	watcher_.set<listener, &listener::callback>(this);
@@ -41,6 +48,10 @@ void listener::configure(const std::string& address, int port)
 {
 	address_ = address;
 	port_ = port;
+
+#if defined(WITH_SSL)
+	secure_ = true;
+#endif
 }
 
 void listener::stop()
@@ -55,8 +66,37 @@ inline void setsockopt(int socket, int layer, int option, int value)
 		throw std::runtime_error(strerror(errno));
 }
 
+#if defined(WITH_SSL)
+bool listener::secure() const
+{
+	return secure_;
+}
+
+void listener::secure(bool value)
+{
+	secure_ = value;
+}
+#endif
+
 void listener::start()
 {
+#if defined(WITH_SSL)
+	if (secure())
+	{
+		gnutls_priority_init(&priority_cache_, "NORMAL", NULL);
+
+		gnutls_certificate_allocate_credentials(&x509_cred_);
+		//gnutls_certificate_set_x509_trust_file(x509_cred_, "ca.pem", GNUTLS_X509_FMT_PEM);
+		//gnutls_certificate_set_x509_crl_file(x509_cred_, "crl.pem", GNUTLS_X509_FMT_PEM);
+		gnutls_certificate_set_x509_key_file(x509_cred_, "cert.pem", "key.pem", GNUTLS_X509_FMT_PEM);
+
+		gnutls_dh_params_init(&dh_params_);
+		gnutls_dh_params_generate2(dh_params_, 1024);
+
+		gnutls_certificate_set_dh_params(x509_cred_, dh_params_);
+	}
+#endif
+
 	server_.log(severity::notice, "Start listening on %s:%d", address_.c_str(), port_);
 
 	fd_ = ::socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
@@ -102,13 +142,7 @@ void listener::start()
 
 void listener::callback(ev::io& watcher, int revents)
 {
-#if defined(TCP_DEFER_ACCEPT)
-	// it is ensured, that we have data pending, so directly start reading
-	(new connection(*this))->handle_read();
-#else
-	// client connected, but we do not yet know if we have data pending
 	(new connection(*this))->start();
-#endif
 }
 
 std::string listener::address() const

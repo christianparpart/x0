@@ -11,12 +11,30 @@
 #include <x0/response.hpp>
 #include <x0/server.hpp>
 #include <x0/types.hpp>
+#include <x0/sysconfig.h>
+
+#if defined(WITH_SSL)
+#	include <gnutls/gnutls.h>
+#	include <gnutls/extra.h>
+#endif
+
 #include <functional>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+
+#define SSL_DEBUG(msg...) printf("SSL: " msg)
+
+#define GNUTLS_CHECK(expr) { \
+	int rv = (expr); \
+		if (rv < 0) { \
+		fprintf(stderr, "GNUTLS ERROR(%d): %s\n", rv, gnutls_strerror(rv)); \
+		fprintf(stderr, "    AT LINE: " #expr "\n"); \
+		fflush(stderr); \
+	} \
+}
 
 namespace x0 {
 
@@ -79,6 +97,11 @@ connection::~connection()
 		DEBUG("~connection(%p): unexpected exception", this);
 	}
 
+#if defined(WITH_SSL)
+	if (ssl_enabled())
+		gnutls_deinit(ssl_session_);
+#endif
+
 	::close(socket_);
 
 	if (request_) {
@@ -104,12 +127,94 @@ void connection::timeout_callback(ev::timer& watcher, int revents)
 	handle_timeout();
 }
 
+#if defined(WITH_SSL)
+void connection::ssl_initialize()
+{
+	gnutls_init(&ssl_session_, GNUTLS_SERVER);
+	gnutls_priority_set(ssl_session_, listener_.priority_cache_);
+	gnutls_credentials_set(ssl_session_, GNUTLS_CRD_CERTIFICATE, listener_.x509_cred_);
+
+	gnutls_certificate_server_set_request(ssl_session_, GNUTLS_CERT_REQUEST);
+
+	gnutls_session_enable_compatibility_mode(ssl_session_);
+
+	gnutls_transport_set_ptr(ssl_session_, (gnutls_transport_ptr_t)handle());
+}
+#endif
+
+#if defined(WITH_SSL)
+bool connection::ssl_enabled() const
+{
+	return listener_.secure();
+}
+#endif
+
 void connection::start()
 {
 	//DEBUG("connection(%p).start()", this);
 
+#if defined(WITH_SSL)
+	if (ssl_enabled())
+	{
+		state_ = handshaking;
+		ssl_initialize();
+
+		ssl_handshake();
+		return;
+	}
+	else
+		state_ = requesting;
+#endif
+
+#if defined(TCP_DEFER_ACCEPT)
+	// it is ensured, that we have data pending, so directly start reading
+	handle_read();
+#else
+	// client connected, but we do not yet know if we have data pending
 	async_read_some();
+#endif
 }
+
+#if defined(WITH_SSL)
+bool connection::ssl_handshake()
+{
+	int rv = gnutls_handshake(ssl_session_);
+	if (rv == GNUTLS_E_SUCCESS)
+	{
+		// handshake either completed or failed
+		printf("---- handshake completed\n");
+		state_ = requesting;
+		async_read_some();
+		return true;
+	}
+
+	if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
+	{
+#if !defined(NDEBUG)
+		fprintf(stderr, "SSL handshake failed (%d): %s\n", rv, gnutls_strerror(rv));
+		fflush(stderr);
+#endif
+		delete this;
+		return false;
+	}
+
+	fprintf(stderr, "SSL handshake incomplete (%d): %s\n", rv, gnutls_strerror(rv));
+	printf("direction: %d\n", gnutls_record_get_direction(ssl_session_));
+
+	switch (gnutls_record_get_direction(ssl_session_))
+	{
+		case 0: // read
+			async_read_some();
+			break;
+		case 1: // write
+			async_write_some();
+			break;
+		default:
+			break;
+	}
+	return false;
+}
+#endif
 
 /** processes the next request on the connection. */
 void connection::resume()
@@ -142,6 +247,16 @@ void connection::async_write_some()
 void connection::handle_write()
 {
 	//DEBUG("connection(%p).handle_write()", this);
+#if defined(WITH_SSL)
+	if (state_ == handshaking)
+		return (void) ssl_handshake();
+
+//	if (ssl_enabled())
+//		rv = gnutls_write(ssl_session_, buffer_.capacity() - buffer_.size());
+//	else if (write_some)
+//		write_some(this);
+#else
+#endif
 
 #if 0
 	buffer write_buffer_;
@@ -170,11 +285,24 @@ void connection::handle_write()
 void connection::handle_read()
 {
 	//DEBUG("connection(%p).handle_read()", this);
+#if defined(WITH_SSL)
+	if (state_ == handshaking)
+		return (void) ssl_handshake();
+#endif
 
 	std::size_t lower_bound = buffer_.size();
+	int rv;
 
-	int rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
+#if defined(WITH_SSL)
+	if (ssl_enabled())
+		rv = gnutls_read(ssl_session_, buffer_.end(), buffer_.capacity() - buffer_.size());
+	else
+		rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
+#else
+	rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
+#endif
 //	printf("connection::handle_read(): read %d bytes (%s)\n", rv, strerror(errno));
+
 	if (rv < 0)
 		; // error
 	else if (rv == 0)

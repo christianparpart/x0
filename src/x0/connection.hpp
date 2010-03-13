@@ -18,6 +18,11 @@
 #include <x0/property.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
+#include <x0/sysconfig.h>
+
+#if defined(WITH_SSL)
+#	include <gnutls/gnutls.h>
+#endif
 
 #include <functional>
 #include <memory>
@@ -29,6 +34,8 @@ namespace x0 {
 
 //! \addtogroup core
 //@{
+
+class connection_sink;
 
 /**
  * \brief represents an HTTP connection handling incoming requests.
@@ -80,6 +87,7 @@ public:
 private:
 	friend class response;
 	friend class listener;
+	friend class connection_sink;
 
 	void async_read_some();
 	void async_write_some();
@@ -92,6 +100,12 @@ private:
 
 	void io_callback(ev::io& w, int revents);
 	void timeout_callback(ev::timer& watcher, int revents);
+
+#if defined(WITH_SSL)
+	bool ssl_enabled() const;
+	void ssl_initialize();
+	bool ssl_handshake();
+#endif
 
 	struct ::ev_loop *loop() const;
 
@@ -111,6 +125,16 @@ private:
 	buffer buffer_;							//!< buffer for incoming data.
 	request *request_;						//!< currently parsed http request 
 	request_parser request_parser_;			//!< http request parser
+
+#if defined(WITH_SSL)
+	gnutls_session_t ssl_session_;			//!< SSL (GnuTLS) session handle
+
+	enum {
+		handshaking,
+		requesting,
+		responding
+	} state_;
+#endif
 
 	ev::io watcher_;
 	ev::timer timer_;						//!< deadline timer for detecting read/write timeouts.

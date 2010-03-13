@@ -20,12 +20,16 @@
 #include <x0/property.hpp>
 #include <x0/io/fileinfo_service.hpp>
 #include <x0/api.hpp>
+#include <x0/sysconfig.h>
+
 #include <boost/signals.hpp>
+
 #include <cstring>
 #include <string>
 #include <memory>
 #include <list>
 #include <map>
+
 #include <ev.h>
 
 namespace x0 {
@@ -175,7 +179,7 @@ public:
 	 * If there is already a listener on this bind_address:port pair
 	 * then no error will be raised.
 	 */
-	void setup_listener(int port, const std::string& bind_address = "0::0");
+	listener *setup_listener(int port, const std::string& bind_address = "0::0");
 
 	/**
 	 * loads a plugin into the server.
@@ -202,6 +206,10 @@ private:
 	void drop_privileges(const std::string& user, const std::string& group);
 
 	listener *listener_by_port(int port);
+
+#if defined(WITH_SSL)
+	static void gnutls_log(int level, const char *msg);
+#endif
 
 	friend class connection;
 
