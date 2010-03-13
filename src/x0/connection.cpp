@@ -38,7 +38,7 @@ connection::connection(x0::listener& lst) :
 	socklen_t slen = sizeof(saddr_);
 	memset(&saddr_, 0, slen);
 
-	socket_ = accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
+	socket_ = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
 
 	if (socket_ < 0)
 		throw std::runtime_error(strerror(errno));
@@ -53,7 +53,7 @@ connection::connection(x0::listener& lst) :
 	}
 #endif
 
-#if defined(TCP_NODELAY)
+#if 0 // defined(TCP_NODELAY)
 	{
 		int flag = 1;
 		setsockopt(socket_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag));
