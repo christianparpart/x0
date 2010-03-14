@@ -170,17 +170,18 @@ void server::configure(const std::string& configfile)
 	// load config
 	settings_.load_file(configfile);
 
+	// setup server-tag
 	{
 		std::vector<std::string> components;
 
 		settings_.load<std::vector<std::string>>("ServerTags", components);
 
+		//! \todo add zlib version
+		//! \todo add bzip2 version
+
 #if defined(WITH_SSL)
 		components.insert(components.begin(), std::string("GnuTLS/") + gnutls_check_version(NULL));
 #endif
-
-		//! \todo add zlib version
-		//! \todo add bzip2 version
 
 #if defined(HAVE_SYS_UTSNAME_H)
 		{
@@ -190,26 +191,30 @@ void server::configure(const std::string& configfile)
 				components.insert(components.begin(), 
 					std::string(utsname.sysname) + "/" + utsname.release
 				);
+
+				components.insert(components.begin(), utsname.machine);
 			}
 		}
 #endif
 
-		tag = std::string("x0/" VERSION);
+		buffer tagbuf;
+		tagbuf.push_back("x0/" VERSION);
 
 		if (!components.empty())
 		{
-			tag = tag() + " (";
+			tagbuf.push_back(" (");
 
 			for (int i = 0, e = components.size(); i != e; ++i)
 			{
 				if (i)
-					tag = tag() + ", ";
+					tagbuf.push_back(", ");
 
-				tag = tag() + components[i];
+				tagbuf.push_back(components[i]);
 			}
 
-			tag = tag() + ")";
+			tagbuf.push_back(")");
 		}
+		tag = tagbuf.str();
 	}
 
 	// setup logger
