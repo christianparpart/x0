@@ -3,7 +3,7 @@
 
 #include <x0/io/fd_sink.hpp>
 #include <x0/io/source_visitor.hpp>
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/types.hpp>
 
 namespace x0 {

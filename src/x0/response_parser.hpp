@@ -1,8 +1,8 @@
 #ifndef x0_response_parser_hpp
 #define x0_response_parser_hpp (1)
 
-#include <x0/io/buffer.hpp>
-#include <x0/io/buffer_ref.hpp>
+#include <x0/buffer.hpp>
+#include <x0/buffer_ref.hpp>
 #include <x0/api.hpp>
 #include <functional>
 

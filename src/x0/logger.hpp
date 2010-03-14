@@ -8,7 +8,7 @@
 #ifndef sw_x0_errorlog_h
 #define sw_x0_errorlog_h
 
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/severity.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>

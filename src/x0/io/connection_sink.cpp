@@ -1,5 +1,5 @@
-#include <x0/io/connection_sink.hpp>
 #include <x0/connection.hpp>
+#include <x0/io/connection_sink.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/file_source.hpp>
 #include <x0/io/buffer_source.hpp>
