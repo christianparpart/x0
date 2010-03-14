@@ -25,17 +25,6 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#define SSL_DEBUG(msg...) printf("SSL: " msg)
-
-#define GNUTLS_CHECK(expr) { \
-	int rv = (expr); \
-		if (rv < 0) { \
-		fprintf(stderr, "GNUTLS ERROR(%d): %s\n", rv, gnutls_strerror(rv)); \
-		fprintf(stderr, "    AT LINE: " #expr "\n"); \
-		fflush(stderr); \
-	} \
-}
-
 namespace x0 {
 
 connection::connection(x0::listener& lst) :
@@ -135,10 +124,13 @@ void connection::ssl_initialize()
 	gnutls_credentials_set(ssl_session_, GNUTLS_CRD_CERTIFICATE, listener_.x509_cred_);
 
 	gnutls_certificate_server_set_request(ssl_session_, GNUTLS_CERT_REQUEST);
+	gnutls_dh_set_prime_bits(ssl_session_, 1024);
 
 	gnutls_session_enable_compatibility_mode(ssl_session_);
 
 	gnutls_transport_set_ptr(ssl_session_, (gnutls_transport_ptr_t)handle());
+
+	listener_.ssl_db().bind(ssl_session_);
 }
 #endif
 
@@ -182,7 +174,6 @@ bool connection::ssl_handshake()
 	if (rv == GNUTLS_E_SUCCESS)
 	{
 		// handshake either completed or failed
-		printf("---- handshake completed\n");
 		state_ = requesting;
 		async_read_some();
 		return true;
@@ -197,9 +188,6 @@ bool connection::ssl_handshake()
 		delete this;
 		return false;
 	}
-
-	fprintf(stderr, "SSL handshake incomplete (%d): %s\n", rv, gnutls_strerror(rv));
-	printf("direction: %d\n", gnutls_record_get_direction(ssl_session_));
 
 	switch (gnutls_record_get_direction(ssl_session_))
 	{
