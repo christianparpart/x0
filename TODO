@@ -12,6 +12,7 @@ QUALITY ASSURANCE:
 		- per virtual host
 		- per request path prefix
 	- runtime changing of config settings
+- IMPROVE: SSL-handshake performance, should not take up to 2.5 seconds on my netbook.
 - IMPROVE: chunked-encoding should NOT be triggered if no response content body is allowed (e.g. 400)
 
 -----------------------------------------------------------------------------
