@@ -8,7 +8,7 @@
 #ifndef sw_x0_datetime_hpp
 #define sw_x0_datetime_hpp 1
 
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/api.hpp>
 #include <string>
 #include <ctime>

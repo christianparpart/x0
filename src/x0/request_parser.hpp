@@ -8,7 +8,7 @@
 #ifndef x0_http_request_parser_hpp
 #define x0_http_request_parser_hpp (1)
 
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/header.hpp>
 #include <x0/request.hpp>
 #include <x0/strutils.hpp>

@@ -8,7 +8,7 @@
 #ifndef sw_x0_buffer_ref_hpp
 #define sw_x0_buffer_ref_hpp (1)
 
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <cassert>
 #include <cstring>
 #include <cstddef>

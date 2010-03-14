@@ -2,7 +2,7 @@
 #define sw_x0_io_null_filter_hpp 1
 
 #include <x0/io/filter.hpp>
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 
 namespace x0 {
 

@@ -9,7 +9,7 @@
 #define x0_range_def_hpp
 
 #include <x0/property.hpp>
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 
