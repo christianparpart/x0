@@ -32,6 +32,7 @@ listener::listener(x0::server& srv) :
 	port_(-1),
 #if defined(WITH_SSL)
 	secure_(false),
+	ssl_db_(512),
 #endif
 	handler_()
 {
@@ -67,11 +68,6 @@ inline void setsockopt(int socket, int layer, int option, int value)
 }
 
 #if defined(WITH_SSL)
-bool listener::secure() const
-{
-	return secure_;
-}
-
 void listener::secure(bool value)
 {
 	secure_ = value;
@@ -142,7 +138,9 @@ void listener::start()
 
 void listener::callback(ev::io& watcher, int revents)
 {
-	(new connection(*this))->start();
+	connection *c = new connection(*this);
+	
+	c->start();
 }
 
 std::string listener::address() const

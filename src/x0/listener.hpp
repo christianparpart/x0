@@ -14,6 +14,7 @@
 #include <x0/sysconfig.h>
 
 #if defined(WITH_SSL)
+#	include <x0/ssl_db_cache.hpp>
 #	include <gnutls/gnutls.h>
 #endif
 
@@ -62,6 +63,8 @@ public:
 #if defined(WITH_SSL)
 	bool secure() const;
 	void secure(bool value);
+
+	ssl_db_cache& ssl_db();
 #endif
 
 private:
@@ -80,6 +83,7 @@ private:
 
 #if defined(WITH_SSL)
 	bool secure_;
+	ssl_db_cache ssl_db_;
 
 	gnutls_certificate_credentials_t x509_cred_;
 	gnutls_dh_params_t dh_params_;
@@ -106,6 +110,17 @@ inline int listener::handle() const
 	return fd_;
 }
 
+#if defined(WITH_SSL)
+inline bool listener::secure() const
+{
+	return secure_;
+}
+
+inline ssl_db_cache& listener::ssl_db()
+{
+	return ssl_db_;
+}
+#endif
 //@}
 
 } // namespace x0
