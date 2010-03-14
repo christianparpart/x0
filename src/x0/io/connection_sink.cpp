@@ -7,7 +7,9 @@
 #include <x0/io/composite_source.hpp>
 #include <x0/sysconfig.h>
 
-#include <sys/sendfile.h>
+#if defined(HAVE_SYS_SENDFILE_H)
+#	include <sys/sendfile.h>
+#endif
 
 #if defined(WITH_SSL)
 #	include <gnutls/gnutls.h>
@@ -66,6 +68,7 @@ void connection_sink::visit(fd_source& v)
 
 void connection_sink::visit(file_source& v)
 {
+#if defined(HAVE_SENDFILE)
 	if (!offset_)
 		offset_ = v.offset(); // initialize with the starting-offset of interest
 
@@ -73,6 +76,9 @@ void connection_sink::visit(file_source& v)
 		rv_ = sendfile(handle(), v.handle(), &offset_, remaining);
 	else
 		rv_ = 0;
+#else
+	rv_ = fd_sink::pump(v);
+#endif
 }
 
 void connection_sink::visit(buffer_source& v)
