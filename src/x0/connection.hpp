@@ -84,9 +84,11 @@ public:
 	template<typename CompletionHandler>
 	void on_ready(CompletionHandler callback, int events);
 
+	const x0::listener& listener() const;
+
 private:
 	friend class response;
-	friend class listener;
+	friend class x0::listener;
 	friend class connection_sink;
 
 	void async_read_some();
@@ -183,6 +185,11 @@ inline void connection::on_ready(CompletionHandler callback, int events)
 
 	watcher_.set(socket_, events);
 	watcher_.start();
+}
+
+inline const x0::listener& connection::listener() const
+{
+	return listener_;
 }
 // }}}
 
