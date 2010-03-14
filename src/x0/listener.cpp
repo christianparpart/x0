@@ -33,6 +33,10 @@ listener::listener(x0::server& srv) :
 #if defined(WITH_SSL)
 	secure_(false),
 	ssl_db_(512),
+	crl_file_(),
+	trust_file_(),
+	key_file_(),
+	cert_file_(),
 #endif
 	handler_()
 {
@@ -49,16 +53,21 @@ void listener::configure(const std::string& address, int port)
 {
 	address_ = address;
 	port_ = port;
-
-#if defined(WITH_SSL)
-	secure_ = true;
-#endif
 }
 
 void listener::stop()
 {
 	watcher_.stop();
 	::close(fd_);
+
+#if defined(WITH_SSL)
+	if (secure())
+	{
+		gnutls_priority_deinit(priority_cache_);
+		gnutls_certificate_free_credentials(x509_cred_);
+		gnutls_dh_params_deinit(dh_params_);
+	}
+#endif
 }
 
 inline void setsockopt(int socket, int layer, int option, int value)
@@ -70,7 +79,67 @@ inline void setsockopt(int socket, int layer, int option, int value)
 #if defined(WITH_SSL)
 void listener::secure(bool value)
 {
+	if (value == secure_)
+		return;
+
+	bool resume = active();
+	if (resume) stop();
+
 	secure_ = value;
+
+	if (resume) start();
+}
+
+void listener::crl_file(const std::string& value)
+{
+	if (value == crl_file_)
+		return;
+
+	bool resume = active();
+	if (resume) stop();
+
+	crl_file_ = value;
+
+	if (resume) start();
+}
+
+void listener::trust_file(const std::string& value)
+{
+	if (value == trust_file_)
+		return;
+
+	bool resume = active();
+	if (resume) stop();
+
+	trust_file_ = value;
+
+	if (resume) start();
+}
+
+void listener::key_file(const std::string& value)
+{
+	if (value == key_file_)
+		return;
+
+	bool resume = active();
+	if (resume) stop();
+
+	key_file_ = value;
+
+	if (resume) start();
+}
+
+void listener::cert_file(const std::string& value)
+{
+	if (value == cert_file_)
+		return;
+
+	bool resume = active();
+	if (resume) stop();
+
+	cert_file_ = value;
+
+	if (resume) start();
 }
 #endif
 
@@ -82,18 +151,27 @@ void listener::start()
 		gnutls_priority_init(&priority_cache_, "NORMAL", NULL);
 
 		gnutls_certificate_allocate_credentials(&x509_cred_);
-		//gnutls_certificate_set_x509_trust_file(x509_cred_, "ca.pem", GNUTLS_X509_FMT_PEM);
-		//gnutls_certificate_set_x509_crl_file(x509_cred_, "crl.pem", GNUTLS_X509_FMT_PEM);
-		gnutls_certificate_set_x509_key_file(x509_cred_, "cert.pem", "key.pem", GNUTLS_X509_FMT_PEM);
+
+		if (!trust_file_.empty())
+			gnutls_certificate_set_x509_trust_file(x509_cred_, trust_file_.c_str(), GNUTLS_X509_FMT_PEM);
+
+		if (!crl_file_.empty())
+			gnutls_certificate_set_x509_crl_file(x509_cred_, crl_file_.c_str(), GNUTLS_X509_FMT_PEM);
+
+		gnutls_certificate_set_x509_key_file(x509_cred_, cert_file_.c_str(), key_file_.c_str(), GNUTLS_X509_FMT_PEM);
 
 		gnutls_dh_params_init(&dh_params_);
 		gnutls_dh_params_generate2(dh_params_, 1024);
 
 		gnutls_certificate_set_dh_params(x509_cred_, dh_params_);
-	}
-#endif
 
-	server_.log(severity::notice, "Start listening on %s:%d", address_.c_str(), port_);
+		server_.log(severity::notice, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
+	}
+	else
+		server_.log(severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
+#else
+	server_.log(severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
+#endif
 
 	fd_ = ::socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
 	fcntl(fd_, F_SETFL, FD_CLOEXEC);

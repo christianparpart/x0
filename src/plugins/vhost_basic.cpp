@@ -8,6 +8,7 @@
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
+#include <x0/listener.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/signal.hpp>
 #include <boost/bind.hpp>
@@ -35,6 +36,12 @@
  *     ['localhost:8080'] = {
  *         DocumentRoot = '/var/www/example.com/htdocs';
  *         BindAddress = 'localhost';
+ *
+ *         Secure = true;
+ *         CertFile = 'cert.pem';
+ *         KeyFile = 'key.pem';
+ *         TrustFile = 'ca.pem';
+ *         CrlFile = 'crl.pem';
  *     };
  * };
  * </pre>
@@ -47,13 +54,13 @@ private:
 
 	struct vhost_config
 	{
-		std::string docroot;
+		std::string document_root;
 	};
 
 	struct server_config
 	{
 		std::string default_hostid;
-		std::map<std::string, vhost_config *> mappings;
+		std::map<std::string, vhost_config *> mappings; // [hostname:port] -> vhost_config
 	};
 
 public:
@@ -72,7 +79,7 @@ public:
 	{
 		auto hosts = server_.config()["Hosts"].keys<std::string>();
 		if (hosts.empty())
-			return;
+			return; // no hosts configured
 
 		std::string default_bind("0::0");
 		server_.config().load("BindAddress", default_bind);
@@ -87,16 +94,31 @@ public:
 			int port = x0::extract_port_from_hostid(hostid);
 
 			auto aliases = server_.config()["Hosts"][hostid]["ServerAliases"].as<std::vector<std::string>>();
-			std::string docroot = server_.config()["Hosts"][hostid]["DocumentRoot"].as<std::string>();
+			std::string document_root = server_.config()["Hosts"][hostid]["DocumentRoot"].as<std::string>();
 			std::string bind = server_.config()["Hosts"][hostid]["BindAddress"].get<std::string>(default_bind);
 
-//			server_.log(x0::severity::debug, "port=%d: hostid[%s]: docroot[%s], alias-count=%d",
-//				port, hostid.c_str(), docroot.c_str(), aliases.size());
+			//server_.log(x0::severity::debug, "port=%d: hostid[%s]: document_root[%s], alias-count=%d",
+			//	port, hostid.c_str(), document_root.c_str(), aliases.size());
 
 			vhost_config& cfg = server_.create_context<vhost_config>(this, hostid);
-			cfg.docroot = docroot;
+			cfg.document_root = document_root;
 
+			x0::listener *listener = server_.setup_listener(port, bind);
+
+			if (server_.config()["Hosts"][hostid]["Secure"].get<bool>(false))
+			{
+				listener->trust_file(server_.config()["Hosts"][hostid]["TrustFile"].get<std::string>());
+				listener->crl_file(server_.config()["Hosts"][hostid]["CrlFile"].get<std::string>());
+				listener->key_file(server_.config()["Hosts"][hostid]["KeyFile"].get<std::string>());
+				listener->cert_file(server_.config()["Hosts"][hostid]["CertFile"].get<std::string>());
+
+				listener->secure(true);
+			}
+
+			// insert primary [hostname:port]
 			srvcfg.mappings.insert({ {hostid, &cfg} });
+
+			// register vhost aliases
 			for (auto k = aliases.begin(), m = aliases.end(); k != m; ++k)
 			{
 				std::string hid(x0::make_hostid(*k, port));
@@ -107,9 +129,7 @@ public:
 					srvcfg.mappings[hid] = &cfg;
 					server_.link_context(hostid, hid);
 
-					int aport = x0::extract_port_from_hostid(hid);
-					server_.setup_listener(aport, bind);
-					//server_.log(x0::severity::debug, "Server alias '%s' (for bind '%s' on port %d) added.", hid.c_str(), bind.c_str(), aport);
+					//server_.log(x0::severity::debug, "Server alias '%s' (for bind '%s' on port %d) added.", hid.c_str(), bind.c_str(), port);
 				}
 				else
 				{
@@ -118,8 +138,19 @@ public:
 					throw std::runtime_error(msg);
 				}
 			}
+		}
 
-			server_.setup_listener(port, bind);
+		// make sure the default-host has been defined (if specified)
+		if (!srvcfg.default_hostid.empty())
+		{
+			auto vhost = srvcfg.mappings.find(srvcfg.default_hostid);
+
+			if (vhost == srvcfg.mappings.end())
+			{
+				char msg[1024];
+				snprintf(msg, sizeof(msg), "DefaultHost '%s' not defined.", srvcfg.default_hostid.c_str());
+				throw std::runtime_error(msg);
+			}
 		}
 	}
 
@@ -131,25 +162,31 @@ private:
 			std::string hostid(in->hostid());
 
 			server_config& srvcfg = server_.context<server_config>(this);
-			auto i = srvcfg.mappings.find(hostid);
-			if (i != srvcfg.mappings.end())
+
+			auto vhost = srvcfg.mappings.find(hostid);
+			if (vhost == srvcfg.mappings.end())
 			{
-				in->document_root = i->second->docroot;
-				//server_.log(x0::severity::debug, "vhost_basic[%s]: resolved to %s", hostid.c_str(), in->document_root.c_str());
+				if (srvcfg.default_hostid.empty())
+					return;
+
+				vhost = srvcfg.mappings.find(srvcfg.default_hostid);
 			}
-			else
-			{
-				in->document_root = server_.context<vhost_config>(this, hostid).docroot;
-			}
+
+			in->document_root = vhost->second->document_root;
+
+			//server_.log(x0::severity::debug, "vhost_basic: resolved [%s] to document_root [%s]",
+			//	hostid.c_str(), in->document_root.c_str());
 		}
 		catch (const x0::host_not_found&)
 		{
 			try
 			{
 				// resolve to default host's document root
-				std::string default_hostid(server_.context<server_config>(this).default_hostid);
-				in->document_root = server_.context<vhost_config>(this, default_hostid).docroot;
-				// XXX we could instead auto-redirect them.
+				std::string hostid(server_.context<server_config>(this).default_hostid);
+				in->document_root = server_.context<vhost_config>(this, hostid).document_root;
+
+				//server_.log(x0::severity::debug, "vhost_basic: resolved [%s] to document_root [%s] (via default vhost)",
+				//	hostid.c_str(), in->document_root.c_str());
 			}
 			catch (...) {}
 		}

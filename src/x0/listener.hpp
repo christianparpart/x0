@@ -51,6 +51,7 @@ public:
 
 	void configure(const std::string& address = "0::0", int port = 8080);
 	void start();
+	bool active() const;
 	void stop();
 
 	std::string address() const;
@@ -65,6 +66,11 @@ public:
 	void secure(bool value);
 
 	ssl_db_cache& ssl_db();
+
+	void crl_file(const std::string&);
+	void trust_file(const std::string&);
+	void key_file(const std::string&);
+	void cert_file(const std::string&);
 #endif
 
 private:
@@ -84,6 +90,10 @@ private:
 #if defined(WITH_SSL)
 	bool secure_;
 	ssl_db_cache ssl_db_;
+	std::string crl_file_;
+	std::string trust_file_;
+	std::string key_file_;
+	std::string cert_file_;
 
 	gnutls_certificate_credentials_t x509_cred_;
 	gnutls_dh_params_t dh_params_;
@@ -94,6 +104,12 @@ private:
 
 	friend class connection;
 };
+
+// {{{ inlines
+inline bool listener::active() const
+{
+	return fd_ != -1;
+}
 
 inline struct ::ev_loop *listener::loop() const
 {
@@ -122,6 +138,8 @@ inline ssl_db_cache& listener::ssl_db()
 }
 #endif
 //@}
+
+// }}}
 
 } // namespace x0
 
