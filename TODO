@@ -31,7 +31,6 @@ CODE CLEANUP:
 	- bool consume(); // true=fully consumed, false=partially consumed
 	- bool on_body_read(CompletionHandler handler); // registers callback when more *body* data is available for read
 - generalize request_parser just like done with response_parser
-- use libev's now() inside server::now()
 - reduce number of syscalls during a single request-processing
 
 -----------------------------------------------------------------------------
