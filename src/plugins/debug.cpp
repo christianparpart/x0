@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <ev++.h>
 
 /**
  * \ingroup plugins
@@ -72,9 +73,21 @@ private:
 		return name;
 	}
 
+	struct timer :
+		public x0::custom_data
+	{
+		ev::tstamp value_;
+		struct ev_loop *loop_;
+
+		explicit timer(struct ev_loop *loop) : value_(ev_now(loop)), loop_(loop) {}
+
+		ev::tstamp diff() const { return ev_now(loop_) - value_; }
+	};
+
 	void connection_open(x0::connection *connection)
 	{
 		server_.log(x0::severity::info, "connection opened: %s", client_hostname(connection).c_str());
+		connection->custom_data[this] = std::make_shared<timer>(server_.loop());
 	}
 
 	void pre_process(x0::request *in)
@@ -112,6 +125,11 @@ private:
 
 	void connection_close(x0::connection *connection)
 	{
+		if (std::shared_ptr<timer> tm = std::static_pointer_cast<timer>(connection->custom_data[this]))
+		{
+			server_.log(x0::severity::info, "connection timing: %.4f", tm->diff());
+		}
+
 		server_.log(x0::severity::info, "connection closed: %s", client_hostname(connection).c_str());
 	}
 };
