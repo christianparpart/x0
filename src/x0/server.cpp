@@ -60,6 +60,7 @@ server::server(struct ::ev_loop *loop) :
 	logger_(),
 	plugins_(),
 	now_(),
+	loop_check_(loop_),
 	max_connections(512),
 	max_keep_alive_requests(16),
 	max_keep_alive_idle(5),
@@ -72,6 +73,8 @@ server::server(struct ::ev_loop *loop) :
 {
 	response::initialize();
 
+	loop_check_.set<server, &server::loop_check>(this);
+
 #if defined(WITH_SSL)
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 
@@ -81,6 +84,12 @@ server::server(struct ::ev_loop *loop) :
 
 	gnutls_global_init_extra();
 #endif
+}
+
+void server::loop_check(ev::check& /*w*/, int /*revents*/)
+{
+	// update server time
+	now_.update(static_cast<time_t>(ev_now(loop_)));
 }
 
 void server::gnutls_log(int level, const char *msg)
@@ -413,9 +422,6 @@ void server::drop_privileges(const std::string& username, const std::string& gro
 
 void server::handle_request(request *in, response *out)
 {
-	// update server clock
-	now_.update();
-
 	// pre-request hook
 	pre_process(const_cast<x0::request *>(in));
 

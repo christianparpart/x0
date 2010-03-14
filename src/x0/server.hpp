@@ -215,6 +215,7 @@ private:
 
 private:
 	void handle_request(request *in, response *out);
+	void loop_check(ev::check& w, int revents);
 
 	x0::context context_;											//!< server context
 	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
@@ -226,6 +227,7 @@ private:
 	logger_ptr logger_;
 	plugin_map_t plugins_;
 	datetime now_;
+	ev::check loop_check_;
 
 public:
 	value_property<int> max_connections;
