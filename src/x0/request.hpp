@@ -21,6 +21,8 @@
 
 namespace x0 {
 
+class plugin;
+
 //! \addtogroup core
 //@{
 
@@ -29,14 +31,14 @@ namespace x0 {
  *
  * \see header, response, connection, server
  */
-struct request
+struct X0_API request
 {
 public:
 	explicit request(x0::connection& connection);
 
 	x0::connection& connection;					///< the TCP/IP connection this request has been sent through
 
-public: // request properties
+	// request properties
 	buffer_ref method;							///< HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
 	buffer_ref uri;								///< parsed request uri
 	buffer_ref path;							///< decoded path-part
@@ -50,14 +52,17 @@ public: // request properties
 	/** retrieve value of a given request header */
 	buffer_ref header(const std::string& name) const;
 
-public: // accumulated request data
+	// accumulated request data
 	buffer_ref username;						///< username this client has authenticated with.
 	std::string document_root;					///< the document root directory for this request.
 
 //	std::string if_modified_since;		//!< "If-Modified-Since" request header value, if specified.
 //	std::shared_ptr<range_def> range;	//!< parsed "Range" request header
 
-public: // utility methods
+	// custom data bindings
+	std::map<plugin *, custom_data_ptr> custom_data;
+
+	// utility methods
 	bool supports_protocol(int major, int minor) const;
 	std::string hostid() const;
 };

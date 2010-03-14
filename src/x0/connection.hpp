@@ -113,6 +113,9 @@ private:
 
 	friend int connection_timer_offset();
 
+public:
+	std::map<plugin *, custom_data_ptr> custom_data;
+
 private:
 	x0::listener& listener_;
 	x0::server& server_;					//!< server object owning this connection
