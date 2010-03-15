@@ -132,6 +132,7 @@ private:
 	buffer buffer_;							//!< buffer for incoming data.
 	request *request_;						//!< currently parsed http request, may be NULL
 	request_parser request_parser_;			//!< http request parser
+	response *response_;					//!< currently processed response object, may be NULL
 
 #if defined(WITH_SSL)
 	gnutls_session_t ssl_session_;			//!< SSL (GnuTLS) session handle
