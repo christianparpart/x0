@@ -74,6 +74,7 @@ server::server(struct ::ev_loop *loop) :
 	response::initialize();
 
 	loop_check_.set<server, &server::loop_check>(this);
+	loop_check_.start();
 
 #if defined(WITH_SSL)
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
