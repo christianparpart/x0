@@ -1,5 +1,5 @@
-#include <x0/io/buffer.hpp>
-#include <x0/io/buffer_ref.hpp>
+#include <x0/buffer.hpp>
+#include <x0/buffer_ref.hpp>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 

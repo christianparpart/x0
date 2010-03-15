@@ -1,4 +1,4 @@
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 
 #include <x0/io/source.hpp>
 #include <x0/io/fd_source.hpp>
