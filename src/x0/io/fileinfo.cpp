@@ -28,6 +28,7 @@ void fileinfo::callback(ev::stat& w, int revents)
 	data_.clear();
 
 	etag_ = service_.make_etag(*this);
+	mtime_.clear(); // gets computed on-demand
 	mimetype_ = service_.get_mimetype(filename_);
 }
 
