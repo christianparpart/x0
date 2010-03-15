@@ -370,7 +370,9 @@ void server::run()
 		start();
 
 	while (active_)
+	{
 		ev_loop(loop_, 0);
+	}
 }
 
 /** drops runtime privileges current process to given user's/group's name. */
@@ -507,12 +509,14 @@ void server::stop()
 {
 	if (active_)
 	{
+		active_ = false;
+
 		for (std::list<listener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 		{
 			(*k)->stop();
 		}
 
-		active_ = false;
+		ev_unloop(loop_, ev::ALL);
 	}
 }
 
