@@ -1,8 +1,13 @@
+for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects/x0
+
 -----------------------------------------------------------------------------
-QUALITY ASSURANCE:
+QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
-- VERIFY: connection (read/write) timeout handlers
-	- write timeouts cause a crash (reproducable by setting timeout to 0)
+- VALGRIND: fix warnings about buffer_ref::find() -- there was code around already fixing that issue
+- VALGRIND: fix warnings wrt libev's ev_stat (ev.c:3119), ev_stat.attr seems uninitialized, as of valgrind.
+- FIX: SIGTERM gets catched but does not lead into process termination (event-loop does not break?)
+- IMPROVE: SSL-handshake performance, should not take up to 2.5 seconds on my netbook.
+- IMPROVE: chunked-encoding should NOT be triggered if no response content body is allowed (e.g. 400)
 - VERIFY: flexibility of configuratio nsystem
 	- plugins/core should provide an abstract layer to the config backend, in a way, that they do not need
 		to qualify the complete path to the variable but just say ConfigKey and ideally $CONTEXT (global, vhost, path);
@@ -11,16 +16,16 @@ QUALITY ASSURANCE:
 		- per virtual host
 		- per request path prefix
 	- runtime changing of config settings
-- VALGRIND: fix warnings about buffer_ref::find() -- there was code around already fixing that issue
-- VALGRIND: fix warnings wrt libev's ev_stat (ev.c:3119), ev_stat.attr seems uninitialized, as of valgrind.
-- FIX: SIGTERM gets catched but does not lead into process termination (event-loop does not break?)
-- IMPROVE: SSL-handshake performance, should not take up to 2.5 seconds on my netbook.
-- IMPROVE: chunked-encoding should NOT be triggered if no response content body is allowed (e.g. 400)
+- RESPECT: handle request headers Keep-Alive properly (using [deadline-]timers)
+- rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
+  last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
+  (NOTE: why did I say that? why does mtime shard the server's "Date:"?)
+
 
 -----------------------------------------------------------------------------
-CODE CLEANUP:
+CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
-* port cgi plugin to current API changes!
+- port cgi plugin to current API changes!
 	- make use of response_parser
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
 	- make use of libev's child watcher
@@ -35,8 +40,9 @@ CODE CLEANUP:
 - generalize request_parser just like done with response_parser
 - reduce number of syscalls during a single request-processing
 
+
 -----------------------------------------------------------------------------
-FEATURES:
+FEATURES TODO:
 -----------------------------------------------------------------------------
 - x0d: add settings option to setup process' cpu affinity
 - proper protocol "Upgrade"-API, as required for web sockets
@@ -53,6 +59,16 @@ FEATURES:
 	- per connection performance timer
 	- per request performance timer
 	- request/response header dumps
+- request path rewriting (rewrite)
+- http reverse proxy (plugin)
+	- must support live streams (required for YaCS chat stream)
+	- must support fallback nodes (required for YaCS/maintenance)
+- server status API (status)
+- fastcgi support (fastcgi)
+- lua server pages (wsapi)
+- c++ server pages (csp)
+- webdav support (webdav)
+
 
 -----------------------------------------------------------------------------
 ROADMAP
@@ -66,7 +82,8 @@ ROADMAP
 		- must support fallback (hot-spare) nodes
 		- must support load-balancing across multiple backend nodes
 	- dirlisting plugin
-		- must support content template engine (extracted from libnuggad)
+		- themable index page via the lua-driven template engine i wrote for YaCS.
+		  (maybe use this then also for an error plugin which generates themable error pages)
 *0.3.0: (06/10)*
 	- status plugin
 		- must give some statistical/informational data about the running service
@@ -80,52 +97,8 @@ ROADMAP
 
 *0.5.0: (12/10)*
 	- webdav plugin
-	- ssi plugin
+	- ssi plugin?
 
-
------------------------------------------------------------------------------
-FEATURE LIST:
------------------------------------------------------------------------------
-
-io:
-* ssl support, via gnutls (ssl)
-mapper:
-* request path aliasing (alias)
-- request path rewriting (rewrite)
-generator:
-- http reverse proxy (proxy)
-- server status API (status)
-* cgi 1.1 support (cgi)
-- fastcgi support (fastcgi)
-- lua server pages (wsapi)
-- c++ server pages (csp)
-* directory listing
-* dynamic content compression (deflate)
-- webdav support (webdav)
-
------------------------------------------------------------------------------
-INTERMEDIATE TODO
------------------------------------------------------------------------------
-
-for a long-term todo list, see ticket system at http://code.ninchens.net/projects/x0
-
-- core:
-	- rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
-	  last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
-	- async/parralel content generator handlers
-	- handle request headers Keep-Alive properly (using asio [deadline-]timers)
-	- make composite_buffer move constructable/assignable-only, that is, also remove copy constructor/assignment operator
-- dirlisting:
-	- themable index page via the lua-driven template engine i wrote for YaCS.
-	  (maybe use this then also for an error plugin which generates themable error pages)
-- docs:
-	- bring API docs up-to-date.
-- plugins:
-	- proxy (http), required to replace apache on ninchens.net server
-		- must support live streams (required for YaCS chat stream)
-		- must support fallback nodes (required for YaCS/maintenance)
-	- ssl (via gnutls!), required for ninchens.net server
-	- fastcgi
 
 -----------------------------------------------------------------------------
 NOTES AND THOUGHTS:
@@ -149,6 +122,7 @@ NOTES AND THOUGHTS:
   - idea 3: the ssl plugin hooks into the listener's accept() and creates an ssl aware socket, however, this REQUIRES
     all sockets (plain and ssl) to know about sendfile/writev for composite_buffer then).
 
+
 -----------------------------------------------------------------------------
 OPTIMIZATION AND CACHING INITIATIVE
 -----------------------------------------------------------------------------
@@ -157,4 +131,5 @@ OPTIMIZATION AND CACHING INITIATIVE
 	- ...
 - improve configuration system
 	- dir contexts hierarichally via ternary_search<>
+
 
