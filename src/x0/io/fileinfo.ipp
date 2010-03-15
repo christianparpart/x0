@@ -51,26 +51,6 @@ inline std::string fileinfo::etag() const
 	return etag_;
 }
 
-inline void fileinfo::bind(const plugin *self, void *data)
-{
-	data_[self] = data;
-}
-
-template<typename T> inline T& fileinfo::operator()(const plugin *self) const
-{
-	return get<T>(self);
-}
-
-template<typename T> inline T& fileinfo::get(const plugin *self) const
-{
-	return *reinterpret_cast<T *>(data_[self]);
-}
-
-inline void fileinfo::unbind(const plugin *self)
-{
-	data_.erase(data_.find(self));
-}
-
 inline std::string fileinfo::last_modified() const
 {
 	if (mtime_.empty())
