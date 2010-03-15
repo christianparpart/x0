@@ -3,15 +3,17 @@ QUALITY ASSURANCE:
 -----------------------------------------------------------------------------
 - VERIFY: connection (read/write) timeout handlers
 	- write timeouts cause a crash (reproducable by setting timeout to 0)
-- VERIFY: TCP_DEFER_ACCEPT on SSL listener sockets?
-- VERIFY: fileinfo_service functionality. it should properly invalidate/recompute cached values and 
-          possibly destruct fileinfo objects on rename/move/delete
 - VERIFY: flexibility of configuratio nsystem
+	- plugins/core should provide an abstract layer to the config backend, in a way, that they do not need
+		to qualify the complete path to the variable but just say ConfigKey and ideally $CONTEXT (global, vhost, path);
 	- scopes:
 		- global server context
 		- per virtual host
 		- per request path prefix
 	- runtime changing of config settings
+- VALGRIND: fix warnings about buffer_ref::find() -- there was code around already fixing that issue
+- VALGRIND: fix warnings wrt libev's ev_stat (ev.c:3119), ev_stat.attr seems uninitialized, as of valgrind.
+- FIX: SIGTERM gets catched but does not lead into process termination (event-loop does not break?)
 - IMPROVE: SSL-handshake performance, should not take up to 2.5 seconds on my netbook.
 - IMPROVE: chunked-encoding should NOT be triggered if no response content body is allowed (e.g. 400)
 
@@ -36,7 +38,6 @@ CODE CLEANUP:
 -----------------------------------------------------------------------------
 FEATURES:
 -----------------------------------------------------------------------------
-- fileinfo: custom_data[] map (just as in connection and request)
 - x0d: add settings option to setup process' cpu affinity
 - proper protocol "Upgrade"-API, as required for web sockets
 - connection: add read/write hooks, as required for the upcoming ssl plugin. these functors do standard I/O if not overridden.
@@ -58,14 +59,6 @@ ROADMAP
 -----------------------------------------------------------------------------
 *0.1.0: (02/10)*
 	- x0: complete core API documentation
-	- x0: ability to attach custom shared_ptr<>'d data to fileinfo record which is though released when its underlying inode changes.
-	  this way i could speed up repeative directory listing generation
-	  std::string data;
-	  if (!my_fileinfo->custom_data<std::string>(this))
-	  {
-		  // not cached yet -> create data and cache for subsequent calls
-	      my_fileinfo->custom_data(this, data);
-	  }
 *0.2.0: (03/10)*
 	- reverse proxy plugin
 		- must at least support backend: http
