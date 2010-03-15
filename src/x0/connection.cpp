@@ -37,6 +37,7 @@ connection::connection(x0::listener& lst) :
 	buffer_(8192),
 	request_(new request(*this)),
 	request_parser_(),
+	response_(0),
 	watcher_(server_.loop()),
 	timer_(server_.loop())
 {
@@ -75,6 +76,11 @@ connection::connection(x0::listener& lst) :
 
 connection::~connection()
 {
+	delete request_;
+	delete response_;
+	request_ = 0;
+	response_ = 0;
+
 	//DEBUG("~connection(%p)", this);
 
 	try
@@ -85,9 +91,6 @@ connection::~connection()
 	{
 		DEBUG("~connection(%p): unexpected exception", this);
 	}
-
-	if (request_)
-		delete request_;
 
 #if defined(WITH_SSL)
 	if (ssl_enabled())
@@ -208,6 +211,12 @@ void connection::resume()
 {
 	//DEBUG("connection(%p).resume()", this);
 
+	delete request_;
+	request_ = 0;
+
+	delete response_;
+	response_ = 0;
+
 	std::size_t offset = request_parser_.next_offset();
 	request_parser_.reset();
 	request_ = new request(*this);
@@ -320,8 +329,6 @@ void connection::parse_request(std::size_t offset, std::size_t count)
 	{
 		if (response *response_ = new response(this, request_))
 		{
-			request_ = 0;
-
 			try
 			{
 				server_.handle_request(response_->request(), response_);
@@ -346,7 +353,6 @@ void connection::parse_request(std::size_t offset, std::size_t count)
 	{
 		// -> send stock response: BAD_REQUEST
 		(new response(this, request_, response::bad_request))->finish();
-		request_ = 0;
 	}
 	else // result indeterminate: request still incomplete
 	{
