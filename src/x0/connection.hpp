@@ -98,6 +98,8 @@ private:
 	void handle_write();
 	void handle_timeout();
 
+	void parse_request(std::size_t offset, std::size_t count);
+
 	void async_write(const source_ptr& buffer, const completion_handler_type& handler);
 
 	void io_callback(ev::io& w, int revents);
@@ -128,7 +130,7 @@ private:
 
 	// HTTP request
 	buffer buffer_;							//!< buffer for incoming data.
-	request *request_;						//!< currently parsed http request 
+	request *request_;						//!< currently parsed http request, may be NULL
 	request_parser request_parser_;			//!< http request parser
 
 #if defined(WITH_SSL)
