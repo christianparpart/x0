@@ -86,16 +86,15 @@ connection::~connection()
 		DEBUG("~connection(%p): unexpected exception", this);
 	}
 
+	if (request_)
+		delete request_;
+
 #if defined(WITH_SSL)
 	if (ssl_enabled())
 		gnutls_deinit(ssl_session_);
 #endif
 
 	::close(socket_);
-
-	if (request_) {
-		delete request_;
-	}
 }
 
 void connection::io_callback(ev::io& w, int revents)
@@ -209,15 +208,23 @@ void connection::resume()
 {
 	//DEBUG("connection(%p).resume()", this);
 
-	buffer_.clear(); //! \todo on pipelined HTTP requests, this shouldn't be done.
+	std::size_t offset = request_parser_.next_offset();
 	request_parser_.reset();
 	request_ = new request(*this);
 
-	async_read_some();
+	if (offset < buffer_.size()) // HTTP pipelining
+		parse_request(offset, buffer_.size() - offset);
+	else
+	{
+		buffer_.clear();
+		async_read_some();
+	}
 }
 
 void connection::async_read_some()
 {
+	buffer_.clear();
+
 	if (server_.max_read_idle() != -1)
 		timer_.start(server_.max_read_idle(), 0.0);
 
@@ -298,47 +305,53 @@ void connection::handle_read()
 	else
 	{
 		buffer_.resize(lower_bound + rv);
+		parse_request(lower_bound, rv);
+	}
+}
 
-		// parse request (partial)
-		boost::tribool result = request_parser_.parse(*request_, buffer_.ref(lower_bound, rv));
+/** parses (partial) request from buffer's given \p offset of \p count bytes.
+ */
+void connection::parse_request(std::size_t offset, std::size_t count)
+{
+	// parse request (partial)
+	boost::tribool result = request_parser_.parse(*request_, buffer_.ref(offset, count));
 
-		if (result) // request fully parsed
+	if (result) // request fully parsed
+	{
+		if (response *response_ = new response(this, request_))
 		{
-			if (response *response_ = new response(this, request_))
-			{
-				request_ = 0;
+			request_ = 0;
 
-				try
-				{
-					server_.handle_request(response_->request(), response_);
-				}
-				catch (const host_not_found& e)
-				{
-//					fprintf(stderr, "exception caught: %s\n", e.what());
-//					fflush(stderr);
-					response_->status = 404;
-					response_->finish();
-				}
-				catch (response::code_type reply)
-				{
-//					fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
-//					fflush(stderr);
-					response_->status = reply;
-					response_->finish();
-				}
+			try
+			{
+				server_.handle_request(response_->request(), response_);
+			}
+			catch (const host_not_found& e)
+			{
+//				fprintf(stderr, "exception caught: %s\n", e.what());
+//				fflush(stderr);
+				response_->status = 404;
+				response_->finish();
+			}
+			catch (response::code_type reply)
+			{
+//				fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
+//				fflush(stderr);
+				response_->status = reply;
+				response_->finish();
 			}
 		}
-		else if (!result) // received an invalid request
-		{
-			// -> send stock response: BAD_REQUEST
-			(new response(this, request_, response::bad_request))->finish();
-			request_ = 0;
-		}
-		else // result indeterminate: request still incomplete
-		{
-			// -> continue reading for request
-			async_read_some();
-		}
+	}
+	else if (!result) // received an invalid request
+	{
+		// -> send stock response: BAD_REQUEST
+		(new response(this, request_, response::bad_request))->finish();
+		request_ = 0;
+	}
+	else // result indeterminate: request still incomplete
+	{
+		// -> continue reading for request
+		async_read_some();
 	}
 }
 
