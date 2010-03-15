@@ -16,8 +16,9 @@ add_definitions(
 # -----------------------------------------------------------------
 add_executable(x0test
 	x0dtest.cpp
-	#http11.cpp
 	range_def_test.cpp
+	response_parser_test.cpp
+	#http11.cpp
 )
 
 target_link_libraries(x0test

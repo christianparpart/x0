@@ -184,7 +184,7 @@ template<typename PodType, std::size_t N> bool operator==(const buffer& a, PodTy
 
 //@}
 
-#include <x0/io/buffer_ref.hpp>
+#include <x0/buffer_ref.hpp>
 
 // {{{ impl
 

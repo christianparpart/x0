@@ -25,9 +25,10 @@ fileinfo::fileinfo(fileinfo_service& service, const std::string& filename) :
 
 void fileinfo::callback(ev::stat& w, int revents)
 {
-	data_.clear();
+	custom_data.clear();
 
 	etag_ = service_.make_etag(*this);
+	mtime_.clear(); // gets computed on-demand
 	mimetype_ = service_.get_mimetype(filename_);
 }
 

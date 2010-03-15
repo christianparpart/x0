@@ -2,11 +2,11 @@
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2009-2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#ifndef x0_types_h
-#define x0_types_h (1)
+#ifndef x0_types_hpp
+#define x0_types_hpp (1)
 
 #include <x0/api.hpp>
 #include <memory>
@@ -60,6 +60,19 @@ typedef std::function<void(
 	response& /*out*/,
 	const std::function<void()>& /*completionHandler*/)
 > request_handler_fn;
+
+class custom_data
+{
+private:
+	custom_data(const custom_data&) = delete;
+	custom_data& operator=(const custom_data&) = delete;
+
+public:
+	custom_data() = default;
+	virtual ~custom_data() {}
+};
+
+typedef std::shared_ptr<custom_data> custom_data_ptr;
 
 //@}
 

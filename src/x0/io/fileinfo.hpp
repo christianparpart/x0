@@ -2,6 +2,7 @@
 #define sw_x0_fileinfo_hpp (1)
 
 #include <x0/api.hpp>
+#include <x0/types.hpp>
 
 #include <string>
 #include <map>
@@ -37,7 +38,7 @@ private:
 	mutable std::string mtime_;
 	mutable std::string mimetype_;
 
-	std::map<const plugin *, void *> data_;
+	//std::map<const plugin *, void *> data_;
 
 	friend class fileinfo_service;
 
@@ -56,11 +57,8 @@ public:
 
 	const ev_statdata * operator->() const;
 
-	// custom-data
-	void bind(const plugin *self, void *data);
-	template<typename T> T& operator()(const plugin *self) const;
-	template<typename T> T& get(const plugin *self) const;
-	void unbind(const plugin *self);
+	// custom data (gets cleared on file object modification)
+	std::map<plugin *, custom_data_ptr> custom_data;
 
 	// HTTP related high-level properties
 	std::string etag() const;

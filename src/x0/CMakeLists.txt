@@ -76,6 +76,7 @@ set(x0_SRC
 	server.cpp
 	settings.cpp
 	severity.cpp
+	ssl_db_cache.cpp
 	strutils.cpp
 )
 
@@ -97,6 +98,7 @@ set(x0_API
 	server.hpp
 	settings.hpp
 	severity.hpp
+	ssl_db_cache.hpp
 	strutils.hpp strutils.tcc
 	types.hpp
 	defines.hpp
@@ -117,6 +119,7 @@ target_link_libraries(x0
 	${ZLIB_LIBS}
 	${BZIP2_LIBS}
 	${LIBEV_LIBS}
+	${GNUTLS_LIBRARIES}
 )
 
 install(FILES ${x0_API} DESTINATION include/x0)

@@ -29,12 +29,6 @@ char response::status_codes[512][4];
 response::~response()
 {
 	//DEBUG("~response(%p, conn=%p)", this, connection_);
-	delete request_;
-
-	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
-		connection_->resume();
-	else
-		delete connection_;
 }
 
 /** checks wether given code MUST NOT have a response body. */
@@ -172,6 +166,8 @@ response::response(connection *connection, x0::request *request, int _status) :
 	status(_status),
 	headers()
 {
+	connection_->response_ = this;
+
 	//DEBUG("response(%p, conn=%p)", this, connection_);
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
@@ -222,7 +218,10 @@ void response::finished(int ec)
 		srv.request_done(const_cast<x0::request *>(request_), this);
 	}
 
-	delete this;
+	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
+		connection_->resume();
+	else
+		delete connection_;
 }
 
 void response::initialize()

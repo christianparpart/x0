@@ -12,12 +12,17 @@
 #include <x0/io/sink.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/async_writer.hpp>
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/request.hpp>
 #include <x0/server.hpp>
 #include <x0/property.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
+#include <x0/sysconfig.h>
+
+#if defined(WITH_SSL)
+#	include <gnutls/gnutls.h>
+#endif
 
 #include <functional>
 #include <memory>
@@ -29,6 +34,8 @@ namespace x0 {
 
 //! \addtogroup core
 //@{
+
+class connection_sink;
 
 /**
  * \brief represents an HTTP connection handling incoming requests.
@@ -77,9 +84,12 @@ public:
 	template<typename CompletionHandler>
 	void on_ready(CompletionHandler callback, int events);
 
+	const x0::listener& listener() const;
+
 private:
 	friend class response;
-	friend class listener;
+	friend class x0::listener;
+	friend class connection_sink;
 
 	void async_read_some();
 	void async_write_some();
@@ -88,14 +98,25 @@ private:
 	void handle_write();
 	void handle_timeout();
 
+	void parse_request(std::size_t offset, std::size_t count);
+
 	void async_write(const source_ptr& buffer, const completion_handler_type& handler);
 
 	void io_callback(ev::io& w, int revents);
 	void timeout_callback(ev::timer& watcher, int revents);
 
+#if defined(WITH_SSL)
+	bool ssl_enabled() const;
+	void ssl_initialize();
+	bool ssl_handshake();
+#endif
+
 	struct ::ev_loop *loop() const;
 
 	friend int connection_timer_offset();
+
+public:
+	std::map<plugin *, custom_data_ptr> custom_data;
 
 private:
 	x0::listener& listener_;
@@ -109,8 +130,19 @@ private:
 
 	// HTTP request
 	buffer buffer_;							//!< buffer for incoming data.
-	request *request_;						//!< currently parsed http request 
+	request *request_;						//!< currently parsed http request, may be NULL
 	request_parser request_parser_;			//!< http request parser
+	response *response_;					//!< currently processed response object, may be NULL
+
+#if defined(WITH_SSL)
+	gnutls_session_t ssl_session_;			//!< SSL (GnuTLS) session handle
+
+	enum {
+		handshaking,
+		requesting,
+		responding
+	} state_;
+#endif
 
 	ev::io watcher_;
 	ev::timer timer_;						//!< deadline timer for detecting read/write timeouts.
@@ -159,6 +191,11 @@ inline void connection::on_ready(CompletionHandler callback, int events)
 
 	watcher_.set(socket_, events);
 	watcher_.start();
+}
+
+inline const x0::listener& connection::listener() const
+{
+	return listener_;
 }
 // }}}
 

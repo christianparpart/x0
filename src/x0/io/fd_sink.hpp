@@ -2,7 +2,7 @@
 #define sw_x0_io_fd_sink_hpp 1
 
 #include <x0/io/sink.hpp>
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 
 namespace x0 {
 

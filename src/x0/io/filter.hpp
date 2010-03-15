@@ -1,7 +1,7 @@
 #ifndef sw_x0_io_filter_hpp
 #define sw_x0_io_filter_hpp 1
 
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/sink.hpp>
 #include <x0/api.hpp>

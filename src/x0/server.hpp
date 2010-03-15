@@ -20,12 +20,16 @@
 #include <x0/property.hpp>
 #include <x0/io/fileinfo_service.hpp>
 #include <x0/api.hpp>
+#include <x0/sysconfig.h>
+
 #include <boost/signals.hpp>
+
 #include <cstring>
 #include <string>
 #include <memory>
 #include <list>
 #include <map>
+
 #include <ev.h>
 
 namespace x0 {
@@ -175,7 +179,7 @@ public:
 	 * If there is already a listener on this bind_address:port pair
 	 * then no error will be raised.
 	 */
-	void setup_listener(int port, const std::string& bind_address = "0::0");
+	listener *setup_listener(int port, const std::string& bind_address = "0::0");
 
 	/**
 	 * loads a plugin into the server.
@@ -203,10 +207,15 @@ private:
 
 	listener *listener_by_port(int port);
 
+#if defined(WITH_SSL)
+	static void gnutls_log(int level, const char *msg);
+#endif
+
 	friend class connection;
 
 private:
 	void handle_request(request *in, response *out);
+	void loop_check(ev::check& w, int revents);
 
 	x0::context context_;											//!< server context
 	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
@@ -218,6 +227,7 @@ private:
 	logger_ptr logger_;
 	plugin_map_t plugins_;
 	datetime now_;
+	ev::check loop_check_;
 
 public:
 	value_property<int> max_connections;

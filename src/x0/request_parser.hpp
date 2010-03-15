@@ -8,7 +8,7 @@
 #ifndef x0_http_request_parser_hpp
 #define x0_http_request_parser_hpp (1)
 
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/header.hpp>
 #include <x0/request.hpp>
 #include <x0/strutils.hpp>
@@ -61,12 +61,13 @@ public:
 	request_parser();
 
 	void reset();
-
+	std::size_t next_offset() const;
 	boost::tribool parse(request& req, const buffer_ref& data);
 
 private:
 	state state_;
 	std::size_t left_;
+	std::size_t next_offset_;
 
 private:
 	static inline bool is_char(int ch);
@@ -173,7 +174,7 @@ inline bool request_parser::url_decode(buffer_ref& url)
 }
 
 inline request_parser::request_parser() :
-	state_(method_start), left_(0)
+	state_(method_start), left_(0), next_offset_(0)
 {
 }
 
@@ -181,6 +182,13 @@ inline void request_parser::reset()
 {
 	state_ = method_start;
 	left_ = 0;
+	next_offset_ = 0;
+}
+
+
+inline std::size_t request_parser::next_offset() const
+{
+	return next_offset_;
 }
 
 /** parses partial HTTP request.
@@ -209,6 +217,7 @@ inline boost::tribool request_parser::parse(request& r, const buffer_ref& data)
 					return false;
 
 				state_ = method;
+				left_ = cur;
 				break;
 			case method:
 				if (input == ' ')
@@ -389,6 +398,7 @@ inline boost::tribool request_parser::parse(request& r, const buffer_ref& data)
 					}
 					else
 					{
+						next_offset_ = cur + 1;
 						return true;
 					}
 				}
@@ -405,6 +415,7 @@ inline boost::tribool request_parser::parse(request& r, const buffer_ref& data)
 				}
 				else
 				{
+					next_offset_ = cur + 1;
 					return true;
 				}
 			default:

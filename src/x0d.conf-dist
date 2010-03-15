@@ -96,9 +96,9 @@ Userdir = {
 };
 
 Compress = {
-	ContentTypes = { 'text/plain', 'text/html' };
+	ContentTypes = { 'text/plain', 'text/html', 'text/xml', 'text/x-c++src' };
 	Level = 9;
-	MinSize = 256;
+	MinSize = 32;
 	MaxSize = MB(128);
 };
 
@@ -124,24 +124,17 @@ ErrorDocuments = PopulateErrorDocuments({
 	500, 501, 502, 503
 }, DATADIR .. 'error/', '.html');
 
-FileSystem = {
-	['/home/*/public_html'] = {
-		DirectoryListing = true;
-		AllowFrom = { '192.168.0.0/24' };
-	};
-	['/var/www/*/htdocs'] = {
-		AllowFrom = { '0.0.0.0/0' };
-	};
-};
+BindAddress = '0::0';
+DefaultHost = 'localhost';
 
 Hosts = {
-	['localhost'] = {
+	['localhost:8080'] = {
 		DocumentRoot = '/var/www/localhost/htdocs';
 		Aliases = {
 			['/distfiles'] = '/usr/portage/distfiles';
 		};
 	};
-	['www.cooldown.net'] = {
+	['www.cooldown.net:8080'] = {
 		DocumentRoot = '/var/www/cooldown.net/htdocs';
 		Listen = 8081;
 	};

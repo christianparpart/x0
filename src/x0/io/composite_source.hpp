@@ -2,7 +2,7 @@
 #define sw_x0_io_composite_source_hpp 1
 
 #include <x0/io/source.hpp>
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <x0/io/source_visitor.hpp>
 
 #include <vector>

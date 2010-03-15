@@ -1,129 +1,109 @@
-TODO ASAP:
-* verify fileinfo_service functionality. it should properly invalidate/recompute cached values and 
-  possibly destruct fileinfo objects on rename/move/delete
-* verify connection (read/write) timeout handlers
-* reduce number of syscalls during a single request-processing
-- add response::bytes_transferred (unsigned), which is updated automatically by write() (or something deeper) to
-  match the bytes written to the client.
-  This is required by the accesslog plugin to log the number of bytes sent (which is not actually content-length, or is it?)
+for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects/x0
+
+-----------------------------------------------------------------------------
+QUALITY ASSURANCE TODO:
+-----------------------------------------------------------------------------
+- VALGRIND: fix warnings about buffer_ref::find() -- there was code around already fixing that issue
+- VALGRIND: fix warnings wrt libev's ev_stat (ev.c:3119), ev_stat.attr seems uninitialized, as of valgrind.
+- FIX: SIGTERM gets catched but does not lead into process termination (event-loop does not break?)
+- IMPROVE: SSL-handshake performance, should not take up to 2.5 seconds on my netbook.
+- IMPROVE: chunked-encoding should NOT be triggered if no response content body is allowed (e.g. 400)
+- VERIFY: flexibility of configuratio nsystem
+	- plugins/core should provide an abstract layer to the config backend, in a way, that they do not need
+		to qualify the complete path to the variable but just say ConfigKey and ideally $CONTEXT (global, vhost, path);
+	- scopes:
+		- global server context
+		- per virtual host
+		- per request path prefix
+	- runtime changing of config settings
+- RESPECT: handle request headers Keep-Alive properly (using [deadline-]timers)
+- rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
+  last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
+  (NOTE: why did I say that? why does mtime shard the server's "Date:"?)
+
+
+-----------------------------------------------------------------------------
+CODE CLEANUP TODO:
+-----------------------------------------------------------------------------
+- port cgi plugin to current API changes!
+	- make use of response_parser
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
+	- make use of libev's child watcher
 - plugins/cgi: pass completion handler to cgi_script::async_run(...)
 - file -> filereader; fileinfo -> file; fileinfo_service -> file_service
 - proper HTTP POST reader API: as part of request class
-  - should consume the body automatically if not read by a handler until response headers are flushed
-  - buffer_ref body_read(buffer& output);
-  - std::size_t body_available() const; // number of bytes still in stream to read until fully *consumed*
-  - bool consume(); // true=fully consumed, false=partially consumed
-  - bool on_body_read(CompletionHandler handler); // registers callback when more *body* data is available for read
+	- should consume the body automatically if not read by a handler until response headers are flushed
+	- buffer_ref body_read(buffer& output);
+	- std::size_t body_available() const; // number of bytes still in stream to read until fully *consumed*
+	- bool consume(); // true=fully consumed, false=partially consumed
+	- bool on_body_read(CompletionHandler handler); // registers callback when more *body* data is available for read
+- generalize request_parser just like done with response_parser
+- reduce number of syscalls during a single request-processing
+
+
+-----------------------------------------------------------------------------
+FEATURES TODO:
+-----------------------------------------------------------------------------
+- x0d: add settings option to setup process' cpu affinity
 - proper protocol "Upgrade"-API, as required for web sockets
-- response body: support Chunked-Encoding
 - connection: add read/write hooks, as required for the upcoming ssl plugin. these functors do standard I/O if not overridden.
-	int read(const char *buf, std::size_t nbytes);
-	int read(char *buf, std::size_t nbytes);
+	int read(buf, nbytes);
+	int read(buf, nbytes);
 - add integrity-checks for lazy programmers to check object healthy:
 	- If response Content-Length was given: do not write more bytes than expected to.
 	- Do not modify response headers/state once serialization has been initiated.
+- add response::bytes_transferred (unsigned), which is updated automatically by write() (or something deeper) to
+  match the bytes written to the client.
+  This is required by the accesslog plugin to log the number of bytes sent (which is not actually content-length, or is it?)
+- debug plugin: config settings for different debug prints
+	- per connection performance timer
+	- per request performance timer
+	- request/response header dumps
+- request path rewriting (rewrite)
+- http reverse proxy (plugin)
+	- must support live streams (required for YaCS chat stream)
+	- must support fallback nodes (required for YaCS/maintenance)
+- server status API (status)
+- fastcgi support (fastcgi)
+- lua server pages (wsapi)
+- c++ server pages (csp)
+- webdav support (webdav)
+
 
 -----------------------------------------------------------------------------
 ROADMAP
-
-0.1.0: (02/10)
-	+ x0: solid configuration system
-	* x0: response stream filter chain API (required for plugins: ssl, deflate, ssi, ...)
-	- x0: finish server limit configurations (keep-alive!)
+-----------------------------------------------------------------------------
+*0.1.0: (02/10)*
 	- x0: complete core API documentation
-	- x0d: add settings option to setup process' cpu affinity
-	* x0: ability to attach custom shared_ptr<>'d data to fileinfo record which is though released when its underlying inode changes.
-	  this way i could speed up repeative directory listing generation
-	  std::string data;
-	  if (!my_fileinfo->get<std::string>(this, data))
-	  {
-		  // not cached yet -> create data and cache for subsequent calls
-		  data = create_data();
-	      my_fileinfo->set(this, data);
-	  }
-0.2.0: (03/10)
+*0.2.0: (03/10)*
 	- reverse proxy plugin
 		- must at least support backend: http
 		- must support realtime streaming (required for YaCS chat stream to be passed through)
 		- must support fallback (hot-spare) nodes
 		- must support load-balancing across multiple backend nodes
-	- ssl plugin
-		- must use gnutls via native api
-		- must support server side certificates as passed via file (standard, just like apache etc)
 	- dirlisting plugin
-		- must support content template engine (extracted from libnuggad)
-0.3.0: (06/10)
-	- deflate plugin
-		- must support dynamic content compression
+		- themable index page via the lua-driven template engine i wrote for YaCS.
+		  (maybe use this then also for an error plugin which generates themable error pages)
+*0.3.0: (06/10)*
 	- status plugin
 		- must give some statistical/informational data about the running service
 			- uptime
 			- cpu load
 			- current number of connections and their states
 			- ...
-0.4.0: (09/10)
+*0.4.0: (09/10)*
 	- fastcgi plugin
 	- csp plugin (C++ server pages)
 
-0.5.0: (12/10)
+*0.5.0: (12/10)*
 	- webdav plugin
-	- ssi plugin
+	- ssi plugin?
 
-
------------------------------------------------------------------------------
-FEATURE LIST:
-io:
-- ssl support, via gnutls (ssl)
-mapper:
-- request path aliasing (alias)
-- request path rewriting (rewrite)
-generator:
-- http reverse proxy (proxy)
-- server status API (status)
-+ cgi 1.1 support (cgi)
-- fastcgi support (fastcgi)
-- lua server pages (wsapi)
-- c++ server pages (csp)
-+ directory listing
-- dynamic content compression (deflate)
-- webdav support (webdav)
-
------------------------------------------------------------------------------
-INTERMEDIATE TODO
-
-for a long-term todo list, see ticket system at http://code.ninchens.net/projects/x0
-
-- util:
-	- new settings API
-		1.) port TSettings to x0: `settings`
-			datatypes supported: int, double, string, bool, map<K, V>, vector<V>
-		2.) develop a settings visitor who imports the settings into the context scheme to at least match server-/vhosts contexts
-	- chain API (or just a std::deque/std::list?)
-		- filter chain API using the above/chain API
-	- response::serialize():
-		- let it stream the HTTP response status line + headers into a buffer pre-allocated object.
-		+ status_buf[] computation: use pre-computed buffers instead as division/modulo operation are expensive.
-- core:
-	- rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
-	  last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
-	- async/parralel content generator handlers
-	- handle request headers Keep-Alive properly (using asio [deadline-]timers)
-	- make composite_buffer move constructable/assignable-only, that is, also remove copy constructor/assignment operator
-- dirlisting:
-	- themable index page via the lua-driven template engine i wrote for YaCS.
-	  (maybe use this then also for an error plugin which generates themable error pages)
-- docs:
-	- bring API docs up-to-date.
-- plugins:
-	- proxy (http), required to replace apache on ninchens.net server
-		- must support live streams (required for YaCS chat stream)
-		- must support fallback nodes (required for YaCS/maintenance)
-	- ssl (via gnutls!), required for ninchens.net server
-	- fastcgi
 
 -----------------------------------------------------------------------------
 NOTES AND THOUGHTS:
+-----------------------------------------------------------------------------
+
 - should the upcoming (lua driven) template engine be part of x0 core?
   (we'll have more sources than just error documents being generated from templates, that is plugins like: dirlisting.
 - evaluate the use of signalfd(2) with regards to cgi plugin (for watching child process termination) and possibly others
@@ -142,60 +122,14 @@ NOTES AND THOUGHTS:
   - idea 3: the ssl plugin hooks into the listener's accept() and creates an ssl aware socket, however, this REQUIRES
     all sockets (plain and ssl) to know about sendfile/writev for composite_buffer then).
 
+
 -----------------------------------------------------------------------------
 OPTIMIZATION AND CACHING INITIATIVE
+-----------------------------------------------------------------------------
 
 - core optimizations:
-  - server time (server::now()) should *NOT* be updated on every request handling.
-    instead, only on each poll result.
-	This maybe implies for us not to use the standard io_service::run()
-	but something like that and call server time update right after each poll().
-	MAYBE this can be also implemented directly (w/o hacking io_service::run) by
-	calling something like post() on each update. hmmm.
-  - optimize composite_buffer appending by merging nearby iovec chunks,
-      if the left back and the right front is an iovec_chunk, and
-      if the sum of both iovec elements does not exceed the system's iovec limit to writev(2)
+	- ...
 - improve configuration system
 	- dir contexts hierarichally via ternary_search<>
 
------------------------------------------------------------------------------
-bool chat_listener::handle_request(request& in, response& out)
-{
-	this->request = &in;
-	this->response = &out;
 
-	out.header("Content-Type", "text/html; charset=utf-8");
-
-	out.write(chatStreamHead());
-
-	out.incomplete(true);// explicit flush indicates that there *MIGHT* be more to come, but we flush what we have.
-	out.flush(); 
-
-	return true;
-}
-
-void channel::say(const message& msg)
-{
-	for (auto i = members.begin(), e = members.end(); i != e; ++i)
-	{
-		auto member = *i;
-		member->write(message);
-	}
-}
-void member::write(const message& msg) {
-	listener->response->write(msg.text());
-	listener->response->flush();
-}
-void ChatSession::~ChatSession() {
-	listener->response->finish();
-}
-
-response::finish() {
-	flush();
-}
-response::flush() {
-	ios.post(do_flush());
-}
-response::do_flush() {
-	// write remaining data.
-}

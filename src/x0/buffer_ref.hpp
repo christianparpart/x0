@@ -8,7 +8,7 @@
 #ifndef sw_x0_buffer_ref_hpp
 #define sw_x0_buffer_ref_hpp (1)
 
-#include <x0/io/buffer.hpp>
+#include <x0/buffer.hpp>
 #include <cassert>
 #include <cstring>
 #include <cstddef>
@@ -469,6 +469,11 @@ inline bool buffer_ref::begins(value_type value) const
 	return size() >= 1 && data()[0] == value;
 }
 
+inline bool buffer_ref::ends(value_type value) const
+{
+	return size() >= 1 && data()[size() - 1] == value;
+}
+
 inline buffer_ref buffer_ref::ref(std::size_t offset) const
 {
 	assert(buffer_ != 0);
@@ -511,8 +516,12 @@ inline buffer buffer_ref::clone() const
 
 inline std::string buffer_ref::str() const
 {
-	assert(buffer_ != 0);
-	return substr(0);
+	if (size_)
+	{
+		assert(buffer_ != 0);
+		return substr(0);
+	}
+	return std::string();
 }
 
 inline std::string buffer_ref::substr(std::size_t offset) const

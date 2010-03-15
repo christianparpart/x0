@@ -10,8 +10,6 @@
 
 #include <x0/types.hpp>
 #include <x0/api.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
 
 namespace x0 {
 
@@ -26,9 +24,12 @@ class context;
  *
  * \see server, connection, request, response
  */
-class plugin :
-	public boost::noncopyable
+class plugin
 {
+private:
+	plugin(const plugin&) = delete;
+	plugin& operator=(const plugin&) = delete;
+
 public:
 	/** initializes the plugin */
 	plugin(server& srv, const std::string& name) :
@@ -66,7 +67,7 @@ protected:
 	std::string name_;
 };
 
-typedef boost::shared_ptr<plugin> plugin_ptr;
+typedef std::shared_ptr<plugin> plugin_ptr;
 
 #define X0_EXPORT_PLUGIN(pluginName) \
 	X0_EXPORT_PLUGIN_CLASS(pluginName, pluginName##_plugin)
