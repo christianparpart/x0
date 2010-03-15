@@ -355,7 +355,6 @@ inline std::size_t buffer_ref::find(value_type value, std::size_t offset) const
 template<typename PodType, std::size_t N>
 inline std::size_t buffer_ref::find(PodType (&value)[N], std::size_t offset) const
 {
-	printf("find(%s)\n", value);
 	const char *i = data() + offset;
 	const char *e = i + size() - offset;
 
