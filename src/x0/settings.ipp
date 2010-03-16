@@ -51,7 +51,7 @@ bool settings_value::load(T& _value)
 template<typename T>
 T settings_value::get(const T& _default)
 {
-	T result;
+	T result = T();
 	return load(result) ? result : _default;
 }
 
