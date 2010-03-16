@@ -324,6 +324,9 @@ void server::configure(const std::string& configfile)
 		throw std::runtime_error("No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
 	}
 
+	for (std::list<listener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
+		(*i)->prepare();
+
 	// setup process priority
 	if (int nice_ = settings_.get<int>("Daemon.Nice"))
 	{
@@ -336,7 +339,7 @@ void server::configure(const std::string& configfile)
 	}
 
 	// drop user privileges
-	drop_privileges(settings_["Daemon.User"].as<std::string>(), settings_["Daemon.Group"].as<std::string>());
+	drop_privileges(settings_["Daemon"]["User"].as<std::string>(), settings_["Daemon"]["Group"].as<std::string>());
 }
 
 void server::start()
@@ -553,7 +556,8 @@ listener *server::setup_listener(int port, const std::string& bind_address)
 	// create a new listener
 	listener *lp = new listener(*this);
 
-	lp->configure(bind_address, port);
+	lp->address(bind_address);
+	lp->port(port);
 
 	listeners_.push_back(lp);
 

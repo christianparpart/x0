@@ -45,20 +45,18 @@ listener::listener(x0::server& srv) :
 
 listener::~listener()
 {
-	if (fd_ != -1)
-		::close(fd_);
-}
-
-void listener::configure(const std::string& address, int port)
-{
-	address_ = address;
-	port_ = port;
+	stop();
 }
 
 void listener::stop()
 {
+	if (fd_ == -1)
+		return;
+
 	watcher_.stop();
+
 	::close(fd_);
+	fd_ = -1;
 
 #if defined(WITH_SSL)
 	if (secure())
@@ -143,7 +141,7 @@ void listener::cert_file(const std::string& value)
 }
 #endif
 
-void listener::start()
+void listener::prepare()
 {
 #if defined(WITH_SSL)
 	if (secure())
@@ -211,6 +209,13 @@ void listener::start()
 	if (::listen(fd_, SOMAXCONN) < 0)
 		throw std::runtime_error(strerror(errno));
 
+}
+
+void listener::start()
+{
+	if (fd_ == -1)
+		prepare();
+
 	watcher_.start(fd_, ev::READ);
 }
 
@@ -226,9 +231,19 @@ std::string listener::address() const
 	return address_;
 }
 
+void listener::address(const std::string& value)
+{
+	address_ = value;
+}
+
 int listener::port() const
 {
 	return port_;
+}
+
+void listener::port(int value)
+{
+	port_ = value;
 }
 
 } // namespace x0

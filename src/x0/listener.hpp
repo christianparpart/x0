@@ -49,17 +49,13 @@ public:
 	explicit listener(x0::server& srv);
 	~listener();
 
-	void configure(const std::string& address = "0::0", int port = 8080);
-	void start();
-	bool active() const;
-	void stop();
-
 	std::string address() const;
+	void address(const std::string& value);
+
 	int port() const;
+	void port(int value);
 
 	x0::server& server() const;
-
-	int handle() const;
 
 #if defined(WITH_SSL)
 	bool secure() const;
@@ -72,6 +68,13 @@ public:
 	void key_file(const std::string&);
 	void cert_file(const std::string&);
 #endif
+
+	int handle() const;
+
+	void prepare();
+	void start();
+	bool active() const;
+	void stop();
 
 private:
 	void handle_accept();
