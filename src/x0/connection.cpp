@@ -396,12 +396,12 @@ int connection::remote_port() const
 
 std::string connection::local_ip() const
 {
-	return std::string(); //! \todo implementation
+	return listener_.address();
 }
 
 int connection::local_port() const
 {
-	return 0; //! \todo implementation
+	return listener_.port();
 }
 
 } // namespace x0
