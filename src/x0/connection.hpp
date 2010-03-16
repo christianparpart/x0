@@ -86,6 +86,10 @@ public:
 
 	const x0::listener& listener() const;
 
+#if defined(WITH_SSL)
+	bool ssl_enabled() const;
+#endif
+
 private:
 	friend class response;
 	friend class x0::listener;
@@ -106,7 +110,6 @@ private:
 	void timeout_callback(ev::timer& watcher, int revents);
 
 #if defined(WITH_SSL)
-	bool ssl_enabled() const;
 	void ssl_initialize();
 	bool ssl_handshake();
 #endif
