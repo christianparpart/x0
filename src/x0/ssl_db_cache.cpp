@@ -1,5 +1,7 @@
 #include <x0/ssl_db_cache.hpp>
 
+#if defined(WITH_SSL)
+
 namespace x0 {
 
 int ssl_db_cache::_store(void *dbf, gnutls_datum_t key, gnutls_datum_t value)
@@ -24,3 +26,5 @@ int ssl_db_cache::_remove(void *dbf, gnutls_datum_t key)
 }
 
 } // namespace x0
+
+#endif

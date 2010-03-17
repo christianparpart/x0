@@ -93,11 +93,13 @@ void server::loop_check(ev::check& /*w*/, int /*revents*/)
 	now_.update(static_cast<time_t>(ev_now(loop_)));
 }
 
+#if defined(WITH_SSL)
 void server::gnutls_log(int level, const char *msg)
 {
 	fprintf(stderr, "gnutls log[%d]: %s", level, msg);
 	fflush(stderr);
 }
+#endif
 
 server::~server()
 {
