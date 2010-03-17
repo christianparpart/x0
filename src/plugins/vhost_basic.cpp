@@ -174,8 +174,10 @@ private:
 
 			in->document_root = vhost->second->document_root;
 
-			//server_.log(x0::severity::debug, "vhost_basic: resolved [%s] to document_root [%s]",
-			//	hostid.c_str(), in->document_root.c_str());
+#if 0 //!defined(NDEBUG)
+			server_.log(x0::severity::debug, "vhost_basic: resolved [%s] to document_root [%s]",
+				hostid.c_str(), in->document_root.c_str());
+#endif
 		}
 		catch (const x0::host_not_found&)
 		{
