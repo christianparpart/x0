@@ -20,6 +20,8 @@ class X0_API buffer_source :
 {
 public:
 	template<typename PodType, std::size_t N> explicit buffer_source(PodType (&value)[N]);
+	explicit buffer_source(const x0::buffer_ref& data);
+	explicit buffer_source(const x0::buffer& data);
 	explicit buffer_source(const x0::buffer&& data);
 
 	std::size_t size() const;
@@ -47,6 +49,16 @@ private:
 template<typename PodType, std::size_t N>
 inline buffer_source::buffer_source(PodType (&value)[N]) :
 	buffer_(value, N - 1), pos_(0)
+{
+}
+
+inline buffer_source::buffer_source(const x0::buffer_ref& data) :
+	buffer_(data), pos_(0)
+{
+}
+
+inline buffer_source::buffer_source(const x0::buffer& data) :
+	buffer_(data), pos_(0)
 {
 }
 
