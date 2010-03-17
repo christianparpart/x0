@@ -103,6 +103,7 @@ public:
 			vhost_config& cfg = server_.create_context<vhost_config>(this, hostid);
 			cfg.document_root = document_root;
 
+#if defined(WITH_SSL)
 			x0::listener *listener = server_.setup_listener(port, bind);
 
 			if (server_.config()["Hosts"][hostid]["Secure"].get<bool>(false))
@@ -114,6 +115,9 @@ public:
 
 				listener->secure(true);
 			}
+#else
+			server_.setup_listener(port, bind);
+#endif
 
 			// insert primary [hostname:port]
 			srvcfg.mappings.insert({ {hostid, &cfg} });
