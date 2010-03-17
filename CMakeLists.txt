@@ -23,6 +23,9 @@ option(WITH_SSL "With SSL support [default: on]" ON)
 option(BUILD_STATIC "Build with modules statically linked in [default: off]")
 option(BUILD_TESTS "Build unit tests [default: on]" ON)
 
+# special features
+option(WITH_CONNECTION_TIMEOUTS "Build with connection read/write timeout support [default: on]" ON)
+
 # we need the following definitions in order to get some special
 # OS-level features like posix_fadvise() or readahead().
 add_definitions(-DXOPEN_SOURCE=600)

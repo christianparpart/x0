@@ -27,6 +27,7 @@
 #cmakedefine HAVE_SYS_UTSNAME_H
 
 #cmakedefine WITH_SSL
+#cmakedefine WITH_CONNECTION_TIMEOUTS
 
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK

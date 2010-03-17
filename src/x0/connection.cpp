@@ -25,6 +25,11 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
+#if 1
+#	undef DEBUG
+#	define DEBUG(x...) /*!*/
+#endif
+
 namespace x0 {
 
 connection::connection(x0::listener& lst) :
@@ -38,8 +43,11 @@ connection::connection(x0::listener& lst) :
 	request_(new request(*this)),
 	request_parser_(),
 	response_(0),
-	watcher_(server_.loop()),
-	timer_(server_.loop())
+	state_(invalid),
+	watcher_(server_.loop())
+#if defined(WITH_CONNECTION_TIMEOUTS)
+	, timer_(server_.loop())
+#endif
 {
 	//DEBUG("connection(%p)", this);
 
@@ -69,7 +77,10 @@ connection::connection(x0::listener& lst) :
 #endif
 
 	watcher_.set<connection, &connection::io_callback>(this);
+
+#if defined(WITH_CONNECTION_TIMEOUTS)
 	timer_.set<connection, &connection::timeout_callback>(this);
+#endif
 
 	server_.connection_open(this);
 }
@@ -102,9 +113,9 @@ connection::~connection()
 
 void connection::io_callback(ev::io& w, int revents)
 {
-	watcher_.stop();
+#if defined(WITH_CONNECTION_TIMEOUTS)
 	timer_.stop();
-	//ev_unloop(loop(), EVUNLOOP_ONE);
+#endif
 
 	if (revents & ev::READ)
 		handle_read();
@@ -113,10 +124,22 @@ void connection::io_callback(ev::io& w, int revents)
 		handle_write();
 }
 
+#if defined(WITH_CONNECTION_TIMEOUTS)
 void connection::timeout_callback(ev::timer& watcher, int revents)
 {
 	handle_timeout();
 }
+
+void connection::handle_timeout()
+{
+	DEBUG("connection(%p): timed out", this);
+
+	watcher_.stop();
+//	ev_unloop(loop(), EVUNLOOP_ONE);
+
+	delete this;
+}
+#endif
 
 #if defined(WITH_SSL)
 void connection::ssl_initialize()
@@ -150,22 +173,29 @@ void connection::start()
 #if defined(WITH_SSL)
 	if (ssl_enabled())
 	{
-		state_ = handshaking;
+		handshaking_ = true;
 		ssl_initialize();
 
 		ssl_handshake();
 		return;
 	}
 	else
-		state_ = requesting;
+		handshaking_ = false;
 #endif
 
 #if defined(TCP_DEFER_ACCEPT)
 	// it is ensured, that we have data pending, so directly start reading
 	handle_read();
+
+	if (!response_)
+	{
+		// if first read did not completely parse the request (thus, no response object created),
+		// then start polling on socket
+		start_read();
+	}
 #else
 	// client connected, but we do not yet know if we have data pending
-	async_read_some();
+	start_read();
 #endif
 }
 
@@ -176,17 +206,15 @@ bool connection::ssl_handshake()
 	if (rv == GNUTLS_E_SUCCESS)
 	{
 		// handshake either completed or failed
-		state_ = requesting;
-		async_read_some();
+		handshaking_ = false;
+		start_read();
 		return true;
 	}
 
 	if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
 	{
-#if !defined(NDEBUG)
-		fprintf(stderr, "SSL handshake failed (%d): %s\n", rv, gnutls_strerror(rv));
-		fflush(stderr);
-#endif
+		DEBUG("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
+
 		delete this;
 		return false;
 	}
@@ -194,10 +222,10 @@ bool connection::ssl_handshake()
 	switch (gnutls_record_get_direction(ssl_session_))
 	{
 		case 0: // read
-			async_read_some();
+			start_read();
 			break;
 		case 1: // write
-			async_write_some();
+			start_write();
 			break;
 		default:
 			break;
@@ -226,33 +254,44 @@ void connection::resume()
 	else
 	{
 		buffer_.clear();
-		async_read_some();
+		start_read();
 	}
 }
 
-void connection::async_read_some()
+void connection::start_read()
 {
-	buffer_.clear();
+	if (state_ != reading)
+	{
+		state_ = reading;
+		watcher_.start(socket_, ev::READ);
+	}
 
+#if defined(WITH_CONNECTION_TIMEOUTS)
 	if (server_.max_read_idle() != -1)
 		timer_.start(server_.max_read_idle(), 0.0);
-
-	watcher_.start(socket_, ev::READ);
+#endif
 }
 
-void connection::async_write_some()
+void connection::start_write()
 {
+	if (state_ != writing)
+	{
+		state_ = writing;
+		watcher_.start(socket_, ev::WRITE);
+	}
+
+#if defined(WITH_CONNECTION_TIMEOUTS)
 	if (server_.max_write_idle() != -1)
 		timer_.start(server_.max_write_idle(), 0.0);
-
-	watcher_.start(socket_, ev::WRITE);
+#endif
 }
 
 void connection::handle_write()
 {
 	//DEBUG("connection(%p).handle_write()", this);
+
 #if defined(WITH_SSL)
-	if (state_ == handshaking)
+	if (handshaking_)
 		return (void) ssl_handshake();
 
 //	if (ssl_enabled())
@@ -273,7 +312,7 @@ void connection::handle_write()
 	else
 	{
 		write_offset_ += rv;
-		async_write_some();
+		start_write();
 	}
 #else
 	if (write_some)
@@ -289,8 +328,9 @@ void connection::handle_write()
 void connection::handle_read()
 {
 	//DEBUG("connection(%p).handle_read()", this);
+
 #if defined(WITH_SSL)
-	if (state_ == handshaking)
+	if (handshaking_)
 		return (void) ssl_handshake();
 #endif
 
@@ -305,14 +345,15 @@ void connection::handle_read()
 #else
 	rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
 #endif
-//	printf("connection::handle_read(): read %d bytes (%s)\n", rv, strerror(errno));
 
-	if (rv < 0)
-		; // error
-	else if (rv == 0)
-		; // EOF
+	if (rv < 0) // error
+		;//DEBUG("connection::handle_read(): %s", strerror(errno));
+	else if (rv == 0) // EOF
+		;//DEBUG("connection::handle_read(): (EOF) %s", strerror(errno));
 	else
 	{
+		;//DEBUG("connection::handle_read(): read %d bytes", rv);
+
 		buffer_.resize(lower_bound + rv);
 		parse_request(lower_bound, rv);
 	}
@@ -357,18 +398,8 @@ void connection::parse_request(std::size_t offset, std::size_t count)
 	else // result indeterminate: request still incomplete
 	{
 		// -> continue reading for request
-		async_read_some();
+//		start_read();
 	}
-}
-
-void connection::handle_timeout()
-{
-	//DEBUG("connection(%p): timed out", this);
-
-	watcher_.stop();
-	ev_unloop(loop(), EVUNLOOP_ONE);
-
-	delete this;
 }
 
 std::string connection::remote_ip() const

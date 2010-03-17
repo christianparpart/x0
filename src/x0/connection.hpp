@@ -95,19 +95,22 @@ private:
 	friend class x0::listener;
 	friend class connection_sink;
 
-	void async_read_some();
-	void async_write_some();
-
+	void start_read();
+	void resume_read();
 	void handle_read();
+
+	void start_write();
+	void resume_write();
 	void handle_write();
-	void handle_timeout();
 
 	void parse_request(std::size_t offset, std::size_t count);
-
 	void async_write(const source_ptr& buffer, const completion_handler_type& handler);
-
 	void io_callback(ev::io& w, int revents);
+
+#if defined(WITH_CONNECTION_TIMEOUTS)
 	void timeout_callback(ev::timer& watcher, int revents);
+	void handle_timeout();
+#endif
 
 #if defined(WITH_SSL)
 	void ssl_initialize();
@@ -115,8 +118,6 @@ private:
 #endif
 
 	struct ::ev_loop *loop() const;
-
-	friend int connection_timer_offset();
 
 public:
 	std::map<plugin *, custom_data_ptr> custom_data;
@@ -137,18 +138,22 @@ private:
 	request_parser request_parser_;			//!< http request parser
 	response *response_;					//!< currently processed response object, may be NULL
 
+	enum {
+		invalid,
+		reading,
+		writing
+	} state_;
+
 #if defined(WITH_SSL)
 	gnutls_session_t ssl_session_;			//!< SSL (GnuTLS) session handle
-
-	enum {
-		handshaking,
-		requesting,
-		responding
-	} state_;
+	bool handshaking_;
 #endif
 
 	ev::io watcher_;
+
+#if defined(WITH_CONNECTION_TIMEOUTS)
 	ev::timer timer_;						//!< deadline timer for detecting read/write timeouts.
+#endif
 
 	std::function<void(connection *)> write_some;
 	std::function<void(connection *)> read_some;
@@ -184,16 +189,14 @@ inline void connection::on_ready(CompletionHandler callback, int events)
 {
 	write_some = callback;
 
-	if ((events & ev::WRITE) && server_.max_write_idle() != -1)
-		timer_.start(server_.max_write_idle(), 0.0);
-	else if ((events & ev::READ) && server_.max_read_idle() != -1)
-		timer_.start(server_.max_read_idle(), 0.0);
-
-//	if (server_.max_connection_idle() != -1)
-//		timer_.start(server_.max_connection_idle(), 0.0);
-
-	watcher_.set(socket_, events);
-	watcher_.start();
+	if (events & ev::WRITE)
+	{
+		start_write();
+	}
+	else if (events & ev::READ)
+	{
+		start_read();
+	}
 }
 
 inline const x0::listener& connection::listener() const

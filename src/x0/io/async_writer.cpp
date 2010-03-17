@@ -39,25 +39,29 @@ private:
 
 	void write()
 	{
-		ssize_t rv = sink_->pump(*source_);
-		//printf("pump: %ld (%s)\n", rv, rv < 0 ? strerror(errno) : "");
-
-		if (rv == 0)
+		for (;;)
 		{
-			// finished
-			handler_(rv, bytes_transferred_);
-			delete this;
-		}
-		else if (rv > 0)
-		{
-			// we wrote something (if not even all) -> call back when fully transmitted
-			bytes_transferred_ += rv;
-			sink_->connection()->on_ready(std::bind(&async_writer::callback, this, std::placeholders::_1), ev::WRITE);
-		}
-		else if (errno == EAGAIN || errno == EINTR)
-		{
-			// call back as soon as sink is ready for more writes
-			sink_->connection()->on_ready(std::bind(&async_writer::callback, this, std::placeholders::_1), ev::WRITE);
+			ssize_t rv = sink_->pump(*source_);
+			//DEBUG("writer(%p).pump: %ld; %s", this, rv, rv < 0 ? strerror(errno) : "");
+        
+			if (rv > 0)
+			{
+				// we wrote something (if not even all)
+				bytes_transferred_ += rv;
+			}
+			else if (rv == 0)
+			{
+				// finished
+				handler_(rv, bytes_transferred_);
+				delete this;
+				break;
+			}
+			else if (errno == EAGAIN || errno == EINTR)
+			{
+				// call back as soon as sink is ready for more writes
+				sink_->connection()->on_ready(std::bind(&async_writer::callback, this, std::placeholders::_1), ev::WRITE);
+				break;
+			}
 		}
 	}
 }; // }}}
