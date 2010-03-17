@@ -341,8 +341,7 @@ inline void response::write_content(const source_ptr& content, const completion_
 		connection_->async_write(content, handler);
 	else
 	{
-		source_ptr filtered(new filter_source(content, filter_chain));
-		connection_->async_write(filtered, handler);
+		connection_->async_write(std::make_shared<filter_source>(content, filter_chain), handler);
 	}
 }
 // }}}
