@@ -49,7 +49,7 @@ connection::connection(x0::listener& lst) :
 	, timer_(server_.loop())
 #endif
 {
-	//DEBUG("connection(%p)", this);
+	DEBUG("connection(%p)", this);
 
 	socklen_t slen = sizeof(saddr_);
 	memset(&saddr_, 0, slen);
@@ -92,7 +92,7 @@ connection::~connection()
 	request_ = 0;
 	response_ = 0;
 
-	//DEBUG("~connection(%p)", this);
+	DEBUG("~connection(%p)", this);
 
 	try
 	{
@@ -168,7 +168,7 @@ bool connection::ssl_enabled() const
 
 void connection::start()
 {
-	//DEBUG("connection(%p).start()", this);
+	DEBUG("connection(%p).start()", this);
 
 #if defined(WITH_SSL)
 	if (ssl_enabled())
@@ -186,13 +186,6 @@ void connection::start()
 #if defined(TCP_DEFER_ACCEPT)
 	// it is ensured, that we have data pending, so directly start reading
 	handle_read();
-
-	if (!response_)
-	{
-		// if first read did not completely parse the request (thus, no response object created),
-		// then start polling on socket
-		start_read();
-	}
 #else
 	// client connected, but we do not yet know if we have data pending
 	start_read();
@@ -237,7 +230,7 @@ bool connection::ssl_handshake()
 /** processes the next request on the connection. */
 void connection::resume()
 {
-	//DEBUG("connection(%p).resume()", this);
+	DEBUG("connection(%p).resume()", this);
 
 	delete request_;
 	request_ = 0;
@@ -288,7 +281,7 @@ void connection::start_write()
 
 void connection::handle_write()
 {
-	//DEBUG("connection(%p).handle_write()", this);
+	DEBUG("connection(%p).handle_write()", this);
 
 #if defined(WITH_SSL)
 	if (handshaking_)
@@ -327,7 +320,7 @@ void connection::handle_write()
  */
 void connection::handle_read()
 {
-	//DEBUG("connection(%p).handle_read()", this);
+	DEBUG("connection(%p).handle_read()", this);
 
 #if defined(WITH_SSL)
 	if (handshaking_)
@@ -398,7 +391,7 @@ void connection::parse_request(std::size_t offset, std::size_t count)
 	else // result indeterminate: request still incomplete
 	{
 		// -> continue reading for request
-//		start_read();
+		start_read();
 	}
 }
 
