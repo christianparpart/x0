@@ -25,7 +25,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 1
+#if 0
 #	undef DEBUG
 #	define DEBUG(x...) /*!*/
 #endif
@@ -47,6 +47,9 @@ connection::connection(x0::listener& lst) :
 	watcher_(server_.loop())
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	, timer_(server_.loop())
+#endif
+#if !defined(NDEBUG)
+	, ctime_(ev_now(server_.loop()))
 #endif
 {
 	DEBUG("connection(%p)", this);
@@ -113,6 +116,8 @@ connection::~connection()
 
 void connection::io_callback(ev::io& w, int revents)
 {
+	DEBUG("connection(%p).io_callback(revents=0x%04X)", this, revents);
+
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	timer_.stop();
 #endif
@@ -157,9 +162,7 @@ void connection::ssl_initialize()
 
 	listener_.ssl_db().bind(ssl_session_);
 }
-#endif
 
-#if defined(WITH_SSL)
 bool connection::ssl_enabled() const
 {
 	return listener_.secure();
@@ -175,7 +178,6 @@ void connection::start()
 	{
 		handshaking_ = true;
 		ssl_initialize();
-
 		ssl_handshake();
 		return;
 	}
@@ -200,6 +202,7 @@ bool connection::ssl_handshake()
 	{
 		// handshake either completed or failed
 		handshaking_ = false;
+		DEBUG("SSL handshake time: %.4f", ev_now(server_.loop()) - ctime_);
 		start_read();
 		return true;
 	}
@@ -212,6 +215,7 @@ bool connection::ssl_handshake()
 		return false;
 	}
 
+	DEBUG("SSL handshake incomplete: (%d)", gnutls_record_get_direction(ssl_session_));
 	switch (gnutls_record_get_direction(ssl_session_))
 	{
 		case 0: // read
@@ -340,9 +344,15 @@ void connection::handle_read()
 #endif
 
 	if (rv < 0) // error
-		;//DEBUG("connection::handle_read(): %s", strerror(errno));
+	{
+		DEBUG("connection::handle_read(): %s", strerror(errno));
+		delete this;
+	}
 	else if (rv == 0) // EOF
-		;//DEBUG("connection::handle_read(): (EOF) %s", strerror(errno));
+	{
+		DEBUG("connection::handle_read(): (EOF) %s", strerror(errno));
+		delete this;
+	}
 	else
 	{
 		;//DEBUG("connection::handle_read(): read %d bytes", rv);

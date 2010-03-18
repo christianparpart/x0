@@ -155,6 +155,10 @@ private:
 	ev::timer timer_;						//!< deadline timer for detecting read/write timeouts.
 #endif
 
+#if !defined(NDEBUG)
+	ev::tstamp ctime_;
+#endif
+
 	std::function<void(connection *)> write_some;
 	std::function<void(connection *)> read_some;
 };
