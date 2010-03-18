@@ -240,6 +240,8 @@ public:
 	 */
 	void write(const source_ptr& source, const completion_handler_type& handler);
 
+	bool content_forbidden() const;
+
 private:
 	/** finishes this response by flushing the content into the stream.
 	 *
@@ -250,14 +252,12 @@ private:
 		if (!headers_sent_) // nothing sent to client yet -> sent default status page
 		{
 			if (!status)
-			{
 				status = response::not_found;
+
+			if (!content_forbidden())
 				write(make_default_content(), std::bind(&response::finished, this, std::placeholders::_1));
-			}
 			else
-			{
 				connection_->async_write(serialize(), std::bind(&response::finished, this, std::placeholders::_1));
-			}
 		}
 		else
 		{
@@ -342,6 +342,22 @@ inline void response::write_content(const source_ptr& content, const completion_
 	else
 	{
 		connection_->async_write(std::make_shared<filter_source>(content, filter_chain), handler);
+	}
+}
+
+/** checks wether given code MUST NOT have a response body. */
+inline bool response::content_forbidden() const
+{
+	switch (status)
+	{
+		case response::continue_:
+		case response::switching_protocols:
+		case response::no_content:
+		case response::reset_content:
+		case response::not_modified:
+			return true;
+		default:
+			return false;
 	}
 }
 // }}}

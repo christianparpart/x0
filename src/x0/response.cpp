@@ -31,22 +31,6 @@ response::~response()
 	//DEBUG("~response(%p, conn=%p)", this, connection_);
 }
 
-/** checks wether given code MUST NOT have a response body. */
-static inline bool content_forbidden(int code)
-{
-	switch (code)
-	{
-		case response::continue_:
-		case response::switching_protocols:
-		case response::no_content:
-		case response::reset_content:
-		case response::not_modified:
-			return true;
-		default:
-			return false;
-	}
-}
-
 template<typename T>
 inline std::string make_str(T value)
 {
@@ -55,7 +39,7 @@ inline std::string make_str(T value)
 
 source_ptr response::make_default_content()
 {
-	if (content_forbidden(status)) // || !equals(request_->method, "GET"))
+	if (content_forbidden()) // || !equals(request_->method, "GET"))
 		return source_ptr();
 
 	std::string filename(connection_->server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
@@ -103,7 +87,7 @@ source_ptr response::serialize()
 		headers.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
 	}
 
-	if (!headers.contains("Content-Length") && !content_forbidden(status))
+	if (!headers.contains("Content-Length") && !content_forbidden())
 	{
 		headers.set("Connection", "closed");
 	}
@@ -122,7 +106,8 @@ source_ptr response::serialize()
 	if (!headers.contains("Content-Length"))
 	{
 		if (request_->supports_protocol(1, 1)
-			&& !headers.contains("Transfer-Encoding"))
+			&& !headers.contains("Transfer-Encoding")
+			&& !content_forbidden())
 		{
 			headers.push_back("Transfer-Encoding", "chunked");
 			filter_chain.push_back(std::make_shared<chunked_filter>());
