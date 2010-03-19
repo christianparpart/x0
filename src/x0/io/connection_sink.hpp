@@ -22,7 +22,7 @@ public:
 
 	x0::connection *connection() const;
 
-	virtual pump_state pump(source& src);
+	virtual ssize_t pump(source& src);
 
 public:
 	virtual void visit(fd_source& v);
@@ -33,7 +33,7 @@ public:
 
 protected:
 	x0::connection *connection_;
-	pump_state rv_;
+	ssize_t rv_;
 };
 
 //@}

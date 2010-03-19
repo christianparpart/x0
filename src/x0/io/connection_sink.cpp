@@ -20,11 +20,11 @@ namespace x0 {
 connection_sink::connection_sink(x0::connection *conn) :
 	fd_sink(conn->handle()),
 	connection_(conn),
-	rv_(pump_state::error)
+	rv_(0)
 {
 }
 
-pump_state connection_sink::pump(source& src)
+ssize_t connection_sink::pump(source& src)
 {
 #if defined(WITH_SSL)
 	if (connection_->ssl_enabled())
@@ -34,7 +34,7 @@ pump_state connection_sink::pump(source& src)
 
 		std::size_t remaining = buf_.size() - offset_;
 		if (!remaining)
-			return pump_state::complete;
+			return 0;
 
 		ssize_t nwritten = ::gnutls_write(connection_->ssl_session_, buf_.data() + offset_, remaining);
 
@@ -47,10 +47,8 @@ pump_state connection_sink::pump(source& src)
 			}
 			else
 				offset_ += nwritten;
-
-			return pump_state::partial;
 		}
-		return pump_state::error;
+		return nwritten;
 	}
 	else
 		src.accept(*this);
@@ -74,18 +72,9 @@ void connection_sink::visit(file_source& v)
 		offset_ = v.offset(); // initialize with the starting-offset of interest
 
 	if (std::size_t remaining = v.count() - offset_) // how many bytes are still to process
-	{
-		ssize_t nwritten = sendfile(handle(), v.handle(), &offset_, remaining);
-
-		if (static_cast<std::size_t>(nwritten) == remaining)
-			rv_ = pump_state::complete;
-		else if (nwritten != -1)
-			rv_ = pump_state::partial;
-		else
-			rv_ = pump_state::error;
-	}
+		rv_ = sendfile(handle(), v.handle(), &offset_, remaining);
 	else
-		rv_ = pump_state::complete;
+		rv_ = 0;
 #else
 	rv_ = fd_sink::pump(v);
 #endif

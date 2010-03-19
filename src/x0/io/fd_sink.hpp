@@ -22,7 +22,7 @@ public:
 
 	int handle() const;
 
-	virtual pump_state pump(source& src);
+	virtual ssize_t pump(source& src);
 
 protected:
 	buffer buf_;

@@ -41,18 +41,18 @@ private:
 	{
 		for (;;)
 		{
-			pump_state rv = sink_->pump(*source_); // true=complete,false=error,det=partial
+			ssize_t rv = sink_->pump(*source_); // true=complete,false=error,det=partial
 			//DEBUG("writer(%p).pump: %ld; %s", this, rv, rv < 0 ? strerror(errno) : "");
         
-			if (rv == pump_state::partial)
+			if (rv > 0)
 			{
 				// we wrote something (if not even all)
-				bytes_transferred_ += 0; // TODO
+				bytes_transferred_ += rv;
 			}
-			else if (rv == pump_state::complete)
+			else if (rv == 0)
 			{
 				// finished in success
-				handler_(0, bytes_transferred_);
+				handler_(rv, bytes_transferred_);
 				delete this;
 				break;
 			}
@@ -65,7 +65,7 @@ private:
 			else
 			{
 				// an error occurred
-				handler_(-1, bytes_transferred_);
+				handler_(rv, bytes_transferred_);
 				delete this;
 				break;
 			}
