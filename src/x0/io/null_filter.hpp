@@ -17,7 +17,7 @@ class X0_API null_filter :
 public:
 	null_filter() {}
 
-	virtual buffer process(const buffer_ref& data)
+	virtual buffer process(const buffer_ref& data, bool /*eof*/)
 	{
 		return buffer(data);
 	}

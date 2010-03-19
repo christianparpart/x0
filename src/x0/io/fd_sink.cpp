@@ -24,14 +24,17 @@ bool fd_sink::async() const
 	return fcntl(handle_, F_GETFL, O_NONBLOCK) > 0;
 }
 
-ssize_t fd_sink::pump(source& src)
+pump_state fd_sink::pump(source& src)
 {
 	if (buf_.empty())
 		src.pull(buf_);
 
 	std::size_t remaining = buf_.size() - offset_;
 	if (!remaining)
-		return 0;
+	{
+		printf("fd_sink.pump(%d): EOF\n", handle_);
+		return pump_state::complete;
+	}
 
 	ssize_t nwritten = ::write(handle_, buf_.data() + offset_, remaining);
 
@@ -44,9 +47,11 @@ ssize_t fd_sink::pump(source& src)
 		}
 		else
 			offset_ += nwritten;
+
+		return pump_state::partial;
 	}
 
-	return static_cast<std::size_t>(nwritten);
+	return pump_state::error;
 }
 
 } // namespace x0

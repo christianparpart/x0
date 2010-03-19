@@ -322,13 +322,10 @@ inline buffer::~buffer()
 	if (data_ && edit_mode_ == EDIT_ALL)
 	{
 		std::free(data_);
-
 #ifndef NDEBUG
 		size_ = 0;
 		capacity_ = 0;
 		data_ = 0;
-
-		assert(refcount() == 0 && "No buffer views may reference its buffer object when killing it.");
 #endif
 	}
 }

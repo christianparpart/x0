@@ -95,6 +95,7 @@ inline void response_parser::reset(state_type state)
  */
 inline void response_parser::parse(const buffer_ref& chunk)
 {
+	printf("response_parser.parse(size=%ld)\n", chunk.size());
 	//::write(STDERR_FILENO, first, last - first);
 	//printf("\nSTART PROCESSING:\n");
 
@@ -223,6 +224,7 @@ inline void response_parser::parse(const buffer_ref& chunk)
 			}
 			break;
 		case processing_content:
+			printf("response_parser.parse(state=content): size=%ld\n", offset - chunk.offset());
 			process_content(buf.ref(offset, chunk.size() - (offset - chunk.offset())));
 			return;
 		case parsing_end:

@@ -11,6 +11,13 @@ class source;
 //! \addtogroup io
 //@{
 
+enum class pump_state
+{
+	complete,
+	partial,
+	error
+};
+
 /** chunk consumer.
  *
  * A sink is a chunk consumer, e.g. by saving chunks sequentially
@@ -29,7 +36,7 @@ public:
 	 *
 	 * \return number of bytes pumped through
 	 */
-	virtual ssize_t pump(source& src) = 0;
+	virtual pump_state pump(source& src) = 0;
 };
 
 typedef std::shared_ptr<sink> sink_ptr;

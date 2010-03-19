@@ -17,7 +17,7 @@ class X0_API uppercase_filter :
 public:
 	uppercase_filter();
 
-	virtual buffer process(const buffer_ref& data);
+	virtual buffer process(const buffer_ref& data, bool eof = false);
 
 private:
 	buffer work_;
@@ -29,7 +29,7 @@ inline uppercase_filter::uppercase_filter() :
 {
 }
 
-inline buffer uppercase_filter::process(const buffer_ref& data)
+inline buffer uppercase_filter::process(const buffer_ref& data, bool eof)
 {
 	work_.clear();
 

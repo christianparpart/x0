@@ -17,7 +17,7 @@ class X0_API chunked_filter :
 public:
 	chunked_filter();
 
-	virtual buffer process(const buffer_ref& data);
+	virtual buffer process(const buffer_ref& data, bool eof);
 
 private:
 	bool finished_;

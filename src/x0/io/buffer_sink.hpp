@@ -23,9 +23,12 @@ public:
 	{
 	}
 
-	virtual ssize_t pump(source& src)
+	virtual pump_state pump(source& src)
 	{
-		return src.pull(buffer_).size();
+		if (src.pull(buffer_).empty())
+			return pump_state::complete;
+		else
+			return pump_state::partial;
 	}
 
 public:

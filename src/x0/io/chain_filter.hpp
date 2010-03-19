@@ -16,7 +16,7 @@ class X0_API chain_filter :
 	public filter
 {
 public:
-	virtual buffer process(const buffer_ref& input);
+	virtual buffer process(const buffer_ref& input, bool eof = false);
 
 public:
 	void push_back(filter_ptr f);

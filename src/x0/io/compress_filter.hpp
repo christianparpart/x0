@@ -52,7 +52,7 @@ protected:
 public:
 	explicit deflate_filter(int level);
 
-	virtual buffer process(const buffer_ref& data);
+	virtual buffer process(const buffer_ref& data, bool eof = false);
 
 private:
 	z_stream z_;
@@ -81,7 +81,7 @@ class bzip2_filter :
 public:
 	explicit bzip2_filter(int level);
 
-	virtual buffer process(const buffer_ref& data);
+	virtual buffer process(const buffer_ref& data, bool eof = false);
 
 private:
 	bz_stream bz_;

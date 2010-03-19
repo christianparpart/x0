@@ -255,13 +255,13 @@ private:
 				status = response::not_found;
 
 			if (!content_forbidden())
-				write(make_default_content(), std::bind(&response::finished, this, std::placeholders::_1));
+				write(make_default_content(), std::bind(&response::finished0, this, std::placeholders::_1));
 			else
-				connection_->async_write(serialize(), std::bind(&response::finished, this, std::placeholders::_1));
+				connection_->async_write(serialize(), std::bind(&response::finished0, this, std::placeholders::_1));
 		}
 		else
 		{
-			finished(0);
+			finished0(0);
 		}
 	}
 
@@ -295,7 +295,8 @@ private:
 
 	source_ptr make_default_content();
 
-	void finished(int ec);
+	void finished0(int ec);
+	void finished1(int ec);
 };
 
 // {{{ inline implementation
@@ -340,9 +341,7 @@ inline void response::write_content(const source_ptr& content, const completion_
 	if (filter_chain.empty())
 		connection_->async_write(content, handler);
 	else
-	{
 		connection_->async_write(std::make_shared<filter_source>(content, filter_chain), handler);
-	}
 }
 
 /** checks wether given code MUST NOT have a response body. */

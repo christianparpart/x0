@@ -20,7 +20,7 @@ deflate_filter::deflate_filter(int level) :
 {
 }
 
-buffer deflate_filter::process(const buffer_ref& input)
+buffer deflate_filter::process(const buffer_ref& input, bool /*eof*/)
 {
 	if (input.empty())
 		return buffer();
@@ -76,7 +76,7 @@ bzip2_filter::bzip2_filter(int level) :
 }
 
 
-buffer bzip2_filter::process(const buffer_ref& input)
+buffer bzip2_filter::process(const buffer_ref& input, bool /*eof*/)
 {
 	if (input.empty())
 		return buffer();

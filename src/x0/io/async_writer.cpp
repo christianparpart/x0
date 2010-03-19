@@ -41,18 +41,18 @@ private:
 	{
 		for (;;)
 		{
-			ssize_t rv = sink_->pump(*source_);
+			pump_state rv = sink_->pump(*source_); // true=complete,false=error,det=partial
 			//DEBUG("writer(%p).pump: %ld; %s", this, rv, rv < 0 ? strerror(errno) : "");
         
-			if (rv > 0)
+			if (rv == pump_state::partial)
 			{
 				// we wrote something (if not even all)
-				bytes_transferred_ += rv;
+				bytes_transferred_ += 0; // TODO
 			}
-			else if (rv == 0)
+			else if (rv == pump_state::complete)
 			{
-				// finished
-				handler_(rv, bytes_transferred_);
+				// finished in success
+				handler_(0, bytes_transferred_);
 				delete this;
 				break;
 			}
@@ -60,6 +60,13 @@ private:
 			{
 				// call back as soon as sink is ready for more writes
 				sink_->connection()->on_ready(std::bind(&async_writer::callback, this, std::placeholders::_1), ev::WRITE);
+				break;
+			}
+			else
+			{
+				// an error occurred
+				handler_(-1, bytes_transferred_);
+				delete this;
 				break;
 			}
 		}

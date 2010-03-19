@@ -190,11 +190,22 @@ std::string response::status_str(int value)
 	return std::string(status_cstr(value));
 }
 
+void response::finished0(int ec)
+{
+	DEBUG("response(%p).finished(%d)", this, ec);
+
+	if (filter_chain.empty())
+		finished1(ec);
+	else
+		connection_->async_write(std::make_shared<filter_source>(filter_chain),
+			std::bind(&response::finished1, this, std::placeholders::_1));
+}
+
 /** handler, being invoked when this response has been fully flushed and is considered done.
  */
-void response::finished(int ec)
+void response::finished1(int ec)
 {
-	//DEBUG("response(%p).finished(%d)", this, ec);
+	DEBUG("response(%p).finished_next(%d)", this, ec);
 
 	{
 		server& srv = request_->connection.server();
