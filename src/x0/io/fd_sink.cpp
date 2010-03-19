@@ -31,10 +31,7 @@ ssize_t fd_sink::pump(source& src)
 
 	std::size_t remaining = buf_.size() - offset_;
 	if (!remaining)
-	{
-		printf("fd_sink.pump(%d): EOF\n", handle_);
 		return 0;
-	}
 
 	ssize_t nwritten = ::write(handle_, buf_.data() + offset_, remaining);
 

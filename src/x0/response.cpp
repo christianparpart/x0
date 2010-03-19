@@ -192,7 +192,7 @@ std::string response::status_str(int value)
 
 void response::finished0(int ec)
 {
-	DEBUG("response(%p).finished(%d)", this, ec);
+	//DEBUG("response(%p).finished(%d)", this, ec);
 
 	if (filter_chain.empty())
 		finished1(ec);
@@ -205,7 +205,7 @@ void response::finished0(int ec)
  */
 void response::finished1(int ec)
 {
-	DEBUG("response(%p).finished_next(%d)", this, ec);
+	//DEBUG("response(%p).finished_next(%d)", this, ec);
 
 	{
 		server& srv = request_->connection.server();
