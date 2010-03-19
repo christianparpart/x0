@@ -10,16 +10,15 @@
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
 #include <x0/process.hpp>
+#include <x0/response_parser.hpp>
 #include <x0/io/buffer_source.hpp>
 #include <x0/types.hpp>
+#include <x0/sysconfig.h>
 
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/signal.hpp>
-#include <boost/bind.hpp>
 
 #include <algorithm>
 #include <string>
@@ -68,128 +67,6 @@
  *
  */
 
-// {{{ cgi_response_parser
-class cgi_response_parser :
-	public boost::noncopyable
-{
-public:
-	cgi_response_parser();
-
-	boost::signal<void(const std::string&, const std::string&)> assign_header;
-	boost::signal<void(const char *, const char *)> process_content;
-
-	void process(const char *first, const char *last);
-
-private:
-	std::string name_;
-	std::string value_;
-
-	enum {
-		parsing_header_name,
-		parsing_header_value_ws_left,
-		parsing_header_value,
-		expecting_lf1,
-		expecting_cr2,
-		expecting_lf2,
-		processing_content
-	} state_;
-};
-
-inline cgi_response_parser::cgi_response_parser() :
-	assign_header(),
-	process_content(),
-	name_(),
-	value_(),
-	state_(parsing_header_name)
-{
-}
-
-inline void cgi_response_parser::process(const char *first, const char *last)
-{
-	TRACE("Processing %ld bytes (state: %d)\n", last - first, state_);
-	//::write(STDERR_FILENO, first, last - first);
-	//printf("\nSTART PROCESSING:\n");
-
-	if (state_ == processing_content)
-	{
-		process_content(first, last);
-	}
-	else
-	{
-		while (first != last)
-		{
-			switch (state_)
-			{
-				case parsing_header_name:
-					if (*first == ':')
-						state_ = parsing_header_value_ws_left;
-					else if (*first == '\n') {
-						state_ = processing_content;
-						process_content(first - name_.size(), last);
-					} else
-						name_ += *first;
-					++first;
-					break;
-				case parsing_header_value_ws_left:
-					if (!std::isspace(*first)) {
-						state_ = parsing_header_value;
-						value_.clear();
-						value_ += *first;
-					}
-					++first;
-					break;
-				case parsing_header_value:
-					if (*first == '\r') {
-						state_ = expecting_lf1;
-					} else if (*first == '\n') {
-						assign_header(name_, value_);
-						state_ = expecting_cr2;
-					} else {
-						value_ += *first;
-					}
-					++first;
-					break;
-				case expecting_lf1:
-					if (*first == '\n') {
-						assign_header(name_, value_);
-						state_ = expecting_cr2;
-					} else {
-						value_ += *first;
-					}
-					++first;
-					break;
-				case expecting_cr2:
-					if (*first == '\r')
-						state_ = expecting_lf2;
-					else if (*first == '\n')
-						state_ = processing_content;
-					else {
-						state_ = parsing_header_name;
-						name_.clear();
-						name_ += *first;
-					}
-					++first;
-					break;
-				case expecting_lf2:
-					if (*first == '\n')					// [CR] LF [CR] LF
-						state_ = processing_content;
-					else {								// [CR] LF [CR] any
-						state_ = parsing_header_name;
-						name_.clear();
-						name_ += *first;
-					}
-					++first;
-					break;
-				case processing_content:
-					process_content(first, last);
-					first = last;
-					break;
-			}
-		}
-	}
-}
-// }}}
-
 // {{{ cgi_script
 /** manages a CGI process.
  *
@@ -202,9 +79,7 @@ inline void cgi_response_parser::process(const char *first, const char *last)
  * 	}
  * \endcode
  */
-class cgi_script :
-	public boost::enable_shared_from_this<cgi_script>,
-	public boost::noncopyable
+class cgi_script
 {
 public:
 	cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram = "");
@@ -219,50 +94,62 @@ public:
 
 private:
 	/** feeds the HTTP request into the CGI's stdin pipe. */
-	void transmitted_request(const asio::error_code& ec, std::size_t bytes_transferred);
+	void transmit_request_body(ev::io& w, int revents);
 
 	/** consumes the CGI's HTTP response header and body, validates and possibly modifies it, and then passes it to the actual client. */
-	void receive_response(const asio::error_code& ec, std::size_t bytes_transferred);
+	void receive_response(ev::io& w, int revents);
 
 	/** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
-	void receive_error(const asio::error_code& ec, std::size_t bytes_transferred);
+	void receive_error(ev::io& w, int revents);
 
-	void assign_header(const std::string& name, const std::string& value);
-	void process_content(const char *first, const char *last);
-	void content_written(const asio::error_code& ec, std::size_t bytes_transferred);
+	void assign_header(const x0::buffer_ref& name, const x0::buffer_ref& value);
+	void process_content(const x0::buffer_ref& content);
 
-	void destroy(bool hard);
+	void content_written(int ec, std::size_t nb);
 
 private:
+	struct ev_loop *loop_;
+
 	x0::request *request_;
 	x0::response *response_;
 	std::string hostprogram_;
 
 	x0::process process_;
-	boost::array<char, 4096> outbuf_;
-	boost::array<char, 4096> errbuf_;
+	x0::buffer outbuf_;
+	x0::buffer errbuf_;
 
-	cgi_response_parser response_parser_;
+	x0::response_parser response_parser_;
 	unsigned long long serial_;				//!< used to detect wether the cgi process actually generated a response or not.
 
-	asio::deadline_timer ttl_;
+	ev::io inwatch_;
+	ev::io outwatch_;
+	ev::io errwatch_;
+	ev::timer ttl_;
+
 	std::function<void()> done_;			//!< should call at least next.done()
 	bool destroy_pending_;
 };
 
-cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram)
-  : request_(in), response_(out), hostprogram_(hostprogram),
-	process_(in->connection.server().io_service()),
+cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram) :
+	loop_(in->connection.server().loop()),
+	request_(in),
+	response_(out),
+	hostprogram_(hostprogram),
+	process_(loop_),
 	outbuf_(), errbuf_(),
-	response_parser_(),
+	response_parser_(x0::response_parser::SKIP_STATUS),
 	serial_(0),
-	ttl_(in->connection.server().io_service()),
-	done_(done)
+	inwatch_(loop_),
+	outwatch_(loop_),
+	errwatch_(loop_),
+	ttl_(loop_),
+	done_(done),
+	destroy_pending_(false)
 {
 	TRACE("cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_->path.str().c_str(), hostprogram_.c_str());
 
-	response_parser_.assign_header.connect(boost::bind(&cgi_script::assign_header, this, _1, _2));
-	response_parser_.process_content.connect(boost::bind(&cgi_script::process_content, this, _1, _2));
+	response_parser_.assign_header = std::bind(&cgi_script::assign_header, this, std::placeholders::_1, std::placeholders::_2);
+	response_parser_.process_content = std::bind(&cgi_script::process_content, this, std::placeholders::_1); // XXX shouldn't be needede
 }
 
 cgi_script::~cgi_script()
@@ -322,8 +209,8 @@ inline void cgi_script::async_run()
 	environment["REQUEST_URI"] = request_->uri;
 
 	//environment["REMOTE_HOST"] = "";  // optional
-	environment["REMOTE_ADDR"] = request_->connection.client_ip();
-	environment["REMOTE_PORT"] = boost::lexical_cast<std::string>(request_->connection.client_port());
+	environment["REMOTE_ADDR"] = request_->connection.remote_ip();
+	environment["REMOTE_PORT"] = boost::lexical_cast<std::string>(request_->connection.remote_port());
 
 	//environment["AUTH_TYPE"] = "";
 	//environment["REMOTE_USER"] = "";
@@ -332,19 +219,19 @@ inline void cgi_script::async_run()
 	if (request_->body.empty())
 	{
 		environment["CONTENT_LENGTH"] = "0";
-		process_.input().close();
+		::close(process_.input());
 	}
 	else
 	{
 		environment["CONTENT_TYPE"] = request_->header("Content-Type");
 		environment["CONTENT_LENGTH"] = request_->header("Content-Length");
 
-		asio::async_write(process_.input(), asio::buffer(request_->body),
-			boost::bind(&cgi_script::transmitted_request, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
+		inwatch_.set<cgi_script, &cgi_script::transmit_request_body>(this);
+		inwatch_.start(process_.input(), ev::WRITE);
 	}
 
-#if X0_SSL
-	if (request_->connection.secure())
+#if defined(WITH_SSL)
+	if (request_->connection.ssl_enabled())
 	{
 		environment["HTTPS"] = "1";
 	}
@@ -379,122 +266,130 @@ inline void cgi_script::async_run()
 	// }}}
 
 	// redirect process_'s stdout/stderr to own member functions to handle its response
-	asio::async_read(process_.output(), asio::buffer(outbuf_),
-		boost::bind(&cgi_script::receive_response, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
+	outwatch_.set<cgi_script, &cgi_script::receive_response>(this);
+	outwatch_.start(process_.output(), ev::READ);
 
-	asio::async_read(process_.error(), asio::buffer(errbuf_),
-		boost::bind(&cgi_script::receive_error, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
+	errwatch_.set<cgi_script, &cgi_script::receive_error>(this);
+	errwatch_.start(process_.output(), ev::READ);
 
 	// actually start child process
 	process_.start(hostprogram, params, environment, workdir);
 }
 
-void cgi_script::transmitted_request(const asio::error_code& ec, std::size_t bytes_transferred)
+void cgi_script::transmit_request_body(ev::io& /*w*/, int revents)
 {
-	TRACE("cgi_script::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_->body.size());
-	process_.input().close();
+	//TRACE("cgi_script::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_->body.size());
+	//::close(process_.input());
 }
 
-void cgi_script::receive_response(const asio::error_code& ec, std::size_t bytes_transferred)
+void cgi_script::receive_response(ev::io& /*w*/, int revents)
 {
-	TRACE("cgi_script::receive_response(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
+	std::size_t lower_bound = outbuf_.size();
 
-	if (bytes_transferred)
+	if (lower_bound == outbuf_.capacity())
+		outbuf_.capacity(outbuf_.capacity() + 4096);
+
+	int rv = ::read(process_.output(), outbuf_.end(), outbuf_.capacity() - lower_bound);
+
+	if (rv > 0)
 	{
-		response_parser_.process(outbuf_.data(), outbuf_.data() + bytes_transferred);
+		//TRACE("cgi_script.receive_response(): read %d bytes\n", rv);
+
+		outbuf_.resize(lower_bound + rv);
+		response_parser_.parse(outbuf_.ref(lower_bound, rv));
 		serial_++;
 	}
-
-	if (!ec)
+	else if (rv == 0)
 	{
-		asio::async_read(process_.output(), asio::buffer(outbuf_),
-			boost::bind(&cgi_script::receive_response, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
+		//TRACE("CGI: closing stdout\n");
+		outwatch_.stop();
+		delete this;
 	}
-	else if (ec != asio::error::operation_aborted)
+	else // if (rv < 0)
 	{
-		if (!serial_)
+		if (rv != EINTR && rv != EAGAIN)
 		{
-			response_->status = x0::response::internal_server_error;
-			request_->connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
-		}
+			TRACE("CGI: stdout: %s\n", strerror(errno));
+			outwatch_.stop();
 
-		destroy(false);
+			if (!serial_)
+			{
+				response_->status = x0::response::internal_server_error;
+				request_->connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
+			}
+			delete this;
+		}
 	}
 }
 
-void cgi_script::receive_error(const asio::error_code& ec, std::size_t bytes_transferred)
+void cgi_script::receive_error(ev::io& /*w*/, int revents)
 {
-	TRACE("cgi_script::receive_error(%s, %ld)\n", ec.message().c_str(), bytes_transferred);
+	//TRACE("cgi_script::receive_error()\n");
 
-	if (!ec)
+	int rv = ::read(process_.error(), (char *)errbuf_.data(), errbuf_.capacity());
+
+	if (rv > 0)
 	{
-		if (bytes_transferred)
-		{
-			// maybe i should cache it and then log it line(s)-wise
-			std::string msg(outbuf_.data(), outbuf_.data() + bytes_transferred);
-			request_->connection.server().log(x0::severity::error, "CGI script error: %s", msg.c_str());
-		}
-
-		asio::async_read(process_.error(), asio::buffer(errbuf_),
-			boost::bind(&cgi_script::receive_error, this, asio::placeholders::error, asio::placeholders::bytes_transferred));
+		//TRACE("read %d bytes: %s\n", rv, errbuf_.data());
+		errbuf_.resize(rv);
+		request_->connection.server().log(x0::severity::error, "CGI script error: %s", errbuf_.str().c_str());
+	} else if (rv == 0) {
+		//TRACE("CGI: closing stderr\n");
+		errwatch_.stop();
+	} else {
+		TRACE("receive_error (rv=%d) %s\n", rv, strerror(errno));
 	}
 }
 
-void cgi_script::assign_header(const std::string& name, const std::string& value)
+void cgi_script::assign_header(const x0::buffer_ref& name, const x0::buffer_ref& value)
 {
-	TRACE("assign_header(\"%s\", \"%s\")\n", name.c_str(), value.c_str());
+	//TRACE("assign_header(\"%s\", \"%s\")\n", name.str().c_str(), value.str().c_str());
 
 	if (name == "Status")
 	{
-		response_->status = boost::lexical_cast<int>(value);
+		response_->status = boost::lexical_cast<int>(value.str());
 	}
 	else 
 	{
 		if (name == "Location")
 			response_->status = 302;
 
-		response_->headers.push_back(name, value);
+		response_->headers.push_back(name.str(), value.str());
 	}
 }
 
-void cgi_script::process_content(const char *first, const char *last)
+void cgi_script::process_content(const x0::buffer_ref& value)
 {
-	TRACE("process_content(length=%ld)\n", last - first);
+	//TRACE("process_content(length=%ld) (%s)\n", value.size(), value.str().c_str());
+
+	outwatch_.stop();
 
 	response_->write(
-		std::make_shared<x0::buffer_source>(x0::buffer::from_copy(first, last - first)),
+		std::make_shared<x0::buffer_source>(value),
 		std::bind(&cgi_script::content_written, this, std::placeholders::_1, std::placeholders::_2)
 	);
 }
 
 /** completion handler for the response content stream.
  */
-void cgi_script::content_written(const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+void cgi_script::content_written(int ec, std::size_t nb)
 {
-	TRACE("content_written(ec=%s)\n", ec.message().c_str());
-
-	//! \todo continue reading from cgi_script
+	//TRACE("content_written(%d, %ld)\n", ec, nb);
 
 	if (ec)
 	{
 		// kill cgi script as client disconnected.
-		// kill(SIGTERM, pid)
+		process_.terminate();
 	}
 
 	if (destroy_pending_)
-		destroy(true);
-}
-
-/** initiates destruction of this object, or even actually destructs right now. */
-void cgi_script::destroy(bool hard)
-{
-	if (!hard)
 	{
-		destroy_pending_ = true;
-	}
-	else //if (!serial_)
-	{
+		TRACE("destroy pending!\n");
 		delete this;
+	}
+	else
+	{
+		outwatch_.start();
 	}
 }
 // }}}
