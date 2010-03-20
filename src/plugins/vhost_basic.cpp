@@ -54,13 +54,14 @@ private:
 
 	struct vhost_config
 	{
+		std::string name;
 		std::string document_root;
 	};
 
 	struct server_config
 	{
-		std::string default_hostid;
 		std::map<std::string, vhost_config *> mappings; // [hostname:port] -> vhost_config
+		std::map<int, vhost_config *> default_hosts; // [port] -> vhost_config
 	};
 
 public:
@@ -68,6 +69,7 @@ public:
 		x0::plugin(srv, name)
 	{
 		c = server_.resolve_document_root.connect(boost::bind(&vhost_basic_plugin::resolve_document_root, this, _1));
+		server_.create_context<server_config>(this);
 	}
 
 	~vhost_basic_plugin()
@@ -75,20 +77,68 @@ public:
 		server_.resolve_document_root.disconnect(c);
 	}
 
-	virtual void configure()
+	/** maps domain-name to given vhost config.
+	 * \retval true success
+	 * \retval false failed, there is already a vhost assigned to this name.
+	 */
+	bool register_vhost(const std::string& name, vhost_config *cfg)
+	{
+		//DEBUG("Registering vhost: %s [%s]\n", name.c_str(), cfg->name.c_str());
+		server_config& srvcfg = server_.context<server_config>(this);
+
+		if (srvcfg.mappings.find(name) == srvcfg.mappings.end())
+		{
+			srvcfg.mappings.insert({{name, cfg}});
+			return true;
+		}
+		return false;
+	}
+
+	void set_default_vhost(int port, vhost_config *cfg)
+	{
+#if 0 // !defined(NDEBUG)
+		server_.log(x0::severity::debug, "set default host '%s'", cfg->name.c_str());
+#endif
+
+		server_config& srvcfg = server_.context<server_config>(this);
+		srvcfg.default_hosts[port] = cfg;
+	}
+
+	vhost_config *get_default_vhost(int port)
+	{
+		server_config& srvcfg = server_.context<server_config>(this);
+		auto i = srvcfg.default_hosts.find(port);
+
+		if (i != srvcfg.default_hosts.end())
+			return i->second;
+
+		return NULL;
+	}
+
+	vhost_config *get_vhost(const std::string& name)
+	{
+		server_config& srvcfg = server_.context<server_config>(this);
+
+		auto vh = srvcfg.mappings.find(name);
+		if (vh != srvcfg.mappings.end())
+			return vh->second;
+
+		return NULL;
+	}
+
+	virtual void configure() // {{{
 	{
 		auto hosts = server_.config()["Hosts"].keys<std::string>();
 		if (hosts.empty())
+		{
+			server_.log(x0::severity::notice, "vhost_basic: no virtual hosts configured");
 			return; // no hosts configured
+		}
 
 		std::string default_bind("0::0");
 		server_.config().load("BindAddress", default_bind);
 
-		server_config& srvcfg = server_.create_context<server_config>(this);
-
-		server_.config().load("DefaultHost", srvcfg.default_hostid);
-
-		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
+		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i) // {{{ register vhosts
 		{
 			std::string hostid = x0::make_hostid(*i);
 			int port = x0::extract_port_from_hostid(hostid);
@@ -96,11 +146,49 @@ public:
 			auto aliases = server_.config()["Hosts"][hostid]["ServerAliases"].as<std::vector<std::string>>();
 			std::string document_root = server_.config()["Hosts"][hostid]["DocumentRoot"].as<std::string>();
 			std::string bind = server_.config()["Hosts"][hostid]["BindAddress"].get<std::string>(default_bind);
+			bool is_default = server_.config()["Hosts"][hostid]["Default"].get<bool>(false);
 
-			//server_.log(x0::severity::debug, "port=%d: hostid[%s]: document_root[%s], alias-count=%d",
-			//	port, hostid.c_str(), document_root.c_str(), aliases.size());
+#if 0 // !defined(NDEBUG)
+			server_.log(x0::severity::debug, "port=%d: hostid[%s]: document_root[%s], alias-count=%d",
+				port, hostid.c_str(), document_root.c_str(), aliases.size());
+#endif
+
+			if (document_root.empty())
+			{
+				char msg[256];
+				std::snprintf(msg, sizeof(msg),
+					"vhost_basic[%s]: document root must not be empty.",
+					hostid.c_str());
+
+				throw std::runtime_error(msg);
+			}
+
+			if (document_root[0] != '/')
+			{
+				server_.log(x0::severity::warn,
+					"vhost_basic[%s]: document root should be an absolute path: '%s'",
+					hostid.c_str(), document_root.c_str());
+			}
+
+			// validate is_default-flag
+			if (is_default)
+			{
+				if (vhost_config *vhost = get_default_vhost(port))
+				{
+					char msg[256];
+
+					std::snprintf(msg, sizeof(msg),
+							"Cannot declare multiple virtual hosts as default "
+							"with same port (%d). Conflicting hostnames: %s, %s.",
+							port, vhost->name.c_str(), hostid.c_str());
+
+					throw std::runtime_error(msg);
+				}
+			}
 
 			vhost_config& cfg = server_.create_context<vhost_config>(this, hostid);
+
+			cfg.name = hostid;
 			cfg.document_root = document_root;
 
 #if defined(WITH_SSL)
@@ -119,83 +207,76 @@ public:
 			server_.setup_listener(port, bind);
 #endif
 
-			// insert primary [hostname:port]
-			srvcfg.mappings.insert({ {hostid, &cfg} });
+			// register primary [hostname:port]
+			if (!register_vhost(hostid, &cfg))
+			{
+				char msg[1024];
+				snprintf(msg, sizeof(msg), "Server name '%s' already in use.", hostid.c_str());
+				throw std::runtime_error(msg);
+			}
 
 			// register vhost aliases
 			for (auto k = aliases.begin(), m = aliases.end(); k != m; ++k)
 			{
 				std::string hid(x0::make_hostid(*k, port));
 
-				auto f = srvcfg.mappings.find(hid);
-				if (f == srvcfg.mappings.end())
-				{
-					srvcfg.mappings[hid] = &cfg;
-					server_.link_context(hostid, hid);
-
-					//server_.log(x0::severity::debug, "Server alias '%s' (for bind '%s' on port %d) added.", hid.c_str(), bind.c_str(), port);
-				}
-				else
+				if (!register_vhost(hid, &cfg))
 				{
 					char msg[1024];
 					snprintf(msg, sizeof(msg), "Server alias '%s' already in use.", hid.c_str());
 					throw std::runtime_error(msg);
 				}
-			}
-		}
 
-		// make sure the default-host has been defined (if specified)
-		if (!srvcfg.default_hostid.empty())
+				server_.link_context(hostid, hid);
+
+#if 0 // !defined(NDEBUG)
+				server_.log(x0::severity::debug,
+					"Server alias '%s' (for bind '%s' on port %d) added.",
+					hid.c_str(), bind.c_str(), port);
+#endif
+			}
+
+			if (is_default)
+				set_default_vhost(port, &cfg);
+		} // }}}
+
+		// sanitiy-check listeners: every listener must have a default 
+		for (auto i = server_.listeners().begin(), e = server_.listeners().end(); i != e; ++i)
 		{
-			auto vhost = srvcfg.mappings.find(srvcfg.default_hostid);
-
-			if (vhost == srvcfg.mappings.end())
+			if (!get_default_vhost((*i)->port()))
 			{
-				char msg[1024];
-				snprintf(msg, sizeof(msg), "DefaultHost '%s' not defined.", srvcfg.default_hostid.c_str());
-				throw std::runtime_error(msg);
+				server_.log(x0::severity::warn,
+					"No default host defined for listener at port %d.",
+					(*i)->port());
 			}
 		}
-	}
+	} // }}}
 
 private:
 	void resolve_document_root(x0::request *in)
 	{
-		try
+		std::string hostid(in->hostid());
+
+		vhost_config *vhost = get_vhost(hostid);
+		if (!vhost)
 		{
-			std::string hostid(in->hostid());
-
-			server_config& srvcfg = server_.context<server_config>(this);
-
-			auto vhost = srvcfg.mappings.find(hostid);
-			if (vhost == srvcfg.mappings.end())
+			vhost = get_default_vhost(in->connection.local_port());
+			if (!vhost)
 			{
-				if (srvcfg.default_hostid.empty())
-					return;
-
-				vhost = srvcfg.mappings.find(srvcfg.default_hostid);
-			}
-
-			in->document_root = vhost->second->document_root;
-
-#if 0 //!defined(NDEBUG)
-			server_.log(x0::severity::debug, "vhost_basic: resolved [%s] to document_root [%s]",
-				hostid.c_str(), in->document_root.c_str());
+#if !defined(NDEBUG)
+				server_.log(x0::severity::debug,
+						"vhost_basic: no vhost config found for [%s]",
+						hostid.c_str());
 #endif
-		}
-		catch (const x0::host_not_found&)
-		{
-			try
-			{
-				// resolve to default host's document root
-				std::string hostid(server_.context<server_config>(this).default_hostid);
-				in->document_root = server_.context<vhost_config>(this, hostid).document_root;
 
-				//server_.log(x0::severity::debug, "vhost_basic: resolved [%s] to document_root [%s] (via default vhost)",
-				//	hostid.c_str(), in->document_root.c_str());
+				return;
 			}
-			catch (...) {}
+			in->set_hostid(vhost->name);
 		}
+
+		in->document_root = vhost->document_root;
+
+		//DEBUG("vhost_basic: resolved [%s] to document_root [%s]", hostid.c_str(), in->document_root.c_str());
 	}
 };
 
