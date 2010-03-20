@@ -46,6 +46,11 @@ private:
 	map_type data_;
 
 public:
+	bool empty() const
+	{
+		return data_.empty();
+	}
+
 	iterator find(plugin *p)
 	{
 		return data_.find(p);
