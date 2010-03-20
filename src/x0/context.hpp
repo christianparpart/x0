@@ -36,12 +36,6 @@ public:
 	typedef std::map<plugin *, void *> map_type;
 	typedef map_type::iterator iterator;
 
-	class not_found_error : public std::exception
-	{
-	public:
-		virtual const char *what() const throw() { return "no context data found."; }
-	};
-
 private:
 	map_type data_;
 
@@ -67,10 +61,10 @@ public:
 	}
 
 	template<class T>
-	T& set(plugin *p, T *d)
+	T *set(plugin *p, T *d)
 	{
 		data_[p] = d;
-		return *d;
+		return d;
 	}
 
 	void set(plugin *p, void *d)
@@ -79,13 +73,13 @@ public:
 	}
 
 	template<typename T>
-	T& get(plugin *p)
+	T *get(plugin *p)
 	{
 		auto i = data_.find(p);
 		if (i != data_.end())
-			return *static_cast<T *>(i->second);
+			return static_cast<T *>(i->second);
 
-		throw not_found_error();
+		return NULL;
 	}
 
 	template<typename T>

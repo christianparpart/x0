@@ -60,7 +60,7 @@ public:
 			if (server_.config()["Hosts"][*i]["Aliases"].load(aliases)
 			 || server_.config()["Aliases"].load(aliases))
 			{
-				server_.create_context<context>(this, *i).aliases = aliases;
+				server_.create_context<context>(this, *i)->aliases = aliases;
 			}
 		}
 	}
@@ -68,14 +68,10 @@ public:
 private:
 	inline aliasmap_type *get_aliases(x0::request *in)
 	{
-		try
-		{
-			return &server_.context<context>(this, in->hostid()).aliases;
-		}
-		catch (...)
-		{
-			return 0;
-		}
+		if (auto p = server_.context<context>(this, in->hostid()))
+			return &p->aliases;
+
+		return 0;
 	}
 
 	void resolve_entity(x0::request *in)

@@ -73,15 +73,10 @@ private:
 
 	logstream *getlogstream(x0::request *in)
 	{
-		try
-		{
-			context& ctx = server_.context<context>(this, in->hostid());
-			return ctx.stream;
-		}
-		catch (...)
-		{
-			return 0;
-		}
+		if (context *ctx = server_.context<context>(this, in->hostid()))
+			return ctx->stream;
+
+		return 0;
 	}
 
 private:
@@ -110,16 +105,16 @@ public:
 		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
 		{
 			std::string hostid(*i);
-			context& ctx = server_.create_context<context>(this, hostid);
+			context *ctx = server_.create_context<context>(this, hostid);
 
 			std::string filename;
 			if (server_.config()["Hosts"][hostid]["AccessLog"].load(filename))
 			{
-				ctx.stream = getlogstream(filename);
+				ctx->stream = getlogstream(filename);
 			}
 			else if (has_global)
 			{
-				ctx.stream = getlogstream(default_filename);
+				ctx->stream = getlogstream(default_filename);
 			}
 		}
 	}

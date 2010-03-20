@@ -84,11 +84,11 @@ public:
 	bool register_vhost(const std::string& name, vhost_config *cfg)
 	{
 		//DEBUG("Registering vhost: %s [%s]\n", name.c_str(), cfg->name.c_str());
-		server_config& srvcfg = server_.context<server_config>(this);
+		server_config *srvcfg = server_.context<server_config>(this);
 
-		if (srvcfg.mappings.find(name) == srvcfg.mappings.end())
+		if (srvcfg->mappings.find(name) == srvcfg->mappings.end())
 		{
-			srvcfg.mappings.insert({{name, cfg}});
+			srvcfg->mappings.insert({{name, cfg}});
 			return true;
 		}
 		return false;
@@ -100,16 +100,16 @@ public:
 		server_.log(x0::severity::debug, "set default host '%s'", cfg->name.c_str());
 #endif
 
-		server_config& srvcfg = server_.context<server_config>(this);
-		srvcfg.default_hosts[port] = cfg;
+		server_config *srvcfg = server_.context<server_config>(this);
+		srvcfg->default_hosts[port] = cfg;
 	}
 
 	vhost_config *get_default_vhost(int port)
 	{
-		server_config& srvcfg = server_.context<server_config>(this);
-		auto i = srvcfg.default_hosts.find(port);
+		server_config *srvcfg = server_.context<server_config>(this);
+		auto i = srvcfg->default_hosts.find(port);
 
-		if (i != srvcfg.default_hosts.end())
+		if (i != srvcfg->default_hosts.end())
 			return i->second;
 
 		return NULL;
@@ -117,10 +117,10 @@ public:
 
 	vhost_config *get_vhost(const std::string& name)
 	{
-		server_config& srvcfg = server_.context<server_config>(this);
+		server_config *srvcfg = server_.context<server_config>(this);
 
-		auto vh = srvcfg.mappings.find(name);
-		if (vh != srvcfg.mappings.end())
+		auto vh = srvcfg->mappings.find(name);
+		if (vh != srvcfg->mappings.end())
 			return vh->second;
 
 		return NULL;
@@ -186,10 +186,10 @@ public:
 				}
 			}
 
-			vhost_config& cfg = server_.create_context<vhost_config>(this, hostid);
+			vhost_config *cfg = server_.create_context<vhost_config>(this, hostid);
 
-			cfg.name = hostid;
-			cfg.document_root = document_root;
+			cfg->name = hostid;
+			cfg->document_root = document_root;
 
 #if defined(WITH_SSL)
 			x0::listener *listener = server_.setup_listener(port, bind);
@@ -208,7 +208,7 @@ public:
 #endif
 
 			// register primary [hostname:port]
-			if (!register_vhost(hostid, &cfg))
+			if (!register_vhost(hostid, cfg))
 			{
 				char msg[1024];
 				snprintf(msg, sizeof(msg), "Server name '%s' already in use.", hostid.c_str());
@@ -220,7 +220,7 @@ public:
 			{
 				std::string hid(x0::make_hostid(*k, port));
 
-				if (!register_vhost(hid, &cfg))
+				if (!register_vhost(hid, cfg))
 				{
 					char msg[1024];
 					snprintf(msg, sizeof(msg), "Server alias '%s' already in use.", hid.c_str());
@@ -237,7 +237,7 @@ public:
 			}
 
 			if (is_default)
-				set_default_vhost(port, &cfg);
+				set_default_vhost(port, cfg);
 		} // }}}
 
 		// sanitiy-check listeners: every listener must have a default 

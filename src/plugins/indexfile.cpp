@@ -59,11 +59,11 @@ public:
 		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
 		{
 			std::string hostid(*i);
-			context& ctx = server_.create_context<context>(this, hostid);
+			context *ctx = server_.create_context<context>(this, hostid);
 
-			if (!server_.config()["Hosts"][hostid]["IndexFiles"].load(ctx.index_files))
+			if (!server_.config()["Hosts"][hostid]["IndexFiles"].load(ctx->index_files))
 			{
-				server_.config()["IndexFiles"].load(ctx.index_files);
+				server_.config()["IndexFiles"].load(ctx->index_files);
 			}
 		}
 	}
@@ -74,11 +74,13 @@ private:
 		if (!in->fileinfo->is_directory())
 			return;
 
-		std::string hostid(in->hostid());
-		context& ctx = server_.context<context>(this, hostid);
+		context *ctx = server_.context<context>(this, in->hostid());
+		if (!ctx)
+			return;
+
 		std::string path(in->fileinfo->filename());
 
-		for (auto i = ctx.index_files.begin(), e = ctx.index_files.end(); i != e; ++i)
+		for (auto i = ctx->index_files.begin(), e = ctx->index_files.end(); i != e; ++i)
 		{
 			std::string ipath;
 			ipath.reserve(path.length() + 1 + i->length());

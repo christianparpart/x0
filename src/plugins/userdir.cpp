@@ -47,32 +47,32 @@ public:
 
 	virtual void configure()
 	{
-		context& ctx = server_.context<context>(this);
+		context *ctx = server_.context<context>(this);
 
-		server_.config().load("UserDir.PathPrefix", ctx.prefix);
-		server_.config().load("UserDir.DocumentRoot", ctx.docroot);
+		server_.config().load("UserDir.PathPrefix", ctx->prefix);
+		server_.config().load("UserDir.DocumentRoot", ctx->docroot);
 
-		if (ctx.prefix.empty())
+		if (ctx->prefix.empty())
 		{
-			ctx.prefix = "~";
+			ctx->prefix = "~";
 		}
 
-		if (ctx.docroot.empty())
+		if (ctx->docroot.empty())
 		{
-			ctx.docroot = "/public_html";
+			ctx->docroot = "/public_html";
 		}
 		else
 		{
 			// force slash at begin
-			if (ctx.docroot[0] != '/')
+			if (ctx->docroot[0] != '/')
 			{
-				ctx.docroot.insert(0, "/");
+				ctx->docroot.insert(0, "/");
 			}
 
 			// strip slash at end
-			if (ctx.docroot[ctx.docroot.size() - 1] == '/')
+			if (ctx->docroot[ctx->docroot.size() - 1] == '/')
 			{
-				ctx.docroot = ctx.docroot.substr(0, ctx.docroot.size() - 1);
+				ctx->docroot = ctx->docroot.substr(0, ctx->docroot.size() - 1);
 			}
 		}
 	}
@@ -80,11 +80,13 @@ public:
 private:
 	void resolve_entity(x0::request *in)
 	{
-		const context& ctx = server_.context<context>(this);
+		const context *ctx = server_.context<context>(this);
+		if (!ctx)
+			return;
 
-		if (in->path.size() > 2 && std::strncmp(&in->path[1], ctx.prefix.c_str(), ctx.prefix.length()) == 0)
+		if (in->path.size() > 2 && std::strncmp(&in->path[1], ctx->prefix.c_str(), ctx->prefix.length()) == 0)
 		{
-			const int prefix_len1 = ctx.prefix.length() + 1;
+			const int prefix_len1 = ctx->prefix.length() + 1;
 			const std::size_t i = in->path.find("/", prefix_len1);
 			std::string userName, userPath;
 
@@ -101,7 +103,7 @@ private:
 
 			if (struct passwd *pw = getpwnam(userName.c_str()))
 			{
-				in->document_root = pw->pw_dir + ctx.docroot;
+				in->document_root = pw->pw_dir + ctx->docroot;
 				in->fileinfo = server_.fileinfo(in->document_root + userPath);
 			}
 		}

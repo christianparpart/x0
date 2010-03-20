@@ -96,7 +96,7 @@ public:
 	// {{{ context management
 	/** create server context data for given plugin. */
 	template<typename T>
-	T& create_context(plugin *plug)
+	T *create_context(plugin *plug)
 	{
 		context_.set(plug, new T);
 		return context_.get<T>(plug);
@@ -104,7 +104,7 @@ public:
 
 	/** creates a virtual-host context for given plugin. */
 	template<typename T>
-	T& create_context(plugin *plug, const std::string& vhost)
+	T *create_context(plugin *plug, const std::string& vhost)
 	{
 		auto i = vhosts_.find(vhost);
 		if (i == vhosts_.end())
@@ -121,38 +121,37 @@ public:
 	}
 
 	/** retrieve the server configuration context. */
-	x0::context& context()
+	x0::context *context()
 	{
-		return context_;
+		return &context_;
 	}
 
 	/** retrieve server context data for given plugin
 	 * \param plug plugin data for which we want to retrieve the data for.
 	 */
 	template<typename T>
-	T& context(plugin *plug)
+	T *context(plugin *plug)
 	{
 		return context_.get<T>(plug);
 	}
 
 	/** retrieve virtual-host context data for given plugin
 	 * \param plug plugin data for which we want to retrieve the data for.
+	 * \param vhostid virtual-host ID given to the host queried for the configuration.
 	 */
 	template<typename T>
-	T& context(plugin *plug, const std::string& vhostname)
+	T *context(plugin *plug, const std::string& vhostid)
 	{
-		auto vhost = vhosts_.find(vhostname);
-
+		auto vhost = vhosts_.find(vhostid);
 		if (vhost == vhosts_.end())
-			throw host_not_found(vhostname);
+			return NULL;
 
 		auto ctx = *vhost->second;
 		auto data = ctx.find(plug);
 		if (data != ctx.end())
-			return *static_cast<T *>(data->second);
+			return static_cast<T *>(data->second);
 
-		ctx.set<T>(plug, new T);
-		return ctx.get<T>(plug);
+		return NULL;
 	}
 
 	template<typename T>

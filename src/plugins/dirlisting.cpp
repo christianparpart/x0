@@ -63,9 +63,9 @@ public:
 			if (server_.config()["Hosts"][*i]["DirectoryListing"]["Enabled"].load(enabled)
 			 || server_.config()["DirectoryListing"]["Enabled"].load(enabled))
 			{
-				context& ctx = server_.create_context<context>(this, *i);
-				ctx.enabled = enabled;
-				ctx.xsluri = server_.config()["Hosts"][*i]["DirectoryListing"]["XslUri"].get(default_uri);
+				context *ctx = server_.create_context<context>(this, *i);
+				ctx->enabled = enabled;
+				ctx->xsluri = server_.config()["Hosts"][*i]["DirectoryListing"]["XslUri"].get(default_uri);
 			}
 		}
 	}
@@ -73,36 +73,31 @@ public:
 private:
 	void dirlisting(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
-		try
+		context *ctx = server_.context<context>(this, in->hostid());
+		if (!ctx)
+			return;
+
+		if (!ctx->enabled)
+			return next();
+
+		if (!in->fileinfo->is_directory())
+			return next();
+
+		if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
 		{
-			context& ctx = server_.context<context>(this, in->hostid());
+			bool xml = !ctx->xsluri.empty();
+			x0::buffer result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
 
-			if (!ctx.enabled)
-				return next();
+			closedir(dir);
 
-			if (!in->fileinfo->is_directory())
-				return next();
+			out->status = x0::response::ok;
+			out->headers.push_back("Content-Type", xml ? "text/xml" : "text/html");
+			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
-			if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
-			{
-				bool xml = !ctx.xsluri.empty();
-				x0::buffer result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
-
-				closedir(dir);
-
-				out->status = x0::response::ok;
-				out->headers.push_back("Content-Type", xml ? "text/xml" : "text/html");
-				out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
-
-				return out->write(
-					std::make_shared<x0::buffer_source>(std::move(result)),
-					std::bind(&dirlisting_plugin::done, this, next)
-				);
-			}
-		}
-		catch (const x0::context::not_found_error&)
-		{
-			// eat up and default to `unhandled`
+			return out->write(
+				std::make_shared<x0::buffer_source>(std::move(result)),
+				std::bind(&dirlisting_plugin::done, this, next)
+			);
 		}
 		return next();
 	}
@@ -162,14 +157,14 @@ private:
 		return sstr.str();
 	}
 
-	std::string mkxml(DIR *dir, context& ctx, x0::request *in)
+	std::string mkxml(DIR *dir, context *ctx, x0::request *in)
 	{
 		std::stringstream xml;
 
 		xml << "<?xml version='1.0' encoding='" << "utf-8" << "'?>\n";
 
-		if (!ctx.xsluri.empty())
-			xml << "<?xml-stylesheet type='text/xsl' href='" << ctx.xsluri << "'?>\n";
+		if (!ctx->xsluri.empty())
+			xml << "<?xml-stylesheet type='text/xsl' href='" << ctx->xsluri << "'?>\n";
 
 		xml << "<dirlisting path='" << in->path.str() << "' tag='" << server_.tag() << "'>\n";
 

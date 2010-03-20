@@ -1,8 +1,8 @@
-/* <x0/mod_debug.cpp>
+/* <x0/plugins/compress.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
 #include <x0/server.hpp>
@@ -80,12 +80,12 @@ public:
 
 	virtual void configure()
 	{
-		context& cx = server_.create_context<context>(this);
+		context *cx = server_.create_context<context>(this);
 
-		server_.config()["Compress"]["ContentTypes"].load(cx.content_types_);
-		server_.config()["Compress"]["Level"].load(cx.level_);
-		server_.config()["Compress"]["MinSize"].load(cx.min_size_);
-		server_.config()["Compress"]["MaxSize"].load(cx.max_size_);
+		server_.config()["Compress"]["ContentTypes"].load(cx->content_types_);
+		server_.config()["Compress"]["Level"].load(cx->level_);
+		server_.config()["Compress"]["MinSize"].load(cx->min_size_);
+		server_.config()["Compress"]["MaxSize"].load(cx->max_size_);
 	}
 
 private:
@@ -94,18 +94,21 @@ private:
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content
 
+		const context *cx = server_.context<context>(this);
+		if (!cx)
+			return;
+
 		long long size = 0;
 		if (out->headers.contains("Content-Length"))
 			size = boost::lexical_cast<int>(out->headers["Content-Length"]);
 
-		const context& cx = server_.context<context>(this);
-		if (size < cx.min_size_)
+		if (size < cx->min_size_)
 			return;
 
-		if (size > cx.max_size_)
+		if (size > cx->max_size_)
 			return;
 
-		if (!cx.contains_mime(out->headers("Content-Type")))
+		if (!cx->contains_mime(out->headers("Content-Type")))
 			return;
 
 		if (x0::buffer_ref r = in->header("Accept-Encoding"))
@@ -118,7 +121,7 @@ private:
 			if (std::find(items.begin(), items.end(), "bzip2") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "bzip2");
-				out->filter_chain.push_back(std::make_shared<x0::bzip2_filter>(cx.level_));
+				out->filter_chain.push_back(std::make_shared<x0::bzip2_filter>(cx->level_));
 			}
 			else
 #endif
@@ -126,12 +129,12 @@ private:
 			if (std::find(items.begin(), items.end(), "gzip") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "gzip");
-				out->filter_chain.push_back(std::make_shared<x0::gzip_filter>(cx.level_));
+				out->filter_chain.push_back(std::make_shared<x0::gzip_filter>(cx->level_));
 			}
 			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "deflate");
-				out->filter_chain.push_back(std::make_shared<x0::deflate_filter>(cx.level_));
+				out->filter_chain.push_back(std::make_shared<x0::deflate_filter>(cx->level_));
 			}
 			else
 #endif
