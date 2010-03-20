@@ -65,6 +65,10 @@ public:
 	// utility methods
 	bool supports_protocol(int major, int minor) const;
 	std::string hostid() const;
+	void set_hostid(const std::string& custom);
+
+private:
+	mutable std::string hostid_;
 };
 
 // {{{ request impl

@@ -25,7 +25,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 0
+#if 1
 #	undef DEBUG
 #	define DEBUG(x...) /*!*/
 #endif

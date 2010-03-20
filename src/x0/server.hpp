@@ -199,6 +199,8 @@ public:
 	/** retrieves the current server time. */
 	const datetime& now() const;
 
+	const std::list<listener *>& listeners() const;
+
 private:
 	long long getrlimit(int resource);
 	long long setrlimit(int resource, long long max);
@@ -250,6 +252,11 @@ inline struct ::ev_loop *server::loop() const
 inline const x0::datetime& server::now() const
 {
 	return now_;
+}
+
+inline const std::list<listener *>& server::listeners() const
+{
+	return listeners_;
 }
 // }}}
 
