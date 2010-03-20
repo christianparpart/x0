@@ -56,8 +56,8 @@ public:
 	buffer_ref username;						///< username this client has authenticated with.
 	std::string document_root;					///< the document root directory for this request.
 
-//	std::string if_modified_since;		//!< "If-Modified-Since" request header value, if specified.
-//	std::shared_ptr<range_def> range;	//!< parsed "Range" request header
+//	std::string if_modified_since;				//!< "If-Modified-Since" request header value, if specified.
+//	std::shared_ptr<range_def> range;			//!< parsed "Range" request header
 
 	// custom data bindings
 	std::map<plugin *, custom_data_ptr> custom_data;
