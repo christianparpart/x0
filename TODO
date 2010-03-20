@@ -3,20 +3,19 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
-- VALGRIND: fix warnings about buffer_ref::find() -- there was code around already fixing that issue
-- VALGRIND: fix warnings wrt libev's ev_stat (ev.c:3119), ev_stat.attr seems uninitialized, as of valgrind.
 - FIX: SIGTERM gets catched but does not lead into process termination (event-loop does not break?)
-- IMPROVE: SSL-handshake performance, should not take up to 2.5 seconds on my netbook.
-- IMPROVE: chunked-encoding should NOT be triggered if no response content body is allowed (e.g. 400)
-- VERIFY: flexibility of configuratio nsystem
+- VALGRIND: fix warnings wrt libev's ev_stat (ev.c:3119), ev_stat.attr seems uninitialized, as of valgrind.
+- VERIFY: flexibility of configuration system
 	- plugins/core should provide an abstract layer to the config backend, in a way, that they do not need
 		to qualify the complete path to the variable but just say ConfigKey and ideally $CONTEXT (global, vhost, path);
 	- scopes:
 		- global server context
 		- per virtual host
 		- per request path prefix
+	- server config API:
+		void variable<T>(std::string keyName, scope_map scopes, std::function<void(const T&)>& callback);
 	- runtime changing of config settings
-- RESPECT: handle request headers Keep-Alive properly (using [deadline-]timers)
+- RESPECT: handle request headers "Keep-Alive" properly (using [deadline-]timers)
 - rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
   last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
   (NOTE: why did I say that? why does mtime shard the server's "Date:"?)
@@ -25,8 +24,6 @@ QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
 CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
-- port cgi plugin to current API changes!
-	- make use of response_parser
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
 	- make use of libev's child watcher
 - plugins/cgi: pass completion handler to cgi_script::async_run(...)
