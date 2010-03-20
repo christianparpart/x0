@@ -160,7 +160,7 @@ private:
 	{
 		std::stringstream str;
 
-		str << in->method << ' ' << in->uri
+		str << in->method.str() << ' ' << in->uri.str()
 			<< " HTTP/" << in->http_version_major << '.' << in->http_version_minor;
 
 		return str.str();
