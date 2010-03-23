@@ -35,6 +35,7 @@ install(TARGETS x0test
 # -----------------------------------------------------------------
 add_executable(x0test_common
 	x0dtest.cpp
+	strutils_test.cpp
 	ternary_search_test.cpp
 	buffer_test.cpp
 	event_handler_test.cpp

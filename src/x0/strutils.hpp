@@ -112,6 +112,10 @@ std::vector<T> split(const std::basic_string<U>& list, const U *sep);
 template<typename T, typename U>
 inline bool hex2int(const T *begin, const T *end, U& result);
 
+bool parse_url(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path, std::string& query);
+bool parse_url(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path);
+bool parse_url(const std::string& spec, std::string& protocol, std::string& hostname, int& port);
+
 //@}
 
 //! \addtogroup core
