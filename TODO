@@ -16,6 +16,9 @@ QUALITY ASSURANCE TODO:
 		void variable<T>(std::string keyName, scope_map scopes, std::function<void(const T&)>& callback);
 	- runtime changing of config settings
 - RESPECT: handle request headers "Keep-Alive" properly (using [deadline-]timers)
+- FIX: request parsing
+	- replace \r with \015 and \n with \012
+	- fix LWS parsing, e.g. allow headers like "name\r\n  :\r\nvalue\r\n"
 - rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
   last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
   (NOTE: why did I say that? why does mtime shard the server's "Date:"?)
