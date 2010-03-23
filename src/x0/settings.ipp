@@ -125,6 +125,15 @@ inline long long settings_value::as<long long>(int index) const
 }
 
 template<>
+inline std::size_t settings_value::as<std::size_t>(int index) const
+{
+	if (!lua_isnumber(L_, index))
+		throw "Cast Error: Expected `float`.";
+
+	return (std::size_t)lua_tonumber(L_, index);
+}
+
+template<>
 inline float settings_value::as<float>(int index) const
 {
 	if (!lua_isnumber(L_, index))
