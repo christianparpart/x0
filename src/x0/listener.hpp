@@ -55,6 +55,9 @@ public:
 	int port() const;
 	void port(int value);
 
+	int backlog() const;
+	void backlog(int value);
+
 	x0::server& server() const;
 
 #if defined(WITH_SSL)
@@ -89,6 +92,7 @@ private:
 	x0::server& server_;
 	std::string address_;
 	int port_;
+	int backlog_;
 
 #if defined(WITH_SSL)
 	bool secure_;

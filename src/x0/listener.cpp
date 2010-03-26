@@ -30,6 +30,7 @@ listener::listener(x0::server& srv) :
 	server_(srv),
 	address_(),
 	port_(-1),
+	backlog_(SOMAXCONN),
 #if defined(WITH_SSL)
 	secure_(false),
 	ssl_db_(512),
@@ -206,7 +207,7 @@ void listener::prepare()
 	if (::bind(fd_, (sockaddr *)&sin, sizeof(sin)) < 0)
 		throw std::runtime_error(strerror(errno));
 
-	if (::listen(fd_, SOMAXCONN) < 0)
+	if (::listen(fd_, backlog_) < 0)
 		throw std::runtime_error(strerror(errno));
 
 }
@@ -221,8 +222,9 @@ void listener::start()
 
 void listener::callback(ev::io& watcher, int revents)
 {
+	// TODO accept() as much until it would block.
 	connection *c = new connection(*this);
-	
+
 	c->start();
 }
 
@@ -244,6 +246,16 @@ int listener::port() const
 void listener::port(int value)
 {
 	port_ = value;
+}
+
+int listener::backlog() const
+{
+	return backlog_;
+}
+
+void listener::backlog(int value)
+{
+	backlog_ = value;
 }
 
 } // namespace x0

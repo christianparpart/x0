@@ -561,6 +561,10 @@ listener *server::setup_listener(int port, const std::string& bind_address)
 	lp->address(bind_address);
 	lp->port(port);
 
+	int value = 0;
+	if (settings_.load("Resources.MaxConnections", value))
+		lp->backlog(value);
+
 	listeners_.push_back(lp);
 
 	return lp;
