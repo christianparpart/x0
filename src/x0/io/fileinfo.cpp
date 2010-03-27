@@ -23,6 +23,9 @@ fileinfo::fileinfo(fileinfo_service& service, const std::string& filename) :
 		etag_ = service_.make_etag(*this);
 
 	mimetype_ = service_.get_mimetype(filename_);
+
+	DEBUG("fileinfo('%s') exists=%d, nlink=%d, size=%lld",
+		filename_.c_str(), exists_, watcher_.attr.st_nlink, watcher_.attr.st_size);
 }
 
 
