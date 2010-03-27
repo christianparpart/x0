@@ -7,11 +7,14 @@ fileinfo::fileinfo(fileinfo_service& service, const std::string& filename) :
 	service_(service),
 	watcher_(service.loop_),
 	filename_(filename),
-	exists_(),
+	exists_(false),
 	etag_(),
 	mtime_(),
 	mimetype_()
 {
+	if (filename_.empty())
+		return;
+
 	watcher_.set<fileinfo, &fileinfo::callback>(this);
 	watcher_.set(filename_.c_str());
 	watcher_.start();
