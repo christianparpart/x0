@@ -4,9 +4,15 @@
 #include <x0/cache.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
+#include <x0/sysconfig.h>
 #include <string>
 
-#include <ev.h>
+#include <ev++.h>
+
+#if defined(HAVE_SYS_INOTIFY_H)
+#	include <sys/inotify.h>
+#	include <sys/fcntl.h>
+#endif
 
 #if 0
 #	define FILEINFO_DEBUG(msg...) printf("fileinfo_service: " msg)
@@ -27,11 +33,15 @@ namespace x0 {
  *
  * \note this class is not thread-safe
  */
-class X0_API fileinfo_service :
-	public boost::noncopyable
+class X0_API fileinfo_service
 {
 private:
 	struct ::ev_loop *loop_;
+#if defined(HAVE_SYS_INOTIFY_H)
+	int handle_;									//!< inotify handle
+	ev::io inotify_;
+	std::map<int, std::string> wd_;
+#endif
 
 	std::map<std::string, fileinfo_ptr> cache_;		//!< cache, storing path->fileinfo pairs
 
@@ -45,6 +55,9 @@ private:
 public:
 	explicit fileinfo_service(struct ::ev_loop *loop);
 	~fileinfo_service();
+
+	fileinfo_service(const fileinfo_service&) = delete;
+	fileinfo_service& operator=(const fileinfo_service&) = delete;
 
 	fileinfo_ptr query(const std::string& filename);
 	fileinfo_ptr operator()(const std::string& filename);
@@ -71,6 +84,7 @@ private:
 
 	std::string get_mimetype(const std::string& ext) const;
 	std::string make_etag(const fileinfo& fi) const;
+	void on_inotify(ev::io& w, int revents);
 };
 
 } // namespace x0
@@ -81,21 +95,6 @@ private:
 #include <x0/io/fileinfo.hpp>
 
 namespace x0 {
-
-inline fileinfo_service::fileinfo_service(struct ::ev_loop *loop) :
-	loop_(loop),
-	cache_(),
-	etag_consider_mtime_(true),
-	etag_consider_size_(true),
-	etag_consider_inode_(false),
-	mimetypes_(),
-	default_mimetype_("text/plain")
-{
-}
-
-inline fileinfo_service::~fileinfo_service()
-{
-}
 
 inline fileinfo_ptr fileinfo_service::query(const std::string& _filename)
 {
@@ -114,7 +113,17 @@ inline fileinfo_ptr fileinfo_service::query(const std::string& _filename)
 		fi->mimetype_ = get_mimetype(filename);
 		fi->etag_ = make_etag(*fi);
 
-		cache_[filename] = fi;
+#if defined(HAVE_SYS_INOTIFY_H)
+		int rv = ::inotify_add_watch(handle_, filename.c_str(),
+				IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
+				IN_DELETE | IN_CLOSE_WRITE | IN_MOVE_SELF | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE);;
+
+		if (rv != -1)
+		{
+			cache_[filename] = fi;
+			wd_[rv] = filename;
+		}
+#endif
 
 		return fi;
 	}

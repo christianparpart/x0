@@ -3,10 +3,9 @@
 
 #include <x0/api.hpp>
 #include <x0/types.hpp>
-
 #include <string>
 #include <map>
-
+#include <sys/stat.h>
 #include <ev++.h>
 
 namespace x0 {
@@ -29,7 +28,7 @@ private:
 
 private:
 	fileinfo_service& service_;
-	ev::stat watcher_;
+	struct stat stat_;
 
 	std::string filename_;
 
@@ -65,10 +64,10 @@ public:
 	std::string last_modified() const;
 	std::string mimetype() const;
 
+	void clear();
+
 private:
 	std::string get_mime_type(std::string ext) const;
-
-	void callback(ev::stat& w, int revents);
 };
 
 //@}

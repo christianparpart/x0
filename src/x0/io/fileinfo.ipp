@@ -18,32 +18,32 @@ inline bool fileinfo::exists() const
 
 inline std::size_t fileinfo::size() const
 {
-	return watcher_.attr.st_size;
+	return stat_.st_size;
 }
 
 inline time_t fileinfo::mtime() const
 {
-	return watcher_.attr.st_mtime;
+	return stat_.st_mtime;
 }
 
 inline bool fileinfo::is_directory() const
 {
-	return S_ISDIR(watcher_.attr.st_mode);
+	return S_ISDIR(stat_.st_mode);
 }
 
 inline bool fileinfo::is_regular() const
 {
-	return S_ISREG(watcher_.attr.st_mode);
+	return S_ISREG(stat_.st_mode);
 }
 
 inline bool fileinfo::is_executable() const
 {
-	return watcher_.attr.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
+	return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
 }
 
 inline const ev_statdata *fileinfo::operator->() const
 {
-	return &watcher_.attr;
+	return &stat_;
 }
 
 inline std::string fileinfo::etag() const
@@ -55,7 +55,7 @@ inline std::string fileinfo::last_modified() const
 {
 	if (mtime_.empty())
 	{
-		if (struct tm *tm = std::gmtime(&watcher_.attr.st_mtime))
+		if (struct tm *tm = std::gmtime(&stat_.st_mtime))
 		{
 			char buf[256];
 
