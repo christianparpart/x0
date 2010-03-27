@@ -62,7 +62,7 @@ source_ptr response::make_default_content()
 			"<html>"
 			"<head><title>%s</title></head>"
 			"<body><h1>%d %s</h1></body>"
-			"</html>",
+			"</html>\r\n",
 			codeStr, status(), codeStr
 		);
 
