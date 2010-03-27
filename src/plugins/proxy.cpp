@@ -44,6 +44,7 @@
  *     IgnoreClientAbort = false;
  *     Mode = "reverse";                 -- "reverse" | "forward" | and possibly others
  *     KeepAlive = 0;                    -- keep-alive seconds to origin servers
+ *     Methods = { 'PROPFIND' };
  *     Servers = {
  *         "http://pr1.backend/"
  *     };
@@ -84,10 +85,13 @@ public:
 	std::size_t keep_alive;
 	std::vector<std::string> origins;
 	std::vector<std::string> hot_spares;
+	std::vector<std::string> allowed_methods;
 
 public:
 	proxy();
 	~proxy();
+
+	bool method_allowed(const x0::buffer_ref& method) const;
 
 	proxy_connection *acquire();
 	void release(proxy_connection *px);
@@ -165,14 +169,37 @@ proxy::proxy() :
 	keep_alive(10),
 	origins(),
 	hot_spares(),
+	allowed_methods(),
 	origins_ptr(0)
 {
 	TRACE("proxy(%p) create", this);
+
+	allowed_methods.push_back("GET");
+	allowed_methods.push_back("HEAD");
+	allowed_methods.push_back("POST");
 }
 
 proxy::~proxy()
 {
 	TRACE("proxy(%p) destroy", this);
+}
+
+bool proxy::method_allowed(const x0::buffer_ref& method) const
+{
+	if (x0::equals(method, "GET"))
+		return true;
+
+	if (x0::equals(method, "HEAD"))
+		return true;
+
+	if (x0::equals(method, "POST"))
+		return true;
+
+	for (std::vector<std::string>::const_iterator i = allowed_methods.begin(), e = allowed_methods.end(); i != e; ++i)
+		if (x0::equals(method, *i))
+			return true;
+
+	return false;
 }
 
 proxy_connection *proxy::acquire()
@@ -470,8 +497,6 @@ void proxy_connection::pass_request()
 
 	state_ = processing;
 
-	printf("DUMP(%s)END\n", write_buffer_.c_str());
-
 	io_.start(origin_, ev::WRITE);
 	timer_.start(16.0, 0.0);
 }
@@ -557,7 +582,8 @@ void proxy_connection::io(ev::io& w, int revents)
 				TRACE("write request failed(%ld): %s", rv, strerror(errno));
 
 				if (!response_->status)
-					response_->status = 503;
+					response_->status = x0::response::bad_gateway;
+
 				done_();
 				delete this;
 			}
@@ -600,12 +626,6 @@ class proxy_plugin :
 private:
 	x0::request_handler::connection c;
 
-	struct context
-	{
-		bool enabled;
-		std::string prefix;
-	};
-
 public:
 	proxy_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
@@ -640,6 +660,7 @@ public:
 			server_.config()["Hosts"][*i]["Proxy"]["BufferSize"].load(px->buffer_size);
 			server_.config()["Hosts"][*i]["Proxy"]["Origins"].load(px->origins);
 			server_.config()["Hosts"][*i]["Proxy"]["HotSpares"].load(px->hot_spares);
+			server_.config()["Hosts"][*i]["Proxy"]["Methods"].load(px->allowed_methods);
 
 			if (px->origins.empty())
 				server_.log(x0::severity::warn, "No origin servers defined for proxy at virtual-host: %s.", i->c_str());
@@ -655,6 +676,12 @@ private:
 
 		if (!px->enabled)
 			return next();
+
+		if (!px->method_allowed(in->method))
+		{
+			TRACE("method not allowed");
+			return next();
+		}
 
 		proxy_connection *connection = px->acquire();
 		connection->start(std::bind(&proxy_plugin::done, this, next), in, out);
