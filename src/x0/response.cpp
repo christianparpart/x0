@@ -181,6 +181,11 @@ const char *response::status_cstr(int value)
 		case 501: return "Not_Implemented";
 		case 502: return "Bad Gateway";
 		case 503: return "Service Unavailable";
+		case 504: return "Gateway Timed Out";
+		case 505: return "HTTP Version Not Supported";
+		case 507: return "Insufficient Storage";
+		case 509: return "Bandwidth Limit Exceeded";
+		case 510: return "Not Extended";
 		default: return "";
 	}
 }

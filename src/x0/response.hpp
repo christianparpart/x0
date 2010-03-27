@@ -92,7 +92,12 @@ public:
 		internal_server_error = 500,
 		not_implemented = 501,
 		bad_gateway = 502,
-		service_unavailable = 503
+		service_unavailable = 503,
+		gateway_timedout = 504,
+		http_version_not_supported = 505,
+		insufficient_storage = 507,
+		bandwidth_limit_exceeded = 509,
+		not_extended = 510
 	};
 	// }}}
 
