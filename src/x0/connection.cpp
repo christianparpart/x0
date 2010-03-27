@@ -264,7 +264,7 @@ void connection::start_read()
 	}
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-	if (server_.max_read_idle() != -1)
+	if (server_.max_read_idle() > 0)
 		timer_.start(server_.max_read_idle(), 0.0);
 #endif
 }
@@ -278,7 +278,7 @@ void connection::start_write()
 	}
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-	if (server_.max_write_idle() != -1)
+	if (server_.max_write_idle() > 0)
 		timer_.start(server_.max_write_idle(), 0.0);
 #endif
 }
