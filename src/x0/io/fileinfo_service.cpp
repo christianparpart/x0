@@ -43,7 +43,7 @@ fileinfo_service::~fileinfo_service()
 
 void fileinfo_service::on_inotify(ev::io& w, int revents)
 {
-	DEBUG("fileinfo_service::on_inotify()");
+	//DEBUG("fileinfo_service::on_inotify()");
 
 	char buf[4096];
 	ssize_t rv = ::read(handle_, &buf, sizeof(buf));
