@@ -128,6 +128,8 @@ private:
 				throw x0::response::forbidden;
 			}
 		}
+		else if (equals(in->method, "POST"))
+			throw x0::response::method_not_allowed;
 		else if (!equals(in->method, "HEAD"))
 			return next();
 
