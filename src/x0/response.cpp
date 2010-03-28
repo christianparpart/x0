@@ -163,20 +163,49 @@ const char *response::status_cstr(int value)
 {
 	switch (value)
 	{
+		// information
+		case 100: return "Continue";
+		case 101: return "Switching Protocols";
+		case 102: return "Processing";
+
+		// success
 		case 200: return "Ok";
 		case 201: return "Created";
 		case 202: return "Accepted";
 		case 204: return "No Content";
 		case 206: return "Partial Content";
+
+		// redirect
 		case 300: return "Multiple Choices";
 		case 301: return "Moved Permanently";
 		case 302: return "Moved Temporarily";
 		case 304: return "Not Modified";
+
+		// client errors
 		case 400: return "Bad Request";
 		case 401: return "Unauthorized";
 		case 403: return "Forbidden";
 		case 404: return "Not Found";
+		case 406: return "Not Acceptable";
+		case 407: return "Proxy Authentication Required";
+		case 408: return "Request Timeout";
+		case 409: return "Conflict";
+		case 410: return "Gone";
+		case 411: return "Length Required";
+		case 412: return "Precondition Failed";
+		case 413: return "Request Entity Too Large";
+		case 414: return "Request URI Too Long";
+		case 415: return "Unsupported Media Type";
 		case 416: return "Requested Range Not Satisfiable";
+		case 417: return "Expectaction Failed";
+		case 421: return "There Are Too Many Connections From Your Internet Address";
+		case 422: return "Unprocessable Entity";
+		case 423: return "Locked";
+		case 424: return "Failed Dependency";
+		case 425: return "Unordered Collection";
+		case 426: return "Upgrade Required";
+
+		// server errors
 		case 500: return "Internal Server Error";
 		case 501: return "Not_Implemented";
 		case 502: return "Bad Gateway";
@@ -186,6 +215,8 @@ const char *response::status_cstr(int value)
 		case 507: return "Insufficient Storage";
 		case 509: return "Bandwidth Limit Exceeded";
 		case 510: return "Not Extended";
+
+		// unknown
 		default: return "";
 	}
 }
