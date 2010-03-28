@@ -1,0 +1,12 @@
+GET /test/ HTTP/1.1
+Host: localhost:8089
+Connection: keep-alive
+
+GET /CMakeLists.txt/ HTTP/1.1
+Host: localhost:8089
+Connection: keep-alive
+
+GET / HTTP/1.1
+Host: localhost:8089
+Connection: closed
+
