@@ -29,7 +29,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) fprintf(stderr, msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -374,10 +374,10 @@ void cgi_script::process_content(const x0::buffer_ref& value)
  */
 void cgi_script::content_written(int ec, std::size_t nb)
 {
-	//TRACE("content_written(%d, %ld)\n", ec, nb);
-
 	if (ec)
 	{
+		TRACE("content_written: client error: %s\n", strerror(errno));
+
 		// kill cgi script as client disconnected.
 		process_.terminate();
 	}
