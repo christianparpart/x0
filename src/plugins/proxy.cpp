@@ -57,7 +57,7 @@
  *
  */
 
-#if 0
+#if 1
 #	define TRACE(msg...) /*!*/
 #else
 #	define TRACE(msg...) DEBUG("proxy: " msg)
@@ -290,7 +290,19 @@ void proxy_connection::on_content(const x0::buffer_ref& value)
 
 void proxy_connection::content_written(int ec, std::size_t nb)
 {
-	io_.start(origin_, ev::READ);
+	TRACE("content_written(ec=%d, nb=%ld): %s", ec, nb, ec ? strerror(errno) : "");
+
+	if (!ec)
+		io_.start(origin_, ev::READ);
+	else
+	{
+		ec = errno;
+		request_->connection.server().log(x0::severity::notice, "proxy: client %s aborted with %s.",
+				request_->connection.remote_ip().c_str(), strerror(ec));
+
+		delete this;
+	}
+
 }
 
 proxy_connection::~proxy_connection()
