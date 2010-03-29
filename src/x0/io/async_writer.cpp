@@ -24,6 +24,12 @@ public:
 	{
 	}
 
+	~async_writer()
+	{
+		// unregister from connection's on_ready handler
+		sink_->connection()->stop_io();
+	}
+
 public:
 	static void write(const std::shared_ptr<connection_sink>& snk, const source_ptr& src, const completion_handler_type& handler)
 	{
@@ -43,14 +49,16 @@ private:
 		{
 			ssize_t rv = sink_->pump(*source_); // true=complete,false=error,det=partial
 			//DEBUG("writer(%p).pump: %ld; %s", this, rv, rv < 0 ? strerror(errno) : "");
-        
+
 			if (rv > 0)
 			{
+				DEBUG("async_writer(%p): write chunk done", this);
 				// we wrote something (if not even all)
 				bytes_transferred_ += rv;
 			}
 			else if (rv == 0)
 			{
+				DEBUG("async_writer(%p): write complete", this);
 				// finished in success
 				handler_(rv, bytes_transferred_);
 				delete this;
@@ -58,14 +66,16 @@ private:
 			}
 			else if (errno == EAGAIN || errno == EINTR)
 			{
+				DEBUG("async_writer(%p): write incomplete (EINT|EAGAIN)", this);
 				// call back as soon as sink is ready for more writes
 				sink_->connection()->on_ready(std::bind(&async_writer::callback, this, std::placeholders::_1), ev::WRITE);
 				break;
 			}
 			else
 			{
+				DEBUG("async_writer(%p): write failed: %s", this, strerror(errno));
 				// an error occurred
-				handler_(rv, bytes_transferred_);
+				handler_(errno, bytes_transferred_);
 				delete this;
 				break;
 			}

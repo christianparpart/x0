@@ -84,6 +84,8 @@ public:
 	template<typename CompletionHandler>
 	void on_ready(CompletionHandler callback, int events);
 
+	void stop_io();
+
 	const x0::listener& listener() const;
 
 #if defined(WITH_SSL)
@@ -186,6 +188,18 @@ inline server& connection::server()
 inline void connection::async_write(const source_ptr& buffer, const completion_handler_type& handler)
 {
 	x0::async_write(this, buffer, handler);
+}
+
+inline void connection::stop_io()
+{
+	// reset write_some callback to not accidentally invoke something that does not wished to get notified for anymore.
+	write_some = std::function<void(connection *)>();
+
+	watcher_.stop();
+
+#if defined(WITH_CONNECTION_TIMEOUTS)
+	timer_.stop();
+#endif
 }
 
 template<typename CompletionHandler>
