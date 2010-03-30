@@ -89,6 +89,8 @@ public:
 	void enable();
 	bool is_enabled() const;
 	void disable();
+
+	std::string error() const;
 };
 // }}}
 
@@ -244,6 +246,11 @@ inline bool origin_server::is_enabled() const
 inline void origin_server::disable()
 {
 	enabled_ = false;
+}
+
+std::string origin_server::error() const
+{
+	return error_;
 }
 // }}}
 
@@ -779,17 +786,20 @@ public:
 
 			server_.config()["Hosts"][*i]["Proxy"]["Origins"].load(px->origins);
 
-			for (int i = 0; i < px->origins.size(); ++i)
+			for (std::size_t k = 0; k < px->origins.size(); ++k)
 			{
-				std::string protocol;
-				if (!x0::parse_url(origin, protocol, hostname_, port_))
+				std::string url = px->origins[k];
+				std::string protocol, hostname;
+				int port = 0;
+
+				if (!x0::parse_url(url, protocol, hostname, port))
 				{
 					TRACE("%s.", "Origin URL parse error");
 					continue;
 				}
 
-				origin_server origin(px->origins[i]);
-				if (origin.enabled())
+				origin_server origin(hostname, port);
+				if (origin.is_enabled())
 					px->origins_.push_back(origin);
 				else
 					server_.log(x0::severity::error, origin.error().c_str());
@@ -822,6 +832,8 @@ private:
 
 	void done(x0::request_handler::invokation_iterator next)
 	{
+		DEBUG("done processing request");
+
 		// we're done processing this request
 		// -> make room for possible more requests to be processed by this connection
 		next.done();
