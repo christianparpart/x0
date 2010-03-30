@@ -79,7 +79,18 @@
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
 #ifndef NDEBUG
-#	define DEBUG(msg...) do { std::printf(msg); std::printf("\n"); } while (false)
+#	include <string>
+#	include <ctime>
+#	define DEBUG(msg...) do {                               \
+		std::time_t unixtime_ = std::time(0);               \
+		if (struct tm *tm = gmtime(&unixtime_))             \
+		{                                                   \
+			char buf[256];                                  \
+			if (strftime(buf, sizeof(buf), "%T", tm) != 0)  \
+				std::printf("%s: ", buf);                   \
+		}                                                   \
+		std::printf(msg); std::printf("\n");                \
+	} while (false)
 #else
 #	define DEBUG(msg...) /*!*/
 #endif
