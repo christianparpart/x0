@@ -26,8 +26,8 @@ public:
 
 	~async_writer()
 	{
-		// unregister from connection's on_ready handler
-		sink_->connection()->stop_io();
+		// unregister from connection's on_write_ready handler
+		sink_->connection()->stop_write();
 	}
 
 public:
@@ -72,7 +72,7 @@ private:
 			{
 				DEBUG("async_writer(%p): write incomplete (EINT|EAGAIN) (%i)", this, i);
 				// call back as soon as sink is ready for more writes
-				sink_->connection()->on_ready(std::bind(&async_writer::callback, this, std::placeholders::_1), ev::WRITE);
+				sink_->connection()->on_write_ready(std::bind(&async_writer::callback, this, std::placeholders::_1));
 				break;
 			}
 			else

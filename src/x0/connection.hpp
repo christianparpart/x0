@@ -82,9 +82,9 @@ public:
 	int local_port() const;
 
 	template<typename CompletionHandler>
-	void on_ready(CompletionHandler callback, int events);
+	void on_write_ready(CompletionHandler callback);
 
-	void stop_io();
+	void stop_write();
 
 	const x0::listener& listener() const;
 
@@ -190,31 +190,11 @@ inline void connection::async_write(const source_ptr& buffer, const completion_h
 	x0::async_write(this, buffer, handler);
 }
 
-inline void connection::stop_io()
-{
-	// reset write_some callback to not accidentally invoke something that does not wished to get notified for anymore.
-	write_some = std::function<void(connection *)>();
-
-	watcher_.stop();
-
-#if defined(WITH_CONNECTION_TIMEOUTS)
-	timer_.stop();
-#endif
-}
-
 template<typename CompletionHandler>
-inline void connection::on_ready(CompletionHandler callback, int events)
+inline void connection::on_write_ready(CompletionHandler callback)
 {
 	write_some = callback;
-
-	if (events & ev::WRITE)
-	{
-		start_write();
-	}
-	else if (events & ev::READ)
-	{
-		start_read();
-	}
+	start_read();
 }
 
 inline const x0::listener& connection::listener() const

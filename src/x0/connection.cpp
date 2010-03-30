@@ -52,8 +52,6 @@ connection::connection(x0::listener& lst) :
 	, ctime_(ev_now(server_.loop()))
 #endif
 {
-	DEBUG("connection(%p)", this);
-
 	socklen_t slen = sizeof(saddr_);
 	memset(&saddr_, 0, slen);
 
@@ -61,6 +59,8 @@ connection::connection(x0::listener& lst) :
 
 	if (socket_ < 0)
 		throw std::runtime_error(strerror(errno));
+
+	DEBUG("connection(%p) fd=%d", this, socket_);
 
 	if (fcntl(socket_, F_SETFL, O_NONBLOCK) < 0)
 		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
@@ -247,9 +247,13 @@ void connection::resume()
 	request_ = new request(*this);
 
 	if (offset < buffer_.size()) // HTTP pipelining
+	{
+		DEBUG("resume(): pipelined %ld bytes", buffer_.size() - offset);
 		parse_request(offset, buffer_.size() - offset);
+	}
 	else
 	{
+		DEBUG("resume(): start read");
 		buffer_.clear();
 		start_read();
 	}
@@ -257,10 +261,20 @@ void connection::resume()
 
 void connection::start_read()
 {
-	if (state_ != reading)
+	switch (state_)
 	{
-		state_ = reading;
-		watcher_.start(socket_, ev::READ);
+		case invalid:
+			DEBUG("start_read(): start watching");
+			watcher_.set(socket_, ev::READ);
+			watcher_.start();
+			break;
+		case reading:
+			DEBUG("start_read(): continue reading (fd=%d)", socket_);
+			break;
+		case writing:
+			DEBUG("start_read(): continue reading (fd=%d) (was ev::WRITE)", socket_);
+			watcher_.set(socket_, ev::READ);
+			break;
 	}
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
@@ -273,14 +287,23 @@ void connection::start_write()
 {
 	if (state_ != writing)
 	{
+		DEBUG("start_write(): start watching");
 		state_ = writing;
-		watcher_.start(socket_, ev::WRITE);
+		watcher_.set(socket_, ev::WRITE);
 	}
+	else
+		DEBUG("start_write(): continue watching");
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	if (server_.max_write_idle() > 0)
 		timer_.start(server_.max_write_idle(), 0.0);
 #endif
+}
+
+void connection::stop_write()
+{
+	DEBUG("stop_write()");
+	start_read();
 }
 
 void connection::handle_write()
@@ -345,8 +368,16 @@ void connection::handle_read()
 
 	if (rv < 0) // error
 	{
-		DEBUG("connection::handle_read(): %s", strerror(errno));
-		delete this;
+		if (errno == EAGAIN || errno == EINTR)
+		{
+			start_read();
+			ev_unloop(server_.loop(), EVUNLOOP_ONE);
+		}
+		else
+		{
+			DEBUG("connection::handle_read(): %s", strerror(errno));
+			delete this;
+		}
 	}
 	else if (rv == 0) // EOF
 	{
@@ -355,7 +386,7 @@ void connection::handle_read()
 	}
 	else
 	{
-		;//DEBUG("connection::handle_read(): read %d bytes", rv);
+		DEBUG("connection::handle_read(): read %d bytes", rv);
 
 		buffer_.resize(lower_bound + rv);
 		parse_request(lower_bound, rv);
@@ -375,6 +406,7 @@ void connection::parse_request(std::size_t offset, std::size_t count)
 		{
 			try
 			{
+//				state_ = writing;
 				server_.handle_request(response_->request(), response_);
 			}
 			catch (const host_not_found& e)
