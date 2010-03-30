@@ -392,7 +392,7 @@ void proxy_connection::content_written(int ec, std::size_t nb)
 
 	if (!ec)
 	{
-		if (px_->write_timeout > 0)
+		if (px_->read_timeout > 0)
 			timer_.start(px_->read_timeout, 0.0);
 
 		io_.start(origin_, ev::READ);
@@ -693,7 +693,7 @@ void proxy_connection::io(ev::io& w, int revents)
 				{
 					io_.stop();
 
-					if (px_->write_timeout > 0)
+					if (px_->read_timeout > 0)
 						timer_.start(px_->read_timeout, 0.0);
 
 					io_.start(origin_, ev::READ);
