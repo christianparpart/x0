@@ -45,20 +45,24 @@ private:
 
 	void write()
 	{
+#if !defined(NDEBUG)
+		for (int i = 0; ; ++i)
+#else
 		for (;;)
+#endif
 		{
 			ssize_t rv = sink_->pump(*source_); // true=complete,false=error,det=partial
 			//DEBUG("writer(%p).pump: %ld; %s", this, rv, rv < 0 ? strerror(errno) : "");
 
 			if (rv > 0)
 			{
-				DEBUG("async_writer(%p): write chunk done", this);
+				DEBUG("async_writer(%p): write chunk done (%i)", this, i);
 				// we wrote something (if not even all)
 				bytes_transferred_ += rv;
 			}
 			else if (rv == 0)
 			{
-				DEBUG("async_writer(%p): write complete", this);
+				DEBUG("async_writer(%p): write complete (%i)", this, i);
 				// finished in success
 				handler_(rv, bytes_transferred_);
 				delete this;
@@ -66,14 +70,14 @@ private:
 			}
 			else if (errno == EAGAIN || errno == EINTR)
 			{
-				DEBUG("async_writer(%p): write incomplete (EINT|EAGAIN)", this);
+				DEBUG("async_writer(%p): write incomplete (EINT|EAGAIN) (%i)", this, i);
 				// call back as soon as sink is ready for more writes
 				sink_->connection()->on_ready(std::bind(&async_writer::callback, this, std::placeholders::_1), ev::WRITE);
 				break;
 			}
 			else
 			{
-				DEBUG("async_writer(%p): write failed: %s", this, strerror(errno));
+				DEBUG("async_writer(%p): write failed: %s (%i)", this, strerror(errno), i);
 				// an error occurred
 				handler_(errno, bytes_transferred_);
 				delete this;
