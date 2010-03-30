@@ -384,7 +384,12 @@ void proxy_connection::content_written(int ec, std::size_t nb)
 	TRACE("content_written(ec=%d, nb=%ld): %s", ec, nb, ec ? strerror(errno) : "");
 
 	if (!ec)
+	{
+		if (px_->write_timeout > 0)
+			timer_.start(px_->read_timeout, 0.0);
+
 		io_.start(origin_, ev::READ);
+	}
 	else
 	{
 		ec = errno;
@@ -600,8 +605,10 @@ void proxy_connection::pass_request()
 
 	state_ = processing;
 
+	if (px_->write_timeout > 0)
+		timer_.start(px_->write_timeout, 0.0);
+
 	io_.start(origin_, ev::WRITE);
-	timer_.start(16.0, 0.0);
 }
 
 /** callback, invoked whenever an I/O event occurs on the connection to the origin server.
@@ -678,7 +685,12 @@ void proxy_connection::io(ev::io& w, int revents)
 				if (write_offset_ == write_buffer_.size()) // request fully transmitted, let's read response then.
 				{
 					io_.stop();
+
+					if (px_->write_timeout > 0)
+						timer_.start(px_->read_timeout, 0.0);
+
 					io_.start(origin_, ev::READ);
+
 					serial_ = 0;
 				}
 			}
