@@ -265,6 +265,7 @@ void connection::start_read()
 	{
 		case invalid:
 			DEBUG("start_read(): start watching");
+			state_ = reading;
 			watcher_.set(socket_, ev::READ);
 			watcher_.start();
 			break;
@@ -272,6 +273,7 @@ void connection::start_read()
 			DEBUG("start_read(): continue reading (fd=%d)", socket_);
 			break;
 		case writing:
+			state_ = reading;
 			DEBUG("start_read(): continue reading (fd=%d) (was ev::WRITE)", socket_);
 			watcher_.set(socket_, ev::READ);
 			break;
