@@ -57,7 +57,7 @@
  *
  */
 
-#if 1
+#if 0
 #	define TRACE(msg...) /*!*/
 #else
 #	define TRACE(msg...) DEBUG("proxy: " msg)
@@ -257,7 +257,7 @@ proxy::proxy() :
 	write_timeout(8),
 	keepalive(0),
 	ignore_client_abort(false),
-	keep_alive(10),
+	keep_alive(/*10*/ 0),
 	origins(),
 	hot_spares(),
 	allowed_methods(),
