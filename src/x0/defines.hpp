@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstring>
 #include <cstdio>
+#include <ev.h>
 
 // platforms
 #if defined(_WIN32) || defined(__WIN32__)
@@ -82,13 +83,7 @@
 #	include <string>
 #	include <ctime>
 #	define DEBUG(msg...) do {                               \
-		std::time_t unixtime_ = std::time(0);               \
-		if (struct tm *tm = gmtime(&unixtime_))             \
-		{                                                   \
-			char buf[256];                                  \
-			if (strftime(buf, sizeof(buf), "%T", tm) != 0)  \
-				std::printf("%s: ", buf);                   \
-		}                                                   \
+		std::printf("%0.6f: ", ev_now(ev_default_loop(0))); \
 		std::printf(msg); std::printf("\n");                \
 	} while (false)
 #else
