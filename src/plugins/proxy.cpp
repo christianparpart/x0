@@ -63,12 +63,39 @@
 #	define TRACE(msg...) DEBUG("proxy: " msg)
 #endif
 
+class origin;
 class proxy;
 class proxy_connection;
 
+class origin_server // {{{
+{
+private:
+	sockaddr_in sa_;
+	std::string hostname_;
+	int port_;
+	bool enabled_;
+	std::string error_;
+
+public:
+	origin_server();
+	origin_server(const std::string& hostname, int port);
+
+	const std::string& hostname() const;
+	int port();
+
+	const sockaddr *address() const;
+	int size() const;
+
+	void enable();
+	bool is_enabled() const;
+	void disable();
+};
+// }}}
+
+// {{{ class proxy
 /** holds a complete proxy configuration for a specific entry point.
  */
-class proxy // {{{
+class proxy
 {
 public:
 	struct ev_loop *loop;
@@ -86,6 +113,7 @@ public:
 	std::vector<std::string> origins;
 	std::vector<std::string> hot_spares;
 	std::vector<std::string> allowed_methods;
+	std::vector<origin_server> origins_;
 
 public:
 	proxy();
@@ -155,6 +183,69 @@ private:
 	ev::io io_;								//!< I/O watcher
 	ev::timer timer_;						//!< timeout watcher
 }; // }}}
+
+// {{{ origin_server impl
+inline origin_server::origin_server() :
+	hostname_(),
+	port_(),
+	enabled_(false),
+	error_()
+{
+	memset(&sa_, 0, sizeof(sa_));
+}
+
+inline origin_server::origin_server(const std::string& hostname, int port) :
+	hostname_(hostname),
+	port_(port),
+	enabled_(true),
+	error_()
+{
+	memset(&sa_, 0, sizeof(sa_));
+	sa_.sin_family = AF_INET;
+	sa_.sin_port = htons(port_);
+
+	if (inet_pton(sa_.sin_family, hostname_.c_str(), &sa_.sin_addr) < 0)
+	{
+		error_ = strerror(errno);
+		enabled_ = false;
+	}
+}
+
+inline const std::string& origin_server::hostname() const
+{
+	return hostname_;
+}
+
+inline int origin_server::port()
+{
+	return port_;
+}
+
+inline const sockaddr *origin_server::address() const
+{
+	return reinterpret_cast<const sockaddr *>(&sa_);
+}
+
+inline int origin_server::size() const
+{
+	return sizeof(sa_);
+}
+
+inline void origin_server::enable()
+{
+	enabled_ = true;
+}
+
+inline bool origin_server::is_enabled() const
+{
+	return enabled_;
+}
+
+inline void origin_server::disable()
+{
+	enabled_ = false;
+}
+// }}}
 
 // {{{ proxy impl
 proxy::proxy() :
@@ -513,6 +604,8 @@ void proxy_connection::pass_request()
 	timer_.start(16.0, 0.0);
 }
 
+/** callback, invoked whenever an I/O event occurs on the connection to the origin server.
+ */
 void proxy_connection::io(ev::io& w, int revents)
 {
 	if (timer_.is_active())
@@ -670,11 +763,27 @@ public:
 			server_.config()["Hosts"][*i]["Proxy"]["WriteTimeout"].load(px->write_timeout);
 			server_.config()["Hosts"][*i]["Proxy"]["KeepAlive"].load(px->keepalive);
 			server_.config()["Hosts"][*i]["Proxy"]["BufferSize"].load(px->buffer_size);
-			server_.config()["Hosts"][*i]["Proxy"]["Origins"].load(px->origins);
-			server_.config()["Hosts"][*i]["Proxy"]["HotSpares"].load(px->hot_spares);
 			server_.config()["Hosts"][*i]["Proxy"]["Methods"].load(px->allowed_methods);
 
-			if (px->origins.empty())
+			server_.config()["Hosts"][*i]["Proxy"]["Origins"].load(px->origins);
+
+			for (int i = 0; i < px->origins.size(); ++i)
+			{
+				std::string protocol;
+				if (!x0::parse_url(origin, protocol, hostname_, port_))
+				{
+					TRACE("%s.", "Origin URL parse error");
+					continue;
+				}
+
+				origin_server origin(px->origins[i]);
+				if (origin.enabled())
+					px->origins_.push_back(origin);
+				else
+					server_.log(x0::severity::error, origin.error().c_str());
+			}
+
+			if (px->origins_.empty())
 				server_.log(x0::severity::warn, "No origin servers defined for proxy at virtual-host: %s.", i->c_str());
 		}
 	}
