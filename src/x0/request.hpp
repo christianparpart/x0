@@ -73,7 +73,20 @@ private:
 
 // {{{ request impl
 inline request::request(x0::connection& conn) :
-	connection(conn)
+	connection(conn),
+	method(),
+	uri(),
+	path(),
+	fileinfo(),
+	query(),
+	http_version_major(0),
+	http_version_minor(0),
+	headers(),
+	body(),
+	username(),
+	document_root(),
+	custom_data(),
+	hostid_()
 {
 }
 
