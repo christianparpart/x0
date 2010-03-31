@@ -383,7 +383,7 @@ void connection::handle_read()
 	}
 	else if (rv == 0) // EOF
 	{
-		DEBUG("connection::handle_read(): (EOF) %s", strerror(errno));
+		DEBUG("connection::handle_read(): (EOF)");
 		delete this;
 	}
 	else
