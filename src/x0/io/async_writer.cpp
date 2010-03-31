@@ -26,8 +26,6 @@ public:
 
 	~async_writer()
 	{
-		// unregister from connection's on_write_ready handler
-		sink_->connection()->stop_write();
 	}
 
 public:
@@ -38,6 +36,17 @@ public:
 	}
 
 private:
+	void finish(int rv)
+	{
+		// unregister from connection's on_write_ready handler
+		sink_->connection()->stop_write();
+
+		// invoke completion handler (this may have deleted our sink above)
+		handler_(rv, bytes_transferred_);
+
+		delete this;
+	}
+
 	void callback(connection *)
 	{
 		write();
@@ -64,8 +73,7 @@ private:
 			{
 				DEBUG("async_writer(%p): write complete (%i)", this, i);
 				// finished in success
-				handler_(rv, bytes_transferred_);
-				delete this;
+				finish(0);
 				break;
 			}
 			else if (errno == EAGAIN || errno == EINTR)
@@ -79,8 +87,7 @@ private:
 			{
 				DEBUG("async_writer(%p): write failed: %s (%i)", this, strerror(errno), i);
 				// an error occurred
-				handler_(errno, bytes_transferred_);
-				delete this;
+				finish(errno);
 				break;
 			}
 		}
