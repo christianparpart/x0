@@ -73,7 +73,12 @@ private:
 
 	logstream *getlogstream(x0::request *in)
 	{
+		// vhost context
 		if (context *ctx = server_.context<context>(this, in->hostid()))
+			return ctx->stream;
+
+		// server context
+		if (context *ctx = server_.context<context>(this))
 			return ctx->stream;
 
 		return 0;
@@ -100,6 +105,12 @@ public:
 	{
 		std::string default_filename;
 		bool has_global = server_.config().load("AccessLog", default_filename);
+
+		if (has_global)
+		{
+			context *ctx = server_.create_context<context>(this);
+			ctx->stream = getlogstream(default_filename);
+		}
 
 		auto hosts = server_.config()["Hosts"].keys<std::string>();
 		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
