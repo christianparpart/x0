@@ -34,9 +34,11 @@ INSTALLATION REQUIREMENTS:
 
 - libev
 - boost
+- cmake (for building only)
 - zlib (optional, for compression)
 - bzip2 (optional, for compression)
-- cppunit (for unit testing)
+- gnutls (optional, for SSL/TLS encryption)
+- cppunit (optional, for unit testing)
 
 -----------------------------------------------------------------------------
 HOW TO BUILD:
