@@ -33,11 +33,34 @@ inline bool settings::load(const std::string& path, value_property<T>& result)
 
 	return false;
 }
+
+inline std::vector<std::string> settings::keys() const
+{
+	std::vector<std::string> result;
+
+	lua_getfield(L_, LUA_GLOBALSINDEX, "_G");
+	lua_pushnil(L_); // initial key
+	while (lua_next(L_, -2))
+	{
+		//result.push_back(as<T>(-2));
+		switch (lua_type(L_, -2))
+		{
+			case LUA_TSTRING:
+				result.push_back(lua_tostring(L_, -2));
+			default:
+				;
+		}
+
+		lua_pop(L_, 1); // pop value
+	}
+
+	return result;
+}
 // }}}
 
 // {{{ settings_value
 template<typename T>
-bool settings_value::load(T& _value)
+bool settings_value::load(T& _value) const
 {
 	fetcher _(*this);
 
@@ -49,7 +72,19 @@ bool settings_value::load(T& _value)
 }
 
 template<typename T>
-T settings_value::get(const T& _default)
+inline bool settings_value::load(value_property<T>& result) const
+{
+	fetcher _(*this);
+
+	if (lua_type(L_, -1) == LUA_TNIL)
+		return false;
+
+	result = this->as<T>(-1);
+	return true;
+}
+
+template<typename T>
+T settings_value::get(const T& _default) const
 {
 	T result = T();
 	return load(result) ? result : _default;
@@ -63,7 +98,7 @@ inline T settings_value::as() const
 }
 
 template<typename T>
-std::vector<T> settings_value::keys() const
+inline std::vector<T> settings_value::keys() const
 {
 	fetcher _(*this);
 

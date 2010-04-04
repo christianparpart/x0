@@ -64,6 +64,8 @@ public:
 
 	template<class T>
 	bool load(const std::string& path, value_property<T>& result);
+
+	std::vector<std::string> keys() const;
 };
 
 class X0_API settings_value : public settings_scope {
@@ -102,8 +104,9 @@ public:
 	bool contains(const std::string& AFieldName) const;
 
 	// value read
-	template<typename T> bool load(T& _value);
-	template<typename T> T get(const T& _default = T());
+	template<typename T> bool load(T& _value) const;
+	template<typename T> bool load(value_property<T>& result) const;
+	template<typename T> T get(const T& _default = T()) const;
 	template<typename T> T as() const;
 	template<typename T> std::vector<T> keys() const;
 
