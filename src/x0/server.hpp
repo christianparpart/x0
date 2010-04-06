@@ -215,8 +215,9 @@ private:
 	void setup_logging(const settings_value& cvar);
 	void setup_resources(const settings_value& cvar);
 	void setup_modules(const settings_value& cvar);
-	void setup_hosts(const settings_value& cvar);
+	void setup_fileinfo(const settings_value& cvar);
 	void setup_error_documents(const settings_value& cvar);
+	void setup_hosts(const settings_value& cvar);
 
 #if defined(WITH_SSL)
 	static void gnutls_log(int level, const char *msg);

@@ -109,6 +109,7 @@ public:
 	template<typename T> T get(const T& _default = T()) const;
 	template<typename T> T as() const;
 	template<typename T> std::vector<T> keys() const;
+	template<typename T> std::vector<T> values() const;
 
 	// value write
 	settings_value& operator=(const std::string& value);

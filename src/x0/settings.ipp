@@ -124,6 +124,12 @@ inline std::vector<T> settings_value::keys() const
 	return result;
 }
 
+template<typename T>
+std::vector<T> settings_value::values() const
+{
+	return as<std::vector<T>>();
+}
+
 // {{{ settings_value::as<T>(int index)
 template<>
 inline std::string settings_value::as<std::string>(int index) const

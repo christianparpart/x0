@@ -96,6 +96,7 @@ server::server(struct ::ev_loop *loop) :
 	register_cvar_server("Resources", std::bind(&server::setup_resources, this, _1), -6);
 	register_cvar_server("Modules", std::bind(&server::setup_modules, this, _1), -5);
 	register_cvar_server("ErrorDocuments", std::bind(&server::setup_error_documents, this, _1), -4);
+	register_cvar_server("FileInfo", std::bind(&server::setup_fileinfo, this, _1), -4);
 	register_cvar_server("Hosts", std::bind(&server::setup_hosts, this, _1), -3);
 
 #if defined(WITH_SSL)
@@ -208,11 +209,21 @@ inline bool contains(const std::map<K, V>& map, const K& key)
 
 inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&)>>>& map, const std::string& cvar)
 {
+	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
+		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
+			if (ci->first == cvar)
+				return true;
+
 	return false;
 }
 
 inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid)>>>& map, const std::string& cvar)
 {
+	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
+		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
+			if (ci->first == cvar)
+				return true;
+
 	return false;
 }
 
@@ -241,6 +252,7 @@ inline bool contains(const std::vector<std::string>& list, const std::string& va
 void server::configure(const std::string& configfile)
 {
 	std::vector<std::string> global_ignores = {
+		"IGNORES",
 		"string", "xpcall", "package", "io", "coroutine", "collectgarbage", "getmetatable", "module",
 		"loadstring", "rawget", "rawset", "ipairs", "pairs", "_G", "next", "assert", "tonumber",
 		"rawequal", "tostring", "print", "os", "unpack", "gcinfo", "require", "getfenv", "setmetatable",
@@ -253,6 +265,7 @@ void server::configure(const std::string& configfile)
 
 	// {{{ global vars
 	auto globals = settings_.keys();
+	auto custom_ignores = settings_["IGNORES"].values<std::string>();
 
 	// iterate all server cvars
 	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi)
@@ -261,15 +274,15 @@ void server::configure(const std::string& configfile)
 				ci->second(settings_[ci->first]);
 
 	// warn on every unknown global cvar
-#if 0
 	for (auto i = globals.begin(), e = globals.end(); i != e; ++i)
 	{
 		if (contains(global_ignores, *i))
 			continue;
-		else if (!contains<std::function<void(const settings_value&)>>(cvars_server_, *i))
+		if (contains(custom_ignores, *i))
+			continue;
+		else if (!contains(cvars_server_, *i))
 			log(severity::warn, "Unknown global configuration variable: '%s'.", i->c_str());
 	}
-#endif
 	// }}}
 
 	// {{{ setup server-tag
@@ -339,27 +352,6 @@ void server::configure(const std::string& configfile)
 			log(severity::info, "using single worker");
 	}
 #endif
-	// }}}
-
-	// {{{ fileinfo
-	{
-		std::string value;
-		if (settings_.load("FileInfo.MimeType.MimeFile", value))
-			fileinfo.load_mimetypes(value);
-
-		if (settings_.load("FileInfo.MimeType.DefaultType", value))
-			fileinfo.default_mimetype(value);
-
-		bool flag = false;
-		if (settings_.load("FileInfo.ETag.ConsiderMtime", flag))
-			fileinfo.etag_consider_mtime(flag);
-
-		if (settings_.load("FileInfo.ETag.ConsiderSize", flag))
-			fileinfo.etag_consider_size(flag);
-
-		if (settings_.load("FileInfo.ETag.ConsiderInode", flag))
-			fileinfo.etag_consider_inode(flag);
-	}
 	// }}}
 
 	// check for available TCP listeners
@@ -810,6 +802,26 @@ void server::setup_hosts(const settings_value& cvar)
 			}
 		}
 	}
+}
+
+void server::setup_fileinfo(const settings_value& cvar)
+{
+	std::string value;
+	if (cvar["MimeType"]["MimeFile"].load(value))
+		fileinfo.load_mimetypes(value);
+
+	if (cvar["MimeType"]["DefaultType"].load(value))
+		fileinfo.default_mimetype(value);
+
+	bool flag = false;
+	if (cvar["ETag"]["ConsiderMtime"].load(flag))
+		fileinfo.etag_consider_mtime(flag);
+
+	if (cvar["ETag"]["ConsiderSize"].load(flag))
+		fileinfo.etag_consider_size(flag);
+
+	if (cvar["ETag"]["ConsiderInode"].load(flag))
+		fileinfo.etag_consider_inode(flag);
 }
 
 void server::setup_error_documents(const settings_value& cvar)
