@@ -5,6 +5,7 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
+#include <x0/plugin.hpp>
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>

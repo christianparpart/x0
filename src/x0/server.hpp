@@ -15,7 +15,6 @@
 #include <x0/event_handler.hpp>
 #include <x0/request_handler.hpp>
 #include <x0/context.hpp>
-#include <x0/plugin.hpp>
 #include <x0/types.hpp>
 #include <x0/property.hpp>
 #include <x0/io/fileinfo_service.hpp>
@@ -34,20 +33,21 @@
 
 namespace x0 {
 
+struct plugin;
+
 //! \addtogroup core
 //@{
 
-/** exception raised when given virtual host has not been found.
- */
-class host_not_found
-	: public std::runtime_error
-{
-public:
-	host_not_found(const std::string& hostname)
-		: std::runtime_error("host not found: " + hostname)
-	{
-	}
+enum context_mask {
+	SERVER = 0x01,
+	HOST   = 0x02,
+	PATH   = 0x04
 };
+
+inline context_mask operator|(context_mask a, context_mask b)
+{
+	return context_mask(int(a) | int(b));
+}
 
 /**
  * \brief implements the x0 web server.
@@ -200,6 +200,10 @@ public:
 
 	const std::list<listener *>& listeners() const;
 
+	bool register_cvar_server(const std::string& key, std::function<void(const settings_value&)> callback, int priority = 0);
+	bool register_cvar_host(const std::string& key, std::function<void(const settings_value&, const std::string&)> callback, int priority = 0);
+	bool register_cvar_path(const std::string& key, std::function<void(const settings_value&, const std::string&, const std::string&)> callback, int priority = 0);
+
 private:
 	long long getrlimit(int resource);
 	long long setrlimit(int resource, long long max);
@@ -207,6 +211,12 @@ private:
 	void drop_privileges(const std::string& user, const std::string& group);
 
 	listener *listener_by_port(int port);
+
+	void setup_logging(const settings_value& cvar);
+	void setup_resources(const settings_value& cvar);
+	void setup_modules(const settings_value& cvar);
+	void setup_hosts(const settings_value& cvar);
+	void setup_error_documents(const settings_value& cvar);
 
 #if defined(WITH_SSL)
 	static void gnutls_log(int level, const char *msg);
@@ -224,8 +234,12 @@ private:
 	struct ::ev_loop *loop_;
 	bool active_;
 	x0::settings settings_;
+	std::map<int, std::map<std::string, std::function<void(const settings_value&)>>> cvars_server_;
+	std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid)>>> cvars_host_;
+	std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid, const std::string& path)>>> cvars_path_;
 	std::string configfile_;
 	logger_ptr logger_;
+	bool colored_log_;
 	plugin_map_t plugins_;
 	datetime now_;
 	ev::check loop_check_;

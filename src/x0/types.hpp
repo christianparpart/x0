@@ -33,6 +33,7 @@ namespace x0 {
 class fileinfo;
 class listener;
 class connection;
+class plugin;
 struct request;
 struct response;
 
@@ -43,6 +44,8 @@ struct file;
 
 typedef std::shared_ptr<file> file_ptr;
 typedef std::shared_ptr<fileinfo> fileinfo_ptr;
+
+typedef std::shared_ptr<plugin> plugin_ptr;
 
 /** completion handler.
  *

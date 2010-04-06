@@ -58,17 +58,20 @@ set(x0_io_API
 
 set(x0_util_SRC
 	process.cpp
+	ansi_color.cpp
 )
 
 set(x0_util_API
 	datetime.hpp
 	process.hpp
+	ansi_color.hpp
 )
 
 set(x0_SRC
 	${x0_io_SRC}
 	${x0_util_SRC}
 	connection.cpp
+	context.cpp
 	listener.cpp
 	logger.cpp
 	response.cpp

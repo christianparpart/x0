@@ -1,24 +1,17 @@
 
 Install Requirements:
 
-- GCC 4.5.0 - not yet released, use a snapshot. You really need this as it features lambdas and more.
-- LUA 5.1.3
-- boost 1.41
+- GCC 4.4.0 - better use 4.5.0 (to make use of lambdas)
+- LUA 5.1.4
+- boost 1.42
 - cmake 2.8.0 - for building
 - cppunit 1.12.1 - for unit tests
-- Asio - standalone version (ideally via CVS tag: linux-perf-branch)
+- gnutls (optional, for SSL/TLS encryption)
 
 fetch the sources from github.com/trapni/x0 (i guess you already did that).
 
 -----------------------------------------------------------------------------
 HOW TO BUILD:
-
-# we first need a special Asio tree:
-cvs -d:pserver:anonymous@asio.cvs.sourceforge.net:/cvsroot/asio login 
-cvs -z3 -d:pserver:anonymous@asio.cvs.sourceforge.net:/cvsroot/asio co -P asio
-cd asio/
-cvs co -r linux-perf-branch .
-cd ../
 
 # now lets fetch and compile x0
 git clone git://github.com/trapni/x0.git

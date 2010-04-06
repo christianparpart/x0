@@ -411,13 +411,6 @@ void connection::parse_request(std::size_t offset, std::size_t count)
 //				state_ = writing;
 				server_.handle_request(response_->request(), response_);
 			}
-			catch (const host_not_found& e)
-			{
-//				fprintf(stderr, "exception caught: %s\n", e.what());
-//				fflush(stderr);
-				response_->status = 404;
-				response_->finish();
-			}
 			catch (response::code_type reply)
 			{
 //				fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));

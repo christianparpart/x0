@@ -7,11 +7,13 @@
 #ifndef x0_context_hpp
 #define x0_context_hpp (1)
 
-#include <x0/plugin.hpp>
 #include <x0/api.hpp>
 #include <stdexcept>
+#include <map>
 
 namespace x0 {
+
+class plugin;
 
 //! \addtogroup core
 //@{
@@ -96,27 +98,7 @@ public:
 	}
 
 public:
-	/** merges another context into this context.
-	 * \param from the source context to merge into this one.
-	 * \see plugin::merge()
-	 */
-	void merge(context& from)
-	{
-		for (map_type::iterator i = from.data_.begin(), e = from.data_.end(); i != e; ++i)
-		{
-			x0::plugin *plugin = i->first;
-			void *data = i->second;
-
-			if (data_.find(plugin) != data_.end())
-			{
-				plugin->merge(*this, data);
-			}
-			else
-			{
-				set(plugin, data);
-			}
-		}
-	}
+	void merge(context& from);
 };
 
 //@}

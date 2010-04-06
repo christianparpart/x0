@@ -2,4 +2,4 @@
 
 ulimit -c unlimited
 
-exec sudo ./x0d --no-fork --config=test.conf
+exec ./x0d --no-fork --config=test.conf

@@ -117,6 +117,7 @@ public:
 
 	// buffer builders
 	void push_back(value_type value);
+	void push_back(int value);
 	void push_back(const value_type *value);
 	void push_back(const buffer& value);
 	void push_back(const buffer_ref& value);
@@ -464,6 +465,13 @@ inline void buffer::push_back(value_type value)
 	reserve(size_ + sizeof(value));
 
 	data_[size_++] = value;
+}
+
+inline void buffer::push_back(int value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%d", value);
+	push_back(buf, n);
 }
 
 inline void buffer::push_back(const value_type *value)

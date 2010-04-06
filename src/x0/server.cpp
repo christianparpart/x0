@@ -9,9 +9,11 @@
 #include <x0/logger.hpp>
 #include <x0/listener.hpp>
 #include <x0/server.hpp>
+#include <x0/plugin.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
+#include <x0/ansi_color.hpp>
 #include <x0/sysconfig.h>
 
 #include <iostream>
@@ -57,7 +59,11 @@ server::server(struct ::ev_loop *loop) :
 	loop_(loop ? loop : ev_default_loop(0)),
 	active_(false),
 	settings_(),
+	cvars_server_(),
+	cvars_host_(),
+	cvars_path_(),
 	logger_(),
+	colored_log_(false),
 	plugins_(),
 	now_(),
 	loop_check_(loop_),
@@ -73,8 +79,24 @@ server::server(struct ::ev_loop *loop) :
 {
 	response::initialize();
 
+	// initialize all cvar maps with all (valid) priorities
+	for (int i = -10; i <= +10; ++i)
+	{
+		cvars_server_[i].clear();
+		cvars_host_[i].clear();
+		cvars_path_[i].clear();
+	}
+
 	loop_check_.set<server, &server::loop_check>(this);
 	loop_check_.start();
+
+	// register cvars
+	using namespace std::placeholders;
+	register_cvar_server("Log", std::bind(&server::setup_logging, this, _1), -7);
+	register_cvar_server("Resources", std::bind(&server::setup_resources, this, _1), -6);
+	register_cvar_server("Modules", std::bind(&server::setup_modules, this, _1), -5);
+	register_cvar_server("ErrorDocuments", std::bind(&server::setup_error_documents, this, _1), -4);
+	register_cvar_server("Hosts", std::bind(&server::setup_hosts, this, _1), -3);
 
 #if defined(WITH_SSL)
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -174,15 +196,83 @@ long long server::setrlimit(int resource, long long value)
 	return value;
 }
 
+template<typename K, typename V>
+inline bool contains(const std::map<K, V>& map, const K& key)
+{
+	for (auto i = map.begin(), e = map.end(); i != e; ++i)
+		if (i->first == key)
+			return true;
+
+	return false;
+}
+
+inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&)>>>& map, const std::string& cvar)
+{
+	return false;
+}
+
+inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid)>>>& map, const std::string& cvar)
+{
+	return false;
+}
+
+inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid, const std::string& path)>>>& map, const std::string& cvar)
+{
+	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
+		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
+			if (ci->first == cvar)
+				return true;
+
+	return false;
+}
+
+inline bool contains(const std::vector<std::string>& list, const std::string& var)
+{
+	for (auto i = list.begin(), e = list.end(); i != e; ++i)
+		if (*i == var)
+			return true;
+
+	return false;
+}
+
 /**
  * configures the server ready to be started.
  */
 void server::configure(const std::string& configfile)
 {
+	std::vector<std::string> global_ignores = {
+		"string", "xpcall", "package", "io", "coroutine", "collectgarbage", "getmetatable", "module",
+		"loadstring", "rawget", "rawset", "ipairs", "pairs", "_G", "next", "assert", "tonumber",
+		"rawequal", "tostring", "print", "os", "unpack", "gcinfo", "require", "getfenv", "setmetatable",
+		"type", "newproxy", "table", "pcall", "math", "debug", "select", "_VERSION",
+		"dofile", "setfenv", "load", "error", "loadfile"
+	};
+
 	// load config
 	settings_.load_file(configfile);
 
-	// setup server-tag
+	// {{{ global vars
+	auto globals = settings_.keys();
+
+	// iterate all server cvars
+	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi)
+		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
+			if (contains(globals, ci->first))
+				ci->second(settings_[ci->first]);
+
+	// warn on every unknown global cvar
+#if 0
+	for (auto i = globals.begin(), e = globals.end(); i != e; ++i)
+	{
+		if (contains(global_ignores, *i))
+			continue;
+		else if (!contains<std::function<void(const settings_value&)>>(cvars_server_, *i))
+			log(severity::warn, "Unknown global configuration variable: '%s'.", i->c_str());
+	}
+#endif
+	// }}}
+
+	// {{{ setup server-tag
 	{
 		std::vector<std::string> components;
 
@@ -228,20 +318,7 @@ void server::configure(const std::string& configfile)
 		}
 		tag = tagbuf.str();
 	}
-
-	// setup logger
-	{
-		std::string logmode(settings_.get<std::string>("Log.Mode"));
-		auto nowfn = std::bind(&datetime::htlog_str, &now_);
-
-		if (logmode == "file") logger_.reset(new filelogger<decltype(nowfn)>(settings_.get<std::string>("Log.FileName"), nowfn));
-		else if (logmode == "null") logger_.reset(new nulllogger());
-		else if (logmode == "stderr") logger_.reset(new filelogger<decltype(nowfn)>("/dev/stderr", nowfn));
-		/// \todo add syslog logger
-		else logger_.reset(new nulllogger());
-	}
-
-	logger_->level(severity(settings_.get<std::string>("Log.Level")));
+	// }}}
 
 #if defined(WITH_SSL)
 	// gnutls debug level (int, 0=off)
@@ -249,7 +326,7 @@ void server::configure(const std::string& configfile)
 //	gnutls_global_set_log_function(&server::gnutls_log);
 #endif
 
-	// setup workers
+	// {{{ setup workers
 #if 0
 	{
 		int num_workers = 1;
@@ -262,27 +339,9 @@ void server::configure(const std::string& configfile)
 			log(severity::info, "using single worker");
 	}
 #endif
+	// }}}
 
-	// resource limits
-	{
-		settings_.load("Resources.MaxConnections", max_connections);
-		settings_.load("Resources.MaxKeepAliveRequests", max_keep_alive_requests);
-		settings_.load("Resources.MaxKeepAliveIdle", max_keep_alive_idle);
-		settings_.load("Resources.MaxReadIdle", max_read_idle);
-		settings_.load("Resources.MaxWriteIdle", max_write_idle);
-
-		long long value = 0;
-		if (settings_.load("Resources.MaxFiles", value))
-			setrlimit(RLIMIT_NOFILE, value);
-
-		if (settings_.load("Resources.MaxAddressSpace", value))
-			setrlimit(RLIMIT_AS, value);
-
-		if (settings_.load("Resources.MaxCoreFileSize", value))
-			setrlimit(RLIMIT_CORE, value);
-	}
-
-	// fileinfo
+	// {{{ fileinfo
 	{
 		std::string value;
 		if (settings_.load("FileInfo.MimeType.MimeFile", value))
@@ -301,23 +360,7 @@ void server::configure(const std::string& configfile)
 		if (settings_.load("FileInfo.ETag.ConsiderInode", flag))
 			fileinfo.etag_consider_inode(flag);
 	}
-
-	// load plugins
-	{
-		std::vector<std::string> plugins;
-		settings_.load("Modules.Load", plugins);
-
-		for (std::size_t i = 0; i < plugins.size(); ++i)
-		{
-			load_plugin(plugins[i]);
-		}
-	}
-
-	// configure plugins
-	for (plugin_map_t::iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
-	{
-		i->second.first->configure();
-	}
+	// }}}
 
 	// check for available TCP listeners
 	if (listeners_.empty())
@@ -535,17 +578,38 @@ void server::log(severity s, const char *msg, ...)
 	va_list va;
 	va_start(va, msg);
 	char buf[512];
-	vsnprintf(buf, sizeof(buf), msg, va);
+	int buflen = vsnprintf(buf, sizeof(buf), msg, va);
 	va_end(va);
 
-	if (logger_)
+	if (colored_log_)
 	{
-		logger_->write(s, buf);
+		static ansi_color::color_type colors[] = {
+			ansi_color::ccRed, // emergency
+			ansi_color::ccRed | ansi_color::ccBold, // alert
+			ansi_color::ccRed, // critical
+			ansi_color::ccRed | ansi_color::ccBold, // error
+			ansi_color::ccYellow | ansi_color::ccBold, // warn
+			ansi_color::ccWhite | ansi_color::ccBold, // notice
+			ansi_color::ccGreen, // info
+			ansi_color::ccCyan, // debug
+		};
+
+		buffer sb;
+		sb.push_back(ansi_color::make(colors[s]));
+		sb.push_back(buf, buflen);
+		sb.push_back(ansi_color::make(ansi_color::ccClear));
+
+		if (logger_)
+			logger_->write(s, sb.str());
+		else
+			std::fprintf(stderr, "%s\n", sb.c_str());
 	}
 	else
 	{
-		std::fprintf(stderr, "%s\n", msg);
-		std::fflush(stderr);
+		if (logger_)
+			logger_->write(s, buf);
+		else
+			std::fprintf(stderr, "%s\n", buf);
 	}
 }
 
@@ -578,14 +642,13 @@ void server::load_plugin(const std::string& name)
 	settings_.load("Modules.Directory", plugindir_);
 
 	if (!plugindir_.empty() && plugindir_[plugindir_.size() - 1] != '/')
-	{
 		plugindir_ += "/";
-	}
 
 	std::string filename(plugindir_ + name + ".so");
 	std::string plugin_create_name(name + "_init");
 
 	log(severity::debug, "Loading plugin %s", filename.c_str());
+
 	if (void *handle = dlopen(filename.c_str(), RTLD_GLOBAL | RTLD_NOW))
 	{
 		plugin_create_t plugin_create = reinterpret_cast<plugin_create_t>(dlsym(handle, plugin_create_name.c_str()));
@@ -632,6 +695,125 @@ std::vector<std::string> server::loaded_plugins() const
 		result.push_back(i->first);
 
 	return result;
+}
+
+bool server::register_cvar_server(const std::string& key, std::function<void(const settings_value&)> callback, int priority)
+{
+	priority = std::min(std::max(priority, -10), 10);
+	cvars_server_[priority][key] = callback;
+	return true;
+}
+
+bool server::register_cvar_host(const std::string& key, std::function<void(const settings_value&, const std::string& hostid)> callback, int priority)
+{
+	priority = std::min(std::max(priority, -10), 10);
+	cvars_host_[priority][key] = callback;
+	return true;
+}
+
+bool server::register_cvar_path(const std::string& key, std::function<void(const settings_value&, const std::string& hostid, const std::string& path)> callback, int priority)
+{
+	priority = std::min(std::max(priority, -10), 10);
+	cvars_path_[priority][key] = callback;
+	return true;
+}
+
+void server::setup_logging(const settings_value& cvar)
+{
+	std::string logmode(cvar["Mode"].as<std::string>());
+	auto nowfn = std::bind(&datetime::htlog_str, &now_);
+
+	if (logmode == "file")
+		logger_.reset(new filelogger<decltype(nowfn)>(cvar["FileName"].as<std::string>(), nowfn));
+	else if (logmode == "null")
+		logger_.reset(new nulllogger());
+	else if (logmode == "stderr")
+		logger_.reset(new filelogger<decltype(nowfn)>("/dev/stderr", nowfn));
+	else //! \todo add syslog logger
+		logger_.reset(new nulllogger());
+
+	logger_->level(severity(cvar["Level"].as<std::string>()));
+
+	cvar["Colorize"].load(colored_log_);
+}
+
+void server::setup_modules(const settings_value& cvar)
+{
+	std::vector<std::string> list;
+	cvar["Load"].load(list);
+
+	for (auto i = list.begin(), e = list.end(); i != e; ++i)
+		load_plugin(*i);
+
+	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+		i->second.first->configure();
+}
+
+void server::setup_resources(const settings_value& cvar)
+{
+	cvar["MaxConnections"].load(max_connections);
+	cvar["MaxKeepAliveRequests"].load(max_keep_alive_requests);
+	cvar["MaxKeepAliveIdle"].load(max_keep_alive_idle);
+	cvar["MaxReadIdle"].load(max_read_idle);
+	cvar["MaxWriteIdle"].load(max_write_idle);
+
+	long long value = 0;
+	if (cvar["MaxFiles"].load(value))
+		setrlimit(RLIMIT_NOFILE, value);
+
+	if (cvar["MaxAddressSpace"].load(value))
+		setrlimit(RLIMIT_AS, value);
+
+	if (cvar["MaxCoreFileSize"].load(value))
+		setrlimit(RLIMIT_CORE, value);
+}
+
+void server::setup_hosts(const settings_value& cvar)
+{
+	std::vector<std::string> hostids = cvar.keys<std::string>();
+
+	for (auto i = hostids.begin(), e = hostids.end(); i != e; ++i)
+	{
+		std::string hostid = *i;
+
+		auto host_cvars = cvar[hostid].keys<std::string>();
+
+		// handle all vhost-directives
+		for (auto pi = cvars_host_.begin(), pe = cvars_host_.end(); pi != pe; ++pi)
+		{
+			for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
+			{
+				if (contains(host_cvars, ci->first))
+				{
+					DEBUG("CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
+					ci->second(cvar[hostid][ci->first], hostid);
+				}
+			}
+		}
+
+		// handle all path scopes
+		for (auto vi = host_cvars.begin(), ve = host_cvars.end(); vi != ve; ++vi)
+		{
+			std::string path = *vi;
+			if (path[0] == '/')
+			{
+				std::vector<std::string> keys = cvar[hostid][path].keys<std::string>();
+
+				for (auto pi = cvars_path_.begin(), pe = cvars_path_.end(); pi != pe; ++pi)
+					for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
+						if (contains(keys, ci->first))
+							ci->second(cvar[hostid][path], hostid, path);
+
+				for (auto ki = keys.begin(), ke = keys.end(); ki != ke; ++ki)
+					if (!contains(cvars_path_, *ki))
+						log(severity::error, "Unknown location-context variable: '%s'", ki->c_str());
+			}
+		}
+	}
+}
+
+void server::setup_error_documents(const settings_value& cvar)
+{
 }
 
 } // namespace x0

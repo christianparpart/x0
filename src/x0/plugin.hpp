@@ -9,6 +9,7 @@
 #define x0_plugin_hpp (1)
 
 #include <x0/types.hpp>
+#include <x0/server.hpp>
 #include <x0/api.hpp>
 
 namespace x0 {
@@ -53,21 +54,16 @@ public:
 	{
 	}
 
-	/** merges a configuration context.
-	 * \param to the context destination to merge the \p from_data to.
-	 * \param from_data the configuration from the source context.
-	 * \see context, context::merge()
-	 */
-	virtual void merge(context& to, void *from_data)
+	template<typename... Args>
+	inline void log(severity sv, const char *msg, Args&&... args)
 	{
+		server_.log(sv, msg, args...);
 	}
 
 protected:
 	server& server_;
 	std::string name_;
 };
-
-typedef std::shared_ptr<plugin> plugin_ptr;
 
 #define X0_EXPORT_PLUGIN(pluginName) \
 	X0_EXPORT_PLUGIN_CLASS(pluginName, pluginName##_plugin)

@@ -7,6 +7,7 @@
 
 // http://antti-juhani.kaijanaho.fi/newblog/archives/532
 
+#include <x0/plugin.hpp>
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>

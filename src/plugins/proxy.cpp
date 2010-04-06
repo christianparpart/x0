@@ -5,6 +5,7 @@
  * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
+#include <x0/plugin.hpp>
 #include <x0/server.hpp>
 #include <x0/request.hpp>
 #include <x0/response.hpp>
@@ -116,6 +117,7 @@ public:
 	std::vector<std::string> hot_spares;
 	std::vector<std::string> allowed_methods;
 	std::vector<origin_server> origins_;
+	std::vector<std::string> ignores;
 
 public:
 	proxy();
@@ -772,8 +774,17 @@ public:
 	proxy_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
+		using namespace std::placeholders;
+
 		// register content generator
 		c = server_.generate_content.connect(&proxy_plugin::process, this);
+
+		server_.register_cvar_path("Proxy", std::bind(&proxy_plugin::setup_proxy, this, _1, _2, _3));
+	}
+
+	void setup_proxy(const x0::settings_value& cvar, const std::string& hostid, const std::string& path)
+	{
+		server_.log(x0::severity::debug, "setup_proxy(host=%s, path=%s)", hostid.c_str(), path.c_str());
 	}
 
 	~proxy_plugin()
