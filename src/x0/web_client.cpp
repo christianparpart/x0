@@ -128,9 +128,6 @@ void web_client::open(const std::string& hostname, int port)
 		{
 			TRACE("async_connect: backgrounding");
 
-			if (connect_timeout > 0)
-				timer_.start(connect_timeout, 0.0);
-
 			state_ = CONNECTING;
 			start_write();
 		}
@@ -178,15 +175,8 @@ void web_client::commit(bool flush)
 	request_buffer_.push_back("\015\012"); // final linefeed
 
 	if (flush)
-	{
 		if (state_ == CONNECTED)
-		{
-			if (write_timeout)
-				timer_.start(write_timeout, 0.0);
-
 			start_write();
-		}
-	}
 }
 
 void web_client::start_read()
@@ -202,16 +192,20 @@ void web_client::start_read()
 			io_.set(fd_, ev::READ);
 			break;
 		case CONNECTED:
-			state_ = READING;
-			io_.set(fd_, ev::READ);
-			io_.start();
+			// invalid state to start reading from
 			break;
 		case WRITING:
+			if (read_timeout > 0)
+				timer_.start(read_timeout, 0.0);
+
 			state_ = READING;
 			io_.set(fd_, ev::READ);
 			break;
 		case READING:
 			// continue reading
+			if (read_timeout > 0)
+				timer_.start(read_timeout, 0.0);
+
 			break;
 	}
 }
@@ -223,7 +217,17 @@ void web_client::start_write()
 		case DISCONNECTED:
 			break;
 		case CONNECTING:
+			if (connect_timeout > 0)
+				timer_.start(connect_timeout, 0.0);
+
+			io_.set(fd_, ev::WRITE);
+			io_.start();
+			break;
 		case CONNECTED:
+			if (write_timeout > 0)
+				timer_.start(write_timeout, 0.0);
+
+			state_ = WRITING;
 			io_.set(fd_, ev::WRITE);
 			io_.start();
 			break;
@@ -231,6 +235,9 @@ void web_client::start_write()
 			// continue writing
 			break;
 		case READING:
+			if (write_timeout > 0)
+				timer_.start(write_timeout, 0.0);
+
 			state_ = WRITING;
 			io_.set(fd_, ev::WRITE);
 			break;
@@ -296,13 +303,9 @@ void web_client::write_some()
 		TRACE("write request: %ld (of %ld) bytes", rv, request_buffer_.size() - request_offset_);
 
 		request_offset_ += rv;
-		if (request_offset_ == request_buffer_.size()) // request fully transmitted, let's read response then.
-		{
-			if (read_timeout > 0)
-				timer_.start(read_timeout, 0.0);
 
+		if (request_offset_ == request_buffer_.size()) // request fully transmitted, let's read response then.
 			start_read();
-		}
 	}
 	else
 	{
