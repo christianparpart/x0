@@ -89,14 +89,14 @@ source_ptr response::serialize()
 
 	if (!headers.contains("Content-Length") && !content_forbidden())
 	{
-		headers.set("Connection", "closed");
+		headers.set("Connection", "close");
 	}
 	else if (!headers.contains("Connection"))
 	{
 		if (iequals(request_->header("Connection"), "keep-alive"))
 			headers.push_back("Connection", "keep-alive");
 		else
-			headers.push_back("Connection", "closed");
+			headers.push_back("Connection", "close");
 	}
 
 	// post-response hook
@@ -114,7 +114,7 @@ source_ptr response::serialize()
 		}
 		else
 		{
-			headers.set("Connection", "closed");
+			headers.set("Connection", "close");
 		}
 	}
 
