@@ -63,6 +63,7 @@ server::server(struct ::ev_loop *loop) :
 	cvars_host_(),
 	cvars_path_(),
 	logger_(),
+	debug_level_(1),
 	colored_log_(false),
 	plugins_(),
 	now_(),
@@ -160,8 +161,7 @@ long long server::setrlimit(int resource, long long value)
 	struct rlimit rlim;
 	if (::getrlimit(resource, &rlim) == -1)
 	{
-		log(severity::warn, "Failed to retrieve current resource limit on %s (%d).",
-			rc2str(resource), resource);
+		log(severity::warn, "Failed to retrieve current resource limit on %s.", rc2str(resource), resource);
 
 		return 0;
 	}
@@ -185,14 +185,12 @@ long long server::setrlimit(int resource, long long value)
 	rlim.rlim_max = value;
 
 	if (::setrlimit(resource, &rlim) == -1) {
-		log(severity::warn, "Failed to set resource limit on %s (%d) from %lld to %lld.",
-			rc2str(resource), resource, hlast, hvalue);
+		log(severity::warn, "Failed to set resource limit on %s from %lld to %lld.", rc2str(resource), hlast, hvalue);
 
 		return 0;
 	}
 
-	log(severity::debug, "Set resource limit on %s (%d) from %lld to %lld.",
-		rc2str(resource), resource, hlast, hvalue);
+	debug(1, "Set resource limit on %s from %lld to %lld.", rc2str(resource), hlast, hvalue);
 
 	return value;
 }
@@ -367,7 +365,7 @@ void server::configure(const std::string& configfile)
 	// setup process priority
 	if (int nice_ = settings_.get<int>("Daemon.Nice"))
 	{
-		log(severity::debug, "set nice level to %d", nice_);
+		debug(1, "set nice level to %d", nice_);
 
 		if (::nice(nice_) < 0)
 		{
@@ -639,7 +637,7 @@ void server::load_plugin(const std::string& name)
 	std::string filename(plugindir_ + name + ".so");
 	std::string plugin_create_name(name + "_init");
 
-	log(severity::debug, "Loading plugin %s", filename.c_str());
+	log(severity::notice, "Loading plugin %s", filename.c_str());
 
 	if (void *handle = dlopen(filename.c_str(), RTLD_GLOBAL | RTLD_NOW))
 	{
@@ -777,7 +775,7 @@ void server::setup_hosts(const settings_value& cvar)
 			{
 				if (contains(host_cvars, ci->first))
 				{
-					DEBUG("CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
+					debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
 					ci->second(cvar[hostid][ci->first], hostid);
 				}
 			}
