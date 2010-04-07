@@ -96,12 +96,11 @@ private:
 		server_.log(x0::severity::info, "pre processing request from: %s", client_hostname(&in->connection).c_str());
 
 		std::ostringstream stream;
-		stream << "C> " << in->method.str() << ' ' << in->uri.str() << " HTTP/" << in->http_version_major << '.' << in->http_version_minor << std::endl;
+		log(x0::severity::info, "C> %s %s HTTP/%d.%d", in->method.str().c_str(), in->uri.str().c_str(), in->http_version_major, in->http_version_minor);
 		for (auto i = in->headers.begin(), e = in->headers.end(); i != e; ++i)
 		{
-			stream << "C> " << i->name.str() << ": " << i->value.str() << std::endl;
+			log(x0::severity::info, "C> %s: %s", i->name.str().c_str(), i->value.str().c_str());
 		}
-		std::clog << stream.str();
 	}
 
 	void request_done(x0::request *in, x0::response *out)
@@ -112,16 +111,14 @@ private:
 
 		if (!in->body.empty())
 		{
-			stream << "C> " << in->body << std::endl;
+			log(x0::severity::info, "C> %s", in->body.c_str());
 		}
 
 		stream << "S< " << out->status() << ' ' << x0::response::status_str(out->status()) << std::endl;
 		for (auto i = out->headers.begin(), e = out->headers.end(); i != e; ++i)
 		{
-			stream << "S< " << i->name << ": " << i->value << std::endl;
+			log(x0::severity::info, "S< %s: %s", i->name.c_str(), i->value.c_str());
 		}
-
-		std::clog << stream.str();
 	}
 
 	void connection_close(x0::connection *connection)
