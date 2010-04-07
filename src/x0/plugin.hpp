@@ -69,7 +69,14 @@ public:
 	{
 #if !defined(NDEBUG)
 		if (level >= debug_level_)
-			server_.log(severity::debug, msg, args...);
+		{
+			buffer fmt;
+			fmt.push_back(name_);
+			fmt.push_back(": ");
+			fmt.push_back(msg);
+
+			server_.log(severity::debug, fmt.c_str(), args...);
+		}
 #endif
 	}
 
