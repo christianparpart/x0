@@ -606,7 +606,7 @@ void proxy_connection::pass_request()
 	}
 
 	if (!px_->keepalive)
-		write_buffer_.push_back("Connection: closed\r\n");
+		write_buffer_.push_back("Connection: close\r\n");
 	else
 		write_buffer_.push_back("Connection: keep-alive\r\n");
 
