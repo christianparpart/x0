@@ -54,21 +54,9 @@ public:
 
 	~connection();
 
-	/** start first async operation for this connection.
-	 *
-	 * This is done by simply registering the underlying socket to the the I/O service
-	 * to watch for available input.
-	 * \see stop()
-	 * :
-	 */
 	void start();
-
-	/** Resumes async operations.
-	 *
-	 * This method is being invoked on a keep-alive connection to parse further requests.
-	 * \see start()
-	 */
 	void resume();
+	void close();
 
 	value_property<bool> secure;				//!< true if this is a secure (HTTPS) connection, false otherwise.
 
