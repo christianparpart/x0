@@ -114,6 +114,7 @@ set(x0_API
 #	ternary_search.hpp
 
 add_library(x0 SHARED ${x0_SRC})
+install(TARGETS x0 DESTINATION ${LIBDIR})
 
 target_link_libraries(x0
 	boost_system boost_signals boost_thread
@@ -125,5 +126,5 @@ target_link_libraries(x0
 	${GNUTLS_LIBRARIES}
 )
 
-install(FILES ${x0_API} DESTINATION include/x0)
+install(FILES ${x0_API} DESTINATION ${INCLUDEDIR}/x0)
 #install(PUBLIC_HEADER DESTINATION include/x0)

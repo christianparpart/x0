@@ -100,6 +100,18 @@ else()
 	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
 endif()
 
+if (DEFINED INCLUDEDIR)
+	set(INCLUDEDIR ${LIBDIR} CACHE PATH "path to library includes")
+else()
+	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "path to library includes")
+endif()
+
+if (DEFINED LIBDIR)
+	set(LIBDIR ${LIBDIR} CACHE PATH "path to program libraries")
+else()
+	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path to program libraries")
+endif()
+
 if (DEFINED LOCALSTATEDIR)
 	set(LOCALSTATEDIR ${LOCALSTATEDIR} CACHE PATH "run-time state directory")
 else()

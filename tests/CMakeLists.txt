@@ -28,9 +28,7 @@ target_link_libraries(x0test
 	dl pthread
 )
 
-install(TARGETS x0test
-	RUNTIME DESTINATION sbin
-)
+# install(TARGETS x0test RUNTIME DESTINATION sbin)
 
 # -----------------------------------------------------------------
 add_executable(x0test_common

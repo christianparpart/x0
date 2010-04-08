@@ -17,7 +17,7 @@ add_definitions(
 macro(add_plugin ModuleName)
 	add_library(${ModuleName} MODULE ${ModuleName}.cpp)
 	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
-	install(TARGETS ${ModuleName} DESTINATION lib/x0)
+	install(TARGETS ${ModuleName} DESTINATION ${LIBDIR}/x0)
 endmacro()
 
 add_plugin(accesslog)
