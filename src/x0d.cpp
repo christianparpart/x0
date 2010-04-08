@@ -8,6 +8,7 @@
 
 #include <x0/server.hpp>
 #include <x0/strutils.hpp>
+#include <x0/severity.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <string>
@@ -16,6 +17,8 @@
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <pwd.h>
+#include <grp.h>
 
 #if !defined(NDEBUG)
 #	define X0D_DEBUG(msg...) x0d::log(x0::severity::debug, msg)
@@ -44,6 +47,8 @@ public:
 	x0d() :
 		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
 		pidfile_(pathcat(LOCALSTATEDIR, "run/x0d.pid")),
+		user_(""),
+		group_(""),
 		nofork_(false),
 		doguard_(false),
 		server_()
@@ -74,6 +79,14 @@ public:
 
 		if (!nofork_)
 			daemonize();
+
+		if (user_.empty())
+			user_ = server_.config()["Daemon"]["User"].as<std::string>();
+
+		if (group_.empty())
+			group_ = server_.config()["Daemon"]["Group"].as<std::string>();
+
+		drop_privileges(user_, group_);
 
 		return doguard_
 			? guard(boost::bind(&x0d::_run, this))
@@ -172,7 +185,7 @@ public:
 
 		if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
 		{
-			server_.log(x0::severity::info, "Created PID file with value %d [%s].", getpid(), pidfile_.c_str());
+			server_.log(x0::severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
 			fprintf(pidfile, "%d\n", getpid());
 			fclose(pidfile);
 		} else
@@ -194,6 +207,8 @@ private:
 			{ "fork", no_argument, &nofork_, 0 },
 			{ "guard", no_argument, &doguard_, 'G' },
 			{ "pid-file", required_argument, 0, 'p' },
+			{ "user", required_argument, 0, 'u' },
+			{ "group", required_argument, 0, 'g' },
 			//.
 			{ "version", no_argument, 0, 'v' },
 			{ "copyright", no_argument, 0, 'y' },
@@ -221,6 +236,12 @@ private:
 				case 'c':
 					configfile_ = optarg;
 					break;
+				case 'g':
+					group_ = optarg;
+					break;
+				case 'u':
+					user_ = optarg;
+					break;
 				case 'v':
 					std::cout
 						<< package_header << std::endl
@@ -243,6 +264,8 @@ private:
 						<< "  -X,--no-fork        do not fork into background" << std::endl
 						<< "  -G,--guard          do run service as child of a special guard process to watch for crashes" << std::endl
 						<< "  -p,--pid-file=PATH  PID file to create/use [" << pidfile_ << "]" << std::endl
+						<< "     --user=NAME      user to drop privileges to" << std::endl
+						<< "     --group=NAME     group to drop privileges to" << std::endl
 						<< "  -v,--version        print software version" << std::endl
 						<< "  -y,--copyright      print software copyright notice / license" << std::endl
 						<< std::endl;
@@ -269,6 +292,49 @@ private:
 		if (::daemon(true /*no chdir*/, true /*no close*/) < 0)
 		{
 			throw std::runtime_error(x0::fstringbuilder::format("Could not daemonize process: %s", strerror(errno)));
+		}
+	}
+
+	/** drops runtime privileges current process to given user's/group's name. */
+	void drop_privileges(const std::string& username, const std::string& groupname)
+	{
+		if (!groupname.empty() && !getgid())
+		{
+			if (struct group *gr = getgrnam(groupname.c_str()))
+			{
+				if (setgid(gr->gr_gid) != 0)
+					throw std::runtime_error(x0::fstringbuilder::format("could not setgid to %s: %s", groupname.c_str(), strerror(errno)));
+			}
+			else
+			{
+				throw std::runtime_error(x0::fstringbuilder::format("Could not find group: %s", groupname.c_str()));
+			}
+			X0D_DEBUG("Dropped group privileges to '%s'.", groupname.c_str());
+		}
+
+		if (!username.empty() && !getuid())
+		{
+			if (struct passwd *pw = getpwnam(username.c_str()))
+			{
+				if (setuid(pw->pw_uid) != 0)
+					throw std::runtime_error(x0::fstringbuilder::format("could not setgid to %s: %s", username.c_str(), strerror(errno)));
+
+				if (chdir(pw->pw_dir) < 0)
+					throw std::runtime_error(x0::fstringbuilder::format("could not chdir to %s: %s", pw->pw_dir, strerror(errno)));
+			}
+			else
+				throw std::runtime_error(x0::fstringbuilder::format("Could not find group: %s", groupname.c_str()));
+
+			X0D_DEBUG("Dropped user privileges to '%s'.", username.c_str());
+		}
+
+		if (!::getuid() || !::geteuid() || !::getgid() || !::getegid())
+		{
+#if defined(X0_RELEASE)
+			throw std::runtime_error(x0::fstringbuilder::format("Service is not allowed to run with administrative permissionsService is still running with administrative permissions."));
+#else
+			log(x0::severity::warn, "Service is still running with administrative permissions.");
+#endif
 		}
 	}
 
@@ -328,6 +394,8 @@ private:
 private:
 	std::string configfile_;
 	std::string pidfile_;
+	std::string user_;
+	std::string group_;
 	int nofork_;
 	int doguard_;
 	x0::server server_;

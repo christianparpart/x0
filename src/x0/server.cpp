@@ -374,9 +374,6 @@ void server::configure(const std::string& configfile)
 			throw std::runtime_error(fstringbuilder::format("could not nice process to %d: %s", nice_, strerror(errno)));
 		}
 	}
-
-	// drop user privileges
-	drop_privileges(settings_["Daemon"]["User"].as<std::string>(), settings_["Daemon"]["Group"].as<std::string>());
 }
 
 void server::start()
@@ -412,54 +409,6 @@ void server::run()
 	while (active_)
 	{
 		ev_loop(loop_, 0);
-	}
-}
-
-/** drops runtime privileges current process to given user's/group's name. */
-void server::drop_privileges(const std::string& username, const std::string& groupname)
-{
-	if (!groupname.empty() && !getgid())
-	{
-		if (struct group *gr = getgrnam(groupname.c_str()))
-		{
-			if (setgid(gr->gr_gid) != 0)
-			{
-				throw std::runtime_error(fstringbuilder::format("could not setgid to %s: %s", groupname.c_str(), strerror(errno)));
-			}
-		}
-		else
-		{
-			throw std::runtime_error(fstringbuilder::format("Could not find group: %s", groupname.c_str()));
-		}
-	}
-
-	if (!username.empty() && !getuid())
-	{
-		if (struct passwd *pw = getpwnam(username.c_str()))
-		{
-			if (setuid(pw->pw_uid) != 0)
-			{
-				throw std::runtime_error(fstringbuilder::format("could not setgid to %s: %s", username.c_str(), strerror(errno)));
-			}
-
-			if (chdir(pw->pw_dir) < 0)
-			{
-				throw std::runtime_error(fstringbuilder::format("could not chdir to %s: %s", pw->pw_dir, strerror(errno)));
-			}
-		}
-		else
-		{
-			throw std::runtime_error(fstringbuilder::format("Could not find group: %s", groupname.c_str()));
-		}
-	}
-
-	if (!::getuid() || !::geteuid() || !::getgid() || !::getegid())
-	{
-#if defined(X0_RELEASE)
-		throw std::runtime_error(fstringbuilder::format("Service is not allowed to run with administrative permissionsService is still running with administrative permissions."));
-#else
-		log(severity::warn, "Service is still running with administrative permissions.");
-#endif
 	}
 }
 

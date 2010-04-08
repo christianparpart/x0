@@ -208,8 +208,6 @@ private:
 	long long getrlimit(int resource);
 	long long setrlimit(int resource, long long max);
 
-	void drop_privileges(const std::string& user, const std::string& group);
-
 	listener *listener_by_port(int port);
 
 	void setup_logging(const settings_value& cvar);
