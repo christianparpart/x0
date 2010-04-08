@@ -1,0 +1,20 @@
+0.1.0
+
+	* initial release featuring response content filter, compress plugin,
+	sendfile, alias, userdir, vhost_basic, vhost_template, and more...
+
+0.2.0
+
+	* overall improvements
+	* proxy: new plugin
+	* core: added basic SSL connections
+
+0.3.0
+
+	* core: lots of refactoring and code cleanups
+	* core: configuration API improved
+	* core: introduced web_client API
+	* core: added ability to early-abort connections in connect_open-hook
+	* x0d: introduce --user, --group, --pid-file arguments
+	* proxy: make use of new web_client API
+	* tests: web_client unit test added
