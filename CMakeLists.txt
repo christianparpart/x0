@@ -100,6 +100,12 @@ else()
 	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
 endif()
 
+if (DEFINED LOCALSTATEDIR)
+	set(LOCALSTATEDIR ${LOCALSTATEDIR} CACHE PATH "run-time state directory")
+else()
+	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "run-time state directory")
+endif()
+
 FIND_PACKAGE(Boost REQUIRED)
 if(Boost_FOUND)
 	message(STATUS "Boost library directory: " ${Boost_LIBRARY_DIRS})

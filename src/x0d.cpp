@@ -11,6 +11,7 @@
 #include <boost/bind.hpp>
 #include <iostream>
 #include <string>
+#include <cstdio>
 #include <cstdarg>
 #include <getopt.h>
 #include <sys/types.h>
@@ -42,6 +43,7 @@ private:
 public:
 	x0d() :
 		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
+		pidfile_(pathcat(LOCALSTATEDIR, "run/x0d.pid")),
 		nofork_(false),
 		doguard_(false),
 		server_()
@@ -168,7 +170,17 @@ public:
 		::signal(SIGTERM, &terminate_handler);
 		::signal(SIGPIPE, SIG_IGN);
 
+		if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
+		{
+			server_.log(x0::severity::info, "Created PID file with value %d [%s].", getpid(), pidfile_.c_str());
+			fprintf(pidfile, "%d\n", getpid());
+			fclose(pidfile);
+		} else
+			server_.log(x0::severity::error, "Could not create PID file: %s.", strerror(errno));
+
 		server_.run();
+
+		unlink(pidfile_.c_str());
 
 		return 0;
 	}
@@ -181,6 +193,7 @@ private:
 			{ "no-fork", no_argument, &nofork_, 1 },
 			{ "fork", no_argument, &nofork_, 0 },
 			{ "guard", no_argument, &doguard_, 'G' },
+			{ "pid-file", required_argument, 0, 'p' },
 			//.
 			{ "version", no_argument, 0, 'v' },
 			{ "copyright", no_argument, 0, 'y' },
@@ -202,6 +215,9 @@ private:
 			int long_index = 0;
 			switch (getopt_long(argc, argv, "vyc:hXG", long_options, &long_index))
 			{
+				case 'p':
+					pidfile_ = optarg;
+					break;
 				case 'c':
 					configfile_ = optarg;
 					break;
@@ -219,15 +235,16 @@ private:
 						<< package_license << std::endl
 						<< std::endl
 						<< "usage:" << std::endl
-						<< "   x0d [options ...]" << std::endl
+						<< "  x0d [options ...]" << std::endl
 						<< std::endl
 						<< "options:" << std::endl
-						<< "   -h,--help        print this help" << std::endl
-						<< "   -c,--config=PATH specify a custom configuration file [" << configfile_ << "]" << std::endl
-						<< "   -X,--no-fork     do not fork into background" << std::endl
-						<< "   -G,--guard       do run service as child of a special guard process to watch for crashes" << std::endl
-						<< "   -v,--version     print software version" << std::endl
-						<< "   -y,--copyright   print software copyright notice / license" << std::endl
+						<< "  -h,--help           print this help" << std::endl
+						<< "  -c,--config=PATH    specify a custom configuration file [" << configfile_ << "]" << std::endl
+						<< "  -X,--no-fork        do not fork into background" << std::endl
+						<< "  -G,--guard          do run service as child of a special guard process to watch for crashes" << std::endl
+						<< "  -p,--pid-file=PATH  PID file to create/use [" << pidfile_ << "]" << std::endl
+						<< "  -v,--version        print software version" << std::endl
+						<< "  -y,--copyright      print software copyright notice / license" << std::endl
 						<< std::endl;
 					return false;
 				case 'X':
@@ -310,6 +327,7 @@ private:
 
 private:
 	std::string configfile_;
+	std::string pidfile_;
 	int nofork_;
 	int doguard_;
 	x0::server server_;

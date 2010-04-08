@@ -8,5 +8,8 @@ else
 	cmake . \
 		-DASIO_INCLUDEDIR="$(dirname $(pwd))/asio/include" \
 		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -ggdb3" \
+		-DCMAKE_INSTALL_PREFIX="/usr" \
+		-DSYSCONFDIR="/etc/x0" \
+		-DSTATEDIR="/var/run/x0" \
 		-DCMAKE_BUILD_TYPE="debug"
 fi

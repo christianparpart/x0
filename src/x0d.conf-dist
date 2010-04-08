@@ -33,14 +33,12 @@ end
 
 PREFIX = '/usr/';
 DATADIR = PREFIX .. 'share/x0/';
-STATEDIR = '/var/run/x0d/';
 
 Daemon = {
 	Group = 'x0d';
 	User = 'x0d';
 	Chroot = '/';
 	Nice = 0;
-	PidFile = STATEDIR .. 'x0d.pid';
 };
 
 ServerTag = 'x0';
@@ -65,6 +63,7 @@ Resources = {
 	MaxKeepAliveRequests = 16;
 	MaxKeepAliveIdle = 5;
 
+	MaxConnections = 1024;
 	MaxReadIdle = 60;
 	MaxWriteIdle = 360;
 
@@ -142,6 +141,8 @@ Hosts = {
 --	table.insert(IndexFile, 'index.php');
 --	CGI.Mapping['.php'] = '/usr/bin/php-cgi';
 --end
+
+IGNORES = {'PREFIX', 'DATADIR'}
 
 ------------------------------------------------------
 --[[for k, v in pairs(ErrorDocuments) do
