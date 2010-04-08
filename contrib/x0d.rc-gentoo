@@ -1,0 +1,37 @@
+#!/sbin/runscript
+# Copyright 1999-2005 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+CONFIGFILE="/etc/x0/x0d.conf"
+PIDFILE="/var/run/x0/x0d.pid"
+X0DBIN="/usr/sbin/x0d"
+
+CONFIGFILE="/opt/sandbox/etc/x0d.conf"
+PIDFILE="/opt/sandbox/var/run/x0d.pid"
+X0DBIN="/opt/sandbox/sbin/x0d"
+
+depend() {
+	need net
+}
+
+start() {
+	ebegin "Starting x0 HTTP server"
+
+	start-stop-daemon --start --exec "${X0DBIN}" -- \
+		--config="${CONFIGFILE}" --pid-file="${PIDFILE}"
+
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping x0 HTTP server"
+	start-stop-daemon --stop --quiet --pidfile "${PIDFILE}"
+	eend $?
+}
+
+restart() {
+	svc_stop
+	sleep 3
+	svc_start
+}
