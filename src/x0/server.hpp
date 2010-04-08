@@ -172,6 +172,20 @@ public:
 	 */
 	void log(severity s, const char *msg, ...);
 
+	template<typename... Args>
+	inline void debug(int level, const char *msg, Args&&... args)
+	{
+#if !defined(NDEBUG)
+		if (level >= debug_level_)
+			log(severity::debug, msg, args...);
+#endif
+	}
+
+#if !defined(NDEBUG)
+	int debug_level() const;
+	void debug_level(int value);
+#endif
+
 	/**
 	 * sets up a TCP/IP listener on given bind_address and port.
 	 *
@@ -238,6 +252,7 @@ private:
 	std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid, const std::string& path)>>> cvars_path_;
 	std::string configfile_;
 	logger_ptr logger_;
+	int debug_level_;
 	bool colored_log_;
 	plugin_map_t plugins_;
 	datetime now_;
@@ -270,6 +285,23 @@ inline const std::list<listener *>& server::listeners() const
 {
 	return listeners_;
 }
+
+#if !defined(NDEBUG)
+inline int server::debug_level() const
+{
+	return debug_level_;
+}
+
+inline void server::debug_level(int value)
+{
+	if (value < 0)
+		value = 0;
+	else if (value > 9)
+		value = 9;
+
+	debug_level_ = value;
+}
+#endif
 // }}}
 
 //@}

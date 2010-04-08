@@ -10,6 +10,7 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/header.hpp>
+#include <x0/web_client.hpp>
 #include <x0/response_parser.hpp>
 #include <x0/io/buffer_source.hpp>
 #include <x0/strutils.hpp>
@@ -137,20 +138,12 @@ class proxy_connection // {{{
 {
 	friend class proxy;
 
-public:
-	enum state {
-		not_connected,		//!< not connected to origin
-		connecting,			//!< connect() in progress
-		connected,			//!< connected to origin but idle
-		processing			//!< connected to origin and processing for/to a client
-	};
 
 public:
 	explicit proxy_connection(proxy *px);
 	~proxy_connection();
 
 	void start(const std::function<void()>& done, x0::request *in, x0::response *out);
-	bool active() const;
 
 private:
 	void connect(const std::string& origin);
@@ -158,37 +151,22 @@ private:
 
 	void pass_request();
 
-	void on_status(const x0::buffer_ref&, const x0::buffer_ref&, const x0::buffer_ref&);
+	void on_response(const x0::buffer_ref&, const x0::buffer_ref&, const x0::buffer_ref&);
 	void on_header(const x0::buffer_ref&, const x0::buffer_ref&);
 	void on_content(const x0::buffer_ref&);
+	void on_complete();
 	void content_written(int ec, std::size_t nb);
 
-	void io(ev::io& w, int revents);
-	inline void write_some();
-	inline void read_some();
-	inline void on_connect_done();
-	void timeout(ev::timer& w, int revents);
-
 private:
-	state state_;							//!< connection state
 	proxy *px_;								//!< owning proxy
-	int origin_;							//!< origin's socket fd
+	x0::web_client client_;					//!< HTTP client connection
 
 	std::string hostname_;					//!< origin's hostname
 	int port_;								//!< origin's port
 	std::function<void()> done_;
 	x0::request *request_;					//!< client's request
 	x0::response *response_;				//!< client's response
-	x0::response_parser response_parser_;	//!< 
-
-	x0::buffer write_buffer_;				//!< request send buffer
-	std::size_t write_offset_;				//!< write offset into request buffer
-
-	x0::buffer read_buffer_;				//!< response read buffer
-	std::size_t serial_;					//!< response received counter
-
-	ev::io io_;								//!< I/O watcher
-	ev::timer timer_;						//!< timeout watcher
+	std::size_t serial_;
 }; // }}}
 
 // {{{ origin_server impl
@@ -337,30 +315,22 @@ void proxy::release(proxy_connection *px)
 
 // {{{ proxy_connection impl
 proxy_connection::proxy_connection(proxy *px) :
-	state_(not_connected),
 	px_(px),
-	origin_(-1),
+	client_(px_->loop),
 	done_(),
 	request_(NULL),
 	response_(NULL),
-	response_parser_(x0::response_parser::ALL),
-	write_buffer_(),
-	write_offset_(0),
-	read_buffer_(),
-	serial_(0),
-	io_(px_->loop),
-	timer_(px_->loop)
+	serial_(0)
 {
-	io_.set<proxy_connection, &proxy_connection::io>(this);
-	timer_.set<proxy_connection, &proxy_connection::timeout>(this);
-
 	using namespace std::placeholders;
-	response_parser_.status = std::bind(&proxy_connection::on_status, this, _1, _2, _3);
-	response_parser_.assign_header = std::bind(&proxy_connection::on_header, this, _1, _2);
-	response_parser_.process_content = std::bind(&proxy_connection::on_content, this, _1);
+
+	client_.on_response = std::bind(&proxy_connection::on_response, this, _1, _2, _3);
+	client_.on_header = std::bind(&proxy_connection::on_header, this, _1, _2);
+	client_.on_content = std::bind(&proxy_connection::on_content, this, _1);
+	client_.on_complete = std::bind(&proxy_connection::on_complete, this);
 }
 
-void proxy_connection::on_status(const x0::buffer_ref& protocol, const x0::buffer_ref& code, const x0::buffer_ref& text)
+void proxy_connection::on_response(const x0::buffer_ref& protocol, const x0::buffer_ref& code, const x0::buffer_ref& text)
 {
 	TRACE("connection(%p).on_status('%s', '%s', '%s')", this, protocol.str().c_str(), code.str().c_str(), text.str().c_str());
 	response_->status = std::atoi(code.str().c_str());
@@ -386,9 +356,14 @@ void proxy_connection::on_content(const x0::buffer_ref& value)
 {
 	TRACE("connection(%p).on_content(size=%ld)", this, value.size());
 
-	io_.stop();
+	client_.pause();
+
 	response_->write(std::make_shared<x0::buffer_source>(value),
 			std::bind(&proxy_connection::content_written, this, std::placeholders::_1, std::placeholders::_2));
+}
+
+void proxy_connection::on_complete()
+{
 }
 
 void proxy_connection::content_written(int ec, std::size_t nb)
@@ -397,10 +372,7 @@ void proxy_connection::content_written(int ec, std::size_t nb)
 
 	if (!ec)
 	{
-		if (px_->read_timeout > 0)
-			timer_.start(px_->read_timeout, 0.0);
-
-		io_.start(origin_, ev::READ);
+		client_.resume();
 	}
 	else
 	{
@@ -410,18 +382,11 @@ void proxy_connection::content_written(int ec, std::size_t nb)
 
 		delete this;
 	}
-
 }
 
 proxy_connection::~proxy_connection()
 {
-	TRACE("~proxy_connection(%p) destroy (fd=%d)", this, origin_);
-
-	if (origin_)
-	{
-		::close(origin_);
-		origin_ = -1;
-	}
+	TRACE("~proxy_connection(%p) destroy", this);
 }
 
 /** Asynchronously connects to origin server.
@@ -437,72 +402,29 @@ void proxy_connection::connect(const std::string& origin)
 
 	TRACE("proxy_connection(%p): connecting to %s port %d", this, hostname_.c_str(), port_);
 
-#if 0
-	sockaddr_in6 sin;
-	memset(&sin, 0, sizeof(sin));
+	client_.open(hostname_, port_);
 
-	sin.sin6_family = AF_INET6;
-	sin.sin6_port = htons(port_);
-	if (inet_pton(sin.sin6_family, hostname_.c_str(), sin.sin6_addr.s6_addr) < 0)
+	switch (client_.state())
 	{
-		TRACE("async_connect: resolve error: %s", strerror(errno));
-		return;
-	}
+		case x0::web_client::DISCONNECTED:
+			TRACE("proxy_connection(%p): connect error: %s", this, client_.message().c_str());
+			break;
+		case x0::web_client::CONNECTING:
+			// impossible
+			break;
+		case x0::web_client::CONNECTED:
+			TRACE("proxy_connection(%p): directly connected", this);
+        
+			if (request_)
+				pass_request();
 
-	socklen_t slen = sizeof(sockaddr_in6);
-
-	origin_ = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
-#else
-	sockaddr_in sin;
-	memset(&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(port_);
-	if (inet_pton(sin.sin_family, hostname_.c_str(), &sin.sin_addr) < 0)
-	{
-		TRACE("async_connect: resolve error: %s", strerror(errno));
-		return;
-	}
-	socklen_t slen = sizeof(sockaddr_in);
-
-	origin_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-#endif
-
-	if (origin_ == -1)
-	{
-		TRACE("socket() failed: %s.", strerror(errno));
-		return;
-	}
-
-	int rv = fcntl(origin_, F_GETFL, NULL) | O_NONBLOCK | O_CLOEXEC;
-	fcntl(origin_, F_SETFL, &rv, sizeof(rv));
-
-	rv = ::connect(origin_, (sockaddr *)&sin, slen);
-
-	if (rv == -1)
-	{
-		if (errno != EINPROGRESS)
-		{
-			TRACE("async_connect error: %s", strerror(errno));
-			::close(origin_);
-			origin_ = -1;
-			return;
-		}
-		TRACE("async_connect: backgrounding");
-
-		io_.start(origin_, ev::WRITE);
-
-		if (px_->connect_timeout != 0)
-			timer_.start(px_->connect_timeout, 0.0);
-
-		state_ = connecting;
-	}
-	else
-	{
-		state_ = connected;
-		TRACE("async_connect: instant success");
-
-		if (request_)
-			pass_request();
+			break;
+		case x0::web_client::READING:
+			// impossible
+			break;
+		case x0::web_client::WRITING:
+			// impossible
+			break;
 	}
 }
 
@@ -510,11 +432,7 @@ void proxy_connection::connect(const std::string& origin)
  */
 void proxy_connection::disconnect()
 {
-	if (origin_ != -1)
-	{
-		::close(origin_);
-		origin_ = -1;
-	}
+	client_.close();
 }
 
 /** Starts processing client request.
@@ -526,13 +444,14 @@ void proxy_connection::disconnect()
 void proxy_connection::start(const std::function<void()>& done, x0::request *in, x0::response *out)
 {
 	TRACE("connection(%p).start(): path=%s", this, in->path.str().c_str());
-	if (origin_ != -1)
+
+	if (client_.state() != x0::web_client::DISCONNECTED)
 	{
 		done_ = done;
 		request_ = in;
 		response_ = out;
 
-		if (state_ == connected)
+		if (client_.state() == x0::web_client::CONNECTED)
 			pass_request();
 	}
 	else
@@ -559,204 +478,40 @@ void proxy_connection::pass_request()
 {
 	TRACE("connection(%p).pass_request()", this);
 
-	write_buffer_.clear();
-	write_offset_ = 0;
-
 	// request line
-	write_buffer_.push_back(request_->method);
-	write_buffer_.push_back(' ');
-	write_buffer_.push_back(request_->path);
 	if (request_->query)
-	{
-		write_buffer_.push_back('?');
-		write_buffer_.push_back(request_->query);
-	}
-
-	if (px_->keepalive)
-		write_buffer_.push_back(" HTTP/1.1\r\n");
+		client_.pass_request(request_->method, request_->path, request_->query);
 	else
-		write_buffer_.push_back(" HTTP/1.0\r\n");
+		client_.pass_request(request_->method, request_->path);
 
 	// request-headers
 	for (auto i = request_->headers.begin(), e = request_->headers.end(); i != e; ++i)
-	{
-		if (!validate_request_header(i->name))
-			continue;
-
-		write_buffer_.push_back(i->name);
-		write_buffer_.push_back(": ");
-		write_buffer_.push_back(i->value);
-		write_buffer_.push_back("\r\n");
-	}
+		if (validate_request_header(i->name))
+			client_.pass_header(i->name, i->value);
 
 	{
-		write_buffer_.push_back("Host: ");
+		x0::buffer result;
+
 		auto hostid = request_->hostid();
 		std::size_t n = hostid.find(':');
 		if (n != std::string::npos)
-			write_buffer_.push_back(hostid.substr(0, n));
+			result.push_back(hostid.substr(0, n));
 		else
-			write_buffer_.push_back(hostid);
+			result.push_back(hostid);
 
-		char buf[16];
-		int nwritten = std::snprintf(buf, sizeof(buf), ":%d", port_);
-		write_buffer_.push_back(buf, nwritten);
+		result.push_back(':');
+		result.push_back(port_);
 
-		write_buffer_.push_back("\r\n");
+		client_.pass_header("Host", result);
 	}
-
-	if (!px_->keepalive)
-		write_buffer_.push_back("Connection: closed\r\n");
-	else
-		write_buffer_.push_back("Connection: keep-alive\r\n");
-
-	write_buffer_.push_back("\r\n");
 
 	// body?
 	if (request_->body.empty())
-		write_buffer_.push_back(request_->body);
-
-	state_ = processing;
-
-	// TODO call write_some() instead
-	if (px_->write_timeout > 0)
-		timer_.start(px_->write_timeout, 0.0);
-
-	io_.start(origin_, ev::WRITE);
-}
-
-inline void proxy_connection::write_some()
-{
-	TRACE("connection(%p)::write_some()", this);
-
-	size_t rv = ::write(origin_, write_buffer_.data() + write_offset_, write_buffer_.size() - write_offset_);
-
-	if (rv > 0)
 	{
-		TRACE("write request: %ld (of %ld) bytes", rv, write_buffer_.size() - write_offset_);
-
-		write_offset_ += rv;
-		if (write_offset_ == write_buffer_.size()) // request fully transmitted, let's read response then.
-		{
-			if (px_->read_timeout > 0)
-				timer_.start(px_->read_timeout, 0.0);
-
-			io_.set(origin_, ev::READ);
-
-			serial_ = 0;
-		}
-	}
-	else
-	{
-		TRACE("write request failed(%ld): %s", rv, strerror(errno));
-
-		if (!response_->status)
-			response_->status = x0::response::bad_gateway;
-
-		done_();
-		delete this;
-	}
-}
-
-inline void proxy_connection::read_some()
-{
-	TRACE("connection(%p)::read_some()", this);
-
-	std::size_t lower_bound = read_buffer_.size();
-
-	if (lower_bound == read_buffer_.capacity())
-		read_buffer_.capacity(lower_bound + 4096);
-
-	size_t rv = ::read(origin_, (char *)read_buffer_.end(), read_buffer_.capacity() - lower_bound);
-
-	if (rv > 0)
-	{
-		TRACE("read response: %ld bytes", rv);
-		read_buffer_.resize(lower_bound + rv);
-		response_parser_.parse(read_buffer_.ref(lower_bound, rv));
-		serial_++;
-	}
-	else if (rv == 0)
-	{
-		TRACE("origin server (%d) connection closed", origin_);
-		done_();
-		delete this;
-	}
-	else
-	{
-		TRACE("read response failed(%ld): %s", rv, strerror(errno));
-		done_();
-		delete this;
-	}
-}
-
-inline void proxy_connection::on_connect_done()
-{
-	int val = 0;
-	socklen_t vlen = sizeof(val);
-	if (getsockopt(origin_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0)
-	{
-		if (val == 0)
-		{
-			TRACE("async_connect: connected");
-			state_ = connected;
-			if (request_)
-				pass_request();
-		}
-		else
-		{
-			TRACE("async_connect: error(%d): %s", val, strerror(val));
-
-			response_->status = x0::response::service_unavailable;
-			done_();
-			delete this;
-		}
-	}
-	else
-		TRACE("on_connect_done: getsocketopt() error: %s", strerror(errno));
-}
-
-/** callback, invoked whenever an I/O event occurs on the connection to the origin server.
- */
-void proxy_connection::io(ev::io& w, int revents)
-{
-	if (timer_.is_active())
-		timer_.stop();
-
-	if (revents & ev::READ)
-		read_some();
-
-	if (revents & ev::WRITE)
-	{
-		if (state_ == connecting)
-			on_connect_done();
-		else
-			write_some();
-	}
-}
-
-void proxy_connection::timeout(ev::timer& w, int revents)
-{
-	switch (state_)
-	{
-		case connecting:
-			TRACE("connect() to origin server timed out");
-			break;
-		case processing:
-			TRACE("I/O to origin server timedout");
-			break;
-		case not_connected:
-		case connected:
-			TRACE("proxy_connection(%p).timeout() on invalidate state(%d) invoked", this, state_);
-			// unexpected invokation
-			break;
+		;//! \todo properly handle POST data (request_->body)
 	}
 
-	if (!response_->status)
-		response_->status = x0::response::gateway_timedout;
-
-	done_();
-	delete this;
+	client_.commit(true);
 }
 // }}}
 

@@ -52,6 +52,7 @@ private:
 	{
 		std::string name;
 		std::string document_root;
+		std::string bindaddress;
 	};
 
 	x0::server::request_parse_hook::connection c;
@@ -93,7 +94,7 @@ public:
 
 		if (document_root[0] != '/')
 		{
-			server_.log(x0::severity::warn,
+			log(x0::severity::warn,
 				"vhost_basic[%s]: document root should be an absolute path: '%s'",
 				hostid.c_str(), document_root.c_str());
 		}
@@ -115,6 +116,8 @@ public:
 	{
 		int port = x0::extract_port_from_hostid(hostid);
 		std::string bind = cvar.as<std::string>();
+		vhost_config *cfg = server_.context<vhost_config>(this, hostid);
+		cfg->bindaddress = bind;
 
 		server_.setup_listener(port, bind);
 	}
@@ -138,10 +141,8 @@ public:
 
 			server_.link_context(hostid, hid);
 
-#if 0 // !defined(NDEBUG)
-			server_.log(x0::severity::debug,
-				"Server alias '%s' (for bind '%s' on port %d) added.",
-				hid.c_str(), bind.c_str(), port);
+#if !defined(NDEBUG)
+			debug(1, "Server alias '%s' (for bind '%s' on port %d) added.", hid.c_str(), cfg->bindaddress.c_str(), port);
 #endif
 		}
 	}
@@ -187,8 +188,8 @@ public:
 
 	void set_default_vhost(int port, vhost_config *cfg)
 	{
-#if 0 // !defined(NDEBUG)
-		server_.log(x0::severity::debug, "set default host '%s'", cfg->name.c_str());
+#if !defined(NDEBUG)
+		debug(1, "set default host '%s'", cfg->name.c_str());
 #endif
 		default_hosts[port] = cfg;
 	}
@@ -227,7 +228,7 @@ public:
 		{
 			if (!get_default_vhost((*i)->port()))
 			{
-				server_.log(x0::severity::warn,
+				log(x0::severity::warn,
 					"No default host defined for listener at port %d.",
 					(*i)->port());
 			}
@@ -246,11 +247,8 @@ private:
 			if (!vhost)
 			{
 #if !defined(NDEBUG)
-				server_.log(x0::severity::debug,
-						"vhost_basic: no vhost config found for [%s]",
-						hostid.c_str());
+				debug(1, "vhost_basic: no vhost config found for [%s]", hostid.c_str());
 #endif
-
 				return;
 			}
 			in->set_hostid(vhost->name);

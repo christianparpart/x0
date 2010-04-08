@@ -52,40 +52,12 @@ connection::connection(x0::listener& lst) :
 	, ctime_(ev_now(server_.loop()))
 #endif
 {
-	socklen_t slen = sizeof(saddr_);
-	memset(&saddr_, 0, slen);
-
-	socket_ = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
-
-	if (socket_ < 0)
-		throw std::runtime_error(strerror(errno));
-
-	DEBUG("connection(%p) fd=%d", this, socket_);
-
-	if (fcntl(socket_, F_SETFL, O_NONBLOCK) < 0)
-		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
-
-#if defined(TCP_CORK)
-	{
-		int flag = 1;
-		setsockopt(socket_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
-	}
-#endif
-
-#if 0 // defined(TCP_NODELAY)
-	{
-		int flag = 1;
-		setsockopt(socket_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag));
-	}
-#endif
-
 	watcher_.set<connection, &connection::io_callback>(this);
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	timer_.set<connection, &connection::timeout_callback>(this);
 #endif
 
-	server_.connection_open(this);
 }
 
 connection::~connection()
@@ -111,7 +83,13 @@ connection::~connection()
 		gnutls_deinit(ssl_session_);
 #endif
 
-	::close(socket_);
+	if (socket_ != -1)
+	{
+		::close(socket_);
+#if !defined(NDEBUG)
+		socket_ = -1;
+#endif
+	}
 }
 
 void connection::io_callback(ev::io& w, int revents)
@@ -169,9 +147,53 @@ bool connection::ssl_enabled() const
 }
 #endif
 
+/** start first async operation for this connection.
+ *
+ * This is done by simply registering the underlying socket to the the I/O service
+ * to watch for available input.
+ * \see stop()
+ * :
+ */
 void connection::start()
 {
-	DEBUG("connection(%p).start()", this);
+	socklen_t slen = sizeof(saddr_);
+	memset(&saddr_, 0, slen);
+
+	socket_ = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
+
+	if (socket_ < 0)
+	{
+		server_.log(severity::error, "Could not accept client socket: %s", strerror(errno));
+		delete this;
+		return;
+	}
+
+	DEBUG("connection(%p).start() fd=%d", this, socket_);
+
+	if (fcntl(socket_, F_SETFL, O_NONBLOCK) < 0)
+		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
+
+#if defined(TCP_CORK)
+	{
+		int flag = 1;
+		setsockopt(socket_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
+	}
+#endif
+
+#if 0 // defined(TCP_NODELAY)
+	{
+		int flag = 1;
+		setsockopt(socket_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag));
+	}
+#endif
+
+	server_.connection_open(this);
+
+	if (socket_ < 0) // hook triggered delayed delete via connection::close()
+	{
+		delete this;
+		return;
+	}
 
 #if defined(WITH_SSL)
 	if (ssl_enabled())
@@ -231,7 +253,11 @@ bool connection::ssl_handshake()
 }
 #endif
 
-/** processes the next request on the connection. */
+/** Resumes async operations.
+ *
+ * This method is being invoked on a keep-alive connection to parse further requests.
+ * \see start()
+ */
 void connection::resume()
 {
 	DEBUG("connection(%p).resume()", this);
@@ -392,6 +418,24 @@ void connection::handle_read()
 
 		buffer_.resize(lower_bound + rv);
 		parse_request(lower_bound, rv);
+	}
+}
+
+/** closes this connection, possibly deleting this object (or propagating delayed delete).
+ */
+void connection::close()
+{
+	switch (state_)
+	{
+		case invalid:
+			// we've got invoked from within connection_open()-hook (within the connection::start()-call)
+			::close(socket_);
+			socket_ = -1;
+			break;
+		case reading:
+		case writing:
+			delete this;
+			break;
 	}
 }
 

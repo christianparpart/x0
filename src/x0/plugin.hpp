@@ -34,7 +34,11 @@ private:
 public:
 	/** initializes the plugin */
 	plugin(server& srv, const std::string& name) :
-		server_(srv), name_(name)
+#if !defined(NDEBUG)
+		debug_level_(1),
+#endif
+		server_(srv),
+		name_(name)
 	{
 	}
 
@@ -60,7 +64,38 @@ public:
 		server_.log(sv, msg, args...);
 	}
 
+	template<typename... Args>
+	inline void debug(int level, const char *msg, Args&&... args)
+	{
+#if !defined(NDEBUG)
+		if (level >= debug_level_)
+		{
+			buffer fmt;
+			fmt.push_back(name_);
+			fmt.push_back(": ");
+			fmt.push_back(msg);
+
+			server_.log(severity::debug, fmt.c_str(), args...);
+		}
+#endif
+	}
+
+#if !defined(NDEBUG)
+	inline int debug_level() const
+	{
+		return debug_level_;
+	}
+
+	void debug_level(int value)
+	{
+		debug_level_ = value;
+	}
+#endif
+
 protected:
+#if !defined(NDEBUG)
+	int debug_level_;
+#endif
 	server& server_;
 	std::string name_;
 };

@@ -75,6 +75,7 @@ set(x0_SRC
 	listener.cpp
 	logger.cpp
 	response.cpp
+	web_client.cpp
 	request.cpp
 	server.cpp
 	settings.cpp
@@ -98,6 +99,7 @@ set(x0_API
 	request.hpp
 	request_parser.hpp
 	response.hpp
+	web_client.hpp
 	server.hpp
 	settings.hpp
 	severity.hpp
