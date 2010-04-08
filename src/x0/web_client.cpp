@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#if 1
+#if 0
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("web_client: " msg)
@@ -47,6 +47,7 @@ web_client::web_client(struct ev_loop *loop) :
 	message_(),
 	request_buffer_(),
 	request_offset_(0),
+	flush_offset_(0),
 	response_buffer_(),
 	response_parser_(response_parser::ALL),
 	connect_timeout(0),
@@ -175,12 +176,55 @@ void web_client::commit(bool flush)
 	request_buffer_.push_back("\015\012"); // final linefeed
 
 	if (flush)
+	{
 		if (state_ == CONNECTED)
 			start_write();
+		else
+			flush_offset_ = request_buffer_.size();
+	}
+}
+
+void web_client::pause()
+{
+	if (timer_.is_active())
+		timer_.stop();
+
+	if (io_.is_active())
+		io_.stop();
+}
+
+void web_client::resume()
+{
+	switch (state_)
+	{
+		case DISCONNECTED:
+			break;
+		case CONNECTING:
+			if (connect_timeout > 0)
+				timer_.start(connect_timeout, 0.0);
+
+			io_.start();
+			break;
+		case CONNECTED:
+			break;
+		case WRITING:
+			if (write_timeout > 0)
+				timer_.start(write_timeout, 0.0);
+
+			io_.start();
+			break;
+		case READING:
+			if (read_timeout > 0)
+				timer_.start(read_timeout, 0.0);
+
+			io_.start();
+			break;
+	}
 }
 
 void web_client::start_read()
 {
+	TRACE("web_client: start_read(%d)", state_);
 	switch (state_)
 	{
 		case DISCONNECTED:
@@ -212,6 +256,7 @@ void web_client::start_read()
 
 void web_client::start_write()
 {
+	TRACE("web_client: start_write(%d)", state_);
 	switch (state_)
 	{
 		case DISCONNECTED:
@@ -277,17 +322,22 @@ void web_client::connect_done()
 		if (val == 0)
 		{
 			TRACE("async_connect: connected");
-			start_read(); // watch for EOF, just in case
+			if (flush_offset_)
+				start_write(); // some request got already committed -> start write immediately
+			else
+				start_read(); // we're idle, watch for EOF
 		}
 		else
 		{
-			TRACE("async_connect: error(%d): %s", val, strerror(val));
+			message_ = strerror(val);
+			TRACE("async_connect: error(%d): %s", val, message_.c_str());
 			close();
 		}
 	}
 	else
 	{
-		TRACE("on_connect_done: getsocketopt() error: %s", strerror(errno));
+		message_ = strerror(errno);
+		TRACE("on_connect_done: getsocketopt() error: %s", message_.c_str());
 		close();
 	}
 }
@@ -296,7 +346,7 @@ void web_client::write_some()
 {
 	TRACE("web_client(%p)::write_some()", this);
 
-	size_t rv = ::write(fd_, request_buffer_.data() + request_offset_, request_buffer_.size() - request_offset_);
+	ssize_t rv = ::write(fd_, request_buffer_.data() + request_offset_, request_buffer_.size() - request_offset_);
 
 	if (rv > 0)
 	{
@@ -323,7 +373,7 @@ void web_client::read_some()
 	if (lower_bound == response_buffer_.capacity())
 		response_buffer_.capacity(lower_bound + 4096);
 
-	size_t rv = ::read(fd_, (char *)response_buffer_.end(), response_buffer_.capacity() - lower_bound);
+	ssize_t rv = ::read(fd_, (char *)response_buffer_.end(), response_buffer_.capacity() - lower_bound);
 
 	if (rv > 0)
 	{

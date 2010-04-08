@@ -39,6 +39,7 @@ private:
 	std::string message_;
 	buffer request_buffer_;
 	std::size_t request_offset_;
+	std::size_t flush_offset_;
 	buffer response_buffer_;
 	response_parser response_parser_;
 
@@ -79,6 +80,9 @@ public:
 	template<typename method_type, typename path_type>
 	void pass_request(method_type&& method, path_type&& path);
 
+	template<typename method_type, typename path_type, typename query_type>
+	void pass_request(method_type&& method, path_type&& path, query_type&& query);
+
 	template<typename key_type, typename value_type>
 	void pass_header(key_type&& key, value_type&& value);
 
@@ -86,6 +90,9 @@ public:
 	void setup_content_writer(handler_type&& handler);
 
 	void commit(bool flush = true);
+
+	void pause();
+	void resume();
 
 	template<typename chunk_type>
 	ssize_t pass_content(chunk_type&& chunk, bool last);
@@ -118,6 +125,25 @@ void web_client::pass_request(method_type&& method, path_type&& path)
 	request_buffer_.push_back(method);
 	request_buffer_.push_back(' ');
 	request_buffer_.push_back(path);
+	request_buffer_.push_back(' ');
+	request_buffer_.push_back("HTTP/1.1");
+	request_buffer_.push_back("\015\012");
+}
+
+/** passes the request line into the buffer.
+ *
+ * \param method e.g. GET or POST
+ * \param path the request path (including possible query args)
+ * \param query the query args (encoded)
+ */
+template<typename method_type, typename path_type, typename query_type>
+void web_client::pass_request(method_type&& method, path_type&& path, query_type&& query)
+{
+	request_buffer_.push_back(method);
+	request_buffer_.push_back(' ');
+	request_buffer_.push_back(path);
+	request_buffer_.push_back('?');
+	request_buffer_.push_back(query);
 	request_buffer_.push_back(' ');
 	request_buffer_.push_back("HTTP/1.1");
 	request_buffer_.push_back("\015\012");

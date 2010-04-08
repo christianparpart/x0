@@ -32,7 +32,7 @@ void on_complete()
 
 int main(int argc, const char *argv[])
 {
-	const int request_count = 2;
+	const int request_count = 1; //2;
 	struct ev_loop *loop = ev_default_loop(0);
 
 	x0::web_client client(loop);
@@ -42,7 +42,7 @@ int main(int argc, const char *argv[])
 	client.on_header = std::bind(&on_header, _1, _2);
 	client.on_content = std::bind(&on_content, _1);
 	client.on_complete = std::bind(&on_complete);
-	client.keepalive_timeout = 5;
+	//client.keepalive_timeout = 5;
 
 	if (argc == 4)
 		client.open(argv[1], std::atoi(argv[2]));
