@@ -264,8 +264,8 @@ private:
 						<< "  -X,--no-fork        do not fork into background" << std::endl
 						<< "  -G,--guard          do run service as child of a special guard process to watch for crashes" << std::endl
 						<< "  -p,--pid-file=PATH  PID file to create/use [" << pidfile_ << "]" << std::endl
-						<< "     --user=NAME      user to drop privileges to" << std::endl
-						<< "     --group=NAME     group to drop privileges to" << std::endl
+						<< "  -u,--user=NAME      user to drop privileges to" << std::endl
+						<< "  -g,--group=NAME     group to drop privileges to" << std::endl
 						<< "  -v,--version        print software version" << std::endl
 						<< "  -y,--copyright      print software copyright notice / license" << std::endl
 						<< std::endl;
