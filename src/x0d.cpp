@@ -228,7 +228,7 @@ private:
 		for (;;)
 		{
 			int long_index = 0;
-			switch (getopt_long(argc, argv, "vyc:hXG", long_options, &long_index))
+			switch (getopt_long(argc, argv, "vyc:p:u:g:hXG", long_options, &long_index))
 			{
 				case 'p':
 					pidfile_ = optarg;
