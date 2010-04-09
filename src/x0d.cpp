@@ -44,7 +44,9 @@ private:
 	}
 
 public:
-	x0d() :
+	x0d(int argc, char *argv[]) :
+		argc_(argc),
+		argv_(argv),
 		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
 		pidfile_(pathcat(LOCALSTATEDIR, "run/x0d.pid")),
 		user_(""),
@@ -70,9 +72,9 @@ public:
 		return instance_;
 	}
 
-	int run(int argc, char *argv[])
+	int run()
 	{
-		if (!parse(argc, argv))
+		if (!parse())
 			return 1;
 
 		server_.configure(configfile_);
@@ -183,13 +185,17 @@ public:
 		::signal(SIGTERM, &terminate_handler);
 		::signal(SIGPIPE, SIG_IGN);
 
+		if (pidfile_.empty())
+		{
+			server_.log(x0::severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
+		}
 		if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
 		{
 			server_.log(x0::severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
 			fprintf(pidfile, "%d\n", getpid());
 			fclose(pidfile);
 		} else
-			server_.log(x0::severity::error, "Could not create PID file: %s.", strerror(errno));
+			server_.log(x0::severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
 
 		server_.run();
 
@@ -199,7 +205,7 @@ public:
 	}
 
 private:
-	bool parse(int argc, char *argv[])
+	bool parse()
 	{
 		struct option long_options[] =
 		{
@@ -228,7 +234,7 @@ private:
 		for (;;)
 		{
 			int long_index = 0;
-			switch (getopt_long(argc, argv, "vyc:p:u:g:hXG", long_options, &long_index))
+			switch (getopt_long(argc_, argv_, "vyc:p:u:g:hXG", long_options, &long_index))
 			{
 				case 'p':
 					pidfile_ = optarg;
@@ -392,6 +398,8 @@ private:
 	}
 
 private:
+	int argc_;
+	char **argv_;
 	std::string configfile_;
 	std::string pidfile_;
 	std::string user_;
@@ -408,8 +416,8 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		x0d daemon;
-		return daemon.run(argc, argv);
+		x0d daemon(argc, argv);
+		return daemon.run();
 	}
 	catch (std::exception& e)
 	{
