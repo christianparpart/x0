@@ -87,6 +87,8 @@ set(x0_SRC
 set(x0_API
 	${x0_io_API}
 	${x0_util_API}
+	buffer.hpp
+	buffer_ref.hpp
 	connection.hpp
 	context.hpp
 	handler.hpp
