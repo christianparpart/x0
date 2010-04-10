@@ -53,13 +53,21 @@ public:
 		group_(""),
 		nofork_(false),
 		doguard_(false),
-		server_()
+		server_(),
+		sigterm_(server_.loop()),
+		sighup_(server_.loop())
 	{
 #ifndef NDEBUG
 		nofork_ = true;
 		configfile_ = "test.conf";
 #endif
 		instance_ = this;
+
+		sigterm_.set<x0d, &x0d::terminate_handler>(this);
+		sigterm_.start(SIGTERM);
+
+		sighup_.set<x0d, &x0d::reload_handler>(this);
+		sighup_.start(SIGHUP);
 	}
 
 	~x0d()
@@ -181,8 +189,6 @@ public:
 
 	int _run()
 	{
-		::signal(SIGHUP, &reload_handler);
-		::signal(SIGTERM, &terminate_handler);
 		::signal(SIGPIPE, SIG_IGN);
 
 		if (pidfile_.empty())
@@ -363,37 +369,31 @@ private:
 		}
 	}
 
-	static void reload_handler(int signo)
+	void reload_handler(ev::sig&, int)
 	{
-		if (instance_)
-		{
-			log(x0::severity::info, "%s received. Reloading configuration.", sig2str(signo).c_str());
+		log(x0::severity::info, "SIGHUP received. Reloading configuration.");
 
-			try
-			{
-				instance_->server_.reload();
-			}
-			catch (std::exception& e)
-			{
-				log(x0::severity::error, "uncaught exception in reload handler: %s", e.what());
-			}
+		try
+		{
+			server_.reload();
+		}
+		catch (std::exception& e)
+		{
+			log(x0::severity::error, "uncaught exception in reload handler: %s", e.what());
 		}
 	}
 
-	static void terminate_handler(int signo)
+	void terminate_handler(ev::sig&, int)
 	{
-		if (instance_)
-		{
-			log(x0::severity::info, "%s received. Shutting down.", sig2str(signo).c_str());
+		log(x0::severity::info, "SIGTERM received. Shutting down.");
 
-			try
-			{
-				instance_->server_.stop();
-			}
-			catch (std::exception& e)
-			{
-				log(x0::severity::error, "uncaught exception in terminate handler: %s", e.what());
-			}
+		try
+		{
+			server_.stop();
+		}
+		catch (std::exception& e)
+		{
+			log(x0::severity::error, "uncaught exception in terminate handler: %s", e.what());
 		}
 	}
 
@@ -407,6 +407,8 @@ private:
 	int nofork_;
 	int doguard_;
 	x0::server server_;
+	ev::sig sigterm_;
+	ev::sig sighup_;
 	static x0d *instance_;
 };
 
