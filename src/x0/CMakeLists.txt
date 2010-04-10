@@ -96,8 +96,6 @@ set(x0_API
 	listener.hpp
 	local_stream.hpp
 	logger.hpp
-	lua_program.hpp
-	lua_value.hpp
 	plugin.hpp
 	process.hpp
 	property.hpp
