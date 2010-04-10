@@ -79,7 +79,6 @@ set(x0_SRC
 )
 
 set(x0_API
-	${x0_io_API}
 	ansi_color.hpp
 	api.hpp
 	buffer.hpp
@@ -137,4 +136,5 @@ target_link_libraries(x0
 )
 
 install(FILES ${x0_API} DESTINATION ${INCLUDEDIR}/x0)
+install(FILES ${x0_io_API} DESTINATION ${INCLUDEDIR}/x0/io)
 #install(PUBLIC_HEADER DESTINATION include/x0)
