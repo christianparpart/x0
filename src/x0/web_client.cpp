@@ -75,69 +75,60 @@ web_client::~web_client()
 
 void web_client::open(const std::string& hostname, int port)
 {
-#if 0 // IPv6
-	sockaddr_in6 sin;
-	memset(&sin, 0, sizeof(sin));
+	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
 
-	sin.sin6_family = AF_INET6;
-	sin.sin6_port = htons(port);
+	struct addrinfo hints;
+	struct addrinfo *res;
 
-	if (inet_pton(sin.sin6_family, hostname.c_str(), sin.sin6_addr.s6_addr) < 0)
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	char sport[16];
+	snprintf(sport, sizeof(sport), "%d", port);
+
+	int rv = getaddrinfo(hostname.c_str(), sport, &hints, &res);
+	if (rv)
 	{
-		TRACE("async_connect: resolve error: %s", strerror(errno));
+		TRACE("connect: resolve error: %s", gai_strerror(rv));
 		return;
 	}
 
-	socklen_t slen = sizeof(sockaddr_in6);
-
-	fd_ = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
-#else // IPv4-only (good for debugging, as ngrep catches the I/O)
-	sockaddr_in sin;
-	memset(&sin, 0, sizeof(sin));
-
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(port);
-
-	if (inet_pton(sin.sin_family, hostname.c_str(), &sin.sin_addr) < 0)
+	for (struct addrinfo *rp = res; rp != NULL; rp = rp->ai_next)
 	{
-		TRACE("async_connect: resolve error: %s", strerror(errno));
-		return;
-	}
+		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (fd_ < 0)
+			continue;
 
-	socklen_t slen = sizeof(sockaddr_in);
+		int flags = ::fcntl(fd_, F_GETFL, NULL) | O_NONBLOCK | O_CLOEXEC;
+		::fcntl(fd_, F_SETFL, &flags, sizeof(flags));
 
-	fd_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-#endif
-
-	if (fd_ < 0)
-		return;
-
-	int rv = fcntl(fd_, F_GETFL, NULL) | O_NONBLOCK | O_CLOEXEC;
-	fcntl(fd_, F_SETFL, &rv, sizeof(rv));
-
-	rv = ::connect(fd_, (sockaddr *)&sin, slen);
-
-	if (rv == -1)
-	{
-		if (errno != EINPROGRESS)
+		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
+		if (rv < 0)
 		{
-			TRACE("async_connect error: %s", strerror(errno));
-
-			close();
+			if (errno == EINPROGRESS)
+			{
+				TRACE("async_connect: backgrounding");
+				state_ = CONNECTING;
+				start_write();
+				break;
+			}
+			else
+			{
+				TRACE("async_connect error: %s", strerror(errno));
+				close();
+			}
 		}
 		else
 		{
-			TRACE("async_connect: backgrounding");
-
-			state_ = CONNECTING;
-			start_write();
+			state_ = CONNECTED;
+			TRACE("async_connect: instant success");
+			break;
 		}
 	}
-	else
-	{
-		state_ = CONNECTED;
-		TRACE("async_connect: instant success");
-	}
+
+	freeaddrinfo(res);
 }
 
 bool web_client::is_open() const
@@ -262,9 +253,12 @@ void web_client::start_write()
 		case DISCONNECTED:
 			break;
 		case CONNECTING:
+			// asynchronous-connect completed and request committed already: start writing
+
 			if (connect_timeout > 0)
 				timer_.start(connect_timeout, 0.0);
 
+			state_ = WRITING;
 			io_.set(fd_, ev::WRITE);
 			io_.start();
 			break;
@@ -321,7 +315,7 @@ void web_client::connect_done()
 	{
 		if (val == 0)
 		{
-			TRACE("async_connect: connected");
+			TRACE("async_connect: connected (flush_offset=%ld)", flush_offset_);
 			if (flush_offset_)
 				start_write(); // some request got already committed -> start write immediately
 			else
