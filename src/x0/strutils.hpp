@@ -130,6 +130,6 @@ std::string extract_host_from_hostid(const std::string& hostid);
 
 } // namespace x0
 
-#include <x0/strutils.tcc>
+#include <x0/strutils.ipp>
 
 #endif
