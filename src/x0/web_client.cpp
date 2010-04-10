@@ -110,7 +110,6 @@ void web_client::open(const std::string& hostname, int port)
 			if (errno == EINPROGRESS)
 			{
 				TRACE("async_connect: backgrounding");
-				state_ = CONNECTING;
 				start_write();
 				break;
 			}
@@ -251,16 +250,22 @@ void web_client::start_write()
 	switch (state_)
 	{
 		case DISCONNECTED:
-			break;
-		case CONNECTING:
-			// asynchronous-connect completed and request committed already: start writing
+			// initiated asynchronous connect: watch for completeness
 
 			if (connect_timeout > 0)
 				timer_.start(connect_timeout, 0.0);
 
-			state_ = WRITING;
 			io_.set(fd_, ev::WRITE);
 			io_.start();
+			state_ = CONNECTING;
+			break;
+		case CONNECTING:
+			// asynchronous-connect completed and request committed already: start writing
+
+			if (write_timeout > 0)
+				timer_.start(write_timeout, 0.0);
+
+			state_ = WRITING;
 			break;
 		case CONNECTED:
 			if (write_timeout > 0)

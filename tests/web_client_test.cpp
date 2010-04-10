@@ -44,10 +44,18 @@ int main(int argc, const char *argv[])
 	client.on_complete = std::bind(&on_complete);
 	//client.keepalive_timeout = 5;
 
+	const char *hostname = "localhost";
+	int port = 80;
+	const char *path = "/";
+
 	if (argc == 4)
-		client.open(argv[1], std::atoi(argv[2]));
-	else
-		client.open("localhost", 80);
+	{
+		hostname = argv[1];
+		port = std::atoi(argv[2]);
+		path = argv[3];
+	}
+
+	client.open(hostname, port);
 
 	if (client.state() == x0::web_client::DISCONNECTED)
 	{
@@ -57,12 +65,9 @@ int main(int argc, const char *argv[])
 
 	for (int i = 0; i < request_count; ++i)
 	{
-		if (argc == 4)
-			client.pass_request("GET", argv[3]);
-		else
-			client.pass_request("GET", "/");
+		client.pass_request("GET", path);
 
-		client.pass_header("Host", "localhost"); // required field for HTTP/1.1
+		client.pass_header("Host", hostname);
 		client.pass_header("User-Agent", "x0");
 		client.pass_header("X-Foo", "bar");
 
