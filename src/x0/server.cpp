@@ -406,7 +406,7 @@ void server::run()
 
 	while (active_)
 	{
-		ev_loop(loop_, 0);
+		ev_loop(loop_, ev::ONESHOT);
 	}
 }
 
