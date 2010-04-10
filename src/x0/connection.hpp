@@ -182,7 +182,7 @@ template<typename CompletionHandler>
 inline void connection::on_write_ready(CompletionHandler callback)
 {
 	write_some = callback;
-	start_read();
+	start_write();
 }
 
 inline const x0::listener& connection::listener() const
