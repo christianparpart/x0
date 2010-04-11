@@ -264,6 +264,8 @@ public:
 	value_property<int> max_keep_alive_idle;
 	value_property<int> max_read_idle;
 	value_property<int> max_write_idle;
+	value_property<bool> tcp_cork;
+	value_property<bool> tcp_nodelay;
 	value_property<std::string> tag;
 	fileinfo_service fileinfo;
 

@@ -73,6 +73,8 @@ server::server(struct ::ev_loop *loop) :
 	max_keep_alive_idle(5),
 	max_read_idle(60),
 	max_write_idle(360),
+	tcp_cork(false),
+	tcp_nodelay(false),
 	tag("x0/" VERSION),
 	fileinfo(loop_),
 	max_fds(std::bind(&server::getrlimit, this, RLIMIT_CORE),
@@ -695,6 +697,9 @@ void server::setup_resources(const settings_value& cvar)
 	cvar["MaxKeepAliveIdle"].load(max_keep_alive_idle);
 	cvar["MaxReadIdle"].load(max_read_idle);
 	cvar["MaxWriteIdle"].load(max_write_idle);
+
+	cvar["TCP_CORK"].load(tcp_cork);
+	cvar["TCP_NODELAY"].load(tcp_nodelay);
 
 	long long value = 0;
 	if (cvar["MaxFiles"].load(value))
