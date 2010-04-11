@@ -122,6 +122,9 @@ public:
 	std::string str() const;
 	std::string substr(std::size_t offset) const;
 	std::string substr(std::size_t offset, std::size_t count) const;
+
+	// casts
+	template<typename T> T as() const;
 };
 
 // free functions
@@ -533,6 +536,66 @@ inline std::string buffer_ref::substr(std::size_t offset, std::size_t count) con
 {
 	assert(buffer_ != 0);
 	return std::string(data() + offset, std::min(count, size_));
+}
+
+template<>
+inline bool buffer_ref::as<bool>() const
+{
+	if (iequals(*this, "true"))
+		return true;
+
+	if (equals(*this, "1"))
+		return true;
+
+	return false;
+}
+
+template<>
+inline int buffer_ref::as<int>() const
+{
+	auto i = begin();
+	auto e = end();
+
+	// empty string
+	if (i == e)
+		return 0;
+
+	// parse sign
+	bool sign = false;
+	if (*i == '-')
+	{
+		sign = true;
+		++i;
+
+		if (i == e)
+			return 0;
+	}
+	else if (*i == '+')
+	{
+		++i;
+
+		if (i == e)
+			return 0;
+	}
+
+	// parse digits
+	int val = 0;
+	while (i != e)
+	{
+		if (*i < '0' || *i > '9')
+			break;
+
+		if (val)
+			val *= 10;
+
+		val += *i++ - '0';
+	}
+
+	// parsing succeed.
+	if (sign)
+		val = -val;
+
+	return val;
 }
 // }}}
 
