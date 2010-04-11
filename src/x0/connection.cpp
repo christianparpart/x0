@@ -173,7 +173,7 @@ void connection::start()
 	if (fcntl(socket_, F_SETFL, O_NONBLOCK) < 0)
 		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
 
-#if defined(TCP_CORK)
+#if 0 // defined(TCP_CORK)
 	{
 		int flag = 1;
 		setsockopt(socket_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
