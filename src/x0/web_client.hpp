@@ -63,7 +63,7 @@ public:
 	~web_client();
 
 	// connection handling
-	void open(const std::string& host, int port);
+	bool open(const std::string& host, int port);
 	bool is_open() const;
 	void close();
 
@@ -98,6 +98,7 @@ public:
 	ssize_t pass_content(chunk_type&& chunk, bool last);
 
 	// response handling
+	std::function<void()> on_connect;
 	std::function<void(const buffer_ref&, const buffer_ref&, const buffer_ref&)> on_response;
 	std::function<void(const buffer_ref&, const buffer_ref&)> on_header;
 	std::function<void(const buffer_ref&)> on_content;

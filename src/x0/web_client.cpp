@@ -54,6 +54,7 @@ web_client::web_client(struct ev_loop *loop) :
 	write_timeout(0),
 	read_timeout(0),
 	keepalive_timeout(0),
+	on_connect(),
 	on_response(),
 	on_header(),
 	on_content(),
@@ -73,7 +74,7 @@ web_client::~web_client()
 	close();
 }
 
-void web_client::open(const std::string& hostname, int port)
+bool web_client::open(const std::string& hostname, int port)
 {
 	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
 
@@ -91,8 +92,9 @@ void web_client::open(const std::string& hostname, int port)
 	int rv = getaddrinfo(hostname.c_str(), sport, &hints, &res);
 	if (rv)
 	{
-		TRACE("connect: resolve error: %s", gai_strerror(rv));
-		return;
+		message_ = gai_strerror(rv);
+		TRACE("connect: resolve error: %s", message_.c_str());
+		return false;
 	}
 
 	for (struct addrinfo *rp = res; rp != NULL; rp = rp->ai_next)
@@ -109,25 +111,32 @@ void web_client::open(const std::string& hostname, int port)
 		{
 			if (errno == EINPROGRESS)
 			{
-				TRACE("async_connect: backgrounding");
+				TRACE("connect: backgrounding");
 				start_write();
 				break;
 			}
 			else
 			{
-				TRACE("async_connect error: %s", strerror(errno));
+				message_ = strerror(rv);
+				TRACE("connect error: %s", message_.c_str());
 				close();
 			}
 		}
 		else
 		{
 			state_ = CONNECTED;
-			TRACE("async_connect: instant success");
+			TRACE("connect: instant success");
+
+			if (on_connect)
+				on_connect();
+
 			break;
 		}
 	}
 
 	freeaddrinfo(res);
+
+	return fd_ >= 0;
 }
 
 bool web_client::is_open() const
@@ -224,6 +233,10 @@ void web_client::start_read()
 			// we're invoked from within connect_done()
 			state_ = CONNECTED;
 			io_.set(fd_, ev::READ);
+
+			if (on_connect)
+				on_connect();
+
 			break;
 		case CONNECTED:
 			// invalid state to start reading from
@@ -320,7 +333,7 @@ void web_client::connect_done()
 	{
 		if (val == 0)
 		{
-			TRACE("async_connect: connected (flush_offset=%ld)", flush_offset_);
+			TRACE("connect_done: connected (flush_offset=%ld)", flush_offset_);
 			if (flush_offset_)
 				start_write(); // some request got already committed -> start write immediately
 			else
@@ -329,7 +342,7 @@ void web_client::connect_done()
 		else
 		{
 			message_ = strerror(val);
-			TRACE("async_connect: error(%d): %s", val, message_.c_str());
+			TRACE("connect_done: error(%d): %s", val, message_.c_str());
 			close();
 		}
 	}
