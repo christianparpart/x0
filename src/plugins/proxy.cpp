@@ -151,6 +151,7 @@ private:
 
 	void pass_request();
 
+	void on_connect();
 	void on_response(const x0::buffer_ref&, const x0::buffer_ref&, const x0::buffer_ref&);
 	void on_header(const x0::buffer_ref&, const x0::buffer_ref&);
 	void on_content(const x0::buffer_ref&);
@@ -324,10 +325,19 @@ proxy_connection::proxy_connection(proxy *px) :
 {
 	using namespace std::placeholders;
 
+	client_.on_connect = std::bind(&proxy_connection::on_connect, this);
 	client_.on_response = std::bind(&proxy_connection::on_response, this, _1, _2, _3);
 	client_.on_header = std::bind(&proxy_connection::on_header, this, _1, _2);
 	client_.on_content = std::bind(&proxy_connection::on_content, this, _1);
 	client_.on_complete = std::bind(&proxy_connection::on_complete, this);
+}
+
+void proxy_connection::on_connect()
+{
+	if (!response_)
+		return;
+
+	pass_request();
 }
 
 void proxy_connection::on_response(const x0::buffer_ref& protocol, const x0::buffer_ref& code, const x0::buffer_ref& text)
@@ -409,21 +419,7 @@ void proxy_connection::connect(const std::string& origin)
 		case x0::web_client::DISCONNECTED:
 			TRACE("proxy_connection(%p): connect error: %s", this, client_.message().c_str());
 			break;
-		case x0::web_client::CONNECTING:
-			// impossible
-			break;
-		case x0::web_client::CONNECTED:
-			TRACE("proxy_connection(%p): directly connected", this);
-        
-			if (request_)
-				pass_request();
-
-			break;
-		case x0::web_client::READING:
-			// impossible
-			break;
-		case x0::web_client::WRITING:
-			// impossible
+		default:
 			break;
 	}
 }
@@ -443,16 +439,13 @@ void proxy_connection::disconnect()
  */
 void proxy_connection::start(const std::function<void()>& done, x0::request *in, x0::response *out)
 {
-	TRACE("connection(%p).start(): path=%s", this, in->path.str().c_str());
+	TRACE("connection(%p).start(): path=%s (client_.state()=%d)", this, in->path.str().c_str(), client_.state());
 
 	if (client_.state() != x0::web_client::DISCONNECTED)
 	{
 		done_ = done;
 		request_ = in;
 		response_ = out;
-
-		if (client_.state() == x0::web_client::CONNECTED)
-			pass_request();
 	}
 	else
 	{
