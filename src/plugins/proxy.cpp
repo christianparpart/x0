@@ -334,6 +334,7 @@ proxy_connection::proxy_connection(proxy *px) :
 
 void proxy_connection::on_connect()
 {
+	TRACE("connection(%p).on_connect()", this);
 	if (!response_)
 		return;
 
@@ -374,6 +375,9 @@ void proxy_connection::on_content(const x0::buffer_ref& value)
 
 void proxy_connection::on_complete()
 {
+	TRACE("connection(%p).on_complete()", this);
+	done_();
+	delete this;
 }
 
 void proxy_connection::content_written(int ec, std::size_t nb)
@@ -446,6 +450,9 @@ void proxy_connection::start(const std::function<void()>& done, x0::request *in,
 		done_ = done;
 		request_ = in;
 		response_ = out;
+
+		if (client_.state() == x0::web_client::CONNECTED)
+			pass_request();
 	}
 	else
 	{
