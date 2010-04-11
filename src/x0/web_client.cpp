@@ -158,6 +158,9 @@ void web_client::close()
 		fd_ = -1;
 	}
 	state_ = DISCONNECTED;
+
+	io_.stop();
+	timer_.stop();
 }
 
 std::string web_client::message() const
