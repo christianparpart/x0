@@ -15,9 +15,6 @@ buffer chunked_decoder::process(const buffer_ref& chunk, bool /*eof*/)
 	auto e = chunk.end();
 	std::size_t offset = chunk.offset();
 
-	if (state_ != CONTENT)
-		buffer_.clear();
-
 	while (i != e)
 	{
 		switch (state_)
@@ -98,7 +95,8 @@ buffer chunked_decoder::process(const buffer_ref& chunk, bool /*eof*/)
 		++i;
 		++offset;
 	}
-	return buffer_;
+
+	return std::move(buffer_);
 }
 
 } // namespace x0
