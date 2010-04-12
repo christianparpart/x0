@@ -146,21 +146,20 @@ bool web_client::is_open() const
 
 void web_client::close()
 {
-	if (state_ != DISCONNECTED)
-	{
-		if (on_complete)
-			on_complete();
-	}
+	if (state_ == DISCONNECTED)
+		return;
 
-	if (fd_ >= 0)
-	{
-		::close(fd_);
-		fd_ = -1;
-	}
 	state_ = DISCONNECTED;
+
+	::close(fd_);
+	fd_ = -1;
 
 	io_.stop();
 	timer_.stop();
+
+	// XXX must be invoked last because the completion handler might trigger destruction of this.
+	if (on_complete)
+		on_complete();
 }
 
 std::string web_client::message() const
