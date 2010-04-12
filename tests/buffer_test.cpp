@@ -31,10 +31,13 @@ public:
 		CPPUNIT_TEST(call);
 		CPPUNIT_TEST(std_string);
 
-		// buffer::view
+		// buffer::ref
 		CPPUNIT_TEST(ref_ctor);
 		CPPUNIT_TEST(ref_begins);
 		CPPUNIT_TEST(ref_find_value_ptr);
+		CPPUNIT_TEST(ref_as_bool);
+		CPPUNIT_TEST(ref_as_int);
+		CPPUNIT_TEST(ref_hex);
 	CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -256,7 +259,7 @@ private:
 	}
 	// }}}
 
-	// {{{ buffer::view tests
+	// {{{ buffer_ref tests
 	void ref_ctor()
 	{
 	}
@@ -355,6 +358,46 @@ private:
 
 	void ref_ibegins()
 	{
+	}
+
+	void ref_as_bool()
+	{
+		// true
+		CPPUNIT_ASSERT(x0::const_buffer("true").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::const_buffer("TRUE").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::const_buffer("True").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::const_buffer("1").ref().as<bool>() == true);
+
+		// false
+		CPPUNIT_ASSERT(!x0::const_buffer("false").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::const_buffer("FALSE").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::const_buffer("False").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::const_buffer("0").ref().as<bool>());
+
+		// invalid cast results into false
+		CPPUNIT_ASSERT(!x0::const_buffer("BLAH").ref().as<bool>());
+	}
+
+	void ref_as_int()
+	{
+		CPPUNIT_ASSERT(x0::const_buffer("1234").ref().as<int>() == 1234);
+
+		CPPUNIT_ASSERT(x0::const_buffer("-1234").ref().as<int>() == -1234);
+		CPPUNIT_ASSERT(x0::const_buffer("+1234").ref().as<int>() == +1234);
+
+		CPPUNIT_ASSERT(x0::const_buffer("12.34").ref().as<int>() == 12);
+	}
+
+	void ref_hex()
+	{
+		CPPUNIT_ASSERT(x0::const_buffer("1234").ref().hex<int>() == 0x1234);
+		CPPUNIT_ASSERT(x0::const_buffer("5678").ref().hex<int>() == 0x5678);
+
+		CPPUNIT_ASSERT(x0::const_buffer("abcdef").ref().hex<int>() == 0xabcdef);
+		CPPUNIT_ASSERT(x0::const_buffer("ABCDEF").ref().hex<int>() == 0xABCDEF);
+
+		CPPUNIT_ASSERT(x0::const_buffer("ABCDEFG").ref().hex<int>() == 0xABCDEF);
+		CPPUNIT_ASSERT(x0::const_buffer("G").ref().hex<int>() == 0);
 	}
 	// }}}
 
