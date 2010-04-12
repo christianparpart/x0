@@ -489,6 +489,11 @@ void proxy_connection::pass_request()
 		if (validate_request_header(i->name))
 			client_.pass_header(i->name, i->value);
 
+	if (!hostname_.empty())
+	{
+		client_.pass_header("Host", hostname_);
+	}
+	else
 	{
 		x0::buffer result;
 
