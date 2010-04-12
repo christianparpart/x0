@@ -125,6 +125,7 @@ public:
 
 	// casts
 	template<typename T> T as() const;
+	template<typename T> T hex() const;
 };
 
 // free functions
@@ -594,6 +595,36 @@ inline int buffer_ref::as<int>() const
 	// parsing succeed.
 	if (sign)
 		val = -val;
+
+	return val;
+}
+
+template<typename T>
+inline T buffer_ref::hex() const
+{
+	auto i = begin();
+	auto e = end();
+
+	// empty string
+	if (i == e)
+		return 0;
+
+	T val = 0;
+	while (i != e)
+	{
+		if (!std::isxdigit(*i))
+			break;
+
+		if (val)
+			val *= 16;
+
+		if (std::isdigit(*i))
+			val += *i++ - '0';
+		else if (*i >= 'a' && *i <= 'f')
+			val += 10 + *i++ - 'a';
+		else // 'A' .. 'F'
+			val += 10 + *i++ - 'A';
+	}
 
 	return val;
 }
