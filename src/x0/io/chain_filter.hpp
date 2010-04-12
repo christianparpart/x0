@@ -21,6 +21,7 @@ public:
 public:
 	void push_front(filter_ptr f);
 	void push_back(filter_ptr f);
+	void clear();
 
 	std::size_t size() const;
 	bool empty() const;
@@ -40,6 +41,11 @@ inline void chain_filter::push_front(filter_ptr f)
 inline void chain_filter::push_back(filter_ptr f)
 {
 	filters_.push_back(f);
+}
+
+inline void chain_filter::clear()
+{
+	filters_.clear();
 }
 
 inline std::size_t chain_filter::size() const
