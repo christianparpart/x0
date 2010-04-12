@@ -352,6 +352,9 @@ inline bool validate_response_header(const x0::buffer_ref& name)
 	if (iequals(name, "Connection"))
 		return false;
 
+	if (iequals(name, "Transfer-Encoding"))
+		return false;
+
 	return true;
 }
 
