@@ -18,6 +18,12 @@ add_executable(x0test
 	x0dtest.cpp
 	range_def_test.cpp
 	response_parser_test.cpp
+	chunked_decoder_test.cpp
+	strutils_test.cpp
+	ternary_search_test.cpp
+	buffer_test.cpp
+	event_handler_test.cpp
+	io_test.cpp
 	#http11.cpp
 )
 
@@ -26,31 +32,14 @@ target_link_libraries(x0test
 	${LUA_LIBRARIES}
 	${CPPUNIT_LIBRARIES}
 	dl pthread
-)
-
-# install(TARGETS x0test RUNTIME DESTINATION sbin)
-
-# -----------------------------------------------------------------
-add_executable(x0test_common
-	x0dtest.cpp
-	strutils_test.cpp
-	ternary_search_test.cpp
-	buffer_test.cpp
-	event_handler_test.cpp
-	io_test.cpp
-)
-
-target_link_libraries(x0test_common
-	${CPPUNIT_LIBRARIES}
-	${LUA_LIBRARIES}
 	x0
 )
 
 # -----------------------------------------------------------------
+# some quicky executables
+
 #add_executable(x0test_copy io_copy.cpp)
 #target_link_libraries(x0test_copy x0)
 
-# -----------------------------------------------------------------
 add_executable(web_client_test web_client_test.cpp)
 target_link_libraries(web_client_test ${CPPUNIT_LIBRARIES} x0)
-

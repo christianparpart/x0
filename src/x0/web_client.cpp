@@ -64,9 +64,9 @@ web_client::web_client(struct ev_loop *loop) :
 	timer_.set<web_client, &web_client::timeout>(this);
 
 	using namespace std::placeholders;
-	response_parser_.status = std::bind(&web_client::_on_status, this, _1, _2, _3);
-	response_parser_.assign_header = std::bind(&web_client::_on_header, this, _1, _2);
-	response_parser_.process_content = std::bind(&web_client::_on_content, this, _1);
+	response_parser_.on_status = std::bind(&web_client::_on_status, this, _1, _2, _3);
+	response_parser_.on_header = std::bind(&web_client::_on_header, this, _1, _2);
+	response_parser_.on_content = std::bind(&web_client::_on_content, this, _1);
 }
 
 web_client::~web_client()

@@ -3,10 +3,14 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
+- verify proxy plugin / web_client
+- auto-enable tcp_cork on non-keep-alives at serialize()
+
 - drop support of exceptions inside core and plugins. never ever use/support them.
 - drop server context API (no need for it, plugins can store fields as a member, too)
 - fix HTTP POST content (req. for yacs)
 - fix crash caused with proxy enabled (www.irony-of-fate.de)
+- colorize (optional) help print output
 - VERIFY: flexibility of configuration system
 	- plugins/core should provide an abstract layer to the config backend, in a way, that they do not need
 		to qualify the complete path to the variable but just say ConfigKey and ideally $CONTEXT (global, vhost, path);
@@ -35,6 +39,8 @@ QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
 CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
+- chunked_decoder : filter (used for: request body, response_parser)
+- XXX_filter -> XXX_encoder
 - proper HTTP POST reader API: as part of request class
 	- should consume the body automatically if not read by a handler until response headers are flushed
 	- buffer_ref body_read(buffer& output);

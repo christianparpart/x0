@@ -149,8 +149,8 @@ cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::r
 {
 	TRACE("cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_->path.str().c_str(), hostprogram_.c_str());
 
-	response_parser_.assign_header = std::bind(&cgi_script::assign_header, this, std::placeholders::_1, std::placeholders::_2);
-	response_parser_.process_content = std::bind(&cgi_script::process_content, this, std::placeholders::_1); // XXX shouldn't be needede
+	response_parser_.on_header = std::bind(&cgi_script::assign_header, this, std::placeholders::_1, std::placeholders::_2);
+	response_parser_.on_content = std::bind(&cgi_script::process_content, this, std::placeholders::_1); // XXX shouldn't be needede
 }
 
 cgi_script::~cgi_script()
