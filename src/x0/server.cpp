@@ -76,6 +76,7 @@ server::server(struct ::ev_loop *loop) :
 	tcp_cork(false),
 	tcp_nodelay(false),
 	tag("x0/" VERSION),
+	advertise(true),
 	fileinfo(loop_),
 	max_fds(std::bind(&server::getrlimit, this, RLIMIT_CORE),
 			std::bind(&server::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
@@ -101,6 +102,7 @@ server::server(struct ::ev_loop *loop) :
 	register_cvar_server("ErrorDocuments", std::bind(&server::setup_error_documents, this, _1), -4);
 	register_cvar_server("FileInfo", std::bind(&server::setup_fileinfo, this, _1), -4);
 	register_cvar_server("Hosts", std::bind(&server::setup_hosts, this, _1), -3);
+	register_cvar_server("Advertise", std::bind(&server::setup_advertise, this, _1), -2);
 
 #if defined(WITH_SSL)
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -776,8 +778,15 @@ void server::setup_fileinfo(const settings_value& cvar)
 		fileinfo.etag_consider_inode(flag);
 }
 
+// ErrorDocuments = array of [pair<code, path>]
 void server::setup_error_documents(const settings_value& cvar)
 {
+}
+
+// Advertise = BOOLEAN
+void server::setup_advertise(const settings_value& cvar)
+{
+	cvar.load(advertise);
 }
 
 } // namespace x0

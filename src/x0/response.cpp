@@ -156,7 +156,9 @@ response::response(connection *connection, x0::request *request, int _status) :
 	//DEBUG("response(%p, conn=%p)", this, connection_);
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
-	headers.push_back("Server", connection_->server().tag());
+
+	if (connection_->server().advertise())
+		headers.push_back("Server", connection_->server().tag());
 }
 
 const char *response::status_cstr(int value)

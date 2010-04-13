@@ -230,6 +230,7 @@ private:
 	void setup_fileinfo(const settings_value& cvar);
 	void setup_error_documents(const settings_value& cvar);
 	void setup_hosts(const settings_value& cvar);
+	void setup_advertise(const settings_value& cvar);
 
 #if defined(WITH_SSL)
 	static void gnutls_log(int level, const char *msg);
@@ -267,6 +268,7 @@ public:
 	value_property<bool> tcp_cork;
 	value_property<bool> tcp_nodelay;
 	value_property<std::string> tag;
+	value_property<bool> advertise;
 	fileinfo_service fileinfo;
 
 	property<unsigned long long> max_fds;
