@@ -76,6 +76,7 @@ set(x0_SRC
 	severity.cpp
 	ssl_db_cache.cpp
 	strutils.cpp
+	url.cpp
 	process.cpp
 	ansi_color.cpp
 )
@@ -112,6 +113,7 @@ set(x0_API
 	signal.hpp
 	ssl_db_cache.hpp
 	strutils.hpp strutils.ipp
+	url.hpp
 	sysconfig.h
 	ternary_search.hpp
 	trie.hpp
