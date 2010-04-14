@@ -67,6 +67,7 @@ web_client::web_client(struct ev_loop *loop) :
 	response_parser_.on_status = std::bind(&web_client::_on_status, this, _1, _2, _3);
 	response_parser_.on_header = std::bind(&web_client::_on_header, this, _1, _2);
 	response_parser_.on_content = std::bind(&web_client::_on_content, this, _1);
+	response_parser_.on_complete = std::bind(&web_client::_on_complete, this);
 }
 
 web_client::~web_client()
@@ -156,10 +157,6 @@ void web_client::close()
 
 	io_.stop();
 	timer_.stop();
-
-	// XXX must be invoked last because the completion handler might trigger destruction of this.
-	if (on_complete)
-		on_complete();
 }
 
 std::string web_client::message() const
@@ -415,9 +412,6 @@ void web_client::_on_status(const buffer_ref& protocol, const buffer_ref& code, 
 
 void web_client::_on_header(const buffer_ref& name, const buffer_ref& value)
 {
-	if (equals(name, "Content-Length"))
-		;//response_content_length = value.as<int>();
-
 	if (on_header)
 		on_header(name, value);
 }
@@ -426,8 +420,11 @@ void web_client::_on_content(const buffer_ref& chunk)
 {
 	if (on_content)
 		on_content(chunk);
+}
 
-	if (false && on_complete)
+void web_client::_on_complete()
+{
+	if (on_complete)
 		on_complete();
 }
 
