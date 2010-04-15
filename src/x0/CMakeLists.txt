@@ -66,6 +66,7 @@ set(x0_SRC
 	${x0_io_SRC}
 	connection.cpp
 	context.cpp
+	http_error.cpp
 	listener.cpp
 	logger.cpp
 	response.cpp
@@ -92,6 +93,7 @@ set(x0_API
 	datetime.hpp
 	defines.hpp
 	event_handler.hpp
+	http_error.hpp
 	function.hpp
 	handler.hpp
 	header.hpp
