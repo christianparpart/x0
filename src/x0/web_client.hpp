@@ -13,6 +13,7 @@
 #include <x0/response_parser.hpp>
 #include <ev++.h>
 #include <functional>
+#include <system_error>
 
 namespace x0 {
 
@@ -36,7 +37,7 @@ private:
 	state_type state_;
 	ev::io io_;
 	ev::timer timer_;
-	std::string message_;
+	std::error_code last_error_;
 	buffer request_buffer_;
 	std::size_t request_offset_;
 	std::size_t flush_offset_;
@@ -69,7 +70,7 @@ public:
 	void close();
 
 	state_type state() const;
-	std::string message() const;
+	std::error_code last_error() const;
 
 	// timeouts (values <= 0 means disabled)
 	int connect_timeout;

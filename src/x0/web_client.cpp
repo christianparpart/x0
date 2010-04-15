@@ -6,6 +6,7 @@
  */
 
 #include <x0/web_client.hpp>
+#include <x0/gai_error.hpp>
 #include <x0/buffer.hpp>
 #include <ev++.h>
 #include <cstring>
@@ -44,7 +45,7 @@ web_client::web_client(struct ev_loop *loop) :
 	state_(DISCONNECTED),
 	io_(loop_),
 	timer_(loop_),
-	message_(),
+	last_error_(),
 	request_buffer_(),
 	request_offset_(0),
 	flush_offset_(0),
@@ -93,8 +94,8 @@ bool web_client::open(const std::string& hostname, int port)
 	int rv = getaddrinfo(hostname.c_str(), sport, &hints, &res);
 	if (rv)
 	{
-		message_ = gai_strerror(rv);
-		TRACE("connect: resolve error: %s", message_.c_str());
+		last_error_ = make_error_code(static_cast<enum gai_error>(rv));
+		TRACE("connect: resolve error: %s", last_error_.message().c_str());
 		return false;
 	}
 
@@ -102,7 +103,10 @@ bool web_client::open(const std::string& hostname, int port)
 	{
 		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (fd_ < 0)
+		{
+			last_error_ = std::make_error_code(static_cast<std::errc>(errno));
 			continue;
+		}
 
 		int flags = ::fcntl(fd_, F_GETFL, NULL) | O_NONBLOCK | O_CLOEXEC;
 		::fcntl(fd_, F_SETFL, &flags, sizeof(flags));
@@ -118,8 +122,8 @@ bool web_client::open(const std::string& hostname, int port)
 			}
 			else
 			{
-				message_ = strerror(rv);
-				TRACE("connect error: %s", message_.c_str());
+				last_error_ = std::make_error_code(static_cast<std::errc>(errno));
+				TRACE("connect error: %s (category: %s)", last_error_.message().c_str(), last_error_.category().name());
 				close();
 			}
 		}
@@ -159,9 +163,9 @@ void web_client::close()
 	timer_.stop();
 }
 
-std::string web_client::message() const
+std::error_code web_client::last_error() const
 {
-	return message_;
+	return last_error_;
 }
 
 void web_client::commit(bool flush)
@@ -172,6 +176,7 @@ void web_client::commit(bool flush)
 		pass_header("Connection", "close");
 
 	request_buffer_.push_back("\015\012"); // final linefeed
+	printf("request-buffer (%ld):\n%s(END)\n", request_buffer_.size(), request_buffer_.c_str());
 
 	if (flush)
 	{
@@ -340,15 +345,15 @@ void web_client::connect_done()
 		}
 		else
 		{
-			message_ = strerror(val);
-			TRACE("connect_done: error(%d): %s", val, message_.c_str());
+			last_error_ = std::make_error_code(static_cast<std::errc>(val));
+			TRACE("connect_done: error(%d): %s", val, last_error_.message().c_str());
 			close();
 		}
 	}
 	else
 	{
-		message_ = strerror(errno);
-		TRACE("on_connect_done: getsocketopt() error: %s", message_.c_str());
+		last_error_ = std::make_error_code(static_cast<std::errc>(errno));
+		TRACE("on_connect_done: getsocketopt() error: %s", last_error_.message().c_str());
 		close();
 	}
 }
@@ -424,6 +429,8 @@ void web_client::_on_content(const buffer_ref& chunk)
 
 void web_client::_on_complete()
 {
+	response_parser_.reset();
+
 	if (on_complete)
 		on_complete();
 }
