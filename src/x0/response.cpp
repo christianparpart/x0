@@ -157,7 +157,7 @@ response::response(connection *connection, x0::request *request, int _status) :
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
 
-	if (connection_->server().advertise())
+	if (connection_->server().advertise() && !connection_->server().tag().empty())
 		headers.push_back("Server", connection_->server().tag());
 }
 
