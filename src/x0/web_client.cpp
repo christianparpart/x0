@@ -108,8 +108,8 @@ bool web_client::open(const std::string& hostname, int port)
 			continue;
 		}
 
-		int flags = ::fcntl(fd_, F_GETFL, NULL) | O_NONBLOCK | O_CLOEXEC;
-		::fcntl(fd_, F_SETFL, &flags, sizeof(flags));
+		int flags = fcntl(fd_, F_GETFL, NULL) | O_NONBLOCK | O_CLOEXEC;
+		fcntl(fd_, F_SETFL, flags);
 
 		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
 		if (rv < 0)
@@ -176,7 +176,6 @@ void web_client::commit(bool flush)
 		pass_header("Connection", "close");
 
 	request_buffer_.push_back("\015\012"); // final linefeed
-	printf("request-buffer (%ld):\n%s(END)\n", request_buffer_.size(), request_buffer_.c_str());
 
 	if (flush)
 	{
@@ -405,7 +404,11 @@ void web_client::read_some()
 	else
 	{
 		TRACE("read response failed(%ld): %s", rv, strerror(errno));
-		close();
+
+		if (errno == EAGAIN)
+			start_read();
+		else
+			close();
 	}
 }
 
@@ -430,9 +433,12 @@ void web_client::_on_content(const buffer_ref& chunk)
 void web_client::_on_complete()
 {
 	response_parser_.reset();
+	flush_offset_ = 0;
 
 	if (on_complete)
 		on_complete();
+
+	read_some();
 }
 
 } // namespace x0
