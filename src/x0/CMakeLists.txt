@@ -67,6 +67,7 @@ set(x0_SRC
 	connection.cpp
 	context.cpp
 	http_error.cpp
+	gai_error.cpp
 	listener.cpp
 	logger.cpp
 	response.cpp
@@ -94,6 +95,7 @@ set(x0_API
 	defines.hpp
 	event_handler.hpp
 	http_error.hpp
+	gai_error.hpp
 	function.hpp
 	handler.hpp
 	header.hpp
