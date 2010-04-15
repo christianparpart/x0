@@ -1,4 +1,5 @@
 #include <x0/strutils.hpp>
+#include <x0/url.hpp>
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
