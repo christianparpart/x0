@@ -13,12 +13,23 @@
 #include <x0/io/chunked_filter.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
+#include <x0/sysconfig.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <strings.h>						// strcasecmp
 #include <string>
 #include <algorithm>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+
+#if 0
+#	define TRACE(msg...)
+#else
+#	define TRACE(msg...) DEBUG("response: " msg)
+#endif
 
 namespace x0 {
 
@@ -28,7 +39,7 @@ char response::status_codes[512][4];
 
 response::~response()
 {
-	//DEBUG("~response(%p, conn=%p)", this, connection_);
+	//TRACE("~response(%p, conn=%p)", this, connection_);
 }
 
 template<typename T>
@@ -76,6 +87,7 @@ source_ptr response::make_default_content()
 source_ptr response::serialize()
 {
 	buffer buffers;
+	bool keepalive = false;
 
 	if (!status)
 	{
@@ -87,23 +99,11 @@ source_ptr response::serialize()
 		headers.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
 	}
 
-	if (!headers.contains("Content-Length") && !content_forbidden())
-	{
-		headers.set("Connection", "close");
-	}
-	else if (!headers.contains("Connection"))
-	{
-		if (iequals(request_->header("Connection"), "keep-alive"))
-			headers.push_back("Connection", "keep-alive");
-		else
-			headers.push_back("Connection", "close");
-	}
-
 	// post-response hook
 	connection_->server().post_process(const_cast<x0::request *>(request_), this);
 
-	// enable chunked transfer encoding if required and possible
-	if (!headers.contains("Content-Length"))
+	// setup (connection-level) response transfer
+	if (!headers.contains("Content-Length") && !content_forbidden())
 	{
 		if (request_->supports_protocol(1, 1)
 			&& !headers.contains("Transfer-Encoding")
@@ -111,12 +111,36 @@ source_ptr response::serialize()
 		{
 			headers.push_back("Transfer-Encoding", "chunked");
 			filter_chain.push_back(std::make_shared<chunked_filter>());
+			keepalive = true;
 		}
 		else
 		{
 			headers.set("Connection", "close");
 		}
 	}
+	else if (!headers.contains("Connection"))
+	{
+		if (iequals(request_->header("Connection"), "keep-alive"))
+		{
+			headers.push_back("Connection", "keep-alive");
+			keepalive = true;
+		}
+		else
+			headers.push_back("Connection", "close");
+	}
+	else if (iequals(headers("Connection"), "keep-alive"))
+	{
+		keepalive = true;
+	}
+
+#if defined(TCP_CORK)
+	if (!keepalive && connection_->server().tcp_cork())
+	{
+		TRACE("enabling TCP_CORK");
+		int flag = 1;
+		setsockopt(connection_->handle(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
+	}
+#endif
 
 	if (request_->supports_protocol(1, 1))
 		buffers.push_back("HTTP/1.1 ");
@@ -153,7 +177,7 @@ response::response(connection *connection, x0::request *request, int _status) :
 {
 	connection_->response_ = this;
 
-	//DEBUG("response(%p, conn=%p)", this, connection_);
+	//TRACE("response(%p, conn=%p)", this, connection_);
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
 
@@ -230,7 +254,7 @@ std::string response::status_str(int value)
 
 void response::finished0(int ec)
 {
-	//DEBUG("response(%p).finished(%d)", this, ec);
+	//TRACE("response(%p).finished(%d)", this, ec);
 
 	if (filter_chain.empty())
 		finished1(ec);
@@ -243,7 +267,7 @@ void response::finished0(int ec)
  */
 void response::finished1(int ec)
 {
-	//DEBUG("response(%p).finished_next(%d)", this, ec);
+	//TRACE("response(%p).finished_next(%d)", this, ec);
 
 	{
 		server& srv = request_->connection.server();
