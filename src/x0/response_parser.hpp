@@ -10,12 +10,11 @@
 
 namespace x0 {
 
-#if 0
+#if 1
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("response_parser: " msg)
 #endif
-
 
 /** HTTP response parser.
  *
@@ -77,7 +76,7 @@ public:
 private:
 	void set_status(const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text);
 	void assign_header(const buffer_ref& name, const buffer_ref& value);
-	std::size_t process_content(buffer_ref&& chunk);
+	std::size_t process_content(const buffer_ref& chunk);
 
 private:
 	state_type state_;
@@ -127,13 +126,17 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 {
 	TRACE("parse(chunk_size=%ld)", chunk.size());
 
-	if (state_ == processing_content)
-		return process_content(std::move(chunk));
-
 	const char *first = chunk.begin();
 	const char *last = chunk.end();
 	std::size_t offset = chunk.offset();
 	buffer& buf = chunk.buffer();
+
+	if (state_ == processing_content)
+	{
+		std::size_t rv = process_content(chunk);
+		first += rv;
+		offset += rv;
+	}
 
 	while (first != last)
 	{
@@ -290,7 +293,7 @@ inline void response_parser::assign_header(const buffer_ref& name, const buffer_
 		on_header(name, value);
 }
 
-inline std::size_t response_parser::process_content(buffer_ref&& chunk)
+inline std::size_t response_parser::process_content(const buffer_ref& chunk)
 {
 	if (chunked_)
 	{
@@ -308,19 +311,21 @@ inline std::size_t response_parser::process_content(buffer_ref&& chunk)
 		if (state_ == parsing_end && on_complete)
 		{
 			state_ = parsing_status_line_begin;
+			chunked_decoder_.reset();
 			on_complete();
 		}
 	}
 	else if (content_length_ > 0) // fixed-size content
 	{
 		// shrink down to remaining content-length
+		buffer_ref c(chunk);
 		if (chunk.size() > static_cast<std::size_t>(content_length_))
-			chunk.shr(-(chunk.size() - content_length_));
+			c.shr(-(c.size() - content_length_));
 
-		content_length_ -= chunk.size();
+		content_length_ -= c.size();
 
 		if (on_content)
-			on_content(filter_chain_.process(chunk));
+			on_content(filter_chain_.process(c));
 
 		if (content_length_ == 0)
 		{
