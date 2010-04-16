@@ -432,7 +432,6 @@ void web_client::_on_content(const buffer_ref& chunk)
 
 void web_client::_on_complete()
 {
-	response_parser_.reset();
 	flush_offset_ = 0;
 
 	if (on_complete)
