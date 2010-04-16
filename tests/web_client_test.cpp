@@ -1,11 +1,15 @@
 #include <x0/web_client.hpp>
 #include <x0/buffer.hpp>
+#include <x0/http_error.hpp>
+#include <x0/url.hpp>
 
 #include <functional> // bind(), placeholders
 #include <iostream>   // clog
 #include <cctype>     // atoi()
 
 #include <ev++.h>
+
+int request_count = 2;
 
 void on_response(const x0::buffer_ref& protocol, const x0::buffer_ref& code, const x0::buffer_ref& text)
 {
@@ -24,15 +28,24 @@ void on_content(const x0::buffer_ref& chunk)
 			  << "S< content end." << std::endl;
 }
 
-void on_complete()
+void on_complete(x0::web_client *client)
 {
 	std::clog << "S< complete." << std::endl;
-	ev_unloop(ev_default_loop(0), EVUNLOOP_ALL);
+
+	static int i = 0;
+
+	++i;
+
+	if (i == request_count)
+	{
+		std::clog << "S< this was the last response." << std::endl;
+		//client->close();
+		ev_unloop(ev_default_loop(0), EVUNLOOP_ALL);
+	}
 }
 
 int main(int argc, const char *argv[])
 {
-	const int request_count = 1; //2;
 	struct ev_loop *loop = ev_default_loop(0);
 
 	x0::web_client client(loop);
@@ -41,25 +54,28 @@ int main(int argc, const char *argv[])
 	client.on_response = std::bind(&on_response, _1, _2, _3);
 	client.on_header = std::bind(&on_header, _1, _2);
 	client.on_content = std::bind(&on_content, _1);
-	client.on_complete = std::bind(&on_complete);
-	//client.keepalive_timeout = 5;
+	client.on_complete = std::bind(&on_complete, &client);
+	client.keepalive_timeout = 5;
 
-	const char *hostname = "localhost";
-	int port = 80;
-	const char *path = "/";
+	std::string protocol;
+	std::string hostname("localhost");
+	int port = 8081;
+	std::string path("/");
 
-	if (argc == 4)
+	if (argc > 1)
 	{
-		hostname = argv[1];
-		port = std::atoi(argv[2]);
-		path = argv[3];
+		if (!x0::parse_url(argv[1], protocol, hostname, port, path))
+		{
+			std::cerr << "URL syntax error" << std::endl;
+			return 1;
+		}
 	}
 
 	client.open(hostname, port);
 
 	if (client.state() == x0::web_client::DISCONNECTED)
 	{
-		std::clog << "Could not connect to server: " << client.message() << std::endl;
+		std::clog << "Could not connect to server: " << client.last_error().message() << std::endl;
 		return -1;
 	}
 
@@ -76,9 +92,9 @@ int main(int argc, const char *argv[])
 
 	ev_loop(loop, 0);
 
-	if (!client.message().empty())
+	if (client.last_error())
 	{
-		std::clog << "connection error: " << client.message() << std::endl;
+		std::clog << "connection error: " << client.last_error() << std::endl;
 	}
 
 	return 0;
