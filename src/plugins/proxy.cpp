@@ -14,6 +14,7 @@
 #include <x0/response_parser.hpp>
 #include <x0/io/buffer_source.hpp>
 #include <x0/strutils.hpp>
+#include <x0/url.hpp>
 #include <x0/types.hpp>
 
 #include <cstring>
@@ -134,7 +135,10 @@ private:
 	std::deque<proxy_connection *> idle_;
 }; // }}}
 
-class proxy_connection // {{{
+// {{{ class proxy_connection
+/** handles a connection from proxy to origin server.
+ */
+class proxy_connection
 {
 	friend class proxy;
 
@@ -424,7 +428,7 @@ void proxy_connection::connect(const std::string& origin)
 	switch (client_.state())
 	{
 		case x0::web_client::DISCONNECTED:
-			TRACE("proxy_connection(%p): connect error: %s", this, client_.message().c_str());
+			TRACE("proxy_connection(%p): connect error: %s", this, client_.last_error().message().c_str());
 			break;
 		default:
 			break;
