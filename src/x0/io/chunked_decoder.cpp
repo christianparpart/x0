@@ -1,5 +1,11 @@
 #include <x0/io/chunked_decoder.hpp>
 
+#if 1
+#	define TRACE(msg...)
+#else
+#	define TRACE(msg...) DEBUG("chunked_decoder: " msg)
+#endif
+
 namespace x0 {
 
 chunked_decoder::chunked_decoder() :
@@ -47,24 +53,26 @@ buffer chunked_decoder::process(const buffer_ref& chunk, bool /*eof*/)
 				break;
 			case CR1:
 				if (*i != '\r')
-					DEBUG("chunked_decoder: invalid char at state CR1: '%c'", *i);
+					TRACE("invalid char at state CR1: '%c'", *i);
 				else
 					state_ = LF1;
 				break;
 			case LF1:
 				if (*i != '\n')
-					DEBUG("chunked_decoder: invalid char at state LF1: '%c'", *i);
+					TRACE("invalid char at state LF1: '%c'", *i);
 				else
-					state_ = CONTENT;
+					state_ = CONTENT_START;
 				break;
 			case CONTENT_START:
-				DEBUG("content_start: size=%ld", size_);
 				if (!size_)
 				{
-					DEBUG("END of chunked stream reached.");
-					state_ = CR3;
+					if (*i == '\r')
+						state_ = LF3;
+					else
+						TRACE("expected CR3, got '%c' (0x%X)", std::isprint(*i) ? *i : ' ', *i);
 					break;
 				}
+				state_ = CONTENT;
 				// fall through
 			case CONTENT:
 				if (size_)
@@ -80,35 +88,34 @@ buffer chunked_decoder::process(const buffer_ref& chunk, bool /*eof*/)
 					offset += size - 1;
 					i += size - 1;
 #endif
-					break;
 				}
+				else if (*i == '\r')
+					state_ = LF2;
 				else
-				{
-					state_ = CR2;
-					// fall through
-				}
+					TRACE("invalid char at state CONTENT to CR2: '%c'", *i);
+				break;
 			case CR2:
 				if (*i != '\r')
-					DEBUG("chunked_decoder: invalid char at state CR2: '%c'", *i);
+					TRACE("invalid char at state CR2: '%c'", *i);
 				else
 					state_ = LF2;
 				break;
 			case LF2:
 				if (*i != '\n')
-					DEBUG("chunked_decoder: invalid char at state LF2: '%c'", *i);
+					TRACE("invalid char at state LF2: '%c'", *i);
 
 				state_ = SIZE_SPEC;
 				size_ = 0;
 				break;
 			case CR3:
 				if (*i != '\r')
-					DEBUG("chunked_decoder: invalid char at state CR2: '%c'", *i);
+					TRACE("invalid char at state CR3: '%c'", *i);
 				else
 					state_ = LF3;
 				break;
 			case LF3:
 				if (*i != '\n')
-					DEBUG("chunked_decoder: invalid char at state LF2: '%c'", *i);
+					TRACE("invalid char at state LF3: '%c'", *i);
 
 				state_ = END;
 				size_ = 0;
