@@ -29,7 +29,7 @@ buffer chunked_decoder::process(const buffer_ref& chunk, bool /*eof*/)
 				if (*i == '\r')
 					state_ = LF1;
 				else if (*i == '\n')
-					state_ = CONTENT;
+					state_ = CONTENT_START;
 				else if (!std::isxdigit(*i))
 					return buffer(); // parse error
 				else
@@ -57,6 +57,15 @@ buffer chunked_decoder::process(const buffer_ref& chunk, bool /*eof*/)
 				else
 					state_ = CONTENT;
 				break;
+			case CONTENT_START:
+				DEBUG("content_start: size=%ld", size_);
+				if (!size_)
+				{
+					DEBUG("END of chunked stream reached.");
+					state_ = CR3;
+					break;
+				}
+				// fall through
 			case CONTENT:
 				if (size_)
 				{
@@ -90,6 +99,21 @@ buffer chunked_decoder::process(const buffer_ref& chunk, bool /*eof*/)
 
 				state_ = SIZE_SPEC;
 				size_ = 0;
+				break;
+			case CR3:
+				if (*i != '\r')
+					DEBUG("chunked_decoder: invalid char at state CR2: '%c'", *i);
+				else
+					state_ = LF3;
+				break;
+			case LF3:
+				if (*i != '\n')
+					DEBUG("chunked_decoder: invalid char at state LF2: '%c'", *i);
+
+				state_ = END;
+				size_ = 0;
+				break;
+			case END:
 				break;
 		}
 		++i;
