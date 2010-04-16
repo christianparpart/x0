@@ -10,6 +10,13 @@
 
 namespace x0 {
 
+#if 0
+#	define TRACE(msg...)
+#else
+#	define TRACE(msg...) DEBUG("response_parser: " msg)
+#endif
+
+
 /** HTTP response parser.
  *
  * Should be used by CGI and proxy plugin for example.
@@ -78,6 +85,8 @@ private:
 	std::size_t name_offset_, name_size_;
 	std::size_t value_offset_, value_size_;
 	ssize_t content_length_;
+	bool chunked_;
+	chunked_decoder chunked_decoder_;
 	chain_filter filter_chain_;
 };
 
@@ -88,6 +97,8 @@ inline response_parser::response_parser(state_type state) :
 	name_offset_(0), name_size_(0),
 	value_offset_(0), value_size_(0),
 	content_length_(-1),
+	chunked_(false),
+	chunked_decoder_(),
 	filter_chain_()
 {
 }
@@ -103,6 +114,8 @@ inline void response_parser::reset(state_type state)
 	value_size_ = 0;
 
 	content_length_ = -1;
+	chunked_ = false;
+	chunked_decoder_.reset();
 	filter_chain_.clear();
 }
 
@@ -112,6 +125,8 @@ inline void response_parser::reset(state_type state)
  */
 inline std::size_t response_parser::parse(buffer_ref&& chunk)
 {
+	TRACE("parse(chunk_size=%ld)", chunk.size());
+
 	if (state_ == processing_content)
 		return process_content(std::move(chunk));
 
@@ -238,11 +253,16 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 			break;
 		case processing_content:
 		{
-			std::size_t size = first - chunk.begin();
-			size += process_content(buf.ref(offset, chunk.size() - (offset - chunk.offset())));
-			return size;
+			TRACE("parse: processing content chunk: offset=%ld, size=%ld", offset, chunk.size() - (offset - chunk.offset()));
+			std::size_t rv = process_content(buf.ref(offset, chunk.size() - (offset - chunk.offset())));
+			TRACE("parse: done processing content chunk: rv=%ld", rv);
+
+			offset += rv - 1;
+			first += rv - 1;
+			break;
 		}
 		case parsing_end:
+			TRACE("parse(): parsing_end reached (%ld)", last - first);
 			return 0;
 		}
 
@@ -264,7 +284,7 @@ inline void response_parser::assign_header(const buffer_ref& name, const buffer_
 	if (iequals(name, "Content-Length"))
 		content_length_ = value.as<int>();
 	else if (iequals(name, "Transfer-Encoding") && equals(value, "chunked"))
-		filter_chain_.push_back(std::make_shared<chunked_decoder>());
+		chunked_ = true;
 
 	if (on_header)
 		on_header(name, value);
@@ -272,49 +292,59 @@ inline void response_parser::assign_header(const buffer_ref& name, const buffer_
 
 inline std::size_t response_parser::process_content(buffer_ref&& chunk)
 {
-	if (content_length_ > 0) // fixed-size content
+	if (chunked_)
 	{
-		if (chunk.size() > static_cast<std::size_t>(content_length_))
-		{
-			// shrink down to remaining content-length
-			chunk.shr(-(chunk.size() - content_length_));
-		}
+		buffer result(chunked_decoder_.process(chunk));
 
-		content_length_ -= chunk.size();
-	}
-
-	if (filter_chain_.empty())
-	{
-		if (on_content)
-			on_content(chunk);
-
-		if (!content_length_)
-		{
+		if (chunked_decoder_.state() == chunked_decoder::END)
 			state_ = parsing_end;
 
-			if (on_complete)
-				on_complete();
-		}
-	}
-	else
-	{
-		buffer result(filter_chain_.process(chunk));
+		if (!filter_chain_.empty())
+			result = filter_chain_.process(result);
 
 		if (!result.empty() && on_content)
 			on_content(result);
 
-		if (result.empty() || !content_length_)
+		if (state_ == parsing_end && on_complete)
+		{
+			state_ = parsing_status_line_begin;
+			on_complete();
+		}
+	}
+	else if (content_length_ > 0) // fixed-size content
+	{
+		// shrink down to remaining content-length
+		if (chunk.size() > static_cast<std::size_t>(content_length_))
+			chunk.shr(-(chunk.size() - content_length_));
+
+		content_length_ -= chunk.size();
+
+		if (on_content)
+			on_content(filter_chain_.process(chunk));
+
+		if (content_length_ == 0)
 		{
 			state_ = parsing_end;
 
 			if (on_complete)
+			{
+				TRACE("content fully parsed -> complete");
+				state_ = parsing_status_line_begin;
 				on_complete();
+			}
 		}
+	}
+	else // simply everything
+	{
+		if (on_content)
+			on_content(filter_chain_.process(chunk));
 	}
 
 	return chunk.size();
 }
 // }}}
+
+#undef TRACE
 
 } // namespace x0
 
