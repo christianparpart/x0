@@ -437,7 +437,8 @@ void web_client::_on_complete()
 	if (on_complete)
 		on_complete();
 
-	read_some();
+	if (is_open())
+		read_some();
 }
 
 } // namespace x0
