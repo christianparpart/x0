@@ -475,6 +475,12 @@ inline bool validate_request_header(const x0::buffer_ref& name)
 	if (x0::iequals(name, "Host"))
 		return false;
 
+	if (x0::iequals(name, "Accept-Encoding"))
+		return false;
+
+	if (x0::iequals(name, "Connection"))
+		return false;
+
 	if (x0::iequals(name, "Keep-Alive"))
 		return false;
 
