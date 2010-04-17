@@ -10,7 +10,7 @@
 
 namespace x0 {
 
-#if 1
+#if 0
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("response_parser: " msg)
@@ -71,6 +71,7 @@ public:
 	explicit response_parser(state_type state = ALL);
 
 	std::size_t parse(buffer_ref&& chunk);
+	void abort();
 	void reset(state_type state = ALL);
 
 private:
@@ -80,6 +81,7 @@ private:
 
 private:
 	state_type state_;
+	bool abort_;
 	std::size_t protocol_offset_, protocol_size_;
 	std::size_t name_offset_, name_size_;
 	std::size_t value_offset_, value_size_;
@@ -92,6 +94,7 @@ private:
 // {{{ inlines
 inline response_parser::response_parser(state_type state) :
 	state_(state),
+	abort_(false),
 	protocol_offset_(0), protocol_size_(0),
 	name_offset_(0), name_size_(0),
 	value_offset_(0), value_size_(0),
@@ -100,6 +103,11 @@ inline response_parser::response_parser(state_type state) :
 	chunked_decoder_(),
 	filter_chain_()
 {
+}
+
+inline void response_parser::abort()
+{
+	abort_ = true;
 }
 
 inline void response_parser::reset(state_type state)
@@ -131,6 +139,8 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 	std::size_t offset = chunk.offset();
 	buffer& buf = chunk.buffer();
 
+	abort_ = false;
+
 	if (state_ == processing_content)
 	{
 		std::size_t rv = process_content(chunk);
@@ -138,7 +148,7 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 		offset += rv;
 	}
 
-	while (first != last)
+	while (!abort_ && first != last)
 	{
 		switch (state_)
 		{
@@ -273,7 +283,7 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 		++first;
 	}
 
-	return chunk.size();
+	return offset;
 }
 
 inline void response_parser::set_status(const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text)
@@ -314,6 +324,8 @@ inline std::size_t response_parser::process_content(const buffer_ref& chunk)
 			chunked_decoder_.reset();
 			on_complete();
 		}
+
+		return chunk.size();
 	}
 	else if (content_length_ > 0) // fixed-size content
 	{
@@ -338,14 +350,15 @@ inline std::size_t response_parser::process_content(const buffer_ref& chunk)
 				on_complete();
 			}
 		}
+		return c.size();
 	}
 	else // simply everything
 	{
 		if (on_content)
 			on_content(filter_chain_.process(chunk));
-	}
 
-	return chunk.size();
+		return chunk.size();
+	}
 }
 // }}}
 
