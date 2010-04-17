@@ -23,9 +23,13 @@ void on_header(const x0::buffer_ref& name, const x0::buffer_ref& value)
 
 void on_content(const x0::buffer_ref& chunk)
 {
+#if 0
 	std::clog << "S< content of length: " << chunk.size() << std::endl
 			  << chunk.str() << std::endl
 			  << "S< content end." << std::endl;
+#else
+	std::clog << chunk.str();
+#endif
 }
 
 void on_complete(x0::web_client *client)
@@ -57,18 +61,19 @@ int main(int argc, const char *argv[])
 	client.on_complete = std::bind(&on_complete, &client);
 	client.keepalive_timeout = 5;
 
-	std::string protocol;
-	std::string hostname("localhost");
-	int port = 8081;
-	std::string path("/");
-
+	std::string url("http://xzero.ws/cgi-bin/cgi-test.cgi");
 	if (argc > 1)
+		url = argv[1];
+
+	std::string protocol;
+	std::string hostname;
+	int port = 80;
+	std::string path;
+
+	if (!x0::parse_url(url, protocol, hostname, port, path))
 	{
-		if (!x0::parse_url(argv[1], protocol, hostname, port, path))
-		{
-			std::cerr << "URL syntax error" << std::endl;
-			return 1;
-		}
+		std::cerr << "URL syntax error" << std::endl;
+		return 1;
 	}
 
 	client.open(hostname, port);
