@@ -40,7 +40,7 @@ private:
 	std::error_code last_error_;
 	buffer request_buffer_;
 	std::size_t request_offset_;
-	std::size_t flush_offset_;
+	std::size_t request_count_;
 	buffer response_buffer_;
 	response_parser response_parser_;
 

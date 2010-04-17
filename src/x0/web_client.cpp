@@ -28,13 +28,21 @@
 #endif
 
 /**
- * \todo HTTP keep-alive (auto-enabled on keepalive_timeout > 0)
- * \todo HTTP pipelining
+ * \class web_client
+ * \brief HTTP/1.1 client API for connecting to HTTP/1.1 compliant servers.
+ *
+ * Features:
+ * <ul>
+ *   <li>Asynchronous I/O</li>
+ *   <li>Keep-Alive connections</li>
+ *   <li>Pipelined request/response handling</li>
+ *   <li>Connection pause/resume functionality</li>
+ * </ul>
+ *
+ * \todo proper HTTP POST contents (the body is directly appended to the request buffer if (flush == false))
  * \todo SSL/TLS, if WITH_SSL is defined (no verification required)
- * \todo proper timeout handling, if WITH_CONNECTION_TIMEOUTS is defined
- * \todo chunk-encoded body (if content-length unknown at commit()-time)
- * \todo proper HTTP POST contents
- *       - the body is directly appended to the request buffer if (flush == false)
+ *
+ * \see response_parser
  */
 
 namespace x0 {
@@ -48,7 +56,7 @@ web_client::web_client(struct ev_loop *loop) :
 	last_error_(),
 	request_buffer_(),
 	request_offset_(0),
-	flush_offset_(0),
+	request_count_(0),
 	response_buffer_(),
 	response_parser_(response_parser::ALL),
 	connect_timeout(0),
@@ -151,13 +159,13 @@ bool web_client::is_open() const
 
 void web_client::close()
 {
-	if (state_ == DISCONNECTED)
-		return;
-
 	state_ = DISCONNECTED;
 
-	::close(fd_);
-	fd_ = -1;
+	if (fd_ >= 0)
+	{
+		::close(fd_);
+		fd_ = -1;
+	}
 
 	io_.stop();
 	timer_.stop();
@@ -177,12 +185,12 @@ void web_client::commit(bool flush)
 
 	request_buffer_.push_back("\015\012"); // final linefeed
 
+	++request_count_;
+
 	if (flush)
 	{
 		if (state_ == CONNECTED)
 			start_write();
-		else
-			flush_offset_ = request_buffer_.size();
 	}
 }
 
@@ -214,12 +222,14 @@ void web_client::resume()
 				timer_.start(write_timeout, 0.0);
 
 			io_.start();
+			write_some();
 			break;
 		case READING:
 			if (read_timeout > 0)
 				timer_.start(read_timeout, 0.0);
 
 			io_.start();
+			read_some();
 			break;
 	}
 }
@@ -336,8 +346,8 @@ void web_client::connect_done()
 	{
 		if (val == 0)
 		{
-			TRACE("connect_done: connected (flush_offset=%ld)", flush_offset_);
-			if (flush_offset_)
+			TRACE("connect_done: connected (request_count=%ld)", request_count_);
+			if (request_count_)
 				start_write(); // some request got already committed -> start write immediately
 			else
 				start_read(); // we're idle, watch for EOF
@@ -432,13 +442,11 @@ void web_client::_on_content(const buffer_ref& chunk)
 
 void web_client::_on_complete()
 {
-	flush_offset_ = 0;
+	int pending = --request_count_;
+	TRACE("on_complete: pending=%d", pending);
 
 	if (on_complete)
 		on_complete();
-
-	if (is_open())
-		read_some();
 }
 
 } // namespace x0
