@@ -161,14 +161,15 @@ void web_client::close()
 {
 	state_ = DISCONNECTED;
 
+	response_parser_.abort();
+	io_.stop();
+	timer_.stop();
+
 	if (fd_ >= 0)
 	{
 		::close(fd_);
 		fd_ = -1;
 	}
-
-	io_.stop();
-	timer_.stop();
 }
 
 std::error_code web_client::last_error() const
@@ -222,14 +223,12 @@ void web_client::resume()
 				timer_.start(write_timeout, 0.0);
 
 			io_.start();
-			write_some();
 			break;
 		case READING:
 			if (read_timeout > 0)
 				timer_.start(read_timeout, 0.0);
 
 			io_.start();
-			read_some();
 			break;
 	}
 }
@@ -440,13 +439,15 @@ void web_client::_on_content(const buffer_ref& chunk)
 		on_content(chunk);
 }
 
-void web_client::_on_complete()
+bool web_client::_on_complete()
 {
 	int pending = --request_count_;
 	TRACE("on_complete: pending=%d", pending);
 
 	if (on_complete)
-		on_complete();
+		return on_complete();
+
+	return true;
 }
 
 } // namespace x0

@@ -58,7 +58,7 @@ private:
 	void _on_status(const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text);
 	void _on_header(const buffer_ref& name, const buffer_ref& value);
 	void _on_content(const buffer_ref& chunk);
-	void _on_complete();
+	bool _on_complete();
 
 public:
 	explicit web_client(struct ev_loop *loop);
@@ -104,7 +104,7 @@ public:
 	std::function<void(const buffer_ref&, const buffer_ref&, const buffer_ref&)> on_response;
 	std::function<void(const buffer_ref&, const buffer_ref&)> on_header;
 	std::function<void(const buffer_ref&)> on_content;
-	std::function<void()> on_complete;
+	std::function<bool()> on_complete;
 };
 
 } // namespace x0

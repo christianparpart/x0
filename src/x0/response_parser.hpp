@@ -65,7 +65,7 @@ public:
 	std::function<void(const buffer_ref&)> on_content;
 
 	//! invoked once response has been fully parsed
-	std::function<void()> on_complete;
+	std::function<bool()> on_complete;
 
 public:
 	explicit response_parser(state_type state = ALL);
@@ -77,7 +77,7 @@ public:
 private:
 	void set_status(const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text);
 	void assign_header(const buffer_ref& name, const buffer_ref& value);
-	std::size_t process_content(const buffer_ref& chunk);
+	bool process_content(const buffer_ref& chunk, std::size_t *nparsed);
 
 private:
 	state_type state_;
@@ -107,6 +107,7 @@ inline response_parser::response_parser(state_type state) :
 
 inline void response_parser::abort()
 {
+	TRACE("abort()");
 	abort_ = true;
 }
 
@@ -143,9 +144,12 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 
 	if (state_ == processing_content)
 	{
-		std::size_t rv = process_content(chunk);
-		first += rv;
-		offset += rv;
+		std::size_t nparsed = 0;
+		if (!process_content(chunk, &nparsed))
+			return offset + nparsed;
+
+		first += nparsed;
+		offset += nparsed;
 	}
 
 	while (!abort_ && first != last)
@@ -267,11 +271,15 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 		case processing_content:
 		{
 			TRACE("parse: processing content chunk: offset=%ld, size=%ld", offset, chunk.size() - (offset - chunk.offset()));
-			std::size_t rv = process_content(buf.ref(offset, chunk.size() - (offset - chunk.offset())));
-			TRACE("parse: done processing content chunk: rv=%ld", rv);
 
-			offset += rv - 1;
-			first += rv - 1;
+			std::size_t nparsed = 0;
+			if (!process_content(buf.ref(offset, chunk.size() - (offset - chunk.offset())), &nparsed))
+				return offset + nparsed;
+
+			TRACE("parse: done processing content chunk: rv=%ld", nparsed);
+
+			offset += nparsed - 1;
+			first += nparsed - 1;
 			break;
 		}
 		case parsing_end:
@@ -303,11 +311,12 @@ inline void response_parser::assign_header(const buffer_ref& name, const buffer_
 		on_header(name, value);
 }
 
-inline std::size_t response_parser::process_content(const buffer_ref& chunk)
+inline bool response_parser::process_content(const buffer_ref& chunk, std::size_t *nparsed)
 {
 	if (chunked_)
 	{
 		buffer result(chunked_decoder_.process(chunk));
+		*nparsed = chunk.size();
 
 		if (chunked_decoder_.state() == chunked_decoder::END)
 			state_ = parsing_end;
@@ -322,10 +331,8 @@ inline std::size_t response_parser::process_content(const buffer_ref& chunk)
 		{
 			state_ = parsing_status_line_begin;
 			chunked_decoder_.reset();
-			on_complete();
+			return on_complete();
 		}
-
-		return chunk.size();
 	}
 	else if (content_length_ > 0) // fixed-size content
 	{
@@ -334,6 +341,7 @@ inline std::size_t response_parser::process_content(const buffer_ref& chunk)
 		if (chunk.size() > static_cast<std::size_t>(content_length_))
 			c.shr(-(c.size() - content_length_));
 
+		*nparsed = c.size();
 		content_length_ -= c.size();
 
 		if (on_content)
@@ -347,18 +355,18 @@ inline std::size_t response_parser::process_content(const buffer_ref& chunk)
 			{
 				TRACE("content fully parsed -> complete");
 				state_ = parsing_status_line_begin;
-				on_complete();
+				return on_complete();
 			}
 		}
-		return c.size();
 	}
 	else // simply everything
 	{
+		*nparsed = chunk.size();
+
 		if (on_content)
 			on_content(filter_chain_.process(chunk));
-
-		return chunk.size();
 	}
+	return true;
 }
 // }}}
 

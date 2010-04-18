@@ -32,7 +32,7 @@ void on_content(const x0::buffer_ref& chunk)
 #endif
 }
 
-void on_complete(x0::web_client *client)
+bool on_complete(x0::web_client *client)
 {
 	std::clog << "S< complete." << std::endl;
 
@@ -45,7 +45,9 @@ void on_complete(x0::web_client *client)
 		std::clog << "S< this was the last response." << std::endl;
 		//client->close();
 		ev_unloop(ev_default_loop(0), EVUNLOOP_ALL);
+		return false;
 	}
+	return true;
 }
 
 int main(int argc, const char *argv[])

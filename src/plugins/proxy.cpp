@@ -159,7 +159,7 @@ private:
 	void on_response(const x0::buffer_ref&, const x0::buffer_ref&, const x0::buffer_ref&);
 	void on_header(const x0::buffer_ref&, const x0::buffer_ref&);
 	void on_content(const x0::buffer_ref&);
-	void on_complete();
+	bool on_complete();
 	void content_written(int ec, std::size_t nb);
 
 private:
@@ -380,11 +380,12 @@ void proxy_connection::on_content(const x0::buffer_ref& value)
 			std::bind(&proxy_connection::content_written, this, std::placeholders::_1, std::placeholders::_2));
 }
 
-void proxy_connection::on_complete()
+bool proxy_connection::on_complete()
 {
 	TRACE("connection(%p).on_complete()", this);
 	done_();
 	delete this;
+	return false;
 }
 
 void proxy_connection::content_written(int ec, std::size_t nb)
