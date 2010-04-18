@@ -160,7 +160,6 @@ inline buffer_ref::buffer_ref(const x0::buffer *_buffer, std::size_t _offset, st
 #if !defined(NDEBUG)
 	if (buffer_)
 	{
-		buffer_->_ref();
 		assert(offset_ + size_ <= buffer_->size());
 	}
 	else
@@ -173,62 +172,32 @@ inline buffer_ref::buffer_ref(const x0::buffer *_buffer, std::size_t _offset, st
 
 inline buffer_ref::~buffer_ref()
 {
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->_unref();
-#endif
 }
 
 inline buffer_ref::buffer_ref(const x0::buffer& v) :
 	buffer_(&v), offset_(0), size_(v.size_)
 {
-#if !defined(NDEBUG)
-	buffer_->_ref();
-#endif
 }
 
 inline buffer_ref::buffer_ref(const x0::buffer_ref& v) :
 	buffer_(v.buffer_), offset_(v.offset_), size_(v.size_)
 {
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->_ref();
-#endif
 }
 
 inline buffer_ref& buffer_ref::operator=(const x0::buffer& v)
 {
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->_unref();
-#endif
-
 	buffer_ = &v;
 	offset_ = 0;
 	size_ = v.size_;
-
-#if !defined(NDEBUG)
-	buffer_->_ref();
-#endif
 
 	return *this;
 }
 
 inline buffer_ref& buffer_ref::operator=(const x0::buffer_ref& v)
 {
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->_unref();
-#endif
-
 	buffer_ = v.buffer_;
 	offset_ = v.offset_;
 	size_ = v.size_;
-
-#if !defined(NDEBUG)
-	if (buffer_)
-		buffer_->_ref();
-#endif
 
 	return *this;
 }

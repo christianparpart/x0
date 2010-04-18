@@ -56,27 +56,6 @@ protected:
 
 	edit_mode_t edit_mode_;
 
-#if !defined(NDEBUG) // {{{ reference counting
-private:
-	mutable std::size_t refcount_;
-
-private:
-	void _ref() const
-	{
-		++refcount_;
-	}
-
-	void _unref() const
-	{
-		--refcount_;
-	}
-
-	std::size_t refcount() const
-	{
-		return refcount_;
-	}
-#endif // }}}
-
 public:
 	buffer();
 	explicit buffer(std::size_t _capacity);
@@ -194,43 +173,28 @@ namespace x0 {
 // {{{ buffer impl
 inline buffer::buffer() :
 	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
 }
 
 inline buffer::buffer(std::size_t _capacity) :
 	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
 	reserve(_capacity);
 }
 
 inline buffer::buffer(const value_type *_data, std::size_t _size) :
 	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size), edit_mode_(EDIT_NOTHING)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
 }
 
 inline buffer::buffer(const buffer_ref& v) :
 	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
 	push_back(v.data(), v.size());
 }
 
 inline buffer::buffer(const std::string& v) :
 	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
 	push_back(v.data(), v.size());
 }
@@ -238,17 +202,11 @@ inline buffer::buffer(const std::string& v) :
 template<typename PodType, std::size_t N>
 inline buffer::buffer(PodType (&value)[N]) :
 	data_(const_cast<char *>(value)), size_(N - 1), capacity_(N - 1), edit_mode_(EDIT_NOTHING)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
 }
 
 inline buffer::buffer(const buffer& v) :
 	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
 	push_back(v.data(), v.size());
 }
@@ -258,13 +216,7 @@ inline buffer::buffer(buffer&& v) :
 	size_(v.size_),
 	capacity_(v.capacity_),
 	edit_mode_(v.edit_mode_)
-#if !defined(NDEBUG)
-	, refcount_(0)
-#endif
 {
-#if !defined(NDEBUG)
-	assert(v.refcount_ == 0);
-#endif
 
 	v.data_ = 0;
 	v.size_ = 0;
@@ -274,12 +226,6 @@ inline buffer::buffer(buffer&& v) :
 
 inline buffer& buffer::operator=(buffer&& v)
 {
-#if !defined(NDEBUG)
-	//sometimes intentional to still have (an unused) ref to this buffer.
-//	assert(refcount_ == 0);
-//	assert(v.refcount_ == 0);
-#endif
-
 	clear();
 
 	data_ = v.data_;
