@@ -1,15 +1,15 @@
-#include <x0/io/chunked_filter.hpp>
+#include <x0/io/chunked_encoder.hpp>
 #include <cassert>
 #include <zlib.h>
 
 namespace x0 {
 
-chunked_filter::chunked_filter() :
+chunked_encoder::chunked_encoder() :
 	finished_(false)
 {
 }
 
-buffer chunked_filter::process(const buffer_ref& input, bool eof)
+buffer chunked_encoder::process(const buffer_ref& input, bool eof)
 {
 	if (input.empty() && !eof)
 		return buffer();

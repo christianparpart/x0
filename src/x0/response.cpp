@@ -10,7 +10,7 @@
 #include <x0/io/file.hpp>
 #include <x0/io/file_source.hpp>
 #include <x0/io/buffer_source.hpp>
-#include <x0/io/chunked_filter.hpp>
+#include <x0/io/chunked_encoder.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 #include <x0/sysconfig.h>
@@ -110,7 +110,7 @@ source_ptr response::serialize()
 			&& !content_forbidden())
 		{
 			headers.push_back("Transfer-Encoding", "chunked");
-			filter_chain.push_back(std::make_shared<chunked_filter>());
+			filter_chain.push_back(std::make_shared<chunked_encoder>());
 			keepalive = true;
 		}
 		else

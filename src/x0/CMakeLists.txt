@@ -20,7 +20,7 @@ set(x0_io_SRC
 	io/buffer_sink.cpp
 	io/buffer_source.cpp
 	io/chain_filter.cpp
-	io/chunked_filter.cpp
+	io/chunked_encoder.cpp
 	io/chunked_decoder.cpp
 	io/compress_filter.cpp
 	io/connection_sink.cpp
@@ -40,7 +40,7 @@ set(x0_io_API
 	io/buffer_sink.hpp
 	io/buffer_source.hpp
 	io/chain_filter.hpp
-	io/chunked_filter.hpp
+	io/chunked_encoder.hpp
 	io/chunked_decoder.hpp
 	io/composite_source.hpp
 	io/compress_filter.hpp
