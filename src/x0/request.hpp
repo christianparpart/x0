@@ -47,7 +47,6 @@ public:
 	int http_version_major;						///< HTTP protocol version major part that this request was formed in
 	int http_version_minor;						///< HTTP protocol version minor part that this request was formed in
 	std::vector<x0::request_header> headers;	///< request headers
-	std::string body;							///< body
 
 	/** retrieve value of a given request header */
 	buffer_ref header(const std::string& name) const;
@@ -67,6 +66,9 @@ public:
 	std::string hostid() const;
 	void set_hostid(const std::string& custom);
 
+	// content management
+	std::function<void(buffer_ref&&)> on_content;
+
 private:
 	mutable std::string hostid_;
 };
@@ -82,10 +84,10 @@ inline request::request(x0::connection& conn) :
 	http_version_major(0),
 	http_version_minor(0),
 	headers(),
-	body(),
 	username(),
 	document_root(),
 	custom_data(),
+	on_content(),
 	hostid_()
 {
 }
