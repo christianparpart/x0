@@ -18,7 +18,16 @@ namespace x0 {
 
 /** HTTP response parser.
  *
- * Should be used by CGI and proxy plugin for example.
+ * This is a stateful parser parsing a complete HTTP/1.1 conform
+ * response stream including its entity.
+ *
+ * Features included are:
+ * <ul>
+ *   <li>chunked decoding</li>
+ *   <li>pipelined response parsing</li>
+ * </ul>
+ *
+ * \note Should be used by CGI and proxy plugin for example.
  */
 class X0_API response_parser
 {
@@ -105,12 +114,24 @@ inline response_parser::response_parser(state_type state) :
 {
 }
 
+/**
+ * Initiates an early abort of a currently in progress parse().
+ *
+ * This so called abort-flag is being reset on each parse() call,
+ * so it makes only sense to be invoked inside the callbacks
+ * that want to trigger an early abort of the currently invoked parse().
+ *
+ * \see parse
+ */
 inline void response_parser::abort()
 {
-	TRACE("abort()");
 	abort_ = true;
 }
 
+/** Resets the state of the parser.
+ *
+ * \param state the state to reset to, by default ALL.
+ */
 inline void response_parser::reset(state_type state)
 {
 	state_ = state;
@@ -127,9 +148,40 @@ inline void response_parser::reset(state_type state)
 	filter_chain_.clear();
 }
 
-/** parses (possibly partial) response chunk.
+/** Parses (possibly partial) response chunk.
  *
- * \see status, assign_header, process_content 
+ * \param chunk a chunk of continuous memory holding the response chunk(s) to parse.
+ *
+ * \return the number of bytes actually parsed.
+ *
+ * With this function you may parse a partial, complete, or multiple
+ * responses in a single call.
+ * Repeative invokations of parse() will act like continuing the parsing
+ * at the last state until reset() is called or the end of a response
+ * has been parsed.
+ *
+ * While parsing, a number of callbacks may be invoked to inform the caller
+ * about the actual parsed content.
+ *
+ * on_status: is invoked once the response status-line has been fully parsed.
+ *
+ * on_header: is invoked for each parsed header, thus, may be invoked
+ *   never if no response headers were parsed or as much as available.
+ *
+ * on_content: is invoked for each (partial) response body chunk, thus,
+ *   may be never called if no response body is passed or as much as needed
+ *   to pass the full response body to the callback.
+ *
+ * on_complete: is invoked once a single response has been fully parsed
+ *   and passed to the caller via callbacks.
+ *   This on_complete callback also must return a boolean flag indicating
+ *   whether the currently in progress parse() should continue parsing
+ *   or abort early.
+ *   It is safe to just return true (continue parsing) as long as you
+ *   do not intent to destruct the parser (e.g. invoke delete) inside
+ *   a callback.
+ *
+ * \see on_status, on_header, on_content , on_complete
  */
 inline std::size_t response_parser::parse(buffer_ref&& chunk)
 {
