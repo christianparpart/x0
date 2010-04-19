@@ -17,9 +17,6 @@
 
 namespace x0 {
 
-/** \brief HTTP/1.1 client API
- *
- */
 class X0_API web_client
 {
 public:
