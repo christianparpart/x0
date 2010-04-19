@@ -75,6 +75,10 @@ private:
 		{
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
 		};
+		rp.on_complete = [&]()
+		{
+			return false;
+		};
 
 		std::size_t rv = rp.parse(r1);
 		CPPUNIT_ASSERT(rv == r1.size() - 7);
