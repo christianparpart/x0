@@ -53,6 +53,7 @@ public:
 		expecting_lf2,
 
 		// response body
+		processing_content_begin,
 		processing_content,
 
 		//
@@ -271,7 +272,7 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 			if (*first == ':')
 				state_ = parsing_header_value_ws_left;
 			else if (*first == '\n')
-				state_ = processing_content;
+				state_ = processing_content_begin;
 			else
 				++name_size_;
 			break;
@@ -304,7 +305,7 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 			if (*first == '\r')
 				state_ = expecting_lf2;
 			else if (*first == '\n')
-				state_ = processing_content;
+				state_ = processing_content_begin;
 			else {
 				state_ = parsing_header_name;
 				name_offset_ = offset;
@@ -313,13 +314,16 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 			break;
 		case expecting_lf2:
 			if (*first == '\n')					// [CR] LF [CR] LF
-				state_ = processing_content;
+				state_ = processing_content_begin;
 			else {								// [CR] LF [CR] any
 				state_ = parsing_header_name;
 				name_offset_ = offset;
 				name_size_ = 1;
 			}
 			break;
+		case processing_content_begin:
+			TRACE("parse: processing_content_begin: content-length=%ld, chunked=%s", content_length_, chunked_ ? "true" : "false");
+			/* fall through */
 		case processing_content:
 		{
 			TRACE("parse: processing content chunk: offset=%ld, size=%ld", offset, chunk.size() - (offset - chunk.offset()));
@@ -327,8 +331,6 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 			std::size_t nparsed = 0;
 			if (!process_content(buf.ref(offset, chunk.size() - (offset - chunk.offset())), &nparsed))
 				return offset + nparsed;
-
-			TRACE("parse: done processing content chunk: rv=%ld", nparsed);
 
 			offset += nparsed - 1;
 			first += nparsed - 1;
@@ -341,6 +343,23 @@ inline std::size_t response_parser::parse(buffer_ref&& chunk)
 
 		++offset;
 		++first;
+	}
+	// we've reached the end of the chunk
+
+	if (state_ == processing_content_begin)
+	{
+		// we've just parsed all headers but no body yet.
+
+		if (content_length_ < 0 && !chunked_)
+		{
+			// and there's no body to come
+
+			if (on_complete)
+				on_complete();
+
+			// subsequent calls to parse() process possible next requests then.
+			state_ = parsing_status_line_begin;
+		}
 	}
 
 	return offset;
