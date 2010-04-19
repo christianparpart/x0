@@ -21,6 +21,7 @@ class response_parser_test :
 public:
 	CPPUNIT_TEST_SUITE(response_parser_test);
 		CPPUNIT_TEST(simple);
+		CPPUNIT_TEST(sample_304);
 		CPPUNIT_TEST(no_status_text);
 		CPPUNIT_TEST(no_header);
 		CPPUNIT_TEST(pipeline);
@@ -58,11 +59,36 @@ private:
 		CPPUNIT_ASSERT(rv == r1.size());
 	}
 
+	void sample_304()
+	{
+		buffer r1(
+			"HTTP/1.1 304 Not Modified\r\n"
+			"Date: Mon, 19 Apr 2010 14:56:34 GMT\r\n"
+			"Server: Apache\r\n"
+			"Connection: close\r\n"
+			"ETag: \"37210c-33b5-483 1136540000\"\r\n"
+			"\r\n"
+		);
+
+		response_parser rp;
+		bool on_complete_invoked = false;
+
+		rp.on_complete = [&]()
+		{
+			on_complete_invoked = true;
+			return true;
+		};
+
+		std::size_t nparsed = rp.parse(r1);
+
+		CPPUNIT_ASSERT(nparsed == r1.size());
+		CPPUNIT_ASSERT(on_complete_invoked == true);
+	}
+
 	void content_length()
 	{
 		buffer r1(
 			"HTTP/1.1 200 Ok\r\n"
-			"Name: Value\r\n"
 			"Content-Length: 9\r\n"
 			"\r\n"
 			"some body"
@@ -74,6 +100,10 @@ private:
 		rp.on_content = [&](const buffer_ref& chunk)
 		{
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
+		};
+		rp.on_complete = [&]()
+		{
+			return false;
 		};
 
 		std::size_t rv = rp.parse(r1);
@@ -108,6 +138,10 @@ private:
 				CPPUNIT_ASSERT(name == "Name 2");
 				CPPUNIT_ASSERT(value == "Value 2");
 				break;
+			case 3:
+				CPPUNIT_ASSERT(name == "Content-Length");
+				CPPUNIT_ASSERT(value == "9");
+				break;
 			default:
 				CPPUNIT_ASSERT(0 == "invalid header count");
 			}
@@ -124,6 +158,7 @@ private:
 			"HTTP/1.1 200 Ok\r\n"
 			"Name: Value\r\n"
 			"Name 2: Value 2\r\n"
+			"Content-Length: 9\r\n"
 			"\r\n"
 			"some body"
 		);
@@ -147,8 +182,8 @@ private:
 		rp.on_header = [&](const buffer_ref& name, const buffer_ref& value)
 		{
 			CPPUNIT_ASSERT(++header_count == 1);
-			CPPUNIT_ASSERT(name == "Name");
-			CPPUNIT_ASSERT(value == "Value");
+			CPPUNIT_ASSERT(name == "Content-Length");
+			CPPUNIT_ASSERT(value == "9");
 		};
 
 		rp.on_content = [&](const buffer_ref& content)
@@ -159,7 +194,7 @@ private:
 
 		buffer r1(
 			"HTTP/1.1 200\r\n"
-			"Name: Value\r\n"
+			"Content-Length: 9\r\n"
 			"\r\n"
 			"some body"
 		);
