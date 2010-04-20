@@ -80,8 +80,8 @@ private:
 	ssize_t content_processed_;
 
 private:
-
 	boost::tribool process_content(request& r, buffer_ref&& chunk);
+
 	static inline bool is_char(int ch);
 	static inline bool is_ctl(int ch);
 	static inline bool is_tspecial(int ch);
@@ -224,6 +224,7 @@ inline std::size_t request_parser::next_offset() const
  */
 inline boost::tribool request_parser::parse(request& r, buffer_ref&& chunk)
 {
+	std::size_t offset = 0;
 	std::size_t cur = chunk.offset();
 	std::size_t count = cur + chunk.size();
 	buffer_ref::const_iterator i = chunk.begin();
@@ -413,6 +414,8 @@ inline boost::tribool request_parser::parse(request& r, buffer_ref&& chunk)
 				if (input != '\n')
 					return false;
 
+				//pre_process(const_cast<x0::request *>(in));
+
 				buffer_ref value(r.header("Content-Length"));
 				if (value.empty())
 				{
@@ -426,10 +429,12 @@ inline boost::tribool request_parser::parse(request& r, buffer_ref&& chunk)
 				break;
 			}
 			case content:
-				return process_content(r, chunk.ref(0));
+				return process_content(r, chunk.ref(offset));
 			default:
 				return false;
 		}
+
+		++offset;
 	}
 
 	// request header parsed partially
@@ -442,10 +447,14 @@ inline boost::tribool request_parser::process_content(request& r, buffer_ref&& c
 	if (chunk.size() > static_cast<std::size_t>(content_length_))
 		chunk.shr(-(chunk.size() - content_length_));
 
+	TRACE("process_content: %s", chunk.str().c_str());
+
 	content_length_ -= chunk.size();
 
 	if (r.on_content)
 		r.on_content(std::move(chunk));
+
+	TRACE("process_content: bytes left: %ld", content_length_);
 
 	if (content_length_ > 0)
 		return boost::indeterminate;
