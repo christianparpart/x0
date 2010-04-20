@@ -212,6 +212,7 @@ const char *response::status_cstr(int value)
 		case 401: return "Unauthorized";
 		case 403: return "Forbidden";
 		case 404: return "Not Found";
+		case 405: return "Method Not Allowed";
 		case 406: return "Not Acceptable";
 		case 407: return "Proxy Authentication Required";
 		case 408: return "Request Timeout";
