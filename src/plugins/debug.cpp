@@ -109,10 +109,10 @@ private:
 
 		std::ostringstream stream;
 
-		if (!in->body.empty())
+		/*if (!in->body.empty())
 		{
 			log(x0::severity::info, "C> %s", in->body.c_str());
-		}
+		}*/
 
 		stream << "S< " << out->status() << ' ' << x0::response::status_str(out->status()) << std::endl;
 		for (auto i = out->headers.begin(), e = out->headers.end(); i != e; ++i)

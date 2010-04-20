@@ -217,19 +217,19 @@ inline void cgi_script::async_run()
 	//environment["REMOTE_USER"] = "";
 	//environment["REMOTE_IDENT"] = "";
 
-	if (request_->body.empty())
+//	if (request_->body.empty())
 	{
 		environment["CONTENT_LENGTH"] = "0";
 		::close(process_.input());
 	}
-	else
+/*	else
 	{
 		environment["CONTENT_TYPE"] = request_->header("Content-Type");
 		environment["CONTENT_LENGTH"] = request_->header("Content-Length");
 
 		inwatch_.set<cgi_script, &cgi_script::transmit_request_body>(this);
 		inwatch_.start(process_.input(), ev::WRITE);
-	}
+	} */
 
 #if defined(WITH_SSL)
 	if (request_->connection.ssl_enabled())

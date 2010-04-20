@@ -32,6 +32,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 
+// TODO Create proxy_connection at pre_process to connect to backend and pass possible request content already
 // TODO Implement proper error handling (origin connect or i/o errors, and client disconnect event).
 // TODO Should we use getaddrinfo() instead of inet_pton()?
 // TODO Implement proper timeout management for connect/write/read/keepalive timeouts.
@@ -524,11 +525,13 @@ void proxy_connection::pass_request()
 		client_.pass_header("Host", result);
 	}
 
-	// body?
+	//! \todo body?
+#if 0
 	if (request_->body.empty())
 	{
 		;//! \todo properly handle POST data (request_->body)
 	}
+#endif
 
 	client_.commit(true);
 }
