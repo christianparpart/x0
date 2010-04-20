@@ -4,11 +4,11 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
 - verify proxy plugin / web_client
-- auto-enable tcp_cork on non-keep-alives at serialize()
-
-- drop support of exceptions inside core and plugins. never ever use/support them.
-- drop server context API (no need for it, plugins can store fields as a member, too)
 - fix HTTP POST content (req. for yacs)
+- fuck up exceptions in favor of std::error_code (in core and plugins)
+  - response_parser: response_parser_error { blah_expected, invalid_foo, ... };
+  - web_client: web_client_error { ... };
+- drop server context API (no need for it, plugins can store fields as a member, too)
 - fix crash caused with proxy enabled (www.irony-of-fate.de)
 - colorize (optional) help print output
 - VERIFY: flexibility of configuration system
@@ -25,8 +25,6 @@ QUALITY ASSURANCE TODO:
 	- request action API:
 		- register_action(hostid, basePath, function<void(request_ptr, response_ptr)> handler);
 	- runtime changing of config settings
-- FIX: SIGTERM gets catched but does not lead into process termination (event-loop does not break?)
-- VALGRIND: fix warnings wrt libev's ev_stat (ev.c:3119), ev_stat.attr seems uninitialized, as of valgrind.
 - RESPECT: handle request headers "Keep-Alive" properly (using [deadline-]timers)
 - FIX: request parsing
 	- replace \r with \015 and \n with \012
