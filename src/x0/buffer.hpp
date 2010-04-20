@@ -513,9 +513,7 @@ inline buffer_ref buffer::ref(std::size_t offset, std::size_t count) const
 	assert(offset >= 0);
 	assert(offset + count <= size_);
 
-	return count > 0
-		? buffer_ref(this, offset, count)
-		: buffer_ref();
+	return buffer_ref(this, offset, count);
 }
 
 inline buffer_ref buffer::operator()(std::size_t offset) const

@@ -50,6 +50,8 @@ public:
 	buffer_ref& operator=(const x0::buffer& v);
 	buffer_ref& operator=(const buffer_ref& v);
 
+	void clear();
+
 	// properties
 	bool empty() const;
 	std::size_t offset() const;
@@ -67,8 +69,8 @@ public:
 	const_iterator cbegin() const;
 	const_iterator cend() const;
 
-	void shl(ssize_t offset);
-	void shr(ssize_t offset);
+	void shl(ssize_t offset = 1);
+	void shr(ssize_t offset = 1);
 
 	// find
 	template<typename PodType, std::size_t N>
@@ -202,6 +204,11 @@ inline buffer_ref& buffer_ref::operator=(const x0::buffer_ref& v)
 	return *this;
 }
 
+inline void buffer_ref::clear()
+{
+	size_ = 0;
+}
+
 inline bool buffer_ref::empty() const
 {
 	return !size_;
@@ -268,7 +275,8 @@ inline void buffer_ref::shl(ssize_t offset)
 	size_ += offset;
 
 	assert(offset_ >= 0);
-	assert(offset_ + size_ < buffer_->capacity());
+	assert(size_ >= 0);
+	assert(offset_ + size_ <= buffer_->capacity());
 }
 
 /** shifts view's right margin by given bytes to the right, thus, increasing view's size.
@@ -279,7 +287,7 @@ inline void buffer_ref::shr(ssize_t offset)
 
 	size_ += offset;
 
-	assert(offset_ + size_ < buffer_->capacity());
+	assert(offset_ + size_ <= buffer_->capacity());
 }
 
 #if 0
