@@ -17,6 +17,7 @@ add_definitions(
 add_executable(x0test
 	x0dtest.cpp
 	range_def_test.cpp
+	message_parser_test.cpp
 	response_parser_test.cpp
 	chunked_decoder_test.cpp
 	strutils_test.cpp
