@@ -5,6 +5,7 @@
 #include <x0/buffer_ref.hpp>
 #include <x0/io/chain_filter.hpp>
 #include <x0/io/chunked_decoder.hpp>
+#include <x0/defines.hpp>
 #include <x0/api.hpp>
 
 #include <system_error>
@@ -25,6 +26,12 @@ enum class message_parser_error // {{{
 class message_parser
 {
 public:
+	enum mode_type { // {{{
+		REQUEST,
+		RESPONSE,
+		MESSAGE
+	}; // }}}
+
 	enum state { // {{{
 		// artificial
 		SYNTAX_ERROR = 0,
@@ -49,6 +56,7 @@ public:
 		STATUS_CODE,
 		STATUS_MESSAGE_START,
 		STATUS_MESSAGE,
+		STATUS_MESSAGE_LF,
 
 		// message-headers
 		HEADER_NAME_START = 200,
@@ -69,7 +77,8 @@ public:
 
 public:
 	std::function<void(buffer_ref&&, buffer_ref&&, buffer_ref&&, int, int)> on_request;
-	std::function<void(buffer_ref&&, buffer_ref&&, buffer_ref&&)> on_response;
+	std::function<void(buffer_ref&&, int, buffer_ref&&)> on_response;
+	std::function<void()> on_message;
 
 	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
 	std::function<void(buffer_ref&&)> on_content;
@@ -77,7 +86,7 @@ public:
 	std::function<bool()> on_complete;
 
 public:
-	message_parser();
+	explicit message_parser(mode_type mode = MESSAGE);
 
 	void reset(state s = MESSAGE_BEGIN);
 	std::size_t parse(buffer_ref&& chunk);
@@ -85,10 +94,12 @@ public:
 
 private:
 	void pass_request();
+	void pass_response();
 	void pass_header();
 	bool pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed);
 
 private:
+	mode_type mode_;
 	state state_;
 
 	// request-line
@@ -97,6 +108,10 @@ private:
 	buffer_ref protocol_;
 	int version_major_;
 	int version_minor_;
+
+	// status-line
+	int code_;
+	buffer_ref message_;
 
 	// current parsed header
 	buffer_ref name_;
@@ -109,40 +124,28 @@ private:
 	chain_filter filter_chain_;
 };
 
-/*
-class request_parser : public message_parser
+class request_parser : public message_parser // {{{
 {
 public:
-	std::size_t parse(buffer_ref&& chunk, std::error_code& ec)
+	request_parser() :
+		message_parser(REQUEST)
 	{
-		std::size_t offset = 0;
-
-		while (i != e)
-		{
-			switch (state_)
-			{
-				case METHOD_START:
-					// ...
-				default:
-					return offset + message_parser::parse(chunk.ref(offset), ec);
-			}
-			++i;
-			++offset;
-		}
 	}
+}; // }}}
 
-	void reset()
+class response_parser : public message_parser // {{{
+{
+public:
+	response_parser() :
+		message_parser(RESPONSE)
 	{
-		message_parser::reset();
-		// ...
 	}
-};
-*/
+}; // }}}
 
 } // namespace x0
 
 // {{{ inlines
-#if 0
+#if 1
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("message_parser: " msg)
@@ -150,17 +153,22 @@ public:
 
 namespace x0 {
 
-inline message_parser::message_parser() :
+inline message_parser::message_parser(mode_type mode) :
+	mode_(mode),
 	state_(MESSAGE_BEGIN),
 	method_(),
 	entity_(),
 	protocol_(),
 	version_major_(0),
 	version_minor_(0),
+	code_(0),
+	message_(),
 	name_(),
 	value_(),
 	content_chunked_(false),
-	content_length_(-1)
+	content_length_(-1),
+	chunked_decoder_(),
+	filter_chain_()
 {
 }
 
@@ -173,6 +181,9 @@ inline void message_parser::reset(state s)
 	protocol_.clear();
 	version_major_ = 0;
 	version_minor_ = 0;
+
+	code_ = 0;
+	message_.clear();
 
 	name_.clear();
 	value_.clear();
@@ -209,6 +220,7 @@ static inline const char *state2str(message_parser::state s)
 		case message_parser::STATUS_CODE: return "status-code";
 		case message_parser::STATUS_MESSAGE_START: return "status-message-start";
 		case message_parser::STATUS_MESSAGE: return "status-message";
+		case message_parser::STATUS_MESSAGE_LF: return "status-message-lf";
 
 		// message header
 		case message_parser::HEADER_NAME_START: return "header-name-start";
@@ -239,8 +251,6 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	const char *i = chunk.begin();
 	const char *e = chunk.end();
 	std::size_t offset = 0;
-
-	//TRACE("parse: size: %ld", chunk.size());
 
 	/*
 	 * CR               = 0x0D
@@ -300,6 +310,8 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 		HT = 0x09,
 	};
 
+	TRACE("parse: size: %ld", chunk.size());
+
 	if (state_ == CONTENT)
 	{
 		if (!pass_content(std::move(chunk), ec, offset))
@@ -310,17 +322,33 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 
 	while (i != e)
 	{
-#if 0
+#if 1
 		if (std::isprint(*i))
-			TRACE("parse: offset: %4ld, character:  '%c', state: %s", offset, *i, state2str(state_));
+			TRACE("parse: offset: %4ld, char: 0x%02X (%c), state: %s", offset, *i, *i, state2str(state_));
 		else                                            
-			TRACE("parse: offset: %4ld, character: 0x%02X, state: %s", offset, *i, state2str(state_));
+			TRACE("parse: offset: %4ld, char: 0x%02X,     state: %s", offset, *i, state2str(state_));
 #endif
 
 		switch (state_)
 		{
 			case MESSAGE_BEGIN:
-				state_ = REQUEST_LINE_START;
+				switch (mode_) {
+					case REQUEST:
+						state_ = REQUEST_LINE_START;
+						break;
+					case RESPONSE:
+						state_ = STATUS_LINE_START;
+						break;
+					case MESSAGE:
+						state_ = HEADER_NAME_START;
+
+						// an internet message has no special top-line,
+						// so we just invoke the callback right away
+						if (on_message)
+							on_message();
+
+						break;
+				}
 				break;
 			case REQUEST_LINE_START:
 				if (std::isprint(*i))
@@ -438,7 +466,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					++offset;
 					++i;
 				}
-				else if (*i == '\r')
+				else if (*i == CR)
 				{
 					state_ = REQUEST_LINE_LF;
 
@@ -449,7 +477,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case REQUEST_LINE_LF:
-				if (*i == '\n')
+				if (*i == LF)
 				{
 					pass_request();
 					state_ = HEADER_NAME_START;
@@ -462,11 +490,91 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				break;
 			case STATUS_LINE_START:
 			case STATUS_PROTOCOL_START:
+				if (!std::isprint(*i))
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					protocol_ = chunk.ref(offset, 1);
+					state_ = STATUS_PROTOCOL;
+					++offset;
+					++i;
+				}
+				break;
 			case STATUS_PROTOCOL:
+				if (*i == SP)
+				{
+					state_ = STATUS_CODE;
+					++offset;
+					++i;
+				}
+				else if (std::isprint(*i))
+				{
+					protocol_.shr();
+					++offset;
+					++i;
+				}
+				else
+					state_ = SYNTAX_ERROR;
+				break;
 			case STATUS_CODE:
+				if (std::isdigit(*i))
+				{
+					code_ = code_ * 10 + *i - '0';
+					++offset;
+					++i;
+				}
+				else if (*i == SP)
+				{
+					state_ = STATUS_MESSAGE_START;
+					++offset;
+					++i;
+				}
+				else if (*i == CR) // no Status-Message passed
+				{
+					state_ = STATUS_MESSAGE_LF;
+					++offset;
+					++i;
+				}
+				else
+					state_ = SYNTAX_ERROR;
+				break;
 			case STATUS_MESSAGE_START:
+				if (std::isprint(*i))
+				{
+					state_ = STATUS_MESSAGE;
+					message_ = chunk.ref(offset, 1);
+					++offset;
+					++i;
+				}
+				else
+					state_ = SYNTAX_ERROR;
+				break;
 			case STATUS_MESSAGE:
-				state_ = SYNTAX_ERROR; //! \todo impl
+				if (std::isprint(*i))
+				{
+					message_.shr();
+					++offset;
+					++i;
+				}
+				else if (*i == CR)
+				{
+					state_ = STATUS_MESSAGE_LF;
+					++offset;
+					++i;
+				}
+				else
+					state_ = SYNTAX_ERROR;
+				break;
+			case STATUS_MESSAGE_LF:
+				if (*i == LF)
+				{
+					pass_response();
+					state_ = HEADER_NAME_START;
+					++offset;
+					++i;
+				}
+				else
+					state_ = SYNTAX_ERROR;
 				break;
 			case HEADER_NAME_START:
 				if (std::isprint(*i)) {
@@ -476,7 +584,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					++offset;
 					++i;
 				}
-				else if (*i == '\r')
+				else if (*i == CR)
 				{
 					state_ = HEADER_END_LF;
 
@@ -505,7 +613,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case LWS_START:
-				if (*i == '\r')
+				if (*i == CR)
 				{
 					state_ = LWS_LF;
 
@@ -533,7 +641,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case LWS_LF:
-				if (*i == '\n')
+				if (*i == LF)
 				{
 					state_ = LWS_SP_HT_START;
 
@@ -586,7 +694,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case HEADER_VALUE:
-				if (*i == '\r')
+				if (*i == CR)
 				{
 					state_ = LWS_LF;
 
@@ -604,7 +712,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case HEADER_LINE_LF:
-				if (*i == '\n')
+				if (*i == LF)
 				{
 					pass_header();
 
@@ -617,7 +725,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case HEADER_END_LF:
-				if (*i == '\n')
+				if (*i == LF)
 				{
 					state_ = CONTENT_START;
 
@@ -654,6 +762,24 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 			}
 		}
 	}
+	// we've reached the end of the chunk
+
+	if (state_ == CONTENT_START)
+	{
+		// we've just parsed all headers but no body yet.
+
+		if (content_length_ < 0 && !content_chunked_)
+		{
+			// and there's no body to come
+
+			if (on_complete)
+				on_complete();
+
+			// subsequent calls to parse() process possible next requests then.
+			state_ = MESSAGE_BEGIN;
+		}
+	}
+
 	return offset;
 }
 
@@ -664,6 +790,14 @@ inline void message_parser::pass_request()
 
 	if (on_request)
 		on_request(std::move(method_), std::move(entity_), std::move(protocol_), version_major_, version_minor_);
+}
+
+inline void message_parser::pass_response()
+{
+	TRACE("status-line: protocol=%s, code=%d, message=%s", protocol_.str().c_str(), code_, message_.str().c_str());
+
+	if (on_response)
+		on_response(std::move(protocol_), code_, std::move(message_));
 }
 
 inline void message_parser::pass_header()

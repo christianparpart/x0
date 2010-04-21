@@ -23,22 +23,20 @@ public:
 		CPPUNIT_TEST(request_simple);
 		CPPUNIT_TEST(request_complex_lws_headers);
 		CPPUNIT_TEST(request_chunked_body);
-		//CPPUNIT_TEST(request_content_length);
+		//CPPUNIT_TEST(request_content_length); -- TODO
 
-#if 0
 		CPPUNIT_TEST(response_simple);
 		CPPUNIT_TEST(response_sample_304);
 		CPPUNIT_TEST(response_no_status_text);
 		CPPUNIT_TEST(response_no_header);
 		CPPUNIT_TEST(response_chunked_body);
 		CPPUNIT_TEST(response_content_length);
-#endif
 	CPPUNIT_TEST_SUITE_END();
 
 private:
 	void request_complex_lws_headers()
 	{
-		message_parser rp; // (message_parser::REQUEST);
+		request_parser rp;
 
 		buffer r(
 			"GET /foo HTTP/1.1\r\n"
@@ -47,28 +45,31 @@ private:
 			"Multi-Line-2:\r\n \t \tmulti value 2\r\n" // complex LWS at the beginning
 			"\r\n"
 		);
-		std::error_code ec;
-		std::size_t nparsed = rp.parse(r, ec);
-		printf("nparsed: %ld; error: %s\n", nparsed, ec.message().c_str());
+		rp.parse(r);
 	}
 
 	void request_simple()
 	{
-		message_parser rp; // (message_parser::REQUEST);
+		request_parser rp; // (message_parser::REQUEST);
 
-		rp.on_request = [&](buffer_ref&& method, buffer_ref&& entity, buffer_ref&& protocol, int major, int minor) {
-			printf("on_response('%s', '%s', '%s', %d, %d)\n",
+		rp.on_request = [&](buffer_ref&& method, buffer_ref&& entity, buffer_ref&& protocol, int major, int minor)
+		{
+			DEBUG("on_request('%s', '%s', '%s', %d, %d)",
 			       method.str().c_str(), entity.str().c_str(), protocol.str().c_str(), major, minor);
 		};
-		rp.on_header = [&](buffer_ref&& name, buffer_ref&& value) {
-			printf("on_header('%s', '%s')\n", name.str().c_str(), value.str().c_str());
+
+		rp.on_header = [&](buffer_ref&& name, buffer_ref&& value)
+		{
+			DEBUG("on_header('%s', '%s')", name.str().c_str(), value.str().c_str());
 		};
-		rp.on_content = [&](buffer_ref&& chunk) {
-			printf("on_content(%ld): '%s'\n", chunk.size(), chunk.str().c_str());
+
+		rp.on_content = [&](buffer_ref&& chunk)
+		{
+			DEBUG("on_content(%ld): '%s'", chunk.size(), chunk.str().c_str());
 		};
 
 		buffer r(
-			"GET /foo HTTP/12.34\r\n"
+			"GET /foo HTTP/1.1\r\n"
 			"foo: bar\r\n"
 			"Content-Length: 11\r\n"
 			"\r\n"
@@ -76,7 +77,7 @@ private:
 		);
 		std::error_code ec;
 		std::size_t nparsed = rp.parse(r, ec);
-		printf("nparsed: %ld; error: %s\n", nparsed, ec.message().c_str());
+		DEBUG("nparsed: %ld; error: %s", nparsed, ec.message().c_str());
 	}
 
 	void request_chunked_body()
@@ -91,11 +92,10 @@ private:
 			"0\r\n\r\n"
 			//"GARBAGE"
 		);
-		message_parser rp;
+		request_parser rp;
 
 		rp.on_content = [&](const buffer_ref& chunk)
 		{
-			printf("chunked_body(%s)\n", chunk.str().c_str());
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
 		};
 
@@ -116,16 +116,15 @@ private:
 			"0\r\n\r\n"
 			//"GARBAGE"
 		);
-		message_parser rp;
+		response_parser rp;
 
 		rp.on_content = [&](const buffer_ref& chunk)
 		{
-			printf("chunked_body(%s)\n", chunk.str().c_str());
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
 		};
 
 		std::size_t rv = rp.parse(r);
-		CPPUNIT_ASSERT(rv == r.size());
+		CPPUNIT_ASSERT(rv == r.size()/* - 7*/);
 	}
 
 	void response_sample_304()
@@ -139,7 +138,7 @@ private:
 			"\r\n"
 		);
 
-		message_parser rp;
+		response_parser rp;
 		bool on_complete_invoked = false;
 
 		rp.on_complete = [&]()
@@ -164,7 +163,7 @@ private:
 			"GARBAGE"
 		);
 
-		message_parser rp;
+		response_parser rp;
 
 		rp.on_content = [&](const buffer_ref& chunk)
 		{
@@ -183,20 +182,17 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		message_parser rp;
+		response_parser rp;
 
-		rp.on_response = [&](const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text)
+		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
 		{
-			//printf("status('%s', '%s', '%s')\n", protocol.str().c_str(), code.str().c_str(), text.str().c_str());
 			CPPUNIT_ASSERT(protocol == "HTTP/1.1");
-			CPPUNIT_ASSERT(code == "200");
+			CPPUNIT_ASSERT(code == 200);
 			CPPUNIT_ASSERT(text == "Ok");
 		};
 
 		rp.on_header = [&](const buffer_ref& name, const buffer_ref& value)
 		{
-			//printf("on_header('%s', '%s')\n", name.str().c_str(), value.str().c_str());
-
 			switch (++header_count)
 			{
 			case 1:
@@ -218,9 +214,8 @@ private:
 
 		rp.on_content = [&](const buffer_ref& content)
 		{
-			//printf("on_content(%ld): '%s'\n", content.size(), content.str().c_str());
 			CPPUNIT_ASSERT(++body_count == 1);
-			CPPUNIT_ASSERT(content == "some body");
+			CPPUNIT_ASSERT(content == "some-body");
 		};
 
 		buffer r(
@@ -229,9 +224,12 @@ private:
 			"Name 2: Value 2\r\n"
 			"Content-Length: 9\r\n"
 			"\r\n"
-			"some body"
+			"some-body"
 		);
-		rp.parse(r);
+
+		std::size_t nparsed = rp.parse(r);
+
+		CPPUNIT_ASSERT(nparsed == r.size());
 		CPPUNIT_ASSERT(body_count == 1);
 	}
 
@@ -239,12 +237,12 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		message_parser rp;
+		response_parser rp;
 
-		rp.on_response = [&](const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text)
+		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
 		{
 			CPPUNIT_ASSERT(protocol == "HTTP/1.1");
-			CPPUNIT_ASSERT(code == "200");
+			CPPUNIT_ASSERT(code == 200);
 			CPPUNIT_ASSERT(text == "");
 		};
 
@@ -267,19 +265,20 @@ private:
 			"\r\n"
 			"some body"
 		);
-		rp.parse(r);
+		std::size_t nparsed = rp.parse(r);
 
+		CPPUNIT_ASSERT(nparsed = r.size());
 		CPPUNIT_ASSERT(body_count == 1);
 	}
 
 	void response_no_header()
 	{
-		message_parser rp;
+		response_parser rp;
 
-		rp.on_response = [&](const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text)
+		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
 		{
 			CPPUNIT_ASSERT(protocol == "HTTP/1.1");
-			CPPUNIT_ASSERT(code == "200");
+			CPPUNIT_ASSERT(code == 200);
 			CPPUNIT_ASSERT(text == "");
 		};
 
