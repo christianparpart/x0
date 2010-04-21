@@ -21,6 +21,7 @@ class message_parser_test :
 public:
 	CPPUNIT_TEST_SUITE(message_parser_test);
 		CPPUNIT_TEST(request_simple);
+		CPPUNIT_TEST(request_complex_lws_headers);
 		CPPUNIT_TEST(request_chunked_body);
 		//CPPUNIT_TEST(request_content_length);
 
@@ -35,6 +36,22 @@ public:
 	CPPUNIT_TEST_SUITE_END();
 
 private:
+	void request_complex_lws_headers()
+	{
+		message_parser rp; // (message_parser::REQUEST);
+
+		buffer r(
+			"GET /foo HTTP/1.1\r\n"
+			"Single-Line: single value\r\n"            // simple LWS at the beginning & middle
+			"Multi-Line-1: multi\r\n\tvalue 1\r\n"     // complex LWS in the middle
+			"Multi-Line-2:\r\n \t \tmulti value 2\r\n" // complex LWS at the beginning
+			"\r\n"
+		);
+		std::error_code ec;
+		std::size_t nparsed = rp.parse(r, ec);
+		printf("nparsed: %ld; error: %s\n", nparsed, ec.message().c_str());
+	}
+
 	void request_simple()
 	{
 		message_parser rp; // (message_parser::REQUEST);
