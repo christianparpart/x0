@@ -10,7 +10,7 @@
 
 #include <x0/api.hpp>
 #include <x0/buffer.hpp>
-#include <x0/response_parser.hpp>
+#include <x0/message_parser.hpp>
 #include <ev++.h>
 #include <functional>
 #include <system_error>
@@ -39,7 +39,7 @@ private:
 	std::size_t request_offset_;
 	std::size_t request_count_;
 	buffer response_buffer_;
-	response_parser response_parser_;
+	message_parser response_parser_;
 
 private:
 	void io(ev::io& w, int revents);
@@ -52,9 +52,9 @@ private:
 	void start_read();
 	void start_write();
 
-	void _on_status(const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text);
-	void _on_header(const buffer_ref& name, const buffer_ref& value);
-	void _on_content(const buffer_ref& chunk);
+	void _on_status(buffer_ref&& protocol, int code, buffer_ref&& text);
+	void _on_header(buffer_ref&& name, buffer_ref&& value);
+	void _on_content(buffer_ref&& chunk);
 	bool _on_complete();
 
 public:
@@ -98,9 +98,9 @@ public:
 
 	// response handling
 	std::function<void()> on_connect;
-	std::function<void(const buffer_ref&, const buffer_ref&, const buffer_ref&)> on_response;
-	std::function<void(const buffer_ref&, const buffer_ref&)> on_header;
-	std::function<void(const buffer_ref&)> on_content;
+	std::function<void(buffer_ref&&, int, buffer_ref&&)> on_response;
+	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
+	std::function<void(buffer_ref&&)> on_content;
 	std::function<bool()> on_complete;
 };
 

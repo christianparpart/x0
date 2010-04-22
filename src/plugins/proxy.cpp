@@ -11,7 +11,6 @@
 #include <x0/response.hpp>
 #include <x0/header.hpp>
 #include <x0/web_client.hpp>
-#include <x0/response_parser.hpp>
 #include <x0/io/buffer_source.hpp>
 #include <x0/strutils.hpp>
 #include <x0/url.hpp>
@@ -157,9 +156,9 @@ private:
 	void pass_request();
 
 	void on_connect();
-	void on_response(const x0::buffer_ref&, const x0::buffer_ref&, const x0::buffer_ref&);
-	void on_header(const x0::buffer_ref&, const x0::buffer_ref&);
-	void on_content(const x0::buffer_ref&);
+	void on_response(x0::buffer_ref&&, int, x0::buffer_ref&&);
+	void on_header(x0::buffer_ref&&, x0::buffer_ref&&);
+	void on_content(x0::buffer_ref&&);
 	bool on_complete();
 	void content_written(int ec, std::size_t nb);
 
@@ -346,10 +345,10 @@ void proxy_connection::on_connect()
 	pass_request();
 }
 
-void proxy_connection::on_response(const x0::buffer_ref& protocol, const x0::buffer_ref& code, const x0::buffer_ref& text)
+void proxy_connection::on_response(x0::buffer_ref&& protocol, int code, x0::buffer_ref&& text)
 {
-	TRACE("connection(%p).on_status('%s', '%s', '%s')", this, protocol.str().c_str(), code.str().c_str(), text.str().c_str());
-	response_->status = std::atoi(code.str().c_str());
+	TRACE("connection(%p).on_status('%s', %d, '%s')", this, protocol.str().c_str(), code, text.str().c_str());
+	response_->status = code;
 }
 
 inline bool validate_response_header(const x0::buffer_ref& name)
@@ -363,7 +362,7 @@ inline bool validate_response_header(const x0::buffer_ref& name)
 	return true;
 }
 
-void proxy_connection::on_header(const x0::buffer_ref& name, const x0::buffer_ref& value)
+void proxy_connection::on_header(x0::buffer_ref&& name, x0::buffer_ref&& value)
 {
 	TRACE("connection(%p).on_header('%s', '%s')", this, name.str().c_str(), value.str().c_str());
 
@@ -371,7 +370,7 @@ void proxy_connection::on_header(const x0::buffer_ref& name, const x0::buffer_re
 		response_->headers.set(name.str(), value.str());
 }
 
-void proxy_connection::on_content(const x0::buffer_ref& value)
+void proxy_connection::on_content(x0::buffer_ref&& value)
 {
 	TRACE("connection(%p).on_content(size=%ld)", this, value.size());
 
@@ -491,7 +490,8 @@ inline bool validate_request_header(const x0::buffer_ref& name)
 
 void proxy_connection::pass_request()
 {
-	TRACE("connection(%p).pass_request()", this);
+	TRACE("connection(%p).pass_request('%s', '%s', '%s')", this, 
+		request_->method.str().c_str(), request_->path.str().c_str(), request_->query.str().c_str());
 
 	// request line
 	if (request_->query)

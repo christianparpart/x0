@@ -42,7 +42,7 @@
  * \todo proper HTTP POST contents (the body is directly appended to the request buffer if (flush == false))
  * \todo SSL/TLS, if WITH_SSL is defined (no verification required)
  *
- * \see response_parser
+ * \see message_parser
  */
 
 namespace x0 {
@@ -58,7 +58,7 @@ web_client::web_client(struct ev_loop *loop) :
 	request_offset_(0),
 	request_count_(0),
 	response_buffer_(),
-	response_parser_(response_parser::ALL),
+	response_parser_(message_parser::RESPONSE),
 	connect_timeout(0),
 	write_timeout(0),
 	read_timeout(0),
@@ -73,7 +73,7 @@ web_client::web_client(struct ev_loop *loop) :
 	timer_.set<web_client, &web_client::timeout>(this);
 
 	using namespace std::placeholders;
-	response_parser_.on_status = std::bind(&web_client::_on_status, this, _1, _2, _3);
+	response_parser_.on_response = std::bind(&web_client::_on_status, this, _1, _2, _3);
 	response_parser_.on_header = std::bind(&web_client::_on_header, this, _1, _2);
 	response_parser_.on_content = std::bind(&web_client::_on_content, this, _1);
 	response_parser_.on_complete = std::bind(&web_client::_on_complete, this);
@@ -161,7 +161,7 @@ void web_client::close()
 {
 	state_ = DISCONNECTED;
 
-	response_parser_.abort();
+	//response_parser_.abort();
 	io_.stop();
 	timer_.stop();
 
@@ -421,22 +421,22 @@ void web_client::read_some()
 	}
 }
 
-void web_client::_on_status(const buffer_ref& protocol, const buffer_ref& code, const buffer_ref& text)
+void web_client::_on_status(buffer_ref&& protocol, int code, buffer_ref&& text)
 {
 	if (on_response)
-		on_response(protocol, code, text);
+		on_response(std::move(protocol), code, std::move(text));
 }
 
-void web_client::_on_header(const buffer_ref& name, const buffer_ref& value)
+void web_client::_on_header(buffer_ref&& name, buffer_ref&& value)
 {
 	if (on_header)
-		on_header(name, value);
+		on_header(std::move(name), std::move(value));
 }
 
-void web_client::_on_content(const buffer_ref& chunk)
+void web_client::_on_content(buffer_ref&& chunk)
 {
 	if (on_content)
-		on_content(chunk);
+		on_content(std::move(chunk));
 }
 
 bool web_client::_on_complete()

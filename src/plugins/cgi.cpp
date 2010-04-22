@@ -11,7 +11,7 @@
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
 #include <x0/process.hpp>
-#include <x0/response_parser.hpp>
+#include <x0/message_parser.hpp>
 #include <x0/io/buffer_source.hpp>
 #include <x0/types.hpp>
 #include <x0/sysconfig.h>
@@ -119,7 +119,7 @@ private:
 	x0::buffer outbuf_;
 	x0::buffer errbuf_;
 
-	x0::response_parser response_parser_;
+	x0::message_parser response_parser_;
 	unsigned long long serial_;				//!< used to detect wether the cgi process actually generated a response or not.
 
 	ev::io inwatch_;
@@ -138,7 +138,7 @@ cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::r
 	hostprogram_(hostprogram),
 	process_(loop_),
 	outbuf_(), errbuf_(),
-	response_parser_(x0::response_parser::SKIP_STATUS),
+	response_parser_(x0::message_parser::MESSAGE),
 	serial_(0),
 	inwatch_(loop_),
 	outwatch_(loop_),
