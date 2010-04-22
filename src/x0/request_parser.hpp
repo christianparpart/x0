@@ -8,14 +8,17 @@
 #ifndef x0_http_request_parser_hpp
 #define x0_http_request_parser_hpp (1)
 
+#include <x0/message_parser.hpp>
 #include <x0/buffer.hpp>
 #include <x0/header.hpp>
 #include <x0/request.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
+
 #include <string>
-#include <boost/tuple/tuple.hpp>
+#include <functional>
+
 #include <boost/logic/tribool.hpp>
 
 #if 0
@@ -71,68 +74,70 @@ public:
 	boost::tribool parse(request& req, buffer_ref&& chunk);
 
 private:
-	state state_;
-	std::size_t left_;
+	request *request_;
+	message_parser parser_;
 	std::size_t next_offset_;
-
-	bool content_chunked_;
-	ssize_t content_length_;
-	ssize_t content_processed_;
-
-private:
-	boost::tribool process_content(request& r, buffer_ref&& chunk);
-
-	static inline bool is_char(int ch);
-	static inline bool is_ctl(int ch);
-	static inline bool is_tspecial(int ch);
-	static inline bool is_digit(int ch);
+	bool completed_;
 
 	static inline bool url_decode(buffer_ref& url);
+
+	void on_request(buffer_ref&& method, buffer_ref&& path, buffer_ref&& protocol, int major, int minor);
+	void on_header(buffer_ref&& name, buffer_ref&& value);
+	void on_content(buffer_ref&& chunk);
+	bool on_complete();
 };
 
 // {{{ request_parser impl
-inline bool request_parser::is_char(int ch)
+inline request_parser::request_parser() :
+	request_(0),
+	parser_(message_parser::REQUEST),
+	next_offset_(0),
+	completed_(false)
 {
-	return ch >= 0 && ch < 127;
+	using namespace std::placeholders;
+	parser_.on_request = std::bind(&request_parser::on_request, this, _1, _2, _3, _4, _5);
+	parser_.on_header = std::bind(&request_parser::on_header, this, _1, _2);
+	parser_.on_content = std::bind(&request_parser::on_content, this, _1);
+	parser_.on_complete = std::bind(&request_parser::on_complete, this);
 }
 
-inline bool request_parser::is_ctl(int ch)
+inline void request_parser::reset()
 {
-	return (ch >= 0 && ch <= 31) || ch == 127;
+	parser_.reset();
+	next_offset_ = 0;
+	completed_ = false;
 }
 
-inline bool request_parser::is_tspecial(int ch)
+inline std::size_t request_parser::next_offset() const
 {
-	switch (ch)
-	{
-		case '(':
-		case ')':
-		case '<':
-		case '>':
-		case '@':
-		case ',':
-		case ';':
-		case ':':
-		case '\\':
-		case '"':
-		case '/':
-		case '[':
-		case ']':
-		case '?':
-		case '=':
-		case '{':
-		case '}':
-		case ' ':
-		case '\t':
-			return true;
-		default:
-			return false;
-	}
+	return next_offset_;
 }
 
-inline bool request_parser::is_digit(int ch)
+/** parses partial HTTP request.
+ *
+ * \param r request to fill with parsed data
+ * \param chunk holding the (possibly partial) chunk of the request to be parsed.
+ *
+ * \retval true request has been fully parsed.
+ * \retval false HTTP request parser error (should result into bad_request if possible.)
+ * \retval indeterminate parsial request parsed successfully but more input is needed to complete parsing.
+ */
+inline boost::tribool request_parser::parse(request& r, buffer_ref&& chunk)
 {
-	return ch >= '0' && ch <= '9';
+	request_ = &r;
+
+	std::error_code ec;
+	next_offset_ = parser_.parse(std::move(chunk), ec);
+
+	if (completed_)
+		// request fully parsed.
+		return true;
+	else if (!ec)
+		// incomplete request chunk. need more input.
+		return boost::indeterminate;
+	else
+		// syntax error
+		return false;
 }
 
 inline bool request_parser::url_decode(buffer_ref& url)
@@ -182,283 +187,6 @@ inline bool request_parser::url_decode(buffer_ref& url)
 	}
 
 	url = value.ref(left, d - left);
-	return true;
-}
-
-inline request_parser::request_parser() :
-	state_(method_start),
-	left_(0),
-	next_offset_(0),
-	content_chunked_(false),
-	content_length_(-1),
-	content_processed_(0)
-{
-}
-
-inline void request_parser::reset()
-{
-	state_ = method_start;
-
-	left_ = 0;
-	next_offset_ = 0;
-
-	content_chunked_ = false;
-	content_length_ = -1;
-	content_processed_ = 0;
-}
-
-
-inline std::size_t request_parser::next_offset() const
-{
-	return next_offset_;
-}
-
-/** parses partial HTTP request.
- *
- * \param r request to fill with parsed data
- * \param chunk holding the (possibly partial) chunk of the request to be parsed.
- *
- * \retval true request has been fully parsed.
- * \retval false HTTP request parser error (should result into bad_request if possible.)
- * \retval indeterminate parsial request parsed successfully but more input is needed to complete parsing.
- */
-inline boost::tribool request_parser::parse(request& r, buffer_ref&& chunk)
-{
-	std::size_t offset = 0;
-	std::size_t cur = chunk.offset();
-	std::size_t count = cur + chunk.size();
-	buffer_ref::const_iterator i = chunk.begin();
-
-	for (; cur != count; ++cur)
-	{
-		char input = *i++;
-
-		switch (state_)
-		{
-			case method_start:
-				if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-					return false;
-
-				state_ = method;
-				left_ = cur;
-				break;
-			case method:
-				if (input == ' ')
-				{
-					r.method = chunk.buffer().ref(left_, cur - left_);
-					state_ = uri;
-					left_ = cur + 1;
-				}
-				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-					return false;
-
-				break;
-			case uri_start:
-				if (is_ctl(input))
-					return false;
-
-				state_ = uri;
-				break;
-			case uri:
-				if (input == ' ')
-				{
-					r.uri = chunk.buffer().ref(left_, cur - left_);
-					left_ = cur + 1;
-
-					if (!url_decode(r.uri))
-						return false;
-
-					std::size_t n = r.uri.find("?");
-					if (n != std::string::npos)
-					{
-						r.path = r.uri.ref(0, n);
-						r.query = r.uri.ref(n + 1);
-					}
-					else
-					{
-						r.path = r.uri;
-					}
-
-					if (r.path.empty() || r.path[0] != '/' || r.path.find("..") != std::string::npos)
-						return false;
-
-					state_ = http_version_h;
-				}
-				else if (is_ctl(input))
-					return false;
-
-				break;
-			case http_version_h:
-				if (input != 'H')
-					return false;
-
-				state_ = http_version_t_1;
-				break;
-			case http_version_t_1:
-				if (input != 'T')
-					return false;
-
-				state_ = http_version_t_2;
-				break;
-			case http_version_t_2:
-				if (input != 'T')
-					return false;
-
-				state_ = http_version_p;
-				break;
-			case http_version_p:
-				if (input != 'P')
-					return false;
-
-				state_ = http_version_slash;
-				break;
-			case http_version_slash:
-				if (input != '/')
-					return false;
-
-				r.http_version_major = 0;
-				r.http_version_minor = 0;
-
-				state_ = http_version_major_start;
-				break;
-			case http_version_major_start:
-				if (!is_digit(input))
-					return false;
-
-				r.http_version_major = r.http_version_major * 10 + input - '0';
-				state_ = http_version_major;
-				break;
-			case http_version_major:
-				if (input == '.')
-					state_ = http_version_minor_start;
-				else if (is_digit(input))
-					r.http_version_major = r.http_version_major * 10 + input - '0';
-				else
-					return false;
-
-				break;
-			case http_version_minor_start:
-				if (input == '\r')
-					state_ = expecting_newline_1;
-				else if (is_digit(input))
-					r.http_version_minor = r.http_version_minor * 10 + input - '0';
-				else
-					return false;
-
-				break;
-			case expecting_newline_1:
-				if (input != '\n')
-					return false;
-
-				state_ = header_line_start;
-				break;
-			case header_line_start:
-				if (input == '\r')
-					state_ = expecting_newline_3;
-				else if (!r.headers.empty() && (input == ' ' || input == '\t'))
-					state_ = header_lws; // header-value continuation
-				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-					return false;
-				else
-				{
-					r.headers.push_back(x0::request_header());
-					//r.headers.back().name.push_back(input);
-					r.headers.back().name = chunk.buffer().ref(cur, 1);
-
-					state_ = header_name;
-				}
-				break;
-			case header_lws:
-				if (input == '\r')
-					state_ = expecting_newline_2;
-				else if (input != ' ' && input != '\t')
-				{
-					state_ = header_value;
-					r.headers.back().value = chunk.buffer().ref(cur, 1);
-				}
-				break;
-			case header_name:
-				if (input == ':')
-					state_ = space_before_header_value;
-				else if (!is_char(input) || is_ctl(input) || is_tspecial(input))
-					return false;
-				else
-					r.headers.back().name.shr(1);
-
-				break;
-			case space_before_header_value:
-				if (input != ' ')
-					return false;
-
-				state_ = header_value;
-				break;
-			case header_value:
-				if (input == '\r')
-					state_ = expecting_newline_2;
-				else if (is_ctl(input))
-					return false;
-				else if (r.headers.back().value.empty())
-					r.headers.back().value = chunk.buffer().ref(cur, 1);
-				else
-					r.headers.back().value.shr(1);
-
-				break;
-			case expecting_newline_2:
-				if (input != '\n')
-					return false;
-
-				state_ = header_line_start;
-				break;
-			case expecting_newline_3:
-			{
-				if (input != '\n')
-					return false;
-
-				//pre_process(const_cast<x0::request *>(in));
-
-				buffer_ref value(r.header("Content-Length"));
-				if (value.empty())
-				{
-					next_offset_ = cur + 1;
-					return true;
-				}
-
-				state_ = content;
-				content_length_ = value.as<int>();
-				TRACE("parse[LF3]: content-length: %ld", content_length_);
-				break;
-			}
-			case content:
-				return process_content(r, chunk.ref(offset));
-			default:
-				return false;
-		}
-
-		++offset;
-	}
-
-	// request header parsed partially
-	return boost::indeterminate;
-}
-
-inline boost::tribool request_parser::process_content(request& r, buffer_ref&& chunk)
-{
-	// crop if chunk too large
-	if (chunk.size() > static_cast<std::size_t>(content_length_))
-		chunk.shr(-(chunk.size() - content_length_));
-
-	TRACE("process_content: %s", chunk.str().c_str());
-
-	content_length_ -= chunk.size();
-
-	if (r.on_content)
-		r.on_content(std::move(chunk));
-
-	TRACE("process_content: bytes left: %ld", content_length_);
-
-	if (content_length_ > 0)
-		return boost::indeterminate;
-
 	return true;
 }
 // }}}

@@ -124,24 +124,6 @@ private:
 	chain_filter filter_chain_;
 };
 
-class request_parser : public message_parser // {{{
-{
-public:
-	request_parser() :
-		message_parser(REQUEST)
-	{
-	}
-}; // }}}
-
-class response_parser : public message_parser // {{{
-{
-public:
-	response_parser() :
-		message_parser(RESPONSE)
-	{
-	}
-}; // }}}
-
 } // namespace x0
 
 // {{{ inlines
@@ -741,8 +723,15 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				}
 				state_ = CONTENT;
 			case CONTENT:
-				pass_content(chunk.ref(offset), ec, offset);
-				return offset;
+			{
+				std::size_t nparsed = 0;
+				if (!pass_content(chunk.ref(offset), ec, nparsed))
+					return offset + nparsed;
+
+				offset += nparsed;
+				i += nparsed;
+				break;
+			}
 			case MESSAGE_END:
 				return offset;
 			case SYNTAX_ERROR:

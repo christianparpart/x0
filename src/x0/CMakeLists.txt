@@ -70,6 +70,7 @@ set(x0_SRC
 	gai_error.cpp
 	listener.cpp
 	logger.cpp
+	request_parser.cpp
 	response.cpp
 	web_client.cpp
 	request.cpp
