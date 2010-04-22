@@ -36,7 +36,7 @@ public:
 private:
 	void request_complex_lws_headers()
 	{
-		request_parser rp;
+		message_parser rp(message_parser::REQUEST);
 
 		buffer r(
 			"GET /foo HTTP/1.1\r\n"
@@ -50,7 +50,7 @@ private:
 
 	void request_simple()
 	{
-		request_parser rp; // (message_parser::REQUEST);
+		message_parser rp(message_parser::REQUEST); // (message_parser::REQUEST);
 
 		rp.on_request = [&](buffer_ref&& method, buffer_ref&& entity, buffer_ref&& protocol, int major, int minor)
 		{
@@ -69,7 +69,7 @@ private:
 		};
 
 		buffer r(
-			"GET /foo HTTP/1.1\r\n"
+			"GET / HTTP/1.1\r\n"
 			"foo: bar\r\n"
 			"Content-Length: 11\r\n"
 			"\r\n"
@@ -92,7 +92,7 @@ private:
 			"0\r\n\r\n"
 			//"GARBAGE"
 		);
-		request_parser rp;
+		message_parser rp(message_parser::REQUEST);
 
 		rp.on_content = [&](const buffer_ref& chunk)
 		{
@@ -116,7 +116,7 @@ private:
 			"0\r\n\r\n"
 			//"GARBAGE"
 		);
-		response_parser rp;
+		message_parser rp(message_parser::RESPONSE);
 
 		rp.on_content = [&](const buffer_ref& chunk)
 		{
@@ -138,7 +138,7 @@ private:
 			"\r\n"
 		);
 
-		response_parser rp;
+		message_parser rp(message_parser::RESPONSE);
 		bool on_complete_invoked = false;
 
 		rp.on_complete = [&]()
@@ -163,7 +163,7 @@ private:
 			"GARBAGE"
 		);
 
-		response_parser rp;
+		message_parser rp(message_parser::RESPONSE);
 
 		rp.on_content = [&](const buffer_ref& chunk)
 		{
@@ -182,7 +182,7 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		response_parser rp;
+		message_parser rp(message_parser::RESPONSE);
 
 		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
 		{
@@ -237,7 +237,7 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		response_parser rp;
+		message_parser rp(message_parser::RESPONSE);
 
 		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
 		{
@@ -273,7 +273,7 @@ private:
 
 	void response_no_header()
 	{
-		response_parser rp;
+		message_parser rp(message_parser::RESPONSE);
 
 		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
 		{

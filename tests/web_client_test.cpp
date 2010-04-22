@@ -11,17 +11,17 @@
 
 int request_count = 2;
 
-void on_response(const x0::buffer_ref& protocol, const x0::buffer_ref& code, const x0::buffer_ref& text)
+void on_response(x0::buffer_ref&& protocol, int code, x0::buffer_ref&& text)
 {
-	std::clog << "S< " << protocol.str() << " " << code.str() << ' ' << text.str() << std::endl;
+	std::clog << "S< " << protocol.str() << " " << code << ' ' << text.str() << std::endl;
 }
 
-void on_header(const x0::buffer_ref& name, const x0::buffer_ref& value)
+void on_header(x0::buffer_ref&& name, x0::buffer_ref&& value)
 {
 	std::clog << "S< " << name.str() << ": " << value.str() << std::endl;
 }
 
-void on_content(const x0::buffer_ref& chunk)
+void on_content(x0::buffer_ref&& chunk)
 {
 #if 0
 	std::clog << "S< content of length: " << chunk.size() << std::endl
