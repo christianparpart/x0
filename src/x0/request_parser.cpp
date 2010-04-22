@@ -30,6 +30,13 @@ void request_parser::on_header(buffer_ref&& name, buffer_ref&& value)
 	request_->headers.push_back(request_header(std::move(name), std::move(value)));
 }
 
+void request_parser::on_header_done()
+{
+	DEBUG("request_parser.on_header_done()");
+	completed_ = true;
+	parser_.abort();
+}
+
 void request_parser::on_content(buffer_ref&& chunk)
 {
 	if (request_->on_content)
@@ -38,6 +45,7 @@ void request_parser::on_content(buffer_ref&& chunk)
 
 bool request_parser::on_complete()
 {
+	DEBUG("request_parser.on_complete()");
 	completed_ = true;
 	return false;
 }

@@ -80,9 +80,11 @@ private:
 	bool completed_;
 
 	static inline bool url_decode(buffer_ref& url);
+	enum message_parser::state state() const;
 
 	void on_request(buffer_ref&& method, buffer_ref&& path, buffer_ref&& protocol, int major, int minor);
 	void on_header(buffer_ref&& name, buffer_ref&& value);
+	void on_header_done();
 	void on_content(buffer_ref&& chunk);
 	bool on_complete();
 };
@@ -97,6 +99,7 @@ inline request_parser::request_parser() :
 	using namespace std::placeholders;
 	parser_.on_request = std::bind(&request_parser::on_request, this, _1, _2, _3, _4, _5);
 	parser_.on_header = std::bind(&request_parser::on_header, this, _1, _2);
+	parser_.on_header_done = std::bind(&request_parser::on_header_done, this);
 	parser_.on_content = std::bind(&request_parser::on_content, this, _1);
 	parser_.on_complete = std::bind(&request_parser::on_complete, this);
 }
@@ -125,6 +128,7 @@ inline std::size_t request_parser::next_offset() const
 inline boost::tribool request_parser::parse(request& r, buffer_ref&& chunk)
 {
 	request_ = &r;
+	completed_ = false;
 
 	std::error_code ec;
 	next_offset_ = parser_.parse(std::move(chunk), ec);
@@ -188,6 +192,11 @@ inline bool request_parser::url_decode(buffer_ref& url)
 
 	url = value.ref(left, d - left);
 	return true;
+}
+
+inline enum message_parser::state request_parser::state() const
+{
+	return parser_.state();
 }
 // }}}
 

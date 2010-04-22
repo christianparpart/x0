@@ -81,6 +81,7 @@ public:
 	std::function<void()> on_message;
 
 	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
+	std::function<void()> on_header_done;
 	std::function<void(buffer_ref&&)> on_content;
 
 	std::function<bool()> on_complete;
@@ -88,9 +89,11 @@ public:
 public:
 	explicit message_parser(mode_type mode = MESSAGE);
 
-	void reset(state s = MESSAGE_BEGIN);
+	message_parser::state state() const;
+	void reset(enum message_parser::state s = MESSAGE_BEGIN);
 	std::size_t parse(buffer_ref&& chunk);
 	std::size_t parse(buffer_ref&& chunk, std::error_code& ec);
+	void abort();
 
 private:
 	void pass_request();
@@ -100,7 +103,8 @@ private:
 
 private:
 	mode_type mode_;
-	state state_;
+	enum state state_;
+	bool abort_;
 
 	// request-line
 	buffer_ref method_;
@@ -138,6 +142,7 @@ namespace x0 {
 inline message_parser::message_parser(mode_type mode) :
 	mode_(mode),
 	state_(MESSAGE_BEGIN),
+	abort_(),
 	method_(),
 	entity_(),
 	protocol_(),
@@ -154,7 +159,12 @@ inline message_parser::message_parser(mode_type mode) :
 {
 }
 
-inline void message_parser::reset(state s)
+inline enum message_parser::state message_parser::state() const
+{
+	return state_;
+}
+
+inline void message_parser::reset(enum message_parser::state s)
 {
 	state_ = s;
 
@@ -176,7 +186,7 @@ inline void message_parser::reset(state s)
 	filter_chain_.clear();
 }
 
-static inline const char *state2str(message_parser::state s)
+static inline const char *state2str(enum message_parser::state s)
 {
 	switch (s) {
 		// artificial
@@ -294,6 +304,8 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 
 	TRACE("parse: size: %ld", chunk.size());
 
+	abort_ = false;
+
 	if (state_ == CONTENT)
 	{
 		if (!pass_content(std::move(chunk), ec, offset))
@@ -302,7 +314,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 		i += offset;
 	}
 
-	while (i != e)
+	while (!abort_ && i != e)
 	{
 #if 1
 		if (std::isprint(*i))
@@ -709,7 +721,19 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 			case HEADER_END_LF:
 				if (*i == LF)
 				{
-					state_ = CONTENT_START;
+					bool content_expected = content_length_ > 0 || content_chunked_;
+
+					if (content_expected)
+						state_ = CONTENT_START;
+					else
+						state_ = MESSAGE_END;
+
+					if (on_header_done)
+						on_header_done();
+
+					if (!content_expected && on_complete)
+						if (!on_complete())
+							return offset;
 
 					++offset;
 					++i;
@@ -736,6 +760,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				return offset;
 			case SYNTAX_ERROR:
 			{
+				ec = std::make_error_code(std::errc::invalid_argument);
 				//! \todo ec = make_error_code(message_parser_error::invalid_syntax);
 
 #if !defined(NDEBUG)
@@ -770,6 +795,11 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	}
 
 	return offset;
+}
+
+inline void message_parser::abort()
+{
+	abort_ = true;
 }
 
 inline void message_parser::pass_request()
