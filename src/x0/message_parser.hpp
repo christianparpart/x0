@@ -100,6 +100,12 @@ private:
 	void pass_header();
 	bool pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed);
 
+	static bool is_char(char value);
+	static bool is_ctl(char value);
+	static bool is_seperator(char value);
+	static bool is_token(char value);
+	static bool is_text(char value);
+
 private:
 	mode_type mode_;
 	enum state state_;
@@ -185,7 +191,7 @@ inline void message_parser::reset(enum message_parser::state s)
 	filter_chain_.clear();
 }
 
-static inline const char *state2str(enum message_parser::state s)
+inline const char *state2str(enum message_parser::state s)
 {
 	switch (s) {
 		// artificial
@@ -343,7 +349,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				}
 				break;
 			case REQUEST_LINE_START:
-				if (std::isprint(*i))
+				if (is_token(*i))
 				{
 					state_ = METHOD;
 					method_ = chunk.ref(offset, 1);
@@ -362,7 +368,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					++offset;
 					++i;
 				}
-				else if (!std::isprint(*i))
+				else if (!is_token(*i))
 					state_ = SYNTAX_ERROR;
 				else
 				{
@@ -403,7 +409,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case PROTOCOL_START:
-				if (std::isalpha(*i))
+				if (is_token(*i))
 				{
 					protocol_ =  chunk.ref(offset, 1);
 					state_ = PROTOCOL;
@@ -422,7 +428,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					++offset;
 					++i;
 				}
-				else if (std::isalpha(*i))
+				else if (is_token(*i))
 				{
 					protocol_.shr();
 
@@ -482,7 +488,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				break;
 			case STATUS_LINE_START:
 			case STATUS_PROTOCOL_START:
-				if (!std::isprint(*i))
+				if (!is_token(*i))
 					state_ = SYNTAX_ERROR;
 				else
 				{
@@ -499,7 +505,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					++offset;
 					++i;
 				}
-				else if (std::isprint(*i))
+				else if (is_token(*i))
 				{
 					protocol_.shr();
 					++offset;
@@ -531,7 +537,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case STATUS_MESSAGE_START:
-				if (std::isprint(*i))
+				if (is_text(*i))
 				{
 					state_ = STATUS_MESSAGE;
 					message_ = chunk.ref(offset, 1);
@@ -542,7 +548,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case STATUS_MESSAGE:
-				if (std::isprint(*i))
+				if (is_text(*i) && *i != CR && *i != LF)
 				{
 					message_.shr();
 					++offset;
@@ -569,7 +575,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					state_ = SYNTAX_ERROR;
 				break;
 			case HEADER_NAME_START:
-				if (std::isprint(*i)) {
+				if (is_token(*i)) {
 					state_ = HEADER_NAME;
 					name_ = chunk.ref(offset, 1);
 
@@ -594,7 +600,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					++offset;
 					++i;
 				}
-				else if (std::isprint(*i))
+				else if (is_token(*i))
 				{
 					name_.shr();
 
@@ -884,6 +890,57 @@ inline bool message_parser::pass_content(buffer_ref&& chunk, std::error_code& ec
 	}
 
 	return true;
+}
+
+inline bool message_parser::is_char(char value)
+{
+	return value >= 0 && value <= 127;
+}
+
+inline bool message_parser::is_ctl(char value)
+{
+	return (value >= 0 && value <= 31) || value == 127;
+}
+
+inline bool message_parser::is_seperator(char value)
+{
+	switch (value)
+	{
+		case '(':
+		case ')':
+		case '<':
+		case '>':
+		case '@':
+		case ',':
+		case ';':
+		case ':':
+		case '\\':
+		case '"':
+		case '/':
+		case '[':
+		case ']':
+		case '?':
+		case '=':
+		case '{':
+		case '}':
+		case 0x20: // SP
+		case 0x09: // HT
+			return true;
+		default:
+			return false;
+	}
+}
+
+inline bool message_parser::is_token(char value)
+{
+	return is_char(value) && !(is_ctl(value) || is_seperator(value));
+}
+
+inline bool message_parser::is_text(char value)
+{
+	// TEXT = <any OCTET except CTLs but including LWS>
+	enum { SP = 0x20, HT = 0x09 };
+	return !is_ctl(value) || value == SP || value == HT;
 }
 
 } // namespace x0
