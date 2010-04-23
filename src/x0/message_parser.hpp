@@ -39,44 +39,60 @@ public:
 		MESSAGE_END,
 
 		// Request-Line
-		REQUEST_LINE_START = 100,
-		METHOD,
-		ENTITY_START,
-		ENTITY,
-		PROTOCOL_START,
-		PROTOCOL,
-		VERSION_MAJOR,
-		VERSION_MINOR,
+		REQUEST_LINE_BEGIN = 100,
+		REQUEST_METHOD,
+		REQUEST_ENTITY_BEGIN,
+		REQUEST_ENTITY,
+		REQUEST_PROTOCOL_BEGIN,
+		REQUEST_PROTOCOL_T1,
+		REQUEST_PROTOCOL_T2,
+		REQUEST_PROTOCOL_P,
+		REQUEST_PROTOCOL_SLASH,
+		REQUEST_PROTOCOL_VERSION_MAJOR,
+		REQUEST_PROTOCOL_VERSION_MINOR,
 		REQUEST_LINE_LF,
 
 		// Status-Line
-		STATUS_LINE_START = 150,
-		STATUS_PROTOCOL_START,
-		STATUS_PROTOCOL,
+		STATUS_LINE_BEGIN = 150,
+		STATUS_PROTOCOL_BEGIN,
+		STATUS_PROTOCOL_T1,
+		STATUS_PROTOCOL_T2,
+		STATUS_PROTOCOL_P,
+		STATUS_PROTOCOL_SLASH,
+		STATUS_PROTOCOL_VERSION_MAJOR,
+		STATUS_PROTOCOL_VERSION_MINOR,
+		STATUS_CODE_BEGIN,
 		STATUS_CODE,
-		STATUS_MESSAGE_START,
+		STATUS_MESSAGE_BEGIN,
 		STATUS_MESSAGE,
 		STATUS_MESSAGE_LF,
 
 		// message-headers
-		HEADER_NAME_START = 200,
+		HEADER_NAME_BEGIN = 200,
 		HEADER_NAME,
 		HEADER_VALUE,
 		HEADER_END_LF,
 
-		LWS_START = 300,
+		LWS_BEGIN = 300,
 		LWS_LF,
-		LWS_SP_HT_START,
+		LWS_SP_HT_BEGIN,
 		LWS_SP_HT,
 
 		// message-content
-		CONTENT_START = 400,
+		CONTENT_BEGIN = 400,
 		CONTENT,
 	}; // }}}
 
+	enum {
+		CR = 0x0D,
+		LF = 0x0A,
+		SP = 0x20,
+		HT = 0x09,
+	};
+
 public:
-	std::function<void(buffer_ref&&, buffer_ref&&, buffer_ref&&, int, int)> on_request;
-	std::function<void(buffer_ref&&, int, buffer_ref&&)> on_response;
+	std::function<void(buffer_ref&&, buffer_ref&&, int, int)> on_request;
+	std::function<void(int, int, int, buffer_ref&&)> on_response;
 	std::function<void()> on_message;
 
 	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
@@ -114,7 +130,6 @@ private:
 	// request-line
 	buffer_ref method_;
 	buffer_ref entity_;
-	buffer_ref protocol_;
 	int version_major_;
 	int version_minor_;
 
@@ -150,7 +165,6 @@ inline message_parser::message_parser(mode_type mode) :
 	abort_(),
 	method_(),
 	entity_(),
-	protocol_(),
 	version_major_(0),
 	version_minor_(0),
 	code_(0),
@@ -175,10 +189,8 @@ inline void message_parser::reset(enum message_parser::state s)
 
 	method_.clear();
 	entity_.clear();
-	protocol_.clear();
 	version_major_ = 0;
 	version_minor_ = 0;
-
 	code_ = 0;
 	message_.clear();
 
@@ -200,37 +212,48 @@ inline const char *state2str(enum message_parser::state s)
 		case message_parser::MESSAGE_END: return "message-end";
 
 		// request-line
-		case message_parser::REQUEST_LINE_START: return "request-line-start";
-		case message_parser::METHOD: return "method";
-		case message_parser::ENTITY_START: return "entity-start";
-		case message_parser::ENTITY: return "entity";
-		case message_parser::PROTOCOL_START: return "protocol-start";
-		case message_parser::PROTOCOL: return "protocol";
-		case message_parser::VERSION_MAJOR: return "version-major";
-		case message_parser::VERSION_MINOR: return "version-minor";
+		case message_parser::REQUEST_LINE_BEGIN: return "request-line-begin";
+		case message_parser::REQUEST_METHOD: return "request-method";
+		case message_parser::REQUEST_ENTITY_BEGIN: return "request-entity-begin";
+		case message_parser::REQUEST_ENTITY: return "request-entity";
+		case message_parser::REQUEST_PROTOCOL_BEGIN: return "request-protocol-begin";
+		case message_parser::REQUEST_PROTOCOL_T1: return "request-protocol-t1";
+		case message_parser::REQUEST_PROTOCOL_T2: return "request-protocol-t2";
+		case message_parser::REQUEST_PROTOCOL_P: return "request-protocol-p";
+		case message_parser::REQUEST_PROTOCOL_SLASH: return "request-protocol-slash";
+		case message_parser::REQUEST_PROTOCOL_VERSION_MAJOR: return "request-protocol-version-major";
+		case message_parser::REQUEST_PROTOCOL_VERSION_MINOR: return "request-protocol-version-minor";
 		case message_parser::REQUEST_LINE_LF: return "request-line-lf";
 
 		// Status-Line
-		case message_parser::STATUS_LINE_START: return "status-line-start";
-		case message_parser::STATUS_PROTOCOL_START: return "status-protocol-start";
-		case message_parser::STATUS_PROTOCOL: return "status-protocol";
+		case message_parser::STATUS_LINE_BEGIN: return "status-line-begin";
+		case message_parser::STATUS_PROTOCOL_BEGIN: return "status-protocol-begin";
+		case message_parser::STATUS_PROTOCOL_T1: return "status-protocol-t1";
+		case message_parser::STATUS_PROTOCOL_T2: return "status-protocol-t2";
+		case message_parser::STATUS_PROTOCOL_P: return "status-protocol-t2";
+		case message_parser::STATUS_PROTOCOL_SLASH: return "status-protocol-t2";
+		case message_parser::STATUS_PROTOCOL_VERSION_MAJOR: return "status-protocol-version-major";
+		case message_parser::STATUS_PROTOCOL_VERSION_MINOR: return "status-protocol-version-minor";
+		case message_parser::STATUS_CODE_BEGIN: return "status-code-begin";
 		case message_parser::STATUS_CODE: return "status-code";
-		case message_parser::STATUS_MESSAGE_START: return "status-message-start";
+		case message_parser::STATUS_MESSAGE_BEGIN: return "status-message-begin";
 		case message_parser::STATUS_MESSAGE: return "status-message";
 		case message_parser::STATUS_MESSAGE_LF: return "status-message-lf";
 
 		// message header
-		case message_parser::HEADER_NAME_START: return "header-name-start";
+		case message_parser::HEADER_NAME_BEGIN: return "header-name-begin";
 		case message_parser::HEADER_NAME: return "header-name";
 		case message_parser::HEADER_VALUE: return "header-value";
-		case message_parser::LWS_START: return "lws-start";
-		case message_parser::LWS_LF: return "lws-lf";
-		case message_parser::LWS_SP_HT_START: return "lws-sp-ht-start";
-		case message_parser::LWS_SP_HT: return "lws-sp-ht";
 		case message_parser::HEADER_END_LF: return "header-end-lf";
 
+		// LWS
+		case message_parser::LWS_BEGIN: return "lws-begin";
+		case message_parser::LWS_LF: return "lws-lf";
+		case message_parser::LWS_SP_HT_BEGIN: return "lws-sp-ht-begin";
+		case message_parser::LWS_SP_HT: return "lws-sp-ht";
+
 		// message content
-		case message_parser::CONTENT_START: return "content-start";
+		case message_parser::CONTENT_BEGIN: return "content-begin";
 		case message_parser::CONTENT: return "content";
 	}
 	return "UNKNOWN";
@@ -251,8 +274,8 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	/*
 	 * CR               = 0x0D
 	 * LF               = 0x0A
-	 * SP               =
-	 * HT               =
+	 * SP               = 0x20
+	 * HT               = 0x09
 	 *
 	 * CRLF             = CR LF
 	 * LWS              = [CRLF] 1*( SP | HT )
@@ -283,7 +306,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	 * Status-Code      = 3*DIGIT
 	 * Reason-Phrase    = *<TEXT, excluding CR, LF>
 	 *
-	 * absoluteURI      = ...
+	 * absoluteURI      = "http://" [user ':' pass '@'] hostname [abs_path] [qury]
 	 * abs_path         = ...
 	 * authority        = ...
 	 * token            = ...
@@ -298,13 +321,6 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	 * message-body     = entity-body
 	 *                  | <entity-body encoded as per Transfer-Encoding>
 	 */
-
-	enum {
-		CR = 0x0D,
-		LF = 0x0A,
-		SP = 0x20,
-		HT = 0x09,
-	};
 
 	TRACE("parse: size: %ld", chunk.size());
 
@@ -322,9 +338,9 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	{
 #if 1
 		if (std::isprint(*i))
-			TRACE("parse: offset: %4ld, char: 0x%02X (%c), state: %s", offset, *i, *i, state2str(state_));
+			TRACE("parse: %4ld, 0x%02X (%c),  %s", offset, *i, *i, state2str(state_));
 		else                                            
-			TRACE("parse: offset: %4ld, char: 0x%02X,     state: %s", offset, *i, state2str(state_));
+			TRACE("parse: %4ld, 0x%02X,     %s", offset, *i, state2str(state_));
 #endif
 
 		switch (state_)
@@ -332,13 +348,13 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 			case MESSAGE_BEGIN:
 				switch (mode_) {
 					case REQUEST:
-						state_ = REQUEST_LINE_START;
+						state_ = REQUEST_LINE_BEGIN;
 						break;
 					case RESPONSE:
-						state_ = STATUS_LINE_START;
+						state_ = STATUS_LINE_BEGIN;
 						break;
 					case MESSAGE:
-						state_ = HEADER_NAME_START;
+						state_ = HEADER_NAME_BEGIN;
 
 						// an internet message has no special top-line,
 						// so we just invoke the callback right away
@@ -348,10 +364,10 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 						break;
 				}
 				break;
-			case REQUEST_LINE_START:
+			case REQUEST_LINE_BEGIN:
 				if (is_token(*i))
 				{
-					state_ = METHOD;
+					state_ = REQUEST_METHOD;
 					method_ = chunk.ref(offset, 1);
 
 					++offset;
@@ -360,11 +376,10 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case METHOD:
-				if (*i == ' ')
+			case REQUEST_METHOD:
+				if (*i == SP)
 				{
-					state_ = ENTITY_START;
-
+					state_ = REQUEST_ENTITY_BEGIN;
 					++offset;
 					++i;
 				}
@@ -373,16 +388,15 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else
 				{
 					method_.shr();
-
 					++offset;
 					++i;
 				}
 				break;
-			case ENTITY_START:
+			case REQUEST_ENTITY_BEGIN:
 				if (std::isprint(*i))
 				{
 					entity_ = chunk.ref(offset, 1);
-					state_ = ENTITY;
+					state_ = REQUEST_ENTITY;
 
 					++offset;
 					++i;
@@ -390,95 +404,109 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case ENTITY:
-				if (*i == ' ')
+			case REQUEST_ENTITY:
+				if (*i == SP)
 				{
-					state_ = PROTOCOL_START;
-
+					state_ = REQUEST_PROTOCOL_BEGIN;
 					++offset;
 					++i;
 				}
 				else if (std::isprint(*i))
 				{
 					entity_.shr();
-
 					++offset;
 					++i;
 				}
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case PROTOCOL_START:
-				if (is_token(*i))
-				{
-					protocol_ =  chunk.ref(offset, 1);
-					state_ = PROTOCOL;
-
-					++offset;
-					++i;
-				}
-				else
+			case REQUEST_PROTOCOL_BEGIN:
+				if (*i != 'H')
 					state_ = SYNTAX_ERROR;
-				break;
-			case PROTOCOL:
-				if (*i == '/')
-				{
-					state_ = VERSION_MAJOR;
-
-					++offset;
-					++i;
-				}
-				else if (is_token(*i))
-				{
-					protocol_.shr();
-
-					++offset;
-					++i;
-				}
 				else
-					state_ = SYNTAX_ERROR;
+				{
+					state_ = REQUEST_PROTOCOL_T1;
+					++offset;
+					++i;
+				}
 				break;
-			case VERSION_MAJOR:
-				if (std::isdigit(*i))
-				{
-					version_major_ = version_major_ * 10 + (*i - '0');
-
-					++offset;
-					++i;
-				}
-				else if (*i == '.')
-				{
-					state_ = VERSION_MINOR;
-
-					++offset;
-					++i;
-				}
+			case REQUEST_PROTOCOL_T1:
+				if (*i != 'T')
+					state_ = SYNTAX_ERROR;
 				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case VERSION_MINOR:
-				if (std::isdigit(*i))
 				{
-					version_minor_ = version_minor_ * 10 + (*i - '0');
-
+					state_ = REQUEST_PROTOCOL_T2;
 					++offset;
 					++i;
 				}
-				else if (*i == CR)
+				break;
+			case REQUEST_PROTOCOL_T2:
+				if (*i != 'T')
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = REQUEST_PROTOCOL_P;
+					++offset;
+					++i;
+				}
+				break;
+			case REQUEST_PROTOCOL_P:
+				if (*i != 'P')
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = REQUEST_PROTOCOL_SLASH;
+					++offset;
+					++i;
+				}
+				break;
+			case REQUEST_PROTOCOL_SLASH:
+				if (*i != '/')
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = REQUEST_PROTOCOL_VERSION_MAJOR;
+					++offset;
+					++i;
+				}
+				break;
+			case REQUEST_PROTOCOL_VERSION_MAJOR:
+				if (*i == '.')
+				{
+					state_ = REQUEST_PROTOCOL_VERSION_MINOR;
+					++offset;
+					++i;
+				}
+				else if (!std::isdigit(*i))
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					version_major_ = version_major_ * 10 + *i - '0';
+					++offset;
+					++i;
+				}
+				break;
+			case REQUEST_PROTOCOL_VERSION_MINOR:
+				if (*i == CR)
 				{
 					state_ = REQUEST_LINE_LF;
-
 					++offset;
 					++i;
 				}
-				else
+				else if (!std::isdigit(*i))
 					state_ = SYNTAX_ERROR;
+				else
+				{
+					version_minor_ = version_minor_ * 10 + *i - '0';
+					++offset;
+					++i;
+				}
 				break;
 			case REQUEST_LINE_LF:
 				if (*i == LF)
 				{
 					pass_request();
-					state_ = HEADER_NAME_START;
+					state_ = HEADER_NAME_BEGIN;
 
 					++offset;
 					++i;
@@ -486,34 +514,97 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case STATUS_LINE_START:
-			case STATUS_PROTOCOL_START:
-				if (!is_token(*i))
+			case STATUS_LINE_BEGIN:
+			case STATUS_PROTOCOL_BEGIN:
+				if (*i != 'H')
 					state_ = SYNTAX_ERROR;
 				else
 				{
-					protocol_ = chunk.ref(offset, 1);
-					state_ = STATUS_PROTOCOL;
+					state_ = STATUS_PROTOCOL_T1;
 					++offset;
 					++i;
 				}
 				break;
-			case STATUS_PROTOCOL:
+			case STATUS_PROTOCOL_T1:
+				if (*i != 'T')
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = STATUS_PROTOCOL_T2;
+					++offset;
+					++i;
+				}
+				break;
+			case STATUS_PROTOCOL_T2:
+				if (*i != 'T')
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = STATUS_PROTOCOL_P;
+					++offset;
+					++i;
+				}
+				break;
+			case STATUS_PROTOCOL_P:
+				if (*i != 'P')
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = STATUS_PROTOCOL_SLASH;
+					++offset;
+					++i;
+				}
+				break;
+			case STATUS_PROTOCOL_SLASH:
+				if (*i != '/')
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = STATUS_PROTOCOL_VERSION_MAJOR;
+					++offset;
+					++i;
+				}
+				break;
+			case STATUS_PROTOCOL_VERSION_MAJOR:
+				if (*i == '.')
+				{
+					state_ = STATUS_PROTOCOL_VERSION_MINOR;
+					++offset;
+					++i;
+				}
+				else if (!std::isdigit(*i))
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					version_major_ = version_major_ * 10 + *i - '0';
+					++offset;
+					++i;
+				}
+				break;
+			case STATUS_PROTOCOL_VERSION_MINOR:
 				if (*i == SP)
 				{
-					state_ = STATUS_CODE;
+					state_ = STATUS_CODE_BEGIN;
 					++offset;
 					++i;
 				}
-				else if (is_token(*i))
-				{
-					protocol_.shr();
-					++offset;
-					++i;
-				}
-				else
+				else if (!std::isdigit(*i))
 					state_ = SYNTAX_ERROR;
+				else
+				{
+					version_minor_ = version_minor_ * 10 + *i - '0';
+					++offset;
+					++i;
+				}
 				break;
+			case STATUS_CODE_BEGIN:
+				if (!std::isdigit(*i))
+				{
+					code_ = SYNTAX_ERROR;
+					break;
+				}
+				state_ = STATUS_CODE;
+				/* fall through */
 			case STATUS_CODE:
 				if (std::isdigit(*i))
 				{
@@ -523,7 +614,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				}
 				else if (*i == SP)
 				{
-					state_ = STATUS_MESSAGE_START;
+					state_ = STATUS_MESSAGE_BEGIN;
 					++offset;
 					++i;
 				}
@@ -536,7 +627,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case STATUS_MESSAGE_START:
+			case STATUS_MESSAGE_BEGIN:
 				if (is_text(*i))
 				{
 					state_ = STATUS_MESSAGE;
@@ -567,14 +658,14 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				if (*i == LF)
 				{
 					pass_response();
-					state_ = HEADER_NAME_START;
+					state_ = HEADER_NAME_BEGIN;
 					++offset;
 					++i;
 				}
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case HEADER_NAME_START:
+			case HEADER_NAME_BEGIN:
 				if (is_token(*i)) {
 					state_ = HEADER_NAME;
 					name_ = chunk.ref(offset, 1);
@@ -595,7 +686,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 			case HEADER_NAME:
 				if (*i == ':')
 				{
-					state_ = LWS_START;
+					state_ = LWS_BEGIN;
 
 					++offset;
 					++i;
@@ -610,7 +701,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case LWS_START:
+			case LWS_BEGIN:
 				if (*i == CR)
 				{
 					state_ = LWS_LF;
@@ -641,7 +732,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 			case LWS_LF:
 				if (*i == LF)
 				{
-					state_ = LWS_SP_HT_START;
+					state_ = LWS_SP_HT_BEGIN;
 
 					++offset;
 					++i;
@@ -649,7 +740,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else
 					state_ = SYNTAX_ERROR;
 				break;
-			case LWS_SP_HT_START:
+			case LWS_SP_HT_BEGIN:
 				if (*i == SP || *i == HT)
 				{
 					if (!value_.empty())
@@ -662,7 +753,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				}
 				else
 				{
-					state_ = HEADER_NAME_START; // XXX no offset/i-update
+					state_ = HEADER_NAME_BEGIN; // XXX no offset/i-update
 
 					pass_header();
 				}
@@ -715,7 +806,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					bool content_expected = content_length_ > 0 || content_chunked_;
 
 					if (content_expected)
-						state_ = CONTENT_START;
+						state_ = CONTENT_BEGIN;
 					else
 						state_ = MESSAGE_END;
 
@@ -731,7 +822,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				} else
 					state_ = SYNTAX_ERROR;
 				break;
-			case CONTENT_START:
+			case CONTENT_BEGIN:
 				if (content_length_ <= 0 && !content_chunked_) {
 					state_ = SYNTAX_ERROR;
 					break;
@@ -769,7 +860,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	}
 	// we've reached the end of the chunk
 
-	if (state_ == CONTENT_START)
+	if (state_ == CONTENT_BEGIN)
 	{
 		// we've just parsed all headers but no body yet.
 
@@ -795,19 +886,19 @@ inline void message_parser::abort()
 
 inline void message_parser::pass_request()
 {
-	TRACE("request-line: method=%s, entity=%s, protocol=%s, vmaj=%d, vmin=%d",
-			method_.str().c_str(), entity_.str().c_str(), protocol_.str().c_str(), version_major_, version_minor_);
+	TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+			method_.str().c_str(), entity_.str().c_str(), version_major_, version_minor_);
 
 	if (on_request)
-		on_request(std::move(method_), std::move(entity_), std::move(protocol_), version_major_, version_minor_);
+		on_request(std::move(method_), std::move(entity_), version_major_, version_minor_);
 }
 
 inline void message_parser::pass_response()
 {
-	TRACE("status-line: protocol=%s, code=%d, message=%s", protocol_.str().c_str(), code_, message_.str().c_str());
+	TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", version_major_, version_minor_, code_, message_.str().c_str());
 
 	if (on_response)
-		on_response(std::move(protocol_), code_, std::move(message_));
+		on_response(version_major_, version_minor_, code_, std::move(message_));
 }
 
 inline void message_parser::pass_header()
@@ -923,8 +1014,8 @@ inline bool message_parser::is_seperator(char value)
 		case '=':
 		case '{':
 		case '}':
-		case 0x20: // SP
-		case 0x09: // HT
+		case SP:
+		case HT:
 			return true;
 		default:
 			return false;
@@ -939,7 +1030,6 @@ inline bool message_parser::is_token(char value)
 inline bool message_parser::is_text(char value)
 {
 	// TEXT = <any OCTET except CTLs but including LWS>
-	enum { SP = 0x20, HT = 0x09 };
 	return !is_ctl(value) || value == SP || value == HT;
 }
 

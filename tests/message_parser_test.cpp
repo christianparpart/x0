@@ -52,20 +52,38 @@ private:
 	{
 		message_parser rp(message_parser::REQUEST); // (message_parser::REQUEST);
 
-		rp.on_request = [&](buffer_ref&& method, buffer_ref&& entity, buffer_ref&& protocol, int major, int minor)
+		rp.on_request = [&](buffer_ref&& method, buffer_ref&& entity, int major, int minor)
 		{
-			DEBUG("on_request('%s', '%s', '%s', %d, %d)",
-			       method.str().c_str(), entity.str().c_str(), protocol.str().c_str(), major, minor);
+			CPPUNIT_ASSERT(equals(method, "GET"));
+			CPPUNIT_ASSERT(equals(entity, "/"));
+			CPPUNIT_ASSERT(major == 1);
+			CPPUNIT_ASSERT(minor== 1);
 		};
 
+		int header_count = 0;
 		rp.on_header = [&](buffer_ref&& name, buffer_ref&& value)
 		{
-			DEBUG("on_header('%s', '%s')", name.str().c_str(), value.str().c_str());
+			switch (++header_count)
+			{
+				case 1:
+					CPPUNIT_ASSERT(equals(name, "foo"));
+					CPPUNIT_ASSERT(equals(value, "bar"));
+					break;
+				case 2:
+					CPPUNIT_ASSERT(equals(name, "Content-Length"));
+					CPPUNIT_ASSERT(equals(value, "11"));
+					break;
+				default:
+					CPPUNIT_ASSERT(0 == "too many invokations");
+			}
 		};
 
+		int chunk_count = 0;
 		rp.on_content = [&](buffer_ref&& chunk)
 		{
-			DEBUG("on_content(%ld): '%s'", chunk.size(), chunk.str().c_str());
+			++chunk_count;
+			CPPUNIT_ASSERT(chunk_count == 1);
+			CPPUNIT_ASSERT(equals(chunk, "hello world"));
 		};
 
 		buffer r(
@@ -77,7 +95,9 @@ private:
 		);
 		std::error_code ec;
 		std::size_t nparsed = rp.parse(r, ec);
-		DEBUG("nparsed: %ld; error: %s", nparsed, ec.message().c_str());
+
+		CPPUNIT_ASSERT(nparsed == r.size());
+		CPPUNIT_ASSERT(!ec);
 	}
 
 	void request_chunked_body()
@@ -147,8 +167,10 @@ private:
 			return true;
 		};
 
-		std::size_t nparsed = rp.parse(r);
+		std::error_code ec;
+		std::size_t nparsed = rp.parse(r, ec);
 
+		CPPUNIT_ASSERT(!ec);
 		CPPUNIT_ASSERT(nparsed == r.size());
 		CPPUNIT_ASSERT(on_complete_invoked == true);
 	}
@@ -184,9 +206,10 @@ private:
 		int body_count = 0;
 		message_parser rp(message_parser::RESPONSE);
 
-		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
+		rp.on_response = [&](int vmajor, int vminor, int code, const buffer_ref& text)
 		{
-			CPPUNIT_ASSERT(protocol == "HTTP/1.1");
+			CPPUNIT_ASSERT(vmajor == 1);
+			CPPUNIT_ASSERT(vminor == 1);
 			CPPUNIT_ASSERT(code == 200);
 			CPPUNIT_ASSERT(text == "Ok");
 		};
@@ -200,7 +223,7 @@ private:
 				CPPUNIT_ASSERT(value == "Value");
 				break;
 			case 2:
-				CPPUNIT_ASSERT(name == "Name 2");
+				CPPUNIT_ASSERT(name == "Name-2");
 				CPPUNIT_ASSERT(value == "Value 2");
 				break;
 			case 3:
@@ -221,7 +244,7 @@ private:
 		buffer r(
 			"HTTP/1.1 200 Ok\r\n"
 			"Name: Value\r\n"
-			"Name 2: Value 2\r\n"
+			"Name-2: Value 2\r\n"
 			"Content-Length: 9\r\n"
 			"\r\n"
 			"some-body"
@@ -239,9 +262,10 @@ private:
 		int body_count = 0;
 		message_parser rp(message_parser::RESPONSE);
 
-		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
+		rp.on_response = [&](int vmajor, int vminor, int code, const buffer_ref& text)
 		{
-			CPPUNIT_ASSERT(protocol == "HTTP/1.1");
+			CPPUNIT_ASSERT(vmajor == 1);
+			CPPUNIT_ASSERT(vminor == 1);
 			CPPUNIT_ASSERT(code == 200);
 			CPPUNIT_ASSERT(text == "");
 		};
@@ -275,9 +299,10 @@ private:
 	{
 		message_parser rp(message_parser::RESPONSE);
 
-		rp.on_response = [&](const buffer_ref& protocol, int code, const buffer_ref& text)
+		rp.on_response = [&](int vmajor, int vminor, int code, const buffer_ref& text)
 		{
-			CPPUNIT_ASSERT(protocol == "HTTP/1.1");
+			CPPUNIT_ASSERT(vmajor == 1);
+			CPPUNIT_ASSERT(vminor == 1);
 			CPPUNIT_ASSERT(code == 200);
 			CPPUNIT_ASSERT(text == "");
 		};

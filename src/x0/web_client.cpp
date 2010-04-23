@@ -73,7 +73,7 @@ web_client::web_client(struct ev_loop *loop) :
 	timer_.set<web_client, &web_client::timeout>(this);
 
 	using namespace std::placeholders;
-	response_parser_.on_response = std::bind(&web_client::_on_status, this, _1, _2, _3);
+	response_parser_.on_response = std::bind(&web_client::_on_status, this, _1, _2, _3, _4);
 	response_parser_.on_header = std::bind(&web_client::_on_header, this, _1, _2);
 	response_parser_.on_content = std::bind(&web_client::_on_content, this, _1);
 	response_parser_.on_complete = std::bind(&web_client::_on_complete, this);
@@ -421,10 +421,10 @@ void web_client::read_some()
 	}
 }
 
-void web_client::_on_status(buffer_ref&& protocol, int code, buffer_ref&& text)
+void web_client::_on_status(int version_major, int version_minor, int code, buffer_ref&& text)
 {
 	if (on_response)
-		on_response(std::move(protocol), code, std::move(text));
+		on_response(version_major, version_minor, code, std::move(text));
 }
 
 void web_client::_on_header(buffer_ref&& name, buffer_ref&& value)

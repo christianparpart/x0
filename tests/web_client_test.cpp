@@ -11,9 +11,9 @@
 
 int request_count = 2;
 
-void on_response(x0::buffer_ref&& protocol, int code, x0::buffer_ref&& text)
+void on_response(int vmajor, int vminor, int code, x0::buffer_ref&& text)
 {
-	std::clog << "S< " << protocol.str() << " " << code << ' ' << text.str() << std::endl;
+	std::clog << "S< HTTP/" << vmajor << "." << vminor << " " << code << ' ' << text.str() << std::endl;
 }
 
 void on_header(x0::buffer_ref&& name, x0::buffer_ref&& value)
@@ -57,7 +57,7 @@ int main(int argc, const char *argv[])
 	x0::web_client client(loop);
 
 	using namespace std::placeholders;
-	client.on_response = std::bind(&on_response, _1, _2, _3);
+	client.on_response = std::bind(&on_response, _1, _2, _3, _4);
 	client.on_header = std::bind(&on_header, _1, _2);
 	client.on_content = std::bind(&on_content, _1);
 	client.on_complete = std::bind(&on_complete, &client);
