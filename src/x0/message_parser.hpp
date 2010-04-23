@@ -62,7 +62,6 @@ public:
 		HEADER_NAME_START = 200,
 		HEADER_NAME,
 		HEADER_VALUE,
-		HEADER_LINE_LF,
 		HEADER_END_LF,
 
 		LWS_START = 300,
@@ -222,7 +221,6 @@ static inline const char *state2str(enum message_parser::state s)
 		case message_parser::LWS_LF: return "lws-lf";
 		case message_parser::LWS_SP_HT_START: return "lws-sp-ht-start";
 		case message_parser::LWS_SP_HT: return "lws-sp-ht";
-		case message_parser::HEADER_LINE_LF: return "header-line-lf";
 		case message_parser::HEADER_END_LF: return "header-end-lf";
 
 		// message content
@@ -698,19 +696,6 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 				else if (std::isprint(*i))
 				{
 					value_.shr();
-
-					++offset;
-					++i;
-				}
-				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case HEADER_LINE_LF:
-				if (*i == LF)
-				{
-					pass_header();
-
-					state_ = HEADER_NAME_START;
 
 					++offset;
 					++i;
