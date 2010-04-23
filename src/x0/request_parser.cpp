@@ -2,7 +2,7 @@
 
 namespace x0 {
 
-void request_parser::on_request(buffer_ref&& method, buffer_ref&& uri, buffer_ref&& protocol, int major, int minor)
+void request_parser::on_request(buffer_ref&& method, buffer_ref&& uri, int major, int minor)
 {
 	request_->method = std::move(method);
 
@@ -20,7 +20,6 @@ void request_parser::on_request(buffer_ref&& method, buffer_ref&& uri, buffer_re
 		request_->path = request_->uri;
 	}
 
-	//request_->protocol = std::move(protocol);
 	request_->http_version_major = major;
 	request_->http_version_minor = major;
 }
@@ -39,8 +38,8 @@ void request_parser::on_header_done()
 
 void request_parser::on_content(buffer_ref&& chunk)
 {
-	if (request_->on_content)
-		request_->on_content(std::move(chunk));
+//	if (request_->on_content)
+//		request_->on_content(std::move(chunk));
 }
 
 bool request_parser::on_complete()

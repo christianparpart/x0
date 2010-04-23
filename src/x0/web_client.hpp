@@ -52,7 +52,7 @@ private:
 	void start_read();
 	void start_write();
 
-	void _on_status(buffer_ref&& protocol, int code, buffer_ref&& text);
+	void _on_status(int version_major, int version_minor, int code, buffer_ref&& text);
 	void _on_header(buffer_ref&& name, buffer_ref&& value);
 	void _on_content(buffer_ref&& chunk);
 	bool _on_complete();
@@ -98,7 +98,7 @@ public:
 
 	// response handling
 	std::function<void()> on_connect;
-	std::function<void(buffer_ref&&, int, buffer_ref&&)> on_response;
+	std::function<void(int, int, int, buffer_ref&&)> on_response;
 	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
 	std::function<void(buffer_ref&&)> on_content;
 	std::function<bool()> on_complete;

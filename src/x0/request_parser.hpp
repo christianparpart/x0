@@ -70,8 +70,10 @@ public:
 	request_parser();
 
 	void reset();
+	void abort();
 	std::size_t next_offset() const;
 	boost::tribool parse(request& req, buffer_ref&& chunk);
+	enum message_parser::state state() const;
 
 private:
 	request *request_;
@@ -80,9 +82,8 @@ private:
 	bool completed_;
 
 	static inline bool url_decode(buffer_ref& url);
-	enum message_parser::state state() const;
 
-	void on_request(buffer_ref&& method, buffer_ref&& path, buffer_ref&& protocol, int major, int minor);
+	void on_request(buffer_ref&& method, buffer_ref&& path, int major, int minor);
 	void on_header(buffer_ref&& name, buffer_ref&& value);
 	void on_header_done();
 	void on_content(buffer_ref&& chunk);
@@ -97,7 +98,7 @@ inline request_parser::request_parser() :
 	completed_(false)
 {
 	using namespace std::placeholders;
-	parser_.on_request = std::bind(&request_parser::on_request, this, _1, _2, _3, _4, _5);
+	parser_.on_request = std::bind(&request_parser::on_request, this, _1, _2, _3, _4);
 	parser_.on_header = std::bind(&request_parser::on_header, this, _1, _2);
 	parser_.on_header_done = std::bind(&request_parser::on_header_done, this);
 	parser_.on_content = std::bind(&request_parser::on_content, this, _1);
@@ -109,6 +110,11 @@ inline void request_parser::reset()
 	parser_.reset();
 	next_offset_ = 0;
 	completed_ = false;
+}
+
+inline void request_parser::abort()
+{
+	parser_.abort();
 }
 
 inline std::size_t request_parser::next_offset() const
