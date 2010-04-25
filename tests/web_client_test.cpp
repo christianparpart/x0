@@ -21,7 +21,7 @@ void on_header(x0::buffer_ref&& name, x0::buffer_ref&& value)
 	std::clog << "S< " << name.str() << ": " << value.str() << std::endl;
 }
 
-void on_content(x0::buffer_ref&& chunk)
+bool on_content(x0::buffer_ref&& chunk)
 {
 #if 0
 	std::clog << "S< content of length: " << chunk.size() << std::endl
@@ -30,6 +30,7 @@ void on_content(x0::buffer_ref&& chunk)
 #else
 	std::clog << chunk.str();
 #endif
+	return true;
 }
 
 bool on_complete(x0::web_client *client)
