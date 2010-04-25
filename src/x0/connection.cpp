@@ -26,13 +26,15 @@
 #include <arpa/inet.h>
 
 #if 0
-#	undef DEBUG
-#	define DEBUG(x...) /*!*/
+#	define TRACE(msg...)
+#else
+#	define TRACE(msg...) DEBUG("connection: " msg)
 #endif
 
 namespace x0 {
 
 connection::connection(x0::listener& lst) :
+	message_processor(message_processor::REQUEST),
 	secure(false),
 	listener_(lst),
 	server_(lst.server()),
@@ -41,9 +43,8 @@ connection::connection(x0::listener& lst) :
 	remote_port_(0),
 	buffer_(8192),
 	request_(new request(*this)),
-	request_parser_(),
 	response_(0),
-	state_(invalid),
+	io_state_(INVALID),
 	watcher_(server_.loop())
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	, timer_(server_.loop())
@@ -52,10 +53,10 @@ connection::connection(x0::listener& lst) :
 	, ctime_(ev_now(server_.loop()))
 #endif
 {
-	watcher_.set<connection, &connection::io_callback>(this);
+	watcher_.set<connection, &connection::io>(this);
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-	timer_.set<connection, &connection::timeout_callback>(this);
+	timer_.set<connection, &connection::timeout>(this);
 #endif
 
 }
@@ -67,7 +68,7 @@ connection::~connection()
 	request_ = 0;
 	response_ = 0;
 
-	DEBUG("~connection(%p)", this);
+	TRACE("~connection(%p)", this);
 
 	try
 	{
@@ -75,7 +76,7 @@ connection::~connection()
 	}
 	catch (...)
 	{
-		DEBUG("~connection(%p): unexpected exception", this);
+		TRACE("~connection(%p): unexpected exception", this);
 	}
 
 #if defined(WITH_SSL)
@@ -92,9 +93,9 @@ connection::~connection()
 	}
 }
 
-void connection::io_callback(ev::io& w, int revents)
+void connection::io(ev::io& w, int revents)
 {
-	DEBUG("connection(%p).io_callback(revents=0x%04X)", this, revents);
+	TRACE("connection(%p).io(revents=0x%04X)", this, revents);
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	timer_.stop();
@@ -108,14 +109,9 @@ void connection::io_callback(ev::io& w, int revents)
 }
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-void connection::timeout_callback(ev::timer& watcher, int revents)
+void connection::timeout(ev::timer& watcher, int revents)
 {
-	handle_timeout();
-}
-
-void connection::handle_timeout()
-{
-	DEBUG("connection(%p): timed out", this);
+	TRACE("connection(%p): timed out", this);
 
 	watcher_.stop();
 //	ev_unloop(loop(), EVUNLOOP_ONE);
@@ -168,7 +164,7 @@ void connection::start()
 		return;
 	}
 
-	DEBUG("connection(%p).start() fd=%d", this, socket_);
+	TRACE("connection(%p).start() fd=%d", this, socket_);
 
 	if (fcntl(socket_, F_SETFL, O_NONBLOCK) < 0)
 		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
@@ -218,20 +214,20 @@ bool connection::ssl_handshake()
 	{
 		// handshake either completed or failed
 		handshaking_ = false;
-		DEBUG("SSL handshake time: %.4f", ev_now(server_.loop()) - ctime_);
+		TRACE("SSL handshake time: %.4f", ev_now(server_.loop()) - ctime_);
 		start_read();
 		return true;
 	}
 
 	if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
 	{
-		DEBUG("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
+		TRACE("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
 
 		delete this;
 		return false;
 	}
 
-	DEBUG("SSL handshake incomplete: (%d)", gnutls_record_get_direction(ssl_session_));
+	TRACE("SSL handshake incomplete: (%d)", gnutls_record_get_direction(ssl_session_));
 	switch (gnutls_record_get_direction(ssl_session_))
 	{
 		case 0: // read
@@ -247,54 +243,182 @@ bool connection::ssl_handshake()
 }
 #endif
 
+inline bool url_decode(buffer_ref& url)
+{
+	std::size_t left = url.offset();
+	std::size_t right = left + url.size();
+	std::size_t i = left; // read pos
+	std::size_t d = left; // write pos
+	buffer& value = url.buffer();
+
+	while (i != right)
+	{
+		if (value[i] == '%')
+		{
+			if (i + 3 <= right)
+			{
+				int ival;
+				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival))
+				{
+					value[d++] = static_cast<char>(ival);
+					i += 3;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else if (value[i] == '+')
+		{
+			value[d++] = ' ';
+			++i;
+		}
+		else if (d != i)
+		{
+			value[d++] = value[i++];
+		}
+		else
+		{
+			++d;
+			++i;
+		}
+	}
+
+	url = value.ref(left, d - left);
+	return true;
+}
+
+void connection::message_begin(buffer_ref&& method, buffer_ref&& uri, int version_major, int version_minor)
+{
+	TRACE("message_begin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+
+	request_->method = std::move(method);
+
+	request_->uri = std::move(uri);
+	url_decode(request_->uri);
+
+	std::size_t n = request_->uri.find("?");
+	if (n != std::string::npos)
+	{
+		request_->path = request_->uri.ref(0, n);
+		request_->query = request_->uri.ref(n + 1);
+	}
+	else
+	{
+		request_->path = request_->uri;
+	}
+
+	request_->http_version_major = version_major;
+	request_->http_version_minor = version_minor;
+}
+
+void connection::message_header(buffer_ref&& name, buffer_ref&& value)
+{
+	request_->headers.push_back(request_header(std::move(name), std::move(value)));
+}
+
+bool connection::message_header_done()
+{
+	TRACE("message_header_done()");
+	response_ = new response(this);
+	try
+	{
+		server_.handle_request(request_, response_);
+	}
+	catch (response::code_type ec)
+	{
+		TRACE("message_header_done: error code (%d) catched", ec);
+		response_->status = ec;
+		response_->finish();
+	}
+	catch (...)
+	{
+		TRACE("message_header_done: unhandled exception caught");
+		response_->status = 500;
+		response_->finish();
+	}
+
+	return false;
+}
+
+bool connection::message_content(buffer_ref&& chunk)
+{
+	TRACE("message_content()");
+
+	if (request_->read_callback_)
+		request_->read_callback_(std::move(chunk));
+
+	return false;
+}
+
+bool connection::message_end()
+{
+	TRACE("message_end()");
+	return false;
+}
+
 /** Resumes async operations.
  *
  * This method is being invoked on a keep-alive connection to parse further requests.
  * \see start()
  */
-void connection::resume()
+void connection::resume(bool finish)
 {
-	DEBUG("connection(%p).resume()", this);
+	TRACE("connection(%p).resume(finish=%s)", this, finish ? "true" : "false");
 
-	delete request_;
-	request_ = 0;
-
-	delete response_;
-	response_ = 0;
-
-	std::size_t offset = request_parser_.next_offset();
-	request_parser_.reset();
-	request_ = new request(*this);
-
-	if (offset < buffer_.size()) // HTTP pipelining
+	if (finish)
 	{
-		DEBUG("resume(): pipelined %ld bytes", buffer_.size() - offset);
-		parse_request(offset, buffer_.size() - offset);
+		delete response_;
+		response_ = 0;
+
+		delete request_;
+		request_ = 0;
+
+		request_ = new request(*this);
+
+		assert(state() == message_processor::MESSAGE_BEGIN);
+	}
+
+	if (next_offset() && next_offset() < buffer_.size()) // HTTP pipelining
+	{
+		TRACE("resume(): pipelined %ld bytes", buffer_.size() - next_offset());
+		process();
 	}
 	else
 	{
-		DEBUG("resume(): start read");
-		buffer_.clear();
+		TRACE("resume(): start read");
+
+		if (finish)
+		{
+			buffer_.clear();
+			clear();
+		}
+
 		start_read();
 	}
 }
 
 void connection::start_read()
 {
-	switch (state_)
+	switch (io_state_)
 	{
-		case invalid:
-			DEBUG("start_read(): start watching");
-			state_ = reading;
+		case INVALID:
+			TRACE("start_read(): start watching");
+			io_state_ = READING;
 			watcher_.set(socket_, ev::READ);
 			watcher_.start();
 			break;
-		case reading:
-			DEBUG("start_read(): continue reading (fd=%d)", socket_);
+		case READING:
+			TRACE("start_read(): continue reading (fd=%d)", socket_);
 			break;
-		case writing:
-			state_ = reading;
-			DEBUG("start_read(): continue reading (fd=%d) (was ev::WRITE)", socket_);
+		case WRITING:
+			io_state_ = READING;
+			TRACE("start_read(): continue reading (fd=%d) (was ev::WRITE)", socket_);
 			watcher_.set(socket_, ev::READ);
 			break;
 	}
@@ -307,14 +431,14 @@ void connection::start_read()
 
 void connection::start_write()
 {
-	if (state_ != writing)
+	if (io_state_ != WRITING)
 	{
-		DEBUG("start_write(): start watching");
-		state_ = writing;
+		TRACE("start_write(): start watching");
+		io_state_ = WRITING;
 		watcher_.set(socket_, ev::WRITE);
 	}
 	else
-		DEBUG("start_write(): continue watching");
+		TRACE("start_write(): continue watching");
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	if (server_.max_write_idle() > 0)
@@ -324,13 +448,13 @@ void connection::start_write()
 
 void connection::stop_write()
 {
-	DEBUG("stop_write()");
+	TRACE("stop_write()");
 	start_read();
 }
 
 void connection::handle_write()
 {
-	DEBUG("connection(%p).handle_write()", this);
+	TRACE("connection(%p).handle_write()", this);
 
 #if defined(WITH_SSL)
 	if (handshaking_)
@@ -362,6 +486,14 @@ void connection::handle_write()
 #endif
 }
 
+void connection::check_request_body()
+{
+	if (state() == message_processor::MESSAGE_BEGIN)
+		return;
+
+	TRACE("request body not (yet) fully consumed: state=%s", state_str());
+}
+
 /**
  * This method gets invoked when there is data in our connection ready to read.
  *
@@ -369,15 +501,14 @@ void connection::handle_write()
  */
 void connection::handle_read()
 {
-	DEBUG("connection(%p).handle_read()", this);
+	TRACE("connection(%p).handle_read()", this);
 
 #if defined(WITH_SSL)
 	if (handshaking_)
 		return (void) ssl_handshake();
 #endif
 
-	std::size_t lower_bound = buffer_.size();
-	int rv;
+	int rv = buffer_.size();
 
 #if defined(WITH_SSL)
 	if (ssl_enabled())
@@ -397,21 +528,21 @@ void connection::handle_read()
 		}
 		else
 		{
-			DEBUG("connection::handle_read(): %s", strerror(errno));
+			TRACE("connection::handle_read(): %s", strerror(errno));
 			delete this;
 		}
 	}
 	else if (rv == 0) // EOF
 	{
-		DEBUG("connection::handle_read(): (EOF)");
+		TRACE("connection::handle_read(): (EOF)");
 		delete this;
 	}
 	else
 	{
-		DEBUG("connection::handle_read(): read %d bytes", rv);
+		TRACE("connection::handle_read(): read %d bytes", rv);
 
-		buffer_.resize(lower_bound + rv);
-		parse_request(lower_bound, rv);
+		buffer_.resize(next_offset() + rv);
+		process();
 	}
 }
 
@@ -419,54 +550,44 @@ void connection::handle_read()
  */
 void connection::close()
 {
-	switch (state_)
+	TRACE("connection: close(): state=%d", io_state_);
+	switch (io_state_)
 	{
-		case invalid:
+		case INVALID:
 			// we've got invoked from within connection_open()-hook (within the connection::start()-call)
 			::close(socket_);
 			socket_ = -1;
 			break;
-		case reading:
-		case writing:
+		case READING:
+		case WRITING:
 			delete this;
 			break;
 	}
 }
 
-/** parses (partial) request from buffer's given \p offset of \p count bytes.
+/** processes a (partial) request from buffer's given \p offset of \p count bytes.
  */
-void connection::parse_request(std::size_t offset, std::size_t count)
+void connection::process()
 {
-	// parse request (partial)
-	boost::tribool result = request_parser_.parse(*request_, buffer_.ref(offset, count));
+	std::error_code ec;
+	std::size_t nparsed = message_processor::process(buffer_.ref(next_offset(), buffer_.size() - next_offset()), ec);
+	TRACE("process: nparsed=%ld, ec=%s", nparsed, ec.message().c_str());
 
-	if (result) // request fully parsed
+	if (!ec)
 	{
-		if (response *response_ = new response(this, request_))
-		{
-			try
-			{
-//				state_ = writing;
-				server_.handle_request(response_->request(), response_);
-			}
-			catch (response::code_type reply)
-			{
-//				fprintf(stderr, "response::code exception caught (%d %s)\n", reply, response::status_cstr(reply));
-//				fflush(stderr);
-				response_->status = reply;
-				response_->finish();
-			}
-		}
+		buffer_.resize(buffer_.size() + nparsed);
 	}
-	else if (!result) // received an invalid request
+	else if (ec == http_message_error::partial)
+	{
+		start_read();
+	}
+	else if (ec != http_message_error::aborted)
 	{
 		// -> send stock response: BAD_REQUEST
-		(new response(this, request_, response::bad_request))->finish();
+		(response_ = new response(this, response::bad_request))->finish();
 	}
-	else // result indeterminate: request still incomplete
+	else
 	{
-		// -> continue reading for request
-		start_read();
 	}
 }
 

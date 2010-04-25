@@ -48,6 +48,7 @@
 namespace x0 {
 
 web_client::web_client(struct ev_loop *loop) :
+	message_processor(message_processor::RESPONSE),
 	loop_(loop),
 	fd_(-1),
 	state_(DISCONNECTED),
@@ -58,7 +59,6 @@ web_client::web_client(struct ev_loop *loop) :
 	request_offset_(0),
 	request_count_(0),
 	response_buffer_(),
-	response_parser_(message_parser::RESPONSE),
 	connect_timeout(0),
 	write_timeout(0),
 	read_timeout(0),
@@ -71,12 +71,6 @@ web_client::web_client(struct ev_loop *loop) :
 {
 	io_.set<web_client, &web_client::io>(this);
 	timer_.set<web_client, &web_client::timeout>(this);
-
-	using namespace std::placeholders;
-	response_parser_.on_response = std::bind(&web_client::_on_status, this, _1, _2, _3, _4);
-	response_parser_.on_header = std::bind(&web_client::_on_header, this, _1, _2);
-	response_parser_.on_content = std::bind(&web_client::_on_content, this, _1);
-	response_parser_.on_complete = std::bind(&web_client::_on_complete, this);
 }
 
 web_client::~web_client()
@@ -161,7 +155,6 @@ void web_client::close()
 {
 	state_ = DISCONNECTED;
 
-	//response_parser_.abort();
 	io_.stop();
 	timer_.stop();
 
@@ -403,7 +396,9 @@ void web_client::read_some()
 	{
 		TRACE("read response: %ld bytes", rv);
 		response_buffer_.resize(lower_bound + rv);
-		response_parser_.parse(response_buffer_.ref(lower_bound, rv));
+
+		std::error_code ec;
+		process(response_buffer_.ref(lower_bound, rv), ec);
 	}
 	else if (rv == 0)
 	{
@@ -421,25 +416,27 @@ void web_client::read_some()
 	}
 }
 
-void web_client::_on_status(int version_major, int version_minor, int code, buffer_ref&& text)
+void web_client::message_begin(int version_major, int version_minor, int code, buffer_ref&& text)
 {
 	if (on_response)
 		on_response(version_major, version_minor, code, std::move(text));
 }
 
-void web_client::_on_header(buffer_ref&& name, buffer_ref&& value)
+void web_client::message_header(buffer_ref&& name, buffer_ref&& value)
 {
 	if (on_header)
 		on_header(std::move(name), std::move(value));
 }
 
-void web_client::_on_content(buffer_ref&& chunk)
+bool web_client::message_content(buffer_ref&& chunk)
 {
 	if (on_content)
-		on_content(std::move(chunk));
+		return on_content(std::move(chunk));
+
+	return true;
 }
 
-bool web_client::_on_complete()
+bool web_client::message_end()
 {
 	int pending = --request_count_;
 	TRACE("on_complete: pending=%d", pending);

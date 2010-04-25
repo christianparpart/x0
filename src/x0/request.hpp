@@ -22,6 +22,7 @@
 namespace x0 {
 
 class plugin;
+class connection;
 
 //! \addtogroup core
 //@{
@@ -67,10 +68,14 @@ public:
 	void set_hostid(const std::string& custom);
 
 	// content management
-	std::function<void(buffer_ref&&)> on_content;
+	bool expect_content() const;
+	void read(const std::function<bool(buffer_ref&&)>& callback);
 
 private:
 	mutable std::string hostid_;
+	std::function<bool(buffer_ref&&)> read_callback_;
+
+	friend class connection;
 };
 
 // {{{ request impl
@@ -87,8 +92,8 @@ inline request::request(x0::connection& conn) :
 	username(),
 	document_root(),
 	custom_data(),
-	on_content(),
-	hostid_()
+	hostid_(),
+	read_callback_()
 {
 }
 

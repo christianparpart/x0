@@ -10,14 +10,15 @@
 
 #include <x0/api.hpp>
 #include <x0/buffer.hpp>
-#include <x0/message_parser.hpp>
+#include <x0/message_processor.hpp>
 #include <ev++.h>
 #include <functional>
 #include <system_error>
 
 namespace x0 {
 
-class X0_API web_client
+class X0_API web_client :
+	public message_processor
 {
 public:
 	enum state_type {
@@ -39,7 +40,6 @@ private:
 	std::size_t request_offset_;
 	std::size_t request_count_;
 	buffer response_buffer_;
-	message_parser response_parser_;
 
 private:
 	void io(ev::io& w, int revents);
@@ -52,10 +52,11 @@ private:
 	void start_read();
 	void start_write();
 
-	void _on_status(int version_major, int version_minor, int code, buffer_ref&& text);
-	void _on_header(buffer_ref&& name, buffer_ref&& value);
-	void _on_content(buffer_ref&& chunk);
-	bool _on_complete();
+private:
+	virtual void message_begin(int version_major, int version_minor, int code, buffer_ref&& text);
+	virtual void message_header(buffer_ref&& name, buffer_ref&& value);
+	virtual bool message_content(buffer_ref&& chunk);
+	virtual bool message_end();
 
 public:
 	explicit web_client(struct ev_loop *loop);
@@ -100,7 +101,7 @@ public:
 	std::function<void()> on_connect;
 	std::function<void(int, int, int, buffer_ref&&)> on_response;
 	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
-	std::function<void(buffer_ref&&)> on_content;
+	std::function<bool(buffer_ref&&)> on_content;
 	std::function<bool()> on_complete;
 };
 

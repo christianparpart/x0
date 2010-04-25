@@ -1,10 +1,9 @@
-#ifndef sw_x0_message_parser_hpp
-#define sw_x0_message_parser_hpp (1)
+#ifndef sw_x0_message_processor_hpp
+#define sw_x0_message_processor_hpp (1)
 
 #include <x0/buffer.hpp>
 #include <x0/buffer_ref.hpp>
 #include <x0/io/chain_filter.hpp>
-#include <x0/io/chunked_decoder.hpp>
 #include <x0/defines.hpp>
 #include <x0/api.hpp>
 
@@ -12,18 +11,49 @@
 #include <functional>
 #include <cctype>
 
+// {{{ enum class http_message_error
+namespace x0 {
+	enum class http_message_error
+	{
+		success = 0,
+		partial,
+		aborted,
+		invalid_syntax,
+	};
+
+	const std::error_category& http_message_category() throw();
+
+	std::error_code make_error_code(http_message_error ec);
+	std::error_condition make_error_condition(http_message_error ec);
+}
+
+namespace std {
+	// implicit conversion from http_message_error to error_code
+	template<> struct is_error_code_enum<x0::http_message_error> : public true_type {};
+}
+
+// {{{ inlines
+namespace x0 {
+	inline std::error_code make_error_code(http_message_error ec)
+	{
+		return std::error_code(static_cast<int>(ec), x0::http_message_category());
+	}
+
+	inline std::error_condition make_error_condition(http_message_error ec)
+	{
+		return std::error_condition(static_cast<int>(ec), x0::http_message_category());
+	}
+}
+// }}}
+// }}}
+
 namespace x0 {
 
-enum class message_parser_error // {{{
-{
-	invalid_syntax,
-}; // }}}
-
 /**
- * \class message_parser
- * \brief implements HTTP/1.1 messages (request and response)
+ * \class message_processor
+ * \brief implements an HTTP/1.1 (request/response) message parser and processor
  */
-class message_parser
+class message_processor
 {
 public:
 	enum mode_type { // {{{
@@ -36,7 +66,6 @@ public:
 		// artificial
 		SYNTAX_ERROR = 0,
 		MESSAGE_BEGIN,
-		MESSAGE_END,
 
 		// Request-Line
 		REQUEST_LINE_BEGIN = 100,
@@ -81,36 +110,38 @@ public:
 		// message-content
 		CONTENT_BEGIN = 400,
 		CONTENT,
+		CONTENT_CHUNK_SIZE_BEGIN = 410,
+		CONTENT_CHUNK_SIZE,
+		CONTENT_CHUNK_LF1,
+		CONTENT_CHUNK_BODY,
+		CONTENT_CHUNK_LF2,
+		CONTENT_CHUNK_CR3,
+		CONTENT_CHUNK_LF3
 	}; // }}}
 
-	enum {
-		CR = 0x0D,
-		LF = 0x0A,
-		SP = 0x20,
-		HT = 0x09,
-	};
+public:
+	virtual void message_begin(buffer_ref&& method, buffer_ref&& entity, int version_major, int version_minor);
+	virtual void message_begin(int version_major, int version_minor, int code, buffer_ref&& text);
+	virtual void message_begin();
+
+	virtual void message_header(buffer_ref&& name, buffer_ref&& value);
+	virtual bool message_header_done();
+	virtual bool message_content(buffer_ref&& chunk);
+	virtual bool message_end();
 
 public:
-	std::function<void(buffer_ref&&, buffer_ref&&, int, int)> on_request;
-	std::function<void(int, int, int, buffer_ref&&)> on_response;
-	std::function<void()> on_message;
+	explicit message_processor(mode_type mode = MESSAGE);
 
-	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
-	std::function<void()> on_header_done;
-	std::function<void(buffer_ref&&)> on_content;
+	message_processor::state state() const;
+	const char *state_str() const;
 
-	std::function<bool()> on_complete;
+	std::size_t process(buffer_ref&& chunk, std::error_code& ec);
+	std::size_t next_offset() const;
 
-public:
-	explicit message_parser(mode_type mode = MESSAGE);
-
-	message_parser::state state() const;
-	void reset(enum message_parser::state s = MESSAGE_BEGIN);
-	std::size_t parse(buffer_ref&& chunk);
-	std::size_t parse(buffer_ref&& chunk, std::error_code& ec);
-	void abort();
+	void clear();
 
 private:
+	void reset();
 	void pass_request();
 	void pass_response();
 	void pass_header();
@@ -123,9 +154,16 @@ private:
 	static bool is_text(char value);
 
 private:
+	enum { // lexer constants
+		CR = 0x0D,
+		LF = 0x0A,
+		SP = 0x20,
+		HT = 0x09,
+	};
+
 	mode_type mode_;
 	enum state state_;
-	bool abort_;
+	std::size_t next_offset_;
 
 	// request-line
 	buffer_ref method_;
@@ -144,25 +182,34 @@ private:
 	// body
 	bool content_chunked_;            //!< whether or not request content is chunked encoded
 	ssize_t content_length_;          //!< content length of whole content or current chunk
-	chunked_decoder chunked_decoder_;
 	chain_filter filter_chain_;
 };
 
 } // namespace x0
 
 // {{{ inlines
-#if 1
+#if 0
 #	define TRACE(msg...)
 #else
-#	define TRACE(msg...) DEBUG("message_parser: " msg)
+#	define TRACE(msg...) DEBUG("message_processor: " msg)
 #endif
 
 namespace x0 {
 
-inline message_parser::message_parser(mode_type mode) :
+/** initializes the HTTP/1.1 message processor.
+ *
+ * \param mode REQUEST: parses and processes an HTTP/1.1 Request,
+ *             RESPONSE: parses and processes an HTTP/1.1 Response.
+ *             MESSAGE: parses and processes an HTTP/1.1 message, that is, without the first request/status line - just headers and content.
+ *
+ * \note No member variable may be modified after the hook invokation returned with
+ *       a false return code, which means, that processing is to be cancelled
+ *       and thus, may imply, that the object itself may have been already deleted.
+ */
+inline message_processor::message_processor(mode_type mode) :
 	mode_(mode),
 	state_(MESSAGE_BEGIN),
-	abort_(),
+	next_offset_(0),
 	method_(),
 	entity_(),
 	version_major_(0),
@@ -173,104 +220,86 @@ inline message_parser::message_parser(mode_type mode) :
 	value_(),
 	content_chunked_(false),
 	content_length_(-1),
-	chunked_decoder_(),
 	filter_chain_()
 {
 }
 
-inline enum message_parser::state message_parser::state() const
+inline enum message_processor::state message_processor::state() const
 {
 	return state_;
 }
 
-inline void message_parser::reset(enum message_parser::state s)
+inline const char *message_processor::state_str() const
 {
-	state_ = s;
-
-	method_.clear();
-	entity_.clear();
-	version_major_ = 0;
-	version_minor_ = 0;
-	code_ = 0;
-	message_.clear();
-
-	name_.clear();
-	value_.clear();
-
-	content_chunked_ = false;
-	content_length_ = -1;
-	chunked_decoder_.reset();
-	filter_chain_.clear();
-}
-
-inline const char *state2str(enum message_parser::state s)
-{
-	switch (s) {
+	switch (state_) {
 		// artificial
-		case message_parser::SYNTAX_ERROR: return "syntax-error";
-		case message_parser::MESSAGE_BEGIN: return "message-begin";
-		case message_parser::MESSAGE_END: return "message-end";
+		case message_processor::SYNTAX_ERROR: return "syntax-error";
+		case message_processor::MESSAGE_BEGIN: return "message-begin";
 
 		// request-line
-		case message_parser::REQUEST_LINE_BEGIN: return "request-line-begin";
-		case message_parser::REQUEST_METHOD: return "request-method";
-		case message_parser::REQUEST_ENTITY_BEGIN: return "request-entity-begin";
-		case message_parser::REQUEST_ENTITY: return "request-entity";
-		case message_parser::REQUEST_PROTOCOL_BEGIN: return "request-protocol-begin";
-		case message_parser::REQUEST_PROTOCOL_T1: return "request-protocol-t1";
-		case message_parser::REQUEST_PROTOCOL_T2: return "request-protocol-t2";
-		case message_parser::REQUEST_PROTOCOL_P: return "request-protocol-p";
-		case message_parser::REQUEST_PROTOCOL_SLASH: return "request-protocol-slash";
-		case message_parser::REQUEST_PROTOCOL_VERSION_MAJOR: return "request-protocol-version-major";
-		case message_parser::REQUEST_PROTOCOL_VERSION_MINOR: return "request-protocol-version-minor";
-		case message_parser::REQUEST_LINE_LF: return "request-line-lf";
+		case message_processor::REQUEST_LINE_BEGIN: return "request-line-begin";
+		case message_processor::REQUEST_METHOD: return "request-method";
+		case message_processor::REQUEST_ENTITY_BEGIN: return "request-entity-begin";
+		case message_processor::REQUEST_ENTITY: return "request-entity";
+		case message_processor::REQUEST_PROTOCOL_BEGIN: return "request-protocol-begin";
+		case message_processor::REQUEST_PROTOCOL_T1: return "request-protocol-t1";
+		case message_processor::REQUEST_PROTOCOL_T2: return "request-protocol-t2";
+		case message_processor::REQUEST_PROTOCOL_P: return "request-protocol-p";
+		case message_processor::REQUEST_PROTOCOL_SLASH: return "request-protocol-slash";
+		case message_processor::REQUEST_PROTOCOL_VERSION_MAJOR: return "request-protocol-version-major";
+		case message_processor::REQUEST_PROTOCOL_VERSION_MINOR: return "request-protocol-version-minor";
+		case message_processor::REQUEST_LINE_LF: return "request-line-lf";
 
 		// Status-Line
-		case message_parser::STATUS_LINE_BEGIN: return "status-line-begin";
-		case message_parser::STATUS_PROTOCOL_BEGIN: return "status-protocol-begin";
-		case message_parser::STATUS_PROTOCOL_T1: return "status-protocol-t1";
-		case message_parser::STATUS_PROTOCOL_T2: return "status-protocol-t2";
-		case message_parser::STATUS_PROTOCOL_P: return "status-protocol-t2";
-		case message_parser::STATUS_PROTOCOL_SLASH: return "status-protocol-t2";
-		case message_parser::STATUS_PROTOCOL_VERSION_MAJOR: return "status-protocol-version-major";
-		case message_parser::STATUS_PROTOCOL_VERSION_MINOR: return "status-protocol-version-minor";
-		case message_parser::STATUS_CODE_BEGIN: return "status-code-begin";
-		case message_parser::STATUS_CODE: return "status-code";
-		case message_parser::STATUS_MESSAGE_BEGIN: return "status-message-begin";
-		case message_parser::STATUS_MESSAGE: return "status-message";
-		case message_parser::STATUS_MESSAGE_LF: return "status-message-lf";
+		case message_processor::STATUS_LINE_BEGIN: return "status-line-begin";
+		case message_processor::STATUS_PROTOCOL_BEGIN: return "status-protocol-begin";
+		case message_processor::STATUS_PROTOCOL_T1: return "status-protocol-t1";
+		case message_processor::STATUS_PROTOCOL_T2: return "status-protocol-t2";
+		case message_processor::STATUS_PROTOCOL_P: return "status-protocol-t2";
+		case message_processor::STATUS_PROTOCOL_SLASH: return "status-protocol-t2";
+		case message_processor::STATUS_PROTOCOL_VERSION_MAJOR: return "status-protocol-version-major";
+		case message_processor::STATUS_PROTOCOL_VERSION_MINOR: return "status-protocol-version-minor";
+		case message_processor::STATUS_CODE_BEGIN: return "status-code-begin";
+		case message_processor::STATUS_CODE: return "status-code";
+		case message_processor::STATUS_MESSAGE_BEGIN: return "status-message-begin";
+		case message_processor::STATUS_MESSAGE: return "status-message";
+		case message_processor::STATUS_MESSAGE_LF: return "status-message-lf";
 
 		// message header
-		case message_parser::HEADER_NAME_BEGIN: return "header-name-begin";
-		case message_parser::HEADER_NAME: return "header-name";
-		case message_parser::HEADER_VALUE: return "header-value";
-		case message_parser::HEADER_END_LF: return "header-end-lf";
+		case message_processor::HEADER_NAME_BEGIN: return "header-name-begin";
+		case message_processor::HEADER_NAME: return "header-name";
+		case message_processor::HEADER_VALUE: return "header-value";
+		case message_processor::HEADER_END_LF: return "header-end-lf";
 
 		// LWS
-		case message_parser::LWS_BEGIN: return "lws-begin";
-		case message_parser::LWS_LF: return "lws-lf";
-		case message_parser::LWS_SP_HT_BEGIN: return "lws-sp-ht-begin";
-		case message_parser::LWS_SP_HT: return "lws-sp-ht";
+		case message_processor::LWS_BEGIN: return "lws-begin";
+		case message_processor::LWS_LF: return "lws-lf";
+		case message_processor::LWS_SP_HT_BEGIN: return "lws-sp-ht-begin";
+		case message_processor::LWS_SP_HT: return "lws-sp-ht";
 
 		// message content
-		case message_parser::CONTENT_BEGIN: return "content-begin";
-		case message_parser::CONTENT: return "content";
+		case message_processor::CONTENT_BEGIN: return "content-begin";
+		case message_processor::CONTENT: return "content";
+		case message_processor::CONTENT_CHUNK_SIZE_BEGIN: return "content-chunk-size-begin";
+		case message_processor::CONTENT_CHUNK_SIZE: return "content-chunk-size";
+		case message_processor::CONTENT_CHUNK_LF1: return "content-chunk-lf1";
+		case message_processor::CONTENT_CHUNK_BODY: return "content-chunk-body";
+		case message_processor::CONTENT_CHUNK_LF2: return "content-chunk-lf2";
+		case message_processor::CONTENT_CHUNK_CR3: return "content-chunk-cr3";
+		case message_processor::CONTENT_CHUNK_LF3: return "content-chunk_lf3";
 	}
 	return "UNKNOWN";
 }
 
-inline std::size_t message_parser::parse(buffer_ref&& chunk)
+/** processes a message-chunk.
+ *
+ * \param chunk the chunk of bytes to process
+ * \param ec    the error code describing the possible error
+ *
+ * \return      the number of bytes actually processed.
+ */
+inline std::size_t message_processor::process(buffer_ref&& chunk, std::error_code& ec)
 {
-	std::error_code ignored;
-	return parse(std::move(chunk), ignored);
-}
-
-inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec)
-{
-	const char *i = chunk.begin();
-	const char *e = chunk.end();
-	std::size_t offset = 0;
-
 	/*
 	 * CR               = 0x0D
 	 * LF               = 0x0A
@@ -322,9 +351,13 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 	 *                  | <entity-body encoded as per Transfer-Encoding>
 	 */
 
-	TRACE("parse: size: %ld", chunk.size());
+	const char *i = chunk.begin();
+	const char *e = chunk.end();
+	std::size_t offset = 0;
 
-	abort_ = false;
+	ec.clear();
+
+	TRACE("parse: size: %ld", chunk.size());
 
 	if (state_ == CONTENT)
 	{
@@ -334,13 +367,13 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 		i += offset;
 	}
 
-	while (!abort_ && i != e)
+	while (i != e)
 	{
 #if 1
 		if (std::isprint(*i))
-			TRACE("parse: %4ld, 0x%02X (%c),  %s", offset, *i, *i, state2str(state_));
+			TRACE("parse: %4ld, 0x%02X (%c),  %s", offset, *i, *i, state_str());
 		else                                            
-			TRACE("parse: %4ld, 0x%02X,     %s", offset, *i, state2str(state_));
+			TRACE("parse: %4ld, 0x%02X,     %s", offset, *i, state_str());
 #endif
 
 		switch (state_)
@@ -358,8 +391,7 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 
 						// an internet message has no special top-line,
 						// so we just invoke the callback right away
-						if (on_message)
-							on_message();
+						message_begin();
 
 						break;
 				}
@@ -808,42 +840,161 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 					if (content_expected)
 						state_ = CONTENT_BEGIN;
 					else
-						state_ = MESSAGE_END;
+						reset();
 
-					if (on_header_done)
-						on_header_done();
-
-					if (!content_expected && on_complete)
-						if (!on_complete())
-							return offset;
-
-					++offset;
+					next_offset_ = ++offset;
 					++i;
+
+					if (!message_header_done())
+					{
+						ec = make_error_code(http_message_error::aborted);
+						return offset;
+					}
+
+					if (!content_expected)
+					{
+						if (!message_end())
+						{
+							ec = make_error_code(http_message_error::aborted);
+							return offset;
+						}
+					}
 				} else
 					state_ = SYNTAX_ERROR;
 				break;
 			case CONTENT_BEGIN:
-				if (content_length_ <= 0 && !content_chunked_) {
+				if (content_chunked_)
+					state_ = CONTENT_CHUNK_SIZE_BEGIN;
+				else if (content_length_ < 0)
 					state_ = SYNTAX_ERROR;
-					break;
-				}
-				state_ = CONTENT;
+				else
+					state_ = CONTENT;
+				break;
 			case CONTENT:
 			{
 				std::size_t nparsed = 0;
+
 				if (!pass_content(chunk.ref(offset), ec, nparsed))
+				{
+					ec = make_error_code(http_message_error::aborted);
 					return offset + nparsed;
+				}
 
 				offset += nparsed;
 				i += nparsed;
 				break;
 			}
-			case MESSAGE_END:
-				return offset;
+			case CONTENT_CHUNK_SIZE_BEGIN:
+				if (!std::isxdigit(*i))
+				{
+					state_ = SYNTAX_ERROR;
+					break;
+				}
+				state_ = CONTENT_CHUNK_SIZE;
+				content_length_ = 0;
+				/* fall through */
+			case CONTENT_CHUNK_SIZE:
+				if (*i == CR)
+				{
+					state_ = CONTENT_CHUNK_LF1;
+					++offset;
+					++i;
+				}
+				else if (*i >= '0' && *i <= '9')
+				{
+					content_length_ = content_length_ * 16 + *i - '0';
+					++offset;
+					++i;
+				}
+				else if (*i >= 'a' && *i <= 'f')
+				{
+					content_length_ = content_length_ * 16 + 10 + *i - 'a';
+					++offset;
+					++i;
+				}
+				else if (*i >= 'A' && *i <= 'F')
+				{
+					content_length_ = content_length_ * 16 + 10 + *i - 'A';
+					++offset;
+					++i;
+				}
+				else
+					state_ = SYNTAX_ERROR;
+				break;
+			case CONTENT_CHUNK_LF1:
+				if (*i != LF)
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					TRACE("content_length: %ld", content_length_);
+					if (content_length_ != 0)
+						state_ = CONTENT_CHUNK_BODY;
+					else
+						state_ = CONTENT_CHUNK_CR3;
+
+					++offset;
+					++i;
+				}
+				break;
+			case CONTENT_CHUNK_BODY:
+				if (content_length_)
+				{
+					std::size_t nparsed = 0;
+
+					if (!pass_content(chunk.ref(offset), ec, nparsed))
+					{
+						ec = make_error_code(http_message_error::aborted);
+						return offset + nparsed;
+					}
+
+					offset += nparsed;
+					i += nparsed;
+				}
+				else if (*i == CR)
+				{
+					state_ = CONTENT_CHUNK_LF2;
+					++offset;
+					++i;
+				}
+				break;
+			case CONTENT_CHUNK_LF2:
+				if (*i != LF)
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = CONTENT_CHUNK_SIZE;
+					++offset;
+					++i;
+				}
+				break;
+			case CONTENT_CHUNK_CR3:
+				if (*i != CR)
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					state_ = CONTENT_CHUNK_LF3;
+					++offset;
+					++i;
+				}
+				break;
+			case CONTENT_CHUNK_LF3:
+				if (*i != LF)
+					state_ = SYNTAX_ERROR;
+				else
+				{
+					++offset;
+					++i;
+
+					if (!message_end())
+						return offset;
+
+					reset();
+					next_offset_ = offset;
+				}
+				break;
 			case SYNTAX_ERROR:
 			{
-				ec = std::make_error_code(std::errc::invalid_argument);
-				//! \todo ec = make_error_code(message_parser_error::invalid_syntax);
+				ec = make_error_code(http_message_error::invalid_syntax);
 
 #if !defined(NDEBUG)
 				if (std::isprint(*i))
@@ -868,40 +1019,39 @@ inline std::size_t message_parser::parse(buffer_ref&& chunk, std::error_code& ec
 		{
 			// and there's no body to come
 
-			if (on_complete)
-				on_complete();
+			if (!message_end())
+				return offset;
 
-			// subsequent calls to parse() process possible next requests then.
-			state_ = MESSAGE_BEGIN;
+			// subsequent calls to parse() process next request(s).
+			reset();
+			next_offset_ = offset;
 		}
 	}
 
 	return offset;
 }
 
-inline void message_parser::abort()
+inline std::size_t message_processor::next_offset() const
 {
-	abort_ = true;
+	return next_offset_;
 }
 
-inline void message_parser::pass_request()
+inline void message_processor::pass_request()
 {
 	TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
 			method_.str().c_str(), entity_.str().c_str(), version_major_, version_minor_);
 
-	if (on_request)
-		on_request(std::move(method_), std::move(entity_), version_major_, version_minor_);
+	message_begin(std::move(method_), std::move(entity_), version_major_, version_minor_);
 }
 
-inline void message_parser::pass_response()
+inline void message_processor::pass_response()
 {
 	TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", version_major_, version_minor_, code_, message_.str().c_str());
 
-	if (on_response)
-		on_response(version_major_, version_minor_, code_, std::move(message_));
+	message_begin(version_major_, version_minor_, code_, std::move(message_));
 }
 
-inline void message_parser::pass_header()
+inline void message_processor::pass_header()
 {
 	TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
 
@@ -917,37 +1067,15 @@ inline void message_parser::pass_header()
 		}
 	}
 
-	if (on_header)
-		on_header(std::move(name_), std::move(value_));
+	message_header(std::move(name_), std::move(value_));
 
 	name_.clear();
 	value_.clear();
 }
 
-inline bool message_parser::pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed)
+inline bool message_processor::pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed)
 {
-	if (content_chunked_)
-	{
-		buffer result(chunked_decoder_.process(chunk));
-		nparsed += chunk.size();
-
-		if (chunked_decoder_.state() == chunked_decoder::END)
-			state_ = MESSAGE_END;
-
-		if (!filter_chain_.empty())
-			result = filter_chain_.process(result);
-
-		if (!result.empty() && on_content)
-			on_content(result);
-
-		if (state_ == MESSAGE_END && on_complete)
-		{
-			state_ = MESSAGE_BEGIN;
-			chunked_decoder_.reset();
-			return on_complete();
-		}
-	}
-	else if (content_length_ > 0)
+	if (content_length_ > 0)
 	{
 		// shrink down to remaining content-length
 		buffer_ref c(chunk);
@@ -957,43 +1085,90 @@ inline bool message_parser::pass_content(buffer_ref&& chunk, std::error_code& ec
 		nparsed += c.size();
 		content_length_ -= c.size();
 
-		if (on_content)
-			on_content(filter_chain_.process(c));
+		TRACE("pass_content: chunk_size=%ld, bytes_left=%ld; '%s'",
+				c.size(), content_length_, c.str().c_str());
 
-		if (content_length_ == 0)
+		if (content_chunked_)
 		{
-			state_ = MESSAGE_END;
+			buffer result(c);
 
-			if (on_complete)
+			if (!filter_chain_.empty())
+			{
+				if (!message_content(filter_chain_.process(c)))
+					return false;
+			}
+			else
+			{
+				if (!message_content(std::move(c)))
+					return false;
+			}
+
+			if (state_ == MESSAGE_BEGIN)
+			{
+				return message_end();
+			}
+		}
+		else // fixed-size content (via "Content-Length")
+		{
+			if (content_length_ == 0)
+				reset();
+
+			if (!message_content(filter_chain_.process(c)))
+				return false;
+
+			if (state_ == MESSAGE_BEGIN)
 			{
 				TRACE("content fully parsed -> complete");
-				state_ = MESSAGE_BEGIN;
-				return on_complete();
+				return message_end();
 			}
 		}
 	}
-	else
+	else if (content_length_ < 0)
 	{
 		nparsed += chunk.size();
 
-		if (on_content)
-			on_content(filter_chain_.process(chunk));
+		if (filter_chain_.empty())
+		{
+			if (!message_content(std::move(chunk)))
+				return false;
+		}
+		else
+		{
+			if (!message_content(filter_chain_.process(chunk)))
+				return false;
+		}
 	}
 
 	return true;
 }
 
-inline bool message_parser::is_char(char value)
+inline void message_processor::clear()
+{
+	reset();
+	next_offset_ = 0;
+}
+
+inline void message_processor::reset()
+{
+	TRACE("reset(next_offset=%ld): last_state=%s", next_offset_, state_str());
+
+	version_major_ = 0;
+	version_minor_ = 0;
+	content_length_ = -1;
+	state_ = MESSAGE_BEGIN;
+}
+
+inline bool message_processor::is_char(char value)
 {
 	return value >= 0 && value <= 127;
 }
 
-inline bool message_parser::is_ctl(char value)
+inline bool message_processor::is_ctl(char value)
 {
 	return (value >= 0 && value <= 31) || value == 127;
 }
 
-inline bool message_parser::is_seperator(char value)
+inline bool message_processor::is_seperator(char value)
 {
 	switch (value)
 	{
@@ -1022,12 +1197,12 @@ inline bool message_parser::is_seperator(char value)
 	}
 }
 
-inline bool message_parser::is_token(char value)
+inline bool message_processor::is_token(char value)
 {
 	return is_char(value) && !(is_ctl(value) || is_seperator(value));
 }
 
-inline bool message_parser::is_text(char value)
+inline bool message_processor::is_text(char value)
 {
 	// TEXT = <any OCTET except CTLs but including LWS>
 	return !is_ctl(value) || value == SP || value == HT;

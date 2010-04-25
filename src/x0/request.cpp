@@ -39,4 +39,24 @@ void request::set_hostid(const std::string& value)
 	hostid_ = value;
 }
 
+void request::read(const std::function<bool(buffer_ref&&)>& callback)
+{
+	read_callback_ = [&](buffer_ref&& chunk)
+	{
+		DEBUG("request.read@on_content: '%s'", chunk.str().c_str());
+		//connection.request_parser_.abort();
+		//connection.pause();
+		bool rv = callback(std::move(chunk));
+		DEBUG("request.read@on_content: done.");
+		return rv;
+	};
+
+	connection.resume(false);
+}
+
+bool request::expect_content() const
+{
+	return connection.state() != message_processor::MESSAGE_BEGIN;
+}
+
 } // namespace x0

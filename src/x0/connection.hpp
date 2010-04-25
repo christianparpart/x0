@@ -8,12 +8,11 @@
 #ifndef x0_connection_hpp
 #define x0_connection_hpp (1)
 
-#include <x0/request_parser.hpp>
+#include <x0/message_processor.hpp>
 #include <x0/io/sink.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/async_writer.hpp>
 #include <x0/buffer.hpp>
-#include <x0/request.hpp>
 #include <x0/server.hpp>
 #include <x0/property.hpp>
 #include <x0/types.hpp>
@@ -36,11 +35,13 @@ namespace x0 {
 //@{
 
 class connection_sink;
+class request;
 
 /**
  * \brief represents an HTTP connection handling incoming requests.
  */
-class connection
+class connection :
+	public message_processor
 {
 public:
 	connection& operator=(const connection&) = delete;
@@ -55,7 +56,6 @@ public:
 	~connection();
 
 	void start();
-	void resume();
 	void close();
 
 	value_property<bool> secure;				//!< true if this is a secure (HTTPS) connection, false otherwise.
@@ -81,9 +81,18 @@ public:
 #endif
 
 private:
+	friend class request;
 	friend class response;
 	friend class x0::listener;
 	friend class connection_sink;
+
+	virtual void message_begin(buffer_ref&& method, buffer_ref&& entity, int version_major, int version_minor);
+	virtual void message_header(buffer_ref&& name, buffer_ref&& value);
+	virtual bool message_header_done();
+	virtual bool message_content(buffer_ref&& chunk);
+	virtual bool message_end();
+
+	void resume(bool finish);
 
 	void start_read();
 	void resume_read();
@@ -93,13 +102,13 @@ private:
 	void resume_write();
 	void handle_write();
 
-	void parse_request(std::size_t offset, std::size_t count);
+	void process();
+	void check_request_body();
 	void async_write(const source_ptr& buffer, const completion_handler_type& handler);
-	void io_callback(ev::io& w, int revents);
+	void io(ev::io& w, int revents);
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-	void timeout_callback(ev::timer& watcher, int revents);
-	void handle_timeout();
+	void timeout(ev::timer& watcher, int revents);
 #endif
 
 #if defined(WITH_SSL)
@@ -114,35 +123,35 @@ public:
 
 private:
 	x0::listener& listener_;
-	x0::server& server_;					//!< server object owning this connection
+	x0::server& server_;				//!< server object owning this connection
 
-	int socket_;							//!< underlying communication socket
+	int socket_;						//!< underlying communication socket
 	sockaddr_in6 saddr_;
 
-	mutable std::string remote_ip_;			//!< internal cache to client ip
-	mutable int remote_port_;				//!< internal cache to client port
+	mutable std::string remote_ip_;		//!< internal cache to client ip
+	mutable int remote_port_;			//!< internal cache to client port
 
 	// HTTP request
-	buffer buffer_;							//!< buffer for incoming data.
-	request *request_;						//!< currently parsed http request, may be NULL
-	request_parser request_parser_;			//!< http request parser
-	response *response_;					//!< currently processed response object, may be NULL
+	buffer buffer_;						//!< buffer for incoming data.
+	std::size_t next_offset_;			//!< number of bytes in buffer_ successfully processed already.
+	request *request_;					//!< currently parsed http request, may be NULL
+	response *response_;				//!< currently processed response object, may be NULL
 
 	enum {
-		invalid,
-		reading,
-		writing
-	} state_;
+		INVALID,
+		READING,
+		WRITING,
+	} io_state_;
 
 #if defined(WITH_SSL)
-	gnutls_session_t ssl_session_;			//!< SSL (GnuTLS) session handle
+	gnutls_session_t ssl_session_;		//!< SSL (GnuTLS) session handle
 	bool handshaking_;
 #endif
 
 	ev::io watcher_;
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-	ev::timer timer_;						//!< deadline timer for detecting read/write timeouts.
+	ev::timer timer_;					//!< deadline timer for detecting read/write timeouts.
 #endif
 
 #if !defined(NDEBUG)
@@ -175,6 +184,7 @@ inline server& connection::server()
  */
 inline void connection::async_write(const source_ptr& buffer, const completion_handler_type& handler)
 {
+	check_request_body();
 	x0::async_write(this, buffer, handler);
 }
 
