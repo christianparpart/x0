@@ -156,9 +156,9 @@ private:
 	void pass_request();
 
 	void on_connect();
-	void on_response(x0::buffer_ref&&, int, x0::buffer_ref&&);
+	void on_response(int, int, int, x0::buffer_ref&&);
 	void on_header(x0::buffer_ref&&, x0::buffer_ref&&);
-	void on_content(x0::buffer_ref&&);
+	bool on_content(x0::buffer_ref&&);
 	bool on_complete();
 	void content_written(int ec, std::size_t nb);
 
@@ -330,7 +330,7 @@ proxy_connection::proxy_connection(proxy *px) :
 	using namespace std::placeholders;
 
 	client_.on_connect = std::bind(&proxy_connection::on_connect, this);
-	client_.on_response = std::bind(&proxy_connection::on_response, this, _1, _2, _3);
+	client_.on_response = std::bind(&proxy_connection::on_response, this, _1, _2, _3, _4);
 	client_.on_header = std::bind(&proxy_connection::on_header, this, _1, _2);
 	client_.on_content = std::bind(&proxy_connection::on_content, this, _1);
 	client_.on_complete = std::bind(&proxy_connection::on_complete, this);
@@ -345,9 +345,9 @@ void proxy_connection::on_connect()
 	pass_request();
 }
 
-void proxy_connection::on_response(x0::buffer_ref&& protocol, int code, x0::buffer_ref&& text)
+void proxy_connection::on_response(int major, int minor, int code, x0::buffer_ref&& text)
 {
-	TRACE("connection(%p).on_status('%s', %d, '%s')", this, protocol.str().c_str(), code, text.str().c_str());
+	TRACE("connection(%p).on_status(HTTP/%d.%d, %d, '%s')", this, major, minor, code, text.str().c_str());
 	response_->status = code;
 }
 
@@ -370,7 +370,7 @@ void proxy_connection::on_header(x0::buffer_ref&& name, x0::buffer_ref&& value)
 		response_->headers.set(name.str(), value.str());
 }
 
-void proxy_connection::on_content(x0::buffer_ref&& value)
+bool proxy_connection::on_content(x0::buffer_ref&& value)
 {
 	TRACE("connection(%p).on_content(size=%ld)", this, value.size());
 
@@ -378,6 +378,8 @@ void proxy_connection::on_content(x0::buffer_ref&& value)
 
 	response_->write(std::make_shared<x0::buffer_source>(value),
 			std::bind(&proxy_connection::content_written, this, std::placeholders::_1, std::placeholders::_2));
+
+	return true;
 }
 
 bool proxy_connection::on_complete()

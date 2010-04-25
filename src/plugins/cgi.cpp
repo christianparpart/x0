@@ -11,7 +11,7 @@
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
 #include <x0/process.hpp>
-#include <x0/message_parser.hpp>
+#include <x0/message_processor.hpp>
 #include <x0/io/buffer_source.hpp>
 #include <x0/types.hpp>
 #include <x0/sysconfig.h>
@@ -80,7 +80,8 @@
  * 	}
  * \endcode
  */
-class cgi_script
+class cgi_script :
+	public x0::message_processor
 {
 public:
 	cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram = "");
@@ -103,8 +104,8 @@ private:
 	/** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
 	void receive_error(ev::io& w, int revents);
 
-	void assign_header(const x0::buffer_ref& name, const x0::buffer_ref& value);
-	void process_content(const x0::buffer_ref& content);
+	virtual void message_header(const x0::buffer_ref& name, const x0::buffer_ref& value);
+	virtual bool message_content(const x0::buffer_ref& content);
 
 	void content_written(int ec, std::size_t nb);
 
@@ -119,7 +120,6 @@ private:
 	x0::buffer outbuf_;
 	x0::buffer errbuf_;
 
-	x0::message_parser response_parser_;
 	unsigned long long serial_;				//!< used to detect wether the cgi process actually generated a response or not.
 
 	ev::io inwatch_;
@@ -132,13 +132,13 @@ private:
 };
 
 cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram) :
+	message_processor(x0::message_processor::MESSAGE),
 	loop_(in->connection.server().loop()),
 	request_(in),
 	response_(out),
 	hostprogram_(hostprogram),
 	process_(loop_),
 	outbuf_(), errbuf_(),
-	response_parser_(x0::message_parser::MESSAGE),
 	serial_(0),
 	inwatch_(loop_),
 	outwatch_(loop_),
@@ -148,9 +148,6 @@ cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::r
 	destroy_pending_(false)
 {
 	TRACE("cgi_script(path=\"%s\", hostprogram=\"%s\")\n", request_->path.str().c_str(), hostprogram_.c_str());
-
-	response_parser_.on_header = std::bind(&cgi_script::assign_header, this, std::placeholders::_1, std::placeholders::_2);
-	response_parser_.on_content = std::bind(&cgi_script::process_content, this, std::placeholders::_1); // XXX shouldn't be needede
 }
 
 cgi_script::~cgi_script()
@@ -297,7 +294,10 @@ void cgi_script::receive_response(ev::io& /*w*/, int revents)
 		//TRACE("cgi_script.receive_response(): read %d bytes\n", rv);
 
 		outbuf_.resize(lower_bound + rv);
-		response_parser_.parse(outbuf_.ref(lower_bound, rv));
+
+		std::error_code ec;
+		process(outbuf_.ref(lower_bound, rv), ec);
+
 		serial_++;
 	}
 	else if (rv == 0)
@@ -342,9 +342,9 @@ void cgi_script::receive_error(ev::io& /*w*/, int revents)
 	}
 }
 
-void cgi_script::assign_header(const x0::buffer_ref& name, const x0::buffer_ref& value)
+void cgi_script::message_header(const x0::buffer_ref& name, const x0::buffer_ref& value)
 {
-	//TRACE("assign_header(\"%s\", \"%s\")\n", name.str().c_str(), value.str().c_str());
+	//TRACE("message_header(\"%s\", \"%s\")\n", name.str().c_str(), value.str().c_str());
 
 	if (name == "Status")
 	{
@@ -359,7 +359,7 @@ void cgi_script::assign_header(const x0::buffer_ref& name, const x0::buffer_ref&
 	}
 }
 
-void cgi_script::process_content(const x0::buffer_ref& value)
+bool cgi_script::message_content(const x0::buffer_ref& value)
 {
 	//TRACE("process_content(length=%ld) (%s)\n", value.size(), value.str().c_str());
 
@@ -369,6 +369,8 @@ void cgi_script::process_content(const x0::buffer_ref& value)
 		std::make_shared<x0::buffer_source>(value),
 		std::bind(&cgi_script::content_written, this, std::placeholders::_1, std::placeholders::_2)
 	);
+
+	return false;
 }
 
 /** completion handler for the response content stream.
