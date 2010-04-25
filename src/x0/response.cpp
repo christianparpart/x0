@@ -6,6 +6,7 @@
  */
 
 #include <x0/response.hpp>
+#include <x0/request.hpp>
 #include <x0/server.hpp>
 #include <x0/io/file.hpp>
 #include <x0/io/file_source.hpp>
@@ -109,6 +110,7 @@ source_ptr response::serialize()
 			&& !headers.contains("Transfer-Encoding")
 			&& !content_forbidden())
 		{
+			headers.set("Connection", "keep-alive");
 			headers.push_back("Transfer-Encoding", "chunked");
 			filter_chain.push_back(std::make_shared<chunked_encoder>());
 			keepalive = true;
@@ -168,15 +170,13 @@ source_ptr response::serialize()
 	return std::make_shared<buffer_source>(std::move(buffers));
 }
 
-response::response(connection *connection, x0::request *request, int _status) :
+response::response(connection *connection, int _status) :
 	connection_(connection),
-	request_(request),
+	request_(connection_->request_),
 	headers_sent_(false),
 	status(_status),
 	headers()
 {
-	connection_->response_ = this;
-
 	//TRACE("response(%p, conn=%p)", this, connection_);
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
@@ -278,9 +278,9 @@ void response::finished1(int ec)
 	}
 
 	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
-		connection_->resume();
+		connection_->resume(true);
 	else
-		delete connection_;
+		connection_->close();
 }
 
 void response::initialize()

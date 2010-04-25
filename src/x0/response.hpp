@@ -240,7 +240,7 @@ public:
 	 *
 	 * \note this response object takes over ownership of the request object.
 	 */
-	response(connection *connection, x0::request *request, int _status = 0);
+	explicit response(connection *connection, int _status = 0);
 	~response();
 
 	/** retrieves a reference to the corresponding request object. */

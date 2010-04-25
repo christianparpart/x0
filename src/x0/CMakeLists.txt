@@ -70,7 +70,7 @@ set(x0_SRC
 	gai_error.cpp
 	listener.cpp
 	logger.cpp
-	request_parser.cpp
+	message_processor.cpp
 	response.cpp
 	web_client.cpp
 	request.cpp
@@ -103,13 +103,13 @@ set(x0_API
 	listener.hpp
 	local_stream.hpp
 	logger.hpp
+	message_processor.hpp
 	plugin.hpp
 	process.hpp
 	property.hpp
 	range_def.hpp range_def.ipp
 	request.hpp
 	request_handler.hpp
-	request_parser.hpp
 	response.hpp
 	response_parser.hpp
 	server.hpp
