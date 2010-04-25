@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#define TRACE(msg...) DEBUG("example: " msg)
+
 /**
  * \ingroup plugins
  * \brief example content generator plugin
@@ -44,7 +46,7 @@ public:
 		x0::plugin(srv, name)
 	{
 		// register content generator
-		c = server_.generate_content.connect(&example_plugin::example, this);
+		c = server_.generate_content.connect(&example_plugin::hello, this);
 	}
 
 	~example_plugin()
@@ -58,15 +60,40 @@ public:
 	}
 
 private:
-	void example(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void hello(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
 		if (!x0::iequals(in->path, "/hello"))
 			return next(); // pass request to next handler
 
+		if (in->expect_content())
+		{
+			TRACE("content expected");
+			in->read(std::bind(&example_plugin::post, this,
+						std::placeholders::_1, next, in, out));
+		}
+		else
+		{
+			TRACE("NO content expected");
+			out->write(
+				std::make_shared<x0::buffer_source>("Hello, World\n"),
+				std::bind(&example_plugin::done, this, next)
+			);
+		}
+	}
+
+	bool post(x0::buffer_ref&& chunk, x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	{
+		TRACE("post('%s')\n", chunk.str().c_str());
+
+		x0::buffer reply;
+		reply.push_back(chunk);
+		reply.push_back("\r\n");
+
 		out->write(
-			std::make_shared<x0::buffer_source>("Hello, World\n"),
+			std::make_shared<x0::buffer_source>(reply),
 			std::bind(&example_plugin::done, this, next)
 		);
+		return false; // do not continue
 	}
 
 	void done(x0::request_handler::invokation_iterator next)
