@@ -5,7 +5,7 @@
 
 enum class http_error // {{{
 {
-	continue_ = 100,
+	continue_request = 100,
 	switching_protocols = 101,
 	processing = 102,
 
