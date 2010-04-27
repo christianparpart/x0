@@ -108,17 +108,17 @@ class message_processor_test :
 {
 public:
 	CPPUNIT_TEST_SUITE(message_processor_test);
-		//CPPUNIT_TEST(request_simple);
-		//CPPUNIT_TEST(request_complex_lws_headers);
+		CPPUNIT_TEST(request_simple);
+		CPPUNIT_TEST(request_complex_lws_headers);
 		CPPUNIT_TEST(request_no_header);
 
-		//CPPUNIT_TEST(response_simple);
-		//CPPUNIT_TEST(response_sample_304);
-		//CPPUNIT_TEST(response_no_status_text);
+		CPPUNIT_TEST(response_simple);
+		CPPUNIT_TEST(response_sample_304);
+		CPPUNIT_TEST(response_no_status_text);
 
-		//CPPUNIT_TEST(message_chunked_body);
-		//CPPUNIT_TEST(message_content_length);
-		//CPPUNIT_TEST(message_content_recursive);
+		CPPUNIT_TEST(message_chunked_body);
+		CPPUNIT_TEST(message_content_length);
+		CPPUNIT_TEST(message_content_recursive);
 	CPPUNIT_TEST_SUITE_END();
 
 private:
