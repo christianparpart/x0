@@ -84,7 +84,23 @@ private:
 	bool post(x0::buffer_ref&& chunk, x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
 		TRACE("post('%s')\n", chunk.str().c_str());
+#if 0
+		if (chunk.empty())
+		{
+			next.done();
+			return false;
+		}
 
+		x0::buffer reply;
+		reply.push_back(chunk);
+		reply.push_back("\r\n");
+
+		out->write(
+			std::make_shared<x0::buffer_source>(reply),
+			std::bind(&example_plugin::post, this, next, in, out)
+		);
+		return true;
+#else
 		x0::buffer reply;
 		reply.push_back(chunk);
 		reply.push_back("\r\n");
@@ -93,7 +109,8 @@ private:
 			std::make_shared<x0::buffer_source>(reply),
 			std::bind(&example_plugin::done, this, next)
 		);
-		return false; // do not continue
+		return false;
+#endif
 	}
 
 	void done(x0::request_handler::invokation_iterator next)

@@ -397,8 +397,9 @@ void web_client::read_some()
 		TRACE("read response: %ld bytes", rv);
 		response_buffer_.resize(lower_bound + rv);
 
-		std::error_code ec;
-		process(response_buffer_.ref(lower_bound, rv), ec);
+		std::size_t np = 0;
+		std::error_code ec = process(response_buffer_.ref(lower_bound, rv), np);
+		TRACE("read_some@process: %s", ec.message().c_str());
 	}
 	else if (rv == 0)
 	{
