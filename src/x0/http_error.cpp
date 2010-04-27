@@ -17,7 +17,7 @@ private:
 		for (std::size_t i = 0; i < sizeof(codes_) / sizeof(*codes_); ++i)
 			codes_[i] = "Undefined";
 
-		set(http_error::continue_, "Continue");
+		set(http_error::continue_request, "Continue");
 		set(http_error::switching_protocols, "Switching Protocols");
 		set(http_error::processing, "Processing");
 
