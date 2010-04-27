@@ -42,6 +42,7 @@ connection::connection(x0::listener& lst) :
 	remote_ip_(),
 	remote_port_(0),
 	buffer_(8192),
+	next_offset_(0),
 	request_(new request(*this)),
 	response_(0),
 	io_state_(INVALID),
@@ -343,7 +344,7 @@ bool connection::message_header_done()
 		response_->finish();
 	}
 
-	return false;
+	return true;
 }
 
 bool connection::message_content(buffer_ref&& chunk)
@@ -384,9 +385,9 @@ void connection::resume(bool finish)
 		assert(state() == message_processor::MESSAGE_BEGIN);
 	}
 
-	if (next_offset() && next_offset() < buffer_.size()) // HTTP pipelining
+	if (next_offset_ && next_offset_ < buffer_.size()) // HTTP pipelining
 	{
-		TRACE("resume(): pipelined %ld bytes", buffer_.size() - next_offset());
+		TRACE("resume(): pipelined %ld bytes", buffer_.size() - next_offset_);
 		process();
 	}
 	else
@@ -395,6 +396,7 @@ void connection::resume(bool finish)
 
 		if (finish)
 		{
+			next_offset_ = 0;
 			buffer_.clear();
 			clear();
 		}
@@ -541,8 +543,11 @@ void connection::handle_read()
 	{
 		TRACE("connection::handle_read(): read %d bytes", rv);
 
-		buffer_.resize(next_offset() + rv);
+		buffer_.resize(buffer_.size() + rv);
 		process();
+
+		if (socket_ < 0)
+			delete this;
 	}
 }
 
@@ -555,12 +560,12 @@ void connection::close()
 	{
 		case INVALID:
 			// we've got invoked from within connection_open()-hook (within the connection::start()-call)
+			/* fall through */
+		case READING:
+		case WRITING:
 			::close(socket_);
 			socket_ = -1;
 			break;
-		case READING:
-		case WRITING:
-			delete this;
 			break;
 	}
 }
@@ -569,15 +574,15 @@ void connection::close()
  */
 void connection::process()
 {
-	std::error_code ec;
-	std::size_t nparsed = message_processor::process(buffer_.ref(next_offset(), buffer_.size() - next_offset()), ec);
-	TRACE("process: nparsed=%ld, ec=%s", nparsed, ec.message().c_str());
+	TRACE("process: next_offset=%ld, size=%ld", next_offset_, buffer_.size());
 
-	if (!ec)
-	{
-		buffer_.resize(buffer_.size() + nparsed);
-	}
-	else if (ec == http_message_error::partial)
+	std::error_code ec = message_processor::process(
+			buffer_.ref(next_offset_, buffer_.size() - next_offset_),
+			next_offset_);
+
+	TRACE("process: ec=%s", ec.message().c_str());
+
+	if (ec == http_message_error::partial)
 	{
 		start_read();
 	}
@@ -585,9 +590,6 @@ void connection::process()
 	{
 		// -> send stock response: BAD_REQUEST
 		(response_ = new response(this, response::bad_request))->finish();
-	}
-	else
-	{
 	}
 }
 

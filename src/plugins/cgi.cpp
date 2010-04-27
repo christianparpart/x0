@@ -295,8 +295,9 @@ void cgi_script::receive_response(ev::io& /*w*/, int revents)
 
 		outbuf_.resize(lower_bound + rv);
 
-		std::error_code ec;
-		process(outbuf_.ref(lower_bound, rv), ec);
+		std::size_t np = 0;
+		std::error_code ec = process(outbuf_.ref(lower_bound, rv), np);
+		TRACE("receive_response@process: %s", ec.message().c_str());
 
 		serial_++;
 	}

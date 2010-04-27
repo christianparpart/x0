@@ -69,7 +69,7 @@ public:
 
 	// content management
 	bool expect_content() const;
-	void read(const std::function<bool(buffer_ref&&)>& callback);
+	void read(std::function<bool(buffer_ref&&)> callback);
 
 private:
 	mutable std::string hostid_;

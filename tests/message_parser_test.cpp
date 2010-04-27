@@ -24,19 +24,25 @@ public:
 	{
 	}
 
-	std::size_t process(buffer_ref&& chunk, std::error_code& ec)
+	std::error_code process(buffer_ref&& chunk)
 	{
-		return message_processor::process(std::move(chunk), ec);
+		std::size_t np = 0;
+		return process(std::move(chunk), np);
 	}
 
-	std::size_t process(buffer_ref&& chunk)
+	std::error_code process(buffer_ref&& chunk, std::size_t& np)
 	{
 		std::error_code ec;
-		std::size_t nparsed = message_processor::process(std::move(chunk), ec);
-		if (ec)
-			DEBUG("process: nparsed=%ld; ec=%s; '%s'", nparsed, ec.message().c_str(), chunk.begin() + nparsed);
+		ec = message_processor::process(std::move(chunk), np);
 
-		return nparsed;
+		if (ec)
+			DEBUG("process: nparsed=%ld/%ld; state=%s; ec=%s; '%s'",
+					np, chunk.size(), state_str(), ec.message().c_str(), chunk.begin() + np);
+		else
+			DEBUG("process: nparsed=%ld/%ld; state=%s; ec=%s",
+					np, chunk.size(), state_str(), ec.message().c_str());
+
+		return ec;
 	}
 
 	std::function<void(buffer_ref&&, buffer_ref&&, int, int)> on_request;
@@ -102,17 +108,17 @@ class message_processor_test :
 {
 public:
 	CPPUNIT_TEST_SUITE(message_processor_test);
-		CPPUNIT_TEST(request_simple);
-		CPPUNIT_TEST(request_complex_lws_headers);
+		//CPPUNIT_TEST(request_simple);
+		//CPPUNIT_TEST(request_complex_lws_headers);
+		CPPUNIT_TEST(request_no_header);
 
-		CPPUNIT_TEST(response_simple);
-		CPPUNIT_TEST(response_sample_304);
-		CPPUNIT_TEST(response_no_status_text);
-		CPPUNIT_TEST(response_no_header);
+		//CPPUNIT_TEST(response_simple);
+		//CPPUNIT_TEST(response_sample_304);
+		//CPPUNIT_TEST(response_no_status_text);
 
-		CPPUNIT_TEST(message_chunked_body);
-		CPPUNIT_TEST(message_content_length);
-		CPPUNIT_TEST(message_content_recursive);
+		//CPPUNIT_TEST(message_chunked_body);
+		//CPPUNIT_TEST(message_content_length);
+		//CPPUNIT_TEST(message_content_recursive);
 	CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -176,10 +182,11 @@ private:
 			"\r\n"
 			"hello world"
 		);
-		std::error_code ec;
-		std::size_t nparsed = rp.process(r, ec);
 
-		CPPUNIT_ASSERT(nparsed == r.size());
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
+
+		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(!ec);
 	}
 
@@ -203,11 +210,11 @@ private:
 			return true;
 		};
 
-		std::error_code ec;
-		std::size_t nparsed = rp.process(r, ec);
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(!ec);
-		CPPUNIT_ASSERT(nparsed == r.size());
+		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(on_complete_invoked == true);
 	}
 
@@ -262,9 +269,10 @@ private:
 			"some-body"
 		);
 
-		std::size_t nparsed = rp.process(r);
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
 
-		CPPUNIT_ASSERT(nparsed == r.size());
+		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(body_count == 1);
 	}
 
@@ -302,41 +310,71 @@ private:
 			"\r\n"
 			"some body"
 		);
-		std::size_t nparsed = rp.process(r);
 
-		CPPUNIT_ASSERT(nparsed = r.size());
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
+
+		CPPUNIT_ASSERT(np = r.size());
 		CPPUNIT_ASSERT(body_count == 1);
 	}
 
-	void response_no_header()
+	void request_no_header()
 	{
-		message_processor_component rp(message_processor::RESPONSE);
+		message_processor_component rp(message_processor::REQUEST);
 
-		rp.on_status = [&](int vmajor, int vminor, int code, const buffer_ref& text)
+		int request_count = 0;
+		rp.on_request = [&](buffer_ref&& method, buffer_ref&& url, int major, int minor)
 		{
-			CPPUNIT_ASSERT(vmajor == 1);
-			CPPUNIT_ASSERT(vminor == 1);
-			CPPUNIT_ASSERT(code == 200);
-			CPPUNIT_ASSERT(text == "");
+			switch (++request_count)
+			{
+				case 1:
+					CPPUNIT_ASSERT(method == "GET");
+					CPPUNIT_ASSERT(url == "/");
+					CPPUNIT_ASSERT(major == 1);
+					CPPUNIT_ASSERT(minor == 1);
+					break;
+				case 2:
+					CPPUNIT_ASSERT(method == "DELETE");
+					CPPUNIT_ASSERT(url == "/foo/bar");
+					CPPUNIT_ASSERT(major == 1);
+					CPPUNIT_ASSERT(minor == 1);
+					break;
+				default:
+					CPPUNIT_ASSERT(0 == "Too many requests.");
+					break;
+			}
 		};
 
 		rp.on_header = [&](const buffer_ref& name, const buffer_ref& value)
 		{
-			CPPUNIT_ASSERT(0 == "there shall be no headers");
+			CPPUNIT_ASSERT(0 == "no headers expected");
+		};
+
+		int on_header_done_invoked = 0;
+		rp.on_header_done = [&]()
+		{
+			++on_header_done_invoked;
+			return true;
 		};
 
 		rp.on_content = [&](const buffer_ref& content)
 		{
-			CPPUNIT_ASSERT(content == "some body");
+			CPPUNIT_ASSERT(0 == "no content expected");
 			return true;
 		};
 
 		buffer r(
-			"HTTP/1.1 200\r\n"
+			"GET / HTTP/1.1\r\n"
 			"\r\n"
-			"some body"
+			"DELETE /foo/bar HTTP/1.1\r\n"
+			"\r\n"
 		);
-		rp.process(r);
+
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
+
+		CPPUNIT_ASSERT(np == r.size());
+		CPPUNIT_ASSERT(!ec);
 	}
 
 private: // message tests
@@ -377,8 +415,11 @@ private: // message tests
 			return false;
 		};
 
-		std::size_t rv = rp.process(r);
-		CPPUNIT_ASSERT(rv == r.size() - 7);
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
+
+		CPPUNIT_ASSERT(np == r.size() - 7);
+		CPPUNIT_ASSERT(ec == http_message_error::aborted);
 	}
 
 	void message_content_length()
@@ -402,8 +443,11 @@ private: // message tests
 			return false;
 		};
 
-		std::size_t rv = rp.process(r);
-		CPPUNIT_ASSERT(rv == r.size() - 7);
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
+
+		CPPUNIT_ASSERT(np == r.size() - 7);
+		CPPUNIT_ASSERT(ec == http_message_error::aborted);
 	}
 
 	void message_content_recursive()
@@ -418,9 +462,12 @@ private: // message tests
 
 		rp.on_header_done = [&]()
 		{
-			std::size_t nbytes = rp.process(r.ref(rp.next_offset(), r.size() - rp.next_offset()));
-			DEBUG("nbytes = %ld", nbytes);
-			CPPUNIT_ASSERT(nbytes == 9);
+			std::size_t np = 0;
+			std::error_code ec = rp.process(r.ref(rp.next_offset(), r.size() - rp.next_offset()), np);
+
+			CPPUNIT_ASSERT(np == 9);
+			CPPUNIT_ASSERT(!ec);
+
 			return false;
 		};
 
@@ -433,11 +480,14 @@ private: // message tests
 
 		rp.on_complete = [&]()
 		{
-			return false;
+			return true;
 		};
 
-		std::size_t rv = rp.process(r);
-		CPPUNIT_ASSERT(rv == r.size() - 9);
+		std::size_t np = 0;
+		std::error_code ec = rp.process(r, np);
+
+		CPPUNIT_ASSERT(np == r.size() - 9);
+		CPPUNIT_ASSERT(ec == http_message_error::aborted); // cancelled parsing at header-done state
 	}
 };
 
