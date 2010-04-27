@@ -486,6 +486,9 @@ void connection::handle_write()
 	if (write_some)
 		write_some(this);
 #endif
+
+	if (socket_ < 0)
+		delete this;
 }
 
 void connection::check_request_body()
