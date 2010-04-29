@@ -119,6 +119,7 @@ public:
 		CPPUNIT_TEST(message_chunked_body);
 		CPPUNIT_TEST(message_content_length);
 		CPPUNIT_TEST(message_content_recursive);
+		CPPUNIT_TEST(message_multi);
 	CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -459,14 +460,17 @@ private: // message tests
 		);
 
 		message_processor_component rp(message_processor::MESSAGE);
+		std::size_t np = 0;
 
 		rp.on_header_done = [&]()
 		{
-			std::size_t np = 0;
-			std::error_code ec = rp.process(r.ref(rp.next_offset(), r.size() - rp.next_offset()), np);
+			std::size_t npl = 0;
+			std::error_code ec = rp.process(r.ref(np, r.size() - np), npl);
 
-			CPPUNIT_ASSERT(np == 9);
+			CPPUNIT_ASSERT(npl == 9);
 			CPPUNIT_ASSERT(!ec);
+
+			np += npl;
 
 			return false;
 		};
@@ -483,11 +487,34 @@ private: // message tests
 			return true;
 		};
 
-		std::size_t np = 0;
 		std::error_code ec = rp.process(r, np);
 
-		CPPUNIT_ASSERT(np == r.size() - 9);
+		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(ec == http_message_error::aborted); // cancelled parsing at header-done state
+	}
+
+	void message_multi()
+	{
+		buffer r(
+			"Content-Length: 11\r\n"
+			"\r\n"
+			"some body\r\n"
+			"Content-Length: 12\r\n"
+			"\r\n"
+			"some body2\r\n"
+		);
+
+		std::size_t np = 0;
+		std::size_t count = 0;
+
+		message_processor_component rp(message_processor::MESSAGE);
+		rp.on_complete = [&]() { ++count; return true; };
+
+		std::error_code ec = rp.process(r, np);
+
+		CPPUNIT_ASSERT(np == r.size());
+		CPPUNIT_ASSERT(ec == http_message_error::success);
+		CPPUNIT_ASSERT(count == 2);
 	}
 };
 
