@@ -750,6 +750,7 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 						reset();
 
 					next_offset_ = ++offset;
+					++offset;
 					++i;
 
 					ofp = offset_base + offset;
