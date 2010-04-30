@@ -136,9 +136,6 @@ public:
 	const char *state_str() const;
 
 	std::error_code process(buffer_ref&& chunk, std::size_t& nparsed);
-	std::size_t next_offset() const;
-
-	void clear();
 
 private:
 	void reset();
@@ -160,7 +157,6 @@ private:
 
 	mode_type mode_;
 	enum state state_;
-	std::size_t next_offset_;
 
 	// request-line
 	buffer_ref method_;
@@ -206,7 +202,6 @@ namespace x0 {
 inline message_processor::message_processor(mode_type mode) :
 	mode_(mode),
 	state_(MESSAGE_BEGIN),
-	next_offset_(0),
 	method_(),
 	entity_(),
 	version_major_(0),
@@ -226,20 +221,9 @@ inline enum message_processor::state message_processor::state() const
 	return state_;
 }
 
-inline std::size_t message_processor::next_offset() const
-{
-	return next_offset_;
-}
-
-inline void message_processor::clear()
-{
-	reset();
-	next_offset_ = 0;
-}
-
 inline void message_processor::reset()
 {
-	TRACE("reset(next_offset=%ld): last_state=%s", next_offset_, state_str());
+	TRACE("reset(): last_state=%s", state_str());
 
 	version_major_ = 0;
 	version_minor_ = 0;

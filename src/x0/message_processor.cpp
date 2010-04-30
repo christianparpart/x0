@@ -420,7 +420,6 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 				if (*i == LF)
 				{
 					state_ = HEADER_NAME_BEGIN;
-					next_offset_ = offset;
 					++offset;
 					++i;
 
@@ -749,7 +748,6 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 					else
 						reset();
 
-					next_offset_ = ++offset;
 					++offset;
 					++i;
 
@@ -897,7 +895,6 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 						return make_error_code(http_message_error::aborted);
 
 					reset();
-					next_offset_ = offset;
 				}
 				break;
 			case SYNTAX_ERROR:
@@ -915,8 +912,6 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 		}
 	}
 	// we've reached the end of the chunk
-
-	next_offset_ = offset;
 
 	if (state_ == CONTENT_BEGIN)
 	{
