@@ -376,6 +376,8 @@ void connection::resume(bool finish)
 
 	if (finish)
 	{
+		assert(state() == message_processor::MESSAGE_BEGIN);
+
 		delete response_;
 		response_ = 0;
 
@@ -383,8 +385,6 @@ void connection::resume(bool finish)
 		request_ = 0;
 
 		request_ = new request(*this);
-
-		assert(state() == message_processor::MESSAGE_BEGIN);
 	}
 
 	if (next_offset_ && next_offset_ < buffer_.size()) // HTTP pipelining
@@ -395,13 +395,6 @@ void connection::resume(bool finish)
 	else
 	{
 		TRACE("resume(): start read");
-
-		if (finish)
-		{
-			next_offset_ = 0;
-			buffer_.clear();
-		}
-
 		start_read();
 	}
 }
@@ -584,17 +577,22 @@ void connection::process()
 			buffer_.ref(next_offset_, buffer_.size() - next_offset_),
 			next_offset_);
 
-	TRACE("process: next_offset_=%ld, ec=%s (after processing)", next_offset_, ec.message().c_str());
+	TRACE("process: next_offset_=%ld, bs=%ld, ec=%s, state=%s (after processing)",
+			next_offset_, buffer_.size(), ec.message().c_str(), state_str());
 
-	if (ec == http_message_error::partial)
+	if (state() == message_processor::MESSAGE_BEGIN)
 	{
-		start_read();
+		next_offset_ = 0;
+		buffer_.clear();
 	}
+
+	if (!ec)
+		start_read();
+	else if (ec == http_message_error::partial)
+		start_read();
 	else if (ec != http_message_error::aborted)
-	{
 		// -> send stock response: BAD_REQUEST
 		(response_ = new response(this, response::bad_request))->finish();
-	}
 }
 
 std::string connection::remote_ip() const
