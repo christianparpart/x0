@@ -1,4 +1,4 @@
-/* <x0/mod_example.cpp>
+/* <hello.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
@@ -23,13 +23,13 @@
 #include <unistd.h>
 #include <dirent.h>
 
-#define TRACE(msg...) DEBUG("example: " msg)
+#define TRACE(msg...) DEBUG("hello: " msg)
 
 /**
  * \ingroup plugins
  * \brief example content generator plugin
  */
-class example_plugin :
+class hello_plugin :
 	public x0::plugin
 {
 private:
@@ -42,14 +42,14 @@ private:
 	};
 
 public:
-	example_plugin(x0::server& srv, const std::string& name) :
+	hello_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
 		// register content generator
-		c = server_.generate_content.connect(&example_plugin::hello, this);
+		c = server_.generate_content.connect(&hello_plugin::hello, this);
 	}
 
-	~example_plugin()
+	~hello_plugin()
 	{
 		c.disconnect(); // optional, as it gets invoked on ~connection(), too.
 	}
@@ -62,55 +62,53 @@ public:
 private:
 	void hello(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
-		if (!x0::iequals(in->path, "/hello"))
+		if (!x0::equals(in->path, "/hello"))
 			return next(); // pass request to next handler
 
-		if (in->expect_content())
+		out->status = 200;
+		out->headers.set("Hello", "World");
+
+		if (in->content_available())
 		{
 			TRACE("content expected");
-			in->read(std::bind(&example_plugin::post, this,
-						std::placeholders::_1, next, in, out));
+			in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, next, in, out));
 		}
 		else
 		{
 			TRACE("NO content expected");
 			out->write(
 				std::make_shared<x0::buffer_source>("Hello, World\n"),
-				std::bind(&example_plugin::done, this, next)
+				std::bind(&hello_plugin::done, this, next)
 			);
 		}
 	}
 
-	bool post(x0::buffer_ref&& chunk, x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void post_next(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	{
+
+		if (!in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, next, in, out)))
+		{
+			TRACE("request content processing: continue");
+			return next.done();
+		}
+		else
+			TRACE("request content processing: finished");
+	}
+
+	void post(x0::buffer_ref&& chunk, x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
 		TRACE("post('%s')\n", chunk.str().c_str());
-#if 0
 		if (chunk.empty())
-		{
-			next.done();
-			return false;
-		}
+			return next.done();
 
 		x0::buffer reply;
 		reply.push_back(chunk);
-		reply.push_back("\r\n");
+	//	reply.push_back("\r\n");
 
 		out->write(
 			std::make_shared<x0::buffer_source>(reply),
-			std::bind(&example_plugin::post, this, next, in, out)
+			std::bind(&hello_plugin::post_next, this, next, in, out)
 		);
-		return true;
-#else
-		x0::buffer reply;
-		reply.push_back(chunk);
-		reply.push_back("\r\n");
-
-		out->write(
-			std::make_shared<x0::buffer_source>(reply),
-			std::bind(&example_plugin::done, this, next)
-		);
-		return false;
-#endif
 	}
 
 	void done(x0::request_handler::invokation_iterator next)
@@ -121,4 +119,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(example);
+X0_EXPORT_PLUGIN(hello);
