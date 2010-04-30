@@ -68,12 +68,14 @@ public:
 	void set_hostid(const std::string& custom);
 
 	// content management
-	bool expect_content() const;
-	void read(std::function<bool(buffer_ref&&)> callback);
+	bool content_available() const;
+	bool read(const std::function<void(buffer_ref&&)>& callback);
 
 private:
 	mutable std::string hostid_;
-	std::function<bool(buffer_ref&&)> read_callback_;
+	std::function<void(buffer_ref&&)> read_callback_;
+
+	void on_read(buffer_ref&& chunk);
 
 	friend class connection;
 };

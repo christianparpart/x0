@@ -351,8 +351,7 @@ bool connection::message_content(buffer_ref&& chunk)
 {
 	TRACE("message_content()");
 
-	if (request_->read_callback_)
-		request_->read_callback_(std::move(chunk));
+	request_->on_read(std::move(chunk));
 
 	return false;
 }
@@ -360,7 +359,10 @@ bool connection::message_content(buffer_ref&& chunk)
 bool connection::message_end()
 {
 	TRACE("message_end()");
-	return false;
+
+	request_->on_read(buffer_ref());
+
+	return true;
 }
 
 /** Resumes async operations.
@@ -398,7 +400,6 @@ void connection::resume(bool finish)
 		{
 			next_offset_ = 0;
 			buffer_.clear();
-			clear();
 		}
 
 		start_read();
@@ -577,13 +578,13 @@ void connection::close()
  */
 void connection::process()
 {
-	TRACE("process: next_offset=%ld, size=%ld", next_offset_, buffer_.size());
+	TRACE("process: next_offset=%ld, size=%ld (before processing)", next_offset_, buffer_.size());
 
 	std::error_code ec = message_processor::process(
 			buffer_.ref(next_offset_, buffer_.size() - next_offset_),
 			next_offset_);
 
-	TRACE("process: ec=%s", ec.message().c_str());
+	TRACE("process: next_offset_=%ld, ec=%s (after processing)", next_offset_, ec.message().c_str());
 
 	if (ec == http_message_error::partial)
 	{
