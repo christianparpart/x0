@@ -150,6 +150,13 @@ endif(BUILD_TESTS)
 #endif(BUILD_STATIC)
 
 # ---------------------------------------------------------------------------
+macro(x0_plugin ModuleName)
+	add_library(${ModuleName} MODULE ${ModuleName}.cpp)
+	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
+	install(TARGETS ${ModuleName} DESTINATION ${LIBDIR}/x0)
+endmacro()
+
+# ---------------------------------------------------------------------------
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
 add_definitions(-DHAVE_SYSCONFIG_H)
 
