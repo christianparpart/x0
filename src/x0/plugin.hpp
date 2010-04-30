@@ -104,7 +104,7 @@ protected:
 	X0_EXPORT_PLUGIN_CLASS(pluginName, pluginName##_plugin)
 
 #define X0_EXPORT_PLUGIN_CLASS(pluginName, className) \
-	extern "C" x0::plugin *pluginName##_init(x0::server& srv, const std::string& name) { \
+	extern "C" x0::plugin *x0plugin_init(x0::server& srv, const std::string& name) { \
 		return new className(srv, name); \
 	}
 

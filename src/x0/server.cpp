@@ -98,7 +98,7 @@ server::server(struct ::ev_loop *loop) :
 	using namespace std::placeholders;
 	register_cvar_server("Log", std::bind(&server::setup_logging, this, _1), -7);
 	register_cvar_server("Resources", std::bind(&server::setup_resources, this, _1), -6);
-	register_cvar_server("Modules", std::bind(&server::setup_modules, this, _1), -5);
+	register_cvar_server("Plugins", std::bind(&server::setup_modules, this, _1), -5);
 	register_cvar_server("ErrorDocuments", std::bind(&server::setup_error_documents, this, _1), -4);
 	register_cvar_server("FileInfo", std::bind(&server::setup_fileinfo, this, _1), -4);
 	register_cvar_server("Hosts", std::bind(&server::setup_hosts, this, _1), -3);
@@ -582,13 +582,18 @@ typedef plugin *(*plugin_create_t)(server&, const std::string&);
 void server::load_plugin(const std::string& name)
 {
 	std::string plugindir_(".");
-	settings_.load("Modules.Directory", plugindir_);
+	settings_.load("Plugins.Directory", plugindir_);
 
 	if (!plugindir_.empty() && plugindir_[plugindir_.size() - 1] != '/')
 		plugindir_ += "/";
 
-	std::string filename(plugindir_ + name + ".so");
-	std::string plugin_create_name(name + "_init");
+	std::string filename;
+	if (name.find('/') != std::string::npos)
+		filename = plugindir_ + name + ".so";
+	else
+		filename = plugindir_ + name + ".so";
+
+	std::string plugin_create_name("x0plugin_init");
 
 	log(severity::notice, "Loading plugin %s", filename.c_str());
 
