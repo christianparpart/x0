@@ -139,7 +139,7 @@ public:
 
 private:
 	void reset();
-	bool pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed);
+	bool pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp);
 
 	static bool is_char(char value);
 	static bool is_ctl(char value);
