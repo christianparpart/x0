@@ -240,11 +240,8 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 
 	if (state_ == CONTENT)
 	{
-		if (!pass_content(std::move(chunk), ec, offset))
-		{
-			ofp += offset;
+		if (!pass_content(std::move(chunk), ec, offset, ofp))
 			return ec;
-		}
 
 		i += offset;
 	}
@@ -777,11 +774,8 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 				std::size_t nparsed = 0;
 
 				ofp = offset_base + offset;
-				if (!pass_content(chunk.ref(offset), ec, nparsed))
-				{
-					ofp += nparsed;
+				if (!pass_content(chunk.ref(offset), ec, nparsed, ofp))
 					return make_error_code(http_message_error::aborted);
-				}
 
 				offset += nparsed;
 				i += nparsed;
@@ -845,11 +839,8 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 					std::size_t nparsed = 0;
 
 					ofp = offset_base + offset;
-					if (!pass_content(chunk.ref(offset), ec, nparsed))
-					{
-						ofp += nparsed;
+					if (!pass_content(chunk.ref(offset), ec, nparsed, ofp))
 						return make_error_code(http_message_error::aborted);
-					}
 
 					offset += nparsed;
 					i += nparsed;
@@ -938,7 +929,7 @@ std::error_code message_processor::process(buffer_ref&& chunk, std::size_t& ofp)
 		return make_error_code(http_message_error::success);
 }
 
-bool message_processor::pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed)
+bool message_processor::pass_content(buffer_ref&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp)
 {
 	if (content_length_ > 0)
 	{
@@ -947,6 +938,7 @@ bool message_processor::pass_content(buffer_ref&& chunk, std::error_code& ec, st
 		if (chunk.size() > static_cast<std::size_t>(content_length_))
 			c.shr(-(c.size() - content_length_));
 
+		ofp += c.size();
 		nparsed += c.size();
 		content_length_ -= c.size();
 
@@ -990,6 +982,7 @@ bool message_processor::pass_content(buffer_ref&& chunk, std::error_code& ec, st
 	}
 	else if (content_length_ < 0)
 	{
+		ofp += chunk.size();
 		nparsed += chunk.size();
 
 		if (filter_chain_.empty())
