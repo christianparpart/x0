@@ -18,6 +18,7 @@
 #include <x0/types.hpp>
 #include <x0/property.hpp>
 #include <x0/io/fileinfo_service.hpp>
+#include <x0/library.hpp>
 #include <x0/api.hpp>
 #include <x0/sysconfig.h>
 
@@ -59,7 +60,7 @@ class server :
 	public boost::noncopyable
 {
 private:
-	typedef std::pair<plugin_ptr, void *> plugin_value_t;
+	typedef std::pair<plugin_ptr, library> plugin_value_t;
 	typedef std::map<std::string, plugin_value_t> plugin_map_t;
 
 public:

@@ -68,6 +68,7 @@ set(x0_SRC
 	context.cpp
 	http_error.cpp
 	gai_error.cpp
+	library.cpp
 	listener.cpp
 	logger.cpp
 	message_processor.cpp
@@ -100,6 +101,7 @@ set(x0_API
 	function.hpp
 	handler.hpp
 	header.hpp
+	library.hpp
 	listener.hpp
 	local_stream.hpp
 	logger.hpp
