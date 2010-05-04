@@ -3,6 +3,16 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
+- allow multiple search paths for plugins *or* a way in specifying path to the plugin directly.
+	Plugins = {
+		DefaultPath = './plugins/',
+		Load = {
+			'sendfile.so',
+			'echo_example.so',
+			'hello_example.so',
+			'../path/to/foo.so',
+		};
+	};
 - verify proxy plugin / web_client
 - fix HTTP POST content (req. for yacs)
 - fuck up exceptions in favor of std::error_code (in core and plugins)
@@ -10,6 +20,7 @@ QUALITY ASSURANCE TODO:
   - web_client: web_client_error { ... };
 - drop server context API (no need for it, plugins can store fields as a member, too)
 - fix crash caused with proxy enabled (www.irony-of-fate.de)
+- encapsulate ev::timer into an x0::timer (inline) to ease switching backends (e.g. to asio)
 - colorize (optional) help print output
 - VERIFY: flexibility of configuration system
 	- plugins/core should provide an abstract layer to the config backend, in a way, that they do not need
