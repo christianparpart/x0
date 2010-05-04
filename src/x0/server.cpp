@@ -13,6 +13,7 @@
 #include <x0/request.hpp>
 #include <x0/response.hpp>
 #include <x0/strutils.hpp>
+#include <x0/library.hpp>
 #include <x0/ansi_color.hpp>
 #include <x0/sysconfig.h>
 
@@ -37,7 +38,6 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
 #include <sys/time.h>
 #include <pwd.h>
 #include <grp.h>
-#include <dlfcn.h>
 #include <getopt.h>
 
 namespace x0 {
@@ -597,25 +597,27 @@ void server::load_plugin(const std::string& name)
 
 	log(severity::notice, "Loading plugin %s", filename.c_str());
 
-	if (void *handle = dlopen(filename.c_str(), RTLD_GLOBAL | RTLD_NOW))
+	library lib;
+	std::error_code ec = lib.open(filename);
+	if (lib.is_open())
 	{
-		plugin_create_t plugin_create = reinterpret_cast<plugin_create_t>(dlsym(handle, plugin_create_name.c_str()));
+		plugin_create_t plugin_create = reinterpret_cast<plugin_create_t>(lib.resolve(plugin_create_name, ec));
 
 		if (plugin_create)
 		{
 			plugin_ptr plugin = plugin_ptr(plugin_create(*this, name));
-			plugins_[name] = plugin_value_t(plugin, handle);
+			plugins_[name] = plugin_value_t(plugin, std::move(lib));
 		}
 		else
 		{
-			std::string msg(fstringbuilder::format("error loading plugin '%s' %s", name.c_str(), dlerror()));
-			dlclose(handle);
+			std::string msg(fstringbuilder::format("error loading plugin '%s' %s", name.c_str(), ec.message().c_str()));
+			lib.close();
 			throw std::runtime_error(msg);
 		}
 	}
 	else
 	{
-		throw std::runtime_error(fstringbuilder::format("Cannot load plugin '%s'. %s", name.c_str(), dlerror()));
+		throw std::runtime_error(fstringbuilder::format("Cannot load plugin '%s'. %s", name.c_str(), ec.message().c_str()));
 	}
 }
 
@@ -629,7 +631,7 @@ void server::unload_plugin(const std::string& name)
 		i->second.first = plugin_ptr();
 
 		// close system handle
-		dlclose(i->second.second);
+		i->second.second.close();
 
 		plugins_.erase(i);
 	}
