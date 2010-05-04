@@ -87,12 +87,12 @@ endif(HAVE_BZLIB_H)
 # libev
 set(LIBEV_LIBS ev)
 
-#if (DEFINED PREFIX)
-#	set(PREFIX ${PREFIX} CACHE PATH "installation prefix")
-#	set(CMAKE_INSTALL_PREFIX ${PREFIX})
-#else()
-#	set(PREFIX ${CMAKE_INSTALL_PREFIX} CACHE PATH "installation prefix")
-#endif()
+if (DEFINED CMAKE_INSTALL_PREFIX)
+	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
+	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "path to library includes")
+	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path to program libraries")
+	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "run-time state directory")
+endif()
 
 if (DEFINED SYSCONFDIR)
 	set(SYSCONFDIR ${SYSCONFDIR} CACHE PATH "configuration directory")
