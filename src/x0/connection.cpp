@@ -372,7 +372,7 @@ bool connection::message_end()
  */
 void connection::resume(bool finish)
 {
-	TRACE("connection(%p).resume(finish=%s)", this, finish ? "true" : "false");
+	TRACE("connection(%p).resume(finish=%s): state=%s", this, finish ? "true" : "false", state_str());
 
 	if (finish)
 	{
@@ -487,10 +487,10 @@ void connection::handle_write()
 
 void connection::check_request_body()
 {
-	if (state() == message_processor::MESSAGE_BEGIN)
-		return;
+	//if (state() == message_processor::MESSAGE_BEGIN)
+	//	return;
 
-	TRACE("request body not (yet) fully consumed: state=%s", state_str());
+	//TRACE("request body not (yet) fully consumed: state=%s", state_str());
 }
 
 /**
