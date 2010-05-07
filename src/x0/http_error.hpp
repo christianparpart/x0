@@ -61,6 +61,8 @@ const std::error_category& http_category() throw();
 std::error_code make_error_code(http_error ec);
 std::error_condition make_error_condition(http_error ec);
 
+bool content_forbidden(http_error code);
+
 namespace std {
 	// implicit conversion from http_error to error_code
 	template<> struct is_error_code_enum<http_error> : public true_type {};
@@ -76,6 +78,22 @@ inline std::error_condition make_error_condition(http_error ec)
 {
 	return std::error_condition(static_cast<int>(ec), http_category());
 }
+
+inline bool content_forbidden(http_error code)
+{
+	switch (code)
+	{
+		case /*100*/ http_error::continue_:
+		case /*101*/ http_error::switching_protocols:
+		case /*204*/ http_error::no_content:
+		case /*205*/ http_error::reset_content:
+		case /*304*/ http_error::not_modified:
+			return true;
+		default:
+			return false;
+	}
+}
+
 // }}}
 
 #endif
