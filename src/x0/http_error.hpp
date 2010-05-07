@@ -83,7 +83,7 @@ inline bool content_forbidden(http_error code)
 {
 	switch (code)
 	{
-		case /*100*/ http_error::continue_:
+		case /*100*/ http_error::continue_request:
 		case /*101*/ http_error::switching_protocols:
 		case /*204*/ http_error::no_content:
 		case /*205*/ http_error::reset_content:
