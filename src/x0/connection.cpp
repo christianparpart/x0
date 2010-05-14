@@ -31,6 +31,8 @@
 #	define TRACE(msg...) DEBUG("connection: " msg)
 #endif
 
+#define X0_HTTP_STRICT 1
+
 namespace x0 {
 
 connection::connection(x0::listener& lst) :
@@ -329,7 +331,24 @@ bool connection::message_header_done()
 	response_ = new response(this);
 	try
 	{
-		server_.handle_request(request_, response_);
+		bool content_required = request_->method == "POST" || request_->method == "PUT";
+
+#if X0_HTTP_STRICT
+		if (content_required && !request_->content_available())
+		{
+			response_->status = response::length_required;
+			response_->finish();
+		}
+		else if (!content_required && request_->content_available())
+		{
+			response_->status = response::bad_request; // FIXME do we have a better status code?
+			response_->finish();
+		}
+		else
+			server_.handle_request(request_, response_);
+#else
+			server_.handle_request(request_, response_);
+#endif
 	}
 	catch (response::code_type ec)
 	{
