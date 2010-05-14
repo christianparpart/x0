@@ -117,6 +117,7 @@ public:
 		CPPUNIT_TEST(response_no_status_text);
 
 		CPPUNIT_TEST(message_chunked_body);
+		CPPUNIT_TEST(message_chunked_body_fragmented);
 		CPPUNIT_TEST(message_content_length);
 		CPPUNIT_TEST(message_content_recursive);
 		CPPUNIT_TEST(message_multi);
@@ -421,6 +422,46 @@ private: // message tests
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
 		CPPUNIT_ASSERT(ec == http_message_error::aborted);
+	}
+
+	void message_chunked_body_fragmented()
+	{
+		buffer r;
+		r.push_back("Transfer-Encoding: chunked\r\n\r\n");
+		buffer_ref headers = r.ref();
+
+		r.push_back("4\r\nsome\r\n");
+		buffer_ref c1(r.ref(headers.size()));
+
+		r.push_back("1\r\n \r\n");
+		buffer_ref c2(r.ref(c1.offset() + c1.size()));
+
+		r.push_back("4\r\nbody\r\n");
+		buffer_ref c3(r.ref(c2.offset() + c2.size()));
+
+		r.push_back("0\r\n\r\n");
+		buffer_ref c4(r.ref(c3.offset() + c3.size()));
+
+		message_processor_component rp(message_processor::MESSAGE);
+		std::size_t np = 0;
+		std::error_code ec;
+
+		ec = rp.process(buffer_ref(headers), np);
+		CPPUNIT_ASSERT(ec == http_message_error::partial);
+
+		ec = rp.process(buffer_ref(c1), np);
+		CPPUNIT_ASSERT(ec == http_message_error::partial);
+
+		ec = rp.process(buffer_ref(c2), np);
+		CPPUNIT_ASSERT(ec == http_message_error::partial);
+
+		ec = rp.process(buffer_ref(c3), np);
+		CPPUNIT_ASSERT(ec == http_message_error::partial);
+
+		ec = rp.process(buffer_ref(c4), np);
+		CPPUNIT_ASSERT(ec == http_message_error::success);
+
+		CPPUNIT_ASSERT(np == r.size());
 	}
 
 	void message_content_length()
