@@ -47,7 +47,7 @@
 
 namespace x0 {
 
-web_client::web_client(struct ev_loop *loop) :
+web_client_base::web_client_base(struct ev_loop *loop) :
 	message_processor(message_processor::RESPONSE),
 	loop_(loop),
 	fd_(-1),
@@ -62,23 +62,18 @@ web_client::web_client(struct ev_loop *loop) :
 	connect_timeout(0),
 	write_timeout(0),
 	read_timeout(0),
-	keepalive_timeout(0),
-	on_connect(),
-	on_response(),
-	on_header(),
-	on_content(),
-	on_complete()
+	keepalive_timeout(0)
 {
-	io_.set<web_client, &web_client::io>(this);
-	timer_.set<web_client, &web_client::timeout>(this);
+	io_.set<web_client_base, &web_client_base::io>(this);
+	timer_.set<web_client_base, &web_client_base::timeout>(this);
 }
 
-web_client::~web_client()
+web_client_base::~web_client_base()
 {
 	close();
 }
 
-bool web_client::open(const std::string& hostname, int port)
+bool web_client_base::open(const std::string& hostname, int port)
 {
 	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
 
@@ -134,8 +129,7 @@ bool web_client::open(const std::string& hostname, int port)
 			state_ = CONNECTED;
 			TRACE("connect: instant success");
 
-			if (on_connect)
-				on_connect();
+			connect();
 
 			break;
 		}
@@ -146,12 +140,12 @@ bool web_client::open(const std::string& hostname, int port)
 	return fd_ >= 0;
 }
 
-bool web_client::is_open() const
+bool web_client_base::is_open() const
 {
 	return fd_ >= 0;
 }
 
-void web_client::close()
+void web_client_base::close()
 {
 	state_ = DISCONNECTED;
 
@@ -165,17 +159,17 @@ void web_client::close()
 	}
 }
 
-std::error_code web_client::last_error() const
+std::error_code web_client_base::last_error() const
 {
 	return last_error_;
 }
 
-void web_client::commit(bool flush)
+void web_client_base::commit(bool flush)
 {
 	if (keepalive_timeout > 0)
-		pass_header("Connection", "keep-alive");
+		write_header("Connection", "keep-alive");
 	else
-		pass_header("Connection", "close");
+		write_header("Connection", "close");
 
 	request_buffer_.push_back("\015\012"); // final linefeed
 
@@ -188,7 +182,7 @@ void web_client::commit(bool flush)
 	}
 }
 
-void web_client::pause()
+void web_client_base::pause()
 {
 	if (timer_.is_active())
 		timer_.stop();
@@ -197,7 +191,7 @@ void web_client::pause()
 		io_.stop();
 }
 
-void web_client::resume()
+void web_client_base::resume()
 {
 	switch (state_)
 	{
@@ -226,7 +220,7 @@ void web_client::resume()
 	}
 }
 
-void web_client::start_read()
+void web_client_base::start_read()
 {
 	TRACE("web_client: start_read(%d)", state_);
 	switch (state_)
@@ -239,8 +233,7 @@ void web_client::start_read()
 			state_ = CONNECTED;
 			io_.set(fd_, ev::READ);
 
-			if (on_connect)
-				on_connect();
+			connect();
 
 			break;
 		case CONNECTED:
@@ -262,9 +255,9 @@ void web_client::start_read()
 	}
 }
 
-void web_client::start_write()
+void web_client_base::start_write()
 {
-	TRACE("web_client: start_write(%d)", state_);
+	TRACE("web_client_base: start_write(%d)", state_);
 	switch (state_)
 	{
 		case DISCONNECTED:
@@ -306,7 +299,7 @@ void web_client::start_write()
 	}
 }
 
-void web_client::io(ev::io&, int revents)
+void web_client_base::io(ev::io&, int revents)
 {
 	TRACE("io(fd=%d, revents=0x%04x)", fd_, revents);
 
@@ -325,12 +318,12 @@ void web_client::io(ev::io&, int revents)
 	}
 }
 
-void web_client::timeout(ev::timer&, int revents)
+void web_client_base::timeout(ev::timer&, int revents)
 {
-	TRACE("timeout");
+	TRACE("timeout"); // TODO
 }
 
-void web_client::connect_done()
+void web_client_base::connect_done()
 {
 	int val = 0;
 	socklen_t vlen = sizeof(val);
@@ -354,12 +347,12 @@ void web_client::connect_done()
 	else
 	{
 		last_error_ = std::make_error_code(static_cast<std::errc>(errno));
-		TRACE("on_connect_done: getsocketopt() error: %s", last_error_.message().c_str());
+		TRACE("connect_done: getsocketopt() error: %s", last_error_.message().c_str());
 		close();
 	}
 }
 
-void web_client::write_some()
+void web_client_base::write_some()
 {
 	TRACE("web_client(%p)::write_some()", this);
 
@@ -381,7 +374,7 @@ void web_client::write_some()
 	}
 }
 
-void web_client::read_some()
+void web_client_base::read_some()
 {
 	TRACE("connection(%p)::read_some()", this);
 
@@ -417,31 +410,71 @@ void web_client::read_some()
 	}
 }
 
-void web_client::message_begin(int version_major, int version_minor, int code, buffer_ref&& text)
+void web_client_base::message_begin(int version_major, int version_minor, int code, buffer_ref&& text)
 {
-	if (on_response)
-		on_response(version_major, version_minor, code, std::move(text));
+	response(version_major, version_minor, code, std::move(text));
 }
 
-void web_client::message_header(buffer_ref&& name, buffer_ref&& value)
+void web_client_base::message_header(buffer_ref&& name, buffer_ref&& value)
+{
+	header(std::move(name), std::move(value));
+}
+
+bool web_client_base::message_content(buffer_ref&& chunk)
+{
+	content(std::move(chunk));
+
+	return true;
+}
+
+bool web_client_base::message_end()
+{
+	int pending = --request_count_;
+	TRACE("message_end: pending=%d", pending);
+
+	return complete();
+}
+
+// ---------------------------------------------------------------------------
+
+web_client::web_client(struct ev_loop *loop) :
+	web_client_base(loop),
+	on_connect(),
+	on_response(),
+	on_header(),
+	on_content(),
+	on_complete()
+{
+}
+
+void web_client::connect()
+{
+	if (on_connect)
+		on_connect();
+}
+
+void web_client::response(int major, int minor, int code, buffer_ref&& text)
+{
+	if (on_response)
+		on_response(major, minor, code, std::move(text));
+}
+
+void web_client::header(buffer_ref&& name, buffer_ref&& value)
 {
 	if (on_header)
 		on_header(std::move(name), std::move(value));
 }
 
-bool web_client::message_content(buffer_ref&& chunk)
+bool web_client::content(buffer_ref&& chunk)
 {
 	if (on_content)
-		return on_content(std::move(chunk));
+		on_content(std::move(chunk));
 
 	return true;
 }
 
-bool web_client::message_end()
+bool web_client::complete()
 {
-	int pending = --request_count_;
-	TRACE("on_complete: pending=%d", pending);
-
 	if (on_complete)
 		return on_complete();
 

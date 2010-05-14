@@ -17,7 +17,7 @@
 
 namespace x0 {
 
-class X0_API web_client :
+class X0_API web_client_base :
 	public message_processor
 {
 public:
@@ -59,8 +59,8 @@ private:
 	virtual bool message_end();
 
 public:
-	explicit web_client(struct ev_loop *loop);
-	~web_client();
+	explicit web_client_base(struct ev_loop *loop);
+	~web_client_base();
 
 	// connection handling
 	bool open(const std::string& host, int port);
@@ -78,13 +78,13 @@ public:
 
 	// request handling
 	template<typename method_type, typename path_type>
-	void pass_request(method_type&& method, path_type&& path);
+	void write_request(method_type&& method, path_type&& path);
 
 	template<typename method_type, typename path_type, typename query_type>
-	void pass_request(method_type&& method, path_type&& path, query_type&& query);
+	void write_request(method_type&& method, path_type&& path, query_type&& query);
 
 	template<typename key_type, typename value_type>
-	void pass_header(key_type&& key, value_type&& value);
+	void write_header(key_type&& key, value_type&& value);
 
 	template<typename handler_type>
 	void setup_content_writer(handler_type&& handler);
@@ -95,14 +95,32 @@ public:
 	void resume();
 
 	template<typename chunk_type>
-	ssize_t pass_content(chunk_type&& chunk, bool last);
+	ssize_t write(chunk_type&& chunk, bool last);
 
-	// response handling
+	virtual void connect() = 0;
+	virtual void response(int, int, int, buffer_ref&&) = 0;
+	virtual void header(buffer_ref&&, buffer_ref&&) = 0;
+	virtual bool content(buffer_ref&&) = 0;
+	virtual bool complete() = 0;
+};
+
+class X0_API web_client : public web_client_base
+{
+public:
+	web_client(struct ev_loop *loop);
+
 	std::function<void()> on_connect;
 	std::function<void(int, int, int, buffer_ref&&)> on_response;
 	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
 	std::function<bool(buffer_ref&&)> on_content;
 	std::function<bool()> on_complete;
+
+private:
+	virtual void connect();
+	virtual void response(int, int, int, buffer_ref&&);
+	virtual void header(buffer_ref&&, buffer_ref&&);
+	virtual bool content(buffer_ref&&);
+	virtual bool complete();
 };
 
 } // namespace x0
@@ -110,7 +128,7 @@ public:
 // {{{ impl
 namespace x0 {
 
-inline web_client::state_type web_client::state() const
+inline web_client_base::state_type web_client_base::state() const
 {
 	return state_;
 }
@@ -121,7 +139,7 @@ inline web_client::state_type web_client::state() const
  * \param path the request path (including possible query args)
  */
 template<typename method_type, typename path_type>
-void web_client::pass_request(method_type&& method, path_type&& path)
+void web_client_base::write_request(method_type&& method, path_type&& path)
 {
 	request_buffer_.push_back(method);
 	request_buffer_.push_back(' ');
@@ -138,7 +156,7 @@ void web_client::pass_request(method_type&& method, path_type&& path)
  * \param query the query args (encoded)
  */
 template<typename method_type, typename path_type, typename query_type>
-void web_client::pass_request(method_type&& method, path_type&& path, query_type&& query)
+void web_client_base::write_request(method_type&& method, path_type&& path, query_type&& query)
 {
 	request_buffer_.push_back(method);
 	request_buffer_.push_back(' ');
@@ -161,7 +179,7 @@ void web_client::pass_request(method_type&& method, path_type&& path, query_type
  * The value also may not contain line feeds
  */
 template<typename key_type, typename value_type>
-void web_client::pass_header(key_type&& key, value_type&& value)
+void web_client_base::write_header(key_type&& key, value_type&& value)
 {
 	request_buffer_.push_back(key);
 	request_buffer_.push_back(": ");
@@ -175,7 +193,7 @@ void web_client::pass_header(key_type&& key, value_type&& value)
  *                be written without blocking.
  */
 template<typename handler_type>
-void web_client::setup_content_writer(handler_type&& handler)
+void web_client_base::setup_content_writer(handler_type&& handler)
 {
 	//! \todo implementation
 }
@@ -187,7 +205,7 @@ void web_client::setup_content_writer(handler_type&& handler)
  * \return the number of bytes written, or -1 on error
  */
 template<typename chunk_type>
-ssize_t web_client::pass_content(chunk_type&& chunk, bool last)
+ssize_t web_client_base::write(chunk_type&& chunk, bool last)
 {
 	//! \todo implementation
 	return 0;

@@ -89,11 +89,11 @@ int main(int argc, const char *argv[])
 
 	for (int i = 0; i < request_count; ++i)
 	{
-		client.pass_request("GET", path);
+		client.write_request("GET", path);
 
-		client.pass_header("Host", hostname);
-		client.pass_header("User-Agent", "x0");
-		client.pass_header("X-Foo", "bar");
+		client.write_header("Host", hostname);
+		client.write_header("User-Agent", "x0");
+		client.write_header("X-Foo", "bar");
 
 		client.commit(i == (request_count - 1)); // pass true on last iteration, false otherwise.
 	}

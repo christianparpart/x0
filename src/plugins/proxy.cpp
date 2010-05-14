@@ -138,10 +138,10 @@ private:
 // {{{ class proxy_connection
 /** handles a connection from proxy to origin server.
  */
-class proxy_connection
+class proxy_connection :
+	public x0::web_client_base
 {
 	friend class proxy;
-
 
 public:
 	explicit proxy_connection(proxy *px);
@@ -154,24 +154,24 @@ private:
 	void disconnect();
 
 	void pass_request();
+	void pass_request_content(x0::buffer_ref&& chunk);
 
-	void on_connect();
-	void on_response(int, int, int, x0::buffer_ref&&);
-	void on_header(x0::buffer_ref&&, x0::buffer_ref&&);
-	bool on_content(x0::buffer_ref&&);
-	bool on_complete();
+	virtual void connect();
+	virtual void response(int, int, int, x0::buffer_ref&&);
+	virtual void header(x0::buffer_ref&&, x0::buffer_ref&&);
+	virtual bool content(x0::buffer_ref&&);
+	virtual bool complete();
+
 	void content_written(int ec, std::size_t nb);
 
 private:
 	proxy *px_;								//!< owning proxy
-	x0::web_client client_;					//!< HTTP client connection
 
 	std::string hostname_;					//!< origin's hostname
 	int port_;								//!< origin's port
 	std::function<void()> done_;
 	x0::request *request_;					//!< client's request
 	x0::response *response_;				//!< client's response
-	std::size_t serial_;
 }; // }}}
 
 // {{{ origin_server impl
@@ -320,39 +320,41 @@ void proxy::release(proxy_connection *px)
 
 // {{{ proxy_connection impl
 proxy_connection::proxy_connection(proxy *px) :
+	web_client_base(px->loop),
 	px_(px),
-	client_(px_->loop),
 	done_(),
 	request_(NULL),
-	response_(NULL),
-	serial_(0)
+	response_(NULL)
 {
-	using namespace std::placeholders;
-
-	client_.on_connect = std::bind(&proxy_connection::on_connect, this);
-	client_.on_response = std::bind(&proxy_connection::on_response, this, _1, _2, _3, _4);
-	client_.on_header = std::bind(&proxy_connection::on_header, this, _1, _2);
-	client_.on_content = std::bind(&proxy_connection::on_content, this, _1);
-	client_.on_complete = std::bind(&proxy_connection::on_complete, this);
 }
 
-void proxy_connection::on_connect()
+/** callback, invoked once the connection to the origin server is established.
+ *
+ * Though, passing the request message to the origin server.
+ */
+void proxy_connection::connect()
 {
-	TRACE("connection(%p).on_connect()", this);
+	TRACE("connection(%p).connect()", this);
 	if (!response_)
 		return;
 
 	pass_request();
 }
 
-void proxy_connection::on_response(int major, int minor, int code, x0::buffer_ref&& text)
+/** callback, invoked when the origin server has passed us the response status line.
+ *
+ * We will use the status code only.
+ * However, we could pass the text field, too - once x0 core supports it.
+ */
+void proxy_connection::response(int major, int minor, int code, x0::buffer_ref&& text)
 {
-	TRACE("connection(%p).on_status(HTTP/%d.%d, %d, '%s')", this, major, minor, code, text.str().c_str());
+	TRACE("proxy_connection(%p).status(HTTP/%d.%d, %d, '%s')", this, major, minor, code, text.str().c_str());
 	response_->status = code;
 }
 
 inline bool validate_response_header(const x0::buffer_ref& name)
 {
+	// XXX do not allow origin's connection-level response headers to be passed to the client.
 	if (iequals(name, "Connection"))
 		return false;
 
@@ -362,41 +364,66 @@ inline bool validate_response_header(const x0::buffer_ref& name)
 	return true;
 }
 
-void proxy_connection::on_header(x0::buffer_ref&& name, x0::buffer_ref&& value)
+/** callback, invoked on every successfully parsed response header.
+ *
+ * We will pass this header directly to the client's response if
+ * that is NOT a connection-level header.
+ */
+void proxy_connection::header(x0::buffer_ref&& name, x0::buffer_ref&& value)
 {
-	TRACE("connection(%p).on_header('%s', '%s')", this, name.str().c_str(), value.str().c_str());
+	TRACE("proxy_connection(%p).header('%s', '%s')", this, name.str().c_str(), value.str().c_str());
 
 	if (validate_response_header(name))
 		response_->headers.set(name.str(), value.str());
 }
 
-bool proxy_connection::on_content(x0::buffer_ref&& value)
+/** callback, invoked when a new content chunk from origin has arrived.
+ *
+ * We temporarily pause the client to not receive any more data
+ * until having fully transmitted the currently passed one to the actual client.
+ *
+ * The client must be resumed once the current chunk has been fully passed
+ * to the client.
+ */
+bool proxy_connection::content(x0::buffer_ref&& chunk)
 {
-	TRACE("connection(%p).on_content(size=%ld)", this, value.size());
+	TRACE("proxy_connection(%p).content(size=%ld)", this, chunk.size());
 
-	client_.pause();
+	pause();
 
-	response_->write(std::make_shared<x0::buffer_source>(value),
+	response_->write(std::make_shared<x0::buffer_source>(chunk),
 			std::bind(&proxy_connection::content_written, this, std::placeholders::_1, std::placeholders::_2));
 
 	return true;
 }
 
-bool proxy_connection::on_complete()
+/** callback, invoked once the origin's response message has been fully received.
+ *
+ * We will inform x0 core, that we've finished processing this request and destruct ourselfs.
+ */
+bool proxy_connection::complete()
 {
-	TRACE("connection(%p).on_complete()", this);
+	TRACE("proxy_connection(%p).complete()", this);
+
 	done_();
 	delete this;
+
+	// do not continue processing
 	return false;
 }
 
+/** completion handler, invoked when response content chunk has been sent to the client.
+ *
+ * If the previousely transferred chunk has been successfully written, we will
+ * resume receiving response content from the origin server, or kill us otherwise.
+ */
 void proxy_connection::content_written(int ec, std::size_t nb)
 {
 	TRACE("connection(%p).content_written(ec=%d, nb=%ld): %s", this, ec, nb, ec ? strerror(errno) : "");
 
 	if (!ec)
 	{
-		client_.resume();
+		resume();
 	}
 	else
 	{
@@ -414,6 +441,10 @@ proxy_connection::~proxy_connection()
 }
 
 /** Asynchronously connects to origin server.
+ *
+ * \param origin the origin's HTTP URL.
+ *
+ * \note this can also result into a non-async connect if it would not block.
  */
 void proxy_connection::connect(const std::string& origin)
 {
@@ -426,12 +457,12 @@ void proxy_connection::connect(const std::string& origin)
 
 	TRACE("proxy_connection(%p): connecting to %s port %d", this, hostname_.c_str(), port_);
 
-	client_.open(hostname_, port_);
+	open(hostname_, port_);
 
-	switch (client_.state())
+	switch (state())
 	{
-		case x0::web_client::DISCONNECTED:
-			TRACE("proxy_connection(%p): connect error: %s", this, client_.last_error().message().c_str());
+		case DISCONNECTED:
+			TRACE("proxy_connection(%p): connect error: %s", this, last_error().message().c_str());
 			break;
 		default:
 			break;
@@ -442,10 +473,10 @@ void proxy_connection::connect(const std::string& origin)
  */
 void proxy_connection::disconnect()
 {
-	client_.close();
+	close();
 }
 
-/** Starts processing client request.
+/** Starts processing the client request.
  *
  * \param done Callback to invoke when request has been fully processed (or an error occurred).
  * \param in Corresponding request.
@@ -453,26 +484,26 @@ void proxy_connection::disconnect()
  */
 void proxy_connection::start(const std::function<void()>& done, x0::request *in, x0::response *out)
 {
-	TRACE("connection(%p).start(): path=%s (client_.state()=%d)", this, in->path.str().c_str(), client_.state());
+	TRACE("connection(%p).start(): path=%s (state()=%d)", this, in->path.str().c_str(), state());
 
-	if (client_.state() != x0::web_client::DISCONNECTED)
-	{
-		done_ = done;
-		request_ = in;
-		response_ = out;
-
-		if (client_.state() == x0::web_client::CONNECTED)
-			pass_request();
-	}
-	else
+	if (state() == DISCONNECTED)
 	{
 		out->status = x0::response::service_unavailable;
 		done();
 		delete this;
 		return;
 	}
+
+	done_ = done;
+	request_ = in;
+	response_ = out;
+
+	if (state() == CONNECTED)
+		pass_request();
 }
 
+/** test whether or not this request header may be passed to the origin server.
+ */
 inline bool validate_request_header(const x0::buffer_ref& name)
 {
 	if (x0::iequals(name, "Host"))
@@ -490,6 +521,8 @@ inline bool validate_request_header(const x0::buffer_ref& name)
 	return true;
 }
 
+/** startss passing the client request message to the origin server.
+ */
 void proxy_connection::pass_request()
 {
 	TRACE("connection(%p).pass_request('%s', '%s', '%s')", this, 
@@ -497,18 +530,18 @@ void proxy_connection::pass_request()
 
 	// request line
 	if (request_->query)
-		client_.pass_request(request_->method, request_->path, request_->query);
+		write_request(request_->method, request_->path, request_->query);
 	else
-		client_.pass_request(request_->method, request_->path);
+		write_request(request_->method, request_->path);
 
 	// request-headers
 	for (auto i = request_->headers.begin(), e = request_->headers.end(); i != e; ++i)
 		if (validate_request_header(i->name))
-			client_.pass_header(i->name, i->value);
+			write_header(i->name, i->value);
 
 	if (!hostname_.empty())
 	{
-		client_.pass_header("Host", hostname_);
+		write_header("Host", hostname_);
 	}
 	else
 	{
@@ -524,7 +557,7 @@ void proxy_connection::pass_request()
 		result.push_back(':');
 		result.push_back(port_);
 
-		client_.pass_header("Host", result);
+		write_header("Host", result);
 	}
 
 	//! \todo body?
@@ -535,7 +568,21 @@ void proxy_connection::pass_request()
 	}
 #endif
 
-	client_.commit(true);
+	commit(true);
+
+	if (request_->content_available())
+	{
+		using namespace std::placeholders;
+		request_->read(std::bind(&proxy_connection::pass_request_content, this, _1));
+	}
+}
+
+/** callback, invoked when client content chunk is available, and is to pass to the origin server.
+ */
+void proxy_connection::pass_request_content(x0::buffer_ref&& chunk)
+{
+	TRACE("proxy_connection.pass_request_content(): '%s'", chunk.str().c_str());
+	//client.write(chunk, std::bind(&proxy_connection::request_content_passed, this);
 }
 // }}}
 
@@ -629,10 +676,7 @@ private:
 			return next();
 
 		if (!px->method_allowed(in->method))
-		{
-			TRACE("method not allowed");
 			return next();
-		}
 
 		proxy_connection *connection = px->acquire();
 		connection->start(std::bind(&proxy_plugin::done, this, next), in, out);
