@@ -177,7 +177,7 @@ public:
 	 */
 	bool register_vhost(const std::string& name, vhost_config *cfg)
 	{
-		//DEBUG("Registering vhost: %s [%s]\n", name.c_str(), cfg->name.c_str());
+		//debug(1, "Registering vhost: %s [%s]\n", name.c_str(), cfg->name.c_str());
 		if (mappings.find(name) == mappings.end())
 		{
 			mappings.insert({{name, cfg}});
@@ -189,7 +189,7 @@ public:
 	void set_default_vhost(int port, vhost_config *cfg)
 	{
 #if !defined(NDEBUG)
-		debug(1, "set default host '%s'", cfg->name.c_str());
+		//debug(1, "set default host '%s'", cfg->name.c_str());
 #endif
 		default_hosts[port] = cfg;
 	}
@@ -247,7 +247,7 @@ private:
 			if (!vhost)
 			{
 #if !defined(NDEBUG)
-				debug(1, "vhost_basic: no vhost config found for [%s]", hostid.c_str());
+				debug(1, "no vhost config found for [%s]", hostid.c_str());
 #endif
 				return;
 			}
@@ -256,7 +256,7 @@ private:
 
 		in->document_root = vhost->document_root;
 
-		//DEBUG("vhost_basic: resolved [%s] to document_root [%s]", hostid.c_str(), in->document_root.c_str());
+		//debug(1, "resolved [%s] to document_root [%s]", hostid.c_str(), in->document_root.c_str());
 	}
 };
 
