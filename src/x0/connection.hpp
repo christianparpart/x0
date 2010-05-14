@@ -92,6 +92,7 @@ private:
 	virtual bool message_content(buffer_ref&& chunk);
 	virtual bool message_end();
 
+	bool is_closed() const;
 	void resume(bool finish);
 
 	void start_read();
@@ -198,6 +199,13 @@ inline void connection::on_write_ready(CompletionHandler callback)
 inline const x0::listener& connection::listener() const
 {
 	return listener_;
+}
+
+/** tests whether connection::close() was invoked already.
+ */
+inline bool connection::is_closed() const
+{
+	return socket_ < 0;
 }
 // }}}
 
