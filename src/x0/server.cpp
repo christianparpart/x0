@@ -738,7 +738,7 @@ void server::setup_hosts(const settings_value& cvar)
 			{
 				if (contains(host_cvars, ci->first))
 				{
-					debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
+					//debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
 					ci->second(cvar[hostid][ci->first], hostid);
 				}
 			}
