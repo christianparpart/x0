@@ -182,7 +182,7 @@ void connection::start()
 
 	server_.connection_open(this);
 
-	if (socket_ < 0) // hook triggered delayed delete via connection::close()
+	if (is_closed()) // hook triggered delayed delete via connection::close()
 	{
 		delete this;
 		return;
@@ -500,7 +500,7 @@ void connection::handle_write()
 		write_some(this);
 #endif
 
-	if (socket_ < 0)
+	if (is_closed())
 		delete this;
 }
 
@@ -547,13 +547,13 @@ void connection::handle_read()
 		else
 		{
 			TRACE("connection::handle_read(): %s", strerror(errno));
-			delete this;
+			close();
 		}
 	}
 	else if (rv == 0) // EOF
 	{
 		TRACE("connection::handle_read(): (EOF)");
-		delete this;
+		close();
 	}
 	else
 	{
@@ -561,29 +561,20 @@ void connection::handle_read()
 
 		buffer_.resize(buffer_.size() + rv);
 		process();
-
-		if (socket_ < 0)
-			delete this;
 	}
+
+	if (is_closed())
+		delete this;
 }
 
 /** closes this connection, possibly deleting this object (or propagating delayed delete).
  */
 void connection::close()
 {
-	TRACE("connection: close(): state=%d", io_state_);
-	switch (io_state_)
-	{
-		case INVALID:
-			// we've got invoked from within connection_open()-hook (within the connection::start()-call)
-			/* fall through */
-		case READING:
-		case WRITING:
-			::close(socket_);
-			socket_ = -1;
-			break;
-			break;
-	}
+	TRACE("connection(%p): close(): state=%d", this, io_state_);
+
+	::close(socket_);
+	socket_ = -1;
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.
