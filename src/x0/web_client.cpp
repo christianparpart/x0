@@ -350,6 +350,9 @@ void web_client_base::connect_done()
 		TRACE("connect_done: getsocketopt() error: %s", last_error_.message().c_str());
 		close();
 	}
+
+	if (!is_open())
+		complete();
 }
 
 void web_client_base::write_some()
