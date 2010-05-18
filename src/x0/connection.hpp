@@ -135,6 +135,7 @@ private:
 	// HTTP request
 	buffer buffer_;						//!< buffer for incoming data.
 	std::size_t next_offset_;			//!< number of bytes in buffer_ successfully processed already.
+	int request_count_;					//!< number of requests already processed within this connection.
 	request *request_;					//!< currently parsed http request, may be NULL
 	response *response_;				//!< currently processed response object, may be NULL
 

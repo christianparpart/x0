@@ -45,6 +45,7 @@ connection::connection(x0::listener& lst) :
 	remote_port_(0),
 	buffer_(8192),
 	next_offset_(0),
+	request_count_(0),
 	request_(new request(*this)),
 	response_(0),
 	io_state_(INVALID),
@@ -393,6 +394,8 @@ void connection::resume(bool finish)
 {
 	TRACE("connection(%p).resume(finish=%s): state=%s", this, finish ? "true" : "false", state_str());
 
+	++request_count_;
+
 	if (finish)
 	{
 		assert(state() == message_processor::MESSAGE_BEGIN);
@@ -439,8 +442,12 @@ void connection::start_read()
 	}
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-	if (server_.max_read_idle() > 0)
-		timer_.start(server_.max_read_idle(), 0.0);
+	int timeout = request_count_ && state() == MESSAGE_BEGIN
+		? server_.max_keep_alive_idle()
+		: server_.max_read_idle();
+
+	if (timeout > 0)
+		timer_.start(timeout, 0.0);
 #endif
 }
 
