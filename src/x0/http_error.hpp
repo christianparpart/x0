@@ -3,6 +3,8 @@
 
 #include <system_error>
 
+namespace x0 {
+
 enum class http_error // {{{
 {
 	continue_request = 100,
@@ -63,12 +65,16 @@ std::error_condition make_error_condition(http_error ec);
 
 bool content_forbidden(http_error code);
 
+} // namespace x0
+
 namespace std {
 	// implicit conversion from http_error to error_code
-	template<> struct is_error_code_enum<http_error> : public true_type {};
+	template<> struct is_error_code_enum<x0::http_error> : public true_type {};
 }
 
 // {{{ inlines
+namespace x0 {
+
 inline std::error_code make_error_code(http_error ec)
 {
 	return std::error_code(static_cast<int>(ec), http_category());
@@ -94,6 +100,7 @@ inline bool content_forbidden(http_error code)
 	}
 }
 
+} // namespace x0
 // }}}
 
 #endif

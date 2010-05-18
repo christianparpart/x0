@@ -79,7 +79,13 @@ public:
 	bool active() const;
 	void stop();
 
+	int error_count() const;
+
 private:
+	template<typename... Args>
+	inline void log(severity sv, const char *msg, Args&&... args);
+
+	inline void setsockopt(int socket, int layer, int option, int value);
 	void handle_accept();
 
 	void callback(ev::io& watcher, int revents);
@@ -93,6 +99,7 @@ private:
 	std::string address_;
 	int port_;
 	int backlog_;
+	int errors_;
 
 #if defined(WITH_SSL)
 	bool secure_;
@@ -116,6 +123,20 @@ private:
 inline bool listener::active() const
 {
 	return fd_ != -1;
+}
+
+inline int listener::error_count() const
+{
+	return errors_;
+}
+
+template<typename... Args>
+inline void listener::log(severity sv, const char *msg, Args&&... args)
+{
+	if (sv <= severity::error)
+		errors_++;
+
+	server_.log(sv, msg, args...);
 }
 
 inline struct ::ev_loop *listener::loop() const

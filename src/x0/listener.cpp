@@ -69,10 +69,13 @@ void listener::stop()
 #endif
 }
 
-inline void setsockopt(int socket, int layer, int option, int value)
+inline void listener::setsockopt(int socket, int layer, int option, int value)
 {
 	if (::setsockopt(socket, layer, option, &value, sizeof(value)) < 0)
-		throw std::runtime_error(strerror(errno));
+	{
+		log(severity::error, "Error setting socket option (fd=%d, layer=%d, opt=%d, val=%d): %s",
+				socket, layer, option, value, strerror(errno));
+	}
 }
 
 #if defined(WITH_SSL)
@@ -164,19 +167,19 @@ void listener::prepare()
 
 		gnutls_certificate_set_dh_params(x509_cred_, dh_params_);
 
-		server_.log(severity::notice, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
+		log(severity::notice, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
 	}
 	else
-		server_.log(severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
+		log(severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
 #else
-	server_.log(severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
+	log(severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
 #endif
 
 	fd_ = ::socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
 	fcntl(fd_, F_SETFL, FD_CLOEXEC);
 
 	if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0)
-		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
+		log(severity::error, "could not set server socket into non-blocking mode: %s\n", strerror(errno));
 
 	sockaddr_in6 sin;
 	bzero(&sin, sizeof(sin));
@@ -185,7 +188,7 @@ void listener::prepare()
 	sin.sin6_port = htons(port_);
 
 	if (inet_pton(sin.sin6_family, address_.c_str(), sin.sin6_addr.s6_addr) < 0)
-		throw std::runtime_error(strerror(errno));
+		log(severity::error, "Could not resolve IP address (%s): %s", address_.c_str(), strerror(errno));
 
 #if defined(SO_REUSEADDR)
 	//! \todo SO_REUSEADDR: could be configurable
@@ -205,11 +208,10 @@ void listener::prepare()
 //	acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
 
 	if (::bind(fd_, (sockaddr *)&sin, sizeof(sin)) < 0)
-		throw std::runtime_error(strerror(errno));
+		log(severity::error, "Cannot bind to IP-address (%s): %s", address_.c_str(), strerror(errno));
 
 	if (::listen(fd_, backlog_) < 0)
-		throw std::runtime_error(strerror(errno));
-
+		log(severity::error, "Cannot listen to IP-address (%s): %s", address_.c_str(), strerror(errno));
 }
 
 void listener::start()

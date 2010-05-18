@@ -1,6 +1,8 @@
 #include <x0/http_error.hpp>
 #include <x0/defines.hpp>
 
+namespace x0 {
+
 class http_error_category_impl :
 	public std::error_category
 {
@@ -91,3 +93,4 @@ const std::error_category& http_category() throw()
 	return http_category_impl_;
 }
 
+} // namespace x0

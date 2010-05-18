@@ -12,6 +12,7 @@
 #include <x0/property.hpp>
 #include <x0/header.hpp>
 #include <x0/connection.hpp>
+#include <x0/http_error.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/filter_source.hpp>
 #include <x0/io/chain_filter.hpp>
@@ -64,62 +65,6 @@ class request;
  */
 class response
 {
-public:
-	// {{{ standard response types
-	enum code_type {
-		continue_ = 100,
-		switching_protocols = 101,
-		processing = 102,
-
-		ok = 200,
-		created = 201,
-		accepted = 202,
-		non_authoriative_information = 203,
-		no_content = 204,
-		reset_content = 205,
-		partial_content = 206,
-
-		multiple_choices = 300,
-		moved_permanently = 301,
-		moved_temporarily = 302,
-		not_modified = 304,
-
-		bad_request = 400,
-		unauthorized = 401,
-		forbidden = 403,
-		not_found = 404,
-		method_not_allowed = 405,
-		not_acceptable = 406,
-		proxy_authentication_required = 407,
-		request_timeout = 408,
-		conflict = 409,
-		gone = 410,
-		length_required = 411,
-		precondition_failed = 412,
-		request_entity_too_large = 413,
-		request_uri_too_long = 414,
-		unsupported_media_type = 415,
-		requested_range_not_satisfiable = 416,
-		expectation_failed = 417,
-		there_are_too_many_connections_from_your_ip = 421,
-		unprocessable_entity = 422,
-		locked = 423,
-		failed_dependency = 424,
-		unordered_collection = 425,
-		upgrade_required = 426,
-
-		internal_server_error = 500,
-		not_implemented = 501,
-		bad_gateway = 502,
-		service_unavailable = 503,
-		gateway_timedout = 504,
-		http_version_not_supported = 505,
-		insufficient_storage = 507,
-		bandwidth_limit_exceeded = 509,
-		not_extended = 510
-	};
-	// }}}
-
 public:
 	class header_list // {{{
 	{
@@ -240,14 +185,14 @@ public:
 	 *
 	 * \note this response object takes over ownership of the request object.
 	 */
-	explicit response(connection *connection, int _status = 0);
+	explicit response(connection *connection, http_error status = static_cast<http_error>(0));
 	~response();
 
 	/** retrieves a reference to the corresponding request object. */
 	x0::request *request() const;
 
 	/// HTTP response status code.
-	value_property<int> status;
+	http_error status;
 
 	/// the headers to be included in the response.
 	header_list headers;
@@ -275,8 +220,8 @@ private:
 	{
 		if (!headers_sent_) // nothing sent to client yet -> sent default status page
 		{
-			if (!status)
-				status = response::not_found;
+			if (static_cast<int>(status) == 0)
+				status = http_error::not_found;
 
 			if (!content_forbidden())
 				write(make_default_content(), std::bind(&response::finished0, this, std::placeholders::_1));
@@ -302,8 +247,7 @@ private:
 	friend class connection;
 
 public:
-	static const char *status_cstr(int status);
-	static std::string status_str(int status);
+	static std::string status_str(http_error status);
 
 	chain_filter filter_chain;
 
@@ -371,17 +315,7 @@ inline void response::write_content(const source_ptr& content, const completion_
 /** checks wether given code MUST NOT have a response body. */
 inline bool response::content_forbidden() const
 {
-	switch (status)
-	{
-		case response::continue_:
-		case response::switching_protocols:
-		case response::no_content:
-		case response::reset_content:
-		case response::not_modified:
-			return true;
-		default:
-			return false;
-	}
+	return x0::content_forbidden(status);
 }
 // }}}
 

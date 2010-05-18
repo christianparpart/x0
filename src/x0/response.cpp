@@ -26,7 +26,7 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 
-#if 0
+#if 1
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("response: " msg)
@@ -67,7 +67,7 @@ source_ptr response::make_default_content()
 	}
 	else
 	{
-		const char *codeStr = status_cstr(status);
+		std::string codeStr = http_category().message(static_cast<int>(status));
 		char buf[1024];
 
 		int nwritten = snprintf(buf, sizeof(buf),
@@ -75,7 +75,7 @@ source_ptr response::make_default_content()
 			"<head><title>%s</title></head>"
 			"<body><h1>%d %s</h1></body>"
 			"</html>\r\n",
-			codeStr, status(), codeStr
+			codeStr.c_str(), status, codeStr.c_str()
 		);
 
 		headers.set("Content-Type", "text/html");
@@ -85,14 +85,34 @@ source_ptr response::make_default_content()
 	}
 }
 
+/** serializes the HTTP response status line plus headers into a byte-stream.
+ *
+ * This method is invoked right before the response content is written or the
+ * response is flushed at all.
+ *
+ * It first sets the status code (if not done yet), invoked post_process callback,
+ * performs connection-level response header modifications and then
+ * builds the response chunk for status line and headers.
+ *
+ * Post-modification done <b>after</b> the post_process hook has been invoked:
+ * <ol>
+ *   <li>set status code to 200 (Ok) if not set yet.</li>
+ *   <li>set Content-Type header to a default if not set yet.</li>
+ *   <li>set Connection header to keep-alive or close (computed value)</li>
+ *   <li>append Transfer-Encoding chunked if no Content-Length header is set.</li>
+ *   <li>optionally enable TCP_CORK if this is no keep-alive connection and the administrator allows it.</li>
+ * </ol>
+ *
+ * \note this does not serialize the message body.
+ */
 source_ptr response::serialize()
 {
 	buffer buffers;
 	bool keepalive = false;
 
-	if (!status)
+	if (status == static_cast<http_error>(0))
 	{
-		status = response::ok;
+		status = http_error::ok;
 	}
 
 	if (!headers.contains("Content-Type"))
@@ -135,10 +155,12 @@ source_ptr response::serialize()
 		keepalive = true;
 	}
 
+	if (!connection_->server().max_keep_alive_idle())
+		keepalive = false;
+
 #if defined(TCP_CORK)
 	if (!keepalive && connection_->server().tcp_cork())
 	{
-		TRACE("enabling TCP_CORK");
 		int flag = 1;
 		setsockopt(connection_->handle(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
 	}
@@ -151,9 +173,9 @@ source_ptr response::serialize()
 	else
 		buffers.push_back("HTTP/0.9 ");
 
-	buffers.push_back(status_codes[status]);
+	buffers.push_back(status_codes[static_cast<int>(status)]);
 	buffers.push_back(' ');
-	buffers.push_back(status_cstr(status));
+	buffers.push_back(status_str(status));
 	buffers.push_back("\r\n");
 
 	for (auto i = headers.begin(), e = headers.end(); i != e; ++i)
@@ -170,7 +192,7 @@ source_ptr response::serialize()
 	return std::make_shared<buffer_source>(std::move(buffers));
 }
 
-response::response(connection *connection, int _status) :
+response::response(connection *connection, http_error _status) :
 	connection_(connection),
 	request_(connection_->request_),
 	headers_sent_(false),
@@ -185,72 +207,9 @@ response::response(connection *connection, int _status) :
 		headers.push_back("Server", connection_->server().tag());
 }
 
-const char *response::status_cstr(int value)
+std::string response::status_str(http_error value)
 {
-	switch (value)
-	{
-		// information
-		case 100: return "Continue";
-		case 101: return "Switching Protocols";
-		case 102: return "Processing";
-
-		// success
-		case 200: return "Ok";
-		case 201: return "Created";
-		case 202: return "Accepted";
-		case 204: return "No Content";
-		case 206: return "Partial Content";
-
-		// redirect
-		case 300: return "Multiple Choices";
-		case 301: return "Moved Permanently";
-		case 302: return "Moved Temporarily";
-		case 304: return "Not Modified";
-
-		// client errors
-		case 400: return "Bad Request";
-		case 401: return "Unauthorized";
-		case 403: return "Forbidden";
-		case 404: return "Not Found";
-		case 405: return "Method Not Allowed";
-		case 406: return "Not Acceptable";
-		case 407: return "Proxy Authentication Required";
-		case 408: return "Request Timeout";
-		case 409: return "Conflict";
-		case 410: return "Gone";
-		case 411: return "Length Required";
-		case 412: return "Precondition Failed";
-		case 413: return "Request Entity Too Large";
-		case 414: return "Request URI Too Long";
-		case 415: return "Unsupported Media Type";
-		case 416: return "Requested Range Not Satisfiable";
-		case 417: return "Expectaction Failed";
-		case 421: return "There Are Too Many Connections From Your Internet Address";
-		case 422: return "Unprocessable Entity";
-		case 423: return "Locked";
-		case 424: return "Failed Dependency";
-		case 425: return "Unordered Collection";
-		case 426: return "Upgrade Required";
-
-		// server errors
-		case 500: return "Internal Server Error";
-		case 501: return "Not_Implemented";
-		case 502: return "Bad Gateway";
-		case 503: return "Service Unavailable";
-		case 504: return "Gateway Timed Out";
-		case 505: return "HTTP Version Not Supported";
-		case 507: return "Insufficient Storage";
-		case 509: return "Bandwidth Limit Exceeded";
-		case 510: return "Not Extended";
-
-		// unknown
-		default: return "";
-	}
-}
-
-std::string response::status_str(int value)
-{
-	return std::string(status_cstr(value));
+	return http_category().message(static_cast<int>(value));
 }
 
 void response::finished0(int ec)

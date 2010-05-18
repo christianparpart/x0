@@ -109,7 +109,7 @@ server::server(struct ::ev_loop *loop) :
 
 	int rv = gnutls_global_init();
 	if (rv != GNUTLS_E_SUCCESS)
-		throw std::runtime_error("could not initialize gnutls library");
+		log(severity::error, "could not initialize gnutls library");
 
 	gnutls_global_init_extra();
 #endif
@@ -358,10 +358,7 @@ void server::configure(const std::string& configfile)
 
 	// check for available TCP listeners
 	if (listeners_.empty())
-	{
 		log(severity::critical, "No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
-		throw std::runtime_error("No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
-	}
 
 	for (std::list<listener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 		(*i)->prepare();
@@ -372,9 +369,7 @@ void server::configure(const std::string& configfile)
 		debug(1, "set nice level to %d", nice_);
 
 		if (::nice(nice_) < 0)
-		{
-			throw std::runtime_error(fstringbuilder::format("could not nice process to %d: %s", nice_, strerror(errno)));
-		}
+			log(severity::error, "could not nice process to %d: %s", nice_, strerror(errno));
 	}
 }
 
@@ -450,7 +445,7 @@ void server::handle_request(request *in, response *out)
 
 		//*out *= response_header("Location", url.str());
 		out->headers.set("Location", url.str());
-		out->status = response::moved_permanently;
+		out->status = http_error::moved_permanently;
 
 		out->finish();
 		return;
@@ -599,26 +594,20 @@ void server::load_plugin(const std::string& name)
 
 	library lib;
 	std::error_code ec = lib.open(filename);
-	if (lib.is_open())
+	if (!ec)
 	{
 		plugin_create_t plugin_create = reinterpret_cast<plugin_create_t>(lib.resolve(plugin_create_name, ec));
 
-		if (plugin_create)
+		if (!ec)
 		{
 			plugin_ptr plugin = plugin_ptr(plugin_create(*this, name));
 			plugins_[name] = plugin_value_t(plugin, std::move(lib));
 		}
 		else
-		{
-			std::string msg(fstringbuilder::format("error loading plugin '%s' %s", name.c_str(), ec.message().c_str()));
-			lib.close();
-			throw std::runtime_error(msg);
-		}
+			log(severity::error, "Invalid x0 plugin (%s): %s", name.c_str(), ec.message().c_str());
 	}
 	else
-	{
-		throw std::runtime_error(fstringbuilder::format("Cannot load plugin '%s'. %s", name.c_str(), ec.message().c_str()));
-	}
+		log(severity::error, "Cannot load plugin '%s'. %s", name.c_str(), ec.message().c_str());
 }
 
 void server::unload_plugin(const std::string& name)

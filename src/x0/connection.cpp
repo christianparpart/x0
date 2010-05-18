@@ -337,12 +337,12 @@ bool connection::message_header_done()
 #if X0_HTTP_STRICT
 		if (content_required && !request_->content_available())
 		{
-			response_->status = response::length_required;
+			response_->status = http_error::length_required;
 			response_->finish();
 		}
 		else if (!content_required && request_->content_available())
 		{
-			response_->status = response::bad_request; // FIXME do we have a better status code?
+			response_->status = http_error::bad_request; // FIXME do we have a better status code?
 			response_->finish();
 		}
 		else
@@ -351,16 +351,10 @@ bool connection::message_header_done()
 			server_.handle_request(request_, response_);
 #endif
 	}
-	catch (response::code_type ec)
-	{
-		TRACE("message_header_done: error code (%d) catched", ec);
-		response_->status = ec;
-		response_->finish();
-	}
 	catch (...)
 	{
 		TRACE("message_header_done: unhandled exception caught");
-		response_->status = 500;
+		response_->status = http_error::internal_server_error;
 		response_->finish();
 	}
 
@@ -609,7 +603,7 @@ void connection::process()
 		start_read();
 	else if (ec != http_message_error::aborted)
 		// -> send stock response: BAD_REQUEST
-		(response_ = new response(this, response::bad_request))->finish();
+		(response_ = new response(this, http_error::bad_request))->finish();
 }
 
 std::string connection::remote_ip() const
