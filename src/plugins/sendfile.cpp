@@ -62,14 +62,12 @@ private:
 	 *
 	 * \param in request object
 	 * \param out response object. this will be modified in case of cache reusability.
-	 *
-	 * \throw response::not_modified, in case the client may use its cache.
 	 */
-	void verify_client_cache(x0::request *in, x0::response *out) // {{{
+	x0::http_error verify_client_cache(x0::request *in, x0::response *out) // {{{
 	{
-		// If-None-Match, If-Modified-Since
-
 		std::string value;
+
+		// If-None-Match, If-Modified-Since
 		if ((value = in->header("If-None-Match")) != "")
 		{
 			if (value == in->fileinfo->etag())
@@ -78,32 +76,29 @@ private:
 				{
 					x0::datetime date(value);
 
-					if (date.valid())
-					{
-						if (in->fileinfo->mtime() <= date.unixtime())
-						{
-							throw x0::response::not_modified;
-						}
-					}
+					if (!date.valid())
+						return x0::http_error::bad_request;
+
+					if (in->fileinfo->mtime() <= date.unixtime())
+						return x0::http_error::not_modified;
 				}
 				else // ETag-only
 				{
-					throw x0::response::not_modified;
+					return x0::http_error::not_modified;
 				}
 			}
 		}
 		else if ((value = in->header("If-Modified-Since")) != "")
 		{
 			x0::datetime date(value);
+			if (!date.valid())
+				return x0::http_error::bad_request;
 
-			if (date.valid())
-			{
-				if (in->fileinfo->mtime() <= date.unixtime())
-				{
-					throw x0::response::not_modified;
-				}
-			}
+			if (in->fileinfo->mtime() <= date.unixtime())
+				return x0::http_error::not_modified;
 		}
+
+		return x0::http_error::ok;
 	} // }}}
 
 	void sendfile(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out) // {{{
@@ -114,7 +109,9 @@ private:
 		if (!in->fileinfo->is_regular())
 			return next();
 
-		verify_client_cache(in, out);
+		out->status = verify_client_cache(in, out);
+		if (out->status != x0::http_error::ok)
+			return next.done();
 
 		x0::file_ptr f;
 		if (equals(in->method, "GET"))
@@ -126,21 +123,21 @@ private:
 				server_.log(x0::severity::error, "Could not open file '%s': %s",
 					in->fileinfo->filename().c_str(), strerror(errno));
 
-				throw x0::response::forbidden;
+				out->status = x0::http_error::forbidden;
+				return next.done();
 			}
 		}
-		else if (equals(in->method, "POST"))
-			throw x0::response::method_not_allowed;
 		else if (!equals(in->method, "HEAD"))
-			return next();
+		{
+			out->status = x0::http_error::method_not_allowed;
+			return next.done();
+		}
 
 		out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
 		out->headers.push_back("ETag", in->fileinfo->etag());
 
 		if (!process_range_request(next, in, out, f))
 		{
-			out->status = x0::response::ok;
-
 			out->headers.push_back("Accept-Ranges", "bytes");
 			out->headers.push_back("Content-Type", in->fileinfo->mimetype());
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
@@ -171,7 +168,7 @@ private:
 		if (range_value.empty() || !range.parse(range_value))
 			return false;
 
-		out->status = x0::response::partial_content;
+		out->status = x0::http_error::partial_content;
 
 		if (range.size() > 1)
 		{
@@ -185,6 +182,12 @@ private:
 			for (int i = 0, e = range.size(); i != e; ++i)
 			{
 				std::pair<std::size_t, std::size_t> offsets(make_offsets(range[i], in->fileinfo->size()));
+				if (offsets.second < offsets.first)
+				{
+					out->status = x0::http_error::requested_range_not_satisfiable;
+					return true;
+				}
+
 				std::size_t length = 1 + offsets.second - offsets.first;
 
 				buf.clear();
@@ -234,6 +237,12 @@ private:
 			// generate a simple partial response
 
 			std::pair<std::size_t, std::size_t> offsets(make_offsets(range[0], in->fileinfo->size()));
+			if (offsets.second < offsets.first)
+			{
+				out->status = x0::http_error::requested_range_not_satisfiable;
+				return true;
+			}
+
 			std::size_t length = 1 + offsets.second - offsets.first;
 
 			out->headers.push_back("Content-Type", in->fileinfo->mimetype());
@@ -276,9 +285,6 @@ private:
 				? actual_size - 1
 				: p.second;
 		}
-
-		if (q.second < q.first)
-			throw x0::response::requested_range_not_satisfiable;
 
 		return q;
 	}

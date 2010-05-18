@@ -65,7 +65,7 @@ private:
 		if (!x0::equals(in->path, "/hello"))
 			return next(); // pass request to next handler
 
-		out->status = 200;
+		out->status = x0::http_error::ok;
 		out->headers.set("Hello", "World");
 
 		if (in->content_available())

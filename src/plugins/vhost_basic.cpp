@@ -84,12 +84,9 @@ public:
 
 		if (document_root.empty())
 		{
-			char msg[256];
-			std::snprintf(msg, sizeof(msg),
+			server_.log(x0::severity::error,
 				"vhost_basic[%s]: document root must not be empty.",
 				hostid.c_str());
-
-			throw std::runtime_error(msg);
 		}
 
 		if (document_root[0] != '/')
@@ -106,9 +103,7 @@ public:
 		// register primary [hostname:port]
 		if (!register_vhost(hostid, cfg))
 		{
-			char msg[1024];
-			snprintf(msg, sizeof(msg), "Server name '%s' already in use.", hostid.c_str());
-			throw std::runtime_error(msg);
+			server_.log(x0::severity::error, "Server name '%s' already in use.", hostid.c_str());
 		}
 	}
 
@@ -134,9 +129,7 @@ public:
 
 			if (!register_vhost(hid, cfg))
 			{
-				char msg[1024];
-				snprintf(msg, sizeof(msg), "Server alias '%s' already in use.", hid.c_str());
-				throw std::runtime_error(msg);
+				server_.log(x0::severity::error, "Server alias '%s' already in use.", hid.c_str());
 			}
 
 			server_.link_context(hostid, hid);
@@ -157,14 +150,10 @@ public:
 		{
 			if (vhost_config *vhost = get_default_vhost(port))
 			{
-				char msg[256];
-
-				std::snprintf(msg, sizeof(msg),
+				server_.log(x0::severity::error,
 						"Cannot declare multiple virtual hosts as default "
 						"with same port (%d). Conflicting hostnames: %s, %s.",
 						port, vhost->name.c_str(), hostid.c_str());
-
-				throw std::runtime_error(msg);
 			}
 
 			set_default_vhost(port, cfg);

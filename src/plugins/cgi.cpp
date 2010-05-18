@@ -316,7 +316,7 @@ void cgi_script::receive_response(ev::io& /*w*/, int revents)
 
 			if (!serial_)
 			{
-				response_->status = x0::response::internal_server_error;
+				response_->status = x0::http_error::internal_server_error;
 				request_->connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
 			delete this;
@@ -349,12 +349,12 @@ void cgi_script::message_header(const x0::buffer_ref& name, const x0::buffer_ref
 
 	if (name == "Status")
 	{
-		response_->status = boost::lexical_cast<int>(value.str());
+		response_->status = static_cast<x0::http_error>(boost::lexical_cast<int>(value.str()));
 	}
 	else 
 	{
 		if (name == "Location")
-			response_->status = 302;
+			response_->status = x0::http_error::moved_temporarily;
 
 		response_->headers.push_back(name.str(), value.str());
 	}

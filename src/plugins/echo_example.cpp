@@ -44,7 +44,7 @@ private:
 		if (!x0::equals(in->path, "/echo"))
 			return next(); // pass request to next handler
 
-		out->status = 200;
+		out->status = x0::http_error::ok;
 
 		if (x0::buffer_ref value = in->header("Content-Length"))
 			out->headers.set("Content-Length", value.str());
