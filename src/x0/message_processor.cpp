@@ -2,7 +2,7 @@
 
 namespace x0 {
 
-#if 0
+#if 1
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("message_processor: " msg)
@@ -55,6 +55,93 @@ const std::error_category& http_message_category() throw()
 	return http_message_category_impl_;
 }
 // }}}
+
+/** initializes the HTTP/1.1 message processor.
+ *
+ * \param mode REQUEST: parses and processes an HTTP/1.1 Request,
+ *             RESPONSE: parses and processes an HTTP/1.1 Response.
+ *             MESSAGE: parses and processes an HTTP/1.1 message, that is, without the first request/status line - just headers and content.
+ *
+ * \note No member variable may be modified after the hook invokation returned with
+ *       a false return code, which means, that processing is to be cancelled
+ *       and thus, may imply, that the object itself may have been already deleted.
+ */
+message_processor::message_processor(mode_type mode) :
+	mode_(mode),
+	state_(MESSAGE_BEGIN),
+	method_(),
+	entity_(),
+	version_major_(0),
+	version_minor_(0),
+	code_(0),
+	message_(),
+	name_(),
+	value_(),
+	content_chunked_(false),
+	content_length_(-1),
+	filter_chain_()
+{
+}
+
+inline void message_processor::reset()
+{
+	TRACE("reset(): last_state=%s", state_str());
+
+	version_major_ = 0;
+	version_minor_ = 0;
+	content_length_ = -1;
+	state_ = MESSAGE_BEGIN;
+}
+
+inline bool message_processor::is_char(char value)
+{
+	return value >= 0 && value <= 127;
+}
+
+inline bool message_processor::is_ctl(char value)
+{
+	return (value >= 0 && value <= 31) || value == 127;
+}
+
+inline bool message_processor::is_seperator(char value)
+{
+	switch (value)
+	{
+		case '(':
+		case ')':
+		case '<':
+		case '>':
+		case '@':
+		case ',':
+		case ';':
+		case ':':
+		case '\\':
+		case '"':
+		case '/':
+		case '[':
+		case ']':
+		case '?':
+		case '=':
+		case '{':
+		case '}':
+		case SP:
+		case HT:
+			return true;
+		default:
+			return false;
+	}
+}
+
+inline bool message_processor::is_token(char value)
+{
+	return is_char(value) && !(is_ctl(value) || is_seperator(value));
+}
+
+inline bool message_processor::is_text(char value)
+{
+	// TEXT = <any OCTET except CTLs but including LWS>
+	return !is_ctl(value) || value == SP || value == HT;
+}
 
 // {{{ message_processor hook stubs
 /** hook, invoked for each HTTP/1.1 Request-Line, that has been fully parsed.
