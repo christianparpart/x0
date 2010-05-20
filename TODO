@@ -1,5 +1,10 @@
 for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects/x0
 
+- HTTP POST: proxy, cgi
+- custom plugin locations
+- error management (std::error_code), *no* exceptions.
+- rm chunked_decoder (obsolete)
+
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
@@ -38,17 +43,14 @@ QUALITY ASSURANCE TODO:
 	- runtime changing of config settings
 - RESPECT: handle request headers "Keep-Alive" properly (using [deadline-]timers)
 - FIX: request parsing
-	- replace \r with \015 and \n with \012
 	- fix LWS parsing, e.g. allow headers like "name\r\n  :\r\nvalue\r\n"
 - rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
   last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
   (NOTE: why did I say that? why does mtime shard the server's "Date:"?)
 
-
 -----------------------------------------------------------------------------
 CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
-- chunked_decoder : filter (used for: request body, response_parser)
 - XXX_filter -> XXX_encoder
 - proper HTTP POST reader API: as part of request class
 	- should consume the body automatically if not read by a handler until response headers are flushed
@@ -59,7 +61,6 @@ CODE CLEANUP TODO:
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
 	- make use of libev's child watcher
 - plugins/cgi: pass completion handler to cgi_script::async_run(...)
-- generalize request_parser just like done with response_parser
 - reduce number of syscalls during a single request-processing
 - file -> filereader; fileinfo -> file; fileinfo_service -> file_service
 
@@ -67,6 +68,11 @@ CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
 FEATURES TODO:
 -----------------------------------------------------------------------------
+* core: when a new connection comes in but we have already reached the
+	connection limit (as per config) then kill some idle connections in 
+	keep-alive state.
+	if there are no keep-alive connections available, drop connection immediately.
+	this eliminates the need of MaxKeepAliveRequests cvar.
 - x0d: add settings option to setup process' cpu affinity
 - proper protocol "Upgrade"-API, as required for web sockets
 - connection: add read/write hooks, as required for the upcoming ssl plugin. these functors do standard I/O if not overridden.
