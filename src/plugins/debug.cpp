@@ -26,6 +26,91 @@
 #include <time.h>
 #include <ev++.h>
 
+struct cstat : // {{{
+	public x0::custom_data
+{
+private:
+	static unsigned connection_counter;
+
+	x0::server& server_;
+	ev::tstamp start_;
+	unsigned cid_;
+	unsigned rcount_;
+	FILE *fp;
+
+private:
+	template<typename... Args>
+	void log(x0::severity s, const char *fmt, Args&& ... args)
+	{
+		//server_.log(s, fmt, args...);
+
+		if (fp)
+		{
+			fprintf(fp, "%.4f ", ev_now(server_.loop()));
+			fprintf(fp, fmt, args...);
+			fprintf(fp, "\n");
+			fflush(fp);
+		}
+	}
+
+public:
+	explicit cstat(x0::server& server) :
+		server_(server),
+		start_(ev_now(server.loop())),
+		cid_(++connection_counter),
+		rcount_(0),
+		fp(NULL)
+	{
+
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "c%04d.log", id());
+		fp = fopen(buf, "w");
+
+		log(x0::severity::info, "connection[%d] opened.", id());
+	}
+
+	ev::tstamp connection_time() const { return ev_now(server_.loop()) - start_; }
+	unsigned id() const { return cid_; }
+	unsigned request_count() const { return rcount_; }
+
+	void begin_request(x0::request *in)
+	{
+		++rcount_;
+
+		log(x0::severity::info, "connection[%d] request[%d]: %s %s",
+				id(), request_count(), in->method.str().c_str(), in->uri.str().c_str());
+
+		for (auto i = in->headers.begin(), e = in->headers.end(); i != e; ++i)
+			log(x0::severity::info, "C> %s: %s", i->name.str().c_str(), i->value.str().c_str());
+	}
+
+	void end_request(x0::request *in, x0::response *out)
+	{
+		//std::ostringstream stream;
+
+		/*if (!in->body.empty())
+		{
+			log(x0::severity::info, "C> %s", in->body.c_str());
+		}*/
+
+		//stream << "S< " << static_cast<int>(out->status) << ' ' << x0::response::status_str(out->status) << std::endl;
+		for (auto i = out->headers.begin(), e = out->headers.end(); i != e; ++i)
+			log(x0::severity::info, "S< %s: %s", i->name.c_str(), i->value.c_str());
+	}
+
+	~cstat()
+	{
+		log(x0::severity::info, "connection[%d] closed. timing: %.4f (nreqs: %d)",
+				id(), connection_time(), request_count());
+
+		if (fp)
+			fclose(fp);
+	}
+};
+
+unsigned cstat::connection_counter = 0;
+// }}}
+
 /**
  * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
@@ -74,61 +159,26 @@ private:
 		return name;
 	}
 
-	struct timer :
-		public x0::custom_data
-	{
-		ev::tstamp value_;
-		struct ev_loop *loop_;
-
-		explicit timer(struct ev_loop *loop) : value_(ev_now(loop)), loop_(loop) {}
-
-		ev::tstamp diff() const { return ev_now(loop_) - value_; }
-	};
-
 	void connection_open(x0::connection *connection)
 	{
-		server_.log(x0::severity::info, "connection opened: %s", client_hostname(connection).c_str());
-		connection->custom_data[this] = std::make_shared<timer>(server_.loop());
+		connection->custom_data[this] = std::make_shared<cstat>(server_);
 	}
 
 	void pre_process(x0::request *in)
 	{
-		server_.log(x0::severity::info, "pre processing request from: %s", client_hostname(&in->connection).c_str());
-
-		std::ostringstream stream;
-		log(x0::severity::info, "C> %s %s HTTP/%d.%d", in->method.str().c_str(), in->uri.str().c_str(), in->http_version_major, in->http_version_minor);
-		for (auto i = in->headers.begin(), e = in->headers.end(); i != e; ++i)
-		{
-			log(x0::severity::info, "C> %s: %s", i->name.str().c_str(), i->value.str().c_str());
-		}
+		if (std::shared_ptr<cstat> cs = std::static_pointer_cast<cstat>(in->connection.custom_data[this]))
+			cs->begin_request(in);
 	}
 
 	void request_done(x0::request *in, x0::response *out)
 	{
-		//server_.log(x0::severity::info, "post process");
-
-		std::ostringstream stream;
-
-		/*if (!in->body.empty())
-		{
-			log(x0::severity::info, "C> %s", in->body.c_str());
-		}*/
-
-		stream << "S< " << out->status() << ' ' << x0::response::status_str(out->status()) << std::endl;
-		for (auto i = out->headers.begin(), e = out->headers.end(); i != e; ++i)
-		{
-			log(x0::severity::info, "S< %s: %s", i->name.c_str(), i->value.c_str());
-		}
+		if (std::shared_ptr<cstat> cs = std::static_pointer_cast<cstat>(in->connection.custom_data[this]))
+			cs->end_request(in, out);
 	}
 
 	void connection_close(x0::connection *connection)
 	{
-		if (std::shared_ptr<timer> tm = std::static_pointer_cast<timer>(connection->custom_data[this]))
-		{
-			server_.log(x0::severity::info, "connection timing: %.4f", tm->diff());
-		}
-
-		server_.log(x0::severity::info, "connection closed: %s", client_hostname(connection).c_str());
+		// we don't need this at the moment
 	}
 };
 
