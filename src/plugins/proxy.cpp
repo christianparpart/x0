@@ -31,27 +31,32 @@
 #include <netdb.h>
 #include <fcntl.h>
 
-// TODO Create proxy_connection at pre_process to connect to backend and pass possible request content already
-// TODO Implement proper error handling (origin connect or i/o errors, and client disconnect event).
-// TODO Should we use getaddrinfo() instead of inet_pton()?
-// TODO Implement proper timeout management for connect/write/read/keepalive timeouts.
-// TODO Implement proper node load balancing.
-// TODO Implement proper hot-spare fallback node activation, 
+// CODE CLEANUPS:
+// - TODO Create proxy_connection at pre_process to connect to backend and pass
+// 			possible request content already
+// - TODO Implement proper error handling (origin connect or i/o errors,
+// 			and client disconnect event).
+// - TODO Should we use getaddrinfo() instead of inet_pton()?
+// - TODO Implement proper timeout management for connect/write/read/keepalive
+// 			timeouts.
+// FEATURES:
+// - TODO Implement proper node load balancing.
+// - TODO Implement proper hot-spare fallback node activation, 
 
 /* -- configuration proposal:
  *
- * Proxy = {
- *     Enabled = true;
- *     BufferSize = 0;
- *     ConnectTimeout = 5;
- *     IgnoreClientAbort = false;
- *     Mode = "reverse";                 -- "reverse" | "forward" | and possibly others
- *     KeepAlive = 0;                    -- keep-alive seconds to origin servers
- *     Methods = { 'PROPFIND' };
- *     Servers = {
+ * ['YourDomain.com'] = {
+ *     ProxyEnabled = true;
+ *     ProxyBufferSize = 0;
+ *     ProxyConnectTimeout = 5;
+ *     ProxyIgnoreClientAbort = false;
+ *     ProxyMode = "reverse";                 -- "reverse" | "forward" | and possibly others
+ *     ProxyKeepAlive = 0;                    -- keep-alive seconds to origin servers
+ *     ProxyMethods = { 'PROPFIND' };
+ *     ProxyServers = {
  *         "http://pr1.backend/"
  *     };
- *     HotSpares = {
+ *     ProxyHotSpares = {
  *         "http://hs1.backend.net/"
  *     };
  * };
