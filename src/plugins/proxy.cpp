@@ -679,7 +679,10 @@ private:
 			return next();
 
 		if (!px->method_allowed(in->method))
-			return next();
+		{
+			out->status = x0::http_error::method_not_allowed;
+			return next.done();
+		}
 
 		proxy_connection *connection = px->acquire();
 		connection->start(std::bind(&proxy_plugin::done, this, next), in, out);
