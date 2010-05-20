@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#if 0
+#if 1
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("web_client: " msg)
