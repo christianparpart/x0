@@ -25,7 +25,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 0
+#if 1
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("connection: " msg)
@@ -34,6 +34,76 @@
 #define X0_HTTP_STRICT 1
 
 namespace x0 {
+
+#if !defined(NDEBUG) // {{{ struct cstat
+struct cstat :
+	public x0::custom_data
+{
+private:
+	static unsigned connection_counter;
+
+	x0::server& server_;
+	ev::tstamp start_;
+	unsigned cid_;
+	unsigned rcount_;
+	FILE *fp;
+
+private:
+	template<typename... Args>
+	void log(x0::severity s, const char *fmt, Args&& ... args)
+	{
+		server_.log(s, fmt, args...);
+
+		if (fp)
+		{
+			fprintf(fp, "%.4f ", ev_now(server_.loop()));
+			fprintf(fp, fmt, args...);
+			fprintf(fp, "\n");
+			fflush(fp);
+		}
+	}
+
+public:
+	explicit cstat(x0::server& server) :
+		server_(server),
+		start_(ev_now(server.loop())),
+		cid_(++connection_counter),
+		rcount_(0),
+		fp(NULL)
+	{
+
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "c-io-%04d.log", id());
+		fp = fopen(buf, "w");
+
+		log(x0::severity::info, "connection[%d] opened.", id());
+	}
+
+	ev::tstamp connection_time() const { return ev_now(server_.loop()) - start_; }
+	unsigned id() const { return cid_; }
+	unsigned request_count() const { return rcount_; }
+
+	void log(const buffer_ref& buf)
+	{
+		fprintf(fp, "%.4f %ld\r\n", ev_now(server_.loop()), buf.size());
+		fwrite(buf.data(), buf.size(), 1, fp);
+		fprintf(fp, "\r\n");
+		fflush(fp);
+	}
+
+	~cstat()
+	{
+		log(x0::severity::info, "connection[%d] closed. timing: %.4f (nreqs: %d)",
+				id(), connection_time(), request_count());
+
+		if (fp)
+			fclose(fp);
+	}
+};
+
+unsigned cstat::connection_counter = 0;
+#endif
+// }}}
 
 connection::connection(x0::listener& lst) :
 	message_processor(message_processor::REQUEST),
@@ -63,6 +133,9 @@ connection::connection(x0::listener& lst) :
 	timer_.set<connection, &connection::timeout>(this);
 #endif
 
+#if !defined(NDEBUG)
+	custom_data[(plugin *)this] = std::make_shared<cstat>(server_);
+#endif
 }
 
 connection::~connection()
@@ -527,8 +600,7 @@ void connection::handle_read()
 		return (void) ssl_handshake();
 #endif
 
-	int rv = buffer_.size();
-
+	int rv;
 #if defined(WITH_SSL)
 	if (ssl_enabled())
 		rv = gnutls_read(ssl_session_, buffer_.end(), buffer_.capacity() - buffer_.size());
@@ -560,7 +632,14 @@ void connection::handle_read()
 	{
 		TRACE("connection::handle_read(): read %d bytes", rv);
 
-		buffer_.resize(buffer_.size() + rv);
+		std::size_t offset = buffer_.size();
+		buffer_.resize(offset + rv);
+
+#if !defined(NDEBUG)
+		if (std::shared_ptr<cstat> cs = std::static_pointer_cast<cstat>(custom_data[(plugin *)this]))
+			cs->log(buffer_.ref(offset, rv));
+#endif
+
 		process();
 	}
 
