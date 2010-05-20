@@ -613,12 +613,15 @@ public:
 		// register content generator
 		c = server_.generate_content.connect(&proxy_plugin::process, this);
 
-		server_.register_cvar_path("Proxy", std::bind(&proxy_plugin::setup_proxy, this, _1, _2, _3));
-	}
-
-	void setup_proxy(const x0::settings_value& cvar, const std::string& hostid, const std::string& path)
-	{
-		server_.log(x0::severity::debug, "setup_proxy(host=%s, path=%s)", hostid.c_str(), path.c_str());
+		server_.register_cvar_host("ProxyEnable", std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
+		server_.register_cvar_host("ProxyMode", std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
+		server_.register_cvar_host("ProxyOrigins", std::bind(&proxy_plugin::setup_proxy_origins, this, _1, _2));
+		server_.register_cvar_host("ProxyHotSpares", std::bind(&proxy_plugin::setup_proxy_hotspares, this, _1, _2));
+		server_.register_cvar_host("ProxyMethods", std::bind(&proxy_plugin::setup_proxy_methods, this, _1, _2));
+		server_.register_cvar_host("ProxyConnectTimeout", std::bind(&proxy_plugin::setup_proxy_connect_timeout, this, _1, _2));
+		server_.register_cvar_host("ProxyReadTimeout", std::bind(&proxy_plugin::setup_proxy_read_timeout, this, _1, _2));
+		server_.register_cvar_host("ProxyWriteTimeout", std::bind(&proxy_plugin::setup_proxy_write_timeout, this, _1, _2));
+		server_.register_cvar_host("ProxyKeepAliveTimeout", std::bind(&proxy_plugin::setup_proxy_keepalive_timeout, this, _1, _2));
 	}
 
 	~proxy_plugin()
@@ -626,57 +629,111 @@ public:
 		c.disconnect(); // optional, as it gets invoked on ~connection(), too.
 	}
 
-	virtual void configure()
+	void setup_proxy_enable(const x0::settings_value& cvar, const std::string& hostid)
 	{
-		auto hosts = server_.config()["Hosts"].keys<std::string>();
+		proxy *px = acquire_proxy(hostid);
+		cvar.load(px->enabled);
+	}
 
-		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
+	void setup_proxy_mode(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		// TODO reverse / forward / transparent (forward)
+	}
+
+	void setup_proxy_origins(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		proxy *px = acquire_proxy(hostid);
+		cvar.load(px->origins);
+
+		for (std::size_t i = 0, e = px->origins.size(); i != e; ++i)
 		{
-			if (!server_.config()["Hosts"][*i].contains("Proxy"))
-				continue; // no proxy
+			std::string url = px->origins[i];
+			std::string protocol, hostname;
+			int port = 0;
 
-			proxy *px = server_.create_context<proxy>(this, *i);
-
-			px->loop = server_.loop();
-
-			server_.config()["Hosts"][*i]["Proxy"]["Enabled"].load(px->enabled);
-			server_.config()["Hosts"][*i]["Proxy"]["ConnectTimeout"].load(px->connect_timeout);
-			server_.config()["Hosts"][*i]["Proxy"]["ReadTimeout"].load(px->read_timeout);
-			server_.config()["Hosts"][*i]["Proxy"]["WriteTimeout"].load(px->write_timeout);
-			server_.config()["Hosts"][*i]["Proxy"]["KeepAlive"].load(px->keepalive);
-			server_.config()["Hosts"][*i]["Proxy"]["BufferSize"].load(px->buffer_size);
-			server_.config()["Hosts"][*i]["Proxy"]["Methods"].load(px->allowed_methods);
-
-			server_.config()["Hosts"][*i]["Proxy"]["Origins"].load(px->origins);
-
-			for (std::size_t k = 0; k < px->origins.size(); ++k)
+			if (!x0::parse_url(url, protocol, hostname, port))
 			{
-				std::string url = px->origins[k];
-				std::string protocol, hostname;
-				int port = 0;
-
-				if (!x0::parse_url(url, protocol, hostname, port))
-				{
-					TRACE("%s.", "Origin URL parse error");
-					continue;
-				}
-
-				origin_server origin(hostname, port);
-				if (origin.is_enabled())
-					px->origins_.push_back(origin);
-				else
-					server_.log(x0::severity::error, origin.error().c_str());
+				TRACE("%s.", "Origin URL parse error");
+				continue;
 			}
 
-			if (px->origins_.empty())
-				server_.log(x0::severity::warn, "No origin servers defined for proxy at virtual-host: %s.", i->c_str());
+			origin_server origin(hostname, port);
+			if (origin.is_enabled())
+				px->origins_.push_back(origin);
+			else
+				server_.log(x0::severity::error, origin.error().c_str());
 		}
+
+		if (px->origins_.empty())
+			server_.log(x0::severity::warn, "No origin servers defined for proxy at virtual-host: %s.", hostid.c_str());
+	}
+
+	void setup_proxy_hotspares(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		//proxy *px = acquire_proxy(hostid);
+		//cvar.load(px->hot_spares);
+	}
+
+	void setup_proxy_methods(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		proxy *px = acquire_proxy(hostid);
+		cvar.load(px->allowed_methods);
+	}
+
+	void setup_proxy_connect_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		proxy *px = acquire_proxy(hostid);
+		cvar.load(px->connect_timeout);
+	}
+
+	void setup_proxy_read_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		proxy *px = acquire_proxy(hostid);
+		cvar.load(px->read_timeout);
+	}
+
+	void setup_proxy_write_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		proxy *px = acquire_proxy(hostid);
+		cvar.load(px->write_timeout);
+	}
+
+	void setup_proxy_keepalive_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		proxy *px = acquire_proxy(hostid);
+		cvar.load(px->keepalive);
+	}
+
+	proxy *acquire_proxy(const std::string& hostid)
+	{
+		if (proxy *px = server_.context<proxy>(this, hostid))
+			return px;
+
+		proxy *px = server_.create_context<proxy>(this, hostid);
+		px->loop = server_.loop();
+
+		return px;
+	}
+
+	proxy *get_proxy(const std::string& hostid)
+	{
+		if (proxy *px = server_.context<proxy>(this, hostid))
+			return px;
+
+		return 0;
+	}
+
+	virtual void configure()
+	{
+		// XXX abuse as postconf hook
+
+		// TODO ensure, that every proxy instance is properly equipped.
 	}
 
 private:
 	void process(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
-		proxy *px = server_.context<proxy>(this, in->hostid());
+		proxy *px = get_proxy(in->hostid());
 		if (!px)
 			return next();
 
