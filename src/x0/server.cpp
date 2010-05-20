@@ -69,7 +69,6 @@ server::server(struct ::ev_loop *loop) :
 	now_(),
 	loop_check_(loop_),
 	max_connections(512),
-	max_keep_alive_requests(16),
 	max_keep_alive_idle(5),
 	max_read_idle(60),
 	max_write_idle(360),
@@ -691,7 +690,6 @@ void server::setup_modules(const settings_value& cvar)
 void server::setup_resources(const settings_value& cvar)
 {
 	cvar["MaxConnections"].load(max_connections);
-	cvar["MaxKeepAliveRequests"].load(max_keep_alive_requests);
 	cvar["MaxKeepAliveIdle"].load(max_keep_alive_idle);
 	cvar["MaxReadIdle"].load(max_read_idle);
 	cvar["MaxWriteIdle"].load(max_write_idle);

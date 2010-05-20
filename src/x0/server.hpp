@@ -262,7 +262,6 @@ private:
 
 public:
 	value_property<int> max_connections;
-	value_property<int> max_keep_alive_requests;
 	value_property<int> max_keep_alive_idle;
 	value_property<int> max_read_idle;
 	value_property<int> max_write_idle;
