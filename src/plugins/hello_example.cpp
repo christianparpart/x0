@@ -54,11 +54,6 @@ public:
 		c.disconnect(); // optional, as it gets invoked on ~connection(), too.
 	}
 
-	virtual void configure()
-	{
-		// \!todo add configs for custom hello strings and /prefix locations
-	}
-
 private:
 	void hello(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
