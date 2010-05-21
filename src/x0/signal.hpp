@@ -10,8 +10,6 @@
 
 #include <x0/types.hpp>
 #include <x0/api.hpp>
-#include <boost/function.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/next_prior.hpp>
 #include <list>
 
@@ -32,9 +30,11 @@ template<typename SignatureT> class signal;
  * \see handler<void(Args...)>
  */
 template<typename... _Args>
-class signal<void(_Args...)> :
-	public boost::noncopyable
+class signal<void(_Args...)>
 {
+	signal(const signal&) = delete;
+	signal& operator=(const signal&) = delete;
+
 public:
 	typedef boost::function<void(_Args...)> functor;
 	typedef std::list<functor> list_type;
