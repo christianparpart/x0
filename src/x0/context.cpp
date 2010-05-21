@@ -1,5 +1,5 @@
 #include <x0/context.hpp>
-#include <x0/plugin.hpp>
+//#include <x0/http/plugin.hpp>
 
 namespace x0 {
 

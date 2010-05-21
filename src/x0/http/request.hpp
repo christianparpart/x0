@@ -8,16 +8,14 @@
 #ifndef x0_http_request_hpp
 #define x0_http_request_hpp (1)
 
+#include <x0/http/header.hpp>
 #include <x0/io/fileinfo.hpp>
 #include <x0/buffer.hpp>
-#include <x0/header.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <string>
 #include <vector>
-#include <boost/tuple/tuple.hpp>
-#include <boost/logic/tribool.hpp>
 
 namespace x0 {
 

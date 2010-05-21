@@ -1,4 +1,4 @@
-#include <x0/message_processor.hpp>
+#include <x0/http/message_processor.hpp>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 

@@ -6,10 +6,11 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/server.hpp>
+#include <x0/http/server.hpp>
 #include <x0/strutils.hpp>
 #include <x0/severity.hpp>
-#include <boost/bind.hpp>
+
+#include <functional>
 #include <iostream>
 #include <string>
 #include <cstdio>
@@ -99,7 +100,7 @@ public:
 		drop_privileges(user_, group_);
 
 		return doguard_
-			? guard(boost::bind(&x0d::_run, this))
+			? guard(std::bind(&x0d::_run, this))
 			: _run();
 	}
 

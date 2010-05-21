@@ -10,7 +10,7 @@
 
 #include <x0/api.hpp>
 #include <x0/buffer.hpp>
-#include <x0/message_processor.hpp>
+#include <x0/http/message_processor.hpp>
 #include <ev++.h>
 #include <functional>
 #include <system_error>

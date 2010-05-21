@@ -5,11 +5,11 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/connection.hpp>
-#include <x0/listener.hpp>
-#include <x0/request.hpp>
-#include <x0/response.hpp>
-#include <x0/server.hpp>
+#include <x0/http/connection.hpp>
+#include <x0/http/listener.hpp>
+#include <x0/http/request.hpp>
+#include <x0/http/response.hpp>
+#include <x0/http/server.hpp>
 #include <x0/types.hpp>
 #include <x0/sysconfig.h>
 

@@ -11,10 +11,6 @@
 #include <x0/types.hpp>
 #include <x0/api.hpp>
 #include <x0/event_handler.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/next_prior.hpp>
-#include <boost/function.hpp>
-#include <list>
 
 namespace x0 {
 

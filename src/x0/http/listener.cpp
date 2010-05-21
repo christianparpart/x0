@@ -5,9 +5,9 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/listener.hpp>
-#include <x0/connection.hpp>
-#include <x0/server.hpp>
+#include <x0/http/listener.hpp>
+#include <x0/http/connection.hpp>
+#include <x0/http/server.hpp>
 #include <x0/sysconfig.h>
 
 #if defined(WITH_SSL)

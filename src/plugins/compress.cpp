@@ -5,13 +5,13 @@
  * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/plugin.hpp>
-#include <x0/server.hpp>
-#include <x0/request.hpp>
-#include <x0/response.hpp>
-#include <x0/range_def.hpp>
-#include <x0/strutils.hpp>
+#include <x0/http/plugin.hpp>
+#include <x0/http/server.hpp>
+#include <x0/http/request.hpp>
+#include <x0/http/response.hpp>
+#include <x0/http/range_def.hpp>
 #include <x0/io/compress_filter.hpp>
+#include <x0/strutils.hpp>
 #include <x0/types.hpp>
 #include <x0/sysconfig.h>
 

@@ -30,7 +30,6 @@ class plugin;
  * </ol>
  *
  * \see server::context, request::context
- * \see plugin::merge()
  */
 struct context
 {

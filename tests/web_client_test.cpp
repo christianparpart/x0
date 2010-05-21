@@ -1,6 +1,6 @@
 #include <x0/web_client.hpp>
 #include <x0/buffer.hpp>
-#include <x0/http_error.hpp>
+#include <x0/http/http_error.hpp>
 #include <x0/url.hpp>
 
 #include <functional> // bind(), placeholders

@@ -10,9 +10,9 @@
 
 #include <x0/types.hpp>
 #include <x0/property.hpp>
-#include <x0/header.hpp>
-#include <x0/connection.hpp>
-#include <x0/http_error.hpp>
+#include <x0/http/header.hpp>
+#include <x0/http/connection.hpp>
+#include <x0/http/http_error.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/filter_source.hpp>
 #include <x0/io/chain_filter.hpp>

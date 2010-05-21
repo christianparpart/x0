@@ -5,13 +5,13 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
+#include <x0/http/server.hpp>
+#include <x0/http/listener.hpp>
+#include <x0/http/request.hpp>
+#include <x0/http/response.hpp>
+#include <x0/http/plugin.hpp>
 #include <x0/settings.hpp>
 #include <x0/logger.hpp>
-#include <x0/listener.hpp>
-#include <x0/server.hpp>
-#include <x0/plugin.hpp>
-#include <x0/request.hpp>
-#include <x0/response.hpp>
 #include <x0/strutils.hpp>
 #include <x0/library.hpp>
 #include <x0/ansi_color.hpp>

@@ -5,17 +5,17 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/plugin.hpp>
-#include <x0/server.hpp>
-#include <x0/request.hpp>
-#include <x0/response.hpp>
-#include <x0/range_def.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
+#include <x0/http/plugin.hpp>
+#include <x0/http/server.hpp>
+#include <x0/http/request.hpp>
+#include <x0/http/response.hpp>
+#include <x0/http/range_def.hpp>
 #include <x0/io/file_source.hpp>
 #include <x0/io/buffer_source.hpp>
 #include <x0/io/composite_source.hpp>
 #include <x0/io/file.hpp>
+#include <x0/strutils.hpp>
+#include <x0/types.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>

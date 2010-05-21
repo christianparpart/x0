@@ -9,7 +9,7 @@
 #define x0_plugin_hpp (1)
 
 #include <x0/types.hpp>
-#include <x0/server.hpp>
+#include <x0/http/server.hpp>
 #include <x0/api.hpp>
 
 namespace x0 {

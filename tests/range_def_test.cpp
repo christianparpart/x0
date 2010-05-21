@@ -1,8 +1,6 @@
-#include <x0/range_def.hpp>
+#include <x0/http/range_def.hpp>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
-#include <boost/asio.hpp>
-#include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <cstdlib>
 #include <cctype>

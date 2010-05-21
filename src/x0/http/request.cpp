@@ -5,9 +5,9 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/request.hpp>
-#include <x0/response.hpp>
-#include <x0/connection.hpp>
+#include <x0/http/request.hpp>
+#include <x0/http/response.hpp>
+#include <x0/http/connection.hpp>
 #include <x0/strutils.hpp>
 #include <strings.h>			// strcasecmp()
 

@@ -8,12 +8,12 @@
 #ifndef x0_connection_hpp
 #define x0_connection_hpp (1)
 
-#include <x0/message_processor.hpp>
+#include <x0/http/message_processor.hpp>
+#include <x0/http/server.hpp>
 #include <x0/io/sink.hpp>
 #include <x0/io/source.hpp>
 #include <x0/io/async_writer.hpp>
 #include <x0/buffer.hpp>
-#include <x0/server.hpp>
 #include <x0/property.hpp>
 #include <x0/types.hpp>
 #include <x0/api.hpp>

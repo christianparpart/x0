@@ -1,4 +1,4 @@
-#include <x0/http_error.hpp>
+#include <x0/http/http_error.hpp>
 #include <x0/defines.hpp>
 
 namespace x0 {

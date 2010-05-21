@@ -62,23 +62,37 @@ set(x0_io_API
 	io/uppercase_filter.hpp
 )
 
+set(x0_http_API
+	http/http_error.hpp
+	http/listener.hpp
+	http/request.hpp
+	http/request_handler.hpp
+	http/response.hpp
+	http/message_processor.hpp
+	http/server.hpp
+)
+
+set(x0_http_SRC
+	http/connection.cpp
+	http/http_error.cpp
+	http/listener.cpp
+	http/message_processor.cpp
+	http/response.cpp
+	http/request.cpp
+	http/server.cpp
+)
+
 set(x0_SRC
 	${x0_io_SRC}
-	connection.cpp
+	${x0_http_SRC}
 	context.cpp
-	http_error.cpp
 	gai_error.cpp
 	library.cpp
-	listener.cpp
 	logger.cpp
-	message_processor.cpp
-	response.cpp
 	web_client.cpp
-	request.cpp
-	server.cpp
 	settings.cpp
 	severity.cpp
-	ssl_db_cache.cpp
+	ssl_db_cache.cpp # should go into io/
 	strutils.cpp
 	url.cpp
 	process.cpp
@@ -96,25 +110,17 @@ set(x0_API
 	datetime.hpp
 	defines.hpp
 	event_handler.hpp
-	http_error.hpp
 	gai_error.hpp
 	function.hpp
 	handler.hpp
 	header.hpp
 	library.hpp
-	listener.hpp
 	local_stream.hpp
 	logger.hpp
-	message_processor.hpp
 	plugin.hpp
 	process.hpp
 	property.hpp
 	range_def.hpp range_def.ipp
-	request.hpp
-	request_handler.hpp
-	response.hpp
-	response_parser.hpp
-	server.hpp
 	settings.hpp settings.ipp
 	severity.hpp
 	signal.hpp
@@ -148,4 +154,5 @@ target_link_libraries(x0
 
 install(FILES ${x0_API} DESTINATION ${INCLUDEDIR}/x0)
 install(FILES ${x0_io_API} DESTINATION ${INCLUDEDIR}/x0/io)
+install(FILES ${x0_http_API} DESTINATION ${INCLUDEDIR}/x0/io)
 #install(PUBLIC_HEADER DESTINATION include/x0)
