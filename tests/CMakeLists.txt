@@ -18,7 +18,6 @@ add_executable(x0test
 	x0dtest.cpp
 	range_def_test.cpp
 	message_processor_test.cpp
-	chunked_decoder_test.cpp
 	strutils_test.cpp
 	ternary_search_test.cpp
 	buffer_test.cpp
