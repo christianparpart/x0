@@ -58,6 +58,11 @@ public:
 	{
 	}
 
+	/** invoked after every plugin is loaded and configured. */
+	virtual void post_config()
+	{
+	}
+
 	template<typename... Args>
 	inline void log(severity sv, const char *msg, Args&&... args)
 	{

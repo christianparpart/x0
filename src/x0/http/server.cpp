@@ -279,10 +279,18 @@ void server::configure(const std::string& configfile)
 	{
 		if (contains(global_ignores, *i))
 			continue;
+
 		if (contains(custom_ignores, *i))
 			continue;
-		else if (!contains(cvars_server_, *i))
+
+		if (!contains(cvars_server_, *i))
 			log(severity::warn, "Unknown global configuration variable: '%s'.", i->c_str());
+	}
+
+	// post-config hooks
+	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+	{
+		i->second.first->post_config();
 	}
 	// }}}
 
