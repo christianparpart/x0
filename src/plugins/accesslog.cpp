@@ -12,11 +12,38 @@
 #include <x0/http/header.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 #include <iostream>
 #include <cstring>
 #include <cerrno>
+
+struct logstream
+{
+	std::string filename_;
+	int fd_;
+
+	explicit logstream(const std::string& filename)
+	{
+		filename_ = filename;
+		fd_ = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
+	}
+
+	~logstream()
+	{
+		if (fd_)
+			::close(fd_);
+	}
+
+	void write(const std::string message)
+	{
+		if (fd_ < 0)
+			return;
+
+		if (::write(fd_, message.c_str(), message.size()) < 0)
+			DEBUG("Couldn't write accesslog(%s): %s", filename_.c_str(), strerror(errno));
+	}
+};
+
+typedef std::shared_ptr<logstream> logstream_ptr;
 
 /**
  * \ingroup plugins
@@ -26,75 +53,27 @@ class accesslog_plugin :
 	public x0::plugin
 {
 private:
-	struct logstream
-	{
-		std::string filename_;
-		int fd_;
-
-		explicit logstream(const std::string& filename)
-		{
-			filename_ = filename;
-			fd_ = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
-		}
-
-		~logstream()
-		{
-			if (fd_)
-				::close(fd_);
-		}
-
-		void write(const std::string message)
-		{
-			if (fd_ < 0)
-				return;
-
-			if (::write(fd_, message.c_str(), message.size()) < 0)
-				DEBUG("Couldn't write accesslog(%s): %s", filename_.c_str(), strerror(errno));
-		}
-	};
-
-	struct context
-	{
-		logstream *stream;
-
-		context() : stream(0) {}
-		context(const context& v) : stream(v.stream) {}
-		~context() {}
-	};
-
-	logstream *getlogstream(const std::string& filename)
-	{
-		auto i = streams_.find(filename);
-
-		if (i != streams_.end())
-			return i->second.get();
-
-		return (streams_[filename] = std::shared_ptr<logstream>(new logstream(filename))).get();
-	}
-
-	logstream *getlogstream(x0::request *in)
-	{
-		// vhost context
-		if (context *ctx = server_.context<context>(this, in->hostid()))
-			return ctx->stream;
-
-		// server context
-		if (context *ctx = server_.context<context>(this))
-			return ctx->stream;
-
-		return 0;
-	}
-
-private:
 	x0::server::request_post_hook::connection c;
-	std::map<std::string, std::shared_ptr<logstream>> streams_;
+
+	//! maps file-name to log-stream (to manage only one stream per filename).
+	std::map<std::string, logstream_ptr> streams_;
+
+	//! maps host-id to log-stream.
+	std::map<std::string, logstream_ptr> host_logs;
+
+	//! global log-stream, used when no other applies.
+	logstream_ptr global_log;
 
 public:
 	accesslog_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name),
 		streams_()
 	{
-		c = srv.request_done.connect(boost::bind(&accesslog_plugin::request_done, this, _1, _2));
+		using namespace std::placeholders;
+		c = srv.request_done.connect(std::bind(&accesslog_plugin::request_done, this, _1, _2));
+
+		srv.register_cvar_host("AccessLog", std::bind(&accesslog_plugin::setup_per_host, this, _1, _2));
+		srv.register_cvar_server("AccessLog", std::bind(&accesslog_plugin::setup_per_srv, this, _1));
 	}
 
 	~accesslog_plugin()
@@ -102,36 +81,17 @@ public:
 		server_.request_done.disconnect(c);
 	}
 
-	virtual void configure()
+private:
+	void setup_per_srv(const x0::settings_value& cvar)
 	{
-		std::string default_filename;
-		bool has_global = server_.config().load("AccessLog", default_filename);
-
-		if (has_global)
-		{
-			context *ctx = server_.create_context<context>(this);
-			ctx->stream = getlogstream(default_filename);
-		}
-
-		auto hosts = server_.config()["Hosts"].keys<std::string>();
-		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
-		{
-			std::string hostid(*i);
-			context *ctx = server_.create_context<context>(this, hostid);
-
-			std::string filename;
-			if (server_.config()["Hosts"][hostid]["AccessLog"].load(filename))
-			{
-				ctx->stream = getlogstream(filename);
-			}
-			else if (has_global)
-			{
-				ctx->stream = getlogstream(default_filename);
-			}
-		}
+		global_log = getlogstream(cvar.as<std::string>());
 	}
 
-private:
+	void setup_per_host(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		host_logs[hostid] = getlogstream(cvar.as<std::string>());
+	}
+
 	void request_done(x0::request *in, x0::response *out)
 	{
 		if (auto stream = getlogstream(in))
@@ -150,6 +110,30 @@ private:
 
 			stream->write(sstr.str());
 		}
+	}
+
+	inline logstream_ptr getlogstream(const std::string& filename)
+	{
+		auto i = streams_.find(filename);
+
+		if (i != streams_.end())
+			return i->second;
+
+		return (streams_[filename] = std::shared_ptr<logstream>(new logstream(filename)));
+	}
+
+	inline logstream_ptr getlogstream(x0::request *in)
+	{
+		// vhost context
+		auto i = host_logs.find(in->hostid());
+		if (i != host_logs.end())
+			return i->second;
+
+		// server context
+		if (auto i = global_log)
+			return i;
+
+		return logstream_ptr();
 	}
 
 	inline std::string hostname(x0::request *in)
