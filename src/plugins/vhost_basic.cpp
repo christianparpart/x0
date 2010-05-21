@@ -202,12 +202,7 @@ public:
 		return NULL;
 	}
 
-	virtual void configure()
-	{
-		post_config();
-	}
-
-	void post_config()
+	virtual void post_config()
 	{
 		// verify, that we have at least one vhost defined:
 		// TODO

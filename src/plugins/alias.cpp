@@ -8,18 +8,6 @@
 #include <x0/http/plugin.hpp>
 #include <x0/http/server.hpp>
 #include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/header.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
-#include <boost/algorithm/string.hpp>
-#include <cstring>
-#include <cerrno>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 /**
  * \ingroup plugins
@@ -33,6 +21,9 @@ private:
 
 	typedef std::map<std::string, std::string> aliasmap_type;
 
+	aliasmap_type global_aliases;
+	std::map<std::string, aliasmap_type> host_aliases;
+
 	struct context
 	{
 		aliasmap_type aliases;
@@ -42,7 +33,11 @@ public:
 	alias_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.resolve_entity.connect(boost::bind(&alias_plugin::resolve_entity, this, _1));
+		using namespace std::placeholders;
+		c = srv.resolve_entity.connect(std::bind(&alias_plugin::resolve_entity, this, _1));
+
+		srv.register_cvar_host("Aliases", std::bind(&alias_plugin::setup_per_host, this, _1, _2));
+		srv.register_cvar_server("Aliases", std::bind(&alias_plugin::setup_per_srv, this, _1));
 	}
 
 	~alias_plugin()
@@ -51,41 +46,49 @@ public:
 		server_.free_context<context>(this);
 	}
 
-	virtual void configure()
+	virtual void post_config()
 	{
-		auto hosts = server_.config()["Hosts"].keys<std::string>();
-		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
+		if (global_aliases.empty() && host_aliases.empty())
 		{
-			std::map<std::string, std::string> aliases;
-
-			if (server_.config()["Hosts"][*i]["Aliases"].load(aliases)
-			 || server_.config()["Aliases"].load(aliases))
-			{
-				server_.create_context<context>(this, *i)->aliases = aliases;
-			}
+			// Fine, you want me resident. But you did not make use of me!
+			// So I'll disconnect myself from your service. See if I care!
+			server_.resolve_entity.disconnect(c);
 		}
 	}
 
 private:
+	void setup_per_host(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		cvar.load(host_aliases[hostid]);
+	}
+
+	void setup_per_srv(const x0::settings_value& cvar)
+	{
+		cvar.load(global_aliases);
+	}
+
 	inline aliasmap_type *get_aliases(x0::request *in)
 	{
-		if (auto p = server_.context<context>(this, in->hostid()))
-			return &p->aliases;
+		auto i = host_aliases.find(in->hostid());
+		if (i != host_aliases.end())
+			return &i->second;
+
+		if (global_aliases.empty())
+			return &global_aliases;
 
 		return 0;
 	}
 
 	void resolve_entity(x0::request *in)
 	{
-		using boost::algorithm::starts_with;
-
 		if (auto aliases = get_aliases(in))
 		{
 			for (auto i = aliases->begin(), e = aliases->end(); i != e; ++i)
 			{
-				if (starts_with(in->path, i->first))
+				if (in->path.begins(i->first))
 				{
 					in->fileinfo = server_.fileinfo(i->second + in->path.substr(i->first.size()));
+					break;
 				}
 			}
 		}

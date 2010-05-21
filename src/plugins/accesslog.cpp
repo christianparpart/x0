@@ -12,8 +12,11 @@
 #include <x0/http/header.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
-#include <iostream>
-#include <cstring>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <cerrno>
 
 struct logstream

@@ -723,10 +723,8 @@ public:
 		return 0;
 	}
 
-	virtual void configure()
+	virtual void post_config()
 	{
-		// XXX abuse as postconf hook
-
 		// TODO ensure, that every proxy instance is properly equipped.
 	}
 
