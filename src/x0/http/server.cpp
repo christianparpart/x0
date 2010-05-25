@@ -426,9 +426,9 @@ void server::handle_request(request *in, response *out)
 
 	if (in->document_root.empty())
 	{
-		// no document root assigned with this request.
-		// -> make sure it is not exploited.
-		in->document_root = "/dev/null";
+		out->status = http_error::not_found;
+		out->finish();
+		return;
 	}
 
 	// resolve entity
