@@ -12,9 +12,6 @@
 #include <x0/http/header.hpp>
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
-
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 #include <pwd.h>
 
 /**
@@ -27,87 +24,99 @@ class userdir_plugin :
 private:
 	x0::server::request_parse_hook::connection c;
 
-	struct context
-	{
-		std::string prefix;			// userdir prefix (default: "~")
-		std::string docroot;		// user's document root (default: "public_html")
-	};
+	std::string global_;
 
 public:
 	userdir_plugin(x0::server& srv, const std::string& name) :
 		x0::plugin(srv, name)
 	{
-		c = server_.resolve_entity.connect(/*0, */ boost::bind(&userdir_plugin::resolve_entity, this, _1));
-		server_.create_context<context>(this);
+		using namespace std::placeholders;
+		c = server_.resolve_entity.connect(/*0, */ std::bind(&userdir_plugin::resolve_entity, this, _1));
+
+		srv.register_cvar_server("UserDir", std::bind(&userdir_plugin::setup_userdir_default, this, _1));
+		srv.register_cvar_host("UserDir", std::bind(&userdir_plugin::setup_userdir_host, this, _1, _2));
 	}
 
 	~userdir_plugin()
 	{
 		server_.resolve_entity.disconnect(c);
-		server_.free_context<context>(this);
 	}
 
-	virtual void configure()
+	void setup_userdir_default(const x0::settings_value& cvar)
 	{
-		context *ctx = server_.context<context>(this);
+		std::string userdir;
 
-		server_.config().load("UserDir.PathPrefix", ctx->prefix);
-		server_.config().load("UserDir.DocumentRoot", ctx->docroot);
-
-		if (ctx->prefix.empty())
+		if (cvar.load(userdir) && validate(userdir))
 		{
-			ctx->prefix = "~";
+			global_ = userdir;
 		}
+		debug(0, "userdir_default: '%s'", userdir.c_str());
+	}
 
-		if (ctx->docroot.empty())
-		{
-			ctx->docroot = "/public_html";
-		}
-		else
-		{
-			// force slash at begin
-			if (ctx->docroot[0] != '/')
-			{
-				ctx->docroot.insert(0, "/");
-			}
+	void setup_userdir_host(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		std::string userdir;
 
-			// strip slash at end
-			if (ctx->docroot[ctx->docroot.size() - 1] == '/')
-			{
-				ctx->docroot = ctx->docroot.substr(0, ctx->docroot.size() - 1);
-			}
+		if (cvar.load(userdir) && validate(userdir))
+		{
+			*server_.create_context<std::string>(this, hostid) = userdir;
 		}
+		debug(0, "userdir_host[%s]: '%s'", hostid.c_str(), userdir.c_str());
+	}
+
+	bool validate(std::string& path)
+	{
+		if (path.empty())
+			return false;
+
+		if (path[0] == '/')
+			return false;
+
+		path.insert(0, "/");
+
+		if (path[path.size() - 1] == '/')
+			path = path.substr(0, path.size() - 1);
+
+		return true;
 	}
 
 private:
 	void resolve_entity(x0::request *in)
 	{
-		const context *ctx = server_.context<context>(this);
-		if (!ctx)
+		const std::string *userdir = server_.context<std::string>(this, in->hostid());
+		debug(0, "userdir[per_host]: %p (%s)", userdir, userdir ? userdir->c_str() : "");
+		if (!userdir)
+		{
+			userdir = &global_;
+			debug(0, "userdir[server]: %p (%s)", userdir, userdir->c_str());
+			if (userdir->empty())
+				return;
+		}
+
+		if (in->path.size() <= 2 || in->path[1] != '~')
 			return;
 
-		if (in->path.size() > 2 && std::strncmp(&in->path[1], ctx->prefix.c_str(), ctx->prefix.length()) == 0)
+		const std::size_t i = in->path.find("/", 2);
+		std::string userName, userPath;
+
+		if (i != std::string::npos)
 		{
-			const int prefix_len1 = ctx->prefix.length() + 1;
-			const std::size_t i = in->path.find("/", prefix_len1);
-			std::string userName, userPath;
+			userName = in->path.substr(2, i - 2);
+			userPath = in->path.substr(i);
+		}
+		else
+		{
+			userName = in->path.substr(2);
+			userPath = "";
+		}
+		debug(0, "name[%s], path[%s]", userName.c_str(), userPath.c_str());
 
-			if (i != std::string::npos)
-			{
-				userName = in->path.substr(prefix_len1, i - prefix_len1);
-				userPath = in->path.substr(i);
-			}
-			else
-			{
-				userName = in->path.substr(prefix_len1);
-				userPath = "";
-			}
-
-			if (struct passwd *pw = getpwnam(userName.c_str()))
-			{
-				in->document_root = pw->pw_dir + ctx->docroot;
-				in->fileinfo = server_.fileinfo(in->document_root + userPath);
-			}
+		if (struct passwd *pw = getpwnam(userName.c_str()))
+		{
+			in->document_root = pw->pw_dir + *userdir;
+			in->fileinfo = server_.fileinfo(in->document_root + userPath);
+			debug(0, "docroot[%s], fileinfo[%s]",
+					in->document_root.c_str(), in->fileinfo->filename().c_str());
 		}
 	}
 };
