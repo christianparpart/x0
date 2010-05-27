@@ -12,7 +12,6 @@
 #include <x0/settings.hpp>
 #include <x0/logger.hpp>
 #include <x0/signal.hpp>
-#include <x0/event_handler.hpp>
 #include <x0/http/request_handler.hpp>
 #include <x0/context.hpp>
 #include <x0/types.hpp>
