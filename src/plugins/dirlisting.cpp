@@ -15,7 +15,6 @@
 #include <x0/types.hpp>
 
 #include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 
 #include <cstring>
 #include <cerrno>
@@ -29,24 +28,35 @@
 /**
  * \ingroup plugins
  * \brief implements automatic content generation for raw directories
+ *
+ * \todo cache page objects for later reuse.
+ * \todo add template-support (LUA based)
+ * \todo allow config overrides: server/vhost/location
  */
 class dirlisting_plugin :
 	public x0::plugin
 {
 private:
-	x0::request_handler::connection c;
-
 	struct context
 	{
 		bool enabled;
-		std::string xsluri;
+
+		context() : enabled(false) {}
 	};
+
+	x0::request_handler::connection c;
+	context default_;
 
 public:
 	dirlisting_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+		x0::plugin(srv, name),
+		default_()
 	{
 		c = server_.generate_content.connect(&dirlisting_plugin::dirlisting, this);
+
+		using namespace std::placeholders;
+		server_.register_cvar_server("DirectoryListing", std::bind(&dirlisting_plugin::setup_dirlisting_server, this, _1));
+		server_.register_cvar_host("DirectoryListing", std::bind(&dirlisting_plugin::setup_dirlisting_host, this, _1, _2));
 	}
 
 	~dirlisting_plugin()
@@ -54,32 +64,26 @@ public:
 		c.disconnect();
 	}
 
-	virtual void configure()
+private:
+	void setup_dirlisting_server(const x0::settings_value& cvar)
 	{
-		std::string default_uri;
-		server_.config()["DirectoryListing"]["XslUri"].load(default_uri);
-
-		auto hosts = server_.config()["Hosts"].keys<std::string>();
-		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
-		{
-			bool enabled = true;
-
-			if (server_.config()["Hosts"][*i]["DirectoryListing"]["Enabled"].load(enabled)
-			 || server_.config()["DirectoryListing"]["Enabled"].load(enabled))
-			{
-				context *ctx = server_.create_context<context>(this, *i);
-				ctx->enabled = enabled;
-				ctx->xsluri = server_.config()["Hosts"][*i]["DirectoryListing"]["XslUri"].get(default_uri);
-			}
-		}
+		cvar.load(default_.enabled);
 	}
 
-private:
+	void setup_dirlisting_host(const x0::settings_value& cvar, const std::string& hostid)
+	{
+		bool enabled;
+		if (!cvar.load(enabled))
+			return;
+
+		server_.create_context<context>(this, hostid)->enabled = enabled;
+	}
+
 	void dirlisting(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
 		context *ctx = server_.context<context>(this, in->hostid());
 		if (!ctx)
-			return;
+			ctx = &default_;
 
 		if (!ctx->enabled)
 			return next();
@@ -89,13 +93,12 @@ private:
 
 		if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
 		{
-			bool xml = !ctx->xsluri.empty();
-			x0::buffer result(xml ? mkxml(dir, ctx, in) : mkplain(dir, in));
+			x0::buffer result(mkhtml(dir, in));
 
 			closedir(dir);
 
 			out->status = x0::http_error::ok;
-			out->headers.push_back("Content-Type", xml ? "text/xml" : "text/html");
+			out->headers.push_back("Content-Type", "text/html");
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
 			return out->write(
@@ -111,7 +114,7 @@ private:
 		next.done();
 	}
 
-	std::string mkplain(DIR *dir, x0::request *in)
+	std::string mkhtml(DIR *dir, x0::request *in)
 	{
 		std::list<std::string> listing;
 		listing.push_back("..");
@@ -140,10 +143,10 @@ private:
 
 		std::stringstream sstr;
 		sstr << "<html><head><title>Directory: "
-			 << in->path
+			 << in->path.str()
 			 << "</title></head>\n<body>\n";
 
-		sstr << "<h2>Index of " << in->path << "</h2>\n";
+		sstr << "<h2>Index of " << in->path.str() << "</h2>\n";
 		sstr << "<br/><ul>\n";
 
 		for (std::list<std::string>::iterator i = listing.begin(), e = listing.end(); i != e; ++i)
@@ -159,46 +162,6 @@ private:
 		sstr << "</body></html>\n";
 
 		return sstr.str();
-	}
-
-	std::string mkxml(DIR *dir, context *ctx, x0::request *in)
-	{
-		std::stringstream xml;
-
-		xml << "<?xml version='1.0' encoding='" << "utf-8" << "'?>\n";
-
-		if (!ctx->xsluri.empty())
-			xml << "<?xml-stylesheet type='text/xsl' href='" << ctx->xsluri << "'?>\n";
-
-		xml << "<dirlisting path='" << in->path.str() << "' tag='" << server_.tag() << "'>\n";
-
-		int len = offsetof(dirent, d_name) + pathconf(in->fileinfo->filename().c_str(), _PC_NAME_MAX);
-		dirent *dep = (dirent *)new unsigned char[len + 1];
-		dirent *res = 0;
-
-		while (readdir_r(dir, dep, &res) == 0 && res)
-		{
-			std::string name(dep->d_name);
-
-			if (name[0] == '.')
-				continue;
-
-			if (x0::fileinfo_ptr fi = in->connection.server().fileinfo(in->fileinfo->filename() + "/" + name))
-			{
-				if (fi->is_directory())
-					name += "/";
-
-				xml << "<item name='" << name
-					<< "' size='" << fi->size()
-					<< "' mtime='" << fi->last_modified()
-					<< "' mimetype='" << fi->mimetype()
-					<< "' />\n";
-			}
-		}
-
-		xml << "</dirlisting>\n";
-
-		return xml.str();
 	}
 };
 
