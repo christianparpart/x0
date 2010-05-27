@@ -35,7 +35,7 @@ public:
 	/** initializes the plugin */
 	plugin(server& srv, const std::string& name) :
 #if !defined(NDEBUG)
-		debug_level_(1),
+		debug_level_(9),
 #endif
 		server_(srv),
 		name_(name)
@@ -73,7 +73,7 @@ public:
 	inline void debug(int level, const char *msg, Args&&... args)
 	{
 #if !defined(NDEBUG)
-		if (level >= debug_level_)
+		if (level <= debug_level_)
 		{
 			buffer fmt;
 			fmt.push_back(name_);
