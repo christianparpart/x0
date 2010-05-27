@@ -10,11 +10,8 @@
 #include <x0/http/request.hpp>
 #include <x0/http/response.hpp>
 #include <x0/http/header.hpp>
-
 #include <x0/strutils.hpp>
 #include <x0/types.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 #include <cstring>
 #include <cerrno>
 #include <sys/types.h>
@@ -45,7 +42,8 @@ public:
 		// XXX a better implementation of this dependency-issue surely is, to introduce
 		// another signal that would order the event sequence for us, but i'm not yet that clear about how
 		// to name this in a clean and reasonable way.
-		c = server_.resolve_entity.connect(/*FIXME 1, */ boost::bind(&indexfile_plugin::indexfile, this, _1));
+		using namespace std::placeholders;
+		c = server_.resolve_entity.connect(/*FIXME 1, */ std::bind(&indexfile_plugin::indexfile, this, _1));
 	}
 
 	~indexfile_plugin()
