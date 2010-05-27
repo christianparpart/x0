@@ -17,7 +17,6 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/bind.hpp>
 
 #include <sstream>
 #include <iostream>
@@ -41,19 +40,6 @@ class compress_plugin :
 	public x0::plugin
 {
 private:
-	x0::server::request_post_hook::connection post_process_;
-
-public:
-	compress_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
-	{
-		post_process_ = server_.post_process.connect(boost::bind(&compress_plugin::post_process, this, _1, _2));
-	}
-
-	~compress_plugin() {
-		server_.post_process.disconnect(post_process_);
-	}
-
 	struct context
 	{
 		std::vector<std::string> content_types_;
@@ -62,7 +48,7 @@ public:
 		long long max_size_;
 
 		context() :
-			content_types_(),
+			content_types_(),				// no types
 			level_(9),						// best compression
 			min_size_(1024),				// 1 KB
 			max_size_(128 * 1024 * 1024)	// 128 MB
@@ -79,25 +65,54 @@ public:
 		}
 	};
 
-	virtual void configure()
-	{
-		context *cx = server_.create_context<context>(this);
+	x0::server::request_post_hook::connection post_process_;
+	context global_;
 
-		server_.config()["Compress"]["ContentTypes"].load(cx->content_types_);
-		server_.config()["Compress"]["Level"].load(cx->level_);
-		server_.config()["Compress"]["MinSize"].load(cx->min_size_);
-		server_.config()["Compress"]["MaxSize"].load(cx->max_size_);
+public:
+	compress_plugin(x0::server& srv, const std::string& name) :
+		x0::plugin(srv, name)
+	{
+		using namespace std::placeholders;
+
+		post_process_ = server_.post_process.connect(std::bind(&compress_plugin::post_process, this, _1, _2));
+
+		server_.register_cvar_server("CompressTypes", std::bind(&compress_plugin::setup_types, this, _1));
+		server_.register_cvar_server("CompressLevel", std::bind(&compress_plugin::setup_level, this, _1));
+		server_.register_cvar_server("CompressMinSize", std::bind(&compress_plugin::setup_minsize, this, _1));
+		server_.register_cvar_server("CompressMaxSize", std::bind(&compress_plugin::setup_maxsize, this, _1));
+	}
+
+	~compress_plugin() {
+		server_.post_process.disconnect(post_process_);
 	}
 
 private:
+	void setup_types(const x0::settings_value& cvar)
+	{
+		cvar.load(global_.content_types_);
+	}
+
+	void setup_level(const x0::settings_value& cvar)
+	{
+		cvar.load(global_.level_);
+	}
+
+	void setup_minsize(const x0::settings_value& cvar)
+	{
+		cvar.load(global_.min_size_);
+	}
+
+	void setup_maxsize(const x0::settings_value& cvar)
+	{
+		cvar.load(global_.max_size_);
+	}
+
 	void post_process(x0::request *in, x0::response *out)
 	{
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content
 
-		const context *cx = server_.context<context>(this);
-		if (!cx)
-			return;
+		const context *cx = &global_;
 
 		long long size = 0;
 		if (out->headers.contains("Content-Length"))
