@@ -448,7 +448,10 @@ void server::handle_request(request *in, response *out)
 		url << (in->connection.secure ? "https://" : "http://");
 		url << hostname.str();
 		url << in->path.str();
-		url << '/' << in->query;
+		url << '/';
+
+		if (!in->query.empty())
+			url << '?' << in->query.str();
 
 		//*out *= response_header("Location", url.str());
 		out->headers.set("Location", url.str());
