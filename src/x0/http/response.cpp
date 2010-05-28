@@ -127,6 +127,7 @@ source_ptr response::serialize()
 	if (!headers.contains("Content-Length") && !content_forbidden())
 	{
 		if (request_->supports_protocol(1, 1)
+			&& equals(request_->header("Connection"), "keep-alive")
 			&& !headers.contains("Transfer-Encoding")
 			&& !content_forbidden())
 		{
