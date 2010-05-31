@@ -1,4 +1,5 @@
 #include <x0/strutils.hpp>
+#include <boost/logic/tribool.hpp>
 
 namespace x0 {
 
@@ -185,6 +186,15 @@ inline float settings_value::as<float>(int index) const
 
 template<>
 inline bool settings_value::as<bool>(int index) const
+{
+	if (!lua_isboolean(L_, index))
+		throw "cast error: expected `boolean`.";
+
+	return lua_toboolean(L_, index);
+}
+
+template<>
+inline boost::tribool settings_value::as<boost::tribool>(int index) const
 {
 	if (!lua_isboolean(L_, index))
 		throw "cast error: expected `boolean`.";
