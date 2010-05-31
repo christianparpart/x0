@@ -52,10 +52,6 @@ public:
 		c.disconnect();
 	}
 
-	virtual void configure()
-	{
-	}
-
 private:
 	/**
 	 * verifies wether the client may use its cache or not.

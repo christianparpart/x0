@@ -141,10 +141,6 @@ public:
 		server_.connection_close.disconnect(connection_close_);
 	}
 
-	virtual void configure()
-	{
-	}
-
 private:
 	std::string client_hostname(x0::connection *connection)
 	{

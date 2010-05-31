@@ -33,7 +33,7 @@
  *     };
  *     ['localhost:8080'] = {
  *         DocumentRoot = '/var/www/example.com/htdocs';
- *         BindAddress = 'localhost';
+ *         BindAddress = '127.0.0.1';
  *
  *         Secure = true;
  *         CertFile = 'cert.pem';
@@ -48,11 +48,26 @@ class vhost_basic_plugin :
 	public x0::plugin
 {
 private:
-	struct vhost_config
+	struct vhost_config : public x0::scope_value
 	{
 		std::string name;
 		std::string document_root;
-		std::string bindaddress;
+		std::string bind_address;
+
+		virtual void merge(const x0::scope_value *value)
+		{
+			if (auto cx = dynamic_cast<const vhost_config *>(value))
+			{
+				if (name.empty())
+					name = cx->name;
+
+				if (document_root.empty())
+					document_root = cx->document_root;
+
+				if (bind_address.empty())
+					bind_address = cx->bind_address;
+			}
+		}
 	};
 
 	x0::server::request_parse_hook::connection c;
@@ -67,10 +82,10 @@ public:
 
 		c = server_.resolve_document_root.connect(std::bind(&vhost_basic_plugin::resolve_document_root, this, _1));
 
-		server_.register_cvar_host("DocumentRoot", std::bind(&vhost_basic_plugin::setup_docroot, this, _1, _2), 0);
-		server_.register_cvar_host("Default", std::bind(&vhost_basic_plugin::setup_default, this, _1, _2), 1);
-		server_.register_cvar_host("BindAddress", std::bind(&vhost_basic_plugin::setup_bindaddress, this, _1, _2), 1);
-		server_.register_cvar_host("Aliases", std::bind(&vhost_basic_plugin::setup_aliases, this, _1, _2), 1);
+		server_.register_cvar("DocumentRoot", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_docroot, this, _1, _2), 0);
+		server_.register_cvar("Default", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_default, this, _1, _2), 1);
+		server_.register_cvar("BindAddress", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_bindaddress, this, _1, _2), 1);
+		server_.register_cvar("ServerAliases", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_aliases, this, _1, _2), 1);
 	}
 
 	~vhost_basic_plugin()
@@ -78,7 +93,7 @@ public:
 		server_.resolve_document_root.disconnect(c);
 	}
 
-	void setup_docroot(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_docroot(const x0::settings_value& cvar, x0::scope& s)
 	{
 		std::string document_root = cvar.as<std::string>();
 
@@ -86,65 +101,77 @@ public:
 		{
 			server_.log(x0::severity::error,
 				"vhost_basic[%s]: document root must not be empty.",
-				hostid.c_str());
+				s.id().c_str());
+			return false;
 		}
 
 		if (document_root[0] != '/')
 		{
 			log(x0::severity::warn,
 				"vhost_basic[%s]: document root should be an absolute path: '%s'",
-				hostid.c_str(), document_root.c_str());
+				s.id().c_str(), document_root.c_str());
 		}
 
-		vhost_config *cfg = server_.create_context<vhost_config>(this, hostid);
-		cfg->name = hostid;
+		vhost_config *cfg = s.acquire<vhost_config>(this);
+		cfg->name = s.id();
 		cfg->document_root = document_root;
 
 		// register primary [hostname:port]
-		if (!register_vhost(hostid, cfg))
+		if (!register_vhost(s.id(), cfg))
 		{
-			server_.log(x0::severity::error, "Server name '%s' already in use.", hostid.c_str());
+			server_.log(x0::severity::error, "Server name '%s' already in use.", s.id().c_str());
+			return false;
 		}
+		return true;
 	}
 
-	void setup_bindaddress(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_bindaddress(const x0::settings_value& cvar, x0::scope& s)
 	{
-		int port = x0::extract_port_from_hostid(hostid);
+		int port = x0::extract_port_from_hostid(s.id());
 		std::string bind = cvar.as<std::string>();
-		vhost_config *cfg = server_.context<vhost_config>(this, hostid);
-		cfg->bindaddress = bind;
+		vhost_config *cfg = s.acquire<vhost_config>(this);
+		cfg->bind_address = bind;
 
 		server_.setup_listener(port, bind);
+		return true;
 	}
 
-	void setup_aliases(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_aliases(const x0::settings_value& cvar, x0::scope& s)
 	{
-		auto aliases = cvar.as<std::vector<std::string>>();
-		int port = x0::extract_port_from_hostid(hostid);
-		vhost_config *cfg = server_.context<vhost_config>(this, hostid);
+		std::vector<std::string> aliases;
+		if (!cvar.load(aliases))
+			return false;
+
+		int port = x0::extract_port_from_hostid(s.id());
+		vhost_config *cfg = s.acquire<vhost_config>(this);
 
 		for (auto k = aliases.begin(), m = aliases.end(); k != m; ++k)
 		{
-			std::string hid(x0::make_hostid(*k, port));
+			std::string alias_id(x0::make_hostid(*k, port));
 
-			if (!register_vhost(hid, cfg))
+			if (!register_vhost(alias_id, cfg))
 			{
-				server_.log(x0::severity::error, "Server alias '%s' already in use.", hid.c_str());
+				server_.log(x0::severity::error, "Server alias '%s' already in use.", alias_id.c_str());
+				return false;
 			}
 
-			server_.link_context(hostid, hid);
+			server_.link_vhost(s.id(), alias_id);
 
 #if !defined(NDEBUG)
-			debug(1, "Server alias '%s' (for bind '%s' on port %d) added.", hid.c_str(), cfg->bindaddress.c_str(), port);
+			debug(1, "Server alias '%s' (for bind '%s' on port %d) added.", alias_id.c_str(), cfg->bind_address.c_str(), port);
 #endif
 		}
+		return true;
 	}
 
-	void setup_default(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_default(const x0::settings_value& cvar, x0::scope& s)
 	{
-		bool is_default = cvar.as<bool>();
-		int port = x0::extract_port_from_hostid(hostid);
-		vhost_config *cfg = server_.context<vhost_config>(this, hostid);
+		bool is_default;
+		if (!cvar.load(is_default))
+			return false;
+
+		int port = x0::extract_port_from_hostid(s.id());
+		vhost_config *cfg = s.acquire<vhost_config>(this);
 
 		if (is_default)
 		{
@@ -153,11 +180,14 @@ public:
 				server_.log(x0::severity::error,
 						"Cannot declare multiple virtual hosts as default "
 						"with same port (%d). Conflicting hostnames: %s, %s.",
-						port, vhost->name.c_str(), hostid.c_str());
+						port, vhost->name.c_str(), s.id().c_str());
+
+				return false;
 			}
 
 			set_default_vhost(port, cfg);
 		}
+		return true;
 	}
 
 	/** maps domain-name to given vhost config.
@@ -217,7 +247,7 @@ public:
 					(*i)->port());
 			}
 		}
-	} // }}}
+	}
 
 private:
 	void resolve_document_root(x0::request *in)
@@ -231,7 +261,7 @@ private:
 			if (!vhost)
 			{
 #if !defined(NDEBUG)
-				debug(1, "no vhost config found for [%s]", hostid.c_str());
+				debug(1, "no vhost config found for [%s]", in->hostid().c_str());
 #endif
 				return;
 			}
@@ -240,7 +270,7 @@ private:
 
 		in->document_root = vhost->document_root;
 
-		//debug(1, "resolved [%s] to document_root [%s]", hostid.c_str(), in->document_root.c_str());
+		debug(1, "resolved [%s] to document_root [%s]", hostid.c_str(), in->document_root.c_str());
 	}
 };
 

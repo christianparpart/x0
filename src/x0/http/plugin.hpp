@@ -18,7 +18,6 @@ namespace x0 {
 //@{
 
 class server;
-class context;
 
 /**
  * \brief base class for all plugins for use within this x0 web server.
@@ -51,11 +50,6 @@ public:
 	std::string name() const
 	{
 		return name_;
-	}
-
-	/** gets invoked at (re)configure time */
-	virtual void configure()
-	{
 	}
 
 	/** invoked after every plugin is loaded and configured. */

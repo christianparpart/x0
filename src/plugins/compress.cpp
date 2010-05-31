@@ -40,7 +40,7 @@ class compress_plugin :
 	public x0::plugin
 {
 private:
-	struct context
+	struct context : public x0::scope_value
 	{
 		std::vector<std::string> content_types_;
 		int level_;
@@ -63,10 +63,17 @@ private:
 
 			return false;
 		}
+
+		virtual void merge(const x0::scope_value *value)
+		{
+			//if (auto cx = dynamic_cast<const context *>(value))
+			{
+				; //! \todo
+			}
+		}
 	};
 
 	x0::server::request_post_hook::connection post_process_;
-	context global_;
 
 public:
 	compress_plugin(x0::server& srv, const std::string& name) :
@@ -76,10 +83,10 @@ public:
 
 		post_process_ = server_.post_process.connect(std::bind(&compress_plugin::post_process, this, _1, _2));
 
-		server_.register_cvar_server("CompressTypes", std::bind(&compress_plugin::setup_types, this, _1));
-		server_.register_cvar_server("CompressLevel", std::bind(&compress_plugin::setup_level, this, _1));
-		server_.register_cvar_server("CompressMinSize", std::bind(&compress_plugin::setup_minsize, this, _1));
-		server_.register_cvar_server("CompressMaxSize", std::bind(&compress_plugin::setup_maxsize, this, _1));
+		server_.register_cvar("CompressTypes", x0::context::server, std::bind(&compress_plugin::setup_types, this, _1, _2));
+		server_.register_cvar("CompressLevel", x0::context::server, std::bind(&compress_plugin::setup_level, this, _1, _2));
+		server_.register_cvar("CompressMinSize", x0::context::server, std::bind(&compress_plugin::setup_minsize, this, _1, _2));
+		server_.register_cvar("CompressMaxSize", x0::context::server, std::bind(&compress_plugin::setup_maxsize, this, _1, _2));
 	}
 
 	~compress_plugin() {
@@ -87,24 +94,24 @@ public:
 	}
 
 private:
-	void setup_types(const x0::settings_value& cvar)
+	bool setup_types(const x0::settings_value& cvar, x0::scope& s)
 	{
-		cvar.load(global_.content_types_);
+		return cvar.load(s.acquire<context>(this)->content_types_);
 	}
 
-	void setup_level(const x0::settings_value& cvar)
+	bool setup_level(const x0::settings_value& cvar, x0::scope& s)
 	{
-		cvar.load(global_.level_);
+		return cvar.load(s.acquire<context>(this)->level_);
 	}
 
-	void setup_minsize(const x0::settings_value& cvar)
+	bool setup_minsize(const x0::settings_value& cvar, x0::scope& s)
 	{
-		cvar.load(global_.min_size_);
+		return cvar.load(s.acquire<context>(this)->min_size_);
 	}
 
-	void setup_maxsize(const x0::settings_value& cvar)
+	bool setup_maxsize(const x0::settings_value& cvar, x0::scope& s)
 	{
-		cvar.load(global_.max_size_);
+		return cvar.load(s.acquire<context>(this)->max_size_);
 	}
 
 	void post_process(x0::request *in, x0::response *out)
@@ -112,7 +119,9 @@ private:
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content
 
-		const context *cx = &global_;
+		const context *cx = server_.vhost(in->hostid()).get<context>(this);
+		if (!cx)
+			return;
 
 		long long size = 0;
 		if (out->headers.contains("Content-Length"))

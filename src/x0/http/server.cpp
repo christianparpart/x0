@@ -47,6 +47,7 @@ namespace x0 {
  * \see server::run()
  */
 server::server(struct ::ev_loop *loop) :
+	scope("server"),
 	connection_open(),
 	pre_process(),
 	resolve_document_root(),
@@ -55,6 +56,7 @@ server::server(struct ::ev_loop *loop) :
 	post_process(),
 	request_done(),
 	connection_close(),
+	vhosts_(),
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
 	active_(false),
@@ -95,13 +97,13 @@ server::server(struct ::ev_loop *loop) :
 
 	// register cvars
 	using namespace std::placeholders;
-	register_cvar_server("Log", std::bind(&server::setup_logging, this, _1), -7);
-	register_cvar_server("Resources", std::bind(&server::setup_resources, this, _1), -6);
-	register_cvar_server("Plugins", std::bind(&server::setup_modules, this, _1), -5);
-	register_cvar_server("ErrorDocuments", std::bind(&server::setup_error_documents, this, _1), -4);
-	register_cvar_server("FileInfo", std::bind(&server::setup_fileinfo, this, _1), -4);
-	register_cvar_server("Hosts", std::bind(&server::setup_hosts, this, _1), -3);
-	register_cvar_server("Advertise", std::bind(&server::setup_advertise, this, _1), -2);
+	register_cvar("Log", context::server, std::bind(&server::setup_logging, this, _1, _2), -7);
+	register_cvar("Resources", context::server, std::bind(&server::setup_resources, this, _1, _2), -6);
+	register_cvar("Plugins", context::server, std::bind(&server::setup_modules, this, _1, _2), -5);
+	register_cvar("ErrorDocuments", context::server, std::bind(&server::setup_error_documents, this, _1, _2), -4);
+	register_cvar("FileInfo", context::server, std::bind(&server::setup_fileinfo, this, _1, _2), -4);
+	register_cvar("Hosts", context::server, std::bind(&server::setup_hosts, this, _1, _2), -3);
+	register_cvar("Advertise", context::server, std::bind(&server::setup_advertise, this, _1, _2), -2);
 
 #if defined(WITH_SSL)
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -199,7 +201,7 @@ long long server::setrlimit(int resource, long long value)
 }
 
 template<typename K, typename V>
-inline bool contains(const std::map<K, V>& map, const K& key)
+inline bool _contains(const std::map<K, V>& map, const K& key)
 {
 	for (auto i = map.begin(), e = map.end(); i != e; ++i)
 		if (i->first == key)
@@ -208,7 +210,7 @@ inline bool contains(const std::map<K, V>& map, const K& key)
 	return false;
 }
 
-inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&)>>>& map, const std::string& cvar)
+inline bool _contains(const std::map<int, std::map<std::string, std::function<bool(const settings_value&, scope&)>>>& map, const std::string& cvar)
 {
 	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
@@ -218,27 +220,7 @@ inline bool contains(const std::map<int, std::map<std::string, std::function<voi
 	return false;
 }
 
-inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid)>>>& map, const std::string& cvar)
-{
-	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
-		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			if (ci->first == cvar)
-				return true;
-
-	return false;
-}
-
-inline bool contains(const std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid, const std::string& path)>>>& map, const std::string& cvar)
-{
-	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
-		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			if (ci->first == cvar)
-				return true;
-
-	return false;
-}
-
-inline bool contains(const std::vector<std::string>& list, const std::string& var)
+inline bool _contains(const std::vector<std::string>& list, const std::string& var)
 {
 	for (auto i = list.begin(), e = list.end(); i != e; ++i)
 		if (*i == var)
@@ -271,20 +253,26 @@ void server::configure(const std::string& configfile)
 	// iterate all server cvars
 	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi)
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			if (contains(globals, ci->first))
-				ci->second(settings_[ci->first]);
+			if (_contains(globals, ci->first))
+				ci->second(settings_[ci->first], *this);
 
 	// warn on every unknown global cvar
 	for (auto i = globals.begin(), e = globals.end(); i != e; ++i)
 	{
-		if (contains(global_ignores, *i))
+		if (_contains(global_ignores, *i))
 			continue;
 
-		if (contains(custom_ignores, *i))
+		if (_contains(custom_ignores, *i))
 			continue;
 
-		if (!contains(cvars_server_, *i))
+		if (!_contains(cvars_server_, *i))
 			log(severity::warn, "Unknown global configuration variable: '%s'.", i->c_str());
+	}
+
+	// merge settings scopes (server to vhost)
+	for (auto i = vhosts_.begin(), e = vhosts_.end(); i != e; ++i)
+	{
+		i->second->merge(this);
 	}
 
 	// post-config hooks
@@ -646,28 +634,23 @@ std::vector<std::string> server::loaded_plugins() const
 	return result;
 }
 
-bool server::register_cvar_server(const std::string& key, std::function<void(const settings_value&)> callback, int priority)
+bool server::register_cvar(const std::string& key, context cx, const std::function<bool(const settings_value&, scope&)>& callback, int priority)
 {
 	priority = std::min(std::max(priority, -10), 10);
-	cvars_server_[priority][key] = callback;
+
+	if (cx & context::server)
+		cvars_server_[priority][key] = callback;
+
+	if (cx & context::vhost)
+		cvars_host_[priority][key] = callback;
+
+	if (cx & context::location)
+		cvars_path_[priority][key] = callback;
+
 	return true;
 }
 
-bool server::register_cvar_host(const std::string& key, std::function<void(const settings_value&, const std::string& hostid)> callback, int priority)
-{
-	priority = std::min(std::max(priority, -10), 10);
-	cvars_host_[priority][key] = callback;
-	return true;
-}
-
-bool server::register_cvar_path(const std::string& key, std::function<void(const settings_value&, const std::string& hostid, const std::string& path)> callback, int priority)
-{
-	priority = std::min(std::max(priority, -10), 10);
-	cvars_path_[priority][key] = callback;
-	return true;
-}
-
-void server::setup_logging(const settings_value& cvar)
+bool server::setup_logging(const settings_value& cvar, scope& s)
 {
 	std::string logmode(cvar["Mode"].as<std::string>());
 	auto nowfn = std::bind(&datetime::htlog_str, &now_);
@@ -684,9 +667,10 @@ void server::setup_logging(const settings_value& cvar)
 	logger_->level(severity(cvar["Level"].as<std::string>()));
 
 	cvar["Colorize"].load(colored_log_);
+	return true;
 }
 
-void server::setup_modules(const settings_value& cvar)
+bool server::setup_modules(const settings_value& cvar, scope& s)
 {
 	std::vector<std::string> list;
 	cvar["Load"].load(list);
@@ -694,11 +678,10 @@ void server::setup_modules(const settings_value& cvar)
 	for (auto i = list.begin(), e = list.end(); i != e; ++i)
 		load_plugin(*i);
 
-	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
-		i->second.first->configure();
+	return true;
 }
 
-void server::setup_resources(const settings_value& cvar)
+bool server::setup_resources(const settings_value& cvar, scope& s)
 {
 	cvar["MaxConnections"].load(max_connections);
 	cvar["MaxKeepAliveIdle"].load(max_keep_alive_idle);
@@ -717,9 +700,11 @@ void server::setup_resources(const settings_value& cvar)
 
 	if (cvar["MaxCoreFileSize"].load(value))
 		setrlimit(RLIMIT_CORE, value);
+
+	return true;
 }
 
-void server::setup_hosts(const settings_value& cvar)
+bool server::setup_hosts(const settings_value& cvar, scope& s)
 {
 	std::vector<std::string> hostids = cvar.keys<std::string>();
 
@@ -734,10 +719,10 @@ void server::setup_hosts(const settings_value& cvar)
 		{
 			for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
 			{
-				if (contains(host_cvars, ci->first))
+				if (_contains(host_cvars, ci->first))
 				{
 					//debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
-					ci->second(cvar[hostid][ci->first], hostid);
+					ci->second(cvar[hostid][ci->first], vhost(hostid));
 				}
 			}
 		}
@@ -752,18 +737,20 @@ void server::setup_hosts(const settings_value& cvar)
 
 				for (auto pi = cvars_path_.begin(), pe = cvars_path_.end(); pi != pe; ++pi)
 					for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-						if (contains(keys, ci->first))
-							ci->second(cvar[hostid][path], hostid, path);
+						if (_contains(keys, ci->first))
+							;//! \todo ci->second(cvar[hostid][path], vhost(hostid).location(path));
 
 				for (auto ki = keys.begin(), ke = keys.end(); ki != ke; ++ki)
-					if (!contains(cvars_path_, *ki))
+					if (!_contains(cvars_path_, *ki))
 						log(severity::error, "Unknown location-context variable: '%s'", ki->c_str());
 			}
 		}
 	}
+
+	return true;
 }
 
-void server::setup_fileinfo(const settings_value& cvar)
+bool server::setup_fileinfo(const settings_value& cvar, scope& s)
 {
 	std::string value;
 	if (cvar["MimeType"]["MimeFile"].load(value))
@@ -781,17 +768,20 @@ void server::setup_fileinfo(const settings_value& cvar)
 
 	if (cvar["ETag"]["ConsiderInode"].load(flag))
 		fileinfo.etag_consider_inode(flag);
+
+	return true;
 }
 
 // ErrorDocuments = array of [pair<code, path>]
-void server::setup_error_documents(const settings_value& cvar)
+bool server::setup_error_documents(const settings_value& cvar, scope& s)
 {
+	return true; //! \todo
 }
 
 // Advertise = BOOLEAN
-void server::setup_advertise(const settings_value& cvar)
+bool server::setup_advertise(const settings_value& cvar, scope& s)
 {
-	cvar.load(advertise);
+	return cvar.load(advertise);
 }
 
 } // namespace x0

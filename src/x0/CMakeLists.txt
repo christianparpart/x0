@@ -61,6 +61,7 @@ set(x0_io_API
 )
 
 set(x0_http_API
+	http/context.hpp
 	http/http_error.hpp
 	http/listener.hpp
 	http/request.hpp
@@ -83,11 +84,11 @@ set(x0_http_SRC
 set(x0_SRC
 	${x0_io_SRC}
 	${x0_http_SRC}
-	context.cpp
 	gai_error.cpp
 	library.cpp
 	logger.cpp
 	web_client.cpp
+	scope.cpp
 	settings.cpp
 	severity.cpp
 	ssl_db_cache.cpp # should go into io/
@@ -104,7 +105,6 @@ set(x0_API
 	buffer_ref.hpp
 	cache.hpp cache.ipp
 	connection.hpp
-	context.hpp
 	datetime.hpp
 	defines.hpp
 	event_handler.hpp
@@ -119,6 +119,7 @@ set(x0_API
 	process.hpp
 	property.hpp
 	range_def.hpp range_def.ipp
+	scope.hpp
 	settings.hpp settings.ipp
 	severity.hpp
 	signal.hpp

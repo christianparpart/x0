@@ -28,9 +28,18 @@ class indexfile_plugin :
 private:
 	x0::server::request_parse_hook::connection c;
 
-	struct context
+	struct context : public x0::scope_value
 	{
 		std::vector<std::string> index_files;
+
+		virtual void merge(const x0::scope_value *value)
+		{
+			if (auto cx = dynamic_cast<const context *>(value))
+			{
+				if (index_files.empty())
+					index_files = cx->index_files;
+			}
+		}
 	};
 
 public:
@@ -44,28 +53,24 @@ public:
 		// to name this in a clean and reasonable way.
 		using namespace std::placeholders;
 		c = server_.resolve_entity.connect(/*FIXME 1, */ std::bind(&indexfile_plugin::indexfile, this, _1));
+
+		server_.register_cvar("IndexFiles", x0::context::server | x0::context::vhost, std::bind(&indexfile_plugin::setup_indexfiles, this, _1, _2));
 	}
 
 	~indexfile_plugin()
 	{
 		server_.resolve_entity.disconnect(c);
-		server_.free_context<context>(this);
+		server_.release(this);
 	}
 
-	virtual void configure()
+	void setup_indexfiles_srv(const x0::settings_value& cvar)
 	{
-		// read vhost-local config var
-		auto hosts = server_.config()["Hosts"].keys<std::string>();
-		for (auto i = hosts.begin(), e = hosts.end(); i != e; ++i)
-		{
-			std::string hostid(*i);
-			context *ctx = server_.create_context<context>(this, hostid);
+		cvar.load(server_.acquire<context>(this)->index_files);
+	}
 
-			if (!server_.config()["Hosts"][hostid]["IndexFiles"].load(ctx->index_files))
-			{
-				server_.config()["IndexFiles"].load(ctx->index_files);
-			}
-		}
+	bool setup_indexfiles(const x0::settings_value& cvar, x0::scope& s)
+	{
+		return cvar.load(s.acquire<context>(this)->index_files);
 	}
 
 private:
@@ -74,7 +79,7 @@ private:
 		if (!in->fileinfo->is_directory())
 			return;
 
-		context *ctx = server_.context<context>(this, in->hostid());
+		context *ctx = server_.vhost(in->hostid()).get<context>(this);
 		if (!ctx)
 			return;
 

@@ -5,23 +5,23 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#ifndef sw_x0_server_hpp
-#define sw_x0_server_hpp (1)
+#ifndef sw_x0_http_server_hpp
+#define sw_x0_http_server_hpp (1)
 
-#include <x0/datetime.hpp>
+#include <x0/http/request_handler.hpp>
+#include <x0/http/context.hpp>
+#include <x0/io/fileinfo_service.hpp>
 #include <x0/settings.hpp>
+#include <x0/datetime.hpp>
+#include <x0/property.hpp>
+#include <x0/library.hpp>
 #include <x0/logger.hpp>
 #include <x0/signal.hpp>
-#include <x0/http/request_handler.hpp>
-#include <x0/context.hpp>
+#include <x0/scope.hpp>
 #include <x0/types.hpp>
-#include <x0/property.hpp>
-#include <x0/io/fileinfo_service.hpp>
-#include <x0/library.hpp>
 #include <x0/api.hpp>
-#include <x0/sysconfig.h>
 
-#include <boost/signals.hpp>
+#include <x0/sysconfig.h>
 
 #include <cstring>
 #include <string>
@@ -38,17 +38,6 @@ struct plugin;
 //! \addtogroup core
 //@{
 
-enum context_mask {
-	SERVER = 0x01,
-	HOST   = 0x02,
-	PATH   = 0x04
-};
-
-inline context_mask operator|(context_mask a, context_mask b)
-{
-	return context_mask(int(a) | int(b));
-}
-
 /**
  * \brief implements the x0 web server.
  *
@@ -56,8 +45,11 @@ inline context_mask operator|(context_mask a, context_mask b)
  * \see server::run(), server::stop()
  */
 class server :
-	public boost::noncopyable
+	public scope
 {
+	server(const server&) = delete;
+	server& operator=(const server&) = delete;
+
 private:
 	typedef std::pair<plugin_ptr, library> plugin_value_t;
 	typedef std::map<std::string, plugin_value_t> plugin_map_t;
@@ -94,71 +86,36 @@ public:
 	// }}}
 
 	// {{{ context management
-	/** create server context data for given plugin. */
-	template<typename T>
-	T *create_context(plugin *plug)
+	x0::scope& create_vhost(const std::string& hostid)
 	{
-		context_.set(plug, new T);
-		return context_.get<T>(plug);
+		if (vhosts_.find(hostid) == vhosts_.end())
+		{
+			vhosts_[hostid] = std::make_shared<x0::scope>(hostid);
+		}
+		return *vhosts_[hostid];
 	}
 
-	/** creates a virtual-host context for given plugin. */
-	template<typename T>
-	T *create_context(plugin *plug, const std::string& vhost)
-	{
-		auto i = vhosts_.find(vhost);
-		if (i == vhosts_.end())
-			vhosts_[vhost] = std::shared_ptr<x0::context>(new x0::context);
-
-		vhosts_[vhost]->set(plug, new T);
-
-		return vhosts_[vhost]->get<T>(plug);
-	}
-
-	void link_context(const std::string& master, const std::string& alias)
+	void link_vhost(const std::string& master, const std::string& alias)
 	{
 		vhosts_[alias] = vhosts_[master];
 	}
 
-	/** retrieve the server configuration context. */
-	x0::context *context()
+	void unlink_vhost(const std::string& hostid)
 	{
-		return &context_;
+		auto i = vhosts_.find(hostid);
+		if (i != vhosts_.end())
+		{
+			vhosts_.erase(i);
+		}
 	}
 
-	/** retrieve server context data for given plugin
-	 * \param plug plugin data for which we want to retrieve the data for.
-	 */
-	template<typename T>
-	T *context(plugin *plug)
+	class x0::scope& vhost(const std::string& hostid)
 	{
-		return context_.get<T>(plug);
-	}
+		auto i = vhosts_.find(hostid);
+		if (i != vhosts_.end())
+			return *i->second;
 
-	/** retrieve virtual-host context data for given plugin
-	 * \param plug plugin data for which we want to retrieve the data for.
-	 * \param vhostid virtual-host ID given to the host queried for the configuration.
-	 */
-	template<typename T>
-	T *context(plugin *plug, const std::string& vhostid)
-	{
-		auto vhost = vhosts_.find(vhostid);
-		if (vhost == vhosts_.end())
-			return NULL;
-
-		auto ctx = *vhost->second;
-		auto data = ctx.find(plug);
-		if (data != ctx.end())
-			return static_cast<T *>(data->second);
-
-		return NULL;
-	}
-
-	template<typename T>
-	T *free_context(plugin *plug)
-	{
-		/// \todo free all contexts owned by given plugin
-		return context_.free<T>(plug);
+		return *(vhosts_[hostid] = std::make_shared<x0::scope>(hostid));
 	}
 	// }}}
 
@@ -214,9 +171,7 @@ public:
 
 	const std::list<listener *>& listeners() const;
 
-	bool register_cvar_server(const std::string& key, std::function<void(const settings_value&)> callback, int priority = 0);
-	bool register_cvar_host(const std::string& key, std::function<void(const settings_value&, const std::string&)> callback, int priority = 0);
-	bool register_cvar_path(const std::string& key, std::function<void(const settings_value&, const std::string&, const std::string&)> callback, int priority = 0);
+	bool register_cvar(const std::string& key, context cx, const std::function<bool(const settings_value&, scope&)>& callback, int priority = 0);
 
 private:
 	long long getrlimit(int resource);
@@ -224,13 +179,13 @@ private:
 
 	listener *listener_by_port(int port);
 
-	void setup_logging(const settings_value& cvar);
-	void setup_resources(const settings_value& cvar);
-	void setup_modules(const settings_value& cvar);
-	void setup_fileinfo(const settings_value& cvar);
-	void setup_error_documents(const settings_value& cvar);
-	void setup_hosts(const settings_value& cvar);
-	void setup_advertise(const settings_value& cvar);
+	bool setup_logging(const settings_value& cvar, scope& s);
+	bool setup_resources(const settings_value& cvar, scope& s);
+	bool setup_modules(const settings_value& cvar, scope& s);
+	bool setup_fileinfo(const settings_value& cvar, scope& s);
+	bool setup_error_documents(const settings_value& cvar, scope& s);
+	bool setup_hosts(const settings_value& cvar, scope& s);
+	bool setup_advertise(const settings_value& cvar, scope& s);
 
 #if defined(WITH_SSL)
 	static void gnutls_log(int level, const char *msg);
@@ -242,15 +197,14 @@ private:
 	void handle_request(request *in, response *out);
 	void loop_check(ev::check& w, int revents);
 
-	x0::context context_;											//!< server context
-	std::map<std::string, std::shared_ptr<x0::context>> vhosts_;	//!< vhost contexts
+	std::map<std::string, std::shared_ptr<x0::scope>> vhosts_;	//!< virtual host scopes
 	std::list<listener *> listeners_;
 	struct ::ev_loop *loop_;
 	bool active_;
 	x0::settings settings_;
-	std::map<int, std::map<std::string, std::function<void(const settings_value&)>>> cvars_server_;
-	std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid)>>> cvars_host_;
-	std::map<int, std::map<std::string, std::function<void(const settings_value&, const std::string& hostid, const std::string& path)>>> cvars_path_;
+	std::map<int, std::map<std::string, std::function<bool(const settings_value&, scope&)>>> cvars_server_;
+	std::map<int, std::map<std::string, std::function<bool(const settings_value&, scope&)>>> cvars_host_;
+	std::map<int, std::map<std::string, std::function<bool(const settings_value&, scope&)>>> cvars_path_;
 	std::string configfile_;
 	logger_ptr logger_;
 	int debug_level_;

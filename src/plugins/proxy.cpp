@@ -105,7 +105,8 @@ public:
 // {{{ class proxy
 /** holds a complete proxy configuration for a specific entry point.
  */
-class proxy
+class proxy :
+	public x0::scope_value
 {
 public:
 	struct ev_loop *loop;
@@ -119,7 +120,6 @@ public:
 	std::size_t write_timeout;
 	std::size_t keepalive;
 	bool ignore_client_abort;
-	std::size_t keep_alive;
 	std::vector<std::string> origins;
 	std::vector<std::string> hot_spares;
 	std::vector<std::string> allowed_methods;
@@ -127,13 +127,15 @@ public:
 	std::vector<std::string> ignores;
 
 public:
-	proxy();
+	explicit proxy(struct ev_loop *lp = 0);
 	~proxy();
 
 	bool method_allowed(const x0::buffer_ref& method) const;
 
 	proxy_connection *acquire();
 	void release(proxy_connection *px);
+
+	virtual void merge(const scope_value *from);
 
 private:
 	std::size_t origins_ptr;
@@ -248,16 +250,15 @@ std::string origin_server::error() const
 // }}}
 
 // {{{ proxy impl
-proxy::proxy() :
-	loop(0),
+proxy::proxy(struct ev_loop *lp) :
+	loop(lp),
 	enabled(true),
 	buffer_size(0),
 	connect_timeout(8),
 	read_timeout(0),
 	write_timeout(8),
-	keepalive(0),
+	keepalive(/* 10 */ 0),
 	ignore_client_abort(false),
-	keep_alive(/*10*/ 0),
 	origins(),
 	hot_spares(),
 	allowed_methods(),
@@ -320,6 +321,14 @@ void proxy::release(proxy_connection *px)
 {
 	TRACE("connection release(%p)", px);
 	idle_.push_back(px);
+}
+
+void proxy::merge(const scope_value *from)
+{
+	//! \todo if (auto cx = dynamic_cast<const proxy *>(from))
+	{
+		// ...
+	}
 }
 // }}}
 
@@ -613,15 +622,15 @@ public:
 		// register content generator
 		c = server_.generate_content.connect(&proxy_plugin::process, this);
 
-		server_.register_cvar_host("ProxyEnable", std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
-		server_.register_cvar_host("ProxyMode", std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
-		server_.register_cvar_host("ProxyOrigins", std::bind(&proxy_plugin::setup_proxy_origins, this, _1, _2));
-		server_.register_cvar_host("ProxyHotSpares", std::bind(&proxy_plugin::setup_proxy_hotspares, this, _1, _2));
-		server_.register_cvar_host("ProxyMethods", std::bind(&proxy_plugin::setup_proxy_methods, this, _1, _2));
-		server_.register_cvar_host("ProxyConnectTimeout", std::bind(&proxy_plugin::setup_proxy_connect_timeout, this, _1, _2));
-		server_.register_cvar_host("ProxyReadTimeout", std::bind(&proxy_plugin::setup_proxy_read_timeout, this, _1, _2));
-		server_.register_cvar_host("ProxyWriteTimeout", std::bind(&proxy_plugin::setup_proxy_write_timeout, this, _1, _2));
-		server_.register_cvar_host("ProxyKeepAliveTimeout", std::bind(&proxy_plugin::setup_proxy_keepalive_timeout, this, _1, _2));
+		server_.register_cvar("ProxyEnable", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
+		server_.register_cvar("ProxyMode", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
+		server_.register_cvar("ProxyOrigins", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_origins, this, _1, _2));
+		server_.register_cvar("ProxyHotSpares", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_hotspares, this, _1, _2));
+		server_.register_cvar("ProxyMethods", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_methods, this, _1, _2));
+		server_.register_cvar("ProxyConnectTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_connect_timeout, this, _1, _2));
+		server_.register_cvar("ProxyReadTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_read_timeout, this, _1, _2));
+		server_.register_cvar("ProxyWriteTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_write_timeout, this, _1, _2));
+		server_.register_cvar("ProxyKeepAliveTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_keepalive_timeout, this, _1, _2));
 	}
 
 	~proxy_plugin()
@@ -629,20 +638,21 @@ public:
 		c.disconnect(); // optional, as it gets invoked on ~connection(), too.
 	}
 
-	void setup_proxy_enable(const x0::settings_value& cvar, const std::string& hostid)
+private:
+	bool setup_proxy_enable(const x0::settings_value& cvar, x0::scope& s)
 	{
-		proxy *px = acquire_proxy(hostid);
-		cvar.load(px->enabled);
+		return cvar.load(acquire_proxy(s)->enabled);
 	}
 
-	void setup_proxy_mode(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_mode(const x0::settings_value& cvar, x0::scope& s)
 	{
 		// TODO reverse / forward / transparent (forward)
+		return false;
 	}
 
-	void setup_proxy_origins(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_origins(const x0::settings_value& cvar, x0::scope& s)
 	{
-		proxy *px = acquire_proxy(hostid);
+		proxy *px = acquire_proxy(s);
 		cvar.load(px->origins);
 
 		for (std::size_t i = 0, e = px->origins.size(); i != e; ++i)
@@ -664,65 +674,62 @@ public:
 				server_.log(x0::severity::error, origin.error().c_str());
 		}
 
-		if (px->origins_.empty())
-			server_.log(x0::severity::warn, "No origin servers defined for proxy at virtual-host: %s.", hostid.c_str());
+		if (!px->origins_.empty())
+			return true;
+
+		//! \bug FIX server_.log(x0::severity::warn, "No origin servers defined for proxy at virtual-host: %s.", hostid.c_str());
+		return false;
 	}
 
-	void setup_proxy_hotspares(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_hotspares(const x0::settings_value& cvar, x0::scope& s)
 	{
-		//proxy *px = acquire_proxy(hostid);
+		//proxy *px = acquire_proxy(s);
 		//cvar.load(px->hot_spares);
+		return false;
 	}
 
-	void setup_proxy_methods(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_methods(const x0::settings_value& cvar, x0::scope& s)
 	{
-		proxy *px = acquire_proxy(hostid);
-		cvar.load(px->allowed_methods);
+		return cvar.load(acquire_proxy(s)->allowed_methods);
 	}
 
-	void setup_proxy_connect_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_connect_timeout(const x0::settings_value& cvar, x0::scope& s)
 	{
-		proxy *px = acquire_proxy(hostid);
-		cvar.load(px->connect_timeout);
+		return cvar.load(acquire_proxy(s)->connect_timeout);
 	}
 
-	void setup_proxy_read_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_read_timeout(const x0::settings_value& cvar, x0::scope& s)
 	{
-		proxy *px = acquire_proxy(hostid);
-		cvar.load(px->read_timeout);
+		return cvar.load(acquire_proxy(s)->read_timeout);
 	}
 
-	void setup_proxy_write_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_write_timeout(const x0::settings_value& cvar, x0::scope& s)
 	{
-		proxy *px = acquire_proxy(hostid);
-		cvar.load(px->write_timeout);
+		return cvar.load(acquire_proxy(s)->write_timeout);
 	}
 
-	void setup_proxy_keepalive_timeout(const x0::settings_value& cvar, const std::string& hostid)
+	bool setup_proxy_keepalive_timeout(const x0::settings_value& cvar, x0::scope& s)
 	{
-		proxy *px = acquire_proxy(hostid);
-		cvar.load(px->keepalive);
+		return cvar.load(acquire_proxy(s)->keepalive);
 	}
 
-	proxy *acquire_proxy(const std::string& hostid)
+	proxy *acquire_proxy(x0::scope& s)
 	{
-		if (proxy *px = server_.context<proxy>(this, hostid))
+		if (proxy *px = s.get<proxy>(this))
 			return px;
 
-		proxy *px = server_.create_context<proxy>(this, hostid);
-		px->loop = server_.loop();
+		auto px = std::make_shared<proxy>(server_.loop());
+		s.set(this, px);
 
-		return px;
+		return px.get();
 	}
 
-	proxy *get_proxy(const std::string& hostid)
+	proxy *get_proxy(x0::request *in)
 	{
-		if (proxy *px = server_.context<proxy>(this, hostid))
-			return px;
-
-		return 0;
+		return server_.vhost(in->hostid()).get<proxy>(this);
 	}
 
+public:
 	virtual void post_config()
 	{
 		// TODO ensure, that every proxy instance is properly equipped.
@@ -731,7 +738,7 @@ public:
 private:
 	void process(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
-		proxy *px = get_proxy(in->hostid());
+		proxy *px = get_proxy(in);
 		if (!px)
 			return next();
 

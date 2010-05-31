@@ -15,6 +15,7 @@
 #include <x0/types.hpp>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/logic/tribool.hpp>
 
 #include <cstring>
 #include <cerrno>
@@ -37,26 +38,37 @@ class dirlisting_plugin :
 	public x0::plugin
 {
 private:
-	struct context
-	{
-		bool enabled;
-
-		context() : enabled(false) {}
-	};
-
 	x0::request_handler::connection c;
-	context default_;
+
+	struct context : public x0::scope_value
+	{
+		boost::tribool enabled; // make it a tribool to introduce "undefined"?
+
+		context() :
+			enabled(boost::indeterminate)
+		{
+		}
+
+		virtual void merge(const x0::scope_value *value)
+		{
+			if (auto cx = dynamic_cast<const context *>(value))
+			{
+				if (enabled == boost::indeterminate)
+				{
+					enabled = cx->enabled;
+				}
+			}
+		}
+	};
 
 public:
 	dirlisting_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name),
-		default_()
+		x0::plugin(srv, name)
 	{
 		c = server_.generate_content.connect(&dirlisting_plugin::dirlisting, this);
 
 		using namespace std::placeholders;
-		server_.register_cvar_server("DirectoryListing", std::bind(&dirlisting_plugin::setup_dirlisting_server, this, _1));
-		server_.register_cvar_host("DirectoryListing", std::bind(&dirlisting_plugin::setup_dirlisting_host, this, _1, _2));
+		server_.register_cvar("DirectoryListing", x0::context::server | x0::context::vhost, std::bind(&dirlisting_plugin::setup_dirlisting, this, _1, _2));
 	}
 
 	~dirlisting_plugin()
@@ -65,31 +77,31 @@ public:
 	}
 
 private:
-	void setup_dirlisting_server(const x0::settings_value& cvar)
+	bool setup_dirlisting(const x0::settings_value& cvar, x0::scope& s)
 	{
-		cvar.load(default_.enabled);
-	}
-
-	void setup_dirlisting_host(const x0::settings_value& cvar, const std::string& hostid)
-	{
-		bool enabled;
-		if (!cvar.load(enabled))
-			return;
-
-		server_.create_context<context>(this, hostid)->enabled = enabled;
+		return cvar.load(s.acquire<context>(this)->enabled);
 	}
 
 	void dirlisting(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
 	{
-		context *ctx = server_.context<context>(this, in->hostid());
-		if (!ctx)
-			ctx = &default_;
-
-		if (!ctx->enabled)
-			return next();
-
 		if (!in->fileinfo->is_directory())
 			return next();
+
+		context *ctx = server_.vhost(in->hostid()).get<context>(this);
+//		if (!ctx)
+//			ctx = server_.get<context>(this);
+
+		if (ctx && ctx->enabled == true)
+			return process(next, in, out);
+		else
+			return next();
+	}
+
+	void process(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	{
+		debug(0, "process: %s [%s]",
+			in->fileinfo->filename().c_str(),
+			in->document_root.c_str());
 
 		if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
 		{
@@ -106,7 +118,10 @@ private:
 				std::bind(&dirlisting_plugin::done, this, next)
 			);
 		}
-		return next();
+		else
+		{
+			return next();
+		}
 	}
 
 	void done(x0::request_handler::invokation_iterator next)
