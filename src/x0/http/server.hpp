@@ -172,6 +172,8 @@ public:
 	const std::list<listener *>& listeners() const;
 
 	bool register_cvar(const std::string& key, context cx, const std::function<bool(const settings_value&, scope&)>& callback, int priority = 0);
+	std::vector<std::string> enum_cvars(context cx) const;
+	void unregister_cvar(const std::string& key);
 
 private:
 	long long getrlimit(int resource);

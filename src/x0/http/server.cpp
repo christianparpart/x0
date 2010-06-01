@@ -650,6 +650,40 @@ bool server::register_cvar(const std::string& key, context cx, const std::functi
 	return true;
 }
 
+std::vector<std::string> server::enum_cvars(context cx) const
+{
+	std::vector<std::string> result;
+
+	if (cx & context::server)
+		for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i)
+			for (auto k = i->second.begin(), m = i->second.end(); k != m; ++k)
+				result.push_back(k->first);
+
+	if (cx & context::vhost)
+		for (auto i = cvars_host_.begin(), e = cvars_host_.end(); i != e; ++i)
+			for (auto k = i->second.begin(), m = i->second.end(); k != m; ++k)
+				result.push_back(k->first);
+
+	if (cx & context::location)
+		for (auto i = cvars_path_.begin(), e = cvars_path_.end(); i != e; ++i)
+			for (auto k = i->second.begin(), m = i->second.end(); k != m; ++k)
+				result.push_back(k->first);
+
+	return result;
+}
+
+void server::unregister_cvar(const std::string& key)
+{
+	for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i)
+		i->second.erase(i->second.find(key));
+
+	for (auto i = cvars_host_.begin(), e = cvars_host_.end(); i != e; ++i)
+		i->second.erase(i->second.find(key));
+
+	for (auto i = cvars_path_.begin(), e = cvars_path_.end(); i != e; ++i)
+		i->second.erase(i->second.find(key));
+}
+
 bool server::setup_logging(const settings_value& cvar, scope& s)
 {
 	std::string logmode(cvar["Mode"].as<std::string>());
