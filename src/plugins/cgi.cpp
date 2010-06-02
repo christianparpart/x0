@@ -414,6 +414,7 @@ public:
 		ttl_()
 	{
 		c = server_.generate_content.connect(&cgi_plugin::generate_content, this);
+		register_cvar("CGI.Mappings", x0::context::server, &cgi_plugin::configure_mappings);
 	}
 
 	~cgi_plugin() {
@@ -430,7 +431,38 @@ public:
 		// load system config
 		server_.config().load("CGI.PathPrefix", prefix_);
 		server_.config().load("CGI.Executable", process_executables_);
-		server_.config().load("CGI.Mappings", interpreter_);
+	}
+
+	bool configure_mappings(const x0::settings_value& cvar, x0::scope& s)
+	{
+		debug(0, "configure_mappings ...");
+		if (!cvar.load(interpreter_))
+			;//return false;
+
+		debug(0, "configure_mappings: %s", tostring(interpreter_).c_str());
+		return true;
+	}
+
+	static std::string tostring(const std::map<std::string, std::string>& map)
+	{
+		std::string rv;
+
+		rv = "{";
+
+		for (auto i = map.begin(), e = map.end(); i != e; ++i)
+		{
+			if (i != map.begin())
+				rv += "; ";
+
+			rv += "(";
+			rv += i->first;
+			rv += ",";
+			rv += i->second;
+			rv += ")";
+		}
+		rv += "}";
+
+		return rv;
 	}
 
 private:

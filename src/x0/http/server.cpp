@@ -253,7 +253,7 @@ void server::configure(const std::string& configfile)
 	// iterate all server cvars
 	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi)
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			if (_contains(globals, ci->first))
+			if (settings_.contains(ci->first))
 				ci->second(settings_[ci->first], *this);
 
 	// warn on every unknown global cvar
@@ -753,7 +753,7 @@ bool server::setup_hosts(const settings_value& cvar, scope& s)
 		{
 			for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
 			{
-				if (_contains(host_cvars, ci->first))
+				if (cvar[hostid].contains(ci->first))
 				{
 					//debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
 					ci->second(cvar[hostid][ci->first], vhost(hostid));
