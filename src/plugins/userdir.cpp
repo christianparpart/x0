@@ -45,7 +45,7 @@ public:
 		using namespace std::placeholders;
 		c = server_.resolve_entity.connect(/*0, */ std::bind(&userdir_plugin::resolve_entity, this, _1));
 
-		srv.register_cvar("UserDir", x0::context::server | x0::context::vhost, std::bind(&userdir_plugin::setup_userdir, this, _1, _2));
+		register_cvar("UserDir", x0::context::server | x0::context::vhost, &userdir_plugin::setup_userdir);
 	}
 
 	~userdir_plugin()

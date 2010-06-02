@@ -104,9 +104,7 @@ public:
 		using namespace std::placeholders;
 		c = srv.request_done.connect(std::bind(&accesslog_plugin::request_done, this, _1, _2));
 
-		srv.register_cvar("AccessLog", 
-				x0::context::server | x0::context::vhost,
-				std::bind(&accesslog_plugin::setup_log, this, _1, _2));
+		register_cvar("AccessLog", x0::context::server | x0::context::vhost, &accesslog_plugin::setup_log);
 	}
 
 	~accesslog_plugin()

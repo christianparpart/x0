@@ -10,6 +10,7 @@
 
 #include <x0/http/request_handler.hpp>
 #include <x0/http/context.hpp>
+#include <x0/http/types.hpp>
 #include <x0/io/fileinfo_service.hpp>
 #include <x0/settings.hpp>
 #include <x0/datetime.hpp>
@@ -171,7 +172,7 @@ public:
 
 	const std::list<listener *>& listeners() const;
 
-	bool register_cvar(const std::string& key, context cx, const std::function<bool(const settings_value&, scope&)>& callback, int priority = 0);
+	bool register_cvar(const std::string& key, context cx, const cvar_handler& callback, int priority = 0);
 	std::vector<std::string> enum_cvars(context cx) const;
 	void unregister_cvar(const std::string& key);
 

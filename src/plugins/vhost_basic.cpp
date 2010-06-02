@@ -82,10 +82,10 @@ public:
 
 		c = server_.resolve_document_root.connect(std::bind(&vhost_basic_plugin::resolve_document_root, this, _1));
 
-		server_.register_cvar("DocumentRoot", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_docroot, this, _1, _2), 0);
-		server_.register_cvar("Default", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_default, this, _1, _2), 1);
-		server_.register_cvar("BindAddress", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_bindaddress, this, _1, _2), 1);
-		server_.register_cvar("ServerAliases", x0::context::vhost, std::bind(&vhost_basic_plugin::setup_aliases, this, _1, _2), 1);
+		register_cvar("DocumentRoot", x0::context::vhost, &vhost_basic_plugin::setup_docroot);
+		register_cvar("Default", x0::context::vhost, &vhost_basic_plugin::setup_default);
+		register_cvar("BindAddress", x0::context::vhost, &vhost_basic_plugin::setup_bindaddress);
+		register_cvar("ServerAliases", x0::context::vhost, &vhost_basic_plugin::setup_aliases);
 	}
 
 	~vhost_basic_plugin()

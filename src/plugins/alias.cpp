@@ -44,7 +44,7 @@ public:
 		using namespace std::placeholders;
 		c = srv.resolve_entity.connect(std::bind(&alias_plugin::resolve_entity, this, _1));
 
-		srv.register_cvar("Aliases", x0::context::server | x0::context::vhost, std::bind(&alias_plugin::setup, this, _1, _2));
+		register_cvar("Aliases", x0::context::server | x0::context::vhost, &alias_plugin::setup);
 	}
 
 	~alias_plugin()

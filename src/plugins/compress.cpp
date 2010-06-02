@@ -83,10 +83,10 @@ public:
 
 		post_process_ = server_.post_process.connect(std::bind(&compress_plugin::post_process, this, _1, _2));
 
-		server_.register_cvar("CompressTypes", x0::context::server, std::bind(&compress_plugin::setup_types, this, _1, _2));
-		server_.register_cvar("CompressLevel", x0::context::server, std::bind(&compress_plugin::setup_level, this, _1, _2));
-		server_.register_cvar("CompressMinSize", x0::context::server, std::bind(&compress_plugin::setup_minsize, this, _1, _2));
-		server_.register_cvar("CompressMaxSize", x0::context::server, std::bind(&compress_plugin::setup_maxsize, this, _1, _2));
+		register_cvar("CompressTypes", x0::context::server, &compress_plugin::setup_types);
+		register_cvar("CompressLevel", x0::context::server, &compress_plugin::setup_level);
+		register_cvar("CompressMinSize", x0::context::server, &compress_plugin::setup_minsize);
+		register_cvar("CompressMaxSize", x0::context::server, &compress_plugin::setup_maxsize);
 	}
 
 	~compress_plugin() {

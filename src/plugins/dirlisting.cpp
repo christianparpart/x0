@@ -68,7 +68,7 @@ public:
 		c = server_.generate_content.connect(&dirlisting_plugin::dirlisting, this);
 
 		using namespace std::placeholders;
-		server_.register_cvar("DirectoryListing", x0::context::server | x0::context::vhost, std::bind(&dirlisting_plugin::setup_dirlisting, this, _1, _2));
+		register_cvar("DirectoryListing", x0::context::server | x0::context::vhost, &dirlisting_plugin::setup_dirlisting);
 	}
 
 	~dirlisting_plugin()

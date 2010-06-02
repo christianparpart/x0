@@ -76,6 +76,7 @@ set(x0_http_SRC
 	http/http_error.cpp
 	http/listener.cpp
 	http/message_processor.cpp
+	http/plugin.cpp
 	http/response.cpp
 	http/request.cpp
 	http/server.cpp
