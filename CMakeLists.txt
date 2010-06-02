@@ -150,6 +150,9 @@ endif(BUILD_TESTS)
 #endif(BUILD_STATIC)
 
 # ---------------------------------------------------------------------------
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/src)
+
+# ---------------------------------------------------------------------------
 macro(x0_plugin ModuleName)
 	add_library(${ModuleName} MODULE ${ModuleName}.cpp)
 	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
