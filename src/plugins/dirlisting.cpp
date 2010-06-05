@@ -1,18 +1,18 @@
-/* <x0/mod_dirlisting.cpp>
+/* <x0/plugins/dirlisting.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/header.hpp>
-#include <x0/io/buffer_source.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpHeader.h>
+#include <x0/io/BufferSource.h>
+#include <x0/strutils.h>
+#include <x0/Types.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/logic/tribool.hpp>
@@ -35,12 +35,12 @@
  * \todo allow config overrides: server/vhost/location
  */
 class dirlisting_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
 	x0::request_handler::connection c;
 
-	struct context : public x0::scope_value
+	struct context : public x0::ScopeValue
 	{
 		boost::tribool enabled; // make it a tribool to introduce "undefined"?
 
@@ -49,7 +49,7 @@ private:
 		{
 		}
 
-		virtual void merge(const x0::scope_value *value)
+		virtual void merge(const x0::ScopeValue *value)
 		{
 			if (auto cx = dynamic_cast<const context *>(value))
 			{
@@ -62,13 +62,13 @@ private:
 	};
 
 public:
-	dirlisting_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		c = server_.generate_content.connect(&dirlisting_plugin::dirlisting, this);
 
 		using namespace std::placeholders;
-		register_cvar("DirectoryListing", x0::context::server | x0::context::vhost, &dirlisting_plugin::setup_dirlisting);
+		declareCVar("DirectoryListing", x0::HttpContext::server | x0::HttpContext::host, &dirlisting_plugin::setup_dirlisting);
 	}
 
 	~dirlisting_plugin()
@@ -77,17 +77,17 @@ public:
 	}
 
 private:
-	bool setup_dirlisting(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_dirlisting(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->enabled);
 	}
 
-	void dirlisting(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void dirlisting(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (!in->fileinfo->is_directory())
 			return next();
 
-		context *ctx = server_.vhost(in->hostid()).get<context>(this);
+		context *ctx = server_.host(in->hostid()).get<context>(this);
 //		if (!ctx)
 //			ctx = server_.get<context>(this);
 
@@ -97,7 +97,7 @@ private:
 			return next();
 	}
 
-	void process(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void process(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		debug(0, "process: %s [%s]",
 			in->fileinfo->filename().c_str(),
@@ -105,7 +105,7 @@ private:
 
 		if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
 		{
-			x0::buffer result(mkhtml(dir, in));
+			x0::Buffer result(mkhtml(dir, in));
 
 			closedir(dir);
 
@@ -114,7 +114,7 @@ private:
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
 			return out->write(
-				std::make_shared<x0::buffer_source>(std::move(result)),
+				std::make_shared<x0::BufferSource>(std::move(result)),
 				std::bind(&dirlisting_plugin::done, this, next)
 			);
 		}
@@ -129,7 +129,7 @@ private:
 		next.done();
 	}
 
-	std::string mkhtml(DIR *dir, x0::request *in)
+	std::string mkhtml(DIR *dir, x0::HttpRequest *in)
 	{
 		std::list<std::string> listing;
 		listing.push_back("..");
@@ -144,7 +144,7 @@ private:
 
 			if (name[0] != '.')
 			{
-				if (x0::fileinfo_ptr fi = in->connection.server().fileinfo(in->fileinfo->filename() + "/" + name))
+				if (x0::FileInfoPtr fi = in->connection.server().fileinfo(in->fileinfo->filename() + "/" + name))
 				{
 					if (fi->is_directory())
 						name += "/";

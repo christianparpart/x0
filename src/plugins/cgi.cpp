@@ -5,22 +5,22 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/message_processor.hpp>
-#include <x0/io/buffer_source.hpp>
-#include <x0/strutils.hpp>
-#include <x0/process.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpMessageProcessor.h>
+#include <x0/io/BufferSource.h>
+#include <x0/strutils.h>
+#include <x0/Process.h>
+#include <x0/Types.h>
 #include <x0/sysconfig.h>
 
-#include <boost/system/error_code.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/signal.hpp>
 
+#include <system_error>
 #include <algorithm>
 #include <string>
 #include <cctype>
@@ -81,10 +81,10 @@
  * \endcode
  */
 class cgi_script :
-	public x0::message_processor
+	public x0::HttpMessageProcessor
 {
 public:
-	cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram = "");
+	cgi_script(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram = "");
 	~cgi_script();
 
 	template<class CompletionHandler>
@@ -92,7 +92,7 @@ public:
 
 	void async_run();
 
-	static void async_run(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram = "");
+	static void async_run(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram = "");
 
 private:
 	/** feeds the HTTP request into the CGI's stdin pipe. */
@@ -104,21 +104,21 @@ private:
 	/** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
 	void receive_error(ev::io& w, int revents);
 
-	virtual void message_header(const x0::buffer_ref& name, const x0::buffer_ref& value);
-	virtual bool message_content(const x0::buffer_ref& content);
+	virtual void message_header(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool message_content(const x0::BufferRef& content);
 
 	void content_written(int ec, std::size_t nb);
 
 private:
 	struct ev_loop *loop_;
 
-	x0::request *request_;
-	x0::response *response_;
+	x0::HttpRequest *request_;
+	x0::HttpResponse *response_;
 	std::string hostprogram_;
 
-	x0::process process_;
-	x0::buffer outbuf_;
-	x0::buffer errbuf_;
+	x0::Process process_;
+	x0::Buffer outbuf_;
+	x0::Buffer errbuf_;
 
 	unsigned long long serial_;				//!< used to detect wether the cgi process actually generated a response or not.
 
@@ -131,8 +131,8 @@ private:
 	bool destroy_pending_;
 };
 
-cgi_script::cgi_script(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram) :
-	message_processor(x0::message_processor::MESSAGE),
+cgi_script::cgi_script(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram) :
+	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
 	loop_(in->connection.server().loop()),
 	request_(in),
 	response_(out),
@@ -156,7 +156,7 @@ cgi_script::~cgi_script()
 	done_();
 }
 
-void cgi_script::async_run(const std::function<void()>& done, x0::request *in, x0::response *out, const std::string& hostprogram)
+void cgi_script::async_run(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram)
 {
 	if (cgi_script *cgi = new cgi_script(done, in, out, hostprogram))
 	{
@@ -164,7 +164,7 @@ void cgi_script::async_run(const std::function<void()>& done, x0::request *in, x
 	}
 }
 
-static inline void _loadenv_if(const std::string& name, x0::process::environment& environment)
+static inline void _loadenv_if(const std::string& name, x0::Process::environment& environment)
 {
 	if (const char *value = ::getenv(name.c_str()))
 	{
@@ -175,7 +175,7 @@ static inline void _loadenv_if(const std::string& name, x0::process::environment
 inline void cgi_script::async_run()
 {
 	std::string workdir(request_->document_root);
-	x0::process::params params;
+	x0::Process::params params;
 	std::string hostprogram;
 
 	if (hostprogram_.empty())
@@ -189,7 +189,7 @@ inline void cgi_script::async_run()
 	}
 
 	// {{{ setup request / initialize environment and handler
-	x0::process::environment environment;
+	x0::Process::environment environment;
 
 	environment["SERVER_SOFTWARE"] = PACKAGE_NAME "/" PACKAGE_VERSION;
 	environment["SERVER_NAME"] = request_->header("Host");
@@ -245,7 +245,7 @@ inline void cgi_script::async_run()
 		key.reserve(5 + i->name.size());
 		key += "HTTP_";
 
-		for (x0::buffer::const_iterator p = i->name.begin(), q = i->name.end(); p != q; ++p)
+		for (auto p = i->name.begin(), q = i->name.end(); p != q; ++p)
 		{
 			key += std::isalnum(*p) ? std::toupper(*p) : '_';
 		}
@@ -317,7 +317,7 @@ void cgi_script::receive_response(ev::io& /*w*/, int revents)
 			if (!serial_)
 			{
 				response_->status = x0::http_error::internal_server_error;
-				request_->connection.server().log(x0::severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
+				request_->connection.server().log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
 			delete this;
 		}
@@ -334,7 +334,7 @@ void cgi_script::receive_error(ev::io& /*w*/, int revents)
 	{
 		//TRACE("read %d bytes: %s\n", rv, errbuf_.data());
 		errbuf_.resize(rv);
-		request_->connection.server().log(x0::severity::error, "CGI script error: %s", errbuf_.str().c_str());
+		request_->connection.server().log(x0::Severity::error, "CGI script error: %s", errbuf_.str().c_str());
 	} else if (rv == 0) {
 		//TRACE("CGI: closing stderr\n");
 		errwatch_.stop();
@@ -343,7 +343,7 @@ void cgi_script::receive_error(ev::io& /*w*/, int revents)
 	}
 }
 
-void cgi_script::message_header(const x0::buffer_ref& name, const x0::buffer_ref& value)
+void cgi_script::message_header(const x0::BufferRef& name, const x0::BufferRef& value)
 {
 	//TRACE("message_header(\"%s\", \"%s\")\n", name.str().c_str(), value.str().c_str());
 
@@ -360,14 +360,14 @@ void cgi_script::message_header(const x0::buffer_ref& name, const x0::buffer_ref
 	}
 }
 
-bool cgi_script::message_content(const x0::buffer_ref& value)
+bool cgi_script::message_content(const x0::BufferRef& value)
 {
 	//TRACE("process_content(length=%ld) (%s)\n", value.size(), value.str().c_str());
 
 	outwatch_.stop();
 
 	response_->write(
-		std::make_shared<x0::buffer_source>(value),
+		std::make_shared<x0::BufferSource>(value),
 		std::bind(&cgi_script::content_written, this, std::placeholders::_1, std::placeholders::_2)
 	);
 
@@ -403,18 +403,18 @@ void cgi_script::content_written(int ec, std::size_t nb)
  * \brief serves static files from server's local filesystem to client.
  */
 class cgi_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 public:
-	cgi_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name),
+	cgi_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name),
 		interpreter_(),
 		process_executables_(),
 		prefix_(),
 		ttl_()
 	{
 		c = server_.generate_content.connect(&cgi_plugin::generate_content, this);
-		register_cvar("CGI.Mappings", x0::context::server, &cgi_plugin::configure_mappings);
+		declareCVar("CGI.Mappings", x0::HttpContext::server, &cgi_plugin::configure_mappings);
 	}
 
 	~cgi_plugin() {
@@ -433,7 +433,7 @@ public:
 		server_.config().load("CGI.Executable", process_executables_);
 	}
 
-	bool configure_mappings(const x0::settings_value& cvar, x0::scope& s)
+	bool configure_mappings(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		debug(0, "configure_mappings ...");
 		if (!cvar.load(interpreter_))
@@ -481,10 +481,10 @@ private:
 	 * and either processing executables is globally allowed or request path is part
 	 * of the cgi prefix (usually /cgi-bin/).
 	 */
-	void generate_content(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out) {
+	void generate_content(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out) {
 		std::string path(in->fileinfo->filename());
 
-		x0::fileinfo_ptr fi = in->connection.server().fileinfo(path);
+		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
 		if (!fi)
 			return next();
 
@@ -542,7 +542,7 @@ private:
 	 * this request maps to. If this extension is known/mapped to any interpreter in the local database,
 	 * this value is used.
 	 */
-	bool find_interpreter(x0::request *in, std::string& interpreter)
+	bool find_interpreter(x0::HttpRequest *in, std::string& interpreter)
 	{
 		std::string::size_type rpos = in->fileinfo->filename().rfind('.');
 
@@ -564,7 +564,7 @@ private:
 	 * \retval true yes, it matches.
 	 * \retval false no, it doesn't match.
 	 */
-	bool matches_prefix(x0::request *in)
+	bool matches_prefix(x0::HttpRequest *in)
 	{
 		if (in->path.begins(prefix_))
 			return true;

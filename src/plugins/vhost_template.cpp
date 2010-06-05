@@ -5,10 +5,10 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
@@ -22,17 +22,17 @@
  * \brief provides a basic template-based mass virtual hosting facility.
  */
 class vhost_template_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
 	std::string server_root_;
 	std::string default_host_;
 	std::string document_root_;
-	x0::server::request_parse_hook::connection c;
+	x0::HttpServer::request_parse_hook::connection c;
 
 public:
-	vhost_template_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	vhost_template_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		c = server_.resolve_document_root.connect(boost::bind(&vhost_template_plugin::resolve_document_root, this, _1));
 	}
@@ -82,17 +82,17 @@ public:
 		server_.config().load("HostTemplate.Listener", port);
 		server_.config().load("HostTemplate.BindAddress", bind);
 
-		server_.setup_listener(port, bind);
+		server_.setupListener(port, bind);
 	}
 
 private:
-	void resolve_document_root(x0::request *in) {
+	void resolve_document_root(x0::HttpRequest *in) {
 		if (in->document_root.empty())
 		{
-			x0::buffer_ref hostname(in->header("Host"));
+			x0::BufferRef hostname(in->header("Host"));
 
 			std::size_t n = hostname.find(":");
-			if (n != x0::buffer_ref::npos)
+			if (n != x0::BufferRef::npos)
 			{
 				hostname = hostname.ref(0, n);
 			}
@@ -103,7 +103,7 @@ private:
 			dr += hostname.str();
 			dr += document_root_;
 
-			x0::fileinfo_ptr fi = in->connection.server().fileinfo(dr);
+			x0::FileInfoPtr fi = in->connection.server().fileinfo(dr);
 			if (!fi || !fi->is_directory())
 			{
 				dr.clear();

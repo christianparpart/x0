@@ -5,14 +5,14 @@
  * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/range_def.hpp>
-#include <x0/io/compress_filter.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpRangeDef.h>
+#include <x0/io/CompressFilter.h>
+#include <x0/strutils.h>
+#include <x0/Types.h>
 #include <x0/sysconfig.h>
 
 #include <boost/lexical_cast.hpp>
@@ -37,10 +37,10 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class compress_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
-	struct context : public x0::scope_value
+	struct context : public x0::ScopeValue
 	{
 		std::vector<std::string> content_types_;
 		int level_;
@@ -64,7 +64,7 @@ private:
 			return false;
 		}
 
-		virtual void merge(const x0::scope_value *value)
+		virtual void merge(const x0::ScopeValue *value)
 		{
 			//if (auto cx = dynamic_cast<const context *>(value))
 			{
@@ -73,20 +73,20 @@ private:
 		}
 	};
 
-	x0::server::request_post_hook::connection post_process_;
+	x0::HttpServer::request_post_hook::connection post_process_;
 
 public:
-	compress_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	compress_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
 
 		post_process_ = server_.post_process.connect(std::bind(&compress_plugin::post_process, this, _1, _2));
 
-		register_cvar("CompressTypes", x0::context::server, &compress_plugin::setup_types);
-		register_cvar("CompressLevel", x0::context::server, &compress_plugin::setup_level);
-		register_cvar("CompressMinSize", x0::context::server, &compress_plugin::setup_minsize);
-		register_cvar("CompressMaxSize", x0::context::server, &compress_plugin::setup_maxsize);
+		declareCVar("CompressTypes", x0::HttpContext::server, &compress_plugin::setup_types);
+		declareCVar("CompressLevel", x0::HttpContext::server, &compress_plugin::setup_level);
+		declareCVar("CompressMinSize", x0::HttpContext::server, &compress_plugin::setup_minsize);
+		declareCVar("CompressMaxSize", x0::HttpContext::server, &compress_plugin::setup_maxsize);
 	}
 
 	~compress_plugin() {
@@ -94,32 +94,32 @@ public:
 	}
 
 private:
-	bool setup_types(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_types(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->content_types_);
 	}
 
-	bool setup_level(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_level(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->level_);
 	}
 
-	bool setup_minsize(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_minsize(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->min_size_);
 	}
 
-	bool setup_maxsize(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_maxsize(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->max_size_);
 	}
 
-	void post_process(x0::request *in, x0::response *out)
+	void post_process(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content
 
-		const context *cx = server_.vhost(in->hostid()).get<context>(this);
+		const context *cx = server_.host(in->hostid()).get<context>(this);
 		if (!cx)
 			return;
 
@@ -136,7 +136,7 @@ private:
 		if (!cx->contains_mime(out->headers("Content-Type")))
 			return;
 
-		if (x0::buffer_ref r = in->header("Accept-Encoding"))
+		if (x0::BufferRef r = in->header("Accept-Encoding"))
 		{
 			typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
 
@@ -146,7 +146,7 @@ private:
 			if (std::find(items.begin(), items.end(), "bzip2") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "bzip2");
-				out->filter_chain.push_back(std::make_shared<x0::bzip2_filter>(cx->level_));
+				out->filter_chain.push_back(std::make_shared<x0::BZip2Filter>(cx->level_));
 			}
 			else
 #endif
@@ -154,12 +154,12 @@ private:
 			if (std::find(items.begin(), items.end(), "gzip") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "gzip");
-				out->filter_chain.push_back(std::make_shared<x0::gzip_filter>(cx->level_));
+				out->filter_chain.push_back(std::make_shared<x0::GZipFilter>(cx->level_));
 			}
 			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "deflate");
-				out->filter_chain.push_back(std::make_shared<x0::deflate_filter>(cx->level_));
+				out->filter_chain.push_back(std::make_shared<x0::DeflateFilter>(cx->level_));
 			}
 			else
 #endif

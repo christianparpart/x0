@@ -5,11 +5,11 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/listener.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpListener.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -45,16 +45,16 @@
  * </pre>
  */
 class vhost_basic_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
-	struct vhost_config : public x0::scope_value
+	struct vhost_config : public x0::ScopeValue
 	{
 		std::string name;
 		std::string document_root;
 		std::string bind_address;
 
-		virtual void merge(const x0::scope_value *value)
+		virtual void merge(const x0::ScopeValue *value)
 		{
 			if (auto cx = dynamic_cast<const vhost_config *>(value))
 			{
@@ -70,22 +70,22 @@ private:
 		}
 	};
 
-	x0::server::request_parse_hook::connection c;
+	x0::HttpServer::request_parse_hook::connection c;
 	std::map<std::string, vhost_config *> mappings; // [hostname:port] -> vhost_config
 	std::map<int, vhost_config *> default_hosts; // [port] -> vhost_config
 
 public:
-	vhost_basic_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	vhost_basic_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
 
 		c = server_.resolve_document_root.connect(std::bind(&vhost_basic_plugin::resolve_document_root, this, _1));
 
-		register_cvar("DocumentRoot", x0::context::vhost, &vhost_basic_plugin::setup_docroot);
-		register_cvar("Default", x0::context::vhost, &vhost_basic_plugin::setup_default);
-		register_cvar("BindAddress", x0::context::vhost, &vhost_basic_plugin::setup_bindaddress);
-		register_cvar("ServerAliases", x0::context::vhost, &vhost_basic_plugin::setup_aliases);
+		declareCVar("DocumentRoot", x0::HttpContext::host, &vhost_basic_plugin::setup_docroot);
+		declareCVar("Default", x0::HttpContext::host, &vhost_basic_plugin::setup_default);
+		declareCVar("BindAddress", x0::HttpContext::host, &vhost_basic_plugin::setup_bindaddress);
+		declareCVar("ServerAliases", x0::HttpContext::host, &vhost_basic_plugin::setup_aliases);
 	}
 
 	~vhost_basic_plugin()
@@ -93,13 +93,13 @@ public:
 		server_.resolve_document_root.disconnect(c);
 	}
 
-	bool setup_docroot(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_docroot(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		std::string document_root = cvar.as<std::string>();
 
 		if (document_root.empty())
 		{
-			server_.log(x0::severity::error,
+			server_.log(x0::Severity::error,
 				"vhost_basic[%s]: document root must not be empty.",
 				s.id().c_str());
 			return false;
@@ -107,7 +107,7 @@ public:
 
 		if (document_root[0] != '/')
 		{
-			log(x0::severity::warn,
+			log(x0::Severity::warn,
 				"vhost_basic[%s]: document root should be an absolute path: '%s'",
 				s.id().c_str(), document_root.c_str());
 		}
@@ -117,26 +117,26 @@ public:
 		cfg->document_root = document_root;
 
 		// register primary [hostname:port]
-		if (!register_vhost(s.id(), cfg))
+		if (!register_host(s.id(), cfg))
 		{
-			server_.log(x0::severity::error, "Server name '%s' already in use.", s.id().c_str());
+			server_.log(x0::Severity::error, "Server name '%s' already in use.", s.id().c_str());
 			return false;
 		}
 		return true;
 	}
 
-	bool setup_bindaddress(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_bindaddress(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		int port = x0::extract_port_from_hostid(s.id());
 		std::string bind = cvar.as<std::string>();
 		vhost_config *cfg = s.acquire<vhost_config>(this);
 		cfg->bind_address = bind;
 
-		server_.setup_listener(port, bind);
+		server_.setupListener(port, bind);
 		return true;
 	}
 
-	bool setup_aliases(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_aliases(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		std::vector<std::string> aliases;
 		if (!cvar.load(aliases))
@@ -149,13 +149,13 @@ public:
 		{
 			std::string alias_id(x0::make_hostid(*k, port));
 
-			if (!register_vhost(alias_id, cfg))
+			if (!register_host(alias_id, cfg))
 			{
-				server_.log(x0::severity::error, "Server alias '%s' already in use.", alias_id.c_str());
+				server_.log(x0::Severity::error, "Server alias '%s' already in use.", alias_id.c_str());
 				return false;
 			}
 
-			server_.link_vhost(s.id(), alias_id);
+			server_.linkHost(s.id(), alias_id);
 
 #if !defined(NDEBUG)
 			debug(1, "Server alias '%s' (for bind '%s' on port %d) added.", alias_id.c_str(), cfg->bind_address.c_str(), port);
@@ -164,7 +164,7 @@ public:
 		return true;
 	}
 
-	bool setup_default(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_default(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		bool is_default;
 		if (!cvar.load(is_default))
@@ -175,9 +175,9 @@ public:
 
 		if (is_default)
 		{
-			if (vhost_config *vhost = get_default_vhost(port))
+			if (vhost_config *vhost = get_default_host(port))
 			{
-				server_.log(x0::severity::error,
+				server_.log(x0::Severity::error,
 						"Cannot declare multiple virtual hosts as default "
 						"with same port (%d). Conflicting hostnames: %s, %s.",
 						port, vhost->name.c_str(), s.id().c_str());
@@ -185,7 +185,7 @@ public:
 				return false;
 			}
 
-			set_default_vhost(port, cfg);
+			set_default_host(port, cfg);
 		}
 		return true;
 	}
@@ -194,7 +194,7 @@ public:
 	 * \retval true success
 	 * \retval false failed, there is already a vhost assigned to this name.
 	 */
-	bool register_vhost(const std::string& name, vhost_config *cfg)
+	bool register_host(const std::string& name, vhost_config *cfg)
 	{
 		//debug(1, "Registering vhost: %s [%s]\n", name.c_str(), cfg->name.c_str());
 		if (mappings.find(name) == mappings.end())
@@ -205,7 +205,7 @@ public:
 		return false;
 	}
 
-	void set_default_vhost(int port, vhost_config *cfg)
+	void set_default_host(int port, vhost_config *cfg)
 	{
 #if !defined(NDEBUG)
 		//debug(1, "set default host '%s'", cfg->name.c_str());
@@ -213,7 +213,7 @@ public:
 		default_hosts[port] = cfg;
 	}
 
-	vhost_config *get_default_vhost(int port)
+	vhost_config *get_default_host(int port)
 	{
 		auto i = default_hosts.find(port);
 
@@ -223,7 +223,7 @@ public:
 		return NULL;
 	}
 
-	vhost_config *get_vhost(const std::string& name)
+	vhost_config *get_host(const std::string& name)
 	{
 		auto vh = mappings.find(name);
 		if (vh != mappings.end())
@@ -240,9 +240,9 @@ public:
 		// verify, that every listener has a default  vhost:
 		for (auto i = server_.listeners().begin(), e = server_.listeners().end(); i != e; ++i)
 		{
-			if (!get_default_vhost((*i)->port()))
+			if (!get_default_host((*i)->port()))
 			{
-				log(x0::severity::warn,
+				log(x0::Severity::warn,
 					"No default host defined for listener at port %d.",
 					(*i)->port());
 			}
@@ -250,14 +250,14 @@ public:
 	}
 
 private:
-	void resolve_document_root(x0::request *in)
+	void resolve_document_root(x0::HttpRequest *in)
 	{
 		std::string hostid(in->hostid());
 
-		vhost_config *vhost = get_vhost(hostid);
+		vhost_config *vhost = get_host(hostid);
 		if (!vhost)
 		{
-			vhost = get_default_vhost(in->connection.local_port());
+			vhost = get_default_host(in->connection.local_port());
 			if (!vhost)
 			{
 #if !defined(NDEBUG)

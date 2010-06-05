@@ -5,14 +5,14 @@
  * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/header.hpp>
-#include <x0/io/buffer_source.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpHeader.h>
+#include <x0/io/BufferSource.h>
+#include <x0/strutils.h>
+#include <x0/Types.h>
 
 #define TRACE(msg...) DEBUG("echo: " msg)
 
@@ -21,14 +21,14 @@
  * \brief echo content generator plugin
  */
 class echo_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
 	x0::request_handler::connection c;
 
 public:
-	echo_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	echo_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		c = server_.generate_content.connect(&echo_plugin::process_request, this);
 	}
@@ -39,34 +39,34 @@ public:
 	}
 
 private:
-	void process_request(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void process_request(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (!x0::equals(in->path, "/echo"))
 			return next(); // pass request to next handler
 
 		out->status = x0::http_error::ok;
 
-		if (x0::buffer_ref value = in->header("Content-Length"))
+		if (x0::BufferRef value = in->header("Content-Length"))
 			out->headers.set("Content-Length", value.str());
 
 		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, next, in, out))) {
 			out->write(
-				std::make_shared<x0::buffer_source>("I'm an HTTP echo-server, dude.\n"),
+				std::make_shared<x0::BufferSource>("I'm an HTTP echo-server, dude.\n"),
 				std::bind(&echo_plugin::done, this, next)
 			);
 		}
 	}
 
-	void on_content(x0::buffer_ref&& chunk, x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void on_content(x0::BufferRef&& chunk, x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		TRACE("on_content('%s')", chunk.str().c_str());
 		out->write(
-			std::make_shared<x0::buffer_source>(std::move(chunk)),
+			std::make_shared<x0::BufferSource>(std::move(chunk)),
 			std::bind(&echo_plugin::content_written, this, next, in, out)
 		);
 	}
 
-	void content_written(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void content_written(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, next, in, out)))
 		{

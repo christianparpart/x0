@@ -5,13 +5,13 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/range_def.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpRangeDef.h>
+#include <x0/strutils.h>
+#include <x0/Types.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
@@ -27,12 +27,12 @@
 #include <ev++.h>
 
 struct cstat : // {{{
-	public x0::custom_data
+	public x0::CustomData
 {
 private:
 	static unsigned connection_counter;
 
-	x0::server& server_;
+	x0::HttpServer& server_;
 	ev::tstamp start_;
 	unsigned cid_;
 	unsigned rcount_;
@@ -40,7 +40,7 @@ private:
 
 private:
 	template<typename... Args>
-	void log(x0::severity s, const char *fmt, Args&& ... args)
+	void log(x0::Severity s, const char *fmt, Args&& ... args)
 	{
 		//server_.log(s, fmt, args...);
 
@@ -54,7 +54,7 @@ private:
 	}
 
 public:
-	explicit cstat(x0::server& server) :
+	explicit cstat(x0::HttpServer& server) :
 		server_(server),
 		start_(ev_now(server.loop())),
 		cid_(++connection_counter),
@@ -66,41 +66,41 @@ public:
 		snprintf(buf, sizeof(buf), "c%04d.log", id());
 		fp = fopen(buf, "w");
 
-		log(x0::severity::info, "connection[%d] opened.", id());
+		log(x0::Severity::info, "connection[%d] opened.", id());
 	}
 
 	ev::tstamp connection_time() const { return ev_now(server_.loop()) - start_; }
 	unsigned id() const { return cid_; }
 	unsigned request_count() const { return rcount_; }
 
-	void begin_request(x0::request *in)
+	void begin_request(x0::HttpRequest *in)
 	{
 		++rcount_;
 
-		log(x0::severity::info, "connection[%d] request[%d]: %s %s",
+		log(x0::Severity::info, "connection[%d] request[%d]: %s %s",
 				id(), request_count(), in->method.str().c_str(), in->uri.str().c_str());
 
 		for (auto i = in->headers.begin(), e = in->headers.end(); i != e; ++i)
-			log(x0::severity::info, "C> %s: %s", i->name.str().c_str(), i->value.str().c_str());
+			log(x0::Severity::info, "C> %s: %s", i->name.str().c_str(), i->value.str().c_str());
 	}
 
-	void end_request(x0::request *in, x0::response *out)
+	void end_request(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		//std::ostringstream stream;
 
 		/*if (!in->body.empty())
 		{
-			log(x0::severity::info, "C> %s", in->body.c_str());
+			log(x0::Severity::info, "C> %s", in->body.c_str());
 		}*/
 
-		//stream << "S< " << static_cast<int>(out->status) << ' ' << x0::response::status_str(out->status) << std::endl;
+		//stream << "S< " << static_cast<int>(out->status) << ' ' << x0::HttpResponse::status_str(out->status) << std::endl;
 		for (auto i = out->headers.begin(), e = out->headers.end(); i != e; ++i)
-			log(x0::severity::info, "S< %s: %s", i->name.c_str(), i->value.c_str());
+			log(x0::Severity::info, "S< %s: %s", i->name.c_str(), i->value.c_str());
 	}
 
 	~cstat()
 	{
-		log(x0::severity::info, "connection[%d] closed. timing: %.4f (nreqs: %d)",
+		log(x0::Severity::info, "connection[%d] closed. timing: %.4f (nreqs: %d)",
 				id(), connection_time(), request_count());
 
 		if (fp)
@@ -116,17 +116,17 @@ unsigned cstat::connection_counter = 0;
  * \brief serves static files from server's local filesystem to client.
  */
 class debug_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
-	x0::server::connection_hook::connection connection_open_;
-	x0::server::request_parse_hook::connection pre_process_;
-	x0::server::request_post_hook::connection request_done_;
-	x0::server::connection_hook::connection connection_close_;
+	x0::HttpServer::connection_hook::connection connection_open_;
+	x0::HttpServer::request_parse_hook::connection pre_process_;
+	x0::HttpServer::request_post_hook::connection request_done_;
+	x0::HttpServer::connection_hook::connection connection_close_;
 
 public:
-	debug_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	debug_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		connection_open_ = server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1));
 		pre_process_ = server_.pre_process.connect(boost::bind(&debug_plugin::pre_process, this, _1));
@@ -142,7 +142,7 @@ public:
 	}
 
 private:
-	std::string client_hostname(x0::connection *connection)
+	std::string client_hostname(x0::HttpConnection *connection)
 	{
 		std::string name = connection->remote_ip();
 
@@ -155,24 +155,24 @@ private:
 		return name;
 	}
 
-	void connection_open(x0::connection *connection)
+	void connection_open(x0::HttpConnection *connection)
 	{
 		connection->custom_data[this] = std::make_shared<cstat>(server_);
 	}
 
-	void pre_process(x0::request *in)
+	void pre_process(x0::HttpRequest *in)
 	{
 		if (std::shared_ptr<cstat> cs = std::static_pointer_cast<cstat>(in->connection.custom_data[this]))
 			cs->begin_request(in);
 	}
 
-	void request_done(x0::request *in, x0::response *out)
+	void request_done(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (std::shared_ptr<cstat> cs = std::static_pointer_cast<cstat>(in->connection.custom_data[this]))
 			cs->end_request(in, out);
 	}
 
-	void connection_close(x0::connection *connection)
+	void connection_close(x0::HttpConnection *connection)
 	{
 		// we don't need this at the moment
 	}

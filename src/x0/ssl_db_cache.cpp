@@ -1,4 +1,4 @@
-#include <x0/ssl_db_cache.hpp>
+#include <x0/ssl_db_cache.h>
 
 #if defined(WITH_SSL)
 

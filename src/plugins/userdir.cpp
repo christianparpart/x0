@@ -5,13 +5,13 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/header.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpHeader.h>
+#include <x0/strutils.h>
+#include <x0/Types.h>
 #include <pwd.h>
 
 /**
@@ -19,16 +19,16 @@
  * \brief implements automatic index file resolving, if mapped request path is a path.
  */
 class userdir_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
-	x0::server::request_parse_hook::connection c;
+	x0::HttpServer::request_parse_hook::connection c;
 
-	struct context : public x0::scope_value
+	struct context : public x0::ScopeValue
 	{
 		std::string dirname_;
 
-		virtual void merge(const x0::scope_value *value)
+		virtual void merge(const x0::ScopeValue *value)
 		{
 			if (auto cx = dynamic_cast<const context *>(value))
 			{
@@ -39,13 +39,13 @@ private:
 	};
 
 public:
-	userdir_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	userdir_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
 		c = server_.resolve_entity.connect(/*0, */ std::bind(&userdir_plugin::resolve_entity, this, _1));
 
-		register_cvar("UserDir", x0::context::server | x0::context::vhost, &userdir_plugin::setup_userdir);
+		declareCVar("UserDir", x0::HttpContext::server | x0::HttpContext::host, &userdir_plugin::setup_userdir);
 	}
 
 	~userdir_plugin()
@@ -53,7 +53,7 @@ public:
 		server_.resolve_entity.disconnect(c);
 	}
 
-	bool setup_userdir(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_userdir(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		std::string dirname;
 		if (cvar.load(dirname) && validate(dirname))
@@ -84,9 +84,9 @@ public:
 	}
 
 private:
-	void resolve_entity(x0::request *in)
+	void resolve_entity(x0::HttpRequest *in)
 	{
-		auto cx = server_.vhost(in->hostid()).get<context>(this);
+		auto cx = server_.host(in->hostid()).get<context>(this);
 		if (!cx || cx->dirname_.empty())
 			return;
 

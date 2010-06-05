@@ -1,14 +1,14 @@
-/* <x0/main.cpp>
+/* <x0/x0d.cpp>
  *
  * This file is part of the x0 web server project's daemon, called x0d
  * and is released under GPL-3.
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2009-2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/server.hpp>
-#include <x0/strutils.hpp>
-#include <x0/severity.hpp>
+#include <x0/http/HttpServer.h>
+#include <x0/strutils.h>
+#include <x0/Severity.h>
 
 #include <functional>
 #include <iostream>
@@ -22,7 +22,7 @@
 #include <grp.h>
 
 #if !defined(NDEBUG)
-#	define X0D_DEBUG(msg...) x0d::log(x0::severity::debug, msg)
+#	define X0D_DEBUG(msg...) x0d::log(x0::Severity::debug, msg)
 #else
 #	define X0D_DEBUG(msg...) /*!*/ ((void)0)
 #endif
@@ -115,7 +115,7 @@ public:
 
 			if (pid < 0) // fork failed
 			{
-				log(x0::severity::alert, "fork error: %s", strerror(errno));
+				log(x0::Severity::alert, "fork error: %s", strerror(errno));
 				return 1;
 			}
 			else if (pid == 0) // in child
@@ -194,15 +194,15 @@ public:
 
 		if (pidfile_.empty())
 		{
-			server_.log(x0::severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
+			server_.log(x0::Severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
 		}
 		if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
 		{
-			server_.log(x0::severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
+			server_.log(x0::Severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
 			fprintf(pidfile, "%d\n", getpid());
 			fclose(pidfile);
 		} else
-			server_.log(x0::severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
+			server_.log(x0::Severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
 
 		server_.run();
 
@@ -346,12 +346,12 @@ private:
 #if defined(X0_RELEASE)
 			throw std::runtime_error(x0::fstringbuilder::format("Service is not allowed to run with administrative permissionsService is still running with administrative permissions."));
 #else
-			log(x0::severity::warn, "Service is still running with administrative permissions.");
+			log(x0::Severity::warn, "Service is still running with administrative permissions.");
 #endif
 		}
 	}
 
-	static void log(x0::severity severity, const char *msg, ...)
+	static void log(x0::Severity Severity, const char *msg, ...)
 	{
 		va_list va;
 		char buf[2048];
@@ -362,7 +362,7 @@ private:
 
 		if (instance_)
 		{
-			instance_->server_.log(severity, "%s", buf);
+			instance_->server_.log(Severity, "%s", buf);
 		}
 		else
 		{
@@ -372,7 +372,7 @@ private:
 
 	void reload_handler(ev::sig&, int)
 	{
-		log(x0::severity::info, "SIGHUP received. Reloading configuration.");
+		log(x0::Severity::info, "SIGHUP received. Reloading configuration.");
 
 		try
 		{
@@ -380,13 +380,13 @@ private:
 		}
 		catch (std::exception& e)
 		{
-			log(x0::severity::error, "uncaught exception in reload handler: %s", e.what());
+			log(x0::Severity::error, "uncaught exception in reload handler: %s", e.what());
 		}
 	}
 
 	void terminate_handler(ev::sig&, int)
 	{
-		log(x0::severity::info, "SIGTERM received. Shutting down.");
+		log(x0::Severity::info, "SIGTERM received. Shutting down.");
 
 		try
 		{
@@ -394,7 +394,7 @@ private:
 		}
 		catch (std::exception& e)
 		{
-			log(x0::severity::error, "uncaught exception in terminate handler: %s", e.what());
+			log(x0::Severity::error, "uncaught exception in terminate handler: %s", e.what());
 		}
 	}
 
@@ -407,7 +407,7 @@ private:
 	std::string group_;
 	int nofork_;
 	int doguard_;
-	x0::server server_;
+	x0::HttpServer server_;
 	ev::sig sigterm_;
 	ev::sig sighup_;
 	static x0d *instance_;

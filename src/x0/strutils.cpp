@@ -5,7 +5,7 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/strutils.hpp>
+#include <x0/strutils.h>
 #include <sstream>
 #include <fstream>
 #include <cstdio>

@@ -5,29 +5,29 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
 
 /**
  * \ingroup plugins
  * \brief implements alias maps, mapping request paths to custom local paths (overriding resolved document_root concatation)
  */
 class alias_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
-	x0::server::request_parse_hook::connection c;
+	x0::HttpServer::request_parse_hook::connection c;
 
 	typedef std::map<std::string, std::string> aliasmap_type;
 
 	int alias_count_;
 
-	struct context : public x0::scope_value
+	struct context : public x0::ScopeValue
 	{
 		aliasmap_type aliases;
 
-		virtual void merge(const x0::scope_value *scope)
+		virtual void merge(const x0::ScopeValue *scope)
 		{
 			if (auto cx = dynamic_cast<const context *>(scope))
 			{
@@ -37,14 +37,14 @@ private:
 	};
 
 public:
-	alias_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name),
+	alias_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name),
 		alias_count_(0)
 	{
 		using namespace std::placeholders;
 		c = srv.resolve_entity.connect(std::bind(&alias_plugin::resolve_entity, this, _1));
 
-		register_cvar("Aliases", x0::context::server | x0::context::vhost, &alias_plugin::setup);
+		declareCVar("Aliases", x0::HttpContext::server | x0::HttpContext::host, &alias_plugin::setup);
 	}
 
 	~alias_plugin()
@@ -64,7 +64,7 @@ public:
 	}
 
 private:
-	bool setup(const x0::settings_value& cvar, x0::scope& s)
+	bool setup(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		if (!cvar.load(s.acquire<context>(this)->aliases))
 			return false;
@@ -74,15 +74,15 @@ private:
 		return true;
 	}
 
-	inline aliasmap_type *get_aliases(x0::request *in)
+	inline aliasmap_type *get_aliases(x0::HttpRequest *in)
 	{
-		if (auto ctx = server_.vhost(in->hostid()).get<context>(this))
+		if (auto ctx = server_.host(in->hostid()).get<context>(this))
 			return &ctx->aliases;
 
 		return 0;
 	}
 
-	void resolve_entity(x0::request *in)
+	void resolve_entity(x0::HttpRequest *in)
 	{
 		if (in->path.size() < 2)
 			return;

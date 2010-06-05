@@ -16,128 +16,126 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 set(x0_io_SRC
-	io/async_writer.cpp
-	io/buffer_sink.cpp
-	io/buffer_source.cpp
-	io/chain_filter.cpp
-	io/chunked_encoder.cpp
-	io/compress_filter.cpp
-	io/connection_sink.cpp
-	io/file.cpp
-	io/fd_sink.cpp
-	io/fd_source.cpp
-	io/file_sink.cpp
-	io/file_source.cpp
-	io/fileinfo.cpp
-	io/fileinfo_service.cpp
-	io/filter.cpp
-	io/null_filter.cpp
+	io/AsyncWriter.cpp
+	io/BufferSink.cpp
+	io/BufferSource.cpp
+	io/ChainFilter.cpp
+	io/ChunkedEncoder.cpp
+	io/CompressFilter.cpp
+	io/ConnectionSink.cpp
+	io/File.cpp
+	io/SystemSink.cpp
+	io/SystemSource.cpp
+	io/FileSink.cpp
+	io/FileSource.cpp
+	io/FileInfo.cpp
+	io/FileInfoService.cpp
+	io/Filter.cpp
+	io/NullFilter.cpp
 )
 
 set(x0_io_API
-	io/async_writer.hpp
-	io/buffer_sink.hpp
-	io/buffer_source.hpp
-	io/chain_filter.hpp
-	io/chunked_encoder.hpp
-	io/composite_source.hpp
-	io/compress_filter.hpp
-	io/connection_sink.hpp
-	io/fd_sink.hpp
-	io/fd_source.hpp
-	io/file.hpp
-	io/file_sink.hpp
-	io/file_source.hpp
-	io/fileinfo.hpp io/fileinfo.ipp
-	io/fileinfo_service.hpp
-	io/filter.hpp
-	io/filter_source.hpp
-	io/null_filter.hpp
-	io/pump.hpp
-	io/sink.hpp
-	io/source.hpp
-	io/source_visitor.hpp
-	io/uppercase_filter.hpp
+	io/AsyncWriter.h
+	io/BufferSink.h
+	io/BufferSource.h
+	io/ChainFilter.h
+	io/ChunkedEncoder.h
+	io/CompositeSource.h
+	io/CompressFilter.h
+	io/ConnectionSink.h
+	io/SystemSink.h
+	io/SystemSource.h
+	io/File.h
+	io/FileSink.h
+	io/FileSource.h
+	io/FileInfo.h io/FileInfo.cc
+	io/FileInfoService.h
+	io/Filter.h
+	io/FilterSource.h
+	io/NullFilter.h
+	io/pump.h
+	io/Sink.h
+	io/Source.h
+	io/SourceVisitor.h
 )
 
 set(x0_http_API
-	http/context.hpp
-	http/http_error.hpp
-	http/listener.hpp
-	http/request.hpp
-	http/request_handler.hpp
-	http/response.hpp
-	http/message_processor.hpp
-	http/server.hpp
+	http/HttpContext.h
+	http/HttpError.h
+	http/HttpListener.h
+	http/HttpRequest.h
+	http/HttpResponse.h
+	http/HttpMessageProcessor.h
+	http/HttpServer.h
 )
 
 set(x0_http_SRC
-	http/connection.cpp
-	http/http_error.cpp
-	http/listener.cpp
-	http/message_processor.cpp
-	http/plugin.cpp
-	http/response.cpp
-	http/request.cpp
-	http/server.cpp
+	http/HttpConnection.cpp
+	http/HttpError.cpp
+	http/HttpListener.cpp
+	http/HttpMessageProcessor.cpp
+	http/HttpPlugin.cpp
+	http/HttpResponse.cpp
+	http/HttpRequest.cpp
+	http/HttpServer.cpp
 )
 
 set(x0_SRC
-	${x0_io_SRC}
-	${x0_http_SRC}
-	gai_error.cpp
-	library.cpp
-	logger.cpp
-	web_client.cpp
-	scope.cpp
-	settings.cpp
-	severity.cpp
+	AnsiColor.cpp
+	Library.cpp
+	Logger.cpp
+	Process.cpp
+	Url.cpp
+	WebClient.cpp
+	Scope.cpp
+	Settings.cpp
+	Severity.cpp
 	ssl_db_cache.cpp # should go into io/
 	strutils.cpp
-	url.cpp
-	process.cpp
-	ansi_color.cpp
+	gai_error.cpp
+	${x0_io_SRC}
+	${x0_http_SRC}
 )
 
 set(x0_API
-	ansi_color.hpp
-	api.hpp
-	buffer.hpp
-	buffer_ref.hpp
-	cache.hpp cache.ipp
-	connection.hpp
-	datetime.hpp
-	defines.hpp
-	event_handler.hpp
-	gai_error.hpp
-	function.hpp
-	handler.hpp
-	header.hpp
-	library.hpp
-	local_stream.hpp
-	logger.hpp
-	plugin.hpp
-	process.hpp
-	property.hpp
-	range_def.hpp range_def.ipp
-	scope.hpp
-	settings.hpp settings.ipp
-	severity.hpp
-	signal.hpp
-	ssl_db_cache.hpp
-	strutils.hpp strutils.ipp
-	url.hpp
+	ansi_color.h
+	api.h
+	buffer.h
+	buffer_ref.h
+	cache.h cache.cc
+	connection.h
+	datetime.h
+	defines.h
+	event_handler.h
+	gai_error.h
+	function.h
+	handler.h
+	header.h
+	library.h
+	local_stream.h
+	logger.h
+	plugin.h
+	process.h
+	property.h
+	range_def.h range_def.cc
+	scope.h
+	settings.h settings.cc
+	severity.h
+	signal.h
+	ssl_db_cache.h
+	strutils.h strutils.cc
+	url.h
 	sysconfig.h
-	ternary_search.hpp
-	trie.hpp
-	types.hpp
-	utility.hpp
-	web_client.hpp
+	ternary_search.h
+	trie.h
+	types.h
+	utility.h
+	web_client.h
 )
 
-#	function.hpp
-#	trie.hpp
-#	ternary_search.hpp
+#	function.h
+#	trie.h
+#	ternary_search.h
 
 add_library(x0 SHARED ${x0_SRC})
 install(TARGETS x0 DESTINATION ${LIBDIR})

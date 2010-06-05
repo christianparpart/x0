@@ -5,16 +5,16 @@
  * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/header.hpp>
-#include <x0/io/buffer_source.hpp>
-#include <x0/web_client.hpp>
-#include <x0/strutils.hpp>
-#include <x0/url.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpHeader.h>
+#include <x0/io/BufferSource.h>
+#include <x0/WebClient.h>
+#include <x0/strutils.h>
+#include <x0/Url.h>
+#include <x0/Types.h>
 
 #include <cstring>
 #include <cerrno>
@@ -106,7 +106,7 @@ public:
 /** holds a complete proxy configuration for a specific entry point.
  */
 class proxy :
-	public x0::scope_value
+	public x0::ScopeValue
 {
 public:
 	struct ev_loop *loop;
@@ -130,12 +130,12 @@ public:
 	explicit proxy(struct ev_loop *lp = 0);
 	~proxy();
 
-	bool method_allowed(const x0::buffer_ref& method) const;
+	bool method_allowed(const x0::BufferRef& method) const;
 
 	proxy_connection *acquire();
 	void release(proxy_connection *px);
 
-	virtual void merge(const scope_value *from);
+	virtual void merge(const ScopeValue *from);
 
 private:
 	std::size_t origins_ptr;
@@ -146,7 +146,7 @@ private:
 /** handles a connection from proxy to origin server.
  */
 class proxy_connection :
-	public x0::web_client_base
+	public x0::WebClientBase
 {
 	friend class proxy;
 
@@ -154,19 +154,19 @@ public:
 	explicit proxy_connection(proxy *px);
 	~proxy_connection();
 
-	void start(const std::function<void()>& done, x0::request *in, x0::response *out);
+	void start(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out);
 
 private:
 	void connect(const std::string& origin);
 	void disconnect();
 
 	void pass_request();
-	void pass_request_content(x0::buffer_ref&& chunk);
+	void pass_request_content(x0::BufferRef&& chunk);
 
 	virtual void connect();
-	virtual void response(int, int, int, x0::buffer_ref&&);
-	virtual void header(x0::buffer_ref&&, x0::buffer_ref&&);
-	virtual bool content(x0::buffer_ref&&);
+	virtual void response(int, int, int, x0::BufferRef&&);
+	virtual void header(x0::BufferRef&&, x0::BufferRef&&);
+	virtual bool content(x0::BufferRef&&);
 	virtual bool complete();
 
 	void content_written(int ec, std::size_t nb);
@@ -177,8 +177,8 @@ private:
 	std::string hostname_;					//!< origin's hostname
 	int port_;								//!< origin's port
 	std::function<void()> done_;
-	x0::request *request_;					//!< client's request
-	x0::response *response_;				//!< client's response
+	x0::HttpRequest *request_;					//!< client's request
+	x0::HttpResponse *response_;				//!< client's response
 }; // }}}
 
 // {{{ origin_server impl
@@ -276,7 +276,7 @@ proxy::~proxy()
 	TRACE("proxy(%p) destroy", this);
 }
 
-bool proxy::method_allowed(const x0::buffer_ref& method) const
+bool proxy::method_allowed(const x0::BufferRef& method) const
 {
 	if (x0::equals(method, "GET"))
 		return true;
@@ -323,7 +323,7 @@ void proxy::release(proxy_connection *px)
 	idle_.push_back(px);
 }
 
-void proxy::merge(const scope_value *from)
+void proxy::merge(const ScopeValue *from)
 {
 	//! \todo if (auto cx = dynamic_cast<const proxy *>(from))
 	{
@@ -334,7 +334,7 @@ void proxy::merge(const scope_value *from)
 
 // {{{ proxy_connection impl
 proxy_connection::proxy_connection(proxy *px) :
-	web_client_base(px->loop),
+	WebClientBase(px->loop),
 	px_(px),
 	done_(),
 	request_(NULL),
@@ -360,13 +360,13 @@ void proxy_connection::connect()
  * We will use the status code only.
  * However, we could pass the text field, too - once x0 core supports it.
  */
-void proxy_connection::response(int major, int minor, int code, x0::buffer_ref&& text)
+void proxy_connection::response(int major, int minor, int code, x0::BufferRef&& text)
 {
 	TRACE("proxy_connection(%p).status(HTTP/%d.%d, %d, '%s')", this, major, minor, code, text.str().c_str());
 	response_->status = static_cast<x0::http_error>(code);
 }
 
-inline bool validate_response_header(const x0::buffer_ref& name)
+inline bool validate_response_header(const x0::BufferRef& name)
 {
 	// XXX do not allow origin's connection-level response headers to be passed to the client.
 	if (iequals(name, "Connection"))
@@ -383,7 +383,7 @@ inline bool validate_response_header(const x0::buffer_ref& name)
  * We will pass this header directly to the client's response if
  * that is NOT a connection-level header.
  */
-void proxy_connection::header(x0::buffer_ref&& name, x0::buffer_ref&& value)
+void proxy_connection::header(x0::BufferRef&& name, x0::BufferRef&& value)
 {
 	TRACE("proxy_connection(%p).header('%s', '%s')", this, name.str().c_str(), value.str().c_str());
 
@@ -399,13 +399,13 @@ void proxy_connection::header(x0::buffer_ref&& name, x0::buffer_ref&& value)
  * The client must be resumed once the current chunk has been fully passed
  * to the client.
  */
-bool proxy_connection::content(x0::buffer_ref&& chunk)
+bool proxy_connection::content(x0::BufferRef&& chunk)
 {
 	TRACE("proxy_connection(%p).content(size=%ld)", this, chunk.size());
 
 	pause();
 
-	response_->write(std::make_shared<x0::buffer_source>(chunk),
+	response_->write(std::make_shared<x0::BufferSource>(chunk),
 			std::bind(&proxy_connection::content_written, this, std::placeholders::_1, std::placeholders::_2));
 
 	return true;
@@ -445,7 +445,7 @@ void proxy_connection::content_written(int ec, std::size_t nb)
 	else
 	{
 		ec = errno;
-		request_->connection.server().log(x0::severity::notice, "proxy: client %s aborted with %s.",
+		request_->connection.server().log(x0::Severity::notice, "proxy: client %s aborted with %s.",
 				request_->connection.remote_ip().c_str(), strerror(ec));
 
 		delete this;
@@ -466,7 +466,7 @@ proxy_connection::~proxy_connection()
 void proxy_connection::connect(const std::string& origin)
 {
 	std::string protocol;
-	if (!x0::parse_url(origin, protocol, hostname_, port_))
+	if (!x0::parseUrl(origin, protocol, hostname_, port_))
 	{
 		TRACE("proxy_connection(%p).connect() failed: %s.", this, "Origin URL parse error");
 		return;
@@ -499,7 +499,7 @@ void proxy_connection::disconnect()
  * \param in Corresponding request.
  * \param out Corresponding response.
  */
-void proxy_connection::start(const std::function<void()>& done, x0::request *in, x0::response *out)
+void proxy_connection::start(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out)
 {
 	TRACE("connection(%p).start(): path=%s (state()=%d)", this, in->path.str().c_str(), state());
 
@@ -521,7 +521,7 @@ void proxy_connection::start(const std::function<void()>& done, x0::request *in,
 
 /** test whether or not this request header may be passed to the origin server.
  */
-inline bool validate_request_header(const x0::buffer_ref& name)
+inline bool validate_request_header(const x0::BufferRef& name)
 {
 	if (x0::iequals(name, "Host"))
 		return false;
@@ -562,7 +562,7 @@ void proxy_connection::pass_request()
 	}
 	else
 	{
-		x0::buffer result;
+		x0::Buffer result;
 
 		auto hostid = request_->hostid();
 		std::size_t n = hostid.find(':');
@@ -596,7 +596,7 @@ void proxy_connection::pass_request()
 
 /** callback, invoked when client content chunk is available, and is to pass to the origin server.
  */
-void proxy_connection::pass_request_content(x0::buffer_ref&& chunk)
+void proxy_connection::pass_request_content(x0::BufferRef&& chunk)
 {
 	TRACE("proxy_connection.pass_request_content(): '%s'", chunk.str().c_str());
 	//client.write(chunk, std::bind(&proxy_connection::request_content_passed, this);
@@ -608,29 +608,29 @@ void proxy_connection::pass_request_content(x0::buffer_ref&& chunk)
  * \brief proxy content generator plugin
  */
 class proxy_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
 	x0::request_handler::connection c;
 
 public:
-	proxy_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name)
+	proxy_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
 
 		// register content generator
 		c = server_.generate_content.connect(&proxy_plugin::process, this);
 
-		server_.register_cvar("ProxyEnable", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
-		server_.register_cvar("ProxyMode", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
-		server_.register_cvar("ProxyOrigins", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_origins, this, _1, _2));
-		server_.register_cvar("ProxyHotSpares", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_hotspares, this, _1, _2));
-		server_.register_cvar("ProxyMethods", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_methods, this, _1, _2));
-		server_.register_cvar("ProxyConnectTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_connect_timeout, this, _1, _2));
-		server_.register_cvar("ProxyReadTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_read_timeout, this, _1, _2));
-		server_.register_cvar("ProxyWriteTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_write_timeout, this, _1, _2));
-		server_.register_cvar("ProxyKeepAliveTimeout", x0::context::server | x0::context::vhost, std::bind(&proxy_plugin::setup_proxy_keepalive_timeout, this, _1, _2));
+		server_.declareCVar("ProxyEnable", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
+		server_.declareCVar("ProxyMode", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
+		server_.declareCVar("ProxyOrigins", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_origins, this, _1, _2));
+		server_.declareCVar("ProxyHotSpares", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_hotspares, this, _1, _2));
+		server_.declareCVar("ProxyMethods", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_methods, this, _1, _2));
+		server_.declareCVar("ProxyConnectTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_connect_timeout, this, _1, _2));
+		server_.declareCVar("ProxyReadTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_read_timeout, this, _1, _2));
+		server_.declareCVar("ProxyWriteTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_write_timeout, this, _1, _2));
+		server_.declareCVar("ProxyKeepAliveTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_keepalive_timeout, this, _1, _2));
 	}
 
 	~proxy_plugin()
@@ -639,18 +639,18 @@ public:
 	}
 
 private:
-	bool setup_proxy_enable(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_enable(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->enabled);
 	}
 
-	bool setup_proxy_mode(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_mode(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		// TODO reverse / forward / transparent (forward)
 		return false;
 	}
 
-	bool setup_proxy_origins(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_origins(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		proxy *px = acquire_proxy(s);
 		cvar.load(px->origins);
@@ -661,7 +661,7 @@ private:
 			std::string protocol, hostname;
 			int port = 0;
 
-			if (!x0::parse_url(url, protocol, hostname, port))
+			if (!x0::parseUrl(url, protocol, hostname, port))
 			{
 				TRACE("%s.", "Origin URL parse error");
 				continue;
@@ -671,49 +671,49 @@ private:
 			if (origin.is_enabled())
 				px->origins_.push_back(origin);
 			else
-				server_.log(x0::severity::error, origin.error().c_str());
+				server_.log(x0::Severity::error, origin.error().c_str());
 		}
 
 		if (!px->origins_.empty())
 			return true;
 
-		//! \bug FIX server_.log(x0::severity::warn, "No origin servers defined for proxy at virtual-host: %s.", hostid.c_str());
+		//! \bug FIX server_.log(x0::Severity::warn, "No origin servers defined for proxy at virtual-host: %s.", hostid.c_str());
 		return false;
 	}
 
-	bool setup_proxy_hotspares(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_hotspares(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		//proxy *px = acquire_proxy(s);
 		//cvar.load(px->hot_spares);
 		return false;
 	}
 
-	bool setup_proxy_methods(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_methods(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->allowed_methods);
 	}
 
-	bool setup_proxy_connect_timeout(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_connect_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->connect_timeout);
 	}
 
-	bool setup_proxy_read_timeout(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_read_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->read_timeout);
 	}
 
-	bool setup_proxy_write_timeout(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_write_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->write_timeout);
 	}
 
-	bool setup_proxy_keepalive_timeout(const x0::settings_value& cvar, x0::scope& s)
+	bool setup_proxy_keepalive_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->keepalive);
 	}
 
-	proxy *acquire_proxy(x0::scope& s)
+	proxy *acquire_proxy(x0::Scope& s)
 	{
 		if (proxy *px = s.get<proxy>(this))
 			return px;
@@ -724,9 +724,9 @@ private:
 		return px.get();
 	}
 
-	proxy *get_proxy(x0::request *in)
+	proxy *get_proxy(x0::HttpRequest *in)
 	{
-		return server_.vhost(in->hostid()).get<proxy>(this);
+		return server_.host(in->hostid()).get<proxy>(this);
 	}
 
 public:
@@ -736,7 +736,7 @@ public:
 	}
 
 private:
-	void process(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out)
+	void process(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		proxy *px = get_proxy(in);
 		if (!px)

@@ -1,5 +1,5 @@
-#include <x0/gai_error.hpp>
-#include <x0/defines.hpp>
+#include <x0/Defines.h>
+#include <x0/gai_error.h>
 
 #include <netdb.h>
 

@@ -5,17 +5,17 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/http/plugin.hpp>
-#include <x0/http/server.hpp>
-#include <x0/http/request.hpp>
-#include <x0/http/response.hpp>
-#include <x0/http/range_def.hpp>
-#include <x0/io/file_source.hpp>
-#include <x0/io/buffer_source.hpp>
-#include <x0/io/composite_source.hpp>
-#include <x0/io/file.hpp>
-#include <x0/strutils.hpp>
-#include <x0/types.hpp>
+#include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpRangeDef.h>
+#include <x0/io/FileSource.h>
+#include <x0/io/BufferSource.h>
+#include <x0/io/CompositeSource.h>
+#include <x0/io/File.h>
+#include <x0/strutils.h>
+#include <x0/Types.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
@@ -35,14 +35,14 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class sendfile_plugin :
-	public x0::plugin
+	public x0::HttpPlugin
 {
 private:
 	x0::request_handler::connection c;
 
 public:
-	sendfile_plugin(x0::server& srv, const std::string& name) :
-		x0::plugin(srv, name),
+	sendfile_plugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name),
 		c()
 	{
 		c = server_.generate_content.connect(&sendfile_plugin::sendfile, this);
@@ -59,7 +59,7 @@ private:
 	 * \param in request object
 	 * \param out response object. this will be modified in case of cache reusability.
 	 */
-	x0::http_error verify_client_cache(x0::request *in, x0::response *out) // {{{
+	x0::http_error verify_client_cache(x0::HttpRequest *in, x0::HttpResponse *out) // {{{
 	{
 		std::string value;
 
@@ -70,7 +70,7 @@ private:
 			{
 				if ((value = in->header("If-Modified-Since")) != "") // ETag + If-Modified-Since
 				{
-					x0::datetime date(value);
+					x0::DateTime date(value);
 
 					if (!date.valid())
 						return x0::http_error::bad_request;
@@ -86,7 +86,7 @@ private:
 		}
 		else if ((value = in->header("If-Modified-Since")) != "")
 		{
-			x0::datetime date(value);
+			x0::DateTime date(value);
 			if (!date.valid())
 				return x0::http_error::bad_request;
 
@@ -97,7 +97,7 @@ private:
 		return x0::http_error::ok;
 	} // }}}
 
-	void sendfile(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out) // {{{
+	void sendfile(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out) // {{{
 	{
 		if (!in->fileinfo->exists())
 			return next();
@@ -109,14 +109,14 @@ private:
 		if (out->status != x0::http_error::ok)
 			return next.done();
 
-		x0::file_ptr f;
+		x0::FilePtr f;
 		if (equals(in->method, "GET"))
 		{
-			f.reset(new x0::file(in->fileinfo));
+			f.reset(new x0::File(in->fileinfo));
 
 			if (f->handle() == -1)
 			{
-				server_.log(x0::severity::error, "Could not open file '%s': %s",
+				server_.log(x0::Severity::error, "Could not open file '%s': %s",
 					in->fileinfo->filename().c_str(), strerror(errno));
 
 				out->status = x0::http_error::forbidden;
@@ -144,7 +144,7 @@ private:
 			posix_fadvise(f->handle(), 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
 
 			out->write(
-				std::make_shared<x0::file_source>(f, 0, in->fileinfo->size()),
+				std::make_shared<x0::FileSource>(f, 0, in->fileinfo->size()),
 				std::bind(&sendfile_plugin::done, this, next)
 			);
 		}
@@ -155,10 +155,10 @@ private:
 		next.done();
 	}
 
-	inline bool process_range_request(x0::request_handler::invokation_iterator next, x0::request *in, x0::response *out, x0::file_ptr& f) //{{{
+	inline bool process_range_request(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out, x0::FilePtr& f) //{{{
 	{
-		x0::buffer_ref range_value(in->header("Range"));
-		x0::range_def range;
+		x0::BufferRef range_value(in->header("Range"));
+		x0::HttpRangeDef range;
 
 		// if no range request or range request was invalid (by syntax) we fall back to a full response
 		if (range_value.empty() || !range.parse(range_value))
@@ -170,8 +170,8 @@ private:
 		{
 			// generate a multipart/byteranged response, as we've more than one range to serve
 
-			auto content = std::make_shared<x0::composite_source>();
-			x0::buffer buf;
+			auto content = std::make_shared<x0::CompositeSource>();
+			x0::Buffer buf;
 			std::string boundary(boundary_generate());
 			std::size_t content_length = 0;
 
@@ -202,8 +202,8 @@ private:
 
 				if (f)
 				{
-					content->push_back(std::make_shared<x0::buffer_source>(std::move(buf)));
-					content->push_back(std::make_shared<x0::file_source>(f, offsets.first, length));
+					content->push_back(std::make_shared<x0::BufferSource>(std::move(buf)));
+					content->push_back(std::make_shared<x0::FileSource>(f, offsets.first, length));
 				}
 				content_length += buf.size() + length;
 			}
@@ -213,7 +213,7 @@ private:
 			buf.push_back(boundary);
 			buf.push_back("--\r\n");
 
-			content->push_back(std::make_shared<x0::buffer_source>(std::move(buf)));
+			content->push_back(std::make_shared<x0::BufferSource>(std::move(buf)));
 			content_length += buf.size();
 
 			out->headers.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
@@ -251,7 +251,7 @@ private:
 			if (f)
 			{
 				out->write(
-					std::make_shared<x0::file_source>(f, offsets.first, length),
+					std::make_shared<x0::FileSource>(f, offsets.first, length),
 					std::bind(&sendfile_plugin::done, this, next)
 				);
 			}
@@ -268,7 +268,7 @@ private:
 	{
 		std::pair<std::size_t, std::size_t> q;
 
-		if (p.first == x0::range_def::npos) // suffix-range-spec
+		if (p.first == x0::HttpRangeDef::npos) // suffix-range-spec
 		{
 			q.first = actual_size - p.second;
 			q.second = actual_size - 1;
@@ -277,7 +277,7 @@ private:
 		{
 			q.first = p.first;
 
-			q.second = p.second == x0::range_def::npos && p.second > actual_size
+			q.second = p.second == x0::HttpRangeDef::npos && p.second > actual_size
 				? actual_size - 1
 				: p.second;
 		}
