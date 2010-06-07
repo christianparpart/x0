@@ -1,5 +1,5 @@
-#include <x0/strutils.hpp>
-#include <x0/url.hpp>
+#include <x0/strutils.h>
+#include <x0/Url.h>
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
@@ -29,7 +29,7 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parse_url("http://xzero.ws:8080/path/to?query", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.ws:8080/path/to?query", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
@@ -44,7 +44,7 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parse_url("http://xzero.ws", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.ws", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
@@ -59,7 +59,7 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parse_url("http://xzero.ws/", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.ws/", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
@@ -74,7 +74,7 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parse_url("https://xzero.ws/", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("https://xzero.ws/", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "https");
@@ -89,7 +89,7 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parse_url("http://xzero.ws/?query", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.ws/?query", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
@@ -104,7 +104,7 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parse_url("http://::1:8080/", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://::1:8080/", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");

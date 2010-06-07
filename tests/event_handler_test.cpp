@@ -1,4 +1,4 @@
-#include <x0/event_handler.hpp>
+#include <x0/EventHandler.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 

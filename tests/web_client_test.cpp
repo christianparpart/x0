@@ -1,7 +1,7 @@
-#include <x0/web_client.hpp>
-#include <x0/buffer.hpp>
-#include <x0/http/http_error.hpp>
-#include <x0/url.hpp>
+#include <x0/WebClient.h>
+#include <x0/Buffer.h>
+#include <x0/http/HttpError.h>
+#include <x0/Url.h>
 
 #include <functional> // bind(), placeholders
 #include <iostream>   // clog
@@ -11,17 +11,17 @@
 
 int request_count = 2;
 
-void on_response(int vmajor, int vminor, int code, x0::buffer_ref&& text)
+void on_response(int vmajor, int vminor, int code, x0::BufferRef&& text)
 {
 	std::clog << "S< HTTP/" << vmajor << "." << vminor << " " << code << ' ' << text.str() << std::endl;
 }
 
-void on_header(x0::buffer_ref&& name, x0::buffer_ref&& value)
+void on_header(x0::BufferRef&& name, x0::BufferRef&& value)
 {
 	std::clog << "S< " << name.str() << ": " << value.str() << std::endl;
 }
 
-bool on_content(x0::buffer_ref&& chunk)
+bool on_content(x0::BufferRef&& chunk)
 {
 #if 0
 	std::clog << "S< content of length: " << chunk.size() << std::endl
@@ -33,7 +33,7 @@ bool on_content(x0::buffer_ref&& chunk)
 	return true;
 }
 
-bool on_complete(x0::web_client *client)
+bool on_complete(x0::WebClient *client)
 {
 	std::clog << "S< complete." << std::endl;
 
@@ -55,7 +55,7 @@ int main(int argc, const char *argv[])
 {
 	struct ev_loop *loop = ev_default_loop(0);
 
-	x0::web_client client(loop);
+	x0::WebClient client(loop);
 
 	using namespace std::placeholders;
 	client.on_response = std::bind(&on_response, _1, _2, _3, _4);
@@ -73,7 +73,7 @@ int main(int argc, const char *argv[])
 	int port = 80;
 	std::string path;
 
-	if (!x0::parse_url(url, protocol, hostname, port, path))
+	if (!x0::parseUrl(url, protocol, hostname, port, path))
 	{
 		std::cerr << "URL syntax error" << std::endl;
 		return 1;
@@ -81,7 +81,7 @@ int main(int argc, const char *argv[])
 
 	client.open(hostname, port);
 
-	if (client.state() == x0::web_client::DISCONNECTED)
+	if (client.state() == x0::WebClient::DISCONNECTED)
 	{
 		std::clog << "Could not connect to server: " << client.last_error().message() << std::endl;
 		return -1;

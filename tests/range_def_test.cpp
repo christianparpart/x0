@@ -1,4 +1,4 @@
-#include <x0/http/range_def.hpp>
+#include <x0/http/HttpRangeDef.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <iostream>
@@ -23,8 +23,8 @@ public:
 private:
 	void range1()
 	{
-		x0::range_def r;
-		x0::const_buffer spec("bytes=0-499");
+		x0::HttpRangeDef r;
+		x0::ConstBuffer spec("bytes=0-499");
 
 		r.parse(spec);
 		CPPUNIT_ASSERT(r.unit_name() == "bytes");
@@ -35,8 +35,8 @@ private:
 
 	void range2()
 	{
-		x0::range_def r;
-		x0::const_buffer spec("bytes=500-999");
+		x0::HttpRangeDef r;
+		x0::ConstBuffer spec("bytes=500-999");
 
 		r.parse(spec);
 		CPPUNIT_ASSERT(r.unit_name() == "bytes");
@@ -47,33 +47,33 @@ private:
 
 	void range3()
 	{
-		x0::range_def r;
+		x0::HttpRangeDef r;
 
-		x0::const_buffer spec("bytes=-500");
+		x0::ConstBuffer spec("bytes=-500");
 		r.parse(spec);
 		CPPUNIT_ASSERT(r.unit_name() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 1);
-		CPPUNIT_ASSERT(r[0].first == x0::range_def::npos);
+		CPPUNIT_ASSERT(r[0].first == x0::HttpRangeDef::npos);
 		CPPUNIT_ASSERT(r[0].second == 500);
 	}
 
 	void range4()
 	{
-		x0::range_def r;
+		x0::HttpRangeDef r;
 
-		x0::const_buffer spec("bytes=9500-");
+		x0::ConstBuffer spec("bytes=9500-");
 		r.parse(spec);
 		CPPUNIT_ASSERT(r.unit_name() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 1);
 		CPPUNIT_ASSERT(r[0].first == 9500);
-		CPPUNIT_ASSERT(r[0].second == x0::range_def::npos);
+		CPPUNIT_ASSERT(r[0].second == x0::HttpRangeDef::npos);
 	}
 
 	void range5()
 	{
-		x0::range_def r;
+		x0::HttpRangeDef r;
 
-		x0::const_buffer spec("bytes=0-0,-1");
+		x0::ConstBuffer spec("bytes=0-0,-1");
 		r.parse(spec);
 		CPPUNIT_ASSERT(r.unit_name() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 2);
@@ -81,15 +81,15 @@ private:
 		CPPUNIT_ASSERT(r[0].first == 0);
 		CPPUNIT_ASSERT(r[0].second == 0);
 
-		CPPUNIT_ASSERT(r[1].first == x0::range_def::npos);
+		CPPUNIT_ASSERT(r[1].first == x0::HttpRangeDef::npos);
 		CPPUNIT_ASSERT(r[1].second == 1);
 	}
 
 	void range6()
 	{
-		x0::range_def r;
+		x0::HttpRangeDef r;
 
-		x0::const_buffer spec("bytes=500-700,601-999");
+		x0::ConstBuffer spec("bytes=500-700,601-999");
 		r.parse(spec);
 		CPPUNIT_ASSERT(r.unit_name() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 2);

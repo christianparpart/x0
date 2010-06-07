@@ -1,4 +1,4 @@
-#include "x0/ternary_search.hpp"
+#include "x0/TernarySearch.hpp"
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <iostream>

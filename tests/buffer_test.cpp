@@ -1,5 +1,5 @@
-#include <x0/buffer.hpp>
-#include <x0/buffer_ref.hpp>
+#include <x0/Buffer.h>
+#include <x0/BufferRef.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
@@ -44,7 +44,7 @@ private:
 	// {{{ buffer tests
 	void ctor0()
 	{
-		x0::buffer a;
+		x0::Buffer a;
 
 		CPPUNIT_ASSERT(a.empty());
 		CPPUNIT_ASSERT(a.size() == 0);
@@ -54,12 +54,12 @@ private:
 
 	void const_buffer1()
 	{
-		x0::const_buffer empty("");
+		x0::ConstBuffer empty("");
 		CPPUNIT_ASSERT(empty.empty());
 		CPPUNIT_ASSERT(empty.size() == 0);
 		CPPUNIT_ASSERT(empty == "");
 
-		x0::const_buffer hello("hello");
+		x0::ConstBuffer hello("hello");
 		CPPUNIT_ASSERT(!hello.empty());
 		CPPUNIT_ASSERT(hello.size() == 5);
 		CPPUNIT_ASSERT(hello == "hello");
@@ -70,7 +70,7 @@ private:
 	void resize()
 	{
 		// test modifying buffer size
-		x0::buffer buf;
+		x0::Buffer buf;
 		buf.push_back("hello");
 		CPPUNIT_ASSERT(buf.size() == 5);
 
@@ -79,14 +79,14 @@ private:
 		CPPUNIT_ASSERT(buf == "hell");
 
 		//! \todo should not be resizable (const_buffer)
-		//x0::const_buffer cbuf("hello");
+		//x0::ConstBuffer cbuf("hello");
 		//cbuf.size(4);
 	}
 
 	// test modifying capacity
 	void capacity()
 	{
-		x0::buffer buf;
+		x0::Buffer buf;
 		CPPUNIT_ASSERT(buf.capacity() == 0);
 
 		buf.push_back("hello");
@@ -101,17 +101,17 @@ private:
 	// test reserve()
 	void reserve()
 	{
-		x0::buffer buf;
+		x0::Buffer buf;
 
 		buf.reserve(1);
 
 		CPPUNIT_ASSERT(buf.size() == 0);
-		CPPUNIT_ASSERT(buf.capacity() == x0::buffer::CHUNK_SIZE);
+		CPPUNIT_ASSERT(buf.capacity() == x0::Buffer::CHUNK_SIZE);
 	}
 
 	void clear()
 	{
-		x0::buffer buf;
+		x0::Buffer buf;
 		buf.push_back("hello");
 
 		const std::size_t capacity = buf.capacity();
@@ -126,7 +126,7 @@ private:
 
 	void operator_bool()
 	{
-		x0::buffer buf;
+		x0::Buffer buf;
 		CPPUNIT_ASSERT(bool(buf) == false);
 
 		buf.push_back("hello");
@@ -135,7 +135,7 @@ private:
 
 	void operator_not()
 	{
-		x0::buffer buf;
+		x0::Buffer buf;
 		CPPUNIT_ASSERT(buf.operator!() == true);
 
 		buf.push_back("hello");
@@ -145,10 +145,10 @@ private:
 	void iterators()
 	{
 		{
-			x0::buffer buf;
+			x0::Buffer buf;
 			buf.push_back("hello");
 
-			x0::buffer::iterator i = buf.begin();
+			x0::Buffer::iterator i = buf.begin();
 			CPPUNIT_ASSERT(i != buf.end());
 			CPPUNIT_ASSERT(*i == 'h');
 			CPPUNIT_ASSERT(*++i == 'e');
@@ -164,10 +164,10 @@ private:
 		}
 
 		{
-			x0::buffer buf;
+			x0::Buffer buf;
 			buf.push_back("hello");
 
-			for (x0::buffer::iterator i = buf.begin(); i != buf.end(); ++i)
+			for (x0::Buffer::iterator i = buf.begin(); i != buf.end(); ++i)
 				*i = std::toupper(*i);
 
 			CPPUNIT_ASSERT(buf == "HELLO");
@@ -176,10 +176,10 @@ private:
 
 	void const_iterators()
 	{
-		x0::buffer buf;
+		x0::Buffer buf;
 		buf.push_back("hello");
 
-		x0::const_buffer::const_iterator i = buf.cbegin();
+		x0::ConstBuffer::const_iterator i = buf.cbegin();
 		CPPUNIT_ASSERT(i != buf.cend());
 		CPPUNIT_ASSERT(*i == 'h');
 		CPPUNIT_ASSERT(*++i == 'e');
@@ -196,7 +196,7 @@ private:
 
 	void push_back()
 	{
-		x0::buffer buf;
+		x0::Buffer buf;
 
 		buf.push_back('h');
 		CPPUNIT_ASSERT(buf == "h");
@@ -226,7 +226,7 @@ private:
 
 	void ref()
 	{
-		x0::const_buffer a("hello");
+		x0::ConstBuffer a("hello");
 
 		CPPUNIT_ASSERT(a == "hello");
 		CPPUNIT_ASSERT(a.ref(0) == "hello");
@@ -237,7 +237,7 @@ private:
 
 	void call()
 	{
-		x0::const_buffer a("hello");
+		x0::ConstBuffer a("hello");
 
 		CPPUNIT_ASSERT(a() == "hello");
 		CPPUNIT_ASSERT(a(0) == "hello");
@@ -250,7 +250,7 @@ private:
 	{
 		// test std::string() utility functions
 
-		x0::const_buffer a("hello");
+		x0::ConstBuffer a("hello");
 		std::string s(a.str());
 
 		CPPUNIT_ASSERT(a.data() != s.data());
@@ -259,7 +259,7 @@ private:
 	}
 	// }}}
 
-	// {{{ buffer_ref tests
+	// {{{ BufferRef tests
 	void ref_ctor()
 	{
 	}
@@ -318,8 +318,8 @@ private:
 
 	void ref_find_value_ptr()
 	{
-		x0::const_buffer buf("012345");
-		x0::buffer_ref ref = buf.ref(1);
+		x0::ConstBuffer buf("012345");
+		x0::BufferRef ref = buf.ref(1);
 
 		int i = ref.find("34");
 		CPPUNIT_ASSERT(i == 2);
@@ -327,7 +327,7 @@ private:
 		CPPUNIT_ASSERT(ref.find("1") == 0);
 		CPPUNIT_ASSERT(ref.find("12") == 0);
 		CPPUNIT_ASSERT(ref.find("12345") == 0);
-		CPPUNIT_ASSERT(ref.find("11") == x0::buffer_ref::npos);
+		CPPUNIT_ASSERT(ref.find("11") == x0::BufferRef::npos);
 	}
 
 	void ref_find_value()
@@ -348,8 +348,8 @@ private:
 
 	void ref_begins()
 	{
-		x0::const_buffer b("hello");
-		x0::buffer::view v(b);
+		x0::ConstBuffer b("hello");
+		x0::Buffer::view v(b);
 
 		CPPUNIT_ASSERT(v.begins((const char *)0));
 		CPPUNIT_ASSERT(v.begins(""));
@@ -363,46 +363,46 @@ private:
 	void ref_as_bool()
 	{
 		// true
-		CPPUNIT_ASSERT(x0::const_buffer("true").ref().as<bool>() == true);
-		CPPUNIT_ASSERT(x0::const_buffer("TRUE").ref().as<bool>() == true);
-		CPPUNIT_ASSERT(x0::const_buffer("True").ref().as<bool>() == true);
-		CPPUNIT_ASSERT(x0::const_buffer("1").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("true").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("TRUE").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("True").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1").ref().as<bool>() == true);
 
 		// false
-		CPPUNIT_ASSERT(!x0::const_buffer("false").ref().as<bool>());
-		CPPUNIT_ASSERT(!x0::const_buffer("FALSE").ref().as<bool>());
-		CPPUNIT_ASSERT(!x0::const_buffer("False").ref().as<bool>());
-		CPPUNIT_ASSERT(!x0::const_buffer("0").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("false").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("FALSE").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("False").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("0").ref().as<bool>());
 
 		// invalid cast results into false
-		CPPUNIT_ASSERT(!x0::const_buffer("BLAH").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("BLAH").ref().as<bool>());
 	}
 
 	void ref_as_int()
 	{
-		CPPUNIT_ASSERT(x0::const_buffer("1234").ref().as<int>() == 1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1234").ref().as<int>() == 1234);
 
-		CPPUNIT_ASSERT(x0::const_buffer("-1234").ref().as<int>() == -1234);
-		CPPUNIT_ASSERT(x0::const_buffer("+1234").ref().as<int>() == +1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("-1234").ref().as<int>() == -1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("+1234").ref().as<int>() == +1234);
 
-		CPPUNIT_ASSERT(x0::const_buffer("12.34").ref().as<int>() == 12);
+		CPPUNIT_ASSERT(x0::ConstBuffer("12.34").ref().as<int>() == 12);
 	}
 
 	void ref_hex()
 	{
-		CPPUNIT_ASSERT(x0::const_buffer("1234").ref().hex<int>() == 0x1234);
-		CPPUNIT_ASSERT(x0::const_buffer("5678").ref().hex<int>() == 0x5678);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1234").ref().hex<int>() == 0x1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("5678").ref().hex<int>() == 0x5678);
 
-		CPPUNIT_ASSERT(x0::const_buffer("abcdef").ref().hex<int>() == 0xabcdef);
-		CPPUNIT_ASSERT(x0::const_buffer("ABCDEF").ref().hex<int>() == 0xABCDEF);
+		CPPUNIT_ASSERT(x0::ConstBuffer("abcdef").ref().hex<int>() == 0xabcdef);
+		CPPUNIT_ASSERT(x0::ConstBuffer("ABCDEF").ref().hex<int>() == 0xABCDEF);
 
-		CPPUNIT_ASSERT(x0::const_buffer("ABCDEFG").ref().hex<int>() == 0xABCDEF);
-		CPPUNIT_ASSERT(x0::const_buffer("G").ref().hex<int>() == 0);
+		CPPUNIT_ASSERT(x0::ConstBuffer("ABCDEFG").ref().hex<int>() == 0xABCDEF);
+		CPPUNIT_ASSERT(x0::ConstBuffer("G").ref().hex<int>() == 0);
 	}
 	// }}}
 
 private: // {{{ debug helper
-	void print(const x0::buffer& b, const char *msg = 0)
+	void print(const x0::Buffer& b, const char *msg = 0)
 	{
 		if (msg && *msg)
 			printf("buffer(%s): '%s'\n", msg, b.str().c_str());
@@ -410,7 +410,7 @@ private: // {{{ debug helper
 			printf("buffer: '%s'\n", b.str().c_str());
 	}
 
-	void print(const x0::buffer::view& v, const char *msg = 0)
+	void print(const x0::Buffer::view& v, const char *msg = 0)
 	{
 		if (msg && *msg)
 			printf("buffer.view(%s): '%s'\n", msg, v.str().c_str());

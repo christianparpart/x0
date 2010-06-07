@@ -8,7 +8,7 @@
 #include <x0/io/filter.hpp>
 #include <x0/io/null_filter.hpp>
 #include <x0/io/uppercase_filter.hpp>
-#include <x0/io/compress_filter.hpp>
+#include <x0/io/CompressFilter.h>
 #include <x0/io/chain_filter.hpp>
 
 #include <x0/io/pump.hpp>
@@ -20,8 +20,8 @@
 
 inline x0::file_ptr getfile(const std::string ifname)
 {
-	return x0::file_ptr(new x0::file(
-		x0::fileinfo_ptr(new x0::fileinfo(ifname))));
+	return x0::file_ptr(new x0::File(
+		x0::FileInfoPtr(new x0::FileInfo(ifname))));
 }
 
 int main(int argc, char *argv[])
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 				cf.push_back(x0::filter_ptr(new x0::uppercase_filter()));
 				break;
 			case 'c':
-				cf.push_back(x0::filter_ptr(new x0::compress_filter()));
+				cf.push_back(x0::filter_ptr(new x0::CompressFilter()));
 				break;
 			case 'h':
 				std::cerr

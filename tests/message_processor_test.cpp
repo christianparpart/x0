@@ -1,4 +1,4 @@
-#include <x0/http/message_processor.hpp>
+#include <x0/http/HttpMessageProcessor.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
@@ -12,28 +12,28 @@ using namespace x0;
 using namespace std::placeholders;
 
 #if !CC_SUPPORTS_LAMBDA
-#	warning "Compiler does not support lambda expressions. Cannot unit-test message_processor"
+#	warning "Compiler does not support lambda expressions. Cannot unit-test HttpMessageProcessor"
 #else
 
-class message_processor_component : // {{{
-	public x0::message_processor
+class HttpMessageProcessor_component : // {{{
+	public x0::HttpMessageProcessor
 {
 public:
-	message_processor_component(message_processor::mode_type mode) :
-		message_processor(mode)
+	HttpMessageProcessor_component(HttpMessageProcessor::mode_type mode) :
+		HttpMessageProcessor(mode)
 	{
 	}
 
-	std::error_code process(buffer_ref&& chunk)
+	std::error_code process(BufferRef&& chunk)
 	{
 		std::size_t np = 0;
 		return process(std::move(chunk), np);
 	}
 
-	std::error_code process(buffer_ref&& chunk, std::size_t& np)
+	std::error_code process(BufferRef&& chunk, std::size_t& np)
 	{
 		std::error_code ec;
-		ec = message_processor::process(std::move(chunk), np);
+		ec = HttpMessageProcessor::process(std::move(chunk), np);
 
 		if (ec)
 			DEBUG("process: nparsed=%ld/%ld; state=%s; ec=%s; '%s'",
@@ -45,22 +45,22 @@ public:
 		return ec;
 	}
 
-	std::function<void(buffer_ref&&, buffer_ref&&, int, int)> on_request;
-	std::function<void(int, int, int, buffer_ref&&)> on_status;
+	std::function<void(BufferRef&&, BufferRef&&, int, int)> on_request;
+	std::function<void(int, int, int, BufferRef&&)> on_status;
 	std::function<void()> on_message;
-	std::function<void(buffer_ref&&, buffer_ref&&)> on_header;
+	std::function<void(BufferRef&&, BufferRef&&)> on_header;
 	std::function<bool()> on_header_done;
-	std::function<bool(buffer_ref&&)> on_content;
+	std::function<bool(BufferRef&&)> on_content;
 	std::function<bool()> on_complete;
 
 private:
-	virtual void message_begin(buffer_ref&& method, buffer_ref&& uri, int version_major, int version_minor)
+	virtual void message_begin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 	{
 		if (on_request)
 			on_request(std::move(method), std::move(uri), version_major, version_minor);
 	}
 
-	virtual void message_begin(int version_major, int version_minor, int code, buffer_ref&& text)
+	virtual void message_begin(int version_major, int version_minor, int code, BufferRef&& text)
 	{
 		if (on_status)
 			on_status(version_major, version_minor, code, std::move(text));
@@ -72,7 +72,7 @@ private:
 			on_message();
 	}
 
-	virtual void message_header(buffer_ref&& name, buffer_ref&& value)
+	virtual void message_header(BufferRef&& name, BufferRef&& value)
 	{
 		if (on_header)
 			on_header(std::move(name), std::move(value));
@@ -86,7 +86,7 @@ private:
 		return true;
 	}
 
-	virtual bool message_content(buffer_ref&& chunk)
+	virtual bool message_content(BufferRef&& chunk)
 	{
 		if (on_content)
 			return on_content(std::move(chunk));
@@ -103,11 +103,11 @@ private:
 	}
 }; // }}}
 
-class message_processor_test :
+class HttpMessageProcessor_test :
 	public CPPUNIT_NS::TestFixture
 {
 public:
-	CPPUNIT_TEST_SUITE(message_processor_test);
+	CPPUNIT_TEST_SUITE(HttpMessageProcessor_test);
 		CPPUNIT_TEST(request_simple);
 		CPPUNIT_TEST(request_complex_lws_headers);
 		CPPUNIT_TEST(request_no_header);
@@ -126,7 +126,7 @@ public:
 private:
 	void request_complex_lws_headers()
 	{
-		message_processor_component rp(message_processor::REQUEST);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST);
 
 		buffer r(
 			"GET /foo HTTP/1.1\r\n"
@@ -140,9 +140,9 @@ private:
 
 	void request_simple()
 	{
-		message_processor_component rp(message_processor::REQUEST); // (message_processor::REQUEST);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST); // (message_processor::REQUEST);
 
-		rp.on_request = [&](buffer_ref&& method, buffer_ref&& entity, int major, int minor)
+		rp.on_request = [&](BufferRef&& method, BufferRef&& entity, int major, int minor)
 		{
 			CPPUNIT_ASSERT(equals(method, "GET"));
 			CPPUNIT_ASSERT(equals(entity, "/"));
@@ -151,7 +151,7 @@ private:
 		};
 
 		int header_count = 0;
-		rp.on_header = [&](buffer_ref&& name, buffer_ref&& value)
+		rp.on_header = [&](BufferRef&& name, BufferRef&& value)
 		{
 			switch (++header_count)
 			{
@@ -169,7 +169,7 @@ private:
 		};
 
 		int chunk_count = 0;
-		rp.on_content = [&](buffer_ref&& chunk)
+		rp.on_content = [&](BufferRef&& chunk)
 		{
 			++chunk_count;
 			CPPUNIT_ASSERT(chunk_count == 1);
@@ -203,7 +203,7 @@ private:
 			"\r\n"
 		);
 
-		message_processor_component rp(message_processor::RESPONSE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::RESPONSE);
 		bool on_complete_invoked = false;
 
 		rp.on_complete = [&]()
@@ -224,9 +224,9 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		message_processor_component rp(message_processor::RESPONSE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::RESPONSE);
 
-		rp.on_status = [&](int vmajor, int vminor, int code, const buffer_ref& text)
+		rp.on_status = [&](int vmajor, int vminor, int code, const BufferRef& text)
 		{
 			CPPUNIT_ASSERT(vmajor == 1);
 			CPPUNIT_ASSERT(vminor == 1);
@@ -234,7 +234,7 @@ private:
 			CPPUNIT_ASSERT(text == "Ok");
 		};
 
-		rp.on_header = [&](const buffer_ref& name, const buffer_ref& value)
+		rp.on_header = [&](const BufferRef& name, const BufferRef& value)
 		{
 			switch (++header_count)
 			{
@@ -255,7 +255,7 @@ private:
 			}
 		};
 
-		rp.on_content = [&](const buffer_ref& content)
+		rp.on_content = [&](const BufferRef& content)
 		{
 			CPPUNIT_ASSERT(++body_count == 1);
 			CPPUNIT_ASSERT(content == "some-body");
@@ -282,9 +282,9 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		message_processor_component rp(message_processor::RESPONSE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::RESPONSE);
 
-		rp.on_status = [&](int vmajor, int vminor, int code, const buffer_ref& text)
+		rp.on_status = [&](int vmajor, int vminor, int code, const BufferRef& text)
 		{
 			CPPUNIT_ASSERT(vmajor == 1);
 			CPPUNIT_ASSERT(vminor == 1);
@@ -292,14 +292,14 @@ private:
 			CPPUNIT_ASSERT(text == "");
 		};
 
-		rp.on_header = [&](const buffer_ref& name, const buffer_ref& value)
+		rp.on_header = [&](const BufferRef& name, const BufferRef& value)
 		{
 			CPPUNIT_ASSERT(++header_count == 1);
 			CPPUNIT_ASSERT(name == "Content-Length");
 			CPPUNIT_ASSERT(value == "9");
 		};
 
-		rp.on_content = [&](const buffer_ref& content)
+		rp.on_content = [&](const BufferRef& content)
 		{
 			CPPUNIT_ASSERT(++body_count == 1);
 			CPPUNIT_ASSERT(content == "some body");
@@ -322,10 +322,10 @@ private:
 
 	void request_no_header()
 	{
-		message_processor_component rp(message_processor::REQUEST);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST);
 
 		int request_count = 0;
-		rp.on_request = [&](buffer_ref&& method, buffer_ref&& url, int major, int minor)
+		rp.on_request = [&](BufferRef&& method, BufferRef&& url, int major, int minor)
 		{
 			switch (++request_count)
 			{
@@ -347,7 +347,7 @@ private:
 			}
 		};
 
-		rp.on_header = [&](const buffer_ref& name, const buffer_ref& value)
+		rp.on_header = [&](const BufferRef& name, const BufferRef& value)
 		{
 			CPPUNIT_ASSERT(0 == "no headers expected");
 		};
@@ -359,7 +359,7 @@ private:
 			return true;
 		};
 
-		rp.on_content = [&](const buffer_ref& content)
+		rp.on_content = [&](const BufferRef& content)
 		{
 			CPPUNIT_ASSERT(0 == "no content expected");
 			return true;
@@ -391,10 +391,10 @@ private: // message tests
 			"0\r\n\r\n"
 			"GARBAGE"
 		);
-		message_processor_component rp(message_processor::MESSAGE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 
 		int chunk_index = 0;
-		rp.on_content = [&](const buffer_ref& chunk)
+		rp.on_content = [&](const BufferRef& chunk)
 		{
 			switch (chunk_index++)
 			{
@@ -428,37 +428,37 @@ private: // message tests
 	{
 		buffer r;
 		r.push_back("Transfer-Encoding: chunked\r\n\r\n");
-		buffer_ref headers = r.ref();
+		BufferRef headers = r.ref();
 
 		r.push_back("4\r\nsome\r\n");
-		buffer_ref c1(r.ref(headers.size()));
+		BufferRef c1(r.ref(headers.size()));
 
 		r.push_back("1\r\n \r\n");
-		buffer_ref c2(r.ref(c1.offset() + c1.size()));
+		BufferRef c2(r.ref(c1.offset() + c1.size()));
 
 		r.push_back("4\r\nbody\r\n");
-		buffer_ref c3(r.ref(c2.offset() + c2.size()));
+		BufferRef c3(r.ref(c2.offset() + c2.size()));
 
 		r.push_back("0\r\n\r\n");
-		buffer_ref c4(r.ref(c3.offset() + c3.size()));
+		BufferRef c4(r.ref(c3.offset() + c3.size()));
 
-		message_processor_component rp(message_processor::MESSAGE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 		std::size_t np = 0;
 		std::error_code ec;
 
-		ec = rp.process(buffer_ref(headers), np);
+		ec = rp.process(BufferRef(headers), np);
 		CPPUNIT_ASSERT(ec == http_message_error::partial);
 
-		ec = rp.process(buffer_ref(c1), np);
+		ec = rp.process(BufferRef(c1), np);
 		CPPUNIT_ASSERT(ec == http_message_error::partial);
 
-		ec = rp.process(buffer_ref(c2), np);
+		ec = rp.process(BufferRef(c2), np);
 		CPPUNIT_ASSERT(ec == http_message_error::partial);
 
-		ec = rp.process(buffer_ref(c3), np);
+		ec = rp.process(BufferRef(c3), np);
 		CPPUNIT_ASSERT(ec == http_message_error::partial);
 
-		ec = rp.process(buffer_ref(c4), np);
+		ec = rp.process(BufferRef(c4), np);
 		CPPUNIT_ASSERT(ec == http_message_error::success);
 
 		CPPUNIT_ASSERT(np == r.size());
@@ -473,9 +473,9 @@ private: // message tests
 			"GARBAGE"
 		);
 
-		message_processor_component rp(message_processor::MESSAGE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 
-		rp.on_content = [&](const buffer_ref& chunk)
+		rp.on_content = [&](const BufferRef& chunk)
 		{
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
 			return true;
@@ -500,7 +500,7 @@ private: // message tests
 			"some body"
 		);
 
-		message_processor_component rp(message_processor::MESSAGE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 		std::size_t np = 0;
 
 		rp.on_header_done = [&]()
@@ -516,7 +516,7 @@ private: // message tests
 			return false;
 		};
 
-		rp.on_content = [&](const buffer_ref& chunk)
+		rp.on_content = [&](const BufferRef& chunk)
 		{
 			DEBUG("on_content('%s')", chunk.str().c_str());
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
@@ -548,7 +548,7 @@ private: // message tests
 		std::size_t np = 0;
 		std::size_t count = 0;
 
-		message_processor_component rp(message_processor::MESSAGE);
+		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 		rp.on_complete = [&]() { ++count; return true; };
 
 		std::error_code ec = rp.process(r, np);
@@ -559,5 +559,5 @@ private: // message tests
 	}
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(message_processor_test);
+CPPUNIT_TEST_SUITE_REGISTRATION(HttpMessageProcessor_test);
 #endif

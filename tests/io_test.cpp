@@ -1,18 +1,18 @@
-#include <x0/buffer.hpp>
+#include <x0/Buffer.h>
 
-#include <x0/io/source.hpp>
-#include <x0/io/fd_source.hpp>
-#include <x0/io/file_source.hpp>
-#include <x0/io/buffer_source.hpp>
-#include <x0/io/filter_source.hpp>
-#include <x0/io/composite_source.hpp>
+#include <x0/io/Source.h>
+#include <x0/io/SystemSource.h>
+#include <x0/io/FileSource.h>
+#include <x0/io/BufferSource.h>
+#include <x0/io/FilterSource.h>
+#include <x0/io/CompositeSource.h>
 
-#include <x0/io/sink.hpp>
-#include <x0/io/fd_sink.hpp>
-#include <x0/io/file_sink.hpp>
-#include <x0/io/buffer_sink.hpp>
+#include <x0/io/Sink.h>
+#include <x0/io/SystemSink.h>
+#include <x0/io/FileSink.h>
+#include <x0/io/BufferSink.h>
 
-#include <x0/io/filter.hpp>
+#include <x0/io/Filter.h>
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
@@ -67,11 +67,11 @@ class io_test :
 public:
 	CPPUNIT_TEST_SUITE(io_test);
 		// source
-		CPPUNIT_TEST(test_buffer_source);
+		CPPUNIT_TEST(test_BufferSource);
 		CPPUNIT_TEST(test_fd_source);
 		CPPUNIT_TEST(test_file_source);
-		CPPUNIT_TEST(test_filter_source);
-		CPPUNIT_TEST(test_composite_source);
+		CPPUNIT_TEST(test_FilterSource);
+		CPPUNIT_TEST(test_CompositeSource);
 
 		// sink
 		CPPUNIT_TEST(test_buffer_sink);
@@ -80,12 +80,12 @@ public:
 	CPPUNIT_TEST_SUITE_END();
 
 private:
-	void test_buffer_source()
+	void test_BufferSource()
 	{
-		x0::buffer_source s(x0::buffer("hello"));
+		x0::BufferSource s(x0::Buffer("hello"));
 
-		x0::buffer output;
-		x0::buffer_ref ref = s.pull(output);
+		x0::Buffer output;
+		x0::BufferRef ref = s.pull(output);
 
 		CPPUNIT_ASSERT(output == "hello");
 		CPPUNIT_ASSERT(ref == output);
@@ -94,8 +94,8 @@ private:
 	void test_fd_source()
 	{
 		safe_pipe pfd(true);
-		x0::fd_source in(pfd.reader());
-		x0::buffer output;
+		x0::SystemSource in(pfd.reader());
+		x0::Buffer output;
 
 		::write(pfd.writer(), "12345", 5);
 		CPPUNIT_ASSERT(in.pull(output) == "12345");
@@ -127,21 +127,21 @@ private:
 #endif
 	}
 
-	void test_filter_source()
+	void test_FilterSource()
 	{
 		//! \todo
 	}
 
-	void test_composite_source()
+	void test_CompositeSource()
 	{
 		using namespace x0;
 
-		composite_source s;
-		s.push_back(source_ptr(new buffer_source(const_buffer("hello"))));
-		s.push_back(source_ptr(new buffer_source(buffer(", "))));
-		s.push_back(source_ptr(new buffer_source(buffer("world"))));
+		CompositeSource s;
+		s.push_back(SourcePtr(new BufferSource(ConstBuffer("hello"))));
+		s.push_back(SourcePtr(new BufferSource(Buffer(", "))));
+		s.push_back(SourcePtr(new BufferSource(Buffer("world"))));
 
-		buffer output;
+		Buffer output;
 		CPPUNIT_ASSERT(s.pull(output) == "hello");
 		CPPUNIT_ASSERT(s.pull(output) == ", ");
 		CPPUNIT_ASSERT(s.pull(output) == "world");
@@ -153,8 +153,8 @@ private:
 	{
 		using namespace x0;
 
-		buffer_source src(const_buffer("Hello World!"));
-		buffer_sink snk;
+		BufferSource src(ConstBuffer("Hello World!"));
+		BufferSink snk;
 		src.pump(snk);
 
 		CPPUNIT_ASSERT(snk.buffer() == "Hello World!");
@@ -172,7 +172,7 @@ private:
 
 private:
 private: // {{{ debug helper
-	void print(const x0::buffer& b, const char *msg = 0)
+	void print(const x0::Buffer& b, const char *msg = 0)
 	{
 		if (msg && *msg)
 			printf("\nbuffer(%s): '%s'\n", msg, b.str().c_str());
@@ -180,7 +180,7 @@ private: // {{{ debug helper
 			printf("\nbuffer: '%s'\n", b.str().c_str());
 	}
 
-	void print(const x0::buffer_ref& v, const char *msg = 0)
+	void print(const x0::BufferRef& v, const char *msg = 0)
 	{
 		char prefix[64];
 		if (msg && *msg)
