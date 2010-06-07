@@ -2,11 +2,11 @@
  *
  */
 #include <iostream>
-#include <x0/http/server.hpp>
+#include <x0/http/HttpServer.h>
 
 int main(int argc, const char *argv[])
 {
-	x0::server srv;
+	x0::HttpServer srv;
 
 	std::clog << "Loading x0 configuration" << std::endl;
 	srv.configure("app1.conf");
