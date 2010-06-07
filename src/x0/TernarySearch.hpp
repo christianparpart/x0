@@ -8,7 +8,7 @@
 #ifndef x0_trie_h
 #define x0_trie_H
 
-#include <x0/api.hpp>
+#include <x0/Api.h>
 #include <stdexcept>
 #include <string>
 #include <cstring>
