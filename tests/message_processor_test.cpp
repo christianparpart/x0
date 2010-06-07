@@ -128,7 +128,7 @@ private:
 	{
 		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST);
 
-		buffer r(
+		Buffer r(
 			"GET /foo HTTP/1.1\r\n"
 			"Single-Line: single value\r\n"            // simple LWS at the beginning & middle
 			"Multi-Line-1: multi\r\n\tvalue 1\r\n"     // complex LWS in the middle
@@ -177,7 +177,7 @@ private:
 			return true;
 		};
 
-		buffer r(
+		Buffer r(
 			"GET / HTTP/1.1\r\n"
 			"foo: bar\r\n"
 			"Content-Length: 11\r\n"
@@ -194,7 +194,7 @@ private:
 
 	void response_sample_304()
 	{
-		buffer r(
+		Buffer r(
 			"HTTP/1.1 304 Not Modified\r\n"
 			"Date: Mon, 19 Apr 2010 14:56:34 GMT\r\n"
 			"Server: Apache\r\n"
@@ -262,7 +262,7 @@ private:
 			return true;
 		};
 
-		buffer r(
+		Buffer r(
 			"HTTP/1.1 200 Ok\r\n"
 			"Name: Value\r\n"
 			"Name-2: Value 2\r\n"
@@ -306,7 +306,7 @@ private:
 			return true;
 		};
 
-		buffer r(
+		Buffer r(
 			"HTTP/1.1 200\r\n"
 			"Content-Length: 9\r\n"
 			"\r\n"
@@ -365,7 +365,7 @@ private:
 			return true;
 		};
 
-		buffer r(
+		Buffer r(
 			"GET / HTTP/1.1\r\n"
 			"\r\n"
 			"DELETE /foo/bar HTTP/1.1\r\n"
@@ -382,7 +382,7 @@ private:
 private: // message tests
 	void message_chunked_body()
 	{
-		buffer r(
+		Buffer r(
 			"Transfer-Encoding: chunked\r\n"
 			"\r\n"
 			"4\r\nsome\r\n"
@@ -421,12 +421,12 @@ private: // message tests
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(ec == http_message_error::aborted);
+		CPPUNIT_ASSERT(ec == HttpMessageError::aborted);
 	}
 
 	void message_chunked_body_fragmented()
 	{
-		buffer r;
+		Buffer r;
 		r.push_back("Transfer-Encoding: chunked\r\n\r\n");
 		BufferRef headers = r.ref();
 
@@ -447,26 +447,26 @@ private: // message tests
 		std::error_code ec;
 
 		ec = rp.process(BufferRef(headers), np);
-		CPPUNIT_ASSERT(ec == http_message_error::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
 
 		ec = rp.process(BufferRef(c1), np);
-		CPPUNIT_ASSERT(ec == http_message_error::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
 
 		ec = rp.process(BufferRef(c2), np);
-		CPPUNIT_ASSERT(ec == http_message_error::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
 
 		ec = rp.process(BufferRef(c3), np);
-		CPPUNIT_ASSERT(ec == http_message_error::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
 
 		ec = rp.process(BufferRef(c4), np);
-		CPPUNIT_ASSERT(ec == http_message_error::success);
+		CPPUNIT_ASSERT(ec == HttpMessageError::success);
 
 		CPPUNIT_ASSERT(np == r.size());
 	}
 
 	void message_content_length()
 	{
-		buffer r(
+		Buffer r(
 			"Content-Length: 9\r\n"
 			"\r\n"
 			"some body"
@@ -489,12 +489,12 @@ private: // message tests
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(ec == http_message_error::aborted);
+		CPPUNIT_ASSERT(ec == HttpMessageError::aborted);
 	}
 
 	void message_content_recursive()
 	{
-		buffer r(
+		Buffer r(
 			"Content-Length: 9\r\n"
 			"\r\n"
 			"some body"
@@ -531,12 +531,12 @@ private: // message tests
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(ec == http_message_error::aborted); // cancelled parsing at header-done state
+		CPPUNIT_ASSERT(ec == HttpMessageError::aborted); // cancelled parsing at header-done state
 	}
 
 	void message_multi()
 	{
-		buffer r(
+		Buffer r(
 			"Content-Length: 11\r\n"
 			"\r\n"
 			"some body\r\n"
@@ -554,7 +554,7 @@ private: // message tests
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(ec == http_message_error::success);
+		CPPUNIT_ASSERT(ec == HttpMessageError::success);
 		CPPUNIT_ASSERT(count == 2);
 	}
 };
