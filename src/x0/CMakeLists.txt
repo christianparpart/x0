@@ -60,6 +60,7 @@ set(x0_io_API
 )
 
 set(x0_http_API
+	http/HttpConnection.h
 	http/HttpContext.h
 	http/HttpError.h
 	http/HttpListener.h
