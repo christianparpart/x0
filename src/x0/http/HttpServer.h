@@ -35,6 +35,7 @@
 namespace x0 {
 
 struct HttpPlugin;
+struct HttpCore;
 
 //! \addtogroup core
 //@{
@@ -177,24 +178,14 @@ public:
 	void undeclareCVar(const std::string& key);
 
 private:
-	long long getrlimit(int resource);
-	long long setrlimit(int resource, long long max);
-
 	HttpListener *listener_by_port(int port);
-
-	bool setup_logging(const SettingsValue& cvar, Scope& s);
-	bool setup_resources(const SettingsValue& cvar, Scope& s);
-	bool setup_modules(const SettingsValue& cvar, Scope& s);
-	bool setup_fileinfo(const SettingsValue& cvar, Scope& s);
-	bool setup_error_documents(const SettingsValue& cvar, Scope& s);
-	bool setup_hosts(const SettingsValue& cvar, Scope& s);
-	bool setup_advertise(const SettingsValue& cvar, Scope& s);
 
 #if defined(WITH_SSL)
 	static void gnutls_log(int level, const char *msg);
 #endif
 
 	friend class HttpConnection;
+	friend class HttpCore;
 
 private:
 	void handle_request(HttpRequest *in, HttpResponse *out);
@@ -215,6 +206,7 @@ private:
 	plugin_map_t plugins_;
 	DateTime now_;
 	ev::check loop_check_;
+	HttpCore *core_;
 
 public:
 	value_property<int> max_connections;
@@ -226,8 +218,6 @@ public:
 	value_property<std::string> tag;
 	value_property<bool> advertise;
 	FileInfoService fileinfo;
-
-	property<unsigned long long> max_fds;
 };
 
 // {{{ inlines

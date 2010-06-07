@@ -62,6 +62,7 @@ set(x0_io_API
 set(x0_http_API
 	http/HttpConnection.h
 	http/HttpContext.h
+	http/HttpCore.h
 	http/HttpError.h
 	http/HttpListener.h
 	http/HttpRequest.h
@@ -72,6 +73,7 @@ set(x0_http_API
 
 set(x0_http_SRC
 	http/HttpConnection.cpp
+	http/HttpCore.cpp
 	http/HttpError.cpp
 	http/HttpListener.cpp
 	http/HttpMessageProcessor.cpp

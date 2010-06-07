@@ -10,6 +10,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpCore.h>
 #include <x0/Settings.h>
 #include <x0/Logger.h>
 #include <x0/Library.h>
@@ -70,6 +71,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	plugins_(),
 	now_(),
 	loop_check_(loop_),
+	core_(0),
 	max_connections(512),
 	max_keep_alive_idle(5),
 	max_read_idle(60),
@@ -78,9 +80,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	tcp_nodelay(false),
 	tag("x0/" VERSION),
 	advertise(true),
-	fileinfo(loop_),
-	max_fds(std::bind(&HttpServer::getrlimit, this, RLIMIT_CORE),
-			std::bind(&HttpServer::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
+	fileinfo(loop_)
 {
 	HttpResponse::initialize();
 
@@ -95,15 +95,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	loop_check_.set<HttpServer, &HttpServer::loop_check>(this);
 	loop_check_.start();
 
-	// register cvars
-	using namespace std::placeholders;
-	declareCVar("Log", HttpContext::server, std::bind(&HttpServer::setup_logging, this, _1, _2), -7);
-	declareCVar("Resources", HttpContext::server, std::bind(&HttpServer::setup_resources, this, _1, _2), -6);
-	declareCVar("Plugins", HttpContext::server, std::bind(&HttpServer::setup_modules, this, _1, _2), -5);
-	declareCVar("ErrorDocuments", HttpContext::server, std::bind(&HttpServer::setup_error_documents, this, _1, _2), -4);
-	declareCVar("FileInfo", HttpContext::server, std::bind(&HttpServer::setup_fileinfo, this, _1, _2), -4);
-	declareCVar("Hosts", HttpContext::server, std::bind(&HttpServer::setup_hosts, this, _1, _2), -3);
-	declareCVar("Advertise", HttpContext::server, std::bind(&HttpServer::setup_advertise, this, _1, _2), -2);
+	core_ = new HttpCore(*this);
 
 #if defined(WITH_SSL)
 	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -136,78 +128,9 @@ HttpServer::~HttpServer()
 
 	for (std::list<HttpListener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 		delete *k;
-}
 
-static inline const char *rc2str(int resource)
-{
-	switch (resource)
-	{
-		case RLIMIT_CORE: return "core";
-		case RLIMIT_AS: return "address-space";
-		case RLIMIT_NOFILE: return "filedes";
-		default: return "unknown";
-	}
-}
-
-long long HttpServer::getrlimit(int resource)
-{
-	struct rlimit rlim;
-	if (::getrlimit(resource, &rlim) == -1)
-	{
-		log(Severity::warn, "Failed to retrieve current resource limit on %s (%d).",
-			rc2str(resource), resource);
-		return 0;
-	}
-	return rlim.rlim_cur;
-}
-
-long long HttpServer::setrlimit(int resource, long long value)
-{
-	struct rlimit rlim;
-	if (::getrlimit(resource, &rlim) == -1)
-	{
-		log(Severity::warn, "Failed to retrieve current resource limit on %s.", rc2str(resource), resource);
-
-		return 0;
-	}
-
-	long long last = rlim.rlim_cur;
-
-	// patch against human readable form
-	long long hlast = last, hvalue = value;
-	switch (resource)
-	{
-		case RLIMIT_AS:
-		case RLIMIT_CORE:
-			hlast /= 1024 / 1024;
-			value *= 1024 * 1024;
-			break;
-		default:
-			break;
-	}
-
-	rlim.rlim_cur = value;
-	rlim.rlim_max = value;
-
-	if (::setrlimit(resource, &rlim) == -1) {
-		log(Severity::warn, "Failed to set resource limit on %s from %lld to %lld.", rc2str(resource), hlast, hvalue);
-
-		return 0;
-	}
-
-	debug(1, "Set resource limit on %s from %lld to %lld.", rc2str(resource), hlast, hvalue);
-
-	return value;
-}
-
-template<typename K, typename V>
-inline bool _contains(const std::map<K, V>& map, const K& key)
-{
-	for (auto i = map.begin(), e = map.end(); i != e; ++i)
-		if (i->first == key)
-			return true;
-
-	return false;
+	delete core_;
+	core_ = 0;
 }
 
 inline bool _contains(const std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>>& map, const std::string& cvar)
@@ -254,7 +177,10 @@ void HttpServer::configure(const std::string& configfile)
 	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi)
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
 			if (settings_.contains(ci->first))
+			{
+				log(Severity::debug, "cvars_server[%s]", ci->first.c_str());
 				ci->second(settings_[ci->first], *this);
+			}
 
 	// warn on every unknown global cvar
 	for (auto i = globals.begin(), e = globals.end(); i != e; ++i)
@@ -637,6 +563,8 @@ std::vector<std::string> HttpServer::pluginsLoaded() const
 bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const std::function<bool(const SettingsValue&, Scope&)>& callback, int priority)
 {
 	priority = std::min(std::max(priority, -10), 10);
+	log(Severity::debug, "declareCVar(%s, 0x%04x, fn, prio=%d)",
+		key.c_str(), cx, priority);
 
 	if (cx & HttpContext::server)
 		cvars_server_[priority][key] = callback;
@@ -682,140 +610,6 @@ void HttpServer::undeclareCVar(const std::string& key)
 
 	for (auto i = cvars_path_.begin(), e = cvars_path_.end(); i != e; ++i)
 		i->second.erase(i->second.find(key));
-}
-
-bool HttpServer::setup_logging(const SettingsValue& cvar, Scope& s)
-{
-	std::string logmode(cvar["Mode"].as<std::string>());
-	auto nowfn = std::bind(&DateTime::htlog_str, &now_);
-
-	if (logmode == "file")
-		logger_.reset(new FileLogger<decltype(nowfn)>(cvar["FileName"].as<std::string>(), nowfn));
-	else if (logmode == "null")
-		logger_.reset(new NullLogger());
-	else if (logmode == "stderr")
-		logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
-	else //! \todo add syslog logger
-		logger_.reset(new NullLogger());
-
-	logger_->level(Severity(cvar["Level"].as<std::string>()));
-
-	cvar["Colorize"].load(colored_log_);
-	return true;
-}
-
-bool HttpServer::setup_modules(const SettingsValue& cvar, Scope& s)
-{
-	std::vector<std::string> list;
-	cvar["Load"].load(list);
-
-	for (auto i = list.begin(), e = list.end(); i != e; ++i)
-		loadPlugin(*i);
-
-	return true;
-}
-
-bool HttpServer::setup_resources(const SettingsValue& cvar, Scope& s)
-{
-	cvar["MaxConnections"].load(max_connections);
-	cvar["MaxKeepAliveIdle"].load(max_keep_alive_idle);
-	cvar["MaxReadIdle"].load(max_read_idle);
-	cvar["MaxWriteIdle"].load(max_write_idle);
-
-	cvar["TCP_CORK"].load(tcp_cork);
-	cvar["TCP_NODELAY"].load(tcp_nodelay);
-
-	long long value = 0;
-	if (cvar["MaxFiles"].load(value))
-		setrlimit(RLIMIT_NOFILE, value);
-
-	if (cvar["MaxAddressSpace"].load(value))
-		setrlimit(RLIMIT_AS, value);
-
-	if (cvar["MaxCoreFileSize"].load(value))
-		setrlimit(RLIMIT_CORE, value);
-
-	return true;
-}
-
-bool HttpServer::setup_hosts(const SettingsValue& cvar, Scope& s)
-{
-	std::vector<std::string> hostids = cvar.keys<std::string>();
-
-	for (auto i = hostids.begin(), e = hostids.end(); i != e; ++i)
-	{
-		std::string hostid = *i;
-
-		auto host_cvars = cvar[hostid].keys<std::string>();
-
-		// handle all vhost-directives
-		for (auto pi = cvars_host_.begin(), pe = cvars_host_.end(); pi != pe; ++pi)
-		{
-			for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			{
-				if (cvar[hostid].contains(ci->first))
-				{
-					//debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
-					ci->second(cvar[hostid][ci->first], host(hostid));
-				}
-			}
-		}
-
-		// handle all path scopes
-		for (auto vi = host_cvars.begin(), ve = host_cvars.end(); vi != ve; ++vi)
-		{
-			std::string path = *vi;
-			if (path[0] == '/')
-			{
-				std::vector<std::string> keys = cvar[hostid][path].keys<std::string>();
-
-				for (auto pi = cvars_path_.begin(), pe = cvars_path_.end(); pi != pe; ++pi)
-					for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-						if (_contains(keys, ci->first))
-							;//! \todo ci->second(cvar[hostid][path], vhost(hostid).location(path));
-
-				for (auto ki = keys.begin(), ke = keys.end(); ki != ke; ++ki)
-					if (!_contains(cvars_path_, *ki))
-						log(Severity::error, "Unknown location-context variable: '%s'", ki->c_str());
-			}
-		}
-	}
-
-	return true;
-}
-
-bool HttpServer::setup_fileinfo(const SettingsValue& cvar, Scope& s)
-{
-	std::string value;
-	if (cvar["MimeType"]["MimeFile"].load(value))
-		fileinfo.load_mimetypes(value);
-
-	if (cvar["MimeType"]["DefaultType"].load(value))
-		fileinfo.default_mimetype(value);
-
-	bool flag = false;
-	if (cvar["ETag"]["ConsiderMtime"].load(flag))
-		fileinfo.etag_consider_mtime(flag);
-
-	if (cvar["ETag"]["ConsiderSize"].load(flag))
-		fileinfo.etag_consider_size(flag);
-
-	if (cvar["ETag"]["ConsiderInode"].load(flag))
-		fileinfo.etag_consider_inode(flag);
-
-	return true;
-}
-
-// ErrorDocuments = array of [pair<code, path>]
-bool HttpServer::setup_error_documents(const SettingsValue& cvar, Scope& s)
-{
-	return true; //! \todo
-}
-
-// Advertise = BOOLEAN
-bool HttpServer::setup_advertise(const SettingsValue& cvar, Scope& s)
-{
-	return cvar.load(advertise);
 }
 
 } // namespace x0

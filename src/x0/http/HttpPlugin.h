@@ -54,6 +54,8 @@ public:
 	const std::vector<std::string>& cvars() const;
 	void undeclareCVar(const std::string& key);
 
+	HttpServer& server() const;
+
 protected:
 	HttpServer& server_;
 	std::string name_;
@@ -65,6 +67,11 @@ protected:
 };
 
 // {{{ inlines
+inline HttpServer& HttpPlugin::server() const
+{
+	return server_;
+}
+
 /** retrieves the plugin's unique basename (index, userdir, sendfile, auth, etc...) */
 inline std::string HttpPlugin::name() const
 {
