@@ -134,11 +134,13 @@ bool HttpCore::setup_modules(const SettingsValue& cvar, Scope& s)
 {
 	std::vector<std::string> list;
 	cvar["Load"].load(list);
+	int errorCount = 0;
 
 	for (auto i = list.begin(), e = list.end(); i != e; ++i)
-		server().loadPlugin(*i);
+		if (!server().loadPlugin(*i))
+			++errorCount;
 
-	return true;
+	return !errorCount;
 }
 
 bool HttpCore::setup_resources(const SettingsValue& cvar, Scope& s)
