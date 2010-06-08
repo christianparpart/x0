@@ -69,6 +69,9 @@ public:
 
 		using namespace std::placeholders;
 		declareCVar("DirectoryListing", x0::HttpContext::server | x0::HttpContext::host, &dirlisting_plugin::setup_dirlisting);
+
+		// default global to `true` (required for instant-mode, but I could *fix* this)
+		server().acquire<context>(this)->enabled = true;
 	}
 
 	~dirlisting_plugin()
@@ -88,8 +91,8 @@ private:
 			return next();
 
 		context *ctx = server_.host(in->hostid()).get<context>(this);
-//		if (!ctx)
-//			ctx = server_.get<context>(this);
+		if (!ctx)
+			ctx = server_.get<context>(this);
 
 		if (ctx && ctx->enabled == true)
 			return process(next, in, out);
