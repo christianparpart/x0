@@ -2,7 +2,70 @@
 #include <x0/Defines.h>
 #include <x0/sysconfig.h>
 
+#include <vector>
 #include <dlfcn.h>
+
+// {{{ errors
+enum class dlfcn_error
+{
+	success = 0,
+	generic_error = 1
+};
+
+class dlfcn_error_category_impl :
+	public std::error_category
+{
+private:
+	std::vector<std::string> vector_;
+
+public:
+	dlfcn_error_category_impl()
+	{
+		vector_.push_back("Success");
+	}
+
+	std::error_code make()
+	{
+		if (const char *p = dlerror())
+		{
+			std::string msg(p);
+
+			for (int i = 0, e = vector_.size(); i != e; ++i)
+				if (vector_[i] == msg)
+					return std::error_code(i, *this);
+
+			vector_.push_back(msg);
+			return std::error_code(vector_.size() - 1, *this);
+		}
+		return std::error_code(0, *this);
+	}
+
+	virtual const char *name() const
+	{
+		return "dlfcn";
+	}
+
+	virtual std::string message(int ec) const
+	{
+		return vector_[ec];
+	}
+};
+
+dlfcn_error_category_impl& dlfcn_category() throw();
+
+namespace std {
+	// implicit conversion from gai_error to error_code
+	template<> struct is_error_code_enum<dlfcn_error> : public true_type {};
+}
+
+// ------------------------------------------------------------
+
+dlfcn_error_category_impl& dlfcn_category() throw()
+{
+	static dlfcn_error_category_impl impl;
+	return impl;
+}
+// }}}
 
 namespace x0 {
 
@@ -47,9 +110,10 @@ bool Library::open(const std::string& filename, std::error_code& ec)
 
 	if (!handle_)
 	{
-		DEBUG("error opening library '%s': %s", filename.c_str(), dlerror());
+		ec = dlfcn_category().make();
 		return false;
 	}
+
 	return true;
 }
 
@@ -63,7 +127,14 @@ void *Library::resolve(const std::string& symbol, std::error_code& ec)
 	if (!handle_)
 		return 0;
 
-	return dlsym(handle_, symbol.c_str());
+	void *result = dlsym(handle_, symbol.c_str());
+
+	if (!result)
+		ec = dlfcn_category().make();
+	else
+		ec.clear();
+
+	return result;
 }
 
 void *Library::operator[](const std::string& symbol)
