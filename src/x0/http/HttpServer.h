@@ -157,6 +157,7 @@ public:
 	void setPluginDirectory(const std::string& value);
 
 	HttpPlugin *loadPlugin(const std::string& name);
+	template<typename T> T *loadPlugin(const std::string& name);
 	void unloadPlugin(const std::string& name);
 	std::vector<std::string> pluginsLoaded() const;
 
@@ -236,6 +237,12 @@ inline HttpCore& HttpServer::core() const
 inline const std::list<HttpListener *>& HttpServer::listeners() const
 {
 	return listeners_;
+}
+
+template<typename T>
+inline T *HttpServer::loadPlugin(const std::string& name)
+{
+	return static_cast<T *>(loadPlugin(name));
 }
 
 #if !defined(NDEBUG)
