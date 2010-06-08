@@ -180,10 +180,7 @@ void HttpServer::configure(const std::string& configfile)
 	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi)
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
 			if (settings_.contains(ci->first))
-			{
-				log(Severity::debug, "cvars_server[%s]", ci->first.c_str());
 				ci->second(settings_[ci->first], *this);
-			}
 
 	// warn on every unknown global cvar
 	for (auto i = globals.begin(), e = globals.end(); i != e; ++i)
@@ -545,7 +542,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name)
 			return plugin.get();
 		}
 		else
-			log(Severity::error, "Invalid x0 plugin (%s): %s", name.c_str(), ec.message().c_str());
+			log(Severity::error, "Invalid plugin (%s): %s", name.c_str(), ec.message().c_str());
 	}
 	else
 		log(Severity::error, "Cannot load plugin '%s'. %s", name.c_str(), ec.message().c_str());
@@ -585,14 +582,13 @@ bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const std::
 {
 	priority = std::min(std::max(priority, -10), 10);
 
-#if !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 	std::string smask;
 	if (cx & HttpContext::server) smask = "server";
 	if (cx & HttpContext::host) { if (!smask.empty()) smask += "|"; smask += "host"; }
 	if (cx & HttpContext::location) { if (!smask.empty()) smask += "|"; smask += "location"; }
 
-	log(Severity::debug, "declareCVar(%s, %s, fn, prio=%d)",
-		key.c_str(), smask.c_str(), priority);
+	debug(1 , "registering CVAR token=%s, mask=%s, prio=%d", key.c_str(), smask.c_str(), priority);
 #endif
 
 	if (cx & HttpContext::server)
