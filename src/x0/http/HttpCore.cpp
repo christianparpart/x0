@@ -35,13 +35,13 @@ HttpCore::HttpCore(HttpServer& server) :
 			std::bind(&HttpCore::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
 	// register cvars
-	declareCVar("Log", HttpContext::server, &HttpCore::setup_logging);
-	declareCVar("Resources", HttpContext::server, &HttpCore::setup_resources);
-	declareCVar("Plugins", HttpContext::server, &HttpCore::setup_modules);
-	declareCVar("ErrorDocuments", HttpContext::server, &HttpCore::setup_error_documents);
-	declareCVar("FileInfo", HttpContext::server, &HttpCore::setup_fileinfo);
-	declareCVar("Hosts", HttpContext::server, &HttpCore::setup_hosts);
-	declareCVar("Advertise", HttpContext::server, &HttpCore::setup_advertise);
+	declareCVar("Log", HttpContext::server, &HttpCore::setup_logging, -7);
+	declareCVar("Resources", HttpContext::server, &HttpCore::setup_resources, -6);
+	declareCVar("Plugins", HttpContext::server, &HttpCore::setup_modules, -5);
+	declareCVar("ErrorDocuments", HttpContext::server, &HttpCore::setup_error_documents, -4);
+	declareCVar("FileInfo", HttpContext::server, &HttpCore::setup_fileinfo, -4);
+	declareCVar("Hosts", HttpContext::server, &HttpCore::setup_hosts, -3);
+	declareCVar("Advertise", HttpContext::server, &HttpCore::setup_advertise, -2);
 }
 
 HttpCore::~HttpCore()
