@@ -112,6 +112,8 @@ else()
 	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path to program libraries")
 endif()
 
+set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
+
 if (DEFINED LOCALSTATEDIR)
 	set(LOCALSTATEDIR ${LOCALSTATEDIR} CACHE PATH "run-time state directory")
 else()
