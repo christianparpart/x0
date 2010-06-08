@@ -53,7 +53,7 @@ set(x0_io_API
 	io/Filter.h
 	io/FilterSource.h
 	io/NullFilter.h
-	io/pump.h
+	io/pump.hpp
 	io/Sink.h
 	io/Source.h
 	io/SourceVisitor.h
@@ -64,7 +64,10 @@ set(x0_http_API
 	http/HttpContext.h
 	http/HttpCore.h
 	http/HttpError.h
+	http/HttpHeader.h
 	http/HttpListener.h
+	http/HttpPlugin.h
+	http/HttpRangeDef.h http/HttpRangeDef.cc
 	http/HttpRequest.h
 	http/HttpResponse.h
 	http/HttpMessageProcessor.h
@@ -101,39 +104,35 @@ set(x0_SRC
 )
 
 set(x0_API
-	ansi_color.h
-	api.h
-	buffer.h
-	buffer_ref.h
-	cache.h cache.cc
-	connection.h
-	datetime.h
-	defines.h
-	event_handler.h
+	AnsiColor.h
+	Api.h
+	Buffer.h
+	BufferRef.h
+	Cache.h Cache.cc
+	DateTime.h
+	Defines.h
+	EventHandler.h
 	gai_error.h
-	function.h
-	handler.h
-	header.h
-	library.h
-	local_stream.h
-	logger.h
-	plugin.h
-	process.h
-	property.h
-	range_def.h range_def.cc
-	scope.h
-	settings.h settings.cc
-	severity.h
-	signal.h
+	function.hpp
+	handler.hpp
+	Library.h
+	LocalStream.h
+	Logger.h
+	Process.h
+	Property.h
+	Scope.h
+	Settings.h Settings.cc
+	Severity.h
+	Signal.h
 	ssl_db_cache.h
 	strutils.h strutils.cc
-	url.h
+	Url.h
 	sysconfig.h
-	ternary_search.h
-	trie.h
-	types.h
-	utility.h
-	web_client.h
+	TernarySearch.hpp
+	Trie.h
+	Types.h
+	Utility.h
+	WebClient.h
 )
 
 #	function.h
