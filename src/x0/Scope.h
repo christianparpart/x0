@@ -22,17 +22,17 @@ class X0_API Scope :
 public:
 	explicit Scope(const std::string& id);
 
-	template<typename T> T *acquire(void *key);
-	template<typename T> T *get(void *key) const;
-	void set(void *key, std::shared_ptr<ScopeValue> value);
-	void release(void *key);
+	template<typename T> T *acquire(const void *key);
+	template<typename T> T *get(const void *key) const;
+	void set(const void *key, std::shared_ptr<ScopeValue> value);
+	void release(const void *key);
 
 	void merge(const ScopeValue *from);
 
 	std::string id() const;
 
 private:
-	std::map<void *, std::shared_ptr<ScopeValue>> data_;
+	std::map<const void *, std::shared_ptr<ScopeValue>> data_;
 	std::string id_;
 };
 
@@ -47,9 +47,9 @@ inline std::string Scope::id() const
 	return id_;
 }
 
-template<typename T> T *Scope::get(void *key) const
+template<typename T> T *Scope::get(const void *key) const
 {
-	auto i = data_.find(key);
+	const auto i = data_.find(key);
 
 	if (i != data_.end())
 		return static_cast<T *>(i->second.get());
@@ -57,7 +57,7 @@ template<typename T> T *Scope::get(void *key) const
 	return 0;
 }
 
-template<typename T> T *Scope::acquire(void *key)
+template<typename T> T *Scope::acquire(const void *key)
 {
 	if (T *value = get<T>(key))
 		return value;
@@ -67,7 +67,7 @@ template<typename T> T *Scope::acquire(void *key)
 	return get<T>(key);
 }
 
-inline void Scope::release(void *key)
+inline void Scope::release(const void *key)
 {
 	data_.erase(data_.find(key));
 }

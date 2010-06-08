@@ -6,7 +6,7 @@ void ScopeValue::merge(const ScopeValue *)
 {
 }
 
-void Scope::set(void *key, std::shared_ptr<ScopeValue> value)
+void Scope::set(const void *key, std::shared_ptr<ScopeValue> value)
 {
 	data_[key] = value;
 }
