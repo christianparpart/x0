@@ -7,8 +7,12 @@
  */
 
 #include <x0/http/HttpServer.h>
+#include <x0/http/HttpRequest.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
+
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <functional>
 #include <iostream>
@@ -50,8 +54,10 @@ public:
 		argv_(argv),
 		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
 		pidfile_(pathcat(LOCALSTATEDIR, "run/x0d.pid")),
-		user_(""),
-		group_(""),
+		user_(),
+		group_(),
+		instant_(),
+		documentRoot_(),
 		nofork_(false),
 		doguard_(false),
 		server_(),
@@ -81,12 +87,55 @@ public:
 		return instance_;
 	}
 
+	static std::string getcwd()
+	{
+		char buf[1024];
+		return std::string(::getcwd(buf, sizeof(buf)));
+	}
+
+	void setupInstantMode()
+	{
+		// --instant=docroot,port,bind
+
+		typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
+
+		auto tokens = x0::split<std::string>(instant_, ",");
+		documentRoot_ = tokens.size() > 0 ? tokens[0] : "";
+		int port = tokens.size() > 1 ? boost::lexical_cast<int>(tokens[1]) : 0;
+		std::string bind = tokens.size() > 2 ? tokens[2] : "";
+
+		if (documentRoot_.empty())
+			documentRoot_ = getcwd();
+
+		if (!port)
+			port = 8080;
+
+		server_.loadPlugin("sendfile");
+		server_.loadPlugin("indexfile"); // TODO configure to auto-index: index.html
+		server_.loadPlugin("dirlisting"); // TODO configure to allow indexing at global scope
+
+		server_.resolve_document_root.connect(std::bind(&x0d::resolveDocumentRoot, this, std::placeholders::_1));
+
+		if (bind.empty())
+			server_.setupListener(port);
+		else
+			server_.setupListener(port, bind);
+	}
+
+	void resolveDocumentRoot(x0::HttpRequest *in)
+	{
+		in->document_root = documentRoot_;
+	}
+
 	int run()
 	{
 		if (!parse())
 			return 1;
 
-		server_.configure(configfile_);
+		if (!instant_.empty())
+			setupInstantMode();
+		else
+			server_.configure(configfile_);
 
 		if (!nofork_)
 			daemonize();
@@ -222,6 +271,7 @@ private:
 			{ "pid-file", required_argument, 0, 'p' },
 			{ "user", required_argument, 0, 'u' },
 			{ "group", required_argument, 0, 'g' },
+			{ "instant", required_argument, 0, 'i' },
 			//.
 			{ "version", no_argument, 0, 'v' },
 			{ "copyright", no_argument, 0, 'y' },
@@ -241,7 +291,7 @@ private:
 		for (;;)
 		{
 			int long_index = 0;
-			switch (getopt_long(argc_, argv_, "vyc:p:u:g:hXG", long_options, &long_index))
+			switch (getopt_long(argc_, argv_, "vyc:p:u:g:i:hXG", long_options, &long_index))
 			{
 				case 'p':
 					pidfile_ = optarg;
@@ -254,6 +304,9 @@ private:
 					break;
 				case 'u':
 					user_ = optarg;
+					break;
+				case 'i':
+					instant_ = optarg;
 					break;
 				case 'v':
 					std::cout
@@ -405,6 +458,10 @@ private:
 	std::string pidfile_;
 	std::string user_;
 	std::string group_;
+
+	std::string instant_;
+	std::string documentRoot_;
+
 	int nofork_;
 	int doguard_;
 	x0::HttpServer server_;
