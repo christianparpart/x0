@@ -171,6 +171,8 @@ public:
 	/** retrieves the current server time. */
 	const DateTime& now() const;
 
+	HttpCore& core() const;
+
 	const std::list<HttpListener *>& listeners() const;
 
 	bool declareCVar(const std::string& key, HttpContext cx, const cvar_handler& callback, int priority = 0);
@@ -229,6 +231,11 @@ inline struct ::ev_loop *HttpServer::loop() const
 inline const x0::DateTime& HttpServer::now() const
 {
 	return now_;
+}
+
+inline HttpCore& HttpServer::core() const
+{
+	return *core_;
 }
 
 inline const std::list<HttpListener *>& HttpServer::listeners() const
