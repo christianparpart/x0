@@ -68,6 +68,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	logger_(),
 	debug_level_(1),
 	colored_log_(false),
+	pluginDirectory_(PLUGINDIR),
 	plugins_(),
 	now_(),
 	loop_check_(loop_),
@@ -168,6 +169,8 @@ void HttpServer::configure(const std::string& configfile)
 
 	// load config
 	settings_.load_file(configfile);
+
+	settings_.load("Plugins.Directory", pluginDirectory_);
 
 	// {{{ global vars
 	auto globals = settings_.keys();
@@ -498,19 +501,31 @@ HttpListener *HttpServer::setupListener(int port, const std::string& bind_addres
 
 typedef HttpPlugin *(*plugin_create_t)(HttpServer&, const std::string&);
 
-void HttpServer::loadPlugin(const std::string& name)
+std::string HttpServer::pluginDirectory() const
 {
-	std::string plugindir_(".");
-	settings_.load("Plugins.Directory", plugindir_);
+	return pluginDirectory_;
+}
 
-	if (!plugindir_.empty() && plugindir_[plugindir_.size() - 1] != '/')
-		plugindir_ += "/";
+void HttpServer::setPluginDirectory(const std::string& value)
+{
+	pluginDirectory_ = value;
+}
+
+/**
+ * loads a plugin into the server.
+ *
+ * \see plugin, unload_plugin(), loaded_plugins()
+ */
+HttpPlugin *HttpServer::loadPlugin(const std::string& name)
+{
+	if (!pluginDirectory_.empty() && pluginDirectory_[pluginDirectory_.size() - 1] != '/')
+		pluginDirectory_ += "/";
 
 	std::string filename;
 	if (name.find('/') != std::string::npos)
-		filename = plugindir_ + name + ".so";
+		filename = pluginDirectory_ + name + ".so";
 	else
-		filename = plugindir_ + name + ".so";
+		filename = pluginDirectory_ + name + ".so";
 
 	std::string plugin_create_name("x0plugin_init");
 
@@ -526,14 +541,19 @@ void HttpServer::loadPlugin(const std::string& name)
 		{
 			HttpPluginPtr plugin = HttpPluginPtr(plugin_create(*this, name));
 			plugins_[name] = plugin_value_t(plugin, std::move(lib));
+
+			return plugin.get();
 		}
 		else
 			log(Severity::error, "Invalid x0 plugin (%s): %s", name.c_str(), ec.message().c_str());
 	}
 	else
 		log(Severity::error, "Cannot load plugin '%s'. %s", name.c_str(), ec.message().c_str());
+
+	return NULL;
 }
 
+/** safely unloads a plugin. */
 void HttpServer::unloadPlugin(const std::string& name)
 {
 	plugin_map_t::iterator i = plugins_.find(name);
@@ -550,6 +570,7 @@ void HttpServer::unloadPlugin(const std::string& name)
 	}
 }
 
+/** retrieves a list of currently loaded plugins */
 std::vector<std::string> HttpServer::pluginsLoaded() const
 {
 	std::vector<std::string> result;

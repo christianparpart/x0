@@ -153,17 +153,11 @@ public:
 	 */
 	HttpListener *setupListener(int port, const std::string& bind_address = "0::0");
 
-	/**
-	 * loads a plugin into the server.
-	 *
-	 * \see plugin, unload_plugin(), loaded_plugins()
-	 */
-	void loadPlugin(const std::string& name);
+	std::string pluginDirectory() const;
+	void setPluginDirectory(const std::string& value);
 
-	/** safely unloads a plugin. */
+	HttpPlugin *loadPlugin(const std::string& name);
 	void unloadPlugin(const std::string& name);
-
-	/** retrieves a list of currently loaded plugins */
 	std::vector<std::string> pluginsLoaded() const;
 
 	struct ::ev_loop *loop() const;
@@ -205,6 +199,7 @@ private:
 	LoggerPtr logger_;
 	int debug_level_;
 	bool colored_log_;
+	std::string pluginDirectory_;
 	plugin_map_t plugins_;
 	DateTime now_;
 	ev::check loop_check_;
