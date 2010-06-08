@@ -193,9 +193,9 @@ private:
 	struct ::ev_loop *loop_;
 	bool active_;
 	Settings settings_;
-	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_server_;
-	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_host_;
-	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_path_;
+	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_server_;	//!< registered server-scope cvars
+	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_host_;	//!< registered host-scope cvars
+	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_path_;	//!< registered location-scope cvars
 	std::string configfile_;
 	LoggerPtr logger_;
 	int debug_level_;
