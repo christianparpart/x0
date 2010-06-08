@@ -563,8 +563,16 @@ std::vector<std::string> HttpServer::pluginsLoaded() const
 bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const std::function<bool(const SettingsValue&, Scope&)>& callback, int priority)
 {
 	priority = std::min(std::max(priority, -10), 10);
-	log(Severity::debug, "declareCVar(%s, 0x%04x, fn, prio=%d)",
-		key.c_str(), cx, priority);
+
+#if !defined(NDEBUG)
+	std::string smask;
+	if (cx & HttpContext::server) smask = "server";
+	if (cx & HttpContext::host) { if (!smask.empty()) smask += "|"; smask += "host"; }
+	if (cx & HttpContext::location) { if (!smask.empty()) smask += "|"; smask += "location"; }
+
+	log(Severity::debug, "declareCVar(%s, %s, fn, prio=%d)",
+		key.c_str(), smask.c_str(), priority);
+#endif
 
 	if (cx & HttpContext::server)
 		cvars_server_[priority][key] = callback;
