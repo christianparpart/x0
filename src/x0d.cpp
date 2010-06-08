@@ -11,6 +11,8 @@
 #include <x0/strutils.h>
 #include <x0/Severity.h>
 
+#include "plugins/indexfile.h"
+
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -110,8 +112,12 @@ public:
 		if (!port)
 			port = 8080;
 
+		log(x0::Severity::notice, "Enabling instant-mode");
+
 		server_.loadPlugin("sendfile");
-		server_.loadPlugin("indexfile"); // TODO configure to auto-index: index.html
+		if (auto p = server_.loadPlugin<indexfile_plugin>("indexfile"))
+			;//p->setIndexFiles(server_, std::vector<std::string>({"index.html"}));
+
 		server_.loadPlugin("dirlisting"); // TODO configure to allow indexing at global scope
 
 		server_.resolve_document_root.connect(std::bind(&x0d::resolveDocumentRoot, this, std::placeholders::_1));
