@@ -545,7 +545,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 
 	std::string plugin_create_name("x0plugin_init");
 
-	log(Severity::notice, "Loading plugin %s", filename.c_str());
+	log(Severity::info, "Loading plugin %s", filename.c_str());
 
 	Library lib;
 	ec = lib.open(filename);

@@ -23,14 +23,10 @@ namespace x0 {
  * \see logger
  */
 struct X0_API Severity {
-	static const int emergency = 0;
-	static const int alert = 1;
-	static const int critical = 2;
-	static const int error = 3;
-	static const int warn = 4;
-	static const int notice = 5;
-	static const int info = 6;
-	static const int debug = 7;
+	static const int error = 0;
+	static const int warn = 1;
+	static const int info = 2;
+	static const int debug = 3;
 
 	int value_;
 	Severity(int value) : value_(value) { }

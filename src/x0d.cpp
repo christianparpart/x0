@@ -196,7 +196,7 @@ public:
 
 			if (pid < 0) // fork failed
 			{
-				log(x0::Severity::alert, "fork error: %s", strerror(errno));
+				log(x0::Severity::error, "fork error: %s", strerror(errno));
 				return 1;
 			}
 			else if (pid == 0) // in child

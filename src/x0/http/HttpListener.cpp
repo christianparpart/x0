@@ -168,12 +168,12 @@ std::error_code HttpListener::prepare()
 
 		gnutls_certificate_set_dh_params(x509_cred_, dh_params_);
 
-		log(Severity::notice, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
+		log(Severity::info, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
 	}
 	else
-		log(Severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
+		log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
 #else
-	log(Severity::notice, "Start listening on [%s]:%d", address_.c_str(), port_);
+	log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
 #endif
 
 	fd_ = ::socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
