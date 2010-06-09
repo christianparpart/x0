@@ -287,7 +287,7 @@ std::error_code HttpServer::configure(const std::string& configfile)
 
 	// check for available TCP listeners
 	if (listeners_.empty())
-		log(Severity::critical, "No listeners defined. No virtual hosting plugin loaded or no virtual host defined?");
+		return Error::NoListenersDefined;
 
 	for (std::list<HttpListener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 		(*i)->prepare();
