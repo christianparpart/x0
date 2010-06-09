@@ -1,6 +1,8 @@
-#include <x0/ssl_db_cache.h>
+#include <x0/sysconfig.h>
 
 #if defined(WITH_SSL)
+
+#include <x0/ssl_db_cache.h>
 
 namespace x0 {
 
