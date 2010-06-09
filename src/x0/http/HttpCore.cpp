@@ -10,7 +10,8 @@
 
 namespace x0 {
 
-inline bool _contains(const std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>>& map, const std::string& cvar)
+/** tests whether given cvar-token is available in the table of registered cvars. */
+inline bool _contains(const std::map<int, std::map<std::string, cvar_handler>>& map, const std::string& cvar)
 {
 	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
@@ -110,7 +111,7 @@ long long HttpCore::setrlimit(int resource, long long value)
 	return value;
 }
 
-bool HttpCore::setup_logging(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setup_logging(const SettingsValue& cvar, Scope& s)
 {
 	std::string logmode(cvar["Mode"].as<std::string>());
 	auto nowfn = std::bind(&DateTime::htlog_str, &server().now_);
@@ -127,23 +128,24 @@ bool HttpCore::setup_logging(const SettingsValue& cvar, Scope& s)
 	server().logger_->level(Severity(cvar["Level"].as<std::string>()));
 
 	cvar["Colorize"].load(server().colored_log_);
-	return true;
+	return std::error_code();
 }
 
-bool HttpCore::setup_modules(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setup_modules(const SettingsValue& cvar, Scope& s)
 {
+	std::error_code ec;
+
 	std::vector<std::string> list;
 	cvar["Load"].load(list);
-	int errorCount = 0;
 
 	for (auto i = list.begin(), e = list.end(); i != e; ++i)
-		if (!server().loadPlugin(*i))
-			++errorCount;
+		if (!server().loadPlugin(*i, ec))
+			return ec;
 
-	return !errorCount;
+	return ec;
 }
 
-bool HttpCore::setup_resources(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setup_resources(const SettingsValue& cvar, Scope& s)
 {
 	cvar["MaxConnections"].load(server().max_connections);
 	cvar["MaxKeepAliveIdle"].load(server().max_keep_alive_idle);
@@ -163,10 +165,10 @@ bool HttpCore::setup_resources(const SettingsValue& cvar, Scope& s)
 	if (cvar["MaxCoreFileSize"].load(value))
 		setrlimit(RLIMIT_CORE, value);
 
-	return true;
+	return std::error_code();
 }
 
-bool HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
 {
 	std::vector<std::string> hostids = cvar.keys<std::string>();
 
@@ -184,7 +186,8 @@ bool HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
 				if (cvar[hostid].contains(ci->first))
 				{
 					//debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
-					ci->second(cvar[hostid][ci->first], server().host(hostid));
+					if (std::error_code ec = ci->second(cvar[hostid][ci->first], server().host(hostid)))
+						return ec;
 				}
 			}
 		}
@@ -209,10 +212,10 @@ bool HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
 		}
 	}
 
-	return true;
+	return std::error_code();
 }
 
-bool HttpCore::setup_fileinfo(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setup_fileinfo(const SettingsValue& cvar, Scope& s)
 {
 	std::string value;
 	if (cvar["MimeType"]["MimeFile"].load(value))
@@ -231,17 +234,17 @@ bool HttpCore::setup_fileinfo(const SettingsValue& cvar, Scope& s)
 	if (cvar["ETag"]["ConsiderInode"].load(flag))
 		server().fileinfo.etag_consider_inode(flag);
 
-	return true;
+	return std::error_code();
 }
 
 // ErrorDocuments = array of [pair<code, path>]
-bool HttpCore::setup_error_documents(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setup_error_documents(const SettingsValue& cvar, Scope& s)
 {
-	return true; //! \todo
+	return std::error_code(); //! \todo
 }
 
 // Advertise = BOOLEAN
-bool HttpCore::setup_advertise(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setup_advertise(const SettingsValue& cvar, Scope& s)
 {
 	return cvar.load(server().advertise);
 }

@@ -93,7 +93,7 @@ public:
 		server_.resolve_document_root.disconnect(c);
 	}
 
-	bool setup_docroot(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_docroot(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		std::string document_root = cvar.as<std::string>();
 
@@ -102,7 +102,7 @@ public:
 			server_.log(x0::Severity::error,
 				"vhost_basic[%s]: document root must not be empty.",
 				s.id().c_str());
-			return false;
+			return std::make_error_code(std::errc::invalid_argument);
 		}
 
 		if (document_root[0] != '/')
@@ -120,27 +120,35 @@ public:
 		if (!register_host(s.id(), cfg))
 		{
 			server_.log(x0::Severity::error, "Server name '%s' already in use.", s.id().c_str());
-			return false;
+			return std::make_error_code(std::errc::invalid_argument);
 		}
-		return true;
+
+		return std::error_code();
 	}
 
-	bool setup_bindaddress(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_bindaddress(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		int port = x0::extract_port_from_hostid(s.id());
-		std::string bind = cvar.as<std::string>();
-		vhost_config *cfg = s.acquire<vhost_config>(this);
-		cfg->bind_address = bind;
+		std::string bindAddress;
+		std::error_code ec = cvar.load(bindAddress);
+		if (ec)
+			return ec;
 
-		server_.setupListener(port, bind);
-		return true;
+		int port = x0::extract_port_from_hostid(s.id());
+
+		vhost_config *cfg = s.acquire<vhost_config>(this);
+		cfg->bind_address = bindAddress;
+
+		server_.setupListener(port, bindAddress);
+
+		return std::error_code();
 	}
 
-	bool setup_aliases(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_aliases(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		std::vector<std::string> aliases;
-		if (!cvar.load(aliases))
-			return false;
+		std::error_code ec = cvar.load(aliases);
+		if (ec)
+			return ec;
 
 		int port = x0::extract_port_from_hostid(s.id());
 		vhost_config *cfg = s.acquire<vhost_config>(this);
@@ -152,7 +160,7 @@ public:
 			if (!register_host(alias_id, cfg))
 			{
 				server_.log(x0::Severity::error, "Server alias '%s' already in use.", alias_id.c_str());
-				return false;
+				return std::make_error_code(std::errc::invalid_argument);
 			}
 
 			server_.linkHost(s.id(), alias_id);
@@ -161,14 +169,14 @@ public:
 			debug(1, "Server alias '%s' (for bind '%s' on port %d) added.", alias_id.c_str(), cfg->bind_address.c_str(), port);
 #endif
 		}
-		return true;
+		return std::error_code();
 	}
 
-	bool setup_default(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_default(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		bool is_default;
-		if (!cvar.load(is_default))
-			return false;
+		std::error_code ec = cvar.load(is_default);
+		if (ec) return ec;
 
 		int port = x0::extract_port_from_hostid(s.id());
 		vhost_config *cfg = s.acquire<vhost_config>(this);
@@ -182,12 +190,12 @@ public:
 						"with same port (%d). Conflicting hostnames: %s, %s.",
 						port, vhost->name.c_str(), s.id().c_str());
 
-				return false;
+				return std::make_error_code(std::errc::invalid_argument);
 			}
 
 			set_default_host(port, cfg);
 		}
-		return true;
+		return std::error_code();
 	}
 
 	/** maps domain-name to given vhost config.

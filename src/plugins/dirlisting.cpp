@@ -80,7 +80,7 @@ public:
 	}
 
 private:
-	bool setup_dirlisting(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_dirlisting(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->enabled);
 	}

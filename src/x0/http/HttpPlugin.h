@@ -49,7 +49,7 @@ public:
 
 	template<typename T>
 	void declareCVar(const std::string& key, HttpContext mask,
-			bool (T::*handler)(const SettingsValue&, Scope&), int priority = 0);
+			std::error_code (T::*handler)(const SettingsValue&, Scope&), int priority = 0);
 
 	const std::vector<std::string>& cvars() const;
 	void undeclareCVar(const std::string& key);
@@ -122,7 +122,7 @@ inline void HttpPlugin::debug_level(int value)
   */
 template<typename T>
 inline void HttpPlugin::declareCVar(const std::string& key, HttpContext mask,
-	bool (T::*handler)(const SettingsValue&, Scope&), int priority)
+	std::error_code (T::*handler)(const SettingsValue&, Scope&), int priority)
 {
 	cvars_.push_back(key);
 	server_.declareCVar(key, mask, std::bind(handler, static_cast<T *>(this), std::placeholders::_1, std::placeholders::_2), priority);

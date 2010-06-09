@@ -94,22 +94,22 @@ public:
 	}
 
 private:
-	bool setup_types(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_types(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->content_types_);
 	}
 
-	bool setup_level(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_level(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->level_);
 	}
 
-	bool setup_minsize(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_minsize(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->min_size_);
 	}
 
-	bool setup_maxsize(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_maxsize(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(s.acquire<context>(this)->max_size_);
 	}

@@ -62,7 +62,7 @@ void indexfile_plugin::setIndexFiles(x0::Scope& scope, const std::vector<std::st
 	scope.acquire<context>(this)->index_files = indexFiles;
 }
 
-bool indexfile_plugin::setup_indexfiles(const x0::SettingsValue& cvar, x0::Scope& s)
+std::error_code indexfile_plugin::setup_indexfiles(const x0::SettingsValue& cvar, x0::Scope& s)
 {
 	return cvar.load(s.acquire<context>(this)->index_files);
 }

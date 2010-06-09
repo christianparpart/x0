@@ -22,13 +22,13 @@ private:
 	long long getrlimit(int resource);
 	long long setrlimit(int resource, long long max);
 
-	bool setup_logging(const SettingsValue& cvar, Scope& s);
-	bool setup_resources(const SettingsValue& cvar, Scope& s);
-	bool setup_modules(const SettingsValue& cvar, Scope& s);
-	bool setup_fileinfo(const SettingsValue& cvar, Scope& s);
-	bool setup_error_documents(const SettingsValue& cvar, Scope& s);
-	bool setup_hosts(const SettingsValue& cvar, Scope& s);
-	bool setup_advertise(const SettingsValue& cvar, Scope& s);
+	std::error_code setup_logging(const SettingsValue& cvar, Scope& s);
+	std::error_code setup_resources(const SettingsValue& cvar, Scope& s);
+	std::error_code setup_modules(const SettingsValue& cvar, Scope& s);
+	std::error_code setup_fileinfo(const SettingsValue& cvar, Scope& s);
+	std::error_code setup_error_documents(const SettingsValue& cvar, Scope& s);
+	std::error_code setup_hosts(const SettingsValue& cvar, Scope& s);
+	std::error_code setup_advertise(const SettingsValue& cvar, Scope& s);
 };
 
 } // namespace x0

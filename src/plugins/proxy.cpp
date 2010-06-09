@@ -639,18 +639,18 @@ public:
 	}
 
 private:
-	bool setup_proxy_enable(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_enable(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->enabled);
 	}
 
-	bool setup_proxy_mode(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_mode(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		// TODO reverse / forward / transparent (forward)
-		return false;
+		return std::error_code();
 	}
 
-	bool setup_proxy_origins(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_origins(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		proxy *px = acquire_proxy(s);
 		cvar.load(px->origins);
@@ -675,40 +675,41 @@ private:
 		}
 
 		if (!px->origins_.empty())
-			return true;
+			return std::error_code();
 
 		//! \bug FIX server_.log(x0::Severity::warn, "No origin servers defined for proxy at virtual-host: %s.", hostid.c_str());
-		return false;
+		//return ProxyError::EmptyOriginSet;
+		return std::error_code();
 	}
 
-	bool setup_proxy_hotspares(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_hotspares(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		//proxy *px = acquire_proxy(s);
 		//cvar.load(px->hot_spares);
-		return false;
+		return std::error_code();
 	}
 
-	bool setup_proxy_methods(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_methods(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->allowed_methods);
 	}
 
-	bool setup_proxy_connect_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_connect_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->connect_timeout);
 	}
 
-	bool setup_proxy_read_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_read_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->read_timeout);
 	}
 
-	bool setup_proxy_write_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_write_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->write_timeout);
 	}
 
-	bool setup_proxy_keepalive_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_proxy_keepalive_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->keepalive);
 	}

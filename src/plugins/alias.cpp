@@ -64,14 +64,16 @@ public:
 	}
 
 private:
-	bool setup(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		if (!cvar.load(s.acquire<context>(this)->aliases))
-			return false;
+		std::error_code ec = cvar.load(s.acquire<context>(this)->aliases);
+
+		if (ec)
+			return ec;
 
 		++alias_count_;
 
-		return true;
+		return std::error_code();
 	}
 
 	inline aliasmap_type *get_aliases(x0::HttpRequest *in)

@@ -53,34 +53,35 @@ public:
 		server_.resolve_entity.disconnect(c);
 	}
 
-	bool setup_userdir(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_userdir(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		std::string dirname;
-		if (cvar.load(dirname) && validate(dirname))
-		{
-			s.acquire<context>(this)->dirname_ = dirname;
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		std::error_code ec = cvar.load(dirname);
+		if (ec)
+			return ec;
+
+		ec = validate(dirname);
+		if (ec)
+			return ec;
+
+		s.acquire<context>(this)->dirname_ = dirname;
+		return std::error_code();
 	}
 
-	bool validate(std::string& path)
+	std::error_code validate(std::string& path)
 	{
 		if (path.empty())
-			return false;
+			return std::make_error_code(std::errc::invalid_argument);
 
 		if (path[0] == '/')
-			return false;
+			return std::make_error_code(std::errc::invalid_argument);
 
 		path.insert(0, "/");
 
 		if (path[path.size() - 1] == '/')
 			path = path.substr(0, path.size() - 1);
 
-		return true;
+		return std::error_code();
 	}
 
 private:

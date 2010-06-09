@@ -433,14 +433,15 @@ public:
 		server_.config().load("CGI.Executable", process_executables_);
 	}
 
-	bool configure_mappings(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code configure_mappings(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		debug(0, "configure_mappings ...");
-		if (!cvar.load(interpreter_))
-			;//return false;
+		std::error_code ec = cvar.load(interpreter_);
+		if (ec)
+			return ec;
 
 		debug(0, "configure_mappings: %s", tostring(interpreter_).c_str());
-		return true;
+		return ec;
 	}
 
 	static std::string tostring(const std::map<std::string, std::string>& map)

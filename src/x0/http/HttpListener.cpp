@@ -146,7 +146,7 @@ void HttpListener::cert_file(const std::string& value)
 }
 #endif
 
-void HttpListener::prepare()
+std::error_code HttpListener::prepare()
 {
 #if defined(WITH_SSL)
 	if (secure())
@@ -177,10 +177,15 @@ void HttpListener::prepare()
 #endif
 
 	fd_ = ::socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
+	if (fd_ < 0) return std::make_error_code(static_cast<std::errc>(errno));
+
 	fcntl(fd_, F_SETFL, FD_CLOEXEC);
 
 	if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0)
-		log(Severity::error, "could not set server socket into non-blocking mode: %s\n", strerror(errno));
+	{
+		//log(Severity::error, "could not set server socket into non-blocking mode: %s\n", strerror(errno));
+		return std::make_error_code(static_cast<std::errc>(errno));
+	}
 
 	sockaddr_in6 sin;
 	bzero(&sin, sizeof(sin));
@@ -208,19 +213,33 @@ void HttpListener::prepare()
 //	acceptor_.set_option(asio::ip::tcp::acceptor::linger(false, 0));
 //	acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
 
-	if (::bind(fd_, (sockaddr *)&sin, sizeof(sin)) < 0)
+	if (::bind(fd_, (sockaddr *)&sin, sizeof(sin)) < 0) {
 		log(Severity::error, "Cannot bind to IP-address (%s): %s", address_.c_str(), strerror(errno));
+		return std::make_error_code(static_cast<std::errc>(errno));
+	}
 
-	if (::listen(fd_, backlog_) < 0)
+	if (::listen(fd_, backlog_) < 0) {
 		log(Severity::error, "Cannot listen to IP-address (%s): %s", address_.c_str(), strerror(errno));
+		return std::make_error_code(static_cast<std::errc>(errno));
+	}
+
+	return std::error_code();
 }
 
-void HttpListener::start()
+std::error_code HttpListener::start()
 {
+	std::error_code ec;
+
 	if (fd_ == -1)
-		prepare();
+	{
+		ec = prepare();
+
+		if (ec)
+			return ec;
+	}
 
 	watcher_.start(fd_, ev::READ);
+	return ec;
 }
 
 void HttpListener::callback(ev::io& watcher, int revents)

@@ -45,17 +45,17 @@ private:
 			close();
 		}
 
-		bool open(const std::string& filename)
+		std::error_code open(const std::string& filename)
 		{
 			if (fd_ >= 0)
 				::close(fd_);
 
 			fd_ = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
 			if (fd_ < 0)
-				return false;
+				return std::make_error_code(static_cast<std::errc>(errno));
 
 			filename_ = filename;
-			return true;
+			return std::error_code();
 		}
 
 		void write(const std::string message)
@@ -113,19 +113,18 @@ public:
 	}
 
 private:
-	bool setup_log(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setup_log(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		std::string filename;
 
-		if (cvar.load(filename))
-		{
-			auto cx = s.acquire<context>(this);
-			return cx->open(filename);
-		}
-		else
-		{
-			return false;
-		}
+		std::error_code ec = cvar.load(filename);
+		if (ec)
+			return ec;
+
+		auto cx = s.acquire<context>(this);
+		ec = cx->open(filename);
+
+		return std::error_code();
 	}
 
 	void request_done(x0::HttpRequest *in, x0::HttpResponse *out)

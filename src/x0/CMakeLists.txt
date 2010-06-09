@@ -88,6 +88,7 @@ set(x0_http_SRC
 
 set(x0_SRC
 	AnsiColor.cpp
+	Error.cpp
 	Library.cpp
 	Logger.cpp
 	Process.cpp
@@ -113,6 +114,7 @@ set(x0_API
 	DateTime.h
 	Defines.h
 	EventHandler.h
+	Error.h
 	gai_error.h
 	function.hpp
 	handler.hpp
@@ -129,7 +131,6 @@ set(x0_API
 	ssl_db_cache.h
 	strutils.h strutils.cc
 	Url.h
-	sysconfig.h
 	TernarySearch.hpp
 	Trie.h
 	Types.h
@@ -137,6 +138,7 @@ set(x0_API
 	WebClient.h
 )
 
+#	sysconfig.h
 #	function.h
 #	trie.h
 #	ternary_search.h

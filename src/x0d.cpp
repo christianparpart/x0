@@ -95,10 +95,9 @@ public:
 		return std::string(::getcwd(buf, sizeof(buf)));
 	}
 
-	void setupInstantMode()
+	// --instant=docroot,port,bind
+	std::error_code setupInstantMode()
 	{
-		// --instant=docroot,port,bind
-
 		typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
 
 		auto tokens = x0::split<std::string>(instant_, ",");
@@ -112,20 +111,40 @@ public:
 		if (!port)
 			port = 8080;
 
-		log(x0::Severity::notice, "Enabling instant-mode");
+		if (bind.empty())
+			bind = "0::0";
 
-		server_.loadPlugin("sendfile");
-		if (auto p = server_.loadPlugin<indexfile_plugin>("indexfile"))
-			;//p->setIndexFiles(server_, std::vector<std::string>({"index.html"}));
-
-		server_.loadPlugin("dirlisting"); // TODO configure to allow indexing at global scope
+		server_.setupListener(port, bind);
 
 		server_.resolve_document_root.connect(std::bind(&x0d::resolveDocumentRoot, this, std::placeholders::_1));
 
-		if (bind.empty())
-			server_.setupListener(port);
-		else
-			server_.setupListener(port, bind);
+		// load standard-plugins
+		std::error_code ec;
+		if (!server_.loadPlugin("sendfile", ec))
+			return ec;
+
+		if (!setup(server_.loadPlugin<indexfile_plugin>("indexfile", ec), ec))
+			return ec;
+
+		if (!server_.loadPlugin("dirlisting", ec))
+			return ec;
+
+		//server_.loadPlugin("compress", ec);
+		//server_.loadPlugin("cgi", ec);
+
+		return ec;
+	}
+
+	bool setup(indexfile_plugin *plugin, std::error_code& ec)
+	{
+		if (!plugin)
+			return false;
+
+		std::vector<std::string> indexFiles;
+		indexFiles.push_back("index.html");
+
+		//plugin->setIndexFiles(server_, indexFiles);
+		return true;
 	}
 
 	void resolveDocumentRoot(x0::HttpRequest *in)
@@ -138,10 +157,17 @@ public:
 		if (!parse())
 			return 1;
 
+		std::error_code ec;
 		if (!instant_.empty())
-			setupInstantMode();
+			ec = setupInstantMode();
 		else
-			server_.configure(configfile_);
+			ec = server_.configure(configfile_);
+
+		if (ec)
+		{
+			log(x0::Severity::error, ec.message().c_str());
+			return -1;
+		}
 
 		if (!nofork_)
 			daemonize();
@@ -249,15 +275,15 @@ public:
 
 		if (pidfile_.empty())
 		{
-			server_.log(x0::Severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
+			log(x0::Severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
 		}
 		if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
 		{
-			server_.log(x0::Severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
+			log(x0::Severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
 			fprintf(pidfile, "%d\n", getpid());
 			fclose(pidfile);
 		} else
-			server_.log(x0::Severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
+			log(x0::Severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
 
 		server_.run();
 
@@ -410,7 +436,7 @@ private:
 		}
 	}
 
-	static void log(x0::Severity Severity, const char *msg, ...)
+	static void log(x0::Severity severity, const char *msg, ...)
 	{
 		va_list va;
 		char buf[2048];
@@ -421,7 +447,7 @@ private:
 
 		if (instance_)
 		{
-			instance_->server_.log(Severity, "%s", buf);
+			instance_->server_.log(severity, "%s", buf);
 		}
 		else
 		{

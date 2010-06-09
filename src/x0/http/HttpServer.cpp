@@ -12,6 +12,7 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpCore.h>
 #include <x0/Settings.h>
+#include <x0/Error.h>
 #include <x0/Logger.h>
 #include <x0/Library.h>
 #include <x0/AnsiColor.h>
@@ -97,16 +98,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	loop_check_.start();
 
 	core_ = new HttpCore(*this);
-
-#if defined(WITH_SSL)
-	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-
-	int rv = gnutls_global_init();
-	if (rv != GNUTLS_E_SUCCESS)
-		log(Severity::error, "could not initialize gnutls library");
-
-	gnutls_global_init_extra();
-#endif
 }
 
 void HttpServer::loop_check(ev::check& /*w*/, int /*revents*/)
@@ -134,7 +125,8 @@ HttpServer::~HttpServer()
 	core_ = 0;
 }
 
-inline bool _contains(const std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>>& map, const std::string& cvar)
+/** tests whether given cvar-token is available in the table of registered cvars. */
+inline bool _contains(const std::map<int, std::map<std::string, cvar_handler>>& map, const std::string& cvar)
 {
 	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
@@ -156,7 +148,7 @@ inline bool _contains(const std::vector<std::string>& list, const std::string& v
 /**
  * configures the server ready to be started.
  */
-void HttpServer::configure(const std::string& configfile)
+std::error_code HttpServer::configure(const std::string& configfile)
 {
 	std::vector<std::string> global_ignores = {
 		"IGNORES",
@@ -167,20 +159,36 @@ void HttpServer::configure(const std::string& configfile)
 		"dofile", "setfenv", "load", "error", "loadfile"
 	};
 
-	// load config
-	settings_.load_file(configfile);
+#if defined(WITH_SSL)
+	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 
-	settings_.load("Plugins.Directory", pluginDirectory_);
+	int rv = gnutls_global_init();
+	if (rv != GNUTLS_E_SUCCESS)
+		return Error::CouldNotInitializeSslLibrary;
+
+	gnutls_global_init_extra();
+#endif
+
+	// load config
+	std::error_code ec = settings_.load_file(configfile);
+	if (ec) return ec;
+
+	ec = settings_.load("Plugins.Directory", pluginDirectory_);
+	if (ec) return ec;
 
 	// {{{ global vars
 	auto globals = settings_.keys();
 	auto custom_ignores = settings_["IGNORES"].values<std::string>();
 
-	// iterate all server cvars
-	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi)
-		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			if (settings_.contains(ci->first))
-				ci->second(settings_[ci->first], *this);
+	// iterate through all server cvars and evaluate them (if found in config file)
+	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi) {
+		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci) {
+			if (settings_.contains(ci->first)) {
+				ec = ci->second(settings_[ci->first], *this);
+				if (ec) return ec;
+			}
+		}
+	}
 
 	// warn on every unknown global cvar
 	for (auto i = globals.begin(), e = globals.end(); i != e; ++i)
@@ -292,9 +300,10 @@ void HttpServer::configure(const std::string& configfile)
 		if (::nice(nice_) < 0)
 			log(Severity::error, "could not nice process to %d: %s", nice_, strerror(errno));
 	}
+	return Error::Success;
 }
 
-void HttpServer::start()
+std::error_code HttpServer::start()
 {
 	if (!active_)
 	{
@@ -302,9 +311,13 @@ void HttpServer::start()
 
 		for (std::list<HttpListener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 		{
-			(*i)->start();
+			std::error_code ec = (*i)->start();
+
+			if (ec)
+				return ec;
 		}
 	}
+	return std::error_code();
 }
 
 /** tests whether this server has been started or not.
@@ -475,6 +488,12 @@ void HttpServer::log(Severity s, const char *msg, ...)
 	}
 }
 
+/**
+ * sets up a TCP/IP HttpListener on given bind_address and port.
+ *
+ * If there is already a HttpListener on this bind_address:port pair
+ * then no error will be raised.
+ */
 HttpListener *HttpServer::setupListener(int port, const std::string& bind_address)
 {
 	// check if we already have an HTTP listener listening on given port
@@ -488,7 +507,7 @@ HttpListener *HttpServer::setupListener(int port, const std::string& bind_addres
 	lp->port(port);
 
 	int value = 0;
-	if (settings_.load("Resources.MaxConnections", value))
+	if (!settings_.load("Resources.MaxConnections", value))
 		lp->backlog(value);
 
 	listeners_.push_back(lp);
@@ -513,7 +532,7 @@ void HttpServer::setPluginDirectory(const std::string& value)
  *
  * \see plugin, unload_plugin(), loaded_plugins()
  */
-HttpPlugin *HttpServer::loadPlugin(const std::string& name)
+HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 {
 	if (!pluginDirectory_.empty() && pluginDirectory_[pluginDirectory_.size() - 1] != '/')
 		pluginDirectory_ += "/";
@@ -529,7 +548,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name)
 	log(Severity::notice, "Loading plugin %s", filename.c_str());
 
 	Library lib;
-	std::error_code ec = lib.open(filename);
+	ec = lib.open(filename);
 	if (!ec)
 	{
 		plugin_create_t plugin_create = reinterpret_cast<plugin_create_t>(lib.resolve(plugin_create_name, ec));
@@ -541,11 +560,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name)
 
 			return plugin.get();
 		}
-		else
-			log(Severity::error, "Invalid plugin (%s): %s", name.c_str(), ec.message().c_str());
 	}
-	else
-		log(Severity::error, "Cannot load plugin '%s'. %s", name.c_str(), ec.message().c_str());
 
 	return NULL;
 }
@@ -578,7 +593,7 @@ std::vector<std::string> HttpServer::pluginsLoaded() const
 	return result;
 }
 
-bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const std::function<bool(const SettingsValue&, Scope&)>& callback, int priority)
+bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const cvar_handler& callback, int priority)
 {
 	priority = std::min(std::max(priority, -10), 10);
 
@@ -627,6 +642,8 @@ std::vector<std::string> HttpServer::cvars(HttpContext cx) const
 
 void HttpServer::undeclareCVar(const std::string& key)
 {
+	DEBUG("undeclareCVar: '%s'", key.c_str());
+
 	for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i)
 		i->second.erase(i->second.find(key));
 

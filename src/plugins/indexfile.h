@@ -38,7 +38,7 @@ private:
 		virtual void merge(const x0::ScopeValue *value);
 	};
 
-	bool setup_indexfiles(const x0::SettingsValue& cvar, x0::Scope& s);
+	std::error_code setup_indexfiles(const x0::SettingsValue& cvar, x0::Scope& s);
 	void indexfile(x0::HttpRequest *in);
 };
 

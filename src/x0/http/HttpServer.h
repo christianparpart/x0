@@ -66,8 +66,8 @@ public:
 	~HttpServer();
 
 	// {{{ service control
-	void configure(const std::string& configfile);
-	void start();
+	std::error_code configure(const std::string& configfile);
+	std::error_code start();
 	bool active() const;
 	void run();
 	void pause();
@@ -145,19 +145,13 @@ public:
 	void debugLevel(int value);
 #endif
 
-	/**
-	 * sets up a TCP/IP HttpListener on given bind_address and port.
-	 *
-	 * If there is already a HttpListener on this bind_address:port pair
-	 * then no error will be raised.
-	 */
-	HttpListener *setupListener(int port, const std::string& bind_address = "0::0");
+	HttpListener *setupListener(int port, const std::string& bindAddress);
 
 	std::string pluginDirectory() const;
 	void setPluginDirectory(const std::string& value);
 
-	HttpPlugin *loadPlugin(const std::string& name);
-	template<typename T> T *loadPlugin(const std::string& name);
+	HttpPlugin *loadPlugin(const std::string& name, std::error_code& ec);
+	template<typename T> T *loadPlugin(const std::string& name, std::error_code& ec);
 	void unloadPlugin(const std::string& name);
 	std::vector<std::string> pluginsLoaded() const;
 
@@ -193,9 +187,9 @@ private:
 	struct ::ev_loop *loop_;
 	bool active_;
 	Settings settings_;
-	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_server_;	//!< registered server-scope cvars
-	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_host_;	//!< registered host-scope cvars
-	std::map<int, std::map<std::string, std::function<bool(const SettingsValue&, Scope&)>>> cvars_path_;	//!< registered location-scope cvars
+	std::map<int, std::map<std::string, cvar_handler>> cvars_server_;	//!< registered server-scope cvars
+	std::map<int, std::map<std::string, cvar_handler>> cvars_host_;	//!< registered host-scope cvars
+	std::map<int, std::map<std::string, cvar_handler>> cvars_path_;	//!< registered location-scope cvars
 	std::string configfile_;
 	LoggerPtr logger_;
 	int debug_level_;
@@ -240,9 +234,9 @@ inline const std::list<HttpListener *>& HttpServer::listeners() const
 }
 
 template<typename T>
-inline T *HttpServer::loadPlugin(const std::string& name)
+inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 {
-	return static_cast<T *>(loadPlugin(name));
+	return static_cast<T *>(loadPlugin(name, ec));
 }
 
 #if !defined(NDEBUG)
