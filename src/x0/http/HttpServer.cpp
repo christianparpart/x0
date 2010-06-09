@@ -644,14 +644,23 @@ void HttpServer::undeclareCVar(const std::string& key)
 {
 	DEBUG("undeclareCVar: '%s'", key.c_str());
 
-	for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i)
-		i->second.erase(i->second.find(key));
+	for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i) {
+		auto r = i->second.find(key);
+		if (r != i->second.end())
+			i->second.erase(r);
+	}
 
-	for (auto i = cvars_host_.begin(), e = cvars_host_.end(); i != e; ++i)
-		i->second.erase(i->second.find(key));
+	for (auto i = cvars_host_.begin(), e = cvars_host_.end(); i != e; ++i) {
+		auto r = i->second.find(key);
+		if (r != i->second.end())
+			i->second.erase(r);
+	}
 
-	for (auto i = cvars_path_.begin(), e = cvars_path_.end(); i != e; ++i)
-		i->second.erase(i->second.find(key));
+	for (auto i = cvars_path_.begin(), e = cvars_path_.end(); i != e; ++i) {
+		auto r = i->second.find(key);
+		if (r != i->second.end())
+			i->second.erase(r);
+	}
 }
 
 } // namespace x0
