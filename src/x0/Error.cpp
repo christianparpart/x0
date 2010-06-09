@@ -20,7 +20,16 @@ public:
 
 	virtual std::string message(int ec) const
 	{
-		return boost::lexical_cast<std::string>(ec);
+		static const char *msg[] = {
+			"Success",
+			"Config File Error",
+			"Fork Error",
+			"PID file not specified",
+			"Cannot create PID file",
+			"Could not initialize SSL library",
+			"No HTTP Listeners defined"
+		};
+		return msg[ec];
 	}
 };
 
