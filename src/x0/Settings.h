@@ -4,10 +4,42 @@
 #include <x0/Api.h>
 #include <x0/Property.h>
 #include <boost/variant.hpp>
+#include <system_error>
 #include <lua.hpp>
 #include <string>
 #include <vector>
 #include <map>
+
+// {{{ SettingsError
+namespace x0
+{
+	enum class SettingsError
+	{
+		Success,
+		Unknown,
+		InvalidCast,
+		NotFound
+	};
+
+	const std::error_category& settingsErrorCategory() throw();
+
+	inline std::error_code make_error_code(SettingsError ec)
+	{
+		return std::error_code(static_cast<int>(ec), settingsErrorCategory());
+	}
+
+	inline std::error_condition make_error_condition(SettingsError ec)
+	{
+		return std::error_condition(static_cast<int>(ec), settingsErrorCategory());
+	}
+}
+
+namespace std
+{
+	// implicit conversion from gai_error to error_code
+	template<> struct is_error_code_enum<x0::SettingsError> : public true_type {};
+}
+// }}}
 
 namespace x0 {
 
@@ -50,7 +82,7 @@ public:
 
 	lua_State *handle() const;
 
-	void load_file(const std::string& filename);
+	std::error_code load_file(const std::string& filename);
 
 	// root (global) table indexing
 	const SettingsValue operator[](const std::string& key) const;
@@ -61,10 +93,10 @@ public:
 	T get(const std::string& path, const T& defaultValue = T());
 
 	template<typename T>
-	bool load(const std::string& path, T& result);
+	std::error_code load(const std::string& path, T& result);
 
 	template<class T>
-	bool load(const std::string& path, value_property<T>& result);
+	std::error_code load(const std::string& path, value_property<T>& result);
 
 	std::vector<std::string> keys() const;
 };
@@ -105,8 +137,8 @@ public:
 	bool contains(const std::string& AFieldName) const;
 
 	// value read
-	template<typename T> bool load(T& _value) const;
-	template<typename T> bool load(value_property<T>& result) const;
+	template<typename T> std::error_code load(T& _value) const;
+	template<typename T> std::error_code load(value_property<T>& result) const;
 	template<typename T> T get(const T& _default = T()) const;
 	template<typename T> T as() const;
 	template<typename T> std::vector<T> keys() const;

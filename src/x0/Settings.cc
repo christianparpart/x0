@@ -14,25 +14,23 @@ inline T Settings::get(const std::string& path, const T& defaultValue)
 }
 
 template<typename T>
-inline bool Settings::load(const std::string& path, T& result)
+inline std::error_code Settings::load(const std::string& path, T& result)
 {
 	if (!contains(path))
-		return false;
+		return SettingsError::NotFound;
 
 	result = SettingsValue(L_, true, split<std::string>(path, ".")).as<T>();
-	return true;
+	return std::error_code();
 }
 
 template<class T>
-inline bool Settings::load(const std::string& path, value_property<T>& result)
+inline std::error_code Settings::load(const std::string& path, value_property<T>& result)
 {
-	if (contains(path))
-	{
-		result = SettingsValue(L_, true, split<std::string>(path, ".")).as<T>();
-		return true;
-	}
+	if (!contains(path))
+		return SettingsError::NotFound;
 
-	return false;
+	result = SettingsValue(L_, true, split<std::string>(path, ".")).as<T>();
+	return std::error_code();
 }
 
 inline std::vector<std::string> Settings::keys() const
@@ -61,27 +59,27 @@ inline std::vector<std::string> Settings::keys() const
 
 // {{{ SettingsValue
 template<typename T>
-bool SettingsValue::load(T& _value) const
+std::error_code SettingsValue::load(T& _value) const
 {
 	fetcher _(*this);
 
 	if (lua_type(L_, -1) == LUA_TNIL)
-		return false;
+		return SettingsError::NotFound;
 
 	_value = this->as<T>(-1);
-	return true;
+	return std::error_code();
 }
 
 template<typename T>
-inline bool SettingsValue::load(value_property<T>& result) const
+inline std::error_code SettingsValue::load(value_property<T>& result) const
 {
 	fetcher _(*this);
 
 	if (lua_type(L_, -1) == LUA_TNIL)
-		return false;
+		return SettingsError::NotFound;
 
 	result = this->as<T>(-1);
-	return true;
+	return std::error_code();
 }
 
 template<typename T>
@@ -110,9 +108,8 @@ inline std::vector<T> SettingsValue::keys() const
 		case LUA_TTABLE:
 			break;
 		case LUA_TNIL:
-			return result;
 		default:
-			throw "cast error: expected `table`.";
+			return result;
 	}
 
 	lua_pushnil(L_); // initial key

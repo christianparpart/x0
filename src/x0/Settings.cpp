@@ -1,4 +1,5 @@
 #include <x0/Settings.h>
+#include <x0/StringError.h>
 #include <x0/strutils.h>
 #include <stdexcept>
 
@@ -6,6 +7,44 @@
 #include <cstdio>
 
 namespace x0 {
+
+// {{{ SettingsError
+class SettingsErrorCategoryImpl :
+	public std::error_category
+{
+public:
+	SettingsErrorCategoryImpl()
+	{
+	}
+
+	virtual const char *name() const
+	{
+		return "SettingsError";
+	}
+
+	virtual std::string message(int ec) const
+	{
+		switch (ec)
+		{
+			case SettingsError::Success:
+				return "success";
+			case SettingsError::InvalidCast:
+				return "invalid cast";
+			case SettingsError::NotFound:
+				return "not found";
+			case SettingsError::Unknown:
+			default:
+				return "unknown";
+		}
+	}
+};
+
+const std::error_category& settingsErrorCategory() throw()
+{
+	static SettingsErrorCategoryImpl impl;
+	return impl;
+}
+// }}}
 
 void dumpStack(lua_State *L_, const char *msg = 0) // {{{
 {
@@ -79,16 +118,16 @@ Settings::~Settings()
 	}
 }
 
-void Settings::load_file(const std::string& filename)
+std::error_code Settings::load_file(const std::string& filename)
 {
 	int ec = luaL_dofile(L_, filename.c_str());
-	if (ec)
-	{
-		std::string message(lua_tostring(L_, -1));
-		lua_pop(L_, 1);
+	if (!ec)
+		return std::error_code();
 
-		throw std::runtime_error(message);
-	}
+	std::string message(lua_tostring(L_, -1));
+	lua_pop(L_, 1);
+
+	return make_error_code(message);
 }
 
 lua_State *Settings::handle() const
