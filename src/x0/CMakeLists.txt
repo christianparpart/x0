@@ -69,6 +69,7 @@ set(x0_http_API
 	http/HttpPlugin.h
 	http/HttpRangeDef.h http/HttpRangeDef.cc
 	http/HttpRequest.h
+	http/HttpRequestHandler.h
 	http/HttpResponse.h
 	http/HttpMessageProcessor.h
 	http/HttpServer.h
