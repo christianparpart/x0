@@ -39,8 +39,8 @@ void HttpPlugin::undeclareCVar(const std::string& key)
 	{
 		if (*i == key)
 		{
-			cvars_.erase(i);
 			server_.undeclareCVar(key);
+			cvars_.erase(i);
 			return;
 		}
 	}
