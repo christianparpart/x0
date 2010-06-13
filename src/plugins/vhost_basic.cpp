@@ -80,7 +80,7 @@ public:
 	{
 		using namespace std::placeholders;
 
-		c = server_.resolve_document_root.connect(std::bind(&vhost_basic_plugin::resolve_document_root, this, _1));
+		c = server_.onResolveDocumentRoot.connect(std::bind(&vhost_basic_plugin::resolveDocumentRoot, this, _1));
 
 		declareCVar("DocumentRoot", x0::HttpContext::host, &vhost_basic_plugin::setup_docroot);
 		declareCVar("Default", x0::HttpContext::host, &vhost_basic_plugin::setup_default);
@@ -90,7 +90,7 @@ public:
 
 	~vhost_basic_plugin()
 	{
-		server_.resolve_document_root.disconnect(c);
+		server_.onResolveDocumentRoot.disconnect(c);
 	}
 
 	std::error_code setup_docroot(const x0::SettingsValue& cvar, x0::Scope& s)
@@ -258,7 +258,7 @@ public:
 	}
 
 private:
-	void resolve_document_root(x0::HttpRequest *in)
+	void resolveDocumentRoot(x0::HttpRequest *in)
 	{
 		std::string hostid(in->hostid());
 

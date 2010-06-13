@@ -8,8 +8,8 @@
 #ifndef sw_x0_http_server_h
 #define sw_x0_http_server_h (1)
 
-#include <x0/http/request_handler.h>
 #include <x0/http/HttpContext.h>
+#include <x0/http/HttpRequestHandler.h>
 #include <x0/http/Types.h>
 #include <x0/io/FileInfoService.h>
 #include <x0/Settings.h>
@@ -77,14 +77,14 @@ public:
 	// }}}
 
 	// {{{ signals raised on request in order
-	connection_hook connection_open;		//!< This hook is invoked once a new client has connected.
-	request_parse_hook pre_process; 		//!< is called at the very beginning of a request.
-	request_parse_hook resolve_document_root;//!< resolves document_root to use for this request.
-	request_parse_hook resolve_entity;		//!< maps the request URI into local physical path.
-	request_handler generate_content;		//!< generates response content for this request being processed.
-	request_post_hook post_process;			//!< gets invoked right before serializing headers
-	request_post_hook request_done;			//!< this hook is invoked once the request has been <b>fully</b> served to the client.
-	connection_hook connection_close;		//!< is called before a connection gets closed / or has been closed by remote point.
+	connection_hook onConnectionOpen;		//!< This hook is invoked once a new client has connected.
+	request_parse_hook onPreProcess; 		//!< is called at the very beginning of a request.
+	request_parse_hook onResolveDocumentRoot;//!< resolves document_root to use for this request.
+	request_parse_hook onResolveEntity;		//!< maps the request URI into local physical path.
+	HttpRequestHandler onHandleRequest;		//!< generates response content for this request being processed.
+	request_post_hook onPostProcess;		//!< gets invoked right before serializing headers
+	request_post_hook onRequestDone;		//!< this hook is invoked once the request has been <b>fully</b> served to the client.
+	connection_hook onConnectionClose;		//!< is called before a connection gets closed / or has been closed by remote point.
 	// }}}
 
 	// {{{ HttpContext management

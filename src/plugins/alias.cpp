@@ -42,14 +42,14 @@ public:
 		alias_count_(0)
 	{
 		using namespace std::placeholders;
-		c = srv.resolve_entity.connect(std::bind(&alias_plugin::resolve_entity, this, _1));
+		c = srv.onResolveEntity.connect(std::bind(&alias_plugin::resolveEntity, this, _1));
 
 		declareCVar("Aliases", x0::HttpContext::server | x0::HttpContext::host, &alias_plugin::setup);
 	}
 
 	~alias_plugin()
 	{
-		server_.resolve_entity.disconnect(c);
+		server_.onResolveEntity.disconnect(c);
 		//server_.unlink_userdata(this);
 	}
 
@@ -59,7 +59,7 @@ public:
 		{
 			// Fine, you want me resident. But you did not make use of me!
 			// So I'll disconnect myself from your service. See if I care!
-			server_.resolve_entity.disconnect(c);
+			server_.onResolveEntity.disconnect(c);
 		}
 	}
 
@@ -84,7 +84,7 @@ private:
 		return 0;
 	}
 
-	void resolve_entity(x0::HttpRequest *in)
+	void resolveEntity(x0::HttpRequest *in)
 	{
 		if (in->path.size() < 2)
 			return;

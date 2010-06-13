@@ -38,14 +38,14 @@ indexfile_plugin::indexfile_plugin(x0::HttpServer& srv, const std::string& name)
 	// another signal that would order the event sequence for us, but i'm not yet that clear about how
 	// to name this in a clean and reasonable way.
 	using namespace std::placeholders;
-	c = server_.resolve_entity.connect(/*FIXME 1, */ std::bind(&indexfile_plugin::indexfile, this, _1));
+	c = server_.onResolveEntity.connect(/*FIXME 1, */ std::bind(&indexfile_plugin::indexfile, this, _1));
 
 	server_.declareCVar("IndexFiles", x0::HttpContext::server | x0::HttpContext::host, std::bind(&indexfile_plugin::setup_indexfiles, this, _1, _2));
 }
 
 indexfile_plugin::~indexfile_plugin()
 {
-	server_.resolve_entity.disconnect(c);
+	server_.onResolveEntity.disconnect(c);
 	server_.release(this);
 }
 

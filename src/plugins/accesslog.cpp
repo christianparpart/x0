@@ -102,14 +102,14 @@ public:
 		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
-		c = srv.request_done.connect(std::bind(&accesslog_plugin::request_done, this, _1, _2));
+		c = srv.onRequestDone.connect(std::bind(&accesslog_plugin::request_done, this, _1, _2));
 
 		declareCVar("AccessLog", x0::HttpContext::server | x0::HttpContext::host, &accesslog_plugin::setup_log);
 	}
 
 	~accesslog_plugin()
 	{
-		server_.request_done.disconnect(c);
+		server_.onRequestDone.disconnect(c);
 	}
 
 private:

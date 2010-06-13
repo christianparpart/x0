@@ -127,7 +127,7 @@ private:
 	ev::io errwatch_;
 	ev::timer ttl_;
 
-	std::function<void()> done_;			//!< should call at least next.done()
+	std::function<void()> done_;			//!< should call at least HttpResponse::finish()
 	bool destroy_pending_;
 };
 
@@ -229,7 +229,7 @@ inline void cgi_script::async_run()
 	} */
 
 #if defined(WITH_SSL)
-	if (request_->connection.ssl_enabled())
+	if (request_->connection.isSecure())
 	{
 		environment["HTTPS"] = "1";
 	}
@@ -403,7 +403,8 @@ void cgi_script::content_written(int ec, std::size_t nb)
  * \brief serves static files from server's local filesystem to client.
  */
 class cgi_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public x0::IHttpRequestHandler
 {
 public:
 	cgi_plugin(x0::HttpServer& srv, const std::string& name) :
@@ -413,12 +414,12 @@ public:
 		prefix_(),
 		ttl_()
 	{
-		c = server_.generate_content.connect(&cgi_plugin::generate_content, this);
+		server_.onHandleRequest.connect(this);
 		declareCVar("CGI.Mappings", x0::HttpContext::server, &cgi_plugin::configure_mappings);
 	}
 
 	~cgi_plugin() {
-		c.disconnect();
+		server_.onHandleRequest.disconnect(this);
 	}
 
 	virtual void configure()
@@ -482,43 +483,35 @@ private:
 	 * and either processing executables is globally allowed or request path is part
 	 * of the cgi prefix (usually /cgi-bin/).
 	 */
-	void generate_content(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out) {
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out) {
 		std::string path(in->fileinfo->filename());
 
 		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
 		if (!fi)
-			return next();
+			return false;
 
 		if (!fi->is_regular())
-			return next();
+			return false;
 
 		std::string interpreter;
 		if (find_interpreter(in, interpreter))
 		{
-			cgi_script::async_run(std::bind(&cgi_plugin::done, this, next), in, out, interpreter);
-			return;
+			cgi_script::async_run(std::bind(&x0::HttpResponse::finish, out), in, out, interpreter);
+			return true;
 		}
 
 		bool executable = fi->is_executable();
 
 		if (executable && (process_executables_ || matches_prefix(in)))
 		{
-			cgi_script::async_run(std::bind(&cgi_plugin::done, this, next), in, out);
-			return;
+			cgi_script::async_run(std::bind(&x0::HttpResponse::finish, out), in, out);
+			return true;
 		}
 
-		return next();
-	}
-
-	void done(x0::request_handler::invokation_iterator next)
-	{
-		next.done();
+		return false;
 	}
 
 private:
-	/** signal connection holder for this plugin's content generator. */
-	x0::request_handler::connection c;
-
 	/** a set of extension-to-interpreter mappings. */
 	std::map<std::string, std::string> interpreter_;
 

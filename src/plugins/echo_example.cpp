@@ -21,65 +21,57 @@
  * \brief echo content generator plugin
  */
 class echo_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public x0::IHttpRequestHandler
 {
-private:
-	x0::request_handler::connection c;
-
 public:
 	echo_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		c = server_.generate_content.connect(&echo_plugin::process_request, this);
+		server_.onHandleRequest.connect(this);
 	}
 
 	~echo_plugin()
 	{
-		c.disconnect(); // optional, as it gets invoked on ~connection(), too.
+		server_.onHandleRequest.disconnect(this);
 	}
 
 private:
-	void process_request(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (!x0::equals(in->path, "/echo"))
-			return next(); // pass request to next handler
+			return false; // pass request to next handler
 
 		out->status = x0::http_error::ok;
 
 		if (x0::BufferRef value = in->header("Content-Length"))
 			out->headers.set("Content-Length", value.str());
 
-		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, next, in, out))) {
+		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, in, out))) {
 			out->write(
 				std::make_shared<x0::BufferSource>("I'm an HTTP echo-server, dude.\n"),
-				std::bind(&echo_plugin::done, this, next)
+				std::bind(&x0::HttpResponse::finish, out)
 			);
 		}
+		return true;
 	}
 
-	void on_content(x0::BufferRef&& chunk, x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	void on_content(x0::BufferRef&& chunk, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		TRACE("on_content('%s')", chunk.str().c_str());
 		out->write(
 			std::make_shared<x0::BufferSource>(std::move(chunk)),
-			std::bind(&echo_plugin::content_written, this, next, in, out)
+			std::bind(&echo_plugin::content_written, this, in, out)
 		);
 	}
 
-	void content_written(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	void content_written(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, next, in, out)))
+		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, in, out)))
 		{
 			TRACE("request content processing: done");
-			return next.done();
+			return out->finish();
 		}
-	}
-
-	void done(x0::request_handler::invokation_iterator next)
-	{
-		// we're done processing this request
-		// -> make room for possible more requests to be processed by this connection
-		next.done();
 	}
 };
 

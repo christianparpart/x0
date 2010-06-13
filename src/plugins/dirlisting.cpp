@@ -35,11 +35,10 @@
  * \todo allow config overrides: server/vhost/location
  */
 class dirlisting_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public x0::IHttpRequestHandler
 {
 private:
-	x0::request_handler::connection c;
-
 	struct context : public x0::ScopeValue
 	{
 		boost::tribool enabled; // make it a tribool to introduce "undefined"?
@@ -65,7 +64,7 @@ public:
 	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		c = server_.generate_content.connect(&dirlisting_plugin::dirlisting, this);
+		server_.onHandleRequest.connect(this);
 
 		using namespace std::placeholders;
 		declareCVar("DirectoryListing", x0::HttpContext::server | x0::HttpContext::host, &dirlisting_plugin::setup_dirlisting);
@@ -76,7 +75,7 @@ public:
 
 	~dirlisting_plugin()
 	{
-		c.disconnect();
+		server_.onHandleRequest.disconnect(this);
 	}
 
 private:
@@ -85,22 +84,22 @@ private:
 		return cvar.load(s.acquire<context>(this)->enabled);
 	}
 
-	void dirlisting(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (!in->fileinfo->is_directory())
-			return next();
+			return false;
 
 		context *ctx = server_.host(in->hostid()).get<context>(this);
 		if (!ctx)
 			ctx = server_.get<context>(this);
 
-		if (ctx && ctx->enabled == true)
-			return process(next, in, out);
-		else
-			return next();
+		if (!ctx && !(ctx->enabled == true))
+			return false;
+
+		return process(in, out);
 	}
 
-	void process(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	bool process(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		debug(0, "process: %s [%s]",
 			in->fileinfo->filename().c_str(),
@@ -116,20 +115,16 @@ private:
 			out->headers.push_back("Content-Type", "text/html");
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
-			return out->write(
+			out->write(
 				std::make_shared<x0::BufferSource>(std::move(result)),
-				std::bind(&dirlisting_plugin::done, this, next)
+				std::bind(&x0::HttpResponse::finish, out)
 			);
+			return true;
 		}
 		else
 		{
-			return next();
+			return false;
 		}
-	}
-
-	void done(x0::request_handler::invokation_iterator next)
-	{
-		next.done();
 	}
 
 	std::string mkhtml(DIR *dir, x0::HttpRequest *in)

@@ -608,11 +608,9 @@ void proxy_connection::pass_request_content(x0::BufferRef&& chunk)
  * \brief proxy content generator plugin
  */
 class proxy_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public x0::IHttpRequestHandler
 {
-private:
-	x0::request_handler::connection c;
-
 public:
 	proxy_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
@@ -620,7 +618,7 @@ public:
 		using namespace std::placeholders;
 
 		// register content generator
-		c = server_.generate_content.connect(&proxy_plugin::process, this);
+		server_.onHandleRequest.connect(this);
 
 		server_.declareCVar("ProxyEnable", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
 		server_.declareCVar("ProxyMode", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
@@ -635,7 +633,7 @@ public:
 
 	~proxy_plugin()
 	{
-		c.disconnect(); // optional, as it gets invoked on ~connection(), too.
+		server_.onHandleRequest.disconnect(this);
 	}
 
 private:
@@ -737,32 +735,25 @@ public:
 	}
 
 private:
-	void process(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		proxy *px = get_proxy(in);
 		if (!px)
-			return next();
+			return false;
 
 		if (!px->enabled)
-			return next();
+			return false;
 
 		if (!px->method_allowed(in->method))
 		{
 			out->status = x0::http_error::method_not_allowed;
-			return next.done();
+			out->finish();
+			return true;
 		}
 
 		proxy_connection *connection = px->acquire();
-		connection->start(std::bind(&proxy_plugin::done, this, next), in, out);
-	}
-
-	void done(x0::request_handler::invokation_iterator next)
-	{
-		TRACE("done processing request");
-
-		// we're done processing this request
-		// -> make room for possible more requests to be processed by this connection
-		next.done();
+		connection->start(std::bind(&x0::HttpResponse::finish, out), in, out);
+		return true;
 	}
 };
 

@@ -50,14 +50,14 @@ namespace x0 {
  */
 HttpServer::HttpServer(struct ::ev_loop *loop) :
 	Scope("server"),
-	connection_open(),
-	pre_process(),
-	resolve_document_root(),
-	resolve_entity(),
-	generate_content(),
-	post_process(),
-	request_done(),
-	connection_close(),
+	onConnectionOpen(),
+	onPreProcess(),
+	onResolveDocumentRoot(),
+	onResolveEntity(),
+	onHandleRequest(),
+	onPostProcess(),
+	onRequestDone(),
+	onConnectionClose(),
 	vhosts_(),
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
@@ -346,10 +346,10 @@ void HttpServer::run()
 void HttpServer::handle_request(HttpRequest *in, HttpResponse *out)
 {
 	// pre-request hook
-	pre_process(const_cast<HttpRequest *>(in));
+	onPreProcess(const_cast<HttpRequest *>(in));
 
 	// resolve document root
-	resolve_document_root(const_cast<HttpRequest *>(in));
+	onResolveDocumentRoot(const_cast<HttpRequest *>(in));
 
 	if (in->document_root.empty())
 	{
@@ -360,7 +360,7 @@ void HttpServer::handle_request(HttpRequest *in, HttpResponse *out)
 
 	// resolve entity
 	in->fileinfo = fileinfo(in->document_root + in->path);
-	resolve_entity(const_cast<HttpRequest *>(in)); // translate_path
+	onResolveEntity(const_cast<HttpRequest *>(in)); // translate_path
 
 	// redirect physical request paths not ending with slash if mapped to directory
 	std::string filename = in->fileinfo->filename();
@@ -389,7 +389,7 @@ void HttpServer::handle_request(HttpRequest *in, HttpResponse *out)
 	}
 
 	// generate response content, based on this request
-	generate_content(std::bind(&HttpResponse::finish, out), const_cast<HttpRequest *>(in), const_cast<HttpResponse *>(out));
+	onHandleRequest(in, out);
 }
 
 /**
@@ -459,12 +459,8 @@ void HttpServer::log(Severity s, const char *msg, ...)
 	if (colored_log_)
 	{
 		static AnsiColor::Type colors[] = {
-			AnsiColor::Red, // emergency
-			AnsiColor::Red | AnsiColor::Bold, // alert
-			AnsiColor::Red, // critical
 			AnsiColor::Red | AnsiColor::Bold, // error
 			AnsiColor::Yellow | AnsiColor::Bold, // warn
-			AnsiColor::White | AnsiColor::Bold, // notice
 			AnsiColor::Green, // info
 			AnsiColor::Cyan, // debug
 		};

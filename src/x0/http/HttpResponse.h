@@ -209,7 +209,6 @@ public:
 
 	bool content_forbidden() const;
 
-private:
 	/** finishes this response by flushing the content into the stream.
 	 *
 	 * \note this also queues the underlying connection for processing the next request.
@@ -232,6 +231,7 @@ private:
 		}
 	}
 
+private:
 	void complete_write(int ec, const SourcePtr& content, const CompletionHandlerType& handler);
 	void write_content(const SourcePtr& content, const CompletionHandlerType& handler);
 

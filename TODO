@@ -1,5 +1,9 @@
 for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects/x0
 
+- replace std::function<>-style hooks with a more performant solution:
+	- at least for content generator (virtual method)
+	- second: all hooks involved in request processing (function-member pointers, or virtual method?)
+	- optional: remaining configure-time hooks.
 - HTTP POST: proxy, cgi
 - error management (std::error_code), *no* exceptions.
 

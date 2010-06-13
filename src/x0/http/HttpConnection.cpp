@@ -149,7 +149,7 @@ HttpConnection::~HttpConnection()
 
 	try
 	{
-		server_.connection_close(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
+		server_.onConnectionClose(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
 	}
 	catch (...)
 	{
@@ -157,7 +157,7 @@ HttpConnection::~HttpConnection()
 	}
 
 #if defined(WITH_SSL)
-	if (ssl_enabled())
+	if (isSecure())
 		gnutls_deinit(ssl_session_);
 #endif
 
@@ -214,7 +214,7 @@ void HttpConnection::ssl_initialize()
 	listener_.ssl_db().bind(ssl_session_);
 }
 
-bool HttpConnection::ssl_enabled() const
+bool HttpConnection::isSecure() const
 {
 	return listener_.secure();
 }
@@ -254,16 +254,16 @@ void HttpConnection::start()
 	}
 #endif
 
-	server_.connection_open(this);
+	server_.onConnectionOpen(this);
 
-	if (is_closed()) // hook triggered delayed delete via HttpConnection::close()
+	if (isClosed()) // hook triggered delayed delete via HttpConnection::close()
 	{
 		delete this;
 		return;
 	}
 
 #if defined(WITH_SSL)
-	if (ssl_enabled())
+	if (isSecure())
 	{
 		handshaking_ = true;
 		ssl_initialize();
@@ -549,7 +549,7 @@ void HttpConnection::handle_write()
 	if (handshaking_)
 		return (void) ssl_handshake();
 
-//	if (ssl_enabled())
+//	if (isSecure())
 //		rv = gnutls_write(ssl_session_, buffer_.capacity() - buffer_.size());
 //	else if (write_some)
 //		write_some(this);
@@ -574,7 +574,7 @@ void HttpConnection::handle_write()
 		write_some(this);
 #endif
 
-	if (is_closed())
+	if (isClosed())
 		delete this;
 }
 
@@ -602,7 +602,7 @@ void HttpConnection::handle_read()
 
 	int rv;
 #if defined(WITH_SSL)
-	if (ssl_enabled())
+	if (isSecure())
 		rv = gnutls_read(ssl_session_, buffer_.end(), buffer_.capacity() - buffer_.size());
 	else
 		rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
@@ -643,7 +643,7 @@ void HttpConnection::handle_read()
 		process();
 	}
 
-	if (is_closed())
+	if (isClosed())
 		delete this;
 }
 

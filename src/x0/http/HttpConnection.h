@@ -78,7 +78,7 @@ public:
 	const HttpListener& listener() const;
 
 #if defined(WITH_SSL)
-	bool ssl_enabled() const;
+	bool isSecure() const;
 #endif
 
 private:
@@ -93,7 +93,7 @@ private:
 	virtual bool message_content(BufferRef&& chunk);
 	virtual bool message_end();
 
-	bool is_closed() const;
+	bool isClosed() const;
 	void resume(bool finish);
 
 	void start_read();
@@ -205,7 +205,7 @@ inline const HttpListener& HttpConnection::listener() const
 
 /** tests whether HttpConnection::close() was invoked already.
  */
-inline bool HttpConnection::is_closed() const
+inline bool HttpConnection::isClosed() const
 {
 	return socket_ < 0;
 }

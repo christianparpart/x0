@@ -35,21 +35,19 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class sendfile_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public x0::IHttpRequestHandler
 {
 private:
-	x0::request_handler::connection c;
-
 public:
 	sendfile_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name),
-		c()
+		x0::HttpPlugin(srv, name)
 	{
-		c = server_.generate_content.connect(&sendfile_plugin::sendfile, this);
+		server_.onHandleRequest.connect(this);
 	}
 
 	~sendfile_plugin() {
-		c.disconnect();
+		server_.onHandleRequest.disconnect(this);
 	}
 
 private:
@@ -97,17 +95,20 @@ private:
 		return x0::http_error::ok;
 	} // }}}
 
-	void sendfile(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out) // {{{
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out) // {{{
 	{
 		if (!in->fileinfo->exists())
-			return next();
+			return false;
 
 		if (!in->fileinfo->is_regular())
-			return next();
+			return false;
 
 		out->status = verify_client_cache(in, out);
 		if (out->status != x0::http_error::ok)
-			return next.done();
+		{
+			out->finish();
+			return true;
+		}
 
 		x0::FilePtr f;
 		if (equals(in->method, "GET"))
@@ -120,42 +121,44 @@ private:
 					in->fileinfo->filename().c_str(), strerror(errno));
 
 				out->status = x0::http_error::forbidden;
-				return next.done();
+				out->finish();
+				return true;
 			}
 		}
 		else if (!equals(in->method, "HEAD"))
 		{
 			out->status = x0::http_error::method_not_allowed;
-			return next.done();
+			out->finish();
+			return true;
 		}
 
 		out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
 		out->headers.push_back("ETag", in->fileinfo->etag());
 
-		if (!process_range_request(next, in, out, f))
+		if (!process_range_request(in, out, f))
 		{
 			out->headers.push_back("Accept-Ranges", "bytes");
 			out->headers.push_back("Content-Type", in->fileinfo->mimetype());
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
 			if (!f) // HEAD request
-				return next.done();
+			{
+				out->finish();
+			}
+			else
+			{
+				posix_fadvise(f->handle(), 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
 
-			posix_fadvise(f->handle(), 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
-
-			out->write(
-				std::make_shared<x0::FileSource>(f, 0, in->fileinfo->size()),
-				std::bind(&sendfile_plugin::done, this, next)
-			);
+				out->write(
+					std::make_shared<x0::FileSource>(f, 0, in->fileinfo->size()),
+					std::bind(&x0::HttpResponse::finish, out)
+				);
+			}
 		}
+		return true;
 	} // }}}
 
-	void done(x0::request_handler::invokation_iterator next)
-	{
-		next.done();
-	}
-
-	inline bool process_range_request(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out, x0::FilePtr& f) //{{{
+	inline bool process_range_request(x0::HttpRequest *in, x0::HttpResponse *out, x0::FilePtr& f) //{{{
 	{
 		x0::BufferRef range_value(in->header("Range"));
 		x0::HttpRangeDef range;
@@ -221,11 +224,11 @@ private:
 
 			if (f)
 			{
-				out->write(content, std::bind(&sendfile_plugin::done, this, next));
+				out->write(content, std::bind(&x0::HttpResponse::finish, out));
 			}
 			else
 			{
-				next.done();
+				out->finish();
 			}
 		}
 		else
@@ -252,12 +255,12 @@ private:
 			{
 				out->write(
 					std::make_shared<x0::FileSource>(f, offsets.first, length),
-					std::bind(&sendfile_plugin::done, this, next)
+					std::bind(&x0::HttpResponse::finish, out)
 				);
 			}
 			else
 			{
-				next.done();
+				out->finish();
 			}
 		}
 

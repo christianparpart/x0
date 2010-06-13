@@ -73,7 +73,7 @@ private:
 		}
 	};
 
-	x0::HttpServer::request_post_hook::connection post_process_;
+	x0::HttpServer::request_post_hook::connection postProcess_;
 
 public:
 	compress_plugin(x0::HttpServer& srv, const std::string& name) :
@@ -81,7 +81,7 @@ public:
 	{
 		using namespace std::placeholders;
 
-		post_process_ = server_.post_process.connect(std::bind(&compress_plugin::post_process, this, _1, _2));
+		postProcess_ = server_.onPostProcess.connect(std::bind(&compress_plugin::postProcess, this, _1, _2));
 
 		declareCVar("CompressTypes", x0::HttpContext::server, &compress_plugin::setup_types);
 		declareCVar("CompressLevel", x0::HttpContext::server, &compress_plugin::setup_level);
@@ -90,7 +90,7 @@ public:
 	}
 
 	~compress_plugin() {
-		server_.post_process.disconnect(post_process_);
+		server_.onPostProcess.disconnect(postProcess_);
 	}
 
 private:
@@ -114,7 +114,7 @@ private:
 		return cvar.load(s.acquire<context>(this)->max_size_);
 	}
 
-	void post_process(x0::HttpRequest *in, x0::HttpResponse *out)
+	void postProcess(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content

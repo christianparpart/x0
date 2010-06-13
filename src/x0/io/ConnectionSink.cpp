@@ -27,7 +27,7 @@ ConnectionSink::ConnectionSink(HttpConnection *conn) :
 ssize_t ConnectionSink::pump(Source& src)
 {
 #if defined(WITH_SSL)
-	if (connection_->ssl_enabled())
+	if (connection_->isSecure())
 	{
 		if (buf_.empty())
 			src.pull(buf_);

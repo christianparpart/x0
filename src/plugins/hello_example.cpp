@@ -33,11 +33,10 @@
  * \brief example content generator plugin
  */
 class hello_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public x0::IHttpRequestHandler
 {
 private:
-	x0::request_handler::connection c;
-
 	struct context
 	{
 		bool enabled;
@@ -49,19 +48,19 @@ public:
 		x0::HttpPlugin(srv, name)
 	{
 		// register content generator
-		c = server_.generate_content.connect(&hello_plugin::hello, this);
+		server_.onHandleRequest.connect(this);
 	}
 
 	~hello_plugin()
 	{
-		c.disconnect(); // optional, as it gets invoked on ~connection(), too.
+		server_.onHandleRequest.disconnect(this);
 	}
 
 private:
-	void hello(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (!x0::equals(in->path, "/hello"))
-			return next(); // pass request to next handler
+			return false; // pass request to next handler
 
 		out->status = x0::http_error::ok;
 		out->headers.set("Hello", "World");
@@ -69,51 +68,47 @@ private:
 		if (in->content_available())
 		{
 			TRACE("content expected");
-			in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, next, in, out));
+			in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, in, out));
 		}
 		else
 		{
 			TRACE("NO content expected");
 			out->write(
 				std::make_shared<x0::BufferSource>("Hello, World\n"),
-				std::bind(&hello_plugin::done, this, next)
+				std::bind(&x0::HttpResponse::finish, out)
 			);
 		}
+		return true;
 	}
 
-	void post_next(x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	void postNext(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 
-		if (!in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, next, in, out)))
+		if (!in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, in, out)))
 		{
 			TRACE("request content processing: continue");
-			return next.done();
 		}
 		else
+		{
 			TRACE("request content processing: finished");
+			out->finish();
+		}
 	}
 
-	void post(x0::BufferRef&& chunk, x0::request_handler::invokation_iterator next, x0::HttpRequest *in, x0::HttpResponse *out)
+	void post(x0::BufferRef&& chunk, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		TRACE("post('%s')\n", chunk.str().c_str());
 		if (chunk.empty())
-			return next.done();
+			return out->finish();
 
 		x0::Buffer reply;
 		reply.push_back(chunk);
-	//	reply.push_back("\r\n");
+		//reply.push_back("\r\n");
 
 		out->write(
 			std::make_shared<x0::BufferSource>(reply),
-			std::bind(&hello_plugin::post_next, this, next, in, out)
+			std::bind(&hello_plugin::postNext, this, in, out)
 		);
-	}
-
-	void done(x0::request_handler::invokation_iterator next)
-	{
-		// we're done processing this request
-		// -> make room for possible more requests to be processed by this connection
-		next.done();
 	}
 };
 

@@ -121,7 +121,7 @@ SourcePtr HttpResponse::serialize()
 	}
 
 	// post-response hook
-	connection_->server().post_process(const_cast<HttpRequest *>(request_), this);
+	connection_->server().onPostProcess(const_cast<HttpRequest *>(request_), this);
 
 	// setup (connection-level) response transfer
 	if (!headers.contains("Content-Length") && !content_forbidden())
@@ -234,7 +234,7 @@ void HttpResponse::finished1(int ec)
 		HttpServer& srv = request_->connection.server();
 
 		// log request/response
-		srv.request_done(const_cast<HttpRequest *>(request_), this);
+		srv.onRequestDone(const_cast<HttpRequest *>(request_), this);
 	}
 
 	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)

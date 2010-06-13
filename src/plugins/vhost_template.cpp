@@ -34,12 +34,12 @@ public:
 	vhost_template_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		c = server_.resolve_document_root.connect(boost::bind(&vhost_template_plugin::resolve_document_root, this, _1));
+		c = server_.onResolveDocumentRoot.connect(boost::bind(&vhost_template_plugin::resolveDocumentRoot, this, _1));
 	}
 
 	~vhost_template_plugin()
 	{
-		server_.resolve_document_root.disconnect(c);
+		server_.onResolveDocumentRoot.disconnect(c);
 	}
 
 	virtual void configure()
@@ -86,7 +86,7 @@ public:
 	}
 
 private:
-	void resolve_document_root(x0::HttpRequest *in) {
+	void resolveDocumentRoot(x0::HttpRequest *in) {
 		if (in->document_root.empty())
 		{
 			x0::BufferRef hostname(in->header("Host"));

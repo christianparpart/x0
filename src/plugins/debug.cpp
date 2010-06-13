@@ -128,17 +128,17 @@ public:
 	debug_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		connection_open_ = server_.connection_open.connect(boost::bind(&debug_plugin::connection_open, this, _1));
-		pre_process_ = server_.pre_process.connect(boost::bind(&debug_plugin::pre_process, this, _1));
-		request_done_ = server_.request_done.connect(boost::bind(&debug_plugin::request_done, this, _1, _2));
-		connection_close_ = server_.connection_close.connect(boost::bind(&debug_plugin::connection_close, this, _1));
+		connection_open_ = server_.onConnectionOpen.connect(boost::bind(&debug_plugin::connection_open, this, _1));
+		pre_process_ = server_.onPreProcess.connect(boost::bind(&debug_plugin::pre_process, this, _1));
+		request_done_ = server_.onRequestDone.connect(boost::bind(&debug_plugin::request_done, this, _1, _2));
+		connection_close_ = server_.onConnectionClose.connect(boost::bind(&debug_plugin::connection_close, this, _1));
 	}
 
 	~debug_plugin() {
-		server_.connection_open.disconnect(connection_open_);
-		server_.pre_process.disconnect(pre_process_);
-		server_.request_done.disconnect(request_done_);
-		server_.connection_close.disconnect(connection_close_);
+		server_.onConnectionOpen.disconnect(connection_open_);
+		server_.onPreProcess.disconnect(pre_process_);
+		server_.onRequestDone.disconnect(request_done_);
+		server_.onConnectionClose.disconnect(connection_close_);
 	}
 
 private:

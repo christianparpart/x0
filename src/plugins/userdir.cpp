@@ -43,14 +43,14 @@ public:
 		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
-		c = server_.resolve_entity.connect(/*0, */ std::bind(&userdir_plugin::resolve_entity, this, _1));
+		c = server_.onResolveEntity.connect(/*0, */ std::bind(&userdir_plugin::resolve_entity, this, _1));
 
 		declareCVar("UserDir", x0::HttpContext::server | x0::HttpContext::host, &userdir_plugin::setup_userdir);
 	}
 
 	~userdir_plugin()
 	{
-		server_.resolve_entity.disconnect(c);
+		server_.onResolveEntity.disconnect(c);
 	}
 
 	std::error_code setup_userdir(const x0::SettingsValue& cvar, x0::Scope& s)
