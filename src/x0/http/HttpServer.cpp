@@ -389,7 +389,10 @@ void HttpServer::handle_request(HttpRequest *in, HttpResponse *out)
 	}
 
 	// generate response content, based on this request
-	onHandleRequest(in, out);
+	if (!onHandleRequest(in, out))
+	{
+		out->finish();
+	}
 }
 
 /**
