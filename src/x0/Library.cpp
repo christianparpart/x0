@@ -146,7 +146,10 @@ void *Library::operator[](const std::string& symbol)
 void Library::close()
 {
 	if (handle_)
+	{
 		dlclose(handle_);
+		handle_ = 0;
+	}
 }
 
 } // namespace x0
