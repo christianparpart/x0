@@ -52,10 +52,6 @@ class HttpServer :
 	HttpServer(const HttpServer&) = delete;
 	HttpServer& operator=(const HttpServer&) = delete;
 
-private:
-	typedef std::pair<HttpPluginPtr, Library> plugin_value_t;
-	typedef std::map<std::string, plugin_value_t> plugin_map_t;
-
 public:
 	typedef x0::signal<void(HttpConnection *)> connection_hook;
 	typedef x0::signal<void(HttpRequest *)> request_parse_hook;
@@ -155,6 +151,9 @@ public:
 	void unloadPlugin(const std::string& name);
 	std::vector<std::string> pluginsLoaded() const;
 
+	HttpPlugin *registerPlugin(HttpPlugin *plugin);
+	HttpPlugin *unregisterPlugin(HttpPlugin *plugin);
+
 	struct ::ev_loop *loop() const;
 
 	/** retrieves the current server time. */
@@ -195,7 +194,8 @@ private:
 	int debug_level_;
 	bool colored_log_;
 	std::string pluginDirectory_;
-	plugin_map_t plugins_;
+	std::vector<HttpPlugin *> plugins_;
+	std::map<HttpPlugin *, Library> pluginLibraries_;
 	DateTime now_;
 	ev::check loop_check_;
 	HttpCore *core_;

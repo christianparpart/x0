@@ -64,18 +64,11 @@ public:
 	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		server_.onHandleRequest.connect(this);
-
 		using namespace std::placeholders;
 		declareCVar("DirectoryListing", x0::HttpContext::server | x0::HttpContext::host, &dirlisting_plugin::setup_dirlisting);
 
 		// default global to `true` (required for instant-mode, but I could *fix* this)
 		server().acquire<context>(this)->enabled = true;
-	}
-
-	~dirlisting_plugin()
-	{
-		server_.onHandleRequest.disconnect(this);
 	}
 
 private:

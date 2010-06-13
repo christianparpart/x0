@@ -71,6 +71,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	colored_log_(false),
 	pluginDirectory_(PLUGINDIR),
 	plugins_(),
+	pluginLibraries_(),
 	now_(),
 	loop_check_(loop_),
 	core_(0),
@@ -97,7 +98,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	loop_check_.set<HttpServer, &HttpServer::loop_check>(this);
 	loop_check_.start();
 
-	core_ = new HttpCore(*this);
+	registerPlugin(core_ = new HttpCore(*this));
 }
 
 void HttpServer::loop_check(ev::check& /*w*/, int /*revents*/)
@@ -121,6 +122,7 @@ HttpServer::~HttpServer()
 	for (std::list<HttpListener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 		delete *k;
 
+	unregisterPlugin(core_);
 	delete core_;
 	core_ = 0;
 }
@@ -212,7 +214,7 @@ std::error_code HttpServer::configure(const std::string& configfile)
 	// post-config hooks
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
-		i->second.first->post_config();
+		(*i)->post_config();
 	}
 	// }}}
 
@@ -554,10 +556,10 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 
 		if (!ec)
 		{
-			HttpPluginPtr plugin = HttpPluginPtr(plugin_create(*this, name));
-			plugins_[name] = plugin_value_t(plugin, std::move(lib));
+			HttpPlugin *plugin = plugin_create(*this, name);
+			pluginLibraries_[plugin] = std::move(lib);
 
-			return plugin.get();
+			return registerPlugin(plugin);
 		}
 	}
 
@@ -567,17 +569,21 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 /** safely unloads a plugin. */
 void HttpServer::unloadPlugin(const std::string& name)
 {
-	plugin_map_t::iterator i = plugins_.find(name);
-
-	if (i != plugins_.end())
+	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
-		// clear ptr to local map, though, deallocating this plugin object
-		i->second.first = HttpPluginPtr();
+		HttpPlugin *plugin = *i;
 
-		// close system handle
-		i->second.second.close();
+		if (plugin->name() == name)
+		{
+			unregisterPlugin(plugin);
 
-		plugins_.erase(i);
+			auto m = pluginLibraries_.find(plugin);
+			if (m != pluginLibraries_.end())
+			{
+				m->second.close();
+				pluginLibraries_.erase(m);
+			}
+		}
 	}
 }
 
@@ -586,10 +592,35 @@ std::vector<std::string> HttpServer::pluginsLoaded() const
 {
 	std::vector<std::string> result;
 
-	for (plugin_map_t::const_iterator i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
-		result.push_back(i->first);
+	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+		result.push_back((*i)->name());
 
 	return result;
+}
+
+HttpPlugin *HttpServer::registerPlugin(HttpPlugin *plugin)
+{
+	plugins_.push_back(plugin);
+
+	if (IHttpRequestHandler *handler = dynamic_cast<IHttpRequestHandler *>(plugin))
+		onHandleRequest.connect(handler);
+
+	return plugin;
+}
+
+HttpPlugin *HttpServer::unregisterPlugin(HttpPlugin *plugin)
+{
+	if (IHttpRequestHandler *handler = dynamic_cast<IHttpRequestHandler *>(plugin))
+		onHandleRequest.disconnect(handler);
+
+	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i) {
+		if (*i == plugin) {
+			plugins_.erase(i);
+			break;
+		}
+	}
+
+	return plugin;
 }
 
 bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const cvar_handler& callback, int priority)

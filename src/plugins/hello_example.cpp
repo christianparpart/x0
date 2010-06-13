@@ -47,13 +47,10 @@ public:
 	hello_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		// register content generator
-		server_.onHandleRequest.connect(this);
 	}
 
 	~hello_plugin()
 	{
-		server_.onHandleRequest.disconnect(this);
 	}
 
 private:

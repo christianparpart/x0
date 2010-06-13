@@ -28,12 +28,10 @@ public:
 	echo_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		server_.onHandleRequest.connect(this);
 	}
 
 	~echo_plugin()
 	{
-		server_.onHandleRequest.disconnect(this);
 	}
 
 private:

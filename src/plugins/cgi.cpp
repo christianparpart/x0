@@ -414,12 +414,7 @@ public:
 		prefix_(),
 		ttl_()
 	{
-		server_.onHandleRequest.connect(this);
 		declareCVar("CGI.Mappings", x0::HttpContext::server, &cgi_plugin::configure_mappings);
-	}
-
-	~cgi_plugin() {
-		server_.onHandleRequest.disconnect(this);
 	}
 
 	virtual void configure()

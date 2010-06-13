@@ -617,9 +617,6 @@ public:
 	{
 		using namespace std::placeholders;
 
-		// register content generator
-		server_.onHandleRequest.connect(this);
-
 		server_.declareCVar("ProxyEnable", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
 		server_.declareCVar("ProxyMode", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
 		server_.declareCVar("ProxyOrigins", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_origins, this, _1, _2));
@@ -633,7 +630,6 @@ public:
 
 	~proxy_plugin()
 	{
-		server_.onHandleRequest.disconnect(this);
 	}
 
 private:

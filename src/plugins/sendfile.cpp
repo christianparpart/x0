@@ -43,11 +43,10 @@ public:
 	sendfile_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		server_.onHandleRequest.connect(this);
 	}
 
-	~sendfile_plugin() {
-		server_.onHandleRequest.disconnect(this);
+	~sendfile_plugin()
+	{
 	}
 
 private:
