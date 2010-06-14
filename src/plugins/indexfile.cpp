@@ -40,7 +40,7 @@ indexfile_plugin::indexfile_plugin(x0::HttpServer& srv, const std::string& name)
 	using namespace std::placeholders;
 	c = server_.onResolveEntity.connect(/*FIXME 1, */ std::bind(&indexfile_plugin::indexfile, this, _1));
 
-	server_.declareCVar("IndexFiles", x0::HttpContext::server | x0::HttpContext::host, std::bind(&indexfile_plugin::setup_indexfiles, this, _1, _2));
+	declareCVar("IndexFiles", x0::HttpContext::server | x0::HttpContext::host, &indexfile_plugin::setup_indexfiles);
 }
 
 indexfile_plugin::~indexfile_plugin()

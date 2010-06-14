@@ -617,15 +617,15 @@ public:
 	{
 		using namespace std::placeholders;
 
-		server_.declareCVar("ProxyEnable", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_enable, this, _1, _2));
-		server_.declareCVar("ProxyMode", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_mode, this, _1, _2));
-		server_.declareCVar("ProxyOrigins", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_origins, this, _1, _2));
-		server_.declareCVar("ProxyHotSpares", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_hotspares, this, _1, _2));
-		server_.declareCVar("ProxyMethods", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_methods, this, _1, _2));
-		server_.declareCVar("ProxyConnectTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_connect_timeout, this, _1, _2));
-		server_.declareCVar("ProxyReadTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_read_timeout, this, _1, _2));
-		server_.declareCVar("ProxyWriteTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_write_timeout, this, _1, _2));
-		server_.declareCVar("ProxyKeepAliveTimeout", x0::HttpContext::server | x0::HttpContext::host, std::bind(&proxy_plugin::setup_proxy_keepalive_timeout, this, _1, _2));
+		declareCVar("ProxyEnable", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_enable);
+		declareCVar("ProxyMode", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_mode);
+		declareCVar("ProxyOrigins", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_origins);
+		declareCVar("ProxyHotSpares", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_hotspares);
+		declareCVar("ProxyMethods", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_methods);
+		declareCVar("ProxyConnectTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_connect_timeout);
+		declareCVar("ProxyReadTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_read_timeout);
+		declareCVar("ProxyWriteTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_write_timeout);
+		declareCVar("ProxyKeepAliveTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_keepalive_timeout);
 	}
 
 	~proxy_plugin()
