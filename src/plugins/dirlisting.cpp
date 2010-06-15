@@ -71,6 +71,11 @@ public:
 		server().acquire<context>(this)->enabled = true;
 	}
 
+	~dirlisting_plugin()
+	{
+		server().release(this);
+	}
+
 private:
 	std::error_code setup_dirlisting(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
