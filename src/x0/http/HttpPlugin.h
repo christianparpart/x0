@@ -30,7 +30,7 @@ private:
 
 public:
 	HttpPlugin(HttpServer& srv, const std::string& name);
-	~HttpPlugin();
+	virtual ~HttpPlugin();
 
 	std::string name() const;
 
