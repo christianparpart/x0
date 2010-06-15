@@ -66,11 +66,6 @@ template<typename T> T *Scope::acquire(const void *key)
 
 	return get<T>(key);
 }
-
-inline void Scope::release(const void *key)
-{
-	data_.erase(data_.find(key));
-}
 // }}}
 
 } // namespace x0

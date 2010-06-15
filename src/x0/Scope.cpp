@@ -11,6 +11,13 @@ void Scope::set(const void *key, std::shared_ptr<ScopeValue> value)
 	data_[key] = value;
 }
 
+void Scope::release(const void *key)
+{
+	auto i = data_.find(key);
+	if (i != data_.end())
+		data_.erase(i);
+}
+
 void Scope::merge(const ScopeValue *from)
 {
 	const Scope *s = dynamic_cast<const Scope *>(from);
