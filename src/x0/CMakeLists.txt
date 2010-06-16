@@ -98,6 +98,7 @@ set(x0_SRC
 	Scope.cpp
 	Settings.cpp
 	Severity.cpp
+	StackTrace.cpp
 	StringError.cpp
 	ssl_db_cache.cpp # should go into io/
 	strutils.cpp
@@ -127,6 +128,7 @@ set(x0_API
 	Scope.h
 	Settings.h Settings.cc
 	Severity.h
+	StackTrace.h
 	StringError.h
 	Signal.h
 	ssl_db_cache.h
