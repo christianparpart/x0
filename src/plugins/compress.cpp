@@ -93,6 +93,7 @@ public:
 
 	~compress_plugin() {
 		server_.onPostProcess.disconnect(postProcess_);
+		server().release(this);
 	}
 
 public: // ICompressPlugin
