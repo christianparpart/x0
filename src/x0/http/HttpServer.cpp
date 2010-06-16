@@ -679,7 +679,7 @@ std::vector<std::string> HttpServer::cvars(HttpContext cx) const
 
 void HttpServer::undeclareCVar(const std::string& key)
 {
-	DEBUG("undeclareCVar: '%s'", key.c_str());
+	//DEBUG("undeclareCVar: '%s'", key.c_str());
 
 	for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i) {
 		auto r = i->second.find(key);
