@@ -53,9 +53,9 @@ class HttpServer :
 	HttpServer& operator=(const HttpServer&) = delete;
 
 public:
-	typedef x0::signal<void(HttpConnection *)> connection_hook;
-	typedef x0::signal<void(HttpRequest *)> request_parse_hook;
-	typedef x0::signal<void(HttpRequest *, HttpResponse *)> request_post_hook;
+	typedef Signal<void(HttpConnection *)> ConnectionHook;
+	typedef Signal<void(HttpRequest *)> RequestHook;
+	typedef Signal<void(HttpRequest *, HttpResponse *)> RequestPostHook;
 
 public:
 	explicit HttpServer(struct ::ev_loop *loop = 0);
@@ -73,14 +73,14 @@ public:
 	// }}}
 
 	// {{{ signals raised on request in order
-	connection_hook onConnectionOpen;		//!< This hook is invoked once a new client has connected.
-	request_parse_hook onPreProcess; 		//!< is called at the very beginning of a request.
-	request_parse_hook onResolveDocumentRoot;//!< resolves document_root to use for this request.
-	request_parse_hook onResolveEntity;		//!< maps the request URI into local physical path.
-	HttpRequestHandler onHandleRequest;		//!< generates response content for this request being processed.
-	request_post_hook onPostProcess;		//!< gets invoked right before serializing headers
-	request_post_hook onRequestDone;		//!< this hook is invoked once the request has been <b>fully</b> served to the client.
-	connection_hook onConnectionClose;		//!< is called before a connection gets closed / or has been closed by remote point.
+	ConnectionHook onConnectionOpen;	//!< This hook is invoked once a new client has connected.
+	RequestHook onPreProcess; 			//!< is called at the very beginning of a request.
+	RequestHook onResolveDocumentRoot;	//!< resolves document_root to use for this request.
+	RequestHook onResolveEntity;		//!< maps the request URI into local physical path.
+	HttpRequestHandler onHandleRequest;	//!< generates response content for this request being processed.
+	RequestPostHook onPostProcess;		//!< gets invoked right before serializing headers
+	RequestPostHook onRequestDone;		//!< this hook is invoked once the request has been <b>fully</b> served to the client.
+	ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.
 	// }}}
 
 	// {{{ HttpContext management

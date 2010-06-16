@@ -73,7 +73,7 @@ private:
 		}
 	};
 
-	x0::HttpServer::request_post_hook::connection postProcess_;
+	x0::HttpServer::RequestPostHook::Connection postProcess_;
 
 public:
 	compress_plugin(x0::HttpServer& srv, const std::string& name) :
@@ -81,7 +81,7 @@ public:
 	{
 		using namespace std::placeholders;
 
-		postProcess_ = server_.onPostProcess.connect(std::bind(&compress_plugin::postProcess, this, _1, _2));
+		postProcess_ = server_.onPostProcess.connect<compress_plugin, &compress_plugin::postProcess>(this);
 
 		declareCVar("CompressTypes", x0::HttpContext::server, &compress_plugin::setup_types);
 		declareCVar("CompressLevel", x0::HttpContext::server, &compress_plugin::setup_level);

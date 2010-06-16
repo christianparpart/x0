@@ -22,7 +22,7 @@ class userdir_plugin :
 	public x0::HttpPlugin
 {
 private:
-	x0::HttpServer::request_parse_hook::connection c;
+	x0::HttpServer::RequestHook::Connection c;
 
 	struct context : public x0::ScopeValue
 	{
@@ -43,7 +43,7 @@ public:
 		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
-		c = server_.onResolveEntity.connect(/*0, */ std::bind(&userdir_plugin::resolve_entity, this, _1));
+		c = server_.onResolveEntity.connect<userdir_plugin, &userdir_plugin::resolve_entity>(this);
 
 		declareCVar("UserDir", x0::HttpContext::server | x0::HttpContext::host, &userdir_plugin::setup_userdir);
 	}

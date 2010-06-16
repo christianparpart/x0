@@ -119,19 +119,19 @@ class debug_plugin :
 	public x0::HttpPlugin
 {
 private:
-	x0::HttpServer::connection_hook::connection connection_open_;
-	x0::HttpServer::request_parse_hook::connection pre_process_;
-	x0::HttpServer::request_post_hook::connection request_done_;
-	x0::HttpServer::connection_hook::connection connection_close_;
+	x0::HttpServer::ConnectionHook::Connection connection_open_;
+	x0::HttpServer::RequestHook::Connection pre_process_;
+	x0::HttpServer::RequestPostHook::Connection request_done_;
+	x0::HttpServer::ConnectionHook::Connection connection_close_;
 
 public:
 	debug_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		connection_open_ = server_.onConnectionOpen.connect(boost::bind(&debug_plugin::connection_open, this, _1));
-		pre_process_ = server_.onPreProcess.connect(boost::bind(&debug_plugin::pre_process, this, _1));
-		request_done_ = server_.onRequestDone.connect(boost::bind(&debug_plugin::request_done, this, _1, _2));
-		connection_close_ = server_.onConnectionClose.connect(boost::bind(&debug_plugin::connection_close, this, _1));
+		connection_open_ = server_.onConnectionOpen.connect<debug_plugin, &debug_plugin::connection_open>(this);
+		pre_process_ = server_.onPreProcess.connect<debug_plugin, &debug_plugin::pre_process>(this);
+		request_done_ = server_.onRequestDone.connect<debug_plugin, &debug_plugin::request_done>(this);
+		connection_close_ = server_.onConnectionClose.connect<debug_plugin, &debug_plugin::connection_close>(this);
 	}
 
 	~debug_plugin() {

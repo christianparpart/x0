@@ -29,7 +29,7 @@ public:
 	void setIndexFiles(x0::Scope& scope, const std::vector<std::string>& indexFiles);
 
 private:
-	x0::HttpServer::request_parse_hook::connection c;
+	x0::HttpServer::RequestHook::Connection c;
 
 	struct context : public x0::ScopeValue
 	{

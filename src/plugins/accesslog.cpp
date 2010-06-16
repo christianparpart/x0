@@ -27,7 +27,7 @@ class accesslog_plugin :
 	public x0::HttpPlugin
 {
 private:
-	x0::HttpServer::request_post_hook::connection c;
+	x0::HttpServer::RequestPostHook::Connection c;
 
 	struct context : public x0::ScopeValue
 	{
@@ -102,7 +102,7 @@ public:
 		x0::HttpPlugin(srv, name)
 	{
 		using namespace std::placeholders;
-		c = srv.onRequestDone.connect(std::bind(&accesslog_plugin::request_done, this, _1, _2));
+		c = srv.onRequestDone.connect<accesslog_plugin, &accesslog_plugin::request_done>(this);
 
 		declareCVar("AccessLog", x0::HttpContext::server | x0::HttpContext::host, &accesslog_plugin::setup_log);
 	}

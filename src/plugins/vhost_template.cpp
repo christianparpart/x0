@@ -28,13 +28,13 @@ private:
 	std::string server_root_;
 	std::string default_host_;
 	std::string document_root_;
-	x0::HttpServer::request_parse_hook::connection c;
+	x0::HttpServer::RequestHook::Connection c;
 
 public:
 	vhost_template_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		c = server_.onResolveDocumentRoot.connect(boost::bind(&vhost_template_plugin::resolveDocumentRoot, this, _1));
+		c = server_.onResolveDocumentRoot.connect<vhost_template_plugin, &vhost_template_plugin::resolveDocumentRoot>(this);
 	}
 
 	~vhost_template_plugin()

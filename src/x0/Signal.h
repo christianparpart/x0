@@ -1,4 +1,4 @@
-/* <x0/signal.hpp>
+/* <x0/Signal.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
@@ -23,34 +23,33 @@ namespace x0 {
  *
  * ...
  */
-template<typename SignatureT> class signal;
+template<typename SignatureT> class Signal;
 
 /**
  * \brief signal API
  * \see handler<void(Args...)>
  */
-template<typename... _Args>
-class signal<void(_Args...)>
+template<typename... Args>
+class Signal<void(Args...)>
 {
-	signal(const signal&) = delete;
-	signal& operator=(const signal&) = delete;
+	Signal(const Signal&) = delete;
+	Signal& operator=(const Signal&) = delete;
 
 public:
-	typedef boost::function<void(_Args...)> functor;
-	typedef std::list<functor> list_type;
+	typedef std::list<std::pair<void *, void(*)(void *, Args...)>> list_type;
 
 	typedef typename list_type::iterator iterator;
 	typedef typename list_type::const_iterator const_iterator;
 
-	typedef iterator connection;
+	typedef iterator Connection;
 
 public:
-	signal() :
+	Signal() :
 		impl_()
 	{
 	}
 
-	~signal()
+	~Signal()
 	{
 	}
 
@@ -64,22 +63,29 @@ public:
 		return impl_.size();
 	}
 
-	connection connect(const functor& fn)
+	template<class K, void (K::*method)(Args...)>
+	static void method_thunk(void *object, Args... args)
 	{
-		impl_.push_back(fn);
+		(static_cast<K *>(object)->*method)(args...);
+	}
+
+	template<class K, void (K::*method)(Args...)>
+	Connection connect(K *object)
+	{
+		impl_.push_back(std::make_pair(object, &method_thunk<K, method>));
 		return boost::prior(impl_.end());
 	}
 
-	void disconnect(connection c)
+	void disconnect(Connection c)
 	{
 		impl_.erase(c);
 	}
 
-	void operator()(const _Args&&... args)
+	void operator()(Args... args) const
 	{
-		for (const_iterator i = impl_.begin(); i != impl_.end(); ++i)
+		for (auto i = impl_.begin(); i != impl_.end(); ++i)
 		{
-			(*i)(args...);
+			(*i->second)(i->first, args...);
 		}
 	}
 

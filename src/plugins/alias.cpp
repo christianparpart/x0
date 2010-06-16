@@ -17,7 +17,7 @@ class alias_plugin :
 	public x0::HttpPlugin
 {
 private:
-	x0::HttpServer::request_parse_hook::connection c;
+	x0::HttpServer::RequestHook::Connection c;
 
 	typedef std::map<std::string, std::string> aliasmap_type;
 
@@ -42,7 +42,7 @@ public:
 		alias_count_(0)
 	{
 		using namespace std::placeholders;
-		c = srv.onResolveEntity.connect(std::bind(&alias_plugin::resolveEntity, this, _1));
+		c = srv.onResolveEntity.connect<alias_plugin, &alias_plugin::resolveEntity>(this);
 
 		declareCVar("Aliases", x0::HttpContext::server | x0::HttpContext::host, &alias_plugin::setup);
 	}

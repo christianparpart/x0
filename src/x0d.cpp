@@ -116,7 +116,7 @@ public:
 
 		server_.setupListener(port, bind);
 
-		server_.onResolveDocumentRoot.connect(std::bind(&x0d::resolveDocumentRoot, this, std::placeholders::_1));
+		server_.onResolveDocumentRoot.connect<x0d, &x0d::resolveDocumentRoot>(this);
 
 		// load standard-plugins
 		std::error_code ec;

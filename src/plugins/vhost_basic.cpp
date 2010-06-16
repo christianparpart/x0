@@ -70,7 +70,7 @@ private:
 		}
 	};
 
-	x0::HttpServer::request_parse_hook::connection c;
+	x0::HttpServer::RequestHook::Connection c;
 	std::map<std::string, vhost_config *> mappings; // [hostname:port] -> vhost_config
 	std::map<int, vhost_config *> default_hosts; // [port] -> vhost_config
 
@@ -80,7 +80,7 @@ public:
 	{
 		using namespace std::placeholders;
 
-		c = server_.onResolveDocumentRoot.connect(std::bind(&vhost_basic_plugin::resolveDocumentRoot, this, _1));
+		c = server_.onResolveDocumentRoot.connect<vhost_basic_plugin, &vhost_basic_plugin::resolveDocumentRoot>(this);
 
 		declareCVar("DocumentRoot", x0::HttpContext::host, &vhost_basic_plugin::setup_docroot);
 		declareCVar("Default", x0::HttpContext::host, &vhost_basic_plugin::setup_default);
