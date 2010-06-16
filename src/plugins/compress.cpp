@@ -5,6 +5,7 @@
  * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
+#include "compress.h"
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
@@ -37,7 +38,8 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class compress_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public ICompressPlugin
 {
 private:
 	struct context : public x0::ScopeValue
@@ -93,6 +95,27 @@ public:
 		server_.onPostProcess.disconnect(postProcess_);
 	}
 
+public: // ICompressPlugin
+	virtual void setCompressTypes(const std::vector<std::string>& value)
+	{
+		server().acquire<context>(this)->content_types_ = value;
+	}
+
+	virtual void setCompressLevel(int value)
+	{
+		server().acquire<context>(this)->level_ = value;
+	}
+
+	virtual void setCompressMinSize(int value)
+	{
+		server().acquire<context>(this)->min_size_ = value;
+	}
+
+	virtual void setCompressMaxSize(int value)
+	{
+		server().acquire<context>(this)->max_size_ = value;
+	}
+
 private:
 	std::error_code setup_types(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
@@ -120,7 +143,7 @@ private:
 			return; // do not double-encode content
 
 		const context *cx = server_.host(in->hostid()).get<context>(this);
-		if (!cx)
+		if (!cx && !(cx = server().get<context>(this)))
 			return;
 
 		long long size = 0;

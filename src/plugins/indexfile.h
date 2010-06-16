@@ -11,22 +11,36 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 
+class IIndexFilePlugin
+{
+public:
+	virtual ~IIndexFilePlugin() {}
+
+	//virtual bool defaultEnabled() const = 0;
+	//virtual void setDefaultEnabled(bool value) = 0;
+
+	virtual std::vector<std::string> *indexFiles(const x0::Scope& scope) const = 0;
+	virtual void setIndexFiles(x0::Scope& scope, const std::vector<std::string>& indexFiles) = 0;
+};
+
 /**
  * \ingroup plugins
  * \brief implements automatic index file resolving, if mapped request path is a path.
  */
 class indexfile_plugin :
-	public x0::HttpPlugin
+	public x0::HttpPlugin,
+	public IIndexFilePlugin
 {
 public:
 	indexfile_plugin(x0::HttpServer& srv, const std::string& name);
 	~indexfile_plugin();
 
-	bool defaultEnabled() const;
-	void setDefaultEnabled(bool value);
+public: // IIndexFilePlugin
+	//virtual bool defaultEnabled() const;
+	//virtual void setDefaultEnabled(bool value);
 
-	std::vector<std::string> *indexFiles(const x0::Scope& scope) const;
-	void setIndexFiles(x0::Scope& scope, const std::vector<std::string>& indexFiles);
+	virtual std::vector<std::string> *indexFiles(const x0::Scope& scope) const;
+	virtual void setIndexFiles(x0::Scope& scope, const std::vector<std::string>& indexFiles);
 
 private:
 	x0::HttpServer::RequestHook::Connection c;

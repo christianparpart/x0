@@ -12,6 +12,7 @@
 #include <x0/Severity.h>
 
 #include "plugins/indexfile.h"
+#include "plugins/compress.h"
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
@@ -123,19 +124,40 @@ public:
 		if (!server_.loadPlugin("sendfile", ec))
 			return ec;
 
-		if (!setup(server_.loadPlugin<indexfile_plugin>("indexfile", ec), ec))
+		if (!setup(server_.loadPlugin<IIndexFilePlugin>("indexfile", ec), ec))
 			return ec;
 
 		if (!server_.loadPlugin("dirlisting", ec))
 			return ec;
 
-		//server_.loadPlugin("compress", ec);
+		if (!setup(server_.loadPlugin<ICompressPlugin>("compress", ec), ec))
+			return ec;
+
 		//server_.loadPlugin("cgi", ec);
 
 		return ec;
 	}
 
-	bool setup(indexfile_plugin *plugin, std::error_code& ec)
+	bool setup(ICompressPlugin *plugin, std::error_code& ec)
+	{
+		if (!plugin)
+			return false;
+
+		std::vector<std::string> types;
+		types.push_back("text/plain");
+		types.push_back("text/html");
+		types.push_back("text/css");
+		types.push_back("text/xml");
+
+		plugin->setCompressTypes(types);
+		plugin->setCompressLevel(9);
+		plugin->setCompressMinSize(16);
+		plugin->setCompressMaxSize(128 * 1024 * 1024);
+
+		return true;
+	}
+
+	bool setup(IIndexFilePlugin *plugin, std::error_code& ec)
 	{
 		if (!plugin)
 			return false;
@@ -143,7 +165,7 @@ public:
 		std::vector<std::string> indexFiles;
 		indexFiles.push_back("index.html");
 
-		//plugin->setIndexFiles(server_, indexFiles);
+		plugin->setIndexFiles(server_, indexFiles);
 		return true;
 	}
 
