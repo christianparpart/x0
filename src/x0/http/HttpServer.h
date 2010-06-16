@@ -236,7 +236,7 @@ inline const std::list<HttpListener *>& HttpServer::listeners() const
 template<typename T>
 inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 {
-	return static_cast<T *>(loadPlugin(name, ec));
+	return dynamic_cast<T *>(loadPlugin(name, ec));
 }
 
 #if !defined(NDEBUG)
