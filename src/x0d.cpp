@@ -119,6 +119,13 @@ public:
 
 		server_.onResolveDocumentRoot.connect<x0d, &x0d::resolveDocumentRoot>(this);
 
+		// initialize some default settings (fileinfo)
+		server_.fileinfo.load_mimetypes("/etc/mime.types");
+		server_.fileinfo.default_mimetype("application/octet-stream");
+		server_.fileinfo.etag_consider_mtime(true);
+		server_.fileinfo.etag_consider_size(true);
+		server_.fileinfo.etag_consider_inode(false);
+
 		// load standard-plugins
 		std::error_code ec;
 		if (!server_.loadPlugin("sendfile", ec))
