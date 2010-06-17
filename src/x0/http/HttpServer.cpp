@@ -549,7 +549,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 
 	std::string plugin_create_name("x0plugin_init");
 
-	log(Severity::info, "Loading plugin %s", filename.c_str());
+	//log(Severity::debug, "Loading plugin %s", filename.c_str());
 
 	Library lib;
 	ec = lib.open(filename);
@@ -572,7 +572,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 /** safely unloads a plugin. */
 void HttpServer::unloadPlugin(const std::string& name)
 {
-	log(Severity::debug, "Unloading plugin: %s", name.c_str());
+	//log(Severity::debug, "Unloading plugin: %s", name.c_str());
 
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
