@@ -143,11 +143,12 @@ public:
 		if (!plugin)
 			return false;
 
-		std::vector<std::string> types;
-		types.push_back("text/plain");
-		types.push_back("text/html");
-		types.push_back("text/css");
-		types.push_back("text/xml");
+		std::vector<std::string> types = {
+			"text/plain", "text/html", "text/css", "text/xml",
+			"text/x-c", "text/x-chdr", "text/x-c++src", "text/x-c++hdr",
+			"application/xml", "application/xslt+xml", "application/xhtml+xml",
+			"image/svg+xml"
+		};
 
 		plugin->setCompressTypes(types);
 		plugin->setCompressLevel(9);
@@ -162,8 +163,7 @@ public:
 		if (!plugin)
 			return false;
 
-		std::vector<std::string> indexFiles;
-		indexFiles.push_back("index.html");
+		std::vector<std::string> indexFiles = { "index.html" };
 
 		plugin->setIndexFiles(server_, indexFiles);
 		return true;
