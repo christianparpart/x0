@@ -115,7 +115,6 @@ set(x0_API
 	Cache.h Cache.cc
 	DateTime.h
 	Defines.h
-	EventHandler.h
 	Error.h
 	gai_error.h
 	function.hpp
