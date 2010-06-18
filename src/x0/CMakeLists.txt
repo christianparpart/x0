@@ -118,7 +118,6 @@ set(x0_API
 	Error.h
 	gai_error.h
 	function.hpp
-	handler.hpp
 	Library.h
 	LocalStream.h
 	Logger.h
