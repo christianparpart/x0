@@ -22,7 +22,7 @@ set(x0_io_SRC
 	io/ChainFilter.cpp
 	io/ChunkedEncoder.cpp
 	io/CompressFilter.cpp
-	io/ConnectionSink.cpp
+	io/SocketSink.cpp
 	io/File.cpp
 	io/SystemSink.cpp
 	io/SystemSource.cpp
@@ -42,7 +42,7 @@ set(x0_io_API
 	io/ChunkedEncoder.h
 	io/CompositeSource.h
 	io/CompressFilter.h
-	io/ConnectionSink.h
+	io/SocketSink.h
 	io/SystemSink.h
 	io/SystemSource.h
 	io/File.h
@@ -98,6 +98,8 @@ set(x0_SRC
 	Scope.cpp
 	Settings.cpp
 	Severity.cpp
+	Socket.cpp
+	SocketDriver.cpp
 	StackTrace.cpp
 	StringError.cpp
 	ssl_db_cache.cpp # should go into io/
@@ -126,6 +128,8 @@ set(x0_API
 	Scope.h
 	Settings.h Settings.cc
 	Severity.h
+	Socket.h
+	SocketDriver.h
 	StackTrace.h
 	StringError.h
 	Signal.h
@@ -141,8 +145,8 @@ set(x0_API
 
 #	sysconfig.h
 #	function.h
-#	trie.h
-#	ternary_search.h
+#	Trie.h
+#	TernarySearch.h
 
 add_library(x0 SHARED ${x0_SRC})
 install(TARGETS x0 DESTINATION ${LIBDIR})

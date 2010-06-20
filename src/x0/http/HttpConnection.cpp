@@ -10,13 +10,10 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpServer.h>
+#include <x0/SocketDriver.h>
+#include <x0/Socket.h>
 #include <x0/Types.h>
 #include <x0/sysconfig.h>
-
-#if defined(WITH_SSL)
-#	include <gnutls/gnutls.h>
-#	include <gnutls/extra.h>
-#endif
 
 #include <functional>
 
@@ -25,7 +22,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 1
+#if 0
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("HttpConnection: " msg)
@@ -35,8 +32,8 @@
 
 namespace x0 {
 
-#if !defined(NDEBUG) // {{{ struct cstat
-struct cstat :
+#if !defined(NDEBUG) // {{{ struct ConnectionLogger
+struct ConnectionLogger :
 	public CustomData
 {
 private:
@@ -64,7 +61,7 @@ private:
 	}
 
 public:
-	explicit cstat(HttpServer& server) :
+	explicit ConnectionLogger(HttpServer& server) :
 		server_(server),
 		start_(ev_now(server.loop())),
 		cid_(++connection_counter),
@@ -91,7 +88,7 @@ public:
 		fflush(fp);
 	}
 
-	~cstat()
+	~ConnectionLogger()
 	{
 		log(Severity::info, "HttpConnection[%d] closed. timing: %.4f (nreqs: %d)",
 				id(), connection_time(), request_count());
@@ -101,7 +98,7 @@ public:
 	}
 };
 
-unsigned cstat::connection_counter = 0;
+unsigned ConnectionLogger::connection_counter = 0;
 #endif
 // }}}
 
@@ -110,32 +107,47 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	secure(false),
 	listener_(lst),
 	server_(lst.server()),
-//	socket_(), // initialized in constructor body
+	socket_(0),
 	remote_ip_(),
 	remote_port_(0),
 	buffer_(8192),
 	next_offset_(0),
 	request_count_(0),
 	request_(new HttpRequest(*this)),
-	response_(0),
-	io_state_(INVALID),
-	watcher_(server_.loop())
-#if defined(WITH_CONNECTION_TIMEOUTS)
-	, timer_(server_.loop())
-#endif
+	response_(0)
 #if !defined(NDEBUG)
 	, ctime_(ev_now(server_.loop()))
 #endif
 {
-	watcher_.set<HttpConnection, &HttpConnection::io>(this);
+	socklen_t slen = sizeof(saddr_);
+	memset(&saddr_, 0, slen);
 
-#if defined(WITH_CONNECTION_TIMEOUTS)
-	timer_.set<HttpConnection, &HttpConnection::timeout>(this);
+	int fd = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
+	if (fd < 0)
+	{
+		server_.log(Severity::error, "Could not accept client socket: %s", strerror(errno));
+		return;
+	}
+
+	socket_ = listener_.socketDriver()->create(fd);
+	TRACE("HttpConnection(%p).start() fd=%d", this, socket_->handle());
+
+	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
+
+#if defined(TCP_NODELAY)
+	if (server_.tcp_nodelay())
+	{
+		int flag = 1;
+		setsockopt(fd, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag));
+	}
 #endif
 
 #if !defined(NDEBUG)
-	custom_data[(HttpPlugin *)this] = std::make_shared<cstat>(server_);
+	//custom_data[(HttpPlugin *)this] = std::make_shared<ConnectionLogger>(server_);
 #endif
+
+	server_.onConnectionOpen(this);
 }
 
 HttpConnection::~HttpConnection()
@@ -156,41 +168,26 @@ HttpConnection::~HttpConnection()
 		TRACE("~HttpConnection(%p): unexpected exception", this);
 	}
 
-#if defined(WITH_SSL)
-	if (isSecure())
-		gnutls_deinit(ssl_session_);
-#endif
-
-	if (socket_ != -1)
+	if (socket_)
 	{
-		::close(socket_);
+		delete socket_;
 #if !defined(NDEBUG)
-		socket_ = -1;
+		socket_ = 0;
 #endif
 	}
 }
 
-void HttpConnection::io(ev::io& w, int revents)
+void HttpConnection::io(Socket *)
 {
-	TRACE("HttpConnection(%p).io(revents=0x%04X)", this, revents);
-
-#if defined(WITH_CONNECTION_TIMEOUTS)
-	timer_.stop();
-#endif
-
-	if (revents & ev::READ)
-		handle_read();
-
-	if (revents & ev::WRITE)
-		handle_write();
+	TRACE("HttpConnection(%p).io(mode=%d)", this, socket_->mode());
+	handle_read();
 }
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-void HttpConnection::timeout(ev::timer& watcher, int revents)
+void HttpConnection::timeout(Socket *)
 {
 	TRACE("HttpConnection(%p): timed out", this);
 
-	watcher_.stop();
 //	ev_unloop(loop(), EVUNLOOP_ONE);
 
 	delete this;
@@ -198,22 +195,6 @@ void HttpConnection::timeout(ev::timer& watcher, int revents)
 #endif
 
 #if defined(WITH_SSL)
-void HttpConnection::ssl_initialize()
-{
-	gnutls_init(&ssl_session_, GNUTLS_SERVER);
-	gnutls_priority_set(ssl_session_, listener_.priority_cache_);
-	gnutls_credentials_set(ssl_session_, GNUTLS_CRD_CERTIFICATE, listener_.x509_cred_);
-
-	gnutls_certificate_server_set_request(ssl_session_, GNUTLS_CERT_REQUEST);
-	gnutls_dh_set_prime_bits(ssl_session_, 1024);
-
-	gnutls_session_enable_compatibility_mode(ssl_session_);
-
-	gnutls_transport_set_ptr(ssl_session_, (gnutls_transport_ptr_t)handle());
-
-	listener_.ssl_db().bind(ssl_session_);
-}
-
 bool HttpConnection::isSecure() const
 {
 	return listener_.secure();
@@ -229,51 +210,6 @@ bool HttpConnection::isSecure() const
  */
 void HttpConnection::start()
 {
-	socklen_t slen = sizeof(saddr_);
-	memset(&saddr_, 0, slen);
-
-	socket_ = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
-
-	if (socket_ < 0)
-	{
-		server_.log(Severity::error, "Could not accept client socket: %s", strerror(errno));
-		delete this;
-		return;
-	}
-
-	TRACE("HttpConnection(%p).start() fd=%d", this, socket_);
-
-	if (fcntl(socket_, F_SETFL, O_NONBLOCK) < 0)
-		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
-
-#if defined(TCP_NODELAY)
-	if (server_.tcp_nodelay())
-	{
-		int flag = 1;
-		setsockopt(socket_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag));
-	}
-#endif
-
-	server_.onConnectionOpen(this);
-
-	if (isClosed()) // hook triggered delayed delete via HttpConnection::close()
-	{
-		delete this;
-		return;
-	}
-
-#if defined(WITH_SSL)
-	if (isSecure())
-	{
-		handshaking_ = true;
-		ssl_initialize();
-		ssl_handshake();
-		return;
-	}
-	else
-		handshaking_ = false;
-#endif
-
 #if defined(TCP_DEFER_ACCEPT)
 	// it is ensured, that we have data pending, so directly start reading
 	handle_read();
@@ -282,43 +218,6 @@ void HttpConnection::start()
 	start_read();
 #endif
 }
-
-#if defined(WITH_SSL)
-bool HttpConnection::ssl_handshake()
-{
-	int rv = gnutls_handshake(ssl_session_);
-	if (rv == GNUTLS_E_SUCCESS)
-	{
-		// handshake either completed or failed
-		handshaking_ = false;
-		TRACE("SSL handshake time: %.4f", ev_now(server_.loop()) - ctime_);
-		start_read();
-		return true;
-	}
-
-	if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
-	{
-		TRACE("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
-
-		delete this;
-		return false;
-	}
-
-	TRACE("SSL handshake incomplete: (%d)", gnutls_record_get_direction(ssl_session_));
-	switch (gnutls_record_get_direction(ssl_session_))
-	{
-		case 0: // read
-			start_read();
-			break;
-		case 1: // write
-			start_write();
-			break;
-		default:
-			break;
-	}
-	return false;
-}
-#endif
 
 inline bool url_decode(BufferRef& url)
 {
@@ -490,92 +389,17 @@ void HttpConnection::resume(bool finish)
 
 void HttpConnection::start_read()
 {
-	switch (io_state_)
-	{
-		case INVALID:
-			TRACE("start_read(): start watching");
-			io_state_ = READING;
-			watcher_.set(socket_, ev::READ);
-			watcher_.start();
-			break;
-		case READING:
-			TRACE("start_read(): continue reading (fd=%d)", socket_);
-			break;
-		case WRITING:
-			io_state_ = READING;
-			TRACE("start_read(): continue reading (fd=%d) (was ev::WRITE)", socket_);
-			watcher_.set(socket_, ev::READ);
-			break;
-	}
-
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	int timeout = request_count_ && state() == MESSAGE_BEGIN
 		? server_.max_keep_alive_idle()
 		: server_.max_read_idle();
 
 	if (timeout > 0)
-		timer_.start(timeout, 0.0);
-#endif
-}
-
-void HttpConnection::start_write()
-{
-	if (io_state_ != WRITING)
-	{
-		TRACE("start_write(): start watching");
-		io_state_ = WRITING;
-		watcher_.set(socket_, ev::WRITE);
-	}
-	else
-		TRACE("start_write(): continue watching");
-
-#if defined(WITH_CONNECTION_TIMEOUTS)
-	if (server_.max_write_idle() > 0)
-		timer_.start(server_.max_write_idle(), 0.0);
-#endif
-}
-
-void HttpConnection::stop_write()
-{
-	TRACE("stop_write()");
-	start_read();
-}
-
-void HttpConnection::handle_write()
-{
-	TRACE("HttpConnection(%p).handle_write()", this);
-
-#if defined(WITH_SSL)
-	if (handshaking_)
-		return (void) ssl_handshake();
-
-//	if (isSecure())
-//		rv = gnutls_write(ssl_session_, buffer_.capacity() - buffer_.size());
-//	else if (write_some)
-//		write_some(this);
-#else
+		socket_->setTimeout(timeout);
 #endif
 
-#if 0
-	Buffer write_buffer_;
-	int write_offset_ = 0;
-
-	int rv = ::write(socket_, write_buffer_.begin() + write_offset_, write_buffer_.size() - write_offset_);
-
-	if (rv < 0)
-		; // error
-	else
-	{
-		write_offset_ += rv;
-		start_write();
-	}
-#else
-	if (write_some)
-		write_some(this);
-#endif
-
-	if (isClosed())
-		delete this;
+	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
+	socket_->setMode(Socket::READ);
 }
 
 void HttpConnection::check_request_body()
@@ -595,20 +419,7 @@ void HttpConnection::handle_read()
 {
 	TRACE("HttpConnection(%p).handle_read()", this);
 
-#if defined(WITH_SSL)
-	if (handshaking_)
-		return (void) ssl_handshake();
-#endif
-
-	int rv;
-#if defined(WITH_SSL)
-	if (isSecure())
-		rv = gnutls_read(ssl_session_, buffer_.end(), buffer_.capacity() - buffer_.size());
-	else
-		rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
-#else
-	rv = ::read(socket_, buffer_.end(), buffer_.capacity() - buffer_.size());
-#endif
+	ssize_t rv = socket_->read(buffer_);
 
 	if (rv < 0) // error
 	{
@@ -630,14 +441,14 @@ void HttpConnection::handle_read()
 	}
 	else
 	{
-		TRACE("HttpConnection::handle_read(): read %d bytes", rv);
+		TRACE("HttpConnection::handle_read(): read %ld bytes", rv);
 
-		std::size_t offset = buffer_.size();
-		buffer_.resize(offset + rv);
+		//std::size_t offset = buffer_.size();
+		//buffer_.resize(offset + rv);
 
 #if !defined(NDEBUG)
-		if (std::shared_ptr<cstat> cs = std::static_pointer_cast<cstat>(custom_data[(HttpPlugin *)this]))
-			cs->log(buffer_.ref(offset, rv));
+//		if (auto cs = std::static_pointer_cast<ConnectionLogger>(custom_data[(HttpPlugin *)this]))
+//			cs->log(buffer_.ref(offset, rv));
 #endif
 
 		process();
@@ -651,10 +462,9 @@ void HttpConnection::handle_read()
  */
 void HttpConnection::close()
 {
-	TRACE("HttpConnection(%p): close(): state=%d", this, io_state_);
+	TRACE("HttpConnection(%p).close()", this);
 
-	::close(socket_);
-	socket_ = -1;
+	socket_->close();
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.
@@ -676,11 +486,12 @@ void HttpConnection::process()
 		buffer_.clear();
 	}
 
-	if (!ec)
+	if (isClosed())
+		return;
+
+	if (ec == HttpMessageError::partial)
 		start_read();
-	else if (ec == HttpMessageError::partial)
-		start_read();
-	else if (ec != HttpMessageError::aborted)
+	else if (ec && ec != HttpMessageError::aborted)
 		// -> send stock response: BAD_REQUEST
 		(response_ = new HttpResponse(this, http_error::bad_request))->finish();
 }

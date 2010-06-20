@@ -26,7 +26,7 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 
-#if 1
+#if 0
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("HttpResponse: " msg)
@@ -40,7 +40,7 @@ char HttpResponse::status_codes[512][4];
 
 HttpResponse::~HttpResponse()
 {
-	//TRACE("~HttpResponse(%p, conn=%p)", this, connection_);
+	TRACE("~HttpResponse(%p, conn=%p)", this, connection_);
 }
 
 template<typename T>
@@ -163,7 +163,7 @@ SourcePtr HttpResponse::serialize()
 	if (!keepalive && connection_->server().tcp_cork())
 	{
 		int flag = 1;
-		setsockopt(connection_->handle(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
+		setsockopt(connection_->socket()->handle(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
 	}
 #endif
 
@@ -200,7 +200,7 @@ HttpResponse::HttpResponse(HttpConnection *connection, http_error _status) :
 	status(_status),
 	headers()
 {
-	//TRACE("HttpResponse(%p, conn=%p)", this, connection_);
+	TRACE("HttpResponse(%p, conn=%p)", this, connection_);
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
 
@@ -215,7 +215,7 @@ std::string HttpResponse::status_str(http_error value)
 
 void HttpResponse::finished0(int ec)
 {
-	//TRACE("HttpResponse(%p).finished(%d)", this, ec);
+	TRACE("HttpResponse(%p).finished(%d)", this, ec);
 
 	if (filter_chain.empty())
 		finished1(ec);
@@ -228,7 +228,7 @@ void HttpResponse::finished0(int ec)
  */
 void HttpResponse::finished1(int ec)
 {
-	//TRACE("HttpResponse(%p).finished_next(%d)", this, ec);
+	TRACE("HttpResponse(%p).finished1(ec=%d)", this, ec);
 
 	{
 		HttpServer& srv = request_->connection.server();

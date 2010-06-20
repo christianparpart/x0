@@ -8,6 +8,7 @@
 #include <x0/http/HttpListener.h>
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpServer.h>
+#include <x0/SocketDriver.h>
 
 #include <x0/sysconfig.h>
 
@@ -26,12 +27,14 @@
 namespace x0 {
 
 HttpListener::HttpListener(HttpServer& srv) : 
-	watcher_(),
+	watcher_(srv.loop()),
 	fd_(-1),
 	server_(srv),
 	address_(),
 	port_(-1),
-	backlog_(SOMAXCONN)
+	backlog_(SOMAXCONN),
+	errors_(0),
+	socketDriver_(new SocketDriver(srv.loop()))
 #if defined(WITH_SSL)
 	,
 	secure_(false),
@@ -77,6 +80,14 @@ inline void HttpListener::setsockopt(int socket, int layer, int option, int valu
 		log(Severity::error, "Error setting socket option (fd=%d, layer=%d, opt=%d, val=%d): %s",
 				socket, layer, option, value, strerror(errno));
 	}
+}
+
+void HttpListener::setSocketDriver(SocketDriver *sd)
+{
+	if (socketDriver_)
+		delete socketDriver_;
+
+	socketDriver_ = sd;
 }
 
 #if defined(WITH_SSL)
@@ -245,9 +256,14 @@ std::error_code HttpListener::start()
 void HttpListener::callback(ev::io& watcher, int revents)
 {
 	// TODO accept() as much until it would block.
-	HttpConnection *c = new HttpConnection(*this);
-
-	c->start();
+	if (HttpConnection *c = new HttpConnection(*this))
+	{
+		if (c->isClosed())
+			delete c;
+		else
+			// TODO: introduce a PREPARE mode, that would defer the code fragment below - required for SSL handshaking, which takes place *before* processing the HTTP request
+			c->start();
+	}
 }
 
 std::string HttpListener::address() const

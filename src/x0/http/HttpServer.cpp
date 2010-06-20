@@ -76,7 +76,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	loop_check_(loop_),
 	core_(0),
 	max_connections(512),
-	max_keep_alive_idle(5),
+	max_keep_alive_idle(/*5*/ 60),
 	max_read_idle(60),
 	max_write_idle(360),
 	tcp_cork(false),

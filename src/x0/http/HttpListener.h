@@ -32,6 +32,7 @@ namespace x0 {
 
 class HttpServer;
 class HttpConnection;
+class SocketDriver;
 
 /**
  * \brief TCP/IP listener for the HTTP protocol.
@@ -60,6 +61,9 @@ public:
 	void backlog(int value);
 
 	HttpServer& server() const;
+
+	SocketDriver *socketDriver() const;
+	void setSocketDriver(SocketDriver *sd);
 
 #if defined(WITH_SSL)
 	bool secure() const;
@@ -101,6 +105,7 @@ private:
 	int port_;
 	int backlog_;
 	int errors_;
+	SocketDriver *socketDriver_;
 
 #if defined(WITH_SSL)
 	bool secure_;
@@ -122,6 +127,11 @@ private:
 inline bool HttpListener::active() const
 {
 	return fd_ != -1;
+}
+
+inline SocketDriver *HttpListener::socketDriver() const
+{
+	return socketDriver_;
 }
 
 inline int HttpListener::error_count() const

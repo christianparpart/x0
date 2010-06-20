@@ -1,49 +1,55 @@
-#ifndef sw_x0_io_ConnectionSink_hpp
-#define sw_x0_io_ConnectionSink_hpp 1
+#ifndef sw_x0_io_SocketSink_hpp
+#define sw_x0_io_SocketSink_hpp 1
 
-#include <x0/io/SystemSink.h>
+#include <x0/io/Sink.h>
 #include <x0/io/SourceVisitor.h>
+#include <x0/Socket.h>
 #include <x0/Buffer.h>
 #include <x0/Types.h>
 
 namespace x0 {
 
-class HttpConnection;
+class Socket;
 
 //! \addtogroup io
 //@{
 
 /** file descriptor stream sink.
  */
-class X0_API ConnectionSink :
-	public SystemSink,
+class X0_API SocketSink :
+	public Sink,
 	public SourceVisitor
 {
 public:
-	explicit ConnectionSink(HttpConnection *conn);
+	explicit SocketSink(Socket *conn);
 
-	HttpConnection *connection() const;
+	Socket *socket() const;
 
 	virtual ssize_t pump(Source& src);
 
-public:
+public: // SourceVisitor
 	virtual void visit(SystemSource& v);
 	virtual void visit(FileSource& v);
 	virtual void visit(BufferSource& v);
 	virtual void visit(FilterSource& v);
 	virtual void visit(CompositeSource& v);
 
+	ssize_t genericPump(Source& v);
+
 protected:
-	HttpConnection *connection_;
-	ssize_t rv_;
+	Socket *socket_;
+	Buffer buf_;
+	off_t offset_;
+	ssize_t result_;
+	std::error_code errorCode_;
 };
 
 //@}
 
 // {{{ impl
-inline HttpConnection *ConnectionSink::connection() const
+inline Socket *SocketSink::socket() const
 {
-	return connection_;
+	return socket_;
 }
 // }}}
 

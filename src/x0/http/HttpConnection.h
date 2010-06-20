@@ -10,6 +10,7 @@
 
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/http/HttpServer.h>
+#include <x0/Socket.h>
 #include <x0/io/Sink.h>
 #include <x0/io/Source.h>
 #include <x0/io/AsyncWriter.h>
@@ -19,10 +20,6 @@
 #include <x0/Api.h>
 
 #include <x0/sysconfig.h>
-
-#if defined(WITH_SSL)
-#	include <gnutls/gnutls.h>
-#endif
 
 #include <functional>
 #include <memory>
@@ -61,7 +58,7 @@ public:
 
 	value_property<bool> secure;				//!< true if this is a secure (HTTPS) connection, false otherwise.
 
-	int handle() const;							//!< Retrieves a reference to the connection socket.
+	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
 	HttpServer& server();						//!< Retrieves a reference to the server instance.
 
 	std::string remote_ip() const;				//!< Retrieves the IP address of the remote end point (client).
@@ -70,16 +67,9 @@ public:
 	std::string local_ip() const;
 	int local_port() const;
 
-	template<typename CompletionHandler>
-	void on_write_ready(CompletionHandler callback);
-
-	void stop_write();
-
 	const HttpListener& listener() const;
 
-#if defined(WITH_SSL)
 	bool isSecure() const;
-#endif
 
 private:
 	friend class HttpRequest;
@@ -100,22 +90,13 @@ private:
 	void resume_read();
 	void handle_read();
 
-	void start_write();
-	void resume_write();
-	void handle_write();
-
 	void process();
 	void check_request_body();
 	void writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler);
-	void io(ev::io& w, int revents);
+	void io(Socket *);
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
-	void timeout(ev::timer& watcher, int revents);
-#endif
-
-#if defined(WITH_SSL)
-	void ssl_initialize();
-	bool ssl_handshake();
+	void timeout(Socket *);
 #endif
 
 	struct ::ev_loop *loop() const;
@@ -127,7 +108,7 @@ private:
 	HttpListener& listener_;
 	HttpServer& server_;				//!< server object owning this connection
 
-	int socket_;						//!< underlying communication socket
+	Socket *socket_;					//!< underlying communication socket
 	sockaddr_in6 saddr_;
 
 	mutable std::string remote_ip_;		//!< internal cache to client ip
@@ -140,29 +121,9 @@ private:
 	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
 	HttpResponse *response_;			//!< currently processed response object, may be NULL
 
-	enum {
-		INVALID,
-		READING,
-		WRITING,
-	} io_state_;
-
-#if defined(WITH_SSL)
-	gnutls_session_t ssl_session_;		//!< SSL (GnuTLS) session handle
-	bool handshaking_;
-#endif
-
-	ev::io watcher_;
-
-#if defined(WITH_CONNECTION_TIMEOUTS)
-	ev::timer timer_;					//!< deadline timer for detecting read/write timeouts.
-#endif
-
 #if !defined(NDEBUG)
 	ev::tstamp ctime_;
 #endif
-
-	std::function<void(HttpConnection *)> write_some;
-	std::function<void(HttpConnection *)> read_some;
 };
 
 // {{{ inlines
@@ -171,7 +132,7 @@ inline struct ::ev_loop* HttpConnection::loop() const
 	return server_.loop();
 }
 
-inline int HttpConnection::handle() const
+inline Socket *HttpConnection::socket() const
 {
 	return socket_;
 }
@@ -188,14 +149,7 @@ inline HttpServer& HttpConnection::server()
 inline void HttpConnection::writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler)
 {
 	check_request_body();
-	x0::writeAsync(this, buffer, handler);
-}
-
-template<typename CompletionHandler>
-inline void HttpConnection::on_write_ready(CompletionHandler callback)
-{
-	write_some = callback;
-	start_write();
+	x0::writeAsync(socket_, buffer, handler);
 }
 
 inline const HttpListener& HttpConnection::listener() const
@@ -207,7 +161,7 @@ inline const HttpListener& HttpConnection::listener() const
  */
 inline bool HttpConnection::isClosed() const
 {
-	return socket_ < 0;
+	return !socket_ || socket_->isClosed();
 }
 // }}}
 

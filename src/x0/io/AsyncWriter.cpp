@@ -1,11 +1,11 @@
 #include <x0/io/AsyncWriter.h>
-#include <x0/io/ConnectionSink.h>
-#include <x0/http/HttpConnection.h>
+#include <x0/io/SocketSink.h>
+#include <x0/Socket.h>
 #include <x0/Types.h>
 #include <ev++.h>
 #include <memory>
 
-#if 1
+#if 0
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("AsyncWriter: " msg)
@@ -16,13 +16,13 @@ namespace x0 {
 class AsyncWriter // {{{
 {
 private:
-	std::shared_ptr<ConnectionSink> sink_;
+	std::shared_ptr<SocketSink> sink_;
 	SourcePtr source_;
 	CompletionHandlerType handler_;
 	std::size_t bytes_transferred_;
 
 public:
-	AsyncWriter(std::shared_ptr<ConnectionSink> snk, const SourcePtr& src, const CompletionHandlerType& handler) :
+	AsyncWriter(std::shared_ptr<SocketSink> snk, const SourcePtr& src, const CompletionHandlerType& handler) :
 		sink_(snk),
 		source_(src),
 		handler_(handler),
@@ -35,7 +35,7 @@ public:
 	}
 
 public:
-	static void write(const std::shared_ptr<ConnectionSink>& snk, const SourcePtr& src, const CompletionHandlerType& handler)
+	static void write(const std::shared_ptr<SocketSink>& snk, const SourcePtr& src, const CompletionHandlerType& handler)
 	{
 		AsyncWriter *writer = new AsyncWriter(snk, src, handler);
 		writer->write();
@@ -44,8 +44,9 @@ public:
 private:
 	void finish(int rv)
 	{
+		TRACE("AsyncWriter(%p).onFinish: rv=%d, bytes_transferred=%ld", this, rv, bytes_transferred_);
 		// unregister from connection's on_write_ready handler
-		sink_->connection()->stop_write();
+		//sink_->connection()->stop_write();
 
 		// invoke completion handler (this may have deleted our sink above)
 		handler_(rv, bytes_transferred_);
@@ -53,7 +54,7 @@ private:
 		delete this;
 	}
 
-	void callback(HttpConnection *)
+	void callback(Socket *)
 	{
 		write();
 	}
@@ -67,7 +68,7 @@ private:
 #endif
 		{
 			ssize_t rv = sink_->pump(*source_); // true=complete,false=error,det=partial
-			//TRACE("writer(%p).pump: %ld; %s", this, rv, rv < 0 ? strerror(errno) : "");
+			TRACE("AsyncWriter(%p).pump: %ld; %s", this, rv, rv < 0 ? strerror(errno) : "");
 
 			if (rv > 0)
 			{
@@ -86,7 +87,9 @@ private:
 			{
 				TRACE("(%p): write incomplete (EINT|EAGAIN) (%i)", this, i);
 				// call back as soon as sink is ready for more writes
-				sink_->connection()->on_write_ready(std::bind(&AsyncWriter::callback, this, std::placeholders::_1));
+				//sink_->connection()->on_write_ready(std::bind(&AsyncWriter::callback, this, std::placeholders::_1));
+				sink_->socket()->setReadyCallback<AsyncWriter, &AsyncWriter::callback>(this);
+				sink_->socket()->setMode(Socket::WRITE);
 				break;
 			}
 			else
@@ -100,12 +103,12 @@ private:
 	}
 }; // }}}
 
-void writeAsync(HttpConnection *target, const SourcePtr& source, const CompletionHandlerType& completionHandler)
+void writeAsync(Socket *target, const SourcePtr& source, const CompletionHandlerType& completionHandler)
 {
-	writeAsync(std::make_shared<ConnectionSink>(target), source, completionHandler);
+	writeAsync(std::make_shared<SocketSink>(target), source, completionHandler);
 }
 
-void writeAsync(const std::shared_ptr<ConnectionSink>& target, const SourcePtr& source, const CompletionHandlerType& completionHandler)
+void writeAsync(const std::shared_ptr<SocketSink>& target, const SourcePtr& source, const CompletionHandlerType& completionHandler)
 {
 	AsyncWriter::write(target, source, completionHandler);
 }
