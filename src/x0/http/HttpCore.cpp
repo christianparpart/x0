@@ -43,6 +43,15 @@ HttpCore::HttpCore(HttpServer& server) :
 	declareCVar("FileInfo", HttpContext::server, &HttpCore::setup_fileinfo, -4);
 	declareCVar("Hosts", HttpContext::server, &HttpCore::setup_hosts, -3);
 	declareCVar("Advertise", HttpContext::server, &HttpCore::setup_advertise, -2);
+
+	// SSL
+#if defined(WITH_SSL)
+	declareCVar("SslEnabled", HttpContext::server|HttpContext::host, &HttpCore::setupSslEnabled);
+	declareCVar("SslCertFile", HttpContext::server|HttpContext::host, &HttpCore::setupSslCertFile);
+	declareCVar("SslKeyFile", HttpContext::server|HttpContext::host, &HttpCore::setupSslKeyFile);
+	declareCVar("SslCrlFile", HttpContext::server|HttpContext::host, &HttpCore::setupSslCrlFile);
+	declareCVar("SslTrustFile", HttpContext::server|HttpContext::host, &HttpCore::setupSslTrustFile);
+#endif
 }
 
 HttpCore::~HttpCore()
@@ -248,5 +257,46 @@ std::error_code HttpCore::setup_advertise(const SettingsValue& cvar, Scope& s)
 {
 	return cvar.load(server().advertise);
 }
+
+// {{{ SSL settings
+struct SslSettings :
+	public x0::ScopeValue
+{
+	bool enabled;
+	std::string certFileName;
+	std::string keyFileName;
+	std::string crlFileName;
+	std::string trustFileName;
+
+	virtual void merge(const ScopeValue *from)
+	{
+	}
+};
+
+std::error_code HttpCore::setupSslEnabled(const SettingsValue& cvar, Scope& s)
+{
+	return cvar.load(s.acquire<SslSettings>(this)->enabled);
+}
+
+std::error_code HttpCore::setupSslCertFile(const SettingsValue& cvar, Scope& s)
+{
+	return cvar.load(s.acquire<SslSettings>(this)->certFileName);
+}
+
+std::error_code HttpCore::setupSslKeyFile(const SettingsValue& cvar, Scope& s)
+{
+	return cvar.load(s.acquire<SslSettings>(this)->keyFileName);
+}
+
+std::error_code HttpCore::setupSslCrlFile(const SettingsValue& cvar, Scope& s)
+{
+	return cvar.load(s.acquire<SslSettings>(this)->crlFileName);
+}
+
+std::error_code HttpCore::setupSslTrustFile(const SettingsValue& cvar, Scope& s)
+{
+	return cvar.load(s.acquire<SslSettings>(this)->trustFileName);
+}
+// }}}
 
 } // namespace x0

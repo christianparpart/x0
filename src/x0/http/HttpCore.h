@@ -29,6 +29,12 @@ private:
 	std::error_code setup_error_documents(const SettingsValue& cvar, Scope& s);
 	std::error_code setup_hosts(const SettingsValue& cvar, Scope& s);
 	std::error_code setup_advertise(const SettingsValue& cvar, Scope& s);
+
+	std::error_code setupSslEnabled(const SettingsValue& cvar, Scope& s);
+	std::error_code setupSslCertFile(const SettingsValue& cvar, Scope& s);
+	std::error_code setupSslKeyFile(const SettingsValue& cvar, Scope& s);
+	std::error_code setupSslCrlFile(const SettingsValue& cvar, Scope& s);
+	std::error_code setupSslTrustFile(const SettingsValue& cvar, Scope& s);
 };
 
 } // namespace x0
