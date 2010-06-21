@@ -3,9 +3,15 @@
 #include <x0/BufferRef.h>
 #include <x0/Defines.h>
 
-#include <system_error>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
 #include <sys/sendfile.h>
+
 #include <unistd.h>
+#include <system_error>
 
 namespace x0 {
 
@@ -27,6 +33,20 @@ Socket::~Socket()
 {
 	if (fd_ >= 0)
 		::close(fd_);
+}
+
+bool Socket::setNonBlocking(bool enabled)
+{
+	if (enabled)
+		return fcntl(fd_, F_SETFL, O_NONBLOCK) == 0;
+	else
+		return fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) & ~O_NONBLOCK) == 0;
+}
+
+bool Socket::setTcpNoDelay(bool enable)
+{
+	int flag = enable ? 1 : 0;
+	return setsockopt(fd_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0;
 }
 
 void Socket::setTimeout(int value)

@@ -40,6 +40,9 @@ public:
 	int handle() const;
 	bool isClosed() const;
 
+	bool setNonBlocking(bool enabled);
+	bool setTcpNoDelay(bool enable);
+
 	int timeout() const;
 	void setTimeout(int value);
 
