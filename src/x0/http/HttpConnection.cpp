@@ -132,15 +132,12 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	socket_ = listener_.socketDriver()->create(fd);
 	TRACE("HttpConnection(%p).start() fd=%d", this, socket_->handle());
 
-	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+	if (!socket_->setNonBlocking(true))
 		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
 
 #if defined(TCP_NODELAY)
 	if (server_.tcp_nodelay())
-	{
-		int flag = 1;
-		setsockopt(fd, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag));
-	}
+		socket_->setTcpNoDelay(true);
 #endif
 
 #if !defined(NDEBUG)
