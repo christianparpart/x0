@@ -707,4 +707,44 @@ void HttpServer::undeclareCVar(const std::string& key)
 	}
 }
 
+const std::vector<std::string>& HttpServer::hostNames() const
+{
+	return hostnames_;
+}
+
+Scope& HttpServer::createHost(const std::string& hostid)
+{
+	log(Severity::debug, "createHost(%s)", hostid.c_str());
+	if (vhosts_.find(hostid) == vhosts_.end())
+	{
+		hostnames_.push_back(hostid);
+		vhosts_[hostid] = std::make_shared<Scope>(hostid);
+	}
+
+	return *vhosts_[hostid];
+}
+
+void HttpServer::linkHost(const std::string& master, const std::string& alias)
+{
+	vhosts_[alias] = vhosts_[master];
+}
+
+void HttpServer::unlinkHost(const std::string& hostid)
+{
+	auto i = vhosts_.find(hostid);
+	if (i != vhosts_.end())
+	{
+		vhosts_.erase(i);
+	}
+
+	for (auto k = hostnames_.begin(), e = hostnames_.end(); k != e; ++k)
+	{
+		if (*k == hostid)
+		{
+			hostnames_.erase(k);
+			break;
+		}
+	}
+}
+
 } // namespace x0

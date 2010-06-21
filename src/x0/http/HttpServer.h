@@ -83,38 +83,12 @@ public:
 	ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.
 	// }}}
 
-	// {{{ HttpContext management
-	x0::Scope& createHost(const std::string& hostid)
-	{
-		if (vhosts_.find(hostid) == vhosts_.end())
-		{
-			vhosts_[hostid] = std::make_shared<x0::Scope>(hostid);
-		}
-		return *vhosts_[hostid];
-	}
-
-	void linkHost(const std::string& master, const std::string& alias)
-	{
-		vhosts_[alias] = vhosts_[master];
-	}
-
-	void unlinkHost(const std::string& hostid)
-	{
-		auto i = vhosts_.find(hostid);
-		if (i != vhosts_.end())
-		{
-			vhosts_.erase(i);
-		}
-	}
-
-	class x0::Scope& host(const std::string& hostid)
-	{
-		auto i = vhosts_.find(hostid);
-		if (i != vhosts_.end())
-			return *i->second;
-
-		return *(vhosts_[hostid] = std::make_shared<x0::Scope>(hostid));
-	}
+	// {{{ virtual-host management
+	const std::vector<std::string>& hostNames() const;
+	Scope& createHost(const std::string& hostid);
+	void linkHost(const std::string& master, const std::string& alias);
+	void unlinkHost(const std::string& hostid);
+	class Scope& host(const std::string& hostid);
 	// }}}
 
 	/** 
@@ -182,7 +156,8 @@ private:
 	void handle_request(HttpRequest *in, HttpResponse *out);
 	void loop_check(ev::check& w, int revents);
 
-	std::map<std::string, std::shared_ptr<x0::Scope>> vhosts_;	//!< virtual host scopes
+	std::map<std::string, std::shared_ptr<Scope>> vhosts_;	//!< virtual host scopes
+	std::vector<std::string> hostnames_;
 	std::list<HttpListener *> listeners_;
 	struct ::ev_loop *loop_;
 	bool active_;
@@ -219,7 +194,7 @@ inline struct ::ev_loop *HttpServer::loop() const
 	return loop_;
 }
 
-inline const x0::DateTime& HttpServer::now() const
+inline const DateTime& HttpServer::now() const
 {
 	return now_;
 }
@@ -238,6 +213,15 @@ template<typename T>
 inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 {
 	return dynamic_cast<T *>(loadPlugin(name, ec));
+}
+
+inline Scope& HttpServer::host(const std::string& hostid)
+{
+	auto i = vhosts_.find(hostid);
+	if (i != vhosts_.end())
+		return *i->second;
+
+	return *(vhosts_[hostid] = std::make_shared<Scope>(hostid));
 }
 
 #if !defined(NDEBUG)
