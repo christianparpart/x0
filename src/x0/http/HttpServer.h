@@ -167,9 +167,10 @@ public:
 	std::vector<std::string> cvars(HttpContext cx) const;
 	void undeclareCVar(const std::string& key);
 
-private:
-	HttpListener *listener_by_port(int port);
+	HttpListener *listenerByHost(const std::string& hostid) const;
+	HttpListener *listenerByPort(int port) const;
 
+private:
 #if defined(WITH_SSL)
 	static void gnutls_log(int level, const char *msg);
 #endif

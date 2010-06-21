@@ -400,12 +400,19 @@ void HttpServer::handle_request(HttpRequest *in, HttpResponse *out)
 	}
 }
 
+HttpListener *HttpServer::listenerByHost(const std::string& hostid) const
+{
+	int port = extract_port_from_hostid(hostid);
+
+	return listenerByPort(port);
+}
+
 /**
  * retrieves the listener object that is responsible for the given port number, or null otherwise.
  */
-HttpListener *HttpServer::listener_by_port(int port)
+HttpListener *HttpServer::listenerByPort(int port) const
 {
-	for (std::list<HttpListener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
+	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
 	{
 		HttpListener *http_server = *k;
 
@@ -501,7 +508,7 @@ void HttpServer::log(Severity s, const char *msg, ...)
 HttpListener *HttpServer::setupListener(int port, const std::string& bind_address)
 {
 	// check if we already have an HTTP listener listening on given port
-	if (HttpListener *lp = listener_by_port(port))
+	if (HttpListener *lp = listenerByPort(port))
 		return lp;
 
 	// create a new listener
