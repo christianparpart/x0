@@ -64,7 +64,7 @@ void HttpListener::stop()
 	fd_ = -1;
 
 #if defined(WITH_SSL)
-	if (secure())
+	if (isSecure())
 	{
 		gnutls_priority_deinit(priority_cache_);
 		gnutls_certificate_free_credentials(x509_cred_);
@@ -91,7 +91,7 @@ void HttpListener::setSocketDriver(SocketDriver *sd)
 }
 
 #if defined(WITH_SSL)
-void HttpListener::secure(bool value)
+void HttpListener::setSecure(bool value)
 {
 	if (value == secure_)
 		return;
@@ -160,7 +160,7 @@ void HttpListener::cert_file(const std::string& value)
 std::error_code HttpListener::prepare()
 {
 #if defined(WITH_SSL)
-	if (secure())
+	if (isSecure())
 	{
 		gnutls_priority_init(&priority_cache_, "NORMAL", NULL);
 

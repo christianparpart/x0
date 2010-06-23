@@ -66,8 +66,8 @@ public:
 	void setSocketDriver(SocketDriver *sd);
 
 #if defined(WITH_SSL)
-	bool secure() const;
-	void secure(bool value);
+	bool isSecure() const;
+	void setSecure(bool value);
 
 	ssl_db_cache& ssl_db();
 
@@ -164,7 +164,7 @@ inline int HttpListener::handle() const
 }
 
 #if defined(WITH_SSL)
-inline bool HttpListener::secure() const
+inline bool HttpListener::isSecure() const
 {
 	return secure_;
 }
