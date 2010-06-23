@@ -185,6 +185,8 @@ std::error_code HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
 	{
 		std::string hostid = *i;
 
+		server().createHost(hostid);
+
 		auto host_cvars = cvar[hostid].keys<std::string>();
 
 		// handle all vhost-directives
