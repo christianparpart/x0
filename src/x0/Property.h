@@ -1,4 +1,4 @@
-/* <x0/property.hpp>
+/* <x0/Property.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
@@ -11,7 +11,7 @@
 // C++ template based properties, as defined in: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2004/n1615.pdf
 
 #include <map>
-#include <boost/function.hpp>
+#include <functional>
 
 namespace x0 {
 
@@ -140,62 +140,72 @@ public:
 template<
 	typename T,
 	typename Object,
-	T (Object::*real_set)(T const&)
+	void (Object::*real_set)(T const&)
 >
-class write_property
+class WriteProperty
 {
 private:
 	Object *object_;
+	T value_;
 
 public:
-	write_property(Object *obj) : object_(obj)
-	{
-	}
-
-	write_property(Object *obj, T const & v) : object_(obj)
-	{
-		(object_->real_set)(v);
-	}
-
-	void operator()(Object *obj)
-	{
-		object_ = obj;
-	}
-
-	T operator()(T const& value)
-	{
-		return (object_->*real_set)(value);
-	}
-
-	T set(T const& value)
-	{
-		return (object_->*real_set)(value);
-	}
-
-	T operator=(T const& value)
-	{
-		return (object_->*real_set)(value);
-	}
-
+	typedef WriteProperty<T, Object, real_set>  self_type;
 	typedef T value_type;
+
+	WriteProperty(Object *obj) :
+		object_(obj), value_()
+	{
+	}
+
+	WriteProperty(Object *obj, T const & v) : object_(obj)
+	{
+		set(v);
+	}
+
+	const T& operator()() const
+	{
+		return value_;
+	}
+
+	void operator()(T const& value)
+	{
+		(object_->*real_set)(value);
+		value_ = value;
+	}
+
+	const T& get() const
+	{
+		return value_;
+	}
+
+	void set(T const& value)
+	{
+		(object_->*real_set)(value);
+	}
+
+	self_type& operator=(T const& value)
+	{
+		(object_->*real_set)(value);
+		return *this;
+	}
 };
 
 template<typename T>
-class property
+class Property
 {
 private:
-	boost::function<T()> get_;
-	boost::function<T(const T&)> set_;
+	std::function<T()> get_;
+	std::function<T(const T&)> set_;
 
 public:
 	template<class Getter, class Setter>
-	property(Getter _get, Setter _set) :
+	Property(Getter _get, Setter _set) :
 		get_(_get), set_(_set)
 	{
 	}
 
 	template<class Getter, class Setter>
-	property(Getter _get, Setter _set, const T& v) :
+	Property(Getter _get, Setter _set, const T& v) :
 		get_(_get), set_(_set)
 	{
 		set_(v);
