@@ -18,6 +18,8 @@ public:
 	explicit SocketDriver(struct ev_loop *loop);
 	virtual ~SocketDriver();
 
+	virtual bool isSecure() const;
+
 	virtual Socket *create(int handle);
 	virtual void destroy(Socket *);
 };

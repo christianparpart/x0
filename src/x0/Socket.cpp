@@ -21,6 +21,8 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 	watcher_(loop),
 	timeout_(0),
 	timer_(loop),
+	secure_(false),
+	state_(OPERATIONAL),
 	mode_(IDLE),
 	callback_(0),
 	callbackData_(0)
@@ -133,12 +135,19 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #endif
 }
 
+void Socket::handshake()
+{
+	// plain (unencrypted) TCP/IP sockets do not need an additional handshake
+}
+
 void Socket::io(ev::io& io, int revents)
 {
 	DEBUG("Socket(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	timer_.stop();
 
-	if (callback_)
+	if (state_ == HANDSHAKE)
+		handshake();
+	else if (callback_)
 		callback_(this, callbackData_);
 }
 

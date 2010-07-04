@@ -1,0 +1,276 @@
+/* <x0/SslContext.cpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ *
+ * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
+ */
+
+#include <x0/SslContext.h>
+#include <x0/SslSocket.h>
+#include <x0/SslDriver.h>
+#include <x0/strutils.h>
+#include <x0/Types.h>
+
+#include <boost/lexical_cast.hpp>
+
+#include <cstring>
+#include <cerrno>
+#include <cstddef>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <fcntl.h>
+
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
+#include <gnutls/extra.h>
+
+#define TRACE(msg...) DEBUG("SslContext: " msg)
+
+namespace x0 {
+
+bool loadFile(gnutls_datum_t& data, const std::string& filename) // {{{ loadFile / freeFile
+{
+	//TRACE("loadFile('%s')", filename.c_str());
+	struct stat st;
+	if (stat(filename.c_str(), &st) < 0)
+		return false;
+
+	int fd = open(filename.c_str(), O_RDONLY);
+	if (fd < 0) {
+		TRACE("loadFile: %s: %s", filename.c_str(), strerror(errno));
+		return false;
+	}
+
+	data.data = new unsigned char[st.st_size + 1];
+	data.size = read(fd, data.data, st.st_size);
+
+	if (data.size < st.st_size)
+	{
+		delete[] data.data;
+		TRACE("loadFile: read %d (of %ld) bytes [failed: %s]", data.size, st.st_size, strerror(errno));
+		return false;
+	}
+
+	data.data[data.size] = '\0';
+	//TRACE("loadFile: read %d bytes (%ld)", data.size, strlen((char *)data.data));
+	//TRACE("dump(%s)", data.data);
+	return true;
+}
+
+void freeFile(gnutls_datum_t data)
+{
+	delete[] data.data;
+} // }}}
+
+SslContext::SslContext() :
+	enabled(true),
+	certFile(this),
+	keyFile(this),
+	crlFile(this),
+	trustFile(this),
+	priorities(this),
+	driver_(0),
+	numX509Certs_(0),
+	clientVerifyMode_(GNUTLS_CERT_IGNORE),
+	caList_(0)
+{
+	TRACE("SslContext()");
+
+	gnutls_dh_params_init(&dhParams_);
+	gnutls_dh_params_generate2(dhParams_, 1024);
+
+	gnutls_certificate_allocate_credentials(&certs_);
+	gnutls_anon_allocate_server_credentials(&anonCreds_);
+}
+
+SslContext::~SslContext()
+{
+	TRACE("~SslContext()");
+
+	if (!priorities().empty())
+		gnutls_priority_deinit(priorities_);
+
+	gnutls_certificate_free_credentials(certs_);
+}
+
+void SslContext::merge(const ScopeValue * /*from*/)
+{
+	TRACE("SslContext::merge()");
+}
+
+void SslContext::setDriver(SslDriver *driver)
+{
+	TRACE("SslContext::setDriver()");
+	driver_ = driver;
+}
+
+void SslContext::setCertFile(const std::string& filename)
+{
+	TRACE("SslContext::setCertFile: \"%s\"", filename.c_str());
+	gnutls_datum_t data;
+	if (!loadFile(data, filename))
+		return;
+
+	numX509Certs_ = sizeof(x509Certs_) / sizeof(*x509Certs_); // 8
+
+	int rv;
+	rv = gnutls_x509_crt_list_import(x509Certs_, &numX509Certs_, &data, GNUTLS_X509_FMT_PEM, 0);
+
+#if !defined(NDEBUG)
+	if (rv < 0)
+		TRACE("gnutls_x509_crt_list_import: \"%s\"", gnutls_strerror(rv));
+#endif
+
+	for (unsigned i = 0; i < numX509Certs_; ++i)
+	{
+		std::size_t len = 0;
+		rv = gnutls_x509_crt_get_dn_by_oid(x509Certs_[i], GNUTLS_OID_X520_COMMON_NAME, 0, 0, NULL, &len);
+		if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
+		{
+			char *buf = new char[len + 1];
+			rv = gnutls_x509_crt_get_dn_by_oid(x509Certs_[i], GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf, &len);
+			certCN_ = buf;
+			delete[] buf;
+			TRACE("setCertFile: Common Name: \"%s\"", certCN_.c_str());
+		}
+		else // read Subject alternative-name:
+		{
+			for (int k = 0; !(rv < 0); ++k)
+			{
+				len = 0;
+				rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, NULL, &len, NULL);
+				if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
+				{
+					char *buf = new char[len + 1];
+					rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, buf, &len, NULL);
+					buf[len] = '\0';
+					certCN_ = buf;
+					delete[] buf;
+					TRACE("setCertFile: Subject: \"%s\"", certCN_.c_str());
+
+					if (rv == GNUTLS_SAN_DNSNAME)
+						break;
+				}
+			}
+		}
+	}
+
+	freeFile(data);
+	TRACE("setCertFile: success.");
+}
+
+void SslContext::setKeyFile(const std::string& filename)
+{
+	TRACE("SslContext::setKeyFile: \"%s\"", filename.c_str());
+	gnutls_datum_t data;
+	if (!loadFile(data, filename))
+		return;
+
+	int rv;
+	if ((rv = gnutls_x509_privkey_init(&x509PrivateKey_)) < 0) {
+		freeFile(data);
+		return;
+	}
+
+	if ((rv = gnutls_x509_privkey_import(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM)) < 0)
+		rv = gnutls_x509_privkey_import_pkcs8(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM, NULL, GNUTLS_PKCS_PLAIN);
+
+	if (rv < 0) {
+		freeFile(data);
+		return;
+	}
+
+	freeFile(data);
+	TRACE("setKeyFile: success.");
+}
+
+void SslContext::setCrlFile(const std::string& filename)
+{
+	TRACE("setCrlFile");
+}
+
+void SslContext::setTrustFile(const std::string& filename)
+{
+	TRACE("setCrlFile");
+}
+
+void SslContext::setPriorities(const std::string& value)
+{
+	TRACE("setPriorities: \"%s\"", value.c_str());
+
+	const char *errp = NULL;
+	int rv = gnutls_priority_init(&priorities_, value.c_str(), &errp);
+
+	if (rv != GNUTLS_E_SUCCESS)
+	{
+		TRACE("gnutls_priority_init: error: %s \"%s\"", gnutls_strerror(rv), errp ? errp : "");
+	}
+}
+
+std::string SslContext::commonName() const
+{
+	return certCN_;
+}
+
+void SslContext::post_config()
+{
+	if (priorities().empty())
+		priorities = "NORMAL";
+
+//	if (rsaParams_)
+//		gnutls_certificate_set_rsa_export_params(certs_, rsaParams_);
+
+	if (dhParams_)
+	{
+		gnutls_certificate_set_dh_params(certs_, dhParams_);
+		gnutls_anon_set_server_dh_params(anonCreds_, dhParams_);
+	}
+
+	gnutls_certificate_server_set_retrieve_function(certs_, &SslContext::onRetrieveCert);
+
+	// SRP...
+
+
+}
+
+int SslContext::onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret)
+{
+	TRACE("onRetrieveCert()");
+	SslSocket *socket = (SslSocket *)gnutls_session_get_ptr(session);
+	const SslContext *cx = socket->context();
+
+	switch (gnutls_certificate_type_get(session))
+	{
+		case GNUTLS_CRT_X509:
+			ret->type = GNUTLS_CRT_X509;
+			ret->deinit_all = 0;
+			ret->ncerts = cx->numX509Certs_;
+			ret->cert.x509 = const_cast<SslContext *>(cx)->x509Certs_;
+			ret->key.x509 = cx->x509PrivateKey_;
+
+			return GNUTLS_E_SUCCESS;
+		case GNUTLS_CRT_OPENPGP:
+			//return GNUTLS_E_SUCCESS;
+		default:
+			return GNUTLS_E_INTERNAL_ERROR;
+	}
+}
+
+void SslContext::bind(SslSocket *socket)
+{
+	TRACE("bind() (cn=\"%s\")", commonName().c_str());
+
+	socket->context_ = this;
+	gnutls_certificate_server_set_request(socket->session_, clientVerifyMode_);
+	gnutls_credentials_set(socket->session_, GNUTLS_CRD_CERTIFICATE, certs_);
+	gnutls_credentials_set(socket->session_, GNUTLS_CRD_ANON, anonCreds_);
+	gnutls_priority_set(socket->session_, priorities_);
+
+	const int cprio[] = { GNUTLS_CRT_X509, 0 };
+	gnutls_certificate_type_set_priority(socket->session_, cprio);
+}
+
+} // namespace x0

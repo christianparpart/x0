@@ -100,8 +100,9 @@ set(x0_SRC
 	Severity.cpp
 	Socket.cpp
 	SocketDriver.cpp
-	SslSocket.cpp
+	SslContext.cpp
 	SslDriver.cpp
+	SslSocket.cpp
 	StackTrace.cpp
 	StringError.cpp
 	ssl_db_cache.cpp # should go into io/
@@ -132,8 +133,9 @@ set(x0_API
 	Severity.h
 	Socket.h
 	SocketDriver.h
-	SslSocket.h
+	SslContext.h
 	SslDriver.h
+	SslSocket.h
 	StackTrace.h
 	StringError.h
 	Signal.h

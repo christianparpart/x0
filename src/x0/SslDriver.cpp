@@ -1,5 +1,8 @@
 #include <x0/SslDriver.h>
 #include <x0/SslSocket.h>
+#include <x0/SslContext.h>
+#include <x0/http/HttpServer.h>
+#include <x0/Scope.h>
 #include <gnutls/gnutls.h>
 #include <cstring>
 
@@ -59,16 +62,10 @@ inline bool SslCacheItem::equals(const gnutls_datum_t& key) const
 }
 // }}}
 
-SslDriver::SslDriver(struct ev_loop *loop) :
+SslDriver::SslDriver(struct ev_loop *loop, SslContextSelector *selector) :
 	SocketDriver(loop),
 	loop_(loop),
-	crlFileName_(),
-	trustFileName_(),
-	keyFileName_(),
-	certFileName_(),
-	x509Cred_(),
-	dhParams_(),
-	priorityCache_(),
+	selector_(selector),
 	items_(new SslCacheItem[1024]),
 	size_(1024),
 	ptr_(0)
@@ -80,6 +77,11 @@ SslDriver::~SslDriver()
 	delete[] items_;
 }
 
+bool SslDriver::isSecure() const
+{
+	return true;
+}
+
 SslSocket *SslDriver::create(int handle)
 {
 	return new SslSocket(this, handle);
@@ -87,6 +89,11 @@ SslSocket *SslDriver::create(int handle)
 
 void SslDriver::destroy(Socket *)
 {
+}
+
+SslContext *SslDriver::selectContext(const std::string& dnsName) const
+{
+	return selector_->select(dnsName);
 }
 
 // {{{ session cache

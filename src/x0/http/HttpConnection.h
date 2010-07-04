@@ -86,6 +86,7 @@ private:
 	bool isClosed() const;
 	void resume(bool finish);
 
+	void handshakeComplete(Socket *);
 	void start_read();
 	void resume_read();
 	void handle_read();

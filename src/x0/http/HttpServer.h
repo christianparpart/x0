@@ -84,7 +84,7 @@ public:
 	// }}}
 
 	// {{{ virtual-host management
-	const std::vector<std::string>& hostNames() const;
+	std::vector<std::string> hostnames() const;
 	Scope& createHost(const std::string& hostid);
 	void linkHost(const std::string& master, const std::string& alias);
 	void unlinkHost(const std::string& hostid);

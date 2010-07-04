@@ -11,6 +11,7 @@
 namespace x0 {
 
 class SslDriver;
+class SslContext;
 
 /** \brief SSL socket.
  */
@@ -18,18 +19,22 @@ class SslSocket :
 	public Socket
 {
 private:
+	ev_tstamp ctime_;
+
 	SslDriver *driver_;
+	const SslContext *context_;
 	gnutls_session_t session_;		//!< SSL (GnuTLS) session handle
-	bool handshaking_;
 
 	friend class SslDriver;
+	friend class SslContext;
+
+	static int onClientHello(gnutls_session_t session);
 
 public:
 	explicit SslSocket(SslDriver *driver, int fd);
 	virtual ~SslSocket();
 
-	bool initialize();
-	bool isSecure() const;
+	const SslContext *context() const;
 
 public:
 	// synchronous non-blocking I/O
@@ -37,9 +42,16 @@ public:
 	virtual ssize_t write(const BufferRef& source);
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 
-private:
-	bool handshake();
+protected:
+	virtual void handshake();
 };
+
+// {{{ inlines
+inline const SslContext *SslSocket::context() const
+{
+	return context_;
+}
+// }}}
 
 } // namespace x0
 

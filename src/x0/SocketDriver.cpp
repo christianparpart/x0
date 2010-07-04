@@ -13,6 +13,11 @@ SocketDriver::~SocketDriver()
 {
 }
 
+bool SocketDriver::isSecure() const
+{
+	return false;
+}
+
 Socket *SocketDriver::create(int handle)
 {
 	return new Socket(loop_, handle);

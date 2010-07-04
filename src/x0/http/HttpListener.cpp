@@ -13,7 +13,7 @@
 #include <x0/sysconfig.h>
 
 #if defined(WITH_SSL)
-#	include <gnutls/gnutls.h>
+#	include <x0/SslDriver.h>
 #endif
 
 #include <arpa/inet.h>		// inet_pton()
@@ -35,15 +35,6 @@ HttpListener::HttpListener(HttpServer& srv) :
 	backlog_(SOMAXCONN),
 	errors_(0),
 	socketDriver_(new SocketDriver(srv.loop()))
-#if defined(WITH_SSL)
-	,
-	secure_(false),
-	ssl_db_(512),
-	crl_file_(),
-	trust_file_(),
-	key_file_(),
-	cert_file_()
-#endif
 {
 	watcher_.set<HttpListener, &HttpListener::callback>(this);
 }
@@ -63,14 +54,7 @@ void HttpListener::stop()
 	::close(fd_);
 	fd_ = -1;
 
-#if defined(WITH_SSL)
-	if (isSecure())
-	{
-		gnutls_priority_deinit(priority_cache_);
-		gnutls_certificate_free_credentials(x509_cred_);
-		gnutls_dh_params_deinit(dh_params_);
-	}
-#endif
+	setSocketDriver(NULL);
 }
 
 inline void HttpListener::setsockopt(int socket, int layer, int option, int value)
@@ -90,97 +74,11 @@ void HttpListener::setSocketDriver(SocketDriver *sd)
 	socketDriver_ = sd;
 }
 
-#if defined(WITH_SSL)
-void HttpListener::setSecure(bool value)
-{
-	if (value == secure_)
-		return;
-
-	bool resume = active();
-	if (resume) stop();
-
-	secure_ = value;
-
-	if (resume) start();
-}
-
-void HttpListener::crl_file(const std::string& value)
-{
-	if (value == crl_file_)
-		return;
-
-	bool resume = active();
-	if (resume) stop();
-
-	crl_file_ = value;
-
-	if (resume) start();
-}
-
-void HttpListener::trust_file(const std::string& value)
-{
-	if (value == trust_file_)
-		return;
-
-	bool resume = active();
-	if (resume) stop();
-
-	trust_file_ = value;
-
-	if (resume) start();
-}
-
-void HttpListener::key_file(const std::string& value)
-{
-	if (value == key_file_)
-		return;
-
-	bool resume = active();
-	if (resume) stop();
-
-	key_file_ = value;
-
-	if (resume) start();
-}
-
-void HttpListener::cert_file(const std::string& value)
-{
-	if (value == cert_file_)
-		return;
-
-	bool resume = active();
-	if (resume) stop();
-
-	cert_file_ = value;
-
-	if (resume) start();
-}
-#endif
-
 std::error_code HttpListener::prepare()
 {
 #if defined(WITH_SSL)
 	if (isSecure())
-	{
-		gnutls_priority_init(&priority_cache_, "NORMAL", NULL);
-
-		gnutls_certificate_allocate_credentials(&x509_cred_);
-
-		if (!trust_file_.empty())
-			gnutls_certificate_set_x509_trust_file(x509_cred_, trust_file_.c_str(), GNUTLS_X509_FMT_PEM);
-
-		if (!crl_file_.empty())
-			gnutls_certificate_set_x509_crl_file(x509_cred_, crl_file_.c_str(), GNUTLS_X509_FMT_PEM);
-
-		gnutls_certificate_set_x509_key_file(x509_cred_, cert_file_.c_str(), key_file_.c_str(), GNUTLS_X509_FMT_PEM);
-
-		gnutls_dh_params_init(&dh_params_);
-		gnutls_dh_params_generate2(dh_params_, 1024);
-
-		gnutls_certificate_set_dh_params(x509_cred_, dh_params_);
-
 		log(Severity::info, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
-	}
 	else
 		log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
 #else

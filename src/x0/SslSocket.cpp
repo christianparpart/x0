@@ -1,5 +1,6 @@
 #include <x0/SslSocket.h>
 #include <x0/SslDriver.h>
+#include <x0/SslContext.h>
 #include <x0/Defines.h>
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
@@ -10,60 +11,97 @@
 #if 0
 #	define TRACE(msg...)
 #else
-#	define TRACE(msg...) DEBUG("HttpConnection: " msg)
+#	define TRACE(msg...) DEBUG("SslSocket: " msg)
 #endif
 
 namespace x0 {
 
 SslSocket::SslSocket(SslDriver *driver, int fd) :
 	Socket(driver->loop_, fd),
+	ctime_(ev_now(driver->loop_)),
 	driver_(driver),
-	session_(),
-	handshaking_(true)
+	context_(NULL),
+	session_()
 {
-}
+	TRACE("SslSocket()");
 
-SslSocket::~SslSocket()
-{
-	gnutls_deinit(session_);
-}
+	static int protocolPriorities_[] = { GNUTLS_TLS1_1, GNUTLS_TLS1_0, GNUTLS_SSL3, 0 };
 
-bool SslSocket::initialize()
-{
+	setSecure(true);
+	setState(HANDSHAKE);
+
 	gnutls_init(&session_, GNUTLS_SERVER);
-	gnutls_priority_set(session_, driver_->priorityCache_);
-	gnutls_credentials_set(session_, GNUTLS_CRD_CERTIFICATE, driver_->x509Cred_);
+	gnutls_protocol_set_priority(session_, protocolPriorities_);
+
+	gnutls_handshake_set_post_client_hello_function(session_, &SslSocket::onClientHello);
 
 	gnutls_certificate_server_set_request(session_, GNUTLS_CERT_REQUEST);
 	gnutls_dh_set_prime_bits(session_, 1024);
 
 	gnutls_session_enable_compatibility_mode(session_);
 
+	gnutls_session_set_ptr(session_, this);
 	gnutls_transport_set_ptr(session_, (gnutls_transport_ptr_t)(handle()));
 
 	driver_->cache(this);
-
-	return handshake();
 }
 
-bool SslSocket::handshake()
+SslSocket::~SslSocket()
 {
+	TRACE("~SslSocket()");
+	gnutls_deinit(session_);
+}
+
+int SslSocket::onClientHello(gnutls_session_t session)
+{
+	TRACE("onClientHello()");
+	SslSocket *socket = (SslSocket *)gnutls_session_get_ptr(session);
+
+	// find SNI server
+	const int MAX_HOST_LEN = 255;
+	std::size_t dataLen = MAX_HOST_LEN;
+	char sniName[MAX_HOST_LEN];
+	unsigned int sniType;
+
+	int rv = gnutls_server_name_get(session, sniName, &dataLen, &sniType, 0);
+	if (rv != 0)
+		return GNUTLS_E_UNIMPLEMENTED_FEATURE;
+
+	if (sniType != GNUTLS_NAME_DNS)
+	{
+		TRACE("Unknown SNI type: %d", sniType);
+		return GNUTLS_E_UNIMPLEMENTED_FEATURE;
+	}
+	TRACE("onClientHello: SNI Name: \"%s\"", sniName);
+
+	if (SslContext *cx = socket->driver_->selectContext(sniName))
+		cx->bind(socket);
+
+	return 0;
+}
+
+void SslSocket::handshake()
+{
+	TRACE("handshake()");
 	int rv = gnutls_handshake(session_);
 	if (rv == GNUTLS_E_SUCCESS)
 	{
 		// handshake either completed or failed
-		handshaking_ = false;
-		//TRACE("SSL handshake time: %.4f", ev_now(loop_) - ctime_);
+		TRACE("SSL handshake complete. (time: %.4f)", ev_now(loop()) - ctime_);
+
+		setState(OPERATIONAL);
 		setMode(READ);
-		return true;
+		callback();
+
+		return;// true;
 	}
 
 	if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
 	{
 		TRACE("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
-
+		setState(FAILURE);
 		//delete this; // FIXME old code from HttpConnection not copy'n'pastable
-		return false;
+		return;// false;
 	}
 
 	TRACE("SSL partial handshake: (%d)", gnutls_record_get_direction(session_));
@@ -78,12 +116,7 @@ bool SslSocket::handshake()
 		default:
 			break;
 	}
-	return false;
-}
-
-bool SslSocket::isSecure() const
-{
-	return true;
+	return;// false;
 }
 
 ssize_t SslSocket::read(Buffer& result)

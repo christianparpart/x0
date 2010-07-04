@@ -9,15 +9,11 @@
 #define x0_listener_h (1)
 
 #include <x0/http/HttpServer.h>
+#include <x0/SocketDriver.h>
 #include <x0/Severity.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
 #include <x0/sysconfig.h>
-
-#if defined(WITH_SSL)
-#	include <x0/ssl_db_cache.h>
-#	include <gnutls/gnutls.h>
-#endif
 
 #include <ev++.h>
 
@@ -67,14 +63,6 @@ public:
 
 #if defined(WITH_SSL)
 	bool isSecure() const;
-	void setSecure(bool value);
-
-	ssl_db_cache& ssl_db();
-
-	void crl_file(const std::string&);
-	void trust_file(const std::string&);
-	void key_file(const std::string&);
-	void cert_file(const std::string&);
 #endif
 
 	int handle() const;
@@ -106,19 +94,6 @@ private:
 	int backlog_;
 	int errors_;
 	SocketDriver *socketDriver_;
-
-#if defined(WITH_SSL)
-	bool secure_;
-	ssl_db_cache ssl_db_;
-	std::string crl_file_;
-	std::string trust_file_;
-	std::string key_file_;
-	std::string cert_file_;
-
-	gnutls_certificate_credentials_t x509_cred_;
-	gnutls_dh_params_t dh_params_;
-	gnutls_priority_t priority_cache_;
-#endif
 
 	friend class HttpConnection;
 };
@@ -166,12 +141,7 @@ inline int HttpListener::handle() const
 #if defined(WITH_SSL)
 inline bool HttpListener::isSecure() const
 {
-	return secure_;
-}
-
-inline ssl_db_cache& HttpListener::ssl_db()
-{
-	return ssl_db_;
+	return socketDriver_->isSecure();
 }
 #endif
 //@}

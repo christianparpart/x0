@@ -130,7 +130,7 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	}
 
 	socket_ = listener_.socketDriver()->create(fd);
-	TRACE("HttpConnection(%p).start() fd=%d", this, socket_->handle());
+	TRACE("HttpConnection(%p): fd=%d", this, socket_->handle());
 
 	if (!socket_->setNonBlocking(true))
 		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
@@ -194,7 +194,7 @@ void HttpConnection::timeout(Socket *)
 #if defined(WITH_SSL)
 bool HttpConnection::isSecure() const
 {
-	return listener_.secure();
+	return listener_.isSecure();
 }
 #endif
 
@@ -207,13 +207,31 @@ bool HttpConnection::isSecure() const
  */
 void HttpConnection::start()
 {
+	if (socket_->state() == Socket::HANDSHAKE)
+	{
+		TRACE("start: handshake.");
+		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
+	}
+	else
+	{
 #if defined(TCP_DEFER_ACCEPT)
-	// it is ensured, that we have data pending, so directly start reading
-	handle_read();
+		TRACE("start: read.");
+		// it is ensured, that we have data pending, so directly start reading
+		handle_read();
 #else
-	// client connected, but we do not yet know if we have data pending
-	start_read();
+		TRACE("start: start_read.");
+		// client connected, but we do not yet know if we have data pending
+		start_read();
 #endif
+	}
+}
+
+void HttpConnection::handshakeComplete(Socket *)
+{
+	if (socket_->state() == Socket::OPERATIONAL)
+		start_read();
+	else
+		delete this;
 }
 
 inline bool url_decode(BufferRef& url)

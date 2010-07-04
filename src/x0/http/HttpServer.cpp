@@ -97,8 +97,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 
 	loop_check_.set<HttpServer, &HttpServer::loop_check>(this);
 	loop_check_.start();
-
-	registerPlugin(core_ = new HttpCore(*this));
 }
 
 void HttpServer::loop_check(ev::check& /*w*/, int /*revents*/)
@@ -110,7 +108,7 @@ void HttpServer::loop_check(ev::check& /*w*/, int /*revents*/)
 #if defined(WITH_SSL)
 void HttpServer::gnutls_log(int level, const char *msg)
 {
-	fprintf(stderr, "gnutls log[%d]: %s", level, msg);
+	fprintf(stderr, "gnutls[%d]: %s", level, msg);
 	fflush(stderr);
 }
 #endif
@@ -173,6 +171,9 @@ std::error_code HttpServer::configure(const std::string& configfile)
 
 	gnutls_global_init_extra();
 #endif
+
+	if (!core_)
+		registerPlugin(core_ = new HttpCore(*this));
 
 	// load config
 	std::error_code ec = settings_.load_file(configfile);
@@ -271,8 +272,15 @@ std::error_code HttpServer::configure(const std::string& configfile)
 
 #if defined(WITH_SSL)
 	// gnutls debug level (int, 0=off)
-//	gnutls_global_set_log_level(10);
-//	gnutls_global_set_log_function(&HttpServer::gnutls_log);
+	{
+		int level = 0;
+		if (settings_.load("SslLogLevel", level))
+		{
+			level = std::max(0, std::min(10, level));
+			gnutls_global_set_log_level(level);
+			gnutls_global_set_log_function(&HttpServer::gnutls_log);
+		}
+	}
 #endif
 
 	// {{{ setup workers
@@ -707,9 +715,16 @@ void HttpServer::undeclareCVar(const std::string& key)
 	}
 }
 
-const std::vector<std::string>& HttpServer::hostNames() const
+std::vector<std::string> HttpServer::hostnames() const
 {
-	return hostnames_;
+	std::vector<std::string> result;
+
+	for (auto i = vhosts_.begin(), e = vhosts_.end(); i != e; ++i)
+	{
+		result.push_back(i->first);
+	}
+
+	return result;
 }
 
 Scope& HttpServer::createHost(const std::string& hostid)
@@ -726,6 +741,7 @@ Scope& HttpServer::createHost(const std::string& hostid)
 
 void HttpServer::linkHost(const std::string& master, const std::string& alias)
 {
+	log(Severity::debug, "linkHost: %s -> %s", alias.c_str(), master.c_str());
 	vhosts_[alias] = vhosts_[master];
 }
 
