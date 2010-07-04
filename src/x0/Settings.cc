@@ -82,6 +82,18 @@ inline std::error_code SettingsValue::load(value_property<T>& result) const
 	return std::error_code();
 }
 
+template<typename T, class Object, void (Object::*Writer)(const T&)>
+inline std::error_code SettingsValue::load(WriteProperty<T, Object, Writer>& result) const
+{
+	fetcher _(*this);
+
+	if (lua_type(L_, -1) == LUA_TNIL)
+		return SettingsError::NotFound;
+
+	result = this->as<T>(-1);
+	return std::error_code();
+}
+
 template<typename T>
 T SettingsValue::get(const T& _default) const
 {
