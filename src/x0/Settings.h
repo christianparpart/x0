@@ -139,6 +139,7 @@ public:
 	// value read
 	template<typename T> std::error_code load(T& _value) const;
 	template<typename T> std::error_code load(value_property<T>& result) const;
+	template<typename T, class Object, void (Object::*Writer)(const T&)> std::error_code load(WriteProperty<T, Object, Writer>& result) const;
 	template<typename T> T get(const T& _default = T()) const;
 	template<typename T> T as() const;
 	template<typename T> std::vector<T> keys() const;
