@@ -61,10 +61,6 @@ public:
 		declareCVar("SslTrustFile", cmask, &ssl_plugin::setupTrustFile);
 		declareCVar("SslPriorities", cmask, &ssl_plugin::setupPriorities);
 
-#if !defined(NDEBUG)
-		setLogLevel(10);
-#endif
-
 		gnutls_global_init();
 	}
 
@@ -140,7 +136,7 @@ private:
 		std::string msg(message);
 		msg.resize(msg.size() - 1);
 
-		TRACE("[%d] %s", level, msg.c_str());
+		TRACE("gnutls [%d] %s", level, msg.c_str());
 	}
 
 	std::error_code setupEnabled(const x0::SettingsValue& cvar, x0::Scope& s)

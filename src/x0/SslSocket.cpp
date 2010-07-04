@@ -99,8 +99,10 @@ void SslSocket::handshake()
 	if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
 	{
 		TRACE("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
+
 		setState(FAILURE);
-		//delete this; // FIXME old code from HttpConnection not copy'n'pastable
+		callback();
+
 		return;// false;
 	}
 
