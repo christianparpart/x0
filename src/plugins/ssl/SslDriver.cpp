@@ -1,12 +1,10 @@
-#include <x0/SslDriver.h>
-#include <x0/SslSocket.h>
-#include <x0/SslContext.h>
+#include "SslDriver.h"
+#include "SslSocket.h"
+#include "SslContext.h"
 #include <x0/http/HttpServer.h>
 #include <x0/Scope.h>
 #include <gnutls/gnutls.h>
 #include <cstring>
-
-namespace x0 {
 
 struct SslCacheItem // {{{
 {
@@ -63,7 +61,7 @@ inline bool SslCacheItem::equals(const gnutls_datum_t& key) const
 // }}}
 
 SslDriver::SslDriver(struct ev_loop *loop, SslContextSelector *selector) :
-	SocketDriver(loop),
+	x0::SocketDriver(loop),
 	loop_(loop),
 	selector_(selector),
 	items_(new SslCacheItem[1024]),
@@ -87,7 +85,7 @@ SslSocket *SslDriver::create(int handle)
 	return new SslSocket(this, handle);
 }
 
-void SslDriver::destroy(Socket *)
+void SslDriver::destroy(x0::Socket *)
 {
 }
 
@@ -181,5 +179,3 @@ int SslDriver::_remove(void *dbf, gnutls_datum_t key)
 	return -1;
 }
 // }}}
-
-} // namespace x0

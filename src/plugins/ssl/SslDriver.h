@@ -2,16 +2,15 @@
 #define sw_x0_SslDriver_h (1)
 
 #include <x0/SocketDriver.h>
-#include <x0/SslContext.h> // SslContextSelector
-#include <x0/SslSocket.h>
+#include "SslContext.h" // SslContextSelector
+#include "SslSocket.h"
 #include <gnutls/gnutls.h>
-
-namespace x0 {
 
 struct SslCacheItem;
 struct SslContext;
 
-class SslDriver : public SocketDriver
+class SslDriver :
+	public x0::SocketDriver
 {
 private:
 	struct ev_loop *loop_;
@@ -31,7 +30,7 @@ public:
 	virtual bool isSecure() const;
 
 	virtual SslSocket *create(int handle);
-	virtual void destroy(Socket *);
+	virtual void destroy(x0::Socket *);
 
 	void cache(SslSocket *socket);
 
@@ -55,7 +54,5 @@ inline const SslContextSelector *SslDriver::selector() const
 	return selector_;
 }
 // }}}
-
-} // namespace x0
 
 #endif

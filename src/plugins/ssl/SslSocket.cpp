@@ -1,6 +1,6 @@
-#include <x0/SslSocket.h>
-#include <x0/SslDriver.h>
-#include <x0/SslContext.h>
+#include "SslSocket.h"
+#include "SslDriver.h"
+#include "SslContext.h"
 #include <x0/Defines.h>
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
@@ -14,10 +14,8 @@
 #	define TRACE(msg...) DEBUG("SslSocket: " msg)
 #endif
 
-namespace x0 {
-
 SslSocket::SslSocket(SslDriver *driver, int fd) :
-	Socket(driver->loop_, fd),
+	x0::Socket(driver->loop_, fd),
 	ctime_(ev_now(driver->loop_)),
 	driver_(driver),
 	context_(NULL),
@@ -121,7 +119,7 @@ void SslSocket::handshake()
 	return;// false;
 }
 
-ssize_t SslSocket::read(Buffer& result)
+ssize_t SslSocket::read(x0::Buffer& result)
 {
 	if (result.size() == result.capacity())
 		result.reserve(result.size() + 4096);
@@ -134,7 +132,7 @@ ssize_t SslSocket::read(Buffer& result)
 	return rv;
 }
 
-ssize_t SslSocket::write(const BufferRef& source)
+ssize_t SslSocket::write(const x0::BufferRef& source)
 {
 	ssize_t rv = gnutls_write(session_, source.data(), source.size());
 	return rv;
@@ -155,5 +153,3 @@ ssize_t SslSocket::write(int fd, off_t *offset, size_t nbytes)
 
 	return 0;
 }
-
-} // namespace x0

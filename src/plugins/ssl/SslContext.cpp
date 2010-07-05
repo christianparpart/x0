@@ -5,9 +5,9 @@
  * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
  */
 
-#include <x0/SslContext.h>
-#include <x0/SslSocket.h>
-#include <x0/SslDriver.h>
+#include "SslContext.h"
+#include "SslSocket.h"
+#include "SslDriver.h"
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
@@ -28,8 +28,6 @@
 #include <gnutls/extra.h>
 
 #define TRACE(msg...) DEBUG("SslContext: " msg)
-
-namespace x0 {
 
 bool loadFile(gnutls_datum_t& data, const std::string& filename) // {{{ loadFile / freeFile
 {
@@ -272,5 +270,3 @@ void SslContext::bind(SslSocket *socket)
 	const int cprio[] = { GNUTLS_CRT_X509, 0 };
 	gnutls_certificate_type_set_priority(socket->session_, cprio);
 }
-
-} // namespace x0

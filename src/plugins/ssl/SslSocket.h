@@ -8,15 +8,13 @@
 #	include <gnutls/gnutls.h>
 #endif
 
-namespace x0 {
-
 class SslDriver;
 class SslContext;
 
 /** \brief SSL socket.
  */
 class SslSocket :
-	public Socket
+	public x0::Socket
 {
 private:
 	ev_tstamp ctime_;
@@ -38,8 +36,8 @@ public:
 
 public:
 	// synchronous non-blocking I/O
-	virtual ssize_t read(Buffer& result);
-	virtual ssize_t write(const BufferRef& source);
+	virtual ssize_t read(x0::Buffer& result);
+	virtual ssize_t write(const x0::BufferRef& source);
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 
 protected:
@@ -52,7 +50,5 @@ inline const SslContext *SslSocket::context() const
 	return context_;
 }
 // }}}
-
-} // namespace x0
 
 #endif

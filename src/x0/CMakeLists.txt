@@ -100,12 +100,8 @@ set(x0_SRC
 	Severity.cpp
 	Socket.cpp
 	SocketDriver.cpp
-	SslContext.cpp
-	SslDriver.cpp
-	SslSocket.cpp
 	StackTrace.cpp
 	StringError.cpp
-	ssl_db_cache.cpp # should go into io/
 	strutils.cpp
 	gai_error.cpp
 	${x0_io_SRC}
@@ -133,13 +129,9 @@ set(x0_API
 	Severity.h
 	Socket.h
 	SocketDriver.h
-	SslContext.h
-	SslDriver.h
-	SslSocket.h
 	StackTrace.h
 	StringError.h
 	Signal.h
-	ssl_db_cache.h
 	strutils.h strutils.cc
 	Url.h
 	TernarySearch.hpp

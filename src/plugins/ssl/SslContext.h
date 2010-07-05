@@ -1,4 +1,4 @@
-/* <x0/SslContext.h>
+/* "SslContex"
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  *
@@ -19,12 +19,10 @@
 #include <gnutls/x509.h>
 #include <gnutls/extra.h>
 
-namespace x0 {
-
 class SslSocket;
 class SslDriver;
 
-struct X0_API SslContext :
+struct SslContext :
 	public x0::ScopeValue
 {
 public:
@@ -92,7 +90,5 @@ public:
 
 	virtual SslContext *select(const std::string& dnsName) const = 0;
 };
-
-} // namespace x0
 
 #endif

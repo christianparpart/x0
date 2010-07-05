@@ -5,6 +5,9 @@
  * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
  */
 
+#include "SslContext.h"
+#include "SslDriver.h"
+#include "SslSocket.h"
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpListener.h>
@@ -12,9 +15,6 @@
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
-#include <x0/SslContext.h>
-#include <x0/SslDriver.h>
-#include <x0/SslSocket.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
@@ -35,17 +35,13 @@
 
 #define TRACE(msg...) DEBUG("ssl: " msg)
 
-using x0::SslSocket;
-using x0::SslDriver;
-using x0::SslContext;
-
 /**
  * \ingroup plugins
  * \brief SSL plugin
  */
 class ssl_plugin :
 	public x0::HttpPlugin,
-	public x0::SslContextSelector
+	public SslContextSelector
 {
 public:
 	ssl_plugin(x0::HttpServer& srv, const std::string& name) :

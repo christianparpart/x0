@@ -14,22 +14,23 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 # ---------------------------------------------------------------------------
-x0_plugin(accesslog)
-x0_plugin(alias)
-x0_plugin(cgi)
-x0_plugin(compress)
-x0_plugin(debug)
-x0_plugin(dirlisting)
-x0_plugin(indexfile)
-x0_plugin(proxy)
-x0_plugin(sendfile)
-x0_plugin(ssl)
-x0_plugin(userdir)
-x0_plugin(vhost_basic)
-x0_plugin(vhost_template)
+x0_plugin_simple(accesslog)
+x0_plugin_simple(alias)
+x0_plugin_simple(cgi)
+x0_plugin_simple(compress)
+x0_plugin_simple(debug)
+x0_plugin_simple(dirlisting)
+x0_plugin_simple(indexfile)
+x0_plugin_simple(proxy)
+x0_plugin_simple(sendfile)
+x0_plugin_simple(userdir)
+x0_plugin_simple(vhost_basic)
+x0_plugin_simple(vhost_template)
 
-x0_plugin(echo_example)
-x0_plugin(hello_example)
+x0_plugin_simple(echo_example)
+x0_plugin_simple(hello_example)
 
-#add_plugin(ssl)
-#target_link_libraries(ssl ${GNUTLS_LIBRARIES})
+# ---------------------------------------------------------------------------
+# the more complex plugins:
+
+add_subdirectory(ssl)
