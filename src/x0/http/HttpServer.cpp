@@ -23,15 +23,6 @@
 #include <cstdarg>
 #include <cstdlib>
 
-#if defined(WITH_SSL)
-#	include <gnutls/gnutls.h>
-#	include <gnutls/gnutls.h>
-#	include <gnutls/extra.h>
-#	include <pthread.h>
-#	include <gcrypt.h>
-GCRY_THREAD_OPTION_PTHREAD_IMPL;
-#endif
-
 #if defined(HAVE_SYS_UTSNAME_H)
 #	include <sys/utsname.h>
 #endif
@@ -58,6 +49,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	onPostProcess(),
 	onRequestDone(),
 	onConnectionClose(),
+	components_(),
 	vhosts_(),
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
@@ -104,14 +96,6 @@ void HttpServer::loop_check(ev::check& /*w*/, int /*revents*/)
 	// update server time
 	now_.update(static_cast<time_t>(ev_now(loop_)));
 }
-
-#if defined(WITH_SSL)
-void HttpServer::gnutls_log(int level, const char *msg)
-{
-	fprintf(stderr, "gnutls[%d]: %s", level, msg);
-	fflush(stderr);
-}
-#endif
 
 HttpServer::~HttpServer()
 {
@@ -161,16 +145,6 @@ std::error_code HttpServer::configure(const std::string& configfile)
 		"type", "newproxy", "table", "pcall", "math", "debug", "select", "_VERSION",
 		"dofile", "setfenv", "load", "error", "loadfile"
 	};
-
-#if defined(WITH_SSL)
-	gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-
-	int rv = gnutls_global_init();
-	if (rv != GNUTLS_E_SUCCESS)
-		return Error::CouldNotInitializeSslLibrary;
-
-	gnutls_global_init_extra();
-#endif
 
 	if (!core_)
 		registerPlugin(core_ = new HttpCore(*this));
@@ -224,27 +198,21 @@ std::error_code HttpServer::configure(const std::string& configfile)
 
 	// {{{ setup server-tag
 	{
-		std::vector<std::string> components;
-
-		settings_.load<std::vector<std::string>>("ServerTags", components);
+		settings_.load<std::vector<std::string>>("ServerTags", components_);
 
 		//! \todo add zlib version
 		//! \todo add bzip2 version
-
-#if defined(WITH_SSL)
-		components.insert(components.begin(), std::string("GnuTLS/") + gnutls_check_version(NULL));
-#endif
 
 #if defined(HAVE_SYS_UTSNAME_H)
 		{
 			utsname utsname;
 			if (uname(&utsname) == 0)
 			{
-				components.insert(components.begin(), 
+				components_.insert(components_.begin(), 
 					std::string(utsname.sysname) + "/" + utsname.release
 				);
 
-				components.insert(components.begin(), utsname.machine);
+				components_.insert(components_.begin(), utsname.machine);
 			}
 		}
 #endif
@@ -252,16 +220,16 @@ std::error_code HttpServer::configure(const std::string& configfile)
 		Buffer tagbuf;
 		tagbuf.push_back("x0/" VERSION);
 
-		if (!components.empty())
+		if (!components_.empty())
 		{
 			tagbuf.push_back(" (");
 
-			for (int i = 0, e = components.size(); i != e; ++i)
+			for (int i = 0, e = components_.size(); i != e; ++i)
 			{
 				if (i)
 					tagbuf.push_back(", ");
 
-				tagbuf.push_back(components[i]);
+				tagbuf.push_back(components_[i]);
 			}
 
 			tagbuf.push_back(")");
@@ -269,19 +237,6 @@ std::error_code HttpServer::configure(const std::string& configfile)
 		tag = tagbuf.str();
 	}
 	// }}}
-
-#if defined(WITH_SSL)
-	// gnutls debug level (int, 0=off)
-	{
-		int level = 0;
-		if (settings_.load("SslLogLevel", level))
-		{
-			level = std::max(0, std::min(10, level));
-			gnutls_global_set_log_level(level);
-			gnutls_global_set_log_function(&HttpServer::gnutls_log);
-		}
-	}
-#endif
 
 	// {{{ setup workers
 #if 0
@@ -761,6 +716,11 @@ void HttpServer::unlinkHost(const std::string& hostid)
 			break;
 		}
 	}
+}
+
+void HttpServer::addComponent(const std::string& value)
+{
+	components_.push_back(value);
 }
 
 } // namespace x0

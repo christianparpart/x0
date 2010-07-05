@@ -32,6 +32,9 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 #include <gnutls/extra.h>
+#include <pthread.h>
+#include <gcrypt.h>
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 #define TRACE(msg...) DEBUG("ssl: " msg)
 
@@ -47,6 +50,17 @@ public:
 	ssl_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
+		gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+
+		int rv = gnutls_global_init();
+		if (rv != GNUTLS_E_SUCCESS)
+		{
+			TRACE("gnutls_global_init: %s", gnutls_strerror(rv));
+			return; //Error::CouldNotInitializeSslLibrary;
+		}
+
+		gnutls_global_init_extra();
+
 		auto cmask = x0::HttpContext::server | x0::HttpContext::host;
 
 		declareCVar("SslLogLevel", x0::HttpContext::server, &ssl_plugin::setupLogLevel);
@@ -57,7 +71,7 @@ public:
 		declareCVar("SslTrustFile", cmask, &ssl_plugin::setupTrustFile);
 		declareCVar("SslPriorities", cmask, &ssl_plugin::setupPriorities);
 
-		gnutls_global_init();
+		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(NULL));
 	}
 
 	~ssl_plugin()

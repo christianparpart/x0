@@ -11,10 +11,6 @@
 #	include <sys/sendfile.h>
 #endif
 
-#if defined(WITH_SSL)
-#	include <gnutls/gnutls.h>
-#endif
-
 namespace x0 {
 
 SocketSink::SocketSink(Socket *s) :

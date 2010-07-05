@@ -96,6 +96,8 @@ public:
 	 */
 	Settings& config();
 
+	void addComponent(const std::string& value);
+
 	/**
 	 * writes a log entry into the server's error log.
 	 */
@@ -156,6 +158,7 @@ private:
 	void handle_request(HttpRequest *in, HttpResponse *out);
 	void loop_check(ev::check& w, int revents);
 
+	std::vector<std::string> components_;
 	std::map<std::string, std::shared_ptr<Scope>> vhosts_;	//!< virtual host scopes
 	std::vector<std::string> hostnames_;
 	std::list<HttpListener *> listeners_;

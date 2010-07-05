@@ -156,7 +156,6 @@ target_link_libraries(x0
 	${ZLIB_LIBS}
 	${BZIP2_LIBS}
 	${LIBEV_LIBS}
-	${GNUTLS_LIBRARIES}
 )
 
 install(FILES ${x0_API} DESTINATION ${INCLUDEDIR}/x0)
