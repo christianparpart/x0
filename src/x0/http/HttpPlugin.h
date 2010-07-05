@@ -10,6 +10,7 @@
 
 #include <x0/http/HttpServer.h>
 #include <x0/Types.h>
+#include <x0/Defines.h>
 #include <x0/Api.h>
 
 namespace x0 {
@@ -134,7 +135,7 @@ inline void HttpPlugin::declareCVar(const std::string& key, HttpContext mask,
 	X0_EXPORT_PLUGIN_CLASS(pluginName, pluginName##_plugin)
 
 #define X0_EXPORT_PLUGIN_CLASS(pluginName, className) \
-	extern "C" x0::HttpPlugin *x0plugin_init(x0::HttpServer& srv, const std::string& name) { \
+	extern "C" X0_EXPORT x0::HttpPlugin *x0plugin_init(x0::HttpServer& srv, const std::string& name) { \
 		return new className(srv, name); \
 	}
 
