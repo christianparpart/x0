@@ -21,7 +21,6 @@ add_executable(x0test
 	strutils_test.cpp
 	ternary_search_test.cpp
 	buffer_test.cpp
-	event_handler_test.cpp
 	io_test.cpp
 	#http11.cpp
 )
