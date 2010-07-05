@@ -51,11 +51,6 @@ bool Socket::setTcpNoDelay(bool enable)
 	return setsockopt(fd_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0;
 }
 
-void Socket::setTimeout(int value)
-{
-	timeout_ = value;
-}
-
 void Socket::setMode(Mode m)
 {
 	if (m != mode_)
@@ -156,8 +151,8 @@ void Socket::timeout(ev::timer& timer, int revents)
 	DEBUG("Socket(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	watcher_.stop();
 
-	if (callback_)
-		callback_(this, callbackData_); // TODO pass arg to tell it timed out!
+	if (timeoutCallback_)
+		timeoutCallback_(this, timeoutData_);
 }
 
 } // namespace x0

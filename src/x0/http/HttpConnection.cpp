@@ -410,7 +410,7 @@ void HttpConnection::start_read()
 		: server_.max_read_idle();
 
 	if (timeout > 0)
-		socket_->setTimeout(timeout);
+		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
 #endif
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);

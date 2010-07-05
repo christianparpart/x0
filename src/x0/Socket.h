@@ -36,8 +36,12 @@ private:
 	bool secure_;
 	State state_;
 	Mode mode_;
+
 	void (*callback_)(Socket *, void *);
 	void *callbackData_;
+
+	void (*timeoutCallback_)(Socket *, void *);
+	void *timeoutData_;
 
 public:
 	explicit Socket(struct ev_loop *loop, int fd);
@@ -53,7 +57,7 @@ public:
 	bool setTcpNoDelay(bool enable);
 
 	int timeout() const;
-	void setTimeout(int value);
+	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);
 
 	State state() const;
 	void setState(State s);
@@ -140,6 +144,14 @@ inline void Socket::setReadyCallback(K *object)
 {
 	callback_ = &method_thunk<K, cb>;
 	callbackData_ = object;
+}
+
+template<class K, void (K::*cb)(Socket *)>
+inline void Socket::setTimeout(K *object, int value)
+{
+	timeout_ = value;
+	timeoutCallback_ = &method_thunk<K, cb>;
+	timeoutData_ = object;
 }
 
 template<class K, void (K::*cb)(Socket *)>
