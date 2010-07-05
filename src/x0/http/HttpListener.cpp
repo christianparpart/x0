@@ -12,10 +12,6 @@
 
 #include <x0/sysconfig.h>
 
-#if defined(WITH_SSL)
-#	include <x0/SslDriver.h>
-#endif
-
 #include <arpa/inet.h>		// inet_pton()
 #include <netinet/tcp.h>	// TCP_QUICKACK, TCP_DEFER_ACCEPT
 #include <sys/ioctl.h>
