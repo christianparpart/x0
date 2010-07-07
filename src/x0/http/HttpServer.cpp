@@ -717,6 +717,7 @@ Scope *HttpServer::createHostAlias(const std::string& master, const std::string&
 	if (a != vhosts_.end())
 		return NULL; // alias hostid already defined
 
+	resolveHost(master)->acquire<VirtualHost>(this)->aliases.push_back(alias);
 	vhosts_[alias] = vhosts_[master];
 
 	return m->second.get();
