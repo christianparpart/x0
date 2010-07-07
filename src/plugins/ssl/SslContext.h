@@ -14,6 +14,7 @@
 #include <x0/Api.h>
 
 #include <string>
+#include <vector>
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -41,6 +42,8 @@ public:
 
 	std::string commonName() const;
 
+	bool isValidDnsName(const std::string& dnsName) const;
+
 	void post_config();
 
 	void bind(SslSocket *socket);
@@ -58,6 +61,8 @@ public:
 	static int onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret);
 
 private:
+	static bool imatch(const std::string& pattern, const std::string& value);
+
 	SslDriver *driver_;
 
 	// GNU TLS specific properties
@@ -65,6 +70,7 @@ private:
 	gnutls_anon_server_credentials_t anonCreds_;
 	gnutls_srp_server_credentials_t srpCreds_;
 	std::string certCN_;
+	std::vector<std::string> dnsNames_;
 
 	// x509
 	gnutls_x509_privkey_t x509PrivateKey_;
@@ -82,6 +88,37 @@ private:
 	gnutls_dh_params_t dhParams_;
 	gnutls_x509_crt_t *caList_;
 };
+
+// {{{ inlines
+inline bool SslContext::isValidDnsName(const std::string& dnsName) const
+{
+	if (imatch(commonName(), dnsName))
+		return true;
+
+	for (auto i = dnsNames_.begin(), e = dnsNames_.end(); i != e; ++i)
+		if (imatch(*i, dnsName))
+			return true;
+
+	return false;
+}
+
+inline bool SslContext::imatch(const std::string& pattern, const std::string& value)
+{
+	int s = pattern.size() - 1;
+	int t = value.size() - 1;
+
+	for (; s > 0 && t > 0 && pattern[s] == value[t]; --s, --t)
+		;
+
+	if (!s && !t)
+		return true;
+
+	if (pattern[s] == '*')
+		return true;
+
+	return false;
+}
+// }}}
 
 class SslContextSelector
 {

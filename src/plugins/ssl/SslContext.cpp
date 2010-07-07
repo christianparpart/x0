@@ -124,6 +124,7 @@ void SslContext::setCertFile(const std::string& filename)
 
 	for (unsigned i = 0; i < numX509Certs_; ++i)
 	{
+		// read Common Name (CN):
 		std::size_t len = 0;
 		rv = gnutls_x509_crt_get_dn_by_oid(x509Certs_[i], GNUTLS_OID_X520_COMMON_NAME, 0, 0, NULL, &len);
 		if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
@@ -134,30 +135,29 @@ void SslContext::setCertFile(const std::string& filename)
 			delete[] buf;
 			TRACE("setCertFile: Common Name: \"%s\"", certCN_.c_str());
 		}
-		else // read Subject alternative-name:
-		{
-			for (int k = 0; !(rv < 0); ++k)
-			{
-				len = 0;
-				rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, NULL, &len, NULL);
-				if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
-				{
-					char *buf = new char[len + 1];
-					rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, buf, &len, NULL);
-					buf[len] = '\0';
-					certCN_ = buf;
-					delete[] buf;
-					TRACE("setCertFile: Subject: \"%s\"", certCN_.c_str());
 
-					if (rv == GNUTLS_SAN_DNSNAME)
-						break;
-				}
+		// read Subject Alternative-Name:
+		for (int k = 0; !(rv < 0); ++k)
+		{
+			len = 0;
+			rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, NULL, &len, NULL);
+			if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
+			{
+				char *buf = new char[len + 1];
+				rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, buf, &len, NULL);
+				buf[len] = '\0';
+
+				if (rv == GNUTLS_SAN_DNSNAME)
+					dnsNames_.push_back(buf);
+
+				TRACE("setCertFile: Subject: \"%s\"", buf);
+				delete[] buf;
 			}
 		}
 	}
 
 	freeFile(data);
-	TRACE("setCertFile: success.");
+	//TRACE("setCertFile: success.");
 }
 
 void SslContext::setKeyFile(const std::string& filename)
@@ -182,7 +182,7 @@ void SslContext::setKeyFile(const std::string& filename)
 	}
 
 	freeFile(data);
-	TRACE("setKeyFile: success.");
+	//TRACE("setKeyFile: success.");
 }
 
 void SslContext::setCrlFile(const std::string& filename)

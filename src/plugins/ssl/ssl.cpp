@@ -81,20 +81,17 @@ public:
 
 	std::vector<SslContext *> contexts_;
 
-	inline static bool imatch(const std::string pattern, const std::string& match)
-	{
-		// TODO: pattern may contain wildcards ('*') that should be evaluated appropriately.
-		return pattern == match;
-	}
-
 	virtual SslContext *select(const std::string& dnsName) const
 	{
 		for (auto i = contexts_.begin(), e = contexts_.end(); i != e; ++i)
 		{
 			SslContext *cx = *i;
 
-			if (imatch(cx->commonName(), dnsName))
+			if (cx->isValidDnsName(dnsName))
+			{
+				TRACE("select SslContext: CN:%s, dnsName:%s", cx->commonName().c_str(), dnsName.c_str());
 				return cx;
+			}
 		}
 
 		return NULL;
@@ -109,12 +106,26 @@ public:
 		{
 			SslContext *cx = server().resolveHost(*i)->get<SslContext>(this);
 			x0::HttpListener *listener = server().listenerByHost(*i);
+			auto aliases = server().hostnamesOf(*i);
 
-			// skip if no SSL was confgiured/enabled on this virtual host (or no TCP listener was found)
+			// XXX skip if no SSL was confgiured/enabled on this virtual host (or no TCP listener was found)
 			if (!listener || !cx || !cx->enabled)
 				continue;
 
-			log(x0::Severity::debug, "Enable SSL on host: %s", i->c_str());
+			// XXX require every alias to match the cert CN (wildcard)
+			for (auto k = aliases.begin(), m = aliases.end(); k != m; ++k)
+			{
+				std::string host(x0::extract_host_from_hostid(*k));
+
+				TRACE("Checking SSL CN:%s against hostname/alias:%s", cx->commonName().c_str(), host.c_str());
+				if (!cx->isValidDnsName(host))
+				{
+					log(x0::Severity::debug, "SSL Certificates Common Name (CN) '%s' does not match the hostname/alias '%s'", cx->commonName().c_str(), host.c_str());
+					return;
+				}
+			}
+
+			log(x0::Severity::debug, "Enabling SSL on host: %s", i->c_str());
 
 			contexts_.push_back(cx);
 
