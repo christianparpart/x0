@@ -670,53 +670,108 @@ void HttpServer::undeclareCVar(const std::string& key)
 	}
 }
 
+// {{{ virtual host management
+class VirtualHost :
+	public ScopeValue
+{
+public:
+	std::string hostid;
+	std::vector<std::string> aliases;
+
+	VirtualHost() :
+		hostid(),
+		aliases()
+	{
+	}
+
+	virtual void merge(const ScopeValue *)
+	{
+	}
+};
+
+Scope *HttpServer::createHost(const std::string& hostid)
+{
+	log(Severity::debug, "createHost(%s)", hostid.c_str());
+
+	auto i = vhosts_.find(hostid);
+	if (i != vhosts_.end())
+		return i->second.get(); // XXX trying to create a host that already exists.
+
+	vhosts_[hostid] = std::make_shared<Scope>(hostid);
+
+	VirtualHost *vhost = resolveHost(hostid)->acquire<VirtualHost>(this);
+	vhost->hostid = hostid;
+
+	return vhosts_[hostid].get();
+}
+
+Scope *HttpServer::createHostAlias(const std::string& master, const std::string& alias)
+{
+	log(Severity::debug, "createHostAlias: %s -> %s", alias.c_str(), master.c_str());
+
+	auto m = vhosts_.find(master);
+	if (m == vhosts_.end())
+		return NULL; // master hostid not found
+
+	auto a = vhosts_.find(alias);
+	if (a != vhosts_.end())
+		return NULL; // alias hostid already defined
+
+	vhosts_[alias] = vhosts_[master];
+
+	return m->second.get();
+}
+
+void HttpServer::removeHost(const std::string& hostid)
+{
+	auto i = vhosts_.find(hostid);
+	if (i != vhosts_.end())
+		vhosts_.erase(i);
+}
+
+void HttpServer::removeHostAlias(const std::string& hostid)
+{
+	// XXX currently, this is the same.
+	removeHost(hostid);
+}
+
 std::vector<std::string> HttpServer::hostnames() const
 {
 	std::vector<std::string> result;
 
-	for (auto i = vhosts_.begin(), e = vhosts_.end(); i != e; ++i)
-	{
-		result.push_back(i->first);
-	}
+	for (auto i = vhosts_.cbegin(), e = vhosts_.cend(); i != e; ++i)
+		if (i->first == i->second->get<VirtualHost>(this)->hostid)
+			result.push_back(i->first);
 
 	return result;
 }
 
-Scope& HttpServer::createHost(const std::string& hostid)
+std::vector<std::string> HttpServer::allHostnames() const
 {
-	log(Severity::debug, "createHost(%s)", hostid.c_str());
-	if (vhosts_.find(hostid) == vhosts_.end())
-	{
-		hostnames_.push_back(hostid);
-		vhosts_[hostid] = std::make_shared<Scope>(hostid);
-	}
+	std::vector<std::string> result;
 
-	return *vhosts_[hostid];
+	for (auto i = vhosts_.cbegin(), e = vhosts_.cend(); i != e; ++i)
+		result.push_back(i->first);
+
+	return result;
 }
 
-void HttpServer::linkHost(const std::string& master, const std::string& alias)
+std::vector<std::string> HttpServer::hostnamesOf(const std::string& master) const
 {
-	log(Severity::debug, "linkHost: %s -> %s", alias.c_str(), master.c_str());
-	vhosts_[alias] = vhosts_[master];
-}
+	std::vector<std::string> result;
 
-void HttpServer::unlinkHost(const std::string& hostid)
-{
-	auto i = vhosts_.find(hostid);
+	const auto i = vhosts_.find(master);
 	if (i != vhosts_.end())
 	{
-		vhosts_.erase(i);
+		const VirtualHost *vhost = i->second->get<VirtualHost>(this);
+
+		result.push_back(vhost->hostid);
+		result.insert(result.end(), vhost->aliases.begin(), vhost->aliases.end());
 	}
 
-	for (auto k = hostnames_.begin(), e = hostnames_.end(); k != e; ++k)
-	{
-		if (*k == hostid)
-		{
-			hostnames_.erase(k);
-			break;
-		}
-	}
+	return result;
 }
+// }}}
 
 void HttpServer::addComponent(const std::string& value)
 {

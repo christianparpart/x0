@@ -163,7 +163,7 @@ public:
 				return std::make_error_code(std::errc::invalid_argument);
 			}
 
-			server_.linkHost(s.id(), alias_id);
+			server_.createHostAlias(s.id(), alias_id);
 
 #if !defined(NDEBUG)
 			debug(1, "Server alias '%s' (for bind '%s' on port %d) added.", alias_id.c_str(), cfg->bind_address.c_str(), port);

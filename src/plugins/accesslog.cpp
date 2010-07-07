@@ -129,7 +129,7 @@ private:
 
 	void request_done(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		if (auto stream = server_.host(in->hostid()).get<context>(this))
+		if (auto stream = server().resolveHost(in->hostid())->get<context>(this))
 		{
 			std::stringstream sstr;
 			sstr << hostname(in);
@@ -149,7 +149,7 @@ private:
 
 	inline context *getlogstream(x0::HttpRequest *in)
 	{
-		return server_.host(in->hostid()).get<context>(this);
+		return server_.resolveHost(in->hostid())->get<context>(this);
 	}
 
 	inline std::string hostname(x0::HttpRequest *in)

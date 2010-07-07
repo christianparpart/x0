@@ -49,10 +49,11 @@ indexfile_plugin::~indexfile_plugin()
 	server_.release(this);
 }
 
-std::vector<std::string> *indexfile_plugin::indexFiles(const x0::Scope& scope) const
+std::vector<std::string> *indexfile_plugin::indexFiles(const x0::Scope *scope) const
 {
-	if (context *ctx = scope.get<context>(this))
-		return &ctx->index_files;
+	if (scope)
+		if (context *ctx = scope->get<context>(this))
+			return &ctx->index_files;
 
 	return 0;
 }
@@ -72,7 +73,7 @@ void indexfile_plugin::indexfile(x0::HttpRequest *in)
 	if (!in->fileinfo->is_directory())
 		return;
 
-	auto files = indexFiles(server_.host(in->hostid()));
+	auto files = indexFiles(server_.resolveHost(in->hostid()));
 	if (!files)
 		return;
 

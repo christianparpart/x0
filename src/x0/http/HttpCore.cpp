@@ -187,7 +187,7 @@ std::error_code HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
 				if (cvar[hostid].contains(ci->first))
 				{
 					//debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
-					if (std::error_code ec = ci->second(cvar[hostid][ci->first], server().host(hostid)))
+					if (std::error_code ec = ci->second(cvar[hostid][ci->first], *server().resolveHost(hostid)))
 						return ec;
 				}
 			}

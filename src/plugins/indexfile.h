@@ -19,7 +19,7 @@ public:
 	//virtual bool defaultEnabled() const = 0;
 	//virtual void setDefaultEnabled(bool value) = 0;
 
-	virtual std::vector<std::string> *indexFiles(const x0::Scope& scope) const = 0;
+	virtual std::vector<std::string> *indexFiles(const x0::Scope *scope) const = 0;
 	virtual void setIndexFiles(x0::Scope& scope, const std::vector<std::string>& indexFiles) = 0;
 };
 
@@ -39,7 +39,7 @@ public: // IIndexFilePlugin
 	//virtual bool defaultEnabled() const;
 	//virtual void setDefaultEnabled(bool value);
 
-	virtual std::vector<std::string> *indexFiles(const x0::Scope& scope) const;
+	virtual std::vector<std::string> *indexFiles(const x0::Scope *scope) const;
 	virtual void setIndexFiles(x0::Scope& scope, const std::vector<std::string>& indexFiles);
 
 private:

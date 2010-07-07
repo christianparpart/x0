@@ -81,13 +81,19 @@ public:
 
 	std::vector<SslContext *> contexts_;
 
+	inline static bool imatch(const std::string pattern, const std::string& match)
+	{
+		// TODO: pattern may contain wildcards ('*') that should be evaluated appropriately.
+		return pattern == match;
+	}
+
 	virtual SslContext *select(const std::string& dnsName) const
 	{
 		for (auto i = contexts_.begin(), e = contexts_.end(); i != e; ++i)
 		{
 			SslContext *cx = *i;
 
-			if (cx->commonName() == dnsName)
+			if (imatch(cx->commonName(), dnsName))
 				return cx;
 		}
 
@@ -101,7 +107,7 @@ public:
 		auto hostnames = server().hostnames();
 		for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
 		{
-			SslContext *cx = server().host(*i).get<SslContext>(this);
+			SslContext *cx = server().resolveHost(*i)->get<SslContext>(this);
 			x0::HttpListener *listener = server().listenerByHost(*i);
 
 			// skip if no SSL was confgiured/enabled on this virtual host (or no TCP listener was found)

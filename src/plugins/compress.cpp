@@ -143,7 +143,7 @@ private:
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content
 
-		const context *cx = server_.host(in->hostid()).get<context>(this);
+		const context *cx = server_.resolveHost(in->hostid())->get<context>(this);
 		if (!cx && !(cx = server().get<context>(this)))
 			return;
 

@@ -87,7 +87,7 @@ public:
 private:
 	void resolve_entity(x0::HttpRequest *in)
 	{
-		auto cx = server_.host(in->hostid()).get<context>(this);
+		auto cx = server_.resolveHost(in->hostid())->get<context>(this);
 		if (!cx || cx->dirname_.empty())
 			return;
 

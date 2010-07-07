@@ -78,7 +78,7 @@ private:
 
 	inline aliasmap_type *get_aliases(x0::HttpRequest *in)
 	{
-		if (auto ctx = server_.host(in->hostid()).get<context>(this))
+		if (auto ctx = server_.resolveHost(in->hostid())->get<context>(this))
 			return &ctx->aliases;
 
 		return 0;

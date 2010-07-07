@@ -87,7 +87,7 @@ private:
 		if (!in->fileinfo->is_directory())
 			return false;
 
-		context *ctx = server_.host(in->hostid()).get<context>(this);
+		context *ctx = server().resolveHost(in->hostid())->get<context>(this);
 		if (!ctx)
 			ctx = server_.get<context>(this);
 

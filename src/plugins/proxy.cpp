@@ -721,7 +721,7 @@ private:
 
 	proxy *get_proxy(x0::HttpRequest *in)
 	{
-		return server_.host(in->hostid()).get<proxy>(this);
+		return server_.resolveHost(in->hostid())->get<proxy>(this);
 	}
 
 public:

@@ -84,11 +84,16 @@ public:
 	// }}}
 
 	// {{{ virtual-host management
-	std::vector<std::string> hostnames() const;
-	Scope& createHost(const std::string& hostid);
-	void linkHost(const std::string& master, const std::string& alias);
-	void unlinkHost(const std::string& hostid);
-	class Scope& host(const std::string& hostid);
+	Scope *createHost(const std::string& hostid);
+	Scope *createHostAlias(const std::string& master, const std::string& alias);
+	void removeHostAlias(const std::string& hostid);
+	void removeHost(const std::string& hostid);
+
+	Scope *resolveHost(const std::string& hostid) const;
+
+	std::vector<std::string> hostnames() const; //!< retrieves a list of host names (w/o aliases)
+	std::vector<std::string> allHostnames() const; //!< retrieves a list of host names and their aliases
+	std::vector<std::string> hostnamesOf(const std::string& master) const; //!< retrieves all host names for a given virtual-host ID
 	// }}}
 
 	/** 
@@ -160,7 +165,7 @@ private:
 
 	std::vector<std::string> components_;
 	std::map<std::string, std::shared_ptr<Scope>> vhosts_;	//!< virtual host scopes
-	std::vector<std::string> hostnames_;
+
 	std::list<HttpListener *> listeners_;
 	struct ::ev_loop *loop_;
 	bool active_;
@@ -218,13 +223,13 @@ inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 	return dynamic_cast<T *>(loadPlugin(name, ec));
 }
 
-inline Scope& HttpServer::host(const std::string& hostid)
+inline Scope *HttpServer::resolveHost(const std::string& hostid) const
 {
 	auto i = vhosts_.find(hostid);
 	if (i != vhosts_.end())
-		return *i->second;
+		return i->second.get();
 
-	return *(vhosts_[hostid] = std::make_shared<Scope>(hostid));
+	return NULL;
 }
 
 #if !defined(NDEBUG)
