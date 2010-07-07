@@ -23,7 +23,7 @@ SslSocket::SslSocket(SslDriver *driver, int fd) :
 {
 	TRACE("SslSocket()");
 
-	static int protocolPriorities_[] = { GNUTLS_TLS1_1, GNUTLS_TLS1_0, GNUTLS_SSL3, 0 };
+	static int protocolPriorities_[] = { GNUTLS_TLS1_2, GNUTLS_TLS1_1, GNUTLS_TLS1_0, GNUTLS_SSL3, 0 };
 
 	setSecure(true);
 	setState(HANDSHAKE);
