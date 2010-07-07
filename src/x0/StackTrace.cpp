@@ -20,39 +20,41 @@ StackTrace::~StackTrace()
 	delete[] addresses_;
 }
 
+inline auto stripLeftOf(const char *value, char ch) -> const char *
+{
+	const char *p = value;
+
+	for (auto i = value; *i; ++i)
+		if (*i == ch)
+			p = i;
+
+	return p != value ? p + 1 : p;
+}
+
+inline auto demangleSymbol(const char *symbolName, Buffer& result) -> void
+{
+	if (!symbolName || !*symbolName)
+		result.push_back("<invalid symbol>");
+	else
+	{
+		char *rv = 0;
+		int status = 0;
+		std::size_t len = 1024;
+
+		try { rv = abi::__cxa_demangle(symbolName, result.end(), &len, &status); }
+		catch (...) {}
+
+		if (status < 0)
+			result.push_back(symbolName);
+		else
+			result.resize(result.size() + strlen(rv));
+	}
+}
+
 void StackTrace::generate(bool verbose)
 {
 	if (!symbols_.empty())
 		return;
-
-	auto stripLeftOf = [](const char *value, char ch) -> const char * {
-		const char *p = value;
-
-		for (auto i = value; *i; ++i)
-			if (*i == ch)
-				p = i;
-
-		return p != value ? p + 1 : p;
-	};
-
-	auto demangleSymbol = [](const char *symbolName, Buffer& result) {
-		if (!symbolName || !*symbolName)
-			result.push_back("<invalid symbol>");
-		else
-		{
-			char *rv = 0;
-			int status = 0;
-			std::size_t len = 1024;
-
-			try { rv = abi::__cxa_demangle(symbolName, result.end(), &len, &status); }
-			catch (...) {}
-
-			if (status < 0)
-				result.push_back(symbolName);
-			else
-				result.resize(result.size() + strlen(rv));
-		}
-	};
 
 	for (int i = 0; i < count_; ++i)
 	{
