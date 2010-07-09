@@ -1,5 +1,6 @@
 
-Install Requirements:
+-----------------------------------------------------------------------------
+INSTALL REQUIREMENTS:
 
 - GCC 4.4.0 - better use 4.5.0 (to make use of lambdas)
 - LUA 5.1.4
@@ -16,8 +17,10 @@ HOW TO BUILD:
 # now lets fetch and compile x0
 git clone git://github.com/trapni/x0.git
 cd x0/
-cmake . -DASIO_INCLUDEDIR=$(dirname $(pwd))/asio
+cmake .
 make
+sudo make install
+
 cd src/
 ./x0d --no-fork --config=test.conf         # or in short: ./x0d -X -c test.conf
 

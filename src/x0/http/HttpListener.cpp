@@ -70,7 +70,7 @@ void HttpListener::setSocketDriver(SocketDriver *sd)
 	socketDriver_ = sd;
 }
 
-std::error_code HttpListener::prepare()
+bool HttpListener::prepare()
 {
 #if defined(WITH_SSL)
 	if (isSecure())
@@ -82,14 +82,18 @@ std::error_code HttpListener::prepare()
 #endif
 
 	fd_ = ::socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
-	if (fd_ < 0) return std::make_error_code(static_cast<std::errc>(errno));
+	if (fd_ < 0)
+	{
+		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_,  strerror(errno));
+		return false;
+	}
 
 	fcntl(fd_, F_SETFL, FD_CLOEXEC);
 
 	if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0)
 	{
-		//log(Severity::error, "could not set server socket into non-blocking mode: %s\n", strerror(errno));
-		return std::make_error_code(static_cast<std::errc>(errno));
+		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
+		return false;
 	}
 
 	sockaddr_in6 sin;
@@ -99,7 +103,10 @@ std::error_code HttpListener::prepare()
 	sin.sin6_port = htons(port_);
 
 	if (inet_pton(sin.sin6_family, address_.c_str(), sin.sin6_addr.s6_addr) < 0)
-		log(Severity::error, "Could not resolve IP address (%s): %s", address_.c_str(), strerror(errno));
+	{
+		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
+		return false;
+	}
 
 #if defined(SO_REUSEADDR)
 	//! \todo SO_REUSEADDR: could be configurable
@@ -120,31 +127,25 @@ std::error_code HttpListener::prepare()
 
 	if (::bind(fd_, (sockaddr *)&sin, sizeof(sin)) < 0) {
 		log(Severity::error, "Cannot bind to IP-address (%s): %s", address_.c_str(), strerror(errno));
-		return std::make_error_code(static_cast<std::errc>(errno));
+		return false;
 	}
 
 	if (::listen(fd_, backlog_) < 0) {
 		log(Severity::error, "Cannot listen to IP-address (%s): %s", address_.c_str(), strerror(errno));
-		return std::make_error_code(static_cast<std::errc>(errno));
+		return false;
 	}
 
-	return std::error_code();
+	return true;
 }
 
-std::error_code HttpListener::start()
+bool HttpListener::start()
 {
-	std::error_code ec;
-
 	if (fd_ == -1)
-	{
-		ec = prepare();
-
-		if (ec)
-			return ec;
-	}
+		if (!prepare())
+			return false;
 
 	watcher_.start(fd_, ev::READ);
-	return ec;
+	return true;
 }
 
 void HttpListener::callback(ev::io& watcher, int revents)

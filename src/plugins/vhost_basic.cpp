@@ -164,10 +164,6 @@ public:
 			}
 
 			server_.createHostAlias(s.id(), alias_id);
-
-#if !defined(NDEBUG)
-			debug(1, "Server alias '%s' (for bind '%s' on port %d) added.", alias_id.c_str(), cfg->bind_address.c_str(), port);
-#endif
 		}
 		return std::error_code();
 	}
@@ -240,7 +236,7 @@ public:
 		return NULL;
 	}
 
-	virtual void post_config()
+	virtual bool post_config()
 	{
 		// verify, that we have at least one vhost defined:
 		// TODO
@@ -253,8 +249,11 @@ public:
 				log(x0::Severity::warn,
 					"No default host defined for listener at port %d.",
 					(*i)->port());
+				return false;
 			}
 		}
+
+		return true;
 	}
 
 private:

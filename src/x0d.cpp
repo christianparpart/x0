@@ -97,7 +97,7 @@ public:
 	}
 
 	// --instant=docroot,port,bind
-	std::error_code setupInstantMode()
+	bool setupInstantMode()
 	{
 		typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
 
@@ -129,20 +129,20 @@ public:
 		// load standard-plugins
 		std::error_code ec;
 		if (!server_.loadPlugin("sendfile", ec))
-			return ec;
+			return false;
 
 		if (!setup(server_.loadPlugin<IIndexFilePlugin>("indexfile", ec), ec))
-			return ec;
+			return false;
 
 		if (!server_.loadPlugin("dirlisting", ec))
-			return ec;
+			return false;
 
 		if (!setup(server_.loadPlugin<ICompressPlugin>("compress", ec), ec))
-			return ec;
+			return false;
 
 		//server_.loadPlugin("cgi", ec);
 
-		return ec;
+		return true;
 	}
 
 	bool setup(ICompressPlugin *plugin, std::error_code& ec)
@@ -186,15 +186,13 @@ public:
 		if (!parse())
 			return 1;
 
-		std::error_code ec;
-		if (!instant_.empty())
-			ec = setupInstantMode();
-		else
-			ec = server_.configure(configfile_);
+		bool rv = !instant_.empty()
+			? setupInstantMode()
+			: server_.configure(configfile_);
 
-		if (ec)
+		if (!rv)
 		{
-			log(x0::Severity::error, ec.message().c_str());
+			log(x0::Severity::error, "Could not start x0d.");
 			return -1;
 		}
 
@@ -386,15 +384,16 @@ private:
 						<< "  x0d [options ...]" << std::endl
 						<< std::endl
 						<< "options:" << std::endl
-						<< "  -h,--help           print this help" << std::endl
-						<< "  -c,--config=PATH    specify a custom configuration file [" << configfile_ << "]" << std::endl
-						<< "  -X,--no-fork        do not fork into background" << std::endl
-						<< "  -G,--guard          do run service as child of a special guard process to watch for crashes" << std::endl
-						<< "  -p,--pid-file=PATH  PID file to create/use [" << pidfile_ << "]" << std::endl
-						<< "  -u,--user=NAME      user to drop privileges to" << std::endl
-						<< "  -g,--group=NAME     group to drop privileges to" << std::endl
-						<< "  -v,--version        print software version" << std::endl
-						<< "  -y,--copyright      print software copyright notice / license" << std::endl
+						<< "  -h,--help                print this help" << std::endl
+						<< "  -c,--config=PATH         specify a custom configuration file [" << configfile_ << "]" << std::endl
+						<< "  -X,--no-fork             do not fork into background" << std::endl
+						<< "  -G,--guard               do run service as child of a special guard process to watch for crashes" << std::endl
+						<< "  -p,--pid-file=PATH       PID file to create/use [" << pidfile_ << "]" << std::endl
+						<< "  -u,--user=NAME           user to drop privileges to" << std::endl
+						<< "  -g,--group=NAME          group to drop privileges to" << std::endl
+						<< "  -i,--instant=PATH[,PORT] run x0d in simple pre-configured instant-mode" << std::endl
+						<< "  -v,--version             print software version" << std::endl
+						<< "  -y,--copyright           print software copyright notice / license" << std::endl
 						<< std::endl;
 					return false;
 				case 'X':

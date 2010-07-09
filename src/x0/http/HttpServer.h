@@ -61,9 +61,12 @@ public:
 	explicit HttpServer(struct ::ev_loop *loop = 0);
 	~HttpServer();
 
+	void setLogger(std::shared_ptr<Logger> logger);
+	Logger *logger() const;
+
 	// {{{ service control
-	std::error_code configure(const std::string& configfile);
-	std::error_code start();
+	bool configure(const std::string& configfile);
+	bool start();
 	bool active() const;
 	void run();
 	void pause();
@@ -197,6 +200,16 @@ public:
 };
 
 // {{{ inlines
+inline void HttpServer::setLogger(std::shared_ptr<Logger> logger)
+{
+	logger_ = logger;
+}
+
+inline Logger *HttpServer::logger() const
+{
+	return logger_.get();
+}
+
 inline struct ::ev_loop *HttpServer::loop() const
 {
 	return loop_;

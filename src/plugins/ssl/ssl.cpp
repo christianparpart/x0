@@ -98,7 +98,7 @@ public:
 	}
 
 	// {{{ post_config
-	void post_config()
+	bool post_config()
 	{
 		// iterate through all virtual hosts and install the SslDriver if SSL was configured on it.
 		auto hostnames = server().hostnames();
@@ -120,8 +120,8 @@ public:
 				TRACE("Checking SSL CN:%s against hostname/alias:%s", cx->commonName().c_str(), host.c_str());
 				if (!cx->isValidDnsName(host))
 				{
-					log(x0::Severity::debug, "SSL Certificates Common Name (CN) '%s' does not match the hostname/alias '%s'", cx->commonName().c_str(), host.c_str());
-					return;
+					log(x0::Severity::error, "SSL Certificates Common Name (CN) '%s' does not match the hostname/alias '%s'", cx->commonName().c_str(), host.c_str());
+					return false;
 				}
 			}
 
@@ -132,8 +132,11 @@ public:
 			SslDriver *driver = new SslDriver(server().loop(), this);
 			listener->setSocketDriver(driver);
 			cx->setDriver(driver);
-			cx->post_config();
+
+			if (!cx->post_config())
+				return false;
 		}
+		return true;
 	} // }}}
 
 	// {{{ config
@@ -166,34 +169,41 @@ private:
 		TRACE("gnutls [%d] %s", level, msg.c_str());
 	}
 
+	SslContext *acquire(x0::Scope& s)
+	{
+		SslContext *cx = s.acquire<SslContext>(this);
+		cx->setLogger(server().logger());
+		return cx;
+	}
+
 	std::error_code setupEnabled(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		return cvar.load(s.acquire<SslContext>(this)->enabled);
+		return cvar.load(acquire(s)->enabled);
 	}
 
 	std::error_code setupCertFile(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		return cvar.load(s.acquire<SslContext>(this)->certFile);
+		return cvar.load(acquire(s)->certFile);
 	}
 
 	std::error_code setupKeyFile(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		return cvar.load(s.acquire<SslContext>(this)->keyFile);
+		return cvar.load(acquire(s)->keyFile);
 	}
 
 	std::error_code setupCrlFile(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		return cvar.load(s.acquire<SslContext>(this)->crlFile);
+		return cvar.load(acquire(s)->crlFile);
 	}
 
 	std::error_code setupTrustFile(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		return cvar.load(s.acquire<SslContext>(this)->trustFile);
+		return cvar.load(acquire(s)->trustFile);
 	}
 
 	std::error_code setupPriorities(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		return cvar.load(s.acquire<SslContext>(this)->priorities);
+		return cvar.load(acquire(s)->priorities);
 	}
 	// }}}
 };

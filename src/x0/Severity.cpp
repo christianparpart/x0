@@ -26,15 +26,13 @@ Severity::Severity(const std::string& name)
 
 const char *Severity::c_str() const
 {
-	static const char *tr[] =
+	switch (value_)
 	{
-		"error",
-		"warn",
-		"info",
-		"debug"
-	};
-
-	return tr[value_];
+		case error: return "error";
+		case warn: return "warn";
+		case info: return "info";
+		default: return "debug";
+	}
 }
 
 } // namespace x0

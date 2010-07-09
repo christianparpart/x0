@@ -52,6 +52,14 @@ public:
 	/** sets the loggers Severity level */
 	void level(Severity value) { severity_ = value; }
 
+	template<typename A0, typename... Args>
+	void write(Severity s, const char *fmt, A0&& a0, Args&&... args)
+	{
+		char buf[1024];
+		snprintf(buf, sizeof(buf), fmt, a0, args...);
+		this->write(s, std::string(buf));
+	}
+
 private:
 	Severity severity_;
 };

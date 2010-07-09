@@ -135,7 +135,7 @@ inline bool _contains(const std::vector<std::string>& list, const std::string& v
 /**
  * configures the server ready to be started.
  */
-std::error_code HttpServer::configure(const std::string& configfile)
+bool HttpServer::configure(const std::string& configfile)
 {
 	std::vector<std::string> global_ignores = {
 		"IGNORES",
@@ -151,10 +151,16 @@ std::error_code HttpServer::configure(const std::string& configfile)
 
 	// load config
 	std::error_code ec = settings_.load_file(configfile);
-	if (ec) return ec;
+	if (ec) {
+		log(Severity::error, "Could not load configuration file: %s", ec.message().c_str());
+		return false;
+	}
 
 	ec = settings_.load("Plugins.Directory", pluginDirectory_);
-	if (ec) return ec;
+	if (ec) {
+		log(Severity::error, "Could not get plugin directory: %s", ec.message().c_str());
+		return false;
+	}
 
 	// {{{ global vars
 	auto globals = settings_.keys();
@@ -164,8 +170,8 @@ std::error_code HttpServer::configure(const std::string& configfile)
 	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi) {
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci) {
 			if (settings_.contains(ci->first)) {
-				ec = ci->second(settings_[ci->first], *this);
-				if (ec) return ec;
+				if (!ci->second(settings_[ci->first], *this))
+					;//return false;
 			}
 		}
 	}
@@ -191,9 +197,8 @@ std::error_code HttpServer::configure(const std::string& configfile)
 
 	// post-config hooks
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
-	{
-		(*i)->post_config();
-	}
+		if (!(*i)->post_config())
+			return false;
 	// }}}
 
 	// {{{ setup server-tag
@@ -255,10 +260,11 @@ std::error_code HttpServer::configure(const std::string& configfile)
 
 	// check for available TCP listeners
 	if (listeners_.empty())
-		return Error::NoListenersDefined;
+		log(Severity::error, "No HTTP listeners defined");
 
-	for (std::list<HttpListener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
-		(*i)->prepare();
+	for (auto i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
+		if (!(*i)->prepare())
+			return false;
 
 	// setup process priority
 	if (int nice_ = settings_.get<int>("Daemon.Nice"))
@@ -268,24 +274,21 @@ std::error_code HttpServer::configure(const std::string& configfile)
 		if (::nice(nice_) < 0)
 			log(Severity::error, "could not nice process to %d: %s", nice_, strerror(errno));
 	}
-	return Error::Success;
+	return true;
 }
 
-std::error_code HttpServer::start()
+bool HttpServer::start()
 {
 	if (!active_)
 	{
 		active_ = true;
 
 		for (std::list<HttpListener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
-		{
-			std::error_code ec = (*i)->start();
-
-			if (ec)
-				return ec;
-		}
+			if (!(*i)->start())
+				return false;
 	}
-	return std::error_code();
+
+	return true;
 }
 
 /** tests whether this server has been started or not.
@@ -440,11 +443,12 @@ void HttpServer::log(Severity s, const char *msg, ...)
 			AnsiColor::Red | AnsiColor::Bold, // error
 			AnsiColor::Yellow | AnsiColor::Bold, // warn
 			AnsiColor::Green, // info
+			static_cast<AnsiColor::Type>(0),
 			AnsiColor::Cyan, // debug
 		};
 
 		Buffer sb;
-		sb.push_back(AnsiColor::make(colors[s]));
+		sb.push_back(AnsiColor::make(colors[s + 3]));
 		sb.push_back(buf, buflen);
 		sb.push_back(AnsiColor::make(AnsiColor::Clear));
 
@@ -691,8 +695,6 @@ public:
 
 Scope *HttpServer::createHost(const std::string& hostid)
 {
-	log(Severity::debug, "createHost(%s)", hostid.c_str());
-
 	auto i = vhosts_.find(hostid);
 	if (i != vhosts_.end())
 		return i->second.get(); // XXX trying to create a host that already exists.
@@ -707,8 +709,6 @@ Scope *HttpServer::createHost(const std::string& hostid)
 
 Scope *HttpServer::createHostAlias(const std::string& master, const std::string& alias)
 {
-	log(Severity::debug, "createHostAlias: %s -> %s", alias.c_str(), master.c_str());
-
 	auto m = vhosts_.find(master);
 	if (m == vhosts_.end())
 		return NULL; // master hostid not found

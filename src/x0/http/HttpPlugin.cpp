@@ -46,8 +46,9 @@ void HttpPlugin::undeclareCVar(const std::string& key)
 	}
 }
 
-void HttpPlugin::post_config()
+bool HttpPlugin::post_config()
 {
+	return true;
 }
 
 } // namespace x0

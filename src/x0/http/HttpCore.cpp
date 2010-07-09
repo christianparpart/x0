@@ -124,7 +124,7 @@ std::error_code HttpCore::setup_logging(const SettingsValue& cvar, Scope& s)
 	else //! \todo add syslog logger
 		server().logger_.reset(new NullLogger());
 
-	server().logger_->level(Severity(cvar["Level"].as<std::string>()));
+	server().logger()->level(Severity(cvar["Level"].as<std::string>()));
 
 	cvar["Colorize"].load(server().colored_log_);
 	return std::error_code();
@@ -250,8 +250,9 @@ std::error_code HttpCore::setup_advertise(const SettingsValue& cvar, Scope& s)
 	return cvar.load(server().advertise);
 }
 
-void HttpCore::post_config()
+bool HttpCore::post_config()
 {
+	return true;
 }
 
 } // namespace x0

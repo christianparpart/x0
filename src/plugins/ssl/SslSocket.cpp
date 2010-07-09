@@ -134,17 +134,22 @@ ssize_t SslSocket::read(x0::Buffer& result)
 
 ssize_t SslSocket::write(const x0::BufferRef& source)
 {
+	std::string buf(source.str());
+	DEBUG("Socket(%d).write(len=%ld/%ld, '%s')", handle(), buf.size(), source.size(), buf.c_str());
 	ssize_t rv = gnutls_write(session_, source.data(), source.size());
 	return rv;
 }
 
 ssize_t SslSocket::write(int fd, off_t *offset, size_t nbytes)
 {
+	DEBUG("Socket(%d).write_fd(%d, @%ld, %ld)", handle(), fd, *offset, nbytes);
 	char buf[4096];
-	ssize_t rv = pread(fd, buf, std::min(sizeof(buf), nbytes), *offset);
+	ssize_t rv = pread(fd, buf, std::min(sizeof(buf) - 1, nbytes), *offset);
 
 	if (rv > 0)
 	{
+		buf[rv] = 0;
+		DEBUG("Socket(%d).write_fd(%d, '%s')", handle(), fd, buf);
 		rv = gnutls_write(session_, buf, rv);
 
 		if (rv >= 0)

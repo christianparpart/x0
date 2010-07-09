@@ -13,6 +13,10 @@
 #include <x0/Defines.h>
 #include <x0/Api.h>
 
+#include <string>
+#include <vector>
+#include <system_error>
+
 namespace x0 {
 
 //! \addtogroup core
@@ -35,7 +39,7 @@ public:
 
 	std::string name() const;
 
-	virtual void post_config();
+	virtual bool post_config();
 
 	template<typename... Args>
 	inline void log(Severity sv, const char *msg, Args&&... args);

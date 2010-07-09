@@ -9,12 +9,14 @@
 #define sw_x0_SslContext_h (1)
 
 #include <x0/Property.h>
+#include <x0/Logger.h>
 #include <x0/Scope.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
 
 #include <string>
 #include <vector>
+#include <system_error>
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -32,6 +34,7 @@ public:
 
 	virtual void merge(const ScopeValue *from);
 
+	void setLogger(x0::Logger *logger);
 	void setDriver(SslDriver *driver);
 
 	void setCertFile(const std::string& filename);
@@ -44,7 +47,7 @@ public:
 
 	bool isValidDnsName(const std::string& dnsName) const;
 
-	void post_config();
+	bool post_config();
 
 	void bind(SslSocket *socket);
 
@@ -63,7 +66,9 @@ public:
 private:
 	static bool imatch(const std::string& pattern, const std::string& value);
 
+	std::error_code error_;
 	SslDriver *driver_;
+	x0::Logger *logger_;
 
 	// GNU TLS specific properties
 	gnutls_certificate_credentials_t certs_;

@@ -29,33 +29,31 @@
 
 #define TRACE(msg...) DEBUG("SslContext: " msg)
 
-bool loadFile(gnutls_datum_t& data, const std::string& filename) // {{{ loadFile / freeFile
+std::error_code loadFile(gnutls_datum_t& data, const std::string& filename) // {{{ loadFile / freeFile
 {
 	//TRACE("loadFile('%s')", filename.c_str());
 	struct stat st;
 	if (stat(filename.c_str(), &st) < 0)
-		return false;
+		return std::make_error_code(static_cast<std::errc>(errno));
 
 	int fd = open(filename.c_str(), O_RDONLY);
-	if (fd < 0) {
-		TRACE("loadFile: %s: %s", filename.c_str(), strerror(errno));
-		return false;
-	}
+	if (fd < 0)
+		return std::make_error_code(static_cast<std::errc>(errno));;
 
 	data.data = new unsigned char[st.st_size + 1];
 	data.size = read(fd, data.data, st.st_size);
 
-	if (data.size < st.st_size)
+	/*if (data.size < st.st_size)
 	{
 		delete[] data.data;
 		TRACE("loadFile: read %d (of %ld) bytes [failed: %s]", data.size, st.st_size, strerror(errno));
 		return false;
-	}
+	}*/
 
 	data.data[data.size] = '\0';
 	//TRACE("loadFile: read %d bytes (%ld)", data.size, strlen((char *)data.data));
 	//TRACE("dump(%s)", data.data);
-	return true;
+	return std::error_code();
 }
 
 void freeFile(gnutls_datum_t data)
@@ -70,7 +68,9 @@ SslContext::SslContext() :
 	crlFile(this),
 	trustFile(this),
 	priorities(this),
+	error_(),
 	driver_(0),
+	logger_(0),
 	numX509Certs_(0),
 	clientVerifyMode_(GNUTLS_CERT_IGNORE),
 	caList_(0)
@@ -91,12 +91,18 @@ SslContext::~SslContext()
 	if (!priorities().empty())
 		gnutls_priority_deinit(priorities_);
 
-	gnutls_certificate_free_credentials(certs_);
+	if (certs_)
+		gnutls_certificate_free_credentials(certs_);
 }
 
 void SslContext::merge(const ScopeValue * /*from*/)
 {
 	TRACE("SslContext::merge()");
+}
+
+void SslContext::setLogger(x0::Logger *logger)
+{
+	logger_ = logger;
 }
 
 void SslContext::setDriver(SslDriver *driver)
@@ -107,10 +113,15 @@ void SslContext::setDriver(SslDriver *driver)
 
 void SslContext::setCertFile(const std::string& filename)
 {
+	if (error_) return;
+
 	TRACE("SslContext::setCertFile: \"%s\"", filename.c_str());
 	gnutls_datum_t data;
-	if (!loadFile(data, filename))
+	error_ = loadFile(data, filename);
+	if (error_) {
+		logger_->write(x0::Severity::error, "Error loading certificate file(%s): %s", filename.c_str(), error_.message().c_str());
 		return;
+	}
 
 	numX509Certs_ = sizeof(x509Certs_) / sizeof(*x509Certs_); // 8
 
@@ -162,10 +173,14 @@ void SslContext::setCertFile(const std::string& filename)
 
 void SslContext::setKeyFile(const std::string& filename)
 {
+	if (error_) return;
+
 	TRACE("SslContext::setKeyFile: \"%s\"", filename.c_str());
 	gnutls_datum_t data;
-	if (!loadFile(data, filename))
+	if ((error_ = loadFile(data, filename))) {
+		logger_->write(x0::Severity::error, "Error loading private key file(%s): %s", filename.c_str(), error_.message().c_str());
 		return;
+	}
 
 	int rv;
 	if ((rv = gnutls_x509_privkey_init(&x509PrivateKey_)) < 0) {
@@ -187,16 +202,22 @@ void SslContext::setKeyFile(const std::string& filename)
 
 void SslContext::setCrlFile(const std::string& filename)
 {
+	if (error_) return;
+
 	TRACE("setCrlFile");
 }
 
 void SslContext::setTrustFile(const std::string& filename)
 {
+	if (error_) return;
+
 	TRACE("setCrlFile");
 }
 
 void SslContext::setPriorities(const std::string& value)
 {
+	if (error_) return;
+
 	TRACE("setPriorities: \"%s\"", value.c_str());
 
 	const char *errp = NULL;
@@ -213,8 +234,10 @@ std::string SslContext::commonName() const
 	return certCN_;
 }
 
-void SslContext::post_config()
+bool SslContext::post_config()
 {
+	if (error_) return false;
+
 	if (priorities().empty())
 		priorities = "NORMAL";
 
@@ -231,7 +254,7 @@ void SslContext::post_config()
 
 	// SRP...
 
-
+	return true;
 }
 
 int SslContext::onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret)

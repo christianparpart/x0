@@ -67,8 +67,8 @@ public:
 
 	int handle() const;
 
-	std::error_code prepare();
-	std::error_code start();
+	bool prepare();
+	bool start();
 	bool active() const;
 	void stop();
 

@@ -18,7 +18,7 @@ public:
 
 	Property<unsigned long long> max_fds;
 
-	virtual void post_config();
+	virtual bool post_config();
 
 private:
 	long long getrlimit(int resource);

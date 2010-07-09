@@ -725,9 +725,10 @@ private:
 	}
 
 public:
-	virtual void post_config()
+	virtual bool post_config()
 	{
 		// TODO ensure, that every proxy instance is properly equipped.
+		return true;
 	}
 
 private:

@@ -53,7 +53,7 @@ public:
 		//server_.unlink_userdata(this);
 	}
 
-	virtual void post_config()
+	virtual bool post_config()
 	{
 		if (!alias_count_)
 		{
@@ -61,6 +61,7 @@ public:
 			// So I'll disconnect myself from your service. See if I care!
 			server_.onResolveEntity.disconnect(c);
 		}
+		return true;
 	}
 
 private:
