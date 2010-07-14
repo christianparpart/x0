@@ -303,14 +303,19 @@ public:
 		if (pidfile_.empty())
 		{
 			log(x0::Severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
+			return 1;
 		}
-		if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
+		else if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
 		{
 			log(x0::Severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
 			fprintf(pidfile, "%d\n", getpid());
 			fclose(pidfile);
-		} else
+		}
+		else
+		{
 			log(x0::Severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
+			return 1;
+		}
 
 		server_.run();
 
