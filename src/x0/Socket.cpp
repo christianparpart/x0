@@ -109,7 +109,7 @@ ssize_t Socket::read(Buffer& result)
 		result.resize(offset + rv);
 		//DEBUG("Socket(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
 	}
-	else if (rv < 0)
+	else if (rv < 0 && errno != EINTR && errno != EAGAIN)
 	{
 		ERROR("Socket(%d).read(): rv=%ld (%s)", fd_, rv, strerror(errno));
 	}
@@ -128,7 +128,7 @@ ssize_t Socket::write(const BufferRef& source)
 	//DEBUG("Socket(%d).write('%s')", fd_, source.str().c_str());
 	int rv = ::write(fd_, source.data(), source.size());
 
-	if (rv < 0)
+	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write: error (%d): %s", fd_, errno, strerror(errno));
 
 	return rv;
@@ -144,7 +144,7 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
 	//DEBUG("Socket(%d).write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd_, fd, offset0, *offset, nbytes, rv);
 
-	if (rv < 0)
+	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
 
 	return rv;
