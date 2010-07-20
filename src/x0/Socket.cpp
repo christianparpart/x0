@@ -3,6 +3,10 @@
 #include <x0/BufferRef.h>
 #include <x0/Defines.h>
 
+#if !defined(NDEBUG)
+#	include <x0/StackTrace.h>
+#endif
+
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -12,6 +16,12 @@
 
 #include <unistd.h>
 #include <system_error>
+
+#define ERROR(msg...) { \
+	DEBUG(msg); \
+	StackTrace st; \
+	DEBUG("Stack Trace:\n%s", st.c_str()); \
+}
 
 namespace x0 {
 
@@ -55,7 +65,7 @@ void Socket::setMode(Mode m)
 {
 	if (m != mode_)
 	{
-		DEBUG("Socket(%d).setMode(%d)", fd_, m);
+		//DEBUG("Socket(%d).setMode(%d)", fd_, m);
 
 		static int modes[] = { 0, ev::READ, ev::WRITE };
 
@@ -97,11 +107,11 @@ ssize_t Socket::read(Buffer& result)
 	{
 		auto offset = result.size();
 		result.resize(offset + rv);
-		DEBUG("Socket(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
+		//DEBUG("Socket(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
 	}
-	else
+	else if (rv < 0)
 	{
-		DEBUG("Socket(%d).read(): rv=%ld (%s)", fd_, rv, strerror(errno));
+		ERROR("Socket(%d).read(): rv=%ld (%s)", fd_, rv, strerror(errno));
 	}
 
 //	if (rv < 0)
@@ -114,16 +124,29 @@ ssize_t Socket::read(Buffer& result)
 
 ssize_t Socket::write(const BufferRef& source)
 {
-	DEBUG("Socket(%d).write('%s')", fd_, source.str().c_str());
+#if !defined(NDEBUG)
+	//DEBUG("Socket(%d).write('%s')", fd_, source.str().c_str());
+	int rv = ::write(fd_, source.data(), source.size());
+
+	if (rv < 0)
+		ERROR("Socket(%d).write: error (%d): %s", fd_, errno, strerror(errno));
+
+	return rv;
+#else
 	return ::write(fd_, source.data(), source.size());
+#endif
 }
 
 ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 {
-#ifndef NDEBUG
-	auto offset0 = *offset;
+#if !defined(NDEBUG)
+	//auto offset0 = *offset;
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
-	DEBUG("Socket(%d).write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd_, fd, offset0, *offset, nbytes, rv);
+	//DEBUG("Socket(%d).write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd_, fd, offset0, *offset, nbytes, rv);
+
+	if (rv < 0)
+		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
+
 	return rv;
 #else
 	return ::sendfile(fd_, fd, offset, nbytes);
@@ -137,7 +160,7 @@ void Socket::handshake()
 
 void Socket::io(ev::io& io, int revents)
 {
-	DEBUG("Socket(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	//DEBUG("Socket(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	timer_.stop();
 
 	if (state_ == HANDSHAKE)
@@ -148,7 +171,7 @@ void Socket::io(ev::io& io, int revents)
 
 void Socket::timeout(ev::timer& timer, int revents)
 {
-	DEBUG("Socket(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	//DEBUG("Socket(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	watcher_.stop();
 
 	if (timeoutCallback_)
