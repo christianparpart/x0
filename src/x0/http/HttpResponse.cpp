@@ -240,7 +240,7 @@ void HttpResponse::finished1(int ec)
 	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
 		connection_->resume(true);
 	else
-		connection_->close();
+		delete connection_;
 }
 
 void HttpResponse::initialize()
