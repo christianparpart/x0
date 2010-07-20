@@ -39,7 +39,9 @@ inline auto demangleSymbol(const char *symbolName, Buffer& result) -> void
 	{
 		char *rv = 0;
 		int status = 0;
-		std::size_t len = 1024;
+		std::size_t len = 2048;
+
+		result.reserve(result.size() + len);
 
 		try { rv = abi::__cxa_demangle(symbolName, result.end(), &len, &status); }
 		catch (...) {}
