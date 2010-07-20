@@ -6,6 +6,8 @@ Makefile
 *.a
 *.so
 *~
+.swp
+.*.swp
 docs/html/
 src/x0d
 src/*.pid
