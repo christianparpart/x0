@@ -87,8 +87,7 @@ Buffer DeflateFilter::process(const BufferRef& input, bool eof)
 
 		int rv = deflate(&z_, flushMethod);
 
-		TRACE("deflate(): rv=%d, avail_in=%d, avail_out=%d, total_out=%ld",
-				rv, z_.avail_in, z_.avail_out, z_.total_out);
+		//TRACE("deflate(): rv=%d, avail_in=%d, avail_out=%d, total_out=%ld", rv, z_.avail_in, z_.avail_out, z_.total_out);
 
 		if (rv != expected)
 		{
@@ -101,7 +100,7 @@ Buffer DeflateFilter::process(const BufferRef& input, bool eof)
 	assert(z_.avail_in == 0);
 
 	output.resize(z_.total_out);
-	TRACE("process(%ld bytes, eof=%d) -> %ld", input.size(), eof, z_.total_out);
+	//TRACE("process(%ld bytes, eof=%d) -> %ld", input.size(), eof, z_.total_out);
 
 	return output;
 }
