@@ -61,9 +61,9 @@ public:
 
 		gnutls_global_init_extra();
 
-		auto cmask = x0::HttpContext::server | x0::HttpContext::host;
-
 		declareCVar("SslLogLevel", x0::HttpContext::server, &ssl_plugin::setupLogLevel);
+
+		auto cmask = x0::HttpContext::server | x0::HttpContext::host;
 
 		declareCVar("SslEnabled", cmask, &ssl_plugin::setupEnabled, 0);
 		declareCVar("SslCertFile", cmask, &ssl_plugin::setupCertFile, 1);
