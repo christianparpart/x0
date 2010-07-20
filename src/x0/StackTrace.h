@@ -19,7 +19,7 @@ private:
 	int count_;
 
 public:
-	explicit StackTrace(int numSkipFrames = 0, int numMaxFrames = 32);
+	explicit StackTrace(int numSkipFrames = 0, int numMaxFrames = 64);
 	~StackTrace();
 
 	void generate(bool verbose);
