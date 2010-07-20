@@ -116,7 +116,7 @@ private:
 			out->headers["Vary"] += ",Accept-Encoding";
 
 		// removing content-length implicitely enables chunked encoding
-		//out->headers.remove("Content-Length");
+		out->headers.remove("Content-Length");
 	}
 };
 
