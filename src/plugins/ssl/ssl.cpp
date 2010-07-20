@@ -64,12 +64,13 @@ public:
 		auto cmask = x0::HttpContext::server | x0::HttpContext::host;
 
 		declareCVar("SslLogLevel", x0::HttpContext::server, &ssl_plugin::setupLogLevel);
-		declareCVar("SslEnabled", cmask, &ssl_plugin::setupEnabled);
-		declareCVar("SslCertFile", cmask, &ssl_plugin::setupCertFile);
-		declareCVar("SslKeyFile", cmask, &ssl_plugin::setupKeyFile);
-		declareCVar("SslCrlFile", cmask, &ssl_plugin::setupCrlFile);
-		declareCVar("SslTrustFile", cmask, &ssl_plugin::setupTrustFile);
-		declareCVar("SslPriorities", cmask, &ssl_plugin::setupPriorities);
+
+		declareCVar("SslEnabled", cmask, &ssl_plugin::setupEnabled, 0);
+		declareCVar("SslCertFile", cmask, &ssl_plugin::setupCertFile, 1);
+		declareCVar("SslKeyFile", cmask, &ssl_plugin::setupKeyFile, 1);
+		declareCVar("SslCrlFile", cmask, &ssl_plugin::setupCrlFile, 1);
+		declareCVar("SslTrustFile", cmask, &ssl_plugin::setupTrustFile, 1);
+		declareCVar("SslPriorities", cmask, &ssl_plugin::setupPriorities, 1);
 
 		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(NULL));
 	}
