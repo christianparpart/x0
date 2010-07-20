@@ -1,0 +1,57 @@
+.: Requirements :.
+
+We want the I/O system to meet at least the following requirements:
+
+- *thin* and *clean* *API* design.
+- fully *non-blocking* I/O support
+- *multiplexing* support (via libev at least)
+- data to be passed from source to sinks must be *filterable*
+- acceleratable I/O: special system calls (such as *sendfile()*) shall be supported.
+
+Although, the API does not need to exceed the requirements of the
+*x0 HTTP server project*, though, it is unlikely, that we will implement
+a SocketSource class, for example.
+
+.: API Design :.
+
+The I/O API is following the source/sink-approach, where an I/O path has two
+ends, the source (class *Source*) and the destination (class *Sink*).
+On the way through, the data may be filtered (class *Filter*), but the
+data may take a short-cut when no data-filtering is required.
+
+We want to provide different types of sources, sinks, and filters.
+Though, we provide a common base class for each of the above with the
+minimum actions in common and will provide specialized classes to implement
+the actual derivate (e.g. *FileSource* or *SocketSink*).
+
+.: Class Hierarchy :.
+
+	Source
+		BufferSource
+		SystemSource
+			FileSource
+		FilterSource
+		CompositeSource
+	Sink
+		SystemSink
+			FileSink
+		SocketSink
+		BufferSink
+	SourceVisitor
+	Filter
+		NullFilter
+		CompressFilter
+		ChainFilter
+
+.: Sources :.
+
+blah
+
+.: Sinks :.
+
+blah
+
+.: Filters :.
+
+blah
+
