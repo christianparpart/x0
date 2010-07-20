@@ -130,10 +130,14 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	}
 
 	socket_ = listener_.socketDriver()->create(fd);
-	TRACE("HttpConnection(%p): fd=%d", this, socket_->handle());
+	//TRACE("HttpConnection(%p): fd=%d", this, socket_->handle());
 
 	if (!socket_->setNonBlocking(true))
-		printf("could not set server socket into non-blocking mode: %s\n", strerror(errno));
+	{
+		TRACE("could not set server socket into non-blocking mode: %s\n", strerror(errno));
+		close();
+		return;
+	}
 
 #if defined(TCP_NODELAY)
 	if (server_.tcp_nodelay())
@@ -154,7 +158,7 @@ HttpConnection::~HttpConnection()
 	request_ = 0;
 	response_ = 0;
 
-	TRACE("~HttpConnection(%p)", this);
+	//TRACE("~HttpConnection(%p)", this);
 
 	try
 	{
@@ -176,14 +180,14 @@ HttpConnection::~HttpConnection()
 
 void HttpConnection::io(Socket *)
 {
-	TRACE("HttpConnection(%p).io(mode=%d)", this, socket_->mode());
+	//TRACE("HttpConnection(%p).io(mode=%d)", this, socket_->mode());
 	handle_read();
 }
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
 void HttpConnection::timeout(Socket *)
 {
-	TRACE("HttpConnection(%p): timed out", this);
+	//TRACE("HttpConnection(%p): timed out", this);
 
 //	ev_unloop(loop(), EVUNLOOP_ONE);
 
@@ -209,17 +213,17 @@ void HttpConnection::start()
 {
 	if (socket_->state() == Socket::HANDSHAKE)
 	{
-		TRACE("start: handshake.");
+		//TRACE("start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
 	}
 	else
 	{
 #if defined(TCP_DEFER_ACCEPT)
-		TRACE("start: read.");
+		//TRACE("start: read.");
 		// it is ensured, that we have data pending, so directly start reading
 		handle_read();
 #else
-		TRACE("start: start_read.");
+		//TRACE("start: start_read.");
 		// client connected, but we do not yet know if we have data pending
 		start_read();
 #endif
@@ -286,7 +290,7 @@ inline bool url_decode(BufferRef& url)
 
 void HttpConnection::message_begin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 {
-	TRACE("message_begin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+	//TRACE("message_begin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
 
 	request_->method = std::move(method);
 
@@ -315,42 +319,34 @@ void HttpConnection::message_header(BufferRef&& name, BufferRef&& value)
 
 bool HttpConnection::message_header_done()
 {
-	TRACE("message_header_done()");
+	//TRACE("message_header_done()");
 	response_ = new HttpResponse(this);
-	try
-	{
-		bool content_required = request_->method == "POST" || request_->method == "PUT";
+
+	bool content_required = request_->method == "POST" || request_->method == "PUT";
 
 #if X0_HTTP_STRICT
-		if (content_required && !request_->content_available())
-		{
-			response_->status = http_error::length_required;
-			response_->finish();
-		}
-		else if (!content_required && request_->content_available())
-		{
-			response_->status = http_error::bad_request; // FIXME do we have a better status code?
-			response_->finish();
-		}
-		else
-			server_.handle_request(request_, response_);
-#else
-			server_.handle_request(request_, response_);
-#endif
-	}
-	catch (...)
+	if (content_required && !request_->content_available())
 	{
-		TRACE("message_header_done: unhandled exception caught");
-		response_->status = http_error::internal_server_error;
+		response_->status = http_error::length_required;
 		response_->finish();
 	}
+	else if (!content_required && request_->content_available())
+	{
+		response_->status = http_error::bad_request; // FIXME do we have a better status code?
+		response_->finish();
+	}
+	else
+		server_.handle_request(request_, response_);
+#else
+	server_.handle_request(request_, response_);
+#endif
 
 	return true;
 }
 
 bool HttpConnection::message_content(BufferRef&& chunk)
 {
-	TRACE("message_content()");
+	//TRACE("message_content()");
 
 	request_->on_read(std::move(chunk));
 
@@ -359,7 +355,7 @@ bool HttpConnection::message_content(BufferRef&& chunk)
 
 bool HttpConnection::message_end()
 {
-	TRACE("message_end()");
+	//TRACE("message_end()");
 
 	request_->on_read(BufferRef());
 
@@ -373,7 +369,7 @@ bool HttpConnection::message_end()
  */
 void HttpConnection::resume(bool finish)
 {
-	TRACE("HttpConnection(%p).resume(finish=%s): state=%s", this, finish ? "true" : "false", state_str());
+	//TRACE("HttpConnection(%p).resume(finish=%s): state=%s", this, finish ? "true" : "false", state_str());
 
 	++request_count_;
 
@@ -392,12 +388,12 @@ void HttpConnection::resume(bool finish)
 
 	if (next_offset_ && next_offset_ < buffer_.size()) // HTTP pipelining
 	{
-		TRACE("resume(): pipelined %ld bytes", buffer_.size() - next_offset_);
+		//TRACE("resume(): pipelined %ld bytes", buffer_.size() - next_offset_);
 		process();
 	}
 	else
 	{
-		TRACE("resume(): start read");
+		//TRACE("resume(): start read");
 		start_read();
 	}
 }
@@ -432,7 +428,7 @@ void HttpConnection::check_request_body()
  */
 void HttpConnection::handle_read()
 {
-	TRACE("HttpConnection(%p).handle_read()", this);
+	//TRACE("HttpConnection(%p).handle_read()", this);
 
 	ssize_t rv = socket_->read(buffer_);
 
@@ -445,18 +441,18 @@ void HttpConnection::handle_read()
 		}
 		else
 		{
-			TRACE("HttpConnection::handle_read(): %s", strerror(errno));
+			//TRACE("HttpConnection::handle_read(): %s", strerror(errno));
 			close();
 		}
 	}
 	else if (rv == 0) // EOF
 	{
-		TRACE("HttpConnection::handle_read(): (EOF)");
+		//TRACE("HttpConnection::handle_read(): (EOF)");
 		close();
 	}
 	else
 	{
-		TRACE("HttpConnection::handle_read(): read %ld bytes", rv);
+		//TRACE("HttpConnection::handle_read(): read %ld bytes", rv);
 
 		//std::size_t offset = buffer_.size();
 		//buffer_.resize(offset + rv);
@@ -477,7 +473,7 @@ void HttpConnection::handle_read()
  */
 void HttpConnection::close()
 {
-	TRACE("HttpConnection(%p).close()", this);
+	//TRACE("HttpConnection(%p).close()", this);
 
 	socket_->close();
 }
@@ -486,14 +482,14 @@ void HttpConnection::close()
  */
 void HttpConnection::process()
 {
-	TRACE("process: next_offset=%ld, size=%ld (before processing)", next_offset_, buffer_.size());
+	//TRACE("process: next_offset=%ld, size=%ld (before processing)", next_offset_, buffer_.size());
 
 	std::error_code ec = HttpMessageProcessor::process(
 			buffer_.ref(next_offset_, buffer_.size() - next_offset_),
 			next_offset_);
 
-	TRACE("process: next_offset_=%ld, bs=%ld, ec=%s, state=%s (after processing)",
-			next_offset_, buffer_.size(), ec.message().c_str(), state_str());
+	//TRACE("process: next_offset_=%ld, bs=%ld, ec=%s, state=%s (after processing)",
+	//		next_offset_, buffer_.size(), ec.message().c_str(), state_str());
 
 	if (state() == HttpMessageProcessor::MESSAGE_BEGIN)
 	{

@@ -40,7 +40,7 @@ char HttpResponse::status_codes[512][4];
 
 HttpResponse::~HttpResponse()
 {
-	TRACE("~HttpResponse(%p, conn=%p)", this, connection_);
+	//TRACE("~HttpResponse(%p, conn=%p)", this, connection_);
 }
 
 template<typename T>
@@ -127,13 +127,13 @@ SourcePtr HttpResponse::serialize()
 	if (!headers.contains("Content-Length") && !content_forbidden())
 	{
 		if (request_->supports_protocol(1, 1)
-			&& equals(request_->header("Connection"), "keep-alive")
+			//&& equals(request_->header("Connection"), "keep-alive")
 			&& !headers.contains("Transfer-Encoding")
 			&& !content_forbidden())
 		{
 			headers.set("Connection", "keep-alive");
 			headers.push_back("Transfer-Encoding", "chunked");
-			filter_chain.push_back(std::make_shared<ChunkedEncoder>());
+			filters.push_back(std::make_shared<ChunkedEncoder>());
 			keepalive = true;
 		}
 		else
@@ -200,7 +200,7 @@ HttpResponse::HttpResponse(HttpConnection *connection, http_error _status) :
 	status(_status),
 	headers()
 {
-	TRACE("HttpResponse(%p, conn=%p)", this, connection_);
+	//TRACE("HttpResponse(%p, conn=%p)", this, connection_);
 
 	headers.push_back("Date", connection_->server().now().http_str().str());
 
@@ -215,12 +215,12 @@ std::string HttpResponse::status_str(http_error value)
 
 void HttpResponse::finished0(int ec)
 {
-	TRACE("HttpResponse(%p).finished(%d)", this, ec);
+	//TRACE("HttpResponse(%p).finished(%d)", this, ec);
 
-	if (filter_chain.empty())
+	if (filters.empty())
 		finished1(ec);
 	else
-		connection_->writeAsync(std::make_shared<FilterSource>(filter_chain),
+		connection_->writeAsync(std::make_shared<FilterSource>(filters),
 			std::bind(&HttpResponse::finished1, this, std::placeholders::_1));
 }
 
@@ -228,7 +228,7 @@ void HttpResponse::finished0(int ec)
  */
 void HttpResponse::finished1(int ec)
 {
-	TRACE("HttpResponse(%p).finished1(ec=%d)", this, ec);
+	//TRACE("HttpResponse(%p).finished1(ec=%d)", this, ec);
 
 	{
 		HttpServer& srv = request_->connection.server();

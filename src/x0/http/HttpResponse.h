@@ -247,7 +247,7 @@ private:
 public:
 	static std::string status_str(http_error status);
 
-	ChainFilter filter_chain;
+	ChainFilter filters;
 
 private:
 	/**
@@ -304,10 +304,10 @@ inline void HttpResponse::complete_write(int ec, const SourcePtr& content, const
 
 inline void HttpResponse::write_content(const SourcePtr& content, const CompletionHandlerType& handler)
 {
-	if (filter_chain.empty())
+	if (filters.empty())
 		connection_->writeAsync(content, handler);
 	else
-		connection_->writeAsync(std::make_shared<FilterSource>(content, filter_chain), handler);
+		connection_->writeAsync(std::make_shared<FilterSource>(content, filters), handler);
 }
 
 /** checks wether given code MUST NOT have a response body. */

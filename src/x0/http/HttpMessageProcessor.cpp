@@ -79,7 +79,7 @@ HttpMessageProcessor::HttpMessageProcessor(mode_type mode) :
 	value_(),
 	content_chunked_(false),
 	content_length_(-1),
-	filterChain_()
+	filters_()
 {
 }
 
@@ -1036,9 +1036,9 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 		{
 			Buffer result(c);
 
-			if (!filterChain_.empty())
+			if (!filters_.empty())
 			{
-				if (!message_content(filterChain_.process(c)))
+				if (!message_content(filters_.process(c, content_length_ == 0)))
 					return false;
 			}
 			else
@@ -1054,10 +1054,12 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 		}
 		else // fixed-size content (via "Content-Length")
 		{
+			bool rv = message_content(filters_.process(c, content_length_ == 0));
+
 			if (content_length_ == 0)
 				reset();
 
-			if (!message_content(filterChain_.process(c)))
+			if (!rv)
 				return false;
 
 			if (state_ == MESSAGE_BEGIN)
@@ -1067,19 +1069,19 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 			}
 		}
 	}
-	else if (content_length_ < 0)
+	else if (content_length_ < 0) // no "Content-Length" and no "chunked transfer encoding" defined
 	{
 		ofp += chunk.size();
 		nparsed += chunk.size();
 
-		if (filterChain_.empty())
+		if (filters_.empty())
 		{
 			if (!message_content(std::move(chunk)))
 				return false;
 		}
 		else
 		{
-			if (!message_content(filterChain_.process(chunk)))
+			if (!message_content(filters_.process(chunk, false)))
 				return false;
 		}
 	}

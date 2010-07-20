@@ -175,7 +175,7 @@ private:
 	// body
 	bool content_chunked_;            //!< whether or not request content is chunked encoded
 	ssize_t content_length_;          //!< content length of whole content or current chunk
-	ChainFilter filterChain_;
+	ChainFilter filters_;
 };
 
 } // namespace x0
