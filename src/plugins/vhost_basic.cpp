@@ -277,7 +277,9 @@ private:
 
 		in->document_root = vhost->document_root;
 
-		debug(1, "resolved [%s] to document_root [%s]", hostid.c_str(), in->document_root.c_str());
+#if !defined(NDEBUG)
+		//debug(1, "resolved [%s] to document_root [%s]", hostid.c_str(), in->document_root.c_str());
+#endif
 	}
 };
 
