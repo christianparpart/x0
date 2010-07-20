@@ -1,3 +1,10 @@
+
+-----------------------------------------------------------------------------
+                                x0 I/O API
+-----------------------------------------------------------------------------
+
+
+
 .: Requirements :.
 
 We want the I/O system to meet at least the following requirements:
@@ -12,46 +19,143 @@ Although, the API does not need to exceed the requirements of the
 *x0 HTTP server project*, though, it is unlikely, that we will implement
 a SocketSource class, for example.
 
+
+
 .: API Design :.
 
 The I/O API is following the source/sink-approach, where an I/O path has two
 ends, the source (class *Source*) and the destination (class *Sink*).
-On the way through, the data may be filtered (class *Filter*), but the
-data may take a short-cut when no data-filtering is required.
+On the way through, the data (also known as a *Chunk*) may be filtered
+(class *Filter*), but the data may take a short-cut when no
+data-filtering is required.
 
 We want to provide different types of sources, sinks, and filters.
 Though, we provide a common base class for each of the above with the
 minimum actions in common and will provide specialized classes to implement
 the actual derivate (e.g. *FileSource* or *SocketSink*).
 
+
+
 .: Class Hierarchy :.
 
-	Source
-		BufferSource
-		SystemSource
-			FileSource
-		FilterSource
-		CompositeSource
-	Sink
-		SystemSink
-			FileSink
-		SocketSink
-		BufferSink
-	SourceVisitor
-	Filter
-		NullFilter
-		CompressFilter
-		ChainFilter
+	Buffer                  : an in-memory dynamically growing memory region.
+	BufferRef               : a view into a sub-region of its referring buffer.
 
-.: Sources :.
+	Source                  : abstract base class for chunk producer
+		BufferSource        : in-memory chunk producer (reads from this buffer)
+		SystemSource        : system-handle chunk producer (reads from its handle)
+			FileSource      : chunk producer for regular files
+		FilterSource        : combines a source with a filter, producing filtered chunks
+		CompositeSource		: composes an ordered set of chunks into a virtual single one.
 
-blah
+	SourceVisitor           : visitor-pattern interface for the source types above.
 
-.: Sinks :.
+	Sink                    : abstract base class for chunk consumer
+		BufferSink          : in-memory chunk consumer (writes into this buffer)
+		SystemSink          : system-handle chunk consumer (writes into its handle)
+			FileSink        : chunk consumer for regular files
+		SocketSink          : writes chunks into a network socket
 
-blah
+	Filter                  : abstract base class for chunk transformer
+		NullFilter          : does not transform at all (a classic NULL filter)
+		CompressFilter      : base class for compressing filters
+			DeflateFilter   : compresses with deflate-algorithm
+				GZipFilter  : compresses with gzip-algorithm
+			BZip2Filter     : compresses with bzip2-algorithm
+		ChainFilter         : passes incoming chunks through a chained list of filters.
+		ChunkedEncoder      : wraps incoming data into chunked transfer encoding.
 
-.: Filters :.
 
-blah
 
+.: I/O flow :.
+
+When copying data from one end to another (e.g. a file from a server to a client),
+common semantics are found:
+
+  - The server's file is called *Source* and the client is our *Sink*.
+
+  - But as we can't assume to just send the whole source as one big blob to
+    our sink, we will divide it into smaller ones, which we call *Chunk*.
+
+  - Sometimes we wish to transform the data before finally pumping it to
+    the sink - this will be done by the chunk transformer, the *Filter*.
+
+The source is represented as a data stream and splitted dynamically
+into (smaller) chunks:
+
+  - produced by a source (chunk producer),
+
+  - possibly transformed by a filter, and finally
+
+  - consumed by a sink (chunk consumer).
+
+
+
+.: Chunks :.
+
+A chunk is an array of bytes, represented in memory.
+We (re-)use the class *Buffer* and *BufferRef* as they serve exactly
+what we require.
+
+
+
+.: Sources (Chunk Producer) :.
+
+The *Source* class abstracts all kinds of chunk producers (files, buffers,
+network sockets, composite set of different source types).
+
+abstract interface:
+	BufferRef pull(Buffer& output);
+	bool eof() const;
+	void accept(SourceVisitor& visitor);
+
+generic helper:
+	void pump(Sink& output);
+
+Every source specialization needs to implement the top 3 functions (pull, eof, accept):
+- pull() will actually produce the chunks
+- eof() will test on whether or not the end of the source stream has been reached.
+- accept() is required to invoke the visitor, passing itself, to implement the visitor-pattern.
+
+The pump() method on the other hand is not overridable, just invokes sink's pump,
+passing itself as argument, and is thus, just a convinience method for you.
+
+
+
+.: Sinks (Chunk Consumer) :.
+
+Sinks will actually consume the chunks produced, thus, writing into a network
+socket, a memory region, or regular file onto your local filesystem.
+
+abstract interface:
+	ssize_t push(Source& source);
+
+Each sink implementation just needs to implement this single method.
+Instead of passing a chunk here, we require the user to pass it directly the
+source, so that the sink implementation can perform possible transfer
+optimizations, such as the sendfile() system call instead of a read()
+plus write() if possible.
+
+
+
+.: Filters (Chunk Transformer) :.
+
+Filters stand between the actual source and its sink to possibly
+*transform* the transferring chunks.
+
+Possible use-cases are compressors, chunked transfer encoders or even
+template engines (e.g. XSLT on XML formatted sources).
+
+Filters are created on demand for a fixed source and sink.
+
+abstract interface:
+	Buffer process(const BufferRef& input, bool eof);
+
+Each filter is required to implement the above process() method, which is
+invoked repeatily over all produced chunks, and where its input parameter represents 
+the chunk to filter (transform) and eof is the flag, indicating whether or not this
+is last chunk within this stream, thus, this is the last invokation of
+process() before this filter is destroyed again.
+
+
+.

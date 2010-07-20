@@ -16,7 +16,8 @@ class SourceVisitor;
 /** chunk producer.
  *
  * A source is a chunk producer, e.g. by reading sequentially from a file.
- * \see file_source, sink, filter
+ *
+ * \see FileSource, Sink, Filter
  */
 class X0_API Source
 {
@@ -41,6 +42,13 @@ public:
 	 */
 	virtual BufferRef pull(Buffer& buf) = 0;
 
+	/** tests whether this source stream reached EOF (end of file/stream) already.
+	 *
+	 * \retval true the end of stream is reached, thus, further calls to pull()
+	 * 		<b>will</b> result into a no-op.
+	 * \retval false there is still more data to read, thus, further calls to pull()
+	 * 		<b>will likely</b> provide more data.
+	 */
 	virtual bool eof() const = 0;
 
 	/** every derivate has to implement this to fullfill the visitor-pattern.
