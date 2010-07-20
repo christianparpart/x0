@@ -41,6 +41,8 @@ public:
 	 */
 	virtual BufferRef pull(Buffer& buf) = 0;
 
+	virtual bool eof() const = 0;
+
 	/** every derivate has to implement this to fullfill the visitor-pattern.
 	 *
 	 * <code>v.visit(*this); // ideal example implementation inside derived class.</code>

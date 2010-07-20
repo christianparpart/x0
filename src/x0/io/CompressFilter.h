@@ -40,7 +40,7 @@ inline int CompressFilter::level() const
 }
 // }}}
 
-// {{{ GZipFilter
+// {{{ DeflateFilter
 /** deflate compression filter.
  */
 class X0_API DeflateFilter :
@@ -49,8 +49,12 @@ class X0_API DeflateFilter :
 protected:
 	DeflateFilter(int level, bool gzip);
 
+private:
+	void initialize();
+
 public:
 	explicit DeflateFilter(int level);
+	~DeflateFilter();
 
 	virtual Buffer process(const BufferRef& data, bool eof);
 
@@ -58,7 +62,9 @@ private:
 	z_stream z_;
 	bool raw_;
 };
+// }}}
 
+// {{{ GZipFilter
 /** gzip compression filter.
  */
 class X0_API GZipFilter :

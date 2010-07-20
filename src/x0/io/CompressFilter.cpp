@@ -7,28 +7,12 @@
 
 namespace x0 {
 
-DeflateFilter::DeflateFilter(int level, bool raw) :
-	CompressFilter(level),
-	raw_(raw)
+// {{{ DeflateFilter
+void DeflateFilter::initialize()
 {
 	z_.zalloc = Z_NULL;
 	z_.zfree = Z_NULL;
 	z_.opaque = Z_NULL;
-}
-
-DeflateFilter::DeflateFilter(int level) :
-	CompressFilter(level),
-	raw_(true)
-{
-}
-
-Buffer DeflateFilter::process(const BufferRef& input, bool eof)
-{
-	if (input.empty())
-	{
-		TRACE("process(#%ld bytes, eof=%d)", input.size(), eof);
-		return Buffer();
-	}
 
 	int rv = deflateInit2(&z_,
 		level(),				// compression level
@@ -41,7 +25,34 @@ Buffer DeflateFilter::process(const BufferRef& input, bool eof)
 	if (rv != Z_OK)
 	{
 		TRACE("deflateInit2 failed: %d", rv);
-		return Buffer(); // TODO throw error / inform caller about compression error
+	}
+}
+
+DeflateFilter::DeflateFilter(int level, bool raw) :
+	CompressFilter(level),
+	raw_(raw)
+{
+	initialize();
+}
+
+DeflateFilter::DeflateFilter(int level) :
+	CompressFilter(level),
+	raw_(true)
+{
+	initialize();
+}
+
+DeflateFilter::~DeflateFilter()
+{
+	deflateEnd(&z_);
+}
+
+Buffer DeflateFilter::process(const BufferRef& input, bool eof)
+{
+	if (input.empty())
+	{
+		TRACE("process received empty input (eof=%d)", eof);
+		return Buffer();
 	}
 
 	z_.total_out = 0;
@@ -54,13 +65,34 @@ Buffer DeflateFilter::process(const BufferRef& input, bool eof)
 
 	do
 	{
-		if (output.capacity() < output.size() / 2)
-			output.reserve(output.capacity() + Buffer::CHUNK_SIZE);
-
-		int rv = deflate(&z_, Z_FINISH);
-		if (rv == Z_STREAM_ERROR)
+		if (output.size() > output.capacity() / 2)
 		{
-			deflateEnd(&z_);
+			z_.avail_out = Buffer::CHUNK_SIZE;
+			output.reserve(output.capacity() + z_.avail_out);
+		}
+
+		int flushMethod;
+		int expected;
+
+		if (!eof)
+		{
+			flushMethod = Z_SYNC_FLUSH; // Z_NO_FLUSH
+			expected = Z_OK;
+		}
+		else
+		{
+			flushMethod = Z_FINISH;
+			expected = Z_STREAM_END;
+		}
+
+		int rv = deflate(&z_, flushMethod);
+
+		TRACE("deflate(): rv=%d, avail_in=%d, avail_out=%d, total_out=%ld",
+				rv, z_.avail_in, z_.avail_out, z_.total_out);
+
+		if (rv != expected)
+		{
+			TRACE("process: deflate() error (%d)", rv);
 			return Buffer();
 		}
 	}
@@ -69,13 +101,13 @@ Buffer DeflateFilter::process(const BufferRef& input, bool eof)
 	assert(z_.avail_in == 0);
 
 	output.resize(z_.total_out);
-	TRACE("process(#%ld bytes, eof=%d) -> %ld", input.size(), eof, z_.total_out);
+	TRACE("process(%ld bytes, eof=%d) -> %ld", input.size(), eof, z_.total_out);
 
-	deflateEnd(&z_);
 	return output;
 }
+// }}}
 
-// --------------------------------------------------------------------------
+// {{{ BZip2Filter
 BZip2Filter::BZip2Filter(int level) :
 	CompressFilter(level)
 {
@@ -83,7 +115,6 @@ BZip2Filter::BZip2Filter(int level) :
 	bz_.bzfree = Z_NULL;
 	bz_.opaque = Z_NULL;
 }
-
 
 Buffer BZip2Filter::process(const BufferRef& input, bool /*eof*/)
 {
@@ -128,5 +159,6 @@ Buffer BZip2Filter::process(const BufferRef& input, bool /*eof*/)
 
 	return output;
 }
+// }}}
 
 } // namespace x0

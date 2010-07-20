@@ -51,6 +51,11 @@ BufferRef SystemSource::pull(Buffer& buf)
 	return BufferRef();
 }
 
+bool SystemSource::eof() const
+{
+	return count_ == 0;
+}
+
 void SystemSource::accept(SourceVisitor& v)
 {
 	v.visit(*this);

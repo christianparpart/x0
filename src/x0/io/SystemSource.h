@@ -29,6 +29,7 @@ public:
 	int handle() const;
 
 	virtual BufferRef pull(Buffer& buf);
+	virtual bool eof() const;
 
 	virtual void accept(SourceVisitor& v);
 

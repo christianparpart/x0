@@ -44,7 +44,7 @@ public:
 private:
 	void finish(int rv)
 	{
-		TRACE("AsyncWriter(%p).onFinish: rv=%d, bytes_transferred=%ld", this, rv, bytes_transferred_);
+		//TRACE("AsyncWriter(%p).finish(rv=%d): bytes_transferred=%ld", this, rv, bytes_transferred_);
 		// unregister from connection's on_write_ready handler
 		//sink_->connection()->stop_write();
 
@@ -54,8 +54,9 @@ private:
 		delete this;
 	}
 
-	void callback(Socket *)
+	void callback(Socket * /*s*/)
 	{
+		//TRACE("AsyncWriter(%p).callback(%p)", this, s);
 		write();
 	}
 

@@ -3,7 +3,6 @@
 
 #include <x0/Buffer.h>
 #include <x0/io/Source.h>
-#include <x0/io/SourceVisitor.h>
 #include <memory>
 
 namespace x0 {
@@ -31,6 +30,7 @@ public:
 	const Buffer *operator->() const;
 
 	virtual BufferRef pull(Buffer& result);
+	virtual bool eof() const;
 	virtual void accept(SourceVisitor& v);
 
 public:
@@ -85,23 +85,6 @@ inline const Buffer& BufferSource::buffer() const
 inline const Buffer *BufferSource::operator->() const
 {
 	return &buffer_;
-}
-
-inline BufferRef BufferSource::pull(Buffer& result)
-{
-	std::size_t result_pos = result.size();
-
-	std::size_t first = pos_;
-	pos_ = std::min(buffer_.size(), pos_ + Buffer::CHUNK_SIZE);
-
-	result.push_back(buffer_.ref(first, pos_ - first));
-
-	return result.ref(result_pos);
-}
-
-inline void BufferSource::accept(SourceVisitor& v)
-{
-	v.visit(*this);
 }
 
 inline void BufferSource::clear()

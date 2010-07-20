@@ -72,6 +72,11 @@ public:
 		return BufferRef();
 	}
 
+	virtual bool eof() const
+	{
+		return  current_ + 1 == size() && sources_[current_]->eof();
+	}
+
 	virtual void accept(SourceVisitor& v)
 	{
 		v.visit(*this);

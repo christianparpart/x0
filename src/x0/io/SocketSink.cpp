@@ -31,7 +31,7 @@ ssize_t SocketSink::pump(Source& src)
 
 ssize_t SocketSink::genericPump(Source& src)
 {
-	if (buf_.empty())
+	if (buf_.empty() && !src.eof())
 		src.pull(buf_);
 
 	std::size_t remaining = buf_.size() - offset_;
