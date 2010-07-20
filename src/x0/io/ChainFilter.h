@@ -16,7 +16,7 @@ class X0_API ChainFilter :
 	public Filter
 {
 public:
-	virtual Buffer process(const BufferRef& input, bool eof = false);
+	virtual Buffer process(const BufferRef& input, bool eof);
 
 public:
 	void push_front(FilterPtr f);

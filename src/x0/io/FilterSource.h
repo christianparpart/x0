@@ -19,39 +19,19 @@ class X0_API FilterSource :
 {
 public:
 	explicit FilterSource(Filter& Filter) :
-		buffer_(), source_(std::make_shared<BufferSource>("")), filter_(Filter), eof_(true), eof_touched_(false) {}
+		buffer_(), source_(std::make_shared<BufferSource>("")), filter_(Filter), eof_(true) {}
 
 	FilterSource(const SourcePtr& source, Filter& Filter) :
-		buffer_(), source_(source), filter_(Filter), eof_(false), eof_touched_(false) {}
+		buffer_(), source_(source), filter_(Filter), eof_(false) {}
 
-	virtual BufferRef pull(Buffer& output)
-	{
-		std::size_t pos = output.size();
-
-		buffer_.clear();
-
-		if (!eof_)
-			output.push_back(filter_(source_->pull(buffer_), false));
-		else if (!eof_touched_)
-		{
-			eof_touched_ = true;
-			output.push_back(filter_(source_->pull(buffer_), true));
-		}
-
-		return output.ref(pos);
-	}
-
-	virtual void accept(SourceVisitor& v)
-	{
-		v.visit(*this);
-	}
+	virtual BufferRef pull(Buffer& output);
+	virtual void accept(SourceVisitor& v);
 
 protected:
 	Buffer buffer_;
 	SourcePtr source_;
 	Filter& filter_;
 	bool eof_;
-	bool eof_touched_;
 };
 
 //@}

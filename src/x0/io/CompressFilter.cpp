@@ -3,6 +3,8 @@
 
 #include <zlib.h>
 
+#define TRACE(msg...) DEBUG("CompressFilter: " msg)
+
 namespace x0 {
 
 DeflateFilter::DeflateFilter(int level, bool raw) :
@@ -20,10 +22,13 @@ DeflateFilter::DeflateFilter(int level) :
 {
 }
 
-Buffer DeflateFilter::process(const BufferRef& input, bool /*eof*/)
+Buffer DeflateFilter::process(const BufferRef& input, bool eof)
 {
 	if (input.empty())
+	{
+		TRACE("process(#%ld bytes, eof=%d)", input.size(), eof);
 		return Buffer();
+	}
 
 	int rv = deflateInit2(&z_,
 		level(),				// compression level
@@ -34,7 +39,10 @@ Buffer DeflateFilter::process(const BufferRef& input, bool /*eof*/)
 	);
 
 	if (rv != Z_OK)
+	{
+		TRACE("deflateInit2 failed: %d", rv);
 		return Buffer(); // TODO throw error / inform caller about compression error
+	}
 
 	z_.total_out = 0;
 	z_.next_in = reinterpret_cast<Bytef *>(input.begin());
@@ -61,6 +69,7 @@ Buffer DeflateFilter::process(const BufferRef& input, bool /*eof*/)
 	assert(z_.avail_in == 0);
 
 	output.resize(z_.total_out);
+	TRACE("process(#%ld bytes, eof=%d) -> %ld", input.size(), eof, z_.total_out);
 
 	deflateEnd(&z_);
 	return output;
@@ -89,7 +98,6 @@ Buffer BZip2Filter::process(const BufferRef& input, bool /*eof*/)
 
 	if (rv != BZ_OK)
 		return Buffer();
-
 
 	bz_.next_in = input.begin();
 	bz_.avail_in = input.size();

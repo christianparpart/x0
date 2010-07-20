@@ -31,6 +31,7 @@ set(x0_io_SRC
 	io/FileInfo.cpp
 	io/FileInfoService.cpp
 	io/Filter.cpp
+	io/FilterSource.cpp
 	io/NullFilter.cpp
 )
 

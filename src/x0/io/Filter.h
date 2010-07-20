@@ -24,10 +24,10 @@ class X0_API Filter
 {
 public:
 	/** processes given input data through this Filter. */
-	virtual Buffer process(const BufferRef& input, bool eof = false) = 0;
+	virtual Buffer process(const BufferRef& input, bool eof) = 0;
 
 public:
-	Buffer operator()(const BufferRef& input, bool eof = false)
+	Buffer operator()(const BufferRef& input, bool eof)
 	{
 		return process(input, eof);
 	}
