@@ -170,7 +170,7 @@ private:
 			if (std::find(items.begin(), items.end(), "bzip2") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "bzip2");
-				out->filter_chain.push_back(std::make_shared<x0::BZip2Filter>(cx->level_));
+				out->filters.push_back(std::make_shared<x0::BZip2Filter>(cx->level_));
 			}
 			else
 #endif
@@ -178,12 +178,12 @@ private:
 			if (std::find(items.begin(), items.end(), "gzip") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "gzip");
-				out->filter_chain.push_back(std::make_shared<x0::GZipFilter>(cx->level_));
+				out->filters.push_back(std::make_shared<x0::GZipFilter>(cx->level_));
 			}
 			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "deflate");
-				out->filter_chain.push_back(std::make_shared<x0::DeflateFilter>(cx->level_));
+				out->filters.push_back(std::make_shared<x0::DeflateFilter>(cx->level_));
 			}
 			else
 #endif
