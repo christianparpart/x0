@@ -85,8 +85,9 @@ SslSocket *SslDriver::create(int handle)
 	return new SslSocket(this, handle);
 }
 
-void SslDriver::destroy(x0::Socket *)
+void SslDriver::destroy(x0::Socket *socket)
 {
+	delete socket;
 }
 
 SslContext *SslDriver::selectContext(const std::string& dnsName) const
