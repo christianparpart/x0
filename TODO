@@ -1,12 +1,13 @@
 for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects/x0
 
-- cvar `SslEnabled` should be handled before any other SSL cvar.
-- replace std::function<>-style hooks with a more performant solution:
+- [minor] cvar `SslEnabled` should be handled before any other SSL cvar.
+- [minor] replace std::function<>-style hooks with a more performant solution:
 	- at least for content generator (virtual method)
 	- second: all hooks involved in request processing (function-member pointers, or virtual method?)
 	- optional: remaining configure-time hooks.
-- HTTP POST: proxy, cgi
-- error management (std::error_code), *no* exceptions.
+- [major] HTTP POST: proxy, cgi
+- [minor] drop C++ exceptions at all.
+- [minor] error management (std::error_code and bool+logger)
 
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
@@ -53,7 +54,8 @@ QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
 CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
-- XXX_filter -> XXX_encoder
+- eliminate the need of File and use just FileSource instead.
+- XxxFilter -> XxxEncoder
 - proper HTTP POST reader API: as part of request class
 	- should consume the body automatically if not read by a handler until response headers are flushed
 	- buffer_ref body_read(buffer& output);
@@ -64,7 +66,6 @@ CODE CLEANUP TODO:
 	- make use of libev's child watcher
 - plugins/cgi: pass completion handler to cgi_script::async_run(...)
 - reduce number of syscalls during a single request-processing
-- file -> filereader; fileinfo -> file; fileinfo_service -> file_service
 
 
 -----------------------------------------------------------------------------
