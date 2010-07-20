@@ -38,32 +38,32 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
 
 .: Class Hierarchy :.
 
-	Buffer                  : an in-memory dynamically growing memory region.
-	BufferRef               : a view into a sub-region of its referring buffer.
+    Buffer                  : an in-memory dynamically growing memory region.
+    BufferRef               : a view into a sub-region of its referring buffer.
 
-	Source                  : abstract base class for chunk producer
-		BufferSource        : in-memory chunk producer (reads from this buffer)
-		SystemSource        : system-handle chunk producer (reads from its handle)
-			FileSource      : chunk producer for regular files
-		FilterSource        : combines a source with a filter, producing filtered chunks
-		CompositeSource		: composes an ordered set of chunks into a virtual single one.
+    Source                  : abstract base class for chunk producer
+        BufferSource        : in-memory chunk producer (reads from this buffer)
+        SystemSource        : system-handle chunk producer (reads from its handle)
+            FileSource      : chunk producer for regular files
+        FilterSource        : combines a source with a filter, producing filtered chunks
+        CompositeSource        : composes an ordered set of chunks into a virtual single one.
 
-	SourceVisitor           : visitor-pattern interface for the source types above.
+    SourceVisitor           : visitor-pattern interface for the source types above.
 
-	Sink                    : abstract base class for chunk consumer
-		BufferSink          : in-memory chunk consumer (writes into this buffer)
-		SystemSink          : system-handle chunk consumer (writes into its handle)
-			FileSink        : chunk consumer for regular files
-		SocketSink          : writes chunks into a network socket
+    Sink                    : abstract base class for chunk consumer
+        BufferSink          : in-memory chunk consumer (writes into this buffer)
+        SystemSink          : system-handle chunk consumer (writes into its handle)
+            FileSink        : chunk consumer for regular files
+        SocketSink          : writes chunks into a network socket
 
-	Filter                  : abstract base class for chunk transformer
-		NullFilter          : does not transform at all (a classic NULL filter)
-		CompressFilter      : base class for compressing filters
-			DeflateFilter   : compresses with deflate-algorithm
-				GZipFilter  : compresses with gzip-algorithm
-			BZip2Filter     : compresses with bzip2-algorithm
-		ChainFilter         : passes incoming chunks through a chained list of filters.
-		ChunkedEncoder      : wraps incoming data into chunked transfer encoding.
+    Filter                  : abstract base class for chunk transformer
+        NullFilter          : does not transform at all (a classic NULL filter)
+        CompressFilter      : base class for compressing filters
+            DeflateFilter   : compresses with deflate-algorithm
+                GZipFilter  : compresses with gzip-algorithm
+            BZip2Filter     : compresses with bzip2-algorithm
+        ChainFilter         : passes incoming chunks through a chained list of filters.
+        ChunkedEncoder      : wraps incoming data into chunked transfer encoding.
 
 
 
@@ -105,12 +105,12 @@ The *Source* class abstracts all kinds of chunk producers (files, buffers,
 network sockets, composite set of different source types).
 
 abstract interface:
-	BufferRef pull(Buffer& output);
-	bool eof() const;
-	void accept(SourceVisitor& visitor);
+    BufferRef pull(Buffer& output);
+    bool eof() const;
+    void accept(SourceVisitor& visitor);
 
 generic helper:
-	void pump(Sink& output);
+    void pump(Sink& output);
 
 Every source specialization needs to implement the top 3 functions (pull, eof, accept):
 - pull() will actually produce the chunks
@@ -128,7 +128,7 @@ Sinks will actually consume the chunks produced, thus, writing into a network
 socket, a memory region, or regular file onto your local filesystem.
 
 abstract interface:
-	ssize_t push(Source& source);
+    ssize_t push(Source& source);
 
 Each sink implementation just needs to implement this single method.
 Instead of passing a chunk here, we require the user to pass it directly the
@@ -149,7 +149,7 @@ template engines (e.g. XSLT on XML formatted sources).
 Filters are created on demand for a fixed source and sink.
 
 abstract interface:
-	Buffer process(const BufferRef& input, bool eof);
+    Buffer process(const BufferRef& input, bool eof);
 
 Each filter is required to implement the above process() method, which is
 invoked repeatily over all produced chunks, and where its input parameter represents 
@@ -158,4 +158,4 @@ is last chunk within this stream, thus, this is the last invokation of
 process() before this filter is destroyed again.
 
 
-.
+vim:et:ts=4
