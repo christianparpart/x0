@@ -79,8 +79,8 @@ set(x0_http_SRC
 	http/HttpListener.cpp
 	http/HttpMessageProcessor.cpp
 	http/HttpPlugin.cpp
-	http/HttpResponse.cpp
 	http/HttpRequest.cpp
+	http/HttpResponse.cpp
 	http/HttpServer.cpp
 )
 
