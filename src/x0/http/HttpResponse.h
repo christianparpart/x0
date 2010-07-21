@@ -220,7 +220,7 @@ public:
 			if (static_cast<int>(status) == 0)
 				status = http_error::not_found;
 
-			if (!content_forbidden())
+			if (!content_forbidden() && status != http_error::ok)
 				write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
 			else
 				connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
