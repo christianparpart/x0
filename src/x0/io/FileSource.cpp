@@ -11,20 +11,16 @@ namespace x0 {
  *
  * \param f the file to stream
  */
-FileSource::FileSource(const FilePtr& f) :
-	SystemSource(f->handle(), 0, f->info().size()),
-	file_(f)
-{
-}
-
-FileSource::FileSource(const FilePtr& f, std::size_t offset, std::size_t size) :
-	SystemSource(f->handle(), offset, size),
-	file_(f)
+FileSource::FileSource(int fd, std::size_t offset, std::size_t size, bool autoClose) :
+	SystemSource(fd, offset, size),
+	autoClose_(autoClose)
 {
 }
 
 FileSource::~FileSource()
 {
+	if (autoClose_)
+		::close(handle());
 }
 
 void FileSource::accept(SourceVisitor& v)

@@ -17,9 +17,6 @@ public:
 	explicit SystemSource(int fd);
 	SystemSource(int fd, std::size_t offset, std::size_t count);
 
-	operator bool() const;
-	bool operator !() const;
-
 	std::size_t offset() const;
 	std::size_t count() const;
 

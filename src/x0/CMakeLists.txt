@@ -16,14 +16,12 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 set(x0_io_SRC
-	io/AsyncWriter.cpp
 	io/BufferSink.cpp
 	io/BufferSource.cpp
 	io/ChainFilter.cpp
 	io/ChunkedEncoder.cpp
 	io/CompressFilter.cpp
 	io/SocketSink.cpp
-	io/File.cpp
 	io/SystemSink.cpp
 	io/SystemSource.cpp
 	io/FileSink.cpp
@@ -36,7 +34,6 @@ set(x0_io_SRC
 )
 
 set(x0_io_API
-	io/AsyncWriter.h
 	io/BufferSink.h
 	io/BufferSource.h
 	io/ChainFilter.h
@@ -46,7 +43,6 @@ set(x0_io_API
 	io/SocketSink.h
 	io/SystemSink.h
 	io/SystemSource.h
-	io/File.h
 	io/FileSink.h
 	io/FileSource.h
 	io/FileInfo.h io/FileInfo.cc

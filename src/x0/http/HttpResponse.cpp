@@ -8,7 +8,6 @@
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpServer.h>
-#include <x0/io/File.h>
 #include <x0/io/FileSource.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/ChunkedEncoder.h>
@@ -56,14 +55,13 @@ SourcePtr HttpResponse::make_default_content()
 
 	std::string filename(connection_->server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
 	FileInfoPtr fi(connection_->server().fileinfo(filename));
-	if (fi->exists())
+	int fd = ::open(fi->filename().c_str(), O_RDONLY);
+	if (fi->exists() && fd >= 0)
 	{
-		FilePtr f(new File(fi));
-
 		headers.set("Content-Type", fi->mimetype());
 		headers.set("Content-Length", boost::lexical_cast<std::string>(fi->size()));
 
-		return std::make_shared<FileSource>(f);
+		return std::make_shared<FileSource>(fd, 0, fi->size(), true);
 	}
 	else
 	{
@@ -213,22 +211,11 @@ std::string HttpResponse::status_str(http_error value)
 	return http_category().message(static_cast<int>(value));
 }
 
-void HttpResponse::finished0(int ec)
-{
-	//TRACE("HttpResponse(%p).finished(%d)", this, ec);
-
-	if (filters.empty())
-		finished1(ec);
-	else
-		connection_->writeAsync(std::make_shared<FilterSource>(filters),
-			std::bind(&HttpResponse::finished1, this, std::placeholders::_1));
-}
-
 /** handler, being invoked when this response has been fully flushed and is considered done.
  */
-void HttpResponse::finished1(int ec)
+void HttpResponse::onFinished(int ec)
 {
-	//TRACE("HttpResponse(%p).finished1(ec=%d)", this, ec);
+	//TRACE("HttpResponse(%p).onFinished(%d)", this, ec);
 
 	{
 		HttpServer& srv = request_->connection.server();
@@ -240,7 +227,7 @@ void HttpResponse::finished1(int ec)
 	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
 		connection_->resume(true);
 	else
-		delete connection_;
+		connection_->close();
 }
 
 void HttpResponse::initialize()

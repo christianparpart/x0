@@ -11,9 +11,8 @@
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/http/HttpServer.h>
 #include <x0/Socket.h>
-#include <x0/io/Sink.h>
 #include <x0/io/Source.h>
-#include <x0/io/AsyncWriter.h>
+#include <x0/io/SocketSink.h>
 #include <x0/Buffer.h>
 #include <x0/Property.h>
 #include <x0/Types.h>
@@ -89,7 +88,9 @@ private:
 	void handshakeComplete(Socket *);
 	void start_read();
 	void resume_read();
-	void handle_read();
+
+	void processInput();
+	void processOutput();
 
 	void process();
 	void check_request_body();
@@ -101,6 +102,8 @@ private:
 #endif
 
 	struct ::ev_loop *loop() const;
+
+	unsigned long long bytesTransferred() const;
 
 public:
 	std::map<HttpPlugin *, CustomDataPtr> custom_data;
@@ -121,6 +124,11 @@ private:
 	int request_count_;					//!< number of requests already processed within this connection.
 	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
 	HttpResponse *response_;			//!< currently processed response object, may be NULL
+
+	SourcePtr source_;
+	SocketSink sink_;
+	CompletionHandlerType onWriteComplete_;
+	unsigned long long bytesTransferred_;
 
 #if !defined(NDEBUG)
 	ev::tstamp ctime_;
@@ -150,7 +158,11 @@ inline HttpServer& HttpConnection::server()
 inline void HttpConnection::writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler)
 {
 	check_request_body();
-	x0::writeAsync(socket_, buffer, handler);
+
+	source_ = buffer;
+	onWriteComplete_ = handler;
+
+	processOutput();
 }
 
 inline const HttpListener& HttpConnection::listener() const
@@ -163,6 +175,11 @@ inline const HttpListener& HttpConnection::listener() const
 inline bool HttpConnection::isClosed() const
 {
 	return !socket_ || socket_->isClosed();
+}
+
+inline unsigned long long HttpConnection::bytesTransferred() const
+{
+	return bytesTransferred_;
 }
 // }}}
 

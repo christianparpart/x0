@@ -24,6 +24,7 @@ public:
 	explicit SocketSink(Socket *conn);
 
 	Socket *socket() const;
+	void setSocket(Socket *);
 
 	virtual ssize_t pump(Source& src);
 
@@ -50,6 +51,11 @@ protected:
 inline Socket *SocketSink::socket() const
 {
 	return socket_;
+}
+
+inline void SocketSink::setSocket(Socket *value)
+{
+	socket_ = value;
 }
 // }}}
 

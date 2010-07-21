@@ -5,7 +5,11 @@
 #include <x0/Types.h>
 #include <string>
 #include <map>
+
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/fcntl.h>
+
 #include <ev++.h>
 
 namespace x0 {
@@ -65,6 +69,8 @@ public:
 	std::string mimetype() const;
 
 	void clear();
+
+	int open(int flags = O_RDONLY | O_NOATIME);
 
 private:
 	std::string get_mime_type(std::string ext) const;

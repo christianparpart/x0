@@ -82,6 +82,7 @@ void SslSocket::handshake()
 {
 	//TRACE("handshake()");
 	int rv = gnutls_handshake(session_);
+
 	if (rv == GNUTLS_E_SUCCESS)
 	{
 		// handshake either completed or failed
@@ -90,33 +91,29 @@ void SslSocket::handshake()
 		setState(OPERATIONAL);
 		setMode(READ);
 		callback();
-
-		return;// true;
 	}
-
-	if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
+	else if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
 	{
 		TRACE("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
 
 		setState(FAILURE);
 		callback();
-
-		return;// false;
 	}
-
-	//TRACE("SSL partial handshake: (%d)", gnutls_record_get_direction(session_));
-	switch (gnutls_record_get_direction(session_))
+	else
 	{
-		case 0: // read
-			setMode(READ);
-			break;
-		case 1: // write
-			setMode(WRITE);
-			break;
-		default:
-			break;
+		//TRACE("SSL partial handshake: (%d)", gnutls_record_get_direction(session_));
+		switch (gnutls_record_get_direction(session_))
+		{
+			case 0: // read
+				setMode(READ);
+				break;
+			case 1: // write
+				setMode(WRITE);
+				break;
+			default:
+				break;
+		}
 	}
-	return;// false;
 }
 
 ssize_t SslSocket::read(x0::Buffer& result)

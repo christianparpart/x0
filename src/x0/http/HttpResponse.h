@@ -221,19 +221,19 @@ public:
 				status = http_error::not_found;
 
 			if (!content_forbidden())
-				write(make_default_content(), std::bind(&HttpResponse::finished0, this, std::placeholders::_1));
+				write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
 			else
-				connection_->writeAsync(serialize(), std::bind(&HttpResponse::finished0, this, std::placeholders::_1));
+				connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
 		}
 		else
 		{
-			finished0(0);
+			onFinished(0);
 		}
 	}
 
 private:
-	void complete_write(int ec, const SourcePtr& content, const CompletionHandlerType& handler);
-	void write_content(const SourcePtr& content, const CompletionHandlerType& handler);
+	void onWriteHeadersComplete(int ec, const SourcePtr& content, const CompletionHandlerType& handler);
+	void writeContent(const SourcePtr& content, const CompletionHandlerType& handler);
 
 	/** to be called <b>once</b> in order to initialize this class for instanciation.
 	 *
@@ -261,8 +261,7 @@ private:
 
 	SourcePtr make_default_content();
 
-	void finished0(int ec);
-	void finished1(int ec);
+	void onFinished(int ec);
 };
 
 // {{{ inline implementation
@@ -279,21 +278,21 @@ inline bool HttpResponse::headers_sent() const
 inline void HttpResponse::write(const SourcePtr& content, const CompletionHandlerType& handler)
 {
 	if (headers_sent_)
-		write_content(content, handler);
+		writeContent(content, handler);
 	else
 		connection_->writeAsync(serialize(), 
-			std::bind(&HttpResponse::complete_write, this, std::placeholders::_1, content, handler));
+			std::bind(&HttpResponse::onWriteHeadersComplete, this, std::placeholders::_1, content, handler));
 }
 
 /** is invoked as completion handler when sending response headers. */
-inline void HttpResponse::complete_write(int ec, const SourcePtr& content, const CompletionHandlerType& handler)
+inline void HttpResponse::onWriteHeadersComplete(int ec, const SourcePtr& content, const CompletionHandlerType& handler)
 {
 	headers_sent_ = true;
 
 	if (!ec)
 	{
 		// write response content
-		write_content(content, handler);
+		writeContent(content, handler);
 	}
 	else
 	{
@@ -302,7 +301,7 @@ inline void HttpResponse::complete_write(int ec, const SourcePtr& content, const
 	}
 }
 
-inline void HttpResponse::write_content(const SourcePtr& content, const CompletionHandlerType& handler)
+inline void HttpResponse::writeContent(const SourcePtr& content, const CompletionHandlerType& handler)
 {
 	if (filters.empty())
 		connection_->writeAsync(content, handler);

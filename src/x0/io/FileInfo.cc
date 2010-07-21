@@ -74,6 +74,15 @@ inline std::string FileInfo::mimetype() const
 	return mimetype_;
 }
 
+inline int FileInfo::open(int flags)
+{
+#if defined(O_LARGEFILE)
+	flags |= O_LARGEFILE;
+#endif
+
+	return ::open(filename_.c_str(), flags);
+}
+
 } // namespace x0
 
 // vim:syntax=cpp

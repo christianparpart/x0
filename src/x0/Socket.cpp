@@ -37,12 +37,16 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 	callback_(0),
 	callbackData_(0)
 {
+	//DEBUG("Socket(%p) fd=%d", this, fd_);
+
 	watcher_.set<Socket, &Socket::io>(this);
 	timer_.set<Socket, &Socket::timeout>(this);
 }
 
 Socket::~Socket()
 {
+	//DEBUG("~Socket(%p)", this);
+
 	if (fd_ >= 0)
 		::close(fd_);
 }
@@ -89,6 +93,11 @@ void Socket::clearReadyCallback()
 
 void Socket::close()
 {
+	//DEBUG("Socket(%p).close: fd=%d", this, fd_);
+
+	watcher_.stop();
+	timer_.stop();
+
 	::close(fd_);
 	fd_ = -1;
 }

@@ -13,7 +13,6 @@
 #include <x0/io/FileSource.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/CompositeSource.h>
-#include <x0/io/File.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
@@ -109,18 +108,31 @@ private:
 			return true;
 		}
 
-		x0::FilePtr f;
+		int fd = -1;
 		if (equals(in->method, "GET"))
 		{
-			f.reset(new x0::File(in->fileinfo));
+			int flags = O_RDONLY;
 
-			if (f->handle() == -1)
+#if defined(O_NOATIME)
+			flags |= O_NOATIME;
+#endif
+#if defined(O_NONBLOCK)
+			flags |= O_NONBLOCK;
+#endif
+#if defined(O_CLOEXEC)
+			flags |= O_CLOEXEC;
+#endif
+
+			fd = in->fileinfo->open(flags);
+
+			if (fd < 0)
 			{
 				server_.log(x0::Severity::error, "Could not open file '%s': %s",
 					in->fileinfo->filename().c_str(), strerror(errno));
 
 				out->status = x0::http_error::forbidden;
 				out->finish();
+
 				return true;
 			}
 		}
@@ -128,28 +140,29 @@ private:
 		{
 			out->status = x0::http_error::method_not_allowed;
 			out->finish();
+
 			return true;
 		}
 
 		out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
 		out->headers.push_back("ETag", in->fileinfo->etag());
 
-		if (!process_range_request(in, out, f))
+		if (!process_range_request(in, out, fd))
 		{
 			out->headers.push_back("Accept-Ranges", "bytes");
 			out->headers.push_back("Content-Type", in->fileinfo->mimetype());
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
-			if (!f) // HEAD request
+			if (fd < 0) // HEAD request
 			{
 				out->finish();
 			}
 			else
 			{
-				posix_fadvise(f->handle(), 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+				posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
 
 				out->write(
-					std::make_shared<x0::FileSource>(f, 0, in->fileinfo->size()),
+					std::make_shared<x0::FileSource>(fd, 0, in->fileinfo->size(), true),
 					std::bind(&x0::HttpResponse::finish, out)
 				);
 			}
@@ -157,7 +170,7 @@ private:
 		return true;
 	} // }}}
 
-	inline bool process_range_request(x0::HttpRequest *in, x0::HttpResponse *out, x0::FilePtr& f) //{{{
+	inline bool process_range_request(x0::HttpRequest *in, x0::HttpResponse *out, int fd) //{{{
 	{
 		x0::BufferRef range_value(in->header("Range"));
 		x0::HttpRangeDef range;
@@ -202,10 +215,11 @@ private:
 				buf.push_back(boost::lexical_cast<std::string>(in->fileinfo->size()));
 				buf.push_back("\r\n\r\n");
 
-				if (f)
+				if (fd >= 0)
 				{
+					bool lastChunk = i + 1 == e;
 					content->push_back(std::make_shared<x0::BufferSource>(std::move(buf)));
-					content->push_back(std::make_shared<x0::FileSource>(f, offsets.first, length));
+					content->push_back(std::make_shared<x0::FileSource>(fd, offsets.first, length, lastChunk));
 				}
 				content_length += buf.size() + length;
 			}
@@ -221,7 +235,7 @@ private:
 			out->headers.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
 			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
 
-			if (f)
+			if (fd >= 0)
 			{
 				out->write(content, std::bind(&x0::HttpResponse::finish, out));
 			}
@@ -230,10 +244,8 @@ private:
 				out->finish();
 			}
 		}
-		else
+		else // generate a simple (single) partial response
 		{
-			// generate a simple partial response
-
 			std::pair<std::size_t, std::size_t> offsets(make_offsets(range[0], in->fileinfo->size()));
 			if (offsets.second < offsets.first)
 			{
@@ -250,10 +262,10 @@ private:
 			cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in->fileinfo->size();
 			out->headers.push_back("Content-Range", cr.str());
 
-			if (f)
+			if (fd >= 0)
 			{
 				out->write(
-					std::make_shared<x0::FileSource>(f, offsets.first, length),
+					std::make_shared<x0::FileSource>(fd, offsets.first, length, true),
 					std::bind(&x0::HttpResponse::finish, out)
 				);
 			}

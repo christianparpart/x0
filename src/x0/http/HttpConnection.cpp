@@ -11,6 +11,7 @@
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpServer.h>
 #include <x0/SocketDriver.h>
+#include <x0/StackTrace.h>
 #include <x0/Socket.h>
 #include <x0/Types.h>
 #include <x0/sysconfig.h>
@@ -114,7 +115,11 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	next_offset_(0),
 	request_count_(0),
 	request_(new HttpRequest(*this)),
-	response_(0)
+	response_(0),
+	source_(),
+	sink_(NULL),
+	onWriteComplete_(),
+	bytesTransferred_(0)
 #if !defined(NDEBUG)
 	, ctime_(ev_now(server_.loop()))
 #endif
@@ -130,6 +135,8 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	}
 
 	socket_ = listener_.socketDriver()->create(fd);
+	sink_.setSocket(socket_);
+
 	//TRACE("HttpConnection(%p): fd=%d", this, socket_->handle());
 
 	if (!socket_->setNonBlocking(true))
@@ -158,7 +165,8 @@ HttpConnection::~HttpConnection()
 	request_ = 0;
 	response_ = 0;
 
-	//TRACE("~HttpConnection(%p)", this);
+	//TRACE("~(%p)", this);
+	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
 	try
 	{
@@ -180,8 +188,22 @@ HttpConnection::~HttpConnection()
 
 void HttpConnection::io(Socket *)
 {
-	//TRACE("HttpConnection(%p).io(mode=%d)", this, socket_->mode());
-	handle_read();
+	//TRACE("(%p).io(mode=%d)", this, socket_->mode());
+
+	switch (socket_->mode())
+	{
+		case Socket::READ:
+			processInput();
+			break;
+		case Socket::WRITE:
+			processOutput();
+			break;
+		default:
+			break;
+	}
+
+	if (isClosed())
+		delete this;
 }
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
@@ -221,7 +243,12 @@ void HttpConnection::start()
 #if defined(TCP_DEFER_ACCEPT)
 		//TRACE("start: read.");
 		// it is ensured, that we have data pending, so directly start reading
-		handle_read();
+		processInput();
+
+		// destroy connection in case the above caused connection-close
+		// XXX this is usually done within HttpConnection::io(), but we are not.
+		if (isClosed())
+			delete this;
 #else
 		//TRACE("start: start_read.");
 		// client connected, but we do not yet know if we have data pending
@@ -235,7 +262,7 @@ void HttpConnection::handshakeComplete(Socket *)
 	if (socket_->state() == Socket::OPERATIONAL)
 		start_read();
 	else
-		delete this;
+		close(); //delete this;
 }
 
 inline bool url_decode(BufferRef& url)
@@ -426,9 +453,9 @@ void HttpConnection::check_request_body()
  *
  * We assume, that we are in request-parsing state.
  */
-void HttpConnection::handle_read()
+void HttpConnection::processInput()
 {
-	//TRACE("HttpConnection(%p).handle_read()", this);
+	//TRACE("HttpConnection(%p).processInput()", this);
 
 	ssize_t rv = socket_->read(buffer_);
 
@@ -441,18 +468,18 @@ void HttpConnection::handle_read()
 		}
 		else
 		{
-			//TRACE("HttpConnection::handle_read(): %s", strerror(errno));
+			//TRACE("HttpConnection::processInput(): %s", strerror(errno));
 			close();
 		}
 	}
 	else if (rv == 0) // EOF
 	{
-		//TRACE("HttpConnection::handle_read(): (EOF)");
+		//TRACE("HttpConnection::processInput(): (EOF)");
 		close();
 	}
 	else
 	{
-		//TRACE("HttpConnection::handle_read(): read %ld bytes", rv);
+		//TRACE("HttpConnection::processInput(): read %ld bytes", rv);
 
 		//std::size_t offset = buffer_.size();
 		//buffer_.resize(offset + rv);
@@ -464,16 +491,53 @@ void HttpConnection::handle_read()
 
 		process();
 	}
+}
 
-	if (isClosed())
-		delete this;
+void HttpConnection::processOutput()
+{
+	//TRACE("processOutput() src=%p, !ch=%d", source_.get(), !onWriteComplete_);
+
+	for (;;)
+	{
+		ssize_t rv = sink_.pump(*source_);
+
+		//TRACE("processOutput(): pump.rv=%ld; %s", rv, rv < 0 ? strerror(errno) : "");
+		// TODO make use of source_->eof()
+
+		if (rv > 0) // source (partially?) written
+		{
+			bytesTransferred_ += rv;
+		}
+		else if (rv == 0) // source fully written
+		{
+			//TRACE("processOutput(): source fully written");
+			source_.reset();
+			onWriteComplete_(0, bytesTransferred_);
+			//onWriteComplete_ = CompletionHandlerType();
+			break;
+		}
+		else if (errno == EAGAIN || errno == EINTR) // completing write would block
+		{
+			socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this); // XXX should be same
+			socket_->setMode(Socket::WRITE);
+			break;
+		}
+		else // an error occurred
+		{
+			source_.reset();
+			onWriteComplete_(errno, bytesTransferred_);
+			//onWriteComplete_ = CompletionHandlerType();
+			break;
+		}
+	}
 }
 
 /** closes this HttpConnection, possibly deleting this object (or propagating delayed delete).
  */
 void HttpConnection::close()
 {
-	//TRACE("HttpConnection(%p).close()", this);
+	//TRACE("(%p).close()", this);
+	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	socket_->close();
 }
