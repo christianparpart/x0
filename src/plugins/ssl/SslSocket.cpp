@@ -53,6 +53,7 @@ SslSocket::~SslSocket()
 int SslSocket::onClientHello(gnutls_session_t session)
 {
 	//TRACE("onClientHello()");
+
 	SslSocket *socket = (SslSocket *)gnutls_session_get_ptr(session);
 
 	// find SNI server
@@ -63,14 +64,18 @@ int SslSocket::onClientHello(gnutls_session_t session)
 
 	int rv = gnutls_server_name_get(session, sniName, &dataLen, &sniType, 0);
 	if (rv != 0)
+	{
+		TRACE("onClientHello(): gnutls_server_name_get() failed with (%d): %s", rv, gnutls_strerror(rv));
 		return GNUTLS_E_UNIMPLEMENTED_FEATURE;
+	}
 
 	if (sniType != GNUTLS_NAME_DNS)
 	{
-		TRACE("Unknown SNI type: %d", sniType);
+		TRACE("onClientHello(): Unknown SNI type: %d", sniType);
 		return GNUTLS_E_UNIMPLEMENTED_FEATURE;
 	}
-	//TRACE("onClientHello: SNI Name: \"%s\"", sniName);
+
+	//TRACE("onClientHello(): SNI Name: \"%s\"", sniName);
 
 	if (SslContext *cx = socket->driver_->selectContext(sniName))
 		cx->bind(socket);
