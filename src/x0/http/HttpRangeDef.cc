@@ -1,8 +1,9 @@
-/* <x0/HttpRangeDef.ipp>
+/* <HttpRangeDef.cc>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
 
 #ifndef x0_HttpRangeDef_ipp
