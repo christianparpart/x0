@@ -110,9 +110,6 @@ private:
 		{
 			int flags = O_RDONLY;
 
-#if defined(O_NOATIME)
-			flags |= O_NOATIME;
-#endif
 #if defined(O_NONBLOCK)
 			flags |= O_NONBLOCK;
 #endif
