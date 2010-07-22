@@ -96,6 +96,28 @@ public:
 		return std::string(::getcwd(buf, sizeof(buf)));
 	}
 
+	template<class T>
+	bool loadPlugin(const std::string& name)
+	{
+		std::error_code ec;
+		if (T *plugin = server_.loadPlugin<T>(name, ec))
+			if (setup(plugin, ec))
+				return true;
+
+		log(x0::Severity::error, "Error loading plugin '%s': %s", name.c_str(), ec.message().c_str());
+		return  false;
+	}
+
+	bool loadPlugin(const std::string& name)
+	{
+		std::error_code ec;
+		if (server_.loadPlugin(name, ec))
+			return true;
+
+		log(x0::Severity::error, "Error loading plugin '%s': %s", name.c_str(), ec.message().c_str());
+		return  false;
+	}
+
 	// --instant=docroot,port,bind
 	bool setupInstantMode()
 	{
@@ -128,16 +150,16 @@ public:
 
 		// load standard-plugins
 		std::error_code ec;
-		if (!server_.loadPlugin("sendfile", ec))
+		if (!loadPlugin("staticfile"))
 			return false;
 
-		if (!setup(server_.loadPlugin<IIndexFilePlugin>("indexfile", ec), ec))
+		if (!loadPlugin<IIndexFilePlugin>("indexfile"))
 			return false;
 
-		if (!server_.loadPlugin("dirlisting", ec))
+		if (!loadPlugin("dirlisting"))
 			return false;
 
-		if (!setup(server_.loadPlugin<ICompressPlugin>("compress", ec), ec))
+		if (!loadPlugin<ICompressPlugin>("compress"))
 			return false;
 
 		//server_.loadPlugin("cgi", ec);
