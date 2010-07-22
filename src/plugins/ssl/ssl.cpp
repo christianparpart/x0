@@ -99,8 +99,7 @@ public:
 		return NULL;
 	}
 
-	// {{{ post_config
-	bool post_config()
+	virtual bool post_config() // {{{ post_config
 	{
 		// iterate through all virtual hosts and install the SslDriver if SSL was configured on it.
 		auto hostnames = server().hostnames();
@@ -140,6 +139,31 @@ public:
 		}
 		return true;
 	} // }}}
+
+	virtual bool post_check()
+	{
+		auto hostnames = server().hostnames();
+		for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
+		{
+			x0::HttpListener *listener = server().listenerByHost(*i);
+			if (!listener || !listener->isSecure())
+				continue;
+
+			// {{{ verify listener to not mix secured/unsecured virtual hosts
+			auto hosts = server_.getHostsByPort(listener->port());
+			for (auto k = hosts.begin(), m = hosts.end(); k != m; ++k)
+			{
+				if (!server().resolveHost(*i)->get<SslContext>(this))
+				{
+					log(x0::Severity::error, "Mixing (SSL) secured and unsecured hosts on same listener port (%d). %s", listener->port(), (*k)->id().c_str());
+					return false;
+				}
+			}
+			// }}}
+		}
+
+		return true;
+	}
 
 	// {{{ config
 private:
