@@ -203,8 +203,6 @@ bool HttpServer::configure(const std::string& configfile)
 		if (i->first != i->second->id())
 			continue; // skip aliases
 
-		log(Severity::debug, "vhost: '%s'", i->first.c_str());
-
 		auto keys = settings_["Hosts"][i->first].keys<std::string>();
 		for (auto k = keys.begin(), m = keys.end(); k != m; ++k) {
 			if (!_contains(cvars_host_, *k)) {
