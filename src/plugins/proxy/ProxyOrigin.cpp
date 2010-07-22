@@ -31,7 +31,7 @@
 #	define TRACE(msg...) DEBUG("proxy: " msg)
 #endif
 
-inline ProxyOrigin::ProxyOrigin() :
+ProxyOrigin::ProxyOrigin() :
 	hostname_(),
 	port_(),
 	enabled_(false),
@@ -40,7 +40,7 @@ inline ProxyOrigin::ProxyOrigin() :
 	memset(&sa_, 0, sizeof(sa_));
 }
 
-inline ProxyOrigin::ProxyOrigin(const std::string& hostname, int port) :
+ProxyOrigin::ProxyOrigin(const std::string& hostname, int port) :
 	hostname_(hostname),
 	port_(port),
 	enabled_(true),
@@ -57,37 +57,37 @@ inline ProxyOrigin::ProxyOrigin(const std::string& hostname, int port) :
 	}
 }
 
-inline const std::string& ProxyOrigin::hostname() const
+const std::string& ProxyOrigin::hostname() const
 {
 	return hostname_;
 }
 
-inline int ProxyOrigin::port()
+int ProxyOrigin::port()
 {
 	return port_;
 }
 
-inline const sockaddr *ProxyOrigin::address() const
+const sockaddr *ProxyOrigin::address() const
 {
 	return reinterpret_cast<const sockaddr *>(&sa_);
 }
 
-inline int ProxyOrigin::size() const
+int ProxyOrigin::size() const
 {
 	return sizeof(sa_);
 }
 
-inline void ProxyOrigin::enable()
+void ProxyOrigin::enable()
 {
 	enabled_ = true;
 }
 
-inline bool ProxyOrigin::is_enabled() const
+bool ProxyOrigin::is_enabled() const
 {
 	return enabled_;
 }
 
-inline void ProxyOrigin::disable()
+void ProxyOrigin::disable()
 {
 	enabled_ = false;
 }
