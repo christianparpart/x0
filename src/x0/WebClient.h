@@ -1,8 +1,9 @@
-/* <x0/WebClient.cpp>
+/* <x0/WebClient.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
  *
- * (c) 2010 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2010 Christian Parpart <trapni@gentoo.org>
  */
 
 #ifndef sw_x0_web_client_hpp

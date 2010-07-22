@@ -137,7 +137,7 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	socket_ = listener_.socketDriver()->create(fd);
 	sink_.setSocket(socket_);
 
-	//TRACE("HttpConnection(%p): fd=%d", this, socket_->handle());
+	TRACE("HttpConnection(%p): fd=%d", this, socket_->handle());
 
 	if (!socket_->setNonBlocking(true))
 	{
@@ -165,8 +165,8 @@ HttpConnection::~HttpConnection()
 	request_ = 0;
 	response_ = 0;
 
-	//TRACE("~(%p)", this);
-	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
+	TRACE("~(%p)", this);
+	TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
 	try
 	{
@@ -259,10 +259,15 @@ void HttpConnection::start()
 
 void HttpConnection::handshakeComplete(Socket *)
 {
+	TRACE("handshakeComplete() socketState=%d", socket_->state());
+
 	if (socket_->state() == Socket::OPERATIONAL)
 		start_read();
 	else
+	{
+		TRACE("handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
 		close(); //delete this;
+	}
 }
 
 inline bool url_decode(BufferRef& url)

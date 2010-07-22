@@ -1,12 +1,13 @@
-/* <x0/HttpHeader.hpp>
+/* <x0/HttpHeader.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2010 Christian Parpart <trapni@gentoo.org>
  */
 
-#ifndef x0_header_h
-#define x0_header_h (1)
+#ifndef x0_httpheader_h
+#define x0_httpheader_h (1)
 
 #include <x0/Buffer.h>
 #include <string>
