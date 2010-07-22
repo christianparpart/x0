@@ -171,8 +171,11 @@ bool HttpServer::configure(const std::string& configfile)
 	for (auto pi = cvars_server_.begin(), pe = cvars_server_.end(); pi != pe; ++pi) {
 		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci) {
 			if (settings_.contains(ci->first)) {
-				if (!ci->second(settings_[ci->first], *this))
-					;//return false;
+				std::error_code ec = ci->second(settings_[ci->first], *this);
+				if (ec) {
+					log(Severity::debug, "Evaluating global configuration variable '%s' failed: %s", ci->first.c_str(), ec.message().c_str());
+					return false;
+				}
 			}
 		}
 	}
