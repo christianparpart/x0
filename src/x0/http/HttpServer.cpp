@@ -229,6 +229,12 @@ bool HttpServer::configure(const std::string& configfile)
 			return false;
 	// }}}
 
+	// {{{ run post-check hooks
+	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+		if (!(*i)->post_check())
+			return false;
+	// }}}
+
 	// {{{ setup server-tag
 	{
 		settings_.load<std::vector<std::string>>("ServerTags", components_);

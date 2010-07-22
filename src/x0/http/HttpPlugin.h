@@ -41,6 +41,7 @@ public:
 	std::string name() const;
 
 	virtual bool post_config();
+	virtual bool post_check();
 
 	template<typename... Args>
 	inline void log(Severity sv, const char *msg, Args&&... args);

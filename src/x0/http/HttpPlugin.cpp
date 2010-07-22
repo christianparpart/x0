@@ -67,4 +67,13 @@ bool HttpPlugin::post_config()
 	return true;
 }
 
+/** post-check hook, gets invoked after <b>every</b> configuration hook has been proceed successfully.
+ * \retval true everything turned out well.
+ * \retval false something went wrong and x0 should not startup.
+ */
+bool HttpPlugin::post_check()
+{
+	return true;
+}
+
 } // namespace x0
