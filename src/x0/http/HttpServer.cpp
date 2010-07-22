@@ -413,6 +413,21 @@ HttpListener *HttpServer::listenerByHost(const std::string& hostid) const
 	return listenerByPort(port);
 }
 
+std::list<Scope *> HttpServer::getHostsByPort(int port) const
+{
+	std::list<Scope *> result;
+
+	auto names = hostnames();
+	for (auto i = names.begin(), e = names.end(); i != e; ++i)
+	{
+		if (extract_port_from_hostid(*i) == port)
+			result.push_back(resolveHost(*i));
+	}
+
+	return result;
+}
+
+
 /**
  * retrieves the listener object that is responsible for the given port number, or null otherwise.
  */

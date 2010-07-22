@@ -94,6 +94,7 @@ public:
 	void removeHost(const std::string& hostid);
 
 	Scope *resolveHost(const std::string& hostid) const;
+	std::list<Scope *> getHostsByPort(int port) const;
 
 	std::vector<std::string> hostnames() const; //!< retrieves a list of host names (w/o aliases)
 	std::vector<std::string> allHostnames() const; //!< retrieves a list of host names and their aliases
