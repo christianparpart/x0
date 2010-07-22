@@ -30,6 +30,14 @@ HttpPlugin::~HttpPlugin()
 {
 	while (!cvars_.empty())
 		undeclareCVar(cvars_[0]);
+
+	// clean up possible traces in server and vhost scopes
+	auto hostnames = server_.hostnames();
+	for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
+		if (Scope *s = server_.resolveHost(*i))
+			s->release(this);
+
+	server_.release(this);
 }
 
 /** \brief retrieves the number of configuration variables registered by this plugin.
