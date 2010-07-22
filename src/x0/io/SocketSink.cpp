@@ -1,10 +1,18 @@
-#include <x0/Socket.h>
+/* <x0/SocketSink.cpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
+ *
+ * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/io/SocketSink.h>
 #include <x0/io/Source.h>
 #include <x0/io/FileSource.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/CompositeSource.h>
+#include <x0/Socket.h>
 #include <x0/sysconfig.h>
 
 #if defined(HAVE_SYS_SENDFILE_H)

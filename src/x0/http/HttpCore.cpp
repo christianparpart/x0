@@ -1,3 +1,11 @@
+/* <x0/HttpCore.cpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
+ *
+ * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ */
+
 #include <x0/http/HttpCore.h>
 #include <x0/DateTime.h>
 #include <x0/Settings.h>

@@ -1,8 +1,9 @@
-/* <x0/mod_vhost_template.cpp>
+/* <x0/plugins/vhost_template.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
 
 #include <x0/http/HttpPlugin.h>

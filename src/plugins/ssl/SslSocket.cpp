@@ -1,3 +1,11 @@
+/* <x0/plugins/ssl/SslSocket.cpp>
+ *
+ * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
+ *
+ * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ */
+
 #include "SslSocket.h"
 #include "SslDriver.h"
 #include "SslContext.h"

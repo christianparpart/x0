@@ -1,8 +1,9 @@
-/* <x0/mod_sendfile.cpp>
+/* <x0/plugins/staticfile.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
+ * http://www.xzero.ws/
  *
- * (c) 2009 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
 
 #include <x0/http/HttpPlugin.h>
@@ -20,31 +21,27 @@
 #include <boost/tokenizer.hpp>
 
 #include <sstream>
-#include <sys/sendfile.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
 
-/* feature to detect origin mime types of backup files. */
-#define X0_SENDFILE_MIME_TYPES_BELOW_BACKUP 1
-
 /**
  * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
  */
-class sendfile_plugin :
+class staticfile_plugin :
 	public x0::HttpPlugin,
 	public x0::IHttpRequestHandler
 {
 private:
 public:
-	sendfile_plugin(x0::HttpServer& srv, const std::string& name) :
+	staticfile_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
 	}
 
-	~sendfile_plugin()
+	~staticfile_plugin()
 	{
 	}
 
@@ -318,4 +315,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(sendfile);
+X0_EXPORT_PLUGIN(staticfile);

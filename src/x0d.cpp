@@ -1,9 +1,9 @@
 /* <x0/x0d.cpp>
  *
- * This file is part of the x0 web server project's daemon, called x0d
- * and is released under GPL-3.
+ * This file is part of the x0 web server project and is released under GPL-3.
+ * http://www.xzero.ws/
  *
- * (c) 2009-2010 Chrisitan Parpart <trapni@gentoo.org>
+ * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
 
 #include <x0/http/HttpServer.h>
