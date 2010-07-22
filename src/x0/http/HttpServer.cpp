@@ -110,7 +110,7 @@ HttpServer::~HttpServer()
 	core_ = 0;
 
 	while (!plugins_.empty())
-		unloadPlugin(plugins_[0]->name());
+		unloadPlugin(plugins_[plugins_.size() - 1]->name());
 }
 
 /** tests whether given cvar-token is available in the table of registered cvars. */
