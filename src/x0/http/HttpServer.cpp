@@ -179,8 +179,9 @@ bool HttpServer::configure(const std::string& configfile)
 			}
 		}
 	}
+	// }}}
 
-	// warn on every unknown global cvar
+	// {{{ warn on every unknown global cvar
 	for (auto i = globals.begin(), e = globals.end(); i != e; ++i)
 	{
 		if (_contains(global_ignores, *i))
@@ -190,16 +191,39 @@ bool HttpServer::configure(const std::string& configfile)
 			continue;
 
 		if (!_contains(cvars_server_, *i))
-			log(Severity::warn, "Unknown global configuration variable: '%s'.", i->c_str());
-	}
+		{
+			log(Severity::error, "Unknown global configuration variable: '%s'.", i->c_str());
+			return false;
+		}
+	} // }}}
 
-	// merge settings scopes (server to vhost)
+	// {{{ warn on every unknown vhost cvar
 	for (auto i = vhosts_.begin(), e = vhosts_.end(); i != e; ++i)
 	{
-		i->second->merge(this);
-	}
+		if (i->first != i->second->id())
+			continue; // skip aliases
 
-	// post-config hooks
+		log(Severity::debug, "vhost: '%s'", i->first.c_str());
+
+		auto keys = settings_["Hosts"][i->first].keys<std::string>();
+		for (auto k = keys.begin(), m = keys.end(); k != m; ++k) {
+			if (!_contains(cvars_host_, *k)) {
+				log(Severity::error, "Unknown virtual-host configuration variable: '%s'.", k->c_str());
+				return false;
+			}
+		}
+	} // }}}
+
+	// {{{ merge settings scopes (server to vhost)
+	for (auto i = vhosts_.begin(), e = vhosts_.end(); i != e; ++i)
+	{
+		if (i->first != i->second->id())
+			continue; // skip aliases
+
+		i->second->merge(this);
+	} // }}}
+
+	// {{{ run post-config hooks
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 		if (!(*i)->post_config())
 			return false;
@@ -262,15 +286,19 @@ bool HttpServer::configure(const std::string& configfile)
 #endif
 	// }}}
 
-	// check for available TCP listeners
+	// {{{ check for available TCP listeners
 	if (listeners_.empty())
+	{
 		log(Severity::error, "No HTTP listeners defined");
+		return false;
+	}
 
 	for (auto i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 		if (!(*i)->prepare())
 			return false;
+	// }}}
 
-	// setup process priority
+	// {{{ setup process priority
 	if (int nice_ = settings_.get<int>("Daemon.Nice"))
 	{
 		debug(1, "set nice level to %d", nice_);
@@ -278,6 +306,8 @@ bool HttpServer::configure(const std::string& configfile)
 		if (::nice(nice_) < 0)
 			log(Severity::error, "could not nice process to %d: %s", nice_, strerror(errno));
 	}
+	// }}}
+
 	return true;
 }
 
