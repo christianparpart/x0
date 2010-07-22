@@ -173,26 +173,28 @@ public:
 	{
 		bool is_default;
 		std::error_code ec = cvar.load(is_default);
-		if (ec) return ec;
 
-		int port = x0::extract_port_from_hostid(s.id());
-		vhost_config *cfg = s.acquire<vhost_config>(this);
-
-		if (is_default)
+		if (!ec)
 		{
-			if (vhost_config *vhost = get_default_host(port))
+			int port = x0::extract_port_from_hostid(s.id());
+			vhost_config *cfg = s.acquire<vhost_config>(this);
+
+			if (is_default)
 			{
-				server_.log(x0::Severity::error,
-						"Cannot declare multiple virtual hosts as default "
-						"with same port (%d). Conflicting hostnames: %s, %s.",
-						port, vhost->name.c_str(), s.id().c_str());
+				if (vhost_config *vhost = get_default_host(port))
+				{
+					server_.log(x0::Severity::error,
+							"Cannot declare multiple virtual hosts as default "
+							"with same port (%d). Conflicting hostnames: %s, %s.",
+							port, vhost->name.c_str(), s.id().c_str());
 
-				return std::make_error_code(std::errc::invalid_argument);
+					return std::make_error_code(std::errc::invalid_argument);
+				}
+
+				set_default_host(port, cfg);
 			}
-
-			set_default_host(port, cfg);
 		}
-		return std::error_code();
+		return ec;
 	}
 
 	/** maps domain-name to given vhost config.
@@ -237,7 +239,7 @@ public:
 		return NULL;
 	}
 
-	virtual bool post_config()
+	virtual bool post_check()
 	{
 		// verify, that we have at least one vhost defined:
 		// TODO
@@ -245,11 +247,26 @@ public:
 		// verify, that every listener has a default  vhost:
 		for (auto i = server_.listeners().begin(), e = server_.listeners().end(); i != e; ++i)
 		{
-			if (!get_default_host((*i)->port()))
+			bool hasDefaultHost = get_default_host((*i)->port());
+			bool isSecure = (*i)->isSecure();
+
+			if (hasDefaultHost && isSecure)
 			{
-				log(x0::Severity::warn,
+				// (SSL) secured listeners cannot provide default hosts,
+				// as the SSL protocol matches the clients passed hostname
+				// against the servers certificate.
+				log(x0::Severity::error,
+					"Default hosts on secure listener port (%d) not allowed.",
+					(*i)->port());
+
+				return false;
+			}
+			else if (!hasDefaultHost && !isSecure)
+			{
+				log(x0::Severity::error,
 					"No default host defined for listener at port %d.",
 					(*i)->port());
+
 				return false;
 			}
 		}
