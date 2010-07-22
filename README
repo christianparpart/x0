@@ -2,8 +2,9 @@
 x0 - HTTP WEB SERVER AND FRAMEWORK
 -----------------------------------------------------------------------------
 
-website:            http://xzero.ws/
-project manager:    http://redmine.xzero.ws/projects/x0
+official website:   http://xzero.ws/
+project management: http://redmine.xzero.ws/projects/x0
+ohloh:              http://www.ohloh.net/p/x0
 github:             http://github.com/trapni/x0
 gitorious:          http://gitorious.org/x0
 
@@ -17,8 +18,9 @@ FEATURES
 - fully asynchronous response content generation support
 - response output filter API
 - name based virtual hosting
-- network optimization through sendfile() system call
-- SSL connection encryption
+- zero-copy networking optimization through sendfile() system call
+- SSL connection encryption (plugin)
+- SSL Server Name Indication (SNI) extension
 - dynamic content compression (plugin)
 - request path aliasing (plugin)
 - automatic directory listing generation (plugin)
@@ -47,7 +49,6 @@ HOW TO BUILD:
 git clone git://github.com/trapni/x0.git
 cd x0/
 cmake .
-make edit_cache
 make
 cd src/
 `pwd`/x0d --no-fork --config=test.conf
