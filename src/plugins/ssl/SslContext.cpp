@@ -115,6 +115,7 @@ void SslContext::setDriver(SslDriver *driver)
 void SslContext::setCertFile(const std::string& filename)
 {
 	if (error_) return;
+	if (!enabled) return;
 
 	TRACE("SslContext::setCertFile: \"%s\"", filename.c_str());
 	gnutls_datum_t data;
@@ -175,6 +176,7 @@ void SslContext::setCertFile(const std::string& filename)
 void SslContext::setKeyFile(const std::string& filename)
 {
 	if (error_) return;
+	if (!enabled) return;
 
 	TRACE("SslContext::setKeyFile: \"%s\"", filename.c_str());
 	gnutls_datum_t data;
@@ -204,6 +206,7 @@ void SslContext::setKeyFile(const std::string& filename)
 void SslContext::setCrlFile(const std::string& filename)
 {
 	if (error_) return;
+	if (!enabled) return;
 
 	TRACE("setCrlFile");
 }
@@ -211,6 +214,7 @@ void SslContext::setCrlFile(const std::string& filename)
 void SslContext::setTrustFile(const std::string& filename)
 {
 	if (error_) return;
+	if (!enabled) return;
 
 	TRACE("setCrlFile");
 }
@@ -218,6 +222,7 @@ void SslContext::setTrustFile(const std::string& filename)
 void SslContext::setPriorities(const std::string& value)
 {
 	if (error_) return;
+	if (!enabled) return;
 
 	TRACE("setPriorities: \"%s\"", value.c_str());
 
@@ -238,6 +243,7 @@ std::string SslContext::commonName() const
 bool SslContext::post_config()
 {
 	if (error_) return false;
+	if (!enabled) return false;
 
 	if (priorities().empty())
 		priorities = "NORMAL";
