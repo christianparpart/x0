@@ -88,22 +88,15 @@ private:
 		if (!in->fileinfo->is_directory())
 			return false;
 
-		context *ctx = server().resolveHost(in->hostid())->get<context>(this);
-		if (!ctx)
-			ctx = server_.get<context>(this);
+		if (context *cx = server().resolveHost(in->hostid())->get<context>(this))
+			if (cx->enabled)
+				return process(in, out);
 
-		if (!ctx && !(ctx->enabled == true))
-			return false;
-
-		return process(in, out);
+		return false;
 	}
 
 	bool process(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		debug(0, "process: %s [%s]",
-			in->fileinfo->filename().c_str(),
-			in->document_root.c_str());
-
 		if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
 		{
 			x0::Buffer result(mkhtml(dir, in));
