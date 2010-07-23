@@ -23,6 +23,7 @@
 #include <cassert>
 #include <strings.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 class safe_pipe
 {
