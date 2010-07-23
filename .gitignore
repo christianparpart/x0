@@ -8,6 +8,11 @@ Makefile
 *~
 .swp
 .*.swp
+.kdev4/
+build/
+test.crt
+test.key
+certtool.cfg
 docs/html/
 src/x0d
 src/*.pid
