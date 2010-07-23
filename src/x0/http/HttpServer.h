@@ -238,13 +238,19 @@ inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 	return dynamic_cast<T *>(loadPlugin(name, ec));
 }
 
+/** retrieves scope of given virtual host or global scope if not found.
+ *
+ * \param hostid the virtual hosts id (hostname ':' port)
+ *
+ * \return the virtual hosts scope (if found) or global (server) scope if not found.
+ */
 inline Scope *HttpServer::resolveHost(const std::string& hostid) const
 {
 	auto i = vhosts_.find(hostid);
 	if (i != vhosts_.end())
 		return i->second.get();
 
-	return NULL;
+	return const_cast<HttpServer *>(this);
 }
 
 #if !defined(NDEBUG)
