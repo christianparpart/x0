@@ -433,8 +433,8 @@ bool WebClientBase::message_content(BufferRef&& chunk)
 
 bool WebClientBase::message_end()
 {
-	int pending = --request_count_;
-	TRACE("message_end: pending=%d", pending);
+	--request_count_;
+	TRACE("message_end: pending=%d", request_count_);
 
 	return complete();
 }
