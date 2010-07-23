@@ -25,7 +25,7 @@ BufferRef BufferSource::pull(Buffer& result)
 
 bool BufferSource::eof() const
 {
-	return pos_ + 1 == buffer_.size();
+	return pos_ == buffer_.size();
 }
 
 void BufferSource::accept(SourceVisitor& v)
