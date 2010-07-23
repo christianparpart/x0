@@ -148,6 +148,8 @@ public:
 		server_.fileinfo.etag_consider_size(true);
 		server_.fileinfo.etag_consider_inode(false);
 
+		server_.tcp_cork = true;
+
 		// load standard-plugins
 		std::error_code ec;
 		if (!loadPlugin("staticfile"))
