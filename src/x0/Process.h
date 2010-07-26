@@ -34,10 +34,10 @@ class Process
 
 public:
 	/// vector list used for storing program parameters
-	typedef std::vector<std::string> params;
+	typedef std::vector<std::string> ArgumentList;
 
 	/// string map used for storing custom environment variables.
-	typedef std::map<std::string, std::string> environment;
+	typedef std::map<std::string, std::string> Environment;
 
 public:
 	/** initializes the process object without actually starting any child.
@@ -61,8 +61,8 @@ public:
 	 *
 	 * \note you may only run one child at a time per process object.
 	 */
-	Process(struct ev_loop *loop, const std::string& exe, const params& args,
-		const environment& env = environment(), const std::string& workdir = std::string());
+	Process(struct ev_loop *loop, const std::string& exe, const ArgumentList& args,
+		const Environment& env = Environment(), const std::string& workdir = std::string());
 
 	~Process();
 
@@ -85,8 +85,8 @@ public:
 	 *
 	 * \note you may only run one child at a time per process object.
 	 */
-	int start(const std::string& exe, const params& args,
-		const environment& env = environment(), const std::string& workdir = std::string());
+	int start(const std::string& exe, const ArgumentList& args,
+		const Environment& env = Environment(), const std::string& workdir = std::string());
 
 	/** sends a terminate signal to the child process. */
 	void terminate();
@@ -104,7 +104,7 @@ public:
 
 private:
 	/** setup routine to be invoked from within the child process, to setup the child environment and exec'uting the child program. */
-	void setupChild(const std::string& exe, const params& args, const environment& env, const std::string& workdir);
+	void setupChild(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir);
 
 	/** setup routine to be invoked right after the fork() within the parent process. */
 	void setupParent();

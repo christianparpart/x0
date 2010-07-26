@@ -163,7 +163,7 @@ void CgiScript::runAsync(const std::function<void()>& done, x0::HttpRequest *in,
 	}
 }
 
-static inline void _loadenv_if(const std::string& name, x0::Process::environment& environment)
+static inline void _loadenv_if(const std::string& name, x0::Process::Environment& environment)
 {
 	if (const char *value = ::getenv(name.c_str()))
 	{
@@ -174,7 +174,7 @@ static inline void _loadenv_if(const std::string& name, x0::Process::environment
 inline void CgiScript::runAsync()
 {
 	std::string workdir(request_->document_root);
-	x0::Process::params params;
+	x0::Process::ArgumentList params;
 	std::string hostprogram;
 
 	if (hostprogram_.empty())
@@ -188,7 +188,7 @@ inline void CgiScript::runAsync()
 	}
 
 	// {{{ setup request / initialize environment and handler
-	x0::Process::environment environment;
+	x0::Process::Environment environment;
 
 	environment["SERVER_SOFTWARE"] = PACKAGE_NAME "/" PACKAGE_VERSION;
 	environment["SERVER_NAME"] = request_->header("Host");
