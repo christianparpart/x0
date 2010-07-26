@@ -397,7 +397,8 @@ bool HttpConnection::message_end()
 	++request_count_;
 
 	// XXX is this really required? (meant to mark the request-content EOS)
-	request_->on_read(BufferRef());
+	if (request_)
+		request_->on_read(BufferRef());
 
 	// allow continueing processing possible further requests
 	return true;
