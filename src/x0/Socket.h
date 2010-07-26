@@ -67,6 +67,7 @@ public:
 	int timeout() const;
 	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);
 
+	const char *state_str() const;
 	State state() const;
 	void setState(State s);
 
@@ -111,6 +112,21 @@ inline int Socket::handle() const
 inline int Socket::timeout() const
 {
 	return timeout_;
+}
+
+inline const char *Socket::state_str() const
+{
+	switch (state_)
+	{
+		case HANDSHAKE:
+			return "HANDSHAKE";
+		case OPERATIONAL:
+			return "OPERATIONAL";
+		case FAILURE:
+			return "FAILURE";
+		default:
+			return "<INVALID>";
+	}
 }
 
 inline Socket::State Socket::state() const
