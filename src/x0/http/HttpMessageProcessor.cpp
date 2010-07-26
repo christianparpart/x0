@@ -186,16 +186,37 @@ void HttpMessageProcessor::message_header(BufferRef&& name, BufferRef&& value)
 {
 }
 
+/** hook, invoked once all request headers have been fully parsed (no possible content parsed yet).
+ *
+ * \note The default behavior (if not overridden) is, to do nothing and return true.
+ *
+ * \retval true continue processing further content (if any)
+ * \retval false abort message processing
+ */
 bool HttpMessageProcessor::message_header_done()
 {
 	return true;
 }
 
+/** hook, invoked for every chunk of message content being processed.
+ *
+ * \note The default behavior (if not overridden) is, to do nothing and return true.
+ *
+ * \retval true continue processing further content (if any)
+ * \retval false abort message processing
+ */
 bool HttpMessageProcessor::message_content(BufferRef&& chunk)
 {
 	return true;
 }
 
+/** hook, invoked once a fully HTTP message has been processed.
+ *
+ * \note The default behavior (if not overridden) is, to do nothing and return true.
+ *
+ * \retval true continue processing further content (if any)
+ * \retval false abort message processing
+ */
 bool HttpMessageProcessor::message_end()
 {
 	return true;

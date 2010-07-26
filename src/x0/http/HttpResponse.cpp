@@ -225,9 +225,8 @@ void HttpResponse::onFinished(int ec)
 		srv.onRequestDone(const_cast<HttpRequest *>(request_), this);
 	}
 
-	if (strcasecmp(headers["Connection"].c_str(), "keep-alive") == 0)
-		connection_->resume(true);
-	else
+	// close, if not a keep-alive connection
+	if (!iequals(headers["Connection"], "keep-alive"))
 		connection_->close();
 }
 

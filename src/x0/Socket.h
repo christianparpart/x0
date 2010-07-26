@@ -72,6 +72,8 @@ public:
 
 	Mode mode() const;
 	void setMode(Mode m);
+	const char *mode_str() const;
+
 	template<class K, void (K::*cb)(Socket *)> void setReadyCallback(K *object);
 	void clearReadyCallback();
 
@@ -124,6 +126,21 @@ inline void Socket::setState(State s)
 inline Socket::Mode Socket::mode() const
 {
 	return mode_;
+}
+
+inline const char *Socket::mode_str() const
+{
+	switch (mode_)
+	{
+		case IDLE:
+			return "IDLE";
+		case READ:
+			return "READ";
+		case WRITE:
+			return "WRITE";
+		default:
+			return "<INVALID>";
+	}
 }
 
 inline bool Socket::isClosed() const

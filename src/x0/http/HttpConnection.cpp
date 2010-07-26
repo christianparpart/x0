@@ -24,7 +24,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 0
+#if 1
 #	define TRACE(msg...)
 #else
 #	define TRACE(msg...) DEBUG("HttpConnection: " msg)
@@ -113,9 +113,9 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	remote_ip_(),
 	remote_port_(0),
 	buffer_(8192),
-	next_offset_(0),
+	offset_(0),
 	request_count_(0),
-	request_(new HttpRequest(*this)),
+	request_(0),
 	response_(0),
 	source_(),
 	sink_(NULL),
@@ -189,7 +189,7 @@ HttpConnection::~HttpConnection()
 
 void HttpConnection::io(Socket *)
 {
-	//TRACE("(%p).io(mode=%d)", this, socket_->mode());
+	//TRACE("(%p).io(mode=%s)", this, socket_->mode_str());
 
 	switch (socket_->mode())
 	{
@@ -323,7 +323,9 @@ inline bool url_decode(BufferRef& url)
 
 void HttpConnection::message_begin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 {
-	//TRACE("message_begin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+	TRACE("message_begin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+
+	request_ = new HttpRequest(*this);
 
 	request_->method = std::move(method);
 
@@ -352,12 +354,12 @@ void HttpConnection::message_header(BufferRef&& name, BufferRef&& value)
 
 bool HttpConnection::message_header_done()
 {
-	//TRACE("message_header_done()");
+	TRACE("message_header_done()");
 	response_ = new HttpResponse(this);
 
+#if X0_HTTP_STRICT
 	bool content_required = request_->method == "POST" || request_->method == "PUT";
 
-#if X0_HTTP_STRICT
 	if (content_required && !request_->content_available())
 	{
 		response_->status = http_error::length_required;
@@ -379,56 +381,32 @@ bool HttpConnection::message_header_done()
 
 bool HttpConnection::message_content(BufferRef&& chunk)
 {
-	//TRACE("message_content()");
+	TRACE("message_content(#%ld)", chunk.size());
 
-	request_->on_read(std::move(chunk));
-
-	return false;
-}
-
-bool HttpConnection::message_end()
-{
-	//TRACE("message_end()");
-
-	request_->on_read(BufferRef());
+	if (request_)
+		request_->on_read(std::move(chunk));
 
 	return true;
 }
 
-/** Resumes async operations.
- *
- * This method is being invoked on a keep-alive HttpConnection to parse further requests.
- * \see start()
- */
-void HttpConnection::resume(bool finish)
+bool HttpConnection::message_end()
 {
-	//TRACE("HttpConnection(%p).resume(finish=%s): state=%s", this, finish ? "true" : "false", state_str());
+	TRACE("message_end()");
 
+	// increment the number of fully processed requests
 	++request_count_;
 
-	if (finish)
-	{
-		assert(state() == HttpMessageProcessor::MESSAGE_BEGIN);
+	// XXX is this really required? (meant to mark the request-content EOS)
+	request_->on_read(BufferRef());
 
-		delete response_;
-		response_ = 0;
+	delete response_;
+	response_ = 0;
 
-		delete request_;
-		request_ = 0;
+	delete request_;
+	request_ = 0;
 
-		request_ = new HttpRequest(*this);
-	}
-
-	if (next_offset_ && next_offset_ < buffer_.size()) // HTTP pipelining
-	{
-		//TRACE("resume(): pipelined %ld bytes", buffer_.size() - next_offset_);
-		process();
-	}
-	else
-	{
-		//TRACE("resume(): start read");
-		start_read();
-	}
+	// allow continueing processing possible further requests
+	return true;
 }
 
 void HttpConnection::start_read()
@@ -461,7 +439,7 @@ void HttpConnection::check_request_body()
  */
 void HttpConnection::processInput()
 {
-	//TRACE("HttpConnection(%p).processInput()", this);
+	TRACE("HttpConnection(%p).processInput()", this);
 
 	ssize_t rv = socket_->read(buffer_);
 
@@ -474,18 +452,18 @@ void HttpConnection::processInput()
 		}
 		else
 		{
-			//TRACE("HttpConnection::processInput(): %s", strerror(errno));
+			TRACE("HttpConnection::processInput(): %s", strerror(errno));
 			close();
 		}
 	}
 	else if (rv == 0) // EOF
 	{
-		//TRACE("HttpConnection::processInput(): (EOF)");
+		TRACE("HttpConnection::processInput(): (EOF)");
 		close();
 	}
 	else
 	{
-		//TRACE("HttpConnection::processInput(): read %ld bytes", rv);
+		TRACE("HttpConnection::processInput(): read %ld bytes", rv);
 
 		//std::size_t offset = buffer_.size();
 		//buffer_.resize(offset + rv);
@@ -496,12 +474,23 @@ void HttpConnection::processInput()
 #endif
 
 		process();
+
+		TRACE("(%p).processInput(): done process()ing; mode=%s, fd=%d, request=%p",
+			this, socket_->mode_str(), socket_->handle(), request_);
+
+		if (!isClosed() && request_ == NULL) // resume() invoked?
+		{
+			TRACE("go start_read()...");
+			start_read();
+			TRACE("(%p).processInput(): mode=%s, fd=%d, [%ld/%ld]",
+				this, socket_->mode_str(), socket_->handle(), offset_, buffer_.size());
+		}
 	}
 }
 
 void HttpConnection::processOutput()
 {
-	//TRACE("processOutput() src=%p, !ch=%d", source_.get(), !onWriteComplete_);
+	TRACE("processOutput() src=%p, !ch=%d", source_.get(), !onWriteComplete_);
 
 	for (;;)
 	{
@@ -552,19 +541,21 @@ void HttpConnection::close()
  */
 void HttpConnection::process()
 {
-	//TRACE("process: next_offset=%ld, size=%ld (before processing)", next_offset_, buffer_.size());
+	TRACE("process: offset=%ld, size=%ld (before processing)", offset_, buffer_.size());
 
 	std::error_code ec = HttpMessageProcessor::process(
-			buffer_.ref(next_offset_, buffer_.size() - next_offset_),
-			next_offset_);
+			buffer_.ref(offset_, buffer_.size() - offset_),
+			offset_);
 
-	//TRACE("process: next_offset_=%ld, bs=%ld, ec=%s, state=%s (after processing)",
-	//		next_offset_, buffer_.size(), ec.message().c_str(), state_str());
+	TRACE("process: offset=%ld, bs=%ld, ec=%s, state=%s (after processing)",
+			offset_, buffer_.size(), ec.message().c_str(), state_str());
 
 	if (state() == HttpMessageProcessor::MESSAGE_BEGIN)
 	{
-		next_offset_ = 0;
+#if 0
+		offset_ = 0;
 		buffer_.clear();
+#endif
 	}
 
 	if (isClosed())
@@ -573,8 +564,15 @@ void HttpConnection::process()
 	if (ec == HttpMessageError::partial)
 		start_read();
 	else if (ec && ec != HttpMessageError::aborted)
+	{
 		// -> send stock response: BAD_REQUEST
-		(response_ = new HttpResponse(this, http_error::bad_request))->finish();
+		if (!response_)
+			response_ = new HttpResponse(this, http_error::bad_request);
+		else
+			response_->status = http_error::bad_request;
+
+		response_->finish();
+	}
 }
 
 std::string HttpConnection::remote_ip() const
