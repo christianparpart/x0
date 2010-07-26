@@ -159,7 +159,7 @@ inline bool HttpMessageProcessor::is_text(char value)
  * \param version_major HTTP major version (e.g. 0 for 0.9)
  * \param version_minor HTTP minor version (e.g. 9 for 0.9)
  */
-void HttpMessageProcessor::message_begin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
+void HttpMessageProcessor::messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 {
 }
 
@@ -170,19 +170,19 @@ void HttpMessageProcessor::message_begin(BufferRef&& method, BufferRef&& uri, in
  * \param code HTTP response status code (e.g. 200 or 404)
  * \param text HTTP response status text (e.g. "Ok" or "Not Found")
  */
-void HttpMessageProcessor::message_begin(int version_major, int version_minor, int code, BufferRef&& text)
+void HttpMessageProcessor::messageBegin(int version_major, int version_minor, int code, BufferRef&& text)
 {
 }
 
 /** hook, invoked for each generic HTTP Message.
  */
-void HttpMessageProcessor::message_begin()
+void HttpMessageProcessor::messageBegin()
 {
 }
 
 /** hook, invoked for each sequentially parsed HTTP header.
  */
-void HttpMessageProcessor::message_header(BufferRef&& name, BufferRef&& value)
+void HttpMessageProcessor::messageHeader(BufferRef&& name, BufferRef&& value)
 {
 }
 
@@ -193,7 +193,7 @@ void HttpMessageProcessor::message_header(BufferRef&& name, BufferRef&& value)
  * \retval true continue processing further content (if any)
  * \retval false abort message processing
  */
-bool HttpMessageProcessor::message_header_done()
+bool HttpMessageProcessor::messageHeaderEnd()
 {
 	return true;
 }
@@ -205,7 +205,7 @@ bool HttpMessageProcessor::message_header_done()
  * \retval true continue processing further content (if any)
  * \retval false abort message processing
  */
-bool HttpMessageProcessor::message_content(BufferRef&& chunk)
+bool HttpMessageProcessor::messageContent(BufferRef&& chunk)
 {
 	return true;
 }
@@ -217,7 +217,7 @@ bool HttpMessageProcessor::message_content(BufferRef&& chunk)
  * \retval true continue processing further content (if any)
  * \retval false abort message processing
  */
-bool HttpMessageProcessor::message_end()
+bool HttpMessageProcessor::messageEnd()
 {
 	return true;
 }
@@ -386,7 +386,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 						// an internet message has no special top-line,
 						// so we just invoke the callback right away
-						message_begin();
+						messageBegin();
 
 						break;
 				}
@@ -539,7 +539,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
 							method_.str().c_str(), entity_.str().c_str(), version_major_, version_minor_);
 
-					message_begin(std::move(method_), std::move(entity_), version_major_, version_minor_);
+					messageBegin(std::move(method_), std::move(entity_), version_major_, version_minor_);
 
 				}
 				else
@@ -693,7 +693,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					++i;
 
 					TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", version_major_, version_minor_, code_, message_.str().c_str());
-					message_begin(version_major_, version_minor_, code_, std::move(message_));
+					messageBegin(version_major_, version_minor_, code_, std::move(message_));
 				}
 				else
 					state_ = SYNTAX_ERROR;
@@ -803,7 +803,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 						}
 					}
 
-					message_header(std::move(name_), std::move(value_));
+					messageHeader(std::move(name_), std::move(value_));
 
 					name_.clear();
 					value_.clear();
@@ -866,12 +866,12 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 					ofp = offset_base + offset;
 
-					if (!message_header_done())
+					if (!messageHeaderEnd())
 						return make_error_code(HttpMessageError::aborted);
 
 					if (!content_expected)
 					{
-						if (!message_end())
+						if (!messageEnd())
 							return make_error_code(HttpMessageError::aborted);
 					}
 				} else
@@ -998,7 +998,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 					ofp = offset_base + offset;
 
-					if (!message_end())
+					if (!messageEnd())
 						return make_error_code(HttpMessageError::aborted);
 
 					reset();
@@ -1029,7 +1029,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 			// and there's no body to come
 			ofp = offset_base + offset;
 
-			if (!message_end())
+			if (!messageEnd())
 				return make_error_code(HttpMessageError::aborted);
 
 			// subsequent calls to parse() process next request(s).
@@ -1067,23 +1067,23 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 
 			if (!filters_.empty())
 			{
-				if (!message_content(filters_.process(c, content_length_ == 0)))
+				if (!messageContent(filters_.process(c, content_length_ == 0)))
 					return false;
 			}
 			else
 			{
-				if (!message_content(std::move(c)))
+				if (!messageContent(std::move(c)))
 					return false;
 			}
 
 			if (state_ == MESSAGE_BEGIN)
 			{
-				return message_end();
+				return messageEnd();
 			}
 		}
 		else // fixed-size content (via "Content-Length")
 		{
-			bool rv = message_content(filters_.process(c, content_length_ == 0));
+			bool rv = messageContent(filters_.process(c, content_length_ == 0));
 
 			if (content_length_ == 0)
 				reset();
@@ -1094,7 +1094,7 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 			if (state_ == MESSAGE_BEGIN)
 			{
 				TRACE("content fully parsed -> complete");
-				return message_end();
+				return messageEnd();
 			}
 		}
 	}
@@ -1105,12 +1105,12 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 
 		if (filters_.empty())
 		{
-			if (!message_content(std::move(chunk)))
+			if (!messageContent(std::move(chunk)))
 				return false;
 		}
 		else
 		{
-			if (!message_content(filters_.process(chunk, false)))
+			if (!messageContent(filters_.process(chunk, false)))
 				return false;
 		}
 	}

@@ -32,7 +32,7 @@
 #include <fcntl.h>
 
 #if 0 // !defined(NDEBUG)
-#	define TRACE(msg...) fprintf(stderr, msg)
+#	define TRACE(msg...) DEBUG("cgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
@@ -97,8 +97,8 @@ public:
 
 private:
 	// CGI program's response message processor hooks
-	virtual void message_header(const x0::BufferRef& name, const x0::BufferRef& value);
-	virtual bool message_content(const x0::BufferRef& content);
+	virtual void messageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool messageContent(const x0::BufferRef& content);
 
 	// CGI program's I/O callback handlers
 	void onTransmitRequestBody(ev::io& w, int revents);
@@ -276,7 +276,7 @@ inline void CgiScript::runAsync()
 /** feeds the HTTP request into the CGI's stdin pipe. */
 void CgiScript::onTransmitRequestBody(ev::io& /*w*/, int revents)
 {
-	//TRACE("CgiScript::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_->body.size());
+	TRACE("CgiScript::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_->body.size());
 	//::close(process_.input());
 }
 
@@ -292,7 +292,7 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 
 	if (rv > 0)
 	{
-		//TRACE("CgiScript.onResponseReceived(): read %d bytes\n", rv);
+		TRACE("CgiScript.onResponseReceived(): read %d bytes\n", rv);
 
 		outbuf_.resize(lower_bound + rv);
 
@@ -304,7 +304,7 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 	}
 	else if (rv == 0)
 	{
-		//TRACE("CGI: closing stdout\n");
+		TRACE("CGI: closing stdout\n");
 		outwatch_.stop();
 		delete this;
 	}
@@ -328,26 +328,26 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 /** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
 void CgiScript::onErrorReceived(ev::io& /*w*/, int revents)
 {
-	//TRACE("CgiScript::onErrorReceived()\n");
+	TRACE("CgiScript::onErrorReceived()\n");
 
 	int rv = ::read(process_.error(), (char *)errbuf_.data(), errbuf_.capacity());
 
 	if (rv > 0)
 	{
-		//TRACE("read %d bytes: %s\n", rv, errbuf_.data());
+		TRACE("read %d bytes: %s\n", rv, errbuf_.data());
 		errbuf_.resize(rv);
 		request_->connection.server().log(x0::Severity::error, "CGI script error: %s", errbuf_.str().c_str());
 	} else if (rv == 0) {
-		//TRACE("CGI: closing stderr\n");
+		TRACE("CGI: closing stderr\n");
 		errwatch_.stop();
 	} else {
 		TRACE("onErrorReceived (rv=%d) %s\n", rv, strerror(errno));
 	}
 }
 
-void CgiScript::message_header(const x0::BufferRef& name, const x0::BufferRef& value)
+void CgiScript::messageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
 {
-	//TRACE("message_header(\"%s\", \"%s\")\n", name.str().c_str(), value.str().c_str());
+	TRACE("messageHeader(\"%s\", \"%s\")\n", name.str().c_str(), value.str().c_str());
 
 	if (name == "Status")
 	{
@@ -362,9 +362,9 @@ void CgiScript::message_header(const x0::BufferRef& name, const x0::BufferRef& v
 	}
 }
 
-bool CgiScript::message_content(const x0::BufferRef& value)
+bool CgiScript::messageContent(const x0::BufferRef& value)
 {
-	//TRACE("process_content(length=%ld) (%s)\n", value.size(), value.str().c_str());
+	TRACE("messageContent(length=%ld) (%s)\n", value.size(), value.str().c_str());
 
 	outwatch_.stop();
 
