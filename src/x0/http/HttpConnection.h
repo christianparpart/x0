@@ -53,7 +53,6 @@ public:
 
 	~HttpConnection();
 
-	void start();
 	void close();
 
 	value_property<bool> secure;				//!< true if this is a secure (HTTPS) connection, false otherwise.
@@ -83,17 +82,18 @@ private:
 	virtual bool message_content(BufferRef&& chunk);
 	virtual bool message_end();
 
+	void start();
+	void resume();
+
 	bool isClosed() const;
 
 	void handshakeComplete(Socket *);
 	void start_read();
-	void resume_read();
 
 	void processInput();
 	void processOutput();
 
 	void process();
-	void check_request_body();
 	void writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler);
 	void io(Socket *);
 
@@ -157,8 +157,6 @@ inline HttpServer& HttpConnection::server()
  */
 inline void HttpConnection::writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler)
 {
-	check_request_body();
-
 	source_ = buffer;
 	onWriteComplete_ = handler;
 

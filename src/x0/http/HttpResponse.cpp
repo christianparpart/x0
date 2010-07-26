@@ -226,7 +226,9 @@ void HttpResponse::onFinished(int ec)
 	}
 
 	// close, if not a keep-alive connection
-	if (!iequals(headers["Connection"], "keep-alive"))
+	if (iequals(headers["Connection"], "keep-alive"))
+		connection_->resume();
+	else
 		connection_->close();
 }
 
