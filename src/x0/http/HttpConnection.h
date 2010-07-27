@@ -35,9 +35,6 @@ namespace x0 {
 class ConnectionSink;
 class HttpRequest;
 
-/**
- * \brief represents an HTTP connection handling incoming requests.
- */
 class HttpConnection :
 	public HttpMessageProcessor
 {

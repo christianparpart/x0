@@ -49,9 +49,15 @@ inline std::string make_str(T value)
 	return boost::lexical_cast<std::string>(value);
 }
 
+/** populates a default-response content, possibly modifying a few response headers, too.
+ *
+ * \return the newly created response content or a null ptr if the statuc code forbids content.
+ *
+ * \note Modified headers are "Content-Type" and "Content-Length".
+ */
 SourcePtr HttpResponse::make_default_content()
 {
-	if (content_forbidden()) // || !equals(request_->method, "GET"))
+	if (content_forbidden())
 		return SourcePtr();
 
 	std::string filename(connection_->server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
@@ -212,7 +218,8 @@ std::string HttpResponse::status_str(http_error value)
 	return http_category().message(static_cast<int>(value));
 }
 
-/** handler, being invoked when this response has been fully flushed and is considered done.
+/** completion handler, being invoked when this response has been fully flushed and is considered done.
+ * \see HttpResponse::finish()
  */
 void HttpResponse::onFinished(int ec)
 {
@@ -232,6 +239,8 @@ void HttpResponse::onFinished(int ec)
 		connection_->close();
 }
 
+/** static helper, pre-computing some static fields.
+ */
 void HttpResponse::initialize()
 {
 	// pre-compute string representations of status codes for use in response serialization

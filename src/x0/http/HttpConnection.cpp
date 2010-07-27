@@ -104,6 +104,20 @@ unsigned ConnectionLogger::connection_counter = 0;
 #endif
 // }}}
 
+/**
+ * \class HttpConnection
+ * \brief represents an HTTP connection handling incoming requests.
+ *
+ * The \p HttpConnection object is to be allocated once an HTTP client connects
+ * to the HTTP server and was accepted by the \p HttpListener.
+ * It will also own the respective request and response objects created to serve
+ * the requests passed through this connection.
+ */
+
+/** initializes a new connection object, created by given listener.
+ * \param lst the listener object that created this connection.
+ * \note This triggers the onConnectionOpen event.
+ */
 HttpConnection::HttpConnection(HttpListener& lst) :
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
@@ -159,6 +173,8 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	server_.onConnectionOpen(this);
 }
 
+/** releases all connection resources  and triggers the onConnectionClose event.
+ */
 HttpConnection::~HttpConnection()
 {
 	delete request_;
@@ -404,6 +420,13 @@ bool HttpConnection::message_end()
 	return true;
 }
 
+/** Resumes processing the <b>next</b> HTTP request message within this connection.
+ *
+ * This method may only be invoked when the current/old request has been fully processed,
+ * and is though only be invoked from within the finish handler of \p HttpResponse.
+ *
+ * \see HttpResponse::finish()
+ */
 void HttpConnection::resume()
 {
 	delete response_;
@@ -480,6 +503,10 @@ void HttpConnection::processInput()
 	}
 }
 
+/**
+ * Writes as much as it wouldn't block of the response stream into the underlying socket.
+ *
+ */
 void HttpConnection::processOutput()
 {
 	TRACE("processOutput() src=%p, !ch=%d", source_.get(), !onWriteComplete_);
