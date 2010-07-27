@@ -55,10 +55,10 @@ private:
 	void startWrite();
 
 private:
-	virtual void message_begin(int version_major, int version_minor, int code, BufferRef&& text);
-	virtual void message_header(BufferRef&& name, BufferRef&& value);
-	virtual bool message_content(BufferRef&& chunk);
-	virtual bool message_end();
+	virtual void messageBegin(int version_major, int version_minor, int code, BufferRef&& text);
+	virtual void messageHeader(BufferRef&& name, BufferRef&& value);
+	virtual bool messageContent(BufferRef&& chunk);
+	virtual bool messageEnd();
 
 public:
 	explicit WebClientBase(struct ev_loop *loop);

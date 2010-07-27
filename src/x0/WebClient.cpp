@@ -414,24 +414,24 @@ void WebClientBase::readSome()
 	}
 }
 
-void WebClientBase::message_begin(int version_major, int version_minor, int code, BufferRef&& text)
+void WebClientBase::messageBegin(int version_major, int version_minor, int code, BufferRef&& text)
 {
 	response(version_major, version_minor, code, std::move(text));
 }
 
-void WebClientBase::message_header(BufferRef&& name, BufferRef&& value)
+void WebClientBase::messageHeader(BufferRef&& name, BufferRef&& value)
 {
 	header(std::move(name), std::move(value));
 }
 
-bool WebClientBase::message_content(BufferRef&& chunk)
+bool WebClientBase::messageContent(BufferRef&& chunk)
 {
 	content(std::move(chunk));
 
 	return true;
 }
 
-bool WebClientBase::message_end()
+bool WebClientBase::messageEnd()
 {
 	--request_count_;
 	TRACE("message_end: pending=%d", request_count_);

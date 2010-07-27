@@ -128,14 +128,14 @@ public:
 	}; // }}}
 
 public:
-	virtual void message_begin(BufferRef&& method, BufferRef&& entity, int version_major, int version_minor);
-	virtual void message_begin(int version_major, int version_minor, int code, BufferRef&& text);
-	virtual void message_begin();
+	virtual void messageBegin(BufferRef&& method, BufferRef&& entity, int version_major, int version_minor);
+	virtual void messageBegin(int version_major, int version_minor, int code, BufferRef&& text);
+	virtual void messageBegin();
 
-	virtual void message_header(BufferRef&& name, BufferRef&& value);
-	virtual bool message_header_done();
-	virtual bool message_content(BufferRef&& chunk);
-	virtual bool message_end();
+	virtual void messageHeader(BufferRef&& name, BufferRef&& value);
+	virtual bool messageHeaderEnd();
+	virtual bool messageContent(BufferRef&& chunk);
+	virtual bool messageEnd();
 
 public:
 	explicit HttpMessageProcessor(mode_type mode = MESSAGE);

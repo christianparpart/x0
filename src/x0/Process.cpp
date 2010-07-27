@@ -32,7 +32,7 @@ Process::Process(struct ev_loop *loop) :
 {
 }
 
-Process::Process(struct ev_loop *loop, const std::string& exe, const params& args, const environment& env, const std::string& workdir) :
+Process::Process(struct ev_loop *loop, const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir) :
 	loop_(loop),
 	input_(),
 	output_(),
@@ -50,7 +50,7 @@ Process::~Process()
 	//printf("~Process(): rv=%d, errno=%s\n", rv, strerror(errno));
 }
 
-int Process::start(const std::string& exe, const params& args, const environment& env, const std::string& workdir)
+int Process::start(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir)
 {
 	//::fprintf(stderr, "proc[%d] start(exe=%s, args=[...], workdir=%s)\n", getpid(), exe.c_str(), workdir.c_str());
 	switch (pid_ = fork())
@@ -111,7 +111,7 @@ void Process::setupParent()
 	::close(error_.remote());
 }
 
-void Process::setupChild(const std::string& _exe, const params& _args, const environment& _env, const std::string& _workdir)
+void Process::setupChild(const std::string& _exe, const ArgumentList& _args, const Environment& _env, const std::string& _workdir)
 {
 	// restore signal handler(s)
 	::signal(SIGPIPE, SIG_DFL);
@@ -120,7 +120,7 @@ void Process::setupChild(const std::string& _exe, const params& _args, const env
 	int k = 0;
 	std::vector<char *> env(_env.size() + 1);
 
-	for (environment::const_iterator i = _env.cbegin(), e = _env.cend(); i != e; ++i)
+	for (Environment::const_iterator i = _env.cbegin(), e = _env.cend(); i != e; ++i)
 	{
 		char *buf = new char[i->first.size() + i->second.size() + 2];
 		::memcpy(buf, i->first.c_str(), i->first.size());

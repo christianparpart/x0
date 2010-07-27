@@ -337,7 +337,7 @@ inline bool url_decode(BufferRef& url)
 	return true;
 }
 
-void HttpConnection::message_begin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
+void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 {
 	TRACE("message_begin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
 
@@ -363,12 +363,12 @@ void HttpConnection::message_begin(BufferRef&& method, BufferRef&& uri, int vers
 	request_->http_version_minor = version_minor;
 }
 
-void HttpConnection::message_header(BufferRef&& name, BufferRef&& value)
+void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
 {
 	request_->headers.push_back(HttpRequestHeader(std::move(name), std::move(value)));
 }
 
-bool HttpConnection::message_header_done()
+bool HttpConnection::messageHeaderEnd()
 {
 	TRACE("message_header_done()");
 	response_ = new HttpResponse(this);
@@ -395,7 +395,7 @@ bool HttpConnection::message_header_done()
 	return true;
 }
 
-bool HttpConnection::message_content(BufferRef&& chunk)
+bool HttpConnection::messageContent(BufferRef&& chunk)
 {
 	TRACE("message_content(#%ld)", chunk.size());
 
@@ -405,7 +405,7 @@ bool HttpConnection::message_content(BufferRef&& chunk)
 	return true;
 }
 
-bool HttpConnection::message_end()
+bool HttpConnection::messageEnd()
 {
 	TRACE("message_end()");
 

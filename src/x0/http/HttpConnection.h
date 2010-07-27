@@ -73,11 +73,12 @@ private:
 	friend class HttpListener;
 	friend class ConnectionSink;
 
-	virtual void message_begin(BufferRef&& method, BufferRef&& entity, int version_major, int version_minor);
-	virtual void message_header(BufferRef&& name, BufferRef&& value);
-	virtual bool message_header_done();
-	virtual bool message_content(BufferRef&& chunk);
-	virtual bool message_end();
+	// overrides from HttpMessageProcessor:
+	virtual void messageBegin(BufferRef&& method, BufferRef&& entity, int version_major, int version_minor);
+	virtual void messageHeader(BufferRef&& name, BufferRef&& value);
+	virtual bool messageHeaderEnd();
+	virtual bool messageContent(BufferRef&& chunk);
+	virtual bool messageEnd();
 
 	void start();
 	void resume();
