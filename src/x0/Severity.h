@@ -27,7 +27,11 @@ struct X0_API Severity {
 	static const int error = -3;
 	static const int warn = -2;
 	static const int info = -1;
-	static const int debug = 1; // and everything from [1..10] (or any positive number) *could* be treated as debug verbosity
+	static const int debug = 1;
+	static const int debug2 = 2;
+	static const int debug3 = 3;
+	static const int debug4 = 4;
+	static const int debug5 = 5;
 
 	int value_;
 
@@ -39,7 +43,7 @@ struct X0_API Severity {
 	bool isError() const { return value_ == error; }
 	bool isWarning() const { return value_ == warn; }
 	bool isInfo() const { return value_ == info; }
-	bool isDebug() const { return value_ > 1; }
+	bool isDebug() const { return value_ > 0; }
 
 	int debugLevel() const { return value_ < 0 ? 0 : value_; }
 };

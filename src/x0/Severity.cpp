@@ -32,7 +32,12 @@ const char *Severity::c_str() const
 		case error: return "error";
 		case warn: return "warn";
 		case info: return "info";
-		default: return "debug";
+		case debug: return "debug:1";
+		case debug2: return "debug:2";
+		case debug3: return "debug:3";
+		case debug4: return "debug:4";
+		case debug5: return "debug:5";
+		default: return "UNKNOWN";
 	}
 }
 
