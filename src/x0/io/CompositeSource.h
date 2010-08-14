@@ -61,6 +61,12 @@ public:
 		sources_.push_back(s);
 	}
 
+	void reset()
+	{
+		sources_.clear();
+		current_ = 0;
+	}
+
 	SourcePtr operator[](std::size_t index) const
 	{
 		return sources_[index];
