@@ -41,34 +41,56 @@ private:
 		if (!x0::equals(in->path, "/echo"))
 			return false; // pass request to next handler
 
+		// set response status code
 		out->status = x0::http_error::ok;
 
-		if (x0::BufferRef value = in->header("Content-Length"))
-			out->headers.set("Content-Length", value.str());
+		// set response header "Content-Length",
+		// if request content were not encoded
+		// and if we've received its request header "Content-Length"
+		if (!in->header("Content-Encoding"))
+			if (x0::BufferRef value = in->header("Content-Length"))
+				out->headers.set("Content-Length", value.str());
 
-		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, in, out))) {
+		// try to read content (if available) and pass it on to our onContent handler,
+		// or fall back to just write HELLO (if no request content body was sent).
+
+		if (!in->read(std::bind(&echo_plugin::onContent, this, std::placeholders::_1, in, out))) {
 			out->write(
 				std::make_shared<x0::BufferSource>("I'm an HTTP echo-server, dude.\n"),
 				std::bind(&x0::HttpResponse::finish, out)
 			);
 		}
+
+		// yes, we are handling this request
 		return true;
 	}
 
-	void on_content(x0::BufferRef&& chunk, x0::HttpRequest *in, x0::HttpResponse *out)
+	// Handler, invoked on request content body chunks,
+	// which we want to "echo" back to the client.
+	//
+	// NOTE, this can be invoked multiple times, depending on the input.
+	void onContent(x0::BufferRef&& chunk, x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		TRACE("on_content('%s')", chunk.str().c_str());
+		TRACE("onContent('%s')", chunk.str().c_str());
 		out->write(
 			std::make_shared<x0::BufferSource>(std::move(chunk)),
-			std::bind(&echo_plugin::content_written, this, in, out)
+			std::bind(&echo_plugin::contentWritten, this, in, out)
 		);
 	}
 
-	void content_written(x0::HttpRequest *in, x0::HttpResponse *out)
+	// Handler, invoked when a content chunk has been fully written to the client
+	// (or an error occurred).
+	//
+	// We will try to read another input chunk to echo back to the client,
+	// or just finish the response if failed.
+	void contentWritten(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		if (!in->read(std::bind(&echo_plugin::on_content, this, std::placeholders::_1, in, out)))
+		// TODO (write-)error handling; pass errno to this fn, too.
+
+		// try to read another input chunk.
+		if (!in->read(std::bind(&echo_plugin::onContent, this, std::placeholders::_1, in, out)))
 		{
-			TRACE("request content processing: done");
+			// could not read another input chunk, so finish processing this request.
 			return out->finish();
 		}
 	}

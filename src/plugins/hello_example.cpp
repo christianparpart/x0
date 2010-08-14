@@ -37,13 +37,6 @@ class hello_plugin :
 	public x0::HttpPlugin,
 	public x0::IHttpRequestHandler
 {
-private:
-	struct context
-	{
-		bool enabled;
-		std::string hello;
-	};
-
 public:
 	hello_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
@@ -57,56 +50,25 @@ public:
 private:
 	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
+		// only process this request, if client requested path "/hello"
 		if (!x0::equals(in->path, "/hello"))
 			return false; // pass request to next handler
 
+		// set response status code
 		out->status = x0::http_error::ok;
+
+		// set some custom response header
 		out->headers.set("Hello", "World");
 
-		if (in->content_available())
-		{
-			TRACE("content expected");
-			in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, in, out));
-		}
-		else
-		{
-			TRACE("NO content expected");
-			out->write(
-				std::make_shared<x0::BufferSource>("Hello, World\n"),
-				std::bind(&x0::HttpResponse::finish, out)
-			);
-		}
-		return true;
-	}
-
-	void postNext(x0::HttpRequest *in, x0::HttpResponse *out)
-	{
-
-		if (!in->read(std::bind(&hello_plugin::post, this, std::placeholders::_1, in, out)))
-		{
-			TRACE("request content processing: continue");
-		}
-		else
-		{
-			TRACE("request content processing: finished");
-			out->finish();
-		}
-	}
-
-	void post(x0::BufferRef&& chunk, x0::HttpRequest *in, x0::HttpResponse *out)
-	{
-		TRACE("post('%s')\n", chunk.str().c_str());
-		if (chunk.empty())
-			return out->finish();
-
-		x0::Buffer reply;
-		reply.push_back(chunk);
-		//reply.push_back("\r\n");
-
+		// write some content to the client, and invoke
+		// HttpResponse::finish on completion, thus, finish processing this request.
 		out->write(
-			std::make_shared<x0::BufferSource>(reply),
-			std::bind(&hello_plugin::postNext, this, in, out)
+			std::make_shared<x0::BufferSource>("Hello, World\n"),
+			std::bind(&x0::HttpResponse::finish, out)
 		);
+
+		// yes, we are handling this request
+		return true;
 	}
 };
 
