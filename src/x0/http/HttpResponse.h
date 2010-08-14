@@ -289,12 +289,7 @@ inline void HttpResponse::finish()
 	if (!headers_sent_) // nothing sent to client yet -> sent default status page
 	{
 		if (static_cast<int>(status) == 0)
-		{
-			if (request_->expectingContinue)
-				status = http_error::expectation_failed;
-			else
-				status = http_error::not_found;
-		}
+			status = http_error::not_found;
 
 		if (!content_forbidden() && status != http_error::ok)
 			write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));

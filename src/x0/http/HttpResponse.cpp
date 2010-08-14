@@ -115,10 +115,10 @@ SourcePtr HttpResponse::serialize()
 	Buffer buffers;
 	bool keepalive = false;
 
-	if (status == static_cast<http_error>(0))
-	{
+	if (request_->expectingContinue)
+		status = http_error::expectation_failed;
+	else if (status == static_cast<http_error>(0))
 		status = http_error::ok;
-	}
 
 	if (!headers.contains("Content-Type"))
 	{
