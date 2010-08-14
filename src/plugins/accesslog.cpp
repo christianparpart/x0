@@ -138,7 +138,7 @@ private:
 			sstr << username(in) << ' ';
 			sstr << server_.now().htlog_str().c_str() << " \"";
 			sstr << request_line(in) << "\" ";
-			sstr << out->status << ' ';
+			sstr << static_cast<int>(out->status) << ' ';
 			sstr << out->headers["Content-Length"] << ' ';
 			sstr << '"' << getheader(in, "Referer") << "\" ";
 			sstr << '"' << getheader(in, "User-Agent") << '"';
