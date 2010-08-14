@@ -12,6 +12,7 @@
 #include <x0/http/HttpHeader.h>
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpError.h>
+#include <x0/http/HttpRequest.h>
 #include <x0/io/Source.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/ChainFilter.h>
@@ -59,10 +60,12 @@ class HttpRequest;
  * first write occurs.
  * If this response meant to contain no body, then the transmit operation may be started explicitely.
  *
- * \note All response headers and status information <b>must</b> be fully defined before the first content write operation.
- * \see HttpResponse::flush(), request, connection, server
+ * \note All response headers and status information <b>must</b> be fully
+ * defined before the first content write operation.
+ *
+ * \see HttpResponse::finish(), HttpRequest, HttpConnection, HttpServer
  */
-class HttpResponse
+class X0_API HttpResponse
 {
 public:
 	class header_list // {{{
@@ -176,14 +179,6 @@ private:
 	bool headers_sent_;
 
 public:
-	/** Creates an empty response object.
-	 *
-	 * \param connection the connection this response is going to be transmitted through
-	 * \param request the corresponding request object. <b>We take over ownership of it!</b>
-	 * \param status initial response status code.
-	 *
-	 * \note this response object takes over ownership of the request object.
-	 */
 	explicit HttpResponse(HttpConnection *connection, http_error status = static_cast<http_error>(0));
 	~HttpResponse();
 
@@ -199,49 +194,18 @@ public:
 	/** returns true in case serializing the response has already been started, that is, headers has been sent out already. */
 	bool headers_sent() const;
 
-	/** write given source to response content and invoke the completion handler when done.
-	 *
-	 * \note this implicitely flushes the response-headers if not yet done, thus, making it impossible to modify them after this write.
-	 *
-	 * \param source the content to push to the client
-	 * \param handler completion handler to invoke when source has been fully flushed or if an error occured
-	 */
-	void write(const SourcePtr& source, const CompletionHandlerType& handler);
-
 	bool content_forbidden() const;
 
-	/** finishes this response by flushing the content into the stream.
-	 *
-	 * \note this also queues the underlying connection for processing the next request.
-	 */
-	void finish()
-	{
-		if (!headers_sent_) // nothing sent to client yet -> sent default status page
-		{
-			if (static_cast<int>(status) == 0)
-				status = http_error::not_found;
+	void write(const SourcePtr& source, const CompletionHandlerType& handler);
 
-			if (!content_forbidden() && status != http_error::ok)
-				write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
-			else
-				connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
-		}
-		else
-		{
-			onFinished(0);
-		}
-	}
+	void finish();
 
 private:
 	void onWriteHeadersComplete(int ec, const SourcePtr& content, const CompletionHandlerType& handler);
 	void writeContent(const SourcePtr& content, const CompletionHandlerType& handler);
 
-	/** to be called <b>once</b> in order to initialize this class for instanciation.
-	 *
-	 * \note this is done automatically by server constructor.
-	 * \see server
-	 */
 	static void initialize();
+
 	friend class HttpServer;
 	friend class HttpConnection;
 
@@ -251,13 +215,6 @@ public:
 	ChainFilter filters;
 
 private:
-	/**
-	 * generate response header stream.
-	 *
-	 * \note The buffers do not own the underlying memory blocks,
-	 * therefore the response object must remain valid and
-	 * not be changed until the write operation has completed.
-	 */
 	SourcePtr serialize();
 
 	SourcePtr make_default_content();
@@ -276,6 +233,13 @@ inline bool HttpResponse::headers_sent() const
 	return headers_sent_;
 }
 
+/** write given source to response content and invoke the completion handler when done.
+ *
+ * \param content the content (chunk) to push to the client
+ * \param handler completion handler to invoke when source has been fully flushed or if an error occured
+ *
+ * \note this implicitely flushes the response-headers if not yet done, thus, making it impossible to modify them after this write.
+ */
 inline void HttpResponse::write(const SourcePtr& content, const CompletionHandlerType& handler)
 {
 	if (headers_sent_)
@@ -314,6 +278,33 @@ inline void HttpResponse::writeContent(const SourcePtr& content, const Completio
 inline bool HttpResponse::content_forbidden() const
 {
 	return x0::content_forbidden(status);
+}
+
+/** finishes this response by flushing the content into the stream.
+ *
+ * \note this also queues the underlying connection for processing the next request (on keep-alive).
+ */
+inline void HttpResponse::finish()
+{
+	if (!headers_sent_) // nothing sent to client yet -> sent default status page
+	{
+		if (static_cast<int>(status) == 0)
+		{
+			if (request_->expectingContinue)
+				status = http_error::expectation_failed;
+			else
+				status = http_error::not_found;
+		}
+
+		if (!content_forbidden() && status != http_error::ok)
+			write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
+		else
+			connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
+	}
+	else
+	{
+		onFinished(0);
+	}
 }
 // }}}
 

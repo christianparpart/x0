@@ -198,6 +198,14 @@ SourcePtr HttpResponse::serialize()
 	return std::make_shared<BufferSource>(std::move(buffers));
 }
 
+/** Creates an empty response object.
+ *
+ * \param connection the connection this response is going to be transmitted through
+ * \param request the corresponding request object. <b>We take over ownership of it!</b>
+ * \param status initial response status code.
+ *
+ * \note this response object takes over ownership of the request object.
+ */
 HttpResponse::HttpResponse(HttpConnection *connection, http_error _status) :
 	connection_(connection),
 	request_(connection_->request_),
@@ -239,7 +247,10 @@ void HttpResponse::onFinished(int ec)
 		connection_->close();
 }
 
-/** static helper, pre-computing some static fields.
+/** to be called <b>once</b> in order to initialize this class for instanciation.
+ *
+ * \note to be invoked by HttpServer constructor.
+ * \see server
  */
 void HttpResponse::initialize()
 {

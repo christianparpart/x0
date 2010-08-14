@@ -12,6 +12,8 @@
 #include <x0/strutils.h>
 #include <strings.h>			// strcasecmp()
 
+#define TRACE(msg...) DEBUG(msg)
+
 namespace x0 {
 
 BufferRef HttpRequest::header(const std::string& name) const
@@ -45,10 +47,25 @@ bool HttpRequest::content_available() const
 	return connection.state() != HttpMessageProcessor::MESSAGE_BEGIN;
 }
 
+/** setup request-body consumer callback.
+ *
+ * \param callback the callback to invoke on request-body chunks.
+ *
+ * \retval true callback set
+ * \retval false callback not set (because there is no content available)
+ */
 bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
 {
 	if (!content_available())
 		return false;
+
+	if (expectingContinue)
+	{
+		TRACE("send 100-continue");
+
+		connection.write<BufferSource>("HTTP/1.1 100 Continue\r\n\r\n");
+		expectingContinue = false;
+	}
 
 	read_callback_ = callback;
 

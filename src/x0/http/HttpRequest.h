@@ -58,6 +58,7 @@ public:
 
 //	std::string if_modified_since;				//!< "If-Modified-Since" request header value, if specified.
 //	std::shared_ptr<range_def> range;			//!< parsed "Range" request header
+	bool expectingContinue;
 
 	// custom data bindings
 	std::map<HttpPlugin *, CustomDataPtr> custom_data;
@@ -93,6 +94,7 @@ inline HttpRequest::HttpRequest(HttpConnection& conn) :
 	headers(),
 	username(),
 	document_root(),
+	expectingContinue(false),
 	custom_data(),
 	hostid_(),
 	read_callback_()

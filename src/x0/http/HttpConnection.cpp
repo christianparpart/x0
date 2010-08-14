@@ -267,9 +267,9 @@ void HttpConnection::start()
 		if (isClosed())
 			delete this;
 #else
-		//TRACE("start: start_read.");
+		//TRACE("start: startRead.");
 		// client connected, but we do not yet know if we have data pending
-		start_read();
+		startRead();
 #endif
 	}
 }
@@ -279,7 +279,7 @@ void HttpConnection::handshakeComplete(Socket *)
 	TRACE("handshakeComplete() socketState=%s", socket_->state_str());
 
 	if (socket_->state() == Socket::OPERATIONAL)
-		start_read();
+		startRead();
 	else
 	{
 		TRACE("handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
@@ -339,7 +339,7 @@ inline bool url_decode(BufferRef& url)
 
 void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 {
-	TRACE("message_begin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+	TRACE("messageBegin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
 
 	request_ = new HttpRequest(*this);
 
@@ -370,10 +370,11 @@ void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
 
 bool HttpConnection::messageHeaderEnd()
 {
-	TRACE("message_header_done()");
+	TRACE("messageHeaderEnd()");
 	response_ = new HttpResponse(this);
 
 #if X0_HTTP_STRICT
+	BufferRef expectHeader = request_->header("Expect");
 	bool content_required = request_->method == "POST" || request_->method == "PUT";
 
 	if (content_required && !request_->content_available())
@@ -386,10 +387,23 @@ bool HttpConnection::messageHeaderEnd()
 		response_->status = http_error::bad_request; // FIXME do we have a better status code?
 		response_->finish();
 	}
+	else if (expectHeader)
+	{
+		request_->expectingContinue = equals(expectHeader, "100-continue");
+
+		if (!request_->expectingContinue || !request_->supports_protocol(1, 1))
+		{
+			printf("expectHeader: failed\n");
+			response_->status = http_error::expectation_failed;
+			response_->finish();
+		}
+		else
+			server_.handleRequest(request_, response_);
+	}
 	else
-		server_.handle_request(request_, response_);
+		server_.handleRequest(request_, response_);
 #else
-	server_.handle_request(request_, response_);
+	server_.handleRequest(request_, response_);
 #endif
 
 	return true;
@@ -397,7 +411,7 @@ bool HttpConnection::messageHeaderEnd()
 
 bool HttpConnection::messageContent(BufferRef&& chunk)
 {
-	TRACE("message_content(#%ld)", chunk.size());
+	TRACE("messageContent(#%ld)", chunk.size());
 
 	if (request_)
 		request_->on_read(std::move(chunk));
@@ -407,7 +421,7 @@ bool HttpConnection::messageContent(BufferRef&& chunk)
 
 bool HttpConnection::messageEnd()
 {
-	TRACE("message_end()");
+	TRACE("messageEnd()");
 
 	// increment the number of fully processed requests
 	++request_count_;
@@ -437,10 +451,10 @@ void HttpConnection::resume()
 
 	// wait for new request message, if nothing in buffer
 	if (offset_ != buffer_.size())
-		start_read();
+		startRead();
 }
 
-void HttpConnection::start_read()
+void HttpConnection::startRead()
 {
 #if defined(WITH_CONNECTION_TIMEOUTS)
 	int timeout = request_count_ && state() == MESSAGE_BEGIN
@@ -470,7 +484,7 @@ void HttpConnection::processInput()
 	{
 		if (errno == EAGAIN || errno == EINTR)
 		{
-			start_read();
+			startRead();
 			ev_unloop(server_.loop(), EVUNLOOP_ONE);
 		}
 		else
@@ -509,11 +523,11 @@ void HttpConnection::processInput()
  */
 void HttpConnection::processOutput()
 {
-	TRACE("processOutput() src=%p, !ch=%d", source_.get(), !onWriteComplete_);
+	TRACE("processOutput() !ch=%d", !onWriteComplete_);
 
 	for (;;)
 	{
-		ssize_t rv = sink_.pump(*source_);
+		ssize_t rv = sink_.pump(source_);
 
 		TRACE("processOutput(): pump.rv=%ld; %s", rv, rv < 0 ? strerror(errno) : "");
 		// TODO make use of source_->eof()
@@ -526,7 +540,10 @@ void HttpConnection::processOutput()
 		{
 			//TRACE("processOutput(): source fully written");
 			source_.reset();
-			onWriteComplete_(0, bytesTransferred_);
+
+			if (onWriteComplete_)
+				onWriteComplete_(0, bytesTransferred_);
+
 			//onWriteComplete_ = CompletionHandlerType();
 			break;
 		}
@@ -540,7 +557,10 @@ void HttpConnection::processOutput()
 		{
 			TRACE("processOutput(): write error (%d): %s", errno, strerror(errno));
 			source_.reset();
-			onWriteComplete_(errno, bytesTransferred_);
+
+			if (onWriteComplete_)
+				onWriteComplete_(errno, bytesTransferred_);
+
 			//onWriteComplete_ = CompletionHandlerType();
 			close();
 			break;
@@ -583,7 +603,7 @@ void HttpConnection::process()
 		return;
 
 	if (ec == HttpMessageError::partial)
-		start_read();
+		startRead();
 	else if (ec && ec != HttpMessageError::aborted)
 	{
 		// -> send stock response: BAD_REQUEST

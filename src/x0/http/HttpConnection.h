@@ -12,7 +12,7 @@
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/http/HttpServer.h>
 #include <x0/Socket.h>
-#include <x0/io/Source.h>
+#include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
 #include <x0/Buffer.h>
 #include <x0/Property.h>
@@ -67,6 +67,10 @@ public:
 
 	bool isSecure() const;
 
+	void writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler = CompletionHandlerType());
+
+	template<class T, class... Args> void write(const Args&&... args);
+
 private:
 	friend class HttpRequest;
 	friend class HttpResponse;
@@ -86,13 +90,12 @@ private:
 	bool isClosed() const;
 
 	void handshakeComplete(Socket *);
-	void start_read();
+	void startRead();
 
 	void processInput();
 	void processOutput();
 
 	void process();
-	void writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler);
 	void io(Socket *);
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
@@ -123,7 +126,7 @@ private:
 	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
 	HttpResponse *response_;			//!< currently processed response object, may be NULL
 
-	SourcePtr source_;
+	CompositeSource source_;
 	SocketSink sink_;
 	CompletionHandlerType onWriteComplete_;
 	unsigned long long bytesTransferred_;
@@ -149,14 +152,23 @@ inline HttpServer& HttpConnection::server()
 	return server_;
 }
 
-/** write something into the connection stream.
+/** write source into the connection stream and notifies the handler on completion.
+ *
  * \param buffer the buffer of bytes to be written into the connection.
  * \param handler the completion handler to invoke once the buffer has been either fully written or an error occured.
  */
 inline void HttpConnection::writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler)
 {
-	source_ = buffer;
+	source_.push_back(buffer);
 	onWriteComplete_ = handler;
+
+	processOutput();
+}
+
+template<class T, class... Args>
+inline void HttpConnection::write(const Args&&... args)
+{
+	source_.push_back(std::make_shared<T>(args...));
 
 	processOutput();
 }
@@ -173,8 +185,10 @@ inline bool HttpConnection::isClosed() const
 	return !socket_ || socket_->isClosed();
 }
 
+/** retrieves the number of transmitted bytes. */
 inline unsigned long long HttpConnection::bytesTransferred() const
 {
+	//! \todo rename this to bytesTransmitted, and introduce bytesReceived property, so, that bytesTransferred is the sum of both.
 	return bytesTransferred_;
 }
 // }}}
