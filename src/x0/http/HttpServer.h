@@ -117,15 +117,13 @@ public:
 	inline void debug(int level, const char *msg, Args&&... args)
 	{
 #if !defined(NDEBUG)
-		if (level >= debug_level_)
-			log(Severity::debug, msg, args...);
+		if (level <= logLevel_)
+			log(Severity(level), msg, args...);
 #endif
 	}
 
-#if !defined(NDEBUG)
-	int debugLevel() const;
-	void debugLevel(int value);
-#endif
+	Severity logLevel() const;
+	void logLevel(Severity value);
 
 	HttpListener *setupListener(int port, const std::string& bindAddress);
 
@@ -165,7 +163,7 @@ private:
 	friend class HttpCore;
 
 private:
-	void handle_request(HttpRequest *in, HttpResponse *out);
+	void handleRequest(HttpRequest *in, HttpResponse *out);
 	void loop_check(ev::check& w, int revents);
 
 	std::vector<std::string> components_;
@@ -180,7 +178,7 @@ private:
 	std::map<int, std::map<std::string, cvar_handler>> cvars_path_;	//!< registered location-scope cvars
 	std::string configfile_;
 	LoggerPtr logger_;
-	int debug_level_;
+	Severity logLevel_;
 	bool colored_log_;
 	std::string pluginDirectory_;
 	std::vector<HttpPlugin *> plugins_;
@@ -253,22 +251,15 @@ inline Scope *HttpServer::resolveHost(const std::string& hostid) const
 	return const_cast<HttpServer *>(this);
 }
 
-#if !defined(NDEBUG)
-inline int HttpServer::debugLevel() const
+inline Severity HttpServer::logLevel() const
 {
-	return debug_level_;
+	return logLevel_;
 }
 
-inline void HttpServer::debugLevel(int value)
+inline void HttpServer::logLevel(Severity value)
 {
-	if (value < 0)
-		value = 0;
-	else if (value > 9)
-		value = 9;
-
-	debug_level_ = value;
+	logLevel_ = value;
 }
-#endif
 // }}}
 
 //@}

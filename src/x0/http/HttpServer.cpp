@@ -34,6 +34,8 @@
 #include <grp.h>
 #include <getopt.h>
 
+#define TRACE(level, msg...) debug(level, msg)
+
 namespace x0 {
 
 /** initializes the HTTP server object.
@@ -60,7 +62,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	cvars_host_(),
 	cvars_path_(),
 	logger_(),
-	debug_level_(1),
+	logLevel_(Severity::warn),
 	colored_log_(false),
 	pluginDirectory_(PLUGINDIR),
 	plugins_(),
@@ -352,8 +354,10 @@ void HttpServer::run()
 	}
 }
 
-void HttpServer::handle_request(HttpRequest *in, HttpResponse *out)
+void HttpServer::handleRequest(HttpRequest *in, HttpResponse *out)
 {
+	TRACE(2, "handleRequest()");
+
 	// pre-request hook
 	onPreProcess(const_cast<HttpRequest *>(in));
 
@@ -396,6 +400,8 @@ void HttpServer::handle_request(HttpRequest *in, HttpResponse *out)
 		out->finish();
 		return;
 	}
+
+	TRACE(2, "onHandleRequest()...");
 
 	// generate response content, based on this request
 	if (!onHandleRequest(in, out))
@@ -576,7 +582,9 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 
 	std::string plugin_create_name("x0plugin_init");
 
-	//log(Severity::debug, "Loading plugin %s", filename.c_str());
+#if !defined(NDEBUG)
+	log(Severity::debug, "Loading plugin %s", filename.c_str());
+#endif
 
 	Library lib;
 	ec = lib.open(filename);
@@ -599,7 +607,9 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 /** safely unloads a plugin. */
 void HttpServer::unloadPlugin(const std::string& name)
 {
+#if !defined(NDEBUG)
 	//log(Severity::debug, "Unloading plugin: %s", name.c_str());
+#endif
 
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 	{
@@ -667,7 +677,7 @@ bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const cvar_
 	if (cx & HttpContext::host) { if (!smask.empty()) smask += "|"; smask += "host"; }
 	if (cx & HttpContext::location) { if (!smask.empty()) smask += "|"; smask += "location"; }
 
-	debug(1 , "registering CVAR token=%s, mask=%s, prio=%d", key.c_str(), smask.c_str(), priority);
+	debug(1, "registering CVAR token=%s, mask=%s, prio=%d", key.c_str(), smask.c_str(), priority);
 #endif
 
 	if (cx & HttpContext::server)
