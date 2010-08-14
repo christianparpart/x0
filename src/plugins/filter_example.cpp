@@ -81,8 +81,7 @@ public:
 
 		postProcess_ = server_.onPostProcess.connect<filter_plugin, &filter_plugin::postProcess>(this);
 
-		TRACE("filter_plugin()");
-		declareCVar("FilterExample", x0::HttpContext::server|x0::HttpContext::host, &filter_plugin::setup_enabled);
+		declareCVar("ExampleFilter", x0::HttpContext::server|x0::HttpContext::host, &filter_plugin::setup_enabled);
 	}
 
 	~filter_plugin() {
@@ -93,7 +92,6 @@ public:
 private:
 	std::error_code setup_enabled(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		TRACE("setup_enabled(val)");
 		return cvar.load(s.acquire<context>(this)->enabled);
 	}
 
@@ -106,7 +104,6 @@ private:
 		if (!cx->enabled)
 			return;
 
-		TRACE("postProcess...");
 		out->headers.push_back("Content-Encoding", "filter_example");
 		out->filters.push_back(std::make_shared<ExampleFilter>());
 

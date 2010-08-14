@@ -17,6 +17,7 @@ add_definitions(
 x0_plugin_simple(accesslog)
 x0_plugin_simple(alias)
 x0_plugin_simple(cgi)
+x0_plugin_simple(fastcgi)
 x0_plugin_simple(compress)
 x0_plugin_simple(debug)
 x0_plugin_simple(dirlisting)
