@@ -72,7 +72,7 @@ public:
 
 	enum state { // {{{
 		// artificial
-		SYNTAX_ERROR = 0,
+		SYNTAX_ERROR = 1,
 		MESSAGE_BEGIN,
 
 		// Request-Line
@@ -145,8 +145,9 @@ public:
 
 	std::error_code process(BufferRef&& chunk, std::size_t& nparsed);
 
-private:
 	void reset();
+
+private:
 	bool pass_content(BufferRef&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp);
 
 	static inline bool is_char(char value);

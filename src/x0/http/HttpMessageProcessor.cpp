@@ -352,7 +352,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	std::size_t offset = 0;
 	std::error_code ec;
 
-	TRACE("parse: size: %ld: '%s'", chunk.size(), chunk.str().c_str());
+	TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
 
 	if (state_ == CONTENT)
 	{
@@ -854,7 +854,10 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 			case HEADER_END_LF:
 				if (*i == LF)
 				{
-					bool content_expected = content_length_ > 0 || content_chunked_;
+					bool content_expected = 
+						content_length_ > 0 
+						|| content_chunked_
+						|| mode_ == MESSAGE;
 
 					if (content_expected)
 						state_ = CONTENT_BEGIN;
@@ -880,7 +883,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 			case CONTENT_BEGIN:
 				if (content_chunked_)
 					state_ = CONTENT_CHUNK_SIZE_BEGIN;
-				else if (content_length_ < 0)
+				else if (content_length_ < 0 && mode_ != MESSAGE)
 					state_ = SYNTAX_ERROR;
 				else
 					state_ = CONTENT;
@@ -1016,6 +1019,14 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 				ofp = offset_base + offset;
 				return make_error_code(HttpMessageError::invalid_syntax);
 			}
+			default:
+#if !defined(NDEBUG)
+				if (std::isprint(*i))
+					TRACE("parse: internal error at offset: %ld, character: '%c'", offset, *i);
+				else
+					TRACE("parse: internal error at offset: %ld, character: 0x%02X", offset, *i);
+#endif
+				return make_error_code(HttpMessageError::invalid_syntax);
 		}
 	}
 	// we've reached the end of the chunk
@@ -1024,7 +1035,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	{
 		// we've just parsed all headers but no body yet.
 
-		if (content_length_ < 0 && !content_chunked_)
+		if (content_length_ < 0 && !content_chunked_ && mode_ != MESSAGE)
 		{
 			// and there's no body to come
 			ofp = offset_base + offset;
@@ -1085,7 +1096,7 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 		{
 			bool rv = messageContent(filters_.process(c, content_length_ == 0));
 
-			if (content_length_ == 0)
+			if (content_length_ == 0 && mode_ != MESSAGE)
 				reset();
 
 			if (!rv)
@@ -1100,6 +1111,9 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 	}
 	else if (content_length_ < 0) // no "Content-Length" and no "chunked transfer encoding" defined
 	{
+		TRACE("pass_content: chunk_size=%ld, infinite; '%s'",
+				chunk.size(), chunk.str().c_str());
+
 		ofp += chunk.size();
 		nparsed += chunk.size();
 
