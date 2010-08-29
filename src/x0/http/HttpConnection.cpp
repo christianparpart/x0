@@ -24,10 +24,10 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 1
-#	define TRACE(msg...)
-#else
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpConnection: " msg)
+#else
+#	define TRACE(msg...)
 #endif
 
 #define X0_HTTP_STRICT 1
@@ -523,13 +523,13 @@ void HttpConnection::processInput()
  */
 void HttpConnection::processOutput()
 {
-	TRACE("processOutput() !ch=%d", !onWriteComplete_);
+	TRACE("processOutput()");
 
 	for (;;)
 	{
 		ssize_t rv = sink_.pump(source_);
 
-		TRACE("processOutput(): pump.rv=%ld; %s", rv, rv < 0 ? strerror(errno) : "");
+		TRACE("processOutput(): pump().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
 		// TODO make use of source_->eof()
 
 		if (rv > 0) // source (partially?) written
