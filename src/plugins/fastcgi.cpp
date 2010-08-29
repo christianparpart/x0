@@ -56,6 +56,8 @@
 #	define TRACE(msg...) /*!*/
 #endif
 
+#define X0_FASTCGI_DIRECT_IO (1)
+
 class CgiContext;
 class CgiTransport;
 
@@ -74,8 +76,11 @@ private:
 	FastCgi::CgiParamStreamWriter paramWriter_;
 
 	x0::Buffer writeBuffer_;
+
+#if X0_FASTCGI_DIRECT_IO
 	bool writeActive_;
 	bool finish_;
+#endif
 
 public:
 	CgiRequest(CgiContext *cx, int id, x0::HttpRequest *in, x0::HttpResponse *out);
@@ -198,9 +203,11 @@ CgiRequest::CgiRequest(CgiContext *cx, int id, x0::HttpRequest *in, x0::HttpResp
 	request_(in),
 	response_(out),
 	paramWriter_(),
-	writeBuffer_(),
-	writeActive_(false),
-	finish_(false)
+	writeBuffer_()
+#if X0_FASTCGI_DIRECT_IO
+	, writeActive_(false)
+	, finish_(false)
+#endif
 {
 	TRACE("CgiRequest()");
 }
@@ -327,12 +334,20 @@ void CgiRequest::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolSta
 {
 	TRACE("CgiRequest.onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
 
+#if X0_FASTCGI_DIRECT_IO
 	if (writeActive_)
 		finish_ = true;
 	else
-	{
 		finish();
-	}
+#else
+	if (writeBuffer_.size() != 0)
+		response_->write(
+			std::make_shared<x0::BufferSource>(writeBuffer_),
+			std::bind(&CgiRequest::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
+		);
+	else
+		finish();
+#endif
 }
 
 void CgiRequest::processRequestBody(x0::BufferRef&& chunk)
@@ -355,9 +370,8 @@ void CgiRequest::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 bool CgiRequest::messageContent(x0::BufferRef&& content)
 {
-	TRACE("CgiRequest.messageContent(len:%ld) writeActive=%d",
-		content.size(), writeActive_);
-
+#if X0_FASTCGI_DIRECT_IO
+	TRACE("CgiRequest.messageContent(len:%ld) writeActive=%d", content.size(), writeActive_);
 	if (!writeActive_)
 	{
 		writeActive_ = true;
@@ -368,17 +382,22 @@ bool CgiRequest::messageContent(x0::BufferRef&& content)
 	}
 	else
 		writeBuffer_.push_back(content);
+#else
+	TRACE("CgiRequest.messageContent(len:%ld)", content.size());
+	writeBuffer_.push_back(content);
+#endif
 
 	return false;
 }
 
 void CgiRequest::writeComplete(int err, size_t nwritten)
 {
+#if X0_FASTCGI_DIRECT_IO
 	writeActive_ = false;
 
 	if (err)
 	{
-		TRACE("CgiRequest.write: %s", strerror(err));
+		TRACE("CgiRequest.write error: %s", strerror(err));
 		//finish();
 	}
 	else if (writeBuffer_.size() != 0)
@@ -394,8 +413,7 @@ void CgiRequest::writeComplete(int err, size_t nwritten)
 	}
 	else if (finish_)
 	{
-		TRACE("CgiRequest.writeComplete(err=%d, nwritten=%ld), queue empty. finish triggered.",
-			err, nwritten);
+		TRACE("CgiRequest.writeComplete(err=%d, nwritten=%ld), queue empty. finish triggered.", err, nwritten);
 		finish();
 	}
 	else
@@ -403,6 +421,10 @@ void CgiRequest::writeComplete(int err, size_t nwritten)
 		TRACE("CgiRequest.writeComplete(err=%d, nwritten=%ld), queue empty.", err, nwritten);
 		;//request_->connection.socket()->setMode(Socket::READ);
 	}
+#else
+	TRACE("CgiRequest.writeComplete(err=%d, nwritten=%ld) %s", err, nwritten, strerror(err));
+	finish();
+#endif
 }
 
 void CgiRequest::finish()
@@ -830,6 +852,9 @@ public:
 		CgiContext *cx = server_.resolveHost(in->hostid())->get<CgiContext>(this);
 		if (!cx)
 			return false;
+
+		//if (!in->path.ends(".php"))
+		//	return false;
 
 		cx->handleRequest(in, out);
 
