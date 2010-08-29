@@ -87,6 +87,7 @@ endif(HAVE_BZLIB_H)
 # libev
 set(LIBEV_LIBS ev)
 
+# {{{ path prefixes
 if (DEFINED CMAKE_INSTALL_PREFIX)
 	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
 	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "path to library includes")
@@ -101,7 +102,7 @@ else()
 endif()
 
 if (DEFINED INCLUDEDIR)
-	set(INCLUDEDIR ${LIBDIR} CACHE PATH "path to library includes")
+	set(INCLUDEDIR ${INCLUDEDIR} CACHE PATH "path to library includes")
 else()
 	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "path to library includes")
 endif()
@@ -119,6 +120,7 @@ if (DEFINED LOCALSTATEDIR)
 else()
 	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "run-time state directory")
 endif()
+# }}}
 
 FIND_PACKAGE(Boost REQUIRED)
 if(Boost_FOUND)
