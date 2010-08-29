@@ -459,6 +459,21 @@ inline bool BufferRef::ends(value_type value) const
 	return size() >= 1 && data()[size() - 1] == value;
 }
 
+inline bool BufferRef::ends(const value_type *value) const
+{
+	assert(buffer_ != 0);
+
+	if (!value)
+		return true;
+
+	size_t valueLength = std::strlen(value);
+
+	if (size() < valueLength)
+		return false;
+
+	return memcmp(data() + size() - valueLength, value, valueLength) == 0;
+}
+
 inline BufferRef BufferRef::ref(std::size_t offset) const
 {
 	assert(buffer_ != 0);
