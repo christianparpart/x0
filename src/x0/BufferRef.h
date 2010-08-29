@@ -130,6 +130,9 @@ public:
 	// casts
 	template<typename T> T as() const;
 	template<typename T> T hex() const;
+
+	bool toBool() const;
+	int toInt() const;
 };
 
 // free functions
@@ -606,6 +609,16 @@ inline T BufferRef::hex() const
 	}
 
 	return val;
+}
+
+inline bool BufferRef::toBool() const
+{
+	return as<bool>();
+}
+
+inline int BufferRef::toInt() const
+{
+	return as<int>();
 }
 // }}}
 
