@@ -45,7 +45,7 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 	callback_(0),
 	callbackData_(0)
 {
-	//DEBUG("Socket(%p) fd=%d", this, fd_);
+	DEBUG("Socket(%p) fd=%d", this, fd_);
 
 	watcher_.set<Socket, &Socket::io>(this);
 	timer_.set<Socket, &Socket::timeout>(this);
@@ -53,7 +53,7 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 
 Socket::~Socket()
 {
-	//DEBUG("~Socket(%p)", this);
+	DEBUG("~Socket(%p)", this);
 
 	if (fd_ >= 0)
 		::close(fd_);
@@ -77,9 +77,10 @@ void Socket::setMode(Mode m)
 {
 	if (m != mode_)
 	{
-		//DEBUG("Socket(%d).setMode(%d)", fd_, m);
-
 		static int modes[] = { 0, ev::READ, ev::WRITE };
+		static const char *ms[] = { "null", "READ", "WRITE" };
+
+		DEBUG("Socket(%d).setMode(%s)", fd_, ms[static_cast<int>(m)]);
 
 		watcher_.set(fd_, modes[static_cast<int>(m)]);
 
@@ -101,7 +102,7 @@ void Socket::clearReadyCallback()
 
 void Socket::close()
 {
-	//DEBUG("Socket(%p).close: fd=%d", this, fd_);
+	DEBUG("Socket(%p).close: fd=%d", this, fd_);
 
 	watcher_.stop();
 	timer_.stop();
@@ -177,7 +178,7 @@ void Socket::handshake()
 
 void Socket::io(ev::io& io, int revents)
 {
-	//DEBUG("Socket(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	DEBUG("Socket(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	timer_.stop();
 
 	if (state_ == HANDSHAKE)
@@ -188,7 +189,7 @@ void Socket::io(ev::io& io, int revents)
 
 void Socket::timeout(ev::timer& timer, int revents)
 {
-	//DEBUG("Socket(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	DEBUG("Socket(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	watcher_.stop();
 
 	if (timeoutCallback_)
