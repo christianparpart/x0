@@ -20,6 +20,7 @@ set(x0_io_SRC
 	io/BufferSource.cpp
 	io/ChainFilter.cpp
 	io/ChunkedEncoder.cpp
+	io/CompositeSource.cpp
 	io/CompressFilter.cpp
 	io/SocketSink.cpp
 	io/SystemSink.cpp

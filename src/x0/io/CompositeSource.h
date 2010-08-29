@@ -13,7 +13,7 @@
 #include <x0/Buffer.h>
 #include <x0/io/SourceVisitor.h>
 
-#include <vector>
+#include <deque>
 
 namespace x0 {
 
@@ -28,76 +28,65 @@ namespace x0 {
 class X0_API CompositeSource :
 	public Source
 {
-public:
+private:
 	typedef SourcePtr value_type;
-	typedef std::vector<value_type> vector_type;
-	typedef vector_type::iterator iterator;
-	typedef vector_type::const_iterator const_iterator;
+	typedef std::deque<value_type> list_type;
+	typedef list_type::iterator iterator;
+	typedef list_type::const_iterator const_iterator;
 
 private:
-	vector_type sources_;
-	std::size_t current_;
+	list_type sources_;
 
 public:
-	CompositeSource() :
-		Source(),
-		sources_(),
-		current_(0)
-	{
-	}
+	CompositeSource();
 
-	std::size_t size() const
-	{
-		return sources_.size();
-	}
+	bool empty() const;
+	void push_back(SourcePtr s);
+	void reset();
 
-	bool empty() const
-	{
-		return sources_.empty();
-	}
-
-	void push_back(SourcePtr s)
-	{
-		sources_.push_back(s);
-	}
-
-	void reset()
-	{
-		sources_.clear();
-		current_ = 0;
-	}
-
-	SourcePtr operator[](std::size_t index) const
-	{
-		return sources_[index];
-	}
+	//std::size_t size() const;
+	//SourcePtr operator[](std::size_t index) const;
 
 public:
-	virtual BufferRef pull(Buffer& output)
-	{
-		while (current_ < size())
-		{
-			if (BufferRef ref = sources_[current_]->pull(output))
-				return ref;
-
-			++current_;
-		}
-
-		return BufferRef();
-	}
-
-	virtual bool eof() const
-	{
-		return  current_ + 1 == size() && sources_[current_]->eof();
-	}
-
-	virtual void accept(SourceVisitor& v)
-	{
-		v.visit(*this);
-	}
+	virtual BufferRef pull(Buffer& output);
+	virtual bool eof() const;
+	virtual void accept(SourceVisitor& v);
 };
 
 //@}
+
+// {{{ inlines
+inline CompositeSource::CompositeSource() :
+	Source(),
+	sources_()
+{
+}
+
+inline bool CompositeSource::empty() const
+{
+	return sources_.empty();
+}
+
+inline void CompositeSource::push_back(SourcePtr s)
+{
+	sources_.push_back(s);
+}
+
+inline void CompositeSource::reset()
+{
+	sources_.clear();
+}
+
+//inline std::size_t CompositeSource::size() const
+//{
+//	return sources_.size();
+//}
+
+//inline SourcePtr CompositeSource::operator[](std::size_t index) const
+//{
+//	return sources_[index];
+//}
+// }}}
 
 } // namespace x0
 
