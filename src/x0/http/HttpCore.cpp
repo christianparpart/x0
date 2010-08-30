@@ -47,7 +47,13 @@ HttpCore::HttpCore(HttpServer& server) :
 	declareCVar("Resources", HttpContext::server, &HttpCore::setup_resources, -6);
 	declareCVar("Plugins", HttpContext::server, &HttpCore::setup_modules, -5);
 	declareCVar("ErrorDocuments", HttpContext::server, &HttpCore::setup_error_documents, -4);
-	declareCVar("FileInfo", HttpContext::server, &HttpCore::setup_fileinfo, -4);
+
+	declareCVar("MimeTypes", HttpContext::server, &HttpCore::setupMimeTypes, -4);
+	declareCVar("MimeTypeDefault", HttpContext::server, &HttpCore::setupMimeTypeDefault, -4);
+	declareCVar("ETagUseMtime", HttpContext::server, &HttpCore::setupETagUseMtime, -4);
+	declareCVar("ETagUseSize", HttpContext::server, &HttpCore::setupETagUseSize, -4);
+	declareCVar("ETagUseInode", HttpContext::server, &HttpCore::setupETagUseInode, -4);
+
 	declareCVar("Hosts", HttpContext::server, &HttpCore::setup_hosts, -3);
 	declareCVar("Advertise", HttpContext::server, &HttpCore::setup_advertise, -2);
 }
@@ -224,26 +230,44 @@ std::error_code HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
 	return std::error_code();
 }
 
-std::error_code HttpCore::setup_fileinfo(const SettingsValue& cvar, Scope& s)
+std::error_code HttpCore::setupMimeTypes(const SettingsValue& cvar, Scope& s)
 {
 	std::string value;
-	if (cvar["MimeType"]["MimeFile"].load(value))
-		server().fileinfo.load_mimetypes(value);
+	std::error_code ec = cvar.load(value);
+	if (!ec) server().fileinfo.load_mimetypes(value);
+	return ec;
+}
 
-	if (cvar["MimeType"]["DefaultType"].load(value))
-		server().fileinfo.default_mimetype(value);
+std::error_code HttpCore::setupMimeTypeDefault(const SettingsValue& cvar, Scope& s)
+{
+	std::string value;
+	std::error_code ec = cvar.load(value);
+	if (!ec) server().fileinfo.default_mimetype(value);
+	return ec;
+}
 
+std::error_code HttpCore::setupETagUseMtime(const SettingsValue& cvar, Scope& s)
+{
 	bool flag = false;
-	if (cvar["ETag"]["ConsiderMtime"].load(flag))
-		server().fileinfo.etag_consider_mtime(flag);
+	std::error_code ec = cvar.load(flag);
+	if (!ec) server().fileinfo.etag_consider_mtime(flag);
+	return ec;
+}
 
-	if (cvar["ETag"]["ConsiderSize"].load(flag))
-		server().fileinfo.etag_consider_size(flag);
+std::error_code HttpCore::setupETagUseSize(const SettingsValue& cvar, Scope& s)
+{
+	bool flag = false;
+	std::error_code ec = cvar.load(flag);
+	if (!ec) server().fileinfo.etag_consider_size(flag);
+	return ec;
+}
 
-	if (cvar["ETag"]["ConsiderInode"].load(flag))
-		server().fileinfo.etag_consider_inode(flag);
-
-	return std::error_code();
+std::error_code HttpCore::setupETagUseInode(const SettingsValue& cvar, Scope& s)
+{
+	bool flag = false;
+	std::error_code ec = cvar.load(flag);
+	if (!ec) server().fileinfo.etag_consider_inode(flag);
+	return ec;
 }
 
 // ErrorDocuments = array of [pair<code, path>]

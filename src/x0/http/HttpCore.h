@@ -35,7 +35,14 @@ private:
 	std::error_code setup_logging(const SettingsValue& cvar, Scope& s);
 	std::error_code setup_resources(const SettingsValue& cvar, Scope& s);
 	std::error_code setup_modules(const SettingsValue& cvar, Scope& s);
-	std::error_code setup_fileinfo(const SettingsValue& cvar, Scope& s);
+
+	std::error_code setupMimeTypes(const SettingsValue& cvar, Scope& s);
+	std::error_code setupMimeTypeDefault(const SettingsValue& cvar, Scope& s);
+
+	std::error_code setupETagUseMtime(const SettingsValue& cvar, Scope& s);
+	std::error_code setupETagUseSize(const SettingsValue& cvar, Scope& s);
+	std::error_code setupETagUseInode(const SettingsValue& cvar, Scope& s);
+
 	std::error_code setup_error_documents(const SettingsValue& cvar, Scope& s);
 	std::error_code setup_hosts(const SettingsValue& cvar, Scope& s);
 	std::error_code setup_advertise(const SettingsValue& cvar, Scope& s);
