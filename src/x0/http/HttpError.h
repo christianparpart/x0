@@ -15,6 +15,8 @@ namespace x0 {
 
 enum class http_error // {{{
 {
+	undefined = 0,
+
 	continue_request = 100,
 	switching_protocols = 101,
 	processing = 102,
