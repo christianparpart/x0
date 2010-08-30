@@ -272,7 +272,7 @@ inline void HttpResponse::writeContent(const SourcePtr& content, const Completio
 	if (filters.empty())
 		connection_->writeAsync(content, handler);
 	else
-		connection_->writeAsync(std::make_shared<FilterSource>(content, filters), handler);
+		connection_->writeAsync(std::make_shared<FilterSource>(content, filters, false), handler);
 }
 
 /** checks wether given code MUST NOT have a response body. */

@@ -23,14 +23,14 @@ class ExampleFilter :
 public:
 	ExampleFilter();
 
-	virtual x0::Buffer process(const x0::BufferRef& input, bool eof);
+	virtual x0::Buffer process(const x0::BufferRef& input);
 };
 
 ExampleFilter::ExampleFilter()
 {
 }
 
-x0::Buffer ExampleFilter::process(const x0::BufferRef& input, bool eof)
+x0::Buffer ExampleFilter::process(const x0::BufferRef& input)
 {
 	x0::Buffer result;
 

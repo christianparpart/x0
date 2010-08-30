@@ -1078,7 +1078,7 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 
 			if (!filters_.empty())
 			{
-				if (!messageContent(filters_.process(c, content_length_ == 0)))
+				if (!messageContent(filters_.process(c)))
 					return false;
 			}
 			else
@@ -1094,7 +1094,7 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 		}
 		else // fixed-size content (via "Content-Length")
 		{
-			bool rv = messageContent(filters_.process(c, content_length_ == 0));
+			bool rv = messageContent(filters_.process(c));
 
 			if (content_length_ == 0 && mode_ != MESSAGE)
 				reset();
@@ -1124,7 +1124,7 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 		}
 		else
 		{
-			if (!messageContent(filters_.process(chunk, false)))
+			if (!messageContent(filters_.process(chunk)))
 				return false;
 		}
 	}

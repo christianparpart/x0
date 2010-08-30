@@ -55,14 +55,16 @@ DeflateFilter::~DeflateFilter()
 	deflateEnd(&z_);
 }
 
-Buffer DeflateFilter::process(const BufferRef& input, bool eof)
+Buffer DeflateFilter::process(const BufferRef& input)
 {
-	if (input.empty())
+	//FIXME
+	bool eof = input.empty();
+/*	if (input.empty())
 	{
-		TRACE("process received empty input (eof=%d)", eof);
+		TRACE("process received empty input");
 		return Buffer();
 	}
-
+*/
 	z_.total_out = 0;
 	z_.next_in = reinterpret_cast<Bytef *>(input.begin());
 	z_.avail_in = input.size();
@@ -123,7 +125,7 @@ BZip2Filter::BZip2Filter(int level) :
 	bz_.opaque = Z_NULL;
 }
 
-Buffer BZip2Filter::process(const BufferRef& input, bool /*eof*/)
+Buffer BZip2Filter::process(const BufferRef& input)
 {
 	if (input.empty())
 		return Buffer();

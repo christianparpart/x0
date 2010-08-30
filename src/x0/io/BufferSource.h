@@ -38,7 +38,6 @@ public:
 	const Buffer *operator->() const;
 
 	virtual BufferRef pull(Buffer& result);
-	virtual bool eof() const;
 	virtual void accept(SourceVisitor& v);
 
 public:

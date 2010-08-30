@@ -28,11 +28,6 @@ BufferRef CompositeSource::pull(Buffer& output)
 	return BufferRef();
 }
 
-bool CompositeSource::eof() const
-{
-	return empty() || (sources_.size() == 1 && sources_.front()->eof());
-}
-
 void CompositeSource::accept(SourceVisitor& v)
 {
 	v.visit(*this);

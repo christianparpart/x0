@@ -10,17 +10,14 @@
 
 namespace x0 {
 
-Buffer ChainFilter::process(const BufferRef& input, bool eof)
+Buffer ChainFilter::process(const BufferRef& input)
 {
-	if (filters_.empty())
-		return Buffer(input);
-
 	auto i = filters_.begin();
 	auto e = filters_.end();
-	Buffer result((*i++)->process(input, eof));
+	Buffer result((*i++)->process(input));
 
 	while (i != e)
-		result = (*i++)->process(result.ref(), eof);
+		result = (*i++)->process(result.ref());
 
 	return result;
 }

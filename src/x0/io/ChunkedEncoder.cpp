@@ -7,8 +7,21 @@
  */
 
 #include <x0/io/ChunkedEncoder.h>
+#include <x0/StackTrace.h>
 #include <cassert>
 #include <zlib.h>
+
+#if 0 // !defined(NDEBUG)
+#	define TRACE(msg...) DEBUG("ChunkedEncoder: " msg)
+#else
+#	define TRACE(msg...)
+#endif
+
+#define ERROR(msg...) do { \
+	TRACE(msg); \
+	StackTrace st; \
+	TRACE("Stack Trace:\n%s", st.c_str()); \
+} while (0)
 
 namespace x0 {
 
@@ -17,39 +30,20 @@ ChunkedEncoder::ChunkedEncoder() :
 {
 }
 
-Buffer ChunkedEncoder::process(const BufferRef& input, bool eof)
+Buffer ChunkedEncoder::process(const BufferRef& input)
 {
 #if 0
-	DEBUG("ChunkedEncoder.proc: inputLen=%ld, eof=%d, finished=%d",
-			input.size(), eof, finished_);
+	if (input.empty())
+		ERROR("proc: EOF");
+	else
+		TRACE("proc: inputLen=%ld", input.size());
+#endif
 
-	if (input.empty() && !eof)
+	if (finished_)
 		return Buffer();
 
-	Buffer output;
-
-	if (input.size())
-	{
-		char buf[12];
-		int size = snprintf(buf, sizeof(buf), "%lx\r\n", input.size());
-
-		output.push_back(buf, size);
-		output.push_back(input);
-		output.push_back("\r\n");
-	}
-
-	if (eof)
-	{
-		output.push_back("0\r\n\r\n");
+	if (input.empty())
 		finished_ = true;
-	}
-
-	//! \todo a filter might create multiple output-chunks, though, we could improve process() to not return the output but append them directly.
-	// virtual void process(const BufferRef& input, composite_source& output) = 0;
-
-	return output;
-#else
-	DEBUG("ChunkedEncoder.proc: inputLen=%ld", input.size());
 
 	Buffer output;
 
@@ -69,7 +63,6 @@ Buffer ChunkedEncoder::process(const BufferRef& input, bool eof)
 	// virtual void process(const BufferRef& input, composite_source& output) = 0;
 
 	return output;
-#endif
 }
 
 } // namespace x0

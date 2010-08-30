@@ -24,7 +24,7 @@ class X0_API ChunkedEncoder :
 public:
 	ChunkedEncoder();
 
-	virtual Buffer process(const BufferRef& data, bool eof);
+	virtual Buffer process(const BufferRef& data);
 
 private:
 	bool finished_;

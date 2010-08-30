@@ -25,7 +25,7 @@ class X0_API NullFilter :
 public:
 	NullFilter() {}
 
-	virtual Buffer process(const BufferRef& data, bool /*eof*/)
+	virtual Buffer process(const BufferRef& data)
 	{
 		return Buffer(data);
 	}

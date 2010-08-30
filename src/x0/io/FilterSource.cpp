@@ -21,37 +21,21 @@ namespace x0 {
 
 BufferRef FilterSource::pull(Buffer& output)
 {
-	if (eof_)
-	{
-		DEBUG("FilterSource: WARNING: pull() invoked *after* EOF has been reached.");
-		DEBUG("StackTrace:\n%s", StackTrace().c_str());
-		return BufferRef();
-	}
-
 	std::size_t pos = output.size();
 
 	buffer_.clear();
 	BufferRef input = source_->pull(buffer_);
 
-	if (source_->eof())
-		eof_ = true;
+	if (!input.empty() || force_)
+	{
+		Buffer filtered = filter_(input);
+		output.push_back(filtered);
 
-	Buffer filtered = filter_(input, eof_);
-	output.push_back(filtered);
+		//DEBUG("FilterSource: #%ld -> #%ld", input.size(), filtered.size());
 
-	//DEBUG("FilterSource: #%ld -> #%ld (eof=%d)", input.size(), filtered.size(), eof_);
-
-#if 0 //!defined(NDEBUG)
-	if (eof_)
-		DEBUG("eof[%s]", filtered.c_str());
-#endif
-
-	return output.ref(pos);
-}
-
-bool FilterSource::eof() const
-{
-	return eof_;
+		return output.ref(pos);
+	} else
+		return input;
 }
 
 void FilterSource::accept(SourceVisitor& v)

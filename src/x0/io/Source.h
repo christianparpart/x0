@@ -50,15 +50,6 @@ public:
 	 */
 	virtual BufferRef pull(Buffer& buf) = 0;
 
-	/** tests whether this source stream reached EOF (end of file/stream) already.
-	 *
-	 * \retval true the end of stream is reached, thus, further calls to pull()
-	 * 		<b>will</b> result into a no-op.
-	 * \retval false there is still more data to read, thus, further calls to pull()
-	 * 		<b>will likely</b> provide more data.
-	 */
-	virtual bool eof() const = 0;
-
 	/** every derivate has to implement this to fullfill the visitor-pattern.
 	 *
 	 * <code>v.visit(*this); // ideal example implementation inside derived class.</code>

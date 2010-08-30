@@ -49,7 +49,6 @@ public:
 
 public:
 	virtual BufferRef pull(Buffer& output);
-	virtual bool eof() const;
 	virtual void accept(SourceVisitor& v);
 };
 

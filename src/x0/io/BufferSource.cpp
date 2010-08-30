@@ -23,11 +23,6 @@ BufferRef BufferSource::pull(Buffer& result)
 	return result.ref(result_pos);
 }
 
-bool BufferSource::eof() const
-{
-	return pos_ == buffer_.size();
-}
-
 void BufferSource::accept(SourceVisitor& v)
 {
 	v.visit(*this);

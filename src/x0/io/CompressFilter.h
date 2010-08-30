@@ -64,7 +64,7 @@ public:
 	explicit DeflateFilter(int level);
 	~DeflateFilter();
 
-	virtual Buffer process(const BufferRef& data, bool eof);
+	virtual Buffer process(const BufferRef& data);
 
 private:
 	z_stream z_;
@@ -95,7 +95,7 @@ class BZip2Filter :
 public:
 	explicit BZip2Filter(int level);
 
-	virtual Buffer process(const BufferRef& data, bool eof);
+	virtual Buffer process(const BufferRef& data);
 
 private:
 	bz_stream bz_;

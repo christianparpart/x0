@@ -27,20 +27,19 @@ class X0_API FilterSource :
 {
 public:
 	explicit FilterSource(Filter& Filter) :
-		buffer_(), source_(std::make_shared<BufferSource>("")), filter_(Filter), eof_(false) {}
+		buffer_(), source_(std::make_shared<BufferSource>("")), filter_(Filter), force_(false) {}
 
-	FilterSource(const SourcePtr& source, Filter& Filter) :
-		buffer_(), source_(source), filter_(Filter), eof_(false) {}
+	FilterSource(const SourcePtr& source, Filter& Filter, bool force) :
+		buffer_(), source_(source), filter_(Filter), force_(force) {}
 
 	virtual BufferRef pull(Buffer& output);
-	virtual bool eof() const;
 	virtual void accept(SourceVisitor& v);
 
 protected:
 	Buffer buffer_;
 	SourcePtr source_;
 	Filter& filter_;
-	bool eof_;
+	bool force_;
 };
 
 //@}
