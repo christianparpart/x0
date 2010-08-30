@@ -97,9 +97,40 @@ void FileInfoService::load_mimetypes(const std::string& filename)
 			for (; ci != ce; ++ci)
 			{
 				mimetypes_[*ci] = mime;
+				//DEBUG("load mimetype:%s ext:%s", mime.c_str(), ci->c_str());
 			}
 		}
 	}
+}
+
+std::string FileInfoService::get_mimetype(const std::string& filename) const
+{
+	std::size_t ndot = filename.find_last_of(".");
+	std::size_t nslash = filename.find_last_of("/");
+
+	if (ndot != std::string::npos && ndot > nslash)
+	{
+		std::string ext(filename.substr(ndot + 1));
+
+		while (ext.size())
+		{
+			auto i = mimetypes_.find(ext);
+
+			if (i != mimetypes_.end())
+			{
+				//DEBUG("filename(%s), ext(%s), use mimetype: %s", filename.c_str(), ext.c_str(), i->second.c_str());
+				return i->second;
+			}
+
+			if (ext[ext.size() - 1] != '~')
+				break;
+
+			ext.resize(ext.size() - 1);
+		}
+	}
+
+	//DEBUG("file(%s) use default mimetype", filename.c_str());
+	return default_mimetype_;
 }
 
 } // namespace x0

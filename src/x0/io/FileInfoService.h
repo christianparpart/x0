@@ -197,32 +197,6 @@ inline void FileInfoService::default_mimetype(const std::string& value)
 	default_mimetype_ = value;
 }
 
-inline std::string FileInfoService::get_mimetype(const std::string& filename) const
-{
-	std::size_t ndot = filename.find_last_of(".");
-	std::size_t nslash = filename.find_last_of("/");
-
-	if (ndot != std::string::npos && ndot > nslash)
-	{
-		std::string ext(filename.substr(ndot + 1));
-
-		while (ext.size())
-		{
-			auto i = mimetypes_.find(ext);
-
-			if (i != mimetypes_.end())
-				return i->second;
-
-			if (ext[ext.size() - 1] != '~')
-				break;
-
-			ext.resize(ext.size() - 1);
-		}
-	}
-
-	return default_mimetype_;
-}
-
 inline std::string FileInfoService::make_etag(const FileInfo& fi) const
 {
 	int count = 0;
