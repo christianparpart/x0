@@ -9,7 +9,6 @@
 /* Configuration:
  *
  *     FastCgiRemote = 'hostname:port';
- *     FastCgiMapping = { '.php', '.php4', '.php5' };
  *
  * Todo:
  *
@@ -51,6 +50,7 @@
 #include <fcntl.h>
 
 #if 1 // !defined(NDEBUG)
+#	include <x0/StackTrace.h>
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -61,9 +61,19 @@
 class CgiContext;
 class CgiTransport;
 
+inline std::string chomp(const std::string& value) // {{{
+{
+	if (value.size() && value[value.size() - 1] == '\n')
+		return value.substr(0, value.size() - 1);
+	else
+		return value;
+} // }}}
+
 class CgiRequest : // {{{
 	public x0::HttpMessageProcessor
 {
+	friend class CgiTransport;
+
 private:
 	int id_;
 
@@ -116,6 +126,23 @@ private:
 class CgiTransport : // {{{
 	public ev_io
 {
+	class ParamReader : public FastCgi::CgiParamStreamReader //{{{
+	{
+	private:
+		CgiTransport *tx_;
+
+	public:
+		explicit ParamReader(CgiTransport *tx) : tx_(tx) {}
+
+		virtual void onParam(const char *nameBuf, size_t nameLen, const char *valueBuf, size_t valueLen)
+		{
+			std::string name(nameBuf, nameLen);
+			std::string value(valueBuf, valueLen);
+
+			tx_->onParam(name, value);
+		}
+	}; //}}}
+
 public:
 	enum State {
 		DISCONNECTED,
@@ -126,14 +153,25 @@ public:
 	CgiContext *context_;
 
 	struct ev_loop *loop_;
+
+	std::string hostname_;
+	int port_;
+
 	int fd_;
 	State state_;
+
+	std::list<CgiRequest *> requests_;
 
 	x0::Buffer readBuffer_;
 	size_t readOffset_;
 	x0::Buffer writeBuffer_;
 	size_t writeOffset_;
 	bool flushPending_;
+
+	bool canMultiplex_;  // can multiplex connections,requests
+	int maxConnections_; // max. number of concurrent connections
+	int maxRequests_;    // max. number of concurrent requests per connection
+	bool configured_;
 
 	std::error_code error_;
 
@@ -145,9 +183,13 @@ public:
 	std::error_code errorCode() const { return error_; }
 
 	bool open(const char *hostname, int port);
+	void reopen();
 	bool isOpen() const { return fd_ >= 0; }
 	bool isClosed() const { return fd_ < 0; }
 	void close();
+
+	void push(CgiRequest *request);
+	void release(CgiRequest *request);
 
 public:
 	template<typename T, typename... Args> void write(Args&&... args)
@@ -158,6 +200,7 @@ public:
 	}
 
 	void write(FastCgi::Type type, int requestId, const char *content, size_t contentLength);
+	void write(FastCgi::Type type, int requestId, x0::Buffer&& content);
 	void write(FastCgi::Record *record);
 	void flush();
 
@@ -166,6 +209,7 @@ private:
 	inline void connected();
 	inline void io(int revents);
 	inline void process(const FastCgi::Record *record);
+	inline void onParam(const std::string& name, const std::string& value);
 }; // }}}
 
 class CgiContext : //{{{
@@ -182,7 +226,7 @@ public:
 	CgiContext();
 	~CgiContext();
 
-	void setHost(const std::string& value);
+	void setApp(const std::string& value);
 	virtual void merge(const x0::ScopeValue *cx);
 
 	CgiRequest *handleRequest(x0::HttpRequest *in, x0::HttpResponse *out);
@@ -190,7 +234,7 @@ public:
 	CgiRequest *request(int id) const;
 
 public:
-	x0::WriteProperty<std::string, CgiContext, &CgiContext::setHost> host;
+	x0::WriteProperty<std::string, CgiContext, &CgiContext::setApp> app;
 };
 // }}}
 
@@ -215,6 +259,8 @@ CgiRequest::CgiRequest(CgiContext *cx, int id, x0::HttpRequest *in, x0::HttpResp
 CgiRequest::~CgiRequest()
 {
 	TRACE("~CgiRequest()");
+//	x0::StackTrace st;
+//	TRACE("Stack Trace:\n%s\n", st.c_str());
 }
 
 int CgiRequest::id() const
@@ -224,6 +270,7 @@ int CgiRequest::id() const
 
 void CgiRequest::setTransport(CgiTransport *tx)
 {
+	TRACE("CgiRequest.setTransport(%p)", tx);
 	transport_ = tx;
 
 	if (transport_)
@@ -297,9 +344,7 @@ void CgiRequest::streamParams()
 	paramWriter_.encode("DOCUMENT_ROOT", request_->document_root);
 	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->filename());
 
-	x0::Buffer env(paramWriter_.output());
-
-	transport_->write(FastCgi::Type::Params, id_, env.data(), env.size());
+	transport_->write(FastCgi::Type::Params, id_, paramWriter_.output());
 	transport_->write(FastCgi::Type::Params, id_, "", 0); // EOS
 }
 
@@ -326,8 +371,8 @@ void CgiRequest::onStdOut(x0::BufferRef&& chunk)
 
 void CgiRequest::onStdErr(x0::BufferRef&& chunk)
 {
+	TRACE("CgiRequest.stderr: %s", chomp(chunk.str()).c_str());
 	// TODO
-	//TRACE("CgiRequest.stderr: %s", chunk.str().c_str());
 }
 
 void CgiRequest::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
@@ -398,7 +443,7 @@ void CgiRequest::writeComplete(int err, size_t nwritten)
 	if (err)
 	{
 		TRACE("CgiRequest.write error: %s", strerror(err));
-		//finish();
+		finish();
 	}
 	else if (writeBuffer_.size() != 0)
 	{
@@ -430,6 +475,10 @@ void CgiRequest::writeComplete(int err, size_t nwritten)
 void CgiRequest::finish()
 {
 	TRACE("CgiRequest::finish()");
+
+	if (response_->status == x0::http_error::undefined)
+		response_->status = x0::http_error::service_unavailable;
+
 	response_->finish();
 	context_->release(this);
 }
@@ -439,13 +488,19 @@ void CgiRequest::finish()
 CgiTransport::CgiTransport(CgiContext *cx) :
 	context_(cx),
 	loop_(ev_default_loop(0)),
+	hostname_(),
+	port_(0),
 	fd_(-1),
 	state_(DISCONNECTED),
 	readBuffer_(),
 	readOffset_(0),
 	writeBuffer_(),
 	writeOffset_(0),
-	flushPending_(false)
+	flushPending_(false),
+	canMultiplex_(false),
+	maxConnections_(1),
+	maxRequests_(1),
+	configured_(false)
 {
 	ev_init(this, &CgiTransport::io_thunk);
 
@@ -455,8 +510,7 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	mr.encode("FCGI_MPXS_CONNS", "");
 	mr.encode("FCGI_MAX_CONNS", "");
 	mr.encode("FCGI_MAX_REQS", "");
-	x0::Buffer buf(mr.output());
-	write(FastCgi::Type::GetValues, 0, buf.data(), buf.size());
+	write(FastCgi::Type::GetValues, 0, mr.output());
 #endif
 }
 
@@ -467,6 +521,9 @@ CgiTransport::~CgiTransport()
 
 bool CgiTransport::open(const char *hostname, int port)
 {
+	hostname_ = hostname;
+	port_ = port;
+
 	TRACE("connect(hostname=%s, port=%d)", hostname, port);
 
 	struct addrinfo hints;
@@ -504,7 +561,7 @@ bool CgiTransport::open(const char *hostname, int port)
 		{
 			if (errno == EINPROGRESS)
 			{
-				TRACE("connect: backgrounding");
+				TRACE("connect: backgrounding (fd:%d)", fd_);
 
 				state_ = CONNECTING;
 				ev_io_set(this, fd_, EV_WRITE);
@@ -521,7 +578,7 @@ bool CgiTransport::open(const char *hostname, int port)
 		}
 		else
 		{
-			TRACE("connect: instant success");
+			TRACE("connect: instant success (fd:%d)", fd_);
 			connected();
 			break;
 		}
@@ -540,6 +597,23 @@ void CgiTransport::write(FastCgi::Type type, int requestId, const char *content,
 	delete record;
 }
 
+void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content)
+{
+#if 1
+	FastCgi::Record *record = FastCgi::Record::create(type, requestId, content.size());
+	memcpy(const_cast<char *>(record->content()), content.data(), content.size());
+	write(record);
+	delete record;
+#else
+	FastCgi::Record record(type, requestId, content.size(), 0);
+	writeBuffer_.push_back(record.data(), record.size());
+	writeBuffer_.push_back(content.data(), content.size());
+
+	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
+			record.type_str(), record.requestId(), record.size(), record.paddingLength());
+#endif
+}
+
 void CgiTransport::write(FastCgi::Record *record)
 {
 	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
@@ -550,16 +624,18 @@ void CgiTransport::write(FastCgi::Record *record)
 
 void CgiTransport::flush()
 {
-	TRACE("CgiTransport.flush()");
-
 	if (state_ == CONNECTED && writeBuffer_.size() != 0 && writeOffset_ == 0)
 	{
+		TRACE("CgiTransport.flush() -> ev (fd:%d)", fd_);
 		ev_io_stop(loop_, this);
 		ev_io_set(this, fd_, EV_READ | EV_WRITE);
 		ev_io_start(loop_, this);
 	}
 	else
+	{
+		TRACE("CgiTransport.flush() -> pending");
 		flushPending_ = true;
+	}
 }
 
 void CgiTransport::io_thunk(struct ev_loop *, ev_io *w, int revents)
@@ -597,29 +673,22 @@ void CgiTransport::connected()
 	}
 
 	if (!isOpen())
-	{
-		TRACE("connect: leaving");
-		// TODO: notify requests that already wrote to us about this failure
-		// for (all queued requests) { request->abort(503); }
 		return;
-	}
 
 	// connect successful
 	state_ = CONNECTED;
 
-	if (writeBuffer_.size() > writeOffset_ && flushPending_)
+	if (writeBuffer_.size() > writeOffset_)
 	{
 		TRACE("CgiTransport.connected() flush pending");
 		flushPending_ = false;
 
-		ev_io_stop(loop_, this);
 		ev_io_set(this, fd_, EV_READ | EV_WRITE);
 		ev_io_start(loop_, this);
 	}
 	else
 	{
 		TRACE("CgiTransport.connected()");
-		ev_io_stop(loop_, this);
 		ev_io_set(this, fd_, EV_READ);
 		ev_io_start(loop_, this);
 	}
@@ -637,11 +706,11 @@ void CgiTransport::io(int revents)
 				remaining = readBuffer_.capacity() - readBuffer_.size();
 			}
 
-			int rv = ::read(fd_, const_cast<char *>(readBuffer_.data() + readBuffer_.size()), remaining);
+			ssize_t rv = ::read(fd_, const_cast<char *>(readBuffer_.data() + readBuffer_.size()), remaining);
 
 			if (rv == 0) {
-				TRACE("CgiTransport: closed.");
-				close();
+				TRACE("fcgiapp closed connection");
+				reopen();
 				return;
 			}
 
@@ -673,11 +742,14 @@ void CgiTransport::io(int revents)
 
 	if (revents & EV_WRITE)
 	{
-		int rv = ::write(fd_, writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
+		size_t sz = writeBuffer_.size() - writeOffset_;
+		ssize_t rv = ::write(fd_, writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
+		printf("CgiTransport.write(fd:%d): %ld -> %ld\n", fd_, sz, rv);
 
 		if (rv < 0) {
-			if (errno != EINTR && errno != EAGAIN)
-				perror("CgiTransport.write");
+			if (errno != EINTR && errno != EAGAIN) {
+				printf("CgiTransport.write(fd:%d): %s\n", fd_, strerror(errno));
+			}
 
 			return;
 		}
@@ -704,7 +776,8 @@ void CgiTransport::process(const FastCgi::Record *record)
 	switch (record->type())
 	{
 		case FastCgi::Type::GetValuesResult:
-			TRACE("CgiTransport: unhandled record (type:%d)", record->type());
+			ParamReader(this).processParams(record->content(), record->contentLength());
+			configured_ = true; // should be set *only* at EOS of GetValuesResult? we currently guess, that there'll be only *one* packet
 			break;
 		case FastCgi::Type::StdOut:
 			context_->request(record->requestId())->onStdOut(readBuffer_.ref(record->content() - readBuffer_.data(), record->contentLength()));
@@ -725,14 +798,62 @@ void CgiTransport::process(const FastCgi::Record *record)
 	}
 }
 
-void CgiTransport::close()
+void CgiTransport::onParam(const std::string& name, const std::string& value)
 {
-	TRACE("CgiTransport.close(%d)", fd_);
+	TRACE("onParam(%s, %s)", name.c_str(), value.c_str());
+
+	if (name == "FCGI_MPXS_CONNS")
+		canMultiplex_ = std::atoi(value.c_str()) != 0;
+	else if (name == "FCGI_MAX_CONNS")
+		maxConnections_ = std::atoi(value.c_str());
+	else if (name == "FCGI_MAX_REQS")
+		maxRequests_ = std::atoi(value.c_str());
+	else
+		TRACE("warning: unknown management parameter: '%s'", name.c_str());
+}
+
+void CgiTransport::reopen()
+{
+	TRACE("CgiTransport.reopen()");
 	if (fd_ >= 0)
 	{
 		ev_io_stop(loop_, this);
 		::close(fd_);
 		fd_ = -1;
+	}
+
+	open(hostname_.c_str(), port_);
+}
+
+void CgiTransport::close()
+{
+	TRACE("CgiTransport.close(%d)", fd_);
+
+	if (fd_ >= 0)
+	{
+		ev_io_stop(loop_, this);
+		::close(fd_);
+		fd_ = -1;
+	}
+
+	while (!requests_.empty())
+		requests_.front()->finish();
+}
+
+void CgiTransport::push(CgiRequest *request)
+{
+	requests_.push_back(request);
+	request->setTransport(this);
+}
+
+void CgiTransport::release(CgiRequest *request)
+{
+	for (auto i = requests_.begin(), e = requests_.end(); i != e; ++i) {
+		if (*i == request) {
+			requests_.erase(i);
+			request->setTransport(NULL);
+			return;
+		}
 	}
 }
 // }}}
@@ -743,12 +864,14 @@ CgiContext::CgiContext() :
 	transport_(0),
 	requests_(),
 	// public properties:
-	host(this)
+	app(this)
 {
 }
 
 CgiContext::~CgiContext()
 {
+	TRACE("~CgiContext()");
+
 	for (int i = 0, e = requests_.size(); i != e; ++i)
 		if (requests_[i])
 			release(requests_[i]);
@@ -759,14 +882,14 @@ CgiContext::~CgiContext()
 	}
 }
 
-void CgiContext::setHost(const std::string& value)
+void CgiContext::setApp(const std::string& value)
 {
 	size_t pos = value.find_last_of(":");
 
 	host_ = value.substr(0, pos);
 	port_ = atoi(value.substr(pos + 1).c_str());
 
-	TRACE("setHost(host:%s, port:%d)", host_.c_str(), port_);
+	TRACE("setApp(host:%s, port:%d)", host_.c_str(), port_);
 }
 
 void CgiContext::merge(const x0::ScopeValue *cx)
@@ -776,13 +899,15 @@ void CgiContext::merge(const x0::ScopeValue *cx)
 CgiRequest *CgiContext::handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
 {
 	// select transport
-	CgiTransport *tx = transport_;
+	CgiTransport *transport = transport_; // TODO support more than one transport and LB between them
 
-	if (tx == 0)
-		tx = new CgiTransport(this);
-
-	if (tx->isClosed())
-		tx->open(host_.c_str(), port_);
+	if (transport == 0)
+	{
+		transport = new CgiTransport(this);
+		transport->open(host_.c_str(), port_);
+	}
+	else if (transport->isClosed())
+		transport->reopen();
 
 	// allocate request ID
 	int i = 0;
@@ -802,16 +927,24 @@ CgiRequest *CgiContext::handleRequest(x0::HttpRequest *in, x0::HttpResponse *out
 	requests_[i] = request;
 
 	// attach request to transport
-	request->setTransport(tx);
+	transport->push(request);
 
 	return request;
 }
 
 void CgiContext::release(CgiRequest *request)
 {
-	request->transport()->close();
+	CgiTransport *transport = request->transport();
+
+	if (transport)
+		transport->release(request);
+
 	requests_[request->id() - 1] = NULL;
+
 	delete request;
+
+	if (transport)
+		transport->close(); // TODO: keep-alive (php doesn't like it?)
 }
 
 CgiRequest *CgiContext::request(int id) const
@@ -835,16 +968,19 @@ private:
 		return cx;
 	}
 
-	std::error_code setHost(const x0::SettingsValue& cvar, x0::Scope& s)
+	std::error_code setApp(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
-		return cvar.load(acquire(s)->host);
+		if (cvar.isTable())
+			printf("attention. I'm a table.\n");
+
+		return cvar.load(acquire(s)->app);
 	}
 
 public:
 	fastcgi_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		declareCVar("FastCgi", x0::HttpContext::host, &fastcgi_plugin::setHost);
+		declareCVar("FastCgiApp", x0::HttpContext::host, &fastcgi_plugin::setApp);
 	}
 
 	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
