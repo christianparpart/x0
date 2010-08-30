@@ -139,7 +139,12 @@ public:
 	SettingsValue(const SettingsValue&);
 	~SettingsValue();
 
-	// table indexing
+	bool isTable() const;
+	bool isString() const;
+	bool isNumber() const;
+	bool isBool() const;
+	bool isNull() const;
+
 	const SettingsValue operator[](const std::string& AFieldName) const;
 	SettingsValue operator[](const std::string& AFieldName);
 	bool contains(const std::string& AFieldName) const;

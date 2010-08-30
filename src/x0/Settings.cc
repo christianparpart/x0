@@ -66,8 +66,38 @@ inline std::vector<std::string> Settings::keys() const
 // }}}
 
 // {{{ SettingsValue
+inline bool SettingsValue::isTable() const
+{
+	fetcher _(*this);
+	return lua_type(L_, -1) == LUA_TTABLE;
+}
+
+inline bool SettingsValue::isString() const
+{
+	fetcher _(*this);
+	return lua_type(L_, -1) == LUA_TSTRING;
+}
+
+inline bool SettingsValue::isNumber() const
+{
+	fetcher _(*this);
+	return lua_type(L_, -1) == LUA_TNUMBER;
+}
+
+inline bool SettingsValue::isBool() const
+{
+	fetcher _(*this);
+	return lua_type(L_, -1) == LUA_TBOOLEAN;
+}
+
+inline bool SettingsValue::isNull() const
+{
+	fetcher _(*this);
+	return lua_type(L_, -1) == LUA_TNIL;
+}
+
 template<typename T>
-std::error_code SettingsValue::load(T& _value) const
+inline std::error_code SettingsValue::load(T& _value) const
 {
 	fetcher _(*this);
 
@@ -103,7 +133,7 @@ inline std::error_code SettingsValue::load(WriteProperty<T, Object, Writer>& res
 }
 
 template<typename T>
-T SettingsValue::get(const T& _default) const
+inline T SettingsValue::get(const T& _default) const
 {
 	T result = T();
 	return load(result) ? result : _default;
@@ -143,7 +173,7 @@ inline std::vector<T> SettingsValue::keys() const
 }
 
 template<typename T>
-std::vector<T> SettingsValue::values() const
+inline std::vector<T> SettingsValue::values() const
 {
 	return as<std::vector<T>>();
 }
