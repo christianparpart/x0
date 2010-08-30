@@ -73,6 +73,18 @@ bool Socket::setTcpNoDelay(bool enable)
 	return setsockopt(fd_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0;
 }
 
+bool Socket::setTcpCork(bool enable)
+{
+#if defined(TCP_CORK)
+	int flag = enable ? 1 : 0;
+	bool rv = setsockopt(fd_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) == 0;
+	DEBUG("Socket(%d).setTcpCork: %d => %d", fd_, enable, rv);
+	return rv;
+#else
+	return false;
+#endif
+}
+
 void Socket::setMode(Mode m)
 {
 	if (m != mode_)

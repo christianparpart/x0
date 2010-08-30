@@ -63,6 +63,7 @@ public:
 
 	bool setNonBlocking(bool enabled);
 	bool setTcpNoDelay(bool enable);
+	bool setTcpCork(bool enable);
 
 	int timeout() const;
 	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);
