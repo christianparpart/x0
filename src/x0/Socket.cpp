@@ -25,10 +25,16 @@
 #include <unistd.h>
 #include <system_error>
 
+#if 0 // !defined(NDEBUG)
+#	define TRACE(msg...) DEBUG("Socket: " msg)
+#else
+#	define TRACE(msg...)
+#endif
+
 #define ERROR(msg...) { \
-	DEBUG(msg); \
+	TRACE(msg); \
 	StackTrace st; \
-	DEBUG("Stack Trace:\n%s", st.c_str()); \
+	TRACE("Stack Trace:\n%s", st.c_str()); \
 }
 
 namespace x0 {
@@ -45,7 +51,7 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 	callback_(0),
 	callbackData_(0)
 {
-	//DEBUG("Socket(%p) fd=%d", this, fd_);
+	TRACE("Socket(%p) fd=%d", this, fd_);
 
 	watcher_.set<Socket, &Socket::io>(this);
 	timer_.set<Socket, &Socket::timeout>(this);
@@ -53,7 +59,7 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 
 Socket::~Socket()
 {
-	//DEBUG("~Socket(%p)", this);
+	TRACE("~Socket(%p), %d", this, fd_);
 
 	if (fd_ >= 0)
 		::close(fd_);
@@ -78,7 +84,7 @@ bool Socket::setTcpCork(bool enable)
 #if defined(TCP_CORK)
 	int flag = enable ? 1 : 0;
 	bool rv = setsockopt(fd_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) == 0;
-	DEBUG("Socket(%d).setTcpCork: %d => %d", fd_, enable, rv);
+	TRACE("(%d).setTcpCork: %d => %d", fd_, enable, rv);
 	return rv;
 #else
 	return false;
@@ -92,7 +98,7 @@ void Socket::setMode(Mode m)
 		static int modes[] = { 0, ev::READ, ev::WRITE };
 		//static const char *ms[] = { "null", "READ", "WRITE" };
 
-		//DEBUG("Socket(%d).setMode(%s)", fd_, ms[static_cast<int>(m)]);
+		//TRACE("(%d).setMode(%s)", fd_, ms[static_cast<int>(m)]);
 
 		watcher_.set(fd_, modes[static_cast<int>(m)]);
 
@@ -114,7 +120,7 @@ void Socket::clearReadyCallback()
 
 void Socket::close()
 {
-	//DEBUG("Socket(%p).close: fd=%d", this, fd_);
+	TRACE("(%p).close: fd=%d", this, fd_);
 
 	watcher_.stop();
 	timer_.stop();
@@ -137,7 +143,7 @@ ssize_t Socket::read(Buffer& result)
 	{
 		auto offset = result.size();
 		result.resize(offset + rv);
-		//DEBUG("Socket(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
+		//TRACE("(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
 	}
 	else if (rv < 0 && errno != EINTR && errno != EAGAIN)
 	{
@@ -155,8 +161,9 @@ ssize_t Socket::read(Buffer& result)
 ssize_t Socket::write(const BufferRef& source)
 {
 #if !defined(NDEBUG)
-	//DEBUG("Socket(%d).write('%s')", fd_, source.str().c_str());
-	int rv = ::write(fd_, source.data(), source.size());
+	//TRACE("(%d).write('%s')", fd_, source.str().c_str());
+	ssize_t rv = ::write(fd_, source.data(), source.size());
+	TRACE("(%d).write: %ld => %ld", fd_, source.size(), rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write: error (%d): %s", fd_, errno, strerror(errno));
@@ -172,7 +179,7 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #if !defined(NDEBUG)
 	//auto offset0 = *offset;
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
-	//DEBUG("Socket(%d).write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd_, fd, offset0, *offset, nbytes, rv);
+	//TRACE("(%d).write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd_, fd, offset0, *offset, nbytes, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
@@ -190,7 +197,7 @@ void Socket::handshake()
 
 void Socket::io(ev::io& io, int revents)
 {
-	//DEBUG("Socket(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	//TRACE("(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	timer_.stop();
 
 	if (state_ == HANDSHAKE)
@@ -201,7 +208,7 @@ void Socket::io(ev::io& io, int revents)
 
 void Socket::timeout(ev::timer& timer, int revents)
 {
-	//DEBUG("Socket(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	//TRACE("(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
 	watcher_.stop();
 
 	if (timeoutCallback_)
