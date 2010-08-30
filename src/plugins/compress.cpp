@@ -152,7 +152,10 @@ private:
 		if (out->headers.contains("Content-Length"))
 			size = boost::lexical_cast<int>(out->headers["Content-Length"]);
 
-		if (size < cx->min_size_)
+		std::string te(out->headers["Transfer-Encoding"]);
+		bool chunked = (te == "chunked");
+
+		if (size < cx->min_size_ && !(size <= 0 && chunked))
 			return;
 
 		if (size > cx->max_size_)
