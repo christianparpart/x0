@@ -19,6 +19,10 @@ ChunkedEncoder::ChunkedEncoder() :
 
 Buffer ChunkedEncoder::process(const BufferRef& input, bool eof)
 {
+#if 0
+	DEBUG("ChunkedEncoder.proc: inputLen=%ld, eof=%d, finished=%d",
+			input.size(), eof, finished_);
+
 	if (input.empty() && !eof)
 		return Buffer();
 
@@ -44,6 +48,28 @@ Buffer ChunkedEncoder::process(const BufferRef& input, bool eof)
 	// virtual void process(const BufferRef& input, composite_source& output) = 0;
 
 	return output;
+#else
+	DEBUG("ChunkedEncoder.proc: inputLen=%ld", input.size());
+
+	Buffer output;
+
+	if (input.size())
+	{
+		char buf[12];
+		int size = snprintf(buf, sizeof(buf), "%lx\r\n", input.size());
+
+		output.push_back(buf, size);
+		output.push_back(input);
+		output.push_back("\r\n");
+	}
+	else
+		output.push_back("0\r\n\r\n");
+
+	//! \todo a filter might create multiple output-chunks, though, we could improve process() to not return the output but append them directly.
+	// virtual void process(const BufferRef& input, composite_source& output) = 0;
+
+	return output;
+#endif
 }
 
 } // namespace x0

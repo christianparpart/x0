@@ -238,6 +238,36 @@ void HttpResponse::onFinished(int ec)
 		connection_->close();
 }
 
+/** finishes this response by flushing the content into the stream.
+ *
+ * \note this also queues the underlying connection for processing the next request (on keep-alive).
+ */
+void HttpResponse::finish()
+{
+	if (!headers_sent_) // nothing sent to client yet -> sent default status page
+	{
+		if (static_cast<int>(status) == 0)
+			status = http_error::not_found;
+
+		if (!content_forbidden() && status != http_error::ok)
+			write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
+		else
+			connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
+	}
+	else if (!filters.empty())
+	{
+		// mark the end of stream (EOF) by passing an empty chunk to the filters.
+		connection_->writeAsync(
+			std::make_shared<FilterSource>(std::make_shared<BufferSource>(""), filters),
+			std::bind(&HttpResponse::onFinished, this, std::placeholders::_1)
+		);
+	}
+	else
+	{
+		onFinished(0);
+	}
+}
+
 /** to be called <b>once</b> in order to initialize this class for instanciation.
  *
  * \note to be invoked by HttpServer constructor.

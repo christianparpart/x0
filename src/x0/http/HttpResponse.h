@@ -14,6 +14,7 @@
 #include <x0/http/HttpError.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/Source.h>
+#include <x0/io/BufferSource.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/ChainFilter.h>
 #include <x0/Property.h>
@@ -278,28 +279,6 @@ inline void HttpResponse::writeContent(const SourcePtr& content, const Completio
 inline bool HttpResponse::content_forbidden() const
 {
 	return x0::content_forbidden(status);
-}
-
-/** finishes this response by flushing the content into the stream.
- *
- * \note this also queues the underlying connection for processing the next request (on keep-alive).
- */
-inline void HttpResponse::finish()
-{
-	if (!headers_sent_) // nothing sent to client yet -> sent default status page
-	{
-		if (static_cast<int>(status) == 0)
-			status = http_error::not_found;
-
-		if (!content_forbidden() && status != http_error::ok)
-			write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
-		else
-			connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
-	}
-	else
-	{
-		onFinished(0);
-	}
 }
 // }}}
 
