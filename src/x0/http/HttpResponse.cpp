@@ -22,10 +22,6 @@
 #include <string>
 #include <algorithm>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/tcp.h>
-
 #if 0
 #	define TRACE(msg...)
 #else
@@ -164,13 +160,8 @@ SourcePtr HttpResponse::serialize()
 	if (!connection_->server().max_keep_alive_idle())
 		keepalive = false;
 
-#if defined(TCP_CORK)
 	if (!keepalive && connection_->server().tcp_cork())
-	{
-		int flag = 1;
-		setsockopt(connection_->socket()->handle(), IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag));
-	}
-#endif
+		connection_->socket()->setTcpCork(true);
 
 	if (request_->supports_protocol(1, 1))
 		buffers.push_back("HTTP/1.1 ");
