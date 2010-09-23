@@ -48,12 +48,8 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		// only process this request, if client requested path "/hello"
-		if (!x0::equals(in->path, "/hello"))
-			return false; // pass request to next handler
-
 		// set response status code
 		out->status = x0::http_error::ok;
 

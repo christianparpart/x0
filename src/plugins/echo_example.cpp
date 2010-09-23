@@ -36,11 +36,8 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		if (!x0::equals(in->path, "/echo"))
-			return false; // pass request to next handler
-
 		// set response status code
 		out->status = x0::http_error::ok;
 

@@ -8,7 +8,14 @@
 
 /* Configuration:
  *
- *     FastCgiRemote = 'hostname:port';
+ *     action handler;
+ *         fastcgi IP, PORT
+ *         fastcgi unix_socket
+ *         fastcgi ID
+ *
+ *     setup functions:
+ *         fastcgi.register ID, IP, PORTs
+ *         fastcgi.register ID, UNIX_SOCKET
  *
  * Todo:
  *
@@ -212,8 +219,7 @@ private:
 	inline void onParam(const std::string& name, const std::string& value);
 }; // }}}
 
-class CgiContext : //{{{
-	public x0::ScopeValue
+class CgiContext //{{{
 {
 public:
 	std::string host_;
@@ -226,15 +232,11 @@ public:
 	CgiContext();
 	~CgiContext();
 
-	void setApp(const std::string& value);
-	virtual void merge(const x0::ScopeValue *cx);
+	void setup(const std::string& value);
 
 	CgiRequest *handleRequest(x0::HttpRequest *in, x0::HttpResponse *out);
 	void release(CgiRequest *);
 	CgiRequest *request(int id) const;
-
-public:
-	x0::WriteProperty<std::string, CgiContext, &CgiContext::setApp> app;
 };
 // }}}
 
@@ -862,9 +864,7 @@ void CgiTransport::release(CgiRequest *request)
 CgiContext::CgiContext() :
 	host_(), port_(0),
 	transport_(0),
-	requests_(),
-	// public properties:
-	app(this)
+	requests_()
 {
 }
 
@@ -882,18 +882,14 @@ CgiContext::~CgiContext()
 	}
 }
 
-void CgiContext::setApp(const std::string& value)
+void CgiContext::setup(const std::string& value)
 {
 	size_t pos = value.find_last_of(":");
 
 	host_ = value.substr(0, pos);
 	port_ = atoi(value.substr(pos + 1).c_str());
 
-	TRACE("setApp(host:%s, port:%d)", host_.c_str(), port_);
-}
-
-void CgiContext::merge(const x0::ScopeValue *cx)
-{
+	TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
 }
 
 CgiRequest *CgiContext::handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
@@ -961,40 +957,29 @@ class fastcgi_plugin :
 	public x0::HttpPlugin,
 	public x0::IHttpRequestHandler
 {
-private:
-	CgiContext *acquire(x0::Scope& s)
-	{
-		CgiContext *cx = s.acquire<CgiContext>(this);
-		return cx;
-	}
-
-	std::error_code setApp(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		if (cvar.isTable())
-			printf("attention. I'm a table.\n");
-
-		return cvar.load(acquire(s)->app);
-	}
-
 public:
 	fastcgi_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		declareCVar("FastCgiApp", x0::HttpContext::host, &fastcgi_plugin::setApp);
 	}
 
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		CgiContext *cx = server_.resolveHost(in->hostid())->get<CgiContext>(this);
+		if (args.count() != 1 || !args[0].isString())
+			return false;
+
+		CgiContext *cx = acquireContext(args[0].toString());
 		if (!cx)
 			return false;
 
-		//if (!in->path.ends(".php"))
-		//	return false;
+		return cx->handleRequest(in, out);
+	}
 
-		cx->handleRequest(in, out);
-
-		return true;
+	CgiContext *acquireContext(const std::string& app)
+	{
+		CgiContext *cx = new CgiContext();
+		cx->setup(app);
+		return cx;
 	}
 };
 

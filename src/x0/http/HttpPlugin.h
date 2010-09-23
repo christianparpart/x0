@@ -23,6 +23,27 @@ namespace x0 {
 //! \addtogroup core
 //@{
 
+class Params
+{
+private:
+	size_t count_;
+	const Flow::Value *params_;
+
+public:
+	Params(int count, Flow::Value *params) :
+		count_(count), params_(params) {}
+
+	bool empty() const { return count_ == 0; }
+	size_t count() const { return count_; }
+	const Flow::Value& at(size_t i) const { return params_[i]; }
+	const Flow::Value& operator[](size_t i) const { return params_[i]; }
+
+	bool load(size_t i, bool& out) const;
+	bool load(size_t i, long long& out) const;
+	bool load(size_t i, std::string& out) const;
+	// ...
+};
+
 /**
  * \brief base class for all plugins for use within this x0 web server.
  *
@@ -63,7 +84,7 @@ public:
 
 	HttpServer& server() const;
 
-	virtual bool handleRequest(HttpRequest *request, HttpResponse *response);
+	virtual bool handleRequest(HttpRequest *request, HttpResponse *response, const Params& params);
 
 protected:
 	HttpServer& server_;

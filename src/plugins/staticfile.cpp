@@ -40,10 +40,6 @@ public:
 	{
 	}
 
-	~staticfile_plugin()
-	{
-	}
-
 private:
 	/**
 	 * verifies wether the client may use its cache or not.
@@ -89,7 +85,7 @@ private:
 		return x0::http_error::ok;
 	} // }}}
 
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out) // {{{
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args) // {{{
 	{
 		if (!in->fileinfo->exists())
 			return false;

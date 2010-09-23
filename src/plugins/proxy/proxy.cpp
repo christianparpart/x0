@@ -188,7 +188,7 @@ public:
 	}
 
 private:
-	bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		ProxyContext *px = get_proxy(in);
 		if (!px)

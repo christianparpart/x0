@@ -365,7 +365,7 @@ bool HttpServer::setup(const std::string& configFile)
 	registerHandler("group", &HttpServer::flow_group, this);
 	registerHandler("user", &HttpServer::flow_user, this);
 	registerFunction("mimetypes", Flow::Value::VOID, &HttpServer::flow_mimetypes, this);
-	registerFunction("print", Flow::Value::VOID, &HttpServer::flow_print, this);
+	registerFunction("log", Flow::Value::VOID, &HttpServer::flow_log, this);
 	registerFunction("sys.env", Flow::Value::STRING, &HttpServer::flow_sys_env, this);
 	registerVariable("sys.cwd", Flow::Value::STRING, &HttpServer::flow_sys_cwd, this);
 	registerVariable("sys.pid", Flow::Value::NUMBER, &HttpServer::flow_sys_pid, this);
@@ -421,7 +421,7 @@ void HttpServer::flow_plugins(void *p, int argc, Flow::Value *argv)
 	HttpServer *self = (HttpServer *)p;
 	argv[0] = false;
 
-	for (int i = 1; i < argc; ++i)
+	for (int i = 1; i <= argc; ++i)
 	{
 		if (!argv[i].isString())
 			continue;
@@ -501,7 +501,7 @@ void HttpServer::flow_sys_now_str(void *p, int argc, Flow::Value *argv)
 // }}}
 
 // {{{ flow: helper
-void HttpServer::flow_print(void *p, int argc, Flow::Value *argv)
+void HttpServer::flow_log(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
 
@@ -511,7 +511,7 @@ void HttpServer::flow_print(void *p, int argc, Flow::Value *argv)
 			printf("\t");
 
 		if (!self->printValue(argv[i])) {
-			self->log(Severity::error, "flow_print error: unknown value type (%d) for arg %d", argv[i].type(), i);
+			self->log(Severity::error, "flow_log error: unknown value type (%d) for arg %d", argv[i].type(), i);
 			fflush(stderr);
 		}
 	}

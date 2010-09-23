@@ -487,7 +487,7 @@ private:
 	 * and either processing executables is globally allowed or request path is part
 	 * of the cgi prefix (usually /cgi-bin/).
 	 */
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out) {
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args) {
 		std::string path(in->fileinfo->filename());
 
 		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);

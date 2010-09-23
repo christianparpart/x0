@@ -65,58 +65,31 @@ public:
 	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		using namespace std::placeholders;
-		declareCVar("DirectoryListing", x0::HttpContext::server | x0::HttpContext::host, &dirlisting_plugin::setup_dirlisting);
-
-		// default global to `true` (required for instant-mode, but I could *fix* this)
-		server().acquire<context>(this)->enabled = true;
-	}
-
-	~dirlisting_plugin()
-	{
-		server().release(this);
 	}
 
 private:
-	std::error_code setup_dirlisting(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(s.acquire<context>(this)->enabled);
-	}
-
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		if (!in->fileinfo->is_directory())
 			return false;
 
-		if (context *cx = server().resolveHost(in->hostid())->get<context>(this))
-			if (cx->enabled)
-				return process(in, out);
-
-		return false;
-	}
-
-	bool process(x0::HttpRequest *in, x0::HttpResponse *out)
-	{
-		if (DIR *dir = opendir(in->fileinfo->filename().c_str()))
-		{
-			x0::Buffer result(mkhtml(dir, in));
-
-			closedir(dir);
-
-			out->status = x0::http_error::ok;
-			out->headers.push_back("Content-Type", "text/html");
-			out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
-
-			out->write(
-				std::make_shared<x0::BufferSource>(std::move(result)),
-				std::bind(&x0::HttpResponse::finish, out)
-			);
-			return true;
-		}
-		else
-		{
+		DIR *dir = opendir(in->fileinfo->filename().c_str());
+		if (!dir)
 			return false;
-		}
+
+		x0::Buffer result(mkhtml(dir, in));
+
+		closedir(dir);
+
+		out->status = x0::http_error::ok;
+		out->headers.push_back("Content-Type", "text/html");
+		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
+
+		out->write(
+			std::make_shared<x0::BufferSource>(std::move(result)),
+			std::bind(&x0::HttpResponse::finish, out)
+		);
+		return true;
 	}
 
 	std::string mkhtml(DIR *dir, x0::HttpRequest *in)
