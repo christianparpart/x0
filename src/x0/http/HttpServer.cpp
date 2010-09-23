@@ -388,9 +388,9 @@ bool HttpServer::setup(const std::string& configFile)
 	registerFunction("docroot", Flow::Value::STRING, &HttpServer::flow_req_docroot, this);
 	registerHandler("respond", &HttpServer::flow_respond, this);
 	registerHandler("redirect", &HttpServer::flow_redirect, this);
-	registerVariable("req.method", Flow::Value::STRING, &HttpServer::flow_req_method, this);
-	registerVariable("req.uri", Flow::Value::STRING, &HttpServer::flow_req_url, this);
-	registerVariable("req.path", Flow::Value::STRING, &HttpServer::flow_req_path, this);
+	registerVariable("req.method", Flow::Value::BUFFER, &HttpServer::flow_req_method, this);
+	registerVariable("req.uri", Flow::Value::BUFFER, &HttpServer::flow_req_url, this);
+	registerVariable("req.path", Flow::Value::BUFFER, &HttpServer::flow_req_path, this);
 	registerFunction("req.header", Flow::Value::STRING, &HttpServer::flow_req_header, this);
 	registerVariable("req.host", Flow::Value::STRING, &HttpServer::flow_hostname, this);
 	registerVariable("req.remoteip", Flow::Value::STRING, &HttpServer::flow_remote_ip, this);
@@ -410,9 +410,12 @@ bool HttpServer::setup(const std::string& configFile)
 	if (!onHandleRequest_)
 		return false;
 
+	//runner_->dump();
+
 	return true;
 }
 
+// {{{ flow: setup
 void HttpServer::flow_plugins(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
@@ -465,7 +468,9 @@ void HttpServer::flow_user(void *p, int argc, Flow::Value *argv)
 {
 //	HttpServer *self = (HttpServer *)p;
 }
+// }}}
 
+// {{{ flow: general
 void HttpServer::flow_sys_env(void *, int argc, Flow::Value *argv)
 {
 	argv[0] = getenv(argv[1].toString());
@@ -493,33 +498,65 @@ void HttpServer::flow_sys_now_str(void *p, int argc, Flow::Value *argv)
 	HttpServer *self = (HttpServer *)p;
 	argv[0] = self->now_.http_str().c_str();
 }
+// }}}
 
-void HttpServer::flow_print(void *, int argc, Flow::Value *argv)
+// {{{ flow: helper
+void HttpServer::flow_print(void *p, int argc, Flow::Value *argv)
 {
-	for (int i = 1; i < argc; ++i)
+	HttpServer *self = (HttpServer *)p;
+
+	for (int i = 1; i <= argc; ++i)
 	{
 		if (i > 1)
 			printf("\t");
 
-		switch (argv[i].type_)
-		{
-			case Flow::Value::BOOLEAN:
-				printf(argv[i].toBool() ? "true" : "false");
-				break;
-			case Flow::Value::NUMBER:
-				printf("%lld", argv[i].toNumber());
-				break;
-			case Flow::Value::STRING:
-				printf("%s", argv[i].toString());
-				break;
-			default:
-				fprintf(stderr, "flow_print error: unknown value type (%d) for arg %d\n", argv[i].type(), i);
-				fflush(stderr);
-				break;
+		if (!self->printValue(argv[i])) {
+			self->log(Severity::error, "flow_print error: unknown value type (%d) for arg %d", argv[i].type(), i);
+			fflush(stderr);
 		}
 	}
 	printf("\n");
 }
+
+bool HttpServer::printValue(const Flow::Value& value)
+{
+	fflush(stderr);
+	switch (value.type_)
+	{
+		case Flow::Value::BOOLEAN:
+			printf(value.toBool() ? "true" : "false");
+			break;
+		case Flow::Value::NUMBER:
+			printf("%lld", value.toNumber());
+			break;
+		case Flow::Value::STRING:
+			printf("%s", value.toString());
+			break;
+		case Flow::Value::BUFFER: {
+			long long length = value.toNumber();
+			const char *p = value.toString();
+			std::string data(p, p + length);
+			printf("\"%s\"", data.c_str());
+			break;
+		}
+		case Flow::Value::ARRAY: {
+			const Flow::Value *p = value.toArray();
+			printf("(");
+			for (int k = 0; p[k].type() != Flow::Value::VOID; ++k) {
+				if (k) printf(", ");
+				printValue(p[k]);
+			}
+			printf(")");
+
+			break;
+		}
+		default:
+			return false;
+	}
+
+	return true;
+}
+// }}}
 
 // {{{ flow: main
 // get request's document root
@@ -547,13 +584,13 @@ void HttpServer::flow_req_method(void *p, int argc, Flow::Value *argv)
 void HttpServer::flow_req_url(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
-	argv[0] = strdup(self->in_->uri.str().c_str()); // FIXME strdup = bad. fix string rep in flow to pascal-like strings!
+	argv[0].set(self->in_->uri.data(), self->in_->uri.size());
 }
 
 void HttpServer::flow_req_path(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
-	argv[0] = strdup(self->in_->path.str().c_str()); // FIXME strdup = bad. fix string rep in flow to pascal-like strings!
+	argv[0].set(self->in_->path.data(), self->in_->path.size());
 }
 
 // get request header

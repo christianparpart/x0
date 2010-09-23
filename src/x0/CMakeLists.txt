@@ -148,9 +148,8 @@ add_library(x0 SHARED ${x0_SRC})
 install(TARGETS x0 DESTINATION ${LIBDIR})
 
 target_link_libraries(x0
-	boost_system boost_signals boost_thread
-	flow
 	dl pthread
+	${FLOW_LIBS}
 	${LUA_LIBRARIES}
 	${ZLIB_LIBS}
 	${BZIP2_LIBS}

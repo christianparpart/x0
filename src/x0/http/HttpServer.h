@@ -167,6 +167,7 @@ private:
 
 	// flow core API (general)
 	static void flow_print(void *p, int argc, Flow::Value *argv);
+	bool printValue(const Flow::Value& value);
 	static void flow_sys_env(void *p, int argc, Flow::Value *argv);
 	static void flow_sys_cwd(void *p, int argc, Flow::Value *argv);
 	static void flow_sys_pid(void *p, int argc, Flow::Value *argv);

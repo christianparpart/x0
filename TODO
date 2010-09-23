@@ -1,5 +1,8 @@
 for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects/x0
 
+- x0d: command line option for dumping IR into file
+- flow backend: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
+
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
