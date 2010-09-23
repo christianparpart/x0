@@ -31,8 +31,7 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class staticfile_plugin :
-	public x0::HttpPlugin,
-	public x0::IHttpRequestHandler
+	public x0::HttpPlugin
 {
 private:
 public:

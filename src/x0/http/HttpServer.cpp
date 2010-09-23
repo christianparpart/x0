@@ -20,6 +20,12 @@
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
 
+#include <flow/flow.h>
+#include <flow/value.h>
+#include <flow/parser.h>
+#include <flow/runner.h>
+#include <flow/backend.h>
+
 #include <iostream>
 #include <cstdarg>
 #include <cstdlib>
@@ -48,12 +54,17 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	onPreProcess(),
 	onResolveDocumentRoot(),
 	onResolveEntity(),
-	onHandleRequest(),
 	onPostProcess(),
 	onRequestDone(),
 	onConnectionClose(),
 	components_(),
 	vhosts_(),
+
+	runner_(NULL),
+	onHandleRequest_(),
+	in_(NULL),
+	out_(NULL),
+
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
 	active_(false),
@@ -135,6 +146,7 @@ inline bool _contains(const std::vector<std::string>& list, const std::string& v
 	return false;
 }
 
+#if 0
 /**
  * configures the server ready to be started.
  */
@@ -316,6 +328,357 @@ bool HttpServer::configure(const std::string& configfile)
 
 	return true;
 }
+#else
+void wrap_log_parser_error(HttpServer *srv, const char *cat, const std::string& msg)
+{
+	printf("%s: %s\n", cat, msg.c_str());
+	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
+}
+
+bool HttpServer::setup(const std::string& configFile)
+{
+	Flow::Parser parser;
+	parser.setErrorHandler(std::bind(&wrap_log_parser_error, this, "parser", std::placeholders::_1));
+	if (!parser.open(configFile)) {
+		perror("open");
+		return false;
+	}
+
+	configfile_ = configFile;
+
+	Flow::Unit *unit = parser.parse();
+	if (!unit)
+		return false;
+
+	Flow::Function *fn = unit->lookup<Flow::Function>("setup");
+	if (!fn) {
+		printf("%s: no setup handler defined.\n", configFile.c_str());
+		return false;
+	}
+
+	runner_ = new Flow::Runner(this);
+	runner_->setErrorHandler(std::bind(&wrap_log_parser_error, this, "parser", std::placeholders::_1));
+
+	// register setup API
+	registerHandler("plugins", &HttpServer::flow_plugins, this);
+	registerHandler("listen", &HttpServer::flow_listen, this);
+	registerHandler("group", &HttpServer::flow_group, this);
+	registerHandler("user", &HttpServer::flow_user, this);
+	registerFunction("mimetypes", Flow::Value::VOID, &HttpServer::flow_mimetypes, this);
+	registerFunction("print", Flow::Value::VOID, &HttpServer::flow_print, this);
+	registerFunction("sys.env", Flow::Value::STRING, &HttpServer::flow_sys_env, this);
+	registerVariable("sys.cwd", Flow::Value::STRING, &HttpServer::flow_sys_cwd, this);
+	registerVariable("sys.pid", Flow::Value::NUMBER, &HttpServer::flow_sys_pid, this);
+	registerFunction("sys.now", Flow::Value::NUMBER, &HttpServer::flow_sys_now, this);
+	registerFunction("sys.now_str", Flow::Value::STRING, &HttpServer::flow_sys_now_str, this);
+
+	Flow::Runner::HandlerFunction setupFn = runner_->compile(fn);
+
+	if (!setupFn || setupFn())
+		return false;
+
+	// flow: unregister setup API
+	unregisterNative("mimetypes");
+	unregisterNative("plugins");
+	unregisterNative("listen");
+	unregisterNative("group");
+	unregisterNative("user");
+
+	// flow: register main API
+	registerFunction("docroot", Flow::Value::STRING, &HttpServer::flow_req_docroot, this);
+	registerHandler("respond", &HttpServer::flow_respond, this);
+	registerHandler("redirect", &HttpServer::flow_redirect, this);
+	registerVariable("req.method", Flow::Value::STRING, &HttpServer::flow_req_method, this);
+	registerVariable("req.uri", Flow::Value::STRING, &HttpServer::flow_req_url, this);
+	registerVariable("req.path", Flow::Value::STRING, &HttpServer::flow_req_path, this);
+	registerFunction("req.header", Flow::Value::STRING, &HttpServer::flow_req_header, this);
+	registerVariable("req.host", Flow::Value::STRING, &HttpServer::flow_hostname, this);
+	registerVariable("req.remoteip", Flow::Value::STRING, &HttpServer::flow_remote_ip, this);
+	registerVariable("req.remoteport", Flow::Value::NUMBER, &HttpServer::flow_remote_port, this);
+	registerVariable("req.localip", Flow::Value::STRING, &HttpServer::flow_local_ip, this);
+	registerVariable("req.localport", Flow::Value::NUMBER, &HttpServer::flow_local_port, this);
+	registerVariable("phys.exists", Flow::Value::BOOLEAN, &HttpServer::flow_file_exists, this);
+	registerVariable("phys.is_dir", Flow::Value::BOOLEAN, &HttpServer::flow_file_is_dir, this);
+	registerVariable("phys.is_reg", Flow::Value::BOOLEAN, &HttpServer::flow_file_is_reg, this);
+	registerVariable("phys.is_exe", Flow::Value::BOOLEAN, &HttpServer::flow_file_is_exe, this);
+	registerVariable("phys.mtime", Flow::Value::NUMBER, &HttpServer::flow_file_mtime, this);
+	registerVariable("phys.size", Flow::Value::NUMBER, &HttpServer::flow_file_size, this);
+	registerVariable("phys.etag", Flow::Value::STRING, &HttpServer::flow_file_etag, this);
+	registerVariable("phys.mimetype", Flow::Value::STRING, &HttpServer::flow_file_mimetype, this);
+
+	onHandleRequest_ = runner_->compile(unit->lookup<Flow::Function>("main"));
+	if (!onHandleRequest_)
+		return false;
+
+	return true;
+}
+
+void HttpServer::flow_plugins(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	argv[0] = false;
+
+	for (int i = 1; i < argc; ++i)
+	{
+		if (!argv[i].isString())
+			continue;
+
+		const char *pluginName = argv[i].toString();
+		std::error_code ec;
+		self->loadPlugin(pluginName, ec);
+		if (ec) {
+			self->log(Severity::error, "%s: %s", pluginName, ec.message().c_str());
+			//break;
+		}
+	}
+}
+
+void HttpServer::flow_mimetypes(void *p, int argc, Flow::Value *argv)
+{
+	//HttpServer *self = (HttpServer *)p;
+	argv[0] = false;
+}
+
+void HttpServer::flow_listen(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	std::string arg(argv[1].toString());
+	size_t n = arg.find(':');
+	std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
+	int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
+
+	HttpListener *listener = self->setupListener(port, ip);
+	if (listener != NULL) {
+		argv[0] = false;
+	} else {
+		argv[0] = true;
+	}
+}
+
+void HttpServer::flow_group(void *p, int argc, Flow::Value *argv)
+{
+//	HttpServer *self = (HttpServer *)p;
+}
+
+void HttpServer::flow_user(void *p, int argc, Flow::Value *argv)
+{
+//	HttpServer *self = (HttpServer *)p;
+}
+
+void HttpServer::flow_sys_env(void *, int argc, Flow::Value *argv)
+{
+	argv[0] = getenv(argv[1].toString());
+}
+
+void HttpServer::flow_sys_cwd(void *, int argc, Flow::Value *argv)
+{
+	static char buf[1024];
+	argv[0] = getcwd(buf, sizeof(buf));
+}
+
+void HttpServer::flow_sys_pid(void *, int argc, Flow::Value *argv)
+{
+	argv[0] = (long long) getpid();
+}
+
+void HttpServer::flow_sys_now(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	argv[0] = (long long) self->now_.unixtime();
+}
+
+void HttpServer::flow_sys_now_str(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	argv[0] = self->now_.http_str().c_str();
+}
+
+void HttpServer::flow_print(void *, int argc, Flow::Value *argv)
+{
+	for (int i = 1; i < argc; ++i)
+	{
+		if (i > 1)
+			printf("\t");
+
+		switch (argv[i].type_)
+		{
+			case Flow::Value::BOOLEAN:
+				printf(argv[i].toBool() ? "true" : "false");
+				break;
+			case Flow::Value::NUMBER:
+				printf("%lld", argv[i].toNumber());
+				break;
+			case Flow::Value::STRING:
+				printf("%s", argv[i].toString());
+				break;
+			default:
+				fprintf(stderr, "flow_print error: unknown value type (%d) for arg %d\n", argv[i].type(), i);
+				fflush(stderr);
+				break;
+		}
+	}
+	printf("\n");
+}
+
+// {{{ flow: main
+// get request's document root
+void HttpServer::flow_req_docroot(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	if (argc == 2)
+	{
+		in->document_root = argv[1].toString();
+		in->fileinfo = self->fileinfo(in->document_root + in->path);
+	}
+	else
+		argv[0] = in->document_root.c_str();
+}
+
+void HttpServer::flow_req_method(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	argv[0] = strdup(self->in_->method.str().c_str()); // FIXME strdup = bad. fix string rep in flow to pascal-like strings!
+}
+
+// get request URL
+void HttpServer::flow_req_url(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	argv[0] = strdup(self->in_->uri.str().c_str()); // FIXME strdup = bad. fix string rep in flow to pascal-like strings!
+}
+
+void HttpServer::flow_req_path(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	argv[0] = strdup(self->in_->path.str().c_str()); // FIXME strdup = bad. fix string rep in flow to pascal-like strings!
+}
+
+// get request header
+void HttpServer::flow_req_header(void *p, int argc, Flow::Value *argv)
+{
+//	in_->document_root = argv[1].toString();
+	argv[0] = "TODO";
+}
+
+// handler: write response, with args: (int code);
+void HttpServer::flow_respond(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	if (argc == 2 && argv[1].isNumber())
+		self->out_->status = static_cast<http_error>(argv[1].toNumber());
+
+	self->out_->finish();
+	argv[0] = true;
+}
+
+// handler: redirect client to URL
+void HttpServer::flow_redirect(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	self->out_->status = http_error::moved_temporarily;
+	self->out_->headers.set("Redirect", argv[1].toString());
+	self->out_->finish();
+
+	argv[0] = true;
+}
+
+void HttpServer::flow_hostname(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = strdup(self->in_->hostname.str().c_str());
+}
+
+void HttpServer::flow_remote_ip(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->connection.remote_ip().c_str();
+}
+
+void HttpServer::flow_remote_port(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->connection.remote_port();
+}
+
+void HttpServer::flow_local_ip(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->connection.local_ip().c_str();
+}
+
+void HttpServer::flow_local_port(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->connection.local_port();
+}
+
+void HttpServer::HttpServer::flow_file_exists(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->fileinfo->exists();
+}
+
+void HttpServer::flow_file_is_dir(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->fileinfo->is_directory();
+}
+
+void HttpServer::flow_file_is_reg(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->fileinfo->is_regular();
+}
+
+void HttpServer::flow_file_is_exe(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->fileinfo->is_executable();
+}
+
+void HttpServer::flow_file_mtime(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = (long long) self->in_->fileinfo->mtime();
+}
+
+void HttpServer::flow_file_size(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = (long long) self->in_->fileinfo->size();
+}
+
+void HttpServer::flow_file_etag(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->fileinfo->etag().c_str();
+}
+
+void HttpServer::flow_file_mimetype(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	argv[0] = self->in_->fileinfo->mimetype().c_str();
+}
+// }}}
+#endif
 
 bool HttpServer::start()
 {
@@ -356,8 +719,13 @@ void HttpServer::run()
 
 void HttpServer::handleRequest(HttpRequest *in, HttpResponse *out)
 {
-	TRACE(2, "handleRequest()");
+	in_ = in;
+	out_ = out;
 
+	if (!onHandleRequest_())
+		out->finish();
+
+#if 0
 	// pre-request hook
 	onPreProcess(const_cast<HttpRequest *>(in));
 
@@ -408,6 +776,7 @@ void HttpServer::handleRequest(HttpRequest *in, HttpResponse *out)
 	{
 		out->finish();
 	}
+#endif
 }
 
 HttpListener *HttpServer::listenerByHost(const std::string& hostid) const
@@ -549,6 +918,8 @@ HttpListener *HttpServer::setupListener(int port, const std::string& bind_addres
 
 	listeners_.push_back(lp);
 
+	//log(Severity::debug, "Listening on %s:%d", bind_address.c_str(), port);
+
 	return lp;
 }
 
@@ -646,19 +1017,16 @@ HttpPlugin *HttpServer::registerPlugin(HttpPlugin *plugin)
 {
 	plugins_.push_back(plugin);
 
-	if (IHttpRequestHandler *handler = dynamic_cast<IHttpRequestHandler *>(plugin))
-		onHandleRequest.connect(handler);
+	registerHandler(plugin->name(), &HttpPlugin::process, plugin);
 
 	return plugin;
 }
 
 HttpPlugin *HttpServer::unregisterPlugin(HttpPlugin *plugin)
 {
-	if (IHttpRequestHandler *handler = dynamic_cast<IHttpRequestHandler *>(plugin))
-		onHandleRequest.disconnect(handler);
-
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i) {
 		if (*i == plugin) {
+			unregisterNative(plugin->name());
 			plugins_.erase(i);
 			break;
 		}

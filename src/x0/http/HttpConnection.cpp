@@ -365,6 +365,15 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 
 void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
 {
+	if (iequals(name, "Host"))
+	{
+		auto i = value.find(':');
+		if (i != BufferRef::npos)
+			request_->hostname = value.ref(0, i);
+		else
+			request_->hostname = value;
+	}
+
 	request_->headers.push_back(HttpRequestHeader(std::move(name), std::move(value)));
 }
 

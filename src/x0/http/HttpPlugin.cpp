@@ -7,6 +7,7 @@
  */
 
 #include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpRequest.h>
 
 namespace x0 {
 
@@ -68,12 +69,33 @@ bool HttpPlugin::post_config()
 }
 
 /** post-check hook, gets invoked after <b>every</b> configuration hook has been proceed successfully.
+ *
  * \retval true everything turned out well.
  * \retval false something went wrong and x0 should not startup.
  */
 bool HttpPlugin::post_check()
 {
 	return true;
+}
+
+/** request handler
+ *
+ * \retval true this plugin is taking over the request, handling it.
+ * \retval false we do not want this request..
+ */
+bool HttpPlugin::handleRequest(HttpRequest *request, HttpResponse *response)
+{
+	return false;
+}
+
+void HttpPlugin::process(void *p, int argc, Flow::Value *argv)
+{
+	HttpPlugin *self = (HttpPlugin *)p;
+
+	HttpRequest *in = self->server_.in_;
+	HttpResponse *out = self->server_.out_;
+
+	argv[0] = self->handleRequest(in, out);
 }
 
 } // namespace x0

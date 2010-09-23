@@ -3,7 +3,10 @@ include_directories(${ASIO_INCLUDEDIR})
 include_directories(${BOOST_INCLUDEDIR})
 include_directories(${LUA_INCLUDE_DIRS})
 
+set(LLVM_CFLAGS -D_DEBUG -D_GNU_SOURCE -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS CACHE STRING "llvm cflags")
+
 add_definitions(
+	${LLVM_CFLAGS}
 	-Dlinux=1
 	-Wall -Wno-deprecated
 	-pthread
@@ -21,6 +24,11 @@ target_link_libraries(x0d x0)
 
 install(TARGETS x0d RUNTIME DESTINATION sbin)
 install(FILES x0d.conf-dist DESTINATION etc)
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/flow/CMakeLists.txt)
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/flow)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/flow)
+endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/flow/CMakeLists.txt)
 
 add_subdirectory(x0)
 add_subdirectory(plugins)

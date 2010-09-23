@@ -47,6 +47,7 @@ public:
 	BufferRef query;							///< decoded query-part
 	int http_version_major;						///< HTTP protocol version major part that this request was formed in
 	int http_version_minor;						///< HTTP protocol version minor part that this request was formed in
+	BufferRef hostname;							///< Host header field.
 	std::vector<HttpRequestHeader> headers;		///< request headers
 
 	/** retrieve value of a given request header */

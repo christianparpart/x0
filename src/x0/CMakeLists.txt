@@ -149,8 +149,9 @@ install(TARGETS x0 DESTINATION ${LIBDIR})
 
 target_link_libraries(x0
 	boost_system boost_signals boost_thread
-	${LUA_LIBRARIES}
+	flow
 	dl pthread
+	${LUA_LIBRARIES}
 	${ZLIB_LIBS}
 	${BZIP2_LIBS}
 	${LIBEV_LIBS}

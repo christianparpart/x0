@@ -69,7 +69,7 @@ public:
 	{
 #ifndef NDEBUG
 		nofork_ = true;
-		configfile_ = "test.conf";
+		configfile_ = "../../../src/test.conf";
 		server_.logLevel(x0::Severity::debug5);
 #endif
 		instance_ = this;
@@ -213,7 +213,7 @@ public:
 
 		bool rv = !instant_.empty()
 			? setupInstantMode()
-			: server_.configure(configfile_);
+			: server_.setup(configfile_);
 
 		if (!rv)
 		{

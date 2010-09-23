@@ -63,6 +63,8 @@ public:
 
 	HttpServer& server() const;
 
+	virtual bool handleRequest(HttpRequest *request, HttpResponse *response);
+
 protected:
 	HttpServer& server_;
 	std::string name_;
@@ -71,6 +73,10 @@ protected:
 #if !defined(NDEBUG)
 	int debug_level_;
 #endif
+
+	static void process(void *, int argc, Flow::Value *argv);
+
+	friend class HttpServer;
 };
 
 // {{{ inlines
