@@ -527,15 +527,14 @@ inline std::string BufferRef::str() const
 inline std::string BufferRef::substr(std::size_t offset) const
 {
 	assert(buffer_ != 0);
-	//return std::string(data() + offset, size_ - std::min(offset, size_));
-	std::string rv = std::string(data() + offset, size_ - std::min(offset, size_));
-	printf("BufferRef.substr(%ld):\"%s\"\n", offset, rv.c_str());
-	return rv;
+	assert(offset <= size_);
+	return std::string(data() + offset, size_ - std::min(offset, size_));
 }
 
 inline std::string BufferRef::substr(std::size_t offset, std::size_t count) const
 {
 	assert(buffer_ != 0);
+	assert(offset + count <= size_);
 	return std::string(data() + offset, std::min(count, size_));
 }
 
