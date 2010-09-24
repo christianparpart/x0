@@ -124,6 +124,7 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	listener_(lst),
 	server_(lst.server()),
 	socket_(0),
+	active_(true), // when this is constricuted, it *must* be active right now :) 
 	remote_ip_(),
 	remote_port_(0),
 	buffer_(8192),
@@ -206,6 +207,7 @@ HttpConnection::~HttpConnection()
 void HttpConnection::io(Socket *)
 {
 	TRACE("(%p).io(mode=%s)", this, socket_->mode_str());
+	active_ = true;
 
 	switch (socket_->mode())
 	{
@@ -221,6 +223,8 @@ void HttpConnection::io(Socket *)
 
 	if (isClosed())
 		delete this;
+	else
+		active_ = false;
 }
 
 #if defined(WITH_CONNECTION_TIMEOUTS)
@@ -266,6 +270,8 @@ void HttpConnection::start()
 		// XXX this is usually done within HttpConnection::io(), but we are not.
 		if (isClosed())
 			delete this;
+		else
+			active_ = false;
 #else
 		//TRACE("start: startRead.");
 		// client connected, but we do not yet know if we have data pending
@@ -581,10 +587,13 @@ void HttpConnection::processOutput()
  */
 void HttpConnection::close()
 {
-	TRACE("(%p).close()", this);
-	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
+	TRACE("(%p).close() (active=%d)", this, active_);
+	TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	socket_->close();
+
+	if (!active_)
+		delete this;
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.

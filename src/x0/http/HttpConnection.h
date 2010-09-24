@@ -114,6 +114,7 @@ private:
 	HttpServer& server_;				//!< server object owning this connection
 
 	Socket *socket_;					//!< underlying communication socket
+	bool active_;						//!< socket is active (some I/O event raised within this cycle)
 	sockaddr_in6 saddr_;
 
 	mutable std::string remote_ip_;		//!< internal cache to client ip
