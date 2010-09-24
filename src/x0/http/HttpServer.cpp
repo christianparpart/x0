@@ -450,8 +450,12 @@ void HttpServer::flow_plugins(void *p, int argc, Flow::Value *argv)
 
 void HttpServer::flow_mimetypes(void *p, int argc, Flow::Value *argv)
 {
-	//HttpServer *self = (HttpServer *)p;
-	argv[0] = false;
+	HttpServer *self = (HttpServer *)p;
+
+	if (argc == 1 && argv[1].isString())
+	{
+		self->fileinfo.load_mimetypes(argv[1].toString());
+	}
 }
 
 void HttpServer::flow_listen(void *p, int argc, Flow::Value *argv)
