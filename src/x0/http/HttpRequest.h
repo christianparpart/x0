@@ -36,6 +36,7 @@ struct X0_API HttpRequest
 {
 public:
 	explicit HttpRequest(HttpConnection& connection);
+	~HttpRequest();
 
 	HttpConnection& connection;					///< the TCP/IP connection this request has been sent through
 
@@ -100,6 +101,11 @@ inline HttpRequest::HttpRequest(HttpConnection& conn) :
 	hostid_(),
 	read_callback_()
 {
+}
+
+inline HttpRequest::~HttpRequest()
+{
+	printf("~HttpRequest()\n");
 }
 
 inline bool HttpRequest::supports_protocol(int major, int minor) const

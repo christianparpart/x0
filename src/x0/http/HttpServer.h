@@ -157,7 +157,7 @@ public:
 	HttpListener *listenerByHost(const std::string& hostid) const;
 	HttpListener *listenerByPort(int port) const;
 
-private:
+private: // {{{ flow backend API
 	// flow core API (setup stage)
 	static void flow_plugins(void *p, int argc, Flow::Value *argv);
 	static void flow_mimetypes(void *p, int argc, Flow::Value *argv);
@@ -175,28 +175,38 @@ private:
 	static void flow_sys_now_str(void *p, int argc, Flow::Value *argv);
 
 	// flow API: (main)
+	// (request)
 	static void flow_req_docroot(void *p, int argc, Flow::Value *argv);
 	static void flow_req_method(void *p, int argc, Flow::Value *argv);
 	static void flow_req_url(void *p, int argc, Flow::Value *argv);
 	static void flow_req_path(void *p, int argc, Flow::Value *argv);
 	static void flow_req_header(void *p, int argc, Flow::Value *argv);
 	static void flow_hostname(void *p, int argc, Flow::Value *argv);
-	static void flow_respond(void *p, int argc, Flow::Value *argv);
-	static void flow_redirect(void *p, int argc, Flow::Value *argv);
 
+	// (response)
+	static void flow_redirect(void *p, int argc, Flow::Value *argv);
+	static void flow_respond(void *p, int argc, Flow::Value *argv);
+	static void flow_header_add(void *p, int argc, Flow::Value *argv);
+	static void flow_header_append(void *p, int argc, Flow::Value *argv);
+	static void flow_header_overwrite(void *p, int argc, Flow::Value *argv);
+	static void flow_header_remove(void *p, int argc, Flow::Value *argv);
+
+	// (connection)
 	static void flow_remote_ip(void *p, int argc, Flow::Value *argv);
 	static void flow_remote_port(void *p, int argc, Flow::Value *argv);
 	static void flow_local_ip(void *p, int argc, Flow::Value *argv);
 	static void flow_local_port(void *p, int argc, Flow::Value *argv);
 
-	static void flow_file_exists(void *p, int argc, Flow::Value *argv);
-	static void flow_file_is_dir(void *p, int argc, Flow::Value *argv);
-	static void flow_file_is_reg(void *p, int argc, Flow::Value *argv);
-	static void flow_file_is_exe(void *p, int argc, Flow::Value *argv);
-	static void flow_file_mtime(void *p, int argc, Flow::Value *argv);
-	static void flow_file_size(void *p, int argc, Flow::Value *argv);
-	static void flow_file_etag(void *p, int argc, Flow::Value *argv);
-	static void flow_file_mimetype(void *p, int argc, Flow::Value *argv);
+	// (physical file)
+	static void flow_phys_exists(void *p, int argc, Flow::Value *argv);
+	static void flow_phys_is_dir(void *p, int argc, Flow::Value *argv);
+	static void flow_phys_is_reg(void *p, int argc, Flow::Value *argv);
+	static void flow_phys_is_exe(void *p, int argc, Flow::Value *argv);
+	static void flow_phys_mtime(void *p, int argc, Flow::Value *argv);
+	static void flow_phys_size(void *p, int argc, Flow::Value *argv);
+	static void flow_phys_etag(void *p, int argc, Flow::Value *argv);
+	static void flow_phys_mimetype(void *p, int argc, Flow::Value *argv);
+	// }}}
 
 private:
 #if defined(WITH_SSL)

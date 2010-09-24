@@ -14,7 +14,7 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 # ---------------------------------------------------------------------------
-#x0_plugin_simple(accesslog)
+x0_plugin_simple(accesslog)
 #x0_plugin_simple(alias)
 #x0_plugin_simple(cgi)
 x0_plugin_simple(fastcgi)

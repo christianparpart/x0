@@ -328,7 +328,7 @@ bool HttpServer::configure(const std::string& configfile)
 
 	return true;
 }
-#else
+#endif
 void wrap_log_parser_error(HttpServer *srv, const char *cat, const std::string& msg)
 {
 	printf("%s: %s\n", cat, msg.c_str());
@@ -385,26 +385,38 @@ bool HttpServer::setup(const std::string& configFile)
 	unregisterNative("user");
 
 	// flow: register main API
-	registerFunction("docroot", Flow::Value::STRING, &HttpServer::flow_req_docroot, this);
-	registerHandler("respond", &HttpServer::flow_respond, this);
-	registerHandler("redirect", &HttpServer::flow_redirect, this);
+	// connection
+	registerVariable("req.remoteip", Flow::Value::STRING, &HttpServer::flow_remote_ip, this);
+	registerVariable("req.remoteport", Flow::Value::NUMBER, &HttpServer::flow_remote_port, this);
+	registerVariable("req.localip", Flow::Value::STRING, &HttpServer::flow_local_ip, this);
+	registerVariable("req.localport", Flow::Value::NUMBER, &HttpServer::flow_local_port, this);
+
+	// request
 	registerVariable("req.method", Flow::Value::BUFFER, &HttpServer::flow_req_method, this);
 	registerVariable("req.uri", Flow::Value::BUFFER, &HttpServer::flow_req_url, this);
 	registerVariable("req.path", Flow::Value::BUFFER, &HttpServer::flow_req_path, this);
 	registerFunction("req.header", Flow::Value::STRING, &HttpServer::flow_req_header, this);
 	registerVariable("req.host", Flow::Value::STRING, &HttpServer::flow_hostname, this);
-	registerVariable("req.remoteip", Flow::Value::STRING, &HttpServer::flow_remote_ip, this);
-	registerVariable("req.remoteport", Flow::Value::NUMBER, &HttpServer::flow_remote_port, this);
-	registerVariable("req.localip", Flow::Value::STRING, &HttpServer::flow_local_ip, this);
-	registerVariable("req.localport", Flow::Value::NUMBER, &HttpServer::flow_local_port, this);
-	registerVariable("phys.exists", Flow::Value::BOOLEAN, &HttpServer::flow_file_exists, this);
-	registerVariable("phys.is_dir", Flow::Value::BOOLEAN, &HttpServer::flow_file_is_dir, this);
-	registerVariable("phys.is_reg", Flow::Value::BOOLEAN, &HttpServer::flow_file_is_reg, this);
-	registerVariable("phys.is_exe", Flow::Value::BOOLEAN, &HttpServer::flow_file_is_exe, this);
-	registerVariable("phys.mtime", Flow::Value::NUMBER, &HttpServer::flow_file_mtime, this);
-	registerVariable("phys.size", Flow::Value::NUMBER, &HttpServer::flow_file_size, this);
-	registerVariable("phys.etag", Flow::Value::STRING, &HttpServer::flow_file_etag, this);
-	registerVariable("phys.mimetype", Flow::Value::STRING, &HttpServer::flow_file_mimetype, this);
+
+	registerFunction("docroot", Flow::Value::STRING, &HttpServer::flow_req_docroot, this);
+
+	// response
+	registerHandler("respond", &HttpServer::flow_respond, this);
+	registerHandler("redirect", &HttpServer::flow_redirect, this);
+	registerFunction("header.add", Flow::Value::VOID, &HttpServer::flow_header_add, this);
+	registerFunction("header.append", Flow::Value::VOID, &HttpServer::flow_header_append, this);
+	registerFunction("header.overwrite", Flow::Value::VOID, &HttpServer::flow_header_overwrite, this);
+	registerFunction("header.remove", Flow::Value::VOID, &HttpServer::flow_header_remove, this);
+
+	// phys
+	registerVariable("phys.exists", Flow::Value::BOOLEAN, &HttpServer::flow_phys_exists, this);
+	registerVariable("phys.is_dir", Flow::Value::BOOLEAN, &HttpServer::flow_phys_is_dir, this);
+	registerVariable("phys.is_reg", Flow::Value::BOOLEAN, &HttpServer::flow_phys_is_reg, this);
+	registerVariable("phys.is_exe", Flow::Value::BOOLEAN, &HttpServer::flow_phys_is_exe, this);
+	registerVariable("phys.mtime", Flow::Value::NUMBER, &HttpServer::flow_phys_mtime, this);
+	registerVariable("phys.size", Flow::Value::NUMBER, &HttpServer::flow_phys_size, this);
+	registerVariable("phys.etag", Flow::Value::STRING, &HttpServer::flow_phys_etag, this);
+	registerVariable("phys.mimetype", Flow::Value::STRING, &HttpServer::flow_phys_mimetype, this);
 
 	onHandleRequest_ = runner_->compile(unit->lookup<Flow::Function>("main"));
 	if (!onHandleRequest_)
@@ -559,78 +571,7 @@ bool HttpServer::printValue(const Flow::Value& value)
 // }}}
 
 // {{{ flow: main
-// get request's document root
-void HttpServer::flow_req_docroot(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-	HttpRequest *in = self->in_;
-
-	if (argc == 2)
-	{
-		in->document_root = argv[1].toString();
-		in->fileinfo = self->fileinfo(in->document_root + in->path);
-	}
-	else
-		argv[0] = in->document_root.c_str();
-}
-
-void HttpServer::flow_req_method(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-	argv[0] = strdup(self->in_->method.str().c_str()); // FIXME strdup = bad. fix string rep in flow to pascal-like strings!
-}
-
-// get request URL
-void HttpServer::flow_req_url(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-	argv[0].set(self->in_->uri.data(), self->in_->uri.size());
-}
-
-void HttpServer::flow_req_path(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-	argv[0].set(self->in_->path.data(), self->in_->path.size());
-}
-
-// get request header
-void HttpServer::flow_req_header(void *p, int argc, Flow::Value *argv)
-{
-//	in_->document_root = argv[1].toString();
-	argv[0] = "TODO";
-}
-
-// handler: write response, with args: (int code);
-void HttpServer::flow_respond(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-
-	if (argc == 2 && argv[1].isNumber())
-		self->out_->status = static_cast<http_error>(argv[1].toNumber());
-
-	self->out_->finish();
-	argv[0] = true;
-}
-
-// handler: redirect client to URL
-void HttpServer::flow_redirect(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-
-	self->out_->status = http_error::moved_temporarily;
-	self->out_->headers.set("Redirect", argv[1].toString());
-	self->out_->finish();
-
-	argv[0] = true;
-}
-
-void HttpServer::flow_hostname(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-
-	argv[0] = strdup(self->in_->hostname.str().c_str());
-}
-
+// {{{ connection
 void HttpServer::flow_remote_ip(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
@@ -658,64 +599,170 @@ void HttpServer::flow_local_port(void *p, int argc, Flow::Value *argv)
 
 	argv[0] = self->in_->connection.local_port();
 }
+// }}}
 
-void HttpServer::HttpServer::flow_file_exists(void *p, int argc, Flow::Value *argv)
+// {{{ request
+// get request's document root
+void HttpServer::flow_req_docroot(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
 
-	argv[0] = self->in_->fileinfo->exists();
+	if (argc == 1)
+	{
+		in->document_root = argv[1].toString();
+		in->fileinfo = self->fileinfo(in->document_root + in->path);
+	}
+	else
+		argv[0].set(in->document_root.c_str());
 }
 
-void HttpServer::flow_file_is_dir(void *p, int argc, Flow::Value *argv)
+void HttpServer::flow_req_method(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
-
-	argv[0] = self->in_->fileinfo->is_directory();
+	argv[0] = strdup(self->in_->method.str().c_str()); // FIXME strdup = bad. fix string rep in flow to pascal-like strings!
 }
 
-void HttpServer::flow_file_is_reg(void *p, int argc, Flow::Value *argv)
+// get request URL
+void HttpServer::flow_req_url(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
-
-	argv[0] = self->in_->fileinfo->is_regular();
+	argv[0].set(self->in_->uri.data(), self->in_->uri.size());
 }
 
-void HttpServer::flow_file_is_exe(void *p, int argc, Flow::Value *argv)
+void HttpServer::flow_req_path(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
-
-	argv[0] = self->in_->fileinfo->is_executable();
+	argv[0].set(self->in_->path.data(), self->in_->path.size());
 }
 
-void HttpServer::flow_file_mtime(void *p, int argc, Flow::Value *argv)
+// get request header
+void HttpServer::flow_req_header(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
 
-	argv[0] = (long long) self->in_->fileinfo->mtime();
+	BufferRef ref(in->header(argv[1].toString()));
+	argv[0].set(ref.data(), ref.size());
 }
 
-void HttpServer::flow_file_size(void *p, int argc, Flow::Value *argv)
+void HttpServer::flow_hostname(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
 
-	argv[0] = (long long) self->in_->fileinfo->size();
-}
-
-void HttpServer::flow_file_etag(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-
-	argv[0] = self->in_->fileinfo->etag().c_str();
-}
-
-void HttpServer::flow_file_mimetype(void *p, int argc, Flow::Value *argv)
-{
-	HttpServer *self = (HttpServer *)p;
-
-	argv[0] = self->in_->fileinfo->mimetype().c_str();
+	argv[0] = strdup(self->in_->hostname.str().c_str());
 }
 // }}}
-#endif
+
+// {{{ response
+// handler: write response, with args: (int code);
+void HttpServer::flow_respond(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	if (argc >= 1 && argv[1].isNumber())
+		self->out_->status = static_cast<http_error>(argv[1].toNumber());
+
+	self->out_->finish();
+	argv[0] = true;
+}
+
+// handler: redirect client to URL
+void HttpServer::flow_redirect(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpResponse *out = self->out_;
+
+	out->status = http_error::moved_temporarily;
+	out->headers.set("Location", argv[1].toString());
+	out->finish();
+
+	argv[0] = true;
+}
+
+void HttpServer::flow_header_add(void *p, int argc, Flow::Value *argv)
+{
+}
+
+void HttpServer::flow_header_append(void *p, int argc, Flow::Value *argv)
+{
+}
+
+void HttpServer::flow_header_overwrite(void *p, int argc, Flow::Value *argv)
+{
+}
+
+void HttpServer::flow_header_remove(void *p, int argc, Flow::Value *argv)
+{
+}
+// }}}
+
+// {{{ phys
+void HttpServer::HttpServer::flow_phys_exists(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = in->fileinfo ? in->fileinfo->exists() : false;
+}
+
+void HttpServer::flow_phys_is_dir(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = in->fileinfo ? in->fileinfo->is_directory() : false;
+}
+
+void HttpServer::flow_phys_is_reg(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = in->fileinfo ? in->fileinfo->is_regular() : false;
+}
+
+void HttpServer::flow_phys_is_exe(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = in->fileinfo ? in->fileinfo->is_executable() : false;
+}
+
+void HttpServer::flow_phys_mtime(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = (long long)(in->fileinfo ? in->fileinfo->mtime() : 0);
+}
+
+void HttpServer::flow_phys_size(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = (long long)(in->fileinfo ? in->fileinfo->size() : 0);
+}
+
+void HttpServer::flow_phys_etag(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = in->fileinfo ? in->fileinfo->etag().c_str() : "";
+}
+
+void HttpServer::flow_phys_mimetype(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+	HttpRequest *in = self->in_;
+
+	argv[0] = in->fileinfo ? in->fileinfo->mimetype().c_str() : "";
+}
+// }}}
+// }}}
 
 bool HttpServer::start()
 {

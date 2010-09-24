@@ -30,19 +30,21 @@ class accesslog_plugin :
 private:
 	x0::HttpServer::RequestPostHook::Connection c;
 
-	struct context : public x0::ScopeValue
+	struct LogFile : public x0::CustomData
 	{
 		std::string filename_;
 		int fd_;
 
-		context() :
+		LogFile() :
 			filename_(),
 			fd_(-1)
 		{
+			printf("LogFile()\n");
 		}
 
-		~context()
+		~LogFile()
 		{
+			printf("~LogFile()\n");
 			close();
 		}
 
@@ -77,6 +79,7 @@ private:
 				::close(fd_);
 				fd_ = -1;
 			}
+			printf("closing\n");
 		}
 
 		void reopen()
@@ -84,28 +87,13 @@ private:
 			close();
 			open(filename_);
 		}
-
-		virtual void merge(const x0::ScopeValue *value)
-		{
-			if (auto cx = dynamic_cast<const context *>(value))
-			{
-				if (filename_.empty())
-				{
-					filename_ = cx->filename_;
-					reopen();
-				}
-			}
-		}
 	};
 
 public:
 	accesslog_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		using namespace std::placeholders;
 		c = srv.onRequestDone.connect<accesslog_plugin, &accesslog_plugin::request_done>(this);
-
-		declareCVar("AccessLog", x0::HttpContext::server | x0::HttpContext::host, &accesslog_plugin::setup_log);
 	}
 
 	~accesslog_plugin()
@@ -114,23 +102,21 @@ public:
 	}
 
 private:
-	std::error_code setup_log(const x0::SettingsValue& cvar, x0::Scope& s)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		std::string filename;
+		std::shared_ptr<LogFile> lf(std::make_shared<LogFile>());
+		std::error_code ec = lf->open(args[0].toString());
+		if (!ec)
+			in->custom_data[this] = lf;
+		else
+			printf("accesslog error: %s\n", ec.message().c_str());
 
-		std::error_code ec = cvar.load(filename);
-		if (ec)
-			return ec;
-
-		auto cx = s.acquire<context>(this);
-		ec = cx->open(filename);
-
-		return std::error_code();
+		return false;
 	}
 
 	void request_done(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		if (auto stream = server().resolveHost(in->hostid())->get<context>(this))
+		if (LogFile *stream = (LogFile *)in->custom_data[this].get())
 		{
 			std::stringstream sstr;
 			sstr << hostname(in);
@@ -146,11 +132,6 @@ private:
 
 			stream->write(sstr.str());
 		}
-	}
-
-	inline context *getlogstream(x0::HttpRequest *in)
-	{
-		return server_.resolveHost(in->hostid())->get<context>(this);
 	}
 
 	inline std::string hostname(x0::HttpRequest *in)

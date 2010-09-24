@@ -137,10 +137,6 @@ SourcePtr HttpResponse::serialize()
 			filters.push_back(std::make_shared<ChunkedEncoder>());
 			keepalive = true;
 		}
-		else
-		{
-			headers.set("Connection", "close");
-		}
 	}
 	else if (!headers.contains("Connection"))
 	{
@@ -149,8 +145,6 @@ SourcePtr HttpResponse::serialize()
 			headers.push_back("Connection", "keep-alive");
 			keepalive = true;
 		}
-		else
-			headers.push_back("Connection", "close");
 	}
 	else if (iequals(headers("Connection"), "keep-alive"))
 	{
@@ -159,6 +153,11 @@ SourcePtr HttpResponse::serialize()
 
 	if (!connection_->server().max_keep_alive_idle())
 		keepalive = false;
+
+	keepalive = false; // XXX workaround
+
+	if (!keepalive)
+		headers.set("Connection", "close");
 
 	if (!keepalive && connection_->server().tcp_cork())
 		connection_->socket()->setTcpCork(true);

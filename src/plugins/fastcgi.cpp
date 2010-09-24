@@ -56,7 +56,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	include <x0/StackTrace.h>
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
@@ -367,6 +367,7 @@ void CgiRequest::abortRequest()
 
 void CgiRequest::onStdOut(x0::BufferRef&& chunk)
 {
+	TRACE("CgiRequest.onStdOut(chunk.size:%ld)", chunk.size());
 	size_t np = 0;
 	process(chunk, np);
 }
@@ -782,7 +783,8 @@ void CgiTransport::process(const FastCgi::Record *record)
 			configured_ = true; // should be set *only* at EOS of GetValuesResult? we currently guess, that there'll be only *one* packet
 			break;
 		case FastCgi::Type::StdOut:
-			context_->request(record->requestId())->onStdOut(readBuffer_.ref(record->content() - readBuffer_.data(), record->contentLength()));
+			context_->request(record->requestId())->onStdOut(
+					readBuffer_.ref(record->content() - readBuffer_.data(), record->contentLength()));
 			break;
 		case FastCgi::Type::StdErr:
 			context_->request(record->requestId())->onStdErr(readBuffer_.ref(record->content() - readBuffer_.data(), record->contentLength()));
@@ -894,6 +896,7 @@ void CgiContext::setup(const std::string& value)
 
 CgiRequest *CgiContext::handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
 {
+	TRACE("CgiContext.handleRequest()");
 	// select transport
 	CgiTransport *transport = transport_; // TODO support more than one transport and LB between them
 

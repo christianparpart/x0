@@ -94,7 +94,7 @@ void HttpPlugin::process(void *p, int argc, Flow::Value *argv)
 
 	HttpRequest *in = self->server_.in_;
 	HttpResponse *out = self->server_.out_;
-	Params params(argc - 1, argv + 1);
+	Params params(argc, argv + 1);
 
 	argv[0] = self->handleRequest(in, out, params);
 }
