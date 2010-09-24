@@ -39,12 +39,10 @@ private:
 			filename_(),
 			fd_(-1)
 		{
-			printf("LogFile()\n");
 		}
 
 		~LogFile()
 		{
-			printf("~LogFile()\n");
 			close();
 		}
 
@@ -79,7 +77,6 @@ private:
 				::close(fd_);
 				fd_ = -1;
 			}
-			printf("closing\n");
 		}
 
 		void reopen()
