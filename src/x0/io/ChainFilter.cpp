@@ -14,6 +14,10 @@ Buffer ChainFilter::process(const BufferRef& input)
 {
 	auto i = filters_.begin();
 	auto e = filters_.end();
+
+	if (i == e)
+		return Buffer(input);
+
 	Buffer result((*i++)->process(input));
 
 	while (i != e)
