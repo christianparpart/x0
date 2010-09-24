@@ -105,7 +105,6 @@ inline HttpRequest::HttpRequest(HttpConnection& conn) :
 
 inline HttpRequest::~HttpRequest()
 {
-	printf("~HttpRequest()\n");
 }
 
 inline bool HttpRequest::supports_protocol(int major, int minor) const
