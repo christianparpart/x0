@@ -63,6 +63,13 @@
 #	define TRACE(msg...) /*!*/
 #endif
 
+// X0_FASTCGI_DIRECT_IO
+//     if this variable is defined, all received response data is being pushed 
+//     to the HTTP client as soon as possible.
+//
+//     If not defined, the client will only receive the content once
+//     *all* data from the backend application has been arrived in x0.
+//
 #define X0_FASTCGI_DIRECT_IO (1)
 
 class CgiContext;
@@ -320,6 +327,7 @@ void CgiRequest::streamParams()
 	//paramWriter_.encode("REMOTE_IDENT", "");
 
 	if (request_->content_available()) {
+		TRACE("CgiTransport.streamParams(): content available!");
 		paramWriter_.encode("CONTENT_TYPE", request_->header("Content-Type"));
 		paramWriter_.encode("CONTENT_LENGTH", request_->header("Content-Length"));
 
@@ -400,7 +408,13 @@ void CgiRequest::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolSta
 
 void CgiRequest::processRequestBody(x0::BufferRef&& chunk)
 {
+	TRACE("CgiRequest.processRequestBody(len=%ld)", chunk.size());
 	transport_->write(FastCgi::Type::StdIn, id_, chunk.data(), chunk.size());
+
+	if (request_->connection.contentLength() > 0)
+		request_->read(std::bind(&CgiRequest::processRequestBody, this, std::placeholders::_1));
+	else
+		transport_->write(FastCgi::Type::StdIn, id_, "", 0); // mark end-of-stream
 }
 
 void CgiRequest::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
