@@ -147,6 +147,8 @@ public:
 
 	void reset();
 
+	ssize_t contentLength() const;
+
 private:
 	bool pass_content(BufferRef&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp);
 
@@ -195,6 +197,11 @@ namespace x0 {
 inline enum HttpMessageProcessor::state HttpMessageProcessor::state() const
 {
 	return state_;
+}
+
+inline ssize_t HttpMessageProcessor::contentLength() const
+{
+	return content_length_;
 }
 
 } // namespace x0
