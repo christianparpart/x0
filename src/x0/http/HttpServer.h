@@ -159,7 +159,8 @@ public:
 
 private: // {{{ flow backend API
 	// flow core API (setup stage)
-	static void flow_plugins(void *p, int argc, Flow::Value *argv);
+	static void flow_plugin_directory(void *p, int argc, Flow::Value *argv);
+	static void flow_plugin_load(void *p, int argc, Flow::Value *argv);
 	static void flow_mimetypes(void *p, int argc, Flow::Value *argv);
 	static void flow_listen(void *p, int argc, Flow::Value *argv);
 	static void flow_group(void *p, int argc, Flow::Value *argv);

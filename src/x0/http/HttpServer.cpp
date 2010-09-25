@@ -360,11 +360,12 @@ bool HttpServer::setup(const std::string& configFile)
 	runner_->setErrorHandler(std::bind(&wrap_log_parser_error, this, "parser", std::placeholders::_1));
 
 	// register setup API
-	registerHandler("plugins", &HttpServer::flow_plugins, this);
+	registerVariable("plugin.directory", Flow::Value::STRING, &HttpServer::flow_plugin_directory, this);
+	registerHandler("plugin.load", &HttpServer::flow_plugin_load, this);
 	registerHandler("listen", &HttpServer::flow_listen, this);
 	registerHandler("group", &HttpServer::flow_group, this);
 	registerHandler("user", &HttpServer::flow_user, this);
-	registerFunction("mimetypes", Flow::Value::VOID, &HttpServer::flow_mimetypes, this);
+	registerVariable("mimetypes", Flow::Value::VOID, &HttpServer::flow_mimetypes, this);
 	registerFunction("log", Flow::Value::VOID, &HttpServer::flow_log, this);
 	registerFunction("sys.env", Flow::Value::STRING, &HttpServer::flow_sys_env, this);
 	registerVariable("sys.cwd", Flow::Value::STRING, &HttpServer::flow_sys_cwd, this);
@@ -428,7 +429,17 @@ bool HttpServer::setup(const std::string& configFile)
 }
 
 // {{{ flow: setup
-void HttpServer::flow_plugins(void *p, int argc, Flow::Value *argv)
+void HttpServer::flow_plugin_directory(void *p, int argc, Flow::Value *argv)
+{
+	HttpServer *self = (HttpServer *)p;
+
+	if (argc == 1)
+		self->pluginDirectory_ = argv[1].toString();
+	else if (argc == 0)
+		argv[0].set(self->pluginDirectory_.c_str());
+}
+
+void HttpServer::flow_plugin_load(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
 	argv[0] = false;
@@ -443,11 +454,13 @@ void HttpServer::flow_plugins(void *p, int argc, Flow::Value *argv)
 		self->loadPlugin(pluginName, ec);
 		if (ec) {
 			self->log(Severity::error, "%s: %s", pluginName, ec.message().c_str());
+			argv[0].set(true);
 			//break;
 		}
 	}
 }
 
+// write-only varable
 void HttpServer::flow_mimetypes(void *p, int argc, Flow::Value *argv)
 {
 	HttpServer *self = (HttpServer *)p;
