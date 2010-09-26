@@ -101,10 +101,10 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerFunction<HttpCore, &HttpCore::resp_header_overwrite>("header.overwrite", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::resp_header_append>("header.append", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::resp_header_remove>("header.remove", Flow::Value::VOID);
-	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("conn.remoteip", Flow::Value::STRING);
-	registerProperty<HttpCore, &HttpCore::conn_remote_port>("conn.remoteport", Flow::Value::NUMBER);
-	registerProperty<HttpCore, &HttpCore::conn_local_ip>("conn.localip", Flow::Value::STRING);
-	registerProperty<HttpCore, &HttpCore::conn_local_port>("conn.localport", Flow::Value::NUMBER);
+	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("req.remoteip", Flow::Value::STRING);
+	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", Flow::Value::NUMBER);
+	registerProperty<HttpCore, &HttpCore::conn_local_ip>("req.localip", Flow::Value::STRING);
+	registerProperty<HttpCore, &HttpCore::conn_local_port>("req.localport", Flow::Value::NUMBER);
 	registerProperty<HttpCore, &HttpCore::phys_exists>("phys.exists", Flow::Value::BOOLEAN);
 	registerProperty<HttpCore, &HttpCore::phys_is_reg>("phys.is_reg", Flow::Value::BOOLEAN);
 	registerProperty<HttpCore, &HttpCore::phys_is_dir>("phys.is_dir", Flow::Value::BOOLEAN);
