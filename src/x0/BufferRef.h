@@ -433,12 +433,12 @@ std::size_t BufferRef::rfind(PodType (&value)[N]) const
 
 inline bool BufferRef::begins(const std::string& value) const
 {
-	return memcmp(data(), value.data(), std::min(size(), value.size())) == 0;
+	return value.size() <= size() && memcmp(data(), value.data(), value.size()) == 0;
 }
 
 inline bool BufferRef::begins(const BufferRef& value) const
 {
-	return memcmp(data(), value.data(), std::min(size(), value.size())) == 0;
+	return value.size() <= size() && memcmp(data(), value.data(), value.size()) == 0;
 }
 
 inline bool BufferRef::begins(const value_type *value) const
@@ -446,7 +446,8 @@ inline bool BufferRef::begins(const value_type *value) const
 	if (!value)
 		return true;
 
-	return memcmp(data(), value, std::min(size(), std::strlen(value))) == 0;
+	size_t len = std::strlen(value);
+	return len <= size() && memcmp(data(), value, len) == 0;
 }
 
 inline bool BufferRef::begins(value_type value) const
