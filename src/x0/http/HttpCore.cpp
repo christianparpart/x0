@@ -491,22 +491,22 @@ void HttpCore::resp_header_remove(Flow::Value& result, HttpRequest *in, HttpResp
 // {{{ connection
 void HttpCore::conn_remote_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->connection.remote_ip().c_str();
+	result = in->connection.remoteIP().c_str();
 }
 
 void HttpCore::conn_remote_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->connection.remote_port();
+	result = in->connection.remotePort();
 }
 
 void HttpCore::conn_local_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->connection.local_ip().c_str();
+	result = in->connection.localIP().c_str();
 }
 
 void HttpCore::conn_local_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->connection.local_port();
+	result = in->connection.localPort();
 }
 // }}}
 

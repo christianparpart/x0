@@ -48,10 +48,14 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 	secure_(false),
 	state_(OPERATIONAL),
 	mode_(IDLE),
+	remoteIP_(),
+	remotePort_(0),
+	localIP_(),
+	localPort_(),
 	callback_(0),
 	callbackData_(0)
 {
-	TRACE("Socket(%p) fd=%d", this, fd_);
+	TRACE("Socket(%p) fd:%d, local(%s:%d), remote(%s:%d)", this, fd_, localIP().c_str(), localPort(), remoteIP().c_str(), remotePort());
 
 	watcher_.set<Socket, &Socket::io>(this);
 	timer_.set<Socket, &Socket::timeout>(this);
@@ -59,7 +63,7 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 
 Socket::~Socket()
 {
-	TRACE("~Socket(%p), %d", this, fd_);
+	TRACE("~Socket(%p) fd:%d, local(%s:%d), remote(%s:%d)", this, fd_, localIP().c_str(), localPort(), remoteIP().c_str(), remotePort());
 
 	if (fd_ >= 0)
 		::close(fd_);
@@ -143,7 +147,7 @@ ssize_t Socket::read(Buffer& result)
 	{
 		auto offset = result.size();
 		result.resize(offset + rv);
-		//TRACE("(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
+		TRACE("(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
 	}
 	else if (rv < 0 && errno != EINTR && errno != EAGAIN)
 	{
@@ -160,7 +164,7 @@ ssize_t Socket::read(Buffer& result)
 
 ssize_t Socket::write(const BufferRef& source)
 {
-#if !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 	//TRACE("(%d).write('%s')", fd_, source.str().c_str());
 	ssize_t rv = ::write(fd_, source.data(), source.size());
 	TRACE("(%d).write: %ld => %ld", fd_, source.size(), rv);
@@ -213,6 +217,82 @@ void Socket::timeout(ev::timer& timer, int revents)
 
 	if (timeoutCallback_)
 		timeoutCallback_(this, timeoutData_);
+}
+
+#if 1 == 0
+bool Socket::acceptFrom(int listenerSocket)
+{
+	socklen_t slen = sizeof(saddr);
+	int fd = ::accept(listenerSocket, reinterpret_cast<sockaddr *>(&saddr), &slen);
+	if (fd < 0)
+		return false;
+}
+#endif
+
+std::string Socket::remoteIP() const
+{
+	const_cast<Socket *>(this)->queryRemoteName();
+	return remoteIP_;
+}
+
+int Socket::remotePort() const
+{
+	const_cast<Socket *>(this)->queryRemoteName();
+	return remotePort_;
+}
+
+
+void Socket::queryRemoteName()
+{
+	if (!remotePort_ && fd_ >= 0)
+	{
+		sockaddr_in6 saddr;
+		socklen_t slen = sizeof(saddr);
+
+		if (getpeername(fd_, (sockaddr *)&saddr, &slen) == 0)
+		{
+			char buf[128];
+
+			if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf)))
+			{
+				remoteIP_ = buf;
+				remotePort_ = ntohs(saddr.sin6_port);
+			}
+		}
+	}
+}
+
+std::string Socket::localIP() const
+{
+	const_cast<Socket *>(this)->queryLocalName();
+	return localIP_;
+}
+
+int Socket::localPort() const
+{
+	const_cast<Socket *>(this)->queryLocalName();
+	return localPort_;
+}
+
+
+void Socket::queryLocalName()
+{
+	if (!localPort_ && fd_ >= 0)
+	{
+		sockaddr_in6 saddr;
+		socklen_t slen = sizeof(saddr);
+
+		if (getsockname(fd_, (sockaddr *)&saddr, &slen) == 0)
+		{
+			char buf[128];
+
+			if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf)))
+			{
+				localIP_ = buf;
+				localPort_ = ntohs(saddr.sin6_port);
+			}
+		}
+	}
 }
 
 } // namespace x0

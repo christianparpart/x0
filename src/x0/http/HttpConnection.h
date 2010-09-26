@@ -25,7 +25,6 @@
 #include <memory>
 #include <string>
 #include <ev++.h>
-#include <netinet/in.h> // sockaddr_in
 
 namespace x0 {
 
@@ -57,11 +56,11 @@ public:
 	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
 	HttpServer& server();						//!< Retrieves a reference to the server instance.
 
-	std::string remote_ip() const;				//!< Retrieves the IP address of the remote end point (client).
-	int remote_port() const;					//!< Retrieves the TCP port numer of the remote end point (client).
+	std::string remoteIP() const;			//!< Retrieves the IP address of the remote end point (client).
+	int remotePort() const;					//!< Retrieves the TCP port numer of the remote end point (client).
 
-	std::string local_ip() const;
-	int local_port() const;
+	std::string localIP() const;
+	int localPort() const;
 
 	const HttpListener& listener() const;
 
@@ -115,10 +114,6 @@ private:
 
 	Socket *socket_;					//!< underlying communication socket
 	bool active_;						//!< socket is active (some I/O event raised within this cycle)
-	sockaddr_in6 saddr_;
-
-	mutable std::string remote_ip_;		//!< internal cache to client ip
-	mutable int remote_port_;			//!< internal cache to client port
 
 	// HTTP HttpRequest
 	Buffer buffer_;						//!< buffer for incoming data.

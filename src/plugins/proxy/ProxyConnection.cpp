@@ -142,7 +142,7 @@ void ProxyConnection::content_written(int ec, std::size_t nb)
 	{
 		ec = errno;
 		request_->connection.server().log(x0::Severity::info, "proxy: client %s aborted with %s.",
-				request_->connection.remote_ip().c_str(), strerror(ec));
+				request_->connection.remoteIP().c_str(), strerror(ec));
 
 		delete this;
 	}

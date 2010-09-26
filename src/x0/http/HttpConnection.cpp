@@ -125,8 +125,6 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	server_(lst.server()),
 	socket_(0),
 	active_(true), // when this is constricuted, it *must* be active right now :) 
-	remote_ip_(),
-	remote_port_(0),
 	buffer_(8192),
 	offset_(0),
 	request_count_(0),
@@ -140,10 +138,11 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	, ctime_(ev_now(server_.loop()))
 #endif
 {
-	socklen_t slen = sizeof(saddr_);
-	memset(&saddr_, 0, slen);
+	sockaddr_in6 saddr;
+	socklen_t slen = sizeof(saddr);
+	memset(&saddr, 0, slen);
 
-	int fd = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr_), &slen);
+	int fd = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr), &slen);
 	if (fd < 0)
 	{
 		server_.log(Severity::error, "Could not accept client socket: %s", strerror(errno));
@@ -634,37 +633,24 @@ void HttpConnection::process()
 	}
 }
 
-std::string HttpConnection::remote_ip() const
+std::string HttpConnection::remoteIP() const
 {
-	if (remote_ip_.empty())
-	{
-		char buf[128];
-
-		if (inet_ntop(AF_INET6, &saddr_.sin6_addr, buf, sizeof(buf)))
-			remote_ip_ = buf;
-	}
-
-	return remote_ip_;
+	return socket_->remoteIP();
 }
 
-int HttpConnection::remote_port() const
+int HttpConnection::remotePort() const
 {
-	if (!remote_port_)
-	{
-		remote_port_ = ntohs(saddr_.sin6_port);
-	}
-
-	return remote_port_;
+	return socket_->remotePort();
 }
 
-std::string HttpConnection::local_ip() const
+std::string HttpConnection::localIP() const
 {
 	return listener_.address();
 }
 
-int HttpConnection::local_port() const
+int HttpConnection::localPort() const
 {
-	return listener_.port();
+	return socket_->localPort();
 }
 
 } // namespace x0

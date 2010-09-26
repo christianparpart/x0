@@ -45,6 +45,12 @@ private:
 	State state_;
 	Mode mode_;
 
+	mutable std::string remoteIP_;		//!< internal cache to remote ip
+	mutable int remotePort_;			//!< internal cache to remote port
+
+	mutable std::string localIP_;		//!< internal cache to local ip
+	mutable int localPort_;				//!< internal cache to local port
+
 	void (*callback_)(Socket *, void *);
 	void *callbackData_;
 
@@ -64,6 +70,12 @@ public:
 	bool setNonBlocking(bool enabled);
 	bool setTcpNoDelay(bool enable);
 	bool setTcpCork(bool enable);
+
+	std::string remoteIP() const;
+	int remotePort() const;
+
+	std::string localIP() const;
+	int localPort() const;
 
 	int timeout() const;
 	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);
@@ -92,6 +104,9 @@ public:
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 
 private:
+	void queryRemoteName();
+	void queryLocalName();
+
 	template<class K, void (K::*cb)(Socket *)>
 	static void method_thunk(Socket *socket, void *object);
 

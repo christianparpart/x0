@@ -609,8 +609,8 @@ void CgiTransport::streamParams()
 	paramWriter_.encode("REQUEST_URI", request_->uri);
 
 	//paramWriter_.encode("REMOTE_HOST", "");  // optional
-	paramWriter_.encode("REMOTE_ADDR", request_->connection.remote_ip());
-	paramWriter_.encode("REMOTE_PORT", boost::lexical_cast<std::string>(request_->connection.remote_port()));
+	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());
+	paramWriter_.encode("REMOTE_PORT", boost::lexical_cast<std::string>(request_->connection.remotePort()));
 
 	//paramWriter_.encode("AUTH_TYPE", ""); // TODO
 	//paramWriter_.encode("REMOTE_USER", "");

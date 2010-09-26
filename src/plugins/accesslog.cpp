@@ -133,7 +133,7 @@ private:
 
 	inline std::string hostname(x0::HttpRequest *in)
 	{
-		std::string name = in->connection.remote_ip();
+		std::string name = in->connection.remoteIP();
 		return !name.empty() ? name : "-";
 	}
 
