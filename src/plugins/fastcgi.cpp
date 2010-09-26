@@ -696,6 +696,8 @@ void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
 		request_->read(std::bind(&CgiTransport::processRequestBody, this, std::placeholders::_1));
 	else
 		write(FastCgi::Type::StdIn, X0_FASTCGI_DEFAULT_RID, "", 0); // mark end-of-stream
+
+	flush();
 }
 
 void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
