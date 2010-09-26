@@ -14,7 +14,7 @@
 
 namespace x0 {
 
-inline std::string FileInfo::filename() const
+inline const std::string& FileInfo::filename() const
 {
 	return filename_;
 }

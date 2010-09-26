@@ -56,7 +56,7 @@ private:
 public:
 	FileInfo(FileInfoService& service, const std::string& filename);
 
-	std::string filename() const;
+	const std::string& filename() const;
 
 	std::size_t size() const;
 	time_t mtime() const;
