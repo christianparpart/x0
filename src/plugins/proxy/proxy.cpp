@@ -14,7 +14,6 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
-#include <x0/http/HttpRequestHandler.h>
 #include <x0/strutils.h>
 #include <x0/Url.h>
 #include <x0/Types.h>
@@ -64,8 +63,7 @@
  * \brief proxy content generator plugin
  */
 class proxy_plugin :
-	public x0::HttpPlugin,
-	public x0::IHttpRequestHandler
+	public x0::HttpPlugin
 {
 public:
 	proxy_plugin(x0::HttpServer& srv, const std::string& name) :

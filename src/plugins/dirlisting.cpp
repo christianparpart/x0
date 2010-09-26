@@ -36,8 +36,7 @@
  * \todo allow config overrides: server/vhost/location
  */
 class dirlisting_plugin :
-	public x0::HttpPlugin,
-	public x0::IHttpRequestHandler
+	public x0::HttpPlugin
 {
 private:
 	struct context : public x0::ScopeValue
@@ -65,10 +64,11 @@ public:
 	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
+		registerHandler<dirlisting_plugin, &dirlisting_plugin::handleRequest>("dirlisting");
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		if (!in->fileinfo->is_directory())
 			return false;

@@ -34,13 +34,13 @@
  * \brief example content generator plugin
  */
 class hello_plugin :
-	public x0::HttpPlugin,
-	public x0::IHttpRequestHandler
+	public x0::HttpPlugin
 {
 public:
 	hello_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
+		registerHandler<hello_plugin, &hello_plugin::handleRequest>("hello_example");
 	}
 
 	~hello_plugin()

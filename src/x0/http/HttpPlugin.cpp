@@ -78,25 +78,4 @@ bool HttpPlugin::post_check()
 	return true;
 }
 
-/** request handler
- *
- * \retval true this plugin is taking over the request, handling it.
- * \retval false we do not want this request..
- */
-bool HttpPlugin::handleRequest(HttpRequest *request, HttpResponse *response, const Params& params)
-{
-	return false;
-}
-
-void HttpPlugin::process(void *p, int argc, Flow::Value *argv)
-{
-	HttpPlugin *self = (HttpPlugin *)p;
-
-	HttpRequest *in = self->server_.in_;
-	HttpResponse *out = self->server_.out_;
-	Params params(argc, argv + 1);
-
-	argv[0] = self->handleRequest(in, out, params);
-}
-
 } // namespace x0

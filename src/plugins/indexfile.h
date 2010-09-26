@@ -54,7 +54,8 @@ private:
 	};
 
 	std::error_code setup_indexfiles(const x0::SettingsValue& cvar, x0::Scope& s);
-	void indexfile(x0::HttpRequest *in);
+
+	void indexfile(Flow::Value& result, x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args);
 };
 
 #endif

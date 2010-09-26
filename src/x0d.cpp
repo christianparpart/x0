@@ -63,6 +63,7 @@ public:
 		documentRoot_(),
 		nofork_(false),
 		doguard_(false),
+		dumpIR_(false),
 		server_(),
 		sigterm_(server_.loop()),
 		sighup_(server_.loop())
@@ -221,14 +222,14 @@ public:
 			return -1;
 		}
 
+		if (dumpIR_)
+			server_.dumpIR();
+
 		if (!nofork_)
 			daemonize();
 
-		if (user_.empty())
-			user_ = server_.config()["Daemon"]["User"].as<std::string>();
-
 		if (group_.empty())
-			group_ = server_.config()["Daemon"]["Group"].as<std::string>();
+			group_ = user_;
 
 		drop_privileges(user_, group_);
 
@@ -361,6 +362,7 @@ private:
 			{ "user", required_argument, 0, 'u' },
 			{ "group", required_argument, 0, 'g' },
 			{ "instant", required_argument, 0, 'i' },
+			{ "dump-ir", no_argument, &dumpIR_, 1 },
 			//.
 			{ "version", no_argument, 0, 'v' },
 			{ "copyright", no_argument, 0, 'y' },
@@ -421,6 +423,7 @@ private:
 						<< "  -p,--pid-file=PATH       PID file to create/use [" << pidfile_ << "]" << std::endl
 						<< "  -u,--user=NAME           user to drop privileges to" << std::endl
 						<< "  -g,--group=NAME          group to drop privileges to" << std::endl
+						<< "     --dump-ir             dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
 						<< "  -i,--instant=PATH[,PORT] run x0d in simple pre-configured instant-mode" << std::endl
 						<< "  -v,--version             print software version" << std::endl
 						<< "  -y,--copyright           print software copyright notice / license" << std::endl
@@ -554,6 +557,7 @@ private:
 
 	int nofork_;
 	int doguard_;
+	int dumpIR_;
 	x0::HttpServer server_;
 	ev::sig sigterm_;
 	ev::sig sighup_;

@@ -22,13 +22,13 @@
  * \brief echo content generator plugin
  */
 class echo_plugin :
-	public x0::HttpPlugin,
-	public x0::IHttpRequestHandler
+	public x0::HttpPlugin
 {
 public:
 	echo_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
+		registerHandler<echo_plugin, &echo_plugin::handleRequest>("echo_example");
 	}
 
 	~echo_plugin()

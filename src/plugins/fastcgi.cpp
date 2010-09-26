@@ -865,16 +865,16 @@ void CgiContext::release(CgiTransport *transport)
  * \brief serves static files from server's local filesystem to client.
  */
 class fastcgi_plugin :
-	public x0::HttpPlugin,
-	public x0::IHttpRequestHandler
+	public x0::HttpPlugin
 {
 public:
 	fastcgi_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
+		registerHandler<fastcgi_plugin, &fastcgi_plugin::handleRequest>("fastcgi");
 	}
 
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		if (args.count() != 1 || !args[0].isString())
 			return false;

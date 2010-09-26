@@ -13,6 +13,8 @@
 #include <x0/Types.h>
 #include <x0/Defines.h>
 #include <x0/Api.h>
+#include <flow/flow.h>
+#include <flow/value.h>
 
 #include <string>
 #include <vector>
@@ -84,7 +86,13 @@ public:
 
 	HttpServer& server() const;
 
-	virtual bool handleRequest(HttpRequest *request, HttpResponse *response, const Params& params);
+protected:
+	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupProperty(const std::string& name, Flow::Value::Type resultType);
+	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupFunction(const std::string& name, Flow::Value::Type resultType);
+
+	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)> void registerProperty(const std::string& name, Flow::Value::Type resultType);
+	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)> void registerFunction(const std::string& name, Flow::Value::Type resultType);
+	template<typename T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params&)> void registerHandler(const std::string& name);
 
 protected:
 	HttpServer& server_;
@@ -93,12 +101,81 @@ protected:
 
 #if !defined(NDEBUG)
 	int debug_level_;
-#endif
-
-	static void process(void *, int argc, Flow::Value *argv);
+#endif 
+private:
+	template<class T, void (T::*cb)(Flow::Value&, const Params&)> static void setup_thunk(void *p, int argc, Flow::Value *argv);
+	template<class T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)> static void method_thunk(void *p, int argc, Flow::Value *argv);
+	template<class T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params&)> static void handler_thunk(void *p, int argc, Flow::Value *argv);
 
 	friend class HttpServer;
 };
+
+// {{{ flow integration
+// setup property
+template<typename T, void (T::*cb)(Flow::Value&, const Params&)>
+void HttpPlugin::registerSetupProperty(const std::string& name, Flow::Value::Type resultType)
+{
+	server_.registerVariable(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
+}
+
+// setup function
+template<typename T, void (T::*cb)(Flow::Value&, const Params&)>
+void HttpPlugin::registerSetupFunction(const std::string& name, Flow::Value::Type resultType)
+{
+	server_.registerFunction(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
+}
+
+template<class T, void (T::*cb)(Flow::Value&, const Params&)>
+void HttpPlugin::setup_thunk(void *p, int argc, Flow::Value *argv)
+{
+	Params args(argc, argv + 1);
+	(static_cast<T *>(p)->*cb)(argv[0], args);
+}
+
+// property
+template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)>
+void HttpPlugin::registerProperty(const std::string& name, Flow::Value::Type resultType)
+{
+	server_.registerVariable(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
+}
+
+// methods
+template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)>
+void HttpPlugin::registerFunction(const std::string& name, Flow::Value::Type resultType)
+{
+	server_.registerFunction(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
+}
+
+template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)>
+void HttpPlugin::method_thunk(void *p, int argc, Flow::Value *argv)
+{
+	Params args(argc, argv + 1);
+
+	T *self = static_cast<T *>(p);
+	HttpRequest *in = self->server_.in_;
+	HttpResponse *out = self->server_.out_;
+
+	(self->*cb)(argv[0], in, out, args);
+}
+
+// handler
+template<typename T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params&)>
+void HttpPlugin::registerHandler(const std::string& name)
+{
+	server_.registerHandler(name, &handler_thunk<T, cb>, static_cast<T *>(this));
+}
+
+template<typename T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params& args)>
+void HttpPlugin::handler_thunk(void *p, int argc, Flow::Value *argv)
+{
+	T *self = static_cast<T *>(p);
+	HttpRequest *in = self->server_.in_;
+	HttpResponse *out = self->server_.out_;
+	Params args(argc, argv + 1);
+
+	argv[0].set((self->*cb)(in, out, args));
+}
+// }}}
 
 // {{{ inlines
 inline HttpServer& HttpPlugin::server() const

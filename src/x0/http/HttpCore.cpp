@@ -7,13 +7,29 @@
  */
 
 #include <x0/http/HttpCore.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpRangeDef.h>
+#include <x0/io/CompositeSource.h>
+#include <x0/io/BufferSource.h>
+#include <x0/io/FileSource.h>
+#include <x0/Types.h>
 #include <x0/DateTime.h>
 #include <x0/Settings.h>
 #include <x0/Scope.h>
 #include <x0/Logger.h>
+#include <x0/strutils.h>
+
+#include <boost/lexical_cast.hpp>
+#include <sstream>
 
 #include <sys/resource.h>
+#include <sys/types.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <time.h>
+
 
 namespace x0 {
 
@@ -39,29 +55,759 @@ inline bool _contains(const std::vector<std::string>& list, const std::string& v
 
 HttpCore::HttpCore(HttpServer& server) :
 	HttpPlugin(server, "core"),
+	emitLLVM_(false),
 	max_fds(std::bind(&HttpCore::getrlimit, this, RLIMIT_CORE),
 			std::bind(&HttpCore::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
-	// register cvars
-	declareCVar("Log", HttpContext::server, &HttpCore::setup_logging, -7);
-	declareCVar("Resources", HttpContext::server, &HttpCore::setup_resources, -6);
-	declareCVar("Plugins", HttpContext::server, &HttpCore::setup_modules, -5);
-	declareCVar("ErrorDocuments", HttpContext::server, &HttpCore::setup_error_documents, -4);
+	// setup
+	registerSetupProperty<HttpCore, &HttpCore::plugin_directory>("plugin.directory", Flow::Value::STRING);
+	registerSetupFunction<HttpCore, &HttpCore::plugin_load>("plugin.load", Flow::Value::VOID);
+	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
+	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", Flow::Value::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", Flow::Value::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::etag_mtime>("etag.mtime", Flow::Value::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::etag_size>("etag.size", Flow::Value::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::etag_inode>("etag.inode", Flow::Value::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::server_advertise>("server.advertise", Flow::Value::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::server_tags>("server.tags", Flow::Value::VOID); // write-only (array)
 
-	declareCVar("MimeTypes", HttpContext::server, &HttpCore::setupMimeTypes, -4);
-	declareCVar("MimeTypeDefault", HttpContext::server, &HttpCore::setupMimeTypeDefault, -4);
-	declareCVar("ETagUseMtime", HttpContext::server, &HttpCore::setupETagUseMtime, -4);
-	declareCVar("ETagUseSize", HttpContext::server, &HttpCore::setupETagUseSize, -4);
-	declareCVar("ETagUseInode", HttpContext::server, &HttpCore::setupETagUseInode, -4);
+	registerSetupProperty<HttpCore, &HttpCore::max_read_idle>("max_read_idle", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_write_idle>("max_write_idle", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_keepalive_idle>("max_keepalive_idle", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_conns>("max_connections", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_files>("max_files", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_address_space>("max_address_space", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::tcp_cork>("tcp_cork", Flow::Value::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::tcp_nodelay>("tcp_nodelay", Flow::Value::BOOLEAN);
 
-	declareCVar("Hosts", HttpContext::server, &HttpCore::setup_hosts, -3);
-	declareCVar("Advertise", HttpContext::server, &HttpCore::setup_advertise, -2);
+	// TODO setup error-documents
+
+	// shared
+	registerSetupFunction<HttpCore, &HttpCore::sys_env>("sys.env", Flow::Value::STRING);
+	registerSetupProperty<HttpCore, &HttpCore::sys_cwd>("sys.cwd", Flow::Value::STRING);
+	registerSetupProperty<HttpCore, &HttpCore::sys_pid>("sys.pid", Flow::Value::NUMBER);
+	registerSetupFunction<HttpCore, &HttpCore::sys_now>("sys.now", Flow::Value::NUMBER);
+	registerSetupFunction<HttpCore, &HttpCore::sys_now_str>("sys.now_str", Flow::Value::STRING);
+
+	// main
+	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::docroot>("docroot", Flow::Value::VOID);
+	registerProperty<HttpCore, &HttpCore::req_method>("req.method", Flow::Value::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_url>("req.url", Flow::Value::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_path>("req.path", Flow::Value::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_header>("req.header", Flow::Value::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_host>("req.host", Flow::Value::BUFFER);
+	registerFunction<HttpCore, &HttpCore::resp_header_add>("header.add", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::resp_header_overwrite>("header.overwrite", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::resp_header_append>("header.append", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::resp_header_remove>("header.remove", Flow::Value::VOID);
+	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("conn.remoteip", Flow::Value::STRING);
+	registerProperty<HttpCore, &HttpCore::conn_remote_port>("conn.remoteport", Flow::Value::NUMBER);
+	registerProperty<HttpCore, &HttpCore::conn_local_ip>("conn.localip", Flow::Value::STRING);
+	registerProperty<HttpCore, &HttpCore::conn_local_port>("conn.localport", Flow::Value::NUMBER);
+	registerProperty<HttpCore, &HttpCore::phys_exists>("phys.exists", Flow::Value::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_is_reg>("phys.is_reg", Flow::Value::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_is_dir>("phys.is_dir", Flow::Value::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_is_exe>("phys.is_exe", Flow::Value::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_mtime>("phys.mtime", Flow::Value::NUMBER);
+	registerProperty<HttpCore, &HttpCore::phys_size>("phys.size", Flow::Value::NUMBER);
+	registerProperty<HttpCore, &HttpCore::phys_etag>("phys.etag", Flow::Value::STRING);
+	registerProperty<HttpCore, &HttpCore::phys_mimetype>("phys.mimetype", Flow::Value::STRING);
+
+	// main handlers
+	//registerHandler<HttpCore, &HttpCore::dirlisting>("dirlisting");
+	registerHandler<HttpCore, &HttpCore::staticfile>("staticfile");
+	registerHandler<HttpCore, &HttpCore::redirect>("redirect");
+	registerHandler<HttpCore, &HttpCore::respond>("respond");
 }
 
 HttpCore::~HttpCore()
 {
 }
 
+// {{{ setup
+void HttpCore::plugin_directory(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1)
+		server().pluginDirectory_ = args[0].toString();
+	else if (args.count() == 0)
+		result.set(server().pluginDirectory_.c_str());
+}
+
+void HttpCore::mimetypes(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isString())
+	{
+		server().fileinfo.load_mimetypes(args[0].toString());
+	}
+}
+
+void HttpCore::mimetypes_default(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isString())
+	{
+		server().fileinfo.default_mimetype(args[0].toString());
+	}
+}
+
+void HttpCore::etag_mtime(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().fileinfo.etag_consider_mtime(args[0].toBool());
+	else
+		result.set(server().fileinfo.etag_consider_mtime());
+}
+
+void HttpCore::etag_size(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().fileinfo.etag_consider_size(args[0].toBool());
+	else
+		result.set(server().fileinfo.etag_consider_size());
+}
+
+void HttpCore::etag_inode(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().fileinfo.etag_consider_inode(args[0].toBool());
+	else
+		result.set(server().fileinfo.etag_consider_inode());
+}
+
+void HttpCore::server_advertise(Flow::Value& result, const Params& args)
+{
+	if (args.empty())
+	{
+		result.set(server().advertise());
+	}
+	else // TODO if (args.expect(Flow::Value::NUMBER))
+	{
+		server().advertise(args[0].toBool());
+	}
+}
+
+void HttpCore::server_tags(Flow::Value& result, const Params& args)
+{
+	for (size_t i = 0, e = args.count(); i != e; ++i)
+		loadServerTag(args[i]);
+}
+
+void HttpCore::loadServerTag(const Flow::Value& tag)
+{
+	switch (tag.type())
+	{
+		case Flow::Value::ARRAY:
+			for (const Flow::Value *a = tag.toArray(); !a->isVoid(); ++a)
+				loadServerTag(*a);
+			break;
+		case Flow::Value::STRING:
+			if (*tag.toString() != '\0')
+				server().components_.push_back(tag.toString());
+			break;
+		case Flow::Value::BUFFER:
+			if (tag.toNumber() > 0)
+				server().components_.push_back(std::string(tag.toString(), tag.toNumber()));
+			break;
+		default:
+			;//TODO reportWarning("Skip invalid value in server.tag: '%s'.", d->dump().c_str());
+	}
+}
+
+void HttpCore::max_read_idle(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		server().max_read_idle(args[0].toNumber());
+	else
+		result.set(server().max_read_idle());
+}
+
+void HttpCore::max_write_idle(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		server().max_write_idle(args[0].toNumber());
+	else
+		result.set(server().max_write_idle());
+}
+
+void HttpCore::max_keepalive_idle(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		server().max_keep_alive_idle(args[0].toNumber());
+	else
+		result.set(server().max_keep_alive_idle());
+}
+
+void HttpCore::max_conns(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		server().max_connections(args[0].toNumber());
+	else
+		result.set(server().max_connections());
+}
+
+void HttpCore::max_files(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		setrlimit(RLIMIT_NOFILE, args[0].toNumber());
+	else
+		result.set(getrlimit(RLIMIT_NOFILE));
+}
+
+void HttpCore::max_address_space(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		setrlimit(RLIMIT_AS, args[0].toNumber());
+	else
+		result.set(getrlimit(RLIMIT_AS));
+}
+
+void HttpCore::tcp_cork(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().tcp_cork(args[0].toBool());
+	else
+		result.set(server().tcp_cork());
+}
+
+void HttpCore::tcp_nodelay(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().tcp_nodelay(args[0].toBool());
+	else
+		result.set(server().tcp_nodelay());
+}
+
+void HttpCore::plugin_load(Flow::Value& result, const Params& args)
+{
+	result.set(false);
+
+	for (size_t i = 0, e = args.count(); i != e; ++i)
+	{
+		if (!args[i].isString())
+			continue;
+
+		const char *pluginName = args[i].toString();
+		std::error_code ec;
+		server().loadPlugin(pluginName, ec);
+		if (ec) {
+			server().log(Severity::error, "%s: %s", pluginName, ec.message().c_str());
+			result.set(true);
+			//break;
+		}
+	}
+}
+
+void HttpCore::listen(Flow::Value& result, const Params& args)
+{
+	std::string arg(args[0].toString());
+	size_t n = arg.find(':');
+	std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
+	int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
+
+	HttpListener *listener = server().setupListener(port, ip);
+	result.set(listener == NULL);
+}
+
+void HttpCore::emit_llvm(Flow::Value& result, const Params& args)
+{
+	emitLLVM_ = true;
+}
+// }}}
+
+// {{{ sys
+void HttpCore::sys_env(Flow::Value& result, const Params& args)
+{
+	result.set(getenv(args[0].toString()));
+}
+
+void HttpCore::sys_cwd(Flow::Value& result, const Params& args)
+{
+	static char buf[1024];
+	result.set(getcwd(buf, sizeof(buf)));
+}
+
+void HttpCore::sys_pid(Flow::Value& result, const Params& args)
+{
+	result.set(static_cast<long long>(getpid()));
+}
+
+void HttpCore::sys_now(Flow::Value& result, const Params& args)
+{
+	result.set(static_cast<long long>(server().now_.unixtime()));
+}
+
+void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
+{
+	result.set(server().now_.http_str().c_str());
+}
+// }}}
+
+// {{{ req
+void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	if (in->document_root.empty())
+		return; // error: must have a document-root set first.
+
+	if (!in->fileinfo->is_directory())
+		return;
+
+	if (args.count() != 1 || !args[0].isArray())
+		return;
+
+	std::string path(in->fileinfo->filename());
+
+	for (auto i = args[0].toArray(); !i->isVoid(); ++i)
+	{
+		if (!i->isString()) // skip non-string values
+			continue;
+
+		std::string value(i->toString());
+
+		std::string ipath;
+		ipath.reserve(path.length() + 1 + value.length());
+		ipath += path;
+		if (path[path.size() - 1] != '/')
+			ipath += "/";
+		ipath += value;
+
+		if (x0::FileInfoPtr fi = in->connection.server().fileinfo(ipath))
+		{
+			if (fi->is_regular())
+			{
+				in->fileinfo = fi;
+				break;
+			}
+		}
+	}
+}
+
+void HttpCore::docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	if (args.count() == 1)
+	{
+		in->document_root = args[0].toString();
+		in->fileinfo = server().fileinfo(in->document_root + in->path);
+		// XXX we could autoindex here in case the user told us an autoindex before the docroot.
+	}
+	else
+		result.set(in->document_root.c_str());
+}
+
+void HttpCore::req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result.set(in->method.data(), in->method.size());
+}
+
+void HttpCore::req_url(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result.set(in->uri.data(), in->uri.size());
+}
+
+void HttpCore::req_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result.set(in->path.data(), in->path.size());
+}
+
+void HttpCore::req_header(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	BufferRef ref(in->header(args[0].toString()));
+	result.set(ref.data(), ref.size());
+}
+
+void HttpCore::req_host(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = strdup(in->hostname.str().c_str());
+}
+// }}}
+
+// {{{ response
+void HttpCore::resp_header_add(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+}
+
+void HttpCore::resp_header_overwrite(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+}
+
+void HttpCore::resp_header_append(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+}
+
+void HttpCore::resp_header_remove(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+}
+// }}}
+
+// {{{ connection
+void HttpCore::conn_remote_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->connection.remote_ip().c_str();
+}
+
+void HttpCore::conn_remote_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->connection.remote_port();
+}
+
+void HttpCore::conn_local_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->connection.local_ip().c_str();
+}
+
+void HttpCore::conn_local_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->connection.local_port();
+}
+// }}}
+
+// {{{ phys
+void HttpCore::phys_exists(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->fileinfo ? in->fileinfo->exists() : false;
+}
+
+void HttpCore::phys_is_reg(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->fileinfo ? in->fileinfo->is_directory() : false;
+}
+
+void HttpCore::phys_is_dir(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->fileinfo ? in->fileinfo->is_regular() : false;
+}
+
+void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->fileinfo ? in->fileinfo->is_executable() : false;
+}
+
+void HttpCore::phys_mtime(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = (long long)(in->fileinfo ? in->fileinfo->mtime() : 0);
+}
+
+void HttpCore::phys_size(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = (long long)(in->fileinfo ? in->fileinfo->size() : 0);
+}
+
+void HttpCore::phys_etag(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->fileinfo ? in->fileinfo->etag().c_str() : "";
+}
+
+void HttpCore::phys_mimetype(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->fileinfo ? in->fileinfo->mimetype().c_str() : "";
+}
+// }}}
+
+// {{{ handler
+bool HttpCore::dirlisting(HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	return false;
+}
+
+bool HttpCore::redirect(HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	out->status = http_error::moved_temporarily;
+	out->headers.set("Location", args[0].toString());
+	out->finish();
+
+	return true;
+}
+
+bool HttpCore::respond(HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	if (args.count() >= 1 && args[0].isNumber())
+		out->status = static_cast<http_error>(args[0].toNumber());
+
+	out->finish();
+	return true;
+}
+// }}}
+
+// {{{ staticfile handler
+bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args) // {{{
+{
+	if (!in->fileinfo->exists())
+		return false;
+
+	if (!in->fileinfo->is_regular())
+		return false;
+
+	out->status = verifyClientCache(in, out);
+	if (out->status != http_error::ok)
+	{
+		out->finish();
+		return true;
+	}
+
+	int fd = -1;
+	if (equals(in->method, "GET"))
+	{
+		int flags = O_RDONLY;
+
+#if defined(O_NONBLOCK)
+		flags |= O_NONBLOCK;
+#endif
+#if defined(O_CLOEXEC)
+		flags |= O_CLOEXEC;
+#endif
+
+		fd = in->fileinfo->open(flags);
+
+		if (fd < 0)
+		{
+			server_.log(Severity::error, "Could not open file '%s': %s",
+				in->fileinfo->filename().c_str(), strerror(errno));
+
+			out->status = http_error::forbidden;
+			out->finish();
+
+			return true;
+		}
+	}
+	else if (!equals(in->method, "HEAD"))
+	{
+		out->status = http_error::method_not_allowed;
+		out->finish();
+
+		return true;
+	}
+
+	out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
+	out->headers.push_back("ETag", in->fileinfo->etag());
+
+	if (!processRangeRequest(in, out, fd))
+	{
+		out->headers.push_back("Accept-Ranges", "bytes");
+		out->headers.push_back("Content-Type", in->fileinfo->mimetype());
+		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
+
+		if (fd < 0) // HEAD request
+		{
+			out->finish();
+		}
+		else
+		{
+			posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+
+			out->write(
+				std::make_shared<FileSource>(fd, 0, in->fileinfo->size(), true),
+				std::bind(&HttpResponse::finish, out)
+			);
+		}
+	}
+	return true;
+} // }}}
+
+/**
+ * verifies wether the client may use its cache or not.
+ *
+ * \param in request object
+ * \param out response object. this will be modified in case of cache reusability.
+ */
+http_error HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
+{
+	std::string value;
+
+	// If-None-Match, If-Modified-Since
+	if ((value = in->header("If-None-Match")) != "")
+	{
+		if (value == in->fileinfo->etag())
+		{
+			if ((value = in->header("If-Modified-Since")) != "") // ETag + If-Modified-Since
+			{
+				DateTime date(value);
+
+				if (!date.valid())
+					return http_error::bad_request;
+
+				if (in->fileinfo->mtime() <= date.unixtime())
+					return http_error::not_modified;
+			}
+			else // ETag-only
+			{
+				return http_error::not_modified;
+			}
+		}
+	}
+	else if ((value = in->header("If-Modified-Since")) != "")
+	{
+		DateTime date(value);
+		if (!date.valid())
+			return http_error::bad_request;
+
+		if (in->fileinfo->mtime() <= date.unixtime())
+			return http_error::not_modified;
+	}
+
+	return http_error::ok;
+} // }}}
+
+inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, int fd) //{{{
+{
+	BufferRef range_value(in->header("Range"));
+	HttpRangeDef range;
+
+	// if no range request or range request was invalid (by syntax) we fall back to a full response
+	if (range_value.empty() || !range.parse(range_value))
+		return false;
+
+	out->status = http_error::partial_content;
+
+	if (range.size() > 1)
+	{
+		// generate a multipart/byteranged response, as we've more than one range to serve
+
+		auto content = std::make_shared<CompositeSource>();
+		Buffer buf;
+		std::string boundary(generateBoundaryID());
+		std::size_t content_length = 0;
+
+		for (int i = 0, e = range.size(); i != e; ++i)
+		{
+			std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[i], in->fileinfo->size()));
+			if (offsets.second < offsets.first)
+			{
+				out->status = http_error::requested_range_not_satisfiable;
+				return true;
+			}
+
+			std::size_t length = 1 + offsets.second - offsets.first;
+
+			buf.clear();
+			buf.push_back("\r\n--");
+			buf.push_back(boundary);
+			buf.push_back("\r\nContent-Type: ");
+			buf.push_back(in->fileinfo->mimetype());
+
+			buf.push_back("\r\nContent-Range: bytes ");
+			buf.push_back(boost::lexical_cast<std::string>(offsets.first));
+			buf.push_back("-");
+			buf.push_back(boost::lexical_cast<std::string>(offsets.second));
+			buf.push_back("/");
+			buf.push_back(boost::lexical_cast<std::string>(in->fileinfo->size()));
+			buf.push_back("\r\n\r\n");
+
+			if (fd >= 0)
+			{
+				bool lastChunk = i + 1 == e;
+				content->push_back(std::make_shared<BufferSource>(std::move(buf)));
+				content->push_back(std::make_shared<FileSource>(fd, offsets.first, length, lastChunk));
+			}
+			content_length += buf.size() + length;
+		}
+
+		buf.clear();
+		buf.push_back("\r\n--");
+		buf.push_back(boundary);
+		buf.push_back("--\r\n");
+
+		content->push_back(std::make_shared<BufferSource>(std::move(buf)));
+		content_length += buf.size();
+
+		out->headers.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
+		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
+
+		if (fd >= 0)
+		{
+			out->write(content, std::bind(&HttpResponse::finish, out));
+		}
+		else
+		{
+			out->finish();
+		}
+	}
+	else // generate a simple (single) partial response
+	{
+		std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[0], in->fileinfo->size()));
+		if (offsets.second < offsets.first)
+		{
+			out->status = http_error::requested_range_not_satisfiable;
+			return true;
+		}
+
+		std::size_t length = 1 + offsets.second - offsets.first;
+
+		out->headers.push_back("Content-Type", in->fileinfo->mimetype());
+		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(length));
+
+		std::stringstream cr;
+		cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in->fileinfo->size();
+		out->headers.push_back("Content-Range", cr.str());
+
+		if (fd >= 0)
+		{
+			out->write(
+				std::make_shared<FileSource>(fd, offsets.first, length, true),
+				std::bind(&HttpResponse::finish, out)
+			);
+		}
+		else
+		{
+			out->finish();
+		}
+	}
+
+	return true;
+}//}}}
+
+std::pair<std::size_t, std::size_t> HttpCore::makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size)
+{
+	std::pair<std::size_t, std::size_t> q;
+
+	if (p.first == HttpRangeDef::npos) // suffix-range-spec
+	{
+		q.first = actual_size - p.second;
+		q.second = actual_size - 1;
+	}
+	else
+	{
+		q.first = p.first;
+
+		q.second = p.second == HttpRangeDef::npos && p.second > actual_size
+			? actual_size - 1
+			: p.second;
+	}
+
+	return q;
+}
+
+/**
+ * generates a boundary tag.
+ *
+ * \return a value usable as boundary tag.
+ */
+inline std::string HttpCore::generateBoundaryID() const
+{
+	static const char *map = "0123456789abcdef";
+	char buf[16 + 1];
+
+	for (std::size_t i = 0; i < sizeof(buf) - 1; ++i)
+		buf[i] = map[random() % (sizeof(buf) - 1)];
+
+	buf[sizeof(buf) - 1] = '\0';
+
+	return std::string(buf);
+}
+// }}}
+
+// {{{ post_config
+bool HttpCore::post_config()
+{
+	if (emitLLVM_)
+	{
+		// XXX we could certainly dump this into a special destination instead to stderr.
+		server().runner_->dump();
+	}
+
+	return true;
+}
+// }}}
+
+// {{{ getrimit / setrlimit
 static inline const char *rc2str(int resource)
 {
 	switch (resource)
@@ -123,168 +869,6 @@ long long HttpCore::setrlimit(int resource, long long value)
 
 	return value;
 }
-
-std::error_code HttpCore::setup_logging(const SettingsValue& cvar, Scope& s)
-{
-	std::string logmode(cvar["Mode"].as<std::string>());
-	auto nowfn = std::bind(&DateTime::htlog_str, &server().now_);
-
-	if (logmode == "file")
-		server().logger_.reset(new FileLogger<decltype(nowfn)>(cvar["FileName"].as<std::string>(), nowfn));
-	else if (logmode == "null")
-		server().logger_.reset(new NullLogger());
-	else if (logmode == "stderr")
-		server().logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
-	else //! \todo add syslog logger
-		server().logger_.reset(new NullLogger());
-
-	server().logger()->level(Severity(cvar["Level"].as<std::string>()));
-
-	cvar["Colorize"].load(server().colored_log_);
-	return std::error_code();
-}
-
-std::error_code HttpCore::setup_modules(const SettingsValue& cvar, Scope& s)
-{
-	std::error_code ec;
-
-	std::vector<std::string> list;
-	cvar["Load"].load(list);
-
-	for (auto i = list.begin(), e = list.end(); i != e; ++i)
-		if (!server().loadPlugin(*i, ec))
-			return ec;
-
-	return ec;
-}
-
-std::error_code HttpCore::setup_resources(const SettingsValue& cvar, Scope& s)
-{
-	cvar["MaxConnections"].load(server().max_connections);
-	cvar["MaxKeepAliveIdle"].load(server().max_keep_alive_idle);
-	cvar["MaxReadIdle"].load(server().max_read_idle);
-	cvar["MaxWriteIdle"].load(server().max_write_idle);
-
-	cvar["TCP_CORK"].load(server().tcp_cork);
-	cvar["TCP_NODELAY"].load(server().tcp_nodelay);
-
-	long long value = 0;
-	if (cvar["MaxFiles"].load(value))
-		setrlimit(RLIMIT_NOFILE, value);
-
-	if (cvar["MaxAddressSpace"].load(value))
-		setrlimit(RLIMIT_AS, value);
-
-	if (cvar["MaxCoreFileSize"].load(value))
-		setrlimit(RLIMIT_CORE, value);
-
-	return std::error_code();
-}
-
-std::error_code HttpCore::setup_hosts(const SettingsValue& cvar, Scope& s)
-{
-	std::vector<std::string> hostids = cvar.keys<std::string>();
-
-	for (auto i = hostids.begin(), e = hostids.end(); i != e; ++i)
-	{
-		std::string hostid = *i;
-
-		server().createHost(hostid);
-
-		auto host_cvars = cvar[hostid].keys<std::string>();
-
-		// handle all vhost-directives
-		for (auto pi = server().cvars_host_.begin(), pe = server().cvars_host_.end(); pi != pe; ++pi)
-		{
-			for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			{
-				if (cvar[hostid].contains(ci->first))
-				{
-					//debug(1, "CVAR_HOST(%s): %s", hostid.c_str(), ci->first.c_str());
-					if (std::error_code ec = ci->second(cvar[hostid][ci->first], *server().resolveHost(hostid)))
-						return ec;
-				}
-			}
-		}
-
-		// handle all path scopes
-		for (auto vi = host_cvars.begin(), ve = host_cvars.end(); vi != ve; ++vi)
-		{
-			std::string path = *vi;
-			if (path[0] == '/')
-			{
-				std::vector<std::string> keys = cvar[hostid][path].keys<std::string>();
-
-				for (auto pi = server().cvars_path_.begin(), pe = server().cvars_path_.end(); pi != pe; ++pi)
-					for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-						if (_contains(keys, ci->first))
-							;//! \todo ci->second(cvar[hostid][path], vhost(hostid).location(path));
-
-				for (auto ki = keys.begin(), ke = keys.end(); ki != ke; ++ki)
-					if (!_contains(server().cvars_path_, *ki))
-						server().log(Severity::error, "Unknown location-context variable: '%s'", ki->c_str());
-			}
-		}
-	}
-
-	return std::error_code();
-}
-
-std::error_code HttpCore::setupMimeTypes(const SettingsValue& cvar, Scope& s)
-{
-	std::string value;
-	std::error_code ec = cvar.load(value);
-	if (!ec) server().fileinfo.load_mimetypes(value);
-	return ec;
-}
-
-std::error_code HttpCore::setupMimeTypeDefault(const SettingsValue& cvar, Scope& s)
-{
-	std::string value;
-	std::error_code ec = cvar.load(value);
-	if (!ec) server().fileinfo.default_mimetype(value);
-	return ec;
-}
-
-std::error_code HttpCore::setupETagUseMtime(const SettingsValue& cvar, Scope& s)
-{
-	bool flag = false;
-	std::error_code ec = cvar.load(flag);
-	if (!ec) server().fileinfo.etag_consider_mtime(flag);
-	return ec;
-}
-
-std::error_code HttpCore::setupETagUseSize(const SettingsValue& cvar, Scope& s)
-{
-	bool flag = false;
-	std::error_code ec = cvar.load(flag);
-	if (!ec) server().fileinfo.etag_consider_size(flag);
-	return ec;
-}
-
-std::error_code HttpCore::setupETagUseInode(const SettingsValue& cvar, Scope& s)
-{
-	bool flag = false;
-	std::error_code ec = cvar.load(flag);
-	if (!ec) server().fileinfo.etag_consider_inode(flag);
-	return ec;
-}
-
-// ErrorDocuments = array of [pair<code, path>]
-std::error_code HttpCore::setup_error_documents(const SettingsValue& cvar, Scope& s)
-{
-	return std::error_code(); //! \todo
-}
-
-// Advertise = BOOLEAN
-std::error_code HttpCore::setup_advertise(const SettingsValue& cvar, Scope& s)
-{
-	return cvar.load(server().advertise);
-}
-
-bool HttpCore::post_config()
-{
-	return true;
-}
+// }}}
 
 } // namespace x0

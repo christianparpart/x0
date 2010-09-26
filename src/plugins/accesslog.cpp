@@ -30,7 +30,7 @@ class accesslog_plugin :
 private:
 	x0::HttpServer::RequestPostHook::Connection c;
 
-	struct LogFile : public x0::CustomData
+	struct LogFile : public x0::CustomData // {{{
 	{
 		std::string filename_;
 		int fd_;
@@ -84,13 +84,15 @@ private:
 			close();
 			open(filename_);
 		}
-	};
+	}; // }}}
 
 public:
 	accesslog_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
 		c = srv.onRequestDone.connect<accesslog_plugin, &accesslog_plugin::request_done>(this);
+
+		registerProperty<accesslog_plugin, &accesslog_plugin::handleRequest>("accesslog", Flow::Value::VOID);
 	}
 
 	~accesslog_plugin()
@@ -99,7 +101,7 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	void handleRequest(Flow::Value& result, x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		std::shared_ptr<LogFile> lf(std::make_shared<LogFile>());
 		std::error_code ec = lf->open(args[0].toString());
@@ -107,8 +109,6 @@ private:
 			in->custom_data[this] = lf;
 		else
 			printf("accesslog error: %s\n", ec.message().c_str());
-
-		return false;
 	}
 
 	void request_done(x0::HttpRequest *in, x0::HttpResponse *out)

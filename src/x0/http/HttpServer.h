@@ -10,7 +10,6 @@
 #define sw_x0_http_server_h (1)
 
 #include <x0/http/HttpContext.h>
-#include <x0/http/HttpRequestHandler.h>
 #include <x0/http/Types.h>
 #include <x0/io/FileInfoService.h>
 #include <x0/Settings.h>
@@ -156,6 +155,8 @@ public:
 
 	HttpListener *listenerByHost(const std::string& hostid) const;
 	HttpListener *listenerByPort(int port) const;
+
+	void dumpIR() const; // for debugging purpose
 
 private: // {{{ flow backend API
 	// flow core API (setup stage)
