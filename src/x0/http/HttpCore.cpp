@@ -106,6 +106,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", Flow::Value::NUMBER);
 	registerProperty<HttpCore, &HttpCore::conn_local_ip>("req.localip", Flow::Value::STRING);
 	registerProperty<HttpCore, &HttpCore::conn_local_port>("req.localport", Flow::Value::NUMBER);
+	registerProperty<HttpCore, &HttpCore::phys_path>("phys.path", Flow::Value::STRING);
 	registerProperty<HttpCore, &HttpCore::phys_exists>("phys.exists", Flow::Value::BOOLEAN);
 	registerProperty<HttpCore, &HttpCore::phys_is_reg>("phys.is_reg", Flow::Value::BOOLEAN);
 	registerProperty<HttpCore, &HttpCore::phys_is_dir>("phys.is_dir", Flow::Value::BOOLEAN);
@@ -511,44 +512,49 @@ void HttpCore::conn_local_port(Flow::Value& result, HttpRequest *in, HttpRespons
 // }}}
 
 // {{{ phys
+void HttpCore::phys_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result.set(in->fileinfo ? in->fileinfo->filename().c_str() : "");
+}
+
 void HttpCore::phys_exists(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->fileinfo ? in->fileinfo->exists() : false;
+	result.set(in->fileinfo ? in->fileinfo->exists() : false);
 }
 
 void HttpCore::phys_is_reg(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->fileinfo ? in->fileinfo->is_directory() : false;
+	result.set(in->fileinfo ? in->fileinfo->is_directory() : false);
 }
 
 void HttpCore::phys_is_dir(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->fileinfo ? in->fileinfo->is_regular() : false;
+	result.set(in->fileinfo ? in->fileinfo->is_regular() : false);
 }
 
 void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->fileinfo ? in->fileinfo->is_executable() : false;
+	result.set(in->fileinfo ? in->fileinfo->is_executable() : false);
 }
 
 void HttpCore::phys_mtime(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = (long long)(in->fileinfo ? in->fileinfo->mtime() : 0);
+	result.set((long long)(in->fileinfo ? in->fileinfo->mtime() : 0));
 }
 
 void HttpCore::phys_size(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = (long long)(in->fileinfo ? in->fileinfo->size() : 0);
+	result.set((long long)(in->fileinfo ? in->fileinfo->size() : 0));
 }
 
 void HttpCore::phys_etag(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->fileinfo ? in->fileinfo->etag().c_str() : "";
+	result.set(in->fileinfo ? in->fileinfo->etag().c_str() : "");
 }
 
 void HttpCore::phys_mimetype(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = in->fileinfo ? in->fileinfo->mimetype().c_str() : "";
+	result.set(in->fileinfo ? in->fileinfo->mimetype().c_str() : "");
 }
 // }}}
 

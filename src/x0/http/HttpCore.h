@@ -85,6 +85,7 @@ private:
 	void conn_remote_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void conn_local_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void conn_local_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
+	void phys_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void phys_exists(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void phys_is_reg(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void phys_is_dir(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
