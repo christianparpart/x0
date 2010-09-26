@@ -92,6 +92,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	// main
 	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::docroot>("docroot", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::alias>("alias", Flow::Value::VOID);
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_url>("req.url", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_path>("req.path", Flow::Value::BUFFER);
@@ -413,6 +414,33 @@ void HttpCore::docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, 
 	}
 	else
 		result.set(in->document_root.c_str());
+}
+
+void HttpCore::alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	if (args.count() != 2)
+		return;
+
+	if (!args[0].isString() || !args[1].isString())
+		return;
+
+	// input:
+	//    URI: /some/uri/path
+	//    Alias '/some' => '/srv/special';
+	//
+	// output:
+	//    docroot: /srv/special
+	//    fileinfo: /srv/special/uri/path
+
+	size_t prefixLength = strlen(args[0].toString());
+	std::string prefix = args[0].toString();
+	std::string alias = args[1].toString();
+
+	if (in->path.begins(prefix))
+	{
+		in->fileinfo = in->connection.server().fileinfo(alias + in->path.substr(prefixLength));
+		printf("resolve_entity: %s [%s]: %s\n", prefix.c_str(), in->path.str().c_str(), in->fileinfo->filename().c_str());
+	}
 }
 
 void HttpCore::req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
