@@ -69,6 +69,7 @@ private:
 
 	// main methods
 	void autoindex(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
+	bool matchIndex(HttpRequest *in, const Flow::Value& arg);
 	void docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_url(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);

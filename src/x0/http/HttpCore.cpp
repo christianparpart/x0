@@ -345,40 +345,62 @@ void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
 // {{{ req
 void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	if (in->document_root.empty())
+	if (in->document_root.empty()) {
+		server().log(Severity::error, "autoindex: No document root set yet. Skipping.");
 		return; // error: must have a document-root set first.
+	}
+
+	if (!in->fileinfo)
+		return; // something went wrong, just be sure we SEGFAULT here
 
 	if (!in->fileinfo->is_directory())
 		return;
 
-	if (args.count() != 1 || !args[0].isArray())
+	if (args.count() < 1)
 		return;
 
+	for (size_t i = 0, e = args.count(); i != e; ++i)
+		if (matchIndex(in, args[i]))
+			return;
+}
+
+bool HttpCore::matchIndex(HttpRequest *in, const Flow::Value& arg)
+{
 	std::string path(in->fileinfo->filename());
 
-	for (auto i = args[0].toArray(); !i->isVoid(); ++i)
+	switch (arg.type())
 	{
-		if (!i->isString()) // skip non-string values
-			continue;
-
-		std::string value(i->toString());
-
-		std::string ipath;
-		ipath.reserve(path.length() + 1 + value.length());
-		ipath += path;
-		if (path[path.size() - 1] != '/')
-			ipath += "/";
-		ipath += value;
-
-		if (x0::FileInfoPtr fi = in->connection.server().fileinfo(ipath))
+		case Flow::Value::STRING:
 		{
-			if (fi->is_regular())
+			std::string ipath;
+			ipath.reserve(path.length() + 1 + strlen(arg.toString()));
+			ipath += path;
+			if (path[path.size() - 1] != '/')
+				ipath += "/";
+			ipath += arg.toString();
+
+			if (x0::FileInfoPtr fi = in->connection.server().fileinfo(ipath))
 			{
-				in->fileinfo = fi;
-				break;
+				if (fi->is_regular())
+				{
+					in->fileinfo = fi;
+					return true;
+				}
 			}
+			break;
 		}
+		case Flow::Value::ARRAY:
+		{
+			for (const Flow::Value *a = arg.toArray(); !a->isVoid(); ++a)
+				if (matchIndex(in, *a))
+					return true;
+
+			break;
+		}
+		default:
+			break;
 	}
+	return false;
 }
 
 void HttpCore::docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
