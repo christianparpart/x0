@@ -57,7 +57,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 10 // !defined(NDEBUG)
 #	include <x0/StackTrace.h>
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
@@ -735,6 +735,8 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 	return false;
 }
 
+/** \brief write-completion hook, invoked when a content chunk is written to the HTTP client.
+ */
 void CgiTransport::writeComplete(int err, size_t nwritten)
 {
 #if X0_FASTCGI_DIRECT_IO
