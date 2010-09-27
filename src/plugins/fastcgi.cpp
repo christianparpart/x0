@@ -511,6 +511,7 @@ void CgiTransport::io(int revents)
 
 		writeOffset_ += rv;
 
+		// if set watcher back to EV_READ if the write-buffer has been fully written (to catch connection close events)
 		if (writeOffset_ == writeBuffer_.size()) {
 			ev_io_stop(loop_, &io_);
 			ev_io_set(&io_, fd_, EV_READ);
@@ -720,6 +721,9 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 	if (!writeActive_)
 	{
 		writeActive_ = true;
+
+		ev_io_stop(loop_, &io_);
+
 		response_->write(
 			std::make_shared<x0::BufferSource>(content),
 			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
@@ -742,6 +746,10 @@ void CgiTransport::writeComplete(int err, size_t nwritten)
 #if X0_FASTCGI_DIRECT_IO
 	writeActive_ = false;
 
+	ev_io_stop(loop_, &io_);
+	ev_io_set(&io_, fd_, EV_READ);
+	ev_io_start(loop_, &io_);
+
 	if (err)
 	{
 		TRACE("CgiTransport.write error: %s", strerror(err));
@@ -757,6 +765,7 @@ void CgiTransport::writeComplete(int err, size_t nwritten)
 			std::make_shared<x0::BufferSource>(std::move(writeBuffer_)),
 			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
 		);
+		TRACE("CgiTransport.writeComplete: (after response.write call) writeBuffer_.size: %ld", writeBuffer_.size());
 	}
 	else if (finish_)
 	{
