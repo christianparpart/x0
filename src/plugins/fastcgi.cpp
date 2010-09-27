@@ -664,7 +664,11 @@ void CgiTransport::onStdOut(x0::BufferRef&& chunk)
 void CgiTransport::onStdErr(x0::BufferRef&& chunk)
 {
 	TRACE("CgiTransport.stderr: %s", chomp(chunk.str()).c_str());
-	// TODO
+
+	if (!request_)
+		return;
+
+	request_->connection.server().log(x0::Severity::error, "fastcgi: %s", chomp(chunk.str()).c_str());
 }
 
 void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
