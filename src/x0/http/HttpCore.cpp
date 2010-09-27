@@ -524,12 +524,12 @@ void HttpCore::phys_exists(Flow::Value& result, HttpRequest *in, HttpResponse *o
 
 void HttpCore::phys_is_reg(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->is_directory() : false);
+	result.set(in->fileinfo ? in->fileinfo->is_regular() : false);
 }
 
 void HttpCore::phys_is_dir(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->is_regular() : false);
+	result.set(in->fileinfo ? in->fileinfo->is_directory() : false);
 }
 
 void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
