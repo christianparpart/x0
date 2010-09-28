@@ -599,13 +599,18 @@ void CgiTransport::streamParams()
 	paramWriter_.encode("GATEWAY_INTERFACE", "CGI/1.1");
 
 	paramWriter_.encode("SERVER_PROTOCOL", "1.1");
-	paramWriter_.encode("SERVER_ADDR", "localhost"); // TODO
-	paramWriter_.encode("SERVER_PORT", "8080"); // TODO
+	paramWriter_.encode("SERVER_ADDR", request_->connection.localIP());
+	paramWriter_.encode("SERVER_PORT", boost::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
 
 	paramWriter_.encode("REQUEST_METHOD", request_->method);
-	paramWriter_.encode("PATH_INFO", request_->path);
-	paramWriter_.encode("PATH_TRANSLATED", request_->fileinfo->filename());
+
+	request_->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
+
 	paramWriter_.encode("SCRIPT_NAME", request_->path);
+	paramWriter_.encode("PATH_INFO", request_->pathinfo);
+	if (!request_->pathinfo.empty())
+		paramWriter_.encode("PATH_TRANSLATED", request_->document_root, request_->pathinfo);
+
 	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
 	paramWriter_.encode("REQUEST_URI", request_->uri);
 
@@ -618,7 +623,6 @@ void CgiTransport::streamParams()
 	//paramWriter_.encode("REMOTE_IDENT", "");
 
 	if (request_->content_available()) {
-		TRACE("CgiTransport.streamParams(): content available!");
 		paramWriter_.encode("CONTENT_TYPE", request_->header("Content-Type"));
 		paramWriter_.encode("CONTENT_LENGTH", request_->header("Content-Length"));
 

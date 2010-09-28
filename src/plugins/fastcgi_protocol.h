@@ -134,6 +134,7 @@ public:
 	CgiParamStreamWriter();
 
 	void encode(const char *name, size_t nameLength, const char *value, size_t valueLength);
+	void encode(const char *name, size_t nameLength, const char *v1, size_t l1, const char *v2, size_t l2);
 
 	void encode(const std::string& name, const std::string& value)
 		{ encode(name.data(), name.size(), value.data(), value.size()); }
@@ -141,6 +142,10 @@ public:
 		{ encode(name.data(), name.size(), value.data(), value.size()); }
 	void encode(const std::string& name, const x0::BufferRef& value)
 		{ encode(name.data(), name.size(), value.data(), value.size()); }
+
+	template<typename V1, typename V2>
+	void encode(const std::string& name, const V1& v1, const V2& v2)
+		{ encode(name.data(), name.size(), v1.data(), v1.size(), v2.data(), v2.size()); }
 
 	template<typename PodType, std::size_t N, typename ValuePType, std::size_t N2>
 	void encode(PodType (&name)[N], const ValuePType (&value)[N2])
@@ -255,6 +260,17 @@ inline void CgiParamStreamWriter::encode(const char *name, size_t nameLength, co
 
 	buffer_.push_back(name, nameLength);
 	buffer_.push_back(value, valueLength);
+}
+
+inline void CgiParamStreamWriter::encode(const char *name, size_t nameLength,
+	const char *v1, size_t l1, const char *v2, size_t l2)
+{
+	encodeLength(nameLength);
+	encodeLength(l1 + l2);
+
+	buffer_.push_back(name, nameLength);
+	buffer_.push_back(v1, l1);
+	buffer_.push_back(v2, l2);
 }
 
 // CgiParamStreamReader
