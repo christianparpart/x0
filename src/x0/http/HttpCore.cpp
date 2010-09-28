@@ -100,6 +100,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_path>("req.path", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_header>("req.header", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_host>("req.host", Flow::Value::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", Flow::Value::STRING);
 	registerFunction<HttpCore, &HttpCore::resp_header_add>("header.add", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::resp_header_overwrite>("header.overwrite", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::resp_header_append>("header.append", Flow::Value::VOID);
@@ -430,10 +431,16 @@ void HttpCore::docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, 
 void HttpCore::alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	if (args.count() != 2)
+	{
+		server().log(Severity::error, "alias: invalid argument count");
 		return;
+	}
 
 	if (!args[0].isString() || !args[1].isString())
+	{
+		server().log(Severity::error, "alias: invalid argument types");
 		return;
+	}
 
 	// input:
 	//    URI: /some/uri/path
@@ -450,7 +457,7 @@ void HttpCore::alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, co
 	if (in->path.begins(prefix))
 	{
 		in->fileinfo = in->connection.server().fileinfo(alias + in->path.substr(prefixLength));
-		printf("resolve_entity: %s [%s]: %s\n", prefix.c_str(), in->path.str().c_str(), in->fileinfo->filename().c_str());
+		printf("resolve_entity: %s [%s]: %s (%d)\n", prefix.c_str(), in->path.str().c_str(), in->fileinfo->filename().c_str(), in->fileinfo->exists());
 	}
 }
 
@@ -488,7 +495,12 @@ void HttpCore::req_header(Flow::Value& result, HttpRequest *in, HttpResponse *ou
 
 void HttpCore::req_host(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result = strdup(in->hostname.str().c_str());
+	result = in->hostname.str().c_str();
+}
+
+void HttpCore::req_pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->pathinfo.c_str();
 }
 // }}}
 
