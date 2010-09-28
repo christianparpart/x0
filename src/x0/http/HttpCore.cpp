@@ -77,6 +77,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupProperty<HttpCore, &HttpCore::max_conns>("max_connections", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_files>("max_files", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_address_space>("max_address_space", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_core>("max_core_size", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::tcp_cork>("tcp_cork", Flow::Value::BOOLEAN);
 	registerSetupProperty<HttpCore, &HttpCore::tcp_nodelay>("tcp_nodelay", Flow::Value::BOOLEAN);
 
@@ -262,6 +263,14 @@ void HttpCore::max_address_space(Flow::Value& result, const Params& args)
 		setrlimit(RLIMIT_AS, args[0].toNumber());
 	else
 		result.set(getrlimit(RLIMIT_AS));
+}
+
+void HttpCore::max_core(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		setrlimit(RLIMIT_CORE, args[0].toNumber());
+	else
+		result.set(getrlimit(RLIMIT_CORE));
 }
 
 void HttpCore::tcp_cork(Flow::Value& result, const Params& args)

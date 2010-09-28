@@ -50,6 +50,7 @@ private:
 	void max_conns(Flow::Value& result, const Params& args);
 	void max_files(Flow::Value& result, const Params& args);
 	void max_address_space(Flow::Value& result, const Params& args);
+	void max_core(Flow::Value& result, const Params& args);
 	void tcp_cork(Flow::Value& result, const Params& args);
 	void tcp_nodelay(Flow::Value& result, const Params& args);
 
