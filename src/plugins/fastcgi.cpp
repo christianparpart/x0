@@ -6,16 +6,11 @@
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
 
-/* Configuration:
+/* Configuration Ideas:
  *
  *     action handler;
- *         fastcgi IP, PORT
+ *         fastcgi IP:PORT
  *         fastcgi unix_socket
- *         fastcgi ID
- *
- *     setup functions:
- *         fastcgi.register ID, IP, PORTs
- *         fastcgi.register ID, UNIX_SOCKET
  *
  * Todo:
  *
@@ -25,10 +20,6 @@
  *       - stdout stream parse errors,
  *       - transport level errors (connect/read/write errors)
  *       - timeouts
- *   - query management cvars from each fastcgi application and honor them
- *   - load balance across multiple remotes
- *   - failover to another transport until one accepts the request
- *     or the deliver-timeout is exceeded, which results into an error 503 (service unavailable)
  */
 
 #include "fastcgi_protocol.h"
@@ -43,6 +34,7 @@
 #include <x0/Process.h>
 #include <x0/Types.h>
 #include <x0/gai_error.h>
+#include <x0/StackTrace.h>
 #include <x0/sysconfig.h>
 
 #include <system_error>
@@ -58,7 +50,6 @@
 #include <fcntl.h>
 
 #if 0 // !defined(NDEBUG)
-#	include <x0/StackTrace.h>
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -72,8 +63,6 @@
 //     *all* data from the backend application has been arrived in x0.
 //
 #define X0_FASTCGI_DIRECT_IO (1)
-
-#define X0_FASTCGI_DEFAULT_RID 1
 
 class CgiContext;
 class CgiTransport;
@@ -120,6 +109,7 @@ public:
 
 	std::string hostname_;
 	int port_;
+	uint16_t id_;
 
 	int fd_;
 	State state_;
@@ -151,8 +141,7 @@ public:
 	State state() const { return state_; }
 	std::error_code errorCode() const { return error_; }
 
-	bool open(const char *hostname, int port);
-	void reopen();
+	bool open(const char *hostname, int port, uint16_t id);
 	bool isOpen() const { return fd_ >= 0; }
 	bool isClosed() const { return fd_ < 0; }
 	void close();
@@ -168,6 +157,8 @@ public:
 	void onStdOut(x0::BufferRef&& chunk);
 	void onStdErr(x0::BufferRef&& chunk);
 	void onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus);
+
+	CgiContext& context() const { return *context_; }
 
 public:
 	template<typename T, typename... Args> void write(Args&&... args)
@@ -199,9 +190,11 @@ private:
 	inline void onParam(const std::string& name, const std::string& value);
 }; // }}}
 
+uint16_t nextID_ = 0;
 class CgiContext //{{{
 {
 public:
+	x0::HttpServer& server_;
 	std::string host_;
 	int port_;
 
@@ -209,9 +202,10 @@ public:
 	std::vector<CgiTransport *> transports_;
 
 public:
-	CgiContext();
+	CgiContext(x0::HttpServer& server);
 	~CgiContext();
 
+	x0::HttpServer& server() const { return server_; }
 	void setup(const std::string& application);
 
 	CgiTransport *handleRequest(x0::HttpRequest *in, x0::HttpResponse *out);
@@ -228,6 +222,7 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	loop_(ev_default_loop(0)),
 	hostname_(),
 	port_(0),
+	id_(1),
 	fd_(-1),
 	state_(DISCONNECTED),
 	readBuffer_(),
@@ -263,10 +258,11 @@ CgiTransport::~CgiTransport()
 	close();
 }
 
-bool CgiTransport::open(const char *hostname, int port)
+bool CgiTransport::open(const char *hostname, int port, uint16_t id)
 {
 	hostname_ = hostname;
 	port_ = port;
+	id_ = id;
 
 	TRACE("connect(hostname=%s, port=%d)", hostname, port);
 
@@ -285,7 +281,8 @@ bool CgiTransport::open(const char *hostname, int port)
 	if (rv)
 	{
 		error_ = make_error_code(static_cast<enum x0::gai_error>(rv));
-		TRACE("connect: resolve error: %s", error_.message().c_str());
+		context().server().log(x0::Severity::error,
+				"fastcgi: could not get addrinfo of %s:%s: %s", hostname, sport, error_.message().c_str());
 		return false;
 	}
 
@@ -316,7 +313,8 @@ bool CgiTransport::open(const char *hostname, int port)
 			else
 			{
 				error_ = std::make_error_code(static_cast<std::errc>(errno));
-				TRACE("connect error: %s (category: %s)", error_.message().c_str(), error_.category().name());
+				context().server().log(x0::Severity::error,
+					"fastcgi: could not connect to %s:%s: %s", hostname_.c_str(), sport, strerror(errno));
 				close();
 			}
 		}
@@ -416,7 +414,8 @@ void CgiTransport::connected()
 		else
 		{
 			error_ = std::make_error_code(static_cast<std::errc>(val));
-			TRACE("connect: error(%d): %s", val, error_.message().c_str());
+			context().server().log(x0::Severity::error,
+				"fastcgi: could not connect to %s:%d: %s", hostname_.c_str(), port_, strerror(val));
 			close();
 		}
 	}
@@ -424,6 +423,8 @@ void CgiTransport::connected()
 	{
 		error_ = std::make_error_code(static_cast<std::errc>(errno));
 		TRACE("connect: getsocketopt() error: %s", error_.message().c_str());
+		context().server().log(x0::Severity::error,
+			"fastcgi: could not getsocketopt(SO_ERROR) to %s:%d: %s", hostname_.c_str(), port_, strerror(errno));
 		close();
 	}
 
@@ -464,14 +465,16 @@ void CgiTransport::io(int revents)
 			ssize_t rv = ::read(fd_, const_cast<char *>(readBuffer_.data() + readBuffer_.size()), remaining);
 
 			if (rv == 0) {
-				TRACE("fcgiapp closed connection");
-				reopen();
+				TRACE("fastcgi: connection to backend lost.");
+				close();
 				return;
 			}
 
 			if (rv < 0) {
 				if (errno != EINTR && errno != EAGAIN)
-					perror("CgiTransport.read");
+					context().server().log(x0::Severity::error,
+						"fastcgi: read from backend %s:%d failed: %s",
+						hostname_.c_str(), port_, strerror(errno));
 
 				break;
 			}
@@ -503,7 +506,8 @@ void CgiTransport::io(int revents)
 
 		if (rv < 0) {
 			if (errno != EINTR && errno != EAGAIN) {
-				TRACE("CgiTransport.write(fd:%d): %s\n", fd_, strerror(errno));
+				context().server().log(x0::Severity::error,
+					"fastcgi: write to backend %s:%d failed: %s", hostname_.c_str(), port_, strerror(errno));
 			}
 
 			return;
@@ -549,7 +553,9 @@ void CgiTransport::processRecord(const FastCgi::Record *record)
 			break;
 		case FastCgi::Type::UnknownType:
 		default:
-			TRACE("CgiTransport: unhandled record (type:%d)", record->type());
+			context().server().log(x0::Severity::error,
+				"fastcgi: unknown transport record received from backend %s:%d. type:%d, payload-size:%ld",
+				hostname_.c_str(), port_, record->type(), record->contentLength());
 			break;
 	}
 }
@@ -557,19 +563,6 @@ void CgiTransport::processRecord(const FastCgi::Record *record)
 void CgiTransport::onParam(const std::string& name, const std::string& value)
 {
 	TRACE("onParam(%s, %s)", name.c_str(), value.c_str());
-}
-
-void CgiTransport::reopen()
-{
-	TRACE("CgiTransport.reopen()");
-	if (fd_ >= 0)
-	{
-		ev_io_stop(loop_, &io_);
-		::close(fd_);
-		fd_ = -1;
-	}
-
-	open(hostname_.c_str(), port_);
 }
 
 void CgiTransport::close()
@@ -589,7 +582,7 @@ void CgiTransport::close()
 
 void CgiTransport::beginRequest()
 {
-	write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, X0_FASTCGI_DEFAULT_RID, true);
+	write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, id_, true);
 }
 
 void CgiTransport::streamParams()
@@ -649,26 +642,26 @@ void CgiTransport::streamParams()
 	paramWriter_.encode("DOCUMENT_ROOT", request_->document_root);
 	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->filename());
 
-	write(FastCgi::Type::Params, X0_FASTCGI_DEFAULT_RID, paramWriter_.output());
-	write(FastCgi::Type::Params, X0_FASTCGI_DEFAULT_RID, "", 0); // EOS
+	write(FastCgi::Type::Params, id_, paramWriter_.output());
+	write(FastCgi::Type::Params, id_, "", 0); // EOS
 }
 
 void CgiTransport::abortRequest()
 {
-	write<FastCgi::AbortRequestRecord>(X0_FASTCGI_DEFAULT_RID);
+	write<FastCgi::AbortRequestRecord>(id_);
 	flush();
 }
 
 void CgiTransport::onStdOut(x0::BufferRef&& chunk)
 {
-	TRACE("CgiTransport.onStdOut(chunk.size:%ld)", chunk.size());
+	TRACE("CgiTransport.onStdOut(id:%d, chunk.size:%ld)", id_, chunk.size());
 	size_t np = 0;
 	process(chunk, np);
 }
 
 void CgiTransport::onStdErr(x0::BufferRef&& chunk)
 {
-	TRACE("CgiTransport.stderr: %s", chomp(chunk.str()).c_str());
+	TRACE("CgiTransport.stderr(id:%d): %s", id_, chomp(chunk.str()).c_str());
 
 	if (!request_)
 		return;
@@ -699,12 +692,12 @@ void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolS
 void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
 {
 	TRACE("CgiTransport.processRequestBody(len=%ld)", chunk.size());
-	write(FastCgi::Type::StdIn, X0_FASTCGI_DEFAULT_RID, chunk.data(), chunk.size());
+	write(FastCgi::Type::StdIn, id_, chunk.data(), chunk.size());
 
 	if (request_->connection.contentLength() > 0)
 		request_->read(std::bind(&CgiTransport::processRequestBody, this, std::placeholders::_1));
 	else
-		write(FastCgi::Type::StdIn, X0_FASTCGI_DEFAULT_RID, "", 0); // mark end-of-stream
+		write(FastCgi::Type::StdIn, id_, "", 0); // mark end-of-stream
 
 	flush();
 }
@@ -805,7 +798,11 @@ void CgiTransport::finish()
 		return;
 
 	if (response_->status == x0::http_error::undefined)
+	{
 		response_->status = x0::http_error::service_unavailable;
+		//x0::StackTrace st;
+		//printf("%s\n", st.c_str());
+	}
 
 	response_->finish();
 
@@ -817,7 +814,8 @@ void CgiTransport::finish()
 // }}}
 
 // {{{ CgiContext impl
-CgiContext::CgiContext() :
+CgiContext::CgiContext(x0::HttpServer& server) :
+	server_(server),
 	host_(), port_(0),
 	transport_(0),
 	transports_()
@@ -855,13 +853,17 @@ CgiTransport *CgiContext::handleRequest(x0::HttpRequest *in, x0::HttpResponse *o
 	// select transport
 	CgiTransport *transport = transport_; // TODO support more than one transport and LB between them
 
+	if (++nextID_ == 0)
+		++nextID_;
+
 	if (transport == 0)
 	{
 		transport = new CgiTransport(this);
-		transport->open(host_.c_str(), port_);
+		transport->open(host_.c_str(), port_, nextID_);
 	}
 	else if (transport->isClosed())
-		transport->reopen();
+		transport->open(host_.c_str(), port_, nextID_);
+
 
 	// attach request to transport
 	transport->bind(in, out);
@@ -909,7 +911,7 @@ public:
 
 	CgiContext *acquireContext(const std::string& app)
 	{
-		CgiContext *cx = new CgiContext();
+		CgiContext *cx = new CgiContext(server());
 		cx->setup(app);
 		return cx;
 	}
