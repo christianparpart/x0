@@ -255,7 +255,6 @@ void HttpResponse::finish()
 	}
 	else if (!filters.empty())
 	{
-		DEBUG("HttpResponse.finish() with filters.");
 		// mark the end of stream (EOF) by passing an empty chunk to the filters.
 		connection_->writeAsync(
 			std::make_shared<FilterSource>(std::make_shared<BufferSource>(""), filters, true),
