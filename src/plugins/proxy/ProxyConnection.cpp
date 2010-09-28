@@ -84,7 +84,7 @@ void ProxyConnection::header(x0::BufferRef&& name, x0::BufferRef&& value)
 	TRACE("ProxyConnection(%p).header('%s', '%s')", this, name.str().c_str(), value.str().c_str());
 
 	if (validate_response_header(name))
-		response_->headers.set(name.str(), value.str());
+		response_->headers.push_back(name.str(), value.str());
 }
 
 /** callback, invoked when a new content chunk from origin has arrived.

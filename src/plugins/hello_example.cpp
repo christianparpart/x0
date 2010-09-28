@@ -54,7 +54,7 @@ private:
 		out->status = x0::http_error::ok;
 
 		// set some custom response header
-		out->headers.set("Hello", "World");
+		out->headers.push_back("Hello", "World");
 
 		// write some content to the client, and invoke
 		// HttpResponse::finish on completion, thus, finish processing this request.

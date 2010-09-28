@@ -61,8 +61,8 @@ SourcePtr HttpResponse::make_default_content()
 	int fd = ::open(fi->filename().c_str(), O_RDONLY);
 	if (fi->exists() && fd >= 0)
 	{
-		headers.set("Content-Type", fi->mimetype());
-		headers.set("Content-Length", boost::lexical_cast<std::string>(fi->size()));
+		headers.overwrite("Content-Type", fi->mimetype());
+		headers.overwrite("Content-Length", boost::lexical_cast<std::string>(fi->size()));
 
 		return std::make_shared<FileSource>(fd, 0, fi->size(), true);
 	}
@@ -79,8 +79,8 @@ SourcePtr HttpResponse::make_default_content()
 			codeStr.c_str(), status, codeStr.c_str()
 		);
 
-		headers.set("Content-Type", "text/html");
-		headers.set("Content-Length", boost::lexical_cast<std::string>(nwritten));
+		headers.overwrite("Content-Type", "text/html");
+		headers.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
 
 		return std::make_shared<BufferSource>(Buffer::from_copy(buf, nwritten));
 	}
@@ -132,7 +132,7 @@ SourcePtr HttpResponse::serialize()
 			&& !headers.contains("Transfer-Encoding")
 			&& !content_forbidden())
 		{
-			headers.set("Connection", "keep-alive");
+			headers.overwrite("Connection", "keep-alive");
 			headers.push_back("Transfer-Encoding", "chunked");
 			filters.push_back(std::make_shared<ChunkedEncoder>());
 			keepalive = true;
@@ -157,7 +157,7 @@ SourcePtr HttpResponse::serialize()
 	keepalive = false; // XXX workaround
 
 	if (!keepalive)
-		headers.set("Connection", "close");
+		headers.overwrite("Connection", "close");
 
 	if (!keepalive && connection_->server().tcp_cork())
 		connection_->socket()->setTcpCork(true);

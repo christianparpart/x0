@@ -121,9 +121,14 @@ public:
 			list_.push_back(HttpResponseHeader(name, value));
 		}
 
-		void set(const std::string& name, const std::string& value)
+		void overwrite(const std::string& name, const std::string& value)
 		{
 			operator[](name) = value;
+		}
+
+		void append(const std::string& name, const std::string& value)
+		{
+			// TODO append value to the header with name or create one if not yet available.
 		}
 
 		void remove(const std::string& name)

@@ -588,7 +588,7 @@ bool HttpCore::dirlisting(HttpRequest *in, HttpResponse *out, const Params& args
 bool HttpCore::redirect(HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	out->status = http_error::moved_temporarily;
-	out->headers.set("Location", args[0].toString());
+	out->headers.overwrite("Location", args[0].toString());
 	out->finish();
 
 	return true;
