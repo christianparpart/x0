@@ -17,6 +17,38 @@
 
 namespace x0 {
 
+void HttpRequest::updatePathInfo()
+{
+	if (!fileinfo)
+		return;
+
+	// split "/the/tail" from "/path/to/script.php/the/tail"
+
+	std::string fullname(fileinfo->filename());
+	struct stat st;
+	size_t pos = std::string::npos;
+
+	for (;;)
+	{
+		int rv = stat(fullname.c_str(), &st);
+		if (rv == 0)
+		{
+			pathinfo = pos != std::string::npos ? fileinfo->filename().substr(pos) : "";
+			fileinfo = connection.server().fileinfo(fullname);
+			return;
+		}
+		if (errno == ENOTDIR)
+		{
+			pos = fullname.rfind('/', pos - 1);
+			fullname = fullname.substr(0, pos);
+		}
+		else
+		{
+			return;
+		}
+	}
+}
+
 BufferRef HttpRequest::header(const std::string& name) const
 {
 	for (std::vector<HttpRequestHeader>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)

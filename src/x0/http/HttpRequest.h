@@ -45,6 +45,7 @@ public:
 	BufferRef uri;								///< parsed request uri
 	BufferRef path;								///< decoded path-part
 	FileInfoPtr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
+	std::string pathinfo;
 	BufferRef query;							///< decoded query-part
 	int http_version_major;						///< HTTP protocol version major part that this request was formed in
 	int http_version_minor;						///< HTTP protocol version minor part that this request was formed in
@@ -53,6 +54,8 @@ public:
 
 	/** retrieve value of a given request header */
 	BufferRef header(const std::string& name) const;
+
+	void updatePathInfo();
 
 	// accumulated request data
 	BufferRef username;							///< username this client has authenticated with.
@@ -90,6 +93,7 @@ inline HttpRequest::HttpRequest(HttpConnection& conn) :
 	uri(),
 	path(),
 	fileinfo(),
+	pathinfo(),
 	query(),
 	http_version_major(0),
 	http_version_minor(0),

@@ -93,6 +93,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::docroot>("docroot", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::alias>("alias", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", Flow::Value::VOID);
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_url>("req.url", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_path>("req.path", Flow::Value::BUFFER);
@@ -442,6 +443,17 @@ void HttpCore::alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, co
 		in->fileinfo = in->connection.server().fileinfo(alias + in->path.substr(prefixLength));
 		printf("resolve_entity: %s [%s]: %s\n", prefix.c_str(), in->path.str().c_str(), in->fileinfo->filename().c_str());
 	}
+}
+
+void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	if (!in->fileinfo) {
+		in->connection.server().log(Severity::error,
+				"pathinfo: no file information available. Please set document root first.");
+		return;
+	}
+
+	in->updatePathInfo();
 }
 
 void HttpCore::req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)

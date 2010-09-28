@@ -72,6 +72,7 @@ private:
 	bool matchIndex(HttpRequest *in, const Flow::Value& arg);
 	void docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
+	void pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_url(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
