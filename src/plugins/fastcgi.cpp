@@ -671,14 +671,14 @@ void CgiTransport::onStdErr(x0::BufferRef&& chunk)
 
 void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
 {
-	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
-
 #if X0_FASTCGI_DIRECT_IO
+	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d) writeActive:%d", appStatus, (int)protocolStatus, writeActive_);
 	if (writeActive_)
 		finish_ = true;
 	else
 		finish();
 #else
+	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
 	if (writeBuffer_.size() != 0)
 		response_->write(
 			std::make_shared<x0::BufferSource>(writeBuffer_),
