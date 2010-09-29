@@ -43,125 +43,129 @@ class compress_plugin :
 	public ICompressPlugin
 {
 private:
-	struct context : public x0::ScopeValue
+	std::vector<std::string> contentTypes_;
+	int level_;
+	long long minSize_;
+	long long maxSize_;
+
+	bool containsMime(const std::string& value) const
 	{
-		std::vector<std::string> content_types_;
-		int level_;
-		long long min_size_;
-		long long max_size_;
+		for (auto i = contentTypes_.begin(), e = contentTypes_.end(); i != e; ++i)
+			if (*i == value)
+				return true;
 
-		context() :
-			content_types_(),				// no types
-			level_(9),						// best compression
-			min_size_(1024),				// 1 KB
-			max_size_(128 * 1024 * 1024)	// 128 MB
-		{
-		}
-
-		bool contains_mime(const std::string& value) const
-		{
-			for (auto i = content_types_.begin(), e = content_types_.end(); i != e; ++i)
-				if (*i == value)
-					return true;
-
-			return false;
-		}
-
-		virtual void merge(const x0::ScopeValue *value)
-		{
-			//if (auto cx = dynamic_cast<const context *>(value))
-			{
-				; //! \todo
-			}
-		}
-	};
+		return false;
+	}
 
 	x0::HttpServer::RequestPostHook::Connection postProcess_;
 
 public:
 	compress_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+		x0::HttpPlugin(srv, name),
+		contentTypes_(),			// no types
+		level_(9),					// best compression
+		minSize_(256),				// 256 byte
+		maxSize_(128 * 1024 * 1024)	// 128 MB
 	{
-		using namespace std::placeholders;
+		contentTypes_.push_back("text/html");
+		contentTypes_.push_back("text/css");
+		contentTypes_.push_back("text/plain");
+		contentTypes_.push_back("application/xml");
+		contentTypes_.push_back("application/xhtml+xml");
 
 		postProcess_ = server_.onPostProcess.connect<compress_plugin, &compress_plugin::postProcess>(this);
 
-		declareCVar("CompressTypes", x0::HttpContext::server, &compress_plugin::setup_types);
-		declareCVar("CompressLevel", x0::HttpContext::server, &compress_plugin::setup_level);
-		declareCVar("CompressMinSize", x0::HttpContext::server, &compress_plugin::setup_minsize);
-		declareCVar("CompressMaxSize", x0::HttpContext::server, &compress_plugin::setup_maxsize);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_types>("compress.types", Flow::Value::VOID);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_level>("compress.level", Flow::Value::VOID);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_minsize>("compress.min", Flow::Value::VOID);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_maxsize>("compress.max", Flow::Value::VOID);
 	}
 
 	~compress_plugin() {
 		server_.onPostProcess.disconnect(postProcess_);
-		server().release(this);
 	}
 
 public: // ICompressPlugin
 	virtual void setCompressTypes(const std::vector<std::string>& value)
 	{
-		server().acquire<context>(this)->content_types_ = value;
+		contentTypes_ = value;
 	}
 
 	virtual void setCompressLevel(int value)
 	{
-		server().acquire<context>(this)->level_ = value;
+		level_ = value;
 	}
 
 	virtual void setCompressMinSize(int value)
 	{
-		server().acquire<context>(this)->min_size_ = value;
+		minSize_ = value;
 	}
 
 	virtual void setCompressMaxSize(int value)
 	{
-		server().acquire<context>(this)->max_size_ = value;
+		maxSize_ = value;
 	}
 
 private:
-	std::error_code setup_types(const x0::SettingsValue& cvar, x0::Scope& s)
+	void setup_types(Flow::Value& result, const x0::Params& args)
 	{
-		return cvar.load(s.acquire<context>(this)->content_types_);
+		contentTypes_.clear();
+
+		for (int i = 0, e = args.count(); i != e; ++i)
+			populateContentTypes(args[i]);
 	}
 
-	std::error_code setup_level(const x0::SettingsValue& cvar, x0::Scope& s)
+	void populateContentTypes(const Flow::Value& from)
 	{
-		return cvar.load(s.acquire<context>(this)->level_);
+		switch (from.type())
+		{
+			case Flow::Value::STRING:
+				contentTypes_.push_back(from.toString());
+				break;
+			case Flow::Value::ARRAY:
+				for (const Flow::Value *p = from.toArray(); !p->isVoid(); ++p)
+					populateContentTypes(*p);
+				break;
+			default:
+				;
+		}
 	}
 
-	std::error_code setup_minsize(const x0::SettingsValue& cvar, x0::Scope& s)
+	void setup_level(Flow::Value& result, const x0::Params& args)
 	{
-		return cvar.load(s.acquire<context>(this)->min_size_);
+		level_ = args[0].toNumber();
+		level_ = std::min(std::max(level_, 0), 10);
 	}
 
-	std::error_code setup_maxsize(const x0::SettingsValue& cvar, x0::Scope& s)
+	void setup_minsize(Flow::Value& result, const x0::Params& args)
 	{
-		return cvar.load(s.acquire<context>(this)->max_size_);
+		minSize_ = args[0].toNumber();
 	}
 
+	void setup_maxsize(Flow::Value& result, const x0::Params& args)
+	{
+		maxSize_ = args[0].toNumber();
+	}
+
+private:
 	void postProcess(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
 		if (out->headers.contains("Content-Encoding"))
 			return; // do not double-encode content
 
-		const context *cx = server_.resolveHost(in->hostid())->get<context>(this);
-		if (!cx && !(cx = server().get<context>(this)))
-			return;
-
 		long long size = 0;
 		if (out->headers.contains("Content-Length"))
 			size = boost::lexical_cast<int>(out->headers["Content-Length"]);
 
-		std::string te(out->headers["Transfer-Encoding"]);
-		bool chunked = (te == "chunked");
+		bool chunked = out->header("Transfer->Encoding") == "chunked";
 
-		if (size < cx->min_size_ && !(size <= 0 && chunked))
+		if (size < minSize_ && !(size <= 0 && chunked))
 			return;
 
-		if (size > cx->max_size_)
+		if (size > maxSize_)
 			return;
 
-		if (!cx->contains_mime(out->headers("Content-Type")))
+		if (!containsMime(out->headers("Content-Type")))
 			return;
 
 		if (x0::BufferRef r = in->header("Accept-Encoding"))
@@ -174,7 +178,7 @@ private:
 			if (std::find(items.begin(), items.end(), "bzip2") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "bzip2");
-				out->filters.push_back(std::make_shared<x0::BZip2Filter>(cx->level_));
+				out->filters.push_back(std::make_shared<x0::BZip2Filter>(level_));
 			}
 			else
 #endif
@@ -182,12 +186,12 @@ private:
 			if (std::find(items.begin(), items.end(), "gzip") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "gzip");
-				out->filters.push_back(std::make_shared<x0::GZipFilter>(cx->level_));
+				out->filters.push_back(std::make_shared<x0::GZipFilter>(level_));
 			}
 			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
 			{
 				out->headers.push_back("Content-Encoding", "deflate");
-				out->filters.push_back(std::make_shared<x0::DeflateFilter>(cx->level_));
+				out->filters.push_back(std::make_shared<x0::DeflateFilter>(level_));
 			}
 			else
 #endif
@@ -197,7 +201,7 @@ private:
 			if (!out->headers.contains("Vary"))
 				out->headers.push_back("Vary", "Accept-Encoding");
 			else
-				out->headers["Vary"] += ",Accept-Encoding";
+				out->headers.append("Vary", ",Accept-Encoding");
 
 			// removing content-length implicitely enables chunked encoding
 			out->headers.remove("Content-Length");
