@@ -94,6 +94,25 @@ public:
 			return false;
 		}
 
+		std::size_t find(const std::string& name) const
+		{
+			for (std::size_t i = 0, e = list_.size(); i != e; ++i)
+				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
+					return i;
+
+			return (std::size_t) -1;
+		}
+
+		const std::string& operator[](std::size_t pos) const
+		{
+			return list_[pos].value;
+		}
+
+		std::string& operator[](std::size_t pos)
+		{
+			return list_[pos].value;
+		}
+
 		const std::string& operator[](const std::string& name) const
 		{
 			for (std::size_t i = 0, e = list_.size(); i != e; ++i)
@@ -197,6 +216,8 @@ public:
 	/// the headers to be included in the response.
 	header_list headers;
 
+	const std::string& header(const std::string& name) const;
+
 	/** returns true in case serializing the response has already been started, that is, headers has been sent out already. */
 	bool headers_sent() const;
 
@@ -284,6 +305,16 @@ inline void HttpResponse::writeContent(const SourcePtr& content, const Completio
 inline bool HttpResponse::content_forbidden() const
 {
 	return x0::content_forbidden(status);
+}
+
+inline const std::string& HttpResponse::header(const std::string& name) const
+{
+	std::size_t pos = headers.find(name);
+	if (pos != (std::size_t) -1)
+		return headers[pos];
+
+	static std::string not_found;
+	return not_found;
 }
 // }}}
 
