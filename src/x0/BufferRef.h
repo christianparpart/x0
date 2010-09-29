@@ -86,6 +86,7 @@ public:
 	std::size_t rfind(const value_type *value) const;
 	std::size_t rfind(const BufferRef& value) const;
 	std::size_t rfind(value_type value) const;
+	std::size_t rfind(value_type value, std::size_t offset) const;
 
 	// begins / ibegins
 	bool begins(const std::string& value) const;
@@ -375,22 +376,27 @@ inline std::size_t BufferRef::rfind(const value_type *value) const
 
 inline std::size_t BufferRef::rfind(value_type value) const
 {
+	return rfind(value, size() - 1);
+}
+
+inline std::size_t BufferRef::rfind(value_type value, std::size_t offset) const
+{
 	if (!buffer_)
 		return npos;
 
 	const char *p = data();
 	const char *q = p + size();
 
-	while (p != q)
+	while (offset >= 0)
 	{
 		if (*q == value)
-		{
 			return q - p;
-		}
+
 		--q;
+		--offset;
 	}
 
-	return *p == value ? 0 : npos;
+	return npos;
 }
 
 template<typename PodType, std::size_t N>
