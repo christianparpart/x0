@@ -99,6 +99,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_header>("req.header", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_host>("req.host", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", Flow::Value::STRING);
+	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", Flow::Value::BOOLEAN);
 	registerFunction<HttpCore, &HttpCore::resp_header_add>("header.add", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::resp_header_overwrite>("header.overwrite", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::resp_header_append>("header.append", Flow::Value::VOID);
@@ -471,6 +472,11 @@ void HttpCore::req_host(Flow::Value& result, HttpRequest *in, HttpResponse *out,
 void HttpCore::req_pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	result = in->pathinfo.c_str();
+}
+
+void HttpCore::req_is_secure(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+{
+	result = in->connection.isSecure();
 }
 // }}}
 

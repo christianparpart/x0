@@ -80,6 +80,7 @@ private:
 	void req_header(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_host(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
+	void req_is_secure(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void resp_header_add(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void resp_header_overwrite(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void resp_header_append(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
