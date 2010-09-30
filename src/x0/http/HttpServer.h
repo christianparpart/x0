@@ -323,6 +323,7 @@ inline Severity HttpServer::logLevel() const
 inline void HttpServer::logLevel(Severity value)
 {
 	logLevel_ = value;
+	logger()->level(value);
 }
 // }}}
 
