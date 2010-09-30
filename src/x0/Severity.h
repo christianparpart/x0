@@ -24,14 +24,14 @@ namespace x0 {
  * \see logger
  */
 struct X0_API Severity {
-	static const int error = -3;
-	static const int warn = -2;
-	static const int info = -1;
-	static const int debug = 1;
-	static const int debug2 = 2;
-	static const int debug3 = 3;
-	static const int debug4 = 4;
-	static const int debug5 = 5;
+	static const int error = 0;
+	static const int warn = 1;
+	static const int info = 2;
+	static const int debug = 3;
+	static const int debug2 = 4;
+	static const int debug3 = 5;
+	static const int debug4 = 6;
+	static const int debug5 = 7;
 
 	int value_;
 
@@ -43,7 +43,7 @@ struct X0_API Severity {
 	bool isError() const { return value_ == error; }
 	bool isWarning() const { return value_ == warn; }
 	bool isInfo() const { return value_ == info; }
-	bool isDebug() const { return value_ > 0; }
+	bool isDebug() const { return value_ >= debug; }
 
 	int debugLevel() const { return value_ < 0 ? 0 : value_; }
 };
