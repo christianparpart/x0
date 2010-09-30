@@ -60,6 +60,9 @@ HttpCore::HttpCore(HttpServer& server) :
 			std::bind(&HttpCore::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
 	// setup
+	registerSetupFunction<HttpCore, &HttpCore::emit_llvm>("llvm.dump", Flow::Value::VOID);
+	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", Flow::Value::STRING);
 	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", Flow::Value::VOID); // write-only (array)
@@ -290,6 +293,37 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 
 	HttpListener *listener = server().setupListener(port, ip);
 	result.set(listener == NULL);
+}
+
+void HttpCore::logfile(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1)
+	{
+		if (args[0].isString())
+		{
+			const char *filename = args[0].toString();
+			printf("set logfile to '%s'\n", filename);
+			auto nowfn = std::bind(&DateTime::htlog_str, &server_.now_);
+			server_.logger_.reset(new FileLogger<decltype(nowfn)>(filename, nowfn));
+		}
+	}
+}
+
+void HttpCore::loglevel(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 0)
+	{
+		result.set(server().logLevel());
+	}
+	else if (args.count() == 1)
+	{
+		if (args[0].isNumber())
+		{
+			int level = args[0].toNumber();
+			printf("set loglevel to %d\n", level);
+			server().logLevel(static_cast<Severity>(level));
+		}
+	}
 }
 
 void HttpCore::emit_llvm(Flow::Value& result, const Params& args)

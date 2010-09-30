@@ -54,12 +54,15 @@ private:
 	void tcp_cork(Flow::Value& result, const Params& args);
 	void tcp_nodelay(Flow::Value& result, const Params& args);
 
-	// setup methods
-	void plugin_load(Flow::Value& result, const Params& args);
-	void listen(Flow::Value& result, const Params& args);
-
 	// debugging
 	void emit_llvm(Flow::Value& result, const Params& args);
+
+	// logging
+	void loglevel(Flow::Value& result, const Params& args);
+	void logfile(Flow::Value& result, const Params& args);
+
+	// setup
+	void listen(Flow::Value& result, const Params& args);
 
 	// shared methods
 	void sys_env(Flow::Value& result, const Params& args);
