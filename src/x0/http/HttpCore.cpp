@@ -60,8 +60,6 @@ HttpCore::HttpCore(HttpServer& server) :
 			std::bind(&HttpCore::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
 	// setup
-	registerSetupProperty<HttpCore, &HttpCore::plugin_directory>("plugin.directory", Flow::Value::STRING);
-	registerSetupFunction<HttpCore, &HttpCore::plugin_load>("plugin.load", Flow::Value::VOID);
 	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", Flow::Value::VOID); // write-only (array)
@@ -131,14 +129,6 @@ HttpCore::~HttpCore()
 }
 
 // {{{ setup
-void HttpCore::plugin_directory(Flow::Value& result, const Params& args)
-{
-	if (args.count() == 1)
-		server().pluginDirectory_ = args[0].toString();
-	else if (args.count() == 0)
-		result.set(server().pluginDirectory_.c_str());
-}
-
 void HttpCore::mimetypes(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
@@ -288,26 +278,6 @@ void HttpCore::tcp_nodelay(Flow::Value& result, const Params& args)
 		server().tcp_nodelay(args[0].toBool());
 	else
 		result.set(server().tcp_nodelay());
-}
-
-void HttpCore::plugin_load(Flow::Value& result, const Params& args)
-{
-	result.set(false);
-
-	for (size_t i = 0, e = args.count(); i != e; ++i)
-	{
-		if (!args[i].isString())
-			continue;
-
-		const char *pluginName = args[i].toString();
-		std::error_code ec;
-		server().loadPlugin(pluginName, ec);
-		if (ec) {
-			server().log(Severity::error, "%s: %s", pluginName, ec.message().c_str());
-			result.set(true);
-			//break;
-		}
-	}
 }
 
 void HttpCore::listen(Flow::Value& result, const Params& args)
