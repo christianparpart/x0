@@ -17,9 +17,9 @@
 #include <gnutls/extra.h>
 
 #if 0
-#	define TRACE(msg...)
-#else
 #	define TRACE(msg...) DEBUG("SslSocket: " msg)
+#else
+#	define TRACE(msg...)
 #endif
 
 SslSocket::SslSocket(SslDriver *driver, int fd) :
@@ -29,7 +29,7 @@ SslSocket::SslSocket(SslDriver *driver, int fd) :
 	context_(NULL),
 	session_()
 {
-	//TRACE("SslSocket()");
+	TRACE("SslSocket()");
 
 	static int protocolPriorities_[] = { GNUTLS_TLS1_2, GNUTLS_TLS1_1, GNUTLS_TLS1_0, GNUTLS_SSL3, 0 };
 
@@ -54,13 +54,13 @@ SslSocket::SslSocket(SslDriver *driver, int fd) :
 
 SslSocket::~SslSocket()
 {
-	//TRACE("~SslSocket()");
+	TRACE("~SslSocket()");
 	gnutls_deinit(session_);
 }
 
 int SslSocket::onClientHello(gnutls_session_t session)
 {
-	//TRACE("onClientHello()");
+	TRACE("onClientHello()");
 
 	SslSocket *socket = (SslSocket *)gnutls_session_get_ptr(session);
 
@@ -74,6 +74,13 @@ int SslSocket::onClientHello(gnutls_session_t session)
 	if (rv != 0)
 	{
 		TRACE("onClientHello(): gnutls_server_name_get() failed with (%d): %s", rv, gnutls_strerror(rv));
+
+		// failed to get SNI from client, so try getting default context then.
+		if (SslContext *cx = socket->driver_->selectContext("")) {
+			cx->bind(socket);
+			return 0;
+		}
+
 		return GNUTLS_E_UNIMPLEMENTED_FEATURE;
 	}
 
@@ -83,7 +90,7 @@ int SslSocket::onClientHello(gnutls_session_t session)
 		return GNUTLS_E_UNIMPLEMENTED_FEATURE;
 	}
 
-	//TRACE("onClientHello(): SNI Name: \"%s\"", sniName);
+	TRACE("onClientHello(): SNI Name: \"%s\"", sniName);
 
 	if (SslContext *cx = socket->driver_->selectContext(sniName))
 		cx->bind(socket);
@@ -93,13 +100,13 @@ int SslSocket::onClientHello(gnutls_session_t session)
 
 void SslSocket::handshake()
 {
-	//TRACE("handshake()");
+	TRACE("handshake()");
 	int rv = gnutls_handshake(session_);
 
 	if (rv == GNUTLS_E_SUCCESS)
 	{
 		// handshake either completed or failed
-		//TRACE("SSL handshake complete. (time: %.4f)", ev_now(loop()) - ctime_);
+		TRACE("SSL handshake complete. (time: %.4f)", ev_now(loop()) - ctime_);
 
 		setState(OPERATIONAL);
 		setMode(READ);
@@ -114,7 +121,7 @@ void SslSocket::handshake()
 	}
 	else
 	{
-		//TRACE("SSL partial handshake: (%d)", gnutls_record_get_direction(session_));
+		TRACE("SSL partial handshake: (%d)", gnutls_record_get_direction(session_));
 		switch (gnutls_record_get_direction(session_))
 		{
 			case 0: // read

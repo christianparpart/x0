@@ -37,7 +37,31 @@
 #include <gcrypt.h>
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
-#define TRACE(msg...) DEBUG("ssl: " msg)
+#if 0
+#	define TRACE(msg...) DEBUG("ssl: " msg)
+#else
+#	define TRACE(msg...) /*!*/
+#endif
+
+
+/*
+ * possible flow API:
+ *
+ *     void ssl.listen('IP:PORT');
+ *     void ssl.listen('IP:PORT', defaultKey, defaultCrt);
+ *
+ *     void ssl.add(hostname, certfile, keyfile);
+ *
+ *
+ * EXAMPLE:
+ *     ssl.listen '0.0.0.0:8443';
+ *
+ *     ssl.add 'hostname' => 'www.trapni.de',
+ *             'certfile' => '/path/to/my.crt',
+ *             'keyfile' => '/path/to/my.key',
+ *             'crlfile' => '/path/to/my.crl';
+ *
+ */
 
 /**
  * \ingroup plugins
@@ -62,18 +86,11 @@ public:
 
 		gnutls_global_init_extra();
 
-		declareCVar("SslLogLevel", x0::HttpContext::server, &ssl_plugin::setupLogLevel);
-
-		auto cmask = x0::HttpContext::server | x0::HttpContext::host;
-
-		declareCVar("SslEnabled", cmask, &ssl_plugin::setupEnabled, 0);
-		declareCVar("SslCertFile", cmask, &ssl_plugin::setupCertFile, 1);
-		declareCVar("SslKeyFile", cmask, &ssl_plugin::setupKeyFile, 1);
-		declareCVar("SslCrlFile", cmask, &ssl_plugin::setupCrlFile, 1);
-		declareCVar("SslTrustFile", cmask, &ssl_plugin::setupTrustFile, 1);
-		declareCVar("SslPriorities", cmask, &ssl_plugin::setupPriorities, 1);
-
 		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(NULL));
+
+		registerSetupFunction<ssl_plugin, &ssl_plugin::add_listener>("ssl.listen", Flow::Value::VOID);
+		registerSetupFunction<ssl_plugin, &ssl_plugin::add_context>("ssl.context", Flow::Value::VOID);
+		registerSetupProperty<ssl_plugin, &ssl_plugin::set_loglevel>("ssl.loglevel", Flow::Value::VOID);
 	}
 
 	~ssl_plugin()
@@ -83,8 +100,12 @@ public:
 
 	std::vector<SslContext *> contexts_;
 
+	/** select the SSL context based on host name or NULL if nothing found. */
 	virtual SslContext *select(const std::string& dnsName) const
 	{
+		if (dnsName.empty())
+			return contexts_.front();
+
 		for (auto i = contexts_.begin(), e = contexts_.end(); i != e; ++i)
 		{
 			SslContext *cx = *i;
@@ -99,83 +120,44 @@ public:
 		return NULL;
 	}
 
-	virtual bool post_config() // {{{ post_config
+	virtual bool post_config()
 	{
-		// iterate through all virtual hosts and install the SslDriver if SSL was configured on it.
-		auto hostnames = server().hostnames();
-		for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
-		{
-			SslContext *cx = server().resolveHost(*i)->get<SslContext>(this);
-			x0::HttpListener *listener = server().listenerByHost(*i);
-			auto aliases = server().hostnamesOf(*i);
+		for (auto i = contexts_.begin(), e = contexts_.end(); i != e; ++i)
+			(*i)->post_config();
 
-			// XXX skip if no SSL was confgiured/enabled on this virtual host (or no TCP listener was found)
-			if (!listener || !cx || !cx->enabled)
-				continue;
-
-			// XXX require every alias to match the cert CN (wildcard)
-			for (auto k = aliases.begin(), m = aliases.end(); k != m; ++k)
-			{
-				std::string host(x0::extract_host_from_hostid(*k));
-
-				TRACE("Checking SSL CN:%s against hostname/alias:%s", cx->commonName().c_str(), host.c_str());
-				if (!cx->isValidDnsName(host))
-				{
-					log(x0::Severity::error, "SSL Certificates Common Name (CN) '%s' does not match the hostname/alias '%s'", cx->commonName().c_str(), host.c_str());
-					return false;
-				}
-			}
-
-			log(x0::Severity::debug, "Enabling SSL on host: %s", i->c_str());
-
-			contexts_.push_back(cx);
-
-			SslDriver *driver = new SslDriver(server().loop(), this);
-			listener->setSocketDriver(driver);
-			cx->setDriver(driver);
-
-			if (!cx->post_config())
-				return false;
-		}
 		return true;
-	} // }}}
+	}
 
 	virtual bool post_check()
 	{
-		auto hostnames = server().hostnames();
-		for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
-		{
-			x0::HttpListener *listener = server().listenerByHost(*i);
-			if (!listener || !listener->isSecure())
-				continue;
-
-			// {{{ verify listener to not mix secured/unsecured virtual hosts
-			auto hosts = server_.getHostsByPort(listener->port());
-			for (auto k = hosts.begin(), m = hosts.end(); k != m; ++k)
-			{
-				if (!server().resolveHost(*i)->get<SslContext>(this))
-				{
-					log(x0::Severity::error, "Mixing (SSL) secured and unsecured hosts on same listener port (%d). %s", listener->port(), (*k)->id().c_str());
-					return false;
-				}
-			}
-			// }}}
-		}
-
+		// TODO do some post-config checks here.
 		return true;
 	}
 
 	// {{{ config
 private:
-	std::error_code setupLogLevel(const x0::SettingsValue& cvar, x0::Scope& s)
+	// ssl.listener(BINDADDR_PORT);
+	void add_listener(Flow::Value& result, const x0::Params& args)
+	{
+		std::string arg(args[0].toString());
+		size_t n = arg.find(':');
+		std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
+		int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
+
+		x0::HttpListener *listener = server().setupListener(port, ip);
+		SslDriver *driver = new SslDriver(server().loop(), this);
+		listener->setSocketDriver(driver);
+	}
+
+	void set_loglevel(Flow::Value& result, const x0::Params& args)
 	{
 		TRACE("setupLogLevel(cvar, scope)");
-		//int level = 0;
-		//if (cvar.load(level))
-		//	setLogLevel(level);
-		setLogLevel(cvar.as<int>());
 
-		return std::error_code();
+		if (args.count() == 1)
+		{
+			if (args[0].isNumber())
+				setLogLevel(args[0].toNumber());
+		}
 	}
 
 	void setLogLevel(int value)
@@ -202,34 +184,54 @@ private:
 		return cx;
 	}
 
-	std::error_code setupEnabled(const x0::SettingsValue& cvar, x0::Scope& s)
+	// ssl.add(
+	// 		'keyfile' => PATH,
+	// 		'crtfile' => PATH,
+	// 		'crlfile' => PATH);
+	//
+	void add_context(Flow::Value& result, const x0::Params& args)
 	{
-		return cvar.load(acquire(s)->enabled);
-	}
+		std::auto_ptr<SslContext> cx(new SslContext());
+		cx->setLogger(server().logger());
+		std::string keyname;
 
-	std::error_code setupCertFile(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire(s)->certFile);
-	}
+		for (std::size_t i = 0, e = args.count(); i != e; ++i)
+		{
+			if (!args[i].isArray())
+				continue;
 
-	std::error_code setupKeyFile(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire(s)->keyFile);
-	}
+			const Flow::Value *key = args[i].toArray();
+			const Flow::Value *value = key + 1;
 
-	std::error_code setupCrlFile(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire(s)->crlFile);
-	}
+			if (!key->isString())
+				continue;
 
-	std::error_code setupTrustFile(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire(s)->trustFile);
-	}
+			keyname = key->toString();
 
-	std::error_code setupPriorities(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire(s)->priorities);
+			if (!value->isString() && !value->isNumber() && !value->isBool())
+				continue;
+
+			std::string sval;
+			if (keyname == "certfile") {
+				if (!value->load(sval)) return;
+				cx->certFile = sval;
+			} else if (keyname == "keyfile") {
+				if (!value->load(sval)) return;
+				cx->keyFile = sval;
+			} else if (keyname == "trustfile") {
+				if (!value->load(sval)) return;
+				cx->trustFile = sval;
+			} else if (keyname == "priorities") {
+				if (!value->load(sval)) return;
+				cx->priorities = sval;
+			} else {
+				server().log(x0::Severity::error, "ssl: Unknown ssl.context key: '%s'\n", keyname.c_str());
+				return;
+			}
+		}
+
+		// context setup successful -> put into our ssl context set.
+		contexts_.push_back(cx.release());
 	}
 	// }}}
 };

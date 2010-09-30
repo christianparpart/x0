@@ -28,7 +28,11 @@
 #include <gnutls/x509.h>
 #include <gnutls/extra.h>
 
-#define TRACE(msg...) DEBUG("SslContext: " msg)
+#if 0
+#	define TRACE(msg...) DEBUG("SslContext: " msg)
+#else
+#	define TRACE(msg...) /*!*/
+#endif
 
 std::error_code loadFile(gnutls_datum_t& data, const std::string& filename) // {{{ loadFile / freeFile
 {
@@ -70,7 +74,6 @@ SslContext::SslContext() :
 	trustFile(this),
 	priorities(this),
 	error_(),
-	driver_(0),
 	logger_(0),
 	numX509Certs_(0),
 	clientVerifyMode_(GNUTLS_CERT_IGNORE),
@@ -104,12 +107,6 @@ void SslContext::merge(const ScopeValue * /*from*/)
 void SslContext::setLogger(x0::Logger *logger)
 {
 	logger_ = logger;
-}
-
-void SslContext::setDriver(SslDriver *driver)
-{
-	TRACE("SslContext::setDriver()");
-	driver_ = driver;
 }
 
 void SslContext::setCertFile(const std::string& filename)
@@ -242,6 +239,8 @@ std::string SslContext::commonName() const
 
 bool SslContext::post_config()
 {
+	TRACE("SslContext.postConfig()\n");
+
 	if (error_) return false;
 	if (!enabled) return false;
 
@@ -273,6 +272,9 @@ int SslContext::onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret)
 	switch (gnutls_certificate_type_get(session))
 	{
 		case GNUTLS_CRT_X509:
+			if (!cx)
+				return GNUTLS_E_INTERNAL_ERROR;
+
 			ret->type = GNUTLS_CRT_X509;
 			ret->deinit_all = 0;
 			ret->ncerts = cx->numX509Certs_;

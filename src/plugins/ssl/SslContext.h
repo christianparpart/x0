@@ -24,7 +24,6 @@
 #include <gnutls/extra.h>
 
 class SslSocket;
-class SslDriver;
 
 struct SslContext :
 	public x0::ScopeValue
@@ -36,7 +35,6 @@ public:
 	virtual void merge(const ScopeValue *from);
 
 	void setLogger(x0::Logger *logger);
-	void setDriver(SslDriver *driver);
 
 	void setCertFile(const std::string& filename);
 	void setKeyFile(const std::string& filename);
@@ -68,7 +66,6 @@ private:
 	static bool imatch(const std::string& pattern, const std::string& value);
 
 	std::error_code error_;
-	SslDriver *driver_;
 	x0::Logger *logger_;
 
 	// GNU TLS specific properties
