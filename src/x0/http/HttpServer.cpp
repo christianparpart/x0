@@ -92,6 +92,9 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 {
 	HttpResponse::initialize();
 
+	auto nowfn = std::bind(&DateTime::htlog_str, &now_);
+	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
+
 	// initialize all cvar maps with all (valid) priorities
 	for (int i = -10; i <= +10; ++i)
 	{
@@ -167,8 +170,8 @@ bool HttpServer::setup(const std::string& configFile)
 	if (!unit)
 		return false;
 
-	Flow::Function *fn = unit->lookup<Flow::Function>("setup");
-	if (!fn) {
+	Flow::Function *setupFn = unit->lookup<Flow::Function>("setup");
+	if (!setupFn) {
 		printf("%s: no setup handler defined.\n", configFile.c_str());
 		return false;
 	}
@@ -179,17 +182,16 @@ bool HttpServer::setup(const std::string& configFile)
 	if (!core_)
 		registerPlugin(core_ = new HttpCore(*this));
 
-	// run setup
-	Flow::Runner::HandlerFunction setupFn = runner_->compile(fn);
+	// compile module
+	runner_->compile(unit);
 
-	if (!setupFn || setupFn())
+	// run setup
+	if (runner_->run(setupFn))
 		return false;
 
 	onHandleRequest_ = runner_->compile(unit->lookup<Flow::Function>("main"));
 	if (!onHandleRequest_)
 		return false;
-
-	//runner_->dump();
 
 	// {{{ setup server-tag
 	{
@@ -513,6 +515,20 @@ void HttpServer::setPluginDirectory(const std::string& value)
 	pluginDirectory_ = value;
 }
 
+void HttpServer::import(const std::string& name, const std::string& path)
+{
+	std::string filename = path;
+	if (!filename.empty() && filename[filename.size() - 1] != '/')
+		filename += "/";
+	filename += name;
+
+	std::error_code ec;
+	loadPlugin(filename, ec);
+
+	if (ec)
+		log(Severity::error, "Error loading plugin: %s: %s", filename.c_str(), ec.message().c_str());
+}
+
 /**
  * loads a plugin into the server.
  *
@@ -525,7 +541,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 
 	std::string filename;
 	if (name.find('/') != std::string::npos)
-		filename = pluginDirectory_ + name + ".so";
+		filename = name + ".so";
 	else
 		filename = pluginDirectory_ + name + ".so";
 

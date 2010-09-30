@@ -159,6 +159,8 @@ public:
 	void dumpIR() const; // for debugging purpose
 
 private: // {{{ flow backend API
+	virtual void import(const std::string& name, const std::string& path);
+
 	// flow core API (setup stage)
 	static void flow_plugin_directory(void *p, int argc, Flow::Value *argv);
 	static void flow_plugin_load(void *p, int argc, Flow::Value *argv);
