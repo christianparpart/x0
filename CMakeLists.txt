@@ -55,6 +55,17 @@ CHECK_FUNCTION_EXISTS(pathconf HAVE_PATHCONF)
 
 CHECK_INCLUDE_FILES(aio.h HAVE_AIO_H)
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/flow/CMakeLists.txt)
+	set(FLOW_CFLAGS -I${CMAKE_CURRENT_SOURCE_DIR} CACHE STRING "flow cflags")
+	set(FLOW_LIBS flow CACHE STRING "flow cflags")
+
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/flow)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/flow)
+else()
+	set(FLOW_CFLAGS -I/usr/include  CACHE STRING "flow cflags")
+	set(FLOW_LIBS -lflow CACHE STRING "flow libs")
+endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/flow/CMakeLists.txt)
+
 if(WITH_INOTIFY)
 	CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
 	if(HAVE_SYS_INOTIFY_H)
