@@ -108,7 +108,7 @@ private:
 	bool respond(HttpRequest *in, HttpResponse *out, const Params& args);
 
 	bool staticfile(HttpRequest *in, HttpResponse *out, const Params& args);
-	inline http_error verifyClientCache(HttpRequest *in, HttpResponse *out);
+	inline HttpError verifyClientCache(HttpRequest *in, HttpResponse *out);
 	inline bool processRangeRequest(HttpRequest *in, HttpResponse *out, int fd);
 	inline std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size);
 	inline std::string generateBoundaryID() const;

@@ -59,7 +59,7 @@ void ProxyConnection::connect()
 void ProxyConnection::response(int major, int minor, int code, x0::BufferRef&& text)
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", this, major, minor, code, text.str().c_str());
-	response_->status = static_cast<x0::http_error>(code);
+	response_->status = static_cast<x0::HttpError>(code);
 }
 
 inline bool validate_response_header(const x0::BufferRef& name)
@@ -116,7 +116,7 @@ bool ProxyConnection::complete()
 	TRACE("ProxyConnection(%p).complete()", this);
 
 	if (static_cast<int>(response_->status) == 0)
-		response_->status = x0::http_error::service_unavailable;
+		response_->status = x0::HttpError::ServiceUnavailable;
 
 	done_();
 	delete this;
@@ -201,7 +201,7 @@ void ProxyConnection::start(const std::function<void()>& done, x0::HttpRequest *
 
 	if (state() == DISCONNECTED)
 	{
-		out->status = x0::http_error::service_unavailable;
+		out->status = x0::HttpError::ServiceUnavailable;
 		done();
 		delete this;
 		return;

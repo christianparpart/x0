@@ -708,7 +708,7 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 	if (x0::iequals(name, "Status"))
 	{
-		response_->status = static_cast<x0::http_error>(value.toInt());
+		response_->status = static_cast<x0::HttpError>(value.toInt());
 		TRACE("CgiTransport.status := %s", response_->status_str(response_->status).c_str());
 	}
 	else
@@ -797,9 +797,9 @@ void CgiTransport::finish()
 	if (!response_)
 		return;
 
-	if (response_->status == x0::http_error::undefined)
+	if (response_->status == x0::HttpError::Undefined)
 	{
-		response_->status = x0::http_error::service_unavailable;
+		response_->status = x0::HttpError::ServiceUnavailable;
 		//x0::StackTrace st;
 		//printf("%s\n", st.c_str());
 	}

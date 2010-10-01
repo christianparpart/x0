@@ -13,97 +13,97 @@
 
 namespace x0 {
 
-enum class http_error // {{{
+enum class HttpError // {{{
 {
-	undefined = 0,
+	Undefined = 0,
 
-	continue_request = 100,
-	switching_protocols = 101,
-	processing = 102,
+	ContinueRequest = 100,
+	SwitchingProtocols = 101,
+	Processing = 102,
 
-	ok = 200,
-	created = 201,
-	accepted = 202,
-	non_authoriative_information = 203,
-	no_content = 204,
-	reset_content = 205,
-	partial_content = 206,
+	Ok = 200,
+	Created = 201,
+	Accepted = 202,
+	NonAuthoriativeInformation = 203,
+	NoContent = 204,
+	ResetContent = 205,
+	PartialContent = 206,
 
-	multiple_choices = 300,
-	moved_permanently = 301,
-	moved_temporarily = 302,
-	not_modified = 304,
+	MultipleChoices = 300,
+	MovedPermanently = 301,
+	MovedTemporarily = 302,
+	NotModified = 304,
 
-	bad_request = 400,
-	unauthorized = 401,
-	forbidden = 403,
-	not_found = 404,
-	method_not_allowed = 405,
-	not_acceptable = 406,
-	proxy_authentication_required = 407,
-	request_timeout = 408,
-	conflict = 409,
-	gone = 410,
-	length_required = 411,
-	precondition_failed = 412,
-	request_entity_too_large = 413,
-	request_uri_too_long = 414,
-	unsupported_media_type = 415,
-	requested_range_not_satisfiable = 416,
-	expectation_failed = 417,
-	there_are_too_many_connections_from_your_ip = 421,
-	unprocessable_entity = 422,
-	locked = 423,
-	failed_dependency = 424,
-	unordered_collection = 425,
-	upgrade_required = 426,
+	BadRequest = 400,
+	Unauthorized = 401,
+	Forbidden = 403,
+	NotFound = 404,
+	MethodNotAllowed = 405,
+	NotAcceptable = 406,
+	ProxyAuthenticationRequired = 407,
+	RequestTimeout = 408,
+	Conflict = 409,
+	Gone = 410,
+	LengthRequired = 411,
+	PreconditionFailed = 412,
+	RequestEntityTooLarge = 413,
+	RequestUriTooLong = 414,
+	UnsupportedMediaType = 415,
+	RequestedRangeNotSatisfiable = 416,
+	ExpectationFailed = 417,
+	ThereAreTooManyConnectionsFromYourIP = 421,
+	UnprocessableEntity = 422,
+	Locked = 423,
+	FailedDependency = 424,
+	UnorderedCollection = 425,
+	UpgradeRequired = 426,
 
-	internal_server_error = 500,
-	not_implemented = 501,
-	bad_gateway = 502,
-	service_unavailable = 503,
-	gateway_timedout = 504,
-	http_version_not_supported = 505,
-	insufficient_storage = 507
+	InternalServerError = 500,
+	NotImplemented = 501,
+	BadGateway = 502,
+	ServiceUnavailable = 503,
+	GatewayTimedout = 504,
+	HttpVersionNotSupported = 505,
+	InsufficientStorage = 507
 };
 // }}}
 
 const std::error_category& http_category() throw();
 
-std::error_code make_error_code(http_error ec);
-std::error_condition make_error_condition(http_error ec);
+std::error_code make_error_code(HttpError ec);
+std::error_condition make_error_condition(HttpError ec);
 
-bool content_forbidden(http_error code);
+bool content_forbidden(HttpError code);
 
 } // namespace x0
 
 namespace std {
-	// implicit conversion from http_error to error_code
-	template<> struct is_error_code_enum<x0::http_error> : public true_type {};
+	// implicit conversion from HttpError to error_code
+	template<> struct is_error_code_enum<x0::HttpError> : public true_type {};
 }
 
 // {{{ inlines
 namespace x0 {
 
-inline std::error_code make_error_code(http_error ec)
+inline std::error_code make_error_code(HttpError ec)
 {
 	return std::error_code(static_cast<int>(ec), http_category());
 }
 
-inline std::error_condition make_error_condition(http_error ec)
+inline std::error_condition make_error_condition(HttpError ec)
 {
 	return std::error_condition(static_cast<int>(ec), http_category());
 }
 
-inline bool content_forbidden(http_error code)
+inline bool content_forbidden(HttpError code)
 {
 	switch (code)
 	{
-		case /*100*/ http_error::continue_request:
-		case /*101*/ http_error::switching_protocols:
-		case /*204*/ http_error::no_content:
-		case /*205*/ http_error::reset_content:
-		case /*304*/ http_error::not_modified:
+		case /*100*/ HttpError::ContinueRequest:
+		case /*101*/ HttpError::SwitchingProtocols:
+		case /*204*/ HttpError::NoContent:
+		case /*205*/ HttpError::ResetContent:
+		case /*304*/ HttpError::NotModified:
 			return true;
 		default:
 			return false;

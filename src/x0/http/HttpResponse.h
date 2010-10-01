@@ -204,14 +204,14 @@ private:
 	bool headers_sent_;
 
 public:
-	explicit HttpResponse(HttpConnection *connection, http_error status = static_cast<http_error>(0));
+	explicit HttpResponse(HttpConnection *connection, HttpError status = static_cast<HttpError>(0));
 	~HttpResponse();
 
 	/** retrieves a reference to the corresponding request object. */
 	HttpRequest *request() const;
 
 	/// HTTP response status code.
-	http_error status;
+	HttpError status;
 
 	/// the headers to be included in the response.
 	header_list headers;
@@ -237,7 +237,7 @@ private:
 	friend class HttpConnection;
 
 public:
-	static std::string status_str(http_error status);
+	static std::string status_str(HttpError status);
 
 	ChainFilter filters;
 

@@ -81,7 +81,7 @@ private:
 
 		closedir(dir);
 
-		out->status = x0::http_error::ok;
+		out->status = x0::HttpError::Ok;
 		out->headers.push_back("Content-Type", "text/html");
 		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 

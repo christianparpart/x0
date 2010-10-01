@@ -112,9 +112,9 @@ SourcePtr HttpResponse::serialize()
 	bool keepalive = false;
 
 	if (request_->expectingContinue)
-		status = http_error::expectation_failed;
-	else if (status == static_cast<http_error>(0))
-		status = http_error::ok;
+		status = HttpError::ExpectationFailed;
+	else if (status == static_cast<HttpError>(0))
+		status = HttpError::Ok;
 
 	if (!headers.contains("Content-Type"))
 	{
@@ -196,7 +196,7 @@ SourcePtr HttpResponse::serialize()
  *
  * \note this response object takes over ownership of the request object.
  */
-HttpResponse::HttpResponse(HttpConnection *connection, http_error _status) :
+HttpResponse::HttpResponse(HttpConnection *connection, HttpError _status) :
 	connection_(connection),
 	request_(connection_->request_),
 	headers_sent_(false),
@@ -211,7 +211,7 @@ HttpResponse::HttpResponse(HttpConnection *connection, http_error _status) :
 		headers.push_back("Server", connection_->server().tag());
 }
 
-std::string HttpResponse::status_str(http_error value)
+std::string HttpResponse::status_str(HttpError value)
 {
 	return http_category().message(static_cast<int>(value));
 }
@@ -246,9 +246,9 @@ void HttpResponse::finish()
 	if (!headers_sent_) // nothing sent to client yet -> sent default status page
 	{
 		if (static_cast<int>(status) == 0)
-			status = http_error::not_found;
+			status = HttpError::NotFound;
 
-		if (!content_forbidden() && status != http_error::ok)
+		if (!content_forbidden() && status != HttpError::Ok)
 			write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
 		else
 			connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));

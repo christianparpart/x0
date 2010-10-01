@@ -393,12 +393,12 @@ bool HttpConnection::messageHeaderEnd()
 
 	if (content_required && !request_->content_available())
 	{
-		response_->status = http_error::length_required;
+		response_->status = HttpError::LengthRequired;
 		response_->finish();
 	}
 	else if (!content_required && request_->content_available())
 	{
-		response_->status = http_error::bad_request; // FIXME do we have a better status code?
+		response_->status = HttpError::BadRequest; // FIXME do we have a better status code?
 		response_->finish();
 	}
 	else if (expectHeader)
@@ -408,7 +408,7 @@ bool HttpConnection::messageHeaderEnd()
 		if (!request_->expectingContinue || !request_->supports_protocol(1, 1))
 		{
 			printf("expectHeader: failed\n");
-			response_->status = http_error::expectation_failed;
+			response_->status = HttpError::ExpectationFailed;
 			response_->finish();
 		}
 		else
@@ -625,9 +625,9 @@ void HttpConnection::process()
 	{
 		// -> send stock response: BAD_REQUEST
 		if (!response_)
-			response_ = new HttpResponse(this, http_error::bad_request);
+			response_ = new HttpResponse(this, HttpError::BadRequest);
 		else
-			response_->status = http_error::bad_request;
+			response_->status = HttpError::BadRequest;
 
 		response_->finish();
 	}

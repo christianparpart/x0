@@ -51,7 +51,7 @@ private:
 	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		// set response status code
-		out->status = x0::http_error::ok;
+		out->status = x0::HttpError::Ok;
 
 		// set some custom response header
 		out->headers.push_back("Hello", "World");

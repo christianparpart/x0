@@ -39,7 +39,7 @@ private:
 	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		// set response status code
-		out->status = x0::http_error::ok;
+		out->status = x0::HttpError::Ok;
 
 		// set response header "Content-Length",
 		// if request content were not encoded

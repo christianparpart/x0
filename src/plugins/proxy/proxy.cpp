@@ -197,7 +197,7 @@ private:
 
 		if (!px->method_allowed(in->method))
 		{
-			out->status = x0::http_error::method_not_allowed;
+			out->status = x0::HttpError::MethodNotAllowed;
 			out->finish();
 			return true;
 		}

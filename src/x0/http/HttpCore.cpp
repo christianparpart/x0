@@ -607,7 +607,7 @@ bool HttpCore::dirlisting(HttpRequest *in, HttpResponse *out, const Params& args
 
 bool HttpCore::redirect(HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	out->status = http_error::moved_temporarily;
+	out->status = HttpError::MovedTemporarily;
 	out->headers.overwrite("Location", args[0].toString());
 	out->finish();
 
@@ -617,7 +617,7 @@ bool HttpCore::redirect(HttpRequest *in, HttpResponse *out, const Params& args)
 bool HttpCore::respond(HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	if (args.count() >= 1 && args[0].isNumber())
-		out->status = static_cast<http_error>(args[0].toNumber());
+		out->status = static_cast<HttpError>(args[0].toNumber());
 
 	out->finish();
 	return true;
@@ -634,7 +634,7 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 		return false;
 
 	out->status = verifyClientCache(in, out);
-	if (out->status != http_error::ok)
+	if (out->status != HttpError::Ok)
 	{
 		out->finish();
 		return true;
@@ -659,7 +659,7 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 			server_.log(Severity::error, "Could not open file '%s': %s",
 				in->fileinfo->filename().c_str(), strerror(errno));
 
-			out->status = http_error::forbidden;
+			out->status = HttpError::Forbidden;
 			out->finish();
 
 			return true;
@@ -667,7 +667,7 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 	}
 	else if (!equals(in->method, "HEAD"))
 	{
-		out->status = http_error::method_not_allowed;
+		out->status = HttpError::MethodNotAllowed;
 		out->finish();
 
 		return true;
@@ -705,7 +705,7 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
  * \param in request object
  * \param out response object. this will be modified in case of cache reusability.
  */
-http_error HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
+HttpError HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
 {
 	std::string value;
 
@@ -719,14 +719,14 @@ http_error HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{
 				DateTime date(value);
 
 				if (!date.valid())
-					return http_error::bad_request;
+					return HttpError::BadRequest;
 
 				if (in->fileinfo->mtime() <= date.unixtime())
-					return http_error::not_modified;
+					return HttpError::NotModified;
 			}
 			else // ETag-only
 			{
-				return http_error::not_modified;
+				return HttpError::NotModified;
 			}
 		}
 	}
@@ -734,13 +734,13 @@ http_error HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{
 	{
 		DateTime date(value);
 		if (!date.valid())
-			return http_error::bad_request;
+			return HttpError::BadRequest;
 
 		if (in->fileinfo->mtime() <= date.unixtime())
-			return http_error::not_modified;
+			return HttpError::NotModified;
 	}
 
-	return http_error::ok;
+	return HttpError::Ok;
 } // }}}
 
 inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, int fd) //{{{
@@ -752,7 +752,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 	if (range_value.empty() || !range.parse(range_value))
 		return false;
 
-	out->status = http_error::partial_content;
+	out->status = HttpError::PartialContent;
 
 	if (range.size() > 1)
 	{
@@ -768,7 +768,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 			std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[i], in->fileinfo->size()));
 			if (offsets.second < offsets.first)
 			{
-				out->status = http_error::requested_range_not_satisfiable;
+				out->status = HttpError::RequestedRangeNotSatisfiable;
 				return true;
 			}
 
@@ -822,7 +822,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 		std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[0], in->fileinfo->size()));
 		if (offsets.second < offsets.first)
 		{
-			out->status = http_error::requested_range_not_satisfiable;
+			out->status = HttpError::RequestedRangeNotSatisfiable;
 			return true;
 		}
 
