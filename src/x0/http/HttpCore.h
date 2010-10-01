@@ -115,8 +115,8 @@ private:
 
 	// {{{ legacy
 private:
-	long long getrlimit(int resource);
-	long long setrlimit(int resource, long long max);
+	unsigned long long getrlimit(int resource);
+	unsigned long long setrlimit(int resource, unsigned long long max);
 
 	std::error_code setupMimeTypeDefault(const SettingsValue& cvar, Scope& s);
 

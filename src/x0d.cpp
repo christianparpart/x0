@@ -463,6 +463,11 @@ private:
 			{
 				if (setgid(gr->gr_gid) != 0)
 					throw std::runtime_error(x0::fstringbuilder::format("could not setgid to %s: %s", groupname.c_str(), strerror(errno)));
+
+				setgroups(gr->gr_gid, NULL);
+
+				if (!username.empty())
+					initgroups(username.c_str(), gr->gr_gid);
 			}
 			else
 			{

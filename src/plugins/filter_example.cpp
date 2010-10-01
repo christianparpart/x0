@@ -89,6 +89,21 @@ public:
 		server().release(this);
 	}
 
+	bool install_filter(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	{
+		out->headers.push_back("Content-Encoding", "filter_example");
+		out->filters.push_back(std::make_shared<ExampleFilter>());
+
+		// response might change according to Accept-Encoding
+		if (!out->headers.contains("Vary"))
+			out->headers.push_back("Vary", "Accept-Encoding");
+		else
+			out->headers["Vary"] += ",Accept-Encoding";
+
+		// removing content-length implicitely enables chunked encoding
+		out->headers.remove("Content-Length");
+	}
+
 private:
 	std::error_code setup_enabled(const x0::SettingsValue& cvar, x0::Scope& s)
 	{

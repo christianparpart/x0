@@ -46,10 +46,10 @@ private:
 	Mode mode_;
 
 	mutable std::string remoteIP_;		//!< internal cache to remote ip
-	mutable int remotePort_;			//!< internal cache to remote port
+	mutable unsigned int remotePort_;	//!< internal cache to remote port
 
 	mutable std::string localIP_;		//!< internal cache to local ip
-	mutable int localPort_;				//!< internal cache to local port
+	mutable unsigned int localPort_;	//!< internal cache to local port
 
 	void (*callback_)(Socket *, void *);
 	void *callbackData_;
@@ -72,10 +72,10 @@ public:
 	bool setTcpCork(bool enable);
 
 	std::string remoteIP() const;
-	int remotePort() const;
+	unsigned int remotePort() const;
 
 	std::string localIP() const;
-	int localPort() const;
+	unsigned int localPort() const;
 
 	int timeout() const;
 	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);

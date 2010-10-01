@@ -56,11 +56,11 @@ public:
 	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
 	HttpServer& server();						//!< Retrieves a reference to the server instance.
 
-	std::string remoteIP() const;			//!< Retrieves the IP address of the remote end point (client).
-	int remotePort() const;					//!< Retrieves the TCP port numer of the remote end point (client).
+	std::string remoteIP() const;				//!< Retrieves the IP address of the remote end point (client).
+	unsigned int remotePort() const;			//!< Retrieves the TCP port numer of the remote end point (client).
 
 	std::string localIP() const;
-	int localPort() const;
+	unsigned int localPort() const;
 
 	const HttpListener& listener() const;
 

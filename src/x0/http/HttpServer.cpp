@@ -33,6 +33,14 @@
 #	include <sys/utsname.h>
 #endif
 
+#if defined(HAVE_ZLIB_H)
+#	include <zlib.h>
+#endif
+
+#if defined(HAVE_BZLIB_H)
+#	include <bzlib.h>
+#endif
+
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <pwd.h>
@@ -195,9 +203,6 @@ bool HttpServer::setup(const std::string& configFile)
 
 	// {{{ setup server-tag
 	{
-		//! \todo add zlib version
-		//! \todo add bzip2 version
-
 #if defined(HAVE_SYS_UTSNAME_H)
 		{
 			utsname utsname;
@@ -209,6 +214,22 @@ bool HttpServer::setup(const std::string& configFile)
 
 				components_.insert(components_.begin(), utsname.machine);
 			}
+		}
+#endif
+
+#if defined(HAVE_BZLIB_H)
+		{
+			std::string zver("bzip2/");
+			zver += BZ2_bzlibVersion();
+			components_.insert(components_.begin(), zver);
+		}
+#endif
+
+#if defined(HAVE_ZLIB_H)
+		{
+			std::string zver("zlib/");
+			zver += zlib_version;
+			components_.insert(components_.begin(), zver);
 		}
 #endif
 

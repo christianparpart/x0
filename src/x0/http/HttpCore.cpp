@@ -302,7 +302,6 @@ void HttpCore::logfile(Flow::Value& result, const Params& args)
 		if (args[0].isString())
 		{
 			const char *filename = args[0].toString();
-			printf("set logfile to '%s'\n", filename);
 			auto nowfn = std::bind(&DateTime::htlog_str, &server_.now_);
 			server_.logger_.reset(new FileLogger<decltype(nowfn)>(filename, nowfn));
 		}
@@ -320,7 +319,6 @@ void HttpCore::loglevel(Flow::Value& result, const Params& args)
 		if (args[0].isNumber())
 		{
 			int level = args[0].toNumber();
-			printf("set loglevel to %d\n", level);
 			server().logLevel(static_cast<Severity>(level));
 		}
 	}
@@ -346,12 +344,12 @@ void HttpCore::sys_cwd(Flow::Value& result, const Params& args)
 
 void HttpCore::sys_pid(Flow::Value& result, const Params& args)
 {
-	result.set(static_cast<long long>(getpid()));
+	result.set(getpid());
 }
 
 void HttpCore::sys_now(Flow::Value& result, const Params& args)
 {
-	result.set(static_cast<long long>(server().now_.unixtime()));
+	result.set(static_cast<uint64_t>(server().now_.unixtime()));
 }
 
 void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
@@ -582,12 +580,12 @@ void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, HttpResponse *o
 
 void HttpCore::phys_mtime(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result.set((long long)(in->fileinfo ? in->fileinfo->mtime() : 0));
+	result.set(static_cast<uint64_t>(in->fileinfo ? in->fileinfo->mtime() : 0));
 }
 
 void HttpCore::phys_size(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	result.set((long long)(in->fileinfo ? in->fileinfo->size() : 0));
+	result.set(in->fileinfo ? in->fileinfo->size() : 0);
 }
 
 void HttpCore::phys_etag(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
@@ -918,7 +916,7 @@ static inline const char *rc2str(int resource)
 	}
 }
 
-long long HttpCore::getrlimit(int resource)
+unsigned long long HttpCore::getrlimit(int resource)
 {
 	struct rlimit rlim;
 	if (::getrlimit(resource, &rlim) == -1)
@@ -930,7 +928,7 @@ long long HttpCore::getrlimit(int resource)
 	return rlim.rlim_cur;
 }
 
-long long HttpCore::setrlimit(int resource, long long value)
+unsigned long long HttpCore::setrlimit(int resource, unsigned long long value)
 {
 	struct rlimit rlim;
 	if (::getrlimit(resource, &rlim) == -1)
@@ -940,7 +938,7 @@ long long HttpCore::setrlimit(int resource, long long value)
 		return 0;
 	}
 
-	long long last = rlim.rlim_cur;
+	rlim_t last = rlim.rlim_cur;
 
 	// patch against human readable form
 	long long hlast = last, hvalue = value;
@@ -948,12 +946,15 @@ long long HttpCore::setrlimit(int resource, long long value)
 	{
 		case RLIMIT_AS:
 		case RLIMIT_CORE:
-			hlast /= 1024 / 1024;
-			value *= 1024 * 1024;
+			//hlast /= 1024 / 1024;
+			//value *= 1024 * 1024;
 			break;
 		default:
 			break;
 	}
+
+	if (value > RLIM_INFINITY)
+		value = RLIM_INFINITY;
 
 	rlim.rlim_cur = value;
 	rlim.rlim_max = value;
@@ -964,7 +965,7 @@ long long HttpCore::setrlimit(int resource, long long value)
 		return 0;
 	}
 
-	debug(1, "Set resource limit on %s from %lld to %lld.", rc2str(resource), hlast, hvalue);
+	server().log(Severity::debug, "Set resource limit on %s from %lld to %lld.", rc2str(resource), hlast, hvalue);
 
 	return value;
 }

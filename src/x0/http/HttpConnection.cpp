@@ -638,7 +638,7 @@ std::string HttpConnection::remoteIP() const
 	return socket_->remoteIP();
 }
 
-int HttpConnection::remotePort() const
+unsigned int HttpConnection::remotePort() const
 {
 	return socket_->remotePort();
 }
@@ -648,7 +648,7 @@ std::string HttpConnection::localIP() const
 	return listener_.address();
 }
 
-int HttpConnection::localPort() const
+unsigned int HttpConnection::localPort() const
 {
 	return socket_->localPort();
 }

@@ -235,7 +235,7 @@ std::string Socket::remoteIP() const
 	return remoteIP_;
 }
 
-int Socket::remotePort() const
+unsigned int Socket::remotePort() const
 {
 	const_cast<Socket *>(this)->queryRemoteName();
 	return remotePort_;
@@ -268,7 +268,7 @@ std::string Socket::localIP() const
 	return localIP_;
 }
 
-int Socket::localPort() const
+unsigned int Socket::localPort() const
 {
 	const_cast<Socket *>(this)->queryLocalName();
 	return localPort_;

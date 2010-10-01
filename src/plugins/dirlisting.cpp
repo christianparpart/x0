@@ -124,7 +124,7 @@ private:
 			 << in->path.str()
 			 << "</title></head>\n<body>\n";
 
-		sstr << "<h2>Index of " << in->path.str() << "</h2>\n";
+		sstr << "<h2 style='font-family: Courier New, monospace;'>Index of " << in->path.str() << "</h2>\n";
 		sstr << "<br/><ul>\n";
 
 		for (std::list<std::string>::iterator i = listing.begin(), e = listing.end(); i != e; ++i)
@@ -135,7 +135,7 @@ private:
 		sstr << "</ul>\n";
 
 		sstr << "<hr/>\n";
-		sstr << "<small><i>" << in->connection.server().tag() << "</i></small><br/>\n";
+		sstr << "<small><pre>" << in->connection.server().tag() << "</pre></small><br/>\n";
 
 		sstr << "</body></html>\n";
 
