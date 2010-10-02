@@ -219,7 +219,6 @@ inline Buffer::Buffer(Buffer&& v) :
 	capacity_(v.capacity_),
 	edit_mode_(v.edit_mode_)
 {
-
 	v.data_ = 0;
 	v.size_ = 0;
 	v.capacity_ = 0;
