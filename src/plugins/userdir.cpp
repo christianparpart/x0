@@ -24,49 +24,34 @@ class userdir_plugin :
 {
 private:
 	x0::HttpServer::RequestHook::Connection c;
-
-	struct context : public x0::ScopeValue
-	{
-		std::string dirname_;
-
-		virtual void merge(const x0::ScopeValue *value)
-		{
-			if (auto cx = dynamic_cast<const context *>(value))
-			{
-				if (dirname_.empty())
-					dirname_ = cx->dirname_;
-			}
-		}
-	};
+	std::string dirname_;
 
 public:
 	userdir_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+		x0::HttpPlugin(srv, name),
+		dirname_("/public_html")
 	{
-		using namespace std::placeholders;
-		c = server_.onResolveEntity.connect<userdir_plugin, &userdir_plugin::resolve_entity>(this);
-
-		declareCVar("UserDir", x0::HttpContext::server | x0::HttpContext::host, &userdir_plugin::setup_userdir);
+		registerSetupFunction<userdir_plugin, &userdir_plugin::setup_userdir>("userdir.name", Flow::Value::VOID);
+		registerFunction<userdir_plugin, &userdir_plugin::handleRequest>("userdir", Flow::Value::VOID);
 	}
 
 	~userdir_plugin()
 	{
-		server_.onResolveEntity.disconnect(c);
 	}
 
-	std::error_code setup_userdir(const x0::SettingsValue& cvar, x0::Scope& s)
+	void setup_userdir(Flow::Value& result, const x0::Params& args)
 	{
 		std::string dirname;
-		std::error_code ec = cvar.load(dirname);
-		if (ec)
-			return ec;
+		if (!args[0].load(dirname))
+			return;
 
-		ec = validate(dirname);
-		if (ec)
-			return ec;
+		std::error_code ec = validate(dirname);
+		if (ec) {
+			server().log(x0::Severity::error, "userdir: %s", ec.message().c_str());
+			return;
+		}
 
-		s.acquire<context>(this)->dirname_ = dirname;
-		return std::error_code();
+		dirname_ = dirname;
 	}
 
 	std::error_code validate(std::string& path)
@@ -86,10 +71,9 @@ public:
 	}
 
 private:
-	void resolve_entity(x0::HttpRequest *in)
+	void handleRequest(Flow::Value& result, x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		auto cx = server_.resolveHost(in->hostid())->get<context>(this);
-		if (!cx || cx->dirname_.empty())
+		if (dirname_.empty())
 			return;
 
 		if (in->path.size() <= 2 || in->path[1] != '~')
@@ -111,7 +95,7 @@ private:
 
 		if (struct passwd *pw = getpwnam(userName.c_str()))
 		{
-			in->document_root = pw->pw_dir + cx->dirname_;
+			in->document_root = pw->pw_dir + dirname_;
 			in->fileinfo = server_.fileinfo(in->document_root + userPath);
 			debug(0, "docroot[%s], fileinfo[%s]", in->document_root.c_str(), in->fileinfo->filename().c_str());
 		}
