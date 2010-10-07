@@ -35,6 +35,8 @@
 
 #include <ev.h>
 
+class x0d; // friend declared in HttpServer
+
 namespace x0 {
 
 struct HttpPlugin;
@@ -69,7 +71,7 @@ public:
 	Logger *logger() const;
 
 	// {{{ service control
-	bool setup(const std::string& configfile);
+	bool setup(std::istream *settings);
 	bool start();
 	bool active() const;
 	void run();
@@ -220,6 +222,7 @@ private:
 	friend class HttpConnection;
 	friend class HttpPlugin;
 	friend class HttpCore;
+	friend class ::x0d; // to access in_ and out_.
 
 private:
 	void handleRequest(HttpRequest *in, HttpResponse *out);
@@ -240,7 +243,6 @@ private:
 	std::map<int, std::map<std::string, cvar_handler>> cvars_server_;	//!< registered server-scope cvars
 	std::map<int, std::map<std::string, cvar_handler>> cvars_host_;	//!< registered host-scope cvars
 	std::map<int, std::map<std::string, cvar_handler>> cvars_path_;	//!< registered location-scope cvars
-	std::string configfile_;
 	LoggerPtr logger_;
 	Severity logLevel_;
 	bool colored_log_;

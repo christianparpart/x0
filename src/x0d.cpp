@@ -8,17 +8,18 @@
 
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
+#include <x0/http/HttpCore.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
-
-#include "plugins/indexfile.h"
-#include "plugins/compress.h"
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <functional>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <cstdio>
 #include <cstdarg>
@@ -98,26 +99,21 @@ public:
 		return std::string(::getcwd(buf, sizeof(buf)));
 	}
 
-	template<class T>
-	bool loadPlugin(const std::string& name)
+	static std::string& gsub(std::string& buf, const std::string& src, const std::string& dst)
 	{
-		std::error_code ec;
-		if (T *plugin = server_.loadPlugin<T>(name, ec))
-			if (setup(plugin, ec))
-				return true;
-
-		log(x0::Severity::error, "Error loading plugin '%s': %s", name.c_str(), ec.message().c_str());
-		return  false;
+		std::size_t i = buf.find(src);
+		while (i != std::string::npos)
+		{
+			buf.replace(i, src.size(), dst);
+			i = buf.find(src);
+		}
+		return buf;
 	}
 
-	bool loadPlugin(const std::string& name)
+	static std::string& gsub(std::string& buf, const std::string& src, int dst)
 	{
-		std::error_code ec;
-		if (server_.loadPlugin(name, ec))
-			return true;
-
-		log(x0::Severity::error, "Error loading plugin '%s': %s", name.c_str(), ec.message().c_str());
-		return  false;
+		std::string tmp(boost::lexical_cast<std::string>(dst));
+		return gsub(buf, src, tmp);
 	}
 
 	// --instant=docroot,port,bind
@@ -137,11 +133,29 @@ public:
 			port = 8080;
 
 		if (bind.empty())
-			bind = "0::0";
+			bind = "0.0.0.0"; //"0::0";
 
-		server_.setupListener(port, bind);
-
-		server_.onResolveDocumentRoot.connect<x0d, &x0d::resolveDocumentRoot>(this);
+		std::string source(
+			"import 'compress';\n"
+			"import 'dirlisting';\n"
+			"\n"
+			"handler setup\n"
+			"{\n"
+			"    listen '#{bind}:#{port}';\n"
+			"}\n"
+			"\n"
+			"handler main\n"
+			"{\n"
+			"    docroot '#{docroot}';\n"
+			"    autoindex 'index.html';\n"
+			"    dirlisting;\n"
+			"    staticfile;\n"
+			"}\n"
+		);
+		gsub(source, "#{docroot}", documentRoot_);
+		gsub(source, "#{bind}", bind);
+		gsub(source, "#{port}", port);
+		std::cout << source << std::endl;
 
 		// initialize some default settings (fileinfo)
 		server_.fileinfo.load_mimetypes("/etc/mime.types");
@@ -152,59 +166,8 @@ public:
 
 		server_.tcp_cork = true;
 
-		// load standard-plugins
-		std::error_code ec;
-		if (!loadPlugin("staticfile"))
-			return false;
-
-		if (!loadPlugin<IIndexFilePlugin>("indexfile"))
-			return false;
-
-		if (!loadPlugin("dirlisting"))
-			return false;
-
-		if (!loadPlugin<ICompressPlugin>("compress"))
-			return false;
-
-		//server_.loadPlugin("cgi", ec);
-
-		return true;
-	}
-
-	bool setup(ICompressPlugin *plugin, std::error_code& ec)
-	{
-		if (!plugin)
-			return false;
-
-		std::vector<std::string> types = {
-			"text/plain", "text/html", "text/css", "text/xml",
-			"text/x-c", "text/x-chdr", "text/x-c++src", "text/x-c++hdr",
-			"application/xml", "application/xslt+xml", "application/xhtml+xml",
-			"image/svg+xml"
-		};
-
-		plugin->setCompressTypes(types);
-		plugin->setCompressLevel(9);
-		plugin->setCompressMinSize(16);
-		plugin->setCompressMaxSize(128 * 1024 * 1024);
-
-		return true;
-	}
-
-	bool setup(IIndexFilePlugin *plugin, std::error_code& ec)
-	{
-		if (!plugin)
-			return false;
-
-		std::vector<std::string> indexFiles = { "index.html" };
-
-		plugin->setIndexFiles(server_, indexFiles);
-		return true;
-	}
-
-	void resolveDocumentRoot(x0::HttpRequest *in)
-	{
-		in->document_root = documentRoot_;
+		std::istringstream s(source);
+		return server_.setup(&s);
 	}
 
 	int run()
@@ -212,9 +175,14 @@ public:
 		if (!parse())
 			return 1;
 
-		bool rv = !instant_.empty()
-			? setupInstantMode()
-			: server_.setup(configfile_);
+		bool rv = false;
+		if (!instant_.empty())
+			rv = setupInstantMode();
+		else
+		{
+			std::ifstream ifs(configfile_);
+			rv = server_.setup(&ifs);
+		}
 
 		if (!rv)
 		{

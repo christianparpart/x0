@@ -51,6 +51,13 @@
 
 namespace x0 {
 
+void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
+{
+	//fprintf(stderr, "%s: %s\n", cat, msg.c_str());
+	//fflush(stderr);
+	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
+}
+
 /** initializes the HTTP server object.
  * \param io_service an Asio io_service to use or NULL to create our own one.
  * \see HttpServer::run()
@@ -111,6 +118,11 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 		cvars_path_[i].clear();
 	}
 
+	runner_ = new Flow::Runner(this);
+	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
+
+	registerPlugin(core_ = new HttpCore(*this));
+
 	loop_check_.set<HttpServer, &HttpServer::loop_check>(this);
 	loop_check_.start();
 }
@@ -156,23 +168,14 @@ inline bool _contains(const std::vector<std::string>& list, const std::string& v
 	return false;
 }
 
-void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
-{
-	//fprintf(stderr, "%s: %s\n", cat, msg.c_str());
-	//fflush(stderr);
-	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
-}
-
-bool HttpServer::setup(const std::string& configFile)
+bool HttpServer::setup(std::istream *settings)
 {
 	Flow::Parser parser;
 	parser.setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
-	if (!parser.open(configFile)) {
+	if (!parser.initialize(settings)) {
 		perror("open");
 		return false;
 	}
-
-	configfile_ = configFile;
 
 	Flow::Unit *unit = parser.parse();
 	if (!unit)
@@ -180,15 +183,9 @@ bool HttpServer::setup(const std::string& configFile)
 
 	Flow::Function *setupFn = unit->lookup<Flow::Function>("setup");
 	if (!setupFn) {
-		printf("%s: no setup handler defined.\n", configFile.c_str());
+		log(Severity::error, "no setup handler defined in config file.\n");
 		return false;
 	}
-
-	runner_ = new Flow::Runner(this);
-	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
-
-	if (!core_)
-		registerPlugin(core_ = new HttpCore(*this));
 
 	// compile module
 	runner_->compile(unit);
@@ -197,6 +194,7 @@ bool HttpServer::setup(const std::string& configFile)
 	if (runner_->run(setupFn))
 		return false;
 
+	// grap the request handler
 	onHandleRequest_ = runner_->compile(unit->lookup<Flow::Function>("main"));
 	if (!onHandleRequest_)
 		return false;
@@ -323,61 +321,11 @@ void HttpServer::handleRequest(HttpRequest *in, HttpResponse *out)
 	in_ = in;
 	out_ = out;
 
-	if (!onHandleRequest_())
-		out->finish();
-
-#if 0
 	// pre-request hook
 	onPreProcess(const_cast<HttpRequest *>(in));
 
-	// resolve document root
-	onResolveDocumentRoot(const_cast<HttpRequest *>(in));
-
-	if (in->document_root.empty())
-	{
-		out->status = http_error::not_found;
+	if (!onHandleRequest_())
 		out->finish();
-		return;
-	}
-
-	// resolve entity
-	in->fileinfo = fileinfo(in->document_root + in->path);
-	onResolveEntity(const_cast<HttpRequest *>(in)); // translate_path
-
-	// redirect physical request paths not ending with slash if mapped to directory
-	std::string filename = in->fileinfo->filename();
-	if (in->fileinfo->is_directory() && !in->path.ends('/'))
-	{
-		std::stringstream url;
-
-		BufferRef hostname(in->header("X-Forwarded-Host"));
-		if (hostname.empty())
-			hostname = in->header("Host");
-
-		url << (in->connection.secure ? "https://" : "http://");
-		url << hostname.str();
-		url << in->path.str();
-		url << '/';
-
-		if (!in->query.empty())
-			url << '?' << in->query.str();
-
-		//*out *= response_header("Location", url.str());
-		out->headers.set("Location", url.str());
-		out->status = http_error::moved_permanently;
-
-		out->finish();
-		return;
-	}
-
-	TRACE(2, "onHandleRequest()...");
-
-	// generate response content, based on this request
-	if (!onHandleRequest(in, out))
-	{
-		out->finish();
-	}
-#endif
 }
 
 HttpListener *HttpServer::listenerByHost(const std::string& hostid) const
