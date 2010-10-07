@@ -4,6 +4,19 @@
  * http://www.xzero.ws/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ *
+ * --------------------------------------------------------------------------
+ *
+ * plugin type: logger
+ *
+ * description:
+ *     Logs incoming requests to a local file.
+ *
+ * setup API:
+ *     none
+ *
+ * request processing API:
+ *     void accesslog(string logfilename);
  */
 
 #include <x0/http/HttpPlugin.h>

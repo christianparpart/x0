@@ -4,6 +4,25 @@
  * http://www.xzero.ws/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ *
+ * --------------------------------------------------------------------------
+ *
+ * plugin type: filter
+ *
+ * description:
+ *     Dynamically compresses response content stream.
+ *     Supported algorithms: deflate, gzip, bzip2.
+ *
+ * setup API:
+ *     string[] compress.types = ['text/html', 'texxt/css',
+ *                                'text/plain', 'application/xml',
+ *                                'application/xhtml+xml'];
+ *     int compress.level = 9;
+ *     int compress.min = 64 bytes;
+ *     int compress.max = 128 mbyte;
+ *
+ * request processing API:
+ *     none
  */
 
 #include "compress.h"

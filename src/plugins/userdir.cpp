@@ -4,6 +4,19 @@
  * http://www.xzero.ws/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ *
+ * --------------------------------------------------------------------------
+ *
+ * plugin type: mapper
+ *
+ * description:
+ *     Maps request path to a local file within the user's home directory.
+ *
+ * setup API:
+ *     void userdir.name(string);
+ *
+ * request processing API:
+ *     void userdir();
  */
 
 #include <x0/http/HttpPlugin.h>

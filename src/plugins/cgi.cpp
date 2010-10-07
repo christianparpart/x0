@@ -4,6 +4,27 @@
  * http://www.xzero.ws/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ *
+ * --------------------------------------------------------------------------
+ *
+ * plugin type: content generator
+ *
+ * description:
+ *     Serves CGI/1.1 scripts
+ *
+ * setup API:
+ *     int cgi.ttl = 5;                ; max time in seconds a cgi may run until SIGTERM is issued (-1 for unlimited).
+ *     int cgi.kill_ttl = 5            ; max time to wait from SIGTERM on before a SIGKILL is ussued (-1 for unlimited).
+ *     int cgi.max_scripts = 20        ; max number of scripts to run in concurrently (-1 for unlimited)
+ *     bool cgi.executable = true      ; runs this script if the executable bit is set.
+ *     string cgi.prefix = "/cgi-bin/" ; directory prefix cgi scripts must reside inside (well known default: /cgi-bin/)
+ *     hash cgi.mapping = {}           ; list of file-extension/program pairs for running several cgi scripts with.
+ *
+ * request processing API:
+ *     handler cgi();
+ *
+ * notes:
+ *     ttl/kill-ttl/max-scripts are not yet implemented!
  */
 
 #include <x0/http/HttpPlugin.h>
@@ -36,24 +57,6 @@
 #else
 #	define TRACE(msg...) /*!*/
 #endif
-
-/*
- * POSSIBLE CONFIGURATION SETTINGS
- *
- * [cgi]
- * ttl = 5                  ; max time in seconds a cgi may run until SIGTERM is issued (-1 for unlimited).
- * kill-ttl = 5             ; max time to wait from SIGTERM on before a SIGKILL is ussued (-1 for unlimited).
- * max-scripts = 20         ; max number of scripts to run in concurrently (-1 for unlimited)
- * executable = true        ; runs this script if the executable bit is set.
- * dir-prefix = /cgi-bin/   ; directory prefix cgi scripts must reside inside (well known default: /cgi-bin/)
- *
- * [cgi.mappings]
- * .pl = /usr/bin/perl 	    ; maps all .pl to /usr/bin/perl
- * .php = /usr/bin/php      ; maps all .php files to /usr/bin/php
- * .rb = /usr/bin/ruby      ; maps all .ruby files to /usr/bin/ruby
- *
- * ttl/kill-ttl/max-scripts are not yet implemented!
- */
 
 /* TODO
  *

@@ -4,20 +4,27 @@
  * http://www.xzero.ws/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
- */
-
-/* Configuration Ideas:
  *
- *     action handler;
- *         fastcgi IP:PORT
- *         fastcgi unix_socket
+ * --------------------------------------------------------------------------
  *
- * Todo:
+ * plugin type: content generator
  *
- *   - error handling, including:
+ * description:
+ *     Produces a response based on the speecified FastCGI backend.
+ *     This backend is communicated with via TCP/IP.
+ *     Plans to support named sockets are there, but you may
+ *     jump in and contribute aswell.
+ *
+ * setup API:
+ *     none
+ *
+ * request processing API:
+ *     handler fastcgi(string host_and_port); # e.g. "127.0.0.1:3000"
+ *
+ * todo:
+ *     - error handling, including:
  *       - XXX early http client abort (raises EndRequestRecord-submission to application)
- *       - XXX log stderr records to x0 logger
- *       - stdout stream parse errors,
+ *       - log stream parse errors,
  *       - transport level errors (connect/read/write errors)
  *       - timeouts
  */

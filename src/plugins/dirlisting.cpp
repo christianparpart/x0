@@ -4,6 +4,20 @@
  * http://www.xzero.ws/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ *
+ * --------------------------------------------------------------------------
+ *
+ * plugin type: content generator
+ *
+ * description:
+ *     Generates a directory listing response if the requested
+ *     path (its physical target file) is a directory.
+ *
+ * setup API:
+ *     none
+ *
+ * request processing API:
+ *     handler dirlisting();
  */
 
 #include <x0/http/HttpPlugin.h>
