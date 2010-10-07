@@ -32,6 +32,7 @@ private:
 	const Flow::Value *params_;
 
 public:
+	Params() : count_(0), params_(NULL) {}
 	Params(int count, Flow::Value *params) :
 		count_(count), params_(params) {}
 
