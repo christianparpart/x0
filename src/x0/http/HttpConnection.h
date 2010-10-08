@@ -68,7 +68,7 @@ public:
 
 	void writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler = CompletionHandlerType());
 
-	template<class T, class... Args> void write(const Args&&... args);
+	template<class T, class... Args> void write(Args&&... args);
 
 private:
 	friend class HttpRequest;
@@ -162,7 +162,7 @@ inline void HttpConnection::writeAsync(const SourcePtr& buffer, const Completion
 }
 
 template<class T, class... Args>
-inline void HttpConnection::write(const Args&&... args)
+inline void HttpConnection::write(Args&&... args)
 {
 	source_.push_back(std::make_shared<T>(args...));
 
