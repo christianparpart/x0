@@ -92,9 +92,9 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupFunction<HttpCore, &HttpCore::sys_now_str>("sys.now_str", Flow::Value::STRING);
 
 	// main
+	registerHandler<HttpCore, &HttpCore::docroot>("docroot");
 	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::docroot>("docroot", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::alias>("alias", Flow::Value::VOID);
+	registerHandler<HttpCore, &HttpCore::alias>("alias");
 	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", Flow::Value::VOID);
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_url>("req.url", Flow::Value::BUFFER);
@@ -122,7 +122,6 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::phys_mimetype>("phys.mimetype", Flow::Value::STRING);
 
 	// main handlers
-	//registerHandler<HttpCore, &HttpCore::dirlisting>("dirlisting");
 	registerHandler<HttpCore, &HttpCore::staticfile>("staticfile");
 	registerHandler<HttpCore, &HttpCore::redirect>("redirect");
 	registerHandler<HttpCore, &HttpCore::respond>("respond");
@@ -419,30 +418,30 @@ bool HttpCore::matchIndex(HttpRequest *in, const Flow::Value& arg)
 	return false;
 }
 
-void HttpCore::docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+bool HttpCore::docroot(HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	if (args.count() == 1)
-	{
-		in->document_root = args[0].toString();
-		in->fileinfo = server().fileinfo(in->document_root + in->path);
-		// XXX we could autoindex here in case the user told us an autoindex before the docroot.
-	}
-	else
-		result.set(in->document_root.c_str());
+	if (args.count() != 1)
+		return false;
+
+	in->document_root = args[0].toString();
+	in->fileinfo = server().fileinfo(in->document_root + in->path);
+	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
+
+	return redirectOnIncompletePath(in, out);
 }
 
-void HttpCore::alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	if (args.count() != 2)
 	{
 		server().log(Severity::error, "alias: invalid argument count");
-		return;
+		return false;
 	}
 
 	if (!args[0].isString() || !args[1].isString())
 	{
 		server().log(Severity::error, "alias: invalid argument types");
-		return;
+		return false;
 	}
 
 	// input:
@@ -462,6 +461,8 @@ void HttpCore::alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, co
 		in->fileinfo = in->connection.server().fileinfo(alias + in->path.substr(prefixLength));
 		printf("resolve_entity: %s [%s]: %s (%d)\n", prefix.c_str(), in->path.str().c_str(), in->fileinfo->filename().c_str(), in->fileinfo->exists());
 	}
+
+	return redirectOnIncompletePath(in, out);
 }
 
 void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
@@ -600,11 +601,6 @@ void HttpCore::phys_mimetype(Flow::Value& result, HttpRequest *in, HttpResponse 
 // }}}
 
 // {{{ handler
-bool HttpCore::dirlisting(HttpRequest *in, HttpResponse *out, const Params& args)
-{
-	return false;
-}
-
 bool HttpCore::redirect(HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	out->status = HttpError::MovedTemporarily;
@@ -970,5 +966,34 @@ unsigned long long HttpCore::setrlimit(int resource, unsigned long long value)
 	return value;
 }
 // }}}
+
+
+// redirect physical request paths not ending with slash if mapped to directory
+bool HttpCore::redirectOnIncompletePath(HttpRequest *in, HttpResponse *out)
+{
+	std::string filename = in->fileinfo->filename();
+	if (!in->fileinfo->is_directory() || in->path.ends('/'))
+		return false;
+
+	std::stringstream url;
+
+	BufferRef hostname(in->header("X-Forwarded-Host"));
+	if (hostname.empty())
+		hostname = in->header("Host");
+
+	url << (in->connection.secure ? "https://" : "http://");
+	url << hostname.str();
+	url << in->path.str();
+	url << '/';
+
+	if (!in->query.empty())
+		url << '?' << in->query.str();
+
+	out->headers.overwrite("Location", url.str());
+	out->status = HttpError::MovedPermanently;
+
+	out->finish();
+	return true;
+}
 
 } // namespace x0

@@ -32,6 +32,8 @@ public:
 
 	virtual bool post_config();
 
+	bool redirectOnIncompletePath(HttpRequest *in, HttpResponse *out);
+
 private:
 	// setup properties
 	void plugin_directory(Flow::Value& result, const Params& args);
@@ -74,8 +76,8 @@ private:
 	// main methods
 	void autoindex(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	bool matchIndex(HttpRequest *in, const Flow::Value& arg);
-	void docroot(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void alias(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
+	bool docroot(HttpRequest *in, HttpResponse *out, const Params& args);
+	bool alias(HttpRequest *in, HttpResponse *out, const Params& args);
 	void pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 	void req_url(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
@@ -103,7 +105,6 @@ private:
 	void phys_mimetype(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
 
 	// main handlers
-	bool dirlisting(HttpRequest *in, HttpResponse *out, const Params& args);
 	bool redirect(HttpRequest *in, HttpResponse *out, const Params& args);
 	bool respond(HttpRequest *in, HttpResponse *out, const Params& args);
 
