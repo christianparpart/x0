@@ -152,7 +152,6 @@ target_link_libraries(x0
 	${LUA_LIBRARIES}
 	${ZLIB_LIBS}
 	${BZIP2_LIBS}
-	${LIBEV_LIBS}
 )
 
 install(FILES ${x0_API} DESTINATION ${INCLUDEDIR}/x0)

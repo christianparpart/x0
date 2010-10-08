@@ -96,7 +96,13 @@ if(HAVE_BZLIB_H)
 endif(HAVE_BZLIB_H)
 
 # libev
-set(LIBEV_LIBS ev)
+set(LIBEV_INCLUDES /usr/include  CACHE PATH "libev include dir")
+set(LIBEV_LIBDIR /usr/lib CACHE PATH "libev library dir")
+set(LIBEV_LIBRARIES ev CACHE STRING "libev library (ldflags)")
+
+include_directories(${LIBEV_INCLUDES})
+link_directories(${LIBEV_LIBDIR})
+link_libraries(${LIBEV_LIBRARIES})
 
 # {{{ path prefixes
 if (DEFINED CMAKE_INSTALL_PREFIX)
