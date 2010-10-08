@@ -663,7 +663,7 @@ void CgiTransport::onStdOut(x0::BufferRef&& chunk)
 {
 	TRACE("CgiTransport.onStdOut(id:%d, chunk.size:%ld)", id_, chunk.size());
 	size_t np = 0;
-	process(chunk, np);
+	process(std::move(chunk), np);
 }
 
 void CgiTransport::onStdErr(x0::BufferRef&& chunk)
