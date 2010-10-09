@@ -12,7 +12,6 @@
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpCore.h>
-#include <x0/Settings.h>
 #include <x0/Error.h>
 #include <x0/Logger.h>
 #include <x0/Library.h>
@@ -82,7 +81,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
 	active_(false),
-	settings_(),
 	cvars_server_(),
 	cvars_host_(),
 	cvars_path_(),
@@ -401,11 +399,6 @@ void HttpServer::stop()
 	}
 }
 
-Settings& HttpServer::config()
-{
-	return settings_;
-}
-
 void HttpServer::log(Severity s, const char *msg, ...)
 {
 	va_list va;
@@ -461,9 +454,12 @@ HttpListener *HttpServer::setupListener(int port, const std::string& bind_addres
 	lp->address(bind_address);
 	lp->port(port);
 
+	// TODO: configurable listener backlog
+#if 0
 	int value = 0;
 	if (!settings_.load("Resources.MaxConnections", value))
 		lp->backlog(value);
+#endif
 
 	listeners_.push_back(lp);
 

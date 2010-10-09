@@ -56,6 +56,8 @@ SourcePtr HttpResponse::make_default_content()
 	if (content_forbidden())
 		return SourcePtr();
 
+	// TODO custom error documents
+#if 0
 	std::string filename(connection_->server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
 	FileInfoPtr fi(connection_->server().fileinfo(filename));
 	int fd = ::open(fi->filename().c_str(), O_RDONLY);
@@ -67,6 +69,7 @@ SourcePtr HttpResponse::make_default_content()
 		return std::make_shared<FileSource>(fd, 0, fi->size(), true);
 	}
 	else
+#endif
 	{
 		std::string codeStr = http_category().message(static_cast<int>(status));
 		char buf[1024];

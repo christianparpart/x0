@@ -6,6 +6,8 @@ set(PACKAGE_VERSION "0.3.0")
 set(PACKAGE_HOMEPAGE_URL "http://redmine.xzero.ws/projects/x0")
 set(PACKAGE_BUGTRACKER_URL "http://redmine.xzero.ws/projects/x0/issues")
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 include(FindPkgConfig)
 include(FindDoxygen)
 include(CheckIncludeFiles)
@@ -55,17 +57,6 @@ CHECK_FUNCTION_EXISTS(pathconf HAVE_PATHCONF)
 
 CHECK_INCLUDE_FILES(aio.h HAVE_AIO_H)
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/flow/CMakeLists.txt)
-	set(FLOW_CFLAGS -I${CMAKE_CURRENT_SOURCE_DIR} CACHE STRING "flow cflags")
-	set(FLOW_LIBS flow CACHE STRING "flow cflags")
-
-	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/flow)
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/flow)
-else()
-	set(FLOW_CFLAGS -I/usr/include  CACHE STRING "flow cflags")
-	set(FLOW_LIBS -lflow CACHE STRING "flow libs")
-endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/flow/CMakeLists.txt)
-
 if(WITH_INOTIFY)
 	CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
 	if(HAVE_SYS_INOTIFY_H)
@@ -86,30 +77,36 @@ endif(WITH_INOTIFY)
 CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
 if(HAVE_ZLIB_H)
 	CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
-	set(ZLIB_LIBS z)
+	set(ZLIB_LIBRARIES z)
 endif(HAVE_ZLIB_H)
 
 CHECK_INCLUDE_FILES(bzlib.h HAVE_BZLIB_H)
 if(HAVE_BZLIB_H)
 	CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
-	set(BZIP2_LIBS bz2)
+	set(BZIP2_LIBRARIES bz2)
 endif(HAVE_BZLIB_H)
 
-# libev
-set(LIBEV_INCLUDES /usr/include  CACHE PATH "libev include dir")
-set(LIBEV_LIBDIR /usr/lib CACHE PATH "libev library dir")
-set(LIBEV_LIBRARIES ev CACHE STRING "libev library (ldflags)")
+# flow
+find_package(FLOW)
+include_directories(${FLOW_INCLUDE_DIR})
+link_directories(${FLOW_LIBRARY_DIR})
+add_definitions(${FLOW_CPPFLAGS})
+set(LIBS ${LIBS} ${FLOW_LIBRARIES})
 
-include_directories(${LIBEV_INCLUDES})
-link_directories(${LIBEV_LIBDIR})
-link_libraries(${LIBEV_LIBRARIES})
+# ev
+find_package(EV)
+include_directories(${EV_INCLUDE_DIR})
+link_directories(${EV_LIBRARY_DIR})
+add_definitions(${EV_CPPFLAGS})
+set(LIBS ${LIBS} ${EV_LIBRARIES})
 
 # {{{ path prefixes
+# ---------------------------------------------------------------------------
 if (DEFINED CMAKE_INSTALL_PREFIX)
-	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
-	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "path to library includes")
-	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path to program libraries")
-	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "run-time state directory")
+	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "x0d configuration directory")
+	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "x0 include directory")
+	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "x0 library directory")
+	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "x0d run-time state directory")
 endif()
 
 if (DEFINED SYSCONFDIR)
@@ -137,6 +134,7 @@ if (DEFINED LOCALSTATEDIR)
 else()
 	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "run-time state directory")
 endif()
+# ---------------------------------------------------------------------------
 # }}}
 
 FIND_PACKAGE(Boost REQUIRED)
@@ -145,18 +143,12 @@ if(Boost_FOUND)
 	message(STATUS "Boost include directory: " ${Boost_INCLUDE_DIRS})
 endif(Boost_FOUND)
 
-#set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/src/asio/include" CACHE PATH "asio include directory")
-set(ASIO_INCLUDEDIR "${PROJECT_SOURCE_DIR}/../asio/include" CACHE PATH "asio include directory")
-
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 pkg_check_modules(LUA REQUIRED lua>=5.1)
 message(STATUS "LUA include directory: " ${LUA_INCLUDE_DIRS})
 message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
 
-#if(WITH_PCRE)
-#	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
-#endif(WITH_PCRE)
 if(WITH_SSL)
 	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0 gnutls-extra>=2.0.0)
 endif(WITH_SSL)

@@ -15,7 +15,6 @@
 #include <x0/io/FileSource.h>
 #include <x0/Types.h>
 #include <x0/DateTime.h>
-#include <x0/Settings.h>
 #include <x0/Scope.h>
 #include <x0/Logger.h>
 #include <x0/strutils.h>

@@ -13,6 +13,7 @@
 #include <x0/Api.h>
 
 #include <memory>
+#include <string>
 #include <map>
 
 namespace x0 {

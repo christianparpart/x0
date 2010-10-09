@@ -1,10 +1,8 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${ASIO_INCLUDEDIR})
 include_directories(${BOOST_INCLUDEDIR})
 include_directories(${LUA_INCLUDE_DIRS})
 
 add_definitions(
-	${LLVM_CFLAGS}
 	-Dlinux=1
 	-Wall -Wno-deprecated
 	-pthread

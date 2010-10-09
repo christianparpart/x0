@@ -12,7 +12,6 @@
 #include <x0/http/HttpContext.h>
 #include <x0/http/Types.h>
 #include <x0/io/FileInfoService.h>
-#include <x0/Settings.h>
 #include <x0/DateTime.h>
 #include <x0/Property.h>
 #include <x0/Library.h>
@@ -104,11 +103,6 @@ public:
 	std::vector<std::string> allHostnames() const; //!< retrieves a list of host names and their aliases
 	std::vector<std::string> hostnamesOf(const std::string& master) const; //!< retrieves all host names for a given virtual-host ID
 	// }}}
-
-	/** 
-	 * retrieves reference to server currently loaded configuration.
-	 */
-	Settings& config();
 
 	void addComponent(const std::string& value);
 
@@ -239,7 +233,6 @@ private:
 	std::list<HttpListener *> listeners_;
 	struct ::ev_loop *loop_;
 	bool active_;
-	Settings settings_;
 	std::map<int, std::map<std::string, cvar_handler>> cvars_server_;	//!< registered server-scope cvars
 	std::map<int, std::map<std::string, cvar_handler>> cvars_host_;	//!< registered host-scope cvars
 	std::map<int, std::map<std::string, cvar_handler>> cvars_path_;	//!< registered location-scope cvars

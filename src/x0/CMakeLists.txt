@@ -1,9 +1,5 @@
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
-include_directories(${ASIO_INCLUDEDIR})
-include_directories(${BOOST_INCLUDEDIR})
-
 add_definitions(
 	-Dlinux=1
 	-Wall -Wno-deprecated
@@ -93,7 +89,6 @@ set(x0_SRC
 	Url.cpp
 	WebClient.cpp
 	Scope.cpp
-	Settings.cpp
 	Severity.cpp
 	Socket.cpp
 	SocketDriver.cpp
@@ -122,7 +117,6 @@ set(x0_API
 	Process.h
 	Property.h
 	Scope.h
-	Settings.h Settings.cc
 	Severity.h
 	Socket.h
 	SocketDriver.h
@@ -144,16 +138,16 @@ set(x0_API
 #	TernarySearch.h
 
 add_library(x0 SHARED ${x0_SRC})
-install(TARGETS x0 DESTINATION ${LIBDIR})
-
+set_target_properties(x0 PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
 target_link_libraries(x0
-	dl pthread
-	${FLOW_LIBS}
-	${LUA_LIBRARIES}
-	${ZLIB_LIBS}
-	${BZIP2_LIBS}
+	dl
+	pthread
+	${FLOW_LIBRARIES}
+	${ZLIB_LIBRARIES}
+	${BZIP2_LIBRARIES}
 )
 
+install(TARGETS x0 DESTINATION ${LIBDIR})
 install(FILES ${x0_API} DESTINATION ${INCLUDEDIR}/x0)
 install(FILES ${x0_io_API} DESTINATION ${INCLUDEDIR}/x0/io)
 install(FILES ${x0_http_API} DESTINATION ${INCLUDEDIR}/x0/io)

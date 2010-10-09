@@ -10,10 +10,7 @@
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
 #include <x0/Defines.h>
-
-#if !defined(NDEBUG)
-#	include <x0/StackTrace.h>
-#endif
+#include <x0/StackTrace.h>
 
 #include <fcntl.h>
 #include <sys/socket.h>
