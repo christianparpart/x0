@@ -71,6 +71,7 @@ public:
 	{
 		using namespace std::placeholders;
 
+		/*
 		declareCVar("ProxyEnable", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_enable);
 		declareCVar("ProxyMode", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_mode);
 		declareCVar("ProxyOrigins", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_origins);
@@ -80,6 +81,7 @@ public:
 		declareCVar("ProxyReadTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_read_timeout);
 		declareCVar("ProxyWriteTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_write_timeout);
 		declareCVar("ProxyKeepAliveTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_keepalive_timeout);
+		*/
 	}
 
 	~proxy_plugin()
@@ -87,6 +89,7 @@ public:
 	}
 
 private:
+#if 0
 	std::error_code setup_proxy_enable(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(acquire_proxy(s)->enabled);
@@ -161,6 +164,7 @@ private:
 	{
 		return cvar.load(acquire_proxy(s)->keepalive);
 	}
+#endif
 
 	ProxyContext *acquire_proxy(x0::Scope& s)
 	{

@@ -139,13 +139,13 @@ set(x0_API
 
 add_library(x0 SHARED ${x0_SRC})
 set_target_properties(x0 PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
-target_link_libraries(x0
-	dl
-	pthread
-	${FLOW_LIBRARIES}
-	${ZLIB_LIBRARIES}
-	${BZIP2_LIBRARIES}
-)
+target_link_libraries(x0 dl pthread ${LIBS})
+#dl
+#	pthread
+#	#${FLOW_LIBRARIES}
+#	${ZLIB_LIBRARIES}
+#	${BZIP2_LIBRARIES}
+#)
 
 install(TARGETS x0 DESTINATION ${LIBDIR})
 install(FILES ${x0_API} DESTINATION ${INCLUDEDIR}/x0)
