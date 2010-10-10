@@ -217,6 +217,7 @@ bool HttpServer::setup(std::istream *settings)
 		{
 			std::string zver("bzip2/");
 			zver += BZ2_bzlibVersion();
+			zver = zver.substr(0, zver.find(","));
 			components_.insert(components_.begin(), zver);
 		}
 #endif
