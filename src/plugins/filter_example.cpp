@@ -133,4 +133,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(filter);
+X0_EXPORT_PLUGIN(filter)

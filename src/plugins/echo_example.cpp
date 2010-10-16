@@ -93,4 +93,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(echo);
+X0_EXPORT_PLUGIN(echo)

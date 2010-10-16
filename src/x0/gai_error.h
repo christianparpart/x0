@@ -16,7 +16,7 @@ namespace x0 {
 enum class gai_error // {{{
 {
 	success = 0,
-	unknown = -1,
+	unknown = -1
 };
 // }}}
 

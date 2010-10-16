@@ -228,4 +228,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(compress);
+X0_EXPORT_PLUGIN(compress)

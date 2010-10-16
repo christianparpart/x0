@@ -124,4 +124,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(vhost_template);
+X0_EXPORT_PLUGIN(vhost_template)

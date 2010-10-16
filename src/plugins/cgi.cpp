@@ -558,4 +558,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(cgi);
+X0_EXPORT_PLUGIN(cgi)

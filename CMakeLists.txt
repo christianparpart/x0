@@ -31,6 +31,7 @@ option(WITH_CONNECTION_TIMEOUTS "Connection read/write timeout support [default:
 # OS-level features like posix_fadvise() or readahead().
 add_definitions(-DXOPEN_SOURCE=600)
 add_definitions(-DGNU_SOURCE)
+add_definitions(-Wall -Wno-variadic-macros)
 
 # enforce 64bit i/o operations, even on 32bit platforms
 add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES)
@@ -75,6 +76,9 @@ if(HAVE_BZLIB_H)
 	set(BZIP2_LIBRARIES bz2)
 	set(LIBS ${LIBS} ${BZIP2_LIBRARIES})
 endif(HAVE_BZLIB_H)
+
+# ---------------------------------------------------------------------------
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/src)
 
 # flow
 find_package(FLOW)
@@ -151,9 +155,6 @@ endif(BUILD_TESTS)
 #else(BUILD_STATIC)
 	CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
 #endif(BUILD_STATIC)
-
-# ---------------------------------------------------------------------------
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/src)
 
 # ---------------------------------------------------------------------------
 macro(x0_plugin_simple ModuleName)

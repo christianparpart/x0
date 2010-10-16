@@ -103,7 +103,7 @@ inline void HttpMessageProcessor::reset()
 
 inline bool HttpMessageProcessor::is_char(char value)
 {
-	return value >= 0 && value <= 127;
+	return static_cast<unsigned>(value) >= 0 && static_cast<unsigned>(value) <= 127;
 }
 
 inline bool HttpMessageProcessor::is_ctl(char value)
@@ -365,10 +365,11 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	while (i != e)
 	{
 #if 1
-		if (std::isprint(*i))
+		if (std::isprint(*i)) {
 			TRACE("parse: %4ld, 0x%02X (%c),  %s", offset, *i, *i, state_str());
-		else
+		} else {
 			TRACE("parse: %4ld, 0x%02X,     %s", offset, *i, state_str());
+		}
 #endif
 
 		switch (state_)
@@ -1011,20 +1012,22 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 			{
 
 #if !defined(NDEBUG)
-				if (std::isprint(*i))
+				if (std::isprint(*i)) {
 					TRACE("parse: syntax error at offset: %ld, character: '%c'", offset, *i);
-				else
+				} else {
 					TRACE("parse: syntax error at offset: %ld, character: 0x%02X", offset, *i);
+				}
 #endif
 				ofp = offset_base + offset;
 				return make_error_code(HttpMessageError::invalid_syntax);
 			}
 			default:
 #if !defined(NDEBUG)
-				if (std::isprint(*i))
+				if (std::isprint(*i)) {
 					TRACE("parse: internal error at offset: %ld, character: '%c'", offset, *i);
-				else
+				} else {
 					TRACE("parse: internal error at offset: %ld, character: 0x%02X", offset, *i);
+				}
 #endif
 				return make_error_code(HttpMessageError::invalid_syntax);
 		}

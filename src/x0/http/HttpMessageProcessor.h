@@ -26,7 +26,7 @@ namespace x0 {
 		success = 0,
 		partial,
 		aborted,
-		invalid_syntax,
+		invalid_syntax
 	};
 
 	const std::error_category& http_message_category() throw();
@@ -163,7 +163,7 @@ private:
 		CR = 0x0D,
 		LF = 0x0A,
 		SP = 0x20,
-		HT = 0x09,
+		HT = 0x09
 	};
 
 	mode_type mode_;

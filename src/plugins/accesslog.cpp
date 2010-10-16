@@ -172,4 +172,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(accesslog);
+X0_EXPORT_PLUGIN(accesslog)

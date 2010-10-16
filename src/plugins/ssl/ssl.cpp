@@ -236,4 +236,4 @@ private:
 	// }}}
 };
 
-X0_EXPORT_PLUGIN(ssl);
+X0_EXPORT_PLUGIN(ssl)

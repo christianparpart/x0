@@ -128,8 +128,9 @@ void SslContext::setCertFile(const std::string& filename)
 	rv = gnutls_x509_crt_list_import(x509Certs_, &numX509Certs_, &data, GNUTLS_X509_FMT_PEM, 0);
 
 #if !defined(NDEBUG)
-	if (rv < 0)
+	if (rv < 0) {
 		TRACE("gnutls_x509_crt_list_import: \"%s\"", gnutls_strerror(rv));
+	}
 #endif
 
 	for (unsigned i = 0; i < numX509Certs_; ++i)

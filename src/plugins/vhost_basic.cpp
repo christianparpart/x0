@@ -301,4 +301,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(vhost_basic);
+X0_EXPORT_PLUGIN(vhost_basic)

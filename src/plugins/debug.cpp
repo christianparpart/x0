@@ -179,4 +179,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(debug);
+X0_EXPORT_PLUGIN(debug)

@@ -105,7 +105,7 @@ public:
 	enum State {
 		DISCONNECTED,
 		CONNECTING,
-		CONNECTED,
+		CONNECTED
 	};
 
 	ev_io io_;
@@ -924,4 +924,4 @@ public:
 	}
 };
 
-X0_EXPORT_PLUGIN(fastcgi);
+X0_EXPORT_PLUGIN(fastcgi)

@@ -157,4 +157,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(dirlisting);
+X0_EXPORT_PLUGIN(dirlisting)

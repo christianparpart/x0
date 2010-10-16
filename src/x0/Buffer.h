@@ -496,7 +496,6 @@ inline void Buffer::push_back(PodType (&value)[N])
 
 inline Buffer::value_type& Buffer::operator[](std::size_t index)
 {
-	assert(index >= 0);
 	assert(index < size_);
 
 	return data_[index];
@@ -504,7 +503,7 @@ inline Buffer::value_type& Buffer::operator[](std::size_t index)
 
 inline const Buffer::value_type& Buffer::operator[](std::size_t index) const
 {
-	assert(index >= 0 && index < size_);
+	assert(index < size_);
 
 	return data_[index];
 }
@@ -523,7 +522,6 @@ inline BufferRef Buffer::ref(std::size_t offset) const
 
 inline BufferRef Buffer::ref(std::size_t offset, std::size_t count) const
 {
-	assert(offset >= 0);
 	assert(offset + count <= size_);
 
 	return BufferRef(this, offset, count);
@@ -531,7 +529,6 @@ inline BufferRef Buffer::ref(std::size_t offset, std::size_t count) const
 
 inline BufferRef Buffer::operator()(std::size_t offset) const
 {
-	assert(offset >= 0);
 	assert(offset <= size_);
 
 	return BufferRef(this, offset, size_ - offset);
@@ -539,7 +536,6 @@ inline BufferRef Buffer::operator()(std::size_t offset) const
 
 inline BufferRef Buffer::operator()(std::size_t offset, std::size_t count) const
 {
-	assert(offset >= 0);
 	assert(offset + count < size_);
 
 	return BufferRef(this, offset, count);

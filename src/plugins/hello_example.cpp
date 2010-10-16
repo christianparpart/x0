@@ -68,4 +68,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(hello);
+X0_EXPORT_PLUGIN(hello)

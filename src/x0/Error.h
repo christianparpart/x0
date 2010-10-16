@@ -22,7 +22,7 @@ enum class Error // {{{
 	PidFileNotSpecified,
 	CannotCreatePidFile,
 	CouldNotInitializeSslLibrary,
-	NoListenersDefined,
+	NoListenersDefined
 }; // }}}
 
 const std::error_category& errorCategory() throw();

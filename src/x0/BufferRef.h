@@ -280,8 +280,6 @@ inline void BufferRef::shl(ssize_t offset)
 	offset_ -= offset;
 	size_ += offset;
 
-	assert(offset_ >= 0);
-	assert(size_ >= 0);
 	assert(offset_ + size_ <= buffer_->capacity());
 }
 
@@ -387,13 +385,15 @@ inline std::size_t BufferRef::rfind(value_type value, std::size_t offset) const
 	const char *p = data();
 	const char *q = p + size();
 
-	while (offset >= 0)
+	for (;;)
 	{
 		if (*q == value)
 			return q - p;
 
+		if (p == q)
+			break;
+
 		--q;
-		--offset;
 	}
 
 	return npos;

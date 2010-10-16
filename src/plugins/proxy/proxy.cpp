@@ -212,4 +212,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(proxy);
+X0_EXPORT_PLUGIN(proxy)

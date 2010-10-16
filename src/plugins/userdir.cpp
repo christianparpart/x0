@@ -115,4 +115,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(userdir);
+X0_EXPORT_PLUGIN(userdir)
