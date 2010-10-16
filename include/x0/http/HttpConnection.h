@@ -96,10 +96,7 @@ private:
 
 	void process();
 	void io(Socket *);
-
-#if defined(WITH_CONNECTION_TIMEOUTS)
 	void timeout(Socket *);
-#endif
 
 	struct ::ev_loop *loop() const;
 

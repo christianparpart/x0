@@ -6,8 +6,8 @@
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
 
-#include "FileInfo.h"
-#include "FileInfoService.h"
+#include <x0/io/FileInfo.h>
+#include <x0/io/FileInfoService.h>
 
 namespace x0 {
 

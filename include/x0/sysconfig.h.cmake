@@ -27,7 +27,6 @@
 #cmakedefine HAVE_SYS_UTSNAME_H
 
 #cmakedefine WITH_SSL
-#cmakedefine WITH_CONNECTION_TIMEOUTS
 
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK
@@ -38,5 +37,8 @@
 #cmakedefine HAVE_READAHEAD
 
 #cmakedefine BUILD_STATIC
+
+#cmakedefine SYSCONFDIR "@SYSCONFDIR@"
+#cmakedefine PLUGINDIR "@PLUGINDIR@"
 
 #endif

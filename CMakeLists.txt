@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 project(x0)
 set(PACKAGE_NAME "x0")
@@ -22,16 +22,16 @@ include(CMakeDetermineCCompiler)
 option(BUILD_TESTS "Build unit tests [default: on]" ON)
 
 option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
-#option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
-#option(WITH_PCRE "With PCRE support [default: off]")
 option(WITH_SSL "With SSL support [default: on]" ON)
-option(WITH_CONNECTION_TIMEOUTS "Connection read/write timeout support [default: on]" ON)
+#option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
+
+add_definitions(-std=c++0x)
+add_definitions(-Wall -Wno-variadic-macros)
 
 # we need the following definitions in order to get some special
 # OS-level features like posix_fadvise() or readahead().
 add_definitions(-DXOPEN_SOURCE=600)
 add_definitions(-DGNU_SOURCE)
-add_definitions(-Wall -Wno-variadic-macros)
 
 # enforce 64bit i/o operations, even on 32bit platforms
 add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES)
@@ -78,7 +78,8 @@ if(HAVE_BZLIB_H)
 endif(HAVE_BZLIB_H)
 
 # ---------------------------------------------------------------------------
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/src)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # flow
 find_package(FLOW)
@@ -170,9 +171,28 @@ macro(x0_plugin ModuleName SrcFiles)
 endmacro()
 
 # ---------------------------------------------------------------------------
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/x0/sysconfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/src/x0/sysconfig.h)
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/include/x0/sysconfig.h.cmake
+	${CMAKE_CURRENT_BINARY_DIR}/include/x0/sysconfig.h)
+
 add_definitions(-DHAVE_SYSCONFIG_H)
 
+add_subdirectory(lib)
 add_subdirectory(src)
-add_subdirectory(examples)
+add_subdirectory(plugins)
 add_subdirectory(tests)
+add_subdirectory(examples)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+	DESTINATION ${INCLUDEDIR}
+	FILES_MATCHING
+	PATTERN "*.h"
+	PATTERN "*.hpp"
+	PATTERN "*.cc")
+
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
+	DESTINATION ${INCLUDEDIR}
+	FILES_MATCHING
+	PATTERN "*.h"
+	PATTERN "*.hpp"
+	PATTERN "*.cc")

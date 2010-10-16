@@ -226,7 +226,6 @@ void HttpConnection::io(Socket *)
 		active_ = false;
 }
 
-#if defined(WITH_CONNECTION_TIMEOUTS)
 void HttpConnection::timeout(Socket *)
 {
 	TRACE("(%p): timed out", this);
@@ -235,7 +234,6 @@ void HttpConnection::timeout(Socket *)
 
 	delete this;
 }
-#endif
 
 #if defined(WITH_SSL)
 bool HttpConnection::isSecure() const
@@ -470,14 +468,12 @@ void HttpConnection::resume()
 
 void HttpConnection::startRead()
 {
-#if defined(WITH_CONNECTION_TIMEOUTS)
 	int timeout = request_count_ && state() == MESSAGE_BEGIN
 		? server_.max_keep_alive_idle()
 		: server_.max_read_idle();
 
 	if (timeout > 0)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
-#endif
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
 	socket_->setMode(Socket::READ);
