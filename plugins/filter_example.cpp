@@ -20,13 +20,13 @@
 class ExampleFilter :
 	public x0::Filter
 {
+	bool mode_;
 public:
-	ExampleFilter();
-
+	explicit ExampleFilter(int mode);
 	virtual x0::Buffer process(const x0::BufferRef& input);
 };
 
-ExampleFilter::ExampleFilter()
+ExampleFilter::ExampleFilter(int mode) : mode_(mode)
 {
 }
 
@@ -34,20 +34,24 @@ x0::Buffer ExampleFilter::process(const x0::BufferRef& input)
 {
 	x0::Buffer result;
 
-#if 1
-	// return identity
-	result.push_back(input);
-#else
-	// return upper-case
-	for (auto i = input.begin(), e = input.end(); i != e; ++i)
-		result.push_back(static_cast<char>(std::toupper(*i)));
-#endif
+	switch (mode_)
+	{
+		case 2: // return lower-case
+			for (auto i = input.begin(), e = input.end(); i != e; ++i)
+				result.push_back(static_cast<char>(std::tolower(*i)));
+			break;
+		case 1: // return upper-case
+			for (auto i = input.begin(), e = input.end(); i != e; ++i)
+				result.push_back(static_cast<char>(std::toupper(*i)));
+			break;
+		case 0: // return identity
+		default:
+			result.push_back(input);
+	}
 
 	return result;
 }
 // }}}
-
-#define TRACE(msg...) DEBUG("filter_example: " msg)
 
 /**
  * \ingroup plugins
@@ -56,71 +60,40 @@ x0::Buffer ExampleFilter::process(const x0::BufferRef& input)
 class filter_plugin :
 	public x0::HttpPlugin
 {
-private:
-	struct context : public x0::ScopeValue
-	{
-		bool enabled;
-
-		context() :
-			enabled(false)
-		{
-		}
-
-		virtual void merge(const x0::ScopeValue *value)
-		{
-		}
-	};
-
-	x0::HttpServer::RequestPostHook::Connection postProcess_;
-
 public:
 	filter_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		using namespace std::placeholders;
-
-		postProcess_ = server_.onPostProcess.connect<filter_plugin, &filter_plugin::postProcess>(this);
-
-		declareCVar("ExampleFilter", x0::HttpContext::server|x0::HttpContext::host, &filter_plugin::setup_enabled);
+		registerFunction<filter_plugin, &filter_plugin::install_filter>("example_filter", Flow::Value::VOID);
 	}
 
 	~filter_plugin() {
-		server_.onPostProcess.disconnect(postProcess_);
-		server().release(this);
 	}
 
-	bool install_filter(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	void install_filter(Flow::Value& /*result*/, x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		out->headers.push_back("Content-Encoding", "filter_example");
-		out->filters.push_back(std::make_shared<ExampleFilter>());
-
-		// response might change according to Accept-Encoding
-		if (!out->headers.contains("Vary"))
-			out->headers.push_back("Vary", "Accept-Encoding");
-		else
-			out->headers["Vary"] += ",Accept-Encoding";
-
-		// removing content-length implicitely enables chunked encoding
-		out->headers.remove("Content-Length");
-	}
-
-private:
-	std::error_code setup_enabled(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(s.acquire<context>(this)->enabled);
-	}
-
-	void postProcess(x0::HttpRequest *in, x0::HttpResponse *out)
-	{
-		const context *cx = server_.resolveHost(in->hostid())->get<context>(this);
-		if (!cx && !(cx = server().get<context>(this)))
+		if (args.count() != 1) {
+			log(x0::Severity::error, "No argument passed.");
 			return;
+		}
 
-		if (!cx->enabled)
+		if (!args[0].isString()) {
+			log(x0::Severity::error, "Invalid argument type passed.");
 			return;
+		}
+
+		if (strcmp(args[0].toString(), "identity") == 0)
+			out->filters.push_back(std::make_shared<ExampleFilter>(0));
+		else if (strcmp(args[0].toString(), "upper") == 0)
+			out->filters.push_back(std::make_shared<ExampleFilter>(1));
+		else if (strcmp(args[0].toString(), "lower") == 0)
+			out->filters.push_back(std::make_shared<ExampleFilter>(2));
+		else {
+			log(x0::Severity::error, "Invalid argument value passed.");
+			return;
+		}
 
 		out->headers.push_back("Content-Encoding", "filter_example");
-		out->filters.push_back(std::make_shared<ExampleFilter>());
 
 		// response might change according to Accept-Encoding
 		if (!out->headers.contains("Vary"))
