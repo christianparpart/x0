@@ -39,8 +39,6 @@
 #include <x0/sysconfig.h>
 
 #include <boost/lexical_cast.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/signal.hpp>
 
 #include <system_error>
 #include <algorithm>
@@ -209,8 +207,8 @@ inline void CgiScript::runAsync()
 	environment["REQUEST_URI"] = request_->uri;
 
 	//environment["REMOTE_HOST"] = "";  // optional
-	environment["REMOTE_ADDR"] = request_->connection.remote_ip();
-	environment["REMOTE_PORT"] = boost::lexical_cast<std::string>(request_->connection.remote_port());
+	environment["REMOTE_ADDR"] = request_->connection.remoteIP();
+	environment["REMOTE_PORT"] = boost::lexical_cast<std::string>(request_->connection.remotePort());
 
 	//environment["AUTH_TYPE"] = "";
 	//environment["REMOTE_USER"] = "";
@@ -320,7 +318,7 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 
 			if (!serial_)
 			{
-				response_->status = x0::http_error::internal_server_error;
+				response_->status = x0::HttpError::InternalServerError;
 				request_->connection.server().log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
 			delete this;
@@ -354,12 +352,12 @@ void CgiScript::messageHeader(const x0::BufferRef& name, const x0::BufferRef& va
 
 	if (name == "Status")
 	{
-		response_->status = static_cast<x0::http_error>(boost::lexical_cast<int>(value.str()));
+		response_->status = static_cast<x0::HttpError>(boost::lexical_cast<int>(value.str()));
 	}
 	else 
 	{
 		if (name == "Location")
-			response_->status = x0::http_error::moved_temporarily;
+			response_->status = x0::HttpError::MovedTemporarily;
 
 		response_->headers.push_back(name.str(), value.str());
 	}
@@ -408,8 +406,7 @@ void CgiScript::onResponseTransmitted(int ec, std::size_t nb)
  * \brief serves static files from server's local filesystem to client.
  */
 class cgi_plugin :
-	public x0::HttpPlugin,
-	public x0::IHttpRequestHandler
+	public x0::HttpPlugin
 {
 private:
 	/** usually /cgi-bin/, a prefix inwhich everything is expected to be a cgi script. */
@@ -435,8 +432,15 @@ public:
 		declareCVar("CgiPrefix", x0::HttpContext::server, &cgi_plugin::setPrefix);
 		declareCVar("CgiMappings", x0::HttpContext::server, &cgi_plugin::setMappings);
 		declareCVar("CgiExecutable", x0::HttpContext::server, &cgi_plugin::setExecutable);
+
+		registerSetupProperty<cgi_plugin, &cgi_plugin::ttl>("cgi.ttl", Flow::NUMBER);
 	}
 
+	void ttl(Flow::Value& result, const x0::Params& args)
+	{
+	}
+
+#if 0
 	std::error_code setPrefix(const x0::SettingsValue& cvar, x0::Scope& s)
 	{
 		return cvar.load(prefix_);
@@ -473,7 +477,7 @@ public:
 
 		return rv;
 	}
-
+#endif
 private:
 	/** content generator handler for this CGI plugin.
 	 *
