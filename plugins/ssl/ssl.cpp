@@ -151,8 +151,6 @@ private:
 
 	void set_loglevel(Flow::Value& result, const x0::Params& args)
 	{
-		TRACE("setupLogLevel(cvar, scope)");
-
 		if (args.count() == 1)
 		{
 			if (args[0].isNumber())

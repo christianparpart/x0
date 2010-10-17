@@ -23,15 +23,17 @@ HttpPlugin::HttpPlugin(HttpServer& srv, const std::string& name) :
 	, debug_level_(9)
 #endif
 {
+	// ensure that it's only the base-name we store
+	// (fixes some certain cases where we've a path prefix supplied.)
+	size_t i = name_.rfind('/');
+	if (i != std::string::npos)
+		name_ = name_.substr(i + 1);
 }
 
 /** \brief safely destructs the plugin.
   */
 HttpPlugin::~HttpPlugin()
 {
-	while (!cvars_.empty())
-		undeclareCVar(cvars_[0]);
-
 	// clean up possible traces in server and vhost scopes
 	auto hostnames = server_.hostnames();
 	for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
@@ -39,28 +41,6 @@ HttpPlugin::~HttpPlugin()
 			s->release(this);
 
 	server_.release(this);
-}
-
-/** \brief retrieves the number of configuration variables registered by this plugin.
-  */
-const std::vector<std::string>& HttpPlugin::cvars() const
-{
-	return cvars_;
-}
-
-/** \brief unregisters given configuration variable.
-  */
-void HttpPlugin::undeclareCVar(const std::string& key)
-{
-	for (auto i = cvars_.begin(), e = cvars_.end(); i != e; ++i)
-	{
-		if (*i == key)
-		{
-			server_.undeclareCVar(key);
-			cvars_.erase(i);
-			return;
-		}
-	}
 }
 
 bool HttpPlugin::post_config()

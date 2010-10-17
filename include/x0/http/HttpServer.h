@@ -145,10 +145,6 @@ public:
 
 	const std::list<HttpListener *>& listeners() const;
 
-	bool declareCVar(const std::string& key, HttpContext cx, const cvar_handler& callback, int priority = 0);
-	std::vector<std::string> cvars(HttpContext cx) const;
-	void undeclareCVar(const std::string& key);
-
 	HttpListener *listenerByHost(const std::string& hostid) const;
 	HttpListener *listenerByPort(int port) const;
 
@@ -233,9 +229,6 @@ private:
 	std::list<HttpListener *> listeners_;
 	struct ::ev_loop *loop_;
 	bool active_;
-	std::map<int, std::map<std::string, cvar_handler>> cvars_server_;	//!< registered server-scope cvars
-	std::map<int, std::map<std::string, cvar_handler>> cvars_host_;	//!< registered host-scope cvars
-	std::map<int, std::map<std::string, cvar_handler>> cvars_path_;	//!< registered location-scope cvars
 	LoggerPtr logger_;
 	Severity logLevel_;
 	bool colored_log_;

@@ -15,8 +15,6 @@
 namespace x0 {
 
 class HttpServer;
-class SettingsValue;
-class Scope;
 
 class HttpCore :
 	public HttpPlugin
@@ -118,15 +116,6 @@ private:
 private:
 	unsigned long long getrlimit(int resource);
 	unsigned long long setrlimit(int resource, unsigned long long max);
-
-	std::error_code setupMimeTypeDefault(const SettingsValue& cvar, Scope& s);
-
-	std::error_code setupETagUseMtime(const SettingsValue& cvar, Scope& s);
-	std::error_code setupETagUseSize(const SettingsValue& cvar, Scope& s);
-	std::error_code setupETagUseInode(const SettingsValue& cvar, Scope& s);
-
-	std::error_code setup_error_documents(const SettingsValue& cvar, Scope& s);
-	// }}}
 };
 
 } // namespace x0

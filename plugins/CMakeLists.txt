@@ -26,7 +26,7 @@ x0_plugin_simple(userdir)
 
 x0_plugin_simple(echo_example)
 x0_plugin_simple(hello_example)
-#x0_plugin_simple(filter_example)
+x0_plugin_simple(filter_example)
 
 # ---------------------------------------------------------------------------
 # the more complex plugins:

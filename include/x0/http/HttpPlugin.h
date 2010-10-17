@@ -78,13 +78,6 @@ public:
 	void debug_level(int value);
 #endif
 
-	template<typename T>
-	void declareCVar(const std::string& key, HttpContext mask,
-			std::error_code (T::*handler)(const SettingsValue&, Scope&), int priority = 0);
-
-	const std::vector<std::string>& cvars() const;
-	void undeclareCVar(const std::string& key);
-
 	HttpServer& server() const;
 
 protected:
@@ -98,7 +91,6 @@ protected:
 protected:
 	HttpServer& server_;
 	std::string name_;
-	std::vector<std::string> cvars_;
 
 #if !defined(NDEBUG)
 	int debug_level_;
@@ -193,7 +185,12 @@ inline std::string HttpPlugin::name() const
 template<typename... Args>
 inline void HttpPlugin::log(Severity sv, const char *msg, Args&&... args)
 {
-	server_.log(sv, msg, args...);
+	Buffer fmt;
+	fmt.push_back(name_);
+	fmt.push_back(": ");
+	fmt.push_back(msg);
+
+	server_.log(sv, fmt.c_str(), args...);
 }
 
 template<typename... Args>
@@ -221,23 +218,6 @@ inline int HttpPlugin::debug_level() const
 inline void HttpPlugin::debug_level(int value)
 {
 	debug_level_ = value;
-}
-
-/** \brief registers a configuration variable handler.
-  *
-  * \param key configuration variable name
-  * \param mask context mask (OR-ed together) describing in which contexts this variable may occur
-  * \param handler callback handler to be invoked on occurence.
-  * \param priority handler-invokation priority. the higher the later.
-  *
-  * \see server::declareCVar()
-  */
-template<typename T>
-inline void HttpPlugin::declareCVar(const std::string& key, HttpContext mask,
-	std::error_code (T::*handler)(const SettingsValue&, Scope&), int priority)
-{
-	cvars_.push_back(key);
-	server_.declareCVar(key, mask, std::bind(handler, static_cast<T *>(this), std::placeholders::_1, std::placeholders::_2), priority);
 }
 #endif
 // }}}

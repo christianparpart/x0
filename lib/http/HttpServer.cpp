@@ -81,9 +81,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
 	active_(false),
-	cvars_server_(),
-	cvars_host_(),
-	cvars_path_(),
 	logger_(),
 	logLevel_(Severity::warn),
 	colored_log_(false),
@@ -107,14 +104,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 
 	auto nowfn = std::bind(&DateTime::htlog_str, &now_);
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
-
-	// initialize all cvar maps with all (valid) priorities
-	for (int i = -10; i <= +10; ++i)
-	{
-		cvars_server_[i].clear();
-		cvars_host_[i].clear();
-		cvars_path_[i].clear();
-	}
 
 	runner_ = new Flow::Runner(this);
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
@@ -144,26 +133,6 @@ HttpServer::~HttpServer()
 
 	while (!plugins_.empty())
 		unloadPlugin(plugins_[plugins_.size() - 1]->name());
-}
-
-/** tests whether given cvar-token is available in the table of registered cvars. */
-inline bool _contains(const std::map<int, std::map<std::string, cvar_handler>>& map, const std::string& cvar)
-{
-	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
-		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			if (ci->first == cvar)
-				return true;
-
-	return false;
-}
-
-inline bool _contains(const std::vector<std::string>& list, const std::string& var)
-{
-	for (auto i = list.begin(), e = list.end(); i != e; ++i)
-		if (*i == var)
-			return true;
-
-	return false;
 }
 
 bool HttpServer::setup(std::istream *settings)
@@ -591,76 +560,6 @@ HttpPlugin *HttpServer::unregisterPlugin(HttpPlugin *plugin)
 	}
 
 	return plugin;
-}
-
-bool HttpServer::declareCVar(const std::string& key, HttpContext cx, const cvar_handler& callback, int priority)
-{
-	priority = std::min(std::max(priority, -10), 10);
-
-#if 0 // !defined(NDEBUG)
-	std::string smask;
-	if (cx & HttpContext::server) smask = "server";
-	if (cx & HttpContext::host) { if (!smask.empty()) smask += "|"; smask += "host"; }
-	if (cx & HttpContext::location) { if (!smask.empty()) smask += "|"; smask += "location"; }
-
-	debug(1, "registering CVAR token=%s, mask=%s, prio=%d", key.c_str(), smask.c_str(), priority);
-#endif
-
-	if (cx & HttpContext::server)
-		cvars_server_[priority][key] = callback;
-
-	if (cx & HttpContext::host)
-		cvars_host_[priority][key] = callback;
-
-	if (cx & HttpContext::location)
-		cvars_path_[priority][key] = callback;
-
-	return true;
-}
-
-std::vector<std::string> HttpServer::cvars(HttpContext cx) const
-{
-	std::vector<std::string> result;
-
-	if (cx & HttpContext::server)
-		for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i)
-			for (auto k = i->second.begin(), m = i->second.end(); k != m; ++k)
-				result.push_back(k->first);
-
-	if (cx & HttpContext::host)
-		for (auto i = cvars_host_.begin(), e = cvars_host_.end(); i != e; ++i)
-			for (auto k = i->second.begin(), m = i->second.end(); k != m; ++k)
-				result.push_back(k->first);
-
-	if (cx & HttpContext::location)
-		for (auto i = cvars_path_.begin(), e = cvars_path_.end(); i != e; ++i)
-			for (auto k = i->second.begin(), m = i->second.end(); k != m; ++k)
-				result.push_back(k->first);
-
-	return result;
-}
-
-void HttpServer::undeclareCVar(const std::string& key)
-{
-	//DEBUG("undeclareCVar: '%s'", key.c_str());
-
-	for (auto i = cvars_server_.begin(), e = cvars_server_.end(); i != e; ++i) {
-		auto r = i->second.find(key);
-		if (r != i->second.end())
-			i->second.erase(r);
-	}
-
-	for (auto i = cvars_host_.begin(), e = cvars_host_.end(); i != e; ++i) {
-		auto r = i->second.find(key);
-		if (r != i->second.end())
-			i->second.erase(r);
-	}
-
-	for (auto i = cvars_path_.begin(), e = cvars_path_.end(); i != e; ++i) {
-		auto r = i->second.find(key);
-		if (r != i->second.end())
-			i->second.erase(r);
-	}
 }
 
 // {{{ virtual host management

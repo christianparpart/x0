@@ -25,7 +25,6 @@
  *     none
  */
 
-#include "compress.h"
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
@@ -58,8 +57,7 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class compress_plugin :
-	public x0::HttpPlugin,
-	public ICompressPlugin
+	public x0::HttpPlugin
 {
 private:
 	std::vector<std::string> contentTypes_;
@@ -102,27 +100,6 @@ public:
 
 	~compress_plugin() {
 		server_.onPostProcess.disconnect(postProcess_);
-	}
-
-public: // ICompressPlugin
-	virtual void setCompressTypes(const std::vector<std::string>& value)
-	{
-		contentTypes_ = value;
-	}
-
-	virtual void setCompressLevel(int value)
-	{
-		level_ = value;
-	}
-
-	virtual void setCompressMinSize(int value)
-	{
-		minSize_ = value;
-	}
-
-	virtual void setCompressMaxSize(int value)
-	{
-		maxSize_ = value;
 	}
 
 private:

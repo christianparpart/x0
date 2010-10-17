@@ -15,7 +15,6 @@
 #include <x0/io/FileSource.h>
 #include <x0/Types.h>
 #include <x0/DateTime.h>
-#include <x0/Scope.h>
 #include <x0/Logger.h>
 #include <x0/strutils.h>
 
@@ -31,26 +30,6 @@
 
 
 namespace x0 {
-
-/** tests whether given cvar-token is available in the table of registered cvars. */
-inline bool _contains(const std::map<int, std::map<std::string, cvar_handler>>& map, const std::string& cvar)
-{
-	for (auto pi = map.begin(), pe = map.end(); pi != pe; ++pi)
-		for (auto ci = pi->second.begin(), ce = pi->second.end(); ci != ce; ++ci)
-			if (ci->first == cvar)
-				return true;
-
-	return false;
-}
-
-inline bool _contains(const std::vector<std::string>& list, const std::string& var)
-{
-	for (auto i = list.begin(), e = list.end(); i != e; ++i)
-		if (*i == var)
-			return true;
-
-	return false;
-}
 
 HttpCore::HttpCore(HttpServer& server) :
 	HttpPlugin(server, "core"),
@@ -965,7 +944,6 @@ unsigned long long HttpCore::setrlimit(int resource, unsigned long long value)
 	return value;
 }
 // }}}
-
 
 // redirect physical request paths not ending with slash if mapped to directory
 bool HttpCore::redirectOnIncompletePath(HttpRequest *in, HttpResponse *out)
