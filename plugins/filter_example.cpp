@@ -20,12 +20,14 @@
 class ExampleFilter :
 	public x0::Filter
 {
+public:
 	enum Mode {
 		IDENTITY,
 		UPPER,
 		LOWER
 	};
 
+private:
 	Mode mode_;
 
 public:
