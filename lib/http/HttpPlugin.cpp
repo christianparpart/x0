@@ -34,13 +34,6 @@ HttpPlugin::HttpPlugin(HttpServer& srv, const std::string& name) :
   */
 HttpPlugin::~HttpPlugin()
 {
-	// clean up possible traces in server and vhost scopes
-	auto hostnames = server_.hostnames();
-	for (auto i = hostnames.begin(), e = hostnames.end(); i != e; ++i)
-		if (Scope *s = server_.resolveHost(*i))
-			s->release(this);
-
-	server_.release(this);
 }
 
 bool HttpPlugin::post_config()

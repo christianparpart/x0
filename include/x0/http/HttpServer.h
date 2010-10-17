@@ -17,7 +17,6 @@
 #include <x0/Library.h>
 #include <x0/Logger.h>
 #include <x0/Signal.h>
-#include <x0/Scope.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
 
@@ -51,7 +50,6 @@ struct HttpCore;
  * \see HttpServer::run(), HttpServer::stop()
  */
 class HttpServer :
-	public Scope,
 	public Flow::Backend
 {
 	HttpServer(const HttpServer&) = delete;
@@ -88,20 +86,6 @@ public:
 	RequestPostHook onPostProcess;		//!< gets invoked right before serializing headers
 	RequestPostHook onRequestDone;		//!< this hook is invoked once the request has been <b>fully</b> served to the client.
 	ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.
-	// }}}
-
-	// {{{ virtual-host management
-	Scope *createHost(const std::string& hostid);
-	Scope *createHostAlias(const std::string& master, const std::string& alias);
-	void removeHostAlias(const std::string& hostid);
-	void removeHost(const std::string& hostid);
-
-	Scope *resolveHost(const std::string& hostid) const;
-	std::list<Scope *> getHostsByPort(int port) const;
-
-	std::vector<std::string> hostnames() const; //!< retrieves a list of host names (w/o aliases)
-	std::vector<std::string> allHostnames() const; //!< retrieves a list of host names and their aliases
-	std::vector<std::string> hostnamesOf(const std::string& master) const; //!< retrieves all host names for a given virtual-host ID
 	// }}}
 
 	void addComponent(const std::string& value);
@@ -219,7 +203,6 @@ private:
 	void loop_check(ev::check& w, int revents);
 
 	std::vector<std::string> components_;
-	std::map<std::string, std::shared_ptr<Scope>> vhosts_;	//!< virtual host scopes
 
 	Flow::Runner *runner_;
 	bool (*onHandleRequest_)();
@@ -286,21 +269,6 @@ template<typename T>
 inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 {
 	return dynamic_cast<T *>(loadPlugin(name, ec));
-}
-
-/** retrieves scope of given virtual host or global scope if not found.
- *
- * \param hostid the virtual hosts id (hostname ':' port)
- *
- * \return the virtual hosts scope (if found) or global (server) scope if not found.
- */
-inline Scope *HttpServer::resolveHost(const std::string& hostid) const
-{
-	auto i = vhosts_.find(hostid);
-	if (i != vhosts_.end())
-		return i->second.get();
-
-	return const_cast<HttpServer *>(this);
 }
 
 inline Severity HttpServer::logLevel() const

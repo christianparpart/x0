@@ -16,12 +16,11 @@
  *     int cgi.ttl = 5;                ; max time in seconds a cgi may run until SIGTERM is issued (-1 for unlimited).
  *     int cgi.kill_ttl = 5            ; max time to wait from SIGTERM on before a SIGKILL is ussued (-1 for unlimited).
  *     int cgi.max_scripts = 20        ; max number of scripts to run in concurrently (-1 for unlimited)
- *     bool cgi.executable = true      ; runs this script if the executable bit is set.
- *     string cgi.prefix = "/cgi-bin/" ; directory prefix cgi scripts must reside inside (well known default: /cgi-bin/)
  *     hash cgi.mapping = {}           ; list of file-extension/program pairs for running several cgi scripts with.
  *
  * request processing API:
- *     handler cgi();
+ *     handler cgi.prefix(prefix => path) ; 
+ *     handler cgi.executable()           ; 
  *
  * notes:
  *     ttl/kill-ttl/max-scripts are not yet implemented!
@@ -196,12 +195,15 @@ inline void CgiScript::runAsync()
 	environment["GATEWAY_INTERFACE"] = "CGI/1.1";
 
 	environment["SERVER_PROTOCOL"] = "1.1"; // XXX or 1.0
-	environment["SERVER_ADDR"] = "localhost";
-	environment["SERVER_PORT"] = "8080";
+	environment["SERVER_ADDR"] = request_->connection.localIP();
+	environment["SERVER_PORT"] = boost::lexical_cast<std::string>(request_->connection.localPort()); // TODO this should to be itoa'd only ONCE
 
 	environment["REQUEST_METHOD"] = request_->method;
-	environment["PATH_INFO"] = request_->path;
-	environment["PATH_TRANSLATED"] = request_->fileinfo->filename();
+
+	environment["PATH_INFO"] = request_->pathinfo;
+	if (!request_->pathinfo.empty())
+		environment["PATH_TRANSLATED"] = request_->document_root + request_->pathinfo;
+
 	environment["SCRIPT_NAME"] = request_->path;
 	environment["QUERY_STRING"] = request_->query;			// unparsed uri
 	environment["REQUEST_URI"] = request_->uri;
@@ -429,34 +431,84 @@ public:
 		processExecutables_(false),
 		ttl_(0)
 	{
-		declareCVar("CgiPrefix", x0::HttpContext::server, &cgi_plugin::setPrefix);
-		declareCVar("CgiMappings", x0::HttpContext::server, &cgi_plugin::setMappings);
-		declareCVar("CgiExecutable", x0::HttpContext::server, &cgi_plugin::setExecutable);
+		registerSetupProperty<cgi_plugin, &cgi_plugin::ttl>("cgi.ttl", Flow::Value::NUMBER);
+		registerSetupFunction<cgi_plugin, &cgi_plugin::mapping>("cgi.mapping", Flow::Value::VOID);
 
-		registerSetupProperty<cgi_plugin, &cgi_plugin::ttl>("cgi.ttl", Flow::NUMBER);
+		registerHandler<cgi_plugin, &cgi_plugin::prefix>("cgi.prefix");
+		registerHandler<cgi_plugin, &cgi_plugin::exec>("cgi");
 	}
 
 	void ttl(Flow::Value& result, const x0::Params& args)
 	{
+		if (args.count() == 1 && args[0].isNumber())
+			ttl_ = args[0].toNumber();
 	}
 
-#if 0
-	std::error_code setPrefix(const x0::SettingsValue& cvar, x0::Scope& s)
+	// cgi.mapping(ext => bin, ext => bin, ...);
+	void mapping(Flow::Value& result, const x0::Params& args)
 	{
-		return cvar.load(prefix_);
+		for (size_t i = 0; i < args.count(); ++i)
+			addMapping(args[i]);
 	}
 
-	std::error_code setMappings(const x0::SettingsValue& cvar, x0::Scope& s)
+	void addMapping(const Flow::Value& mapping)
 	{
-		return cvar.load(interpreterMappings_);
+		if (!mapping.isArray())
+			return;
+
+		std::vector<const Flow::Value *> items;
+		for (const Flow::Value *item = mapping.toArray(); !item->isVoid(); ++item)
+			items.push_back(item);
+
+		if (items.size() != 2)
+		{
+			for (const Flow::Value *item = mapping.toArray(); !item->isVoid(); ++item)
+				addMapping(*item);
+		}
+		else if (items[0]->isString() && items[1]->isString())
+		{
+			interpreterMappings_[items[0]->toString()] = items[1]->toString();
+		}
 	}
 
-	std::error_code setExecutable(const x0::SettingsValue& cvar, x0::Scope& s)
+	// cgi.prefix(prefix => path)
+	bool prefix(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		return cvar.load(processExecutables_);
+		std::string path(in->fileinfo->filename());
+
+		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
+		if (!fi || fi->is_regular()) // not a (regular) file
+			return false;
+
+		if (!in->path.begins(args[0].toString()))
+			return false;
+
+		if (!fi->is_executable())
+			return false;
+
+		CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out);
+		return true;
 	}
 
-	static std::string tostring(const std::map<std::string, std::string>& map)
+	bool exec(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	{
+		std::string path(in->fileinfo->filename());
+
+		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
+		if (!fi || !fi->is_regular()) // not a (regular) file
+			return false;
+
+		std::string interpreter;
+		if (lookupInterpreter(in, interpreter))
+		{
+			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out, interpreter);
+			return true;
+		}
+
+		return false;
+	}
+
+	static std::string tostring(const std::map<std::string, std::string>& map) // {{{
 	{
 		std::string rv;
 
@@ -476,48 +528,7 @@ public:
 		rv += "}";
 
 		return rv;
-	}
-#endif
-private:
-	/** content generator handler for this CGI plugin.
-	 *
-	 * \param in the client request
-	 * \param out the outgoing server's response
-	 * \retval true this plugin handled this request. no further content generator handler needs to be traversed.
-	 * \retval false this plugin did not handle this request, it is adviced to traverse remaining content generator handlers.
-	 *
-	 * It first determines wether this request maps to an entity avilable as a regular file 
-	 * on the local storage filesystem.
-	 *
-	 * If an interpreter-mapping can be found, this request is directly passed to that interpreter,
-	 * otherwise, this entity is only to be executed if and only if the file is an executable
-	 * and either processing executables is globally allowed or request path is part
-	 * of the cgi prefix (usually /cgi-bin/).
-	 */
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args) {
-		std::string path(in->fileinfo->filename());
-
-		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
-		if (!fi || fi->is_regular()) // not a (regular) file
-			return false;
-
-		std::string interpreter;
-		if (lookupInterpreter(in, interpreter))
-		{
-			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out, interpreter);
-			return true;
-		}
-
-		if (fi->is_executable() && (processExecutables_ || matchesPrefix(in)))
-		{
-			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out);
-			return true;
-		}
-
-		// TODO: everything else, that matches the cgi prefix, should result into 403(?).
-
-		return false;
-	}
+	} // }}}
 
 private:
 	/** searches for an interpreter for this request.
@@ -546,18 +557,6 @@ private:
 				return true;
 			}
 		}
-		return false;
-	}
-
-	/** tests wether the request's path matches the cgi-bin prefix.
-	 * \retval true yes, it matches.
-	 * \retval false no, it doesn't match.
-	 */
-	bool matchesPrefix(x0::HttpRequest *in) const
-	{
-		if (in->path.begins(prefix_))
-			return true;
-
 		return false;
 	}
 };

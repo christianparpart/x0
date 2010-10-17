@@ -52,28 +52,6 @@
 class dirlisting_plugin :
 	public x0::HttpPlugin
 {
-private:
-	struct context : public x0::ScopeValue
-	{
-		boost::tribool enabled; // make it a tribool to introduce "undefined"?
-
-		context() :
-			enabled(boost::indeterminate)
-		{
-		}
-
-		virtual void merge(const x0::ScopeValue *value)
-		{
-			if (auto cx = dynamic_cast<const context *>(value))
-			{
-				if (enabled == boost::indeterminate)
-				{
-					enabled = cx->enabled;
-				}
-			}
-		}
-	};
-
 public:
 	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)

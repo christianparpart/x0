@@ -133,7 +133,7 @@ public:
 			port = 8080;
 
 		if (bind.empty())
-			bind = "0.0.0.0"; //"0::0";
+			bind = "0.0.0.0"; //TODO: "0::0";
 
 		std::string source(
 			"import 'compress';\n"
@@ -155,7 +155,6 @@ public:
 		gsub(source, "#{docroot}", documentRoot_);
 		gsub(source, "#{bind}", bind);
 		gsub(source, "#{port}", port);
-		std::cout << source << std::endl;
 
 		// initialize some default settings (fileinfo)
 		server_.fileinfo.load_mimetypes("/etc/mime.types");

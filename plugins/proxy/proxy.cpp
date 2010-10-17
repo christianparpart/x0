@@ -179,7 +179,7 @@ private:
 
 	ProxyContext *get_proxy(x0::HttpRequest *in)
 	{
-		return server_.resolveHost(in->hostid())->get<ProxyContext>(this);
+		return NULL; //FIXME server_.resolveHost(in->hostid())->get<ProxyContext>(this);
 	}
 
 public:

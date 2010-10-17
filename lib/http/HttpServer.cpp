@@ -62,7 +62,6 @@ void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
  * \see HttpServer::run()
  */
 HttpServer::HttpServer(struct ::ev_loop *loop) :
-	Scope("server"),
 	onConnectionOpen(),
 	onPreProcess(),
 	onResolveDocumentRoot(),
@@ -71,7 +70,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	onRequestDone(),
 	onConnectionClose(),
 	components_(),
-	vhosts_(),
 
 	runner_(NULL),
 	onHandleRequest_(),
@@ -100,13 +98,13 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	advertise(true),
 	fileinfo(loop_)
 {
-	HttpResponse::initialize();
+	runner_ = new Flow::Runner(this);
+	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
 
 	auto nowfn = std::bind(&DateTime::htlog_str, &now_);
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
 
-	runner_ = new Flow::Runner(this);
-	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
+	HttpResponse::initialize();
 
 	registerPlugin(core_ = new HttpCore(*this));
 
@@ -295,28 +293,6 @@ void HttpServer::handleRequest(HttpRequest *in, HttpResponse *out)
 	if (!onHandleRequest_())
 		out->finish();
 }
-
-HttpListener *HttpServer::listenerByHost(const std::string& hostid) const
-{
-	int port = extract_port_from_hostid(hostid);
-
-	return listenerByPort(port);
-}
-
-std::list<Scope *> HttpServer::getHostsByPort(int port) const
-{
-	std::list<Scope *> result;
-
-	auto names = hostnames();
-	for (auto i = names.begin(), e = names.end(); i != e; ++i)
-	{
-		if (extract_port_from_hostid(*i) == port)
-			result.push_back(resolveHost(*i));
-	}
-
-	return result;
-}
-
 
 /**
  * retrieves the listener object that is responsible for the given port number, or null otherwise.
@@ -561,106 +537,6 @@ HttpPlugin *HttpServer::unregisterPlugin(HttpPlugin *plugin)
 
 	return plugin;
 }
-
-// {{{ virtual host management
-class VirtualHost :
-	public ScopeValue
-{
-public:
-	std::string hostid;
-	std::vector<std::string> aliases;
-
-	VirtualHost() :
-		hostid(),
-		aliases()
-	{
-	}
-
-	virtual void merge(const ScopeValue *)
-	{
-	}
-};
-
-Scope *HttpServer::createHost(const std::string& hostid)
-{
-	auto i = vhosts_.find(hostid);
-	if (i != vhosts_.end())
-		return i->second.get(); // XXX trying to create a host that already exists.
-
-	vhosts_[hostid] = std::make_shared<Scope>(hostid);
-
-	VirtualHost *vhost = resolveHost(hostid)->acquire<VirtualHost>(this);
-	vhost->hostid = hostid;
-
-	return vhosts_[hostid].get();
-}
-
-Scope *HttpServer::createHostAlias(const std::string& master, const std::string& alias)
-{
-	auto m = vhosts_.find(master);
-	if (m == vhosts_.end())
-		return NULL; // master hostid not found
-
-	auto a = vhosts_.find(alias);
-	if (a != vhosts_.end())
-		return NULL; // alias hostid already defined
-
-	resolveHost(master)->acquire<VirtualHost>(this)->aliases.push_back(alias);
-	vhosts_[alias] = vhosts_[master];
-
-	return m->second.get();
-}
-
-void HttpServer::removeHost(const std::string& hostid)
-{
-	auto i = vhosts_.find(hostid);
-	if (i != vhosts_.end())
-		vhosts_.erase(i);
-}
-
-void HttpServer::removeHostAlias(const std::string& hostid)
-{
-	// XXX currently, this is the same.
-	removeHost(hostid);
-}
-
-std::vector<std::string> HttpServer::hostnames() const
-{
-	std::vector<std::string> result;
-
-	for (auto i = vhosts_.cbegin(), e = vhosts_.cend(); i != e; ++i)
-		if (i->first == i->second->get<VirtualHost>(this)->hostid)
-			result.push_back(i->first);
-
-	return result;
-}
-
-std::vector<std::string> HttpServer::allHostnames() const
-{
-	std::vector<std::string> result;
-
-	for (auto i = vhosts_.cbegin(), e = vhosts_.cend(); i != e; ++i)
-		result.push_back(i->first);
-
-	return result;
-}
-
-std::vector<std::string> HttpServer::hostnamesOf(const std::string& master) const
-{
-	std::vector<std::string> result;
-
-	const auto i = vhosts_.find(master);
-	if (i != vhosts_.end())
-	{
-		const VirtualHost *vhost = i->second->get<VirtualHost>(this);
-
-		result.push_back(vhost->hostid);
-		result.insert(result.end(), vhost->aliases.begin(), vhost->aliases.end());
-	}
-
-	return result;
-}
-// }}}
 
 void HttpServer::addComponent(const std::string& value)
 {
