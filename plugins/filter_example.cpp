@@ -20,13 +20,20 @@
 class ExampleFilter :
 	public x0::Filter
 {
-	bool mode_;
+	enum Mode {
+		IDENTITY,
+		UPPER,
+		LOWER
+	};
+
+	Mode mode_;
+
 public:
-	explicit ExampleFilter(int mode);
+	explicit ExampleFilter(Mode mode);
 	virtual x0::Buffer process(const x0::BufferRef& input);
 };
 
-ExampleFilter::ExampleFilter(int mode) : mode_(mode)
+ExampleFilter::ExampleFilter(Mode mode) : mode_(mode)
 {
 }
 
@@ -36,15 +43,15 @@ x0::Buffer ExampleFilter::process(const x0::BufferRef& input)
 
 	switch (mode_)
 	{
-		case 2: // return lower-case
+		case ExampleFilter::LOWER:
 			for (auto i = input.begin(), e = input.end(); i != e; ++i)
 				result.push_back(static_cast<char>(std::tolower(*i)));
 			break;
-		case 1: // return upper-case
+		case ExampleFilter::UPPER:
 			for (auto i = input.begin(), e = input.end(); i != e; ++i)
 				result.push_back(static_cast<char>(std::toupper(*i)));
 			break;
-		case 0: // return identity
+		case ExampleFilter::IDENTITY:
 		default:
 			result.push_back(input);
 	}
@@ -83,11 +90,11 @@ public:
 		}
 
 		if (strcmp(args[0].toString(), "identity") == 0)
-			out->filters.push_back(std::make_shared<ExampleFilter>(0));
+			out->filters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::IDENTITY));
 		else if (strcmp(args[0].toString(), "upper") == 0)
-			out->filters.push_back(std::make_shared<ExampleFilter>(1));
+			out->filters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::UPPER));
 		else if (strcmp(args[0].toString(), "lower") == 0)
-			out->filters.push_back(std::make_shared<ExampleFilter>(2));
+			out->filters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::LOWER));
 		else {
 			log(x0::Severity::error, "Invalid argument value passed.");
 			return;
