@@ -22,8 +22,8 @@
 
 #include <x0/sysconfig.h>
 
-#include <flow/backend.h>
-#include <flow/runner.h>
+#include <flow/Backend.h>
+#include <flow/Runner.h>
 
 #include <cstring>
 #include <string>
@@ -204,6 +204,7 @@ private:
 
 	std::vector<std::string> components_;
 
+	Flow::Unit *unit_;
 	Flow::Runner *runner_;
 	bool (*onHandleRequest_)();
 	HttpRequest *in_;

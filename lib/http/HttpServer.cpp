@@ -19,10 +19,10 @@
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
 
-#include <flow/flow.h>
-#include <flow/value.h>
-#include <flow/parser.h>
-#include <flow/runner.h>
+#include <flow/Flow.h>
+#include <flow/Value.h>
+#include <flow/Parser.h>
+#include <flow/Runner.h>
 
 #include <iostream>
 #include <cstdarg>
@@ -71,6 +71,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	onConnectionClose(),
 	components_(),
 
+	unit_(NULL),
 	runner_(NULL),
 	onHandleRequest_(),
 	in_(NULL),
@@ -131,6 +132,12 @@ HttpServer::~HttpServer()
 
 	while (!plugins_.empty())
 		unloadPlugin(plugins_[plugins_.size() - 1]->name());
+
+	delete runner_;
+	runner_ = NULL;
+
+	delete unit_;
+	unit_ = NULL;
 }
 
 bool HttpServer::setup(std::istream *settings)
@@ -142,25 +149,25 @@ bool HttpServer::setup(std::istream *settings)
 		return false;
 	}
 
-	Flow::Unit *unit = parser.parse();
-	if (!unit)
+	unit_ = parser.parse();
+	if (!unit_)
 		return false;
 
-	Flow::Function *setupFn = unit->lookup<Flow::Function>("setup");
+	Flow::Function *setupFn = unit_->lookup<Flow::Function>("setup");
 	if (!setupFn) {
 		log(Severity::error, "no setup handler defined in config file.\n");
 		return false;
 	}
 
 	// compile module
-	runner_->compile(unit);
+	runner_->compile(unit_);
 
 	// run setup
 	if (runner_->run(setupFn))
 		return false;
 
 	// grap the request handler
-	onHandleRequest_ = runner_->compile(unit->lookup<Flow::Function>("main"));
+	onHandleRequest_ = runner_->compile(unit_->lookup<Flow::Function>("main"));
 	if (!onHandleRequest_)
 		return false;
 

@@ -65,14 +65,16 @@ public:
 		nofork_(false),
 		doguard_(false),
 		dumpIR_(false),
-		server_(),
-		sigterm_(server_.loop()),
-		sighup_(server_.loop())
+		server_(new x0::HttpServer()),
+		sigterm_(server_->loop()),
+		sighup_(server_->loop())
 	{
+		Flow::Runner::initialize();
+
 #ifndef NDEBUG
 		nofork_ = true;
 		configfile_ = "../../../src/test.conf";
-		server_.logLevel(x0::Severity::debug5);
+		server_->logLevel(x0::Severity::debug5);
 #endif
 		instance_ = this;
 
@@ -85,7 +87,12 @@ public:
 
 	~x0d()
 	{
-		instance_ = 0;
+		delete server_;
+		server_ = NULL;
+
+		instance_ = NULL;
+
+		Flow::Runner::shutdown();
 	}
 
 	static x0d *instance()
@@ -157,16 +164,16 @@ public:
 		gsub(source, "#{port}", port);
 
 		// initialize some default settings (fileinfo)
-		server_.fileinfo.load_mimetypes("/etc/mime.types");
-		server_.fileinfo.default_mimetype("application/octet-stream");
-		server_.fileinfo.etag_consider_mtime(true);
-		server_.fileinfo.etag_consider_size(true);
-		server_.fileinfo.etag_consider_inode(false);
+		server_->fileinfo.load_mimetypes("/etc/mime.types");
+		server_->fileinfo.default_mimetype("application/octet-stream");
+		server_->fileinfo.etag_consider_mtime(true);
+		server_->fileinfo.etag_consider_size(true);
+		server_->fileinfo.etag_consider_inode(false);
 
-		server_.tcp_cork = true;
+		server_->tcp_cork = true;
 
 		std::istringstream s(source);
-		return server_.setup(&s);
+		return server_->setup(&s);
 	}
 
 	int run()
@@ -180,7 +187,7 @@ public:
 		else
 		{
 			std::ifstream ifs(configfile_);
-			rv = server_.setup(&ifs);
+			rv = server_->setup(&ifs);
 		}
 
 		if (!rv)
@@ -190,7 +197,7 @@ public:
 		}
 
 		if (dumpIR_)
-			server_.dumpIR();
+			server_->dumpIR();
 
 		if (!nofork_)
 			daemonize();
@@ -310,7 +317,7 @@ public:
 			return 1;
 		}
 
-		server_.run();
+		server_->run();
 
 		unlink(pidfile_.c_str());
 
@@ -480,7 +487,7 @@ private:
 
 		if (instance_)
 		{
-			instance_->server_.log(severity, "%s", buf);
+			instance_->server_->log(severity, "%s", buf);
 		}
 		else
 		{
@@ -494,7 +501,7 @@ private:
 
 		try
 		{
-			server_.reload();
+			server_->reload();
 		}
 		catch (std::exception& e)
 		{
@@ -508,7 +515,7 @@ private:
 
 		try
 		{
-			server_.stop();
+			server_->stop();
 		}
 		catch (std::exception& e)
 		{
@@ -530,7 +537,7 @@ private:
 	int nofork_;
 	int doguard_;
 	int dumpIR_;
-	x0::HttpServer server_;
+	x0::HttpServer *server_;
 	ev::sig sigterm_;
 	ev::sig sighup_;
 	static x0d *instance_;

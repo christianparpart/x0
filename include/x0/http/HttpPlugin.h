@@ -13,8 +13,8 @@
 #include <x0/Types.h>
 #include <x0/Defines.h>
 #include <x0/Api.h>
-#include <flow/flow.h>
-#include <flow/value.h>
+#include <flow/Flow.h>
+#include <flow/Value.h>
 
 #include <string>
 #include <vector>
