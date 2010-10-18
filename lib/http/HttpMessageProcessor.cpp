@@ -10,11 +10,15 @@
 
 namespace x0 {
 
-#if 1
-#	define TRACE(msg...)
-#else
+#if 0
 #	define TRACE(msg...) DEBUG("HttpMessageProcessor: " msg)
+#else
+#	define TRACE(msg...)
 #endif
+
+//! Support messages using LF-only as linefeed instead of CRLF,
+//! which is not HTTP conform.
+#define X0_HTTP_SUPPORT_SHORT_LF 1
 
 // {{{ const std::error_category& http_message_category() throw()
 class http_message_category_impl :
@@ -521,6 +525,19 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					++offset;
 					++i;
 				}
+#if defined(X0_HTTP_SUPPORT_SHORT_LF)
+				else if (*i == LF)
+				{
+					state_ = HEADER_NAME_BEGIN;
+					++offset;
+					++i;
+
+					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+							method_.str().c_str(), entity_.str().c_str(), version_major_, version_minor_);
+
+					messageBegin(std::move(method_), std::move(entity_), version_major_, version_minor_);
+				}
+#endif
 				else if (!std::isdigit(*i))
 					state_ = SYNTAX_ERROR;
 				else
@@ -541,7 +558,6 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 							method_.str().c_str(), entity_.str().c_str(), version_major_, version_minor_);
 
 					messageBegin(std::move(method_), std::move(entity_), version_major_, version_minor_);
-
 				}
 				else
 					state_ = SYNTAX_ERROR;
@@ -714,6 +730,34 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					++offset;
 					++i;
 				}
+#if defined(X0_HTTP_SUPPORT_SHORT_LF)
+				else if (*i == LF)
+				{
+					bool content_expected = 
+						content_length_ > 0 
+						|| content_chunked_
+						|| mode_ == MESSAGE;
+
+					if (content_expected)
+						state_ = CONTENT_BEGIN;
+					else
+						reset();
+
+					++offset;
+					++i;
+
+					ofp = offset_base + offset;
+
+					if (!messageHeaderEnd())
+						return make_error_code(HttpMessageError::aborted);
+
+					if (!content_expected)
+					{
+						if (!messageEnd())
+							return make_error_code(HttpMessageError::aborted);
+					}
+				}
+#endif
 				else
 					state_ = SYNTAX_ERROR;
 				break;
@@ -838,10 +882,17 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 				if (*i == CR)
 				{
 					state_ = LWS_LF;
-
 					++offset;
 					++i;
 				}
+#if defined(X0_HTTP_SUPPORT_SHORT_LF)
+				else if (*i == LF)
+				{
+					state_ = LWS_SP_HT_BEGIN;
+					++offset;
+					++i;
+				}
+#endif
 				else if (std::isprint(*i))
 				{
 					value_.shr();
