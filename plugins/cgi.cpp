@@ -50,7 +50,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 10 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("cgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -102,12 +102,13 @@ private:
 	virtual bool messageContent(x0::BufferRef&& content);
 
 	// CGI program's I/O callback handlers
-	void onTransmitRequestBody(ev::io& w, int revents);
-	void onResponseReceived(ev::io& w, int revents);
-	void onErrorReceived(ev::io& w, int revents);
+	void onStdinReady(ev::io& w, int revents);
+	void onStdinAvailable(x0::BufferRef&& chunk);
+	void onStdoutAvailable(ev::io& w, int revents);
+	void onStderrAvailable(ev::io& w, int revents);
 
 	// client's I/O completion handlers
-	void onResponseTransmitted(int ec, std::size_t nb);
+	void onStdoutWritten(int ec, std::size_t nb);
 
 	// child exit watcher
 	void onChild(ev::child&, int revents);
@@ -134,8 +135,14 @@ private:
 	ev::timer ttl_;
 
 	std::function<void()> done_;			//!< should call at least HttpResponse::finish()
-	x0::Buffer writeBuffer_;
-	bool writeActive_;
+
+	x0::Buffer stdinTransferBuffer_;
+	enum { StdinFinished, StdinActive, StdinWaiting } stdinTransferMode_;
+	size_t stdinTransferOffset_;
+
+	x0::Buffer stdoutTransferBuffer_;
+	bool stdoutTransferActive_;
+
 	bool destroyPending_;
 };
 
@@ -154,11 +161,18 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0:
 	errwatch_(loop_),
 	ttl_(loop_),
 	done_(done),
-	writeBuffer_(),
-	writeActive_(false),
+	stdinTransferBuffer_(),
+	stdinTransferMode_(StdinFinished),
+	stdinTransferOffset_(0),
+	stdoutTransferBuffer_(),
+	stdoutTransferActive_(false),
 	destroyPending_(false)
 {
 	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
+
+	inwatch_.set<CgiScript, &CgiScript::onStdinReady>(this);
+	outwatch_.set<CgiScript, &CgiScript::onStdoutAvailable>(this);
+	errwatch_.set<CgiScript, &CgiScript::onStderrAvailable>(this);
 }
 
 CgiScript::~CgiScript()
@@ -260,18 +274,15 @@ inline void CgiScript::runAsync()
 	//environment["REMOTE_USER"] = "";
 	//environment["REMOTE_IDENT"] = "";
 
-//	if (request_->body.empty())
+	if (request_->content_available())
 	{
-		//process_.closeInput();
-	}
-/*	else
-	{
-		environment["CONTENT_TYPE"] = request_->header("Content-Type");
-		environment["CONTENT_LENGTH"] = request_->header("Content-Length");
+		environment["CONTENT_TYPE"] = request_->header("Content-Type").str();
+		environment["CONTENT_LENGTH"] = request_->header("Content-Length").str();
 
-		inwatch_.set<CgiScript, &CgiScript::onTransmitRequestBody>(this);
-		inwatch_.start(process_.input(), ev::WRITE);
-	} */
+		request_->read(std::bind(&CgiScript::onStdinAvailable, this, std::placeholders::_1));
+	}
+	else
+		process_.closeInput();
 
 #if defined(WITH_SSL)
 	if (request_->connection.isSecure())
@@ -308,14 +319,11 @@ inline void CgiScript::runAsync()
 	_loadenv_if("LD_LIBRARY_PATH", environment);
 	// }}}
 
-	for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
-		TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
+	//for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
+	//	TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
 
 	// redirect process_'s stdout/stderr to own member functions to handle its response
-	outwatch_.set<CgiScript, &CgiScript::onResponseReceived>(this);
 	outwatch_.start(process_.output(), ev::READ);
-
-	errwatch_.set<CgiScript, &CgiScript::onErrorReceived>(this);
 	errwatch_.start(process_.output(), ev::READ);
 
 	// actually start child process
@@ -326,18 +334,86 @@ inline void CgiScript::runAsync()
 	child_watcher_.start();
 }
 
-/** feeds the HTTP request into the CGI's stdin pipe. */
-void CgiScript::onTransmitRequestBody(ev::io& /*w*/, int revents)
+/** writes request body chunk into stdin.
+ * ready to read from request body (already available as \p chunk).
+ */
+void CgiScript::onStdinAvailable(x0::BufferRef&& chunk)
 {
-	TRACE("CgiScript::onTransmitRequestBody(%d)", revents);
-	// process_.closeInput();
+	TRACE("CgiScript.onStdinAvailable(chunksize=%ld)", chunk.size());
+
+	// append chunk to transfer buffer
+	stdinTransferBuffer_.push_back(chunk);
+
+	// poll for more chunks if available
+	if (request_->connection.contentLength() > 0)
+		request_->read(std::bind(&CgiScript::onStdinAvailable, this, std::placeholders::_1));
+
+	// watch for stdin readiness to start/resume transfer
+	if (stdinTransferMode_ != StdinActive)
+	{
+		inwatch_.start(process_.input(), ev::WRITE);
+		stdinTransferMode_ = StdinActive;
+	}
+}
+
+/** callback invoked when childs stdin is ready to receive.
+ * ready to write into stdin.
+ */
+void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
+{
+	TRACE("CgiScript::onStdinReady(%d)", revents);
+
+	if (stdinTransferBuffer_.size() != 0)
+	{
+		ssize_t rv = ::write(process_.input(),
+				stdinTransferBuffer_.data() + stdinTransferOffset_,
+				stdinTransferBuffer_.size() - stdinTransferOffset_);
+
+		if (rv < 0)
+		{
+			// error
+			TRACE("- stdin write error: %s\n", strerror(errno));
+		}
+		else if (rv == 0)
+		{
+			// stdin closed by cgi process
+			TRACE("- stdin closed by cgi proc\n");
+		}
+		else
+		{
+			TRACE("- wrote %ld/%ld bytes\n", rv, stdinTransferBuffer_.size() - stdinTransferOffset_);
+			stdinTransferOffset_ += rv;
+
+			if (stdinTransferOffset_ == stdinTransferBuffer_.size())
+			{
+				// buffer fully flushed
+				TRACE("-- buffer fully flushed. idle");
+				stdinTransferOffset_ = 0;
+				stdinTransferBuffer_.clear();
+				stdinTransferMode_ = StdinFinished;
+				inwatch_.stop();
+				process_.closeInput();
+			}
+			else
+			{
+				// partial write, continue soon
+				TRACE("-- continue write on data");
+			}
+		}
+	}
+	else // no more data to transfer
+	{
+		stdinTransferMode_ = StdinFinished;
+		inwatch_.stop();
+		process_.closeInput();
+	}
 }
 
 /** consumes the CGI's HTTP response and passes it to the client.
  *
  *  includes validation and possible post-modification
  */
-void CgiScript::onResponseReceived(ev::io& w, int revents)
+void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 {
 	std::size_t lower_bound = outbuf_.size();
 
@@ -348,14 +424,14 @@ void CgiScript::onResponseReceived(ev::io& w, int revents)
 
 	if (rv > 0)
 	{
-		TRACE("CgiScript.onResponseReceived(): read %d bytes", rv);
+		TRACE("CgiScript.onStdoutAvailable(): read %d bytes", rv);
 
 		outbuf_.resize(lower_bound + rv);
 		//printf("%s\n", outbuf_.ref(outbuf_.size() - rv, rv).str().c_str());
 
 		std::size_t np = 0;
 		std::error_code ec = process(outbuf_.ref(lower_bound, rv), np);
-		TRACE("onResponseReceived@process: %s; %ld", ec.message().c_str(), np);
+		TRACE("onStdoutAvailable@process: %s; %ld", ec.message().c_str(), np);
 
 		serial_++;
 	}
@@ -385,9 +461,9 @@ void CgiScript::onResponseReceived(ev::io& w, int revents)
 }
 
 /** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
-void CgiScript::onErrorReceived(ev::io& /*w*/, int revents)
+void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 {
-	TRACE("CgiScript::onErrorReceived()");
+	TRACE("CgiScript::onStderrAvailable()");
 
 	int rv = ::read(process_.error(), (char *)errbuf_.data(), errbuf_.capacity());
 
@@ -400,7 +476,7 @@ void CgiScript::onErrorReceived(ev::io& /*w*/, int revents)
 		TRACE("CGI: stderr closed");
 		errwatch_.stop();
 	} else {
-		TRACE("onErrorReceived (rv=%d) %s", rv, strerror(errno));
+		TRACE("onStderrAvailable (rv=%d) %s", rv, strerror(errno));
 	}
 }
 
@@ -425,15 +501,15 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 {
 	TRACE("messageContent(length=%ld) (%s)", value.size(), value.str().c_str());
 
-	if (writeActive_)
-		writeBuffer_.push_back(value);
+	if (stdoutTransferActive_)
+		stdoutTransferBuffer_.push_back(value);
 	else
 	{
-		writeActive_ = true;
+		stdoutTransferActive_ = true;
 		outwatch_.stop();
 		response_->write(
 			std::make_shared<x0::BufferSource>(value),
-			std::bind(&CgiScript::onResponseTransmitted, this, std::placeholders::_1, std::placeholders::_2)
+			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
 		);
 	}
 
@@ -442,25 +518,25 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 
 /** completion handler for the response content stream.
  */
-void CgiScript::onResponseTransmitted(int ec, std::size_t nb)
+void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 {
-	TRACE("CgiScript.onResponseTransmitted(ec:%d, nb=%ld)", ec, nb);
+	TRACE("CgiScript.onStdoutWritten(ec:%d, nb=%ld)", ec, nb);
 
-	writeActive_ = false;
+	stdoutTransferActive_ = false;
 
 	if (ec)
 	{
-		TRACE("onResponseTransmitted: client error: %s", strerror(errno));
+		TRACE("onStdoutWritten: client error: %s", strerror(errno));
 
 		// kill cgi script as client disconnected.
 		process_.terminate();
 	}
-	else if (writeBuffer_.size() > 0)
+	else if (stdoutTransferBuffer_.size() > 0)
 	{
-		TRACE("flushing writeBuffer (%ld)", writeBuffer_.size());
+		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
 		response_->write(
-			std::make_shared<x0::BufferSource>(std::move(writeBuffer_)),
-			std::bind(&CgiScript::onResponseTransmitted, this, std::placeholders::_1, std::placeholders::_2)
+			std::make_shared<x0::BufferSource>(std::move(stdoutTransferBuffer_)),
+			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
 		);
 	}
 	else if (!checkDestroy())
