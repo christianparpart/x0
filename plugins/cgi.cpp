@@ -19,8 +19,9 @@
  *     hash cgi.mapping = {}           ; list of file-extension/program pairs for running several cgi scripts with.
  *
  * request processing API:
- *     handler cgi.prefix(prefix => path) ; 
- *     handler cgi.executable()           ; 
+ *     handler cgi.prefix(prefix => path) ; processes prefix-mapped executables as CGI (well known ScriptAlias)
+ *     handler cgi.exec()                 ; processes executable files as CGI (apache-style: ExecCGI-option)
+ *     handler cgi.map()                  ; processes cgi mappings
  *
  * notes:
  *     ttl/kill-ttl/max-scripts are not yet implemented!
@@ -97,8 +98,8 @@ public:
 
 private:
 	// CGI program's response message processor hooks
-	virtual void messageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
-	virtual bool messageContent(const x0::BufferRef& content);
+	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
+	virtual bool messageContent(x0::BufferRef&& content);
 
 	// CGI program's I/O callback handlers
 	void onTransmitRequestBody(ev::io& w, int revents);
@@ -146,12 +147,12 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0:
 	done_(done),
 	destroy_pending_(false)
 {
-	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")\n", request_->path.str().c_str(), hostprogram_.c_str());
+	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 }
 
 CgiScript::~CgiScript()
 {
-	TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")\n", request_->path.str().c_str(), hostprogram_.c_str());
+	TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 	done_();
 }
 
@@ -191,22 +192,22 @@ inline void CgiScript::runAsync()
 	x0::Process::Environment environment;
 
 	environment["SERVER_SOFTWARE"] = PACKAGE_NAME "/" PACKAGE_VERSION;
-	environment["SERVER_NAME"] = request_->header("Host");
+	environment["SERVER_NAME"] = request_->header("Host").str();
 	environment["GATEWAY_INTERFACE"] = "CGI/1.1";
 
 	environment["SERVER_PROTOCOL"] = "1.1"; // XXX or 1.0
 	environment["SERVER_ADDR"] = request_->connection.localIP();
 	environment["SERVER_PORT"] = boost::lexical_cast<std::string>(request_->connection.localPort()); // TODO this should to be itoa'd only ONCE
 
-	environment["REQUEST_METHOD"] = request_->method;
+	environment["REQUEST_METHOD"] = request_->method.str();
 
 	environment["PATH_INFO"] = request_->pathinfo;
 	if (!request_->pathinfo.empty())
 		environment["PATH_TRANSLATED"] = request_->document_root + request_->pathinfo;
 
-	environment["SCRIPT_NAME"] = request_->path;
-	environment["QUERY_STRING"] = request_->query;			// unparsed uri
-	environment["REQUEST_URI"] = request_->uri;
+	environment["SCRIPT_NAME"] = request_->path.str();
+	environment["QUERY_STRING"] = request_->query.str(); // unparsed uri
+	environment["REQUEST_URI"] = request_->uri.str();
 
 	//environment["REMOTE_HOST"] = "";  // optional
 	environment["REMOTE_ADDR"] = request_->connection.remoteIP();
@@ -218,8 +219,7 @@ inline void CgiScript::runAsync()
 
 //	if (request_->body.empty())
 	{
-		environment["CONTENT_LENGTH"] = "0";
-		::close(process_.input());
+		process_.closeInput();
 	}
 /*	else
 	{
@@ -265,6 +265,9 @@ inline void CgiScript::runAsync()
 	_loadenv_if("LD_LIBRARY_PATH", environment);
 	// }}}
 
+	//for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
+	//	TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
+
 	// redirect process_'s stdout/stderr to own member functions to handle its response
 	outwatch_.set<CgiScript, &CgiScript::onResponseReceived>(this);
 	outwatch_.start(process_.output(), ev::READ);
@@ -279,8 +282,8 @@ inline void CgiScript::runAsync()
 /** feeds the HTTP request into the CGI's stdin pipe. */
 void CgiScript::onTransmitRequestBody(ev::io& /*w*/, int revents)
 {
-	TRACE("CgiScript::transmitted_request(%s, %ld/%ld)\n", ec.message().c_str(), bytes_transferred, request_->body.size());
-	//::close(process_.input());
+	TRACE("CgiScript::onTransmitRequestBody(%d)", revents);
+	// process_.closeInput();
 }
 
 /** consumes the CGI's HTTP response header and body, validates and possibly modifies it, and then passes it to the actual client. */
@@ -295,19 +298,20 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 
 	if (rv > 0)
 	{
-		TRACE("CgiScript.onResponseReceived(): read %d bytes\n", rv);
+		TRACE("CgiScript.onResponseReceived(): read %d bytes", rv);
 
 		outbuf_.resize(lower_bound + rv);
+		//printf("%s\n", outbuf_.ref(outbuf_.size() - rv, rv).str().c_str());
 
 		std::size_t np = 0;
 		std::error_code ec = process(outbuf_.ref(lower_bound, rv), np);
-		TRACE("onResponseReceived@process: %s", ec.message().c_str());
+		TRACE("onResponseReceived@process: %s; %ld", ec.message().c_str(), np);
 
 		serial_++;
 	}
 	else if (rv == 0)
 	{
-		TRACE("CGI: closing stdout\n");
+		TRACE("CGI: stdout closed");
 		outwatch_.stop();
 		delete this;
 	}
@@ -315,7 +319,7 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 	{
 		if (rv != EINTR && rv != EAGAIN)
 		{
-			TRACE("CGI: stdout: %s\n", strerror(errno));
+			TRACE("CGI: stdout: %s", strerror(errno));
 			outwatch_.stop();
 
 			if (!serial_)
@@ -331,26 +335,26 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 /** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
 void CgiScript::onErrorReceived(ev::io& /*w*/, int revents)
 {
-	TRACE("CgiScript::onErrorReceived()\n");
+	TRACE("CgiScript::onErrorReceived()");
 
 	int rv = ::read(process_.error(), (char *)errbuf_.data(), errbuf_.capacity());
 
 	if (rv > 0)
 	{
-		TRACE("read %d bytes: %s\n", rv, errbuf_.data());
+		TRACE("read %d bytes: %s", rv, errbuf_.data());
 		errbuf_.resize(rv);
 		request_->connection.server().log(x0::Severity::error, "CGI script error: %s", errbuf_.str().c_str());
 	} else if (rv == 0) {
-		TRACE("CGI: closing stderr\n");
+		TRACE("CGI: stderr closed");
 		errwatch_.stop();
 	} else {
-		TRACE("onErrorReceived (rv=%d) %s\n", rv, strerror(errno));
+		TRACE("onErrorReceived (rv=%d) %s", rv, strerror(errno));
 	}
 }
 
-void CgiScript::messageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
+void CgiScript::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 {
-	TRACE("messageHeader(\"%s\", \"%s\")\n", name.str().c_str(), value.str().c_str());
+	TRACE("messageHeader(\"%s\", \"%s\")", name.str().c_str(), value.str().c_str());
 
 	if (name == "Status")
 	{
@@ -365,9 +369,9 @@ void CgiScript::messageHeader(const x0::BufferRef& name, const x0::BufferRef& va
 	}
 }
 
-bool CgiScript::messageContent(const x0::BufferRef& value)
+bool CgiScript::messageContent(x0::BufferRef&& value)
 {
-	TRACE("messageContent(length=%ld) (%s)\n", value.size(), value.str().c_str());
+	TRACE("messageContent(length=%ld) (%s)", value.size(), value.str().c_str());
 
 	outwatch_.stop();
 
@@ -385,7 +389,7 @@ void CgiScript::onResponseTransmitted(int ec, std::size_t nb)
 {
 	if (ec)
 	{
-		TRACE("onResponseTransmitted: client error: %s\n", strerror(errno));
+		TRACE("onResponseTransmitted: client error: %s", strerror(errno));
 
 		// kill cgi script as client disconnected.
 		process_.terminate();
@@ -393,7 +397,7 @@ void CgiScript::onResponseTransmitted(int ec, std::size_t nb)
 
 	if (destroy_pending_)
 	{
-		TRACE("destroy pending!\n");
+		TRACE("destroy pending!");
 		delete this;
 	}
 	else
@@ -411,14 +415,8 @@ class cgi_plugin :
 	public x0::HttpPlugin
 {
 private:
-	/** usually /cgi-bin/, a prefix inwhich everything is expected to be a cgi script. */
-	std::string prefix_;
-
 	/** a set of extension-to-interpreter mappings. */
 	std::map<std::string, std::string> interpreterMappings_;
-
-	/** true, if allowed to run any entity marked as executable (x-bit set). */
-	bool processExecutables_;
 
 	/** time-to-live in seconds a CGI script may run at most. */
 	int ttl_;
@@ -426,26 +424,27 @@ private:
 public:
 	cgi_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name),
-		prefix_("/cgi-bin/"),
 		interpreterMappings_(),
-		processExecutables_(false),
 		ttl_(0)
 	{
-		registerSetupProperty<cgi_plugin, &cgi_plugin::ttl>("cgi.ttl", Flow::Value::NUMBER);
-		registerSetupFunction<cgi_plugin, &cgi_plugin::mapping>("cgi.mapping", Flow::Value::VOID);
+		registerSetupProperty<cgi_plugin, &cgi_plugin::set_ttl>("cgi.ttl", Flow::Value::NUMBER);
+		registerSetupFunction<cgi_plugin, &cgi_plugin::set_mapping>("cgi.mapping", Flow::Value::VOID);
 
 		registerHandler<cgi_plugin, &cgi_plugin::prefix>("cgi.prefix");
-		registerHandler<cgi_plugin, &cgi_plugin::exec>("cgi");
+		registerHandler<cgi_plugin, &cgi_plugin::exec>("cgi.exec");
+		registerHandler<cgi_plugin, &cgi_plugin::map>("cgi.map");
 	}
 
-	void ttl(Flow::Value& result, const x0::Params& args)
+private:
+	// {{{ setup functions
+	void set_ttl(Flow::Value& result, const x0::Params& args)
 	{
 		if (args.count() == 1 && args[0].isNumber())
 			ttl_ = args[0].toNumber();
 	}
 
 	// cgi.mapping(ext => bin, ext => bin, ...);
-	void mapping(Flow::Value& result, const x0::Params& args)
+	void set_mapping(Flow::Value& result, const x0::Params& args)
 	{
 		for (size_t i = 0; i < args.count(); ++i)
 			addMapping(args[i]);
@@ -470,67 +469,73 @@ public:
 			interpreterMappings_[items[0]->toString()] = items[1]->toString();
 		}
 	}
+	// }}}
 
+	// {{{ request handler
 	// cgi.prefix(prefix => path)
 	bool prefix(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		std::string path(in->fileinfo->filename());
+		const char *prefix = args[0][0].toString();
+		const char *path = args[0][1].toString();
 
-		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
-		if (!fi || fi->is_regular()) // not a (regular) file
+		if (!in->path.begins(prefix))
 			return false;
 
-		if (!in->path.begins(args[0].toString()))
-			return false;
+		// rule: "/cgi-bin/" => "/var/www/localhost/cgi-bin/"
+		// appl: "/cgi-bin/special/test.cgi" => "/var/www/localhost/cgi-bin/" "special/test.cgi"
+		x0::Buffer phys;
+		phys.push_back(path);
+		phys.push_back(in->path.ref(strlen(prefix)));
 
-		if (!fi->is_executable())
-			return false;
-
-		CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out);
-		return true;
+		x0::FileInfoPtr fi = in->connection.server().fileinfo(phys.c_str());
+		if (fi && fi->is_regular() && fi->is_executable())
+		{
+			in->fileinfo = fi;
+			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out);
+			return true;
+		}
+		return false;
 	}
 
+	// handler cgi.exec();
 	bool exec(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		std::string path(in->fileinfo->filename());
 
 		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
-		if (!fi || !fi->is_regular()) // not a (regular) file
-			return false;
 
-		std::string interpreter;
-		if (lookupInterpreter(in, interpreter))
+		if (fi && fi->is_regular() && fi->is_executable())
 		{
-			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out, interpreter);
+			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out);
 			return true;
 		}
 
-		return false;
+		return true;
 	}
 
-	static std::string tostring(const std::map<std::string, std::string>& map) // {{{
+	// handler cgi.map();
+	bool map(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
-		std::string rv;
+		std::string path(in->fileinfo->filename());
+		debug(0, "cgi.map: '%s'", path.c_str());
 
-		rv = "{";
+		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
+		if (!fi)
+			return false;
+		
+		if (!fi->is_regular())
+			return false;
 
-		for (auto i = map.begin(), e = map.end(); i != e; ++i)
-		{
-			if (i != map.begin())
-				rv += "; ";
+		std::string interpreter;
+		if (!lookupInterpreter(in, interpreter))
+			return false;
 
-			rv += "(";
-			rv += i->first;
-			rv += ",";
-			rv += i->second;
-			rv += ")";
-		}
-		rv += "}";
+		debug(0, "runAsync...");
+		CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out, interpreter);
+		return true;
+	}
+	// }}}
 
-		return rv;
-	} // }}}
-
-private:
 	/** searches for an interpreter for this request.
 	 *
 	 * \param in the incoming request we search an interpreter executable for.
@@ -545,15 +550,18 @@ private:
 	bool lookupInterpreter(x0::HttpRequest *in, std::string& interpreter)
 	{
 		std::string::size_type rpos = in->fileinfo->filename().rfind('.');
+		debug(0, "lookupInterpreter: rpos:%d", rpos);
 
 		if (rpos != std::string::npos)
 		{
 			std::string ext(in->fileinfo->filename().substr(rpos));
+			debug(0, "lookupInterpreter: ext:%s", ext.c_str());
 			auto i = interpreterMappings_.find(ext);
 
 			if (i != interpreterMappings_.end())
 			{
 				interpreter = i->second;
+				debug(0, "lookupInterpreter: i:%s", interpreter.c_str());
 				return true;
 			}
 		}
