@@ -50,7 +50,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 10 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("cgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -109,8 +109,14 @@ private:
 	// client's I/O completion handlers
 	void onResponseTransmitted(int ec, std::size_t nb);
 
+	// child exit watcher
+	void onChild(ev::child&, int revents);
+
+	bool checkDestroy();
+
 private:
 	struct ev_loop *loop_;
+	ev::child child_watcher_;		//!< watcher for child-exit event
 
 	x0::HttpRequest *request_;
 	x0::HttpResponse *response_;
@@ -128,12 +134,15 @@ private:
 	ev::timer ttl_;
 
 	std::function<void()> done_;			//!< should call at least HttpResponse::finish()
-	bool destroy_pending_;
+	x0::Buffer writeBuffer_;
+	bool writeActive_;
+	bool destroyPending_;
 };
 
 CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
 	loop_(in->connection.server().loop()),
+	child_watcher_(loop_),
 	request_(in),
 	response_(out),
 	hostprogram_(hostprogram),
@@ -145,7 +154,9 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0:
 	errwatch_(loop_),
 	ttl_(loop_),
 	done_(done),
-	destroy_pending_(false)
+	writeBuffer_(),
+	writeActive_(false),
+	destroyPending_(false)
 {
 	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 }
@@ -154,6 +165,38 @@ CgiScript::~CgiScript()
 {
 	TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 	done_();
+}
+
+void CgiScript::onChild(ev::child&, int revents)
+{
+	printf("onChild(0x%x)\n", revents);
+	checkDestroy();
+}
+
+/** conditionally destructs this object.
+ *
+ * The object gets only destroyed if all conditions meet:
+ * <ul>
+ *   <li>process must be exited</li>
+ *   <li>stdout pipe must be disconnected</li>
+ * </ul>
+ *
+ * \retval true object destroyed.
+ * \retval false object not destroyed.
+ */
+bool CgiScript::checkDestroy()
+{
+	// child still running?
+	if (!process_.expired())
+		return false;
+	
+	// child's stdout still open?
+	if (!destroyPending_)
+		return false;
+
+	TRACE("checkDestroy: true!");
+	delete this;
+	return true;
 }
 
 void CgiScript::runAsync(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram)
@@ -277,6 +320,10 @@ inline void CgiScript::runAsync()
 
 	// actually start child process
 	process_.start(hostprogram, params, environment, workdir);
+
+	child_watcher_.set<CgiScript, &CgiScript::onChild>(this);
+	child_watcher_.set(process_.id(), false);
+	child_watcher_.start();
 }
 
 /** feeds the HTTP request into the CGI's stdin pipe. */
@@ -286,8 +333,11 @@ void CgiScript::onTransmitRequestBody(ev::io& /*w*/, int revents)
 	// process_.closeInput();
 }
 
-/** consumes the CGI's HTTP response header and body, validates and possibly modifies it, and then passes it to the actual client. */
-void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
+/** consumes the CGI's HTTP response and passes it to the client.
+ *
+ *  includes validation and possible post-modification
+ */
+void CgiScript::onResponseReceived(ev::io& w, int revents)
 {
 	std::size_t lower_bound = outbuf_.size();
 
@@ -309,13 +359,7 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 
 		serial_++;
 	}
-	else if (rv == 0)
-	{
-		TRACE("CGI: stdout closed");
-		outwatch_.stop();
-		//delete this;
-	}
-	else // if (rv < 0)
+	else if (rv < 0)
 	{
 		if (rv != EINTR && rv != EAGAIN)
 		{
@@ -327,8 +371,16 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 				response_->status = x0::HttpError::InternalServerError;
 				request_->connection.server().log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
-			//delete this;
+			destroyPending_ = true;
 		}
+	}
+	else // if (rv == 0)
+	{
+		TRACE("CGI: stdout closed");
+		outwatch_.stop();
+		destroyPending_ = true;
+
+		checkDestroy();
 	}
 }
 
@@ -373,12 +425,17 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 {
 	TRACE("messageContent(length=%ld) (%s)", value.size(), value.str().c_str());
 
-	outwatch_.stop();
-
-	response_->write(
-		std::make_shared<x0::BufferSource>(value),
-		std::bind(&CgiScript::onResponseTransmitted, this, std::placeholders::_1, std::placeholders::_2)
-	);
+	if (writeActive_)
+		writeBuffer_.push_back(value);
+	else
+	{
+		writeActive_ = true;
+		outwatch_.stop();
+		response_->write(
+			std::make_shared<x0::BufferSource>(value),
+			std::bind(&CgiScript::onResponseTransmitted, this, std::placeholders::_1, std::placeholders::_2)
+		);
+	}
 
 	return false;
 }
@@ -387,6 +444,10 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
  */
 void CgiScript::onResponseTransmitted(int ec, std::size_t nb)
 {
+	TRACE("CgiScript.onResponseTransmitted(ec:%d, nb=%ld)", ec, nb);
+
+	writeActive_ = false;
+
 	if (ec)
 	{
 		TRACE("onResponseTransmitted: client error: %s", strerror(errno));
@@ -394,14 +455,17 @@ void CgiScript::onResponseTransmitted(int ec, std::size_t nb)
 		// kill cgi script as client disconnected.
 		process_.terminate();
 	}
-
-	if (destroy_pending_)
+	else if (writeBuffer_.size() > 0)
 	{
-		TRACE("destroy pending!");
-		//delete this;
+		TRACE("flushing writeBuffer (%ld)", writeBuffer_.size());
+		response_->write(
+			std::make_shared<x0::BufferSource>(std::move(writeBuffer_)),
+			std::bind(&CgiScript::onResponseTransmitted, this, std::placeholders::_1, std::placeholders::_2)
+		);
 	}
-	else
+	else if (!checkDestroy())
 	{
+		TRACE("stdout: watch");
 		outwatch_.start();
 	}
 }

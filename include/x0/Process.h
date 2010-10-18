@@ -66,6 +66,8 @@ public:
 
 	~Process();
 
+	int id() const;
+
 	/** socket handle to the STDIN of the child. */
 	int input();
 	void closeInput();
@@ -113,11 +115,8 @@ private:
 	/** fetches the process status, see system's waitpid() for more info. */
 	int fetchStatus();
 
-	void onChild(ev::child&, int revents);
-
 private:
 	struct ev_loop *loop_;
-	ev::child child_watcher_;	//!< watcher for child-exit event
 	LocalStream input_;			//!< redirected stdin stream
 	LocalStream output_;		//!< redirected stdout stream
 	LocalStream error_;			//!< redirected stderr stream
@@ -126,6 +125,11 @@ private:
 };
 
 // {{{ inlines
+inline int Process::id() const
+{
+	return pid_;
+}
+
 inline int Process::input()
 {
 	return input_.local();

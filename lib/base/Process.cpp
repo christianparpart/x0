@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 namespace x0 {
 
@@ -24,7 +25,6 @@ namespace x0 {
 
 Process::Process(struct ev_loop *loop) :
 	loop_(loop),
-	child_watcher_(loop_),
 	input_(),
 	output_(),
 	error_(),
@@ -54,13 +54,17 @@ Process::~Process()
 int Process::start(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir)
 {
 	//::fprintf(stderr, "proc[%d] start(exe=%s, args=[...], workdir=%s)\n", getpid(), exe.c_str(), workdir.c_str());
+	for (int i = 3; i < 32; ++i)
+		if (!(fcntl(i, F_GETFD) & FD_CLOEXEC))
+			printf("%d still open\n", i);
+
 	switch (pid_ = fork())
 	{
+		case -1: // error
+			return -1;
 		case 0: // child
 			setupChild(exe, args, env, workdir);
 			break;
-		case -1: // error
-			return -1;
 		default: // parent
 			setupParent();
 			break;
@@ -106,19 +110,10 @@ int Process::fetchStatus()
 
 void Process::setupParent()
 {
-	child_watcher_.set<Process, &Process::onChild>(this);
-	child_watcher_.set(pid_);
-	child_watcher_.start();
-
 	// setup I/O
 	input_.closeRemote();
 	output_.closeRemote();
 	error_.closeRemote();
-}
-
-void Process::onChild(ev::child&, int revents)
-{
-	printf("onChild(%d)\n", revents);
 }
 
 void Process::setupChild(const std::string& _exe, const ArgumentList& _args, const Environment& _env, const std::string& _workdir)
@@ -169,6 +164,11 @@ void Process::setupChild(const std::string& _exe, const ArgumentList& _args, con
 	EINTR_LOOP(rv, ::dup2(input_.remote(), STDIN_FILENO));
 	EINTR_LOOP(rv, ::dup2(output_.remote(), STDOUT_FILENO));
 	EINTR_LOOP(rv, ::dup2(error_.remote(), STDERR_FILENO));
+
+#if 0 // this is basically working but a very bad idea for high performance (XXX better get O_CLOEXEC working)
+	for (int i = 3; i < 1024; ++i)
+		::close(i);
+#endif
 
 //	input_.close();
 //	output_.close();
