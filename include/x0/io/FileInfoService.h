@@ -122,7 +122,7 @@ inline FileInfoPtr FileInfoService::query(const std::string& _filename)
 		fi->etag_ = make_etag(*fi);
 
 #if defined(HAVE_SYS_INOTIFY_H)
-		int rv = ::inotify_add_watch(handle_, filename.c_str(),
+		int rv = handle_ != -1 && ::inotify_add_watch(handle_, filename.c_str(),
 				IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
 				IN_DELETE | IN_CLOSE_WRITE | IN_MOVE_SELF | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE);;
 
