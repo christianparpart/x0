@@ -50,7 +50,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 10 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("cgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -219,7 +219,7 @@ inline void CgiScript::runAsync()
 
 //	if (request_->body.empty())
 	{
-		process_.closeInput();
+		//process_.closeInput();
 	}
 /*	else
 	{
@@ -265,8 +265,8 @@ inline void CgiScript::runAsync()
 	_loadenv_if("LD_LIBRARY_PATH", environment);
 	// }}}
 
-	//for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
-	//	TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
+	for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
+		TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
 
 	// redirect process_'s stdout/stderr to own member functions to handle its response
 	outwatch_.set<CgiScript, &CgiScript::onResponseReceived>(this);
@@ -313,7 +313,7 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 	{
 		TRACE("CGI: stdout closed");
 		outwatch_.stop();
-		delete this;
+		//delete this;
 	}
 	else // if (rv < 0)
 	{
@@ -327,7 +327,7 @@ void CgiScript::onResponseReceived(ev::io& /*w*/, int revents)
 				response_->status = x0::HttpError::InternalServerError;
 				request_->connection.server().log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
-			delete this;
+			//delete this;
 		}
 	}
 }
@@ -398,7 +398,7 @@ void CgiScript::onResponseTransmitted(int ec, std::size_t nb)
 	if (destroy_pending_)
 	{
 		TRACE("destroy pending!");
-		delete this;
+		//delete this;
 	}
 	else
 	{
@@ -517,7 +517,6 @@ private:
 	bool map(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
 	{
 		std::string path(in->fileinfo->filename());
-		debug(0, "cgi.map: '%s'", path.c_str());
 
 		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
 		if (!fi)
@@ -530,7 +529,6 @@ private:
 		if (!lookupInterpreter(in, interpreter))
 			return false;
 
-		debug(0, "runAsync...");
 		CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out, interpreter);
 		return true;
 	}
@@ -550,18 +548,15 @@ private:
 	bool lookupInterpreter(x0::HttpRequest *in, std::string& interpreter)
 	{
 		std::string::size_type rpos = in->fileinfo->filename().rfind('.');
-		debug(0, "lookupInterpreter: rpos:%d", rpos);
 
 		if (rpos != std::string::npos)
 		{
 			std::string ext(in->fileinfo->filename().substr(rpos));
-			debug(0, "lookupInterpreter: ext:%s", ext.c_str());
 			auto i = interpreterMappings_.find(ext);
 
 			if (i != interpreterMappings_.end())
 			{
 				interpreter = i->second;
-				debug(0, "lookupInterpreter: i:%s", interpreter.c_str());
 				return true;
 			}
 		}

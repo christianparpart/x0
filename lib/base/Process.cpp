@@ -24,6 +24,7 @@ namespace x0 {
 
 Process::Process(struct ev_loop *loop) :
 	loop_(loop),
+	child_watcher_(loop_),
 	input_(),
 	output_(),
 	error_(),
@@ -105,10 +106,19 @@ int Process::fetchStatus()
 
 void Process::setupParent()
 {
+	child_watcher_.set<Process, &Process::onChild>(this);
+	child_watcher_.set(pid_);
+	child_watcher_.start();
+
 	// setup I/O
 	input_.closeRemote();
 	output_.closeRemote();
 	error_.closeRemote();
+}
+
+void Process::onChild(ev::child&, int revents)
+{
+	printf("onChild(%d)\n", revents);
 }
 
 void Process::setupChild(const std::string& _exe, const ArgumentList& _args, const Environment& _env, const std::string& _workdir)

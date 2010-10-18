@@ -113,11 +113,14 @@ private:
 	/** fetches the process status, see system's waitpid() for more info. */
 	int fetchStatus();
 
+	void onChild(ev::child&, int revents);
+
 private:
 	struct ev_loop *loop_;
-	LocalStream input_;		//!< redirected stdin stream
+	ev::child child_watcher_;	//!< watcher for child-exit event
+	LocalStream input_;			//!< redirected stdin stream
 	LocalStream output_;		//!< redirected stdout stream
-	LocalStream error_;		//!< redirected stderr stream
+	LocalStream error_;			//!< redirected stderr stream
 	mutable int pid_;			//!< holds the child's process ID
 	mutable int status_;		//!< holds the child's process status, see system's waitpid() for more info.
 };
