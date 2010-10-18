@@ -68,6 +68,7 @@ public:
 
 	/** socket handle to the STDIN of the child. */
 	int input();
+	void closeInput();
 
 	/** socket handle to the STDOUT of the child. */
 	int output();
@@ -125,6 +126,11 @@ private:
 inline int Process::input()
 {
 	return input_.local();
+}
+
+inline void Process::closeInput()
+{
+	input_.closeLocal();
 }
 
 inline int Process::output()

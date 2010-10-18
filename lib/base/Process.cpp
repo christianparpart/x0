@@ -106,9 +106,9 @@ int Process::fetchStatus()
 void Process::setupParent()
 {
 	// setup I/O
-	::close(input_.remote());
-	::close(output_.remote());
-	::close(error_.remote());
+	input_.closeRemote();
+	output_.closeRemote();
+	error_.closeRemote();
 }
 
 void Process::setupChild(const std::string& _exe, const ArgumentList& _args, const Environment& _env, const std::string& _workdir)

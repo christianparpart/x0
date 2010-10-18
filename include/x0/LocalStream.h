@@ -34,7 +34,9 @@ public:
 	int local();
 	int remote();
 
-	void close();
+	void closeAll();
+	void closeLocal();
+	void closeRemote();
 
 private:
 	int pfd_[2];
@@ -51,7 +53,7 @@ inline LocalStream::LocalStream()
 
 inline LocalStream::~LocalStream()
 {
-	close();
+	closeAll();
 }
 
 inline int LocalStream::local()
@@ -64,13 +66,33 @@ inline int LocalStream::remote()
 	return pfd_[1];
 }
 
-inline void LocalStream::close()
+inline void LocalStream::closeAll()
 {
-	if (pfd_[0] != -1)
+	if (pfd_[0] != -1) {
 		::close(pfd_[0]);
+		pfd_[0] = -1;
+	}
 
-	if (pfd_[1] != -1)
+	if (pfd_[1] != -1) {
 		::close(pfd_[1]);
+		pfd_[1] = -1;
+	}
+}
+
+inline void LocalStream::closeLocal()
+{
+	if (pfd_[0] != -1) {
+		::close(pfd_[0]);
+		pfd_[0] = -1;
+	}
+}
+
+inline void LocalStream::closeRemote()
+{
+	if (pfd_[1] != -1) {
+		::close(pfd_[1]);
+		pfd_[1] = -1;
+	}
 }
 // }}}
 
