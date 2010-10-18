@@ -89,9 +89,13 @@ bool HttpListener::prepare()
 		return false;
 	}
 
-	fcntl(fd_, F_SETFL, FD_CLOEXEC);
+	if (fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC) < 0)
+	{
+		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
+		return false;
+	}
 
-	if (fcntl(fd_, F_SETFL, O_NONBLOCK) < 0)
+	if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK) < 0)
 	{
 		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
 		return false;

@@ -99,6 +99,8 @@ public:
 	virtual void write(Severity s, const std::string& message);
 	virtual FileLogger *clone() const;
 
+	int handle() const;
+
 private:
 	std::string filename_;
 	int fd_;
@@ -142,9 +144,19 @@ inline FileLogger<Now>::~FileLogger()
 }
 
 template<typename Now>
+inline int FileLogger<Now>::handle() const
+{
+	return fd_;
+}
+
+template<typename Now>
 inline void FileLogger<Now>::cycle()
 {
-	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
+	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE
+#if defined(O_CLOEXEC)
+			| O_CLOEXEC
+#endif
+			, 0644);
 
 	if (fd2 == -1)
 	{
@@ -152,6 +164,9 @@ inline void FileLogger<Now>::cycle()
 	}
 	else
 	{
+#if !defined(O_CLOEXEC) && defined(FD_CLOEXEC)
+		fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD) | FD_CLOEXEC);
+#endif
 		if (fd_ != -1)
 		{
 			::close(fd_);

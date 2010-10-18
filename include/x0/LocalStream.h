@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 namespace x0 {
 
@@ -48,6 +49,11 @@ inline LocalStream::LocalStream()
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pfd_) < 0)
 	{
 		pfd_[0] = pfd_[1] = -1;
+	}
+	else
+	{
+		fcntl(pfd_[0], F_SETFD, fcntl(pfd_[0], F_GETFL) | FD_CLOEXEC);
+		fcntl(pfd_[1], F_SETFD, fcntl(pfd_[1], F_GETFL) | FD_CLOEXEC);
 	}
 }
 

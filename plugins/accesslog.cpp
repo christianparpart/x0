@@ -64,7 +64,7 @@ private:
 			if (fd_ >= 0)
 				::close(fd_);
 
-			fd_ = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE, 0644);
+			fd_ = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
 			if (fd_ < 0)
 				return std::make_error_code(static_cast<std::errc>(errno));
 

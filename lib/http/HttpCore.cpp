@@ -622,11 +622,14 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 #if defined(O_NONBLOCK)
 		flags |= O_NONBLOCK;
 #endif
-#if defined(O_CLOEXEC)
+#if 0 // defined(O_CLOEXEC)
 		flags |= O_CLOEXEC;
 #endif
 
 		fd = in->fileinfo->open(flags);
+
+		if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
+			log(Severity::error, "Could not set FD_CLOEXEC on %s: %s", in->fileinfo->filename().c_str(), strerror(errno));
 
 		if (fd < 0)
 		{

@@ -302,7 +302,8 @@ bool CgiTransport::open(const char *hostname, int port, uint16_t id)
 			continue;
 		}
 
-		fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK | O_CLOEXEC);
+		fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK);
+		fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC);
 
 		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
 		if (rv < 0)

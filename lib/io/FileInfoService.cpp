@@ -16,7 +16,7 @@ namespace x0 {
 FileInfoService::FileInfoService(struct ::ev_loop *loop) :
 	loop_(loop),
 #if defined(HAVE_SYS_INOTIFY_H)
-	handle_(),
+	handle_(-1),
 	inotify_(loop_),
 	wd_(),
 #endif
@@ -31,7 +31,11 @@ FileInfoService::FileInfoService(struct ::ev_loop *loop) :
 	handle_ = inotify_init();
 	if (handle_ != -1)
 	{
-		fcntl(handle_, F_SETFL, O_NONBLOCK | FD_CLOEXEC);
+		if (fcntl(handle_, F_SETFL, fcntl(handle_, F_GETFL) | O_NONBLOCK) < 0)
+			fprintf(stderr, "Error setting nonblock/cloexec flags on inotify handle\n");
+
+		if (fcntl(handle_, F_SETFD, fcntl(handle_, F_GETFD) | FD_CLOEXEC) < 0)
+			fprintf(stderr, "Error setting cloexec flags on inotify handle\n");
 
 		inotify_.set<FileInfoService, &FileInfoService::on_inotify>(this);
 		inotify_.start(handle_, ev::READ);

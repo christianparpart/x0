@@ -149,6 +149,8 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 		return;
 	}
 
+	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+
 	socket_ = listener_.socketDriver()->create(fd);
 	sink_.setSocket(socket_);
 

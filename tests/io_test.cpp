@@ -38,10 +38,10 @@ public:
 			perror("pipe2");
 
 		if (async) {
-			if (fcntl(fd[0], F_SETFL, O_NONBLOCK) < 0)
+			if (fcntl(fd[0], F_SETFL, fcntl(fd[0], F_GETFL) | O_NONBLOCK) < 0)
 				perror("fcntl");
 
-			if (fcntl(fd[1], F_SETFL, O_NONBLOCK) < 0)
+			if (fcntl(fd[1], F_SETFL, fcntl(fd[1], F_GETFL) | O_NONBLOCK) < 0)
 				perror("fcntl");
 		}
 	}
