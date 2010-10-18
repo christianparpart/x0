@@ -198,6 +198,7 @@ private:
 }; // }}}
 
 uint16_t nextID_ = 0;
+
 class CgiContext //{{{
 {
 public:
