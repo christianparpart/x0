@@ -1,0 +1,44 @@
+.DONE:
+- plugin staticfile (part of core now)
+- plugin indexfile (part of core now)
+- plugin alias (part of core now)
+- plugin dirlisting
+- plugin echo_example
+- plugin hello_example
+- plugin accesslog
+- plugin fastcgi
+- plugin compress
+- plugin ssl (FIXME works local but asserts remote@sensei - wrt BufferRef?)
+- plugin userdir
+- core handler 'redirect'
+- core handler 'respond'
+- instant mode
+- plugin filter_example
+
+.WIP:
+- plugin cgi
+- threaded model
+
+.TODO:
+- plugin proxy
+- plugin debug (remove?)
+- plugin vhost_basic (may require complete rewrite)
+- plugin vhost_template (may require complete rewrite)
+- plugin status
+- core function: response 'header.add'
+- core function: response 'header.overwrite'
+- core function: response 'header.remove'
+
+.NOTES:
+The following 3 commands set the document root
+- docroot PATH
+	- docroot: PATH
+	- fileinfo: PATH + request.path
+- alias PREFIX PATH
+	- docroot = PATH
+	- fileinfo = PATH + (request.path ~ s/PREFIX//)
+- userdir
+	- docroot = $HOME of user
+	- fileinfo $HOME + s/request.path/^\/~.*?\//
+
+// vim:syntax=asciidoc

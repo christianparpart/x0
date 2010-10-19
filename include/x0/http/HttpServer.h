@@ -39,6 +39,7 @@ namespace x0 {
 
 struct HttpPlugin;
 struct HttpCore;
+struct HttpWorker;
 
 //! \addtogroup core
 //@{
@@ -66,6 +67,9 @@ public:
 
 	void setLogger(std::shared_ptr<Logger> logger);
 	Logger *logger() const;
+
+	HttpWorker *spawnWorker();
+	void destroyWorker(HttpWorker *worker);
 
 	// {{{ service control
 	bool setup(std::istream *settings);
@@ -202,6 +206,8 @@ private:
 	void handleRequest(HttpRequest *in, HttpResponse *out);
 	void loop_check(ev::check& w, int revents);
 
+	static void *runWorker(void *);
+
 	std::vector<std::string> components_;
 
 	Flow::Unit *unit_;
@@ -222,6 +228,7 @@ private:
 	DateTime now_;
 	ev::check loop_check_;
 	HttpCore *core_;
+	std::list<HttpWorker *> workers_;
 
 public:
 	value_property<int> max_connections;

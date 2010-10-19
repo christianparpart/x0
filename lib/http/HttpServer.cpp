@@ -11,6 +11,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpWorker.h>
 #include <x0/http/HttpCore.h>
 #include <x0/Error.h>
 #include <x0/Logger.h>
@@ -89,6 +90,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	now_(),
 	loop_check_(loop_),
 	core_(0),
+	workers_(),
 	max_connections(512),
 	max_keep_alive_idle(/*5*/ 60),
 	max_read_idle(60),
@@ -148,6 +150,8 @@ bool HttpServer::setup(std::istream *settings)
 		perror("open");
 		return false;
 	}
+
+	spawnWorker();
 
 	unit_ = parser.parse();
 	if (!unit_)
@@ -250,6 +254,41 @@ bool HttpServer::setup(std::istream *settings)
 	// }}}
 
 	return true;
+}
+
+HttpWorker *HttpServer::spawnWorker()
+{
+	struct ev_loop *loop = !workers_.empty()
+		? ev_loop_new(0)
+		: loop_;
+
+	HttpWorker *worker = new HttpWorker(*this, loop);
+
+	workers_.push_back(worker);
+
+	if (!workers_.empty())
+	{
+		pthread_create(&worker->thread_, NULL, &HttpServer::runWorker, worker);
+	}
+
+	return worker;
+}
+
+void HttpServer::destroyWorker(HttpWorker *worker)
+{
+	worker->evExit_.send();
+
+	if (worker != workers_.front())
+		pthread_join(worker->thread_, NULL);
+
+	delete worker;
+}
+
+void *HttpServer::runWorker(void *p)
+{
+	HttpWorker *w = (HttpWorker *)p;
+	w->run();
+	return NULL;
 }
 
 bool HttpServer::start()
