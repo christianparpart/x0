@@ -116,8 +116,20 @@ private:
 	bool checkDestroy();
 
 private:
+	enum OutputFlags
+	{
+		NoneClosed   = 0,
+
+		StdoutClosed = 1,
+		StderrClosed = 2,
+		ChildClosed  = 4,
+
+		OutputClosed    = StdoutClosed | StderrClosed | ChildClosed
+	};
+
+private:
 	struct ev_loop *loop_;
-	ev::child child_watcher_;		//!< watcher for child-exit event
+	ev::child childWatcher_;		//!< watcher for child-exit event
 
 	x0::HttpRequest *request_;
 	x0::HttpResponse *response_;
@@ -143,13 +155,13 @@ private:
 	x0::Buffer stdoutTransferBuffer_;
 	bool stdoutTransferActive_;
 
-	bool destroyPending_;
+	unsigned outputFlags_;
 };
 
 CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
 	loop_(in->connection.server().loop()),
-	child_watcher_(loop_),
+	childWatcher_(loop_),
 	request_(in),
 	response_(out),
 	hostprogram_(hostprogram),
@@ -166,7 +178,7 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0:
 	stdinTransferOffset_(0),
 	stdoutTransferBuffer_(),
 	stdoutTransferActive_(false),
-	destroyPending_(false)
+	outputFlags_(NoneClosed)
 {
 	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 
@@ -183,7 +195,7 @@ CgiScript::~CgiScript()
 
 void CgiScript::onChild(ev::child&, int revents)
 {
-	printf("onChild(0x%x)\n", revents);
+	TRACE("onChild(0x%x)\n", revents);
 	checkDestroy();
 }
 
@@ -201,16 +213,18 @@ void CgiScript::onChild(ev::child&, int revents)
 bool CgiScript::checkDestroy()
 {
 	// child still running?
-	if (!process_.expired())
-		return false;
+	if (process_.expired())
+		outputFlags_ |= ChildClosed;
 	
 	// child's stdout still open?
-	if (!destroyPending_)
-		return false;
-
-	TRACE("checkDestroy: true!");
-	delete this;
-	return true;
+	if ((outputFlags_ & OutputClosed) == OutputClosed)
+	{
+		TRACE("checkDestroy: all subjects closed (0x%04x)", outputFlags_);
+		delete this;
+		return true;
+	}
+	TRACE("checkDestroy: failed (0x%04x)", outputFlags_);
+	return false;
 }
 
 void CgiScript::runAsync(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram)
@@ -314,13 +328,18 @@ inline void CgiScript::runAsync()
 	_loadenv_if("SYSTEMROOT", environment);
 #endif
 
-	// for valgrind
-	_loadenv_if("LD_PRELOAD", environment);
-	_loadenv_if("LD_LIBRARY_PATH", environment);
+	// {{{ for valgrind
+#ifndef NDEBUG
+	//_loadenv_if("LD_PRELOAD", environment);
+	//_loadenv_if("LD_LIBRARY_PATH", environment);
+#endif
+	// }}}
 	// }}}
 
-	//for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
-	//	TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
+#ifndef NDEBUG
+	for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
+		TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
+#endif
 
 	// redirect process_'s stdout/stderr to own member functions to handle its response
 	outwatch_.start(process_.output(), ev::READ);
@@ -329,9 +348,9 @@ inline void CgiScript::runAsync()
 	// actually start child process
 	process_.start(hostprogram, params, environment, workdir);
 
-	child_watcher_.set<CgiScript, &CgiScript::onChild>(this);
-	child_watcher_.set(process_.id(), false);
-	child_watcher_.start();
+	childWatcher_.set<CgiScript, &CgiScript::onChild>(this);
+	childWatcher_.set(process_.id(), false);
+	childWatcher_.start();
 }
 
 /** writes request body chunk into stdin.
@@ -431,6 +450,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 
 		std::size_t np = 0;
 		std::error_code ec = process(outbuf_.ref(lower_bound, rv), np);
+
 		TRACE("onStdoutAvailable@process: %s; %ld", ec.message().c_str(), np);
 
 		serial_++;
@@ -439,22 +459,29 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 	{
 		if (rv != EINTR && rv != EAGAIN)
 		{
-			TRACE("CGI: stdout: %s", strerror(errno));
+			// error while reading from stdout
 			outwatch_.stop();
+			outputFlags_ |= StdoutClosed;
+
+			request_->connection.server().log(x0::Severity::error,
+				"CGI: error while reading on stdout of: %s: %s",
+				request_->fileinfo->filename().c_str(),
+				strerror(errno));
 
 			if (!serial_)
 			{
 				response_->status = x0::HttpError::InternalServerError;
 				request_->connection.server().log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
-			destroyPending_ = true;
 		}
 	}
 	else // if (rv == 0)
 	{
+		// stdout closed by cgi child process
 		TRACE("CGI: stdout closed");
+
 		outwatch_.stop();
-		destroyPending_ = true;
+		outputFlags_ |= StdoutClosed;
 
 		checkDestroy();
 	}
@@ -471,12 +498,30 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 	{
 		TRACE("read %d bytes: %s", rv, errbuf_.data());
 		errbuf_.resize(rv);
-		request_->connection.server().log(x0::Severity::error, "CGI script error: %s", errbuf_.str().c_str());
-	} else if (rv == 0) {
+		request_->connection.server().log(x0::Severity::error,
+			"CGI script error: %s: %s",
+			request_->fileinfo->filename().c_str(),
+			errbuf_.str().c_str());
+	}
+	else if (rv == 0)
+	{
 		TRACE("CGI: stderr closed");
 		errwatch_.stop();
-	} else {
-		TRACE("onStderrAvailable (rv=%d) %s", rv, strerror(errno));
+		outputFlags_ |= StderrClosed;
+		checkDestroy();
+	}
+	else // if (rv < 0)
+	{
+		if (errno != EINTR && errno != EAGAIN)
+		{
+			request_->connection.server().log(x0::Severity::error,
+				"CGI: error while reading on stderr of: %s: %s",
+				request_->fileinfo->filename().c_str(),
+				strerror(errno));
+
+			errwatch_.stop();
+			outputFlags_ |= StderrClosed;
+		}
 	}
 }
 
