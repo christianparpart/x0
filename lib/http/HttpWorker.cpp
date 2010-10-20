@@ -1,7 +1,6 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpConnection.h>
-#include <x0/StackTrace.h>
 
 #include <ev++.h>
 #include <signal.h>
@@ -35,6 +34,14 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 
 	evExit_.set<HttpWorker, &HttpWorker::onExit>(this);
 	evExit_.start();
+
+#if !defined(NO_BUGGY_EVXX)
+	// libev's ev++ (at least till version 3.80) does not initialize `sent` to zero)
+	ev_async_set(&evNewConnection_);
+	ev_async_set(&evSuspend_);
+	ev_async_set(&evResume_);
+	ev_async_set(&evExit_);
+#endif
 }
 
 HttpWorker::~HttpWorker()
@@ -65,7 +72,6 @@ void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
 void HttpWorker::onNewConnection(ev::async& w, int revents)
 {
 	printf("%f: HttpWorker.onNewConnection() enter\n", ev_now(loop_));
-	printf("%s\n", StackTrace().c_str());
 	std::pair<int, HttpListener *> client(queue_.front());
 	queue_.pop_front();
 
@@ -82,26 +88,18 @@ void HttpWorker::onNewConnection(ev::async& w, int revents)
 void HttpWorker::onSuspend(ev::async& w, int revents)
 {
 	printf("%f: HttpWorker.onSuspend!\n", ev_now(loop_));
-	printf("%s\n", StackTrace().c_str());
 }
 
 void HttpWorker::onResume(ev::async& w, int revents)
 {
 	printf("%f: HttpWorker.onResume!\n", ev_now(loop_));
-	printf("%s\n", StackTrace().c_str());
 }
 
 void HttpWorker::onExit(ev::async& w, int revents)
 {
 	printf("%f: HttpWorker.onExit! (pending:%d)\n", ev_now(loop_), evExit_.async_pending());
-	if (!evExit_.async_pending())
-		return;
-	printf("%s\n", StackTrace().c_str());
 
-	if (&w == &evExit_)
-		exit_ = true;
-	else
-		printf("oops. wrong arg!\n");
+	exit_ = true;
 }
 
 } // namespace x0
