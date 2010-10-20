@@ -35,6 +35,7 @@
 #cmakedefine HAVE_SENDFILE
 #cmakedefine HAVE_POSIX_FADVISE
 #cmakedefine HAVE_READAHEAD
+#cmakedefine HAVE_ACCEPT4
 
 #cmakedefine BUILD_STATIC
 

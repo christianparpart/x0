@@ -9,6 +9,7 @@
 #ifndef sw_x0_http_server_h
 #define sw_x0_http_server_h (1)
 
+#include <x0/io/FileInfoService.h>
 #include <x0/http/HttpContext.h>
 #include <x0/http/Types.h>
 #include <x0/DateTime.h>
@@ -68,6 +69,7 @@ public:
 	Logger *logger() const;
 
 	HttpWorker *spawnWorker();
+	HttpWorker *selectWorker();
 	void destroyWorker(HttpWorker *worker);
 
 	// {{{ service control
@@ -198,8 +200,8 @@ private:
 
 	friend class HttpConnection;
 	friend class HttpPlugin;
+	friend class HttpWorker;
 	friend class HttpCore;
-	friend class ::x0d; // to access in_ and out_.
 
 private:
 	void handleRequest(HttpRequest *in, HttpResponse *out);
@@ -228,6 +230,7 @@ private:
 	ev::check loop_check_;
 	HttpCore *core_;
 	std::list<HttpWorker *> workers_;
+	FileInfoService::Config fileinfoConfig_;
 
 public:
 	value_property<int> max_connections;

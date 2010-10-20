@@ -25,7 +25,9 @@ class SslSocket :
 	public x0::Socket
 {
 private:
+#ifndef NDEBUG
 	ev_tstamp ctime_;
+#endif
 
 	SslDriver *driver_;
 	const SslContext *context_;
@@ -37,7 +39,7 @@ private:
 	static int onClientHello(gnutls_session_t session);
 
 public:
-	explicit SslSocket(SslDriver *driver, int fd);
+	explicit SslSocket(SslDriver *driver, struct ev_loop *loop, int fd);
 	virtual ~SslSocket();
 
 	const SslContext *context() const;

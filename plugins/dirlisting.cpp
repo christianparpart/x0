@@ -99,7 +99,7 @@ private:
 
 			if (name[0] != '.')
 			{
-				if (x0::FileInfoPtr fi = in->connection.server().fileinfo(in->fileinfo->filename() + "/" + name))
+				if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(in->fileinfo->filename() + "/" + name))
 				{
 					if (fi->is_directory())
 						name += "/";

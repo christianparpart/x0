@@ -43,6 +43,27 @@ namespace x0 {
  */
 class X0_API FileInfoService
 {
+public:
+	struct Config
+	{
+		bool etagConsiderMtime;							//!< flag, specifying wether or not the file modification-time is part of the ETag
+		bool etagConsiderSize;							//!< flag, specifying wether or not the file size is part of the ETag
+		bool etagConsiderInode;							//!< flag, specifying wether or not the file inode number is part of the ETag
+
+		std::map<std::string, std::string> mimetypes;	//!< cached database for file extension to mimetype mapping
+		std::string defaultMimetype;					//!< default mimetype for those files we could not determine the mimetype.
+
+		Config() :
+			etagConsiderMtime(true),
+			etagConsiderSize(true),
+			etagConsiderInode(false),
+			mimetypes(),
+			defaultMimetype("text/plain")
+		{}
+
+		void loadMimetypes(const std::string& filename);
+	};
+
 private:
 	struct ::ev_loop *loop_;
 #if defined(HAVE_SYS_INOTIFY_H)
@@ -51,17 +72,11 @@ private:
 	std::map<int, std::string> wd_;
 #endif
 
+	const Config *config_;
 	std::map<std::string, FileInfoPtr> cache_;		//!< cache, storing path->FileInfo pairs
 
-	bool etag_consider_mtime_;						//!< flag, specifying wether or not the file modification-time is part of the ETag
-	bool etag_consider_size_;						//!< flag, specifying wether or not the file size is part of the ETag
-	bool etag_consider_inode_;						//!< flag, specifying wether or not the file inode number is part of the ETag
-
-	std::map<std::string, std::string> mimetypes_;	//!< cached database for file extension to mimetype mapping
-	std::string default_mimetype_;					//!< default mimetype for those files we could not determine the mimetype.
-
 public:
-	explicit FileInfoService(struct ::ev_loop *loop);
+	FileInfoService(struct ::ev_loop *loop, const Config *config);
 	~FileInfoService();
 
 	FileInfoService(const FileInfoService&) = delete;
@@ -72,20 +87,6 @@ public:
 
 	std::size_t size() const;
 	bool empty() const;
-
-	bool etag_consider_mtime() const;
-	void etag_consider_mtime(bool value);
-
-	bool etag_consider_size() const;
-	void etag_consider_size(bool value);
-
-	bool etag_consider_inode() const;
-	void etag_consider_inode(bool value);
-
-	void load_mimetypes(const std::string& filename);
-
-	std::string default_mimetype() const;
-	void default_mimetype(const std::string& value);
 
 private:
 	friend class FileInfo;
@@ -157,46 +158,6 @@ inline bool FileInfoService::empty() const
 	return cache_.empty();
 }
 
-inline bool FileInfoService::etag_consider_mtime() const
-{
-	return etag_consider_mtime_;
-}
-
-inline void FileInfoService::etag_consider_mtime(bool value)
-{
-	etag_consider_mtime_ = value;
-}
-
-inline bool FileInfoService::etag_consider_size() const
-{
-	return etag_consider_size_;
-}
-
-inline void FileInfoService::etag_consider_size(bool value)
-{
-	etag_consider_size_ = value;
-}
-
-inline bool FileInfoService::etag_consider_inode() const
-{
-	return etag_consider_inode_;
-}
-
-inline void FileInfoService::etag_consider_inode(bool value)
-{
-	etag_consider_inode_ = value;
-}
-
-inline std::string FileInfoService::default_mimetype() const
-{
-	return default_mimetype_;
-}
-
-inline void FileInfoService::default_mimetype(const std::string& value)
-{
-	default_mimetype_ = value;
-}
-
 inline std::string FileInfoService::make_etag(const FileInfo& fi) const
 {
 	int count = 0;
@@ -204,19 +165,21 @@ inline std::string FileInfoService::make_etag(const FileInfo& fi) const
 
 	sstr << '"';
 
-	if (etag_consider_mtime_)
+	// TODO encode numbers in hex than dec (should be a tick faster)
+
+	if (config_->etagConsiderMtime)
 	{
 		if (count++) sstr << '-';
 		sstr << fi->st_mtime;
 	}
 
-	if (etag_consider_size_)
+	if (config_->etagConsiderSize)
 	{
 		if (count++) sstr << '-';
 		sstr << fi->st_size;
 	}
 
-	if (etag_consider_inode_)
+	if (config_->etagConsiderInode)
 	{
 		if (count++) sstr << '-';
 		sstr << fi->st_ino;

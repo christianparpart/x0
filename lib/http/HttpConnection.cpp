@@ -118,7 +118,7 @@ unsigned ConnectionLogger::connection_counter = 0;
  * \param lst the listener object that created this connection.
  * \note This triggers the onConnectionOpen event.
  */
-HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd, const sockaddr_in6& saddr) :
+HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
 	listener_(lst),
@@ -136,22 +136,13 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd, const s
 	onWriteComplete_(),
 	bytesTransferred_(0)
 #if !defined(NDEBUG)
-	, ctime_(ev_now(server_.loop()))
+	, ctime_(ev_now(loop()))
 #endif
 {
-	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
-
-	socket_ = listener_.socketDriver()->create(fd);
+	socket_ = listener_.socketDriver()->create(fd, loop());
 	sink_.setSocket(socket_);
 
 	TRACE("(%p): fd=%d", this, socket_->handle());
-
-	if (!socket_->setNonBlocking(true))
-	{
-		TRACE("could not set server socket into non-blocking mode: %s\n", strerror(errno));
-		close();
-		return;
-	}
 
 #if defined(TCP_NODELAY)
 	if (server_.tcp_nodelay())
@@ -487,7 +478,7 @@ void HttpConnection::processInput()
 		if (errno == EAGAIN || errno == EINTR)
 		{
 			startRead();
-			ev_unloop(server_.loop(), EVUNLOOP_ONE);
+			ev_unloop(loop(), EVUNLOOP_ONE);
 		}
 		else
 		{

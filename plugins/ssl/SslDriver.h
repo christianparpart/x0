@@ -21,7 +21,6 @@ class SslDriver :
 	public x0::SocketDriver
 {
 private:
-	struct ev_loop *loop_;
 	SslContextSelector *selector_;
 
 	SslCacheItem *items_;
@@ -32,12 +31,12 @@ private:
 	friend class SslContext;
 
 public:
-	SslDriver(struct ev_loop *loop, SslContextSelector *selector);
+	SslDriver(SslContextSelector *selector);
 	virtual ~SslDriver();
 
 	virtual bool isSecure() const;
 
-	virtual SslSocket *create(int handle);
+	virtual SslSocket *create(int handle, struct ev_loop *loop);
 	virtual void destroy(x0::Socket *);
 
 	void cache(SslSocket *socket);

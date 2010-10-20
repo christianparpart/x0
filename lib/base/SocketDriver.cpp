@@ -12,8 +12,7 @@
 
 namespace x0 {
 
-SocketDriver::SocketDriver(struct ev_loop *loop) :
-	loop_(loop)
+SocketDriver::SocketDriver()
 {
 }
 
@@ -26,9 +25,9 @@ bool SocketDriver::isSecure() const
 	return false;
 }
 
-Socket *SocketDriver::create(int handle)
+Socket *SocketDriver::create(int handle, struct ev_loop *loop)
 {
-	return new Socket(loop_, handle);
+	return new Socket(loop, handle);
 }
 
 void SocketDriver::destroy(Socket *socket)

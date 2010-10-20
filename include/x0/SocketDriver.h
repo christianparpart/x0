@@ -19,16 +19,12 @@ class Socket;
 
 class SocketDriver
 {
-private:
-	struct ev_loop *loop_;
-
 public:
-	explicit SocketDriver(struct ev_loop *loop);
+	SocketDriver();
 	virtual ~SocketDriver();
 
 	virtual bool isSecure() const;
-
-	virtual Socket *create(int handle);
+	virtual Socket *create(int handle, struct ev_loop *loop);
 	virtual void destroy(Socket *);
 };
 

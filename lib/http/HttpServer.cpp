@@ -273,6 +273,12 @@ HttpWorker *HttpServer::spawnWorker()
 	return worker;
 }
 
+HttpWorker *HttpServer::selectWorker()
+{
+	// TODO: select *some* worker (not just one worker)
+	return workers_.back();
+}
+
 void HttpServer::destroyWorker(HttpWorker *worker)
 {
 	worker->evExit_.send();

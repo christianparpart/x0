@@ -31,7 +31,7 @@ HttpListener::HttpListener(HttpServer& srv) :
 	port_(-1),
 	backlog_(SOMAXCONN),
 	errors_(0),
-	socketDriver_(new SocketDriver(srv.loop()))
+	socketDriver_(new SocketDriver())
 {
 	watcher_.set<HttpListener, &HttpListener::callback>(this);
 }
@@ -155,25 +155,39 @@ bool HttpListener::start()
 
 void HttpListener::callback(ev::io& watcher, int revents)
 {
-	HttpWorker::Task task;
+	int fd;
 
-	task.fd = ::accept(handle(), reinterpret_cast<sockaddr *>(&task.saddr), &task.slen);
-	if (task.fd < 0)
-		return;
+#if defined(HAVE_ACCEPT4)
+	fd = ::accept4(handle(), NULL, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
+#else
+	fd = ::accept(handle(), NULL, 0);
+#endif
 
-	server().selectWorker().enqueue(task);
-
-#if 0 // TODO
-	// TODO accept() as much until it would block.
-	if (HttpConnection *c = new HttpConnection(*this))
+	if (fd < 0)
 	{
-		if (c->isClosed())
-			delete c;
-		else
-			// TODO: introduce a PREPARE mode, that would defer the code fragment below - required for SSL handshaking, which takes place *before* processing the HTTP request
-			c->start();
+		if (errno != EINTR && errno != EAGAIN)
+			log(Severity::error, "Error accepting new connection socket: %s", strerror(errno));
+
+		return;
+	}
+
+#if !defined(HAVE_ACCEPT4)
+	rv = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+	if (rv < 0) {
+		log(Severity::error, "Error configuring new connection socket: %s", strerror(errno));
+		::close(fd);
+		return;
+	}
+
+	rv = fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+	if (rv < 0) {
+		log(Severity::error, "Error configuring new connection socket: %s", strerror(errno));
+		::close(fd);
+		return;
 	}
 #endif
+
+	server_.selectWorker()->enqueue(std::make_pair(fd, this));
 }
 
 std::string HttpListener::address() const

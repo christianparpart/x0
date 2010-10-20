@@ -1,11 +1,12 @@
 #ifndef x0_http_HttpWorker_h
 #define x0_http_HttpWorker_h (1)
 
+#include <x0/io/FileInfoService.h>
+
+#include <deque>
 #include <ev++.h>
 #include <signal.h>
 #include <pthread.h>
-
-#include <x0/io/FileInfoService.h>
 
 namespace x0 {
 
@@ -13,22 +14,14 @@ class HttpServer;
 
 class HttpWorker
 {
-public:
-	struct Task
-	{
-		int fd;
-		sockaddr_in6 saddr;
-		socklen_t slen;
-
-		Task() : fd_(-1), saddr(), slen(sizeof(saddr)) {}
-		Task(int fd, const sockaddr_in6& sa) : fd(_fd), saddr(sa), slen(sizeof(sa)) {}
-	};
-
 private:
 	HttpServer& server_;
 	struct ev_loop *loop_;
 	sig_atomic_t connectionLoad_;
 	pthread_t thread_;
+
+	bool exit_;
+	std::deque<std::pair<int, HttpListener *> > queue_;
 
 	ev::async evNewConnection_;
 	ev::async evSuspend_;
@@ -50,7 +43,7 @@ public:
 	struct ev_loop *loop() const;
 	HttpServer& server() const;
 
-	void enqueue(Task&& task);
+	void enqueue(std::pair<int, HttpListener *>&& handle);
 
 protected:
 	virtual void run();

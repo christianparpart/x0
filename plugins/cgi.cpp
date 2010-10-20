@@ -672,7 +672,7 @@ private:
 		phys.push_back(path);
 		phys.push_back(in->path.ref(strlen(prefix)));
 
-		x0::FileInfoPtr fi = in->connection.server().fileinfo(phys.c_str());
+		x0::FileInfoPtr fi = in->connection.worker().fileinfo(phys.c_str());
 		if (fi && fi->is_regular() && fi->is_executable())
 		{
 			in->fileinfo = fi;
@@ -687,7 +687,7 @@ private:
 	{
 		std::string path(in->fileinfo->filename());
 
-		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
+		x0::FileInfoPtr fi = in->connection.worker().fileinfo(path);
 
 		if (fi && fi->is_regular() && fi->is_executable())
 		{
@@ -703,7 +703,7 @@ private:
 	{
 		std::string path(in->fileinfo->filename());
 
-		x0::FileInfoPtr fi = in->connection.server().fileinfo(path);
+		x0::FileInfoPtr fi = in->connection.worker().fileinfo(path);
 		if (!fi)
 			return false;
 		

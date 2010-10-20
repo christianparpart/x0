@@ -109,7 +109,7 @@ private:
 		if (struct passwd *pw = getpwnam(userName.c_str()))
 		{
 			in->document_root = pw->pw_dir + dirname_;
-			in->fileinfo = server_.fileinfo(in->document_root + userPath);
+			in->fileinfo = in->connection.worker().fileinfo(in->document_root + userPath);
 			debug(0, "docroot[%s], fileinfo[%s]", in->document_root.c_str(), in->fileinfo->filename().c_str());
 		}
 	}

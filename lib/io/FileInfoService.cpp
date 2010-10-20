@@ -13,19 +13,15 @@
 
 namespace x0 {
 
-FileInfoService::FileInfoService(struct ::ev_loop *loop) :
+FileInfoService::FileInfoService(struct ::ev_loop *loop, const Config *config) :
 	loop_(loop),
 #if defined(HAVE_SYS_INOTIFY_H)
 	handle_(-1),
 	inotify_(loop_),
 	wd_(),
 #endif
-	cache_(),
-	etag_consider_mtime_(true),
-	etag_consider_size_(true),
-	etag_consider_inode_(false),
-	mimetypes_(),
-	default_mimetype_("text/plain")
+	config_(config),
+	cache_()
 {
 #if defined(HAVE_SYS_INOTIFY_H)
 	handle_ = inotify_init();
@@ -79,14 +75,14 @@ void FileInfoService::on_inotify(ev::io& w, int revents)
 	}
 }
 
-void FileInfoService::load_mimetypes(const std::string& filename)
+void FileInfoService::Config::loadMimetypes(const std::string& filename)
 {
 	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 
 	std::string input(x0::read_file(filename));
 	tokenizer lines(input, boost::char_separator<char>("\n"));
 
-	mimetypes_.clear();
+	mimetypes.clear();
 
 	for (tokenizer::iterator i = lines.begin(), e = lines.end(); i != e; ++i)
 	{
@@ -100,8 +96,7 @@ void FileInfoService::load_mimetypes(const std::string& filename)
 		{
 			for (; ci != ce; ++ci)
 			{
-				mimetypes_[*ci] = mime;
-				//DEBUG("load mimetype:%s ext:%s", mime.c_str(), ci->c_str());
+				mimetypes[*ci] = mime;
 			}
 		}
 	}
@@ -118,9 +113,9 @@ std::string FileInfoService::get_mimetype(const std::string& filename) const
 
 		while (ext.size())
 		{
-			auto i = mimetypes_.find(ext);
+			auto i = config_->mimetypes.find(ext);
 
-			if (i != mimetypes_.end())
+			if (i != config_->mimetypes.end())
 			{
 				//DEBUG("filename(%s), ext(%s), use mimetype: %s", filename.c_str(), ext.c_str(), i->second.c_str());
 				return i->second;
@@ -134,7 +129,7 @@ std::string FileInfoService::get_mimetype(const std::string& filename) const
 	}
 
 	//DEBUG("file(%s) use default mimetype", filename.c_str());
-	return default_mimetype_;
+	return config_->defaultMimetype;
 }
 
 } // namespace x0

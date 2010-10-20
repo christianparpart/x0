@@ -115,7 +115,7 @@ void HttpCore::mimetypes(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
 	{
-		// TODO server().fileinfo.load_mimetypes(args[0].toString());
+		server().fileinfoConfig_.loadMimetypes(args[0].toString());
 	}
 }
 
@@ -123,32 +123,32 @@ void HttpCore::mimetypes_default(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
 	{
-		// TODO server().fileinfo.default_mimetype(args[0].toString());
+		server().fileinfoConfig_.defaultMimetype = args[0].toString();
 	}
 }
 
 void HttpCore::etag_mtime(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		; // TODO server().fileinfo.etag_consider_mtime(args[0].toBool());
+		server().fileinfoConfig_.etagConsiderMtime = args[0].toBool();
 	else
-		; // TODO result.set(server().fileinfo.etag_consider_mtime());
+		result.set(server().fileinfoConfig_.etagConsiderMtime);
 }
 
 void HttpCore::etag_size(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		; // TODO server().fileinfo.etag_consider_size(args[0].toBool());
+		server().fileinfoConfig_.etagConsiderSize = args[0].toBool();
 	else
-		; // TODO result.set(server().fileinfo.etag_consider_size());
+		result.set(server().fileinfoConfig_.etagConsiderSize);
 }
 
 void HttpCore::etag_inode(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		; // TODO server().fileinfo.etag_consider_inode(args[0].toBool());
+		server().fileinfoConfig_.etagConsiderInode = args[0].toBool();
 	else
-		; // TODO result.set(server().fileinfo.etag_consider_inode());
+		result.set(server().fileinfoConfig_.etagConsiderInode);
 }
 
 void HttpCore::server_advertise(Flow::Value& result, const Params& args)

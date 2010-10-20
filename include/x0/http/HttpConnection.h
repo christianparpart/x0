@@ -46,7 +46,7 @@ public:
 	 * creates an HTTP connection object.
 	 * \param srv a ptr to the server object this connection belongs to.
 	 */
-	HttpConnection(HttpListener& listener, HttpWorker& worker);
+	HttpConnection(HttpListener& listener, HttpWorker& worker, int fd);
 
 	~HttpConnection();
 
@@ -76,6 +76,7 @@ private:
 	friend class HttpRequest;
 	friend class HttpResponse;
 	friend class HttpListener;
+	friend class HttpWorker;
 	friend class ConnectionSink;
 
 	// overrides from HttpMessageProcessor:
@@ -135,7 +136,7 @@ private:
 // {{{ inlines
 inline struct ::ev_loop* HttpConnection::loop() const
 {
-	return server_.loop();
+	return worker_.loop();
 }
 
 inline Socket *HttpConnection::socket() const

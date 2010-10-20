@@ -145,7 +145,7 @@ private:
 		int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
 
 		x0::HttpListener *listener = server().setupListener(port, ip);
-		SslDriver *driver = new SslDriver(server().loop(), this);
+		SslDriver *driver = new SslDriver(this);
 		listener->setSocketDriver(driver);
 	}
 

@@ -68,9 +68,8 @@ inline bool SslCacheItem::equals(const gnutls_datum_t& key) const
 }
 // }}}
 
-SslDriver::SslDriver(struct ev_loop *loop, SslContextSelector *selector) :
-	x0::SocketDriver(loop),
-	loop_(loop),
+SslDriver::SslDriver(SslContextSelector *selector) :
+	x0::SocketDriver(),
 	selector_(selector),
 	items_(new SslCacheItem[1024]),
 	size_(1024),
@@ -88,9 +87,9 @@ bool SslDriver::isSecure() const
 	return true;
 }
 
-SslSocket *SslDriver::create(int handle)
+SslSocket *SslDriver::create(int handle, struct ev_loop *loop)
 {
-	return new SslSocket(this, handle);
+	return new SslSocket(this, loop, handle);
 }
 
 void SslDriver::destroy(x0::Socket *socket)
