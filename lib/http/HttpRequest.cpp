@@ -34,7 +34,7 @@ void HttpRequest::updatePathInfo()
 		if (rv == 0)
 		{
 			pathinfo = pos != std::string::npos ? fileinfo->filename().substr(pos) : "";
-			fileinfo = connection.server().fileinfo(fullname);
+			fileinfo = connection.worker().fileinfo(fullname);
 			return;
 		}
 		if (errno == ENOTDIR)

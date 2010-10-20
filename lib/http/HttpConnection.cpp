@@ -118,10 +118,11 @@ unsigned ConnectionLogger::connection_counter = 0;
  * \param lst the listener object that created this connection.
  * \note This triggers the onConnectionOpen event.
  */
-HttpConnection::HttpConnection(HttpListener& lst) :
+HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd, const sockaddr_in6& saddr) :
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
 	listener_(lst),
+	worker_(w),
 	server_(lst.server()),
 	socket_(0),
 	active_(true), // when this is constricuted, it *must* be active right now :) 
@@ -138,17 +139,6 @@ HttpConnection::HttpConnection(HttpListener& lst) :
 	, ctime_(ev_now(server_.loop()))
 #endif
 {
-	sockaddr_in6 saddr;
-	socklen_t slen = sizeof(saddr);
-	memset(&saddr, 0, slen);
-
-	int fd = ::accept(listener_.handle(), reinterpret_cast<sockaddr *>(&saddr), &slen);
-	if (fd < 0)
-	{
-		server_.log(Severity::error, "Could not accept client socket: %s", strerror(errno));
-		return;
-	}
-
 	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
 
 	socket_ = listener_.socketDriver()->create(fd);

@@ -13,6 +13,17 @@ class HttpServer;
 
 class HttpWorker
 {
+public:
+	struct Task
+	{
+		int fd;
+		sockaddr_in6 saddr;
+		socklen_t slen;
+
+		Task() : fd_(-1), saddr(), slen(sizeof(saddr)) {}
+		Task(int fd, const sockaddr_in6& sa) : fd(_fd), saddr(sa), slen(sizeof(sa)) {}
+	};
+
 private:
 	HttpServer& server_;
 	struct ev_loop *loop_;
@@ -38,6 +49,8 @@ public:
 
 	struct ev_loop *loop() const;
 	HttpServer& server() const;
+
+	void enqueue(Task&& task);
 
 protected:
 	virtual void run();

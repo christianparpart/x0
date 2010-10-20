@@ -63,6 +63,7 @@ private:
 
 	// setup
 	void listen(Flow::Value& result, const Params& args);
+	void workers(Flow::Value& result, const Params& args);
 
 	// shared methods
 	void sys_env(Flow::Value& result, const Params& args);

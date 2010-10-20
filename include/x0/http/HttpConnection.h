@@ -11,9 +11,10 @@
 
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/http/HttpServer.h>
-#include <x0/Socket.h>
+#include <x0/http/HttpWorker.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
+#include <x0/Socket.h>
 #include <x0/Buffer.h>
 #include <x0/Property.h>
 #include <x0/Types.h>
@@ -45,7 +46,7 @@ public:
 	 * creates an HTTP connection object.
 	 * \param srv a ptr to the server object this connection belongs to.
 	 */
-	explicit HttpConnection(HttpListener& listener);
+	HttpConnection(HttpListener& listener, HttpWorker& worker);
 
 	~HttpConnection();
 
@@ -54,6 +55,7 @@ public:
 	value_property<bool> secure;				//!< true if this is a secure (HTTPS) connection, false otherwise.
 
 	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
+	HttpWorker& worker();						//!< Retrieves a reference to the owning worker.
 	HttpServer& server();						//!< Retrieves a reference to the server instance.
 
 	std::string remoteIP() const;				//!< Retrieves the IP address of the remote end point (client).
@@ -107,6 +109,7 @@ public:
 
 private:
 	HttpListener& listener_;
+	HttpWorker& worker_;
 	HttpServer& server_;				//!< server object owning this connection
 
 	Socket *socket_;					//!< underlying communication socket
@@ -138,6 +141,11 @@ inline struct ::ev_loop* HttpConnection::loop() const
 inline Socket *HttpConnection::socket() const
 {
 	return socket_;
+}
+
+inline HttpWorker& HttpConnection::worker()
+{
+	return worker_;
 }
 
 inline HttpServer& HttpConnection::server()

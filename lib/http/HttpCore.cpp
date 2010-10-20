@@ -42,6 +42,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", Flow::Value::STRING);
 	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
+	registerSetupFunction<HttpCore, &HttpCore::workers>("workers", Flow::Value::VOID);
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::etag_mtime>("etag.mtime", Flow::Value::VOID); // write-only (array)
@@ -114,7 +115,7 @@ void HttpCore::mimetypes(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
 	{
-		server().fileinfo.load_mimetypes(args[0].toString());
+		// TODO server().fileinfo.load_mimetypes(args[0].toString());
 	}
 }
 
@@ -122,32 +123,32 @@ void HttpCore::mimetypes_default(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
 	{
-		server().fileinfo.default_mimetype(args[0].toString());
+		// TODO server().fileinfo.default_mimetype(args[0].toString());
 	}
 }
 
 void HttpCore::etag_mtime(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		server().fileinfo.etag_consider_mtime(args[0].toBool());
+		; // TODO server().fileinfo.etag_consider_mtime(args[0].toBool());
 	else
-		result.set(server().fileinfo.etag_consider_mtime());
+		; // TODO result.set(server().fileinfo.etag_consider_mtime());
 }
 
 void HttpCore::etag_size(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		server().fileinfo.etag_consider_size(args[0].toBool());
+		; // TODO server().fileinfo.etag_consider_size(args[0].toBool());
 	else
-		result.set(server().fileinfo.etag_consider_size());
+		; // TODO result.set(server().fileinfo.etag_consider_size());
 }
 
 void HttpCore::etag_inode(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		server().fileinfo.etag_consider_inode(args[0].toBool());
+		; // TODO server().fileinfo.etag_consider_inode(args[0].toBool());
 	else
-		result.set(server().fileinfo.etag_consider_inode());
+		; // TODO result.set(server().fileinfo.etag_consider_inode());
 }
 
 void HttpCore::server_advertise(Flow::Value& result, const Params& args)
@@ -272,6 +273,14 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 	result.set(listener == NULL);
 }
 
+void HttpCore::workers(Flow::Value& result, const Params& args)
+{
+	size_t count = args.count() == 1 ? args[0].toNumber() : 1;
+
+	for (size_t i = 1; i < count; ++i)
+		server_.spawnWorker();
+}
+
 void HttpCore::logfile(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1)
@@ -372,7 +381,7 @@ bool HttpCore::matchIndex(HttpRequest *in, const Flow::Value& arg)
 				ipath += "/";
 			ipath += arg.toString();
 
-			if (x0::FileInfoPtr fi = in->connection.server().fileinfo(ipath))
+			if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(ipath))
 			{
 				if (fi->is_regular())
 				{
@@ -402,7 +411,7 @@ bool HttpCore::docroot(HttpRequest *in, HttpResponse *out, const Params& args)
 		return false;
 
 	in->document_root = args[0].toString();
-	in->fileinfo = server().fileinfo(in->document_root + in->path);
+	in->fileinfo = in->connection.worker().fileinfo(in->document_root + in->path);
 	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
 
 	return redirectOnIncompletePath(in, out);
@@ -436,7 +445,7 @@ bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
 
 	if (in->path.begins(prefix))
 	{
-		in->fileinfo = in->connection.server().fileinfo(alias + in->path.substr(prefixLength));
+		in->fileinfo = in->connection.worker().fileinfo(alias + in->path.substr(prefixLength));
 		printf("resolve_entity: %s [%s]: %s (%d)\n", prefix.c_str(), in->path.str().c_str(), in->fileinfo->filename().c_str(), in->fileinfo->exists());
 	}
 

@@ -34,11 +34,17 @@ HttpWorker::~HttpWorker()
 
 void HttpWorker::run()
 {
-	ev_loop(loop_, 0);
+	printf("HttpWorker.run() enter\n");
+	while (true)
+	{
+		ev_loop(loop_, 0);
+	}
+	printf("HttpWorker.run() leave\n");
 }
 
 void HttpWorker::onNewConnection(ev::async& w, int revents)
 {
+	// pop a handle from new-connection fifo, spawn HttpConnection with it and pass us as owner.
 }
 
 void HttpWorker::onSuspend(ev::async& w, int revents)

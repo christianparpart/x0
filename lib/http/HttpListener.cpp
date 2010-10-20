@@ -155,6 +155,15 @@ bool HttpListener::start()
 
 void HttpListener::callback(ev::io& watcher, int revents)
 {
+	HttpWorker::Task task;
+
+	task.fd = ::accept(handle(), reinterpret_cast<sockaddr *>(&task.saddr), &task.slen);
+	if (task.fd < 0)
+		return;
+
+	server().selectWorker().enqueue(task);
+
+#if 0 // TODO
 	// TODO accept() as much until it would block.
 	if (HttpConnection *c = new HttpConnection(*this))
 	{
@@ -164,6 +173,7 @@ void HttpListener::callback(ev::io& watcher, int revents)
 			// TODO: introduce a PREPARE mode, that would defer the code fragment below - required for SSL handshaking, which takes place *before* processing the HTTP request
 			c->start();
 	}
+#endif
 }
 
 std::string HttpListener::address() const

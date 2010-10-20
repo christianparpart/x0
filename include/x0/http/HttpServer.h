@@ -11,7 +11,6 @@
 
 #include <x0/http/HttpContext.h>
 #include <x0/http/Types.h>
-#include <x0/io/FileInfoService.h>
 #include <x0/DateTime.h>
 #include <x0/Property.h>
 #include <x0/Library.h>
@@ -31,7 +30,7 @@
 #include <list>
 #include <map>
 
-#include <ev.h>
+#include <ev++.h>
 
 class x0d; // friend declared in HttpServer
 
@@ -239,7 +238,6 @@ public:
 	value_property<bool> tcp_nodelay;
 	value_property<std::string> tag;
 	value_property<bool> advertise;
-	FileInfoService fileinfo;
 };
 
 // {{{ inlines

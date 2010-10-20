@@ -98,8 +98,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	tcp_cork(false),
 	tcp_nodelay(false),
 	tag("x0/" VERSION),
-	advertise(true),
-	fileinfo(loop_)
+	advertise(true)
 {
 	runner_ = new Flow::Runner(this);
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
@@ -264,12 +263,12 @@ HttpWorker *HttpServer::spawnWorker()
 
 	HttpWorker *worker = new HttpWorker(*this, loop);
 
-	workers_.push_back(worker);
-
 	if (!workers_.empty())
 	{
 		pthread_create(&worker->thread_, NULL, &HttpServer::runWorker, worker);
 	}
+
+	workers_.push_back(worker);
 
 	return worker;
 }
@@ -324,7 +323,7 @@ void HttpServer::run()
 
 	while (active_)
 	{
-		ev_loop(loop_, ev::ONESHOT);
+		workers_.front()->run();
 	}
 }
 

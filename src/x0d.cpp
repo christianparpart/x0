@@ -164,11 +164,13 @@ public:
 		gsub(source, "#{port}", port);
 
 		// initialize some default settings (fileinfo)
+#if 0
 		server_->fileinfo.load_mimetypes("/etc/mime.types");
 		server_->fileinfo.default_mimetype("application/octet-stream");
 		server_->fileinfo.etag_consider_mtime(true);
 		server_->fileinfo.etag_consider_size(true);
 		server_->fileinfo.etag_consider_inode(false);
+#endif
 
 		server_->tcp_cork = true;
 
