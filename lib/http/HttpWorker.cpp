@@ -10,12 +10,15 @@
 
 namespace x0 {
 
+unsigned HttpWorker::idpool_ = 0;
+
 HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
+	id_(idpool_++),
 	server_(server),
 	loop_(loop),
 	connectionLoad_(0),
 	thread_(),
-	exit_(false),
+	state_(Active),
 	queue_(),
 	evNewConnection_(loop_),
 	evSuspend_(loop_),
@@ -48,58 +51,57 @@ HttpWorker::~HttpWorker()
 {
 }
 
+unsigned HttpWorker::load() const
+{
+	return connectionLoad_;
+}
+
 void HttpWorker::run()
 {
-	printf("HttpWorker.run() enter\n");
-
-	while (!exit_)
+	while (state_ != Exiting)
 	{
-		printf("%f: HttpWorker.run:\n", ev_now(loop_));
 		ev_loop(loop_, EVLOOP_ONESHOT);
 	}
-
-	printf("HttpWorker.run() leave (%d)\n", exit_);
 }
 
 void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
 {
-	printf("HttpWorker.enqueue() fd:%d\n", client.first);
 	queue_.push_back(client);
 	evNewConnection_.send();
-	printf("HttpWorker.enqueue() leave\n");
 }
 
 void HttpWorker::onNewConnection(ev::async& w, int revents)
 {
-	printf("%f: HttpWorker.onNewConnection() enter\n", ev_now(loop_));
-	std::pair<int, HttpListener *> client(queue_.front());
-	queue_.pop_front();
+	while (!queue_.empty())
+	{
+		std::pair<int, HttpListener *> client(queue_.front());
+		queue_.pop_front();
 
-	printf("%f: HttpWorker.onNewConnection() fd:%d\n", ev_now(loop_), client.first);
+		printf("HttpWorker/%d client connected; fd:%d\n", id_, client.first);
 
-	HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
+		++connectionLoad_;
+		HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
 
-	if (conn->isClosed())
-		delete conn;
-	else
-		conn->start();
+		if (conn->isClosed())
+			delete conn;
+		else
+			conn->start();
+	}
 }
 
 void HttpWorker::onSuspend(ev::async& w, int revents)
 {
-	printf("%f: HttpWorker.onSuspend!\n", ev_now(loop_));
+	state_ = Inactive;
 }
 
 void HttpWorker::onResume(ev::async& w, int revents)
 {
-	printf("%f: HttpWorker.onResume!\n", ev_now(loop_));
+	state_ = Active;
 }
 
 void HttpWorker::onExit(ev::async& w, int revents)
 {
-	printf("%f: HttpWorker.onExit! (pending:%d)\n", ev_now(loop_), evExit_.async_pending());
-
-	exit_ = true;
+	state_ = Exiting;
 }
 
 } // namespace x0

@@ -229,7 +229,7 @@ private:
 	DateTime now_;
 	ev::check loop_check_;
 	HttpCore *core_;
-	std::list<HttpWorker *> workers_;
+	std::vector<HttpWorker *> workers_;
 	FileInfoService::Config fileinfoConfig_;
 
 public:

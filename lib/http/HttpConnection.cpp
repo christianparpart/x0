@@ -94,6 +94,8 @@ HttpConnection::~HttpConnection()
 	TRACE("~(%p)", this);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
+	--worker_.connectionLoad_;
+
 	try
 	{
 		server_.onConnectionClose(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though

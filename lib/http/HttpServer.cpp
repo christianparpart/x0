@@ -275,8 +275,19 @@ HttpWorker *HttpServer::spawnWorker()
 
 HttpWorker *HttpServer::selectWorker()
 {
-	// TODO: select *some* worker (not just one worker)
-	return workers_.back();
+	HttpWorker *best = workers_[0];
+	unsigned value = 1;
+
+	for (size_t i = 1, e = workers_.size(); i != e; ++i)
+	{
+		HttpWorker *w = workers_[i];
+		if (w->load() < value) {
+			value = best->load();
+			best = w;
+		}
+	}
+
+	return best;
 }
 
 void HttpServer::destroyWorker(HttpWorker *worker)
