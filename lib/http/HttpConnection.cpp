@@ -34,76 +34,6 @@
 
 namespace x0 {
 
-#if !defined(NDEBUG) // {{{ struct ConnectionLogger
-struct ConnectionLogger :
-	public CustomData
-{
-private:
-	static unsigned connection_counter;
-
-	HttpServer& server_;
-	ev::tstamp start_;
-	unsigned cid_;
-	unsigned rcount_;
-	FILE *fp;
-
-private:
-	template<typename... Args>
-	void log(Severity s, const char *fmt, Args&& ... args)
-	{
-		server_.log(s, fmt, args...);
-
-		if (fp)
-		{
-			fprintf(fp, "%.4f ", ev_now(server_.loop()));
-			fprintf(fp, fmt, args...);
-			fprintf(fp, "\n");
-			fflush(fp);
-		}
-	}
-
-public:
-	explicit ConnectionLogger(HttpServer& server) :
-		server_(server),
-		start_(ev_now(server.loop())),
-		cid_(++connection_counter),
-		rcount_(0),
-		fp(NULL)
-	{
-
-		char buf[1024];
-		snprintf(buf, sizeof(buf), "c-io-%04d.log", id());
-		fp = fopen(buf, "w");
-
-		log(Severity::info, "HttpConnection[%d] opened.", id());
-	}
-
-	ev::tstamp connection_time() const { return ev_now(server_.loop()) - start_; }
-	unsigned id() const { return cid_; }
-	unsigned request_count() const { return rcount_; }
-
-	void log(const BufferRef& buf)
-	{
-		fprintf(fp, "%.4f %ld\r\n", ev_now(server_.loop()), buf.size());
-		fwrite(buf.data(), buf.size(), 1, fp);
-		fprintf(fp, "\r\n");
-		fflush(fp);
-	}
-
-	~ConnectionLogger()
-	{
-		log(Severity::info, "HttpConnection[%d] closed. timing: %.4f (nreqs: %d)",
-				id(), connection_time(), request_count());
-
-		if (fp)
-			fclose(fp);
-	}
-};
-
-unsigned ConnectionLogger::connection_counter = 0;
-#endif
-// }}}
-
 /**
  * \class HttpConnection
  * \brief represents an HTTP connection handling incoming requests.
@@ -147,10 +77,6 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 #if defined(TCP_NODELAY)
 	if (server_.tcp_nodelay())
 		socket_->setTcpNoDelay(true);
-#endif
-
-#if !defined(NDEBUG)
-	//custom_data[(HttpPlugin *)this] = std::make_shared<ConnectionLogger>(server_);
 #endif
 
 	server_.onConnectionOpen(this);
@@ -497,11 +423,6 @@ void HttpConnection::processInput()
 
 		//std::size_t offset = buffer_.size();
 		//buffer_.resize(offset + rv);
-
-#if !defined(NDEBUG)
-//		if (auto cs = std::static_pointer_cast<ConnectionLogger>(custom_data[(HttpPlugin *)this]))
-//			cs->log(buffer_.ref(offset, rv));
-#endif
 
 		process();
 
