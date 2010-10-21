@@ -94,7 +94,7 @@ HttpConnection::~HttpConnection()
 	TRACE("~(%p)", this);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
-	--worker_.connectionLoad_;
+	worker_.release(this);
 
 	try
 	{

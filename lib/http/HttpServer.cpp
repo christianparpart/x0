@@ -403,7 +403,10 @@ void HttpServer::stop()
 			(*k)->stop();
 		}
 
-		ev_unloop(loop_, ev::ALL);
+		for (auto i = workers_.begin(), e = workers_.end(); i != e; ++i)
+			(*i)->evExit_.send();
+
+		//ev_unloop(loop_, ev::ALL);
 	}
 }
 

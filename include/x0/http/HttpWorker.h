@@ -33,14 +33,12 @@ private:
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
+	mutable pthread_spinlock_t queueLock_;
 
 	ev::async evNewConnection_;
 	ev::async evSuspend_;
 	ev::async evResume_;
 	ev::async evExit_;
-
-	// list of connections
-	// stat() cache
 
 	friend class HttpServer;
 	friend class HttpConnection;
@@ -60,6 +58,7 @@ public:
 	unsigned load() const;
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
+	void release(HttpConnection *connection);
 
 protected:
 	virtual void run();

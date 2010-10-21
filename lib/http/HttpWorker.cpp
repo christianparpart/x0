@@ -28,12 +28,15 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 {
 	evNewConnection_.set<HttpWorker, &HttpWorker::onNewConnection>(this);
 	evNewConnection_.start();
+	ev_unref(loop_);
 
 	evSuspend_.set<HttpWorker, &HttpWorker::onSuspend>(this);
 	evSuspend_.start();
+	ev_unref(loop_);
 
 	evResume_.set<HttpWorker, &HttpWorker::onResume>(this);
 	evResume_.start();
+	ev_unref(loop_);
 
 	evExit_.set<HttpWorker, &HttpWorker::onExit>(this);
 	evExit_.start();
@@ -45,41 +48,71 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	ev_async_set(&evResume_);
 	ev_async_set(&evExit_);
 #endif
+
+	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
 }
 
 HttpWorker::~HttpWorker()
 {
-}
-
-unsigned HttpWorker::load() const
-{
-	return connectionLoad_;
+	pthread_spin_destroy(&queueLock_);
 }
 
 void HttpWorker::run()
 {
 	while (state_ != Exiting)
 	{
-		ev_loop(loop_, EVLOOP_ONESHOT);
+		printf("HttpWorker/%d enter loop\n", id_);
+		ev_loop(loop_, 0);
 	}
 }
 
+/** enqueues/assigns/registers given client connection information to this worker.
+ */
 void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
 {
+	pthread_spin_lock(&queueLock_);
 	queue_.push_back(client);
 	evNewConnection_.send();
+	pthread_spin_unlock(&queueLock_);
 }
 
-void HttpWorker::onNewConnection(ev::async& w, int revents)
+/** releases/unregisters given (and to-be-destroyed) connection from this worker.
+ *
+ * This decrements the connection-load counter by one.
+ */
+void HttpWorker::release(HttpConnection *)
+{
+	pthread_spin_lock(&queueLock_);
+	--connectionLoad_;
+	pthread_spin_unlock(&queueLock_);
+}
+
+unsigned HttpWorker::load() const
+{
+	// XXX  I am reusing queueLock for the connection-count variable as they're tight coupled.
+	// TODO Change this if it results into bad performance impacts :)
+
+	pthread_spin_lock(&queueLock_);
+	unsigned result = connectionLoad_;
+	pthread_spin_unlock(&queueLock_);
+
+	return result;
+}
+
+/** callback to be invoked when new connection(s) have been assigned to this worker.
+ */
+void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 {
 	while (!queue_.empty())
 	{
+		pthread_spin_lock(&queueLock_);
 		std::pair<int, HttpListener *> client(queue_.front());
 		queue_.pop_front();
+		++connectionLoad_;
+		pthread_spin_unlock(&queueLock_);
 
 		printf("HttpWorker/%d client connected; fd:%d\n", id_, client.first);
 
-		++connectionLoad_;
 		HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
 
 		if (conn->isClosed())
@@ -101,6 +134,18 @@ void HttpWorker::onResume(ev::async& w, int revents)
 
 void HttpWorker::onExit(ev::async& w, int revents)
 {
+	printf("HttpWorker/%d onExit\n", id_);
+	ev_ref(loop_);
+	evNewConnection_.stop();
+
+	ev_ref(loop_);
+	evSuspend_.stop();
+
+	ev_ref(loop_);
+	evResume_.stop();
+
+	evExit_.stop();
+
 	state_ = Exiting;
 }
 
