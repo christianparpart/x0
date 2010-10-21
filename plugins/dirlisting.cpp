@@ -127,7 +127,7 @@ private:
 		sstr << "</ul>\n";
 
 		sstr << "<hr/>\n";
-		sstr << "<small><pre>" << in->connection.server().tag() << "</pre></small><br/>\n";
+		sstr << "<small><pre>" << in->connection.worker().server().tag() << "</pre></small><br/>\n";
 
 		sstr << "</body></html>\n";
 

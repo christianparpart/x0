@@ -10,7 +10,6 @@
 #define x0_connection_h (1)
 
 #include <x0/http/HttpMessageProcessor.h>
-#include <x0/http/HttpServer.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
@@ -56,7 +55,6 @@ public:
 
 	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
 	HttpWorker& worker();						//!< Retrieves a reference to the owning worker.
-	HttpServer& server();						//!< Retrieves a reference to the server instance.
 
 	std::string remoteIP() const;				//!< Retrieves the IP address of the remote end point (client).
 	unsigned int remotePort() const;			//!< Retrieves the TCP port numer of the remote end point (client).
@@ -111,7 +109,6 @@ public:
 private:
 	HttpListener& listener_;
 	HttpWorker& worker_;
-	HttpServer& server_;				//!< server object owning this connection
 
 	Socket *socket_;					//!< underlying communication socket
 	bool active_;						//!< socket is active (some I/O event raised within this cycle)
@@ -147,11 +144,6 @@ inline Socket *HttpConnection::socket() const
 inline HttpWorker& HttpConnection::worker()
 {
 	return worker_;
-}
-
-inline HttpServer& HttpConnection::server()
-{
-	return server_;
 }
 
 /** write source into the connection stream and notifies the handler on completion.

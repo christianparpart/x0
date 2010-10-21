@@ -87,8 +87,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	pluginDirectory_(PLUGINDIR),
 	plugins_(),
 	pluginLibraries_(),
-	now_(),
-	loop_check_(loop_),
 	core_(0),
 	workers_(),
 	max_connections(512),
@@ -103,21 +101,14 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	runner_ = new Flow::Runner(this);
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
 
-	auto nowfn = std::bind(&DateTime::htlog_str, &now_);
-	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
-
 	HttpResponse::initialize();
 
+	spawnWorker(); // main worker
+
+	auto nowfn = std::bind(&DateTime::htlog_str, &workers_[0]->now_);
+	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
+
 	registerPlugin(core_ = new HttpCore(*this));
-
-	loop_check_.set<HttpServer, &HttpServer::loop_check>(this);
-	loop_check_.start();
-}
-
-void HttpServer::loop_check(ev::check& /*w*/, int /*revents*/)
-{
-	// update server time
-	now_.update(static_cast<time_t>(ev_now(loop_)));
 }
 
 HttpServer::~HttpServer()
@@ -149,8 +140,6 @@ bool HttpServer::setup(std::istream *settings)
 		perror("open");
 		return false;
 	}
-
-	spawnWorker();
 
 	unit_ = parser.parse();
 	if (!unit_)

@@ -2,6 +2,7 @@
 #define x0_http_HttpWorker_h (1)
 
 #include <x0/io/FileInfoService.h>
+#include <x0/DateTime.h>
 
 #include <deque>
 #include <ev++.h>
@@ -29,17 +30,20 @@ private:
 	unsigned id_;
 	HttpServer& server_;
 	struct ev_loop *loop_;
+	DateTime now_;
 	sig_atomic_t connectionLoad_;
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
+	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
 	ev::async evSuspend_;
 	ev::async evResume_;
 	ev::async evExit_;
 
+	friend class HttpCore;
 	friend class HttpServer;
 	friend class HttpConnection;
 
@@ -49,6 +53,8 @@ public:
 public:
 	HttpWorker(HttpServer& server, struct ev_loop *loop);
 	~HttpWorker();
+
+	const DateTime& now() const;
 
 	unsigned id() const;
 	struct ev_loop *loop() const;
@@ -63,6 +69,7 @@ public:
 protected:
 	virtual void run();
 
+	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
 	void onSuspend(ev::async& w, int revents);
 	void onResume(ev::async& w, int revents);
@@ -88,6 +95,11 @@ inline HttpServer& HttpWorker::server() const
 inline HttpWorker::State HttpWorker::state() const
 {
 	return state_;
+}
+
+inline const DateTime& HttpWorker::now() const
+{
+	return now_;
 }
 // }}}
 

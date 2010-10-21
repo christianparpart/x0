@@ -10,8 +10,12 @@
 #define x0_http_request_h (1)
 
 #include <x0/http/HttpHeader.h>
+#include <x0/http/HttpConnection.h>
+#include <x0/http/HttpServer.h>
 #include <x0/io/FileInfo.h>
+#include <x0/Severity.h>
 #include <x0/Buffer.h>
+#include <x0/BufferRef.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
@@ -77,6 +81,9 @@ public:
 	bool content_available() const;
 	bool read(const std::function<void(BufferRef&&)>& callback);
 
+	template<typename... Args>
+	void log(Severity s, Args&&... args);
+
 private:
 	mutable std::string hostid_;
 	std::function<void(BufferRef&&)> read_callback_;
@@ -120,6 +127,12 @@ inline bool HttpRequest::supports_protocol(int major, int minor) const
 		return true;
 
 	return false;
+}
+
+template<typename... Args>
+inline void HttpRequest::log(Severity s, Args&&... args)
+{
+	connection.worker().server().log(s, args...);
 }
 // }}}
 

@@ -15,17 +15,9 @@ caseStmt ::=
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
+- [minor] merge HttpResponse API into HttpRequest?
+	they both belong very tight together anyway.
 - [major] HTTP POST: proxy, cgi
-- allow multiple search paths for plugins *or* a way in specifying path to the plugin directly.
-	Plugins = {
-		DefaultPath = './plugins/',
-		Load = {
-			'staticfile.so',
-			'echo_example.so',
-			'hello_example.so',
-			'../path/to/foo.so',
-		};
-	};
 - verify proxy plugin / web_client
 - fix HTTP POST content (req. for yacs)
 - fuck up exceptions in favor of std::error_code (in core and plugins)

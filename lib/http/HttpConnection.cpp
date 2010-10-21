@@ -10,7 +10,6 @@
 #include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
-#include <x0/http/HttpServer.h>
 #include <x0/SocketDriver.h>
 #include <x0/StackTrace.h>
 #include <x0/Socket.h>
@@ -53,7 +52,6 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	secure(false),
 	listener_(lst),
 	worker_(w),
-	server_(lst.server()),
 	socket_(0),
 	active_(true), // when this is constricuted, it *must* be active right now :) 
 	buffer_(8192),
@@ -75,11 +73,11 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	TRACE("(%p): fd=%d", this, socket_->handle());
 
 #if defined(TCP_NODELAY)
-	if (server_.tcp_nodelay())
+	if (worker_.server_.tcp_nodelay())
 		socket_->setTcpNoDelay(true);
 #endif
 
-	server_.onConnectionOpen(this);
+	worker_.server_.onConnectionOpen(this);
 }
 
 /** releases all connection resources  and triggers the onConnectionClose event.
@@ -98,7 +96,7 @@ HttpConnection::~HttpConnection()
 
 	try
 	{
-		server_.onConnectionClose(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
+		worker_.server_.onConnectionClose(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
 	}
 	catch (...)
 	{
@@ -321,12 +319,12 @@ bool HttpConnection::messageHeaderEnd()
 			response_->finish();
 		}
 		else
-			server_.handleRequest(request_, response_);
+			worker_.server_.handleRequest(request_, response_);
 	}
 	else
-		server_.handleRequest(request_, response_);
+		worker_.server_.handleRequest(request_, response_);
 #else
-	server_.handleRequest(request_, response_);
+	worker_.server_.handleRequest(request_, response_);
 #endif
 
 	return true;
@@ -380,8 +378,8 @@ void HttpConnection::resume()
 void HttpConnection::startRead()
 {
 	int timeout = request_count_ && state() == MESSAGE_BEGIN
-		? server_.max_keep_alive_idle()
-		: server_.max_read_idle();
+		? worker_.server_.max_keep_alive_idle()
+		: worker_.server_.max_read_idle();
 
 	if (timeout > 0)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);

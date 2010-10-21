@@ -127,9 +127,6 @@ public:
 
 	struct ::ev_loop *loop() const;
 
-	/** retrieves the current server time. */
-	const DateTime& now() const;
-
 	HttpCore& core() const;
 
 	const std::list<HttpListener *>& listeners() const;
@@ -139,59 +136,8 @@ public:
 
 	void dumpIR() const; // for debugging purpose
 
-private: // {{{ flow backend API
+public: // Flow::Backend overrides
 	virtual void import(const std::string& name, const std::string& path);
-
-	// flow core API (setup stage)
-	static void flow_plugin_directory(void *p, int argc, Flow::Value *argv);
-	static void flow_plugin_load(void *p, int argc, Flow::Value *argv);
-	static void flow_mimetypes(void *p, int argc, Flow::Value *argv);
-	static void flow_listen(void *p, int argc, Flow::Value *argv);
-	static void flow_group(void *p, int argc, Flow::Value *argv);
-	static void flow_user(void *p, int argc, Flow::Value *argv);
-
-	// flow core API (general)
-	static void flow_log(void *p, int argc, Flow::Value *argv);
-	bool printValue(const Flow::Value& value);
-	static void flow_sys_env(void *p, int argc, Flow::Value *argv);
-	static void flow_sys_cwd(void *p, int argc, Flow::Value *argv);
-	static void flow_sys_pid(void *p, int argc, Flow::Value *argv);
-	static void flow_sys_now(void *p, int argc, Flow::Value *argv);
-	static void flow_sys_now_str(void *p, int argc, Flow::Value *argv);
-
-	// flow API: (main)
-	// (request)
-	static void flow_req_docroot(void *p, int argc, Flow::Value *argv);
-	static void flow_req_method(void *p, int argc, Flow::Value *argv);
-	static void flow_req_url(void *p, int argc, Flow::Value *argv);
-	static void flow_req_path(void *p, int argc, Flow::Value *argv);
-	static void flow_req_header(void *p, int argc, Flow::Value *argv);
-	static void flow_hostname(void *p, int argc, Flow::Value *argv);
-
-	// (response)
-	static void flow_redirect(void *p, int argc, Flow::Value *argv);
-	static void flow_respond(void *p, int argc, Flow::Value *argv);
-	static void flow_header_add(void *p, int argc, Flow::Value *argv);
-	static void flow_header_append(void *p, int argc, Flow::Value *argv);
-	static void flow_header_overwrite(void *p, int argc, Flow::Value *argv);
-	static void flow_header_remove(void *p, int argc, Flow::Value *argv);
-
-	// (connection)
-	static void flow_remote_ip(void *p, int argc, Flow::Value *argv);
-	static void flow_remote_port(void *p, int argc, Flow::Value *argv);
-	static void flow_local_ip(void *p, int argc, Flow::Value *argv);
-	static void flow_local_port(void *p, int argc, Flow::Value *argv);
-
-	// (physical file)
-	static void flow_phys_exists(void *p, int argc, Flow::Value *argv);
-	static void flow_phys_is_dir(void *p, int argc, Flow::Value *argv);
-	static void flow_phys_is_reg(void *p, int argc, Flow::Value *argv);
-	static void flow_phys_is_exe(void *p, int argc, Flow::Value *argv);
-	static void flow_phys_mtime(void *p, int argc, Flow::Value *argv);
-	static void flow_phys_size(void *p, int argc, Flow::Value *argv);
-	static void flow_phys_etag(void *p, int argc, Flow::Value *argv);
-	static void flow_phys_mimetype(void *p, int argc, Flow::Value *argv);
-	// }}}
 
 private:
 #if defined(WITH_SSL)
@@ -205,7 +151,6 @@ private:
 
 private:
 	void handleRequest(HttpRequest *in, HttpResponse *out);
-	void loop_check(ev::check& w, int revents);
 
 	static void *runWorker(void *);
 
@@ -226,8 +171,6 @@ private:
 	std::string pluginDirectory_;
 	std::vector<HttpPlugin *> plugins_;
 	std::map<HttpPlugin *, Library> pluginLibraries_;
-	DateTime now_;
-	ev::check loop_check_;
 	HttpCore *core_;
 	std::vector<HttpWorker *> workers_;
 	FileInfoService::Config fileinfoConfig_;
@@ -257,11 +200,6 @@ inline Logger *HttpServer::logger() const
 inline struct ::ev_loop *HttpServer::loop() const
 {
 	return loop_;
-}
-
-inline const DateTime& HttpServer::now() const
-{
-	return now_;
 }
 
 inline HttpCore& HttpServer::core() const

@@ -125,7 +125,7 @@ SourcePtr HttpResponse::serialize()
 	}
 
 	// post-response hook
-	connection_->server().onPostProcess(const_cast<HttpRequest *>(request_), this);
+	connection_->worker().server().onPostProcess(const_cast<HttpRequest *>(request_), this);
 
 	// setup (connection-level) response transfer
 	if (!headers.contains("Content-Length") && !content_forbidden())
@@ -154,7 +154,7 @@ SourcePtr HttpResponse::serialize()
 		keepalive = true;
 	}
 
-	if (!connection_->server().max_keep_alive_idle())
+	if (!connection_->worker().server().max_keep_alive_idle())
 		keepalive = false;
 
 	keepalive = false; // XXX workaround
@@ -162,7 +162,7 @@ SourcePtr HttpResponse::serialize()
 	if (!keepalive)
 		headers.overwrite("Connection", "close");
 
-	if (!keepalive && connection_->server().tcp_cork())
+	if (!keepalive && connection_->worker().server().tcp_cork())
 		connection_->socket()->setTcpCork(true);
 
 	if (request_->supports_protocol(1, 1))
@@ -208,10 +208,11 @@ HttpResponse::HttpResponse(HttpConnection *connection, HttpError _status) :
 {
 	//TRACE("HttpResponse(%p, conn=%p)", this, connection_);
 
-	headers.push_back("Date", connection_->server().now().http_str().str());
+	// TODO: use worker::now() instead!
+	headers.push_back("Date", connection_->worker().now().http_str().str());
 
-	if (connection_->server().advertise() && !connection_->server().tag().empty())
-		headers.push_back("Server", connection_->server().tag());
+	if (connection_->worker().server().advertise() && !connection_->worker().server().tag().empty())
+		headers.push_back("Server", connection_->worker().server().tag());
 }
 
 std::string HttpResponse::status_str(HttpError value)
@@ -227,7 +228,7 @@ void HttpResponse::onFinished(int ec)
 	//TRACE("HttpResponse(%p).onFinished(%d)", this, ec);
 
 	{
-		HttpServer& srv = request_->connection.server();
+		HttpServer& srv = request_->connection.worker().server();
 
 		// log request/response
 		srv.onRequestDone(const_cast<HttpRequest *>(request_), this);

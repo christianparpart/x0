@@ -288,7 +288,7 @@ void HttpCore::logfile(Flow::Value& result, const Params& args)
 		if (args[0].isString())
 		{
 			const char *filename = args[0].toString();
-			auto nowfn = std::bind(&DateTime::htlog_str, &server_.now_);
+			auto nowfn = std::bind(&DateTime::htlog_str, &server_.workers_[0]->now_);
 			server_.logger_.reset(new FileLogger<decltype(nowfn)>(filename, nowfn));
 		}
 	}
@@ -335,12 +335,12 @@ void HttpCore::sys_pid(Flow::Value& result, const Params& args)
 
 void HttpCore::sys_now(Flow::Value& result, const Params& args)
 {
-	result.set(static_cast<uint64_t>(server().now_.unixtime()));
+	result.set(static_cast<uint64_t>(server().workers_[0]->now_.unixtime()));
 }
 
 void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
 {
-	result.set(server().now_.http_str().c_str());
+	result.set(server().workers_[0]->now_.http_str().c_str());
 }
 // }}}
 
@@ -455,7 +455,7 @@ bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
 void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	if (!in->fileinfo) {
-		in->connection.server().log(Severity::error,
+		in->log(Severity::error,
 				"pathinfo: no file information available. Please set document root first.");
 		return;
 	}

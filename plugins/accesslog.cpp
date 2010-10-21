@@ -132,7 +132,7 @@ private:
 			sstr << hostname(in);
 			sstr << " - "; // identity as of identd
 			sstr << username(in) << ' ';
-			sstr << server_.now().htlog_str().c_str() << " \"";
+			sstr << in->connection.worker().now().htlog_str().c_str() << " \"";
 			sstr << request_line(in) << "\" ";
 			sstr << static_cast<int>(out->status) << ' ';
 			sstr << out->headers["Content-Length"] << ' ';

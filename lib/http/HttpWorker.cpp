@@ -16,16 +16,21 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	id_(idpool_++),
 	server_(server),
 	loop_(loop),
+	now_(),
 	connectionLoad_(0),
 	thread_(),
 	state_(Active),
 	queue_(),
+	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
 	evSuspend_(loop_),
 	evResume_(loop_),
 	evExit_(loop_),
 	fileinfo(loop_, &server_.fileinfoConfig_)
 {
+	evLoopCheck_.set<HttpWorker, &HttpWorker::onLoopCheck>(this);
+	evLoopCheck_.start();
+
 	evNewConnection_.set<HttpWorker, &HttpWorker::onNewConnection>(this);
 	evNewConnection_.start();
 	ev_unref(loop_);
@@ -147,6 +152,12 @@ void HttpWorker::onExit(ev::async& w, int revents)
 	evExit_.stop();
 
 	state_ = Exiting;
+}
+
+void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)
+{
+	// update server time
+	now_.update(static_cast<time_t>(ev_now(loop_)));
 }
 
 } // namespace x0

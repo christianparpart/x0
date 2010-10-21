@@ -112,7 +112,7 @@ private:
 
 	// child exit watcher
 	void onChild(ev::child&, int revents);
-
+	void onCheckDestroy(ev::async& w, int revents);
 	bool checkDestroy();
 
 private:
@@ -129,7 +129,8 @@ private:
 
 private:
 	struct ev_loop *loop_;
-	ev::child childWatcher_;		//!< watcher for child-exit event
+	ev::child evChild_;		//!< watcher for child-exit event
+	ev::async evCheckDestroy_;
 
 	x0::HttpRequest *request_;
 	x0::HttpResponse *response_;
@@ -141,10 +142,10 @@ private:
 
 	unsigned long long serial_;				//!< used to detect wether the cgi process actually generated a response or not.
 
-	ev::io inwatch_;
-	ev::io outwatch_;
-	ev::io errwatch_;
-	ev::timer ttl_;
+	ev::io evStdin_;						//!< cgi script's stdin watcher
+	ev::io evStdout_;						//!< cgi script's stdout watcher
+	ev::io evStderr_;						//!< cgi script's stderr watcher
+	ev::timer ttl_;							//!< TTL watcher
 
 	std::function<void()> done_;			//!< should call at least HttpResponse::finish()
 
@@ -160,17 +161,18 @@ private:
 
 CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
-	loop_(in->connection.server().loop()),
-	childWatcher_(loop_),
+	loop_(in->connection.worker().loop()),
+	evChild_(in->connection.worker().server().loop()),
+	evCheckDestroy_(loop_),
 	request_(in),
 	response_(out),
 	hostprogram_(hostprogram),
 	process_(loop_),
 	outbuf_(), errbuf_(),
 	serial_(0),
-	inwatch_(loop_),
-	outwatch_(loop_),
-	errwatch_(loop_),
+	evStdin_(loop_),
+	evStdout_(loop_),
+	evStderr_(loop_),
 	ttl_(loop_),
 	done_(done),
 	stdinTransferBuffer_(),
@@ -182,9 +184,9 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0:
 {
 	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 
-	inwatch_.set<CgiScript, &CgiScript::onStdinReady>(this);
-	outwatch_.set<CgiScript, &CgiScript::onStdoutAvailable>(this);
-	errwatch_.set<CgiScript, &CgiScript::onStderrAvailable>(this);
+	evStdin_.set<CgiScript, &CgiScript::onStdinReady>(this);
+	evStdout_.set<CgiScript, &CgiScript::onStdoutAvailable>(this);
+	evStderr_.set<CgiScript, &CgiScript::onStderrAvailable>(this);
 }
 
 CgiScript::~CgiScript()
@@ -193,9 +195,22 @@ CgiScript::~CgiScript()
 	done_();
 }
 
+/** callback, invoked when child process status changed.
+ *
+ * \note This is potentially <b>NOT</b> from within the thread the CGI script is
+ * being handled in, which is, because child process may be only watched
+ * from within the default (main) event loop, which is an indirect restriction
+ * by libev.
+ */
 void CgiScript::onChild(ev::child&, int revents)
 {
 	TRACE("onChild(0x%x)\n", revents);
+	evCheckDestroy_.send();
+}
+
+void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/)
+{
+	TRACE("onCheckDestroy()\n");
 	checkDestroy();
 }
 
@@ -215,7 +230,7 @@ bool CgiScript::checkDestroy()
 	// child still running?
 	if (process_.expired())
 		outputFlags_ |= ChildClosed;
-	
+
 	// child's stdout still open?
 	if ((outputFlags_ & OutputClosed) == OutputClosed)
 	{
@@ -223,6 +238,7 @@ bool CgiScript::checkDestroy()
 		delete this;
 		return true;
 	}
+
 	TRACE("checkDestroy: failed (0x%04x)", outputFlags_);
 	return false;
 }
@@ -342,15 +358,22 @@ inline void CgiScript::runAsync()
 #endif
 
 	// redirect process_'s stdout/stderr to own member functions to handle its response
-	outwatch_.start(process_.output(), ev::READ);
-	errwatch_.start(process_.output(), ev::READ);
+	evStdout_.start(process_.output(), ev::READ);
+	evStderr_.start(process_.output(), ev::READ);
 
 	// actually start child process
 	process_.start(hostprogram, params, environment, workdir);
 
-	childWatcher_.set<CgiScript, &CgiScript::onChild>(this);
-	childWatcher_.set(process_.id(), false);
-	childWatcher_.start();
+	evChild_.set<CgiScript, &CgiScript::onChild>(this);
+	evChild_.set(process_.id(), false);
+	evChild_.start();
+
+	evCheckDestroy_.set<CgiScript, &CgiScript::onCheckDestroy>(this);
+	evCheckDestroy_.start();
+#if !defined(NO_BUGGY_EVXX)
+	// libev's ev++ (at least till version 3.80) does not initialize `sent` to zero)
+	ev_async_set(&evCheckDestroy_);
+#endif
 }
 
 /** writes request body chunk into stdin.
@@ -370,7 +393,7 @@ void CgiScript::onStdinAvailable(x0::BufferRef&& chunk)
 	// watch for stdin readiness to start/resume transfer
 	if (stdinTransferMode_ != StdinActive)
 	{
-		inwatch_.start(process_.input(), ev::WRITE);
+		evStdin_.start(process_.input(), ev::WRITE);
 		stdinTransferMode_ = StdinActive;
 	}
 }
@@ -410,7 +433,7 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
 				stdinTransferOffset_ = 0;
 				stdinTransferBuffer_.clear();
 				stdinTransferMode_ = StdinFinished;
-				inwatch_.stop();
+				evStdin_.stop();
 				process_.closeInput();
 			}
 			else
@@ -423,7 +446,7 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
 	else // no more data to transfer
 	{
 		stdinTransferMode_ = StdinFinished;
-		inwatch_.stop();
+		evStdin_.stop();
 		process_.closeInput();
 	}
 }
@@ -460,10 +483,10 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 		if (rv != EINTR && rv != EAGAIN)
 		{
 			// error while reading from stdout
-			outwatch_.stop();
+			evStdout_.stop();
 			outputFlags_ |= StdoutClosed;
 
-			request_->connection.server().log(x0::Severity::error,
+			request_->log(x0::Severity::error,
 				"CGI: error while reading on stdout of: %s: %s",
 				request_->fileinfo->filename().c_str(),
 				strerror(errno));
@@ -471,7 +494,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 			if (!serial_)
 			{
 				response_->status = x0::HttpError::InternalServerError;
-				request_->connection.server().log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
+				request_->log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
 		}
 	}
@@ -480,7 +503,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 		// stdout closed by cgi child process
 		TRACE("CGI: stdout closed");
 
-		outwatch_.stop();
+		evStdout_.stop();
 		outputFlags_ |= StdoutClosed;
 
 		checkDestroy();
@@ -498,7 +521,7 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 	{
 		TRACE("read %d bytes: %s", rv, errbuf_.data());
 		errbuf_.resize(rv);
-		request_->connection.server().log(x0::Severity::error,
+		request_->log(x0::Severity::error,
 			"CGI script error: %s: %s",
 			request_->fileinfo->filename().c_str(),
 			errbuf_.str().c_str());
@@ -506,7 +529,7 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 	else if (rv == 0)
 	{
 		TRACE("CGI: stderr closed");
-		errwatch_.stop();
+		evStderr_.stop();
 		outputFlags_ |= StderrClosed;
 		checkDestroy();
 	}
@@ -514,12 +537,12 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 	{
 		if (errno != EINTR && errno != EAGAIN)
 		{
-			request_->connection.server().log(x0::Severity::error,
+			request_->log(x0::Severity::error,
 				"CGI: error while reading on stderr of: %s: %s",
 				request_->fileinfo->filename().c_str(),
 				strerror(errno));
 
-			errwatch_.stop();
+			evStderr_.stop();
 			outputFlags_ |= StderrClosed;
 		}
 	}
@@ -551,7 +574,7 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 	else
 	{
 		stdoutTransferActive_ = true;
-		outwatch_.stop();
+		evStdout_.stop();
 		response_->write(
 			std::make_shared<x0::BufferSource>(value),
 			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
@@ -587,7 +610,7 @@ void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 	else if (!checkDestroy())
 	{
 		TRACE("stdout: watch");
-		outwatch_.start();
+		evStdout_.start();
 	}
 }
 // }}}
