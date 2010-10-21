@@ -178,6 +178,7 @@ configure_file(
 
 add_definitions(-DHAVE_SYSCONFIG_H)
 
+add_subdirectory(docs)
 add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(plugins)

@@ -1,0 +1,84 @@
+=head1 NAME
+
+x0d - high performance HTTP web server
+
+=head1 SYNOPSIS
+
+x0d [B<-c> configfile] [B<-p> pidfile] [B<-u> user] [B<-g> group] [B<-i> path[,port]] [B<-hXGvy>]
+
+=head1 DESCRIPTION
+
+x0d (pronounced: X-zero-daemon) is a flexible, fast, and standards compliant
+high performance HTTP web server 
+written by Christian Parpart.
+
+This man-page only documents B<x0d>-command line arguments
+
+=head1 OPTIONS
+
+=over 25
+
+=item B<-c,--config=PATH>
+
+Specifies a custom configuration file to load.
+
+=item B<-h,--help>
+
+Prints a short command line help.
+
+=item B<-X,--no-fork>
+
+Do not fork into background (/daemon-mode), detaching from the controlling
+terminal.
+
+=item B<-G,--guard>
+
+Guard over the actual process by supervising its running state
+and in case of emergency, restart it.
+
+=item B<-p,--pid-file=PATH>
+
+Specifies a path to a PID file to create, e.g. B</var/run/x0d/x0d.pid>.
+
+=item B<-u,--user=NAME>
+
+Specifies the user-name to drop privileges down to.
+The process will also gain the user's standard-group If no group was
+explicitely specified at command line.
+
+=item B<-g,--group=NAME>
+
+Specifies a group-name to drop group-privileges down to.
+This overrides the standard-group associated with the specified user.
+
+=item B<-i,--instant=PATH[,PORT]>
+
+Runs B<x0d> in instant-mode, meaning, no configuration file is loaded nor
+needed at all. B<x0d> will just serve a single document root B<PATH>
+and listen for incoming requests on the specified port.
+
+B<x0d> will by default listen on port 8080 if no port was specified.
+
+=item B<-v,--version>
+
+Prints version information for this software.
+
+=item B<-y,--copyright>
+
+Prints copyright information for this software.
+
+=back
+
+=head1 LICENSE
+
+B<x0d> and the B<x0 standard plugins> is licensed under GPL-3.
+
+The B<x0 core library> provided by the x0 project is licensed unter LGPL-3.
+
+=head1 AUTHOR
+
+Christian Parpart <trapni@gentoo.org>
+
+=head1 SEE ALSO
+
+L<x0d.conf(5)>
