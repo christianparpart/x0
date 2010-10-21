@@ -1,0 +1,29 @@
+=head1 NAME
+
+x0d.conf - configuration file to x0d, a high performance HTTP web server.
+
+=head1 SYNOPSIS
+
+ import 'accesslog';
+
+ handler setup {
+     workers 4;
+     listen '0.0.0.0:8080';
+ }
+
+ handler main {
+     accesslog '/var/log/x0d/access.log';
+     staticfile;
+ }
+
+=head1 DESCRIPTION
+
+TODO
+
+=head1 AUTHOR
+
+Christian Parpart <trapni@gentoo.org>
+
+=head1 SEE ALSO
+
+L<x0d(8)>
