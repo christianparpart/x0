@@ -69,15 +69,21 @@ Prints copyright information for this software.
 
 =back
 
+=head1 HISTORY
+
+The B<x0>-software development has first been developed in May 2009
+by Christian Parpart with the goal to create a state-of-the-art
+high performance HTTP web server in C++.
+
 =head1 LICENSE
 
-B<x0d> and the B<x0 standard plugins> is licensed under GPL-3.
+B<x0d> and its standard plugins is licensed under GPL-3.
 
-The B<x0 core library> provided by the x0 project is licensed unter LGPL-3.
+The B<x0 core framework> provided by the x0 project is licensed unter LGPL-3.
 
 =head1 AUTHOR
 
-Christian Parpart <trapni@gentoo.org>
+B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <trapni@gentoo.org>
 
 =head1 SEE ALSO
 

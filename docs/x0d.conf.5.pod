@@ -4,15 +4,17 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
 
 =head1 SYNOPSIS
 
- import 'accesslog';
+ import 'userdir';
 
  handler setup {
      workers 4;
+     userdir.name 'public_html';
      listen '0.0.0.0:8080';
  }
 
  handler main {
-     accesslog '/var/log/x0d/access.log';
+     docroot '/var/www/localhost/htdocs';
+     userdir;
      staticfile;
  }
 
@@ -20,9 +22,350 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
 
 TODO
 
+=head1 CORE API
+
+=head2 SETUP PROPERTIES
+
+=over 6
+
+=item B<log.level> (value)
+
+=item B<log.file> (path)
+
+=item B<workers> (number)
+
+=item B<mimetypes> (path)
+
+=item B<mimetypes.default> (mimetype)
+
+=item B<etag.mtime> (boolean)
+
+=item B<etag.size> (boolean)
+
+=item B<etag.inode> (boolean)
+
+=item B<server.advertise> (boolean)
+
+=item B<server.tas> (array)
+
+=item B<max_read_idle> (timeout)
+
+=item B<max_write_idle> (timeout)
+
+=item B<max_keepalive_idle> (timeout)
+
+=item B<max_connections> (count)
+
+=item B<max_files> (count)
+
+=item B<max_address_space> (size)
+
+=item B<max_core_size> (size)
+
+=item B<tcp_cork> (boolean)
+
+=item B<tcp_nodelay> (boolean)
+
+=back
+
+=head2 SETUP FUNCTIONS
+
+=over 6
+
+=item B<listen> (address:port)
+
+=back
+
+=head2 SETUP / MAIN API
+
+=over 6
+
+=item B<sys.env> (key)
+
+=item B<sys.cwd> ()
+
+=item B<sys.pid> ()
+
+=item B<sys.now> ()
+
+=item B<sys.now_str> ()
+
+=back
+
+=head2 MAIN API
+
+=over 6
+
+=item B<docroot> (path)
+
+Sets the requests document root to the given path.
+
+Example:
+
+ docroot '/var/www/localhost/htdocs';
+
+=item B<autoindex> (array)
+
+=item B<alias> (prefix, target)
+
+=item B<pathinfo> ()
+
+=item B<req.method>
+
+=item B<req.url>
+
+=item B<req.path>
+
+=item B<req.header> (name)
+
+=item B<req.host>
+
+=item B<req.pathinfo>
+
+=item B<req.is_secure>
+
+=item B<header.add> (name, value)
+
+=item B<header.overwrite> (name, value)
+
+=item B<header.append> (name)
+
+=item B<header.remove> (name)
+
+=item B<req.remoteip>
+
+=item B<req.remoteport>
+
+=item B<req.localip>
+
+=item B<req.localport>
+
+=item B<phys.path>
+
+Retrieves the mapped path to the physical file.
+
+=item B<phys.is_reg>
+
+Retrieves a boolean indicating whether or not the physical file is
+a regular file or not.
+
+=item B<phys.is_dir>
+
+Retrieves a boolean indicating whether or not the physical file is
+a directory or not.
+
+=item B<phys.is_exe>
+
+Retrieves a boolean indicating whether or not the physical file is an executable
+(the executable-bit set in permissions).
+
+=item B<phys.mtime>
+
+Retrieves the last modification timestamp of the physical file.
+
+=item B<phys.size>
+
+Retrieves the file size of the physical file.
+
+=item B<phys.etag>
+
+Retrieves the computed ETag of the physical file.
+
+=item B<phys.mimetype>
+
+Retrieves the mimetype of the physical file.
+
+=end
+
+=head1 PLUGINS
+
+B<x0> comes with a good set of standard plugins extending the core
+as described below:
+
+=head2 cgi
+
+Adds support for CGI/1.1 scripts.
+
+=over 6
+
+=item B<cgi.mapping> (ext => program, ext => program, ...)
+
+is a setup-function to specify a map of file-extension-to-program associations.
+When the B<cgi.map>-handler is invoked, it looks up this map for a matching
+file-extension and executes the associated program with the requested file.
+
+An example use looks as follows:
+
+ cgi.mapping '.rb' => '/usr/bin/ruby',
+             '.pl' => '/usr/bin/perl',
+             '.lua' => '/usr/bin/lua',
+             '.php' => '/usr/bin/php-cgi';
+
+=item B<cgi.map> ()
+
+is a handler-function that uses the previousely defined mappings
+(with B<cgi.mapping>) to run the requested resource as CGI script
+if its file extension matches one given in the mapping.
+
+One example use looks as follows:
+
+ cgi.map;
+
+=item B<cgi.prefix> (prefix => path)
+
+is a handler-function that, checks whether the reuqested path
+matches the given prefix, and if, maps it to the associated path to
+invoke the program behind it.
+
+An example use looks as follows:
+
+ cgi.prefix '/cgi-bin/' => '/var/www/localhost/cgi-bin/';
+
+=item B<cgi.exec> ()
+
+is a handler-function that tests whether the underlying physical file is a
+regular executable file, which is then be invoked as the CGI/1.1 program.
+
+Example (runs B<cgi.exec> on any request path that ends with C<.cgi>):
+
+ cgi.exec if req.path =$ '.cgi';
+
+=back
+
+=head2 fastcgi
+
+Adds support for accessing FastCGI applications.
+This plugin currently only supports the responder role of FastCGI.
+
+=over 6
+
+=item B<fastcgi> (hostname:port)
+
+Passes the current request to a backend FastCGI application listening
+on the given hostname and port.
+
+An example use looks as follows:
+
+ fastcgi '127.0.0.1:1234';
+
+=back
+
+=head2 proxy
+
+Adds support for HTTP reverse proxying within B<x0>.
+
+=head2 dirlisting
+
+Automatically generates a directory listing response if the
+requested path (its physical target file) is a directory.
+
+=over 6
+
+=item B<dirlisting> ()
+
+Responds with an automatically generated directory listing
+if the current rquest points to a physical directory.
+
+=back
+
+=head2 userdir
+
+This plugin adds support for accessing user's public files
+in their home directories, if available.
+
+=over 6
+
+=item B<userdir.name> (dirname)
+
+setup-function to define the directory name to replace with
+when the request URI is to point to a user directory.
+
+An example use looks as follows:
+
+ userdir.name 'public_html';
+
+=item B<userdir> ()
+
+handler-function to map the request URI to the userdir's 
+physical directory.
+
+The following example maps the request URI C</~trapni/welcome.html>
+to C</home/trapni/public_html/welcome.html>:
+
+ handler setup {
+     # ...
+     userdir.name 'public_html';
+ }
+
+ handler main {
+     # ...
+     userdir;
+ }
+
+=back
+
+=head2 ssl
+
+Provides support for encrypted connections (HTTPS) via SSL/TLS.
+
+=over 6
+
+=item B<ssl.loglevel> (value)
+
+This setup-function Defines the SSL loglevel of the (B<GnuTLS>) backend library.
+Values may range between 0 (no logging) to 9 (full logging).
+
+An example use looks as follows:
+
+ handler setup {
+     # ...
+     ssl.loglevel 6;
+ }
+
+=item B<ssl.listen> (ADDRESS:PORT)
+
+This setup-function creates an HTTPS listener.
+Incoming connections will be SSL-encrypted.
+You will also need at least once certificate context.
+
+An example use looks as follows:
+
+ handler setup {
+     # ...
+     ssl.listen '0.0.0.0:443';
+ }
+
+=item B<ssl.context> ('keyfile' => PATH, 'crtfile' => PATH, ...)
+
+This setup-function defines a certificate context.
+A certificate context must at least provide a B<keyfile> and
+a matching B<crtfile> (certificate file).
+
+The certificate file must contain at lesat one domain name
+either via Command-Name attribute or via the WWW Domain-Name extension.
+
+The B<x0>-server then will try to select the right context
+via the B<SNI> (Server Name Indication) protocol extension, which
+should be support by any modern browser except any browser on Windows XP.
+
+An example use looks as follows:
+
+ handler setup {
+     # ...
+     ssl.context 'keyfile' => '/etc/certs/xzero.ws.key',
+                 'crtfile' => '/etc/certs/xzero.ws.crt';
+ }
+
+=back
+
+=head1 BUGS
+
+This software is under early and active development and though
+still considered B<experimental>. Use at your own risk.
+
 =head1 AUTHOR
 
-Christian Parpart <trapni@gentoo.org>
+B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <trapni@gentoo.org>
 
 =head1 SEE ALSO
 
