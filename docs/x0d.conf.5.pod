@@ -175,6 +175,12 @@ Retrieves the computed ETag of the physical file.
 
 Retrieves the mimetype of the physical file.
 
+=item B<staticfile> ()
+
+=item B<redirect> (url)
+
+=item B<respond> (http_code)
+
 =end
 
 =head1 PLUGINS
