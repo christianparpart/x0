@@ -928,16 +928,6 @@ unsigned long long HttpCore::setrlimit(int resource, unsigned long long value)
 
 	// patch against human readable form
 	long long hlast = last, hvalue = value;
-	switch (resource)
-	{
-		case RLIMIT_AS:
-		case RLIMIT_CORE:
-			//hlast /= 1024 / 1024;
-			//value *= 1024 * 1024;
-			break;
-		default:
-			break;
-	}
 
 	if (value > RLIM_INFINITY)
 		value = RLIM_INFINITY;
