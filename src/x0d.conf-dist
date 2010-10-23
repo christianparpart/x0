@@ -1,150 +1,68 @@
--- vim:syntax=lua
---
--- file: x0d.conf
--- description: x0d web server configuration file
+# vim: syntax=flow
+# file: x0d.conf
+# description: example x0d web server configuration file
 
--- {{{ helper
-function KB(value)
-	return value * 1024;
-end
+import 'cgi';
+import 'userdir';
+import 'accesslog';
+import 'compress';
+import 'dirlisting';
 
-function MB(value)
-	return value * KB(1024);
-end
+handler setup
+{
+	max_files = 8192;
+	max_address_space = 3 gbyte;
+	max_core_size = 1 gbyte;
 
-function GB(value)
-	return value * MB(1024);
-end
+	max_keepalive_idle = 16 sec;
+	max_read_idle = 60 sec;
+	max_write_idle = 60 sec;
 
-function LoadModule(name)
-	table.insert(Modules.Load, name);
-end
+	tcp_cork = false;
+	tcp_nodelay = false;
 
-function PopulateErrorDocuments(codes, prefix, postfix)
-	local result = {}
+	mimetypes = '/etc/mime.types';
+	mimetypes.default = 'text/plain';
 
-	for _, e in pairs(codes) do
-		result[tostring(e)] = prefix .. tostring(e) .. postfix;
-	end
+	etag.mtime = true;
+	etag.size = true;
+	etag.inode = false;
 
-	return result;
-end
--- }}}
+	log.level = 4;
+	log.file = '/var/log/x0d/error.log';
 
-PREFIX = '/usr/';
-DATADIR = PREFIX .. 'share/x0/';
+	userdir.name = 'public_html';
 
-Daemon = {
-	Group = 'x0d';
-	User = 'x0d';
-	Chroot = '/';
-	Nice = 0;
-};
+	compress.types = [ 'text/plain', 'text/html', 'text/xml', 'text/x-c++src' ];
+	compress.level = 9;
+	compress.min = 64 byte;
+	compress.max = 128 mbyte;
 
-ServerTag = 'x0';
+	cgi.mapping '.php' => '/usr/bin/php-cgi',
+	            '.pl' => '/usr/bin/perl',
+	            '.rb' => '/usr/bin/ruby';
 
-Modules = {
-	Directory = '/usr/libexec/x0/';
-	Load = { 'dirlisting', 'userdir', 'indexfile', 'cgi', 'sendfile', 'vhost', 'accesslog' };
-	-- { 'dirlisting', 'userdir', 'indexfile', 'cgi', 'sendfile', 'vhost', 'accesslog', 'debug' };
-};
+	listen '0.0.0.0:8080';
 
-Log = {
-	Mode = 'file';
-	FileName = 'error.log';
-	Level = 'warn';
-};
+	workers 2;
+}
 
-Resources = {
-	MaxFiles = 2048;
-	MaxAddressSpace = GB(2);
-	MaxCoreFileSize = MB(500);
+handler main
+{
+	docroot '/var/www/localhost/htdocs';
 
-	MaxKeepAliveRequests = 16;
-	MaxKeepAliveIdle = 5;
+	userdir;
 
-	MaxConnections = 1024;
-	MaxReadIdle = 60;
-	MaxWriteIdle = 360;
+	alias '/error/' => '/var/www/localhost/error/';
+	alias '/icons/' => '/var/www/localhost/icons/';
+	alias '/distfiles' => '/usr/portage/distfiles';
 
-	NumWorkers = 1; -- must be set to 1, currently (because this service is not yet thread safe)
-};
+	autoindex ['index.php', 'index.html'];
 
-FileInfo = {
-	MimeType = {
-		MimeFile = '/etc/mime.types';
-		MagicFile = '/etc/mime.magic';
-		DefaultType = 'application/octet-stream';
-	};
-	ETag = {
-		ConsiderMtime = true;
-		ConsiderSize = true;
-		ConsiderInode = true;
-	};
-};
+	cgi.prefix '/cgi-bin/' => '/var/www/localhost/cgi-bin/';
+	cgi.exec if req.path =$ '.cgi';
+	cgi.map;
 
-AccessLog = 'access.log';
-
-IndexFiles = { 'index.html', 'index.xml' };
-
-Userdir = {
-	DocumentRoot = 'public_html';
-	PathPrefix = '~';
-};
-
-Compress = {
-	ContentTypes = { 'text/plain', 'text/html', 'text/xml', 'text/x-c++src' };
-	Level = 9;
-	MinSize = 32;
-	MaxSize = MB(128);
-};
-
-CGI = {
-	PathPrefix = '/cgi-bin/';
-	Executable = true;
-	Mappings = {
-		['.php'] = '/usr/bin/php';
-		['.rb'] = '/usr/bin/ruby';
-		['.pl'] = '/usr/bin/perl';
-		['.sh'] = '/bin/bash';
-	};
-};
-
-Aliases = {
-	['/error/'] = DATADIR .. 'error/';
-	['/icon/'] = DATADIR .. 'icon/';
-};
-
-ErrorDocuments = PopulateErrorDocuments({
-	300, 301, 302, 304,
-	400, 401, 403, 404, 416,
-	500, 501, 502, 503
-}, DATADIR .. 'error/', '.html');
-
-BindAddress = '0::0';
-DefaultHost = 'localhost';
-
-Hosts = {
-	['localhost:8080'] = {
-		DocumentRoot = '/var/www/localhost/htdocs';
-		Aliases = {
-			['/distfiles'] = '/usr/portage/distfiles';
-		};
-	};
-	['www.cooldown.net:8080'] = {
-		DocumentRoot = '/var/www/cooldown.net/htdocs';
-		Listen = 8081;
-	};
-};
-
---if table.contains(Modules.Load, 'cgi') then
---	table.insert(IndexFile, 'index.php');
---	CGI.Mapping['.php'] = '/usr/bin/php-cgi';
---end
-
-IGNORES = {'PREFIX', 'DATADIR'}
-
-------------------------------------------------------
---[[for k, v in pairs(ErrorDocuments) do
-	print(k, v);
-end ]]
+	dirlisting;
+	staticfile;
+}
