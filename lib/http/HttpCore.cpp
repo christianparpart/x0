@@ -419,13 +419,13 @@ bool HttpCore::docroot(HttpRequest *in, HttpResponse *out, const Params& args)
 
 bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	if (args.count() != 2)
+	if (args.count() != 1 || !args[0].isArray())
 	{
 		server().log(Severity::error, "alias: invalid argument count");
 		return false;
 	}
 
-	if (!args[0].isString() || !args[1].isString())
+	if (!args[0][0].isString() || !args[0][1].isString())
 	{
 		server().log(Severity::error, "alias: invalid argument types");
 		return false;
@@ -439,9 +439,9 @@ bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
 	//    docroot: /srv/special
 	//    fileinfo: /srv/special/uri/path
 
-	size_t prefixLength = strlen(args[0].toString());
-	std::string prefix = args[0].toString();
-	std::string alias = args[1].toString();
+	size_t prefixLength = strlen(args[0][0].toString());
+	std::string prefix = args[0][0].toString();
+	std::string alias = args[0][1].toString();
 
 	if (in->path.begins(prefix))
 	{
