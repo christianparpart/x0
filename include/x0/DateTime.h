@@ -13,6 +13,7 @@
 #include <x0/Api.h>
 #include <string>
 #include <ctime>
+#include <pthread.h>
 
 namespace x0 {
 
@@ -28,6 +29,7 @@ private:
 	time_t unixtime_;
 	mutable Buffer http_;
 	mutable Buffer htlog_;
+	mutable pthread_spinlock_t lock_;
 
 	static time_t mktime(const char *v);
 
@@ -36,6 +38,7 @@ public:
 	explicit DateTime(const BufferRef& http_v);
 	explicit DateTime(const std::string& http_v);
 	explicit DateTime(std::time_t v);
+	~DateTime();
 
 	std::time_t unixtime() const;
 	const Buffer& http_str() const;
@@ -68,78 +71,9 @@ inline time_t DateTime::mktime(const char *v)
 	return 0;
 }
 
-inline DateTime::DateTime() :
-	unixtime_(std::time(0)), http_(), htlog_()
-{
-}
-
-/** initializes DateTime object with an HTTP conform input date-time. */
-inline DateTime::DateTime(const BufferRef& v) :
-	unixtime_(mktime(v.data())), http_(v), htlog_()
-{
-}
-
-/** initializes DateTime object with an HTTP conform input date-time. */
-inline DateTime::DateTime(const std::string& v) :
-	unixtime_(mktime(v.c_str())), http_(v), htlog_(v)
-{
-}
-
-inline DateTime::DateTime(std::time_t v) :
-	unixtime_(v), http_(), htlog_()
-{
-}
-
 inline std::time_t DateTime::unixtime() const
 {
 	return unixtime_;
-}
-
-/** retrieve this dateime object as a HTTP/1.1 conform string.
- * \return HTTP/1.1 conform string value.
- */
-inline const Buffer& DateTime::http_str() const
-{
-	if (http_.empty())
-	{
-		if (struct tm *tm = gmtime(&unixtime_))
-		{
-			char buf[256];
-
-			if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0)
-			{
-				http_ = buf;
-			}
-		}
-	}
-
-	return http_;
-}
-
-inline const Buffer& DateTime::htlog_str() const
-{
-	if (htlog_.empty())
-	{
-		if (struct tm *tm = localtime(&unixtime_))
-		{
-			char buf[256];
-
-			if (strftime(buf, sizeof(buf), "%m/%d/%Y:%T %z", tm) != 0)
-			{
-				htlog_ = buf;
-			}
-			else
-			{
-				htlog_ = "-";
-			}
-		}
-		else
-		{
-			htlog_ = "-";
-		}
-	}
-
-	return htlog_;
 }
 
 inline void DateTime::update()
@@ -151,9 +85,11 @@ inline void DateTime::update(std::time_t v)
 {
 	if (unixtime_ != v)
 	{
+		pthread_spin_lock(&lock_);
 		unixtime_ = v;
 		http_.clear();
 		htlog_.clear();
+		pthread_spin_unlock(&lock_);
 	}
 }
 
