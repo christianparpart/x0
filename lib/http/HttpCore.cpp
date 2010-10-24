@@ -314,6 +314,7 @@ void HttpCore::loglevel(Flow::Value& result, const Params& args)
 		if (args[0].isNumber())
 		{
 			int level = args[0].toNumber();
+			printf("setting loglevel to %d\n", level);
 			server().logLevel(static_cast<Severity>(level));
 		}
 	}
@@ -616,6 +617,11 @@ bool HttpCore::respond(HttpRequest *in, HttpResponse *out, const Params& args)
 // {{{ staticfile handler
 bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args) // {{{
 {
+	if (!in->fileinfo) {
+		printf("Error! in->fileinfo not set\n");
+		return false;
+	}
+
 	if (!in->fileinfo->exists())
 		return false;
 
@@ -665,7 +671,9 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 		return true;
 	}
 
-	out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
+	std::string mtime(in->fileinfo->last_modified());
+	out->headers.push_back("Last-Modified", mtime);
+	//out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
 	out->headers.push_back("ETag", in->fileinfo->etag());
 
 	if (!processRangeRequest(in, out, fd))
@@ -688,6 +696,7 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 			);
 		}
 	}
+	in->connection.worker().log(Severity::debug, "staticfile()");
 	return true;
 } // }}}
 

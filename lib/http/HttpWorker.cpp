@@ -2,6 +2,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpConnection.h>
 
+#include <cstdarg>
 #include <ev++.h>
 #include <signal.h>
 #include <pthread.h>
@@ -55,10 +56,13 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 #endif
 
 	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
+
+	log(Severity::debug, "spawned");
 }
 
 HttpWorker::~HttpWorker()
 {
+	log(Severity::debug, "destroying");
 	pthread_spin_destroy(&queueLock_);
 }
 
@@ -66,9 +70,22 @@ void HttpWorker::run()
 {
 	while (state_ != Exiting)
 	{
-		DEBUG("HttpWorker/%d enter loop\n", id_);
+#ifndef NDEBUG
+		log(Severity::debug, "enter loop");
+#endif
 		ev_loop(loop_, 0);
 	}
+}
+
+void HttpWorker::log(Severity s, const char *fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	char buf[512];
+	int buflen = vsnprintf(buf, sizeof(buf), fmt, va);
+	va_end(va);
+
+	server_.log(s, "HttpWorker/%d: %s", id_, buf);
 }
 
 /** enqueues/assigns/registers given client connection information to this worker.
@@ -76,6 +93,7 @@ void HttpWorker::run()
 void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
 {
 	pthread_spin_lock(&queueLock_);
+	log(Severity::debug, "enqueue client");
 	queue_.push_back(client);
 	evNewConnection_.send();
 	pthread_spin_unlock(&queueLock_);
@@ -108,15 +126,15 @@ unsigned HttpWorker::load() const
  */
 void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 {
+	pthread_spin_lock(&queueLock_);
 	while (!queue_.empty())
 	{
-		pthread_spin_lock(&queueLock_);
 		std::pair<int, HttpListener *> client(queue_.front());
 		queue_.pop_front();
 		++connectionLoad_;
 		pthread_spin_unlock(&queueLock_);
 
-		DEBUG("HttpWorker/%d client connected; fd:%d\n", id_, client.first);
+		//DEBUG("HttpWorker/%d client connected; fd:%d", id_, client.first);
 
 		HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
 
@@ -124,7 +142,10 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 			delete conn;
 		else
 			conn->start();
+
+		pthread_spin_lock(&queueLock_);
 	}
+	pthread_spin_unlock(&queueLock_);
 }
 
 void HttpWorker::onSuspend(ev::async& w, int revents)
@@ -139,7 +160,7 @@ void HttpWorker::onResume(ev::async& w, int revents)
 
 void HttpWorker::onExit(ev::async& w, int revents)
 {
-	DEBUG("HttpWorker/%d onExit\n", id_);
+	DEBUG("HttpWorker/%d onExit", id_);
 
 	ev_ref(loop_);
 	evNewConnection_.stop();

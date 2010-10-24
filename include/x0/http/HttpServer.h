@@ -190,6 +190,7 @@ public:
 inline void HttpServer::setLogger(std::shared_ptr<Logger> logger)
 {
 	logger_ = logger;
+	logger_->level(logLevel_);
 }
 
 inline Logger *HttpServer::logger() const

@@ -149,7 +149,7 @@ SourcePtr HttpResponse::serialize()
 			keepalive = true;
 		}
 	}
-	else if (iequals(headers("Connection"), "keep-alive"))
+	else if (iequals(headers["Connection"], "keep-alive"))
 	{
 		keepalive = true;
 	}
@@ -179,7 +179,7 @@ SourcePtr HttpResponse::serialize()
 
 	for (auto i = headers.begin(), e = headers.end(); i != e; ++i)
 	{
-		const HttpResponseHeader& h = *i;
+		auto h = *i;
 		buffers.push_back(h.name.data(), h.name.size());
 		buffers.push_back(": ");
 		buffers.push_back(h.value.data(), h.value.size());

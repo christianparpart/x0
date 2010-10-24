@@ -69,55 +69,154 @@ class HttpRequest;
 class X0_API HttpResponse
 {
 public:
-	class header_list // {{{
+	class HeaderList // {{{
 	{
 	public:
-		typedef std::vector<HttpResponseHeader> impl_type;
-		typedef impl_type::iterator iterator;
-		typedef impl_type::const_iterator const_iterator;
+		struct Item { // {{{
+			std::string name;
+			std::string value;
+			Item *prev;
+			Item *next;
+
+			Item(const std::string& _name, const std::string& _value, Item *_prev, Item *_next) :
+				name(_name), value(_value), prev(_prev), next(_next)
+			{
+				if (prev)
+					prev->next = this;
+
+				if (next)
+					next->prev = this;
+			}
+
+			~Item()
+			{
+				fprintf(stderr, "Item('%s', '%s')\n", name.c_str(), value.c_str());
+			}
+
+			void dump()
+			{
+				fprintf(stderr, "Item('%s', '%s', %p, %p)\n", name.c_str(), value.c_str(), (void*)prev, (void*)next);
+			}
+		};
+		// }}}
+
+		class iterator { // {{{
+		private:
+			Item *current_;
+
+		public:
+			iterator() :
+				current_(NULL)
+			{}
+
+			explicit iterator(Item *item) :
+				current_(item)
+			{}
+
+			Item& operator*()
+			{
+				return *current_;
+			}
+
+			Item& operator->()
+			{
+				return *current_;
+			}
+
+			iterator& operator++()
+			{
+				if (current_)
+					current_ = current_->next;
+
+				return *this;
+			}
+
+			friend bool operator==(const iterator& a, const iterator& b)
+			{
+				return &a == &b || a.current_ == b.current_;
+			}
+
+			friend bool operator!=(const iterator& a, const iterator& b)
+			{
+				return !operator==(a, b);
+			}
+		};
+		// }}}
 
 	private:
-		impl_type list_;
+		size_t size_;
+		Item *first_;
+		Item *last_;
 
 	public:
+		HeaderList() :
+			size_(0), first_(NULL), last_(NULL)
+		{}
+
+		~HeaderList()
+		{
+			while (first_) {
+				delete unlinkItem(first_);
+			}
+		}
+
+		iterator begin() { return iterator(first_); }
+		iterator end() { return iterator(); }
+
 		std::size_t size() const
 		{
-			return list_.size();
+			return size_;
 		}
 
 		bool contains(const std::string& name) const
 		{
-			for (std::size_t i = 0, e = list_.size(); i != e; ++i)
-				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
+			for (const Item *i = first_; i != NULL; i = i->next)
+				if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 					return true;
 
 			return false;
 		}
 
-		std::size_t find(const std::string& name) const
+		void push_back(const std::string& name, const std::string& value)
 		{
-			for (std::size_t i = 0, e = list_.size(); i != e; ++i)
-				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
-					return i;
+			last_ = new Item(name, value, last_, NULL);
 
-			return (std::size_t) -1;
+			if (first_ == NULL)
+				first_ = last_;
+
+			++size_;
 		}
 
-		const std::string& operator[](std::size_t pos) const
+		Item **findItem(const std::string& name)
 		{
-			return list_[pos].value;
+			Item **item = &first_;
+
+			while (*item != NULL)
+			{
+				if (strcasecmp((*item)->name.c_str(), name.c_str()) == 0)
+					return item;
+
+				item = &(*item)->next;
+			}
+
+			return NULL;
 		}
 
-		std::string& operator[](std::size_t pos)
+		void overwrite(const std::string& name, const std::string& value)
 		{
-			return list_[pos].value;
+			Item **item = findItem(name);
+
+			if (item && *item)
+				(*item)->value = value;
+			else
+				push_back(name, value);
 		}
 
 		const std::string& operator[](const std::string& name) const
 		{
-			for (std::size_t i = 0, e = list_.size(); i != e; ++i)
-				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
-					return list_[i].value;
+			Item **item = const_cast<HeaderList *>(this)->findItem(name);
+			if (item)
+				return (*item)->value;
 
 			static std::string not_found;
 			return not_found;
@@ -125,24 +224,12 @@ public:
 
 		std::string& operator[](const std::string& name)
 		{
-			std::size_t e = list_.size();
+			Item **item = findItem(name);
+			if (item)
+				return (*item)->value;
 
-			for (std::size_t i = 0; i != e; ++i)
-				if (strcasecmp(list_[i].name.c_str(), name.c_str()) == 0)
-					return list_[i].value;
-
-			list_.push_back(HttpResponseHeader(name, std::string()));
-			return list_[e].value;
-		}
-
-		void push_back(const std::string& name, const std::string& value)
-		{
-			list_.push_back(HttpResponseHeader(name, value));
-		}
-
-		void overwrite(const std::string& name, const std::string& value)
-		{
-			operator[](name) = value;
+			static std::string not_found;
+			return not_found;
 		}
 
 		void append(const std::string& name, const std::string& value)
@@ -150,43 +237,37 @@ public:
 			// TODO append value to the header with name or create one if not yet available.
 		}
 
+		Item *unlinkItem(Item *item)
+		{
+			Item *prev = item->prev;
+			Item *next = item->next;
+
+			// unlink from list
+			if (prev)
+				prev->next = next;
+
+			if (next)
+				next->prev = prev;
+
+			// adjust first/last entry points
+			if (item == first_)
+				first_ = first_->next;
+
+			if (item == last_)
+				last_ = last_->prev;
+
+			--size_;
+
+			return item;
+		}
+
 		void remove(const std::string& name)
 		{
-#if 0
-			//! \bug doesn't really work: it actually removes \p name but doubles another entry ("Vary" in our test-case)
-			std::remove_if(begin(), end(), [&](const HttpResponseHeader& i) -> bool {
-				return strcasecmp(i.name.c_str(), name.c_str()) == 0;
-			});
-#else
-			for (iterator i = begin(), e = end(); i != e; ++i)
+			Item **item = findItem(name);
+			if (item)
 			{
-				if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
-				{
-					list_.erase(i);
-					return;
-				}
+				delete unlinkItem(*item);
 			}
-#endif
-		}
-
-		// iterators
-		iterator begin() { return list_.begin(); }
-		iterator end() { return list_.end(); }
-
-#if GCC_VERSION(4, 5)
-		const_iterator cbegin() const { return list_.cbegin(); }
-		const_iterator cend() const { return list_.cend(); }
-#endif
-
-	public:
-		const std::string& operator()(const std::string& name) const
-		{
-			return operator[](name);
-		}
-
-		void operator()(const std::string& name, const std::string& value)
-		{
-			operator[](name) = value;
 		}
 	}; // }}}
 
@@ -214,7 +295,7 @@ public:
 	HttpError status;
 
 	/// the headers to be included in the response.
-	header_list headers;
+	HeaderList headers;
 
 	const std::string& header(const std::string& name) const;
 
@@ -309,12 +390,7 @@ inline bool HttpResponse::content_forbidden() const
 
 inline const std::string& HttpResponse::header(const std::string& name) const
 {
-	std::size_t pos = headers.find(name);
-	if (pos != (std::size_t) -1)
-		return headers[pos];
-
-	static std::string not_found;
-	return not_found;
+	return headers[name];
 }
 // }}}
 

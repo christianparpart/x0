@@ -3,6 +3,7 @@
 
 #include <x0/io/FileInfoService.h>
 #include <x0/DateTime.h>
+#include <x0/Severity.h>
 
 #include <deque>
 #include <ev++.h>
@@ -65,6 +66,8 @@ public:
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
 	void release(HttpConnection *connection);
+
+	void log(Severity s, const char *fmt, ...);
 
 protected:
 	virtual void run();
