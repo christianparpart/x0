@@ -247,6 +247,7 @@ bool HttpServer::setup(std::istream *settings)
 	return true;
 }
 
+// {{{ worker mgnt
 HttpWorker *HttpServer::spawnWorker()
 {
 	struct ev_loop *loop = !workers_.empty()
@@ -298,6 +299,7 @@ void HttpServer::destroyWorker(HttpWorker *worker)
 			workers_.erase(i);
 			return;
 		}
+		++i;
 	}
 }
 
@@ -307,6 +309,7 @@ void *HttpServer::runWorker(void *p)
 	w->run();
 	return NULL;
 }
+// }}}
 
 bool HttpServer::start()
 {
