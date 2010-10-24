@@ -453,10 +453,7 @@ bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
 	std::string alias = args[0][1].toString();
 
 	if (in->path.begins(prefix))
-	{
 		in->fileinfo = in->connection.worker().fileinfo(alias + in->path.substr(prefixLength));
-		printf("resolve_entity: %s [%s]: %s (%d)\n", prefix.c_str(), in->path.str().c_str(), in->fileinfo->filename().c_str(), in->fileinfo->exists());
-	}
 
 	return redirectOnIncompletePath(in, out);
 }
