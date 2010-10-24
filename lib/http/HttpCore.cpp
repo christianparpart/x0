@@ -275,10 +275,19 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 
 void HttpCore::workers(Flow::Value& result, const Params& args)
 {
-	size_t count = args.count() == 1 ? args[0].toNumber() : 1;
+	if (args.count() == 1)
+	{
+		size_t cur = server_.workers_.size();
+		size_t count = args.count() == 1 ? args[0].toNumber() : 1;
 
-	for (size_t i = 1; i < count; ++i)
-		server_.spawnWorker();
+		for (; cur < count; ++cur)
+			server_.spawnWorker();
+
+		for (; cur > count; --cur)
+			server_.destroyWorker(server_.workers_[cur - 1]);
+	}
+
+	result.set(server_.workers_.size());
 }
 
 void HttpCore::logfile(Flow::Value& result, const Params& args)
