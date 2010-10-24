@@ -39,10 +39,10 @@ HttpCore::HttpCore(HttpServer& server) :
 {
 	// setup
 	registerSetupFunction<HttpCore, &HttpCore::emit_llvm>("llvm.dump", Flow::Value::VOID);
+	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
 	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", Flow::Value::STRING);
-	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
-	registerSetupFunction<HttpCore, &HttpCore::workers>("workers", Flow::Value::VOID);
+	registerSetupProperty<HttpCore, &HttpCore::workers>("workers", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::etag_mtime>("etag.mtime", Flow::Value::VOID); // write-only (array)
