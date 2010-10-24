@@ -66,7 +66,7 @@ void HttpWorker::run()
 {
 	while (state_ != Exiting)
 	{
-		printf("HttpWorker/%d enter loop\n", id_);
+		DEBUG("HttpWorker/%d enter loop\n", id_);
 		ev_loop(loop_, 0);
 	}
 }
@@ -116,7 +116,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 		++connectionLoad_;
 		pthread_spin_unlock(&queueLock_);
 
-		printf("HttpWorker/%d client connected; fd:%d\n", id_, client.first);
+		DEBUG("HttpWorker/%d client connected; fd:%d\n", id_, client.first);
 
 		HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
 
@@ -139,7 +139,8 @@ void HttpWorker::onResume(ev::async& w, int revents)
 
 void HttpWorker::onExit(ev::async& w, int revents)
 {
-	printf("HttpWorker/%d onExit\n", id_);
+	DEBUG("HttpWorker/%d onExit\n", id_);
+
 	ev_ref(loop_);
 	evNewConnection_.stop();
 
