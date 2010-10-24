@@ -118,6 +118,9 @@ HttpServer::~HttpServer()
 	for (std::list<HttpListener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
 		delete *k;
 
+	while (!workers_.empty())
+		destroyWorker(workers_[workers_.size() - 1]);
+
 	unregisterPlugin(core_);
 	delete core_;
 	core_ = 0;
@@ -281,12 +284,21 @@ HttpWorker *HttpServer::selectWorker()
 
 void HttpServer::destroyWorker(HttpWorker *worker)
 {
-	worker->evExit_.send();
+	std::vector<HttpWorker *>::iterator i = workers_.begin();
+	while (i != workers_.end())
+	{
+		if (*i == worker)
+		{
+			worker->evExit_.send();
 
-	if (worker != workers_.front())
-		pthread_join(worker->thread_, NULL);
+			if (worker != workers_.front())
+				pthread_join(worker->thread_, NULL);
 
-	delete worker;
+			delete worker;
+			workers_.erase(i);
+			return;
+		}
+	}
 }
 
 void *HttpServer::runWorker(void *p)
