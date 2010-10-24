@@ -67,13 +67,13 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupFunction<HttpCore, &HttpCore::sys_env>("sys.env", Flow::Value::STRING);
 	registerSetupProperty<HttpCore, &HttpCore::sys_cwd>("sys.cwd", Flow::Value::STRING);
 	registerSetupProperty<HttpCore, &HttpCore::sys_pid>("sys.pid", Flow::Value::NUMBER);
-	registerSetupFunction<HttpCore, &HttpCore::sys_now>("sys.now", Flow::Value::NUMBER);
-	registerSetupFunction<HttpCore, &HttpCore::sys_now_str>("sys.now_str", Flow::Value::STRING);
+	registerSetupProperty<HttpCore, &HttpCore::sys_now>("sys.now", Flow::Value::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::sys_now_str>("sys.now_str", Flow::Value::STRING);
 
 	// main
 	registerHandler<HttpCore, &HttpCore::docroot>("docroot");
-	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", Flow::Value::VOID);
 	registerHandler<HttpCore, &HttpCore::alias>("alias");
+	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", Flow::Value::VOID);
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_url>("req.url", Flow::Value::BUFFER);
