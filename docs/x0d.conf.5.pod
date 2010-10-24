@@ -22,6 +22,10 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
 
 TODO
 
+=head1 SYNTAX
+
+TODO
+
 =head1 CORE API
 
 =head2 SETUP PROPERTIES
@@ -30,41 +34,139 @@ TODO
 
 =item B<log.level> (value)
 
+Gets or sets the global log level.
+
 =item B<log.file> (path)
+
+Gets or sets the log destination.
+
+Example:
+
+ handler setup {
+    # ...
+    log.level 5;
+    log.file '/var/log/x0d/error.log';
+ }
 
 =item B<workers> (number)
 
+Gets or sets the number of workers to be spawned.
+Setting this value to 1 (default) will create no additional threads
+except the already existing main thread.
+
+You should have at least as much workers as CPU cores available in your setup.
+
+Example:
+
+ handler setup {
+    # ...
+    workers 4;
+ }
+
 =item B<mimetypes> (path)
+
+Defines the file containing the mimetype mappings.
+
+Example:
+
+ handler setup {
+    # ...
+    mimetypes '/etc/mime.types';
+ }
 
 =item B<mimetypes.default> (mimetype)
 
+Gets or sets the default mimetype to use.
+
 =item B<etag.mtime> (boolean)
+
+Gets or sets whether or not the mtime (last-modification time) should be
+part of the ETag-field when generated.
 
 =item B<etag.size> (boolean)
 
+Gets or sets whether or not the file size should be
+part of the ETag-field when generated.
+
 =item B<etag.inode> (boolean)
+
+Gets or sets whether or not the file's inode number should be
+part of the ETag-field when generated.
+
+This is generally not a good idea for cluster setups.
 
 =item B<server.advertise> (boolean)
 
-=item B<server.tas> (array)
+Gets or sets whether or not the server should propagate itself
+via the Server response header.
+
+=item B<server.tag> (array)
+
+Sets the array of custom server advertisement tags to append to
+the Server response header.
 
 =item B<max_read_idle> (timeout)
 
+Gets or sets the connection read idle timeout value.
+
 =item B<max_write_idle> (timeout)
+
+Gets or sets the connection write idle timeout value.
 
 =item B<max_keepalive_idle> (timeout)
 
+Gets or sets the connection write keep-alive timeout value.
+
 =item B<max_connections> (count)
+
+Gets or sets the number of maximum connections the server will handle in parallel.
 
 =item B<max_files> (count)
 
+Gets or sets the number of maximum files the server will have opened at the same time.
+
 =item B<max_address_space> (size)
+
+Gets or sets the memory allocation limit to this process.
 
 =item B<max_core_size> (size)
 
+Gets or sets the file size limit for possibly generated core files, which are
+required to properly debug the process after it crashed.
+
 =item B<tcp_cork> (boolean)
 
+Gets or sets whether or not the request connection may enable the
+C<TCP_CORK> flag.
+
+C<TCP_CORK> is an operating-system flag that, if enabled (not default) delays
+the transmission of the data for a short delay to wait for more data by the
+application and pack them into fewer but bigger IP packets, which should
+increase throughput alot.
+
+However, this is not recommended on interactive HTTP response streams
+and will be - if anabled by the configuration file - ignored on a given
+connection when the C<Connection>-response header is set to C<keep-alive>.
+
+C<tcp_cork> overrides the behavior of C<tcp_nodelay>.
+
+Default: false
+
 =item B<tcp_nodelay> (boolean)
+
+Gets or sets whether or not the request connection may enable the
+C<TCP_NODELAY> flag.
+
+C<TCP_NODELAY> is an operation-system flag that, if enabled (not default)
+disables the Nagle-algorithm for data-transmission and instantly flushes
+the data to the network, thus, even very small packets, which were put into
+a single IP packet otherwise, will be sent each on its own.
+
+Enabling C<tcp_nodelay> may result into poorer network throughput, and
+thus, should be left disabled in most cases, except highly interactive
+HTTP response streams..
+
+Default: false
 
 =back
 
@@ -76,69 +178,95 @@ TODO
 
 =back
 
-=head2 SETUP / MAIN API
+=head2 GLOBAL PROPERTIES
+
+Global properties are available in setup and main handlers.
+
+=over 6
+
+=item B<sys.cwd>
+
+Retrieves the current working directory.
+
+=item B<sys.pid>
+
+Retrieves the current process ID.
+
+=item B<sys.now>
+
+Retrieves the current time as a timestamp value.
+
+=item B<sys.now_str>
+
+Retrieves the current time as a formatted string value.
+
+=back
+
+=head2 GLOBAL FUNCTIONS
+
+Global functions are available in setup and main handlers.
 
 =over 6
 
 =item B<sys.env> (key)
 
-=item B<sys.cwd> ()
-
-=item B<sys.pid> ()
-
-=item B<sys.now> ()
-
-=item B<sys.now_str> ()
-
-=back
-
-=head2 MAIN API
-
-=over 6
-
-=item B<docroot> (path)
-
-Sets the requests document root to the given path.
+Retrieves the value of an environment variable.
 
 Example:
 
- docroot '/var/www/localhost/htdocs';
+ sys.env("PATH")
 
-=item B<autoindex> (array)
+=back
 
-=item B<alias> (prefix, target)
+=head2 MAIN PROPERTIES
 
-=item B<pathinfo> ()
+=over 6
 
 =item B<req.method>
 
+Retrieves the request method, e.g. GET, POST, etc.
+
 =item B<req.url>
+
+Retrieves the request URI.
 
 =item B<req.path>
 
+Retrieves the path part of the request URI.
+
 =item B<req.header> (name)
 
+Retrieves request header-value of a given header-name.
+
+Example:
+
+ if (header('X-Test') == '') {
+     # ...
+ }
+
 =item B<req.host>
+
+Retrieves the request hostname.
 
 =item B<req.pathinfo>
 
 =item B<req.is_secure>
 
-=item B<header.add> (name, value)
-
-=item B<header.overwrite> (name, value)
-
-=item B<header.append> (name)
-
-=item B<header.remove> (name)
-
 =item B<req.remoteip>
+
+Retrieves the remote (client) IP address.
 
 =item B<req.remoteport>
 
+Retrieves the remote (client) port number.
+
 =item B<req.localip>
 
+Retrieves the local (server) IP address the client connected to.
+
 =item B<req.localport>
+
+Retrieves the local (server) port number the client connected to.
 
 =item B<phys.path>
 
@@ -175,17 +303,107 @@ Retrieves the computed ETag of the physical file.
 
 Retrieves the mimetype of the physical file.
 
+Indicates whether or not the current connection's request is SSL secured or not.
+
+=item B<docroot> (path)
+
+Sets the requests document root to the given path.
+
+Example:
+
+ docroot '/var/www/localhost/htdocs';
+
+=back
+
+=head2 MAIN FUNCTIONS
+
+=over 6
+
+=item B<autoindex> (array)
+
+Remaps the current request to an index file as passed via arguments if the
+current request's physical file points to a directory and this directory
+contains a file listed in the array passed.
+
+Example:
+
+ handler main {
+    # ...
+    docroot '/var/www/localhost/htdocs';
+    autoindex ['index.php', 'index.lua', 'index.html'];
+    # ...
+ }
+
+=item B<alias> (prefix, target)
+
+=item B<pathinfo> ()
+
+Enforces computation of pathinfo.
+
+=item B<header.add> (name, value)
+
+TODO
+
+=item B<header.overwrite> (name, value)
+
+TODO
+
+=item B<header.append> (name)
+
+TODO
+
+=item B<header.remove> (name)
+
+TODO
+
+=back
+
+=head1 MAIN HANDLERS
+
+=over 6
+
 =item B<staticfile> ()
+
+Serves the mapped physical file to the client.
+
+Example:
+
+ handler main {
+    # ...
+    staticfile;
+ }
 
 =item B<redirect> (url)
 
+Redirects current request to another URL.
+
+Example:
+
+ handler main {
+    # ...
+    if (req.path == '/home') {
+        redirect 'http://xzero.ws/';
+    } else {
+        redirect '/home/local';
+    }
+ }
+
 =item B<respond> (http_code)
 
-=end
+Generate a simple response to the current request.
+
+Example:
+
+ handler main {
+    respond 404 if req.path == '/favicon.ico';
+    # ...
+ }
+
+=back
 
 =head1 PLUGINS
 
-B<x0> comes with a good set of standard plugins extending the core
+B<x0> comes with a set of standard plugins extending the core
 as described below:
 
 =head2 cgi
