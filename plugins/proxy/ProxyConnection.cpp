@@ -10,7 +10,6 @@
 #include "ProxyContext.h"
 
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/io/BufferSource.h>
 #include <x0/strutils.h>
 #include <x0/Url.h>
@@ -33,8 +32,7 @@ ProxyConnection::ProxyConnection(ProxyContext *px) :
 	WebClientBase(px->loop),
 	px_(px),
 	done_(),
-	request_(NULL),
-	response_(NULL)
+	request_(NULL)
 {
 }
 
@@ -45,7 +43,7 @@ ProxyConnection::ProxyConnection(ProxyContext *px) :
 void ProxyConnection::connect()
 {
 	TRACE("connection(%p).connect()", this);
-	if (!response_)
+	if (!request_)
 		return;
 
 	pass_request();
@@ -59,10 +57,10 @@ void ProxyConnection::connect()
 void ProxyConnection::response(int major, int minor, int code, x0::BufferRef&& text)
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", this, major, minor, code, text.str().c_str());
-	response_->status = static_cast<x0::HttpError>(code);
+	request_->status = static_cast<x0::HttpError>(code);
 }
 
-inline bool validate_response_header(const x0::BufferRef& name)
+inline bool validateResponseHeader(const x0::BufferRef& name)
 {
 	// XXX do not allow origin's connection-level response headers to be passed to the client.
 	if (iequals(name, "Connection"))
@@ -83,8 +81,8 @@ void ProxyConnection::header(x0::BufferRef&& name, x0::BufferRef&& value)
 {
 	TRACE("ProxyConnection(%p).header('%s', '%s')", this, name.str().c_str(), value.str().c_str());
 
-	if (validate_response_header(name))
-		response_->responseHeaders.push_back(name.str(), value.str());
+	if (validateResponseHeader(name))
+		request_->responseHeaders.push_back(name.str(), value.str());
 }
 
 /** callback, invoked when a new content chunk from origin has arrived.
@@ -101,7 +99,7 @@ bool ProxyConnection::content(x0::BufferRef&& chunk)
 
 	pause();
 
-	response_->write(std::make_shared<x0::BufferSource>(chunk),
+	request_->write(std::make_shared<x0::BufferSource>(chunk),
 			std::bind(&ProxyConnection::content_written, this, std::placeholders::_1, std::placeholders::_2));
 
 	return true;
@@ -115,8 +113,8 @@ bool ProxyConnection::complete()
 {
 	TRACE("ProxyConnection(%p).complete()", this);
 
-	if (static_cast<int>(response_->status) == 0)
-		response_->status = x0::HttpError::ServiceUnavailable;
+	if (static_cast<int>(request_->status) == 0)
+		request_->status = x0::HttpError::ServiceUnavailable;
 
 	done_();
 	delete this;
@@ -192,24 +190,22 @@ void ProxyConnection::disconnect()
 /** Starts processing the client request.
  *
  * \param done Callback to invoke when request has been fully processed (or an error occurred).
- * \param in Corresponding request.
- * \param out Corresponding response.
+ * \param r Corresponding HTTP request object.
  */
-void ProxyConnection::start(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out)
+void ProxyConnection::start(const std::function<void()>& done, x0::HttpRequest *r)
 {
-	TRACE("connection(%p).start(): path=%s (state()=%d)", this, in->path.str().c_str(), state());
+	TRACE("connection(%p).start(): path=%s (state()=%d)", this, r->path.str().c_str(), state());
 
 	if (state() == DISCONNECTED)
 	{
-		out->status = x0::HttpError::ServiceUnavailable;
+		r->status = x0::HttpError::ServiceUnavailable;
 		done();
 		delete this;
 		return;
 	}
 
 	done_ = done;
-	request_ = in;
-	response_ = out;
+	request_ = r;
 
 	if (state() == CONNECTED)
 		pass_request();

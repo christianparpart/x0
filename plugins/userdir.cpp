@@ -22,7 +22,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
@@ -89,33 +88,33 @@ public:
 	}
 
 private:
-	void handleRequest(Flow::Value& result, x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	void handleRequest(Flow::Value& result, x0::HttpRequest *r, const x0::Params& args)
 	{
 		if (dirname_.empty())
 			return;
 
-		if (in->path.size() <= 2 || in->path[1] != '~')
+		if (r->path.size() <= 2 || r->path[1] != '~')
 			return;
 
-		const std::size_t i = in->path.find("/", 2);
+		const std::size_t i = r->path.find("/", 2);
 		std::string userName, userPath;
 
 		if (i != std::string::npos)
 		{
-			userName = in->path.substr(2, i - 2);
-			userPath = in->path.substr(i);
+			userName = r->path.substr(2, i - 2);
+			userPath = r->path.substr(i);
 		}
 		else
 		{
-			userName = in->path.substr(2);
+			userName = r->path.substr(2);
 			userPath = "";
 		}
 
 		if (struct passwd *pw = getpwnam(userName.c_str()))
 		{
-			in->documentRoot = pw->pw_dir + dirname_;
-			in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + userPath);
-			debug(0, "docroot[%s], fileinfo[%s]", in->documentRoot.c_str(), in->fileinfo->filename().c_str());
+			r->documentRoot = pw->pw_dir + dirname_;
+			r->fileinfo = r->connection.worker().fileinfo(r->documentRoot + userPath);
+			debug(0, "docroot[%s], fileinfo[%s]", r->documentRoot.c_str(), r->fileinfo->filename().c_str());
 		}
 	}
 };

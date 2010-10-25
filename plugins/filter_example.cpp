@@ -9,7 +9,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpRangeDef.h>
 #include <x0/io/Filter.h>
 #include <x0/strutils.h>
@@ -79,7 +78,7 @@ public:
 	~filter_plugin() {
 	}
 
-	void install_filter(Flow::Value& /*result*/, x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	void install_filter(Flow::Value& /*result*/, x0::HttpRequest *r, const x0::Params& args)
 	{
 		if (args.count() != 1) {
 			log(x0::Severity::error, "No argument passed.");
@@ -92,26 +91,26 @@ public:
 		}
 
 		if (strcmp(args[0].toString(), "identity") == 0)
-			out->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::IDENTITY));
+			r->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::IDENTITY));
 		else if (strcmp(args[0].toString(), "upper") == 0)
-			out->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::UPPER));
+			r->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::UPPER));
 		else if (strcmp(args[0].toString(), "lower") == 0)
-			out->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::LOWER));
+			r->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::LOWER));
 		else {
 			log(x0::Severity::error, "Invalid argument value passed.");
 			return;
 		}
 
-		out->responseHeaders.push_back("Content-Encoding", "filter_example");
+		r->responseHeaders.push_back("Content-Encoding", "filter_example");
 
 		// response might change according to Accept-Encoding
-		if (!out->responseHeaders.contains("Vary"))
-			out->responseHeaders.push_back("Vary", "Accept-Encoding");
+		if (!r->responseHeaders.contains("Vary"))
+			r->responseHeaders.push_back("Vary", "Accept-Encoding");
 		else
-			out->responseHeaders["Vary"] += ",Accept-Encoding";
+			r->responseHeaders["Vary"] += ",Accept-Encoding";
 
 		// removing content-length implicitely enables chunked encoding
-		out->responseHeaders.remove("Content-Length");
+		r->responseHeaders.remove("Content-Length");
 	}
 };
 

@@ -9,7 +9,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
 #include <x0/strutils.h>
@@ -48,19 +47,19 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	virtual bool handleRequest(x0::HttpRequest *r, const x0::Params& args)
 	{
 		// set response status code
-		out->status = x0::HttpError::Ok;
+		r->status = x0::HttpError::Ok;
 
 		// set some custom response header
-		out->responseHeaders.push_back("Hello", "World");
+		r->responseHeaders.push_back("Hello", "World");
 
 		// write some content to the client, and invoke
-		// HttpResponse::finish on completion, thus, finish processing this request.
-		out->write(
+		// HttpRequest::finish on completion, thus, finish processing this request.
+		r->write(
 			std::make_shared<x0::BufferSource>("Hello, World\n"),
-			std::bind(&x0::HttpResponse::finish, out)
+			std::bind(&x0::HttpRequest::finish, r)
 		);
 
 		// yes, we are handling this request

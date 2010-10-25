@@ -13,7 +13,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/strutils.h>
 #include <x0/Url.h>
 #include <x0/Types.h>
@@ -177,9 +176,9 @@ private:
 		return px.get();
 	}
 
-	ProxyContext *get_proxy(x0::HttpRequest *in)
+	ProxyContext *get_proxy(x0::HttpRequest *r)
 	{
-		return NULL; //FIXME server_.resolveHost(in->hostid())->get<ProxyContext>(this);
+		return NULL; //FIXME server_.resolveHost(r->hostid())->get<ProxyContext>(this);
 	}
 
 public:
@@ -190,24 +189,24 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	virtual bool handleRequest(x0::HttpRequest *r, const x0::Params& args)
 	{
-		ProxyContext *px = get_proxy(in);
+		ProxyContext *px = get_proxy(r);
 		if (!px)
 			return false;
 
 		if (!px->enabled)
 			return false;
 
-		if (!px->method_allowed(in->method))
+		if (!px->method_allowed(r->method))
 		{
-			out->status = x0::HttpError::MethodNotAllowed;
-			out->finish();
+			r->status = x0::HttpError::MethodNotAllowed;
+			r->finish();
 			return true;
 		}
 
 		ProxyConnection *connection = px->acquire();
-		connection->start(std::bind(&x0::HttpResponse::finish, out), in, out);
+		connection->start(std::bind(&x0::HttpRequest::finish, r), r);
 		return true;
 	}
 };
