@@ -44,6 +44,7 @@ private:
 	bool secure_;
 	State state_;
 	Mode mode_;
+	bool tcpCork_;
 
 	mutable std::string remoteIP_;		//!< internal cache to remote ip
 	mutable unsigned int remotePort_;	//!< internal cache to remote port
@@ -69,6 +70,8 @@ public:
 
 	bool setNonBlocking(bool enabled);
 	bool setTcpNoDelay(bool enable);
+
+	bool tcpCork() const;
 	bool setTcpCork(bool enable);
 
 	std::string remoteIP() const;
@@ -158,6 +161,11 @@ inline void Socket::setState(State s)
 inline Socket::Mode Socket::mode() const
 {
 	return mode_;
+}
+
+inline bool Socket::tcpCork() const
+{
+	return tcpCork_;
 }
 
 inline const char *Socket::mode_str() const

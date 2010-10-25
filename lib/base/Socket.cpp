@@ -45,6 +45,7 @@ Socket::Socket(struct ev_loop *loop, int fd) :
 	secure_(false),
 	state_(OPERATIONAL),
 	mode_(IDLE),
+	tcpCork_(false),
 	remoteIP_(),
 	remotePort_(0),
 	localIP_(),
@@ -86,6 +87,7 @@ bool Socket::setTcpCork(bool enable)
 	int flag = enable ? 1 : 0;
 	bool rv = setsockopt(fd_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) == 0;
 	TRACE("(%d).setTcpCork: %d => %d", fd_, enable, rv);
+	tcpCork_ = rv ? enable : false;
 	return rv;
 #else
 	return false;
