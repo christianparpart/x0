@@ -271,8 +271,8 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 		request_->path = request_->uri;
 	}
 
-	request_->http_version_major = version_major;
-	request_->http_version_minor = version_minor;
+	request_->httpVersionMajor = version_major;
+	request_->httpVersionMinor = version_minor;
 }
 
 void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
@@ -286,7 +286,7 @@ void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
 			request_->hostname = value;
 	}
 
-	request_->headers.push_back(HttpRequestHeader(std::move(name), std::move(value)));
+	request_->requestHeaders.push_back(HttpRequestHeader(std::move(name), std::move(value)));
 }
 
 bool HttpConnection::messageHeaderEnd()
@@ -295,15 +295,15 @@ bool HttpConnection::messageHeaderEnd()
 	response_ = new HttpResponse(this);
 
 #if X0_HTTP_STRICT
-	BufferRef expectHeader = request_->header("Expect");
+	BufferRef expectHeader = request_->requestHeader("Expect");
 	bool content_required = request_->method == "POST" || request_->method == "PUT";
 
-	if (content_required && !request_->content_available())
+	if (content_required && !request_->contentAvailable())
 	{
 		response_->status = HttpError::LengthRequired;
 		response_->finish();
 	}
-	else if (!content_required && request_->content_available())
+	else if (!content_required && request_->contentAvailable())
 	{
 		response_->status = HttpError::BadRequest; // FIXME do we have a better status code?
 		response_->finish();
@@ -312,7 +312,7 @@ bool HttpConnection::messageHeaderEnd()
 	{
 		request_->expectingContinue = equals(expectHeader, "100-continue");
 
-		if (!request_->expectingContinue || !request_->supports_protocol(1, 1))
+		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1))
 		{
 			printf("expectHeader: failed\n");
 			response_->status = HttpError::ExpectationFailed;
@@ -335,7 +335,7 @@ bool HttpConnection::messageContent(BufferRef&& chunk)
 	TRACE("messageContent(#%ld)", chunk.size());
 
 	if (request_)
-		request_->on_read(std::move(chunk));
+		request_->onRequestContent(std::move(chunk));
 
 	return true;
 }
@@ -349,7 +349,7 @@ bool HttpConnection::messageEnd()
 
 	// XXX is this really required? (meant to mark the request-content EOS)
 	if (request_)
-		request_->on_read(BufferRef());
+		request_->onRequestContent(BufferRef());
 
 	// allow continueing processing possible further requests
 	return true;

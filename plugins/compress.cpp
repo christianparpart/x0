@@ -164,7 +164,7 @@ private:
 		if (!containsMime(out->headers["Content-Type"]))
 			return;
 
-		if (x0::BufferRef r = in->header("Accept-Encoding"))
+		if (x0::BufferRef r = in->requestHeader("Accept-Encoding"))
 		{
 			typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
 

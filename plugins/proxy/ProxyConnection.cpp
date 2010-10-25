@@ -248,7 +248,7 @@ void ProxyConnection::pass_request()
 		write_request(request_->method, request_->path);
 
 	// request-headers
-	for (auto i = request_->headers.begin(), e = request_->headers.end(); i != e; ++i)
+	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i)
 		if (validate_request_header(i->name))
 			write_header(i->name, i->value);
 
@@ -283,7 +283,7 @@ void ProxyConnection::pass_request()
 
 	commit(true);
 
-	if (request_->content_available())
+	if (request_->contentAvailable())
 	{
 		using namespace std::placeholders;
 		request_->read(std::bind(&ProxyConnection::pass_request_content, this, _1));

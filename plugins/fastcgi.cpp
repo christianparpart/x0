@@ -597,7 +597,7 @@ void CgiTransport::beginRequest()
 void CgiTransport::streamParams()
 {
 	paramWriter_.encode("SERVER_SOFTWARE", PACKAGE_NAME "/" PACKAGE_VERSION);
-	paramWriter_.encode("SERVER_NAME", request_->header("Host"));
+	paramWriter_.encode("SERVER_NAME", request_->requestHeader("Host"));
 	paramWriter_.encode("GATEWAY_INTERFACE", "CGI/1.1");
 
 	paramWriter_.encode("SERVER_PROTOCOL", "1.1");
@@ -611,7 +611,7 @@ void CgiTransport::streamParams()
 	paramWriter_.encode("SCRIPT_NAME", request_->path);
 	paramWriter_.encode("PATH_INFO", request_->pathinfo);
 	if (!request_->pathinfo.empty())
-		paramWriter_.encode("PATH_TRANSLATED", request_->document_root, request_->pathinfo);
+		paramWriter_.encode("PATH_TRANSLATED", request_->documentRoot, request_->pathinfo);
 
 	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
 	paramWriter_.encode("REQUEST_URI", request_->uri);
@@ -624,9 +624,9 @@ void CgiTransport::streamParams()
 	//paramWriter_.encode("REMOTE_USER", "");
 	//paramWriter_.encode("REMOTE_IDENT", "");
 
-	if (request_->content_available()) {
-		paramWriter_.encode("CONTENT_TYPE", request_->header("Content-Type"));
-		paramWriter_.encode("CONTENT_LENGTH", request_->header("Content-Length"));
+	if (request_->contentAvailable()) {
+		paramWriter_.encode("CONTENT_TYPE", request_->requestHeader("Content-Type"));
+		paramWriter_.encode("CONTENT_LENGTH", request_->requestHeader("Content-Length"));
 
 		request_->read(std::bind(&CgiTransport::processRequestBody, this, std::placeholders::_1));
 	}
@@ -637,7 +637,7 @@ void CgiTransport::streamParams()
 #endif
 
 	// HTTP request headers
-	for (auto i = request_->headers.begin(), e = request_->headers.end(); i != e; ++i)
+	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i)
 	{
 		std::string key;
 		key.reserve(5 + i->name.size());
@@ -648,7 +648,7 @@ void CgiTransport::streamParams()
 
 		paramWriter_.encode(key, i->value);
 	}
-	paramWriter_.encode("DOCUMENT_ROOT", request_->document_root);
+	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
 	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->filename());
 
 	write(FastCgi::Type::Params, id_, paramWriter_.output());

@@ -51,34 +51,34 @@ public:
 	FileInfoPtr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
 	std::string pathinfo;
 	BufferRef query;							///< decoded query-part
-	int http_version_major;						///< HTTP protocol version major part that this request was formed in
-	int http_version_minor;						///< HTTP protocol version minor part that this request was formed in
+	int httpVersionMajor;						///< HTTP protocol version major part that this request was formed in
+	int httpVersionMinor;						///< HTTP protocol version minor part that this request was formed in
 	BufferRef hostname;							///< Host header field.
-	std::vector<HttpRequestHeader> headers;		///< request headers
+	std::vector<HttpRequestHeader> requestHeaders; ///< request headers
 
 	/** retrieve value of a given request header */
-	BufferRef header(const std::string& name) const;
+	BufferRef requestHeader(const std::string& name) const;
 
 	void updatePathInfo();
 
 	// accumulated request data
 	BufferRef username;							///< username this client has authenticated with.
-	std::string document_root;					///< the document root directory for this request.
+	std::string documentRoot;					///< the document root directory for this request.
 
 //	std::string if_modified_since;				//!< "If-Modified-Since" request header value, if specified.
 //	std::shared_ptr<range_def> range;			//!< parsed "Range" request header
 	bool expectingContinue;
 
 	// custom data bindings
-	std::map<HttpPlugin *, CustomDataPtr> custom_data;
+	std::map<HttpPlugin *, CustomDataPtr> customData;
 
 	// utility methods
-	bool supports_protocol(int major, int minor) const;
+	bool supportsProtocol(int major, int minor) const;
 	std::string hostid() const;
-	void set_hostid(const std::string& custom);
+	void setHostid(const std::string& custom);
 
 	// content management
-	bool content_available() const;
+	bool contentAvailable() const;
 	bool read(const std::function<void(BufferRef&&)>& callback);
 
 	template<typename... Args>
@@ -86,9 +86,9 @@ public:
 
 private:
 	mutable std::string hostid_;
-	std::function<void(BufferRef&&)> read_callback_;
+	std::function<void(BufferRef&&)> readCallback_;
 
-	void on_read(BufferRef&& chunk);
+	void onRequestContent(BufferRef&& chunk);
 
 	friend class HttpConnection;
 };
@@ -102,15 +102,15 @@ inline HttpRequest::HttpRequest(HttpConnection& conn) :
 	fileinfo(),
 	pathinfo(),
 	query(),
-	http_version_major(0),
-	http_version_minor(0),
-	headers(),
+	httpVersionMajor(0),
+	httpVersionMinor(0),
+	requestHeaders(),
 	username(),
-	document_root(),
+	documentRoot(),
 	expectingContinue(false),
-	custom_data(),
+	customData(),
 	hostid_(),
-	read_callback_()
+	readCallback_()
 {
 }
 
@@ -118,12 +118,12 @@ inline HttpRequest::~HttpRequest()
 {
 }
 
-inline bool HttpRequest::supports_protocol(int major, int minor) const
+inline bool HttpRequest::supportsProtocol(int major, int minor) const
 {
-	if (major == http_version_major && minor <= http_version_minor)
+	if (major == httpVersionMajor && minor <= httpVersionMinor)
 		return true;
 
-	if (major < http_version_major)
+	if (major < httpVersionMajor)
 		return true;
 
 	return false;

@@ -261,7 +261,7 @@ static inline void _loadenv_if(const std::string& name, x0::Process::Environment
 
 inline void CgiScript::runAsync()
 {
-	std::string workdir(request_->document_root);
+	std::string workdir(request_->documentRoot);
 	x0::Process::ArgumentList params;
 	std::string hostprogram;
 
@@ -279,7 +279,7 @@ inline void CgiScript::runAsync()
 	x0::Process::Environment environment;
 
 	environment["SERVER_SOFTWARE"] = PACKAGE_NAME "/" PACKAGE_VERSION;
-	environment["SERVER_NAME"] = request_->header("Host").str();
+	environment["SERVER_NAME"] = request_->requestHeader("Host").str();
 	environment["GATEWAY_INTERFACE"] = "CGI/1.1";
 
 	environment["SERVER_PROTOCOL"] = "1.1"; // XXX or 1.0
@@ -290,7 +290,7 @@ inline void CgiScript::runAsync()
 
 	environment["PATH_INFO"] = request_->pathinfo;
 	if (!request_->pathinfo.empty())
-		environment["PATH_TRANSLATED"] = request_->document_root + request_->pathinfo;
+		environment["PATH_TRANSLATED"] = request_->documentRoot + request_->pathinfo;
 
 	environment["SCRIPT_NAME"] = request_->path.str();
 	environment["QUERY_STRING"] = request_->query.str(); // unparsed uri
@@ -304,10 +304,10 @@ inline void CgiScript::runAsync()
 	//environment["REMOTE_USER"] = "";
 	//environment["REMOTE_IDENT"] = "";
 
-	if (request_->content_available())
+	if (request_->contentAvailable())
 	{
-		environment["CONTENT_TYPE"] = request_->header("Content-Type").str();
-		environment["CONTENT_LENGTH"] = request_->header("Content-Length").str();
+		environment["CONTENT_TYPE"] = request_->requestHeader("Content-Type").str();
+		environment["CONTENT_LENGTH"] = request_->requestHeader("Content-Length").str();
 
 		request_->read(std::bind(&CgiScript::onStdinAvailable, this, std::placeholders::_1));
 	}
@@ -322,10 +322,10 @@ inline void CgiScript::runAsync()
 #endif
 
 	environment["SCRIPT_FILENAME"] = request_->fileinfo->filename();
-	environment["DOCUMENT_ROOT"] = request_->document_root;
+	environment["DOCUMENT_ROOT"] = request_->documentRoot;
 
 	// HTTP request headers
-	for (auto i = request_->headers.begin(), e = request_->headers.end(); i != e; ++i)
+	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i)
 	{
 		std::string key;
 		key.reserve(5 + i->name.size());

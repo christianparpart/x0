@@ -49,15 +49,11 @@ void HttpRequest::updatePathInfo()
 	}
 }
 
-BufferRef HttpRequest::header(const std::string& name) const
+BufferRef HttpRequest::requestHeader(const std::string& name) const
 {
-	for (std::vector<HttpRequestHeader>::const_iterator i = headers.begin(), e = headers.end(); i != e; ++i)
-	{
+	for (std::vector<HttpRequestHeader>::const_iterator i = requestHeaders.begin(), e = requestHeaders.end(); i != e; ++i)
 		if (iequals(i->name, name))
-		{
 			return i->value;
-		}
-	}
 
 	return BufferRef();
 }
@@ -65,17 +61,17 @@ BufferRef HttpRequest::header(const std::string& name) const
 std::string HttpRequest::hostid() const
 {
 	if (hostid_.empty())
-		hostid_ = x0::make_hostid(header("Host"), connection.listener().port());
+		hostid_ = x0::make_hostid(requestHeader("Host"), connection.listener().port());
 
 	return hostid_;
 }
 
-void HttpRequest::set_hostid(const std::string& value)
+void HttpRequest::setHostid(const std::string& value)
 {
 	hostid_ = value;
 }
 
-bool HttpRequest::content_available() const
+bool HttpRequest::contentAvailable() const
 {
 	return connection.state() != HttpMessageProcessor::MESSAGE_BEGIN;
 }
@@ -89,7 +85,7 @@ bool HttpRequest::content_available() const
  */
 bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
 {
-	if (!content_available())
+	if (!contentAvailable())
 		return false;
 
 	if (expectingContinue)
@@ -100,17 +96,17 @@ bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
 		expectingContinue = false;
 	}
 
-	read_callback_ = callback;
+	readCallback_ = callback;
 
 	return true;
 }
 
-void HttpRequest::on_read(BufferRef&& chunk)
+void HttpRequest::onRequestContent(BufferRef&& chunk)
 {
-	if (read_callback_)
+	if (readCallback_)
 	{
-		read_callback_(std::move(chunk));
-		read_callback_ = std::function<void(BufferRef&&)>();
+		readCallback_(std::move(chunk));
+		readCallback_ = std::function<void(BufferRef&&)>();
 	}
 }
 

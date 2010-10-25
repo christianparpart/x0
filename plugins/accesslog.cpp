@@ -119,14 +119,14 @@ private:
 		std::shared_ptr<LogFile> lf(std::make_shared<LogFile>());
 		std::error_code ec = lf->open(args[0].toString());
 		if (!ec)
-			in->custom_data[this] = lf;
+			in->customData[this] = lf;
 		else
 			printf("accesslog error: %s\n", ec.message().c_str());
 	}
 
 	void request_done(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		if (LogFile *stream = (LogFile *)in->custom_data[this].get())
+		if (LogFile *stream = (LogFile *)in->customData[this].get())
 		{
 			std::stringstream sstr;
 			sstr << hostname(in);
@@ -160,14 +160,14 @@ private:
 		std::stringstream str;
 
 		str << in->method.str() << ' ' << in->uri.str()
-			<< " HTTP/" << in->http_version_major << '.' << in->http_version_minor;
+			<< " HTTP/" << in->httpVersionMajor << '.' << in->httpVersionMinor;
 
 		return str.str();
 	}
 
 	inline std::string getheader(const x0::HttpRequest *in, const std::string& name)
 	{
-		x0::BufferRef value(in->header(name));
+		x0::BufferRef value(in->requestHeader(name));
 		return !value.empty() ? value.str() : "-";
 	}
 };

@@ -44,8 +44,8 @@ private:
 		// set response header "Content-Length",
 		// if request content were not encoded
 		// and if we've received its request header "Content-Length"
-		if (!in->header("Content-Encoding"))
-			if (x0::BufferRef value = in->header("Content-Length"))
+		if (!in->requestHeader("Content-Encoding"))
+			if (x0::BufferRef value = in->requestHeader("Content-Length"))
 				out->headers.overwrite("Content-Length", value.str());
 
 		// try to read content (if available) and pass it on to our onContent handler,

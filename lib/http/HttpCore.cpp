@@ -362,7 +362,7 @@ void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
 // {{{ req
 void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	if (in->document_root.empty()) {
+	if (in->documentRoot.empty()) {
 		server().log(Severity::error, "autoindex: No document root set yet. Skipping.");
 		return; // error: must have a document-root set first.
 	}
@@ -425,8 +425,8 @@ bool HttpCore::docroot(HttpRequest *in, HttpResponse *out, const Params& args)
 	if (args.count() != 1)
 		return false;
 
-	in->document_root = args[0].toString();
-	in->fileinfo = in->connection.worker().fileinfo(in->document_root + in->path);
+	in->documentRoot = args[0].toString();
+	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path);
 	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
 
 	return redirectOnIncompletePath(in, out);
@@ -492,7 +492,7 @@ void HttpCore::req_path(Flow::Value& result, HttpRequest *in, HttpResponse *out,
 
 void HttpCore::req_header(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
 {
-	BufferRef ref(in->header(args[0].toString()));
+	BufferRef ref(in->requestHeader(args[0].toString()));
 	result.set(ref.data(), ref.size());
 }
 
@@ -716,11 +716,11 @@ HttpError HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
 	std::string value;
 
 	// If-None-Match, If-Modified-Since
-	if ((value = in->header("If-None-Match")) != "")
+	if ((value = in->requestHeader("If-None-Match")) != "")
 	{
 		if (value == in->fileinfo->etag())
 		{
-			if ((value = in->header("If-Modified-Since")) != "") // ETag + If-Modified-Since
+			if ((value = in->requestHeader("If-Modified-Since")) != "") // ETag + If-Modified-Since
 			{
 				DateTime date(value);
 
@@ -736,7 +736,7 @@ HttpError HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
 			}
 		}
 	}
-	else if ((value = in->header("If-Modified-Since")) != "")
+	else if ((value = in->requestHeader("If-Modified-Since")) != "")
 	{
 		DateTime date(value);
 		if (!date.valid())
@@ -751,7 +751,7 @@ HttpError HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
 
 inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, int fd) //{{{
 {
-	BufferRef range_value(in->header("Range"));
+	BufferRef range_value(in->requestHeader("Range"));
 	HttpRangeDef range;
 
 	// if no range request or range request was invalid (by syntax) we fall back to a full response
@@ -976,9 +976,9 @@ bool HttpCore::redirectOnIncompletePath(HttpRequest *in, HttpResponse *out)
 
 	std::stringstream url;
 
-	BufferRef hostname(in->header("X-Forwarded-Host"));
+	BufferRef hostname(in->requestHeader("X-Forwarded-Host"));
 	if (hostname.empty())
-		hostname = in->header("Host");
+		hostname = in->requestHeader("Host");
 
 	url << (in->connection.secure ? "https://" : "http://");
 	url << hostname.str();

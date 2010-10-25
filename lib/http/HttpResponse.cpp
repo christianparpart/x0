@@ -130,8 +130,8 @@ SourcePtr HttpResponse::serialize()
 	// setup (connection-level) response transfer
 	if (!headers.contains("Content-Length") && !content_forbidden())
 	{
-		if (request_->supports_protocol(1, 1)
-			&& equals(request_->header("Connection"), "keep-alive")
+		if (request_->supportsProtocol(1, 1)
+			&& equals(request_->requestHeader("Connection"), "keep-alive")
 			&& !headers.contains("Transfer-Encoding")
 			&& !content_forbidden())
 		{
@@ -143,7 +143,7 @@ SourcePtr HttpResponse::serialize()
 	}
 	else if (!headers.contains("Connection"))
 	{
-		if (iequals(request_->header("Connection"), "keep-alive"))
+		if (iequals(request_->requestHeader("Connection"), "keep-alive"))
 		{
 			headers.push_back("Connection", "keep-alive");
 			keepalive = true;
@@ -165,9 +165,9 @@ SourcePtr HttpResponse::serialize()
 	if (!keepalive && connection_->worker().server().tcp_cork())
 		connection_->socket()->setTcpCork(true);
 
-	if (request_->supports_protocol(1, 1))
+	if (request_->supportsProtocol(1, 1))
 		buffers.push_back("HTTP/1.1 ");
-	else if (request_->supports_protocol(1, 0))
+	else if (request_->supportsProtocol(1, 0))
 		buffers.push_back("HTTP/1.0 ");
 	else
 		buffers.push_back("HTTP/0.9 ");
