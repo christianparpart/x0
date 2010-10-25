@@ -359,6 +359,9 @@ bool HttpConnection::messageEnd()
  */
 void HttpConnection::resume()
 {
+	if (socket()->tcpCork())
+		socket()->setTcpCork(false);
+
 	delete request_;
 	request_ = 0;
 

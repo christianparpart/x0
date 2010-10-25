@@ -220,7 +220,7 @@ SourcePtr HttpRequest::serialize()
 	if (!keepalive)
 		responseHeaders.overwrite("Connection", "close");
 
-	if (!keepalive && connection.worker().server().tcp_cork())
+	if (!connection.worker().server().tcp_cork())
 		connection.socket()->setTcpCork(true);
 
 	if (supportsProtocol(1, 1))
