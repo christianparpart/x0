@@ -11,7 +11,6 @@
 
 #include "ProxyOrigin.h"
 
-#include <x0/Scope.h>
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
 #include <x0/strutils.h>
@@ -28,8 +27,7 @@ class ProxyConnection;
 
 /** holds a complete proxy configuration for a specific entry point.
  */
-class ProxyContext :
-	public x0::ScopeValue
+class ProxyContext
 {
 public:
 	struct ev_loop *loop;
@@ -57,8 +55,6 @@ public:
 
 	ProxyConnection *acquire();
 	void release(ProxyConnection *px);
-
-	virtual void merge(const x0::ScopeValue *from);
 
 private:
 	std::size_t origins_ptr;

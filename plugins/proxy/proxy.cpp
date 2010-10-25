@@ -163,7 +163,6 @@ private:
 	{
 		return cvar.load(acquire_proxy(s)->keepalive);
 	}
-#endif
 
 	ProxyContext *acquire_proxy(x0::Scope& s)
 	{
@@ -175,6 +174,7 @@ private:
 
 		return px.get();
 	}
+#endif
 
 	ProxyContext *get_proxy(x0::HttpRequest *r)
 	{

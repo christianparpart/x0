@@ -89,11 +89,3 @@ void ProxyContext::release(ProxyConnection *pc)
 	TRACE("connection release(%p)", pc);
 	idle_.push_back(pc);
 }
-
-void ProxyContext::merge(const ScopeValue *from)
-{
-	//! \todo if (auto cx = dynamic_cast<const ProxyContext *>(from))
-	{
-		// ...
-	}
-}
