@@ -11,6 +11,7 @@
 
 #include <x0/io/FileInfoService.h>
 #include <x0/http/HttpContext.h>
+#include <x0/http/HttpWorker.h>
 #include <x0/http/Types.h>
 #include <x0/DateTime.h>
 #include <x0/Property.h>
@@ -70,6 +71,7 @@ public:
 
 	HttpWorker *spawnWorker();
 	HttpWorker *selectWorker();
+	HttpWorker *findWorker(pthread_t tid);
 	void destroyWorker(HttpWorker *worker);
 
 	// {{{ service control
@@ -150,8 +152,6 @@ private:
 	friend class HttpCore;
 
 private:
-	void handleRequest(HttpRequest *in, HttpResponse *out);
-
 	static void *runWorker(void *);
 
 	std::vector<std::string> components_;
@@ -159,8 +159,6 @@ private:
 	Flow::Unit *unit_;
 	Flow::Runner *runner_;
 	bool (*onHandleRequest_)();
-	HttpRequest *in_;
-	HttpResponse *out_;
 
 	std::list<HttpListener *> listeners_;
 	struct ::ev_loop *loop_;
@@ -228,6 +226,18 @@ inline void HttpServer::logLevel(Severity value)
 {
 	logLevel_ = value;
 	logger()->level(value);
+}
+
+inline HttpWorker *HttpServer::findWorker(pthread_t tid)
+{
+	for (auto i = workers_.begin(), e = workers_.end(); i != e; ++i)
+	{
+		HttpWorker *w = *i;
+		if (w->thread_ == tid)
+			return w;
+	}
+	return workers_.front();
+	//return NULL;
 }
 // }}}
 

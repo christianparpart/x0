@@ -38,12 +38,16 @@ private:
 	std::deque<std::pair<int, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
+	HttpRequest *in_;
+	HttpResponse *out_;
+
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
 	ev::async evSuspend_;
 	ev::async evResume_;
 	ev::async evExit_;
 
+	friend class HttpPlugin;
 	friend class HttpCore;
 	friend class HttpServer;
 	friend class HttpConnection;
@@ -65,6 +69,7 @@ public:
 	unsigned load() const;
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
+	void handleRequest(HttpRequest *in, HttpResponse *out);
 	void release(HttpConnection *connection);
 
 	void log(Severity s, const char *fmt, ...);

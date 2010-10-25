@@ -145,8 +145,10 @@ void HttpPlugin::method_thunk(void *p, int argc, Flow::Value *argv)
 	Params args(argc, argv + 1);
 
 	T *self = static_cast<T *>(p);
-	HttpRequest *in = self->server_.in_;
-	HttpResponse *out = self->server_.out_;
+
+	HttpWorker *w = self->server_.findWorker(pthread_self());
+	HttpRequest *in = w->in_;
+	HttpResponse *out = w->out_;
 
 	(self->*cb)(argv[0], in, out, args);
 }
@@ -162,8 +164,11 @@ template<typename T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params& 
 void HttpPlugin::handler_thunk(void *p, int argc, Flow::Value *argv)
 {
 	T *self = static_cast<T *>(p);
-	HttpRequest *in = self->server_.in_;
-	HttpResponse *out = self->server_.out_;
+	HttpWorker *w = self->server_.findWorker(pthread_self());
+
+	HttpRequest *in = w->in_;
+	HttpResponse *out = w->out_;
+
 	Params args(argc, argv + 1);
 
 	argv[0].set((self->*cb)(in, out, args));

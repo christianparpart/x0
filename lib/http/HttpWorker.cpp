@@ -1,4 +1,6 @@
 #include <x0/http/HttpWorker.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpConnection.h>
 
@@ -19,7 +21,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	loop_(loop),
 	now_(),
 	connectionLoad_(0),
-	thread_(),
+	thread_(0),
 	state_(Active),
 	queue_(),
 	evLoopCheck_(loop_),
@@ -82,7 +84,7 @@ void HttpWorker::log(Severity s, const char *fmt, ...)
 	va_list va;
 	va_start(va, fmt);
 	char buf[512];
-	int buflen = vsnprintf(buf, sizeof(buf), fmt, va);
+	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
 	server_.log(s, "HttpWorker/%d: %s", id_, buf);
@@ -146,6 +148,16 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 		pthread_spin_lock(&queueLock_);
 	}
 	pthread_spin_unlock(&queueLock_);
+}
+
+void HttpWorker::handleRequest(HttpRequest *in, HttpResponse *out)
+{
+	in_ = in;
+	out_ = out;
+
+	server_.onPreProcess(in);
+	if (!server_.onHandleRequest_())
+		out->finish();
 }
 
 void HttpWorker::onSuspend(ev::async& w, int revents)

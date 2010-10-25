@@ -72,13 +72,13 @@ public:
 	class HeaderList // {{{
 	{
 	public:
-		struct Item { // {{{
+		struct Header { // {{{
 			std::string name;
 			std::string value;
-			Item *prev;
-			Item *next;
+			Header *prev;
+			Header *next;
 
-			Item(const std::string& _name, const std::string& _value, Item *_prev, Item *_next) :
+			Header(const std::string& _name, const std::string& _value, Header *_prev, Header *_next) :
 				name(_name), value(_value), prev(_prev), next(_next)
 			{
 				if (prev)
@@ -88,39 +88,38 @@ public:
 					next->prev = this;
 			}
 
-			~Item()
+			~Header()
 			{
-				fprintf(stderr, "Item('%s', '%s')\n", name.c_str(), value.c_str());
-			}
-
-			void dump()
-			{
-				fprintf(stderr, "Item('%s', '%s', %p, %p)\n", name.c_str(), value.c_str(), (void*)prev, (void*)next);
 			}
 		};
 		// }}}
 
 		class iterator { // {{{
 		private:
-			Item *current_;
+			Header *current_;
 
 		public:
 			iterator() :
 				current_(NULL)
 			{}
 
-			explicit iterator(Item *item) :
+			explicit iterator(Header *item) :
 				current_(item)
 			{}
 
-			Item& operator*()
+			Header& operator*()
 			{
 				return *current_;
 			}
 
-			Item& operator->()
+			Header& operator->()
 			{
 				return *current_;
+			}
+
+			Header *get() const
+			{
+				return current_;
 			}
 
 			iterator& operator++()
@@ -145,8 +144,8 @@ public:
 
 	private:
 		size_t size_;
-		Item *first_;
-		Item *last_;
+		Header *first_;
+		Header *last_;
 
 	public:
 		HeaderList() :
@@ -156,7 +155,7 @@ public:
 		~HeaderList()
 		{
 			while (first_) {
-				delete unlinkItem(first_);
+				delete unlinkHeader(first_);
 			}
 		}
 
@@ -170,7 +169,7 @@ public:
 
 		bool contains(const std::string& name) const
 		{
-			for (const Item *i = first_; i != NULL; i = i->next)
+			for (const Header *i = first_; i != NULL; i = i->next)
 				if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
 					return true;
 
@@ -179,7 +178,7 @@ public:
 
 		void push_back(const std::string& name, const std::string& value)
 		{
-			last_ = new Item(name, value, last_, NULL);
+			last_ = new Header(name, value, last_, NULL);
 
 			if (first_ == NULL)
 				first_ = last_;
@@ -187,16 +186,16 @@ public:
 			++size_;
 		}
 
-		Item **findItem(const std::string& name)
+		Header *findHeader(const std::string& name)
 		{
-			Item **item = &first_;
+			Header *item = first_;
 
-			while (*item != NULL)
+			while (item != NULL)
 			{
-				if (strcasecmp((*item)->name.c_str(), name.c_str()) == 0)
+				if (strcasecmp(item->name.c_str(), name.c_str()) == 0)
 					return item;
 
-				item = &(*item)->next;
+				item = item->next;
 			}
 
 			return NULL;
@@ -204,19 +203,17 @@ public:
 
 		void overwrite(const std::string& name, const std::string& value)
 		{
-			Item **item = findItem(name);
-
-			if (item && *item)
-				(*item)->value = value;
+			if (Header *item = findHeader(name))
+				item->value = value;
 			else
 				push_back(name, value);
 		}
 
 		const std::string& operator[](const std::string& name) const
 		{
-			Item **item = const_cast<HeaderList *>(this)->findItem(name);
+			Header *item = const_cast<HeaderList *>(this)->findHeader(name);
 			if (item)
-				return (*item)->value;
+				return item->value;
 
 			static std::string not_found;
 			return not_found;
@@ -224,9 +221,9 @@ public:
 
 		std::string& operator[](const std::string& name)
 		{
-			Item **item = findItem(name);
+			Header *item = findHeader(name);
 			if (item)
-				return (*item)->value;
+				return item->value;
 
 			static std::string not_found;
 			return not_found;
@@ -237,10 +234,10 @@ public:
 			// TODO append value to the header with name or create one if not yet available.
 		}
 
-		Item *unlinkItem(Item *item)
+		Header *unlinkHeader(Header *item)
 		{
-			Item *prev = item->prev;
-			Item *next = item->next;
+			Header *prev = item->prev;
+			Header *next = item->next;
 
 			// unlink from list
 			if (prev)
@@ -263,10 +260,9 @@ public:
 
 		void remove(const std::string& name)
 		{
-			Item **item = findItem(name);
-			if (item)
+			if (Header *item = findHeader(name))
 			{
-				delete unlinkItem(*item);
+				delete unlinkHeader(item);
 			}
 		}
 	}; // }}}

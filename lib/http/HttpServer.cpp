@@ -75,8 +75,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	unit_(NULL),
 	runner_(NULL),
 	onHandleRequest_(),
-	in_(NULL),
-	out_(NULL),
 
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
@@ -346,18 +344,6 @@ void HttpServer::run()
 	{
 		workers_.front()->run();
 	}
-}
-
-void HttpServer::handleRequest(HttpRequest *in, HttpResponse *out)
-{
-	in_ = in;
-	out_ = out;
-
-	// pre-request hook
-	onPreProcess(const_cast<HttpRequest *>(in));
-
-	if (!onHandleRequest_())
-		out->finish();
 }
 
 /**

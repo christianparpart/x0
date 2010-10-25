@@ -179,7 +179,7 @@ SourcePtr HttpResponse::serialize()
 
 	for (auto i = headers.begin(), e = headers.end(); i != e; ++i)
 	{
-		auto h = *i;
+		const HeaderList::Header& h = *i;
 		buffers.push_back(h.name.data(), h.name.size());
 		buffers.push_back(": ");
 		buffers.push_back(h.value.data(), h.value.size());

@@ -319,12 +319,12 @@ bool HttpConnection::messageHeaderEnd()
 			response_->finish();
 		}
 		else
-			worker_.server_.handleRequest(request_, response_);
+			worker_.handleRequest(request_, response_);
 	}
 	else
-		worker_.server_.handleRequest(request_, response_);
+		worker_.handleRequest(request_, response_);
 #else
-	worker_.server_.handleRequest(request_, response_);
+	worker_.handleRequest(request_, response_);
 #endif
 
 	return true;
