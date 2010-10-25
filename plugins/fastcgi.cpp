@@ -721,7 +721,7 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 		TRACE("CgiTransport.status := %s", response_->status_str(response_->status).c_str());
 	}
 	else
-		response_->headers.push_back(name.str(), value.str());
+		response_->responseHeaders.push_back(name.str(), value.str());
 }
 
 bool CgiTransport::messageContent(x0::BufferRef&& content)

@@ -92,26 +92,26 @@ public:
 		}
 
 		if (strcmp(args[0].toString(), "identity") == 0)
-			out->filters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::IDENTITY));
+			out->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::IDENTITY));
 		else if (strcmp(args[0].toString(), "upper") == 0)
-			out->filters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::UPPER));
+			out->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::UPPER));
 		else if (strcmp(args[0].toString(), "lower") == 0)
-			out->filters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::LOWER));
+			out->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::LOWER));
 		else {
 			log(x0::Severity::error, "Invalid argument value passed.");
 			return;
 		}
 
-		out->headers.push_back("Content-Encoding", "filter_example");
+		out->responseHeaders.push_back("Content-Encoding", "filter_example");
 
 		// response might change according to Accept-Encoding
-		if (!out->headers.contains("Vary"))
-			out->headers.push_back("Vary", "Accept-Encoding");
+		if (!out->responseHeaders.contains("Vary"))
+			out->responseHeaders.push_back("Vary", "Accept-Encoding");
 		else
-			out->headers["Vary"] += ",Accept-Encoding";
+			out->responseHeaders["Vary"] += ",Accept-Encoding";
 
 		// removing content-length implicitely enables chunked encoding
-		out->headers.remove("Content-Length");
+		out->responseHeaders.remove("Content-Length");
 	}
 };
 

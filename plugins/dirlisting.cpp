@@ -74,8 +74,8 @@ private:
 		closedir(dir);
 
 		out->status = x0::HttpError::Ok;
-		out->headers.push_back("Content-Type", "text/html");
-		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
+		out->responseHeaders.push_back("Content-Type", "text/html");
+		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
 		out->write(
 			std::make_shared<x0::BufferSource>(std::move(result)),

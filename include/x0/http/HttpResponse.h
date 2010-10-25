@@ -269,7 +269,7 @@ public:
 
 private:
 	/// pre-computed string representations of status codes, ready to be used by serializer
-	static char status_codes[512][4];
+	static char statusCodes_[512][4];
 
 	/// reference to the connection this response belongs to.
 	HttpConnection *connection_;
@@ -278,7 +278,7 @@ private:
 	HttpRequest *request_;
 
 	// state whether response headers have been already sent or not.
-	bool headers_sent_;
+	bool headersSent_;
 
 public:
 	explicit HttpResponse(HttpConnection *connection, HttpError status = static_cast<HttpError>(0));
@@ -291,14 +291,12 @@ public:
 	HttpError status;
 
 	/// the headers to be included in the response.
-	HeaderList headers;
-
-	const std::string& header(const std::string& name) const;
+	HeaderList responseHeaders;
 
 	/** returns true in case serializing the response has already been started, that is, headers has been sent out already. */
-	bool headers_sent() const;
+	bool headersSent() const;
 
-	bool content_forbidden() const;
+	bool responseContentForbidden() const;
 
 	void write(const SourcePtr& source, const CompletionHandlerType& handler);
 
@@ -314,15 +312,13 @@ private:
 	friend class HttpConnection;
 
 public:
-	static std::string status_str(HttpError status);
+	static std::string statusStr(HttpError status);
 
-	ChainFilter filters;
+	ChainFilter outputFilters;
 
 private:
 	SourcePtr serialize();
-
-	SourcePtr make_default_content();
-
+	SourcePtr makeDefaultResponseContent();
 	void onFinished(int ec);
 };
 
@@ -332,9 +328,9 @@ inline HttpRequest *HttpResponse::request() const
 	return request_;
 }
 
-inline bool HttpResponse::headers_sent() const
+inline bool HttpResponse::headersSent() const
 {
-	return headers_sent_;
+	return headersSent_;
 }
 
 /** write given source to response content and invoke the completion handler when done.
@@ -346,7 +342,7 @@ inline bool HttpResponse::headers_sent() const
  */
 inline void HttpResponse::write(const SourcePtr& content, const CompletionHandlerType& handler)
 {
-	if (headers_sent_)
+	if (headersSent_)
 		writeContent(content, handler);
 	else
 		connection_->writeAsync(serialize(), 
@@ -356,7 +352,7 @@ inline void HttpResponse::write(const SourcePtr& content, const CompletionHandle
 /** is invoked as completion handler when sending response headers. */
 inline void HttpResponse::onWriteHeadersComplete(int ec, const SourcePtr& content, const CompletionHandlerType& handler)
 {
-	headers_sent_ = true;
+	headersSent_ = true;
 
 	if (!ec)
 	{
@@ -372,21 +368,16 @@ inline void HttpResponse::onWriteHeadersComplete(int ec, const SourcePtr& conten
 
 inline void HttpResponse::writeContent(const SourcePtr& content, const CompletionHandlerType& handler)
 {
-	if (filters.empty())
+	if (outputFilters.empty())
 		connection_->writeAsync(content, handler);
 	else
-		connection_->writeAsync(std::make_shared<FilterSource>(content, filters, false), handler);
+		connection_->writeAsync(std::make_shared<FilterSource>(content, outputFilters, false), handler);
 }
 
 /** checks wether given code MUST NOT have a response body. */
-inline bool HttpResponse::content_forbidden() const
+inline bool HttpResponse::responseContentForbidden() const
 {
 	return x0::content_forbidden(status);
-}
-
-inline const std::string& HttpResponse::header(const std::string& name) const
-{
-	return headers[name];
 }
 // }}}
 

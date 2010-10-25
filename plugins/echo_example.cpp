@@ -46,7 +46,7 @@ private:
 		// and if we've received its request header "Content-Length"
 		if (!in->requestHeader("Content-Encoding"))
 			if (x0::BufferRef value = in->requestHeader("Content-Length"))
-				out->headers.overwrite("Content-Length", value.str());
+				out->responseHeaders.overwrite("Content-Length", value.str());
 
 		// try to read content (if available) and pass it on to our onContent handler,
 		// or fall back to just write HELLO (if no request content body was sent).

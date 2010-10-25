@@ -561,7 +561,7 @@ void CgiScript::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 		if (name == "Location")
 			response_->status = x0::HttpError::MovedTemporarily;
 
-		response_->headers.push_back(name.str(), value.str());
+		response_->responseHeaders.push_back(name.str(), value.str());
 	}
 }
 

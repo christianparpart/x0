@@ -146,14 +146,14 @@ private:
 private:
 	void postProcess(x0::HttpRequest *in, x0::HttpResponse *out)
 	{
-		if (out->headers.contains("Content-Encoding"))
+		if (out->responseHeaders.contains("Content-Encoding"))
 			return; // do not double-encode content
 
 		long long size = 0;
-		if (out->headers.contains("Content-Length"))
-			size = boost::lexical_cast<int>(out->headers["Content-Length"]);
+		if (out->responseHeaders.contains("Content-Length"))
+			size = boost::lexical_cast<int>(out->responseHeaders["Content-Length"]);
 
-		bool chunked = out->header("Transfer->Encoding") == "chunked";
+		bool chunked = out->responseHeaders["Transfer->Encoding"] == "chunked";
 
 		if (size < minSize_ && !(size <= 0 && chunked))
 			return;
@@ -161,7 +161,7 @@ private:
 		if (size > maxSize_)
 			return;
 
-		if (!containsMime(out->headers["Content-Type"]))
+		if (!containsMime(out->responseHeaders["Content-Type"]))
 			return;
 
 		if (x0::BufferRef r = in->requestHeader("Accept-Encoding"))
@@ -173,34 +173,34 @@ private:
 #if defined(HAVE_BZLIB_H)
 			if (std::find(items.begin(), items.end(), "bzip2") != items.end())
 			{
-				out->headers.push_back("Content-Encoding", "bzip2");
-				out->filters.push_back(std::make_shared<x0::BZip2Filter>(level_));
+				out->responseHeaders.push_back("Content-Encoding", "bzip2");
+				out->outputFilters.push_back(std::make_shared<x0::BZip2Filter>(level_));
 			}
 			else
 #endif
 #if defined(HAVE_ZLIB_H)
 			if (std::find(items.begin(), items.end(), "gzip") != items.end())
 			{
-				out->headers.push_back("Content-Encoding", "gzip");
-				out->filters.push_back(std::make_shared<x0::GZipFilter>(level_));
+				out->responseHeaders.push_back("Content-Encoding", "gzip");
+				out->outputFilters.push_back(std::make_shared<x0::GZipFilter>(level_));
 			}
 			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
 			{
-				out->headers.push_back("Content-Encoding", "deflate");
-				out->filters.push_back(std::make_shared<x0::DeflateFilter>(level_));
+				out->responseHeaders.push_back("Content-Encoding", "deflate");
+				out->outputFilters.push_back(std::make_shared<x0::DeflateFilter>(level_));
 			}
 			else
 #endif
 				return;
 
 			// response might change according to Accept-Encoding
-			if (!out->headers.contains("Vary"))
-				out->headers.push_back("Vary", "Accept-Encoding");
+			if (!out->responseHeaders.contains("Vary"))
+				out->responseHeaders.push_back("Vary", "Accept-Encoding");
 			else
-				out->headers.append("Vary", ",Accept-Encoding");
+				out->responseHeaders.append("Vary", ",Accept-Encoding");
 
 			// removing content-length implicitely enables chunked encoding
-			out->headers.remove("Content-Length");
+			out->responseHeaders.remove("Content-Length");
 		}
 	}
 };

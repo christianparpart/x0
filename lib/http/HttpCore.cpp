@@ -603,7 +603,7 @@ void HttpCore::phys_mimetype(Flow::Value& result, HttpRequest *in, HttpResponse 
 bool HttpCore::redirect(HttpRequest *in, HttpResponse *out, const Params& args)
 {
 	out->status = HttpError::MovedTemporarily;
-	out->headers.overwrite("Location", args[0].toString());
+	out->responseHeaders.overwrite("Location", args[0].toString());
 	out->finish();
 
 	return true;
@@ -677,15 +677,15 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 	}
 
 	std::string mtime(in->fileinfo->last_modified());
-	out->headers.push_back("Last-Modified", mtime);
-	//out->headers.push_back("Last-Modified", in->fileinfo->last_modified());
-	out->headers.push_back("ETag", in->fileinfo->etag());
+	out->responseHeaders.push_back("Last-Modified", mtime);
+	//out->responseHeaders.push_back("Last-Modified", in->fileinfo->last_modified());
+	out->responseHeaders.push_back("ETag", in->fileinfo->etag());
 
 	if (!processRangeRequest(in, out, fd))
 	{
-		out->headers.push_back("Accept-Ranges", "bytes");
-		out->headers.push_back("Content-Type", in->fileinfo->mimetype());
-		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
+		out->responseHeaders.push_back("Accept-Ranges", "bytes");
+		out->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
+		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
 		if (fd < 0) // HEAD request
 		{
@@ -811,8 +811,8 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 		content->push_back(std::make_shared<BufferSource>(std::move(buf)));
 		content_length += buf.size();
 
-		out->headers.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
-		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
+		out->responseHeaders.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
+		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
 
 		if (fd >= 0)
 		{
@@ -834,12 +834,12 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 
 		std::size_t length = 1 + offsets.second - offsets.first;
 
-		out->headers.push_back("Content-Type", in->fileinfo->mimetype());
-		out->headers.push_back("Content-Length", boost::lexical_cast<std::string>(length));
+		out->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
+		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(length));
 
 		std::stringstream cr;
 		cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in->fileinfo->size();
-		out->headers.push_back("Content-Range", cr.str());
+		out->responseHeaders.push_back("Content-Range", cr.str());
 
 		if (fd >= 0)
 		{
@@ -988,7 +988,7 @@ bool HttpCore::redirectOnIncompletePath(HttpRequest *in, HttpResponse *out)
 	if (!in->query.empty())
 		url << '?' << in->query.str();
 
-	out->headers.overwrite("Location", url.str());
+	out->responseHeaders.overwrite("Location", url.str());
 	out->status = HttpError::MovedPermanently;
 
 	out->finish();

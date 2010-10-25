@@ -32,7 +32,7 @@ namespace x0 {
 
 using boost::algorithm::iequals;
 
-char HttpResponse::status_codes[512][4];
+char HttpResponse::statusCodes_[512][4];
 
 HttpResponse::~HttpResponse()
 {
@@ -51,9 +51,9 @@ inline std::string make_str(T value)
  *
  * \note Modified headers are "Content-Type" and "Content-Length".
  */
-SourcePtr HttpResponse::make_default_content()
+SourcePtr HttpResponse::makeDefaultResponseContent()
 {
-	if (content_forbidden())
+	if (responseContentForbidden())
 		return SourcePtr();
 
 	// TODO custom error documents
@@ -63,8 +63,8 @@ SourcePtr HttpResponse::make_default_content()
 	int fd = ::open(fi->filename().c_str(), O_RDONLY);
 	if (fi->exists() && fd >= 0)
 	{
-		headers.overwrite("Content-Type", fi->mimetype());
-		headers.overwrite("Content-Length", boost::lexical_cast<std::string>(fi->size()));
+		responseHeaders.overwrite("Content-Type", fi->mimetype());
+		responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(fi->size()));
 
 		return std::make_shared<FileSource>(fd, 0, fi->size(), true);
 	}
@@ -82,8 +82,8 @@ SourcePtr HttpResponse::make_default_content()
 			codeStr.c_str(), status, codeStr.c_str()
 		);
 
-		headers.overwrite("Content-Type", "text/html");
-		headers.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
+		responseHeaders.overwrite("Content-Type", "text/html");
+		responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
 
 		return std::make_shared<BufferSource>(Buffer::from_copy(buf, nwritten));
 	}
@@ -119,37 +119,37 @@ SourcePtr HttpResponse::serialize()
 	else if (status == static_cast<HttpError>(0))
 		status = HttpError::Ok;
 
-	if (!headers.contains("Content-Type"))
+	if (!responseHeaders.contains("Content-Type"))
 	{
-		headers.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
+		responseHeaders.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
 	}
 
 	// post-response hook
 	connection_->worker().server().onPostProcess(const_cast<HttpRequest *>(request_), this);
 
 	// setup (connection-level) response transfer
-	if (!headers.contains("Content-Length") && !content_forbidden())
+	if (!responseHeaders.contains("Content-Length") && !responseContentForbidden())
 	{
 		if (request_->supportsProtocol(1, 1)
 			&& equals(request_->requestHeader("Connection"), "keep-alive")
-			&& !headers.contains("Transfer-Encoding")
-			&& !content_forbidden())
+			&& !responseHeaders.contains("Transfer-Encoding")
+			&& !responseContentForbidden())
 		{
-			headers.overwrite("Connection", "keep-alive");
-			headers.push_back("Transfer-Encoding", "chunked");
-			filters.push_back(std::make_shared<ChunkedEncoder>());
+			responseHeaders.overwrite("Connection", "keep-alive");
+			responseHeaders.push_back("Transfer-Encoding", "chunked");
+			outputFilters.push_back(std::make_shared<ChunkedEncoder>());
 			keepalive = true;
 		}
 	}
-	else if (!headers.contains("Connection"))
+	else if (!responseHeaders.contains("Connection"))
 	{
 		if (iequals(request_->requestHeader("Connection"), "keep-alive"))
 		{
-			headers.push_back("Connection", "keep-alive");
+			responseHeaders.push_back("Connection", "keep-alive");
 			keepalive = true;
 		}
 	}
-	else if (iequals(headers["Connection"], "keep-alive"))
+	else if (iequals(responseHeaders["Connection"], "keep-alive"))
 	{
 		keepalive = true;
 	}
@@ -160,7 +160,7 @@ SourcePtr HttpResponse::serialize()
 	keepalive = false; // XXX workaround
 
 	if (!keepalive)
-		headers.overwrite("Connection", "close");
+		responseHeaders.overwrite("Connection", "close");
 
 	if (!keepalive && connection_->worker().server().tcp_cork())
 		connection_->socket()->setTcpCork(true);
@@ -172,12 +172,12 @@ SourcePtr HttpResponse::serialize()
 	else
 		buffers.push_back("HTTP/0.9 ");
 
-	buffers.push_back(status_codes[static_cast<int>(status)]);
+	buffers.push_back(statusCodes_[static_cast<int>(status)]);
 	buffers.push_back(' ');
-	buffers.push_back(status_str(status));
+	buffers.push_back(statusStr(status));
 	buffers.push_back("\r\n");
 
-	for (auto i = headers.begin(), e = headers.end(); i != e; ++i)
+	for (auto i = responseHeaders.begin(), e = responseHeaders.end(); i != e; ++i)
 	{
 		const HeaderList::Header& h = *i;
 		buffers.push_back(h.name.data(), h.name.size());
@@ -202,20 +202,20 @@ SourcePtr HttpResponse::serialize()
 HttpResponse::HttpResponse(HttpConnection *connection, HttpError _status) :
 	connection_(connection),
 	request_(connection_->request_),
-	headers_sent_(false),
+	headersSent_(false),
 	status(_status),
-	headers()
+	responseHeaders()
 {
 	//TRACE("HttpResponse(%p, conn=%p)", this, connection_);
 
 	// TODO: use worker::now() instead!
-	headers.push_back("Date", connection_->worker().now().http_str().str());
+	responseHeaders.push_back("Date", connection_->worker().now().http_str().str());
 
 	if (connection_->worker().server().advertise() && !connection_->worker().server().tag().empty())
-		headers.push_back("Server", connection_->worker().server().tag());
+		responseHeaders.push_back("Server", connection_->worker().server().tag());
 }
 
-std::string HttpResponse::status_str(HttpError value)
+std::string HttpResponse::statusStr(HttpError value)
 {
 	return http_category().message(static_cast<int>(value));
 }
@@ -235,7 +235,7 @@ void HttpResponse::onFinished(int ec)
 	}
 
 	// close, if not a keep-alive connection
-	if (iequals(headers["Connection"], "keep-alive"))
+	if (iequals(responseHeaders["Connection"], "keep-alive"))
 		connection_->resume();
 	else
 		connection_->close();
@@ -247,21 +247,21 @@ void HttpResponse::onFinished(int ec)
  */
 void HttpResponse::finish()
 {
-	if (!headers_sent_) // nothing sent to client yet -> sent default status page
+	if (!headersSent_) // nothing sent to client yet -> sent default status page
 	{
 		if (static_cast<int>(status) == 0)
 			status = HttpError::NotFound;
 
-		if (!content_forbidden() && status != HttpError::Ok)
-			write(make_default_content(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
+		if (!responseContentForbidden() && status != HttpError::Ok)
+			write(makeDefaultResponseContent(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
 		else
 			connection_->writeAsync(serialize(), std::bind(&HttpResponse::onFinished, this, std::placeholders::_1));
 	}
-	else if (!filters.empty())
+	else if (!outputFilters.empty())
 	{
-		// mark the end of stream (EOF) by passing an empty chunk to the filters.
+		// mark the end of stream (EOS) by passing an empty chunk to the outputFilters.
 		connection_->writeAsync(
-			std::make_shared<FilterSource>(std::make_shared<BufferSource>(""), filters, true),
+			std::make_shared<FilterSource>(std::make_shared<BufferSource>(""), outputFilters, true),
 			std::bind(&HttpResponse::onFinished, this, std::placeholders::_1)
 		);
 	}
@@ -279,8 +279,8 @@ void HttpResponse::finish()
 void HttpResponse::initialize()
 {
 	// pre-compute string representations of status codes for use in response serialization
-	for (std::size_t i = 0; i < sizeof(status_codes) / sizeof(*status_codes); ++i)
-		snprintf(status_codes[i], sizeof(*status_codes), "%03ld", i);
+	for (std::size_t i = 0; i < sizeof(statusCodes_) / sizeof(*statusCodes_); ++i)
+		snprintf(statusCodes_[i], sizeof(*statusCodes_), "%03ld", i);
 }
 
 } // namespace x0

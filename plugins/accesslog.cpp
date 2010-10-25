@@ -135,7 +135,7 @@ private:
 			sstr << in->connection.worker().now().htlog_str().c_str() << " \"";
 			sstr << request_line(in) << "\" ";
 			sstr << static_cast<int>(out->status) << ' ';
-			sstr << out->headers["Content-Length"] << ' ';
+			sstr << out->responseHeaders["Content-Length"] << ' ';
 			sstr << '"' << getheader(in, "Referer") << "\" ";
 			sstr << '"' << getheader(in, "User-Agent") << '"';
 			sstr << std::endl;
