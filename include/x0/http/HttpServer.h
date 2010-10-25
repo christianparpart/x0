@@ -70,7 +70,6 @@ public:
 
 	HttpWorker *spawnWorker();
 	HttpWorker *selectWorker();
-	HttpWorker *findWorker(pthread_t tid);
 	void destroyWorker(HttpWorker *worker);
 
 	// {{{ service control
@@ -157,7 +156,7 @@ private:
 
 	Flow::Unit *unit_;
 	Flow::Runner *runner_;
-	bool (*onHandleRequest_)();
+	bool (*onHandleRequest_)(void *);
 
 	std::list<HttpListener *> listeners_;
 	struct ::ev_loop *loop_;
@@ -225,18 +224,6 @@ inline void HttpServer::logLevel(Severity value)
 {
 	logLevel_ = value;
 	logger()->level(value);
-}
-
-inline HttpWorker *HttpServer::findWorker(pthread_t tid)
-{
-	for (auto i = workers_.begin(), e = workers_.end(); i != e; ++i)
-	{
-		HttpWorker *w = *i;
-		if (w->thread_ == tid)
-			return w;
-	}
-	return workers_.front();
-	//return NULL;
 }
 // }}}
 

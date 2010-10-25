@@ -38,8 +38,6 @@ private:
 	std::deque<std::pair<int, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
-	HttpRequest *request_;
-
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
 	ev::async evSuspend_;

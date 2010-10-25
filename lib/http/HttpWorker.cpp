@@ -151,10 +151,8 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 
 void HttpWorker::handleRequest(HttpRequest *r)
 {
-	request_ = r;
-
 	server_.onPreProcess(r);
-	if (!server_.onHandleRequest_())
+	if (!server_.onHandleRequest_(r))
 		r->finish();
 }
 

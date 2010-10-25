@@ -96,9 +96,9 @@ protected:
 	int debug_level_;
 #endif 
 private:
-	template<class T, void (T::*cb)(Flow::Value&, const Params&)> static void setup_thunk(void *p, int argc, Flow::Value *argv);
-	template<class T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> static void method_thunk(void *p, int argc, Flow::Value *argv);
-	template<class T, bool (T::*cb)(HttpRequest *, const Params&)> static void handler_thunk(void *p, int argc, Flow::Value *argv);
+	template<class T, void (T::*cb)(Flow::Value&, const Params&)> static void setup_thunk(void *p, int argc, Flow::Value *argv, void *cx);
+	template<class T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> static void method_thunk(void *p, int argc, Flow::Value *argv, void *cx);
+	template<class T, bool (T::*cb)(HttpRequest *, const Params&)> static void handler_thunk(void *p, int argc, Flow::Value *argv, void *cx);
 
 	friend class HttpServer;
 };
@@ -119,7 +119,7 @@ void HttpPlugin::registerSetupFunction(const std::string& name, Flow::Value::Typ
 }
 
 template<class T, void (T::*cb)(Flow::Value&, const Params&)>
-void HttpPlugin::setup_thunk(void *p, int argc, Flow::Value *argv)
+void HttpPlugin::setup_thunk(void *p, int argc, Flow::Value *argv, void * /*cx*/)
 {
 	Params args(argc, argv + 1);
 	(static_cast<T *>(p)->*cb)(argv[0], args);
@@ -140,16 +140,13 @@ void HttpPlugin::registerFunction(const std::string& name, Flow::Value::Type res
 }
 
 template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)>
-void HttpPlugin::method_thunk(void *p, int argc, Flow::Value *argv)
+void HttpPlugin::method_thunk(void *p, int argc, Flow::Value *argv, void *cx)
 {
+	T *self = static_cast<T *>(p);
+	HttpRequest *r = static_cast<HttpRequest  *>(cx);
 	Params args(argc, argv + 1);
 
-	T *self = static_cast<T *>(p);
-
-	HttpWorker *w = self->server_.findWorker(pthread_self());
-	HttpRequest *in = w->request_;
-
-	(self->*cb)(argv[0], in, args);
+	(self->*cb)(argv[0], r, args);
 }
 
 // handler
@@ -160,16 +157,13 @@ void HttpPlugin::registerHandler(const std::string& name)
 }
 
 template<typename T, bool (T::*cb)(HttpRequest *, const Params& args)>
-void HttpPlugin::handler_thunk(void *p, int argc, Flow::Value *argv)
+void HttpPlugin::handler_thunk(void *p, int argc, Flow::Value *argv, void *cx)
 {
 	T *self = static_cast<T *>(p);
-	HttpWorker *w = self->server_.findWorker(pthread_self());
-
-	HttpRequest *in = w->request_;
-
+	HttpRequest *r = static_cast<HttpRequest *>(cx);
 	Params args(argc, argv + 1);
 
-	argv[0].set((self->*cb)(in, args));
+	argv[0].set((self->*cb)(r, args));
 }
 // }}}
 
