@@ -13,7 +13,6 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
 #include <x0/strutils.h>
