@@ -157,7 +157,7 @@ void HttpListener::callback(ev::io& watcher, int revents)
 {
 	int fd;
 
-#if defined(HAVE_ACCEPT4)
+#if defined(HAVE_ACCEPT4) && !defined(VALGRIND) // valgrind does not yet implement accept4()
 	fd = ::accept4(handle(), NULL, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
 #else
 	fd = ::accept(handle(), NULL, 0);

@@ -96,6 +96,8 @@ link_directories(${EV_LIBRARY_DIR})
 add_definitions(${EV_CPPFLAGS})
 set(LIBS ${LIBS} ${EV_LIBRARIES})
 
+set(VALGRIND OFF CACHE BOOL "generate binary for use with valgrind")
+
 # {{{ path prefixes
 # ---------------------------------------------------------------------------
 if (DEFINED CMAKE_INSTALL_PREFIX)

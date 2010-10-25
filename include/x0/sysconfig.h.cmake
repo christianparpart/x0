@@ -42,4 +42,6 @@
 #cmakedefine SYSCONFDIR "@SYSCONFDIR@"
 #cmakedefine PLUGINDIR "@PLUGINDIR@"
 
+#cmakedefine VALGRIND 1
+
 #endif
