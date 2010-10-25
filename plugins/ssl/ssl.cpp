@@ -48,7 +48,8 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
  * possible flow API:
  *
  *     void ssl.listen('IP:PORT');
- *     void ssl.listen('IP:PORT', defaultKey, defaultCrt);
+ *     void ssl.listen('IP:PORT', backlog);
+ *     void ssl.listen('IP:PORT', backlog, defaultKey, defaultCrt);
  *
  *     void ssl.add(hostname, certfile, keyfile);
  *
@@ -143,8 +144,13 @@ private:
 		size_t n = arg.find(':');
 		std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
 		int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
+		int backlog = args[1].isNumber() ? args[1].toNumber() : 0;
 
 		x0::HttpListener *listener = server().setupListener(port, ip);
+
+		if (listener && backlog)
+			listener->backlog(backlog);
+
 		SslDriver *driver = new SslDriver(this);
 		listener->setSocketDriver(driver);
 	}
