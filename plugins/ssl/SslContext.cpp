@@ -99,11 +99,6 @@ SslContext::~SslContext()
 		gnutls_certificate_free_credentials(certs_);
 }
 
-void SslContext::merge(const ScopeValue * /*from*/)
-{
-	TRACE("SslContext::merge()");
-}
-
 void SslContext::setLogger(x0::Logger *logger)
 {
 	logger_ = logger;

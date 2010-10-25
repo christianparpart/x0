@@ -180,13 +180,6 @@ private:
 		TRACE("gnutls [%d] %s", level, msg.c_str());
 	}
 
-	SslContext *acquire(x0::Scope& s)
-	{
-		SslContext *cx = s.acquire<SslContext>(this);
-		cx->setLogger(server().logger());
-		return cx;
-	}
-
 	// ssl.add(
 	// 		'keyfile' => PATH,
 	// 		'crtfile' => PATH,

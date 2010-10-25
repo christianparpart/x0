@@ -11,7 +11,6 @@
 
 #include <x0/Property.h>
 #include <x0/Logger.h>
-#include <x0/Scope.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
 
@@ -25,14 +24,11 @@
 
 class SslSocket;
 
-struct SslContext :
-	public x0::ScopeValue
+struct SslContext
 {
 public:
 	SslContext();
 	~SslContext();
-
-	virtual void merge(const ScopeValue *from);
 
 	void setLogger(x0::Logger *logger);
 

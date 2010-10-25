@@ -10,7 +10,6 @@
 #include "SslSocket.h"
 #include "SslContext.h"
 #include <x0/http/HttpServer.h>
-#include <x0/Scope.h>
 #include <gnutls/gnutls.h>
 #include <cstring>
 
