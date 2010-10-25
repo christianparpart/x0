@@ -22,7 +22,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
@@ -41,7 +40,7 @@ class accesslog_plugin :
 	public x0::HttpPlugin
 {
 private:
-	x0::HttpServer::RequestPostHook::Connection c;
+	x0::HttpServer::RequestHook::Connection c;
 
 	struct LogFile : public x0::CustomData // {{{
 	{
@@ -114,7 +113,7 @@ public:
 	}
 
 private:
-	void handleRequest(Flow::Value& result, x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	void handleRequest(Flow::Value& result, x0::HttpRequest *in, const x0::Params& args)
 	{
 		std::shared_ptr<LogFile> lf(std::make_shared<LogFile>());
 		std::error_code ec = lf->open(args[0].toString());
@@ -124,7 +123,7 @@ private:
 			printf("accesslog error: %s\n", ec.message().c_str());
 	}
 
-	void request_done(x0::HttpRequest *in, x0::HttpResponse *out)
+	void request_done(x0::HttpRequest *in)
 	{
 		if (LogFile *stream = (LogFile *)in->customData[this].get())
 		{
@@ -134,8 +133,8 @@ private:
 			sstr << username(in) << ' ';
 			sstr << in->connection.worker().now().htlog_str().c_str() << " \"";
 			sstr << request_line(in) << "\" ";
-			sstr << static_cast<int>(out->status) << ' ';
-			sstr << out->responseHeaders["Content-Length"] << ' ';
+			sstr << static_cast<int>(in->status) << ' ';
+			sstr << in->responseHeaders["Content-Length"] << ' ';
 			sstr << '"' << getheader(in, "Referer") << "\" ";
 			sstr << '"' << getheader(in, "User-Agent") << '"';
 			sstr << std::endl;

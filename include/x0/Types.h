@@ -36,7 +36,6 @@ class HttpListener;
 class HttpConnection;
 class HttpPlugin;
 struct HttpRequest;
-struct HttpResponse;
 
 struct File;
 
@@ -60,7 +59,6 @@ typedef std::function<void(
  */
 typedef std::function<void(
 	HttpRequest& /*in*/,
-	HttpResponse& /*out*/,
 	const std::function<void()>& /*completionHandler*/)
 > RequestHandlerType;
 

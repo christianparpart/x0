@@ -30,7 +30,7 @@ public:
 
 	virtual bool post_config();
 
-	bool redirectOnIncompletePath(HttpRequest *in, HttpResponse *out);
+	bool redirectOnIncompletePath(HttpRequest *r);
 
 private:
 	// setup properties
@@ -73,43 +73,43 @@ private:
 	void sys_now_str(Flow::Value& result, const Params& args);
 
 	// main methods
-	void autoindex(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
+	void autoindex(Flow::Value& result, HttpRequest *r, const Params& args);
 	bool matchIndex(HttpRequest *in, const Flow::Value& arg);
-	bool docroot(HttpRequest *in, HttpResponse *out, const Params& args);
-	bool alias(HttpRequest *in, HttpResponse *out, const Params& args);
-	void pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void req_url(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void req_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void req_header(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void req_host(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void req_pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void req_is_secure(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void resp_header_add(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void resp_header_overwrite(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void resp_header_append(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void resp_header_remove(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void conn_remote_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void conn_remote_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void conn_local_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void conn_local_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_exists(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_is_reg(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_is_dir(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_is_exe(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_mtime(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_size(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_etag(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
-	void phys_mimetype(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args);
+	bool docroot(HttpRequest *r, const Params& args);
+	bool alias(HttpRequest *r, const Params& args);
+	void pathinfo(Flow::Value& result, HttpRequest *r, const Params& args);
+	void req_method(Flow::Value& result, HttpRequest *r, const Params& args);
+	void req_url(Flow::Value& result, HttpRequest *r, const Params& args);
+	void req_path(Flow::Value& result, HttpRequest *r, const Params& args);
+	void req_header(Flow::Value& result, HttpRequest *r, const Params& args);
+	void req_host(Flow::Value& result, HttpRequest *r, const Params& args);
+	void req_pathinfo(Flow::Value& result, HttpRequest *r, const Params& args);
+	void req_is_secure(Flow::Value& result, HttpRequest *r, const Params& args);
+	void resp_header_add(Flow::Value& result, HttpRequest *r, const Params& args);
+	void resp_header_overwrite(Flow::Value& result, HttpRequest *r, const Params& args);
+	void resp_header_append(Flow::Value& result, HttpRequest *r, const Params& args);
+	void resp_header_remove(Flow::Value& result, HttpRequest *r, const Params& args);
+	void conn_remote_ip(Flow::Value& result, HttpRequest *r, const Params& args);
+	void conn_remote_port(Flow::Value& result, HttpRequest *r, const Params& args);
+	void conn_local_ip(Flow::Value& result, HttpRequest *r, const Params& args);
+	void conn_local_port(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_path(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_exists(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_is_reg(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_is_dir(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_is_exe(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_mtime(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_size(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_etag(Flow::Value& result, HttpRequest *r, const Params& args);
+	void phys_mimetype(Flow::Value& result, HttpRequest *r, const Params& args);
 
 	// main handlers
-	bool redirect(HttpRequest *in, HttpResponse *out, const Params& args);
-	bool respond(HttpRequest *in, HttpResponse *out, const Params& args);
+	bool redirect(HttpRequest *r, const Params& args);
+	bool respond(HttpRequest *r, const Params& args);
 
-	bool staticfile(HttpRequest *in, HttpResponse *out, const Params& args);
-	inline HttpError verifyClientCache(HttpRequest *in, HttpResponse *out);
-	inline bool processRangeRequest(HttpRequest *in, HttpResponse *out, int fd);
+	bool staticfile(HttpRequest *r, const Params& args);
+	inline HttpError verifyClientCache(HttpRequest *r);
+	inline bool processRangeRequest(HttpRequest *r, int fd);
 	inline std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size);
 	inline std::string generateBoundaryID() const;
 

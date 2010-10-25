@@ -9,7 +9,6 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/SocketDriver.h>
 #include <x0/StackTrace.h>
 #include <x0/Socket.h>
@@ -58,7 +57,6 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	offset_(0),
 	request_count_(0),
 	request_(0),
-	response_(0),
 	source_(),
 	sink_(NULL),
 	onWriteComplete_(),
@@ -85,9 +83,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 HttpConnection::~HttpConnection()
 {
 	delete request_;
-	delete response_;
 	request_ = 0;
-	response_ = 0;
 
 	TRACE("~(%p)", this);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
@@ -292,7 +288,6 @@ void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
 bool HttpConnection::messageHeaderEnd()
 {
 	TRACE("messageHeaderEnd()");
-	response_ = new HttpResponse(this);
 
 #if X0_HTTP_STRICT
 	BufferRef expectHeader = request_->requestHeader("Expect");
@@ -300,13 +295,13 @@ bool HttpConnection::messageHeaderEnd()
 
 	if (content_required && !request_->contentAvailable())
 	{
-		response_->status = HttpError::LengthRequired;
-		response_->finish();
+		request_->status = HttpError::LengthRequired;
+		request_->finish();
 	}
 	else if (!content_required && request_->contentAvailable())
 	{
-		response_->status = HttpError::BadRequest; // FIXME do we have a better status code?
-		response_->finish();
+		request_->status = HttpError::BadRequest; // FIXME do we have a better status code?
+		request_->finish();
 	}
 	else if (expectHeader)
 	{
@@ -315,16 +310,16 @@ bool HttpConnection::messageHeaderEnd()
 		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1))
 		{
 			printf("expectHeader: failed\n");
-			response_->status = HttpError::ExpectationFailed;
-			response_->finish();
+			request_->status = HttpError::ExpectationFailed;
+			request_->finish();
 		}
 		else
-			worker_.handleRequest(request_, response_);
+			worker_.handleRequest(request_);
 	}
 	else
-		worker_.handleRequest(request_, response_);
+		worker_.handleRequest(request_);
 #else
-	worker_.handleRequest(request_, response_);
+	worker_.handleRequest(request_);
 #endif
 
 	return true;
@@ -358,15 +353,12 @@ bool HttpConnection::messageEnd()
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
  *
  * This method may only be invoked when the current/old request has been fully processed,
- * and is though only be invoked from within the finish handler of \p HttpResponse.
+ * and is though only be invoked from within the finish handler of \p HttpRequest.
  *
- * \see HttpResponse::finish()
+ * \see HttpRequest::finish()
  */
 void HttpConnection::resume()
 {
-	delete response_;
-	response_ = 0;
-
 	delete request_;
 	request_ = 0;
 
@@ -524,12 +516,8 @@ void HttpConnection::process()
 	else if (ec && ec != HttpMessageError::aborted)
 	{
 		// -> send stock response: BAD_REQUEST
-		if (!response_)
-			response_ = new HttpResponse(this, HttpError::BadRequest);
-		else
-			response_->status = HttpError::BadRequest;
-
-		response_->finish();
+		request_->status = HttpError::BadRequest;
+		request_->finish();
 	}
 }
 

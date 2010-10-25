@@ -23,7 +23,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
 #include <x0/strutils.h>
@@ -60,7 +59,7 @@ public:
 	}
 
 private:
-	bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
 	{
 		if (!in->fileinfo->is_directory())
 			return false;
@@ -73,13 +72,13 @@ private:
 
 		closedir(dir);
 
-		out->status = x0::HttpError::Ok;
-		out->responseHeaders.push_back("Content-Type", "text/html");
-		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
+		in->status = x0::HttpError::Ok;
+		in->responseHeaders.push_back("Content-Type", "text/html");
+		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
-		out->write(
+		in->write(
 			std::make_shared<x0::BufferSource>(std::move(result)),
-			std::bind(&x0::HttpResponse::finish, out)
+			std::bind(&x0::HttpRequest::finish, in)
 		);
 		return true;
 	}

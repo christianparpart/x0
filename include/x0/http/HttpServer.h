@@ -48,7 +48,7 @@ struct HttpWorker;
 /**
  * \brief implements the x0 web server.
  *
- * \see HttpConnection, HttpRequest, HttpResponse, HttpPlugin
+ * \see HttpConnection, HttpRequest, HttpPlugin
  * \see HttpServer::run(), HttpServer::stop()
  */
 class HttpServer :
@@ -60,7 +60,6 @@ class HttpServer :
 public:
 	typedef Signal<void(HttpConnection *)> ConnectionHook;
 	typedef Signal<void(HttpRequest *)> RequestHook;
-	typedef Signal<void(HttpRequest *, HttpResponse *)> RequestPostHook;
 
 public:
 	explicit HttpServer(struct ::ev_loop *loop = 0);
@@ -90,8 +89,8 @@ public:
 	RequestHook onPreProcess; 			//!< is called at the very beginning of a request.
 	RequestHook onResolveDocumentRoot;	//!< resolves document_root to use for this request.
 	RequestHook onResolveEntity;		//!< maps the request URI into local physical path.
-	RequestPostHook onPostProcess;		//!< gets invoked right before serializing headers
-	RequestPostHook onRequestDone;		//!< this hook is invoked once the request has been <b>fully</b> served to the client.
+	RequestHook onPostProcess;			//!< gets invoked right before serializing headers
+	RequestHook onRequestDone;			//!< this hook is invoked once the request has been <b>fully</b> served to the client.
 	ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.
 	// }}}
 

@@ -72,7 +72,6 @@ public:
 
 private:
 	friend class HttpRequest;
-	friend class HttpResponse;
 	friend class HttpListener;
 	friend class HttpWorker;
 	friend class ConnectionSink;
@@ -118,7 +117,6 @@ private:
 	std::size_t offset_;				//!< number of bytes in buffer_ successfully processed already.
 	int request_count_;					//!< number of requests already and fully processed within this connection.
 	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
-	HttpResponse *response_;			//!< currently processed response object, may be NULL
 
 	CompositeSource source_;
 	SocketSink sink_;

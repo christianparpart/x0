@@ -35,7 +35,6 @@ struct HttpHeader {
 };
 
 typedef HttpHeader<BufferRef> HttpRequestHeader;
-typedef HttpHeader<std::string> HttpResponseHeader;
 
 //@}
 

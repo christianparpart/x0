@@ -34,7 +34,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/io/BufferSource.h>
 #include <x0/strutils.h>
@@ -133,7 +132,6 @@ public:
 
 	// aka CgiRequest
 	x0::HttpRequest *request_;
-	x0::HttpResponse *response_;
 	FastCgi::CgiParamStreamWriter paramWriter_;
 
 #if X0_FASTCGI_DIRECT_IO
@@ -153,7 +151,7 @@ public:
 	bool isClosed() const { return fd_ < 0; }
 	void close();
 
-	void bind(x0::HttpRequest *in, x0::HttpResponse *out);
+	void bind(x0::HttpRequest *in);
 
 	// server-to-application
 	void beginRequest();
@@ -216,7 +214,7 @@ public:
 	x0::HttpServer& server() const { return server_; }
 	void setup(const std::string& application);
 
-	CgiTransport *handleRequest(x0::HttpRequest *in, x0::HttpResponse *out);
+	CgiTransport *handleRequest(x0::HttpRequest *in);
 
 	void release(CgiTransport *tr);
 };
@@ -241,7 +239,6 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	configured_(false),
 
 	request_(NULL),
-	response_(NULL),
 	paramWriter_()
 #if X0_FASTCGI_DIRECT_IO
 	, writeActive_(false)
@@ -340,10 +337,9 @@ bool CgiTransport::open(const char *hostname, int port, uint16_t id)
 	return fd_ >= 0;
 }
 
-void CgiTransport::bind(x0::HttpRequest *in, x0::HttpResponse *out)
+void CgiTransport::bind(x0::HttpRequest *in)
 {
 	request_ = in;
-	response_ = out;
 
 	beginRequest();
 	streamParams();
@@ -578,7 +574,7 @@ void CgiTransport::close()
 {
 	TRACE("CgiTransport.close(%d)", fd_);
 
-	if (response_)
+	if (request_)
 		finish();
 
 	if (fd_ >= 0)
@@ -689,7 +685,7 @@ void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolS
 #else
 	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
 	if (writeBuffer_.size() != 0)
-		response_->write(
+		request_->write(
 			std::make_shared<x0::BufferSource>(writeBuffer_),
 			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
 		);
@@ -717,11 +713,11 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 	if (x0::iequals(name, "Status"))
 	{
-		response_->status = static_cast<x0::HttpError>(value.toInt());
-		TRACE("CgiTransport.status := %s", response_->status_str(response_->status).c_str());
+		request_->status = static_cast<x0::HttpError>(value.toInt());
+		TRACE("CgiTransport.status := %s", request_->status_str(request_->status).c_str());
 	}
 	else
-		response_->responseHeaders.push_back(name.str(), value.str());
+		request_->responseHeaders.push_back(name.str(), value.str());
 }
 
 bool CgiTransport::messageContent(x0::BufferRef&& content)
@@ -734,7 +730,7 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 
 		ev_io_stop(loop_, &io_);
 
-		response_->write(
+		request_->write(
 			std::make_shared<x0::BufferSource>(content),
 			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
 		);
@@ -771,7 +767,7 @@ void CgiTransport::writeComplete(int err, size_t nwritten)
 			err, nwritten, writeBuffer_.size());
 		;//request_->connection.socket()->setMode(Socket::IDLE);
 
-		response_->write(
+		request_->write(
 			std::make_shared<x0::BufferSource>(std::move(writeBuffer_)),
 			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
 		);
@@ -803,20 +799,19 @@ void CgiTransport::finish()
 {
 	TRACE("CgiTransport::finish()");
 
-	if (!response_)
+	if (!request_)
 		return;
 
-	if (response_->status == x0::HttpError::Undefined)
+	if (request_->status == x0::HttpError::Undefined)
 	{
-		response_->status = x0::HttpError::ServiceUnavailable;
+		request_->status = x0::HttpError::ServiceUnavailable;
 		//x0::StackTrace st;
 		//printf("%s\n", st.c_str());
 	}
 
-	response_->finish();
+	request_->finish();
 
 	request_ = NULL;
-	response_ = NULL;
 
 	context_->release(this);
 }
@@ -855,7 +850,7 @@ void CgiContext::setup(const std::string& application)
 	TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
 }
 
-CgiTransport *CgiContext::handleRequest(x0::HttpRequest *in, x0::HttpResponse *out)
+CgiTransport *CgiContext::handleRequest(x0::HttpRequest *in)
 {
 	TRACE("CgiContext.handleRequest()");
 
@@ -875,7 +870,7 @@ CgiTransport *CgiContext::handleRequest(x0::HttpRequest *in, x0::HttpResponse *o
 
 
 	// attach request to transport
-	transport->bind(in, out);
+	transport->bind(in);
 
 	return transport;
 }
@@ -906,7 +901,7 @@ public:
 		registerHandler<fastcgi_plugin, &fastcgi_plugin::handleRequest>("fastcgi");
 	}
 
-	bool handleRequest(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
 	{
 		if (args.count() != 1 || !args[0].isString())
 			return false;
@@ -915,7 +910,7 @@ public:
 		if (!cx)
 			return false;
 
-		return cx->handleRequest(in, out);
+		return cx->handleRequest(in);
 	}
 
 	CgiContext *acquireContext(const std::string& app)

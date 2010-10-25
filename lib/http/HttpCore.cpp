@@ -8,7 +8,6 @@
 
 #include <x0/http/HttpCore.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpRangeDef.h>
 #include <x0/http/HttpListener.h>
 #include <x0/io/CompositeSource.h>
@@ -360,7 +359,7 @@ void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
 // }}}
 
 // {{{ req
-void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	if (in->documentRoot.empty()) {
 		server().log(Severity::error, "autoindex: No document root set yet. Skipping.");
@@ -420,7 +419,7 @@ bool HttpCore::matchIndex(HttpRequest *in, const Flow::Value& arg)
 	return false;
 }
 
-bool HttpCore::docroot(HttpRequest *in, HttpResponse *out, const Params& args)
+bool HttpCore::docroot(HttpRequest *in, const Params& args)
 {
 	if (args.count() != 1)
 		return false;
@@ -429,10 +428,10 @@ bool HttpCore::docroot(HttpRequest *in, HttpResponse *out, const Params& args)
 	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path);
 	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
 
-	return redirectOnIncompletePath(in, out);
+	return redirectOnIncompletePath(in);
 }
 
-bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
+bool HttpCore::alias(HttpRequest *in, const Params& args)
 {
 	if (args.count() != 1 || !args[0].isArray())
 	{
@@ -461,10 +460,10 @@ bool HttpCore::alias(HttpRequest *in, HttpResponse *out, const Params& args)
 	if (in->path.begins(prefix))
 		in->fileinfo = in->connection.worker().fileinfo(alias + in->path.substr(prefixLength));
 
-	return redirectOnIncompletePath(in, out);
+	return redirectOnIncompletePath(in);
 }
 
-void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	if (!in->fileinfo) {
 		in->log(Severity::error,
@@ -475,152 +474,152 @@ void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out,
 	in->updatePathInfo();
 }
 
-void HttpCore::req_method(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::req_method(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->method.data(), in->method.size());
 }
 
-void HttpCore::req_url(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::req_url(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->uri.data(), in->uri.size());
 }
 
-void HttpCore::req_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::req_path(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->path.data(), in->path.size());
 }
 
-void HttpCore::req_header(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::req_header(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	BufferRef ref(in->requestHeader(args[0].toString()));
 	result.set(ref.data(), ref.size());
 }
 
-void HttpCore::req_host(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::req_host(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result = in->hostname.str().c_str();
 }
 
-void HttpCore::req_pathinfo(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::req_pathinfo(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result = in->pathinfo.c_str();
 }
 
-void HttpCore::req_is_secure(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::req_is_secure(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.isSecure();
 }
 // }}}
 
 // {{{ response
-void HttpCore::resp_header_add(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::resp_header_add(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 }
 
-void HttpCore::resp_header_overwrite(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::resp_header_overwrite(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 }
 
-void HttpCore::resp_header_append(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::resp_header_append(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 }
 
-void HttpCore::resp_header_remove(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::resp_header_remove(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 }
 // }}}
 
 // {{{ connection
-void HttpCore::conn_remote_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::conn_remote_ip(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.remoteIP().c_str();
 }
 
-void HttpCore::conn_remote_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::conn_remote_port(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.remotePort();
 }
 
-void HttpCore::conn_local_ip(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::conn_local_ip(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.localIP().c_str();
 }
 
-void HttpCore::conn_local_port(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::conn_local_port(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.localPort();
 }
 // }}}
 
 // {{{ phys
-void HttpCore::phys_path(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_path(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->filename().c_str() : "");
 }
 
-void HttpCore::phys_exists(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_exists(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->exists() : false);
 }
 
-void HttpCore::phys_is_reg(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_is_reg(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->is_regular() : false);
 }
 
-void HttpCore::phys_is_dir(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_is_dir(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->is_directory() : false);
 }
 
-void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->is_executable() : false);
 }
 
-void HttpCore::phys_mtime(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_mtime(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(static_cast<uint64_t>(in->fileinfo ? in->fileinfo->mtime() : 0));
 }
 
-void HttpCore::phys_size(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_size(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->size() : 0);
 }
 
-void HttpCore::phys_etag(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_etag(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->etag().c_str() : "");
 }
 
-void HttpCore::phys_mimetype(Flow::Value& result, HttpRequest *in, HttpResponse *out, const Params& args)
+void HttpCore::phys_mimetype(Flow::Value& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->mimetype().c_str() : "");
 }
 // }}}
 
 // {{{ handler
-bool HttpCore::redirect(HttpRequest *in, HttpResponse *out, const Params& args)
+bool HttpCore::redirect(HttpRequest *in, const Params& args)
 {
-	out->status = HttpError::MovedTemporarily;
-	out->responseHeaders.overwrite("Location", args[0].toString());
-	out->finish();
+	in->status = HttpError::MovedTemporarily;
+	in->responseHeaders.overwrite("Location", args[0].toString());
+	in->finish();
 
 	return true;
 }
 
-bool HttpCore::respond(HttpRequest *in, HttpResponse *out, const Params& args)
+bool HttpCore::respond(HttpRequest *in, const Params& args)
 {
 	if (args.count() >= 1 && args[0].isNumber())
-		out->status = static_cast<HttpError>(args[0].toNumber());
+		in->status = static_cast<HttpError>(args[0].toNumber());
 
-	out->finish();
+	in->finish();
 	return true;
 }
 // }}}
 
 // {{{ staticfile handler
-bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args) // {{{
+bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 {
 	if (!in->fileinfo) {
 		printf("Error! in->fileinfo not set\n");
@@ -633,10 +632,10 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 	if (!in->fileinfo->is_regular())
 		return false;
 
-	out->status = verifyClientCache(in, out);
-	if (out->status != HttpError::Ok)
+	in->status = verifyClientCache(in);
+	if (in->status != HttpError::Ok)
 	{
-		out->finish();
+		in->finish();
 		return true;
 	}
 
@@ -662,42 +661,42 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
 			server_.log(Severity::error, "Could not open file '%s': %s",
 				in->fileinfo->filename().c_str(), strerror(errno));
 
-			out->status = HttpError::Forbidden;
-			out->finish();
+			in->status = HttpError::Forbidden;
+			in->finish();
 
 			return true;
 		}
 	}
 	else if (!equals(in->method, "HEAD"))
 	{
-		out->status = HttpError::MethodNotAllowed;
-		out->finish();
+		in->status = HttpError::MethodNotAllowed;
+		in->finish();
 
 		return true;
 	}
 
 	std::string mtime(in->fileinfo->last_modified());
-	out->responseHeaders.push_back("Last-Modified", mtime);
-	//out->responseHeaders.push_back("Last-Modified", in->fileinfo->last_modified());
-	out->responseHeaders.push_back("ETag", in->fileinfo->etag());
+	in->responseHeaders.push_back("Last-Modified", mtime);
+	//in->responseHeaders.push_back("Last-Modified", in->fileinfo->last_modified());
+	in->responseHeaders.push_back("ETag", in->fileinfo->etag());
 
-	if (!processRangeRequest(in, out, fd))
+	if (!processRangeRequest(in, fd))
 	{
-		out->responseHeaders.push_back("Accept-Ranges", "bytes");
-		out->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
-		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
+		in->responseHeaders.push_back("Accept-Ranges", "bytes");
+		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
+		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
 		if (fd < 0) // HEAD request
 		{
-			out->finish();
+			in->finish();
 		}
 		else
 		{
 			posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
 
-			out->write(
+			in->write(
 				std::make_shared<FileSource>(fd, 0, in->fileinfo->size(), true),
-				std::bind(&HttpResponse::finish, out)
+				std::bind(&HttpRequest::finish, in)
 			);
 		}
 	}
@@ -709,9 +708,8 @@ bool HttpCore::staticfile(HttpRequest *in, HttpResponse *out, const Params& args
  * verifies wether the client may use its cache or not.
  *
  * \param in request object
- * \param out response object. this will be modified in case of cache reusability.
  */
-HttpError HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
+HttpError HttpCore::verifyClientCache(HttpRequest *in) // {{{
 {
 	std::string value;
 
@@ -749,7 +747,7 @@ HttpError HttpCore::verifyClientCache(HttpRequest *in, HttpResponse *out) // {{{
 	return HttpError::Ok;
 } // }}}
 
-inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, int fd) //{{{
+inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 {
 	BufferRef range_value(in->requestHeader("Range"));
 	HttpRangeDef range;
@@ -758,7 +756,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 	if (range_value.empty() || !range.parse(range_value))
 		return false;
 
-	out->status = HttpError::PartialContent;
+	in->status = HttpError::PartialContent;
 
 	if (range.size() > 1)
 	{
@@ -774,7 +772,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 			std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[i], in->fileinfo->size()));
 			if (offsets.second < offsets.first)
 			{
-				out->status = HttpError::RequestedRangeNotSatisfiable;
+				in->status = HttpError::RequestedRangeNotSatisfiable;
 				return true;
 			}
 
@@ -811,16 +809,16 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 		content->push_back(std::make_shared<BufferSource>(std::move(buf)));
 		content_length += buf.size();
 
-		out->responseHeaders.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
-		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
+		in->responseHeaders.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
+		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
 
 		if (fd >= 0)
 		{
-			out->write(content, std::bind(&HttpResponse::finish, out));
+			in->write(content, std::bind(&HttpRequest::finish, in));
 		}
 		else
 		{
-			out->finish();
+			in->finish();
 		}
 	}
 	else // generate a simple (single) partial response
@@ -828,29 +826,29 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, HttpResponse *out, in
 		std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[0], in->fileinfo->size()));
 		if (offsets.second < offsets.first)
 		{
-			out->status = HttpError::RequestedRangeNotSatisfiable;
+			in->status = HttpError::RequestedRangeNotSatisfiable;
 			return true;
 		}
 
 		std::size_t length = 1 + offsets.second - offsets.first;
 
-		out->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
-		out->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(length));
+		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
+		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(length));
 
 		std::stringstream cr;
 		cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in->fileinfo->size();
-		out->responseHeaders.push_back("Content-Range", cr.str());
+		in->responseHeaders.push_back("Content-Range", cr.str());
 
 		if (fd >= 0)
 		{
-			out->write(
+			in->write(
 				std::make_shared<FileSource>(fd, offsets.first, length, true),
-				std::bind(&HttpResponse::finish, out)
+				std::bind(&HttpRequest::finish, in)
 			);
 		}
 		else
 		{
-			out->finish();
+			in->finish();
 		}
 	}
 
@@ -968,7 +966,7 @@ unsigned long long HttpCore::setrlimit(int resource, unsigned long long value)
 // }}}
 
 // redirect physical request paths not ending with slash if mapped to directory
-bool HttpCore::redirectOnIncompletePath(HttpRequest *in, HttpResponse *out)
+bool HttpCore::redirectOnIncompletePath(HttpRequest *in)
 {
 	std::string filename = in->fileinfo->filename();
 	if (!in->fileinfo->is_directory() || in->path.ends('/'))
@@ -988,10 +986,10 @@ bool HttpCore::redirectOnIncompletePath(HttpRequest *in, HttpResponse *out)
 	if (!in->query.empty())
 		url << '?' << in->query.str();
 
-	out->responseHeaders.overwrite("Location", url.str());
-	out->status = HttpError::MovedPermanently;
+	in->responseHeaders.overwrite("Location", url.str());
+	in->status = HttpError::MovedPermanently;
 
-	out->finish();
+	in->finish();
 	return true;
 }
 

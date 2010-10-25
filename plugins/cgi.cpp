@@ -30,7 +30,6 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/io/BufferSource.h>
 #include <x0/strutils.h>
@@ -74,9 +73,9 @@
 /** manages a CGI process.
  *
  * \code
- *	void handler(request& in, response& out)
+ *	void handler(request& in)
  *	{
- *      CgiScript cgi(in, out, "/usr/bin/perl");
+ *      CgiScript cgi(in, "/usr/bin/perl");
  *      cgi.ttl(boost::posix_time::seconds(60));        // define maximum ttl this script may run
  * 		cgi.runAsync();
  * 	}
@@ -86,7 +85,7 @@ class CgiScript :
 	public x0::HttpMessageProcessor
 {
 public:
-	CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram = "");
+	CgiScript(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram = "");
 	~CgiScript();
 
 	template<class CompletionHandler>
@@ -94,7 +93,7 @@ public:
 
 	void runAsync();
 
-	static void runAsync(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram = "");
+	static void runAsync(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram = "");
 
 private:
 	// CGI program's response message processor hooks
@@ -133,7 +132,6 @@ private:
 	ev::async evCheckDestroy_;
 
 	x0::HttpRequest *request_;
-	x0::HttpResponse *response_;
 	std::string hostprogram_;
 
 	x0::Process process_;
@@ -147,7 +145,7 @@ private:
 	ev::io evStderr_;						//!< cgi script's stderr watcher
 	ev::timer ttl_;							//!< TTL watcher
 
-	std::function<void()> done_;			//!< should call at least HttpResponse::finish()
+	std::function<void()> done_;			//!< should call at least HttpRequest::finish()
 
 	x0::Buffer stdinTransferBuffer_;
 	enum { StdinFinished, StdinActive, StdinWaiting } stdinTransferMode_;
@@ -159,13 +157,12 @@ private:
 	unsigned outputFlags_;
 };
 
-CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram) :
+CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
 	loop_(in->connection.worker().loop()),
 	evChild_(in->connection.worker().server().loop()),
 	evCheckDestroy_(loop_),
 	request_(in),
-	response_(out),
 	hostprogram_(hostprogram),
 	process_(loop_),
 	outbuf_(), errbuf_(),
@@ -243,9 +240,9 @@ bool CgiScript::checkDestroy()
 	return false;
 }
 
-void CgiScript::runAsync(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out, const std::string& hostprogram)
+void CgiScript::runAsync(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram)
 {
-	if (CgiScript *cgi = new CgiScript(done, in, out, hostprogram))
+	if (CgiScript *cgi = new CgiScript(done, in, hostprogram))
 	{
 		cgi->runAsync();
 	}
@@ -493,7 +490,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 
 			if (!serial_)
 			{
-				response_->status = x0::HttpError::InternalServerError;
+				request_->status = x0::HttpError::InternalServerError;
 				request_->log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
 			}
 		}
@@ -554,14 +551,14 @@ void CgiScript::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 	if (name == "Status")
 	{
-		response_->status = static_cast<x0::HttpError>(boost::lexical_cast<int>(value.str()));
+		request_->status = static_cast<x0::HttpError>(boost::lexical_cast<int>(value.str()));
 	}
 	else 
 	{
 		if (name == "Location")
-			response_->status = x0::HttpError::MovedTemporarily;
+			request_->status = x0::HttpError::MovedTemporarily;
 
-		response_->responseHeaders.push_back(name.str(), value.str());
+		request_->responseHeaders.push_back(name.str(), value.str());
 	}
 }
 
@@ -575,7 +572,7 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 	{
 		stdoutTransferActive_ = true;
 		evStdout_.stop();
-		response_->write(
+		request_->write(
 			std::make_shared<x0::BufferSource>(value),
 			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
 		);
@@ -602,7 +599,7 @@ void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 	else if (stdoutTransferBuffer_.size() > 0)
 	{
 		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
-		response_->write(
+		request_->write(
 			std::make_shared<x0::BufferSource>(std::move(stdoutTransferBuffer_)),
 			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
 		);
@@ -681,7 +678,7 @@ private:
 
 	// {{{ request handler
 	// cgi.prefix(prefix => path)
-	bool prefix(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	bool prefix(x0::HttpRequest *in, const x0::Params& args)
 	{
 		const char *prefix = args[0][0].toString();
 		const char *path = args[0][1].toString();
@@ -699,14 +696,14 @@ private:
 		if (fi && fi->is_regular() && fi->is_executable())
 		{
 			in->fileinfo = fi;
-			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out);
+			CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in);
 			return true;
 		}
 		return false;
 	}
 
 	// handler cgi.exec();
-	bool exec(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	bool exec(x0::HttpRequest *in, const x0::Params& args)
 	{
 		std::string path(in->fileinfo->filename());
 
@@ -714,7 +711,7 @@ private:
 
 		if (fi && fi->is_regular() && fi->is_executable())
 		{
-			CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out);
+			CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in);
 			return true;
 		}
 
@@ -722,7 +719,7 @@ private:
 	}
 
 	// handler cgi.map();
-	bool map(x0::HttpRequest *in, x0::HttpResponse *out, const x0::Params& args)
+	bool map(x0::HttpRequest *in, const x0::Params& args)
 	{
 		std::string path(in->fileinfo->filename());
 
@@ -737,7 +734,7 @@ private:
 		if (!lookupInterpreter(in, interpreter))
 			return false;
 
-		CgiScript::runAsync(std::bind(&x0::HttpResponse::finish, out), in, out, interpreter);
+		CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in, interpreter);
 		return true;
 	}
 	// }}}

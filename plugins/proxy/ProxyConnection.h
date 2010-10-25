@@ -19,7 +19,6 @@ class ProxyConnection;
 
 namespace x0 {
 	class HttpRequest;
-	class HttpResponse;
 }
 
 /** handles a connection from proxy to origin server.
@@ -33,7 +32,7 @@ public:
 	explicit ProxyConnection(ProxyContext *px);
 	~ProxyConnection();
 
-	void start(const std::function<void()>& done, x0::HttpRequest *in, x0::HttpResponse *out);
+	void start(const std::function<void()>& done, x0::HttpRequest *r);
 
 private:
 	void connect(const std::string& origin);
@@ -57,7 +56,6 @@ private:
 	int port_;						//!< origin's port
 	std::function<void()> done_;
 	x0::HttpRequest *request_;		//!< client's request
-	x0::HttpResponse *response_;	//!< client's response
 };
 
 #endif

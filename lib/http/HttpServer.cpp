@@ -9,7 +9,6 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpCore.h>
@@ -99,7 +98,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	runner_ = new Flow::Runner(this);
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
 
-	HttpResponse::initialize();
+	HttpRequest::initialize();
 
 	spawnWorker(); // main worker
 

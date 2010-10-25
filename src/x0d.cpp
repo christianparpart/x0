@@ -8,7 +8,6 @@
 
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpCore.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>

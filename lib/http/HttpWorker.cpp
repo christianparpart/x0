@@ -1,6 +1,5 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpResponse.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpConnection.h>
 
@@ -150,14 +149,13 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 	pthread_spin_unlock(&queueLock_);
 }
 
-void HttpWorker::handleRequest(HttpRequest *in, HttpResponse *out)
+void HttpWorker::handleRequest(HttpRequest *r)
 {
-	in_ = in;
-	out_ = out;
+	request_ = r;
 
-	server_.onPreProcess(in);
+	server_.onPreProcess(r);
 	if (!server_.onHandleRequest_())
-		out->finish();
+		r->finish();
 }
 
 void HttpWorker::onSuspend(ev::async& w, int revents)

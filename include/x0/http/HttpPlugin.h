@@ -84,9 +84,9 @@ protected:
 	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupProperty(const std::string& name, Flow::Value::Type resultType);
 	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupFunction(const std::string& name, Flow::Value::Type resultType);
 
-	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)> void registerProperty(const std::string& name, Flow::Value::Type resultType);
-	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)> void registerFunction(const std::string& name, Flow::Value::Type resultType);
-	template<typename T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params&)> void registerHandler(const std::string& name);
+	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> void registerProperty(const std::string& name, Flow::Value::Type resultType);
+	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> void registerFunction(const std::string& name, Flow::Value::Type resultType);
+	template<typename T, bool (T::*cb)(HttpRequest *, const Params&)> void registerHandler(const std::string& name);
 
 protected:
 	HttpServer& server_;
@@ -97,8 +97,8 @@ protected:
 #endif 
 private:
 	template<class T, void (T::*cb)(Flow::Value&, const Params&)> static void setup_thunk(void *p, int argc, Flow::Value *argv);
-	template<class T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)> static void method_thunk(void *p, int argc, Flow::Value *argv);
-	template<class T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params&)> static void handler_thunk(void *p, int argc, Flow::Value *argv);
+	template<class T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> static void method_thunk(void *p, int argc, Flow::Value *argv);
+	template<class T, bool (T::*cb)(HttpRequest *, const Params&)> static void handler_thunk(void *p, int argc, Flow::Value *argv);
 
 	friend class HttpServer;
 };
@@ -126,20 +126,20 @@ void HttpPlugin::setup_thunk(void *p, int argc, Flow::Value *argv)
 }
 
 // property
-template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)>
+template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)>
 void HttpPlugin::registerProperty(const std::string& name, Flow::Value::Type resultType)
 {
 	server_.registerVariable(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
 }
 
 // methods
-template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)>
+template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)>
 void HttpPlugin::registerFunction(const std::string& name, Flow::Value::Type resultType)
 {
 	server_.registerFunction(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
 }
 
-template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, HttpResponse *, const Params&)>
+template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)>
 void HttpPlugin::method_thunk(void *p, int argc, Flow::Value *argv)
 {
 	Params args(argc, argv + 1);
@@ -147,31 +147,29 @@ void HttpPlugin::method_thunk(void *p, int argc, Flow::Value *argv)
 	T *self = static_cast<T *>(p);
 
 	HttpWorker *w = self->server_.findWorker(pthread_self());
-	HttpRequest *in = w->in_;
-	HttpResponse *out = w->out_;
+	HttpRequest *in = w->request_;
 
-	(self->*cb)(argv[0], in, out, args);
+	(self->*cb)(argv[0], in, args);
 }
 
 // handler
-template<typename T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params&)>
+template<typename T, bool (T::*cb)(HttpRequest *, const Params&)>
 void HttpPlugin::registerHandler(const std::string& name)
 {
 	server_.registerHandler(name, &handler_thunk<T, cb>, static_cast<T *>(this));
 }
 
-template<typename T, bool (T::*cb)(HttpRequest *, HttpResponse *, const Params& args)>
+template<typename T, bool (T::*cb)(HttpRequest *, const Params& args)>
 void HttpPlugin::handler_thunk(void *p, int argc, Flow::Value *argv)
 {
 	T *self = static_cast<T *>(p);
 	HttpWorker *w = self->server_.findWorker(pthread_self());
 
-	HttpRequest *in = w->in_;
-	HttpResponse *out = w->out_;
+	HttpRequest *in = w->request_;
 
 	Params args(argc, argv + 1);
 
-	argv[0].set((self->*cb)(in, out, args));
+	argv[0].set((self->*cb)(in, args));
 }
 // }}}
 
