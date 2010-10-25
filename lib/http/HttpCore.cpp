@@ -10,6 +10,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
 #include <x0/http/HttpRangeDef.h>
+#include <x0/http/HttpListener.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/FileSource.h>
@@ -27,7 +28,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
-
 
 namespace x0 {
 
@@ -268,8 +268,13 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 	size_t n = arg.find(':');
 	std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
 	int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
+	int backlog = args[1].isNumber() ? args[1].toNumber() : 0;
 
 	HttpListener *listener = server().setupListener(port, ip);
+
+	if (listener && backlog)
+		listener->backlog(backlog);
+
 	result.set(listener == NULL);
 }
 
