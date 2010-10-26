@@ -57,6 +57,22 @@ void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
 	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
 }
 
+std::string global_now()
+{
+	float val = ev_now(ev_default_loop(0));
+	time_t ts = (time_t)val;
+
+	if (struct tm *tm = gmtime(&ts)) {
+		char buf[256];
+
+		if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0) {
+			return buf;
+		}
+	}
+
+	return "unknown";
+}
+
 /** initializes the HTTP server object.
  * \param io_service an Asio io_service to use or NULL to create our own one.
  * \see HttpServer::run()
@@ -86,6 +102,9 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	pluginLibraries_(),
 	core_(0),
 	workers_(),
+#if defined(X0_WORKER_RR)
+	lastWorker_(0),
+#endif
 	max_connections(512),
 	max_keep_alive_idle(/*5*/ 60),
 	max_read_idle(60),
@@ -100,9 +119,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 
 	HttpRequest::initialize();
 
-	spawnWorker(); // main worker
-
-	auto nowfn = std::bind(&DateTime::htlog_str, &workers_[0]->now_);
+	auto nowfn = std::bind(&global_now);
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
 
 	registerPlugin(core_ = new HttpCore(*this));
@@ -254,9 +271,7 @@ HttpWorker *HttpServer::spawnWorker()
 	HttpWorker *worker = new HttpWorker(*this, loop);
 
 	if (!workers_.empty())
-	{
 		pthread_create(&worker->thread_, NULL, &HttpServer::runWorker, worker);
-	}
 
 	workers_.push_back(worker);
 
@@ -265,6 +280,16 @@ HttpWorker *HttpServer::spawnWorker()
 
 HttpWorker *HttpServer::selectWorker()
 {
+#if defined(X0_WORKER_RR)
+	// select by RR (round-robin)
+	// this is thread-safe since only one thread is to select a new worker
+	// (the main thread: HttpListener)
+	if (++lastWorker_ == workers_.size())
+		lastWorker_ = 0;
+
+	return workers_[lastWorker_];
+#else
+	// select by lowest connection load
 	HttpWorker *best = workers_[0];
 	AtomicInt::value_type value = 1;
 
@@ -278,6 +303,7 @@ HttpWorker *HttpServer::selectWorker()
 	}
 
 	return best;
+#endif
 }
 
 void HttpServer::destroyWorker(HttpWorker *worker)
@@ -308,10 +334,18 @@ void *HttpServer::runWorker(void *p)
 }
 // }}}
 
+/** starts the HTTP server by starting all listeners.
+ *
+ * @see setup(), setupListener()
+ * @note also spawns one worker if no workers has been spawned yet.
+ */
 bool HttpServer::start()
 {
 	if (!active_)
 	{
+		if (workers_.empty())
+			spawnWorker();
+
 		active_ = true;
 
 		for (std::list<HttpListener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)

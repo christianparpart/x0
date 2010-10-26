@@ -44,4 +44,7 @@
 
 #cmakedefine VALGRIND 1
 
+/* x0 features */
+#cmakedefine X0_WORKER_RR 1                /* use RR for worker-select instead of lowest-load */
+
 #endif

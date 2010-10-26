@@ -87,7 +87,7 @@ void HttpWorker::log(Severity s, const char *fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
-	server_.log(s, "HttpWorker/%d: %s", id_, buf);
+	server_.log(s, "Worker/%d: %s", id_, buf);
 }
 
 /** enqueues/assigns/registers given client connection information to this worker.
@@ -157,7 +157,7 @@ void HttpWorker::onResume(ev::async& w, int revents)
 
 void HttpWorker::onExit(ev::async& w, int revents)
 {
-	DEBUG("HttpWorker/%d onExit", id_);
+	DEBUG("Worker/%d onExit", id_);
 
 	ev_ref(loop_);
 	evNewConnection_.stop();
@@ -171,12 +171,37 @@ void HttpWorker::onExit(ev::async& w, int revents)
 	evExit_.stop();
 
 	state_ = Exiting;
+
+	ev_unloop(loop_, EVUNLOOP_ONE);
 }
 
 void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)
 {
 	// update server time
 	now_.update(static_cast<time_t>(ev_now(loop_)));
+}
+
+void HttpWorker::setAffinity(int cpu)
+{
+	cpu_set_t set;
+
+	CPU_ZERO(&set);
+	CPU_SET(cpu, &set);
+
+	//DEBUG("Worker/%d setAffinity: %d", id_, cpu);
+
+	int rv;
+	if (thread_) {
+		// set thread affinity
+		rv = pthread_setaffinity_np(thread_, sizeof(set), &set);
+	} else {
+		// set process affinity (main)
+		rv = sched_setaffinity(getpid(), sizeof(set), &set);
+	}
+
+	if (rv < 0) {
+		log(Severity::error, "setAffinity(%d) failed: %s", cpu, strerror(errno));
+	}
 }
 
 } // namespace x0

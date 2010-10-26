@@ -279,20 +279,44 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 
 void HttpCore::workers(Flow::Value& result, const Params& args)
 {
-	if (args.count() == 1)
-	{
-		size_t cur = server_.workers_.size();
-		size_t count = args.count() == 1 ? args[0].toNumber() : 1;
+	if (args.count() == 1) {
+		if (args[0].isArray()) {
+			size_t i = 0;
+			size_t count = server_.workers_.size();
 
-		for (; cur < count; ++cur)
-			server_.spawnWorker();
+			// spawn or set affinity of a set of workers as passed via input array
+			for (const Flow::Value *value = args[0].toArray(); !value->isVoid(); ++value) {
+				if (value->isNumber()) {
+					if (i >= count)
+						server_.spawnWorker();
 
-		for (; cur > count; --cur)
-			server_.destroyWorker(server_.workers_[cur - 1]);
+					server_.workers_[i]->setAffinity(value->toNumber());
+					++i;
+				}
+			}
+
+			// destroy workers that exceed our input array
+			for (count = server_.workers_.size(); i < count; --count) {
+				server_.destroyWorker(server_.workers_[count - 1]);
+			}
+		} else {
+			size_t cur = server_.workers_.size();
+			size_t count = args.count() == 1 ? args[0].toNumber() : 1;
+
+			for (; cur < count; ++cur) {
+				server_.spawnWorker();
+			}
+
+			for (; cur > count; --cur) {
+				server_.destroyWorker(server_.workers_[cur - 1]);
+			}
+		}
 	}
 
 	result.set(server_.workers_.size());
 }
+
+extern std::string global_now(); // HttpServer.cpp
 
 void HttpCore::logfile(Flow::Value& result, const Params& args)
 {
@@ -301,7 +325,7 @@ void HttpCore::logfile(Flow::Value& result, const Params& args)
 		if (args[0].isString())
 		{
 			const char *filename = args[0].toString();
-			auto nowfn = std::bind(&DateTime::htlog_str, &server_.workers_[0]->now_);
+			auto nowfn = std::bind(&global_now);
 			server_.logger_.reset(new FileLogger<decltype(nowfn)>(filename, nowfn));
 		}
 	}
@@ -318,7 +342,6 @@ void HttpCore::loglevel(Flow::Value& result, const Params& args)
 		if (args[0].isNumber())
 		{
 			int level = args[0].toNumber();
-			printf("setting loglevel to %d\n", level);
 			server().logLevel(static_cast<Severity>(level));
 		}
 	}
