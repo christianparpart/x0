@@ -32,7 +32,7 @@ private:
 	HttpServer& server_;
 	struct ev_loop *loop_;
 	DateTime now_;
-	sig_atomic_t connectionLoad_;
+	volatile int connectionLoad_;
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
@@ -63,7 +63,7 @@ public:
 	HttpServer& server() const;
 	State state() const;
 
-	unsigned load() const;
+	int load() const;
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
 	void handleRequest(HttpRequest *r);
@@ -105,6 +105,11 @@ inline HttpWorker::State HttpWorker::state() const
 inline const DateTime& HttpWorker::now() const
 {
 	return now_;
+}
+
+inline int HttpWorker::load() const
+{
+	return connectionLoad_;
 }
 // }}}
 

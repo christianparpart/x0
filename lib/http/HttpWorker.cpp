@@ -3,6 +3,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpConnection.h>
 
+#include <ext/atomicity.h>
 #include <cstdarg>
 #include <ev++.h>
 #include <signal.h>
@@ -106,21 +107,7 @@ void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
  */
 void HttpWorker::release(HttpConnection *)
 {
-	pthread_spin_lock(&queueLock_);
-	--connectionLoad_;
-	pthread_spin_unlock(&queueLock_);
-}
-
-unsigned HttpWorker::load() const
-{
-	// XXX  I am reusing queueLock for the connection-count variable as they're tight coupled.
-	// TODO Change this if it results into bad performance impacts :)
-
-	pthread_spin_lock(&queueLock_);
-	unsigned result = connectionLoad_;
-	pthread_spin_unlock(&queueLock_);
-
-	return result;
+	__gnu_cxx::__atomic_add(&connectionLoad_, -1);
 }
 
 /** callback to be invoked when new connection(s) have been assigned to this worker.
@@ -132,7 +119,9 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 	{
 		std::pair<int, HttpListener *> client(queue_.front());
 		queue_.pop_front();
-		++connectionLoad_;
+
+		__gnu_cxx::__atomic_add(&connectionLoad_, 1);
+
 		pthread_spin_unlock(&queueLock_);
 
 		//DEBUG("HttpWorker/%d client connected; fd:%d", id_, client.first);
