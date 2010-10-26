@@ -171,7 +171,7 @@ void HttpListener::callback(ev::io& watcher, int revents)
 		return;
 	}
 
-#if !defined(HAVE_ACCEPT4)
+#if !defined(HAVE_ACCEPT4) || defined(VALGRIND)
 	rv = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
 	if (rv < 0) {
 		log(Severity::error, "Error configuring new connection socket: %s", strerror(errno));
