@@ -266,7 +266,7 @@ HttpWorker *HttpServer::spawnWorker()
 HttpWorker *HttpServer::selectWorker()
 {
 	HttpWorker *best = workers_[0];
-	unsigned value = 1;
+	AtomicInt::value_type value = 1;
 
 	for (size_t i = 1, e = workers_.size(); i != e; ++i)
 	{

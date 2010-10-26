@@ -107,7 +107,7 @@ void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
  */
 void HttpWorker::release(HttpConnection *)
 {
-	__gnu_cxx::__atomic_add(&connectionLoad_, -1);
+	--connectionLoad_;
 }
 
 /** callback to be invoked when new connection(s) have been assigned to this worker.
@@ -120,7 +120,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 		std::pair<int, HttpListener *> client(queue_.front());
 		queue_.pop_front();
 
-		__gnu_cxx::__atomic_add(&connectionLoad_, 1);
+		++connectionLoad_;
 
 		pthread_spin_unlock(&queueLock_);
 

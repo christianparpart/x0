@@ -2,6 +2,7 @@
 #define x0_http_HttpWorker_h (1)
 
 #include <x0/io/FileInfoService.h>
+#include <x0/AtomicInt.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
 
@@ -32,7 +33,7 @@ private:
 	HttpServer& server_;
 	struct ev_loop *loop_;
 	DateTime now_;
-	volatile int connectionLoad_;
+	AtomicInt connectionLoad_;
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
