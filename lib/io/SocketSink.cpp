@@ -73,11 +73,7 @@ void SocketSink::visit(FileSource& v)
 		offset_ = v.offset(); // initialize with the starting-offset of interest
 
 	if (std::size_t remaining = v.count() - offset_) // how many bytes are still to process
-#if 0
-		result_ = sendfile(handle(), v.handle(), &offset_, remaining);
-#else
 		result_ = socket_->write(v.handle(), &offset_, remaining);
-#endif
 	else
 		result_ = 0;
 }
@@ -94,7 +90,16 @@ void SocketSink::visit(FilterSource& v)
 
 void SocketSink::visit(CompositeSource& v)
 {
-	result_ = genericPump(v);
+	result_ = 0;
+
+	while (!v.empty())
+	{
+		v.front()->accept(*this);
+		if (result_ != 0)
+			return;
+
+		v.pop_front();
+	}
 }
 
 } // namespace x0
