@@ -47,11 +47,13 @@ public:
 	//std::size_t size() const;
 	//SourcePtr operator[](std::size_t index) const;
 
+	SourcePtr front() const;
+	void pop_front();
+
 public:
 	virtual BufferRef pull(Buffer& output);
 	virtual void accept(SourceVisitor& v);
 };
-
 //@}
 
 // {{{ inlines
@@ -85,6 +87,16 @@ inline void CompositeSource::reset()
 //{
 //	return sources_[index];
 //}
+
+inline SourcePtr CompositeSource::front() const
+{
+	return sources_.front();
+}
+
+inline void CompositeSource::pop_front()
+{
+	sources_.pop_front();
+}
 // }}}
 
 } // namespace x0
