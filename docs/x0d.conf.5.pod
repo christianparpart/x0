@@ -48,19 +48,37 @@ Example:
     log.file '/var/log/x0d/error.log';
  }
 
-=item B<workers> (number)
+=item B<workers> (number_or_array)
 
 Gets or sets the number of workers to be spawned.
 Setting this value to 1 (default) will create no additional threads
 except the already existing main thread.
 
+Passing an array of numbers will spawn as many workers as elements in that
+array each worker associated with a processor affinity to
+its related value in the array.
+
+That is, when you use C<workers [0, 1, 4];> it will spawn three workers
+with the first having a processor affinity of 0 (bound to CPU 0), the second
+worker using the second processor (value 1) and the 3rd worker
+using the fiths processor (value 4).
+
+This is because you pass an index to the processor, if you have 4 CPUs (or cores)
+available, then you may use values 0 to 3 to address them.
+
 You should have at least as much workers as CPU cores available in your setup.
 
-Example:
+Example 1:
 
  handler setup {
-    # ...
+    # ... (use 4 workers)
     workers 4;
+ }
+
+Example 2:
+ handler setup {
+    # ... (use 4 workers, each bound to its own distinct processor)
+	workers [0, 1, 2, 3];
  }
 
 =item B<mimetypes> (path)

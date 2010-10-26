@@ -169,6 +169,9 @@ private:
 	std::map<HttpPlugin *, Library> pluginLibraries_;
 	HttpCore *core_;
 	std::vector<HttpWorker *> workers_;
+#if defined(X0_WORKER_RR)
+	size_t lastWorker_;
+#endif
 	FileInfoService::Config fileinfoConfig_;
 
 public:

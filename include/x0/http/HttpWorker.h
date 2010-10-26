@@ -72,6 +72,8 @@ public:
 
 	void log(Severity s, const char *fmt, ...);
 
+	void setAffinity(int cpu);
+
 protected:
 	virtual void run();
 
