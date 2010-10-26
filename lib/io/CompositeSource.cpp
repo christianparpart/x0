@@ -33,6 +33,4 @@ void CompositeSource::accept(SourceVisitor& v)
 	v.visit(*this);
 }
 
-//@}
-
 } // namespace x0
