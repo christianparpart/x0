@@ -136,19 +136,7 @@ required to properly debug the process after it crashed.
 
 =item B<tcp_cork> (boolean)
 
-Gets or sets whether or not the request connection may enable the
-C<TCP_CORK> flag.
-
-C<TCP_CORK> is an operating-system flag that, if enabled (not default) delays
-the transmission of the data for a short delay to wait for more data by the
-application and pack them into fewer but bigger IP packets, which should
-increase throughput alot.
-
-However, this is not recommended on interactive HTTP response streams
-and will be - if anabled by the configuration file - ignored on a given
-connection when the C<Connection>-response header is set to C<keep-alive>.
-
-C<tcp_cork> overrides the behavior of C<tcp_nodelay>.
+Corks the response stream (see C<TCP_CORK> in tcp(7)) to improve throughput.
 
 Default: false
 
