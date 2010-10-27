@@ -2,10 +2,7 @@
 # file: x0d.conf
 # description: example x0d web server configuration file
 
-import 'cgi';
-import 'userdir';
-import 'accesslog';
-import 'compress';
+import 'cgi', 'userdir', 'compress', 'accesslog';
 import 'dirlisting';
 
 handler setup
@@ -57,10 +54,12 @@ handler main
 	alias '/icons/' => '/var/www/localhost/icons/';
 	alias '/distfiles' => '/usr/portage/distfiles';
 
-	autoindex ['index.php', 'index.html'];
+	autoindex ['index.cgi', 'index.php', 'index.html'];
 
+	pathinfo;
+	cgi.exec if phys.path =$ '.cgi';
+	cgi.exec if phys.path =$ '.lua';
 	cgi.prefix '/cgi-bin/' => '/var/www/localhost/cgi-bin/';
-	cgi.exec if req.path =$ '.cgi';
 	cgi.map;
 
 	dirlisting;
