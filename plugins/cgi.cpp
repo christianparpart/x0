@@ -715,7 +715,7 @@ private:
 			return true;
 		}
 
-		return true;
+		return false;
 	}
 
 	// handler cgi.map();
