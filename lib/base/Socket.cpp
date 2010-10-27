@@ -36,9 +36,10 @@
 
 namespace x0 {
 
-Socket::Socket(struct ev_loop *loop, int fd) :
+Socket::Socket(struct ev_loop *loop, int fd, int af) :
 	loop_(loop),
 	fd_(fd),
+	addressFamily_(af),
 	watcher_(loop),
 	timeout_(0),
 	timer_(loop),
@@ -243,21 +244,38 @@ unsigned int Socket::remotePort() const
 
 void Socket::queryRemoteName()
 {
-	if (!remotePort_ && fd_ >= 0)
-	{
-		sockaddr_in6 saddr;
-		socklen_t slen = sizeof(saddr);
+	if (remotePort_ || fd_ < 0)
+		return;
 
-		if (getpeername(fd_, (sockaddr *)&saddr, &slen) == 0)
-		{
-			char buf[128];
+	switch (addressFamily_) {
+		case AF_INET6: {
+			sockaddr_in6 saddr;
+			socklen_t slen = sizeof(saddr);
+			if (getpeername(fd_, (sockaddr *)&saddr, &slen) == 0) {
+				char buf[128];
 
-			if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf)))
-			{
-				remoteIP_ = buf;
-				remotePort_ = ntohs(saddr.sin6_port);
+				if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf))) {
+					remoteIP_ = buf;
+					remotePort_ = ntohs(saddr.sin6_port);
+				}
 			}
+			break;
 		}
+		case AF_INET: {
+			sockaddr_in saddr;
+			socklen_t slen = sizeof(saddr);
+			if (getpeername(fd_, (sockaddr *)&saddr, &slen) == 0) {
+				char buf[128];
+
+				if (inet_ntop(AF_INET, &saddr.sin_addr, buf, sizeof(buf))) {
+					remoteIP_ = buf;
+					remotePort_ = ntohs(saddr.sin_port);
+				}
+			}
+			break;
+		}
+		default:
+			break;
 	}
 }
 

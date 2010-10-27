@@ -26,6 +26,7 @@ namespace x0 {
 HttpListener::HttpListener(HttpServer& srv) : 
 	watcher_(srv.loop()),
 	fd_(-1),
+	addressFamily_(AF_UNSPEC),
 	server_(srv),
 	address_(),
 	port_(-1),
@@ -82,9 +83,39 @@ bool HttpListener::prepare()
 	log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
 #endif
 
-	fd_ = ::socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
-	if (fd_ < 0)
-	{
+	addrinfo *res;
+	addrinfo hints;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_NUMERICSERV;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	int rc;
+	in6_addr saddr;
+
+	if ((rc = inet_pton(AF_INET, address_.c_str(), &saddr)) == 1) {
+		// valid IPv4 text address
+		hints.ai_family = AF_INET;
+		hints.ai_flags |= AI_NUMERICHOST;
+	} else if ((rc = inet_pton(AF_INET6, address_.c_str(), &saddr)) == 1) {
+		// valid IPv6 text address
+		hints.ai_family = AF_INET6;
+		hints.ai_flags |= AI_NUMERICHOST;
+	}
+
+	char sport[8];
+	snprintf(sport, sizeof(sport), "%d", port_);
+
+	if ((rc = getaddrinfo(address_.c_str(), sport, &hints, &res)) != 0) {
+		printf("Host not found --> %s\n", gai_strerror(rc));
+		return false;
+	}
+
+	addressFamily_ = res->ai_family;
+
+	fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (fd_ < 0) {
 		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_,  strerror(errno));
 		return false;
 	}
@@ -96,18 +127,6 @@ bool HttpListener::prepare()
 	}
 
 	if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK) < 0)
-	{
-		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
-		return false;
-	}
-
-	sockaddr_in6 sin;
-	bzero(&sin, sizeof(sin));
-
-	sin.sin6_family = AF_INET6;
-	sin.sin6_port = htons(port_);
-
-	if (inet_pton(sin.sin6_family, address_.c_str(), sin.sin6_addr.s6_addr) < 0)
 	{
 		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
 		return false;
@@ -130,7 +149,7 @@ bool HttpListener::prepare()
 //	acceptor_.set_option(asio::ip::tcp::acceptor::linger(false, 0));
 //	acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
 
-	if (::bind(fd_, (sockaddr *)&sin, sizeof(sin)) < 0) {
+	if (::bind(fd_, res->ai_addr, res->ai_addrlen) < 0) {
 		log(Severity::error, "Cannot bind to IP-address (%s): %s", address_.c_str(), strerror(errno));
 		return false;
 	}

@@ -65,7 +65,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	, ctime_(ev_now(loop()))
 #endif
 {
-	socket_ = listener_.socketDriver()->create(fd, loop());
+	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
 	sink_.setSocket(socket_);
 
 	TRACE("(%p): fd=%d", this, socket_->handle());

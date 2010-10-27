@@ -24,7 +24,7 @@ public:
 	virtual ~SocketDriver();
 
 	virtual bool isSecure() const;
-	virtual Socket *create(int handle, struct ev_loop *loop);
+	virtual Socket *create(struct ev_loop *loop, int handle, int af);
 	virtual void destroy(Socket *);
 };
 

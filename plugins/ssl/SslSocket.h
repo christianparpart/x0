@@ -39,7 +39,7 @@ private:
 	static int onClientHello(gnutls_session_t session);
 
 public:
-	explicit SslSocket(SslDriver *driver, struct ev_loop *loop, int fd);
+	explicit SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af);
 	virtual ~SslSocket();
 
 	const SslContext *context() const;

@@ -75,6 +75,8 @@ public:
 
 	int error_count() const;
 
+	int addressFamily() const;
+
 private:
 	template<typename... Args>
 	inline void log(Severity sv, const char *msg, Args&&... args);
@@ -89,6 +91,7 @@ private:
 private:
 	ev::io watcher_;
 	int fd_;
+	int addressFamily_;
 	HttpServer& server_;
 	std::string address_;
 	int port_;
@@ -137,6 +140,11 @@ inline HttpServer& HttpListener::server() const
 inline int HttpListener::handle() const
 {
 	return fd_;
+}
+
+inline int HttpListener::addressFamily() const
+{
+	return addressFamily_;
 }
 
 #if defined(WITH_SSL)

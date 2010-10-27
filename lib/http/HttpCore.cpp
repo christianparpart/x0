@@ -264,7 +264,7 @@ void HttpCore::tcp_nodelay(Flow::Value& result, const Params& args)
 void HttpCore::listen(Flow::Value& result, const Params& args)
 {
 	std::string arg(args[0].toString());
-	size_t n = arg.find(':');
+	size_t n = arg.rfind(':');
 	std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
 	int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
 	int backlog = args[1].isNumber() ? args[1].toNumber() : 0;

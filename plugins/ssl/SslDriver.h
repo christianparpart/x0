@@ -36,7 +36,7 @@ public:
 
 	virtual bool isSecure() const;
 
-	virtual SslSocket *create(int handle, struct ev_loop *loop);
+	virtual SslSocket *create(struct ev_loop *loop, int handle, int af);
 	virtual void destroy(x0::Socket *);
 
 	void cache(SslSocket *socket);

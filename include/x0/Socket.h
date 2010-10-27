@@ -38,6 +38,7 @@ public:
 private:
 	struct ev_loop *loop_;
 	int fd_;
+	int addressFamily_;
 	ev::io watcher_;
 	int timeout_;
 	ev::timer timer_;
@@ -59,7 +60,7 @@ private:
 	void *timeoutData_;
 
 public:
-	explicit Socket(struct ev_loop *loop, int fd);
+	explicit Socket(struct ev_loop *loop, int fd, int addressFamily);
 	virtual ~Socket();
 
 	int handle() const;

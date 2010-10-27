@@ -25,9 +25,9 @@ bool SocketDriver::isSecure() const
 	return false;
 }
 
-Socket *SocketDriver::create(int handle, struct ev_loop *loop)
+Socket *SocketDriver::create(struct ev_loop *loop, int handle, int af)
 {
-	return new Socket(loop, handle);
+	return new Socket(loop, handle, af);
 }
 
 void SocketDriver::destroy(Socket *socket)

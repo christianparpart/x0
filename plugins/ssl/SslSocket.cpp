@@ -22,8 +22,8 @@
 #	define TRACE(msg...)
 #endif
 
-SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd) :
-	x0::Socket(loop, fd),
+SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
+	x0::Socket(loop, fd, af),
 #ifndef NDEBUG
 	ctime_(ev_now(loop)),
 #endif

@@ -86,9 +86,9 @@ bool SslDriver::isSecure() const
 	return true;
 }
 
-SslSocket *SslDriver::create(int handle, struct ev_loop *loop)
+SslSocket *SslDriver::create(struct ev_loop *loop, int handle, int af)
 {
-	return new SslSocket(this, loop, handle);
+	return new SslSocket(this, loop, handle, af);
 }
 
 void SslDriver::destroy(x0::Socket *socket)
