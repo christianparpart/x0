@@ -149,7 +149,7 @@ private:
 
 	x0::Buffer stdinTransferBuffer_;
 	enum { StdinFinished, StdinActive, StdinWaiting } stdinTransferMode_;
-	size_t stdinTransferOffset_;
+	size_t stdinTransferOffset_;			//!< current write-offset into the transfer buffer
 
 	x0::Buffer stdoutTransferBuffer_;
 	bool stdoutTransferActive_;
@@ -411,27 +411,34 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
 		if (rv < 0)
 		{
 			// error
-			TRACE("- stdin write error: %s\n", strerror(errno));
+			TRACE("- stdin write error: %s", strerror(errno));
 		}
 		else if (rv == 0)
 		{
 			// stdin closed by cgi process
-			TRACE("- stdin closed by cgi proc\n");
+			TRACE("- stdin closed by cgi proc");
 		}
 		else
 		{
-			TRACE("- wrote %ld/%ld bytes\n", rv, stdinTransferBuffer_.size() - stdinTransferOffset_);
+			TRACE("- wrote %ld/%ld bytes", rv, stdinTransferBuffer_.size() - stdinTransferOffset_);
 			stdinTransferOffset_ += rv;
 
 			if (stdinTransferOffset_ == stdinTransferBuffer_.size())
 			{
 				// buffer fully flushed
-				TRACE("-- buffer fully flushed. idle");
 				stdinTransferOffset_ = 0;
 				stdinTransferBuffer_.clear();
-				stdinTransferMode_ = StdinFinished;
 				evStdin_.stop();
-				process_.closeInput();
+
+				if (request_->contentAvailable()) {
+					TRACE("-- buffer fully flushed. waiting for more from client");
+					stdinTransferMode_ = StdinWaiting;
+					request_->read(std::bind(&CgiScript::onStdinAvailable, this, std::placeholders::_1));
+				} else {
+					TRACE("-- buffer fully flushed. closing stdin.");
+					stdinTransferMode_ = StdinFinished;
+					process_.closeInput();
+				}
 			}
 			else
 			{
