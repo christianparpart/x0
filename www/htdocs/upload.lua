@@ -3,6 +3,10 @@
 -- testing only
 -- do not distribute
 
+
+-- upload storage directory (must end with trailing slash)
+local UPLOAD_DIR = "/var/tmp/"
+
 function parse_headers(h)
 	local t = {}
 	for k,v in h:gmatch("([^:\r\n]+): *([^\r\n]+)") do
@@ -69,7 +73,7 @@ function decode_form(s, t)
 				if tmp ~= "" and tmp ~= "--" then
 					local i    = string.find(v, "\r\n\r\n")
 					local hraw = string.sub(v, 1, i-1)
-					local val  = string.sub(v,i+4)
+					local val  = string.sub(v,i+4, -3)
 					local hdr  = parse_headers(hraw)
 					local name, filename = get_disposition_names(hdr["content-disposition"])
 					if filename then 
@@ -133,6 +137,11 @@ local FORM = [[
 </html>
 ]]
 
+function err(msg)
+	local stderr = io.open('/dev/stderr', 'w+')
+	stderr:write(msg);
+	stderr:close()
+end
 
 local method, params = cgi_request()
 if method == 'POST' then
@@ -140,14 +149,11 @@ if method == 'POST' then
 	local filename = t["myfile"]
 	local raw      = tp["myfile"]
 	local name     = filename:gsub(".+/","") 
-	local file     = io.open('./' .. name, 'w+')
-	file:write(raw) 
+	local file     = io.open(UPLOAD_DIR .. name, 'w+')
+	file:write(raw)
 	file:close()
-
-	page("<html><body>uploaded file: " .. filename .. "</body></html>")
+	page("<html><body>uploaded file: " .. filename .. "</body></html>\r\n")
 else
 	-- default 
-	page( FORM )
-
+	page(FORM)
 end
-
