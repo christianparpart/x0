@@ -182,6 +182,26 @@ Default: false
 
 =item B<listen> (address:port)
 
+Configures a listener on given address and port.
+The address may be IPv4, IPv6, or a DNS name (to be resolved at startup).
+
+Example 1:
+
+ handler setup {
+    # listen on IPv4 address 127.0.0.1 with port 8081
+    listen '127.0.0.1:8081';
+ }
+
+Example 2:
+
+ handler setup {
+    # listens on IPv6 address with port 8080
+    listen 'fe80::2c0:26ff:fe85:b3:8080';
+
+    # listen on any IPv6 address with port 9090
+    listen ':::9090';
+ }
+
 =back
 
 =head2 GLOBAL PROPERTIES
