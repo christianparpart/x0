@@ -31,23 +31,20 @@
 
 /* -- configuration proposal:
  *
- * ['YourDomain.com'] = {
- *     ProxyEnabled = true;
- *     ProxyBufferSize = 0;
- *     ProxyConnectTimeout = 5;
- *     ProxyIgnoreClientAbort = false;
- *     ProxyMode = "reverse";                 -- "reverse" | "forward" | and possibly others
- *     ProxyKeepAlive = 0;                    -- keep-alive seconds to origin servers
- *     ProxyMethods = { 'PROPFIND' };
- *     ProxyServers = {
- *         "http://pr1.backend/"
- *     };
- *     ProxyHotSpares = {
- *         "http://hs1.backend.net/"
- *     };
- * };
+ * handler setup {
+ * }
  *
- * Allowed Contexts: vhost, location
+ * handler main {
+ *     proxy.reverse 'http://127.0.0.1:3000';
+ * }
+ *
+ * -- possible tweaks:
+ *  - bufsize
+ *  - timeout.connect
+ *  - timeout.write
+ *  - timeout.read
+ *  - ignore_clientabort
+ * };
  *
  */
 
@@ -68,19 +65,7 @@ public:
 	proxy_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		using namespace std::placeholders;
-
-		/*
-		declareCVar("ProxyEnable", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_enable);
-		declareCVar("ProxyMode", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_mode);
-		declareCVar("ProxyOrigins", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_origins);
-		declareCVar("ProxyHotSpares", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_hotspares);
-		declareCVar("ProxyMethods", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_methods);
-		declareCVar("ProxyConnectTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_connect_timeout);
-		declareCVar("ProxyReadTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_read_timeout);
-		declareCVar("ProxyWriteTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_write_timeout);
-		declareCVar("ProxyKeepAliveTimeout", x0::HttpContext::server | x0::HttpContext::host, &proxy_plugin::setup_proxy_keepalive_timeout);
-		*/
+		registerHandler<proxy_plugin, &proxy_plugin::proxy_reverse>("proxy.reverse");
 	}
 
 	~proxy_plugin()
@@ -88,125 +73,17 @@ public:
 	}
 
 private:
-#if 0
-	std::error_code setup_proxy_enable(const x0::SettingsValue& cvar, x0::Scope& s)
+	bool proxy_reverse(x0::HttpRequest *r, const x0::Params& args)
 	{
-		return cvar.load(acquire_proxy(s)->enabled);
-	}
-
-	std::error_code setup_proxy_mode(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		// TODO reverse / forward / transparent (forward)
-		return std::error_code();
-	}
-
-	std::error_code setup_proxy_origins(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		ProxyContext *px = acquire_proxy(s);
-		cvar.load(px->origins);
-
-		for (std::size_t i = 0, e = px->origins.size(); i != e; ++i)
-		{
-			std::string url = px->origins[i];
-			std::string protocol, hostname;
-			int port = 0;
-
-			if (!x0::parseUrl(url, protocol, hostname, port))
-			{
-				TRACE("%s.", "Origin URL parse error");
-				continue;
-			}
-
-			ProxyOrigin origin(hostname, port);
-			if (origin.is_enabled())
-				px->origins_.push_back(origin);
-			else
-				server_.log(x0::Severity::error, origin.error().c_str());
-		}
-
-		if (!px->origins_.empty())
-			return std::error_code();
-
-		//! \bug FIX server_.log(x0::Severity::warn, "No origin servers defined for proxy at virtual-host: %s.", hostid.c_str());
-		//return ProxyError::EmptyOriginSet;
-		return std::error_code();
-	}
-
-	std::error_code setup_proxy_hotspares(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		//ProxyContext *px = acquire_proxy(s);
-		//cvar.load(px->hot_spares);
-		return std::error_code();
-	}
-
-	std::error_code setup_proxy_methods(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire_proxy(s)->allowed_methods);
-	}
-
-	std::error_code setup_proxy_connect_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire_proxy(s)->connect_timeout);
-	}
-
-	std::error_code setup_proxy_read_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire_proxy(s)->read_timeout);
-	}
-
-	std::error_code setup_proxy_write_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire_proxy(s)->write_timeout);
-	}
-
-	std::error_code setup_proxy_keepalive_timeout(const x0::SettingsValue& cvar, x0::Scope& s)
-	{
-		return cvar.load(acquire_proxy(s)->keepalive);
-	}
-
-	ProxyContext *acquire_proxy(x0::Scope& s)
-	{
-		if (ProxyContext *px = s.get<ProxyContext>(this))
-			return px;
-
-		auto px = std::make_shared<ProxyContext>(server_.loop());
-		s.set(this, px);
-
-		return px.get();
-	}
-#endif
-
-	ProxyContext *get_proxy(x0::HttpRequest *r)
-	{
-		return NULL; //FIXME server_.resolveHost(r->hostid())->get<ProxyContext>(this);
-	}
-
-public:
-	virtual bool post_config()
-	{
-		// TODO ensure, that every ProxyContext instance is properly equipped.
-		return true;
-	}
-
-private:
-	virtual bool handleRequest(x0::HttpRequest *r, const x0::Params& args)
-	{
-		ProxyContext *px = get_proxy(r);
-		if (!px)
+		// TODO: reuse already spawned proxy connections instead of recreating each time.
+		ProxyConnection *pc = new ProxyConnection(r->connection.worker().loop());
+		if (!pc)
 			return false;
 
-		if (!px->enabled)
-			return false;
+		pc->connect(args[0].toString());
 
-		if (!px->method_allowed(r->method))
-		{
-			r->status = x0::HttpError::MethodNotAllowed;
-			r->finish();
-			return true;
-		}
+		pc->start(std::bind(&x0::HttpRequest::finish, r), r);
 
-		ProxyConnection *connection = px->acquire();
-		connection->start(std::bind(&x0::HttpRequest::finish, r), r);
 		return true;
 	}
 };

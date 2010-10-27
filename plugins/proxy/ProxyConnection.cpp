@@ -23,14 +23,13 @@
 #include <ev++.h>
 
 #if 1
-#	define TRACE(msg...) /*!*/
-#else
 #	define TRACE(msg...) DEBUG("ProxyConnection: " msg)
+#else
+#	define TRACE(msg...) /*!*/
 #endif
 
-ProxyConnection::ProxyConnection(ProxyContext *px) :
-	WebClientBase(px->loop),
-	px_(px),
+ProxyConnection::ProxyConnection(struct ev_loop *loop) :
+	WebClientBase(loop),
 	done_(),
 	request_(NULL)
 {

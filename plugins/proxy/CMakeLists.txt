@@ -16,12 +16,10 @@ add_definitions(
 # ---------------------------------------------------------------------------
 
 set(proxy_API
-	ProxyContext.h
 	ProxyOrigin.h
 	ProxyConnection.h)
 
 set(proxy_SRC
-	ProxyContext.cpp
 	ProxyOrigin.cpp
 	ProxyConnection.cpp
 	proxy.cpp)

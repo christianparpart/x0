@@ -14,7 +14,6 @@
 
 #include <ev++.h>
 
-class ProxyContext;
 class ProxyConnection;
 
 namespace x0 {
@@ -29,13 +28,13 @@ class ProxyConnection :
 	friend class ProxyContext;
 
 public:
-	explicit ProxyConnection(ProxyContext *px);
+	explicit ProxyConnection(struct ev_loop *loop);
 	~ProxyConnection();
 
+	void connect(const std::string& origin);
 	void start(const std::function<void()>& done, x0::HttpRequest *r);
 
 private:
-	void connect(const std::string& origin);
 	void disconnect();
 
 	void pass_request();
@@ -50,8 +49,6 @@ private:
 	void content_written(int ec, std::size_t nb);
 
 private:
-	ProxyContext *px_;				//!< owning proxy
-
 	std::string hostname_;			//!< origin's hostname
 	int port_;						//!< origin's port
 	std::function<void()> done_;
