@@ -23,9 +23,9 @@
 #include <unistd.h>
 
 #if 1
-#	define TRACE(msg...)
-#else
 #	define TRACE(msg...) DEBUG("WebClient: " msg)
+#else
+#	define TRACE(msg...)
 #endif
 
 /**
@@ -55,15 +55,15 @@ WebClientBase::WebClientBase(struct ev_loop *loop) :
 	state_(DISCONNECTED),
 	io_(loop_),
 	timer_(loop_),
-	last_error_(),
-	request_buffer_(),
-	request_offset_(0),
-	request_count_(0),
-	response_buffer_(),
-	connect_timeout(0),
-	write_timeout(0),
-	read_timeout(0),
-	keepalive_timeout(0)
+	lastError_(),
+	requestBuffer_(),
+	requestOffset_(0),
+	requestCount_(0),
+	responseBuffer_(),
+	connectTimeout(0),
+	writeTimeout(0),
+	readTimeout(0),
+	keepaliveTimeout(0)
 {
 	io_.set<WebClientBase, &WebClientBase::io>(this);
 	timer_.set<WebClientBase, &WebClientBase::timeout>(this);
@@ -92,8 +92,8 @@ bool WebClientBase::open(const std::string& hostname, int port)
 	int rv = getaddrinfo(hostname.c_str(), sport, &hints, &res);
 	if (rv)
 	{
-		last_error_ = make_error_code(static_cast<enum gai_error>(rv));
-		TRACE("connect: resolve error: %s", last_error_.message().c_str());
+		lastError_ = make_error_code(static_cast<enum gai_error>(rv));
+		TRACE("connect: resolve error: %s", lastError_.message().c_str());
 		return false;
 	}
 
@@ -102,7 +102,7 @@ bool WebClientBase::open(const std::string& hostname, int port)
 		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (fd_ < 0)
 		{
-			last_error_ = std::make_error_code(static_cast<std::errc>(errno));
+			lastError_ = std::make_error_code(static_cast<std::errc>(errno));
 			continue;
 		}
 
@@ -120,8 +120,8 @@ bool WebClientBase::open(const std::string& hostname, int port)
 			}
 			else
 			{
-				last_error_ = std::make_error_code(static_cast<std::errc>(errno));
-				TRACE("connect error: %s (category: %s)", last_error_.message().c_str(), last_error_.category().name());
+				lastError_ = std::make_error_code(static_cast<std::errc>(errno));
+				TRACE("connect error: %s (category: %s)", lastError_.message().c_str(), lastError_.category().name());
 				close();
 			}
 		}
@@ -130,7 +130,7 @@ bool WebClientBase::open(const std::string& hostname, int port)
 			state_ = CONNECTED;
 			TRACE("connect: instant success");
 
-			connect();
+			onConnect();
 
 			break;
 		}
@@ -160,21 +160,21 @@ void WebClientBase::close()
 	}
 }
 
-std::error_code WebClientBase::last_error() const
+std::error_code WebClientBase::lastError() const
 {
-	return last_error_;
+	return lastError_;
 }
 
 void WebClientBase::commit(bool flush)
 {
-	if (keepalive_timeout > 0)
-		write_header("Connection", "keep-alive");
+	if (keepaliveTimeout > 0)
+		writeHeader("Connection", "keep-alive");
 	else
-		write_header("Connection", "close");
+		writeHeader("Connection", "close");
 
-	request_buffer_.push_back("\015\012"); // final linefeed
+	requestBuffer_.push_back("\015\012"); // final linefeed
 
-	++request_count_;
+	++requestCount_;
 
 	if (flush)
 	{
@@ -199,22 +199,22 @@ void WebClientBase::resume()
 		case DISCONNECTED:
 			break;
 		case CONNECTING:
-			if (connect_timeout > 0)
-				timer_.start(connect_timeout, 0.0);
+			if (connectTimeout > 0)
+				timer_.start(connectTimeout, 0.0);
 
 			io_.start();
 			break;
 		case CONNECTED:
 			break;
 		case WRITING:
-			if (write_timeout > 0)
-				timer_.start(write_timeout, 0.0);
+			if (writeTimeout > 0)
+				timer_.start(writeTimeout, 0.0);
 
 			io_.start();
 			break;
 		case READING:
-			if (read_timeout > 0)
-				timer_.start(read_timeout, 0.0);
+			if (readTimeout > 0)
+				timer_.start(readTimeout, 0.0);
 
 			io_.start();
 			break;
@@ -234,23 +234,23 @@ void WebClientBase::startRead()
 			state_ = CONNECTED;
 			io_.set(fd_, ev::READ);
 
-			connect();
+			onConnect();
 
 			break;
 		case CONNECTED:
 			// invalid state to start reading from
 			break;
 		case WRITING:
-			if (read_timeout > 0)
-				timer_.start(read_timeout, 0.0);
+			if (readTimeout > 0)
+				timer_.start(readTimeout, 0.0);
 
 			state_ = READING;
 			io_.set(fd_, ev::READ);
 			break;
 		case READING:
 			// continue reading
-			if (read_timeout > 0)
-				timer_.start(read_timeout, 0.0);
+			if (readTimeout > 0)
+				timer_.start(readTimeout, 0.0);
 
 			break;
 	}
@@ -264,8 +264,8 @@ void WebClientBase::startWrite()
 		case DISCONNECTED:
 			// initiated asynchronous connect: watch for completeness
 
-			if (connect_timeout > 0)
-				timer_.start(connect_timeout, 0.0);
+			if (connectTimeout > 0)
+				timer_.start(connectTimeout, 0.0);
 
 			io_.set(fd_, ev::WRITE);
 			io_.start();
@@ -274,14 +274,14 @@ void WebClientBase::startWrite()
 		case CONNECTING:
 			// asynchronous-connect completed and request committed already: start writing
 
-			if (write_timeout > 0)
-				timer_.start(write_timeout, 0.0);
+			if (writeTimeout > 0)
+				timer_.start(writeTimeout, 0.0);
 
 			state_ = WRITING;
 			break;
 		case CONNECTED:
-			if (write_timeout > 0)
-				timer_.start(write_timeout, 0.0);
+			if (writeTimeout > 0)
+				timer_.start(writeTimeout, 0.0);
 
 			state_ = WRITING;
 			io_.set(fd_, ev::WRITE);
@@ -291,8 +291,8 @@ void WebClientBase::startWrite()
 			// continue writing
 			break;
 		case READING:
-			if (write_timeout > 0)
-				timer_.start(write_timeout, 0.0);
+			if (writeTimeout > 0)
+				timer_.start(writeTimeout, 0.0);
 
 			state_ = WRITING;
 			io_.set(fd_, ev::WRITE);
@@ -332,43 +332,43 @@ void WebClientBase::onConnectComplete()
 	{
 		if (val == 0)
 		{
-			TRACE("onConnectComplete: connected (request_count=%ld)", request_count_);
-			if (request_count_)
+			TRACE("onConnectComplete: connected (request_count=%ld)", requestCount_);
+			if (requestCount_)
 				startWrite(); // some request got already committed -> start write immediately
 			else
 				startRead(); // we're idle, watch for EOF
 		}
 		else
 		{
-			last_error_ = std::make_error_code(static_cast<std::errc>(val));
-			TRACE("onConnectComplete: error(%d): %s", val, last_error_.message().c_str());
+			lastError_ = std::make_error_code(static_cast<std::errc>(val));
+			TRACE("onConnectComplete: error(%d): %s", val, lastError_.message().c_str());
 			close();
 		}
 	}
 	else
 	{
-		last_error_ = std::make_error_code(static_cast<std::errc>(errno));
-		TRACE("onConnectComplete: getsocketopt() error: %s", last_error_.message().c_str());
+		lastError_ = std::make_error_code(static_cast<std::errc>(errno));
+		TRACE("onConnectComplete: getsocketopt() error: %s", lastError_.message().c_str());
 		close();
 	}
 
 	if (!isOpen())
-		complete();
+		onComplete();
 }
 
 void WebClientBase::writeSome()
 {
 	TRACE("WebClient(%p)::writeSome()", this);
 
-	ssize_t rv = ::write(fd_, request_buffer_.data() + request_offset_, request_buffer_.size() - request_offset_);
+	ssize_t rv = ::write(fd_, requestBuffer_.data() + requestOffset_, requestBuffer_.size() - requestOffset_);
 
 	if (rv > 0)
 	{
-		TRACE("write request: %ld (of %ld) bytes", rv, request_buffer_.size() - request_offset_);
+		TRACE("write request: %ld (of %ld) bytes", rv, requestBuffer_.size() - requestOffset_);
 
-		request_offset_ += rv;
+		requestOffset_ += rv;
 
-		if (request_offset_ == request_buffer_.size()) // request fully transmitted, let's read response then.
+		if (requestOffset_ == requestBuffer_.size()) // request fully transmitted, let's read response then.
 			startRead();
 	}
 	else
@@ -382,20 +382,20 @@ void WebClientBase::readSome()
 {
 	TRACE("connection(%p)::readSome()", this);
 
-	std::size_t lower_bound = response_buffer_.size();
+	std::size_t lower_bound = responseBuffer_.size();
 
-	if (lower_bound == response_buffer_.capacity())
-		response_buffer_.capacity(lower_bound + 4096);
+	if (lower_bound == responseBuffer_.capacity())
+		responseBuffer_.capacity(lower_bound + 4096);
 
-	ssize_t rv = ::read(fd_, (char *)response_buffer_.end(), response_buffer_.capacity() - lower_bound);
+	ssize_t rv = ::read(fd_, (char *)responseBuffer_.end(), responseBuffer_.capacity() - lower_bound);
 
 	if (rv > 0)
 	{
 		TRACE("read response: %ld bytes", rv);
-		response_buffer_.resize(lower_bound + rv);
+		responseBuffer_.resize(lower_bound + rv);
 
 		std::size_t np = 0;
-		std::error_code ec = process(response_buffer_.ref(lower_bound, rv), np);
+		std::error_code ec = process(responseBuffer_.ref(lower_bound, rv), np);
 		TRACE("readSome@process: %s", ec.message().c_str());
 	}
 	else if (rv == 0)
@@ -416,27 +416,27 @@ void WebClientBase::readSome()
 
 void WebClientBase::messageBegin(int version_major, int version_minor, int code, BufferRef&& text)
 {
-	response(version_major, version_minor, code, std::move(text));
+	onResponse(version_major, version_minor, code, std::move(text));
 }
 
 void WebClientBase::messageHeader(BufferRef&& name, BufferRef&& value)
 {
-	header(std::move(name), std::move(value));
+	onHeader(std::move(name), std::move(value));
 }
 
 bool WebClientBase::messageContent(BufferRef&& chunk)
 {
-	content(std::move(chunk));
+	onContentChunk(std::move(chunk));
 
 	return true;
 }
 
 bool WebClientBase::messageEnd()
 {
-	--request_count_;
-	TRACE("message_end: pending=%d", request_count_);
+	--requestCount_;
+	TRACE("message_end: pending=%ld", requestCount_);
 
-	return complete();
+	return onComplete();
 }
 
 // ---------------------------------------------------------------------------
@@ -451,25 +451,25 @@ WebClient::WebClient(struct ev_loop *loop) :
 {
 }
 
-void WebClient::connect()
+void WebClient::onConnect()
 {
 	if (on_connect)
 		on_connect();
 }
 
-void WebClient::response(int major, int minor, int code, BufferRef&& text)
+void WebClient::onResponse(int major, int minor, int code, BufferRef&& text)
 {
 	if (on_response)
 		on_response(major, minor, code, std::move(text));
 }
 
-void WebClient::header(BufferRef&& name, BufferRef&& value)
+void WebClient::onHeader(BufferRef&& name, BufferRef&& value)
 {
 	if (on_header)
 		on_header(std::move(name), std::move(value));
 }
 
-bool WebClient::content(BufferRef&& chunk)
+bool WebClient::onContentChunk(BufferRef&& chunk)
 {
 	if (on_content)
 		on_content(std::move(chunk));
@@ -477,7 +477,7 @@ bool WebClient::content(BufferRef&& chunk)
 	return true;
 }
 
-bool WebClient::complete()
+bool WebClient::onComplete()
 {
 	if (on_complete)
 		return on_complete();

@@ -62,7 +62,7 @@ int main(int argc, const char *argv[])
 	client.on_header = std::bind(&on_header, _1, _2);
 	client.on_content = std::bind(&on_content, _1);
 	client.on_complete = std::bind(&on_complete, &client);
-	client.keepalive_timeout = 5;
+	client.keepaliveTimeout = 5;
 
 	std::string url("http://xzero.ws/cgi-bin/cgi-test.cgi");
 	if (argc > 1)
@@ -83,26 +83,26 @@ int main(int argc, const char *argv[])
 
 	if (client.state() == x0::WebClient::DISCONNECTED)
 	{
-		std::clog << "Could not connect to server: " << client.last_error().message() << std::endl;
+		std::clog << "Could not connect to server: " << client.lastError().message() << std::endl;
 		return -1;
 	}
 
 	for (int i = 0; i < request_count; ++i)
 	{
-		client.write_request("GET", path);
+		client.writeRequest("GET", path);
 
-		client.write_header("Host", hostname);
-		client.write_header("User-Agent", "x0");
-		client.write_header("X-Foo", "bar");
+		client.writeHeader("Host", hostname);
+		client.writeHeader("User-Agent", "x0");
+		client.writeHeader("X-Foo", "bar");
 
 		client.commit(i == (request_count - 1)); // pass true on last iteration, false otherwise.
 	}
 
 	ev_loop(loop, 0);
 
-	if (client.last_error())
+	if (client.lastError())
 	{
-		std::clog << "connection error: " << client.last_error() << std::endl;
+		std::clog << "connection error: " << client.lastError() << std::endl;
 	}
 
 	return 0;

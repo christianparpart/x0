@@ -7,7 +7,6 @@
  */
 
 #include "ProxyConnection.h"
-#include "ProxyContext.h"
 
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
@@ -39,13 +38,13 @@ ProxyConnection::ProxyConnection(struct ev_loop *loop) :
  *
  * Though, passing the request message to the origin server.
  */
-void ProxyConnection::connect()
+void ProxyConnection::onConnect()
 {
 	TRACE("connection(%p).connect()", this);
 	if (!request_)
 		return;
 
-	pass_request();
+	passRequest();
 }
 
 /** callback, invoked when the origin server has passed us the response status line.
@@ -53,7 +52,7 @@ void ProxyConnection::connect()
  * We will use the status code only.
  * However, we could pass the text field, too - once x0 core supports it.
  */
-void ProxyConnection::response(int major, int minor, int code, x0::BufferRef&& text)
+void ProxyConnection::onResponse(int major, int minor, int code, x0::BufferRef&& text)
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", this, major, minor, code, text.str().c_str());
 	request_->status = static_cast<x0::HttpError>(code);
@@ -76,9 +75,9 @@ inline bool validateResponseHeader(const x0::BufferRef& name)
  * We will pass this header directly to the client's response if
  * that is NOT a connection-level header.
  */
-void ProxyConnection::header(x0::BufferRef&& name, x0::BufferRef&& value)
+void ProxyConnection::onHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 {
-	TRACE("ProxyConnection(%p).header('%s', '%s')", this, name.str().c_str(), value.str().c_str());
+	TRACE("ProxyConnection(%p).onHeader('%s', '%s')", this, name.str().c_str(), value.str().c_str());
 
 	if (validateResponseHeader(name))
 		request_->responseHeaders.push_back(name.str(), value.str());
@@ -92,14 +91,14 @@ void ProxyConnection::header(x0::BufferRef&& name, x0::BufferRef&& value)
  * The client must be resumed once the current chunk has been fully passed
  * to the client.
  */
-bool ProxyConnection::content(x0::BufferRef&& chunk)
+bool ProxyConnection::onContentChunk(x0::BufferRef&& chunk)
 {
-	TRACE("ProxyConnection(%p).content(size=%ld)", this, chunk.size());
+	TRACE("ProxyConnection(%p).onContentChunk(size=%ld)", this, chunk.size());
 
 	pause();
 
 	request_->write(std::make_shared<x0::BufferSource>(chunk),
-			std::bind(&ProxyConnection::content_written, this, std::placeholders::_1, std::placeholders::_2));
+			std::bind(&ProxyConnection::onContentWritten, this, std::placeholders::_1, std::placeholders::_2));
 
 	return true;
 }
@@ -108,9 +107,9 @@ bool ProxyConnection::content(x0::BufferRef&& chunk)
  *
  * We will inform x0 core, that we've finished processing this request and destruct ourselfs.
  */
-bool ProxyConnection::complete()
+bool ProxyConnection::onComplete()
 {
-	TRACE("ProxyConnection(%p).complete()", this);
+	TRACE("ProxyConnection(%p).onComplete()", this);
 
 	if (static_cast<int>(request_->status) == 0)
 		request_->status = x0::HttpError::ServiceUnavailable;
@@ -127,9 +126,9 @@ bool ProxyConnection::complete()
  * If the previousely transferred chunk has been successfully written, we will
  * resume receiving response content from the origin server, or kill us otherwise.
  */
-void ProxyConnection::content_written(int ec, std::size_t nb)
+void ProxyConnection::onContentWritten(int ec, std::size_t nb)
 {
-	TRACE("connection(%p).content_written(ec=%d, nb=%ld): %s", this, ec, nb, ec ? strerror(errno) : "");
+	TRACE("connection(%p).onContentWritten(ec=%d, nb=%ld): %s", this, ec, nb, ec ? strerror(errno) : "");
 
 	if (!ec)
 	{
@@ -172,7 +171,7 @@ void ProxyConnection::connect(const std::string& origin)
 	switch (state())
 	{
 		case DISCONNECTED:
-			TRACE("ProxyConnection(%p): connect error: %s", this, last_error().message().c_str());
+			TRACE("ProxyConnection(%p): connect error: %s", this, lastError().message().c_str());
 			break;
 		default:
 			break;
@@ -207,7 +206,7 @@ void ProxyConnection::start(const std::function<void()>& done, x0::HttpRequest *
 	request_ = r;
 
 	if (state() == CONNECTED)
-		pass_request();
+		passRequest();
 }
 
 /** test whether or not this request header may be passed to the origin server.
@@ -231,25 +230,25 @@ inline bool validate_request_header(const x0::BufferRef& name)
 
 /** startss passing the client request message to the origin server.
  */
-void ProxyConnection::pass_request()
+void ProxyConnection::passRequest()
 {
-	TRACE("connection(%p).pass_request('%s', '%s', '%s')", this, 
+	TRACE("connection(%p).passRequest('%s', '%s', '%s')", this, 
 		request_->method.str().c_str(), request_->path.str().c_str(), request_->query.str().c_str());
 
 	// request line
 	if (request_->query)
-		write_request(request_->method, request_->path, request_->query);
+		writeRequest(request_->method, request_->path, request_->query);
 	else
-		write_request(request_->method, request_->path);
+		writeRequest(request_->method, request_->path);
 
 	// request-headers
 	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i)
 		if (validate_request_header(i->name))
-			write_header(i->name, i->value);
+			writeHeader(i->name, i->value);
 
 	if (!hostname_.empty())
 	{
-		write_header("Host", hostname_);
+		writeHeader("Host", hostname_);
 	}
 	else
 	{
@@ -265,7 +264,7 @@ void ProxyConnection::pass_request()
 		result.push_back(':');
 		result.push_back(port_);
 
-		write_header("Host", result);
+		writeHeader("Host", result);
 	}
 
 	//! \todo body?
@@ -281,14 +280,14 @@ void ProxyConnection::pass_request()
 	if (request_->contentAvailable())
 	{
 		using namespace std::placeholders;
-		request_->read(std::bind(&ProxyConnection::pass_request_content, this, _1));
+		request_->read(std::bind(&ProxyConnection::passRequestContent, this, _1));
 	}
 }
 
 /** callback, invoked when client content chunk is available, and is to pass to the origin server.
  */
-void ProxyConnection::pass_request_content(x0::BufferRef&& chunk)
+void ProxyConnection::passRequestContent(x0::BufferRef&& chunk)
 {
-	TRACE("ProxyConnection.pass_request_content(): '%s'", chunk.str().c_str());
+	TRACE("ProxyConnection.passRequestContent(): '%s'", chunk.str().c_str());
 	//client.write(chunk, std::bind(&ProxyConnection::request_content_passed, this);
 }

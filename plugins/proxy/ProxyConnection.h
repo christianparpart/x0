@@ -25,8 +25,6 @@ namespace x0 {
 class ProxyConnection :
 	public x0::WebClientBase
 {
-	friend class ProxyContext;
-
 public:
 	explicit ProxyConnection(struct ev_loop *loop);
 	~ProxyConnection();
@@ -37,21 +35,23 @@ public:
 private:
 	void disconnect();
 
-	void pass_request();
-	void pass_request_content(x0::BufferRef&& chunk);
+	void passRequest();
 
-	virtual void connect();
-	virtual void response(int, int, int, x0::BufferRef&&);
-	virtual void header(x0::BufferRef&&, x0::BufferRef&&);
-	virtual bool content(x0::BufferRef&&);
-	virtual bool complete();
+	void onInputReady(/*...*/);
+	void passRequestContent(x0::BufferRef&& chunk);
 
-	void content_written(int ec, std::size_t nb);
+	virtual void onConnect();
+	virtual void onResponse(int vmajor, int vminor, int code, x0::BufferRef&& message);
+	virtual void onHeader(x0::BufferRef&& name, x0::BufferRef&& value);
+	virtual bool onContentChunk(x0::BufferRef&& chunk);
+	virtual bool onComplete();
+
+	void onContentWritten(int ec, std::size_t nb);
 
 private:
 	std::string hostname_;			//!< origin's hostname
 	int port_;						//!< origin's port
-	std::function<void()> done_;
+	std::function<void()> done_;	//!< request completion handler
 	x0::HttpRequest *request_;		//!< client's request
 };
 

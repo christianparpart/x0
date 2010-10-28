@@ -8,7 +8,6 @@
 
 #include "ProxyConnection.h"
 #include "ProxyOrigin.h"
-#include "ProxyContext.h"
 
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>

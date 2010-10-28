@@ -36,11 +36,11 @@ private:
 	State state_;
 	ev::io io_;
 	ev::timer timer_;
-	std::error_code last_error_;
-	Buffer request_buffer_;
-	std::size_t request_offset_;
-	std::size_t request_count_;
-	Buffer response_buffer_;
+	std::error_code lastError_;
+	Buffer requestBuffer_;
+	std::size_t requestOffset_;
+	std::size_t requestCount_;
+	Buffer responseBuffer_;
 
 private:
 	void io(ev::io& w, int revents);
@@ -55,6 +55,7 @@ private:
 	void startWrite();
 
 private:
+	// from HttpMessageProcessor
 	virtual void messageBegin(int version_major, int version_minor, int code, BufferRef&& text);
 	virtual void messageHeader(BufferRef&& name, BufferRef&& value);
 	virtual bool messageContent(BufferRef&& chunk);
@@ -70,26 +71,26 @@ public:
 	void close();
 
 	State state() const;
-	std::error_code last_error() const;
+	std::error_code lastError() const;
 
 	// timeouts (values <= 0 means disabled)
-	int connect_timeout;
-	int write_timeout;
-	int read_timeout;
-	int keepalive_timeout;
+	int connectTimeout;
+	int writeTimeout;
+	int readTimeout;
+	int keepaliveTimeout;
 
 	// request handling
 	template<typename method_type, typename path_type>
-	void write_request(method_type&& method, path_type&& path);
+	void writeRequest(method_type&& method, path_type&& path);
 
 	template<typename method_type, typename path_type, typename query_type>
-	void write_request(method_type&& method, path_type&& path, query_type&& query);
+	void writeRequest(method_type&& method, path_type&& path, query_type&& query);
 
 	template<typename key_type, typename value_type>
-	void write_header(key_type&& key, value_type&& value);
+	void writeHeader(key_type&& key, value_type&& value);
 
 	template<typename handler_type>
-	void setup_content_writer(handler_type&& handler);
+	void setupContentWriter(handler_type&& handler);
 
 	void commit(bool flush = true);
 
@@ -99,17 +100,18 @@ public:
 	template<typename chunk_type>
 	ssize_t write(chunk_type&& chunk, bool last);
 
-	virtual void connect() = 0;
-	virtual void response(int, int, int, BufferRef&&) = 0;
-	virtual void header(BufferRef&&, BufferRef&&) = 0;
-	virtual bool content(BufferRef&&) = 0;
-	virtual bool complete() = 0;
+public:
+	virtual void onConnect() = 0;
+	virtual void onResponse(int vmajor, int vminor, int code, BufferRef&& message) = 0;
+	virtual void onHeader(BufferRef&& name, BufferRef&& value) = 0;
+	virtual bool onContentChunk(BufferRef&& chunk) = 0;
+	virtual bool onComplete() = 0;
 };
 
 class X0_API WebClient : public WebClientBase
 {
 public:
-	WebClient(struct ev_loop *loop);
+	explicit WebClient(struct ev_loop *loop);
 
 	std::function<void()> on_connect;
 	std::function<void(int, int, int, BufferRef&&)> on_response;
@@ -118,11 +120,11 @@ public:
 	std::function<bool()> on_complete;
 
 private:
-	virtual void connect();
-	virtual void response(int, int, int, BufferRef&&);
-	virtual void header(BufferRef&&, BufferRef&&);
-	virtual bool content(BufferRef&&);
-	virtual bool complete();
+	virtual void onConnect();
+	virtual void onResponse(int code, int vmajor, int vminor, BufferRef&& message);
+	virtual void onHeader(BufferRef&& name, BufferRef&& value);
+	virtual bool onContentChunk(BufferRef&& chunk);
+	virtual bool onComplete();
 };
 
 } // namespace x0
@@ -141,14 +143,14 @@ inline WebClientBase::State WebClientBase::state() const
  * \param path the request path (including possible query args)
  */
 template<typename method_type, typename path_type>
-void WebClientBase::write_request(method_type&& method, path_type&& path)
+void WebClientBase::writeRequest(method_type&& method, path_type&& path)
 {
-	request_buffer_.push_back(method);
-	request_buffer_.push_back(' ');
-	request_buffer_.push_back(path);
-	request_buffer_.push_back(' ');
-	request_buffer_.push_back("HTTP/1.1");
-	request_buffer_.push_back("\015\012");
+	requestBuffer_.push_back(method);
+	requestBuffer_.push_back(' ');
+	requestBuffer_.push_back(path);
+	requestBuffer_.push_back(' ');
+	requestBuffer_.push_back("HTTP/1.1");
+	requestBuffer_.push_back("\015\012");
 }
 
 /** passes the request line into the buffer.
@@ -158,16 +160,16 @@ void WebClientBase::write_request(method_type&& method, path_type&& path)
  * \param query the query args (encoded)
  */
 template<typename method_type, typename path_type, typename query_type>
-void WebClientBase::write_request(method_type&& method, path_type&& path, query_type&& query)
+void WebClientBase::writeRequest(method_type&& method, path_type&& path, query_type&& query)
 {
-	request_buffer_.push_back(method);
-	request_buffer_.push_back(' ');
-	request_buffer_.push_back(path);
-	request_buffer_.push_back('?');
-	request_buffer_.push_back(query);
-	request_buffer_.push_back(' ');
-	request_buffer_.push_back("HTTP/1.1");
-	request_buffer_.push_back("\015\012");
+	requestBuffer_.push_back(method);
+	requestBuffer_.push_back(' ');
+	requestBuffer_.push_back(path);
+	requestBuffer_.push_back('?');
+	requestBuffer_.push_back(query);
+	requestBuffer_.push_back(' ');
+	requestBuffer_.push_back("HTTP/1.1");
+	requestBuffer_.push_back("\015\012");
 }
 
 /** passes a request header into the buffer.
@@ -181,12 +183,12 @@ void WebClientBase::write_request(method_type&& method, path_type&& path, query_
  * The value also may not contain line feeds
  */
 template<typename key_type, typename value_type>
-void WebClientBase::write_header(key_type&& key, value_type&& value)
+void WebClientBase::writeHeader(key_type&& key, value_type&& value)
 {
-	request_buffer_.push_back(key);
-	request_buffer_.push_back(": ");
-	request_buffer_.push_back(value);
-	request_buffer_.push_back("\015\012");
+	requestBuffer_.push_back(key);
+	requestBuffer_.push_back(": ");
+	requestBuffer_.push_back(value);
+	requestBuffer_.push_back("\015\012");
 }
 
 /** installs the content write handler.
@@ -195,7 +197,7 @@ void WebClientBase::write_header(key_type&& key, value_type&& value)
  *                be written without blocking.
  */
 template<typename handler_type>
-void WebClientBase::setup_content_writer(handler_type&& handler)
+void WebClientBase::setupContentWriter(handler_type&& handler)
 {
 	//! \todo implementation
 }
