@@ -293,7 +293,7 @@ bool HttpConnection::messageHeaderEnd()
 	BufferRef expectHeader = request_->requestHeader("Expect");
 	bool content_required = request_->method == "POST" || request_->method == "PUT";
 
-	if (content_required && !request_->contentAvailable())
+	if (content_required && request_->connection.contentLength() == -1)
 	{
 		request_->status = HttpError::LengthRequired;
 		request_->finish();
@@ -309,7 +309,6 @@ bool HttpConnection::messageHeaderEnd()
 
 		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1))
 		{
-			printf("expectHeader: failed\n");
 			request_->status = HttpError::ExpectationFailed;
 			request_->finish();
 		}
@@ -505,6 +504,7 @@ void HttpConnection::process()
 
 	if (state() == HttpMessageProcessor::MESSAGE_BEGIN)
 	{
+		// TODO reenable buffer reset (or reuse another for content! to be more huge-body friendly)
 #if 0
 		offset_ = 0;
 		buffer_.clear();
