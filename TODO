@@ -3,8 +3,6 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 - bug in keep-alive connections sending a second+ request?
 - x0d: command line option for dumping IR into file
 - flow backend: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
-- WITH_IPV6: make it cmake-configurable
-- drop ability to disable timeout handling (cmake/ppc)
 
 caseStmt ::=
 			'case' expr
@@ -15,31 +13,9 @@ caseStmt ::=
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
-- [minor] merge HttpResponse API into HttpRequest?
-	they both belong very tight together anyway.
-- [major] HTTP POST: proxy, cgi
-- verify proxy plugin / web_client
-- fix HTTP POST content (req. for yacs)
-- fuck up exceptions in favor of std::error_code (in core and plugins)
-  - response_parser: response_parser_error { blah_expected, invalid_foo, ... };
-  - web_client: web_client_error { ... };
-- drop server context API (no need for it, plugins can store fields as a member, too)
+- verify WebClient
 - encapsulate ev::timer into an x0::timer (inline) to ease switching backends (e.g. to asio)
 - colorize (optional) help print output
-- VERIFY: flexibility of configuration system
-	- plugins/core should provide an abstract layer to the config backend, in a way, that they do not need
-		to qualify the complete path to the variable but just say ConfigKey and ideally $CONTEXT (global, vhost, path);
-	- scopes:
-		- global server context
-		- per virtual host
-		- per request path prefix
-	- server config API:
-		- register_variable_global(keyName, function<void(T)> callback);
-		- register_variable_host(keyName, function<void(T, hostid)> callback);
-		- register_variable_path(keyName, function<void(T, hostid, path)> callback);
-	- request action API:
-		- register_action(hostid, basePath, function<void(request_ptr, response_ptr)> handler);
-	- runtime changing of config settings
 - RESPECT: handle request headers "Keep-Alive" properly (using [deadline-]timers)
 - FIX: request parsing
 	- fix LWS parsing, e.g. allow headers like "name\r\n  :\r\nvalue\r\n"
@@ -51,6 +27,7 @@ QUALITY ASSURANCE TODO:
 	- second: all hooks involved in request processing (function-member pointers, or virtual method?)
 	- optional: remaining configure-time hooks.
 
+
 -----------------------------------------------------------------------------
 CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
@@ -58,15 +35,7 @@ CODE CLEANUP TODO:
 - [minor] error management (std::error_code and bool+logger)
 - eliminate the need of File and use just FileSource instead.
 - XxxFilter -> XxxEncoder
-- proper HTTP POST reader API: as part of request class
-	- should consume the body automatically if not read by a handler until response headers are flushed
-	- buffer_ref body_read(buffer& output);
-	- std::size_t body_available() const; // number of bytes still in stream to read until fully *consumed*
-	- bool consume(); // true=fully consumed, false=partially consumed
-	- bool on_body_read(CompletionHandler handler); // registers callback when more *body* data is available for read
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
-	- make use of libev's child watcher
-- plugins/cgi: pass completion handler to cgi_script::async_run(...)
 - reduce number of syscalls during a single request-processing
 
 
@@ -80,9 +49,6 @@ FEATURES TODO:
 	this eliminates the need of MaxKeepAliveRequests cvar.
 - [minor] x0d: add settings option to setup process' cpu affinity
 - proper protocol "Upgrade"-API, as required for web sockets
-- connection: add read/write hooks, as required for the upcoming ssl plugin. these functors do standard I/O if not overridden.
-	int read(buf, nbytes);
-	int read(buf, nbytes);
 - add integrity-checks for lazy programmers to check object healthy:
 	- If response Content-Length was given: do not write more bytes than expected to.
 	- Do not modify response headers/state once serialization has been initiated.
@@ -95,43 +61,12 @@ FEATURES TODO:
 	- request/response header dumps
 - request path rewriting (rewrite)
 - http reverse proxy (plugin)
-	- must support live streams (required for YaCS chat stream)
+	- (DONE) must support live streams (required for YaCS chat stream)
 	- must support fallback nodes (required for YaCS/maintenance)
 - server status API (status)
-- fastcgi support (fastcgi)
 - lua server pages (wsapi)
 - c++ server pages (csp) via llvm/clang (compiled in)
 - webdav support (webdav)
-
-
------------------------------------------------------------------------------
-ROADMAP
------------------------------------------------------------------------------
-*0.1.0: (02/10)*
-	- x0: complete core API documentation
-*0.2.0: (03/10)*
-	- reverse proxy plugin
-		- must at least support backend: http
-		- must support realtime streaming (required for YaCS chat stream to be passed through)
-		- must support fallback (hot-spare) nodes
-		- must support load-balancing across multiple backend nodes
-	- dirlisting plugin
-		- themable index page via the lua-driven template engine i wrote for YaCS.
-		  (maybe use this then also for an error plugin which generates themable error pages)
-*0.3.0: (06/10)*
-	- status plugin
-		- must give some statistical/informational data about the running service
-			- uptime
-			- cpu load
-			- current number of connections and their states
-			- ...
-*0.4.0: (09/10)*
-	- fastcgi plugin
-	- csp plugin (C++ server pages)
-
-*0.5.0: (12/10)*
-	- webdav plugin
-	- ssi plugin?
 
 
 -----------------------------------------------------------------------------
@@ -140,12 +75,6 @@ NOTES AND THOUGHTS:
 
 - should the upcoming (lua driven) template engine be part of x0 core?
   (we'll have more sources than just error documents being generated from templates, that is plugins like: dirlisting.
-- evaluate the use of signalfd(2) with regards to cgi plugin (for watching child process termination) and possibly others
-- cgi plugin:
-  - find a way to get notified on SIGCHLD which should be caught in asio's io_service on EINTR's.
-    hm. or just use sigaction/etc...? but what if other plugins may want to hook into SIGCHLD aswell?
-	that's why we need a central place where we can register our check callback for it.
-
 
 -----------------------------------------------------------------------------
 OPTIMIZATION AND CACHING INITIATIVE
