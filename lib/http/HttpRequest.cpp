@@ -108,9 +108,13 @@ void HttpRequest::setHostid(const std::string& value)
 	hostid_ = value;
 }
 
+/** report true whenever content is still in queue to be read (even if not yet received).
+ *  @retval false no content expected anymore, thus, request fully parsed.
+ */
 bool HttpRequest::contentAvailable() const
 {
-	return connection.state() != HttpMessageProcessor::MESSAGE_BEGIN;
+	return connection.contentLength() > 0;
+	//return connection.state() != HttpMessageProcessor::MESSAGE_BEGIN;
 }
 
 /** setup request-body consumer callback.
