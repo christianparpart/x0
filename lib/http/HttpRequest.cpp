@@ -51,7 +51,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	responseHeaders.push_back("Date", connection.worker().now().http_str().str());
 
 	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty())
-		responseHeaders.overwrite("Server", connection.worker().server().tag());
+		if (!responseHeaders.contains("Server"))
+			responseHeaders.push_back("Server", connection.worker().server().tag());
 }
 
 void HttpRequest::updatePathInfo()

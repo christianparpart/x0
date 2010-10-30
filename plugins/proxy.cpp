@@ -259,10 +259,8 @@ void ProxyConnection::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 	if (!validateResponseHeader(name))
 		return;
 
-	if (cloak_ && name, "Server") {
-		TRACE("cloaking Server header");
+	if (cloak_ && iequals(name, "Server"))
 		return;
-	}
 
 	request_->responseHeaders.push_back(name.str(), value.str());
 }
@@ -644,7 +642,7 @@ public:
 private:
 	void proxy_cloak(Flow::Value& result, const x0::Params& args)
 	{
-		if (args.count() && args[0].isBool())
+		if (args.count() && (args[0].isBool() || args[0].isNumber()))
 		{
 			cloak_ = args[0].toBool();
 		}
