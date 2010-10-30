@@ -23,10 +23,10 @@
 namespace x0 {
 	enum class HttpMessageError
 	{
-		success = 0,
-		partial,
-		aborted,
-		invalid_syntax
+		Success = 0,
+		Partial,
+		Aborted,
+		SyntaxError
 	};
 
 	const std::error_category& http_message_category() throw();
@@ -144,8 +144,6 @@ public:
 	const char *state_str() const;
 
 	std::error_code process(BufferRef&& chunk, std::size_t& nparsed);
-
-	void reset();
 
 	ssize_t contentLength() const;
 

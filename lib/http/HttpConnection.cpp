@@ -514,9 +514,9 @@ void HttpConnection::process()
 	if (isClosed())
 		return;
 
-	if (ec == HttpMessageError::partial)
+	if (ec == HttpMessageError::Partial)
 		startRead();
-	else if (ec && ec != HttpMessageError::aborted)
+	else if (ec && ec != HttpMessageError::Aborted)
 	{
 		// -> send stock response: BAD_REQUEST
 		request_->status = HttpError::BadRequest;

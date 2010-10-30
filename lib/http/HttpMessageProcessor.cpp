@@ -37,10 +37,10 @@ private:
 		for (std::size_t i = 0; i < sizeof(codes_) / sizeof(*codes_); ++i)
 			codes_[i] = "Undefined";
 
-		set(HttpMessageError::success, "Success");
-		set(HttpMessageError::partial, "Partial");
-		set(HttpMessageError::aborted, "Aborted");
-		set(HttpMessageError::invalid_syntax, "Invalid Syntax");
+		set(HttpMessageError::Success, "Success");
+		set(HttpMessageError::Partial, "Partial");
+		set(HttpMessageError::Aborted, "Aborted");
+		set(HttpMessageError::SyntaxError, "Invalid Syntax");
 	}
 
 public:
@@ -51,7 +51,7 @@ public:
 
 	virtual const char *name() const
 	{
-		return "http_message";
+		return "HttpMessage";
 	}
 
 	virtual std::string message(int ec) const
@@ -83,8 +83,8 @@ HttpMessageProcessor::HttpMessageProcessor(mode_type mode) :
 	state_(MESSAGE_BEGIN),
 	method_(),
 	entity_(),
-	version_major_(0),
-	version_minor_(0),
+	version_major_(),
+	version_minor_(),
 	code_(0),
 	message_(),
 	name_(),
@@ -93,16 +93,6 @@ HttpMessageProcessor::HttpMessageProcessor(mode_type mode) :
 	content_length_(-1),
 	filters_()
 {
-}
-
-inline void HttpMessageProcessor::reset()
-{
-	TRACE("reset(): last_state=%s", state_str());
-
-	version_major_ = 0;
-	version_minor_ = 0;
-	content_length_ = -1;
-	state_ = MESSAGE_BEGIN;
 }
 
 inline bool HttpMessageProcessor::is_char(char value)
@@ -379,12 +369,16 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 		switch (state_)
 		{
 			case MESSAGE_BEGIN:
+				content_length_ = -1;
 				switch (mode_) {
 					case REQUEST:
 						state_ = REQUEST_LINE_BEGIN;
+						version_major_ = 0;
+						version_minor_ = 0;
 						break;
 					case RESPONSE:
 						state_ = STATUS_LINE_BEGIN;
+						code_ = 0;
 						break;
 					case MESSAGE:
 						state_ = HEADER_NAME_BEGIN;
@@ -741,7 +735,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					if (content_expected)
 						state_ = CONTENT_BEGIN;
 					else
-						reset();
+						state_ = MESSAGE_BEGIN;
 
 					++offset;
 					++i;
@@ -749,12 +743,12 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					ofp = offset_base + offset;
 
 					if (!messageHeaderEnd())
-						return make_error_code(HttpMessageError::aborted);
+						return make_error_code(HttpMessageError::Aborted);
 
 					if (!content_expected)
 					{
 						if (!messageEnd())
-							return make_error_code(HttpMessageError::aborted);
+							return make_error_code(HttpMessageError::Aborted);
 					}
 				}
 #endif
@@ -839,6 +833,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					if (iequals(name_, "Content-Length"))
 					{
 						content_length_ = value_.as<int>();
+						printf("content_length_ = %ld\n", content_length_);
 					}
 					else if (iequals(name_, "Transfer-Encoding"))
 					{
@@ -914,7 +909,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					if (content_expected)
 						state_ = CONTENT_BEGIN;
 					else
-						reset();
+						state_ = MESSAGE_BEGIN;
 
 					++offset;
 					++i;
@@ -922,12 +917,12 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					ofp = offset_base + offset;
 
 					if (!messageHeaderEnd())
-						return make_error_code(HttpMessageError::aborted);
+						return make_error_code(HttpMessageError::Aborted);
 
 					if (!content_expected)
 					{
 						if (!messageEnd())
-							return make_error_code(HttpMessageError::aborted);
+							return make_error_code(HttpMessageError::Aborted);
 					}
 				} else
 					state_ = SYNTAX_ERROR;
@@ -946,7 +941,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 				ofp = offset_base + offset;
 				if (!pass_content(chunk.ref(offset), ec, nparsed, ofp))
-					return make_error_code(HttpMessageError::aborted);
+					return make_error_code(HttpMessageError::Aborted);
 
 				offset += nparsed;
 				i += nparsed;
@@ -1011,7 +1006,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 					ofp = offset_base + offset;
 					if (!pass_content(chunk.ref(offset), ec, nparsed, ofp))
-						return make_error_code(HttpMessageError::aborted);
+						return make_error_code(HttpMessageError::Aborted);
 
 					offset += nparsed;
 					i += nparsed;
@@ -1054,9 +1049,9 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					ofp = offset_base + offset;
 
 					if (!messageEnd())
-						return make_error_code(HttpMessageError::aborted);
+						return make_error_code(HttpMessageError::Aborted);
 
-					reset();
+					state_ = MESSAGE_BEGIN;
 				}
 				break;
 			case SYNTAX_ERROR:
@@ -1070,7 +1065,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 				}
 #endif
 				ofp = offset_base + offset;
-				return make_error_code(HttpMessageError::invalid_syntax);
+				return make_error_code(HttpMessageError::SyntaxError);
 			}
 			default:
 #if !defined(NDEBUG)
@@ -1080,7 +1075,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					TRACE("parse: internal error at offset: %ld, character: 0x%02X", offset, *i);
 				}
 #endif
-				return make_error_code(HttpMessageError::invalid_syntax);
+				return make_error_code(HttpMessageError::SyntaxError);
 		}
 	}
 	// we've reached the end of the chunk
@@ -1095,19 +1090,19 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 			ofp = offset_base + offset;
 
 			if (!messageEnd())
-				return make_error_code(HttpMessageError::aborted);
+				return make_error_code(HttpMessageError::Aborted);
 
 			// subsequent calls to parse() process next request(s).
-			reset();
+			state_ = MESSAGE_BEGIN;
 		}
 	}
 
 	ofp = offset_base + offset;
 
 	if (state_ != MESSAGE_BEGIN)
-		return make_error_code(HttpMessageError::partial);
+		return make_error_code(HttpMessageError::Partial);
 	else
-		return make_error_code(HttpMessageError::success);
+		return make_error_code(HttpMessageError::Success);
 }
 
 bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp)
@@ -1151,7 +1146,7 @@ bool HttpMessageProcessor::pass_content(BufferRef&& chunk, std::error_code& ec, 
 			bool rv = messageContent(filters_.process(c));
 
 			if (content_length_ == 0 && mode_ != MESSAGE)
-				reset();
+				state_ = MESSAGE_BEGIN;
 
 			if (!rv)
 				return false;
