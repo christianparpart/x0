@@ -135,31 +135,23 @@ void Socket::close()
 
 ssize_t Socket::read(Buffer& result)
 {
-	std::size_t nbytes = result.capacity() - result.size();
-	if (nbytes <= 0)
+	ssize_t nread = 0;
+
+	for (;;)
 	{
-		nbytes = 4096;
-		result.reserve(result.size() + nbytes);
+		if (result.capacity() - result.size() < 256)
+			result.reserve(result.size() * 1.5);
+
+		ssize_t rv = ::read(fd_, result.end(), result.capacity() - result.size());
+		if (rv <= 0) {
+			TRACE("(%d).read(): rv=%ld -> %ld:\n", fd_, rv, result.size());
+			return nread != 0 ? nread : rv;
+		} else {
+			nread += rv;
+			size_t offset = result.size();
+			result.resize(offset + rv);
+		}
 	}
-
-	ssize_t rv = ::read(fd_, result.end(), nbytes);
-	if (rv > 0)
-	{
-		auto offset = result.size();
-		result.resize(offset + rv);
-		TRACE("(%d).read(): rv=%ld -> %ld:\n(%s)", fd_, rv, result.size(), result.substr(offset, rv).c_str());
-	}
-	else if (rv < 0 && errno != EINTR && errno != EAGAIN)
-	{
-		ERROR("Socket(%d).read(): rv=%ld (%s)", fd_, rv, strerror(errno));
-	}
-
-//	if (rv < 0)
-//		return rv;
-
-	//result.resize(result.size() + rv);
-
-	return rv;
 }
 
 ssize_t Socket::write(const BufferRef& source)
