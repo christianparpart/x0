@@ -20,6 +20,7 @@ x0_plugin_simple(fastcgi)
 x0_plugin_simple(compress)
 #x0_plugin_simple(debug)
 x0_plugin_simple(dirlisting)
+x0_plugin_simple(proxy)
 x0_plugin_simple(userdir)
 #x0_plugin_simple(vhost_basic)
 #x0_plugin_simple(vhost_template)
@@ -31,5 +32,4 @@ x0_plugin_simple(filter_example)
 # ---------------------------------------------------------------------------
 # the more complex plugins:
 
-add_subdirectory(proxy)
 add_subdirectory(ssl)

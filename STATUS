@@ -15,17 +15,17 @@
 - core handler 'respond'
 - instant mode
 - threaded model
-
-.WIP:
+- plugin proxy
 - plugin cgi
 
+.WIP:
+
 .TODO:
-- plugin vhost (will do what old vhost_template & vhost_basic did)
-	- will require flow to improve (maybe wait for flow release 0.2.0, with x0/0.4.0 ?)
-- plugin proxy
-- plugin debug (remove?)
 - core function: response 'header.add'
 - core function: response 'header.overwrite'
 - core function: response 'header.remove'
+- plugin vhost (will do what old vhost_template & vhost_basic did)
+	- will require flow to improve (maybe wait for flow release 0.2.0, with x0/0.4.0 ?)
+- plugin debug (remove?)
 
 // vim:syntax=asciidoc
