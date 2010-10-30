@@ -83,6 +83,9 @@ private:
 	x0::Buffer readBuffer_;
 	bool readActive_;
 
+	// tweaks
+	bool cloak_;
+
 	const char *state_str() const {
 		switch (state_) {
 			case DISCONNECTED: return "DISCONNECTED";
@@ -125,7 +128,7 @@ private:
 	virtual bool messageEnd();
 
 public:
-	inline ProxyConnection(const char *origin, x0::HttpRequest *r);
+	inline ProxyConnection(const char *origin, x0::HttpRequest *r, bool cloak = true);
 	~ProxyConnection();
 
 	inline void start();
@@ -133,7 +136,7 @@ public:
 // }}}
 
 // {{{ ProxyConnection impl
-ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r) :
+ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r, bool cloak) :
 	x0::HttpMessageProcessor(x0::HttpMessageProcessor::RESPONSE),
 	hostname_(NULL),
 	port_(),
@@ -150,7 +153,8 @@ ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r) :
 	writeProgress_(0),
 	writeActive_(false),
 	readBuffer_(),
-	readActive_(false)
+	readActive_(false),
+	cloak_(cloak)
 {
 	TRACE("ProxyConnection()");
 
@@ -254,6 +258,11 @@ void ProxyConnection::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 	if (!validateResponseHeader(name))
 		return;
+
+	if (cloak_ && name, "Server") {
+		TRACE("cloaking Server header");
+		return;
+	}
 
 	request_->responseHeaders.push_back(name.str(), value.str());
 }
@@ -616,11 +625,16 @@ void ProxyConnection::readSome()
 class proxy_plugin :
 	public x0::HttpPlugin
 {
+private:
+	bool cloak_;
+
 public:
 	proxy_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+		x0::HttpPlugin(srv, name),
+		cloak_(true)
 	{
 		registerHandler<proxy_plugin, &proxy_plugin::proxy_reverse>("proxy.reverse");
+		registerSetupProperty<proxy_plugin, &proxy_plugin::proxy_cloak>("proxy.cloak", Flow::Value::BOOLEAN);
 	}
 
 	~proxy_plugin()
@@ -628,12 +642,22 @@ public:
 	}
 
 private:
+	void proxy_cloak(Flow::Value& result, const x0::Params& args)
+	{
+		if (args.count() && args[0].isBool())
+		{
+			cloak_ = args[0].toBool();
+		}
+
+		result.set(cloak_);
+	}
+
 	bool proxy_reverse(x0::HttpRequest *r, const x0::Params& args)
 	{
 		// TODO: reuse already spawned proxy connections instead of recreating each time.
 
 		const char *origin = args[0].toString();
-		ProxyConnection *pc = new ProxyConnection(origin, r);
+		ProxyConnection *pc = new ProxyConnection(origin, r, cloak_);
 		if (!pc)
 			return false; // XXX handle as 500 instead?
 
