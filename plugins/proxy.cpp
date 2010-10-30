@@ -189,8 +189,11 @@ void ProxyConnection::start()
 	writeBuffer_.push_back(" HTTP/1.1\r\n");
 
 	// request headers
-	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i) {
-		if (iequals(i->name, "Expect") || iequals(i->name, "Connection"))
+	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i)
+	{
+		if (iequals(i->name, "Content-Transfer")
+				|| iequals(i->name, "Expect")
+				|| iequals(i->name, "Connection"))
 			continue;
 
 		TRACE("pass requestHeader(%s: %s)", i->name.str().c_str(), i->value.str().c_str());
