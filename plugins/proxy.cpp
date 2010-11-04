@@ -497,6 +497,8 @@ void ProxyConnection::timeout(ev::timer&, int revents)
 	TRACE("timeout"); // TODO
 }
 
+/** callback, invoked when asynchronous connect completed.
+ */
 void ProxyConnection::onConnectComplete()
 {
 	int val = 0;
@@ -512,13 +514,13 @@ void ProxyConnection::onConnectComplete()
 		else
 		{
 			TRACE("onConnectComplete: error(%d): %s", val, strerror(val));
-			close();
+			destroy(x0::HttpError::ServiceUnavailable);
 		}
 	}
 	else
 	{
 		TRACE("onConnectComplete: getsocketopt() error: %s", strerror(errno));
-		close();
+		destroy(x0::HttpError::ServiceUnavailable);
 	}
 }
 
