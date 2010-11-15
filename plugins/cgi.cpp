@@ -284,6 +284,7 @@ inline void CgiScript::runAsync()
 	environment["SERVER_PORT"] = boost::lexical_cast<std::string>(request_->connection.localPort()); // TODO this should to be itoa'd only ONCE
 
 	environment["REQUEST_METHOD"] = request_->method.str();
+	environment["REDIRECT_STATUS"] = "200"; // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
 
 	environment["PATH_INFO"] = request_->pathinfo;
 	if (!request_->pathinfo.empty())
