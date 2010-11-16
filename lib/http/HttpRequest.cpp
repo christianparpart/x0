@@ -366,4 +366,14 @@ void HttpRequest::initialize()
 		snprintf(statusCodes_[i], sizeof(*statusCodes_), "%03ld", i);
 }
 
+void HttpRequest::setClientAbortHandler(void (*cb)(void *), void *data)
+{
+//	connection.abortHandler_ = cb;
+//	connection.abortData_ = data;
+
+//	if (cb) {
+//		connection.startRead();
+//	}
+}
+
 } // namespace x0

@@ -202,13 +202,13 @@ CgiScript::~CgiScript()
  */
 void CgiScript::onChild(ev::child&, int revents)
 {
-	TRACE("onChild(0x%x)\n", revents);
+	TRACE("onChild(0x%x)", revents);
 	evCheckDestroy_.send();
 }
 
 void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/)
 {
-	TRACE("onCheckDestroy()\n");
+	TRACE("onCheckDestroy()");
 	checkDestroy();
 }
 
@@ -617,7 +617,7 @@ void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 	{
 		TRACE("stdout: watch");
 		evStdout_.start();
-		request_->setAbortHandler(&CgiScript::onClientEof, this);
+		request_->setClientAbortHandler(&CgiScript::onClientEof, this);
 	}
 }
 
@@ -626,8 +626,8 @@ void CgiScript::onClientEof(void *p)
 	CgiScript *self = (CgiScript *) p;
 
 	TRACE("CgiScript::onClientEof()");
-	self->request_->setAbortHandler(NULL, NULL);
-	self->process_.terminate();
+	self->request_->setClientAbortHandler(NULL, NULL);
+	//self->process_.terminate();
 }
 // }}}
 
