@@ -368,12 +368,12 @@ void HttpRequest::initialize()
 
 void HttpRequest::setClientAbortHandler(void (*cb)(void *), void *data)
 {
-//	connection.abortHandler_ = cb;
-//	connection.abortData_ = data;
+	connection.abortHandler_ = cb;
+	connection.abortData_ = data;
 
-//	if (cb) {
-//		connection.startRead();
-//	}
+	if (cb) {
+		connection.startRead();
+	}
 }
 
 } // namespace x0

@@ -189,8 +189,12 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, con
 
 CgiScript::~CgiScript()
 {
-	TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
-	done_();
+	if (request_) {
+		TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
+		done_();
+	} else {
+		TRACE("~CgiScript()");
+	}
 }
 
 /** callback, invoked when child process status changed.
@@ -237,7 +241,16 @@ bool CgiScript::checkDestroy()
 		return true;
 	}
 
-	TRACE("checkDestroy: failed (0x%04x)", outputFlags_);
+	std::string fs;
+	if (outputFlags_ & StdoutClosed)
+		fs = "|stdout";
+	if (outputFlags_ & StderrClosed)
+		fs += "|stderr";
+	if (outputFlags_ & ChildClosed)
+		fs += "|child";
+	fs += "|";
+
+	TRACE("checkDestroy: failed (0x%04x) %s", outputFlags_, fs.c_str());
 	return false;
 }
 
@@ -486,6 +499,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 	}
 	else if (rv < 0)
 	{
+		TRACE("CGI: onStdoutAvailable: rv=%d %s", rv, strerror(errno));
 		if (rv != EINTR && rv != EAGAIN)
 		{
 			// error while reading from stdout
@@ -628,6 +642,8 @@ void CgiScript::onClientEof(void *p)
 	TRACE("CgiScript::onClientEof()");
 	self->request_->setClientAbortHandler(NULL, NULL);
 	//self->process_.terminate();
+
+	self->request_ = NULL;
 }
 // }}}
 
