@@ -299,6 +299,7 @@ public:
 	bool headersSent() const;   //!< returns true in case serializing the response has already been started, that is, headers has been sent out already.
 	bool responseContentForbidden() const;
 	void write(const SourcePtr& source, const CompletionHandlerType& handler);
+	void setAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
 
 	static std::string statusStr(HttpError status);
@@ -363,6 +364,16 @@ inline void HttpRequest::write(const SourcePtr& content, const CompletionHandler
 	else
 		connection.writeAsync(serialize(), 
 			std::bind(&HttpRequest::onWriteHeadersComplete, this, std::placeholders::_1, content, handler));
+}
+
+inline void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
+{
+	connection.abortHandler_ = cb;
+	connection.abortData_ = data;
+
+	if (cb) {
+		connection.startRead();
+	}
 }
 
 /** is invoked as completion handler when sending response headers. */

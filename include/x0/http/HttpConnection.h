@@ -118,6 +118,9 @@ private:
 	int request_count_;					//!< number of requests already and fully processed within this connection.
 	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
 
+	void (*abortHandler_)(void *);
+	void *abortData_;
+
 	CompositeSource source_;
 	SocketSink sink_;
 	CompletionHandlerType onWriteComplete_;

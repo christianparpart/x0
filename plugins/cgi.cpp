@@ -108,6 +108,7 @@ private:
 
 	// client's I/O completion handlers
 	void onStdoutWritten(int ec, std::size_t nb);
+	static void onClientEof(void *p);
 
 	// child exit watcher
 	void onChild(ev::child&, int revents);
@@ -616,7 +617,17 @@ void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 	{
 		TRACE("stdout: watch");
 		evStdout_.start();
+		request_->setAbortHandler(&CgiScript::onClientEof, this);
 	}
+}
+
+void CgiScript::onClientEof(void *p)
+{
+	CgiScript *self = (CgiScript *) p;
+
+	TRACE("CgiScript::onClientEof()");
+	self->request_->setAbortHandler(NULL, NULL);
+	self->process_.terminate();
 }
 // }}}
 
