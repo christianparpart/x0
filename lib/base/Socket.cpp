@@ -126,6 +126,9 @@ void Socket::close()
 {
 	TRACE("(%p).close: fd=%d", this, fd_);
 
+	if (fd_< 0)
+		return;
+
 	watcher_.stop();
 	timer_.stop();
 
