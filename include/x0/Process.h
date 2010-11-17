@@ -99,6 +99,8 @@ public:
 	 */
 	void kill();
 
+	void setStatus(int status);
+
 	/** tests wether the child process has exited already. */
 	bool expired();
 
@@ -111,9 +113,6 @@ private:
 
 	/** setup routine to be invoked right after the fork() within the parent process. */
 	void setupParent();
-
-	/** fetches the process status, see system's waitpid() for more info. */
-	int fetchStatus();
 
 private:
 	struct ev_loop *loop_;
