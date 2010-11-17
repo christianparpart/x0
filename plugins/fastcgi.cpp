@@ -10,10 +10,22 @@
  * plugin type: content generator
  *
  * description:
- *     Produces a response based on the speecified FastCGI backend.
- *     This backend is communicated with via TCP/IP.
- *     Plans to support named sockets are there, but you may
+ *     Produces a response based on the specified FastCGI backend.
+ *     This backend is communicating  via TCP/IP.
+ *     Plans to support named sockets exist, but you may
  *     jump in and contribute aswell.
+ *
+ * compliance:
+ *     This plugin will support FastCGI protocol, however, it will not
+ *     try to multiplex multiple requests over a single FastCGI transport
+ *     connection, that is, a single TCP socket.
+ *     Instead, it will open a new transport connection for each parallel
+ *     request, which makes things alot easier.
+ *
+ *     The FastCGI application will also be properly notified on
+ *     early client aborts by either EndRecord packet or by a closed
+ *     transport connection, both events denote the fact, that the client
+ *     somehow is or gets disconnected to or by the server.
  *
  * setup API:
  *     none
@@ -715,7 +727,7 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 	if (x0::iequals(name, "Status"))
 	{
 		request_->status = static_cast<x0::HttpError>(value.toInt());
-		TRACE("CgiTransport.status := %s", request_->status_str(request_->status).c_str());
+		TRACE("CgiTransport.status := %s", request_->statusStr(request_->status).c_str());
 	}
 	else
 		request_->responseHeaders.push_back(name.str(), value.str());
