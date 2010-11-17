@@ -60,10 +60,12 @@ Process::~Process()
 
 int Process::start(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir)
 {
+#if !defined(NDEBUG)
 	//::fprintf(stderr, "proc[%d] start(exe=%s, args=[...], workdir=%s)\n", getpid(), exe.c_str(), workdir.c_str());
 	for (int i = 3; i < 32; ++i)
 		if (!(fcntl(i, F_GETFD) & FD_CLOEXEC))
-			fprintf("%d still open\n", i);
+			fprintf(stderr, "Process: fd %d still open\n", i);
+#endif
 
 	switch (pid_ = vfork())
 	{
