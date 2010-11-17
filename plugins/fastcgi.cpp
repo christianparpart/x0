@@ -184,6 +184,7 @@ private:
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
 	virtual bool messageContent(x0::BufferRef&& content);
 	void writeComplete(int error, size_t nwritten);
+	static void onClientAbort(void *p);
 
 	void finish();
 
@@ -782,11 +783,24 @@ void CgiTransport::writeComplete(int err, size_t nwritten)
 	{
 		TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld), queue empty.", err, nwritten);
 		;//request_->connection.socket()->setMode(Socket::READ);
+		request_->setClientAbortHandler(&CgiTransport::onClientAbort, this);
 	}
 #else
 	TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld) %s", err, nwritten, strerror(err));
 	finish();
 #endif
+}
+
+/**
+ * @brief invoked when remote client connected before the response has been fully transmitted.
+ *
+ * @param p `this pointer` to CgiTransport object
+ */
+void CgiTransport::onClientAbort(void *p)
+{
+	TRACE("CgiTransport.onClientAbort()");
+	CgiTransport *self = (CgiTransport*) p;
+	self->finish();
 }
 
 /**
