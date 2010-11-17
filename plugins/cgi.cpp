@@ -212,8 +212,17 @@ void CgiScript::onChild(ev::child&, int revents)
 
 void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/)
 {
-	TRACE("onCheckDestroy()");
-	checkDestroy();
+	// libev invoked waitpid() for us, so re-use its results by passing it to Process
+	// directly instead of letting it invoke waitpid() again, which might bail out
+	// with ECHILD in case the process already exited, because its task_struct 
+	// has been removed due to libev's waitpid() invokation already.
+	process_.setStatus(evChild_.rstatus);
+
+	if (process_.expired()) {
+		// process exited; do not wait for any child I/O stream to complete, just kill us.
+		outputFlags_ |= OutputClosed;
+		checkDestroy();
+	}
 }
 
 /** conditionally destructs this object.
@@ -229,10 +238,6 @@ void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/)
  */
 bool CgiScript::checkDestroy()
 {
-	// child still running?
-	if (process_.expired())
-		outputFlags_ |= ChildClosed;
-
 	// child's stdout still open?
 	if ((outputFlags_ & OutputClosed) == OutputClosed)
 	{
@@ -480,8 +485,8 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 
 	if (!request_) {
 		// no client request (anymore)
+		TRACE("no client request (anymore)");
 		evStdout_.stop();
-		process_.terminate();
 		outputFlags_ |= StdoutClosed;
 		return;
 	}
@@ -545,12 +550,11 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 {
 	TRACE("CgiScript::onStderrAvailable()");
 	if (!request_) {
+		TRACE("no client request (anymore)");
 		evStderr_.stop();
-		process_.terminate();
 		outputFlags_ |= StderrClosed;
 		return;
 	}
-
 
 	int rv = ::read(process_.error(), (char *)errbuf_.data(), errbuf_.capacity());
 
@@ -644,7 +648,7 @@ void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
 		);
 	}
-	else if (!checkDestroy())
+	else
 	{
 		TRACE("stdout: watch");
 		evStdout_.start();
@@ -657,9 +661,7 @@ void CgiScript::onClientEof(void *p)
 	CgiScript *self = (CgiScript *) p;
 
 	TRACE("CgiScript::onClientEof()");
-	//self->request_->setClientAbortHandler(NULL, NULL);
 	self->process_.terminate();
-
 	self->request_ = NULL;
 }
 // }}}
