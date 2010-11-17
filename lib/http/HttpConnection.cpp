@@ -22,7 +22,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 1 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpConnection: " msg)
 #else
 #	define TRACE(msg...)
@@ -413,7 +413,7 @@ void HttpConnection::processInput()
 		TRACE("processInput(): (EOF)");
 
 		if (abortHandler_) {
-			socket_->close();
+			socket_->setMode(Socket::IDLE);
 			abortHandler_(abortData_);
 		} else
 			close();
