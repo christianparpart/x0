@@ -412,9 +412,10 @@ void HttpConnection::processInput()
 	{
 		TRACE("processInput(): (EOF)");
 
-		if (abortHandler_)
+		if (abortHandler_) {
+			socket_->close();
 			abortHandler_(abortData_);
-		else
+		} else
 			close();
 	}
 	else

@@ -476,6 +476,16 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
  */
 void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 {
+	TRACE("CgiScript::onStdoutAvailable()");
+
+	if (!request_) {
+		// no client request (anymore)
+		evStdout_.stop();
+		process_.terminate();
+		outputFlags_ |= StdoutClosed;
+		return;
+	}
+
 	std::size_t lower_bound = outbuf_.size();
 
 	if (lower_bound == outbuf_.capacity())
@@ -534,6 +544,13 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 {
 	TRACE("CgiScript::onStderrAvailable()");
+	if (!request_) {
+		evStderr_.stop();
+		process_.terminate();
+		outputFlags_ |= StderrClosed;
+		return;
+	}
+
 
 	int rv = ::read(process_.error(), (char *)errbuf_.data(), errbuf_.capacity());
 
@@ -640,8 +657,8 @@ void CgiScript::onClientEof(void *p)
 	CgiScript *self = (CgiScript *) p;
 
 	TRACE("CgiScript::onClientEof()");
-	self->request_->setClientAbortHandler(NULL, NULL);
-	//self->process_.terminate();
+	//self->request_->setClientAbortHandler(NULL, NULL);
+	self->process_.terminate();
 
 	self->request_ = NULL;
 }
