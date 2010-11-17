@@ -22,6 +22,7 @@ src/x0/test-*.*
 src/x0/test-*
 tests/web_client_test
 tests/x0test
+tests/testapp-fcgi
 examples/app1
 core
 core.*
