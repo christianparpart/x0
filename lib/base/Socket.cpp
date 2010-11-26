@@ -97,23 +97,37 @@ bool Socket::setTcpCork(bool enable)
 
 void Socket::setMode(Mode m)
 {
-	if (m != mode_)
-	{
-		static int modes[] = { 0, ev::READ, ev::WRITE };
-		//static const char *ms[] = { "null", "READ", "WRITE" };
+	switch (m) {
+	case READ:
+	case WRITE:
+		if (m != mode_)
+		{
+			static int modes[] = { 0, ev::READ, ev::WRITE };
+			//static const char *ms[] = { "null", "READ", "WRITE" };
 
-		//TRACE("(%d).setMode(%s)", fd_, ms[static_cast<int>(m)]);
+			//TRACE("(%d).setMode(%s)", fd_, ms[static_cast<int>(m)]);
 
-		watcher_.set(fd_, modes[static_cast<int>(m)]);
+			watcher_.set(fd_, modes[static_cast<int>(m)]);
 
-		if (mode_ == IDLE)
-			watcher_.start();
+			if (mode_ == IDLE)
+				watcher_.start();
+		}
 
-		mode_ = m;
+		if (timeout_ > 0)
+			timer_.start(timeout_, 0.0);
+
+		break;
+	case IDLE:
+		if (watcher_.is_active())
+			watcher_.stop();
+
+		if (timer_.is_active())
+			timer_.stop();
+
+		break;
 	}
 
-	if (timeout_ > 0)
-		timer_.start(timeout_, 0.0);
+	mode_ = m;
 }
 
 void Socket::clearReadyCallback()
@@ -125,6 +139,9 @@ void Socket::clearReadyCallback()
 void Socket::close()
 {
 	TRACE("(%p).close: fd=%d", this, fd_);
+
+	if (fd_< 0)
+		return;
 
 	watcher_.stop();
 	timer_.stop();

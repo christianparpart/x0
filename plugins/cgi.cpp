@@ -108,6 +108,7 @@ private:
 
 	// client's I/O completion handlers
 	void onStdoutWritten(int ec, std::size_t nb);
+	static void onClientEof(void *p);
 
 	// child exit watcher
 	void onChild(ev::child&, int revents);
@@ -188,8 +189,12 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, con
 
 CgiScript::~CgiScript()
 {
-	TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
-	done_();
+	if (request_) {
+		TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
+		done_();
+	} else {
+		TRACE("~CgiScript()");
+	}
 }
 
 /** callback, invoked when child process status changed.
@@ -201,14 +206,23 @@ CgiScript::~CgiScript()
  */
 void CgiScript::onChild(ev::child&, int revents)
 {
-	TRACE("onChild(0x%x)\n", revents);
+	TRACE("onChild(0x%x)", revents);
 	evCheckDestroy_.send();
 }
 
 void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/)
 {
-	TRACE("onCheckDestroy()\n");
-	checkDestroy();
+	// libev invoked waitpid() for us, so re-use its results by passing it to Process
+	// directly instead of letting it invoke waitpid() again, which might bail out
+	// with ECHILD in case the process already exited, because its task_struct 
+	// has been removed due to libev's waitpid() invokation already.
+	process_.setStatus(evChild_.rstatus);
+
+	if (process_.expired()) {
+		// process exited; do not wait for any child I/O stream to complete, just kill us.
+		outputFlags_ |= OutputClosed;
+		checkDestroy();
+	}
 }
 
 /** conditionally destructs this object.
@@ -224,10 +238,6 @@ void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/)
  */
 bool CgiScript::checkDestroy()
 {
-	// child still running?
-	if (process_.expired())
-		outputFlags_ |= ChildClosed;
-
 	// child's stdout still open?
 	if ((outputFlags_ & OutputClosed) == OutputClosed)
 	{
@@ -236,7 +246,16 @@ bool CgiScript::checkDestroy()
 		return true;
 	}
 
-	TRACE("checkDestroy: failed (0x%04x)", outputFlags_);
+	std::string fs;
+	if (outputFlags_ & StdoutClosed)
+		fs = "|stdout";
+	if (outputFlags_ & StderrClosed)
+		fs += "|stderr";
+	if (outputFlags_ & ChildClosed)
+		fs += "|child";
+	fs += "|";
+
+	TRACE("checkDestroy: failed (0x%04x) %s", outputFlags_, fs.c_str());
 	return false;
 }
 
@@ -279,11 +298,12 @@ inline void CgiScript::runAsync()
 	environment["SERVER_NAME"] = request_->requestHeader("Host").str();
 	environment["GATEWAY_INTERFACE"] = "CGI/1.1";
 
-	environment["SERVER_PROTOCOL"] = "1.1"; // XXX or 1.0
+	environment["SERVER_PROTOCOL"] = "HTTP/1.1"; // XXX or 1.0
 	environment["SERVER_ADDR"] = request_->connection.localIP();
 	environment["SERVER_PORT"] = boost::lexical_cast<std::string>(request_->connection.localPort()); // TODO this should to be itoa'd only ONCE
 
 	environment["REQUEST_METHOD"] = request_->method.str();
+	environment["REDIRECT_STATUS"] = "200"; // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
 
 	environment["PATH_INFO"] = request_->pathinfo;
 	if (!request_->pathinfo.empty())
@@ -461,6 +481,16 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
  */
 void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 {
+	TRACE("CgiScript::onStdoutAvailable()");
+
+	if (!request_) {
+		// no client request (anymore)
+		TRACE("no client request (anymore)");
+		evStdout_.stop();
+		outputFlags_ |= StdoutClosed;
+		return;
+	}
+
 	std::size_t lower_bound = outbuf_.size();
 
 	if (lower_bound == outbuf_.capacity())
@@ -484,6 +514,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 	}
 	else if (rv < 0)
 	{
+		TRACE("CGI: onStdoutAvailable: rv=%d %s", rv, strerror(errno));
 		if (rv != EINTR && rv != EAGAIN)
 		{
 			// error while reading from stdout
@@ -518,6 +549,12 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 {
 	TRACE("CgiScript::onStderrAvailable()");
+	if (!request_) {
+		TRACE("no client request (anymore)");
+		evStderr_.stop();
+		outputFlags_ |= StderrClosed;
+		return;
+	}
 
 	int rv = ::read(process_.error(), (char *)errbuf_.data(), errbuf_.capacity());
 
@@ -611,11 +648,21 @@ void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
 		);
 	}
-	else if (!checkDestroy())
+	else
 	{
 		TRACE("stdout: watch");
 		evStdout_.start();
+		request_->setClientAbortHandler(&CgiScript::onClientEof, this);
 	}
+}
+
+void CgiScript::onClientEof(void *p)
+{
+	CgiScript *self = (CgiScript *) p;
+
+	TRACE("CgiScript::onClientEof()");
+	self->process_.terminate();
+	self->request_ = NULL;
 }
 // }}}
 

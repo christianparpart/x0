@@ -57,6 +57,8 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	offset_(0),
 	request_count_(0),
 	request_(0),
+	abortHandler_(NULL),
+	abortData_(NULL),
 	source_(),
 	sink_(NULL),
 	onWriteComplete_(),
@@ -409,7 +411,12 @@ void HttpConnection::processInput()
 	else if (rv == 0) // EOF
 	{
 		TRACE("processInput(): (EOF)");
-		close();
+
+		if (abortHandler_) {
+			socket_->setMode(Socket::IDLE);
+			abortHandler_(abortData_);
+		} else
+			close();
 	}
 	else
 	{

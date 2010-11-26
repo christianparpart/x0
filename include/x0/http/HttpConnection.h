@@ -31,9 +31,12 @@ namespace x0 {
 //! \addtogroup core
 //@{
 
-class ConnectionSink;
 class HttpRequest;
 
+/**
+ * @brief HTTP client connection object.
+ * @see HttpRequest, HttpServer
+ */
 class HttpConnection :
 	public HttpMessageProcessor
 {
@@ -74,7 +77,6 @@ private:
 	friend class HttpRequest;
 	friend class HttpListener;
 	friend class HttpWorker;
-	friend class ConnectionSink;
 
 	// overrides from HttpMessageProcessor:
 	virtual void messageBegin(BufferRef&& method, BufferRef&& entity, int version_major, int version_minor);
@@ -103,7 +105,7 @@ private:
 	unsigned long long bytesTransferred() const;
 
 public:
-	std::map<HttpPlugin *, CustomDataPtr> custom_data;
+	std::map<HttpPlugin *, CustomDataPtr> customData;
 
 private:
 	HttpListener& listener_;
@@ -117,6 +119,9 @@ private:
 	std::size_t offset_;				//!< number of bytes in buffer_ successfully processed already.
 	int request_count_;					//!< number of requests already and fully processed within this connection.
 	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
+
+	void (*abortHandler_)(void *);
+	void *abortData_;
 
 	CompositeSource source_;
 	SocketSink sink_;

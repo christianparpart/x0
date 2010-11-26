@@ -18,10 +18,16 @@
 namespace x0 {
 
 /** invokes \p cmd until its not early aborted with EINTR. */
-#define EINTR_LOOP(rv, cmd) 				\
-	do {									\
-		rv = cmd;							\
-	} while (rv == -1 && errno == EINTR)
+#define EINTR_LOOP(cmd) {									\
+	int _rv;												\
+	do {													\
+		_rv = cmd;											\
+	} while (_rv == -1 && errno == EINTR);					\
+	if (_rv < 0) {											\
+		fprintf(stderr, "EINTR_LOOP(%s): failed with: %s\n",\
+				#cmd, strerror(errno));						\
+	}														\
+}
 
 Process::Process(struct ev_loop *loop) :
 	loop_(loop),
@@ -46,21 +52,25 @@ Process::Process(struct ev_loop *loop, const std::string& exe, const ArgumentLis
 
 Process::~Process()
 {
-	int rv;
-	EINTR_LOOP(rv, ::waitpid(pid_, &status_, 0));
-	//printf("~Process(): rv=%d, errno=%s\n", rv, strerror(errno));
+	if (pid_ > 0)
+		EINTR_LOOP(::waitpid(pid_, &status_, 0));
+
+	//fprintf(stderr, "~Process(): rv=%d, errno=%s\n", rv, strerror(errno));
 }
 
 int Process::start(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir)
 {
+#if !defined(NDEBUG)
 	//::fprintf(stderr, "proc[%d] start(exe=%s, args=[...], workdir=%s)\n", getpid(), exe.c_str(), workdir.c_str());
 	for (int i = 3; i < 32; ++i)
 		if (!(fcntl(i, F_GETFD) & FD_CLOEXEC))
-			printf("%d still open\n", i);
+			fprintf(stderr, "Process: fd %d still open\n", i);
+#endif
 
-	switch (pid_ = fork())
+	switch (pid_ = vfork())
 	{
 		case -1: // error
+			fprintf(stderr, "Process: error starting process: %s\n", strerror(errno));
 			return -1;
 		case 0: // child
 			setupChild(exe, args, env, workdir);
@@ -76,7 +86,22 @@ int Process::start(const std::string& exe, const ArgumentList& args, const Envir
  */
 void Process::terminate()
 {
-	::kill(pid_, SIGTERM);
+	fprintf(stderr, "Process(%d).terminate()\n", pid_);
+	if (pid_ > 0) {
+		if (::kill(pid_, SIGTERM) < 0) {
+			fprintf(stderr, "error sending SIGTERM to child %d\n", pid_);
+		}
+	}
+}
+
+void Process::setStatus(int status)
+{
+	status_ = status;
+
+	if (WIFEXITED(status_) || WIFSIGNALED(status_))
+		// process terminated (normally or by signal).
+		// so mark process as exited by resetting the PID
+		pid_ = -1;
 }
 
 /** tests whether child Process has exited already.
@@ -86,26 +111,19 @@ bool Process::expired()
 	if (pid_ <= 0)
 		return true;
 
-	if (fetchStatus() == -1 && errno == ECHILD)
-		return true;
-
-	if (WIFEXITED(status_))
-		return true;
-
-	if (WIFSIGNALED(status_))
-		return true;
-
-	return false;
-}
-
-int Process::fetchStatus()
-{
 	int rv;
+	EINTR_LOOP(rv = ::waitpid(pid_, &status_, WNOHANG));
 
-	do rv = ::waitpid(pid_, &status_, WNOHANG);
-	while (rv == -1 && errno == EINTR);
+	if (rv == 0)
+		// child not exited yet
+		return false;
 
-	return rv;
+	if (rv < 0)
+		// error
+		return false;
+
+	pid_ = -1;
+	return true;
 }
 
 void Process::setupParent()
@@ -156,14 +174,13 @@ void Process::setupChild(const std::string& _exe, const ArgumentList& _args, con
 	}
 
 	// setup I/O
-	int rv;
-	EINTR_LOOP(rv, ::close(STDIN_FILENO));
-	EINTR_LOOP(rv, ::close(STDOUT_FILENO));
-	EINTR_LOOP(rv, ::close(STDERR_FILENO));
+	EINTR_LOOP(::close(STDIN_FILENO));
+	EINTR_LOOP(::close(STDOUT_FILENO));
+	EINTR_LOOP(::close(STDERR_FILENO));
 
-	EINTR_LOOP(rv, ::dup2(input_.remote(), STDIN_FILENO));
-	EINTR_LOOP(rv, ::dup2(output_.remote(), STDOUT_FILENO));
-	EINTR_LOOP(rv, ::dup2(error_.remote(), STDERR_FILENO));
+	EINTR_LOOP(::dup2(input_.remote(), STDIN_FILENO));
+	EINTR_LOOP(::dup2(output_.remote(), STDOUT_FILENO));
+	EINTR_LOOP(::dup2(error_.remote(), STDERR_FILENO));
 
 #if 0 // this is basically working but a very bad idea for high performance (XXX better get O_CLOEXEC working)
 	for (int i = 3; i < 1024; ++i)

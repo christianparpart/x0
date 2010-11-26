@@ -51,7 +51,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	responseHeaders.push_back("Date", connection.worker().now().http_str().str());
 
 	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty())
-		responseHeaders.push_back("Server", connection.worker().server().tag());
+		if (!responseHeaders.contains("Server"))
+			responseHeaders.push_back("Server", connection.worker().server().tag());
 }
 
 void HttpRequest::updatePathInfo()
@@ -363,6 +364,16 @@ void HttpRequest::initialize()
 	// pre-compute string representations of status codes for use in response serialization
 	for (std::size_t i = 0; i < sizeof(statusCodes_) / sizeof(*statusCodes_); ++i)
 		snprintf(statusCodes_[i], sizeof(*statusCodes_), "%03ld", i);
+}
+
+void HttpRequest::setClientAbortHandler(void (*cb)(void *), void *data)
+{
+	connection.abortHandler_ = cb;
+	connection.abortData_ = data;
+
+	if (cb) {
+		connection.startRead();
+	}
 }
 
 } // namespace x0

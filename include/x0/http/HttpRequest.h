@@ -299,6 +299,7 @@ public:
 	bool headersSent() const;   //!< returns true in case serializing the response has already been started, that is, headers has been sent out already.
 	bool responseContentForbidden() const;
 	void write(const SourcePtr& source, const CompletionHandlerType& handler);
+	void setClientAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
 
 	static std::string statusStr(HttpError status);
