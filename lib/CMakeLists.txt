@@ -13,5 +13,5 @@ file(GLOB_RECURSE x0_SRC "*.cpp")
 
 add_library(x0 SHARED ${x0_SRC})
 set_target_properties(x0 PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
-target_link_libraries(x0 dl pthread ${LIBS})
+target_link_libraries(x0 dl pthread ${SD_LIBRARIES} ${LIBS})
 install(TARGETS x0 DESTINATION ${LIBDIR})

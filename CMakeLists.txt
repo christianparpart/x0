@@ -25,7 +25,6 @@ option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
 option(WITH_SSL "With SSL support [default: on]" ON)
 #option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
 
-add_definitions(-std=c++0x)
 add_definitions(-Wall -Wno-variadic-macros)
 
 # we need the following definitions in order to get some special
@@ -81,6 +80,8 @@ endif(HAVE_BZLIB_H)
 # ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support)
+
 
 # flow
 find_package(FLOW)
@@ -97,6 +98,9 @@ add_definitions(${EV_CPPFLAGS})
 set(LIBS ${LIBS} ${EV_LIBRARIES})
 
 set(VALGRIND OFF CACHE BOOL "generate binary for use with valgrind")
+
+# systemd support (implemented in support/sd-daemon/)
+set(SD_LIBRARIES sd-daemon)
 
 # {{{ path prefixes
 # ---------------------------------------------------------------------------
@@ -181,6 +185,7 @@ configure_file(
 add_definitions(-DHAVE_SYSCONFIG_H)
 
 add_subdirectory(docs)
+add_subdirectory(support)
 add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(plugins)

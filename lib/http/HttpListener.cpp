@@ -10,8 +10,9 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpServer.h>
 #include <x0/SocketDriver.h>
-
 #include <x0/sysconfig.h>
+
+#include <sd-daemon/sd-daemon.h>
 
 #include <arpa/inet.h>		// inet_pton()
 #include <netinet/tcp.h>	// TCP_QUICKACK, TCP_DEFER_ACCEPT
@@ -72,6 +73,39 @@ void HttpListener::setSocketDriver(SocketDriver *sd)
 	socketDriver_ = sd;
 }
 
+addrinfo *getAddressInfo(const char *address, int port)
+{
+	addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_NUMERICSERV;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	int rc;
+	in6_addr saddr;
+
+	if ((rc = inet_pton(AF_INET, address, &saddr)) == 1) {
+		// valid IPv4 text address
+		hints.ai_family = AF_INET;
+		hints.ai_flags |= AI_NUMERICHOST;
+	} else if ((rc = inet_pton(AF_INET6, address, &saddr)) == 1) {
+		// valid IPv6 text address
+		hints.ai_family = AF_INET6;
+		hints.ai_flags |= AI_NUMERICHOST;
+	}
+
+	char sport[8];
+	snprintf(sport, sizeof(sport), "%d", port);
+
+	addrinfo *res;
+	if ((rc = getaddrinfo(address, sport, &hints, &res)) != 0) {
+		fprintf(stderr, "Host not found --> %s\n", gai_strerror(rc));
+		return NULL;
+	}
+
+	return res;
+}
+
 bool HttpListener::prepare()
 {
 #if defined(WITH_SSL)
@@ -83,83 +117,97 @@ bool HttpListener::prepare()
 	log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
 #endif
 
-	addrinfo *res;
-	addrinfo hints;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_NUMERICSERV;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	int rc;
-	in6_addr saddr;
-
-	if ((rc = inet_pton(AF_INET, address_.c_str(), &saddr)) == 1) {
-		// valid IPv4 text address
-		hints.ai_family = AF_INET;
-		hints.ai_flags |= AI_NUMERICHOST;
-	} else if ((rc = inet_pton(AF_INET6, address_.c_str(), &saddr)) == 1) {
-		// valid IPv6 text address
-		hints.ai_family = AF_INET6;
-		hints.ai_flags |= AI_NUMERICHOST;
-	}
-
-	char sport[8];
-	snprintf(sport, sizeof(sport), "%d", port_);
-
-	if ((rc = getaddrinfo(address_.c_str(), sport, &hints, &res)) != 0) {
-		printf("Host not found --> %s\n", gai_strerror(rc));
+	addrinfo *res = getAddressInfo(address_.c_str(), port_);
+	if (res == NULL)
 		return false;
+
+	// check systemd first
+	int count = sd_listen_fds(false);
+	fprintf(stderr, "sd_listen_fds: %d\n", count);
+
+	fprintf(stderr, "SOCK_STREAM: %d\n", SOCK_STREAM);
+	fprintf(stderr, "AF_INET: %d\n", AF_INET);
+	fprintf(stderr, "AF_INET6: %d\n", AF_INET6);
+
+	if (count > 0) {
+		fd_ = SD_LISTEN_FDS_START;
+		int last = fd_ + count;
+
+		for (addrinfo *ri = res; ri != NULL; ri = ri->ai_next) {
+			for (; fd_ < last; ++fd_) {
+				int rv = sd_is_socket_inet(fd_, ri->ai_family, ri->ai_socktype, true, port_);
+				fprintf(stderr, "sd_is_socket_inet(%d, %d, %d, true, %d) -> %d\n", 
+						fd_, ri->ai_family, ri->ai_socktype, port_, rv);
+				if (rv > 0) {
+				//if (sd_is_socket_inet(fd_, ri->ai_family, ri->ai_socktype, true, port_) > 0) {
+					fprintf(stderr, " - gotcha\n");
+					goto done;
+				}
+			}
+		}
 	}
 
-	addressFamily_ = res->ai_family;
+	// create socket manually
+	fprintf(stderr, "creating socket manually ... \n");
+	for (addrinfo *ri = res; ri != NULL; ri = ri->ai_next) {
+		fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
-	fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (fd_ < 0) {
-		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_,  strerror(errno));
-		return false;
-	}
+		if (fd_ < 0)
+			continue;
 
-	if (fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC) < 0)
-	{
-		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
-		return false;
-	}
+		if (fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC) < 0) {
+			log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
+			goto err;
+		}
 
-	if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK) < 0)
-	{
-		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
-		return false;
-	}
+		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK) < 0) {
+			log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
+			goto err;
+		}
 
 #if defined(SO_REUSEADDR)
-	//! \todo SO_REUSEADDR: could be configurable
-	setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, 1);
+		//! \todo SO_REUSEADDR: could be configurable
+		setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, 1);
 #endif
 
 #if defined(TCP_QUICKACK)
-	//! \todo TCP_QUICKACK: could be configurable
-	setsockopt(fd_, SOL_TCP, TCP_QUICKACK, 1);
+		//! \todo TCP_QUICKACK: could be configurable
+		setsockopt(fd_, SOL_TCP, TCP_QUICKACK, 1);
 #endif
 
 #if defined(TCP_DEFER_ACCEPT)
-	setsockopt(fd_, SOL_TCP, TCP_DEFER_ACCEPT, 1);
+		setsockopt(fd_, SOL_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
 
-//	acceptor_.set_option(asio::ip::tcp::acceptor::linger(false, 0));
-//	acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
+//		acceptor_.set_option(asio::ip::tcp::acceptor::linger(false, 0));
+//		acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
 
-	if (::bind(fd_, res->ai_addr, res->ai_addrlen) < 0) {
-		log(Severity::error, "Cannot bind to IP-address (%s): %s", address_.c_str(), strerror(errno));
-		return false;
+		if (::bind(fd_, res->ai_addr, res->ai_addrlen) < 0) {
+			log(Severity::error, "Cannot bind to IP-address (%s): %s", address_.c_str(), strerror(errno));
+			goto err;
+		}
+
+		if (::listen(fd_, backlog_) < 0) {
+			log(Severity::error, "Cannot listen to IP-address (%s): %s", address_.c_str(), strerror(errno));
+			goto err;
+		}
 	}
 
-	if (::listen(fd_, backlog_) < 0) {
-		log(Severity::error, "Cannot listen to IP-address (%s): %s", address_.c_str(), strerror(errno));
-		return false;
+	if (fd_ < 0) {
+		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_,  strerror(errno));
+		goto err;
 	}
 
+done:
+	addressFamily_ = res->ai_family;
+	freeaddrinfo(res);
 	return true;
+
+err:
+	if (res != NULL)
+		freeaddrinfo(res);
+
+	return false;
 }
 
 bool HttpListener::start()
