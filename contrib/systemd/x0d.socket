@@ -1,0 +1,8 @@
+[Unit]
+Description=x0d socket-based activator
+
+[Socket]
+ListenStream=80
+
+[Install]
+WantedBy=sockets.target

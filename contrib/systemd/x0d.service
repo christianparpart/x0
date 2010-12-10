@@ -1,0 +1,17 @@
+[Unit]
+Description=x0 HTTP web server
+After=networking.target
+After=syslog.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/x0d -X -c /etc/x0/x0d.conf
+ExecReload=/bin/kill -HUP $MAINPID
+StandardOutput=syslog
+StandardError=syslog
+User=x0d
+Group=www
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=http-daemon.target
