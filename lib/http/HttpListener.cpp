@@ -123,28 +123,22 @@ bool HttpListener::prepare()
 
 	// check systemd first
 	int count = sd_listen_fds(false);
-	fprintf(stderr, "sd_listen_fds: %d\n", count);
-
-	fprintf(stderr, "SOCK_STREAM: %d\n", SOCK_STREAM);
-	fprintf(stderr, "AF_INET: %d\n", AF_INET);
-	fprintf(stderr, "AF_INET6: %d\n", AF_INET6);
-
 	if (count > 0) {
 		fd_ = SD_LISTEN_FDS_START;
 		int last = fd_ + count;
 
 		for (addrinfo *ri = res; ri != NULL; ri = ri->ai_next) {
 			for (; fd_ < last; ++fd_) {
-				int rv = sd_is_socket_inet(fd_, ri->ai_family, ri->ai_socktype, true, port_);
-				fprintf(stderr, "sd_is_socket_inet(%d, %d, %d, true, %d) -> %d\n", 
-						fd_, ri->ai_family, ri->ai_socktype, port_, rv);
-				if (rv > 0) {
-				//if (sd_is_socket_inet(fd_, ri->ai_family, ri->ai_socktype, true, port_) > 0) {
-					fprintf(stderr, " - gotcha\n");
+				if (sd_is_socket_inet(fd_, ri->ai_family, ri->ai_socktype, true, port_) > 0) {
+					// matching file descriptor found
 					goto done;
 				}
 			}
 		}
+
+		fprintf(stderr, "No systemd file descriptor passed for bind address %s:%d\n",
+				address_.c_str(), port_);
+		goto err;
 	}
 
 	// create socket manually

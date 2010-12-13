@@ -24,6 +24,8 @@
 #include <flow/Parser.h>
 #include <flow/Runner.h>
 
+#include <sd-daemon/sd-daemon.h>
+
 #include <iostream>
 #include <cstdarg>
 #include <cstdlib>
@@ -351,6 +353,30 @@ bool HttpServer::start()
 		for (std::list<HttpListener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 			if (!(*i)->start())
 				return false;
+
+		// systemd: check for superfluous passed file descriptors
+		int count = sd_listen_fds(0);
+		if (count > 0) {
+			int maxfd = SD_LISTEN_FDS_START + count;
+			count = 0;
+			for (int fd = SD_LISTEN_FDS_START; fd < maxfd; ++fd) {
+				bool found = false;
+				for (auto li = listeners_.begin(), le = listeners_.end(); li != le; ++li) {
+					HttpListener *l = *li;
+					if (fd == l->handle()) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					++count;
+				}
+			}
+			if (count) {
+				fprintf(stderr, "superfluous systemd file descriptors: %d\n", count);
+				return false;
+			}
+		}
 	}
 
 	return true;
@@ -368,15 +394,20 @@ bool HttpServer::active() const
  * \note use this if you do not have your own main loop.
  * \note automatically starts the server if it wasn't started via \p start() yet.
  */
-void HttpServer::run()
+int HttpServer::run()
 {
 	if (!active_)
-		start();
+	{
+		if (!start())
+			return -1;
+	}
 
 	while (active_)
 	{
 		workers_.front()->run();
 	}
+
+	return 0;
 }
 
 /**

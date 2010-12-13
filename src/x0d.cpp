@@ -321,11 +321,11 @@ public:
 			return 1;
 		}
 
-		server_->run();
+		int rv = server_->run();
 
 		unlink(pidfile_.c_str());
 
-		return 0;
+		return rv;
 	}
 
 private:

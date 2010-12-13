@@ -76,7 +76,7 @@ public:
 	bool setup(std::istream *settings);
 	bool start();
 	bool active() const;
-	void run();
+	int run();
 	void pause();
 	void resume();
 	void reload();
