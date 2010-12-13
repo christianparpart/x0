@@ -12,7 +12,7 @@
 #include <x0/SocketDriver.h>
 #include <x0/sysconfig.h>
 
-#include <sd-daemon/sd-daemon.h>
+#include <sd-daemon.h>
 
 #include <arpa/inet.h>		// inet_pton()
 #include <netinet/tcp.h>	// TCP_QUICKACK, TCP_DEFER_ACCEPT
@@ -73,7 +73,7 @@ void HttpListener::setSocketDriver(SocketDriver *sd)
 	socketDriver_ = sd;
 }
 
-addrinfo *getAddressInfo(const char *address, int port)
+addrinfo *HttpListener::getAddressInfo(const char *address, int port)
 {
 	addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
@@ -99,7 +99,7 @@ addrinfo *getAddressInfo(const char *address, int port)
 
 	addrinfo *res;
 	if ((rc = getaddrinfo(address, sport, &hints, &res)) != 0) {
-		fprintf(stderr, "Host not found --> %s\n", gai_strerror(rc));
+		log(Severity::error, "Host not found: %s", gai_strerror(rc));
 		return NULL;
 	}
 
@@ -136,13 +136,12 @@ bool HttpListener::prepare()
 			}
 		}
 
-		fprintf(stderr, "No systemd file descriptor passed for bind address %s:%d\n",
+		log(Severity::error, "No systemd file descriptor passed for bind address %s:%d",
 				address_.c_str(), port_);
 		goto err;
 	}
 
 	// create socket manually
-	fprintf(stderr, "creating socket manually ... \n");
 	for (addrinfo *ri = res; ri != NULL; ri = ri->ai_next) {
 		fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 

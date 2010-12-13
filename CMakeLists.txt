@@ -80,7 +80,7 @@ endif(HAVE_BZLIB_H)
 # ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support/sd-daemon)
 
 
 # flow

@@ -9,6 +9,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpCore.h>
+#include <x0/Logger.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
 
@@ -62,6 +63,7 @@ public:
 		instant_(),
 		documentRoot_(),
 		nofork_(false),
+		systemd_(false),
 		doguard_(false),
 		dumpIR_(false),
 		server_(new x0::HttpServer()),
@@ -177,7 +179,7 @@ public:
 		server_->tcp_cork = true;
 
 		std::istringstream s(source);
-		return server_->setup(&s);
+		return server_->setup(&s, SYSCONFDIR "/instant.conf");
 	}
 
 	int run()
@@ -185,17 +187,19 @@ public:
 		if (!parse())
 			return 1;
 
+		if (systemd_) {
+			server_->setLogger(std::make_shared<x0::SystemdLogger>());
+		}
+
 		bool rv = false;
 		if (!instant_.empty())
 			rv = setupInstantMode();
-		else
-		{
+		else {
 			std::ifstream ifs(configfile_);
-			rv = server_->setup(&ifs);
+			rv = server_->setup(&ifs, configfile_);
 		}
 
-		if (!rv)
-		{
+		if (!rv) {
 			log(x0::Severity::error, "Could not start x0d.");
 			return -1;
 		}
@@ -335,6 +339,7 @@ private:
 		{
 			{ "no-fork", no_argument, &nofork_, 1 },
 			{ "fork", no_argument, &nofork_, 0 },
+			{ "systemd", no_argument, &systemd_, 'S' },
 			{ "guard", no_argument, &doguard_, 'G' },
 			{ "pid-file", required_argument, 0, 'p' },
 			{ "user", required_argument, 0, 'u' },
@@ -397,6 +402,7 @@ private:
 						<< "  -h,--help                print this help" << std::endl
 						<< "  -c,--config=PATH         specify a custom configuration file [" << configfile_ << "]" << std::endl
 						<< "  -X,--no-fork             do not fork into background" << std::endl
+						<< "     --systemd             enable systemd-features" << std::endl
 						<< "  -G,--guard               do run service as child of a special guard process to watch for crashes" << std::endl
 						<< "  -p,--pid-file=PATH       PID file to create/use [" << pidfile_ << "]" << std::endl
 						<< "  -u,--user=NAME           user to drop privileges to" << std::endl
@@ -408,6 +414,10 @@ private:
 						<< std::endl;
 					return false;
 				case 'X':
+					nofork_ = true;
+					break;
+				case 'S':
+					systemd_ = true;
 					nofork_ = true;
 					break;
 				case 'G':
@@ -539,6 +549,7 @@ private:
 	std::string documentRoot_;
 
 	int nofork_;
+	int systemd_;
 	int doguard_;
 	int dumpIR_;
 	x0::HttpServer *server_;

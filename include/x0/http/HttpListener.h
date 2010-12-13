@@ -22,6 +22,8 @@
 #include <memory>
 #include <string>
 
+#include <netdb.h> // struct addrinfo*
+
 namespace x0 {
 
 //! \addtogroup core
@@ -87,6 +89,8 @@ private:
 	void callback(ev::io& watcher, int revents);
 
 	struct ::ev_loop *loop() const;
+
+	addrinfo *getAddressInfo(const char *address, int port);
 
 private:
 	ev::io watcher_;

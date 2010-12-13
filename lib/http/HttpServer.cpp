@@ -24,7 +24,7 @@
 #include <flow/Parser.h>
 #include <flow/Runner.h>
 
-#include <sd-daemon/sd-daemon.h>
+#include <sd-daemon.h>
 
 #include <iostream>
 #include <cstdarg>
@@ -151,11 +151,11 @@ HttpServer::~HttpServer()
 	unit_ = NULL;
 }
 
-bool HttpServer::setup(std::istream *settings)
+bool HttpServer::setup(std::istream *settings, const std::string& filename)
 {
 	Flow::Parser parser;
 	parser.setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
-	if (!parser.initialize(settings)) {
+	if (!parser.initialize(settings, filename)) {
 		perror("open");
 		return false;
 	}

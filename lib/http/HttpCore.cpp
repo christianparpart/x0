@@ -39,6 +39,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	// setup
 	registerSetupFunction<HttpCore, &HttpCore::emit_llvm>("llvm.dump", Flow::Value::VOID);
 	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
+	registerSetupFunction<HttpCore, &HttpCore::log_sd>("log.systemd", Flow::Value::VOID);
 	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", Flow::Value::STRING);
 	registerSetupProperty<HttpCore, &HttpCore::workers>("workers", Flow::Value::NUMBER);
@@ -328,6 +329,14 @@ void HttpCore::logfile(Flow::Value& result, const Params& args)
 			auto nowfn = std::bind(&global_now);
 			server_.logger_.reset(new FileLogger<decltype(nowfn)>(filename, nowfn));
 		}
+	}
+}
+
+void HttpCore::log_sd(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 0)
+	{
+		server_.logger_.reset(new SystemdLogger());
 	}
 }
 

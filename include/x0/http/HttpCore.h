@@ -60,6 +60,7 @@ private:
 	// logging
 	void loglevel(Flow::Value& result, const Params& args);
 	void logfile(Flow::Value& result, const Params& args);
+	void log_sd(Flow::Value& result, const Params& args);
 
 	// setup
 	void listen(Flow::Value& result, const Params& args);

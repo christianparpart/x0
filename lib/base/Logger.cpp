@@ -9,6 +9,7 @@
 #include <x0/Logger.h>
 #include <x0/strutils.h>
 #include <cstring>
+#include <sd-daemon.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -89,6 +90,43 @@ SystemLogger *SystemLogger::clone() const
 	return new SystemLogger();
 }
 
+// }}}
+
+// {{{ SystemdLogger
+SystemdLogger::SystemdLogger()
+{
+}
+
+SystemdLogger::~SystemdLogger()
+{
+}
+
+void SystemdLogger::cycle()
+{
+}
+
+void SystemdLogger::write(Severity s, const std::string& message)
+{
+	static const char *sd[] = {
+		SD_ERR,
+		SD_WARNING,
+		SD_INFO,
+		SD_DEBUG,
+		SD_DEBUG,
+		SD_DEBUG,
+		SD_DEBUG,
+		SD_DEBUG
+	};
+
+	if (s <= level()) {
+		fprintf(stderr, "%s%s\n", sd[s], message.c_str());
+	}
+}
+
+SystemdLogger *SystemdLogger::clone() const
+{
+	return new SystemdLogger();
+}
 // }}}
 
 } // namespace x0

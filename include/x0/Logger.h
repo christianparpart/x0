@@ -123,6 +123,22 @@ public:
 	virtual SystemLogger *clone() const;
 };
 
+/** implements a file based logger.
+ *
+ * \see logger, server
+ */
+class SystemdLogger :
+	public Logger
+{
+public:
+	SystemdLogger();
+	~SystemdLogger();
+
+	virtual void cycle();
+	virtual void write(Severity s, const std::string& message);
+	virtual SystemdLogger *clone() const;
+};
+
 // {{{ FileLogger
 template<typename Now>
 inline FileLogger<Now>::FileLogger(const std::string& filename, Now now) :

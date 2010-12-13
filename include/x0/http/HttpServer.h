@@ -73,7 +73,7 @@ public:
 	void destroyWorker(HttpWorker *worker);
 
 	// {{{ service control
-	bool setup(std::istream *settings);
+	bool setup(std::istream *settings, const std::string& filename = std::string());
 	bool start();
 	bool active() const;
 	int run();
