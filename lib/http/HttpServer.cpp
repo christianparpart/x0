@@ -125,6 +125,8 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
 
 	registerPlugin(core_ = new HttpCore(*this));
+
+	sd_notify(0, "STATUS=Initialized");
 }
 
 HttpServer::~HttpServer()
@@ -153,21 +155,25 @@ HttpServer::~HttpServer()
 
 bool HttpServer::setup(std::istream *settings, const std::string& filename)
 {
+	sd_notify(0, "STATUS=Setting up");
+
+	Flow::Function *setupFn;
 	Flow::Parser parser;
+
 	parser.setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
 	if (!parser.initialize(settings, filename)) {
-		perror("open");
-		return false;
+		sd_notifyf(0, "ERRNO=%d", errno);
+		goto err;
 	}
 
 	unit_ = parser.parse();
 	if (!unit_)
-		return false;
+		goto err;
 
-	Flow::Function *setupFn = unit_->lookup<Flow::Function>("setup");
+	setupFn = unit_->lookup<Flow::Function>("setup");
 	if (!setupFn) {
 		log(Severity::error, "no setup handler defined in config file.\n");
-		return false;
+		goto err;
 	}
 
 	// compile module
@@ -175,12 +181,12 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 
 	// run setup
 	if (runner_->run(setupFn))
-		return false;
+		goto err;
 
 	// grap the request handler
 	onHandleRequest_ = runner_->compile(unit_->lookup<Flow::Function>("main"));
 	if (!onHandleRequest_)
-		return false;
+		goto err;
 
 	// {{{ setup server-tag
 	{
@@ -239,28 +245,33 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	// {{{ run post-config hooks
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 		if (!(*i)->post_config())
-			return false;
+			goto err;
 	// }}}
 
 	// {{{ run post-check hooks
 	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
 		if (!(*i)->post_check())
-			return false;
+			goto err;
 	// }}}
 
 	// {{{ check for available TCP listeners
 	if (listeners_.empty())
 	{
 		log(Severity::error, "No HTTP listeners defined");
-		return false;
+		goto err;
 	}
 
 	for (auto i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
 		if (!(*i)->prepare())
-			return false;
+			goto err;
 	// }}}
 
+	sd_notify(0, "STATUS=Setup done");
 	return true;
+
+err:
+	sd_notify(0, "STATUS=Setup failed");
+	return false;
 }
 
 // {{{ worker mgnt
