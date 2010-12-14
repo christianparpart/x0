@@ -402,6 +402,9 @@ int HttpServer::run()
 			return -1;
 	}
 
+	sd_notify(0, "READY=1\n"
+				 "STATUS=Accepting requests ...");
+
 	while (active_)
 	{
 		workers_.front()->run();
@@ -431,11 +434,13 @@ HttpListener *HttpServer::listenerByPort(int port) const
 void HttpServer::pause()
 {
 	active_ = false;
+	sd_notify(0, "STATUS=Paused");
 }
 
 void HttpServer::resume()
 {
 	active_ = true;
+	sd_notify(0, "STATUS=Accepting requests ...");
 }
 
 void HttpServer::reload()
@@ -450,6 +455,7 @@ void HttpServer::stop()
 {
 	if (active_)
 	{
+		sd_notify(0, "STATUS=Stopping ...");
 		active_ = false;
 
 		for (std::list<HttpListener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
