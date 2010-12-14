@@ -16,6 +16,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <sd-daemon.h>
+
 #include <functional>
 #include <iostream>
 #include <fstream>
@@ -34,6 +36,8 @@
 #else
 #	define X0D_DEBUG(msg...) /*!*/ ((void)0)
 #endif
+
+using x0::Severity;
 
 class x0d
 {
@@ -63,7 +67,7 @@ public:
 		instant_(),
 		documentRoot_(),
 		nofork_(false),
-		systemd_(false),
+		systemd_(sd_controlled()),
 		doguard_(false),
 		dumpIR_(false),
 		server_(new x0::HttpServer()),
@@ -188,7 +192,10 @@ public:
 			return 1;
 
 		if (systemd_) {
+			nofork_ = true;
 			server_->setLogger(std::make_shared<x0::SystemdLogger>());
+		} else {
+			server_->setLogger(std::make_shared<x0::SystemLogger>());
 		}
 
 		bool rv = false;
@@ -213,7 +220,8 @@ public:
 		if (group_.empty())
 			group_ = user_;
 
-		drop_privileges(user_, group_);
+		if (!drop_privileges(user_, group_))
+			return -1;
 
 		return doguard_
 			? guard(std::bind(&x0d::_run, this))
@@ -339,7 +347,7 @@ private:
 		{
 			{ "no-fork", no_argument, &nofork_, 1 },
 			{ "fork", no_argument, &nofork_, 0 },
-			{ "systemd", no_argument, &systemd_, 'S' },
+			{ "systemd", no_argument, &systemd_, 1 },
 			{ "guard", no_argument, &doguard_, 'G' },
 			{ "pid-file", required_argument, 0, 'p' },
 			{ "user", required_argument, 0, 'u' },
@@ -402,7 +410,7 @@ private:
 						<< "  -h,--help                print this help" << std::endl
 						<< "  -c,--config=PATH         specify a custom configuration file [" << configfile_ << "]" << std::endl
 						<< "  -X,--no-fork             do not fork into background" << std::endl
-						<< "     --systemd             enable systemd-features" << std::endl
+						<< "     --systemd             force systemd-mode, which is auto-detected otherwise" << std::endl
 						<< "  -G,--guard               do run service as child of a special guard process to watch for crashes" << std::endl
 						<< "  -p,--pid-file=PATH       PID file to create/use [" << pidfile_ << "]" << std::endl
 						<< "  -u,--user=NAME           user to drop privileges to" << std::endl
@@ -414,10 +422,6 @@ private:
 						<< std::endl;
 					return false;
 				case 'X':
-					nofork_ = true;
-					break;
-				case 'S':
-					systemd_ = true;
 					nofork_ = true;
 					break;
 				case 'G':
@@ -443,14 +447,16 @@ private:
 	}
 
 	/** drops runtime privileges current process to given user's/group's name. */
-	void drop_privileges(const std::string& username, const std::string& groupname)
+	bool drop_privileges(const std::string& username, const std::string& groupname)
 	{
 		if (!groupname.empty() && !getgid())
 		{
 			if (struct group *gr = getgrnam(groupname.c_str()))
 			{
-				if (setgid(gr->gr_gid) != 0)
-					throw std::runtime_error(x0::fstringbuilder::format("could not setgid to %s: %s", groupname.c_str(), strerror(errno)));
+				if (setgid(gr->gr_gid) != 0) {
+					log(Severity::error, "could not setgid to %s: %s", groupname.c_str(), strerror(errno));
+					return false;
+				}
 
 				setgroups(gr->gr_gid, NULL);
 
@@ -459,7 +465,8 @@ private:
 			}
 			else
 			{
-				throw std::runtime_error(x0::fstringbuilder::format("Could not find group: %s", groupname.c_str()));
+				log(Severity::error, "Could not find group: %s", groupname.c_str());
+				return false;
 			}
 			X0D_DEBUG("Dropped group privileges to '%s'.", groupname.c_str());
 		}
@@ -468,14 +475,20 @@ private:
 		{
 			if (struct passwd *pw = getpwnam(username.c_str()))
 			{
-				if (setuid(pw->pw_uid) != 0)
-					throw std::runtime_error(x0::fstringbuilder::format("could not setgid to %s: %s", username.c_str(), strerror(errno)));
+				if (setuid(pw->pw_uid) != 0) {
+					log(Severity::error, "could not setgid to %s: %s", username.c_str(), strerror(errno));
+					return false;
+				}
 
-				if (chdir(pw->pw_dir) < 0)
-					throw std::runtime_error(x0::fstringbuilder::format("could not chdir to %s: %s", pw->pw_dir, strerror(errno)));
+				if (chdir(pw->pw_dir) < 0) {
+					log(Severity::error, "could not chdir to %s: %s", pw->pw_dir, strerror(errno));
+					return false;
+				}
 			}
-			else
-				throw std::runtime_error(x0::fstringbuilder::format("Could not find group: %s", groupname.c_str()));
+			else {
+				log(Severity::error, "Could not find group: %s", groupname.c_str());
+				return false;
+			}
 
 			X0D_DEBUG("Dropped user privileges to '%s'.", username.c_str());
 		}
@@ -483,14 +496,16 @@ private:
 		if (!::getuid() || !::geteuid() || !::getgid() || !::getegid())
 		{
 #if defined(X0_RELEASE)
-			throw std::runtime_error(x0::fstringbuilder::format("Service is not allowed to run with administrative permissionsService is still running with administrative permissions."));
+			log(x0::Severity::error, "Service is not allowed to run with administrative permissionsService is still running with administrative permissions.");
+			return false;
 #else
 			log(x0::Severity::warn, "Service is still running with administrative permissions.");
 #endif
 		}
+		return true;
 	}
 
-	static void log(x0::Severity severity, const char *msg, ...)
+	static void log(Severity severity, const char *msg, ...)
 	{
 		va_list va;
 		char buf[2048];
