@@ -258,6 +258,12 @@ int sd_notifyf(int unset_environment, const char *format, ...) _sd_printf_attr_(
 */
 int sd_booted(void) _sd_hidden_;
 
+/*
+  Returns != 0 (true) if the program is controlled, and though
+  is spawned by, systemd. Returns == 0 (false) otherwise.
+*/
+int sd_controlled(void) _sd_hidden_;
+
 #ifdef __cplusplus
 }
 #endif

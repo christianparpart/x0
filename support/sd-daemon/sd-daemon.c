@@ -434,3 +434,14 @@ int sd_booted(void) {
         return a.st_dev != b.st_dev;
 #endif
 }
+
+int sd_controlled(void) {
+#if defined(DISABLE_SYSTEMD) || !defined(__linux__)
+        return 0;
+#else
+		if (getppid() == 1)
+			return 1;
+
+		return 0;
+#endif
+}
