@@ -312,30 +312,45 @@ public:
 		return buf;
 	}
 
+	bool createPidFile()
+	{
+		if (systemd_) {
+			if (!pidfile_.empty())
+				log(x0::Severity::info, "PID file requested but process is being supervised by systemd. Ignoring.");
+
+			return true;
+		}
+
+		if (pidfile_.empty()) {
+			log(x0::Severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
+			return false;
+		}
+
+		FILE *pidfile = fopen(pidfile_.c_str(), "w");
+		if (!pidfile) {
+			log(x0::Severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
+			return false;
+		}
+
+		fprintf(pidfile, "%d\n", getpid());
+		fclose(pidfile);
+
+		log(x0::Severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
+
+		return true;
+	}
+
 	int _run()
 	{
 		::signal(SIGPIPE, SIG_IGN);
 
-		if (pidfile_.empty())
-		{
-			log(x0::Severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
-			return 1;
-		}
-		else if (FILE *pidfile = fopen(pidfile_.c_str(), "w"))
-		{
-			log(x0::Severity::info, "Created PID file with value %d [%s]", getpid(), pidfile_.c_str());
-			fprintf(pidfile, "%d\n", getpid());
-			fclose(pidfile);
-		}
-		else
-		{
-			log(x0::Severity::error, "Could not create PID file %s: %s.", pidfile_.c_str(), strerror(errno));
-			return 1;
-		}
+		if (!createPidFile())
+			return -1;
 
 		int rv = server_->run();
 
-		unlink(pidfile_.c_str());
+		if (!systemd_ && !pidfile_.empty())
+			unlink(pidfile_.c_str());
 
 		return rv;
 	}
