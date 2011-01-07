@@ -726,11 +726,16 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 	if (x0::iequals(name, "Status"))
 	{
-		request_->status = static_cast<x0::HttpError>(value.toInt());
-		TRACE("CgiTransport.status := %s", request_->statusStr(request_->status).c_str());
+		int status = value.ref(0, value.find(' ')).toInt();
+		request_->status = static_cast<x0::HttpError>(status);
 	}
 	else
+	{
+		if (name == "Location")
+			request_->status = x0::HttpError::MovedTemporarily;
+
 		request_->responseHeaders.push_back(name.str(), value.str());
+	}
 }
 
 bool CgiTransport::messageContent(x0::BufferRef&& content)

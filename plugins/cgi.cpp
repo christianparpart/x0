@@ -595,7 +595,8 @@ void CgiScript::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 	if (name == "Status")
 	{
-		request_->status = static_cast<x0::HttpError>(boost::lexical_cast<int>(value.str()));
+		int status = value.ref(0, value.find(' ')).toInt();
+		request_->status = static_cast<x0::HttpError>(boost::lexical_cast<int>(status));
 	}
 	else 
 	{
