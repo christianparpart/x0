@@ -8,6 +8,7 @@ int main()
 		printf("Content-Type: text/plain\r\n");
 		printf("\r\n");
 		printf("Hello, World\n");
+		printf("script_name: %s\n", getenv("SCRIPT_NAME"));
 		printf("\n");
 		fflush(stdout);
 

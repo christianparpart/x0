@@ -42,5 +42,8 @@ target_link_libraries(x0test
 add_executable(web_client_test web_client_test.cpp)
 target_link_libraries(web_client_test ${CPPUNIT_LIBRARIES} x0)
 
-add_executable(testapp-fcgi testapp-fcgi.cpp)
-target_link_libraries(testapp-fcgi fcgi)
+add_executable(fcgi-long-run fcgi-long-run.cpp)
+target_link_libraries(fcgi-long-run fcgi)
+
+add_executable(fcgi-staticfile fcgi-staticfile.cpp)
+target_link_libraries(fcgi-staticfile fcgi)
