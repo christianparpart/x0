@@ -833,7 +833,6 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					if (iequals(name_, "Content-Length"))
 					{
 						content_length_ = value_.as<int>();
-						printf("content_length_ = %ld\n", content_length_);
 					}
 					else if (iequals(name_, "Transfer-Encoding"))
 					{
