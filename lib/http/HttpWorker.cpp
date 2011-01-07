@@ -73,7 +73,7 @@ void HttpWorker::run()
 	while (state_ != Exiting)
 	{
 #ifndef NDEBUG
-		log(Severity::debug, "enter loop");
+		//log(Severity::debug, "enter loop");
 #endif
 		ev_loop(loop_, 0);
 	}
