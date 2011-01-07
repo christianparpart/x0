@@ -185,7 +185,6 @@ public:
 		delete record;
 	}
 
-	void write(FastCgi::Type type, int requestId, const char *content, size_t contentLength);
 	void write(FastCgi::Type type, int requestId, x0::Buffer&& content);
 	void write(FastCgi::Record *record);
 	void flush();
@@ -360,29 +359,14 @@ void CgiTransport::bind(x0::HttpRequest *in)
 	flush();
 }
 
-void CgiTransport::write(FastCgi::Type type, int requestId, const char *content, size_t contentLength)
-{
-	FastCgi::Record *record = FastCgi::Record::create(type, requestId, contentLength);
-	memcpy(const_cast<char *>(record->content()), content, contentLength);
-	write(record);
-	delete record;
-}
-
 void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content)
 {
-#if 1
-	FastCgi::Record *record = FastCgi::Record::create(type, requestId, content.size());
-	memcpy(const_cast<char *>(record->content()), content.data(), content.size());
-	write(record);
-	delete record;
-#else
 	FastCgi::Record record(type, requestId, content.size(), 0);
-	writeBuffer_.push_back(record.data(), record.size());
+	writeBuffer_.push_back(record.data(), sizeof(record));
 	writeBuffer_.push_back(content.data(), content.size());
 
 	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
 			record.type_str(), record.requestId(), record.size(), record.paddingLength());
-#endif
 }
 
 void CgiTransport::write(FastCgi::Record *record)
