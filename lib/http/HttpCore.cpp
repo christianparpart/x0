@@ -654,7 +654,7 @@ bool HttpCore::respond(HttpRequest *in, const Params& args)
 bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 {
 	if (!in->fileinfo) {
-		printf("Error! in->fileinfo not set\n");
+		in->log(Severity::error, "in->fileinfo not set");
 		return false;
 	}
 
@@ -732,7 +732,6 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 			);
 		}
 	}
-	in->connection.worker().log(Severity::debug, "staticfile()");
 	return true;
 } // }}}
 
