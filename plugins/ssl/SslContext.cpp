@@ -55,6 +55,8 @@ std::error_code loadFile(gnutls_datum_t& data, const std::string& filename) // {
 		return false;
 	}*/
 
+	close(fd);
+
 	data.data[data.size] = '\0';
 	//TRACE("loadFile: read %d bytes (%ld)", data.size, strlen((char *)data.data));
 	//TRACE("dump(%s)", data.data);
