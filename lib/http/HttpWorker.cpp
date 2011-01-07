@@ -95,7 +95,6 @@ void HttpWorker::log(Severity s, const char *fmt, ...)
 void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
 {
 	pthread_spin_lock(&queueLock_);
-	log(Severity::debug, "enqueue client");
 	queue_.push_back(client);
 	evNewConnection_.send();
 	pthread_spin_unlock(&queueLock_);
