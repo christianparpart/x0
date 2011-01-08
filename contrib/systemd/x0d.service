@@ -4,7 +4,7 @@ After=networking.target
 After=syslog.target
 
 [Service]
-Type=simple
+Type=notify
 ExecStart=/usr/bin/x0d -X -c /etc/x0/x0d.conf
 ExecReload=/bin/kill -HUP $MAINPID
 StandardOutput=syslog
