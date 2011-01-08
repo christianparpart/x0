@@ -62,10 +62,11 @@ public:
 		requestId_(htons(requestId)),
 		contentLength_(htons(contentLength)),
 		paddingLength_(paddingLength),
-		reserved_()
+		reserved_(0)
 	{}
 
-	static Record *create(Type type, uint16_t requestId, uint16_t contentLength);
+	//static Record *create(Type type, uint16_t requestId, uint16_t contentLength);
+	//void destroy();
 
 	int version() const { return version_; }
 	Type type() const { return static_cast<Type>(type_); }
@@ -224,13 +225,18 @@ public:
 
 // {{{ inlines
 // Record
-inline Record *Record::create(Type type, uint16_t requestId, uint16_t contentLength)
-{
-	int paddingLength = (sizeof(Record) + contentLength) % 8;
-	char *p = new char[sizeof(Record) + contentLength + paddingLength];
-	Record *r = new (p) Record(type, requestId, contentLength, paddingLength);
-	return r;
-}
+//inline Record *Record::create(Type type, uint16_t requestId, uint16_t contentLength)
+//{
+//	int paddingLength = (sizeof(Record) + contentLength) % 8;
+//	char *p = new char[sizeof(Record) + contentLength + paddingLength];
+//	Record *r = new (p) Record(type, requestId, contentLength, paddingLength);
+//	return r;
+//}
+
+//inline void Record::destroy()
+//{
+//	delete[] this;
+//}
 
 // CgiParamStreamWriter
 inline CgiParamStreamWriter::CgiParamStreamWriter() :

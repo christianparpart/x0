@@ -67,7 +67,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 1 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -186,6 +186,7 @@ public:
 	}
 
 	void write(FastCgi::Type type, int requestId, x0::Buffer&& content);
+	void write(FastCgi::Type type, int requestId, const char *buf, size_t len);
 	void write(FastCgi::Record *record);
 	void flush();
 
@@ -203,7 +204,7 @@ private:
 
 	inline void connected();
 	inline void io(int revents);
-	inline void processRecord(const FastCgi::Record *record);
+	inline bool processRecord(const FastCgi::Record *record);
 	inline void onParam(const std::string& name, const std::string& value);
 }; // }}}
 
@@ -369,6 +370,16 @@ void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content
 			record.type_str(), record.requestId(), record.size(), record.paddingLength());
 }
 
+void CgiTransport::write(FastCgi::Type type, int requestId, const char *buf, size_t len)
+{
+	FastCgi::Record record(type, requestId, len, 0);
+	writeBuffer_.push_back(record.data(), sizeof(record));
+	writeBuffer_.push_back(buf, len);
+
+	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
+			record.type_str(), record.requestId(), record.size(), record.paddingLength());
+}
+
 void CgiTransport::write(FastCgi::Record *record)
 {
 	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
@@ -456,6 +467,7 @@ void CgiTransport::io(int revents)
 {
 	if (revents & EV_READ)
 	{
+		// read as much as possible
 		for (;;)
 		{
 			size_t remaining = readBuffer_.capacity() - readBuffer_.size();
@@ -496,7 +508,8 @@ void CgiTransport::io(int revents)
 
 			readOffset_ += record->size();
 
-			processRecord(record);
+			if (!processRecord(record))
+				return;
 		}
 	}
 
@@ -529,11 +542,13 @@ void CgiTransport::io(int revents)
 	}
 }
 
-void CgiTransport::processRecord(const FastCgi::Record *record)
+bool CgiTransport::processRecord(const FastCgi::Record *record)
 {
 	TRACE("processRecord(type=%s (%d), rid=%d, contentLength=%d, paddingLength=%d)",
 		record->type_str(), record->type(), record->requestId(),
 		record->contentLength(), record->paddingLength());
+
+	bool proceedHint = true;
 
 	switch (record->type())
 	{
@@ -552,6 +567,7 @@ void CgiTransport::processRecord(const FastCgi::Record *record)
 				static_cast<const FastCgi::EndRequestRecord *>(record)->appStatus(),
 				static_cast<const FastCgi::EndRequestRecord *>(record)->protocolStatus()
 			);
+			proceedHint = false;
 			break;
 		case FastCgi::Type::UnknownType:
 		default:
@@ -560,6 +576,7 @@ void CgiTransport::processRecord(const FastCgi::Record *record)
 				hostname_.c_str(), port_, record->type(), record->contentLength());
 			break;
 	}
+	return proceedHint;
 }
 
 void CgiTransport::onParam(const std::string& name, const std::string& value)
