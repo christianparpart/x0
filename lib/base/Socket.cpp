@@ -300,23 +300,40 @@ unsigned int Socket::localPort() const
 	return localPort_;
 }
 
-
 void Socket::queryLocalName()
 {
-	if (!localPort_ && fd_ >= 0)
-	{
-		sockaddr_in6 saddr;
-		socklen_t slen = sizeof(saddr);
+	if (!localPort_ && fd_ >= 0) {
+		switch (addressFamily_) {
+			case AF_INET6: {
+				sockaddr_in6 saddr;
+				socklen_t slen = sizeof(saddr);
 
-		if (getsockname(fd_, (sockaddr *)&saddr, &slen) == 0)
-		{
-			char buf[128];
+				if (getsockname(fd_, (sockaddr *)&saddr, &slen) == 0) {
+					char buf[128];
 
-			if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf)))
-			{
-				localIP_ = buf;
-				localPort_ = ntohs(saddr.sin6_port);
+					if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf))) {
+						localIP_ = buf;
+						localPort_ = ntohs(saddr.sin6_port);
+					}
+				}
+				break;
 			}
+			case AF_INET: {
+				sockaddr_in saddr;
+				socklen_t slen = sizeof(saddr);
+
+				if (getsockname(fd_, (sockaddr *)&saddr, &slen) == 0) {
+					char buf[128];
+
+					if (inet_ntop(AF_INET, &saddr.sin_addr, buf, sizeof(buf))) {
+						localIP_ = buf;
+						localPort_ = ntohs(saddr.sin_port);
+					}
+				}
+				break;
+			}
+			default:
+				break;
 		}
 	}
 }
