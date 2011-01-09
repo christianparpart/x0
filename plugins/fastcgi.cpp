@@ -480,7 +480,7 @@ void CgiTransport::io(int revents)
 
 			if (rv == 0) {
 				TRACE("fastcgi: connection to backend lost.");
-				close();
+				finish();
 				return;
 			}
 
@@ -586,16 +586,20 @@ void CgiTransport::onParam(const std::string& name, const std::string& value)
 
 void CgiTransport::close()
 {
-	TRACE("CgiTransport.close(%d)", fd_);
+	int fd = fd_;
+	TRACE("CgiTransport.close(%d)", fd);
 
 	if (request_)
 		finish();
 
-	if (fd_ >= 0)
+	if (fd >= 0)
 	{
+		TRACE("CgiTransport.close: do actually close");
 		ev_io_stop(loop_, &io_);
 		::close(fd_);
 		fd_ = -1;
+	} else {
+		TRACE("CgiTransport.close: nothing to close");
 	}
 }
 
@@ -842,7 +846,6 @@ void CgiTransport::finish()
 	}
 
 	request_->finish();
-
 	request_ = NULL;
 
 	context_->release(this);
@@ -916,6 +919,7 @@ void CgiContext::release(CgiTransport *transport)
 	TRACE("CgiContext.release()");
 	// TODO enqueue instead of destroying.
 	delete transport;
+	transport_ = NULL;
 }
 //}}}
 
