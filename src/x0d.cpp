@@ -61,7 +61,7 @@ public:
 		argc_(argc),
 		argv_(argv),
 		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
-		pidfile_(pathcat(LOCALSTATEDIR, "run/x0d.pid")),
+		pidfile_(),
 		user_(),
 		group_(),
 		instant_(),
@@ -427,7 +427,7 @@ private:
 						<< "  -X,--no-fork             do not fork into background" << std::endl
 						<< "     --systemd             force systemd-mode, which is auto-detected otherwise" << std::endl
 						<< "  -G,--guard               do run service as child of a special guard process to watch for crashes" << std::endl
-						<< "  -p,--pid-file=PATH       PID file to create/use [" << pidfile_ << "]" << std::endl
+						<< "  -p,--pid-file=PATH       PID file to create" << std::endl
 						<< "  -u,--user=NAME           user to drop privileges to" << std::endl
 						<< "  -g,--group=NAME          group to drop privileges to" << std::endl
 						<< "     --dump-ir             dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl

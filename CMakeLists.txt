@@ -108,7 +108,6 @@ if (DEFINED CMAKE_INSTALL_PREFIX)
 	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "x0d configuration directory")
 	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "x0 include directory")
 	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "x0 library directory")
-	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "x0d run-time state directory")
 endif()
 
 if (DEFINED SYSCONFDIR)
@@ -130,12 +129,6 @@ else()
 endif()
 
 set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
-
-if (DEFINED LOCALSTATEDIR)
-	set(LOCALSTATEDIR ${LOCALSTATEDIR} CACHE PATH "run-time state directory")
-else()
-	set(LOCALSTATEDIR ${CMAKE_INSTALL_PREFIX}/var CACHE PATH "run-time state directory")
-endif()
 # ---------------------------------------------------------------------------
 # }}}
 
