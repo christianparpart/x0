@@ -39,8 +39,8 @@ target_link_libraries(x0test
 #add_executable(x0test_copy io_copy.cpp)
 #target_link_libraries(x0test_copy x0)
 
-add_executable(web_client_test web_client_test.cpp)
-target_link_libraries(web_client_test ${CPPUNIT_LIBRARIES} x0)
+#add_executable(web_client_test web_client_test.cpp)
+#target_link_libraries(web_client_test ${CPPUNIT_LIBRARIES} x0)
 
 add_executable(fcgi-long-run fcgi-long-run.cpp)
 target_link_libraries(fcgi-long-run fcgi)
