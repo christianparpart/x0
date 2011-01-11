@@ -169,7 +169,7 @@ private:
 		};
 
 		int chunk_count = 0;
-		rp.on_content = [&](BufferRef&& chunk)
+		rp.on_content = [&](BufferRef&& chunk) -> bool
 		{
 			++chunk_count;
 			CPPUNIT_ASSERT(chunk_count == 1);
@@ -206,7 +206,7 @@ private:
 		HttpMessageProcessor_component rp(HttpMessageProcessor::RESPONSE);
 		bool on_complete_invoked = false;
 
-		rp.on_complete = [&]()
+		rp.on_complete = [&]() -> bool
 		{
 			on_complete_invoked = true;
 			return true;
@@ -255,7 +255,7 @@ private:
 			}
 		};
 
-		rp.on_content = [&](const BufferRef& content)
+		rp.on_content = [&](const BufferRef& content) -> bool
 		{
 			CPPUNIT_ASSERT(++body_count == 1);
 			CPPUNIT_ASSERT(content == "some-body");
@@ -299,7 +299,7 @@ private:
 			CPPUNIT_ASSERT(value == "9");
 		};
 
-		rp.on_content = [&](const BufferRef& content)
+		rp.on_content = [&](const BufferRef& content) -> bool
 		{
 			CPPUNIT_ASSERT(++body_count == 1);
 			CPPUNIT_ASSERT(content == "some body");
@@ -353,13 +353,13 @@ private:
 		};
 
 		int on_header_done_invoked = 0;
-		rp.on_header_done = [&]()
+		rp.on_header_done = [&]() -> bool
 		{
 			++on_header_done_invoked;
 			return true;
 		};
 
-		rp.on_content = [&](const BufferRef& content)
+		rp.on_content = [&](const BufferRef& content) -> bool
 		{
 			CPPUNIT_ASSERT(0 == "no content expected");
 			return true;
@@ -394,7 +394,7 @@ private: // message tests
 		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 
 		int chunk_index = 0;
-		rp.on_content = [&](const BufferRef& chunk)
+		rp.on_content = [&](const BufferRef& chunk) -> bool
 		{
 			switch (chunk_index++)
 			{
@@ -412,7 +412,7 @@ private: // message tests
 			}
 			return true;
 		};
-		rp.on_complete = [&]()
+		rp.on_complete = [&]() -> bool
 		{
 			return false;
 		};
@@ -421,7 +421,7 @@ private: // message tests
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(ec == HttpMessageError::aborted);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Aborted);
 	}
 
 	void message_chunked_body_fragmented()
@@ -447,19 +447,19 @@ private: // message tests
 		std::error_code ec;
 
 		ec = rp.process(BufferRef(headers), np);
-		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Partial);
 
 		ec = rp.process(BufferRef(c1), np);
-		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Partial);
 
 		ec = rp.process(BufferRef(c2), np);
-		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Partial);
 
 		ec = rp.process(BufferRef(c3), np);
-		CPPUNIT_ASSERT(ec == HttpMessageError::partial);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Partial);
 
 		ec = rp.process(BufferRef(c4), np);
-		CPPUNIT_ASSERT(ec == HttpMessageError::success);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Success);
 
 		CPPUNIT_ASSERT(np == r.size());
 	}
@@ -475,12 +475,12 @@ private: // message tests
 
 		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 
-		rp.on_content = [&](const BufferRef& chunk)
+		rp.on_content = [&](const BufferRef& chunk) -> bool
 		{
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
 			return true;
 		};
-		rp.on_complete = [&]()
+		rp.on_complete = [&]() -> bool
 		{
 			return false;
 		};
@@ -489,7 +489,7 @@ private: // message tests
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(ec == HttpMessageError::aborted);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Aborted);
 	}
 
 	void message_content_recursive()
@@ -503,7 +503,7 @@ private: // message tests
 		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 		std::size_t np = 0;
 
-		rp.on_header_done = [&]()
+		rp.on_header_done = [&]() -> bool
 		{
 			std::size_t npl = 0;
 			std::error_code ec = rp.process(r.ref(np, r.size() - np), npl);
@@ -516,14 +516,14 @@ private: // message tests
 			return false;
 		};
 
-		rp.on_content = [&](const BufferRef& chunk)
+		rp.on_content = [&](const BufferRef& chunk) -> bool
 		{
 			DEBUG("on_content('%s')", chunk.str().c_str());
 			CPPUNIT_ASSERT(equals(chunk, "some body"));
 			return true;
 		};
 
-		rp.on_complete = [&]()
+		rp.on_complete = [&]() -> bool
 		{
 			return true;
 		};
@@ -531,7 +531,7 @@ private: // message tests
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(ec == HttpMessageError::aborted); // cancelled parsing at header-done state
+		CPPUNIT_ASSERT(ec == HttpMessageError::Aborted); // cancelled parsing at header-done state
 	}
 
 	void message_multi()
@@ -549,12 +549,12 @@ private: // message tests
 		std::size_t count = 0;
 
 		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
-		rp.on_complete = [&]() { ++count; return true; };
+		rp.on_complete = [&]() -> bool { ++count; return true; };
 
 		std::error_code ec = rp.process(r, np);
 
 		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(ec == HttpMessageError::success);
+		CPPUNIT_ASSERT(ec == HttpMessageError::Success);
 		CPPUNIT_ASSERT(count == 2);
 	}
 };

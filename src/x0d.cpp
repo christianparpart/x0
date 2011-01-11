@@ -93,9 +93,9 @@ public:
 	~x0d()
 	{
 		delete server_;
-		server_ = NULL;
+		server_ = nullptr;
 
-		instance_ = NULL;
+		instance_ = nullptr;
 
 		Flow::Runner::shutdown();
 	}
@@ -442,7 +442,7 @@ private:
 				case 'G':
 					doguard_ = true;
 					break;
-				case 0: // long option with (val!=NULL && flag=0)
+				case 0: // long option with (val!=nullptr && flag=0)
 					break;
 				case -1: // EOF - everything parsed.
 					return true;
@@ -473,7 +473,7 @@ private:
 					return false;
 				}
 
-				setgroups(gr->gr_gid, NULL);
+				setgroups(gr->gr_gid, nullptr);
 
 				if (!username.empty())
 					initgroups(username.c_str(), gr->gr_gid);

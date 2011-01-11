@@ -134,7 +134,7 @@ void SslContext::setCertFile(const std::string& filename)
 	{
 		// read Common Name (CN):
 		std::size_t len = 0;
-		rv = gnutls_x509_crt_get_dn_by_oid(x509Certs_[i], GNUTLS_OID_X520_COMMON_NAME, 0, 0, NULL, &len);
+		rv = gnutls_x509_crt_get_dn_by_oid(x509Certs_[i], GNUTLS_OID_X520_COMMON_NAME, 0, 0, nullptr, &len);
 		if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
 		{
 			char *buf = new char[len + 1];
@@ -148,11 +148,11 @@ void SslContext::setCertFile(const std::string& filename)
 		for (int k = 0; !(rv < 0); ++k)
 		{
 			len = 0;
-			rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, NULL, &len, NULL);
+			rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, nullptr, &len, nullptr);
 			if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
 			{
 				char *buf = new char[len + 1];
-				rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, buf, &len, NULL);
+				rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, buf, &len, nullptr);
 				buf[len] = '\0';
 
 				if (rv == GNUTLS_SAN_DNSNAME)
@@ -187,7 +187,7 @@ void SslContext::setKeyFile(const std::string& filename)
 	}
 
 	if ((rv = gnutls_x509_privkey_import(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM)) < 0)
-		rv = gnutls_x509_privkey_import_pkcs8(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM, NULL, GNUTLS_PKCS_PLAIN);
+		rv = gnutls_x509_privkey_import_pkcs8(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM, nullptr, GNUTLS_PKCS_PLAIN);
 
 	if (rv < 0) {
 		freeFile(data);
@@ -221,7 +221,7 @@ void SslContext::setPriorities(const std::string& value)
 
 	TRACE("setPriorities: \"%s\"", value.c_str());
 
-	const char *errp = NULL;
+	const char *errp = nullptr;
 	int rv = gnutls_priority_init(&priorities_, value.c_str(), &errp);
 
 	if (rv != GNUTLS_E_SUCCESS)

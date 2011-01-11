@@ -84,9 +84,9 @@ void FileInfoService::Config::loadMimetypes(const std::string& filename)
 
 	mimetypes.clear();
 
-	for (tokenizer::iterator i = lines.begin(), e = lines.end(); i != e; ++i)
+	for (auto line: lines)
 	{
-		std::string line(x0::trim(*i));
+		line = x0::trim(line);
 		tokenizer columns(line, boost::char_separator<char>(" \t"));
 
 		tokenizer::iterator ci = columns.begin(), ce = columns.end();

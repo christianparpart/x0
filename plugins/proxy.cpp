@@ -138,7 +138,7 @@ public:
 // {{{ ProxyConnection impl
 ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r, bool cloak) :
 	x0::HttpMessageProcessor(x0::HttpMessageProcessor::RESPONSE),
-	hostname_(NULL),
+	hostname_(nullptr),
 	port_(),
 	fd_(-1),
 	request_(r),
@@ -355,7 +355,7 @@ bool ProxyConnection::connect()
 		return false;
 	}
 
-	for (struct addrinfo *rp = res; rp != NULL; rp = rp->ai_next)
+	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next)
 	{
 		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (fd_ < 0)
@@ -424,7 +424,7 @@ void ProxyConnection::destroy(x0::HttpError code)
 			request_->status = code;
 
 		request_->finish();
-		request_ = NULL;
+		request_ = nullptr;
 	}
 
 	delete this;
@@ -647,6 +647,7 @@ private:
 		if (args.count() && (args[0].isBool() || args[0].isNumber()))
 		{
 			cloak_ = args[0].toBool();
+			printf("proxy cloak: %s\n", cloak_ ? "true" : "false");
 		}
 
 		result.set(cloak_);

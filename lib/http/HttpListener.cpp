@@ -53,7 +53,7 @@ void HttpListener::stop()
 	::close(fd_);
 	fd_ = -1;
 
-	setSocketDriver(NULL);
+	setSocketDriver(nullptr);
 }
 
 inline void HttpListener::setsockopt(int socket, int layer, int option, int value)
@@ -100,7 +100,7 @@ addrinfo *HttpListener::getAddressInfo(const char *address, int port)
 	addrinfo *res;
 	if ((rc = getaddrinfo(address, sport, &hints, &res)) != 0) {
 		log(Severity::error, "Host not found: %s", gai_strerror(rc));
-		return NULL;
+		return nullptr;
 	}
 
 	return res;
@@ -118,7 +118,7 @@ bool HttpListener::prepare()
 #endif
 
 	addrinfo *res = getAddressInfo(address_.c_str(), port_);
-	if (res == NULL)
+	if (res == nullptr)
 		return false;
 
 	// check systemd first
@@ -127,7 +127,7 @@ bool HttpListener::prepare()
 		fd_ = SD_LISTEN_FDS_START;
 		int last = fd_ + count;
 
-		for (addrinfo *ri = res; ri != NULL; ri = ri->ai_next) {
+		for (addrinfo *ri = res; ri != nullptr; ri = ri->ai_next) {
 			for (; fd_ < last; ++fd_) {
 				if (sd_is_socket_inet(fd_, ri->ai_family, ri->ai_socktype, true, port_) > 0) {
 					// matching file descriptor found
@@ -142,7 +142,7 @@ bool HttpListener::prepare()
 	}
 
 	// create socket manually
-	for (addrinfo *ri = res; ri != NULL; ri = ri->ai_next) {
+	for (addrinfo *ri = res; ri != nullptr; ri = ri->ai_next) {
 		fd_ = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
 		if (fd_ < 0)
@@ -197,7 +197,7 @@ done:
 	return true;
 
 err:
-	if (res != NULL)
+	if (res != nullptr)
 		freeaddrinfo(res);
 
 	return false;
@@ -218,9 +218,9 @@ void HttpListener::callback(ev::io& watcher, int revents)
 	int fd;
 
 #if defined(HAVE_ACCEPT4) && !defined(VALGRIND) // valgrind does not yet implement accept4()
-	fd = ::accept4(handle(), NULL, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
+	fd = ::accept4(handle(), nullptr, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
 #else
-	fd = ::accept(handle(), NULL, 0);
+	fd = ::accept(handle(), nullptr, 0);
 #endif
 
 	if (fd < 0)

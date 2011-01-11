@@ -275,7 +275,7 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 	if (listener && backlog)
 		listener->backlog(backlog);
 
-	result.set(listener == NULL);
+	result.set(listener == nullptr);
 }
 
 void HttpCore::workers(Flow::Value& result, const Params& args)

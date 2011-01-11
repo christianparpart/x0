@@ -86,7 +86,7 @@ public:
 
 		gnutls_global_init_extra();
 
-		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(NULL));
+		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(nullptr));
 
 		registerSetupFunction<ssl_plugin, &ssl_plugin::add_listener>("ssl.listen", Flow::Value::VOID);
 		registerSetupFunction<ssl_plugin, &ssl_plugin::add_context>("ssl.context", Flow::Value::VOID);
@@ -100,7 +100,7 @@ public:
 
 	std::vector<SslContext *> contexts_;
 
-	/** select the SSL context based on host name or NULL if nothing found. */
+	/** select the SSL context based on host name or nullptr if nothing found. */
 	virtual SslContext *select(const std::string& dnsName) const
 	{
 		if (dnsName.empty())
@@ -117,7 +117,7 @@ public:
 			}
 		}
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual bool post_config()

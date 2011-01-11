@@ -89,9 +89,9 @@ void HttpRequest::updatePathInfo()
 
 BufferRef HttpRequest::requestHeader(const std::string& name) const
 {
-	for (std::vector<HttpRequestHeader>::const_iterator i = requestHeaders.begin(), e = requestHeaders.end(); i != e; ++i)
-		if (iequals(i->name, name))
-			return i->value;
+	for (auto& i: requestHeaders)
+		if (iequals(i.name, name))
+			return i.value;
 
 	return BufferRef();
 }
@@ -240,12 +240,10 @@ SourcePtr HttpRequest::serialize()
 	buffers.push_back(statusStr(status));
 	buffers.push_back("\r\n");
 
-	for (auto i = responseHeaders.begin(), e = responseHeaders.end(); i != e; ++i)
-	{
-		const HeaderList::Header& h = *i;
-		buffers.push_back(h.name.data(), h.name.size());
+	for (auto& i: responseHeaders) {
+		buffers.push_back(i.name.data(), i.name.size());
 		buffers.push_back(": ");
-		buffers.push_back(h.value.data(), h.value.size());
+		buffers.push_back(i.value.data(), i.value.size());
 		buffers.push_back("\r\n");
 	};
 

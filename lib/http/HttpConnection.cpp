@@ -57,10 +57,10 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	offset_(0),
 	request_count_(0),
 	request_(0),
-	abortHandler_(NULL),
-	abortData_(NULL),
+	abortHandler_(nullptr),
+	abortData_(nullptr),
 	source_(),
-	sink_(NULL),
+	sink_(nullptr),
 	onWriteComplete_(),
 	bytesTransferred_(0)
 #if !defined(NDEBUG)

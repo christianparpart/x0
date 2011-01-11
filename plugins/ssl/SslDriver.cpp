@@ -131,7 +131,7 @@ bool SslDriver::store(const gnutls_datum_t& key, const gnutls_datum_t& value)
 
 gnutls_datum_t SslDriver::retrieve(const gnutls_datum_t& key) const
 {
-	gnutls_datum_t result = { NULL, 0 };
+	gnutls_datum_t result = { nullptr, 0 };
 
 	for (auto i = items_, e = i + size_; i != e; ++i)
 	{

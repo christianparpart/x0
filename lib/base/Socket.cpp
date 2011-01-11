@@ -132,8 +132,8 @@ void Socket::setMode(Mode m)
 
 void Socket::clearReadyCallback()
 {
-	callback_ = NULL;
-	callbackData_ = NULL;
+	callback_ = nullptr;
+	callbackData_ = nullptr;
 }
 
 void Socket::close()

@@ -663,7 +663,7 @@ void CgiScript::onClientEof(void *p)
 
 	TRACE("CgiScript::onClientEof()");
 	self->process_.terminate();
-	self->request_ = NULL;
+	self->request_ = nullptr;
 }
 // }}}
 

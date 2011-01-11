@@ -60,7 +60,7 @@ public:
 		start_(ev_now(server.loop())),
 		cid_(++connection_counter),
 		rcount_(0),
-		fp(NULL)
+		fp(nullptr)
 	{
 
 		char buf[1024];

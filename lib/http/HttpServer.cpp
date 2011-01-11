@@ -76,7 +76,7 @@ std::string global_now()
 }
 
 /** initializes the HTTP server object.
- * \param io_service an Asio io_service to use or NULL to create our own one.
+ * \param io_service an Asio io_service to use or nullptr to create our own one.
  * \see HttpServer::run()
  */
 HttpServer::HttpServer(struct ::ev_loop *loop) :
@@ -89,8 +89,8 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	onConnectionClose(),
 	components_(),
 
-	unit_(NULL),
-	runner_(NULL),
+	unit_(nullptr),
+	runner_(nullptr),
 	onHandleRequest_(),
 
 	listeners_(),
@@ -133,24 +133,24 @@ HttpServer::~HttpServer()
 {
 	stop();
 
-	for (std::list<HttpListener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
-		delete *k;
+	for (auto i: listeners_)
+		delete i;
 
 	while (!workers_.empty())
 		destroyWorker(workers_[workers_.size() - 1]);
 
 	unregisterPlugin(core_);
 	delete core_;
-	core_ = 0;
+	core_ = nullptr;
 
 	while (!plugins_.empty())
 		unloadPlugin(plugins_[plugins_.size() - 1]->name());
 
 	delete runner_;
-	runner_ = NULL;
+	runner_ = nullptr;
 
 	delete unit_;
-	unit_ = NULL;
+	unit_ = nullptr;
 }
 
 bool HttpServer::setup(std::istream *settings, const std::string& filename)
@@ -243,14 +243,14 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	// }}}
 
 	// {{{ run post-config hooks
-	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
-		if (!(*i)->post_config())
+	for (auto i: plugins_)
+		if (!i->post_config())
 			goto err;
 	// }}}
 
 	// {{{ run post-check hooks
-	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
-		if (!(*i)->post_check())
+	for (auto i: plugins_)
+		if (!i->post_check())
 			goto err;
 	// }}}
 
@@ -261,8 +261,8 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 		goto err;
 	}
 
-	for (auto i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
-		if (!(*i)->prepare())
+	for (auto i: listeners_)
+		if (!i->prepare())
 			goto err;
 	// }}}
 
@@ -284,7 +284,7 @@ HttpWorker *HttpServer::spawnWorker()
 	HttpWorker *worker = new HttpWorker(*this, loop);
 
 	if (!workers_.empty())
-		pthread_create(&worker->thread_, NULL, &HttpServer::runWorker, worker);
+		pthread_create(&worker->thread_, nullptr, &HttpServer::runWorker, worker);
 
 	workers_.push_back(worker);
 
@@ -321,29 +321,23 @@ HttpWorker *HttpServer::selectWorker()
 
 void HttpServer::destroyWorker(HttpWorker *worker)
 {
-	std::vector<HttpWorker *>::iterator i = workers_.begin();
-	while (i != workers_.end())
-	{
-		if (*i == worker)
-		{
-			worker->evExit_.send();
+	auto i = std::find(workers_.begin(), workers_.end(), worker);
+	assert(i != workers_.end());
 
-			if (worker != workers_.front())
-				pthread_join(worker->thread_, NULL);
+	worker->evExit_.send();
 
-			delete worker;
-			workers_.erase(i);
-			return;
-		}
-		++i;
-	}
+	if (worker != workers_.front())
+		pthread_join(worker->thread_, nullptr);
+
+	workers_.erase(i);
+	delete worker;
 }
 
 void *HttpServer::runWorker(void *p)
 {
 	HttpWorker *w = (HttpWorker *)p;
 	w->run();
-	return NULL;
+	return nullptr;
 }
 // }}}
 
@@ -361,8 +355,8 @@ bool HttpServer::start()
 
 		active_ = true;
 
-		for (std::list<HttpListener *>::iterator i = listeners_.begin(), e = listeners_.end(); i != e; ++i)
-			if (!(*i)->start())
+		for (auto i: listeners_)
+			if (!i->start())
 				return false;
 
 		// systemd: check for superfluous passed file descriptors
@@ -372,9 +366,8 @@ bool HttpServer::start()
 			count = 0;
 			for (int fd = SD_LISTEN_FDS_START; fd < maxfd; ++fd) {
 				bool found = false;
-				for (auto li = listeners_.begin(), le = listeners_.end(); li != le; ++li) {
-					HttpListener *l = *li;
-					if (fd == l->handle()) {
+				for (auto li: listeners_) {
+					if (fd == li->handle()) {
 						found = true;
 						break;
 					}
@@ -429,17 +422,14 @@ int HttpServer::run()
  */
 HttpListener *HttpServer::listenerByPort(int port) const
 {
-	for (auto k = listeners_.begin(); k != listeners_.end(); ++k)
-	{
-		HttpListener *http_server = *k;
-
-		if (http_server->port() == port)
+	for (auto listener: listeners_) {
+		if (listener->port() == port)
 		{
-			return http_server;
+			return listener;
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 void HttpServer::pause()
@@ -469,13 +459,11 @@ void HttpServer::stop()
 		sd_notify(0, "STATUS=Stopping ...");
 		active_ = false;
 
-		for (std::list<HttpListener *>::iterator k = listeners_.begin(); k != listeners_.end(); ++k)
-		{
-			(*k)->stop();
-		}
+		for (auto listener: listeners_)
+			listener->stop();
 
-		for (auto i = workers_.begin(), e = workers_.end(); i != e; ++i)
-			(*i)->evExit_.send();
+		for (auto worker: workers_)
+			worker->evExit_.send();
 
 		//ev_unloop(loop_, ev::ALL);
 	}
@@ -613,7 +601,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 /** safely unloads a plugin. */
@@ -623,10 +611,8 @@ void HttpServer::unloadPlugin(const std::string& name)
 	//log(Severity::debug, "Unloading plugin: %s", name.c_str());
 #endif
 
-	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
+	for (auto plugin: plugins_)
 	{
-		HttpPlugin *plugin = *i;
-
 		if (plugin->name() == name)
 		{
 			unregisterPlugin(plugin);
@@ -637,8 +623,8 @@ void HttpServer::unloadPlugin(const std::string& name)
 				delete plugin;
 				m->second.close();
 				pluginLibraries_.erase(m);
-				return;
 			}
+			return;
 		}
 	}
 }
@@ -648,8 +634,8 @@ std::vector<std::string> HttpServer::pluginsLoaded() const
 {
 	std::vector<std::string> result;
 
-	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i)
-		result.push_back((*i)->name());
+	for (auto plugin: plugins_)
+		result.push_back(plugin->name());
 
 	return result;
 }
@@ -663,12 +649,10 @@ HttpPlugin *HttpServer::registerPlugin(HttpPlugin *plugin)
 
 HttpPlugin *HttpServer::unregisterPlugin(HttpPlugin *plugin)
 {
-	for (auto i = plugins_.begin(), e = plugins_.end(); i != e; ++i) {
-		if (*i == plugin) {
-			unregisterNative(plugin->name());
-			plugins_.erase(i);
-			break;
-		}
+	auto i = std::find(plugins_.begin(), plugins_.end(), plugin);
+	if (i != plugins_.end()) {
+		unregisterNative(plugin->name());
+		plugins_.erase(i);
 	}
 
 	return plugin;

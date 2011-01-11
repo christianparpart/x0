@@ -28,7 +28,7 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	ctime_(ev_now(loop)),
 #endif
 	driver_(driver),
-	context_(NULL),
+	context_(nullptr),
 	session_()
 {
 	TRACE("SslSocket()");

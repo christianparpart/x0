@@ -251,7 +251,7 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	flushPending_(false),
 	configured_(false),
 
-	request_(NULL),
+	request_(nullptr),
 	paramWriter_()
 #if X0_FASTCGI_DIRECT_IO
 	, writeActive_(false)
@@ -304,7 +304,7 @@ bool CgiTransport::open(const char *hostname, int port, uint16_t id)
 		return false;
 	}
 
-	for (struct addrinfo *rp = res; rp != NULL; rp = rp->ai_next)
+	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next)
 	{
 		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (fd_ < 0)
@@ -846,7 +846,7 @@ void CgiTransport::finish()
 	}
 
 	request_->finish();
-	request_ = NULL;
+	request_ = nullptr;
 
 	context_->release(this);
 }
@@ -919,7 +919,7 @@ void CgiContext::release(CgiTransport *transport)
 	TRACE("CgiContext.release()");
 	// TODO enqueue instead of destroying.
 	delete transport;
-	transport_ = NULL;
+	transport_ = nullptr;
 }
 //}}}
 

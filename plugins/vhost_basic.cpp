@@ -227,7 +227,7 @@ public:
 		if (i != default_hosts.end())
 			return i->second;
 
-		return NULL;
+		return nullptr;
 	}
 
 	vhost_config *get_host(const std::string& name)
@@ -236,7 +236,7 @@ public:
 		if (vh != mappings.end())
 			return vh->second;
 
-		return NULL;
+		return nullptr;
 	}
 
 	virtual bool post_check()
