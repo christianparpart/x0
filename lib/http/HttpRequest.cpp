@@ -17,6 +17,7 @@
 #include <strings.h>			// strcasecmp()
 
 #define TRACE(msg...) DEBUG(msg)
+//#define TRACE(msg...) do { fprintf(stderr, msg); fprintf(stderr, "\n"); } while (0)
 
 namespace x0 {
 
@@ -145,10 +146,12 @@ bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
 
 void HttpRequest::onRequestContent(BufferRef&& chunk)
 {
+	TRACE("HttpRequest.onRequestContent(chunkSize=%ld)", chunk.size());
 	if (readCallback_)
 	{
-		readCallback_(std::move(chunk));
+		auto callback = readCallback_;
 		readCallback_ = std::function<void(BufferRef&&)>();
+		callback(std::move(chunk));
 	}
 }
 
