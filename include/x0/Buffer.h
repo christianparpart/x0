@@ -124,7 +124,7 @@ public:
 	std::string substr(std::size_t offset, std::size_t count) const;
 
 	// statics
-	static Buffer from_copy(const value_type *data, std::size_t count);
+	static Buffer fromCopy(const value_type *data, std::size_t count);
 
 private:
 	void assertMutable();
@@ -551,10 +551,10 @@ inline std::string Buffer::substr(std::size_t offset, std::size_t count) const
 	return std::string(data_ + offset, data_ + std::min(offset + count, size_));
 }
 
-inline Buffer Buffer::from_copy(const value_type *data, std::size_t count)
+inline Buffer Buffer::fromCopy(const value_type *data, std::size_t count)
 {
 	Buffer result(count);
-	result.push_back(data);
+	result.push_back(data, count);
 	return result;
 }
 // }}}
