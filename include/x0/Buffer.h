@@ -125,6 +125,9 @@ public:
 
 	// statics
 	static Buffer fromCopy(const value_type *data, std::size_t count);
+	static void dump(const void *bytes, std::size_t length, const char *description = nullptr);
+
+	void dump(const char *description = nullptr);
 
 private:
 	void assertMutable();
@@ -556,6 +559,11 @@ inline Buffer Buffer::fromCopy(const value_type *data, std::size_t count)
 	Buffer result(count);
 	result.push_back(data, count);
 	return result;
+}
+
+inline void Buffer::dump(const char *description)
+{
+	dump(data_, size_, description);
 }
 // }}}
 
