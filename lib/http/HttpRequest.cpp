@@ -146,9 +146,9 @@ bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
 
 void HttpRequest::onRequestContent(BufferRef&& chunk)
 {
-	TRACE("HttpRequest.onRequestContent(chunkSize=%ld)", chunk.size());
 	if (readCallback_)
 	{
+		//TRACE("HttpRequest.onRequestContent(chunkSize=%ld)", chunk.size());
 		auto callback = readCallback_;
 		readCallback_ = std::function<void(BufferRef&&)>();
 		callback(std::move(chunk));
@@ -295,7 +295,7 @@ SourcePtr HttpRequest::makeDefaultResponseContent()
 		responseHeaders.overwrite("Content-Type", "text/html");
 		responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
 
-		return std::make_shared<BufferSource>(Buffer::from_copy(buf, nwritten));
+		return std::make_shared<BufferSource>(Buffer::fromCopy(buf, nwritten));
 	}
 }
 

@@ -220,7 +220,7 @@ void CgiScript::onCheckDestroy(ev::async& /*w*/, int /*revents*/)
 
 	if (process_.expired()) {
 		// process exited; do not wait for any child I/O stream to complete, just kill us.
-		outputFlags_ |= OutputClosed;
+		outputFlags_ |= ChildClosed;
 		checkDestroy();
 	}
 }
