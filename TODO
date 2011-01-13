@@ -1,8 +1,7 @@
 for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects/x0
 
-- systemd: fix log/stdout/stderr output. somewhat not working with "log.file"-command
-- systemd: add SystemdLogger to be used (automatically) when detecting systemd environment
-- x0d: FIX process termination. systemd wants good cookies for a good shutdown.
+- bug in timeout management, when the timeout has been reached the connection is not
+	properly cleaned up (see valgrind).
 - bug in keep-alive connections sending a second+ request?
 - drop *all* occurences of std::function with raw function pointers+data pairs
 - replace std::map with x0's yet to be implemented HashMap
@@ -11,8 +10,13 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 - flow backend: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
 - introduce a specialized speed-optimized String class with an API like BufferRef/Buffer
 	- including formatted string building and using external pool-allocator
-
-caseStmt ::=
+- core: add runtime functions:
+	- bool systemd.booted();
+	- bool systemd.controlled(); / bool systemd.supervised();
+- virtual host management:
+	- void vhost.add(string name, string docroot);
+	- void vhost.map;
+- caseStmt ::=
 			'case' expr
 				('when' expr ['then' stmt)*
 				['else' stmt]
@@ -21,7 +25,6 @@ caseStmt ::=
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
-- verify WebClient
 - encapsulate ev::timer into an x0::timer (inline) to ease switching backends (e.g. to asio)
 - colorize (optional) help print output
 - RESPECT: handle request headers "Keep-Alive" properly (using [deadline-]timers)
