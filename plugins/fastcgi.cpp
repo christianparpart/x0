@@ -67,7 +67,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
