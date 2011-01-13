@@ -8,6 +8,7 @@
 
 #include <x0/io/FileInfoService.h>
 #include <x0/strutils.h>
+#include <x0/sysconfig.h>
 
 #include <boost/tokenizer.hpp>
 
@@ -49,12 +50,54 @@ FileInfoService::~FileInfoService()
 #endif
 }
 
+FileInfoPtr FileInfoService::query(const std::string& _filename)
+{
+	std::string filename(_filename[_filename.size() - 1] == '/' ? _filename.substr(0, _filename.size() - 1) : _filename);
+
+	auto i = cache_.find(filename);
+	if (i != cache_.end())
+	{
+		FILEINFO_DEBUG("query.cached(%s)\n", filename.c_str());
+		return i->second;
+	}
+
+	if (FileInfoPtr fi = FileInfoPtr(new FileInfo(*this, filename)))
+	{
+		fi->mimetype_ = get_mimetype(filename);
+		fi->etag_ = make_etag(*fi);
+
+#if defined(HAVE_SYS_INOTIFY_H)
+		FILEINFO_DEBUG("query(%s).new\n", filename.c_str());
+		int rv = handle_ != -1 && ::inotify_add_watch(handle_, filename.c_str(),
+				IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
+				IN_DELETE | IN_CLOSE_WRITE | IN_MOVE_SELF | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE);
+
+		if (rv != -1)
+		{
+			cache_[filename] = fi;
+			wd_[rv] = filename;
+		}
+#else
+		FILEINFO_DEBUG("query(%s)!\n", filename.c_str());
+#endif
+
+		return fi;
+	}
+
+	FILEINFO_DEBUG("query(%s) failed (%s)\n", filename.c_str(), strerror(errno));
+	// either ::stat() or caching failed.
+
+	return FileInfoPtr();
+}
+
+
 void FileInfoService::on_inotify(ev::io& w, int revents)
 {
-	//DEBUG("FileInfoService::on_inotify()");
+	DEBUG("FileInfoService::on_inotify()");
 
 	char buf[4096];
 	ssize_t rv = ::read(handle_, &buf, sizeof(buf));
+
 	if (rv > 0)
 	{
 		inotify_event *i = (inotify_event *)buf;
@@ -66,6 +109,7 @@ void FileInfoService::on_inotify(ev::io& w, int revents)
 			if (wi != wd_.end())
 			{
 				auto k = cache_.find(wi->second);
+				fprintf(stderr, "FileInfoService.on_inotify: invalidate: %s\n", k->first.c_str());
 				// on_invalidate(k->first, k->second);
 				cache_.erase(k);
 				wd_.erase(wi);

@@ -22,7 +22,7 @@
 #	include <sys/fcntl.h>
 #endif
 
-#if 0
+#if 1
 #	define FILEINFO_DEBUG(msg...) printf("FileInfoService: " msg)
 #else
 #	define FILEINFO_DEBUG(msg...) /*!*/
@@ -104,44 +104,6 @@ private:
 #include <x0/io/FileInfo.h>
 
 namespace x0 {
-
-inline FileInfoPtr FileInfoService::query(const std::string& _filename)
-{
-	std::string filename(_filename[_filename.size() - 1] == '/' ? _filename.substr(0, _filename.size() - 1) : _filename);
-
-	auto i = cache_.find(filename);
-	if (i != cache_.end())
-	{
-		FILEINFO_DEBUG("query.cached(%s)\n", filename.c_str());
-		return i->second;
-	}
-
-	if (FileInfoPtr fi = FileInfoPtr(new FileInfo(*this, filename)))
-	{
-		FILEINFO_DEBUG("query(%s).new\n", filename.c_str());
-		fi->mimetype_ = get_mimetype(filename);
-		fi->etag_ = make_etag(*fi);
-
-#if defined(HAVE_SYS_INOTIFY_H)
-		int rv = handle_ != -1 && ::inotify_add_watch(handle_, filename.c_str(),
-				IN_ONESHOT | IN_ATTRIB | IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
-				IN_DELETE | IN_CLOSE_WRITE | IN_MOVE_SELF | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE);;
-
-		if (rv != -1)
-		{
-			cache_[filename] = fi;
-			wd_[rv] = filename;
-		}
-#endif
-
-		return fi;
-	}
-
-	FILEINFO_DEBUG("query(%s) failed (%s)\n", filename.c_str(), strerror(errno));
-	// either ::stat() or caching failed.
-
-	return FileInfoPtr();
-}
 
 inline FileInfoPtr FileInfoService::operator()(const std::string& filename)
 {
