@@ -50,6 +50,7 @@
 #include <x0/io/BufferSource.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
+#include <x0/Buffer.h>
 #include <x0/Types.h>
 #include <x0/gai_error.h>
 #include <x0/StackTrace.h>
@@ -362,22 +363,42 @@ void CgiTransport::bind(x0::HttpRequest *in)
 
 void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content)
 {
-	FastCgi::Record record(type, requestId, content.size(), 0);
-	writeBuffer_.push_back(record.data(), sizeof(record));
-	writeBuffer_.push_back(content.data(), content.size());
-
-	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
-			record.type_str(), record.requestId(), record.size(), record.paddingLength());
+	write(type, requestId, content.data(), content.size());
 }
 
 void CgiTransport::write(FastCgi::Type type, int requestId, const char *buf, size_t len)
 {
-	FastCgi::Record record(type, requestId, len, 0);
+	TRACE("CgiTransport.write(rid=%d, body-size=%ld)", requestId, len);
+
+#if 0
+	FastCgi::Record record(type, requestId, content.size(), 0);
 	writeBuffer_.push_back(record.data(), sizeof(record));
 	writeBuffer_.push_back(buf, len);
+	x0::Buffer::dump(buf, len, "CHUNK");
 
-	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
+	TRACE("-CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)",
 			record.type_str(), record.requestId(), record.size(), record.paddingLength());
+#else
+	if (len == 0) {
+		FastCgi::Record record(type, requestId, 0, 0);
+		writeBuffer_.push_back(record.data(), sizeof(record));
+		return;
+	}
+
+	const size_t chunkSize = 0xFFFF;
+
+	for (size_t offset = 0; offset < len; offset += chunkSize) {
+		size_t clen = std::min(offset + chunkSize, len) - offset;
+
+		FastCgi::Record record(type, requestId, clen, 0);
+		writeBuffer_.push_back(record.data(), sizeof(record));
+		writeBuffer_.push_back(buf + offset, clen);
+		//x0::Buffer::dump(buf + offset, clen, "CHUNK");
+
+		TRACE("-CgiTransport.write(type=%s, rid=%d, offset=%ld, size=%ld)", 
+				record.type_str(), requestId, offset, clen);
+	}
+#endif
 }
 
 void CgiTransport::write(FastCgi::Record *record)
@@ -465,8 +486,10 @@ void CgiTransport::connected()
 
 void CgiTransport::io(int revents)
 {
+	TRACE("CgiTransport::io(0x%04x)", revents);
 	if (revents & EV_READ)
 	{
+		TRACE("CgiTransport::io(): reading ...");
 		// read as much as possible
 		for (;;)
 		{
@@ -497,6 +520,7 @@ void CgiTransport::io(int revents)
 		}
 
 		// process fully received records
+		TRACE("CgiTransport::io(): processing ...");
 		while (readOffset_ + sizeof(FastCgi::Record) < readBuffer_.size())
 		{
 			const FastCgi::Record *record =
@@ -515,9 +539,11 @@ void CgiTransport::io(int revents)
 
 	if (revents & EV_WRITE)
 	{
+		TRACE("CgiTransport::io(): writing ...");
 		//size_t sz = writeBuffer_.size() - writeOffset_;
-		ssize_t rv = ::write(fd_, writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
 		//TRACE("CgiTransport.write(fd:%d): %ld -> %ld\n", fd_, sz, rv);
+		ssize_t rv = ::write(fd_, writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
+		TRACE("CgiTransport::io(): write() -> %ld ...", rv);
 
 		if (rv < 0) {
 			if (errno != EINTR && errno != EAGAIN) {
@@ -532,6 +558,7 @@ void CgiTransport::io(int revents)
 
 		// if set watcher back to EV_READ if the write-buffer has been fully written (to catch connection close events)
 		if (writeOffset_ == writeBuffer_.size()) {
+			TRACE("CgiTransport::io(): write buffer fully written to socket (%ld)", writeOffset_);
 			ev_io_stop(loop_, &io_);
 			ev_io_set(&io_, fd_, EV_READ);
 			ev_io_start(loop_, &io_);
@@ -619,6 +646,7 @@ void CgiTransport::streamParams()
 	paramWriter_.encode("SERVER_PORT", boost::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
 
 	paramWriter_.encode("REQUEST_METHOD", request_->method);
+	paramWriter_.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
 
 	request_->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
 
@@ -714,7 +742,9 @@ void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolS
 
 void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
 {
-	TRACE("CgiTransport.processRequestBody(len=%ld)", chunk.size());
+	TRACE("CgiTransport.processRequestBody(chunkLen=%ld, (r)contentLen=%ld)", chunk.size(),
+			request_->connection.contentLength());
+
 	write(FastCgi::Type::StdIn, id_, chunk.data(), chunk.size());
 
 	if (request_->connection.contentLength() > 0)
