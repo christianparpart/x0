@@ -22,7 +22,7 @@
 #	include <sys/fcntl.h>
 #endif
 
-#if 1
+#if 0
 #	define FILEINFO_DEBUG(msg...) printf("FileInfoService: " msg)
 #else
 #	define FILEINFO_DEBUG(msg...) /*!*/

@@ -23,9 +23,13 @@
 namespace x0 {
 	enum class HttpMessageError
 	{
+		/** the request has been fully parsed, including possibly existing request body. */
 		Success = 0,
+		/** the request chunk passed has been successsfully parsed, but the request is incomplete (partial). */
 		Partial,
+		/** the request has been parsed up to a point where a callback raised an "abort-parsing"-notice. */
 		Aborted,
+		/** a syntax error occurred while parsing the request chunk. */
 		SyntaxError
 	};
 
@@ -70,7 +74,7 @@ public:
 		MESSAGE
 	}; // }}}
 
-	enum state { // {{{
+	enum State { // {{{
 		// artificial
 		SYNTAX_ERROR = 1,
 		MESSAGE_BEGIN,
@@ -140,7 +144,7 @@ public:
 public:
 	explicit HttpMessageProcessor(mode_type mode = MESSAGE);
 
-	HttpMessageProcessor::state state() const;
+	State state() const;
 	const char *state_str() const;
 
 	std::error_code process(BufferRef&& chunk, std::size_t& nparsed);
@@ -165,7 +169,7 @@ private:
 	};
 
 	mode_type mode_;
-	enum state state_;
+	enum State state_;
 
 	// request-line
 	BufferRef method_;
@@ -192,7 +196,7 @@ private:
 // {{{ inlines
 namespace x0 {
 
-inline enum HttpMessageProcessor::state HttpMessageProcessor::state() const
+inline enum HttpMessageProcessor::State HttpMessageProcessor::state() const
 {
 	return state_;
 }

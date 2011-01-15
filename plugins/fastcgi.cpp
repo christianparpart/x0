@@ -68,7 +68,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 1 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -613,13 +613,12 @@ void CgiTransport::onParam(const std::string& name, const std::string& value)
 
 void CgiTransport::close()
 {
-	int fd = fd_;
-	TRACE("CgiTransport.close(%d)", fd);
+	TRACE("CgiTransport.close(%d)", fd_);
 
 	if (request_)
 		finish();
 
-	if (fd >= 0)
+	if (fd_ >= 0)
 	{
 		TRACE("CgiTransport.close: do actually close");
 		ev_io_stop(loop_, &io_);
