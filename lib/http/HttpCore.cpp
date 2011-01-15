@@ -386,7 +386,8 @@ void HttpCore::sys_now(Flow::Value& result, const Params& args)
 
 void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
 {
-	result.set(server().workers_[0]->now_.http_str().c_str());
+	auto& s = server().workers_[0]->now_.http_str();
+	result.set(s.data(), s.size());
 }
 // }}}
 
@@ -529,7 +530,7 @@ void HttpCore::req_header(Flow::Value& result, HttpRequest *in, const Params& ar
 
 void HttpCore::req_host(Flow::Value& result, HttpRequest *in, const Params& args)
 {
-	result = in->hostname.str().c_str();
+	result.set(in->hostname.data(), in->hostname.size());
 }
 
 void HttpCore::req_pathinfo(Flow::Value& result, HttpRequest *in, const Params& args)
