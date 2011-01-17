@@ -59,6 +59,7 @@
 #include <system_error>
 #include <algorithm>
 #include <string>
+#include <deque>
 #include <cctype>
 
 #include <sys/types.h>
@@ -209,17 +210,16 @@ private:
 	inline void onParam(const std::string& name, const std::string& value);
 }; // }}}
 
-uint16_t nextID_ = 0;
-
 class CgiContext //{{{
 {
 public:
+	static uint16_t nextID_;
+
 	x0::HttpServer& server_;
 	std::string host_;
 	int port_;
 
-	CgiTransport *transport_;
-	std::vector<CgiTransport *> transports_;
+	std::deque<CgiTransport *> idle_;
 
 public:
 	CgiContext(x0::HttpServer& server);
@@ -228,8 +228,9 @@ public:
 	x0::HttpServer& server() const { return server_; }
 	void setup(const std::string& application);
 
-	CgiTransport *handleRequest(x0::HttpRequest *in);
+	bool handleRequest(x0::HttpRequest *in);
 
+	CgiTransport *acquire();
 	void release(CgiTransport *tr);
 };
 // }}}
@@ -615,9 +616,6 @@ void CgiTransport::close()
 {
 	TRACE("CgiTransport.close(%d)", fd_);
 
-	if (request_)
-		finish();
-
 	if (fd_ >= 0)
 	{
 		TRACE("CgiTransport.close: do actually close");
@@ -627,6 +625,9 @@ void CgiTransport::close()
 	} else {
 		TRACE("CgiTransport.close: nothing to close");
 	}
+
+	if (request_)
+		finish();
 }
 
 void CgiTransport::beginRequest()
@@ -867,11 +868,8 @@ void CgiTransport::finish()
 	if (!request_)
 		return;
 
-	if (request_->status == x0::HttpError::Undefined)
-	{
+	if (request_->status == x0::HttpError::Undefined) {
 		request_->status = x0::HttpError::ServiceUnavailable;
-		//x0::StackTrace st;
-		//printf("%s\n", st.c_str());
 	}
 
 	request_->finish();
@@ -882,26 +880,22 @@ void CgiTransport::finish()
 // }}}
 
 // {{{ CgiContext impl
+uint16_t CgiContext::nextID_ = 0;
+
 CgiContext::CgiContext(x0::HttpServer& server) :
 	server_(server),
 	host_(), port_(0),
-	transport_(0),
-	transports_()
+	idle_()
 {
+	TRACE("CgiContext()");
 }
 
 CgiContext::~CgiContext()
 {
 	TRACE("~CgiContext()");
 
-//	for (int i = 0, e = transports_.size(); i != e; ++i)
-//		if (transports_[i])
-//			release(transports_[i]);
-
-	if (transport_) {
-		delete transport_;
-		transport_ = 0;
-	}
+	for (auto i: idle_)
+		delete i;
 }
 
 void CgiContext::setup(const std::string& application)
@@ -914,29 +908,37 @@ void CgiContext::setup(const std::string& application)
 	TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
 }
 
-CgiTransport *CgiContext::handleRequest(x0::HttpRequest *in)
+CgiTransport *CgiContext::acquire()
 {
-	TRACE("CgiContext.handleRequest()");
-
-	// select transport
-	CgiTransport *transport = transport_; // TODO support more than one transport and LB between them
-
 	if (++nextID_ == 0)
 		++nextID_;
 
-	if (transport == 0)
-	{
-		transport = new CgiTransport(this);
-		transport->open(host_.c_str(), port_, nextID_);
+	if (!idle_.empty()) {
+		CgiTransport *transport = idle_.front();
+		idle_.pop_front();
+
+		if (transport->isClosed())
+			transport->open(host_.c_str(), port_, nextID_);
+
+		return transport;
 	}
-	else if (transport->isClosed())
-		transport->open(host_.c_str(), port_, nextID_);
 
-
-	// attach request to transport
-	transport->bind(in);
-
+	CgiTransport *transport = new CgiTransport(this);
+	transport->open(host_.c_str(), port_, nextID_);
 	return transport;
+}
+
+bool CgiContext::handleRequest(x0::HttpRequest *in)
+{
+	TRACE("CgiContext.handleRequest()");
+
+	if (CgiTransport *transport = acquire()) {
+		transport->bind(in);
+	} else {
+		in->status = x0::HttpError::ServiceUnavailable;
+		in->finish();
+	}
+	return true;
 }
 
 /**
@@ -946,12 +948,11 @@ CgiTransport *CgiContext::handleRequest(x0::HttpRequest *in)
 void CgiContext::release(CgiTransport *transport)
 {
 	TRACE("CgiContext.release()");
-	// TODO enqueue instead of destroying.
-	delete transport;
-	transport_ = nullptr;
+	idle_.push_back(transport);
 }
 //}}}
 
+// {{{ fastcgi_plugin
 /**
  * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
@@ -984,6 +985,6 @@ public:
 		cx->setup(app);
 		return cx;
 	}
-};
+}; // }}}
 
 X0_EXPORT_PLUGIN(fastcgi)
