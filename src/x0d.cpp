@@ -473,7 +473,7 @@ private:
 					return false;
 				}
 
-				setgroups(gr->gr_gid, nullptr);
+				setgroups(0, nullptr);
 
 				if (!username.empty())
 					initgroups(username.c_str(), gr->gr_gid);
