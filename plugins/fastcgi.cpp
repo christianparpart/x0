@@ -69,7 +69,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -166,6 +166,7 @@ public:
 	void close();
 
 	void bind(x0::HttpRequest *in);
+	bool isActive() const;
 
 	// server-to-application
 	void beginRequest();
@@ -231,7 +232,8 @@ public:
 	bool handleRequest(x0::HttpRequest *in);
 
 	CgiTransport *acquire();
-	void release(CgiTransport *tr);
+	void release(CgiTransport *transport);
+	void kill(CgiTransport *transport);
 };
 // }}}
 
@@ -260,6 +262,7 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	, finish_(false)
 #endif
 {
+	TRACE("CgiTransport()");
 	ev_init(&io_, &CgiTransport::io_thunk);
 	io_.data = this;
 
@@ -275,6 +278,7 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 
 CgiTransport::~CgiTransport()
 {
+	TRACE("~CgiTransport()");
 	close();
 }
 
@@ -354,6 +358,8 @@ bool CgiTransport::open(const char *hostname, int port, uint16_t id)
 
 void CgiTransport::bind(x0::HttpRequest *in)
 {
+	assert(request_ == nullptr);
+
 	request_ = in;
 
 	beginRequest();
@@ -362,7 +368,12 @@ void CgiTransport::bind(x0::HttpRequest *in)
 	flush();
 }
 
-void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content)
+inline bool CgiTransport::isActive() const
+{
+	return request_ != nullptr;
+}
+
+inline void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content)
 {
 	write(type, requestId, content.data(), content.size());
 }
@@ -865,17 +876,18 @@ void CgiTransport::finish()
 {
 	TRACE("CgiTransport::finish()");
 
-	if (!request_)
-		return;
+	if (request_) {
+		if (request_->status == x0::HttpError::Undefined) {
+			request_->status = x0::HttpError::ServiceUnavailable;
+		}
 
-	if (request_->status == x0::HttpError::Undefined) {
-		request_->status = x0::HttpError::ServiceUnavailable;
+		request_->finish();
+		request_ = nullptr;
+
+		context_->release(this);
+	} else {
+		context_->kill(this);
 	}
-
-	request_->finish();
-	request_ = nullptr;
-
-	context_->release(this);
 }
 // }}}
 
@@ -949,6 +961,14 @@ void CgiContext::release(CgiTransport *transport)
 {
 	TRACE("CgiContext.release()");
 	idle_.push_back(transport);
+}
+
+void CgiContext::kill(CgiTransport *transport)
+{
+	auto i = std::find(idle_.begin(), idle_.end(), transport);
+	assert(i != idle_.end());
+	delete *i;
+	idle_.erase(i);
 }
 //}}}
 
