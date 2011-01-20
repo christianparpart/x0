@@ -31,7 +31,9 @@
  *     none
  *
  * request processing API:
- *     handler fastcgi(string host_and_port); # e.g. "127.0.0.1:3000"
+ *     handler fastcgi(string host_and_port);                 # e.g. ("127.0.0.1:3000")
+ *     __todo handler fastcgi(ip host, int port)              # e.g. (127.0.0.1, 3000)
+ *     __todo handler fastcgi(sequence of [ip host, int port])# e.g. (1.2.3.4, 988], [1.2.3.5, 988])
  *
  * todo:
  *     - error handling, including:
@@ -57,6 +59,7 @@
 #include <x0/sysconfig.h>
 
 #include <system_error>
+#include <unordered_map>
 #include <algorithm>
 #include <string>
 #include <deque>
@@ -69,7 +72,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 1 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -142,8 +145,6 @@ public:
 
 	bool configured_;
 
-	std::error_code error_;
-
 	// aka CgiRequest
 	x0::HttpRequest *request_;
 	FastCgi::CgiParamStreamWriter paramWriter_;
@@ -158,15 +159,9 @@ public:
 	~CgiTransport();
 
 	State state() const { return state_; }
-	std::error_code errorCode() const { return error_; }
 
-	bool open(const char *hostname, int port, uint16_t id);
-	bool isOpen() const { return fd_ >= 0; }
-	bool isClosed() const { return fd_ < 0; }
-	void close();
-
-	void bind(x0::HttpRequest *in);
-	bool isActive() const;
+	bool open(const char *hostname, int port);
+	void bind(x0::HttpRequest *in, uint16_t id);
 
 	// server-to-application
 	void beginRequest();
@@ -205,7 +200,7 @@ private:
 
 	static void io_thunk(struct ev_loop *, ev_io *w, int revents);
 
-	inline void connected();
+	inline bool onConnectComplete();
 	inline void io(int revents);
 	inline bool processRecord(const FastCgi::Record *record);
 	inline void onParam(const std::string& name, const std::string& value);
@@ -220,8 +215,6 @@ public:
 	std::string host_;
 	int port_;
 
-	std::deque<CgiTransport *> idle_;
-
 public:
 	CgiContext(x0::HttpServer& server);
 	~CgiContext();
@@ -231,9 +224,7 @@ public:
 
 	bool handleRequest(x0::HttpRequest *in);
 
-	CgiTransport *acquire();
 	void release(CgiTransport *transport);
-	void kill(CgiTransport *transport);
 };
 // }}}
 
@@ -279,19 +270,31 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 CgiTransport::~CgiTransport()
 {
 	TRACE("~CgiTransport()");
-	close();
+
+	assert(request_ == nullptr);
+
+	ev_io_stop(loop_, &io_);
+	if (fd_ >= 0) {
+		::close(fd_);
+		fd_ = -1;
+	}
 }
 
-bool CgiTransport::open(const char *hostname, int port, uint16_t id)
+/** asynchronousely connects to given hostname:port.
+ *
+ * \retval true connected synchronously or asynchronousely (not completed yet) in success
+ * \retval false something went wrong. if so, the underlying object is to be destructed already, too.
+ */
+bool CgiTransport::open(const char *hostname, int port)
 {
+	TRACE("connect(hostname=%s, port=%d)", hostname, port);
+
 	hostname_ = hostname;
 	port_ = port;
-	id_ = id;
-
-	TRACE("connect(hostname=%s, port=%d)", hostname, port);
 
 	struct addrinfo hints;
 	struct addrinfo *res;
+	bool result = false;
 
 	std::memset(&hints, 0, sizeof(hints));
 	hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
@@ -302,20 +305,18 @@ bool CgiTransport::open(const char *hostname, int port, uint16_t id)
 	snprintf(sport, sizeof(sport), "%d", port);
 
 	int rv = getaddrinfo(hostname, sport, &hints, &res);
-	if (rv)
-	{
-		error_ = make_error_code(static_cast<enum x0::gai_error>(rv));
+	if (rv) {
 		context().server().log(x0::Severity::error,
-				"fastcgi: could not get addrinfo of %s:%s: %s", hostname, sport, error_.message().c_str());
+				"fastcgi: could not get addrinfo of %s:%s: %s", 
+				hostname, sport, gai_strerror(rv));
 		return false;
 	}
 
-	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next)
-	{
+	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next) {
 		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-		if (fd_ < 0)
-		{
-			error_ = std::make_error_code(static_cast<std::errc>(errno));
+		if (fd_ < 0) {
+			context().server().log(x0::Severity::error,
+					"fastcgi: socket creation error: %s",  strerror(errno));
 			continue;
 		}
 
@@ -323,54 +324,42 @@ bool CgiTransport::open(const char *hostname, int port, uint16_t id)
 		fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC);
 
 		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
-		if (rv < 0)
-		{
-			if (errno == EINPROGRESS)
-			{
-				TRACE("connect: backgrounding (fd:%d)", fd_);
-
-				state_ = CONNECTING;
-				ev_io_set(&io_, fd_, EV_WRITE);
-				ev_io_start(loop_, &io_);
-
-				break;
-			}
-			else
-			{
-				error_ = std::make_error_code(static_cast<std::errc>(errno));
-				context().server().log(x0::Severity::error,
-					"fastcgi: could not connect to %s:%s: %s", hostname_.c_str(), sport, strerror(errno));
-				close();
-			}
-		}
-		else
-		{
+		if (rv == 0) {
 			TRACE("connect: instant success (fd:%d)", fd_);
-			connected();
+			result = onConnectComplete();
 			break;
+		} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
+			TRACE("connect: backgrounding (fd:%d)", fd_);
+
+			state_ = CONNECTING;
+			ev_io_set(&io_, fd_, EV_WRITE);
+			ev_io_start(loop_, &io_);
+
+			result = true;
+			break;
+		} else {
+			context().server().log(x0::Severity::error,
+				"fastcgi: could not connect to %s:%s: %s", hostname_.c_str(), sport, strerror(errno));
+			::close(fd_);
+			fd_ = -1;
 		}
 	}
 
 	freeaddrinfo(res);
-
-	return fd_ >= 0;
+	return result;
 }
 
-void CgiTransport::bind(x0::HttpRequest *in)
+void CgiTransport::bind(x0::HttpRequest *in, uint16_t id)
 {
 	assert(request_ == nullptr);
 
 	request_ = in;
+	id_ = id;
 
 	beginRequest();
 	streamParams();
 
 	flush();
-}
-
-inline bool CgiTransport::isActive() const
-{
-	return request_ != nullptr;
 }
 
 inline void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content)
@@ -442,40 +431,34 @@ void CgiTransport::io_thunk(struct ev_loop *, ev_io *w, int revents)
 	CgiTransport *cc = reinterpret_cast<CgiTransport *>(w->data);
 
 	if (cc->state_ == CONNECTING && revents & EV_WRITE)
-		cc->connected();
+		cc->onConnectComplete();
 	else
 		cc->io(revents);
 }
 
-void CgiTransport::connected()
+/** invoked (by open() or asynchronousely by io()) to complete the connection establishment.
+ * \retval true connection establishment completed
+ * \retval false finishing connect() failed. object is also invalidated.
+ */
+bool CgiTransport::onConnectComplete()
 {
 	int val = 0;
 	socklen_t vlen = sizeof(val);
-	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0)
-	{
-		if (val == 0)
-		{
+	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
+		if (val == 0) {
 			TRACE("connect: success");
-		}
-		else
-		{
-			error_ = std::make_error_code(static_cast<std::errc>(val));
+		} else {
 			context().server().log(x0::Severity::error,
 				"fastcgi: could not connect to %s:%d: %s", hostname_.c_str(), port_, strerror(val));
-			close();
+			finish();
+			return false;
 		}
-	}
-	else
-	{
-		error_ = std::make_error_code(static_cast<std::errc>(errno));
-		TRACE("connect: getsocketopt() error: %s", error_.message().c_str());
+	} else {
 		context().server().log(x0::Severity::error,
 			"fastcgi: could not getsocketopt(SO_ERROR) to %s:%d: %s", hostname_.c_str(), port_, strerror(errno));
-		close();
+		finish();
+		return false;
 	}
-
-	if (!isOpen())
-		return;
 
 	// connect successful
 	state_ = CONNECTED;
@@ -494,6 +477,8 @@ void CgiTransport::connected()
 		ev_io_set(&io_, fd_, EV_READ);
 		ev_io_start(loop_, &io_);
 	}
+
+	return true;
 }
 
 void CgiTransport::io(int revents)
@@ -621,24 +606,6 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 void CgiTransport::onParam(const std::string& name, const std::string& value)
 {
 	TRACE("onParam(%s, %s)", name.c_str(), value.c_str());
-}
-
-void CgiTransport::close()
-{
-	TRACE("CgiTransport.close(%d)", fd_);
-
-	if (fd_ >= 0)
-	{
-		TRACE("CgiTransport.close: do actually close");
-		ev_io_stop(loop_, &io_);
-		::close(fd_);
-		fd_ = -1;
-	} else {
-		TRACE("CgiTransport.close: nothing to close");
-	}
-
-	if (request_)
-		finish();
 }
 
 void CgiTransport::beginRequest()
@@ -875,7 +842,6 @@ void CgiTransport::onClientAbort(void *p)
 void CgiTransport::finish()
 {
 	TRACE("CgiTransport::finish()");
-
 	if (request_) {
 		if (request_->status == x0::HttpError::Undefined) {
 			request_->status = x0::HttpError::ServiceUnavailable;
@@ -883,11 +849,9 @@ void CgiTransport::finish()
 
 		request_->finish();
 		request_ = nullptr;
-
-		context_->release(this);
-	} else {
-		context_->kill(this);
 	}
+
+	context_->release(this);
 }
 // }}}
 
@@ -896,8 +860,7 @@ uint16_t CgiContext::nextID_ = 0;
 
 CgiContext::CgiContext(x0::HttpServer& server) :
 	server_(server),
-	host_(), port_(0),
-	idle_()
+	host_(), port_(0)
 {
 	TRACE("CgiContext()");
 }
@@ -905,9 +868,6 @@ CgiContext::CgiContext(x0::HttpServer& server) :
 CgiContext::~CgiContext()
 {
 	TRACE("~CgiContext()");
-
-	for (auto i: idle_)
-		delete i;
 }
 
 void CgiContext::setup(const std::string& application)
@@ -920,36 +880,22 @@ void CgiContext::setup(const std::string& application)
 	TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
 }
 
-CgiTransport *CgiContext::acquire()
-{
-	if (++nextID_ == 0)
-		++nextID_;
-
-	if (!idle_.empty()) {
-		CgiTransport *transport = idle_.front();
-		idle_.pop_front();
-
-		if (transport->isClosed())
-			transport->open(host_.c_str(), port_, nextID_);
-
-		return transport;
-	}
-
-	CgiTransport *transport = new CgiTransport(this);
-	transport->open(host_.c_str(), port_, nextID_);
-	return transport;
-}
-
 bool CgiContext::handleRequest(x0::HttpRequest *in)
 {
 	TRACE("CgiContext.handleRequest()");
 
-	if (CgiTransport *transport = acquire()) {
-		transport->bind(in);
-	} else {
+	CgiTransport *transport = new CgiTransport(this);
+
+	if (!transport->open(host_.c_str(), port_)) {
 		in->status = x0::HttpError::ServiceUnavailable;
 		in->finish();
+		return false;
 	}
+
+	if (++nextID_ == 0)
+		++nextID_;
+
+	transport->bind(in, nextID_);
 	return true;
 }
 
@@ -960,15 +906,7 @@ bool CgiContext::handleRequest(x0::HttpRequest *in)
 void CgiContext::release(CgiTransport *transport)
 {
 	TRACE("CgiContext.release()");
-	idle_.push_back(transport);
-}
-
-void CgiContext::kill(CgiTransport *transport)
-{
-	auto i = std::find(idle_.begin(), idle_.end(), transport);
-	assert(i != idle_.end());
-	delete *i;
-	idle_.erase(i);
+	delete transport;
 }
 //}}}
 
@@ -1001,10 +939,21 @@ public:
 
 	CgiContext *acquireContext(const std::string& app)
 	{
+		auto i = contexts_.find(app);
+		if (i != contexts_.end()) {
+			TRACE("acquireContext('%s') available.", app.c_str());
+			return i->second;
+		}
+
 		CgiContext *cx = new CgiContext(server());
 		cx->setup(app);
+		contexts_[app] = cx;
+		TRACE("acquireContext('%s') spawned (%ld).", app.c_str(), contexts_.size());
 		return cx;
 	}
+
+private:
+	std::unordered_map<std::string, CgiContext *> contexts_;
 }; // }}}
 
 X0_EXPORT_PLUGIN(fastcgi)
