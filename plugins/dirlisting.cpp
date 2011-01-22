@@ -61,7 +61,7 @@ public:
 private:
 	bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
 	{
-		if (!in->fileinfo->is_directory())
+		if (!in->fileinfo->isDirectory())
 			return false;
 
 		DIR *dir = opendir(in->fileinfo->filename().c_str());
@@ -100,7 +100,7 @@ private:
 			{
 				if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(in->fileinfo->filename() + "/" + name))
 				{
-					if (fi->is_directory())
+					if (fi->isDirectory())
 						name += "/";
 
 					listing.push_back(name);

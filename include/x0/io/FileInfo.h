@@ -12,18 +12,20 @@
 #include <x0/Api.h>
 #include <x0/Types.h>
 #include <string>
-#include <map>
+#include <unordered_map>
 
+#include <ctime>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
+#include <unistd.h>
 
 #include <ev++.h>
 
 namespace x0 {
 
 class FileInfoService;
-class plugin;
+class HttpPlugin;
 
 //! \addtogroup core
 //@{
@@ -40,7 +42,11 @@ private:
 
 private:
 	FileInfoService& service_;
+
 	struct stat stat_;
+
+	int inotifyId_;
+	ev_tstamp cachedAt_;
 
 	std::string filename_;
 
@@ -49,31 +55,31 @@ private:
 	mutable std::string mtime_;
 	mutable std::string mimetype_;
 
-	//std::map<const plugin *, void *> data_;
-
 	friend class FileInfoService;
 
 public:
 	FileInfo(FileInfoService& service, const std::string& filename);
 
-	const std::string& filename() const;
+	const std::string& filename() const { return filename_; }
 
-	std::size_t size() const;
-	time_t mtime() const;
+	ev_tstamp cachedAt() const { return cachedAt_; }
 
-	bool exists() const;
-	bool is_directory() const;
-	bool is_regular() const;
-	bool is_executable() const;
+	std::size_t size() const { return stat_.st_size; }
+	time_t mtime() const { return stat_.st_mtime; }
 
-	const ev_statdata * operator->() const;
+	bool exists() const { return exists_; }
+	bool isDirectory() const { return S_ISDIR(stat_.st_mode); }
+	bool isRegular() const { return S_ISREG(stat_.st_mode); }
+	bool isExecutable() const { return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH); }
+
+	const ev_statdata * operator->() const { return &stat_; }
 
 	// custom data (gets cleared on file object modification)
-	std::map<plugin *, CustomDataPtr> custom_data;
+	std::unordered_map<HttpPlugin *, CustomDataPtr> customData;
 
 	// HTTP related high-level properties
 	std::string etag() const;
-	std::string last_modified() const;
+	std::string lastModified() const;
 	std::string mimetype() const;
 
 	void clear();
@@ -88,6 +94,44 @@ private:
 
 } // namespace x0
 
-#include <x0/io/FileInfo.cc>
+// {{{ inlines
+namespace x0 {
+
+inline std::string FileInfo::etag() const
+{
+	return etag_;
+}
+
+inline std::string FileInfo::lastModified() const
+{
+	if (mtime_.empty()) {
+		if (struct tm *tm = std::gmtime(&stat_.st_mtime)) {
+			char buf[256];
+
+			if (std::strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0) {
+				mtime_ = buf;
+			}
+		}
+	}
+
+	return mtime_;
+}
+
+inline std::string FileInfo::mimetype() const
+{
+	return mimetype_;
+}
+
+inline int FileInfo::open(int flags)
+{
+#if defined(O_LARGEFILE)
+	flags |= O_LARGEFILE;
+#endif
+
+	return ::open(filename_.c_str(), flags);
+}
+
+} // namespace x0
+// }}}
 
 #endif

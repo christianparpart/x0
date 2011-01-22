@@ -40,6 +40,7 @@ private:
 	void etag_mtime(Flow::Value& result, const Params& args);
 	void etag_size(Flow::Value& result, const Params& args);
 	void etag_inode(Flow::Value& result, const Params& args);
+	void fileinfo_cache_ttl(Flow::Value& result, const Params& args);
 	void server_advertise(Flow::Value& result, const Params& args);
 	void server_tags(Flow::Value& result, const Params& args);
 	void loadServerTag(const Flow::Value& tag);

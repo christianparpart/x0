@@ -14,11 +14,14 @@ namespace x0 {
 FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 	service_(service),
 	stat_(),
+	inotifyId_(-1),
+	cachedAt_(ev_now(service.loop_)),
 	filename_(filename),
 	exists_(false),
 	etag_(),
 	mtime_(),
-	mimetype_()
+	mimetype_(),
+	customData()
 {
 	if (filename_.empty())
 		return;
@@ -31,10 +34,9 @@ FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 	}
 }
 
-
 void FileInfo::clear()
 {
-	custom_data.clear();
+	customData.clear();
 
 	etag_ = service_.make_etag(*this);
 	mtime_.clear(); // gets computed on-demand

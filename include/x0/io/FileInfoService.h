@@ -14,6 +14,8 @@
 #include <x0/Api.h>
 #include <x0/sysconfig.h>
 #include <string>
+#include <sstream>
+#include <unordered_map>
 
 #include <ev++.h>
 
@@ -22,7 +24,7 @@
 #	include <sys/fcntl.h>
 #endif
 
-#if 0
+#if 1
 #	define FILEINFO_DEBUG(msg...) printf("FileInfoService: " msg)
 #else
 #	define FILEINFO_DEBUG(msg...) /*!*/
@@ -50,15 +52,18 @@ public:
 		bool etagConsiderSize;							//!< flag, specifying wether or not the file size is part of the ETag
 		bool etagConsiderInode;							//!< flag, specifying wether or not the file inode number is part of the ETag
 
-		std::map<std::string, std::string> mimetypes;	//!< cached database for file extension to mimetype mapping
+		std::unordered_map<std::string, std::string> mimetypes;	//!< cached database for file extension to mimetype mapping
 		std::string defaultMimetype;					//!< default mimetype for those files we could not determine the mimetype.
+
+		int cacheTTL_;									//!< time in seconds to keep FileInfo-object in-cache.
 
 		Config() :
 			etagConsiderMtime(true),
 			etagConsiderSize(true),
 			etagConsiderInode(false),
 			mimetypes(),
-			defaultMimetype("text/plain")
+			defaultMimetype("text/plain"),
+			cacheTTL_(10)
 		{}
 
 		void loadMimetypes(const std::string& filename);
@@ -66,14 +71,15 @@ public:
 
 private:
 	struct ::ev_loop *loop_;
+
 #if defined(HAVE_SYS_INOTIFY_H)
 	int handle_;									//!< inotify handle
 	ev::io inotify_;
-	std::map<int, std::string> wd_;
+	std::unordered_map<int, FileInfoPtr> inotifies_;
 #endif
 
 	const Config *config_;
-	std::map<std::string, FileInfoPtr> cache_;		//!< cache, storing path->FileInfo pairs
+	std::unordered_map<std::string, FileInfoPtr> cache_;		//!< cache, storing path->FileInfo pairs
 
 public:
 	FileInfoService(struct ::ev_loop *loop, const Config *config);
@@ -93,7 +99,7 @@ private:
 
 	std::string get_mimetype(const std::string& ext) const;
 	std::string make_etag(const FileInfo& fi) const;
-	void on_inotify(ev::io& w, int revents);
+	void onFileChanged(ev::io& w, int revents);
 };
 
 } // namespace x0

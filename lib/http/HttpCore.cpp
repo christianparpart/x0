@@ -33,7 +33,7 @@ namespace x0 {
 HttpCore::HttpCore(HttpServer& server) :
 	HttpPlugin(server, "core"),
 	emitLLVM_(false),
-	max_fds(std::bind(&HttpCore::getrlimit, this, RLIMIT_CORE),
+	max_fds(std::bind(&HttpCore::getrlimit, this, RLIMIT_NOFILE),
 			std::bind(&HttpCore::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
 	// setup
@@ -48,6 +48,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupProperty<HttpCore, &HttpCore::etag_mtime>("etag.mtime", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::etag_size>("etag.size", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::etag_inode>("etag.inode", Flow::Value::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::fileinfo_cache_ttl>("fileinfo.ttl", Flow::Value::VOID); // write-only (int)
 	registerSetupProperty<HttpCore, &HttpCore::server_advertise>("server.advertise", Flow::Value::BOOLEAN);
 	registerSetupProperty<HttpCore, &HttpCore::server_tags>("server.tags", Flow::Value::VOID); // write-only (array)
 
@@ -149,6 +150,14 @@ void HttpCore::etag_inode(Flow::Value& result, const Params& args)
 		server().fileinfoConfig_.etagConsiderInode = args[0].toBool();
 	else
 		result.set(server().fileinfoConfig_.etagConsiderInode);
+}
+
+void HttpCore::fileinfo_cache_ttl(Flow::Value& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isNumber())
+		server().fileinfoConfig_.cacheTTL_ = args[0].toNumber();
+	else
+		result.set(server().fileinfoConfig_.cacheTTL_);
 }
 
 void HttpCore::server_advertise(Flow::Value& result, const Params& args)
@@ -402,7 +411,7 @@ void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, const Params& arg
 	if (!in->fileinfo)
 		return; // something went wrong, just be sure we SEGFAULT here
 
-	if (!in->fileinfo->is_directory())
+	if (!in->fileinfo->isDirectory())
 		return;
 
 	if (args.count() < 1)
@@ -430,7 +439,7 @@ bool HttpCore::matchIndex(HttpRequest *in, const Flow::Value& arg)
 
 			if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(ipath))
 			{
-				if (fi->is_regular())
+				if (fi->isRegular())
 				{
 					in->fileinfo = fi;
 					return true;
@@ -597,17 +606,17 @@ void HttpCore::phys_exists(Flow::Value& result, HttpRequest *in, const Params& a
 
 void HttpCore::phys_is_reg(Flow::Value& result, HttpRequest *in, const Params& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->is_regular() : false);
+	result.set(in->fileinfo ? in->fileinfo->isRegular() : false);
 }
 
 void HttpCore::phys_is_dir(Flow::Value& result, HttpRequest *in, const Params& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->is_directory() : false);
+	result.set(in->fileinfo ? in->fileinfo->isDirectory() : false);
 }
 
 void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, const Params& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->is_executable() : false);
+	result.set(in->fileinfo ? in->fileinfo->isExecutable() : false);
 }
 
 void HttpCore::phys_mtime(Flow::Value& result, HttpRequest *in, const Params& args)
@@ -662,7 +671,7 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 	if (!in->fileinfo->exists())
 		return false;
 
-	if (!in->fileinfo->is_regular())
+	if (!in->fileinfo->isRegular())
 		return false;
 
 	in->status = verifyClientCache(in);
@@ -708,9 +717,7 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 		return true;
 	}
 
-	std::string mtime(in->fileinfo->last_modified());
-	in->responseHeaders.push_back("Last-Modified", mtime);
-	//in->responseHeaders.push_back("Last-Modified", in->fileinfo->last_modified());
+	in->responseHeaders.push_back("Last-Modified", in->fileinfo->lastModified());
 	in->responseHeaders.push_back("ETag", in->fileinfo->etag());
 
 	if (!processRangeRequest(in, fd))
@@ -1001,7 +1008,7 @@ unsigned long long HttpCore::setrlimit(int resource, unsigned long long value)
 bool HttpCore::redirectOnIncompletePath(HttpRequest *in)
 {
 	std::string filename = in->fileinfo->filename();
-	if (!in->fileinfo->is_directory() || in->path.ends('/'))
+	if (!in->fileinfo->isDirectory() || in->path.ends('/'))
 		return false;
 
 	std::stringstream url;

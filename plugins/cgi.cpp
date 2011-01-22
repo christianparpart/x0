@@ -748,7 +748,7 @@ private:
 		phys.push_back(in->path.ref(strlen(prefix)));
 
 		x0::FileInfoPtr fi = in->connection.worker().fileinfo(phys.c_str());
-		if (fi && fi->is_regular() && fi->is_executable())
+		if (fi && fi->isRegular() && fi->isExecutable())
 		{
 			in->fileinfo = fi;
 			CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in);
@@ -764,7 +764,7 @@ private:
 
 		x0::FileInfoPtr fi = in->connection.worker().fileinfo(path);
 
-		if (fi && fi->is_regular() && fi->is_executable())
+		if (fi && fi->isRegular() && fi->isExecutable())
 		{
 			CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in);
 			return true;
@@ -782,7 +782,7 @@ private:
 		if (!fi)
 			return false;
 		
-		if (!fi->is_regular())
+		if (!fi->isRegular())
 			return false;
 
 		std::string interpreter;
