@@ -114,7 +114,7 @@ private:
 		{
 			r->documentRoot = pw->pw_dir + dirname_;
 			r->fileinfo = r->connection.worker().fileinfo(r->documentRoot + userPath);
-			debug(0, "docroot[%s], fileinfo[%s]", r->documentRoot.c_str(), r->fileinfo->filename().c_str());
+			//debug(0, "docroot[%s], fileinfo[%s]", r->documentRoot.c_str(), r->fileinfo->filename().c_str());
 		}
 	}
 };
