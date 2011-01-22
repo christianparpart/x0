@@ -66,7 +66,12 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 
 		FILEINFO_DEBUG("query.expired(%s)\n", filename.c_str());
 #if defined(HAVE_SYS_INOTIFY_H)
-		inotifies_.erase(inotifies_.find(fi->inotifyId_));
+		if (fi->inotifyId_ >= 0) {
+			inotify_rm_watch(handle_, fi->inotifyId_);
+			auto i = inotifies_.find(fi->inotifyId_);
+			if (i != inotifies_.end())
+				inotifies_.erase(i);
+		}
 #endif
 		cache_.erase(i);
 	}
