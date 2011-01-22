@@ -86,7 +86,9 @@ private:
 	std::string mkhtml(DIR *dir, x0::HttpRequest *in)
 	{
 		std::list<std::string> listing;
-		listing.push_back("..");
+
+		if (!x0::equals(in->path, "/"))
+			listing.push_back("..");
 
 		int len = offsetof(dirent, d_name) + pathconf(in->fileinfo->filename().c_str(), _PC_NAME_MAX);
 		dirent *dep = (dirent *)new unsigned char[len + 1];
