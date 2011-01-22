@@ -97,6 +97,14 @@ link_directories(${EV_LIBRARY_DIR})
 add_definitions(${EV_CPPFLAGS})
 set(LIBS ${LIBS} ${EV_LIBRARIES})
 
+# mysql
+option(WITH_MYSQL "With mySQL support [default: on]" ON)
+if(WITH_MYSQL)
+	set(MYSQL_LIBRARIES mysqlclient CACHE STRING "mySQL library")
+	set(LIBS ${LIBS} ${MYSQL_LIBRARIES})
+endif()
+
+# valgrind
 set(VALGRIND OFF CACHE BOOL "generate binary for use with valgrind")
 
 # systemd support (implemented in support/sd-daemon/)

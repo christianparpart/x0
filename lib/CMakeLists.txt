@@ -9,7 +9,15 @@ add_definitions(
 	-DSYSCONFDIR="${SYSCONFDIR}"
 	-DVERSION="${PACKAGE_VERSION}")
 
-file(GLOB_RECURSE x0_SRC "*.cpp")
+file(GLOB x0_base_SRC "base/*.cpp")
+file(GLOB x0_io_SRC "io/*.cpp")
+file(GLOB x0_http_SRC "http/*.cpp")
+
+if(WITH_MYSQL)
+	file(GLOB x0_sql_SRC "sql/*.cpp")
+endif()
+
+set(x0_SRC ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC} ${x0_http_SRC})
 
 add_library(x0 SHARED ${x0_SRC})
 set_target_properties(x0 PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
