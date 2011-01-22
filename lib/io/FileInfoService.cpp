@@ -76,10 +76,11 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 		fi->etag_ = make_etag(*fi);
 
 #if defined(HAVE_SYS_INOTIFY_H)
-		int rv = handle_ != -1 && ::inotify_add_watch(handle_, filename.c_str(),
-			/*IN_ONESHOT |*/ IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
-			IN_DELETE_SELF | IN_MOVE_SELF
-		);
+		int rv = handle_ != -1 && fi->exists()
+				? ::inotify_add_watch(handle_, filename.c_str(),
+					/*IN_ONESHOT |*/ IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
+					IN_DELETE_SELF | IN_MOVE_SELF)
+				: -1;
 		FILEINFO_DEBUG("query(%s).new -> %d\n", filename.c_str(), rv);
 
 		if (rv != -1) {
