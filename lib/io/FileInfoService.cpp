@@ -12,10 +12,6 @@
 
 #include <boost/tokenizer.hpp>
 
-#if defined(HAVE_SYS_INOTIFY_H)
-#undef HAVE_SYS_INOTIFY_H
-#endif
-
 namespace x0 {
 
 FileInfoService::FileInfoService(struct ::ev_loop *loop, const Config *config) :
