@@ -104,6 +104,8 @@ if(WITH_MYSQL)
 	set(LIBS ${LIBS} ${MYSQL_LIBRARIES})
 endif()
 
+set(RRD_LIBRARIES -lrrd)
+
 # valgrind
 set(VALGRIND OFF CACHE BOOL "generate binary for use with valgrind")
 

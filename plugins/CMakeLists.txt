@@ -24,6 +24,8 @@ x0_plugin_simple(proxy)
 x0_plugin_simple(userdir)
 #x0_plugin_simple(vhost_basic)
 #x0_plugin_simple(vhost_template)
+x0_plugin_simple(rrd)
+target_link_libraries(rrd ${RRD_LIBRARIES})
 
 x0_plugin_simple(echo_example)
 x0_plugin_simple(hello_example)
