@@ -11,10 +11,22 @@
 
 #include <x0/Types.h>
 #include <unordered_map>
+#include <cassert>
 
 namespace x0 {
 
-class CustomDataMgr
+class X0_API CustomData
+{
+private:
+	CustomData(const CustomData&) = delete;
+	CustomData& operator=(const CustomData&) = delete;
+
+public:
+	CustomData() = default;
+	virtual ~CustomData() {}
+};
+
+class X0_API CustomDataMgr
 {
 private:
 	std::unordered_map<void *, CustomData *> map_;
@@ -26,8 +38,16 @@ public:
 
 	~CustomDataMgr()
 	{
+		assert(map_.empty() && "You must have invoked clearCustomData() in your parent destructor already to avoid unnecessary  bugs.");
+		clearCustomData();
+	}
+
+	void clearCustomData()
+	{
 		for (auto i: map_)
 			delete i.second;
+
+		map_.clear();
 	}
 
 	CustomData *customData(void *key) const

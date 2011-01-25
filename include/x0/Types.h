@@ -62,19 +62,6 @@ typedef std::function<void(
 	const std::function<void()>& /*completionHandler*/)
 > RequestHandlerType;
 
-class CustomData
-{
-private:
-	CustomData(const CustomData&) = delete;
-	CustomData& operator=(const CustomData&) = delete;
-
-public:
-	CustomData() = default;
-	virtual ~CustomData() {}
-};
-
-typedef std::shared_ptr<CustomData> CustomDataPtr;
-
 //@}
 
 } // namespace x0

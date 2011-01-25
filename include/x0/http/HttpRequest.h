@@ -326,10 +326,6 @@ private:
 };
 
 // {{{ request impl
-inline HttpRequest::~HttpRequest()
-{
-}
-
 inline bool HttpRequest::supportsProtocol(int major, int minor) const
 {
 	if (major == httpVersionMajor && minor <= httpVersionMinor)

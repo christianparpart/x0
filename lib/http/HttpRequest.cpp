@@ -56,6 +56,11 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 			responseHeaders.push_back("Server", connection.worker().server().tag());
 }
 
+HttpRequest::~HttpRequest()
+{
+	clearCustomData();
+}
+
 void HttpRequest::updatePathInfo()
 {
 	if (!fileinfo)

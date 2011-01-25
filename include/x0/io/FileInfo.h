@@ -11,6 +11,7 @@
 
 #include <x0/Api.h>
 #include <x0/Types.h>
+#include <x0/CustomDataMgr.h>
 #include <string>
 #include <unordered_map>
 
@@ -34,7 +35,8 @@ class HttpPlugin;
  *
  * \see FileInfoService, server
  */
-class X0_API FileInfo
+class X0_API FileInfo :
+	public CustomDataMgr
 {
 private:
 	FileInfo(const FileInfo&) = delete;
@@ -59,6 +61,7 @@ private:
 
 public:
 	FileInfo(FileInfoService& service, const std::string& filename);
+	~FileInfo();
 
 	const std::string& filename() const { return filename_; }
 
@@ -73,9 +76,6 @@ public:
 	bool isExecutable() const { return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH); }
 
 	const ev_statdata * operator->() const { return &stat_; }
-
-	// custom data (gets cleared on file object modification)
-	std::unordered_map<HttpPlugin *, CustomDataPtr> customData;
 
 	// HTTP related high-level properties
 	std::string etag() const;
@@ -96,6 +96,11 @@ private:
 
 // {{{ inlines
 namespace x0 {
+
+inline FileInfo::~FileInfo()
+{
+	clearCustomData();
+}
 
 inline std::string FileInfo::etag() const
 {

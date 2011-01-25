@@ -65,6 +65,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 HttpWorker::~HttpWorker()
 {
 	log(Severity::debug, "destroying");
+	clearCustomData();
 	pthread_spin_destroy(&queueLock_);
 }
 

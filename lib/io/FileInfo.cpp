@@ -20,8 +20,7 @@ FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 	exists_(false),
 	etag_(),
 	mtime_(),
-	mimetype_(),
-	customData()
+	mimetype_()
 {
 	if (filename_.empty())
 		return;
@@ -36,7 +35,7 @@ FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 
 void FileInfo::clear()
 {
-	customData.clear();
+	clearCustomData();
 
 	etag_ = service_.make_etag(*this);
 	mtime_.clear(); // gets computed on-demand

@@ -85,7 +85,9 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 HttpConnection::~HttpConnection()
 {
 	delete request_;
-	request_ = 0;
+	request_ = nullptr;
+
+	clearCustomData();
 
 	TRACE("~(%p)", this);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
@@ -193,7 +195,7 @@ void HttpConnection::handshakeComplete(Socket *)
 	else
 	{
 		TRACE("handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
-		close(); //delete this;
+		close();
 	}
 }
 
@@ -363,8 +365,9 @@ void HttpConnection::resume()
 	if (socket()->tcpCork())
 		socket()->setTcpCork(false);
 
+	assert(request_ != nullptr);
 	delete request_;
-	request_ = 0;
+	request_ = nullptr;
 
 	// wait for new request message, if nothing in buffer
 	if (offset_ != buffer_.size())
@@ -492,8 +495,14 @@ void HttpConnection::close()
 
 	socket_->close();
 
-	if (!active_)
+	if (request_) {
+		delete request_;
+		request_ = nullptr;
+	}
+
+	if (!active_) {
 		delete this;
+	}
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.

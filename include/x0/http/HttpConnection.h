@@ -106,9 +106,6 @@ private:
 
 	unsigned long long bytesTransferred() const;
 
-public:
-	std::map<HttpPlugin *, CustomDataPtr> customData;
-
 private:
 	HttpListener& listener_;
 	HttpWorker& worker_;
