@@ -18,6 +18,7 @@
 #include <x0/http/HttpHeader.h>
 #include <x0/Types.h>
 
+#include <atomic>
 #include <rrd.h>
 
 #define TRACE(msg...) DEBUG("rrd: " msg)
@@ -30,9 +31,9 @@ class rrd_plugin :
 	public x0::HttpPlugin
 {
 private:
-	volatile unsigned long numRequests_;
-	volatile unsigned long bytesIn_;
-	volatile unsigned long bytesOut_;
+	std::atomic<std::size_t> numRequests_;
+	std::atomic<std::size_t> bytesIn_;
+	std::atomic<std::size_t> bytesOut_;
 
 	std::string filename_;
 	int step_;
@@ -101,22 +102,23 @@ private:
 			return; // not properly configured
 
 		char format[128];
-		snprintf(format, sizeof(format), "N:%ld:%ld:%ld", numRequests_, bytesIn_, bytesOut_);
+		snprintf(format, sizeof(format), "N:%ld:%ld:%ld",
+				numRequests_.exchange(0),
+				bytesIn_.exchange(0),
+				bytesOut_.exchange(0));
 
-		const char * args[4] = {
+		const char *args[4] = {
 			"update",
 			filename_.c_str(),
 			format,
 			nullptr
 		};
+
+		rrd_clear_error();
 		int rv = rrd_update(3, (char **) args);
-
-		TRACE("%f: rqs: %ld, bin:%ld, bout:%ld -> %d",
-			ev_now(server().loop()), numRequests_, bytesIn_, bytesOut_, rv);
-
-		numRequests_ = 0;
-		bytesIn_ = 0;
-		bytesOut_ = 0;
+		if (rv < 0) {
+			log(x0::Severity::error, "Could not update RRD statistics: %s", rrd_get_error());
+		}
 	}
 
 	virtual bool logRequest(x0::HttpRequest *r, const x0::Params& args)
