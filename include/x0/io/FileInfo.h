@@ -46,13 +46,13 @@ private:
 	FileInfoService& service_;
 
 	struct stat stat_;
+	int errno_;
 
 	int inotifyId_;
 	ev_tstamp cachedAt_;
 
 	std::string filename_;
 
-	bool exists_;
 	mutable std::string etag_;
 	mutable std::string mtime_;
 	mutable std::string mimetype_;
@@ -70,7 +70,8 @@ public:
 	std::size_t size() const { return stat_.st_size; }
 	time_t mtime() const { return stat_.st_mtime; }
 
-	bool exists() const { return exists_; }
+	int error() const { return errno_; }
+	bool exists() const { return errno_ == 0; }
 	bool isDirectory() const { return S_ISDIR(stat_.st_mode); }
 	bool isRegular() const { return S_ISREG(stat_.st_mode); }
 	bool isExecutable() const { return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH); }

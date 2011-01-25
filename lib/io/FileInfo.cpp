@@ -14,23 +14,19 @@ namespace x0 {
 FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 	service_(service),
 	stat_(),
+	errno_(),
 	inotifyId_(-1),
 	cachedAt_(ev_now(service.loop_)),
 	filename_(filename),
-	exists_(false),
 	etag_(),
 	mtime_(),
 	mimetype_()
 {
-	if (filename_.empty())
-		return;
-
-	if (::stat(filename_.c_str(), &stat_) == 0)
-	{
-		exists_ = true;
+	if (::stat(filename_.c_str(), &stat_) == 0) {
 		etag_ = service_.make_etag(*this);
 		mimetype_ = service_.get_mimetype(filename_);
 	}
+	errno_ = errno;
 }
 
 void FileInfo::clear()
