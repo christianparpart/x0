@@ -220,9 +220,9 @@ inline void HttpPlugin::debug_level(int value)
 // }}}
 
 #define X0_EXPORT_PLUGIN(pluginName) \
-	X0_EXPORT_PLUGIN_CLASS(pluginName, pluginName##_plugin)
+	X0_EXPORT_PLUGIN_CLASS(pluginName##_plugin)
 
-#define X0_EXPORT_PLUGIN_CLASS(pluginName, className) \
+#define X0_EXPORT_PLUGIN_CLASS(className) \
 	extern "C" X0_EXPORT x0::HttpPlugin *x0plugin_init(x0::HttpServer& srv, const std::string& name) { \
 		return new className(srv, name); \
 	}
