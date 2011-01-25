@@ -14,7 +14,7 @@ namespace x0 {
 FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 	service_(service),
 	stat_(),
-	errno_(),
+	errno_(0),
 	inotifyId_(-1),
 	cachedAt_(ev_now(service.loop_)),
 	filename_(filename),
@@ -25,8 +25,8 @@ FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 	if (::stat(filename_.c_str(), &stat_) == 0) {
 		etag_ = service_.make_etag(*this);
 		mimetype_ = service_.get_mimetype(filename_);
-	}
-	errno_ = errno;
+	} else
+		errno_ = errno;
 }
 
 void FileInfo::clear()
