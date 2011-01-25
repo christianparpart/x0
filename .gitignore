@@ -35,3 +35,6 @@ experimental
 *.hpp.*
 t1.cpp
 t2.cpp
+www/htdocs/rrd/*.gif
+www/htdocs/rrd/*.png
+www/htdocs/rrd/*.rrd

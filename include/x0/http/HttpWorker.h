@@ -3,11 +3,11 @@
 
 #include <x0/io/FileInfoService.h>
 #include <x0/CustomDataMgr.h>
-#include <x0/AtomicInt.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
 
 #include <deque>
+#include <atomic>
 #include <ev++.h>
 #include <signal.h>
 #include <pthread.h>
@@ -35,7 +35,7 @@ private:
 	HttpServer& server_;
 	struct ev_loop *loop_;
 	DateTime now_;
-	AtomicInt connectionLoad_;
+	std::atomic<int> connectionLoad_;
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;

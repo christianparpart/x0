@@ -304,7 +304,7 @@ HttpWorker *HttpServer::selectWorker()
 #else
 	// select by lowest connection load
 	HttpWorker *best = workers_[0];
-	AtomicInt::value_type value = 1;
+	int value = 1;
 
 	for (size_t i = 1, e = workers_.size(); i != e; ++i)
 	{
