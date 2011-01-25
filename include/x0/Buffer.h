@@ -165,6 +165,14 @@ bool operator==(const Buffer& a, const Buffer& b);
 bool operator==(const Buffer& a, const char *b);
 template<typename PodType, std::size_t N> bool operator==(const Buffer& a, PodType (&b)[N]);
 
+Buffer& operator<<(Buffer& b, Buffer::value_type v);
+Buffer& operator<<(Buffer& b, int v);
+Buffer& operator<<(Buffer& b, const Buffer::value_type *v);
+Buffer& operator<<(Buffer& b, const Buffer& v);
+Buffer& operator<<(Buffer& b, const BufferRef& v);
+Buffer& operator<<(Buffer& b, const std::string& v);
+template<typename PodType, std::size_t N> Buffer& operator<<(Buffer& b, PodType (&v)[N]);
+
 } // namespace x0
 
 //@}
@@ -680,6 +688,49 @@ template<typename PodType, std::size_t N> bool operator==(const Buffer& a, PodTy
 {
 	return equals<PodType, N>(a, b);
 }
+
+inline Buffer& operator<<(Buffer& b, Buffer::value_type v)
+{
+	b.push_back(v);
+	return b;
+}
+
+inline Buffer& operator<<(Buffer& b, int v)
+{
+	b.push_back(v);
+	return b;
+}
+
+inline Buffer& operator<<(Buffer& b, const Buffer::value_type *v)
+{
+	b.push_back(v);
+	return b;
+}
+
+inline Buffer& operator<<(Buffer& b, const Buffer& v)
+{
+	b.push_back(v);
+	return b;
+}
+
+inline Buffer& operator<<(Buffer& b, const BufferRef& v)
+{
+	b.push_back(v);
+	return b;
+}
+
+inline Buffer& operator<<(Buffer& b, const std::string& v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<typename PodType, std::size_t N> inline Buffer& operator<<(Buffer& b, PodType (&v)[N])
+{
+	b.push_back<PodType, N>(v);
+	return b;
+}
+
 // }}}
 
 } // namespace x0
