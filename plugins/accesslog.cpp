@@ -30,35 +30,34 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <unordered_map>
+#include <string>
 #include <cerrno>
 
 /**
  * \ingroup plugins
  * \brief implements an accesslog log facility - in spirit of "combined" mode of apache's accesslog logs.
  */
-class accesslog_plugin :
+class AccesslogPlugin :
 	public x0::HttpPlugin
 {
 private:
-	x0::HttpServer::RequestHook::Connection c;
+	std::unordered_map<std::string, int> logfiles_; // map of file's name-to-fd
 
-	struct RequestLogger : public x0::CustomData // {{{
+	struct RequestLogger // {{{
+		: public x0::CustomData
 	{
-		std::string filename_;
+		int fd_;
 		x0::HttpRequest *in_;
 
-		RequestLogger(const std::string& filename, x0::HttpRequest *in) :
-			filename_(filename), in_(in)
+		RequestLogger(int fd, x0::HttpRequest *in) :
+			fd_(fd), in_(in)
 		{
 		}
 
 		~RequestLogger()
 		{
-			int fd = open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
-			if (fd < 0)
-				return;
-
-			std::stringstream sstr;
+			x0::Buffer sstr;
 			sstr << hostname(in_);
 			sstr << " - "; // identity as of identd
 			sstr << username(in_) << ' ';
@@ -68,11 +67,9 @@ private:
 			sstr << in_->responseHeaders["Content-Length"] << ' ';
 			sstr << '"' << getheader(in_, "Referer") << "\" ";
 			sstr << '"' << getheader(in_, "User-Agent") << '"';
-			sstr << std::endl;
+			sstr << '\n';
 
-			std::string out = sstr.str();
-			::write(fd, out.data(), out.size());
-			::close(fd);
+			::write(fd_, sstr.data(), sstr.size());
 		}
 
 		inline std::string hostname(x0::HttpRequest *in)
@@ -104,22 +101,45 @@ private:
 	}; // }}}
 
 public:
-	accesslog_plugin(x0::HttpServer& srv, const std::string& name) :
+	AccesslogPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerProperty<accesslog_plugin, &accesslog_plugin::handleRequest>("accesslog", Flow::Value::VOID);
+		registerProperty<AccesslogPlugin, &AccesslogPlugin::handleRequest>("accesslog", Flow::Value::VOID);
 	}
 
-	~accesslog_plugin()
+	~AccesslogPlugin()
 	{
-		server_.onRequestDone.disconnect(c);
+		clear();
+	}
+
+	void clear()
+	{
+		for (auto& i: logfiles_)
+			::close(i.second);
+
+		logfiles_.clear();
 	}
 
 private:
 	void handleRequest(Flow::Value& result, x0::HttpRequest *in, const x0::Params& args)
 	{
-		in->setCustomData<RequestLogger>(this, args[0].toString(), in);
+		std::string filename(args[0].toString());
+		auto i = logfiles_.find(filename);
+		if (i != logfiles_.end()) {
+			if (i->second >= 0) {
+				in->setCustomData<RequestLogger>(this, i->second, in);
+			}
+		} else {
+			int fd = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
+			if (fd >= 0) {
+				logfiles_[filename] = fd;
+				in->setCustomData<RequestLogger>(this, fd, in);
+			} else {
+				in->log(x0::Severity::error, "Could not open accesslog file (%s): %s",
+						filename.c_str(), strerror(errno));
+			}
+		}
 	}
 };
 
-X0_EXPORT_PLUGIN(accesslog)
+X0_EXPORT_PLUGIN_CLASS(AccesslogPlugin)
