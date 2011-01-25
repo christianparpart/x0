@@ -327,13 +327,9 @@ inline std::size_t BufferRef::find(const value_type *value, std::size_t offset) 
 
 inline std::size_t BufferRef::find(value_type value, std::size_t offset) const
 {
-	if (const char *p = strchr(data() + offset, value))
-	{
-		if (p < end())
-		{
-			return p - data();
-		}
-	}
+	if (const char *p = (const char *)memchr((const void *)(data() + offset), value, size() - offset))
+		return p - data();
+
 	return npos;
 }
 
