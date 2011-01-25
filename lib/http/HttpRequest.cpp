@@ -69,26 +69,20 @@ void HttpRequest::updatePathInfo()
 	// split "/the/tail" from "/path/to/script.php/the/tail"
 
 	std::string fullname(fileinfo->filename());
-	struct stat st;
-	size_t pos = std::string::npos;
+	size_t origpos = fullname.size() - 1, pos = origpos;
 
-	for (;;)
-	{
-		int rv = stat(fullname.c_str(), &st);
-		if (rv == 0)
-		{
-			pathinfo = pos != std::string::npos ? fileinfo->filename().substr(pos) : "";
-			fileinfo = connection.worker().fileinfo(fullname);
-			return;
-		}
-		if (errno == ENOTDIR)
-		{
-			pos = fullname.rfind('/', pos - 1);
-			fullname = fullname.substr(0, pos);
-		}
-		else
-		{
-			return;
+	for (;;) {
+		if (fileinfo->exists()) {
+			if (pos != origpos)
+				pathinfo = fullname.substr(pos);
+
+			log(Severity::debug, "pathinfo: %s, fileinfo: %s, pos: %ld", pathinfo.c_str(), fileinfo->filename().c_str(), pos);
+			break;
+		} if (fileinfo->error() == ENOTDIR) {
+			pos = fileinfo->filename().rfind('/', pos - 1);
+			fileinfo = connection.worker().fileinfo(fileinfo->filename().substr(0, pos));
+		} else {
+			break;
 		}
 	}
 }
