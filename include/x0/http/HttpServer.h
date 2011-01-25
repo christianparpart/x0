@@ -60,6 +60,7 @@ class HttpServer :
 public:
 	typedef Signal<void(HttpConnection *)> ConnectionHook;
 	typedef Signal<void(HttpRequest *)> RequestHook;
+	typedef Signal<void(HttpWorker *)> WorkerHook;
 
 public:
 	explicit HttpServer(struct ::ev_loop *loop = 0);
@@ -92,6 +93,8 @@ public:
 	RequestHook onRequestDone;			//!< this hook is invoked once the request has been <b>fully</b> served to the client.
 	ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.
 	// }}}
+
+	WorkerHook onWorkerSpawned;
 
 	void addComponent(const std::string& value);
 

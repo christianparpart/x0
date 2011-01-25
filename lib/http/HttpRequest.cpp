@@ -40,7 +40,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	username(),
 	documentRoot(),
 	expectingContinue(false),
-	customData(),
+	//customData(),
 
 	status(),
 	responseHeaders(),

@@ -15,6 +15,7 @@
 #include <x0/http/HttpError.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/FileInfo.h>
+#include <x0/CustomDataMgr.h>
 #include <x0/Severity.h>
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
@@ -38,7 +39,8 @@ class HttpConnection;
  *
  * \see header, response, HttpConnection, server
  */
-struct X0_API HttpRequest
+struct X0_API HttpRequest :
+	public CustomDataMgr
 {
 public:
 	class HeaderList // {{{
@@ -278,7 +280,7 @@ public:
 	bool expectingContinue;
 
 	// custom data bindings
-	std::map<HttpPlugin *, CustomDataPtr> customData;
+	//std::map<HttpPlugin *, CustomDataPtr> customData;
 
 	// utility methods
 	bool supportsProtocol(int major, int minor) const;

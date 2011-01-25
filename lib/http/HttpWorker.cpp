@@ -70,6 +70,10 @@ HttpWorker::~HttpWorker()
 
 void HttpWorker::run()
 {
+	// XXX invoke onWorkerSpawned-hook here because we want to ensure this hook is 
+	// XXX being invoked from *within* the worker-thread.
+	server_.onWorkerSpawned(this);
+
 	while (state_ != Exiting)
 	{
 #ifndef NDEBUG

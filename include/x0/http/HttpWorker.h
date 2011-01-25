@@ -2,6 +2,7 @@
 #define x0_http_HttpWorker_h (1)
 
 #include <x0/io/FileInfoService.h>
+#include <x0/CustomDataMgr.h>
 #include <x0/AtomicInt.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
@@ -16,7 +17,8 @@ namespace x0 {
 class HttpServer;
 class HttpConnection;
 
-class HttpWorker
+class HttpWorker :
+	public CustomDataMgr
 {
 public:
 	enum State

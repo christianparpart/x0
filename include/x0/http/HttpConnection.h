@@ -13,6 +13,7 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
+#include <x0/CustomDataMgr.h>
 #include <x0/Socket.h>
 #include <x0/Buffer.h>
 #include <x0/Property.h>
@@ -38,7 +39,8 @@ class HttpRequest;
  * @see HttpRequest, HttpServer
  */
 class HttpConnection :
-	public HttpMessageProcessor
+	public HttpMessageProcessor,
+	public CustomDataMgr
 {
 public:
 	HttpConnection& operator=(const HttpConnection&) = delete;
