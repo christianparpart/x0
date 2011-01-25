@@ -10,7 +10,6 @@
 #define sw_x0_http_server_h (1)
 
 #include <x0/io/FileInfoService.h>
-#include <x0/http/HttpContext.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/http/Types.h>
 #include <x0/DateTime.h>
