@@ -84,9 +84,8 @@ public:
 
 	void operator()(Args... args) const
 	{
-		for (auto i = impl_.begin(); i != impl_.end(); ++i)
-		{
-			(*i->second)(i->first, args...);
+		for (auto i: impl_) {
+			(*i.second)(i.first, args...);
 		}
 	}
 
