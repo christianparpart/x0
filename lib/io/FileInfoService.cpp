@@ -14,6 +14,12 @@
 
 namespace x0 {
 
+#if 1
+#	define FILEINFO_DEBUG(msg...) printf("FileInfoService: " msg)
+#else
+#	define FILEINFO_DEBUG(msg...) /*!*/
+#endif
+
 FileInfoService::FileInfoService(struct ::ev_loop *loop, const Config *config) :
 	loop_(loop),
 #if defined(HAVE_SYS_INOTIFY_H)
@@ -50,6 +56,12 @@ FileInfoService::~FileInfoService()
 #endif
 }
 
+inline bool FileInfoService::isValid(const FileInfo *fi) const
+{
+	return fi->inotifyId_ > 0
+		|| fi->cachedAt() + config_->cacheTTL_ > ev_now(loop_);
+}
+
 FileInfoPtr FileInfoService::query(const std::string& _filename)
 {
 	std::string filename(_filename[_filename.size() - 1] == '/'
@@ -59,7 +71,7 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 	auto i = cache_.find(filename);
 	if (i != cache_.end()) {
 		FileInfoPtr fi = i->second;
-		if (fi->inotifyId_ > 0 || fi->cachedAt() + config_->cacheTTL_ > ev_now(loop_)) {
+		if (isValid(fi.get())) {
 			FILEINFO_DEBUG("query.cached(%s)\n", filename.c_str());
 			return fi;
 		}
@@ -81,16 +93,16 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 		fi->etag_ = make_etag(*fi);
 
 #if defined(HAVE_SYS_INOTIFY_H)
-		int rv = handle_ != -1 && fi->exists()
+		int wd = handle_ != -1 && fi->exists()
 				? ::inotify_add_watch(handle_, filename.c_str(),
 					/*IN_ONESHOT |*/ IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
 					IN_DELETE_SELF | IN_MOVE_SELF)
 				: -1;
-		FILEINFO_DEBUG("query(%s).new -> %d\n", filename.c_str(), rv);
+		FILEINFO_DEBUG("query(%s).new -> %d\n", filename.c_str(), wd);
 
-		if (rv != -1) {
-			fi->inotifyId_ = rv;
-			inotifies_[rv] = fi;
+		if (wd != -1) {
+			fi->inotifyId_ = wd;
+			inotifies_[wd] = fi;
 		}
 		cache_[filename] = fi;
 #else

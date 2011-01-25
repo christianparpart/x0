@@ -24,12 +24,6 @@
 #	include <sys/fcntl.h>
 #endif
 
-#if 0
-#	define FILEINFO_DEBUG(msg...) printf("FileInfoService: " msg)
-#else
-#	define FILEINFO_DEBUG(msg...) /*!*/
-#endif
-
 namespace x0 {
 
 //! \addtogroup core
@@ -96,6 +90,8 @@ public:
 
 private:
 	friend class FileInfo;
+
+	inline bool isValid(const FileInfo *finfo) const;
 
 	std::string get_mimetype(const std::string& ext) const;
 	std::string make_etag(const FileInfo& fi) const;
