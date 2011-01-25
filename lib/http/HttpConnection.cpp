@@ -22,10 +22,10 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 0 // !defined(NDEBUG)
-#	define TRACE(msg...) DEBUG("HttpConnection: " msg)
+#if 1 // !defined(NDEBUG)
+#	define TRACE(msg...) this->debug(msg)
 #else
-#	define TRACE(msg...)
+#	define TRACE(msg...) do { } while (0)
 #endif
 
 #define X0_HTTP_STRICT 1
@@ -70,7 +70,11 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
 	sink_.setSocket(socket_);
 
-	TRACE("(%p): fd=%d", this, socket_->handle());
+#if !defined(NDEBUG)
+	setLoggingPrefix("Connection[%s:%d]", remoteIP().c_str(), remotePort());
+#endif
+
+	TRACE("fd=%d", socket_->handle());
 
 #if defined(TCP_NODELAY)
 	if (worker_.server_.tcp_nodelay())
@@ -89,7 +93,7 @@ HttpConnection::~HttpConnection()
 
 	clearCustomData();
 
-	TRACE("~(%p)", this);
+	TRACE("destructing");
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
 	worker_.release(this);
@@ -100,7 +104,7 @@ HttpConnection::~HttpConnection()
 	}
 	catch (...)
 	{
-		TRACE("~HttpConnection(%p): unexpected exception", this);
+		TRACE("unexpected exception");
 	}
 
 	if (socket_)
@@ -114,7 +118,7 @@ HttpConnection::~HttpConnection()
 
 void HttpConnection::io(Socket *)
 {
-	TRACE("(%p).io(mode=%s)", this, socket_->mode_str());
+	TRACE("io(mode=%s)", socket_->mode_str());
 	active_ = true;
 
 	switch (socket_->mode())
@@ -137,7 +141,7 @@ void HttpConnection::io(Socket *)
 
 void HttpConnection::timeout(Socket *)
 {
-	TRACE("(%p): timed out", this);
+	TRACE("timed out");
 
 //	ev_unloop(loop(), EVUNLOOP_ONE);
 
@@ -162,13 +166,13 @@ void HttpConnection::start()
 {
 	if (socket_->state() == Socket::HANDSHAKE)
 	{
-		//TRACE("start: handshake.");
+		TRACE("start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
 	}
 	else
 	{
 #if defined(TCP_DEFER_ACCEPT)
-		//TRACE("start: read.");
+		TRACE("start: read.");
 		// it is ensured, that we have data pending, so directly start reading
 		processInput();
 
@@ -179,7 +183,7 @@ void HttpConnection::start()
 		else
 			active_ = false;
 #else
-		//TRACE("start: startRead.");
+		TRACE("start: startRead.");
 		// client connected, but we do not yet know if we have data pending
 		startRead();
 #endif
@@ -394,7 +398,7 @@ void HttpConnection::startRead()
  */
 void HttpConnection::processInput()
 {
-	TRACE("(%p).processInput()", this);
+	TRACE("processInput()");
 
 	ssize_t rv = socket_->read(buffer_);
 
@@ -430,8 +434,8 @@ void HttpConnection::processInput()
 
 		process();
 
-		TRACE("(%p).processInput(): done process()ing; mode=%s, fd=%d, request=%p",
-			this, socket_->mode_str(), socket_->handle(), request_);
+		TRACE("processInput(): done process()ing; mode=%s, fd=%d, request=%p",
+			socket_->mode_str(), socket_->handle(), request_);
 	}
 }
 
@@ -456,7 +460,7 @@ void HttpConnection::processOutput()
 		}
 		else if (rv == 0) // source fully written
 		{
-			//TRACE("processOutput(): source fully written");
+			TRACE("processOutput(): source fully written");
 			source_.reset();
 
 			if (onWriteComplete_)
@@ -491,7 +495,7 @@ void HttpConnection::processOutput()
 void HttpConnection::close()
 {
 	TRACE("(%p).close() (active=%d)", this, active_);
-	TRACE("Stack Trace:%s\n", StackTrace().c_str());
+	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	socket_->close();
 

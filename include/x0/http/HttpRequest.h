@@ -16,6 +16,7 @@
 #include <x0/io/FilterSource.h>
 #include <x0/io/FileInfo.h>
 #include <x0/CustomDataMgr.h>
+#include <x0/Logging.h>
 #include <x0/Severity.h>
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
@@ -40,6 +41,9 @@ class HttpConnection;
  * \see header, response, HttpConnection, server
  */
 struct X0_API HttpRequest :
+#ifndef NDEBUG
+	public Logging,
+#endif
 	public CustomDataMgr
 {
 public:

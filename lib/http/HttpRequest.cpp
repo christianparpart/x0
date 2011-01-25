@@ -16,8 +16,11 @@
 #include <x0/strutils.h>
 #include <strings.h>			// strcasecmp()
 
-#define TRACE(msg...) DEBUG(msg)
-//#define TRACE(msg...) do { fprintf(stderr, msg); fprintf(stderr, "\n"); } while (0)
+#if 1
+#	define TRACE(msg...) this->debug(msg)
+#else
+#	define TRACE(msg...) ((void *)0)
+#endif
 
 namespace x0 {
 
@@ -49,6 +52,11 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	hostid_(),
 	readCallback_()
 {
+#ifndef NDEBUG
+	static std::atomic<unsigned long long> rid(0);
+	setLoggingPrefix("Request(%lld,%s:%d)", ++rid, connection.remoteIP().c_str(), connection.remotePort());
+#endif
+
 	responseHeaders.push_back("Date", connection.worker().now().http_str().str());
 
 	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty())
@@ -58,6 +66,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 
 HttpRequest::~HttpRequest()
 {
+	TRACE("destructing");
 	clearCustomData();
 }
 
@@ -76,7 +85,6 @@ void HttpRequest::updatePathInfo()
 			if (pos != origpos)
 				pathinfo = fullname.substr(pos);
 
-			log(Severity::debug, "pathinfo: %s, fileinfo: %s, pos: %ld", pathinfo.c_str(), fileinfo->filename().c_str(), pos);
 			break;
 		} if (fileinfo->error() == ENOTDIR) {
 			pos = fileinfo->filename().rfind('/', pos - 1);
@@ -147,7 +155,7 @@ void HttpRequest::onRequestContent(BufferRef&& chunk)
 {
 	if (readCallback_)
 	{
-		//TRACE("HttpRequest.onRequestContent(chunkSize=%ld)", chunk.size());
+		TRACE("onRequestContent(chunkSize=%ld)", chunk.size());
 		auto callback = readCallback_;
 		readCallback_ = std::function<void(BufferRef&&)>();
 		callback(std::move(chunk));
@@ -222,7 +230,7 @@ SourcePtr HttpRequest::serialize()
 	if (!connection.worker().server().max_keep_alive_idle())
 		keepalive = false;
 
-	keepalive = false; // XXX workaround
+	//keepalive = false; // FIXME workaround
 
 	if (!keepalive)
 		responseHeaders.overwrite("Connection", "close");
@@ -308,7 +316,7 @@ std::string HttpRequest::statusStr(HttpError value)
  */
 void HttpRequest::onFinished(int ec)
 {
-	//TRACE("HttpRequest(%p).onFinished(%d)", this, ec);
+	TRACE("onFinished(%d)", ec);
 
 	{
 		HttpServer& srv = connection.worker().server();
