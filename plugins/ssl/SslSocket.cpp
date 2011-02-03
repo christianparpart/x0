@@ -36,7 +36,7 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	static int protocolPriorities_[] = { GNUTLS_TLS1_2, GNUTLS_TLS1_1, GNUTLS_TLS1_0, GNUTLS_SSL3, 0 };
 
 	setSecure(true);
-	setState(HANDSHAKE);
+	setState(Handshake);
 
 	gnutls_init(&session_, GNUTLS_SERVER);
 	gnutls_protocol_set_priority(session_, protocolPriorities_);
@@ -105,35 +105,35 @@ void SslSocket::handshake()
 	TRACE("handshake()");
 	int rv = gnutls_handshake(session_);
 
-	if (rv == GNUTLS_E_SUCCESS)
-	{
+	if (rv == GNUTLS_E_SUCCESS) {
 		// handshake either completed or failed
 		TRACE("SSL handshake complete. (time: %.4f)", ev_now(loop()) - ctime_);
 
-		setState(OPERATIONAL);
-		setMode(READ);
-		callback();
-	}
-	else if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED)
-	{
+		setState(Operational);
+		setMode(Read);
+
+		if (handshakeCallback_) {
+			handshakeCallback_(this, handshakeData_);
+		}
+	} else if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED) {
 		TRACE("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
 
-		setState(FAILURE);
-		callback();
-	}
-	else
-	{
+		setState(Failure);
+
+		if (handshakeCallback_) {
+			handshakeCallback_(this, handshakeData_);
+		}
+	} else {
 		TRACE("SSL partial handshake: (%d)", gnutls_record_get_direction(session_));
-		switch (gnutls_record_get_direction(session_))
-		{
-			case 0: // read
-				setMode(READ);
-				break;
-			case 1: // write
-				setMode(WRITE);
-				break;
-			default:
-				break;
+		switch (gnutls_record_get_direction(session_)) {
+		case 0: // read
+			setMode(Read);
+			break;
+		case 1: // write
+			setMode(Write);
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -151,9 +151,9 @@ ssize_t SslSocket::read(x0::Buffer& result)
 	return rv;
 }
 
-ssize_t SslSocket::write(const x0::BufferRef& source)
+ssize_t SslSocket::write(const void *buffer, size_t size)
 {
-	return gnutls_write(session_, source.data(), source.size());
+	return gnutls_write(session_, buffer, size);
 }
 
 ssize_t SslSocket::write(int fd, off_t *offset, size_t nbytes)

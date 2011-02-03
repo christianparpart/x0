@@ -22,16 +22,15 @@
 #include <unistd.h>
 #include <system_error>
 
-#if 0 // !defined(NDEBUG)
-#	define TRACE(msg...) DEBUG("Socket: " msg)
+#if 1 // !defined(NDEBUG)
+#	define TRACE(msg...) this->debug(msg)
 #else
-#	define TRACE(msg...)
+#	define TRACE(msg...) ((void *)0)
 #endif
 
 #define ERROR(msg...) { \
 	TRACE(msg); \
-	StackTrace st; \
-	TRACE("Stack Trace:\n%s", st.c_str()); \
+	TRACE("Stack Trace:\n%s", StackTrace().c_str()); \
 }
 
 namespace x0 {
@@ -41,20 +40,22 @@ Socket::Socket(struct ev_loop *loop, int fd, int af) :
 	fd_(fd),
 	addressFamily_(af),
 	watcher_(loop),
-	timeout_(0),
 	timer_(loop),
 	secure_(false),
-	state_(OPERATIONAL),
-	mode_(IDLE),
+	state_(Operational),
+	mode_(None),
 	tcpCork_(false),
 	remoteIP_(),
 	remotePort_(0),
 	localIP_(),
 	localPort_(),
-	callback_(0),
+	callback_(nullptr),
 	callbackData_(0)
 {
-	TRACE("Socket(%p) fd:%d, local(%s:%d), remote(%s:%d)", this, fd_, localIP().c_str(), localPort(), remoteIP().c_str(), remotePort());
+#ifndef NDEBUG
+	setLoggingPrefix("Socket(%s:%d)", remoteIP().c_str(), remotePort());
+#endif
+	TRACE("created. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
 
 	watcher_.set<Socket, &Socket::io>(this);
 	timer_.set<Socket, &Socket::timeout>(this);
@@ -62,7 +63,7 @@ Socket::Socket(struct ev_loop *loop, int fd, int af) :
 
 Socket::~Socket()
 {
-	TRACE("~Socket(%p) fd:%d, local(%s:%d), remote(%s:%d)", this, fd_, localIP().c_str(), localPort(), remoteIP().c_str(), remotePort());
+	TRACE("destroying. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
 
 	if (fd_ >= 0)
 		::close(fd_);
@@ -87,7 +88,7 @@ bool Socket::setTcpCork(bool enable)
 #if defined(TCP_CORK)
 	int flag = enable ? 1 : 0;
 	bool rv = setsockopt(fd_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) == 0;
-	TRACE("(%d).setTcpCork: %d => %d", fd_, enable, rv);
+	TRACE("setTcpCork: %d => %d", enable, rv);
 	tcpCork_ = rv ? enable : false;
 	return rv;
 #else
@@ -97,37 +98,29 @@ bool Socket::setTcpCork(bool enable)
 
 void Socket::setMode(Mode m)
 {
-	switch (m) {
-	case READ:
-	case WRITE:
-		if (m != mode_)
-		{
-			static int modes[] = { 0, ev::READ, ev::WRITE };
-			//static const char *ms[] = { "null", "READ", "WRITE" };
+	static const char *ms[] = { "None", "Read", "Write", "ReadWrite" };
+	TRACE("setMode() %s -> %s", ms[static_cast<int>(mode_)], ms[static_cast<int>(m)]);
 
-			//TRACE("(%d).setMode(%s)", fd_, ms[static_cast<int>(m)]);
+	if (m != mode_) {
+		if (m != None) {
+			TRACE("setMode: set flags");
+			watcher_.set(fd_, static_cast<int>(m));
 
-			watcher_.set(fd_, modes[static_cast<int>(m)]);
-
-			if (mode_ == IDLE)
+			if (mode_ == None && !watcher_.is_active()) {
+				TRACE("setMode: start watcher");
 				watcher_.start();
+			}
+		} else {
+			TRACE("stop watcher and timer");
+			if (watcher_.is_active())
+				watcher_.stop();
+
+			if (timer_.is_active())
+				timer_.stop();
 		}
 
-		if (timeout_ > 0)
-			timer_.start(timeout_, 0.0);
-
-		break;
-	case IDLE:
-		if (watcher_.is_active())
-			watcher_.stop();
-
-		if (timer_.is_active())
-			timer_.stop();
-
-		break;
+		mode_ = m;
 	}
-
-	mode_ = m;
 }
 
 void Socket::clearReadyCallback()
@@ -138,7 +131,7 @@ void Socket::clearReadyCallback()
 
 void Socket::close()
 {
-	TRACE("(%p).close: fd=%d", this, fd_);
+	TRACE("close: fd=%d", fd_);
 
 	if (fd_< 0)
 		return;
@@ -161,29 +154,29 @@ ssize_t Socket::read(Buffer& result)
 
 		ssize_t rv = ::read(fd_, result.end(), result.capacity() - result.size());
 		if (rv <= 0) {
-			TRACE("(%d).read(): rv=%ld -> %ld:\n", fd_, rv, result.size());
+			TRACE("read(): rv=%ld -> %ld: %s", rv, result.size(), strerror(errno));
 			return nread != 0 ? nread : rv;
 		} else {
+			TRACE("read() -> %ld", rv);
 			nread += rv;
-			size_t offset = result.size();
-			result.resize(offset + rv);
+			result.resize(result.size() + rv);
 		}
 	}
 }
 
-ssize_t Socket::write(const BufferRef& source)
+ssize_t Socket::write(const void *buffer, size_t size)
 {
 #if 0 // !defined(NDEBUG)
-	//TRACE("(%d).write('%s')", fd_, source.str().c_str());
+	//TRACE("write('%s')", source.str().c_str());
 	ssize_t rv = ::write(fd_, source.data(), source.size());
-	TRACE("(%d).write: %ld => %ld", fd_, source.size(), rv);
+	TRACE("write: %ld => %ld", source.size(), rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write: error (%d): %s", fd_, errno, strerror(errno));
 
 	return rv;
 #else
-	return ::write(fd_, source.data(), source.size());
+	return ::write(fd_, buffer, size);
 #endif
 }
 
@@ -192,7 +185,7 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #if !defined(NDEBUG)
 	//auto offset0 = *offset;
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
-	//TRACE("(%d).write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd_, fd, offset0, *offset, nbytes, rv);
+	//TRACE("write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset0, *offset, nbytes, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
@@ -203,40 +196,30 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #endif
 }
 
-void Socket::handshake()
+void Socket::handshake(int /*revents*/)
 {
 	// plain (unencrypted) TCP/IP sockets do not need an additional handshake
 }
 
-void Socket::io(ev::io& io, int revents)
+void Socket::io(ev::io& /*io*/, int revents)
 {
-	//TRACE("(%d).io(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	//TRACE("io(revents=0x%04X): mode=%d", revents, mode_);
 	timer_.stop();
 
-	if (state_ == HANDSHAKE)
-		handshake();
+	if (state_ == Handshake)
+		handshake(revents);
 	else if (callback_)
-		callback_(this, callbackData_);
+		callback_(this, callbackData_, revents);
 }
 
 void Socket::timeout(ev::timer& timer, int revents)
 {
-	//TRACE("(%d).timeout(revents=0x%04X): mode=%d", fd_, revents, mode_);
+	TRACE("timeout(revents=0x%04X): mode=%d", revents, mode_);
 	watcher_.stop();
 
 	if (timeoutCallback_)
 		timeoutCallback_(this, timeoutData_);
 }
-
-#if 1 == 0
-bool Socket::acceptFrom(int listenerSocket)
-{
-	socklen_t slen = sizeof(saddr);
-	int fd = ::accept(listenerSocket, reinterpret_cast<sockaddr *>(&saddr), &slen);
-	if (fd < 0)
-		return false;
-}
-#endif
 
 std::string Socket::remoteIP() const
 {

@@ -12,11 +12,11 @@
 #include <ev++.h>
 #include <unistd.h>
 #include <system_error>
+#include <x0/Logging.h>
+#include <x0/Buffer.h>
+#include <x0/BufferRef.h>
 
 namespace x0 {
-
-class Buffer;
-class BufferRef;
 
 /** \brief represents a network socket.
  *
@@ -25,14 +25,20 @@ class BufferRef;
  * * I/O and timeout event callbacks.
  */
 class Socket
+#ifndef NDEBUG
+	: public Logging
+#endif
 {
 public:
 	enum Mode {
-		IDLE, READ, WRITE
+		None = ev::NONE,
+		Read = ev::READ,
+		Write = ev::WRITE,
+		ReadWrite = ev::READ | ev::WRITE
 	};
 
 	enum State {
-		HANDSHAKE, OPERATIONAL, FAILURE
+		Handshake, Operational, Failure
 	};
 
 private:
@@ -40,7 +46,6 @@ private:
 	int fd_;
 	int addressFamily_;
 	ev::io watcher_;
-	int timeout_;
 	ev::timer timer_;
 	bool secure_;
 	State state_;
@@ -53,11 +58,15 @@ private:
 	mutable std::string localIP_;		//!< internal cache to local ip
 	mutable unsigned int localPort_;	//!< internal cache to local port
 
-	void (*callback_)(Socket *, void *);
+	void (*callback_)(Socket *, void *, int);
 	void *callbackData_;
 
 	void (*timeoutCallback_)(Socket *, void *);
 	void *timeoutData_;
+
+protected:
+	void (*handshakeCallback_)(Socket *, void *);
+	void *handshakeData_;
 
 public:
 	explicit Socket(struct ev_loop *loop, int fd, int addressFamily);
@@ -81,7 +90,6 @@ public:
 	std::string localIP() const;
 	unsigned int localPort() const;
 
-	int timeout() const;
 	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);
 
 	const char *state_str() const;
@@ -92,7 +100,9 @@ public:
 	void setMode(Mode m);
 	const char *mode_str() const;
 
-	template<class K, void (K::*cb)(Socket *)> void setReadyCallback(K *object);
+	void setTimeout(int value);
+
+	template<class K, void (K::*cb)(Socket *, int)> void setReadyCallback(K *object);
 	void clearReadyCallback();
 
 	// initiates the handshake
@@ -104,23 +114,29 @@ public:
 
 	// synchronous non-blocking I/O
 	virtual ssize_t read(Buffer& result);
-	virtual ssize_t write(const BufferRef& source);
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
+	virtual ssize_t write(const void *buffer, size_t size);
+
+	ssize_t write(const BufferRef& source);
+	template<typename PodType, std::size_t N> ssize_t write(PodType (&value)[N]);
 
 private:
 	void queryRemoteName();
 	void queryLocalName();
 
+	template<class K, void (K::*cb)(Socket *, int)>
+	static void io_thunk(Socket *socket, void *object, int revents);
+
 	template<class K, void (K::*cb)(Socket *)>
-	static void method_thunk(Socket *socket, void *object);
+	static void member_thunk(Socket *socket, void *object);
 
 	void io(ev::io& io, int revents);
 	void timeout(ev::timer& timer, int revents);
 
 protected:
-	virtual void handshake();
+	virtual void handshake(int revents);
 
-	void callback();
+	void callback(int revents);
 };
 
 // {{{ inlines
@@ -129,20 +145,15 @@ inline int Socket::handle() const
 	return fd_;
 }
 
-inline int Socket::timeout() const
-{
-	return timeout_;
-}
-
 inline const char *Socket::state_str() const
 {
 	switch (state_)
 	{
-		case HANDSHAKE:
+		case Handshake:
 			return "HANDSHAKE";
-		case OPERATIONAL:
+		case Operational:
 			return "OPERATIONAL";
-		case FAILURE:
+		case Failure:
 			return "FAILURE";
 		default:
 			return "<INVALID>";
@@ -173,12 +184,14 @@ inline const char *Socket::mode_str() const
 {
 	switch (mode_)
 	{
-		case IDLE:
-			return "IDLE";
-		case READ:
-			return "READ";
-		case WRITE:
-			return "WRITE";
+		case None:
+			return "None";
+		case Read:
+			return "Read";
+		case Write:
+			return "Write";
+		case ReadWrite:
+			return "ReadWrite";
 		default:
 			return "<INVALID>";
 	}
@@ -199,45 +212,68 @@ inline void Socket::setSecure(bool enabled)
 	secure_ = enabled;
 }
 
+template<class K, void (K::*cb)(Socket *, int)>
+inline void Socket::io_thunk(Socket *socket, void *object, int revents)
+{
+	(static_cast<K *>(object)->*cb)(socket, revents);
+}
+
 template<class K, void (K::*cb)(Socket *)>
-inline void Socket::method_thunk(Socket *socket, void *object)
+inline void Socket::member_thunk(Socket *socket, void *object)
 {
 	(static_cast<K *>(object)->*cb)(socket);
 }
 
-template<class K, void (K::*cb)(Socket *)>
+template<class K, void (K::*cb)(Socket *, int)>
 inline void Socket::setReadyCallback(K *object)
 {
-	callback_ = &method_thunk<K, cb>;
+	callback_ = &io_thunk<K, cb>;
 	callbackData_ = object;
 }
 
 template<class K, void (K::*cb)(Socket *)>
 inline void Socket::setTimeout(K *object, int value)
 {
-	timeout_ = value;
-	timeoutCallback_ = &method_thunk<K, cb>;
+	timeoutCallback_ = &member_thunk<K, cb>;
 	timeoutData_ = object;
+
+	if (timer_.is_active())
+		timer_.stop();
+
+	if (value > 0)
+		timer_.start(value, 0.0);
 }
 
 template<class K, void (K::*cb)(Socket *)>
 inline void Socket::handshake(K *object)
 {
-	callback_ = &method_thunk<K, cb>;
-	callbackData_ = object;
+	handshakeCallback_ = &member_thunk<K, cb>;
+	handshakeData_ = object;
 
-	handshake();
+	handshake(None);
 }
 
-inline void Socket::callback()
+/** invokes I/O-activity callback. */
+inline void Socket::callback(int revents)
 {
 	if (callback_)
-		callback_(this, callbackData_);
+		callback_(this, callbackData_, revents);
 }
 
 inline struct ev_loop *Socket::loop() const
 {
 	return loop_;
+}
+
+inline ssize_t Socket::write(const BufferRef& source)
+{
+	return write(source.data(), source.size());
+}
+
+template<typename PodType, std::size_t N>
+inline ssize_t Socket::write(PodType (&value)[N])
+{
+	return write(value, N - 1);
 }
 // }}}
 

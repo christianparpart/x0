@@ -103,8 +103,8 @@ private:
 	void processOutput();
 
 	void process();
-	void io(Socket *);
-	void timeout(Socket *);
+	void io(Socket *socket, int revents);
+	void timeout(Socket *socket);
 
 	struct ::ev_loop *loop() const;
 

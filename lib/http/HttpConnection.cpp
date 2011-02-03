@@ -116,22 +116,16 @@ HttpConnection::~HttpConnection()
 	}
 }
 
-void HttpConnection::io(Socket *)
+void HttpConnection::io(Socket *, int revents)
 {
 	TRACE("io(mode=%s)", socket_->mode_str());
 	active_ = true;
 
-	switch (socket_->mode())
-	{
-		case Socket::READ:
-			processInput();
-			break;
-		case Socket::WRITE:
-			processOutput();
-			break;
-		default:
-			break;
-	}
+	if (revents & Socket::Read)
+		processInput();
+
+	if (revents & Socket::Write)
+		processOutput();
 
 	if (isClosed())
 		delete this;
@@ -164,7 +158,7 @@ bool HttpConnection::isSecure() const
  */
 void HttpConnection::start()
 {
-	if (socket_->state() == Socket::HANDSHAKE)
+	if (socket_->state() == Socket::Handshake)
 	{
 		TRACE("start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
@@ -172,9 +166,10 @@ void HttpConnection::start()
 	else
 	{
 #if defined(TCP_DEFER_ACCEPT)
-		TRACE("start: read.");
+		TRACE("start: processing input");
 		// it is ensured, that we have data pending, so directly start reading
 		processInput();
+		TRACE("start: processing input done");
 
 		// destroy connection in case the above caused connection-close
 		// XXX this is usually done within HttpConnection::io(), but we are not.
@@ -194,7 +189,7 @@ void HttpConnection::handshakeComplete(Socket *)
 {
 	TRACE("handshakeComplete() socketState=%s", socket_->state_str());
 
-	if (socket_->state() == Socket::OPERATIONAL)
+	if (socket_->state() == Socket::Operational)
 		startRead();
 	else
 	{
@@ -374,7 +369,7 @@ void HttpConnection::resume()
 	request_ = nullptr;
 
 	// wait for new request message, if nothing in buffer
-	if (offset_ != buffer_.size())
+	if (offset_ == buffer_.size())
 		startRead();
 }
 
@@ -388,7 +383,7 @@ void HttpConnection::startRead()
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
-	socket_->setMode(Socket::READ);
+	socket_->setMode(Socket::Read);
 }
 
 /**
@@ -420,7 +415,7 @@ void HttpConnection::processInput()
 		TRACE("processInput(): (EOF)");
 
 		if (abortHandler_) {
-			socket_->setMode(Socket::IDLE);
+			socket_->setMode(Socket::None);
 			abortHandler_(abortData_);
 		} else
 			close();
@@ -476,7 +471,7 @@ void HttpConnection::processOutput()
 		else if (errno == EAGAIN || errno == EINTR) // completing write would block
 		{
 			socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this); // XXX should be same
-			socket_->setMode(Socket::WRITE);
+			socket_->setMode(Socket::Write);
 			break;
 		}
 		else // an error occurred

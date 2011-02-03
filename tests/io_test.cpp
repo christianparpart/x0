@@ -69,7 +69,6 @@ public:
 	CPPUNIT_TEST_SUITE(io_test);
 		// source
 		CPPUNIT_TEST(test_BufferSource);
-		CPPUNIT_TEST(test_fd_source);
 		CPPUNIT_TEST(test_file_source);
 		CPPUNIT_TEST(test_FilterSource);
 		CPPUNIT_TEST(test_CompositeSource);
@@ -92,7 +91,7 @@ private:
 		CPPUNIT_ASSERT(ref == output);
 	}
 
-	void test_fd_source()
+	/* void test_fd_source()
 	{
 		safe_pipe pfd(true);
 		x0::SystemSource in(pfd.reader());
@@ -108,7 +107,7 @@ private:
 
 		CPPUNIT_ASSERT(in.pull(output) == "");
 		CPPUNIT_ASSERT(errno == EAGAIN);
-	}
+	} */
 
 	void test_file_source()
 	{

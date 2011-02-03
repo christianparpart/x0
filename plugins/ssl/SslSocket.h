@@ -47,7 +47,7 @@ public:
 public:
 	// synchronous non-blocking I/O
 	virtual ssize_t read(x0::Buffer& result);
-	virtual ssize_t write(const x0::BufferRef& source);
+	virtual ssize_t write(const void *buffer, size_t size);
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 
 protected:
