@@ -36,6 +36,10 @@ public:
 
 	virtual ssize_t pump(Source& src);
 
+	virtual void accept(SinkVisitor& v);
+	virtual ssize_t write(const void *buffer, size_t size);
+	ssize_t write(int fd, off_t *offset, size_t nbytes);
+
 public: // SourceVisitor
 	virtual void visit(SystemSource& v);
 	virtual void visit(FileSource& v);
@@ -64,6 +68,11 @@ inline Socket *SocketSink::socket() const
 inline void SocketSink::setSocket(Socket *value)
 {
 	socket_ = value;
+}
+
+inline ssize_t SocketSink::write(int fd, off_t *offset, size_t nbytes)
+{
+	return socket_->write(fd, offset, nbytes);
 }
 // }}}
 

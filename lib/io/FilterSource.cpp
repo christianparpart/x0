@@ -8,6 +8,7 @@
 
 #include <x0/io/FilterSource.h>
 #include <x0/io/BufferSource.h>
+#include <x0/io/BufferSink.h>
 #include <x0/io/Filter.h>
 #include <x0/io/SourceVisitor.h>
 #include <x0/Defines.h>
@@ -18,6 +19,24 @@
 #endif
 
 namespace x0 {
+
+ssize_t FilterSource::sendto(Sink& sink)
+{
+	if (buffer_.empty()) {
+		BufferSink input;
+		source_->sendto(input);
+		buffer_ = filter_(input.buffer());
+		pos_ = 0;
+	}
+
+	ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);
+
+	if (result > 0) {
+		pos_ += result;
+	}
+
+	return result;
+}
 
 BufferRef FilterSource::pull(Buffer& output)
 {

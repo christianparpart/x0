@@ -28,4 +28,13 @@ void BufferSource::accept(SourceVisitor& v)
 	v.visit(*this);
 }
 
+ssize_t BufferSource::sendto(Sink& sink)
+{
+	ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);
+	if (result > 0) {
+		pos_ += result;
+	}
+	return result;
+}
+
 } // namespace x0

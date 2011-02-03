@@ -7,6 +7,7 @@
  */
 
 #include <x0/io/FileSink.h>
+#include <x0/io/SinkVisitor.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -14,8 +15,8 @@
 
 namespace x0 {
 
-FileSink::FileSink(const std::string& filename) :
-	SystemSink(open(filename.c_str(), O_WRONLY | O_CREAT, 0666))
+FileSink::FileSink(const std::string& filename, int flags) :
+	SystemSink(open(filename.c_str(), flags, 0666))
 {
 	fcntl(handle_, F_SETFD, fcntl(handle_, F_GETFD) | FD_CLOEXEC);
 }
@@ -23,6 +24,16 @@ FileSink::FileSink(const std::string& filename) :
 FileSink::~FileSink()
 {
 	::close(handle_);
+}
+
+void FileSink::accept(SinkVisitor& v)
+{
+	v.visit(*this);
+}
+
+ssize_t FileSink::write(const void *buffer, size_t size)
+{
+	return ::write(handle_, buffer, size);
 }
 
 } // namespace x0

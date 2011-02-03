@@ -32,7 +32,7 @@ BufferRef SystemSource::pull(Buffer& buf)
 
 	buf.reserve(left + count);
 
-	if (offset_ != static_cast<std::size_t>(-1))
+	if (offset_ != -1)
 	{
 		ssize_t nread = ::pread(handle_, buf.end(), count, offset_);
 

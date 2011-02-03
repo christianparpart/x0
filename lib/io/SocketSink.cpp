@@ -102,4 +102,14 @@ void SocketSink::visit(CompositeSource& v)
 	}
 }
 
+void SocketSink::accept(SinkVisitor& v)
+{
+	v.visit(*this);
+}
+
+ssize_t SocketSink::write(const void *buffer, size_t size)
+{
+	return socket_->write(buffer, size);
+}
+
 } // namespace x0

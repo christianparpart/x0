@@ -33,4 +33,19 @@ void CompositeSource::accept(SourceVisitor& v)
 	v.visit(*this);
 }
 
+ssize_t CompositeSource::sendto(Sink& sink)
+{
+	ssize_t result = 0;
+
+	while (!empty()) {
+		result = sources_.front()->sendto(sink);
+		if (result < 0)
+			return result;
+
+		sources_.pop_front();
+	}
+
+	return result;
+}
+
 } // namespace x0

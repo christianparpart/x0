@@ -39,8 +39,8 @@ public:
 
 protected:
 	int handle_;
-	std::size_t offset_;
-	std::size_t count_;
+	off_t offset_;
+	size_t count_;
 };
 
 // {{{ inlines

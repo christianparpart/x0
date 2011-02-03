@@ -53,6 +53,8 @@ public:
 public:
 	virtual BufferRef pull(Buffer& output);
 	virtual void accept(SourceVisitor& v);
+
+	virtual ssize_t sendto(Sink& sink);
 };
 //@}
 

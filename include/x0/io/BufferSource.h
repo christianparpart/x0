@@ -40,6 +40,8 @@ public:
 	virtual BufferRef pull(Buffer& result);
 	virtual void accept(SourceVisitor& v);
 
+	virtual ssize_t sendto(Sink& sink);
+
 public:
 	void clear();
 	std::size_t bytes_consumed() const;

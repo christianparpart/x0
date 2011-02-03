@@ -15,6 +15,7 @@
 namespace x0 {
 
 class Source;
+class SinkVisitor;
 
 //! \addtogroup io
 //@{
@@ -38,9 +39,11 @@ public:
 	 * \return number of bytes pumped through
 	 */
 	virtual ssize_t pump(Source& src) = 0;
-};
 
-typedef std::shared_ptr<Sink> SinkPtr;
+	virtual void accept(SinkVisitor& v) = 0;
+
+	virtual ssize_t write(const void *buffer, size_t size) = 0;
+};
 
 //@}
 

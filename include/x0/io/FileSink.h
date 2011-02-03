@@ -12,6 +12,10 @@
 #include <x0/io/SystemSink.h>
 #include <string>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 namespace x0 {
 
 //! \addtogroup io
@@ -23,8 +27,11 @@ class X0_API FileSink :
 	public SystemSink
 {
 public:
-	explicit FileSink(const std::string& filename);
+	explicit FileSink(const std::string& filename, int flags = O_WRONLY | O_CREAT);
 	~FileSink();
+
+	virtual void accept(SinkVisitor& v);
+	virtual ssize_t write(const void *buffer, size_t size);
 };
 
 //@}
