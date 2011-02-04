@@ -230,7 +230,7 @@ SourcePtr HttpRequest::serialize()
 	if (!connection.worker().server().max_keep_alive_idle())
 		keepalive = false;
 
-	//keepalive = false; // FIXME workaround
+	keepalive = false; // FIXME workaround
 
 	if (!keepalive)
 		responseHeaders.overwrite("Connection", "close");
