@@ -444,13 +444,9 @@ void HttpConnection::processOutput()
 
 	for (;;)
 	{
-#if 0
-		ssize_t rv = sink_.pump(source_);
-#else
 		ssize_t rv = source_.sendto(sink_);
-#endif
 
-		TRACE("processOutput(): pump().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
+		TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
 		// TODO make use of source_->eof()
 
 		if (rv > 0) // source (partially?) written
