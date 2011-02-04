@@ -11,7 +11,6 @@
 
 #include <x0/io/Source.h>
 #include <x0/Buffer.h>
-#include <x0/io/SourceVisitor.h>
 
 #include <deque>
 
@@ -44,16 +43,10 @@ public:
 	void push_back(SourcePtr s);
 	void reset();
 
-	//std::size_t size() const;
-	//SourcePtr operator[](std::size_t index) const;
-
 	SourcePtr front() const;
 	void pop_front();
 
 public:
-	virtual BufferRef pull(Buffer& output);
-	virtual void accept(SourceVisitor& v);
-
 	virtual ssize_t sendto(Sink& sink);
 };
 //@}
@@ -79,16 +72,6 @@ inline void CompositeSource::reset()
 {
 	sources_.clear();
 }
-
-//inline std::size_t CompositeSource::size() const
-//{
-//	return sources_.size();
-//}
-
-//inline SourcePtr CompositeSource::operator[](std::size_t index) const
-//{
-//	return sources_[index];
-//}
 
 inline SourcePtr CompositeSource::front() const
 {

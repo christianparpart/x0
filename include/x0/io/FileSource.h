@@ -9,7 +9,7 @@
 #ifndef sw_x0_io_FileSource_hpp
 #define sw_x0_io_FileSource_hpp 1
 
-#include <x0/io/SystemSource.h>
+#include <x0/io/Source.h>
 #include <x0/io/SinkVisitor.h>
 #include <string>
 
@@ -21,20 +21,23 @@ namespace x0 {
 /** file source.
  */
 class X0_API FileSource :
-	public SystemSource,
+	public Source,
 	public SinkVisitor
 {
 private:
+	int handle_;
+	off_t offset_;
+	size_t count_;
 	bool autoClose_;
 
 	ssize_t result_;
 
 public:
 	explicit FileSource(const char *filename);
-	FileSource(int fd, std::size_t offset, std::size_t count, bool autoClose);
+	FileSource(int fd, off_t offset, std::size_t count, bool autoClose);
 	~FileSource();
 
-	virtual void accept(SourceVisitor& v);
+	inline int handle() const { return handle_; }
 
 	virtual ssize_t sendto(Sink& output);
 

@@ -31,11 +31,6 @@ public:
 	{
 	}
 
-	virtual ssize_t pump(Source& src)
-	{
-		return src.pull(buffer_).size();
-	}
-
 	virtual void accept(SinkVisitor& v);
 	virtual ssize_t write(const void *buffer, size_t size);
 

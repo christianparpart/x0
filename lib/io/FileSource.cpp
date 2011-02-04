@@ -7,7 +7,6 @@
  */
 
 #include <x0/io/FileSource.h>
-#include <x0/io/SourceVisitor.h>
 #include <x0/io/BufferSink.h>
 #include <x0/io/FileSink.h>
 #include <x0/io/SocketSink.h>
@@ -19,7 +18,9 @@
 namespace x0 {
 
 FileSource::FileSource(const char *filename) :
-	SystemSource(::open(filename, O_RDONLY), 0, 0),
+	handle_(::open(filename, O_RDONLY)),
+	offset_(0),
+	count_(0),
 	autoClose_(true)
 {
 	if (handle() > 0) {
@@ -33,8 +34,10 @@ FileSource::FileSource(const char *filename) :
  *
  * \param f the file to stream
  */
-FileSource::FileSource(int fd, std::size_t offset, std::size_t size, bool autoClose) :
-	SystemSource(fd, offset, size),
+FileSource::FileSource(int fd, off_t offset, std::size_t count, bool autoClose) :
+	handle_(fd),
+	offset_(offset),
+	count_(count),
 	autoClose_(autoClose)
 {
 }
@@ -42,12 +45,7 @@ FileSource::FileSource(int fd, std::size_t offset, std::size_t size, bool autoCl
 FileSource::~FileSource()
 {
 	if (autoClose_)
-		::close(handle());
-}
-
-void FileSource::accept(SourceVisitor& v)
-{
-	v.visit(*this);
+		::close(handle_);
 }
 
 ssize_t FileSource::sendto(Sink& output)

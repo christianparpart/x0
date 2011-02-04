@@ -12,7 +12,6 @@
 #include <x0/io/Source.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/Filter.h>
-#include <x0/io/SourceVisitor.h>
 #include <memory>
 
 namespace x0 {
@@ -31,9 +30,6 @@ public:
 
 	FilterSource(const SourcePtr& source, Filter& Filter, bool force) :
 		buffer_(), source_(source), filter_(Filter), force_(force), pos_(0) {}
-
-	virtual BufferRef pull(Buffer& output);
-	virtual void accept(SourceVisitor& v);
 
 	virtual ssize_t sendto(Sink& sink);
 

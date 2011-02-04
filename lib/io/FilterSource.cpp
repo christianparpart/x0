@@ -7,16 +7,10 @@
  */
 
 #include <x0/io/FilterSource.h>
-#include <x0/io/BufferSource.h>
 #include <x0/io/BufferSink.h>
 #include <x0/io/Filter.h>
-#include <x0/io/SourceVisitor.h>
 #include <x0/Defines.h>
 #include <memory>
-
-#if !defined(NDEBUG)
-#	include <x0/StackTrace.h>
-#endif
 
 namespace x0 {
 
@@ -36,30 +30,6 @@ ssize_t FilterSource::sendto(Sink& sink)
 	}
 
 	return result;
-}
-
-BufferRef FilterSource::pull(Buffer& output)
-{
-	std::size_t pos = output.size();
-
-	buffer_.clear();
-	BufferRef input = source_->pull(buffer_);
-
-	if (!input.empty() || force_)
-	{
-		Buffer filtered = filter_(input);
-		output.push_back(filtered);
-
-		//DEBUG("FilterSource: #%ld -> #%ld", input.size(), filtered.size());
-
-		return output.ref(pos);
-	} else
-		return input;
-}
-
-void FilterSource::accept(SourceVisitor& v)
-{
-	v.visit(*this);
 }
 
 } // namespace x0

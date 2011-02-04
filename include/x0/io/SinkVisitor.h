@@ -1,4 +1,4 @@
-/* <SourceVisitor.h>
+/* <SinkVisitor.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.ws/

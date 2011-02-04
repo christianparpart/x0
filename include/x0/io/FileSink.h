@@ -9,7 +9,7 @@
 #ifndef sw_x0_io_FileSink_hpp
 #define sw_x0_io_FileSink_hpp 1
 
-#include <x0/io/SystemSink.h>
+#include <x0/io/Sink.h>
 #include <string>
 
 #include <sys/types.h>
@@ -24,17 +24,29 @@ namespace x0 {
 /** file sink.
  */
 class X0_API FileSink :
-	public SystemSink
+	public Sink
 {
+private:
+	int handle_;
+
 public:
 	explicit FileSink(const std::string& filename, int flags = O_WRONLY | O_CREAT);
 	~FileSink();
+
+	int handle() const;
 
 	virtual void accept(SinkVisitor& v);
 	virtual ssize_t write(const void *buffer, size_t size);
 };
 
 //@}
+
+// {{{ inlines
+inline int FileSink::handle() const
+{
+	return handle_;
+}
+// }}}
 
 } // namespace x0
 

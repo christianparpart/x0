@@ -15,15 +15,19 @@
 
 namespace x0 {
 
-FileSink::FileSink(const std::string& filename, int flags) :
-	SystemSink(open(filename.c_str(), flags, 0666))
+FileSink::FileSink(const std::string& filename, int flags)
 {
-	fcntl(handle_, F_SETFD, fcntl(handle_, F_GETFD) | FD_CLOEXEC);
+	handle_ = open(filename.c_str(), flags, 0666);
+	if (handle_ >= 0) {
+		fcntl(handle_, F_SETFD, fcntl(handle_, F_GETFD) | FD_CLOEXEC);
+	}
 }
 
 FileSink::~FileSink()
 {
-	::close(handle_);
+	if (handle_ >= 0) {
+		::close(handle_);
+	}
 }
 
 void FileSink::accept(SinkVisitor& v)

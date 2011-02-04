@@ -37,9 +37,6 @@ public:
 	const Buffer& buffer() const;
 	const Buffer *operator->() const;
 
-	virtual BufferRef pull(Buffer& result);
-	virtual void accept(SourceVisitor& v);
-
 	virtual ssize_t sendto(Sink& sink);
 
 public:

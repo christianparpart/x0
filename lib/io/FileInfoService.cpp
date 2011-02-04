@@ -14,7 +14,7 @@
 
 namespace x0 {
 
-#if 0
+#if 1
 #	define FILEINFO_DEBUG(msg...) printf("FileInfoService: " msg)
 #else
 #	define FILEINFO_DEBUG(msg...) /*!*/
@@ -72,11 +72,11 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 	if (i != cache_.end()) {
 		FileInfoPtr fi = i->second;
 		if (isValid(fi.get())) {
-			FILEINFO_DEBUG("query.cached(%s)\n", filename.c_str());
+			FILEINFO_DEBUG("query.cached(%s) len:%ld\n", filename.c_str(), fi->size());
 			return fi;
 		}
 
-		FILEINFO_DEBUG("query.expired(%s)\n", filename.c_str());
+		FILEINFO_DEBUG("query.expired(%s) len:%ld\n", filename.c_str(), fi->size());
 #if defined(HAVE_SYS_INOTIFY_H)
 		if (fi->inotifyId_ >= 0) {
 			inotify_rm_watch(handle_, fi->inotifyId_);
@@ -98,7 +98,7 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 					/*IN_ONESHOT |*/ IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
 					IN_DELETE_SELF | IN_MOVE_SELF)
 				: -1;
-		FILEINFO_DEBUG("query(%s).new -> %d\n", filename.c_str(), wd);
+		FILEINFO_DEBUG("query(%s).new -> %d len:%ld\n", filename.c_str(), wd, fi->size());
 
 		if (wd != -1) {
 			fi->inotifyId_ = wd;
@@ -106,7 +106,7 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 		}
 		cache_[filename] = fi;
 #else
-		FILEINFO_DEBUG("query(%s)!\n", filename.c_str());
+		FILEINFO_DEBUG("query(%s)! len:%ld\n", filename.c_str(), fi->size());
 		cache_[filename] = fi;
 #endif
 

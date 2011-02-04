@@ -32,14 +32,6 @@ class X0_API Sink
 public:
 	virtual ~Sink() {}
 
-	/** pumps given source into this sink.
-	 *
-	 * \param src The source to pump intto this sink.
-	 *
-	 * \return number of bytes pumped through
-	 */
-	virtual ssize_t pump(Source& src) = 0;
-
 	virtual void accept(SinkVisitor& v) = 0;
 
 	virtual ssize_t write(const void *buffer, size_t size) = 0;

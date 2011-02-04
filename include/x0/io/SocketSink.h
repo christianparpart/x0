@@ -6,18 +6,14 @@
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
 
-#ifndef sw_x0_io_SocketSink_hpp
-#define sw_x0_io_SocketSink_hpp 1
+#ifndef sw_x0_io_SocketSink_h
+#define sw_x0_io_SocketSink_h 1
 
 #include <x0/io/Sink.h>
-#include <x0/io/SourceVisitor.h>
 #include <x0/Socket.h>
-#include <x0/Buffer.h>
 #include <x0/Types.h>
 
 namespace x0 {
-
-class Socket;
 
 //! \addtogroup io
 //@{
@@ -25,8 +21,7 @@ class Socket;
 /** file descriptor stream sink.
  */
 class X0_API SocketSink :
-	public Sink,
-	public SourceVisitor
+	public Sink
 {
 public:
 	explicit SocketSink(Socket *conn);
@@ -34,27 +29,12 @@ public:
 	Socket *socket() const;
 	void setSocket(Socket *);
 
-	virtual ssize_t pump(Source& src);
-
 	virtual void accept(SinkVisitor& v);
 	virtual ssize_t write(const void *buffer, size_t size);
 	ssize_t write(int fd, off_t *offset, size_t nbytes);
 
-public: // SourceVisitor
-	virtual void visit(SystemSource& v);
-	virtual void visit(FileSource& v);
-	virtual void visit(BufferSource& v);
-	virtual void visit(FilterSource& v);
-	virtual void visit(CompositeSource& v);
-
-	ssize_t genericPump(Source& v);
-
 protected:
 	Socket *socket_;
-	Buffer buf_;
-	off_t offset_;
-	ssize_t result_;
-	std::error_code errorCode_;
 };
 
 //@}
