@@ -795,6 +795,16 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 	if (range_value.empty() || !range.parse(range_value))
 		return false;
 
+	BufferRef ifRangeCond(in->requestHeader("If-Range"));
+	if (!ifRangeCond.empty()) {
+		printf("If-Range specified: %s\n", ifRangeCond.str().c_str());
+		if (!equals(ifRangeCond, in->fileinfo->etag())
+				&& !equals(ifRangeCond, in->fileinfo->lastModified())) {
+			printf("-> does not equal\n");
+			return false;
+		}
+	}
+
 	in->status = HttpError::PartialContent;
 
 	if (range.size() > 1)
