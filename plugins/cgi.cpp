@@ -49,8 +49,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
-#	define TRACE(msg...) DEBUG("cgi: " msg)
+#if 10 // !defined(NDEBUG)
+#	define TRACE(msg...) debug(msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
@@ -83,17 +83,17 @@
  */
 class CgiScript :
 	public x0::HttpMessageProcessor
+#ifndef NDEBUG
+	, public x0::Logging
+#endif
 {
 public:
-	CgiScript(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram = "");
+	CgiScript(x0::HttpRequest *in, const std::string& hostprogram = "");
 	~CgiScript();
-
-	template<class CompletionHandler>
-	void runAsync(const CompletionHandler& handler);
 
 	void runAsync();
 
-	static void runAsync(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram = "");
+	static void runAsync(x0::HttpRequest *in, const std::string& hostprogram = "");
 
 private:
 	// CGI program's response message processor hooks
@@ -146,8 +146,6 @@ private:
 	ev::io evStderr_;						//!< cgi script's stderr watcher
 	ev::timer ttl_;							//!< TTL watcher
 
-	std::function<void()> done_;			//!< should call at least HttpRequest::finish()
-
 	x0::Buffer stdinTransferBuffer_;
 	enum { StdinFinished, StdinActive, StdinWaiting } stdinTransferMode_;
 	size_t stdinTransferOffset_;			//!< current write-offset into the transfer buffer
@@ -158,7 +156,7 @@ private:
 	unsigned outputFlags_;
 };
 
-CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram) :
+CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
 	loop_(in->connection.worker().loop()),
 	evChild_(in->connection.worker().server().loop()),
@@ -172,7 +170,6 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, con
 	evStdout_(loop_),
 	evStderr_(loop_),
 	ttl_(loop_),
-	done_(done),
 	stdinTransferBuffer_(),
 	stdinTransferMode_(StdinFinished),
 	stdinTransferOffset_(0),
@@ -180,20 +177,25 @@ CgiScript::CgiScript(const std::function<void()>& done, x0::HttpRequest *in, con
 	stdoutTransferActive_(false),
 	outputFlags_(NoneClosed)
 {
+#ifndef NDEBUG
+	debug(true);
+	setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
+#endif
 	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 
 	evStdin_.set<CgiScript, &CgiScript::onStdinReady>(this);
 	evStdout_.set<CgiScript, &CgiScript::onStdoutAvailable>(this);
 	evStderr_.set<CgiScript, &CgiScript::onStderrAvailable>(this);
+
+	request_->setClientAbortHandler(&CgiScript::onClientEof, this);
 }
 
 CgiScript::~CgiScript()
 {
+	TRACE("destructing");
 	if (request_) {
-		TRACE("~CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
-		done_();
-	} else {
-		TRACE("~CgiScript()");
+		request_->setClientAbortHandler(nullptr);
+		request_->finish();
 	}
 }
 
@@ -259,10 +261,9 @@ bool CgiScript::checkDestroy()
 	return false;
 }
 
-void CgiScript::runAsync(const std::function<void()>& done, x0::HttpRequest *in, const std::string& hostprogram)
+void CgiScript::runAsync(x0::HttpRequest *in, const std::string& hostprogram)
 {
-	if (CgiScript *cgi = new CgiScript(done, in, hostprogram))
-	{
+	if (CgiScript *cgi = new CgiScript(in, hostprogram)) {
 		cgi->runAsync();
 	}
 }
@@ -481,7 +482,7 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
  */
 void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 {
-	TRACE("CgiScript::onStdoutAvailable()");
+	TRACE("onStdoutAvailable()");
 
 	if (!request_) {
 		// no client request (anymore)
@@ -500,7 +501,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 
 	if (rv > 0)
 	{
-		TRACE("CgiScript.onStdoutAvailable(): read %d bytes", rv);
+		TRACE("onStdoutAvailable(): read %d bytes", rv);
 
 		outbuf_.resize(lower_bound + rv);
 		//printf("%s\n", outbuf_.ref(outbuf_.size() - rv, rv).str().c_str());
@@ -514,7 +515,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 	}
 	else if (rv < 0)
 	{
-		TRACE("CGI: onStdoutAvailable: rv=%d %s", rv, strerror(errno));
+		TRACE("onStdoutAvailable: rv=%d %s", rv, strerror(errno));
 		if (rv != EINTR && rv != EAGAIN)
 		{
 			// error while reading from stdout
@@ -536,7 +537,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 	else // if (rv == 0)
 	{
 		// stdout closed by cgi child process
-		TRACE("CGI: stdout closed");
+		TRACE("stdout closed");
 
 		evStdout_.stop();
 		outputFlags_ |= StdoutClosed;
@@ -548,7 +549,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 /** consumes any output read from the CGI's stderr pipe and either logs it into the web server's error log stream or passes it to the actual client stream, too. */
 void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 {
-	TRACE("CgiScript::onStderrAvailable()");
+	TRACE("onStderrAvailable()");
 	if (!request_) {
 		TRACE("no client request (anymore)");
 		evStderr_.stop();
@@ -569,7 +570,7 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 	}
 	else if (rv == 0)
 	{
-		TRACE("CGI: stderr closed");
+		TRACE("stderr closed");
 		evStderr_.stop();
 		outputFlags_ |= StderrClosed;
 		checkDestroy();
@@ -611,10 +612,9 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 {
 	TRACE("messageContent(length=%ld) (%s)", value.size(), value.str().c_str());
 
-	if (stdoutTransferActive_)
+	if (stdoutTransferActive_) {
 		stdoutTransferBuffer_.push_back(value);
-	else
-	{
+	} else {
 		stdoutTransferActive_ = true;
 		evStdout_.stop();
 		request_->write(
@@ -630,30 +630,24 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
  */
 void CgiScript::onStdoutWritten(int ec, std::size_t nb)
 {
-	TRACE("CgiScript.onStdoutWritten(ec:%d, nb=%ld)", ec, nb);
+	TRACE("onStdoutWritten(ec:%d, nb=%ld)", ec, nb);
 
 	stdoutTransferActive_ = false;
 
-	if (ec)
-	{
+	if (ec) {
 		TRACE("onStdoutWritten: client error: %s", strerror(errno));
 
 		// kill cgi script as client disconnected.
 		process_.terminate();
-	}
-	else if (stdoutTransferBuffer_.size() > 0)
-	{
+	} else if (stdoutTransferBuffer_.size() > 0) {
 		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
 		request_->write(
 			std::make_shared<x0::BufferSource>(std::move(stdoutTransferBuffer_)),
 			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
 		);
-	}
-	else
-	{
+	} else {
 		TRACE("stdout: watch");
 		evStdout_.start();
-		request_->setClientAbortHandler(&CgiScript::onClientEof, this);
 	}
 }
 
@@ -661,9 +655,11 @@ void CgiScript::onClientEof(void *p)
 {
 	CgiScript *self = (CgiScript *) p;
 
-	TRACE("CgiScript::onClientEof()");
+#ifndef NDEBUG
+	self->debug("onClientEof()");
+#endif
+
 	self->process_.terminate();
-	self->request_ = nullptr;
 }
 // }}}
 
@@ -679,7 +675,7 @@ private:
 	std::map<std::string, std::string> interpreterMappings_;
 
 	/** time-to-live in seconds a CGI script may run at most. */
-	int ttl_;
+	long long ttl_;
 
 public:
 	cgi_plugin(x0::HttpServer& srv, const std::string& name) :
@@ -699,15 +695,14 @@ private:
 	// {{{ setup functions
 	void set_ttl(Flow::Value& result, const x0::Params& args)
 	{
-		if (args.count() == 1 && args[0].isNumber())
-			ttl_ = args[0].toNumber();
+		args.load(0, ttl_);
 	}
 
 	// cgi.mapping(ext => bin, ext => bin, ...);
 	void set_mapping(Flow::Value& result, const x0::Params& args)
 	{
-		for (size_t i = 0; i < args.count(); ++i)
-			addMapping(args[i]);
+		for (auto arg: args)
+			addMapping(arg);
 	}
 
 	void addMapping(const Flow::Value& mapping)
@@ -751,7 +746,7 @@ private:
 		if (fi && fi->isRegular() && fi->isExecutable())
 		{
 			in->fileinfo = fi;
-			CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in);
+			CgiScript::runAsync(in);
 			return true;
 		}
 		return false;
@@ -764,9 +759,8 @@ private:
 
 		x0::FileInfoPtr fi = in->connection.worker().fileinfo(path);
 
-		if (fi && fi->isRegular() && fi->isExecutable())
-		{
-			CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in);
+		if (fi && fi->isRegular() && fi->isExecutable()) {
+			CgiScript::runAsync(in);
 			return true;
 		}
 
@@ -789,7 +783,7 @@ private:
 		if (!lookupInterpreter(in, interpreter))
 			return false;
 
-		CgiScript::runAsync(std::bind(&x0::HttpRequest::finish, in), in, interpreter);
+		CgiScript::runAsync(in, interpreter);
 		return true;
 	}
 	// }}}
