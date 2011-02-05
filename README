@@ -8,7 +8,8 @@ ohloh:              http://www.ohloh.net/p/x0
 github:             http://github.com/trapni/x0
 gitorious:          http://gitorious.org/x0
 
-x0 aims to be a low-latency scalarable http web server and web service framework written in C++.
+x0 is a low-latency scalarable HTTP web server and web service framework
+written in modern C++.
 
 -----------------------------------------------------------------------------
 FEATURES
@@ -19,16 +20,16 @@ FEATURES
 - response output filter API
 - name based virtual hosting
 - zero-copy networking optimization through sendfile() system call
+- transmitting of static files with partial response support and cache-friendly
+- flow-based configuration system
 - SSL connection encryption (plugin)
 - SSL Server Name Indication (SNI) extension
 - dynamic content compression (plugin)
 - request path aliasing (plugin)
 - automatic directory listing generation (plugin)
-- transmitting of static files with partial response support and cache-friendly (plugin)
 - apache-style access log (plugin)
 - automatic directory indexing (plugin)
 - user-directory support (plugin)
-- LUA-based configuration system
 
 -----------------------------------------------------------------------------
 INSTALLATION REQUIREMENTS:

@@ -86,10 +86,10 @@ int Process::start(const std::string& exe, const ArgumentList& args, const Envir
  */
 void Process::terminate()
 {
-	fprintf(stderr, "Process(%d).terminate()\n", pid_);
+	fprintf(stderr, "Process(%ld).terminate()\n", pid_);
 	if (pid_ > 0) {
 		if (::kill(pid_, SIGTERM) < 0) {
-			fprintf(stderr, "error sending SIGTERM to child %d\n", pid_);
+			fprintf(stderr, "error sending SIGTERM to child %ld: %s\n", pid_, strerror(errno));
 		}
 	}
 }

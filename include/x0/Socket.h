@@ -234,6 +234,10 @@ inline void Socket::setReadyCallback(K *object)
 template<class K, void (K::*cb)(Socket *)>
 inline void Socket::setTimeout(K *object, int value)
 {
+#if !defined(NDEBUG)
+	debug("setTimeout(%p, %d) active:%s", object, value, timer_.is_active() ? "true" : "false");
+#endif
+
 	timeoutCallback_ = &member_thunk<K, cb>;
 	timeoutData_ = object;
 

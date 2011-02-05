@@ -70,8 +70,10 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
 	sink_.setSocket(socket_);
 
+	debug(false);
 #if !defined(NDEBUG)
-	setLoggingPrefix("Connection[%s:%d]", remoteIP().c_str(), remotePort());
+	static std::atomic<unsigned long long> id(0);
+	setLoggingPrefix("Connection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
 #endif
 
 	TRACE("fd=%d", socket_->handle());
@@ -423,9 +425,7 @@ void HttpConnection::processInput()
 	else
 	{
 		TRACE("processInput(): read %ld bytes", rv);
-
-		//std::size_t offset = buffer_.size();
-		//buffer_.resize(offset + rv);
+		TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
 
 		process();
 

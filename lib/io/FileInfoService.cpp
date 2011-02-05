@@ -14,15 +14,19 @@
 
 namespace x0 {
 
-#if 1
-#	define FILEINFO_DEBUG(msg...) printf("FileInfoService: " msg)
+#if 0 // !defined(NDEBUG)
+#	define TRACE(msg...) printf("FileInfoService: " msg)
 #else
-#	define FILEINFO_DEBUG(msg...) /*!*/
+#	define TRACE(msg...) /*!*/
+#endif
+
+#if defined(HAVE_SYS_INOTIFY_H)
+#	undef HAVE_SYS_INOTIFY_H
 #endif
 
 FileInfoService::FileInfoService(struct ::ev_loop *loop, const Config *config) :
 	loop_(loop),
-#if defined(HAVE_SYS_INOTIFY_H)
+#if 1 // defined(HAVE_SYS_INOTIFY_H)
 	handle_(-1),
 	inotify_(loop_),
 	inotifies_(),
@@ -72,11 +76,11 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 	if (i != cache_.end()) {
 		FileInfoPtr fi = i->second;
 		if (isValid(fi.get())) {
-			FILEINFO_DEBUG("query.cached(%s) len:%ld\n", filename.c_str(), fi->size());
+			TRACE("query.cached(%s) len:%ld\n", filename.c_str(), fi->size());
 			return fi;
 		}
 
-		FILEINFO_DEBUG("query.expired(%s) len:%ld\n", filename.c_str(), fi->size());
+		TRACE("query.expired(%s) len:%ld\n", filename.c_str(), fi->size());
 #if defined(HAVE_SYS_INOTIFY_H)
 		if (fi->inotifyId_ >= 0) {
 			inotify_rm_watch(handle_, fi->inotifyId_);
@@ -98,7 +102,7 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 					/*IN_ONESHOT |*/ IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
 					IN_DELETE_SELF | IN_MOVE_SELF)
 				: -1;
-		FILEINFO_DEBUG("query(%s).new -> %d len:%ld\n", filename.c_str(), wd, fi->size());
+		TRACE("query(%s).new -> %d len:%ld\n", filename.c_str(), wd, fi->size());
 
 		if (wd != -1) {
 			fi->inotifyId_ = wd;
@@ -106,14 +110,14 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 		}
 		cache_[filename] = fi;
 #else
-		FILEINFO_DEBUG("query(%s)! len:%ld\n", filename.c_str(), fi->size());
+		TRACE("query(%s)! len:%ld\n", filename.c_str(), fi->size());
 		cache_[filename] = fi;
 #endif
 
 		return fi;
 	}
 
-	FILEINFO_DEBUG("query(%s) failed (%s)\n", filename.c_str(), strerror(errno));
+	TRACE("query(%s) failed (%s)\n", filename.c_str(), strerror(errno));
 	// either ::stat() or caching failed.
 
 	return FileInfoPtr();
@@ -123,11 +127,11 @@ FileInfoPtr FileInfoService::query(const std::string& _filename)
 #if defined(HAVE_SYS_INOTIFY_H)
 void FileInfoService::onFileChanged(ev::io& w, int revents)
 {
-	FILEINFO_DEBUG("onFileChanged()\n");
+	TRACE("onFileChanged()\n");
 
 	char buf[sizeof(inotify_event) * 256];
 	ssize_t rv = ::read(handle_, &buf, sizeof(buf));
-	FILEINFO_DEBUG("read returned: %ld (%% %ld, %ld)\n",
+	TRACE("read returned: %ld (%% %ld, %ld)\n",
 			rv, sizeof(inotify_event), rv / sizeof(inotify_event));
 
 	if (rv > 0) {
@@ -136,23 +140,23 @@ void FileInfoService::onFileChanged(ev::io& w, int revents)
 		inotify_event *ev = (inotify_event *)i;
 
 		for (; i < e && ev->wd != 0; i += sizeof(*ev) + ev->len, ev = (inotify_event *)i) {
-			FILEINFO_DEBUG("traverse: (wd:%d, mask:0x%04x, cookie:%d)\n", ev->wd, ev->mask, ev->cookie);
+			TRACE("traverse: (wd:%d, mask:0x%04x, cookie:%d)\n", ev->wd, ev->mask, ev->cookie);
 			auto wi = inotifies_.find(ev->wd);
 			if (wi == inotifies_.end()) {
-				FILEINFO_DEBUG("-skipping\n");
+				TRACE("-skipping\n");
 				continue;
 			}
 
 			auto k = cache_.find(wi->second->filename());
-			FILEINFO_DEBUG("invalidate: %s\n", k->first.c_str());
+			TRACE("invalidate: %s\n", k->first.c_str());
 			// onInvalidate(k->first, k->second);
 			cache_.erase(k);
 			inotifies_.erase(wi);
 			int rv = inotify_rm_watch(handle_, ev->wd);
 			if (rv < 0) {
-				FILEINFO_DEBUG("error removing inotify watch (%d, %s): %s\n", ev->wd, ev->name, strerror(errno));
+				TRACE("error removing inotify watch (%d, %s): %s\n", ev->wd, ev->name, strerror(errno));
 			} else {
-				FILEINFO_DEBUG("inotify_rm_watch: %d (ok)\n", rv);
+				TRACE("inotify_rm_watch: %d (ok)\n", rv);
 			}
 		}
 	}

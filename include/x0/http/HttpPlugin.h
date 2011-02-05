@@ -27,6 +27,9 @@ namespace x0 {
 
 class Params
 {
+public:
+	typedef const Flow::Value* iterator;
+
 private:
 	size_t count_;
 	const Flow::Value *params_;
@@ -36,15 +39,16 @@ public:
 	Params(int count, Flow::Value *params) :
 		count_(count), params_(params) {}
 
+	iterator begin() const { return params_; }
+	iterator end() const { return params_ + count_; }
+
 	bool empty() const { return count_ == 0; }
 	size_t count() const { return count_; }
 	const Flow::Value& at(size_t i) const { return params_[i]; }
 	const Flow::Value& operator[](size_t i) const { return params_[i]; }
 
-	bool load(size_t i, bool& out) const;
-	bool load(size_t i, long long& out) const;
-	bool load(size_t i, std::string& out) const;
-	// ...
+	template<typename T>
+	bool load(size_t i, T& out) const { return i < count_ ? at(i).load(out) : false; }
 };
 
 /**

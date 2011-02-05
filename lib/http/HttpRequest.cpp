@@ -52,6 +52,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	hostid_(),
 	readCallback_()
 {
+	debug(false);
 #ifndef NDEBUG
 	static std::atomic<unsigned long long> rid(0);
 	setLoggingPrefix("Request(%lld,%s:%d)", ++rid, connection.remoteIP().c_str(), connection.remotePort());
@@ -230,7 +231,7 @@ SourcePtr HttpRequest::serialize()
 	if (!connection.worker().server().max_keep_alive_idle())
 		keepalive = false;
 
-	keepalive = false; // FIXME workaround
+	//keepalive = false; // FIXME workaround
 
 	if (!keepalive)
 		responseHeaders.overwrite("Connection", "close");
@@ -326,10 +327,13 @@ void HttpRequest::onFinished(int ec)
 	}
 
 	// close, if not a keep-alive connection
-	if (iequals(responseHeaders["Connection"], "keep-alive"))
+	if (iequals(responseHeaders["Connection"], "keep-alive")) {
+		TRACE("onFinished: resuming");
 		connection.resume();
-	else
+	} else {
+		TRACE("onFinished: closing");
 		connection.close();
+	}
 }
 
 /** finishes this response by flushing the content into the stream.

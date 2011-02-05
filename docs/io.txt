@@ -46,7 +46,7 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
         SystemSource        : system-handle chunk producer (reads from its handle)
             FileSource      : chunk producer for regular files
         FilterSource        : combines a source with a filter, producing filtered chunks
-        CompositeSource        : composes an ordered set of chunks into a virtual single one.
+        CompositeSource     : composes an ordered set of chunks into a virtual single one.
 
     SourceVisitor           : visitor-pattern interface for the source types above.
 
@@ -69,7 +69,7 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
 
 .: I/O flow :.
 
-When copying data from one end to another (e.g. a file from a server to a client),
+When copying data from one end to another (e.g. a file from a server to a client)
 common semantics are found:
 
   - The server's file is called *Source* and the client is our *Sink*.
@@ -105,20 +105,13 @@ The *Source* class abstracts all kinds of chunk producers (files, buffers,
 network sockets, composite set of different source types).
 
 abstract interface:
-    BufferRef pull(Buffer& output);
-    bool eof() const;
-    void accept(SourceVisitor& visitor);
+    virtual ssize_t sendto(Sink& sink);
 
-generic helper:
-    void pump(Sink& output);
+Every source specialization needs to implement the function(s) above.
 
-Every source specialization needs to implement the top 3 functions (pull, eof, accept):
-- pull() will actually produce the chunks
-- eof() will test on whether or not the end of the source stream has been reached.
-- accept() is required to invoke the visitor, passing itself, to implement the visitor-pattern.
-
-The pump() method on the other hand is not overridable, just invokes sink's pump,
-passing itself as argument, and is thus, just a convinience method for you.
+A source is always mutable, that means, if you read from it, at least its read
+position offset is adjusted accordingly to continue reading from that position
+on next invokation. This applies to every source object.
 
 
 
@@ -128,13 +121,22 @@ Sinks will actually consume the chunks produced, thus, writing into a network
 socket, a memory region, or regular file onto your local filesystem.
 
 abstract interface:
-    ssize_t push(Source& source);
+    virtual ssize_t ssize_t write(const void *buffer, size_t size);
+    virtual void accept(SinkVisitor& visitor);
 
-Each sink implementation just needs to implement this single method.
-Instead of passing a chunk here, we require the user to pass it directly the
-source, so that the sink implementation can perform possible transfer
-optimizations, such as the sendfile() system call instead of a read()
-plus write() if possible.
+Each sink implementation must implement the methods above. The *write()*
+method is usually invoked by the *Source* objects *sendto()* method
+unless it does not provide a more intelligent way to accelerate
+the data transfer (like splice() and sendfile() system-calls for
+copy-free data transfer).
+
+
+
+.: Compositing Soources :.
+
+There is one special type of source (*CompositeSource*) that is used to
+create a complex source by compositing multiple (different types of)
+sources together into one linear stream.
 
 
 
@@ -144,18 +146,21 @@ Filters stand between the actual source and its sink to possibly
 *transform* the transferring chunks.
 
 Possible use-cases are compressors, chunked transfer encoders or even
-template engines (e.g. XSLT on XML formatted sources).
+template engines (e.g. XSLT on XML formatted sources) to "transform"
+the data to be transferred from one form into another before actually
+copying it into the sink.
 
 Filters are created on demand for a fixed source and sink.
 
 abstract interface:
-    Buffer process(const BufferRef& input, bool eof);
+    virtual Buffer process(const BufferRef& input, bool eof);
 
-Each filter is required to implement the above process() method, which is
-invoked repeatily over all produced chunks, and where its input parameter represents 
-the chunk to filter (transform) and eof is the flag, indicating whether or not this
-is last chunk within this stream, thus, this is the last invokation of
-process() before this filter is destroyed again.
+Each filter is must implement the above method, which is invoked repeatily
+over all produced chunks, and where its input parameter represents
+the chunk to filter (transform) and eof is the flag, indicating whether
+or not this is last chunk within this stream, thus, this is the last
+invokation of *process()* before this filter is destroyed again.
+
 
 
 vim:et:ts=4

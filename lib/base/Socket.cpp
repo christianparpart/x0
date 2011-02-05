@@ -11,6 +11,7 @@
 #include <x0/BufferRef.h>
 #include <x0/Defines.h>
 #include <x0/StackTrace.h>
+#include <atomic>
 
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -52,8 +53,10 @@ Socket::Socket(struct ev_loop *loop, int fd, int af) :
 	callback_(nullptr),
 	callbackData_(0)
 {
+	debug(false);
 #ifndef NDEBUG
-	setLoggingPrefix("Socket(%s:%d)", remoteIP().c_str(), remotePort());
+	static std::atomic<unsigned long long> id(0);
+	setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
 #endif
 	TRACE("created. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
 

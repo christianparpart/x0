@@ -8,11 +8,8 @@ Most importanly and though probably used by this software project:
 * strongly typed enums
 * initializer lists
 * defaulted and deleted functions
-
-Not yet implemented by GCC (4.4) but very useful:
-
 * lambda expressions and closures
 * null pointer constant (nullptr)
-* concepts (especially ranges)
+* range based for-keyword
 
 [1] http://gcc.gnu.org/projects/cxx0x.html

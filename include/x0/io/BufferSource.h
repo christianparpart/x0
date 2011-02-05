@@ -20,7 +20,7 @@ namespace x0 {
 
 /** buffer source.
  *
- * \see buffer, source, sink
+ * \see Buffer, Source, Sink
  */
 class X0_API BufferSource :
 	public Source
@@ -35,14 +35,8 @@ public:
 	bool empty() const;
 
 	const Buffer& buffer() const;
-	const Buffer *operator->() const;
 
 	virtual ssize_t sendto(Sink& sink);
-
-public:
-	void clear();
-	std::size_t bytes_consumed() const;
-	std::size_t bytes_available() const;
 
 private:
 	Buffer buffer_;
@@ -86,26 +80,6 @@ inline bool BufferSource::empty() const
 inline const Buffer& BufferSource::buffer() const
 {
 	return buffer_;
-}
-
-inline const Buffer *BufferSource::operator->() const
-{
-	return &buffer_;
-}
-
-inline void BufferSource::clear()
-{
-	pos_ = 0;
-}
-
-inline std::size_t BufferSource::bytes_consumed() const
-{
-	return pos_;
-}
-
-inline std::size_t BufferSource::bytes_available() const
-{
-	return buffer_.size() - pos_;
 }
 // }}}
 
