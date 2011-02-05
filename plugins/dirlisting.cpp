@@ -85,47 +85,65 @@ private:
 
 	std::string mkhtml(DIR *dir, x0::HttpRequest *in)
 	{
-		std::list<std::string> listing;
+		std::list<std::pair<std::string, x0::FileInfoPtr>> listing;
 
 		if (!x0::equals(in->path, "/"))
-			listing.push_back("..");
+			listing.push_back(std::make_pair("..", in->fileinfo));
 
 		int len = offsetof(dirent, d_name) + pathconf(in->fileinfo->filename().c_str(), _PC_NAME_MAX);
 		dirent *dep = (dirent *)new unsigned char[len + 1];
 		dirent *res = 0;
 
-		while (readdir_r(dir, dep, &res) == 0 && res)
-		{
-			std::string name(dep->d_name);
-
-			if (name[0] != '.')
-			{
-				if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(in->fileinfo->filename() + "/" + name))
-				{
-					if (fi->isDirectory())
-						name += "/";
-
-					listing.push_back(name);
+		while (readdir_r(dir, dep, &res) == 0 && res) {
+			if (dep->d_name[0] != '.') {
+				std::string name(dep->d_name);
+				if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(in->fileinfo->filename() + "/" + name)) {
+					listing.push_back(std::make_pair(name, fi));
 				}
 			}
 		}
-
 		delete[] dep;
 
-		std::stringstream sstr;
-		sstr << "<html><head><title>Directory: "
-			 << in->path.str()
-			 << "</title></head>\n<body>\n";
+		x0::Buffer sstr;
+		sstr << "<html><head><title>Directory: " << in->path << "</title>";
+		sstr << "<style>\n"
+			"\tthead { font-weight: bold; }\n"
+			"\ttd.name { width: 200px; }\n"
+			"\ttd.size { width: 80px; }\n"
+			"\ttd.subdir { width: 280px; }\n"
+			"\ttd.mimetype { }\n"
+			"\ttr:hover { background-color: #EEE; }\n"
+			"</style>\n";
+		sstr << "</head>\n";
+		sstr << "<body>\n";
 
 		sstr << "<h2 style='font-family: Courier New, monospace;'>Index of " << in->path.str() << "</h2>\n";
-		sstr << "<br/><ul>\n";
+		sstr << "<br/>";
+		sstr << "<table>\n";
 
-		for (std::list<std::string>::iterator i = listing.begin(), e = listing.end(); i != e; ++i)
-		{
-			sstr << "<li><a href='" << *i << "'>" << *i << "</a></li>\n";
+		sstr << "<thead>"
+			    "<td class='name'>Name</td>"
+			    "<td class='size'>Size</td>"
+			    "<td class='mimetype'>Mime type</td>"
+			    "</thead>\n";
+
+		for (auto i: listing) {
+			sstr << "\t<tr>\n";
+			if (i.second->isDirectory()) {
+				sstr << "\t\t<td class='subdir' colspan='2'><a href='"
+					 << i.first << "/'>" << i.first << "</a>"
+					 << "\t\t<td class='mimetype'>directory</td>"
+					 << "</td>\n";
+			} else {
+				sstr << "\t\t<td class='name'><a href='" << i.first  << "'>"
+					 << i.first << "</a></td>\n";
+				sstr << "\t\t<td class='size'>" << (int)i.second->size() << "</td>\n";
+				sstr << "\t\t<td class='mimetype'>" << i.second->mimetype() << "</td>\n";
+			}
+			sstr << "\t</tr>";
 		}
 
-		sstr << "</ul>\n";
+		sstr << "</table>\n";
 
 		sstr << "<hr/>\n";
 		sstr << "<small><pre>" << in->connection.worker().server().tag() << "</pre></small><br/>\n";
