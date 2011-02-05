@@ -797,10 +797,10 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 
 	BufferRef ifRangeCond(in->requestHeader("If-Range"));
 	if (!ifRangeCond.empty()) {
-		printf("If-Range specified: %s\n", ifRangeCond.str().c_str());
+		//printf("If-Range specified: %s\n", ifRangeCond.str().c_str());
 		if (!equals(ifRangeCond, in->fileinfo->etag())
 				&& !equals(ifRangeCond, in->fileinfo->lastModified())) {
-			printf("-> does not equal\n");
+			//printf("-> does not equal\n");
 			return false;
 		}
 	}
