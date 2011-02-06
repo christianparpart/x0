@@ -49,7 +49,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 10 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) debug(msg)
 #else
 #	define TRACE(msg...) /*!*/
