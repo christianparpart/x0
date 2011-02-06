@@ -356,6 +356,8 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id)
 	request_ = in;
 	id_ = id;
 
+	request_->setClientAbortHandler(&CgiTransport::onClientAbort, this);
+
 	beginRequest();
 	streamParams();
 
@@ -813,7 +815,7 @@ void CgiTransport::writeComplete(int err, size_t nwritten)
 	{
 		TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld), queue empty.", err, nwritten);
 		;//request_->connection.socket()->setMode(Socket::READ);
-		request_->setClientAbortHandler(&CgiTransport::onClientAbort, this);
+		//request_->setClientAbortHandler(&CgiTransport::onClientAbort, this);
 	}
 #else
 	TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld) %s", err, nwritten, strerror(err));
@@ -830,6 +832,7 @@ void CgiTransport::onClientAbort(void *p)
 {
 	TRACE("CgiTransport.onClientAbort()");
 	CgiTransport *self = (CgiTransport*) p;
+	self->request_ = nullptr;
 	self->finish();
 }
 
