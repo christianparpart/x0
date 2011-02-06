@@ -701,7 +701,7 @@ private:
 	// cgi.mapping(ext => bin, ext => bin, ...);
 	void set_mapping(Flow::Value& result, const x0::Params& args)
 	{
-		for (auto arg: args)
+		for (auto& arg: args)
 			addMapping(arg);
 	}
 
