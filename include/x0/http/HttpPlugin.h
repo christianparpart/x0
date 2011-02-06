@@ -32,7 +32,7 @@ public:
 
 private:
 	size_t count_;
-	const Flow::Value *params_;
+	const Flow::Value* params_;
 
 public:
 	Params() : count_(0), params_(NULL) {}
