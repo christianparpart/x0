@@ -319,6 +319,8 @@ void HttpRequest::onFinished(int ec)
 {
 	TRACE("onFinished(%d)", ec);
 
+	setClientAbortHandler(nullptr);
+
 	{
 		HttpServer& srv = connection.worker().server();
 
