@@ -9,15 +9,19 @@
 #ifndef sw_x0_sql_Connection_h
 #define sw_x0_sql_Connection_h
 
+#include <x0/Api.h>
+#include <x0/Buffer.h>
+#include <x0/sql/SqlResult.h>
 #include <ev++.h>
 #include <mysql/mysql.h>
 #include <mysql/errmsg.h>
-#include <x0/Buffer.h>
-#include <x0/sql/SqlResult.h>
 
 namespace x0 {
 
-class SqlConnection
+//! \addtogroup sql
+//@{
+
+class X0_API SqlConnection
 {
 private:
 	MYSQL *handle_;
@@ -50,6 +54,8 @@ private:
 	std::string makeQuery(const char *s);
 	template<typename Arg1, typename... Args> std::string makeQuery(const char *s, Arg1&& a1, Args&&... args);
 };
+
+//@}
 
 // {{{ inlines / template impl
 template<typename... Args>

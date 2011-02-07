@@ -32,7 +32,7 @@ namespace x0 {
 class HttpPlugin;
 class HttpConnection;
 
-//! \addtogroup core
+//! \addtogroup http
 //@{
 
 /**

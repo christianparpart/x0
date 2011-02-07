@@ -30,7 +30,7 @@
 
 namespace x0 {
 
-//! \addtogroup core
+//! \addtogroup http
 //@{
 
 class HttpRequest;
@@ -39,7 +39,7 @@ class HttpRequest;
  * @brief HTTP client connection object.
  * @see HttpRequest, HttpServer
  */
-class HttpConnection :
+class X0_API HttpConnection :
 #ifndef NDEBUG
 	public Logging,
 #endif

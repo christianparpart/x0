@@ -9,6 +9,7 @@
 #ifndef sw_x0_sql_SqlStatement_h
 #define sw_x0_sql_SqlStatement_h
 
+#include <x0/Api.h>
 #include <mysql/mysql.h>
 #include <vector>
 #include <string>
@@ -17,7 +18,10 @@
 
 namespace x0 {
 
-class SqlStatement
+//! \addtogroup sql
+//@{
+
+class X0_API SqlStatement
 {
 private:
 	MYSQL *conn_;
@@ -79,6 +83,8 @@ private:
 
 	static const char *mysql_type_str(int type);
 };
+
+//@}
 
 // {{{ template impls / inlines
 template<>

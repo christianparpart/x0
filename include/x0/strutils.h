@@ -115,7 +115,7 @@ inline bool hex2int(const T *begin, const T *end, U& result);
 
 //@}
 
-//! \addtogroup core
+//! \addtogroup base
 //@{
 
 std::string make_hostid(const std::string& hostname);

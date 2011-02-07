@@ -11,6 +11,9 @@
 
 #include <system_error>
 
+//! \addtogroup http
+//@{
+
 namespace x0 {
 
 enum class HttpError // {{{
@@ -81,6 +84,8 @@ namespace std {
 	// implicit conversion from HttpError to error_code
 	template<> struct is_error_code_enum<x0::HttpError> : public true_type {};
 }
+
+//@}
 
 // {{{ inlines
 namespace x0 {

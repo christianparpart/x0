@@ -19,7 +19,7 @@
 
 namespace x0 {
 
-//! \addtogroup core
+//! \addtogroup http
 //@{
 
 /** 

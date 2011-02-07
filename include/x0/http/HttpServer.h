@@ -41,7 +41,7 @@ struct HttpPlugin;
 struct HttpCore;
 struct HttpWorker;
 
-//! \addtogroup core
+//! \addtogroup http
 //@{
 
 /**

@@ -18,14 +18,14 @@
 
 namespace x0 {
 
-//! \addtogroup core
+//! \addtogroup http
 //@{
 
 /**
  * \brief represents an HTTP header (name/value pair).
  */
 template<typename T>
-struct HttpHeader {
+struct X0_API HttpHeader {
 	T name;			//!< header name field
 	T value;		//!< header value field
 

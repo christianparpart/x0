@@ -31,7 +31,7 @@ PROJECT_NAME           = x0
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER         = 0.1.0
+PROJECT_NUMBER         = 0.3.0
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 
@@ -124,7 +124,7 @@ FULL_PATH_NAMES        = YES
 # If left blank the directory from which doxygen is run is used as the 
 # path to strip.
 
-STRIP_FROM_PATH        = /Users/dimitri/doxygen/mail/1.5.7/doxywizard/
+STRIP_FROM_PATH        = /home/trapni/projects/x0/
 
 # The STRIP_FROM_INC_PATH tag can be used to strip a user-defined part of 
 # the path mentioned in the documentation of a class, which tells 
@@ -133,7 +133,7 @@ STRIP_FROM_PATH        = /Users/dimitri/doxygen/mail/1.5.7/doxywizard/
 # definition is used. Otherwise one should specify the include paths that 
 # are normally passed to the compiler using the -I flag.
 
-STRIP_FROM_INC_PATH    = 
+STRIP_FROM_INC_PATH    = include/
 
 # If the SHORT_NAMES tag is set to YES, doxygen will generate much shorter 
 # (but less readable) file names. This can be useful is your file systems 
@@ -573,7 +573,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = ./src/x0/ ./src/plugins/
+INPUT                  = include/x0/ lib/
 
 # This tag can be used to specify the character encoding of the source files 
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is 
@@ -592,35 +592,10 @@ INPUT_ENCODING         = UTF-8
 
 FILE_PATTERNS          = *.c \
                          *.cc \
-                         *.cxx \
                          *.cpp \
-                         *.c++ \
-                         *.d \
-                         *.java \
-                         *.ii \
-                         *.ixx \
-                         *.ipp \
-                         *.i++ \
-                         *.inl \
                          *.h \
-                         *.hh \
-                         *.hxx \
                          *.hpp \
-                         *.h++ \
-                         *.idl \
-                         *.odl \
-                         *.cs \
-                         *.php \
-                         *.php3 \
-                         *.inc \
-                         *.m \
-                         *.mm \
-                         *.dox \
-                         *.py \
-                         *.f90 \
-                         *.f \
-                         *.vhd \
-                         *.vhdl
+                         *.doxy
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories 
 # should be searched for input files as well. Possible values are YES and NO. 
@@ -646,7 +621,7 @@ EXCLUDE_SYMLINKS       = NO
 # against the file with absolute path, so to exclude all test directories 
 # for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = 
+EXCLUDE_PATTERNS       =
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names 
 # (namespaces, classes, functions, etc.) that should be excluded from the 

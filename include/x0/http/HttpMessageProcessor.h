@@ -19,6 +19,9 @@
 #include <functional>
 #include <cctype>
 
+//! \addtogroup http
+//@{
+
 // {{{ enum class HttpMessageError
 namespace x0 {
 	enum class HttpMessageError
@@ -192,6 +195,8 @@ private:
 };
 
 } // namespace x0
+
+//@}
 
 // {{{ inlines
 namespace x0 {

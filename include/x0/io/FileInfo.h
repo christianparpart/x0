@@ -28,7 +28,7 @@ namespace x0 {
 class FileInfoService;
 class HttpPlugin;
 
-//! \addtogroup core
+//! \addtogroup io
 //@{
 
 /** file info cache object.

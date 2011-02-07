@@ -313,6 +313,7 @@ std::string HttpRequest::statusStr(HttpError value)
 }
 
 /** completion handler, being invoked when this response has been fully flushed and is considered done.
+ *
  * \see HttpRequest::finish()
  */
 void HttpRequest::onFinished(int ec)
@@ -341,6 +342,7 @@ void HttpRequest::onFinished(int ec)
 /** finishes this response by flushing the content into the stream.
  *
  * \note this also queues the underlying connection for processing the next request (on keep-alive).
+ * \note this also clears out the client abort callback set with \p setClientAbortHandler().
  */
 void HttpRequest::finish()
 {
@@ -380,6 +382,13 @@ void HttpRequest::initialize()
 		snprintf(statusCodes_[i], sizeof(*statusCodes_), "%03ld", i);
 }
 
+/** sets a callback to invoke on early connection aborts (by the remote end).
+ *
+ * This callback is only invoked when the client closed the connection before
+ * \p HttpRequest::finish() has been invoked and completed already.
+ *
+ * \see HttpRequest::finish()
+ */
 void HttpRequest::setClientAbortHandler(void (*cb)(void *), void *data)
 {
 	connection.abortHandler_ = cb;

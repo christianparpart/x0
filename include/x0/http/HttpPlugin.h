@@ -9,6 +9,7 @@
 #ifndef x0_plugin_hpp
 #define x0_plugin_hpp (1)
 
+#include <x0/Api.h>
 #include <x0/http/HttpServer.h>
 #include <x0/Types.h>
 #include <x0/Defines.h>
@@ -22,9 +23,12 @@
 
 namespace x0 {
 
-//! \addtogroup core
+//! \addtogroup http
 //@{
 
+/**
+ * \brief container for holding arguments passed in via flow execution runtime.
+ */
 class Params
 {
 public:
@@ -56,7 +60,7 @@ public:
  *
  * \see server, connection, request, response
  */
-class HttpPlugin
+class X0_API HttpPlugin
 {
 private:
 	HttpPlugin(const HttpPlugin&) = delete;

@@ -22,8 +22,15 @@ namespace x0 {
  */
 
 /**
- * @defgroup core
- * @brief x0 web server core API.
+ * @defgroup http
+ * @brief HTTP web server APIs (like HttpRequest, HttpConnection, HttpServer, ...)
+ */
+
+/**
+ * @defgroup sql
+ * @brief module for managing SQL connections, results and prepared statements to mySQL.
+ *
+ * This is an abstract high-level interface to mySQL.
  */
 
 /**
@@ -39,11 +46,17 @@ struct HttpRequest;
 
 struct File;
 
-//! \addtogroup core
+//! \addtogroup io
 //@{
 
 typedef std::shared_ptr<File> FilePtr;
 typedef std::shared_ptr<FileInfo> FileInfoPtr;
+
+//@}
+
+//! \addtogroup io
+//@{
+
 typedef std::shared_ptr<HttpPlugin> HttpPluginPtr;
 
 /** completion handler.

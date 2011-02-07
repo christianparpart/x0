@@ -14,15 +14,31 @@
 
 namespace x0 {
 
+//! \addtogroup http
+//@{
+
 class HttpServer;
 class HttpConnection;
 
+/**
+ * \brief thread-local worker.
+ *
+ * the HTTP server may spawn multiple workers (one per thread) to
+ * improve scalability across multiple CPUs/cores.
+ * This class aims to make make some resources lock-free by providing
+ * each thread with its own instanciation (e.g. the stat()-cache).
+ *
+ * A single connection is served by a single worker to ensure that
+ * the plugins accessing the stat()-cache and all (other) CustomDataMgr
+ * instances to always get the data they expect.
+ *
+ * \see HttpServer, CustomDataMgr
+ */
 class HttpWorker :
 	public CustomDataMgr
 {
 public:
-	enum State
-	{
+	enum State {
 		Active,
 		Inactive,
 		Exiting
@@ -85,6 +101,8 @@ protected:
 	void onResume(ev::async& w, int revents);
 	void onExit(ev::async& w, int revents);
 };
+
+//@}
 
 // {{{ inlines
 inline unsigned HttpWorker::id() const

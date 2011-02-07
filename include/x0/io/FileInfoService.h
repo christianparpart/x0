@@ -26,7 +26,7 @@
 
 namespace x0 {
 
-//! \addtogroup core
+//! \addtogroup io
 //@{
 
 /** service for retrieving file information.

@@ -9,15 +9,19 @@
 #ifndef sw_x0_sql_SqlResult_h
 #define sw_x0_sql_SqlResult_h
 
+#include <x0/Api.h>
 #include <string>
 #include <vector>
 #include <mysql/mysql.h>
 
 namespace x0 {
 
+//! \addtogroup sql
+//@{
+
 class SqlConnection;
 
-class SqlResult
+class X0_API SqlResult
 {
 private:
 	MYSQL *handle_;
@@ -55,6 +59,8 @@ public:
 	operator bool() const;
 	SqlResult& operator++();
 };
+
+//@}
 
 } // namespace x0
 

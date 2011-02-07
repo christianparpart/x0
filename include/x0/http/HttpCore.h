@@ -9,14 +9,18 @@
 #ifndef sw_x0_HttpCore_h
 #define sw_x0_HttpCore_h 1
 
+#include <x0/Api.h>
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpError.h>
 
 namespace x0 {
 
+//! \addtogroup http
+//@{
+
 class HttpServer;
 
-class HttpCore :
+class X0_API HttpCore :
 	public HttpPlugin
 {
 private:
@@ -119,7 +123,10 @@ private:
 private:
 	unsigned long long getrlimit(int resource);
 	unsigned long long setrlimit(int resource, unsigned long long max);
+	// }}}
 };
+
+//@}
 
 } // namespace x0
 

@@ -26,7 +26,7 @@
 
 namespace x0 {
 
-//! \addtogroup core
+//! \addtogroup http
 //@{
 
 class HttpServer;
@@ -44,7 +44,7 @@ class SocketDriver;
  * @see HttpServer
  * @see HttpConnection
  */
-class HttpListener
+class X0_API HttpListener
 {
 public:
 	explicit HttpListener(HttpServer& srv);
