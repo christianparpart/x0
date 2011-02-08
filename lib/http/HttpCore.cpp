@@ -671,7 +671,7 @@ void HttpCore::header_add(Flow::Value& result, HttpRequest *r, const Params& arg
 		return;
 
 	if (args[0].isString() && args[1].isString()) {
-		in->responseHeaders.push_back(args[0].toString(), args[1].toString());
+		r->responseHeaders.push_back(args[0].toString(), args[1].toString());
 	}
 }
 
@@ -681,7 +681,7 @@ void HttpCore::header_overwrite(Flow::Value& result, HttpRequest *r, const Param
 		return;
 
 	if (args[0].isString() && args[1].isString()) {
-		in->responseHeaders.overwrite(args[0].toString(), args[1].toString());
+		r->responseHeaders.overwrite(args[0].toString(), args[1].toString());
 	}
 }
 
@@ -691,7 +691,7 @@ void HttpCore::header_remove(Flow::Value& result, HttpRequest *r, const Params& 
 		return;
 
 	if (args[0].isString()) {
-		in->responseHeaders.remove(args[0].toString());
+		r->responseHeaders.remove(args[0].toString());
 	}
 }
 // }}}
