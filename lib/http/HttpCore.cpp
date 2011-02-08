@@ -101,6 +101,10 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::phys_etag>("phys.etag", Flow::Value::STRING);
 	registerProperty<HttpCore, &HttpCore::phys_mimetype>("phys.mimetype", Flow::Value::STRING);
 
+	registerFunction<HttpCore, &HttpCore::header_add>("header.add", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::header_overwrite>("header.overwrite", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::header_remove>("header.remove", Flow::Value::VOID);
+
 	// main handlers
 	registerHandler<HttpCore, &HttpCore::staticfile>("staticfile");
 	registerHandler<HttpCore, &HttpCore::redirect>("redirect");
@@ -657,6 +661,38 @@ bool HttpCore::respond(HttpRequest *in, const Params& args)
 
 	in->finish();
 	return true;
+}
+// }}}
+
+// {{{ header.* functions
+void HttpCore::header_add(Flow::Value& result, HttpRequest *r, const Params& args)
+{
+	if (args.count() != 2)
+		return;
+
+	if (args[0].isString() && args[1].isString()) {
+		in->responseHeaders.push_back(args[0].toString(), args[1].toString());
+	}
+}
+
+void HttpCore::header_overwrite(Flow::Value& result, HttpRequest *r, const Params& args)
+{
+	if (args.count() != 2)
+		return;
+
+	if (args[0].isString() && args[1].isString()) {
+		in->responseHeaders.overwrite(args[0].toString(), args[1].toString());
+	}
+}
+
+void HttpCore::header_remove(Flow::Value& result, HttpRequest *r, const Params& args)
+{
+	if (args.count() != 1)
+		return;
+
+	if (args[0].isString()) {
+		in->responseHeaders.remove(args[0].toString());
+	}
 }
 // }}}
 

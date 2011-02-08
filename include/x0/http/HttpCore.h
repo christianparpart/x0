@@ -108,6 +108,9 @@ private:
 	void phys_size(Flow::Value& result, HttpRequest *r, const Params& args);
 	void phys_etag(Flow::Value& result, HttpRequest *r, const Params& args);
 	void phys_mimetype(Flow::Value& result, HttpRequest *r, const Params& args);
+	void header_add(Flow::Value& result, HttpRequest *r, const Params& args);
+	void header_overwrite(Flow::Value& result, HttpRequest *r, const Params& args);
+	void header_remove(Flow::Value& result, HttpRequest *r, const Params& args);
 
 	// main handlers
 	bool redirect(HttpRequest *r, const Params& args);
