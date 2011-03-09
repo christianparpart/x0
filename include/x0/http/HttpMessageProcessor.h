@@ -71,7 +71,7 @@ namespace x0 {
 class HttpMessageProcessor
 {
 public:
-	enum mode_type { // {{{
+	enum ParseMode { // {{{
 		REQUEST,
 		RESPONSE,
 		MESSAGE
@@ -145,7 +145,7 @@ public:
 	virtual bool messageEnd();
 
 public:
-	explicit HttpMessageProcessor(mode_type mode = MESSAGE);
+	explicit HttpMessageProcessor(ParseMode mode = MESSAGE);
 
 	State state() const;
 	const char *state_str() const;
@@ -155,13 +155,13 @@ public:
 	ssize_t contentLength() const;
 
 private:
-	bool pass_content(BufferRef&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp);
+	bool passContent(BufferRef&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp);
 
-	static inline bool is_char(char value);
-	static inline bool is_ctl(char value);
-	static inline bool is_seperator(char value);
-	static inline bool is_token(char value);
-	static inline bool is_text(char value);
+	static inline bool isChar(char value);
+	static inline bool isControl(char value);
+	static inline bool isSeperator(char value);
+	static inline bool isToken(char value);
+	static inline bool isText(char value);
 
 private:
 	enum { // lexer constants
@@ -171,14 +171,14 @@ private:
 		HT = 0x09
 	};
 
-	mode_type mode_;
+	ParseMode mode_;
 	enum State state_;
 
 	// request-line
 	BufferRef method_;
 	BufferRef entity_;
-	int version_major_;
-	int version_minor_;
+	int versionMajor_;
+	int versionMinor_;
 
 	// status-line
 	int code_;
@@ -189,9 +189,9 @@ private:
 	BufferRef value_;
 
 	// body
-	bool content_chunked_;            //!< whether or not request content is chunked encoded
-	ssize_t content_length_;          //!< content length of whole content or current chunk
-	ChainFilter filters_;
+	bool chunked_;			//!< whether or not request content is chunked encoded
+	ssize_t contentLength_;	//!< content length of whole content or current chunk
+	ChainFilter filters_;	//!< filters to apply to the message body before forwarding to the callback.
 };
 
 } // namespace x0
@@ -208,7 +208,7 @@ inline enum HttpMessageProcessor::State HttpMessageProcessor::state() const
 
 inline ssize_t HttpMessageProcessor::contentLength() const
 {
-	return content_length_;
+	return contentLength_;
 }
 
 } // namespace x0

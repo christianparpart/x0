@@ -19,7 +19,7 @@ class HttpMessageProcessor_component : // {{{
 	public x0::HttpMessageProcessor
 {
 public:
-	HttpMessageProcessor_component(HttpMessageProcessor::mode_type mode) :
+	HttpMessageProcessor_component(HttpMessageProcessor::ParseMode mode) :
 		HttpMessageProcessor(mode)
 	{
 	}
