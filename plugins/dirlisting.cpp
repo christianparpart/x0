@@ -131,7 +131,7 @@ private:
 			sstr << "\t<tr>\n";
 			if (i.second->isDirectory()) {
 				sstr << "\t\t<td class='subdir' colspan='2'><a href='"
-					 << i.first << "/'>" << i.first << "</a>"
+					 << i.first << "/'>" << i.first << "</a></td>\n"
 					 << "\t\t<td class='mimetype'>directory</td>"
 					 << "</td>\n";
 			} else {
@@ -140,7 +140,7 @@ private:
 				sstr << "\t\t<td class='size'>" << (int)i.second->size() << "</td>\n";
 				sstr << "\t\t<td class='mimetype'>" << i.second->mimetype() << "</td>\n";
 			}
-			sstr << "\t</tr>";
+			sstr << "\t</tr>\n";
 		}
 
 		sstr << "</table>\n";
