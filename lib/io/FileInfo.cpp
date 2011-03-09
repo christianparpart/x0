@@ -22,11 +22,19 @@ FileInfo::FileInfo(FileInfoService& service, const std::string& filename) :
 	mtime_(),
 	mimetype_()
 {
-	if (::stat(filename_.c_str(), &stat_) == 0) {
+	if (update()) {
 		etag_ = service_.make_etag(*this);
 		mimetype_ = service_.get_mimetype(filename_);
-	} else
+	}
+}
+
+bool FileInfo::update()
+{
+	if (::stat(filename_.c_str(), &stat_) < 0) {
 		errno_ = errno;
+		return false;
+	}
+	return true;
 }
 
 void FileInfo::clear()

@@ -83,6 +83,7 @@ public:
 	std::string lastModified() const;
 	std::string mimetype() const;
 
+	bool update();
 	void clear();
 
 	int open(int flags = O_RDONLY | O_NOATIME);
