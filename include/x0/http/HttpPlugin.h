@@ -90,10 +90,10 @@ public:
 
 protected:
 	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupProperty(const std::string& name, Flow::Value::Type resultType);
-	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupFunction(const std::string& name, Flow::Value::Type resultType);
+	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupFunction(const std::string& name, Flow::Value::Type resultType = Flow::Value::VOID);
 
 	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> void registerProperty(const std::string& name, Flow::Value::Type resultType);
-	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> void registerFunction(const std::string& name, Flow::Value::Type resultType);
+	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> void registerFunction(const std::string& name, Flow::Value::Type resultType = Flow::Value::VOID);
 	template<typename T, bool (T::*cb)(HttpRequest *, const Params&)> void registerHandler(const std::string& name);
 
 protected:
