@@ -157,34 +157,26 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 {
 	sd_notify(0, "STATUS=Setting up");
 
-	Flow::Function *setupFn;
-	Flow::Parser parser;
-
-	parser.setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
-	if (!parser.initialize(settings, filename)) {
+	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
+	if (!runner_->open(filename)) {
 		sd_notifyf(0, "ERRNO=%d", errno);
 		goto err;
 	}
 
-	unit_ = parser.parse();
-	if (!unit_)
-		goto err;
-
-	setupFn = unit_->lookup<Flow::Function>("setup");
+	// run setup
+	{
+		Flow::Function* setupFn = runner_->findHandler("setup");
 	if (!setupFn) {
 		log(Severity::error, "no setup handler defined in config file.\n");
 		goto err;
 	}
 
-	// compile module
-	runner_->compile(unit_);
-
-	// run setup
-	if (runner_->run(setupFn))
+	if (runner_->invoke(setupFn))
 		goto err;
+	}
 
 	// grap the request handler
-	onHandleRequest_ = runner_->compile(unit_->lookup<Flow::Function>("main"));
+	onHandleRequest_ = runner_->getPointerTo(runner_->findHandler("main"));
 	if (!onHandleRequest_)
 		goto err;
 
