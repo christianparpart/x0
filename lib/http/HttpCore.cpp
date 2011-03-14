@@ -83,10 +83,6 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_host>("req.host", Flow::Value::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", Flow::Value::STRING);
 	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", Flow::Value::BOOLEAN);
-	registerFunction<HttpCore, &HttpCore::resp_header_add>("header.add", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::resp_header_overwrite>("header.overwrite", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::resp_header_append>("header.append", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::resp_header_remove>("header.remove", Flow::Value::VOID);
 	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("req.remoteip", Flow::Value::STRING);
 	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", Flow::Value::NUMBER);
 	registerProperty<HttpCore, &HttpCore::conn_local_ip>("req.localip", Flow::Value::STRING);
@@ -102,6 +98,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::phys_mimetype>("phys.mimetype", Flow::Value::STRING);
 
 	registerFunction<HttpCore, &HttpCore::header_add>("header.add", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::header_append>("header.append", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::header_overwrite>("header.overwrite", Flow::Value::VOID);
 	registerFunction<HttpCore, &HttpCore::header_remove>("header.remove", Flow::Value::VOID);
 
@@ -557,24 +554,6 @@ void HttpCore::req_is_secure(Flow::Value& result, HttpRequest *in, const Params&
 }
 // }}}
 
-// {{{ response
-void HttpCore::resp_header_add(Flow::Value& result, HttpRequest *in, const Params& args)
-{
-}
-
-void HttpCore::resp_header_overwrite(Flow::Value& result, HttpRequest *in, const Params& args)
-{
-}
-
-void HttpCore::resp_header_append(Flow::Value& result, HttpRequest *in, const Params& args)
-{
-}
-
-void HttpCore::resp_header_remove(Flow::Value& result, HttpRequest *in, const Params& args)
-{
-}
-// }}}
-
 // {{{ connection
 void HttpCore::conn_remote_ip(Flow::Value& result, HttpRequest *in, const Params& args)
 {
@@ -664,7 +643,7 @@ bool HttpCore::respond(HttpRequest *in, const Params& args)
 }
 // }}}
 
-// {{{ header.* functions
+// {{{ response's header.* functions
 void HttpCore::header_add(Flow::Value& result, HttpRequest *r, const Params& args)
 {
 	if (args.count() != 2)
@@ -672,6 +651,17 @@ void HttpCore::header_add(Flow::Value& result, HttpRequest *r, const Params& arg
 
 	if (args[0].isString() && args[1].isString()) {
 		r->responseHeaders.push_back(args[0].toString(), args[1].toString());
+	}
+}
+
+// header.append(headerName, appendValue)
+void HttpCore::header_append(Flow::Value& result, HttpRequest *r, const Params& args)
+{
+	if (args.count() != 2)
+		return;
+
+	if (args[0].isString() && args[1].isString()) {
+		r->responseHeaders[args[0].toString()] += args[1].toString();
 	}
 }
 

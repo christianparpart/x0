@@ -91,10 +91,6 @@ private:
 	void req_host(Flow::Value& result, HttpRequest *r, const Params& args);
 	void req_pathinfo(Flow::Value& result, HttpRequest *r, const Params& args);
 	void req_is_secure(Flow::Value& result, HttpRequest *r, const Params& args);
-	void resp_header_add(Flow::Value& result, HttpRequest *r, const Params& args);
-	void resp_header_overwrite(Flow::Value& result, HttpRequest *r, const Params& args);
-	void resp_header_append(Flow::Value& result, HttpRequest *r, const Params& args);
-	void resp_header_remove(Flow::Value& result, HttpRequest *r, const Params& args);
 	void conn_remote_ip(Flow::Value& result, HttpRequest *r, const Params& args);
 	void conn_remote_port(Flow::Value& result, HttpRequest *r, const Params& args);
 	void conn_local_ip(Flow::Value& result, HttpRequest *r, const Params& args);
@@ -109,6 +105,7 @@ private:
 	void phys_etag(Flow::Value& result, HttpRequest *r, const Params& args);
 	void phys_mimetype(Flow::Value& result, HttpRequest *r, const Params& args);
 	void header_add(Flow::Value& result, HttpRequest *r, const Params& args);
+	void header_append(Flow::Value& result, HttpRequest *r, const Params& args);
 	void header_overwrite(Flow::Value& result, HttpRequest *r, const Params& args);
 	void header_remove(Flow::Value& result, HttpRequest *r, const Params& args);
 
