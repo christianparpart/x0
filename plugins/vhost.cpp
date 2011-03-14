@@ -13,7 +13,7 @@
  *     Maps the request hostname:port to a dedicated handler.
  *
  * setup API:
- *     void vhost.add(FQDN => handler_ref);
+ *     void vhost.mapping(FQDN => handler_ref, ...);
  *
  * request processing API:
  *     handler vhost.map();
@@ -35,13 +35,16 @@ class vhost_plugin :
 	public x0::HttpPlugin
 {
 private:
-	std::unordered_map<std::string, Flow::Value::Function> namedHosts_;
+	typedef std::map<std::string, Flow::Value::Function> NamedHostMap;
+
+	NamedHostMap qualifiedHosts_;
+	NamedHostMap unqualifiedHosts_;
 
 public:
 	vhost_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerSetupFunction<vhost_plugin, &vhost_plugin::addHost>("vhost.add", Flow::Value::VOID);
+		registerSetupFunction<vhost_plugin, &vhost_plugin::addHost>("vhost.mapping", Flow::Value::VOID);
 		registerHandler<vhost_plugin, &vhost_plugin::mapRequest>("vhost.map");
 	}
 
@@ -79,14 +82,21 @@ private:
 
 	void registerHost(const char *fqdn, Flow::Value::Function handler)
 	{
-		namedHosts_[fqdn] = handler;
+		if (strchr(fqdn, ':'))
+			qualifiedHosts_[fqdn] = handler;
+		else
+			unqualifiedHosts_[fqdn] = handler;
 	}
 
 	bool mapRequest(x0::HttpRequest *r, const x0::Params& args)
 	{
-		auto i = namedHosts_.find(r->hostid());
-		if (i != namedHosts_.end())
+		auto i = qualifiedHosts_.find(r->hostid());
+		if (i != qualifiedHosts_.end())
 			return i->second(r);
+
+		auto k = unqualifiedHosts_.find(r->hostname.str());
+		if (k != unqualifiedHosts_.end())
+			return k->second(r);
 
 		return false;
 	}
