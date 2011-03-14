@@ -22,10 +22,7 @@ Q) Why is x0 using libev instead of Asio/Boost.Asio?
 A) Because it's faster.
 
 Q) Will there be a Win32-version of x0?
-A) Honestly, I couldn't care less. I met and read about so many ppl thinking so selfish about their
-oh so cool Windows product that they -unwillingly to learn- set words like Linux, POSIX, and UNIX
-to the same line as bad-ass.
-Let me answer that with a product they might be missing some day.
+A) Some day. But not today.
 
 Q) Why is x0 *requiring* such a new GCC version X.Y.Z?
 A) People not willing to upgrade their toolchain, are likely not brave enough to pull in security update either.
