@@ -38,3 +38,6 @@ t2.cpp
 www/htdocs/rrd/*.gif
 www/htdocs/rrd/*.png
 www/htdocs/rrd/*.rrd
+docs/x0d.8
+docs/x0d.conf.5
+tests/x0cp

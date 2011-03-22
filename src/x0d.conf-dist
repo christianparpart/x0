@@ -2,7 +2,7 @@
 # file: x0d.conf
 # description: example x0d web server configuration file
 
-import 'cgi', 'userdir', 'compress', 'accesslog';
+import 'cgi', 'userdir', 'compress', 'accesslog', 'vhost';
 import 'dirlisting';
 
 handler setup
@@ -38,6 +38,9 @@ handler setup
 	cgi.mapping '.php' => '/usr/bin/php-cgi',
 	            '.pl' => '/usr/bin/perl',
 	            '.rb' => '/usr/bin/ruby';
+
+	vhost.mapping 'www.example.com' => example.com,
+	              'localhost' => localhost;
 
 	listen '0.0.0.0:8080';
 

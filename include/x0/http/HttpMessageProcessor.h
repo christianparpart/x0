@@ -155,7 +155,7 @@ public:
 	ssize_t contentLength() const;
 
 private:
-	bool passContent(BufferRef&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp);
+	bool passContent(BufferRef&& chunk, std::size_t& nparsed, std::size_t& ofp);
 
 	static inline bool isChar(char value);
 	static inline bool isControl(char value);

@@ -10,7 +10,7 @@
 
 namespace x0 {
 
-#if 0
+#if 1
 #	define TRACE(msg...) DEBUG("HttpMessageProcessor: " msg)
 #else
 #	define TRACE(msg...)
@@ -346,19 +346,23 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	std::size_t offset = 0;
 	std::error_code ec;
 
-	TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
+	//TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
+	TRACE("process(curState:%s): size: %ld", state_str(), chunk.size());
 
 	if (state_ == CONTENT)
 	{
-		if (!passContent(std::move(chunk), ec, offset, ofp))
+		if (!passContent(std::move(chunk), offset, ofp))
 			return ec;
 
 		i += offset;
 	}
 
+	State lastState = static_cast<State>(0);
+
 	while (i != e)
 	{
-#if 1
+		lastState = state_;
+#if 0
 		if (std::isprint(*i)) {
 			TRACE("parse: %4ld, 0x%02X (%c),  %s", offset, *i, *i, state_str());
 		} else {
@@ -526,8 +530,8 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					++offset;
 					++i;
 
-					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
-							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
+					//TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+					//		method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					messageBegin(std::move(method_), std::move(entity_), versionMajor_, versionMinor_);
 				}
@@ -548,8 +552,8 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					++offset;
 					++i;
 
-					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
-							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
+					//TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+					//		method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					messageBegin(std::move(method_), std::move(entity_), versionMajor_, versionMinor_);
 				}
@@ -703,7 +707,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					++offset;
 					++i;
 
-					TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", versionMajor_, versionMinor_, code_, message_.str().c_str());
+					//TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", versionMajor_, versionMinor_, code_, message_.str().c_str());
 					messageBegin(versionMajor_, versionMinor_, code_, std::move(message_));
 				}
 				else
@@ -828,7 +832,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					state_ = HEADER_NAME_BEGIN;
 					// XXX no offset/i-update
 
-					TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
+					//TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
 
 					if (iequals(name_, "Content-Length"))
 					{
@@ -939,7 +943,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 				std::size_t nparsed = 0;
 
 				ofp = offsetBase + offset;
-				if (!passContent(chunk.ref(offset), ec, nparsed, ofp))
+				if (!passContent(chunk.ref(offset), nparsed, ofp))
 					return make_error_code(HttpMessageError::Aborted);
 
 				offset += nparsed;
@@ -988,7 +992,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					state_ = SYNTAX_ERROR;
 				else
 				{
-					TRACE("content_length: %ld", contentLength_);
+					//TRACE("content_length: %ld", contentLength_);
 					if (contentLength_ != 0)
 						state_ = CONTENT_CHUNK_BODY;
 					else
@@ -1004,7 +1008,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					std::size_t nparsed = 0;
 
 					ofp = offsetBase + offset;
-					if (!passContent(chunk.ref(offset), ec, nparsed, ofp))
+					if (!passContent(chunk.ref(offset), nparsed, ofp))
 						return make_error_code(HttpMessageError::Aborted);
 
 					offset += nparsed;
@@ -1055,24 +1059,27 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 				break;
 			case SYNTAX_ERROR:
 			{
-
-#if !defined(NDEBUG)
+#if 1 // !defined(NDEBUG)
+				TRACE("parse: syntax error (last state: %i)", lastState);
 				if (std::isprint(*i)) {
 					TRACE("parse: syntax error at offset: %ld, character: '%c'", offset, *i);
 				} else {
 					TRACE("parse: syntax error at offset: %ld, character: 0x%02X", offset, *i);
 				}
+				Buffer::dump(chunk.data(), chunk.size(), "request chunk");
 #endif
 				ofp = offsetBase + offset;
 				return make_error_code(HttpMessageError::SyntaxError);
 			}
 			default:
 #if !defined(NDEBUG)
+				TRACE("parse: unknown state %i (last: %i)", state_, lastState);
 				if (std::isprint(*i)) {
 					TRACE("parse: internal error at offset: %ld, character: '%c'", offset, *i);
 				} else {
 					TRACE("parse: internal error at offset: %ld, character: 0x%02X", offset, *i);
 				}
+				Buffer::dump(chunk.data(), chunk.size(), "request chunk");
 #endif
 				return make_error_code(HttpMessageError::SyntaxError);
 		}
@@ -1111,7 +1118,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
  * \param nparsed ref to the number of bytes parsed. will be updated.
  * \param ofp
  */
-bool HttpMessageProcessor::passContent(BufferRef&& chunk, std::error_code& ec, std::size_t& nparsed, std::size_t& ofp)
+bool HttpMessageProcessor::passContent(BufferRef&& chunk, std::size_t& nparsed, std::size_t& ofp)
 {
 	if (contentLength_ > 0)
 	{
@@ -1124,8 +1131,8 @@ bool HttpMessageProcessor::passContent(BufferRef&& chunk, std::error_code& ec, s
 		nparsed += c.size();
 		contentLength_ -= c.size();
 
-		TRACE("passContent: chunk_size=%ld, bytes_left=%ld; '%s'",
-				c.size(), contentLength_, c.str().c_str());
+		//TRACE("passContent: chunk_size=%ld, bytes_left=%ld; '%s'",
+		//		c.size(), contentLength_, c.str().c_str());
 
 		if (chunked_)
 		{
@@ -1161,15 +1168,15 @@ bool HttpMessageProcessor::passContent(BufferRef&& chunk, std::error_code& ec, s
 
 			if (state_ == MESSAGE_BEGIN)
 			{
-				TRACE("content fully parsed -> complete");
+				//TRACE("content fully parsed -> complete");
 				return messageEnd();
 			}
 		}
 	}
 	else if (contentLength_ < 0) // no "Content-Length" and no "chunked transfer encoding" defined
 	{
-		TRACE("passContent: chunk_size=%ld, infinite; '%s'",
-				chunk.size(), chunk.str().c_str());
+		//TRACE("passContent: chunk_size=%ld, infinite; '%s'",
+		//		chunk.size(), chunk.str().c_str());
 
 		ofp += chunk.size();
 		nparsed += chunk.size();

@@ -70,7 +70,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
 	sink_.setSocket(socket_);
 
-	debug(false);
+	debug(true);
 #if !defined(NDEBUG)
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Connection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
@@ -517,20 +517,21 @@ void HttpConnection::process()
 	TRACE("process: offset=%ld, bs=%ld, ec=%s, state=%s (after processing)",
 			offset_, buffer_.size(), ec.message().c_str(), state_str());
 
-	if (state() == HttpMessageProcessor::MESSAGE_BEGIN)
-	{
-		// TODO reenable buffer reset (or reuse another for content! to be more huge-body friendly)
 #if 0
+	if (state() == HttpMessageProcessor::MESSAGE_BEGIN) {
+		// TODO reenable buffer reset (or reuse another for content! to be more huge-body friendly)
 		offset_ = 0;
 		buffer_.clear();
-#endif
 	}
+#endif
 
 	if (isClosed())
 		return;
 
 	if (ec == HttpMessageError::Partial)
 		startRead();
+	else if (!request_)
+		return;
 	else if (ec && ec != HttpMessageError::Aborted)
 	{
 		// -> send stock response: BAD_REQUEST
