@@ -286,7 +286,7 @@ const char *HttpMessageProcessor::state_str() const
  *
  * \return        the error code describing the processing result.
  */
-std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& ofp)
+HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& ofp)
 {
 	/*
 	 * CR               = 0x0D
@@ -324,7 +324,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	 * Reason-Phrase    = *<TEXT, excluding CR, LF>
 	 *
 	 * absoluteURI      = "http://" [user ':' pass '@'] hostname [abs_path] [qury]
-	 * abs_path         = ...
+	 * abs_path         = "/" *CHAR
 	 * authority        = ...
 	 * token            = 1*<any CHAR except CTLs or seperators>
 	 * separator        = "(" | ")" | "<" | ">" | "@"
@@ -348,7 +348,6 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 	std::size_t offsetBase = ofp; // safe the ofp value for later reuse
 	std::size_t offset = 0;
-	std::error_code ec;
 
 	//TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
 	TRACE("process(curState:%s): size: %ld", state_str(), chunk.size());
@@ -356,7 +355,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	if (state_ == CONTENT)
 	{
 		if (!passContent(std::move(chunk), offset, ofp))
-			return ec;
+			return HttpMessageError::Aborted;
 
 		i += offset;
 	}
@@ -751,12 +750,11 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					ofp = offsetBase + offset;
 
 					if (!messageHeaderEnd())
-						return make_error_code(HttpMessageError::Aborted);
+						return HttpMessageError::Aborted;
 
-					if (!contentExpected)
-					{
+					if (!contentExpected) {
 						if (!messageEnd())
-							return make_error_code(HttpMessageError::Aborted);
+							return HttpMessageError::Aborted;
 					}
 				}
 #endif
@@ -924,12 +922,12 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					ofp = offsetBase + offset;
 
 					if (!messageHeaderEnd())
-						return make_error_code(HttpMessageError::Aborted);
+						return HttpMessageError::Aborted;
 
 					if (!contentExpected)
 					{
 						if (!messageEnd())
-							return make_error_code(HttpMessageError::Aborted);
+							return HttpMessageError::Aborted;
 					}
 				} else
 					state_ = SYNTAX_ERROR;
@@ -948,7 +946,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 				ofp = offsetBase + offset;
 				if (!passContent(chunk.ref(offset), nparsed, ofp))
-					return make_error_code(HttpMessageError::Aborted);
+					return HttpMessageError::Aborted;
 
 				offset += nparsed;
 				i += nparsed;
@@ -1013,7 +1011,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 
 					ofp = offsetBase + offset;
 					if (!passContent(chunk.ref(offset), nparsed, ofp))
-						return make_error_code(HttpMessageError::Aborted);
+						return HttpMessageError::Aborted;
 
 					offset += nparsed;
 					i += nparsed;
@@ -1056,7 +1054,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 					ofp = offsetBase + offset;
 
 					if (!messageEnd())
-						return make_error_code(HttpMessageError::Aborted);
+						return HttpMessageError::Aborted;
 
 					state_ = MESSAGE_BEGIN;
 				}
@@ -1073,7 +1071,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 				Buffer::dump(chunk.data(), chunk.size(), "request chunk");
 #endif
 				ofp = offsetBase + offset;
-				return make_error_code(HttpMessageError::SyntaxError);
+				return HttpMessageError::SyntaxError;
 			}
 			default:
 #if !defined(NDEBUG)
@@ -1085,7 +1083,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 				}
 				Buffer::dump(chunk.data(), chunk.size(), "request chunk");
 #endif
-				return make_error_code(HttpMessageError::SyntaxError);
+				return HttpMessageError::SyntaxError;
 		}
 	}
 	// we've reached the end of the chunk
@@ -1100,7 +1098,7 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 			ofp = offsetBase + offset;
 
 			if (!messageEnd())
-				return make_error_code(HttpMessageError::Aborted);
+				return HttpMessageError::Aborted;
 
 			// subsequent calls to parse() process next request(s).
 			state_ = MESSAGE_BEGIN;
@@ -1110,9 +1108,9 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	ofp = offsetBase + offset;
 
 	if (state_ != MESSAGE_BEGIN)
-		return make_error_code(HttpMessageError::Partial);
+		return HttpMessageError::Partial;
 	else
-		return make_error_code(HttpMessageError::Success);
+		return HttpMessageError::Success;
 }
 
 /** passes given content chunk to the callback.

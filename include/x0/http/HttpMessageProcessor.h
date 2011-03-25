@@ -150,7 +150,7 @@ public:
 	State state() const;
 	const char *state_str() const;
 
-	std::error_code process(BufferRef&& chunk, std::size_t& nparsed);
+	HttpMessageError process(BufferRef&& chunk, std::size_t& nparsed);
 
 	ssize_t contentLength() const;
 

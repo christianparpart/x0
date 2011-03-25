@@ -510,7 +510,7 @@ void HttpConnection::process()
 {
 	TRACE("process: offset=%ld, size=%ld (before processing)", offset_, buffer_.size());
 
-	std::error_code ec = HttpMessageProcessor::process(
+	HttpMessageError ec = HttpMessageProcessor::process(
 			buffer_.ref(offset_, buffer_.size() - offset_),
 			offset_);
 
@@ -525,10 +525,7 @@ void HttpConnection::process()
 	}
 #endif
 
-	if (isClosed())
-		return;
-
-	if (ec == HttpMessageError::Partial)
+	if (ec == HttpMessageError::Partial) {
 		startRead();
 	else if (!request_)
 		return;
