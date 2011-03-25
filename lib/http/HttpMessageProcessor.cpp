@@ -105,7 +105,7 @@ inline bool HttpMessageProcessor::isControl(char value)
 	return (value >= 0 && value <= 31) || value == 127;
 }
 
-inline bool HttpMessageProcessor::isSeperator(char value)
+inline bool HttpMessageProcessor::isSeparator(char value)
 {
 	switch (value)
 	{
@@ -136,7 +136,7 @@ inline bool HttpMessageProcessor::isSeperator(char value)
 
 inline bool HttpMessageProcessor::isToken(char value)
 {
-	return isChar(value) && !(isControl(value) || isSeperator(value));
+	return isChar(value) && !(isControl(value) || isSeparator(value));
 }
 
 inline bool HttpMessageProcessor::isText(char value)
@@ -326,7 +326,11 @@ std::error_code HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& of
 	 * absoluteURI      = "http://" [user ':' pass '@'] hostname [abs_path] [qury]
 	 * abs_path         = ...
 	 * authority        = ...
-	 * token            = ...
+	 * token            = 1*<any CHAR except CTLs or seperators>
+	 * separator        = "(" | ")" | "<" | ">" | "@"
+	 *                  | "," | ";" | ":" | "\" | <">
+	 *                  | "/" | "[" | "]" | "?" | "="
+	 *                  | "{" | "}" | SP | HT
 	 *
 	 * message-header   = field-name ":" [ field-value ]
 	 * field-name       = token

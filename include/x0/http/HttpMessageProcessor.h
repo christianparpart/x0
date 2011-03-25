@@ -159,7 +159,7 @@ private:
 
 	static inline bool isChar(char value);
 	static inline bool isControl(char value);
-	static inline bool isSeperator(char value);
+	static inline bool isSeparator(char value);
 	static inline bool isToken(char value);
 	static inline bool isText(char value);
 
