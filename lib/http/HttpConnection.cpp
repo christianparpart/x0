@@ -71,7 +71,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	sink_.setSocket(socket_);
 
 #if !defined(NDEBUG)
-	debug(true);
+	debug(false);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Connection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
 #endif
@@ -515,7 +515,20 @@ void HttpConnection::process()
 			offset_);
 
 	TRACE("process: offset=%ld, bs=%ld, ec=%s, state=%s (after processing)",
-			offset_, buffer_.size(), ec.message().c_str(), state_str());
+			offset_, buffer_.size(), std::error_code(ec).message().c_str(), state_str());
+
+	if (isClosed())
+		return;
+
+	if (state() == SYNTAX_ERROR) {
+		if (!request_)
+			// in case the syntax error occured already in the request line, no request object has been instanciated yet.
+			request_ = new HttpRequest(*this);
+
+		request_->status = HttpError::BadRequest;
+		request_->finish();
+		return;
+	}
 
 #if 0
 	if (state() == HttpMessageProcessor::MESSAGE_BEGIN) {
@@ -527,13 +540,6 @@ void HttpConnection::process()
 
 	if (ec == HttpMessageError::Partial) {
 		startRead();
-	else if (!request_)
-		return;
-	else if (ec && ec != HttpMessageError::Aborted)
-	{
-		// -> send stock response: BAD_REQUEST
-		request_->status = HttpError::BadRequest;
-		request_->finish();
 	}
 }
 
