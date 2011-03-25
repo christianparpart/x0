@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <system_error>
 
-#if 1 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) ((void *)0)
@@ -53,8 +53,8 @@ Socket::Socket(struct ev_loop *loop, int fd, int af) :
 	callback_(nullptr),
 	callbackData_(0)
 {
-	debug(false);
 #ifndef NDEBUG
+	debug(false);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
 #endif

@@ -16,7 +16,7 @@
 #include <x0/strutils.h>
 #include <strings.h>			// strcasecmp()
 
-#if 1
+#if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) ((void *)0)
@@ -52,8 +52,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	hostid_(),
 	readCallback_()
 {
-	debug(false);
 #ifndef NDEBUG
+	debug(false);
 	static std::atomic<unsigned long long> rid(0);
 	setLoggingPrefix("Request(%lld,%s:%d)", ++rid, connection.remoteIP().c_str(), connection.remotePort());
 #endif

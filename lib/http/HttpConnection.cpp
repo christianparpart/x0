@@ -22,7 +22,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 1 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -70,8 +70,8 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
 	sink_.setSocket(socket_);
 
-	debug(true);
 #if !defined(NDEBUG)
+	debug(true);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Connection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
 #endif
