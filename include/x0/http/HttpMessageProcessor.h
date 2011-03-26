@@ -114,7 +114,10 @@ public:
 		// message-headers
 		HEADER_NAME_BEGIN = 200,
 		HEADER_NAME,
+		HEADER_COLON,
+		HEADER_VALUE_BEGIN,
 		HEADER_VALUE,
+		HEADER_VALUE_END,
 		HEADER_END_LF,
 
 		LWS_BEGIN = 300,
@@ -172,7 +175,9 @@ private:
 	};
 
 	ParseMode mode_;
-	enum State state_;
+	State state_;       // the current parser/processing state
+	State lwsNext_;     // state to apply on successfull LWS
+	State lwsNull_;     // state to apply on (CR LF) but no 1*(SP | HT)
 
 	// request-line
 	BufferRef method_;

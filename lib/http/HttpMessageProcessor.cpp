@@ -10,7 +10,7 @@
 
 namespace x0 {
 
-#if 1
+#if 0
 #	define TRACE(msg...) DEBUG("HttpMessageProcessor: " msg)
 #else
 #	define TRACE(msg...)
@@ -81,6 +81,8 @@ const std::error_category& http_message_category() throw()
 HttpMessageProcessor::HttpMessageProcessor(ParseMode mode) :
 	mode_(mode),
 	state_(MESSAGE_BEGIN),
+	lwsNext_(),
+	lwsNull_(),
 	method_(),
 	entity_(),
 	versionMajor_(),
@@ -256,7 +258,10 @@ const char *HttpMessageProcessor::state_str() const
 		// message header
 		case HttpMessageProcessor::HEADER_NAME_BEGIN: return "header-name-begin";
 		case HttpMessageProcessor::HEADER_NAME: return "header-name";
+		case HttpMessageProcessor::HEADER_COLON: return "header-colon";
+		case HttpMessageProcessor::HEADER_VALUE_BEGIN: return "header-value-begin";
 		case HttpMessageProcessor::HEADER_VALUE: return "header-value";
+		case HttpMessageProcessor::HEADER_VALUE_END: return "header-value-end";
 		case HttpMessageProcessor::HEADER_END_LF: return "header-end-lf";
 
 		// LWS
@@ -360,11 +365,8 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 		i += offset;
 	}
 
-	State lastState = static_cast<State>(0);
-
 	while (i != e)
 	{
-		lastState = state_;
 #if 0
 		if (std::isprint(*i)) {
 			TRACE("parse: %4ld, 0x%02X (%c),  %s", offset, *i, *i, state_str());
@@ -718,22 +720,150 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 				break;
 			case HEADER_NAME_BEGIN:
 				if (isToken(*i)) {
-					state_ = HEADER_NAME;
 					name_ = chunk.ref(offset, 1);
-
+					state_ = HEADER_NAME;
 					++offset;
 					++i;
-				}
-				else if (*i == CR)
-				{
+				} else if (*i == CR) {
 					state_ = HEADER_END_LF;
-
 					++offset;
 					++i;
 				}
 #if defined(X0_HTTP_SUPPORT_SHORT_LF)
 				else if (*i == LF)
-				{
+					state_ = HEADER_END_LF;
+#endif
+				else
+					state_ = SYNTAX_ERROR;
+				break;
+			case HEADER_NAME:
+				if (isToken(*i)) {
+					name_.shr();
+					++offset;
+					++i;
+				} else if (*i == ':') {
+					state_ = LWS_BEGIN;
+					lwsNext_ = HEADER_VALUE_BEGIN;
+					lwsNull_ = HEADER_VALUE_END; // only (CR LF) parsed, assume empty value & go on with next header
+					++offset;
+					++i;
+				} else if (*i == CR) {
+					state_ = LWS_LF;
+					lwsNext_ = HEADER_COLON;
+					lwsNull_ = SYNTAX_ERROR;
+					++offset;
+					++i;
+				} else
+					state_ = SYNTAX_ERROR;
+				break;
+			case HEADER_COLON:
+				if (*i == ':') {
+					state_ = LWS_BEGIN;
+					lwsNext_ = HEADER_VALUE_BEGIN;
+					lwsNull_ = HEADER_VALUE_END;
+					++offset;
+					++i;
+				} else
+					state_ = SYNTAX_ERROR;
+				break;
+			case LWS_BEGIN:
+				if (*i == CR) {
+					state_ = LWS_LF;
+					++offset;
+					++i;
+				} else if (*i == SP || *i == HT) {
+					state_ = LWS_SP_HT;
+					++offset;
+					++i;
+				} else if (std::isprint(*i)) {
+					state_ = lwsNext_;
+				} else
+					state_ = SYNTAX_ERROR;
+				break;
+			case LWS_LF:
+				if (*i == LF) {
+					state_ = LWS_SP_HT_BEGIN;
+					++offset;
+					++i;
+				} else
+					state_ = SYNTAX_ERROR;
+				break;
+			case LWS_SP_HT_BEGIN:
+				if (*i == SP || *i == HT) {
+					if (!value_.empty())
+						value_.shr(3); // CR LF (SP | HT)
+
+					state_ = LWS_SP_HT;
+					++offset;
+					++i;
+				} else {
+					// only (CF LF) parsed so far and no 1*(SP | HT) found.
+					state_ = lwsNull_;
+					// XXX no offset/i-update
+				}
+				break;
+			case LWS_SP_HT:
+				if (*i == SP || *i == HT) {
+					if (!value_.empty())
+						value_.shr();
+
+					++offset;
+					++i;
+				} else if (std::isprint(*i))
+					state_ = lwsNext_;
+				else
+					state_ = SYNTAX_ERROR;
+				break;
+			case HEADER_VALUE_BEGIN:
+				value_ = chunk.ref(offset, 1);
+				++offset;
+				++i;
+				state_ = HEADER_VALUE;
+				/* fall through */
+			case HEADER_VALUE:
+				if (*i == CR) {
+					state_ = LWS_LF;
+					lwsNext_ = HEADER_VALUE;
+					lwsNull_ = HEADER_VALUE_END;
+					++offset;
+					++i;
+				}
+#if defined(X0_HTTP_SUPPORT_SHORT_LF)
+				else if (*i == LF) {
+					state_ = LWS_SP_HT_BEGIN;
+					lwsNext_ = HEADER_VALUE;
+					lwsNull_ = HEADER_VALUE_END;
+					++offset;
+					++i;
+				}
+#endif
+				else if (std::isprint(*i)) {
+					value_.shr();
+					++offset;
+					++i;
+				} else
+					state_ = SYNTAX_ERROR;
+				break;
+			case HEADER_VALUE_END:
+				TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
+
+				if (iequals(name_, "Content-Length")) {
+					contentLength_ = value_.as<int>();
+				} else if (iequals(name_, "Transfer-Encoding")) {
+					if (iequals(value_, "chunked")) {
+						chunked_ = true;
+					}
+				}
+
+				messageHeader(std::move(name_), std::move(value_));
+				name_.clear();
+				value_.clear();
+
+				// continue with the next header
+				state_ = HEADER_NAME_BEGIN;
+				break;
+			case HEADER_END_LF:
+				if (*i == LF) {
 					bool contentExpected = 
 						contentLength_ > 0 
 						|| chunked_
@@ -753,179 +883,6 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 						return HttpMessageError::Aborted;
 
 					if (!contentExpected) {
-						if (!messageEnd())
-							return HttpMessageError::Aborted;
-					}
-				}
-#endif
-				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case HEADER_NAME:
-				if (*i == ':')
-				{
-					state_ = LWS_BEGIN;
-
-					++offset;
-					++i;
-				}
-				else if (isToken(*i))
-				{
-					name_.shr();
-
-					++offset;
-					++i;
-				}
-				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case LWS_BEGIN:
-				if (*i == CR)
-				{
-					state_ = LWS_LF;
-
-					++offset;
-					++i;
-				}
-				else if (*i == SP || *i == HT)
-				{
-					state_ = LWS_SP_HT;
-
-					++offset;
-					++i;
-				}
-				else if (std::isprint(*i))
-				{
-					if (value_.empty())
-						value_ = chunk.ref(offset, 1);
-
-					state_ = HEADER_VALUE;
-
-					++offset;
-					++i;
-				}
-				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case LWS_LF:
-				if (*i == LF)
-				{
-					state_ = LWS_SP_HT_BEGIN;
-
-					++offset;
-					++i;
-				}
-				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case LWS_SP_HT_BEGIN:
-				if (*i == SP || *i == HT)
-				{
-					if (!value_.empty())
-						value_.shr(3); // CR LF (SP | HT)
-
-					state_ = LWS_SP_HT;
-
-					++offset;
-					++i;
-				}
-				else
-				{
-					state_ = HEADER_NAME_BEGIN;
-					// XXX no offset/i-update
-
-					//TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
-
-					if (iequals(name_, "Content-Length"))
-					{
-						contentLength_ = value_.as<int>();
-					}
-					else if (iequals(name_, "Transfer-Encoding"))
-					{
-						if (iequals(value_, "chunked"))
-						{
-							chunked_ = true;
-						}
-					}
-
-					messageHeader(std::move(name_), std::move(value_));
-
-					name_.clear();
-					value_.clear();
-				}
-				break;
-			case LWS_SP_HT:
-				if (*i == SP || *i == HT)
-				{
-					if (!value_.empty())
-						value_.shr();
-
-					++offset;
-					++i;
-				}
-				else if (std::isprint(*i))
-				{
-					state_ = HEADER_VALUE;
-
-					if (value_.empty())
-						value_ = chunk.ref(offset, 1);
-					else
-						value_.shr();
-
-					++offset;
-					++i;
-				}
-				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case HEADER_VALUE:
-				if (*i == CR)
-				{
-					state_ = LWS_LF;
-					++offset;
-					++i;
-				}
-#if defined(X0_HTTP_SUPPORT_SHORT_LF)
-				else if (*i == LF)
-				{
-					state_ = LWS_SP_HT_BEGIN;
-					++offset;
-					++i;
-				}
-#endif
-				else if (std::isprint(*i))
-				{
-					value_.shr();
-
-					++offset;
-					++i;
-				}
-				else
-					state_ = SYNTAX_ERROR;
-				break;
-			case HEADER_END_LF:
-				if (*i == LF)
-				{
-					bool contentExpected = 
-						contentLength_ > 0 
-						|| chunked_
-						|| mode_ == MESSAGE;
-
-					if (contentExpected)
-						state_ = CONTENT_BEGIN;
-					else
-						state_ = MESSAGE_BEGIN;
-
-					++offset;
-					++i;
-
-					ofp = offsetBase + offset;
-
-					if (!messageHeaderEnd())
-						return HttpMessageError::Aborted;
-
-					if (!contentExpected)
-					{
 						if (!messageEnd())
 							return HttpMessageError::Aborted;
 					}
@@ -1062,7 +1019,7 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 			case SYNTAX_ERROR:
 			{
 #if 1 // !defined(NDEBUG)
-				TRACE("parse: syntax error (last state: %i)", lastState);
+				TRACE("parse: syntax error");
 				if (std::isprint(*i)) {
 					TRACE("parse: syntax error at offset: %ld, character: '%c'", offset, *i);
 				} else {
@@ -1075,7 +1032,7 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 			}
 			default:
 #if !defined(NDEBUG)
-				TRACE("parse: unknown state %i (last: %i)", state_, lastState);
+				TRACE("parse: unknown state %i", state_);
 				if (std::isprint(*i)) {
 					TRACE("parse: internal error at offset: %ld, character: '%c'", offset, *i);
 				} else {
