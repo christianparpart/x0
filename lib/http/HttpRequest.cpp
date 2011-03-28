@@ -228,7 +228,7 @@ SourcePtr HttpRequest::serialize()
 		keepalive = true;
 	}
 
-	if (connection.worker().server().maxKeepAlive() == 0)
+	if (!connection.worker().server().maxKeepAlive())
 		keepalive = false;
 
 	//keepalive = false; // FIXME workaround

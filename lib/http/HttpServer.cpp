@@ -109,9 +109,9 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	lastWorker_(0),
 #endif
 	maxConnections(512),
-	maxKeepAlive(/*5*/ 60),
-	maxReadIdle(60),
-	maxWriteIdle(360),
+	maxKeepAlive(TimeSpan::fromSeconds(60)),
+	maxReadIdle(TimeSpan::fromSeconds(60)),
+	maxWriteIdle(TimeSpan::fromSeconds(360)),
 	tcpCork(false),
 	tcpNoDelay(false),
 	tag("x0/" VERSION),

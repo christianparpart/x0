@@ -203,7 +203,7 @@ void HttpCore::loadServerTag(const Flow::Value& tag)
 void HttpCore::max_read_idle(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
-		server().maxReadIdle(args[0].toNumber());
+		server().maxReadIdle(TimeSpan::fromSeconds(args[0].toNumber()));
 	else
 		result.set(server().maxReadIdle());
 }
@@ -211,7 +211,7 @@ void HttpCore::max_read_idle(Flow::Value& result, const Params& args)
 void HttpCore::max_write_idle(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
-		server().maxWriteIdle(args[0].toNumber());
+		server().maxWriteIdle(TimeSpan::fromSeconds(args[0].toNumber()));
 	else
 		result.set(server().maxWriteIdle());
 }
@@ -219,7 +219,7 @@ void HttpCore::max_write_idle(Flow::Value& result, const Params& args)
 void HttpCore::max_keepalive_idle(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
-		server().maxKeepAlive(args[0].toNumber());
+		server().maxKeepAlive(TimeSpan::fromSeconds(args[0].toNumber()));
 	else
 		result.set(server().maxKeepAlive());
 }

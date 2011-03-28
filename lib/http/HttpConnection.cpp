@@ -377,11 +377,11 @@ void HttpConnection::resume()
 
 void HttpConnection::startRead()
 {
-	int timeout = request_count_ && state() == MESSAGE_BEGIN
+	TimeSpan timeout = request_count_ && state() == MESSAGE_BEGIN
 		? worker_.server_.maxKeepAlive()
 		: worker_.server_.maxReadIdle();
 
-	if (timeout > 0)
+	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);

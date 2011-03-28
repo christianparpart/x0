@@ -13,6 +13,7 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/Types.h>
 #include <x0/DateTime.h>
+#include <x0/TimeSpan.h>
 #include <x0/Property.h>
 #include <x0/Library.h>
 #include <x0/Logger.h>
@@ -183,9 +184,9 @@ private:
 
 public:
 	ValueProperty<std::size_t> maxConnections;
-	ValueProperty<std::size_t> maxKeepAlive;
-	ValueProperty<std::size_t> maxReadIdle;
-	ValueProperty<std::size_t> maxWriteIdle;
+	ValueProperty<TimeSpan> maxKeepAlive;
+	ValueProperty<TimeSpan> maxReadIdle;
+	ValueProperty<TimeSpan> maxWriteIdle;
 	ValueProperty<bool> tcpCork;
 	ValueProperty<bool> tcpNoDelay;
 	ValueProperty<std::string> tag;
