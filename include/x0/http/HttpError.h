@@ -20,10 +20,12 @@ enum class HttpError // {{{
 {
 	Undefined = 0,
 
+	// informational
 	ContinueRequest = 100,
 	SwitchingProtocols = 101,
 	Processing = 102,
 
+	// successful
 	Ok = 200,
 	Created = 201,
 	Accepted = 202,
@@ -32,11 +34,14 @@ enum class HttpError // {{{
 	ResetContent = 205,
 	PartialContent = 206,
 
+	// redirection
 	MultipleChoices = 300,
 	MovedPermanently = 301,
 	MovedTemporarily = 302,
+	Found = MovedTemporarily,
 	NotModified = 304,
 
+	// client error
 	BadRequest = 400,
 	Unauthorized = 401,
 	Forbidden = 403,
@@ -61,6 +66,7 @@ enum class HttpError // {{{
 	UnorderedCollection = 425,
 	UpgradeRequired = 426,
 
+	// server error
 	InternalServerError = 500,
 	NotImplemented = 501,
 	BadGateway = 502,
