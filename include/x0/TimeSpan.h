@@ -48,6 +48,8 @@ public:
 
 	bool operator!() const { return value_ == 0; }
 	operator bool () const { return value_ != 0; }
+
+	static const TimeSpan Zero;
 };
 
 inline bool operator==(const TimeSpan& a, const TimeSpan& b)
