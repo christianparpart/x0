@@ -20,14 +20,17 @@ namespace x0 {
 //@{
 
 template<class T>
-class value_property
+class ValueProperty
 {
 private:
 	T value_;
 
 public:
-	value_property() : value_() {}
-	value_property(T const& v) : value_(v) {}
+	typedef T value_type;
+
+	ValueProperty() : value_() {}
+	ValueProperty(T const& v) : value_(v) {}
+	ValueProperty(T&& v) : value_(v) {}
 
 	T operator()() const
 	{
@@ -62,25 +65,29 @@ public:
 		return value_;
 	}
 
+	T operator=(T&& v)
+	{
+		value_ = v;
+		return value_;
+	}
+
 	T operator+=(const T& v)
 	{
 		value_ += v;
 		return value_;
 	}
-
-	typedef T value_type;
 };
 
 /** read-only value property. */
 template<class T>
-class rvalue_read_property
+class RValueReadProperty
 {
 private:
 	const T& value_;
 
 public:
 	template<class U>
-	explicit rvalue_read_property(U v) : value_(v) {}
+	explicit RValueReadProperty(U v) : value_(v) {}
 
 	T const& operator()() const
 	{
@@ -105,13 +112,13 @@ template<
 	typename Object,
 	T (Object::*real_get)() const
 >
-class read_property
+class ReadProperty
 {
 private:
 	Object *object_;
 
 public:
-	read_property(Object *obj) : object_(obj)
+	explicit ReadProperty(Object *obj) : object_(obj)
 	{
 	}
 
@@ -258,7 +265,7 @@ template<
 	class Compare = std::less<Key>,
 	class Allocator = std::allocator<std::pair<const Key, T> >
 >
-class indexed_property
+class IndexedProperty
 {
 private:
 	std::map<Key, T> data_;
@@ -324,15 +331,18 @@ public:
 	}
 };
 
-template<class T> class __ro_prop {
+template<class T> class ReadOnlyProperty
+{
 private:
 	T value_;
 
 public:
-	template<typename... Args> __ro_prop(Args... args) : value_(args...) {}
+	template<typename... Args> ReadOnlyProperty(Args&&... args) : value_(args...) {}
 	T& operator()() const { return value_; }
 	T& get() const { return value_; }
 	T *operator->() const { return &value_; }
+
+	typedef T value_type;
 };
 
 //@}

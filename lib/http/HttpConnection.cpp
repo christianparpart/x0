@@ -79,7 +79,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	TRACE("fd=%d", socket_->handle());
 
 #if defined(TCP_NODELAY)
-	if (worker_.server_.tcp_nodelay())
+	if (worker_.server_.tcpNoDelay())
 		socket_->setTcpNoDelay(true);
 #endif
 
@@ -378,8 +378,8 @@ void HttpConnection::resume()
 void HttpConnection::startRead()
 {
 	int timeout = request_count_ && state() == MESSAGE_BEGIN
-		? worker_.server_.max_keep_alive_idle()
-		: worker_.server_.max_read_idle();
+		? worker_.server_.maxKeepAlive()
+		: worker_.server_.maxReadIdle();
 
 	if (timeout > 0)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);

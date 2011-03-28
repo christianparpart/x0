@@ -203,33 +203,33 @@ void HttpCore::loadServerTag(const Flow::Value& tag)
 void HttpCore::max_read_idle(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
-		server().max_read_idle(args[0].toNumber());
+		server().maxReadIdle(args[0].toNumber());
 	else
-		result.set(server().max_read_idle());
+		result.set(server().maxReadIdle());
 }
 
 void HttpCore::max_write_idle(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
-		server().max_write_idle(args[0].toNumber());
+		server().maxWriteIdle(args[0].toNumber());
 	else
-		result.set(server().max_write_idle());
+		result.set(server().maxWriteIdle());
 }
 
 void HttpCore::max_keepalive_idle(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
-		server().max_keep_alive_idle(args[0].toNumber());
+		server().maxKeepAlive(args[0].toNumber());
 	else
-		result.set(server().max_keep_alive_idle());
+		result.set(server().maxKeepAlive());
 }
 
 void HttpCore::max_conns(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
-		server().max_connections(args[0].toNumber());
+		server().maxConnections(args[0].toNumber());
 	else
-		result.set(server().max_connections());
+		result.set(server().maxConnections());
 }
 
 void HttpCore::max_files(Flow::Value& result, const Params& args)
@@ -259,17 +259,17 @@ void HttpCore::max_core(Flow::Value& result, const Params& args)
 void HttpCore::tcp_cork(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		server().tcp_cork(args[0].toBool());
+		server().tcpCork(args[0].toBool());
 	else
-		result.set(server().tcp_cork());
+		result.set(server().tcpCork());
 }
 
 void HttpCore::tcp_nodelay(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
-		server().tcp_nodelay(args[0].toBool());
+		server().tcpNoDelay(args[0].toBool());
 	else
-		result.set(server().tcp_nodelay());
+		result.set(server().tcpNoDelay());
 }
 
 void HttpCore::listen(Flow::Value& result, const Params& args)

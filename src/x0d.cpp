@@ -180,7 +180,7 @@ public:
 		server_->fileinfo.etag_consider_inode(false);
 #endif
 
-		server_->tcp_cork = true;
+		server_->tcpCork(true);
 
 		std::istringstream s(source);
 		return server_->setup(&s, SYSCONFDIR "/instant.conf");

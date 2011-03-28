@@ -55,16 +55,16 @@ inline bool HttpRangeDef::parse(const BufferRef& value)
 
 	if (si != spec.end())
 	{
-		unit_name = *si;
+		unitName = *si;
 
-		if (unit_name() == "bytes")
+		if (unitName() == "bytes")
 		{
 			std::string brange(*++si);
 			tokenizer t2(brange, boost::char_separator<char>(","));
 
 			for (tokenizer::iterator i = t2.begin(), e = t2.end(); i != e; ++i)
 			{
-				if (!parse_range_spec(*i))
+				if (!parseRangeSpec(*i))
 					return false;
 			}
 		}
@@ -72,7 +72,7 @@ inline bool HttpRangeDef::parse(const BufferRef& value)
 	return true;
 }
 
-inline bool HttpRangeDef::parse_range_spec(const std::string& spec)
+inline bool HttpRangeDef::parseRangeSpec(const std::string& spec)
 {
 	std::size_t a, b;
 	char *p = const_cast<char *>(spec.c_str());
@@ -163,7 +163,7 @@ inline std::string HttpRangeDef::str() const
 	std::stringstream sstr;
 	int count = 0;
 
-	sstr << unit_name();
+	sstr << unitName();
 
 	for (const_iterator i = begin(), e = end(); i != e; ++i)
 	{

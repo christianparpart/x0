@@ -107,12 +107,12 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 #if defined(X0_WORKER_RR)
 	lastWorker_(0),
 #endif
-	max_connections(512),
-	max_keep_alive_idle(/*5*/ 60),
-	max_read_idle(60),
-	max_write_idle(360),
-	tcp_cork(false),
-	tcp_nodelay(false),
+	maxConnections(512),
+	maxKeepAlive(/*5*/ 60),
+	maxReadIdle(60),
+	maxWriteIdle(360),
+	tcpCork(false),
+	tcpNoDelay(false),
 	tag("x0/" VERSION),
 	advertise(true)
 {

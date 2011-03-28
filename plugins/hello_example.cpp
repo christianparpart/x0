@@ -32,17 +32,17 @@
  * \ingroup plugins
  * \brief example content generator plugin
  */
-class hello_plugin :
+class HelloPlugin :
 	public x0::HttpPlugin
 {
 public:
-	hello_plugin(x0::HttpServer& srv, const std::string& name) :
+	HelloPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerHandler<hello_plugin, &hello_plugin::handleRequest>("hello_example");
+		registerHandler<HelloPlugin, &HelloPlugin::handleRequest>("hello_example");
 	}
 
-	~hello_plugin()
+	~HelloPlugin()
 	{
 	}
 
@@ -67,4 +67,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(hello)
+X0_EXPORT_PLUGIN_CLASS(HelloPlugin)

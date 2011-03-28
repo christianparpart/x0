@@ -56,7 +56,7 @@ public:
 	HttpRangeDef();
 	explicit HttpRangeDef(const BufferRef& spec);
 
-	value_property<std::string> unit_name;
+	ValueProperty<std::string> unitName;
 
 	bool parse(const BufferRef& value);
 
@@ -89,7 +89,7 @@ public:
 	std::string str() const;
 
 private:
-	inline bool parse_range_spec(const std::string& spec);
+	inline bool parseRangeSpec(const std::string& spec);
 };
 
 //@}

@@ -228,7 +228,7 @@ SourcePtr HttpRequest::serialize()
 		keepalive = true;
 	}
 
-	if (!connection.worker().server().max_keep_alive_idle())
+	if (connection.worker().server().maxKeepAlive() == 0)
 		keepalive = false;
 
 	//keepalive = false; // FIXME workaround
@@ -236,7 +236,7 @@ SourcePtr HttpRequest::serialize()
 	if (!keepalive)
 		responseHeaders.overwrite("Connection", "close");
 
-	if (!connection.worker().server().tcp_cork())
+	if (!connection.worker().server().tcpCork())
 		connection.socket()->setTcpCork(true);
 
 	if (supportsProtocol(1, 1))

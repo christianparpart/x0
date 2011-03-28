@@ -177,14 +177,14 @@ private:
 	FileInfoService::Config fileinfoConfig_;
 
 public:
-	value_property<int> max_connections;
-	value_property<int> max_keep_alive_idle;
-	value_property<int> max_read_idle;
-	value_property<int> max_write_idle;
-	value_property<bool> tcp_cork;
-	value_property<bool> tcp_nodelay;
-	value_property<std::string> tag;
-	value_property<bool> advertise;
+	ValueProperty<std::size_t> maxConnections;
+	ValueProperty<std::size_t> maxKeepAlive;
+	ValueProperty<std::size_t> maxReadIdle;
+	ValueProperty<std::size_t> maxWriteIdle;
+	ValueProperty<bool> tcpCork;
+	ValueProperty<bool> tcpNoDelay;
+	ValueProperty<std::string> tag;
+	ValueProperty<bool> advertise;
 };
 
 // {{{ inlines
