@@ -371,19 +371,9 @@ inline void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& 
 
 void CgiTransport::write(FastCgi::Type type, int requestId, const char *buf, size_t len)
 {
-	TRACE("CgiTransport.write(rid=%d, body-size=%ld)", requestId, len);
-
-#if 0
-	FastCgi::Record record(type, requestId, content.size(), 0);
-	writeBuffer_.push_back(record.data(), sizeof(record));
-	writeBuffer_.push_back(buf, len);
-	x0::Buffer::dump(buf, len, "CHUNK");
-
-	TRACE("-CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)",
-			record.type_str(), record.requestId(), record.size(), record.paddingLength());
-#else
 	if (len == 0) {
 		FastCgi::Record record(type, requestId, 0, 0);
+		TRACE("CgiTransport.write(type=%s, rid=%d, size=%ld)", record.type_str(), requestId, len);
 		writeBuffer_.push_back(record.data(), sizeof(record));
 		return;
 	}
@@ -398,15 +388,14 @@ void CgiTransport::write(FastCgi::Type type, int requestId, const char *buf, siz
 		writeBuffer_.push_back(buf + offset, clen);
 		//x0::Buffer::dump(buf + offset, clen, "CHUNK");
 
-		TRACE("-CgiTransport.write(type=%s, rid=%d, offset=%ld, size=%ld)", 
+		TRACE("CgiTransport.write(type=%s, rid=%d, offset=%ld, size=%ld)",
 				record.type_str(), requestId, offset, clen);
 	}
-#endif
 }
 
 void CgiTransport::write(FastCgi::Record *record)
 {
-	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)", 
+	TRACE("CgiTransport.write(type=%s, rid=%d, size=%d, pad=%d)",
 			record->type_str(), record->requestId(), record->size(), record->paddingLength());
 
 	writeBuffer_.push_back(record->data(), record->size());
