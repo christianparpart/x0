@@ -159,9 +159,8 @@ inline HttpWorker& HttpConnection::worker()
  */
 inline void HttpConnection::writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler)
 {
-	source_.push_back(buffer);
 	onWriteComplete_ = handler;
-
+	source_.push_back(buffer);
 	processOutput();
 }
 
@@ -169,7 +168,6 @@ template<class T, class... Args>
 inline void HttpConnection::write(Args&&... args)
 {
 	source_.push_back(std::make_shared<T>(args...));
-
 	processOutput();
 }
 
