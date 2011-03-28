@@ -95,6 +95,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
+	startupTime_(ev_now(loop_)),
 	active_(false),
 	logger_(),
 	logLevel_(Severity::warn),

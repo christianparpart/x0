@@ -50,6 +50,7 @@ private:
 	unsigned id_;
 	HttpServer& server_;
 	struct ev_loop *loop_;
+	ev_tstamp startupTime_;
 	DateTime now_;
 	std::atomic<int> connectionLoad_;
 	pthread_t thread_;
@@ -74,6 +75,9 @@ public:
 public:
 	HttpWorker(HttpServer& server, struct ev_loop *loop);
 	~HttpWorker();
+
+	ev_tstamp startupTime() const { return startupTime_; }
+	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
 
 	const DateTime& now() const;
 

@@ -68,8 +68,12 @@ public:
 	void setLogger(std::shared_ptr<Logger> logger);
 	Logger *logger() const;
 
+	ev_tstamp startupTime() const { return startupTime_; }
+	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
+
 	HttpWorker *spawnWorker();
 	HttpWorker *selectWorker();
+	const std::vector<HttpWorker *>& workers() const { return workers_; }
 	void destroyWorker(HttpWorker *worker);
 
 	// {{{ service control
@@ -162,6 +166,7 @@ private:
 
 	std::list<HttpListener *> listeners_;
 	struct ::ev_loop *loop_;
+	ev_tstamp startupTime_;
 	bool active_;
 	LoggerPtr logger_;
 	Severity logLevel_;

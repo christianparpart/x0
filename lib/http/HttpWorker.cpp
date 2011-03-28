@@ -19,6 +19,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	id_(idpool_++),
 	server_(server),
 	loop_(loop),
+	startupTime_(ev_now(loop_)),
 	now_(),
 	connectionLoad_(0),
 	thread_(0),
