@@ -303,7 +303,7 @@ public:
 	HeaderList responseHeaders; //!< the headers to be included in the response.
 	ChainFilter outputFilters;  //!< response content filters
 	bool headersSent() const;   //!< returns true in case serializing the response has already been started, that is, headers has been sent out already.
-	bool responseContentForbidden() const;
+	bool isResponseContentForbidden() const;
 	void write(const SourcePtr& source, const CompletionHandlerType& handler);
 	void setClientAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
@@ -394,7 +394,7 @@ inline void HttpRequest::writeContent(const SourcePtr& content, const Completion
 }
 
 /** checks wether given code MUST NOT have a response body. */
-inline bool HttpRequest::responseContentForbidden() const
+inline bool HttpRequest::isResponseContentForbidden() const
 {
 	return x0::content_forbidden(status);
 }

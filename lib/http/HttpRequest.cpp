@@ -202,12 +202,12 @@ SourcePtr HttpRequest::serialize()
 	connection.worker().server().onPostProcess(this);
 
 	// setup (connection-level) response transfer
-	if (!responseHeaders.contains("Content-Length") && !responseContentForbidden())
+	if (!responseHeaders.contains("Content-Length") && !isResponseContentForbidden())
 	{
 		if (supportsProtocol(1, 1)
 			&& equals(requestHeader("Connection"), "keep-alive")
 			&& !responseHeaders.contains("Transfer-Encoding")
-			&& !responseContentForbidden())
+			&& !isResponseContentForbidden())
 		{
 			responseHeaders.overwrite("Connection", "keep-alive");
 			responseHeaders.push_back("Transfer-Encoding", "chunked");
@@ -271,7 +271,7 @@ SourcePtr HttpRequest::serialize()
  */
 SourcePtr HttpRequest::makeDefaultResponseContent()
 {
-	if (responseContentForbidden())
+	if (isResponseContentForbidden())
 		return SourcePtr();
 
 	// TODO custom error documents
@@ -351,7 +351,7 @@ void HttpRequest::finish()
 		if (static_cast<int>(status) == 0)
 			status = HttpError::NotFound;
 
-		if (!responseContentForbidden() && status != HttpError::Ok)
+		if (!isResponseContentForbidden() && status != HttpError::Ok)
 			write(makeDefaultResponseContent(), std::bind(&HttpRequest::onFinished, this, std::placeholders::_1));
 		else
 			connection.writeAsync(serialize(), std::bind(&HttpRequest::onFinished, this, std::placeholders::_1));
