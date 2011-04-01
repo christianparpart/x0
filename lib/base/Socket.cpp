@@ -170,9 +170,9 @@ ssize_t Socket::read(Buffer& result)
 ssize_t Socket::write(const void *buffer, size_t size)
 {
 #if 0 // !defined(NDEBUG)
-	//TRACE("write('%s')", source.str().c_str());
-	ssize_t rv = ::write(fd_, source.data(), source.size());
-	TRACE("write: %ld => %ld", source.size(), rv);
+	//TRACE("write('%s')", Buffer(buffer, size).c_str());
+	ssize_t rv = ::write(fd_, buffer, size);
+	TRACE("write: %ld => %ld", size, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write: error (%d): %s", fd_, errno, strerror(errno));
