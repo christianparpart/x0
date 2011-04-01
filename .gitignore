@@ -41,3 +41,6 @@ www/htdocs/rrd/*.rrd
 docs/x0d.8
 docs/x0d.conf.5
 tests/x0cp
+tests/*.req
+www/htdocs/*.gz
+www/htdocs/*.bz2

@@ -17,13 +17,13 @@
 - threaded model
 - plugin proxy
 - plugin cgi
+- core function: response 'header.add'
+- core function: response 'header.overwrite'
+- core function: response 'header.remove'
 
 .WIP:
 
 .TODO:
-- core function: response 'header.add'
-- core function: response 'header.overwrite'
-- core function: response 'header.remove'
 - plugin vhost (will do what old vhost_template & vhost_basic did)
 	- will require flow to improve (maybe wait for flow release 0.2.0, with x0/0.4.0 ?)
 - plugin debug (remove?)

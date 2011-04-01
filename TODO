@@ -2,14 +2,13 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 
 ===================================================================================================
 
+- resource management (at least for max_core_size) must be evaluated *after* privilege dropping,
+  in case there is some, or they're lost.
 - bug in timeout management, when the timeout has been reached the connection is not
 	properly cleaned up (see valgrind).
 - bug in keep-alive connections sending a second+ request?
 - drop *all* occurences of std::function with raw function pointers+data pairs
-- replace std::map with x0's yet to be implemented HashMap
-	- used in HttpConnection::customData, HttpRequest::customData
 - x0d: command line option for dumping IR into file
-- flow backend: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
 - introduce a specialized speed-optimized String class with an API like BufferRef/Buffer
 	- including formatted string building and using external pool-allocator
 - core: add runtime functions:
@@ -18,7 +17,8 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 - virtual host management:
 	- void vhost.add(string name, string docroot);
 	- void vhost.map;
-- caseStmt ::=
+- flow: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
+- flow: caseStmt ::=
 			'case' expr
 				('when' expr ['then' stmt)*
 				['else' stmt]
