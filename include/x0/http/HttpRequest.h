@@ -147,11 +147,7 @@ public:
 
 		bool contains(const std::string& name) const
 		{
-			for (const Header *i = first_; i != NULL; i = i->next)
-				if (strcasecmp(i->name.c_str(), name.c_str()) == 0)
-					return true;
-
-			return false;
+			return const_cast<HeaderList*>(this)->findHeader(name) != nullptr;
 		}
 
 		void push_back(const std::string& name, const std::string& value)
