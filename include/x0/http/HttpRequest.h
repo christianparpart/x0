@@ -166,7 +166,7 @@ public:
 
 			while (item != NULL)
 			{
-				if (strcasecmp(item->name.c_str(), name.c_str()) == 0)
+				if (iequals(item->name.c_str(), name.c_str()))
 					return item;
 
 				item = item->next;

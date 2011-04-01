@@ -10,6 +10,7 @@
 #define sw_x0_BufferRef_h (1)
 
 #include <x0/Buffer.h>
+#include <x0/strutils.h>
 
 #include <cassert>
 #include <cstring>
@@ -708,7 +709,7 @@ inline bool iequals(const BufferRef& a, const std::string& b)
 	if (a.size() != b.size())
 		return false;
 
-	return strncasecmp(a.data(), b.data(), a.size()) == 0;
+	return iequals(a.data(), b.data(), a.size());
 }
 
 template<typename PodType, std::size_t N>
