@@ -5,18 +5,29 @@
 #include <cstdlib>
 #include <cstring>
 
-class PoolMgr
+/*! pool-based memory manager.
+ *
+ * That is, you can easily free all allocated resources at pool's destruction
+ * or explicitely at your own will.
+ */
+class MemoryPool
 {
 public:
 	std::list<void *> pool_;
 
 public:
-	PoolMgr();
-	~PoolMgr();
+	MemoryPool();
+	~MemoryPool();
 
 	void clear();
 
 	void *allocate(size_t n);
+
+	template<typename T>
+	T* allocate()
+	{
+		return static_cast<T*>(allocate(sizeof(T)));
+	}
 
 	char *strdup(const char *value);
 	char *strcat(const char *v1, const char *v2);
@@ -26,16 +37,16 @@ public:
 };
 
 // {{{ inlines
-PoolMgr::PoolMgr()
+inline MemoryPool::MemoryPool()
 {
 }
 
-PoolMgr::~PoolMgr()
+inline MemoryPool::~MemoryPool()
 {
 	clear();
 }
 
-void PoolMgr::clear()
+inline void MemoryPool::clear()
 {
 	for (auto i = pool_.begin(), e = pool_.end(); i != e; ++i)
 		free(*i);
@@ -43,14 +54,14 @@ void PoolMgr::clear()
 	pool_.clear();
 }
 
-void *PoolMgr::allocate(size_t n)
+inline void *MemoryPool::allocate(size_t n)
 {
 	void *result = malloc(n);
 	pool_.push_back(result);
 	return result;
 }
 
-char *PoolMgr::strdup(const char *value)
+inline char *MemoryPool::strdup(const char *value)
 {
 	size_t n = strlen(value);
 	char *result = (char *)(allocate(n + 1));
@@ -58,7 +69,7 @@ char *PoolMgr::strdup(const char *value)
 	return result;
 }
 
-char *PoolMgr::strcat(const char *v1, const char *v2)
+inline char *MemoryPool::strcat(const char *v1, const char *v2)
 {
 	size_t n1 = strlen(v1);
 	size_t n2 = strlen(v2);
