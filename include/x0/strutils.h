@@ -113,6 +113,12 @@ std::vector<T> split(const std::basic_string<U>& list, const U *sep);
 template<typename T, typename U>
 inline bool hex2int(const T *begin, const T *end, U& result);
 
+/*! compares two strings for case insensitive equality. */
+bool iequals(const char *a, const char *b);
+
+/*! compares the first n bytes of two strings for case insensitive equality. */
+bool iequals(const char *a, const char *b, std::size_t n);
+
 //@}
 
 //! \addtogroup base

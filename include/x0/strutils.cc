@@ -141,6 +141,43 @@ inline bool hex2int(const T *begin, const T *end, U& result)
 	return true;
 }
 
+inline bool iequals(const char *a, const char *b)
+{
+#if 0 // HAVE_STRCASECMP
+	return strcasecmp(a, b) == 0;
+#else
+	while (*a && *b)
+	{
+		if (toupper(*a) != toupper(*b))
+			return false;
+
+		++a;
+		++b;
+	}
+
+	return *a == *b;
+#endif
+}
+
+inline bool iequals(const char *a, const char *b, std::size_t n)
+{
+#if 0 // HAVE_STRNCASECMP
+	return strcasecmp(a, b, n) == 0;
+#else
+	while (*a && *b && n)
+	{
+		if (toupper(*a) != toupper(*b))
+			return false;
+
+		++a;
+		++b;
+		--n;
+	}
+
+	return n == 0 || *a == *b;
+#endif
+}
+
 // vim:syntax=cpp
 
 } // namespace x0
