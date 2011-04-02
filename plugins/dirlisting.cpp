@@ -76,10 +76,9 @@ private:
 		in->responseHeaders.push_back("Content-Type", "text/html");
 		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
 
-		in->write(
-			std::make_shared<x0::BufferSource>(std::move(result)),
-			std::bind(&x0::HttpRequest::finish, in)
-		);
+		in->write<x0::BufferSource>(std::move(result));
+		in->finish();
+
 		return true;
 	}
 

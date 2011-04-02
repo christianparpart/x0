@@ -193,7 +193,7 @@ private:
 
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
 	virtual bool messageContent(x0::BufferRef&& content);
-	void writeComplete(int error, size_t nwritten);
+	void writeComplete();
 	static void onClientAbort(void *p);
 
 	void finish();
@@ -699,12 +699,10 @@ void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolS
 		finish();
 #else
 	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
-	if (writeBuffer_.size() != 0)
-		request_->write(
-			std::make_shared<x0::BufferSource>(writeBuffer_),
-			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
-		);
-	else
+	if (writeBuffer_.size() != 0) {
+		request_->write<x0::BufferSource>(writeBuffer_);
+		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
+	} else
 		finish();
 #endif
 }
@@ -752,10 +750,8 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 
 		ev_io_stop(loop_, &io_);
 
-		request_->write(
-			std::make_shared<x0::BufferSource>(content),
-			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
-		);
+		request_->write<x0::BufferSource>(content);
+		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
 	}
 	else
 		writeBuffer_.push_back(content);
@@ -769,7 +765,7 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 
 /** \brief write-completion hook, invoked when a content chunk is written to the HTTP client.
  */
-void CgiTransport::writeComplete(int err, size_t nwritten)
+void CgiTransport::writeComplete()
 {
 #if X0_FASTCGI_DIRECT_IO
 	writeActive_ = false;
@@ -778,21 +774,14 @@ void CgiTransport::writeComplete(int err, size_t nwritten)
 	ev_io_set(&io_, fd_, EV_READ);
 	ev_io_start(loop_, &io_);
 
-	if (err)
-	{
-		TRACE("CgiTransport.write error: %s", strerror(err));
-		finish();
-	}
-	else if (writeBuffer_.size() != 0)
+	if (writeBuffer_.size() != 0)
 	{
 		TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld), queued:%ld",
 			err, nwritten, writeBuffer_.size());
 		;//request_->connection.socket()->setMode(Socket::IDLE);
 
-		request_->write(
-			std::make_shared<x0::BufferSource>(std::move(writeBuffer_)),
-			std::bind(&CgiTransport::writeComplete, this, std::placeholders::_1, std::placeholders::_2)
-		);
+		request_->write<x0::BufferSource>(std::move(writeBuffer_));
+		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
 		TRACE("CgiTransport.writeComplete: (after response.write call) writeBuffer_.size: %ld", writeBuffer_.size());
 	}
 	else if (finish_)

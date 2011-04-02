@@ -14,6 +14,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpError.h>
 #include <x0/io/FilterSource.h>
+#include <x0/io/CallbackSource.h>
 #include <x0/io/FileInfo.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/Logging.h>
@@ -26,6 +27,7 @@
 
 #include <string>
 #include <vector>
+#include <cassert>
 
 namespace x0 {
 
@@ -245,8 +247,17 @@ private:
 	/// pre-computed string representations of status codes, ready to be used by serializer
 	static char statusCodes_[512][4];
 
-	// state whether response headers have been already sent or not.
-	bool headersSent_;
+	// response state
+	enum OutputState {
+		//! nothing has been sent (or triggered for sending) to the client yet.
+		Unhandled,
+		//! at least response headers are to be written to the client.
+		Populating,
+		//! response message is fully populated
+		Finished
+	};
+
+	OutputState outputState_;
 
 public:
 	explicit HttpRequest(HttpConnection& connection);
@@ -298,9 +309,14 @@ public:
 	HttpError status;           //!< HTTP response status code.
 	HeaderList responseHeaders; //!< the headers to be included in the response.
 	ChainFilter outputFilters;  //!< response content filters
-	bool headersSent() const;   //!< returns true in case serializing the response has already been started, that is, headers has been sent out already.
 	bool isResponseContentForbidden() const;
-	void write(const SourcePtr& source, const CompletionHandlerType& handler);
+
+	OutputState outputState() const;
+
+	void write(const SourcePtr& source);
+	bool writeCallback(const CallbackSource::Callback& cb);
+	template<class T, class... Args> void write(Args&&... args);
+
 	void setClientAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
 
@@ -313,11 +329,10 @@ private:
 	void onRequestContent(BufferRef&& chunk);
 
 	// response write helper
-	void onWriteHeadersComplete(int ec, const SourcePtr& content, const CompletionHandlerType& handler);
-	void writeContent(const SourcePtr& content, const CompletionHandlerType& handler);
 	SourcePtr serialize();
 	SourcePtr makeDefaultResponseContent();
-	void onFinished(int ec);
+	void checkFinish();
+	void finalize();
 
 	static void initialize();
 
@@ -343,11 +358,6 @@ inline void HttpRequest::log(Severity s, Args&&... args)
 	connection.worker().server().log(s, args...);
 }
 
-inline bool HttpRequest::headersSent() const
-{
-	return headersSent_;
-}
-
 /** write given source to response content and invoke the completion handler when done.
  *
  * \param content the content (chunk) to push to the client
@@ -355,44 +365,72 @@ inline bool HttpRequest::headersSent() const
  *
  * \note this implicitely flushes the response-headers if not yet done, thus, making it impossible to modify them after this write.
  */
-inline void HttpRequest::write(const SourcePtr& content, const CompletionHandlerType& handler)
+inline void HttpRequest::write(const SourcePtr& content)
 {
-	if (headersSent_)
-		writeContent(content, handler);
-	else
-		connection.writeAsync(serialize(), 
-			std::bind(&HttpRequest::onWriteHeadersComplete, this, std::placeholders::_1, content, handler));
-}
-
-/** is invoked as completion handler when sending response headers. */
-inline void HttpRequest::onWriteHeadersComplete(int ec, const SourcePtr& content, const CompletionHandlerType& handler)
-{
-	headersSent_ = true;
-
-	if (!ec)
-	{
-		// write response content
-		writeContent(content, handler);
-	}
-	else
-	{
-		// an error occured -> notify completion handler about the error
-		handler(ec, 0);
+	switch (outputState_) {
+		case Unhandled:
+			outputState_ = Populating;
+			connection.write(std::move(serialize()));
+			/* fall through */
+		case Populating:
+			if (outputFilters.empty())
+				connection.write(content);
+			else
+				connection.write<FilterSource>(content, outputFilters, false);
+			break;
+		case Finished:
+			assert(0 && "BUG");
 	}
 }
 
-inline void HttpRequest::writeContent(const SourcePtr& content, const CompletionHandlerType& handler)
+/*! appends a callback source into the output buffer if non-empty or invokes it directly otherwise.
+ *
+ * Invoke this method to get called back (notified) when all preceding content chunks have been
+ * fully sent to the client already.
+ *
+ * This method either appends this callback into the output queue, thus, being invoked when all
+ * preceding output chunks have been handled so far, or the callback gets invoked directly
+ * when there is nothing in the output queue (meaning, that everything has been already fully
+ * sent to the client).
+ *
+ * \retval true The callback will be invoked later (callback appended to output queue).
+ * \retval false The output queue is empty (everything sent out so far) and the callback was invoked directly.
+ */
+inline bool HttpRequest::writeCallback(const CallbackSource::Callback& cb)
 {
-	if (outputFilters.empty())
-		connection.writeAsync(content, handler);
-	else
-		connection.writeAsync(std::make_shared<FilterSource>(content, outputFilters, false), handler);
+	assert(outputState_ == Populating);
+
+	if (connection.isOutputPending()) {
+		connection.write<CallbackSource>(cb);
+		return true;
+	} else {
+		cb();
+		return false;
+	}
+}
+
+template<class T, class... Args>
+inline void HttpRequest::write(Args&&... args)
+{
+	write(std::make_shared<T>(std::move(args)...));
+}
+
+inline HttpRequest::OutputState HttpRequest::outputState() const
+{
+	return outputState_;
 }
 
 /** checks wether given code MUST NOT have a response body. */
 inline bool HttpRequest::isResponseContentForbidden() const
 {
 	return x0::content_forbidden(status);
+}
+
+inline void HttpRequest::checkFinish()
+{
+	if (outputState() == Finished) {
+		finalize();
+	}
 }
 // }}}
 

@@ -61,7 +61,6 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	abortData_(nullptr),
 	source_(),
 	sink_(nullptr),
-	onWriteComplete_(),
 	bytesTransferred_(0)
 #if !defined(NDEBUG)
 	, ctime_(ev_now(loop()))
@@ -458,10 +457,7 @@ void HttpConnection::processOutput()
 			TRACE("processOutput(): source fully written");
 			source_.reset();
 
-			if (onWriteComplete_)
-				onWriteComplete_(0, bytesTransferred_);
-
-			//onWriteComplete_ = CompletionHandlerType();
+			request_->checkFinish();
 			break;
 		}
 		else if (errno == EAGAIN || errno == EINTR) // completing write would block
@@ -475,11 +471,9 @@ void HttpConnection::processOutput()
 			TRACE("processOutput(): write error (%d): %s", errno, strerror(errno));
 			source_.reset();
 
-			if (onWriteComplete_)
-				onWriteComplete_(errno, bytesTransferred_);
+			request_->checkFinish();
 
-			//onWriteComplete_ = CompletionHandlerType();
-			close();
+			close(); // FIXME isn't that double wrt checkFinish?
 			break;
 		}
 	}

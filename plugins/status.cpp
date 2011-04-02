@@ -75,14 +75,14 @@ private:
 		r->status = x0::HttpError::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/html");
 
-		r->write(
-			std::make_shared<x0::BufferSource>(createResponseBody()),
-			std::bind(&x0::HttpRequest::finish, r)
-		);
+		r->write<x0::BufferSource>(createResponseBody());
+
+		r->finish();
 
 		return true;
 	}
 
+	// TODO let this method return a movable instead of a full copy
 	x0::Buffer createResponseBody()
 	{
 		/*
@@ -111,7 +111,7 @@ private:
 		buf << "# requests: " << nrequests << "\n";
 		buf << "\n</pre></body></html>\n";
 
-		return (buf);
+		return buf;
 	}
 };
 

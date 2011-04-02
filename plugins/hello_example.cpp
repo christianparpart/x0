@@ -55,12 +55,11 @@ private:
 		// set some custom response header
 		r->responseHeaders.push_back("Hello", "World");
 
-		// write some content to the client, and invoke
-		// HttpRequest::finish on completion, thus, finish processing this request.
-		r->write(
-			std::make_shared<x0::BufferSource>("Hello, World\n"),
-			std::bind(&x0::HttpRequest::finish, r)
-		);
+		// write some content to the client
+		r->write<x0::BufferSource>("Hello, World\n");
+
+		// invoke finish() marking this request as being fully handled (response fully generated).
+		r->finish();
 
 		// yes, we are handling this request
 		return true;

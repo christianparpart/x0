@@ -25,8 +25,8 @@ class X0_API FilterSource :
 	public Source
 {
 public:
-	explicit FilterSource(Filter& Filter) :
-		buffer_(), source_(std::make_shared<BufferSource>("")), filter_(Filter), force_(false), pos_(0) {}
+	explicit FilterSource(Filter& Filter, bool force = false) :
+		buffer_(), source_(std::make_shared<BufferSource>("")), filter_(Filter), force_(force), pos_(0) {}
 
 	FilterSource(const SourcePtr& source, Filter& Filter, bool force) :
 		buffer_(), source_(source), filter_(Filter), force_(force), pos_(0) {}

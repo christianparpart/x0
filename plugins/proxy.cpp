@@ -124,7 +124,6 @@ private:
 	virtual void messageBegin(int version_major, int version_minor, int code, x0::BufferRef&& text);
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
 	virtual bool messageContent(x0::BufferRef&& chunk);
-	void messageContentTransferred(int ec, size_t nb);
 	virtual bool messageEnd();
 
 public:
@@ -274,19 +273,15 @@ bool ProxyConnection::messageContent(x0::BufferRef&& chunk)
 	io_.stop();
 
 	// transfer response-body chunk to client
-	request_->write(std::make_shared<x0::BufferSource>(std::move(chunk)),
-		std::bind(&ProxyConnection::messageContentTransferred, this,
-				std::placeholders::_1, std::placeholders::_2));
+	request_->write<x0::BufferSource>(std::move(chunk));
+
+	// start listening on backend I/O when chunk has been fully transmitted
+	request_->writeCallback([&]() {
+		TRACE("chunk write complete: %s", state_str());
+		io_.start();
+	});
 
 	return true;
-}
-
-/** callback, invoked when response content chunk has been fully transferred to the client.
- */
-void ProxyConnection::messageContentTransferred(int ec, size_t nb)
-{
-	TRACE("messageContentTransferred(ec:%d, nb:%lu) state:%s", ec, nb, state_str());
-	io_.start();
 }
 
 bool ProxyConnection::messageEnd()

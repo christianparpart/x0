@@ -107,7 +107,7 @@ private:
 	void onStderrAvailable(ev::io& w, int revents);
 
 	// client's I/O completion handlers
-	void onStdoutWritten(int ec, std::size_t nb);
+	void onStdoutWritten();
 	static void onClientEof(void *p);
 
 	// child exit watcher
@@ -617,10 +617,8 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 	} else {
 		stdoutTransferActive_ = true;
 		evStdout_.stop();
-		request_->write(
-			std::make_shared<x0::BufferSource>(value),
-			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
-		);
+		request_->write<x0::BufferSource>(value);
+		request_->writeCallback(std::bind(&CgiScript::onStdoutWritten, this));
 	}
 
 	return false;
@@ -628,23 +626,24 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 
 /** completion handler for the response content stream.
  */
-void CgiScript::onStdoutWritten(int ec, std::size_t nb)
+void CgiScript::onStdoutWritten()
 {
-	TRACE("onStdoutWritten(ec:%d, nb=%ld)", ec, nb);
+	TRACE("onStdoutWritten()");
 
 	stdoutTransferActive_ = false;
 
+#if 0
 	if (ec) {
 		TRACE("onStdoutWritten: client error: %s", strerror(errno));
 
 		// kill cgi script as client disconnected.
 		process_.terminate();
-	} else if (stdoutTransferBuffer_.size() > 0) {
+	} else
+#endif
+	if (stdoutTransferBuffer_.size() > 0) {
 		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
-		request_->write(
-			std::make_shared<x0::BufferSource>(std::move(stdoutTransferBuffer_)),
-			std::bind(&CgiScript::onStdoutWritten, this, std::placeholders::_1, std::placeholders::_2)
-		);
+		request_->write<x0::BufferSource>(std::move(stdoutTransferBuffer_));
+		request_->writeCallback(std::bind(&CgiScript::onStdoutWritten, this));
 	} else {
 		TRACE("stdout: watch");
 		evStdout_.start();

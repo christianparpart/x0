@@ -51,10 +51,8 @@ private:
 		// or fall back to just write HELLO (if no request content body was sent).
 
 		if (!in->read(std::bind(&echo_plugin::onContent, this, std::placeholders::_1, in))) {
-			in->write(
-				std::make_shared<x0::BufferSource>("I'm an HTTP echo-server, dude.\n"),
-				std::bind(&x0::HttpRequest::finish, in)
-			);
+			in->write<x0::BufferSource>("I'm an HTTP echo-server, dude.\n");
+			in->finish();
 		}
 
 		// yes, we are handling this request
@@ -68,10 +66,8 @@ private:
 	void onContent(x0::BufferRef&& chunk, x0::HttpRequest *in)
 	{
 		TRACE("onContent('%s')", chunk.str().c_str());
-		in->write(
-			std::make_shared<x0::BufferSource>(std::move(chunk)),
-			std::bind(&echo_plugin::contentWritten, this, in)
-		);
+		in->write<x0::BufferSource>(std::move(chunk));
+		in->writeCallback(std::bind(&echo_plugin::contentWritten, this, in));
 	}
 
 	// Handler, invoked when a content chunk has been fully written to the client

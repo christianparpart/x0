@@ -75,9 +75,10 @@ public:
 
 	bool isSecure() const;
 
-	void writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler = CompletionHandlerType());
-
+	void write(const SourcePtr& buffer);
 	template<class T, class... Args> void write(Args&&... args);
+
+	bool isOutputPending() const;
 
 private:
 	friend class HttpRequest;
@@ -110,6 +111,8 @@ private:
 
 	unsigned long long bytesTransferred() const;
 
+	void checkFinish();
+
 private:
 	HttpListener& listener_;
 	HttpWorker& worker_;
@@ -128,7 +131,6 @@ private:
 
 	CompositeSource source_;
 	SocketSink sink_;
-	CompletionHandlerType onWriteComplete_;
 	unsigned long long bytesTransferred_;
 
 #if !defined(NDEBUG)
@@ -157,9 +159,8 @@ inline HttpWorker& HttpConnection::worker()
  * \param buffer the buffer of bytes to be written into the connection.
  * \param handler the completion handler to invoke once the buffer has been either fully written or an error occured.
  */
-inline void HttpConnection::writeAsync(const SourcePtr& buffer, const CompletionHandlerType& handler)
+inline void HttpConnection::write(const SourcePtr& buffer)
 {
-	onWriteComplete_ = handler;
 	source_.push_back(buffer);
 	processOutput();
 }
@@ -188,6 +189,13 @@ inline unsigned long long HttpConnection::bytesTransferred() const
 {
 	//! \todo rename this to bytesTransmitted, and introduce bytesReceived property, so, that bytesTransferred is the sum of both.
 	return bytesTransferred_;
+}
+
+/*! tests whether or not this connection has pending data to sent to the client.
+ */
+inline bool HttpConnection::isOutputPending() const
+{
+	return !source_.empty();
 }
 // }}}
 

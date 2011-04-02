@@ -29,7 +29,7 @@ using boost::algorithm::iequals;
 char HttpRequest::statusCodes_[512][4];
 
 HttpRequest::HttpRequest(HttpConnection& conn) :
-	headersSent_(false),
+	outputState_(Unhandled),
 	connection(conn),
 	method(),
 	uri(),
@@ -312,33 +312,6 @@ std::string HttpRequest::statusStr(HttpError value)
 	return http_category().message(static_cast<int>(value));
 }
 
-/** completion handler, being invoked when this response has been fully flushed and is considered done.
- *
- * \see HttpRequest::finish()
- */
-void HttpRequest::onFinished(int ec)
-{
-	TRACE("onFinished(%d)", ec);
-
-	setClientAbortHandler(nullptr);
-
-	{
-		HttpServer& srv = connection.worker().server();
-
-		// log request/response
-		srv.onRequestDone(this);
-	}
-
-	// close, if not a keep-alive connection
-	if (iequals(responseHeaders["Connection"], "keep-alive")) {
-		TRACE("onFinished: resuming");
-		connection.resume();
-	} else {
-		TRACE("onFinished: closing");
-		connection.close();
-	}
-}
-
 /** finishes this response by flushing the content into the stream.
  *
  * \note this also queues the underlying connection for processing the next request (on keep-alive).
@@ -346,27 +319,52 @@ void HttpRequest::onFinished(int ec)
  */
 void HttpRequest::finish()
 {
-	if (!headersSent_) // nothing sent to client yet -> sent default status page
-	{
-		if (static_cast<int>(status) == 0)
-			status = HttpError::NotFound;
+	switch (outputState_) {
+		case Unhandled:
+			if (static_cast<int>(status) == 0)
+				status = HttpError::NotFound;
 
-		if (!isResponseContentForbidden() && status != HttpError::Ok)
-			write(makeDefaultResponseContent(), std::bind(&HttpRequest::onFinished, this, std::placeholders::_1));
-		else
-			connection.writeAsync(serialize(), std::bind(&HttpRequest::onFinished, this, std::placeholders::_1));
+			if (!isResponseContentForbidden() && status != HttpError::Ok)
+				write(makeDefaultResponseContent());
+			else
+				connection.write(serialize());
+			/* fall through */
+		case Populating:
+			// FIXME: can it become an issue when the response body may not be non-empty
+			// but we have outputFilters defined, thus, writing a single (possibly empty?)
+			// response body chunk?
+			if (!outputFilters.empty()) {
+				// mark the end of stream (EOS) by passing an empty chunk to the outputFilters.
+				connection.write<FilterSource>(outputFilters, true);
+			}
+
+			outputState_ = Finished;
+
+			if (!connection.isOutputPending()) {
+				// the response body is already fully transmitted, so finalize this request object directly.
+				finalize();
+			}
+			break;
+		case Finished:
+			assert(0 && "BUG");
 	}
-	else if (!outputFilters.empty())
-	{
-		// mark the end of stream (EOS) by passing an empty chunk to the outputFilters.
-		connection.writeAsync(
-			std::make_shared<FilterSource>(std::make_shared<BufferSource>(""), outputFilters, true),
-			std::bind(&HttpRequest::onFinished, this, std::placeholders::_1)
-		);
-	}
-	else
-	{
-		onFinished(0);
+}
+
+void HttpRequest::finalize()
+{
+	// reset client abort handler
+	setClientAbortHandler(nullptr);
+
+	// log request/response
+	connection.worker().server().onRequestDone(this);
+
+	// close, if not a keep-alive connection
+	if (iequals(responseHeaders["Connection"], "keep-alive")) {
+		TRACE("finalize: resuming");
+		connection.resume();
+	} else {
+		TRACE("finalize: closing");
+		connection.close();
 	}
 }
 

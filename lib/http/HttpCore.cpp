@@ -760,10 +760,8 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 		{
 			posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
 
-			in->write(
-				std::make_shared<FileSource>(fd, 0, in->fileinfo->size(), true),
-				std::bind(&HttpRequest::finish, in)
-			);
+			in->write<FileSource>(fd, 0, in->fileinfo->size(), true);
+			in->finish();
 		}
 	}
 	return true;
@@ -837,7 +835,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 	{
 		// generate a multipart/byteranged response, as we've more than one range to serve
 
-		auto content = std::make_shared<CompositeSource>();
+		std::shared_ptr<CompositeSource> content(new CompositeSource());
 		Buffer buf;
 		std::string boundary(generateBoundaryID());
 		std::size_t content_length = 0;
@@ -889,7 +887,8 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 
 		if (fd >= 0)
 		{
-			in->write(content, std::bind(&HttpRequest::finish, in));
+			in->write(content);
+			in->finish();
 		}
 		else
 		{
@@ -915,16 +914,9 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 		in->responseHeaders.push_back("Content-Range", cr.str());
 
 		if (fd >= 0)
-		{
-			in->write(
-				std::make_shared<FileSource>(fd, offsets.first, length, true),
-				std::bind(&HttpRequest::finish, in)
-			);
-		}
-		else
-		{
-			in->finish();
-		}
+			in->write<FileSource>(fd, offsets.first, length, true);
+
+		in->finish();
 	}
 
 	return true;
