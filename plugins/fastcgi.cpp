@@ -781,8 +781,8 @@ void CgiTransport::writeComplete()
 		;//request_->connection.socket()->setMode(Socket::IDLE);
 
 		request_->write<x0::BufferSource>(std::move(writeBuffer_));
-		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
 		TRACE("CgiTransport.writeComplete: (after response.write call) writeBuffer_.size: %ld", writeBuffer_.size());
+		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
 	}
 	else if (finish_)
 	{
