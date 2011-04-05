@@ -111,6 +111,7 @@ private:
 
 	unsigned long long bytesTransferred() const;
 
+	void abort();
 	void checkFinish();
 
 private:
@@ -154,22 +155,10 @@ inline HttpWorker& HttpConnection::worker()
 	return worker_;
 }
 
-/** write source into the connection stream and notifies the handler on completion.
- *
- * \param buffer the buffer of bytes to be written into the connection.
- * \param handler the completion handler to invoke once the buffer has been either fully written or an error occured.
- */
-inline void HttpConnection::write(const SourcePtr& buffer)
-{
-	source_.push_back(buffer);
-	processOutput();
-}
-
 template<class T, class... Args>
 inline void HttpConnection::write(Args&&... args)
 {
-	source_.push_back(std::make_shared<T>(args...));
-	processOutput();
+	write(std::make_shared<T>(args...));
 }
 
 inline const HttpListener& HttpConnection::listener() const
