@@ -50,6 +50,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/io/BufferSource.h>
+#include <x0/Logging.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
 #include <x0/Buffer.h>
@@ -72,20 +73,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 10 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
-
-// X0_FASTCGI_DIRECT_IO
-//     if this variable is defined, all received response data is being pushed 
-//     to the HTTP client as soon as possible.
-//
-//     If not defined, the client will only receive the content once
-//     *all* data from the backend application has been arrived in x0.
-//
-#define X0_FASTCGI_DIRECT_IO (1)
 
 class CgiContext;
 class CgiTransport;
@@ -100,6 +92,9 @@ inline std::string chomp(const std::string& value) // {{{
 
 class CgiTransport : // {{{
 	public x0::HttpMessageProcessor
+#ifndef NDEBUG
+	, public x0::Logging
+#endif
 {
 	class ParamReader : public FastCgi::CgiParamStreamReader //{{{
 	{
@@ -149,10 +144,8 @@ public:
 	x0::HttpRequest *request_;
 	FastCgi::CgiParamStreamWriter paramWriter_;
 
-#if X0_FASTCGI_DIRECT_IO
 	bool writeActive_;
 	bool finish_;
-#endif
 
 public:
 	explicit CgiTransport(CgiContext *cx);
@@ -247,12 +240,16 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	configured_(false),
 
 	request_(nullptr),
-	paramWriter_()
-#if X0_FASTCGI_DIRECT_IO
-	, writeActive_(false)
-	, finish_(false)
-#endif
+	paramWriter_(),
+	writeActive_(false),
+	finish_(false)
 {
+#ifndef NDEBUG
+	debug(true);
+	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
+	static std::atomic<int> mi(0);
+	setLoggingPrefix("CgiTransport/%d", ++mi);
+#endif
 	TRACE("CgiTransport()");
 	ev_init(&io_, &CgiTransport::io_thunk);
 	io_.data = this;
@@ -691,20 +688,11 @@ void CgiTransport::onStdErr(x0::BufferRef&& chunk)
 
 void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
 {
-#if X0_FASTCGI_DIRECT_IO
 	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d) writeActive:%d", appStatus, (int)protocolStatus, writeActive_);
 	if (writeActive_)
 		finish_ = true;
 	else
 		finish();
-#else
-	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
-	if (writeBuffer_.size() != 0) {
-		request_->write<x0::BufferSource>(writeBuffer_);
-		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
-	} else
-		finish();
-#endif
 }
 
 void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
@@ -742,23 +730,19 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 bool CgiTransport::messageContent(x0::BufferRef&& content)
 {
-#if X0_FASTCGI_DIRECT_IO
 	TRACE("CgiTransport.messageContent(len:%ld) writeActive=%d", content.size(), writeActive_);
 	if (!writeActive_)
 	{
-		writeActive_ = true;
-
-		ev_io_stop(loop_, &io_);
-
 		request_->write<x0::BufferSource>(content);
-		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
+
+		if (request_->connection.isOutputPending()) {
+			writeActive_ = true;
+			ev_io_stop(loop_, &io_);
+			request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
+		}
 	}
 	else
 		writeBuffer_.push_back(content);
-#else
-	TRACE("CgiTransport.messageContent(len:%ld)", content.size());
-	writeBuffer_.push_back(content);
-#endif
 
 	return false;
 }
@@ -767,38 +751,40 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
  */
 void CgiTransport::writeComplete()
 {
-#if X0_FASTCGI_DIRECT_IO
-	writeActive_ = false;
+	TRACE("CgiTransport.writeComplete() active: %d, bufferSize: %ld, finish: %d", writeActive_, writeBuffer_.size(), finish_);
 
-	ev_io_stop(loop_, &io_);
-	ev_io_set(&io_, fd_, EV_READ);
-	ev_io_start(loop_, &io_);
+	assert(writeActive_);
+
+	writeActive_ = false;
 
 	if (writeBuffer_.size() != 0)
 	{
-		TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld), queued:%ld",
-			err, nwritten, writeBuffer_.size());
+		TRACE("writeComplete: queued:%ld", writeBuffer_.size());
 		;//request_->connection.socket()->setMode(Socket::IDLE);
 
 		request_->write<x0::BufferSource>(std::move(writeBuffer_));
+		if (request_->connection.isOutputPending()) {
+			TRACE("writeComplete: output pending. enqueue callback");
+			writeActive_ = true;
+			request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
+		} else {
+			TRACE("writeComplete: output flushed. resume watching on app I/O");
+			ev_io_start(loop_, &io_);
+		}
 		TRACE("CgiTransport.writeComplete: (after response.write call) writeBuffer_.size: %ld", writeBuffer_.size());
-		request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
 	}
 	else if (finish_)
 	{
-		TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld), queue empty. finish triggered.", err, nwritten);
+		TRACE("CgiTransport.writeComplete(), queue empty. finish triggered.");
 		finish();
 	}
 	else
 	{
-		TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld), queue empty.", err, nwritten);
+		TRACE("CgiTransport.writeComplete(), queue empty.");
+		ev_io_start(loop_, &io_);
 		;//request_->connection.socket()->setMode(Socket::READ);
 		//request_->setClientAbortHandler(&CgiTransport::onClientAbort, this);
 	}
-#else
-	TRACE("CgiTransport.writeComplete(err=%d, nwritten=%ld) %s", err, nwritten, strerror(err));
-	finish();
-#endif
 }
 
 /**
@@ -922,14 +908,14 @@ public:
 	{
 		auto i = contexts_.find(app);
 		if (i != contexts_.end()) {
-			TRACE("acquireContext('%s') available.", app.c_str());
+			//TRACE("acquireContext('%s') available.", app.c_str());
 			return i->second;
 		}
 
 		CgiContext *cx = new CgiContext(server());
 		cx->setup(app);
 		contexts_[app] = cx;
-		TRACE("acquireContext('%s') spawned (%ld).", app.c_str(), contexts_.size());
+		//TRACE("acquireContext('%s') spawned (%ld).", app.c_str(), contexts_.size());
 		return cx;
 	}
 
