@@ -139,8 +139,8 @@ void HttpConnection::timeout(Socket *)
 {
 	TRACE("timed out");
 
-	abort();
 	ev_unloop(loop(), EVUNLOOP_ONE);
+	abort();
 }
 
 #if defined(WITH_SSL)
