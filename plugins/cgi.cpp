@@ -178,7 +178,7 @@ CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
 	outputFlags_(NoneClosed)
 {
 #ifndef NDEBUG
-	debug(true);
+	debug(false);
 	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
 	setLoggingPrefix("CgiScript(%s)", request_->path.str().c_str());
 #endif
@@ -616,7 +616,7 @@ void CgiScript::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 bool CgiScript::messageContent(x0::BufferRef&& value)
 {
-	TRACE("messageContent(length=%ld) (%s)", value.size(), value.str().c_str());
+	TRACE("messageContent(length=%ld)", value.size());
 
 	if (stdoutTransferActive_) {
 		stdoutTransferBuffer_.push_back(value);
