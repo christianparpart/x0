@@ -45,7 +45,7 @@ void StackTrace::generate(bool verbose)
 		std::size_t begin = buffer_.size();
 		buffer_.reserve(buffer_.size() + 512);
 
-		buffer_ << NativeSymbol(address, verbose);
+		buffer_ << NativeSymbol(address/*, verbose*/);
 
 		std::size_t count = buffer_.size() - begin;
 		symbols_.push_back(buffer_.ref(begin, count));

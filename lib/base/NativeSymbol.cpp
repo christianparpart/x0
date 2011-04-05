@@ -14,6 +14,23 @@
 
 namespace x0 {
 
+NativeSymbol::NativeSymbol(const void* address) :
+	symbol_()
+{
+	Dl_info info;
+	if (dladdr(address, &info))
+		symbol_ = info.dli_sname;
+	else
+		symbol_ = nullptr;
+}
+
+Buffer NativeSymbol::name() const
+{
+	Buffer buf;
+	buf << *this;
+	return buf;
+}
+
 inline auto stripLeftOf(const char *value, char ch) -> const char *
 {
 	const char *p = value;
@@ -27,10 +44,7 @@ inline auto stripLeftOf(const char *value, char ch) -> const char *
 
 Buffer& operator<<(Buffer& result, const NativeSymbol& s)
 {
-	Dl_info info;
-	if (!dladdr(s.value(), &info))
-		result.push_back("<unresolved symbol>");
-	else if (!info.dli_sname || !*info.dli_sname)
+	if (!s.native() || !*s.native())
 		result.push_back("<invalid symbol>");
 	else {
 		char *rv = 0;
@@ -39,18 +53,20 @@ Buffer& operator<<(Buffer& result, const NativeSymbol& s)
 
 		result.reserve(result.size() + len);
 
-		try { rv = abi::__cxa_demangle(info.dli_sname, result.end(), &len, &status); }
+		try { rv = abi::__cxa_demangle(s.native(), result.end(), &len, &status); }
 		catch (...) {}
 
 		if (status < 0)
-			result.push_back(info.dli_sname);
+			result.push_back(s.native());
 		else
 			result.resize(result.size() + strlen(rv));
 
+#if 0
 		if (s.verbose()) {
 			result.push_back(" in ");
 			result.push_back(stripLeftOf(info.dli_fname, '/'));
 		}
+#endif
 	}
 	return result;
 }
