@@ -7,6 +7,7 @@
  */
 
 #include <x0/StackTrace.h>
+#include <x0/NativeSymbol.h>
 #include <boost/lexical_cast.hpp>
 #include <execinfo.h>
 #include <cxxabi.h>
@@ -28,39 +29,6 @@ StackTrace::~StackTrace()
 	delete[] addresses_;
 }
 
-inline auto stripLeftOf(const char *value, char ch) -> const char *
-{
-	const char *p = value;
-
-	for (auto i = value; *i; ++i)
-		if (*i == ch)
-			p = i;
-
-	return p != value ? p + 1 : p;
-}
-
-inline auto demangleSymbol(const char *symbolName, Buffer& result) -> void
-{
-	if (!symbolName || !*symbolName)
-		result.push_back("<invalid symbol>");
-	else
-	{
-		char *rv = 0;
-		int status = 0;
-		std::size_t len = 2048;
-
-		result.reserve(result.size() + len);
-
-		try { rv = abi::__cxa_demangle(symbolName, result.end(), &len, &status); }
-		catch (...) {}
-
-		if (status < 0)
-			result.push_back(symbolName);
-		else
-			result.resize(result.size() + strlen(rv));
-	}
-}
-
 void StackTrace::generate(bool verbose)
 {
 	if (!symbols_.empty())
@@ -77,18 +45,7 @@ void StackTrace::generate(bool verbose)
 		std::size_t begin = buffer_.size();
 		buffer_.reserve(buffer_.size() + 512);
 
-		Dl_info info;
-		if (!dladdr(address, &info))
-			buffer_.push_back("<unresolved symbol>");
-		else
-		{
-			demangleSymbol(info.dli_sname, buffer_);
-			if (verbose)
-			{
-				buffer_.push_back(" in ");
-				buffer_.push_back(stripLeftOf(info.dli_fname, '/'));
-			}
-		}
+		buffer_ << NativeSymbol(address/*, verbose*/);
 
 		std::size_t count = buffer_.size() - begin;
 		symbols_.push_back(buffer_.ref(begin, count));

@@ -49,8 +49,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
-#	define TRACE(msg...) debug(msg)
+#if 10 // !defined(NDEBUG)
+#	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
@@ -179,7 +179,8 @@ CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
 {
 #ifndef NDEBUG
 	debug(true);
-	setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
+	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
+	setLoggingPrefix("CgiScript(%s)", request_->path.str().c_str());
 #endif
 	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
 
@@ -194,6 +195,11 @@ CgiScript::~CgiScript()
 {
 	TRACE("destructing");
 	if (request_) {
+		if (request_->status == x0::HttpError::Undefined) {
+			// we got killed before we could actually generate a response
+			request_->status = x0::HttpError::ServiceUnavailable;
+		}
+
 		request_->setClientAbortHandler(nullptr);
 		request_->finish();
 	}
@@ -632,14 +638,6 @@ void CgiScript::onStdoutWritten()
 
 	stdoutTransferActive_ = false;
 
-#if 0
-	if (ec) {
-		TRACE("onStdoutWritten: client error: %s", strerror(errno));
-
-		// kill cgi script as client disconnected.
-		process_.terminate();
-	} else
-#endif
 	if (stdoutTransferBuffer_.size() > 0) {
 		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
 		request_->write<x0::BufferSource>(std::move(stdoutTransferBuffer_));
@@ -666,7 +664,7 @@ void CgiScript::onClientEof(void *p)
  * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
  */
-class cgi_plugin :
+class CgiPlugin :
 	public x0::HttpPlugin
 {
 private:
@@ -677,17 +675,17 @@ private:
 	unsigned long long ttl_;
 
 public:
-	cgi_plugin(x0::HttpServer& srv, const std::string& name) :
+	CgiPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name),
 		interpreterMappings_(),
 		ttl_(0)
 	{
-		registerSetupProperty<cgi_plugin, &cgi_plugin::set_ttl>("cgi.ttl", Flow::Value::NUMBER);
-		registerSetupFunction<cgi_plugin, &cgi_plugin::set_mapping>("cgi.mapping", Flow::Value::VOID);
+		registerSetupProperty<CgiPlugin, &CgiPlugin::set_ttl>("cgi.ttl", Flow::Value::NUMBER);
+		registerSetupFunction<CgiPlugin, &CgiPlugin::set_mapping>("cgi.mapping", Flow::Value::VOID);
 
-		registerHandler<cgi_plugin, &cgi_plugin::prefix>("cgi.prefix");
-		registerHandler<cgi_plugin, &cgi_plugin::exec>("cgi.exec");
-		registerHandler<cgi_plugin, &cgi_plugin::map>("cgi.map");
+		registerHandler<CgiPlugin, &CgiPlugin::prefix>("cgi.prefix");
+		registerHandler<CgiPlugin, &CgiPlugin::exec>("cgi.exec");
+		registerHandler<CgiPlugin, &CgiPlugin::map>("cgi.map");
 	}
 
 private:
@@ -817,4 +815,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(cgi)
+X0_EXPORT_PLUGIN_CLASS(CgiPlugin)

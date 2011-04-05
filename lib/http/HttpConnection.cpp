@@ -11,6 +11,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/SocketDriver.h>
 #include <x0/StackTrace.h>
+#include <x0/NativeSymbol.h>
 #include <x0/Socket.h>
 #include <x0/Types.h>
 #include <x0/sysconfig.h>
@@ -138,9 +139,8 @@ void HttpConnection::timeout(Socket *)
 {
 	TRACE("timed out");
 
-//	ev_unloop(loop(), EVUNLOOP_ONE);
-
-	delete this;
+	abort();
+	ev_unloop(loop(), EVUNLOOP_ONE);
 }
 
 #if defined(WITH_SSL)
@@ -381,7 +381,7 @@ void HttpConnection::startRead()
 		: worker_.server_.maxReadIdle();
 
 	if (timeout)
-		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
+		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
 	socket_->setMode(Socket::Read);
@@ -408,29 +408,37 @@ void HttpConnection::processInput()
 		else
 		{
 			TRACE("processInput(): %s", strerror(errno));
-			close();
+			abort();
 		}
 	}
 	else if (rv == 0) // EOF
 	{
 		TRACE("processInput(): (EOF)");
-
-		if (abortHandler_) {
-			socket_->setMode(Socket::None);
-			abortHandler_(abortData_);
-		} else
-			close();
+		abort();
 	}
 	else
 	{
 		TRACE("processInput(): read %ld bytes", rv);
-		TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
+		//TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
 
 		process();
 
 		TRACE("processInput(): done process()ing; mode=%s, fd=%d, request=%p",
 			socket_->mode_str(), socket_->handle(), request_);
 	}
+}
+
+/** write source into the connection stream and notifies the handler on completion.
+ *
+ * \param buffer the buffer of bytes to be written into the connection.
+ * \param handler the completion handler to invoke once the buffer has been either fully written or an error occured.
+ */
+void HttpConnection::write(const SourcePtr& chunk)
+{
+	TRACE("write() chunk (%s)", NativeSymbol(typeid(*chunk.get()).name()).name().c_str());
+
+	source_.push_back(chunk);
+	processOutput();
 }
 
 /**
@@ -455,7 +463,6 @@ void HttpConnection::processOutput()
 		else if (rv == 0) // source fully written
 		{
 			TRACE("processOutput(): source fully written");
-			source_.reset();
 
 			request_->checkFinish();
 			break;
@@ -469,13 +476,22 @@ void HttpConnection::processOutput()
 		else // an error occurred
 		{
 			TRACE("processOutput(): write error (%d): %s", errno, strerror(errno));
-			source_.reset();
-
-			request_->checkFinish();
-
-			close(); // FIXME isn't that double wrt checkFinish?
+			abort();
 			break;
 		}
+	}
+}
+
+/*! triggers a connection-close respecting the abort-handler.
+ */
+void HttpConnection::abort()
+{
+	if (abortHandler_) {
+		assert(request_ != nullptr);
+		socket_->setMode(Socket::None);
+		abortHandler_(abortData_);
+	} else {
+		close();
 	}
 }
 
