@@ -34,6 +34,7 @@ private:
 public:
 	explicit CallbackSource(const Callback& cb);
 	explicit CallbackSource(Callback&& cb);
+	~CallbackSource();
 
 public:
 	virtual ssize_t sendto(Sink& sink);

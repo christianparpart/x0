@@ -10,14 +10,15 @@
 
 namespace x0 {
 
+CallbackSource::~CallbackSource()
+{
+	if (callback_) {
+		callback_();
+	}
+}
+
 ssize_t CallbackSource::sendto(Sink& sink)
 {
-	if (!callback_) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	callback_();
 	return 0;
 }
 
