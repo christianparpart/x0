@@ -98,7 +98,6 @@ public:
 
 	Mode mode() const;
 	void setMode(Mode m);
-	const char *mode_str() const;
 
 	void setTimeout(int value);
 
@@ -178,23 +177,6 @@ inline Socket::Mode Socket::mode() const
 inline bool Socket::tcpCork() const
 {
 	return tcpCork_;
-}
-
-inline const char *Socket::mode_str() const
-{
-	switch (mode_)
-	{
-		case None:
-			return "None";
-		case Read:
-			return "Read";
-		case Write:
-			return "Write";
-		case ReadWrite:
-			return "ReadWrite";
-		default:
-			return "<INVALID>";
-	}
 }
 
 inline bool Socket::isClosed() const

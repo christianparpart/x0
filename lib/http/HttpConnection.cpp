@@ -120,7 +120,7 @@ HttpConnection::~HttpConnection()
 
 void HttpConnection::io(Socket *, int revents)
 {
-	TRACE("io(mode=%s)", socket_->mode_str());
+	TRACE("io(revents=%04x)", revents);
 	active_ = true;
 
 	if (revents & Socket::Read)
@@ -179,9 +179,9 @@ void HttpConnection::start()
 		else
 			active_ = false;
 #else
-		TRACE("start: startRead.");
+		TRACE("start: watchInput.");
 		// client connected, but we do not yet know if we have data pending
-		startRead();
+		watchInput(worker_.server_.maxReadIdle());
 #endif
 	}
 }
@@ -191,7 +191,7 @@ void HttpConnection::handshakeComplete(Socket *)
 	TRACE("handshakeComplete() socketState=%s", socket_->state_str());
 
 	if (socket_->state() == Socket::Operational)
-		startRead();
+		watchInput(worker_.server_.maxReadIdle());
 	else
 	{
 		TRACE("handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
@@ -371,20 +371,27 @@ void HttpConnection::resume()
 
 	// wait for new request message, if nothing in buffer
 	if (offset_ == buffer_.size())
-		startRead();
+		watchInput(worker_.server_.maxKeepAlive());
 }
 
-void HttpConnection::startRead()
+void HttpConnection::watchInput(const TimeSpan& timeout)
 {
-	TimeSpan timeout = request_count_ && state() == MESSAGE_BEGIN
-		? worker_.server_.maxKeepAlive()
-		: worker_.server_.maxReadIdle();
-
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
 	socket_->setMode(Socket::Read);
+}
+
+void HttpConnection::watchOutput()
+{
+	TimeSpan timeout = worker_.server_.maxWriteIdle();
+
+	if (timeout)
+		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
+
+	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
+	socket_->setMode(Socket::Write);
 }
 
 /**
@@ -402,8 +409,7 @@ void HttpConnection::processInput()
 	{
 		if (errno == EAGAIN || errno == EINTR)
 		{
-			startRead();
-			ev_unloop(loop(), EVUNLOOP_ONE);
+			watchInput(worker_.server_.maxReadIdle());
 		}
 		else
 		{
@@ -423,8 +429,8 @@ void HttpConnection::processInput()
 
 		process();
 
-		TRACE("processInput(): done process()ing; mode=%s, fd=%d, request=%p",
-			socket_->mode_str(), socket_->handle(), request_);
+		TRACE("processInput(): done process()ing; fd=%d, request=%p",
+			socket_->handle(), request_);
 	}
 }
 
@@ -472,8 +478,7 @@ void HttpConnection::processOutput()
 		}
 		else if (errno == EAGAIN || errno == EINTR) // completing write would block
 		{
-			socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this); // XXX should be same
-			socket_->setMode(Socket::Write);
+			watchOutput();
 			break;
 		}
 		else // an error occurred
@@ -552,7 +557,7 @@ void HttpConnection::process()
 #endif
 
 	if (ec == HttpMessageError::Partial) {
-		startRead();
+		watchInput(worker_.server_.maxReadIdle());
 	}
 }
 

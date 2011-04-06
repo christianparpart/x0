@@ -36,6 +36,12 @@
 
 namespace x0 {
 
+inline const char * mode_str(Socket::Mode m)
+{
+	static const char *ms[] = { "None", "Read", "Write", "ReadWrite" };
+	return ms[static_cast<int>(m)];
+}
+
 Socket::Socket(struct ev_loop *loop, int fd, int af) :
 	loop_(loop),
 	fd_(fd),
@@ -101,8 +107,7 @@ bool Socket::setTcpCork(bool enable)
 
 void Socket::setMode(Mode m)
 {
-	static const char *ms[] = { "None", "Read", "Write", "ReadWrite" };
-	TRACE("setMode() %s -> %s", ms[static_cast<int>(mode_)], ms[static_cast<int>(m)]);
+	TRACE("setMode() %s -> %s", mode_str(mode_), mode_str(m));
 
 	if (m != mode_) {
 		if (m != None) {
@@ -206,7 +211,8 @@ void Socket::handshake(int /*revents*/)
 
 void Socket::io(ev::io& /*io*/, int revents)
 {
-	//TRACE("io(revents=0x%04X): mode=%d", revents, mode_);
+	TRACE("io(revents=0x%04X): mode=%s", revents, mode_str(mode_));
+
 	timer_.stop();
 
 	if (state_ == Handshake)
