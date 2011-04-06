@@ -253,10 +253,6 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 		log(Severity::error, "No HTTP listeners defined");
 		goto err;
 	}
-
-	for (auto i: listeners_)
-		if (!i->prepare())
-			goto err;
 	// }}}
 
 	sd_notify(0, "STATUS=Setup done");

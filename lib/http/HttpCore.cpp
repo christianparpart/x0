@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <pwd.h>
+#include <grp.h>
 
 namespace x0 {
 
@@ -42,6 +44,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupFunction<HttpCore, &HttpCore::log_sd>("log.systemd", Flow::Value::VOID);
 	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", Flow::Value::STRING);
+	registerSetupFunction<HttpCore, &HttpCore::user>("user", Flow::Value::BOOLEAN);
 	registerSetupProperty<HttpCore, &HttpCore::workers>("workers", Flow::Value::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", Flow::Value::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", Flow::Value::VOID); // write-only (array)
@@ -113,6 +116,55 @@ HttpCore::~HttpCore()
 }
 
 // {{{ setup
+void HttpCore::user(Flow::Value& result, const Params& args)
+{
+	std::string username(args.count() >= 1 ? args[0].toString() : "");
+	std::string groupname(args.count() == 2 ? args[1].toString() : "");
+
+	result.set(drop_privileges(username, groupname));
+}
+
+/** drops runtime privileges current process to given user's/group's name. */
+bool HttpCore::drop_privileges(const std::string& username, const std::string& groupname)
+{
+	if (!groupname.empty() && !getgid()) {
+		if (struct group *gr = getgrnam(groupname.c_str())) {
+			if (setgid(gr->gr_gid) != 0) {
+				log(Severity::error, "could not setgid to %s: %s", groupname.c_str(), strerror(errno));
+				return false;
+			}
+
+			setgroups(0, nullptr);
+
+			if (!username.empty()) {
+				initgroups(username.c_str(), gr->gr_gid);
+			}
+		} else {
+			log(Severity::error, "Could not find group: %s", groupname.c_str());
+			return false;
+		}
+	}
+
+	if (!username.empty() && !getuid()) {
+		if (struct passwd *pw = getpwnam(username.c_str())) {
+			if (setuid(pw->pw_uid) != 0) {
+				log(Severity::error, "could not setgid to %s: %s", username.c_str(), strerror(errno));
+				return false;
+			}
+			log(Severity::info, "Dropped privileges to user %s", username.c_str());
+
+			if (chdir(pw->pw_dir) < 0) {
+				log(Severity::error, "could not chdir to %s: %s", pw->pw_dir, strerror(errno));
+				return false;
+			}
+		} else {
+			log(Severity::error, "Could not find group: %s", groupname.c_str());
+			return false;
+		}
+	}
+	return true;
+}
+
 void HttpCore::mimetypes(Flow::Value& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
@@ -282,8 +334,13 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 
 	HttpListener *listener = server().setupListener(port, ip);
 
-	if (listener && backlog)
-		listener->backlog(backlog);
+	if (listener) {
+		if (backlog) {
+			listener->backlog(backlog);
+		}
+
+		listener->prepare();
+	}
 
 	result.set(listener == nullptr);
 }

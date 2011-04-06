@@ -38,6 +38,8 @@ public:
 
 private:
 	// setup properties
+	void user(Flow::Value& result, const Params& args);
+	bool drop_privileges(const std::string& username, const std::string& groupname);
 	void plugin_directory(Flow::Value& result, const Params& args);
 	void mimetypes(Flow::Value& result, const Params& args);
 	void mimetypes_default(Flow::Value& result, const Params& args);
