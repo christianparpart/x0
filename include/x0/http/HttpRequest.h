@@ -313,7 +313,7 @@ public:
 
 	OutputState outputState() const;
 
-	void write(const SourcePtr& source);
+	void write(Source* chunk);
 	bool writeCallback(const CallbackSource::Callback& cb);
 	template<class T, class... Args> void write(Args&&... args);
 
@@ -329,8 +329,8 @@ private:
 	void onRequestContent(BufferRef&& chunk);
 
 	// response write helper
-	SourcePtr serialize();
-	SourcePtr makeDefaultResponseContent();
+	Source* serialize();
+	Source* makeDefaultResponseContent();
 	void checkFinish();
 	void finalize();
 
@@ -360,23 +360,23 @@ inline void HttpRequest::log(Severity s, Args&&... args)
 
 /** write given source to response content and invoke the completion handler when done.
  *
- * \param content the content (chunk) to push to the client
+ * \param chunk the content (chunk) to push to the client
  * \param handler completion handler to invoke when source has been fully flushed or if an error occured
  *
  * \note this implicitely flushes the response-headers if not yet done, thus, making it impossible to modify them after this write.
  */
-inline void HttpRequest::write(const SourcePtr& content)
+inline void HttpRequest::write(Source* chunk)
 {
 	switch (outputState_) {
 		case Unhandled:
 			outputState_ = Populating;
-			connection.write(std::move(serialize()));
+			connection.write(serialize());
 			/* fall through */
 		case Populating:
 			if (outputFilters.empty())
-				connection.write(content);
+				connection.write(chunk);
 			else
-				connection.write<FilterSource>(content, outputFilters, false);
+				connection.write<FilterSource>(chunk, outputFilters, false);
 			break;
 		case Finished:
 			assert(0 && "BUG");
@@ -412,7 +412,7 @@ inline bool HttpRequest::writeCallback(const CallbackSource::Callback& cb)
 template<class T, class... Args>
 inline void HttpRequest::write(Args&&... args)
 {
-	write(std::make_shared<T>(std::move(args)...));
+	write(new T(std::move(args)...));
 }
 
 inline HttpRequest::OutputState HttpRequest::outputState() const

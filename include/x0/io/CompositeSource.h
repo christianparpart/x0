@@ -28,7 +28,7 @@ class X0_API CompositeSource :
 	public Source
 {
 private:
-	typedef SourcePtr value_type;
+	typedef Source* value_type;
 	typedef std::deque<value_type> list_type;
 	typedef list_type::iterator iterator;
 	typedef list_type::const_iterator const_iterator;
@@ -40,10 +40,10 @@ public:
 	CompositeSource();
 
 	bool empty() const;
-	void push_back(SourcePtr s);
+	void push_back(Source* s);
 	void reset();
 
-	SourcePtr front() const;
+	Source* front() const;
 	void pop_front();
 
 public:
@@ -63,7 +63,7 @@ inline bool CompositeSource::empty() const
 	return sources_.empty();
 }
 
-inline void CompositeSource::push_back(SourcePtr s)
+inline void CompositeSource::push_back(Source* s)
 {
 	sources_.push_back(s);
 }
@@ -73,7 +73,7 @@ inline void CompositeSource::reset()
 	sources_.clear();
 }
 
-inline SourcePtr CompositeSource::front() const
+inline Source* CompositeSource::front() const
 {
 	return sources_.front();
 }

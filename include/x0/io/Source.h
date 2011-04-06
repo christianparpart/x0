@@ -33,8 +33,6 @@ public:
 	virtual ssize_t sendto(Sink& output) = 0;
 };
 
-typedef std::shared_ptr<Source> SourcePtr;
-
 //@}
 
 } // namespace x0

@@ -167,13 +167,13 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	// run setup
 	{
 		Flow::Function* setupFn = runner_->findHandler("setup");
-	if (!setupFn) {
-		log(Severity::error, "no setup handler defined in config file.\n");
-		goto err;
-	}
+		if (!setupFn) {
+			log(Severity::error, "no setup handler defined in config file.\n");
+			goto err;
+		}
 
-	if (runner_->invoke(setupFn))
-		goto err;
+		if (runner_->invoke(setupFn))
+			goto err;
 	}
 
 	// grap the request handler

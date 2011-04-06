@@ -892,7 +892,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 	{
 		// generate a multipart/byteranged response, as we've more than one range to serve
 
-		std::shared_ptr<CompositeSource> content(new CompositeSource());
+		CompositeSource* content = new CompositeSource();
 		Buffer buf;
 		std::string boundary(generateBoundaryID());
 		std::size_t content_length = 0;
@@ -925,8 +925,8 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 			if (fd >= 0)
 			{
 				bool lastChunk = i + 1 == e;
-				content->push_back(std::make_shared<BufferSource>(std::move(buf)));
-				content->push_back(std::make_shared<FileSource>(fd, offsets.first, length, lastChunk));
+				content->push_back(new BufferSource(std::move(buf)));
+				content->push_back(new FileSource(fd, offsets.first, length, lastChunk));
 			}
 			content_length += buf.size() + length;
 		}
@@ -936,21 +936,16 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 		buf.push_back(boundary);
 		buf.push_back("--\r\n");
 
-		content->push_back(std::make_shared<BufferSource>(std::move(buf)));
+		content->push_back(new BufferSource(std::move(buf)));
 		content_length += buf.size();
 
 		in->responseHeaders.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
 		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
 
 		if (fd >= 0)
-		{
 			in->write(content);
-			in->finish();
-		}
-		else
-		{
-			in->finish();
-		}
+
+		in->finish();
 	}
 	else // generate a simple (single) partial response
 	{

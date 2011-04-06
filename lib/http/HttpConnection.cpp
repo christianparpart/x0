@@ -433,9 +433,9 @@ void HttpConnection::processInput()
  * \param buffer the buffer of bytes to be written into the connection.
  * \param handler the completion handler to invoke once the buffer has been either fully written or an error occured.
  */
-void HttpConnection::write(const SourcePtr& chunk)
+void HttpConnection::write(Source* chunk)
 {
-	TRACE("write() chunk (%s)", NativeSymbol(typeid(*chunk.get()).name()).name().c_str());
+	TRACE("write() chunk (%s)", NativeSymbol(typeid(*chunk).name()).name().c_str());
 
 	source_.push_back(chunk);
 	processOutput();
@@ -464,7 +464,10 @@ void HttpConnection::processOutput()
 		{
 			TRACE("processOutput(): source fully written");
 
-			request_->checkFinish();
+			if (request_ != nullptr) {
+				request_->checkFinish();
+			}
+
 			break;
 		}
 		else if (errno == EAGAIN || errno == EINTR) // completing write would block

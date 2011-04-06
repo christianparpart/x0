@@ -14,6 +14,11 @@
 
 namespace x0 {
 
+FilterSource::~FilterSource()
+{
+	delete source_;
+}
+
 ssize_t FilterSource::sendto(Sink& sink)
 {
 	if (buffer_.empty()) {

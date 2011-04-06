@@ -59,18 +59,18 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	std::shared_ptr<x0::Source> input(ifname == "-" 
+	x0::Source* input(ifname == "-" 
 		? new x0::FileSource("/dev/stdin")
 		: new x0::FileSource(ifname.c_str())
 	);
 
-	std::shared_ptr<x0::Sink> output(ofname == "-"
+	x0::Sink* output(ofname == "-"
 		? new x0::FileSink("/dev/stdout", O_WRONLY)
 		: new x0::FileSink(ofname, O_WRONLY | O_CREAT | O_TRUNC)
 	);
 
 	if (!cf.empty())
-		input = std::make_shared<x0::FilterSource>(input, cf, true);
+		input = new x0::FilterSource(input, cf, true);
 
 	ssize_t rv;
 	size_t nwritten = 0;

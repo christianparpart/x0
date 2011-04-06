@@ -75,7 +75,7 @@ public:
 
 	bool isSecure() const;
 
-	void write(const SourcePtr& buffer);
+	void write(Source* buffer);
 	template<class T, class... Args> void write(Args&&... args);
 
 	bool isOutputPending() const;
@@ -158,7 +158,7 @@ inline HttpWorker& HttpConnection::worker()
 template<class T, class... Args>
 inline void HttpConnection::write(Args&&... args)
 {
-	write(std::make_shared<T>(args...));
+	write(new T(args...));
 }
 
 inline const HttpListener& HttpConnection::listener() const

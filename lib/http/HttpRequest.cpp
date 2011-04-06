@@ -183,7 +183,7 @@ void HttpRequest::onRequestContent(BufferRef&& chunk)
  *
  * \note this does not serialize the message body.
  */
-SourcePtr HttpRequest::serialize()
+Source* HttpRequest::serialize()
 {
 	Buffer buffers;
 	bool keepalive = false;
@@ -260,7 +260,7 @@ SourcePtr HttpRequest::serialize()
 
 	buffers.push_back("\r\n");
 
-	return std::make_shared<BufferSource>(std::move(buffers));
+	return new BufferSource(std::move(buffers));
 }
 
 /** populates a default-response content, possibly modifying a few response headers, too.
@@ -269,10 +269,10 @@ SourcePtr HttpRequest::serialize()
  *
  * \note Modified headers are "Content-Type" and "Content-Length".
  */
-SourcePtr HttpRequest::makeDefaultResponseContent()
+Source* HttpRequest::makeDefaultResponseContent()
 {
 	if (isResponseContentForbidden())
-		return SourcePtr();
+		return nullptr;
 
 	// TODO custom error documents
 #if 0
@@ -303,7 +303,7 @@ SourcePtr HttpRequest::makeDefaultResponseContent()
 		responseHeaders.overwrite("Content-Type", "text/html");
 		responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
 
-		return std::make_shared<BufferSource>(Buffer::fromCopy(buf, nwritten));
+		return new BufferSource(Buffer::fromCopy(buf, nwritten));
 	}
 }
 
