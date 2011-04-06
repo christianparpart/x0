@@ -393,7 +393,7 @@ void HttpRequest::setClientAbortHandler(void (*cb)(void *), void *data)
 	connection.abortData_ = data;
 
 	if (cb) {
-		connection.startRead();
+		connection.watchInput();
 	}
 }
 

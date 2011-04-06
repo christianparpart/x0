@@ -14,6 +14,7 @@
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
 #include <x0/CustomDataMgr.h>
+#include <x0/TimeSpan.h>
 #include <x0/Socket.h>
 #include <x0/Buffer.h>
 #include <x0/Property.h>
@@ -98,7 +99,9 @@ private:
 	bool isClosed() const;
 
 	void handshakeComplete(Socket *);
-	void startRead();
+
+	void watchInput(const TimeSpan& timeout = TimeSpan::Zero);
+	void watchOutput();
 
 	void processInput();
 	void processOutput();

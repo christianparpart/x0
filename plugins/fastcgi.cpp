@@ -789,7 +789,6 @@ void CgiTransport::onClientAbort(void *p)
 {
 	TRACE("CgiTransport.onClientAbort()");
 	CgiTransport *self = (CgiTransport*) p;
-	self->request_ = nullptr;
 	self->finish();
 }
 
