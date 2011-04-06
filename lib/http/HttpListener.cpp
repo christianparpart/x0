@@ -205,7 +205,7 @@ err:
 
 bool HttpListener::start()
 {
-	if (fd_ == -1)
+	if (fd_ < 0)
 		if (!prepare())
 			return false;
 
