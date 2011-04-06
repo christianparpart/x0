@@ -73,7 +73,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 10 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -186,7 +186,7 @@ private:
 
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
 	virtual bool messageContent(x0::BufferRef&& content);
-	void writeComplete();
+	void onWriteComplete();
 	static void onClientAbort(void *p);
 
 	void finish();
@@ -738,7 +738,7 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 		if (request_->connection.isOutputPending()) {
 			writeActive_ = true;
 			ev_io_stop(loop_, &io_);
-			request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
+			request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
 		}
 	}
 	else
@@ -749,42 +749,35 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 
 /** \brief write-completion hook, invoked when a content chunk is written to the HTTP client.
  */
-void CgiTransport::writeComplete()
+void CgiTransport::onWriteComplete()
 {
-	TRACE("CgiTransport.writeComplete() active: %d, bufferSize: %ld, finish: %d", writeActive_, writeBuffer_.size(), finish_);
+	TRACE("CgiTransport.onWriteComplete() active: %d, bufferSize: %ld, finish: %d", writeActive_, writeBuffer_.size(), finish_);
 
 	assert(writeActive_);
 
 	writeActive_ = false;
 
-	if (writeBuffer_.size() != 0)
-	{
-		TRACE("writeComplete: queued:%ld", writeBuffer_.size());
-		;//request_->connection.socket()->setMode(Socket::IDLE);
+	if (writeBuffer_.size() != 0) {
+		TRACE("onWriteComplete: queued:%ld", writeBuffer_.size());
 
 		request_->write<x0::BufferSource>(std::move(writeBuffer_));
+
 		if (request_->connection.isOutputPending()) {
-			TRACE("writeComplete: output pending. enqueue callback");
+			TRACE("onWriteComplete: output pending. enqueue callback");
 			writeActive_ = true;
-			request_->writeCallback(std::bind(&CgiTransport::writeComplete, this));
-		} else {
-			TRACE("writeComplete: output flushed. resume watching on app I/O");
-			ev_io_start(loop_, &io_);
+			request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
+			return;
 		}
-		TRACE("CgiTransport.writeComplete: (after response.write call) writeBuffer_.size: %ld", writeBuffer_.size());
 	}
-	else if (finish_)
-	{
-		TRACE("CgiTransport.writeComplete(), queue empty. finish triggered.");
+
+	if (finish_) {
+		TRACE("onWriteComplete: queue empty & finish triggered.");
 		finish();
+		return;
 	}
-	else
-	{
-		TRACE("CgiTransport.writeComplete(), queue empty.");
-		ev_io_start(loop_, &io_);
-		;//request_->connection.socket()->setMode(Socket::READ);
-		//request_->setClientAbortHandler(&CgiTransport::onClientAbort, this);
-	}
+
+	TRACE("onWriteComplete: output flushed. resume watching on app I/O");
+	ev_io_start(loop_, &io_);
 }
 
 /**
