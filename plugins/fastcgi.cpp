@@ -73,7 +73,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -169,13 +169,7 @@ public:
 	CgiContext& context() const { return *context_; }
 
 public:
-	template<typename T, typename... Args> void write(Args&&... args)
-	{
-		T *record = new T(args...);
-		write(record);
-		delete record;
-	}
-
+	template<typename T, typename... Args> void write(Args&&... args);
 	void write(FastCgi::Type type, int requestId, x0::Buffer&& content);
 	void write(FastCgi::Type type, int requestId, const char *buf, size_t len);
 	void write(FastCgi::Record *record);
@@ -361,6 +355,13 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id)
 	flush();
 }
 
+template<typename T, typename... Args>
+inline void CgiTransport::write(Args&&... args)
+{
+	T record(args...);
+	write(&record);
+}
+
 inline void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& content)
 {
 	write(type, requestId, content.data(), content.size());
@@ -368,25 +369,31 @@ inline void CgiTransport::write(FastCgi::Type type, int requestId, x0::Buffer&& 
 
 void CgiTransport::write(FastCgi::Type type, int requestId, const char *buf, size_t len)
 {
+	const size_t chunkSizeCap = 0xFFFF;
+	static const char padding[8] = { 0 };
+
 	if (len == 0) {
 		FastCgi::Record record(type, requestId, 0, 0);
-		TRACE("CgiTransport.write(type=%s, rid=%d, size=%ld)", record.type_str(), requestId, len);
+		TRACE("CgiTransport.write(type=%s, rid=%d, size=0)", record.type_str(), requestId);
 		writeBuffer_.push_back(record.data(), sizeof(record));
 		return;
 	}
 
-	const size_t chunkSize = 0xFFFF;
+	for (size_t offset = 0; offset < len; ) {
+		size_t clen = std::min(offset + chunkSizeCap, len) - offset;
+		size_t plen = clen % sizeof(padding)
+					? sizeof(padding) - clen % sizeof(padding)
+					: 0;
 
-	for (size_t offset = 0; offset < len; offset += chunkSize) {
-		size_t clen = std::min(offset + chunkSize, len) - offset;
-
-		FastCgi::Record record(type, requestId, clen, 0);
+		FastCgi::Record record(type, requestId, clen, plen);
 		writeBuffer_.push_back(record.data(), sizeof(record));
 		writeBuffer_.push_back(buf + offset, clen);
-		//x0::Buffer::dump(buf + offset, clen, "CHUNK");
+		writeBuffer_.push_back(padding, plen);
 
-		TRACE("CgiTransport.write(type=%s, rid=%d, offset=%ld, size=%ld)",
-				record.type_str(), requestId, offset, clen);
+		TRACE("CgiTransport.write(type=%s, rid=%d, offset=%ld, size=%ld, plen=%ld)",
+				record.type_str(), requestId, offset, clen, plen);
+
+		offset += clen;
 	}
 }
 
@@ -512,9 +519,6 @@ void CgiTransport::io(int revents)
 			const FastCgi::Record *record =
 				reinterpret_cast<const FastCgi::Record *>(readBuffer_.data() + readOffset_);
 
-			TRACE("io: record:");
-			x0::Buffer::dump(record, sizeof(*record), "record.raw");
-
 			// payload fully available?
 			if (readBuffer_.size() - readOffset_ < record->size())
 				break;
@@ -573,10 +577,6 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 			configured_ = true; // should be set *only* at EOS of GetValuesResult? we currently guess, that there'll be only *one* packet
 			break;
 		case FastCgi::Type::StdOut:
-#if 1
-			x0::Buffer::dump(record, sizeof(record), "packet header");
-			x0::Buffer::dump(record->content(), std::min(record->contentLength() + record->paddingLength(), 512), "packet payload");
-#endif
 			onStdOut(readBuffer_.ref(record->content() - readBuffer_.data(), record->contentLength()));
 			break;
 		case FastCgi::Type::StdErr:
