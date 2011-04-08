@@ -77,7 +77,7 @@ public:
 	const char *content() const { return reinterpret_cast<const char *>(this) + sizeof(*this); }
 
 	const char *data() const { return reinterpret_cast<const char *>(this); }
-	uint16_t size() const { return sizeof(Record) + contentLength() + paddingLength(); }
+	uint32_t size() const { return sizeof(Record) + contentLength() + paddingLength(); }
 
 	bool isManagement() const { return requestId() == 0; }
 	bool isApplication() const { return requestId() != 0; }
