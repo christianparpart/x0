@@ -73,7 +73,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 1 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("fastcgi: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -480,11 +480,12 @@ void CgiTransport::io(int revents)
 		{
 			size_t remaining = readBuffer_.capacity() - readBuffer_.size();
 			if (remaining < 1024) {
-				readBuffer_.reserve(readBuffer_.capacity() + 4096);
+				readBuffer_.reserve(readBuffer_.capacity() + 4*4096);
 				remaining = readBuffer_.capacity() - readBuffer_.size();
 			}
 
 			ssize_t rv = ::read(fd_, const_cast<char *>(readBuffer_.data() + readBuffer_.size()), remaining);
+			TRACE("read(@%ld, %ld) = %ld", readBuffer_.size(), remaining, rv);
 
 			if (rv == 0) {
 				TRACE("fastcgi: connection to backend lost.");
@@ -510,6 +511,9 @@ void CgiTransport::io(int revents)
 		{
 			const FastCgi::Record *record =
 				reinterpret_cast<const FastCgi::Record *>(readBuffer_.data() + readOffset_);
+
+			TRACE("io: record:");
+			x0::Buffer::dump(record, sizeof(*record), "record.raw");
 
 			// payload fully available?
 			if (readBuffer_.size() - readOffset_ < record->size())
@@ -569,6 +573,10 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 			configured_ = true; // should be set *only* at EOS of GetValuesResult? we currently guess, that there'll be only *one* packet
 			break;
 		case FastCgi::Type::StdOut:
+#if 1
+			x0::Buffer::dump(record, sizeof(record), "packet header");
+			x0::Buffer::dump(record->content(), std::min(record->contentLength() + record->paddingLength(), 512), "packet payload");
+#endif
 			onStdOut(readBuffer_.ref(record->content() - readBuffer_.data(), record->contentLength()));
 			break;
 		case FastCgi::Type::StdErr:
@@ -586,6 +594,10 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 			context().server().log(x0::Severity::error,
 				"fastcgi: unknown transport record received from backend %s:%d. type:%d, payload-size:%ld",
 				hostname_.c_str(), port_, record->type(), record->contentLength());
+#if 1
+			x0::Buffer::dump(record, sizeof(record), "packet header");
+			x0::Buffer::dump(record->content(), std::min(record->contentLength() + record->paddingLength(), 512), "packet payload");
+#endif
 			break;
 	}
 	return proceedHint;
