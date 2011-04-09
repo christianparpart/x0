@@ -42,4 +42,9 @@ ssize_t FilterSource::sendto(Sink& sink)
 	return result;
 }
 
+const char* FilterSource::className() const
+{
+	return "FilterSource";
+}
+
 } // namespace x0

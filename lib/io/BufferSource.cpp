@@ -19,4 +19,9 @@ ssize_t BufferSource::sendto(Sink& sink)
 	return result;
 }
 
+const char* BufferSource::className() const
+{
+	return "BufferSource";
+}
+
 } // namespace x0

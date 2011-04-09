@@ -39,6 +39,8 @@ public:
 
 	virtual ssize_t sendto(Sink& sink);
 
+	virtual const char* className() const;
+
 private:
 	Buffer buffer_;
 	std::size_t pos_;

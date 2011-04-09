@@ -34,6 +34,7 @@ public:
 	~FilterSource();
 
 	virtual ssize_t sendto(Sink& sink);
+	virtual const char* className() const;
 
 protected:
 	Buffer buffer_;

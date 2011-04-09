@@ -40,6 +40,7 @@ public:
 	inline int handle() const { return handle_; }
 
 	virtual ssize_t sendto(Sink& output);
+	virtual const char* className() const;
 
 protected:
 	virtual void visit(BufferSink&);

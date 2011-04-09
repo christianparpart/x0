@@ -31,4 +31,9 @@ ssize_t CompositeSource::sendto(Sink& sink)
 	return result;
 }
 
+const char* CompositeSource::className() const
+{
+	return "CompositeSource";
+}
+
 } // namespace x0

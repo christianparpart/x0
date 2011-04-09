@@ -38,6 +38,7 @@ public:
 
 public:
 	virtual ssize_t sendto(Sink& sink);
+	virtual const char* className() const;
 };
 //@}
 

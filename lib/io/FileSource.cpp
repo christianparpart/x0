@@ -103,4 +103,9 @@ void FileSource::visit(SocketSink& v)
 	}
 }
 
+const char* FileSource::className() const
+{
+	return "FileSource";
+}
+
 } // namespace x0

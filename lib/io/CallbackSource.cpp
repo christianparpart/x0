@@ -22,4 +22,9 @@ ssize_t CallbackSource::sendto(Sink& sink)
 	return 0;
 }
 
+const char* CallbackSource::className() const
+{
+	return "CallbackSource";
+}
+
 } // namespace x0
