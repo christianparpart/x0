@@ -877,7 +877,6 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 				break;
 			case HEADER_VALUE_END:
 				TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
-				printf("header: name='%s', value='%s'\n", name_.str().c_str(), value_.str().c_str());
 
 				if (iequals(name_, "Content-Length")) {
 					contentLength_ = value_.as<int>();
