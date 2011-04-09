@@ -147,8 +147,12 @@ private:
 
 		x0::HttpListener *listener = server().setupListener(port, ip);
 
-		if (listener && backlog)
-			listener->backlog(backlog);
+		if (listener) {
+			if (backlog)
+				listener->backlog(backlog);
+
+			listener->prepare();
+		}
 
 		SslDriver *driver = new SslDriver(this);
 		listener->setSocketDriver(driver);

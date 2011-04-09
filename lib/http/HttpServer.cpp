@@ -527,6 +527,17 @@ HttpListener *HttpServer::setupListener(int port, const std::string& bind_addres
 	return lp;
 }
 
+void HttpServer::destroyListener(HttpListener *listener)
+{
+	for (auto i = listeners_.begin(), e = listeners_.end(); i != e; ++i) {
+		if (*i == listener) {
+			listeners_.erase(i);
+			delete listener;
+			break;
+		}
+	}
+}
+
 typedef HttpPlugin *(*plugin_create_t)(HttpServer&, const std::string&);
 
 std::string HttpServer::pluginDirectory() const

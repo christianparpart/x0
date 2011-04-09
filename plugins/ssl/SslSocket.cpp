@@ -22,6 +22,13 @@
 #	define TRACE(msg...)
 #endif
 
+#define GNUTLS_CHECK(call) { \
+	int rv = (call); \
+	if (rv != GNUTLS_E_SUCCESS) { \
+		TRACE("error running: %s = %d %s", #call, rv, gnutls_strerror(rv)); \
+	} \
+}
+
 SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	x0::Socket(loop, fd, af),
 #ifndef NDEBUG
@@ -38,8 +45,8 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	setSecure(true);
 	setState(Handshake);
 
-	gnutls_init(&session_, GNUTLS_SERVER);
-	gnutls_protocol_set_priority(session_, protocolPriorities_);
+	GNUTLS_CHECK( gnutls_init(&session_, GNUTLS_SERVER) );
+	GNUTLS_CHECK( gnutls_protocol_set_priority(session_, protocolPriorities_) );
 
 	gnutls_handshake_set_post_client_hello_function(session_, &SslSocket::onClientHello);
 
@@ -49,7 +56,7 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	gnutls_session_enable_compatibility_mode(session_);
 
 	gnutls_session_set_ptr(session_, this);
-	gnutls_transport_set_ptr(session_, (gnutls_transport_ptr_t)(handle()));
+	gnutls_transport_set_ptr(session_, reinterpret_cast<gnutls_transport_ptr_t>(handle()));
 
 	driver_->cache(this);
 }
@@ -100,9 +107,9 @@ int SslSocket::onClientHello(gnutls_session_t session)
 	return 0;
 }
 
-void SslSocket::handshake()
+void SslSocket::handshake(int revents)
 {
-	TRACE("handshake()");
+	TRACE("handshake(0x%04x)", revents);
 	int rv = gnutls_handshake(session_);
 
 	if (rv == GNUTLS_E_SUCCESS) {
@@ -153,7 +160,31 @@ ssize_t SslSocket::read(x0::Buffer& result)
 
 ssize_t SslSocket::write(const void *buffer, size_t size)
 {
-	return gnutls_write(session_, buffer, size);
+	if (!size) {
+		TRACE("SslSocket.write(empty buffer)");
+		return 0;
+	}
+
+	ssize_t rv = gnutls_write(session_, buffer, size);
+	TRACE("SslSocket.write(%ld bytes) = %ld", size, rv);
+	if (rv >= 0)
+		return rv;
+
+	switch (rv) {
+		case GNUTLS_E_AGAIN:
+			errno = EAGAIN;
+			break;
+		case GNUTLS_E_INTERRUPTED:
+			errno = EINTR;
+			break;
+		default:
+			TRACE("gnutls_write error: %s", gnutls_strerror(rv));
+			errno = EINVAL;
+			setState(Failure);
+			break;
+	}
+
+	return -1;
 }
 
 ssize_t SslSocket::write(int fd, off_t *offset, size_t nbytes)
@@ -161,9 +192,8 @@ ssize_t SslSocket::write(int fd, off_t *offset, size_t nbytes)
 	char buf[4096];
 	ssize_t rv = pread(fd, buf, std::min(sizeof(buf), nbytes), *offset);
 
-	if (rv > 0)
-	{
-		rv = gnutls_write(session_, buf, rv);
+	if (rv > 0) {
+		rv = write(buf, rv);
 
 		if (rv > 0)
 			*offset += rv;
