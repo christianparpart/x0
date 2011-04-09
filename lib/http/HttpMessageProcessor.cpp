@@ -261,6 +261,7 @@ const char *HttpMessageProcessor::state_str() const
 		case HttpMessageProcessor::HEADER_COLON: return "header-colon";
 		case HttpMessageProcessor::HEADER_VALUE_BEGIN: return "header-value-begin";
 		case HttpMessageProcessor::HEADER_VALUE: return "header-value";
+		case HttpMessageProcessor::HEADER_VALUE_LF: return "header-value-lf";
 		case HttpMessageProcessor::HEADER_VALUE_END: return "header-value-end";
 		case HttpMessageProcessor::HEADER_END_LF: return "header-end-lf";
 
@@ -771,6 +772,12 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 					state_ = LWS_LF;
 					++offset;
 					++i;
+#if defined(X0_HTTP_SUPPORT_SHORT_LF)
+				} else if (*i == LF) {
+					state_ = LWS_SP_HT_BEGIN;
+					++offset;
+					++i;
+#endif
 				} else if (*i == SP || *i == HT) {
 					state_ = LWS_SP_HT;
 					++offset;
@@ -809,17 +816,32 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 
 					++offset;
 					++i;
-				} else if (std::isprint(*i))
+				} else
 					state_ = lwsNext_;
-				else
-					state_ = SYNTAX_ERROR;
 				break;
 			case HEADER_VALUE_BEGIN:
-				value_ = chunk.ref(offset, 1);
-				++offset;
-				++i;
-				state_ = HEADER_VALUE;
-				/* fall through */
+				if (isText(*i)) {
+					value_ = chunk.ref(offset, 1);
+					++offset;
+					++i;
+					state_ = HEADER_VALUE;
+					/* fall through */
+				} else if (*i == CR) {
+					state_ = HEADER_VALUE_LF;
+					++offset;
+					++i;
+					break;
+#if defined(X0_HTTP_SUPPORT_SHORT_LF)
+				} else if (*i == LF) {
+					state_ = HEADER_VALUE_END;
+					++offset;
+					++i;
+					break;
+#endif
+				} else {
+					state_ = SYNTAX_ERROR;
+					break;
+				}
 			case HEADER_VALUE:
 				if (*i == CR) {
 					state_ = LWS_LF;
@@ -837,15 +859,25 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 					++i;
 				}
 #endif
-				else if (std::isprint(*i)) {
+				else if (isText(*i)) {
 					value_.shr();
 					++offset;
 					++i;
 				} else
 					state_ = SYNTAX_ERROR;
 				break;
+			case HEADER_VALUE_LF:
+				if (*i == LF) {
+					state_ = HEADER_VALUE_END;
+					++offset;
+					++i;
+				} else {
+					state_ = SYNTAX_ERROR;
+				}
+				break;
 			case HEADER_VALUE_END:
 				TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
+				printf("header: name='%s', value='%s'\n", name_.str().c_str(), value_.str().c_str());
 
 				if (iequals(name_, "Content-Length")) {
 					contentLength_ = value_.as<int>();
