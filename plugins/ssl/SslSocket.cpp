@@ -153,7 +153,31 @@ ssize_t SslSocket::read(x0::Buffer& result)
 
 ssize_t SslSocket::write(const void *buffer, size_t size)
 {
-	return gnutls_write(session_, buffer, size);
+	if (!size) {
+		TRACE("SslSocket.write(empty buffer)");
+		return 0;
+	}
+
+	ssize_t rv = gnutls_write(session_, buffer, size);
+	TRACE("SslSocket.write(%ld bytes) = %ld", size, rv);
+	if (rv >= 0)
+		return rv;
+
+	switch (rv) {
+		case GNUTLS_E_AGAIN:
+			errno = EAGAIN;
+			break;
+		case GNUTLS_E_INTERRUPTED:
+			errno = EINTR;
+			break;
+		default:
+			TRACE("gnutls_write error: %s", gnutls_strerror(rv));
+			errno = EINVAL;
+			setState(Failure);
+			break;
+	}
+
+	return -1;
 }
 
 ssize_t SslSocket::write(int fd, off_t *offset, size_t nbytes)
@@ -161,9 +185,8 @@ ssize_t SslSocket::write(int fd, off_t *offset, size_t nbytes)
 	char buf[4096];
 	ssize_t rv = pread(fd, buf, std::min(sizeof(buf), nbytes), *offset);
 
-	if (rv > 0)
-	{
-		rv = gnutls_write(session_, buf, rv);
+	if (rv > 0) {
+		rv = write(buf, rv);
 
 		if (rv > 0)
 			*offset += rv;
