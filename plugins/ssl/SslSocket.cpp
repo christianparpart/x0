@@ -22,6 +22,13 @@
 #	define TRACE(msg...)
 #endif
 
+#define GNUTLS_CHECK(call) { \
+	int rv = (call); \
+	if (rv != GNUTLS_E_SUCCESS) { \
+		TRACE("error running: %s = %d %s", #call, rv, gnutls_strerror(rv)); \
+	} \
+}
+
 SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	x0::Socket(loop, fd, af),
 #ifndef NDEBUG
@@ -38,8 +45,8 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	setSecure(true);
 	setState(Handshake);
 
-	gnutls_init(&session_, GNUTLS_SERVER);
-	gnutls_protocol_set_priority(session_, protocolPriorities_);
+	GNUTLS_CHECK( gnutls_init(&session_, GNUTLS_SERVER) );
+	GNUTLS_CHECK( gnutls_protocol_set_priority(session_, protocolPriorities_) );
 
 	gnutls_handshake_set_post_client_hello_function(session_, &SslSocket::onClientHello);
 
