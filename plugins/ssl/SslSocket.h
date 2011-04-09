@@ -51,7 +51,7 @@ public:
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 
 protected:
-	virtual void handshake();
+	virtual void handshake(int revents);
 };
 
 // {{{ inlines

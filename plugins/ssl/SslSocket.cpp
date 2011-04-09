@@ -100,9 +100,9 @@ int SslSocket::onClientHello(gnutls_session_t session)
 	return 0;
 }
 
-void SslSocket::handshake()
+void SslSocket::handshake(int revents)
 {
-	TRACE("handshake()");
+	TRACE("handshake(0x%04x)", revents);
 	int rv = gnutls_handshake(session_);
 
 	if (rv == GNUTLS_E_SUCCESS) {
