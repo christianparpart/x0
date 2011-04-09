@@ -120,6 +120,7 @@ public:
 	void logLevel(Severity value);
 
 	HttpListener *setupListener(int port, const std::string& bindAddress);
+	void destroyListener(HttpListener *listener);
 
 	std::string pluginDirectory() const;
 	void setPluginDirectory(const std::string& value);
