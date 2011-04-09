@@ -49,7 +49,7 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	gnutls_session_enable_compatibility_mode(session_);
 
 	gnutls_session_set_ptr(session_, this);
-	gnutls_transport_set_ptr(session_, (gnutls_transport_ptr_t)(handle()));
+	gnutls_transport_set_ptr(session_, reinterpret_cast<gnutls_transport_ptr_t>(handle()));
 
 	driver_->cache(this);
 }
