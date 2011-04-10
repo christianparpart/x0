@@ -127,10 +127,7 @@ void HttpConnection::io(Socket *, int revents)
 	if (revents & Socket::Write)
 		processOutput();
 
-	if (isClosed())
-		delete this;
-	else
-		active_ = false;
+	active_ = false;
 }
 
 void HttpConnection::timeout(Socket *)
