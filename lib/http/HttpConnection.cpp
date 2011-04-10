@@ -464,8 +464,10 @@ void HttpConnection::processOutput()
 		// TODO make use of source_->eof()
 
 		if (rv > 0) {
-			// source (partially?) written
-			request_->bytesTransmitted_ += rv;
+			// source chunk written
+			if (request_) {
+				request_->bytesTransmitted_ += rv;
+			}
 		} else if (rv == 0) {
 			// source fully written
 			TRACE("processOutput(): source fully written");
