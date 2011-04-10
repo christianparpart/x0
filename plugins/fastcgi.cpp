@@ -209,7 +209,7 @@ public:
 	x0::HttpServer& server() const { return server_; }
 	void setup(const std::string& application);
 
-	bool handleRequest(x0::HttpRequest *in);
+	void handleRequest(x0::HttpRequest *in);
 
 	void release(CgiTransport *transport);
 };
@@ -853,7 +853,7 @@ void CgiContext::setup(const std::string& application)
 	TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
 }
 
-bool CgiContext::handleRequest(x0::HttpRequest *in)
+void CgiContext::handleRequest(x0::HttpRequest *in)
 {
 	TRACE("CgiContext.handleRequest()");
 
@@ -862,14 +862,13 @@ bool CgiContext::handleRequest(x0::HttpRequest *in)
 	if (!transport->open(host_.c_str(), port_)) {
 		in->status = x0::HttpError::ServiceUnavailable;
 		in->finish();
-		return false;
+		return;
 	}
 
 	if (++nextID_ == 0)
 		++nextID_;
 
 	transport->bind(in, nextID_);
-	return true;
 }
 
 /**
@@ -907,7 +906,8 @@ public:
 		if (!cx)
 			return false;
 
-		return cx->handleRequest(in);
+		cx->handleRequest(in);
+		return true;
 	}
 
 	CgiContext *acquireContext(const std::string& app)
