@@ -133,11 +133,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 		//DEBUG("HttpWorker/%d client connected; fd:%d", id_, client.first);
 
 		HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
-
-		if (conn->isClosed())
-			delete conn;
-		else
-			conn->start();
+		conn->start();
 
 		pthread_spin_lock(&queueLock_);
 	}

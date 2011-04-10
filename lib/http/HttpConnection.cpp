@@ -152,18 +152,24 @@ bool HttpConnection::isSecure() const
  *
  * This is done by simply registering the underlying socket to the the I/O service
  * to watch for available input.
+ *
+ * \note This method must be invoked right after the object construction.
+ *
  * \see stop()
- * :
  */
 void HttpConnection::start()
 {
-	if (socket_->state() == Socket::Handshake)
-	{
+	if (isClosed()) {
+		// The connection got directly closed upon connection instance creation (e.g. within the onConnectionOpen-callback),
+		// so delete the object right away.
+		delete this;
+		return;
+	}
+
+	if (socket_->state() == Socket::Handshake) {
 		TRACE("start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
-	}
-	else
-	{
+	} else {
 #if defined(TCP_DEFER_ACCEPT)
 		TRACE("start: processing input");
 		// it is ensured, that we have data pending, so directly start reading
@@ -461,7 +467,10 @@ void HttpConnection::processOutput()
 		ssize_t rv = source_.sendto(sink_);
 
 		TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
-		// TODO make use of source_->eof()
+
+		// we may not actually have created a request object here because the request-line
+		// hasn't yet been parsed *BUT* we're already about send the response (e.g. 400 Bad Request),
+		// so we need to first test for its existence before we access it.
 
 		if (rv > 0) {
 			// source chunk written
@@ -470,15 +479,12 @@ void HttpConnection::processOutput()
 			}
 		} else if (rv == 0) {
 			// source fully written
-			TRACE("processOutput(): source fully written");
-
-			if (request_ != nullptr) {
+			if (request_) {
 				request_->checkFinish();
 			}
-
 			break;
 		} else if (errno == EAGAIN || errno == EINTR) {
-			// completing write would block
+			// complete write would block, so watch write-ready-event and be called back
 			watchOutput();
 			break;
 		} else {
