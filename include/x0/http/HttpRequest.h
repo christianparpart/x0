@@ -276,6 +276,7 @@ public:
 	int httpVersionMinor;						///< HTTP protocol version minor part that this request was formed in
 	BufferRef hostname;							///< Host header field.
 	std::vector<HttpRequestHeader> requestHeaders; ///< request headers
+	uint64_t bytesTransmitted_;
 
 	/** retrieve value of a given request header */
 	BufferRef requestHeader(const std::string& name) const;
@@ -312,6 +313,7 @@ public:
 	bool isResponseContentForbidden() const;
 
 	OutputState outputState() const;
+	uint64_t bytesTransmitted() const;
 
 	void write(Source* chunk);
 	bool writeCallback(const CallbackSource::Callback& cb);
@@ -418,6 +420,11 @@ inline void HttpRequest::write(Args&&... args)
 inline HttpRequest::OutputState HttpRequest::outputState() const
 {
 	return outputState_;
+}
+
+inline uint64_t HttpRequest::bytesTransmitted() const
+{
+	return bytesTransmitted_;
 }
 
 /** checks wether given code MUST NOT have a response body. */

@@ -60,8 +60,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	abortHandler_(nullptr),
 	abortData_(nullptr),
 	source_(),
-	sink_(nullptr),
-	bytesTransferred_(0)
+	sink_(nullptr)
 #if !defined(NDEBUG)
 	, ctime_(ev_now(loop()))
 #endif
@@ -457,7 +456,7 @@ void HttpConnection::processOutput()
 
 		if (rv > 0) {
 			// source (partially?) written
-			bytesTransferred_ += rv;
+			request_->bytesTransmitted_ += rv;
 		} else if (rv == 0) {
 			// source fully written
 			TRACE("processOutput(): source fully written");
@@ -494,7 +493,6 @@ void HttpConnection::abort()
 		socket_->setMode(Socket::None);
 		abortHandler_(abortData_);
 	}
-
 	close();
 }
 

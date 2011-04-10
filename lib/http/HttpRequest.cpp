@@ -40,6 +40,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	httpVersionMajor(0),
 	httpVersionMinor(0),
 	requestHeaders(),
+	bytesTransmitted_(0),
 	username(),
 	documentRoot(),
 	expectingContinue(false),

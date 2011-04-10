@@ -112,8 +112,6 @@ private:
 
 	struct ::ev_loop *loop() const;
 
-	unsigned long long bytesTransferred() const;
-
 	void abort();
 	void checkFinish();
 
@@ -137,7 +135,6 @@ private:
 
 	CompositeSource source_;
 	SocketSink sink_;
-	unsigned long long bytesTransferred_;
 
 #if !defined(NDEBUG)
 	ev::tstamp ctime_;
@@ -176,13 +173,6 @@ inline const HttpListener& HttpConnection::listener() const
 inline bool HttpConnection::isClosed() const
 {
 	return !socket_ || socket_->isClosed();
-}
-
-/** retrieves the number of transmitted bytes. */
-inline unsigned long long HttpConnection::bytesTransferred() const
-{
-	//! \todo rename this to bytesTransmitted, and introduce bytesReceived property, so, that bytesTransferred is the sum of both.
-	return bytesTransferred_;
 }
 
 /*! tests whether or not this connection has pending data to sent to the client.
