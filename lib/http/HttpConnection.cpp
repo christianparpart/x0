@@ -88,8 +88,12 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
  */
 HttpConnection::~HttpConnection()
 {
-	delete request_;
-	request_ = nullptr;
+	if (request_) {
+		delete request_;
+#if !defined(NDEBUG)
+		request_ = nullptr;
+#endif
+	}
 
 	clearCustomData();
 
@@ -107,7 +111,7 @@ HttpConnection::~HttpConnection()
 	if (socket_) {
 		delete socket_;
 #if !defined(NDEBUG)
-		socket_ = 0;
+		socket_ = nullptr;
 #endif
 	}
 }
@@ -370,6 +374,10 @@ void HttpConnection::resume()
 	delete request_;
 	request_ = nullptr;
 
+	// reset abort-callback data
+	abortHandler_ = nullptr;
+	abortData_ = nullptr;
+
 	// wait for new request message, if nothing in buffer
 	if (offset_ == buffer_.size())
 		watchInput(worker_.server_.maxKeepAlive());
@@ -434,10 +442,14 @@ void HttpConnection::processInput()
  */
 void HttpConnection::write(Source* chunk)
 {
-	TRACE("write() chunk (%s)", chunk->className());
-
-	source_.push_back(chunk);
-	processOutput();
+	if (!isAborted()) {
+		TRACE("write() chunk (%s)", chunk->className());
+		source_.push_back(chunk);
+		processOutput();
+	} else {
+		TRACE("write() ignore chunk (%s) - (connection aborted)", chunk->className());
+		delete chunk;
+	}
 }
 
 /**
@@ -488,12 +500,15 @@ void HttpConnection::abort()
 {
 	TRACE("abort()");
 
+	assert(isOpen() && "The connection may be only aborted once.");
+
+	socket_->close();
+
 	if (abortHandler_) {
 		assert(request_ != nullptr);
 		socket_->setMode(Socket::None);
 		abortHandler_(abortData_);
 	}
-	close();
 }
 
 /** Closes this HttpConnection, possibly deleting this object (or propagating delayed delete).
@@ -503,7 +518,7 @@ void HttpConnection::close()
 	TRACE("close()");
 	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
-	socket_->close();
+	socket_->close(); // XXX might be already closed (due to read/write-errors)
 
 	if (request_) {
 		// log request/response

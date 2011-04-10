@@ -96,7 +96,9 @@ private:
 	void start();
 	void resume();
 
+	bool isOpen() const;
 	bool isClosed() const;
+	bool isAborted() const;
 
 	void handshakeComplete(Socket *);
 
@@ -160,7 +162,9 @@ inline HttpWorker& HttpConnection::worker()
 template<class T, class... Args>
 inline void HttpConnection::write(Args&&... args)
 {
-	write(new T(args...));
+	if (!isAborted()) {
+		write(new T(args...));
+	}
 }
 
 inline const HttpListener& HttpConnection::listener() const
@@ -168,9 +172,19 @@ inline const HttpListener& HttpConnection::listener() const
 	return listener_;
 }
 
+inline bool HttpConnection::isOpen() const
+{
+	return socket_ && socket_->isOpen();
+}
+
 /** tests whether HttpConnection::close() was invoked already.
  */
 inline bool HttpConnection::isClosed() const
+{
+	return !socket_ || socket_->isClosed();
+}
+
+inline bool HttpConnection::isAborted() const
 {
 	return !socket_ || socket_->isClosed();
 }

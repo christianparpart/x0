@@ -276,7 +276,7 @@ public:
 	int httpVersionMinor;						///< HTTP protocol version minor part that this request was formed in
 	BufferRef hostname;							///< Host header field.
 	std::vector<HttpRequestHeader> requestHeaders; ///< request headers
-	uint64_t bytesTransmitted_;
+	unsigned long long bytesTransmitted_;
 
 	/** retrieve value of a given request header */
 	BufferRef requestHeader(const std::string& name) const;
@@ -312,14 +312,16 @@ public:
 	ChainFilter outputFilters;  //!< response content filters
 	bool isResponseContentForbidden() const;
 
+	bool isAborted() const;
+
 	OutputState outputState() const;
-	uint64_t bytesTransmitted() const;
+	unsigned long long bytesTransmitted() const;
 
 	void write(Source* chunk);
 	bool writeCallback(const CallbackSource::Callback& cb);
 	template<class T, class... Args> void write(Args&&... args);
 
-	void setClientAbortHandler(void (*callback)(void *), void *data = NULL);
+	void setAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
 
 	static std::string statusStr(HttpError status);
@@ -369,6 +371,11 @@ inline void HttpRequest::log(Severity s, Args&&... args)
  */
 inline void HttpRequest::write(Source* chunk)
 {
+	if (connection.isAborted()) {
+		delete chunk;
+		return;
+	}
+
 	switch (outputState_) {
 		case Unhandled:
 			outputState_ = Populating;
@@ -396,10 +403,15 @@ inline void HttpRequest::write(Source* chunk)
  * sent to the client).
  *
  * \retval true The callback will be invoked later (callback appended to output queue).
- * \retval false The output queue is empty (everything sent out so far) and the callback was invoked directly.
+ * \retval false The output queue is empty (everything sent out so far *OR* the connection is aborted) and the callback was invoked directly.
  */
 inline bool HttpRequest::writeCallback(const CallbackSource::Callback& cb)
 {
+	if (connection.isAborted()) {
+		cb();
+		return false;
+	}
+
 	assert(outputState_ == Populating);
 
 	if (connection.isOutputPending()) {
@@ -414,7 +426,9 @@ inline bool HttpRequest::writeCallback(const CallbackSource::Callback& cb)
 template<class T, class... Args>
 inline void HttpRequest::write(Args&&... args)
 {
-	write(new T(std::move(args)...));
+	if (!isAborted()) {
+		write(new T(std::move(args)...));
+	}
 }
 
 inline HttpRequest::OutputState HttpRequest::outputState() const
@@ -422,7 +436,7 @@ inline HttpRequest::OutputState HttpRequest::outputState() const
 	return outputState_;
 }
 
-inline uint64_t HttpRequest::bytesTransmitted() const
+inline unsigned long long HttpRequest::bytesTransmitted() const
 {
 	return bytesTransmitted_;
 }
@@ -431,6 +445,12 @@ inline uint64_t HttpRequest::bytesTransmitted() const
 inline bool HttpRequest::isResponseContentForbidden() const
 {
 	return x0::content_forbidden(status);
+}
+
+/*! tests whether or not the given request and underlying connection is already aborted or not. */
+inline bool HttpRequest::isAborted() const
+{
+	return connection.isAborted();
 }
 
 inline void HttpRequest::checkFinish()

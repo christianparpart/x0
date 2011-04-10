@@ -159,7 +159,7 @@ ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r, bool cl
 {
 	TRACE("ProxyConnection()");
 
-	request_->setClientAbortHandler(&ProxyConnection::onAbort, this);
+	request_->setAbortHandler(&ProxyConnection::onAbort, this);
 
 	io_.set<ProxyConnection, &ProxyConnection::io>(this);
 	timer_.set<ProxyConnection, &ProxyConnection::timeout>(this);
@@ -178,13 +178,14 @@ void ProxyConnection::onAbort(void *p)
 {
 	ProxyConnection *self = reinterpret_cast<ProxyConnection *>(p);
 
-	self->request_ = nullptr;
 	delete self;
 }
 
 ProxyConnection::~ProxyConnection()
 {
 	TRACE("~ProxyConnection()");
+
+	close();
 
 	if (hostname_) {
 		free(hostname_);

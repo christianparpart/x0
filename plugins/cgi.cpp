@@ -108,7 +108,7 @@ private:
 
 	// client's I/O completion handlers
 	void onStdoutWritten();
-	static void onClientEof(void *p);
+	static void onAbort(void *p);
 
 	// child exit watcher
 	void onChild(ev::child&, int revents);
@@ -188,7 +188,7 @@ CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
 	evStdout_.set<CgiScript, &CgiScript::onStdoutAvailable>(this);
 	evStderr_.set<CgiScript, &CgiScript::onStderrAvailable>(this);
 
-	request_->setClientAbortHandler(&CgiScript::onClientEof, this);
+	request_->setAbortHandler(&CgiScript::onAbort, this);
 }
 
 CgiScript::~CgiScript()
@@ -200,7 +200,7 @@ CgiScript::~CgiScript()
 			request_->status = x0::HttpError::ServiceUnavailable;
 		}
 
-		request_->setClientAbortHandler(nullptr);
+		request_->setAbortHandler(nullptr);
 		request_->finish();
 	}
 }
@@ -648,15 +648,15 @@ void CgiScript::onStdoutWritten()
 	}
 }
 
-void CgiScript::onClientEof(void *p)
+void CgiScript::onAbort(void *p)
 {
 	CgiScript *self = (CgiScript *) p;
-	self->request_ = nullptr;
 
 #ifndef NDEBUG
-	self->debug("onClientEof()");
+	self->debug("onAbort()");
 #endif
 
+	// SIGTERM will also implicitely cause the request to be finish()ed - immediately.
 	self->process_.terminate();
 }
 // }}}

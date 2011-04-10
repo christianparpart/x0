@@ -319,11 +319,15 @@ std::string HttpRequest::statusStr(HttpError value)
 /** finishes this response by flushing the content into the stream.
  *
  * \note this also queues the underlying connection for processing the next request (on keep-alive).
- * \note this also clears out the client abort callback set with \p setClientAbortHandler().
+ * \note this also clears out the client abort callback set with \p setAbortHandler().
  */
 void HttpRequest::finish()
 {
-	assert(!connection.socket_->isClosed() && "the connection must be alive");
+	if (isAborted()) {
+		outputState_ = Finished;
+		finalize();
+		return;
+	}
 
 	switch (outputState_) {
 		case Unhandled:
@@ -358,16 +362,12 @@ void HttpRequest::finish()
 
 void HttpRequest::finalize()
 {
-	// reset client abort handler
-	setClientAbortHandler(nullptr);
-
-	// close, if not a keep-alive connection
-	if (iequals(responseHeaders["Connection"], "keep-alive")) {
-		TRACE("finalize: resuming");
-		connection.resume();
-	} else {
+	if (isAborted() || !iequals(responseHeaders["Connection"], "keep-alive")) {
 		TRACE("finalize: closing");
 		connection.close();
+	} else {
+		TRACE("finalize: resuming");
+		connection.resume();
 	}
 }
 
@@ -393,7 +393,7 @@ void HttpRequest::initialize()
  *
  * \see HttpRequest::finish()
  */
-void HttpRequest::setClientAbortHandler(void (*cb)(void *), void *data)
+void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
 {
 	connection.abortHandler_ = cb;
 	connection.abortData_ = data;

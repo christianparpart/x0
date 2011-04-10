@@ -181,7 +181,7 @@ private:
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
 	virtual bool messageContent(x0::BufferRef&& content);
 	void onWriteComplete();
-	static void onClientAbort(void *p);
+	static void onAbort(void *p);
 
 	void finish();
 
@@ -347,7 +347,7 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id)
 	request_ = in;
 	id_ = id;
 
-	request_->setClientAbortHandler(&CgiTransport::onClientAbort, this);
+	request_->setAbortHandler(&CgiTransport::onAbort, this);
 
 	beginRequest();
 	streamParams();
@@ -797,13 +797,11 @@ void CgiTransport::onWriteComplete()
  *
  * @param p `this pointer` to CgiTransport object
  */
-void CgiTransport::onClientAbort(void *p)
+void CgiTransport::onAbort(void *p)
 {
-	TRACE("CgiTransport.onClientAbort()");
+	TRACE("CgiTransport.onAbort()");
 	CgiTransport *self = (CgiTransport*) p;
-
-	self->request_ = nullptr; // make sure we won't access it anymore.
-	self->context_->release(self);
+	self->finish();
 }
 
 /**
