@@ -99,17 +99,13 @@ HttpConnection::~HttpConnection()
 
 	worker_.release(this);
 
-	try
-	{
+	try {
 		worker_.server_.onConnectionClose(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
-	}
-	catch (...)
-	{
-		TRACE("unexpected exception");
+	} catch (...) {
+		log(Severity::error, "Unhandled exception caught on connection-close callback. Please report this bug.");
 	}
 
-	if (socket_)
-	{
+	if (socket_) {
 		delete socket_;
 #if !defined(NDEBUG)
 		socket_ = 0;
@@ -411,32 +407,24 @@ void HttpConnection::processInput()
 
 	ssize_t rv = socket_->read(buffer_);
 
-	if (rv < 0) // error
-	{
-		if (errno == EAGAIN || errno == EINTR)
-		{
+	if (rv < 0) { // error
+		if (errno == EAGAIN || errno == EINTR) {
 			watchInput(worker_.server_.maxReadIdle());
-		}
-		else
-		{
-			TRACE("processInput(): %s", strerror(errno));
+		} else {
+			log(Severity::error, "Connection read error: %s", strerror(errno));
 			abort();
 		}
-	}
-	else if (rv == 0) // EOF
-	{
+	} else if (rv == 0) {
+		// EOF
 		TRACE("processInput(): (EOF)");
 		abort();
-	}
-	else
-	{
+	} else {
 		TRACE("processInput(): read %ld bytes", rv);
 		//TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
 
 		process();
 
-		TRACE("processInput(): done process()ing; fd=%d, request=%p",
-			socket_->handle(), request_);
+		TRACE("processInput(): done process()ing; fd=%d, request=%p", socket_->handle(), request_);
 	}
 }
 
@@ -461,19 +449,17 @@ void HttpConnection::processOutput()
 {
 	TRACE("processOutput()");
 
-	for (;;)
-	{
+	for (;;) {
 		ssize_t rv = source_.sendto(sink_);
 
 		TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
 		// TODO make use of source_->eof()
 
-		if (rv > 0) // source (partially?) written
-		{
+		if (rv > 0) {
+			// source (partially?) written
 			bytesTransferred_ += rv;
-		}
-		else if (rv == 0) // source fully written
-		{
+		} else if (rv == 0) {
+			// source fully written
 			TRACE("processOutput(): source fully written");
 
 			if (request_ != nullptr) {
@@ -481,15 +467,13 @@ void HttpConnection::processOutput()
 			}
 
 			break;
-		}
-		else if (errno == EAGAIN || errno == EINTR) // completing write would block
-		{
+		} else if (errno == EAGAIN || errno == EINTR) {
+			// completing write would block
 			watchOutput();
 			break;
-		}
-		else // an error occurred
-		{
-			TRACE("processOutput(): write error (%d): %s", errno, strerror(errno));
+		} else {
+			// an error occurred
+			log(Severity::error, "Connection write error: %s", strerror(errno));
 			abort();
 			break;
 		}
@@ -593,6 +577,17 @@ std::string HttpConnection::localIP() const
 unsigned int HttpConnection::localPort() const
 {
 	return socket_->localPort();
+}
+
+void HttpConnection::log(Severity s, const char *fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	char buf[512];
+	vsnprintf(buf, sizeof(buf), fmt, va);
+	va_end(va);
+
+	worker().server().log(s, "connection[%s]: %s", remoteIP().c_str(), buf);
 }
 
 } // namespace x0

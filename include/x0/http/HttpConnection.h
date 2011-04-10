@@ -117,6 +117,8 @@ private:
 	void abort();
 	void checkFinish();
 
+	void log(Severity s, const char *fmt, ...);
+
 private:
 	HttpListener& listener_;
 	HttpWorker& worker_;
