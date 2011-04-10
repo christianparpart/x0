@@ -64,7 +64,7 @@ private:
 			sstr << in_->connection.worker().now().htlog_str().c_str() << " \"";
 			sstr << request_line(in_) << "\" ";
 			sstr << static_cast<int>(in_->status) << ' ';
-			sstr << in_->responseHeaders["Content-Length"] << ' ';
+			sstr << in_->bytesTransmitted() << ' ';
 			sstr << '"' << getheader(in_, "Referer") << "\" ";
 			sstr << '"' << getheader(in_, "User-Agent") << '"';
 			sstr << '\n';
