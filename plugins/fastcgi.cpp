@@ -801,7 +801,9 @@ void CgiTransport::onClientAbort(void *p)
 {
 	TRACE("CgiTransport.onClientAbort()");
 	CgiTransport *self = (CgiTransport*) p;
-	self->finish();
+
+	self->request_ = nullptr; // make sure we won't access it anymore.
+	self->context_->release(self);
 }
 
 /**

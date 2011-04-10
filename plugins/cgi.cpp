@@ -651,6 +651,7 @@ void CgiScript::onStdoutWritten()
 void CgiScript::onClientEof(void *p)
 {
 	CgiScript *self = (CgiScript *) p;
+	self->request_ = nullptr;
 
 #ifndef NDEBUG
 	self->debug("onClientEof()");

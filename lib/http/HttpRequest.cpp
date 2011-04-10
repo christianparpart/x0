@@ -319,6 +319,8 @@ std::string HttpRequest::statusStr(HttpError value)
  */
 void HttpRequest::finish()
 {
+	assert(!connection.socket_->isClosed() && "the connection must be alive");
+
 	switch (outputState_) {
 		case Unhandled:
 			if (static_cast<int>(status) == 0)
@@ -346,7 +348,7 @@ void HttpRequest::finish()
 			}
 			break;
 		case Finished:
-			assert(0 && "BUG");
+			assert(false && "You almost definitely invoked finish() twice.");
 	}
 }
 
@@ -354,9 +356,6 @@ void HttpRequest::finalize()
 {
 	// reset client abort handler
 	setClientAbortHandler(nullptr);
-
-	// log request/response
-	connection.worker().server().onRequestDone(this);
 
 	// close, if not a keep-alive connection
 	if (iequals(responseHeaders["Connection"], "keep-alive")) {
@@ -384,6 +383,9 @@ void HttpRequest::initialize()
  *
  * This callback is only invoked when the client closed the connection before
  * \p HttpRequest::finish() has been invoked and completed already.
+ *
+ * Do <b>NOT</b> try to access the request object within the callback as it
+ * might be destroyed already.
  *
  * \see HttpRequest::finish()
  */

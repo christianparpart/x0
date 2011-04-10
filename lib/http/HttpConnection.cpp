@@ -11,7 +11,6 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/SocketDriver.h>
 #include <x0/StackTrace.h>
-#include <x0/NativeSymbol.h>
 #include <x0/Socket.h>
 #include <x0/Types.h>
 #include <x0/sysconfig.h>
@@ -140,6 +139,9 @@ void HttpConnection::timeout(Socket *)
 	TRACE("timed out");
 
 	ev_unloop(loop(), EVUNLOOP_ONE);
+
+	// XXX that's an interesting case!
+	// XXX the client did not actually abort but WE declare the connection to be released early.
 	abort();
 }
 
@@ -362,10 +364,14 @@ bool HttpConnection::messageEnd()
  */
 void HttpConnection::resume()
 {
+	assert(request_ != nullptr);
+
 	if (socket()->tcpCork())
 		socket()->setTcpCork(false);
 
-	assert(request_ != nullptr);
+	// log request/response
+	worker().server().onRequestDone(request_);
+
 	delete request_;
 	request_ = nullptr;
 
@@ -441,7 +447,7 @@ void HttpConnection::processInput()
  */
 void HttpConnection::write(Source* chunk)
 {
-	TRACE("write() chunk (%s)", NativeSymbol(typeid(*chunk).name()).name().c_str());
+	TRACE("write() chunk (%s)", chunk->className());
 
 	source_.push_back(chunk);
 	processOutput();
@@ -490,29 +496,37 @@ void HttpConnection::processOutput()
 	}
 }
 
-/*! triggers a connection-close respecting the abort-handler.
+/*! Invokes the abort-callback (if set) and closes/releases this connection.
+ *
+ * \see close()
+ * \see HttpRequest::finish()
  */
 void HttpConnection::abort()
 {
+	TRACE("abort()");
+
 	if (abortHandler_) {
 		assert(request_ != nullptr);
 		socket_->setMode(Socket::None);
 		abortHandler_(abortData_);
-	} else {
-		close();
 	}
+
+	close();
 }
 
-/** closes this HttpConnection, possibly deleting this object (or propagating delayed delete).
+/** Closes this HttpConnection, possibly deleting this object (or propagating delayed delete).
  */
 void HttpConnection::close()
 {
-	TRACE("(%p).close() (active=%d)", this, active_);
+	TRACE("close()");
 	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	socket_->close();
 
 	if (request_) {
+		// log request/response
+		worker().server().onRequestDone(request_);
+
 		delete request_;
 		request_ = nullptr;
 	}
