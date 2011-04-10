@@ -73,6 +73,7 @@ public:
 	virtual ~Socket();
 
 	int handle() const;
+	bool isOpen() const;
 	bool isClosed() const;
 
 	bool isSecure() const;
@@ -177,6 +178,11 @@ inline Socket::Mode Socket::mode() const
 inline bool Socket::tcpCork() const
 {
 	return tcpCork_;
+}
+
+inline bool Socket::isOpen() const
+{
+	return fd_ >= 0;
 }
 
 inline bool Socket::isClosed() const
