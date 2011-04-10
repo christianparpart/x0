@@ -53,6 +53,7 @@ private:
 	ev_tstamp startupTime_;
 	DateTime now_;
 	std::atomic<int> connectionLoad_;
+	std::atomic<int> requestLoad_;
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
@@ -68,6 +69,7 @@ private:
 	friend class HttpCore;
 	friend class HttpServer;
 	friend class HttpConnection;
+	friend class HttpRequest;
 
 public:
 	FileInfoService fileinfo;
@@ -86,7 +88,8 @@ public:
 	HttpServer& server() const;
 	State state() const;
 
-	int load() const;
+	int connectionLoad() const;
+	int requestLoad() const;
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
 	void handleRequest(HttpRequest *r);
@@ -134,9 +137,14 @@ inline const DateTime& HttpWorker::now() const
 	return now_;
 }
 
-inline int HttpWorker::load() const
+inline int HttpWorker::connectionLoad() const
 {
 	return connectionLoad_;
+}
+
+inline int HttpWorker::requestLoad() const
+{
+	return requestLoad_;
 }
 // }}}
 

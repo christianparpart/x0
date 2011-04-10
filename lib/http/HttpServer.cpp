@@ -295,11 +295,11 @@ HttpWorker *HttpServer::selectWorker()
 	HttpWorker *best = workers_[0];
 	int value = 1;
 
-	for (size_t i = 1, e = workers_.size(); i != e; ++i)
-	{
+	for (size_t i = 1, e = workers_.size(); i != e; ++i) {
 		HttpWorker *w = workers_[i];
-		if (w->load() < value) {
-			value = best->load();
+		int l = w->connectionLoad();
+		if (l < value) {
+			value = l;
 			best = w;
 		}
 	}

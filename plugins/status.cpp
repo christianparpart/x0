@@ -95,10 +95,12 @@ private:
 		 */
 
 		x0::TimeSpan uptime(server().uptime());
+		std::size_t nconns = 0;
 		std::size_t nrequests = 0;
 		for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
 			const x0::HttpWorker *w = server().workers()[i];
-			nrequests += w->load();
+			nconns += w->connectionLoad();
+			nrequests += w->requestLoad();
 		}
 
 		x0::Buffer buf;
@@ -109,6 +111,7 @@ private:
 		buf << "Number of workers: " << server().workers().size() << "\n";
 
 		buf << "# requests: " << nrequests << "\n";
+		buf << "# connections: " << nconns << "\n";
 		buf << "\n</pre></body></html>\n";
 
 		return buf;

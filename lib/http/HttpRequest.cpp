@@ -60,6 +60,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 
 	responseHeaders.push_back("Date", connection.worker().now().http_str().str());
 
+	++connection.worker().requestLoad_;
+
 	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty())
 		if (!responseHeaders.contains("Server"))
 			responseHeaders.push_back("Server", connection.worker().server().tag());
@@ -68,6 +70,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 HttpRequest::~HttpRequest()
 {
 	TRACE("destructing");
+	--connection.worker().requestLoad_;
 	clearCustomData();
 }
 
