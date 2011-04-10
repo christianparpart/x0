@@ -120,6 +120,8 @@ private:
 	void timeout(ev::timer& w, int revents);
 	void onRequestChunk(x0::BufferRef&& chunk);
 
+	static void onAbort(void *p);
+
 	// response (HttpMessageProcessor)
 	virtual void messageBegin(int version_major, int version_minor, int code, x0::BufferRef&& text);
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
@@ -157,6 +159,8 @@ ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r, bool cl
 {
 	TRACE("ProxyConnection()");
 
+	request_->setClientAbortHandler(&ProxyConnection::onAbort, this);
+
 	io_.set<ProxyConnection, &ProxyConnection::io>(this);
 	timer_.set<ProxyConnection, &ProxyConnection::timeout>(this);
 
@@ -168,6 +172,14 @@ ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r, bool cl
 	} else {
 		port_ = 80;
 	}
+}
+
+void ProxyConnection::onAbort(void *p)
+{
+	ProxyConnection *self = reinterpret_cast<ProxyConnection *>(p);
+
+	self->request_ = nullptr;
+	delete self;
 }
 
 ProxyConnection::~ProxyConnection()
