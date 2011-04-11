@@ -219,7 +219,8 @@ inline Buffer::Buffer(const BufferRef& v) :
 inline Buffer::Buffer(const std::string& v) :
 	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
 {
-	push_back(v.data(), v.size());
+	push_back(v.c_str(), v.size() + 1);
+	resize(v.size());
 }
 
 template<typename PodType, std::size_t N>
