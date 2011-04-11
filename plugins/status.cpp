@@ -29,27 +29,6 @@
 
 #define TRACE(msg...) DEBUG("status: " msg)
 
-x0::Buffer& operator<<(x0::Buffer& buf, time_t value) {
-	char tmp[64];
-	int n = snprintf(tmp, sizeof(tmp), "%ld", value);
-	buf.push_back(tmp, n);
-	return buf;
-}
-
-x0::Buffer& operator<<(x0::Buffer& buf, unsigned long value) {
-	char tmp[64];
-	int n = snprintf(tmp, sizeof(tmp), "%lu", value);
-	buf.push_back(tmp, n);
-	return buf;
-}
-
-x0::Buffer& operator<<(x0::Buffer& buf, unsigned long long value) {
-	char tmp[64];
-	int n = snprintf(tmp, sizeof(tmp), "%llu", value);
-	buf.push_back(tmp, n);
-	return buf;
-}
-
 /**
  * \ingroup plugins
  * \brief example content generator plugin
@@ -97,22 +76,28 @@ private:
 		x0::TimeSpan uptime(server().uptime());
 		std::size_t nconns = 0;
 		std::size_t nrequests = 0;
+		unsigned long long numTotalRequests = 0;
+
 		for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
 			const x0::HttpWorker *w = server().workers()[i];
 			nconns += w->connectionLoad();
 			nrequests += w->requestLoad();
+			numTotalRequests += w->requestCount();
 		}
 
 		x0::Buffer buf;
-		buf << "<html><body><pre>";
-		buf << "x0 status page\n";
-		buf << "\n";
-		buf << "Process uptime: " << uptime << "\n";
-		buf << "Number of workers: " << server().workers().size() << "\n";
-
+		buf << "<html>";
+		buf << "<head><title>x0 status page</title></head>\n";
+		buf << "<body>";
+		buf << "<h1>x0 status page</h1>\n";
+		buf << "<pre>\n";
+		buf << "process uptime: " << uptime << "\n";
+		buf << "# workers: " << server().workers().size() << "\n";
 		buf << "# requests: " << nrequests << "\n";
 		buf << "# connections: " << nconns << "\n";
-		buf << "\n</pre></body></html>\n";
+		buf << "# total requests: " << numTotalRequests << "\n";
+		buf << "</pre>\n";
+		buf << "</body></html>\n";
 
 		return buf;
 	}
