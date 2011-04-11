@@ -52,7 +52,6 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	listener_(lst),
 	worker_(w),
 	socket_(0),
-	active_(true), // when this is constricuted, it *must* be active right now :) 
 	buffer_(8192),
 	offset_(0),
 	request_count_(0),
@@ -119,15 +118,12 @@ HttpConnection::~HttpConnection()
 void HttpConnection::io(Socket *, int revents)
 {
 	TRACE("io(revents=%04x)", revents);
-	active_ = true;
 
 	if (revents & Socket::Read)
 		processInput();
 
 	if (revents & Socket::Write)
 		processOutput();
-
-	active_ = false;
 }
 
 void HttpConnection::timeout(Socket *)
@@ -178,10 +174,9 @@ void HttpConnection::start()
 
 		// destroy connection in case the above caused connection-close
 		// XXX this is usually done within HttpConnection::io(), but we are not.
-		if (isClosed())
+		if (isClosed()) {
 			delete this;
-		else
-			active_ = false;
+		}
 #else
 		TRACE("start: watchInput.");
 		// client connected, but we do not yet know if we have data pending
@@ -533,9 +528,7 @@ void HttpConnection::close()
 		request_ = nullptr;
 	}
 
-	if (!active_) {
-		delete this;
-	}
+	delete this;
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.

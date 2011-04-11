@@ -124,7 +124,6 @@ private:
 	HttpWorker& worker_;
 
 	Socket *socket_;					//!< underlying communication socket
-	bool active_;						//!< socket is active (some I/O event raised within this cycle)
 
 	// HTTP HttpRequest
 	Buffer buffer_;						//!< buffer for incoming data.
