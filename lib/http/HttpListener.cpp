@@ -108,15 +108,6 @@ addrinfo *HttpListener::getAddressInfo(const char *address, int port)
 
 bool HttpListener::prepare()
 {
-#if defined(WITH_SSL)
-	if (isSecure())
-		log(Severity::info, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
-	else
-		log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
-#else
-	log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
-#endif
-
 	addrinfo *res = getAddressInfo(address_.c_str(), port_);
 	if (res == nullptr)
 		return false;
@@ -149,12 +140,12 @@ bool HttpListener::prepare()
 			continue;
 
 		if (fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC) < 0) {
-			log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
+			log(Severity::error, "Could not start listening on [%s]:%d. Error setting FD_CLOEXEC-flag: %s", address_.c_str(), port_, strerror(errno));
 			goto err;
 		}
 
 		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK) < 0) {
-			log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_, strerror(errno));
+			log(Severity::error, "Could not start listening on [%s]:%d. Error setting O_NONBLOCK-flag: %s", address_.c_str(), port_, strerror(errno));
 			goto err;
 		}
 
@@ -176,27 +167,43 @@ bool HttpListener::prepare()
 //		acceptor_.set_option(asio::ip::tcp::acceptor::keep_alive(true));
 
 		if (::bind(fd_, res->ai_addr, res->ai_addrlen) < 0) {
-			log(Severity::error, "Cannot bind to IP-address (%s): %s", address_.c_str(), strerror(errno));
+			log(Severity::error, "Cannot bind to IP-address [%s]:%d: %s", address_.c_str(), port_, strerror(errno));
 			goto err;
 		}
 
 		if (::listen(fd_, backlog_) < 0) {
-			log(Severity::error, "Cannot listen to IP-address (%s): %s", address_.c_str(), strerror(errno));
+			log(Severity::error, "Cannot listen to IP-address [%s]:%d: %s", address_.c_str(), port_, strerror(errno));
 			goto err;
 		}
+
+		goto done;
 	}
 
-	if (fd_ < 0) {
-		log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_,  strerror(errno));
-		goto err;
-	}
+	// no proper listener-address found
+	log(Severity::error, "Could not start listening on [%s]:%d. %s", address_.c_str(), port_,  strerror(errno));
+	goto err;
 
 done:
 	addressFamily_ = res->ai_family;
 	freeaddrinfo(res);
+
+#if defined(WITH_SSL)
+	if (isSecure())
+		log(Severity::info, "Start listening on [%s]:%d [secure]", address_.c_str(), port_);
+	else
+		log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
+#else
+	log(Severity::info, "Start listening on [%s]:%d", address_.c_str(), port_);
+#endif
+
 	return true;
 
 err:
+	if (fd_ >= 0) {
+		::close(fd_);
+		fd_ = -1;
+	}
+
 	if (res != nullptr)
 		freeaddrinfo(res);
 
@@ -206,8 +213,7 @@ err:
 bool HttpListener::start()
 {
 	if (fd_ < 0)
-		if (!prepare())
-			return false;
+		return false;
 
 	watcher_.start(fd_, ev::READ);
 	return true;
