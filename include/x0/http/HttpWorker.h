@@ -54,6 +54,7 @@ private:
 	DateTime now_;
 	std::atomic<int> connectionLoad_;
 	std::atomic<int> requestLoad_;
+	std::atomic<unsigned long long> requestCount_;
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
@@ -90,6 +91,7 @@ public:
 
 	int connectionLoad() const;
 	int requestLoad() const;
+	unsigned long long requestCount() const;
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
 	void handleRequest(HttpRequest *r);
@@ -145,6 +147,11 @@ inline int HttpWorker::connectionLoad() const
 inline int HttpWorker::requestLoad() const
 {
 	return requestLoad_;
+}
+
+inline unsigned long long HttpWorker::requestCount() const
+{
+	return requestCount_;
 }
 // }}}
 

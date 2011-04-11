@@ -97,6 +97,7 @@ private:
 	void resume();
 
 	bool isAborted() const;
+	bool isClosed() const;
 
 	void handshakeComplete(Socket *);
 
@@ -120,14 +121,13 @@ private:
 private:
 	HttpListener& listener_;
 	HttpWorker& worker_;
-	bool hot_;
 
 	Socket *socket_;					//!< underlying communication socket
+	bool hot_;
 
 	// HTTP HttpRequest
 	Buffer buffer_;						//!< buffer for incoming data.
 	std::size_t offset_;				//!< number of bytes in buffer_ successfully processed already.
-	int request_count_;					//!< number of requests already and fully processed within this connection.
 	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
 
 	void (*abortHandler_)(void *);
@@ -175,6 +175,11 @@ inline const HttpListener& HttpConnection::listener() const
 inline bool HttpConnection::isAborted() const
 {
 	return !socket_ || socket_->isClosed();
+}
+
+inline bool HttpConnection::isClosed() const
+{
+	return !socket_;
 }
 
 /*! Tests whether or not this connection has pending data to sent to the client.

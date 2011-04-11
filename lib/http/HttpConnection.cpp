@@ -51,12 +51,11 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	secure(false),
 	listener_(lst),
 	worker_(w),
-	socket_(0),
+	socket_(nullptr),
 	hot_(true),
 	buffer_(8192),
 	offset_(0),
-	request_count_(0),
-	request_(0),
+	request_(nullptr),
 	abortHandler_(nullptr),
 	abortData_(nullptr),
 	source_(),
@@ -88,12 +87,8 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
  */
 HttpConnection::~HttpConnection()
 {
-	if (request_) {
+	if (request_)
 		delete request_;
-#if !defined(NDEBUG)
-		request_ = nullptr;
-#endif
-	}
 
 	clearCustomData();
 
@@ -119,12 +114,20 @@ HttpConnection::~HttpConnection()
 void HttpConnection::io(Socket *, int revents)
 {
 	TRACE("io(revents=%04x)", revents);
+	hot_ = true;
 
 	if (revents & Socket::Read)
 		processInput();
 
 	if (revents & Socket::Write)
 		processOutput();
+
+	hot_ = false;
+
+	if (isClosed()) {
+		log(Severity::debug, "object already 'closed'. deleting.");
+		delete this;
+	}
 }
 
 void HttpConnection::timeout(Socket *)
@@ -175,10 +178,9 @@ void HttpConnection::start()
 		processInput();
 		TRACE("start: processing input done");
 
-		hot_ = false;
-
 		// destroy connection in case the above caused connection-close
 		// XXX this is usually done within HttpConnection::io(), but we are not.
+		hot_ = false;
 		if (isAborted()) {
 			close();
 		}
@@ -257,6 +259,8 @@ inline bool url_decode(BufferRef& url)
 void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 {
 	TRACE("messageBegin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+
+	assert(request_ == nullptr);
 
 	request_ = new HttpRequest(*this);
 
@@ -348,7 +352,7 @@ bool HttpConnection::messageEnd()
 	TRACE("messageEnd()");
 
 	// increment the number of fully processed requests
-	++request_count_;
+	++worker_.requestCount_;
 
 	// XXX is this really required? (meant to mark the request-content EOS)
 	if (request_)
@@ -367,16 +371,18 @@ bool HttpConnection::messageEnd()
  */
 void HttpConnection::resume()
 {
-	assert(request_ != nullptr);
+	//assert(request_ != nullptr);
 
 	if (socket()->tcpCork())
 		socket()->setTcpCork(false);
 
-	// log request/response
-	worker().server().onRequestDone(request_);
+	if (request_) {
+		// log request/response
+		worker().server().onRequestDone(request_);
 
-	delete request_;
-	request_ = nullptr;
+		delete request_;
+		request_ = nullptr;
+	}
 
 	// reset abort-callback data
 	abortHandler_ = nullptr;
@@ -508,12 +514,15 @@ void HttpConnection::abort()
 
 	assert(!isAborted() && "The connection may be only aborted once.");
 
+	// mark connection as aborted by closing the underlying socket (w/o freeing the whole thing)
 	socket_->close();
 
 	if (abortHandler_) {
 		assert(request_ != nullptr);
 		socket_->setMode(Socket::None);
 		abortHandler_(abortData_);
+	} else {
+		close();
 	}
 }
 
@@ -524,7 +533,9 @@ void HttpConnection::close()
 	TRACE("close()");
 	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
-	socket_->close(); // XXX might be already closed (due to read/write-errors)
+	// destruct socket to mark connection as "closed"
+	delete socket_;
+	socket_ = nullptr;
 
 	if (request_) {
 		// log request/response
@@ -606,7 +617,7 @@ void HttpConnection::log(Severity s, const char *fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
-	worker().server().log(s, "connection[%s]: %s", remoteIP().c_str(), buf);
+	worker().server().log(s, "connection[%s]: %s", !isClosed() ? remoteIP().c_str() : "(closed)", buf);
 }
 
 } // namespace x0

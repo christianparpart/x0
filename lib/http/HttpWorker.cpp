@@ -23,6 +23,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	now_(),
 	connectionLoad_(0),
 	requestLoad_(0),
+	requestCount_(0),
 	thread_(0),
 	state_(Active),
 	queue_(),
