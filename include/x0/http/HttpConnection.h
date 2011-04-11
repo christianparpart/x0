@@ -120,6 +120,7 @@ private:
 private:
 	HttpListener& listener_;
 	HttpWorker& worker_;
+	bool hot_;
 
 	Socket *socket_;					//!< underlying communication socket
 

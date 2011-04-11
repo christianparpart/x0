@@ -52,6 +52,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	listener_(lst),
 	worker_(w),
 	socket_(0),
+	hot_(true),
 	buffer_(8192),
 	offset_(0),
 	request_count_(0),
@@ -158,6 +159,7 @@ void HttpConnection::start()
 	if (isAborted()) {
 		// The connection got directly closed (aborted) upon connection instance creation (e.g. within the onConnectionOpen-callback),
 		// so delete the object right away.
+		hot_ = false;
 		close();
 		return;
 	}
@@ -165,6 +167,7 @@ void HttpConnection::start()
 	if (socket_->state() == Socket::Handshake) {
 		TRACE("start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
+		hot_ = false;
 	} else {
 #if defined(TCP_DEFER_ACCEPT)
 		TRACE("start: processing input");
@@ -172,12 +175,15 @@ void HttpConnection::start()
 		processInput();
 		TRACE("start: processing input done");
 
+		hot_ = false;
+
 		// destroy connection in case the above caused connection-close
 		// XXX this is usually done within HttpConnection::io(), but we are not.
 		if (isAborted()) {
 			close();
 		}
 #else
+		hot_ = false;
 		TRACE("start: watchInput.");
 		// client connected, but we do not yet know if we have data pending
 		watchInput(worker_.server_.maxReadIdle());
@@ -528,7 +534,9 @@ void HttpConnection::close()
 		request_ = nullptr;
 	}
 
-	delete this;
+	if (!hot_) {
+		delete this;
+	}
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.
