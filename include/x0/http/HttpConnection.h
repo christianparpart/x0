@@ -96,8 +96,6 @@ private:
 	void start();
 	void resume();
 
-	bool isOpen() const;
-	bool isClosed() const;
 	bool isAborted() const;
 
 	void handshakeComplete(Socket *);
@@ -171,24 +169,14 @@ inline const HttpListener& HttpConnection::listener() const
 	return listener_;
 }
 
-inline bool HttpConnection::isOpen() const
-{
-	return socket_ && socket_->isOpen();
-}
-
-/** tests whether HttpConnection::close() was invoked already.
+/*! Tests whether if the connection to the client (remote end-point) has * been aborted early.
  */
-inline bool HttpConnection::isClosed() const
-{
-	return !socket_ || socket_->isClosed();
-}
-
 inline bool HttpConnection::isAborted() const
 {
 	return !socket_ || socket_->isClosed();
 }
 
-/*! tests whether or not this connection has pending data to sent to the client.
+/*! Tests whether or not this connection has pending data to sent to the client.
  */
 inline bool HttpConnection::isOutputPending() const
 {

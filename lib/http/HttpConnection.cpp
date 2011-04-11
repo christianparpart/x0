@@ -155,10 +155,10 @@ bool HttpConnection::isSecure() const
  */
 void HttpConnection::start()
 {
-	if (isClosed()) {
-		// The connection got directly closed upon connection instance creation (e.g. within the onConnectionOpen-callback),
+	if (isAborted()) {
+		// The connection got directly closed (aborted) upon connection instance creation (e.g. within the onConnectionOpen-callback),
 		// so delete the object right away.
-		delete this;
+		close();
 		return;
 	}
 
@@ -174,8 +174,8 @@ void HttpConnection::start()
 
 		// destroy connection in case the above caused connection-close
 		// XXX this is usually done within HttpConnection::io(), but we are not.
-		if (isClosed()) {
-			delete this;
+		if (isAborted()) {
+			close();
 		}
 #else
 		TRACE("start: watchInput.");
@@ -500,7 +500,7 @@ void HttpConnection::abort()
 {
 	TRACE("abort()");
 
-	assert(isOpen() && "The connection may be only aborted once.");
+	assert(!isAborted() && "The connection may be only aborted once.");
 
 	socket_->close();
 
@@ -544,7 +544,7 @@ void HttpConnection::process()
 	TRACE("process: offset=%ld, bs=%ld, ec=%s, state=%s (after processing)",
 			offset_, buffer_.size(), std::error_code(ec).message().c_str(), state_str());
 
-	if (isClosed())
+	if (isAborted())
 		return;
 
 	if (state() == SYNTAX_ERROR) {
