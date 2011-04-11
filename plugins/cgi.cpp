@@ -50,7 +50,7 @@
 #include <fcntl.h>
 
 #if 10 // !defined(NDEBUG)
-#	define TRACE(msg...) this->debug(msg)
+#	define TRACE(msg...) DEBUG(msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
