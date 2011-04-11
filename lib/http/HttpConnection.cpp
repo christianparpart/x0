@@ -53,6 +53,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	worker_(w),
 	socket_(nullptr),
 	hot_(true),
+	state_(Alive),
 	buffer_(8192),
 	offset_(0),
 	request_(nullptr),
@@ -105,9 +106,6 @@ HttpConnection::~HttpConnection()
 
 	if (socket_) {
 		delete socket_;
-#if !defined(NDEBUG)
-		socket_ = nullptr;
-#endif
 	}
 }
 
@@ -125,7 +123,6 @@ void HttpConnection::io(Socket *, int revents)
 	hot_ = false;
 
 	if (isClosed()) {
-		log(Severity::debug, "object already 'closed'. deleting.");
 		delete this;
 	}
 }
@@ -514,8 +511,7 @@ void HttpConnection::abort()
 
 	assert(!isAborted() && "The connection may be only aborted once.");
 
-	// mark connection as aborted by closing the underlying socket (w/o freeing the whole thing)
-	socket_->close();
+	state_ = Aborted;
 
 	if (abortHandler_) {
 		assert(request_ != nullptr);
@@ -534,8 +530,7 @@ void HttpConnection::close()
 	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	// destruct socket to mark connection as "closed"
-	delete socket_;
-	socket_ = nullptr;
+	state_ = Closed;
 
 	if (request_) {
 		// log request/response
@@ -617,7 +612,7 @@ void HttpConnection::log(Severity s, const char *fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
-	worker().server().log(s, "connection[%s]: %s", !isClosed() ? remoteIP().c_str() : "(closed)", buf);
+	worker().server().log(s, "connection[%s]: %s", !isClosed() ? remoteIP().c_str() : "(null)", buf);
 }
 
 } // namespace x0

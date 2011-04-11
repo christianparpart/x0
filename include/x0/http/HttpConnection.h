@@ -124,6 +124,7 @@ private:
 
 	Socket *socket_;					//!< underlying communication socket
 	bool hot_;
+	enum State { Alive, Aborted, Closed } state_;
 
 	// HTTP HttpRequest
 	Buffer buffer_;						//!< buffer for incoming data.
@@ -174,12 +175,12 @@ inline const HttpListener& HttpConnection::listener() const
  */
 inline bool HttpConnection::isAborted() const
 {
-	return !socket_ || socket_->isClosed();
+	return state_ != Alive; // Aborted or Closed
 }
 
 inline bool HttpConnection::isClosed() const
 {
-	return !socket_;
+	return state_ == Closed;
 }
 
 /*! Tests whether or not this connection has pending data to sent to the client.
