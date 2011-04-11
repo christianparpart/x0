@@ -76,7 +76,7 @@ private:
 		x0::TimeSpan uptime(server().uptime());
 		std::size_t nconns = 0;
 		std::size_t nrequests = 0;
-		unsigned long long numTotalRequests = 0;
+		unsigned long long numTotalRequests = 1; // count in this very request, too (as requestCount() only counts *completed* requests but this one is to end when transmitted, too.)
 
 		for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
 			const x0::HttpWorker *w = server().workers()[i];
