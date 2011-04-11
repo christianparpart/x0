@@ -78,7 +78,7 @@ public:
 	// find
 	template<typename PodType, std::size_t N>
 	std::size_t find(PodType (&value)[N], std::size_t offset = 0) const;
-//	std::size_t find(const value_type *value, std::size_t offset = 0) const;
+	std::size_t find(const value_type *value, std::size_t offset = 0) const;
 	std::size_t find(const BufferRef& value, std::size_t offset = 0) const;
 	std::size_t find(value_type value, std::size_t offset = 0) const;
 
@@ -135,6 +135,8 @@ public:
 
 	bool toBool() const;
 	int toInt() const;
+	double toDouble() const;
+	float toFloat() const;
 };
 
 // free functions
@@ -295,7 +297,7 @@ inline void BufferRef::shr(ssize_t offset)
 	assert(offset_ + size_ <= buffer_->capacity());
 }
 
-#if 0
+#if 1
 inline std::size_t BufferRef::find(const value_type *value, std::size_t offset) const
 {
 	const char *i = data() + offset;
@@ -602,6 +604,28 @@ inline int BufferRef::as<int>() const
 	return val;
 }
 
+template<>
+inline double BufferRef::as<double>() const
+{
+	char* endptr = nullptr;
+	double result = strtod(data(), &endptr);
+	if (endptr <= end())
+		return result;
+
+	return 0.0;
+}
+
+template<>
+inline float BufferRef::as<float>() const
+{
+	char* endptr = nullptr;
+	float result = strtof(data(), &endptr);
+	if (endptr <= end())
+		return result;
+
+	return 0.0f;
+}
+
 template<typename T>
 inline T BufferRef::hex() const
 {
@@ -640,6 +664,16 @@ inline bool BufferRef::toBool() const
 inline int BufferRef::toInt() const
 {
 	return as<int>();
+}
+
+inline double BufferRef::toDouble() const
+{
+	return as<double>();
+}
+
+inline float BufferRef::toFloat() const
+{
+	return as<float>();
 }
 // }}}
 
