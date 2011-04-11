@@ -98,8 +98,10 @@ public:
 	// buffer builders
 	void push_back(value_type value);
 	void push_back(int value);
+	void push_back(long value);
 	void push_back(long long value);
 	void push_back(unsigned value);
+	void push_back(unsigned long value);
 	void push_back(unsigned long long value);
 	void push_back(const value_type *value);
 	void push_back(const Buffer& value);
@@ -170,8 +172,10 @@ template<typename PodType, std::size_t N> bool operator==(const Buffer& a, PodTy
 
 Buffer& operator<<(Buffer& b, Buffer::value_type v);
 Buffer& operator<<(Buffer& b, int v);
+Buffer& operator<<(Buffer& b, long v);
 Buffer& operator<<(Buffer& b, long long v);
 Buffer& operator<<(Buffer& b, unsigned v);
+Buffer& operator<<(Buffer& b, unsigned long v);
 Buffer& operator<<(Buffer& b, unsigned long long v);
 Buffer& operator<<(Buffer& b, const Buffer::value_type *v);
 Buffer& operator<<(Buffer& b, const Buffer& v);
@@ -438,6 +442,13 @@ inline void Buffer::push_back(int value)
 	push_back(buf, n);
 }
 
+inline void Buffer::push_back(long value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%ld", value);
+	push_back(buf, n);
+}
+
 inline void Buffer::push_back(long long value)
 {
 	char buf[32];
@@ -449,6 +460,13 @@ inline void Buffer::push_back(unsigned value)
 {
 	char buf[32];
 	int n = std::snprintf(buf, sizeof(buf), "%u", value);
+	push_back(buf, n);
+}
+
+inline void Buffer::push_back(unsigned long value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%lu", value);
 	push_back(buf, n);
 }
 
@@ -728,6 +746,12 @@ inline Buffer& operator<<(Buffer& b, int v)
 	return b;
 }
 
+inline Buffer& operator<<(Buffer& b, long v)
+{
+	b.push_back(v);
+	return b;
+}
+
 inline Buffer& operator<<(Buffer& b, long long v)
 {
 	b.push_back(v);
@@ -735,6 +759,12 @@ inline Buffer& operator<<(Buffer& b, long long v)
 }
 
 inline Buffer& operator<<(Buffer& b, unsigned v)
+{
+	b.push_back(v);
+	return b;
+}
+
+inline Buffer& operator<<(Buffer& b, unsigned long v)
 {
 	b.push_back(v);
 	return b;
