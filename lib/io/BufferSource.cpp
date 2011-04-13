@@ -12,10 +12,14 @@ namespace x0 {
 
 ssize_t BufferSource::sendto(Sink& sink)
 {
+	if (pos_ == buffer_.size())
+		return 0;
+
 	ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);
-	if (result > 0) {
+
+	if (result > 0)
 		pos_ += result;
-	}
+
 	return result;
 }
 
