@@ -825,23 +825,20 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 					++offset;
 					++i;
 					state_ = HEADER_VALUE;
-					/* fall through */
 				} else if (*i == CR) {
 					state_ = HEADER_VALUE_LF;
 					++offset;
 					++i;
-					break;
 #if defined(X0_HTTP_SUPPORT_SHORT_LF)
 				} else if (*i == LF) {
 					state_ = HEADER_VALUE_END;
 					++offset;
 					++i;
-					break;
 #endif
 				} else {
 					state_ = SYNTAX_ERROR;
-					break;
 				}
+				break;
 			case HEADER_VALUE:
 				if (*i == CR) {
 					state_ = LWS_LF;
