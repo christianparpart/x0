@@ -328,6 +328,8 @@ std::string HttpRequest::statusStr(HttpError value)
  */
 void HttpRequest::finish()
 {
+	setAbortHandler(nullptr);
+
 	if (isAborted()) {
 		outputState_ = Finished;
 		finalize();

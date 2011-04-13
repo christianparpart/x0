@@ -378,10 +378,6 @@ void HttpConnection::resume()
 		request_ = nullptr;
 	}
 
-	// reset abort-callback data
-	abortHandler_ = nullptr;
-	abortData_ = nullptr;
-
 	// wait for new request message, if nothing in buffer
 	if (offset_ == buffer_.size())
 		watchInput(worker_.server_.maxKeepAlive());
