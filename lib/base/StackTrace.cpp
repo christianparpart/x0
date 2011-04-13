@@ -34,12 +34,11 @@ void StackTrace::generate(bool verbose)
 	if (!symbols_.empty())
 		return;
 
-	for (int i = 0; i < count_; ++i)
-	{
-		void *address = addresses_[skip_ + i];
+	for (int i = skip_; i < count_; ++i) {
+		void *address = addresses_[i];
 
 		buffer_.push_back('[');
-		buffer_.push_back(i);
+		buffer_.push_back(i - skip_);
 		buffer_.push_back("] ");
 
 		std::size_t begin = buffer_.size();
