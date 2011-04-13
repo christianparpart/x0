@@ -529,11 +529,6 @@ void HttpConnection::close()
 	// destruct socket to mark connection as "closed"
 	state_ = Closed;
 
-	if (request_) {
-		delete request_;
-		request_ = nullptr;
-	}
-
 	if (!hot_) {
 		delete this;
 	}
