@@ -273,10 +273,16 @@ Source* HttpRequest::serialize()
  *
  * \note Modified headers are "Content-Type" and "Content-Length".
  */
-Source* HttpRequest::makeDefaultResponseContent()
+void HttpRequest::writeDefaultResponseContent()
 {
 	if (isResponseContentForbidden())
-		return nullptr;
+		return;
+
+	// XXX here we might try to customize the standard error output
+	//connection.worker().server().onErrorDocument(this);
+	//FIXME should the above have done a finish() on its own or not?
+	//if (outputState_ != Unhandled)
+	//	return;
 
 	// TODO custom error documents
 #if 0
@@ -288,27 +294,25 @@ Source* HttpRequest::makeDefaultResponseContent()
 		responseHeaders.overwrite("Content-Type", fi->mimetype());
 		responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(fi->size()));
 
-		return std::make_shared<FileSource>(fd, 0, fi->size(), true);
+		write<FileSource>(fd, 0, fi->size(), true);
+		return;
 	}
-	else
 #endif
-	{
-		std::string codeStr = http_category().message(static_cast<int>(status));
-		char buf[1024];
+	std::string codeStr = http_category().message(static_cast<int>(status));
+	char buf[1024];
 
-		int nwritten = snprintf(buf, sizeof(buf),
-			"<html>"
-			"<head><title>%s</title></head>"
-			"<body><h1>%d %s</h1></body>"
-			"</html>\r\n",
-			codeStr.c_str(), status, codeStr.c_str()
-		);
+	int nwritten = snprintf(buf, sizeof(buf),
+		"<html>"
+		"<head><title>%s</title></head>"
+		"<body><h1>%d %s</h1></body>"
+		"</html>\r\n",
+		codeStr.c_str(), status, codeStr.c_str()
+	);
 
-		responseHeaders.overwrite("Content-Type", "text/html");
-		responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
+	responseHeaders.overwrite("Content-Type", "text/html");
+	responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
 
-		return new BufferSource(Buffer::fromCopy(buf, nwritten));
-	}
+	write<BufferSource>(Buffer::fromCopy(buf, nwritten));
 }
 
 std::string HttpRequest::statusStr(HttpError value)
@@ -335,7 +339,7 @@ void HttpRequest::finish()
 				status = HttpError::NotFound;
 
 			if (!isResponseContentForbidden() && status != HttpError::Ok)
-				write(makeDefaultResponseContent());
+				writeDefaultResponseContent();
 			else
 				connection.write(serialize());
 			/* fall through */

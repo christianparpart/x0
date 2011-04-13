@@ -334,7 +334,7 @@ private:
 
 	// response write helper
 	Source* serialize();
-	Source* makeDefaultResponseContent();
+	void writeDefaultResponseContent();
 	void checkFinish();
 	void finalize();
 
