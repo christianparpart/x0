@@ -144,6 +144,7 @@ void Socket::close()
 	if (fd_< 0)
 		return;
 
+	mode_ = None;
 	watcher_.stop();
 	timer_.stop();
 
