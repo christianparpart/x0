@@ -121,6 +121,11 @@ public:
 
 	ev_io io_;
 
+	/*! this is basically the same as the HttpConnection.hot_ property, to indicate whether we are within 
+	 *  an I/O notifier (and though, shouldn't destruct ourselfs right away).
+	 */
+	bool hot_;
+
 	CgiContext *context_;
 
 	struct ev_loop *loop_;
@@ -219,6 +224,7 @@ public:
 CgiTransport::CgiTransport(CgiContext *cx) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
 	io_(),
+	hot_(false),
 	context_(cx),
 	loop_(ev_default_loop(0)),
 	hostname_(),
@@ -262,7 +268,13 @@ CgiTransport::~CgiTransport()
 {
 	TRACE("~CgiTransport()");
 
-	assert(request_ == nullptr);
+	if (request_) {
+		if (request_->status == x0::HttpError::Undefined) {
+			request_->status = x0::HttpError::ServiceUnavailable;
+		}
+
+		request_->finish();
+	}
 
 	ev_io_stop(loop_, &io_);
 	if (fd_ >= 0) {
@@ -479,6 +491,8 @@ bool CgiTransport::onConnectComplete()
 void CgiTransport::io(int revents)
 {
 	TRACE("CgiTransport::io(0x%04x)", revents);
+	hot_ = true;
+
 	if (revents & EV_READ)
 	{
 		TRACE("CgiTransport::io(): reading ...");
@@ -496,15 +510,16 @@ void CgiTransport::io(int revents)
 
 			if (rv == 0) {
 				TRACE("fastcgi: connection to backend lost.");
-				finish();
-				return;
+				goto finish;
 			}
 
 			if (rv < 0) {
-				if (errno != EINTR && errno != EAGAIN)
+				if (errno != EINTR && errno != EAGAIN) {
 					context().server().log(x0::Severity::error,
 						"fastcgi: read from backend %s:%d failed: %s",
 						hostname_.c_str(), port_, strerror(errno));
+					goto finish;
+				}
 
 				break;
 			}
@@ -526,7 +541,7 @@ void CgiTransport::io(int revents)
 			readOffset_ += record->size();
 
 			if (!processRecord(record))
-				return;
+				goto done;
 		}
 	}
 
@@ -542,9 +557,10 @@ void CgiTransport::io(int revents)
 			if (errno != EINTR && errno != EAGAIN) {
 				context().server().log(x0::Severity::error,
 					"fastcgi: write to backend %s:%d failed: %s", hostname_.c_str(), port_, strerror(errno));
+				goto finish;
 			}
 
-			return;
+			goto done;
 		}
 
 		writeOffset_ += rv;
@@ -559,6 +575,17 @@ void CgiTransport::io(int revents)
 			writeBuffer_.clear();
 			writeOffset_ = 0;
 		}
+	}
+	goto done;
+
+finish:
+	finish();
+
+done:
+	hot_ = false;
+
+	if (finish_) {
+		finish();
 	}
 }
 
@@ -701,10 +728,7 @@ void CgiTransport::onStdErr(x0::BufferRef&& chunk)
 void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
 {
 	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d) writeActive:%d", appStatus, (int)protocolStatus, writeActive_);
-	if (writeActive_)
-		finish_ = true;
-	else
-		finish();
+	finish();
 }
 
 void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
@@ -743,6 +767,7 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 bool CgiTransport::messageContent(x0::BufferRef&& content)
 {
 	TRACE("CgiTransport.messageContent(len:%ld) writeActive=%d", content.size(), writeActive_);
+
 	if (!writeActive_)
 	{
 		request_->write<x0::BufferSource>(content);
@@ -812,17 +837,12 @@ void CgiTransport::onAbort(void *p)
  */
 void CgiTransport::finish()
 {
-	TRACE("CgiTransport::finish()");
-	if (request_) {
-		if (request_->status == x0::HttpError::Undefined) {
-			request_->status = x0::HttpError::ServiceUnavailable;
-		}
+	TRACE("CgiTransport::finish() writeActive:%d, hot:%d", writeActive_, hot_);
 
-		request_->finish();
-		request_ = nullptr;
-	}
-
-	context_->release(this);
+	if (writeActive_ || hot_)
+		finish_ = true;
+	else
+		context_->release(this);
 }
 // }}}
 
