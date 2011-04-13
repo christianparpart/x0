@@ -71,6 +71,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 HttpRequest::~HttpRequest()
 {
 	TRACE("destructing");
+	connection.worker().server().onRequestDone(this);
 	--connection.worker().requestLoad_;
 	clearCustomData();
 }

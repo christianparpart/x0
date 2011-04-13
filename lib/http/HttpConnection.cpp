@@ -374,9 +374,6 @@ void HttpConnection::resume()
 		socket()->setTcpCork(false);
 
 	if (request_) {
-		// log request/response
-		worker().server().onRequestDone(request_);
-
 		delete request_;
 		request_ = nullptr;
 	}
@@ -533,9 +530,6 @@ void HttpConnection::close()
 	state_ = Closed;
 
 	if (request_) {
-		// log request/response
-		worker().server().onRequestDone(request_);
-
 		delete request_;
 		request_ = nullptr;
 	}
