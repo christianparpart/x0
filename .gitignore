@@ -8,6 +8,7 @@ Makefile
 *~
 .swp
 .*.swp
+.directory
 .kdev4/
 build/
 test.crt
