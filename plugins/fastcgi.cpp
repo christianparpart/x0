@@ -733,8 +733,8 @@ void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolS
 
 void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
 {
-	TRACE("CgiTransport.processRequestBody(chunkLen=%ld, (r)contentLen=%ld)", chunk.size(),
-			request_->connection.contentLength());
+	//TRACE("CgiTransport.processRequestBody(chunkLen=%ld, (r)contentLen=%ld)", chunk.size(),
+	//		request_->connection.contentLength());
 
 	write(FastCgi::Type::StdIn, id_, chunk.data(), chunk.size());
 
@@ -748,7 +748,7 @@ void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
 
 void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 {
-	TRACE("CgiTransport.onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
+	//TRACE("CgiTransport.onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
 
 	if (x0::iequals(name, "Status"))
 	{
