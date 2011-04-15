@@ -29,8 +29,8 @@ public:
 		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setAncient>("browser.ancient");
 		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setModern>("browser.modern");
 
-		registerProperty<BrowserPlugin, &BrowserPlugin::isAncient>("browser.is_ancient", Flow::Value::BOOLEAN);
-		registerProperty<BrowserPlugin, &BrowserPlugin::isModern>("browser.is_modern", Flow::Value::BOOLEAN);
+		registerProperty<BrowserPlugin, &BrowserPlugin::isAncient>("browser.is_ancient", x0::FlowValue::BOOLEAN);
+		registerProperty<BrowserPlugin, &BrowserPlugin::isModern>("browser.is_modern", x0::FlowValue::BOOLEAN);
 	}
 
 	~BrowserPlugin()
@@ -41,14 +41,14 @@ private:
 	std::vector<std::string> ancients_;
 	std::map<std::string, float> modern_;
 
-	void setAncient(Flow::Value& result, const x0::Params& args)
+	void setAncient(x0::FlowValue& result, const x0::Params& args)
 	{
 		std::string ident = args[0].toString();
 
 		ancients_.push_back(ident);
 	}
 
-	void setModern(Flow::Value& result, const x0::Params& args)
+	void setModern(x0::FlowValue& result, const x0::Params& args)
 	{
 		std::string browser = args[0].toString();
 		float version = x0::Buffer(args[1].toString()).ref().toFloat();
@@ -56,7 +56,7 @@ private:
 		modern_[browser] = version;
 	}
 
-	void isAncient(Flow::Value& result, x0::HttpRequest *r, const x0::Params& args)
+	void isAncient(x0::FlowValue& result, x0::HttpRequest *r, const x0::Params& args)
 	{
 		x0::BufferRef userAgent(r->requestHeader("User-Agent"));
 
@@ -69,7 +69,7 @@ private:
 		result.set(false);
 	}
 
-	void isModern(Flow::Value& result, x0::HttpRequest *r, const x0::Params& args)
+	void isModern(x0::FlowValue& result, x0::HttpRequest *r, const x0::Params& args)
 	{
 		x0::BufferRef userAgent(r->requestHeader("User-Agent"));
 

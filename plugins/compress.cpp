@@ -91,10 +91,10 @@ public:
 
 		postProcess_ = server_.onPostProcess.connect<compress_plugin, &compress_plugin::postProcess>(this);
 
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_types>("compress.types", Flow::Value::VOID);
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_level>("compress.level", Flow::Value::VOID);
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_minsize>("compress.min", Flow::Value::VOID);
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_maxsize>("compress.max", Flow::Value::VOID);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_types>("compress.types", x0::FlowValue::VOID);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_level>("compress.level", x0::FlowValue::VOID);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_minsize>("compress.min", x0::FlowValue::VOID);
+		registerSetupProperty<compress_plugin, &compress_plugin::setup_maxsize>("compress.max", x0::FlowValue::VOID);
 	}
 
 	~compress_plugin() {
@@ -102,7 +102,7 @@ public:
 	}
 
 private:
-	void setup_types(Flow::Value& result, const x0::Params& args)
+	void setup_types(x0::FlowValue& result, const x0::Params& args)
 	{
 		contentTypes_.clear();
 
@@ -110,15 +110,15 @@ private:
 			populateContentTypes(args[i]);
 	}
 
-	void populateContentTypes(const Flow::Value& from)
+	void populateContentTypes(const x0::FlowValue& from)
 	{
 		switch (from.type())
 		{
-			case Flow::Value::STRING:
+			case x0::FlowValue::STRING:
 				contentTypes_.push_back(from.toString());
 				break;
-			case Flow::Value::ARRAY:
-				for (const Flow::Value *p = from.toArray(); !p->isVoid(); ++p)
+			case x0::FlowValue::ARRAY:
+				for (const x0::FlowValue *p = from.toArray(); !p->isVoid(); ++p)
 					populateContentTypes(*p);
 				break;
 			default:
@@ -126,18 +126,18 @@ private:
 		}
 	}
 
-	void setup_level(Flow::Value& result, const x0::Params& args)
+	void setup_level(x0::FlowValue& result, const x0::Params& args)
 	{
 		level_ = args[0].toNumber();
 		level_ = std::min(std::max(level_, 0), 10);
 	}
 
-	void setup_minsize(Flow::Value& result, const x0::Params& args)
+	void setup_minsize(x0::FlowValue& result, const x0::Params& args)
 	{
 		minSize_ = args[0].toNumber();
 	}
 
-	void setup_maxsize(Flow::Value& result, const x0::Params& args)
+	void setup_maxsize(x0::FlowValue& result, const x0::Params& args)
 	{
 		maxSize_ = args[0].toNumber();
 	}

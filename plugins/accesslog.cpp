@@ -104,7 +104,7 @@ public:
 	AccesslogPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerProperty<AccesslogPlugin, &AccesslogPlugin::handleRequest>("accesslog", Flow::Value::VOID);
+		registerProperty<AccesslogPlugin, &AccesslogPlugin::handleRequest>("accesslog", x0::FlowValue::VOID);
 	}
 
 	~AccesslogPlugin()
@@ -121,7 +121,7 @@ public:
 	}
 
 private:
-	void handleRequest(Flow::Value& result, x0::HttpRequest *in, const x0::Params& args)
+	void handleRequest(x0::FlowValue& result, x0::HttpRequest *in, const x0::Params& args)
 	{
 		std::string filename(args[0].toString());
 		auto i = logfiles_.find(filename);

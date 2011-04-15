@@ -14,8 +14,8 @@
 #include <x0/Types.h>
 #include <x0/Defines.h>
 #include <x0/Api.h>
-#include <flow/Flow.h>
-#include <flow/Value.h>
+#include <x0/flow/Flow.h>
+#include <x0/flow/FlowValue.h>
 
 #include <string>
 #include <vector>
@@ -32,15 +32,15 @@ namespace x0 {
 class Params
 {
 public:
-	typedef const Flow::Value* iterator;
+	typedef const FlowValue* iterator;
 
 private:
 	size_t count_;
-	const Flow::Value* params_;
+	const FlowValue* params_;
 
 public:
 	Params() : count_(0), params_(NULL) {}
-	Params(int count, Flow::Value *params) :
+	Params(int count, FlowValue *params) :
 		count_(count), params_(params) {}
 
 	iterator begin() const { return params_; }
@@ -48,8 +48,8 @@ public:
 
 	bool empty() const { return count_ == 0; }
 	size_t count() const { return count_; }
-	const Flow::Value& at(size_t i) const { return params_[i]; }
-	const Flow::Value& operator[](size_t i) const { return params_[i]; }
+	const FlowValue& at(size_t i) const { return params_[i]; }
+	const FlowValue& operator[](size_t i) const { return params_[i]; }
 
 	template<typename T>
 	bool load(size_t i, T& out) const { return i < count_ ? at(i).load(out) : false; }
@@ -89,11 +89,11 @@ public:
 	HttpServer& server() const;
 
 protected:
-	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupProperty(const std::string& name, Flow::Value::Type resultType);
-	template<typename T, void (T::*cb)(Flow::Value&, const Params&)> void registerSetupFunction(const std::string& name, Flow::Value::Type resultType = Flow::Value::VOID);
+	template<typename T, void (T::*cb)(FlowValue&, const Params&)> void registerSetupProperty(const std::string& name, FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(FlowValue&, const Params&)> void registerSetupFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
 
-	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> void registerProperty(const std::string& name, Flow::Value::Type resultType);
-	template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> void registerFunction(const std::string& name, Flow::Value::Type resultType = Flow::Value::VOID);
+	template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)> void registerProperty(const std::string& name, FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)> void registerFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
 	template<typename T, bool (T::*cb)(HttpRequest *, const Params&)> void registerHandler(const std::string& name);
 
 protected:
@@ -104,51 +104,51 @@ protected:
 	int debug_level_;
 #endif 
 private:
-	template<class T, void (T::*cb)(Flow::Value&, const Params&)> static void setup_thunk(void *p, int argc, Flow::Value *argv, void *cx);
-	template<class T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)> static void method_thunk(void *p, int argc, Flow::Value *argv, void *cx);
-	template<class T, bool (T::*cb)(HttpRequest *, const Params&)> static void handler_thunk(void *p, int argc, Flow::Value *argv, void *cx);
+	template<class T, void (T::*cb)(FlowValue&, const Params&)> static void setup_thunk(void *p, int argc, FlowValue *argv, void *cx);
+	template<class T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)> static void method_thunk(void *p, int argc, FlowValue *argv, void *cx);
+	template<class T, bool (T::*cb)(HttpRequest *, const Params&)> static void handler_thunk(void *p, int argc, FlowValue *argv, void *cx);
 
 	friend class HttpServer;
 };
 
 // {{{ flow integration
 // setup property
-template<typename T, void (T::*cb)(Flow::Value&, const Params&)>
-void HttpPlugin::registerSetupProperty(const std::string& name, Flow::Value::Type resultType)
+template<typename T, void (T::*cb)(FlowValue&, const Params&)>
+void HttpPlugin::registerSetupProperty(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerVariable(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
 }
 
 // setup function
-template<typename T, void (T::*cb)(Flow::Value&, const Params&)>
-void HttpPlugin::registerSetupFunction(const std::string& name, Flow::Value::Type resultType)
+template<typename T, void (T::*cb)(FlowValue&, const Params&)>
+void HttpPlugin::registerSetupFunction(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerFunction(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
 }
 
-template<class T, void (T::*cb)(Flow::Value&, const Params&)>
-void HttpPlugin::setup_thunk(void *p, int argc, Flow::Value *argv, void * /*cx*/)
+template<class T, void (T::*cb)(FlowValue&, const Params&)>
+void HttpPlugin::setup_thunk(void *p, int argc, FlowValue *argv, void * /*cx*/)
 {
 	Params args(argc, argv + 1);
 	(static_cast<T *>(p)->*cb)(argv[0], args);
 }
 
 // property
-template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)>
-void HttpPlugin::registerProperty(const std::string& name, Flow::Value::Type resultType)
+template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)>
+void HttpPlugin::registerProperty(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerVariable(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
 }
 
 // methods
-template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)>
-void HttpPlugin::registerFunction(const std::string& name, Flow::Value::Type resultType)
+template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)>
+void HttpPlugin::registerFunction(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerFunction(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
 }
 
-template<typename T, void (T::*cb)(Flow::Value&, HttpRequest *, const Params&)>
-void HttpPlugin::method_thunk(void *p, int argc, Flow::Value *argv, void *cx)
+template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)>
+void HttpPlugin::method_thunk(void *p, int argc, FlowValue *argv, void *cx)
 {
 	T *self = static_cast<T *>(p);
 	HttpRequest *r = static_cast<HttpRequest  *>(cx);
@@ -165,7 +165,7 @@ void HttpPlugin::registerHandler(const std::string& name)
 }
 
 template<typename T, bool (T::*cb)(HttpRequest *, const Params& args)>
-void HttpPlugin::handler_thunk(void *p, int argc, Flow::Value *argv, void *cx)
+void HttpPlugin::handler_thunk(void *p, int argc, FlowValue *argv, void *cx)
 {
 	T *self = static_cast<T *>(p);
 	HttpRequest *r = static_cast<HttpRequest *>(cx);

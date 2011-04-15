@@ -67,14 +67,12 @@ CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
 if(HAVE_ZLIB_H)
 	CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
 	set(ZLIB_LIBRARIES z)
-	set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
 endif(HAVE_ZLIB_H)
 
 CHECK_INCLUDE_FILES(bzlib.h HAVE_BZLIB_H)
 if(HAVE_BZLIB_H)
 	CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
 	set(BZIP2_LIBRARIES bz2)
-	set(LIBS ${LIBS} ${BZIP2_LIBRARIES})
 endif(HAVE_BZLIB_H)
 
 # ---------------------------------------------------------------------------
@@ -82,26 +80,29 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support/sd-daemon)
 
+# LLVM
+find_package(LLVM)
+include_directories(${LLVM_INCLUDE_DIR})
+link_directories(${LLVM_LIBRARY_DIR})
+set(LIBS ${LIBS} ${LLVM_LIBRARIES})
+add_definitions(${LLVM_CPPFLAGS})
 
-# flow
-find_package(FLOW)
-include_directories(${FLOW_INCLUDE_DIR})
-link_directories(${FLOW_LIBRARY_DIR})
-add_definitions(${FLOW_CPPFLAGS})
-set(LIBS ${LIBS} ${FLOW_LIBRARIES})
+# PCRE
+option(WITH_PCRE "With PCRE support [default: off]" ON)
+if(WITH_PCRE)
+	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
+endif(WITH_PCRE)
 
 # ev
 find_package(EV)
 include_directories(${EV_INCLUDE_DIR})
 link_directories(${EV_LIBRARY_DIR})
 add_definitions(${EV_CPPFLAGS})
-set(LIBS ${LIBS} ${EV_LIBRARIES})
 
-# mysql
+# mySQL
 option(WITH_MYSQL "With mySQL support [default: on]" ON)
 if(WITH_MYSQL)
 	set(MYSQL_LIBRARIES mysqlclient CACHE STRING "mySQL library")
-	set(LIBS ${LIBS} ${MYSQL_LIBRARIES})
 endif()
 
 set(RRD_LIBRARIES -lrrd)
@@ -150,9 +151,9 @@ endif(Boost_FOUND)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
-pkg_check_modules(LUA REQUIRED lua>=5.1)
-message(STATUS "LUA include directory: " ${LUA_INCLUDE_DIRS})
-message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
+#pkg_check_modules(LUA REQUIRED lua>=5.1)
+#message(STATUS "LUA include directory: " ${LUA_INCLUDE_DIRS})
+#message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
 
 if(WITH_SSL)
 	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0 gnutls-extra>=2.0.0)

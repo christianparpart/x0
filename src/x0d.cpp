@@ -9,6 +9,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpCore.h>
+#include <x0/flow/FlowRunner.h>
 #include <x0/Logger.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
@@ -74,7 +75,7 @@ public:
 		sigterm_(server_->loop()),
 		sighup_(server_->loop())
 	{
-		Flow::Runner::initialize();
+		x0::FlowRunner::initialize();
 
 #ifndef NDEBUG
 		nofork_ = true;
@@ -97,7 +98,7 @@ public:
 
 		instance_ = nullptr;
 
-		Flow::Runner::shutdown();
+		x0::FlowRunner::shutdown();
 	}
 
 	static x0d *instance()

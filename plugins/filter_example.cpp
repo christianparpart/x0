@@ -72,13 +72,13 @@ public:
 	filter_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerFunction<filter_plugin, &filter_plugin::install_filter>("example_filter", Flow::Value::VOID);
+		registerFunction<filter_plugin, &filter_plugin::install_filter>("example_filter", x0::FlowValue::VOID);
 	}
 
 	~filter_plugin() {
 	}
 
-	void install_filter(Flow::Value& /*result*/, x0::HttpRequest *r, const x0::Params& args)
+	void install_filter(x0::FlowValue& /*result*/, x0::HttpRequest *r, const x0::Params& args)
 	{
 		if (args.count() != 1) {
 			log(x0::Severity::error, "No argument passed.");

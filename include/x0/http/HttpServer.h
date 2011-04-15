@@ -23,8 +23,8 @@
 
 #include <x0/sysconfig.h>
 
-#include <flow/Backend.h>
-#include <flow/Runner.h>
+#include <x0/flow/FlowBackend.h>
+#include <x0/flow/FlowRunner.h>
 
 #include <cstring>
 #include <string>
@@ -52,7 +52,7 @@ struct HttpWorker;
  * \see HttpServer::run(), HttpServer::stop()
  */
 class HttpServer :
-	public Flow::Backend
+	public FlowBackend
 {
 	HttpServer(const HttpServer&) = delete;
 	HttpServer& operator=(const HttpServer&) = delete;
@@ -144,7 +144,7 @@ public:
 
 	void dumpIR() const; // for debugging purpose
 
-public: // Flow::Backend overrides
+public: // FlowBackend overrides
 	virtual void import(const std::string& name, const std::string& path);
 
 private:
@@ -162,8 +162,8 @@ private:
 
 	std::vector<std::string> components_;
 
-	Flow::Unit *unit_;
-	Flow::Runner *runner_;
+	Unit *unit_;
+	FlowRunner *runner_;
 	bool (*onHandleRequest_)(void *);
 
 	std::list<HttpListener *> listeners_;

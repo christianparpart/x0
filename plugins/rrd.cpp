@@ -52,8 +52,8 @@ public:
 	{
 		evTimer_.set<rrd_plugin, &rrd_plugin::onTimer>(this);
 
-		registerSetupProperty<rrd_plugin, &rrd_plugin::setup_filename>("rrd.filename", Flow::Value::STRING);
-		registerSetupProperty<rrd_plugin, &rrd_plugin::setup_step>("rrd.step", Flow::Value::NUMBER);
+		registerSetupProperty<rrd_plugin, &rrd_plugin::setup_filename>("rrd.filename", x0::FlowValue::STRING);
+		registerSetupProperty<rrd_plugin, &rrd_plugin::setup_step>("rrd.step", x0::FlowValue::NUMBER);
 		registerHandler<rrd_plugin, &rrd_plugin::logRequest>("rrd");
 	}
 
@@ -62,7 +62,7 @@ public:
 	}
 
 private:
-	void setup_step(Flow::Value& result, const x0::Params& args)
+	void setup_step(x0::FlowValue& result, const x0::Params& args)
 	{
 		if (!args.count()) {
 			result.set(step_);
@@ -77,7 +77,7 @@ private:
 		checkStart();
 	}
 
-	void setup_filename(Flow::Value& result, const x0::Params& args)
+	void setup_filename(x0::FlowValue& result, const x0::Params& args)
 	{
 		if (!args.count()) {
 			result.set(filename_.c_str());

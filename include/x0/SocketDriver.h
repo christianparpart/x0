@@ -13,13 +13,10 @@
 #include <system_error>
 #include <unistd.h>
 
-namespace Flow {
-	class IPAddress;
-}
-
 namespace x0 {
 
 class Socket;
+class IPAddress;
 
 class SocketDriver
 {
@@ -29,7 +26,7 @@ public:
 
 	virtual bool isSecure() const;
 	virtual Socket *create(struct ev_loop *loop, int handle, int af);
-	virtual Socket *create(struct ev_loop *loop, Flow::IPAddress *ipaddr, int port);
+	virtual Socket *create(struct ev_loop *loop, IPAddress* ipaddr, int port);
 	virtual void destroy(Socket *);
 };
 

@@ -19,10 +19,7 @@
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
 
-#include <flow/Flow.h>
-#include <flow/Value.h>
-#include <flow/Parser.h>
-#include <flow/Runner.h>
+#include <x0/flow/FlowRunner.h>
 
 #include <sd-daemon.h>
 
@@ -117,7 +114,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	tag("x0/" VERSION),
 	advertise(true)
 {
-	runner_ = new Flow::Runner(this);
+	runner_ = new FlowRunner(this);
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
 
 	HttpRequest::initialize();
@@ -166,7 +163,7 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 
 	// run setup
 	{
-		Flow::Function* setupFn = runner_->findHandler("setup");
+		Function* setupFn = runner_->findHandler("setup");
 		if (!setupFn) {
 			log(Severity::error, "no setup handler defined in config file.\n");
 			goto err;
