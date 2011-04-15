@@ -2,12 +2,13 @@
 -----------------------------------------------------------------------------
 INSTALL REQUIREMENTS:
 
-- GCC 4.4.0 - better use 4.5.0 (to make use of lambdas)
-- LUA 5.1.4
-- boost 1.42
+- GCC 4.6.0 (or higher but absolutely not prior, we use C++0x in our code)
+- boost 1.42 - a few pieces still use boost code
 - cmake 2.8.0 - for building
-- cppunit 1.12.1 - for unit tests
-- gnutls (optional, for SSL/TLS encryption)
+- cppunit 1.12.1 - optional, for unit tests
+- gnutls - optional, for SSL/TLS encryption
+- pod2man - part of perl, to generate the man pages
+- doxygen - optional, to generate developer-API documentation.
 
 fetch the sources from github.com/trapni/x0 (i guess you already did that).
 
@@ -21,7 +22,14 @@ cmake .
 make
 sudo make install
 
-cd src/
-./x0d --no-fork --config=test.conf         # or in short: ./x0d -X -c test.conf
+# now test the daemon:
+./src/x0d --no-fork --config=src/test.conf
+
+# run in a simple instant-mode, sharing one dir at given port:
+./src/x0d --instant=`pwd`,8080
+
+# now checkout the man pages:
+man 8 x0d
+man 5 x0d.conf
 
 # have fun hacking.
