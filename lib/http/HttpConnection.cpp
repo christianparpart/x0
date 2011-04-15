@@ -257,7 +257,11 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 {
 	TRACE("messageBegin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
 
-	assert(request_ == nullptr);
+	if (request_ != nullptr) {
+		log(Severity::error, "WTF! There is a request assigned to this connection, yet messageBegin(%s, %s, %d.%d) is invoked!",
+			method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+	}
+	//XXX WTF assert(request_ == nullptr);
 
 	request_ = new HttpRequest(*this);
 
@@ -267,13 +271,10 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 	url_decode(request_->uri);
 
 	std::size_t n = request_->uri.find("?");
-	if (n != std::string::npos)
-	{
+	if (n != std::string::npos) {
 		request_->path = request_->uri.ref(0, n);
 		request_->query = request_->uri.ref(n + 1);
-	}
-	else
-	{
+	} else {
 		request_->path = request_->uri;
 	}
 
