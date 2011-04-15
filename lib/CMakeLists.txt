@@ -17,9 +17,15 @@ if(WITH_MYSQL)
 	file(GLOB x0_sql_SRC "sql/*.cpp")
 endif()
 
-set(x0_SRC ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC} ${x0_http_SRC})
+# XzeroBase
+add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
+target_link_libraries(XzeroBase dl pthread
+	${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES}
+	${EV_LIBRARIES} ${MYSQL_LIBRARIES})
+install(TARGETS XzeroBase DESTINATION ${LIBDIR})
 
-add_library(x0 SHARED ${x0_SRC})
-set_target_properties(x0 PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
-target_link_libraries(x0 dl pthread ${SD_LIBRARIES} ${LIBS})
-install(TARGETS x0 DESTINATION ${LIBDIR})
+# XzeroHttp
+add_library(XzeroHttp SHARED ${x0_http_SRC})
+set_target_properties(XzeroHttp PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
+target_link_libraries(XzeroHttp XzeroBase ${SD_LIBRARIES} ${FLOW_LIBRARIES})
+install(TARGETS XzeroHttp DESTINATION ${LIBDIR})

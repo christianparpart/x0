@@ -67,14 +67,12 @@ CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
 if(HAVE_ZLIB_H)
 	CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
 	set(ZLIB_LIBRARIES z)
-	set(LIBS ${LIBS} ${ZLIB_LIBRARIES})
 endif(HAVE_ZLIB_H)
 
 CHECK_INCLUDE_FILES(bzlib.h HAVE_BZLIB_H)
 if(HAVE_BZLIB_H)
 	CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
 	set(BZIP2_LIBRARIES bz2)
-	set(LIBS ${LIBS} ${BZIP2_LIBRARIES})
 endif(HAVE_BZLIB_H)
 
 # ---------------------------------------------------------------------------
@@ -88,20 +86,17 @@ find_package(FLOW)
 include_directories(${FLOW_INCLUDE_DIR})
 link_directories(${FLOW_LIBRARY_DIR})
 add_definitions(${FLOW_CPPFLAGS})
-set(LIBS ${LIBS} ${FLOW_LIBRARIES})
 
 # ev
 find_package(EV)
 include_directories(${EV_INCLUDE_DIR})
 link_directories(${EV_LIBRARY_DIR})
 add_definitions(${EV_CPPFLAGS})
-set(LIBS ${LIBS} ${EV_LIBRARIES})
 
 # mysql
 option(WITH_MYSQL "With mySQL support [default: on]" ON)
 if(WITH_MYSQL)
 	set(MYSQL_LIBRARIES mysqlclient CACHE STRING "mySQL library")
-	set(LIBS ${LIBS} ${MYSQL_LIBRARIES})
 endif()
 
 set(RRD_LIBRARIES -lrrd)
