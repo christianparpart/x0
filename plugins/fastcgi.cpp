@@ -824,9 +824,7 @@ void CgiTransport::onWriteComplete()
  */
 void CgiTransport::onAbort(void *p)
 {
-	TRACE("CgiTransport.onAbort()");
-	CgiTransport *self = (CgiTransport*) p;
-	self->finish();
+	reinterpret_cast<CgiTransport*>(p)->abortRequest();
 }
 
 /**
