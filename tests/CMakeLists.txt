@@ -30,17 +30,18 @@ target_link_libraries(x0test
 	${LUA_LIBRARIES}
 	${CPPUNIT_LIBRARIES}
 	dl pthread
-	x0
+	XzeroBase
+	XzeroHttp
 )
 
 # -----------------------------------------------------------------
 # some quicky executables
 
 add_executable(x0cp x0cp.cpp)
-target_link_libraries(x0cp x0)
+target_link_libraries(x0cp XzeroBase)
 
 #add_executable(web_client_test web_client_test.cpp)
-#target_link_libraries(web_client_test ${CPPUNIT_LIBRARIES} x0)
+#target_link_libraries(web_client_test ${CPPUNIT_LIBRARIES} XzeroHttp)
 
 add_executable(fcgi-long-run fcgi-long-run.cpp)
 target_link_libraries(fcgi-long-run fcgi)
