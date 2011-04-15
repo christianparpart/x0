@@ -681,8 +681,8 @@ public:
 		interpreterMappings_(),
 		ttl_(0)
 	{
-		registerSetupProperty<CgiPlugin, &CgiPlugin::set_ttl>("cgi.ttl", Flow::Value::NUMBER);
-		registerSetupFunction<CgiPlugin, &CgiPlugin::set_mapping>("cgi.mapping", Flow::Value::VOID);
+		registerSetupProperty<CgiPlugin, &CgiPlugin::set_ttl>("cgi.ttl", x0::FlowValue::NUMBER);
+		registerSetupFunction<CgiPlugin, &CgiPlugin::set_mapping>("cgi.mapping", x0::FlowValue::VOID);
 
 		registerHandler<CgiPlugin, &CgiPlugin::prefix>("cgi.prefix");
 		registerHandler<CgiPlugin, &CgiPlugin::exec>("cgi.exec");
@@ -691,30 +691,30 @@ public:
 
 private:
 	// {{{ setup functions
-	void set_ttl(Flow::Value& result, const x0::Params& args)
+	void set_ttl(x0::FlowValue& result, const x0::Params& args)
 	{
 		args.load(0, ttl_);
 	}
 
 	// cgi.mapping(ext => bin, ext => bin, ...);
-	void set_mapping(Flow::Value& result, const x0::Params& args)
+	void set_mapping(x0::FlowValue& result, const x0::Params& args)
 	{
 		for (auto& arg: args)
 			addMapping(arg);
 	}
 
-	void addMapping(const Flow::Value& mapping)
+	void addMapping(const x0::FlowValue& mapping)
 	{
 		if (!mapping.isArray())
 			return;
 
-		std::vector<const Flow::Value *> items;
-		for (const Flow::Value *item = mapping.toArray(); !item->isVoid(); ++item)
+		std::vector<const x0::FlowValue *> items;
+		for (const x0::FlowValue *item = mapping.toArray(); !item->isVoid(); ++item)
 			items.push_back(item);
 
 		if (items.size() != 2)
 		{
-			for (const Flow::Value *item = mapping.toArray(); !item->isVoid(); ++item)
+			for (const x0::FlowValue *item = mapping.toArray(); !item->isVoid(); ++item)
 				addMapping(*item);
 		}
 		else if (items[0]->isString() && items[1]->isString())

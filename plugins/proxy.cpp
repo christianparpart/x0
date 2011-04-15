@@ -642,7 +642,7 @@ public:
 		cloak_(true)
 	{
 		registerHandler<proxy_plugin, &proxy_plugin::proxy_reverse>("proxy.reverse");
-		registerSetupProperty<proxy_plugin, &proxy_plugin::proxy_cloak>("proxy.cloak", Flow::Value::BOOLEAN);
+		registerSetupProperty<proxy_plugin, &proxy_plugin::proxy_cloak>("proxy.cloak", x0::FlowValue::BOOLEAN);
 	}
 
 	~proxy_plugin()
@@ -650,7 +650,7 @@ public:
 	}
 
 private:
-	void proxy_cloak(Flow::Value& result, const x0::Params& args)
+	void proxy_cloak(x0::FlowValue& result, const x0::Params& args)
 	{
 		if (args.count() && (args[0].isBool() || args[0].isNumber()))
 		{

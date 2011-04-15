@@ -88,9 +88,9 @@ public:
 
 		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(nullptr));
 
-		registerSetupFunction<ssl_plugin, &ssl_plugin::add_listener>("ssl.listen", Flow::Value::VOID);
-		registerSetupFunction<ssl_plugin, &ssl_plugin::add_context>("ssl.context", Flow::Value::VOID);
-		registerSetupProperty<ssl_plugin, &ssl_plugin::set_loglevel>("ssl.loglevel", Flow::Value::VOID);
+		registerSetupFunction<ssl_plugin, &ssl_plugin::add_listener>("ssl.listen", x0::FlowValue::VOID);
+		registerSetupFunction<ssl_plugin, &ssl_plugin::add_context>("ssl.context", x0::FlowValue::VOID);
+		registerSetupProperty<ssl_plugin, &ssl_plugin::set_loglevel>("ssl.loglevel", x0::FlowValue::VOID);
 	}
 
 	~ssl_plugin()
@@ -137,7 +137,7 @@ public:
 	// {{{ config
 private:
 	// ssl.listener(BINDADDR_PORT);
-	void add_listener(Flow::Value& result, const x0::Params& args)
+	void add_listener(x0::FlowValue& result, const x0::Params& args)
 	{
 		std::string arg(args[0].toString());
 		size_t n = arg.find(':');
@@ -158,7 +158,7 @@ private:
 		listener->setSocketDriver(driver);
 	}
 
-	void set_loglevel(Flow::Value& result, const x0::Params& args)
+	void set_loglevel(x0::FlowValue& result, const x0::Params& args)
 	{
 		if (args.count() == 1)
 		{
@@ -189,7 +189,7 @@ private:
 	// 		'crtfile' => PATH,
 	// 		'crlfile' => PATH);
 	//
-	void add_context(Flow::Value& result, const x0::Params& args)
+	void add_context(x0::FlowValue& result, const x0::Params& args)
 	{
 		std::auto_ptr<SslContext> cx(new SslContext());
 		cx->setLogger(server().logger());
@@ -200,8 +200,8 @@ private:
 			if (!args[i].isArray())
 				continue;
 
-			const Flow::Value *key = args[i].toArray();
-			const Flow::Value *value = key + 1;
+			const x0::FlowValue *key = args[i].toArray();
+			const x0::FlowValue *value = key + 1;
 
 			if (!key->isString())
 				continue;

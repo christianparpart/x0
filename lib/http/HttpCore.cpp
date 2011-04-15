@@ -39,71 +39,71 @@ HttpCore::HttpCore(HttpServer& server) :
 			std::bind(&HttpCore::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
 	// setup
-	registerSetupFunction<HttpCore, &HttpCore::emit_llvm>("llvm.dump", Flow::Value::VOID);
-	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", Flow::Value::VOID);
-	registerSetupFunction<HttpCore, &HttpCore::log_sd>("log.systemd", Flow::Value::VOID);
-	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", Flow::Value::STRING);
-	registerSetupFunction<HttpCore, &HttpCore::user>("user", Flow::Value::BOOLEAN);
-	registerSetupProperty<HttpCore, &HttpCore::workers>("workers", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", Flow::Value::VOID); // write-only (array)
-	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", Flow::Value::VOID); // write-only (array)
-	registerSetupProperty<HttpCore, &HttpCore::etag_mtime>("etag.mtime", Flow::Value::VOID); // write-only (array)
-	registerSetupProperty<HttpCore, &HttpCore::etag_size>("etag.size", Flow::Value::VOID); // write-only (array)
-	registerSetupProperty<HttpCore, &HttpCore::etag_inode>("etag.inode", Flow::Value::VOID); // write-only (array)
-	registerSetupProperty<HttpCore, &HttpCore::fileinfo_cache_ttl>("fileinfo.ttl", Flow::Value::VOID); // write-only (int)
-	registerSetupProperty<HttpCore, &HttpCore::server_advertise>("server.advertise", Flow::Value::BOOLEAN);
-	registerSetupProperty<HttpCore, &HttpCore::server_tags>("server.tags", Flow::Value::VOID); // write-only (array)
+	registerSetupFunction<HttpCore, &HttpCore::emit_llvm>("llvm.dump", FlowValue::VOID);
+	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", FlowValue::VOID);
+	registerSetupFunction<HttpCore, &HttpCore::log_sd>("log.systemd", FlowValue::VOID);
+	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", FlowValue::STRING);
+	registerSetupFunction<HttpCore, &HttpCore::user>("user", FlowValue::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::workers>("workers", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", FlowValue::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", FlowValue::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::etag_mtime>("etag.mtime", FlowValue::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::etag_size>("etag.size", FlowValue::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::etag_inode>("etag.inode", FlowValue::VOID); // write-only (array)
+	registerSetupProperty<HttpCore, &HttpCore::fileinfo_cache_ttl>("fileinfo.ttl", FlowValue::VOID); // write-only (int)
+	registerSetupProperty<HttpCore, &HttpCore::server_advertise>("server.advertise", FlowValue::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::server_tags>("server.tags", FlowValue::VOID); // write-only (array)
 
-	registerSetupProperty<HttpCore, &HttpCore::max_read_idle>("max_read_idle", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::max_write_idle>("max_write_idle", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::max_keepalive_idle>("max_keepalive_idle", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::max_conns>("max_connections", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::max_files>("max_files", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::max_address_space>("max_address_space", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::max_core>("max_core_size", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::tcp_cork>("tcp_cork", Flow::Value::BOOLEAN);
-	registerSetupProperty<HttpCore, &HttpCore::tcp_nodelay>("tcp_nodelay", Flow::Value::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::max_read_idle>("max_read_idle", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_write_idle>("max_write_idle", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_keepalive_idle>("max_keepalive_idle", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_conns>("max_connections", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_files>("max_files", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_address_space>("max_address_space", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_core>("max_core_size", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::tcp_cork>("tcp_cork", FlowValue::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::tcp_nodelay>("tcp_nodelay", FlowValue::BOOLEAN);
 
 	// TODO setup error-documents
 
 	// shared
-	registerSetupFunction<HttpCore, &HttpCore::sys_env>("sys.env", Flow::Value::STRING);
-	registerSetupProperty<HttpCore, &HttpCore::sys_cwd>("sys.cwd", Flow::Value::STRING);
-	registerSetupProperty<HttpCore, &HttpCore::sys_pid>("sys.pid", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::sys_now>("sys.now", Flow::Value::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::sys_now_str>("sys.now_str", Flow::Value::STRING);
+	registerSetupFunction<HttpCore, &HttpCore::sys_env>("sys.env", FlowValue::STRING);
+	registerSetupProperty<HttpCore, &HttpCore::sys_cwd>("sys.cwd", FlowValue::STRING);
+	registerSetupProperty<HttpCore, &HttpCore::sys_pid>("sys.pid", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::sys_now>("sys.now", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::sys_now_str>("sys.now_str", FlowValue::STRING);
 
 	// main
 	registerHandler<HttpCore, &HttpCore::docroot>("docroot");
 	registerHandler<HttpCore, &HttpCore::alias>("alias");
-	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", Flow::Value::VOID);
-	registerProperty<HttpCore, &HttpCore::req_method>("req.method", Flow::Value::BUFFER);
-	registerProperty<HttpCore, &HttpCore::req_url>("req.url", Flow::Value::BUFFER);
-	registerProperty<HttpCore, &HttpCore::req_path>("req.path", Flow::Value::BUFFER);
-	registerProperty<HttpCore, &HttpCore::req_header>("req.header", Flow::Value::BUFFER);
-	registerProperty<HttpCore, &HttpCore::req_host>("req.host", Flow::Value::BUFFER);
-	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", Flow::Value::STRING);
-	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", Flow::Value::BOOLEAN);
-	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("req.remoteip", Flow::Value::STRING);
-	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", Flow::Value::NUMBER);
-	registerProperty<HttpCore, &HttpCore::conn_local_ip>("req.localip", Flow::Value::STRING);
-	registerProperty<HttpCore, &HttpCore::conn_local_port>("req.localport", Flow::Value::NUMBER);
-	registerProperty<HttpCore, &HttpCore::phys_path>("phys.path", Flow::Value::STRING);
-	registerProperty<HttpCore, &HttpCore::phys_exists>("phys.exists", Flow::Value::BOOLEAN);
-	registerProperty<HttpCore, &HttpCore::phys_is_reg>("phys.is_reg", Flow::Value::BOOLEAN);
-	registerProperty<HttpCore, &HttpCore::phys_is_dir>("phys.is_dir", Flow::Value::BOOLEAN);
-	registerProperty<HttpCore, &HttpCore::phys_is_exe>("phys.is_exe", Flow::Value::BOOLEAN);
-	registerProperty<HttpCore, &HttpCore::phys_mtime>("phys.mtime", Flow::Value::NUMBER);
-	registerProperty<HttpCore, &HttpCore::phys_size>("phys.size", Flow::Value::NUMBER);
-	registerProperty<HttpCore, &HttpCore::phys_etag>("phys.etag", Flow::Value::STRING);
-	registerProperty<HttpCore, &HttpCore::phys_mimetype>("phys.mimetype", Flow::Value::STRING);
+	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", FlowValue::VOID);
+	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", FlowValue::VOID);
+	registerProperty<HttpCore, &HttpCore::req_method>("req.method", FlowValue::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_url>("req.url", FlowValue::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_path>("req.path", FlowValue::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_header>("req.header", FlowValue::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_host>("req.host", FlowValue::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", FlowValue::STRING);
+	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", FlowValue::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("req.remoteip", FlowValue::STRING);
+	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", FlowValue::NUMBER);
+	registerProperty<HttpCore, &HttpCore::conn_local_ip>("req.localip", FlowValue::STRING);
+	registerProperty<HttpCore, &HttpCore::conn_local_port>("req.localport", FlowValue::NUMBER);
+	registerProperty<HttpCore, &HttpCore::phys_path>("phys.path", FlowValue::STRING);
+	registerProperty<HttpCore, &HttpCore::phys_exists>("phys.exists", FlowValue::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_is_reg>("phys.is_reg", FlowValue::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_is_dir>("phys.is_dir", FlowValue::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_is_exe>("phys.is_exe", FlowValue::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::phys_mtime>("phys.mtime", FlowValue::NUMBER);
+	registerProperty<HttpCore, &HttpCore::phys_size>("phys.size", FlowValue::NUMBER);
+	registerProperty<HttpCore, &HttpCore::phys_etag>("phys.etag", FlowValue::STRING);
+	registerProperty<HttpCore, &HttpCore::phys_mimetype>("phys.mimetype", FlowValue::STRING);
 
-	registerFunction<HttpCore, &HttpCore::header_add>("header.add", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::header_append>("header.append", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::header_overwrite>("header.overwrite", Flow::Value::VOID);
-	registerFunction<HttpCore, &HttpCore::header_remove>("header.remove", Flow::Value::VOID);
+	registerFunction<HttpCore, &HttpCore::header_add>("header.add", FlowValue::VOID);
+	registerFunction<HttpCore, &HttpCore::header_append>("header.append", FlowValue::VOID);
+	registerFunction<HttpCore, &HttpCore::header_overwrite>("header.overwrite", FlowValue::VOID);
+	registerFunction<HttpCore, &HttpCore::header_remove>("header.remove", FlowValue::VOID);
 
 	// main handlers
 	registerHandler<HttpCore, &HttpCore::staticfile>("staticfile");
@@ -116,7 +116,7 @@ HttpCore::~HttpCore()
 }
 
 // {{{ setup
-void HttpCore::user(Flow::Value& result, const Params& args)
+void HttpCore::user(FlowValue& result, const Params& args)
 {
 	std::string username(args.count() >= 1 ? args[0].toString() : "");
 	std::string groupname(args.count() == 2 ? args[1].toString() : "");
@@ -165,7 +165,7 @@ bool HttpCore::drop_privileges(const std::string& username, const std::string& g
 	return true;
 }
 
-void HttpCore::mimetypes(Flow::Value& result, const Params& args)
+void HttpCore::mimetypes(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
 	{
@@ -173,7 +173,7 @@ void HttpCore::mimetypes(Flow::Value& result, const Params& args)
 	}
 }
 
-void HttpCore::mimetypes_default(Flow::Value& result, const Params& args)
+void HttpCore::mimetypes_default(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isString())
 	{
@@ -181,7 +181,7 @@ void HttpCore::mimetypes_default(Flow::Value& result, const Params& args)
 	}
 }
 
-void HttpCore::etag_mtime(Flow::Value& result, const Params& args)
+void HttpCore::etag_mtime(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
 		server().fileinfoConfig_.etagConsiderMtime = args[0].toBool();
@@ -189,7 +189,7 @@ void HttpCore::etag_mtime(Flow::Value& result, const Params& args)
 		result.set(server().fileinfoConfig_.etagConsiderMtime);
 }
 
-void HttpCore::etag_size(Flow::Value& result, const Params& args)
+void HttpCore::etag_size(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
 		server().fileinfoConfig_.etagConsiderSize = args[0].toBool();
@@ -197,7 +197,7 @@ void HttpCore::etag_size(Flow::Value& result, const Params& args)
 		result.set(server().fileinfoConfig_.etagConsiderSize);
 }
 
-void HttpCore::etag_inode(Flow::Value& result, const Params& args)
+void HttpCore::etag_inode(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
 		server().fileinfoConfig_.etagConsiderInode = args[0].toBool();
@@ -205,7 +205,7 @@ void HttpCore::etag_inode(Flow::Value& result, const Params& args)
 		result.set(server().fileinfoConfig_.etagConsiderInode);
 }
 
-void HttpCore::fileinfo_cache_ttl(Flow::Value& result, const Params& args)
+void HttpCore::fileinfo_cache_ttl(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		server().fileinfoConfig_.cacheTTL_ = args[0].toNumber();
@@ -213,37 +213,37 @@ void HttpCore::fileinfo_cache_ttl(Flow::Value& result, const Params& args)
 		result.set(server().fileinfoConfig_.cacheTTL_);
 }
 
-void HttpCore::server_advertise(Flow::Value& result, const Params& args)
+void HttpCore::server_advertise(FlowValue& result, const Params& args)
 {
 	if (args.empty())
 	{
 		result.set(server().advertise());
 	}
-	else // TODO if (args.expect(Flow::Value::NUMBER))
+	else // TODO if (args.expect(FlowValue::NUMBER))
 	{
 		server().advertise(args[0].toBool());
 	}
 }
 
-void HttpCore::server_tags(Flow::Value& result, const Params& args)
+void HttpCore::server_tags(FlowValue& result, const Params& args)
 {
 	for (size_t i = 0, e = args.count(); i != e; ++i)
 		loadServerTag(args[i]);
 }
 
-void HttpCore::loadServerTag(const Flow::Value& tag)
+void HttpCore::loadServerTag(const FlowValue& tag)
 {
 	switch (tag.type())
 	{
-		case Flow::Value::ARRAY:
-			for (const Flow::Value *a = tag.toArray(); !a->isVoid(); ++a)
+		case FlowValue::ARRAY:
+			for (const FlowValue *a = tag.toArray(); !a->isVoid(); ++a)
 				loadServerTag(*a);
 			break;
-		case Flow::Value::STRING:
+		case FlowValue::STRING:
 			if (*tag.toString() != '\0')
 				server().components_.push_back(tag.toString());
 			break;
-		case Flow::Value::BUFFER:
+		case FlowValue::BUFFER:
 			if (tag.toNumber() > 0)
 				server().components_.push_back(std::string(tag.toString(), tag.toNumber()));
 			break;
@@ -252,7 +252,7 @@ void HttpCore::loadServerTag(const Flow::Value& tag)
 	}
 }
 
-void HttpCore::max_read_idle(Flow::Value& result, const Params& args)
+void HttpCore::max_read_idle(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		server().maxReadIdle(TimeSpan::fromSeconds(args[0].toNumber()));
@@ -260,7 +260,7 @@ void HttpCore::max_read_idle(Flow::Value& result, const Params& args)
 		result.set(server().maxReadIdle());
 }
 
-void HttpCore::max_write_idle(Flow::Value& result, const Params& args)
+void HttpCore::max_write_idle(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		server().maxWriteIdle(TimeSpan::fromSeconds(args[0].toNumber()));
@@ -268,7 +268,7 @@ void HttpCore::max_write_idle(Flow::Value& result, const Params& args)
 		result.set(server().maxWriteIdle());
 }
 
-void HttpCore::max_keepalive_idle(Flow::Value& result, const Params& args)
+void HttpCore::max_keepalive_idle(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		server().maxKeepAlive(TimeSpan::fromSeconds(args[0].toNumber()));
@@ -276,7 +276,7 @@ void HttpCore::max_keepalive_idle(Flow::Value& result, const Params& args)
 		result.set(server().maxKeepAlive());
 }
 
-void HttpCore::max_conns(Flow::Value& result, const Params& args)
+void HttpCore::max_conns(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		server().maxConnections(args[0].toNumber());
@@ -284,7 +284,7 @@ void HttpCore::max_conns(Flow::Value& result, const Params& args)
 		result.set(server().maxConnections());
 }
 
-void HttpCore::max_files(Flow::Value& result, const Params& args)
+void HttpCore::max_files(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_NOFILE, args[0].toNumber());
@@ -292,7 +292,7 @@ void HttpCore::max_files(Flow::Value& result, const Params& args)
 		result.set(getrlimit(RLIMIT_NOFILE));
 }
 
-void HttpCore::max_address_space(Flow::Value& result, const Params& args)
+void HttpCore::max_address_space(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_AS, args[0].toNumber());
@@ -300,7 +300,7 @@ void HttpCore::max_address_space(Flow::Value& result, const Params& args)
 		result.set(getrlimit(RLIMIT_AS));
 }
 
-void HttpCore::max_core(Flow::Value& result, const Params& args)
+void HttpCore::max_core(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_CORE, args[0].toNumber());
@@ -308,7 +308,7 @@ void HttpCore::max_core(Flow::Value& result, const Params& args)
 		result.set(getrlimit(RLIMIT_CORE));
 }
 
-void HttpCore::tcp_cork(Flow::Value& result, const Params& args)
+void HttpCore::tcp_cork(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
 		server().tcpCork(args[0].toBool());
@@ -316,7 +316,7 @@ void HttpCore::tcp_cork(Flow::Value& result, const Params& args)
 		result.set(server().tcpCork());
 }
 
-void HttpCore::tcp_nodelay(Flow::Value& result, const Params& args)
+void HttpCore::tcp_nodelay(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1 && args[0].isBool())
 		server().tcpNoDelay(args[0].toBool());
@@ -324,7 +324,7 @@ void HttpCore::tcp_nodelay(Flow::Value& result, const Params& args)
 		result.set(server().tcpNoDelay());
 }
 
-void HttpCore::listen(Flow::Value& result, const Params& args)
+void HttpCore::listen(FlowValue& result, const Params& args)
 {
 	std::string arg(args[0].toString());
 	size_t n = arg.rfind(':');
@@ -345,7 +345,7 @@ void HttpCore::listen(Flow::Value& result, const Params& args)
 	result.set(listener == nullptr);
 }
 
-void HttpCore::workers(Flow::Value& result, const Params& args)
+void HttpCore::workers(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1) {
 		if (args[0].isArray()) {
@@ -353,7 +353,7 @@ void HttpCore::workers(Flow::Value& result, const Params& args)
 			size_t count = server_.workers_.size();
 
 			// spawn or set affinity of a set of workers as passed via input array
-			for (const Flow::Value *value = args[0].toArray(); !value->isVoid(); ++value) {
+			for (const FlowValue *value = args[0].toArray(); !value->isVoid(); ++value) {
 				if (value->isNumber()) {
 					if (i >= count)
 						server_.spawnWorker();
@@ -386,7 +386,7 @@ void HttpCore::workers(Flow::Value& result, const Params& args)
 
 extern std::string global_now(); // HttpServer.cpp
 
-void HttpCore::logfile(Flow::Value& result, const Params& args)
+void HttpCore::logfile(FlowValue& result, const Params& args)
 {
 	if (args.count() == 1)
 	{
@@ -399,7 +399,7 @@ void HttpCore::logfile(Flow::Value& result, const Params& args)
 	}
 }
 
-void HttpCore::log_sd(Flow::Value& result, const Params& args)
+void HttpCore::log_sd(FlowValue& result, const Params& args)
 {
 	if (args.count() == 0)
 	{
@@ -407,7 +407,7 @@ void HttpCore::log_sd(Flow::Value& result, const Params& args)
 	}
 }
 
-void HttpCore::loglevel(Flow::Value& result, const Params& args)
+void HttpCore::loglevel(FlowValue& result, const Params& args)
 {
 	if (args.count() == 0)
 	{
@@ -423,35 +423,35 @@ void HttpCore::loglevel(Flow::Value& result, const Params& args)
 	}
 }
 
-void HttpCore::emit_llvm(Flow::Value& result, const Params& args)
+void HttpCore::emit_llvm(FlowValue& result, const Params& args)
 {
 	emitLLVM_ = true;
 }
 // }}}
 
 // {{{ sys
-void HttpCore::sys_env(Flow::Value& result, const Params& args)
+void HttpCore::sys_env(FlowValue& result, const Params& args)
 {
 	result.set(getenv(args[0].toString()));
 }
 
-void HttpCore::sys_cwd(Flow::Value& result, const Params& args)
+void HttpCore::sys_cwd(FlowValue& result, const Params& args)
 {
 	static char buf[1024];
 	result.set(getcwd(buf, sizeof(buf)));
 }
 
-void HttpCore::sys_pid(Flow::Value& result, const Params& args)
+void HttpCore::sys_pid(FlowValue& result, const Params& args)
 {
 	result.set(getpid());
 }
 
-void HttpCore::sys_now(Flow::Value& result, const Params& args)
+void HttpCore::sys_now(FlowValue& result, const Params& args)
 {
 	result.set(static_cast<uint64_t>(server().workers_[0]->now_.unixtime()));
 }
 
-void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
+void HttpCore::sys_now_str(FlowValue& result, const Params& args)
 {
 	auto& s = server().workers_[0]->now_.http_str();
 	result.set(s.data(), s.size());
@@ -459,7 +459,7 @@ void HttpCore::sys_now_str(Flow::Value& result, const Params& args)
 // }}}
 
 // {{{ req
-void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::autoindex(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	if (in->documentRoot.empty()) {
 		server().log(Severity::error, "autoindex: No document root set yet. Skipping.");
@@ -480,13 +480,13 @@ void HttpCore::autoindex(Flow::Value& result, HttpRequest *in, const Params& arg
 			return;
 }
 
-bool HttpCore::matchIndex(HttpRequest *in, const Flow::Value& arg)
+bool HttpCore::matchIndex(HttpRequest *in, const FlowValue& arg)
 {
 	std::string path(in->fileinfo->filename());
 
 	switch (arg.type())
 	{
-		case Flow::Value::STRING:
+		case FlowValue::STRING:
 		{
 			std::string ipath;
 			ipath.reserve(path.length() + 1 + strlen(arg.toString()));
@@ -505,9 +505,9 @@ bool HttpCore::matchIndex(HttpRequest *in, const Flow::Value& arg)
 			}
 			break;
 		}
-		case Flow::Value::ARRAY:
+		case FlowValue::ARRAY:
 		{
-			for (const Flow::Value *a = arg.toArray(); !a->isVoid(); ++a)
+			for (const FlowValue *a = arg.toArray(); !a->isVoid(); ++a)
 				if (matchIndex(in, *a))
 					return true;
 
@@ -563,7 +563,7 @@ bool HttpCore::alias(HttpRequest *in, const Params& args)
 	return redirectOnIncompletePath(in);
 }
 
-void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::pathinfo(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	if (!in->fileinfo) {
 		in->log(Severity::error,
@@ -574,107 +574,107 @@ void HttpCore::pathinfo(Flow::Value& result, HttpRequest *in, const Params& args
 	in->updatePathInfo();
 }
 
-void HttpCore::req_method(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::req_method(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->method.data(), in->method.size());
 }
 
-void HttpCore::req_url(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::req_url(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->uri.data(), in->uri.size());
 }
 
-void HttpCore::req_path(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::req_path(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->path.data(), in->path.size());
 }
 
-void HttpCore::req_header(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::req_header(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	BufferRef ref(in->requestHeader(args[0].toString()));
 	result.set(ref.data(), ref.size());
 }
 
-void HttpCore::req_host(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::req_host(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->hostname.data(), in->hostname.size());
 }
 
-void HttpCore::req_pathinfo(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::req_pathinfo(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = in->pathinfo.c_str();
 }
 
-void HttpCore::req_is_secure(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::req_is_secure(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.isSecure();
 }
 // }}}
 
 // {{{ connection
-void HttpCore::conn_remote_ip(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::conn_remote_ip(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.remoteIP().c_str();
 }
 
-void HttpCore::conn_remote_port(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::conn_remote_port(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.remotePort();
 }
 
-void HttpCore::conn_local_ip(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::conn_local_ip(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.localIP().c_str();
 }
 
-void HttpCore::conn_local_port(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::conn_local_port(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.localPort();
 }
 // }}}
 
 // {{{ phys
-void HttpCore::phys_path(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_path(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->filename().c_str() : "");
 }
 
-void HttpCore::phys_exists(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_exists(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->exists() : false);
 }
 
-void HttpCore::phys_is_reg(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_is_reg(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->isRegular() : false);
 }
 
-void HttpCore::phys_is_dir(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_is_dir(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->isDirectory() : false);
 }
 
-void HttpCore::phys_is_exe(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_is_exe(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->isExecutable() : false);
 }
 
-void HttpCore::phys_mtime(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_mtime(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(static_cast<uint64_t>(in->fileinfo ? in->fileinfo->mtime() : 0));
 }
 
-void HttpCore::phys_size(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_size(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->size() : 0);
 }
 
-void HttpCore::phys_etag(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_etag(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->etag().c_str() : "");
 }
 
-void HttpCore::phys_mimetype(Flow::Value& result, HttpRequest *in, const Params& args)
+void HttpCore::phys_mimetype(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->fileinfo ? in->fileinfo->mimetype().c_str() : "");
 }
@@ -701,7 +701,7 @@ bool HttpCore::respond(HttpRequest *in, const Params& args)
 // }}}
 
 // {{{ response's header.* functions
-void HttpCore::header_add(Flow::Value& result, HttpRequest *r, const Params& args)
+void HttpCore::header_add(FlowValue& result, HttpRequest *r, const Params& args)
 {
 	if (args.count() != 2)
 		return;
@@ -712,7 +712,7 @@ void HttpCore::header_add(Flow::Value& result, HttpRequest *r, const Params& arg
 }
 
 // header.append(headerName, appendValue)
-void HttpCore::header_append(Flow::Value& result, HttpRequest *r, const Params& args)
+void HttpCore::header_append(FlowValue& result, HttpRequest *r, const Params& args)
 {
 	if (args.count() != 2)
 		return;
@@ -722,7 +722,7 @@ void HttpCore::header_append(Flow::Value& result, HttpRequest *r, const Params& 
 	}
 }
 
-void HttpCore::header_overwrite(Flow::Value& result, HttpRequest *r, const Params& args)
+void HttpCore::header_overwrite(FlowValue& result, HttpRequest *r, const Params& args)
 {
 	if (args.count() != 2)
 		return;
@@ -732,7 +732,7 @@ void HttpCore::header_overwrite(Flow::Value& result, HttpRequest *r, const Param
 	}
 }
 
-void HttpCore::header_remove(Flow::Value& result, HttpRequest *r, const Params& args)
+void HttpCore::header_remove(FlowValue& result, HttpRequest *r, const Params& args)
 {
 	if (args.count() != 1)
 		return;

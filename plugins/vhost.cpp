@@ -35,7 +35,7 @@ class vhost_plugin :
 	public x0::HttpPlugin
 {
 private:
-	typedef std::map<std::string, Flow::Value::Function> NamedHostMap;
+	typedef std::map<std::string, x0::FlowValue::Function> NamedHostMap;
 
 	NamedHostMap qualifiedHosts_;
 	NamedHostMap unqualifiedHosts_;
@@ -44,7 +44,7 @@ public:
 	vhost_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerSetupFunction<vhost_plugin, &vhost_plugin::addHost>("vhost.mapping", Flow::Value::VOID);
+		registerSetupFunction<vhost_plugin, &vhost_plugin::addHost>("vhost.mapping", x0::FlowValue::VOID);
 		registerHandler<vhost_plugin, &vhost_plugin::mapRequest>("vhost.map");
 	}
 
@@ -54,21 +54,21 @@ public:
 
 private:
 	// vhost.add fqdn => proc, ...
-	void addHost(Flow::Value& result, const x0::Params& args)
+	void addHost(x0::FlowValue& result, const x0::Params& args)
 	{
 		for (auto& arg: args)
 			registerHost(arg);
 	}
 
-	void registerHost(const Flow::Value& arg)
+	void registerHost(const x0::FlowValue& arg)
 	{
-		if (arg.type() == Flow::Value::ARRAY) {
-			const Flow::Value* args = arg.toArray();
+		if (arg.type() == x0::FlowValue::ARRAY) {
+			const x0::FlowValue* args = arg.toArray();
 			if (args[0].isVoid() || args[1].isVoid() || !args[2].isVoid())
 				return;
 
-			const Flow::Value& fqdn = args[0];
-			const Flow::Value& proc = args[1];
+			const x0::FlowValue& fqdn = args[0];
+			const x0::FlowValue& proc = args[1];
 
 			if (!fqdn.isString())
 				return;
@@ -80,7 +80,7 @@ private:
 		}
 	}
 
-	void registerHost(const char *fqdn, Flow::Value::Function handler)
+	void registerHost(const char *fqdn, x0::FlowValue::Function handler)
 	{
 		if (strchr(fqdn, ':'))
 			qualifiedHosts_[fqdn] = handler;

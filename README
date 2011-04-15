@@ -3,7 +3,7 @@ x0 - HTTP WEB SERVER AND FRAMEWORK
 -----------------------------------------------------------------------------
 
 official website:   http://xzero.ws/
-project management: http://redmine.xzero.ws/projects/x0
+project management: http://redmine.trapni.de/projects/x0
 ohloh:              http://www.ohloh.net/p/x0
 github:             http://github.com/trapni/x0
 gitorious:          http://gitorious.org/x0
@@ -35,7 +35,7 @@ FEATURES
 INSTALLATION REQUIREMENTS:
 -----------------------------------------------------------------------------
 
-- libev
+- libev >= 4.0
 - boost
 - cmake (for building only)
 - zlib (optional, for compression)
@@ -49,8 +49,9 @@ HOW TO BUILD:
 
 git clone git://github.com/trapni/x0.git
 cd x0/
-cmake .
+cmake . -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=debug
 make
-cd src/
-`pwd`/x0d --no-fork --config=test.conf
+sudo make instrall
+`pwd`/src/x0d --instant=`pwd`/www/htdocs,8080
 # have fun hacking.
+

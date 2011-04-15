@@ -43,15 +43,15 @@ public:
 		x0::HttpPlugin(srv, name),
 		dirname_("/public_html")
 	{
-		registerSetupProperty<userdir_plugin, &userdir_plugin::setup_userdir>("userdir.name", Flow::Value::STRING);
-		registerFunction<userdir_plugin, &userdir_plugin::handleRequest>("userdir", Flow::Value::VOID);
+		registerSetupProperty<userdir_plugin, &userdir_plugin::setup_userdir>("userdir.name", x0::FlowValue::STRING);
+		registerFunction<userdir_plugin, &userdir_plugin::handleRequest>("userdir", x0::FlowValue::VOID);
 	}
 
 	~userdir_plugin()
 	{
 	}
 
-	void setup_userdir(Flow::Value& result, const x0::Params& args)
+	void setup_userdir(x0::FlowValue& result, const x0::Params& args)
 	{
 		if (!args.count()) {
 			result.set(dirname_.c_str());
@@ -88,7 +88,7 @@ public:
 	}
 
 private:
-	void handleRequest(Flow::Value& result, x0::HttpRequest *r, const x0::Params& args)
+	void handleRequest(x0::FlowValue& result, x0::HttpRequest *r, const x0::Params& args)
 	{
 		if (dirname_.empty())
 			return;

@@ -8,7 +8,7 @@
 
 #include <x0/SocketDriver.h>
 #include <x0/Socket.h>
-#include <flow/IPAddress.h>
+#include <x0/IPAddress.h>
 #include <ev++.h>
 
 #include <sys/socket.h>
@@ -33,7 +33,7 @@ Socket *SocketDriver::create(struct ev_loop *loop, int handle, int af)
 	return new Socket(loop, handle, af);
 }
 
-Socket *SocketDriver::create(struct ev_loop *loop, Flow::IPAddress *ipaddr, int port)
+Socket *SocketDriver::create(struct ev_loop *loop, IPAddress *ipaddr, int port)
 {
 	int fd = ::socket(ipaddr->family(), SOCK_STREAM, 0);
 	if (fd < 0) {
@@ -45,13 +45,13 @@ Socket *SocketDriver::create(struct ev_loop *loop, Flow::IPAddress *ipaddr, int 
 	std::size_t size;
 	memset(&buf, 0, sizeof(buf));
 	switch (ipaddr->family()) {
-		case Flow::IPAddress::V4:
+		case IPAddress::V4:
 			size = sizeof(sockaddr_in);
 			((sockaddr_in *)buf)->sin_port = htons(port);
 			((sockaddr_in *)buf)->sin_family = AF_INET;
 			memcpy(&((sockaddr_in *)buf)->sin_addr, ipaddr->data(), ipaddr->size());
 			break;
-		case Flow::IPAddress::V6:
+		case IPAddress::V6:
 			size = sizeof(sockaddr_in6);
 			((sockaddr_in6 *)buf)->sin6_port = htons(port);
 			((sockaddr_in6 *)buf)->sin6_family = AF_INET6;
