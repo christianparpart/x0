@@ -419,7 +419,7 @@ void HttpConnection::processInput()
 		if (errno == EAGAIN || errno == EINTR) {
 			watchInput(worker_.server_.maxReadIdle());
 		} else {
-			log(Severity::error, "Connection read error: %s", strerror(errno));
+			//log(Severity::error, "Connection read error: %s", strerror(errno));
 			abort();
 		}
 	} else if (rv == 0) {
@@ -486,8 +486,7 @@ void HttpConnection::processOutput()
 			watchOutput();
 			break;
 		} else {
-			// an error occurred
-			log(Severity::error, "Connection write error: %s", strerror(errno));
+			//log(Severity::error, "Connection write error: %s", strerror(errno));
 			abort();
 			break;
 		}
