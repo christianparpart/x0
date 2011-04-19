@@ -40,6 +40,52 @@ private:
 	unsigned currentRow_;
 
 public:
+	class Iterator // {{{
+	{
+	private:
+		SqlStatement* stmt_;
+
+	public:
+		Iterator(SqlStatement* stmt) :
+			stmt_(stmt)
+		{
+		}
+
+		SqlStatement& operator*() const
+		{
+			return *stmt_;
+		}
+
+		Iterator& operator++()
+		{
+			if (!stmt_->fetch())
+				stmt_ = nullptr;
+
+			return *this;
+		}
+
+		friend bool operator==(const Iterator& a, const Iterator& b)
+		{
+			return &a == &b || a.stmt_ == b.stmt_;
+		}
+
+		friend bool operator!=(const Iterator& a, const Iterator& b)
+		{
+			return !(a == b);
+		}
+	}; // }}}
+
+	Iterator begin()
+	{
+		return ++Iterator(this);
+	}
+
+	Iterator end()
+	{
+		return Iterator(nullptr);
+	}
+
+public:
 	SqlStatement();
 	SqlStatement(MYSQL *c, const char *s);
 	~SqlStatement();
@@ -68,9 +114,10 @@ public:
 	bool isNullAt(unsigned index) const;
 	bool isNullAt(const char *name) const;
 
-	template<typename... Args> bool operator()(const Args&... args);
+	template<typename... Args> SqlStatement& operator()(const Args&... args);
 	SqlStatement& operator++();
 	operator bool() const;
+	bool operator !() const;
 
 private:
 	MYSQL_BIND *getParam();
@@ -105,9 +152,10 @@ inline bool SqlStatement::execute(const Args&... args)
 }
 
 template<typename... Args>
-inline bool SqlStatement::operator()(const Args&... args)
+inline SqlStatement& SqlStatement::operator()(const Args&... args)
 {
-	return execute(args...);
+	execute(args...);
+	return *this;
 }
 
 template<typename T>
@@ -119,6 +167,16 @@ inline T SqlStatement::valueOf(const char *name) const
 
 	// field not found
 	return T();
+}
+
+inline SqlStatement::operator bool() const
+{
+	return !isError();
+}
+
+inline bool SqlStatement::operator !() const
+{
+	return isError();
 }
 // }}}
 

@@ -181,7 +181,7 @@ void HttpWorker::onExit(ev::async& w, int revents)
 void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)
 {
 	// update server time
-	now_.update(static_cast<time_t>(ev_now(loop_)));
+	now_.update(ev_now(loop_));
 }
 
 void HttpWorker::setAffinity(int cpu)

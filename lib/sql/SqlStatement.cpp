@@ -260,6 +260,7 @@ bool SqlStatement::run()
 	}
 
 	mysql_stmt_store_result(stmt_);
+	error_ = nullptr;
 	return true;
 }
 
@@ -508,6 +509,57 @@ int SqlStatement::valueAt<int>(unsigned index) const
 		default:
 #if !defined(NDEBUG)
 			fprintf(stderr, "Unknown type case from INT to %s\n", mysql_type_str(fields_[index]->type));
+#endif
+			return 0;
+	}
+}
+
+template<>
+long SqlStatement::valueAt<long>(unsigned index) const
+{
+	if (nulls_[index])
+		return 0;
+
+	const MYSQL_BIND *d = &data_[index];
+	switch (fields_[index]->type)
+	{
+		case MYSQL_TYPE_BLOB:
+		case MYSQL_TYPE_VAR_STRING:
+		case MYSQL_TYPE_VARCHAR:
+			return d->buffer_length;
+		case MYSQL_TYPE_TINY:
+			return *(uint8_t *)d->buffer;
+		case MYSQL_TYPE_SHORT:
+			return *(uint16_t *)d->buffer;
+		case MYSQL_TYPE_LONG:
+			return *(int32_t *)d->buffer;
+		case MYSQL_TYPE_LONGLONG:
+			return *(int64_t *)d->buffer;
+		case MYSQL_TYPE_DATE:
+		case MYSQL_TYPE_TIME:
+			return 0;
+		case MYSQL_TYPE_DATETIME: {
+			MYSQL_TIME* tp = static_cast<MYSQL_TIME*>(d->buffer);
+			struct tm tm;
+#if 0
+			time_t ts = time(0);
+			localtime_r(&ts, &tm);
+#else
+			tm.tm_isdst = -1;	// -1 = undefined
+			tm.tm_yday = 0; 	// ignord
+			tm.tm_wday = 0;		// ignord
+#endif
+			tm.tm_year = tp->year - 1900;
+			tm.tm_mon = tp->month - 1;
+			tm.tm_mday = tp->day;
+			tm.tm_hour = tp->hour;
+			tm.tm_min = tp->minute;
+			tm.tm_sec = tp->second;
+			return mktime(&tm);
+		}
+		default:
+#if !defined(NDEBUG)
+			fprintf(stderr, "Unknown type case from LONG to %s\n", mysql_type_str(fields_[index]->type));
 #endif
 			return 0;
 	}

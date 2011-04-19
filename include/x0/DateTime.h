@@ -10,10 +10,12 @@
 #define sw_x0_datetime_hpp 1
 
 #include <x0/Buffer.h>
+#include <x0/TimeSpan.h>
 #include <x0/Api.h>
 #include <string>
 #include <ctime>
 #include <pthread.h>
+#include <ev++.h>
 
 namespace x0 {
 
@@ -26,7 +28,7 @@ namespace x0 {
 class X0_API DateTime
 {
 private:
-	time_t unixtime_;
+	ev_tstamp value_;
 	mutable Buffer http_;
 	mutable Buffer htlog_;
 	mutable pthread_spinlock_t lock_;
@@ -37,15 +39,17 @@ public:
 	DateTime();
 	explicit DateTime(const BufferRef& http_v);
 	explicit DateTime(const std::string& http_v);
-	explicit DateTime(std::time_t v);
+	explicit DateTime(ev::tstamp v);
 	~DateTime();
 
+	ev::tstamp value() const;
 	std::time_t unixtime() const;
 	const Buffer& http_str() const;
 	const Buffer& htlog_str() const;
 
 	void update();
-	void update(std::time_t v);
+	void update(ev::tstamp vvalue);
+	DateTime& operator=(ev::tstamp value);
 
 	bool valid() const;
 
@@ -59,6 +63,8 @@ X0_API bool operator>=(const DateTime& a, const DateTime& b);
 X0_API bool operator<(const DateTime& a, const DateTime& b);
 X0_API bool operator>(const DateTime& a, const DateTime& b);
 
+X0_API TimeSpan operator-(const DateTime& a, const DateTime& b);
+
 // {{{ impl
 inline time_t DateTime::mktime(const char *v)
 {
@@ -71,36 +77,57 @@ inline time_t DateTime::mktime(const char *v)
 	return 0;
 }
 
+inline ev::tstamp DateTime::value() const
+{
+	return value_;
+}
+
 inline std::time_t DateTime::unixtime() const
 {
-	return unixtime_;
+	return static_cast<std::time_t>(value_);
 }
 
 inline void DateTime::update()
 {
-	update(std::time(0));
+	update(static_cast<ev::tstamp>(std::time(nullptr)));
 }
 
-inline void DateTime::update(std::time_t v)
+inline void DateTime::update(ev::tstamp v)
 {
-	if (unixtime_ != v)
+	if (value_ != v)
 	{
 		pthread_spin_lock(&lock_);
-		unixtime_ = v;
+		value_ = v;
 		http_.clear();
 		htlog_.clear();
 		pthread_spin_unlock(&lock_);
 	}
 }
 
+inline DateTime& DateTime::operator=(ev::tstamp value)
+{
+	update(value);
+	return *this;
+}
+
 inline bool DateTime::valid() const
 {
-	return unixtime_ != 0;
+	return value_ != 0;
 }
 
 inline int DateTime::compare(const DateTime& a, const DateTime& b)
 {
 	return b.unixtime() - a.unixtime();
+}
+
+inline TimeSpan operator-(const DateTime& a, const DateTime& b)
+{
+	ev::tstamp diff = a.value() - b.value();
+
+	if (diff < 0)
+		diff = -diff;
+
+	return TimeSpan(diff);
 }
 // }}}
 
