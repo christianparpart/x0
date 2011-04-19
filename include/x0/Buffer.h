@@ -72,6 +72,8 @@ public:
 	Buffer& operator=(const value_type *v);
 	~Buffer();
 
+	void swap(Buffer& other);
+
 	// attributes
 	const value_type *data() const;
 
@@ -313,6 +315,14 @@ inline void Buffer::assertMutable()
 			throw std::runtime_error("attempted to modify readonly buffer");
 	}
 #endif
+}
+
+inline void Buffer::swap(Buffer& other)
+{
+	std::swap(data_, other.data_);
+	std::swap(size_, other.size_);
+	std::swap(capacity_, other.capacity_);
+	std::swap(edit_mode_, other.edit_mode_);
 }
 
 inline const Buffer::value_type *Buffer::data() const
