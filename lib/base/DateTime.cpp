@@ -4,27 +4,27 @@
 namespace x0 {
 
 DateTime::DateTime() :
-	unixtime_(std::time(0)), http_(), htlog_()
+	value_(std::time(0)), http_(), htlog_()
 {
 	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
 }
 
 /** initializes DateTime object with an HTTP conform input date-time. */
 DateTime::DateTime(const BufferRef& v) :
-	unixtime_(mktime(v.data())), http_(v), htlog_()
+	value_(mktime(v.data())), http_(v), htlog_()
 {
 	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
 }
 
 /** initializes DateTime object with an HTTP conform input date-time. */
 DateTime::DateTime(const std::string& v) :
-	unixtime_(mktime(v.c_str())), http_(v), htlog_(v)
+	value_(mktime(v.c_str())), http_(v), htlog_(v)
 {
 	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
 }
 
-DateTime::DateTime(std::time_t v) :
-	unixtime_(v), http_(), htlog_()
+DateTime::DateTime(ev::tstamp v) :
+	value_(v), http_(), htlog_()
 {
 	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
 }
@@ -42,7 +42,8 @@ const Buffer& DateTime::http_str() const
 	pthread_spin_lock(&lock_);
 	if (http_.empty())
 	{
-		if (struct tm *tm = gmtime(&unixtime_))
+		std::time_t ts = unixtime();
+		if (struct tm *tm = gmtime(&ts))
 		{
 			char buf[256];
 
@@ -62,7 +63,8 @@ const Buffer& DateTime::htlog_str() const
 	pthread_spin_lock(&lock_);
 	if (htlog_.empty())
 	{
-		if (struct tm *tm = localtime(&unixtime_))
+		std::time_t ts = unixtime();
+		if (struct tm *tm = localtime(&ts))
 		{
 			char buf[256];
 
