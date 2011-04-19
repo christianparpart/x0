@@ -260,6 +260,7 @@ bool SqlStatement::run()
 	}
 
 	mysql_stmt_store_result(stmt_);
+	error_ = nullptr;
 	return true;
 }
 
