@@ -482,6 +482,41 @@ bool SqlStatement::valueAt<bool>(unsigned index) const
 }
 
 template<>
+char SqlStatement::valueAt<char>(unsigned index) const
+{
+	if (nulls_[index])
+		return 0;
+
+	const MYSQL_BIND *d = &data_[index];
+	switch (fields_[index]->type)
+	{
+		case MYSQL_TYPE_BLOB:
+		case MYSQL_TYPE_VAR_STRING:
+		case MYSQL_TYPE_VARCHAR:
+			return d->buffer_length
+				? static_cast<char*>(d->buffer)[0]
+				: 0;
+		case MYSQL_TYPE_TINY:
+			return (char)*(uint8_t *)d->buffer;
+		case MYSQL_TYPE_SHORT:
+			return (char)*(uint16_t *)d->buffer;
+		case MYSQL_TYPE_LONG:
+			return (char)*(int32_t *)d->buffer;
+		case MYSQL_TYPE_LONGLONG:
+			return (char)*(int64_t *)d->buffer;
+		case MYSQL_TYPE_DATE:
+		case MYSQL_TYPE_TIME:
+		case MYSQL_TYPE_DATETIME:
+			return 0; // invalid
+		default:
+#if !defined(NDEBUG)
+			fprintf(stderr, "Unknown type case from CHAR to %s\n", mysql_type_str(fields_[index]->type));
+#endif
+			return 0;
+	}
+}
+
+template<>
 int SqlStatement::valueAt<int>(unsigned index) const
 {
 	if (nulls_[index])

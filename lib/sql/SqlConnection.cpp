@@ -80,4 +80,9 @@ std::string SqlConnection::queryField<std::string>(const char *tableName,
 	return std::string();
 }
 
+unsigned long long SqlConnection::affectedRows() const
+{
+	return mysql_affected_rows(handle_);
+}
+
 } // namespace x0
