@@ -50,6 +50,8 @@ public:
 	template<typename T>
 	T queryField(const char *table, const char *keyName, const char *keyValue, const char *fieldName);
 
+	unsigned long long affectedRows() const;
+
 private:
 	std::string makeQuery(const char *s);
 	template<typename Arg1, typename... Args> std::string makeQuery(const char *s, Arg1&& a1, Args&&... args);
