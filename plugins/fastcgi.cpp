@@ -856,12 +856,10 @@ CgiContext::CgiContext(x0::HttpServer& server) :
 	server_(server),
 	host_(), port_(0)
 {
-	TRACE("CgiContext()");
 }
 
 CgiContext::~CgiContext()
 {
-	TRACE("~CgiContext()");
 }
 
 void CgiContext::setup(const std::string& application)
