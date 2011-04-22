@@ -69,7 +69,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	sink_.setSocket(socket_);
 
 #if !defined(NDEBUG)
-	debug(false);
+	setLogging(false);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Connection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
 #endif
@@ -255,11 +255,10 @@ inline bool url_decode(BufferRef& url)
 
 void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 {
-	TRACE("messageBegin('%s', '%s', HTTP/%d.%d)", method.str().c_str(), uri.str().c_str(), version_major, version_minor);
-
 	if (request_ != nullptr) {
 		log(Severity::error, "WTF! There is a request assigned to this connection, yet messageBegin(%s, %s, %d.%d) is invoked!",
 			method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+		buffer_.dump("related request buffer");
 	}
 	//XXX WTF assert(request_ == nullptr);
 
@@ -446,7 +445,24 @@ void HttpConnection::write(Source* chunk)
 	if (!isAborted()) {
 		TRACE("write() chunk (%s)", chunk->className());
 		source_.push_back(chunk);
+
+		// XXX
+		// I would really like to send write-syscalls optimistic.
+		// However, if a write fails, it is going to trigger the abort/connection-close sequence,
+		// which *might* result into a request/connection destruction, which it shouldnt.
+		// and not every code section is able to let the connection not destroy himself
+		// too soon.
+		//
+		// I should add ref()/unref()/refCount() whose only use would be to prevent
+		// destructing too early (because code paths will still use it).
+		// And if the last unref() zeroes, it could destruct itself right away.
+		// We do not need any locking for this because a connection (and its requests)
+		// is always handled by the same worker thread.
+#if 0
 		processOutput();
+#else
+		watchOutput();
+#endif
 	} else {
 		TRACE("write() ignore chunk (%s) - (connection aborted)", chunk->className());
 		delete chunk;
@@ -508,7 +524,10 @@ void HttpConnection::abort()
 
 	if (abortHandler_) {
 		assert(request_ != nullptr);
-		socket_->setMode(Socket::None);
+
+		// the client aborted the connection, so close the client-socket right away to safe resources
+		socket_->close();
+
 		abortHandler_(abortData_);
 	} else {
 		close();

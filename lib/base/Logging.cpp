@@ -38,7 +38,7 @@ void Logging::setLoggingPrefix(const char *prefix, ...)
 	prefix_ = buf;
 }
 
-void Logging::debug(bool enable)
+void Logging::setLogging(bool enable)
 {
 	enabled_ = enable;
 }
