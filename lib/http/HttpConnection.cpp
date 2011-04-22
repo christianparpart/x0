@@ -69,7 +69,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	sink_.setSocket(socket_);
 
 #if !defined(NDEBUG)
-	debug(false);
+	setLogging(false);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Connection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
 #endif

@@ -19,8 +19,8 @@ public:
 	explicit Logging(const char *prefix, ...);
 
 	void setLoggingPrefix(const char *prefix, ...);
+	void setLogging(bool enable);
 
-	void debug(bool enable);
 	void debug(const char *fmt, ...);
 };
 

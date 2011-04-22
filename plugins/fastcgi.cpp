@@ -73,8 +73,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
-#	define TRACE(msg...) DEBUG("fastcgi: " msg)
+#if 1 // !defined(NDEBUG)
+#	define TRACE(msg...) (this->debug(msg))
 #else
 #	define TRACE(msg...) /*!*/
 #endif
@@ -199,6 +199,9 @@ private:
 }; // }}}
 
 class CgiContext //{{{
+#ifndef NDEBUG
+	: public x0::Logging
+#endif
 {
 public:
 	static uint16_t nextID_;
@@ -245,10 +248,10 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	finish_(false)
 {
 #ifndef NDEBUG
-	debug(true);
-	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
+	setLogging(false);
 	static std::atomic<int> mi(0);
 	setLoggingPrefix("CgiTransport/%d", ++mi);
+	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
 #endif
 	TRACE("CgiTransport()");
 	ev_init(&io_, &CgiTransport::io_thunk);
@@ -510,7 +513,7 @@ void CgiTransport::io(int revents)
 
 			if (rv == 0) {
 				TRACE("fastcgi: connection to backend lost.");
-				goto finish;
+				goto app_err;
 			}
 
 			if (rv < 0) {
@@ -518,7 +521,7 @@ void CgiTransport::io(int revents)
 					context().server().log(x0::Severity::error,
 						"fastcgi: read from backend %s:%d failed: %s",
 						hostname_.c_str(), port_, strerror(errno));
-					goto finish;
+					goto app_err;
 				}
 
 				break;
@@ -557,7 +560,7 @@ void CgiTransport::io(int revents)
 			if (errno != EINTR && errno != EAGAIN) {
 				context().server().log(x0::Severity::error,
 					"fastcgi: write to backend %s:%d failed: %s", hostname_.c_str(), port_, strerror(errno));
-				goto finish;
+				goto app_err;
 			}
 
 			goto done;
@@ -578,8 +581,10 @@ void CgiTransport::io(int revents)
 	}
 	goto done;
 
-finish:
-	finish();
+app_err:
+	ev_io_stop(loop_, &io_);
+	::close(fd_);
+	fd_ = -1;
 
 done:
 	hot_ = false;
@@ -622,8 +627,8 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 				"fastcgi: unknown transport record received from backend %s:%d. type:%d, payload-size:%ld",
 				hostname_.c_str(), port_, record->type(), record->contentLength());
 #if 1
-			x0::Buffer::dump(record, sizeof(record), "packet header");
-			x0::Buffer::dump(record->content(), std::min(record->contentLength() + record->paddingLength(), 512), "packet payload");
+			x0::Buffer::dump(record, sizeof(record), "fcgi packet header");
+			x0::Buffer::dump(record->content(), std::min(record->contentLength() + record->paddingLength(), 512), "fcgi packet payload");
 #endif
 			break;
 	}
@@ -865,6 +870,11 @@ void CgiContext::setup(const std::string& application)
 
 	host_ = application.substr(0, pos);
 	port_ = atoi(application.substr(pos + 1).c_str());
+
+#ifndef NDEBUG
+	setLogging(false);
+	setLoggingPrefix("CgiContext(%s:%d)", host_.c_str(), port_);
+#endif
 
 	TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
 }

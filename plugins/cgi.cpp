@@ -178,7 +178,7 @@ CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
 	outputFlags_(NoneClosed)
 {
 #ifndef NDEBUG
-	debug(false);
+	setLogging(false);
 	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
 	setLoggingPrefix("CgiScript(%s)", request_->path.str().c_str());
 #endif

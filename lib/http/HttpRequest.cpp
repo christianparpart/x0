@@ -54,7 +54,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	readCallback_()
 {
 #ifndef NDEBUG
-	debug(false);
+	setLogging(false);
 	static std::atomic<unsigned long long> rid(0);
 	setLoggingPrefix("Request(%lld,%s:%d)", ++rid, connection.remoteIP().c_str(), connection.remotePort());
 #endif

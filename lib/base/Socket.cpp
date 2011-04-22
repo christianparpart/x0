@@ -60,7 +60,7 @@ Socket::Socket(struct ev_loop *loop, int fd, int af) :
 	callbackData_(0)
 {
 #ifndef NDEBUG
-	debug(false);
+	setLogging(false);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
 #endif
