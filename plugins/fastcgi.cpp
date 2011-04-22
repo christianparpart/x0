@@ -585,6 +585,7 @@ app_err:
 	ev_io_stop(loop_, &io_);
 	::close(fd_);
 	fd_ = -1;
+	finish_ = true;
 
 done:
 	hot_ = false;
@@ -829,7 +830,14 @@ void CgiTransport::onWriteComplete()
  */
 void CgiTransport::onAbort(void *p)
 {
-	reinterpret_cast<CgiTransport*>(p)->abortRequest();
+	CgiTransport* self = reinterpret_cast<CgiTransport*>(p);
+
+	if (self->fd_ < 0)
+		// fcgi app already aborted the connection due to read/write errors)
+		self->finish();
+	else
+		// notify fcgi app about client abort
+		self->abortRequest();
 }
 
 /**
