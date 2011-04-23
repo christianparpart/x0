@@ -54,6 +54,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	socket_(nullptr),
 	hot_(true),
 	state_(Alive),
+	isHandlingRequest_(false),
 	buffer_(8192),
 	offset_(0),
 	request_(nullptr),
@@ -330,6 +331,7 @@ bool HttpConnection::messageHeaderEnd()
 	}
 #endif
 
+	isHandlingRequest_ = true;
 	worker_.handleRequest(request_);
 
 	return true;
@@ -382,6 +384,8 @@ void HttpConnection::resume()
 	// wait for new request message, if nothing in buffer
 	if (offset_ == buffer_.size())
 		watchInput(worker_.server_.maxKeepAlive());
+
+	isHandlingRequest_ = false;
 }
 
 void HttpConnection::watchInput(const TimeSpan& timeout)
@@ -401,7 +405,7 @@ void HttpConnection::watchOutput()
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
-	socket_->setMode(Socket::Write);
+	socket_->setMode(Socket::ReadWrite);
 }
 
 /**
@@ -430,7 +434,8 @@ void HttpConnection::processInput()
 		TRACE("processInput(): read %ld bytes", rv);
 		//TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
 
-		process();
+		if (!isHandlingRequest_)
+			process();
 
 		TRACE("processInput(): done process()ing; fd=%d, request=%p", socket_->handle(), request_);
 	}

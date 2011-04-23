@@ -125,6 +125,7 @@ private:
 	Socket *socket_;					//!< underlying communication socket
 	bool hot_;
 	enum State { Alive, Aborted, Closed } state_;
+	bool isHandlingRequest_;			//!< is this connection (& request) currently passed to a request handler?
 
 	// HTTP HttpRequest
 	Buffer buffer_;						//!< buffer for incoming data.
