@@ -307,33 +307,30 @@ bool HttpConnection::messageHeaderEnd()
 	BufferRef expectHeader = request_->requestHeader("Expect");
 	bool content_required = request_->method == "POST" || request_->method == "PUT";
 
-	if (content_required && request_->connection.contentLength() == -1)
-	{
+	if (content_required && request_->connection.contentLength() == -1) {
 		request_->status = HttpError::LengthRequired;
 		request_->finish();
+		return true;
 	}
-	else if (!content_required && request_->contentAvailable())
-	{
+
+	if (!content_required && request_->contentAvailable()) {
 		request_->status = HttpError::BadRequest; // FIXME do we have a better status code?
 		request_->finish();
+		return true;
 	}
-	else if (expectHeader)
-	{
+
+	if (expectHeader) {
 		request_->expectingContinue = equals(expectHeader, "100-continue");
 
-		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1))
-		{
+		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1)) {
 			request_->status = HttpError::ExpectationFailed;
 			request_->finish();
+			return true;
 		}
-		else
-			worker_.handleRequest(request_);
 	}
-	else
-		worker_.handleRequest(request_);
-#else
-	worker_.handleRequest(request_);
 #endif
+
+	worker_.handleRequest(request_);
 
 	return true;
 }
