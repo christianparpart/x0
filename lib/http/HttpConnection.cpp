@@ -54,6 +54,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	socket_(nullptr),
 	hot_(true),
 	state_(Alive),
+	isHandlingRequest_(false),
 	buffer_(8192),
 	offset_(0),
 	request_(nullptr),
@@ -303,33 +304,31 @@ bool HttpConnection::messageHeaderEnd()
 	BufferRef expectHeader = request_->requestHeader("Expect");
 	bool content_required = request_->method == "POST" || request_->method == "PUT";
 
-	if (content_required && request_->connection.contentLength() == -1)
-	{
+	if (content_required && request_->connection.contentLength() == -1) {
 		request_->status = HttpError::LengthRequired;
 		request_->finish();
+		return true;
 	}
-	else if (!content_required && request_->contentAvailable())
-	{
+
+	if (!content_required && request_->contentAvailable()) {
 		request_->status = HttpError::BadRequest; // FIXME do we have a better status code?
 		request_->finish();
+		return true;
 	}
-	else if (expectHeader)
-	{
+
+	if (expectHeader) {
 		request_->expectingContinue = equals(expectHeader, "100-continue");
 
-		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1))
-		{
+		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1)) {
 			request_->status = HttpError::ExpectationFailed;
 			request_->finish();
+			return true;
 		}
-		else
-			worker_.handleRequest(request_);
 	}
-	else
-		worker_.handleRequest(request_);
-#else
-	worker_.handleRequest(request_);
 #endif
+
+	isHandlingRequest_ = true;
+	worker_.handleRequest(request_);
 
 	return true;
 }
@@ -381,6 +380,8 @@ void HttpConnection::resume()
 	// wait for new request message, if nothing in buffer
 	if (offset_ == buffer_.size())
 		watchInput(worker_.server_.maxKeepAlive());
+
+	isHandlingRequest_ = false;
 }
 
 void HttpConnection::watchInput(const TimeSpan& timeout)
@@ -400,7 +401,7 @@ void HttpConnection::watchOutput()
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
-	socket_->setMode(Socket::Write);
+	socket_->setMode(Socket::ReadWrite);
 }
 
 /**
@@ -429,7 +430,8 @@ void HttpConnection::processInput()
 		TRACE("processInput(): read %ld bytes", rv);
 		//TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
 
-		process();
+		if (!isHandlingRequest_)
+			process();
 
 		TRACE("processInput(): done process()ing; fd=%d, request=%p", socket_->handle(), request_);
 	}
