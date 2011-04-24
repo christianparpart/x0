@@ -291,7 +291,7 @@ CgiTransport::~CgiTransport()
 
 bool CgiTransport::open(const std::string& unixPath)
 {
-	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
+	TRACE("connect(unix=%s)", unixPath.c_str());
 
 	hostname_ = unixPath; // crazy, eh
 
@@ -317,7 +317,10 @@ bool CgiTransport::open(const std::string& unixPath)
 		return false;
 	}
 
-	return true;
+	fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK);
+	fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC);
+
+	return onConnectComplete();
 }
 
 /** asynchronousely connects to given hostname:port.
@@ -909,7 +912,7 @@ void CgiContext::setup(const std::string& application)
 {
 	if (strncmp(application.c_str(), "unix:", 5) == 0) {
 		setLoggingPrefix("CgiContext(%s)", application.c_str());
-		unixPath_ = application;
+		unixPath_ = application.c_str() + 5;;
 	} else {
 		size_t pos = application.find_last_of(":");
 
