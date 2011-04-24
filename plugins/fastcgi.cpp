@@ -68,12 +68,13 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/stat.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1 // !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) (this->debug(msg))
 #else
 #	define TRACE(msg...) /*!*/
@@ -158,7 +159,8 @@ public:
 
 	State state() const { return state_; }
 
-	bool open(const char *hostname, int port);
+	bool open(const std::string& hostname, int port);
+	bool open(const std::string& unixPath);
 	void bind(x0::HttpRequest *in, uint16_t id);
 
 	// server-to-application
@@ -207,6 +209,7 @@ public:
 	static uint16_t nextID_;
 
 	x0::HttpServer& server_;
+	std::string unixPath_;
 	std::string host_;
 	int port_;
 
@@ -286,14 +289,45 @@ CgiTransport::~CgiTransport()
 	}
 }
 
+bool CgiTransport::open(const std::string& unixPath)
+{
+	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
+
+	hostname_ = unixPath; // crazy, eh
+
+#ifndef NDEBUG
+	setLoggingPrefix("CgiTransport(unix:%s)", unixPath.c_str());
+#endif
+
+	fd_ = ::socket(PF_UNIX, SOCK_STREAM, 0);
+	if (fd_ < 0) {
+		context().server().log(x0::Severity::error,
+				"fastcgi: socket creation error: %s",  strerror(errno));
+		return false;
+	}
+
+	struct sockaddr_un addr;
+	addr.sun_family = AF_UNIX;
+	size_t addrlen = sizeof(addr.sun_family)
+		+ strlen(strncpy(addr.sun_path, unixPath.c_str(), sizeof(addr.sun_path)));
+
+	if (connect(fd_, (struct sockaddr*) &addr, addrlen) < 0) {
+		context().server().log(x0::Severity::error,
+			"fastcgi: could not connect to %s: %s", unixPath.c_str(), strerror(errno));
+		return false;
+	}
+
+	return true;
+}
+
 /** asynchronousely connects to given hostname:port.
  *
  * \retval true connected synchronously or asynchronousely (not completed yet) in success
  * \retval false something went wrong. if so, the underlying object is to be destructed already, too.
  */
-bool CgiTransport::open(const char *hostname, int port)
+bool CgiTransport::open(const std::string& hostname, int port)
 {
-	TRACE("connect(hostname=%s, port=%d)", hostname, port);
+	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
 
 	hostname_ = hostname;
 	port_ = port;
@@ -310,11 +344,11 @@ bool CgiTransport::open(const char *hostname, int port)
 	char sport[16];
 	snprintf(sport, sizeof(sport), "%d", port);
 
-	int rv = getaddrinfo(hostname, sport, &hints, &res);
+	int rv = getaddrinfo(hostname_.c_str(), sport, &hints, &res);
 	if (rv) {
 		context().server().log(x0::Severity::error,
 				"fastcgi: could not get addrinfo of %s:%s: %s", 
-				hostname, sport, gai_strerror(rv));
+				hostname_.c_str(), sport, gai_strerror(rv));
 		return false;
 	}
 
@@ -862,6 +896,7 @@ uint16_t CgiContext::nextID_ = 0;
 
 CgiContext::CgiContext(x0::HttpServer& server) :
 	server_(server),
+	unixPath_(),
 	host_(), port_(0)
 {
 }
@@ -872,17 +907,22 @@ CgiContext::~CgiContext()
 
 void CgiContext::setup(const std::string& application)
 {
-	size_t pos = application.find_last_of(":");
+	if (strncmp(application.c_str(), "unix:", 5) == 0) {
+		setLoggingPrefix("CgiContext(%s)", application.c_str());
+		unixPath_ = application;
+	} else {
+		size_t pos = application.find_last_of(":");
 
-	host_ = application.substr(0, pos);
-	port_ = atoi(application.substr(pos + 1).c_str());
+		host_ = application.substr(0, pos);
+		port_ = atoi(application.substr(pos + 1).c_str());
 
 #ifndef NDEBUG
-	setLogging(false);
-	setLoggingPrefix("CgiContext(%s:%d)", host_.c_str(), port_);
+		setLogging(false);
+		setLoggingPrefix("CgiContext(%s:%d)", host_.c_str(), port_);
 #endif
 
-	TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
+		TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
+	}
 }
 
 void CgiContext::handleRequest(x0::HttpRequest *in)
@@ -891,16 +931,28 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 
 	CgiTransport *transport = new CgiTransport(this);
 
-	if (!transport->open(host_.c_str(), port_)) {
-		in->status = x0::HttpError::ServiceUnavailable;
-		in->finish();
-		return;
-	}
+	if (unixPath_.c_str())
+		if (transport->open(unixPath_))
+			goto ok;
+		else
+			goto err;
 
+	if (transport->open(host_, port_))
+		goto ok;
+	else
+		goto err;
+
+ok:
 	if (++nextID_ == 0)
 		++nextID_;
 
 	transport->bind(in, nextID_);
+	return;
+
+err:
+	in->status = x0::HttpError::ServiceUnavailable;
+	in->finish();
+	return;
 }
 
 /**
