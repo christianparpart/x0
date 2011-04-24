@@ -536,8 +536,8 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 					++offset;
 					++i;
 
-					//TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
-					//		method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
+					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					messageBegin(std::move(method_), std::move(entity_), versionMajor_, versionMinor_);
 				}
@@ -558,8 +558,8 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 					++offset;
 					++i;
 
-					//TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
-					//		method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
+					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					messageBegin(std::move(method_), std::move(entity_), versionMajor_, versionMinor_);
 				}
