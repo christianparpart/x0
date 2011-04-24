@@ -112,7 +112,7 @@ HttpConnection::~HttpConnection()
 
 void HttpConnection::io(Socket *, int revents)
 {
-	TRACE("io(revents=%04x)", revents);
+	TRACE("io(revents=%04x) isHandlingRequest:%d", revents, isHandlingRequest_);
 	hot_ = true;
 
 	if (revents & Socket::Read)
@@ -377,11 +377,15 @@ void HttpConnection::resume()
 		request_ = nullptr;
 	}
 
-	// wait for new request message, if nothing in buffer
-	if (offset_ == buffer_.size())
-		watchInput(worker_.server_.maxKeepAlive());
-
 	isHandlingRequest_ = false;
+
+	if (offset_ <= buffer_.size()) {
+		TRACE("resume: process batched request");
+		process();
+	} else { // nothing in buffer, wait for new request message
+		TRACE("resume: watch input");
+		watchInput(worker_.server_.maxKeepAlive());
+	}
 }
 
 void HttpConnection::watchInput(const TimeSpan& timeout)
