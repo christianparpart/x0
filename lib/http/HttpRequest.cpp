@@ -141,6 +141,7 @@ bool HttpRequest::contentAvailable() const
  */
 bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
 {
+	TRACE("read(callback) ... (contentAvailable:%ld, contentLength:%ld)", contentAvailable(), connection.contentLength());
 	if (!contentAvailable())
 		return false;
 
