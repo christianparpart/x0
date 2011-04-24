@@ -913,6 +913,11 @@ void CgiContext::setup(const std::string& application)
 	if (strncmp(application.c_str(), "unix:", 5) == 0) {
 		setLoggingPrefix("CgiContext(%s)", application.c_str());
 		unixPath_ = application.c_str() + 5;;
+
+#ifndef NDEBUG
+		setLogging(false);
+		setLoggingPrefix("CgiContext(%s)", application.c_str());
+#endif
 	} else {
 		size_t pos = application.find_last_of(":");
 
@@ -934,7 +939,7 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 
 	CgiTransport *transport = new CgiTransport(this);
 
-	if (unixPath_.c_str())
+	if (unixPath_.length())
 		if (transport->open(unixPath_))
 			goto ok;
 		else
