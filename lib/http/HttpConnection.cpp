@@ -427,10 +427,10 @@ void HttpConnection::processInput()
 		TRACE("processInput(): (EOF)");
 		abort();
 	} else {
-		TRACE("processInput(): read %ld bytes", rv);
+		TRACE("processInput(): (bytes read: %ld, isHandlingRequest:%d, state:%s", rv, isHandlingRequest_, state_str());
 		//TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
 
-		if (!isHandlingRequest_)
+		if (!isHandlingRequest_ || state() != MESSAGE_BEGIN)
 			process();
 
 		TRACE("processInput(): done process()ing; fd=%d, request=%p", socket_->handle(), request_);
@@ -495,6 +495,7 @@ void HttpConnection::processOutput()
 			}
 		} else if (rv == 0) {
 			// source fully written
+			socket_->setMode(Socket::Read);
 			if (request_) {
 				request_->checkFinish();
 			}
