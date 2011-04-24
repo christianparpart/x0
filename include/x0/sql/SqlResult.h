@@ -58,7 +58,35 @@ public:
 	const std::string& operator[](const char *name) const;
 	operator bool() const;
 	SqlResult& operator++();
+
+	template<typename T> T at(size_t index) const;
 };
+
+// {{{ inlindes
+template<>
+inline bool SqlResult::at<bool>(size_t index) const
+{
+	return atoi(valueAt(0).c_str()) != 0;
+}
+
+template<>
+inline int SqlResult::at<int>(size_t index) const
+{
+	return atoi(valueAt(0).c_str());
+}
+
+template<>
+inline unsigned long long SqlResult::at<unsigned long long>(size_t index) const
+{
+	return atoll(valueAt(0).c_str());
+}
+
+template<>
+inline std::string SqlResult::at<std::string>(size_t index) const
+{
+	return valueAt(0);
+}
+// }}}
 
 //@}
 
