@@ -43,7 +43,10 @@ public:
 	void close();
 
 	template<typename... Args>
-	SqlResult query(const char *query, Args&&... args);
+	SqlResult query(const char *queryStr, Args&&... args);
+
+	template<typename T, typename... Args>
+	T queryScalar(const char* queryStr, Args... args);
 
 	operator MYSQL* () const;
 
@@ -73,6 +76,16 @@ SqlResult SqlConnection::query(const char *queryStr, Args&&... args)
 	} while (rc != 0 && mysql_errno(handle_) != CR_SERVER_GONE_ERROR);
 
 	return SqlResult(handle_);
+}
+
+template<typename T, typename... Args>
+T SqlConnection::queryScalar(const char* queryStr, Args... args)
+{
+	SqlResult result(query(queryStr, args...));
+	if (result && result.fetch())
+		return result.at<T>(0);
+
+	return T();
 }
 
 template<typename Arg1, typename... Args>
