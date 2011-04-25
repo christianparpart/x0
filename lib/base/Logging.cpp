@@ -1,5 +1,6 @@
 #include <x0/Logging.h>
 #include <sd-daemon.h>
+#include <typeinfo>
 #include <cstdarg>
 #include <cstdio>
 
@@ -7,14 +8,15 @@ namespace x0 {
 
 Logging::Logging() :
 	prefix_(),
-	enabled_(true)
+	className_(),
+	enabled_(false)
 {
-	setLoggingPrefix("unknown(%p)", (void *)this);
 }
 
 Logging::Logging(const char *prefix, ...) :
 	prefix_(),
-	enabled_(true)
+	className_(),
+	enabled_(false)
 {
 	char buf[1024];
 	va_list va;
@@ -24,6 +26,31 @@ Logging::Logging(const char *prefix, ...) :
 	va_end(va);
 
 	prefix_ = buf;
+
+	updateClassName();
+}
+
+void Logging::updateClassName()
+{
+	static const char splits[] = "/[(-";
+	std::size_t pos;
+
+	for (const char *split = splits; *split; ++split) {
+		if ((pos = prefix_.find(*split)) != std::string::npos) {
+			className_ = prefix_.substr(0, pos);
+			return;
+		}
+	}
+
+	className_ = prefix_;
+}
+
+bool Logging::checkEnabled()
+{
+	const char* env = getenv("XZERO_DEBUG");
+
+	// TODO do a simple substring match for now but tokenize-split at ':' later
+	return enabled_ || (env && strstr(env, className_.c_str()));
 }
 
 void Logging::setLoggingPrefix(const char *prefix, ...)
@@ -36,6 +63,8 @@ void Logging::setLoggingPrefix(const char *prefix, ...)
 	va_end(va);
 
 	prefix_ = buf;
+
+	updateClassName();
 }
 
 void Logging::setLogging(bool enable)
@@ -45,7 +74,7 @@ void Logging::setLogging(bool enable)
 
 void Logging::debug(const char *fmt, ...)
 {
-	if (!enabled_)
+	if (!checkEnabled())
 		return;
 
 	char buf[1024];

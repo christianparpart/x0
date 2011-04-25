@@ -12,7 +12,11 @@ class X0_API Logging
 {
 private:
 	std::string prefix_;
+	std::string className_;
 	bool enabled_;
+
+	void updateClassName();
+	bool checkEnabled();
 
 public:
 	Logging();
