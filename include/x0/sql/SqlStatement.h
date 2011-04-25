@@ -10,6 +10,7 @@
 #define sw_x0_sql_SqlStatement_h
 
 #include <x0/Api.h>
+#include <x0/Logging.h>
 #include <mysql/mysql.h>
 #include <vector>
 #include <string>
@@ -22,13 +23,17 @@ namespace x0 {
 //@{
 
 class X0_API SqlStatement
+#ifndef NDEBUG
+	: public Logging
+#endif
 {
 private:
 	MYSQL *conn_;
 	MYSQL_STMT *stmt_;
 	MYSQL_RES *meta_;
 	unsigned bindOffset_;
-	std::vector<MYSQL_BIND> params_;
+	MYSQL_BIND* params_;
+	unsigned paramCount_;
 	std::vector<MYSQL_FIELD *> fields_;
 	std::vector<MYSQL_BIND> data_;
 	unsigned long *fixedLengths_;

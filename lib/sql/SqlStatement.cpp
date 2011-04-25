@@ -10,46 +10,67 @@
 #include <mysql/errmsg.h>
 #include <assert.h>
 
+#if !defined(NDEBUG)
+#	define TRACE(msg...) this->debug(msg)
+#else
+#	define TRACE(msg...) do { } while (0)
+#endif
+
 namespace x0 {
 
-SqlStatement::SqlStatement() :
-	conn_(NULL),
-	stmt_(NULL),
-	meta_(NULL),
-	bindOffset_(0),
-	params_(),
-	fields_(),
-	data_(),
-	fixedLengths_(NULL),
-	varLengths_(NULL),
-	nulls_(NULL),
-	query_(NULL),
-	error_(NULL),
-	currentRow_(0)
+template<>
+std::string SqlStatement::valueAt<std::string>(unsigned index) const
 {
+	if (nulls_[index])
+		return std::string();
+
+	const MYSQL_BIND *d = &data_[index];
+	switch (fields_[index]->type)
+	{
+		case MYSQL_TYPE_BLOB:
+		case MYSQL_TYPE_VAR_STRING:
+		case MYSQL_TYPE_VARCHAR:
+			if (d->buffer_length) {
+				return std::string((char*)d->buffer, 0, d->buffer_length);
+			} else
+				return std::string();
+		case MYSQL_TYPE_LONG:
+		{
+			char buf[64];
+			snprintf(buf, sizeof(buf), "%d", *(int32_t *)d->buffer);
+			return buf;
+			//return std::string((char*)d->buffer, 0, d->buffer_length);
+		}
+		case MYSQL_TYPE_TINY: {
+			static std::string boolstr[] = { "false", "true" };
+			return boolstr[*(char*)d->buffer == '1' ? 1 : 0];
+		}
+		case MYSQL_TYPE_DATE: {
+			MYSQL_TIME *ts = (MYSQL_TIME *)d->buffer;
+			char buf[11];
+			snprintf(buf, sizeof(buf), "%04d-%02d-%02d", ts->year, ts->month, ts->day);
+			return buf;
+		}
+		case MYSQL_TYPE_TIME: {
+			MYSQL_TIME *ts = (MYSQL_TIME *)d->buffer;
+			char buf[9];
+			snprintf(buf, sizeof(buf), "%02d:%02d:%02d", ts->hour, ts->minute, ts->second);
+			return buf;
+		}
+		case MYSQL_TYPE_DATETIME: {
+			MYSQL_TIME *ts = (MYSQL_TIME *)d->buffer;
+			char buf[20];
+			snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
+				ts->year, ts->month, ts->day, ts->hour, ts->minute, ts->second);
+			return buf;
+		}
+		default:
+			char buf[128];
+			snprintf(buf, sizeof(buf), "unknown:<%s>", mysql_type_str(fields_[index]->type));
+			return buf;
+	}
 }
 
-SqlStatement::~SqlStatement()
-{
-	for (unsigned i = 0, e = fields_.size(); i != e; ++i) {
-		MYSQL_BIND *d = &data_[i];
-		if (d->buffer)
-			free(d->buffer);
-	}
-
-	if (meta_) {
-		mysql_free_result(meta_);
-	}
-
-	if (stmt_) {
-		mysql_stmt_close(stmt_);
-	}
-
-	delete[] fixedLengths_;
-	delete[] varLengths_;
-	delete[] nulls_;
-}
-	
 bool SqlStatement::reset()
 {
 	if (mysql_stmt_reset(stmt_) == 0) {
@@ -147,9 +168,12 @@ bool SqlStatement::prepare(MYSQL *c, const char *s)
 	conn_ = c;
 	stmt_ = mysql_stmt_init(conn_);
 
-	//DEBUG("SqlStatement.prepare(\"%s\")", s);
+	TRACE("prepare(\"%s\")", s);
 
 	int rc = mysql_stmt_prepare(stmt_, s, strlen(s));
+
+	paramCount_ = mysql_stmt_param_count(stmt_);
+	params_ = paramCount_ ? new MYSQL_BIND[paramCount_] : nullptr;
 
 	if (rc != 0) {
 		error_ = mysql_stmt_error(stmt_);
@@ -181,7 +205,7 @@ bool SqlStatement::prepare(MYSQL *c, const char *s)
 			data_[i].buffer_length = fixedLengths_[i];
 			data_[i].length = &varLengths_[i];
 
-			/*DEBUG("field[%2d] name: %-24s type:%-16s datalen:%-8lu",
+			/*TRACE("field[%2d] name: %-24s type:%-16s datalen:%-8lu",
 				i,
 				fields_[i]->name,
 				mysql_type_str(fields_[i]->type),
@@ -218,24 +242,20 @@ bool SqlStatement::bindParam()
 
 MYSQL_BIND *SqlStatement::getParam()
 {
-	//DEBUG("getParam: %d", bindOffset_);
-	if (bindOffset_ < params_.size())
-		return &params_[bindOffset_++];
-
-	params_.push_back(MYSQL_BIND());
-	++bindOffset_;
-	return &params_.back();
+	assert(bindOffset_ < paramCount_);
+	return &params_[bindOffset_++];
 }
 
 bool SqlStatement::run()
 {
+	TRACE("run()");
 	if (bindOffset_ != mysql_stmt_param_count(stmt_)) {
 		error_ = "Invalid parameter count";
 		fprintf(stderr, "Cannot run argument with invalid parameter count.\n");
 		return false;
 	}
 
-	if (params_.size() > 0 && mysql_stmt_bind_param(stmt_, &params_.front()) != 0) {
+	if (paramCount_ != 0 && mysql_stmt_bind_param(stmt_, params_) != 0) {
 		error_ = mysql_stmt_error(stmt_);
 		return false;
 	}
@@ -339,12 +359,12 @@ bool SqlStatement::fetch()
 	for (unsigned i = 0, e = data_.size(); i != e; ++i) {
 		MYSQL_BIND *d = &data_[i];
 
-		/*DEBUG("[%2u] length: result(%lu) given(%lu) %s",
+		/*TRACE("[%2u] length: result(%lu) given(%lu) %s",
 				i, *d->length, d->buffer_length,
-				mysql_type_str(d->buffer_type))*/;
+				mysql_type_str(d->buffer_type));*/
 
 		if (fixedLengths_[i]) {
-			//DEBUG("fixed-length value[%d]: %s", i, this->valueAt<std::string>(i).c_str());
+			//TRACE("fixed-length value[%d]: %s", i, this->valueAt<std::string>(i).c_str());
 			continue;
 		}
 
@@ -631,57 +651,51 @@ unsigned long long SqlStatement::valueAt<unsigned long long>(unsigned index) con
 	}
 }
 
-template<>
-std::string SqlStatement::valueAt<std::string>(unsigned index) const
-{
-	if (nulls_[index])
-		return std::string();
+#ifndef NDEBUG
+static unsigned int si_ = 0;
+#endif
 
-	const MYSQL_BIND *d = &data_[index];
-	switch (fields_[index]->type)
-	{
-		case MYSQL_TYPE_BLOB:
-		case MYSQL_TYPE_VAR_STRING:
-		case MYSQL_TYPE_VARCHAR:
-			if (d->buffer_length) {
-				return std::string((char*)d->buffer, 0, d->buffer_length);
-			} else
-				return std::string();
-		case MYSQL_TYPE_LONG:
-		{
-			char buf[64];
-			snprintf(buf, sizeof(buf), "%d", *(int32_t *)d->buffer);
-			return buf;
-			//return std::string((char*)d->buffer, 0, d->buffer_length);
-		}
-		case MYSQL_TYPE_TINY: {
-			static std::string boolstr[] = { "false", "true" };
-			return boolstr[*(char*)d->buffer == '1' ? 1 : 0];
-		}
-		case MYSQL_TYPE_DATE: {
-			MYSQL_TIME *ts = (MYSQL_TIME *)d->buffer;
-			char buf[11];
-			snprintf(buf, sizeof(buf), "%04d-%02d-%02d", ts->year, ts->month, ts->day);
-			return buf;
-		}
-		case MYSQL_TYPE_TIME: {
-			MYSQL_TIME *ts = (MYSQL_TIME *)d->buffer;
-			char buf[9];
-			snprintf(buf, sizeof(buf), "%02d:%02d:%02d", ts->hour, ts->minute, ts->second);
-			return buf;
-		}
-		case MYSQL_TYPE_DATETIME: {
-			MYSQL_TIME *ts = (MYSQL_TIME *)d->buffer;
-			char buf[20];
-			snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
-				ts->year, ts->month, ts->day, ts->hour, ts->minute, ts->second);
-			return buf;
-		}
-		default:
-			char buf[128];
-			snprintf(buf, sizeof(buf), "unknown:<%s>", mysql_type_str(fields_[index]->type));
-			return buf;
+SqlStatement::SqlStatement() :
+#ifndef NDEBUG
+	Logging("SqlStatement/%d", ++si_),
+#endif
+	conn_(NULL),
+	stmt_(NULL),
+	meta_(NULL),
+	bindOffset_(0),
+	params_(),
+	paramCount_(0),
+	fields_(),
+	data_(),
+	fixedLengths_(NULL),
+	varLengths_(NULL),
+	nulls_(NULL),
+	query_(NULL),
+	error_(NULL),
+	currentRow_(0)
+{
+}
+
+SqlStatement::~SqlStatement()
+{
+	for (unsigned i = 0, e = fields_.size(); i != e; ++i) {
+		MYSQL_BIND *d = &data_[i];
+		if (d->buffer)
+			free(d->buffer);
 	}
+
+	if (meta_) {
+		mysql_free_result(meta_);
+	}
+
+	if (stmt_) {
+		mysql_stmt_close(stmt_);
+	}
+
+	delete[] fixedLengths_;
+	delete[] varLengths_;
+	delete[] nulls_;
+	delete[] params_;
 }
 
 } // namespace x0
