@@ -2,6 +2,7 @@
 #define x0_http_HttpWorker_h (1)
 
 #include <x0/io/FileInfoService.h>
+#include <x0/Logging.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
@@ -35,6 +36,9 @@ class HttpConnection;
  * \see HttpServer, CustomDataMgr
  */
 class HttpWorker :
+#ifndef NDEBUG
+	public Logging,
+#endif
 	public CustomDataMgr
 {
 public:

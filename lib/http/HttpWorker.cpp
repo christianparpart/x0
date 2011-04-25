@@ -11,11 +11,21 @@
 
 // XXX one a connection has been passed to a worker, it is *bound* to it.
 
+#ifndef NDEBUG
+#	define TRACE(msg...) (this->debug(msg))
+#else
+#	define TRACE(msg...) ((void*)0)
+#endif
+
 namespace x0 {
 
 unsigned HttpWorker::idpool_ = 0;
 
 HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
+#ifndef NDEBUG
+	Logging("HttpWorker/%d", idpool_),
+#endif
+	CustomDataMgr(),
 	id_(idpool_++),
 	server_(server),
 	loop_(loop),
@@ -62,12 +72,12 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 
 	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
 
-	log(Severity::debug, "spawned");
+	TRACE("spawned");
 }
 
 HttpWorker::~HttpWorker()
 {
-	log(Severity::debug, "destroying");
+	TRACE("destroying");
 	clearCustomData();
 	pthread_spin_destroy(&queueLock_);
 }
@@ -78,11 +88,8 @@ void HttpWorker::run()
 	// XXX being invoked from *within* the worker-thread.
 	server_.onWorkerSpawned(this);
 
-	while (state_ != Exiting)
-	{
-#ifndef NDEBUG
-		//log(Severity::debug, "enter loop");
-#endif
+	while (state_ != Exiting) {
+		TRACE("enter loop");
 		ev_loop(loop_, 0);
 	}
 }
@@ -131,7 +138,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 
 		pthread_spin_unlock(&queueLock_);
 
-		//DEBUG("HttpWorker/%d client connected; fd:%d", id_, client.first);
+		TRACE("client connected; fd:%d", client.first);
 
 		HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
 		conn->start();
@@ -160,7 +167,7 @@ void HttpWorker::onResume(ev::async& w, int revents)
 
 void HttpWorker::onExit(ev::async& w, int revents)
 {
-	DEBUG("Worker/%d onExit", id_);
+	TRACE("onExit");
 
 	ev_ref(loop_);
 	evNewConnection_.stop();
@@ -191,7 +198,7 @@ void HttpWorker::setAffinity(int cpu)
 	CPU_ZERO(&set);
 	CPU_SET(cpu, &set);
 
-	//DEBUG("Worker/%d setAffinity: %d", id_, cpu);
+	TRACE("setAffinity: %d", cpu);
 
 	int rv;
 	if (thread_) {
