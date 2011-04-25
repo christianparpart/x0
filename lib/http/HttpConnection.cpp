@@ -391,7 +391,7 @@ void HttpConnection::resume()
 
 	isHandlingRequest_ = false;
 
-	if (offset_ <= buffer_.size()) {
+	if (offset_ < buffer_.size()) {
 		TRACE("resume: process batched request");
 		process();
 	} else { // nothing in buffer, wait for new request message
