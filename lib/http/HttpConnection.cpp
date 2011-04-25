@@ -22,7 +22,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if !defined(NDEBUG)
+#if 1 //!defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -49,10 +49,10 @@ namespace x0 {
 HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
+	refCount_(0),
 	listener_(lst),
 	worker_(w),
 	socket_(nullptr),
-	hot_(true),
 	state_(Alive),
 	isHandlingRequest_(false),
 	buffer_(8192),
@@ -70,7 +70,7 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	sink_.setSocket(socket_);
 
 #if !defined(NDEBUG)
-	setLogging(false);
+	setLogging(true);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Connection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
 #endif
@@ -94,7 +94,7 @@ HttpConnection::~HttpConnection()
 
 	clearCustomData();
 
-	TRACE("destructing");
+	TRACE("destructing (rc: %ld)", refCount_);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
 	worker_.release(this);
@@ -110,10 +110,27 @@ HttpConnection::~HttpConnection()
 	}
 }
 
+void HttpConnection::ref()
+{
+	++refCount_;
+	TRACE("ref() %ld", refCount_);
+}
+
+void HttpConnection::unref()
+{
+	--refCount_;
+
+	TRACE("unref() %ld", refCount_);
+
+	if (!refCount_) {
+		delete this;
+	}
+}
+
 void HttpConnection::io(Socket *, int revents)
 {
 	TRACE("io(revents=%04x) isHandlingRequest:%d", revents, isHandlingRequest_);
-	hot_ = true;
+	ref();
 
 	if (revents & Socket::Read)
 		processInput();
@@ -121,11 +138,7 @@ void HttpConnection::io(Socket *, int revents)
 	if (revents & Socket::Write)
 		processOutput();
 
-	hot_ = false;
-
-	if (isClosed()) {
-		delete this;
-	}
+	unref();
 }
 
 void HttpConnection::timeout(Socket *)
@@ -157,18 +170,19 @@ bool HttpConnection::isSecure() const
  */
 void HttpConnection::start()
 {
+	ref();
+
 	if (isAborted()) {
 		// The connection got directly closed (aborted) upon connection instance creation (e.g. within the onConnectionOpen-callback),
 		// so delete the object right away.
-		hot_ = false;
 		close();
 		return;
 	}
 
+	ref();
 	if (socket_->state() == Socket::Handshake) {
 		TRACE("start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
-		hot_ = false;
 	} else {
 #if defined(TCP_DEFER_ACCEPT)
 		TRACE("start: processing input");
@@ -178,17 +192,16 @@ void HttpConnection::start()
 
 		// destroy connection in case the above caused connection-close
 		// XXX this is usually done within HttpConnection::io(), but we are not.
-		hot_ = false;
 		if (isAborted()) {
 			close();
 		}
 #else
-		hot_ = false;
 		TRACE("start: watchInput.");
 		// client connected, but we do not yet know if we have data pending
 		watchInput(worker_.server_.maxReadIdle());
 #endif
 	}
+	unref();
 }
 
 void HttpConnection::handshakeComplete(Socket *)
@@ -464,8 +477,10 @@ void HttpConnection::write(Source* chunk)
 		// And if the last unref() zeroes, it could destruct itself right away.
 		// We do not need any locking for this because a connection (and its requests)
 		// is always handled by the same worker thread.
-#if 0
+#if 1
+		ref();
 		processOutput();
+		unref();
 #else
 		watchOutput();
 #endif
@@ -549,10 +564,9 @@ void HttpConnection::close()
 	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	// destruct socket to mark connection as "closed"
-	state_ = Closed;
-
-	if (!hot_) {
-		delete this;
+	if (state_ != Closed) {
+		state_ = Closed;
+		unref(); // unrefs the ref acquired at this->start()
 	}
 }
 

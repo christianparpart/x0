@@ -51,6 +51,9 @@ public:
 	HttpConnection& operator=(const HttpConnection&) = delete;
 	HttpConnection(const HttpConnection&) = delete;
 
+	void ref();
+	void unref();
+
 	/**
 	 * creates an HTTP connection object.
 	 * \param srv a ptr to the server object this connection belongs to.
@@ -119,11 +122,11 @@ private:
 	void log(Severity s, const char *fmt, ...);
 
 private:
+	unsigned refCount_;
 	HttpListener& listener_;
 	HttpWorker& worker_;
 
 	Socket *socket_;					//!< underlying communication socket
-	bool hot_;
 	enum State { Alive, Aborted, Closed } state_;
 	bool isHandlingRequest_;			//!< is this connection (& request) currently passed to a request handler?
 
