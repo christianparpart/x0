@@ -22,7 +22,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 1 //!defined(NDEBUG)
+#if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) do { } while (0)
