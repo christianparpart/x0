@@ -38,6 +38,7 @@ private:
 
 public:
 	CompositeSource();
+	~CompositeSource();
 
 	bool empty() const;
 	void push_back(Source* s);
