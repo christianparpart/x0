@@ -911,12 +911,11 @@ CgiContext::~CgiContext()
 void CgiContext::setup(const std::string& application)
 {
 	if (strncmp(application.c_str(), "unix:", 5) == 0) {
-		setLoggingPrefix("CgiContext(%s)", application.c_str());
-		unixPath_ = application.c_str() + 5;;
+		unixPath_ = application.c_str() + 5;
 
 #ifndef NDEBUG
-		setLogging(false);
 		setLoggingPrefix("CgiContext(%s)", application.c_str());
+		setLogging(false);
 #endif
 	} else {
 		size_t pos = application.find_last_of(":");
