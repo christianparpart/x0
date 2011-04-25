@@ -266,11 +266,13 @@ inline bool url_decode(BufferRef& url)
 	return true;
 }
 
-void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
+void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versionMajor, int versionMinor)
 {
+	TRACE("messageBegin: '%s', '%s', %d/%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
+
 	if (request_ != nullptr) {
 		log(Severity::error, "WTF! There is a request assigned to this connection, yet messageBegin(%s, %s, %d.%d) is invoked!",
-			method.str().c_str(), uri.str().c_str(), version_major, version_minor);
+			method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 		buffer_.dump("related request buffer");
 	}
 	//XXX WTF assert(request_ == nullptr);
@@ -290,8 +292,8 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 		request_->path = request_->uri;
 	}
 
-	request_->httpVersionMajor = version_major;
-	request_->httpVersionMinor = version_minor;
+	request_->httpVersionMajor = versionMajor;
+	request_->httpVersionMinor = versionMinor;
 }
 
 void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
