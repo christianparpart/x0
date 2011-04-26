@@ -84,7 +84,8 @@ void Logging::debug(const char *fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
-	printf(SD_DEBUG "%s: %s\n", prefix_.c_str(), buf);
+	fprintf(stdout, SD_DEBUG "%s: %s\n", prefix_.c_str(), buf);
+	fflush(stdout);
 }
 
 } // namespace x0
