@@ -27,6 +27,8 @@ public:
 		return std::make_shared<TextFormatterImpl<TextFormatter, Args...>>(fmt, args...);
 	}
 
+	std::string str() { Buffer out; print(&out); return out.str(); }
+
 	void setOutput(Buffer* output) { output_ = output; }
 	Buffer* output() { return output_; }
 
