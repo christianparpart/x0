@@ -134,7 +134,7 @@ void HttpConnection::io(Socket *, int revents)
 	if (revents & Socket::Read)
 		processInput();
 
-	if (revents & Socket::Write)
+	if (!isAborted() && revents & Socket::Write)
 		processOutput();
 
 	unref();
@@ -525,7 +525,10 @@ void HttpConnection::abort()
 {
 	TRACE("abort()");
 
-	assert(!isAborted() && "The connection may be only aborted once.");
+	if (isAborted())
+		return;
+
+	//assert(!isAborted() && "The connection may be only aborted once.");
 
 	state_ = Aborted;
 
