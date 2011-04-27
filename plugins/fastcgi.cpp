@@ -74,7 +74,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 #	define TRACE(msg...) (this->debug(msg))
 #else
 #	define TRACE(msg...) /*!*/
@@ -251,7 +251,6 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	finish_(false)
 {
 #ifndef NDEBUG
-	setLogging(false);
 	static std::atomic<int> mi(0);
 	setLoggingPrefix("CgiTransport/%d", ++mi);
 	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
@@ -915,7 +914,6 @@ void CgiContext::setup(const std::string& application)
 
 #ifndef NDEBUG
 		setLoggingPrefix("CgiContext(%s)", application.c_str());
-		setLogging(false);
 #endif
 	} else {
 		size_t pos = application.find_last_of(":");
@@ -924,7 +922,6 @@ void CgiContext::setup(const std::string& application)
 		port_ = atoi(application.substr(pos + 1).c_str());
 
 #ifndef NDEBUG
-		setLogging(false);
 		setLoggingPrefix("CgiContext(%s:%d)", host_.c_str(), port_);
 #endif
 

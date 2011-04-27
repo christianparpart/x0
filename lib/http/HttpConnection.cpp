@@ -270,12 +270,7 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 {
 	TRACE("messageBegin: '%s', '%s', %d/%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 
-	if (request_ != nullptr) {
-		log(Severity::error, "WTF! There is a request assigned to this connection, yet messageBegin(%s, %s, %d.%d) is invoked!",
-			method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
-		buffer_.dump("related request buffer");
-	}
-	//XXX WTF assert(request_ == nullptr);
+	assert(request_ == nullptr);
 
 	request_ = new HttpRequest(*this);
 
@@ -368,8 +363,9 @@ bool HttpConnection::messageEnd()
 	if (request_)
 		request_->onRequestContent(BufferRef());
 
-	// allow continueing processing possible further requests
-	return true;
+	// do not allow further request processing here as this
+	// is decided at HttpRequest::finish()
+	return false;
 }
 
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
@@ -381,17 +377,15 @@ bool HttpConnection::messageEnd()
  */
 void HttpConnection::resume()
 {
-	//assert(request_ != nullptr);
+	TRACE("resume()");
+	assert(request_ != nullptr);
+
+	delete request_;
+	request_ = nullptr;
+	isHandlingRequest_ = false;
 
 	if (socket()->tcpCork())
 		socket()->setTcpCork(false);
-
-	if (request_) {
-		delete request_;
-		request_ = nullptr;
-	}
-
-	isHandlingRequest_ = false;
 
 	if (offset_ < buffer_.size()) {
 		TRACE("resume: process batched request");
