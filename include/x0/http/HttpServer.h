@@ -52,6 +52,9 @@ struct HttpWorker;
  * \see HttpServer::run(), HttpServer::stop()
  */
 class HttpServer :
+#ifndef NDEBUG
+	public Logging,
+#endif
 	public FlowBackend
 {
 	HttpServer(const HttpServer&) = delete;
