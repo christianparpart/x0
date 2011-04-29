@@ -586,7 +586,7 @@ void ProxyConnection::readSome()
 	std::size_t lower_bound = readBuffer_.size();
 
 	if (lower_bound == readBuffer_.capacity())
-		readBuffer_.capacity(lower_bound + 4096);
+		readBuffer_.setCapacity(lower_bound + 4096);
 
 	ssize_t rv = ::read(fd_, (char *)readBuffer_.end(), readBuffer_.capacity() - lower_bound);
 

@@ -10,6 +10,7 @@
 #define sw_x0_errorlog_h
 
 #include <x0/Buffer.h>
+#include <x0/FixedBuffer.h>
 #include <x0/Severity.h>
 #include <x0/Types.h>
 #include <x0/Api.h>

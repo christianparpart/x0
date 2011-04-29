@@ -55,8 +55,6 @@ protected:
 	std::size_t size_;
 	std::size_t capacity_;
 
-	edit_mode_t edit_mode_;
-
 public:
 	Buffer();
 	explicit Buffer(std::size_t _capacity);
@@ -79,12 +77,12 @@ public:
 
 	bool empty() const;
 	std::size_t size() const;
-	void resize(std::size_t value);
+	bool resize(std::size_t value);
 
 	std::size_t capacity() const;
-	void capacity(std::size_t value);
+	virtual bool setCapacity(std::size_t value);
 
-	void reserve(std::size_t value);
+	bool reserve(std::size_t value);
 	void clear();
 
 	operator helper_type() const;
@@ -135,28 +133,6 @@ public:
 	static void dump(const void *bytes, std::size_t length, const char *description = nullptr);
 
 	void dump(const char *description = nullptr);
-
-private:
-	void assertMutable();
-};
-
-class ConstBuffer : public Buffer
-{
-public:
-	template<typename PodType, std::size_t N>
-	explicit ConstBuffer(PodType (&value)[N]);
-
-	ConstBuffer(const value_type *value, std::size_t n);
-};
-
-template<const std::size_t N>
-class FixedBuffer : public Buffer
-{
-private:
-	value_type fixed_[N];
-
-public:
-	FixedBuffer();
 };
 
 // free functions
@@ -197,29 +173,29 @@ namespace x0 {
 
 // {{{ Buffer impl
 inline Buffer::Buffer() :
-	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
+	data_(0), size_(0), capacity_(0)
 {
 }
 
 inline Buffer::Buffer(std::size_t _capacity) :
-	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
+	data_(0), size_(0), capacity_(0)
 {
-	reserve(_capacity);
+	setCapacity(_capacity);
 }
 
 inline Buffer::Buffer(const value_type *_data, std::size_t _size) :
-	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size), edit_mode_(EDIT_NOTHING)
+	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size)
 {
 }
 
 inline Buffer::Buffer(const BufferRef& v) :
-	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
+	data_(0), size_(0), capacity_(0)
 {
 	push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(const std::string& v) :
-	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
+	data_(0), size_(0), capacity_(0)
 {
 	push_back(v.c_str(), v.size() + 1);
 	resize(v.size());
@@ -227,12 +203,14 @@ inline Buffer::Buffer(const std::string& v) :
 
 template<typename PodType, std::size_t N>
 inline Buffer::Buffer(PodType (&value)[N]) :
-	data_(const_cast<char *>(value)), size_(N - 1), capacity_(N - 1), edit_mode_(EDIT_NOTHING)
+	data_(0), size_(0), capacity_(N - 1)
 {
+	push_back(value, N);
+	resize(N - 1);
 }
 
 inline Buffer::Buffer(const Buffer& v) :
-	data_(0), size_(0), capacity_(0), edit_mode_(EDIT_ALL)
+	data_(0), size_(0), capacity_(0)
 {
 	push_back(v.data(), v.size());
 }
@@ -240,23 +218,21 @@ inline Buffer::Buffer(const Buffer& v) :
 inline Buffer::Buffer(Buffer&& v) :
 	data_(v.data_),
 	size_(v.size_),
-	capacity_(v.capacity_),
-	edit_mode_(v.edit_mode_)
+	capacity_(v.capacity_)
 {
 	v.data_ = 0;
 	v.size_ = 0;
 	v.capacity_ = 0;
-	v.edit_mode_ = EDIT_ALL;
 }
 
 inline Buffer& Buffer::operator=(Buffer&& v)
 {
-	clear();
+	if (capacity_)
+		setCapacity(0);
 
 	data_ = v.data_;
 	size_ = v.size_;
 	capacity_ = v.capacity_;
-	edit_mode_ = v.edit_mode_;
 
 	v.data_ = 0;
 	v.size_ = 0;
@@ -291,30 +267,7 @@ inline Buffer& Buffer::operator=(const value_type *v)
 
 inline Buffer::~Buffer()
 {
-	if (data_ && edit_mode_ == EDIT_ALL)
-	{
-		std::free(data_);
-#ifndef NDEBUG
-		size_ = 0;
-		capacity_ = 0;
-		data_ = 0;
-#endif
-	}
-}
-
-inline void Buffer::assertMutable()
-{
-#if !defined(NDEBUG)
-	switch (edit_mode_)
-	{
-		case EDIT_ALL:
-		case EDIT_NO_RESIZE:
-			break;
-		default:
-			assert(0 == "attempted to modify readonly buffer");
-			throw std::runtime_error("attempted to modify readonly buffer");
-	}
-#endif
+	setCapacity(0);
 }
 
 inline void Buffer::swap(Buffer& other)
@@ -322,7 +275,6 @@ inline void Buffer::swap(Buffer& other)
 	std::swap(data_, other.data_);
 	std::swap(size_, other.size_);
 	std::swap(capacity_, other.capacity_);
-	std::swap(edit_mode_, other.edit_mode_);
 }
 
 inline const Buffer::value_type *Buffer::data() const
@@ -337,8 +289,8 @@ inline bool Buffer::empty() const
 
 inline const Buffer::value_type *Buffer::c_str() const
 {
-	const_cast<Buffer *>(this)->reserve(size_ + 1);
-	const_cast<Buffer *>(this)->data_[size_] = '\0';
+	if (const_cast<Buffer *>(this)->reserve(size_ + 1))
+		const_cast<Buffer *>(this)->data_[size_] = '\0';
 
 	return data_;
 }
@@ -348,12 +300,13 @@ inline std::size_t Buffer::size() const
 	return size_;
 }
 
-inline void Buffer::resize(std::size_t value)
+inline bool Buffer::resize(std::size_t value)
 {
-	if (value > capacity_)
-		reserve(value);
+	if (!reserve(value))
+		return false;
 
 	size_ = value;
+	return true;
 }
 
 inline std::size_t Buffer::capacity() const
@@ -361,47 +314,12 @@ inline std::size_t Buffer::capacity() const
 	return capacity_;
 }
 
-inline void Buffer::capacity(std::size_t value)
+inline bool Buffer::reserve(std::size_t value)
 {
-	if (value == capacity_)
-		return;
+	if (value <= capacity_)
+		return true;
 
-#if !defined(NDEBUG)
-	switch (edit_mode_)
-	{
-		case EDIT_ALL:
-			break;
-		case EDIT_NO_RESIZE:
-		case EDIT_NOTHING:
-		default:
-			assert(0 == "attempted to modify readonly buffer");
-			throw std::runtime_error("attempted to modify readonly buffer");
-	}
-#endif
-
-	capacity_ = value;
-
-	if (size_ > capacity_)
-	{
-		size_ = capacity_;
-	}
-
-	if (capacity_)
-	{
-		data_ = static_cast<value_type *>(std::realloc(data_, capacity_));
-	}
-	else if (data_)
-	{
-		std::free(data_);
-	}
-}
-
-inline void Buffer::reserve(std::size_t value)
-{
-	if (value > capacity_)
-	{
-		capacity(value + CHUNK_SIZE - (value % CHUNK_SIZE));
-	}
+	return setCapacity(value);
 }
 
 inline void Buffer::clear()
@@ -441,9 +359,9 @@ inline Buffer::const_iterator Buffer::cend() const
 
 inline void Buffer::push_back(value_type value)
 {
-	reserve(size_ + sizeof(value));
-
-	data_[size_++] = value;
+	if (reserve(size_ + sizeof(value))) {
+		data_[size_++] = value;
+	}
 }
 
 inline void Buffer::push_back(int value)
@@ -490,34 +408,31 @@ inline void Buffer::push_back(unsigned long long value)
 
 inline void Buffer::push_back(const value_type *value)
 {
-	if (std::size_t len = std::strlen(value))
-	{
-		reserve(size_ + len);
-
-		std::memcpy(end(), value, len);
-		size_ += len;
+	if (std::size_t len = std::strlen(value)) {
+		if (reserve(size_ + len)) {
+			std::memcpy(end(), value, len);
+			size_ += len;
+		}
 	}
 }
 
 inline void Buffer::push_back(const Buffer& value)
 {
-	if (std::size_t len = value.size())
-	{
-		reserve(size_ + len);
-
-		std::memcpy(end(), value.begin(), len);
-		size_ += len;
+	if (std::size_t len = value.size()) {
+		if (reserve(size_ + len)) {
+			std::memcpy(end(), value.begin(), len);
+			size_ += len;
+		}
 	}
 }
 
 inline void Buffer::push_back(const BufferRef& value)
 {
-	if (std::size_t len = value.size())
-	{
-		reserve(size_ + len);
-
-		std::memcpy(end(), value.begin(), len);
-		size_ += len;
+	if (std::size_t len = value.size()) {
+		if (reserve(size_ + len)) {
+			std::memcpy(end(), value.begin(), len);
+			size_ += len;
+		}
 	}
 }
 
@@ -528,30 +443,29 @@ inline void Buffer::push_back(const BufferRef& value, size_t offset, size_t leng
 	if (!length)
 		return;
 
-	reserve(size_ + length);
-	memcpy(end(), value.begin() + offset, length);
-	size_ += length;
+	if (reserve(size_ + length)) {
+		memcpy(end(), value.begin() + offset, length);
+		size_ += length;
+	}
 }
 
 inline void Buffer::push_back(const std::string& value)
 {
-	if (std::size_t len = value.size())
-	{
-		reserve(size_ + len);
-
-		std::memcpy(end(), value.data(), len);
-		size_ += len;
+	if (std::size_t len = value.size()) {
+		if (reserve(size_ + len)) {
+			std::memcpy(end(), value.data(), len);
+			size_ += len;
+		}
 	}
 }
 
 inline void Buffer::push_back(const void *value, std::size_t size)
 {
-	if (size)
-	{
-		reserve(size_ + size);
-
-		std::memcpy(end(), value, size);
-		size_ += size;
+	if (size) {
+		if (reserve(size_ + size)) {
+			std::memcpy(end(), value, size);
+			size_ += size;
+		}
 	}
 }
 
@@ -628,31 +542,6 @@ inline Buffer Buffer::fromCopy(const value_type *data, std::size_t count)
 inline void Buffer::dump(const char *description)
 {
 	dump(data_, size_, description);
-}
-// }}}
-
-// {{{ ConstBuffer impl
-template<typename PodType, std::size_t N>
-inline ConstBuffer::ConstBuffer(PodType (&value)[N]) :
-	Buffer(value)
-{
-}
-
-inline ConstBuffer::ConstBuffer(const value_type *value, std::size_t n) :
-	Buffer(value, n)
-{
-}
-// }}}
-
-// {{{ FixedBuffer impl
-template<std::size_t N>
-inline FixedBuffer<N>::FixedBuffer() :
-	Buffer()
-{
-	data_ = fixed_;
-	size_ = 0;
-	capacity_ = N;
-	edit_mode_ = EDIT_NO_RESIZE;
 }
 // }}}
 

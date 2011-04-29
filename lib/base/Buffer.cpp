@@ -11,6 +11,30 @@
 
 namespace x0 {
 
+bool Buffer::setCapacity(std::size_t value)
+{
+	if (value > capacity_) {
+		// pad up to CHUNK_SIZE
+		value = value - 1;
+		value = value + CHUNK_SIZE - (value % CHUNK_SIZE);
+	} else if (value < capacity_) {
+		// possibly adjust the actual used size
+		if (value < size_)
+			size_ = value;
+	} else
+		// nothing changed
+		return true;
+
+	capacity_ = value;
+
+	if (capacity_)
+		data_ = static_cast<value_type *>(std::realloc(data_, capacity_));
+	else if (data_)
+		std::free(data_);
+
+	return true;
+}
+
 void Buffer::dump(const void *bytes, std::size_t length, const char *description)
 {
 	static char hex[] = "0123456789ABCDEF";

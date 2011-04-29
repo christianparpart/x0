@@ -501,7 +501,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 	std::size_t lower_bound = outbuf_.size();
 
 	if (lower_bound == outbuf_.capacity())
-		outbuf_.capacity(outbuf_.capacity() + 4096);
+		outbuf_.setCapacity(outbuf_.capacity() + 4096);
 
 	int rv = ::read(process_.output(), outbuf_.end(), outbuf_.capacity() - lower_bound);
 
