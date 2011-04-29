@@ -339,6 +339,7 @@ Unit::Unit() :
 
 Unit::~Unit()
 {
+	printf("\~Unit()\n");
 	delete members_;
 }
 

@@ -199,10 +199,11 @@ void FlowRunner::shutdown()
 
 FlowRunner::~FlowRunner()
 {
+	TRACE("\~FlowRunner()");
 	clear();
 
 	delete parser_;
-	parser_ = nullptr;
+	delete unit_;
 }
 
 int FlowRunner::optimizationLevel() const
