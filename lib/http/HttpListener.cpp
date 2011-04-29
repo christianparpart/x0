@@ -40,7 +40,9 @@ HttpListener::HttpListener(HttpServer& srv) :
 
 HttpListener::~HttpListener()
 {
+	log(Severity::debug, "~HttpListener(): %s:%d", address_.c_str(), port_);
 	stop();
+	delete socketDriver_;
 }
 
 void HttpListener::stop()
