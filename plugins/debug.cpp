@@ -9,6 +9,7 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/io/BufferSource.h>
 
 /**
  * \ingroup plugins
