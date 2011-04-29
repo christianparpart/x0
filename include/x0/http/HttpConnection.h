@@ -147,10 +147,6 @@ private:
 
 	CompositeSource source_;
 	SocketSink sink_;
-
-#if !defined(NDEBUG)
-	ev::tstamp ctime_;
-#endif
 };
 
 // {{{ inlines

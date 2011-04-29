@@ -64,9 +64,6 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd, unsigne
 	abortData_(nullptr),
 	source_(),
 	sink_(nullptr)
-#if !defined(NDEBUG)
-	, ctime_(ev_now(loop()))
-#endif
 {
 	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
 	sink_.setSocket(socket_);
