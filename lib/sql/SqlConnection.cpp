@@ -40,6 +40,16 @@ bool SqlConnection::open(const char *hostname, const char *username, const char 
 	return true;
 }
 
+bool SqlConnection::isOpen() const
+{
+	return mysql_ping(handle_) == 0;
+}
+
+bool SqlConnection::ping()
+{
+	return mysql_ping(handle_) == 0;
+}
+
 MYSQL *SqlConnection::handle()
 {
 	return handle_;
