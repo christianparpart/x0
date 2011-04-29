@@ -10,7 +10,7 @@
 #define sw_x0_io_FilterSource_h 1
 
 #include <x0/io/Source.h>
-#include <x0/io/BufferSource.h>
+#include <x0/io/EmptySource.h>
 #include <x0/io/Filter.h>
 #include <memory>
 
@@ -26,7 +26,7 @@ class X0_API FilterSource :
 {
 public:
 	explicit FilterSource(Filter& Filter, bool force = false) :
-		buffer_(), source_(new BufferSource("")), filter_(Filter), force_(force), pos_(0) {}
+		buffer_(), source_(new EmptySource()), filter_(Filter), force_(force), pos_(0) {}
 
 	FilterSource(Source* source, Filter& Filter, bool force) :
 		buffer_(), source_(source), filter_(Filter), force_(force), pos_(0) {}
