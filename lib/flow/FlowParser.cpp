@@ -125,7 +125,6 @@ FlowParser::FlowParser(FlowBackend* b) :
 
 FlowParser::~FlowParser()
 {
-	printf("\~FlowParser()\n");
 	delete lexer_;
 }
 
