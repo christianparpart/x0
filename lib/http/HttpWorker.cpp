@@ -34,9 +34,12 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	connectionLoad_(0),
 	requestLoad_(0),
 	requestCount_(0),
+	connectionCount_(0),
 	thread_(0),
 	state_(Active),
 	queue_(),
+	queueLock_(),
+	connections_(),
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
 	evSuspend_(loop_),
@@ -115,15 +118,6 @@ void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
 	pthread_spin_unlock(&queueLock_);
 }
 
-/** releases/unregisters given (and to-be-destroyed) connection from this worker.
- *
- * This decrements the connection-load counter by one.
- */
-void HttpWorker::release(HttpConnection *)
-{
-	--connectionLoad_;
-}
-
 /** callback to be invoked when new connection(s) have been assigned to this worker.
  */
 void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
@@ -134,18 +128,38 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 		std::pair<int, HttpListener *> client(queue_.front());
 		queue_.pop_front();
 
-		++connectionLoad_;
-
 		pthread_spin_unlock(&queueLock_);
 
 		TRACE("client connected; fd:%d", client.first);
 
-		HttpConnection *conn = new HttpConnection(*client.second, *this, client.first);
-		conn->start();
+		if (HttpConnection *c = new HttpConnection(*client.second, *this, client.first, connectionCount_)) {
+			++connectionLoad_;
+			++connectionCount_;
+			connections_.push_back(c);
+			c->start();
+		} else {
+			::close(client.first);
+		}
 
 		pthread_spin_lock(&queueLock_);
 	}
 	pthread_spin_unlock(&queueLock_);
+}
+
+/** releases/unregisters given (and to-be-destroyed) connection from this worker.
+ *
+ * This decrements the connection-load counter by one.
+ */
+void HttpWorker::release(HttpConnection *c)
+{
+	--connectionLoad_;
+
+	ConnectionList::iterator i = std::find(connections_.begin(), connections_.end(), c);
+	if (i != connections_.end()) {
+		connections_.erase(i);
+	}
+
+	delete c;
 }
 
 void HttpWorker::handleRequest(HttpRequest *r)
