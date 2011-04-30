@@ -134,9 +134,9 @@ private:
 		/*using namespace x0;
 
 		CompositeSource s;
-		s.push_back(new BufferSource(ConstBuffer("hello")));
-		s.push_back(new BufferSource(Buffer(", ")));
-		s.push_back(new BufferSource(Buffer("world")));
+		s.push_back<BufferSource>(ConstBuffer("hello"));
+		s.push_back<BufferSource>(Buffer(", "));
+		s.push_back<BufferSource>(Buffer("world"));
 
 		Buffer output;
 		CPPUNIT_ASSERT(s.pull(output) == "hello");
