@@ -1,0 +1,255 @@
+# test to validate the code generation of expressions
+# vim:syntax=flow
+
+var foo = 'foo';
+var bar = 'bar';
+var foobar = 'foobar';
+
+handler test_expr_number_units
+{
+	# verify bit units
+	assert 8 bit == 1 byte, 'bit';
+	assert 1 kbit == 1024 bit, 'kbit';
+	assert 1 mbit == 1024 kbit, 'mbit';
+	assert 1 gbit == 1024 mbit, 'gbit';
+	assert 1 tbit == 1024 gbit, 'tbit';
+
+	# verify bit byte units
+	assert 1 byte == 1, 'byte';
+	assert 1 kbyte == 1024 byte, 'kbyte';
+	assert 1 mbyte == 1024 kbyte, 'mbyte';
+	assert 1 gbyte == 1024 mbyte, 'gbyte';
+	assert 1 tbyte == 1024 gbyte, 'tbyte';
+
+	# verify time units
+	assert 1 sec == 1, 'sec';
+	assert 1 min == 60 sec, 'min';
+	assert 1 hours == 60 min, 'hours';
+	assert 1 days == 24 hours, 'days';
+	assert 1 weeks == 7 days, 'week';
+	assert 1 months == 30 days, 'week';
+	assert 1 years == 365 days, 'year';
+}
+
+handler test_expr_and
+{
+	# TODO
+}
+
+handler test_expr_or
+{
+	# (number, number)
+	assert ((0 or 1) == 1, '0 or 1');
+	assert ((1 or 0) == 1, '1 or 0');
+	assert ((1 or 1) == 1, '1 or 1');
+	assert ((0 or 0) == 0, '0 or 0');
+}
+
+handler test_expr_to_bool
+{
+	assert 1, '1';
+	assert not 0, 'not null';
+
+	assert foo, "foo";
+	assert not '', "not ''";
+
+	assert mkbuf(foo), 'mkbuf(foo)';
+	assert not mkbuf(), 'not mkbuf()';
+}
+
+handler test_expr_xor
+{
+	# TODO
+}
+
+handler test_expr_not
+{
+	# well, already tested alot in almost all other cases
+}
+
+handler test_expr_equal
+{
+	# (string, int)
+	assert not foobar == 5, 'foobar == 5';
+	assert foobar == 6, 'foobar == 6';
+	assert not foobar == 7, 'foobar == 7';
+
+	assert mkbuf(foobar) == 6, 'mkbuf(foobar) == 6';
+
+	# (string, string)
+	assert foobar == foobar, 'foobar == foobar';
+	assert not foobar == bar, 'not foobar == bar';
+}
+
+handler test_expr_unequal
+{
+	# (string, int)
+	assert foobar != 5, 'foobar != 5';
+	assert not foobar != 6, 'foobar != 6';
+	assert foobar != 7, 'foobar != 7';
+
+	# (string, string)
+	assert foobar != bar, 'foobar != bar';
+	assert not foobar != foobar, 'not foobar != foobar';
+}
+
+handler test_expr_lessequ
+{
+	# (string, int)
+	assert not foobar <= 5, 'foobar <= 5';
+	assert foobar <= 6, 'foobar <= 6';
+	assert foobar <= 7, 'foobar <= 7';
+
+	# (string, string)
+	assert bar <= foo;
+	assert foo <= foo, 'foo <= foo';
+	assert foo <= foobar, 'foo <= foobar';
+	assert not foo <= bar, 'not foo <= bar';
+	assert not foobar <= foo, 'not foobar <= foo';
+}
+
+handler test_expr_greaterequ
+{
+	# (string, int)
+	assert foobar >= 5, 'foobar >= 5';
+	assert foobar >= 6, 'foobar >= 6';
+	assert not foobar >= 7, 'foobar >= 7';
+
+	# (string, string)
+	assert foo >= bar, 'foo >= bar';
+	assert foo >= foo, 'foo >= foo';
+	assert foobar >= foo, 'foobar >= foo';
+	assert not bar >= foo, 'not bar >= foo';
+	assert not foo >= foobar, 'not foo >= foobar';
+}
+
+handler test_expr_less
+{
+	# (string, int)
+	assert not foobar < 5, 'foobar < 5';
+	assert not foobar < 6, 'foobar < 6';
+	assert foobar < 7, 'foobar < 7';
+
+	# (string, string)
+	assert bar < foo, 'bar < foo';
+	assert not foo < bar, 'not foo < bar';
+}
+
+handler test_expr_greater
+{
+	# (string, int)
+	assert foobar > 5, 'foobar > 5';
+	assert not foobar > 6, 'foobar > 6';
+	assert not foobar > 7, 'foobar > 7';
+
+	# (string, string)
+	assert foo > bar, 'foo > bar';
+	assert not bar > foo, 'not bar > foo';
+}
+
+handler test_expr_prefix_match
+{
+	# (string, string)
+	assert foobar =^ foo, 'foobar =^ foo';
+	assert foobar =^ foobar, 'foobar =^ foobar';
+	assert not foobar =^ bar, 'not foobar =^ bar';
+}
+
+handler test_expr_suffix_match
+{
+	var b_foobar = mkbuf(foobar);
+
+	# (string, string)
+	assert foobar =$ bar, 'foobar =$ bar';
+	assert foobar =$ foobar, 'foobar =$ foobar';
+	assert not foobar =$ foo, 'not foobar =$ foo';
+	assert not bar =$ foobar, 'not bar =$ foobar';
+
+	# (buf, string)
+	assert b_foobar =$ bar, 'b_foobar =$ bar';
+}
+
+handler test_expr_in
+{
+	# (string, string)
+	assert foo in foobar, 'foo in foobar';
+	assert foobar in foobar, 'foobar in foobar';
+	assert not foobar in foo, 'not foobar in foo';
+
+	# (string, list)
+#	var my = [foo, bar];
+#	assert foo in my;
+#	assert not foobar in my;
+}
+
+handler test_expr_plus
+{
+	# (string, string)
+	assert foo + bar == foobar, 'foo + bar';
+
+	assert mkbuf(foobar) + 3 == bar, 'mkbuf(foobar) + 3 == bar';
+	assert mkbuf(foobar) - 3 == bar, 'mkbuf(foobar) - 3 == bar';
+}
+
+handler test_expr_minus
+{
+	# TODO
+}
+
+handler test_expr_mul
+{
+	# TODO
+	assert 3 * 4 == 12, '3 * 4';
+
+	# (string, number)
+#	assert foo * 2 == foo + foo;
+#	assert 2 * foo == foo + foo;
+}
+
+handler test_expr_div
+{
+	# TODO
+}
+
+handler test_expr_pow
+{
+	# (number, number)
+	assert 2 ** 0 == 1, '2 ** 0';
+	assert 2 ** 1 == 2, '2 ** 1';
+	assert 2 ** 2 == 4, '2 ** 2';
+	assert 2 ** 3 == 8, '2 ** 3';
+}
+
+handler test_array
+{
+	var a = [1, 2, 4, 8];
+	var b = [3, 5, 7, 9];
+	var c = [0, 3, 5];
+	var d = [];
+
+	// equality
+	assert a == a, "a == b";
+	assert a != b, "a != b";
+
+	assert !!a, "!!a";
+	assert !d, "!d";
+
+	// plus
+	assert a + c == (1, 2, 4, 8, 0, 3, 5), "a + c";
+	assert c + a == (0, 3, 5, 1, 2, 4, 8), "c + a";
+}
+
+handler ok {}
+handler fail { assert false, "fail"; }
+
+handler test_post_condstmt
+{
+	ok if true;
+	fail if false;
+
+	assert true, "if true" if true;
+	assert false, "if false" if false;
+
+	assert (true, "if true") if true;
+	assert (false, "if false") if false;
+}

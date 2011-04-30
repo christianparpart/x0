@@ -1,0 +1,63 @@
+handler test_f
+{
+	__print ('a')
+	__print ('b')
+}
+
+handler test_stmt_single1
+{
+	pass
+}
+
+handler test_stmt_single2
+{
+	pass if true
+	fail if false
+	pass
+	# comment
+}
+
+handler test_stmt_delim
+{
+	# single-line
+	pass() if true
+	pass(1) if true
+	pass if true
+	pass 1 if true
+	pass 1, 2 if true
+
+	fail() if false
+	fail(1) if false
+	fail if false
+	fail 1 if false
+	fail 1, 2 if false
+
+	# '(' multi-line ')'
+	pass(
+		) if true
+
+	# multi-line
+	pass 1,
+		2 if true
+}
+
+handler test_if_1
+{
+	if 1 then {} #finish;
+
+	#error 'should never be reached.';
+}
+
+handler test_if_2
+{
+	if 0 then error 'should never be reached.';
+}
+
+handler test_if_3
+{
+	if 0 then {}
+	else if 0 then {}
+	else {} #finish;
+
+	#error 'on-or block not entered';
+}

@@ -1,0 +1,22 @@
+
+handler sub_finish
+{
+	finish;
+}
+
+handler test_handler_sub1
+{
+	sub_finish;
+	error 'should never be reached.';
+}
+
+handler sub_noop
+{
+	// do nothing.
+}
+
+handler test_handler_sub2
+{
+	sub_noop;
+	assert 1, 'should be reached';
+}

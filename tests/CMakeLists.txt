@@ -35,6 +35,24 @@ target_link_libraries(x0test
 )
 
 # -----------------------------------------------------------------
+
+add_executable(flow_test flow_test.cpp)
+target_link_libraries(flow_test
+	${CPPUNIT_LIBRARIES}
+	dl pthread
+	XzeroBase
+	XzeroFlow
+)
+
+add_executable(test_flow_lexer test_flow_lexer.cpp)
+target_link_libraries(test_flow_lexer
+	${CPPUNIT_LIBRARIES}
+	dl pthread
+	XzeroBase
+	XzeroFlow
+)
+
+# -----------------------------------------------------------------
 # some quicky executables
 
 add_executable(x0cp x0cp.cpp)

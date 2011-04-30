@@ -1,0 +1,13 @@
+handler noop {}
+
+handler main
+{
+	noop; // assert 0, 'one-line comment';
+
+	noop; # assert 0, another one-line comment
+
+	noop; /* assert 0, 'multi line comment';
+	continues
+	here.
+	*/ noop;
+}

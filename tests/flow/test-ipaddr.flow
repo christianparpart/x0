@@ -1,0 +1,32 @@
+# vim:syntax=flow
+
+handler test_ipaddr
+{
+	# tests IPv4 addresses.
+	# The here used eq(IP, str) operator is implemented for unit-testing purposes.
+	assert 255.255.255.255 == '255.255.255.255', '255.255.255.255'
+	assert 192.168.0.1 == '192.168.0.1', '192.168.0.1'
+	assert 127.0.0.1 == '127.0.0.1', '127.0.0.1'
+	assert 0.0.0.0 == '0.0.0.0', '0.0.0.0'
+}
+
+handler test_cmp
+{
+	assert 1.2.3.4 == 1.2.3.4, 'eq'
+	assert 1.2.3.4 != 1.2.3.5, 'unequ'
+}
+
+handler test_ip6addr
+{
+	# TODO
+	# 3ffe:1234:beaf::17
+	# ::1
+	# ::4:2
+	# ::
+}
+
+handler test_ipnet
+{
+	# TODO
+	# assert 192.168.0.1/24 == '192.168.0.1/24', '192.168.0.1/24'
+}
