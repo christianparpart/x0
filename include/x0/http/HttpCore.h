@@ -88,6 +88,7 @@ private:
 	bool docroot(HttpRequest *r, const Params& args);
 	bool alias(HttpRequest *r, const Params& args);
 	void pathinfo(FlowValue& result, HttpRequest *r, const Params& args);
+	void error_handler(FlowValue& result, HttpRequest *r, const Params& args);
 	void req_method(FlowValue& result, HttpRequest *r, const Params& args);
 	void req_url(FlowValue& result, HttpRequest *r, const Params& args);
 	void req_path(FlowValue& result, HttpRequest *r, const Params& args);
@@ -95,6 +96,8 @@ private:
 	void req_host(FlowValue& result, HttpRequest *r, const Params& args);
 	void req_pathinfo(FlowValue& result, HttpRequest *r, const Params& args);
 	void req_is_secure(FlowValue& result, HttpRequest *r, const Params& args);
+	void req_status_code(FlowValue& result, HttpRequest *r, const Params& args);
+	void req_rewrite(FlowValue& result, HttpRequest *r, const Params& args);
 	void conn_remote_ip(FlowValue& result, HttpRequest *r, const Params& args);
 	void conn_remote_port(FlowValue& result, HttpRequest *r, const Params& args);
 	void conn_local_ip(FlowValue& result, HttpRequest *r, const Params& args);

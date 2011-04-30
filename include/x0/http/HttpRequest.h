@@ -294,6 +294,8 @@ public:
 	// custom data bindings
 	//std::map<HttpPlugin *, CustomDataPtr> customData;
 
+	void setErrorHandler(FlowValue::Function handler) { errorHandler_ = handler; }
+
 	// utility methods
 	bool supportsProtocol(int major, int minor) const;
 	std::string hostid() const;
@@ -329,6 +331,7 @@ public:
 private:
 	mutable std::string hostid_;
 	std::function<void(BufferRef&&)> readCallback_;
+	FlowValue::Function errorHandler_;
 
 	void onRequestContent(BufferRef&& chunk);
 

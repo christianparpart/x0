@@ -79,6 +79,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerHandler<HttpCore, &HttpCore::alias>("alias");
 	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", FlowValue::VOID);
 	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", FlowValue::VOID);
+	registerFunction<HttpCore, &HttpCore::error_handler>("error.handler", FlowValue::VOID);
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_url>("req.url", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_path>("req.path", FlowValue::BUFFER);
@@ -86,6 +87,8 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_host>("req.host", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", FlowValue::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::req_status_code>("req.status", FlowValue::NUMBER);
+	registerFunction<HttpCore, &HttpCore::req_rewrite>("req.rewrite", FlowValue::VOID);
 	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("req.remoteip", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", FlowValue::NUMBER);
 	registerProperty<HttpCore, &HttpCore::conn_local_ip>("req.localip", FlowValue::STRING);
@@ -574,6 +577,11 @@ void HttpCore::pathinfo(FlowValue& result, HttpRequest *in, const Params& args)
 	in->updatePathInfo();
 }
 
+void HttpCore::error_handler(FlowValue& result, HttpRequest* in, const Params& args)
+{
+	in->setErrorHandler(args[0].toFunction());
+}
+
 void HttpCore::req_method(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result.set(in->method.data(), in->method.size());
@@ -608,6 +616,19 @@ void HttpCore::req_pathinfo(FlowValue& result, HttpRequest *in, const Params& ar
 void HttpCore::req_is_secure(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = in->connection.isSecure();
+}
+
+void HttpCore::req_status_code(FlowValue& result, HttpRequest *in, const Params& args)
+{
+	result = static_cast<unsigned>(in->status);
+}
+
+void HttpCore::req_rewrite(FlowValue& result, HttpRequest *in, const Params& args)
+{
+	if (!args.count())
+		return;
+
+	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].toString());
 }
 // }}}
 

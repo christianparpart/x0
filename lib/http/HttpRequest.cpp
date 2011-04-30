@@ -51,7 +51,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	outputFilters(),
 
 	hostid_(),
-	readCallback_()
+	readCallback_(),
+	errorHandler_(nullptr)
 {
 #ifndef NDEBUG
 	static std::atomic<unsigned long long> rid(0);
@@ -340,6 +341,20 @@ void HttpRequest::finish()
 		case Unhandled:
 			if (static_cast<int>(status) == 0)
 				status = HttpError::NotFound;
+
+			if (errorHandler_) {
+				TRACE("running custom error handler");
+				// reset the handler right away to avoid endless nesting
+				auto handler = errorHandler_;
+				errorHandler_ = nullptr;
+
+				if (handler(this))
+					return;
+
+				// the handler did not produce any response, so default to the
+				// buildin-output
+			}
+			TRACE("streaming default error content");
 
 			if (!isResponseContentForbidden() && status != HttpError::Ok)
 				writeDefaultResponseContent();
