@@ -78,6 +78,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerHandler<HttpCore, &HttpCore::docroot>("docroot");
 	registerHandler<HttpCore, &HttpCore::alias>("alias");
 	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", FlowValue::VOID);
+	registerFunction<HttpCore, &HttpCore::rewrite>("rewrite", FlowValue::VOID);
 	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", FlowValue::VOID);
 	registerFunction<HttpCore, &HttpCore::error_handler>("error.handler", FlowValue::VOID);
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", FlowValue::BUFFER);
@@ -88,7 +89,6 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", FlowValue::BOOLEAN);
 	registerProperty<HttpCore, &HttpCore::req_status_code>("req.status", FlowValue::NUMBER);
-	registerFunction<HttpCore, &HttpCore::req_rewrite>("req.rewrite", FlowValue::VOID);
 	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("req.remoteip", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", FlowValue::NUMBER);
 	registerProperty<HttpCore, &HttpCore::conn_local_ip>("req.localip", FlowValue::STRING);
@@ -566,6 +566,14 @@ bool HttpCore::alias(HttpRequest *in, const Params& args)
 	return redirectOnIncompletePath(in);
 }
 
+void HttpCore::rewrite(FlowValue& result, HttpRequest *in, const Params& args)
+{
+	if (!args.count())
+		return;
+
+	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].toString());
+}
+
 void HttpCore::pathinfo(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	if (!in->fileinfo) {
@@ -621,14 +629,6 @@ void HttpCore::req_is_secure(FlowValue& result, HttpRequest *in, const Params& a
 void HttpCore::req_status_code(FlowValue& result, HttpRequest *in, const Params& args)
 {
 	result = static_cast<unsigned>(in->status);
-}
-
-void HttpCore::req_rewrite(FlowValue& result, HttpRequest *in, const Params& args)
-{
-	if (!args.count())
-		return;
-
-	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].toString());
 }
 // }}}
 
