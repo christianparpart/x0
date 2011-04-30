@@ -40,6 +40,7 @@ public:
 
 	bool open(const char *hostname, const char *username, const char *passwd, const char *database, int port = 3306);
 	bool isOpen() const;
+	bool ping();
 	void close();
 
 	template<typename... Args>

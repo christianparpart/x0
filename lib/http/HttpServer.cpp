@@ -45,7 +45,7 @@
 #include <grp.h>
 #include <getopt.h>
 
-#define TRACE(level, msg...) debug(level, msg)
+#define TRACE(msg...) (this->debug(0, msg))
 
 namespace x0 {
 
@@ -77,6 +77,9 @@ std::string global_now()
  * \see HttpServer::run()
  */
 HttpServer::HttpServer(struct ::ev_loop *loop) :
+#ifndef NDEBUG
+	Logging("HttpServer"),
+#endif
 	onConnectionOpen(),
 	onPreProcess(),
 	onResolveDocumentRoot(),
@@ -129,6 +132,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 
 HttpServer::~HttpServer()
 {
+	TRACE("destroying");
 	stop();
 
 	for (auto i: listeners_)
@@ -605,7 +609,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 void HttpServer::unloadPlugin(const std::string& name)
 {
 #if !defined(NDEBUG)
-	//log(Severity::debug, "Unloading plugin: %s", name.c_str());
+	log(Severity::debug, "Unloading plugin: %s", name.c_str());
 #endif
 
 	for (auto plugin: plugins_)

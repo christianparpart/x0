@@ -1,4 +1,5 @@
 #include <x0/http/HttpRangeDef.h>
+#include <x0/ConstBuffer.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <iostream>

@@ -8,6 +8,7 @@
 #include <x0/Severity.h>
 
 #include <deque>
+#include <list>
 #include <atomic>
 #include <ev++.h>
 #include <signal.h>
@@ -48,6 +49,8 @@ public:
 		Exiting
 	};
 
+	typedef std::list<HttpConnection*> ConnectionList;
+
 private:
 	static unsigned idpool_;
 
@@ -59,10 +62,18 @@ private:
 	std::atomic<int> connectionLoad_;
 	std::atomic<int> requestLoad_;
 	std::atomic<unsigned long long> requestCount_;
+	unsigned long long connectionCount_;
 	pthread_t thread_;
 	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
+
+	// maintain a doubly-linked list of our connections.
+	// this is not really a requirement for running the service properly,
+	// however, when inspecting the process state (for debugging / statistic)
+	// purposes, we need to keep them in a list somewhere.
+	// XXX we could make this #ifdef'd by XZERO_MAINTAIN_CONNECTIONS
+	ConnectionList connections_;
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
@@ -93,9 +104,13 @@ public:
 	HttpServer& server() const;
 	State state() const;
 
+	ConnectionList& connections() { return connections_; }
+	const ConnectionList& connections() const { return connections_; }
+
 	int connectionLoad() const;
 	int requestLoad() const;
 	unsigned long long requestCount() const;
+	unsigned long long connectionCount() const;
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
 	void handleRequest(HttpRequest *r);
@@ -156,6 +171,11 @@ inline int HttpWorker::requestLoad() const
 inline unsigned long long HttpWorker::requestCount() const
 {
 	return requestCount_;
+}
+
+inline unsigned long long HttpWorker::connectionCount() const
+{
+	return connectionCount_;
 }
 // }}}
 

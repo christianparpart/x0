@@ -46,13 +46,15 @@ namespace x0 {
  * \param lst the listener object that created this connection.
  * \note This triggers the onConnectionOpen event.
  */
-HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
+HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd, unsigned long long id) :
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
 	refCount_(0),
 	listener_(lst),
 	worker_(w),
 	socket_(nullptr),
+	id_(id),
+	requestCount_(0),
 	state_(Alive),
 	isHandlingRequest_(false),
 	buffer_(8192),
@@ -62,16 +64,12 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd) :
 	abortData_(nullptr),
 	source_(),
 	sink_(nullptr)
-#if !defined(NDEBUG)
-	, ctime_(ev_now(loop()))
-#endif
 {
 	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
 	sink_.setSocket(socket_);
 
 #if !defined(NDEBUG)
-	static std::atomic<unsigned long long> id(0);
-	setLoggingPrefix("HttpConnection[%d,%s:%d]", ++id, remoteIP().c_str(), remotePort());
+	setLoggingPrefix("HttpConnection[%d,%llu|%s:%d]", worker_.id(), id_, remoteIP().c_str(), remotePort());
 #endif
 
 	TRACE("fd=%d", socket_->handle());
@@ -95,8 +93,6 @@ HttpConnection::~HttpConnection()
 
 	TRACE("destructing (rc: %ld)", refCount_);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
-
-	worker_.release(this);
 
 	try {
 		worker_.server_.onConnectionClose(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
@@ -122,7 +118,7 @@ void HttpConnection::unref()
 	TRACE("unref() %ld", refCount_);
 
 	if (!refCount_) {
-		delete this;
+		worker_.release(this);
 	}
 }
 
@@ -336,6 +332,7 @@ bool HttpConnection::messageHeaderEnd()
 	}
 #endif
 
+	++requestCount_;
 	isHandlingRequest_ = true;
 	worker_.handleRequest(request_);
 
@@ -356,7 +353,7 @@ bool HttpConnection::messageEnd()
 {
 	TRACE("messageEnd()");
 
-	// increment the number of fully processed requests
+	// increment the number of fully processed requests (FIXME: put this into the headerEnd-callback, too? - would change meaning a little)
 	++worker_.requestCount_;
 
 	// XXX is this really required? (meant to mark the request-content EOS)

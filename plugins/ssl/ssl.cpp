@@ -95,6 +95,9 @@ public:
 
 	~ssl_plugin()
 	{
+		for (auto i: contexts_)
+			delete i;
+
 		gnutls_global_deinit();
 	}
 

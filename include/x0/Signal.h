@@ -37,7 +37,8 @@ class Signal<void(Args...)>
 	Signal& operator=(const Signal&) = delete;
 
 public:
-	typedef std::list<std::pair<void *, void(*)(void *, Args...)>> list_type;
+	typedef std::pair<void *, void(*)(void *, Args...)> item_type;
+	typedef std::list<item_type> list_type;
 
 	typedef typename list_type::iterator iterator;
 	typedef typename list_type::const_iterator const_iterator;
@@ -75,6 +76,11 @@ public:
 	{
 		impl_.push_back(std::make_pair(object, &method_thunk<K, method>));
 		return boost::prior(impl_.end());
+	}
+
+	void disconnect(void* p)
+	{
+		std::remove_if(impl_.begin(), impl_.end(), [&](const item_type& i) { return i.first == p; });
 	}
 
 	void disconnect(Connection c)

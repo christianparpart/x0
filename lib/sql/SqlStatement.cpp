@@ -11,7 +11,7 @@
 #include <assert.h>
 
 #if !defined(NDEBUG)
-#	define TRACE(msg...) this->debug(msg)
+#	define TRACE(msg...) const_cast<SqlStatement*>(this)->debug(msg)
 #else
 #	define TRACE(msg...) do { } while (0)
 #endif
@@ -595,22 +595,30 @@ long SqlStatement::valueAt<long>(unsigned index) const
 			return 0;
 		case MYSQL_TYPE_DATETIME: {
 			MYSQL_TIME* tp = static_cast<MYSQL_TIME*>(d->buffer);
+
 			struct tm tm;
-#if 0
 			time_t ts = time(0);
 			localtime_r(&ts, &tm);
-#else
-			tm.tm_isdst = -1;	// -1 = undefined
-			tm.tm_yday = 0; 	// ignord
-			tm.tm_wday = 0;		// ignord
-#endif
+
+			tm.tm_yday = 0;   // ignored
+			tm.tm_wday = 0;   // ignored
+
 			tm.tm_year = tp->year - 1900;
 			tm.tm_mon = tp->month - 1;
 			tm.tm_mday = tp->day;
 			tm.tm_hour = tp->hour;
 			tm.tm_min = tp->minute;
 			tm.tm_sec = tp->second;
-			return mktime(&tm);
+			ts = mktime(&tm);
+
+			tzset();
+			ts -= timezone;
+
+			// XXX is this right? however, this seems to be the way to get the right timestamp in my case at least (as of 2011-04-30 CEST)
+			if (tm.tm_isdst > 0)
+				ts += 3600;
+
+			return ts;
 		}
 		default:
 #if !defined(NDEBUG)

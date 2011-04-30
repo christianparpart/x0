@@ -985,6 +985,12 @@ public:
 		registerHandler<fastcgi_plugin, &fastcgi_plugin::handleRequest>("fastcgi");
 	}
 
+	~fastcgi_plugin()
+	{
+		for (auto i: contexts_)
+			delete i.second;
+	}
+
 	bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
 	{
 		if (args.count() != 1 || !args[0].isString())

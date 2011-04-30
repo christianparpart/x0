@@ -1,5 +1,7 @@
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
+#include <x0/ConstBuffer.h>
+#include <x0/FixedBuffer.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
@@ -14,7 +16,7 @@ class buffer_test :
 {
 public:
 	CPPUNIT_TEST_SUITE(buffer_test);
-		// buffer
+		// Buffer
 		CPPUNIT_TEST(ctor0);
 		CPPUNIT_TEST(const_buffer1);
 		CPPUNIT_TEST(resize);
@@ -31,7 +33,13 @@ public:
 		CPPUNIT_TEST(call);
 		CPPUNIT_TEST(std_string);
 
-		// buffer::ref
+		// FixedBuffer
+		// TODO
+
+		// ConstBuffer
+		// TODO
+
+		// BufferRef
 		CPPUNIT_TEST(ref_ctor);
 		CPPUNIT_TEST(ref_begins);
 		CPPUNIT_TEST(ref_find_value_ptr);
@@ -50,6 +58,14 @@ private:
 		CPPUNIT_ASSERT(a.size() == 0);
 		CPPUNIT_ASSERT(!a);
 		CPPUNIT_ASSERT(!static_cast<bool>(a));
+	}
+
+	x0::Buffer getbuf()
+	{
+		//x0::Buffer buf;
+		//buf.push_back("12345");
+		//return buf;
+		return x0::Buffer("12345");
 	}
 
 	void const_buffer1()
@@ -92,8 +108,8 @@ private:
 		buf.push_back("hello");
 		CPPUNIT_ASSERT(buf.capacity() >= 5);
 
-		buf.capacity(4);
-		CPPUNIT_ASSERT(buf.capacity() == 4);
+		buf.setCapacity(4);
+		CPPUNIT_ASSERT(buf.capacity() >= 4);
 		CPPUNIT_ASSERT(buf.size() == 4);
 		CPPUNIT_ASSERT(buf == "hell");
 	}

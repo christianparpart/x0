@@ -58,16 +58,18 @@ public:
 	 * creates an HTTP connection object.
 	 * \param srv a ptr to the server object this connection belongs to.
 	 */
-	HttpConnection(HttpListener& listener, HttpWorker& worker, int fd);
+	HttpConnection(HttpListener& listener, HttpWorker& worker, int fd, unsigned long long id);
 
 	~HttpConnection();
+
+	unsigned long long id() const;				//!< returns the (mostly) unique, worker-local, ID to this connection
 
 	void close();
 
 	ValueProperty<bool> secure;					//!< true if this is a secure (HTTPS) connection, false otherwise.
 
 	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
-	HttpWorker& worker();						//!< Retrieves a reference to the owning worker.
+	HttpWorker& worker() const;					//!< Retrieves a reference to the owning worker.
 
 	std::string remoteIP() const;				//!< Retrieves the IP address of the remote end point (client).
 	unsigned int remotePort() const;			//!< Retrieves the TCP port numer of the remote end point (client).
@@ -83,6 +85,9 @@ public:
 	template<class T, class... Args> void write(Args&&... args);
 
 	bool isOutputPending() const;
+
+	const HttpRequest* request() const { return request_; }
+	HttpRequest* request() { return request_; }
 
 private:
 	friend class HttpRequest;
@@ -127,6 +132,8 @@ private:
 	HttpWorker& worker_;
 
 	Socket *socket_;					//!< underlying communication socket
+	unsigned long long id_;				//!< the worker-local connection-ID
+	unsigned requestCount_;				//!< the number of requests already processed or currently in process
 	enum State { Alive, Aborted, Closed } state_;
 	bool isHandlingRequest_;			//!< is this connection (& request) currently passed to a request handler?
 
@@ -140,10 +147,6 @@ private:
 
 	CompositeSource source_;
 	SocketSink sink_;
-
-#if !defined(NDEBUG)
-	ev::tstamp ctime_;
-#endif
 };
 
 // {{{ inlines
@@ -157,7 +160,12 @@ inline Socket *HttpConnection::socket() const
 	return socket_;
 }
 
-inline HttpWorker& HttpConnection::worker()
+inline unsigned long long HttpConnection::id() const
+{
+	return id_;
+}
+
+inline HttpWorker& HttpConnection::worker() const
 {
 	return worker_;
 }

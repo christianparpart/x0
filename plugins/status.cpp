@@ -9,6 +9,7 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/http/HttpConnection.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
 #include <x0/TimeSpan.h>
@@ -29,6 +30,15 @@
 
 #define TRACE(msg...) DEBUG("status: " msg)
 
+class ConnectionHook :
+	public x0::CustomDataMgr
+{
+private:
+	ev::tstamp createdAt_;
+
+public:
+};
+
 /**
  * \ingroup plugins
  * \brief example content generator plugin
@@ -36,15 +46,31 @@
 class StatusPlugin :
 	public x0::HttpPlugin
 {
+private:
+	std::list<x0::HttpConnection*> connections_;
+
+	void onConnectionCreate(x0::HttpConnection* c)
+	{
+	}
+
+	void onConnectionDestroy(x0::HttpConnection* c)
+	{
+	}
+
 public:
 	StatusPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
 		registerHandler<StatusPlugin, &StatusPlugin::handleRequest>("status");
+
+		srv.onConnectionOpen.connect<StatusPlugin, &StatusPlugin::onConnectionCreate>(this);
+		srv.onConnectionClose.connect<StatusPlugin, &StatusPlugin::onConnectionCreate>(this);
 	}
 
 	~StatusPlugin()
 	{
+		server().onConnectionOpen.disconnect(this);
+		server().onConnectionClose.disconnect(this);
 	}
 
 private:
@@ -77,12 +103,14 @@ private:
 		std::size_t nconns = 0;
 		std::size_t nrequests = 0;
 		unsigned long long numTotalRequests = 1; // count in this very request, too (as requestCount() only counts *completed* requests but this one is to end when transmitted, too.)
+		unsigned long long numTotalConns = 0;
 
 		for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
 			const x0::HttpWorker *w = server().workers()[i];
 			nconns += w->connectionLoad();
 			nrequests += w->requestLoad();
 			numTotalRequests += w->requestCount();
+			numTotalConns += w->connectionCount();
 		}
 
 		x0::Buffer buf;
@@ -96,10 +124,53 @@ private:
 		buf << "# requests: " << nrequests << "\n";
 		buf << "# connections: " << nconns << "\n";
 		buf << "# total requests: " << numTotalRequests << "\n";
+		buf << "# total connections: " << numTotalConns << "\n";
+		buf << "\n";
+
+		for (auto w: server().workers())
+			for (auto c: w->connections())
+				dump(buf, c);
+
 		buf << "</pre>\n";
 		buf << "</body></html>\n";
 
 		return buf;
+	}
+
+	void dump(x0::Buffer& out, x0::HttpConnection* c)
+	{
+		out << c->worker().id() << "." << c->id() << ", ";
+		out << c->socket()->remoteIP() << ":" << c->socket()->remotePort() << ", ";
+		out << "@" << c->state_str() << ", ";
+
+		if (const x0::HttpRequest* r = c->request()) {
+			out << sanitize(r->hostname) << ": " << sanitize(r->method) << ' ' << sanitize(r->uri)
+				<< ' ' << x0::make_error_code(r->status).message()
+				<< "\n";
+		} else {
+			out << "request-less\n";
+		}
+	}
+
+	template<typename T>
+	std::string sanitize(const T& value)
+	{
+		std::string out;
+		char buf[32];
+		for (auto i: value) {
+			switch (i) {
+				case '<':
+				case '>':
+				case '&':
+					snprintf(buf, sizeof(buf), "#%d;", static_cast<unsigned>(i) & 0xFF);
+					out += buf;
+					break;
+				default:
+					out += i;
+					break;
+			}
+		}
+		return out;
 	}
 };
 
