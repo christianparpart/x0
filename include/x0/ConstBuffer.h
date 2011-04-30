@@ -1,5 +1,5 @@
-#ifndef sw_x0_FixedBuffer_h
-#define sw_x0_FixedBuffer_h 1
+#ifndef sw_x0_ConstBuffer_h
+#define sw_x0_ConstBuffer_h 1
 
 #include <x0/Buffer.h>
 

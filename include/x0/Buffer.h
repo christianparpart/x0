@@ -68,7 +68,7 @@ public:
 	Buffer& operator=(const Buffer& v);
 	Buffer& operator=(const std::string& v);
 	Buffer& operator=(const value_type *v);
-	~Buffer();
+	virtual ~Buffer();
 
 	void swap(Buffer& other);
 

@@ -13,6 +13,7 @@ private:
 
 public:
 	FixedBuffer();
+	~FixedBuffer();
 
 	virtual bool setCapacity(std::size_t value);
 };
@@ -28,13 +29,21 @@ inline FixedBuffer<N>::FixedBuffer() :
 }
 
 template<std::size_t N>
+FixedBuffer<N>::~FixedBuffer()
+{
+	// the parent's destructor will invoked setCapacity(0), however, they
+	// will NOT use the overridden one, so we fake him a capacity of 0
+	capacity_ = 0;
+}
+
+template<std::size_t N>
 bool FixedBuffer<N>::setCapacity(std::size_t value)
 {
 	if (value > N)
-		return true;
+		return false;
 
 	capacity_ = value;
-	return false;
+	return true;
 }
 // }}}
 

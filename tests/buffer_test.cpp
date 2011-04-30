@@ -35,6 +35,7 @@ public:
 
 		// FixedBuffer
 		// TODO
+		CPPUNIT_TEST(fixed_buf);
 
 		// ConstBuffer
 		// TODO
@@ -272,6 +273,21 @@ private:
 		CPPUNIT_ASSERT(a.data() != s.data());
 		CPPUNIT_ASSERT(a.size() == s.size());
 		CPPUNIT_ASSERT(s == "hello");
+	}
+	// }}}
+
+	// {{{ FixedBuffer
+	void fixed_buf()
+	{
+		x0::FixedBuffer<2> b2;
+		b2.push_back('1');
+		CPPUNIT_ASSERT(b2.size() == 1);
+
+		b2.push_back('2');
+		CPPUNIT_ASSERT(b2.size() == 2);
+
+		b2.push_back('3');
+		CPPUNIT_ASSERT(b2.size() == 2);
 	}
 	// }}}
 
