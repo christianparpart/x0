@@ -72,6 +72,9 @@ inline void CompositeSource::push_back(Source* s)
 
 inline void CompositeSource::reset()
 {
+	for (auto i: sources_)
+		delete i;
+
 	sources_.clear();
 }
 
