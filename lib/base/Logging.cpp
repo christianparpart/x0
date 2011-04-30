@@ -37,7 +37,7 @@ void Logging::updateClassName()
 	for (auto i = prefix_.begin(), e = prefix_.end(); i != e; ++i) {
 		if (strchr(splits, *i)) {
 			className_ = prefix_.substr(0, i - prefix_.begin());
-			goto done;
+			return;
 		}
 	}
 	className_ = prefix_;
