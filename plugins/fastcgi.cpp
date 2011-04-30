@@ -954,6 +954,7 @@ ok:
 	return;
 
 err:
+	delete transport;
 	in->status = x0::HttpError::ServiceUnavailable;
 	in->finish();
 	return;
