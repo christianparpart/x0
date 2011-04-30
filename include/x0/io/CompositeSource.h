@@ -42,6 +42,7 @@ public:
 
 	bool empty() const;
 	void push_back(Source* s);
+	template<typename T, typename... Args> T* push_back(Args... args);
 	void reset();
 
 	Source* front() const;
@@ -68,6 +69,14 @@ inline bool CompositeSource::empty() const
 inline void CompositeSource::push_back(Source* s)
 {
 	sources_.push_back(s);
+}
+
+template<typename T, typename... Args>
+T* CompositeSource::push_back(Args... args)
+{
+	T* chunk = new T(std::move(args)...);
+	sources_.push_back(chunk);
+	return chunk;
 }
 
 inline void CompositeSource::reset()
