@@ -867,6 +867,11 @@ HttpError HttpCore::verifyClientCache(HttpRequest *in) // {{{
 	return HttpError::Ok;
 } // }}}
 
+/*! fully processes the ranged requests, if one, or does nothing.
+ *
+ * \retval true this was a ranged request and we fully processed it (invoked finish())
+ * \internal false this is no ranged request. nothing is done on it.
+ */
 inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 {
 	BufferRef range_value(in->requestHeader("Range"));
@@ -888,25 +893,23 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 
 	in->status = HttpError::PartialContent;
 
-	if (range.size() > 1)
-	{
+	if (range.size() > 1) {
 		// generate a multipart/byteranged response, as we've more than one range to serve
 
 		CompositeSource* content = new CompositeSource();
 		Buffer buf;
 		std::string boundary(generateBoundaryID());
-		std::size_t content_length = 0;
+		std::size_t contentLength = 0;
 
-		for (int i = 0, e = range.size(); i != e; ++i)
-		{
+		for (int i = 0, e = range.size(); i != e; ++i) {
 			std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[i], in->fileinfo->size()));
-			if (offsets.second < offsets.first)
-			{
+			if (offsets.second < offsets.first) {
 				in->status = HttpError::RequestedRangeNotSatisfiable;
+				in->finish();
 				return true;
 			}
 
-			std::size_t length = 1 + offsets.second - offsets.first;
+			std::size_t partLength = 1 + offsets.second - offsets.first;
 
 			buf.clear();
 			buf.push_back("\r\n--");
@@ -915,20 +918,20 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 			buf.push_back(in->fileinfo->mimetype());
 
 			buf.push_back("\r\nContent-Range: bytes ");
-			buf.push_back(boost::lexical_cast<std::string>(offsets.first));
+			buf.push_back(offsets.first);
 			buf.push_back("-");
-			buf.push_back(boost::lexical_cast<std::string>(offsets.second));
+			buf.push_back(offsets.second);
 			buf.push_back("/");
-			buf.push_back(boost::lexical_cast<std::string>(in->fileinfo->size()));
+			buf.push_back(in->fileinfo->size());
 			buf.push_back("\r\n\r\n");
 
-			if (fd >= 0)
-			{
+			contentLength += buf.size() + partLength;
+
+			if (fd >= 0) {
 				bool lastChunk = i + 1 == e;
-				content->push_back(new BufferSource(std::move(buf)));
-				content->push_back(new FileSource(fd, offsets.first, length, lastChunk));
+				content->push_back<BufferSource>(std::move(buf));
+				content->push_back<FileSource>(fd, offsets.first, partLength, lastChunk);
 			}
-			content_length += buf.size() + length;
 		}
 
 		buf.clear();
@@ -936,59 +939,67 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 		buf.push_back(boundary);
 		buf.push_back("--\r\n");
 
-		content->push_back(new BufferSource(std::move(buf)));
-		content_length += buf.size();
+		contentLength += buf.size();
+		content->push_back<BufferSource>(std::move(buf));
+
+		// push the prepared ranged response into the client
+		char slen[32];
+		snprintf(slen, sizeof(slen), "%ld", contentLength);
 
 		in->responseHeaders.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
-		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(content_length));
+		in->responseHeaders.push_back("Content-Length", slen);
 
-		if (fd >= 0)
+		if (fd >= 0) {
 			in->write(content);
-
-		in->finish();
+		}
 	}
 	else // generate a simple (single) partial response
 	{
 		std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[0], in->fileinfo->size()));
-		if (offsets.second < offsets.first)
-		{
+		if (offsets.second < offsets.first) {
 			in->status = HttpError::RequestedRangeNotSatisfiable;
+			in->finish();
 			return true;
 		}
 
+		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
+
 		std::size_t length = 1 + offsets.second - offsets.first;
 
-		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
-		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(length));
+		char slen[32];
+		snprintf(slen, sizeof(slen), "%ld", length);
+		in->responseHeaders.push_back("Content-Length", slen);
 
-		std::stringstream cr;
+		FixedBuffer<128> cr;
 		cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in->fileinfo->size();
-		in->responseHeaders.push_back("Content-Range", cr.str());
+		in->responseHeaders.push_back("Content-Range", cr.c_str());
 
-		if (fd >= 0)
+		if (fd >= 0) {
 			in->write<FileSource>(fd, offsets.first, length, true);
-
-		in->finish();
+		}
 	}
 
+	in->finish();
 	return true;
 }//}}}
 
-std::pair<std::size_t, std::size_t> HttpCore::makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size)
+/*! converts a range-spec into real offsets.
+ */
+std::pair<std::size_t, std::size_t> HttpCore::makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actualSize)
 {
 	std::pair<std::size_t, std::size_t> q;
 
 	if (p.first == HttpRangeDef::npos) // suffix-range-spec
 	{
-		q.first = actual_size - p.second;
-		q.second = actual_size - 1;
+		q.first = actualSize - p.second;
+		q.second = actualSize - 1;
 	}
 	else
 	{
 		q.first = p.first;
 
-		q.second = p.second == HttpRangeDef::npos && p.second > actual_size
-			? actual_size - 1
+		q.second = p.second == HttpRangeDef::npos && p.second > actualSize
+			? actualSize - 1
 			: p.second;
 	}
 
