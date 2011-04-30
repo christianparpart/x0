@@ -33,15 +33,13 @@ Logging::Logging(const char *prefix, ...) :
 void Logging::updateClassName()
 {
 	static const char splits[] = "/[(-";
-	std::size_t pos;
 
-	for (const char *split = splits; *split; ++split) {
-		if ((pos = prefix_.find(*split)) != std::string::npos) {
-			className_ = prefix_.substr(0, pos);
-			return;
+	for (auto i = prefix_.begin(), e = prefix_.end(); i != e; ++i) {
+		if (strchr(splits, *i)) {
+			className_ = prefix_.substr(0, i - prefix_.begin());
+			goto done;
 		}
 	}
-
 	className_ = prefix_;
 }
 
