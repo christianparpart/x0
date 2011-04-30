@@ -9,7 +9,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
 
  # setup handler, invoked on startup, to initialize the system
  handler setup {
-     workers 4;
+     workers 2;
      userdir.name 'public_html';
      listen '0.0.0.0:8080';
  }
@@ -23,7 +23,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
 
 =head1 DESCRIPTION
 
-TODO
+This file is used to configure B<x0d>.
 
 =head1 SYNTAX
 
@@ -269,7 +269,7 @@ Retrieves request header-value of a given header-name.
 
 Example:
 
- if (header('X-Test') == '') {
+ if (req.header('X-Test') == '') {
      # ...
  }
 
@@ -279,7 +279,15 @@ Retrieves the request hostname.
 
 =item B<req.pathinfo>
 
+Retrieves the computed pathinfo value
+
 =item B<req.is_secure>
+
+Retrieves a boolean value whether or not this connection is SSL enabled.
+
+=item B<req.status>
+
+Retrieves the request's response status code, if set already, or 0 otherwise.
 
 =item B<req.remoteip>
 
@@ -348,6 +356,27 @@ Example:
 
 =over 6
 
+=item B<error.handler> (proc)
+
+Defines a handler to invoke when processing the request generated an HTTP error.
+
+Example:
+
+ handler custom_error {
+     if req.path =^ '/static' {
+         rewrite '/error.html'
+         staticfile
+     } else {
+         fastcgi 'unix:/var/run/custom-error-generator.socket'
+     }
+ }
+
+ handler main {
+     error.handler custom_error
+     docroot '/var/www/localhost/htdocs'
+     staticfile
+ }
+
 =item B<autoindex> (array)
 
 Remaps the current request to an index file as passed via arguments if the
@@ -363,7 +392,42 @@ Example:
     # ...
  }
 
-=item B<alias> (prefix, target)
+=item B<alias> (prefix => target)
+
+Aliases the given prefix with the matching part of the request path to the given
+physical target.
+
+Example:
+
+ handler main {
+     docroot "/var/www/localhost/htdocs"
+     alias "/distfiles" => "/usr/portage/distfiles"
+     dirlisting
+     staticfile
+ }
+
+This is equivalent to:
+
+ handler main {
+     if (req.path =^ '/distfiles') {
+         docroot '/usr/portage/distfles'
+     } else {
+         docroot '/var/www/localhost/htdocs'
+     }
+     dirlisting
+     staticfile
+ }
+
+=item B<rewrite> (path)
+
+Rewrites the current request to point to another physical file, without redirecting,
+as if the client has requested another file.
+
+ handler main {
+     docroot '/var/www/localhost/htdocs'
+     rewrite '/error.html' if req.path =^ '/something/else'
+     staticfile
+ }
 
 =item B<pathinfo> ()
 
@@ -371,19 +435,20 @@ Enforces computation of pathinfo.
 
 =item B<header.add> (name, value)
 
-TODO
+Adds the given header to the list of response headers.
 
 =item B<header.overwrite> (name, value)
 
-TODO
+Adds (possibly overwriting if already present) a response header.
 
-=item B<header.append> (name)
+=item B<header.append> (name, value)
 
-TODO
+Appends the given value to the already existing header.
+If this header is not yet available, this method is equivalent to B<header.add>.
 
 =item B<header.remove> (name)
 
-TODO
+Removes a header by given name from the response headers.
 
 =back
 
@@ -501,11 +566,32 @@ An example use looks as follows:
 
  fastcgi '127.0.0.1:1234';
 
+=item B<fastcgi> (unix:path)
+
+Passes the current request to a FastCGI backend application, listening
+on a UNIX domain socket.
+
+Example:
+
+ fastcgi 'unix:/var/run/fcgiapp.socket';
+
 =back
 
 =head2 proxy
 
 Adds support for HTTP reverse proxying within B<x0>.
+
+=over 6
+
+=item B<proxy.cloak> (flag)
+
+Setup property, defining whether or not to cloak the server tag.
+
+=item B<proxy.reverse> (hostname:port)
+
+Handler, forwarding the request to a backend HTTP server.
+
+=end
 
 =head2 dirlisting
 
@@ -599,7 +685,7 @@ either via Command-Name attribute or via the WWW Domain-Name extension.
 
 The B<x0>-server then will try to select the right context
 via the B<SNI> (Server Name Indication) protocol extension, which
-should be support by any modern browser except any browser on Windows XP.
+should be supported by any modern browser except any browser on Windows XP.
 
 An example use looks as follows:
 
@@ -649,10 +735,22 @@ associated handler is invoked to continue request processing.
 
 =back
 
+=head1 ENVIRONMENT VARIABLES
+
+=over 3
+
+=item B<XZERO_DEBUG>
+
+Defines a colon-seperated list of C++ classes to print debugging information for.
+This environment variable is only evaluated when compiled with debug information.
+
+=back
+
 =head1 BUGS
 
-This software is under early and active development and though
-still considered B<experimental>. Use at your own risk.
+Whilst I do not know of anything critical (they get fixed the time I find them),
+this software is under early and active development and though
+still considered B<experimental>. Use at your own risk and please provide feedback.
 
 =head1 AUTHOR
 
@@ -660,4 +758,6 @@ B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <tr
 
 =head1 SEE ALSO
 
-L<x0d(8)>
+L<x0d(8)>, L<spawn-fcgi(1)>
+
+L<http://redmine.trapni.de/projects/xzero>, x0 project management page
