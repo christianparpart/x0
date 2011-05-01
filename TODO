@@ -2,23 +2,25 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 
 ===================================================================================================
 
+0.4:
+
 - [plugins] balance: new plugin. initially supporting handler: balance.rr (kind of lighty-style)
 - cgi/fastcgi/proxy: verify to not pass connection-level headers
 - resource management (at least for max_core_size) must be evaluated *after* privilege dropping,
   in case there is some, or they're lost.
-- bug in timeout management, when the timeout has been reached the connection is not
-	properly cleaned up (see valgrind).
-- bug in keep-alive connections sending a second+ request?
 - drop *all* occurences of std::function with raw function pointers+data pairs
-- x0d: command line option for dumping IR into file
+- pool allocator for contexts: [server, worker, connection, request]
+	- the allocated memory should be released on destruction, but
+	  could be passed to the upper layer for later reuse.
+	  e.g. the request memory pool passes its data up to the connection pool, so the next request
+	  can make use of it w/o invoking malloc()/new/etc, and so forth.
+
 - introduce a specialized speed-optimized String class with an API like BufferRef/Buffer
 	- including formatted string building and using external pool-allocator
+
 - core: add runtime functions:
 	- bool systemd.booted();
 	- bool systemd.controlled(); / bool systemd.supervised();
-- virtual host management:
-	- void vhost.add(string name, string docroot);
-	- void vhost.map;
 - flow: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
 - flow: caseStmt ::=
 			'case' expr
@@ -32,8 +34,6 @@ QUALITY ASSURANCE TODO:
 - encapsulate ev::timer into an x0::timer (inline) to ease switching backends (e.g. to asio)
 - colorize (optional) help print output
 - RESPECT: handle request headers "Keep-Alive" properly (using [deadline-]timers)
-- FIX: request parsing
-	- fix LWS parsing, e.g. allow headers like "name\r\n  :\r\nvalue\r\n"
 - rfc_date-cache (Last-Modified, Date) i can't do simple caching of last active unix-time as the 
   last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
   (NOTE: why did I say that? why does mtime shard the server's "Date:"?)
