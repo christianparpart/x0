@@ -331,4 +331,12 @@ void Socket::queryLocalName()
 	}
 }
 
+void Socket::inspect(Buffer& out)
+{
+	out << "[Socket: remote(" << remoteIP() << ":" << remotePort() << "), "
+		<< "mode(" << mode_str(mode_) << "), io.active:" << watcher_.is_active() << ", "
+		<< "timer.active:" << timer_.is_active()
+		<< "\n";
+}
+
 } // namespace x0

@@ -150,6 +150,8 @@ private:
 		} else {
 			out << "request-less\n";
 		}
+		out << "    ";
+		c->socket()->inspect(out);
 	}
 
 	template<typename T>

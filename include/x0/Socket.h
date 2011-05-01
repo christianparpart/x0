@@ -120,6 +120,8 @@ public:
 	ssize_t write(const BufferRef& source);
 	template<typename PodType, std::size_t N> ssize_t write(PodType (&value)[N]);
 
+	virtual void inspect(Buffer& out);
+
 private:
 	void queryRemoteName();
 	void queryLocalName();
