@@ -45,6 +45,9 @@ class SocketDriver;
  * @see HttpConnection
  */
 class X0_API HttpListener
+#if !defined(NDEBUG)
+	: public Logging
+#endif
 {
 public:
 	explicit HttpListener(HttpServer& srv);

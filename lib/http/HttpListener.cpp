@@ -24,7 +24,16 @@
 
 namespace x0 {
 
+#if !defined(NDEBUG)
+#define TRACE(msg...) (this->debug(msg))
+#else
+#define TRACE(msg...) ((void *)0)
+#endif
+
 HttpListener::HttpListener(HttpServer& srv) : 
+#ifndef NDEBUG
+	Logging("HttpListener"),
+#endif
 	watcher_(srv.loop()),
 	fd_(-1),
 	addressFamily_(AF_UNSPEC),
@@ -40,14 +49,14 @@ HttpListener::HttpListener(HttpServer& srv) :
 
 HttpListener::~HttpListener()
 {
-	log(Severity::debug, "~HttpListener(): %s:%d", address_.c_str(), port_);
+	TRACE("~HttpListener(): %s:%d", address_.c_str(), port_);
 	stop();
-	delete socketDriver_;
 }
 
 void HttpListener::stop()
 {
-	if (fd_ == -1)
+	TRACE("stopping");
+	if (fd_ < 0)
 		return;
 
 	watcher_.stop();
@@ -217,6 +226,7 @@ bool HttpListener::start()
 	if (fd_ < 0)
 		return false;
 
+	TRACE("starting");
 	watcher_.start(fd_, ev::READ);
 	return true;
 }
