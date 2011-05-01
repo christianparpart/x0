@@ -185,15 +185,15 @@ inline BufferRef::BufferRef(const Buffer *_buffer, std::size_t _offset, std::siz
 }
 
 inline BufferRef::BufferRef(const char* buffer, std::size_t n) :
-	begin_(buffer),
-	end_(buffer + n)
+	begin_(const_cast<char*>(buffer)),
+	end_(const_cast<char*>(buffer) + n)
 {
 }
 
 template<typename PodType, std::size_t N>
 inline BufferRef::BufferRef(PodType (&value)[N]) :
-	begin_(buffer),
-	end_(buffer + (N - 1))
+	begin_(const_cast<char*>(value)),
+	end_(const_cast<char*>(value) + (N - 1))
 {
 }
 
