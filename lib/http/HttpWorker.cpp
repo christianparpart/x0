@@ -36,42 +36,25 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	requestCount_(0),
 	connectionCount_(0),
 	thread_(0),
-	state_(Active),
 	queue_(),
 	queueLock_(),
 	connections_(),
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
-	evSuspend_(loop_),
-	evResume_(loop_),
 	evExit_(loop_),
 	fileinfo(loop_, &server_.fileinfoConfig_)
 {
 	evLoopCheck_.set<HttpWorker, &HttpWorker::onLoopCheck>(this);
 	evLoopCheck_.start();
+	ev_unref(loop_);
 
 	evNewConnection_.set<HttpWorker, &HttpWorker::onNewConnection>(this);
 	evNewConnection_.start();
 	ev_unref(loop_);
 
-	evSuspend_.set<HttpWorker, &HttpWorker::onSuspend>(this);
-	evSuspend_.start();
-	ev_unref(loop_);
-
-	evResume_.set<HttpWorker, &HttpWorker::onResume>(this);
-	evResume_.start();
-	ev_unref(loop_);
-
 	evExit_.set<HttpWorker, &HttpWorker::onExit>(this);
 	evExit_.start();
-
-#if !defined(NO_BUGGY_EVXX)
-	// libev's ev++ (at least till version 3.80) does not initialize `sent` to zero)
-	ev_async_set(&evNewConnection_);
-	ev_async_set(&evSuspend_);
-	ev_async_set(&evResume_);
-	ev_async_set(&evExit_);
-#endif
+	ev_unref(loop_);
 
 	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
 
@@ -81,6 +64,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 HttpWorker::~HttpWorker()
 {
 	TRACE("destroying");
+
 	clearCustomData();
 	pthread_spin_destroy(&queueLock_);
 }
@@ -91,10 +75,8 @@ void HttpWorker::run()
 	// XXX being invoked from *within* the worker-thread.
 	server_.onWorkerSpawn(this);
 
-	while (state_ != Exiting) {
-		TRACE("enter loop");
-		ev_loop(loop_, 0);
-	}
+	TRACE("enter loop");
+	ev_loop(loop_, 0);
 
 	TRACE("event loop left. killing remaining connections.");
 	if (!connections_.empty()) {
@@ -185,34 +167,18 @@ void HttpWorker::handleRequest(HttpRequest *r)
 		r->finish();
 }
 
-void HttpWorker::onSuspend(ev::async& w, int revents)
-{
-	state_ = Inactive;
-}
-
-void HttpWorker::onResume(ev::async& w, int revents)
-{
-	state_ = Active;
-}
-
 void HttpWorker::onExit(ev::async& w, int revents)
 {
 	TRACE("onExit");
 
 	ev_ref(loop_);
+	evLoopCheck_.stop();
+
+	ev_ref(loop_);
 	evNewConnection_.stop();
 
 	ev_ref(loop_);
-	evSuspend_.stop();
-
-	ev_ref(loop_);
-	evResume_.stop();
-
 	evExit_.stop();
-
-	state_ = Exiting;
-
-	ev_unloop(loop_, EVUNLOOP_ONE);
 }
 
 void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)

@@ -64,7 +64,6 @@ private:
 	std::atomic<unsigned long long> requestCount_;
 	unsigned long long connectionCount_;
 	pthread_t thread_;
-	State state_;
 	std::deque<std::pair<int, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
@@ -77,8 +76,6 @@ private:
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
-	ev::async evSuspend_;
-	ev::async evResume_;
 	ev::async evExit_;
 
 	friend class HttpPlugin;
@@ -131,8 +128,6 @@ protected:
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
-	void onSuspend(ev::async& w, int revents);
-	void onResume(ev::async& w, int revents);
 	void onExit(ev::async& w, int revents);
 };
 //@}
@@ -151,11 +146,6 @@ inline struct ev_loop *HttpWorker::loop() const
 inline HttpServer& HttpWorker::server() const
 {
 	return server_;
-}
-
-inline HttpWorker::State HttpWorker::state() const
-{
-	return state_;
 }
 
 inline const DateTime& HttpWorker::now() const

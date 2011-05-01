@@ -86,13 +86,21 @@ public:
 
 		sigterm_.set<x0d, &x0d::terminate_handler>(this);
 		sigterm_.start(SIGTERM);
+		ev_unref(server_->loop());
 
 		sighup_.set<x0d, &x0d::reload_handler>(this);
 		sighup_.start(SIGHUP);
+		ev_unref(server_->loop());
 	}
 
 	~x0d()
 	{
+		ev_ref(server_->loop());
+		sigterm_.stop();
+
+		ev_ref(server_->loop());
+		sighup_.stop();
+
 		delete server_;
 		server_ = nullptr;
 
