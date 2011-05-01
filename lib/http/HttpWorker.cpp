@@ -89,12 +89,28 @@ void HttpWorker::run()
 {
 	// XXX invoke onWorkerSpawned-hook here because we want to ensure this hook is 
 	// XXX being invoked from *within* the worker-thread.
-	server_.onWorkerSpawned(this);
+	server_.onWorkerSpawn(this);
 
 	while (state_ != Exiting) {
 		TRACE("enter loop");
 		ev_loop(loop_, 0);
 	}
+
+	TRACE("event loop left. killing remaining connections.");
+	if (!connections_.empty()) {
+		auto copy = connections_;
+		for (auto c: copy) {
+			c->abort();
+		}
+
+#ifndef NDEBUG
+		for (auto i: connections_) {
+			i->debug("connection still open");
+		}
+#endif
+	}
+
+	server_.onWorkerUnspawn(this);
 }
 
 void HttpWorker::log(Severity s, const char *fmt, ...)

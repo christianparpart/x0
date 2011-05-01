@@ -87,6 +87,8 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	onPostProcess(),
 	onRequestDone(),
 	onConnectionClose(),
+	onWorkerSpawn(),
+	onWorkerUnspawn(),
 	components_(),
 
 	unit_(nullptr),

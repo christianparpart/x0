@@ -101,7 +101,8 @@ public:
 	ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.
 	// }}}
 
-	WorkerHook onWorkerSpawned;
+	WorkerHook onWorkerSpawn;
+	WorkerHook onWorkerUnspawn;
 
 	void addComponent(const std::string& value);
 
