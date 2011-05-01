@@ -593,24 +593,13 @@ x0d *x0d::instance_ = 0;
 
 int main(int argc, char *argv[])
 {
-	try
-	{
-		x0d daemon(argc, argv);
-		return daemon.run();
+#if 1
+	if (argc == 1) {
+		const char* args[] = { "./x0d", "--systemd", "-c", "../../src/test.conf", 0 };
+		argv = (char **) args;
+		argc = sizeof(args) / sizeof(*args) - 1;
 	}
-	catch (std::exception& e)
-	{
-		std::cerr << "Unhandled exception caught: " << e.what() << std::endl;
-		return 1;
-	}
-	catch (const char *e)
-	{
-		std::cerr << "Unhandled exception caught: " << e << std::endl;
-		return 2;
-	}
-	catch (...)
-	{
-		std::cerr << "Unhandled unknown exception caught." << std::endl;
-		return 3;
-	}
+#endif
+	x0d daemon(argc, argv);
+	return daemon.run();
 }
