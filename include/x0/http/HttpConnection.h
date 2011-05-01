@@ -126,6 +126,9 @@ private:
 
 	void log(Severity s, const char *fmt, ...);
 
+	Buffer& inputBuffer() { return buffer_; }
+	const Buffer& inputBuffer() const { return buffer_; }
+
 private:
 	unsigned refCount_;
 	HttpListener& listener_;

@@ -181,8 +181,7 @@ private: // {{{ debug helper
 			snprintf(prefix, sizeof(prefix), "\nbuffer.view");
 
 		if (v)
-			printf("\n%s: '%s' (offset=%ld, size=%ld)\n",
-				prefix, v.str().c_str(), v.offset(), v.size());
+			printf("\n%s: '%s' (size=%ld)\n", prefix, v.str().c_str(), v.size());
 		else
 			printf("\n%s: NULL\n", prefix);
 	}

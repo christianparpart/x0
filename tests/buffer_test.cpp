@@ -320,10 +320,6 @@ private:
 	{
 	}
 
-	void ref_offset()
-	{
-	}
-
 	void ref_size()
 	{
 	}
@@ -449,7 +445,7 @@ private: // {{{ debug helper
 		else
 			printf("buffer.view: '%s'\n", v.str().c_str());
 
-		printf("  view.offset=%ld, size=%ld\n", v.offset(), v.size());
+		printf("  size=%ld\n", v.size());
 	}
 	//}}}
 };

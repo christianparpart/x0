@@ -212,47 +212,34 @@ void HttpConnection::handshakeComplete(Socket *)
 	}
 }
 
-inline bool url_decode(BufferRef& url)
+inline bool url_decode(Buffer& value, BufferRef& url)
 {
-	std::size_t left = url.offset();
+	assert(url.belongsTo(value));
+
+	std::size_t left = url.begin() - value.begin();
 	std::size_t right = left + url.size();
 	std::size_t i = left; // read pos
 	std::size_t d = left; // write pos
-	Buffer& value = url.buffer();
 
-	while (i != right)
-	{
-		if (value[i] == '%')
-		{
-			if (i + 3 <= right)
-			{
+	while (i != right) {
+		if (value[i] == '%') {
+			if (i + 3 <= right) {
 				int ival;
-				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival))
-				{
+				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival)) {
 					value[d++] = static_cast<char>(ival);
 					i += 3;
-				}
-				else
-				{
+				} else {
 					return false;
 				}
-			}
-			else
-			{
+			} else {
 				return false;
 			}
-		}
-		else if (value[i] == '+')
-		{
+		} else if (value[i] == '+') {
 			value[d++] = ' ';
 			++i;
-		}
-		else if (d != i)
-		{
+		} else if (d != i) {
 			value[d++] = value[i++];
-		}
-		else
-		{
+		} else {
 			++d;
 			++i;
 		}
@@ -273,7 +260,7 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 	request_->method = std::move(method);
 
 	request_->uri = std::move(uri);
-	url_decode(request_->uri);
+	url_decode(buffer_, request_->uri);
 
 	std::size_t n = request_->uri.find("?");
 	if (n != std::string::npos) {
