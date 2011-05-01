@@ -120,7 +120,13 @@ public:
 
 	void setAffinity(int cpu);
 
+	template<class K, void (K::*fn)()>
+	void post(K* object);
+
 protected:
+	template<class K, void (K::*fn)()>
+	static void post_thunk(int revents, void* arg);
+
 	virtual void run();
 
 	void onLoopCheck(ev::check& w, int revents);
@@ -129,7 +135,6 @@ protected:
 	void onResume(ev::async& w, int revents);
 	void onExit(ev::async& w, int revents);
 };
-
 //@}
 
 // {{{ inlines
@@ -176,6 +181,18 @@ inline unsigned long long HttpWorker::requestCount() const
 inline unsigned long long HttpWorker::connectionCount() const
 {
 	return connectionCount_;
+}
+
+template<class K, void (K::*fn)()>
+void HttpWorker::post(K* object)
+{
+	ev_once(loop_, -1, 0, 0, post_thunk<K, fn>, object);
+}
+
+template<class K, void (K::*fn)()>
+void HttpWorker::post_thunk(int revents, void* arg)
+{
+	(static_cast<K *>(arg)->*fn)();
 }
 // }}}
 
