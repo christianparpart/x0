@@ -123,7 +123,7 @@ void HttpConnection::timeout(Socket *)
 {
 	TRACE("timed out");
 
-	ev_unloop(loop(), EVUNLOOP_ONE);
+//	ev_unloop(loop(), EVUNLOOP_ONE);
 
 	// XXX that's an interesting case!
 	// XXX the client did not actually abort but WE declare the connection to be released early.
