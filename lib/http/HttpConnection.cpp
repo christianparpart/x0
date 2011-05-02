@@ -46,12 +46,13 @@ namespace x0 {
  * \param lst the listener object that created this connection.
  * \note This triggers the onConnectionOpen event.
  */
-HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd, unsigned long long id) :
+HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
 	refCount_(0),
-	listener_(lst),
+	listener_(nullptr),
 	worker_(w),
+	handle_(),
 	socket_(nullptr),
 	id_(id),
 	requestCount_(0),
@@ -65,21 +66,6 @@ HttpConnection::HttpConnection(HttpListener& lst, HttpWorker& w, int fd, unsigne
 	source_(),
 	sink_(nullptr)
 {
-	socket_ = listener_.socketDriver()->create(loop(), fd, lst.addressFamily());
-	sink_.setSocket(socket_);
-
-#if !defined(NDEBUG)
-	setLoggingPrefix("HttpConnection[%d,%llu|%s:%d]", worker_.id(), id_, remoteIP().c_str(), remotePort());
-#endif
-
-	TRACE("fd=%d", socket_->handle());
-
-#if defined(TCP_NODELAY)
-	if (worker_.server_.tcpNoDelay())
-		socket_->setTcpNoDelay(true);
-#endif
-
-	worker_.server_.onConnectionOpen(this);
 }
 
 /** releases all connection resources  and triggers the onConnectionClose event.
@@ -94,15 +80,9 @@ HttpConnection::~HttpConnection()
 	TRACE("destructing (rc: %ld)", refCount_);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
-	try {
-		worker_.server_.onConnectionClose(this); // we cannot pass a shared pointer here as use_count is already zero and it would just lead into an exception though
-	} catch (...) {
-		log(Severity::error, "Unhandled exception caught on connection-close callback. Please report this bug.");
-	}
+	worker_->server_.onConnectionClose(this);
 
-	if (socket_) {
-		delete socket_;
-	}
+	delete socket_;
 }
 
 void HttpConnection::ref()
@@ -118,7 +98,7 @@ void HttpConnection::unref()
 	TRACE("unref() %ld", refCount_);
 
 	if (!refCount_) {
-		worker_.release(this);
+		worker_->release(handle_);
 	}
 }
 
@@ -150,7 +130,7 @@ void HttpConnection::timeout(Socket *)
 #if defined(WITH_SSL)
 bool HttpConnection::isSecure() const
 {
-	return listener_.isSecure();
+	return listener_->isSecure();
 }
 #endif
 
@@ -163,9 +143,27 @@ bool HttpConnection::isSecure() const
  *
  * \see stop()
  */
-void HttpConnection::start()
+void HttpConnection::start(HttpListener* listener, int fd, const HttpConnectionList::iterator& handle)
 {
-	ref();
+	ref(); // XXX this one gets closed in HttpConnection::close()
+
+	handle_ = handle;
+	listener_ = listener;
+	socket_ = listener_->socketDriver()->create(loop(), fd, listener_->addressFamily());
+	sink_.setSocket(socket_);
+
+#if defined(TCP_NODELAY)
+	if (worker_->server().tcpNoDelay())
+		socket_->setTcpNoDelay(true);
+#endif
+
+#if !defined(NDEBUG)
+	setLoggingPrefix("HttpConnection[%d,%llu|%s:%d]", worker_->id(), id_, remoteIP().c_str(), remotePort());
+#endif
+
+	TRACE("starting (fd=%d)", socket_->handle());
+
+	worker_->server_.onConnectionOpen(this);
 
 	if (isAborted()) {
 		// The connection got directly closed (aborted) upon connection instance creation (e.g. within the onConnectionOpen-callback),
@@ -193,7 +191,7 @@ void HttpConnection::start()
 #else
 		TRACE("start: watchInput.");
 		// client connected, but we do not yet know if we have data pending
-		watchInput(worker_.server_.maxReadIdle());
+		watchInput(worker_->server_.maxReadIdle());
 #endif
 	}
 	unref();
@@ -204,7 +202,7 @@ void HttpConnection::handshakeComplete(Socket *)
 	TRACE("handshakeComplete() socketState=%s", socket_->state_str());
 
 	if (socket_->state() == Socket::Operational)
-		watchInput(worker_.server_.maxReadIdle());
+		watchInput(worker_->server_.maxReadIdle());
 	else
 	{
 		TRACE("handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
@@ -321,7 +319,7 @@ bool HttpConnection::messageHeaderEnd()
 
 	++requestCount_;
 	isHandlingRequest_ = true;
-	worker_.handleRequest(request_);
+	worker_->handleRequest(request_);
 
 	return true;
 }
@@ -341,7 +339,7 @@ bool HttpConnection::messageEnd()
 	TRACE("messageEnd()");
 
 	// increment the number of fully processed requests (FIXME: put this into the headerEnd-callback, too? - would change meaning a little)
-	++worker_.requestCount_;
+	++worker_->requestCount_;
 
 	// XXX is this really required? (meant to mark the request-content EOS)
 	if (request_)
@@ -376,7 +374,7 @@ void HttpConnection::resume()
 		process();
 	} else { // nothing in buffer, wait for new request message
 		TRACE("resume: watch input");
-		watchInput(worker_.server_.maxKeepAlive());
+		watchInput(worker_->server_.maxKeepAlive());
 	}
 }
 
@@ -391,7 +389,7 @@ void HttpConnection::watchInput(const TimeSpan& timeout)
 
 void HttpConnection::watchOutput()
 {
-	TimeSpan timeout = worker_.server_.maxWriteIdle();
+	TimeSpan timeout = worker_->server_.maxWriteIdle();
 
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
@@ -413,7 +411,7 @@ void HttpConnection::processInput()
 
 	if (rv < 0) { // error
 		if (errno == EAGAIN || errno == EINTR) {
-			watchInput(worker_.server_.maxReadIdle());
+			watchInput(worker_->server_.maxReadIdle());
 		} else {
 			//log(Severity::error, "Connection read error: %s", strerror(errno));
 			abort();
@@ -571,7 +569,7 @@ void HttpConnection::process()
 #endif
 
 	if (ec == HttpMessageError::Partial) {
-		watchInput(worker_.server_.maxReadIdle());
+		watchInput(worker_->server_.maxReadIdle());
 	}
 }
 
@@ -587,7 +585,7 @@ unsigned int HttpConnection::remotePort() const
 
 std::string HttpConnection::localIP() const
 {
-	return listener_.address();
+	return listener_->address();
 }
 
 unsigned int HttpConnection::localPort() const

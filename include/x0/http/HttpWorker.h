@@ -1,6 +1,7 @@
 #ifndef x0_http_HttpWorker_h
 #define x0_http_HttpWorker_h (1)
 
+#include <x0/http/Types.h>
 #include <x0/io/FileInfoService.h>
 #include <x0/Logging.h>
 #include <x0/CustomDataMgr.h>
@@ -49,8 +50,6 @@ public:
 		Exiting
 	};
 
-	typedef std::list<HttpConnection*> ConnectionList;
-
 private:
 	static unsigned idpool_;
 
@@ -67,12 +66,7 @@ private:
 	std::deque<std::pair<int, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
-	// maintain a doubly-linked list of our connections.
-	// this is not really a requirement for running the service properly,
-	// however, when inspecting the process state (for debugging / statistic)
-	// purposes, we need to keep them in a list somewhere.
-	// XXX we could make this #ifdef'd by XZERO_MAINTAIN_CONNECTIONS
-	ConnectionList connections_;
+	HttpConnectionList connections_;
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
@@ -101,8 +95,8 @@ public:
 	HttpServer& server() const;
 	State state() const;
 
-	ConnectionList& connections() { return connections_; }
-	const ConnectionList& connections() const { return connections_; }
+	HttpConnectionList& connections() { return connections_; }
+	const HttpConnectionList& connections() const { return connections_; }
 
 	int connectionLoad() const;
 	int requestLoad() const;
@@ -111,7 +105,7 @@ public:
 
 	void enqueue(std::pair<int, HttpListener *>&& handle);
 	void handleRequest(HttpRequest *r);
-	void release(HttpConnection *connection);
+	void release(const HttpConnectionList::iterator& connection);
 
 	void log(Severity s, const char *fmt, ...);
 

@@ -12,7 +12,11 @@
 #include <x0/Types.h>
 #include <x0/Api.h>
 
+#include <list>
+
 namespace x0 {
+
+typedef std::list<HttpConnection*> HttpConnectionList;
 
 } // namespace x0
 

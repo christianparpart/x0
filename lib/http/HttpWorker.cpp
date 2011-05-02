@@ -130,14 +130,12 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 
 		TRACE("client connected; fd:%d", client.first);
 
-		if (HttpConnection *c = new HttpConnection(*client.second, *this, client.first, connectionCount_)) {
-			++connectionLoad_;
-			++connectionCount_;
-			connections_.push_back(c);
-			c->start();
-		} else {
-			::close(client.first);
-		}
+		HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
+		++connectionLoad_;
+		++connectionCount_;
+		connections_.push_front(c);
+		HttpConnectionList::iterator i = connections_.begin();
+		c->start(client.second, client.first, i);
 
 		pthread_spin_lock(&queueLock_);
 	}
@@ -148,16 +146,11 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
  *
  * This decrements the connection-load counter by one.
  */
-void HttpWorker::release(HttpConnection *c)
+void HttpWorker::release(const HttpConnectionList::iterator& connection)
 {
 	--connectionLoad_;
-
-	ConnectionList::iterator i = std::find(connections_.begin(), connections_.end(), c);
-	if (i != connections_.end()) {
-		connections_.erase(i);
-	}
-
-	delete c;
+	delete *connection;
+	connections_.erase(connection);
 }
 
 void HttpWorker::handleRequest(HttpRequest *r)

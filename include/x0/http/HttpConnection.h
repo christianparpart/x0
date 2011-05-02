@@ -58,7 +58,7 @@ public:
 	 * creates an HTTP connection object.
 	 * \param srv a ptr to the server object this connection belongs to.
 	 */
-	HttpConnection(HttpListener& listener, HttpWorker& worker, int fd, unsigned long long id);
+	HttpConnection(HttpWorker* worker, unsigned long long id);
 
 	~HttpConnection();
 
@@ -101,7 +101,7 @@ private:
 	virtual bool messageContent(BufferRef&& chunk);
 	virtual bool messageEnd();
 
-	void start();
+	void start(HttpListener* listener, int fd, const HttpConnectionList::iterator& handle);
 	void resume();
 
 	bool isAborted() const;
@@ -131,10 +131,11 @@ private:
 
 private:
 	unsigned refCount_;
-	HttpListener& listener_;
-	HttpWorker& worker_;
+	HttpListener* listener_;
+	HttpWorker* worker_;
+	HttpConnectionList::iterator handle_;
 
-	Socket *socket_;					//!< underlying communication socket
+	Socket* socket_;					//!< underlying communication socket
 	unsigned long long id_;				//!< the worker-local connection-ID
 	unsigned requestCount_;				//!< the number of requests already processed or currently in process
 	enum State { Alive, Aborted, Closed } state_;
@@ -143,10 +144,10 @@ private:
 	// HTTP HttpRequest
 	Buffer buffer_;						//!< buffer for incoming data.
 	std::size_t offset_;				//!< number of bytes in buffer_ successfully processed already.
-	HttpRequest *request_;				//!< currently parsed http HttpRequest, may be NULL
+	HttpRequest* request_;				//!< currently parsed http HttpRequest, may be NULL
 
-	void (*abortHandler_)(void *);
-	void *abortData_;
+	void (*abortHandler_)(void*);
+	void* abortData_;
 
 	CompositeSource source_;
 	SocketSink sink_;
@@ -155,10 +156,10 @@ private:
 // {{{ inlines
 inline struct ::ev_loop* HttpConnection::loop() const
 {
-	return worker_.loop();
+	return worker_->loop();
 }
 
-inline Socket *HttpConnection::socket() const
+inline Socket* HttpConnection::socket() const
 {
 	return socket_;
 }
@@ -170,7 +171,7 @@ inline unsigned long long HttpConnection::id() const
 
 inline HttpWorker& HttpConnection::worker() const
 {
-	return worker_;
+	return *worker_;
 }
 
 template<class T, class... Args>
@@ -183,7 +184,7 @@ inline void HttpConnection::write(Args&&... args)
 
 inline const HttpListener& HttpConnection::listener() const
 {
-	return listener_;
+	return *listener_;
 }
 
 /*! Tests whether if the connection to the client (remote end-point) has * been aborted early.
