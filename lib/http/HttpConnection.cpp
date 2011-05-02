@@ -47,6 +47,9 @@ namespace x0 {
  * \note This triggers the onConnectionOpen event.
  */
 HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
+#ifndef NDEBUG
+	Logging("HttpConnection"),
+#endif
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
 	refCount_(0),
