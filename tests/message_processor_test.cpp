@@ -54,31 +54,31 @@ public:
 	std::function<bool()> on_complete;
 
 private:
-	virtual void message_begin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
+	virtual void messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
 	{
 		if (on_request)
 			on_request(std::move(method), std::move(uri), version_major, version_minor);
 	}
 
-	virtual void message_begin(int version_major, int version_minor, int code, BufferRef&& text)
+	virtual void messageBegin(int version_major, int version_minor, int code, BufferRef&& text)
 	{
 		if (on_status)
 			on_status(version_major, version_minor, code, std::move(text));
 	}
 
-	virtual void message_begin()
+	virtual void messageBegin()
 	{
 		if (on_message)
 			on_message();
 	}
 
-	virtual void message_header(BufferRef&& name, BufferRef&& value)
+	virtual void messageHeader(BufferRef&& name, BufferRef&& value)
 	{
 		if (on_header)
 			on_header(std::move(name), std::move(value));
 	}
 
-	virtual bool message_header_done()
+	virtual bool messageHeaderEnd()
 	{
 		if (on_header_done)
 			return on_header_done();
@@ -86,7 +86,7 @@ private:
 		return true;
 	}
 
-	virtual bool message_content(BufferRef&& chunk)
+	virtual bool messageContent(BufferRef&& chunk)
 	{
 		if (on_content)
 			return on_content(std::move(chunk));
@@ -94,7 +94,7 @@ private:
 		return true;
 	}
 
-	virtual bool message_end()
+	virtual bool messageEnd()
 	{
 		if (on_complete)
 			return on_complete();
@@ -117,7 +117,7 @@ public:
 		CPPUNIT_TEST(response_no_status_text);
 
 		CPPUNIT_TEST(message_chunked_body);
-		CPPUNIT_TEST(message_chunked_body_fragmented);
+		//CPPUNIT_TEST(message_chunked_body_fragmented);
 		CPPUNIT_TEST(message_content_length);
 		CPPUNIT_TEST(message_content_recursive);
 		CPPUNIT_TEST(message_multi);
