@@ -70,6 +70,7 @@ public:
 	explicit Buffer(std::size_t _capacity);
 	Buffer(const value_type *_data, std::size_t _size); // XXX better be private?
 	explicit Buffer(const BufferRef& v);
+	Buffer(const char* value);
 	explicit Buffer(const std::string& v);
 	template<typename PodType, std::size_t N> explicit Buffer(PodType (&value)[N]);
 	Buffer(const Buffer& v);
@@ -214,6 +215,14 @@ inline Buffer::Buffer(const BufferRef& v) :
 	data_(0), size_(0), capacity_(0)
 {
 	push_back(v.data(), v.size());
+}
+
+inline Buffer::Buffer(const char* v) :
+	data_(0), size_(0), capacity_(0)
+{
+	std::size_t len = std::strlen(v);
+	setCapacity(len + 1);
+	push_back(v);
 }
 
 inline Buffer::Buffer(const std::string& v) :

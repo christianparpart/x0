@@ -46,6 +46,8 @@ public:
 	BufferRef(iterator begin, iterator end);
 	BufferRef(const Buffer* _buffer, std::size_t _offset, std::size_t _size);
 	BufferRef(const char* buffer, std::size_t n);
+	BufferRef(const char* cstring);
+	BufferRef(const std::string& string);
 	template<typename PodType, std::size_t N> explicit BufferRef(PodType (&value)[N]);
 
 	BufferRef(const Buffer& v);
@@ -91,23 +93,19 @@ public:
 	std::size_t rfind(value_type value, std::size_t offset) const;
 
 	// begins / ibegins
-	bool begins(const std::string& value) const;
 	bool begins(const BufferRef& value) const;
 	bool begins(const value_type* value) const;
 	bool begins(value_type value) const;
 
-	bool ibegins(const std::string& value) const;
 	bool ibegins(const BufferRef& value) const;
 	bool ibegins(const value_type* value) const;
 	bool ibegins(value_type value) const;
 
 	// ends / iends
-	bool ends(const std::string& value) const;
 	bool ends(const BufferRef& value) const;
 	bool ends(const value_type* value) const;
 	bool ends(value_type value) const;
 
-	bool iends(const std::string& value) const;
 	bool iends(const BufferRef& value) const;
 	bool iends(const value_type* value) const;
 	bool iends(value_type value) const;
@@ -146,12 +144,10 @@ public:
 // free functions
 bool equals(const Buffer& a, const BufferRef& b);
 bool equals(const BufferRef& a, const BufferRef& b);
-bool equals(const BufferRef& a, const std::string& b);
 template<typename PodType, std::size_t N> bool equals(const BufferRef& a, PodType (&b)[N]);
 
 bool iequals(const BufferRef& a, const BufferRef& b);
 bool iequals(const Buffer& a, const BufferRef& b);
-bool iequals(const BufferRef& a, const std::string& b);
 template<typename PodType, std::size_t N> bool iequals(const BufferRef& a, PodType (&b)[N]);
 
 bool operator==(const BufferRef& a, const BufferRef& b);
@@ -159,9 +155,6 @@ bool operator==(const BufferRef& a, const Buffer& b);
 bool operator==(const Buffer& a, const BufferRef& b);
 bool operator==(const BufferRef& a, const char *b);
 template<typename PodType, std::size_t N> bool operator==(const BufferRef& a, PodType (&b)[N]);
-
-std::string operator+(const BufferRef& a, const std::string& b);
-std::string operator+(const std::string& a, const BufferRef& b);
 
 // {{{ BufferRef impl
 inline BufferRef::BufferRef() :
@@ -187,6 +180,18 @@ inline BufferRef::BufferRef(const Buffer *_buffer, std::size_t _offset, std::siz
 inline BufferRef::BufferRef(const char* buffer, std::size_t n) :
 	begin_(const_cast<char*>(buffer)),
 	end_(const_cast<char*>(buffer) + n)
+{
+}
+
+inline BufferRef::BufferRef(const char* cstring) :
+	begin_(const_cast<char*>(cstring)),
+	end_(const_cast<char*>(cstring) + strlen(cstring))
+{
+}
+
+inline BufferRef::BufferRef(const std::string& value) :
+	begin_(const_cast<char*>(value.data())),
+	end_(begin_ + value.size())
 {
 }
 
@@ -438,11 +443,6 @@ std::size_t BufferRef::rfind(PodType (&value)[N]) const
 	}
 
 	return npos;
-}
-
-inline bool BufferRef::begins(const std::string& value) const
-{
-	return value.size() <= size() && memcmp(data(), value.data(), value.size()) == 0;
 }
 
 inline bool BufferRef::begins(const BufferRef& value) const
@@ -703,14 +703,6 @@ inline bool equals(const BufferRef& a, const BufferRef& b)
 	return std::memcmp(a.data(), b.data(), a.size()) == 0;
 }
 
-inline bool equals(const BufferRef& a, const std::string& b)
-{
-	if (a.size() != b.size())
-		return false;
-
-	return std::memcmp(a.data(), b.data(), a.size()) == 0;
-}
-
 template<typename PodType, std::size_t N>
 bool equals(const BufferRef& a, PodType (&b)[N])
 {
@@ -744,14 +736,6 @@ inline bool iequals(const BufferRef& a, const BufferRef& b)
 		return false;
 
 	return strncasecmp(a.data(), b.data(), a.size()) == 0;
-}
-
-inline bool iequals(const BufferRef& a, const std::string& b)
-{
-	if (a.size() != b.size())
-		return false;
-
-	return iequals(a.data(), b.data(), a.size());
 }
 
 template<typename PodType, std::size_t N>
@@ -789,16 +773,6 @@ inline bool operator==(const BufferRef& a, const char *b)
 template<typename PodType, std::size_t N> inline bool operator==(const BufferRef& a, PodType (&b)[N])
 {
 	return equals<PodType, N>(a, b);
-}
-
-inline std::string operator+(const BufferRef& a, const std::string& b)
-{
-	return std::string(a.data(), a.size()) + b;
-}
-
-inline std::string operator+(const std::string& a, const BufferRef& b)
-{
-	return a + std::string(b.data(), b.size());
 }
 // }}}
 
