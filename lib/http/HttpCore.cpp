@@ -529,7 +529,7 @@ bool HttpCore::docroot(HttpRequest *in, const Params& args)
 		return false;
 
 	in->documentRoot = args[0].toString();
-	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path);
+	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path.str());
 	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
 
 	return redirectOnIncompletePath(in);
