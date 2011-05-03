@@ -253,7 +253,7 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 #ifndef NDEBUG
 	static std::atomic<int> mi(0);
 	setLoggingPrefix("CgiTransport/%d", ++mi);
-	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
+	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->path().c_str());
 #endif
 	TRACE("CgiTransport()");
 	ev_init(&io_, &CgiTransport::io_thunk);
@@ -738,7 +738,7 @@ void CgiTransport::streamParams()
 		paramWriter_.encode(key, i->value);
 	}
 	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
-	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->filename());
+	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
 
 	write(FastCgi::Type::Params, id_, paramWriter_.output());
 	write(FastCgi::Type::Params, id_, "", 0); // EOS

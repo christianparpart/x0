@@ -51,7 +51,7 @@ private:
 	int inotifyId_;
 	ev_tstamp cachedAt_;
 
-	std::string filename_;
+	std::string path_;
 
 	mutable std::string etag_;
 	mutable std::string mtime_;
@@ -63,7 +63,8 @@ public:
 	FileInfo(FileInfoService& service, const std::string& filename);
 	~FileInfo();
 
-	const std::string& filename() const { return filename_; }
+	const std::string& path() const { return path_; }
+	std::string filename() const;
 
 	ev_tstamp cachedAt() const { return cachedAt_; }
 
@@ -135,7 +136,16 @@ inline int FileInfo::open(int flags)
 	flags |= O_LARGEFILE;
 #endif
 
-	return ::open(filename_.c_str(), flags);
+	return ::open(path_.c_str(), flags);
+}
+
+inline std::string FileInfo::filename() const
+{
+	std::size_t n = path_.rfind('/');
+
+	return n != std::string::npos
+		? path_.substr(n + 1)
+		: path_;
 }
 
 } // namespace x0

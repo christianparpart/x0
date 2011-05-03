@@ -83,7 +83,7 @@ void HttpRequest::updatePathInfo()
 
 	// split "/the/tail" from "/path/to/script.php/the/tail"
 
-	std::string fullname(fileinfo->filename());
+	std::string fullname(fileinfo->path());
 	size_t origpos = fullname.size() - 1, pos = origpos;
 
 	for (;;) {
@@ -93,8 +93,8 @@ void HttpRequest::updatePathInfo()
 
 			break;
 		} if (fileinfo->error() == ENOTDIR) {
-			pos = fileinfo->filename().rfind('/', pos - 1);
-			fileinfo = connection.worker().fileinfo(fileinfo->filename().substr(0, pos));
+			pos = fileinfo->path().rfind('/', pos - 1);
+			fileinfo = connection.worker().fileinfo(fileinfo->path().substr(0, pos));
 		} else {
 			break;
 		}

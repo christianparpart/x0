@@ -485,7 +485,7 @@ void HttpCore::autoindex(FlowValue& result, HttpRequest *in, const Params& args)
 
 bool HttpCore::matchIndex(HttpRequest *in, const FlowValue& arg)
 {
-	std::string path(in->fileinfo->filename());
+	std::string path(in->fileinfo->path());
 
 	switch (arg.type())
 	{
@@ -657,7 +657,7 @@ void HttpCore::conn_local_port(FlowValue& result, HttpRequest *in, const Params&
 // {{{ phys
 void HttpCore::phys_path(FlowValue& result, HttpRequest *in, const Params& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->filename().c_str() : "");
+	result.set(in->fileinfo ? in->fileinfo->path().c_str() : "");
 }
 
 void HttpCore::phys_exists(FlowValue& result, HttpRequest *in, const Params& args)
@@ -800,12 +800,12 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 		fd = in->fileinfo->open(flags);
 
 		if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
-			log(Severity::error, "Could not set FD_CLOEXEC on %s: %s", in->fileinfo->filename().c_str(), strerror(errno));
+			log(Severity::error, "Could not set FD_CLOEXEC on %s: %s", in->fileinfo->path().c_str(), strerror(errno));
 
 		if (fd < 0)
 		{
 			server_.log(Severity::error, "Could not open file '%s': %s",
-				in->fileinfo->filename().c_str(), strerror(errno));
+				in->fileinfo->path().c_str(), strerror(errno));
 
 			in->status = HttpError::Forbidden;
 			in->finish();
@@ -1119,7 +1119,6 @@ unsigned long long HttpCore::setrlimit(int resource, unsigned long long value)
 // redirect physical request paths not ending with slash if mapped to directory
 bool HttpCore::redirectOnIncompletePath(HttpRequest *in)
 {
-	std::string filename = in->fileinfo->filename();
 	if (!in->fileinfo->isDirectory() || in->path.ends('/'))
 		return false;
 

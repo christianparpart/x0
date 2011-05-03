@@ -179,10 +179,10 @@ CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
 {
 #ifndef NDEBUG
 	setLogging(false);
-	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->filename().c_str());
+	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->path().c_str());
 	setLoggingPrefix("CgiScript(%s)", request_->path.str().c_str());
 #endif
-	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->filename().c_str(), hostprogram_.c_str());
+	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->path().c_str(), hostprogram_.c_str());
 
 	evStdin_.set<CgiScript, &CgiScript::onStdinReady>(this);
 	evStdout_.set<CgiScript, &CgiScript::onStdoutAvailable>(this);
@@ -288,13 +288,10 @@ inline void CgiScript::runAsync()
 	x0::Process::ArgumentList params;
 	std::string hostprogram;
 
-	if (hostprogram_.empty())
-	{
-		hostprogram = request_->fileinfo->filename();
-	}
-	else
-	{
-		params.push_back(request_->fileinfo->filename());
+	if (hostprogram_.empty()) {
+		hostprogram = request_->fileinfo->path();
+	} else {
+		params.push_back(request_->fileinfo->path());
 		hostprogram = hostprogram_;
 	}
 
@@ -345,7 +342,7 @@ inline void CgiScript::runAsync()
 	}
 #endif
 
-	environment["SCRIPT_FILENAME"] = request_->fileinfo->filename();
+	environment["SCRIPT_FILENAME"] = request_->fileinfo->path();
 	environment["DOCUMENT_ROOT"] = request_->documentRoot;
 
 	// HTTP request headers
@@ -530,13 +527,13 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 
 			request_->log(x0::Severity::error,
 				"CGI: error while reading on stdout of: %s: %s",
-				request_->fileinfo->filename().c_str(),
+				request_->fileinfo->path().c_str(),
 				strerror(errno));
 
 			if (!serial_)
 			{
 				request_->status = x0::HttpError::InternalServerError;
-				request_->log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->filename().c_str());
+				request_->log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->path().c_str());
 			}
 		}
 	}
@@ -571,7 +568,7 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 		errbuf_.resize(rv);
 		request_->log(x0::Severity::error,
 			"CGI script error: %s: %s",
-			request_->fileinfo->filename().c_str(),
+			request_->fileinfo->path().c_str(),
 			errbuf_.str().c_str());
 	}
 	else if (rv == 0)
@@ -587,7 +584,7 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 		{
 			request_->log(x0::Severity::error,
 				"CGI: error while reading on stderr of: %s: %s",
-				request_->fileinfo->filename().c_str(),
+				request_->fileinfo->path().c_str(),
 				strerror(errno));
 
 			evStderr_.stop();
@@ -753,7 +750,7 @@ private:
 	// handler cgi.exec();
 	bool exec(x0::HttpRequest *in, const x0::Params& args)
 	{
-		std::string path(in->fileinfo->filename());
+		std::string path(in->fileinfo->path());
 
 		x0::FileInfoPtr fi = in->connection.worker().fileinfo(path);
 
@@ -768,7 +765,7 @@ private:
 	// handler cgi.map();
 	bool map(x0::HttpRequest *in, const x0::Params& args)
 	{
-		std::string path(in->fileinfo->filename());
+		std::string path(in->fileinfo->path());
 
 		x0::FileInfoPtr fi = in->connection.worker().fileinfo(path);
 		if (!fi)
@@ -799,11 +796,11 @@ private:
 	 */
 	bool lookupInterpreter(x0::HttpRequest *in, std::string& interpreter)
 	{
-		std::string::size_type rpos = in->fileinfo->filename().rfind('.');
+		std::string::size_type rpos = in->fileinfo->path().rfind('.');
 
 		if (rpos != std::string::npos)
 		{
-			std::string ext(in->fileinfo->filename().substr(rpos));
+			std::string ext(in->fileinfo->path().substr(rpos));
 			auto i = interpreterMappings_.find(ext);
 
 			if (i != interpreterMappings_.end())
