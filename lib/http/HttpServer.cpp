@@ -455,9 +455,7 @@ void HttpServer::stop()
 			listener->stop();
 
 		for (auto worker: workers_)
-			worker->evExit_.send();
-
-		//ev_unloop(loop_, ev::ALL);
+			worker->stop();
 	}
 }
 

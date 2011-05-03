@@ -71,6 +71,7 @@ private:
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
 	ev::async evExit_;
+	ev::timer evExitTimeout_;
 
 	friend class HttpPlugin;
 	friend class HttpCore;
@@ -114,6 +115,8 @@ public:
 	template<class K, void (K::*fn)()>
 	void post(K* object);
 
+	void stop();
+
 protected:
 	template<class K, void (K::*fn)()>
 	static void post_thunk(int revents, void* arg);
@@ -123,6 +126,7 @@ protected:
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
 	void onExit(ev::async& w, int revents);
+	void onExitTimeout(ev::timer& w, int revents);
 };
 //@}
 
