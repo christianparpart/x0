@@ -767,10 +767,8 @@ void HttpCore::header_remove(FlowValue& result, HttpRequest *r, const Params& ar
 // {{{ staticfile handler
 bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 {
-	if (!in->fileinfo) {
-		in->log(Severity::error, "in->fileinfo not set");
+	if (!in->fileinfo)
 		return false;
-	}
 
 	if (!in->fileinfo->exists())
 		return false;
@@ -778,21 +776,38 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 	if (!in->fileinfo->isRegular())
 		return false;
 
+	if (in->status != HttpError::Undefined) {
+		// processing an internal redirect (to a static file)
+
+		in->responseHeaders.push_back("Last-Modified", in->fileinfo->lastModified());
+		in->responseHeaders.push_back("ETag", in->fileinfo->etag());
+
+		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
+		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
+
+		int fd = in->fileinfo->open(O_RDONLY | O_NONBLOCK);
+		if (fd < 0) {
+			log(Severity::error, "Could not open file: '%s': %s", in->fileinfo->filename().c_str(), strerror(errno));
+			return false;
+		}
+
+		posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+		in->write<FileSource>(fd, 0, in->fileinfo->size(), true);
+		in->finish();
+
+		return true;
+	}
+
 	in->status = verifyClientCache(in);
-	if (in->status != HttpError::Ok)
-	{
+	if (in->status != HttpError::Ok) {
 		in->finish();
 		return true;
 	}
 
 	int fd = -1;
-	if (equals(in->method, "GET"))
-	{
-		int flags = O_RDONLY;
+	if (equals(in->method, "GET")) {
+		int flags = O_RDONLY | O_NONBLOCK;
 
-#if defined(O_NONBLOCK)
-		flags |= O_NONBLOCK;
-#endif
 #if 0 // defined(O_CLOEXEC)
 		flags |= O_CLOEXEC;
 #endif
@@ -802,8 +817,7 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 		if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
 			log(Severity::error, "Could not set FD_CLOEXEC on %s: %s", in->fileinfo->path().c_str(), strerror(errno));
 
-		if (fd < 0)
-		{
+		if (fd < 0) {
 			server_.log(Severity::error, "Could not open file '%s': %s",
 				in->fileinfo->path().c_str(), strerror(errno));
 
@@ -812,9 +826,7 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 
 			return true;
 		}
-	}
-	else if (!equals(in->method, "HEAD"))
-	{
+	} else if (!equals(in->method, "HEAD")) {
 		in->status = HttpError::MethodNotAllowed;
 		in->finish();
 
@@ -824,18 +836,14 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 	in->responseHeaders.push_back("Last-Modified", in->fileinfo->lastModified());
 	in->responseHeaders.push_back("ETag", in->fileinfo->etag());
 
-	if (!processRangeRequest(in, fd))
-	{
+	if (!processRangeRequest(in, fd)) {
 		in->responseHeaders.push_back("Accept-Ranges", "bytes");
 		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
 		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
 
-		if (fd < 0) // HEAD request
-		{
+		if (fd < 0) { // HEAD request
 			in->finish();
-		}
-		else
-		{
+		} else {
 			posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
 
 			in->write<FileSource>(fd, 0, in->fileinfo->size(), true);

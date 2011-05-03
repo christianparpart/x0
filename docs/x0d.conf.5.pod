@@ -27,9 +27,79 @@ This file is used to configure B<x0d>.
 
 =head1 SYNTAX
 
-TODO
+The configuration-engine behind B<x0d> is B<Flow>, a sub-project of B<x0>.
+Thus, the configuration file directly matches the B<Flow>-syntax.
+
+B<Flow> is a handler-driven language. This means, that all you do is defining
+handlers and their actions.
+The actions can itself be passing control to another self defined handler
+or a host-application defined handler.
+
+=head2 HANDLERS
+
+Handlers are meant to handle something. In B<x0d> these are incoming HTTP requests
+and the setup handler, which is to handle simply the setup stage and no requests
+at all.
+
+A handler may either actually process for what it's there for and directly return
+to the host application, or it may fail to process the request, and thus returns
+to its intermediate caller for further execution (e.g. trying other handlers).
+
+Although, you cannot pass any parameters to handlers yourself.
+If a handler calls another handler, the parameters (secretly) passed to the outer
+handler will also (secretly) passed to the inner handler.
+The I<secret> parameter passed to handlers is there context.
+In our case, this is the HTTP request associated with our B<main>-handler and
+to all descendent handlers being called from here.
+
+The B<setup> handler has no context passed to it
+
+=head2 FUNCTIONS
+
+Functions do something and - unlike handlers - do always return to their caller
+and cannot be defined - but only - yourself.
+They are there to configure something, and thus, are most seen in the
+B<setup>-handler, to start listening on a given TCP/IP port for example.
+
+You are able to pass parameters to functions. What parameters these are,
+is something you can read later in that page. Parameters are comma 
+separated and parameters may be surrounded by round brackets.
+So the following two lines are equally the same.
+
+ cgi.mapping '.php' => '/usr/bin/php',
+             '.lsp' => '/usr/bin/lua';
+
+Is equal to
+
+ cgi.mapping('.php' => '/usr/bin/php',
+             '.lsp' => '/usr/bin/lua');
+
+However, you B<must> have passed the parameter separator (comma) at the end
+of the first line if you want to split your function call across multiple lines,
+or the B<flow>-parser will not be able to understand, that your function-call
+continues on the next line, if -and only if- you have not used the round
+brackets, like in the second example.
+
+=head2 VARIABLES
+
+TODO: variable declaration
+
+=head2 STATEMENTS
+
+TODO: statements in flow
+
+=head2 CONTROL FLOW
+
+TODO: control flow (if, switch, postscript-if, ...)
+
+=head2 PLUGINS
+
+TODO: plugin syntax, meaning, use-case, benifits, security thoughts.
 
 =head1 CORE API
+
+The core API covers all handlers, functions, and properties that do not require
+additional plugins (extensions) to be loaded into the server.
 
 =head2 SETUP PROPERTIES
 
@@ -741,7 +811,7 @@ associated handler is invoked to continue request processing.
 
 =item B<XZERO_DEBUG>
 
-Defines a colon-seperated list of C++ classes to print debugging information for.
+Defines a colon-separated list of C++ classes to print debugging information for.
 This environment variable is only evaluated when compiled with debug information.
 
 =back

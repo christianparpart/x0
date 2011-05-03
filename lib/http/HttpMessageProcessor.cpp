@@ -274,6 +274,7 @@ const char *HttpMessageProcessor::state_str() const
 		// message content
 		case HttpMessageProcessor::CONTENT_BEGIN: return "content-begin";
 		case HttpMessageProcessor::CONTENT: return "content";
+		case HttpMessageProcessor::CONTENT_ENDLESS: return "content-endless";
 		case HttpMessageProcessor::CONTENT_CHUNK_SIZE_BEGIN: return "content-chunk-size-begin";
 		case HttpMessageProcessor::CONTENT_CHUNK_SIZE: return "content-chunk-size";
 		case HttpMessageProcessor::CONTENT_CHUNK_LF1: return "content-chunk-lf1";
@@ -358,12 +359,26 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 	//TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
 	TRACE("process(curState:%s): size: %ld", state_str(), chunk.size());
 
-	if (state_ == CONTENT)
-	{
-		if (!passContent(std::move(chunk), offset, ofp))
-			return HttpMessageError::Aborted;
+	switch (state_) {
+		case CONTENT: // fixed size content
+			if (!passContent(std::move(chunk), offset, ofp))
+				return HttpMessageError::Aborted;
 
-		i += offset;
+			i += offset;
+			break;
+		case CONTENT_ENDLESS: // endless-sized content (until stream end)
+		{
+			ofp += chunk.size();
+			bool rv = filters_.empty()
+				? messageContent(std::move(chunk))
+				: messageContent(filters_.process(chunk));
+
+			return rv
+				? HttpMessageError::Partial
+				: HttpMessageError::Aborted;
+		}
+		default:
+			break;
 	}
 
 	while (i != e)
@@ -920,17 +935,36 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 			case CONTENT_BEGIN:
 				if (chunked_)
 					state_ = CONTENT_CHUNK_SIZE_BEGIN;
-				else if (contentLength_ < 0 && mode_ != MESSAGE)
-					state_ = SYNTAX_ERROR;
-				else
+				else if (contentLength_ >= 0)
 					state_ = CONTENT;
+				else
+					state_ = CONTENT_ENDLESS;
 				break;
-			case CONTENT:
+			case CONTENT_ENDLESS: // body w/o content-length (allowed in simple MESSAGE types only)
 			{
-				std::size_t nparsed = 0;
+				BufferRef c(chunk.ref(offset));
+				bool rv = filters_.empty()
+					? messageContent(std::move(c))
+					: messageContent(filters_.process(c));
 
+				if (!rv)
+					return HttpMessageError::Aborted;
+
+				ofp = offsetBase + offset + c.size();
+				offset += c.size();
+				i += c.size();
+				break;
+			}
+			case CONTENT: // fixed size content length
+			{
 				ofp = offsetBase + offset;
-				if (!passContent(chunk.ref(offset), nparsed, ofp))
+
+				std::size_t chunkSize = std::min(
+						static_cast<size_t>(contentLength_),
+						chunk.size() - offset);
+
+				std::size_t nparsed = 0;
+				if (!passContent(chunk.ref(offset, chunkSize), nparsed, ofp))
 					return HttpMessageError::Aborted;
 
 				offset += nparsed;
@@ -1101,84 +1135,40 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 /** passes given content chunk to the callback.
  *
  * \param chunk the chunk of data to be passed to the callback.
- * \param ec
  * \param nparsed ref to the number of bytes parsed. will be updated.
  * \param ofp
+ *
+ * \retval true continue parsing the request chunk
+ * \retval false abort parsing here
  */
 bool HttpMessageProcessor::passContent(BufferRef&& chunk, std::size_t& nparsed, std::size_t& ofp)
 {
-	if (contentLength_ > 0)
-	{
-		// shrink down to remaining content-length
-		BufferRef c(chunk);
-		if (chunk.size() > static_cast<std::size_t>(contentLength_))
-			c.shr(-(c.size() - contentLength_));
+	assert(contentLength_ >= 0 && "assume fixed size length content or chunked body");
 
-		ofp += c.size();
-		nparsed += c.size();
-		contentLength_ -= c.size();
+	// shrink down to remaining content-length
+	BufferRef c(chunk);
+	if (chunk.size() > static_cast<std::size_t>(contentLength_))
+		c.shr(-(c.size() - contentLength_));
 
-		//TRACE("passContent: chunk_size=%ld, bytes_left=%ld; '%s'",
-		//		c.size(), contentLength_, c.str().c_str());
+	ofp += c.size();
+	nparsed += c.size();
+	contentLength_ -= c.size();
 
-		if (chunked_)
-		{
-			Buffer result(c);
+	TRACE("passContent: chunk_size=%ld, bytes_left=%ld; state=%s",
+			c.size(), contentLength_, state_str());
 
-			if (!filters_.empty())
-			{
-				if (!messageContent(filters_.process(c)))
-					return false;
-			}
-			else
-			{
-				if (!messageContent(std::move(c)))
-					return false;
-			}
+	if (!chunked_ && contentLength_ == 0)
+		state_ = MESSAGE_BEGIN;
 
-			if (state_ == MESSAGE_BEGIN)
-			{
-				return messageEnd();
-			}
-		}
-		else // fixed-size content (via "Content-Length")
-		{
-			bool rv = filters_.empty()
-				? messageContent(std::move(c))
-				: messageContent(filters_.process(c));
+	bool rv = filters_.empty()
+		? messageContent(std::move(c))
+		: messageContent(filters_.process(c));
 
-			if (contentLength_ == 0 && mode_ != MESSAGE)
-				state_ = MESSAGE_BEGIN;
+	if (!rv)
+		return false;
 
-			if (!rv)
-				return false;
-
-			if (state_ == MESSAGE_BEGIN)
-			{
-				//TRACE("content fully parsed -> complete");
-				return messageEnd();
-			}
-		}
-	}
-	else if (contentLength_ < 0) // no "Content-Length" and no "chunked transfer encoding" defined
-	{
-		//TRACE("passContent: chunk_size=%ld, infinite; '%s'",
-		//		chunk.size(), chunk.str().c_str());
-
-		ofp += chunk.size();
-		nparsed += chunk.size();
-
-		if (filters_.empty())
-		{
-			if (!messageContent(std::move(chunk)))
-				return false;
-		}
-		else
-		{
-			if (!messageContent(filters_.process(chunk)))
-				return false;
-		}
-	}
+	if (state_ == MESSAGE_BEGIN)
+		return messageEnd();
 
 	return true;
 }

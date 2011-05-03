@@ -8,9 +8,8 @@ x0d [B<-c> configfile] [B<-p> pidfile] [B<-u> user] [B<-g> group] [B<-i> path[,p
 
 =head1 DESCRIPTION
 
-x0d (pronounced: X-zero-daemon) is a flexible, fast, and standards compliant
-high performance HTTP web server 
-written by Christian Parpart.
+B<x0d> (pronounced: X-zero daemon) is a flexible, fast, and reasonable standards compliant
+high performance HTTP/1.1 web server, written by Christian Parpart.
 
 This man-page only documents B<x0d>-command line arguments
 
@@ -58,6 +57,14 @@ needed at all. B<x0d> will just serve a single document root B<PATH>
 and listen for incoming requests on the specified port.
 
 B<x0d> will by default listen on port 8080 if no port was specified.
+
+=item B<--systemd>
+
+Explicitely runs in systemd-mode, a new init-system, which is usually
+detected by B<x0d> automatically but there might be reasons for you
+to explicitely state that in the command line.
+
+Do not pass this option until you have to.
 
 =item B<-v,--version>
 
