@@ -112,6 +112,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerHandler<HttpCore, &HttpCore::staticfile>("staticfile");
 	registerHandler<HttpCore, &HttpCore::redirect>("redirect");
 	registerHandler<HttpCore, &HttpCore::respond>("respond");
+	registerHandler<HttpCore, &HttpCore::blank>("blank");
 }
 
 HttpCore::~HttpCore()
@@ -716,6 +717,13 @@ bool HttpCore::respond(HttpRequest *in, const Params& args)
 	if (args.count() >= 1 && args[0].isNumber())
 		in->status = static_cast<HttpError>(args[0].toNumber());
 
+	in->finish();
+	return true;
+}
+
+bool HttpCore::blank(HttpRequest* in, const Params& args)
+{
+	in->status = HttpError::Ok;
 	in->finish();
 	return true;
 }

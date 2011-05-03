@@ -119,6 +119,7 @@ private:
 	// main handlers
 	bool redirect(HttpRequest *r, const Params& args);
 	bool respond(HttpRequest *r, const Params& args);
+	bool blank(HttpRequest *r, const Params& args);
 
 	bool staticfile(HttpRequest *r, const Params& args);
 	inline HttpError verifyClientCache(HttpRequest *r);
