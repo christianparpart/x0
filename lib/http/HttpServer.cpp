@@ -45,7 +45,12 @@
 #include <grp.h>
 #include <getopt.h>
 
-#define TRACE(msg...) (this->debug(0, msg))
+#if !defined(NDEBUG)
+#	define TRACE(msg...) (this->debug(0, msg))
+#else
+#	define TRACE(msg...) do {} while (0)
+#endif
+
 
 namespace x0 {
 
