@@ -14,7 +14,7 @@
 #ifndef NDEBUG
 #	define TRACE(msg...) (this->debug(msg))
 #else
-#	define TRACE(msg...) ((void*)0)
+#	define TRACE(msg...) do {} while (0)
 #endif
 
 namespace x0 {
@@ -129,25 +129,32 @@ void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
 void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 {
 	pthread_spin_lock(&queueLock_);
-	while (!queue_.empty())
-	{
+	while (!queue_.empty()) {
 		std::pair<int, HttpListener *> client(queue_.front());
 		queue_.pop_front();
 
 		pthread_spin_unlock(&queueLock_);
 
-		TRACE("client connected; fd:%d", client.first);
-
-		HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
-		++connectionLoad_;
-		++connectionCount_;
-		connections_.push_front(c);
-		HttpConnectionList::iterator i = connections_.begin();
-		c->start(client.second, client.first, i);
+		spawnConnection(client.first, client.second);
 
 		pthread_spin_lock(&queueLock_);
 	}
 	pthread_spin_unlock(&queueLock_);
+}
+
+void HttpWorker::spawnConnection(int fd, HttpListener* listener)
+{
+	TRACE("client connected; fd:%d", fd);
+
+	HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
+
+	++connectionLoad_;
+	++connectionCount_;
+
+	connections_.push_front(c);
+	HttpConnectionList::iterator i = connections_.begin();
+
+	c->start(listener, fd, i);
 }
 
 /** releases/unregisters given (and to-be-destroyed) connection from this worker.

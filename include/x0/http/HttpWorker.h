@@ -125,6 +125,7 @@ protected:
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
+	void spawnConnection(int fd, HttpListener* listener);
 	void onExit(ev::async& w, int revents);
 	void onExitTimeout(ev::timer& w, int revents);
 };
