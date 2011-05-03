@@ -191,6 +191,9 @@ ssize_t Socket::write(const void *buffer, size_t size)
 
 ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 {
+	if (nbytes == 0)
+		return 0;
+
 #if !defined(NDEBUG)
 	//auto offset0 = *offset;
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);

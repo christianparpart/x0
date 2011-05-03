@@ -413,9 +413,15 @@ void HttpConnection::processInput()
 	ssize_t rv = socket_->read(buffer_);
 
 	if (rv < 0) { // error
-		if (errno == EAGAIN || errno == EINTR) {
+		switch (errno) {
+		case EINTR:
+		case EAGAIN:
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+		case EWOULDBLOCK:
+#endif
 			watchInput(worker_->server_.maxReadIdle());
-		} else {
+			break;
+		default:
 			//log(Severity::error, "Connection read error: %s", strerror(errno));
 			abort();
 		}
@@ -461,7 +467,7 @@ void HttpConnection::processOutput()
 	TRACE("processOutput()");
 	ref();
 
-	for (;;) {
+	for (int done = -1; done < 0; ) {
 		ssize_t rv = source_.sendto(sink_);
 
 		TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
@@ -482,14 +488,24 @@ void HttpConnection::processOutput()
 				request_->checkFinish();
 			}
 			break;
-		} else if (errno == EAGAIN || errno == EINTR) {
-			// complete write would block, so watch write-ready-event and be called back
-			watchOutput();
-			break;
 		} else {
-			//log(Severity::error, "Connection write error: %s", strerror(errno));
-			abort();
-			break;
+			switch (errno) {
+			case EINTR:
+				break;
+			case EAGAIN:
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+			case EWOULDBLOCK:
+#endif
+				// complete write would block, so watch write-ready-event and be called back
+				watchOutput();
+				done = 1;
+				break;
+			default:
+				//log(Severity::error, "Connection write error: %s", strerror(errno));
+				abort();
+				done = 1;
+				break;
+			}
 		}
 	}
 	unref();

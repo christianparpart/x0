@@ -112,6 +112,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerHandler<HttpCore, &HttpCore::staticfile>("staticfile");
 	registerHandler<HttpCore, &HttpCore::redirect>("redirect");
 	registerHandler<HttpCore, &HttpCore::respond>("respond");
+	registerHandler<HttpCore, &HttpCore::blank>("blank");
 }
 
 HttpCore::~HttpCore()
@@ -719,6 +720,13 @@ bool HttpCore::respond(HttpRequest *in, const Params& args)
 	in->finish();
 	return true;
 }
+
+bool HttpCore::blank(HttpRequest* in, const Params& args)
+{
+	in->status = HttpError::Ok;
+	in->finish();
+	return true;
+}
 // }}}
 
 // {{{ response's header.* functions
@@ -808,14 +816,11 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 	if (equals(in->method, "GET")) {
 		int flags = O_RDONLY | O_NONBLOCK;
 
-#if 0 // defined(O_CLOEXEC)
+#if defined(O_CLOEXEC)
 		flags |= O_CLOEXEC;
 #endif
 
 		fd = in->fileinfo->open(flags);
-
-		if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
-			log(Severity::error, "Could not set FD_CLOEXEC on %s: %s", in->fileinfo->path().c_str(), strerror(errno));
 
 		if (fd < 0) {
 			server_.log(Severity::error, "Could not open file '%s': %s",
