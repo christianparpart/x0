@@ -155,7 +155,7 @@ private:
 
 			buf << "', "
 				<< file->size() << ", "
-				<< "new Date(" << file->mtime() << "* 1000), '"
+				<< "new Date(" << file->mtime() << "*1000), '"
 				<< (!file->isDirectory() ? file->mimetype() : "") << "', "
 				<< (file->isDirectory() ? 1 : 0)
 				<< "]);\n";
