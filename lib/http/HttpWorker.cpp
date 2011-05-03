@@ -149,8 +149,10 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 void HttpWorker::release(const HttpConnectionList::iterator& connection)
 {
 	--connectionLoad_;
-	delete *connection;
+
+	HttpConnection* c = *connection;
 	connections_.erase(connection);
+	delete c;
 }
 
 void HttpWorker::handleRequest(HttpRequest *r)
