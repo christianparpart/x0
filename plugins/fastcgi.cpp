@@ -120,7 +120,7 @@ public:
 		CONNECTED
 	};
 
-	ev_io io_;
+	ev::io io_;
 
 	/*! this is basically the same as the HttpConnection.hot_ property, to indicate whether we are within 
 	 *  an I/O notifier (and though, shouldn't destruct ourselfs right away).
@@ -192,10 +192,8 @@ private:
 
 	void finish();
 
-	static void io_thunk(struct ev_loop *, ev_io *w, int revents);
-
 	inline bool onConnectComplete();
-	inline void io(int revents);
+	inline void io(ev::io& w, int revents);
 	inline bool processRecord(const FastCgi::Record *record);
 	inline void onParam(const std::string& name, const std::string& value);
 }; // }}}
@@ -256,8 +254,6 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->path().c_str());
 #endif
 	TRACE("CgiTransport()");
-	ev_init(&io_, &CgiTransport::io_thunk);
-	io_.data = this;
 
 	// stream management record: GetValues
 #if 0
@@ -374,8 +370,7 @@ bool CgiTransport::open(const std::string& hostname, int port)
 			TRACE("connect: backgrounding (fd:%d)", fd_);
 
 			state_ = CONNECTING;
-			ev_io_set(&io_, fd_, EV_WRITE);
-			ev_io_start(loop_, &io_);
+			io_.start(fd_, ev::WRITE);
 
 			result = true;
 			break;
@@ -393,6 +388,9 @@ bool CgiTransport::open(const std::string& hostname, int port)
 
 void CgiTransport::bind(x0::HttpRequest *in, uint16_t id)
 {
+	io_.set(in->connection.worker().loop());
+	io_.set<CgiTransport, &CgiTransport::io>(this);
+
 	assert(request_ == nullptr);
 
 	request_ = in;
@@ -461,25 +459,13 @@ void CgiTransport::flush()
 	if (state_ == CONNECTED && writeBuffer_.size() != 0 && writeOffset_ == 0)
 	{
 		TRACE("CgiTransport.flush() -> ev (fd:%d)", fd_);
-		ev_io_stop(loop_, &io_);
-		ev_io_set(&io_, fd_, EV_READ | EV_WRITE);
-		ev_io_start(loop_, &io_);
+		io_.start(fd_, ev::READ | ev::WRITE);
 	}
 	else
 	{
 		TRACE("CgiTransport.flush() -> pending");
 		flushPending_ = true;
 	}
-}
-
-void CgiTransport::io_thunk(struct ev_loop *, ev_io *w, int revents)
-{
-	CgiTransport *cc = reinterpret_cast<CgiTransport *>(w->data);
-
-	if (cc->state_ == CONNECTING && revents & EV_WRITE)
-		cc->onConnectComplete();
-	else
-		cc->io(revents);
 }
 
 /** invoked (by open() or asynchronousely by io()) to complete the connection establishment.
@@ -527,8 +513,13 @@ bool CgiTransport::onConnectComplete()
 	return true;
 }
 
-void CgiTransport::io(int revents)
+void CgiTransport::io(ev::io& w, int revents)
 {
+	if (state_ == CONNECTING && (revents & EV_WRITE)) {
+		onConnectComplete();
+		return;
+	}
+
 	TRACE("CgiTransport::io(0x%04x)", revents);
 	hot_ = true;
 
@@ -607,9 +598,7 @@ void CgiTransport::io(int revents)
 		// if set watcher back to EV_READ if the write-buffer has been fully written (to catch connection close events)
 		if (writeOffset_ == writeBuffer_.size()) {
 			TRACE("CgiTransport::io(): write buffer fully written to socket (%ld)", writeOffset_);
-			ev_io_stop(loop_, &io_);
-			ev_io_set(&io_, fd_, EV_READ);
-			ev_io_start(loop_, &io_);
+			io_.start(fd_, ev::READ);
 
 			writeBuffer_.clear();
 			writeOffset_ = 0;
@@ -618,7 +607,7 @@ void CgiTransport::io(int revents)
 	goto done;
 
 app_err:
-	ev_io_stop(loop_, &io_);
+	io_.stop();
 	::close(fd_);
 	fd_ = -1;
 	finish_ = true;
@@ -810,18 +799,17 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 {
 	TRACE("CgiTransport.messageContent(len:%ld) writeActive=%d", content.size(), writeActive_);
 
-	if (!writeActive_)
-	{
+	if (!writeActive_) {
 		request_->write<x0::BufferSource>(content);
 
 		if (request_->connection.isOutputPending()) {
 			writeActive_ = true;
-			ev_io_stop(loop_, &io_);
+			io_.stop();
 			request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
 		}
-	}
-	else
+	} else {
 		writeBuffer_.push_back(content);
+	}
 
 	return false;
 }
@@ -856,7 +844,7 @@ void CgiTransport::onWriteComplete()
 	}
 
 	TRACE("onWriteComplete: output flushed. resume watching on app I/O");
-	ev_io_start(loop_, &io_);
+	io_.start();
 }
 
 /**
