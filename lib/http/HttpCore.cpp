@@ -816,14 +816,11 @@ bool HttpCore::staticfile(HttpRequest *in, const Params& args) // {{{
 	if (equals(in->method, "GET")) {
 		int flags = O_RDONLY | O_NONBLOCK;
 
-#if 0 // defined(O_CLOEXEC)
+#if defined(O_CLOEXEC)
 		flags |= O_CLOEXEC;
 #endif
 
 		fd = in->fileinfo->open(flags);
-
-		if (fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
-			log(Severity::error, "Could not set FD_CLOEXEC on %s: %s", in->fileinfo->path().c_str(), strerror(errno));
 
 		if (fd < 0) {
 			server_.log(Severity::error, "Could not open file '%s': %s",
