@@ -3,7 +3,7 @@
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.ws/
  *
- * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
+ * (c) 2009-2011 Christian Parpart <trapni@gentoo.org>
  *
  * --------------------------------------------------------------------------
  *
@@ -13,11 +13,18 @@
  *     Generates a directory listing response if the requested
  *     path (its physical target file) is a directory.
  *
- * setup API:
+ * setup handlers / functions API:
  *     none
  *
- * request processing API:
- *     handler dirlisting();
+ * request handler API:
+ *     handler dirlisting();            # generates a simple table view
+ *     handler dirlisting.google();     # generates an advanced google-based table view
+ *
+ * request function API:
+ *     none
+ *
+ *
+ * TODO: add HTML sanitizing of file/path names.
  */
 
 #include <x0/http/HttpPlugin.h>
@@ -55,55 +62,15 @@ public:
 	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerHandler<dirlisting_plugin, &dirlisting_plugin::handleRequest>("dirlisting");
+		registerHandler<dirlisting_plugin, &dirlisting_plugin::simple>("dirlisting");
+		registerHandler<dirlisting_plugin, &dirlisting_plugin::google>("dirlisting.google");
 	}
 
 private:
-	bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
+	bool simple(x0::HttpRequest *in, const x0::Params& args)
 	{
-		if (!in->fileinfo->isDirectory())
-			return false;
-
-		DIR *dir = opendir(in->fileinfo->filename().c_str());
-		if (!dir)
-			return false;
-
-		x0::Buffer result(mkhtml(dir, in));
-
-		closedir(dir);
-
-		in->status = x0::HttpError::Ok;
-		in->responseHeaders.push_back("Content-Type", "text/html");
-		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(result.size()));
-
-		in->write<x0::BufferSource>(std::move(result));
-		in->finish();
-
-		return true;
-	}
-
-	std::string mkhtml(DIR *dir, x0::HttpRequest *in)
-	{
-		std::list<std::pair<std::string, x0::FileInfoPtr>> listing;
-
-		if (!x0::equals(in->path, "/"))
-			listing.push_back(std::make_pair("..", in->fileinfo));
-
-		int len = offsetof(dirent, d_name) + pathconf(in->fileinfo->filename().c_str(), _PC_NAME_MAX);
-		dirent *dep = (dirent *)new unsigned char[len + 1];
-		dirent *res = 0;
-
-		while (readdir_r(dir, dep, &res) == 0 && res) {
-			if (dep->d_name[0] != '.') {
-				std::string name(dep->d_name);
-				if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(in->fileinfo->filename() + "/" + name)) {
-					listing.push_back(std::make_pair(name, fi));
-				}
-			}
-		}
-		delete[] dep;
-
 		x0::Buffer sstr;
+
 		sstr << "<html><head><title>Directory: " << in->path << "</title>";
 		sstr << "<style>\n"
 			"\tthead { font-weight: bold; }\n"
@@ -126,30 +93,157 @@ private:
 			    "<td class='mimetype'>Mime type</td>"
 			    "</thead>\n";
 
-		for (auto i: listing) {
+		int rv = dirlisting(in->fileinfo, in->connection.worker().fileinfo, [&](x0::FileInfoPtr file) {
 			sstr << "\t<tr>\n";
-			if (i.second->isDirectory()) {
+			if (file->isDirectory()) {
 				sstr << "\t\t<td class='subdir' colspan='2'><a href='"
-					 << i.first << "/'>" << i.first << "</a></td>\n"
+					 << file->filename() << "/'>" << file->filename() << "</a></td>\n"
 					 << "\t\t<td class='mimetype'>directory</td>"
 					 << "</td>\n";
 			} else {
-				sstr << "\t\t<td class='name'><a href='" << i.first  << "'>"
-					 << i.first << "</a></td>\n";
-				sstr << "\t\t<td class='size'>" << (int)i.second->size() << "</td>\n";
-				sstr << "\t\t<td class='mimetype'>" << i.second->mimetype() << "</td>\n";
+				sstr << "\t\t<td class='name'><a href='" << file->filename() << "'>"
+					 << file->filename() << "</a></td>\n";
+				sstr << "\t\t<td class='size'>" << file->size() << "</td>\n";
+				sstr << "\t\t<td class='mimetype'>" << file->mimetype() << "</td>\n";
 			}
 			sstr << "\t</tr>\n";
-		}
+		});
+
+		if (!rv)
+			return false;
 
 		sstr << "</table>\n";
-
 		sstr << "<hr/>\n";
 		sstr << "<small><pre>" << in->connection.worker().server().tag() << "</pre></small><br/>\n";
-
 		sstr << "</body></html>\n";
 
-		return sstr.str();
+		in->status = x0::HttpError::Ok;
+		in->responseHeaders.push_back("Content-Type", "text/html");
+		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(sstr.size()));
+
+		in->write<x0::BufferSource>(std::move(sstr));
+		in->finish();
+
+		return true;
+	}
+
+	bool google(x0::HttpRequest* in, const x0::Params& args)
+	{
+		x0::Buffer buf;
+
+		buf << "<html>\n"
+				"<head>\n"
+				"<script type='text/javascript' src='https://www.google.com/jsapi'></script>\n"
+				"<script type='text/javascript'>\n"
+				"google.load('visualization', '1', {packages:['table']});\n"
+				"google.setOnLoadCallback(drawTable);\n"
+				"function drawTable() {\n";
+
+		buf <<  "var data = new google.visualization.DataTable();\n"
+				"data.addColumn('string', 'File Name');\n"
+				"data.addColumn('number', 'File Size');\n"
+				"data.addColumn('datetime', 'Last Modified');\n"
+				"data.addColumn('string', 'Mime Type');\n"
+				"data.addColumn('number', 'is-directory');\n";
+
+		int rv = dirlisting(in->fileinfo, in->connection.worker().fileinfo, [&](x0::FileInfoPtr file) {
+			buf << "data.addRow(['"
+				<< file->filename();
+
+			if (file->isDirectory())
+				buf << '/';
+
+			buf << "', "
+				<< file->size() << ", "
+				<< "new Date(" << file->mtime() << "* 1000), '"
+				<< (!file->isDirectory() ? file->mimetype() : "") << "', "
+				<< (file->isDirectory() ? 1 : 0)
+				<< "]);\n";
+		});
+
+		if (!rv)
+			return false;
+
+		buf << "var linkFormatter = new google.visualization.PatternFormat('<a href=\"{0}\">{0}</a>');\n";
+		buf << "linkFormatter.format(data, [0]);\n";
+
+		buf << "var timeFormatter = new google.visualization.DateFormat({ pattern: 'yyyy-MM-d HH:mm:ss' });\n";
+		buf << "timeFormatter.format(data, 2);\n";
+
+		buf << "data.sort([{column: 3}, {column: 0}]);\n";
+
+		buf << "var view = new google.visualization.DataView(data);\n"
+				"view.setColumns([0, 1, 2, 3]);\n";
+
+		buf << "var table = new google.visualization.Table(document.getElementById('table_div'));\n"
+				"table.draw(view, {allowHtml: true, showRowNumber: true});\n"
+				"}\n"
+				"</script>\n"
+				"</head>\n"
+				"<body>\n";
+
+		buf << "<h1>Directory listing of: " << in->path << "</h1>\n";
+
+		buf << "<div id='table_div'></div>\n";
+		buf << "<hr/>\n";
+		buf << "<small><pre>" << in->connection.worker().server().tag() << "</pre></small><br/>\n";
+		buf << "</body></html>\n";
+
+		// get string version of content length
+		x0::FixedBuffer<16> slen;
+		slen.push_back(buf.size());
+
+		in->status = x0::HttpError::Ok;
+		in->responseHeaders.push_back("Content-Type", "text/html");
+		in->responseHeaders.push_back("Content-Length", slen.str());
+		in->write<x0::BufferSource>(std::move(buf));
+		in->finish();
+		return true;
+	}
+
+	bool dirlisting(x0::FileInfoPtr fi, x0::FileInfoService& fis, std::function<void(x0::FileInfoPtr)> callback)
+	{
+		if (!fi)
+			return false;
+
+		if (!fi->isDirectory())
+			return false;
+
+		// alloc some resources
+		DIR* dir = opendir(fi->path().c_str());
+		if (!dir)
+			return false;
+
+		int len = offsetof(dirent, d_name) + pathconf(fi->path().c_str(), _PC_NAME_MAX);
+		dirent* dep = (dirent*) new unsigned char [len + 1];
+		dirent* res = nullptr;
+		x0::Buffer buf;
+
+		x0::Buffer filename;
+		filename << fi->path() << '/';
+		std::size_t baseFileNameLength = filename.size();
+
+		while (readdir_r(dir, dep, &res) == 0 && res) {
+			// skip '.'
+			if (dep->d_name[0] == '.' && dep->d_name[1] == 0)
+				continue;
+
+			// prepare filename
+			filename.push_back(static_cast<char*>(dep->d_name));
+
+			// send fileinfo struct to caller, if possible
+			if (x0::FileInfoPtr fi = fis.query(filename.str()))
+				callback(fi);
+
+			// reset filename to its base-length
+			filename.resize(baseFileNameLength);
+		}
+
+		// free resources
+		delete[] dep;
+		closedir(dir);
+
+		return true;
 	}
 };
 
