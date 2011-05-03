@@ -45,6 +45,16 @@ public:
 	struct helper { int i; };
 	typedef int (helper::*helper_type);
 
+	struct Hashable {
+		enum {
+			bucket_size = 4, // 0 < bucket_size
+			min_buckets = 8  // min_buckets = 2 ^^ N, 0 < N
+		};
+
+		size_t operator()(const Buffer& buf) const;
+		bool operator()(const Buffer& a, const Buffer& b) const;
+	};
+
 private:
 	enum edit_mode_t { EDIT_ALL, EDIT_NO_RESIZE, EDIT_NOTHING };
 
@@ -170,6 +180,18 @@ template<typename PodType, std::size_t N> Buffer& operator<<(Buffer& b, PodType 
 // {{{ impl
 
 namespace x0 {
+
+// {{{ Buffer::Hashable impl
+inline size_t Buffer::Hashable::operator()(const Buffer& buf) const
+{
+	return reinterpret_cast<size_t>(&buf);
+}
+
+inline bool Buffer::Hashable::operator()(const Buffer& a, const Buffer& b) const
+{
+	return equals(a, b);
+}
+// }}}
 
 // {{{ Buffer impl
 inline Buffer::Buffer() :
