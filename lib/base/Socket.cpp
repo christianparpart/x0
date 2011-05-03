@@ -161,7 +161,8 @@ ssize_t Socket::read(Buffer& result)
 		if (result.capacity() - result.size() < 256)
 			result.reserve(result.size() * 1.5);
 
-		ssize_t rv = ::read(fd_, result.end(), result.capacity() - result.size());
+		size_t nbytes = result.capacity() - result.size();
+		ssize_t rv = ::read(fd_, result.end(), nbytes);
 		if (rv <= 0) {
 			TRACE("read(): rv=%ld -> %ld: %s", rv, result.size(), strerror(errno));
 			return nread != 0 ? nread : rv;
@@ -169,6 +170,10 @@ ssize_t Socket::read(Buffer& result)
 			TRACE("read() -> %ld", rv);
 			nread += rv;
 			result.resize(result.size() + rv);
+
+			if (static_cast<std::size_t>(rv) < nbytes) {
+				return nread;
+			}
 		}
 	}
 }
