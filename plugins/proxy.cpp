@@ -16,6 +16,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -41,11 +42,18 @@
  *
  */ // }}}
 
-#if 0
+#if 1
 #	define TRACE(msg...) DEBUG("proxy: " msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
+
+enum class ConnectResult {
+	Failed,
+	Established,
+	InProgress
+};
+
 
 // {{{ ProxyConnection API
 class ProxyConnection :
@@ -109,6 +117,8 @@ private:
 	inline void destroy(x0::HttpError code = x0::HttpError::Undefined);
 
 	inline bool connect();
+	inline ConnectResult openUnix(const std::string& unixPath, int* out_fd);
+	inline ConnectResult openTcp(const std::string& hostname, int port, int* out_fd);
 	inline void startRead();
 	inline void startWrite();
 
@@ -164,13 +174,22 @@ ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r, bool cl
 	io_.set<ProxyConnection, &ProxyConnection::io>(this);
 	timer_.set<ProxyConnection, &ProxyConnection::timeout>(this);
 
-	hostname_ = strdup(origin);
-	char *p = strrchr(hostname_, ':');
-	if (p) {
-		port_ = atoi(p + 1);
-		*p = '\0';
+	x0::BufferRef ref(origin);
+	if (ref.begins("unix:")) {
+		// UNIX domain socket
+		hostname_ = strdup(origin + 5);
+		port_ = 0;
 	} else {
-		port_ = 80;
+		// TCP/IP
+		auto pos = ref.rfind(':');
+		if (pos != ref.npos) {
+			hostname_ = strdup(origin);
+			hostname_[pos] = '\0';
+			port_ = ref.ref(pos + 1).toInt();
+		} else {
+			hostname_ = strdup(origin);
+			port_ = 80; // default to port 80, if not specified
+		}
 	}
 }
 
@@ -194,6 +213,89 @@ ProxyConnection::~ProxyConnection()
 	if (request_) {
 		request_->finish();
 	}
+}
+
+ConnectResult ProxyConnection::openUnix(const std::string& unixPath, int* out_fd)
+{
+	TRACE("connect(unix=%s)", unixPath.c_str());
+
+	int fd = ::socket(PF_UNIX, SOCK_STREAM, 0);
+	if (fd < 0) {
+		TRACE("proxy: socket creation error: %s",  strerror(errno));
+		return ConnectResult::Failed;
+	}
+
+	struct sockaddr_un addr;
+	addr.sun_family = AF_UNIX;
+	size_t addrlen = sizeof(addr.sun_family)
+		+ strlen(strncpy(addr.sun_path, unixPath.c_str(), sizeof(addr.sun_path)));
+
+	if (::connect(fd, (struct sockaddr*) &addr, addrlen) < 0) {
+		TRACE("proxy: could not connect to %s: %s", unixPath.c_str(), strerror(errno));
+		::close(fd);
+		return ConnectResult::Failed;
+	}
+
+	fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+
+	*out_fd = fd;
+	return ConnectResult::Established;
+}
+
+ConnectResult ProxyConnection::openTcp(const std::string& hostname, int port, int* out_fd)
+{
+	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
+
+	struct addrinfo hints;
+	struct addrinfo *res;
+
+	ConnectResult result = ConnectResult::Failed;
+	int fd = -1;
+
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	char sport[16];
+	snprintf(sport, sizeof(sport), "%d", port);
+
+	int rv = getaddrinfo(hostname.c_str(), sport, &hints, &res);
+	if (rv) {
+		TRACE("proxy: could not get addrinfo of %s:%s: %s", hostname.c_str(), sport, gai_strerror(rv));
+		return ConnectResult::Failed;
+	}
+
+	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next) {
+		fd = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (fd < 0) {
+			TRACE("proxy: socket creation error: %s",  strerror(errno));
+			continue;
+		}
+
+		fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+		fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+
+		rv = ::connect(fd, rp->ai_addr, rp->ai_addrlen);
+		if (rv == 0) {
+			TRACE("connect: instant success (fd:%d)", fd);
+			result = ConnectResult::Established;
+			break;
+		} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
+			TRACE("connect: backgrounding (fd:%d)", fd);
+			result = ConnectResult::InProgress;
+			break;
+		} else {
+			TRACE("proxy: could not connect to %s:%s: %s", hostname.c_str(), sport, strerror(errno));
+			::close(fd);
+			fd = -1;
+		}
+	}
+
+	*out_fd = fd;
+	freeaddrinfo(res);
+	return result;
 }
 
 void ProxyConnection::start()
@@ -345,67 +447,26 @@ bool ProxyConnection::connect()
 {
 	TRACE("connect(): hostname=%s, port=%d) %s", hostname_, port_, state_str());
 
-	struct addrinfo hints;
-	struct addrinfo *res;
+	ConnectResult rv = port_
+		? openTcp(hostname_, port_, &fd_)
+		: openUnix(hostname_, &fd_);
 
-	std::memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	char sport[16];
-	snprintf(sport, sizeof(sport), "%d", port_);
-
-	int rv = getaddrinfo(hostname_, sport, &hints, &res);
-	if (rv)
-	{
-		TRACE("connect: resolve error: %s", gai_strerror(rv));
+	switch (rv) {
+	case ConnectResult::Established:
+		TRACE("connect: instant success");
+		state_ = CONNECTED;
+		startWrite();
+		return true;
+	case ConnectResult::InProgress:
+		TRACE("connect: backgrounding");
+		state_ = ABOUT_TO_CONNECT;
+		startWrite();
+		return true;
+	case ConnectResult::Failed:
+	default:
+		TRACE("connect: failed");
 		return false;
 	}
-
-	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next)
-	{
-		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-		if (fd_ < 0)
-		{
-			TRACE("connect: socket error: %s", strerror(errno));
-			continue;
-		}
-
-		fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK);
-		fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC);
-
-		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
-		if (rv < 0)
-		{
-			if (errno == EINPROGRESS)
-			{
-				TRACE("connect: backgrounding");
-				state_ = ABOUT_TO_CONNECT;
-				startWrite();
-				freeaddrinfo(res);
-				return true;
-			}
-			else
-			{
-				TRACE("connect error: %s", strerror(errno));
-				close();
-			}
-		}
-		else
-		{
-			state_ = CONNECTED;
-			TRACE("connect: instant success");
-
-			startWrite();
-
-			freeaddrinfo(res);
-			return true;
-		}
-	}
-
-	freeaddrinfo(res);
-	return false;
 }
 
 void ProxyConnection::close()
