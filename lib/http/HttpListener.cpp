@@ -236,34 +236,32 @@ void HttpListener::callback(ev::io& watcher, int revents)
 	int fd;
 
 #if defined(HAVE_ACCEPT4) && !defined(VALGRIND) // valgrind does not yet implement accept4()
+	bool flagged = true;
 	fd = ::accept4(handle(), nullptr, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
+	if (fd < 0 && errno == ENOSYS) {
+		fd = ::accept(handle(), nullptr, 0);
+		flagged = false;
+	}
 #else
+	bool flagged = false;
 	fd = ::accept(handle(), nullptr, 0);
 #endif
 
-	if (fd < 0)
-	{
+	if (fd < 0) {
 		if (errno != EINTR && errno != EAGAIN)
 			log(Severity::error, "Error accepting new connection socket: %s", strerror(errno));
 
 		return;
 	}
 
-#if !defined(HAVE_ACCEPT4) || defined(VALGRIND)
-	int rv = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-	if (rv < 0) {
-		log(Severity::error, "Error configuring new connection socket: %s", strerror(errno));
-		::close(fd);
-		return;
+	if (!flagged) {
+		int rv = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK | O_CLOEXEC);
+		if (rv < 0) {
+			log(Severity::error, "Error configuring new connection socket: %s", strerror(errno));
+			::close(fd);
+			return;
+		}
 	}
-
-	rv = fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
-	if (rv < 0) {
-		log(Severity::error, "Error configuring new connection socket: %s", strerror(errno));
-		::close(fd);
-		return;
-	}
-#endif
 
 	server_.selectWorker()->enqueue(std::make_pair(fd, this));
 }
