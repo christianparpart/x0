@@ -60,25 +60,14 @@ class ProxyConnection :
 	public x0::HttpMessageProcessor
 {
 private:
-	enum State {
-		DISCONNECTED,
-		ABOUT_TO_CONNECT,
-		CONNECTING,
-		CONNECTED,
-		WRITING,
-		READING
-	};
-
-private:
-	char *hostname_;				//!< origin's hostname
-	int port_;						//!< origin's port
-	int fd_;						//!< origin's socket fd
+	// client
 	x0::HttpRequest *request_;		//!< client's request
 
-	State state_;
+	// backend
+	x0::Socket backend_;
+	std::string hostname_;			//!< origin's hostname
+	int port_;						//!< origin's port
 
-	ev::io io_;
-	ev::timer timer_;
 	int connectTimeout_;
 	int readTimeout_;
 	int writeTimeout_;
@@ -86,32 +75,14 @@ private:
 	x0::Buffer writeBuffer_;
 	size_t writeOffset_;
 	size_t writeProgress_;
-	bool writeActive_;
 
 	x0::Buffer readBuffer_;
-	bool readActive_;
 
 	// tweaks
 	bool cloak_;
 
-	const char *state_str() const {
-		switch (state_) {
-			case DISCONNECTED: return "DISCONNECTED";
-			case ABOUT_TO_CONNECT: return "ABOUT_TO_CONNECT";
-			case CONNECTING: return "CONNECTING";
-			case CONNECTED: return "CONNECTED";
-			case WRITING: return "WRITING";
-			case READING: return "READING";
-			default: return "INVALID!";
-		}
-	}
-
 private:
-	bool writeActive() const { return writeActive_; }
-	bool readActive() const { return readActive_; }
-	bool isReading() const { return state_ == READING; }
-	bool isWriting() const { return state_ == WRITING; }
-	bool isClosed() const { return fd_ < 0; }
+	bool isClosed() const { return backend_.isClosed(); }
 
 	inline void close();
 	inline void destroy(x0::HttpError code = x0::HttpError::Undefined);
@@ -119,15 +90,12 @@ private:
 	inline bool connect();
 	inline ConnectResult openUnix(const std::string& unixPath, int* out_fd);
 	inline ConnectResult openTcp(const std::string& hostname, int port, int* out_fd);
-	inline void startRead();
-	inline void startWrite();
 
-	inline void onConnectComplete();
 	inline void readSome();
 	inline void writeSome();
 
-	void io(ev::io& w, int revents);
-	void timeout(ev::timer& w, int revents);
+	void onConnected(x0::Socket* s, int revents);
+	void io(x0::Socket* s, int revents);
 	void onRequestChunk(x0::BufferRef&& chunk);
 
 	static void onAbort(void *p);
@@ -149,45 +117,37 @@ public:
 // {{{ ProxyConnection impl
 ProxyConnection::ProxyConnection(const char *origin, x0::HttpRequest *r, bool cloak) :
 	x0::HttpMessageProcessor(x0::HttpMessageProcessor::RESPONSE),
-	hostname_(nullptr),
-	port_(),
-	fd_(-1),
 	request_(r),
-	state_(DISCONNECTED),
-	io_(r->connection.worker().loop()),
-	timer_(r->connection.worker().loop()),
+	backend_(r->connection.worker().loop()),
+	hostname_(),
+	port_(),
 	connectTimeout_(0),
 	readTimeout_(0),
 	writeTimeout_(0),
 	writeBuffer_(),
 	writeOffset_(0),
 	writeProgress_(0),
-	writeActive_(false),
 	readBuffer_(),
-	readActive_(false),
 	cloak_(cloak)
 {
 	TRACE("ProxyConnection()");
 
 	request_->setAbortHandler(&ProxyConnection::onAbort, this);
 
-	io_.set<ProxyConnection, &ProxyConnection::io>(this);
-	timer_.set<ProxyConnection, &ProxyConnection::timeout>(this);
-
 	x0::BufferRef ref(origin);
 	if (ref.begins("unix:")) {
 		// UNIX domain socket
-		hostname_ = strdup(origin + 5);
+		hostname_ = origin + 5;
 		port_ = 0;
 	} else {
 		// TCP/IP
 		auto pos = ref.rfind(':');
 		if (pos != ref.npos) {
-			hostname_ = strdup(origin);
+			hostname_ = origin;
 			hostname_[pos] = '\0';
 			port_ = ref.ref(pos + 1).toInt();
 		} else {
-			hostname_ = strdup(origin);
+			hostname_ = origin;
 			port_ = 80; // default to port 80, if not specified
 		}
 	}
@@ -205,10 +165,6 @@ ProxyConnection::~ProxyConnection()
 	TRACE("~ProxyConnection()");
 
 	close();
-
-	if (hostname_) {
-		free(hostname_);
-	}
 
 	if (request_) {
 		request_->finish();
@@ -324,7 +280,9 @@ void ProxyConnection::start()
 	// request headers terminator
 	writeBuffer_.push_back("\r\n");
 
-	startWrite();
+	if (backend_.state() == x0::Socket::Operational) {
+		backend_.setMode(x0::Socket::Write);
+	}
 }
 
 /** transferres a request body chunk to the origin server.  */
@@ -332,8 +290,7 @@ void ProxyConnection::onRequestChunk(x0::BufferRef&& chunk)
 {
 	TRACE("onRequestChunk(nb:%ld)", chunk.size());
 	writeBuffer_.push_back(chunk);
-	io_.start();
-	startWrite();
+	backend_.setMode(x0::Socket::Write);
 }
 
 inline bool validateResponseHeader(const x0::BufferRef& name)
@@ -382,10 +339,10 @@ void ProxyConnection::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 /** callback, invoked on a new response content chunk. */
 bool ProxyConnection::messageContent(x0::BufferRef&& chunk)
 {
-	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), state_str());
+	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), backend_.state_str());
 
 	// stop watching for more input
-	io_.stop();
+	backend_.setMode(x0::Socket::None);
 
 	// transfer response-body chunk to client
 	request_->write<x0::BufferSource>(std::move(chunk));
@@ -393,7 +350,7 @@ bool ProxyConnection::messageContent(x0::BufferRef&& chunk)
 	// start listening on backend I/O when chunk has been fully transmitted
 	request_->writeCallback([&]() {
 		TRACE("chunk write complete: %s", state_str());
-		io_.start();
+		backend_.setMode(x0::Socket::Read);
 	});
 
 	return true;
@@ -401,91 +358,35 @@ bool ProxyConnection::messageContent(x0::BufferRef&& chunk)
 
 bool ProxyConnection::messageEnd()
 {
-	TRACE("messageEnd() state:%s", state_str());
+	TRACE("messageEnd() state:%s", backend_.state_str());
 	return true;
-}
-
-void ProxyConnection::startRead()
-{
-	TRACE("startRead(%s)", state_str());
-	switch (state_)
-	{
-		case DISCONNECTED:
-			// invalid state to start reading from
-			break;
-		case ABOUT_TO_CONNECT:
-			TRACE("invalid state!");
-			break;
-		case CONNECTING:
-			// we're invoked from within onConnectComplete()
-			state_ = CONNECTED;
-			io_.set(fd_, ev::READ);
-
-			//FIXME needed? onConnected();
-
-			break;
-		case CONNECTED:
-			// invalid state to start reading from
-			break;
-		case WRITING:
-			if (readTimeout_ > 0)
-				timer_.start(readTimeout_, 0.0);
-
-			state_ = READING;
-			io_.set(fd_, ev::READ);
-			break;
-		case READING:
-			// continue reading
-			if (readTimeout_ > 0)
-				timer_.start(readTimeout_, 0.0);
-
-			break;
-	}
 }
 
 bool ProxyConnection::connect()
 {
-	TRACE("connect(): hostname=%s, port=%d) %s", hostname_, port_, state_str());
+	TRACE("connect(): hostname=%s, port=%d) %s", hostname_.c_str(), port_, state_str());
 
-	ConnectResult rv = port_
-		? openTcp(hostname_, port_, &fd_)
-		: openUnix(hostname_, &fd_);
+	bool rv = port_
+		? backend_.openTcp(hostname_, port_, O_NONBLOCK | O_CLOEXEC) // tcp/ip socket
+		: backend_.openUnix(hostname_, O_NONBLOCK | O_CLOEXEC);       // unix socket
 
-	switch (rv) {
-	case ConnectResult::Established:
-		TRACE("connect: instant success");
-		state_ = CONNECTED;
-		startWrite();
-		return true;
-	case ConnectResult::InProgress:
-		TRACE("connect: backgrounding");
-		state_ = ABOUT_TO_CONNECT;
-		startWrite();
-		return true;
-	case ConnectResult::Failed:
-	default:
-		TRACE("connect: failed");
+	if (!rv)
 		return false;
-	}
+
+	if (backend_.state() == x0::Socket::Connecting)
+		backend_.setReadyCallback<ProxyConnection, &ProxyConnection::onConnected>(this);
+	else // Operational
+		backend_.setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
 }
 
 void ProxyConnection::close()
 {
-	if (fd_ < 0)
-		return;
-
-	timer_.stop();
-	io_.stop();
-
-	::close(fd_);
-	fd_ = 0;
+	backend_.close();
 }
 
 void ProxyConnection::destroy(x0::HttpError code)
 {
-	if (fd_ >= 0) {
-		close();
-	}
+	backend_.close();
 
 	if (request_)
 	{
@@ -499,112 +400,32 @@ void ProxyConnection::destroy(x0::HttpError code)
 	delete this;
 }
 
-void ProxyConnection::startWrite()
+void ProxyConnection::onConnected(x0::Socket* s, int revents)
 {
-	TRACE("startWrite(%s)", state_str());
-
-	switch (state_)
-	{
-		case DISCONNECTED:
-			if (!connect()) {
-				destroy(x0::HttpError::ServiceUnavailable);
-			}
-			break;
-		case ABOUT_TO_CONNECT:
-			// initiated asynchronous connect: watch for completeness
-
-			if (connectTimeout_ > 0)
-				timer_.start(connectTimeout_, 0.0);
-
-			io_.set(fd_, ev::WRITE);
-			io_.start();
-			state_ = CONNECTING;
-			break;
-		case CONNECTING:
-			// asynchronous-connect completed and request committed already: start writing
-
-			if (writeTimeout_ > 0)
-				timer_.start(writeTimeout_, 0.0);
-
-			state_ = WRITING;
-			break;
-		case CONNECTED:
-			if (writeTimeout_ > 0)
-				timer_.start(writeTimeout_, 0.0);
-
-			state_ = WRITING;
-			io_.set(fd_, ev::WRITE);
-			io_.start();
-			break;
-		case WRITING:
-			// continue writing
-			break;
-		case READING:
-			if (writeTimeout_ > 0)
-				timer_.start(writeTimeout_, 0.0);
-
-			state_ = WRITING;
-			io_.set(fd_, ev::WRITE);
-			break;
+	if (backend_.state() == x0::Socket::Operational) {
+		backend_.setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
+		backend_.setMode(x0::Socket::Write); // flush already serialized request
+	} else {
+		destroy(x0::HttpError::ServiceUnavailable);
 	}
 }
 
-void ProxyConnection::io(ev::io& w, int revents)
+void ProxyConnection::io(x0::Socket* s, int revents)
 {
-	TRACE("io(0x%04x) timer_active:%d", revents, timer_.is_active());
-
-	if (timer_.is_active())
-		timer_.stop();
+	TRACE("io(0x%04x)", revents);
 
 	if (revents & ev::READ)
 		readSome();
 
 	if (revents & ev::WRITE)
-	{
-		if (state_ != CONNECTING)
-			writeSome();
-		else
-			onConnectComplete();
-	}
-}
-
-void ProxyConnection::timeout(ev::timer&, int revents)
-{
-	TRACE("timeout"); // TODO
-}
-
-/** callback, invoked when asynchronous connect completed.
- */
-void ProxyConnection::onConnectComplete()
-{
-	int val = 0;
-	socklen_t vlen = sizeof(val);
-	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0)
-	{
-		if (val == 0)
-		{
-			TRACE("onConnectComplete: connected");
-			// start writing the request immediately
-			startWrite();
-		}
-		else
-		{
-			TRACE("onConnectComplete: error(%d): %s", val, strerror(val));
-			destroy(x0::HttpError::ServiceUnavailable);
-		}
-	}
-	else
-	{
-		TRACE("onConnectComplete: getsocketopt() error: %s", strerror(errno));
-		destroy(x0::HttpError::ServiceUnavailable);
-	}
+		writeSome();
 }
 
 void ProxyConnection::writeSome()
 {
 	TRACE("writeSome() - %s (%d)", state_str(), request_->contentAvailable());
 
-	ssize_t rv = ::write(fd_, writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
+	ssize_t rv = backend_.write(writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
 
 	if (rv > 0)
 	{
@@ -625,11 +446,11 @@ void ProxyConnection::writeSome()
 			writeBuffer_.clear();
 
 			if (request_->contentAvailable()) {
-				io_.stop();
+				backend_.setMode(x0::Socket::None);
 				request_->read(std::bind(&ProxyConnection::onRequestChunk, this, std::placeholders::_1));
 			} else {
 				// request fully transmitted, let's read response then.
-				startRead();
+				backend_.setMode(x0::Socket::Read);
 			}
 		}
 	}
@@ -649,38 +470,39 @@ void ProxyConnection::readSome()
 	if (lower_bound == readBuffer_.capacity())
 		readBuffer_.setCapacity(lower_bound + 4096);
 
-	ssize_t rv = ::read(fd_, (char *)readBuffer_.end(), readBuffer_.capacity() - lower_bound);
+	ssize_t rv = backend_.read(readBuffer_);
 
-	if (rv > 0)
-	{
+	if (rv > 0) {
 		TRACE("read response: %ld bytes", rv);
-		readBuffer_.resize(lower_bound + rv);
-
 		std::size_t np = 0;
 		std::error_code ec = process(readBuffer_.ref(lower_bound, rv), np);
 		TRACE("readSome(): process(): %s", ec.message().c_str());
 		if (ec == x0::HttpMessageError::Success) {
 			destroy();
 		} else if (ec == x0::HttpMessageError::Partial) {
-			TRACE("resume with io_active:%d, state:%s", io_.is_active(), state_str());
-			startRead();
+			TRACE("resume with io:%d, state:%s", backend_.mode(), backend_.state_str());
+			backend_.setMode(x0::Socket::Read);
 		} else {
 			destroy(x0::HttpError::InternalServerError);
 		}
-	}
-	else if (rv == 0)
-	{
-		TRACE("http server (%d) connection closed", fd_);
+	} else if (rv == 0) {
+		TRACE("http server connection closed");
 		close();
-	}
-	else
-	{
+	} else {
 		TRACE("read response failed(%ld): %s", rv, strerror(errno));
 
-		if (errno == EAGAIN)
-			startRead();
-		else
+		switch (errno) {
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+		case EWOULDBLOCK:
+#endif
+		case EAGAIN:
+		case EINTR:
+			backend_.setMode(x0::Socket::Read);
+			break;
+		default:
 			close();
+			break;
+		}
 	}
 }
 
