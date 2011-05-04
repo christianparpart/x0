@@ -114,29 +114,12 @@ class CgiTransport : // {{{
 		}
 	}; //}}}
 public:
-	enum State {
-		DISCONNECTED,
-		CONNECTING,
-		CONNECTED
-	};
-
-	ev::io io_;
-
-	/*! this is basically the same as the HttpConnection.hot_ property, to indicate whether we are within 
-	 *  an I/O notifier (and though, shouldn't destruct ourselfs right away).
-	 */
-	bool hot_;
-
+	int refCount_;
 	CgiContext *context_;
 
-	struct ev_loop *loop_;
-
-	std::string hostname_;
-	int port_;
 	uint16_t id_;
-
-	int fd_;
-	State state_;
+	std::string backendName_;
+	x0::Socket* backend_;
 
 	x0::Buffer readBuffer_;
 	size_t readOffset_;
@@ -150,18 +133,15 @@ public:
 	x0::HttpRequest *request_;
 	FastCgi::CgiParamStreamWriter paramWriter_;
 
-	bool writeActive_;
-	bool finish_;
-
 public:
 	explicit CgiTransport(CgiContext *cx);
 	~CgiTransport();
 
-	State state() const { return state_; }
+	void ref();
+	void unref();
 
-	bool open(const std::string& hostname, int port);
-	bool open(const std::string& unixPath);
-	void bind(x0::HttpRequest *in, uint16_t id);
+	void bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend);
+	void close();
 
 	// server-to-application
 	void beginRequest();
@@ -188,12 +168,11 @@ private:
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
 	virtual bool messageContent(x0::BufferRef&& content);
 	void onWriteComplete();
-	static void onAbort(void *p);
+	static void onClientAbort(void *p);
 
-	void finish();
+	void onConnectComplete(x0::Socket* s, int revents);
+	void io(x0::Socket* s, int revents);
 
-	inline bool onConnectComplete();
-	inline void io(ev::io& w, int revents);
 	inline bool processRecord(const FastCgi::Record *record);
 	inline void onParam(const std::string& name, const std::string& value);
 }; // }}}
@@ -227,15 +206,10 @@ public:
 // {{{ CgiTransport impl
 CgiTransport::CgiTransport(CgiContext *cx) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
-	io_(),
-	hot_(false),
+	refCount_(1),
 	context_(cx),
-	loop_(ev_default_loop(0)),
-	hostname_(),
-	port_(0),
 	id_(1),
-	fd_(-1),
-	state_(DISCONNECTED),
+	backend_(nullptr),
 	readBuffer_(),
 	readOffset_(0),
 	writeBuffer_(),
@@ -244,16 +218,13 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	configured_(false),
 
 	request_(nullptr),
-	paramWriter_(),
-	writeActive_(false),
-	finish_(false)
+	paramWriter_()
 {
 #ifndef NDEBUG
 	static std::atomic<int> mi(0);
 	setLoggingPrefix("CgiTransport/%d", ++mi);
-	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->path().c_str());
 #endif
-	TRACE("CgiTransport()");
+	TRACE("create");
 
 	// stream management record: GetValues
 #if 0
@@ -267,7 +238,14 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 
 CgiTransport::~CgiTransport()
 {
-	TRACE("~CgiTransport()");
+	TRACE("destroy");
+
+	if (backend_) {
+		if (backend_->isOpen())
+			backend_->close();
+
+		delete backend_;
+	}
 
 	if (request_) {
 		if (request_->status == x0::HttpError::Undefined) {
@@ -276,130 +254,49 @@ CgiTransport::~CgiTransport()
 
 		request_->finish();
 	}
+}
 
-	ev_io_stop(loop_, &io_);
-	if (fd_ >= 0) {
-		::close(fd_);
-		fd_ = -1;
+void CgiTransport::close()
+{
+	if (backend_->isOpen()) {
+		backend_->close();
+		unref();
 	}
 }
 
-bool CgiTransport::open(const std::string& unixPath)
+void CgiTransport::ref()
 {
-	TRACE("connect(unix=%s)", unixPath.c_str());
-
-	hostname_ = unixPath; // crazy, eh
-
-#ifndef NDEBUG
-	setLoggingPrefix("CgiTransport(unix:%s)", unixPath.c_str());
-#endif
-
-	fd_ = ::socket(PF_UNIX, SOCK_STREAM, 0);
-	if (fd_ < 0) {
-		context().server().log(x0::Severity::error,
-				"fastcgi: socket creation error: %s",  strerror(errno));
-		return false;
-	}
-
-	struct sockaddr_un addr;
-	addr.sun_family = AF_UNIX;
-	size_t addrlen = sizeof(addr.sun_family)
-		+ strlen(strncpy(addr.sun_path, unixPath.c_str(), sizeof(addr.sun_path)));
-
-	if (connect(fd_, (struct sockaddr*) &addr, addrlen) < 0) {
-		context().server().log(x0::Severity::error,
-			"fastcgi: could not connect to %s: %s", unixPath.c_str(), strerror(errno));
-		return false;
-	}
-
-	fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK);
-	fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC);
-
-	return onConnectComplete();
+	++refCount_;
 }
 
-/** asynchronousely connects to given hostname:port.
- *
- * \retval true connected synchronously or asynchronousely (not completed yet) in success
- * \retval false something went wrong. if so, the underlying object is to be destructed already, too.
- */
-bool CgiTransport::open(const std::string& hostname, int port)
+void CgiTransport::unref()
 {
-	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
+	assert(refCount_ > 0);
 
-	hostname_ = hostname;
-	port_ = port;
+	--refCount_;
 
-	struct addrinfo hints;
-	struct addrinfo *res;
-	bool result = false;
-
-	std::memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	char sport[16];
-	snprintf(sport, sizeof(sport), "%d", port);
-
-	int rv = getaddrinfo(hostname_.c_str(), sport, &hints, &res);
-	if (rv) {
-		context().server().log(x0::Severity::error,
-				"fastcgi: could not get addrinfo of %s:%s: %s", 
-				hostname_.c_str(), sport, gai_strerror(rv));
-		return false;
+	if (refCount_ == 0) {
+		context_->release(this);
 	}
-
-	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next) {
-		fd_ = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-		if (fd_ < 0) {
-			context().server().log(x0::Severity::error,
-					"fastcgi: socket creation error: %s",  strerror(errno));
-			continue;
-		}
-
-		fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | O_NONBLOCK);
-		fcntl(fd_, F_SETFD, fcntl(fd_, F_GETFD) | FD_CLOEXEC);
-
-		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
-		if (rv == 0) {
-			TRACE("connect: instant success (fd:%d)", fd_);
-			result = onConnectComplete();
-			break;
-		} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
-			TRACE("connect: backgrounding (fd:%d)", fd_);
-
-			state_ = CONNECTING;
-			io_.start(fd_, ev::WRITE);
-
-			result = true;
-			break;
-		} else {
-			context().server().log(x0::Severity::error,
-				"fastcgi: could not connect to %s:%s: %s", hostname_.c_str(), sport, strerror(errno));
-			::close(fd_);
-			fd_ = -1;
-		}
-	}
-
-	freeaddrinfo(res);
-	return result;
 }
 
-void CgiTransport::bind(x0::HttpRequest *in, uint16_t id)
+void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 {
-	io_.set(in->connection.worker().loop());
-	io_.set<CgiTransport, &CgiTransport::io>(this);
-
 	assert(request_ == nullptr);
+	assert(backend_ == nullptr);
 
-	request_ = in;
 	id_ = id;
-
-	request_->setAbortHandler(&CgiTransport::onAbort, this);
+	backend_ = backend;
+	request_ = in;
+	request_->setAbortHandler(&CgiTransport::onClientAbort, this);
 
 	beginRequest();
 	streamParams();
+
+	if (backend_->state() == x0::Socket::Connecting)
+		backend_->setReadyCallback<CgiTransport, &CgiTransport::onConnectComplete>(this);
+	else
+		backend_->setReadyCallback<CgiTransport, &CgiTransport::io>(this);
 
 	flush();
 }
@@ -456,14 +353,11 @@ void CgiTransport::write(FastCgi::Record *record)
 
 void CgiTransport::flush()
 {
-	if (state_ == CONNECTED && writeBuffer_.size() != 0 && writeOffset_ == 0)
-	{
-		TRACE("CgiTransport.flush() -> ev (fd:%d)", fd_);
-		io_.start(fd_, ev::READ | ev::WRITE);
-	}
-	else
-	{
-		TRACE("CgiTransport.flush() -> pending");
+	if (backend_->state() == x0::Socket::Operational) {
+		TRACE("flush()");
+		backend_->setMode(x0::Socket::ReadWrite);
+	} else {
+		TRACE("flush() -> pending");
 		flushPending_ = true;
 	}
 }
@@ -472,71 +366,40 @@ void CgiTransport::flush()
  * \retval true connection establishment completed
  * \retval false finishing connect() failed. object is also invalidated.
  */
-bool CgiTransport::onConnectComplete()
+void CgiTransport::onConnectComplete(x0::Socket* s, int revents)
 {
-	int val = 0;
-	socklen_t vlen = sizeof(val);
-	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
-		if (val == 0) {
-			TRACE("connect: success");
-		} else {
-			context().server().log(x0::Severity::error,
-				"fastcgi: could not connect to %s:%d: %s", hostname_.c_str(), port_, strerror(val));
-			finish();
-			return false;
-		}
-	} else {
-		context().server().log(x0::Severity::error,
-			"fastcgi: could not getsocketopt(SO_ERROR) to %s:%d: %s", hostname_.c_str(), port_, strerror(errno));
-		finish();
-		return false;
-	}
-
-	// connect successful
-	state_ = CONNECTED;
-
-	if (writeBuffer_.size() > writeOffset_)
-	{
-		TRACE("CgiTransport.connected() flush pending");
+	if (s->isClosed()) {
+		TRACE("onConnectComplete() connect() failed");
+		request_->status = x0::HttpError::ServiceUnavailable;
+		unref();
+	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
+		TRACE("onConnectComplete() flush pending");
 		flushPending_ = false;
-
-		ev_io_set(&io_, fd_, EV_READ | EV_WRITE);
-		ev_io_start(loop_, &io_);
+		backend_->setReadyCallback<CgiTransport, &CgiTransport::io>(this);
+		backend_->setMode(x0::Socket::ReadWrite);
+	} else {
+		TRACE("onConnectComplete()");
+		backend_->setReadyCallback<CgiTransport, &CgiTransport::io>(this);
+		backend_->setMode(x0::Socket::Read);
 	}
-	else
-	{
-		TRACE("CgiTransport.connected()");
-		ev_io_set(&io_, fd_, EV_READ);
-		ev_io_start(loop_, &io_);
-	}
-
-	return true;
 }
 
-void CgiTransport::io(ev::io& w, int revents)
+void CgiTransport::io(x0::Socket* s, int revents)
 {
-	if (state_ == CONNECTING && (revents & EV_WRITE)) {
-		onConnectComplete();
-		return;
-	}
-
 	TRACE("CgiTransport::io(0x%04x)", revents);
-	hot_ = true;
+	ref();
 
-	if (revents & EV_READ)
-	{
+	if (revents & x0::Socket::Read) {
 		TRACE("CgiTransport::io(): reading ...");
 		// read as much as possible
-		for (;;)
-		{
+		for (;;) {
 			size_t remaining = readBuffer_.capacity() - readBuffer_.size();
 			if (remaining < 1024) {
 				readBuffer_.reserve(readBuffer_.capacity() + 4*4096);
 				remaining = readBuffer_.capacity() - readBuffer_.size();
 			}
 
-			ssize_t rv = ::read(fd_, const_cast<char *>(readBuffer_.data() + readBuffer_.size()), remaining);
-			TRACE("read(@%ld, %ld) = %ld", readBuffer_.size(), remaining, rv);
+			int rv = backend_->read(readBuffer_);
 
 			if (rv == 0) {
 				TRACE("fastcgi: connection to backend lost.");
@@ -544,23 +407,20 @@ void CgiTransport::io(ev::io& w, int revents)
 			}
 
 			if (rv < 0) {
-				if (errno != EINTR && errno != EAGAIN) {
+				if (errno != EINTR && errno != EAGAIN) { // TODO handle EWOULDBLOCK
 					context().server().log(x0::Severity::error,
-						"fastcgi: read from backend %s:%d failed: %s",
-						hostname_.c_str(), port_, strerror(errno));
+						"fastcgi: read from backend %s failed: %s",
+						backendName_.c_str(), strerror(errno));
 					goto app_err;
 				}
 
 				break;
 			}
-
-			readBuffer_.resize(readBuffer_.size() + rv);
 		}
 
 		// process fully received records
 		TRACE("CgiTransport::io(): processing ...");
-		while (readOffset_ + sizeof(FastCgi::Record) < readBuffer_.size())
-		{
+		while (readOffset_ + sizeof(FastCgi::Record) < readBuffer_.size()) {
 			const FastCgi::Record *record =
 				reinterpret_cast<const FastCgi::Record *>(readBuffer_.data() + readOffset_);
 
@@ -575,18 +435,15 @@ void CgiTransport::io(ev::io& w, int revents)
 		}
 	}
 
-	if (revents & EV_WRITE)
-	{
-		TRACE("CgiTransport::io(): writing ...");
-		//size_t sz = writeBuffer_.size() - writeOffset_;
-		//TRACE("CgiTransport.write(fd:%d): %ld -> %ld\n", fd_, sz, rv);
-		ssize_t rv = ::write(fd_, writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
-		TRACE("CgiTransport::io(): write() -> %ld ...", rv);
+	if (revents & x0::Socket::Write) {
+		TRACE("io(): writing to backend ...");
+		ssize_t rv = backend_->write(writeBuffer_.ref(writeOffset_));
+		TRACE("io(): write returned -> %ld ...", rv);
 
 		if (rv < 0) {
 			if (errno != EINTR && errno != EAGAIN) {
 				context().server().log(x0::Severity::error,
-					"fastcgi: write to backend %s:%d failed: %s", hostname_.c_str(), port_, strerror(errno));
+					"fastcgi: write to backend %s failed: %s", backendName_.c_str(), strerror(errno));
 				goto app_err;
 			}
 
@@ -598,8 +455,7 @@ void CgiTransport::io(ev::io& w, int revents)
 		// if set watcher back to EV_READ if the write-buffer has been fully written (to catch connection close events)
 		if (writeOffset_ == writeBuffer_.size()) {
 			TRACE("CgiTransport::io(): write buffer fully written to socket (%ld)", writeOffset_);
-			io_.start(fd_, ev::READ);
-
+			backend_->setMode(x0::Socket::Read);
 			writeBuffer_.clear();
 			writeOffset_ = 0;
 		}
@@ -607,17 +463,10 @@ void CgiTransport::io(ev::io& w, int revents)
 	goto done;
 
 app_err:
-	io_.stop();
-	::close(fd_);
-	fd_ = -1;
-	finish_ = true;
+	close();
 
 done:
-	hot_ = false;
-
-	if (finish_) {
-		finish();
-	}
+	unref();
 }
 
 bool CgiTransport::processRecord(const FastCgi::Record *record)
@@ -650,8 +499,8 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 		case FastCgi::Type::UnknownType:
 		default:
 			context().server().log(x0::Severity::error,
-				"fastcgi: unknown transport record received from backend %s:%d. type:%d, payload-size:%ld",
-				hostname_.c_str(), port_, record->type(), record->contentLength());
+				"fastcgi: unknown transport record received from backend %s. type:%d, payload-size:%ld",
+				backendName_.c_str(), record->type(), record->contentLength());
 #if 1
 			x0::Buffer::dump(record, sizeof(record), "fcgi packet header");
 			x0::Buffer::dump(record->content(), std::min(record->contentLength() + record->paddingLength(), 512), "fcgi packet payload");
@@ -735,6 +584,7 @@ void CgiTransport::streamParams()
 
 void CgiTransport::abortRequest()
 {
+	// TODO: install deadline-timer to actually close the connection if not done by the backend.
 	write<FastCgi::AbortRequestRecord>(id_);
 	flush();
 }
@@ -758,8 +608,8 @@ void CgiTransport::onStdErr(x0::BufferRef&& chunk)
 
 void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
 {
-	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d) writeActive:%d", appStatus, (int)protocolStatus, writeActive_);
-	finish();
+	TRACE("CgiTransport.onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
+	close();
 }
 
 void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
@@ -797,18 +647,14 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 bool CgiTransport::messageContent(x0::BufferRef&& content)
 {
-	TRACE("CgiTransport.messageContent(len:%ld) writeActive=%d", content.size(), writeActive_);
+	TRACE("CgiTransport.messageContent(len:%ld)", content.size());
 
-	if (!writeActive_) {
-		request_->write<x0::BufferSource>(content);
+	request_->write<x0::BufferSource>(content);
 
-		if (request_->connection.isOutputPending()) {
-			writeActive_ = true;
-			io_.stop();
-			request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
-		}
-	} else {
-		writeBuffer_.push_back(content);
+	if (request_->connection.isOutputPending()) {
+		backend_->setMode(x0::Socket::None);
+		ref(); // will be unref'd in completion-handler, onWriteComplete().
+		request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
 	}
 
 	return false;
@@ -818,11 +664,7 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
  */
 void CgiTransport::onWriteComplete()
 {
-	TRACE("CgiTransport.onWriteComplete() active: %d, bufferSize: %ld, finish: %d", writeActive_, writeBuffer_.size(), finish_);
-
-	assert(writeActive_);
-
-	writeActive_ = false;
+	TRACE("CgiTransport.onWriteComplete() bufferSize: %ld", writeBuffer_.size());
 
 	if (writeBuffer_.size() != 0) {
 		TRACE("onWriteComplete: queued:%ld", writeBuffer_.size());
@@ -831,20 +673,14 @@ void CgiTransport::onWriteComplete()
 
 		if (request_->connection.isOutputPending()) {
 			TRACE("onWriteComplete: output pending. enqueue callback");
-			writeActive_ = true;
 			request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
 			return;
 		}
 	}
 
-	if (finish_) {
-		TRACE("onWriteComplete: queue empty & finish triggered.");
-		finish();
-		return;
-	}
-
-	TRACE("onWriteComplete: output flushed. resume watching on app I/O");
-	io_.start();
+	TRACE("onWriteComplete: output flushed. resume watching on app I/O (read)");
+	backend_->setMode(x0::Socket::Read);
+	unref(); // unref the ref(), invoked in messageContent()
 }
 
 /**
@@ -852,32 +688,14 @@ void CgiTransport::onWriteComplete()
  *
  * @param p `this pointer` to CgiTransport object
  */
-void CgiTransport::onAbort(void *p)
+void CgiTransport::onClientAbort(void *p)
 {
 	CgiTransport* self = reinterpret_cast<CgiTransport*>(p);
 
-	if (self->fd_ < 0)
-		// fcgi app already aborted the connection due to read/write errors)
-		self->finish();
-	else
+	if (self->backend_->isOpen()) {
 		// notify fcgi app about client abort
 		self->abortRequest();
-}
-
-/**
- * \brief finishes handling the current request.
- *
- * Finishes the currently handled request, thus, making this transport connection 
- * back available for handling the next.
- */
-void CgiTransport::finish()
-{
-	TRACE("CgiTransport::finish() writeActive:%d, hot:%d", writeActive_, hot_);
-
-	if (writeActive_ || hot_)
-		finish_ = true;
-	else
-		context_->release(this);
+	}
 }
 // }}}
 
@@ -921,31 +739,26 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 {
 	TRACE("CgiContext.handleRequest()");
 
-	CgiTransport *transport = new CgiTransport(this);
+	x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
 
 	if (unixPath_.length())
-		if (transport->open(unixPath_))
-			goto ok;
-		else
-			goto err;
-
-	if (transport->open(host_, port_))
-		goto ok;
+		backend->openUnix(unixPath_);
 	else
-		goto err;
+		backend->openTcp(host_, port_);
 
-ok:
-	if (++nextID_ == 0)
-		++nextID_;
+	if (backend->isOpen()) {
+		CgiTransport* transport = new CgiTransport(this);
 
-	transport->bind(in, nextID_);
-	return;
+		if (++nextID_ == 0)
+			++nextID_;
 
-err:
-	delete transport;
-	in->status = x0::HttpError::ServiceUnavailable;
-	in->finish();
-	return;
+		transport->bind(in, nextID_, backend);
+	} else {
+		// log(Severity::Error, "connection to backend failed: %s", backend->errorString());
+		delete backend;
+		in->status = x0::HttpError::ServiceUnavailable;
+		in->finish();
+	}
 }
 
 /**
