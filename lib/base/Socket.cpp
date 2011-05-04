@@ -121,7 +121,7 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 	TRACE("connect(unix=%s)", unixPath.c_str());
 
 #ifndef NDEBUG
-	setLoggingPrefix("CgiTransport(unix:%s)", unixPath.c_str());
+	setLoggingPrefix("Socket(unix:%s)", unixPath.c_str());
 #endif
 
 	fd_ = ::socket(PF_UNIX, SOCK_STREAM, 0);
@@ -156,6 +156,10 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 
 bool Socket::openTcp(const IPAddress& host, int port, int flags)
 {
+#ifndef NDEBUG
+	setLoggingPrefix("Socket(tcp:%s:%d)", host.str().c_str(), port);
+#endif
+
 	flags |= O_NONBLOCK | O_CLOEXEC;
 
 	int typeMask = 0;
