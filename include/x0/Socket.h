@@ -9,12 +9,14 @@
 #ifndef sw_x0_Socket_h
 #define sw_x0_Socket_h (1)
 
+#include <x0/IPAddress.h>
+#include <x0/Buffer.h>
+#include <x0/BufferRef.h>
+#include <x0/Logging.h>
+
 #include <ev++.h>
 #include <unistd.h>
 #include <system_error>
-#include <x0/Logging.h>
-#include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 
 namespace x0 {
 
@@ -38,7 +40,10 @@ public:
 	};
 
 	enum State {
-		Handshake, Operational, Failure
+		Closed,
+		Connecting,
+		Handshake,
+		Operational
 	};
 
 private:
@@ -69,8 +74,15 @@ protected:
 	void *handshakeData_;
 
 public:
-	explicit Socket(struct ev_loop *loop, int fd, int addressFamily);
+	explicit Socket(struct ev_loop *loop);
+	Socket(struct ev_loop *loop, int fd, int addressFamily);
 	virtual ~Socket();
+
+	void set(int fd, int addressFamily);
+
+	bool openUnix(const std::string& unixPath, int flags = 0);
+	bool openTcp(const std::string& hostname, int port, int flags = 0);
+	bool openTcp(const IPAddress& host, int port, int flags = 0);
 
 	int handle() const;
 	bool isOpen() const;
@@ -136,6 +148,7 @@ private:
 	void timeout(ev::timer& timer, int revents);
 
 protected:
+	void onConnectComplete();
 	virtual void handshake(int revents);
 
 	void callback(int revents);
@@ -151,12 +164,14 @@ inline const char *Socket::state_str() const
 {
 	switch (state_)
 	{
+		case Closed:
+			return "CLOSED";
+		case Connecting:
+			return "CONNECTING";
 		case Handshake:
 			return "HANDSHAKE";
 		case Operational:
 			return "OPERATIONAL";
-		case Failure:
-			return "FAILURE";
 		default:
 			return "<INVALID>";
 	}

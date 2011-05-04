@@ -12,16 +12,17 @@
 #include <x0/Defines.h>
 #include <x0/StackTrace.h>
 #include <atomic>
+#include <system_error>
 
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/sendfile.h>
-
+#include <netdb.h>
 #include <unistd.h>
-#include <system_error>
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
@@ -42,7 +43,35 @@ inline const char * mode_str(Socket::Mode m)
 	return ms[static_cast<int>(m)];
 }
 
-Socket::Socket(struct ev_loop *loop, int fd, int af) :
+Socket::Socket(struct ev_loop* loop) :
+	loop_(loop),
+	fd_(-1),
+	addressFamily_(0),
+	watcher_(loop),
+	timer_(loop),
+	secure_(false),
+	state_(Closed),
+	mode_(None),
+	tcpCork_(false),
+	remoteIP_(),
+	remotePort_(0),
+	localIP_(),
+	localPort_(),
+	callback_(nullptr),
+	callbackData_(0)
+{
+#ifndef NDEBUG
+	setLogging(false);
+	static std::atomic<unsigned long long> id(0);
+	setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
+#endif
+	TRACE("created. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
+
+	watcher_.set<Socket, &Socket::io>(this);
+	timer_.set<Socket, &Socket::timeout>(this);
+}
+
+Socket::Socket(struct ev_loop* loop, int fd, int af) :
 	loop_(loop),
 	fd_(fd),
 	addressFamily_(af),
@@ -76,6 +105,181 @@ Socket::~Socket()
 
 	if (fd_ >= 0)
 		::close(fd_);
+}
+
+void Socket::set(int fd, int af)
+{
+	fd_ = fd;
+	addressFamily_ = af;
+
+	remoteIP_.clear();
+	localIP_.clear();
+}
+
+bool Socket::openUnix(const std::string& unixPath, int flags)
+{
+	TRACE("connect(unix=%s)", unixPath.c_str());
+
+#ifndef NDEBUG
+	setLoggingPrefix("CgiTransport(unix:%s)", unixPath.c_str());
+#endif
+
+	fd_ = ::socket(PF_UNIX, SOCK_STREAM, 0);
+	if (fd_ < 0) {
+		TRACE("socket creation error: %s",  strerror(errno));
+		return false;
+	}
+
+	flags |= O_NONBLOCK; // | O_CLOEXEC;
+
+	if (flags) {
+		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
+			// error
+		}
+	}
+
+	struct sockaddr_un addr;
+	addr.sun_family = AF_UNIX;
+	size_t addrlen = sizeof(addr.sun_family)
+		+ strlen(strncpy(addr.sun_path, unixPath.c_str(), sizeof(addr.sun_path)));
+
+	int rv = ::connect(fd_, (struct sockaddr*) &addr, addrlen);
+	if (rv < 0) {
+		TRACE("could not connect to %s: %s", unixPath.c_str(), strerror(errno));
+		return false;
+	}
+
+	state_ = Operational;
+
+	return true;
+}
+
+bool Socket::openTcp(const IPAddress& host, int port, int flags)
+{
+	flags |= O_NONBLOCK | O_CLOEXEC;
+
+	int typeMask = 0;
+
+#if defined(SOCK_NONBLOCK)
+	if (flags & O_NONBLOCK) {
+		flags &= ~O_NONBLOCK;
+		typeMask |= SOCK_NONBLOCK;
+	}
+#endif
+
+#if defined(SOCK_CLOEXEC)
+	if (flags & O_CLOEXEC) {
+		flags &= ~O_CLOEXEC;
+		typeMask |= SOCK_CLOEXEC;
+	}
+#endif
+
+	fd_ = ::socket(host.family(), SOCK_STREAM | typeMask, IPPROTO_TCP);
+	if (fd_ < 0) {
+		TRACE("socket creation error: %s",  strerror(errno));
+		return false;
+	}
+
+	if (flags) {
+		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
+			// error
+		}
+	}
+
+	int rv = ::connect(fd_, (struct sockaddr*) host.data(), host.size());
+	if (rv == 0) {
+		TRACE("connect: instant success (fd:%d)", fd_);
+		state_ = Operational;
+		return true;
+	} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
+		TRACE("connect: backgrounding (fd:%d)", fd_);
+		state_ = Connecting;
+		setMode(Write);
+		return true;
+	} else {
+		TRACE("could not connect to %s:%d: %s", host.str().c_str(), port, strerror(errno));
+		::close(fd_);
+		fd_ = -1;
+		return false;
+	}
+}
+
+bool Socket::openTcp(const std::string& hostname, int port, int flags)
+{
+	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
+
+	struct addrinfo hints;
+	struct addrinfo *res;
+	bool result = false;
+
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	char sport[16];
+	snprintf(sport, sizeof(sport), "%d", port);
+
+	int rv = getaddrinfo(hostname.c_str(), sport, &hints, &res);
+	if (rv) {
+		TRACE("could not get addrinfo of %s:%s: %s", hostname.c_str(), sport, gai_strerror(rv));
+		return false;
+	}
+
+	flags |= O_NONBLOCK | O_CLOEXEC;
+
+	int typeMask = 0;
+#if defined(SOCK_NONBLOCK)
+	if (flags & O_NONBLOCK) {
+		flags &= ~O_NONBLOCK;
+		typeMask |= SOCK_NONBLOCK;
+	}
+#endif
+
+#if defined(SOCK_CLOEXEC)
+	if (flags & O_CLOEXEC) {
+		flags &= ~O_CLOEXEC;
+		typeMask |= SOCK_CLOEXEC;
+	}
+#endif
+
+	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next) {
+		TRACE("creating socket(%d, %d, %d)", rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		fd_ = ::socket(rp->ai_family, rp->ai_socktype | typeMask, rp->ai_protocol);
+		if (fd_ < 0) {
+			TRACE("socket creation error: %s",  strerror(errno));
+			continue;
+		}
+
+		if (flags) {
+			if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
+				// error
+			}
+		}
+
+		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
+		if (rv == 0) {
+			TRACE("connect: instant success (fd:%d)", fd_);
+			state_ = Operational;
+			result = true;
+			break;
+		} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
+			TRACE("connect: backgrounding (fd:%d)", fd_);
+
+			state_ = Connecting;
+			setMode(Write);
+
+			result = true;
+			break;
+		} else {
+			TRACE("could not connect to %s:%s: %s", hostname.c_str(), sport, strerror(errno));
+			::close(fd_);
+			fd_ = -1;
+		}
+	}
+
+	freeaddrinfo(res);
+	return result;
 }
 
 bool Socket::setNonBlocking(bool enabled)
@@ -144,6 +348,7 @@ void Socket::close()
 	if (fd_< 0)
 		return;
 
+	state_ = Closed;
 	mode_ = None;
 	watcher_.stop();
 	timer_.stop();
@@ -213,6 +418,30 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #endif
 }
 
+void Socket::onConnectComplete()
+{
+	setMode(None);
+
+	int val = 0;
+	socklen_t vlen = sizeof(val);
+	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
+		if (val == 0) {
+			TRACE("onConnectComplete: connected");
+			state_ = Operational;
+		} else {
+			TRACE("onConnectComplete: error(%d): %s", val, strerror(val));
+			state_ = Closed;
+		}
+	} else {
+		TRACE("onConnectComplete: getsocketopt() error: %s", strerror(errno));
+		state_ = Closed;
+	}
+
+	if (callback_) {
+		callback_(this, callbackData_, 0);
+	}
+}
+
 void Socket::handshake(int /*revents*/)
 {
 	// plain (unencrypted) TCP/IP sockets do not need an additional handshake
@@ -224,7 +453,9 @@ void Socket::io(ev::io& /*io*/, int revents)
 
 	timer_.stop();
 
-	if (state_ == Handshake)
+	if (state_ == Connecting)
+		onConnectComplete();
+	else if (state_ == Handshake)
 		handshake(revents);
 	else if (callback_)
 		callback_(this, callbackData_, revents);
