@@ -125,7 +125,7 @@ void SslSocket::handshake(int revents)
 	} else if (rv != GNUTLS_E_AGAIN && rv != GNUTLS_E_INTERRUPTED) {
 		TRACE("SSL handshake failed (%d): %s", rv, gnutls_strerror(rv));
 
-		setState(Failure);
+		close();
 
 		if (handshakeCallback_) {
 			handshakeCallback_(this, handshakeData_);
@@ -180,7 +180,7 @@ ssize_t SslSocket::write(const void *buffer, size_t size)
 		default:
 			TRACE("gnutls_write error: %s", gnutls_strerror(rv));
 			errno = EINVAL;
-			setState(Failure);
+			close();
 			break;
 	}
 
