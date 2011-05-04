@@ -45,10 +45,10 @@ inline const char * mode_str(Socket::Mode m)
 
 Socket::Socket(struct ev_loop* loop) :
 	loop_(loop),
-	fd_(-1),
-	addressFamily_(0),
 	watcher_(loop),
 	timer_(loop),
+	fd_(-1),
+	addressFamily_(0),
 	secure_(false),
 	state_(Closed),
 	mode_(None),
@@ -73,10 +73,10 @@ Socket::Socket(struct ev_loop* loop) :
 
 Socket::Socket(struct ev_loop* loop, int fd, int af) :
 	loop_(loop),
-	fd_(fd),
-	addressFamily_(af),
 	watcher_(loop),
 	timer_(loop),
+	fd_(fd),
+	addressFamily_(af),
 	secure_(false),
 	state_(Operational),
 	mode_(None),

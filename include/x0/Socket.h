@@ -48,10 +48,10 @@ public:
 
 private:
 	struct ev_loop *loop_;
-	int fd_;
-	int addressFamily_;
 	ev::io watcher_;
 	ev::timer timer_;
+	int fd_;
+	int addressFamily_;
 	bool secure_;
 	State state_;
 	Mode mode_;
