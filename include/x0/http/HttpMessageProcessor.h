@@ -151,7 +151,7 @@ public:
 	virtual bool messageEnd();
 
 public:
-	explicit HttpMessageProcessor(ParseMode mode = MESSAGE);
+	explicit HttpMessageProcessor(ParseMode mode);
 
 	State state() const;
 	const char *state_str() const;
