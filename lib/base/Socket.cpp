@@ -436,11 +436,11 @@ void Socket::onConnectComplete()
 			state_ = Operational;
 		} else {
 			TRACE("onConnectComplete: error(%d): %s", val, strerror(val));
-			state_ = Closed;
+			close();
 		}
 	} else {
 		TRACE("onConnectComplete: getsocketopt() error: %s", strerror(errno));
-		state_ = Closed;
+		close();
 	}
 
 	if (callback_) {
