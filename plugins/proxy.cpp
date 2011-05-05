@@ -441,7 +441,7 @@ private:
 		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
 
 		if (origin.begins("unix:")) { // UNIX domain socket
-			backend->openUnix(origin.str());
+			backend->openUnix(origin.ref(5).str());
 		} else { // TCP/IP
 			auto pos = origin.rfind(':');
 			if (pos != origin.npos) {
