@@ -130,7 +130,7 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 		return false;
 	}
 
-	flags |= O_NONBLOCK; // | O_CLOEXEC;
+	flags |= O_NONBLOCK | O_CLOEXEC;
 
 	if (flags) {
 		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
@@ -318,6 +318,8 @@ bool Socket::setTcpCork(bool enable)
 void Socket::setMode(Mode m)
 {
 	TRACE("setMode() %s -> %s", mode_str(mode_), mode_str(m));
+	if (isClosed())
+		return;
 
 	if (m != mode_) {
 		if (m != None) {
