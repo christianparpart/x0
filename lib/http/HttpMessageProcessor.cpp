@@ -892,6 +892,7 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 
 				if (iequals(name_, "Content-Length")) {
 					contentLength_ = value_.as<int>();
+					TRACE("set content length to: %d", contentLength_);
 				} else if (iequals(name_, "Transfer-Encoding")) {
 					if (iequals(value_, "chunked")) {
 						chunked_ = true;
@@ -1080,14 +1081,14 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 				break;
 			case SYNTAX_ERROR:
 			{
-#if 1 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 				TRACE("parse: syntax error");
 				if (std::isprint(*i)) {
 					TRACE("parse: syntax error at offset: %ld, character: '%c'", offset, *i);
 				} else {
 					TRACE("parse: syntax error at offset: %ld, character: 0x%02X", offset, *i);
 				}
-				Buffer::dump(chunk.data(), chunk.size(), "request chunk");
+				Buffer::dump(chunk.data(), chunk.size(), "request chunk (at syntax error)");
 #endif
 				ofp = offsetBase + offset;
 				return HttpMessageError::SyntaxError;
@@ -1100,7 +1101,7 @@ HttpMessageError HttpMessageProcessor::process(BufferRef&& chunk, std::size_t& o
 				} else {
 					TRACE("parse: internal error at offset: %ld, character: 0x%02X", offset, *i);
 				}
-				Buffer::dump(chunk.data(), chunk.size(), "request chunk");
+				Buffer::dump(chunk.data(), chunk.size(), "request chunk (at unknown state)");
 #endif
 				return HttpMessageError::SyntaxError;
 		}
