@@ -692,10 +692,8 @@ void CgiTransport::onClientAbort(void *p)
 {
 	CgiTransport* self = reinterpret_cast<CgiTransport*>(p);
 
-	if (self->backend_->isOpen()) {
-		// notify fcgi app about client abort
-		self->abortRequest();
-	}
+	// notify fcgi app about client abort
+	self->abortRequest();
 }
 // }}}
 
