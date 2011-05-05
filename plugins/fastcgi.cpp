@@ -477,8 +477,7 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 
 	bool proceedHint = true;
 
-	switch (record->type())
-	{
+	switch (record->type()) {
 		case FastCgi::Type::GetValuesResult:
 			ParamReader(this).processParams(record->content(), record->contentLength());
 			configured_ = true; // should be set *only* at EOS of GetValuesResult? we currently guess, that there'll be only *one* packet
@@ -564,8 +563,7 @@ void CgiTransport::streamParams()
 #endif
 
 	// HTTP request headers
-	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i)
-	{
+	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i) {
 		std::string key;
 		key.reserve(5 + i->name.size());
 		key += "HTTP_";
@@ -585,8 +583,12 @@ void CgiTransport::streamParams()
 void CgiTransport::abortRequest()
 {
 	// TODO: install deadline-timer to actually close the connection if not done by the backend.
-	write<FastCgi::AbortRequestRecord>(id_);
-	flush();
+	if (backend_->isOpen()) {
+		write<FastCgi::AbortRequestRecord>(id_);
+		flush();
+	} else {
+		close();
+	}
 }
 
 void CgiTransport::onStdOut(x0::BufferRef&& chunk)
@@ -631,13 +633,10 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 {
 	//TRACE("CgiTransport.onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
 
-	if (x0::iequals(name, "Status"))
-	{
+	if (x0::iequals(name, "Status")) {
 		int status = value.ref(0, value.find(' ')).toInt();
 		request_->status = static_cast<x0::HttpError>(status);
-	}
-	else
-	{
+	} else {
 		if (name == "Location")
 			request_->status = x0::HttpError::MovedTemporarily;
 
