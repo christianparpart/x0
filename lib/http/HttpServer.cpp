@@ -65,11 +65,12 @@ std::string global_now()
 {
 	float val = ev_now(ev_default_loop(0));
 	time_t ts = (time_t)val;
+	struct tm tm;
 
-	if (struct tm *tm = gmtime(&ts)) {
+	if (localtime_r(&ts, &tm)) {
 		char buf[256];
 
-		if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0) {
+		if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", &tm) != 0) {
 			return buf;
 		}
 	}
