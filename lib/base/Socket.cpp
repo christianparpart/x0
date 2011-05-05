@@ -118,11 +118,11 @@ void Socket::set(int fd, int af)
 
 bool Socket::openUnix(const std::string& unixPath, int flags)
 {
-	TRACE("connect(unix=%s)", unixPath.c_str());
-
 #ifndef NDEBUG
 	setLoggingPrefix("Socket(unix:%s)", unixPath.c_str());
 #endif
+
+	TRACE("connect(unix=%s)", unixPath.c_str());
 
 	fd_ = ::socket(PF_UNIX, SOCK_STREAM, 0);
 	if (fd_ < 0) {
@@ -145,6 +145,8 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 
 	int rv = ::connect(fd_, (struct sockaddr*) &addr, addrlen);
 	if (rv < 0) {
+		::close(fd_);
+		fd_ = -1;
 		TRACE("could not connect to %s: %s", unixPath.c_str(), strerror(errno));
 		return false;
 	}
