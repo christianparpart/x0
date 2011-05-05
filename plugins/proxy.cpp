@@ -42,7 +42,7 @@
  *
  */ // }}}
 
-#if 1
+#if 0
 #	define TRACE(msg...) DEBUG("proxy: " msg)
 #else
 #	define TRACE(msg...) /*!*/
