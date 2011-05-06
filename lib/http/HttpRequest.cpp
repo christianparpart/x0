@@ -160,12 +160,13 @@ bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
 
 void HttpRequest::onRequestContent(BufferRef&& chunk)
 {
-	if (readCallback_)
-	{
-		TRACE("onRequestContent(chunkSize=%ld)", chunk.size());
+	if (readCallback_) {
+		TRACE("onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
 		auto callback = readCallback_;
 		readCallback_ = std::function<void(BufferRef&&)>();
 		callback(std::move(chunk));
+	} else {
+		TRACE("onRequestContent(chunkSize=%ld) consumed", chunk.size());
 	}
 }
 
