@@ -42,7 +42,7 @@
  *
  */ // }}}
 
-#if 0
+#if 1
 #	define TRACE(msg...) DEBUG("proxy: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -174,18 +174,23 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 	writeBuffer_.push_back(" HTTP/1.1\r\n");
 
 	// request headers
-	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i) {
-		if (iequals(i->name, "Content-Transfer")
-				|| iequals(i->name, "Expect")
-				|| iequals(i->name, "Connection"))
+	for (auto& header: request_->requestHeaders) {
+		if (iequals(header.name, "Content-Transfer")
+				|| iequals(header.name, "Expect")
+				|| iequals(header.name, "Connection")) {
+			TRACE("skip requestHeader(%s: %s)", header.name.str().c_str(), header.value.str().c_str());
 			continue;
+		}
 
-		TRACE("pass requestHeader(%s: %s)", i->name.str().c_str(), i->value.str().c_str());
-		writeBuffer_.push_back(i->name);
+		TRACE("pass requestHeader(%s: %s)", header.name.str().c_str(), header.value.str().c_str());
+		writeBuffer_.push_back(header.name);
 		writeBuffer_.push_back(": ");
-		writeBuffer_.push_back(i->value);
+		writeBuffer_.push_back(header.value);
 		writeBuffer_.push_back("\r\n");
 	}
+
+	// additional headers to add
+	writeBuffer_.push_back("Connection: closed\r\n");
 
 	// request headers terminator
 	writeBuffer_.push_back("\r\n");
@@ -208,17 +213,12 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 void ProxyConnection::onConnected(x0::Socket* s, int revents)
 {
 	TRACE("onConnected: content? %d", request_->contentAvailable());
-	TRACE("onConnected.pending:\n%s\n", writeBuffer_.c_str());
+	//TRACE("onConnected.pending:\n%s\n", writeBuffer_.c_str());
 
 	if (backend_->state() == x0::Socket::Operational) {
+		TRACE("onConnected: flushing");
 		backend_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
-		if (request_->contentAvailable()) {
-			TRACE("onConnected: request content available: reading.");
-			request_->read(std::bind(&ProxyConnection::onRequestChunk, this, std::placeholders::_1));
-		} else {
-			TRACE("onConnected: flushing");
-			backend_->setMode(x0::Socket::ReadWrite); // flush already serialized request
-		}
+		backend_->setMode(x0::Socket::ReadWrite); // flush already serialized request
 	} else {
 		close();
 	}
@@ -232,6 +232,11 @@ void ProxyConnection::onRequestChunk(x0::BufferRef&& chunk)
 
 	if (backend_->state() == x0::Socket::Operational) {
 		backend_->setMode(x0::Socket::ReadWrite);
+	}
+
+	// read more data
+	if (request_->contentAvailable()) {
+		request_->read(std::bind(&ProxyConnection::onRequestChunk, this, std::placeholders::_1));
 	}
 }
 
@@ -333,16 +338,7 @@ void ProxyConnection::writeSome()
 
 			writeOffset_ = 0;
 			writeBuffer_.clear();
-
-			if (request_->contentAvailable()) {
-				TRACE("writeSome: request content available: reading.");
-				backend_->setMode(x0::Socket::Read);
-				request_->read(std::bind(&ProxyConnection::onRequestChunk, this, std::placeholders::_1));
-			} else {
-				// request fully transmitted, let's read response then.
-				backend_->setMode(x0::Socket::Read);
-				TRACE("writeSome: watching for 'read'");
-			}
+			backend_->setMode(x0::Socket::Read);
 		}
 	} else {
 		TRACE("write request failed(%ld): %s", rv, strerror(errno));
@@ -441,6 +437,8 @@ private:
 		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
 
 		if (origin.begins("unix:")) { // UNIX domain socket
+			std::string s = origin.ref(5).str();
+			TRACE("unix socket: '%s'", s.c_str());
 			backend->openUnix(origin.ref(5).str());
 		} else { // TCP/IP
 			auto pos = origin.rfind(':');
