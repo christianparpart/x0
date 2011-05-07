@@ -144,8 +144,6 @@ public:
 	void close();
 
 	// server-to-application
-	void beginRequest();
-	void streamParams();
 	void abortRequest();
 
 	// application-to-server
@@ -282,22 +280,85 @@ void CgiTransport::unref()
 
 void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 {
+	// sanity checks
 	assert(request_ == nullptr);
 	assert(backend_ == nullptr);
 
+	// initialize object
 	id_ = id;
 	backend_ = backend;
 	request_ = in;
 	request_->setAbortHandler(&CgiTransport::onClientAbort, this);
 
-	beginRequest();
-	streamParams();
+	// initialize stream
+	write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, id_, true);
 
+	paramWriter_.encode("SERVER_SOFTWARE", PACKAGE_NAME "/" PACKAGE_VERSION);
+	paramWriter_.encode("SERVER_NAME", request_->requestHeader("Host"));
+	paramWriter_.encode("GATEWAY_INTERFACE", "CGI/1.1");
+
+	paramWriter_.encode("SERVER_PROTOCOL", "1.1");
+	paramWriter_.encode("SERVER_ADDR", request_->connection.localIP());
+	paramWriter_.encode("SERVER_PORT", boost::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
+
+	paramWriter_.encode("REQUEST_METHOD", request_->method);
+	paramWriter_.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
+
+	request_->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
+
+	paramWriter_.encode("SCRIPT_NAME", request_->path);
+	paramWriter_.encode("PATH_INFO", request_->pathinfo);
+
+	if (!request_->pathinfo.empty())
+		paramWriter_.encode("PATH_TRANSLATED", request_->documentRoot, request_->pathinfo);
+
+	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
+	paramWriter_.encode("REQUEST_URI", request_->uri);
+
+	//paramWriter_.encode("REMOTE_HOST", "");  // optional
+	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());
+	paramWriter_.encode("REMOTE_PORT", boost::lexical_cast<std::string>(request_->connection.remotePort()));
+
+	//paramWriter_.encode("AUTH_TYPE", ""); // TODO
+	//paramWriter_.encode("REMOTE_USER", "");
+	//paramWriter_.encode("REMOTE_IDENT", "");
+
+	if (request_->contentAvailable()) {
+		paramWriter_.encode("CONTENT_TYPE", request_->requestHeader("Content-Type"));
+		paramWriter_.encode("CONTENT_LENGTH", request_->requestHeader("Content-Length"));
+
+		request_->read(std::bind(&CgiTransport::processRequestBody, this, std::placeholders::_1));
+	}
+
+#if defined(WITH_SSL)
+	if (request_->connection.isSecure())
+		paramWriter_.encode("HTTPS", "1");
+#endif
+
+	// HTTP request headers
+	for (auto& i: request_->requestHeaders) {
+		std::string key;
+		key.reserve(5 + i.name.size());
+		key += "HTTP_";
+
+		for (auto p = i.name.begin(), q = i.name.end(); p != q; ++p)
+			key += std::isalnum(*p) ? std::toupper(*p) : '_';
+
+		paramWriter_.encode(key, i.value);
+	}
+	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
+	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+
+	write(FastCgi::Type::Params, id_, paramWriter_.output());
+	write(FastCgi::Type::Params, id_, "", 0); // EOS
+
+	// setup I/O callback
 	if (backend_->state() == x0::Socket::Connecting)
 		backend_->setReadyCallback<CgiTransport, &CgiTransport::onConnectComplete>(this);
 	else
 		backend_->setReadyCallback<CgiTransport, &CgiTransport::io>(this);
 
+	// flush out
 	flush();
 }
 
@@ -512,72 +573,6 @@ bool CgiTransport::processRecord(const FastCgi::Record *record)
 void CgiTransport::onParam(const std::string& name, const std::string& value)
 {
 	TRACE("onParam(%s, %s)", name.c_str(), value.c_str());
-}
-
-void CgiTransport::beginRequest()
-{
-	write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, id_, true);
-}
-
-void CgiTransport::streamParams()
-{
-	paramWriter_.encode("SERVER_SOFTWARE", PACKAGE_NAME "/" PACKAGE_VERSION);
-	paramWriter_.encode("SERVER_NAME", request_->requestHeader("Host"));
-	paramWriter_.encode("GATEWAY_INTERFACE", "CGI/1.1");
-
-	paramWriter_.encode("SERVER_PROTOCOL", "1.1");
-	paramWriter_.encode("SERVER_ADDR", request_->connection.localIP());
-	paramWriter_.encode("SERVER_PORT", boost::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
-
-	paramWriter_.encode("REQUEST_METHOD", request_->method);
-	paramWriter_.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
-
-	request_->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
-
-	paramWriter_.encode("SCRIPT_NAME", request_->path);
-	paramWriter_.encode("PATH_INFO", request_->pathinfo);
-	if (!request_->pathinfo.empty())
-		paramWriter_.encode("PATH_TRANSLATED", request_->documentRoot, request_->pathinfo);
-
-	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
-	paramWriter_.encode("REQUEST_URI", request_->uri);
-
-	//paramWriter_.encode("REMOTE_HOST", "");  // optional
-	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());
-	paramWriter_.encode("REMOTE_PORT", boost::lexical_cast<std::string>(request_->connection.remotePort()));
-
-	//paramWriter_.encode("AUTH_TYPE", ""); // TODO
-	//paramWriter_.encode("REMOTE_USER", "");
-	//paramWriter_.encode("REMOTE_IDENT", "");
-
-	if (request_->contentAvailable()) {
-		paramWriter_.encode("CONTENT_TYPE", request_->requestHeader("Content-Type"));
-		paramWriter_.encode("CONTENT_LENGTH", request_->requestHeader("Content-Length"));
-
-		request_->read(std::bind(&CgiTransport::processRequestBody, this, std::placeholders::_1));
-	}
-
-#if defined(WITH_SSL)
-	if (request_->connection.isSecure())
-		paramWriter_.encode("HTTPS", "1");
-#endif
-
-	// HTTP request headers
-	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i) {
-		std::string key;
-		key.reserve(5 + i->name.size());
-		key += "HTTP_";
-
-		for (auto p = i->name.begin(), q = i->name.end(); p != q; ++p)
-			key += std::isalnum(*p) ? std::toupper(*p) : '_';
-
-		paramWriter_.encode(key, i->value);
-	}
-	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
-	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
-
-	write(FastCgi::Type::Params, id_, paramWriter_.output());
-	write(FastCgi::Type::Params, id_, "", 0); // EOS
 }
 
 void CgiTransport::abortRequest()
