@@ -81,6 +81,7 @@ private:
 	void onRequestChunk(x0::BufferRef&& chunk);
 
 	static void onAbort(void *p);
+	void onWriteComplete();
 
 	// response (HttpMessageProcessor)
 	virtual void messageBegin(int version_major, int version_minor, int code, x0::BufferRef&& text);
@@ -290,12 +291,15 @@ bool ProxyConnection::messageContent(x0::BufferRef&& chunk)
 	request_->write<x0::BufferSource>(std::move(chunk));
 
 	// start listening on backend I/O when chunk has been fully transmitted
-	request_->writeCallback([&]() {
-		TRACE("chunk write complete: %s", state_str());
-		backend_->setMode(x0::Socket::Read);
-	});
+	request_->writeCallback<ProxyConnection, &ProxyConnection::onWriteComplete>(this);
 
 	return true;
+}
+
+void ProxyConnection::onWriteComplete()
+{
+	TRACE("chunk write complete: %s", state_str());
+	backend_->setMode(x0::Socket::Read);
 }
 
 bool ProxyConnection::messageEnd()
