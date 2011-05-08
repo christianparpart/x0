@@ -60,7 +60,7 @@ private:
 	{
 		TRACE("onContent('%s')", chunk.str().c_str());
 		request_->write<x0::BufferSource>(std::move(chunk));
-		request_->writeCallback(std::bind(&EchoHandler::contentWritten, this));
+		request_->writeCallback<EchoHandler, &EchoHandler::contentWritten>(this);
 	}
 
 	// Handler, invoked when a content chunk has been fully written to the client

@@ -644,7 +644,7 @@ bool CgiTransport::messageContent(x0::BufferRef&& content)
 	if (request_->connection.isOutputPending()) {
 		backend_->setMode(x0::Socket::None);
 		ref(); // will be unref'd in completion-handler, onWriteComplete().
-		request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
+		request_->writeCallback<CgiTransport, &CgiTransport::onWriteComplete>(this);
 	}
 
 	return false;
@@ -663,7 +663,7 @@ void CgiTransport::onWriteComplete()
 
 		if (request_->connection.isOutputPending()) {
 			TRACE("onWriteComplete: output pending. enqueue callback");
-			request_->writeCallback(std::bind(&CgiTransport::onWriteComplete, this));
+			request_->writeCallback<CgiTransport, &CgiTransport::onWriteComplete>(this);
 			return;
 		}
 	}

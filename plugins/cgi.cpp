@@ -616,7 +616,7 @@ bool CgiScript::messageContent(x0::BufferRef&& value)
 		stdoutTransferActive_ = true;
 		evStdout_.stop();
 		request_->write<x0::BufferSource>(value);
-		request_->writeCallback(std::bind(&CgiScript::onStdoutWritten, this));
+		request_->writeCallback<CgiScript, &CgiScript::onStdoutWritten>(this);
 	}
 
 	return false;
@@ -633,7 +633,7 @@ void CgiScript::onStdoutWritten()
 	if (stdoutTransferBuffer_.size() > 0) {
 		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
 		request_->write<x0::BufferSource>(std::move(stdoutTransferBuffer_));
-		request_->writeCallback(std::bind(&CgiScript::onStdoutWritten, this));
+		request_->writeCallback<CgiScript, &CgiScript::onStdoutWritten>(this);
 	} else {
 		TRACE("stdout: watch");
 		evStdout_.start();
