@@ -327,7 +327,7 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 		paramWriter_.encode("CONTENT_TYPE", request_->requestHeader("Content-Type"));
 		paramWriter_.encode("CONTENT_LENGTH", request_->requestHeader("Content-Length"));
 
-		request_->read(std::bind(&CgiTransport::processRequestBody, this, std::placeholders::_1));
+		request_->setBodyCallback<CgiTransport, &CgiTransport::processRequestBody>(this);
 	}
 
 #if defined(WITH_SSL)
@@ -611,15 +611,11 @@ void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolS
 
 void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
 {
-	//TRACE("CgiTransport.processRequestBody(chunkLen=%ld, (r)contentLen=%ld)", chunk.size(),
-	//		request_->connection.contentLength());
+	TRACE("CgiTransport.processRequestBody(chunkLen=%ld, (r)contentLen=%ld)", chunk.size(),
+			request_->connection.contentLength());
 
+	// if chunk.size() is 0, this also marks the fcgi stdin stream's end. so just pass it.
 	write(FastCgi::Type::StdIn, id_, chunk.data(), chunk.size());
-
-	if (request_->connection.contentLength() > 0)
-		request_->read(std::bind(&CgiTransport::processRequestBody, this, std::placeholders::_1));
-	else
-		write(FastCgi::Type::StdIn, id_, "", 0); // mark end-of-stream
 
 	flush();
 }

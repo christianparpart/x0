@@ -42,7 +42,7 @@
  *
  */ // }}}
 
-#if 1
+#if 0
 #	define TRACE(msg...) DEBUG("proxy: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -197,7 +197,7 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 
 	if (request_->contentAvailable()) {
 		TRACE("start: request content available: reading.");
-		request_->read(std::bind(&ProxyConnection::onRequestChunk, this, std::placeholders::_1));
+		request_->setBodyCallback<ProxyConnection, &ProxyConnection::onRequestChunk>(this);
 	}
 
 	if (backend_->state() == x0::Socket::Connecting) {
@@ -232,11 +232,6 @@ void ProxyConnection::onRequestChunk(x0::BufferRef&& chunk)
 
 	if (backend_->state() == x0::Socket::Operational) {
 		backend_->setMode(x0::Socket::ReadWrite);
-	}
-
-	// read more data
-	if (request_->contentAvailable()) {
-		request_->read(std::bind(&ProxyConnection::onRequestChunk, this, std::placeholders::_1));
 	}
 }
 

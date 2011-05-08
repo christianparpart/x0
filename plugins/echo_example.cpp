@@ -16,58 +16,51 @@
 
 #define TRACE(msg...) DEBUG("echo: " msg)
 
-/**
- * \ingroup plugins
- * \brief echo content generator plugin
- */
-class echo_plugin :
-	public x0::HttpPlugin
+class EchoHandler
 {
-public:
-	echo_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
-	{
-		registerHandler<echo_plugin, &echo_plugin::handleRequest>("echo_example");
-	}
-
-	~echo_plugin()
-	{
-	}
-
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
+	x0::HttpRequest* request_;
+
+public:
+	EchoHandler(x0::HttpRequest* in) :
+		request_(in)
+	{
+	}
+
+	void run()
 	{
 		// set response status code
-		in->status = x0::HttpError::Ok;
+		request_->status = x0::HttpError::Ok;
 
 		// set response header "Content-Length",
 		// if request content were not encoded
 		// and if we've received its request header "Content-Length"
-		if (!in->requestHeader("Content-Encoding"))
-			if (x0::BufferRef value = in->requestHeader("Content-Length"))
-				in->responseHeaders.overwrite("Content-Length", value.str());
+		if (!request_->requestHeader("Content-Encoding"))
+			if (x0::BufferRef value = request_->requestHeader("Content-Length"))
+				request_->responseHeaders.overwrite("Content-Length", value.str());
 
 		// try to read content (if available) and pass it on to our onContent handler,
 		// or fall back to just write HELLO (if no request content body was sent).
 
-		if (!in->read(std::bind(&echo_plugin::onContent, this, std::placeholders::_1, in))) {
-			in->write<x0::BufferSource>("I'm an HTTP echo-server, dude.\n");
-			in->finish();
+		if (request_->contentAvailable()) {
+			request_->setBodyCallback<EchoHandler, &EchoHandler::onContent>(this);
+		} else {
+			request_->write<x0::BufferSource>("I'm an HTTP echo-server, dude.\n");
+			request_->finish();
+			delete this;
 		}
-
-		// yes, we are handling this request
-		return true;
 	}
 
+private:
 	// Handler, invoked on request content body chunks,
 	// which we want to "echo" back to the client.
 	//
 	// NOTE, this can be invoked multiple times, depending on the input.
-	void onContent(x0::BufferRef&& chunk, x0::HttpRequest *in)
+	void onContent(x0::BufferRef&& chunk)
 	{
 		TRACE("onContent('%s')", chunk.str().c_str());
-		in->write<x0::BufferSource>(std::move(chunk));
-		in->writeCallback(std::bind(&echo_plugin::contentWritten, this, in));
+		request_->write<x0::BufferSource>(std::move(chunk));
+		request_->writeCallback(std::bind(&EchoHandler::contentWritten, this));
 	}
 
 	// Handler, invoked when a content chunk has been fully written to the client
@@ -75,17 +68,46 @@ private:
 	//
 	// We will try to read another input chunk to echo back to the client,
 	// or just finish the response if failed.
-	void contentWritten(x0::HttpRequest *in)
+	void contentWritten()
 	{
 		// TODO (write-)error handling; pass errno to this fn, too.
 
-		// try to read another input chunk.
-		if (!in->read(std::bind(&echo_plugin::onContent, this, std::placeholders::_1, in)))
-		{
+		// is there more data available?
+		if (!request_->contentAvailable()) {
 			// could not read another input chunk, so finish processing this request.
-			return in->finish();
+			request_->finish();
+			delete this;
 		}
 	}
 };
 
-X0_EXPORT_PLUGIN(echo)
+/**
+ * \ingroup plugins
+ * \brief echo content generator plugin
+ */
+class EchoPlugin :
+	public x0::HttpPlugin
+{
+public:
+	EchoPlugin(x0::HttpServer& srv, const std::string& name) :
+		x0::HttpPlugin(srv, name)
+	{
+		registerHandler<EchoPlugin, &EchoPlugin::handleRequest>("echo_example");
+	}
+
+	~EchoPlugin()
+	{
+	}
+
+private:
+	virtual bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
+	{
+		// create a handler serving this very request.
+		(new EchoHandler(in))->run();
+
+		// yes, we are handling this request
+		return true;
+	}
+};
+
+X0_EXPORT_PLUGIN_CLASS(EchoPlugin)

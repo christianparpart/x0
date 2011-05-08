@@ -51,7 +51,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	outputFilters(),
 
 	hostid_(),
-	readCallback_(),
+	bodyCallback_(nullptr),
+	bodyCallbackData_(nullptr),
 	errorHandler_(nullptr)
 {
 #ifndef NDEBUG
@@ -132,41 +133,29 @@ bool HttpRequest::contentAvailable() const
 	//return connection.state() != HttpMessageProcessor::MESSAGE_BEGIN;
 }
 
-/** setup request-body consumer callback.
+/*! setup request-body consumer callback.
  *
  * \param callback the callback to invoke on request-body chunks.
- *
- * \retval true callback set
- * \retval false callback not set (because there is no content available)
+ * \param data a custom data pointer being also passed to the callback.
  */
-bool HttpRequest::read(const std::function<void(BufferRef&&)>& callback)
+void HttpRequest::setBodyCallback(void (*callback)(BufferRef&&, void*), void* data)
 {
-	TRACE("read(callback) ... (contentAvailable:%ld, contentLength:%ld)", contentAvailable(), connection.contentLength());
-	if (!contentAvailable())
-		return false;
+	bodyCallback_ = callback;
+	bodyCallbackData_ = data;
 
-	if (expectingContinue)
-	{
-		TRACE("send 100-continue");
-
+	if (expectingContinue) {
 		connection.write<BufferSource>("HTTP/1.1 100 Continue\r\n\r\n");
 		expectingContinue = false;
 	}
-
-	readCallback_ = callback;
-
-	return true;
 }
 
 void HttpRequest::onRequestContent(BufferRef&& chunk)
 {
-	if (readCallback_) {
+	if (bodyCallback_) {
 		TRACE("onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
-		auto callback = readCallback_;
-		readCallback_ = std::function<void(BufferRef&&)>();
-		callback(std::move(chunk));
+		bodyCallback_(std::move(chunk), bodyCallbackData_);
 	} else {
-		TRACE("onRequestContent(chunkSize=%ld) consumed", chunk.size());
+		TRACE("onRequestContent(chunkSize=%ld) discard", chunk.size());
 	}
 }
 

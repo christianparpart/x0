@@ -330,7 +330,7 @@ inline void CgiScript::runAsync()
 		environment["CONTENT_TYPE"] = request_->requestHeader("Content-Type").str();
 		environment["CONTENT_LENGTH"] = request_->requestHeader("Content-Length").str();
 
-		request_->read(std::bind(&CgiScript::onStdinAvailable, this, std::placeholders::_1));
+		request_->setBodyCallback<CgiScript, &CgiScript::onStdinAvailable>(this);
 	}
 	else
 		process_.closeInput();
@@ -407,10 +407,6 @@ void CgiScript::onStdinAvailable(x0::BufferRef&& chunk)
 	// append chunk to transfer buffer
 	stdinTransferBuffer_.push_back(chunk);
 
-	// poll for more chunks if available
-	if (request_->connection.contentLength() > 0)
-		request_->read(std::bind(&CgiScript::onStdinAvailable, this, std::placeholders::_1));
-
 	// watch for stdin readiness to start/resume transfer
 	if (stdinTransferMode_ != StdinActive)
 	{
@@ -457,7 +453,6 @@ void CgiScript::onStdinReady(ev::io& /*w*/, int revents)
 				if (request_->contentAvailable()) {
 					TRACE("-- buffer fully flushed. waiting for more from client");
 					stdinTransferMode_ = StdinWaiting;
-					request_->read(std::bind(&CgiScript::onStdinAvailable, this, std::placeholders::_1));
 				} else {
 					TRACE("-- buffer fully flushed. closing stdin.");
 					stdinTransferMode_ = StdinFinished;

@@ -303,7 +303,9 @@ public:
 
 	// content management
 	bool contentAvailable() const;
-	bool read(const std::function<void(BufferRef&&)>& callback);
+	template<typename K, void (K::*cb)(BufferRef&&)> void setBodyCallback(K* object);
+	void setBodyCallback(void (*callback)(BufferRef&&, void*), void* data = nullptr);
+	void clearBodyCallback();
 
 	template<typename... Args>
 	void log(Severity s, Args&&... args);
@@ -330,10 +332,16 @@ public:
 
 private:
 	mutable std::string hostid_;
-	std::function<void(BufferRef&&)> readCallback_;
+
+	void (*bodyCallback_)(BufferRef&&, void*);
+	void* bodyCallbackData_;
+
 	FlowValue::Function errorHandler_;
 
 	void onRequestContent(BufferRef&& chunk);
+
+	template<class K, void (K::*cb)(BufferRef&&)>
+	static void body_cb_thunk(BufferRef&& chunk, void* data);
 
 	// response write helper
 	Source* serialize();
@@ -357,6 +365,24 @@ inline bool HttpRequest::supportsProtocol(int major, int minor) const
 		return true;
 
 	return false;
+}
+
+template<typename K, void (K::*cb)(BufferRef&&)>
+inline void HttpRequest::setBodyCallback(K* object)
+{
+	setBodyCallback(&body_cb_thunk<K, cb>, object);
+}
+
+inline void HttpRequest::clearBodyCallback()
+{
+	bodyCallback_ = nullptr;
+	bodyCallbackData_ = nullptr;
+}
+
+template<class K, void (K::*cb)(BufferRef&&)>
+void HttpRequest::body_cb_thunk(BufferRef&& chunk, void* data)
+{
+	(static_cast<K*>(data)->*cb)(std::move(chunk));
 }
 
 template<typename... Args>
