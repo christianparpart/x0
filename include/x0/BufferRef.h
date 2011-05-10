@@ -620,12 +620,11 @@ inline double BufferRef::as<double>() const
 template<>
 inline float BufferRef::as<float>() const
 {
-	char* endptr = nullptr;
-	float result = strtof(data(), &endptr);
-	if (endptr <= end())
-		return result;
+	char* tmp = (char*) alloca(size() + 1);
+	std::memcpy(tmp, data(), size());
+	tmp[size()] = '\0';
 
-	return 0.0f;
+	return strtof(tmp, nullptr);
 }
 
 template<typename T>
