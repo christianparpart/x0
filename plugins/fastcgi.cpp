@@ -332,7 +332,7 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 
 #if defined(WITH_SSL)
 	if (request_->connection.isSecure())
-		paramWriter_.encode("HTTPS", "1");
+		paramWriter_.encode("HTTPS", "on");
 #endif
 
 	// HTTP request headers
