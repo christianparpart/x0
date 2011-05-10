@@ -29,8 +29,8 @@ public:
 		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setAncient>("browser.ancient");
 		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setModern>("browser.modern");
 
-		registerProperty<BrowserPlugin, &BrowserPlugin::isAncient>("browser.is_ancient", x0::FlowValue::BOOLEAN);
-		registerProperty<BrowserPlugin, &BrowserPlugin::isModern>("browser.is_modern", x0::FlowValue::BOOLEAN);
+		registerFunction<BrowserPlugin, &BrowserPlugin::isAncient>("browser.is_ancient", x0::FlowValue::BOOLEAN);
+		registerFunction<BrowserPlugin, &BrowserPlugin::isModern>("browser.is_modern", x0::FlowValue::BOOLEAN);
 	}
 
 	~BrowserPlugin()
