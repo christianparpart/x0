@@ -12,7 +12,6 @@
 #include <x0/io/BufferSource.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/ChunkedEncoder.h>
-#include <boost/algorithm/string.hpp>
 #include <x0/strutils.h>
 #include <strings.h>			// strcasecmp()
 
@@ -23,8 +22,6 @@
 #endif
 
 namespace x0 {
-
-using boost::algorithm::iequals;
 
 char HttpRequest::statusCodes_[512][4];
 
@@ -302,7 +299,10 @@ void HttpRequest::writeDefaultResponseContent()
 	);
 
 	responseHeaders.overwrite("Content-Type", "text/html");
-	responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(nwritten));
+
+	char slen[64];
+	snprintf(slen, sizeof(slen), "%d", nwritten);
+	responseHeaders.overwrite("Content-Length", slen);
 
 	write<BufferSource>(Buffer::fromCopy(buf, nwritten));
 }
