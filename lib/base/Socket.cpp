@@ -124,13 +124,29 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 
 	TRACE("connect(unix=%s)", unixPath.c_str());
 
-	fd_ = ::socket(PF_UNIX, SOCK_STREAM, 0);
+	flags |= O_NONBLOCK | O_CLOEXEC;
+
+	int typeMask = 0;
+
+#if defined(SOCK_NONBLOCK)
+	if (flags & O_NONBLOCK) {
+		flags &= ~O_NONBLOCK;
+		typeMask |= SOCK_NONBLOCK;
+	}
+#endif
+
+#if defined(SOCK_CLOEXEC)
+	if (flags & O_CLOEXEC) {
+		flags &= ~O_CLOEXEC;
+		typeMask |= SOCK_CLOEXEC;
+	}
+#endif
+
+	fd_ = ::socket(PF_UNIX, SOCK_STREAM | typeMask, 0);
 	if (fd_ < 0) {
 		TRACE("socket creation error: %s",  strerror(errno));
 		return false;
 	}
-
-	flags |= O_NONBLOCK | O_CLOEXEC;
 
 	if (flags) {
 		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
