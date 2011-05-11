@@ -1141,7 +1141,7 @@ bool HttpCore::redirectOnIncompletePath(HttpRequest *in)
 	if (hostname.empty())
 		hostname = in->requestHeader("Host");
 
-	url << (in->connection.secure ? "https://" : "http://");
+	url << (in->connection.isSecure() ? "https://" : "http://");
 	url << hostname.str();
 	url << in->path.str();
 	url << '/';
