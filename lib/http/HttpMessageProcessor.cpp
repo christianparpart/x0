@@ -10,7 +10,7 @@
 
 namespace x0 {
 
-#if 1
+#if 0
 #	define TRACE(msg...) DEBUG("HttpMessageProcessor: " msg)
 #else
 #	define TRACE(msg...)
@@ -917,16 +917,16 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk)
 			{
 				std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - nparsed);
 
+				bool rv = filters_.empty()
+					? onMessageContent(chunk.ref(nparsed, chunkSize))
+					: onMessageContent(filters_.process(chunk.ref(nparsed, chunkSize)));
+
 				contentLength_ -= chunkSize;
 				nparsed += chunkSize;
 				i += chunkSize;
 
 				if (contentLength_ == 0)
 					state_ = MESSAGE_BEGIN;
-
-				bool rv = filters_.empty()
-					? onMessageContent(chunk.ref(nparsed, chunkSize))
-					: onMessageContent(filters_.process(chunk.ref(nparsed, chunkSize)));
 
 				if (!rv)
 					return nparsed;

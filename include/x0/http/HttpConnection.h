@@ -138,10 +138,12 @@ private:
 	unsigned requestCount_;				//!< the number of requests already processed or currently in process
 
 	// we could make these things below flags
-	enum State { Alive, Aborted, Closed } state_;
-	bool isProcessing_;					//!< currently in processInput()
-	bool isHandlingRequest_;			//!< is this connection (& request) currently passed to a request handler?
-	bool resuming_;
+	unsigned flags_;
+	static const unsigned IsProcessing       = 0x0001; //!< currently in processInput()
+	static const unsigned IsHandlingRequest  = 0x0002; //!< is this connection (& request) currently passed to a request handler?
+	static const unsigned IsResuming         = 0x0004; //!< resume() was invoked and we've something in the pipeline (flag needed?)
+	static const unsigned IsKeepAliveEnabled = 0x0008; //!< connection should keep-alive to accept further requests
+	static const unsigned IsAborted          = 0x0010; //!< abort() was invoked, merely meaning, that the client aborted the connection early
 
 	// HTTP HttpRequest
 	Buffer input_;						//!< buffer for incoming data.
@@ -196,12 +198,12 @@ inline const HttpListener& HttpConnection::listener() const
  */
 inline bool HttpConnection::isAborted() const
 {
-	return state_ != Alive; // Aborted or Closed
+	return (flags_ & IsAborted) || isClosed();
 }
 
 inline bool HttpConnection::isClosed() const
 {
-	return state_ == Closed;
+	return socket_->isClosed();
 }
 
 /*! Tests whether or not this connection has pending data to sent to the client.

@@ -179,7 +179,7 @@ void HttpRequest::onRequestContent(const BufferRef& chunk)
 Source* HttpRequest::serialize()
 {
 	Buffer buffers;
-	bool keepalive = false;
+	bool keepalive = connection.flags_ & HttpConnection::IsKeepAliveEnabled;
 
 	if (expectingContinue)
 		status = HttpError::ExpectationFailed;
@@ -226,8 +226,12 @@ Source* HttpRequest::serialize()
 
 	//keepalive = false; // FIXME workaround
 
-	if (!keepalive)
+	if (keepalive) {
+		connection.flags_ |= HttpConnection::IsKeepAliveEnabled;
+	} else {
 		responseHeaders.overwrite("Connection", "close");
+		connection.flags_ &= ~HttpConnection::IsKeepAliveEnabled;
+	}
 
 	if (!connection.worker().server().tcpCork())
 		connection.socket()->setTcpCork(true);

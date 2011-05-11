@@ -62,10 +62,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	handle_(),
 	id_(id),
 	requestCount_(0),
-	state_(Alive),
-	isProcessing_(false),
-	isHandlingRequest_(false),
-	resuming_(false),
+	flags_(0),
 	input_(8192),
 	inputOffset_(0),
 	request_(nullptr),
@@ -113,7 +110,7 @@ void HttpConnection::unref()
 
 void HttpConnection::io(Socket *, int revents)
 {
-	TRACE("io(revents=%04x) isHandlingRequest:%d", revents, isHandlingRequest_);
+	TRACE("io(revents=%04x) isHandlingRequest:%d", revents, flags_ & IsHandlingRequest);
 	ref();
 
 	if (revents & Socket::Read)
@@ -158,7 +155,10 @@ void HttpConnection::start(HttpListener* listener, int fd, const HttpConnectionL
 
 	handle_ = handle;
 	listener_ = listener;
+
 	socket_ = listener_->socketDriver()->create(loop(), fd, listener_->addressFamily());
+	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
+
 	sink_.setSocket(socket_);
 
 #if defined(TCP_NODELAY)
@@ -279,6 +279,15 @@ void HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 
 	request_->httpVersionMajor = versionMajor;
 	request_->httpVersionMinor = versionMinor;
+
+	// reset resume()-flag
+	flags_ &= ~IsResuming;
+
+	// HTTP/1.1 is keeping alive by default. pass "Connection: close" to close explicitely
+	if (request_->supportsProtocol(1, 1))
+		flags_ |= IsKeepAliveEnabled;
+	else
+		flags_ &= ~IsKeepAliveEnabled;
 }
 
 void HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& value)
@@ -291,7 +300,7 @@ void HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 			request_->hostname = value;
 	}
 
-	request_->requestHeaders.push_back(HttpRequestHeader(std::move(name), std::move(value)));
+	request_->requestHeaders.push_back(HttpRequestHeader(name, value));
 }
 
 bool HttpConnection::onMessageHeaderEnd()
@@ -326,8 +335,10 @@ bool HttpConnection::onMessageHeaderEnd()
 #endif
 
 	++requestCount_;
-	isHandlingRequest_ = true;
-	resuming_ = false;
+	++worker_->requestCount_;
+
+	flags_ |= IsHandlingRequest;
+
 	worker_->handleRequest(request_);
 
 	return true;
@@ -347,20 +358,17 @@ bool HttpConnection::onMessageEnd()
 {
 	TRACE("messageEnd() request:%p", request_);
 
-	// increment the number of fully processed requests (FIXME: put this into the headerEnd-callback, too? - would change meaning a little)
-	++worker_->requestCount_;
-
-	// XXX is this really required? (meant to mark the request-content EOS)
+	// marks the request-content EOS, so that the application knows when the request body
+	// has been fully passed to it.
 	if (request_)
 		request_->onRequestContent(BufferRef());
 
-	// if we are currently procesing a request, then stop parsing at the end of 
-	// this current request.
-	// the next request (if) is being processed via resume()
-	if (isHandlingRequest_)
+	// If we are currently procesing a request, then stop parsing at the end of this request.
+	// The next request, if available, is being processed via resume()
+	if (flags_ & IsHandlingRequest)
 		return false;
 
-	return true; // TODO: think about: return keepAlive_
+	return true; //flags_ & IsKeepAliveEnabled;
 }
 
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
@@ -377,26 +385,17 @@ void HttpConnection::resume()
 
 	delete request_;
 	request_ = nullptr;
-	isHandlingRequest_ = false;
 
-#if 0
-	if (inputOffset_ == input_.size() && state() == HttpMessageProcessor::MESSAGE_BEGIN) {
-		TRACE("resume: clear buffer (%ld)", inputOffset_);
-		input_.clear();
-		inputOffset_ = 0;
-	}
-#endif
+	flags_ &= ~IsHandlingRequest;
 
 	if (socket()->tcpCork())
 		socket()->setTcpCork(false);
 
 	if (inputOffset_ < input_.size()) {
-		TRACE("resume: process batched request (ofs:%ld, bs:%ld) state:%s",
-				inputOffset_, input_.size(), state_str());
-		resuming_ = true;
-		process();
-		TRACE("resume: process batched request done (%ld, %ld)", inputOffset_, input_.size());
-	} else { // nothing in buffer, wait for new request message
+		TRACE("resume: porbably pipelined requests (size:%ld) state:%s", input_.size() - inputOffset_, state_str());
+		flags_ |= IsResuming;
+	} else {
+		// nothing (pipelined) in buffer, wait for new request message
 		TRACE("resume: watch input");
 		watchInput(worker_->server_.maxKeepAlive());
 	}
@@ -407,7 +406,6 @@ void HttpConnection::watchInput(const TimeSpan& timeout)
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
-	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
 	socket_->setMode(Socket::Read);
 }
 
@@ -418,7 +416,6 @@ void HttpConnection::watchOutput()
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
-	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
 	socket_->setMode(Socket::ReadWrite);
 }
 
@@ -451,17 +448,17 @@ void HttpConnection::processInput()
 		TRACE("processInput(): (EOF)");
 		abort();
 	} else {
-		TRACE("processInput(): (bytes read: %ld, isHandlingRequest:%d, state:%s", rv, isHandlingRequest_, state_str());
+		TRACE("processInput(): (bytes read: %ld, isHandlingRequest:%d, state:%s", rv, flags_ & IsHandlingRequest, state_str());
 		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
 
-		if (!isHandlingRequest_ || state() != MESSAGE_BEGIN)
+		if (!(flags_ & IsHandlingRequest) || state() != MESSAGE_BEGIN)
 			process();
 
 		TRACE("processInput(): done process()ing; fd=%d, request=%p state:%s", socket_->handle(), request_, state_str());
 
-		if (resuming_) {
-			TRACE("pipelined resume (due to garbage content processing");
-			resuming_ = false;
+		if (flags_ & IsResuming) {
+			TRACE("pipelined resume (due to garbage content processing)");
+			flags_ &= ~IsResuming;
 			watchInput(worker_->server_.maxKeepAlive());
 		}
 	}
@@ -504,13 +501,13 @@ void HttpConnection::processOutput()
 		// so we need to first test for its existence before we access it.
 
 		if (rv > 0) {
-			// source chunk written
+			// output chunk written
 			if (request_) {
 				request_->bytesTransmitted_ += rv;
 			}
 		} else if (rv == 0) {
-			// source fully written
-			socket_->setMode(Socket::Read);
+			// output fully written
+			watchInput();
 			if (request_) {
 				request_->checkFinish();
 			}
@@ -552,7 +549,7 @@ void HttpConnection::abort()
 
 	//assert(!isAborted() && "The connection may be only aborted once.");
 
-	state_ = Aborted;
+	flags_ |= IsAborted;
 
 	if (abortHandler_) {
 		assert(request_ != nullptr);
@@ -574,9 +571,12 @@ void HttpConnection::close()
 	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	// destruct socket to mark connection as "closed"
-	if (state_ != Closed) {
-		state_ = Closed;
-		unref(); // unrefs the ref acquired at this->start()
+	if (!isClosed()) {
+		// stop watching on I/O-events of the underlying socket
+		socket_->setMode(Socket::None);
+
+		// unrefs the ref acquired at this->start()
+		unref();
 	}
 }
 
@@ -584,17 +584,20 @@ void HttpConnection::close()
  */
 void HttpConnection::process()
 {
-	if (isProcessing_) {
+	if (flags_ & IsProcessing) {
 		TRACE("BUG: process: already inside parser. returning.");
+		assert(!(flags_ & IsProcessing));
 		return;
 	}
 
 	TRACE("process: offset=%ld, size=%ld (before processing)", inputOffset_, input_.size());
 
-	isProcessing_ = true;
+	flags_ |= IsProcessing;
+
 	BufferRef chunk(input_.ref(inputOffset_));
 	size_t nparsed = HttpMessageProcessor::process(chunk);
-	isProcessing_ = false;
+
+	flags_ &= ~IsProcessing;
 
 	inputOffset_ += nparsed;
 
@@ -617,7 +620,7 @@ void HttpConnection::process()
 		return;
 	}
 
-//	if (!isHandlingRequest_) {
+//	if (!(flags_ & IsHandlingRequest)) {
 //		watchInput(worker_->server_.maxReadIdle());
 //	}
 }
