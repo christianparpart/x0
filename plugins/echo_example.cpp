@@ -56,7 +56,7 @@ private:
 	// which we want to "echo" back to the client.
 	//
 	// NOTE, this can be invoked multiple times, depending on the input.
-	void onContent(x0::BufferRef&& chunk)
+	void onContent(const x0::BufferRef& chunk)
 	{
 		TRACE("onContent('%s')", chunk.str().c_str());
 		request_->write<x0::BufferSource>(std::move(chunk));

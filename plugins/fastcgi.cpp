@@ -147,8 +147,8 @@ public:
 	void abortRequest();
 
 	// application-to-server
-	void onStdOut(x0::BufferRef&& chunk);
-	void onStdErr(x0::BufferRef&& chunk);
+	void onStdOut(const x0::BufferRef& chunk);
+	void onStdErr(const x0::BufferRef& chunk);
 	void onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus);
 
 	CgiContext& context() const { return *context_; }
@@ -161,7 +161,7 @@ public:
 	void flush();
 
 private:
-	void processRequestBody(x0::BufferRef&& chunk);
+	void processRequestBody(const x0::BufferRef& chunk);
 
 	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
 	virtual bool messageContent(x0::BufferRef&& content);
@@ -586,14 +586,13 @@ void CgiTransport::abortRequest()
 	}
 }
 
-void CgiTransport::onStdOut(x0::BufferRef&& chunk)
+void CgiTransport::onStdOut(const x0::BufferRef& chunk)
 {
 	TRACE("CgiTransport.onStdOut(id:%d, chunk.size:%ld)", id_, chunk.size());
-	size_t np = 0;
-	process(std::move(chunk), np);
+	process(chunk);
 }
 
-void CgiTransport::onStdErr(x0::BufferRef&& chunk)
+void CgiTransport::onStdErr(const x0::BufferRef& chunk)
 {
 	TRACE("CgiTransport.stderr(id:%d): %s", id_, chomp(chunk.str()).c_str());
 
@@ -609,7 +608,7 @@ void CgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolS
 	close();
 }
 
-void CgiTransport::processRequestBody(x0::BufferRef&& chunk)
+void CgiTransport::processRequestBody(const x0::BufferRef& chunk)
 {
 	TRACE("CgiTransport.processRequestBody(chunkLen=%ld, (r)contentLen=%ld)", chunk.size(),
 			request_->connection.contentLength());

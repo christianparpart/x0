@@ -135,7 +135,7 @@ bool HttpRequest::contentAvailable() const
  * \param callback the callback to invoke on request-body chunks.
  * \param data a custom data pointer being also passed to the callback.
  */
-void HttpRequest::setBodyCallback(void (*callback)(BufferRef&&, void*), void* data)
+void HttpRequest::setBodyCallback(void (*callback)(const BufferRef&, void*), void* data)
 {
 	bodyCallback_ = callback;
 	bodyCallbackData_ = data;
@@ -146,11 +146,11 @@ void HttpRequest::setBodyCallback(void (*callback)(BufferRef&&, void*), void* da
 	}
 }
 
-void HttpRequest::onRequestContent(BufferRef&& chunk)
+void HttpRequest::onRequestContent(const BufferRef& chunk)
 {
 	if (bodyCallback_) {
 		TRACE("onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
-		bodyCallback_(std::move(chunk), bodyCallbackData_);
+		bodyCallback_(chunk, bodyCallbackData_);
 	} else {
 		TRACE("onRequestContent(chunkSize=%ld) discard", chunk.size());
 	}

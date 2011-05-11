@@ -102,7 +102,7 @@ private:
 
 	// CGI program's I/O callback handlers
 	void onStdinReady(ev::io& w, int revents);
-	void onStdinAvailable(x0::BufferRef&& chunk);
+	void onStdinAvailable(const x0::BufferRef& chunk);
 	void onStdoutAvailable(ev::io& w, int revents);
 	void onStderrAvailable(ev::io& w, int revents);
 
@@ -400,7 +400,7 @@ inline void CgiScript::runAsync()
 /** writes request body chunk into stdin.
  * ready to read from request body (already available as \p chunk).
  */
-void CgiScript::onStdinAvailable(x0::BufferRef&& chunk)
+void CgiScript::onStdinAvailable(const x0::BufferRef& chunk)
 {
 	TRACE("CgiScript.onStdinAvailable(chunksize=%ld)", chunk.size());
 
@@ -504,8 +504,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 		outbuf_.resize(lower_bound + rv);
 		//printf("%s\n", outbuf_.ref(outbuf_.size() - rv, rv).str().c_str());
 
-		std::size_t np = 0;
-		std::error_code ec = process(outbuf_.ref(lower_bound, rv), np);
+		std::size_t np = process(outbuf_.ref(lower_bound, rv));
 
 		TRACE("onStdoutAvailable@process: %s; %ld", ec.message().c_str(), np);
 

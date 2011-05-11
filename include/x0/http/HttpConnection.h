@@ -95,11 +95,11 @@ private:
 	friend class HttpWorker;
 
 	// overrides from HttpMessageProcessor:
-	virtual void messageBegin(BufferRef&& method, BufferRef&& entity, int version_major, int version_minor);
-	virtual void messageHeader(BufferRef&& name, BufferRef&& value);
-	virtual bool messageHeaderEnd();
-	virtual bool messageContent(BufferRef&& chunk);
-	virtual bool messageEnd();
+	virtual void onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
+	virtual void onMessageHeader(const BufferRef& name, const BufferRef& value);
+	virtual bool onMessageHeaderEnd();
+	virtual bool onMessageContent(const BufferRef& chunk);
+	virtual bool onMessageEnd();
 
 	void start(HttpListener* listener, int fd, const HttpConnectionList::iterator& handle);
 	void resume();
@@ -126,31 +126,38 @@ private:
 
 	void log(Severity s, const char *fmt, ...);
 
-	Buffer& inputBuffer() { return buffer_; }
-	const Buffer& inputBuffer() const { return buffer_; }
+	Buffer& inputBuffer() { return input_; }
+	const Buffer& inputBuffer() const { return input_; }
 
 private:
 	unsigned refCount_;
+
+	unsigned processingDepth_;
+	bool resuming_;
+
 	HttpListener* listener_;
 	HttpWorker* worker_;
 	HttpConnectionList::iterator handle_;
 
-	Socket* socket_;					//!< underlying communication socket
 	unsigned long long id_;				//!< the worker-local connection-ID
 	unsigned requestCount_;				//!< the number of requests already processed or currently in process
+
 	enum State { Alive, Aborted, Closed } state_;
 	bool isHandlingRequest_;			//!< is this connection (& request) currently passed to a request handler?
 
 	// HTTP HttpRequest
-	Buffer buffer_;						//!< buffer for incoming data.
-	std::size_t offset_;				//!< number of bytes in buffer_ successfully processed already.
+	Buffer input_;						//!< buffer for incoming data.
+	std::size_t inputOffset_;			//!< number of bytes in input_ successfully processed already.
 	HttpRequest* request_;				//!< currently parsed http HttpRequest, may be NULL
 
+	// output
+	CompositeSource output_;			//!< pending write-chunks
+	Socket* socket_;					//!< underlying communication socket
+	SocketSink sink_;					//!< sink wrapper for socket_
+
+	// connection abort callback
 	void (*abortHandler_)(void*);
 	void* abortData_;
-
-	CompositeSource source_;
-	SocketSink sink_;
 };
 
 // {{{ inlines
@@ -203,7 +210,7 @@ inline bool HttpConnection::isClosed() const
  */
 inline bool HttpConnection::isOutputPending() const
 {
-	return !source_.empty();
+	return !output_.empty();
 }
 // }}}
 

@@ -42,7 +42,12 @@ namespace x0 {
  * the requests passed through this connection.
  */
 
+/* TODO
+ * - should request bodies land in input_? someone with a good line could flood us w/ streaming request bodies.
+ */
+
 /** initializes a new connection object, created by given listener.
+ *
  * \param lst the listener object that created this connection.
  * \note This triggers the onConnectionOpen event.
  */
@@ -53,21 +58,23 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	secure(false),
 	refCount_(0),
+	processingDepth_(0),
+	resuming_(false),
 	listener_(nullptr),
 	worker_(w),
 	handle_(),
-	socket_(nullptr),
 	id_(id),
 	requestCount_(0),
 	state_(Alive),
 	isHandlingRequest_(false),
-	buffer_(8192),
-	offset_(0),
+	input_(8192),
+	inputOffset_(0),
 	request_(nullptr),
+	output_(),
+	socket_(nullptr),
+	sink_(nullptr),
 	abortHandler_(nullptr),
-	abortData_(nullptr),
-	source_(),
-	sink_(nullptr)
+	abortData_(nullptr)
 {
 }
 
@@ -250,7 +257,7 @@ inline bool url_decode(Buffer& value, BufferRef& url)
 	return true;
 }
 
-void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versionMajor, int versionMinor)
+void HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& uri, int versionMajor, int versionMinor)
 {
 	TRACE("messageBegin: '%s', '%s', %d/%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 
@@ -261,7 +268,7 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 	request_->method = std::move(method);
 
 	request_->uri = std::move(uri);
-	url_decode(buffer_, request_->uri);
+	url_decode(input_, request_->uri);
 
 	std::size_t n = request_->uri.find("?");
 	if (n != std::string::npos) {
@@ -275,10 +282,9 @@ void HttpConnection::messageBegin(BufferRef&& method, BufferRef&& uri, int versi
 	request_->httpVersionMinor = versionMinor;
 }
 
-void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
+void HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& value)
 {
-	if (iequals(name, "Host"))
-	{
+	if (iequals(name, "Host")) {
 		auto i = value.find(':');
 		if (i != BufferRef::npos)
 			request_->hostname = value.ref(0, i);
@@ -289,7 +295,7 @@ void HttpConnection::messageHeader(BufferRef&& name, BufferRef&& value)
 	request_->requestHeaders.push_back(HttpRequestHeader(std::move(name), std::move(value)));
 }
 
-bool HttpConnection::messageHeaderEnd()
+bool HttpConnection::onMessageHeaderEnd()
 {
 	TRACE("messageHeaderEnd()");
 
@@ -322,24 +328,25 @@ bool HttpConnection::messageHeaderEnd()
 
 	++requestCount_;
 	isHandlingRequest_ = true;
+	resuming_ = false;
 	worker_->handleRequest(request_);
 
 	return true;
 }
 
-bool HttpConnection::messageContent(BufferRef&& chunk)
+bool HttpConnection::onMessageContent(const BufferRef& chunk)
 {
 	TRACE("messageContent(#%ld)", chunk.size());
 
 	if (request_)
-		request_->onRequestContent(std::move(chunk));
+		request_->onRequestContent(chunk);
 
 	return true;
 }
 
-bool HttpConnection::messageEnd()
+bool HttpConnection::onMessageEnd()
 {
-	TRACE("messageEnd()");
+	TRACE("messageEnd() request:%p", request_);
 
 	// increment the number of fully processed requests (FIXME: put this into the headerEnd-callback, too? - would change meaning a little)
 	++worker_->requestCount_;
@@ -350,7 +357,7 @@ bool HttpConnection::messageEnd()
 
 	// do not allow further request processing here as this
 	// is decided at HttpRequest::finish()
-	return false;
+	return true; // TODO: return keepAlive_
 }
 
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
@@ -369,12 +376,23 @@ void HttpConnection::resume()
 	request_ = nullptr;
 	isHandlingRequest_ = false;
 
+#if 0
+	if (inputOffset_ == input_.size() && state() == HttpMessageProcessor::MESSAGE_BEGIN) {
+		TRACE("resume: clear buffer (%ld)", inputOffset_);
+		input_.clear();
+		inputOffset_ = 0;
+	}
+#endif
+
 	if (socket()->tcpCork())
 		socket()->setTcpCork(false);
 
-	if (offset_ < buffer_.size()) {
-		TRACE("resume: process batched request");
+	if (inputOffset_ < input_.size()) {
+		TRACE("resume: process batched request (ofs:%ld, bs:%ld) state:%s",
+				inputOffset_, input_.size(), state_str());
+		resuming_ = true;
 		process();
+		TRACE("resume: process batched request done (%ld, %ld)", inputOffset_, input_.size());
 	} else { // nothing in buffer, wait for new request message
 		TRACE("resume: watch input");
 		watchInput(worker_->server_.maxKeepAlive());
@@ -410,7 +428,7 @@ void HttpConnection::processInput()
 {
 	TRACE("processInput()");
 
-	ssize_t rv = socket_->read(buffer_);
+	ssize_t rv = socket_->read(input_);
 
 	if (rv < 0) { // error
 		switch (errno) {
@@ -431,12 +449,18 @@ void HttpConnection::processInput()
 		abort();
 	} else {
 		TRACE("processInput(): (bytes read: %ld, isHandlingRequest:%d, state:%s", rv, isHandlingRequest_, state_str());
-		//TRACE("%s", buffer_.ref(buffer_.size() - rv).str().c_str());
+		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
 
 		if (!isHandlingRequest_ || state() != MESSAGE_BEGIN)
 			process();
 
-		TRACE("processInput(): done process()ing; fd=%d, request=%p", socket_->handle(), request_);
+		TRACE("processInput(): done process()ing; fd=%d, request=%p state:%s", socket_->handle(), request_, state_str());
+
+		if (resuming_) {
+			TRACE("pipelined resume (due to garbage content processing");
+			resuming_ = false;
+			watchInput(worker_->server_.maxKeepAlive());
+		}
 	}
 }
 
@@ -449,7 +473,7 @@ void HttpConnection::write(Source* chunk)
 {
 	if (!isAborted()) {
 		TRACE("write() chunk (%s)", chunk->className());
-		source_.push_back(chunk);
+		output_.push_back(chunk);
 
 		processOutput();
 	} else {
@@ -468,7 +492,7 @@ void HttpConnection::processOutput()
 	ref();
 
 	for (int done = -1; done < 0; ) {
-		ssize_t rv = source_.sendto(sink_);
+		ssize_t rv = output_.sendto(sink_);
 
 		TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
 
@@ -557,19 +581,30 @@ void HttpConnection::close()
  */
 void HttpConnection::process()
 {
-	TRACE("process: offset=%ld, size=%ld (before processing)", offset_, buffer_.size());
-
-	HttpMessageError ec = HttpMessageProcessor::process(
-			buffer_.ref(offset_, buffer_.size() - offset_),
-			offset_);
-
-	TRACE("process: offset=%ld, bs=%ld, ec=%s, state=%s (after processing)",
-			offset_, buffer_.size(), std::error_code(ec).message().c_str(), state_str());
-
-	if (isAborted())
+	if (processingDepth_) {
+		TRACE("process: already inside parser. returning.");
 		return;
+	}
 
-	if (state() == SYNTAX_ERROR) {
+	TRACE("process: offset=%ld, size=%ld (before processing)", inputOffset_, input_.size());
+
+	++processingDepth_;
+	BufferRef chunk(input_.ref(inputOffset_));
+	auto nparsed = HttpMessageProcessor::process(chunk);
+	--processingDepth_;
+
+	inputOffset_ += nparsed;
+
+	TRACE("process: offset=%ld, bs=%ld, state=%s (after processing) io.timer:%d",
+			inputOffset_, input_.size(), state_str(), socket_->timerActive());
+
+	if (isAborted()) {
+		return;
+	}
+
+	if (nparsed != chunk.size()) {
+		assert(state() == SYNTAX_ERROR);
+
 		if (!request_)
 			// in case the syntax error occured already in the request line, no request object has been instanciated yet.
 			request_ = new HttpRequest(*this);
@@ -579,17 +614,9 @@ void HttpConnection::process()
 		return;
 	}
 
-#if 0
-	if (state() == HttpMessageProcessor::MESSAGE_BEGIN) {
-		// TODO reenable buffer reset (or reuse another for content! to be more huge-body friendly)
-		offset_ = 0;
-		buffer_.clear();
-	}
-#endif
-
-	if (ec == HttpMessageError::Partial) {
-		watchInput(worker_->server_.maxReadIdle());
-	}
+//	if (ec == HttpMessageError::Partial) {
+//		watchInput(worker_->server_.maxReadIdle());
+//	}
 }
 
 std::string HttpConnection::remoteIP() const

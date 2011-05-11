@@ -141,14 +141,13 @@ public:
 	}; // }}}
 
 public:
-	virtual void messageBegin(BufferRef&& method, BufferRef&& entity, int version_major, int version_minor);
-	virtual void messageBegin(int version_major, int version_minor, int code, BufferRef&& text);
-	virtual void messageBegin();
-
-	virtual void messageHeader(BufferRef&& name, BufferRef&& value);
-	virtual bool messageHeaderEnd();
-	virtual bool messageContent(BufferRef&& chunk);
-	virtual bool messageEnd();
+	virtual void onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
+	virtual void onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
+	virtual void onMessageBegin();
+	virtual void onMessageHeader(const BufferRef& name, const BufferRef& value);
+	virtual bool onMessageHeaderEnd();
+	virtual bool onMessageContent(const BufferRef& chunk);
+	virtual bool onMessageEnd();
 
 public:
 	explicit HttpMessageProcessor(ParseMode mode);
@@ -156,13 +155,11 @@ public:
 	State state() const;
 	const char *state_str() const;
 
-	HttpMessageError process(BufferRef&& chunk, std::size_t& nparsed);
+	size_t process(const BufferRef& chunk);
 
 	ssize_t contentLength() const;
 
 private:
-	bool passContent(BufferRef&& chunk, std::size_t& nparsed, std::size_t& ofp);
-
 	static inline bool isChar(char value);
 	static inline bool isControl(char value);
 	static inline bool isSeparator(char value);
@@ -170,7 +167,8 @@ private:
 	static inline bool isText(char value);
 
 private:
-	enum { // lexer constants
+	// lexer constants
+	enum {
 		CR = 0x0D,
 		LF = 0x0A,
 		SP = 0x20,
@@ -178,19 +176,22 @@ private:
 	};
 
 	ParseMode mode_;
-	State state_;       // the current parser/processing state
-	State lwsNext_;     // state to apply on successfull LWS
-	State lwsNull_;     // state to apply on (CR LF) but no 1*(SP | HT)
+	State state_;       //!< the current parser/processing state
+
+	// implicit LWS handling
+	State lwsNext_;     //!< state to apply on successfull LWS
+	State lwsNull_;     //!< state to apply on (CR LF) but no 1*(SP | HT)
 
 	// request-line
-	BufferRef method_;
-	BufferRef entity_;
-	int versionMajor_;
-	int versionMinor_;
+	BufferRef method_;		//!< HTTP request method
+	BufferRef entity_;		//!< HTTP request entity
+
+	int versionMajor_;		//!< HTTP request/response version major
+	int versionMinor_;		//!< HTTP request/response version minor
 
 	// status-line
-	int code_;
-	BufferRef message_;
+	int code_;				//!< response status code
+	BufferRef message_;		//!< response status message
 
 	// current parsed header
 	BufferRef name_;

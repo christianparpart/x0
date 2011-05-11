@@ -68,6 +68,7 @@ private:
 	size_t writeProgress_;
 
 	x0::Buffer readBuffer_;
+	bool processingDone_;
 
 private:
 	void ref();
@@ -78,16 +79,16 @@ private:
 
 	void onConnected(x0::Socket* s, int revents);
 	void io(x0::Socket* s, int revents);
-	void onRequestChunk(x0::BufferRef&& chunk);
+	void onRequestChunk(const x0::BufferRef& chunk);
 
 	static void onAbort(void *p);
 	void onWriteComplete();
 
 	// response (HttpMessageProcessor)
-	virtual void messageBegin(int version_major, int version_minor, int code, x0::BufferRef&& text);
-	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
-	virtual bool messageContent(x0::BufferRef&& chunk);
-	virtual bool messageEnd();
+	virtual void onMessageBegin(int versionMajor, int versionMinor, int code, const x0::BufferRef& text);
+	virtual void onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool onMessageContent(const x0::BufferRef& chunk);
+	virtual bool onMessageEnd();
 
 public:
 	inline ProxyConnection();
@@ -111,7 +112,8 @@ ProxyConnection::ProxyConnection() :
 	writeBuffer_(),
 	writeOffset_(0),
 	writeProgress_(0),
-	readBuffer_()
+	readBuffer_(),
+	processingDone_(false)
 {
 	TRACE("ProxyConnection()");
 }
@@ -239,7 +241,7 @@ void ProxyConnection::onConnected(x0::Socket* s, int revents)
 }
 
 /** transferres a request body chunk to the origin server.  */
-void ProxyConnection::onRequestChunk(x0::BufferRef&& chunk)
+void ProxyConnection::onRequestChunk(const x0::BufferRef& chunk)
 {
 	TRACE("onRequestChunk(nb:%ld)", chunk.size());
 	writeBuffer_.push_back(chunk);
@@ -266,7 +268,7 @@ inline bool validateResponseHeader(const x0::BufferRef& name)
  * We will use the status code only.
  * However, we could pass the text field, too - once x0 core supports it.
  */
-void ProxyConnection::messageBegin(int major, int minor, int code, x0::BufferRef&& text)
+void ProxyConnection::onMessageBegin(int major, int minor, int code, const x0::BufferRef& text)
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", (void*)this, major, minor, code, text.str().c_str());
 
@@ -279,7 +281,7 @@ void ProxyConnection::messageBegin(int major, int minor, int code, x0::BufferRef
  * We will pass this header directly to the client's response,
  * if that is NOT a connection-level header.
  */
-void ProxyConnection::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
+void ProxyConnection::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
 {
 	TRACE("ProxyConnection(%p).onHeader('%s', '%s')", (void*)this, name.str().c_str(), value.str().c_str());
 
@@ -293,7 +295,7 @@ void ProxyConnection::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 }
 
 /** callback, invoked on a new response content chunk. */
-bool ProxyConnection::messageContent(x0::BufferRef&& chunk)
+bool ProxyConnection::onMessageContent(const x0::BufferRef& chunk)
 {
 	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), backend_->state_str());
 
@@ -301,7 +303,7 @@ bool ProxyConnection::messageContent(x0::BufferRef&& chunk)
 	backend_->setMode(x0::Socket::None);
 
 	// transfer response-body chunk to client
-	request_->write<x0::BufferSource>(std::move(chunk));
+	request_->write<x0::BufferSource>(chunk);
 
 	// start listening on backend I/O when chunk has been fully transmitted
 	request_->writeCallback<ProxyConnection, &ProxyConnection::onWriteComplete>(this);
@@ -315,10 +317,11 @@ void ProxyConnection::onWriteComplete()
 	backend_->setMode(x0::Socket::Read);
 }
 
-bool ProxyConnection::messageEnd()
+bool ProxyConnection::onMessageEnd()
 {
-	TRACE("messageEnd() state:%s", backend_->state_str());
-	return true;
+	TRACE("messageEnd() backend-state:%s", backend_->state_str());
+	processingDone_ = true;
+	return false;
 }
 
 void ProxyConnection::io(x0::Socket* s, int revents)
@@ -371,16 +374,14 @@ void ProxyConnection::readSome()
 
 	if (rv > 0) {
 		TRACE("read response: %ld bytes", rv);
-		std::size_t np = 0;
-		std::error_code ec = process(readBuffer_.ref(lower_bound, rv), np);
-		TRACE("readSome(): process(): %s", ec.message().c_str());
-		if (ec == x0::HttpMessageError::Success) {
+		std::size_t np = process(readBuffer_.ref(lower_bound, rv));
+		TRACE("readSome(): process(): %ld / %ld", np, rv);
+
+		if (processingDone_ || state() == SYNTAX_ERROR) {
 			close();
-		} else if (ec == x0::HttpMessageError::Partial) {
+		} else {
 			TRACE("resume with io:%d, state:%s", backend_->mode(), backend_->state_str());
 			backend_->setMode(x0::Socket::Read);
-		} else {
-			close();
 		}
 	} else if (rv == 0) {
 		TRACE("http server connection closed");

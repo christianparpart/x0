@@ -24,61 +24,40 @@ public:
 	{
 	}
 
-	std::error_code process(BufferRef&& chunk)
-	{
-		std::size_t np = 0;
-		return process(std::move(chunk), np);
-	}
-
-	std::error_code process(BufferRef&& chunk, std::size_t& np)
-	{
-		std::error_code ec;
-		ec = HttpMessageProcessor::process(std::move(chunk), np);
-
-		if (ec)
-			DEBUG("process: nparsed=%ld/%ld; state=%s; ec=%s; '%s'",
-					np, chunk.size(), state_str(), ec.message().c_str(), chunk.begin() + np);
-		else
-			DEBUG("process: nparsed=%ld/%ld; state=%s; ec=%s",
-					np, chunk.size(), state_str(), ec.message().c_str());
-
-		return ec;
-	}
-
-	std::function<void(BufferRef&&, BufferRef&&, int, int)> on_request;
-	std::function<void(int, int, int, BufferRef&&)> on_status;
+	std::function<void(const BufferRef&, const BufferRef&, int, int)> on_request;
+	std::function<void(int, int, int, const BufferRef&)> on_status;
 	std::function<void()> on_message;
-	std::function<void(BufferRef&&, BufferRef&&)> on_header;
+	std::function<void(const BufferRef&, const BufferRef&)> on_header;
 	std::function<bool()> on_header_done;
-	std::function<bool(BufferRef&&)> on_content;
+	std::function<bool(const BufferRef&)> on_content;
 	std::function<bool()> on_complete;
 
 private:
-	virtual void messageBegin(BufferRef&& method, BufferRef&& uri, int version_major, int version_minor)
+	virtual void onMessageBegin(const BufferRef& method, const BufferRef& uri, int version_major, int version_minor)
 	{
 		if (on_request)
-			on_request(std::move(method), std::move(uri), version_major, version_minor);
+			on_request(method, uri, version_major, version_minor);
 	}
 
-	virtual void messageBegin(int version_major, int version_minor, int code, BufferRef&& text)
+	virtual void onMessageBegin(int version_major, int version_minor, int code, const BufferRef& text)
 	{
 		if (on_status)
-			on_status(version_major, version_minor, code, std::move(text));
+			on_status(version_major, version_minor, code, text);
 	}
 
-	virtual void messageBegin()
+	virtual void onMessageBegin()
 	{
 		if (on_message)
 			on_message();
 	}
 
-	virtual void messageHeader(BufferRef&& name, BufferRef&& value)
+	virtual void onMessageHeader(const BufferRef& name, const BufferRef& value)
 	{
 		if (on_header)
-			on_header(std::move(name), std::move(value));
+			on_header(name, value);
 	}
 
-	virtual bool messageHeaderEnd()
+	virtual bool onMessageHeaderEnd()
 	{
 		if (on_header_done)
 			return on_header_done();
@@ -86,15 +65,15 @@ private:
 		return true;
 	}
 
-	virtual bool messageContent(BufferRef&& chunk)
+	virtual bool onMessageContent(const BufferRef& chunk)
 	{
 		if (on_content)
-			return on_content(std::move(chunk));
+			return on_content(chunk);
 
 		return true;
 	}
 
-	virtual bool messageEnd()
+	virtual bool onMessageEnd()
 	{
 		if (on_complete)
 			return on_complete();
@@ -119,7 +98,6 @@ public:
 		CPPUNIT_TEST(message_chunked_body);
 		//CPPUNIT_TEST(message_chunked_body_fragmented);
 		CPPUNIT_TEST(message_content_length);
-		CPPUNIT_TEST(message_content_recursive);
 		CPPUNIT_TEST(message_multi);
 	CPPUNIT_TEST_SUITE_END();
 
@@ -142,7 +120,7 @@ private:
 	{
 		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST); // (message_processor::REQUEST);
 
-		rp.on_request = [&](BufferRef&& method, BufferRef&& entity, int major, int minor)
+		rp.on_request = [&](const BufferRef& method, const BufferRef& entity, int major, int minor)
 		{
 			CPPUNIT_ASSERT(equals(method, "GET"));
 			CPPUNIT_ASSERT(equals(entity, "/"));
@@ -151,7 +129,7 @@ private:
 		};
 
 		int header_count = 0;
-		rp.on_header = [&](BufferRef&& name, BufferRef&& value)
+		rp.on_header = [&](const BufferRef& name, const BufferRef& value)
 		{
 			switch (++header_count)
 			{
@@ -169,7 +147,7 @@ private:
 		};
 
 		int chunk_count = 0;
-		rp.on_content = [&](BufferRef&& chunk) -> bool
+		rp.on_content = [&](const BufferRef& chunk) -> bool
 		{
 			++chunk_count;
 			CPPUNIT_ASSERT(chunk_count == 1);
@@ -185,11 +163,9 @@ private:
 			"hello world"
 		);
 
-		std::size_t np = 0;
-		std::error_code ec = rp.process(r, np);
+		std::size_t np = rp.process(r);
 
 		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(!ec);
 	}
 
 	void response_sample_304()
@@ -212,10 +188,8 @@ private:
 			return true;
 		};
 
-		std::size_t np = 0;
-		std::error_code ec = rp.process(r, np);
+		std::size_t np = rp.process(r);
 
-		CPPUNIT_ASSERT(!ec);
 		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(on_complete_invoked == true);
 	}
@@ -271,8 +245,7 @@ private:
 			"some-body"
 		);
 
-		std::size_t np = 0;
-		std::error_code ec = rp.process(r, np);
+		std::size_t np = rp.process(r);
 
 		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(body_count == 1);
@@ -313,8 +286,7 @@ private:
 			"some body"
 		);
 
-		std::size_t np = 0;
-		std::error_code ec = rp.process(r, np);
+		std::size_t np = rp.process(r);
 
 		CPPUNIT_ASSERT(np = r.size());
 		CPPUNIT_ASSERT(body_count == 1);
@@ -325,7 +297,7 @@ private:
 		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST);
 
 		int request_count = 0;
-		rp.on_request = [&](BufferRef&& method, BufferRef&& url, int major, int minor)
+		rp.on_request = [&](const BufferRef& method, const BufferRef& url, int major, int minor)
 		{
 			switch (++request_count)
 			{
@@ -372,11 +344,9 @@ private:
 			"\r\n"
 		);
 
-		std::size_t np = 0;
-		std::error_code ec = rp.process(r, np);
+		std::size_t np = rp.process(r);
 
 		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(!ec);
 	}
 
 private: // message tests
@@ -417,11 +387,10 @@ private: // message tests
 			return false;
 		};
 
-		std::size_t np = 0;
-		std::error_code ec = rp.process(r, np);
+		std::size_t np = rp.process(r);
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(ec == HttpMessageError::Aborted);
+		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageProcessor::SYNTAX_ERROR);
 	}
 
 	void message_chunked_body_fragmented()
@@ -487,53 +456,10 @@ private: // message tests
 			return false;
 		};
 
-		std::size_t np = 0;
-		std::error_code ec = rp.process(r, np);
+		std::size_t np = rp.process(r);
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(ec == HttpMessageError::Aborted);
-	}
-
-	void message_content_recursive()
-	{
-		Buffer r(
-			"Content-Length: 9\r\n"
-			"\r\n"
-			"some body"
-		);
-
-		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
-		std::size_t np = 0;
-
-		rp.on_header_done = [&]() -> bool
-		{
-			std::size_t npl = 0;
-			std::error_code ec = rp.process(r.ref(np, r.size() - np), npl);
-
-			CPPUNIT_ASSERT(npl == 9);
-			CPPUNIT_ASSERT(!ec);
-
-			np += npl;
-
-			return false;
-		};
-
-		rp.on_content = [&](const BufferRef& chunk) -> bool
-		{
-			DEBUG("on_content('%s')", chunk.str().c_str());
-			CPPUNIT_ASSERT(equals(chunk, "some body"));
-			return true;
-		};
-
-		rp.on_complete = [&]() -> bool
-		{
-			return true;
-		};
-
-		std::error_code ec = rp.process(r, np);
-
-		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(ec == HttpMessageError::Aborted); // cancelled parsing at header-done state
+		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageProcessor::SYNTAX_ERROR);
 	}
 
 	void message_multi()
@@ -547,16 +473,14 @@ private: // message tests
 			"some body2\r\n"
 		);
 
-		std::size_t np = 0;
 		std::size_t count = 0;
 
 		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 		rp.on_complete = [&]() -> bool { ++count; return true; };
 
-		std::error_code ec = rp.process(r, np);
+		std::size_t np =  rp.process(r);
 
 		CPPUNIT_ASSERT(np == r.size());
-		CPPUNIT_ASSERT(ec == HttpMessageError::Success);
 		CPPUNIT_ASSERT(count == 2);
 	}
 };
