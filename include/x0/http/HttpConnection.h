@@ -130,9 +130,6 @@ private:
 private:
 	unsigned refCount_;
 
-	unsigned processingDepth_;
-	bool resuming_;
-
 	HttpListener* listener_;
 	HttpWorker* worker_;
 	HttpConnectionList::iterator handle_;
@@ -140,8 +137,11 @@ private:
 	unsigned long long id_;				//!< the worker-local connection-ID
 	unsigned requestCount_;				//!< the number of requests already processed or currently in process
 
+	// we could make these things below flags
 	enum State { Alive, Aborted, Closed } state_;
+	bool isProcessing_;					//!< currently in processInput()
 	bool isHandlingRequest_;			//!< is this connection (& request) currently passed to a request handler?
+	bool resuming_;
 
 	// HTTP HttpRequest
 	Buffer input_;						//!< buffer for incoming data.

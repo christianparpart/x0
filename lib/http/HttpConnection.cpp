@@ -57,15 +57,15 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 #endif
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	refCount_(0),
-	processingDepth_(0),
-	resuming_(false),
 	listener_(nullptr),
 	worker_(w),
 	handle_(),
 	id_(id),
 	requestCount_(0),
 	state_(Alive),
+	isProcessing_(false),
 	isHandlingRequest_(false),
+	resuming_(false),
 	input_(8192),
 	inputOffset_(0),
 	request_(nullptr),
@@ -354,9 +354,13 @@ bool HttpConnection::onMessageEnd()
 	if (request_)
 		request_->onRequestContent(BufferRef());
 
-	// do not allow further request processing here as this
-	// is decided at HttpRequest::finish()
-	return true; // TODO: return keepAlive_
+	// if we are currently procesing a request, then stop parsing at the end of 
+	// this current request.
+	// the next request (if) is being processed via resume()
+	if (isHandlingRequest_)
+		return false;
+
+	return true; // TODO: think about: return keepAlive_
 }
 
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
@@ -580,17 +584,17 @@ void HttpConnection::close()
  */
 void HttpConnection::process()
 {
-	if (processingDepth_) {
-		TRACE("process: already inside parser. returning.");
+	if (isProcessing_) {
+		TRACE("BUG: process: already inside parser. returning.");
 		return;
 	}
 
 	TRACE("process: offset=%ld, size=%ld (before processing)", inputOffset_, input_.size());
 
-	++processingDepth_;
+	isProcessing_ = true;
 	BufferRef chunk(input_.ref(inputOffset_));
-	auto nparsed = HttpMessageProcessor::process(chunk);
-	--processingDepth_;
+	size_t nparsed = HttpMessageProcessor::process(chunk);
+	isProcessing_ = false;
 
 	inputOffset_ += nparsed;
 
@@ -602,7 +606,7 @@ void HttpConnection::process()
 	}
 
 	if (nparsed != chunk.size()) {
-		assert(state() == SYNTAX_ERROR);
+		assert(state() == SYNTAX_ERROR || state() == MESSAGE_BEGIN);
 
 		if (!request_)
 			// in case the syntax error occured already in the request line, no request object has been instanciated yet.
@@ -613,7 +617,7 @@ void HttpConnection::process()
 		return;
 	}
 
-//	if (ec == HttpMessageError::Partial) {
+//	if (!isHandlingRequest_) {
 //		watchInput(worker_->server_.maxReadIdle());
 //	}
 }
