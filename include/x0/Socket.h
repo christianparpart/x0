@@ -117,6 +117,7 @@ public:
 	void setMode(Mode m);
 
 	void setTimeout(int value);
+	bool timerActive() const { return timer_.is_active(); }
 
 	template<class K, void (K::*cb)(Socket *, int)> void setReadyCallback(K *object);
 	void clearReadyCallback();
