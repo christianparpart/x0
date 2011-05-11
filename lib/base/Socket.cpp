@@ -47,6 +47,7 @@ Socket::Socket(struct ev_loop* loop) :
 	loop_(loop),
 	watcher_(loop),
 	timer_(loop),
+	startedAt_(ev_now(loop)),
 	fd_(-1),
 	addressFamily_(0),
 	secure_(false),
@@ -75,6 +76,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af) :
 	loop_(loop),
 	watcher_(loop),
 	timer_(loop),
+	startedAt_(ev_now(loop)),
 	fd_(fd),
 	addressFamily_(af),
 	secure_(false),
@@ -597,6 +599,7 @@ void Socket::queryLocalName()
 void Socket::inspect(Buffer& out)
 {
 	out << "[Socket/" << fd_ << ": remote(" << remoteIP() << ":" << remotePort() << "), "
+		<< "[" << startedAt_.http_str() << "], "
 		<< "mode(" << mode_str(mode_) << "), io.active:" << watcher_.is_active() << ", "
 		<< "timer.active:" << timer_.is_active()
 		<< "\n";

@@ -13,6 +13,7 @@
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
 #include <x0/Logging.h>
+#include <x0/DateTime.h>
 
 #include <ev++.h>
 #include <unistd.h>
@@ -50,6 +51,7 @@ private:
 	struct ev_loop *loop_;
 	ev::io watcher_;
 	ev::timer timer_;
+	DateTime startedAt_;
 	int fd_;
 	int addressFamily_;
 	bool secure_;
@@ -77,6 +79,8 @@ public:
 	explicit Socket(struct ev_loop *loop);
 	Socket(struct ev_loop *loop, int fd, int addressFamily);
 	virtual ~Socket();
+
+	const DateTime& startedAt() const { return startedAt_; }
 
 	void set(int fd, int addressFamily);
 
