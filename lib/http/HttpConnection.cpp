@@ -56,7 +56,6 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	Logging("HttpConnection"),
 #endif
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
-	secure(false),
 	refCount_(0),
 	processingDepth_(0),
 	resuming_(false),

@@ -66,8 +66,6 @@ public:
 
 	void close();
 
-	ValueProperty<bool> secure;					//!< true if this is a secure (HTTPS) connection, false otherwise.
-
 	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
 	HttpWorker& worker() const;					//!< Retrieves a reference to the owning worker.
 
