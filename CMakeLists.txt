@@ -21,8 +21,11 @@ include(CMakeDetermineCCompiler)
 #option(BUILD_STATIC "Build with modules statically linked in [default: off]")
 option(BUILD_TESTS "Build unit tests [default: on]" ON)
 
+# feature flags
 option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
-option(WITH_SSL "With SSL support [default: on]" ON)
+option(WITH_SSL "Builds with SSL support [default: on]" ON)
+option(WITH_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
+option(WITH_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
 #option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
 
 add_definitions(-Wall -Wno-variadic-macros)

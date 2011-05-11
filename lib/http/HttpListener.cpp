@@ -170,7 +170,7 @@ bool HttpListener::prepare()
 		setsockopt(fd_, SOL_TCP, TCP_QUICKACK, 1);
 #endif
 
-#if defined(TCP_DEFER_ACCEPT)
+#if defined(TCP_DEFER_ACCEPT) and defined(WITH_TCP_DEFER_ACCEPT)
 		setsockopt(fd_, SOL_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
 
@@ -235,7 +235,7 @@ void HttpListener::callback(ev::io& watcher, int revents)
 {
 	int fd;
 
-#if defined(HAVE_ACCEPT4) && !defined(VALGRIND) // valgrind does not yet implement accept4()
+#if defined(HAVE_ACCEPT4) && defined(WITH_ACCEPT4)
 	bool flagged = true;
 	fd = ::accept4(handle(), nullptr, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
 	if (fd < 0 && errno == ENOSYS) {

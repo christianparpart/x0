@@ -180,7 +180,7 @@ void HttpConnection::start(HttpListener* listener, int fd, const HttpConnectionL
 		TRACE("start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
 	} else {
-#if defined(TCP_DEFER_ACCEPT)
+#if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
 		TRACE("start: processing input");
 		// it is ensured, that we have data pending, so directly start reading
 		processInput();
