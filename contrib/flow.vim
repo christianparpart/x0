@@ -1,7 +1,7 @@
 " Vim syntax file
-" Language: Flow (Flow Control Language)
+" Language: Flow (Flow Control Language), part of x0 HTTP web server
 " Maintainer: Christian Parpart
-" Latest Revision: 15 September 2010
+" Latest Revision: 12 May 2011
 
 if exists("b:current_syntax")
 	finish
@@ -61,7 +61,7 @@ syn region flowRawString start="'" end="'"
 
 if exists("flow_x0")
 	" extend core with some x0 HTTP web server core features.
-	syn keyword flowCoreFunctions listen pathinfo
+	syn keyword flowCoreFunctions listen pathinfo user
 	syn match flowCoreFunctions '\<\(mimetypes\.default\|mimetypes\)\>'
 	syn match flowCoreFunctions '\<plugin\.\(directory\|load\)\>'
 	syn match flowCoreFunctions '\<proxy\.\(reverse\)\>'
@@ -77,17 +77,19 @@ if exists("flow_x0")
 	syn match flowCoreVar '\<etag\.\(mtime\|size\|inode\)\>'
 	syn match flowCoreVar '\<compress\.\(min\|max\|level\|types\)\>'
 	syn match flowCoreVar '\<ssl\.\(listen\|context\|loglevel\)\>'
+	syn match flowCoreVar '\<browser\.\(ancient\|modern\|is_ancient\|is_modern\)\>'
 	syn match flowCoreVar '\<\(userdir.name\|userdir\)\>'
 	syn match flowCoreVar '\<log\.\(level\|file\)\>'
 	syn keyword flowCoreVar max_read_idle max_write_idle max_keepalive_idle max_connections max_files max_address_space max_core_size tcp_cork tcp_nodelay
 	syn keyword flowCoreVar max_request_uri_size max_request_header_size max_request_header_count max_request_body_size
-	syn keyword flowCoreFunctions header
+	syn keyword flowCoreFunctions header rewrite
 
 	" core handlers
-	syn keyword flowCoreHandler redirect respond
+	syn keyword flowCoreHandler redirect respond blank status
 
 	" upstream plugin handlers
-	syn keyword flowCoreHandler fastcgi staticfile dirlisting
+	syn keyword flowCoreHandler fastcgi staticfile
+	syn match flowCoreHandler '\<dirlisting\(.google\)\?\>'
 	syn keyword flowCoreFunctions docroot alias
 	syn match flowCoreHandler '\<access\.\(deny\|allow\)\>'
 	syn keyword flowCoreFunctions accesslog autoindex
