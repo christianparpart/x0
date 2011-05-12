@@ -41,9 +41,10 @@ public:
 	~CompositeSource();
 
 	bool empty() const;
+	std::size_t size() const;
 	void push_back(Source* s);
 	template<typename T, typename... Args> T* push_back(Args... args);
-	void reset();
+	void clear();
 
 	Source* front() const;
 	void pop_front();
@@ -66,6 +67,11 @@ inline bool CompositeSource::empty() const
 	return sources_.empty();
 }
 
+inline std::size_t CompositeSource::size() const
+{
+	return sources_.size();
+}
+
 inline void CompositeSource::push_back(Source* s)
 {
 	sources_.push_back(s);
@@ -79,7 +85,7 @@ T* CompositeSource::push_back(Args... args)
 	return chunk;
 }
 
-inline void CompositeSource::reset()
+inline void CompositeSource::clear()
 {
 	for (auto i: sources_)
 		delete i;

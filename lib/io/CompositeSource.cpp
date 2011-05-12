@@ -13,8 +13,7 @@ namespace x0 {
 
 CompositeSource::~CompositeSource()
 {
-	for (auto i: sources_)
-		delete i;
+	clear();
 }
 
 ssize_t CompositeSource::sendto(Sink& sink)
