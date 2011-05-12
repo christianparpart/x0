@@ -38,17 +38,18 @@ public:
 	static const std::size_t npos = std::size_t(-1);
 
 private:
-	iterator begin_;
-	iterator end_;
+	const Buffer* buf_;
+	std::size_t offset_;
+	std::size_t size_;
 
 public:
 	BufferRef();
-	BufferRef(iterator begin, iterator end);
 	BufferRef(const Buffer* _buffer, std::size_t _offset, std::size_t _size);
-	BufferRef(const char* buffer, std::size_t n);
-	BufferRef(const char* cstring);
-	BufferRef(const std::string& string);
-	template<typename PodType, std::size_t N> explicit BufferRef(PodType (&value)[N]);
+//	BufferRef(iterator begin, iterator end);
+//	BufferRef(const char* buffer, std::size_t n);
+//	BufferRef(const char* cstring);
+//	BufferRef(const std::string& string);
+//	template<typename PodType, std::size_t N> explicit BufferRef(PodType (&value)[N]);
 
 	BufferRef(const Buffer& v);
 	BufferRef(const BufferRef& v);
@@ -95,19 +96,23 @@ public:
 	// begins / ibegins
 	bool begins(const BufferRef& value) const;
 	bool begins(const value_type* value) const;
+	bool begins(const std::string& value) const;
 	bool begins(value_type value) const;
 
 	bool ibegins(const BufferRef& value) const;
 	bool ibegins(const value_type* value) const;
+	bool ibegins(const std::string& value) const;
 	bool ibegins(value_type value) const;
 
 	// ends / iends
 	bool ends(const BufferRef& value) const;
 	bool ends(const value_type* value) const;
+	bool ends(const std::string& value) const;
 	bool ends(value_type value) const;
 
 	bool iends(const BufferRef& value) const;
 	bool iends(const value_type* value) const;
+	bool iends(const std::string& value) const;
 	bool iends(value_type value) const;
 
 	// sub
@@ -144,35 +149,39 @@ public:
 // free functions
 bool equals(const Buffer& a, const BufferRef& b);
 bool equals(const BufferRef& a, const BufferRef& b);
+bool equals(const BufferRef& a, const std::string& b);
 template<typename PodType, std::size_t N> bool equals(const BufferRef& a, PodType (&b)[N]);
 
 bool iequals(const BufferRef& a, const BufferRef& b);
 bool iequals(const Buffer& a, const BufferRef& b);
+bool iequals(const BufferRef& a, const std::string& b);
 template<typename PodType, std::size_t N> bool iequals(const BufferRef& a, PodType (&b)[N]);
 
 bool operator==(const BufferRef& a, const BufferRef& b);
 bool operator==(const BufferRef& a, const Buffer& b);
 bool operator==(const Buffer& a, const BufferRef& b);
-bool operator==(const BufferRef& a, const char *b);
+bool operator==(const BufferRef& a, const char* b);
 template<typename PodType, std::size_t N> bool operator==(const BufferRef& a, PodType (&b)[N]);
 
 // {{{ BufferRef impl
 inline BufferRef::BufferRef() :
-	begin_(nullptr),
-	end_(nullptr)
+	buf_(nullptr),
+	offset_(0),
+	size_(0)
 {
-}
-
-inline BufferRef::BufferRef(iterator begin, iterator end) :
-	begin_(begin),
-	end_(end)
-{
-	assert(begin_ <= end_);
 }
 
 inline BufferRef::BufferRef(const Buffer *_buffer, std::size_t _offset, std::size_t _size) :
-	begin_(const_cast<char*>(_buffer->data()) + _offset),
-	end_(begin_ + _size)
+	buf_(_buffer),
+	offset_(_offset),
+	size_(_size)
+{
+}
+
+#if 0
+inline BufferRef::BufferRef(iterator begin, iterator end) :
+	begin_(begin),
+	end_(end)
 {
 	assert(begin_ <= end_);
 }
@@ -201,67 +210,63 @@ inline BufferRef::BufferRef(PodType (&value)[N]) :
 	end_(const_cast<char*>(value) + (N - 1))
 {
 }
+#endif
 
 inline BufferRef::BufferRef(const Buffer& v) :
-	begin_(v.begin()),
-	end_(v.end())
+	buf_(&v),
+	offset_(0),
+	size_(v.size())
 {
 }
 
 inline BufferRef::BufferRef(const BufferRef& v) :
-	begin_(v.begin_),
-	end_(v.end_)
+	buf_(v.buf_),
+	offset_(v.offset_),
+	size_(v.size_)
 {
 }
 
 inline BufferRef& BufferRef::operator=(const Buffer& v)
 {
-	begin_ = v.begin();
-	end_ = v.end();
+	buf_ = &v;
+	offset_ = 0;
+	size_ = v.size();
 
 	return *this;
 }
 
 inline BufferRef& BufferRef::operator=(const BufferRef& v)
 {
-	begin_ = v.begin_;
-	end_ = v.end_;
+	buf_ = v.buf_;
+	offset_ = v.offset_;
+	size_ = v.size_;
 
 	return *this;
 }
 
 inline void BufferRef::clear()
 {
-	end_ = begin_;
+	size_ = 0;
 }
 
 inline bool BufferRef::empty() const
 {
-	return begin_ == end_;
+	return size_ == 0;
 }
 
 inline std::size_t BufferRef::size() const
 {
-#if 0
-	return end_ - begin_;
-#else
-	std::size_t c = 0;
-
-	for (const_iterator i = begin_, e = end_; i != e; ++i)
-		++c;
-
-	return c;
-#endif
+	return size_;
 }
 
-inline Buffer::value_type *BufferRef::data()
+inline Buffer::value_type* BufferRef::data()
 {
-	return begin_;
+	return buf_ ? const_cast<value_type*>(buf_->data()) + offset_ : nullptr;
 }
 
 inline const Buffer::value_type *BufferRef::data() const
 {
-	return begin_;
+	return buf_ ? buf_->data() + offset_ : nullptr;
 }
 
 inline BufferRef::operator bool() const
@@ -276,36 +281,36 @@ inline bool BufferRef::operator!() const
 
 inline BufferRef::iterator BufferRef::begin() const
 {
-	return begin_;
+	return const_cast<value_type*>(data());
 }
 
 inline BufferRef::iterator BufferRef::end() const
 {
-	return end_;
+	return begin() + size();
 }
 
 inline BufferRef::const_iterator BufferRef::cbegin() const
 {
-	return begin_;
+	return data();
 }
 
 inline BufferRef::const_iterator BufferRef::cend() const
 {
-	return end_;
+	return cbegin() + size();
 }
 
 /** shifts view's left margin by given bytes to the left, thus, increasing view's size.
  */
-inline void BufferRef::shl(ssize_t offset)
+inline void BufferRef::shl(ssize_t value)
 {
-	begin_ -= offset;
+	offset_ -= value;
 }
 
 /** shifts view's right margin by given bytes to the right, thus, increasing view's size.
  */
-inline void BufferRef::shr(ssize_t offset)
+inline void BufferRef::shr(ssize_t value)
 {
-	end_ += offset;
+	size_ += value;
 }
 
 inline std::size_t BufferRef::find(const value_type *value, std::size_t offset) const
@@ -391,7 +396,7 @@ inline std::size_t BufferRef::rfind(value_type value, std::size_t offset) const
 		return npos;
 
 	const char *p = data();
-	const char *q = p + size();
+	const char *q = p + offset;
 
 	for (;;)
 	{
@@ -459,6 +464,14 @@ inline bool BufferRef::begins(const value_type *value) const
 	return len <= size() && memcmp(data(), value, len) == 0;
 }
 
+inline bool BufferRef::begins(const std::string& value) const
+{
+	if (value.empty())
+		return true;
+
+	return value.size() <= size() && memcmp(data(), value.data(), value.size()) == 0;
+}
+
 inline bool BufferRef::begins(value_type value) const
 {
 	return size() >= 1 && data()[0] == value;
@@ -485,30 +498,27 @@ inline bool BufferRef::ends(const value_type *value) const
 inline BufferRef BufferRef::ref(std::size_t offset) const
 {
 	assert(offset <= size());
-	return BufferRef(begin_ + offset, end_);
+	return BufferRef(buf_, offset_ + offset, size() - offset);
 }
 
 inline BufferRef BufferRef::ref(std::size_t offset, std::size_t size) const
 {
 	assert(offset <= this->size());
-	assert(size == npos || offset + size <= this->size());
+	assert(size == npos || offset + size <= size_);
 
 	return size != npos
-		? BufferRef(begin_ + offset, begin_ + offset + size)
-		: BufferRef(begin_ + offset, end_);
+		? BufferRef(buf_, offset_ + offset, size)
+		: BufferRef(buf_, offset_ + offset, size_ - offset);
 }
 
 inline BufferRef BufferRef::operator()(std::size_t offset) const
 {
-	assert(offset <= size());
-	return BufferRef(begin_ + offset, end_);
+	return ref(offset);
 }
 
 inline BufferRef BufferRef::operator()(std::size_t offset, std::size_t size) const
 {
-	assert(offset <= this->size());
-	assert(offset + size <= this->size());
-	return BufferRef(begin() + offset, begin() + offset + size);
+	return ref(offset, size);
 }
 
 inline const Buffer::value_type& BufferRef::operator[](std::size_t offset) const
@@ -713,6 +723,13 @@ bool equals(const BufferRef& a, PodType (&b)[N])
 	return std::memcmp(a.data(), b, bsize) == 0;
 }
 
+inline bool equals(const BufferRef& a, const std::string& b)
+{
+	if (a.size() != b.size())
+		return false;
+
+	return std::memcmp(a.data(), b.data(), b.size()) == 0;
+}
 // --------------------------------------------------------------------
 inline bool iequals(const Buffer& a, const BufferRef& b)
 {
@@ -748,6 +765,14 @@ bool iequals(const BufferRef& a, PodType (&b)[N])
 	return strncasecmp(a.data(), b, bsize) == 0;
 }
 
+
+inline bool iequals(const BufferRef& a, const std::string& b)
+{
+	if (a.size() != b.size())
+		return false;
+
+	return strncasecmp(a.data(), b.data(), b.size()) == 0;
+}
 // ------------------------------------------------------------------------
 inline bool operator==(const BufferRef& a, const BufferRef& b)
 {
