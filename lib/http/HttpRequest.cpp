@@ -310,6 +310,7 @@ void HttpRequest::finish()
 {
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);
+	clearCustomData();
 
 	if (isAborted()) {
 		outputState_ = Finished;
