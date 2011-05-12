@@ -156,6 +156,9 @@ void HttpConnection::timeout(Socket *)
 	TRACE("timed out");
 
 	switch (status()) {
+	case StartingUp:
+		TRACE("timeout: BUG. we should have never reached here.");
+		break;
 	case ReadingRequest:
 		// we do not want further out-timing requests on this conn: just close it.
 		setShouldKeepAlive(false);
@@ -510,6 +513,7 @@ void HttpConnection::processInput()
 
 		TRACE("processInput(): done process()ing; fd=%d, request=%p state:%s", socket_->handle(), request_, state_str());
 
+#if 0
 		if (flags_ & IsResuming) {
 			TRACE("processInput: resume-flag set. watchInput(keepAlive)");
 			flags_ &= ~IsResuming;
@@ -517,6 +521,7 @@ void HttpConnection::processInput()
 			status_ = KeepAliveRead;
 			watchInput(worker_->server_.maxKeepAlive());
 		}
+#endif
 	}
 }
 
@@ -563,6 +568,8 @@ void HttpConnection::processOutput()
 			// output fully written
 			watchInput();
 			request_->checkFinish();
+
+			TRACE("processOutput: output fully written. closed:%d, outputPending:%ld, refCount:%d", isClosed(), output_.size(), refCount_);
 
 			if (isClosed() && !isOutputPending() && refCount_ == 0) {
 				worker_->release(handle_);
@@ -672,14 +679,15 @@ void HttpConnection::processResume()
 {
 	flags_ &= ~IsResuming;
 
+	TRACE("processResume");
 	request_->clear();
 
 	if (inputOffset_ < input_.size()) {
-		TRACE("resume: porbably pipelined requests (size:%ld) state:%s", input_.size() - inputOffset_, state_str());
+		TRACE("processResume: porbably pipelined requests (size:%ld) state:%s", input_.size() - inputOffset_, state_str());
 		status_ = ReadingRequest;
 	} else {
 		// nothing (pipelined) in buffer, wait for new request message
-		TRACE("resume: watch input");
+		TRACE("processResume: watch input");
 		status_ = KeepAliveRead;
 		watchInput(worker_->server_.maxKeepAlive());
 	}
