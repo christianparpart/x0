@@ -138,6 +138,16 @@ void HttpConnection::io(Socket *, int revents)
 	if (!isAborted() && revents & Socket::Write)
 		processOutput();
 
+	switch (status()) {
+	case ReadingRequest:
+		watchInput(worker_->server_.maxReadIdle());
+		break;
+	case KeepAliveRead:
+		watchInput(worker_->server_.maxKeepAlive());
+	default:
+		break;
+	}
+
 	unref();
 }
 
@@ -145,11 +155,22 @@ void HttpConnection::timeout(Socket *)
 {
 	TRACE("timed out");
 
-//	ev_unloop(loop(), EVUNLOOP_ONE);
+	switch (status()) {
+	case ReadingRequest:
+		// we do not want further out-timing requests on this conn: just close it.
+		setShouldKeepAlive(false);
 
-	// XXX that's an interesting case!
-	// XXX the client did not actually abort but WE declare the connection to be released early.
-	abort();
+		request_->status = HttpError::RequestTimeout;
+		status_ = SendingReply;
+		request_->finish();
+		break;
+	case KeepAliveRead:
+		close();
+		break;
+	case SendingReply:
+		abort();
+		break;
+	}
 }
 
 #if defined(WITH_SSL)
@@ -298,7 +319,7 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 
 	if (request_->supportsProtocol(1, 1))
 		// FIXME? HTTP/1.1 is keeping alive by default. pass "Connection: close" to close explicitely
-		setShouldKeepAlive(false);
+		setShouldKeepAlive(true);
 	else
 		setShouldKeepAlive(false);
 
@@ -455,6 +476,9 @@ void HttpConnection::watchOutput()
 void HttpConnection::processInput()
 {
 	TRACE("processInput()");
+
+	if (status() == KeepAliveRead)
+		status_ = ReadingRequest;
 
 	ssize_t rv = socket_->read(input_);
 
