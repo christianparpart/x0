@@ -101,14 +101,12 @@ private:
 
 		x0::TimeSpan uptime(server().uptime());
 		std::size_t nconns = 0;
-		std::size_t nrequests = 0;
 		unsigned long long numTotalRequests = 0;
 		unsigned long long numTotalConns = 0;
 
 		for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
 			const x0::HttpWorker *w = server().workers()[i];
 			nconns += w->connectionLoad();
-			nrequests += w->requestLoad();
 			numTotalRequests += w->requestCount();
 			numTotalConns += w->connectionCount();
 		}
@@ -121,7 +119,6 @@ private:
 		buf << "<pre>\n";
 		buf << "process uptime: " << uptime << "\n";
 		buf << "# workers: " << server().workers().size() << "\n";
-		buf << "# requests: " << nrequests << "\n";
 		buf << "# connections: " << nconns << "\n";
 		buf << "# total requests: " << numTotalRequests << "\n";
 		buf << "# total connections: " << numTotalConns << "\n";
@@ -140,16 +137,17 @@ private:
 	void dump(x0::Buffer& out, x0::HttpConnection* c)
 	{
 		out << c->worker().id() << "." << c->id() << ", ";
-		out << c->socket()->remoteIP() << ":" << c->socket()->remotePort() << ", ";
-		out << "@" << c->state_str() << ", ";
+		out << c->state_str() << ", " << c->status_str() << ": ";
 
-		if (const x0::HttpRequest* r = c->request()) {
-			out << sanitize(r->hostname) << ": " << sanitize(r->method) << ' ' << sanitize(r->uri)
+		const x0::HttpRequest* r = c->request();
+		if (r && c->status() != x0::HttpConnection::KeepAliveRead) {
+			out << '@' << sanitize(r->hostname) << ": " << sanitize(r->method) << ' ' << sanitize(r->uri)
 				<< ' ' << x0::make_error_code(r->status).message()
+				<< ' ' << r->bytesTransmitted()
 				<< "\n";
-		} else {
-			out << "request-less\n";
-		}
+		} else
+			out << "\n";
+
 		out << "    ";
 		c->socket()->inspect(out);
 	}
@@ -172,7 +170,7 @@ private:
 					break;
 			}
 		}
-		return out;
+		return !out.empty() ? out : "(null)";
 	}
 };
 
