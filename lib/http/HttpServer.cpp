@@ -123,7 +123,11 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	tcpCork(false),
 	tcpNoDelay(false),
 	tag("x0/" VERSION),
-	advertise(true)
+	advertise(true),
+	maxRequestUriSize(4 * 1024),
+	maxRequestHeaderSize(8 * 1024),
+	maxRequestHeaderCount(100),
+	maxRequestBodySize(2 * 1024 * 1024)
 {
 	runner_ = new FlowRunner(this);
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));

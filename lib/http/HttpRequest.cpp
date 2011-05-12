@@ -179,7 +179,6 @@ void HttpRequest::onRequestContent(const BufferRef& chunk)
 Source* HttpRequest::serialize()
 {
 	Buffer buffers;
-	bool keepalive = connection.flags_ & HttpConnection::IsKeepAliveEnabled;
 
 	if (expectingContinue)
 		status = HttpError::ExpectationFailed;
@@ -195,42 +194,28 @@ Source* HttpRequest::serialize()
 	connection.worker().server().onPostProcess(this);
 
 	// setup (connection-level) response transfer
-	if (!responseHeaders.contains("Content-Length") && !isResponseContentForbidden())
+	if (supportsProtocol(1, 1)
+		&& !responseHeaders.contains("Content-Length")
+		&& !responseHeaders.contains("Transfer-Encoding")
+		&& !isResponseContentForbidden())
 	{
-		if (supportsProtocol(1, 1)
-			&& equals(requestHeader("Connection"), "keep-alive")
-			&& !responseHeaders.contains("Transfer-Encoding")
-			&& !isResponseContentForbidden())
-		{
-			responseHeaders.overwrite("Connection", "keep-alive");
-			responseHeaders.push_back("Transfer-Encoding", "chunked");
-			outputFilters.push_back(std::make_shared<ChunkedEncoder>());
-			keepalive = true;
-		}
-	}
-	else if (!responseHeaders.contains("Connection"))
-	{
-		if (iequals(requestHeader("Connection"), "keep-alive"))
-		{
-			responseHeaders.push_back("Connection", "keep-alive");
-			keepalive = true;
-		}
-	}
-	else if (iequals(responseHeaders["Connection"], "keep-alive"))
-	{
-		keepalive = true;
+		responseHeaders.push_back("Transfer-Encoding", "chunked");
+		outputFilters.push_back(std::make_shared<ChunkedEncoder>());
 	}
 
+	bool keepalive = connection.shouldKeepAlive();
 	if (!connection.worker().server().maxKeepAlive())
 		keepalive = false;
 
 	//keepalive = false; // FIXME workaround
 
-	if (keepalive) {
-		connection.flags_ |= HttpConnection::IsKeepAliveEnabled;
-	} else {
-		responseHeaders.overwrite("Connection", "close");
-		connection.flags_ &= ~HttpConnection::IsKeepAliveEnabled;
+	// only set Connection-response-header if found as request-header, too
+	if (!requestHeader("Connection").empty() || keepalive != connection.shouldKeepAlive()) {
+		connection.setShouldKeepAlive(keepalive);
+		if (keepalive)
+			responseHeaders.overwrite("Connection", "keep-alive");
+		else
+			responseHeaders.overwrite("Connection", "close");
 	}
 
 	if (!connection.worker().server().tcpCork())
@@ -324,6 +309,7 @@ std::string HttpRequest::statusStr(HttpError value)
 void HttpRequest::finish()
 {
 	setAbortHandler(nullptr);
+	setBodyCallback(nullptr);
 
 	if (isAborted()) {
 		outputState_ = Finished;
@@ -378,7 +364,7 @@ void HttpRequest::finish()
 
 void HttpRequest::finalize()
 {
-	if (isAborted() || !iequals(responseHeaders["Connection"], "keep-alive")) {
+	if (isAborted() || !connection.shouldKeepAlive()) {
 		TRACE("finalize: closing");
 		connection.close();
 	} else {

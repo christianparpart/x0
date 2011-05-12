@@ -196,6 +196,11 @@ public:
 	ValueProperty<bool> tcpNoDelay;
 	ValueProperty<std::string> tag;
 	ValueProperty<bool> advertise;
+
+	ValueProperty<std::size_t> maxRequestUriSize;
+	ValueProperty<std::size_t> maxRequestHeaderSize;
+	ValueProperty<std::size_t> maxRequestHeaderCount;
+	ValueProperty<std::size_t> maxRequestBodySize;
 };
 
 // {{{ inlines

@@ -163,8 +163,9 @@ public:
 private:
 	void processRequestBody(const x0::BufferRef& chunk);
 
-	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
-	virtual bool messageContent(x0::BufferRef&& content);
+	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool onMessageContent(const x0::BufferRef& content);
+
 	void onWriteComplete();
 	static void onClientAbort(void *p);
 
@@ -619,9 +620,9 @@ void CgiTransport::processRequestBody(const x0::BufferRef& chunk)
 	flush();
 }
 
-void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
+bool CgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
 {
-	//TRACE("CgiTransport.onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
+	TRACE("onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
 
 	if (x0::iequals(name, "Status")) {
 		int status = value.ref(0, value.find(' ')).toInt();
@@ -632,9 +633,11 @@ void CgiTransport::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
 
 		request_->responseHeaders.push_back(name.str(), value.str());
 	}
+
+	return true;
 }
 
-bool CgiTransport::messageContent(x0::BufferRef&& content)
+bool CgiTransport::onMessageContent(const x0::BufferRef& content)
 {
 	TRACE("CgiTransport.messageContent(len:%ld)", content.size());
 

@@ -141,13 +141,16 @@ public:
 	}; // }}}
 
 public:
-	virtual void onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
-	virtual void onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
-	virtual void onMessageBegin();
-	virtual void onMessageHeader(const BufferRef& name, const BufferRef& value);
+	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
+	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
+	virtual bool onMessageBegin();
+	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
 	virtual bool onMessageHeaderEnd();
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
+
+	bool isProcessingHeader() const;
+	bool isProcessingBody() const;
 
 public:
 	explicit HttpMessageProcessor(ParseMode mode);
@@ -218,6 +221,43 @@ inline enum HttpMessageProcessor::State HttpMessageProcessor::state() const
 inline ssize_t HttpMessageProcessor::contentLength() const
 {
 	return contentLength_;
+}
+
+inline bool HttpMessageProcessor::isProcessingHeader() const
+{
+	// XXX should we include request-line and status-line here, too?
+	switch (state_) {
+		case HEADER_NAME_BEGIN:
+		case HEADER_NAME:
+		case HEADER_COLON:
+		case HEADER_VALUE_BEGIN:
+		case HEADER_VALUE:
+		case HEADER_VALUE_LF:
+		case HEADER_VALUE_END:
+		case HEADER_END_LF:
+			return true;
+		default:
+			return false;
+	}
+}
+
+inline bool HttpMessageProcessor::isProcessingBody() const
+{
+	switch (state_) {
+		case CONTENT_BEGIN:
+		case CONTENT:
+		case CONTENT_ENDLESS:
+		case CONTENT_CHUNK_SIZE_BEGIN:
+		case CONTENT_CHUNK_SIZE:
+		case CONTENT_CHUNK_LF1:
+		case CONTENT_CHUNK_BODY:
+		case CONTENT_CHUNK_LF2:
+		case CONTENT_CHUNK_CR3:
+		case CONTENT_CHUNK_LF3:
+			return true;
+		default:
+			return false;
+	}
 }
 
 } // namespace x0

@@ -33,28 +33,36 @@ public:
 	std::function<bool()> on_complete;
 
 private:
-	virtual void onMessageBegin(const BufferRef& method, const BufferRef& uri, int version_major, int version_minor)
+	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& uri, int version_major, int version_minor)
 	{
 		if (on_request)
 			on_request(method, uri, version_major, version_minor);
+
+		return true;
 	}
 
-	virtual void onMessageBegin(int version_major, int version_minor, int code, const BufferRef& text)
+	virtual bool onMessageBegin(int version_major, int version_minor, int code, const BufferRef& text)
 	{
 		if (on_status)
 			on_status(version_major, version_minor, code, text);
+
+		return true;
 	}
 
-	virtual void onMessageBegin()
+	virtual bool onMessageBegin()
 	{
 		if (on_message)
 			on_message();
+
+		return true;
 	}
 
-	virtual void onMessageHeader(const BufferRef& name, const BufferRef& value)
+	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value)
 	{
 		if (on_header)
 			on_header(name, value);
+
+		return true;
 	}
 
 	virtual bool onMessageHeaderEnd()

@@ -134,6 +134,11 @@ public:
 
 		~HeaderList()
 		{
+			clear();
+		}
+
+		void clear()
+		{
 			while (first_) {
 				delete unlinkHeader(first_);
 			}
@@ -263,6 +268,8 @@ public:
 	explicit HttpRequest(HttpConnection& connection);
 	~HttpRequest();
 
+	void clear();
+
 	HttpConnection& connection;					///< the TCP/IP connection this request has been sent through
 
 	// request properties
@@ -294,6 +301,7 @@ public:
 	// custom data bindings
 	//std::map<HttpPlugin *, CustomDataPtr> customData;
 
+public:
 	void setErrorHandler(FlowValue::Function handler) { errorHandler_ = handler; }
 
 	// utility methods
@@ -329,6 +337,7 @@ public:
 
 	void setAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
+	bool isFinished() const { return outputState_ == Finished; }
 
 	static std::string statusStr(HttpError status);
 
@@ -361,6 +370,37 @@ private:
 };
 
 // {{{ request impl
+inline void HttpRequest::clear()
+{
+	outputState_ = Unhandled;
+
+	method.clear();
+	uri.clear();
+	path.clear();
+	fileinfo = FileInfoPtr();
+	pathinfo = "";
+	query.clear();
+	httpVersionMajor = httpVersionMinor = 0;
+	hostname.clear();
+	requestHeaders.clear();
+	bytesTransmitted_ = 0;
+
+	username.clear();
+	documentRoot = "";
+	expectingContinue = false;
+
+	hostid_ = ""; // hostname ':' port
+
+	bodyCallback_ = nullptr;
+	bodyCallbackData_ = nullptr;
+
+	errorHandler_ = nullptr;
+
+	status = HttpError::Undefined;
+	responseHeaders.clear();
+	outputFilters.clear();
+}
+
 inline bool HttpRequest::supportsProtocol(int major, int minor) const
 {
 	if (major == httpVersionMajor && minor <= httpVersionMinor)

@@ -97,8 +97,8 @@ public:
 
 private:
 	// CGI program's response message processor hooks
-	virtual void messageHeader(x0::BufferRef&& name, x0::BufferRef&& value);
-	virtual bool messageContent(x0::BufferRef&& content);
+	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool onMessageContent(const x0::BufferRef& content);
 
 	// CGI program's I/O callback handlers
 	void onStdinReady(ev::io& w, int revents);
@@ -587,25 +587,24 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 	}
 }
 
-void CgiScript::messageHeader(x0::BufferRef&& name, x0::BufferRef&& value)
+bool CgiScript::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
 {
 	TRACE("messageHeader(\"%s\", \"%s\")", name.str().c_str(), value.str().c_str());
 
-	if (name == "Status")
-	{
+	if (name == "Status") {
 		int status = value.ref(0, value.find(' ')).toInt();
 		request_->status = static_cast<x0::HttpError>(boost::lexical_cast<int>(status));
-	}
-	else 
-	{
+	} else {
 		if (name == "Location")
 			request_->status = x0::HttpError::MovedTemporarily;
 
 		request_->responseHeaders.push_back(name.str(), value.str());
 	}
+
+	return true;
 }
 
-bool CgiScript::messageContent(x0::BufferRef&& value)
+bool CgiScript::onMessageContent(const x0::BufferRef& value)
 {
 	TRACE("messageContent(length=%ld)", value.size());
 

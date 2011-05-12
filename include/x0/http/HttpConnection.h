@@ -51,9 +51,6 @@ public:
 	HttpConnection& operator=(const HttpConnection&) = delete;
 	HttpConnection(const HttpConnection&) = delete;
 
-	void ref();
-	void unref();
-
 	/**
 	 * creates an HTTP connection object.
 	 * \param srv a ptr to the server object this connection belongs to.
@@ -93,14 +90,18 @@ private:
 	friend class HttpWorker;
 
 	// overrides from HttpMessageProcessor:
-	virtual void onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
-	virtual void onMessageHeader(const BufferRef& name, const BufferRef& value);
+	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
+	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
 	virtual bool onMessageHeaderEnd();
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
 
+	void ref();
+	void unref();
+
 	void start(HttpListener* listener, int fd, const HttpConnectionList::iterator& handle);
 	void resume();
+	void processResume();
 
 	bool isAborted() const;
 	bool isClosed() const;
@@ -127,6 +128,11 @@ private:
 	Buffer& inputBuffer() { return input_; }
 	const Buffer& inputBuffer() const { return input_; }
 
+	void setShouldKeepAlive(bool enabled);
+	bool shouldKeepAlive() const { return flags_ & IsKeepAliveEnabled; }
+
+	bool isInsideSocketCallback() const { return refCount_ > 0; }
+
 private:
 	unsigned refCount_;
 
@@ -139,15 +145,16 @@ private:
 
 	// we could make these things below flags
 	unsigned flags_;
-	static const unsigned IsProcessing       = 0x0001; //!< currently in processInput()
 	static const unsigned IsHandlingRequest  = 0x0002; //!< is this connection (& request) currently passed to a request handler?
 	static const unsigned IsResuming         = 0x0004; //!< resume() was invoked and we've something in the pipeline (flag needed?)
 	static const unsigned IsKeepAliveEnabled = 0x0008; //!< connection should keep-alive to accept further requests
 	static const unsigned IsAborted          = 0x0010; //!< abort() was invoked, merely meaning, that the client aborted the connection early
+	static const unsigned IsClosed           = 0x0020; //!< closed() invoked, but close-action delayed
 
 	// HTTP HttpRequest
 	Buffer input_;						//!< buffer for incoming data.
 	std::size_t inputOffset_;			//!< number of bytes in input_ successfully processed already.
+	std::size_t inputRequestOffset_;	//!< offset to the first byte of the currently processed request
 	HttpRequest* request_;				//!< currently parsed http HttpRequest, may be NULL
 
 	// output
@@ -203,7 +210,7 @@ inline bool HttpConnection::isAborted() const
 
 inline bool HttpConnection::isClosed() const
 {
-	return socket_->isClosed();
+	return flags_ & IsClosed;
 }
 
 /*! Tests whether or not this connection has pending data to sent to the client.

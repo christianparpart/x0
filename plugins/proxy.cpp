@@ -85,8 +85,8 @@ private:
 	void onWriteComplete();
 
 	// response (HttpMessageProcessor)
-	virtual void onMessageBegin(int versionMajor, int versionMinor, int code, const x0::BufferRef& text);
-	virtual void onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const x0::BufferRef& text);
+	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
 	virtual bool onMessageContent(const x0::BufferRef& chunk);
 	virtual bool onMessageEnd();
 
@@ -268,12 +268,13 @@ inline bool validateResponseHeader(const x0::BufferRef& name)
  * We will use the status code only.
  * However, we could pass the text field, too - once x0 core supports it.
  */
-void ProxyConnection::onMessageBegin(int major, int minor, int code, const x0::BufferRef& text)
+bool ProxyConnection::onMessageBegin(int major, int minor, int code, const x0::BufferRef& text)
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", (void*)this, major, minor, code, text.str().c_str());
 
 	request_->status = static_cast<x0::HttpError>(code);
 	TRACE("status: %d", (int)request_->status);
+	return true;
 }
 
 /** callback, invoked on every successfully parsed response header.
@@ -281,17 +282,20 @@ void ProxyConnection::onMessageBegin(int major, int minor, int code, const x0::B
  * We will pass this header directly to the client's response,
  * if that is NOT a connection-level header.
  */
-void ProxyConnection::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
+bool ProxyConnection::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
 {
 	TRACE("ProxyConnection(%p).onHeader('%s', '%s')", (void*)this, name.str().c_str(), value.str().c_str());
 
 	if (!validateResponseHeader(name))
-		return;
+		goto done;
 
 	if (cloak_ && iequals(name, "Server"))
-		return;
+		goto done;
 
 	request_->responseHeaders.push_back(name.str(), value.str());
+
+done:
+	return true;
 }
 
 /** callback, invoked on a new response content chunk. */
@@ -445,7 +449,8 @@ private:
 	{
 		// TODO: reuse already spawned proxy connections instead of recreating each time.
 
-		x0::BufferRef origin = args[0].toString();
+		x0::Buffer borigin = args[0].toString();
+		x0::BufferRef origin(borigin);
 
 		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
 

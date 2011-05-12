@@ -121,7 +121,10 @@ private:
 		x0::Buffer buf;
 
 		buf.reserve(1);
+		CPPUNIT_ASSERT(buf.size() == 0);
+		CPPUNIT_ASSERT(buf.capacity() == 1);
 
+		buf.reserve(2);
 		CPPUNIT_ASSERT(buf.size() == 0);
 		CPPUNIT_ASSERT(buf.capacity() == x0::Buffer::CHUNK_SIZE);
 	}
@@ -377,7 +380,7 @@ private:
 	void ref_begins()
 	{
 		x0::ConstBuffer b("hello");
-		x0::Buffer::view v(b);
+		x0::BufferRef v(b);
 
 		CPPUNIT_ASSERT(v.begins((const char *)0));
 		CPPUNIT_ASSERT(v.begins(""));
@@ -438,7 +441,7 @@ private: // {{{ debug helper
 			printf("buffer: '%s'\n", b.str().c_str());
 	}
 
-	void print(const x0::Buffer::view& v, const char *msg = 0)
+	void print(const x0::BufferRef& v, const char *msg = 0)
 	{
 		if (msg && *msg)
 			printf("buffer.view(%s): '%s'\n", msg, v.str().c_str());

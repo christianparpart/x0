@@ -155,8 +155,9 @@ inline bool HttpMessageProcessor::isText(char value)
  * \param versionMajor HTTP major version (e.g. 0 for 0.9)
  * \param versionMinor HTTP minor version (e.g. 9 for 0.9)
  */
-void HttpMessageProcessor::onMessageBegin(const BufferRef& method, const BufferRef& uri, int versionMajor, int versionMinor)
+bool HttpMessageProcessor::onMessageBegin(const BufferRef& method, const BufferRef& uri, int versionMajor, int versionMinor)
 {
+	return true;
 }
 
 /** hook, invoked for each HTTP/1.1 Status-Line, that has been fully parsed.
@@ -166,20 +167,23 @@ void HttpMessageProcessor::onMessageBegin(const BufferRef& method, const BufferR
  * \param code HTTP response status code (e.g. 200 or 404)
  * \param text HTTP response status text (e.g. "Ok" or "Not Found")
  */
-void HttpMessageProcessor::onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text)
+bool HttpMessageProcessor::onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text)
 {
+	return true;
 }
 
 /** hook, invoked for each generic HTTP Message.
  */
-void HttpMessageProcessor::onMessageBegin()
+bool HttpMessageProcessor::onMessageBegin()
 {
+	return true;
 }
 
 /** hook, invoked for each sequentially parsed HTTP header.
  */
-void HttpMessageProcessor::onMessageHeader(const BufferRef& name, const BufferRef& value)
+bool HttpMessageProcessor::onMessageHeader(const BufferRef& name, const BufferRef& value)
 {
+	return true;
 }
 
 /** hook, invoked once all request headers have been fully parsed (no possible content parsed yet).
@@ -408,7 +412,8 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk)
 
 						// an internet message has no special top-line,
 						// so we just invoke the callback right away
-						onMessageBegin();
+						if (!onMessageBegin())
+							return nparsed;
 
 						break;
 				}
@@ -535,7 +540,9 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk)
 					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
 							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
-					onMessageBegin(method_, entity_, versionMajor_, versionMinor_);
+					if (!onMessageBegin(method_, entity_, versionMajor_, versionMinor_)) {
+						return nparsed;
+					}
 				}
 #endif
 				else if (!std::isdigit(*i)) {
@@ -555,7 +562,9 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk)
 					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
 							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
-					onMessageBegin(method_, entity_, versionMajor_, versionMinor_);
+					if (!onMessageBegin(method_, entity_, versionMajor_, versionMinor_)) {
+						return nparsed;
+					}
 				}
 				else
 					state_ = SYNTAX_ERROR;
@@ -686,7 +695,9 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk)
 					++i;
 
 					//TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", versionMajor_, versionMinor_, code_, message_.str().c_str());
-					onMessageBegin(versionMajor_, versionMinor_, code_, message_);
+					if (!onMessageBegin(versionMajor_, versionMinor_, code_, message_)) {
+						return nparsed;
+					}
 				} else
 					state_ = SYNTAX_ERROR;
 				break;
@@ -844,6 +855,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk)
 				}
 				break;
 			case HEADER_VALUE_END:
+			{
 				TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
 
 				if (iequals(name_, "Content-Length")) {
@@ -855,13 +867,18 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk)
 					}
 				}
 
-				onMessageHeader(name_, value_);
+				bool rv = onMessageHeader(name_, value_);
 				name_.clear();
 				value_.clear();
 
 				// continue with the next header
 				state_ = HEADER_NAME_BEGIN;
+
+				if (!rv) {
+					return nparsed;
+				}
 				break;
+			}
 			case HEADER_END_LF:
 				if (*i == LF) {
 					bool contentExpected = 
