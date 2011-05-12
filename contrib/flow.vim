@@ -10,9 +10,8 @@ endif
 " ---------------------------------------------------------------------------------
 "
 " comments
-syn keyword flowTodo contained TODO FIXME XXX NOTE
+syn keyword flowTodo contained TODO FIXME XXX NOTE BUG
 syn match flowComment "#.*$" contains=flowTodo
-syn match flowComment "//.*$" contains=flowTodo
 syn region flowComment start="\/\*" end="\*\/" contains=flowTodo
 
 " blocks
@@ -109,9 +108,9 @@ hi def link flowType          Type
 hi def link flowBlock         Statement
 hi def link flowKeywords      Keyword
 hi def link flowOperator      Operator
-hi def link flowCoreFunctions PreProc
-hi def link flowCoreHandler   PreProc
-hi def link flowCoreVar       PreProc
+hi def link flowCoreFunctions Statement
+hi def link flowCoreHandler   Statement
+hi def link flowCoreVar       Statement
 hi def link flowSpecial       Special
 hi def link flowUnit          Special
 hi def link flowFormat        Special
