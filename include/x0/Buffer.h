@@ -37,8 +37,6 @@ public:
 	typedef value_type * iterator;
 	typedef const value_type * const_iterator;
 
-	typedef BufferRef view;
-
 	//static const std::size_t CHUNK_SIZE = 4096;
 	enum { CHUNK_SIZE = 4096 };
 
