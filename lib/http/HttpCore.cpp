@@ -334,7 +334,6 @@ void HttpCore::tcp_nodelay(FlowValue& result, const Params& args)
 
 void HttpCore::max_request_uri_size(FlowValue& result, const Params& args)
 {
-	printf("max_request_uri_size\n");
 	if (args.count() == 1 && args[0].isBool())
 		server().maxRequestUriSize(args[0].toBool());
 	else
