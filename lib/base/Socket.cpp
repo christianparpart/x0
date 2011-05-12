@@ -389,8 +389,9 @@ ssize_t Socket::read(Buffer& result)
 
 	for (;;)
 	{
-		if (result.capacity() - result.size() < 256)
-			result.reserve(result.size() * 1.5);
+		if (result.capacity() - result.size() < 256) {
+			result.reserve(std::max(4096ul, static_cast<std::size_t>(result.size() * 1.5)));
+		}
 
 		size_t nbytes = result.capacity() - result.size();
 		ssize_t rv = ::read(fd_, result.end(), nbytes);
@@ -471,6 +472,7 @@ void Socket::onConnectComplete()
 void Socket::handshake(int /*revents*/)
 {
 	// plain (unencrypted) TCP/IP sockets do not need an additional handshake
+	state_ = Operational;
 }
 
 void Socket::io(ev::io& /*io*/, int revents)
