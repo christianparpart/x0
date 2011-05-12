@@ -298,9 +298,6 @@ public:
 //	std::shared_ptr<range_def> range;			//!< parsed "Range" request header
 	bool expectingContinue;
 
-	// custom data bindings
-	//std::map<HttpPlugin *, CustomDataPtr> customData;
-
 public:
 	void setErrorHandler(FlowValue::Function handler) { errorHandler_ = handler; }
 
