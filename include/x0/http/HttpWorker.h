@@ -59,7 +59,6 @@ private:
 	ev_tstamp startupTime_;
 	DateTime now_;
 	std::atomic<int> connectionLoad_;
-	std::atomic<int> requestLoad_;
 	std::atomic<unsigned long long> requestCount_;
 	unsigned long long connectionCount_;
 	pthread_t thread_;
@@ -100,7 +99,6 @@ public:
 	const HttpConnectionList& connections() const { return connections_; }
 
 	int connectionLoad() const;
-	int requestLoad() const;
 	unsigned long long requestCount() const;
 	unsigned long long connectionCount() const;
 
@@ -155,11 +153,6 @@ inline const DateTime& HttpWorker::now() const
 inline int HttpWorker::connectionLoad() const
 {
 	return connectionLoad_;
-}
-
-inline int HttpWorker::requestLoad() const
-{
-	return requestLoad_;
 }
 
 inline unsigned long long HttpWorker::requestCount() const
