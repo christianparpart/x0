@@ -173,12 +173,14 @@ void HttpConnection::timeout(Socket *)
 	}
 }
 
-#if defined(WITH_SSL)
 bool HttpConnection::isSecure() const
 {
+#if defined(WITH_SSL)
 	return listener_->isSecure();
-}
+#else
+	return false;
 #endif
+}
 
 /** start first async operation for this HttpConnection.
  *

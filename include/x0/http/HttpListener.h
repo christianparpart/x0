@@ -67,9 +67,7 @@ public:
 	SocketDriver *socketDriver() const;
 	void setSocketDriver(SocketDriver *sd);
 
-#if defined(WITH_SSL)
 	bool isSecure() const;
-#endif
 
 	int handle() const;
 
@@ -154,12 +152,14 @@ inline int HttpListener::addressFamily() const
 	return addressFamily_;
 }
 
-#if defined(WITH_SSL)
 inline bool HttpListener::isSecure() const
 {
+#if defined(WITH_SSL)
 	return socketDriver_->isSecure();
-}
+#else
+	return false;
 #endif
+}
 //@}
 
 // }}}
