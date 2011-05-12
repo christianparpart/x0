@@ -62,6 +62,10 @@ private:
 	void max_core(FlowValue& result, const Params& args);
 	void tcp_cork(FlowValue& result, const Params& args);
 	void tcp_nodelay(FlowValue& result, const Params& args);
+	void max_request_uri_size(FlowValue& result, const Params& args);
+	void max_request_header_size(FlowValue& result, const Params& args);
+	void max_request_header_count(FlowValue& result, const Params& args);
+	void max_request_body_size(FlowValue& result, const Params& args);
 
 	// debugging
 	void emit_llvm(FlowValue& result, const Params& args);

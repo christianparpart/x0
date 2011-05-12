@@ -64,6 +64,10 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupProperty<HttpCore, &HttpCore::max_core>("max_core_size", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::tcp_cork>("tcp_cork", FlowValue::BOOLEAN);
 	registerSetupProperty<HttpCore, &HttpCore::tcp_nodelay>("tcp_nodelay", FlowValue::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::max_request_uri_size>("max_request_uri_size", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_request_header_size>("max_request_header_size", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_request_header_count>("max_request_header_count", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_request_body_size>("max_request_body_size", FlowValue::NUMBER);
 
 	// TODO setup error-documents
 
@@ -326,6 +330,39 @@ void HttpCore::tcp_nodelay(FlowValue& result, const Params& args)
 		server().tcpNoDelay(args[0].toBool());
 	else
 		result.set(server().tcpNoDelay());
+}
+
+void HttpCore::max_request_uri_size(FlowValue& result, const Params& args)
+{
+	printf("max_request_uri_size\n");
+	if (args.count() == 1 && args[0].isBool())
+		server().maxRequestUriSize(args[0].toBool());
+	else
+		result.set(server().maxRequestUriSize());
+}
+
+void HttpCore::max_request_header_size(FlowValue& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().maxRequestHeaderSize(args[0].toBool());
+	else
+		result.set(server().maxRequestHeaderSize());
+}
+
+void HttpCore::max_request_header_count(FlowValue& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().maxRequestHeaderCount(args[0].toBool());
+	else
+		result.set(server().maxRequestHeaderCount());
+}
+
+void HttpCore::max_request_body_size(FlowValue& result, const Params& args)
+{
+	if (args.count() == 1 && args[0].isBool())
+		server().maxRequestBodySize(args[0].toBool());
+	else
+		result.set(server().maxRequestBodySize());
 }
 
 void HttpCore::listen(FlowValue& result, const Params& args)
