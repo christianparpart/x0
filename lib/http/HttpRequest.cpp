@@ -106,7 +106,7 @@ BufferRef HttpRequest::requestHeader(const std::string& name) const
 std::string HttpRequest::hostid() const
 {
 	if (hostid_.empty())
-		hostid_ = x0::make_hostid(requestHeader("Host"), connection.listener().port());
+		hostid_ = x0::make_hostid(hostname, connection.listener().port());
 
 	return hostid_;
 }
