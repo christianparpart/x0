@@ -575,6 +575,11 @@ void HttpConnection::abort()
 
 	flags_ |= IsAborted;
 
+	if (isOutputPending()) {
+		TRACE("abort: clearing pending output (%ld)", output_.size());
+		output_.clear();
+	}
+
 	if (abortHandler_) {
 		assert(request_ != nullptr);
 
