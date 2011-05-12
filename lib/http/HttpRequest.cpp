@@ -371,6 +371,7 @@ void HttpRequest::finalize()
 		connection.close();
 	} else {
 		TRACE("finalize: resuming");
+		clear();
 		connection.resume();
 	}
 }
