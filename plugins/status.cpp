@@ -137,7 +137,10 @@ private:
 	void dump(x0::Buffer& out, x0::HttpConnection* c)
 	{
 		out << c->worker().id() << "." << c->id() << ", ";
-		out << c->state_str() << ", " << c->status_str() << ": ";
+		out << c->status_str();
+		if (c->status() == x0::HttpConnection::ReadingRequest)
+			out << " (" << c->state_str() << ")";
+		out << ": ";
 
 		const x0::HttpRequest* r = c->request();
 		if (r && c->status() != x0::HttpConnection::KeepAliveRead) {
