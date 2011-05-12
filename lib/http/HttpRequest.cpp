@@ -67,8 +67,6 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 HttpRequest::~HttpRequest()
 {
 	TRACE("destructing");
-	connection.worker().server().onRequestDone(this);
-	clearCustomData();
 }
 
 void HttpRequest::updatePathInfo()
@@ -307,7 +305,6 @@ void HttpRequest::finish()
 {
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);
-	clearCustomData();
 
 	if (isAborted()) {
 		outputState_ = Finished;
@@ -360,8 +357,15 @@ void HttpRequest::finish()
 	}
 }
 
+/** internally invoked when the response has been <b>fully</b> flushed to the client.
+ *
+ * \see finish(), checkFinish()
+ */
 void HttpRequest::finalize()
 {
+	connection.worker().server().onRequestDone(this);
+	clearCustomData();
+
 	if (isAborted() || !connection.shouldKeepAlive()) {
 		TRACE("finalize: closing");
 		connection.close();
