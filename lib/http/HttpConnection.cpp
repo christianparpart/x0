@@ -57,6 +57,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 #endif
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	refCount_(0),
+	status_(StartingUp),
 	listener_(nullptr),
 	worker_(w),
 	handle_(),
@@ -198,6 +199,8 @@ void HttpConnection::start(HttpListener* listener, int fd, const HttpConnectionL
 	}
 
 	request_ = new HttpRequest(*this);
+
+	status_ = ReadingRequest;
 
 	ref();
 	if (socket_->state() == Socket::Handshake) {
@@ -394,6 +397,7 @@ bool HttpConnection::onMessageHeaderEnd()
 	++worker_->requestCount_;
 
 	flags_ |= IsHandlingRequest;
+	status_ = SendingReply;
 
 	worker_->handleRequest(request_);
 
@@ -483,6 +487,8 @@ void HttpConnection::processInput()
 		if (flags_ & IsResuming) {
 			TRACE("processInput: resume-flag set. watchInput(keepAlive)");
 			flags_ &= ~IsResuming;
+
+			status_ = KeepAliveRead;
 			watchInput(worker_->server_.maxKeepAlive());
 		}
 	}
@@ -644,9 +650,11 @@ void HttpConnection::processResume()
 
 	if (inputOffset_ < input_.size()) {
 		TRACE("resume: porbably pipelined requests (size:%ld) state:%s", input_.size() - inputOffset_, state_str());
+		status_ = ReadingRequest;
 	} else {
 		// nothing (pipelined) in buffer, wait for new request message
 		TRACE("resume: watch input");
+		status_ = KeepAliveRead;
 		watchInput(worker_->server_.maxKeepAlive());
 	}
 }

@@ -48,6 +48,14 @@ class X0_API HttpConnection :
 	public CustomDataMgr
 {
 public:
+	enum Status {
+		StartingUp,
+		ReadingRequest,
+		SendingReply,
+		KeepAliveRead
+	};
+
+public:
 	HttpConnection& operator=(const HttpConnection&) = delete;
 	HttpConnection(const HttpConnection&) = delete;
 
@@ -60,6 +68,9 @@ public:
 	~HttpConnection();
 
 	unsigned long long id() const;				//!< returns the (mostly) unique, worker-local, ID to this connection
+
+	Status status() const { return status_; }
+	const char* status_str() const;
 
 	void close();
 
@@ -80,6 +91,7 @@ public:
 	template<class T, class... Args> void write(Args&&... args);
 
 	bool isOutputPending() const;
+	bool isHandlingRequest() const;
 
 	const HttpRequest* request() const { return request_; }
 	HttpRequest* request() { return request_; }
@@ -136,6 +148,8 @@ private:
 private:
 	unsigned refCount_;
 
+	Status status_;
+
 	HttpListener* listener_;
 	HttpWorker* worker_;
 	HttpConnectionList::iterator handle_;
@@ -181,6 +195,17 @@ inline Socket* HttpConnection::socket() const
 inline unsigned long long HttpConnection::id() const
 {
 	return id_;
+}
+
+inline const char* HttpConnection::status_str() const
+{
+	static const char* str[] = {
+		"starting-up",
+		"reading-request",
+		"sending-reply",
+		"keep-alive-read"
+	};
+	return str[static_cast<int>(status_)];
 }
 
 inline HttpWorker& HttpConnection::worker() const
