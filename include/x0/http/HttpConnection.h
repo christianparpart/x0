@@ -96,6 +96,9 @@ public:
 	const HttpRequest* request() const { return request_; }
 	HttpRequest* request() { return request_; }
 
+	std::size_t inputSize() const { return input_.size(); }
+	std::size_t inputOffset() const { return inputOffset_; }
+
 private:
 	friend class HttpRequest;
 	friend class HttpListener;
