@@ -214,7 +214,7 @@ Source* HttpRequest::serialize()
 	//keepalive = false; // FIXME workaround
 
 	// only set Connection-response-header if found as request-header, too
-	if (!requestHeader("Connection").empty() || keepalive != connection.shouldKeepAlive()) {
+	if (!requestHeader("Connection").empty()) {
 		connection.setShouldKeepAlive(keepalive);
 		if (keepalive)
 			responseHeaders.overwrite("Connection", "keep-alive");
