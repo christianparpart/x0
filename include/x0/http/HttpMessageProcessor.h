@@ -158,7 +158,7 @@ public:
 	State state() const;
 	const char *state_str() const;
 
-	size_t process(const BufferRef& chunk);
+	size_t process(const BufferRef& chunk, size_t* nparsed = nullptr);
 
 	ssize_t contentLength() const;
 
