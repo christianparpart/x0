@@ -113,22 +113,66 @@ private:
 
 		x0::Buffer buf;
 		buf << "<html>";
-		buf << "<head><title>x0 status page</title></head>\n";
+		buf << "<head><title>x0 status page</title>\n";
+		buf <<
+			"<style>"
+			"#conn-table {"
+				"border: 1px solid #ccc;"
+			"}"
+			"#conn-table th {"
+				"border: 1px solid #ccc;"
+				"padding-left: 4px;"
+				"padding-right: 4px;"
+			"}"
+			"#conn-table td {"
+				"border: 1px solid #ccc;"
+				"padding-left: 4px;"
+				"padding-right: 4px;"
+			"}"
+			".cid { text-align: right; }"
+			".wid { text-align: right; }"
+			".ip { text-align: center; }"
+			".state { text-align: center; }"
+			".age { text-align: right; }"
+			".read { text-align: right; }"
+			".written { text-align: right; }"
+			".host { text-align: left; }"
+			".method { text-align: center; }"
+			".uri { text-align: left; }"
+			".status { text-align: center; }"
+			"</style>";
+		buf << "</head>";
 		buf << "<body>";
 		buf << "<h1>x0 status page</h1>\n";
+		buf << "<small><pre>" << server().tag() << "</pre></small>\n";
 		buf << "<pre>\n";
 		buf << "process uptime: " << uptime << "\n";
 		buf << "# workers: " << server().workers().size() << "\n";
 		buf << "# connections: " << nconns << "\n";
 		buf << "# total requests: " << numTotalRequests << "\n";
 		buf << "# total connections: " << numTotalConns << "\n";
-		buf << "\n";
+		buf << "</pre>\n";
+
+		buf << "<table border='0' cellspacing='0' cellpadding='0' id='conn-table'>\n";
+
+		buf << "<th>" << "cid" << "</th>";
+		buf << "<th>" << "wid" << "</th>";
+		buf << "<th>" << "IP" << "</th>";
+		buf << "<th>" << "state" << "</th>";
+		buf << "<th>" << "age" << "</th>";
+		buf << "<th>" << "read" << "</th>";
+		buf << "<th>" << "written" << "</th>";
+		buf << "<th>" << "host" << "</th>";
+		buf << "<th>" << "method" << "</th>";
+		buf << "<th>" << "uri" << "</th>";
+		buf << "<th>" << "status" << "</th>";
 
 		for (auto w: server().workers())
 			for (auto c: w->connections())
 				dump(buf, c);
 
-		buf << "</pre>\n";
+		buf << "</table>\n";
+
 		buf << "</body></html>\n";
 
 		return buf;
@@ -136,23 +180,32 @@ private:
 
 	void dump(x0::Buffer& out, x0::HttpConnection* c)
 	{
-		out << c->worker().id() << "." << c->id() << ", ";
-		out << c->status_str();
+		out << "<tr>";
+
+		out << "<td class='cid'>" << c->id() << "</td>";
+		out << "<td class='wid'>" << c->worker().id() << "</td>";
+		out << "<td class='ip'>" << c->remoteIP() << "</td>";
+
+		out << "<td class='state'>" << c->status_str();
 		if (c->status() == x0::HttpConnection::ReadingRequest)
 			out << " (" << c->state_str() << ")";
-		out << ": ";
+		out << "</td>";
+
+		out << "<td class='age'>" << (c->worker().now() - c->socket()->startedAt()).str() << "</td>";
+		out << "<td class='read'>" << c->inputOffset() << "/" << c->inputSize() << "</td>";
 
 		const x0::HttpRequest* r = c->request();
 		if (r && c->status() != x0::HttpConnection::KeepAliveRead) {
-			out << '@' << sanitize(r->hostname) << ": " << sanitize(r->method) << ' ' << sanitize(r->uri)
-				<< ' ' << x0::make_error_code(r->status).message()
-				<< ' ' << r->bytesTransmitted()
-				<< "\n";
-		} else
-			out << "\n";
+			out << "<td class='written'>" << r->bytesTransmitted() << "</td>";
+			out << "<td class='host'>" << sanitize(r->hostname) << "</td>";
+			out << "<td class='method'>" << sanitize(r->method) << "</td>";
+			out << "<td class='uri'>" << sanitize(r->uri) << "</td>";
+			out << "<td class='status'>" << x0::make_error_code(r->status).message() << "</td>";
+		} else {
+			out << "<td colspan='5'>" << "</td>";
+		}
 
-		out << "    ";
-		c->socket()->inspect(out);
+		out << "</tr>\n";
 	}
 
 	template<typename T>
