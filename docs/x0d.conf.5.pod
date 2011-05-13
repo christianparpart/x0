@@ -713,6 +713,37 @@ to C</home/trapni/public_html/welcome.html>:
 
 =back
 
+=head2 expire
+
+Adds "Expires" and "Cache-Control" response headers
+
+=over 6
+
+=item B<expire> (value)
+
+This function adds "Expires" and "Cache-Control" headers,
+based on the given paramter B<value>, to the response.
+
+If B<value> is a timespan, then the expiration
+is set relative to now.
+
+Otherwise (if B<value> is an absolute datetime),
+an absolute expiration is set.
+
+Examples:
+
+ # caches the response (client-side) entity for at up to 30 minutes 
+ # ahead of the files last-modification time. 
+ expire phys.mtime + 30 minutes
+
+ # caches the response (client-side) for 30 minutes from now on.
+ expire sys.now + 30 minutes
+
+ # same as above (sys.now + 30 minutes)
+ expire 30 minutes
+
+=back
+
 =head2 ssl
 
 Provides support for encrypted connections (HTTPS) via SSL/TLS.
