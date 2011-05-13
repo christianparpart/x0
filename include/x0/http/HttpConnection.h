@@ -123,8 +123,8 @@ private:
 	void watchInput(const TimeSpan& timeout = TimeSpan::Zero);
 	void watchOutput();
 
-	void processInput();
-	void processOutput();
+	bool processInput();
+	bool processOutput();
 
 	void process();
 	void io(Socket *socket, int revents);

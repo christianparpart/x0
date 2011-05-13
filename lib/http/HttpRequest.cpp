@@ -211,16 +211,17 @@ Source* HttpRequest::serialize()
 	if (!connection.worker().server().maxKeepAlive())
 		keepalive = false;
 
-	//keepalive = false; // FIXME workaround
+	keepalive = false; // FIXME workaround
 
 	// only set Connection-response-header if found as request-header, too
-	if (!requestHeader("Connection").empty()) {
-		connection.setShouldKeepAlive(keepalive);
+	if (!requestHeader("Connection").empty() || keepalive != connection.shouldKeepAlive()) {
 		if (keepalive)
 			responseHeaders.overwrite("Connection", "keep-alive");
 		else
 			responseHeaders.overwrite("Connection", "close");
 	}
+
+	connection.setShouldKeepAlive(keepalive);
 
 	if (!connection.worker().server().tcpCork())
 		connection.socket()->setTcpCork(true);

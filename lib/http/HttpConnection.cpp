@@ -57,7 +57,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 #endif
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	refCount_(0),
-	status_(StartingUp),
+	status_(ReadingRequest),
 	listener_(nullptr),
 	worker_(w),
 	handle_(),
@@ -132,11 +132,15 @@ void HttpConnection::io(Socket *, int revents)
 
 	ref();
 
-	if (revents & Socket::Read)
-		processInput();
+	if ((revents & Socket::Read) && !processInput())
+		goto done;
 
-	if (!isAborted() && revents & Socket::Write)
-		processOutput();
+	if ((revents & Socket::Write) && !processOutput())
+		goto done;
+
+	while (inputOffset_ < input_.size()
+			&& (!(flags_ & IsHandlingRequest) || state() != MESSAGE_BEGIN))
+		process();
 
 	switch (status()) {
 	case ReadingRequest:
@@ -148,12 +152,13 @@ void HttpConnection::io(Socket *, int revents)
 		break;
 	}
 
+done:
 	unref();
 }
 
 void HttpConnection::timeout(Socket *)
 {
-	TRACE("timed out");
+	TRACE("timedout: status=%s", status_str());
 
 	switch (status()) {
 	case StartingUp:
@@ -225,8 +230,6 @@ void HttpConnection::start(HttpListener* listener, int fd, const HttpConnectionL
 	}
 
 	request_ = new HttpRequest(*this);
-
-	status_ = ReadingRequest;
 
 	ref();
 	if (socket_->state() == Socket::Handshake) {
@@ -328,11 +331,12 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 	else
 		setShouldKeepAlive(false);
 
-	// TODO
-#if 0
-	if (!checkRequestLineLimit())
+	// limit request uri length
+	if (request_->uri.size() > worker().server().maxRequestUriSize()) {
+		request_->status = HttpError::RequestUriTooLong;
+		request_->finish();
 		return false;
-#endif
+	}
 
 	return true;
 }
@@ -441,7 +445,7 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 
 bool HttpConnection::onMessageEnd()
 {
-	TRACE("messageEnd() request:%p", request_);
+	TRACE("messageEnd() %s (isHandlingRequest:%d)", status_str(), flags_ & IsHandlingRequest);
 
 	// marks the request-content EOS, so that the application knows when the request body
 	// has been fully passed to it.
@@ -478,9 +482,11 @@ void HttpConnection::watchOutput()
  *
  * We assume, that we are in request-parsing state.
  */
-void HttpConnection::processInput()
+bool HttpConnection::processInput()
 {
 	TRACE("processInput()");
+
+	ref();
 
 	if (status() == KeepAliveRead)
 		status_ = ReadingRequest;
@@ -498,31 +504,29 @@ void HttpConnection::processInput()
 			break;
 		default:
 			//log(Severity::error, "Connection read error: %s", strerror(errno));
-			abort();
+			goto err;
 		}
 	} else if (rv == 0) {
 		// EOF
 		TRACE("processInput(): (EOF)");
-		abort();
+		goto err;
 	} else {
 		TRACE("processInput(): (bytes read: %ld, isHandlingRequest:%d, state:%s", rv, flags_ & IsHandlingRequest, state_str());
 		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
 
-		if (!(flags_ & IsHandlingRequest) || state() != MESSAGE_BEGIN)
-			process();
+//		while (!(flags_ & IsHandlingRequest) || state() != MESSAGE_BEGIN)
+//			process();
 
 		TRACE("processInput(): done process()ing; fd=%d, request=%p state:%s", socket_->handle(), request_, state_str());
-
-#if 0
-		if (flags_ & IsResuming) {
-			TRACE("processInput: resume-flag set. watchInput(keepAlive)");
-			flags_ &= ~IsResuming;
-
-			status_ = KeepAliveRead;
-			watchInput(worker_->server_.maxKeepAlive());
-		}
-#endif
 	}
+
+	unref();
+	return true;
+
+err:
+	abort();
+	unref();
+	return false;
 }
 
 /** write source into the connection stream and notifies the handler on completion.
@@ -536,7 +540,8 @@ void HttpConnection::write(Source* chunk)
 		TRACE("write() chunk (%s)", chunk->className());
 		output_.push_back(chunk);
 
-		processOutput();
+		watchOutput();
+		//processOutput();
 	} else {
 		TRACE("write() ignore chunk (%s) - (connection aborted)", chunk->className());
 		delete chunk;
@@ -547,55 +552,63 @@ void HttpConnection::write(Source* chunk)
  * Writes as much as it wouldn't block of the response stream into the underlying socket.
  *
  */
-void HttpConnection::processOutput()
+bool HttpConnection::processOutput()
 {
 	TRACE("processOutput()");
 	ref();
 
-	for (int done = -1; done < 0; ) {
-		ssize_t rv = output_.sendto(sink_);
+	ssize_t rv = output_.sendto(sink_);
 
-		TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
+	TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
 
-		// we may not actually have created a request object here because the request-line
-		// hasn't yet been parsed *BUT* we're already about send the response (e.g. 400 Bad Request),
-		// so we need to first test for its existence before we access it.
-
-		if (rv > 0) {
-			// output chunk written
-			request_->bytesTransmitted_ += rv;
-		} else if (rv == 0) {
-			// output fully written
-			watchInput();
-			request_->checkFinish();
-
-			TRACE("processOutput: output fully written. closed:%d, outputPending:%ld, refCount:%d", isClosed(), output_.size(), refCount_);
-
-			if (isClosed() && !isOutputPending() && refCount_ == 0) {
-				worker_->release(handle_);
-			}
-			break;
-		} else {
-			switch (errno) {
-			case EINTR:
-				break;
-			case EAGAIN:
-#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-			case EWOULDBLOCK:
-#endif
-				// complete write would block, so watch write-ready-event and be called back
-				watchOutput();
-				done = 1;
-				break;
-			default:
-				//log(Severity::error, "Connection write error: %s", strerror(errno));
-				abort();
-				done = 1;
-				break;
-			}
-		}
+	if (rv > 0) {
+		// output chunk written
+		request_->bytesTransmitted_ += rv;
+		goto done;
 	}
+
+	if (rv == 0) {
+		// output fully written
+		watchInput();
+
+		if (request_->isFinished()) {
+			// finish() got invoked before reply was fully sent out, thus,
+			// finalize() was delayed.
+			request_->finalize();
+		}
+
+		TRACE("processOutput: output fully written. closed:%d, outputPending:%ld, refCount:%d", isClosed(), output_.size(), refCount_);
+
+		if (isClosed() && !isOutputPending() && refCount_ == 0) {
+			worker_->release(handle_);
+		}
+		goto done;
+	}
+
+	// sendto() failed
+	switch (errno) {
+	case EINTR:
+		break;
+	case EAGAIN:
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+	case EWOULDBLOCK:
+#endif
+		// complete write would block, so watch write-ready-event and be called back
+		watchOutput();
+		break;
+	default:
+		//log(Severity::error, "Connection write error: %s", strerror(errno));
+		goto err;
+	}
+
+done:
 	unref();
+	return true;
+
+err:
+	abort();
+	unref();
+	return false;
 }
 
 /*! Invokes the abort-callback (if set) and closes/releases this connection.
@@ -627,6 +640,7 @@ void HttpConnection::abort()
 
 		abortHandler_(abortData_);
 	} else {
+		request_->clearCustomData();
 		close();
 	}
 }
@@ -661,7 +675,8 @@ void HttpConnection::close()
  */
 void HttpConnection::resume()
 {
-	TRACE("resume() %d", shouldKeepAlive());
+	TRACE("resume() shouldKeepAlive:%d (insideSocketCB:%d)", shouldKeepAlive(), isInsideSocketCallback());
+	TRACE("-- (status:%s, inputOffset:%ld, inputSize:%ld)", status_str(), inputOffset_, input_.size());
 
 	flags_ &= ~IsHandlingRequest;
 
@@ -677,14 +692,19 @@ void HttpConnection::resume()
 
 void HttpConnection::processResume()
 {
-	flags_ &= ~IsResuming;
+	TRACE("processResume: (flag:%d, insideIOHandler:%d status:%s, inputOffset:%ld/%ld)",
+		(flags_ & IsResuming) != 0, isInsideSocketCallback(),
+		status_str(), inputOffset_, input_.size());
 
-	TRACE("processResume");
+	flags_ &= ~IsResuming;
 	request_->clear();
 
 	if (inputOffset_ < input_.size()) {
-		TRACE("processResume: porbably pipelined requests (size:%ld) state:%s", input_.size() - inputOffset_, state_str());
+		TRACE("processResume: pipelined requests available (size:%ld)", input_.size() - inputOffset_);
 		status_ = ReadingRequest;
+		if (!isInsideSocketCallback()) {
+			watchInput(worker_->server_.maxReadIdle());
+		}
 	} else {
 		// nothing (pipelined) in buffer, wait for new request message
 		TRACE("processResume: watch input");
