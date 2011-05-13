@@ -116,8 +116,10 @@ void HttpRequest::setHostid(const std::string& value)
 	hostid_ = value;
 }
 
-/** report true whenever content is still in queue to be read (even if not yet received).
- *  @retval false no content expected anymore, thus, request fully parsed.
+/** Reports true whenever content is still in queue to be read (even if not yet received).
+ *
+ * @retval true there is still more content in the queue to be processed.
+ * @retval false no content expected anymore, thus, request fully parsed.
  */
 bool HttpRequest::contentAvailable() const
 {
@@ -126,6 +128,9 @@ bool HttpRequest::contentAvailable() const
 }
 
 /*! setup request-body consumer callback.
+ *
+ * \note This function must be invoked within the request handler before it passes control back to the caller.
+ * \warning Only register a callback, if you're to serve the request's reply.
  *
  * \param callback the callback to invoke on request-body chunks.
  * \param data a custom data pointer being also passed to the callback.
@@ -141,6 +146,10 @@ void HttpRequest::setBodyCallback(void (*callback)(const BufferRef&, void*), voi
 	}
 }
 
+/** Passes the request body chunk to the applications registered callback.
+ *
+ * \see setBodyCallback()
+ */
 void HttpRequest::onRequestContent(const BufferRef& chunk)
 {
 	if (bodyCallback_) {
@@ -251,26 +260,6 @@ void HttpRequest::writeDefaultResponseContent()
 	if (isResponseContentForbidden())
 		return;
 
-	// XXX here we might try to customize the standard error output
-	//connection.worker().server().onErrorDocument(this);
-	//FIXME should the above have done a finish() on its own or not?
-	//if (outputState_ != Unhandled)
-	//	return;
-
-	// TODO custom error documents
-#if 0
-	std::string filename(connection.server().config()["ErrorDocuments"][make_str(status)].as<std::string>());
-	FileInfoPtr fi(connection.server().fileinfo(filename));
-	int fd = ::open(fi->filename().c_str(), O_RDONLY);
-	if (fi->exists() && fd >= 0)
-	{
-		responseHeaders.overwrite("Content-Type", fi->mimetype());
-		responseHeaders.overwrite("Content-Length", boost::lexical_cast<std::string>(fi->size()));
-
-		write<FileSource>(fd, 0, fi->size(), true);
-		return;
-	}
-#endif
 	std::string codeStr = http_category().message(static_cast<int>(status));
 	char buf[1024];
 
@@ -296,10 +285,24 @@ std::string HttpRequest::statusStr(HttpError value)
 	return http_category().message(static_cast<int>(value));
 }
 
-/** finishes this response by flushing the content into the stream.
+/** Finishes handling the current request.
  *
- * \note this also queues the underlying connection for processing the next request (on keep-alive).
- * \note this also clears out the client abort callback set with \p setAbortHandler().
+ * This results either in a closed underlying connection or the connection waiting for the next request to arrive,
+ * or, if pipelined, processing the next request right away.
+ *
+ * If finish() is invoked with no response being generated yet, it will be generate a default response automatically,
+ * depending on the \b status code set.
+ *
+ * \p finish() can be invoked even if there is still output pending, but it may not be added more output to the connection
+ * by the application after \e finish() has been invoked.
+ *
+ * \note We might also trigger the custom error page handler, if no content was given.
+ * \note This also queues the underlying connection for processing the next request (on keep-alive).
+ * \note This also clears out the client abort callback, as set with \p setAbortHandler().
+ * \note This also clears the body content chunk callback, as set with \p setBodyCallback().
+ *
+ * \see HttpConnection::write(), HttpConnection::isOutputPending()
+ * \see finalize()
  */
 void HttpRequest::finish()
 {
@@ -357,7 +360,12 @@ void HttpRequest::finish()
 	}
 }
 
-/** internally invoked when the response has been <b>fully</b> flushed to the client.
+/** internally invoked when the response has been <b>fully</b> flushed to the client and we're to pass control back to the underlying connection.
+ *
+ * The request's reply has been fully transmitted to the client, so we are to invoke the request-done callback
+ * and clear request-local custom data.
+ *
+ * After that, the connection gets either \p close()'d or will enter \p resume() state, to receive and process the next request.
  *
  * \see finish(), checkFinish()
  */
