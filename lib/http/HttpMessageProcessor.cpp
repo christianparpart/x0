@@ -366,7 +366,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	switch (state_) {
 		case CONTENT: // fixed size content
 			if (!passContent(chunk, nparsed))
-				return *nparsed;
+				goto done;
 
 			i += *nparsed;
 			break;
@@ -377,7 +377,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				? onMessageContent(chunk)
 				: onMessageContent(filters_.process(chunk));
 
-			return *nparsed;
+			goto done;
 		}
 		default:
 			break;
@@ -414,7 +414,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 						// an internet message has no special top-line,
 						// so we just invoke the callback right away
 						if (!onMessageBegin())
-							return *nparsed;
+							goto done;
 
 						break;
 				}
@@ -422,7 +422,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			case REQUEST_LINE_BEGIN:
 				if (isToken(*i)) {
 					state_ = REQUEST_METHOD;
-					method_ = chunk.buffer().ref(*nparsed, 1);
+					method_ = chunk.ref(*nparsed - chunk.offset(), 1);
 
 					++*nparsed;
 					++i;
@@ -445,7 +445,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case REQUEST_ENTITY_BEGIN:
 				if (std::isprint(*i)) {
-					entity_ = chunk.buffer().ref(*nparsed, 1);
+					entity_ = chunk.ref(*nparsed - chunk.offset(), 1);
 					state_ = REQUEST_ENTITY;
 
 					++*nparsed;
@@ -542,7 +542,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					if (!onMessageBegin(method_, entity_, versionMajor_, versionMinor_)) {
-						return *nparsed;
+						goto done;
 					}
 				}
 #endif
@@ -564,7 +564,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					if (!onMessageBegin(method_, entity_, versionMajor_, versionMinor_)) {
-						return *nparsed;
+						goto done;
 					}
 				}
 				else
@@ -669,7 +669,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			case STATUS_MESSAGE_BEGIN:
 				if (isText(*i)) {
 					state_ = STATUS_MESSAGE;
-					message_ = chunk.buffer().ref(*nparsed, 1);
+					message_ = chunk.ref(*nparsed - chunk.offset(), 1);
 					++*nparsed;
 					++i;
 				}
@@ -697,14 +697,14 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 
 					//TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", versionMajor_, versionMinor_, code_, message_.str().c_str());
 					if (!onMessageBegin(versionMajor_, versionMinor_, code_, message_)) {
-						return *nparsed;
+						goto done;
 					}
 				} else
 					state_ = SYNTAX_ERROR;
 				break;
 			case HEADER_NAME_BEGIN:
 				if (isToken(*i)) {
-					name_ = chunk.buffer().ref(*nparsed, 1);
+					name_ = chunk.ref(*nparsed - chunk.offset(), 1);
 					state_ = HEADER_NAME;
 					++*nparsed;
 					++i;
@@ -804,7 +804,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case HEADER_VALUE_BEGIN:
 				if (isText(*i)) {
-					value_ = chunk.buffer().ref(*nparsed, 1);
+					value_ = chunk.ref(*nparsed - chunk.offset(), 1);
 					++*nparsed;
 					++i;
 					state_ = HEADER_VALUE;
@@ -876,7 +876,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				state_ = HEADER_NAME_BEGIN;
 
 				if (!rv) {
-					return *nparsed;
+					goto done;
 				}
 				break;
 			}
@@ -897,11 +897,11 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 
 					if (!onMessageHeaderEnd()) {
 						TRACE("messageHeaderEnd returned false. returning `Aborted`-state");
-						return *nparsed;
+						goto done;
 					}
 
 					if (!contentExpected && !onMessageEnd()) {
-						return *nparsed;
+						goto done;
 					}
 				} else {
 					state_ = SYNTAX_ERROR;
@@ -917,7 +917,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case CONTENT_ENDLESS: // body w/o content-length (allowed in simple MESSAGE types only)
 			{
-				BufferRef c(chunk.buffer().ref(*nparsed));
+				BufferRef c(chunk.ref(*nparsed - chunk.offset()));
 
 				*nparsed += c.size();
 				i += c.size();
@@ -927,7 +927,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					: onMessageContent(filters_.process(c));
 
 				if (!rv)
-					return *nparsed;
+					goto done;
 
 				break;
 			}
@@ -935,24 +935,24 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			{
 				std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - *nparsed);
 
-				std::size_t offset = *nparsed;
+				std::size_t offset = *nparsed - chunk.offset();
 
 				contentLength_ -= chunkSize;
 				*nparsed += chunkSize;
 				i += chunkSize;
 
 				bool rv = filters_.empty()
-					? onMessageContent(chunk.buffer().ref(offset, chunkSize))
-					: onMessageContent(filters_.process(chunk.buffer().ref(offset, chunkSize)));
+					? onMessageContent(chunk.ref(offset, chunkSize))
+					: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)));
 
 				if (contentLength_ == 0)
 					state_ = MESSAGE_BEGIN;
 
 				if (!rv)
-					return *nparsed;
+					goto done;
 
 				if (state_ == MESSAGE_BEGIN && !onMessageEnd())
-					return *nparsed;
+					goto done;
 
 				break;
 			}
@@ -1003,17 +1003,17 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				if (contentLength_) {
 					std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - *nparsed);
 
-					std::size_t offset = *nparsed;
+					std::size_t offset = *nparsed - chunk.offset();
 					contentLength_ -= chunkSize;
 					*nparsed += chunkSize;
 					i += chunkSize;
 
 					bool rv = filters_.empty()
-						? onMessageContent(chunk.buffer().ref(offset, chunkSize))
-						: onMessageContent(filters_.process(chunk.buffer().ref(offset, chunkSize)));
+						? onMessageContent(chunk.ref(offset, chunkSize))
+						: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)));
 
 					if (!rv) {
-						return *nparsed;
+						goto done;
 					}
 				} else if (*i == CR) {
 					state_ = CONTENT_CHUNK_LF2;
@@ -1047,7 +1047,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					++i;
 
 					if (!onMessageEnd())
-						return *nparsed;
+						goto done;
 
 					state_ = MESSAGE_BEGIN;
 				}
@@ -1063,7 +1063,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				}
 				Buffer::dump(chunk.data(), chunk.size(), "request chunk (at syntax error)");
 #endif
-				return *nparsed;
+				goto done;
 			}
 			default:
 #if !defined(NDEBUG)
@@ -1075,7 +1075,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				}
 				Buffer::dump(chunk.data(), chunk.size(), "request chunk (at unknown state)");
 #endif
-				return *nparsed;
+				goto done;
 		}
 	}
 	// we've reached the end of the chunk
@@ -1087,14 +1087,15 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			// and there's no body to come
 
 			if (!onMessageEnd())
-				return *nparsed;
+				goto done;
 
 			// subsequent calls to process() parse next request(s).
 			state_ = MESSAGE_BEGIN;
 		}
 	}
 
-	return *nparsed;
+done:
+	return *nparsed - chunk.offset();
 }
 
 } // namespace x0
