@@ -64,6 +64,8 @@ X0_API bool operator<(const DateTime& a, const DateTime& b);
 X0_API bool operator>(const DateTime& a, const DateTime& b);
 
 X0_API TimeSpan operator-(const DateTime& a, const DateTime& b);
+X0_API DateTime operator+(const DateTime& a, const TimeSpan& b);
+X0_API DateTime operator-(const DateTime& a, const TimeSpan& b);
 
 // {{{ impl
 inline time_t DateTime::mktime(const char *v)
@@ -128,6 +130,16 @@ inline TimeSpan operator-(const DateTime& a, const DateTime& b)
 		diff = -diff;
 
 	return TimeSpan(diff);
+}
+
+inline DateTime operator+(const DateTime& a, const TimeSpan& b)
+{
+	return DateTime(a.value() + b.value());
+}
+
+inline DateTime operator-(const DateTime& a, const TimeSpan& b)
+{
+	return DateTime(a.value() - b.value());
 }
 // }}}
 
