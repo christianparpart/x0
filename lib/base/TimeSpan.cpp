@@ -7,9 +7,23 @@
  */
 
 #include <x0/TimeSpan.h>
+#include <x0/Buffer.h>
+#include <string>
 
 namespace x0 {
 
 const TimeSpan TimeSpan::Zero(0lu);
+
+std::string TimeSpan::str() const
+{
+	int totalMinutes =
+		days() * 24 * 60 +
+		hours() * 60 +
+		minutes();
+
+	Buffer b(64);
+	b << minutes() << "m " << seconds() << "s";
+	return b.str();
+}
 
 } // namespace x0

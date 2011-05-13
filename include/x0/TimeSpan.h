@@ -49,6 +49,8 @@ public:
 	bool operator!() const { return value_ == 0; }
 	operator bool () const { return value_ != 0; }
 
+	std::string str() const;
+
 	static const TimeSpan Zero;
 };
 
