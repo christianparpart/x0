@@ -335,10 +335,14 @@ void HttpRequest::finish()
 			}
 			TRACE("streaming default error content");
 
-			if (!isResponseContentForbidden() && status != HttpError::Ok)
-				writeDefaultResponseContent();
-			else
+			if (isResponseContentForbidden()) {
 				connection.write(serialize());
+			} else if (status == HttpError::Ok) {
+				responseHeaders.overwrite("Content-Length", "0");
+				connection.write(serialize());
+			} else {
+				writeDefaultResponseContent();
+			}
 			/* fall through */
 		case Populating:
 			// FIXME: can it become an issue when the response body may not be non-empty
