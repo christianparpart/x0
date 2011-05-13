@@ -720,9 +720,8 @@ void HttpConnection::process()
 	TRACE("process: offset=%ld, size=%ld (before processing)", inputOffset_, input_.size());
 
 	BufferRef chunk(input_.ref(inputOffset_));
-	size_t nparsed = HttpMessageProcessor::process(chunk);
 
-	inputOffset_ += nparsed;
+	HttpMessageProcessor::process(chunk, &inputOffset_);
 
 	TRACE("process: offset=%ld, bs=%ld, state=%s (after processing) io.timer:%d",
 			inputOffset_, input_.size(), state_str(), socket_->timerActive());
