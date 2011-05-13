@@ -133,7 +133,6 @@ private:
 	struct ::ev_loop *loop() const;
 
 	void abort();
-	void checkFinish();
 
 	void log(Severity s, const char *fmt, ...);
 

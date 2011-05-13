@@ -310,7 +310,6 @@ public:
 	bool contentAvailable() const;
 	template<typename K, void (K::*cb)(const BufferRef&)> void setBodyCallback(K* object);
 	void setBodyCallback(void (*callback)(const BufferRef&, void*), void* data = nullptr);
-	void clearBodyCallback();
 
 	template<typename... Args>
 	void log(Severity s, Args&&... args);
@@ -357,7 +356,6 @@ private:
 	// response write helper
 	Source* serialize();
 	void writeDefaultResponseContent();
-	void checkFinish();
 	void finalize();
 
 	static void initialize();
@@ -416,12 +414,6 @@ template<typename K, void (K::*cb)(const BufferRef&)>
 inline void HttpRequest::setBodyCallback(K* object)
 {
 	setBodyCallback(&body_cb_thunk<K, cb>, object);
-}
-
-inline void HttpRequest::clearBodyCallback()
-{
-	bodyCallback_ = nullptr;
-	bodyCallbackData_ = nullptr;
 }
 
 template<class K, void (K::*cb)(const BufferRef&)>
@@ -509,6 +501,18 @@ inline bool HttpRequest::writeCallback(CallbackSource::Callback cb, void* data)
 	}
 }
 
+/*! writes given data to the underlying connection.
+ *
+ * \tparam T type of chunk to write. must be derived from \ref Source.
+ * \param args a list of arguments being passed to the source chunk.
+ *
+ * \code
+ *   request->write<BufferSource>("Hello, World\r\n");
+ *   request->write<FileSource>("/var/www/notes.html");
+ * \endcode
+ *
+ * \see BufferSource, CallbackSource, CompositeSource, EmptySource, FileSource, FilterSource, Source
+ */
 template<class T, class... Args>
 inline void HttpRequest::write(Args&&... args)
 {
@@ -522,28 +526,27 @@ inline HttpRequest::OutputState HttpRequest::outputState() const
 	return outputState_;
 }
 
+/*! retrieves the number of bytes successfully transmitted within this very request.
+ *
+ * \note this includes protocol-dependant bytes, too, such as transfer encoding and HTTP response headers.
+ */
 inline unsigned long long HttpRequest::bytesTransmitted() const
 {
 	return bytesTransmitted_;
 }
 
-/** checks wether given code MUST NOT have a response body. */
+/*! Checks wether given code MUST NOT have a response body.
+ */
 inline bool HttpRequest::isResponseContentForbidden() const
 {
 	return x0::content_forbidden(status);
 }
 
-/*! tests whether or not the given request and underlying connection is already aborted or not. */
+/*! Tests whether or not the given request and underlying connection is already aborted or not.
+ */
 inline bool HttpRequest::isAborted() const
 {
 	return connection.isAborted();
-}
-
-inline void HttpRequest::checkFinish()
-{
-	if (outputState() == Finished) {
-		finalize();
-	}
 }
 // }}}
 

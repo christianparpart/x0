@@ -367,7 +367,7 @@ void HttpRequest::finish()
  *
  * After that, the connection gets either \p close()'d or will enter \p resume() state, to receive and process the next request.
  *
- * \see finish(), checkFinish()
+ * \see finish()
  */
 void HttpRequest::finalize()
 {
