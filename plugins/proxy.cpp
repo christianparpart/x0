@@ -310,6 +310,7 @@ bool ProxyConnection::onMessageContent(const x0::BufferRef& chunk)
 	request_->write<x0::BufferSource>(chunk);
 
 	// start listening on backend I/O when chunk has been fully transmitted
+	ref();
 	request_->writeCallback<ProxyConnection, &ProxyConnection::onWriteComplete>(this);
 
 	return true;
@@ -319,6 +320,7 @@ void ProxyConnection::onWriteComplete()
 {
 	TRACE("chunk write complete: %s", state_str());
 	backend_->setMode(x0::Socket::Read);
+	unref();
 }
 
 bool ProxyConnection::onMessageEnd()
