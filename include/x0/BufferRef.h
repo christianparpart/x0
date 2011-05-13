@@ -62,7 +62,7 @@ public:
 	// properties
 	bool empty() const;
 	std::size_t size() const;
-	const std::size_t offset() const { return offset_; }
+	std::size_t offset() const { return offset_; }
 	const Buffer& buffer() const { assert(buf_ != nullptr); return *buf_; }
 
 	value_type *data();
