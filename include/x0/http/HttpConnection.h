@@ -116,7 +116,6 @@ private:
 
 	void start(HttpListener* listener, int fd, const HttpConnectionList::iterator& handle);
 	void resume();
-	void processResume();
 
 	bool isAborted() const;
 	bool isClosed() const;
@@ -126,10 +125,9 @@ private:
 	void watchInput(const TimeSpan& timeout = TimeSpan::Zero);
 	void watchOutput();
 
-	bool processInput();
-	bool processOutput();
-
-	void process();
+	bool readSome();
+	bool writeSome();
+	bool process();
 	void io(Socket *socket, int revents);
 	void timeout(Socket *socket);
 

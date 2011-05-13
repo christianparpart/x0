@@ -132,15 +132,14 @@ void HttpConnection::io(Socket *, int revents)
 
 	ref();
 
-	if ((revents & Socket::Read) && !processInput())
+	if ((revents & Socket::Read) && !readSome())
 		goto done;
 
-	if ((revents & Socket::Write) && !processOutput())
+	if ((revents & Socket::Write) && !writeSome())
 		goto done;
 
-	while (inputOffset_ < input_.size()
-			&& (!(flags_ & IsHandlingRequest) || state() != MESSAGE_BEGIN))
-		process();
+	if (!process())
+		goto done;
 
 	switch (status()) {
 	case ReadingRequest:
@@ -238,15 +237,14 @@ void HttpConnection::start(HttpListener* listener, int fd, const HttpConnectionL
 	} else {
 #if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
 		TRACE("start: processing input");
-		// it is ensured, that we have data pending, so directly start reading
-		processInput();
-		TRACE("start: processing input done");
 
-		// destroy connection in case the above caused connection-close
-		// XXX this is usually done within HttpConnection::io(), but we are not.
-		if (isAborted()) {
+		// it is ensured, that we have data pending, so directly start reading
+		if (readSome())
+			process();
+		else
 			close();
-		}
+
+		TRACE("start: processing input done");
 #else
 		TRACE("start: watchInput.");
 		// client connected, but we do not yet know if we have data pending
@@ -482,9 +480,9 @@ void HttpConnection::watchOutput()
  *
  * We assume, that we are in request-parsing state.
  */
-bool HttpConnection::processInput()
+bool HttpConnection::readSome()
 {
-	TRACE("processInput()");
+	TRACE("readSome()");
 
 	ref();
 
@@ -508,16 +506,10 @@ bool HttpConnection::processInput()
 		}
 	} else if (rv == 0) {
 		// EOF
-		TRACE("processInput(): (EOF)");
+		TRACE("readSome: (EOF)");
 		goto err;
 	} else {
-		TRACE("processInput(): (bytes read: %ld, isHandlingRequest:%d, state:%s", rv, flags_ & IsHandlingRequest, state_str());
-		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
-
-//		while (!(flags_ & IsHandlingRequest) || state() != MESSAGE_BEGIN)
-//			process();
-
-		TRACE("processInput(): done process()ing; fd=%d, request=%p state:%s", socket_->handle(), request_, state_str());
+		process();
 	}
 
 	unref();
@@ -541,7 +533,7 @@ void HttpConnection::write(Source* chunk)
 		output_.push_back(chunk);
 
 		watchOutput();
-		//processOutput();
+		//writeSome();
 	} else {
 		TRACE("write() ignore chunk (%s) - (connection aborted)", chunk->className());
 		delete chunk;
@@ -552,14 +544,14 @@ void HttpConnection::write(Source* chunk)
  * Writes as much as it wouldn't block of the response stream into the underlying socket.
  *
  */
-bool HttpConnection::processOutput()
+bool HttpConnection::writeSome()
 {
-	TRACE("processOutput()");
+	TRACE("writeSome()");
 	ref();
 
 	ssize_t rv = output_.sendto(sink_);
 
-	TRACE("processOutput(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
+	TRACE("writeSome(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
 
 	if (rv > 0) {
 		// output chunk written
@@ -577,7 +569,7 @@ bool HttpConnection::processOutput()
 			request_->finalize();
 		}
 
-		TRACE("processOutput: output fully written. closed:%d, outputPending:%ld, refCount:%d", isClosed(), output_.size(), refCount_);
+		TRACE("writeSome: output fully written. closed:%d, outputPending:%ld, refCount:%d", isClosed(), output_.size(), refCount_);
 
 		if (isClosed() && !isOutputPending() && refCount_ == 0) {
 			worker_->release(handle_);
@@ -656,12 +648,12 @@ void HttpConnection::close()
 		return;
 
 	if (isInsideSocketCallback()) {
-		// we're currently in io() -> processInput(), so just mark socket as closed
+		// we're currently in io() -> readSome(), so just mark socket as closed
 		flags_ |= IsClosed;
 		if (!isOutputPending())
 			socket_->setMode(Socket::None);
 	} else {
-		// we're outside io() -> processInput(), so destruct right away
+		// we're outside io() -> readSome(), so destruct right away
 		worker_->release(handle_);
 	}
 }
@@ -678,70 +670,50 @@ void HttpConnection::resume()
 	TRACE("resume() shouldKeepAlive:%d (insideSocketCB:%d)", shouldKeepAlive(), isInsideSocketCallback());
 	TRACE("-- (status:%s, inputOffset:%ld, inputSize:%ld)", status_str(), inputOffset_, input_.size());
 
-	flags_ &= ~IsHandlingRequest;
+	status_ = KeepAliveRead;
+	request_->clear();
 
 	if (socket()->tcpCork())
 		socket()->setTcpCork(false);
-
-	if (isInsideSocketCallback()) {
-		flags_ |= IsResuming;
-	} else {
-		processResume();
-	}
-}
-
-void HttpConnection::processResume()
-{
-	TRACE("processResume: (flag:%d, insideIOHandler:%d status:%s, inputOffset:%ld/%ld)",
-		(flags_ & IsResuming) != 0, isInsideSocketCallback(),
-		status_str(), inputOffset_, input_.size());
-
-	flags_ &= ~IsResuming;
-	request_->clear();
-
-	if (inputOffset_ < input_.size()) {
-		TRACE("processResume: pipelined requests available (size:%ld)", input_.size() - inputOffset_);
-		status_ = ReadingRequest;
-		if (!isInsideSocketCallback()) {
-			watchInput(worker_->server_.maxReadIdle());
-		}
-	} else {
-		// nothing (pipelined) in buffer, wait for new request message
-		TRACE("processResume: watch input");
-		status_ = KeepAliveRead;
-		watchInput(worker_->server_.maxKeepAlive());
-	}
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.
  */
-void HttpConnection::process()
+bool HttpConnection::process()
 {
 	TRACE("process: offset=%ld, size=%ld (before processing)", inputOffset_, input_.size());
 
-	BufferRef chunk(input_.ref(inputOffset_));
+	while (state() != MESSAGE_BEGIN || status() == ReadingRequest || status() == KeepAliveRead) {
+		BufferRef chunk(input_.ref(inputOffset_));
+		if (chunk.empty())
+			break;
 
-	HttpMessageProcessor::process(chunk, &inputOffset_);
+		// ensure status is up-to-date, in case we came from keep-alive-read
+		status_ = ReadingRequest;
+
+		TRACE("process: (size: %ld, isHandlingRequest:%d, state:%s", chunk.size(), (flags_ & IsHandlingRequest) != 0, state_str());
+		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
+
+		HttpMessageProcessor::process(chunk, &inputOffset_);
+		TRACE("process: done process()ing; fd=%d, request=%p state:%s", socket_->handle(), request_, state_str());
+
+		if (isAborted())
+			return false;
+
+		if (state() == SYNTAX_ERROR) {
+			if (!request_->isFinished()) {
+				setShouldKeepAlive(false);
+				request_->status = HttpError::BadRequest;
+				request_->finish();
+			}
+			return false;
+		}
+	}
 
 	TRACE("process: offset=%ld, bs=%ld, state=%s (after processing) io.timer:%d",
 			inputOffset_, input_.size(), state_str(), socket_->timerActive());
 
-	if (isAborted()) {
-		return;
-	}
-
-	if (state() == SYNTAX_ERROR && !request_->isFinished()) {
-		request_->status = HttpError::BadRequest;
-		request_->finish();
-		return;
-	}
-
-	if (flags_ & IsResuming)
-		processResume();
-
-//	if (!(flags_ & IsHandlingRequest)) {
-//		watchInput(worker_->server_.maxReadIdle());
-//	}
+	return true;
 }
 
 std::string HttpConnection::remoteIP() const

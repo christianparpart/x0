@@ -356,7 +356,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	const char *i = chunk.begin();
 	const char *e = chunk.end();
 
-	size_t result = 0;
+	size_t result = chunk.offset();
 	size_t* nparsed = out_nparsed ? out_nparsed : &result;
 
 	//TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
@@ -422,7 +422,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			case REQUEST_LINE_BEGIN:
 				if (isToken(*i)) {
 					state_ = REQUEST_METHOD;
-					method_ = chunk.ref(*nparsed, 1);
+					method_ = chunk.buffer().ref(*nparsed, 1);
 
 					++*nparsed;
 					++i;
@@ -445,7 +445,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case REQUEST_ENTITY_BEGIN:
 				if (std::isprint(*i)) {
-					entity_ = chunk.ref(*nparsed, 1);
+					entity_ = chunk.buffer().ref(*nparsed, 1);
 					state_ = REQUEST_ENTITY;
 
 					++*nparsed;
@@ -669,7 +669,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			case STATUS_MESSAGE_BEGIN:
 				if (isText(*i)) {
 					state_ = STATUS_MESSAGE;
-					message_ = chunk.ref(*nparsed, 1);
+					message_ = chunk.buffer().ref(*nparsed, 1);
 					++*nparsed;
 					++i;
 				}
@@ -704,7 +704,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case HEADER_NAME_BEGIN:
 				if (isToken(*i)) {
-					name_ = chunk.ref(*nparsed, 1);
+					name_ = chunk.buffer().ref(*nparsed, 1);
 					state_ = HEADER_NAME;
 					++*nparsed;
 					++i;
@@ -804,7 +804,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case HEADER_VALUE_BEGIN:
 				if (isText(*i)) {
-					value_ = chunk.ref(*nparsed, 1);
+					value_ = chunk.buffer().ref(*nparsed, 1);
 					++*nparsed;
 					++i;
 					state_ = HEADER_VALUE;
@@ -917,7 +917,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case CONTENT_ENDLESS: // body w/o content-length (allowed in simple MESSAGE types only)
 			{
-				BufferRef c(chunk.ref(*nparsed));
+				BufferRef c(chunk.buffer().ref(*nparsed));
 
 				*nparsed += c.size();
 				i += c.size();
@@ -942,8 +942,8 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				i += chunkSize;
 
 				bool rv = filters_.empty()
-					? onMessageContent(chunk.ref(offset, chunkSize))
-					: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)));
+					? onMessageContent(chunk.buffer().ref(offset, chunkSize))
+					: onMessageContent(filters_.process(chunk.buffer().ref(offset, chunkSize)));
 
 				if (contentLength_ == 0)
 					state_ = MESSAGE_BEGIN;
@@ -1009,8 +1009,8 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					i += chunkSize;
 
 					bool rv = filters_.empty()
-						? onMessageContent(chunk.ref(offset, chunkSize))
-						: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)));
+						? onMessageContent(chunk.buffer().ref(offset, chunkSize))
+						: onMessageContent(filters_.process(chunk.buffer().ref(offset, chunkSize)));
 
 					if (!rv) {
 						return *nparsed;
