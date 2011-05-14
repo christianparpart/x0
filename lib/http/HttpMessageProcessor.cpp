@@ -933,7 +933,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			}
 			case CONTENT: // fixed size content length
 			{
-				std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - *nparsed);
+				std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - (*nparsed - chunk.offset()));
 
 				std::size_t offset = *nparsed - chunk.offset();
 
@@ -1001,7 +1001,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case CONTENT_CHUNK_BODY:
 				if (contentLength_) {
-					std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - *nparsed);
+					std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - (*nparsed - chunk.offset()));
 
 					std::size_t offset = *nparsed - chunk.offset();
 					contentLength_ -= chunkSize;
