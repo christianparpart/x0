@@ -307,6 +307,8 @@ std::string HttpRequest::statusStr(HttpError value)
  */
 void HttpRequest::finish()
 {
+	TRACE("finish(%d)", outputState_);
+
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);
 
