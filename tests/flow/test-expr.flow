@@ -24,11 +24,11 @@ handler test_expr_number_units
 	# verify time units
 	assert 1 sec == 1, 'sec';
 	assert 1 min == 60 sec, 'min';
-	assert 1 hours == 60 min, 'hours';
-	assert 1 days == 24 hours, 'days';
-	assert 1 weeks == 7 days, 'week';
-	assert 1 months == 30 days, 'week';
-	assert 1 years == 365 days, 'year';
+	assert 1 hour == 60 min, 'hours';
+	assert 1 day == 24 hours, 'days';
+	assert 1 week == 7 days, 'week';
+	assert 1 month == 30 days, 'week';
+	assert 1 year == 365 days, 'year';
 }
 
 handler test_expr_and

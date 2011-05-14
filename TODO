@@ -4,6 +4,10 @@ for a long-term todo list, see ticket system at http://redmine.xzero.ws/projects
 
 0.4:
 
+- flow: implement IPv6 parser
+- flow: use FlowArray instead of native arrays
+- flow: use FlowString (string interpolation class) for double quoted strings
+	- interpolated string example: "Hello #{42 + i * 3}"
 - [plugins] balance: new plugin. initially supporting handler: balance.rr (kind of lighty-style)
 - cgi/fastcgi/proxy: verify to not pass connection-level headers
 - resource management (at least for max_core_size) must be evaluated *after* privilege dropping,

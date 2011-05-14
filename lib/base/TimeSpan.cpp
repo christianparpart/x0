@@ -22,7 +22,7 @@ std::string TimeSpan::str() const
 		minutes();
 
 	Buffer b(64);
-	b << minutes() << "m " << seconds() << "s";
+	b << totalMinutes << "m " << seconds() << "s";
 	return b.str();
 }
 
