@@ -1,0 +1,85 @@
+-------------------------------------------------------------------------
+
+-------------------------------------------------------------------------
+.TODO
+
+- bug: evaluate extern fn decl/uses
+	- consider dropping the `extern`-feature instead and introduce a generic plugin
+	  architechture that is usable from within the flow command-line tool (currently named flowtest).
+	  This should then also be used by x0 to extend x0, too.
+- library: make use of -fvisibility GCC feature.
+- api: rename lookupOrCreate to lookupOrCreateGlobal to be more speicific.
+- IPv4 address subnets - via division (/) operator
+- IPv6 address subnets - via division (/) operator
+- decimal + unit (w/o space between)
+
+- ip expression ops
+	- ip in list
+	- ip + list
+	- list + ip
+
+- list expression ops
+	- elem in list
+	- list + list
+	- list + elem
+	- elem + list
+	- list in list
+	- list == list
+- codegen: string regex compare (with help of pcre library): =~
+	- MUST cache regex compiles (somehow), but not a must on first milestone
+	- maybe using a module-constructor/destructor hook, that initializes
+	  some globals, e.g. compilation of static regexp strings.
+	- long-term goal: *JIT the regexps*, too.
+- codegen: use AST source locations to produce 
+	more accurate error messages.
+
+- codegen: handle variable write callbacks
+- codegen: string lists and number lists
+- codegen: string maps
+- codegen.optimization:
+	- native-variable result caching, so, that e.g. repeative `on hostname == 'blahblubb'`
+		will not invoke the callback on each test.
+- syntax: possibly allow [] for array expressions
+- syntax: possibly allow {} for hash expressions, too?
+	inside expression parsing scope, it is clear, that a { would introduce a hash, though.
+- syntax/codegen: add explicit type-casts:
+	- (unsigned and signed): int8_t, int16_t, int32_t, int64_t, float, double
+	- high level: number/int, string, bool, ip/ip6/ip4
+- tests: complete unit tests for lexer, parser, codegen.
+- tests: add `make test` test-target, to automate unit testing out of the box.
+
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+.EXPRESSION OPERATOR: IMPLEMENTATION STATUS
+
+.binary operators
+
++++++++    ==  !=  in  <   >   <=  >=  =^  =$  =~  shl shr  +   -   *   /  ** 
+==============================================================================
+str str     y   y   y   y   y   y   y   y   y   n  n/a n/a  n  n/a n/a n/a n/a
+int int     y   y  n/a  y   y   y   y  n/a n/a n/a  n   n   n   n   n   n   n 
+bool bool   y   y  n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a  n   n   n   n   n 
+
+ip  ip      n   n  n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a
+ip  ipnet   n   n   n  n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a n/a
+
+.unary operators:
+
++++++++    not  +   -   i8  i8  i16 i32 i64 u8 u16 u32 u64 fp64 fp80
+==============================================================================
+int         y   n   n 
+bool        y  n/a n/a
+str         y  n/a n/a
+
+.ideas:
+
+- syntax: allow regexps to be specified in /perl-like/ syntax?
+- should we allow operators = += -= *= and friends?
+- ...
+
+-------------------------------------------------------------------------
+-------------------------------------------------------------------------
+.BUGS
+
+- lang: fix unit size suffix usage
+- ...
