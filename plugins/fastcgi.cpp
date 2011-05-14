@@ -589,7 +589,7 @@ void CgiTransport::abortRequest()
 
 void CgiTransport::onStdOut(const x0::BufferRef& chunk)
 {
-	TRACE("CgiTransport.onStdOut(id:%d, chunk.size:%ld)", id_, chunk.size());
+	TRACE("CgiTransport.onStdOut: id=%d, chunk.size=%ld state=%s", id_, chunk.size(), state_str());
 	process(chunk);
 }
 
@@ -656,6 +656,7 @@ bool CgiTransport::onMessageContent(const x0::BufferRef& content)
  */
 void CgiTransport::onWriteComplete()
 {
+#if 0
 	TRACE("CgiTransport.onWriteComplete() bufferSize: %ld", writeBuffer_.size());
 
 	if (writeBuffer_.size() != 0) {
@@ -669,6 +670,7 @@ void CgiTransport::onWriteComplete()
 			return;
 		}
 	}
+#endif
 
 	TRACE("onWriteComplete: output flushed. resume watching on app I/O (read)");
 	backend_->setMode(x0::Socket::Read);
