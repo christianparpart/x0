@@ -22,6 +22,11 @@ namespace x0 {
  */
 
 /**
+ * @defgroup io
+ * @brief I/O streaming API (sources, filters, sinks)
+ */
+
+/**
  * @defgroup http
  * @brief HTTP web server APIs (like HttpRequest, HttpConnection, HttpServer, ...)
  */
@@ -42,38 +47,13 @@ class FileInfo;
 class HttpListener;
 class HttpConnection;
 class HttpPlugin;
-struct HttpRequest;
-
-struct File;
+class HttpRequest;
 
 //! \addtogroup io
 //@{
 
 typedef std::shared_ptr<File> FilePtr;
 typedef std::shared_ptr<FileInfo> FileInfoPtr;
-
-//@}
-
-//! \addtogroup io
-//@{
-
-typedef std::shared_ptr<HttpPlugin> HttpPluginPtr;
-
-/** completion handler.
- *
- * used for handlers invoked when done writing or reading from a HttpConnection.
- */
-typedef std::function<void(
-	int /*errno*/, // const asio::error_code& /*ec*/,
-	std::size_t /*bytes_transferred*/)
-> CompletionHandlerType;
-
-/** HttpRequest handler.
- */
-typedef std::function<void(
-	HttpRequest& /*in*/,
-	const std::function<void()>& /*completionHandler*/)
-> RequestHandlerType;
 
 //@}
 
