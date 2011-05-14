@@ -729,7 +729,7 @@ Expr *FlowParser::primaryExpr()
 
 		for (size_t i = 0; units[i].ident; ++i)
 		{
-			if (sv == units[i].ident 
+			if (sv == units[i].ident
 				|| (sv[sv.size() - 1] == 's' && sv.substr(0, sv.size() - 1) == units[i].ident))
 			{
 				nextToken();
