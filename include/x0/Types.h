@@ -52,7 +52,6 @@ class HttpRequest;
 //! \addtogroup io
 //@{
 
-typedef std::shared_ptr<File> FilePtr;
 typedef std::shared_ptr<FileInfo> FileInfoPtr;
 
 //@}
