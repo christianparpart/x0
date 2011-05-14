@@ -689,7 +689,14 @@ bool HttpConnection::process()
 			break;
 
 		// ensure status is up-to-date, in case we came from keep-alive-read
-		status_ = ReadingRequest;
+		if (status_ == KeepAliveRead) {
+			TRACE("process: status=keep-alive-read, resetting to reading-request");
+			status_ = ReadingRequest;
+			if (request_->isFinished()) {
+				TRACE("process: finalizing request");
+				request_->finalize();
+			}
+		}
 
 		TRACE("process: (size: %ld, isHandlingRequest:%d, state:%s", chunk.size(), (flags_ & IsHandlingRequest) != 0, state_str());
 		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
