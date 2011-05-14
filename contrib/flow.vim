@@ -47,9 +47,16 @@ syn match flowType '\.\.\.'
 syn match flowNumber '\d\+'
 syn match flowNumber '\d\+.\d'
 syn keyword flowNumber true false
+
+" units (singular)
 syn keyword flowUnit bit kbit mbit gbit tbit
 syn keyword flowUnit byte kbyte mbyte gbyte tbyte
-syn keyword flowUnit sec min hours days weeks months years
+syn keyword flowUnit sec min hour day week month year
+
+" units (plural)
+syn keyword flowUnit bits kbits mbits gbits tbits
+syn keyword flowUnit bytes kbytes mbytes gbytes tbytes
+syn keyword flowUnit secs mins hours days weeks months years
 
 " strings
 syn match flowSpecial display contained "\\\(u\x\{4}\|U\x\{8}\)"

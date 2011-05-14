@@ -717,11 +717,11 @@ Expr *FlowParser::primaryExpr()
 			{ "tbit", 1024llu * 1024 * 1024 * 1024, 8 },
 			{ "sec", 1, 1 },
 			{ "min", 60llu, 1 },
-			{ "hours", 60llu * 60, 1 },
-			{ "days", 60llu * 60 * 24, 1 },
-			{ "weeks", 60llu * 60 * 24 * 7, 1 },
-			{ "months", 60llu * 60 * 24 * 30, 1 },
-			{ "years", 60llu * 60 * 24 * 365, 1 },
+			{ "hour", 60llu * 60, 1 },
+			{ "day", 60llu * 60 * 24, 1 },
+			{ "week", 60llu * 60 * 24 * 7, 1 },
+			{ "month", 60llu * 60 * 24 * 30, 1 },
+			{ "year", 60llu * 60 * 24 * 365, 1 },
 			{ NULL, 1, 1 }
 		};
 
@@ -729,7 +729,8 @@ Expr *FlowParser::primaryExpr()
 
 		for (size_t i = 0; units[i].ident; ++i)
 		{
-			if (sv == units[i].ident)
+			if (sv == units[i].ident 
+				|| (sv[sv.size() - 1] == 's' && sv.substr(0, sv.size() - 1) == units[i].ident))
 			{
 				nextToken();
 				Expr *nominator = new NumberExpr(units[i].nominator, SourceLocation());
