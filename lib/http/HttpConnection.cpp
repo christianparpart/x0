@@ -157,7 +157,7 @@ done:
 
 void HttpConnection::timeout(Socket *)
 {
-	TRACE("timedout: status=%s", status_str());
+	TRACE("timedout: status=%s",  status_str());
 
 	switch (status()) {
 	case StartingUp:
@@ -306,7 +306,7 @@ inline bool url_decode(Buffer& value, BufferRef& url)
 
 bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& uri, int versionMajor, int versionMinor)
 {
-	TRACE("messageBegin: '%s', '%s', HTTP/%d.%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
+	TRACE("onMessageBegin: '%s', '%s', HTTP/%d.%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 
 	request_->method = method;
 	request_->uri = uri;
@@ -363,8 +363,6 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 			setShouldKeepAlive(false);
 		else if (iequals(value, "keep-alive"))
 			setShouldKeepAlive(true);
-		else
-			; // invalid / unsupported Connection-header value
 	}
 
 	// limit the size of a single request header
@@ -389,7 +387,7 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 
 bool HttpConnection::onMessageHeaderEnd()
 {
-	TRACE("messageHeaderEnd()");
+	TRACE("onMessageHeaderEnd()");
 
 	if (request_->isFinished())
 		return true;
@@ -434,7 +432,7 @@ bool HttpConnection::onMessageHeaderEnd()
 
 bool HttpConnection::onMessageContent(const BufferRef& chunk)
 {
-	TRACE("messageContent(#%ld)", chunk.size());
+	TRACE("onMessageContent(#%ld)", chunk.size());
 
 	request_->onRequestContent(chunk);
 
@@ -443,7 +441,7 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 
 bool HttpConnection::onMessageEnd()
 {
-	TRACE("messageEnd() %s (isHandlingRequest:%d)", status_str(), flags_ & IsHandlingRequest);
+	TRACE("onMessageEnd() %s (isHandlingRequest:%d)", status_str(), flags_ & IsHandlingRequest);
 
 	// marks the request-content EOS, so that the application knows when the request body
 	// has been fully passed to it.
@@ -486,8 +484,10 @@ bool HttpConnection::readSome()
 
 	ref();
 
-	if (status() == KeepAliveRead)
+	if (status() == KeepAliveRead) {
+		TRACE("readSome: status was keep-alive-read. resetting to reading-request", request_->outputState_);
 		status_ = ReadingRequest;
+	}
 
 	ssize_t rv = socket_->read(input_);
 
@@ -509,6 +509,7 @@ bool HttpConnection::readSome()
 		TRACE("readSome: (EOF)");
 		goto err;
 	} else {
+		TRACE("readSome: read %ld bytes, status:%s, ros:%d", rv, status_str(), request_->outputState_);
 		process();
 	}
 
@@ -698,11 +699,11 @@ bool HttpConnection::process()
 			}
 		}
 
-		TRACE("process: (size: %ld, isHandlingRequest:%d, state:%s", chunk.size(), (flags_ & IsHandlingRequest) != 0, state_str());
+		TRACE("process: (size: %ld, isHandlingRequest:%d, state:%s status:%s", chunk.size(), (flags_ & IsHandlingRequest) != 0, state_str(), status_str());
 		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
 
 		HttpMessageProcessor::process(chunk, &inputOffset_);
-		TRACE("process: done process()ing; fd=%d, request=%p state:%s", socket_->handle(), request_, state_str());
+		TRACE("process: done process()ing; fd=%d, request=%p state:%s status:%s", socket_->handle(), request_, state_str(), status_str());
 
 		if (isAborted())
 			return false;
