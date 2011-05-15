@@ -39,6 +39,7 @@
 #	define X0_NO_RETURN __attribute__((no_return))
 #	define X0_DEPRECATED __attribute__((__deprecated__))
 #	define X0_PURE __attribute__((pure))
+#	define X0_PACKED __attribute__((packed))
 #elif defined(__MINGW32__)
 #	define X0_NO_EXPORT /*!*/
 #	define X0_EXPORT __declspec(export)
@@ -47,6 +48,7 @@
 #	define X0_NO_RETURN __attribute__((no_return))
 #	define X0_DEPRECATED __attribute__((__deprecated__))
 #	define X0_PURE __attribute__((pure))
+#	define X0_PACKED __attribute__((packed))
 #elif defined(__MSVC__)
 #	define X0_NO_EXPORT /*!*/
 #	define X0_EXPORT __declspec(export)
@@ -55,6 +57,7 @@
 #	define X0_NO_RETURN /*!*/
 #	define X0_DEPRECATED /*!*/
 #	define X0_PURE /*!*/
+#	define X0_PACKED __packed /* ? */
 #else
 #	warning Unknown platform
 #	define X0_NO_EXPORT /*!*/
@@ -64,6 +67,7 @@
 #	define X0_NO_RETURN /*!*/
 #	define X0_DEPRECATED /*!*/
 #	define X0_PURE /*!*/
+#	define X0_PACKED /*!*/
 #endif
 
 #if defined(__GNUC__)
@@ -78,7 +82,6 @@
 	#define CC_SUPPORTS_LAMBDA (0)
 	#define CC_SUPPORTS_RVALUE_REFERENCES (0)
 #endif
-
 
 /// the filename only part of __FILE__ (no leading path)
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
