@@ -50,12 +50,20 @@ void HttpListener::setBacklog(int value)
 
 bool HttpListener::open(const std::string& unixPath)
 {
-	return socket_.open(unixPath, O_CLOEXEC | O_NONBLOCK);
+	if (socket_.open(unixPath, O_CLOEXEC | O_NONBLOCK))
+		return true;
+
+	log(Severity::error, "Error listening on UNIX socket (%s): %s", unixPath.c_str(), socket_.errorText().c_str());
+	return false;
 }
 
 bool HttpListener::open(const std::string& address, int port)
 {
-	return socket_.open(address, port, O_CLOEXEC | O_NONBLOCK);
+	if (socket_.open(address, port, O_CLOEXEC | O_NONBLOCK))
+		return true;
+
+	log(Severity::error, "Error listening on TCP/IP address %s, port %d: %s", address.c_str(), port, socket_.errorText().c_str());
+	return false;
 }
 
 void HttpListener::stop()

@@ -68,7 +68,7 @@ namespace x0 {
  * \class HttpMessageProcessor
  * \brief implements an HTTP/1.1 (request/response) message parser and processor
  */
-class HttpMessageProcessor
+class X0_API HttpMessageProcessor
 {
 public:
 	enum ParseMode { // {{{

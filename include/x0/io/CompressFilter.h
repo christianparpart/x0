@@ -89,7 +89,7 @@ inline GZipFilter::GZipFilter(int level) :
 // }}}
 
 // {{{ BZip2Filter
-class BZip2Filter :
+class X0_API BZip2Filter :
 	public CompressFilter
 {
 public:

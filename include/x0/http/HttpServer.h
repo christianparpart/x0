@@ -51,7 +51,7 @@ struct HttpWorker;
  * \see HttpConnection, HttpRequest, HttpPlugin
  * \see HttpServer::run(), HttpServer::stop()
  */
-class HttpServer :
+class X0_API HttpServer :
 #ifndef NDEBUG
 	public Logging,
 #endif

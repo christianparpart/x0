@@ -9,13 +9,14 @@
 #if !defined(sw_x0_url_hpp)
 #define sw_x0_url_hpp (1)
 
+#include <x0/Api.h>
 #include <string>
 
 namespace x0 {
 
-bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path, std::string& query);
-bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path);
-bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port);
+X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path, std::string& query);
+X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path);
+X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port);
 
 } // namespace x0
 

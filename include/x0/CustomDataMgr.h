@@ -38,7 +38,13 @@ public:
 
 	~CustomDataMgr()
 	{
+#if 0
 		assert(map_.empty() && "You must have invoked clearCustomData() in your parent destructor already to avoid unnecessary  bugs.");
+#else
+		if (!map_.empty())
+			fprintf(stderr, "BUG: You must have invoked clearCustomData() in your parent destructor already to avoid unnecessary  bugs.");
+#endif
+
 		clearCustomData();
 	}
 

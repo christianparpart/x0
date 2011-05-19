@@ -27,7 +27,7 @@ namespace x0 {
  * * nonblocking reads/writes,
  * * I/O and timeout event callbacks.
  */
-class Socket
+class X0_API Socket
 #ifndef NDEBUG
 	: public Logging
 #endif

@@ -91,43 +91,43 @@ private:
 /**
  * retrieves contents of given file.
  */
-std::string read_file(const std::string& filename);
+X0_API std::string read_file(const std::string& filename);
 
 /**
  * trims leading and trailing spaces off the value.
  */
-std::string trim(const std::string& value);
+X0_API std::string trim(const std::string& value);
 
 /**
  * splits a string into pieces
  */
 template<typename T, typename U>
-std::vector<T> split(const std::basic_string<U>& list, const std::basic_string<U>& sep);
+X0_API std::vector<T> split(const std::basic_string<U>& list, const std::basic_string<U>& sep);
 
 /**
  * splits a string into pieces
  */
 template<typename T, typename U>
-std::vector<T> split(const std::basic_string<U>& list, const U *sep);
+X0_API std::vector<T> split(const std::basic_string<U>& list, const U *sep);
 
 template<typename T, typename U>
-inline bool hex2int(const T *begin, const T *end, U& result);
+X0_API inline bool hex2int(const T *begin, const T *end, U& result);
 
 /*! compares two strings for case insensitive equality. */
-bool iequals(const char *a, const char *b);
+X0_API bool iequals(const char *a, const char *b);
 
 /*! compares the first n bytes of two strings for case insensitive equality. */
-bool iequals(const char *a, const char *b, std::size_t n);
+X0_API bool iequals(const char *a, const char *b, std::size_t n);
 
 //@}
 
 //! \addtogroup base
 //@{
 
-std::string make_hostid(const std::string& hostname);
-template<typename String> std::string make_hostid(const String& hostname, int port);
-int extract_port_from_hostid(const std::string& hostid);
-std::string extract_host_from_hostid(const std::string& hostid);
+X0_API std::string make_hostid(const std::string& hostname);
+template<typename String> X0_API std::string make_hostid(const String& hostname, int port);
+X0_API int extract_port_from_hostid(const std::string& hostid);
+X0_API std::string extract_host_from_hostid(const std::string& hostid);
 
 //@}
 

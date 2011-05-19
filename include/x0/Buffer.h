@@ -9,6 +9,7 @@
 #ifndef sw_x0_buffer_hpp
 #define sw_x0_buffer_hpp (1)
 
+#include <x0/Api.h>
 #include <cstddef>
 #include <climits>
 #include <cstring>
@@ -30,7 +31,7 @@ class BufferRef;
  * This class should be used when sequentially creating and reading parts from it is the main goal
  * of some certain linear information to share.
  */
-class Buffer
+class X0_API Buffer
 {
 public:
 	typedef char value_type;
@@ -145,30 +146,30 @@ public:
 };
 
 // free functions
-bool equals(const Buffer& a, const Buffer& b);
-bool equals(const Buffer& a, const char *b);
-template<typename PodType, std::size_t N> bool equals(const Buffer& a, PodType (&b)[N]);
+X0_API bool equals(const Buffer& a, const Buffer& b);
+X0_API bool equals(const Buffer& a, const char *b);
+template<typename PodType, std::size_t N> X0_API bool equals(const Buffer& a, PodType (&b)[N]);
 
-bool iequals(const Buffer& a, const Buffer& b);
-bool iequals(const Buffer& a, const char *b);
-template<typename PodType, std::size_t N> bool iequals(const Buffer& a, PodType (&b)[N]);
+X0_API bool iequals(const Buffer& a, const Buffer& b);
+X0_API bool iequals(const Buffer& a, const char *b);
+template<typename PodType, std::size_t N> X0_API bool iequals(const Buffer& a, PodType (&b)[N]);
 
-bool operator==(const Buffer& a, const Buffer& b);
-bool operator==(const Buffer& a, const char *b);
-template<typename PodType, std::size_t N> bool operator==(const Buffer& a, PodType (&b)[N]);
+X0_API bool operator==(const Buffer& a, const Buffer& b);
+X0_API bool operator==(const Buffer& a, const char *b);
+template<typename PodType, std::size_t N> X0_API bool operator==(const Buffer& a, PodType (&b)[N]);
 
-Buffer& operator<<(Buffer& b, Buffer::value_type v);
-Buffer& operator<<(Buffer& b, int v);
-Buffer& operator<<(Buffer& b, long v);
-Buffer& operator<<(Buffer& b, long long v);
-Buffer& operator<<(Buffer& b, unsigned v);
-Buffer& operator<<(Buffer& b, unsigned long v);
-Buffer& operator<<(Buffer& b, unsigned long long v);
-Buffer& operator<<(Buffer& b, const Buffer::value_type *v);
-Buffer& operator<<(Buffer& b, const Buffer& v);
-Buffer& operator<<(Buffer& b, const BufferRef& v);
-Buffer& operator<<(Buffer& b, const std::string& v);
-template<typename PodType, std::size_t N> Buffer& operator<<(Buffer& b, PodType (&v)[N]);
+X0_API Buffer& operator<<(Buffer& b, Buffer::value_type v);
+X0_API Buffer& operator<<(Buffer& b, int v);
+X0_API Buffer& operator<<(Buffer& b, long v);
+X0_API Buffer& operator<<(Buffer& b, long long v);
+X0_API Buffer& operator<<(Buffer& b, unsigned v);
+X0_API Buffer& operator<<(Buffer& b, unsigned long v);
+X0_API Buffer& operator<<(Buffer& b, unsigned long long v);
+X0_API Buffer& operator<<(Buffer& b, const Buffer::value_type *v);
+X0_API Buffer& operator<<(Buffer& b, const Buffer& v);
+X0_API Buffer& operator<<(Buffer& b, const BufferRef& v);
+X0_API Buffer& operator<<(Buffer& b, const std::string& v);
+template<typename PodType, std::size_t N> X0_API Buffer& operator<<(Buffer& b, PodType (&v)[N]);
 
 } // namespace x0
 

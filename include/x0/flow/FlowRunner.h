@@ -38,7 +38,7 @@ class Unit;
 
 typedef llvm::Type Type;
 
-class FlowRunner :
+class X0_API FlowRunner :
 	public ASTVisitor
 {
 public:

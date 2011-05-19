@@ -19,7 +19,7 @@ namespace x0 {
 
 class FlowValue;
 
-class FlowBackend
+class X0_API FlowBackend
 {
 public:
 	typedef void (*CallbackFunction)(void * /*userdata*/, int /*argc*/, FlowValue * /*argv*/, void * /*context*/);
