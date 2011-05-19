@@ -25,6 +25,36 @@ namespace x0 {
  * \see Socket, SocketDriver
  */
 
+/*!
+ * \fn ServerSocket::address()
+ * \brief retrieves the server-socket's local address it is listening to.
+ *
+ * This is either an IPv4, IPv6-address or a local path to the UNIX domain socket.
+ *
+ * \see ServerSocket::port()
+ */
+
+/*!
+ * \fn ServerSocket::port()
+ * \brief retrieves the server-socket's local port it is listening to (or 0 on UNIX domain sockets).
+ * \see ServerSocket::address()
+ */
+
+/*!
+ * \fn ServerSocket::isTcp() const
+ * \brief tests whether or not this is a TCP/IP (v4 or v6) listening server socket.
+ * \see ServerSocket::addressFamily()
+ */
+
+/*!
+ * \fn ServerSocket::isLocal() const
+ * \brief tests whether or not this is a UNIX-domain listening server socket.
+ * \see ServerSocket::addressFamily()
+ */
+
+/*! initializes a server socket.
+ * \param loop a pointer to the event-loop handler to serve this socket.
+ */
 ServerSocket::ServerSocket(struct ev_loop* loop) :
 	loop_(loop),
 	flags_(0),
@@ -38,6 +68,10 @@ ServerSocket::ServerSocket(struct ev_loop* loop) :
 {
 }
 
+/*! safely destructs the server socket.
+ *
+ * This closes the file descriptor if opened and also \e deletes the internally used socket driver.
+ */
 ServerSocket::~ServerSocket()
 {
 	if (fd_ >= 0)
