@@ -170,7 +170,7 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 				if (sd_is_socket_inet(fd, ri->ai_family, ri->ai_socktype, true, port) > 0) {
 					// socket found, but ensure our expected `flags` are set.
 					if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
-						goto err;
+						goto syserr;
 					} else {
 						goto done;
 					}
@@ -178,46 +178,46 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 			}
 		}
 
-		fprintf(stderr, "[ServerSocket] Running under systemd (socket unit file), but we received no socket for %s:%d.\n", address.c_str(), port);
+		char buf[256];
+		snprintf(buf, sizeof(buf), "Running under systemd socket unit, but we received no socket for %s:%d.", address.c_str(), port);
+		errorText_ = buf;
 		goto err;
 	}
 
 	// create socket manually
 	for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next) {
 		fd = socket(res->ai_family, res->ai_socktype | typeMask_, res->ai_protocol);
-		if (fd < 0) {
-			errorText_ = strerror(errno);
-			goto err;
-		}
+		if (fd < 0)
+			goto syserr;
 
 		if (flags_ && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags_) < 0)
-			goto err;
+			goto syserr;
 
 		rc = 1;
 
 #if defined(SO_REUSEADDR)
 		if (::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) < 0)
-			goto err;
+			goto syserr;
 #endif
 
 #if defined(TCP_QUICKACK)
 		if (::setsockopt(fd, SOL_TCP, TCP_QUICKACK, &rc, sizeof(rc)) < 0)
-			goto err;
+			goto syserr;
 #endif
 
 #if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
 		if (::setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0)
-			goto err;
+			goto syserr;
 #endif
 
 		// TODO so_linger(false, 0)
 		// TODO so_keepalive(true)
 
 		if (::bind(fd, res->ai_addr, res->ai_addrlen) < 0)
-			goto err;
+			goto syserr;
 
 		if (::listen(fd, backlog_) < 0)
-			goto err;
+			goto syserr;
 
 		goto done;
 	}
@@ -234,6 +234,9 @@ done:
 	port_ = port;
 
 	return true;
+
+syserr:
+	errorText_ = strerror(errno);
 
 err:
 	if (res)
@@ -282,43 +285,43 @@ bool ServerSocket::open(const std::string& path, int flags)
 			if (sd_is_socket_unix(fd, AF_UNIX, SOCK_STREAM, path.c_str(), path.size()) > 0) {
 				// socket found, but ensure our expected `flags` are set.
 				if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
-					goto err;
+					goto syserr;
 				} else {
 					goto done;
 				}
 			}
 		}
 
-		fprintf(stderr, "[ServerSocket] Running under systemd (socket unit file), but we received no UNIX-socket for %s.\n", path.c_str());
+		errorText_ = "Running under systemd socket unit, but we received no UNIX-socket for \"" + path + "\".";
 		goto err;
 	}
 
 	// create socket manually
 	fd = ::socket(PF_UNIX, SOCK_STREAM | typeMask_, 0);
 	if (fd < 0)
-		return false;
+		goto syserr;
 
 	if (flags_ && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags_) < 0)
-		goto err;
+		goto syserr;
 
 	struct sockaddr_un addr;
 	addr.sun_family = AF_UNIX;
 
 	if (path.size() >= sizeof(addr.sun_path)) {
 		errno = ENAMETOOLONG;
-		goto err;
+		goto syserr;
 	}
 
 	addrlen = sizeof(addr.sun_family)
 		+ strlen(strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path)));
 
 	if (::bind(fd, reinterpret_cast<struct sockaddr*>(&addr), addrlen) < 0)
-		goto err;
+		goto syserr;
 
 	if (::listen(fd, backlog_))
-		goto err;
+		goto syserr;
 
-	if (chmod(path.c_str(), 0777) < 0) {
+	if (chmod(path.c_str(), 0666) < 0) {
 		perror("chmod");
 	}
 
@@ -333,8 +336,12 @@ done:
 	port_ = 0;
 	return true;
 
+syserr:
+	errorText_ = strerror(errno);
+
 err:
-	::close(fd);
+	if (fd >= 0)
+		::close(fd);
 
 	return false;
 }
