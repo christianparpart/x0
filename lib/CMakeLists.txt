@@ -21,6 +21,7 @@ endif()
 # XzeroBase
 add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
 target_link_libraries(XzeroBase dl pthread
+	${SD_LIBRARIES}
 	${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES}
 	${EV_LIBRARIES} ${MYSQL_LIBRARIES})
 install(TARGETS XzeroBase DESTINATION ${LIBDIR})
@@ -34,6 +35,6 @@ install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
 # XzeroHttp
 add_library(XzeroHttp SHARED ${x0_http_SRC})
 set_target_properties(XzeroHttp PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
-target_link_libraries(XzeroHttp XzeroBase XzeroFlow ${SD_LIBRARIES})
+target_link_libraries(XzeroHttp XzeroBase XzeroFlow)
 install(TARGETS XzeroHttp DESTINATION ${LIBDIR})
 # TODO: move sd-daemon code out of XzeroHttp into x0d, if possible

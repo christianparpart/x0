@@ -115,7 +115,7 @@ void HttpWorker::log(Severity s, const char *fmt, ...)
 
 /** enqueues/assigns/registers given client connection information to this worker.
  */
-void HttpWorker::enqueue(std::pair<int, HttpListener *>&& client)
+void HttpWorker::enqueue(std::pair<Socket*, HttpListener *>&& client)
 {
 	pthread_spin_lock(&queueLock_);
 	queue_.push_back(client);
@@ -129,7 +129,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 {
 	pthread_spin_lock(&queueLock_);
 	while (!queue_.empty()) {
-		std::pair<int, HttpListener *> client(queue_.front());
+		std::pair<Socket*, HttpListener *> client(queue_.front());
 		queue_.pop_front();
 
 		pthread_spin_unlock(&queueLock_);
@@ -141,9 +141,9 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 	pthread_spin_unlock(&queueLock_);
 }
 
-void HttpWorker::spawnConnection(int fd, HttpListener* listener)
+void HttpWorker::spawnConnection(Socket* client, HttpListener* listener)
 {
-	TRACE("client connected; fd:%d", fd);
+	TRACE("client connected; fd:%d", client->handle());
 
 	HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
 
@@ -153,7 +153,7 @@ void HttpWorker::spawnConnection(int fd, HttpListener* listener)
 	connections_.push_front(c);
 	HttpConnectionList::iterator i = connections_.begin();
 
-	c->start(listener, fd, i);
+	c->start(listener, client, i);
 }
 
 /** releases/unregisters given (and to-be-destroyed) connection from this worker.

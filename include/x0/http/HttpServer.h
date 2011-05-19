@@ -123,7 +123,8 @@ public:
 	Severity logLevel() const;
 	void logLevel(Severity value);
 
-	HttpListener *setupListener(int port, const std::string& bindAddress);
+	HttpListener *setupListener(const std::string& bindAddress, int port, int backlog = 0 /*default*/);
+	HttpListener *setupUnixListener(const std::string& path, int backlog = 0 /*default*/);
 	void destroyListener(HttpListener *listener);
 
 	std::string pluginDirectory() const;

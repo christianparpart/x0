@@ -198,12 +198,12 @@ bool HttpConnection::isSecure() const
  *
  * \see stop()
  */
-void HttpConnection::start(HttpListener* listener, int fd, const HttpConnectionList::iterator& handle)
+void HttpConnection::start(HttpListener* listener, Socket* client, const HttpConnectionList::iterator& handle)
 {
 	handle_ = handle;
 	listener_ = listener;
 
-	socket_ = listener_->socketDriver()->create(loop(), fd, listener_->addressFamily());
+	socket_ = client;
 	socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
 
 	sink_.setSocket(socket_);
@@ -736,12 +736,14 @@ unsigned int HttpConnection::remotePort() const
 
 std::string HttpConnection::localIP() const
 {
-	return listener_->address();
+	return listener_->socket().address();
+	//return socket_->localIP();
 }
 
 unsigned int HttpConnection::localPort() const
 {
-	return socket_->localPort();
+	return listener_->socket().port();
+	//return socket_->localPort();
 }
 
 void HttpConnection::log(Severity s, const char *fmt, ...)

@@ -358,7 +358,7 @@ bool HttpServer::start()
 		active_ = true;
 
 		for (auto i: listeners_)
-			if (!i->start())
+			if (i->errorCount())
 				return false;
 
 		// systemd: check for superfluous passed file descriptors
@@ -424,12 +424,9 @@ int HttpServer::run()
  */
 HttpListener *HttpServer::listenerByPort(int port) const
 {
-	for (auto listener: listeners_) {
-		if (listener->port() == port)
-		{
+	for (auto listener: listeners_)
+		if (listener->socket().port() == port)
 			return listener;
-		}
-	}
 
 	return nullptr;
 }
@@ -512,30 +509,42 @@ void HttpServer::log(Severity s, const char *msg, ...)
  * If there is already a HttpListener on this bind_address:port pair
  * then no error will be raised.
  */
-HttpListener *HttpServer::setupListener(int port, const std::string& bind_address)
+HttpListener *HttpServer::setupListener(const std::string& bind_address, int port, int backlog)
 {
 	// check if we already have an HTTP listener listening on given port
-	if (HttpListener *lp = listenerByPort(port))
-		return lp;
+//	if (HttpListener *lp = listenerByPort(port))
+//		return lp;
 
 	// create a new listener
 	HttpListener *lp = new HttpListener(*this);
 
-	lp->address(bind_address);
-	lp->port(port);
+	if (backlog)
+		lp->setBacklog(backlog);
 
-	// TODO: configurable listener backlog
-#if 0
-	int value = 0;
-	if (!settings_.load("Resources.MaxConnections", value))
-		lp->backlog(value);
-#endif
+	if (lp->open(bind_address, port)) {
+		listeners_.push_back(lp);
+		return lp;
+	}
 
-	listeners_.push_back(lp);
+	delete lp;
+	return nullptr;
+}
 
-	//log(Severity::debug, "Listening on %s:%d", bind_address.c_str(), port);
+HttpListener *HttpServer::setupUnixListener(const std::string& path, int backlog)
+{
+	// create a new listener
+	HttpListener *lp = new HttpListener(*this);
 
-	return lp;
+	if (backlog)
+		lp->setBacklog(backlog);
+
+	if (lp->open(path)) {
+		listeners_.push_back(lp);
+		return lp;
+	}
+
+	delete lp;
+	return nullptr;
 }
 
 void HttpServer::destroyListener(HttpListener *listener)

@@ -114,7 +114,7 @@ private:
 	void ref();
 	void unref();
 
-	void start(HttpListener* listener, int fd, const HttpConnectionList::iterator& handle);
+	void start(HttpListener* listener, Socket* client, const HttpConnectionList::iterator& handle);
 	void resume();
 
 	bool isAborted() const;
