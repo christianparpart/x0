@@ -521,12 +521,11 @@ HttpListener *HttpServer::setupListener(const std::string& bind_address, int por
 	if (backlog)
 		lp->setBacklog(backlog);
 
-	if (lp->open(bind_address, port)) {
-		listeners_.push_back(lp);
-		return lp;
-	}
+	listeners_.push_back(lp);
 
-	delete lp;
+	if (lp->open(bind_address, port))
+		return lp;
+
 	return nullptr;
 }
 
@@ -538,12 +537,11 @@ HttpListener *HttpServer::setupUnixListener(const std::string& path, int backlog
 	if (backlog)
 		lp->setBacklog(backlog);
 
-	if (lp->open(path)) {
-		listeners_.push_back(lp);
-		return lp;
-	}
+	listeners_.push_back(lp);
 
-	delete lp;
+	if (lp->open(path))
+		return lp;
+
 	return nullptr;
 }
 
