@@ -13,7 +13,7 @@ class Socket;
 class SocketDriver;
 class IPAddress;
 
-class ServerSocket
+class X0_API ServerSocket
 {
 private:
 	struct ev_loop* loop_;
