@@ -806,7 +806,7 @@ const llvm::Type *FlowRunner::makeType(FlowToken t) const
 	}
 }
 
-extern "C" int flow_endsWidth(const char *left, const char *right)
+extern "C" X0_API int flow_endsWidth(const char *left, const char *right)
 {
 	size_t ll = strlen(left);
 	size_t lr = strlen(right);
@@ -825,7 +825,7 @@ extern "C" int flow_endsWidth(const char *left, const char *right)
  *
  * \return the calculated array length.
  */
-extern "C" uint32_t flow_arraylen(FlowValue *array)
+extern "C" X0_API uint32_t flow_arraylen(FlowValue *array)
 {
 	uint32_t result = 0;
 	while (!array->isVoid())
@@ -844,7 +844,7 @@ extern "C" uint32_t flow_arraylen(FlowValue *array)
  * \param left the left input array stored first
  * \param right the right input array stored after the left array into the result
  */
-extern "C" void flow_arrayadd(FlowValue *result, FlowValue *left, FlowValue *right)
+extern "C" X0_API void flow_arrayadd(FlowValue *result, FlowValue *left, FlowValue *right)
 {
 	while (!left->isVoid())
 		(result++)->set(*left++);
@@ -860,7 +860,7 @@ extern "C" void flow_arrayadd(FlowValue *result, FlowValue *left, FlowValue *rig
  * \retval 0 equal
  * \retval 1 not equal
  */
-extern "C" int32_t flow_arraycmp(const FlowValue *left, const FlowValue *right)
+extern "C" X0_API int32_t flow_arraycmp(const FlowValue *left, const FlowValue *right)
 {
 	while (!left->isVoid() && !right->isVoid())
 	{
@@ -903,18 +903,18 @@ extern "C" int32_t flow_arraycmp(const FlowValue *left, const FlowValue *right)
  * \retval 0 not matched.
  * \retval 1 matched.
  */
-extern "C" int flow_regexmatch(size_t textLength, const char *text, size_t patternLength, const char *pattern)
+extern "C" X0_API int flow_regexmatch(size_t textLength, const char *text, size_t patternLength, const char *pattern)
 {
 	RegExp re(std::string(pattern, patternLength));
 	return re.match(text, textLength);
 }
 
-extern "C" int flow_regexmatch2(size_t textLength, const char *text, const RegExp *re)
+extern "C" X0_API int flow_regexmatch2(size_t textLength, const char *text, const RegExp *re)
 {
 	return re->match(text, textLength);
 }
 
-extern "C" int flow_NumberInArray(uint64_t number, const FlowValue *array)
+extern "C" X0_API int flow_NumberInArray(uint64_t number, const FlowValue *array)
 {
 	for (; !array->isVoid(); ++array)
 	{
@@ -935,7 +935,7 @@ extern "C" int flow_NumberInArray(uint64_t number, const FlowValue *array)
 /** compares an IPAddress object with a string representation of an IP address.
  * \return zero on equality, non-zero if not.
  */
-extern "C" int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
+extern "C" X0_API int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
 {
 	return strcmp(ipaddr->str().c_str(), string);
 }
@@ -944,12 +944,12 @@ extern "C" int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
  * \retval 0 equal
  * \retval 1 unequal
  */
-extern "C" int flow_ipcmp(const IPAddress *ip1, const IPAddress *ip2)
+extern "C" X0_API int flow_ipcmp(const IPAddress *ip1, const IPAddress *ip2)
 {
 	return *ip1 == *ip2 ? 0 : 1;
 }
 
-extern "C" int flow_StringInArray(size_t textLength, const char *text, const FlowValue *array)
+extern "C" X0_API int flow_StringInArray(size_t textLength, const char *text, const FlowValue *array)
 {
 	for (; !array->isVoid(); ++array)
 	{
