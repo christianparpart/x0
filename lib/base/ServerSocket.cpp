@@ -12,6 +12,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <sd-daemon.h>
 
@@ -76,6 +77,9 @@ ServerSocket::~ServerSocket()
 {
 	if (fd_ >= 0)
 		::close(fd_);
+
+	if (isLocal())
+		::unlink(address_.c_str());
 
 	setSocketDriver(nullptr);
 }
