@@ -57,7 +57,7 @@ void Buffer::dump(const void *bytes, std::size_t length, const char *description
 {
 	static char hex[] = "0123456789ABCDEF";
 	const int BLOCK_SIZE = 8;
-	const int BLOCK_COUNT = 4;
+	const int BLOCK_COUNT = 2; //4;
 
 	//12 34 56 78   12 34 56 78   12 34 56 78   12 34 56 78   12345678abcdef
 	const int HEX_WIDTH = (BLOCK_SIZE + 1) * 3 * BLOCK_COUNT;

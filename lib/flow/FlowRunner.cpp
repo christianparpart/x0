@@ -963,13 +963,13 @@ extern "C" X0_API int flow_StringInArray(size_t textLength, const char *text, co
  * \retval 0 not matched.
  * \retval 1 matched.
  */
-extern "C" int flow_regexmatch(size_t textLength, const char *text, size_t patternLength, const char *pattern)
+extern "C" X0_API int flow_regexmatch(size_t textLength, const char *text, size_t patternLength, const char *pattern)
 {
 	RegExp re(std::string(pattern, patternLength));
 	return re.match(text, textLength);
 }
 
-extern "C" int flow_regexmatch2(size_t textLength, const char *text, const RegExp *re)
+extern "C" X0_API int flow_regexmatch2(size_t textLength, const char *text, const RegExp *re)
 {
 	return re->match(text, textLength);
 }
@@ -979,7 +979,7 @@ extern "C" int flow_regexmatch2(size_t textLength, const char *text, const RegEx
 /** compares an IPAddress object with a string representation of an IP address.
  * \return zero on equality, non-zero if not.
  */
-extern "C" int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
+extern "C" X0_API int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
 {
 	return strcmp(ipaddr->str().c_str(), string);
 }
@@ -988,7 +988,7 @@ extern "C" int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
  * \retval 0 equal
  * \retval 1 unequal
  */
-extern "C" int flow_ipcmp(const IPAddress *ip1, const IPAddress *ip2)
+extern "C" X0_API int flow_ipcmp(const IPAddress *ip1, const IPAddress *ip2)
 {
 	return *ip1 == *ip2 ? 0 : 1;
 }

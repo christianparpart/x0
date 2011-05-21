@@ -690,22 +690,21 @@ private:
 	void set_mapping(x0::FlowValue& result, const x0::Params& args)
 	{
 		for (auto& arg: args)
-			addMapping(arg);
+			if (arg.isArray())
+				addMapping(*arg.toArray());
 	}
 
-	void addMapping(const x0::FlowValue& mapping)
+	void addMapping(const x0::FlowArray& mapping)
 	{
-		if (!mapping.isArray())
-			return;
-
 		std::vector<const x0::FlowValue *> items;
-		for (const x0::FlowValue *item = mapping.toArray(); !item->isVoid(); ++item)
-			items.push_back(item);
+		for (auto item: mapping)
+			items.push_back(&item);
 
 		if (items.size() != 2)
 		{
-			for (const x0::FlowValue *item = mapping.toArray(); !item->isVoid(); ++item)
-				addMapping(*item);
+			for (auto item: items)
+				if (item->isArray())
+					addMapping(*item->toArray());
 		}
 		else if (items[0]->isString() && items[1]->isString())
 		{

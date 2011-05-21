@@ -199,8 +199,12 @@ private:
 			if (!args[i].isArray())
 				continue;
 
-			const x0::FlowValue *key = args[i].toArray();
-			const x0::FlowValue *value = key + 1;
+			const x0::FlowArray& arg = *args[i].toArray(); // key => value
+			if (arg.size() != 2)
+				continue;
+
+			const x0::FlowValue* key = &arg[0];
+			const x0::FlowValue* value = &arg[1];
 
 			if (!key->isString())
 				continue;

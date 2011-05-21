@@ -118,8 +118,8 @@ private:
 				contentTypes_.push_back(from.toString());
 				break;
 			case x0::FlowValue::ARRAY:
-				for (const x0::FlowValue *p = from.toArray(); !p->isVoid(); ++p)
-					populateContentTypes(*p);
+				for (auto p: *from.toArray())
+					populateContentTypes(p);
 				break;
 			default:
 				;

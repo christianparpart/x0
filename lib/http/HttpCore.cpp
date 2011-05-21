@@ -244,8 +244,8 @@ void HttpCore::loadServerTag(const FlowValue& tag)
 	switch (tag.type())
 	{
 		case FlowValue::ARRAY:
-			for (const FlowValue *a = tag.toArray(); !a->isVoid(); ++a)
-				loadServerTag(*a);
+			for (auto a: *tag.toArray())
+				loadServerTag(a);
 			break;
 		case FlowValue::STRING:
 			if (*tag.toString() != '\0')
@@ -395,12 +395,12 @@ void HttpCore::workers(FlowValue& result, const Params& args)
 			size_t count = server_.workers_.size();
 
 			// spawn or set affinity of a set of workers as passed via input array
-			for (const FlowValue *value = args[0].toArray(); !value->isVoid(); ++value) {
-				if (value->isNumber()) {
+			for (auto value: *args[0].toArray()) {
+				if (value.isNumber()) {
 					if (i >= count)
 						server_.spawnWorker();
 
-					server_.workers_[i]->setAffinity(value->toNumber());
+					server_.workers_[i]->setAffinity(value.toNumber());
 					++i;
 				}
 			}
@@ -549,8 +549,8 @@ bool HttpCore::matchIndex(HttpRequest *in, const FlowValue& arg)
 		}
 		case FlowValue::ARRAY:
 		{
-			for (const FlowValue *a = arg.toArray(); !a->isVoid(); ++a)
-				if (matchIndex(in, *a))
+			for (auto a: *arg.toArray())
+				if (matchIndex(in, a))
 					return true;
 
 			break;
