@@ -1341,7 +1341,7 @@ void FlowRunner::visit(Function& function)
 	if (function.isHandler())
 		argTypes.push_back(int8PtrType());
 
-	for (auto i = function.argTypes()->begin(), e = function.argTypes()->end(); i != e; ++i)
+	for (auto i = function.argTypes().begin(), e = function.argTypes().end(); i != e; ++i)
 		argTypes.push_back(makeType(*i));
 
 	llvm::FunctionType *ft = llvm::FunctionType::get(

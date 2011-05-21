@@ -691,7 +691,7 @@ private:
 	{
 		for (auto& arg: args)
 			if (arg.isArray())
-				addMapping(*arg.toArray());
+				addMapping(arg.toArray());
 	}
 
 	void addMapping(const x0::FlowArray& mapping)
@@ -704,7 +704,7 @@ private:
 		{
 			for (auto item: items)
 				if (item->isArray())
-					addMapping(*item->toArray());
+					addMapping(item->toArray());
 		}
 		else if (items[0]->isString() && items[1]->isString())
 		{
@@ -717,7 +717,11 @@ private:
 	// cgi.prefix(prefix => path)
 	bool prefix(x0::HttpRequest *in, const x0::Params& args)
 	{
-		const x0::FlowArray& r = *args[0].toArray();
+		const x0::FlowArray& r = args[0].toArray();
+
+		if (r.size() != 2)
+			return false;
+
 		const char *prefix = r[0].toString();
 		const char *path = r[1].toString();
 

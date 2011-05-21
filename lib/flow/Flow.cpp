@@ -297,9 +297,14 @@ void Function::setReturnType(FlowToken t)
 	returnType_ = t;
 }
 
-std::vector<FlowToken> *Function::argTypes()
+std::vector<FlowToken>& Function::argTypes()
 {
-	return &argTypes_;
+	return argTypes_;
+}
+
+const std::vector<FlowToken>& Function::argTypes() const
+{
+	return argTypes_;
 }
 
 bool Function::isVarArg() const
@@ -475,8 +480,25 @@ ListExpr::ListExpr(const SourceLocation& sloc) :
 
 ListExpr::~ListExpr()
 {
-	for (auto i = list_.begin(), e = list_.end(); i != e; ++i)
-		delete *i;
+	clear();
+}
+
+bool ListExpr::empty() const
+{
+	return list_.empty();
+}
+
+size_t ListExpr::size() const
+{
+	return list_.size();
+}
+
+void ListExpr::clear()
+{
+	for (auto i: list_)
+		delete i;
+
+	list_.clear();
 }
 
 void ListExpr::push_back(Expr *expr)
@@ -492,6 +514,18 @@ int ListExpr::length() const
 Expr *ListExpr::at(int i)
 {
 	return list_[i];
+}
+
+void ListExpr::replaceAt(size_t i, Expr* e)
+{
+	delete list_[i];
+	list_[i] = e;
+}
+
+void ListExpr::replaceAll(Expr* e)
+{
+	clear();
+	push_back(e);
 }
 
 void ListExpr::accept(ASTVisitor& v)

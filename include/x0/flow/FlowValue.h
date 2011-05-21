@@ -107,7 +107,7 @@ struct __attribute__((packed)) X0_API FlowValue
 	const RegExp* toRegExp() const;
 	const IPAddress* toIPAddress() const;
 	const char* toString() const;
-	const FlowArray* toArray() const;
+	const FlowArray& toArray() const;
 	Function toFunction() const;
 
 	void dump() const;
@@ -351,9 +351,9 @@ inline const char* FlowValue::toString() const
 	return string_;
 }
 
-inline const FlowArray* FlowValue::toArray() const
+inline const FlowArray& FlowValue::toArray() const
 {
-	return static_cast<const FlowArray*>(this);
+	return *static_cast<const FlowArray*>(this);
 }
 
 inline FlowValue::Function FlowValue::toFunction() const

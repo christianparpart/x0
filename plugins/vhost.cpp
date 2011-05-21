@@ -63,7 +63,7 @@ private:
 	void registerHost(const x0::FlowValue& arg)
 	{
 		if (arg.type() == x0::FlowValue::ARRAY) {
-			const x0::FlowArray& args = *arg.toArray();
+			const x0::FlowArray& args = arg.toArray();
 			if (args.size() != 2)
 				return;
 

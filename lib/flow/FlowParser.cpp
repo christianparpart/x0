@@ -460,7 +460,7 @@ Function *FlowParser::externDecl()
 		if (FlowTokenTraits::isType(token()))
 		{
 			// add first arg type
-			fn->argTypes()->push_back(token());
+			fn->argTypes().push_back(token());
 			nextToken();
 
 			while (token() == FlowToken::Comma)
@@ -468,7 +468,7 @@ Function *FlowParser::externDecl()
 				nextToken(); // consume comma
 
 				if (FlowTokenTraits::isType(token()))
-					fn->argTypes()->push_back(token());
+					fn->argTypes().push_back(token());
 				else if (token() == FlowToken::Ellipsis)
 				{
 					nextToken();

@@ -52,7 +52,7 @@ void FlowValue::dump(bool x) const
 			break;
 		}
 		case FlowValue::ARRAY: {
-			const FlowArray& p = *toArray();
+			const FlowArray& p = toArray();
 			printf("[");
 			for (size_t k = 0, ke = p.size(); k != ke; ++k) {
 				if (k) printf(", ");

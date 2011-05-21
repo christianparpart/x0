@@ -199,7 +199,7 @@ private:
 			if (!args[i].isArray())
 				continue;
 
-			const x0::FlowArray& arg = *args[i].toArray(); // key => value
+			const x0::FlowArray& arg = args[i].toArray(); // key => value
 			if (arg.size() != 2)
 				continue;
 

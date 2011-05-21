@@ -244,7 +244,7 @@ void HttpCore::loadServerTag(const FlowValue& tag)
 	switch (tag.type())
 	{
 		case FlowValue::ARRAY:
-			for (auto a: *tag.toArray())
+			for (auto a: tag.toArray())
 				loadServerTag(a);
 			break;
 		case FlowValue::STRING:
@@ -395,7 +395,7 @@ void HttpCore::workers(FlowValue& result, const Params& args)
 			size_t count = server_.workers_.size();
 
 			// spawn or set affinity of a set of workers as passed via input array
-			for (auto value: *args[0].toArray()) {
+			for (auto value: args[0].toArray()) {
 				if (value.isNumber()) {
 					if (i >= count)
 						server_.spawnWorker();
@@ -549,7 +549,7 @@ bool HttpCore::matchIndex(HttpRequest *in, const FlowValue& arg)
 		}
 		case FlowValue::ARRAY:
 		{
-			for (auto a: *arg.toArray())
+			for (auto a: arg.toArray())
 				if (matchIndex(in, a))
 					return true;
 
@@ -575,13 +575,15 @@ bool HttpCore::docroot(HttpRequest *in, const Params& args)
 
 bool HttpCore::alias(HttpRequest *in, const Params& args)
 {
-	if (args.count() != 1 || !args[0].isArray())
-	{
+	if (args.count() != 1 || !args[0].isArray()) {
 		server().log(Severity::error, "alias: invalid argument count");
 		return false;
 	}
 
-	const FlowArray& r = *args[0].toArray();
+	const FlowArray& r = args[0].toArray();
+
+	if (r.size() != 2)
+		return false;
 
 	if (!r[0].isString() || !r[1].isString()) {
 		server().log(Severity::error, "alias: invalid argument types");

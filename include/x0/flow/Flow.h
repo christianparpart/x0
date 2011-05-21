@@ -266,7 +266,8 @@ public:
 	FlowToken returnType() const;
 	void setReturnType(FlowToken);
 
-	std::vector<FlowToken> *argTypes();
+	std::vector<FlowToken>& argTypes();
+	const std::vector<FlowToken>& argTypes() const;
 
 	bool isVarArg() const;
 	void setIsVarArg(bool value);
@@ -435,12 +436,22 @@ public:
 	explicit ListExpr(const SourceLocation& sloc = SourceLocation());
 	~ListExpr();
 
+	bool empty() const;
+	size_t size() const;
+	void clear();
+
 	void push_back(Expr* expr);
 	int length() const;
 	Expr* at(int i);
 
+	void replaceAt(size_t i, Expr* expr);
+	void replaceAll(Expr* expr);
+
 	std::vector<Expr*>::iterator begin();
 	std::vector<Expr*>::iterator end();
+
+	std::vector<Expr*>::const_iterator begin() const;
+	std::vector<Expr*>::const_iterator end() const;
 
 	virtual void accept(ASTVisitor& v);
 };
@@ -558,6 +569,16 @@ inline std::vector<Expr *>::iterator ListExpr::begin()
 }
 
 inline std::vector<Expr *>::iterator ListExpr::end()
+{
+	return list_.end();
+}
+
+inline std::vector<Expr *>::const_iterator ListExpr::begin() const
+{
+	return list_.begin();
+}
+
+inline std::vector<Expr *>::const_iterator ListExpr::end() const
 {
 	return list_.end();
 }
