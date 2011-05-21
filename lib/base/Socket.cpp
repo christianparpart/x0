@@ -422,7 +422,7 @@ ssize_t Socket::write(const void *buffer, size_t size)
 
 	return rv;
 #else
-	return ::write(fd_, buffer, size);
+	return size ? ::write(fd_, buffer, size) : 0;
 #endif
 }
 

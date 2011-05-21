@@ -9,12 +9,13 @@
 #ifndef sw_flow_RegExp_h
 #define sw_flow_RegExp_h
 
+#include <x0/Api.h>
 #include <pcre.h>
 #include <string>
 
 namespace x0 {
 
-class RegExp
+class X0_API RegExp
 {
 private:
 	std::string pattern_;

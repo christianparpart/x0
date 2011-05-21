@@ -17,6 +17,8 @@
 
 namespace x0 {
 
+class Socket;
+
 //! \addtogroup http
 //@{
 
@@ -62,7 +64,7 @@ private:
 	std::atomic<unsigned long long> requestCount_;
 	unsigned long long connectionCount_;
 	pthread_t thread_;
-	std::deque<std::pair<int, HttpListener *> > queue_;
+	std::deque<std::pair<Socket*, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
 	HttpConnectionList connections_;
@@ -102,7 +104,7 @@ public:
 	unsigned long long requestCount() const;
 	unsigned long long connectionCount() const;
 
-	void enqueue(std::pair<int, HttpListener *>&& handle);
+	void enqueue(std::pair<Socket*, HttpListener*>&& handle);
 	void handleRequest(HttpRequest *r);
 	void release(const HttpConnectionList::iterator& connection);
 
@@ -123,7 +125,7 @@ protected:
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
-	void spawnConnection(int fd, HttpListener* listener);
+	void spawnConnection(Socket* client, HttpListener* listener);
 	void onExit(ev::async& w, int revents);
 	void onExitTimeout(ev::timer& w, int revents);
 };

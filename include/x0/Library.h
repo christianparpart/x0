@@ -9,11 +9,12 @@
 #ifndef sw_x0_library_hpp
 #define sw_x0_library_hpp (1)
 
+#include <x0/Api.h>
 #include <system_error>
 
 namespace x0 {
 
-class Library
+class X0_API Library
 {
 public:
 	explicit Library(const std::string& filename = std::string());

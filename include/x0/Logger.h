@@ -30,7 +30,7 @@ namespace x0 {
  *
  * \see FileLogger
  */
-class Logger
+class X0_API Logger
 {
 	Logger& operator=(const Logger&) = delete;
 	Logger(const Logger&) = delete;
@@ -72,7 +72,7 @@ typedef std::shared_ptr<Logger> LoggerPtr;
  *
  * \see logger, FileLogger
  */
-class NullLogger :
+class X0_API NullLogger :
 	public Logger
 {
 public:
@@ -89,7 +89,7 @@ public:
  * \see logger, server
  */
 template<class Now>
-class FileLogger :
+class X0_API FileLogger :
 	public Logger
 {
 public:
@@ -112,7 +112,7 @@ private:
  *
  * \see logger, server
  */
-class SystemLogger :
+class X0_API SystemLogger :
 	public Logger
 {
 public:
@@ -128,7 +128,7 @@ public:
  *
  * \see logger, server
  */
-class SystemdLogger :
+class X0_API SystemdLogger :
 	public Logger
 {
 public:

@@ -814,7 +814,7 @@ const llvm::Type *FlowRunner::makeType(FlowToken t) const
 	}
 }
 
-extern "C" int flow_endsWidth(const char *left, const char *right)
+extern "C" X0_API int flow_endsWidth(const char *left, const char *right)
 {
 	size_t ll = strlen(left);
 	size_t lr = strlen(right);
@@ -834,7 +834,7 @@ extern "C" int flow_endsWidth(const char *left, const char *right)
  *
  * \return the calculated array length.
  */
-extern "C" uint32_t flow_array_len(FlowArray* array)
+extern "C" X0_API uint32_t flow_array_len(FlowArray* array)
 {
 	return array->size();
 }
@@ -846,7 +846,7 @@ extern "C" uint32_t flow_array_len(FlowArray* array)
  * \param left the left input array stored first
  * \param right the right input array stored after the left array into the result
  */
-extern "C" void flow_array_add(FlowArray* result, FlowArray* left, FlowArray* right)
+extern "C" X0_API void flow_array_add(FlowArray* result, FlowArray* left, FlowArray* right)
 {
 	assert(result->size() == left->size() + right->size());
 
@@ -863,7 +863,7 @@ extern "C" void flow_array_add(FlowArray* result, FlowArray* left, FlowArray* ri
  * \retval 0 equal
  * \retval 1 not equal
  */
-extern "C" int32_t flow_array_cmp(const FlowArray* left, const FlowArray* right)
+extern "C" X0_API int32_t flow_array_cmp(const FlowArray* left, const FlowArray* right)
 {
 	if (left->size() != right->size())
 		return 1;
@@ -902,7 +902,7 @@ extern "C" int32_t flow_array_cmp(const FlowArray* left, const FlowArray* right)
 	return 0;
 }
 
-extern "C" int flow_NumberInArray(uint64_t number, const FlowArray* array)
+extern "C" X0_API int flow_NumberInArray(uint64_t number, const FlowArray* array)
 {
 	for (const auto& elem: *array) {
 		switch (elem.type()) {
@@ -918,7 +918,7 @@ extern "C" int flow_NumberInArray(uint64_t number, const FlowArray* array)
 	return false;
 }
 
-extern "C" int flow_StringInArray(size_t textLength, const char *text, const FlowValue* array)
+extern "C" X0_API int flow_StringInArray(size_t textLength, const char *text, const FlowValue* array)
 {
 	for (; !array->isVoid(); ++array)
 	{

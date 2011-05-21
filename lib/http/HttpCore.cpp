@@ -366,23 +366,25 @@ void HttpCore::max_request_body_size(FlowValue& result, const Params& args)
 
 void HttpCore::listen(FlowValue& result, const Params& args)
 {
+	// parameter usage:
+	//     ("unix:/path/to", backlog?)
+	//     ("host:port", backlog?)
+	//     ("host", port, backlog?)
+
 	std::string arg(args[0].toString());
-	size_t n = arg.rfind(':');
-	std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
-	int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
-	int backlog = args[1].isNumber() ? args[1].toNumber() : 0;
 
-	HttpListener *listener = server().setupListener(port, ip);
+	if (arg.substr(0, 5) == "unix:") {
+		arg = arg.substr(5);
+		int backlog = args.count() == 2 ? args[1].toNumber() : 0;
+		result.set(server().setupUnixListener(arg, backlog) != nullptr);
+	} else {
+		size_t n = arg.rfind(':');
+		std::string address = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
+		int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
+		int backlog = args[1].isNumber() ? args[1].toNumber() : 0;
 
-	if (listener) {
-		if (backlog) {
-			listener->backlog(backlog);
-		}
-
-		listener->prepare();
+		result.set(server().setupListener(address, port, backlog));
 	}
-
-	result.set(listener == nullptr);
 }
 
 void HttpCore::workers(FlowValue& result, const Params& args)

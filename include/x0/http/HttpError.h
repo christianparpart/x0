@@ -9,6 +9,7 @@
 #ifndef sw_x0_http_error_hpp
 #define sw_x0_http_error_hpp (1)
 
+#include <x0/Api.h>
 #include <system_error>
 
 //! \addtogroup http
@@ -77,18 +78,18 @@ enum class HttpError // {{{
 };
 // }}}
 
-const std::error_category& http_category() throw();
+X0_API const std::error_category& http_category() throw();
 
-std::error_code make_error_code(HttpError ec);
-std::error_condition make_error_condition(HttpError ec);
+X0_API std::error_code make_error_code(HttpError ec);
+X0_API std::error_condition make_error_condition(HttpError ec);
 
-bool content_forbidden(HttpError code);
+X0_API bool content_forbidden(HttpError code);
 
 } // namespace x0
 
 namespace std {
 	// implicit conversion from HttpError to error_code
-	template<> struct is_error_code_enum<x0::HttpError> : public true_type {};
+	template<> struct X0_API is_error_code_enum<x0::HttpError> : public true_type {};
 }
 
 //@}

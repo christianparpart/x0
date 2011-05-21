@@ -148,17 +148,13 @@ private:
 		int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
 		int backlog = args[1].isNumber() ? args[1].toNumber() : 0;
 
-		x0::HttpListener *listener = server().setupListener(port, ip);
-
+		x0::HttpListener *listener = server().setupListener(ip, port, backlog);
 		if (listener) {
-			if (backlog)
-				listener->backlog(backlog);
-
-			listener->prepare();
+			SslDriver *driver = new SslDriver(this);
+			listener->socket().setSocketDriver(driver);
 		}
 
-		SslDriver *driver = new SslDriver(this);
-		listener->setSocketDriver(driver);
+		result.set(listener != nullptr);
 	}
 
 	void set_loglevel(x0::FlowValue& result, const x0::Params& args)

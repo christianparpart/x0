@@ -12,6 +12,7 @@
 #include <x0/flow/FlowToken.h>
 #include <x0/flow/FlowLexer.h> // SourceLocation
 #include <x0/RegExp.h>
+#include <x0/Api.h>
 #include <string>
 #include <vector>
 
@@ -49,7 +50,7 @@ class ASTNode;
 class ASTVisitor;
 
 // {{{ visitors
-class ASTVisitor
+class X0_API ASTVisitor
 {
 public:
 	virtual ~ASTVisitor() {}
@@ -105,7 +106,7 @@ enum class Operator
 	Bracket, Paren, Is, As
 };
 
-struct OperatorTraits
+struct X0_API OperatorTraits
 {
 	static bool isUnary(Operator op);
 	static bool isBinary(Operator op);
@@ -131,44 +132,44 @@ inline bool operator&(Lookup a, Lookup b)
 	return static_cast<unsigned>(a) & static_cast<unsigned>(b);
 }
 
-class SymbolTable
+class X0_API SymbolTable
 {
 public:
-	typedef std::vector<Symbol *> list_type;
+	typedef std::vector<Symbol*> list_type;
 	typedef list_type::iterator iterator;
 	typedef list_type::const_iterator const_iterator;
 
 private:
 	list_type symbols_;
-	std::vector<SymbolTable *> parents_;
-	SymbolTable *outer_;
+	std::vector<SymbolTable*> parents_;
+	SymbolTable* outer_;
 
 public:
-	explicit SymbolTable(SymbolTable *outer = NULL);
+	explicit SymbolTable(SymbolTable* outer = NULL);
 	~SymbolTable();
 
 	iterator begin();
 	iterator end();
 
-	void setOuterTable(SymbolTable *table);
-	SymbolTable *outerTable() const;
+	void setOuterTable(SymbolTable* table);
+	SymbolTable* outerTable() const;
 
-	SymbolTable *appendParent(SymbolTable *table);
-	SymbolTable *parentAt(size_t i) const;
-	void removeParent(SymbolTable *table);
+	SymbolTable* appendParent(SymbolTable* table);
+	SymbolTable* parentAt(size_t i) const;
+	void removeParent(SymbolTable* table);
 	size_t parentCount() const;
 
-	Symbol *appendSymbol(Symbol *symbol);
-	void removeSymbol(Symbol *symbol);
-	Symbol *symbolAt(size_t i) const;
+	Symbol* appendSymbol(Symbol* symbol);
+	void removeSymbol(Symbol* symbol);
+	Symbol* symbolAt(size_t i) const;
 	size_t symbolCount() const;
 
-	Symbol *lookup(const std::string& name, Lookup lookupMethod) const;
+	Symbol* lookup(const std::string& name, Lookup lookupMethod) const;
 };
 // }}}
 
 // {{{ AST base
-class ASTNode
+class X0_API ASTNode
 {
 protected:
 	SourceLocation sourceLocation_;
@@ -186,7 +187,7 @@ public:
 // }}}
 
 // {{{ symbols
-class Symbol : public ASTNode
+class X0_API Symbol : public ASTNode
 {
 public:
 	enum Type {
@@ -198,11 +199,11 @@ public:
 
 private:
 	Type type_;
-	SymbolTable *scope_;
+	SymbolTable* scope_;
 	std::string name_;
 
 protected:
-	Symbol(Type type, SymbolTable *scope, const std::string& name, const SourceLocation& sloc);
+	Symbol(Type type, SymbolTable* scope, const std::string& name, const SourceLocation& sloc);
 
 public:
 	virtual ~Symbol() {}
@@ -213,7 +214,7 @@ public:
 	bool isUnit() const { return type_ == UNIT; }
 	bool isType() const { return type_ == TYPE; }
 
-	SymbolTable *parentScope() const;
+	SymbolTable* parentScope() const;
 
 	const std::string& name() const;
 	void setName(const std::string& name);
@@ -221,18 +222,18 @@ public:
 	virtual void accept(ASTVisitor& v) = 0;
 };
 
-class Variable : public Symbol
+class X0_API Variable : public Symbol
 {
 private:
-	Expr *value_;
+	Expr* value_;
 
 public:
 	Variable(const std::string& name, const SourceLocation& sloc); // external variable
-	Variable(SymbolTable *scope, const std::string& name, Expr *value, const SourceLocation& sloc);
+	Variable(SymbolTable* scope, const std::string& name, Expr* value, const SourceLocation& sloc);
 	~Variable();
 
-	Expr *value() const;
-	void setValue(Expr *value);
+	Expr* value() const;
+	void setValue(Expr* value);
 
 	virtual void accept(ASTVisitor& v);
 };
@@ -240,11 +241,11 @@ public:
 /**
  * a function (internal or external)
  */
-class Function : public Symbol
+class X0_API Function : public Symbol
 {
 private:
-	SymbolTable *scope_;
-	Stmt *body_;
+	SymbolTable* scope_;
+	Stmt* body_;
 	bool isHandler_;
 	FlowToken returnType_;
 	std::vector<FlowToken> argTypes_;
@@ -253,10 +254,10 @@ private:
 public:
 	Function(const std::string& name);
 	Function(const std::string& name, bool isHandler, const SourceLocation& sloc = SourceLocation());
-	Function(SymbolTable *scope, const std::string& name, Stmt *body, bool isHandler, const SourceLocation& sloc);
+	Function(SymbolTable* scope, const std::string& name, Stmt* body, bool isHandler, const SourceLocation& sloc);
 	~Function();
 
-	SymbolTable *scope() const;
+	SymbolTable* scope() const;
 	void setScope(SymbolTable *st);
 
 	bool isHandler() const;
@@ -270,31 +271,31 @@ public:
 	bool isVarArg() const;
 	void setIsVarArg(bool value);
 
-	Stmt *body() const;
-	void setBody(Stmt *body);
+	Stmt* body() const;
+	void setBody(Stmt* body);
 
 	virtual void accept(ASTVisitor& v);
 };
 
-class Unit : public Symbol
+class X0_API Unit : public Symbol
 {
 private:
-	SymbolTable *members_;
+	SymbolTable* members_;
 	std::vector<std::pair<std::string, std::string> > imports_;
 
 public:
 	Unit();
 	~Unit();
 
-	SymbolTable *members() const;
+	SymbolTable* members() const;
 
-	Symbol *insert(Symbol *symbol);
-	Symbol *lookup(const std::string& name);
-	Symbol *at(size_t i) const;
+	Symbol* insert(Symbol* symbol);
+	Symbol* lookup(const std::string& name);
+	Symbol* at(size_t i) const;
 	size_t length() const;
 
 	template<typename T>
-	T *lookup(const std::string& name) { return dynamic_cast<T *>(lookup(name)); }
+	T* lookup(const std::string& name) { return dynamic_cast<T*>(lookup(name)); }
 
 	// plugin import
 	void import(const std::string& moduleName, const std::string& path);
@@ -307,53 +308,53 @@ public:
 // }}}
 
 // {{{ expr
-class Expr : public ASTNode
+class X0_API Expr : public ASTNode
 {
 public:
 	Expr(const SourceLocation& sloc) : ASTNode(sloc) {}
 };
 
-class UnaryExpr : public Expr
+class X0_API UnaryExpr : public Expr
 {
 private:
 	Operator operator_;
-	Expr *subExpr_;
+	Expr* subExpr_;
 
 public:
-	UnaryExpr(Operator op, Expr *expr, const SourceLocation& sloc);
+	UnaryExpr(Operator op, Expr* expr, const SourceLocation& sloc);
 	~UnaryExpr();
 
 	Operator operatorStyle() const;
 	void setOperatorStyle(Operator op);
 
-	Expr *subExpr() const;
-	void setSubExpr(Expr *value);
+	Expr* subExpr() const;
+	void setSubExpr(Expr* value);
 
 	virtual void accept(ASTVisitor& v);
 };
 
-class BinaryExpr : public Expr
+class X0_API BinaryExpr : public Expr
 {
 private:
 	Operator operator_;
-	Expr *left_;
-	Expr *right_;
+	Expr* left_;
+	Expr* right_;
 
 public:
-	BinaryExpr(Operator op, Expr *left, Expr *right, const SourceLocation& sloc);
+	BinaryExpr(Operator op, Expr* left, Expr* right, const SourceLocation& sloc);
 	~BinaryExpr();
 
 	Operator operatorStyle() const;
 	void setOperatorStyle(Operator op);
 
-	Expr *leftExpr() const;
-	Expr *rightExpr() const;
+	Expr* leftExpr() const;
+	Expr* rightExpr() const;
 
 	virtual void accept(ASTVisitor& v);
 };
 
 template<typename T>
-class LiteralExpr : public Expr
+class X0_API LiteralExpr : public Expr
 {
 public:
 	typedef T ValueType;
@@ -370,7 +371,7 @@ public:
 	virtual void accept(ASTVisitor& v) { v.visit(*this); }
 };
 
-class CallExpr : public Expr
+class X0_API CallExpr : public Expr
 {
 public:
 	enum CallStyle
@@ -381,84 +382,84 @@ public:
 	};
 
 private:
-	Function *callee_;
-	ListExpr *args_;
+	Function* callee_;
+	ListExpr* args_;
 	CallStyle callStyle_;
 
 public:
-	CallExpr(Function *callee, ListExpr *args, CallStyle, const SourceLocation& sloc);
+	CallExpr(Function* callee, ListExpr* args, CallStyle, const SourceLocation& sloc);
 	~CallExpr();
 
-	Function *callee() const;
-	ListExpr *args() const;
+	Function* callee() const;
+	ListExpr* args() const;
 	CallStyle callStyle() const;
 
 	virtual void accept(ASTVisitor& v);
 };
 
-class VariableExpr : public Expr
+class X0_API VariableExpr : public Expr
 {
 private:
-	Variable *variable_;
+	Variable* variable_;
 
 public:
-	VariableExpr(Variable *var, const SourceLocation& sloc);
+	VariableExpr(Variable* var, const SourceLocation& sloc);
 	~VariableExpr();
 
-	Variable *variable() const;
-	void setVariable(Variable *var);
+	Variable* variable() const;
+	void setVariable(Variable* var);
 
 	virtual void accept(ASTVisitor& v);
 };
 
-class FunctionRefExpr : public Expr
+class X0_API FunctionRefExpr : public Expr
 {
 private:
-	Function *function_;
+	Function* function_;
 
 public:
-	FunctionRefExpr(Function *ref, const SourceLocation& sloc);
+	FunctionRefExpr(Function* ref, const SourceLocation& sloc);
 
-	Function *function() const;
-	void setFunction(Function *value);
+	Function* function() const;
+	void setFunction(Function* value);
 
 	virtual void accept(ASTVisitor& v);
 };
 
-class ListExpr : public Expr
+class X0_API ListExpr : public Expr
 {
 private:
-	std::vector<Expr *> list_;
+	std::vector<Expr*> list_;
 
 public:
 	explicit ListExpr(const SourceLocation& sloc = SourceLocation());
 	~ListExpr();
 
-	void push_back(Expr *expr);
+	void push_back(Expr* expr);
 	int length() const;
-	Expr *at(int i);
+	Expr* at(int i);
 
-	std::vector<Expr *>::iterator begin();
-	std::vector<Expr *>::iterator end();
+	std::vector<Expr*>::iterator begin();
+	std::vector<Expr*>::iterator end();
 
 	virtual void accept(ASTVisitor& v);
 };
 // }}}
 
 // {{{ stmt
-class Stmt : public ASTNode
+class X0_API Stmt : public ASTNode
 {
 public:
 	Stmt(const SourceLocation& sloc) : ASTNode(sloc) {}
 };
 
-class ExprStmt : public Stmt
+class X0_API ExprStmt : public Stmt
 {
 private:
-	Expr *expression_;
+	Expr* expression_;
 
 public:
-	ExprStmt(Expr *expr, const SourceLocation& sloc);
+	ExprStmt(Expr* expr, const SourceLocation& sloc);
 	~ExprStmt();
 
 	Expr *expression() const;
@@ -467,10 +468,10 @@ public:
 	virtual void accept(ASTVisitor&);
 };
 
-class CompoundStmt : public Stmt
+class X0_API CompoundStmt : public Stmt
 {
 private:
-	std::vector<Stmt *> statements_;
+	std::vector<Stmt*> statements_;
 
 public:
 	explicit CompoundStmt(const SourceLocation& sloc);
@@ -478,28 +479,28 @@ public:
 
 	void push_back(Stmt *stmt);
 	size_t length() const;
-	Stmt *at(size_t index) const;
+	Stmt* at(size_t index) const;
 
-	std::vector<Stmt *>::iterator begin();
-	std::vector<Stmt *>::iterator end();
+	std::vector<Stmt* >::iterator begin();
+	std::vector<Stmt* >::iterator end();
 
 	virtual void accept(ASTVisitor&);
 };
 
-class CondStmt : public Stmt
+class X0_API CondStmt : public Stmt
 {
 private:
-	Expr *cond_;
-	Stmt *thenStmt_;
-	Stmt *elseStmt_;
+	Expr* cond_;
+	Stmt* thenStmt_;
+	Stmt* elseStmt_;
 
 public:
-	CondStmt(Expr *cond, Stmt *thenStmt, Stmt *elseStmt, const SourceLocation& sloc);
+	CondStmt(Expr* cond, Stmt* thenStmt, Stmt* elseStmt, const SourceLocation& sloc);
 	~CondStmt();
 
-	Expr *condition() const;
-	Stmt *thenStmt() const;
-	Stmt *elseStmt() const;
+	Expr* condition() const;
+	Stmt* thenStmt() const;
+	Stmt* elseStmt() const;
 
 	virtual void accept(ASTVisitor&);
 };

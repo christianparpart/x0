@@ -23,7 +23,7 @@ namespace x0 {
 
 /** provides a socket pair (local stream) API.
  */
-class LocalStream
+class X0_API LocalStream
 {
 	LocalStream& operator=(const LocalStream& v) = delete;
 	LocalStream(const LocalStream&) = delete;

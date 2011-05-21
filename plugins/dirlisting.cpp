@@ -133,6 +133,9 @@ private:
 
 		buf << "<html>\n"
 				"<head>\n"
+				"<style>\n"
+				"a.link { display: block; }\n"
+				"</style>\n"
 				"<script type='text/javascript' src='https://www.google.com/jsapi'></script>\n"
 				"<script type='text/javascript'>\n"
 				"google.load('visualization', '1', {packages:['table']});\n"
@@ -164,7 +167,7 @@ private:
 		if (!rv)
 			return false;
 
-		buf << "var linkFormatter = new google.visualization.PatternFormat('<a href=\"{0}\">{0}</a>');\n";
+		buf << "var linkFormatter = new google.visualization.PatternFormat('<a class=\"link\" href=\"{0}\">{0}</a>');\n";
 		buf << "linkFormatter.format(data, [0]);\n";
 
 		buf << "var timeFormatter = new google.visualization.DateFormat({ pattern: 'yyyy-MM-d HH:mm:ss' });\n";

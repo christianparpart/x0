@@ -5,7 +5,7 @@
 
 namespace x0 {
 
-class ConstBuffer : public Buffer
+class X0_API ConstBuffer : public Buffer
 {
 public:
 	template<typename PodType, std::size_t N>

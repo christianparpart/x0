@@ -10,6 +10,7 @@
 #define x0_listener_h (1)
 
 #include <x0/http/HttpServer.h>
+#include <x0/ServerSocket.h>
 #include <x0/SocketDriver.h>
 #include <x0/Severity.h>
 #include <x0/Types.h>
@@ -31,7 +32,6 @@ namespace x0 {
 
 class HttpServer;
 class HttpConnection;
-class SocketDriver;
 
 /**
  * \brief TCP/IP listener for the HTTP protocol.
@@ -53,30 +53,23 @@ public:
 	explicit HttpListener(HttpServer& srv);
 	~HttpListener();
 
-	std::string address() const;
-	void address(const std::string& value);
-
-	int port() const;
-	void port(int value);
-
 	int backlog() const;
-	void backlog(int value);
+	void setBacklog(int value);
 
+	bool open(const std::string& unixPath);
+	bool open(const std::string& ip, int port);
+	int handle() const;
+
+	ServerSocket& socket();
+	const ServerSocket& socket() const;
 	HttpServer& server() const;
-
-	SocketDriver *socketDriver() const;
-	void setSocketDriver(SocketDriver *sd);
 
 	bool isSecure() const;
 
-	int handle() const;
-
-	bool prepare();
-	bool start();
 	bool active() const;
 	void stop();
 
-	int error_count() const;
+	int errorCount() const;
 
 	int addressFamily() const;
 
@@ -87,22 +80,14 @@ private:
 	inline void setsockopt(int socket, int layer, int option, int value);
 	void handle_accept();
 
-	void callback(ev::io& watcher, int revents);
+	void callback(Socket*, ServerSocket*);
 
 	struct ::ev_loop *loop() const;
 
-	addrinfo *getAddressInfo(const char *address, int port);
-
 private:
-	ev::io watcher_;
-	int fd_;
-	int addressFamily_;
+	ServerSocket socket_;
 	HttpServer& server_;
-	std::string address_;
-	int port_;
-	int backlog_;
-	int errors_;
-	SocketDriver *socketDriver_;
+	unsigned errorCount_;
 
 	friend class HttpConnection;
 };
@@ -110,24 +95,24 @@ private:
 // {{{ inlines
 inline bool HttpListener::active() const
 {
-	return fd_ != -1;
+	return socket_.isOpen();
 }
 
-inline SocketDriver *HttpListener::socketDriver() const
+inline int HttpListener::errorCount() const
 {
-	return socketDriver_;
+	return errorCount_;
 }
 
-inline int HttpListener::error_count() const
+inline int HttpListener::handle() const
 {
-	return errors_;
+	return socket_.handle();
 }
 
 template<typename... Args>
 inline void HttpListener::log(Severity sv, const char *msg, Args&&... args)
 {
 	if (sv <= Severity::error)
-		errors_++;
+		++errorCount_;
 
 	server_.log(sv, msg, args...);
 }
@@ -137,25 +122,25 @@ inline struct ::ev_loop *HttpListener::loop() const
 	return server_.loop();
 }
 
+inline ServerSocket& HttpListener::socket()
+{
+	return socket_;
+}
+
+inline const ServerSocket& HttpListener::socket() const
+{
+	return socket_;
+}
+
 inline HttpServer& HttpListener::server() const
 {
 	return server_;
 }
 
-inline int HttpListener::handle() const
-{
-	return fd_;
-}
-
-inline int HttpListener::addressFamily() const
-{
-	return addressFamily_;
-}
-
 inline bool HttpListener::isSecure() const
 {
 #if defined(WITH_SSL)
-	return socketDriver_->isSecure();
+	return socket_.socketDriver()->isSecure();
 #else
 	return false;
 #endif

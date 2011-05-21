@@ -11,6 +11,8 @@
 
 #include <x0/flow/FlowToken.h>
 #include <x0/IPAddress.h>
+#include <x0/Api.h>
+
 #include <map>
 #include <string>
 #include <cstdio>
@@ -54,7 +56,7 @@ public:
 	void dump(const std::string& prefix = std::string()) const;
 }; // }}}
 
-class FlowLexer
+class X0_API FlowLexer
 {
 public:
 	enum Error {

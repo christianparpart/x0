@@ -111,7 +111,7 @@ void flow_print(void *p, int argc, FlowValue *argv, void *cx)
 }
 // }}}
 
-extern "C" void flow_backend_callback(uint64_t iself, int id, void *cx, int argc, FlowValue *argv)
+extern "C" X0_API void flow_backend_callback(uint64_t iself, int id, void *cx, int argc, FlowValue *argv)
 {
 	FlowBackend *self = (FlowBackend *)iself;
 
