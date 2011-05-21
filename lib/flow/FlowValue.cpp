@@ -7,8 +7,8 @@
  */
 
 #include <x0/flow/FlowValue.h>
-#include <x0/RegExp.h>
 #include <x0/IPAddress.h>
+#include <x0/RegExp.h>
 #include <cstring>
 
 namespace x0 {
@@ -42,19 +42,19 @@ void FlowValue::dump(bool x) const
 			printf("fnref(0x%p)", reinterpret_cast<void*>(toFunction()));
 			break;
 		case FlowValue::STRING:
-			printf("%s", toString());
+			printf("'%s'", toString());
 			break;
 		case FlowValue::BUFFER: {
 			long long length = toNumber();
 			const char *p = toString();
 			std::string data(p, p + length);
-			printf("%s", data.c_str());
+			printf("'%s'", data.c_str());
 			break;
 		}
 		case FlowValue::ARRAY: {
-			const FlowValue *p = toArray();
+			const FlowArray& p = *toArray();
 			printf("[");
-			for (int k = 0; p[k].type() != FlowValue::VOID; ++k) {
+			for (size_t k = 0, ke = p.size(); k != ke; ++k) {
 				if (k) printf(", ");
 				p[k].dump(false);
 			}

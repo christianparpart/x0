@@ -19,21 +19,22 @@
 namespace x0 {
 
 class RegExp;
+class FlowArray;
 
 struct __attribute__((packed)) X0_API FlowValue
 {
 	typedef bool (*Function)(void *);
 
 	enum Type {
-		VOID     = 0,
-		BOOLEAN  = 1,
-		NUMBER   = 2,
-		REGEXP   = 3,
+		VOID     = 0, // nothing
+		BOOLEAN  = 1, // a boolean value
+		NUMBER   = 2, // an integer value
+		REGEXP   = 3, // RegExp instance, a precompiled regular expression
 		STRING   = 4, // zero-terminated C-string
 		BUFFER   = 5, // a string buffer with its length stored in the number_ field
-		ARRAY    = 6, // an array of value objects
-		IP       = 7, // an IPv4 or IPv6 address
-		FUNCTION = 8
+		ARRAY    = 6, // FlowArray instance, an array of Flow values
+		IP       = 7, // IPAddress instance, (IPv4 or IPv6 address)
+		FUNCTION = 8  // function pointer to a user-specified handler
 	};
 
 	static const int TypeOffset = 0;
@@ -47,20 +48,20 @@ struct __attribute__((packed)) X0_API FlowValue
 	uint32_t type_;
 	unsigned long long number_;
 	union {
-		const char *string_;
-		const FlowValue *array_;
-		const RegExp *regexp_;
-		const IPAddress *ipaddress_;
+		const char* string_;
+		const FlowValue* array_;
+		const RegExp* regexp_;
+		const IPAddress* ipaddress_;
 		Function function_;
 	};
 
 	FlowValue();
 	FlowValue(bool boolean);
 	FlowValue(unsigned long long integer);
-	FlowValue(const RegExp *re);
-	FlowValue(const IPAddress *ip);
-	FlowValue(const char *cstring);
-	FlowValue(const char *buffer, size_t length);
+	FlowValue(const RegExp* re);
+	FlowValue(const IPAddress* ip);
+	FlowValue(const char* cstring);
+	FlowValue(const char* buffer, size_t length);
 	FlowValue(const FlowValue&);
 	explicit FlowValue(Function function);
 	~FlowValue();
@@ -71,19 +72,19 @@ struct __attribute__((packed)) X0_API FlowValue
 	FlowValue& set(int integer);
 	FlowValue& set(unsigned long integer);
 	FlowValue& set(unsigned long long integer);
-	FlowValue& set(const RegExp *re);
-	FlowValue& set(const IPAddress *ip);
-	FlowValue& set(const char *cstring);
-	FlowValue& set(const char *buffer, size_t length);
+	FlowValue& set(const RegExp* re);
+	FlowValue& set(const IPAddress* ip);
+	FlowValue& set(const char* cstring);
+	FlowValue& set(const char* buffer, size_t length);
 	FlowValue& set(const FlowValue& v);
-	FlowValue& set(const FlowValue *array);
+	FlowValue& set(const FlowArray* array);
 	FlowValue& set(Function function);
 
 	FlowValue& operator=(const FlowValue&);
 	FlowValue& operator=(bool value);
-	FlowValue& operator=(const RegExp *value);
-	FlowValue& operator=(const IPAddress *value);
-	FlowValue& operator=(const char *value);
+	FlowValue& operator=(const RegExp* value);
+	FlowValue& operator=(const IPAddress* value);
+	FlowValue& operator=(const char* value);
 	FlowValue& operator=(unsigned long long value);
 	FlowValue& operator=(unsigned int value);
 	FlowValue& operator=(Function function);
@@ -103,16 +104,29 @@ struct __attribute__((packed)) X0_API FlowValue
 
 	bool toBool() const;
 	unsigned long long toNumber() const;
-	const RegExp *toRegExp() const;
-	const IPAddress *toIPAddress() const;
-	const char *toString() const;
-	const FlowValue *toArray() const;
+	const RegExp* toRegExp() const;
+	const IPAddress* toIPAddress() const;
+	const char* toString() const;
+	const FlowArray* toArray() const;
 	Function toFunction() const;
-
-	const FlowValue& operator[](size_t i) const;
 
 	void dump() const;
 	void dump(bool linefeed) const;
+};
+
+class FlowArray : public FlowValue {
+public:
+	bool empty() const { return number_ == 0; }
+	size_t size() const { return number_; }
+
+	const FlowValue& at(size_t i) const { return array_[i]; }
+	FlowValue& at(size_t i) { return const_cast<FlowValue*>(array_)[i]; }
+
+	const FlowValue& operator[](size_t i) const { return array_[i]; }
+	FlowValue& operator[](size_t i) { return const_cast<FlowValue*>(array_)[i]; }
+
+	const FlowValue* begin() const { return array_; }
+	const FlowValue* end() const { return array_ + size(); }
 };
 
 // {{{ inlines
@@ -133,19 +147,19 @@ inline FlowValue::FlowValue(unsigned long long value) :
 {
 }
 
-inline FlowValue::FlowValue(const RegExp *value) :
+inline FlowValue::FlowValue(const RegExp* value) :
 	type_(REGEXP),
 	regexp_(value)
 {
 }
 
-inline FlowValue::FlowValue(const IPAddress *value) :
+inline FlowValue::FlowValue(const IPAddress* value) :
 	type_(IP),
 	ipaddress_(value)
 {
 }
 
-inline FlowValue::FlowValue(const char *value) :
+inline FlowValue::FlowValue(const char* value) :
 	type_(STRING),
 	number_(strlen(value)),
 	string_(value)
@@ -205,7 +219,7 @@ inline FlowValue& FlowValue::set(unsigned long long value)
 	return *this;
 }
 
-inline FlowValue& FlowValue::set(const RegExp *re)
+inline FlowValue& FlowValue::set(const RegExp* re)
 {
 	type_ = REGEXP;
 	regexp_ = re;
@@ -213,7 +227,7 @@ inline FlowValue& FlowValue::set(const RegExp *re)
 	return *this;
 }
 
-inline FlowValue& FlowValue::set(const IPAddress *value)
+inline FlowValue& FlowValue::set(const IPAddress* value)
 {
 	type_ = IP;
 	ipaddress_ = value;
@@ -221,7 +235,7 @@ inline FlowValue& FlowValue::set(const IPAddress *value)
 	return *this;
 }
 
-inline FlowValue& FlowValue::set(const char *cstring)
+inline FlowValue& FlowValue::set(const char* cstring)
 {
 	type_ = STRING;
 	if (cstring)
@@ -238,7 +252,7 @@ inline FlowValue& FlowValue::set(const char *cstring)
 	return *this;
 }
 
-inline FlowValue& FlowValue::set(const char *buffer, size_t length)
+inline FlowValue& FlowValue::set(const char* buffer, size_t length)
 {
 	type_ = BUFFER;
 	number_ = length;
@@ -256,7 +270,7 @@ inline FlowValue& FlowValue::set(const FlowValue& value)
 	return *this;
 }
 
-inline FlowValue& FlowValue::set(const FlowValue *array)
+inline FlowValue& FlowValue::set(const FlowArray* array)
 {
 	type_ = ARRAY;
 	number_ = 0;
@@ -272,9 +286,9 @@ inline FlowValue& FlowValue::set(Function value)
 	return *this;
 }
 
-inline FlowValue& FlowValue::operator=(const FlowValue& v)
+inline FlowValue& FlowValue::operator=(const FlowValue& value)
 {
-	return set(*this);
+	return set(value);
 }
 
 inline FlowValue& FlowValue::operator=(bool value)
@@ -282,17 +296,17 @@ inline FlowValue& FlowValue::operator=(bool value)
 	return set(value);
 }
 
-inline FlowValue& FlowValue::operator=(const RegExp *value)
+inline FlowValue& FlowValue::operator=(const RegExp* value)
 {
 	return set(value);
 }
 
-inline FlowValue& FlowValue::operator=(const IPAddress *value)
+inline FlowValue& FlowValue::operator=(const IPAddress* value)
 {
 	return set(value);
 }
 
-inline FlowValue& FlowValue::operator=(const char *value)
+inline FlowValue& FlowValue::operator=(const char* value)
 {
 	return set(value);
 }
@@ -322,24 +336,24 @@ inline unsigned long long FlowValue::toNumber() const
 	return number_;
 }
 
-inline const RegExp *FlowValue::toRegExp() const
+inline const RegExp* FlowValue::toRegExp() const
 {
 	return regexp_;
 }
 
-inline const IPAddress *FlowValue::toIPAddress() const
+inline const IPAddress* FlowValue::toIPAddress() const
 {
 	return ipaddress_;
 }
 
-inline const char *FlowValue::toString() const
+inline const char* FlowValue::toString() const
 {
 	return string_;
 }
 
-inline const FlowValue *FlowValue::toArray() const
+inline const FlowArray* FlowValue::toArray() const
 {
-	return array_;
+	return static_cast<const FlowArray*>(this);
 }
 
 inline FlowValue::Function FlowValue::toFunction() const
@@ -418,15 +432,6 @@ inline bool FlowValue::load<FlowValue::Function>(Function& result) const
 
 	result = toFunction();
 	return true;
-}
-
-inline const FlowValue& FlowValue::operator[](size_t i) const
-{
-	if (!isArray())
-		return *this;
-
-	const FlowValue *p = toArray();
-	return *(p + i);
 }
 // }}}
 

@@ -105,6 +105,7 @@ private:
 	FlowBackend *backend_;
 	FlowParser *parser_;
 	Unit *unit_;
+	size_t listSize_;
 
 	int optimizationLevel_;
 	std::function<void(const std::string&)> errorHandler_;
@@ -112,15 +113,16 @@ private:
 	mutable llvm::LLVMContext cx_;
 
 	llvm::Module *module_;
-	llvm::StructType *valueType_;
-	llvm::StructType *regexpType_;
-	llvm::StructType *ipaddrType_;
-	llvm::StructType *bufferType_;
-	llvm::Function *coreFunctions_[static_cast<size_t>(CF::COUNT)];
+	llvm::StructType* valueType_;
+	llvm::StructType* regexpType_;
+	llvm::StructType* arrayType_;
+	llvm::StructType* ipaddrType_;
+	llvm::StructType* bufferType_;
+	llvm::Function* coreFunctions_[static_cast<size_t>(CF::COUNT)];
 	llvm::IRBuilder<> builder_;
-	llvm::Value *value_;
-	llvm::Function *initializerFn_;
-	llvm::BasicBlock *initializerBB_;
+	llvm::Value* value_;
+	llvm::Function* initializerFn_;
+	llvm::BasicBlock* initializerBB_;
 
 	Scope scope_;
 
@@ -208,16 +210,14 @@ private:
 	//! \return true if v1 is either a C-string (i8*) or a string buffer (%nbuf*)
 	bool isString(llvm::Value *v) const;
 	bool isNumber(llvm::Value *v) const;
+	bool isRegExp(llvm::Value *value) const;
+	bool isIPAddress(llvm::Value *value) const;
+	bool isFunctionPtr(llvm::Value *value) const;
 
 	// array helper
 	bool isArray(llvm::Value *value) const;
 	bool isArray(llvm::Type *type) const;
 	llvm::Value *emitLoadArrayLength(llvm::Value *array);
-
-	bool isRegExp(llvm::Value *value) const;
-	bool isIPAddress(llvm::Value *value) const;
-	bool isFunctionPtr(llvm::Value *value) const;
-
 
 	// string ops
 	llvm::Value *emitCmpString(Operator op, llvm::Value *left, llvm::Value *right);
@@ -249,8 +249,9 @@ private:
 
 	// native-function API
 	void emitNativeFunctionSignature();
-	void emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs);
 	void emitNativeCall(int id, ListExpr *args);
+	llvm::Value* emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs, const std::string& name = "result");
+	llvm::Value* emitToValue(llvm::Value* value, const std::string& name);
 
 	// general
 	void emitCall(Function *callee, ListExpr *args);

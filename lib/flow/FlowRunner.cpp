@@ -9,6 +9,7 @@
 #include <x0/flow/FlowRunner.h>
 #include <x0/flow/FlowParser.h>
 #include <x0/flow/FlowBackend.h>
+#include <x0/flow/FlowValue.h>
 #include <x0/IPAddress.h>
 #include <x0/RegExp.h>
 
@@ -163,6 +164,7 @@ FlowRunner::FlowRunner(FlowBackend *b) :
 	backend_(b),
 	parser_(new FlowParser(b)),
 	unit_(NULL),
+	listSize_(0),
 	optimizationLevel_(0),
 	errorHandler_(),
 	cx_(),
@@ -199,7 +201,7 @@ void FlowRunner::shutdown()
 
 FlowRunner::~FlowRunner()
 {
-	TRACE("\~FlowRunner()");
+	TRACE("~FlowRunner()");
 	clear();
 
 	delete parser_;
@@ -261,19 +263,23 @@ bool FlowRunner::reinitialize()
 	}
 
 	// create generatic native-value type, for exchanging parameter/return values
+
+	// FlowValue
 	std::vector<const llvm::Type *> elts;
 	elts.push_back(int32Type());     // type id
 	elts.push_back(numberType());    // number (long long)
 	elts.push_back(int8PtrType());   // string (char*)
 	valueType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
-	module_->addTypeName("nval", valueType_);
+	module_->addTypeName("Value", valueType_);
 
+	// RegExp
 	elts.clear();
 	elts.push_back(int8PtrType());   // name (const char *)
 	elts.push_back(int8PtrType());   // handle (pcre *)
 	regexpType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
-	module_->addTypeName("regexp", regexpType_);
+	module_->addTypeName("RegExp", regexpType_);
 
+	// IPAddress
 	elts.clear();
 	elts.push_back(int32Type());	// domain (AF_INET, AF_INET6)
 	elts.push_back(int32Type());
@@ -281,12 +287,14 @@ bool FlowRunner::reinitialize()
 	elts.push_back(int32Type());
 	elts.push_back(int32Type());
 	ipaddrType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
+	module_->addTypeName("IPAddress", ipaddrType_);
 
+	// Buffer
 	elts.clear();
 	elts.push_back(int64Type());     // buffer length
 	elts.push_back(int8PtrType());   // buffer data
 	bufferType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
-	module_->addTypeName("nbuf", bufferType_);
+	module_->addTypeName("Buffer", bufferType_);
 
 	// declare native callback signatures
 	emitNativeFunctionSignature();
@@ -820,21 +828,15 @@ extern "C" int flow_endsWidth(const char *left, const char *right)
 	return 0;
 }
 
+// {{{ FlowArray bindings
 /**
  * \brief calculates the length of the given array.
  *
  * \return the calculated array length.
  */
-extern "C" uint32_t flow_arraylen(FlowValue *array)
+extern "C" uint32_t flow_array_len(FlowArray* array)
 {
-	uint32_t result = 0;
-	while (!array->isVoid())
-	{
-		++array;
-		++result;
-	}
-
-	return result;
+	return array->size();
 }
 
 /**
@@ -844,15 +846,16 @@ extern "C" uint32_t flow_arraylen(FlowValue *array)
  * \param left the left input array stored first
  * \param right the right input array stored after the left array into the result
  */
-extern "C" void flow_arrayadd(FlowValue *result, FlowValue *left, FlowValue *right)
+extern "C" void flow_array_add(FlowArray* result, FlowArray* left, FlowArray* right)
 {
-	while (!left->isVoid())
-		(result++)->set(*left++);
+	assert(result->size() == left->size() + right->size());
 
-	while (!right->isVoid())
-		(result++)->set(*right++);
+	size_t i = 0;
+	for (size_t k = 0, ke = left->size(); k != ke; ++k)
+		result[i++].set(left->at(k));
 
-	result->clear();
+	for (size_t k = 0, ke = right->size(); k != ke; ++k)
+		result[i++].set(right->at(k));
 }
 
 /**
@@ -860,68 +863,51 @@ extern "C" void flow_arrayadd(FlowValue *result, FlowValue *left, FlowValue *rig
  * \retval 0 equal
  * \retval 1 not equal
  */
-extern "C" int32_t flow_arraycmp(const FlowValue *left, const FlowValue *right)
+extern "C" int32_t flow_array_cmp(const FlowArray* left, const FlowArray* right)
 {
-	while (!left->isVoid() && !right->isVoid())
+	if (left->size() != right->size())
+		return 1;
+
+	for (size_t i = 0, e = left->size(); i != e; ++i)
 	{
+		const FlowValue& l = left->at(i);
+		const FlowValue& r = right->at(i);
+
 		// compare types
-		if (left->type() != right->type())
+		if (l.type() != r.type())
 			return 1;
 
 		// TODO: compare actual values
 		bool test = false;
-		switch (left->type())
+		switch (l.type())
 		{
 			case FlowValue::NUMBER:
-				test = left->toNumber() == right->toNumber();
+				test = l.toNumber() == r.toNumber();
 				break;
 			case FlowValue::STRING:
-				test = strcasecmp(left->toString(), right->toString()) == 0;
+				test = strcasecmp(l.toString(), r.toString()) == 0;
 				break;
 			case FlowValue::BOOLEAN:
-				test = left->toBool() == right->toBool();
+				test = l.toBool() == r.toBool();
 				break;
 			default:
+				// TODO: support more types
 				break;
 		}
+
 		if (!test)
 			return 1;
-
-		++left;
-		++right;
 	}
 
-	if (left->isVoid() && right->isVoid())
-		return 0;
-
-	return 1;
+	return 0;
 }
 
-/**
- * \brief tests whether given \p text matches regular expression \p pattern.
- *
- * \retval 0 not matched.
- * \retval 1 matched.
- */
-extern "C" int flow_regexmatch(size_t textLength, const char *text, size_t patternLength, const char *pattern)
+extern "C" int flow_NumberInArray(uint64_t number, const FlowArray* array)
 {
-	RegExp re(std::string(pattern, patternLength));
-	return re.match(text, textLength);
-}
-
-extern "C" int flow_regexmatch2(size_t textLength, const char *text, const RegExp *re)
-{
-	return re->match(text, textLength);
-}
-
-extern "C" int flow_NumberInArray(uint64_t number, const FlowValue *array)
-{
-	for (; !array->isVoid(); ++array)
-	{
-		switch (array->type())
-		{
+	for (const auto& elem: *array) {
+		switch (elem.type()) {
 			case FlowValue::NUMBER:
-				if (number == array->toNumber())
+				if (number == elem.toNumber())
 					return true;
 				break;
 			default:
@@ -932,24 +918,7 @@ extern "C" int flow_NumberInArray(uint64_t number, const FlowValue *array)
 	return false;
 }
 
-/** compares an IPAddress object with a string representation of an IP address.
- * \return zero on equality, non-zero if not.
- */
-extern "C" int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
-{
-	return strcmp(ipaddr->str().c_str(), string);
-}
-
-/** compares two IPAddress objects.
- * \retval 0 equal
- * \retval 1 unequal
- */
-extern "C" int flow_ipcmp(const IPAddress *ip1, const IPAddress *ip2)
-{
-	return *ip1 == *ip2 ? 0 : 1;
-}
-
-extern "C" int flow_StringInArray(size_t textLength, const char *text, const FlowValue *array)
+extern "C" int flow_StringInArray(size_t textLength, const char *text, const FlowValue* array)
 {
 	for (; !array->isVoid(); ++array)
 	{
@@ -985,6 +954,45 @@ extern "C" int flow_StringInArray(size_t textLength, const char *text, const Flo
 
 	return false;
 }
+// }}}
+
+// {{{ RegExp bindings
+/**
+ * \brief tests whether given \p text matches regular expression \p pattern.
+ *
+ * \retval 0 not matched.
+ * \retval 1 matched.
+ */
+extern "C" int flow_regexmatch(size_t textLength, const char *text, size_t patternLength, const char *pattern)
+{
+	RegExp re(std::string(pattern, patternLength));
+	return re.match(text, textLength);
+}
+
+extern "C" int flow_regexmatch2(size_t textLength, const char *text, const RegExp *re)
+{
+	return re->match(text, textLength);
+}
+// }}}
+
+// {{{ IPAddress bindings
+/** compares an IPAddress object with a string representation of an IP address.
+ * \return zero on equality, non-zero if not.
+ */
+extern "C" int flow_ipstrcmp(const IPAddress *ipaddr, const char *string)
+{
+	return strcmp(ipaddr->str().c_str(), string);
+}
+
+/** compares two IPAddress objects.
+ * \retval 0 equal
+ * \retval 1 unequal
+ */
+extern "C" int flow_ipcmp(const IPAddress *ip1, const IPAddress *ip2)
+{
+	return *ip1 == *ip2 ? 0 : 1;
+}
+// }}}
 
 void FlowRunner::emitCoreFunctions()
 {
@@ -1002,9 +1010,8 @@ void FlowRunner::emitCoreFunctions()
 
 	emitCoreFunction(CF::endsWith, "flow_endsWidth", int32Type(), stringType(), stringType(), false);
 
-	emitCoreFunction(CF::arraylen, "flow_arraylen", int32Type(), arrayType(), false);
-	emitCoreFunction(CF::arrayadd, "flow_arrayadd", voidType(), arrayType(), arrayType(), arrayType(), false);
-	emitCoreFunction(CF::arraycmp, "flow_arraycmp", int32Type(), arrayType(), arrayType(), false);
+	emitCoreFunction(CF::arrayadd, "flow_array_add", voidType(), arrayType(), arrayType(), arrayType(), false);
+	emitCoreFunction(CF::arraycmp, "flow_array_cmp", int32Type(), arrayType(), arrayType(), false);
 
 	emitCoreFunction(CF::regexmatch, "flow_regexmatch", int32Type(), int64Type(), stringType(), int64Type(), stringType(), false);
 	emitCoreFunction(CF::regexmatch2, "flow_regexmatch2", int32Type(), int64Type(), stringType(), regexpType_->getPointerTo(), false);
@@ -1079,14 +1086,32 @@ void FlowRunner::emitNativeFunctionSignature()
 	);
 }
 
-void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
+/** converts \p rhs into a FlowValue
+ */
+llvm::Value* FlowRunner::emitToValue(llvm::Value* rhs, const std::string& name)
 {
+	FNTRACE();
+	return emitNativeValue(0, nullptr, rhs, name);
+}
+
+/** emits rhs into a FlowValue at lhs[index] (if lhs != null).
+ *
+ * \returns &lhs[index] or the temporary holding the result.
+ */
+llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs, const std::string& name)
+{
+	llvm::Value* result = lhs != nullptr
+		? lhs
+		: builder_.CreateAlloca(valueType_, llvm::ConstantInt::get(int32Type(), 1), name);
+
+	llvm::Value *valueIndices[2] = {
+		llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), index),
+		nullptr
+	};
+
 	int typeCode;
-	llvm::Value *valueIndices[2];
 
-	valueIndices[0] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), index);
-
-	if (!rhs)
+	if (rhs == nullptr)
 	{
 		typeCode = FlowValue::VOID;
 	}
@@ -1095,13 +1120,13 @@ void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
 		typeCode = FlowValue::BOOLEAN;
 		rhs = builder_.CreateIntCast(rhs, numberType(), false, "bool2int");
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset);
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "store.arg.value");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "store.arg.value");
 	}
 	else if (rhs->getType()->isIntegerTy())
 	{
 		typeCode = FlowValue::NUMBER;
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset);
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "store.arg.value");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "store.arg.value");
 	}
 	else if (isArray(rhs)) // some expression list
 	{
@@ -1109,7 +1134,11 @@ void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::ArrayOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "stor.ary");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.ary");
+
+		valueIndices[1] = llvm::ConstantInt::get(int32Type(), FlowValue::NumberOffset);
+		builder_.CreateStore(llvm::ConstantInt::get(numberType(), listSize_),
+			builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "store.array.length");
 	}
 	else if (isRegExp(rhs))
 	{
@@ -1117,7 +1146,7 @@ void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::RegExpOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "stor.regexp");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.regexp");
 	}
 	else if (isIPAddress(rhs))
 	{
@@ -1125,21 +1154,21 @@ void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::IPAddrOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "stor.ip");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.ip");
 	}
 	else if (isFunctionPtr(rhs))
 	{
 		typeCode = FlowValue::FUNCTION;
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::FunctionOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "stor.fnref");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.fnref");
 	}
 	else if (isCString(rhs))
 	{
 		typeCode = FlowValue::STRING;
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::BufferOffset);
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "stor.str");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.str");
 	}
 	else if (isBufferPtr(rhs))
 	{
@@ -1149,10 +1178,10 @@ void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
 		llvm::Value *buf = emitLoadBufferData(rhs);
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset);
-		builder_.CreateStore(len, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "stor.len");
+		builder_.CreateStore(len, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.len");
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::BufferOffset);
-		builder_.CreateStore(buf, builder_.CreateInBoundsGEP(lhs, valueIndices, valueIndices + 2), "stor.len");
+		builder_.CreateStore(buf, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.len");
 	}
 	else
 	{
@@ -1162,7 +1191,7 @@ void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
 		printf("type:\n");
 		rhs->getType()->dump();
 		printf("lhs:\n");
-		lhs->dump();
+		result->dump();
 	}
 
 	// store values type code
@@ -1172,8 +1201,10 @@ void FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Value *rhs)
 	};
 	builder_.CreateStore(
 		llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), typeCode),
-		builder_.CreateInBoundsGEP(lhs, typeIndices, typeIndices + 2, "arg.type"),
+		builder_.CreateInBoundsGEP(result, typeIndices, typeIndices + 2, "arg.type"),
 		"store.arg.type");
+
+	return result;
 }
 
 /** emits the native-callback function call to call back to the host process to 
@@ -1203,10 +1234,11 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 	int index = 1;
 	if (argc)
 		for (auto i = argList->begin(), e = argList->end(); i != e; ++i)
+			//storeValueInVector(index++, callArgs[4], emitToValue(codegen(*i)));
 			emitNativeValue(index++, callArgs[4], codegen(*i));
 
 	// emit call
-	value_ = builder_.CreateCall(coreFunctions_[0], callArgs, callArgs + sizeof(callArgs) / sizeof(*callArgs));
+	value_ = builder_.CreateCall(coreFunctions_[static_cast<size_t>(CF::native)], callArgs, callArgs + sizeof(callArgs) / sizeof(*callArgs));
 
 	// handle return value
 	FlowBackend::Callback *native = backend_->at(id);
@@ -2412,19 +2444,21 @@ void FlowRunner::visit(ListExpr& expr)
 {
 	FNTRACE();
 
-	size_t nelems = expr.length();
+	size_t listSize = expr.length();
 
-	llvm::Value *array = builder_.CreateAlloca(valueType_,
-		llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), nelems + 1), "list.ptr");
+	llvm::Value* sizeValue =
+		llvm::ConstantInt::get(int32Type(), listSize);
 
-	for (size_t i = 0; i != nelems; ++i)
-	{
-		llvm::Value *value = codegen(expr.at(i));
-		emitNativeValue(i, array, value);
+	llvm::Value* array = builder_.CreateAlloca(valueType_, sizeValue, "array");
+
+	for (size_t i = 0; i != listSize; ++i) {
+		char name[64];
+		snprintf(name, sizeof(name), "array.value.%ld", i);
+		emitNativeValue(i, array, codegen(expr.at(i)), name);
 	}
-	emitNativeValue(nelems, array, NULL);
 
 	value_ = array;
+	listSize_ = listSize;
 }
 
 void FlowRunner::visit(ExprStmt& stmt)

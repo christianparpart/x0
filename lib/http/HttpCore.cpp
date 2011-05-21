@@ -579,8 +579,9 @@ bool HttpCore::alias(HttpRequest *in, const Params& args)
 		return false;
 	}
 
-	if (!args[0][0].isString() || !args[0][1].isString())
-	{
+	const FlowArray& r = *args[0].toArray();
+
+	if (!r[0].isString() || !r[1].isString()) {
 		server().log(Severity::error, "alias: invalid argument types");
 		return false;
 	}
@@ -593,9 +594,9 @@ bool HttpCore::alias(HttpRequest *in, const Params& args)
 	//    docroot: /srv/special
 	//    fileinfo: /srv/special/uri/path
 
-	size_t prefixLength = strlen(args[0][0].toString());
-	std::string prefix = args[0][0].toString();
-	std::string alias = args[0][1].toString();
+	std::string prefix = r[0].toString();
+	size_t prefixLength = prefix.size();
+	std::string alias = r[1].toString();
 
 	if (in->path.begins(prefix))
 		in->fileinfo = in->connection.worker().fileinfo(alias + in->path.substr(prefixLength));

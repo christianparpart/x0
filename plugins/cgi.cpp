@@ -718,8 +718,9 @@ private:
 	// cgi.prefix(prefix => path)
 	bool prefix(x0::HttpRequest *in, const x0::Params& args)
 	{
-		const char *prefix = args[0][0].toString();
-		const char *path = args[0][1].toString();
+		const x0::FlowArray& r = *args[0].toArray();
+		const char *prefix = r[0].toString();
+		const char *path = r[1].toString();
 
 		if (!in->path.begins(prefix))
 			return false;
