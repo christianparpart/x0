@@ -23,13 +23,15 @@
 
 namespace x0 {
 
+class SocketSpec;
+
 //! \addtogroup http
 //@{
 
 /**
  * \brief container for holding arguments passed in via flow execution runtime.
  */
-class Params
+class X0_API Params
 {
 public:
 	typedef const FlowValue* iterator;
@@ -53,7 +55,10 @@ public:
 
 	template<typename T>
 	bool load(size_t i, T& out) const { return i < count_ ? at(i).load(out) : false; }
+
 };
+
+X0_API SocketSpec& operator<<(SocketSpec& spec, const Params& params);
 
 /**
  * \brief base class for all plugins for use within this x0 web server.
