@@ -59,6 +59,7 @@ FlowLexer::FlowLexer() :
 	lastLocation_(),
 
 	currentChar_(EOF),
+	ipv6HexDigits_(0),
 	numberValue_(0),
 	ipValue_(),
 	stringValue_(),
@@ -254,8 +255,7 @@ FlowToken FlowLexer::nextToken()
 				return token_ = FlowToken::BitAnd;
 		}
 	case '.':
-		if (nextChar() == '.')
-		{
+		if (nextChar() == '.') {
 			if (nextChar() == '.') {
 				nextChar();
 				return token_ = FlowToken::Ellipsis;
@@ -263,6 +263,18 @@ FlowToken FlowLexer::nextToken()
 			return token_ = FlowToken::DblPeriod;
 		}
 		return token_ = FlowToken::Period;
+	case ':':
+		if (peekChar() == ':') {
+			stringValue_.clear();
+			if (ipv6HexPart()) {
+				ipValue_.set(stringValue_.c_str(), IPAddress::V6);
+				return token_ = FlowToken::IP;
+			} else
+				return token_ = FlowToken::Unknown;
+		} else {
+			nextChar(); // skip the invalid char
+			return token_ = FlowToken::Unknown;
+		}
 	case ';':
 		nextChar();
 		return token_ = FlowToken::Semicolon;
@@ -398,19 +410,15 @@ bool FlowLexer::consumeSpace()
 	if (eof())
 		return true;
 
-	if (currentChar() == '#')
-	{
+	if (currentChar() == '#') {
 		// skip chars until EOL
-		for (;;)
-		{
-			if (eof())
-			{
+		for (;;) {
+			if (eof()) {
 				token_ = FlowToken::Eof;
 				return true;
 			}
 
-			if (currentChar() == '\n')
-			{
+			if (currentChar() == '\n') {
 				nextChar();
 				return consumeSpace();
 			}
@@ -419,51 +427,27 @@ bool FlowLexer::consumeSpace()
 		}
 	}
 
-	if (currentChar() == '/')
-	{
-		if (peekChar() == '*') // "/*" ... "*/"
-		{
-			// parse multiline comment
+	if (currentChar() == '/' && peekChar() == '*') { // "/*" ... "*/"
+		// parse multiline comment
+		nextChar();
+
+		for (;;) {
+			if (eof()) {
+				token_ = FlowToken::Eof;
+				// reportError(Error::UnexpectedEof);
+				return true;
+			}
+
+			if (currentChar() == '*' && peekChar() == '/') {
+				nextChar(); // skip '*'
+				nextChar(); // skip '/'
+				break;
+			}
+
 			nextChar();
-
-			for (;;) {
-				if (eof()) {
-					token_ = FlowToken::Eof;
-					// reportError(Error::UnexpectedEof);
-					return true;
-				}
-
-				if (currentChar() == '*' && peekChar() == '/') {
-					nextChar(); // skip '*'
-					nextChar(); // skip '/'
-					break;
-				}
-
-				nextChar();
-			}
-
-			return consumeSpace();
 		}
-		else if (peekChar() == '/') // "//" ... (EOL|EOF)
-		{
-			// skip chars until EOL
-			for (;;)
-			{
-				if (eof())
-				{
-					token_ = FlowToken::Eof;
-					return true;
-				}
 
-				if (currentChar() == '\n')
-				{
-					nextChar();
-					return consumeSpace();
-				}
-
-				nextChar();
-			}
-		}
+		return consumeSpace();
 	}
 
 	return false;
@@ -490,6 +474,13 @@ FlowToken FlowLexer::parseNumber()
 		stringValue_ += static_cast<char>(currentChar());
 		nextChar();
 	}
+
+	// ipv6HexDigit4 *(':' ipv6HexDigit4) ['::' [ipv6HexSeq]]
+	if (stringValue_.size() <= 4 && currentChar() == ':')
+		return continueParseIPv6(true);
+
+	if (stringValue_.size() < 4 && isHexChar())
+		return continueParseIPv6(false);
 
 	if (currentChar() != '.')
 		return token_ = FlowToken::Number;
@@ -531,6 +522,7 @@ FlowToken FlowLexer::parseIdent()
 {
 	stringValue_.clear();
 	stringValue_ += static_cast<char>(currentChar());
+	bool isHex = isHexChar();
 
 	if (!std::isalpha(currentChar()) && currentChar() != '_') {
 		printf("parseIdent: unknown char %d (0x%02X)\n", currentChar(), currentChar());
@@ -540,11 +532,20 @@ FlowToken FlowLexer::parseIdent()
 
 	nextChar();
 
-	while (std::isalnum(currentChar()) || currentChar() == '_' || currentChar() == '.')
-	{
+	while (std::isalnum(currentChar()) || currentChar() == '_' || currentChar() == '.') {
 		stringValue_ += static_cast<char>(currentChar());
+		if (!isHexChar())
+			isHex = false;
+
 		nextChar();
 	}
+
+	// ipv6HexDigit4 *(':' ipv6HexDigit4) ['::' [ipv6HexSeq]]
+	if (stringValue_.size() <= 4 && isHex && currentChar() == ':')
+		return continueParseIPv6(true);
+
+	if (stringValue_.size() < 4 && isHex && isHexChar())
+		return continueParseIPv6(false);
 
 	static struct {
 		const char *symbol;
@@ -597,16 +598,13 @@ FlowToken FlowLexer::parseIdent()
 	return token_ = FlowToken::Ident;
 }
 
-FlowToken FlowLexer::parseIPv6()
-{
-	return token_ = FlowToken::Unknown;
-}
-
 std::string FlowLexer::tokenString() const
 {
 	switch (token()) {
 		case FlowToken::Ident:
 			return std::string("ident:") + stringValue_;
+		case FlowToken::IP:
+			return ipValue_.str();
 		case FlowToken::RegExp:
 			printf("tokenString returns: '%s'\n", stringValue_.c_str());
 			return "/" + stringValue_ + "/";
@@ -636,5 +634,113 @@ void FlowLexer::dump() const
 			line(), column(),
 			static_cast<int>(token()), tokenString().c_str());
 }
+
+bool FlowLexer::isHexChar() const
+{
+	return (currentChar_ >= '0' && currentChar_ <= '9')
+		|| (currentChar_ >= 'a' && currentChar_ <= 'f')
+		|| (currentChar_ >= 'A' && currentChar_ <= 'F');
+}
+
+// {{{ IPv6 address parser
+
+// IPv6_HexPart [':' IPv4_Addr]
+FlowToken FlowLexer::parseIPv6()
+{
+	return token_ = FlowToken::Unknown;
+}
+
+// IPv6_HexPart ::= IPv6_HexSeq                        # (1)
+//                | IPv6_HexSeq "::" [IPv6_HexSeq]     # (2)
+//                            | "::" [IPv6_HexSeq]     # (3)
+//
+bool FlowLexer::ipv6HexPart()
+{
+	bool rv;
+
+	if (currentChar() == ':' && peekChar() == ':') { // (3)
+		stringValue_ = "::";
+		nextChar(); // skip ':'
+		nextChar(); // skip ':'
+		rv = isHexChar() ? ipv6HexSeq() : true;
+	} else if (!!(rv = ipv6HexSeq())) {
+		if (currentChar() == ':' && peekChar() == ':') { // (2)
+			stringValue_ += "::";
+			nextChar(); // skip ':'
+			nextChar(); // skip ':'
+			rv = isHexChar() ? ipv6HexSeq() : true;
+		}
+	}
+
+	if (std::isalnum(currentChar_) || currentChar_ == ':')
+		rv = false;
+
+	return rv;
+}
+
+// 1*4HEXDIGIT *(':' 1*4HEXDIGIT)
+bool FlowLexer::ipv6HexSeq()
+{
+	if (!ipv6HexDigit4())
+		return false;
+
+	while (currentChar() == ':' && peekChar() != ':') {
+		stringValue_ += ':';
+		nextChar();
+
+		if (!ipv6HexDigit4())
+			return false;
+	}
+
+	return true;
+}
+
+// 1*4HEXDIGIT
+bool FlowLexer::ipv6HexDigit4()
+{
+	size_t i = ipv6HexDigits_;
+
+	while (isHexChar()) {
+		stringValue_ += currentChar();
+		nextChar();
+		++i;
+	}
+
+	ipv6HexDigits_ = 0;
+
+	return i >= 1 && i <= 4;
+}
+
+// ipv6HexDigit4 *(':' ipv6HexDigit4) ['::' [ipv6HexSeq]]
+// where the first component, ipv6HexDigit4 is already parsed
+FlowToken FlowLexer::continueParseIPv6(bool firstComplete)
+{
+	bool rv = true;
+	if (firstComplete) {
+		while (currentChar() == ':' && peekChar() != ':') {
+			stringValue_ += ':';
+			nextChar();
+
+			if (!ipv6HexDigit4())
+				return false;
+		}
+
+		if (currentChar() == ':' && peekChar() == ':') {
+			stringValue_ += "::";
+			nextChar();
+			nextChar();
+			rv = isHexChar() ? ipv6HexSeq() : true;
+		}
+	} else {
+		ipv6HexDigits_ = stringValue_.size();
+		rv = ipv6HexPart();
+	}
+
+	if (rv && ipValue_.set(stringValue_.c_str(), IPAddress::V6))
+		return token_ = FlowToken::IP;
+	else
+		return token_ = FlowToken::Unknown;
+}
+// }}}
 
 } // namespace x0

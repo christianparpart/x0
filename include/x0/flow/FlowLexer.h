@@ -76,6 +76,7 @@ private:
 	std::string content_;
 
 	char currentChar_;
+	size_t ipv6HexDigits_;
 
 	long long numberValue_;
 	IPAddress ipValue_;
@@ -116,13 +117,19 @@ public:
 	void dump() const;
 
 private:
+	bool isHexChar() const;
 	bool consume(char c);
 	bool consumeSpace();
 	FlowToken parseNumber();
 	FlowToken parseString(bool raw);
 	FlowToken parseString(char delimiter, FlowToken result);
 	FlowToken parseIdent();
+
 	FlowToken parseIPv6();
+	FlowToken continueParseIPv6(bool firstComplete);
+	bool ipv6HexPart();
+	bool ipv6HexSeq();
+	bool ipv6HexDigit4();
 };
 
 } // namespace x0

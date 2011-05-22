@@ -29,7 +29,7 @@ public:
 
 	IPAddress& operator=(const IPAddress& v);
 
-	void set(const char *text, int family);
+	bool set(const char *text, int family);
 
 	int family() const;
 	const void *data() const;
@@ -66,7 +66,7 @@ inline IPAddress& IPAddress::operator=(const IPAddress& v)
 	return *this;
 }
 
-inline void IPAddress::set(const char *text, int family)
+inline bool IPAddress::set(const char *text, int family)
 {
 	family_ = family;
 	int rv = inet_pton(family, text, buf_);
@@ -76,8 +76,9 @@ inline void IPAddress::set(const char *text, int family)
 		else
 			fprintf(stderr, "IP address Not in presentation format: %s\n", text);
 
-		exit(EXIT_FAILURE);
+		return false;
 	}
+	return true;
 }
 
 inline int IPAddress::family() const
