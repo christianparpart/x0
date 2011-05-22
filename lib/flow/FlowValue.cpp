@@ -33,10 +33,10 @@ void FlowValue::dump(bool x) const
 			printf("%lld", toNumber());
 			break;
 		case FlowValue::REGEXP:
-			printf("/%s/", toRegExp()->c_str());
+			printf("/%s/", toRegExp().c_str());
 			break;
 		case FlowValue::IP:
-			printf("ip(%s)", toIPAddress()->str().c_str());
+			printf("ip(%s)", toIPAddress().str().c_str());
 			break;
 		case FlowValue::FUNCTION:
 			printf("fnref(0x%p)", reinterpret_cast<void*>(toFunction()));

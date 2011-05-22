@@ -104,8 +104,8 @@ struct __attribute__((packed)) X0_API FlowValue
 
 	bool toBool() const;
 	unsigned long long toNumber() const;
-	const RegExp* toRegExp() const;
-	const IPAddress* toIPAddress() const;
+	const RegExp& toRegExp() const;
+	const IPAddress& toIPAddress() const;
 	const char* toString() const;
 	const FlowArray& toArray() const;
 	Function toFunction() const;
@@ -336,14 +336,14 @@ inline unsigned long long FlowValue::toNumber() const
 	return number_;
 }
 
-inline const RegExp* FlowValue::toRegExp() const
+inline const RegExp& FlowValue::toRegExp() const
 {
-	return regexp_;
+	return *regexp_;
 }
 
-inline const IPAddress* FlowValue::toIPAddress() const
+inline const IPAddress& FlowValue::toIPAddress() const
 {
-	return ipaddress_;
+	return *ipaddress_;
 }
 
 inline const char* FlowValue::toString() const
@@ -420,7 +420,7 @@ inline bool FlowValue::load<IPAddress>(IPAddress& result) const
 	if (!isIPAddress())
 		return false;
 
-	result = *toIPAddress();
+	result = toIPAddress();
 	return true;
 }
 
