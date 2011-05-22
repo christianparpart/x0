@@ -266,11 +266,7 @@ FlowToken FlowLexer::nextToken()
 	case ':':
 		if (peekChar() == ':') {
 			stringValue_.clear();
-			if (ipv6HexPart()) {
-				ipValue_.set(stringValue_.c_str(), IPAddress::V6);
-				return token_ = FlowToken::IP;
-			} else
-				return token_ = FlowToken::Unknown;
+			return continueParseIPv6(false);
 		} else {
 			nextChar(); // skip the invalid char
 			return token_ = FlowToken::Unknown;
@@ -734,6 +730,17 @@ FlowToken FlowLexer::continueParseIPv6(bool firstComplete)
 	} else {
 		ipv6HexDigits_ = stringValue_.size();
 		rv = ipv6HexPart();
+	}
+
+	// parse embedded IPv4 remainer
+	while (currentChar_ == '.' && std::isdigit(peekChar())) {
+		stringValue_ += '.';
+		nextChar();
+
+		while (std::isdigit(currentChar_)) {
+			stringValue_ += static_cast<char>(currentChar_);
+			nextChar();
+		}
 	}
 
 	if (rv && ipValue_.set(stringValue_.c_str(), IPAddress::V6))
