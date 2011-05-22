@@ -48,6 +48,15 @@ syn match flowNumber '\d\+'
 syn match flowNumber '\d\+.\d'
 syn keyword flowNumber true false
 
+syn match flowIPv4 /\d\{1,3}\.\d\{1,3}\.\d\{1,3}\.\d\{1,3}/
+
+" IPv6 address
+syn match flowIPv6 /[a-fA-F0-9:]*::[a-fA-F0-9:.]*/
+syn match flowIPv6 /[a-fA-F0-9:]\+:[a-fA-F0-9:]\+:[a-fA-F0-9:.]\+/
+
+" identifiers
+syn match flowIdent /[a-zA-Z][a-zA-Z0-9_.]*\([a-zA-Z0-9_.]*:\)\@!/
+
 " units (singular)
 syn keyword flowUnit bit kbit mbit gbit tbit
 syn keyword flowUnit byte kbyte mbyte gbyte tbyte
@@ -106,11 +115,14 @@ endif
 
 let b:current_syntax = "flow"
 
+hi def link flowIdent         Identifier
 hi def link flowTodo          Todo
 hi def link flowComment       Comment
 hi def link flowString        Constant
 hi def link flowRawString     Constant
 hi def link flowNumber        Constant
+hi def link flowIPv4          Constant
+hi def link flowIPv6          Constant
 hi def link flowRegexp        Constant
 hi def link flowType          Type
 hi def link flowBlock         Statement
@@ -125,4 +137,4 @@ hi def link flowFormat        Special
 hi def link flowRegexpEscape  Special
 hi def link flowRegexpSpecial Special
 
-" possible link targets Todo, Comment, Constant, Type, Keyword, Statement, Special, PreProc
+" possible link targets Todo, Comment, Constant, Type, Keyword, Statement, Special, PreProc, Identifier
