@@ -378,6 +378,7 @@ void HttpRequest::finish()
  */
 void HttpRequest::finalize()
 {
+	TRACE("finalize()");
 	connection.worker().server().onRequestDone(this);
 	clearCustomData();
 
