@@ -1,0 +1,119 @@
+  /* <x0/docs/flow-syntax.txt>
+   *
+   * This file is part of the x0 web server project and is released under LGPL-3.
+   * http://redmine.trapni.de/projects/x0
+   *
+   * (c) 2009-2011 Christian Parpart <trapni@gentoo.org>
+   */
+
+
+.: LEXICAL :.
+
+DIGIT           ::= '0'..'9'
+NUMBER          ::= 1*DIGIT
+
+CHAR            ::= 'a' .. 'z' | 'A' .. 'Z'
+IDENT           ::= CHAR *(CHAR | DIGIT | '_' | '.')
+
+HEX4DIGIT       ::= '0'..'9' | 'A'..'F' | 'a'..'f'
+
+BOOL            ::= 'true' | 'false'
+
+STRING          ::= RAW_STRING | EXT_STRING
+
+RAW_STRING      ::= "'" <text except "'"> "'"
+EXT_STRING      ::= '"' <escaped and interpolcated text except> '"'
+
+REGEXP          ::= '/' <const regexp pattern> '/'
+
+IP_ADDR         ::= IPv4_ADDR | IPv6_ADDR
+IP_CIDR         ::= IPv4_CIDR | IPv6_CIDR
+
+IPv4_ADDR       ::= IP4_OCTET '.' IP4_OCTET '.' IP4_OCTET '.' IP4_OCTET
+IPv4_CIDR       ::= IPv4_ADDR '/' 1*2DIGIT
+
+IP4_OCTET       ::= <1*3DIGIT between 0..255>
+
+IPv6_ADDR       ::= IP6_HEXPART [':' IPv4_ADDR]
+IPv6_CIDR       ::= IP6_HEXPART '/' 1*2DIGIT
+
+IP6_HEXPART     ::= IP6_HEXSEQ
+                  | IP6_HEXSEQ "::" [IP6_HEXSEQ]
+                  | "::" [IP6_HEXSEQ]
+IP6_HEXSEQ      ::= 1*4HEXDIGIT *(':' 1*4HEXDIGIT)
+
+
+
+.: DECLARATIONS :.
+
+goal            ::= unit
+
+unit            ::= *importDecl *decl
+
+importDecl      ::= 'import' importList ['from' (STRING | IDENT)] [';']
+
+importList      ::= importItem *(',' importItem)
+importItem      ::= STRING | IDENT
+
+decl            ::= varDecl | handlerDecl
+
+varDecl         ::= 'var' IDENT '=' expr [';']
+
+handlerDecl     ::= 'handler' IDENT stmt
+
+
+.: STATEMENTS :.
+
+stmt            ::= ifStmt | compoundStmt | callStmt | emptyStmt
+
+ifStmt          ::= 'if' expr stmt
+                  *('elsif' expr stmt)
+                   ['else' stmt]
+
+compoundStmt    ::= '{' *stmt '}'
+
+callStmt        ::= IDENT ['(' exprList? ')' | exprList?] (';' | LF)
+
+emptyStmt       ::= ';'
+
+
+.: EXPRESSIONS :.
+
+LOGIC_OP        ::= 'and' | 'or' | 'xor'
+
+REL_OP          ::= '==' | '!='
+                  | '<=' | '>=' | '<' | '>'
+                  | '=^' | '=$' | '=~'
+                  | 'in'
+ADD_OP          ::= '+' | '-'
+MUL_OP          ::= '*' | '/' | 'shl' | 'shr'
+POW_OP          ::= '**'
+
+expr            ::= logicExpr
+logicExpr       ::= negExpr *( LOGIC_OP negExpr)
+negExpr         ::= *('!') relExpr
+relExpr         ::= addExpr *(ADD_OP addExpr)
+addExpr         ::= mulExpr *(MUL_OP mulExpr)
+mulExpr         ::= powExpr *(POW_OP powExpr)
+powExpr         ::= primaryExpr *(POW_OP primaryExpr)
+primaryExpr     ::= subExpr [UNIT]
+subExpr         ::= literalExpr
+                  | REGEXP
+                  | symbolExpr
+                  | keyValueExpr
+                  | lambdaExpr
+                  | compoundExpr
+symbolExpr      ::= variableExpr | functionCallExpr
+variableExpr    ::= IDENT
+functionCallExpr::= IDENT '(' exprList? ')'
+compoundExpr    ::= '(' expr ')'
+lambdaExpr      ::= '{' stmt '}'
+keyValueExpr    ::= literalExpr '=>' expr
+literalExpr     ::= NUMBER [UNIT] | BOOL | STRING | IP_ADDR
+exprList        ::= expr *(',' expr)
+
+arrayExpr       ::= '[' exprList? ']'
+
+
+
+vim:et:ts=4
