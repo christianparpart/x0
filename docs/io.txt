@@ -48,12 +48,11 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
         FilterSource        : combines a source with a filter, producing filtered chunks
         CompositeSource     : composes an ordered set of chunks into a virtual single one.
 
-    SourceVisitor           : visitor-pattern interface for the source types above.
+    SinkVisitor             : visitor-pattern interface for the sink types below.
 
     Sink                    : abstract base class for chunk consumer
         BufferSink          : in-memory chunk consumer (writes into this buffer)
-        SystemSink          : system-handle chunk consumer (writes into its handle)
-            FileSink        : chunk consumer for regular files
+        FileSink            : chunk consumer for regular files
         SocketSink          : writes chunks into a network socket
 
     Filter                  : abstract base class for chunk transformer
