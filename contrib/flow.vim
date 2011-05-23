@@ -55,7 +55,7 @@ syn match flowIPv6 /[a-fA-F0-9:]*::[a-fA-F0-9:.]*/
 syn match flowIPv6 /[a-fA-F0-9:]\+:[a-fA-F0-9:]\+:[a-fA-F0-9:.]\+/
 
 " identifiers
-syn match flowIdent /[a-zA-Z][a-zA-Z0-9_.]*\([a-zA-Z0-9_.]*:\)\@!/
+syn match flowIdent /[a-zA-Z_][a-zA-Z0-9_.]*\([a-zA-Z0-9_.]*:\)\@!/
 
 " units (singular)
 syn keyword flowUnit bit kbit mbit gbit tbit
