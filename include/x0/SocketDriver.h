@@ -12,13 +12,14 @@
 #include <ev++.h>
 #include <system_error>
 #include <unistd.h>
+#include <x0/Api.h>
 
 namespace x0 {
 
 class Socket;
 class IPAddress;
 
-class SocketDriver
+class X0_API SocketDriver
 {
 public:
 	SocketDriver();
