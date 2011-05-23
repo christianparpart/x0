@@ -696,8 +696,8 @@ private:
 
 	void addMapping(const x0::FlowArray& mapping)
 	{
-		std::vector<const x0::FlowValue *> items;
-		for (auto item: mapping)
+		std::vector<const x0::FlowValue*> items;
+		for (auto& item: mapping)
 			items.push_back(&item);
 
 		if (items.size() != 2)
