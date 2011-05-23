@@ -10,23 +10,34 @@ handler test_ipaddr
 	assert 0.0.0.0 == '0.0.0.0', '0.0.0.0'
 }
 
-handler test_cmp
+handler _test_ipnet
 {
-	assert 1.2.3.4 == 1.2.3.4, 'eq'
-	assert 1.2.3.4 != 1.2.3.5, 'unequ'
+	# TODO
+	# assert 192.168.0.1/24 == '192.168.0.1/24', '192.168.0.1/24'
+	# assert ::1/64 == '::1/64', '::1/64'
 }
 
 handler test_ip6addr
 {
-	# TODO
-	# 3ffe:1234:beaf::17
-	# ::1
-	# ::4:2
-	# ::
+	assert ::ffff:192.168.1.2 == '::ffff:192.168.1.2', '::ffff:192.168.1.2'
+	assert 1234:3ffe::42 == '1234:3ffe::42', '1234:3ffe::42'
+	assert 1234::dead:beaf == '1234::dead:beaf', '1234::dead:beaf'
+	assert a234:3ffe::42 == 'a234:3ffe::42', 'a234:3ffe::42'
+	assert a234::dead:beaf == 'a234::dead:beaf', 'a234::dead:beaf'
+	assert :: == '::', '::'
+	assert ::1 == '::1', '::1'
+	assert ::1234:1:2:34 == '::1234:1:2:34', '::1234:1:2:34'
+	assert 3ffe::1234:1:2:34 == '3ffe::1234:1:2:34', '3ffe::1234:1:2:34'
+	assert 1:: == '1::', '1::'
+	assert 2604:: == '2604::', '2604::'
+	assert 1208::dead:beaf == '1208::dead:beaf', '1208::dead:beaf'
+	assert fe80::21e:64ff:fe38:4534 == 'fe80::21e:64ff:fe38:4534', 'fe80::21e:64ff:fe38:4534'
 }
 
-handler test_ipnet
+handler test_cmp
 {
-	# TODO
-	# assert 192.168.0.1/24 == '192.168.0.1/24', '192.168.0.1/24'
+	assert 1.2.3.4 == 1.2.3.4, 'eq'
+	assert 1.2.3.4 != 1.2.3.5, 'uneq'
+	assert 1:2::34 == 1:2::34, 'eq.6'
+	assert 1:2::34 != 1:2::35, 'uneq.6'
 }
