@@ -51,9 +51,9 @@ bool FlowBackend::registerFunction(const std::string& name, FlowValue::Type retu
 	return registerNative(Callback::FUNCTION, name, returnType, callback, userdata);
 }
 
-bool FlowBackend::registerVariable(const std::string& name, FlowValue::Type returnType, CallbackFunction callback, void *userdata)
+bool FlowBackend::registerProperty(const std::string& name, FlowValue::Type returnType, CallbackFunction callback, void *userdata)
 {
-	return registerNative(Callback::VARIABLE, name, returnType, callback, userdata);
+	return registerNative(Callback::PROPERTY, name, returnType, callback, userdata);
 }
 
 int FlowBackend::find(const std::string& name) const

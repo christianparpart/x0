@@ -1246,7 +1246,7 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 
 	switch (native->type)
 	{
-		case FlowBackend::Callback::VARIABLE:
+		case FlowBackend::Callback::PROPERTY:
 		case FlowBackend::Callback::FUNCTION:
 		{
 			if (native->returnType == FlowValue::BUFFER)
@@ -1421,7 +1421,7 @@ void FlowRunner::visit(Unit& unit)
 	emitInitializerHead();
 
 	// emit all handlers (and their dependancies)
-	for (auto i = unit.members()->begin(), e = unit.members()->end(); i != e; ++i)
+	for (auto i = unit.members().begin(), e = unit.members().end(); i != e; ++i)
 		if ((*i)->isFunction())
 			codegen(*i);
 
@@ -2343,7 +2343,7 @@ void FlowRunner::visit(CallExpr& call)
 		emitCall(call.callee(), call.args());
 	else
 	{
-		if (call.callStyle() == CallExpr::Assignment && !backend_->isVariable(call.callee()->name()))
+		if (call.callStyle() == CallExpr::Assignment && !backend_->isProperty(call.callee()->name()))
 		{
 			reportError("Trying to assign a value to non-variable '%s'", call.callee()->name().c_str());
 			return;

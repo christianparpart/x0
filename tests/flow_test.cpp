@@ -183,8 +183,8 @@ Flower::Flower() :
 {
 	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
 
-	// variables
-	registerVariable("cwd", FlowValue::STRING, &get_cwd);
+	// properties
+	registerProperty("cwd", FlowValue::STRING, &get_cwd);
 
 	// functions
 	registerFunction("getenv", FlowValue::STRING, &flow_getenv);

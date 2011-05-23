@@ -73,11 +73,11 @@ HttpCore::HttpCore(HttpServer& server) :
 	// TODO setup error-documents
 
 	// shared
-	registerSetupFunction<HttpCore, &HttpCore::sys_env>("sys.env", FlowValue::STRING);
-	registerSetupProperty<HttpCore, &HttpCore::sys_cwd>("sys.cwd", FlowValue::STRING);
-	registerSetupProperty<HttpCore, &HttpCore::sys_pid>("sys.pid", FlowValue::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::sys_now>("sys.now", FlowValue::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::sys_now_str>("sys.now_str", FlowValue::STRING);
+	registerSharedFunction<HttpCore, &HttpCore::sys_env>("sys.env", FlowValue::STRING);
+	registerSharedProperty<HttpCore, &HttpCore::sys_cwd>("sys.cwd", FlowValue::STRING);
+	registerSharedProperty<HttpCore, &HttpCore::sys_pid>("sys.pid", FlowValue::NUMBER);
+	registerSharedProperty<HttpCore, &HttpCore::sys_now>("sys.now", FlowValue::NUMBER);
+	registerSharedProperty<HttpCore, &HttpCore::sys_now_str>("sys.now_str", FlowValue::STRING);
 
 	// main
 	registerHandler<HttpCore, &HttpCore::docroot>("docroot");

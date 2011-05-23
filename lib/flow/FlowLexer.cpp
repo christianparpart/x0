@@ -42,12 +42,14 @@ static std::string unescape(const std::string& value)
 	return result;
 }
 
-void SourceLocation::dump(const std::string& prefix) const
+std::string SourceLocation::dump(const std::string& prefix) const
 {
-	printf("%s: { %ld:%ld - %ld:%ld }\n",
-			!prefix.empty() ? prefix.c_str() : "location",
-			begin.line, begin.column,
-			end.line, end.column);
+	char buf[4096];
+	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %ld:%ld - %ld:%ld }",
+		!prefix.empty() ? prefix.c_str() : "location",
+		begin.line, begin.column,
+		end.line, end.column);
+	return std::string(buf, n);
 }
 
 FlowLexer::FlowLexer() :
@@ -624,11 +626,14 @@ std::string FlowLexer::tokenToString(FlowToken value) const
 	return value.c_str();
 }
 
-void FlowLexer::dump() const
+std::string FlowLexer::dump() const
 {
-	printf("[%04ld:%02ld] %3d %s\n",
+	char buf[4096];
+	std::size_t n = snprintf(buf, sizeof(buf), "[%04ld:%02ld] %3d %s",
 			line(), column(),
 			static_cast<int>(token()), tokenString().c_str());
+
+	return std::string(buf, n);
 }
 
 bool FlowLexer::isHexChar() const

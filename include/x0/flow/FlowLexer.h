@@ -20,7 +20,7 @@
 
 namespace x0 {
 
-struct FilePos // {{{
+struct X0_API FilePos // {{{
 {
 public:
 	FilePos() : line(0), column(0), offset(0) {}
@@ -40,7 +40,7 @@ public:
 	size_t offset;
 }; // }}}
 
-struct SourceLocation // {{{
+struct X0_API SourceLocation // {{{
 {
 public:
 	SourceLocation() : fileName(), begin(), end() {}
@@ -53,7 +53,7 @@ public:
 
 	SourceLocation& update(const FilePos& endPos) { end = endPos; return *this; }
 
-	void dump(const std::string& prefix = std::string()) const;
+	std::string dump(const std::string& prefix = std::string()) const;
 }; // }}}
 
 class X0_API FlowLexer
@@ -114,7 +114,7 @@ public:
 	const SourceLocation& lastLocation() const;
 	std::string locationContent();
 
-	void dump() const;
+	std::string dump() const;
 
 private:
 	bool isHexChar() const;

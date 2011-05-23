@@ -347,9 +347,9 @@ Unit::~Unit()
 	delete members_;
 }
 
-SymbolTable *Unit::members() const
+SymbolTable& Unit::members() const
 {
-	return members_;
+	return *members_;
 }
 
 Symbol *Unit::insert(Symbol *symbol)
@@ -535,7 +535,10 @@ void ListExpr::accept(ASTVisitor& v)
 
 // CallExpr
 CallExpr::CallExpr(Function *callee, ListExpr *args, CallStyle cs, const SourceLocation& sloc) :
-	Expr(sloc), callee_(callee), args_(args), callStyle_(cs)
+	Expr(sloc),
+	callee_(callee),
+	args_(args ? args : new ListExpr()),
+	callStyle_(cs)
 {
 }
 
@@ -714,6 +717,161 @@ Stmt *CondStmt::elseStmt() const
 void CondStmt::accept(ASTVisitor& v)
 {
 	v.visit(*this);
+}
+// }}}
+
+// {{{ FlowCallIterator
+FlowCallIterator::FlowCallIterator(ASTNode* root) :
+	result_(),
+	current_()
+{
+	if (root)
+		collect(root);
+}
+
+FlowCallIterator::~FlowCallIterator()
+{
+}
+
+void FlowCallIterator::collect(ASTNode* root)
+{
+	root->accept(*this);
+	current_ = result_.begin();
+}
+
+size_t FlowCallIterator::size() const
+{
+	return result_.size();
+}
+
+bool FlowCallIterator::empty() const
+{
+	return result_.empty();
+}
+
+FlowCallIterator& FlowCallIterator::operator++()
+{
+	++current_;
+}
+
+bool FlowCallIterator::operator==(const FlowCallIterator& it) const
+{
+	if (this == &it)
+		return true;
+
+	if (current_ == it.current_)
+		return true;
+
+	if (current_ == result_.end() && it.empty())
+		return true;
+
+	return false;
+}
+
+bool FlowCallIterator::operator!=(const FlowCallIterator& it) const
+{
+	return !(*this == it);
+}
+
+void FlowCallIterator::visit(Variable& variable)
+{
+	if (variable.value())
+		variable.value()->accept(*this);
+}
+
+void FlowCallIterator::visit(Function& function)
+{
+	if (function.scope())
+		for (auto sym: *function.scope())
+			sym->accept(*this);
+
+	if (function.body())
+		function.body()->accept(*this);
+}
+
+void FlowCallIterator::visit(Unit& unit)
+{
+	for (auto s: unit.members())
+		s->accept(*this);
+}
+
+void FlowCallIterator::visit(UnaryExpr& expr)
+{
+	expr.subExpr()->accept(*this);
+}
+
+void FlowCallIterator::visit(BinaryExpr& expr)
+{
+	expr.leftExpr()->accept(*this);
+	expr.rightExpr()->accept(*this);
+}
+
+void FlowCallIterator::visit(StringExpr& expr)
+{
+	// nothing
+}
+
+void FlowCallIterator::visit(NumberExpr& expr)
+{
+	// nothing
+}
+
+void FlowCallIterator::visit(BoolExpr& expr)
+{
+	// nothing
+}
+
+void FlowCallIterator::visit(RegExpExpr& expr)
+{
+	// nothing
+}
+
+void FlowCallIterator::visit(IPAddressExpr& expr)
+{
+	// nothing
+}
+
+void FlowCallIterator::visit(VariableExpr& expr)
+{
+	// nothing
+}
+
+void FlowCallIterator::visit(FunctionRefExpr& expr)
+{
+}
+
+void FlowCallIterator::visit(CallExpr& call)
+{
+	call.args()->accept(*this);
+	call.callee()->accept(*this);
+
+	result_.push_back(&call);
+}
+
+void FlowCallIterator::visit(ListExpr& listExpr)
+{
+	for (auto expr: listExpr)
+		expr->accept(*this);
+}
+
+void FlowCallIterator::visit(ExprStmt& stmt)
+{
+	stmt.expression()->accept(*this);
+}
+
+void FlowCallIterator::visit(CompoundStmt& compoundStmt)
+{
+	for (auto stmt: compoundStmt)
+		stmt->accept(*this);
+}
+
+void FlowCallIterator::visit(CondStmt& stmt)
+{
+	stmt.condition()->accept(*this);
+	stmt.thenStmt()->accept(*this);
+
+	if (stmt.elseStmt())
+		stmt.elseStmt()->accept(*this);
 }
 // }}}
 

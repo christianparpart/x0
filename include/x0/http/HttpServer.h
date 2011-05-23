@@ -63,27 +63,27 @@ class X0_API HttpServer :
 	HttpServer& operator=(const HttpServer&) = delete;
 
 public:
-	typedef Signal<void(HttpConnection *)> ConnectionHook;
-	typedef Signal<void(HttpRequest *)> RequestHook;
-	typedef Signal<void(HttpWorker *)> WorkerHook;
+	typedef Signal<void(HttpConnection*)> ConnectionHook;
+	typedef Signal<void(HttpRequest*)> RequestHook;
+	typedef Signal<void(HttpWorker*)> WorkerHook;
 
 public:
-	explicit HttpServer(struct ::ev_loop *loop = 0);
+	explicit HttpServer(struct ::ev_loop* loop = nullptr);
 	~HttpServer();
 
 	void setLogger(std::shared_ptr<Logger> logger);
-	Logger *logger() const;
+	Logger* logger() const;
 
 	ev_tstamp startupTime() const { return startupTime_; }
 	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
 
-	HttpWorker *spawnWorker();
-	HttpWorker *selectWorker();
-	const std::vector<HttpWorker *>& workers() const { return workers_; }
-	void destroyWorker(HttpWorker *worker);
+	HttpWorker* spawnWorker();
+	HttpWorker* selectWorker();
+	const std::vector<HttpWorker*>& workers() const { return workers_; }
+	void destroyWorker(HttpWorker* worker);
 
 	// {{{ service control
-	bool setup(std::istream *settings, const std::string& filename = std::string());
+	bool setup(std::istream* settings, const std::string& filename = std::string());
 	bool start();
 	bool active() const;
 	int run();
@@ -125,67 +125,83 @@ public:
 	Severity logLevel() const;
 	void logLevel(Severity value);
 
-	HttpListener *setupListener(const std::string& bindAddress, int port, int backlog = 0 /*default*/);
-	HttpListener *setupUnixListener(const std::string& path, int backlog = 0 /*default*/);
-	HttpListener *setupListener(const SocketSpec& spec);
-	void destroyListener(HttpListener *listener);
+	HttpListener* setupListener(const std::string& bindAddress, int port, int backlog = 0 /*default*/);
+	HttpListener* setupUnixListener(const std::string& path, int backlog = 0 /*default*/);
+	HttpListener* setupListener(const SocketSpec& spec);
+	void destroyListener(HttpListener* listener);
 
 	std::string pluginDirectory() const;
 	void setPluginDirectory(const std::string& value);
 
-	HttpPlugin *loadPlugin(const std::string& name, std::error_code& ec);
-	template<typename T> T *loadPlugin(const std::string& name, std::error_code& ec);
+	HttpPlugin* loadPlugin(const std::string& name, std::error_code& ec);
+	template<typename T> T* loadPlugin(const std::string& name, std::error_code& ec);
 	void unloadPlugin(const std::string& name);
 	std::vector<std::string> pluginsLoaded() const;
 
-	HttpPlugin *registerPlugin(HttpPlugin *plugin);
-	HttpPlugin *unregisterPlugin(HttpPlugin *plugin);
+	HttpPlugin* registerPlugin(HttpPlugin* plugin);
+	HttpPlugin* unregisterPlugin(HttpPlugin* plugin);
 
-	struct ::ev_loop *loop() const;
+	struct ::ev_loop* loop() const;
 
 	HttpCore& core() const;
 
-	const std::list<HttpListener *>& listeners() const;
+	const std::list<HttpListener* >& listeners() const;
 
-	HttpListener *listenerByHost(const std::string& hostid) const;
-	HttpListener *listenerByPort(int port) const;
+	HttpListener* listenerByHost(const std::string& hostid) const;
+	HttpListener* listenerByPort(int port) const;
 
 	void dumpIR() const; // for debugging purpose
-
-public: // FlowBackend overrides
-	virtual void import(const std::string& name, const std::string& path);
-
-private:
-#if defined(WITH_SSL)
-	static void gnutls_log(int level, const char *msg);
-#endif
 
 	friend class HttpConnection;
 	friend class HttpPlugin;
 	friend class HttpWorker;
 	friend class HttpCore;
 
+public: // FlowBackend overrides
+	virtual void import(const std::string& name, const std::string& path);
+
+	// setup
+	bool registerSetupFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerSetupProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+
+	// shared
+	bool registerSharedFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerSharedProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+
+	// main
+	bool registerHandler(const std::string& name, CallbackFunction callback, void* userdata = nullptr);
+	bool registerFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+
 private:
-	static void *runWorker(void *);
+#if defined(WITH_SSL)
+	static void gnutls_log(int level, const char* msg);
+#endif
+
+	static void* runWorker(void*);
+
+	bool validateConfig();
 
 	std::vector<std::string> components_;
 
-	Unit *unit_;
-	FlowRunner *runner_;
-	bool (*onHandleRequest_)(void *);
+	Unit* unit_;
+	FlowRunner* runner_;
+	std::vector<std::string> setupApi_;
+	std::vector<std::string> mainApi_;
+	bool (*onHandleRequest_)(void*);
 
-	std::list<HttpListener *> listeners_;
-	struct ::ev_loop *loop_;
+	std::list<HttpListener*> listeners_;
+	struct ::ev_loop* loop_;
 	ev_tstamp startupTime_;
 	bool active_;
 	LoggerPtr logger_;
 	Severity logLevel_;
 	bool colored_log_;
 	std::string pluginDirectory_;
-	std::vector<HttpPlugin *> plugins_;
-	std::map<HttpPlugin *, Library> pluginLibraries_;
-	HttpCore *core_;
-	std::vector<HttpWorker *> workers_;
+	std::vector<HttpPlugin*> plugins_;
+	std::map<HttpPlugin*, Library> pluginLibraries_;
+	HttpCore* core_;
+	std::vector<HttpWorker*> workers_;
 #if defined(X0_WORKER_RR)
 	size_t lastWorker_;
 #endif
@@ -219,7 +235,7 @@ inline Logger *HttpServer::logger() const
 	return logger_.get();
 }
 
-inline struct ::ev_loop *HttpServer::loop() const
+inline struct ::ev_loop* HttpServer::loop() const
 {
 	return loop_;
 }
@@ -229,7 +245,7 @@ inline HttpCore& HttpServer::core() const
 	return *core_;
 }
 
-inline const std::list<HttpListener *>& HttpServer::listeners() const
+inline const std::list<HttpListener*>& HttpServer::listeners() const
 {
 	return listeners_;
 }
@@ -237,7 +253,7 @@ inline const std::list<HttpListener *>& HttpServer::listeners() const
 template<typename T>
 inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 {
-	return dynamic_cast<T *>(loadPlugin(name, ec));
+	return dynamic_cast<T*>(loadPlugin(name, ec));
 }
 
 inline Severity HttpServer::logLevel() const

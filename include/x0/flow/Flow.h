@@ -50,7 +50,7 @@ class ASTNode;
 class ASTVisitor;
 
 // {{{ visitors
-class X0_API ASTVisitor
+class X0_API ASTVisitor // {{{
 {
 public:
 	virtual ~ASTVisitor() {}
@@ -77,7 +77,56 @@ public:
 	virtual void visit(ExprStmt& stmt) = 0;
 	virtual void visit(CompoundStmt& stmt) = 0;
 	virtual void visit(CondStmt& stmt) = 0;
-};
+}; // }}}
+class X0_API FlowCallIterator : public ASTVisitor // {{{
+{
+public:
+	typedef std::vector<CallExpr*> list_type;
+	typedef list_type::iterator iterator;
+
+private:
+	list_type result_;
+	iterator current_;
+
+public:
+	explicit FlowCallIterator(ASTNode* root = nullptr);
+	~FlowCallIterator();
+
+	void collect(ASTNode* root);
+	size_t size() const;
+	bool empty() const;
+
+	CallExpr* operator*() { return *current_; }
+	CallExpr* operator->() { return *current_; }
+
+	FlowCallIterator& operator++();
+
+	bool operator==(const FlowCallIterator& it) const;
+	bool operator!=(const FlowCallIterator& it) const;
+
+protected:
+	virtual void visit(Variable& symbol);
+	virtual void visit(Function& symbol);
+	virtual void visit(Unit& symbol);
+
+	// expressions
+	virtual void visit(UnaryExpr& expr);
+	virtual void visit(BinaryExpr& expr);
+	virtual void visit(StringExpr& expr);
+	virtual void visit(NumberExpr& expr);
+	virtual void visit(BoolExpr& expr);
+	virtual void visit(RegExpExpr& expr);
+	virtual void visit(IPAddressExpr& expr);
+	virtual void visit(VariableExpr& expr);
+	virtual void visit(FunctionRefExpr& expr);
+	virtual void visit(CallExpr& expr);
+	virtual void visit(ListExpr& expr);
+
+	// statements
+	virtual void visit(ExprStmt& stmt);
+	virtual void visit(CompoundStmt& stmt);
+	virtual void visit(CondStmt& stmt);
+}; // }}}
 // }}}
 
 // {{{ Operator & OperatorTraits
@@ -288,7 +337,7 @@ public:
 	Unit();
 	~Unit();
 
-	SymbolTable* members() const;
+	SymbolTable& members() const;
 
 	Symbol* insert(Symbol* symbol);
 	Symbol* lookup(const std::string& name);

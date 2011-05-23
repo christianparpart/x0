@@ -22,11 +22,11 @@ class FlowValue;
 class X0_API FlowBackend
 {
 public:
-	typedef void (*CallbackFunction)(void * /*userdata*/, int /*argc*/, FlowValue * /*argv*/, void * /*context*/);
+	typedef void (*CallbackFunction)(void* /*userdata*/, int /*argc*/, FlowValue* /*argv*/, void* /*context*/);
 
 	struct Callback // {{{
 	{
-		enum Type { UNKNOWN, FUNCTION, HANDLER, VARIABLE } type;
+		enum Type { UNKNOWN, FUNCTION, HANDLER, PROPERTY } type;
 		std::string name;
 		void *userdata;
 		void *context;
@@ -52,12 +52,12 @@ public:
 
 	void setErrorHandler(std::function<void(const std::string&)>&& callback);
 
-	bool registerHandler(const std::string& name, CallbackFunction callback, void *userdata = NULL);
-	bool registerFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void *userdata = NULL);
-	bool registerVariable(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void *userdata = NULL);
+	bool registerHandler(const std::string& name, CallbackFunction callback, void* userdata = nullptr);
+	bool registerFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
 
 	bool registerNative(Callback::Type type, const std::string& name, FlowValue::Type returnType,
-		CallbackFunction callback, void *userdata = NULL);
+		CallbackFunction callback, void* userdata = nullptr);
 
 	int find(const std::string& name) const;
 	Callback *at(int id) const;
@@ -69,7 +69,7 @@ public:
 	bool isFunction(const std::string& name) const { return callbackTypeOf(name) == Callback::FUNCTION; }
 	bool isHandler(const std::string& name) const { return callbackTypeOf(name) == Callback::HANDLER; }
 	bool isCallable(const std::string& name) const { auto t = callbackTypeOf(name); return t == Callback::FUNCTION || t == Callback::HANDLER; }
-	bool isVariable(const std::string& name) const { return callbackTypeOf(name) == Callback::VARIABLE; }
+	bool isProperty(const std::string& name) const { return callbackTypeOf(name) == Callback::PROPERTY; }
 
 private:
 	std::vector<Callback *> callbacks_;

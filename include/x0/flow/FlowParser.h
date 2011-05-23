@@ -38,7 +38,7 @@ public:
 
 	Unit *parse();
 
-	void dump() const;
+	std::string dump() const;
 
 	void setErrorHandler(std::function<void(const std::string&)>&& callback);
 

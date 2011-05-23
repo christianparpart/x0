@@ -97,6 +97,8 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 
 	unit_(nullptr),
 	runner_(nullptr),
+	setupApi_(),
+	mainApi_(),
 	onHandleRequest_(),
 
 	listeners_(),
@@ -165,6 +167,56 @@ HttpServer::~HttpServer()
 	unit_ = nullptr;
 }
 
+bool HttpServer::validateConfig()
+{
+	TRACE("validateConfig()");
+
+	Function* setupFn = runner_->findHandler("setup");
+	if (!setupFn) {
+		log(Severity::error, "no setup-handler defined in config file.\n");
+		return false;
+	}
+
+	Function* mainFn = runner_->findHandler("main");
+	if (!mainFn) {
+		log(Severity::error, "no main-handler defined in config file.\n");
+		return false;
+	}
+
+	unsigned errors = 0;
+
+	TRACE("validateConfig: setup:");
+	for (FlowCallIterator i(setupFn), e(nullptr); i != e; ++i) {
+		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
+
+		if (i->callee()->body())
+			continue;
+
+		if (std::find( setupApi_.begin(), setupApi_.end(), i->callee()->name()) == setupApi_.end()) {
+			log(Severity::error, "Symbol '%s' found within setup-handler (or its callees) but may be only invoked from within the main-handler.", i->callee()->name().c_str());
+			log(Severity::error, "%s", i->sourceLocation().dump().c_str());
+			++errors;
+		}
+	}
+
+	TRACE("validateConfig: main:");
+	for (FlowCallIterator i(mainFn), e(nullptr); i != e; ++i) {
+		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
+
+		if (i->callee()->body())
+			continue;
+
+		if (std::find(mainApi_.begin(), mainApi_.end(), i->callee()->name()) == mainApi_.end()) {
+			log(Severity::error, "Symbol '%s' found within main-handler (or its callees) but may be only invoked from within the setup-handler.", i->callee()->name().c_str());
+			log(Severity::error, "%s", i->sourceLocation().dump().c_str());
+			++errors;
+		}
+	}
+
+	TRACE("validateConfig finished");
+	return errors == 0;
+}
+
 bool HttpServer::setup(std::istream *settings, const std::string& filename)
 {
 	TRACE("setup(%s)", filename.c_str());
@@ -176,22 +228,18 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 		goto err;
 	}
 
+	if (!validateConfig())
+		goto err;
+
 	// run setup
 	TRACE("run 'setup'");
-	{
-		Function* setupFn = runner_->findHandler("setup");
-		if (!setupFn) {
-			log(Severity::error, "no setup handler defined in config file.\n");
-			goto err;
-		}
-
-		if (runner_->invoke(setupFn))
-			goto err;
-	}
+	if (runner_->invoke(runner_->findHandler("setup")))
+		goto err;
 
 	// grap the request handler
 	TRACE("get pointer to 'main'");
 	onHandleRequest_ = runner_->getPointerTo(runner_->findHandler("main"));
+
 	if (!onHandleRequest_)
 		goto err;
 
@@ -585,6 +633,7 @@ void HttpServer::setPluginDirectory(const std::string& value)
 	pluginDirectory_ = value;
 }
 
+// {{{ Flow helper
 void HttpServer::import(const std::string& name, const std::string& path)
 {
 	std::string filename = path;
@@ -598,6 +647,54 @@ void HttpServer::import(const std::string& name, const std::string& path)
 	if (ec)
 		log(Severity::error, "Error loading plugin: %s: %s", filename.c_str(), ec.message().c_str());
 }
+
+// setup
+bool HttpServer::registerSetupFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
+{
+	setupApi_.push_back(name);
+	return FlowBackend::registerFunction(name, returnType, callback, userdata);
+}
+
+bool HttpServer::registerSetupProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
+{
+	setupApi_.push_back(name);
+	return FlowBackend::registerProperty(name, returnType, callback, userdata);
+}
+
+// shared
+bool HttpServer::registerSharedFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
+{
+	setupApi_.push_back(name);
+	mainApi_.push_back(name);
+	return FlowBackend::registerFunction(name, returnType, callback, userdata);
+}
+
+bool HttpServer::registerSharedProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
+{
+	setupApi_.push_back(name);
+	mainApi_.push_back(name);
+	return FlowBackend::registerProperty(name, returnType, callback, userdata);
+}
+
+// main
+bool HttpServer::registerHandler(const std::string& name, CallbackFunction callback, void* userdata)
+{
+	mainApi_.push_back(name);
+	return FlowBackend::registerHandler(name, callback, userdata);
+}
+
+bool HttpServer::registerFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
+{
+	mainApi_.push_back(name);
+	return FlowBackend::registerFunction(name, returnType, callback, userdata);
+}
+
+bool HttpServer::registerProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
+{
+	mainApi_.push_back(name);
+	return FlowBackend::registerProperty(name, returnType, callback, userdata);
+}
+// }}}
 
 /**
  * loads a plugin into the server.

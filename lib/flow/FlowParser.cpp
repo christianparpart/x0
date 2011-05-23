@@ -131,7 +131,7 @@ FlowParser::~FlowParser()
 	delete lexer_;
 }
 
-void FlowParser::dump() const
+std::string FlowParser::dump() const
 {
 	return lexer_->dump();
 }
@@ -237,7 +237,7 @@ Unit *FlowParser::unit()
 	FNTRACE();
 	Unit *unit = new Unit();
 
-	enter(unit->members());
+	enter(&unit->members());
 
 	while (token() == FlowToken::Import)
 		if (!importDecl(unit))
@@ -934,7 +934,7 @@ Expr *FlowParser::symbolExpr()
 				return NULL;
 			}
 		} else {
-			if (backend_->isVariable(name)) {
+			if (backend_->isProperty(name)) {
 				//printf("var symbol referenced: '%s'\n", name.c_str());
 				Variable *v = new Variable(name, sloc);
 				scopeStack_.front()->appendSymbol(v);
