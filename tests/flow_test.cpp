@@ -89,7 +89,7 @@ private:
 				break;
 			}
 			case FlowValue::ARRAY: {
-				const FlowArray& p = *value.toArray();
+				const FlowArray& p = value.toArray();
 				printf("(");
 				for (size_t k = 0, ke = p.size(); k != ke; ++k) {
 					if (k) printf(", ");
