@@ -22,7 +22,7 @@ BOOL            ::= 'true' | 'false'
 STRING          ::= RAW_STRING | EXT_STRING
 
 RAW_STRING      ::= "'" <text except "'"> "'"
-EXT_STRING      ::= '"' <escaped and interpolcated text except> '"'
+EXT_STRING      ::= '"' <escaped and interpolated text> '"'
 
 REGEXP          ::= '/' <const regexp pattern> '/'
 
