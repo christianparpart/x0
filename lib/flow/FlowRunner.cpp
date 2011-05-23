@@ -325,6 +325,7 @@ void FlowRunner::dump(const char *msg)
 void FlowRunner::setErrorHandler(std::function<void(const std::string&)>&& callback)
 {
 	errorHandler_ = callback;
+	parser_->setErrorHandler(std::move(callback));
 }
 
 void FlowRunner::reportError(const std::string& message)

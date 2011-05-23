@@ -10,6 +10,7 @@
 #include <x0/flow/FlowLexer.h>
 #include <x0/flow/FlowBackend.h>
 #include <x0/flow/Flow.h>
+#include <x0/Defines.h>
 #include <x0/RegExp.h>
 
 namespace x0 {
@@ -43,8 +44,10 @@ struct fntrace {
 };
 // }}}
 #	define FNTRACE() fntrace _(__PRETTY_FUNCTION__)
+#	define TRACE(msg...) DEBUG("FlowParser: " msg)
 #else
 #	define FNTRACE() /*!*/
+#	define TRACE(msg...) /*!*/
 #endif
 
 inline Operator makeUnaryOperator(FlowToken token) // {{{
@@ -240,8 +243,10 @@ Unit *FlowParser::unit()
 		if (!importDecl(unit))
 			goto err;
 
-	while (Symbol *sym = decl())
+	while (Symbol *sym = decl()) {
+		TRACE("unit: parsed symbol: %s", sym->name().c_str());
 		unit->insert(sym);
+	}
 
 	leave();
 
@@ -1258,7 +1263,7 @@ Stmt *FlowParser::compoundStmt()
 		if (token() == FlowToken::End)
 		{
 			nextToken();
-			sloc.update(end());
+			cs->sourceLocation().update(end());
 			return cs;
 		}
 
@@ -1270,7 +1275,6 @@ Stmt *FlowParser::compoundStmt()
 	}
 
 	delete cs;
-	cs->sourceLocation().update(end());
 	return NULL;
 }
 // }}}

@@ -46,7 +46,7 @@
 #include <getopt.h>
 
 #if !defined(NDEBUG)
-#	define TRACE(msg...) (this->debug(0, msg))
+#	define TRACE(msg...) (this->Logging::debug(msg))
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
@@ -56,8 +56,6 @@ namespace x0 {
 
 void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
 {
-	//fprintf(stderr, "%s: %s\n", cat, msg.c_str());
-	//fflush(stderr);
 	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
 }
 
@@ -169,6 +167,7 @@ HttpServer::~HttpServer()
 
 bool HttpServer::setup(std::istream *settings, const std::string& filename)
 {
+	TRACE("setup(%s)", filename.c_str());
 	sd_notify(0, "STATUS=Setting up");
 
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
@@ -178,6 +177,7 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	}
 
 	// run setup
+	TRACE("run 'setup'");
 	{
 		Function* setupFn = runner_->findHandler("setup");
 		if (!setupFn) {
@@ -190,6 +190,7 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	}
 
 	// grap the request handler
+	TRACE("get pointer to 'main'");
 	onHandleRequest_ = runner_->getPointerTo(runner_->findHandler("main"));
 	if (!onHandleRequest_)
 		goto err;
@@ -249,12 +250,14 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	// }}}
 
 	// {{{ run post-config hooks
+	TRACE("setup: post_config");
 	for (auto i: plugins_)
 		if (!i->post_config())
 			goto err;
 	// }}}
 
 	// {{{ run post-check hooks
+	TRACE("setup: post_check");
 	for (auto i: plugins_)
 		if (!i->post_check())
 			goto err;
@@ -269,6 +272,7 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	// }}}
 
 	sd_notify(0, "STATUS=Setup done");
+	TRACE("setup: done.");
 	return true;
 
 err:
