@@ -4,7 +4,6 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
 
 0.4:
 
-- flow: implement IPv6 parser
 - flow: use FlowString (string interpolation class) for double quoted strings
 	- interpolated string example: "Hello #{42 + i * 3}"
 - [plugins] balance: new plugin. initially supporting handler: balance.rr (kind of lighty-style)
