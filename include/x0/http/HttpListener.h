@@ -27,6 +27,8 @@
 
 namespace x0 {
 
+class SocketSpec;
+
 //! \addtogroup http
 //@{
 
@@ -58,6 +60,7 @@ public:
 
 	bool open(const std::string& unixPath);
 	bool open(const std::string& ip, int port);
+	bool open(const SocketSpec& spec);
 	int handle() const;
 
 	ServerSocket& socket();

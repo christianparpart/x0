@@ -15,6 +15,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
+#include <x0/SocketSpec.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
@@ -142,19 +143,20 @@ private:
 	// ssl.listener(BINDADDR_PORT);
 	void add_listener(x0::FlowValue& result, const x0::Params& args)
 	{
-		std::string arg(args[0].toString());
-		size_t n = arg.find(':');
-		std::string ip = n != std::string::npos ? arg.substr(0, n) : "0.0.0.0";
-		int port = atoi(n != std::string::npos ? arg.substr(n + 1).c_str() : arg.c_str());
-		int backlog = args[1].isNumber() ? args[1].toNumber() : 0;
+		x0::SocketSpec socketSpec;
+		socketSpec << args;
 
-		x0::HttpListener *listener = server().setupListener(ip, port, backlog);
-		if (listener) {
-			SslDriver *driver = new SslDriver(this);
-			listener->socket().setSocketDriver(driver);
+		if (!socketSpec.valid) {
+			result.set(false);
+		} else {
+			x0::HttpListener* listener = server().setupListener(socketSpec);
+			if (listener) {
+				SslDriver *driver = new SslDriver(this);
+				listener->socket().setSocketDriver(driver);
+			}
+
+			result.set(listener != nullptr);
 		}
-
-		result.set(listener != nullptr);
 	}
 
 	void set_loglevel(x0::FlowValue& result, const x0::Params& args)

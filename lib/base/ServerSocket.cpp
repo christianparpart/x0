@@ -1,5 +1,6 @@
 #include <x0/ServerSocket.h>
 #include <x0/SocketDriver.h>
+#include <x0/SocketSpec.h>
 #include <x0/Socket.h>
 #include <x0/IPAddress.h>
 #include <x0/sysconfig.h>
@@ -348,6 +349,17 @@ err:
 		::close(fd);
 
 	return false;
+}
+
+bool ServerSocket::open(const SocketSpec& spec, int flags)
+{
+	if (spec.backlog > 0)
+		setBacklog(spec.backlog);
+
+	if (spec.isLocal())
+		return open(spec.local, flags);
+	else
+		return open(spec.address.str(), spec.port, flags);
 }
 
 /*! stops listening and closes the server socket.

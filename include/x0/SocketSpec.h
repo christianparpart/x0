@@ -3,6 +3,7 @@
 
 #include <x0/Api.h>
 #include <x0/IPAddress.h>
+#include <string>
 
 namespace x0 {
 
@@ -23,6 +24,8 @@ struct X0_API SocketSpec
 	bool isValid() const { return valid; }
 	bool isLocal() const { return !local.empty(); }
 	bool isInet() const { return local.empty(); }
+
+	std::string str() const;
 };
 
 } // namespace x0

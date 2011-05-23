@@ -10,6 +10,7 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpServer.h>
 #include <x0/SocketDriver.h>
+#include <x0/SocketSpec.h>
 #include <x0/sysconfig.h>
 #include <fcntl.h>
 
@@ -46,6 +47,15 @@ int HttpListener::backlog() const
 void HttpListener::setBacklog(int value)
 {
 	socket_.setBacklog(value);
+}
+
+bool HttpListener::open(const SocketSpec& spec)
+{
+	if (socket_.open(spec, O_CLOEXEC | O_NONBLOCK))
+		return true;
+
+	log(Severity::error, "Error listening on socket (%s): %s", spec.str().c_str(), socket_.errorText().c_str());
+	return false;
 }
 
 bool HttpListener::open(const std::string& unixPath)

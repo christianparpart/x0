@@ -20,4 +20,15 @@ void SocketSpec::clear()
 	valid = false;
 }
 
+std::string SocketSpec::str() const
+{
+	if (isLocal()) {
+		return "unix:" + local;
+	} else {
+		char buf[256];
+		snprintf(buf, sizeof(buf), "%s, port %d", address.str().c_str(), port);
+		return buf;
+	}
+}
+
 } // namespace x0

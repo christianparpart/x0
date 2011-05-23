@@ -545,6 +545,19 @@ HttpListener *HttpServer::setupUnixListener(const std::string& path, int backlog
 	return nullptr;
 }
 
+HttpListener* HttpServer::setupListener(const SocketSpec& spec)
+{
+	// create a new listener
+	HttpListener *lp = new HttpListener(*this);
+
+	listeners_.push_back(lp);
+
+	if (lp->open(spec))
+		return lp;
+
+	return nullptr;
+}
+
 void HttpServer::destroyListener(HttpListener *listener)
 {
 	for (auto i = listeners_.begin(), e = listeners_.end(); i != e; ++i) {

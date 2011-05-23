@@ -10,6 +10,7 @@
 namespace x0 {
 
 class Socket;
+class SocketSpec;
 class SocketDriver;
 class IPAddress;
 
@@ -41,6 +42,7 @@ public:
 
 	bool open(const std::string& ipAddress, int port, int flags);
 	bool open(const std::string& localAddress, int flags);
+	bool open(const SocketSpec& spec, int flags);
 	int handle() const { return fd_; }
 	bool isOpen() const { return fd_ >= 0; }
 	void close();

@@ -38,12 +38,14 @@ class x0d; // friend declared in HttpServer
 
 namespace x0 {
 
-struct HttpPlugin;
-struct HttpCore;
-struct HttpWorker;
+class SocketSpec;
 
 //! \addtogroup http
 //@{
+
+class HttpPlugin;
+class HttpCore;
+class HttpWorker;
 
 /**
  * \brief implements the x0 web server.
@@ -125,6 +127,7 @@ public:
 
 	HttpListener *setupListener(const std::string& bindAddress, int port, int backlog = 0 /*default*/);
 	HttpListener *setupUnixListener(const std::string& path, int backlog = 0 /*default*/);
+	HttpListener *setupListener(const SocketSpec& spec);
 	void destroyListener(HttpListener *listener);
 
 	std::string pluginDirectory() const;

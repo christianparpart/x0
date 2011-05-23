@@ -81,11 +81,13 @@ SocketSpec& operator<<(SocketSpec& spec, const Params& params)
 	}
 
 	if (!(mask & Item::Address)) {
-		fprintf(stderr, "No host address given.");
+		fprintf(stderr, "No host address given.\n");
 		goto err;
 	}
 
 	if (spec.isLocal() && spec.port >= 0) {
+		fprintf(stderr, "Local (unix) sockets have no port numbers.\n");
+		goto err;
 	}
 
 	spec.valid = true;
