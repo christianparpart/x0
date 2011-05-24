@@ -26,7 +26,7 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
 - flow: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
 - flow: caseStmt ::=
 			'case' expr
-				('when' expr ['then' stmt)*
+				('when' expr stmt)+
 				['else' stmt]
 			'end'
 
