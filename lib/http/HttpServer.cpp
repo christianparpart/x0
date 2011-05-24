@@ -228,8 +228,8 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 		goto err;
 	}
 
-//	if (!validateConfig())
-//		goto err;
+	if (!validateConfig())
+		goto err;
 
 	// run setup
 	TRACE("run 'setup'");
