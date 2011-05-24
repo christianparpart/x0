@@ -431,6 +431,7 @@ ssize_t Socket::write(const void *buffer, size_t size)
 
 	return rv;
 #else
+	TRACE("write(buffer, size=%ld)", size);
 	return size ? ::write(fd_, buffer, size) : 0;
 #endif
 }
@@ -441,9 +442,9 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 		return 0;
 
 #if !defined(NDEBUG)
-	//auto offset0 = *offset;
+	auto offset0 = *offset;
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
-	//TRACE("write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset0, *offset, nbytes, rv);
+	TRACE("write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset0, *offset, nbytes, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
@@ -501,7 +502,7 @@ void Socket::io(ev::io& /*io*/, int revents)
 void Socket::timeout(ev::timer& timer, int revents)
 {
 	TRACE("timeout(revents=0x%04X): mode=%d", revents, mode_);
-	watcher_.stop();
+	setMode(None);
 
 	if (timeoutCallback_)
 		timeoutCallback_(this, timeoutData_);
