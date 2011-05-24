@@ -100,7 +100,7 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
+	virtual bool handleRequest(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		// create a handler serving this very request.
 		(new EchoHandler(in))->run();

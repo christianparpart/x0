@@ -74,7 +74,7 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *r, const x0::Params& args)
+	virtual bool handleRequest(x0::HttpRequest *r, const x0::FlowParams& args)
 	{
 		// set response status code
 		r->status = x0::HttpError::Ok;

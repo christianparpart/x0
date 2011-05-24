@@ -785,9 +785,9 @@ public:
 			delete i.second;
 	}
 
-	bool handleRequest(x0::HttpRequest *in, const x0::Params& args)
+	bool handleRequest(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
-		if (args.count() != 1 || !args[0].isString())
+		if (args.size() != 1 || !args[0].isString())
 			return false;
 
 		CgiContext *cx = acquireContext(args[0].toString());

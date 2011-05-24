@@ -1223,17 +1223,17 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 	callArgs[2] = scope_.lookup(NULL); // context userdata
 
 	// argc:
-	int argc = argList ? argList->length() : 0;
+	int argc = argList ? argList->length() + 1 : 1;
 	callArgs[3] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), argc);
 
 	// argv:
 	callArgs[4] = builder_.CreateAlloca(valueType_,
-		llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), argc + 1), "args.ptr");
+		llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), argc), "args.ptr");
 
 	emitNativeValue(0, callArgs[4], NULL); // initialize return value
 
 	int index = 1;
-	if (argc)
+	if (argc > 1)
 		for (auto i = argList->begin(), e = argList->end(); i != e; ++i)
 			//storeValueInVector(index++, callArgs[4], emitToValue(codegen(*i)));
 			emitNativeValue(index++, callArgs[4], codegen(*i));

@@ -67,7 +67,7 @@ public:
 	}
 
 private:
-	bool simple(x0::HttpRequest *in, const x0::Params& args)
+	bool simple(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		x0::Buffer sstr;
 
@@ -127,7 +127,7 @@ private:
 		return true;
 	}
 
-	bool google(x0::HttpRequest* in, const x0::Params& args)
+	bool google(x0::HttpRequest* in, const x0::FlowParams& args)
 	{
 		x0::Buffer buf;
 

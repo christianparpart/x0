@@ -10,7 +10,7 @@
 
 namespace x0 {
 
-void flow_print(void *p, int argc, FlowValue *argv, void *cx);
+void flow_print(void* p, FlowArray& args, void* cx);
 bool printValue(const FlowValue& value);
 
 FlowBackend::FlowBackend()
@@ -98,14 +98,13 @@ FlowBackend::Callback::Type FlowBackend::callbackTypeOf(const std::string& name)
 	return Callback::UNKNOWN;
 }
 
-void flow_print(void *p, int argc, FlowValue *argv, void *cx)
+void flow_print(void* p, FlowArray& args, void* cx)
 {
-	for (int i = 1; i <= argc; ++i)
-	{
+	for (int i = 1, e = args.size(); i != e; ++i) {
 		if (i > 1)
 			printf("\t");
 
-		argv[i].dump(false);
+		args[i].dump(false);
 	}
 	printf("\n");
 }

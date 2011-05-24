@@ -62,9 +62,9 @@ public:
 	}
 
 private:
-	void setup_step(x0::FlowValue& result, const x0::Params& args)
+	void setup_step(x0::FlowValue& result, const x0::FlowParams& args)
 	{
-		if (!args.count()) {
+		if (args.empty()) {
 			result.set(step_);
 			return;
 		}
@@ -77,9 +77,9 @@ private:
 		checkStart();
 	}
 
-	void setup_filename(x0::FlowValue& result, const x0::Params& args)
+	void setup_filename(x0::FlowValue& result, const x0::FlowParams& args)
 	{
-		if (!args.count()) {
+		if (args.empty()) {
 			result.set(filename_.c_str());
 			return;
 		}
@@ -121,7 +121,7 @@ private:
 		}
 	}
 
-	virtual bool logRequest(x0::HttpRequest *r, const x0::Params& args)
+	virtual bool logRequest(x0::HttpRequest *r, const x0::FlowParams& args)
 	{
 		//++ worker().get<local>(this).counter_[filename];
 		++numRequests_;

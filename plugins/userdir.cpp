@@ -51,9 +51,9 @@ public:
 	{
 	}
 
-	void setup_userdir(x0::FlowValue& result, const x0::Params& args)
+	void setup_userdir(x0::FlowValue& result, const x0::FlowParams& args)
 	{
-		if (!args.count()) {
+		if (args.empty()) {
 			result.set(dirname_.c_str());
 			return;
 		}
@@ -88,7 +88,7 @@ public:
 	}
 
 private:
-	void handleRequest(x0::FlowValue& result, x0::HttpRequest *r, const x0::Params& args)
+	void handleRequest(x0::FlowValue& result, x0::HttpRequest *r, const x0::FlowParams& args)
 	{
 		if (dirname_.empty())
 			return;

@@ -681,13 +681,13 @@ public:
 
 private:
 	// {{{ setup functions
-	void set_ttl(x0::FlowValue& result, const x0::Params& args)
+	void set_ttl(x0::FlowValue& result, const x0::FlowParams& args)
 	{
 		args.load(0, ttl_);
 	}
 
 	// cgi.mapping(ext => bin, ext => bin, ...);
-	void set_mapping(x0::FlowValue& result, const x0::Params& args)
+	void set_mapping(x0::FlowValue& result, const x0::FlowParams& args)
 	{
 		for (auto& arg: args)
 			if (arg.isArray())
@@ -715,7 +715,7 @@ private:
 
 	// {{{ request handler
 	// cgi.prefix(prefix => path)
-	bool prefix(x0::HttpRequest *in, const x0::Params& args)
+	bool prefix(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		const x0::FlowArray& r = args[0].toArray();
 
@@ -745,7 +745,7 @@ private:
 	}
 
 	// handler cgi.exec();
-	bool exec(x0::HttpRequest *in, const x0::Params& args)
+	bool exec(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		std::string path(in->fileinfo->path());
 
@@ -760,7 +760,7 @@ private:
 	}
 
 	// handler cgi.map();
-	bool map(x0::HttpRequest *in, const x0::Params& args)
+	bool map(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		std::string path(in->fileinfo->path());
 

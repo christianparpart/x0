@@ -42,29 +42,29 @@ public:
 
 	// {{{ backend API
 private:
-	static void get_cwd(void *, int argc, FlowValue *argv, void *)
+	static void get_cwd(void *, x0::FlowParams& args, void *)
 	{
 		static char buf[1024];
 
-		argv[0].set(getcwd(buf, sizeof(buf)) ? buf : strerror(errno));
+		args[0].set(getcwd(buf, sizeof(buf)) ? buf : strerror(errno));
 	}
 
-	static void flow_mkbuf(void *, int argc, FlowValue *argv, void *)
+	static void flow_mkbuf(void *, x0::FlowParams& args, void *)
 	{
-		if (argc == 1 && argv[1].isString())
-			argv[0].set(argv[1].toString(), strlen(argv[1].toString()));
+		if (args.size() == 1 && args[1].isString())
+			args[0].set(args[1].toString(), strlen(args[1].toString()));
 		else
-			argv[0].set("", 0); // empty buffer
+			args[0].set("", 0); // empty buffer
 	}
 
-	static void flow_getbuf(void *, int argc, FlowValue *argv, void *)
+	static void flow_getbuf(void *, x0::FlowParams& args, void *)
 	{
-		argv[0].set("Some Long Buffer blabla", 9);
+		args[0].set("Some Long Buffer blabla", 9);
 	}
 
-	static void flow_getenv(void *, int argc, FlowValue *argv, void *)
+	static void flow_getenv(void *, x0::FlowParams& args, void *)
 	{
-		argv[0].set(getenv(argv[1].toString()));
+		args[0].set(getenv(args[1].toString()));
 	}
 
 	static bool printValue(const FlowValue& value, bool lf)
@@ -109,68 +109,68 @@ private:
 		return true;
 	}
 
-	static void flow_error(void *, int argc, FlowValue *argv, void *)
+	static void flow_error(void *, x0::FlowParams& args, void *)
 	{
-		if (argc == 1)
-			printf("error. %s\n", argv[1].toString());
+		if (args.size() == 1)
+			printf("error. %s\n", args[1].toString());
 		else
 			printf("error\n");
 
-		argv[0].set(true);
+		args[0].set(true);
 	}
 
-	static void flow_finish(void *, int argc, FlowValue *argv, void *)
+	static void flow_finish(void *, x0::FlowParams& args, void *)
 	{
-		argv[0].set(true);
+		args[0].set(true);
 	}
 
-	static void flow_assert(void *, int argc, FlowValue *argv, void *)
+	static void flow_assert(void *, x0::FlowParams& args, void *)
 	{
-		if (!argv[1].toBool())
+		if (!args[1].toBool())
 		{
-			if (argc == 2 && argv[2].isString())
-				fprintf(stderr, "Assertion failed. %s\n", argv[2].toString());
+			if (args.size() == 2 && args[2].isString())
+				fprintf(stderr, "Assertion failed. %s\n", args[2].toString());
 			else
 				fprintf(stderr, "Assertion failed.\n");
 
 			fflush(stderr);
 
-			argv[0].set(true);
+			args[0].set(true);
 		}
 		else
 		{
-			//printf("assert ok (%d, %f)\n", argv[1].type_, argv[1].toNumber());
-			argv[0].set(false);
+			//printf("assert ok (%d, %f)\n", args[1].type_, args[1].toNumber());
+			args[0].set(false);
 		}
 	}
 
-	static void flow_fail(void *, int argc, FlowValue *argv, void *)
+	static void flow_fail(void *, x0::FlowParams& args, void *)
 	{
-		argv[0].set(true);
+		args[0].set(true);
 	}
 
-	static void flow_pass(void *, int argc, FlowValue *argv, void *)
+	static void flow_pass(void *, x0::FlowParams& args, void *)
 	{
-		argv[0].set(false);
+		args[0].set(false);
 	}
 
-	static void flow_assertFail(void *, int argc, FlowValue *argv, void *)
+	static void flow_assertFail(void *, x0::FlowParams& args, void *)
 	{
-		if (argv[1].toBool())
+		if (args[1].toBool())
 		{
-			if (argc == 2 && argv[2].isString())
-				fprintf(stderr, "Assertion failed. %s\n", argv[2].toString());
+			if (args.size() == 2 && args[2].isString())
+				fprintf(stderr, "Assertion failed. %s\n", args[2].toString());
 			else
 				fprintf(stderr, "Assertion failed.\n");
 
 			fflush(stderr);
 
-			argv[0].set(true);
+			args[0].set(true);
 		}
 		else
 		{
-			//printf("assert ok (%d, %f)\n", argv[1].type_, argv[1].toNumber());
-			argv[0].set(false);
+			//printf("assert ok (%d, %f)\n", args[1].type_, args[1].toNumber());
+			args[0].set(false);
 		}
 	}
 	// }}}

@@ -22,7 +22,7 @@ class FlowValue;
 class X0_API FlowBackend
 {
 public:
-	typedef void (*CallbackFunction)(void* /*userdata*/, int /*argc*/, FlowValue* /*argv*/, void* /*context*/);
+	typedef void (*CallbackFunction)(void* /*userdata*/, FlowArray& /*args*/, void* /*context*/);
 
 	struct Callback // {{{
 	{
@@ -40,7 +40,7 @@ public:
 		Callback(Type t, FlowValue::Type rt, const std::string& n, CallbackFunction cb, void *u) :
 			type(t), name(n), userdata(u), callback(cb), returnType(rt) {}
 
-		void invoke(int argc, FlowValue *argv, void *cx) { callback(userdata, argc, argv, cx); }
+		void invoke(int argc, FlowValue *argv, void *cx) { FlowArray args(argc, argv); callback(userdata, args, cx); }
 	};
 	//}}}
 

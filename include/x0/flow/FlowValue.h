@@ -10,6 +10,7 @@
 #define x0_flow_value_h
 
 #include <x0/Api.h>
+#include <x0/Defines.h>
 #include <x0/IPAddress.h>
 
 #include <string>
@@ -20,8 +21,9 @@ namespace x0 {
 
 class RegExp;
 class FlowArray;
+class SocketSpec;
 
-struct __attribute__((packed)) X0_API FlowValue
+struct X0_PACKED X0_API FlowValue
 {
 	typedef bool (*Function)(void *);
 
@@ -114,8 +116,16 @@ struct __attribute__((packed)) X0_API FlowValue
 	void dump(bool linefeed) const;
 };
 
-class FlowArray : public FlowValue {
+class X0_API FlowArray : public FlowValue {
 public:
+	FlowArray(int argc, FlowValue* argv) :
+		FlowValue()
+	{
+		type_ = ARRAY;
+		number_ = argc;
+		array_ = argv;
+	}
+
 	bool empty() const { return number_ == 0; }
 	size_t size() const { return number_; }
 
@@ -127,7 +137,14 @@ public:
 
 	const FlowValue* begin() const { return array_; }
 	const FlowValue* end() const { return array_ + size(); }
+
+	template<typename T>
+	inline bool load(size_t i, T& out) const { return i < size() ? at(i).load(out) : false; }
 };
+
+typedef FlowArray FlowParams;
+
+X0_API SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params);
 
 // {{{ inlines
 inline FlowValue::FlowValue() :

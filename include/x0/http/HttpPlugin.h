@@ -23,42 +23,8 @@
 
 namespace x0 {
 
-class SocketSpec;
-
 //! \addtogroup http
 //@{
-
-/**
- * \brief container for holding arguments passed in via flow execution runtime.
- */
-class X0_API Params
-{
-public:
-	typedef const FlowValue* iterator;
-
-private:
-	size_t count_;
-	const FlowValue* params_;
-
-public:
-	Params() : count_(0), params_(NULL) {}
-	Params(int count, FlowValue *params) :
-		count_(count), params_(params) {}
-
-	iterator begin() const { return params_; }
-	iterator end() const { return params_ + count_; }
-
-	bool empty() const { return count_ == 0; }
-	size_t count() const { return count_; }
-	const FlowValue& at(size_t i) const { return params_[i]; }
-	const FlowValue& operator[](size_t i) const { return params_[i]; }
-
-	template<typename T>
-	bool load(size_t i, T& out) const { return i < count_ ? at(i).load(out) : false; }
-
-};
-
-X0_API SocketSpec& operator<<(SocketSpec& spec, const Params& params);
 
 /**
  * \brief base class for all plugins for use within this x0 web server.
@@ -94,15 +60,15 @@ public:
 	HttpServer& server() const;
 
 protected:
-	template<typename T, void (T::*cb)(FlowValue&, const Params&)> void registerSetupProperty(const std::string& name, FlowValue::Type resultType);
-	template<typename T, void (T::*cb)(FlowValue&, const Params&)> void registerSetupFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
+	template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)> void registerSetupProperty(const std::string& name, FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)> void registerSetupFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
 
-	template<typename T, void (T::*cb)(FlowValue&, const Params&)> void registerSharedProperty(const std::string& name, FlowValue::Type resultType);
-	template<typename T, void (T::*cb)(FlowValue&, const Params&)> void registerSharedFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
+	template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)> void registerSharedProperty(const std::string& name, FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)> void registerSharedFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
 
-	template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)> void registerProperty(const std::string& name, FlowValue::Type resultType);
-	template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)> void registerFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
-	template<typename T, bool (T::*cb)(HttpRequest *, const Params&)> void registerHandler(const std::string& name);
+	template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const FlowParams&)> void registerProperty(const std::string& name, FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const FlowParams&)> void registerFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
+	template<typename T, bool (T::*cb)(HttpRequest *, const FlowParams&)> void registerHandler(const std::string& name);
 
 protected:
 	HttpServer& server_;
@@ -112,43 +78,43 @@ protected:
 	int debug_level_;
 #endif 
 private:
-	template<class T, void (T::*cb)(FlowValue&, const Params&)> static void setup_thunk(void *p, int argc, FlowValue *argv, void *cx);
-	template<class T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)> static void method_thunk(void *p, int argc, FlowValue *argv, void *cx);
-	template<class T, bool (T::*cb)(HttpRequest *, const Params&)> static void handler_thunk(void *p, int argc, FlowValue *argv, void *cx);
+	template<class T, void (T::*cb)(FlowValue&, const FlowParams&)> static void setup_thunk(void* p, FlowArray& args, void* cx);
+	template<class T, void (T::*cb)(FlowValue&, HttpRequest*, const FlowParams&)> static void method_thunk(void* p, FlowArray& args, void* cx);
+	template<class T, bool (T::*cb)(HttpRequest*, const FlowParams&)> static void handler_thunk(void* p, FlowArray& args, void* cx);
 
 	friend class HttpServer;
 };
 
 // {{{ flow integration
 // setup properties
-template<typename T, void (T::*cb)(FlowValue&, const Params&)>
+template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)>
 void HttpPlugin::registerSetupProperty(const std::string& name, FlowValue::Type resultType)
 {
-	server_.registerSetupProperty(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
+	server_.registerSetupProperty(name, resultType, &setup_thunk<T, cb>, static_cast<T*>(this));
 }
 
 // setup functions
-template<typename T, void (T::*cb)(FlowValue&, const Params&)>
+template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)>
 void HttpPlugin::registerSetupFunction(const std::string& name, FlowValue::Type resultType)
 {
-	server_.registerSetupFunction(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
+	server_.registerSetupFunction(name, resultType, &setup_thunk<T, cb>, static_cast<T*>(this));
 }
 
-template<class T, void (T::*cb)(FlowValue&, const Params&)>
-void HttpPlugin::setup_thunk(void *p, int argc, FlowValue *argv, void * /*cx*/)
+template<class T, void (T::*cb)(FlowValue&, const FlowParams&)>
+void HttpPlugin::setup_thunk(void *p, FlowArray& args, void* /*cx*/)
 {
-	Params args(argc, argv + 1);
-	(static_cast<T *>(p)->*cb)(argv[0], args);
+	FlowParams pargs(args.size() - 1, &args[1]);
+	(static_cast<T *>(p)->*cb)(args[0], pargs);
 }
 
 // shared
-template<typename T, void (T::*cb)(FlowValue&, const Params&)>
+template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)>
 void HttpPlugin::registerSharedProperty(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerSharedProperty(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
 }
 
-template<typename T, void (T::*cb)(FlowValue&, const Params&)>
+template<typename T, void (T::*cb)(FlowValue&, const FlowParams&)>
 void HttpPlugin::registerSharedFunction(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerSharedFunction(name, resultType, &setup_thunk<T, cb>, static_cast<T *>(this));
@@ -156,44 +122,44 @@ void HttpPlugin::registerSharedFunction(const std::string& name, FlowValue::Type
 
 
 // main properties
-template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)>
+template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const FlowParams&)>
 void HttpPlugin::registerProperty(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerProperty(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
 }
 
 // main functions
-template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)>
+template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const FlowParams&)>
 void HttpPlugin::registerFunction(const std::string& name, FlowValue::Type resultType)
 {
 	server_.registerFunction(name, resultType, &method_thunk<T, cb>, static_cast<T *>(this));
 }
 
-template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const Params&)>
-void HttpPlugin::method_thunk(void *p, int argc, FlowValue *argv, void *cx)
+template<typename T, void (T::*cb)(FlowValue&, HttpRequest *, const FlowParams&)>
+void HttpPlugin::method_thunk(void *p, FlowArray& args, void *cx)
 {
 	T* self = static_cast<T*>(p);
 	HttpRequest* r = static_cast<HttpRequest*>(cx);
-	Params args(argc, argv + 1);
+	FlowParams pargs(args.size() - 1, &args[1]);
 
-	(self->*cb)(argv[0], r, args);
+	(self->*cb)(args[0], r, pargs);
 }
 
 // main handler
-template<typename T, bool (T::*cb)(HttpRequest *, const Params&)>
+template<typename T, bool (T::*cb)(HttpRequest *, const FlowParams&)>
 void HttpPlugin::registerHandler(const std::string& name)
 {
 	server_.registerHandler(name, &handler_thunk<T, cb>, static_cast<T*>(this));
 }
 
-template<typename T, bool (T::*cb)(HttpRequest *, const Params& args)>
-void HttpPlugin::handler_thunk(void *p, int argc, FlowValue *argv, void *cx)
+template<typename T, bool (T::*cb)(HttpRequest *, const FlowParams& args)>
+void HttpPlugin::handler_thunk(void *p, FlowArray& args, void *cx)
 {
 	T* self = static_cast<T*>(p);
 	HttpRequest* r = static_cast<HttpRequest*>(cx);
-	Params args(argc, argv + 1);
+	FlowParams pargs(args.size() - 1, &args[1]);
 
-	argv[0].set((self->*cb)(r, args));
+	args[0].set((self->*cb)(r, pargs));
 }
 // }}}
 

@@ -437,9 +437,9 @@ public:
 	}
 
 private:
-	void proxy_cloak(x0::FlowValue& result, const x0::Params& args)
+	void proxy_cloak(x0::FlowValue& result, const x0::FlowParams& args)
 	{
-		if (args.count() && (args[0].isBool() || args[0].isNumber())) {
+		if (args.size() && (args[0].isBool() || args[0].isNumber())) {
 			cloak_ = args[0].toBool();
 			printf("proxy cloak: %s\n", cloak_ ? "true" : "false");
 		}
@@ -447,7 +447,7 @@ private:
 		result.set(cloak_);
 	}
 
-	bool proxy_reverse(x0::HttpRequest *in, const x0::Params& args)
+	bool proxy_reverse(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		// TODO: reuse already spawned proxy connections instead of recreating each time.
 

@@ -54,7 +54,7 @@ public:
 
 private:
 	// vhost.add fqdn => proc, ...
-	void addHost(x0::FlowValue& result, const x0::Params& args)
+	void addHost(x0::FlowValue& result, const x0::FlowParams& args)
 	{
 		for (auto& arg: args)
 			registerHost(arg);
@@ -88,7 +88,7 @@ private:
 			unqualifiedHosts_[fqdn] = handler;
 	}
 
-	bool mapRequest(x0::HttpRequest *r, const x0::Params& args)
+	bool mapRequest(x0::HttpRequest *r, const x0::FlowParams& args)
 	{
 		auto i = qualifiedHosts_.find(r->hostid());
 		if (i != qualifiedHosts_.end())

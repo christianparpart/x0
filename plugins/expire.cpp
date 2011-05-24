@@ -65,9 +65,9 @@ public:
 
 private:
 	// void expire(datetime / timespan)
-	void expire(x0::FlowValue& result, x0::HttpRequest *r, const x0::Params& args)
+	void expire(x0::FlowValue& result, x0::HttpRequest *r, const x0::FlowParams& args)
 	{
-		if (args.count() < 1)
+		if (args.size() < 1)
 			return;
 
 		time_t now = r->connection.worker().now().unixtime();

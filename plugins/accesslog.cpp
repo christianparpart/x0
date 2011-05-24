@@ -121,7 +121,7 @@ public:
 	}
 
 private:
-	void handleRequest(x0::FlowValue& result, x0::HttpRequest *in, const x0::Params& args)
+	void handleRequest(x0::FlowValue& result, x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		std::string filename(args[0].toString());
 		auto i = logfiles_.find(filename);

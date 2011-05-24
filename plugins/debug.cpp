@@ -26,7 +26,7 @@ public:
 	}
 
 private:
-	bool slowResponse(x0::HttpRequest* r, const x0::Params& args)
+	bool slowResponse(x0::HttpRequest* r, const x0::FlowParams& args)
 	{
 		const unsigned count = 8;
 		for (unsigned i = 0; i < count; ++i) {
