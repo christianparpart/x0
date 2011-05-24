@@ -353,7 +353,7 @@ void Socket::setMode(Mode m)
 			TRACE("setMode: set flags");
 			watcher_.set(fd_, static_cast<int>(m));
 
-			if (mode_ == None && !watcher_.is_active()) {
+			if (!watcher_.is_active()) {
 				TRACE("setMode: start watcher");
 				watcher_.start();
 			}
