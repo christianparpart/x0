@@ -56,6 +56,7 @@ private:
 	void max_read_idle(const FlowParams& args, FlowValue& result);
 	void max_write_idle(const FlowParams& args, FlowValue& result);
 	void max_keepalive_idle(const FlowParams& args, FlowValue& result);
+	void max_keepalive_requests(const FlowParams& args, FlowValue& result);
 	void max_conns(const FlowParams& args, FlowValue& result);
 	void max_files(const FlowParams& args, FlowValue& result);
 	void max_address_space(const FlowParams& args, FlowValue& result);

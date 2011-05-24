@@ -118,6 +118,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 #endif
 	maxConnections(512),
 	maxKeepAlive(TimeSpan::fromSeconds(60)),
+	maxKeepAliveRequests(100),
 	maxReadIdle(TimeSpan::fromSeconds(60)),
 	maxWriteIdle(TimeSpan::fromSeconds(360)),
 	tcpCork(false),

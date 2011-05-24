@@ -211,13 +211,37 @@ Source* HttpRequest::serialize()
 	if (!connection.worker().server().maxKeepAlive())
 		keepalive = false;
 
-	//keepalive = false; // FIXME workaround
+	// remaining request count, that is allowed on a persistent connection
+	std::size_t rlim = connection.worker().server().maxKeepAliveRequests();
+	if (rlim) {
+		rlim = connection.requestCount_ <= rlim
+			? rlim = rlim - connection.requestCount_ + 1
+			: rlim = 0;
+
+		if (rlim == 0)
+			// disable keep-alive, if max request count has been reached
+			keepalive = false;
+	}
 
 	// only set Connection-response-header if found as request-header, too
 	if (!requestHeader("Connection").empty() || keepalive != connection.shouldKeepAlive()) {
-		if (keepalive)
+		if (keepalive) {
 			responseHeaders.overwrite("Connection", "keep-alive");
-		else
+
+			if (rlim) {
+				// sent keep-alive timeout and remaining request count
+				char buf[80];
+				snprintf(buf, sizeof(buf), "timeout=%ld, max=%ld",
+					static_cast<time_t>(connection.worker().server().maxKeepAlive().value()), rlim);
+				responseHeaders.overwrite("Keep-Alive", buf);
+			} else {
+				// sent keep-alive timeout only (infinite request count)
+				char buf[80];
+				snprintf(buf, sizeof(buf), "timeout=%ld",
+					static_cast<time_t>(connection.worker().server().maxKeepAlive().value()));
+				responseHeaders.overwrite("Keep-Alive", buf);
+			}
+		} else
 			responseHeaders.overwrite("Connection", "close");
 	}
 

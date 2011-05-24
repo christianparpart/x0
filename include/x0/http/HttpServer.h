@@ -210,6 +210,7 @@ private:
 public:
 	ValueProperty<std::size_t> maxConnections;
 	ValueProperty<TimeSpan> maxKeepAlive;
+	ValueProperty<std::size_t> maxKeepAliveRequests;
 	ValueProperty<TimeSpan> maxReadIdle;
 	ValueProperty<TimeSpan> maxWriteIdle;
 	ValueProperty<bool> tcpCork;

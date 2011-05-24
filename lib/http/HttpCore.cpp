@@ -59,6 +59,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupProperty<HttpCore, &HttpCore::max_read_idle>("max_read_idle", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_write_idle>("max_write_idle", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_keepalive_idle>("max_keepalive_idle", FlowValue::NUMBER);
+	registerSetupProperty<HttpCore, &HttpCore::max_keepalive_requests>("max_keepalive_requests", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_conns>("max_connections", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_files>("max_files", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_address_space>("max_address_space", FlowValue::NUMBER);
@@ -288,6 +289,14 @@ void HttpCore::max_keepalive_idle(const FlowParams& args, FlowValue& result)
 		server().maxKeepAlive(TimeSpan::fromSeconds(args[0].toNumber()));
 	else
 		result.set(server().maxKeepAlive());
+}
+
+void HttpCore::max_keepalive_requests(const FlowParams& args, FlowValue& result)
+{
+	if (args.size() == 1 && args[0].isNumber())
+		server().maxKeepAliveRequests(args[0].toNumber());
+	else
+		result.set(server().maxKeepAliveRequests());
 }
 
 void HttpCore::max_conns(const FlowParams& args, FlowValue& result)
