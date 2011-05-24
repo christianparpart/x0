@@ -10,6 +10,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
+#include <x0/SocketSpec.h>
 #include <x0/strutils.h>
 #include <x0/Url.h>
 #include <x0/Types.h>
@@ -450,28 +451,20 @@ private:
 	bool proxy_reverse(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
 		// TODO: reuse already spawned proxy connections instead of recreating each time.
-
-		x0::Buffer borigin = args[0].toString();
-		x0::BufferRef origin(borigin);
-
-		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
-
-		if (origin.begins("unix:")) { // UNIX domain socket
-			std::string s = origin.ref(5).str();
-			TRACE("unix socket: '%s'", s.c_str());
-			backend->openUnix(origin.ref(5).str());
-		} else { // TCP/IP
-			auto pos = origin.rfind(':');
-			if (pos != origin.npos) {
-				std::string hostname = origin.substr(0, pos);
-				int port = origin.ref(pos + 1).toInt();
-				backend->openTcp(hostname, port);
-			} else {
-				// default to port 80 (FIXME not really good?)
-				backend->openTcp(origin.str(), 80);
-			}
+		x0::SocketSpec spec;
+		spec << args;
+		if (!spec.isValid() || spec.backlog >= 0) {
+			in->log(x0::Severity::error, "Invalid socket spec passed.");
+			return false;
 		}
 
+		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
+		if (spec.isLocal()) {
+			TRACE("unix socket: '%s'", s.c_str());
+			backend->openUnix(spec.local);
+		} else {
+			backend->openTcp(spec.address.str(), spec.port);
+		}
 
 		if (backend->isOpen()) {
 			TRACE("in.content? %d", in->contentAvailable());

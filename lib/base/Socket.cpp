@@ -7,6 +7,7 @@
  */
 
 #include <x0/Socket.h>
+#include <x0/SocketSpec.h>
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
 #include <x0/Defines.h>
@@ -304,6 +305,14 @@ bool Socket::openTcp(const std::string& hostname, int port, int flags)
 
 	freeaddrinfo(res);
 	return result;
+}
+
+bool Socket::open(const SocketSpec& spec, int flags)
+{
+	if (spec.isLocal())
+		return openUnix(spec.local, flags);
+	else
+		return openTcp(spec.address.str(), spec.port, flags);
 }
 
 bool Socket::setNonBlocking(bool enabled)

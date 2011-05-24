@@ -140,6 +140,8 @@ public:
 
 	template<typename T>
 	inline bool load(size_t i, T& out) const { return i < size() ? at(i).load(out) : false; }
+
+	FlowArray shift(size_t n = 1) const { return FlowArray(size() - n, &(const_cast<FlowArray*>(this)->at(n))); }
 };
 
 typedef FlowArray FlowParams;

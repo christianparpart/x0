@@ -21,6 +21,8 @@
 
 namespace x0 {
 
+class SocketSpec;
+
 /** \brief represents a network socket.
  *
  * Features:
@@ -87,6 +89,7 @@ public:
 	bool openUnix(const std::string& unixPath, int flags = 0);
 	bool openTcp(const std::string& hostname, int port, int flags = 0);
 	bool openTcp(const IPAddress& host, int port, int flags = 0);
+	bool open(const SocketSpec& spec, int flags = 0);
 
 	int handle() const;
 	bool isOpen() const;

@@ -50,6 +50,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/io/BufferSource.h>
+#include <x0/SocketSpec.h>
 #include <x0/Logging.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
@@ -185,16 +186,14 @@ public:
 	static uint16_t nextID_;
 
 	x0::HttpServer& server_;
-	std::string unixPath_;
-	std::string host_;
-	int port_;
+	x0::SocketSpec spec_;
 
 public:
 	CgiContext(x0::HttpServer& server);
 	~CgiContext();
 
 	x0::HttpServer& server() const { return server_; }
-	void setup(const std::string& application);
+	void setup(const x0::SocketSpec& spec);
 
 	void handleRequest(x0::HttpRequest *in);
 
@@ -696,8 +695,7 @@ uint16_t CgiContext::nextID_ = 0;
 
 CgiContext::CgiContext(x0::HttpServer& server) :
 	server_(server),
-	unixPath_(),
-	host_(), port_(0)
+	spec_()
 {
 }
 
@@ -705,26 +703,12 @@ CgiContext::~CgiContext()
 {
 }
 
-void CgiContext::setup(const std::string& application)
+void CgiContext::setup(const x0::SocketSpec& spec)
 {
-	if (strncmp(application.c_str(), "unix:", 5) == 0) {
-		unixPath_ = application.c_str() + 5;
-
 #ifndef NDEBUG
-		setLoggingPrefix("CgiContext(%s)", application.c_str());
+	setLoggingPrefix("CgiContext(%s)", spec.str().c_str());
 #endif
-	} else {
-		size_t pos = application.find_last_of(":");
-
-		host_ = application.substr(0, pos);
-		port_ = atoi(application.substr(pos + 1).c_str());
-
-#ifndef NDEBUG
-		setLoggingPrefix("CgiContext(%s:%d)", host_.c_str(), port_);
-#endif
-
-		TRACE("CgiContext.setup(host:%s, port:%d)", host_.c_str(), port_);
-	}
+	spec_ = spec;
 }
 
 void CgiContext::handleRequest(x0::HttpRequest *in)
@@ -732,11 +716,7 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 	TRACE("CgiContext.handleRequest()");
 
 	x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
-
-	if (unixPath_.length())
-		backend->openUnix(unixPath_);
-	else
-		backend->openTcp(host_, port_);
+	backend->open(spec_, O_NONBLOCK | O_CLOEXEC);
 
 	if (backend->isOpen()) {
 		CgiTransport* transport = new CgiTransport(this);
@@ -787,10 +767,15 @@ public:
 
 	bool handleRequest(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
-		if (args.size() != 1 || !args[0].isString())
-			return false;
+		x0::SocketSpec spec;
+		spec << args;
 
-		CgiContext *cx = acquireContext(args[0].toString());
+		if (!spec.isValid() || spec.backlog >= 0) {
+			in->log(x0::Severity::error, "Invalid socket spec passed.");
+			return false;
+		}
+
+		CgiContext *cx = acquireContext(spec);
 		if (!cx)
 			return false;
 
@@ -798,17 +783,18 @@ public:
 		return true;
 	}
 
-	CgiContext *acquireContext(const std::string& app)
+	CgiContext *acquireContext(const x0::SocketSpec& spec)
 	{
+#if 0
 		auto i = contexts_.find(app);
 		if (i != contexts_.end()) {
 			//TRACE("acquireContext('%s') available.", app.c_str());
 			return i->second;
 		}
-
+#endif
 		CgiContext *cx = new CgiContext(server());
-		cx->setup(app);
-		contexts_[app] = cx;
+		cx->setup(spec);
+		//contexts_[app] = cx;
 		//TRACE("acquireContext('%s') spawned (%ld).", app.c_str(), contexts_.size());
 		return cx;
 	}

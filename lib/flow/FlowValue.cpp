@@ -73,8 +73,13 @@ void FlowValue::dump(bool x) const
 
 SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{ 
 {
-	// args usage (TCP): 'bind' => address, 'port' => num, ['backlog' => num]
-	//           (unix): 'bind' => path, ['backlog' => num]
+	// server:
+	//   args usage (TCP): 'bind' => address, 'port' => num, ['backlog' => num]
+	//             (unix): 'bind' => path, ['backlog' => num]
+	//
+	// client:
+	//   args usage (TCP): 'address' => address, 'port' => num
+	//             (unix): 'path' => path
 
 	spec.clear();
 
@@ -98,7 +103,23 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 			std::string key(r[0].toString());
 
 			Item m = Item::None;
-			if (key == "bind") {
+			if (key == "path") { // client UNIX domain socket
+				m = Item::Address;
+				if (r[1].isString()) {
+					spec.local = r[1].toString();
+				} else {
+					fprintf(stderr, "Invalid UNIX domain socket path specified (must be a path-string).\n");
+					goto err;
+				}
+			} else if (key == "address") { // client TCP/IP
+				m = Item::Address;
+				if (r[1].isIPAddress()) {
+					spec.address = r[1].toIPAddress();
+				} else {
+					fprintf(stderr, "Invalid IP address specified.\n");
+					goto err;
+				}
+			} else if (key == "bind") {
 				m = Item::Address;
 				if (r[1].isIPAddress()) {
 					spec.address = r[1].toIPAddress();
