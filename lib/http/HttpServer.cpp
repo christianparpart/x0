@@ -188,10 +188,11 @@ bool HttpServer::validateConfig()
 
 	TRACE("validateConfig: setup:");
 	for (FlowCallIterator i(setupFn), e(nullptr); i != e; ++i) {
-		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
-
 		if (i->callee()->body())
+			// skip script user-defined handlers
 			continue;
+
+		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
 
 		if (std::find( setupApi_.begin(), setupApi_.end(), i->callee()->name()) == setupApi_.end()) {
 			log(Severity::error, "Symbol '%s' found within setup-handler (or its callees) but may be only invoked from within the main-handler.", i->callee()->name().c_str());
@@ -202,10 +203,11 @@ bool HttpServer::validateConfig()
 
 	TRACE("validateConfig: main:");
 	for (FlowCallIterator i(mainFn), e(nullptr); i != e; ++i) {
-		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
-
 		if (i->callee()->body())
+			// skip script user-defined handlers
 			continue;
+
+		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
 
 		if (std::find(mainApi_.begin(), mainApi_.end(), i->callee()->name()) == mainApi_.end()) {
 			log(Severity::error, "Symbol '%s' found within main-handler (or its callees) but may be only invoked from within the setup-handler.", i->callee()->name().c_str());
