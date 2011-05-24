@@ -215,8 +215,8 @@ Source* HttpRequest::serialize()
 	std::size_t rlim = connection.worker().server().maxKeepAliveRequests();
 	if (rlim) {
 		rlim = connection.requestCount_ <= rlim
-			? rlim = rlim - connection.requestCount_ + 1
-			: rlim = 0;
+			? rlim - connection.requestCount_ + 1
+			: 0;
 
 		if (rlim == 0)
 			// disable keep-alive, if max request count has been reached
