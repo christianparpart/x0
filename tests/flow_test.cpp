@@ -51,7 +51,7 @@ private:
 
 	static void flow_mkbuf(void *, x0::FlowParams& args, void *)
 	{
-		if (args.size() == 1 && args[1].isString())
+		if (args.size() == 2 && args[1].isString())
 			args[0].set(args[1].toString(), strlen(args[1].toString()));
 		else
 			args[0].set("", 0); // empty buffer
@@ -111,7 +111,7 @@ private:
 
 	static void flow_error(void *, x0::FlowParams& args, void *)
 	{
-		if (args.size() == 1)
+		if (args.size() == 2)
 			printf("error. %s\n", args[1].toString());
 		else
 			printf("error\n");
@@ -128,7 +128,7 @@ private:
 	{
 		if (!args[1].toBool())
 		{
-			if (args.size() == 2 && args[2].isString())
+			if (args.size() == 3 && args[2].isString())
 				fprintf(stderr, "Assertion failed. %s\n", args[2].toString());
 			else
 				fprintf(stderr, "Assertion failed.\n");
@@ -158,7 +158,7 @@ private:
 	{
 		if (args[1].toBool())
 		{
-			if (args.size() == 2 && args[2].isString())
+			if (args.size() == 3 && args[2].isString())
 				fprintf(stderr, "Assertion failed. %s\n", args[2].toString());
 			else
 				fprintf(stderr, "Assertion failed.\n");

@@ -38,93 +38,98 @@ public:
 	bool redirectOnIncompletePath(HttpRequest *r);
 
 private:
+	// setup functions
+	void user(const FlowParams& args, FlowValue& result);
+
 	// setup properties
-	void user(FlowValue& result, const FlowParams& args);
-	bool drop_privileges(const std::string& username, const std::string& groupname);
-	void plugin_directory(FlowValue& result, const FlowParams& args);
-	void mimetypes(FlowValue& result, const FlowParams& args);
-	void mimetypes_default(FlowValue& result, const FlowParams& args);
-	void etag_mtime(FlowValue& result, const FlowParams& args);
-	void etag_size(FlowValue& result, const FlowParams& args);
-	void etag_inode(FlowValue& result, const FlowParams& args);
-	void fileinfo_cache_ttl(FlowValue& result, const FlowParams& args);
-	void server_advertise(FlowValue& result, const FlowParams& args);
-	void server_tags(FlowValue& result, const FlowParams& args);
+	void plugin_directory(const FlowParams& args, FlowValue& result);
+	void mimetypes(const FlowParams& args, FlowValue& result);
+	void mimetypes_default(const FlowParams& args, FlowValue& result);
+	void etag_mtime(const FlowParams& args, FlowValue& result);
+	void etag_size(const FlowParams& args, FlowValue& result);
+	void etag_inode(const FlowParams& args, FlowValue& result);
+	void fileinfo_cache_ttl(const FlowParams& args, FlowValue& result);
+	void server_advertise(const FlowParams& args, FlowValue& result);
+	void server_tags(const FlowParams& args, FlowValue& result);
 	void loadServerTag(const FlowValue& tag);
 
-	void max_read_idle(FlowValue& result, const FlowParams& args);
-	void max_write_idle(FlowValue& result, const FlowParams& args);
-	void max_keepalive_idle(FlowValue& result, const FlowParams& args);
-	void max_conns(FlowValue& result, const FlowParams& args);
-	void max_files(FlowValue& result, const FlowParams& args);
-	void max_address_space(FlowValue& result, const FlowParams& args);
-	void max_core(FlowValue& result, const FlowParams& args);
-	void tcp_cork(FlowValue& result, const FlowParams& args);
-	void tcp_nodelay(FlowValue& result, const FlowParams& args);
-	void max_request_uri_size(FlowValue& result, const FlowParams& args);
-	void max_request_header_size(FlowValue& result, const FlowParams& args);
-	void max_request_header_count(FlowValue& result, const FlowParams& args);
-	void max_request_body_size(FlowValue& result, const FlowParams& args);
+	void max_read_idle(const FlowParams& args, FlowValue& result);
+	void max_write_idle(const FlowParams& args, FlowValue& result);
+	void max_keepalive_idle(const FlowParams& args, FlowValue& result);
+	void max_conns(const FlowParams& args, FlowValue& result);
+	void max_files(const FlowParams& args, FlowValue& result);
+	void max_address_space(const FlowParams& args, FlowValue& result);
+	void max_core(const FlowParams& args, FlowValue& result);
+	void tcp_cork(const FlowParams& args, FlowValue& result);
+	void tcp_nodelay(const FlowParams& args, FlowValue& result);
+	void max_request_uri_size(const FlowParams& args, FlowValue& result);
+	void max_request_header_size(const FlowParams& args, FlowValue& result);
+	void max_request_header_count(const FlowParams& args, FlowValue& result);
+	void max_request_body_size(const FlowParams& args, FlowValue& result);
 
 	// debugging
-	void emit_llvm(FlowValue& result, const FlowParams& args);
+	void emit_llvm(const FlowParams& args, FlowValue& result);
 
 	// logging
-	void loglevel(FlowValue& result, const FlowParams& args);
-	void logfile(FlowValue& result, const FlowParams& args);
-	void log_sd(FlowValue& result, const FlowParams& args);
+	void loglevel(const FlowParams& args, FlowValue& result);
+	void logfile(const FlowParams& args, FlowValue& result);
+	void log_sd(const FlowParams& args, FlowValue& result);
 
-	// setup
-	void listen(FlowValue& result, const FlowParams& args);
-	void workers(FlowValue& result, const FlowParams& args);
+	// setup functions
+	void listen(const FlowParams& args, FlowValue& result);
+	void workers(const FlowParams& args, FlowValue& result);
 
-	// shared methods
-	void sys_env(FlowValue& result, const FlowParams& args);
-	void sys_cwd(FlowValue& result, const FlowParams& args);
-	void sys_pid(FlowValue& result, const FlowParams& args);
-	void sys_now(FlowValue& result, const FlowParams& args);
-	void sys_now_str(FlowValue& result, const FlowParams& args);
-
-	// main methods
-	void autoindex(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	bool matchIndex(HttpRequest *in, const FlowValue& arg);
-	bool docroot(HttpRequest *r, const FlowParams& args);
-	bool alias(HttpRequest *r, const FlowParams& args);
-	void rewrite(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void pathinfo(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void error_handler(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_method(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_url(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_path(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_header(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_host(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_pathinfo(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_is_secure(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void req_status_code(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void conn_remote_ip(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void conn_remote_port(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void conn_local_ip(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void conn_local_port(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_path(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_exists(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_is_reg(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_is_dir(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_is_exe(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_mtime(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_size(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_etag(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void phys_mimetype(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void header_add(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void header_append(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void header_overwrite(FlowValue& result, HttpRequest *r, const FlowParams& args);
-	void header_remove(FlowValue& result, HttpRequest *r, const FlowParams& args);
+	// shared properties
+	void sys_env(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void sys_cwd(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void sys_pid(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void sys_now(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void sys_now_str(HttpRequest* r, const FlowParams& args, FlowValue& result);
 
 	// main handlers
+	bool docroot(HttpRequest* r, const FlowParams& args);
+	bool alias(HttpRequest* r, const FlowParams& args);
 	bool redirect(HttpRequest *r, const FlowParams& args);
 	bool respond(HttpRequest *r, const FlowParams& args);
 	bool blank(HttpRequest *r, const FlowParams& args);
-
 	bool staticfile(HttpRequest *r, const FlowParams& args);
+
+	// main functions
+	void autoindex(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	bool matchIndex(HttpRequest *r, const FlowValue& arg);
+	void rewrite(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void pathinfo(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void error_handler(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void header_add(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void header_append(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void header_overwrite(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void header_remove(HttpRequest* r, const FlowParams& args, FlowValue& result);
+
+	// main properties
+	void req_method(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_url(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_path(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_header(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_host(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_pathinfo(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_is_secure(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_status_code(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void conn_remote_ip(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void conn_remote_port(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void conn_local_ip(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void conn_local_port(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_path(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_exists(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_is_reg(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_is_dir(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_is_exe(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_mtime(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_size(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_etag(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void phys_mimetype(HttpRequest* r, const FlowParams& args, FlowValue& result);
+
+	// helpers
+	bool drop_privileges(const std::string& username, const std::string& groupname);
 	inline HttpError verifyClientCache(HttpRequest *r);
 	inline bool processRangeRequest(HttpRequest *r, int fd);
 	inline std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size);

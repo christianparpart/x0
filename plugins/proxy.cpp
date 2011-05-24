@@ -437,7 +437,7 @@ public:
 	}
 
 private:
-	void proxy_cloak(x0::FlowValue& result, const x0::FlowParams& args)
+	void proxy_cloak(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		if (args.size() && (args[0].isBool() || args[0].isNumber())) {
 			cloak_ = args[0].toBool();

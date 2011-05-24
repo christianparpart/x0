@@ -78,7 +78,7 @@ public:
 	~filter_plugin() {
 	}
 
-	void install_filter(x0::FlowValue& /*result*/, x0::HttpRequest *r, const x0::FlowParams& args)
+	void install_filter(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& /*result*/)
 	{
 		if (args.size() != 1) {
 			log(x0::Severity::error, "No argument passed.");

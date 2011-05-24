@@ -65,7 +65,7 @@ public:
 
 private:
 	// void expire(datetime / timespan)
-	void expire(x0::FlowValue& result, x0::HttpRequest *r, const x0::FlowParams& args)
+	void expire(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		if (args.size() < 1)
 			return;

@@ -41,14 +41,14 @@ private:
 	std::vector<std::string> ancients_;
 	std::map<std::string, float> modern_;
 
-	void setAncient(x0::FlowValue& result, const x0::FlowParams& args)
+	void setAncient(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		std::string ident = args[0].toString();
 
 		ancients_.push_back(ident);
 	}
 
-	void setModern(x0::FlowValue& result, const x0::FlowParams& args)
+	void setModern(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		std::string browser = args[0].toString();
 		float version = x0::Buffer(args[1].toString()).ref().toFloat();
@@ -56,7 +56,7 @@ private:
 		modern_[browser] = version;
 	}
 
-	void isAncient(x0::FlowValue& result, x0::HttpRequest *r, const x0::FlowParams& args)
+	void isAncient(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		x0::BufferRef userAgent(r->requestHeader("User-Agent"));
 
@@ -69,7 +69,7 @@ private:
 		result.set(false);
 	}
 
-	void isModern(x0::FlowValue& result, x0::HttpRequest *r, const x0::FlowParams& args)
+	void isModern(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		x0::BufferRef userAgent(r->requestHeader("User-Agent"));
 

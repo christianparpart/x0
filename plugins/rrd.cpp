@@ -62,7 +62,7 @@ public:
 	}
 
 private:
-	void setup_step(x0::FlowValue& result, const x0::FlowParams& args)
+	void setup_step(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		if (args.empty()) {
 			result.set(step_);
@@ -77,7 +77,7 @@ private:
 		checkStart();
 	}
 
-	void setup_filename(x0::FlowValue& result, const x0::FlowParams& args)
+	void setup_filename(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		if (args.empty()) {
 			result.set(filename_.c_str());

@@ -102,7 +102,7 @@ public:
 	}
 
 private:
-	void setup_types(x0::FlowValue& result, const x0::FlowParams& args)
+	void setup_types(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		contentTypes_.clear();
 
@@ -126,18 +126,18 @@ private:
 		}
 	}
 
-	void setup_level(x0::FlowValue& result, const x0::FlowParams& args)
+	void setup_level(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		level_ = args[0].toNumber();
 		level_ = std::min(std::max(level_, 0), 10);
 	}
 
-	void setup_minsize(x0::FlowValue& result, const x0::FlowParams& args)
+	void setup_minsize(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		minSize_ = args[0].toNumber();
 	}
 
-	void setup_maxsize(x0::FlowValue& result, const x0::FlowParams& args)
+	void setup_maxsize(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		maxSize_ = args[0].toNumber();
 	}

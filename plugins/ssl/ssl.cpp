@@ -141,7 +141,7 @@ public:
 	// {{{ config
 private:
 	// ssl.listener(BINDADDR_PORT);
-	void add_listener(x0::FlowValue& result, const x0::FlowParams& args)
+	void add_listener(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		x0::SocketSpec socketSpec;
 		socketSpec << args;
@@ -159,7 +159,7 @@ private:
 		}
 	}
 
-	void set_loglevel(x0::FlowValue& result, const x0::FlowParams& args)
+	void set_loglevel(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		if (args.size() == 1)
 		{
@@ -190,7 +190,7 @@ private:
 	// 		'crtfile' => PATH,
 	// 		'crlfile' => PATH);
 	//
-	void add_context(x0::FlowValue& result, const x0::FlowParams& args)
+	void add_context(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		std::auto_ptr<SslContext> cx(new SslContext());
 		cx->setLogger(server().logger());

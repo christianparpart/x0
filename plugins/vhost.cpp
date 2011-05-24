@@ -54,7 +54,7 @@ public:
 
 private:
 	// vhost.add fqdn => proc, ...
-	void addHost(x0::FlowValue& result, const x0::FlowParams& args)
+	void addHost(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		for (auto& arg: args)
 			registerHost(arg);

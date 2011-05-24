@@ -125,7 +125,7 @@ HttpCore::~HttpCore()
 }
 
 // {{{ setup
-void HttpCore::user(FlowValue& result, const FlowParams& args)
+void HttpCore::user(const FlowParams& args, FlowValue& result)
 {
 	std::string username(args.size() >= 1 ? args[0].toString() : "");
 	std::string groupname(args.size() == 2 ? args[1].toString() : "");
@@ -174,7 +174,7 @@ bool HttpCore::drop_privileges(const std::string& username, const std::string& g
 	return true;
 }
 
-void HttpCore::mimetypes(FlowValue& result, const FlowParams& args)
+void HttpCore::mimetypes(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isString())
 	{
@@ -182,7 +182,7 @@ void HttpCore::mimetypes(FlowValue& result, const FlowParams& args)
 	}
 }
 
-void HttpCore::mimetypes_default(FlowValue& result, const FlowParams& args)
+void HttpCore::mimetypes_default(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isString())
 	{
@@ -190,7 +190,7 @@ void HttpCore::mimetypes_default(FlowValue& result, const FlowParams& args)
 	}
 }
 
-void HttpCore::etag_mtime(FlowValue& result, const FlowParams& args)
+void HttpCore::etag_mtime(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().fileinfoConfig_.etagConsiderMtime = args[0].toBool();
@@ -198,7 +198,7 @@ void HttpCore::etag_mtime(FlowValue& result, const FlowParams& args)
 		result.set(server().fileinfoConfig_.etagConsiderMtime);
 }
 
-void HttpCore::etag_size(FlowValue& result, const FlowParams& args)
+void HttpCore::etag_size(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().fileinfoConfig_.etagConsiderSize = args[0].toBool();
@@ -206,7 +206,7 @@ void HttpCore::etag_size(FlowValue& result, const FlowParams& args)
 		result.set(server().fileinfoConfig_.etagConsiderSize);
 }
 
-void HttpCore::etag_inode(FlowValue& result, const FlowParams& args)
+void HttpCore::etag_inode(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().fileinfoConfig_.etagConsiderInode = args[0].toBool();
@@ -214,7 +214,7 @@ void HttpCore::etag_inode(FlowValue& result, const FlowParams& args)
 		result.set(server().fileinfoConfig_.etagConsiderInode);
 }
 
-void HttpCore::fileinfo_cache_ttl(FlowValue& result, const FlowParams& args)
+void HttpCore::fileinfo_cache_ttl(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		server().fileinfoConfig_.cacheTTL_ = args[0].toNumber();
@@ -222,7 +222,7 @@ void HttpCore::fileinfo_cache_ttl(FlowValue& result, const FlowParams& args)
 		result.set(server().fileinfoConfig_.cacheTTL_);
 }
 
-void HttpCore::server_advertise(FlowValue& result, const FlowParams& args)
+void HttpCore::server_advertise(const FlowParams& args, FlowValue& result)
 {
 	if (args.empty())
 	{
@@ -234,7 +234,7 @@ void HttpCore::server_advertise(FlowValue& result, const FlowParams& args)
 	}
 }
 
-void HttpCore::server_tags(FlowValue& result, const FlowParams& args)
+void HttpCore::server_tags(const FlowParams& args, FlowValue& result)
 {
 	for (size_t i = 0, e = args.size(); i != e; ++i)
 		loadServerTag(args[i]);
@@ -261,7 +261,7 @@ void HttpCore::loadServerTag(const FlowValue& tag)
 	}
 }
 
-void HttpCore::max_read_idle(FlowValue& result, const FlowParams& args)
+void HttpCore::max_read_idle(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		server().maxReadIdle(TimeSpan::fromSeconds(args[0].toNumber()));
@@ -269,7 +269,7 @@ void HttpCore::max_read_idle(FlowValue& result, const FlowParams& args)
 		result.set(server().maxReadIdle());
 }
 
-void HttpCore::max_write_idle(FlowValue& result, const FlowParams& args)
+void HttpCore::max_write_idle(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		server().maxWriteIdle(TimeSpan::fromSeconds(args[0].toNumber()));
@@ -277,7 +277,7 @@ void HttpCore::max_write_idle(FlowValue& result, const FlowParams& args)
 		result.set(server().maxWriteIdle());
 }
 
-void HttpCore::max_keepalive_idle(FlowValue& result, const FlowParams& args)
+void HttpCore::max_keepalive_idle(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		server().maxKeepAlive(TimeSpan::fromSeconds(args[0].toNumber()));
@@ -285,7 +285,7 @@ void HttpCore::max_keepalive_idle(FlowValue& result, const FlowParams& args)
 		result.set(server().maxKeepAlive());
 }
 
-void HttpCore::max_conns(FlowValue& result, const FlowParams& args)
+void HttpCore::max_conns(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		server().maxConnections(args[0].toNumber());
@@ -293,7 +293,7 @@ void HttpCore::max_conns(FlowValue& result, const FlowParams& args)
 		result.set(server().maxConnections());
 }
 
-void HttpCore::max_files(FlowValue& result, const FlowParams& args)
+void HttpCore::max_files(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_NOFILE, args[0].toNumber());
@@ -301,7 +301,7 @@ void HttpCore::max_files(FlowValue& result, const FlowParams& args)
 		result.set(getrlimit(RLIMIT_NOFILE));
 }
 
-void HttpCore::max_address_space(FlowValue& result, const FlowParams& args)
+void HttpCore::max_address_space(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_AS, args[0].toNumber());
@@ -309,7 +309,7 @@ void HttpCore::max_address_space(FlowValue& result, const FlowParams& args)
 		result.set(getrlimit(RLIMIT_AS));
 }
 
-void HttpCore::max_core(FlowValue& result, const FlowParams& args)
+void HttpCore::max_core(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_CORE, args[0].toNumber());
@@ -317,7 +317,7 @@ void HttpCore::max_core(FlowValue& result, const FlowParams& args)
 		result.set(getrlimit(RLIMIT_CORE));
 }
 
-void HttpCore::tcp_cork(FlowValue& result, const FlowParams& args)
+void HttpCore::tcp_cork(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().tcpCork(args[0].toBool());
@@ -325,7 +325,7 @@ void HttpCore::tcp_cork(FlowValue& result, const FlowParams& args)
 		result.set(server().tcpCork());
 }
 
-void HttpCore::tcp_nodelay(FlowValue& result, const FlowParams& args)
+void HttpCore::tcp_nodelay(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().tcpNoDelay(args[0].toBool());
@@ -333,7 +333,7 @@ void HttpCore::tcp_nodelay(FlowValue& result, const FlowParams& args)
 		result.set(server().tcpNoDelay());
 }
 
-void HttpCore::max_request_uri_size(FlowValue& result, const FlowParams& args)
+void HttpCore::max_request_uri_size(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().maxRequestUriSize(args[0].toBool());
@@ -341,7 +341,7 @@ void HttpCore::max_request_uri_size(FlowValue& result, const FlowParams& args)
 		result.set(server().maxRequestUriSize());
 }
 
-void HttpCore::max_request_header_size(FlowValue& result, const FlowParams& args)
+void HttpCore::max_request_header_size(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().maxRequestHeaderSize(args[0].toBool());
@@ -349,7 +349,7 @@ void HttpCore::max_request_header_size(FlowValue& result, const FlowParams& args
 		result.set(server().maxRequestHeaderSize());
 }
 
-void HttpCore::max_request_header_count(FlowValue& result, const FlowParams& args)
+void HttpCore::max_request_header_count(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().maxRequestHeaderCount(args[0].toBool());
@@ -357,7 +357,7 @@ void HttpCore::max_request_header_count(FlowValue& result, const FlowParams& arg
 		result.set(server().maxRequestHeaderCount());
 }
 
-void HttpCore::max_request_body_size(FlowValue& result, const FlowParams& args)
+void HttpCore::max_request_body_size(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
 		server().maxRequestBodySize(args[0].toBool());
@@ -365,7 +365,7 @@ void HttpCore::max_request_body_size(FlowValue& result, const FlowParams& args)
 		result.set(server().maxRequestBodySize());
 }
 
-void HttpCore::listen(FlowValue& result, const FlowParams& args)
+void HttpCore::listen(const FlowParams& args, FlowValue& result)
 {
 	SocketSpec socketSpec;
 	socketSpec << args;
@@ -377,7 +377,7 @@ void HttpCore::listen(FlowValue& result, const FlowParams& args)
 	}
 }
 
-void HttpCore::workers(FlowValue& result, const FlowParams& args)
+void HttpCore::workers(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1) {
 		if (args[0].isArray()) {
@@ -418,7 +418,7 @@ void HttpCore::workers(FlowValue& result, const FlowParams& args)
 
 extern std::string global_now(); // HttpServer.cpp
 
-void HttpCore::logfile(FlowValue& result, const FlowParams& args)
+void HttpCore::logfile(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1)
 	{
@@ -431,12 +431,12 @@ void HttpCore::logfile(FlowValue& result, const FlowParams& args)
 	}
 }
 
-void HttpCore::log_sd(FlowValue& result, const FlowParams& args)
+void HttpCore::log_sd(const FlowParams& args, FlowValue& result)
 {
 	server_.logger_.reset(new SystemdLogger());
 }
 
-void HttpCore::loglevel(FlowValue& result, const FlowParams& args)
+void HttpCore::loglevel(const FlowParams& args, FlowValue& result)
 {
 	if (args.empty()) {
 		result.set(server().logLevel());
@@ -446,35 +446,35 @@ void HttpCore::loglevel(FlowValue& result, const FlowParams& args)
 	}
 }
 
-void HttpCore::emit_llvm(FlowValue& result, const FlowParams& args)
+void HttpCore::emit_llvm(const FlowParams& args, FlowValue& result)
 {
 	emitLLVM_ = true;
 }
 // }}}
 
 // {{{ sys
-void HttpCore::sys_env(FlowValue& result, const FlowParams& args)
+void HttpCore::sys_env(HttpRequest*, const FlowParams& args, FlowValue& result)
 {
 	result.set(getenv(args[0].toString()));
 }
 
-void HttpCore::sys_cwd(FlowValue& result, const FlowParams& args)
+void HttpCore::sys_cwd(HttpRequest*, const FlowParams& args, FlowValue& result)
 {
 	static char buf[1024];
 	result.set(getcwd(buf, sizeof(buf)));
 }
 
-void HttpCore::sys_pid(FlowValue& result, const FlowParams& args)
+void HttpCore::sys_pid(HttpRequest*, const FlowParams& args, FlowValue& result)
 {
 	result.set(getpid());
 }
 
-void HttpCore::sys_now(FlowValue& result, const FlowParams& args)
+void HttpCore::sys_now(HttpRequest*, const FlowParams& args, FlowValue& result)
 {
 	result.set(static_cast<uint64_t>(server().workers_[0]->now_.unixtime()));
 }
 
-void HttpCore::sys_now_str(FlowValue& result, const FlowParams& args)
+void HttpCore::sys_now_str(HttpRequest*, const FlowParams& args, FlowValue& result)
 {
 	auto& s = server().workers_[0]->now_.http_str();
 	result.set(s.data(), s.size());
@@ -482,7 +482,7 @@ void HttpCore::sys_now_str(FlowValue& result, const FlowParams& args)
 // }}}
 
 // {{{ req
-void HttpCore::autoindex(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::autoindex(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	if (in->documentRoot.empty()) {
 		server().log(Severity::error, "autoindex: No document root set yet. Skipping.");
@@ -542,7 +542,7 @@ bool HttpCore::matchIndex(HttpRequest *in, const FlowValue& arg)
 	return false;
 }
 
-bool HttpCore::docroot(HttpRequest *in, const FlowParams& args)
+bool HttpCore::docroot(HttpRequest* in, const FlowParams& args)
 {
 	if (args.size() != 1)
 		return false;
@@ -554,7 +554,7 @@ bool HttpCore::docroot(HttpRequest *in, const FlowParams& args)
 	return redirectOnIncompletePath(in);
 }
 
-bool HttpCore::alias(HttpRequest *in, const FlowParams& args)
+bool HttpCore::alias(HttpRequest* in, const FlowParams& args)
 {
 	if (args.size() != 1 || !args[0].isArray()) {
 		server().log(Severity::error, "alias: invalid argument count");
@@ -589,7 +589,7 @@ bool HttpCore::alias(HttpRequest *in, const FlowParams& args)
 	return redirectOnIncompletePath(in);
 }
 
-void HttpCore::rewrite(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::rewrite(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	if (!args.size())
 		return;
@@ -597,7 +597,7 @@ void HttpCore::rewrite(FlowValue& result, HttpRequest *in, const FlowParams& arg
 	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].toString());
 }
 
-void HttpCore::pathinfo(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	if (!in->fileinfo) {
 		in->log(Severity::error,
@@ -608,117 +608,117 @@ void HttpCore::pathinfo(FlowValue& result, HttpRequest *in, const FlowParams& ar
 	in->updatePathInfo();
 }
 
-void HttpCore::error_handler(FlowValue& result, HttpRequest* in, const FlowParams& args)
+void HttpCore::error_handler(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	in->setErrorHandler(args[0].toFunction());
 }
 
-void HttpCore::req_method(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_method(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->method.data(), in->method.size());
 }
 
-void HttpCore::req_url(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_url(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->uri.data(), in->uri.size());
 }
 
-void HttpCore::req_path(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_path(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->path.data(), in->path.size());
 }
 
-void HttpCore::req_header(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_header(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	BufferRef ref(in->requestHeader(args[0].toString()));
 	result.set(ref.data(), ref.size());
 }
 
-void HttpCore::req_host(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_host(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->hostname.data(), in->hostname.size());
 }
 
-void HttpCore::req_pathinfo(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = in->pathinfo.c_str();
 }
 
-void HttpCore::req_is_secure(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_is_secure(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = in->connection.isSecure();
 }
 
-void HttpCore::req_status_code(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::req_status_code(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = static_cast<unsigned>(in->status);
 }
 // }}}
 
 // {{{ connection
-void HttpCore::conn_remote_ip(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::conn_remote_ip(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = in->connection.remoteIP().c_str();
 }
 
-void HttpCore::conn_remote_port(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::conn_remote_port(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = in->connection.remotePort();
 }
 
-void HttpCore::conn_local_ip(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::conn_local_ip(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = in->connection.localIP().c_str();
 }
 
-void HttpCore::conn_local_port(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::conn_local_port(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = in->connection.localPort();
 }
 // }}}
 
 // {{{ phys
-void HttpCore::phys_path(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_path(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->path().c_str() : "");
 }
 
-void HttpCore::phys_exists(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_exists(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->exists() : false);
 }
 
-void HttpCore::phys_is_reg(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_is_reg(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->isRegular() : false);
 }
 
-void HttpCore::phys_is_dir(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_is_dir(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->isDirectory() : false);
 }
 
-void HttpCore::phys_is_exe(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_is_exe(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->isExecutable() : false);
 }
 
-void HttpCore::phys_mtime(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_mtime(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(static_cast<uint64_t>(in->fileinfo ? in->fileinfo->mtime() : 0));
 }
 
-void HttpCore::phys_size(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_size(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->size() : 0);
 }
 
-void HttpCore::phys_etag(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_etag(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->etag().c_str() : "");
 }
 
-void HttpCore::phys_mimetype(FlowValue& result, HttpRequest *in, const FlowParams& args)
+void HttpCore::phys_mimetype(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->mimetype().c_str() : "");
 }
@@ -752,7 +752,7 @@ bool HttpCore::blank(HttpRequest* in, const FlowParams& args)
 // }}}
 
 // {{{ response's header.* functions
-void HttpCore::header_add(FlowValue& result, HttpRequest *r, const FlowParams& args)
+void HttpCore::header_add(HttpRequest* r, const FlowParams& args, FlowValue& result)
 {
 	if (args.size() != 2)
 		return;
@@ -763,7 +763,7 @@ void HttpCore::header_add(FlowValue& result, HttpRequest *r, const FlowParams& a
 }
 
 // header.append(headerName, appendValue)
-void HttpCore::header_append(FlowValue& result, HttpRequest *r, const FlowParams& args)
+void HttpCore::header_append(HttpRequest* r, const FlowParams& args, FlowValue& result)
 {
 	if (args.size() != 2)
 		return;
@@ -773,7 +773,7 @@ void HttpCore::header_append(FlowValue& result, HttpRequest *r, const FlowParams
 	}
 }
 
-void HttpCore::header_overwrite(FlowValue& result, HttpRequest *r, const FlowParams& args)
+void HttpCore::header_overwrite(HttpRequest* r, const FlowParams& args, FlowValue& result)
 {
 	if (args.size() != 2)
 		return;
@@ -783,7 +783,7 @@ void HttpCore::header_overwrite(FlowValue& result, HttpRequest *r, const FlowPar
 	}
 }
 
-void HttpCore::header_remove(FlowValue& result, HttpRequest *r, const FlowParams& args)
+void HttpCore::header_remove(HttpRequest* r, const FlowParams& args, FlowValue& result)
 {
 	if (args.size() != 1)
 		return;

@@ -681,13 +681,13 @@ public:
 
 private:
 	// {{{ setup functions
-	void set_ttl(x0::FlowValue& result, const x0::FlowParams& args)
+	void set_ttl(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		args.load(0, ttl_);
 	}
 
 	// cgi.mapping(ext => bin, ext => bin, ...);
-	void set_mapping(x0::FlowValue& result, const x0::FlowParams& args)
+	void set_mapping(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		for (auto& arg: args)
 			if (arg.isArray())
