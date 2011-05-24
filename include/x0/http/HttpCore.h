@@ -86,6 +86,11 @@ private:
 	void sys_now(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void sys_now_str(HttpRequest* r, const FlowParams& args, FlowValue& result);
 
+	// shared functions
+	void log_err(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void log_info(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void log_debug(HttpRequest* r, const FlowParams& args, FlowValue& result);
+
 	// main handlers
 	bool docroot(HttpRequest* r, const FlowParams& args);
 	bool alias(HttpRequest* r, const FlowParams& args);

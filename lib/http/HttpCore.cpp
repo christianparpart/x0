@@ -79,6 +79,11 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSharedProperty<HttpCore, &HttpCore::sys_now>("sys.now", FlowValue::NUMBER);
 	registerSharedProperty<HttpCore, &HttpCore::sys_now_str>("sys.now_str", FlowValue::STRING);
 
+	registerSharedFunction<HttpCore, &HttpCore::log_err>("log.err", FlowValue::VOID);
+	registerSharedFunction<HttpCore, &HttpCore::log_info>("log.info", FlowValue::VOID);
+	registerSharedFunction<HttpCore, &HttpCore::log_info>("log", FlowValue::VOID);
+	registerSharedFunction<HttpCore, &HttpCore::log_debug>("log.debug", FlowValue::VOID);
+
 	// main
 	registerHandler<HttpCore, &HttpCore::docroot>("docroot");
 	registerHandler<HttpCore, &HttpCore::alias>("alias");
@@ -478,6 +483,32 @@ void HttpCore::sys_now_str(HttpRequest*, const FlowParams& args, FlowValue& resu
 {
 	auto& s = server().workers_[0]->now_.http_str();
 	result.set(s.data(), s.size());
+}
+// }}}
+
+// {{{ log.*
+void HttpCore::log_err(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+{
+	if (r)
+		r->log(Severity::error, "%s", args[0].toString());
+	else
+		server().log(Severity::error, "%s", args[0].toString());
+}
+
+void HttpCore::log_info(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+{
+	if (r)
+		r->log(Severity::info, "%s", args[0].toString());
+	else
+		server().log(Severity::info, "%s", args[0].toString());
+}
+
+void HttpCore::log_debug(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+{
+	if (r)
+		r->log(Severity::debug, "%s", args[0].toString());
+	else
+		server().log(Severity::debug, "%s", args[0].toString());
 }
 // }}}
 
