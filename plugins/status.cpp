@@ -223,7 +223,7 @@ private:
 				case '<':
 				case '>':
 				case '&':
-					snprintf(buf, sizeof(buf), "#%d;", static_cast<unsigned>(i) & 0xFF);
+					snprintf(buf, sizeof(buf), "&#%d;", static_cast<unsigned>(i) & 0xFF);
 					out += buf;
 					break;
 				default:
