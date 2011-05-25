@@ -54,6 +54,7 @@ private:
 	ev::io watcher_;
 	ev::timer timer_;
 	DateTime startedAt_;
+	DateTime lastActivityAt_;
 	int fd_;
 	int addressFamily_;
 	bool secure_;
@@ -83,6 +84,7 @@ public:
 	virtual ~Socket();
 
 	const DateTime& startedAt() const { return startedAt_; }
+	const DateTime& lastActivityAt() const { return lastActivityAt_; }
 
 	void set(int fd, int addressFamily);
 

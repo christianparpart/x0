@@ -49,6 +49,7 @@ Socket::Socket(struct ev_loop* loop) :
 	watcher_(loop),
 	timer_(loop),
 	startedAt_(ev_now(loop)),
+	lastActivityAt_(ev_now(loop)),
 	fd_(-1),
 	addressFamily_(0),
 	secure_(false),
@@ -78,6 +79,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af) :
 	watcher_(loop),
 	timer_(loop),
 	startedAt_(ev_now(loop)),
+	lastActivityAt_(ev_now(loop)),
 	fd_(fd),
 	addressFamily_(af),
 	secure_(false),
@@ -396,6 +398,8 @@ ssize_t Socket::read(Buffer& result)
 {
 	ssize_t nread = 0;
 
+	lastActivityAt_.update(ev_now(loop_));
+
 	for (;;)
 	{
 		if (result.capacity() - result.size() < 256) {
@@ -421,6 +425,8 @@ ssize_t Socket::read(Buffer& result)
 
 ssize_t Socket::write(const void *buffer, size_t size)
 {
+	lastActivityAt_.update(ev_now(loop_));
+
 #if 0 // !defined(NDEBUG)
 	//TRACE("write('%s')", Buffer(buffer, size).c_str());
 	ssize_t rv = ::write(fd_, buffer, size);
@@ -438,6 +444,8 @@ ssize_t Socket::write(const void *buffer, size_t size)
 
 ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 {
+	lastActivityAt_.update(ev_now(loop_));
+
 	if (nbytes == 0)
 		return 0;
 
@@ -487,6 +495,8 @@ void Socket::handshake(int /*revents*/)
 
 void Socket::io(ev::io& /*io*/, int revents)
 {
+	lastActivityAt_.update(ev_now(loop_));
+
 	TRACE("io(revents=0x%04X): mode=%s", revents, mode_str(mode_));
 
 	timer_.stop();

@@ -136,6 +136,7 @@ private:
 			".ip { text-align: center; }"
 			".state { text-align: center; }"
 			".age { text-align: right; }"
+			".idle { text-align: right; }"
 			".read { text-align: right; }"
 			".written { text-align: right; }"
 			".host { text-align: left; }"
@@ -162,6 +163,7 @@ private:
 		buf << "<th>" << "IP" << "</th>";
 		buf << "<th>" << "state" << "</th>";
 		buf << "<th>" << "age" << "</th>";
+		buf << "<th>" << "idle" << "</th>";
 		buf << "<th>" << "read" << "</th>";
 		buf << "<th>" << "written" << "</th>";
 		buf << "<th>" << "host" << "</th>";
@@ -194,6 +196,7 @@ private:
 		out << "</td>";
 
 		out << "<td class='age'>" << (c->worker().now() - c->socket()->startedAt()).str() << "</td>";
+		out << "<td class='idle'>" << (c->worker().now() - c->socket()->lastActivityAt()).str() << "</td>";
 		out << "<td class='read'>" << c->inputOffset() << "/" << c->inputSize() << "</td>";
 
 		const x0::HttpRequest* r = c->request();
