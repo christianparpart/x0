@@ -132,10 +132,10 @@ void HttpWorker::spawnConnection(Socket* client, HttpListener* listener)
 {
 	TRACE("client connected; fd:%d", client->handle());
 
-	HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
-
 	++connectionLoad_;
 	++connectionCount_;
+
+	HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
 
 	connections_.push_front(c);
 	HttpConnectionList::iterator i = connections_.begin();
