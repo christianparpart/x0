@@ -155,6 +155,10 @@ void ProxyConnection::unref()
 
 void ProxyConnection::close()
 {
+	if (backend_)
+		// stop watching on any backend I/O events, if active
+		backend_->close();
+
 	unref(); // the one from the constructor
 }
 
