@@ -71,8 +71,7 @@ private:
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
-	ev::async evExit_;
-	ev::timer evExitTimeout_;
+	ev::async evKill_;
 
 	friend class HttpPlugin;
 	friend class HttpCore;
@@ -116,6 +115,7 @@ public:
 	void post(K* object);
 
 	void stop();
+	void kill();
 
 protected:
 	template<class K, void (K::*fn)()>
@@ -126,8 +126,8 @@ protected:
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
 	void spawnConnection(Socket* client, HttpListener* listener);
-	void onExit(ev::async& w, int revents);
-	void onExitTimeout(ev::timer& w, int revents);
+	void _stop();
+	void _kill();
 };
 //@}
 
@@ -170,7 +170,7 @@ inline unsigned long long HttpWorker::connectionCount() const
 template<class K, void (K::*fn)()>
 void HttpWorker::post(K* object)
 {
-	ev_once(loop_, -1, 0, 0, post_thunk<K, fn>, object);
+	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk<K, fn>, object);
 }
 
 template<class K, void (K::*fn)()>

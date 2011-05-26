@@ -40,8 +40,6 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	connections_(),
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
-	evExit_(loop_),
-	evExitTimeout_(loop_),
 	fileinfo(loop_, &server_.fileinfoConfig_)
 {
 	evLoopCheck_.set<HttpWorker, &HttpWorker::onLoopCheck>(this);
@@ -51,12 +49,6 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	evNewConnection_.set<HttpWorker, &HttpWorker::onNewConnection>(this);
 	evNewConnection_.start();
 	ev_unref(loop_);
-
-	evExit_.set<HttpWorker, &HttpWorker::onExit>(this);
-	evExit_.start();
-	ev_unref(loop_);
-
-	evExitTimeout_.set<HttpWorker, &HttpWorker::onExitTimeout>(this);
 
 	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
 
@@ -69,6 +61,16 @@ HttpWorker::~HttpWorker()
 
 	clearCustomData();
 	pthread_spin_destroy(&queueLock_);
+
+	if (evLoopCheck_.is_active()) {
+		ev_ref(loop_);
+		evLoopCheck_.stop();
+	}
+
+	if (evNewConnection_.is_active()) {
+		ev_ref(loop_);
+		evNewConnection_.stop();
+	}
 }
 
 void HttpWorker::run()
@@ -80,24 +82,9 @@ void HttpWorker::run()
 	TRACE("enter loop");
 	ev_loop(loop_, 0);
 
-	if (evExitTimeout_.is_active()) {
-		ev_ref(loop_);
-		evExitTimeout_.stop();
-	}
-
-	TRACE("event loop left. killing remaining connections.");
-	if (!connections_.empty()) {
-		auto copy = connections_;
-		for (auto c: copy) {
-			c->abort();
-		}
-
-#ifndef NDEBUG
-		for (auto i: connections_) {
-			i->debug("connection still open");
-		}
-#endif
-	}
+	TRACE("event loop left. killing remaining connections (%ld).", connections_.size());
+	if (!connections_.empty())
+		_kill();
 
 	server_.onWorkerUnspawn(this);
 }
@@ -176,44 +163,15 @@ void HttpWorker::handleRequest(HttpRequest *r)
 		r->finish();
 }
 
-void HttpWorker::onExit(ev::async& w, int revents)
+void HttpWorker::_stop()
 {
-	TRACE("onExit");
-
-	int gracefulShutdownTimeout = 30;
-
-	evExitTimeout_.start(gracefulShutdownTimeout, 0.0);
-	ev_unref(loop_);
+	TRACE("_stop");
 
 	ev_ref(loop_);
 	evLoopCheck_.stop();
 
 	ev_ref(loop_);
 	evNewConnection_.stop();
-
-	ev_ref(loop_);
-	evExit_.stop();
-}
-
-void HttpWorker::onExitTimeout(ev::timer& w, int revents)
-{
-	TRACE("onExitTimeout. killing remaining connections.");
-
-	ev_ref(loop_);
-	evExitTimeout_.stop();
-
-	if (!connections_.empty()) {
-		auto copy = connections_;
-		for (auto c: copy) {
-			c->abort();
-		}
-
-#ifndef NDEBUG
-		for (auto i: connections_) {
-			i->debug("connection still open");
-		}
-#endif
-	}
 }
 
 void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)
@@ -247,7 +205,37 @@ void HttpWorker::setAffinity(int cpu)
 
 void HttpWorker::stop()
 {
-	evExit_.send();
+	post<HttpWorker, &HttpWorker::_stop>(this);
+}
+
+/*! Actually aborts all active connections.
+ *
+ * \see HttpConnection::abort()
+ */
+void HttpWorker::kill()
+{
+	post<HttpWorker, &HttpWorker::_kill>(this);
+}
+
+/*! Actually aborts all active connections.
+ *
+ * \note Must be invoked from within the worker's thread.
+ *
+ * \see HttpConnection::abort()
+ */
+void HttpWorker::_kill()
+{
+	if (!connections_.empty()) {
+		auto copy = connections_;
+
+		for (auto c: copy)
+			c->abort();
+
+#ifndef NDEBUG
+		for (auto i: connections_)
+			i->debug("connection still open");
+#endif
+	}
 }
 
 } // namespace x0

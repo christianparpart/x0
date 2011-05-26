@@ -73,6 +73,7 @@ public:
 		dumpIR_(false),
 		server_(new x0::HttpServer()),
 		sigterm_(server_->loop()),
+		sigint_(server_->loop()),
 		sighup_(server_->loop())
 	{
 		x0::FlowRunner::initialize();
@@ -88,6 +89,10 @@ public:
 		sigterm_.start(SIGTERM);
 		ev_unref(server_->loop());
 
+		sigint_.set<x0d, &x0d::terminate_handler>(this);
+		sigint_.start(SIGINT);
+		ev_unref(server_->loop());
+
 		sighup_.set<x0d, &x0d::reload_handler>(this);
 		sighup_.start(SIGHUP);
 		ev_unref(server_->loop());
@@ -95,8 +100,16 @@ public:
 
 	~x0d()
 	{
+		if (terminate_timer_.is_active()) {
+			ev_ref(server_->loop());
+			terminate_timer_.stop();
+		}
+
 		ev_ref(server_->loop());
 		sigterm_.stop();
+
+		ev_ref(server_->loop());
+		sigint_.stop();
 
 		ev_ref(server_->loop());
 		sighup_.stop();
@@ -562,18 +575,72 @@ private:
 		}
 	}
 
-	void terminate_handler(ev::sig&, int)
+	static const char* sig2name(int num)
 	{
-		log(x0::Severity::info, "SIGTERM received. Shutting down.");
+		switch (num) {
+			case SIGINT: return "SIGINT";
+			case SIGTERM: return "SIGTERM";
+			default: return "UNKNOWN";
+		}
+	}
 
-		try
-		{
-			server_->stop();
-		}
-		catch (std::exception& e)
-		{
-			log(x0::Severity::error, "uncaught exception in terminate handler: %s", e.what());
-		}
+	// stage-1 termination handler
+	void terminate_handler(ev::sig& sig, int)
+	{
+		log(x0::Severity::info, "%s received. Gracefully shutting down.", sig2name(sig.signum));
+
+		// install stage2 handlers
+		ev_ref(server_->loop());
+		ev_ref(server_->loop());
+
+		sigterm_.stop();
+		sigint_.stop();
+
+		sigterm_.set<x0d, &x0d::terminate2_handler>(this);
+		sigint_.set<x0d, &x0d::terminate2_handler>(this);
+
+		sigterm_.start(SIGTERM);
+		sigint_.start(SIGINT);
+
+		ev_unref(server_->loop());
+		ev_unref(server_->loop());
+
+		// install terminate timeout handler
+		terminate_timer_.set<x0d, &x0d::terminate_timeout>(this);
+		terminate_timer_.start(10, 0);
+		ev_unref(server_->loop());
+
+		// initiate graceful server-stop
+		server_->maxKeepAlive = x0::TimeSpan::Zero;
+		server_->stop();
+	}
+
+	void terminate_timeout(ev::timer&, int)
+	{
+		log(x0::Severity::warn, "Termination timed out.");
+
+		ev_ref(server_->loop());
+		terminate_timer_.stop();
+
+		server_->kill();
+	}
+
+	// stage-2 termination handler
+	void terminate2_handler(ev::sig& sig, int)
+	{
+		log(x0::Severity::info, "%s received. Forcefully shutting down.", sig2name(sig.signum));
+
+		ev_ref(server_->loop());
+		ev_ref(server_->loop());
+
+		sigterm_.stop();
+		sigint_.stop();
+
+		ev_ref(server_->loop());
+		terminate_timer_.stop();
+		terminate_timer_.set<x0d, &x0d::terminate_timeout>(this);
+		terminate_timer_.start(10, 0);
+		ev_unref(server_->loop());
 	}
 
 private:
@@ -593,7 +660,9 @@ private:
 	int dumpIR_;
 	x0::HttpServer *server_;
 	ev::sig sigterm_;
+	ev::sig sigint_;
 	ev::sig sighup_;
+	ev::timer terminate_timer_;
 	static x0d *instance_;
 };
 
