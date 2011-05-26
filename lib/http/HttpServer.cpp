@@ -381,7 +381,7 @@ void HttpServer::destroyWorker(HttpWorker *worker)
 	auto i = std::find(workers_.begin(), workers_.end(), worker);
 	assert(i != workers_.end());
 
-	worker->evExit_.send();
+	worker->stop();
 
 	if (worker != workers_.front())
 		pthread_join(worker->thread_, nullptr);
@@ -519,6 +519,14 @@ void HttpServer::stop()
 		for (auto worker: workers_)
 			worker->stop();
 	}
+}
+
+void HttpServer::kill()
+{
+	stop();
+
+	for (auto worker: workers_)
+		worker->kill();
 }
 
 void HttpServer::log(Severity s, const char *msg, ...)

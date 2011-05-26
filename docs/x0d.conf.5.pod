@@ -200,17 +200,56 @@ the Server response header.
 
 Gets or sets the connection read idle timeout value.
 
+Default: 60 seconds
+
 =item B<max_write_idle> (timeout)
 
 Gets or sets the connection write idle timeout value.
+
+Default: 60 seconds
 
 =item B<max_keepalive_idle> (timeout)
 
 Gets or sets the connection write keep-alive timeout value.
 
+Default: 60 seconds
+
+=item B<max_keepalive_requests> (number)
+
+Gets or sets the number of requests (after the first, initial) allowed to accept
+within a single connection.
+
+Default: 100
+
+=item B<max_request_uri_size> (number)
+
+Gets or sets the number of bytes a request URI must fit into.
+
+Default: 4096 byte
+
+=item B<max_request_header_size> (number)
+
+Gets or sets the number of bytes a single request header (name plus value) must fit into.
+
+Default: 8192 byte
+
+=item B<max_request_header_count> (number)
+
+Gets or sets the maximum count of request headers a client request may sent.
+
+Default: 100
+
+=item B<max_body_size> (number)
+
+Gets or sets the maximum number of bytes a request body must fit into.
+
+Default: 2 gbyte
+
 =item B<max_connections> (count)
 
 Gets or sets the number of maximum connections the server will handle in parallel.
+
+Default: 1000
 
 =item B<max_files> (count)
 

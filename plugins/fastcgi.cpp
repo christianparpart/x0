@@ -744,22 +744,22 @@ void CgiContext::release(CgiTransport *transport)
 }
 //}}}
 
-// {{{ fastcgi_plugin
+// {{{ FastCgiPlugin
 /**
  * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
  */
-class fastcgi_plugin :
+class FastCgiPlugin :
 	public x0::HttpPlugin
 {
 public:
-	fastcgi_plugin(x0::HttpServer& srv, const std::string& name) :
+	FastCgiPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
-		registerHandler<fastcgi_plugin, &fastcgi_plugin::handleRequest>("fastcgi");
+		registerHandler<FastCgiPlugin, &FastCgiPlugin::handleRequest>("fastcgi");
 	}
 
-	~fastcgi_plugin()
+	~FastCgiPlugin()
 	{
 		for (auto i: contexts_)
 			delete i.second;
@@ -803,4 +803,4 @@ private:
 	std::unordered_map<std::string, CgiContext *> contexts_;
 }; // }}}
 
-X0_EXPORT_PLUGIN(fastcgi)
+X0_EXPORT_PLUGIN_CLASS(FastCgiPlugin)

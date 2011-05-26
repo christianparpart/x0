@@ -16,6 +16,7 @@
 #include <x0/sysconfig.h>
 
 #include <functional>
+#include <cstdarg>
 
 #include <sys/socket.h>
 #include <netinet/in.h>

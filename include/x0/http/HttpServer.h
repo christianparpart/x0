@@ -91,6 +91,7 @@ public:
 	void resume();
 	void reload();
 	void stop();
+	void kill();
 	// }}}
 
 	// {{{ signals raised on request in order

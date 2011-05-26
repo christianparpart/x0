@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 
 project(x0)
 set(PACKAGE_NAME "x0")
-set(PACKAGE_VERSION "0.3.0")
-set(PACKAGE_HOMEPAGE_URL "http://redmine.xzero.ws/projects/x0")
-set(PACKAGE_BUGTRACKER_URL "http://redmine.xzero.ws/projects/x0/issues")
+set(PACKAGE_VERSION "0.4.0")
+set(PACKAGE_HOMEPAGE_URL "http://redmine.trapni.de/projects/x0")
+set(PACKAGE_BUGTRACKER_URL "http://redmine.trapni.de/projects/x0/issues")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
