@@ -1,4 +1,4 @@
-/* <x0/x0d.cpp>
+/* <src/x0d.cpp>
  *
  * This file is part of the x0 web server project and is released under GPL-3.
  * http://www.xzero.ws/
@@ -33,14 +33,14 @@
 #include <grp.h>
 
 #if !defined(NDEBUG)
-#	define X0D_DEBUG(msg...) x0d::log(x0::Severity::debug, msg)
+#	define X0D_DEBUG(msg...) XzeroHttpDaemon::log(x0::Severity::debug, msg)
 #else
 #	define X0D_DEBUG(msg...) /*!*/ ((void)0)
 #endif
 
 using x0::Severity;
 
-class x0d
+class XzeroHttpDaemon // {{{
 {
 private:
 	/** concats a path with a filename and optionally inserts a path seperator if path 
@@ -58,7 +58,7 @@ private:
 	}
 
 public:
-	x0d(int argc, char *argv[]) :
+	XzeroHttpDaemon(int argc, char *argv[]) :
 		argc_(argc),
 		argv_(argv),
 		configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
@@ -85,20 +85,20 @@ public:
 #endif
 		instance_ = this;
 
-		sigterm_.set<x0d, &x0d::terminate_handler>(this);
+		sigterm_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_handler>(this);
 		sigterm_.start(SIGTERM);
 		ev_unref(server_->loop());
 
-		sigint_.set<x0d, &x0d::terminate_handler>(this);
+		sigint_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_handler>(this);
 		sigint_.start(SIGINT);
 		ev_unref(server_->loop());
 
-		sighup_.set<x0d, &x0d::reload_handler>(this);
+		sighup_.set<XzeroHttpDaemon, &XzeroHttpDaemon::reload_handler>(this);
 		sighup_.start(SIGHUP);
 		ev_unref(server_->loop());
 	}
 
-	~x0d()
+	~XzeroHttpDaemon()
 	{
 		if (terminate_timer_.is_active()) {
 			ev_ref(server_->loop());
@@ -122,7 +122,7 @@ public:
 		x0::FlowRunner::shutdown();
 	}
 
-	static x0d *instance()
+	static XzeroHttpDaemon *instance()
 	{
 		return instance_;
 	}
@@ -229,7 +229,7 @@ public:
 		}
 
 		if (!rv) {
-			log(x0::Severity::error, "Could not start x0d.");
+			log(x0::Severity::error, "Could not start XzeroHttpDaemon.");
 			return -1;
 		}
 
@@ -246,7 +246,7 @@ public:
 			return -1;
 
 		return doguard_
-			? guard(std::bind(&x0d::_run, this))
+			? guard(std::bind(&XzeroHttpDaemon::_run, this))
 			: _run();
 	}
 
@@ -401,7 +401,7 @@ private:
 		};
 
 		static const char *package_header = 
-			"x0d: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
+			"XzeroHttpDaemon: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
 		static const char *package_copyright =
 			"Copyright (c) 2009 by Christian Parpart <trapni@gentoo.org>";
 		static const char *package_license =
@@ -441,7 +441,7 @@ private:
 						<< package_license << std::endl
 						<< std::endl
 						<< "usage:" << std::endl
-						<< "  x0d [options ...]" << std::endl
+						<< "  XzeroHttpDaemon [options ...]" << std::endl
 						<< std::endl
 						<< "options:" << std::endl
 						<< "  -h,--help                print this help" << std::endl
@@ -453,7 +453,7 @@ private:
 						<< "  -u,--user=NAME           user to drop privileges to" << std::endl
 						<< "  -g,--group=NAME          group to drop privileges to" << std::endl
 						<< "     --dump-ir             dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
-						<< "  -i,--instant=PATH[,PORT] run x0d in simple pre-configured instant-mode" << std::endl
+						<< "  -i,--instant=PATH[,PORT] run XzeroHttpDaemon in simple pre-configured instant-mode" << std::endl
 						<< "  -v,--version             print software version" << std::endl
 						<< "  -y,--copyright           print software copyright notice / license" << std::endl
 						<< std::endl;
@@ -596,8 +596,8 @@ private:
 		sigterm_.stop();
 		sigint_.stop();
 
-		sigterm_.set<x0d, &x0d::terminate2_handler>(this);
-		sigint_.set<x0d, &x0d::terminate2_handler>(this);
+		sigterm_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate2_handler>(this);
+		sigint_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate2_handler>(this);
 
 		sigterm_.start(SIGTERM);
 		sigint_.start(SIGINT);
@@ -606,7 +606,7 @@ private:
 		ev_unref(server_->loop());
 
 		// install terminate timeout handler
-		terminate_timer_.set<x0d, &x0d::terminate_timeout>(this);
+		terminate_timer_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_timeout>(this);
 		terminate_timer_.start(10, 0);
 		ev_unref(server_->loop());
 
@@ -638,14 +638,14 @@ private:
 
 		ev_ref(server_->loop());
 		terminate_timer_.stop();
-		terminate_timer_.set<x0d, &x0d::terminate_timeout>(this);
+		terminate_timer_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_timeout>(this);
 		terminate_timer_.start(10, 0);
 		ev_unref(server_->loop());
 	}
 
 private:
 	int argc_;
-	char **argv_;
+	char** argv_;
 	std::string configfile_;
 	std::string pidfile_;
 	std::string user_;
@@ -663,20 +663,20 @@ private:
 	ev::sig sigint_;
 	ev::sig sighup_;
 	ev::timer terminate_timer_;
-	static x0d *instance_;
-};
+	static XzeroHttpDaemon* instance_;
+}; // }}}
 
-x0d *x0d::instance_ = 0;
+XzeroHttpDaemon* XzeroHttpDaemon::instance_ = 0;
 
 int main(int argc, char *argv[])
 {
 #if 1
 	if (argc == 1) {
-		const char* args[] = { "./x0d", "--systemd", "-c", "../../src/test.conf", 0 };
+		const char* args[] = { argv[0], "--systemd", "-c", "../../src/test.conf", 0 };
 		argv = (char **) args;
 		argc = sizeof(args) / sizeof(*args) - 1;
 	}
 #endif
-	x0d daemon(argc, argv);
+	XzeroHttpDaemon daemon(argc, argv);
 	return daemon.run();
 }
