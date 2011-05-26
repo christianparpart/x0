@@ -756,6 +756,7 @@ public:
 	FastCgiPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
+		registerHandler<FastCgiPlugin, &FastCgiPlugin::handleRequest>("fastcgi");
 	}
 
 	~FastCgiPlugin()
