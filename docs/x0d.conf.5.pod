@@ -11,7 +11,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
  handler setup {
      workers 2;
      userdir.name 'public_html';
-     listen 'bind' => 0.0.0.0, 'port' => 8080, 'backlock' => 128;
+     listen 'bind' => 0.0.0.0, 'port' => 8080, 'backlog' => 128;
  }
 
  # main handler, invoked on every incoming request
