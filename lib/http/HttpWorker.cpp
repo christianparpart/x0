@@ -37,6 +37,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	thread_(0),
 	queue_(),
 	queueLock_(),
+	performanceCounter_(),
 	connections_(),
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
@@ -158,6 +159,8 @@ void HttpWorker::release(const HttpConnectionList::iterator& connection)
 
 void HttpWorker::handleRequest(HttpRequest *r)
 {
+	performanceCounter_.touch(now_.value());
+
 	server_.onPreProcess(r);
 	if (!server_.onHandleRequest_(r))
 		r->finish();
