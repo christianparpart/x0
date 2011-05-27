@@ -11,7 +11,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
  handler setup {
      workers 2;
      userdir.name 'public_html';
-     listen '0.0.0.0:8080';
+     listen 'bind' => 0.0.0.0, 'port' => 8080, 'backlock' => 128;
  }
 
  # main handler, invoked on every incoming request
@@ -300,18 +300,18 @@ The address may be IPv4, IPv6, or a DNS name (to be resolved at startup).
 Example 1:
 
  handler setup {
-    # listen on IPv4 address 127.0.0.1 with port 8081
-    listen '127.0.0.1:8081';
+     # listen on IPv4 address 127.0.0.1 with port 8081
+     listen 'bind' => 127.0.0.1, 'port' => 8081;
  }
 
 Example 2:
 
  handler setup {
-    # listens on IPv6 address with port 8080
-    listen 'fe80::2c0:26ff:fe85:b3:8080';
+     # listens on IPv6 address with port 8080
+     listen 'bind' => fe80::2c0:26ff:fe85:b3, 'port' => 8080;
 
-    # listen on any IPv6 address with port 9090
-    listen ':::9090';
+     # listen on any IPv6 address with port 9090
+     listen 'bind' => ::, 'port' => 9090;
  }
 
 =back
@@ -476,7 +476,7 @@ Example:
          rewrite '/error.html'
          staticfile
      } else {
-         fastcgi 'unix:/var/run/custom-error-generator.socket'
+         fastcgi 'path' => '/var/run/custom-error-generator.socket'
      }
  }
 
@@ -666,23 +666,18 @@ This plugin currently only supports the responder role of FastCGI.
 
 =over 6
 
-=item B<fastcgi> (hostname:port)
+=item B<fastcgi> (backend...)
 
 Passes the current request to a backend FastCGI application listening
 on the given hostname and port.
 
 An example use looks as follows:
 
- fastcgi '127.0.0.1:1234';
+ fastcgi 'bind' => 127.0.0.1, 'port' => 1234;
 
-=item B<fastcgi> (unix:path)
+or, for listening on a UNIX domain socket:
 
-Passes the current request to a FastCGI backend application, listening
-on a UNIX domain socket.
-
-Example:
-
- fastcgi 'unix:/var/run/fcgiapp.socket';
+ fastcgi 'path' => '/var/run/program.fcgi';
 
 =back
 
@@ -696,9 +691,17 @@ Adds support for HTTP reverse proxying within B<x0>.
 
 Setup property, defining whether or not to cloak the server tag.
 
-=item B<proxy.reverse> (hostname:port)
+=item B<proxy.reverse> (backend...)
 
 Handler, forwarding the request to a backend HTTP server.
+
+An example use looks as follows:
+
+ proxy.reverse 'bind' => 127.0.0.1, 'port' => 1234;
+
+or, for listening on a UNIX domain socket:
+
+ proxy.reverse 'path' => '/var/run/program.fcgi';
 
 =back
 
@@ -811,7 +814,7 @@ An example use looks as follows:
 
  handler setup {
      # ...
-     ssl.listen '0.0.0.0:443';
+     ssl.listen 'bind' => 0.0.0.0, 'port' => 443;
  }
 
 =item B<ssl.context> ('keyfile' => PATH, 'crtfile' => PATH, ...)
