@@ -99,6 +99,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_host>("req.host", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", FlowValue::BOOLEAN);
+	registerProperty<HttpCore, &HttpCore::req_scheme>("req.scheme", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::req_status_code>("req.status", FlowValue::NUMBER);
 	registerProperty<HttpCore, &HttpCore::conn_remote_ip>("req.remoteip", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::conn_remote_port>("req.remoteport", FlowValue::NUMBER);
@@ -687,6 +688,11 @@ void HttpCore::req_pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& 
 void HttpCore::req_is_secure(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result = in->connection.isSecure();
+}
+
+void HttpCore::req_scheme(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	result = in->connection.isSecure() ? "https" : "http";
 }
 
 void HttpCore::req_status_code(HttpRequest* in, const FlowParams& args, FlowValue& result)

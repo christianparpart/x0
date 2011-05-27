@@ -119,6 +119,7 @@ private:
 	void req_host(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_pathinfo(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_is_secure(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_scheme(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_status_code(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void conn_remote_ip(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void conn_remote_port(HttpRequest* r, const FlowParams& args, FlowValue& result);
