@@ -506,7 +506,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 
 		std::size_t np = process(outbuf_.ref(lower_bound, rv));
 
-		TRACE("onStdoutAvailable@process: %s; %ld", ec.message().c_str(), np);
+		TRACE("onStdoutAvailable@process: %ld", np);
 
 		serial_++;
 	}
