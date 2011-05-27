@@ -903,4 +903,4 @@ B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <tr
 
 L<x0d(8)>, L<spawn-fcgi(1)>
 
-L<http://redmine.trapni.de/projects/xzero>, x0 project management page
+L<http://redmine.trapni.de/projects/x0>, x0 project management page
