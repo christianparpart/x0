@@ -700,7 +700,7 @@ Setup property, defining whether or not to cloak the server tag.
 
 Handler, forwarding the request to a backend HTTP server.
 
-=end
+=back
 
 =head2 dirlisting
 
