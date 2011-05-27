@@ -1,51 +1,54 @@
+---------------------------
+.:Request Property Matrix:.
+---------------------------
 
-Varnish Cache
-=========================================================
+    Varnish Cache                   | Lighttpd 2        | x0
+======================================================================================
 
-server.ip
-server.port
-client.ip
-client.port
-req.request (method)
-req.url
-req.http.header
-resp.proto
-resp.status
-resp.response (status message)
+    -                               __print             __print
+    -                               sys.pid             sys.pid
+    -                               sys.cwd             sys.cwd
+    -                               sys.env[]           sys.env()
 
-Lighttpd2
-=========================================================
+    server.ip                       req.localip         req.localip
+    server.port                     req.localport       req.localport
 
-__print
+    client.ip                       req.remoteip        req.remoteip
+    client.port                     req.remoteport      req.remoteport
 
-sys.pid
-sys.cwd
-sys.env
+    req.request(method)             -                   -
+    req.url                         -                   req.url
+    -                               -                   req.pathinfo
+    -                               -                   req.is_secure
+    -                               req.path            req.path
+    -                               req.host            req.host
+    -                               req.scheme          -
+    -                               req.query           req.query
+    -                               req.length          -
+    req.http.header()               req.header[]        req.header()
+    -                               req.env[]           -
 
-req.localip
-req.localport
-req.remoteip
-req.remoteport
-req.path
-req.host
-req.scheme
-req.query
-req.length
-req.header[]
-req.env[]
+    -                               phys.exists         phys.exists
+    -                               phys.path           phys.path
+    -                               phys.is_file        phys.is_reg
+    -                               phys.is_dir         phys.is_dir
+    -                               -                   phys.is_exe
+    -                               phys.size           phys.size
+    -                               -                   phys.mtime
+    -                               -                   phys.etag
+    -                               -                   phys.mimetype
 
-phys.path
-phys.exists
-phys.is_dir
-phys.is_file
-phys.size
+    resp.proto                      -                   -
+    resp.status                     resp.status         req.status
+    -                               resp.header[]       -
+    resp.response(status_message)   -                   -
 
-resp.status
-resp.header[]
+    -                               header.add()        header.add()
+    -                               header.append()     header.append()
+    -                               header.overwrite()  header.overwrite()
+    -                               header.remove()     header.remove()
 
-server.name
-server.tag
-header.add
-header.append
-header.overwrite
-header.remove
+    -                               server.name         -
+    -                               server.tag          server.tag
+
+# vim:et:ts=4:nowrap
