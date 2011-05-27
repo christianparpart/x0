@@ -3,10 +3,11 @@
 
 #include <x0/http/Types.h>
 #include <x0/io/FileInfoService.h>
-#include <x0/Logging.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
+#include <x0/Logging.h>
+#include <x0/PerformanceCounter.h>
 
 #include <deque>
 #include <list>
@@ -67,6 +68,8 @@ private:
 	std::deque<std::pair<Socket*, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
+	PerformanceCounter<15 * 60> performanceCounter_;
+
 	HttpConnectionList connections_;
 
 	ev::check evLoopCheck_;
@@ -102,6 +105,8 @@ public:
 	int connectionLoad() const;
 	unsigned long long requestCount() const;
 	unsigned long long connectionCount() const;
+
+	void fetchPerformanceCounts(double* p1, double* p5, double* p15) const;
 
 	void enqueue(std::pair<Socket*, HttpListener*>&& handle);
 	void handleRequest(HttpRequest *r);
@@ -177,6 +182,13 @@ template<class K, void (K::*fn)()>
 void HttpWorker::post_thunk(int revents, void* arg)
 {
 	(static_cast<K *>(arg)->*fn)();
+}
+
+inline void HttpWorker::fetchPerformanceCounts(double* p1, double* p5, double* p15) const
+{
+	*p1 += performanceCounter_.average(60 * 1);
+	*p5 += performanceCounter_.average(60 * 5);
+	*p15 += performanceCounter_.average(60 * 15);
 }
 // }}}
 

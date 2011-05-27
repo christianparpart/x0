@@ -103,12 +103,14 @@ private:
 		std::size_t nconns = 0;
 		unsigned long long numTotalRequests = 0;
 		unsigned long long numTotalConns = 0;
+		double p1 = 0, p5 = 0, p15 = 0;
 
 		for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
 			const x0::HttpWorker *w = server().workers()[i];
 			nconns += w->connectionLoad();
 			numTotalRequests += w->requestCount();
 			numTotalConns += w->connectionCount();
+			w->fetchPerformanceCounts(&p1, &p5, &p15);
 		}
 
 		x0::Buffer buf;
@@ -154,6 +156,10 @@ private:
 		buf << "# connections: " << nconns << "\n";
 		buf << "# total requests: " << numTotalRequests << "\n";
 		buf << "# total connections: " << numTotalConns << "\n";
+		buf << "# average requests per second: ";
+		char tmp[80];
+		snprintf(tmp, sizeof(tmp), "%.2f, %.2f, %.2f", p1, p5, p15);
+		buf << ((char*)tmp) << "\n";
 		buf << "</pre>\n";
 
 		buf << "<table border='0' cellspacing='0' cellpadding='0' id='conn-table'>\n";
