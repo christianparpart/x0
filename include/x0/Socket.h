@@ -132,7 +132,8 @@ public:
 
 	void close();
 
-	struct ev_loop *loop() const;
+	struct ev_loop* loop() const;
+	void setLoop(struct ev_loop* loop);
 
 	// synchronous non-blocking I/O
 	virtual ssize_t read(Buffer& result);
@@ -279,7 +280,7 @@ inline void Socket::callback(int revents)
 		callback_(this, callbackData_, revents);
 }
 
-inline struct ev_loop *Socket::loop() const
+inline struct ev_loop* Socket::loop() const
 {
 	return loop_;
 }

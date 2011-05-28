@@ -627,4 +627,21 @@ void Socket::inspect(Buffer& out)
 		<< "\n";
 }
 
+/** associates a new loop with this socket.
+ *
+ * \note this socket must not be active (in I/O and in timer)
+ */
+void Socket::setLoop(struct ev_loop* loop)
+{
+	// the socket must not be registered to the current loop
+	assert(mode_ == None);
+	assert(!watcher_.is_active());
+	assert(!timer_.is_active());
+
+	loop_ = loop;
+
+	watcher_.set(loop);
+	timer_.set(loop);
+}
+
 } // namespace x0
