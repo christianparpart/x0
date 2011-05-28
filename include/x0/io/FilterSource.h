@@ -19,17 +19,22 @@ namespace x0 {
 //! \addtogroup io
 //@{
 
-/** Filter source.
+/** puts a filter layer infront of the actual source.
+ *
+ * A filter might e.g. compress the source, embedd each chunk into chunked-encoding
+ * or replace all FOOs with BARs.
+ *
+ * \see Source, Filter
  */
 class X0_API FilterSource :
 	public Source
 {
 public:
-	explicit FilterSource(Filter& Filter, bool force = false) :
-		buffer_(), source_(new EmptySource()), filter_(Filter), force_(force), pos_(0) {}
+	explicit FilterSource(Filter* filter, bool force = false) :
+		buffer_(), source_(new EmptySource()), filter_(filter), force_(force), pos_(0) {}
 
-	FilterSource(Source* source, Filter& Filter, bool force) :
-		buffer_(), source_(source), filter_(Filter), force_(force), pos_(0) {}
+	FilterSource(Source* source, Filter* filter, bool force) :
+		buffer_(), source_(source), filter_(filter), force_(force), pos_(0) {}
 
 	~FilterSource();
 
@@ -39,7 +44,7 @@ public:
 protected:
 	Buffer buffer_;
 	Source* source_;
-	Filter& filter_;
+	Filter* filter_;
 	bool force_;
 	size_t pos_;
 };
