@@ -93,8 +93,6 @@ Same as B<SIGTERM>.
 =item B<SIGQUIT>
 
 Graceful process shutdown (waiting for the current requests to complete).
-If the process does not shutdown within 10 seconds, it will redirect to the
-fast shutdown procedure instead.
 
 =item B<SIGHUP>
 

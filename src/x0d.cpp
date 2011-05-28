@@ -820,27 +820,9 @@ private:
 		sig.start(sig.signum);
 		ev_unref(loop_);
 
-		// install shutdown timeout handler
-		terminationTimeout_.set<XzeroHttpDaemon, &XzeroHttpDaemon::gracefulShutdownTimeout>(this);
-		terminationTimeout_.start(10, 0);
-		ev_unref(loop_);
-
 		// initiate graceful server-stop
 		server_->maxKeepAlive = x0::TimeSpan::Zero;
 		server_->stop();
-	}
-
-	void gracefulShutdownTimeout(ev::timer&, int)
-	{
-		log(x0::Severity::warn, "Graceful shutdown timed out. Killing active connections.");
-
-		ev_ref(loop_);
-		terminationTimeout_.stop();
-		terminationTimeout_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownTimeout>(this);
-		terminationTimeout_.start(10, 0);
-		ev_unref(loop_);
-
-		server_->kill();
 	}
 
 	// stage-2 termination handler
