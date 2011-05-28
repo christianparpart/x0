@@ -150,8 +150,8 @@ Example 1:
 
 Example 2:
  handler setup {
-    # ... (use 4 workers, each bound to its own distinct processor)
-	workers [0, 1, 2, 3];
+     # ... (use 4 workers, each bound to its own distinct processor)
+     workers [0, 1, 2, 3];
  }
 
 =item B<mimetypes> (path)
