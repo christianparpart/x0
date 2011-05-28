@@ -25,6 +25,146 @@ namespace x0 {
 #	define TRACE(msg...) ((void *)0)
 #endif
 
+// {{{ helpers for finding x0d-inherited file descriptors
+
+// EnvvarFormat ::= [PID ':'] (ListenFD *(';' ListenFD))
+// ListenFD     ::= InetFD | UnixFD
+// InetFD		::= ADDRESS ':' PORT ':' FD
+// UnixFD		::= PATH ':' FD
+//
+// PID          ::= NUMBER
+// NUMBER		::= [0-9]+
+// ADDRESS		::= <an IPv4 or IPv6 address>
+// PORT			::= NUMBER
+// PATH			::= <a UNIX local path>
+// FD			::= NUMBER
+// 
+// the PID part is not yet supported
+
+#define X0_LISTEN_FDS "X0_LISTEN_FDS"
+
+static int validateSocket(int fd)
+{
+	struct stat st;
+	if (fstat(fd, &st) < 0)
+		return -errno;
+
+	if (!S_ISSOCK(st.st_mode))
+		return -(errno = ENOTSOCK);
+
+	return 0;
+}
+
+/** retrieves the full list of file descriptors passed to us by a parent x0d process.
+ */
+std::vector<int> ServerSocket::getInheritedSocketList()
+{
+	std::vector<int> list;
+
+	char* e = getenv(X0_LISTEN_FDS);
+	if (!e)
+		return list;
+
+	e = strdup(e);
+
+	char* s1 = nullptr;
+	while (char* token = strtok_r(e, ";", &s1)) {
+		e = nullptr;
+
+		char* s2 = nullptr;
+
+		strtok_r(token, ",", &s2); // IPv4/IPv6 address, if tcp socket, local path otherwise
+		char* vival1 = strtok_r(nullptr, ",", &s2); // fd, or tcp port, if tcp socket
+		char* vival2 = strtok_r(nullptr, ",", &s2); // fd, if unix domain socket
+
+		if (vival2) {
+			list.push_back(atoi(vival2));
+		} else {
+			list.push_back(atoi(vival1));
+		}
+	}
+
+	free(e);
+	return list;
+}
+
+static int getSocketInet(const char* address, int port)
+{
+	char* e = getenv(X0_LISTEN_FDS);
+	if (!e)
+		return -1;
+
+	int fd = -1;
+	e = strdup(e);
+
+	char* s1 = nullptr;
+	while (char* token = strtok_r(e, ";", &s1)) {
+		e = nullptr;
+
+		char* s2 = nullptr;
+
+		char* vaddr = strtok_r(token, ",", &s2);
+		if (strcmp(vaddr, address) != 0)
+			continue;
+
+		char* vport = strtok_r(nullptr, ",", &s2);
+		if (atoi(vport) != port)
+			continue;
+
+		char* vfd = strtok_r(nullptr, ",", &s2);
+
+		fd = atoi(vfd);
+		if (validateSocket(fd) < 0)
+			goto err;
+
+		goto done;
+	}
+
+err:
+	fd = -1;
+
+done:
+	free(e);
+	return fd;
+}
+
+static int getSocketUnix(const char *path)
+{
+	char* e = getenv(X0_LISTEN_FDS);
+	if (!e)
+		return -1;
+
+	int fd = -1;
+	e = strdup(e);
+
+	char* s1 = nullptr;
+	while (char* token = strtok_r(e, ";", &s1)) {
+		e = nullptr;
+
+		char* s2 = nullptr;
+
+		char* vaddr = strtok_r(token, ",", &s2);
+		if (strcmp(vaddr, path) != 0)
+			continue;
+
+		char* vfd = strtok_r(nullptr, ",", &s2);
+
+		fd = atoi(vfd);
+		if (validateSocket(fd) < 0)
+			goto err;
+
+		goto done;
+	}
+
+err:
+	fd = -1;
+
+done:
+	free(e);
+	return fd;
+}
+// }}}
+
 /*!
  * \addtogroup base
  * \class ServerSocket
@@ -163,18 +303,29 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 	}
 
 	typeMask_ = 0;
+	flags_ = flags;
 
 	if (flags & O_CLOEXEC) {
-		flags &= ~O_CLOEXEC;
+		flags_ &= ~O_CLOEXEC;
 		typeMask_ |= SOCK_CLOEXEC;
 	}
 
 	if (flags & O_NONBLOCK) {
-		flags &= ~O_NONBLOCK;
+		flags_ &= ~O_NONBLOCK;
 		typeMask_ |= SOCK_NONBLOCK;
 	}
 
-	flags_ = flags;
+	// check if passed by parent x0d first
+	for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next) {
+		if ((fd = x0::getSocketInet(address.c_str(), port)) >= 0) {
+			// socket found, but ensure our expected `flags` are set.
+			if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
+				goto syserr;
+			} else {
+				goto done;
+			}
+		}
+	}
 
 	// check if systemd created the socket for us
 	if (sd_fd_count > 0) {
@@ -202,11 +353,11 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 
 	// create socket manually
 	for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next) {
-		fd = socket(res->ai_family, res->ai_socktype | typeMask_, res->ai_protocol);
+		fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (fd < 0)
 			goto syserr;
 
-		if (flags_ && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags_) < 0)
+		if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0)
 			goto syserr;
 
 		rc = 1;
@@ -280,26 +431,35 @@ bool ServerSocket::open(const std::string& path, int flags)
 
 	int fd = -1;
 	size_t addrlen;
+	int sd_fd_count = sd_listen_fds(false);
 
 	typeMask_ = 0;
+	flags_ = flags;
 
 	if (flags & O_CLOEXEC) {
-		flags &= ~O_CLOEXEC;
+		flags_ &= ~O_CLOEXEC;
 		typeMask_ |= SOCK_CLOEXEC;
 	}
 
 	if (flags & O_NONBLOCK) {
-		flags &= ~O_NONBLOCK;
+		flags_ &= ~O_NONBLOCK;
 		typeMask_ |= SOCK_NONBLOCK;
 	}
 
-	flags_ = flags;
+	// check if passed by parent x0d first
+	if ((fd = x0::getSocketUnix(path.c_str())) >= 0) {
+		// socket found, but ensure our expected `flags` are set.
+		if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
+			goto syserr;
+		} else {
+			goto done;
+		}
+	}
 
 	// check if systemd created the socket for us
-	int count = sd_listen_fds(false);
-	if (count > 0) {
+	if (sd_fd_count > 0) {
 		fd = SD_LISTEN_FDS_START;
-		int last = fd + count;
+		int last = fd + sd_fd_count;
 
 		for (; fd < last; ++fd) {
 			if (sd_is_socket_unix(fd, AF_UNIX, SOCK_STREAM, path.c_str(), path.size()) > 0) {
@@ -317,11 +477,11 @@ bool ServerSocket::open(const std::string& path, int flags)
 	}
 
 	// create socket manually
-	fd = ::socket(PF_UNIX, SOCK_STREAM | typeMask_, 0);
+	fd = ::socket(PF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0)
 		goto syserr;
 
-	if (flags_ && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags_) < 0)
+	if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0)
 		goto syserr;
 
 	struct sockaddr_un addr;
@@ -474,20 +634,53 @@ done:
 	callback_(cs, this);
 }
 
-/** enables/disables flags on the server listener socket.
+/** enables/disables CLOEXEC-flag on the server listener socket.
  *
  * \note this does not affect future client socket flags.
  */
-bool ServerSocket::setFlags(unsigned flags, bool enable)
+bool ServerSocket::setCloseOnExec(bool enable)
 {
-	flags = enable
-		? fcntl(fd_, F_GETFL) | flags
-		: fcntl(fd_, F_GETFL) & ~flags;
+	unsigned flags = enable
+		? fcntl(fd_, F_GETFD) | FD_CLOEXEC
+		: fcntl(fd_, F_GETFD) & ~FD_CLOEXEC;
+
+	if (fcntl(fd_, F_SETFD, flags) < 0)
+		return false;
+
+	return true;
+}
+
+bool ServerSocket::isCloseOnExec() const
+{
+	return fcntl(fd_, F_GETFD) & FD_CLOEXEC;
+}
+
+bool ServerSocket::setNonBlocking(bool enable)
+{
+	unsigned flags = enable
+		? fcntl(fd_, F_GETFL) | O_NONBLOCK 
+		: fcntl(fd_, F_GETFL) & ~O_NONBLOCK;
 
 	if (fcntl(fd_, F_SETFL, flags) < 0)
 		return false;
 
 	return true;
+}
+
+bool ServerSocket::isNonBlocking() const
+{
+	return fcntl(fd_, F_GETFL) & O_NONBLOCK;
+}
+
+std::string ServerSocket::serialize() const
+{
+	char buf[1024];
+
+	size_t n = !isLocal()
+		? snprintf(buf, sizeof(buf), "%s,%d,%d", address_.c_str(), port_, fd_)
+		: snprintf(buf, sizeof(buf), "%s,%d",    address_.c_str(), fd_);
+
+	return std::string(buf, n);
 }
 
 } // namespace x0

@@ -458,6 +458,8 @@ public:
 			::kill(getppid(), SIGQUIT);
 		}
 
+		unsetenv("X0_LISTEN_FDS");
+
 		int rv = server_->run();
 
 		if (!systemd_ && !pidfile_.empty())
@@ -672,13 +674,21 @@ private:
 			worker->suspend();
 		}
 
+		x0::Buffer serializedListeners;
+
 		for (x0::HttpListener* listener: server_->listeners()) {
 			// stop accepting new connections
 			listener->stop();
 
 			// and clear O_CLOEXEC on listener socket, as we want to probably resume these listeners in the child process
-			listener->socket().setFlags(O_CLOEXEC, false);
+			listener->socket().setCloseOnExec(false);
+
+			serializedListeners.push_back(listener->socket().serialize());
+			serializedListeners.push_back(';');
 		}
+
+		server_->log(x0::Severity::debug, "Setting envvar X0_LISTEN_FDS to: '%s'", serializedListeners.c_str());
+		setenv("X0_LISTEN_FDS", serializedListeners.c_str(), true);
 
 		// prepare environment for new binary
 		char sgen[20];
@@ -706,8 +716,6 @@ private:
 		switch (childPid) {
 			case 0:
 				// in child
-				for (auto listener: server_->listeners())
-					listener->socket().setFlags(O_CLOEXEC, true);
 				execve(argv_[0], (char**)args.data(), environ);
 				server_->log(x0::Severity::error, "Executing new child process failed: %s", strerror(errno));
 				abort();
@@ -727,10 +735,10 @@ private:
 				break;
 		}
 
-		// continue running the current process
+		// continue running the the process (with listeners disabled)
 		server_->log(x0::Severity::debug, "Setting O_CLOEXEC on listener sockets");
 		for (auto listener: server_->listeners()) {
-			listener->socket().setFlags(O_CLOEXEC, true);
+			listener->socket().setCloseOnExec(true);
 		}
 	}
 
@@ -751,7 +759,7 @@ private:
 		server_->log(x0::Severity::debug, "Reactivating listeners.");
 		for (x0::HttpListener* listener: server_->listeners()) {
 			// reenable O_CLOEXEC on listener socket
-			listener->socket().setFlags(O_CLOEXEC, true);
+			listener->socket().setCloseOnExec(true);
 
 			// start accepting new connections
 			listener->start();

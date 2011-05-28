@@ -5,6 +5,7 @@
 #include <x0/Defines.h>
 #include <x0/Logging.h>
 #include <string>
+#include <vector>
 #include <ev++.h>
 #include <sys/socket.h> // for isLocal() and isTcp()
 
@@ -58,7 +59,11 @@ public:
 	bool isLocal() const { return addressFamily_ == AF_UNIX; }
 	bool isTcp() const { return addressFamily_ == AF_INET || addressFamily_ == AF_INET6; }
 
-	bool setFlags(unsigned flags, bool enable);
+	bool isCloseOnExec() const;
+	bool setCloseOnExec(bool enable);
+
+	bool isNonBlocking() const;
+	bool setNonBlocking(bool enable);
 
 	void setSocketDriver(SocketDriver* sd);
 	SocketDriver* socketDriver() { return socketDriver_; }
@@ -71,6 +76,9 @@ public:
 
 	const std::string& address() const { return address_; }
 	int port() const { return port_; }
+
+	std::string serialize() const;
+	static std::vector<int> getInheritedSocketList();
 
 private:
 	template<typename K, void (K::*cb)(Socket*, ServerSocket*)>
