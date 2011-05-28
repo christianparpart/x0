@@ -803,6 +803,10 @@ private:
 	{
 		log(x0::Severity::info, "%s received. Shutting down gracefully.", sig2str(sig.signum).c_str());
 
+		for (x0::HttpListener* listener: server_->listeners()) {
+			listener->socket().close();
+		}
+
 		if (child_.is_active()) {
 			child_.stop();
 
