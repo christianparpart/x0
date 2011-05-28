@@ -55,8 +55,6 @@ public:
 	};
 
 private:
-	enum edit_mode_t { EDIT_ALL, EDIT_NO_RESIZE, EDIT_NOTHING };
-
 	friend class BufferRef;
 
 protected:
