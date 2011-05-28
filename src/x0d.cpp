@@ -86,6 +86,7 @@ public:
 		hupSignal_(loop_),
 		terminationTimeout_(loop_)
 	{
+		sd_notify(0, "STATUS=Initializing");
 		x0::FlowRunner::initialize();
 
 #ifndef NDEBUG
@@ -453,12 +454,29 @@ public:
 		if (!server_->start())
 			return -1;
 
-		if (server_->generation() > 1) {
-			// we got up very well, so let the parent gracefully shutdown.
-			::kill(getppid(), SIGQUIT);
-		}
-
 		unsetenv("XZERO_LISTEN_FDS");
+
+		if (server_->generation() > 1) {
+			// we have been invoked by x0d itself, e.g. a executable upgrade and/or
+			// configuration reload.
+			// Tell the parent-x0d to shutdown gracefully.
+			::kill(getppid(), SIGQUIT);
+
+			sd_notifyf(0,
+				"MAINPID=%d\n"
+				"STATUS=Accepting requests ...\n"
+				"RELOADED=1\n",
+				getpid()
+			);
+		} else {
+			// we have been started up directoy (e.g. by systemd)
+			sd_notifyf(0,
+				"MAINPID=%d\n"
+				"STATUS=Accepting requests ...\n"
+				"READY=1\n",
+				getpid()
+			);
+		}
 
 		int rv = server_->run();
 
@@ -815,6 +833,8 @@ private:
 					worker->resume();
 				}
 			}
+		} else {
+			sd_notify(0, "STATUS=Shutting down gracefully.");
 		}
 
 		// upgrade signal-handler to quick shutdown, in case it's sent again
@@ -833,6 +853,11 @@ private:
 	void quickShutdownHandler(ev::sig& sig, int)
 	{
 		log(x0::Severity::info, "%s received. shutting down NOW.", sig2str(sig.signum).c_str());
+
+		if (!child_.pid) {
+			// we are no garbage parent process
+			sd_notify(0, "STATUS=Shutting down.");
+		}
 
 		// default to standard signal-handler
 		ev_ref(loop_);

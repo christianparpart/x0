@@ -141,8 +141,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
 
 	registerPlugin(core_ = new HttpCore(*this));
-
-	sd_notify(0, "STATUS=Initialized");
 }
 
 HttpServer::~HttpServer()
@@ -225,7 +223,6 @@ bool HttpServer::validateConfig()
 bool HttpServer::setup(std::istream *settings, const std::string& filename)
 {
 	TRACE("setup(%s)", filename.c_str());
-	sd_notify(0, "STATUS=Setting up");
 
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
 	if (!runner_->open(filename)) {
@@ -324,12 +321,10 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	}
 	// }}}
 
-	sd_notify(0, "STATUS=Setup done");
 	TRACE("setup: done.");
 	return true;
 
 err:
-	sd_notify(0, "STATUS=Setup failed");
 	return false;
 }
 
@@ -478,9 +473,6 @@ bool HttpServer::active() const
  */
 int HttpServer::run()
 {
-	sd_notify(0, "READY=1\n"
-				 "STATUS=Accepting requests ...");
-
 	while (active_)
 	{
 		workers_.front()->run();
@@ -508,7 +500,6 @@ void HttpServer::stop()
 {
 	if (active_)
 	{
-		sd_notify(0, "STATUS=Stopping ...");
 		active_ = false;
 
 		for (auto listener: listeners_)
