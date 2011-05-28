@@ -878,17 +878,6 @@ associated handler is invoked to continue request processing.
 
 =back
 
-=head1 ENVIRONMENT VARIABLES
-
-=over 3
-
-=item B<XZERO_DEBUG>
-
-Defines a colon-separated list of C++ classes to print debugging information for.
-This environment variable is only evaluated when compiled with debug information.
-
-=back
-
 =head1 BUGS
 
 Whilst I do not know of anything critical (they get fixed the time I find them),

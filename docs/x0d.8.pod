@@ -118,6 +118,29 @@ Reopen all log files (for logfile rotation) (TODO)
 
 =back
 
+=head1 ENVIRONMENT VARIABLES
+
+=over 3
+
+=item B<XZERO_DEBUG>
+
+Defines a colon-separated list of C++ classes to print debugging information for.
+This environment variable is only evaluated when compiled with debug information.
+
+=item B<XZERO_LISTEN_FDS>
+
+Defines a list of listener sockets being passed by the parent process to B<x0d> to
+resume resume listening on them.
+
+The passed file descriptrs will be closed if there is no corresponding 
+configuration entry in the configuration file.
+
+The format is (currently) a semicon-seperated list of socket specifications.
+A socket speicfication is a comma-seperated list of tokens, e.g. "address,port,fd"
+for TCP/IPv4 and TCP/IPv6 sockets or "path,fd" for UNIX domain sockets."
+
+=back
+
 =head1 HISTORY
 
 The B<x0>-software development has been started in May 2009

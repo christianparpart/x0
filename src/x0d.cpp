@@ -458,7 +458,7 @@ public:
 			::kill(getppid(), SIGQUIT);
 		}
 
-		unsetenv("X0_LISTEN_FDS");
+		unsetenv("XZERO_LISTEN_FDS");
 
 		int rv = server_->run();
 
@@ -687,8 +687,8 @@ private:
 			serializedListeners.push_back(';');
 		}
 
-		server_->log(x0::Severity::debug, "Setting envvar X0_LISTEN_FDS to: '%s'", serializedListeners.c_str());
-		setenv("X0_LISTEN_FDS", serializedListeners.c_str(), true);
+		server_->log(x0::Severity::debug, "Setting envvar XZERO_LISTEN_FDS to: '%s'", serializedListeners.c_str());
+		setenv("XZERO_LISTEN_FDS", serializedListeners.c_str(), true);
 
 		// prepare environment for new binary
 		char sgen[20];

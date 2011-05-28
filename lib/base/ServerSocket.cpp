@@ -41,7 +41,7 @@ namespace x0 {
 // 
 // the PID part is not yet supported
 
-#define X0_LISTEN_FDS "X0_LISTEN_FDS"
+#define X0_LISTEN_FDS "XZERO_LISTEN_FDS"
 
 static int validateSocket(int fd)
 {
