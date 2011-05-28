@@ -228,15 +228,14 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 	}
 
 done:
-	io_.set<ServerSocket, &ServerSocket::accept>(this);
-	io_.set(fd, ev::READ);
-	io_.start();
-
 	fd_ = fd;
 	addressFamily_ = res->ai_family;
 	freeaddrinfo(res);
 	address_ = address;
 	port_ = port;
+
+	io_.set<ServerSocket, &ServerSocket::accept>(this);
+	start();
 
 	return true;
 
@@ -331,14 +330,14 @@ bool ServerSocket::open(const std::string& path, int flags)
 	}
 
 done:
-	io_.set<ServerSocket, &ServerSocket::accept>(this);
-	io_.set(fd, ev::READ);
-	io_.start();
-
 	fd_ = fd;
 	addressFamily_ = AF_UNIX;
 	address_ = path;
 	port_ = 0;
+
+	io_.set<ServerSocket, &ServerSocket::accept>(this);
+	start();
+
 	return true;
 
 syserr:
@@ -362,6 +361,17 @@ bool ServerSocket::open(const SocketSpec& spec, int flags)
 		return open(spec.address.str(), spec.port, flags);
 }
 
+void ServerSocket::start()
+{
+	io_.set(fd_, ev::READ);
+	io_.start();
+}
+
+void ServerSocket::stop()
+{
+	io_.stop();
+}
+
 /*! stops listening and closes the server socket.
  *
  * \see open()
@@ -371,10 +381,11 @@ void ServerSocket::close()
 	if (fd_ < 0)
 		return;
 
+	stop();
+
 	if (addressFamily_ == AF_UNIX)
 		unlink(address_.c_str());
 
-	io_.stop();
 	::close(fd_);
 	fd_ = -1;
 }

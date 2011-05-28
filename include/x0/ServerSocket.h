@@ -45,6 +45,9 @@ public:
 	bool open(const SocketSpec& spec, int flags);
 	int handle() const { return fd_; }
 	bool isOpen() const { return fd_ >= 0; }
+	bool isStarted() const { return io_.is_active(); }
+	void start();
+	void stop();
 	void close();
 
 	int addressFamily() const { return addressFamily_; }
