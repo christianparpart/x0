@@ -41,10 +41,21 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <limits.h>
+
+#if defined(__linux__)
+#include <mqueue.h>
+#endif
 
 #include "sd-daemon.h"
 
-int sd_listen_fds(int unset_environment) {
+#if (__GNUC__ >= 4) && !defined(SD_EXPORT_SYMBOLS)
+#define _sd_hidden_ __attribute__ ((visibility("hidden")))
+#else
+#define _sd_hidden_
+#endif
+
+_sd_hidden_ int sd_listen_fds(int unset_environment) {
 
 #if defined(DISABLE_SYSTEMD) || !defined(__linux__)
         return 0;
@@ -125,7 +136,7 @@ finish:
 #endif
 }
 
-int sd_is_fifo(int fd, const char *path) {
+_sd_hidden_ int sd_is_fifo(int fd, const char *path) {
         struct stat st_fd;
 
         if (fd < 0)
@@ -209,7 +220,7 @@ union sockaddr_union {
         struct sockaddr_storage storage;
 };
 
-int sd_is_socket(int fd, int family, int type, int listening) {
+_sd_hidden_ int sd_is_socket(int fd, int family, int type, int listening) {
         int r;
 
         if (family < 0)
@@ -237,7 +248,7 @@ int sd_is_socket(int fd, int family, int type, int listening) {
         return 1;
 }
 
-int sd_is_socket_inet(int fd, int family, int type, int listening, uint16_t port) {
+_sd_hidden_ int sd_is_socket_inet(int fd, int family, int type, int listening, uint16_t port) {
         union sockaddr_union sockaddr;
         socklen_t l;
         int r;
@@ -282,7 +293,7 @@ int sd_is_socket_inet(int fd, int family, int type, int listening, uint16_t port
         return 1;
 }
 
-int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t length) {
+_sd_hidden_ int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t length) {
         union sockaddr_union sockaddr;
         socklen_t l;
         int r;
@@ -325,7 +336,44 @@ int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t 
         return 1;
 }
 
-int sd_notify(int unset_environment, const char *state) {
+_sd_hidden_ int sd_is_mq(int fd, const char *path) {
+#if !defined(__linux__)
+        return 0;
+#else
+        struct mq_attr attr;
+
+        if (fd < 0)
+                return -EINVAL;
+
+        if (mq_getattr(fd, &attr) < 0)
+                return -errno;
+
+        if (path) {
+                char fpath[PATH_MAX];
+                struct stat a, b;
+
+                if (path[0] != '/')
+                        return -EINVAL;
+
+                if (fstat(fd, &a) < 0)
+                        return -errno;
+
+                strncpy(stpcpy(fpath, "/dev/mqueue"), path, sizeof(fpath) - 12);
+                fpath[sizeof(fpath)-1] = 0;
+
+                if (stat(fpath, &b) < 0)
+                        return -errno;
+
+                if (a.st_dev != b.st_dev ||
+                    a.st_ino != b.st_ino)
+                        return 0;
+        }
+
+        return 1;
+#endif
+}
+
+_sd_hidden_ int sd_notify(int unset_environment, const char *state) {
 #if defined(DISABLE_SYSTEMD) || !defined(__linux__) || !defined(SOCK_CLOEXEC)
         return 0;
 #else
@@ -393,7 +441,7 @@ finish:
 #endif
 }
 
-int sd_notifyf(int unset_environment, const char *format, ...) {
+_sd_hidden_ int sd_notifyf(int unset_environment, const char *format, ...) {
 #if defined(DISABLE_SYSTEMD) || !defined(__linux__)
         return 0;
 #else
@@ -415,7 +463,7 @@ int sd_notifyf(int unset_environment, const char *format, ...) {
 #endif
 }
 
-int sd_booted(void) {
+_sd_hidden_ int sd_booted(void) {
 #if defined(DISABLE_SYSTEMD) || !defined(__linux__)
         return 0;
 #else
@@ -432,16 +480,5 @@ int sd_booted(void) {
                 return 0;
 
         return a.st_dev != b.st_dev;
-#endif
-}
-
-int sd_controlled(void) {
-#if defined(DISABLE_SYSTEMD) || !defined(__linux__)
-        return 0;
-#else
-		if (getppid() == 1)
-			return 1;
-
-		return 0;
 #endif
 }

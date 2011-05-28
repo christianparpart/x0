@@ -75,14 +75,6 @@ extern "C" {
 #endif
 #endif
 
-#ifndef _sd_hidden_
-#if (__GNUC__ >= 4) && !defined(SD_EXPORT_SYMBOLS)
-#define _sd_hidden_ __attribute__ ((visibility("hidden")))
-#else
-#define _sd_hidden_
-#endif
-#endif
-
 /*
   Log levels for usage on stderr:
 
@@ -117,7 +109,7 @@ extern "C" {
 
   See sd_listen_fds(3) for more information.
 */
-int sd_listen_fds(int unset_environment) _sd_hidden_;
+int sd_listen_fds(int unset_environment);
 
 /*
   Helper call for identifying a passed file descriptor. Returns 1 if
@@ -129,7 +121,7 @@ int sd_listen_fds(int unset_environment) _sd_hidden_;
 
   See sd_is_fifo(3) for more information.
 */
-int sd_is_fifo(int fd, const char *path) _sd_hidden_;
+int sd_is_fifo(int fd, const char *path);
 
 /*
   Helper call for identifying a passed file descriptor. Returns 1 if
@@ -145,7 +137,7 @@ int sd_is_fifo(int fd, const char *path) _sd_hidden_;
 
   See sd_is_socket(3) for more information.
 */
-int sd_is_socket(int fd, int family, int type, int listening) _sd_hidden_;
+int sd_is_socket(int fd, int family, int type, int listening);
 
 /*
   Helper call for identifying a passed file descriptor. Returns 1 if
@@ -159,7 +151,7 @@ int sd_is_socket(int fd, int family, int type, int listening) _sd_hidden_;
 
   See sd_is_socket_inet(3) for more information.
 */
-int sd_is_socket_inet(int fd, int family, int type, int listening, uint16_t port) _sd_hidden_;
+int sd_is_socket_inet(int fd, int family, int type, int listening, uint16_t port);
 
 /*
   Helper call for identifying a passed file descriptor. Returns 1 if
@@ -175,7 +167,15 @@ int sd_is_socket_inet(int fd, int family, int type, int listening, uint16_t port
 
   See sd_is_socket_unix(3) for more information.
 */
-int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t length) _sd_hidden_;
+int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t length);
+
+/*
+  Helper call for identifying a passed file descriptor. Returns 1 if
+  the file descriptor is a POSIX Message Queue of the specified name,
+  0 otherwise. If path is NULL a message queue name check is not
+  done. Returns a negative errno style error code on failure.
+*/
+int sd_is_mq(int fd, const char *path);
 
 /*
   Informs systemd about changed daemon state. This takes a number of
@@ -185,7 +185,7 @@ int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t 
      READY=1      Tells systemd that daemon startup is finished (only
                   relevant for services of Type=notify). The passed
                   argument is a boolean "1" or "0". Since there is
-                  little value in signalling non-readiness the only
+                  little value in signaling non-readiness the only
                   value daemons should send is "READY=1".
 
      STATUS=...   Passes a single-line status string back to systemd
@@ -206,7 +206,7 @@ int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t 
                   fork off the process itself. Example: "MAINPID=4711"
 
   Daemons can choose to send additional variables. However, it is
-  recommened to prefix variable names not listed above with X_.
+  recommended to prefix variable names not listed above with X_.
 
   Returns a negative errno-style error code on failure. Returns > 0
   if systemd could be notified, 0 if it couldn't possibly because
@@ -221,7 +221,7 @@ int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t 
 
   See sd_notify(3) for more information.
 */
-int sd_notify(int unset_environment, const char *state) _sd_hidden_;
+int sd_notify(int unset_environment, const char *state);
 
 /*
   Similar to sd_notify() but takes a format string.
@@ -243,7 +243,7 @@ int sd_notify(int unset_environment, const char *state) _sd_hidden_;
 
   See sd_notifyf(3) for more information.
 */
-int sd_notifyf(int unset_environment, const char *format, ...) _sd_printf_attr_(2,3) _sd_hidden_;
+int sd_notifyf(int unset_environment, const char *format, ...) _sd_printf_attr_(2,3);
 
 /*
   Returns > 0 if the system was booted with systemd. Returns < 0 on
@@ -256,13 +256,7 @@ int sd_notifyf(int unset_environment, const char *format, ...) _sd_printf_attr_(
 
   See sd_booted(3) for more information.
 */
-int sd_booted(void) _sd_hidden_;
-
-/*
-  Returns != 0 (true) if the program is controlled, and though
-  is spawned by, systemd. Returns == 0 (false) otherwise.
-*/
-int sd_controlled(void) _sd_hidden_;
+int sd_booted(void);
 
 #ifdef __cplusplus
 }
