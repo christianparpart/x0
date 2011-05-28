@@ -37,6 +37,8 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	thread_(0),
 	queue_(),
 	queueLock_(),
+	resumeLock_(),
+	resumeCondition_(),
 	performanceCounter_(),
 	connections_(),
 	evLoopCheck_(loop_),
@@ -53,6 +55,9 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 
 	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
 
+	pthread_mutex_init(&resumeLock_, nullptr);
+	pthread_cond_init(&resumeCondition_, nullptr);
+
 	TRACE("spawned");
 }
 
@@ -61,6 +66,10 @@ HttpWorker::~HttpWorker()
 	TRACE("destroying");
 
 	clearCustomData();
+
+	pthread_cond_destroy(&resumeCondition_);
+	pthread_mutex_destroy(&resumeLock_);
+
 	pthread_spin_destroy(&queueLock_);
 
 	if (evLoopCheck_.is_active()) {
@@ -204,6 +213,31 @@ void HttpWorker::setAffinity(int cpu)
 	if (rv < 0) {
 		log(Severity::error, "setAffinity(%d) failed: %s", cpu, strerror(errno));
 	}
+}
+
+/** suspend the execution of the worker thread until resume() is invoked.
+ *
+ * \see resume()
+ */
+void HttpWorker::suspend()
+{
+	post<HttpWorker, &HttpWorker::_suspend>(this);
+}
+
+void HttpWorker::_suspend()
+{
+	pthread_mutex_lock(&resumeLock_);
+	pthread_cond_wait(&resumeCondition_, &resumeLock_);
+	pthread_mutex_unlock(&resumeLock_);
+}
+
+/** resumes the previousely suspended worker thread.
+ *
+ * \see suspend()
+ */
+void HttpWorker::resume()
+{
+	pthread_cond_signal(&resumeCondition_);
 }
 
 void HttpWorker::stop()

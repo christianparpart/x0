@@ -68,6 +68,9 @@ private:
 	std::deque<std::pair<Socket*, HttpListener *> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
+	pthread_mutex_t resumeLock_;
+	pthread_cond_t resumeCondition_;
+
 	PerformanceCounter<15 * 60> performanceCounter_;
 
 	HttpConnectionList connections_;
@@ -122,7 +125,10 @@ public:
 	void stop();
 	void kill();
 
-protected:
+	void suspend();
+	void resume();
+
+private:
 	template<class K, void (K::*fn)()>
 	static void post_thunk(int revents, void* arg);
 
@@ -133,6 +139,7 @@ protected:
 	void spawnConnection(Socket* client, HttpListener* listener);
 	void _stop();
 	void _kill();
+	void _suspend();
 };
 //@}
 

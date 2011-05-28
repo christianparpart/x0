@@ -76,10 +76,16 @@ bool HttpListener::open(const std::string& address, int port)
 	return false;
 }
 
+void HttpListener::start()
+{
+	TRACE("starting");
+	socket_.start();
+}
+
 void HttpListener::stop()
 {
 	TRACE("stopping");
-	socket_.close();
+	socket_.stop();
 }
 
 void HttpListener::callback(Socket* cs, ServerSocket*)
