@@ -878,6 +878,32 @@ associated handler is invoked to continue request processing.
 
 =back
 
+=head1 IDN - INTERNATIONALIZED DOMAIN NAMES
+
+Making B<x0d> IDN-ready is totally up to the system administrator,
+as server applications, ideally, do not need to care anything about IDN at all.
+
+To configure an IDN-enabled virtual host, all you need to do, is, to
+use the right encoding for the domain name.
+
+A very abstract example would look like this:
+
+ handler setup {
+     # ....
+     vhost.mapping 'æøå.de' => my_idnish_hp
+ }
+
+ handler main {
+     # ...
+     vhost.map
+ }
+
+ # vhost handler for the domain: æøå.de
+ handler my_idnish_hp {
+     docroot '/srv/www/my_idnish_hp/htdocs'
+     staticfile
+ }
+
 =head1 BUGS
 
 Whilst I do not know of anything critical (they get fixed the time I find them),
