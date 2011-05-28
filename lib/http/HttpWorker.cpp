@@ -27,6 +27,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 #endif
 	CustomDataMgr(),
 	id_(idpool_++),
+	state_(Inactive),
 	server_(server),
 	loop_(loop),
 	startupTime_(ev_now(loop_)),
@@ -85,6 +86,8 @@ HttpWorker::~HttpWorker()
 
 void HttpWorker::run()
 {
+	state_ = Running;
+
 	// XXX invoke onWorkerSpawned-hook here because we want to ensure this hook is 
 	// XXX being invoked from *within* the worker-thread.
 	server_.onWorkerSpawn(this);
@@ -97,6 +100,8 @@ void HttpWorker::run()
 		_kill();
 
 	server_.onWorkerUnspawn(this);
+
+	state_ = Inactive;
 }
 
 void HttpWorker::log(Severity s, const char *fmt, ...)
@@ -217,27 +222,37 @@ void HttpWorker::setAffinity(int cpu)
 
 /** suspend the execution of the worker thread until resume() is invoked.
  *
+ * \note has no effect on main worker
  * \see resume()
  */
 void HttpWorker::suspend()
 {
-	post<HttpWorker, &HttpWorker::_suspend>(this);
+	TRACE("suspend");
+
+	if (id_ != 0)
+		post<HttpWorker, &HttpWorker::_suspend>(this);
 }
 
 void HttpWorker::_suspend()
 {
+	TRACE("_suspend");
 	pthread_mutex_lock(&resumeLock_);
+	state_ = Suspended;
 	pthread_cond_wait(&resumeCondition_, &resumeLock_);
+	state_ = Running;
 	pthread_mutex_unlock(&resumeLock_);
 }
 
 /** resumes the previousely suspended worker thread.
  *
+ * \note has no effect on main worker
  * \see suspend()
  */
 void HttpWorker::resume()
 {
-	pthread_cond_signal(&resumeCondition_);
+	TRACE("resume");
+	if (id_ != 0)
+		pthread_cond_signal(&resumeCondition_);
 }
 
 void HttpWorker::stop()

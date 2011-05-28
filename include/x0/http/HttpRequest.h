@@ -457,7 +457,7 @@ inline void HttpRequest::write(Source* chunk)
 			if (outputFilters.empty())
 				connection.write(chunk);
 			else
-				connection.write<FilterSource>(chunk, outputFilters, false);
+				connection.write<FilterSource>(chunk, &outputFilters, false);
 			break;
 		case Finished:
 			assert(0 && "BUG");

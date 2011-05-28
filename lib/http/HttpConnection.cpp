@@ -768,4 +768,5 @@ void HttpConnection::setShouldKeepAlive(bool enabled)
 	else
 		flags_ &= ~IsKeepAliveEnabled;
 }
+
 } // namespace x0

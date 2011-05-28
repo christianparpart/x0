@@ -1,6 +1,7 @@
 #ifndef x0_http_HttpWorker_h
 #define x0_http_HttpWorker_h (1)
 
+#include <x0/Api.h>
 #include <x0/http/Types.h>
 #include <x0/io/FileInfoService.h>
 #include <x0/CustomDataMgr.h>
@@ -40,7 +41,7 @@ class HttpConnection;
  *
  * \see HttpServer, CustomDataMgr
  */
-class HttpWorker :
+class X0_API HttpWorker :
 #ifndef NDEBUG
 	public Logging,
 #endif
@@ -48,15 +49,16 @@ class HttpWorker :
 {
 public:
 	enum State {
-		Active,
 		Inactive,
-		Exiting
+		Running,
+		Suspended
 	};
 
 private:
 	static unsigned idpool_;
 
 	unsigned id_;
+	State state_;
 	HttpServer& server_;
 	struct ev_loop *loop_;
 	ev_tstamp startupTime_;
@@ -100,7 +102,10 @@ public:
 	unsigned id() const;
 	struct ev_loop *loop() const;
 	HttpServer& server() const;
-	State state() const;
+
+	bool isInactive() const { return state_ == Inactive; }
+	bool isRunning() const { return state_ == Running; }
+	bool isSuspended() const { return state_ == Suspended; }
 
 	HttpConnectionList& connections() { return connections_; }
 	const HttpConnectionList& connections() const { return connections_; }

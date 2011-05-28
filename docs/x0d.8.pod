@@ -82,27 +82,39 @@ Prints copyright information for this software.
 
 =item B<SIGTERM>
 
-Fast process shutdown (without waiting for the current requests to complete).
+Fast and clean process shutdown (without waiting for the current requests to complete).
+If the process does still not shutdown within 10 seconds (due to some silly plugins),
+the event loops will be broken up to exit forcefully.
 
 =item B<SIGINT>
 
-Fast process shutdown (without waiting for the current requests to complete).
+Same as B<SIGTERM>.
 
 =item B<SIGQUIT>
 
 Graceful process shutdown (waiting for the current requests to complete).
+If the process does not shutdown within 10 seconds, it will redirect to the
+fast shutdown procedure instead.
 
 =item B<SIGHUP>
 
-Reloading configuration file by starting a new process and gracefully shutting down the current. (TODO)
+Reexecutes a new binary with a newly loaded configuration file as a child process.
+
+Before the child process is being executed, the parent process will suspend processing
+any current connections and does not accept any new connections.
+
+If the child process sends B<SIGQUIT> to its parent, it will gracefully shutdown.
+
+If the child process somehow fails to start up (that is, exits, or times out
+in calling back with a B<SIGQUIT> on success), the parent process kills the child instead
+and resumes normal operation as if there has been no B<SIBHUP> sent to this process.
+
+This method does not just reload into a new configuration file but also
+executs into a new binary for that, and is though, suitable for on the fly executable upgrades.
 
 =item B<SIGUSR1>
 
 Reopen all log files (for logfile rotation) (TODO)
-
-=item B<SIGUSR2>
-
-Upgrade executable on the fly. (TODO)
 
 =back
 

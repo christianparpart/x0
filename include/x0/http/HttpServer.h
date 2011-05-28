@@ -68,7 +68,7 @@ public:
 	typedef Signal<void(HttpWorker*)> WorkerHook;
 
 public:
-	explicit HttpServer(struct ::ev_loop* loop = nullptr);
+	explicit HttpServer(struct ::ev_loop* loop, unsigned generation = 1);
 	~HttpServer();
 
 	void setLogger(std::shared_ptr<Logger> logger);
@@ -87,8 +87,6 @@ public:
 	bool start();
 	bool active() const;
 	int run();
-	void pause();
-	void resume();
 	void reload();
 	void stop();
 	void kill();
@@ -106,6 +104,8 @@ public:
 
 	WorkerHook onWorkerSpawn;
 	WorkerHook onWorkerUnspawn;
+
+	unsigned generation() const { return generation_; }
 
 	void addComponent(const std::string& value);
 
@@ -183,6 +183,7 @@ private:
 
 	bool validateConfig();
 
+	unsigned generation_;
 	std::vector<std::string> components_;
 
 	Unit* unit_;

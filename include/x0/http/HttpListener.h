@@ -61,15 +61,14 @@ public:
 	bool open(const std::string& unixPath);
 	bool open(const std::string& ip, int port);
 	bool open(const SocketSpec& spec);
-	int handle() const;
 
 	ServerSocket& socket();
 	const ServerSocket& socket() const;
 	HttpServer& server() const;
 
 	bool isSecure() const;
-
-	bool active() const;
+	bool isStarted() const { return socket_.isStarted(); }
+	void start();
 	void stop();
 
 	int errorCount() const;
@@ -96,19 +95,9 @@ private:
 };
 
 // {{{ inlines
-inline bool HttpListener::active() const
-{
-	return socket_.isOpen();
-}
-
 inline int HttpListener::errorCount() const
 {
 	return errorCount_;
-}
-
-inline int HttpListener::handle() const
-{
-	return socket_.handle();
 }
 
 template<typename... Args>

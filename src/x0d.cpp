@@ -7,6 +7,7 @@
  */
 
 #include <x0/http/HttpServer.h>
+#include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpCore.h>
 #include <x0/flow/FlowRunner.h>
@@ -17,6 +18,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <ev++.h>
 #include <sd-daemon.h>
 
 #include <functional>
@@ -31,12 +33,16 @@
 #include <sys/wait.h>
 #include <pwd.h>
 #include <grp.h>
+#include <unistd.h> // O_CLOEXEC
 
 #if !defined(NDEBUG)
 #	define X0D_DEBUG(msg...) XzeroHttpDaemon::log(x0::Severity::debug, msg)
 #else
 #	define X0D_DEBUG(msg...) /*!*/ ((void)0)
 #endif
+
+#define SIG_X0_SUSPEND (SIGRTMIN+4)
+#define SIG_X0_RESUME (SIGRTMIN+5)
 
 using x0::Severity;
 
@@ -71,48 +77,93 @@ public:
 		systemd_(sd_controlled()),
 		doguard_(false),
 		dumpIR_(false),
-		server_(new x0::HttpServer()),
-		sigterm_(server_->loop()),
-		sigint_(server_->loop()),
-		sighup_(server_->loop())
+		loop_(ev_default_loop()),
+		server_(nullptr),
+		terminateSignal_(loop_),
+		ctrlcSignal_(loop_),
+		quitSignal_(loop_),
+		user1Signal_(loop_),
+		hupSignal_(loop_),
+		terminationTimeout_(loop_)
 	{
 		x0::FlowRunner::initialize();
 
 #ifndef NDEBUG
 		nofork_ = true;
 		configfile_ = "../../../src/test.conf";
-		server_->logLevel(x0::Severity::debug5);
 #endif
 		instance_ = this;
 
-		sigterm_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_handler>(this);
-		sigterm_.start(SIGTERM);
-		ev_unref(server_->loop());
+		terminateSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownHandler>(this);
+		terminateSignal_.start(SIGTERM);
+		ev_unref(loop_);
 
-		sigint_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_handler>(this);
-		sigint_.start(SIGINT);
-		ev_unref(server_->loop());
+		ctrlcSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownHandler>(this);
+		ctrlcSignal_.start(SIGINT);
+		ev_unref(loop_);
 
-		sighup_.set<XzeroHttpDaemon, &XzeroHttpDaemon::reload_handler>(this);
-		sighup_.start(SIGHUP);
-		ev_unref(server_->loop());
+		quitSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::gracefulShutdownHandler>(this);
+		quitSignal_.start(SIGQUIT);
+		ev_unref(loop_);
+
+		user1Signal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::reopenLogsHandler>(this);
+		user1Signal_.start(SIGUSR1);
+		ev_unref(loop_);
+
+		hupSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::reexecHandler>(this);
+		hupSignal_.start(SIGHUP);
+		ev_unref(loop_);
+
+		suspendSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::suspendHandler>(this);
+		suspendSignal_.start(SIG_X0_SUSPEND);
+		ev_unref(loop_);
+
+		resumeSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::resumeHandler>(this);
+		resumeSignal_.start(SIG_X0_RESUME);
+		ev_unref(loop_);
 	}
 
 	~XzeroHttpDaemon()
 	{
-		if (terminate_timer_.is_active()) {
-			ev_ref(server_->loop());
-			terminate_timer_.stop();
+		if (terminationTimeout_.is_active()) {
+			ev_ref(loop_);
+			terminationTimeout_.stop();
 		}
 
-		ev_ref(server_->loop());
-		sigterm_.stop();
+		if (terminateSignal_.is_active()) {
+			ev_ref(loop_);
+			terminateSignal_.stop();
+		}
 
-		ev_ref(server_->loop());
-		sigint_.stop();
+		if (ctrlcSignal_.is_active()) {
+			ev_ref(loop_);
+			ctrlcSignal_.stop();
+		}
 
-		ev_ref(server_->loop());
-		sighup_.stop();
+		if (quitSignal_.is_active()) {
+			ev_ref(loop_);
+			quitSignal_.stop();
+		}
+
+		if (user1Signal_.is_active()) {
+			ev_ref(loop_);
+			user1Signal_.stop();
+		}
+
+		if (hupSignal_.is_active()) {
+			ev_ref(loop_);
+			hupSignal_.stop();
+		}
+
+		if (suspendSignal_.is_active()) {
+			ev_ref(loop_);
+			suspendSignal_.stop();
+		}
+
+		if (resumeSignal_.is_active()) {
+			ev_ref(loop_);
+			resumeSignal_.stop();
+		}
 
 		delete server_;
 		server_ = nullptr;
@@ -210,6 +261,17 @@ public:
 
 	int run()
 	{
+		unsigned generation = 1;
+		if (const char* v = getenv("X0_UPGRADE")) {
+			generation = atoi(v) + 1;
+			unsetenv("X0_UPGRADE");
+		}
+
+		server_ = new x0::HttpServer(loop_, generation);
+#ifndef NDEBUG
+		server_->logLevel(x0::Severity::debug5);
+#endif
+
 		if (!parse())
 			return 1;
 
@@ -305,32 +367,51 @@ public:
 
 	static std::string sig2str(int sig)
 	{
-		static const char *sval[32] = {
-			"SIGHUP",	// 1
-			"SIGINT",	// 2
-			"SIGQUIT",	// 3
-			"SIGILL",	// 4
-			0,			// 5
-			"SIGABRT",	// 6
-			0,			// 7
-			"SIGFPE",	// 8
-			"SIGKILL",	// 9
-			0,			// 10
-			"SIGSEGV",	// 11
-			0,			// 12
-			"SIGPIPE",	// 13
-			"SIGALRM",	// 14
-			"SIGTERM",	// 15
-			"SIGUSR1",	// 16
-			"SIGUSR2",	// 17
-			"SIGCHLD",	// 18
-			"SIGCONT",	// 19
-			"SIGSTOP",	// 20
-			0
+		static const char* sval[_NSIG + 1] = {
+			nullptr,		// 0
+			"SIGHUP",		// 1
+			"SIGINT",		// 2
+			"SIGQUIT",		// 3
+			"SIGILL",		// 4
+			"SIGTRAP",		// 5
+			"SIGIOT",		// 6
+			"SIGBUS",		// 7
+			"SIGFPE",		// 8
+			"SIGKILL",		// 9
+
+			"SIGUSR1",		// 10
+			"SIGSEGV",		// 11
+			"SIGUSR2",		// 12
+			"SIGPIPE",		// 13
+			"SIGALRM",		// 14
+			"SIGTERM",		// 15
+			"SIGSTKFLT",	// 16
+			"SIGCHLD",		// 17
+			"SIGCONT",		// 18
+			"SIGSTOP",		// 19
+
+			"SIGTSTP",		// 20
+			"SIGTTIN",		// 21
+			"SIGTTOU",		// 22
+			"SIGURG	",		// 23
+			"SIGXCPU",		// 24
+			"SIGXFSZ",		// 25
+			"SIGVTALRM",	// 26
+			"SIGPROF",		// 27
+			"SIGWINCH",		// 28
+			"SIGIO",		// 29
+
+			"SIGPWR",		// 30
+			"SIGSYS",		// 31
+			nullptr
 		};
 
 		char buf[64];
-		snprintf(buf, sizeof(buf), "%s (%d)", sval[sig - 1], sig);
+		if (sig >= SIGRTMIN && sig <= SIGRTMAX) {
+			snprintf(buf, sizeof(buf), "SIGRTMIN+%d (%d)", sig - SIGRTMIN, sig);
+		} else {
+			snprintf(buf, sizeof(buf), "%s (%d)", sval[sig], sig);
+		}
 		return buf;
 	}
 
@@ -368,6 +449,14 @@ public:
 
 		if (!createPidFile())
 			return -1;
+
+		if (!server_->start())
+			return -1;
+
+		if (server_->generation() > 1) {
+			// we got up very well, so let the parent gracefully shutdown.
+			::kill(getppid(), SIGQUIT);
+		}
 
 		int rv = server_->run();
 
@@ -561,86 +650,217 @@ private:
 		}
 	}
 
-	void reload_handler(ev::sig&, int)
+	void reopenLogsHandler(ev::sig&, int)
 	{
-		log(x0::Severity::info, "SIGHUP received. Reloading configuration.");
+		server_->log(x0::Severity::info, "Reopening of all log files requested.");
+		/// \! todo implement reopening of all log-files
+	}
 
-		try
-		{
-			server_->reload();
+	/** starts new binary with (new) config - as child process, and gracefully shutdown self.
+	 */
+	void reexecHandler(ev::sig& sig, int)
+	{
+		server_->log(x0::Severity::info, "Reload requested.");
+		sd_notify(0, "STATUS=Reloading");
+
+		// reset used signal handler to default
+		ev_ref(loop_);
+		sig.stop();
+
+		// suspend worker threads while performing the reexec
+		for (x0::HttpWorker* worker: server_->workers()) {
+			worker->suspend();
 		}
-		catch (std::exception& e)
-		{
-			log(x0::Severity::error, "uncaught exception in reload handler: %s", e.what());
+
+		for (x0::HttpListener* listener: server_->listeners()) {
+			// stop accepting new connections
+			listener->stop();
+
+			// and clear O_CLOEXEC on listener socket, as we want to probably resume these listeners in the child process
+			listener->socket().setFlags(O_CLOEXEC, false);
+		}
+
+		// prepare environment for new binary
+		char sgen[20];
+		snprintf(sgen, sizeof(sgen), "%u", server_->generation());
+		setenv("X0_UPGRADE", sgen, true);
+
+		std::vector<const char*> args;
+		args.push_back(argv_[0]);
+
+		if (systemd_)
+			args.push_back("--systemd");
+
+		if (!instant_.empty()) {
+			args.push_back("--instant");
+			args.push_back(instant_.c_str());
+		} else {
+			args.push_back("-c");
+			args.push_back(configfile_.c_str());
+		}
+
+		args.push_back("--no-fork"); // we never fork (potentially again)
+		args.push_back(nullptr);
+
+		int childPid = vfork();
+		switch (childPid) {
+			case 0:
+				// in child
+				for (auto listener: server_->listeners())
+					listener->socket().setFlags(O_CLOEXEC, true);
+				execve(argv_[0], (char**)args.data(), environ);
+				server_->log(x0::Severity::error, "Executing new child process failed: %s", strerror(errno));
+				abort();
+				break;
+			case -1:
+				// error
+				server_->log(x0::Severity::error, "Forking for new child process failed: %s", strerror(errno));
+				break;
+			default:
+				// in parent
+				// the child process must tell us whether to gracefully shutdown or to resume.
+				child_.set<XzeroHttpDaemon, &XzeroHttpDaemon::onChild>(this);
+				child_.set(childPid, 0);
+				child_.start();
+
+				// FIXME do we want a reexecTimeout, to handle possible cases where the child is not calling back? to kill them, if so!
+				break;
+		}
+
+		// continue running the current process
+		server_->log(x0::Severity::debug, "Setting O_CLOEXEC on listener sockets");
+		for (auto listener: server_->listeners()) {
+			listener->socket().setFlags(O_CLOEXEC, true);
 		}
 	}
 
-	static const char* sig2name(int num)
+	void onChild(ev::child&, int)
 	{
-		switch (num) {
-			case SIGINT: return "SIGINT";
-			case SIGTERM: return "SIGTERM";
-			default: return "UNKNOWN";
+		// the child exited before we receive a SUCCESS from it. so resume normal operation again.
+		server_->log(x0::Severity::error, "New process exited with %d. Resuming normal operation.");
+
+		child_.stop();
+
+		// reenable HUP-signal
+		if (!hupSignal_.is_active()) {
+			server_->log(x0::Severity::error, "Reenable HUP-signal.");
+			hupSignal_.start();
+			ev_unref(loop_);
+		}
+
+		server_->log(x0::Severity::debug, "Reactivating listeners.");
+		for (x0::HttpListener* listener: server_->listeners()) {
+			// reenable O_CLOEXEC on listener socket
+			listener->socket().setFlags(O_CLOEXEC, true);
+
+			// start accepting new connections
+			listener->start();
+		}
+
+		server_->log(x0::Severity::debug, "Resuming workers.");
+		for (x0::HttpWorker* worker: server_->workers()) {
+			worker->resume();
+		}
+	}
+
+	/** temporarily suspends processing new and currently active connections.
+	 */
+	void suspendHandler(ev::sig& sig, int)
+	{
+		// suspend worker threads while performing the reexec
+		for (x0::HttpWorker* worker: server_->workers()) {
+			worker->suspend();
+		}
+
+		for (x0::HttpListener* listener: server_->listeners()) {
+			// stop accepting new connections
+			listener->stop();
+		}
+	}
+
+	/** resumes previousely suspended execution.
+	 */
+	void resumeHandler(ev::sig& sig, int)
+	{
+		server_->log(x0::Severity::debug, "Siganl %s received.", sig2str(sig.signum).c_str());
+
+		server_->log(x0::Severity::debug, "Resuming worker threads.");
+		for (x0::HttpWorker* worker: server_->workers()) {
+			worker->resume();
 		}
 	}
 
 	// stage-1 termination handler
-	void terminate_handler(ev::sig& sig, int)
+	void gracefulShutdownHandler(ev::sig& sig, int)
 	{
-		log(x0::Severity::info, "%s received. Gracefully shutting down.", sig2name(sig.signum));
+		log(x0::Severity::info, "%s received. Shutting down gracefully.", sig2str(sig.signum).c_str());
 
-		// install stage2 handlers
-		ev_ref(server_->loop());
-		ev_ref(server_->loop());
+		if (child_.is_active()) {
+			child_.stop();
 
-		sigterm_.stop();
-		sigint_.stop();
+			for (x0::HttpWorker* worker: server_->workers()) {
+				if (worker->isSuspended()) {
+					worker->resume();
+				}
+			}
+		}
 
-		sigterm_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate2_handler>(this);
-		sigint_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate2_handler>(this);
+		// upgrade signal-handler to quick shutdown, in case it's sent again
+		ev_ref(loop_);
+		sig.stop();
+		sig.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownHandler>(this);
+		sig.start(sig.signum);
+		ev_unref(loop_);
 
-		sigterm_.start(SIGTERM);
-		sigint_.start(SIGINT);
-
-		ev_unref(server_->loop());
-		ev_unref(server_->loop());
-
-		// install terminate timeout handler
-		terminate_timer_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_timeout>(this);
-		terminate_timer_.start(10, 0);
-		ev_unref(server_->loop());
+		// install shutdown timeout handler
+		terminationTimeout_.set<XzeroHttpDaemon, &XzeroHttpDaemon::gracefulShutdownTimeout>(this);
+		terminationTimeout_.start(10, 0);
+		ev_unref(loop_);
 
 		// initiate graceful server-stop
 		server_->maxKeepAlive = x0::TimeSpan::Zero;
 		server_->stop();
 	}
 
-	void terminate_timeout(ev::timer&, int)
+	void gracefulShutdownTimeout(ev::timer&, int)
 	{
-		log(x0::Severity::warn, "Termination timed out.");
+		log(x0::Severity::warn, "Graceful shutdown timed out. Killing active connections.");
 
-		ev_ref(server_->loop());
-		terminate_timer_.stop();
+		ev_ref(loop_);
+		terminationTimeout_.stop();
+		terminationTimeout_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownTimeout>(this);
+		terminationTimeout_.start(10, 0);
+		ev_unref(loop_);
 
 		server_->kill();
 	}
 
 	// stage-2 termination handler
-	void terminate2_handler(ev::sig& sig, int)
+	void quickShutdownHandler(ev::sig& sig, int)
 	{
-		log(x0::Severity::info, "%s received. Forcefully shutting down.", sig2name(sig.signum));
+		log(x0::Severity::info, "%s received. shutting down NOW.", sig2str(sig.signum).c_str());
 
-		ev_ref(server_->loop());
-		ev_ref(server_->loop());
+		// default to standard signal-handler
+		ev_ref(loop_);
+		sig.stop();
 
-		sigterm_.stop();
-		sigint_.stop();
+		// install shutdown timeout handler
+		terminationTimeout_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownTimeout>(this);
+		terminationTimeout_.start(10, 0);
+		ev_unref(loop_);
 
-		ev_ref(server_->loop());
-		terminate_timer_.stop();
-		terminate_timer_.set<XzeroHttpDaemon, &XzeroHttpDaemon::terminate_timeout>(this);
-		terminate_timer_.start(10, 0);
-		ev_unref(server_->loop());
+		// kill active HTTP connections
+		server_->kill();
+	}
+
+	void quickShutdownTimeout(ev::timer&, int)
+	{
+		log(x0::Severity::warn, "Quick shutdown timed out. Terminating.");
+
+		ev_ref(loop_);
+		terminationTimeout_.stop();
+
+		ev_break(loop_, ev::ALL);
 	}
 
 private:
@@ -658,11 +878,18 @@ private:
 	int systemd_;
 	int doguard_;
 	int dumpIR_;
+	struct ev_loop* loop_;
 	x0::HttpServer *server_;
-	ev::sig sigterm_;
-	ev::sig sigint_;
-	ev::sig sighup_;
-	ev::timer terminate_timer_;
+	ev::sig terminateSignal_;
+	ev::sig ctrlcSignal_;
+	ev::sig quitSignal_;
+	ev::sig user1Signal_;
+	ev::sig hupSignal_;
+	ev::sig suspendSignal_;
+	ev::sig resumeSignal_;
+	ev::timer terminationTimeout_;
+	ev::child child_;
+
 	static XzeroHttpDaemon* instance_;
 }; // }}}
 

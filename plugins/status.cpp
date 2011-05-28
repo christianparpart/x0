@@ -152,14 +152,17 @@ private:
 		buf << "<small><pre>" << server().tag() << "</pre></small>\n";
 		buf << "<pre>\n";
 		buf << "process uptime: " << uptime << "\n";
+		buf << "generation number: " << server().generation() << "\n";
+
+		buf << "average requests per second: ";
+		char tmp[80];
+		snprintf(tmp, sizeof(tmp), "%.2f, %.2f, %.2f", p1, p5, p15);
+		buf << ((char*)tmp) << "\n";
+
 		buf << "# workers: " << server().workers().size() << "\n";
 		buf << "# connections: " << nconns << "\n";
 		buf << "# total requests: " << numTotalRequests << "\n";
 		buf << "# total connections: " << numTotalConns << "\n";
-		buf << "# average requests per second: ";
-		char tmp[80];
-		snprintf(tmp, sizeof(tmp), "%.2f, %.2f, %.2f", p1, p5, p15);
-		buf << ((char*)tmp) << "\n";
 		buf << "</pre>\n";
 
 		buf << "<table border='0' cellspacing='0' cellpadding='0' id='conn-table'>\n";

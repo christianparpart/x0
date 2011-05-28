@@ -376,7 +376,7 @@ void HttpRequest::finish()
 			// response body chunk?
 			if (!outputFilters.empty()) {
 				// mark the end of stream (EOS) by passing an empty chunk to the outputFilters.
-				connection.write<FilterSource>(outputFilters, true);
+				connection.write<FilterSource>(&outputFilters, true);
 			}
 
 			outputState_ = Finished;

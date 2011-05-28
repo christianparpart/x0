@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 	);
 
 	if (!cf.empty())
-		input = new x0::FilterSource(input, cf, true);
+		input = new x0::FilterSource(input, &cf, true);
 
 	ssize_t rv;
 	size_t nwritten = 0;

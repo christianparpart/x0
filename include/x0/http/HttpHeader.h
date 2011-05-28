@@ -10,6 +10,7 @@
 #define x0_httpheader_h (1)
 
 #include <x0/Buffer.h>
+#include <x0/Api.h>
 #include <string>
 
 #include <x0/Types.h>

@@ -131,8 +131,6 @@ private:
 	void io(Socket *socket, int revents);
 	void timeout(Socket *socket);
 
-	struct ::ev_loop *loop() const;
-
 	void abort();
 
 	void log(Severity s, const char *fmt, ...);
@@ -182,11 +180,6 @@ private:
 };
 
 // {{{ inlines
-inline struct ::ev_loop* HttpConnection::loop() const
-{
-	return worker_->loop();
-}
-
 inline Socket* HttpConnection::socket() const
 {
 	return socket_;

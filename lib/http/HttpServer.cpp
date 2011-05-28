@@ -80,7 +80,7 @@ std::string global_now()
  * \param io_service an Asio io_service to use or nullptr to create our own one.
  * \see HttpServer::run()
  */
-HttpServer::HttpServer(struct ::ev_loop *loop) :
+HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 #ifndef NDEBUG
 	Logging("HttpServer"),
 #endif
@@ -93,6 +93,8 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 	onConnectionClose(),
 	onWorkerSpawn(),
 	onWorkerUnspawn(),
+
+	generation_(generation),
 	components_(),
 
 	unit_(nullptr),
@@ -116,7 +118,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop) :
 #if defined(X0_WORKER_RR)
 	lastWorker_(0),
 #endif
-	maxConnections(512),
+	maxConnections(1000),
 	maxKeepAlive(TimeSpan::fromSeconds(60)),
 	maxKeepAliveRequests(100),
 	maxReadIdle(TimeSpan::fromSeconds(60)),
@@ -405,40 +407,40 @@ void *HttpServer::runWorker(void *p)
  */
 bool HttpServer::start()
 {
-	if (!active_)
-	{
-		if (workers_.empty())
-			spawnWorker();
+	if (active_)
+		return true;
 
-		active_ = true;
+	if (workers_.empty())
+		spawnWorker();
 
-		for (auto i: listeners_)
-			if (i->errorCount())
-				return false;
+	for (auto i: listeners_)
+		if (i->errorCount())
+			return false;
 
-		// systemd: check for superfluous passed file descriptors
-		int count = sd_listen_fds(0);
-		if (count > 0) {
-			int maxfd = SD_LISTEN_FDS_START + count;
-			count = 0;
-			for (int fd = SD_LISTEN_FDS_START; fd < maxfd; ++fd) {
-				bool found = false;
-				for (auto li: listeners_) {
-					if (fd == li->handle()) {
-						found = true;
-						break;
-					}
-				}
-				if (!found) {
-					++count;
+	// systemd: check for superfluous passed file descriptors
+	int count = sd_listen_fds(0);
+	if (count > 0) {
+		int maxfd = SD_LISTEN_FDS_START + count;
+		count = 0;
+		for (int fd = SD_LISTEN_FDS_START; fd < maxfd; ++fd) {
+			bool found = false;
+			for (auto li: listeners_) {
+				if (fd == li->socket().handle()) {
+					found = true;
+					break;
 				}
 			}
-			if (count) {
-				fprintf(stderr, "superfluous systemd file descriptors: %d\n", count);
-				return false;
+			if (!found) {
+				++count;
 			}
 		}
+		if (count) {
+			fprintf(stderr, "superfluous systemd file descriptors: %d\n", count);
+			return false;
+		}
 	}
+
+	active_ = true;
 
 	return true;
 }
@@ -454,15 +456,10 @@ bool HttpServer::active() const
 /** calls run on the internally referenced io_service.
  * \note use this if you do not have your own main loop.
  * \note automatically starts the server if it wasn't started via \p start() yet.
+ * \see start(), stop()
  */
 int HttpServer::run()
 {
-	if (!active_)
-	{
-		if (!start())
-			return -1;
-	}
-
 	sd_notify(0, "READY=1\n"
 				 "STATUS=Accepting requests ...");
 
@@ -484,23 +481,6 @@ HttpListener *HttpServer::listenerByPort(int port) const
 			return listener;
 
 	return nullptr;
-}
-
-void HttpServer::pause()
-{
-	active_ = false;
-	sd_notify(0, "STATUS=Paused");
-}
-
-void HttpServer::resume()
-{
-	active_ = true;
-	sd_notify(0, "STATUS=Accepting requests ...");
-}
-
-void HttpServer::reload()
-{
-	//! \todo implementation
 }
 
 /** unregisters all listeners from the underlying io_service and calls stop on it.
