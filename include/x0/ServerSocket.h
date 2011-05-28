@@ -3,6 +3,7 @@
 
 #include <x0/Api.h>
 #include <x0/Defines.h>
+#include <x0/Logging.h>
 #include <string>
 #include <ev++.h>
 #include <sys/socket.h> // for isLocal() and isTcp()
@@ -15,6 +16,9 @@ class SocketDriver;
 class IPAddress;
 
 class X0_API ServerSocket
+#ifndef NDEBUG
+	: public Logging
+#endif
 {
 private:
 	struct ev_loop* loop_;
@@ -53,6 +57,8 @@ public:
 	int addressFamily() const { return addressFamily_; }
 	bool isLocal() const { return addressFamily_ == AF_UNIX; }
 	bool isTcp() const { return addressFamily_ == AF_INET || addressFamily_ == AF_INET6; }
+
+	bool setFlags(unsigned flags, bool enable);
 
 	void setSocketDriver(SocketDriver* sd);
 	SocketDriver* socketDriver() { return socketDriver_; }

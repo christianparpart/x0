@@ -19,6 +19,12 @@
 
 namespace x0 {
 
+#if !defined(NDEBUG)
+#	define TRACE(msg...) this->debug(msg)
+#else
+#	define TRACE(msg...) ((void *)0)
+#endif
+
 /*!
  * \addtogroup base
  * \class ServerSocket
@@ -106,6 +112,11 @@ void ServerSocket::setBacklog(int value)
  */
 bool ServerSocket::open(const std::string& address, int port, int flags)
 {
+#ifndef NDEBUG
+	setLoggingPrefix("ServerSocket(%s:%d)", address.c_str(), port);
+#endif
+	TRACE("opening");
+
 	int sd_fd_count = sd_listen_fds(false);
 	addrinfo* res = nullptr;
 	addrinfo hints;
@@ -262,6 +273,11 @@ err:
  */
 bool ServerSocket::open(const std::string& path, int flags)
 {
+#ifndef NDEBUG
+	setLoggingPrefix("ServerSocket(%s)", path.c_str());
+#endif
+	TRACE("opening");
+
 	int fd = -1;
 	size_t addrlen;
 
@@ -363,12 +379,14 @@ bool ServerSocket::open(const SocketSpec& spec, int flags)
 
 void ServerSocket::start()
 {
+	TRACE("start()");
 	io_.set(fd_, ev::READ);
 	io_.start();
 }
 
 void ServerSocket::stop()
 {
+	TRACE("stop()");
 	io_.stop();
 }
 
@@ -382,6 +400,8 @@ void ServerSocket::close()
 		return;
 
 	stop();
+
+	TRACE("close()");
 
 	if (addressFamily_ == AF_UNIX)
 		unlink(address_.c_str());
@@ -448,8 +468,26 @@ err:
 	::close(cfd);
 
 done:
+	TRACE("accept(): %d", cfd);
+
 	assert(callback_ != nullptr);
 	callback_(cs, this);
+}
+
+/** enables/disables flags on the server listener socket.
+ *
+ * \note this does not affect future client socket flags.
+ */
+bool ServerSocket::setFlags(unsigned flags, bool enable)
+{
+	flags = enable
+		? fcntl(fd_, F_GETFL) | flags
+		: fcntl(fd_, F_GETFL) & ~flags;
+
+	if (fcntl(fd_, F_SETFL, flags) < 0)
+		return false;
+
+	return true;
 }
 
 } // namespace x0
