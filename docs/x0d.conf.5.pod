@@ -886,11 +886,19 @@ as server applications, ideally, do not need to care anything about IDN at all.
 To configure an IDN-enabled virtual host, all you need to do, is, to
 use the right encoding for the domain name.
 
+A IDN name can be generated with the B<idn> command line tool of the B<libidn> project.
+You can use this tool as follows:
+
+ # idn -e -- "häßlich"
+ hlich-lqa8a
+ #
+
 A very abstract example would look like this:
+added a hint on how to convert IDN names
 
  handler setup {
      # ....
-     vhost.mapping 'xn--5cab8c.de' => my_idnish_hp
+     vhost.mapping 'www.xn--hsslich-lqa8a.de' => my_idnish_hp
  }
 
  handler main {
@@ -898,7 +906,7 @@ A very abstract example would look like this:
      vhost.map
  }
 
- # vhost handler for the domain: æøå.de
+ # vhost handler for the IDN domain above
  handler my_idnish_hp {
      docroot '/srv/www/my_idnish_hp/htdocs'
      staticfile
@@ -916,6 +924,8 @@ B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <tr
 
 =head1 SEE ALSO
 
-L<x0d(8)>, L<spawn-fcgi(1)>
+L<x0d(8)>, L<spawn-fcgi(1)>, L<idn(1)>
 
 L<http://redmine.trapni.de/projects/x0>, x0 project management page
+
+L<http://mct.verisign-grs.com/conversiontool>, IDN conversion tool
