@@ -263,9 +263,9 @@ public:
 	int run()
 	{
 		unsigned generation = 1;
-		if (const char* v = getenv("X0_UPGRADE")) {
+		if (const char* v = getenv("XZERO_UPGRADE")) {
 			generation = atoi(v) + 1;
-			unsetenv("X0_UPGRADE");
+			unsetenv("XZERO_UPGRADE");
 		}
 
 		server_ = new x0::HttpServer(loop_, generation);
@@ -711,7 +711,7 @@ private:
 		// prepare environment for new binary
 		char sgen[20];
 		snprintf(sgen, sizeof(sgen), "%u", server_->generation());
-		setenv("X0_UPGRADE", sgen, true);
+		setenv("XZERO_UPGRADE", sgen, true);
 
 		std::vector<const char*> args;
 		args.push_back(argv_[0]);
