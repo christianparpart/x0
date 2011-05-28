@@ -76,11 +76,41 @@ Prints copyright information for this software.
 
 =back
 
+=head1 SIGNALS
+
+=over 15
+
+=item B<SIGTERM>
+
+Fast process shutdown (without waiting for the current requests to complete).
+
+=item B<SIGINT>
+
+Fast process shutdown (without waiting for the current requests to complete).
+
+=item B<SIGQUIT>
+
+Graceful process shutdown (waiting for the current requests to complete).
+
+=item B<SIGHUP>
+
+Reloading configuration file by starting a new process and gracefully shutting down the current. (TODO)
+
+=item B<SIGUSR1>
+
+Reopen all log files (for logfile rotation) (TODO)
+
+=item B<SIGUSR2>
+
+Upgrade executable on the fly. (TODO)
+
+=back
+
 =head1 HISTORY
 
-The B<x0>-software development has first been developed in May 2009
+The B<x0>-software development has been started in May 2009
 by Christian Parpart with the goal to create a state-of-the-art
-high performance HTTP web server in C++.
+high performance HTTP web server and framework in modern C++.
 
 =head1 LICENSE
 
@@ -94,4 +124,6 @@ B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <tr
 
 =head1 SEE ALSO
 
-L<x0d.conf(5)>
+L<x0d.conf(5)>,
+L<logroate(8)>,
+L<spawn-fcgi(1)>
