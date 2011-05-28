@@ -74,7 +74,7 @@ public:
 		instant_(),
 		documentRoot_(),
 		nofork_(false),
-		systemd_(sd_controlled()),
+		systemd_(getppid() == 1),
 		doguard_(false),
 		dumpIR_(false),
 		loop_(ev_default_loop()),
