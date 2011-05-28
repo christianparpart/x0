@@ -890,7 +890,7 @@ A very abstract example would look like this:
 
  handler setup {
      # ....
-     vhost.mapping 'æøå.de' => my_idnish_hp
+     vhost.mapping 'xn--5cab8c.de' => my_idnish_hp
  }
 
  handler main {
