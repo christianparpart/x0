@@ -18,18 +18,25 @@ FEATURES
 - thin and clean core API with powerful plugin system
 - fully asynchronous response content generation support
 - response output filter API
-- name based virtual hosting
 - zero-copy networking optimization through sendfile() system call
 - transmitting of static files with partial response support and cache-friendly
 - flow-based configuration system
+- automatic directory indexing
+- customizable error pages
+- on-the-fly executable upgrade with gracefully finishing currently active requests.
+- CGI/1.1 support (plugin)
+- FastCGI support (plugin)
+- HTTP reverse proxy support (plugin)
+- name based virtual hosting (plugin)
 - SSL connection encryption (plugin)
-- SSL Server Name Indication (SNI) extension
+	- SSL Server Name Indication (SNI) extension
 - dynamic content compression (plugin)
 - request path aliasing (plugin)
 - automatic directory listing generation (plugin)
 - apache-style access log (plugin)
-- automatic directory indexing (plugin)
 - user-directory support (plugin)
+- browser match support (plugin)
+- customized Expires and Cache-Control response header control (plugin)
 
 -----------------------------------------------------------------------------
 INSTALLATION REQUIREMENTS:
