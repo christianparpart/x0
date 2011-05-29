@@ -674,12 +674,13 @@ private:
 	 */
 	void reexecHandler(ev::sig& sig, int)
 	{
-		server_->log(x0::Severity::info, "Reload requested.");
-		sd_notify(0, "STATUS=Reloading");
+		if (!server_->active()) {
+			server_->log(x0::Severity::info, "Reexec requested again. Ignoring.");
+			return;
+		}
 
-		// reset used signal handler to default
-		ev_ref(loop_);
-		sig.stop();
+		server_->log(x0::Severity::info, "Reexec requested.");
+		sd_notify(0, "STATUS=Reloading");
 
 		// suspend worker threads while performing the reexec
 		for (x0::HttpWorker* worker: server_->workers()) {
