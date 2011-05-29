@@ -106,7 +106,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
 	startupTime_(ev_now(loop_)),
-	active_(false),
 	logger_(),
 	logLevel_(Severity::warn),
 	colored_log_(false),
@@ -242,6 +241,9 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	if (runner_->invoke(runner_->findHandler("setup")))
 		goto err;
 
+	if (workers_.empty())
+		spawnWorker();
+
 	// grap the request handler
 	TRACE("get pointer to 'main'");
 	onHandleRequest_ = runner_->getPointerTo(runner_->findHandler("main"));
@@ -318,10 +320,51 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 	// }}}
 
 	// {{{ check for available TCP listeners
-	if (listeners_.empty())
-	{
+	if (listeners_.empty()) {
 		log(Severity::error, "No HTTP listeners defined");
 		goto err;
+	}
+	for (auto i: listeners_)
+		if (i->errorCount())
+			goto err;
+	// }}}
+
+	// {{{ x0d: check for superfluous passed file descriptors (and close them)
+	for (auto fd: ServerSocket::getInheritedSocketList()) {
+		bool found = false;
+		for (auto li: listeners_) {
+			if (fd == li->socket().handle()) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			log(Severity::debug, "Closing inherited superfluous listening socket %d.", fd);
+			::close(fd);
+		}
+	}
+	// }}}
+
+	// {{{ systemd: check for superfluous passed file descriptors
+	if (int count = sd_listen_fds(0)) {
+		int maxfd = SD_LISTEN_FDS_START + count;
+		count = 0;
+		for (int fd = SD_LISTEN_FDS_START; fd < maxfd; ++fd) {
+			bool found = false;
+			for (auto li: listeners_) {
+				if (fd == li->socket().handle()) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				++count;
+			}
+		}
+		if (count) {
+			fprintf(stderr, "superfluous systemd file descriptors: %d\n", count);
+			return false;
+		}
 	}
 	// }}}
 
@@ -399,74 +442,6 @@ void *HttpServer::runWorker(void *p)
 }
 // }}}
 
-/** starts the HTTP server by starting all listeners.
- *
- * @see setup(), setupListener()
- * @note also spawns one worker if no workers has been spawned yet.
- */
-bool HttpServer::start()
-{
-	if (active_)
-		return true;
-
-	if (workers_.empty())
-		spawnWorker();
-
-	for (auto i: listeners_)
-		if (i->errorCount())
-			return false;
-
-	// x0d: check for superfluous passed file descriptors (and close them)
-	for (auto fd: ServerSocket::getInheritedSocketList()) {
-		bool found = false;
-		for (auto li: listeners_) {
-			if (fd == li->socket().handle()) {
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
-			log(Severity::debug, "Closing inherited superfluous listening socket %d.", fd);
-			::close(fd);
-		}
-	}
-
-	// systemd: check for superfluous passed file descriptors
-	int count = sd_listen_fds(0);
-	if (count > 0) {
-		int maxfd = SD_LISTEN_FDS_START + count;
-		count = 0;
-		for (int fd = SD_LISTEN_FDS_START; fd < maxfd; ++fd) {
-			bool found = false;
-			for (auto li: listeners_) {
-				if (fd == li->socket().handle()) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				++count;
-			}
-		}
-		if (count) {
-			fprintf(stderr, "superfluous systemd file descriptors: %d\n", count);
-			return false;
-		}
-	}
-
-	active_ = true;
-
-	return true;
-}
-
-/** tests whether this server has been started or not.
- * \see start(), run()
- */
-bool HttpServer::active() const
-{
-	return active_;
-}
-
 /** calls run on the internally referenced io_service.
  * \note use this if you do not have your own main loop.
  * \note automatically starts the server if it wasn't started via \p start() yet.
@@ -474,10 +449,7 @@ bool HttpServer::active() const
  */
 int HttpServer::run()
 {
-	while (active_)
-	{
-		workers_.front()->run();
-	}
+	workers_.front()->run();
 
 	return 0;
 }
@@ -495,20 +467,15 @@ HttpListener *HttpServer::listenerByPort(int port) const
 }
 
 /** unregisters all listeners from the underlying io_service and calls stop on it.
- * \see start(), active(), run()
+ * \see start(), run()
  */
 void HttpServer::stop()
 {
-	if (active_)
-	{
-		active_ = false;
+	for (auto listener: listeners_)
+		listener->stop();
 
-		for (auto listener: listeners_)
-			listener->stop();
-
-		for (auto worker: workers_)
-			worker->stop();
-	}
+	for (auto worker: workers_)
+		worker->stop();
 }
 
 void HttpServer::kill()

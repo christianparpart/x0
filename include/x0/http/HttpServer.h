@@ -84,10 +84,7 @@ public:
 
 	// {{{ service control
 	bool setup(std::istream* settings, const std::string& filename = std::string());
-	bool start();
-	bool active() const;
 	int run();
-	void reload();
 	void stop();
 	void kill();
 	// }}}
@@ -195,7 +192,6 @@ private:
 	std::list<HttpListener*> listeners_;
 	struct ::ev_loop* loop_;
 	ev_tstamp startupTime_;
-	bool active_;
 	LoggerPtr logger_;
 	Severity logLevel_;
 	bool colored_log_;
