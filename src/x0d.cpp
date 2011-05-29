@@ -460,14 +460,8 @@ public:
 			// we have been invoked by x0d itself, e.g. a executable upgrade and/or
 			// configuration reload.
 			// Tell the parent-x0d to shutdown gracefully.
+			// On receive, the parent process will tell systemd, that we are the new master.
 			::kill(getppid(), SIGQUIT);
-
-			sd_notifyf(0,
-				"MAINPID=%d\n"
-				"STATUS=Accepting requests ...\n"
-				"RELOADED=1\n",
-				getpid()
-			);
 		} else {
 			// we have been started up directoy (e.g. by systemd)
 			sd_notifyf(0,
@@ -827,6 +821,15 @@ private:
 
 		if (child_.is_active()) {
 			child_.stop();
+
+			// tell systemd, that our freshly spawned child is taking over, and the new master
+			// XXX as of systemd v28, RELOADED=1 is not yet implemented, but on their TODO list
+			sd_notifyf(0,
+				"MAINPID=%d\n"
+				"STATUS=Accepting requests ...\n"
+				"RELOADED=1\n",
+				child_.pid
+			);
 
 			for (x0::HttpWorker* worker: server_->workers()) {
 				if (worker->isSuspended()) {
