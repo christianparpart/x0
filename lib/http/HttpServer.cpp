@@ -417,20 +417,17 @@ bool HttpServer::start()
 			return false;
 
 	// x0d: check for superfluous passed file descriptors (and close them)
-	{
-		auto list = ServerSocket::getInheritedSocketList();
-		for (auto fd: list) {
-			bool found = false;
-			for (auto li: listeners_) {
-				if (fd == li->socket().handle()) {
-					found = true;
-					break;
-				}
+	for (auto fd: ServerSocket::getInheritedSocketList()) {
+		bool found = false;
+		for (auto li: listeners_) {
+			if (fd == li->socket().handle()) {
+				found = true;
+				break;
 			}
-			if (!found) {
-				log(Severity::debug, "Closing inherited superfluous listening socket %d.", fd);
-				::close(fd);
-			}
+		}
+		if (!found) {
+			log(Severity::debug, "Closing inherited superfluous listening socket %d.", fd);
+			::close(fd);
 		}
 	}
 
