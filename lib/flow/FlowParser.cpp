@@ -1166,14 +1166,14 @@ Stmt *FlowParser::callStmt()
 		{
 			// must be a function/handler (w/o '(' and ')')
 			if (line() != sloc.begin.line) {
-				Stmt *stmt = new ExprStmt(new CallExpr(lookupOrCreate<Function>(name), NULL, CallExpr::Method, sloc), sloc);
+				Stmt *stmt = new ExprStmt(new CallExpr(lookupOrCreate<Function>(name, true), NULL, CallExpr::Method, sloc), sloc);
 				return stmt;
 			}
 
 			ListExpr *args = exprList();
 			if (!args) {
 				delete args;
-				Stmt *stmt = new ExprStmt(new CallExpr(lookupOrCreate<Function>(name), NULL, CallExpr::Method, sloc), sloc);
+				Stmt *stmt = new ExprStmt(new CallExpr(lookupOrCreate<Function>(name, true), NULL, CallExpr::Method, sloc), sloc);
 				return postscriptStmt(stmt);
 			}
 			if (token() == FlowToken::Semicolon) {
