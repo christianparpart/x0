@@ -118,7 +118,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 #if defined(X0_WORKER_RR)
 	lastWorker_(0),
 #endif
-	maxConnections(1000),
+	maxConnections(512),
 	maxKeepAlive(TimeSpan::fromSeconds(60)),
 	maxKeepAliveRequests(100),
 	maxReadIdle(TimeSpan::fromSeconds(60)),
@@ -139,6 +139,10 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 
 	auto nowfn = std::bind(&global_now);
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
+
+	struct rlimit rlim;
+	if (::getrlimit(RLIMIT_NOFILE, &rlim) == 0)
+		maxConnections = rlim.rlim_cur / 2;
 
 	registerPlugin(core_ = new HttpCore(*this));
 }
