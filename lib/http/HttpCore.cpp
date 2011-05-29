@@ -33,6 +33,29 @@
 
 namespace x0 {
 
+static Buffer concat(const FlowParams& args)
+{
+	Buffer msg;
+
+	for (size_t i = 0, e = args.size(); i != e; ++i) {
+		if (i)
+			msg << " ";
+
+		switch (args[i].type()) {
+			case FlowValue::NUMBER:
+				msg << args[i].toNumber();
+				break;
+			case FlowValue::STRING:
+				msg << args[i].toString();
+				break;
+			default:
+				// TODO
+				break;
+		}
+	}
+	return msg;
+}
+
 HttpCore::HttpCore(HttpServer& server) :
 	HttpPlugin(server, "core"),
 	emitLLVM_(false),
@@ -500,25 +523,25 @@ void HttpCore::sys_now_str(HttpRequest*, const FlowParams& args, FlowValue& resu
 void HttpCore::log_err(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
 {
 	if (r)
-		r->log(Severity::error, "%s", args[0].toString());
+		r->log(Severity::error, "%s", concat(args).c_str());
 	else
-		server().log(Severity::error, "%s", args[0].toString());
+		server().log(Severity::error, "%s", concat(args).c_str());
 }
 
 void HttpCore::log_info(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
 {
 	if (r)
-		r->log(Severity::info, "%s", args[0].toString());
+		r->log(Severity::info, "%s", concat(args).c_str());
 	else
-		server().log(Severity::info, "%s", args[0].toString());
+		server().log(Severity::info, "%s", concat(args).c_str());
 }
 
 void HttpCore::log_debug(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
 {
 	if (r)
-		r->log(Severity::debug, "%s", args[0].toString());
+		r->log(Severity::debug, "%s", concat(args).c_str());
 	else
-		server().log(Severity::debug, "%s", args[0].toString());
+		server().log(Severity::debug, "%s", concat(args).c_str());
 }
 // }}}
 
