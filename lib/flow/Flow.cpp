@@ -752,6 +752,7 @@ bool FlowCallIterator::empty() const
 FlowCallIterator& FlowCallIterator::operator++()
 {
 	++current_;
+	return *this;
 }
 
 bool FlowCallIterator::operator==(const FlowCallIterator& it) const
