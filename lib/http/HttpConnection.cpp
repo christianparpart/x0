@@ -133,7 +133,7 @@ void HttpConnection::io(Socket *, int revents)
 
 	ref();
 
-	if (revents && ev::ERROR) {
+	if (revents & ev::ERROR) {
 		log(Severity::error, "Potential bug in connection I/O watching. Closing.");
 		abort();
 		goto done;
