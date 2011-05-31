@@ -30,15 +30,6 @@
 
 #define TRACE(msg...) DEBUG("status: " msg)
 
-class ConnectionHook :
-	public x0::CustomDataMgr
-{
-private:
-	ev::tstamp createdAt_;
-
-public:
-};
-
 /**
  * \ingroup plugins
  * \brief example content generator plugin
@@ -49,28 +40,11 @@ class StatusPlugin :
 private:
 	std::list<x0::HttpConnection*> connections_;
 
-	void onConnectionCreate(x0::HttpConnection* c)
-	{
-	}
-
-	void onConnectionDestroy(x0::HttpConnection* c)
-	{
-	}
-
 public:
 	StatusPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
 		registerHandler<StatusPlugin, &StatusPlugin::handleRequest>("status");
-
-		srv.onConnectionOpen.connect<StatusPlugin, &StatusPlugin::onConnectionCreate>(this);
-		srv.onConnectionClose.connect<StatusPlugin, &StatusPlugin::onConnectionCreate>(this);
-	}
-
-	~StatusPlugin()
-	{
-		server().onConnectionOpen.disconnect(this);
-		server().onConnectionClose.disconnect(this);
 	}
 
 private:
@@ -80,7 +54,9 @@ private:
 		r->status = x0::HttpError::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/html");
 
-		r->write<x0::BufferSource>(createResponseBody());
+		bool debug = true;
+
+		r->write<x0::BufferSource>(createResponseBody(debug));
 
 		r->finish();
 
@@ -88,7 +64,7 @@ private:
 	}
 
 	// TODO let this method return a movable instead of a full copy
-	x0::Buffer createResponseBody()
+	x0::Buffer createResponseBody(bool debug)
 	{
 		/*
 		 * process uptime
@@ -133,6 +109,7 @@ private:
 				"padding-right: 4px;"
 				"white-space: nowrap;"
 			"}"
+			"td { vertical-align: top; }"
 			".cid { text-align: right; }"
 			".wid { text-align: right; }"
 			".ip { text-align: center; }"
@@ -145,6 +122,7 @@ private:
 			".method { text-align: center; }"
 			".uri { text-align: left; }"
 			".status { text-align: center; }"
+			".debug { text-align: left; }"
 			"</style>";
 		buf << "</head>";
 		buf << "<body>";
@@ -180,9 +158,12 @@ private:
 		buf << "<th>" << "uri" << "</th>";
 		buf << "<th>" << "status" << "</th>";
 
+		if (debug)
+			buf << "<th>" << "debug" << "</th>";
+
 		for (auto w: server().workers())
 			for (auto c: w->connections())
-				dump(buf, c);
+				dump(buf, c, debug);
 
 		buf << "</table>\n";
 
@@ -191,7 +172,7 @@ private:
 		return buf;
 	}
 
-	void dump(x0::Buffer& out, x0::HttpConnection* c)
+	void dump(x0::Buffer& out, x0::HttpConnection* c, bool debug)
 	{
 		out << "<tr>";
 
@@ -217,6 +198,12 @@ private:
 			out << "<td class='status'>" << x0::make_error_code(r->status).message() << "</td>";
 		} else {
 			out << "<td colspan='5'>" << "</td>";
+		}
+
+		if (debug) {
+			out << "<td class='debug'>";
+			c->socket()->inspect(out);
+			out << "</td>";
 		}
 
 		out << "</tr>\n";

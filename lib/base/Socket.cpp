@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -620,11 +621,23 @@ void Socket::queryLocalName()
 
 void Socket::inspect(Buffer& out)
 {
-	out << "[Socket/" << fd_ << ": remote(" << remoteIP() << ":" << remotePort() << "), "
-		<< "[" << startedAt_.http_str() << "], "
-		<< "mode(" << mode_str(mode_) << "), io.active:" << watcher_.is_active() << ", "
-		<< "timer.active:" << timer_.is_active()
-		<< "\n";
+	// only complain about potential bugs...
+
+	out << "fd:" << fd_ << "<br/>";
+
+	out << "timer.active:" << timer_.is_active() << "<br/>";
+
+	out << "io.ev:" << mode_str((Mode)watcher_.events) << ", "
+		<< "io.x0:" << mode_str(mode_) << "<br/>";
+
+	if (mode_ != watcher_.events) {
+		out << "<b>backend events differ from watcher mask</b><br/>";
+	}
+
+	struct stat st;
+	if (fstat(fd_, &st) < 0) {
+		out << "fd stat error: " << strerror(errno) << "<br/>";
+	}
 }
 
 /** associates a new loop with this socket.
