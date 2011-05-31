@@ -401,18 +401,20 @@ bool HttpConnection::onMessageHeaderEnd()
 
 #if X0_HTTP_STRICT
 	BufferRef expectHeader = request_->requestHeader("Expect");
-	bool content_required = request_->method == "POST" || request_->method == "PUT";
+	bool contentRequired = request_->method == "POST" || request_->method == "PUT";
 
-	if (content_required && request_->connection.contentLength() == -1) {
-		request_->status = HttpError::LengthRequired;
-		request_->finish();
-		return true;
-	}
-
-	if (!content_required && request_->contentAvailable()) {
-		request_->status = HttpError::BadRequest; // FIXME do we have a better status code?
-		request_->finish();
-		return true;
+	if (contentRequired) {
+		if (request_->connection.contentLength() == -1) {
+			request_->status = HttpError::LengthRequired;
+			request_->finish();
+			return true;
+		}
+	} else {
+		if (request_->contentAvailable()) {
+			request_->status = HttpError::BadRequest; // FIXME do we have a better status code?
+			request_->finish();
+			return true;
+		}
 	}
 
 	if (expectHeader) {
