@@ -261,6 +261,7 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 	addrinfo* res = nullptr;
 	addrinfo hints;
 
+	addrinfo* ri = nullptr;
 	int rc;
 	int fd = -1;
 	in6_addr saddr;
@@ -316,14 +317,16 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 	}
 
 	// check if passed by parent x0d first
-	for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next) {
+	for (ri = res; ri != nullptr; ri = ri->ai_next) {
 		if ((fd = x0::getSocketInet(address.c_str(), port)) >= 0) {
 			// socket found, but ensure our expected `flags` are set.
-			if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
+			if ((flags & O_NONBLOCK) && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK) < 0)
 				goto syserr;
-			} else {
-				goto done;
-			}
+
+			if ((flags & O_CLOEXEC) && fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
+				goto syserr;
+
+			goto done;
 		}
 	}
 
@@ -336,11 +339,22 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 			for (; fd < last; ++fd) {
 				if (sd_is_socket_inet(fd, ri->ai_family, ri->ai_socktype, true, port) > 0) {
 					// socket found, but ensure our expected `flags` are set.
-					if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0) {
+					if ((flags & O_NONBLOCK) && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK) < 0)
 						goto syserr;
-					} else {
-						goto done;
-					}
+
+					if ((flags & O_CLOEXEC) && fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
+						goto syserr;
+
+#if defined(TCP_QUICKACK)
+					if (::setsockopt(fd, SOL_TCP, TCP_QUICKACK, &rc, sizeof(rc)) < 0)
+						goto syserr;
+#endif
+
+#if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
+					if (::setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0)
+						goto syserr;
+#endif
+					goto done;
 				}
 			}
 		}
@@ -352,12 +366,15 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 	}
 
 	// create socket manually
-	for (addrinfo* ri = res; ri != nullptr; ri = ri->ai_next) {
+	for (ri = res; ri != nullptr; ri = ri->ai_next) {
 		fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (fd < 0)
 			goto syserr;
 
-		if (flags && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) < 0)
+		if ((flags & O_NONBLOCK) && fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK) < 0)
+			goto syserr;
+
+		if ((flags & O_CLOEXEC) && fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC) < 0)
 			goto syserr;
 
 		rc = 1;
