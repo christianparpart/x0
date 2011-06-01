@@ -25,11 +25,12 @@ private:
 
 public:
 	IPAddress();
-	explicit IPAddress(const char *text, int family = 0);
+	explicit IPAddress(const std::string& text, int family = 0);
 
-	IPAddress& operator=(const IPAddress& v);
+	IPAddress& operator=(const std::string& value);
+	IPAddress& operator=(const IPAddress& value);
 
-	bool set(const char *text, int family);
+	bool set(const std::string& text, int family);
 
 	int family() const;
 	const void *data() const;
@@ -47,15 +48,25 @@ inline IPAddress::IPAddress()
 	memset(buf_, 0, sizeof(buf_));
 }
 
-inline IPAddress::IPAddress(const char *text, int family)
+inline IPAddress::IPAddress(const std::string& text, int family)
 {
 	if (family != 0) {
 		set(text, family);
-	} else if (strchr(text, '.')) {
-		set(text, AF_INET);
-	} else {
+	} else if (text.find(':') != std::string::npos) {
 		set(text, AF_INET6);
+	} else {
+		set(text, AF_INET);
 	}
+}
+
+inline IPAddress& IPAddress::operator=(const std::string& text)
+{
+	if (text.find(':') != std::string::npos) {
+		set(text, AF_INET6);
+	} else {
+		set(text, AF_INET);
+	}
+	return *this;
 }
 
 inline IPAddress& IPAddress::operator=(const IPAddress& v)
@@ -66,15 +77,15 @@ inline IPAddress& IPAddress::operator=(const IPAddress& v)
 	return *this;
 }
 
-inline bool IPAddress::set(const char *text, int family)
+inline bool IPAddress::set(const std::string& text, int family)
 {
 	family_ = family;
-	int rv = inet_pton(family, text, buf_);
+	int rv = inet_pton(family, text.c_str(), buf_);
 	if (rv <= 0) {
 		if (rv < 0)
 			perror("inet_pton");
 		else
-			fprintf(stderr, "IP address Not in presentation format: %s\n", text);
+			fprintf(stderr, "IP address Not in presentation format: %s\n", text.c_str());
 
 		return false;
 	}
