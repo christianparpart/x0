@@ -2,6 +2,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpConnection.h>
+#include <x0/ServerSocket.h>
 
 #include <ext/atomicity.h>
 #include <cstdarg>
@@ -117,7 +118,7 @@ void HttpWorker::log(Severity s, const char *fmt, ...)
 
 /** enqueues/assigns/registers given client connection information to this worker.
  */
-void HttpWorker::enqueue(std::pair<Socket*, HttpListener *>&& client)
+void HttpWorker::enqueue(std::pair<Socket*, ServerSocket*>&& client)
 {
 	pthread_spin_lock(&queueLock_);
 	queue_.push_back(client);
@@ -131,7 +132,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 {
 	pthread_spin_lock(&queueLock_);
 	while (!queue_.empty()) {
-		std::pair<Socket*, HttpListener *> client(queue_.front());
+		std::pair<Socket*, ServerSocket*> client(queue_.front());
 		queue_.pop_front();
 
 		pthread_spin_unlock(&queueLock_);
@@ -143,7 +144,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 	pthread_spin_unlock(&queueLock_);
 }
 
-void HttpWorker::spawnConnection(Socket* client, HttpListener* listener)
+void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 {
 	TRACE("client connected; fd:%d", client->handle());
 
@@ -153,7 +154,7 @@ void HttpWorker::spawnConnection(Socket* client, HttpListener* listener)
 	HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
 
 	connections_.push_front(c);
-	HttpConnectionList::iterator i = connections_.begin();
+	ConnectionHandle i = connections_.begin();
 
 	c->start(listener, client, i);
 }
@@ -162,7 +163,7 @@ void HttpWorker::spawnConnection(Socket* client, HttpListener* listener)
  *
  * This decrements the connection-load counter by one.
  */
-void HttpWorker::release(const HttpConnectionList::iterator& connection)
+void HttpWorker::release(const ConnectionHandle& connection)
 {
 	--connectionLoad_;
 

@@ -623,9 +623,7 @@ void Socket::inspect(Buffer& out)
 {
 	// only complain about potential bugs...
 
-	out << "fd:" << fd_ << "<br/>";
-
-	out << "timer.active:" << timer_.is_active() << "<br/>";
+	out << "fd:" << fd_ << ", " << "timer:" << timer_.is_active() << "<br/>";
 
 	out << "io.ev:" << mode_str((Mode)watcher_.events) << ", "
 		<< "io.x0:" << mode_str(mode_) << "<br/>";

@@ -20,12 +20,14 @@
 namespace x0 {
 
 class Socket;
+class ServerSocket;
 
 //! \addtogroup http
 //@{
 
 class HttpServer;
 class HttpConnection;
+class HttpRequest;
 
 /**
  * \brief thread-local worker.
@@ -54,6 +56,9 @@ public:
 		Suspended
 	};
 
+	typedef std::list<HttpConnection*> ConnectionList;
+	typedef ConnectionList::iterator ConnectionHandle;
+
 private:
 	static unsigned idpool_;
 
@@ -67,7 +72,7 @@ private:
 	std::atomic<unsigned long long> requestCount_;
 	unsigned long long connectionCount_;
 	pthread_t thread_;
-	std::deque<std::pair<Socket*, HttpListener *> > queue_;
+	std::deque<std::pair<Socket*, ServerSocket*> > queue_;
 	mutable pthread_spinlock_t queueLock_;
 
 	pthread_mutex_t resumeLock_;
@@ -75,7 +80,7 @@ private:
 
 	PerformanceCounter<15 * 60> performanceCounter_;
 
-	HttpConnectionList connections_;
+	ConnectionList connections_;
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
@@ -107,8 +112,8 @@ public:
 	bool isRunning() const { return state_ == Running; }
 	bool isSuspended() const { return state_ == Suspended; }
 
-	HttpConnectionList& connections() { return connections_; }
-	const HttpConnectionList& connections() const { return connections_; }
+	ConnectionList& connections() { return connections_; }
+	const ConnectionList& connections() const { return connections_; }
 
 	int connectionLoad() const;
 	unsigned long long requestCount() const;
@@ -116,9 +121,9 @@ public:
 
 	void fetchPerformanceCounts(double* p1, double* p5, double* p15) const;
 
-	void enqueue(std::pair<Socket*, HttpListener*>&& handle);
+	void enqueue(std::pair<Socket*, ServerSocket*>&& handle);
 	void handleRequest(HttpRequest *r);
-	void release(const HttpConnectionList::iterator& connection);
+	void release(const ConnectionHandle& connection);
 
 	void log(Severity s, const char *fmt, ...);
 
@@ -141,7 +146,7 @@ private:
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
-	void spawnConnection(Socket* client, HttpListener* listener);
+	void spawnConnection(Socket* client, ServerSocket* listener);
 	void _stop();
 	void _kill();
 	void _suspend();

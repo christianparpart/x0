@@ -11,7 +11,6 @@
 #include "SslSocket.h"
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
-#include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
@@ -149,10 +148,10 @@ private:
 		if (!socketSpec.valid) {
 			result.set(false);
 		} else {
-			x0::HttpListener* listener = server().setupListener(socketSpec);
+			x0::ServerSocket* listener = server().setupListener(socketSpec);
 			if (listener) {
 				SslDriver *driver = new SslDriver(this);
-				listener->socket().setSocketDriver(driver);
+				listener->setSocketDriver(driver);
 			}
 
 			result.set(listener != nullptr);

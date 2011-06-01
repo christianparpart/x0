@@ -43,15 +43,10 @@ namespace x0 {
  * @brief x0 web server plugins.
  */
 
-class FileInfo;
-class HttpListener;
-class HttpConnection;
-class HttpPlugin;
-class HttpRequest;
-
 //! \addtogroup io
 //@{
 
+class FileInfo;
 typedef std::shared_ptr<FileInfo> FileInfoPtr;
 
 //@}

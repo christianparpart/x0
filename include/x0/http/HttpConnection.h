@@ -83,7 +83,7 @@ public:
 	std::string localIP() const;
 	unsigned int localPort() const;
 
-	const HttpListener& listener() const;
+	const ServerSocket& listener() const;
 
 	bool isSecure() const;
 
@@ -101,7 +101,6 @@ public:
 
 private:
 	friend class HttpRequest;
-	friend class HttpListener;
 	friend class HttpWorker;
 
 	// overrides from HttpMessageProcessor:
@@ -114,7 +113,7 @@ private:
 	void ref();
 	void unref();
 
-	void start(HttpListener* listener, Socket* client, const HttpConnectionList::iterator& handle);
+	void start(ServerSocket* listener, Socket* client, const HttpWorker::ConnectionHandle& handle);
 	void resume();
 
 	bool isAborted() const;
@@ -148,9 +147,9 @@ private:
 
 	Status status_;
 
-	HttpListener* listener_;
+	ServerSocket* listener_;
 	HttpWorker* worker_;
-	HttpConnectionList::iterator handle_;
+	HttpWorker::ConnectionHandle handle_;
 
 	unsigned long long id_;				//!< the worker-local connection-ID
 	unsigned requestCount_;				//!< the number of requests already processed or currently in process
@@ -214,7 +213,7 @@ inline void HttpConnection::write(Args&&... args)
 	}
 }
 
-inline const HttpListener& HttpConnection::listener() const
+inline const ServerSocket& HttpConnection::listener() const
 {
 	return *listener_;
 }

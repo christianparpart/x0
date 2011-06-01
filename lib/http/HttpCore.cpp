@@ -9,7 +9,6 @@
 #include <x0/http/HttpCore.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpRangeDef.h>
-#include <x0/http/HttpListener.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/FileSource.h>

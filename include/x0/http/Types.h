@@ -16,8 +16,6 @@
 
 namespace x0 {
 
-typedef std::list<HttpConnection*> HttpConnectionList;
-
 } // namespace x0
 
 #endif

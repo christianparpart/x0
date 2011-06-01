@@ -7,7 +7,6 @@
  */
 
 #include <x0/http/HttpServer.h>
-#include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpCore.h>
 #include <x0/flow/FlowRunner.h>
@@ -717,14 +716,14 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 
 	x0::Buffer serializedListeners;
 
-	for (x0::HttpListener* listener: server_->listeners()) {
+	for (x0::ServerSocket* listener: server_->listeners()) {
 		// stop accepting new connections
 		listener->stop();
 
 		// and clear O_CLOEXEC on listener socket, as we want to probably resume these listeners in the child process
-		listener->socket().setCloseOnExec(false);
+		listener->setCloseOnExec(false);
 
-		serializedListeners.push_back(listener->socket().serialize());
+		serializedListeners.push_back(listener->serialize());
 		serializedListeners.push_back(';');
 	}
 
@@ -779,7 +778,7 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 	// continue running the the process (with listeners disabled)
 	server_->log(x0::Severity::debug, "Setting O_CLOEXEC on listener sockets");
 	for (auto listener: server_->listeners()) {
-		listener->socket().setCloseOnExec(true);
+		listener->setCloseOnExec(true);
 	}
 }
 
@@ -798,9 +797,9 @@ void XzeroHttpDaemon::onChild(ev::child&, int)
 	}
 
 	server_->log(x0::Severity::debug, "Reactivating listeners.");
-	for (x0::HttpListener* listener: server_->listeners()) {
+	for (x0::ServerSocket* listener: server_->listeners()) {
 		// reenable O_CLOEXEC on listener socket
-		listener->socket().setCloseOnExec(true);
+		listener->setCloseOnExec(true);
 
 		// start accepting new connections
 		listener->start();
@@ -821,7 +820,7 @@ void XzeroHttpDaemon::suspendHandler(ev::sig& sig, int)
 		worker->suspend();
 	}
 
-	for (x0::HttpListener* listener: server_->listeners()) {
+	for (x0::ServerSocket* listener: server_->listeners()) {
 		// stop accepting new connections
 		listener->stop();
 	}
@@ -844,8 +843,8 @@ void XzeroHttpDaemon::gracefulShutdownHandler(ev::sig& sig, int)
 {
 	log(x0::Severity::info, "%s received. Shutting down gracefully.", sig2str(sig.signum).c_str());
 
-	for (x0::HttpListener* listener: server_->listeners()) {
-		listener->socket().close();
+	for (x0::ServerSocket* listener: server_->listeners()) {
+		listener->close();
 	}
 
 	if (state_ == State::Upgrading) {

@@ -7,8 +7,8 @@
  */
 
 #include <x0/http/HttpConnection.h>
-#include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/ServerSocket.h>
 #include <x0/SocketDriver.h>
 #include <x0/StackTrace.h>
 #include <x0/Socket.h>
@@ -38,7 +38,7 @@ namespace x0 {
  * \brief represents an HTTP connection handling incoming requests.
  *
  * The \p HttpConnection object is to be allocated once an HTTP client connects
- * to the HTTP server and was accepted by the \p HttpListener.
+ * to the HTTP server and was accepted by the \p ServerSocket.
  * It will also own the respective request and response objects created to serve
  * the requests passed through this connection.
  */
@@ -190,7 +190,7 @@ void HttpConnection::timeout(Socket *)
 bool HttpConnection::isSecure() const
 {
 #if defined(WITH_SSL)
-	return listener_->isSecure();
+	return listener_->socketDriver()->isSecure();
 #else
 	return false;
 #endif
@@ -205,7 +205,7 @@ bool HttpConnection::isSecure() const
  *
  * \see stop()
  */
-void HttpConnection::start(HttpListener* listener, Socket* client, const HttpConnectionList::iterator& handle)
+void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWorker::ConnectionHandle& handle)
 {
 	handle_ = handle;
 	listener_ = listener;
@@ -745,14 +745,12 @@ unsigned int HttpConnection::remotePort() const
 
 std::string HttpConnection::localIP() const
 {
-	return listener_->socket().address();
-	//return socket_->localIP();
+	return listener_->address();
 }
 
 unsigned int HttpConnection::localPort() const
 {
-	return listener_->socket().port();
-	//return socket_->localPort();
+	return listener_->port();
 }
 
 void HttpConnection::log(Severity s, const char *fmt, ...)

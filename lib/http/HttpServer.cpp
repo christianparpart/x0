@@ -7,11 +7,12 @@
  */
 
 #include <x0/http/HttpServer.h>
-#include <x0/http/HttpListener.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpCore.h>
+#include <x0/ServerSocket.h>
+#include <x0/SocketSpec.h>
 #include <x0/Error.h>
 #include <x0/Logger.h>
 #include <x0/Library.h>
@@ -223,6 +224,11 @@ bool HttpServer::validateConfig()
 	return errors == 0;
 }
 
+void HttpServer::onNewConnection(Socket* cs, ServerSocket* ss)
+{
+	selectWorker()->enqueue(std::make_pair(cs, ss));
+}
+
 bool HttpServer::setup(std::istream *settings, const std::string& filename)
 {
 	TRACE("setup(%s)", filename.c_str());
@@ -324,16 +330,16 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 		log(Severity::error, "No HTTP listeners defined");
 		goto err;
 	}
-	for (auto i: listeners_)
-		if (i->errorCount())
-			goto err;
+//	for (auto i: listeners_)
+//		if (i->errorCount())
+//			goto err;
 	// }}}
 
 	// {{{ x0d: check for superfluous passed file descriptors (and close them)
 	for (auto fd: ServerSocket::getInheritedSocketList()) {
 		bool found = false;
 		for (auto li: listeners_) {
-			if (fd == li->socket().handle()) {
+			if (fd == li->handle()) {
 				found = true;
 				break;
 			}
@@ -352,7 +358,7 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 		for (int fd = SD_LISTEN_FDS_START; fd < maxfd; ++fd) {
 			bool found = false;
 			for (auto li: listeners_) {
-				if (fd == li->socket().handle()) {
+				if (fd == li->handle()) {
 					found = true;
 					break;
 				}
@@ -397,7 +403,7 @@ HttpWorker *HttpServer::selectWorker()
 #if defined(X0_WORKER_RR)
 	// select by RR (round-robin)
 	// this is thread-safe since only one thread is to select a new worker
-	// (the main thread: HttpListener)
+	// (the main thread)
 	if (++lastWorker_ == workers_.size())
 		lastWorker_ = 0;
 
@@ -457,10 +463,10 @@ int HttpServer::run()
 /**
  * retrieves the listener object that is responsible for the given port number, or null otherwise.
  */
-HttpListener *HttpServer::listenerByPort(int port) const
+ServerSocket* HttpServer::listenerByPort(int port) const
 {
 	for (auto listener: listeners_)
-		if (listener->socket().port() == port)
+		if (listener->port() == port)
 			return listener;
 
 	return nullptr;
@@ -524,61 +530,44 @@ void HttpServer::log(Severity s, const char *msg, ...)
 }
 
 /**
- * sets up a TCP/IP HttpListener on given bind_address and port.
+ * sets up a TCP/IP ServerSocket on given bind_address and port.
  *
- * If there is already a HttpListener on this bind_address:port pair
+ * If there is already a ServerSocket on this bind_address:port pair
  * then no error will be raised.
  */
-HttpListener *HttpServer::setupListener(const std::string& bind_address, int port, int backlog)
+ServerSocket* HttpServer::setupListener(const std::string& bind_address, int port, int backlog)
 {
-	// check if we already have an HTTP listener listening on given port
-//	if (HttpListener *lp = listenerByPort(port))
-//		return lp;
+	SocketSpec spec;
+	spec.address = bind_address;
+	spec.backlog = backlog;
+	return setupListener(spec);
+}
 
+ServerSocket *HttpServer::setupUnixListener(const std::string& path, int backlog)
+{
+	SocketSpec spec;
+	spec.local = path;
+	spec.backlog = backlog;
+	return setupListener(spec);
+}
+
+ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
+{
 	// create a new listener
-	HttpListener *lp = new HttpListener(*this);
-
-	if (backlog)
-		lp->setBacklog(backlog);
+	ServerSocket* lp = new ServerSocket(loop_);
+	lp->set<HttpServer, &HttpServer::onNewConnection>(this);
 
 	listeners_.push_back(lp);
 
-	if (lp->open(bind_address, port))
+	if (lp->open(spec, O_NONBLOCK | O_CLOEXEC))
 		return lp;
+
+	// TODO: log error, increment error count (ala HttpListener)
 
 	return nullptr;
 }
 
-HttpListener *HttpServer::setupUnixListener(const std::string& path, int backlog)
-{
-	// create a new listener
-	HttpListener *lp = new HttpListener(*this);
-
-	if (backlog)
-		lp->setBacklog(backlog);
-
-	listeners_.push_back(lp);
-
-	if (lp->open(path))
-		return lp;
-
-	return nullptr;
-}
-
-HttpListener* HttpServer::setupListener(const SocketSpec& spec)
-{
-	// create a new listener
-	HttpListener *lp = new HttpListener(*this);
-
-	listeners_.push_back(lp);
-
-	if (lp->open(spec))
-		return lp;
-
-	return nullptr;
-}
-
-void HttpServer::destroyListener(HttpListener *listener)
+void HttpServer::destroyListener(ServerSocket* listener)
 {
 	for (auto i = listeners_.begin(), e = listeners_.end(); i != e; ++i) {
 		if (*i == listener) {

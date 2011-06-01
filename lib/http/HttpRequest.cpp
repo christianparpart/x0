@@ -8,7 +8,6 @@
 
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpConnection.h>
-#include <x0/http/HttpListener.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/ChunkedEncoder.h>
@@ -106,7 +105,7 @@ BufferRef HttpRequest::requestHeader(const std::string& name) const
 std::string HttpRequest::hostid() const
 {
 	if (hostid_.empty())
-		hostid_ = x0::make_hostid(hostname, connection.listener().socket().port());
+		hostid_ = x0::make_hostid(hostname, connection.listener().port());
 
 	return hostid_;
 }

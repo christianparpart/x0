@@ -12,6 +12,7 @@
 #include <x0/io/FileInfoService.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/http/Types.h>
+#include <x0/ServerSocket.h>
 #include <x0/DateTime.h>
 #include <x0/TimeSpan.h>
 #include <x0/Property.h>
@@ -123,10 +124,10 @@ public:
 	Severity logLevel() const;
 	void logLevel(Severity value);
 
-	HttpListener* setupListener(const std::string& bindAddress, int port, int backlog = 0 /*default*/);
-	HttpListener* setupUnixListener(const std::string& path, int backlog = 0 /*default*/);
-	HttpListener* setupListener(const SocketSpec& spec);
-	void destroyListener(HttpListener* listener);
+	ServerSocket* setupListener(const std::string& bindAddress, int port, int backlog = 0 /*default*/);
+	ServerSocket* setupUnixListener(const std::string& path, int backlog = 0 /*default*/);
+	ServerSocket* setupListener(const SocketSpec& spec);
+	void destroyListener(ServerSocket* listener);
 
 	std::string pluginDirectory() const;
 	void setPluginDirectory(const std::string& value);
@@ -143,10 +144,10 @@ public:
 
 	HttpCore& core() const;
 
-	const std::list<HttpListener* >& listeners() const;
+	const std::list<ServerSocket*>& listeners() const;
 
-	HttpListener* listenerByHost(const std::string& hostid) const;
-	HttpListener* listenerByPort(int port) const;
+	ServerSocket* listenerByHost(const std::string& hostid) const;
+	ServerSocket* listenerByPort(int port) const;
 
 	void dumpIR() const; // for debugging purpose
 
@@ -180,6 +181,8 @@ private:
 
 	bool validateConfig();
 
+	void onNewConnection(Socket*, ServerSocket*);
+
 	unsigned generation_;
 	std::vector<std::string> components_;
 
@@ -189,7 +192,7 @@ private:
 	std::vector<std::string> mainApi_;
 	bool (*onHandleRequest_)(void*);
 
-	std::list<HttpListener*> listeners_;
+	std::list<ServerSocket*> listeners_;
 	struct ::ev_loop* loop_;
 	ev_tstamp startupTime_;
 	LoggerPtr logger_;
@@ -244,7 +247,7 @@ inline HttpCore& HttpServer::core() const
 	return *core_;
 }
 
-inline const std::list<HttpListener*>& HttpServer::listeners() const
+inline const std::list<ServerSocket*>& HttpServer::listeners() const
 {
 	return listeners_;
 }

@@ -130,7 +130,7 @@ private:
 		buf << "<small><pre>" << server().tag() << "</pre></small>\n";
 		buf << "<pre>\n";
 		buf << "process uptime: " << uptime << "\n";
-		buf << "generation number: " << server().generation() << "\n";
+		buf << "process generation: " << server().generation() << "\n";
 
 		buf << "average requests per second: ";
 		char tmp[80];
