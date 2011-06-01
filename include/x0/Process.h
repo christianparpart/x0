@@ -91,13 +91,23 @@ public:
 	int start(const std::string& exe, const ArgumentList& args,
 		const Environment& env = Environment(), const std::string& workdir = std::string());
 
-	/** sends a terminate signal to the child process. */
-	void terminate();
+	/** sends a terminate signal to the child process.
+	 *
+	 * \retval true signal sent
+	 * \retval false error sending TERM signal. See errno for diagnostics.
+	 *
+	 * \see kill()
+	 */
+	bool terminate();
 
 	/** sends a KILL signal to the child process.
+	 *
+	 * \retval true signal sent
+	 * \retval false error sending TERM signal. See errno for diagnostics.
+	 *
 	 * \note always try \p terminate() first.
 	 */
-	void kill();
+	bool kill();
 
 	void setStatus(int status);
 

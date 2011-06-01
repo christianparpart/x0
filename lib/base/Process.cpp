@@ -82,16 +82,32 @@ int Process::start(const std::string& exe, const ArgumentList& args, const Envir
 	return 0;
 }
 
-/** sends SIGTERM (terminate signal) to the child Process.
- */
-void Process::terminate()
+bool Process::terminate()
 {
-	fprintf(stderr, "Process(%d).terminate()\n", pid_);
-	if (pid_ > 0) {
-		if (::kill(pid_, SIGTERM) < 0) {
-			fprintf(stderr, "error sending SIGTERM to child %d: %s\n", pid_, strerror(errno));
-		}
+	if (pid_ <= 0) {
+		errno = EINVAL;
+		return false;
 	}
+
+	if (::kill(pid_, SIGTERM) < 0) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Process::kill()
+{
+	if (pid_ <= 0) {
+		errno = EINVAL;
+		return false;
+	}
+
+	if (::kill(pid_, SIGKILL) < 0) {
+		return false;
+	}
+
+	return true;
 }
 
 void Process::setStatus(int status)
