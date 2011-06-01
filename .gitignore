@@ -45,3 +45,10 @@ tests/x0cp
 tests/*.req
 www/htdocs/*.gz
 www/htdocs/*.bz2
+tests/fcgi-long-run
+tests/fcgi-staticfile
+tests/flow_test
+tests/test_flow_lexer
+*.log
+.safe
+.safe?
