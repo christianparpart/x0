@@ -498,7 +498,7 @@ void CgiTransport::io(x0::Socket* s, int revents)
 
 		// process fully received records
 		TRACE("CgiTransport::io(): processing ...");
-		while (readOffset_ + sizeof(FastCgi::Record) < readBuffer_.size()) {
+		while (readOffset_ + sizeof(FastCgi::Record) <= readBuffer_.size()) {
 			const FastCgi::Record *record =
 				reinterpret_cast<const FastCgi::Record *>(readBuffer_.data() + readOffset_);
 
