@@ -461,6 +461,12 @@ void CgiTransport::io(x0::Socket* s, int revents)
 	TRACE("CgiTransport::io(0x%04x)", revents);
 	ref();
 
+	if (revents & ev::ERROR) {
+		TRACE("libev backend triggered an ev::ERROR");
+		unref();
+		close();
+	}
+
 	if (revents & x0::Socket::Read) {
 		TRACE("CgiTransport::io(): reading ...");
 		// read as much as possible
