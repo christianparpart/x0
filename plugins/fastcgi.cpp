@@ -81,6 +81,8 @@
 #	define TRACE(msg...) /*!*/
 #endif
 
+#define FASTCGI_CONNECT_TIMEOUT 60
+
 class CgiContext;
 class CgiTransport;
 
@@ -171,6 +173,8 @@ private:
 	static void onClientAbort(void *p);
 
 	void onConnectComplete(x0::Socket* s, int revents);
+	void onConnectTimeout(x0::Socket* s);
+
 	void io(x0::Socket* s, int revents);
 
 	inline bool processRecord(const FastCgi::Record *record);
@@ -353,9 +357,10 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 	write(FastCgi::Type::Params, id_, "", 0); // EOS
 
 	// setup I/O callback
-	if (backend_->state() == x0::Socket::Connecting)
+	if (backend_->state() == x0::Socket::Connecting) {
+		backend_->setTimeout<CgiTransport, &CgiTransport::onConnectTimeout>(this, FASTCGI_CONNECT_TIMEOUT);
 		backend_->setReadyCallback<CgiTransport, &CgiTransport::onConnectComplete>(this);
-	else
+	} else
 		backend_->setReadyCallback<CgiTransport, &CgiTransport::io>(this);
 
 	// flush out
@@ -421,6 +426,12 @@ void CgiTransport::flush()
 		TRACE("flush() -> pending");
 		flushPending_ = true;
 	}
+}
+
+void CgiTransport::onConnectTimeout(x0::Socket* s)
+{
+	TRACE("onConnectTimeout: Trying to connect to backend timed out.");
+	close();
 }
 
 /** invoked (by open() or asynchronousely by io()) to complete the connection establishment.
