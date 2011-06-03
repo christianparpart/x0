@@ -260,10 +260,10 @@ CgiTransport::~CgiTransport()
 
 void CgiTransport::close()
 {
-	if (backend_->isOpen()) {
+	if (backend_->isOpen())
 		backend_->close();
-		unref();
-	}
+
+	unref();
 }
 
 void CgiTransport::ref()
@@ -443,7 +443,7 @@ void CgiTransport::onConnectComplete(x0::Socket* s, int revents)
 	if (s->isClosed()) {
 		TRACE("onConnectComplete() connect() failed");
 		request_->status = x0::HttpError::ServiceUnavailable;
-		unref();
+		close();
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE("onConnectComplete() flush pending");
 		flushPending_ = false;
