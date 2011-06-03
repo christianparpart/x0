@@ -581,6 +581,22 @@ unsigned int Socket::localPort() const
 	return localPort_;
 }
 
+std::string Socket::local() const
+{
+	char buf[512];
+	switch (addressFamily_) {
+		case AF_INET:
+			snprintf(buf, sizeof(buf), "%s:%d", localIP().c_str(), localPort());
+			break;
+		case AF_INET6:
+			snprintf(buf, sizeof(buf), "[%s]:%d", localIP().c_str(), localPort());
+			break;
+		default:
+			snprintf(buf, sizeof(buf), "%s", localIP().c_str());
+			break;
+	}
+}
+
 void Socket::queryLocalName()
 {
 	if (!localPort_ && fd_ >= 0) {

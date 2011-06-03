@@ -111,6 +111,7 @@ public:
 
 	std::string localIP() const;
 	unsigned int localPort() const;
+	std::string local() const;
 
 	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);
 
