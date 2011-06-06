@@ -643,12 +643,15 @@ void Socket::inspect(Buffer& out)
 
 	out << "fd:" << fd_ << ", " << "timer:" << timer_.is_active() << "<br/>";
 
-	out << "io.ev:" << mode_str((Mode)watcher_.events) << ", "
-		<< "io.x0:" << mode_str(mode_) << "<br/>";
-
-	if (mode_ != watcher_.events) {
+	if (watcher_.is_active() && mode_ != watcher_.events) {
 		out << "<b>backend events differ from watcher mask</b><br/>";
 	}
+
+	out << "io.x0:" << mode_str(mode_);
+	if (watcher_.is_active()) {
+		out << ", io.ev:" << mode_str(static_cast<Mode>(watcher_.events));
+	}
+	out << "<br/>";
 
 	struct stat st;
 	if (fstat(fd_, &st) < 0) {
