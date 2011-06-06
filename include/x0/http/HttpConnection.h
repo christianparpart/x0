@@ -99,6 +99,8 @@ public:
 	std::size_t inputSize() const { return input_.size(); }
 	std::size_t inputOffset() const { return inputOffset_; }
 
+	unsigned refCount() const;
+
 private:
 	friend class HttpRequest;
 	friend class HttpWorker;
@@ -187,6 +189,11 @@ inline Socket* HttpConnection::socket() const
 inline unsigned long long HttpConnection::id() const
 {
 	return id_;
+}
+
+inline unsigned HttpConnection::refCount() const
+{
+	return refCount_;
 }
 
 inline const char* HttpConnection::status_str() const
