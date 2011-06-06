@@ -142,8 +142,6 @@ private:
 	void setShouldKeepAlive(bool enabled);
 	bool shouldKeepAlive() const { return flags_ & IsKeepAliveEnabled; }
 
-	bool isInsideSocketCallback() const { return refCount_ > 0; }
-
 private:
 	unsigned refCount_;
 
