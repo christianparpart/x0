@@ -189,6 +189,26 @@ configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/include/x0/sysconfig.h.cmake
 	${CMAKE_CURRENT_BINARY_DIR}/include/x0/sysconfig.h)
 
+# ---------------------------------------------------------------------------
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/XzeroBase.pc.cmake
+	${CMAKE_CURRENT_BINARY_DIR}/XzeroBase.pc)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroBase.pc DESTINATION ${LIBDIR}/pkgconfig)
+
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/XzeroFlow.pc.cmake
+	${CMAKE_CURRENT_BINARY_DIR}/XzeroFlow.pc)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroFlow.pc DESTINATION ${LIBDIR}/pkgconfig)
+
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/XzeroHttp.pc.cmake
+	${CMAKE_CURRENT_BINARY_DIR}/XzeroHttp.pc)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroHttp.pc DESTINATION ${LIBDIR}/pkgconfig)
+
+# ---------------------------------------------------------------------------
 add_definitions(-DHAVE_SYSCONFIG_H)
 
 add_subdirectory(docs)
