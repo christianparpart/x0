@@ -10,6 +10,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
+#include <x0/Process.h>
 
 /**
  * \ingroup plugins
@@ -23,9 +24,48 @@ public:
 		x0::HttpPlugin(srv, name)
 	{
 		registerHandler<DebugPlugin, &DebugPlugin::slowResponse>("debug.slow_response");
+		registerHandler<DebugPlugin, &DebugPlugin::dumpCore>("debug.coredump");
+		registerHandler<DebugPlugin, &DebugPlugin::dumpCorePost>("debug.coredump.post");
 	}
 
 private:
+	bool dumpCore(x0::HttpRequest* r, const x0::FlowParams& args)
+	{
+		r->status = x0::HttpError::Ok;
+		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
+
+		x0::Buffer buf;
+		buf << "Dumping core\n";
+		r->write<x0::BufferSource>(std::move(buf));
+
+		r->finish();
+
+		x0::Process::dumpCore();
+
+		return true;
+	}
+
+	bool dumpCorePost(x0::HttpRequest* r, const x0::FlowParams& args)
+	{
+		r->status = x0::HttpError::Ok;
+		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
+
+		x0::Buffer buf;
+		buf << "Dumping core\n";
+		r->write<x0::BufferSource>(std::move(buf));
+
+		r->finish();
+
+		server().workers()[0]->post<DebugPlugin, &DebugPlugin::_dumpCore>(this);
+
+		return true;
+	}
+
+	void _dumpCore()
+	{
+		x0::Process::dumpCore();
+	}
+
 	bool slowResponse(x0::HttpRequest* r, const x0::FlowParams& args)
 	{
 		const unsigned count = 8;

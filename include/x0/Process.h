@@ -117,6 +117,8 @@ public:
 	/** retrieves the return status code of the child program, if exited, an undefined value otherwise. */
 	int result();
 
+	static void dumpCore();
+
 private:
 	/** setup routine to be invoked from within the child process, to setup the child environment and exec'uting the child program. */
 	void setupChild(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir);

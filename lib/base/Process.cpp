@@ -14,6 +14,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <cassert>
+#include <cstdio>
+#include <ctime>
 
 namespace x0 {
 
@@ -56,6 +59,36 @@ Process::~Process()
 		EINTR_LOOP(::waitpid(pid_, &status_, 0));
 
 	//fprintf(stderr, "~Process(): rv=%d, errno=%s\n", rv, strerror(errno));
+}
+
+void Process::dumpCore()
+{
+	int child = fork();
+
+	switch (child) {
+		case -1: // fork error
+			fprintf(stderr, "Process.dumpCore: fork error: %s\n", strerror(errno));
+			break;
+		case 0: { // child
+			abort();
+			break;
+		}
+		default: { // parent
+			int status = 0;
+			EINTR_LOOP(::waitpid(child, &status, 0));
+			char filename[80];
+			time_t now = time(nullptr);
+			struct tm tm;
+			localtime_r(&now, &tm);
+			strftime(filename, sizeof(filename), "%Y%m%d-%H%M%S.core", &tm);
+			int rv = ::rename("core", filename);
+			if (rv < 0) {
+				fprintf(stderr, "Process.dumpCore: core rename error: %s\n", strerror(errno));
+			} else {
+				fprintf(stderr, "Process.dumpCore: %s\n", filename);
+			}
+		}
+	}
 }
 
 int Process::start(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir)
