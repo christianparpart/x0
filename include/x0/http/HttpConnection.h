@@ -99,6 +99,8 @@ public:
 	std::size_t inputSize() const { return input_.size(); }
 	std::size_t inputOffset() const { return inputOffset_; }
 
+	unsigned refCount() const;
+
 private:
 	friend class HttpRequest;
 	friend class HttpWorker;
@@ -139,8 +141,6 @@ private:
 
 	void setShouldKeepAlive(bool enabled);
 	bool shouldKeepAlive() const { return flags_ & IsKeepAliveEnabled; }
-
-	bool isInsideSocketCallback() const { return refCount_ > 0; }
 
 private:
 	unsigned refCount_;
@@ -187,6 +187,11 @@ inline Socket* HttpConnection::socket() const
 inline unsigned long long HttpConnection::id() const
 {
 	return id_;
+}
+
+inline unsigned HttpConnection::refCount() const
+{
+	return refCount_;
 }
 
 inline const char* HttpConnection::status_str() const

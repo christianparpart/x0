@@ -202,6 +202,7 @@ private:
 
 		if (debug) {
 			out << "<td class='debug'>";
+			out << "refcount:" << c->refCount() << ", ";
 			c->socket()->inspect(out);
 			out << "</td>";
 		}

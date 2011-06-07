@@ -81,6 +81,8 @@
 #	define TRACE(msg...) /*!*/
 #endif
 
+#define FASTCGI_CONNECT_TIMEOUT 60
+
 class CgiContext;
 class CgiTransport;
 
@@ -171,6 +173,8 @@ private:
 	static void onClientAbort(void *p);
 
 	void onConnectComplete(x0::Socket* s, int revents);
+	void onConnectTimeout(x0::Socket* s);
+
 	void io(x0::Socket* s, int revents);
 
 	inline bool processRecord(const FastCgi::Record *record);
@@ -256,10 +260,10 @@ CgiTransport::~CgiTransport()
 
 void CgiTransport::close()
 {
-	if (backend_->isOpen()) {
+	if (backend_->isOpen())
 		backend_->close();
-		unref();
-	}
+
+	unref();
 }
 
 void CgiTransport::ref()
@@ -353,9 +357,10 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 	write(FastCgi::Type::Params, id_, "", 0); // EOS
 
 	// setup I/O callback
-	if (backend_->state() == x0::Socket::Connecting)
+	if (backend_->state() == x0::Socket::Connecting) {
+		backend_->setTimeout<CgiTransport, &CgiTransport::onConnectTimeout>(this, FASTCGI_CONNECT_TIMEOUT);
 		backend_->setReadyCallback<CgiTransport, &CgiTransport::onConnectComplete>(this);
-	else
+	} else
 		backend_->setReadyCallback<CgiTransport, &CgiTransport::io>(this);
 
 	// flush out
@@ -423,6 +428,12 @@ void CgiTransport::flush()
 	}
 }
 
+void CgiTransport::onConnectTimeout(x0::Socket* s)
+{
+	TRACE("onConnectTimeout: Trying to connect to backend timed out.");
+	close();
+}
+
 /** invoked (by open() or asynchronousely by io()) to complete the connection establishment.
  * \retval true connection establishment completed
  * \retval false finishing connect() failed. object is also invalidated.
@@ -432,7 +443,7 @@ void CgiTransport::onConnectComplete(x0::Socket* s, int revents)
 	if (s->isClosed()) {
 		TRACE("onConnectComplete() connect() failed");
 		request_->status = x0::HttpError::ServiceUnavailable;
-		unref();
+		close();
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE("onConnectComplete() flush pending");
 		flushPending_ = false;
@@ -449,6 +460,12 @@ void CgiTransport::io(x0::Socket* s, int revents)
 {
 	TRACE("CgiTransport::io(0x%04x)", revents);
 	ref();
+
+	if (revents & ev::ERROR) {
+		TRACE("libev backend triggered an ev::ERROR");
+		unref();
+		close();
+	}
 
 	if (revents & x0::Socket::Read) {
 		TRACE("CgiTransport::io(): reading ...");
@@ -481,7 +498,7 @@ void CgiTransport::io(x0::Socket* s, int revents)
 
 		// process fully received records
 		TRACE("CgiTransport::io(): processing ...");
-		while (readOffset_ + sizeof(FastCgi::Record) < readBuffer_.size()) {
+		while (readOffset_ + sizeof(FastCgi::Record) <= readBuffer_.size()) {
 			const FastCgi::Record *record =
 				reinterpret_cast<const FastCgi::Record *>(readBuffer_.data() + readOffset_);
 

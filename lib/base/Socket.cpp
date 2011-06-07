@@ -15,14 +15,15 @@
 #include <atomic>
 #include <system_error>
 
-#include <fcntl.h>
-#include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
+#include <sys/socket.h>
 #include <sys/sendfile.h>
+#include <netinet/tcp.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <netdb.h>
 #include <unistd.h>
 
@@ -581,6 +582,24 @@ unsigned int Socket::localPort() const
 	return localPort_;
 }
 
+std::string Socket::local() const
+{
+	char buf[512];
+	size_t n;
+	switch (addressFamily_) {
+		case AF_INET:
+			n = snprintf(buf, sizeof(buf), "%s:%d", localIP().c_str(), localPort());
+			break;
+		case AF_INET6:
+			n = snprintf(buf, sizeof(buf), "[%s]:%d", localIP().c_str(), localPort());
+			break;
+		default:
+			n = snprintf(buf, sizeof(buf), "%s", localIP().c_str());
+			break;
+	}
+	return std::string(buf, n);
+}
+
 void Socket::queryLocalName()
 {
 	if (!localPort_ && fd_ >= 0) {
@@ -625,12 +644,15 @@ void Socket::inspect(Buffer& out)
 
 	out << "fd:" << fd_ << ", " << "timer:" << timer_.is_active() << "<br/>";
 
-	out << "io.ev:" << mode_str((Mode)watcher_.events) << ", "
-		<< "io.x0:" << mode_str(mode_) << "<br/>";
-
-	if (mode_ != watcher_.events) {
+	if (watcher_.is_active() && mode_ != watcher_.events) {
 		out << "<b>backend events differ from watcher mask</b><br/>";
 	}
+
+	out << "io.x0:" << mode_str(mode_);
+	if (watcher_.is_active()) {
+		out << ", io.ev:" << mode_str(static_cast<Mode>(watcher_.events));
+	}
+	out << "<br/>";
 
 	struct stat st;
 	if (fstat(fd_, &st) < 0) {

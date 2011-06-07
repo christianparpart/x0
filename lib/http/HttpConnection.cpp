@@ -122,7 +122,7 @@ void HttpConnection::unref()
 
 	TRACE("unref() %ld (closed:%d, outputPending:%d)", refCount_, isClosed(), isOutputPending());
 
-	if (refCount_ == 0 && isClosed() && !isOutputPending()) {
+	if (refCount_ == 0) {
 		worker_->release(handle_);
 	}
 }
@@ -225,6 +225,8 @@ void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWor
 #endif
 
 	TRACE("starting (fd=%d)", socket_->handle());
+
+	ref(); // <-- this reference is being decremented in close()
 
 	worker_->server_.onConnectionOpen(this);
 
@@ -580,10 +582,6 @@ bool HttpConnection::writeSome()
 		}
 
 		TRACE("writeSome: output fully written. closed:%d, outputPending:%ld, refCount:%d", isClosed(), output_.size(), refCount_);
-
-		if (isClosed() && !isOutputPending() && refCount_ == 0) {
-			worker_->release(handle_);
-		}
 		goto done;
 	}
 
@@ -655,17 +653,12 @@ void HttpConnection::close()
 	//TRACE("Stack Trace:%s\n", StackTrace().c_str());
 
 	if (isClosed())
+		// XXX should we treat this as a bug?
 		return;
 
-	if (isInsideSocketCallback()) {
-		// we're currently in io() -> readSome(), so just mark socket as closed
-		flags_ |= IsClosed;
-		if (!isOutputPending())
-			socket_->setMode(Socket::None);
-	} else {
-		// we're outside io() -> readSome(), so destruct right away
-		worker_->release(handle_);
-	}
+	flags_ |= IsClosed;
+
+	unref(); // <-- this refers to ref() in start()
 }
 
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
@@ -677,7 +670,7 @@ void HttpConnection::close()
  */
 void HttpConnection::resume()
 {
-	TRACE("resume() shouldKeepAlive:%d (insideSocketCB:%d)", shouldKeepAlive(), isInsideSocketCallback());
+	TRACE("resume() shouldKeepAlive:%d)", shouldKeepAlive());
 	TRACE("-- (status:%s, inputOffset:%ld, inputSize:%ld)", status_str(), inputOffset_, input_.size());
 
 	status_ = KeepAliveRead;
