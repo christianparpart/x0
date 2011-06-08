@@ -11,8 +11,9 @@
 #include <x0/io/BufferSource.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/ChunkedEncoder.h>
+#include <x0/Process.h>                // Process::dumpCore()
 #include <x0/strutils.h>
-#include <strings.h>			// strcasecmp()
+#include <strings.h>                   // strcasecmp()
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
@@ -386,7 +387,11 @@ void HttpRequest::finish()
 			}
 			break;
 		case Finished:
-			assert(false && "You almost definitely invoked finish() twice.");
+#if !defined(NDEBUG)
+			log(Severity::error, "BUG: invalid invocation of finish() on a already finished request.");
+			Process::dumpCore();
+#endif
+			break;
 	}
 }
 
