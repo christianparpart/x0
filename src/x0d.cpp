@@ -226,7 +226,8 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	quitSignal_(loop_),
 	user1Signal_(loop_),
 	hupSignal_(loop_),
-	terminationTimeout_(loop_)
+	terminationTimeout_(loop_),
+	child_(loop_)
 {
 	setState(State::Initializing);
 	x0::FlowRunner::initialize();
