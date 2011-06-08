@@ -52,7 +52,7 @@ private:
 	{
 		// set response status code
 		r->status = x0::HttpError::Ok;
-		r->responseHeaders.push_back("Content-Type", "text/html");
+		r->responseHeaders.push_back("Content-Type", "text/html; charset=utf-8");
 
 		bool debug = true;
 
