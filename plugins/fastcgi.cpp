@@ -176,6 +176,7 @@ private:
 	void onConnectTimeout(x0::Socket* s);
 
 	void io(x0::Socket* s, int revents);
+	void timeout(x0::Socket* s);
 
 	inline bool processRecord(const FastCgi::Record *record);
 	inline void onParam(const std::string& name, const std::string& value);
@@ -545,6 +546,12 @@ app_err:
 
 done:
 	unref();
+}
+
+void CgiTransport::timeout(x0::Socket* s)
+{
+	TRACE("CgiTransport::timeout()");
+	close();
 }
 
 bool CgiTransport::processRecord(const FastCgi::Record *record)
