@@ -210,6 +210,9 @@ private:
 			out << "refcount:" << c->refCount() << ", ";
 			out << "outputState:" << outputStateStr[c->request()->outputState()] << ", ";
 			c->socket()->inspect(out);
+			if (c->request()) {
+				c->request()->inspect(out);
+			}
 			out << "</td>";
 		}
 
