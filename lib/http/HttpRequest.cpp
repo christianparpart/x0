@@ -47,6 +47,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	responseHeaders(),
 	outputFilters(),
 
+	inspectHandlers_(),
+
 	hostid_(),
 	bodyCallback_(nullptr),
 	bodyCallbackData_(nullptr),

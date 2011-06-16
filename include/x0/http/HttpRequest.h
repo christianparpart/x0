@@ -27,6 +27,8 @@
 
 #include <string>
 #include <vector>
+#include <list>
+#include <utility>
 #include <cassert>
 
 namespace x0 {
@@ -301,6 +303,9 @@ public:
 public:
 	void setErrorHandler(FlowValue::Function handler) { errorHandler_ = handler; }
 
+	template<typename T, void (T::*cb)(Buffer& output)> void registerInspectHandler(T* object);
+	void inspect(Buffer& output);
+
 	// utility methods
 	bool supportsProtocol(int major, int minor) const;
 	std::string hostid() const;
@@ -338,6 +343,8 @@ public:
 	static std::string statusStr(HttpError status);
 
 private:
+	std::list<std::pair<void*, void (*)(void*, Buffer&)> > inspectHandlers_;
+
 	mutable std::string hostid_;
 
 	void (*bodyCallback_)(const BufferRef&, void*);
@@ -349,6 +356,9 @@ private:
 
 	template<class K, void (K::*cb)(const BufferRef&)>
 	static void body_cb_thunk(const BufferRef& chunk, void* data);
+
+	template<typename T, void (T::*cb)(Buffer&)>
+	static void inspect_thunk(void* object, Buffer& output);
 
 	template<class K, void (K::*cb)()>
 	static void write_cb_thunk(void* data);
@@ -397,6 +407,8 @@ inline void HttpRequest::clear()
 	status = HttpError::Undefined;
 	responseHeaders.clear();
 	outputFilters.clear();
+
+	inspectHandlers_.clear();
 }
 
 inline bool HttpRequest::supportsProtocol(int major, int minor) const
@@ -547,6 +559,25 @@ inline bool HttpRequest::isResponseContentForbidden() const
 inline bool HttpRequest::isAborted() const
 {
 	return connection.isAborted();
+}
+
+template<typename T, void (T::*cb)(Buffer& output)>
+inline void HttpRequest::registerInspectHandler(T* object)
+{
+	inspectHandlers_.push_back(std::make_pair(object, &inspect_thunk<T, cb>));
+}
+
+template<typename T, void (T::*cb)(Buffer&)>
+void HttpRequest::inspect_thunk(void* object, Buffer& output)
+{
+	(static_cast<T*>(object)->*cb)(output);
+}
+
+inline void HttpRequest::inspect(Buffer& output)
+{
+	for (auto& handler: inspectHandlers_) {
+		handler.second(handler.first, output);
+	}
 }
 // }}}
 
