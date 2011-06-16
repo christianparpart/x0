@@ -180,6 +180,8 @@ private:
 
 	inline bool processRecord(const FastCgi::Record *record);
 	inline void onParam(const std::string& name, const std::string& value);
+
+	void inspect(x0::Buffer& out);
 }; // }}}
 
 class CgiContext //{{{
@@ -294,6 +296,8 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 	backend_ = backend;
 	request_ = in;
 	request_->setAbortHandler(&CgiTransport::onClientAbort, this);
+
+	request_->registerInspectHandler<CgiTransport, &CgiTransport::inspect>(this);
 
 	// initialize stream
 	write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, id_, true);
@@ -711,6 +715,13 @@ void CgiTransport::onClientAbort(void *p)
 
 	// notify fcgi app about client abort
 	self->abortRequest();
+}
+
+void CgiTransport::inspect(x0::Buffer& out)
+{
+	//out << "Hello, World<br/>";
+	out << "fcgi.refcount:" << refCount_ << ", ";
+	backend_->inspect(out);
 }
 // }}}
 
