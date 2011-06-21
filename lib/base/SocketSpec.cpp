@@ -26,7 +26,10 @@ std::string SocketSpec::str() const
 		return "unix:" + local;
 	} else {
 		char buf[256];
-		snprintf(buf, sizeof(buf), "%s, port %d", address.str().c_str(), port);
+		if (address.family() == IPAddress::V4)
+			snprintf(buf, sizeof(buf), "%s:%d", address.str().c_str(), port);
+		else
+			snprintf(buf, sizeof(buf), "[%s]:%d", address.str().c_str(), port);
 		return buf;
 	}
 }

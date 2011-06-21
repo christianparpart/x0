@@ -582,6 +582,24 @@ unsigned int Socket::localPort() const
 	return localPort_;
 }
 
+std::string Socket::remote() const
+{
+	char buf[512];
+	size_t n;
+	switch (addressFamily_) {
+		case AF_INET:
+			n = snprintf(buf, sizeof(buf), "%s:%d", remoteIP().c_str(), remotePort());
+			break;
+		case AF_INET6:
+			n = snprintf(buf, sizeof(buf), "[%s]:%d", remoteIP().c_str(), remotePort());
+			break;
+		default:
+			n = snprintf(buf, sizeof(buf), "%s", remoteIP().c_str());
+			break;
+	}
+	return std::string(buf, n);
+}
+
 std::string Socket::local() const
 {
 	char buf[512];

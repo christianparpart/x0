@@ -108,6 +108,7 @@ public:
 
 	std::string remoteIP() const;
 	unsigned int remotePort() const;
+	std::string remote() const;
 
 	std::string localIP() const;
 	unsigned int localPort() const;

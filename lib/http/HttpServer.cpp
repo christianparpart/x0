@@ -330,9 +330,9 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 		log(Severity::error, "No HTTP listeners defined");
 		goto err;
 	}
-//	for (auto i: listeners_)
-//		if (i->errorCount())
-//			goto err;
+	for (auto i: listeners_)
+		if (!i->isOpen())
+			goto err;
 	// }}}
 
 	// {{{ x0d: check for superfluous passed file descriptors (and close them)
@@ -562,7 +562,7 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 	if (lp->open(spec, O_NONBLOCK | O_CLOEXEC))
 		return lp;
 
-	// TODO: log error, increment error count (ala HttpListener)
+	log(Severity::error, "Could not create listener %s: %s", spec.str().c_str(), lp->errorText().c_str());
 
 	return nullptr;
 }
