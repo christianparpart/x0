@@ -22,7 +22,6 @@ bool FlowTokenTraits::isKeyword(FlowToken t)
 		case FlowToken::Import:
 		case FlowToken::From:
 		case FlowToken::Handler:
-		case FlowToken::Extern:
 			return true;
 		default:
 			return false;

@@ -1325,14 +1325,12 @@ void FlowRunner::visit(Function& function)
 {
 	FNTRACE();
 
-	if (findNative(function.name()) != -1)
-	{
+	if (findNative(function.name()) != -1) {
 		TRACE("native callback decl '%s'.\n", function.name().c_str());
 		return;
 	}
 
-	if (function.body() == NULL)
-	{
+	if (function.body() == NULL) {
 		reportError("Cannot use unknown function '%s'.", function.name().c_str());
 		return;
 	}
@@ -1352,12 +1350,6 @@ void FlowRunner::visit(Function& function)
 		ft, llvm::Function::ExternalLinkage, function.name(), module_);
 
 	functions_.push_back(fn);
-
-	if (!function.body()) { // external function
-		value_ = fn;
-		scope_.insertGlobal(&function, value_);
-		return;
-	}
 
 	scope_.enter();
 

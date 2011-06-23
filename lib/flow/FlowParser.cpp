@@ -268,8 +268,6 @@ Symbol *FlowParser::decl()
 			return varDecl();
 		case FlowToken::Handler:
 			return handlerDecl();
-		case FlowToken::Extern:
-			return externDecl();
 		default:
 			return NULL;
 	}
@@ -438,67 +436,6 @@ Function *FlowParser::handlerDecl()
 	scope()->removeSymbol(f);
 
 	return f;
-}
-
-Function *FlowParser::externDecl()
-{
-	// externDecl ::= 'extern' TYPE NAME '(' [TYPE (',' TYPE)*] ')' ';'
-	FNTRACE();
-	SourceLocation sloc(location());
-	nextToken(); // 'extern'
-
-	FlowToken ty = token(); // return type
-	nextToken();
-
-	// function name
-	std::string name = stringValue();
-	if (!consume(FlowToken::Ident))
-		return NULL;
-
-	sloc.update(end());
-	Function *fn = new Function(new SymbolTable(scope()), name, NULL, false, sloc);
-
-	fn->setReturnType(ty);
-
-	if (skip(FlowToken::RndOpen))
-	{
-		if (FlowTokenTraits::isType(token()))
-		{
-			// add first arg type
-			fn->argTypes().push_back(token());
-			nextToken();
-
-			while (token() == FlowToken::Comma)
-			{
-				nextToken(); // consume comma
-
-				if (FlowTokenTraits::isType(token()))
-					fn->argTypes().push_back(token());
-				else if (token() == FlowToken::Ellipsis)
-				{
-					nextToken();
-					fn->setIsVarArg(true);
-					break;
-				}
-				else
-				{
-					reportError("Unknown function parameter type: %s", lexer_->tokenString().c_str());
-					delete fn;
-					return NULL;
-				}
-
-				nextToken(); // consume type
-			}
-		}
-
-		if (!skip(FlowToken::RndClose)) {
-			delete fn;
-			return NULL;
-		}
-	}
-	consume(FlowToken::Semicolon);
-
-	return fn;
 }
 // }}}
 
