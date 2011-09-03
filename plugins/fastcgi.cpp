@@ -140,6 +140,9 @@ public:
 	x0::HttpRequest *request_;
 	FastCgi::CgiParamStreamWriter paramWriter_;
 
+	/*! number of write chunks written within a single io() callback. */
+	int writeCount_;
+
 public:
 	explicit CgiTransport(CgiContext *cx);
 	~CgiTransport();
@@ -558,6 +561,16 @@ app_err:
 	close();
 
 done:
+	// if we have written something to the client withing this callback and there
+	// are still data chunks pending, then we must be called back on its completion,
+	// so we can continue receiving more data from the backend fcgi node.
+	if (writeCount_) {
+		writeCount_ = 0;
+		backend_->setMode(x0::Socket::None);
+		ref(); // will be unref'd in completion-handler, onWriteComplete().
+		request_->writeCallback<CgiTransport, &CgiTransport::onWriteComplete>(this);
+	}
+
 	unref();
 }
 
@@ -683,11 +696,14 @@ bool CgiTransport::onMessageContent(const x0::BufferRef& content)
 
 	request_->write<x0::BufferSource>(content);
 
-	if (request_->connection.isOutputPending()) {
-		backend_->setMode(x0::Socket::None);
-		ref(); // will be unref'd in completion-handler, onWriteComplete().
-		request_->writeCallback<CgiTransport, &CgiTransport::onWriteComplete>(this);
-	}
+	// if the above write() operation did not complete and thus
+	// we have data pending to be sent out to the client,
+	// we need to install a completion callback once
+	// all (possibly proceeding write operations) have been
+	// finished within a single io()-callback run.
+
+	if (request_->connection.isOutputPending())
+		++writeCount_;
 
 	return false;
 }
@@ -716,7 +732,7 @@ void CgiTransport::onWriteComplete()
 	backend_->setTimeout<CgiTransport, &CgiTransport::timeout>(this, FASTCGI_READ_TIMEOUT);
 	backend_->setMode(x0::Socket::Read);
 
-	unref(); // unref the ref(), invoked in messageContent()
+	unref(); // unref the ref(), invoked near the installer code of this callback
 }
 
 /**
