@@ -6,6 +6,8 @@
 
 namespace x0 {
 
+std::vector<char*> Logging::env_;
+
 Logging::Logging() :
 	prefix_(),
 	className_(),
@@ -30,6 +32,47 @@ Logging::Logging(const char *prefix, ...) :
 	updateClassName();
 }
 
+void Logging::initialize()
+{
+	if (!env_.empty())
+		return;
+
+	const char* env = getenv("XZERO_DEBUG");
+	if (!env)
+		return; // no debugging output requested et al
+
+	char* pattern = strdup(env);
+	if (!pattern)
+		return; // insufficient memory
+
+	char* saveptr = nullptr;
+	for (char* sp = pattern; true; sp = nullptr) {
+		char* token = strtok_r(sp, ":", &saveptr);
+		if (token == nullptr)
+			break; // end of token-list reached
+
+		if (*token) {
+			if (char* out = strdup(token)) {
+				env_.push_back(out);
+			}
+		}
+	}
+
+	// TODO: use std::sort() here, to be able to use std::binary_search() later then
+
+	free(pattern);
+
+	std::atexit(&Logging::finalize);
+}
+
+void Logging::finalize()
+{
+	for (char* p: env_)
+		free(p);
+
+	env_.clear();
+}
+
 void Logging::updateClassName()
 {
 	static const char splits[] = "/[(-";
@@ -45,10 +88,20 @@ void Logging::updateClassName()
 
 bool Logging::checkEnabled()
 {
-	const char* env = getenv("XZERO_DEBUG");
+	// have we been enabled explicitely?
+	if (enabled_)
+		return true;
 
-	// TODO do a simple substring match for now but tokenize-split at ':' later
-	return enabled_ || (env && strstr(env, className_.c_str()));
+	// make sure env_ is populated
+	if (env_.empty())
+		initialize();
+
+	// iterate through environment-supplied list of tokens
+	for (char* p: env_)
+		if (strcmp(p, className_.c_str()) == 0)
+			return true;
+
+	return false;
 }
 
 void Logging::setLoggingPrefix(const char *prefix, ...)
