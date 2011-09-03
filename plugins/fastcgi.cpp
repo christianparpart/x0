@@ -699,7 +699,7 @@ bool CgiTransport::onMessageContent(const x0::BufferRef& content)
  */
 void CgiTransport::onWriteComplete()
 {
-#if 0
+#if 0//{{{
 	TRACE("CgiTransport.onWriteComplete() bufferSize: %ld", writeBuffer_.size());
 
 	if (writeBuffer_.size() != 0) {
@@ -713,7 +713,7 @@ void CgiTransport::onWriteComplete()
 			return;
 		}
 	}
-#endif
+#endif//}}}
 	TRACE("onWriteComplete: output flushed. resume watching on app I/O (read)");
 
 	backend_->setTimeout<CgiTransport, &CgiTransport::timeout>(this, FASTCGI_READ_TIMEOUT);
