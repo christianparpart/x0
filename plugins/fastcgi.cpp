@@ -572,9 +572,6 @@ void CgiTransport::timeout(x0::Socket* s)
 
 bool CgiTransport::processRecord(const FastCgi::Record *record)
 {
-	printf("processRecord(type=%s (%d), rid=%d, contentLength=%d, paddingLength=%d)\n",
-		record->type_str(), record->type(), record->requestId(),
-		record->contentLength(), record->paddingLength());
 	TRACE("processRecord(type=%s (%d), rid=%d, contentLength=%d, paddingLength=%d)",
 		record->type_str(), record->type(), record->requestId(),
 		record->contentLength(), record->paddingLength());
