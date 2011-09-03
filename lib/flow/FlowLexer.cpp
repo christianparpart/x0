@@ -559,7 +559,6 @@ FlowToken FlowLexer::parseIdent()
 		{ "import", FlowToken::Import },
 		{ "from", FlowToken::From },
 		{ "handler", FlowToken::Handler },
-		{ "extern", FlowToken::Extern },
 		{ "and", FlowToken::And },
 		{ "or", FlowToken::Or },
 		{ "xor", FlowToken::Xor },
