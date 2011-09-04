@@ -4,7 +4,13 @@ x0d - high performance HTTP web server
 
 =head1 SYNOPSIS
 
-x0d [B<-c> configfile] [B<-p> pidfile] [B<-u> user] [B<-g> group] [B<-i> path[,port]] [B<-hXGvy>]
+x0d [B<-c>|B<--config> PATH] [B<-p>|B<--pid-file> PATH] \
+    [B<-u>|B<--user> USER] [B<-g>|B<--group> GROUP] \
+    [B<-l>|B<--log-file> PATH] [B<-L>|B<--log-level> VALUE] \
+    [B<-i>|B<--instant> PATH[,PORT]] \
+    [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] \
+    [B<-v>|B<--version>] [B<-y>|B<--copyright>] \
+    [B<-h>|B<--help>]
 
 =head1 DESCRIPTION
 
@@ -49,6 +55,19 @@ explicitely specified at command line.
 
 Specifies a group-name to drop group-privileges down to.
 This overrides the standard-group associated with the specified user.
+
+=item B<-l,--log-file=PATH>
+
+Specifies the full path to where the x0d process should log to.
+This log file is ignored when x0d is running in systemd-mode, and thus,
+all log entries will be logged into a special format into stdout.
+
+=item B<-L,--log-level=VALUE>
+
+Specifies a log level (between 0 and 9, defaults to 2) where the value
+0 is logging errors only, 1 logs including warnings, 2 logs including
+informational notices, and 3 to 9 will also log debugging information
+with 3 minimum and 9 full debugging informations.
 
 =item B<-i,--instant=PATH[,PORT]>
 

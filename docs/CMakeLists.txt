@@ -17,7 +17,7 @@ add_custom_command(
 add_custom_target(man ALL DEPENDS x0d.8 x0d.conf.5)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/x0d.8
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/man/man8)
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man/man8)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/x0d.conf.5
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/man/man5)
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man/man5)

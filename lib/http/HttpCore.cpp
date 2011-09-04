@@ -64,10 +64,6 @@ HttpCore::HttpCore(HttpServer& server) :
 	// setup
 	registerSetupFunction<HttpCore, &HttpCore::emit_llvm>("llvm.dump", FlowValue::VOID);
 	registerSetupFunction<HttpCore, &HttpCore::listen>("listen", FlowValue::BOOLEAN);
-	registerSetupFunction<HttpCore, &HttpCore::log_sd>("log.systemd", FlowValue::VOID);
-	registerSetupProperty<HttpCore, &HttpCore::loglevel>("log.level", FlowValue::NUMBER);
-	registerSetupProperty<HttpCore, &HttpCore::logfile>("log.file", FlowValue::STRING);
-	registerSetupFunction<HttpCore, &HttpCore::user>("user", FlowValue::BOOLEAN);
 	registerSetupProperty<HttpCore, &HttpCore::workers>("workers", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes>("mimetypes", FlowValue::VOID); // write-only (array)
 	registerSetupProperty<HttpCore, &HttpCore::mimetypes_default>("mimetypes.default", FlowValue::VOID); // write-only (array)
@@ -154,55 +150,6 @@ HttpCore::~HttpCore()
 }
 
 // {{{ setup
-void HttpCore::user(const FlowParams& args, FlowValue& result)
-{
-	std::string username(args.size() >= 1 ? args[0].toString() : "");
-	std::string groupname(args.size() == 2 ? args[1].toString() : "");
-
-	result.set(drop_privileges(username, groupname));
-}
-
-/** drops runtime privileges current process to given user's/group's name. */
-bool HttpCore::drop_privileges(const std::string& username, const std::string& groupname)
-{
-	if (!groupname.empty() && !getgid()) {
-		if (struct group *gr = getgrnam(groupname.c_str())) {
-			if (setgid(gr->gr_gid) != 0) {
-				log(Severity::error, "could not setgid to %s: %s", groupname.c_str(), strerror(errno));
-				return false;
-			}
-
-			setgroups(0, nullptr);
-
-			if (!username.empty()) {
-				initgroups(username.c_str(), gr->gr_gid);
-			}
-		} else {
-			log(Severity::error, "Could not find group: %s", groupname.c_str());
-			return false;
-		}
-	}
-
-	if (!username.empty() && !getuid()) {
-		if (struct passwd *pw = getpwnam(username.c_str())) {
-			if (setuid(pw->pw_uid) != 0) {
-				log(Severity::error, "could not setgid to %s: %s", username.c_str(), strerror(errno));
-				return false;
-			}
-			log(Severity::info, "Dropped privileges to user %s", username.c_str());
-
-			if (chdir(pw->pw_dir) < 0) {
-				log(Severity::error, "could not chdir to %s: %s", pw->pw_dir, strerror(errno));
-				return false;
-			}
-		} else {
-			log(Severity::error, "Could not find group: %s", groupname.c_str());
-			return false;
-		}
-	}
-	return true;
-}
-
 void HttpCore::mimetypes(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isString())
@@ -451,36 +398,6 @@ void HttpCore::workers(const FlowParams& args, FlowValue& result)
 	}
 
 	result.set(server_.workers_.size());
-}
-
-extern std::string global_now(); // HttpServer.cpp
-
-void HttpCore::logfile(const FlowParams& args, FlowValue& result)
-{
-	if (args.size() == 1)
-	{
-		if (args[0].isString())
-		{
-			const char *filename = args[0].toString();
-			auto nowfn = std::bind(&global_now);
-			server_.logger_.reset(new FileLogger<decltype(nowfn)>(filename, nowfn));
-		}
-	}
-}
-
-void HttpCore::log_sd(const FlowParams& args, FlowValue& result)
-{
-	server_.logger_.reset(new SystemdLogger());
-}
-
-void HttpCore::loglevel(const FlowParams& args, FlowValue& result)
-{
-	if (args.empty()) {
-		result.set(server().logLevel());
-	} else if (args.size() == 1 && args[0].isNumber()) {
-		int level = args[0].toNumber();
-		server().logLevel(static_cast<Severity>(level));
-	}
 }
 
 void HttpCore::emit_llvm(const FlowParams& args, FlowValue& result)

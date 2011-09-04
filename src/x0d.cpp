@@ -21,6 +21,7 @@
 #include <sd-daemon.h>
 
 #include <functional>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -182,6 +183,9 @@ private:
 	std::string user_;
 	std::string group_;
 
+	std::string logFile_;
+	Severity logLevel_;
+
 	std::string instant_;
 	std::string documentRoot_;
 
@@ -213,6 +217,8 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	pidfile_(),
 	user_(),
 	group_(),
+	logFile_(pathcat(LOGDIR, "x0d.log")),
+	logLevel_(Severity::info),
 	instant_(),
 	documentRoot_(),
 	nofork_(false),
@@ -232,10 +238,6 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	setState(State::Initializing);
 	x0::FlowRunner::initialize();
 
-#ifndef NDEBUG
-	nofork_ = true;
-	configfile_ = "../../../src/test.conf";
-#endif
 	instance_ = this;
 
 	terminateSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownHandler>(this);
@@ -317,6 +319,10 @@ XzeroHttpDaemon::~XzeroHttpDaemon()
 	x0::FlowRunner::shutdown();
 }
 
+namespace x0 {
+	std::string global_now(); // defined in HttpServer.cpp
+}
+
 int XzeroHttpDaemon::run()
 {
 	::signal(SIGPIPE, SIG_IGN);
@@ -339,8 +345,14 @@ int XzeroHttpDaemon::run()
 		nofork_ = true;
 		server_->setLogger(std::make_shared<x0::SystemdLogger>());
 	} else {
-		server_->setLogger(std::make_shared<x0::SystemLogger>());
+		if (!logFile_.empty()) {
+			auto nowfn = std::bind(&x0::global_now);
+			server_->setLogger(std::make_shared<x0::FileLogger<decltype(nowfn)>>(logFile_, nowfn));
+		} else
+			server_->setLogger(std::make_shared<x0::SystemLogger>());
 	}
+
+	server_->logger()->setLevel(logLevel_);
 
 	if (!setupConfig()) {
 		log(x0::Severity::error, "Could not start x0d.");
@@ -383,16 +395,18 @@ bool XzeroHttpDaemon::parse()
 		{ "fork", no_argument, &nofork_, 0 },
 		{ "systemd", no_argument, &systemd_, 1 },
 		{ "guard", no_argument, &doguard_, 'G' },
-		{ "pid-file", required_argument, 0, 'p' },
-		{ "user", required_argument, 0, 'u' },
-		{ "group", required_argument, 0, 'g' },
-		{ "instant", required_argument, 0, 'i' },
+		{ "pid-file", required_argument, nullptr, 'p' },
+		{ "user", required_argument, nullptr, 'u' },
+		{ "group", required_argument, nullptr, 'g' },
+		{ "log-file", required_argument, nullptr, 'l' },
+		{ "log-level", required_argument, nullptr, 'L' },
+		{ "instant", required_argument, nullptr, 'i' },
 		{ "dump-ir", no_argument, &dumpIR_, 1 },
 		//.
-		{ "version", no_argument, 0, 'v' },
-		{ "copyright", no_argument, 0, 'y' },
-		{ "config", required_argument, 0, 'c' },
-		{ "help", no_argument, 0, 'h' },
+		{ "version", no_argument, nullptr, 'v' },
+		{ "copyright", no_argument, nullptr, 'y' },
+		{ "config", required_argument, nullptr, 'c' },
+		{ "help", no_argument, nullptr, 'h' },
 		//.
 		{ 0, 0, 0, 0 }
 	};
@@ -407,7 +421,7 @@ bool XzeroHttpDaemon::parse()
 	for (;;)
 	{
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyc:p:u:g:i:hXG", long_options, &long_index))
+		switch (getopt_long(argc_, argv_, "vyc:p:u:g:l:L:i:hXG", long_options, &long_index))
 		{
 			case 'p':
 				pidfile_ = optarg;
@@ -420,6 +434,12 @@ bool XzeroHttpDaemon::parse()
 				break;
 			case 'u':
 				user_ = optarg;
+				break;
+			case 'l':
+				logFile_ = optarg;
+				break;
+			case 'L':
+				logLevel_ = static_cast<Severity>(std::max(std::min(9, atoi(optarg)), 0));
 				break;
 			case 'i':
 				instant_ = optarg;
@@ -449,6 +469,8 @@ bool XzeroHttpDaemon::parse()
 					<< "  -p,--pid-file=PATH       PID file to create" << std::endl
 					<< "  -u,--user=NAME           user to drop privileges to" << std::endl
 					<< "  -g,--group=NAME          group to drop privileges to" << std::endl
+					<< "  -l,--log-file=PATH       path to log file (ignored when in systemd-mode)" << std::endl
+					<< "  -L,--log-level=VALUE     log level, a value between 0 and 9 (default " << static_cast<int>(logLevel_) << ")" << std::endl
 					<< "     --dump-ir             dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
 					<< "  -i,--instant=PATH[,PORT] run XzeroHttpDaemon in simple pre-configured instant-mode" << std::endl
 					<< "  -v,--version             print software version" << std::endl
@@ -483,10 +505,8 @@ void XzeroHttpDaemon::daemonize()
 /** drops runtime privileges current process to given user's/group's name. */
 bool XzeroHttpDaemon::drop_privileges(const std::string& username, const std::string& groupname)
 {
-	if (!groupname.empty() && !getgid())
-	{
-		if (struct group *gr = getgrnam(groupname.c_str()))
-		{
+	if (!groupname.empty() && !getgid()) {
+		if (struct group *gr = getgrnam(groupname.c_str())) {
 			if (setgid(gr->gr_gid) != 0) {
 				log(Severity::error, "could not setgid to %s: %s", groupname.c_str(), strerror(errno));
 				return false;
@@ -494,32 +514,29 @@ bool XzeroHttpDaemon::drop_privileges(const std::string& username, const std::st
 
 			setgroups(0, nullptr);
 
-			if (!username.empty())
+			if (!username.empty()) {
 				initgroups(username.c_str(), gr->gr_gid);
-		}
-		else
-		{
+			}
+		} else {
 			log(Severity::error, "Could not find group: %s", groupname.c_str());
 			return false;
 		}
 		X0D_DEBUG("Dropped group privileges to '%s'.", groupname.c_str());
 	}
 
-	if (!username.empty() && !getuid())
-	{
-		if (struct passwd *pw = getpwnam(username.c_str()))
-		{
+	if (!username.empty() && !getuid()) {
+		if (struct passwd *pw = getpwnam(username.c_str())) {
 			if (setuid(pw->pw_uid) != 0) {
 				log(Severity::error, "could not setgid to %s: %s", username.c_str(), strerror(errno));
 				return false;
 			}
+			log(Severity::info, "Dropped privileges to user %s", username.c_str());
 
 			if (chdir(pw->pw_dir) < 0) {
 				log(Severity::error, "could not chdir to %s: %s", pw->pw_dir, strerror(errno));
 				return false;
 			}
-		}
-		else {
+		} else {
 			log(Severity::error, "Could not find group: %s", groupname.c_str());
 			return false;
 		}
@@ -750,6 +767,16 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 		args.push_back(configfile_.c_str());
 	}
 
+	if (!logFile_.empty()) {
+		args.push_back("--log-file");
+		args.push_back(logFile_.c_str());
+	}
+
+	args.push_back("--log-level");
+	char logLevel[16];
+	snprintf(logLevel, sizeof(logLevel), "%d", static_cast<int>(logLevel_));
+	args.push_back(logLevel);
+
 	args.push_back("--no-fork"); // we never fork (potentially again)
 	args.push_back(nullptr);
 
@@ -900,9 +927,18 @@ XzeroHttpDaemon* XzeroHttpDaemon::instance_ = 0;
 
 int main(int argc, char *argv[])
 {
-#if 1
+#if !defined(NDEBUG)
 	if (argc == 1) {
-		const char* args[] = { argv[0], "--systemd", "-c", "../../src/test.conf", 0 };
+		const char* args[] = {
+			argv[0],
+			"--no-fork",
+			"-c", "../../src/test.conf",
+			"--pid-file", "test.pid",
+			"--log-file", "/dev/stdout",
+			"--log-level", "9",
+			nullptr
+		};
+//		const char* args[] = { argv[0], "--systemd", "-c", "../../src/test.conf", nullptr };
 		argv = (char **) args;
 		argc = sizeof(args) / sizeof(*args) - 1;
 	}

@@ -27,11 +27,14 @@ struct X0_API Severity {
 	static const int error = 0;
 	static const int warn = 1;
 	static const int info = 2;
-	static const int debug = 3;
+	static const int debug1 = 3;
 	static const int debug2 = 4;
 	static const int debug3 = 5;
 	static const int debug4 = 6;
 	static const int debug5 = 7;
+	static const int debug6 = 8;
+	static const int debug7 = 9;
+	static const int debug = debug1;
 
 	int value_;
 

@@ -60,7 +60,7 @@ void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
 	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
 }
 
-std::string global_now()
+X0_EXPORT std::string global_now()
 {
 	float val = ev_now(ev_default_loop(0));
 	time_t ts = (time_t)val;

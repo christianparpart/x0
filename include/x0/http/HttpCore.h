@@ -38,9 +38,6 @@ public:
 	bool redirectOnIncompletePath(HttpRequest *r);
 
 private:
-	// setup functions
-	void user(const FlowParams& args, FlowValue& result);
-
 	// setup properties
 	void plugin_directory(const FlowParams& args, FlowValue& result);
 	void mimetypes(const FlowParams& args, FlowValue& result);
@@ -70,11 +67,6 @@ private:
 
 	// debugging
 	void emit_llvm(const FlowParams& args, FlowValue& result);
-
-	// logging
-	void loglevel(const FlowParams& args, FlowValue& result);
-	void logfile(const FlowParams& args, FlowValue& result);
-	void log_sd(const FlowParams& args, FlowValue& result);
 
 	// setup functions
 	void listen(const FlowParams& args, FlowValue& result);
@@ -136,7 +128,6 @@ private:
 	void phys_mimetype(HttpRequest* r, const FlowParams& args, FlowValue& result);
 
 	// helpers
-	bool drop_privileges(const std::string& username, const std::string& groupname);
 	inline HttpError verifyClientCache(HttpRequest *r);
 	inline bool processRangeRequest(HttpRequest *r, int fd);
 	inline std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size);

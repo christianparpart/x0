@@ -52,7 +52,7 @@ public:
 	Severity level() const { return severity_; }
 
 	/** sets the loggers Severity level */
-	void level(Severity value) { severity_ = value; }
+	void setLevel(Severity value) { severity_ = value; }
 
 	template<typename A0, typename... Args>
 	void write(Severity s, const char *fmt, A0&& a0, Args&&... args)

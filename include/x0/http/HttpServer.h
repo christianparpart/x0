@@ -229,7 +229,7 @@ public:
 inline void HttpServer::setLogger(std::shared_ptr<Logger> logger)
 {
 	logger_ = logger;
-	logger_->level(logLevel_);
+	logger_->setLevel(logLevel_);
 }
 
 inline Logger *HttpServer::logger() const
@@ -266,7 +266,7 @@ inline Severity HttpServer::logLevel() const
 inline void HttpServer::logLevel(Severity value)
 {
 	logLevel_ = value;
-	logger()->level(value);
+	logger()->setLevel(value);
 }
 // }}}
 
