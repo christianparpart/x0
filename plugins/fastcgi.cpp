@@ -231,7 +231,8 @@ CgiTransport::CgiTransport(CgiContext *cx) :
 	configured_(false),
 
 	request_(nullptr),
-	paramWriter_()
+	paramWriter_(),
+	writeCount_(0)
 {
 #ifndef NDEBUG
 	static std::atomic<int> mi(0);
