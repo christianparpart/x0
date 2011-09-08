@@ -553,6 +553,8 @@ ServerSocket *HttpServer::setupUnixListener(const std::string& path, int backlog
 
 ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 {
+	log(Severity::info, "Listening on %s", spec.str().c_str());
+
 	// create a new listener
 	ServerSocket* lp = new ServerSocket(loop_);
 	lp->set<HttpServer, &HttpServer::onNewConnection>(this);
