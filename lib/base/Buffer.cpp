@@ -43,12 +43,9 @@ bool Buffer::setCapacity(std::size_t value)
 		// nothing changed
 		return true;
 
-	capacity_ = value;
 
-	if (capacity_)
-		data_ = static_cast<value_type *>(std::realloc(data_, capacity_));
-	else if (data_)
-		std::free(data_);
+	data_ = static_cast<value_type *>(std::realloc(data_, value));
+	capacity_ = value;
 
 	return true;
 }
