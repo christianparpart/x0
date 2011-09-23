@@ -165,8 +165,12 @@ bool SqlStatement::prepare(MYSQL *c, const char *s)
 	if (stmt_)
 		mysql_stmt_close(stmt_);
 
+	if (query_)
+		free(query_);
+
 	conn_ = c;
 	stmt_ = mysql_stmt_init(conn_);
+	query_ = strdup(s);
 
 	TRACE("prepare(\"%s\")", s);
 
@@ -248,7 +252,7 @@ MYSQL_BIND *SqlStatement::getParam()
 
 bool SqlStatement::run()
 {
-	TRACE("run()");
+	TRACE("%s", query_);
 	if (bindOffset_ != mysql_stmt_param_count(stmt_)) {
 		error_ = "Invalid parameter count";
 		fprintf(stderr, "Cannot run argument with invalid parameter count.\n");
@@ -698,6 +702,10 @@ SqlStatement::~SqlStatement()
 
 	if (stmt_) {
 		mysql_stmt_close(stmt_);
+	}
+
+	if (query_) {
+		free(query_);
 	}
 
 	delete[] fixedLengths_;

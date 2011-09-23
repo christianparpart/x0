@@ -39,7 +39,7 @@ private:
 	unsigned long *fixedLengths_;
 	unsigned long *varLengths_;
 	my_bool *nulls_;
-	const char *query_;
+	char *query_;
 	const char *error_;
 
 	unsigned currentRow_;
