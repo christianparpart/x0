@@ -692,8 +692,9 @@ SqlStatement::~SqlStatement()
 {
 	for (unsigned i = 0, e = fields_.size(); i != e; ++i) {
 		MYSQL_BIND *d = &data_[i];
-		if (d->buffer)
+		if (d->buffer) {
 			free(d->buffer);
+		}
 	}
 
 	if (meta_) {
