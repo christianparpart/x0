@@ -170,6 +170,8 @@ void ProxyConnection::onAbort(void *p)
 
 void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak)
 {
+	TRACE("ProxyConnection.start(in, backend, cloak=%d)", cloak);
+
 	request_ = in;
 	request_->setAbortHandler(&ProxyConnection::onAbort, this);
 	backend_ = backend;
@@ -291,11 +293,15 @@ bool ProxyConnection::onMessageHeader(const x0::BufferRef& name, const x0::Buffe
 {
 	TRACE("ProxyConnection(%p).onHeader('%s', '%s')", (void*)this, name.str().c_str(), value.str().c_str());
 
-	if (!validateResponseHeader(name))
+	if (!validateResponseHeader(name)) {
+		TRACE("skipping connection-level header");
 		goto done;
+	}
 
-	if (cloak_ && iequals(name, "Server"))
+	if (cloak_ && iequals(name, "Server")) {
+		TRACE("skipping \"Server\"-header");
 		goto done;
+	}
 
 	request_->responseHeaders.push_back(name.str(), value.str());
 
@@ -446,7 +452,7 @@ private:
 	{
 		if (args.size() && (args[0].isBool() || args[0].isNumber())) {
 			cloak_ = args[0].toBool();
-			printf("proxy cloak: %s\n", cloak_ ? "true" : "false");
+			TRACE("proxy cloak: %s", cloak_ ? "true" : "false");
 		}
 
 		result.set(cloak_);
@@ -464,7 +470,7 @@ private:
 
 		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
 		if (spec.isLocal()) {
-			TRACE("unix socket: '%s'", s.c_str());
+			TRACE("unix socket: '%s'", spec.str().c_str());
 			backend->openUnix(spec.local);
 		} else {
 			backend->openTcp(spec.address.str(), spec.port);
