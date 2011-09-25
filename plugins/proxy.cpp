@@ -173,7 +173,7 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 	request_ = in;
 	request_->setAbortHandler(&ProxyConnection::onAbort, this);
 	backend_ = backend;
-	cloak_ = cloak_;
+	cloak_ = cloak;
 
 	// request line
 	writeBuffer_.push_back(request_->method);
