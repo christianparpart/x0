@@ -552,22 +552,32 @@ ServerSocket *HttpServer::setupUnixListener(const std::string& path, int backlog
 	return setupListener(spec);
 }
 
+namespace {
+	static inline Buffer readFile(const char* path)
+	{
+		FILE* fp = fopen(path, "r");
+		if (!fp)
+			return Buffer();
 
-static inline Buffer readFile(const char* path)
-{
-	FILE* fp = fopen(path, "r");
-	if (!fp)
-		return Buffer();
+		Buffer result;
+		char buf[4096];
 
-	Buffer result;
-	char buf[4096];
+		while (!feof(fp)) {
+			size_t n = fread(buf, 1, sizeof(buf), fp);
+			result.push_back(buf, n);
+		}
 
-	while (!feof(fp)) {
-		size_t n = fread(buf, 1, sizeof(buf), fp);
-		result.push_back(buf, n);
+		fclose(fp);
+
+		return result;
 	}
 
-	return result;
+	template<typename T>
+	static inline T readFile(const char* path, const T& defaultValue)
+	{
+		Buffer result(readFile(path));
+		return !result.empty() ? result.ref().as<T>() : defaultValue;
+	}
 }
 
 ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
@@ -575,11 +585,9 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 	log(Severity::info, "Listening on %s", spec.str().c_str());
 
 	if (spec.backlog > 0) {
-		int somaxconn = 0;
+		int somaxconn = readFile<int>("/proc/sys/net/core/somaxconn", 0);
 
-		somaxconn = readFile("/proc/sys/net/core/somaxconn").ref().as<int>();
-
-		if (spec.backlog > somaxconn) {
+		if (somaxconn && spec.backlog > somaxconn) {
 			log(Severity::error,
 				"Listener %s configured with a backlog higher than the system permits (%ld > %ld)",
 				spec.str().c_str(), spec.backlog, somaxconn);
