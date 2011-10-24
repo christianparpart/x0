@@ -582,8 +582,7 @@ namespace {
 
 ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 {
-	log(Severity::info, "Listening on %s", spec.str().c_str());
-
+	// validate backlog against system's hard limit
 	if (spec.backlog > 0) {
 		int somaxconn = readFile<int>("/proc/sys/net/core/somaxconn", 0);
 
@@ -602,12 +601,13 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 
 	listeners_.push_back(lp);
 
-	if (lp->open(spec, O_NONBLOCK | O_CLOEXEC))
+	if (lp->open(spec, O_NONBLOCK | O_CLOEXEC)) {
+		log(Severity::info, "Listening on %s", spec.str().c_str());
 		return lp;
-
-	log(Severity::error, "Could not create listener %s: %s", spec.str().c_str(), lp->errorText().c_str());
-
-	return nullptr;
+	} else {
+		log(Severity::error, "Could not create listener %s: %s", spec.str().c_str(), lp->errorText().c_str());
+		return nullptr;
+	}
 }
 
 void HttpServer::destroyListener(ServerSocket* listener)
