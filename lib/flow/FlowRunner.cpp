@@ -17,15 +17,16 @@
 #include <llvm/LLVMContext.h>
 #include <llvm/Module.h>
 #include <llvm/LLVMContext.h>
+#include <llvm/PassManager.h>
+#include <llvm/DefaultPasses.h>
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/Support/IRBuilder.h>
-#include <llvm/Support/StandardPasses.h>
 #include <llvm/Support/ManagedStatic.h>
-#include <llvm/PassManager.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JIT.h>
-#include <llvm/Target/TargetSelect.h>
 #include <llvm/Target/TargetData.h>
 
 #include <fstream>
@@ -77,19 +78,19 @@ struct fntrace {
 // {{{ LLVM helper methods
 /** tests whether given type *COULD* be a string type (i8*).
   */
-static inline bool isBoolTy(const llvm::Type *type)
+static inline bool isBoolTy(llvm::Type *type)
 {
 	if (!type->isIntegerTy())
 		return false;
 
-	const llvm::IntegerType *i = static_cast<const llvm::IntegerType *>(type);
+	llvm::IntegerType *i = static_cast<llvm::IntegerType *>(type);
 	if (i->getBitWidth() != 1)
 		return false;
 
 	return true;
 }
 
-static inline bool isBool(const llvm::Value *value)
+static inline bool isBool(llvm::Value *value)
 {
 	return isBoolTy(value->getType());
 }
@@ -223,8 +224,10 @@ void FlowRunner::setOptimizationLevel(int value)
 	functionPassMgr_ = new llvm::FunctionPassManager(module_);
 	functionPassMgr_->add(new llvm::TargetData(*executionEngine_->getTargetData()));
 
-	if (optimizationLevel_)
-		llvm::createStandardFunctionPasses(functionPassMgr_, optimizationLevel_);
+	if (optimizationLevel_) {
+		//llvm::createStandardFunctionPasses(functionPassMgr_, optimizationLevel_);
+		//llvm::StandardPass::AddPassesFromSet(functionPassMgr_, llvm::StandardPass::Function);
+	}
 }
 
 void FlowRunner::clear()
@@ -265,19 +268,17 @@ bool FlowRunner::reinitialize()
 	// create generatic native-value type, for exchanging parameter/return values
 
 	// FlowValue
-	std::vector<const llvm::Type *> elts;
+	std::vector<llvm::Type *> elts;
 	elts.push_back(int32Type());     // type id
 	elts.push_back(numberType());    // number (long long)
 	elts.push_back(int8PtrType());   // string (char*)
-	valueType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
-	module_->addTypeName("Value", valueType_);
+	valueType_ = llvm::StructType::create(cx_, elts, "Value", true/*packed*/);
 
 	// RegExp
 	elts.clear();
 	elts.push_back(int8PtrType());   // name (const char *)
 	elts.push_back(int8PtrType());   // handle (pcre *)
-	regexpType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
-	module_->addTypeName("RegExp", regexpType_);
+	regexpType_ = llvm::StructType::create(cx_, elts, "RegExp", true/*packed*/);
 
 	// IPAddress
 	elts.clear();
@@ -286,15 +287,13 @@ bool FlowRunner::reinitialize()
 	elts.push_back(int32Type());
 	elts.push_back(int32Type());
 	elts.push_back(int32Type());
-	ipaddrType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
-	module_->addTypeName("IPAddress", ipaddrType_);
+	ipaddrType_ = llvm::StructType::create(cx_, elts, "IPAddress", true/*packed*/);
 
 	// Buffer
 	elts.clear();
 	elts.push_back(int64Type());     // buffer length
 	elts.push_back(int8PtrType());   // buffer data
-	bufferType_ = llvm::StructType::get(cx_, elts, true/*packed*/);
-	module_->addTypeName("Buffer", bufferType_);
+	bufferType_ = llvm::StructType::create(cx_, elts, "Buffer", true/*packed*/);
 
 	// declare native callback signatures
 	emitNativeFunctionSignature();
@@ -499,27 +498,27 @@ int FlowRunner::findNative(const std::string& name) const
 // }}}
 
 // {{{ standard types
-const Type *FlowRunner::stringType() const
+Type *FlowRunner::stringType() const
 {
 	return llvm::Type::getInt8PtrTy(cx_);
 }
 
-const Type *FlowRunner::numberType() const
+Type *FlowRunner::numberType() const
 {
 	return int64Type();
 }
 
-const Type *FlowRunner::boolType() const
+Type *FlowRunner::boolType() const
 {
 	return llvm::Type::getInt1Ty(cx_);
 }
 
-const Type *FlowRunner::voidType() const
+Type *FlowRunner::voidType() const
 {
 	return llvm::Type::getVoidTy(cx_);
 }
 
-const Type *FlowRunner::arrayType() const
+Type *FlowRunner::arrayType() const
 {
 	return valueType_->getPointerTo();
 }
@@ -544,12 +543,12 @@ bool FlowRunner::isIPAddress(llvm::Value *value) const
 	return value && value->getType() == ipaddrType_->getPointerTo();
 }
 
-const Type *FlowRunner::regexpType() const
+Type *FlowRunner::regexpType() const
 {
 	return regexpType_->getPointerTo();
 }
 
-const Type *FlowRunner::ipaddrType() const
+Type *FlowRunner::ipaddrType() const
 {
 	return ipaddrType_->getPointerTo();
 }
@@ -559,32 +558,32 @@ llvm::Value *FlowRunner::emitLoadArrayLength(llvm::Value *array)
 	return emitCoreCall(CF::arraylen, array);
 }
 
-const Type *FlowRunner::int8Type() const
+Type *FlowRunner::int8Type() const
 {
 	return llvm::Type::getInt8Ty(cx_);
 }
 
-const Type *FlowRunner::int16Type() const
+Type *FlowRunner::int16Type() const
 {
 	return llvm::Type::getInt16Ty(cx_);
 }
 
-const Type *FlowRunner::int32Type() const
+Type *FlowRunner::int32Type() const
 {
 	return llvm::Type::getInt32Ty(cx_);
 }
 
-const Type *FlowRunner::int64Type() const
+Type *FlowRunner::int64Type() const
 {
 	return llvm::Type::getInt64Ty(cx_);
 }
 
-const Type *FlowRunner::doubleType() const
+Type *FlowRunner::doubleType() const
 {
 	return llvm::Type::getDoubleTy(cx_);
 }
 
-const Type *FlowRunner::int8PtrType() const
+Type *FlowRunner::int8PtrType() const
 {
 	return int8Type()->getPointerTo();
 }
@@ -619,7 +618,7 @@ llvm::Value *FlowRunner::emitLoadBufferLength(llvm::Value *nbuf)
 		llvm::ConstantInt::get(int32Type(), 0),
 		llvm::ConstantInt::get(int32Type(), 0)
 	};
-	return builder_.CreateLoad(builder_.CreateInBoundsGEP(nbuf, ii, ii + 2), "load.nbuf.len");
+	return builder_.CreateLoad(builder_.CreateInBoundsGEP(nbuf, ii), "load.nbuf.len");
 }
 
 llvm::Value *FlowRunner::emitLoadBufferData(llvm::Value *nbuf)
@@ -628,7 +627,7 @@ llvm::Value *FlowRunner::emitLoadBufferData(llvm::Value *nbuf)
 		llvm::ConstantInt::get(int32Type(), 0),
 		llvm::ConstantInt::get(int32Type(), 1)
 	};
-	return builder_.CreateLoad(builder_.CreateInBoundsGEP(nbuf, ii, ii + 2), "load.nbuf.data");
+	return builder_.CreateLoad(builder_.CreateInBoundsGEP(nbuf, ii), "load.nbuf.data");
 }
 
 llvm::Value *FlowRunner::emitStoreBufferLength(llvm::Value *nbuf, llvm::Value *length)
@@ -637,7 +636,7 @@ llvm::Value *FlowRunner::emitStoreBufferLength(llvm::Value *nbuf, llvm::Value *l
 		llvm::ConstantInt::get(int32Type(), 0),
 		llvm::ConstantInt::get(int32Type(), 0)
 	};
-	llvm::Value *dest = builder_.CreateInBoundsGEP(nbuf, index, index + 2);
+	llvm::Value *dest = builder_.CreateInBoundsGEP(nbuf, index);
 	return builder_.CreateStore(length, dest, "store.nbuf.len");
 }
 
@@ -647,7 +646,7 @@ llvm::Value *FlowRunner::emitStoreBufferData(llvm::Value *nbuf, llvm::Value *dat
 		llvm::ConstantInt::get(int32Type(), 0),
 		llvm::ConstantInt::get(int32Type(), 1)
 	};
-	llvm::Value *dest = builder_.CreateInBoundsGEP(nbuf, index, index + 2);
+	llvm::Value *dest = builder_.CreateInBoundsGEP(nbuf, index);
 	return builder_.CreateStore(data, dest, "store.nbuf.data");
 }
 
@@ -658,7 +657,7 @@ llvm::Value *FlowRunner::emitStoreBuffer(llvm::Value *nbuf, llvm::Value *length,
 	return nbuf;
 }
 
-bool FlowRunner::isBufferTy(const llvm::Type *type) const
+bool FlowRunner::isBufferTy(llvm::Type *type) const
 {
 	return type == bufferType_;
 }
@@ -668,7 +667,7 @@ bool FlowRunner::isBuffer(llvm::Value *value) const
 	return value && isBufferTy(value->getType());
 }
 
-bool FlowRunner::isBufferPtrTy(const llvm::Type *type) const
+bool FlowRunner::isBufferPtrTy(llvm::Type *type) const
 {
 	return type == bufferType_->getPointerTo();
 }
@@ -680,17 +679,17 @@ bool FlowRunner::isBufferPtr(llvm::Value *value) const
 // }}}
 
 // {{{ string helper
-bool FlowRunner::isCStringTy(const llvm::Type *type) const
+bool FlowRunner::isCStringTy(llvm::Type *type) const
 {
 	if (!type || !type->isPointerTy())
 		return false;
 
-	const llvm::PointerType *ptr = static_cast<const llvm::PointerType *>(type);
+	llvm::PointerType *ptr = static_cast<llvm::PointerType *>(type);
 
 	if (!ptr->getElementType()->isIntegerTy())
 		return false;
 
-	const llvm::IntegerType *i = static_cast<const llvm::IntegerType *>(ptr->getElementType());
+	llvm::IntegerType *i = static_cast<llvm::IntegerType *>(ptr->getElementType());
 	if (i->getBitWidth() != 8)
 		return false;
 
@@ -723,8 +722,8 @@ bool FlowRunner::isFunctionPtr(llvm::Value *value) const
 	if (!value->getType()->isPointerTy())
 		return false;
 
-	const llvm::PointerType *ptr = static_cast<const llvm::PointerType *>(value->getType());
-	const llvm::Type *elementType = ptr->getElementType();
+	llvm::PointerType *ptr = static_cast<llvm::PointerType *>(value->getType());
+	llvm::Type *elementType = ptr->getElementType();
 
 	if (!elementType->isFunctionTy())
 		return false;
@@ -789,7 +788,7 @@ void FlowRunner::visit(Variable& var)
 }
 
 // convert a Flow-type id into an LLVM type object
-const llvm::Type *FlowRunner::makeType(FlowToken t) const
+llvm::Type *FlowRunner::makeType(FlowToken t) const
 {
 	switch (t) {
 		case FlowToken::Void:
@@ -1025,34 +1024,34 @@ void FlowRunner::emitCoreFunctions()
 	emitCoreFunction(CF::pow, "llvm.pow.f64", doubleType(), doubleType(), doubleType(), false);
 }
 
-void FlowRunner::emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, bool isVaArg)
+void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, bool isVaArg)
 {
-	const Type *p[1] = { p1 };
+	Type *p[1] = { p1 };
 	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
 }
 
-void FlowRunner::emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, const Type *p2, bool isVaArg)
+void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, bool isVaArg)
 {
-	const Type *p[2] = { p1, p2 };
+	Type *p[2] = { p1, p2 };
 	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
 }
 
-void FlowRunner::emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, const Type *p2, const Type *p3, bool isVaArg)
+void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, bool isVaArg)
 {
-	const Type *p[3] = { p1, p2, p3 };
+	Type *p[3] = { p1, p2, p3 };
 	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
 }
 
-void FlowRunner::emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, const Type *p2, const Type *p3, const Type *p4, bool isVaArg)
+void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, Type *p4, bool isVaArg)
 {
-	const Type *p[4] = { p1, p2, p3, p4 };
+	Type *p[4] = { p1, p2, p3, p4 };
 	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
 }
 
 template<typename T>
-void FlowRunner::emitCoreFunction(CF id, const std::string& name, const Type *rt, T pbegin, T pend, bool isVaArg)
+void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, T pbegin, T pend, bool isVaArg)
 {
-	std::vector<const Type *> params;
+	std::vector<Type *> params;
 	for (; pbegin != pend; ++pbegin)
 		params.push_back(*pbegin);
 
@@ -1066,14 +1065,14 @@ void FlowRunner::emitCoreFunction(CF id, const std::string& name, const Type *rt
 
 void FlowRunner::emitNativeFunctionSignature()
 {
-	std::vector<const llvm::Type *> argTypes;
+	std::vector<llvm::Type *> argTypes;
 	argTypes.push_back(int64Type()); // self ptr
 	argTypes.push_back(int32Type()); // function id
 	argTypes.push_back(int8PtrType()); // context userdata
 	argTypes.push_back(int32Type()); // argc
 	argTypes.push_back(valueType_->getPointerTo()); // FlowValue *argv
 
-	const llvm::FunctionType *ft = llvm::FunctionType::get(
+	llvm::FunctionType* ft = llvm::FunctionType::get(
 		voidType(), // return type
 		argTypes,   // arg types
 		false       // isVaArg
@@ -1121,13 +1120,13 @@ llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Valu
 		typeCode = FlowValue::BOOLEAN;
 		rhs = builder_.CreateIntCast(rhs, numberType(), false, "bool2int");
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset);
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "store.arg.value");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "store.arg.value");
 	}
 	else if (rhs->getType()->isIntegerTy())
 	{
 		typeCode = FlowValue::NUMBER;
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset);
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "store.arg.value");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "store.arg.value");
 	}
 	else if (isArray(rhs)) // some expression list
 	{
@@ -1135,11 +1134,11 @@ llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Valu
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::ArrayOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.ary");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "stor.ary");
 
 		valueIndices[1] = llvm::ConstantInt::get(int32Type(), FlowValue::NumberOffset);
 		builder_.CreateStore(llvm::ConstantInt::get(numberType(), listSize_),
-			builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "store.array.length");
+			builder_.CreateInBoundsGEP(result, valueIndices), "store.array.length");
 	}
 	else if (isRegExp(rhs))
 	{
@@ -1147,7 +1146,7 @@ llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Valu
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::RegExpOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.regexp");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "stor.regexp");
 	}
 	else if (isIPAddress(rhs))
 	{
@@ -1155,21 +1154,21 @@ llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Valu
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::IPAddrOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.ip");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "stor.ip");
 	}
 	else if (isFunctionPtr(rhs))
 	{
 		typeCode = FlowValue::FUNCTION;
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::FunctionOffset);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.fnref");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "stor.fnref");
 	}
 	else if (isCString(rhs))
 	{
 		typeCode = FlowValue::STRING;
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::BufferOffset);
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.str");
+		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "stor.str");
 	}
 	else if (isBufferPtr(rhs))
 	{
@@ -1179,10 +1178,10 @@ llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Valu
 		llvm::Value *buf = emitLoadBufferData(rhs);
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset);
-		builder_.CreateStore(len, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.len");
+		builder_.CreateStore(len, builder_.CreateInBoundsGEP(result, valueIndices), "stor.len");
 
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::BufferOffset);
-		builder_.CreateStore(buf, builder_.CreateInBoundsGEP(result, valueIndices, valueIndices + 2), "stor.len");
+		builder_.CreateStore(buf, builder_.CreateInBoundsGEP(result, valueIndices), "stor.len");
 	}
 	else
 	{
@@ -1202,7 +1201,7 @@ llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Valu
 	};
 	builder_.CreateStore(
 		llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), typeCode),
-		builder_.CreateInBoundsGEP(result, typeIndices, typeIndices + 2, "arg.type"),
+		builder_.CreateInBoundsGEP(result, typeIndices, "arg.type"),
 		"store.arg.type");
 
 	return result;
@@ -1239,7 +1238,10 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 			emitNativeValue(index++, callArgs[4], codegen(*i));
 
 	// emit call
-	value_ = builder_.CreateCall(coreFunctions_[static_cast<size_t>(CF::native)], callArgs, callArgs + sizeof(callArgs) / sizeof(*callArgs));
+	value_ = builder_.CreateCall(
+		coreFunctions_[static_cast<size_t>(CF::native)],
+		llvm::ArrayRef<llvm::Value*>(callArgs, sizeof(callArgs) / sizeof(*callArgs))
+	);
 
 	// handle return value
 	FlowBackend::Callback *native = backend_->at(id);
@@ -1256,12 +1258,12 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 					llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::TypeOffset),
 					llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset)
 				};
-				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, valueIndices + 2, "retval.buflen.tmp");
+				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, "retval.buflen.tmp");
 				llvm::Value *length = builder_.CreateLoad(value_, "retval.buflen.load");
 
 				// retrieve ref to buffer data
 				valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::BufferOffset);
-				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, valueIndices + 2, "retval.buf.tmp");
+				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, "retval.buf.tmp");
 				llvm::Value *data = builder_.CreateLoad(value_, "retval.buf.load");
 
 				value_ = emitAllocaBuffer(length, data, "retval");
@@ -1280,7 +1282,7 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 					llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), 0),
 					llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), valueIndex)
 				};
-				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, valueIndices + 2, "retval.value.tmp");
+				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, "retval.value.tmp");
 				value_ = builder_.CreateLoad(value_, "retval.value.load");
 			}
 
@@ -1292,7 +1294,7 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 				llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), 0),
 				llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValue::NumberOffset)
 			};
-			value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, valueIndices + 2, "retval.value.tmp");
+			value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, "retval.value.tmp");
 			value_ = builder_.CreateLoad(value_, "retval.value.load");
 
 			// compare return value for not being false (zero)
@@ -1336,7 +1338,7 @@ void FlowRunner::visit(Function& function)
 	}
 
 	// conbufuct function proto-type
-	std::vector<const llvm::Type *> argTypes;
+	std::vector<llvm::Type *> argTypes;
 	if (function.isHandler())
 		argTypes.push_back(int8PtrType());
 
@@ -1424,7 +1426,7 @@ void FlowRunner::visit(Unit& unit)
 
 void FlowRunner::emitInitializerHead()
 {
-	std::vector<const llvm::Type *> argTypes;
+	std::vector<llvm::Type *> argTypes;
 	llvm::FunctionType *ft = llvm::FunctionType::get(llvm::Type::getVoidTy(cx_), argTypes, false);
 	initializerFn_ = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "__flow_initialize", module_);
 	initializerBB_ = llvm::BasicBlock::Create(cx_, "entry", initializerFn_);
@@ -1980,7 +1982,7 @@ void FlowRunner::visit(BinaryExpr& expr)
 			caller->getBasicBlockList().push_back(contBB);
 			builder_.SetInsertPoint(contBB);
 
-			llvm::PHINode *pn = builder_.CreatePHI(llvm::Type::getInt1Ty(cx_));
+			llvm::PHINode *pn = builder_.CreatePHI(llvm::Type::getInt1Ty(cx_), 2, "or.phi");
 			pn->addIncoming(left, cmpBB);
 			pn->addIncoming(right, rhsBB);
 
@@ -2070,10 +2072,10 @@ void FlowRunner::visit(BinaryExpr& expr)
 				value_ = builder_.CreateICmpEQ(left, right);
 			} else if (left->getType()->isIntegerTy() && right->getType()->isIntegerTy()) {
 				// (int, int)
-				if (static_cast<const llvm::IntegerType *>(left->getType())->getBitWidth() < 64)
+				if (static_cast<llvm::IntegerType *>(left->getType())->getBitWidth() < 64)
 					left = builder_.CreateIntCast(left, numberType(), false, "lhs.i64cast");
 
-				if (static_cast<const llvm::IntegerType *>(right->getType())->getBitWidth() < 64)
+				if (static_cast<llvm::IntegerType *>(right->getType())->getBitWidth() < 64)
 					right = builder_.CreateIntCast(right, numberType(), false, "rhs.i64cast");
 
 				value_ = builder_.CreateICmpEQ(left, right);
@@ -2348,29 +2350,29 @@ void FlowRunner::visit(CallExpr& call)
 llvm::Value *FlowRunner::emitCoreCall(CF id, llvm::Value *p1)
 {
 	llvm::Function *calleeFn = coreFunctions_[static_cast<int>(id)];
-	llvm::Value *p[1] = { p1 };
-	return value_ = builder_.CreateCall(calleeFn, p, p + sizeof(p) / sizeof(*p));
+	llvm::Value* p[1] = { p1 };
+	return value_ = builder_.CreateCall(calleeFn, p);
 }
 
 llvm::Value *FlowRunner::emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2)
 {
 	llvm::Function *calleeFn = coreFunctions_[static_cast<int>(id)];
-	llvm::Value *p[2] = { p1, p2 };
-	return value_ = builder_.CreateCall(calleeFn, p, p + sizeof(p) / sizeof(*p));
+	llvm::Value* p[2] = { p1, p2 };
+	return value_ = builder_.CreateCall(calleeFn, p);
 }
 
 llvm::Value *FlowRunner::emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, llvm::Value *p3)
 {
 	llvm::Function *calleeFn = coreFunctions_[static_cast<int>(id)];
-	llvm::Value *p[3] = { p1, p2, p3 };
-	return value_ = builder_.CreateCall(calleeFn, p, p + sizeof(p) / sizeof(*p));
+	llvm::Value* p[3] = { p1, p2, p3 };
+	return value_ = builder_.CreateCall(calleeFn, p);
 }
 
 llvm::Value *FlowRunner::emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, llvm::Value *p3, llvm::Value *p4)
 {
 	llvm::Function *calleeFn = coreFunctions_[static_cast<int>(id)];
-	llvm::Value *p[4] = { p1, p2, p3, p4 };
-	return value_ = builder_.CreateCall(calleeFn, p, p + sizeof(p) / sizeof(*p));
+	llvm::Value* p[4] = { p1, p2, p3, p4 };
+	return value_ = builder_.CreateCall(calleeFn, p);
 }
 
 /** emits a non-native function call (if function is a handler do handle the result, too).
@@ -2409,7 +2411,7 @@ void FlowRunner::emitCall(Function *callee, ListExpr *callArgs)
 			args.push_back(codegen(*i));
 	}
 
-	value_ = builder_.CreateCall(calleeFn, args.begin(), args.end());
+	value_ = builder_.CreateCall(calleeFn, args);
 
 	if (callee->isHandler())
 	{

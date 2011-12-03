@@ -159,22 +159,22 @@ public:
 	void close();
 
 	// {{{ types
-	const Type *stringType() const;
-	const Type *numberType() const;
-	const Type *boolType() const;
-	const Type *voidType() const;
-	const Type *bufferType() const;
-	const Type *arrayType() const;
-	const Type *regexpType() const;
-	const Type *ipaddrType() const;
+	Type *stringType() const;
+	Type *numberType() const;
+	Type *boolType() const;
+	Type *voidType() const;
+	Type *bufferType() const;
+	Type *arrayType() const;
+	Type *regexpType() const;
+	Type *ipaddrType() const;
 
-	const Type *int8Type() const;
-	const Type *int16Type() const;
-	const Type *int32Type() const;
-	const Type *int64Type() const;
-	const Type *doubleType() const;
+	Type *int8Type() const;
+	Type *int16Type() const;
+	Type *int32Type() const;
+	Type *int64Type() const;
+	Type *doubleType() const;
 
-	const Type *int8PtrType() const;
+	Type *int8PtrType() const;
 	// }}}
 
 private:
@@ -185,7 +185,7 @@ private:
 
 	int findNative(const std::string& name) const;
 
-	const llvm::Type *makeType(FlowToken t) const;
+	llvm::Type *makeType(FlowToken t) const;
 
 	// buffer API
 	llvm::Value *emitGlobalBuffer(const std::string& value, const std::string& name = "");
@@ -195,13 +195,13 @@ private:
 	llvm::Value *emitStoreBufferLength(llvm::Value *nstr, llvm::Value *length);
 	llvm::Value *emitStoreBufferData(llvm::Value *nstr, llvm::Value *data);
 	llvm::Value *emitStoreBuffer(llvm::Value *nstr, llvm::Value *length, llvm::Value *data);
-	bool isBufferTy(const llvm::Type *nbuf) const;
+	bool isBufferTy(llvm::Type *nbuf) const;
 	bool isBuffer(llvm::Value *nbuf) const;
-	bool isBufferPtrTy(const llvm::Type *nbuf) const;
+	bool isBufferPtrTy(llvm::Type *nbuf) const;
 	bool isBufferPtr(llvm::Value *nbuf) const;
 
 	// C-string helper
-	bool isCStringTy(const llvm::Type *nstr) const;
+	bool isCStringTy(llvm::Type *nstr) const;
 	bool isCString(llvm::Value *nstr) const;
 
 	//! \return true if v1 and v2 is C-string (i8*) OR a string buffer (%nbuf*)
@@ -236,12 +236,12 @@ private:
 
 	// core-function API
 	void emitCoreFunctions();
-	void emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, bool isVaArg);
-	void emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, const Type *p2, bool isVaArg);
-	void emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, const Type *p2, const Type *p3, bool isVaArg);
-	void emitCoreFunction(CF id, const std::string& name, const Type *rt, const Type *p1, const Type *p2, const Type *p3, const Type *p4, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, Type *p4, bool isVaArg);
 	template<typename T>
-	void emitCoreFunction(CF id, const std::string& name, const Type *rt, T pbegin, T pend, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, Type *rt, T pbegin, T pend, bool isVaArg);
 	llvm::Value *emitCoreCall(CF id, llvm::Value *p1);
 	llvm::Value *emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2);
 	llvm::Value *emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, llvm::Value *p3);

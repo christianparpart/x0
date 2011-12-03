@@ -90,6 +90,12 @@ link_directories(${LLVM_LIBRARY_DIR})
 set(LIBS ${LIBS} ${LLVM_LIBRARIES})
 add_definitions(${LLVM_CPPFLAGS})
 
+set(LLVM_SUPPORTED_VERSION "3.0")
+string(COMPARE NOTEQUAL "${LLVM_VERSION}" "${LLVM_SUPPORTED_VERSION}" LLVM_UNSUPPORTED_VER)
+if(${LLVM_UNSUPPORTED_VER})
+	message(FATAL_ERROR "LLVM version ${LLVM_SUPPORTED_VERSION} is required (You have ${LLVM_VERSION})")
+endif()
+
 # PCRE
 option(WITH_PCRE "With PCRE support [default: off]" ON)
 if(WITH_PCRE)
