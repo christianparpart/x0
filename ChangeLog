@@ -1,15 +1,51 @@
-0.1.0
+0.5.0 (not yet released)
 
-	* initial release featuring response content filter, compress plugin,
-	sendfile, alias, userdir, vhost_basic, vhost_template, and more...
+	* flow: ported from LLVM framework 2.9 to 3.0
+	* http: fixes #541 (warn on backlog > SOMAXCONN)
+	* SqlStatement: code cleanup and logging readability improvements
+	* HttpServer: log listener socket creations
+	* Buffer: refactor setCapacity() to use realloc() only (no free()-calls)
+	* fastcgi: added backend timeout management
+	* fastcgi: code cleanups
+	* proxy: fixes origin-Server cloaking
+	* proxy: fixes crash
+	* HttpConnection: log read/write errors (again)
+	* HttpConnection: code cleanups
+	* Socket: added remote() and local()
+	* SocketSpec: prettify str() output
+	* status: added some debugging-purpose request-specific data
+	* HttpRequest: extend API to allow custom request inspection
+	* Process: API improvements (regarding terminate/kill)
+	* package: added pkg-cofig files for library components (base, flow, http)
+	* HttpListener: dropped API in favor of ServerSocket
+	* ServerSocket: file descriptor leak fixed
+	* x0d: stability/consistency improvements
+	* x0d: send MAINPID from the *old* to systemd on change. so that
+	systemd's NotifyAccess=main works aswell
+	* x0d: close listeners as quickly/early as possible in parent's graceful
+	shutdown
+	* man pages: documentation improvements
+	* Socket: added setLoop(ev_loop*)
+	* ServerSocket: added start() and stop() methods
 
-0.2.0
+0.4.0 (2011-05-26)
 
-	* overall improvements
-	* proxy: new plugin
-	* core: added basic SSL connections
+	* CompositeSource: added T* push_back<T>(args...), which also implicitely
+	creates new T(args...), adds it to the list and returns it
+	* CompositeSource: fixes a resource leak
+	* HttpConnection: fixes HTTP pipelining
+	* HttpConnection: temporarily disable opportunistic write calls
+	* Logging: added the ability to configure logging via env var XZERO_LOGGING
+	* Logging: renamed logging(bool) to setLogging(bool) for more consistency
+	* SqlConnection: added affectedRows()
+	* TextFormatter: new API
+	* SqlStatement: allow constructs like: for (auto& row: sqlQuery(...)) { ... }
+	* SqlStatement: added valueOf<size_t>(), which also maps to time_t
+	* DateTime: use ev::tstamp instead of time_t
+	* TimeSpan: make use of constexpr
+	* Buffer: added swap(Buffer&);
 
-0.3.0
+0.3.0 (2011-04-16)
 
 	* core: lots of refactoring and code cleanups
 	* core: configuration API improved
@@ -18,3 +54,15 @@
 	* x0d: introduce --user, --group, --pid-file arguments
 	* proxy: make use of new web_client API
 	* tests: web_client unit test added
+
+0.2.0 (2010-03-31)
+
+	* overall improvements
+	* proxy: new plugin
+	* core: added basic SSL connections
+
+0.1.0 (2010-03-20)
+
+	* initial release featuring response content filter, compress plugin,
+	sendfile, alias, userdir, vhost_basic, vhost_template, and more...
+
