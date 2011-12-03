@@ -52,3 +52,6 @@ tests/test_flow_lexer
 *.log
 .safe
 .safe?
+XzeroBase.pc
+XzeroFlow.pc
+XzeroHttp.pc
