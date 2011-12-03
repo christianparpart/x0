@@ -20,6 +20,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <sstream>
+#include <cstdio>
 
 #include <sys/resource.h>
 #include <sys/types.h>
@@ -985,7 +986,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 
 		// push the prepared ranged response into the client
 		char slen[32];
-		snprintf(slen, sizeof(slen), "%ld", contentLength);
+		snprintf(slen, sizeof(slen), "%zu", contentLength);
 
 		in->responseHeaders.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
 		in->responseHeaders.push_back("Content-Length", slen);
@@ -1008,12 +1009,12 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 		std::size_t length = 1 + offsets.second - offsets.first;
 
 		char slen[32];
-		snprintf(slen, sizeof(slen), "%ld", length);
+		snprintf(slen, sizeof(slen), "%zu", length);
 		in->responseHeaders.push_back("Content-Length", slen);
 
-		FixedBuffer<128> cr;
-		cr << "bytes " << offsets.first << '-' << offsets.second << '/' << in->fileinfo->size();
-		in->responseHeaders.push_back("Content-Range", cr.c_str());
+		char cr[128];
+		snprintf(cr, sizeof(cr), "bytes %zu-%zu/%zu", offsets.first, offsets.second, in->fileinfo->size());
+		in->responseHeaders.push_back("Content-Range", cr);
 
 		if (fd >= 0) {
 			in->write<FileSource>(fd, offsets.first, length, true);

@@ -10,10 +10,10 @@
 #define sw_x0_errorlog_h
 
 #include <x0/Buffer.h>
-#include <x0/FixedBuffer.h>
 #include <x0/Severity.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
+#include <cstdio>
 #include <string>
 #include <memory>
 
@@ -58,7 +58,7 @@ public:
 	void write(Severity s, const char *fmt, A0&& a0, Args&&... args)
 	{
 		char buf[1024];
-		snprintf(buf, sizeof(buf), fmt, a0, args...);
+		std::snprintf(buf, sizeof(buf), fmt, a0, args...);
 		this->write(s, std::string(buf));
 	}
 
@@ -198,16 +198,10 @@ inline void FileLogger<Now>::write(Severity s, const std::string& message)
 {
 	if (s <= level())
 	{
-		FixedBuffer<4096> buf;
-		buf.push_back('[');
-		buf.push_back(now_());
-		buf.push_back("] [");
-		buf.push_back(s.c_str());
-		buf.push_back("] ");
-		buf.push_back(message);
-		buf.push_back('\n');
+		char buf[4096];
+		size_t n = snprintf(buf, sizeof(buf), "[%s] [%s] %s\n", now_().c_str(), s.c_str(), message.c_str());
 
-		(void) ::write(fd_, buf.data(), buf.size());
+		(void) ::write(fd_, buf, n);
 	}
 }
 

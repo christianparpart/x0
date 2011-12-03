@@ -1,7 +1,6 @@
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
 #include <x0/ConstBuffer.h>
-#include <x0/FixedBuffer.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
@@ -32,10 +31,6 @@ public:
 		CPPUNIT_TEST(ref);
 		CPPUNIT_TEST(call);
 		CPPUNIT_TEST(std_string);
-
-		// FixedBuffer
-		// TODO
-		CPPUNIT_TEST(fixed_buf);
 
 		// ConstBuffer
 		// TODO
@@ -276,21 +271,6 @@ private:
 		CPPUNIT_ASSERT(a.data() != s.data());
 		CPPUNIT_ASSERT(a.size() == s.size());
 		CPPUNIT_ASSERT(s == "hello");
-	}
-	// }}}
-
-	// {{{ FixedBuffer
-	void fixed_buf()
-	{
-		x0::FixedBuffer<2> b2;
-		b2.push_back('1');
-		CPPUNIT_ASSERT(b2.size() == 1);
-
-		b2.push_back('2');
-		CPPUNIT_ASSERT(b2.size() == 2);
-
-		b2.push_back('3');
-		CPPUNIT_ASSERT(b2.size() == 2);
 	}
 	// }}}
 

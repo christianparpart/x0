@@ -38,6 +38,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/logic/tribool.hpp>
 
+#include <cstdio>
 #include <cstring>
 #include <cerrno>
 #include <cstddef>
@@ -193,12 +194,12 @@ private:
 		buf << "</body></html>\n";
 
 		// get string version of content length
-		x0::FixedBuffer<16> slen;
-		slen.push_back(buf.size());
+		char slen[16];
+		snprintf(slen, sizeof(slen), "%zu", buf.size());
 
 		in->status = x0::HttpError::Ok;
 		in->responseHeaders.push_back("Content-Type", "text/html");
-		in->responseHeaders.push_back("Content-Length", slen.str());
+		in->responseHeaders.push_back("Content-Length", slen);
 		in->write<x0::BufferSource>(std::move(buf));
 		in->finish();
 		return true;

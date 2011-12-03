@@ -36,10 +36,10 @@ public:
 	int seconds() const { return static_cast<int>(value_) % 60; }
 	int milliseconds() const;
 
-	static constexpr int ticksPerDay() { return 86400; }
-	static constexpr int ticksPerHour() { return 3600; }
-	static constexpr int ticksPerMinute() { return 60; }
-	static constexpr int ticksPerSecond() { return 1; }
+	static inline int ticksPerDay() { return 86400; }
+	static inline int ticksPerHour() { return 3600; }
+	static inline int ticksPerMinute() { return 60; }
+	static inline int ticksPerSecond() { return 1; }
 
 	static TimeSpan fromDays(std::size_t v) { return TimeSpan(ticksPerDay() * v); }
 	static TimeSpan fromHours(std::size_t v) { return TimeSpan(ticksPerHour() * v); }

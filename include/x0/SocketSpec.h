@@ -7,8 +7,9 @@
 
 namespace x0 {
 
-struct X0_API SocketSpec
+class X0_API SocketSpec
 {
+public:
 	IPAddress address;
 	std::string local;
 
