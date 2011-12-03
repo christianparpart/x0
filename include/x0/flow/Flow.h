@@ -96,6 +96,9 @@ public:
 	size_t size() const;
 	bool empty() const;
 
+	iterator begin() { return result_.begin(); }
+	iterator end() { return result_.end(); }
+
 	CallExpr* operator*() { return *current_; }
 	CallExpr* operator->() { return *current_; }
 

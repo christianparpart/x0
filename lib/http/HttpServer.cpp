@@ -192,7 +192,7 @@ bool HttpServer::validateConfig()
 	unsigned errors = 0;
 
 	TRACE("validateConfig: setup:");
-	for (FlowCallIterator i(setupFn), e(nullptr); i != e; ++i) {
+	for (auto& i: FlowCallIterator(setupFn)) {
 		if (i->callee()->body())
 			// skip script user-defined handlers
 			continue;
@@ -207,7 +207,7 @@ bool HttpServer::validateConfig()
 	}
 
 	TRACE("validateConfig: main:");
-	for (FlowCallIterator i(mainFn), e(nullptr); i != e; ++i) {
+	for (auto& i: FlowCallIterator(mainFn)) {
 		if (i->callee()->body())
 			// skip script user-defined handlers
 			continue;
