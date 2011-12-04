@@ -13,6 +13,7 @@ add_definitions(
 	-DSYSCONFDIR="${SYSCONFDIR}"
 	-DVERSION="${PACKAGE_VERSION}")
 
+if(BUILD_TESTS)
 # -----------------------------------------------------------------
 add_executable(x0test
 	x0dtest.cpp
@@ -66,3 +67,5 @@ target_link_libraries(fcgi-long-run fcgi)
 
 add_executable(fcgi-staticfile fcgi-staticfile.cpp)
 target_link_libraries(fcgi-staticfile fcgi)
+
+endif(BUILD_TESTS)
