@@ -837,8 +837,19 @@ An example use looks as follows:
  handler setup {
      # ...
      ssl.context 'keyfile' => '/etc/certs/xzero.ws.key',
-                 'crtfile' => '/etc/certs/xzero.ws.crt';
+                 'crtfile' => '/etc/certs/xzero.ws.crt',
+                 'priorities' => "NONE:+VERS-TLS1.0:+ARCFOUR-128:+RSA:+SHA1:+COMP-NULL";
  }
+
+In order to mitigate the SSL/TLS cipher suite vulnerability (CVE-2009-3555)
+please do not use any CBC ciphers but for example:
+
+     NONE:+VERS-TLS1.0:+ARCFOUR-128:+RSA:+SHA1:+COMP-NULL
+
+=item B<ssl.allow_renegotiation> (boolean)
+
+Allows or prevents SSL session renegotiation and is now disabled by default.
+Do only allow SSL renegotiation in trusted environments.
 
 =back
 
