@@ -186,8 +186,9 @@ private:
 
 	// ssl.add(
 	// 		'keyfile' => PATH,
-	// 		'crtfile' => PATH,
-	// 		'crlfile' => PATH);
+	// 		'certfile' => PATH,
+	// 		'trustfile' => PATH,
+	// 		'priorities' => CIPHERS);
 	//
 	void add_context(const x0::FlowParams& args, x0::FlowValue& result)
 	{
