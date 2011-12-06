@@ -111,7 +111,10 @@ add_definitions(${EV_CPPFLAGS})
 # mySQL
 option(WITH_MYSQL "With mySQL support [default: on]" ON)
 if(WITH_MYSQL)
-	set(MYSQL_LIBRARIES mysqlclient CACHE STRING "mySQL library")
+	find_package(MYSQL)
+	include_directories(${MYSQL_INCLUDE_DIR})
+	set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
+	add_definitions(${MYSQL_CPPFLAGS})
 endif()
 
 set(RRD_LIBRARIES -lrrd)

@@ -16,12 +16,13 @@ file(GLOB x0_base_SRC "base/*.cpp")
 file(GLOB x0_io_SRC "io/*.cpp")
 if(WITH_MYSQL)
 	file(GLOB x0_sql_SRC "sql/*.cpp")
+	add_definitions(${MYSQL_CFLAGS})
 endif()
 add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
 target_link_libraries(XzeroBase dl pthread
 	${SD_LIBRARIES}
 	${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES}
-	${EV_LIBRARIES} ${MYSQL_LIBRARIES})
+	${EV_LIBRARIES} ${MYSQL_LDFLAGS})
 install(TARGETS XzeroBase DESTINATION ${LIBDIR})
 
 # XzeroFlow
