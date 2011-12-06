@@ -1,5 +1,9 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
+- cmake: add a mysql-check
+- cmake: add rrdtool-check, if rrd plugin is to be compiled (or enable only if rrd.h is available)
+- cmake: fcgi library/header check. enable certain tests only if this dependency is installed.
+
 ===================================================================================================
 
 0.4:
