@@ -804,11 +804,13 @@ An example use looks as follows:
      ssl.loglevel 6;
  }
 
-=item B<ssl.listen> (ADDRESS:PORT)
+=item B<ssl.listen> ('bind' => ADDRESS, 'port' => PORT, 'backlog' => NUMBER)
 
 This setup-function creates an HTTPS listener.
 Incoming connections will be SSL-encrypted.
 You will also need at least once certificate context.
+
+B<backlog> defaults to system-default (128 usually).
 
 An example use looks as follows:
 
