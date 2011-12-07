@@ -26,6 +26,7 @@
 
 namespace llvm {
 	class FunctionPassManager;
+	class PassManager;
 	class ExecutionEngine;
 	class Type;
 }
@@ -129,6 +130,7 @@ private:
 	bool requestingLvalue_;
 
 	llvm::FunctionPassManager *functionPassMgr_;
+	llvm::PassManager* modulePassMgr_;
 	llvm::ExecutionEngine *executionEngine_;
 
 	std::vector<llvm::Function *> functions_;

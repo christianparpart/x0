@@ -31,7 +31,7 @@ execute_process(
 )
 
 execute_process(
-	COMMAND ${LLVM_CONFIG_EXECUTABLE} --libs engine
+	COMMAND ${LLVM_CONFIG_EXECUTABLE} --libs engine ipo
 	OUTPUT_VARIABLE LLVM_LIBRARIES
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )

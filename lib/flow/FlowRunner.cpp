@@ -28,6 +28,8 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/Target/TargetData.h>
+#include <llvm/Target/TargetLibraryInfo.h>
+#include <llvm/ADT/Triple.h>
 
 #include <fstream>
 
@@ -180,6 +182,7 @@ FlowRunner::FlowRunner(FlowBackend *b) :
 	scope_(),
 	requestingLvalue_(false),
 	functionPassMgr_(NULL),
+	modulePassMgr_(NULL),
 	executionEngine_(NULL)
 {
 	llvm::InitializeNativeTarget();
@@ -221,13 +224,22 @@ void FlowRunner::setOptimizationLevel(int value)
 	if (functionPassMgr_)
 		delete functionPassMgr_;
 
-	functionPassMgr_ = new llvm::FunctionPassManager(module_);
-	functionPassMgr_->add(new llvm::TargetData(*executionEngine_->getTargetData()));
+	if (modulePassMgr_)
+		delete modulePassMgr_;
 
-	if (optimizationLevel_) {
-		//llvm::createStandardFunctionPasses(functionPassMgr_, optimizationLevel_);
-		//llvm::StandardPass::AddPassesFromSet(functionPassMgr_, llvm::StandardPass::Function);
-	}
+	llvm::PassManagerBuilder pmBuilder;
+	pmBuilder.OptLevel = optimizationLevel_;
+	pmBuilder.LibraryInfo = new llvm::TargetLibraryInfo(llvm::Triple(module_->getTargetTriple()));
+
+	// function pass manager
+	functionPassMgr_ = new llvm::FunctionPassManager(module_);
+	functionPassMgr_->add(new llvm::TargetData(module_));
+	pmBuilder.populateFunctionPassManager(*functionPassMgr_);
+
+	// module pass manager
+	modulePassMgr_ = new llvm::PassManager();
+	modulePassMgr_->add(new llvm::TargetData(module_));
+	pmBuilder.populateModulePassManager(*modulePassMgr_);
 }
 
 void FlowRunner::clear()
