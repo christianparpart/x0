@@ -1024,6 +1024,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 		in->responseHeaders.push_back("Content-Range", cr);
 
 		if (fd >= 0) {
+			posix_fadvise(fd, offsets.first, length, POSIX_FADV_SEQUENTIAL);
 			in->write<FileSource>(fd, offsets.first, length, true);
 		}
 	}
