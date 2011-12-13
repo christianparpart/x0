@@ -576,6 +576,23 @@ Example:
     staticfile;
  }
 
+=item B<precompressed> ()
+
+This handler looks for a precompressed version of the requested
+static file and will prefer this to compression-requesting clients
+if and only if their mtime match.
+
+Supported algorithms / file suffixes are gzip (.gz) and bzip2 (.bz2).
+
+Example:
+
+ handler main {
+    # ...
+    docroot "/var/www/localhost/htdocs"
+    precompressed
+    staticfile
+ }
+
 =item B<redirect> (url)
 
 Redirects current request to another URL.

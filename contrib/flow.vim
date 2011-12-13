@@ -105,7 +105,7 @@ if exists("flow_x0")
 	syn keyword flowCoreHandler redirect respond blank status
 
 	" upstream plugin handlers
-	syn keyword flowCoreHandler fastcgi staticfile
+	syn keyword flowCoreHandler fastcgi precompressed staticfile
 	syn match flowCoreHandler '\<dirlisting\(.google\)\?\>'
 	syn keyword flowCoreFunctions docroot alias
 	syn match flowCoreHandler '\<access\.\(deny\|allow\)\>'

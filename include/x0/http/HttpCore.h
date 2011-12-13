@@ -91,6 +91,7 @@ private:
 	bool respond(HttpRequest *r, const FlowParams& args);
 	bool blank(HttpRequest *r, const FlowParams& args);
 	bool staticfile(HttpRequest *r, const FlowParams& args);
+	bool precompressed(HttpRequest *r, const FlowParams& args);
 
 	// main functions
 	void autoindex(HttpRequest* r, const FlowParams& args, FlowValue& result);
@@ -129,6 +130,7 @@ private:
 
 	// helpers
 	inline HttpError verifyClientCache(HttpRequest *r);
+	inline bool processStaticFile(HttpRequest *r, FileInfoPtr transferFile);
 	inline bool processRangeRequest(HttpRequest *r, int fd);
 	inline std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size);
 	inline std::string generateBoundaryID() const;

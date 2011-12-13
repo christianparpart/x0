@@ -141,6 +141,7 @@ HttpCore::HttpCore(HttpServer& server) :
 
 	// main handlers
 	registerHandler<HttpCore, &HttpCore::staticfile>("staticfile");
+	registerHandler<HttpCore, &HttpCore::precompressed>("precompressed");
 	registerHandler<HttpCore, &HttpCore::redirect>("redirect");
 	registerHandler<HttpCore, &HttpCore::respond>("respond");
 	registerHandler<HttpCore, &HttpCore::blank>("blank");
@@ -820,6 +821,11 @@ bool HttpCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 		return true;
 	}
 
+	return processStaticFile(in, in->fileinfo);
+} // }}}
+
+bool HttpCore::processStaticFile(HttpRequest* in, FileInfoPtr transferFile) // {{{
+{
 	int fd = -1;
 	if (equals(in->method, "GET")) {
 		int flags = O_RDONLY | O_NONBLOCK;
@@ -828,11 +834,11 @@ bool HttpCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 		flags |= O_CLOEXEC;
 #endif
 
-		fd = in->fileinfo->open(flags);
+		fd = transferFile->open(flags);
 
 		if (fd < 0) {
 			server_.log(Severity::error, "Could not open file '%s': %s",
-				in->fileinfo->path().c_str(), strerror(errno));
+				transferFile->path().c_str(), strerror(errno));
 
 			in->status = HttpError::Forbidden;
 			in->finish();
@@ -852,17 +858,18 @@ bool HttpCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 	if (!processRangeRequest(in, fd)) {
 		in->responseHeaders.push_back("Accept-Ranges", "bytes");
 		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
-		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
+		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(transferFile->size()));
 
 		if (fd < 0) { // HEAD request
 			in->finish();
 		} else {
-			posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+			posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
 
-			in->write<FileSource>(fd, 0, in->fileinfo->size(), true);
+			in->write<FileSource>(fd, 0, transferFile->size(), true);
 			in->finish();
 		}
 	}
+
 	return true;
 } // }}}
 
@@ -1066,6 +1073,49 @@ inline std::string HttpCore::generateBoundaryID() const
 	return std::string(buf);
 }
 // }}}
+
+// {{{ handler: precompressed
+bool HttpCore::precompressed(HttpRequest *in, const FlowParams& args)
+{
+	if (!in->fileinfo)
+		return false;
+
+	if (!in->fileinfo->exists())
+		return false;
+
+	if (!in->fileinfo->isRegular())
+		return false;
+
+	if (BufferRef r = in->requestHeader("Accept-Encoding"))
+	{
+		std::vector<std::string> items(x0::split<std::string>(r.str(), ", "));
+
+		static const struct {
+			const char* id;
+			const char* fileExtension;
+		} encodings[] = {
+			{ "gzip", ".gz" },
+			{ "bzip2", ".bz2" },
+//			{ "lzma", ".lzma" },
+		};
+
+		for (auto& encoding: encodings)
+		{
+			if (std::find(items.begin(), items.end(), encoding.id) != items.end())
+			{
+				FileInfoPtr pc(in->connection.worker().fileinfo(in->fileinfo->path() + encoding.fileExtension));
+
+				if (pc->exists() && pc->isRegular() && pc->mtime() == in->fileinfo->mtime())
+				{
+					in->responseHeaders.push_back("Content-Encoding", encoding.id);
+					return processStaticFile(in, pc);
+				}
+			}
+		}
+	}
+
+	return false;
+} // }}}
 
 // {{{ post_config
 bool HttpCore::post_config()
