@@ -193,6 +193,7 @@ private:
 	int systemd_;
 	int doguard_;
 	int dumpIR_;
+	int optimizationLevel_;
 	struct ev_loop* loop_;
 	x0::HttpServer *server_;
 	ev::sig terminateSignal_;
@@ -225,6 +226,7 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	systemd_(getppid() == 1),
 	doguard_(false),
 	dumpIR_(false),
+	optimizationLevel_(2),
 	loop_(ev_default_loop()),
 	server_(nullptr),
 	terminateSignal_(loop_),
@@ -406,6 +408,7 @@ bool XzeroHttpDaemon::parse()
 		{ "version", no_argument, nullptr, 'v' },
 		{ "copyright", no_argument, nullptr, 'y' },
 		{ "config", required_argument, nullptr, 'c' },
+		{ "optimization-level", required_argument, &optimizationLevel_, 'O' },
 		{ "help", no_argument, nullptr, 'h' },
 		//.
 		{ 0, 0, 0, 0 }
@@ -421,13 +424,16 @@ bool XzeroHttpDaemon::parse()
 	for (;;)
 	{
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyc:p:u:g:l:L:i:hXG", long_options, &long_index))
+		switch (getopt_long(argc_, argv_, "vyc:O:p:u:g:l:L:i:hXG", long_options, &long_index))
 		{
 			case 'p':
 				pidfile_ = optarg;
 				break;
 			case 'c':
 				configfile_ = optarg;
+				break;
+			case 'O':
+				optimizationLevel_ = std::atoi(optarg);
 				break;
 			case 'g':
 				group_ = optarg;
@@ -461,20 +467,21 @@ bool XzeroHttpDaemon::parse()
 					<< "  XzeroHttpDaemon [options ...]" << std::endl
 					<< std::endl
 					<< "options:" << std::endl
-					<< "  -h,--help                print this help" << std::endl
-					<< "  -c,--config=PATH         specify a custom configuration file [" << configfile_ << "]" << std::endl
-					<< "  -X,--no-fork             do not fork into background" << std::endl
-					<< "     --systemd             force systemd-mode, which is auto-detected otherwise" << std::endl
-					<< "  -G,--guard               do run service as child of a special guard process to watch for crashes" << std::endl
-					<< "  -p,--pid-file=PATH       PID file to create" << std::endl
-					<< "  -u,--user=NAME           user to drop privileges to" << std::endl
-					<< "  -g,--group=NAME          group to drop privileges to" << std::endl
-					<< "  -l,--log-file=PATH       path to log file (ignored when in systemd-mode)" << std::endl
-					<< "  -L,--log-level=VALUE     log level, a value between 0 and 9 (default " << static_cast<int>(logLevel_) << ")" << std::endl
-					<< "     --dump-ir             dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
-					<< "  -i,--instant=PATH[,PORT] run XzeroHttpDaemon in simple pre-configured instant-mode" << std::endl
-					<< "  -v,--version             print software version" << std::endl
-					<< "  -y,--copyright           print software copyright notice / license" << std::endl
+					<< "  -h,--help                 print this help" << std::endl
+					<< "  -c,--config=PATH          specify a custom configuration file [" << configfile_ << "]" << std::endl
+					<< "  -O,--optimization-level=N sets the configuration optimization level [" << optimizationLevel_ << "]" << std::endl
+					<< "  -X,--no-fork              do not fork into background" << std::endl
+					<< "     --systemd              force systemd-mode, which is auto-detected otherwise" << std::endl
+					<< "  -G,--guard                do run service as child of a special guard process to watch for crashes" << std::endl
+					<< "  -p,--pid-file=PATH        PID file to create" << std::endl
+					<< "  -u,--user=NAME            user to drop privileges to" << std::endl
+					<< "  -g,--group=NAME           group to drop privileges to" << std::endl
+					<< "  -l,--log-file=PATH        path to log file (ignored when in systemd-mode)" << std::endl
+					<< "  -L,--log-level=VALUE      log level, a value between 0 and 9 (default " << static_cast<int>(logLevel_) << ")" << std::endl
+					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
+					<< "  -i,--instant=PATH[,PORT]  run XzeroHttpDaemon in simple pre-configured instant-mode" << std::endl
+					<< "  -v,--version              print software version" << std::endl
+					<< "  -y,--copyright            print software copyright notice / license" << std::endl
 					<< std::endl;
 				return false;
 			case 'X':
@@ -573,7 +580,7 @@ bool XzeroHttpDaemon::setupConfig()
 	if (instant_.empty()) {
 		// this is no instant-mode, so setup via configuration file.
 		std::ifstream ifs(configfile_);
-		return server_->setup(&ifs, configfile_);
+		return server_->setup(&ifs, configfile_, optimizationLevel_);
 	}
 
 	// --instant=docroot[,port[,bind]]
@@ -621,7 +628,7 @@ bool XzeroHttpDaemon::setupConfig()
 	server_->tcpCork(true);
 
 	std::istringstream s(source);
-	return server_->setup(&s, "instant-mode.conf");
+	return server_->setup(&s, "instant-mode.conf", optimizationLevel_);
 }
 
 /*! Updates state change, and tell supervisors about our state change.
