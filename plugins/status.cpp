@@ -1,7 +1,7 @@
 /* <x0/plugins/status.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
- * http://www.xzero.ws/
+ * http://www.xzero.io/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */

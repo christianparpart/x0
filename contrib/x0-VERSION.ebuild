@@ -5,7 +5,7 @@
 inherit eutils
 
 DESCRIPTION="x0 HTTP web server"
-HOMEPAGE="http://xzero.ws/"
+HOMEPAGE="http://xzero.io/"
 SRC_URI="http://files.xero.ws/${PN}/${P}.tar.gz"
 LICENSE="GPL-v3"
 

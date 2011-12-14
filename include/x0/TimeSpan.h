@@ -1,7 +1,7 @@
 /* <x0/TimeSpan.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
- * http://www.xzero.ws/
+ * http://www.xzero.io/
  *
  * (c) 2009-2011 Christian Parpart <trapni@gentoo.org>
  */

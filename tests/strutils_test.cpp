@@ -29,11 +29,11 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parseUrl("http://xzero.ws:8080/path/to?query", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.io:8080/path/to?query", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
-		CPPUNIT_ASSERT(hostname == "xzero.ws");
+		CPPUNIT_ASSERT(hostname == "xzero.io");
 		CPPUNIT_ASSERT(port == 8080);
 		CPPUNIT_ASSERT(path == "/path/to");
 		CPPUNIT_ASSERT(query == "query");
@@ -44,11 +44,11 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parseUrl("http://xzero.ws", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.io", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
-		CPPUNIT_ASSERT(hostname == "xzero.ws");
+		CPPUNIT_ASSERT(hostname == "xzero.io");
 		CPPUNIT_ASSERT(port == 80);
 		CPPUNIT_ASSERT(path == "");
 		CPPUNIT_ASSERT(query == "");
@@ -59,11 +59,11 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parseUrl("http://xzero.ws/", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.io/", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
-		CPPUNIT_ASSERT(hostname == "xzero.ws");
+		CPPUNIT_ASSERT(hostname == "xzero.io");
 		CPPUNIT_ASSERT(port == 80);
 		CPPUNIT_ASSERT(path == "/");
 		CPPUNIT_ASSERT(query == "");
@@ -74,11 +74,11 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parseUrl("https://xzero.ws/", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("https://xzero.io/", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "https");
-		CPPUNIT_ASSERT(hostname == "xzero.ws");
+		CPPUNIT_ASSERT(hostname == "xzero.io");
 		CPPUNIT_ASSERT(port == 443);
 		CPPUNIT_ASSERT(path == "/");
 		CPPUNIT_ASSERT(query == "");
@@ -89,11 +89,11 @@ private:
 		std::string protocol, hostname, path, query;
 		int port = -1;
 
-		bool rv = x0::parseUrl("http://xzero.ws/?query", protocol, hostname, port, path, query);
+		bool rv = x0::parseUrl("http://xzero.io/?query", protocol, hostname, port, path, query);
 
 		CPPUNIT_ASSERT(rv == true);
 		CPPUNIT_ASSERT(protocol == "http");
-		CPPUNIT_ASSERT(hostname == "xzero.ws");
+		CPPUNIT_ASSERT(hostname == "xzero.io");
 		CPPUNIT_ASSERT(port == 80);
 		CPPUNIT_ASSERT(path == "/");
 		CPPUNIT_ASSERT(query == "query");

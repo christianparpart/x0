@@ -64,7 +64,7 @@ int main(int argc, const char *argv[])
 	client.on_complete = std::bind(&on_complete, &client);
 	client.keepaliveTimeout = 5;
 
-	std::string url("http://xzero.ws/cgi-bin/cgi-test.cgi");
+	std::string url("http://xzero.io/cgi-bin/cgi-test.cgi");
 	if (argc > 1)
 		url = argv[1];
 

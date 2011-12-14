@@ -1,7 +1,7 @@
 /* <flow/FlowValue.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
- * http://redmine.xzero.ws/projects/flow
+ * http://redmine.xzero.io/projects/flow
  *
  * (c) 2010 Christian Parpart <trapni@gentoo.org>
  */
