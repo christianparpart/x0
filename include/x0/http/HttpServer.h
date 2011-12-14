@@ -84,7 +84,8 @@ public:
 	void destroyWorker(HttpWorker* worker);
 
 	// {{{ service control
-	bool setup(std::istream* settings, const std::string& filename = std::string());
+	bool setup(std::istream* settings, const std::string& filename = std::string(), int optimizationLevel = 2);
+	bool setup(const std::string& filename, int optimizationLevel = 2);
 	int run();
 	void stop();
 	void kill();

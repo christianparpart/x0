@@ -25,6 +25,7 @@
 #include <sd-daemon.h>
 
 #include <iostream>
+#include <fstream>
 #include <cstdarg>
 #include <cstdlib>
 
@@ -230,11 +231,13 @@ void HttpServer::onNewConnection(Socket* cs, ServerSocket* ss)
 	selectWorker()->enqueue(std::make_pair(cs, ss));
 }
 
-bool HttpServer::setup(std::istream *settings, const std::string& filename)
+bool HttpServer::setup(std::istream *settings, const std::string& filename, int optimizationLevel)
 {
 	TRACE("setup(%s)", filename.c_str());
 
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
+	runner_->setOptimizationLevel(optimizationLevel);
+
 	if (!runner_->open(filename)) {
 		sd_notifyf(0, "ERRNO=%d", errno);
 		goto err;
@@ -380,6 +383,12 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename)
 
 err:
 	return false;
+}
+
+bool HttpServer::setup(const std::string& filename, int optimizationLevel)
+{
+	std::ifstream s(filename);
+	return setup(&s, filename, optimizationLevel);
 }
 
 // {{{ worker mgnt
