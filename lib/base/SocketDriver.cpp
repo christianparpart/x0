@@ -42,27 +42,31 @@ Socket *SocketDriver::create(struct ev_loop *loop, IPAddress *ipaddr, int port)
 	}
 
 	char buf[sizeof(sockaddr_in6)];
-	std::size_t size;
 	memset(&buf, 0, sizeof(buf));
+	int rv = -1;
 	switch (ipaddr->family()) {
-		case IPAddress::V4:
-			size = sizeof(sockaddr_in);
-			((sockaddr_in *)buf)->sin_port = htons(port);
-			((sockaddr_in *)buf)->sin_family = AF_INET;
-			memcpy(&((sockaddr_in *)buf)->sin_addr, ipaddr->data(), ipaddr->size());
+		case IPAddress::V4: {
+			sockaddr_in sin;
+			memset(&sin, 0, sizeof(sin));
+			sin.sin_port = htons(port);
+			sin.sin_family = AF_INET;
+			memcpy(&sin.sin_addr, ipaddr->data(), ipaddr->size());
+			rv = ::connect(fd, (sockaddr*)&sin, sizeof(sin));
 			break;
-		case IPAddress::V6:
-			size = sizeof(sockaddr_in6);
-			((sockaddr_in6 *)buf)->sin6_port = htons(port);
-			((sockaddr_in6 *)buf)->sin6_family = AF_INET6;
-			memcpy(&((sockaddr_in6 *)buf)->sin6_addr, ipaddr->data(), ipaddr->size());
+		}
+		case IPAddress::V6: {
+			sockaddr_in6 sin;
+			memset(&sin, 0, sizeof(sin));
+			sin.sin6_port = htons(port);
+			sin.sin6_family = AF_INET6;
+			memcpy(&sin.sin6_addr, ipaddr->data(), ipaddr->size());
+			rv = ::connect(fd, (sockaddr*)&sin, sizeof(sin));
 			break;
+		}
 		default:
-			::close(fd);
-			return nullptr;
+			break;
 	}
 
-	int rv = ::connect(fd, (const sockaddr *)buf, size);
 	if (rv < 0) {
 		::close(fd);
 		perror("connect");

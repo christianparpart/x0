@@ -30,7 +30,7 @@
 #if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
-#	define TRACE(msg...) ((void *)0)
+#	define TRACE(msg...) do { } while (0)
 #endif
 
 #define ERROR(msg...) { \

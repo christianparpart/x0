@@ -392,6 +392,7 @@ void ProxyConnection::readSome()
 	if (rv > 0) {
 		TRACE("read response: %ld bytes", rv);
 		std::size_t np = process(readBuffer_.ref(lower_bound, rv));
+		(void) np;
 		TRACE("readSome(): process(): %ld / %ld", np, rv);
 
 		if (processingDone_ || state() == SYNTAX_ERROR) {

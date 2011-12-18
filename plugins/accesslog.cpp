@@ -69,7 +69,11 @@ private:
 			sstr << '"' << getheader(in_, "User-Agent") << '"';
 			sstr << '\n';
 
-			::write(fd_, sstr.data(), sstr.size());
+			int rv = ::write(fd_, sstr.data(), sstr.size());
+
+			if (rv < 0) {
+				perror("accesslog.write");
+			}
 		}
 
 		inline std::string hostname(x0::HttpRequest *in)

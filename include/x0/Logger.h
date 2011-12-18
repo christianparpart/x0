@@ -201,7 +201,11 @@ inline void FileLogger<Now>::write(Severity s, const std::string& message)
 		char buf[4096];
 		size_t n = snprintf(buf, sizeof(buf), "[%s] [%s] %s\n", now_().c_str(), s.c_str(), message.c_str());
 
-		(void) ::write(fd_, buf, n);
+		int rv = ::write(fd_, buf, n);
+
+		if (rv < 0) {
+			perror("FileLogger.write");
+		}
 	}
 }
 
