@@ -227,6 +227,8 @@ void FlowRunner::setOptimizationLevel(int value)
 	if (modulePassMgr_)
 		delete modulePassMgr_;
 
+	TRACE("setOptimizationLevel: %d\n", optimizationLevel_);
+
 	llvm::PassManagerBuilder pmBuilder;
 	pmBuilder.OptLevel = optimizationLevel_;
 	pmBuilder.LibraryInfo = new llvm::TargetLibraryInfo(llvm::Triple(module_->getTargetTriple()));
@@ -371,6 +373,11 @@ bool FlowRunner::open(const std::string& filename)
 			return false;
 
 	codegen(unit_);
+
+	if (modulePassMgr_) {
+		TRACE("running MPM\n");
+		modulePassMgr_->run(*module_);
+	}
 
 	if (HandlerFunction init = reinterpret_cast<HandlerFunction>(executionEngine_->getPointerToFunction(initializerFn_)))
 		init(NULL);
