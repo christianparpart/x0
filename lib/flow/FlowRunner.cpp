@@ -489,7 +489,10 @@ llvm::Value *FlowRunner::codegen(Expr *expr)
 		expr->accept(*this);
 
 	auto c2 = builder_.GetInsertBlock();
+
 	assert(c1->getParent() == c2->getParent());
+	(void) c1;
+	(void) c2;
 
 	return value_;
 }
@@ -506,7 +509,10 @@ void FlowRunner::codegen(Stmt *stmt)
 		stmt->accept(*this);
 
 	auto c2 = builder_.GetInsertBlock();
+
 	assert(c1->getParent() == c2->getParent());
+	(void) c1;
+	(void) c2;
 }
 
 // {{{ backend glue
