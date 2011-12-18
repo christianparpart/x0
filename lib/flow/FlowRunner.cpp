@@ -275,7 +275,7 @@ bool FlowRunner::reinitialize()
 	std::string errorStr;
 	executionEngine_ = llvm::EngineBuilder(module_).setErrorStr(&errorStr).create();
 	if (!executionEngine_) {
-		printf("execution engine creation failed. %s\n", errorStr.c_str());
+		TRACE("execution engine creation failed. %s\n", errorStr.c_str());
 		return false;
 	}
 
@@ -441,7 +441,7 @@ FlowRunner::HandlerFunction FlowRunner::getPointerTo(Function *handler)
 
 	llvm::Function *fn = codegen<llvm::Function>(handler);
 	if (!fn) {
-		printf("function IR generation failed\n");
+		TRACE("function IR generation failed\n");
 		return nullptr;
 	}
 
@@ -1204,12 +1204,12 @@ llvm::Value* FlowRunner::emitNativeValue(int index, llvm::Value *lhs, llvm::Valu
 	}
 	else
 	{
-		printf("emit native value of unknown type? (%d)\n", rhs->getType()->isFunctionTy());
+		TRACE("emit native value of unknown type? (%d)\n", rhs->getType()->isFunctionTy());
 		typeCode = FlowValue::VOID;
 		rhs->dump();
-		printf("type:\n");
+		TRACE("type:\n");
 		rhs->getType()->dump();
-		printf("lhs:\n");
+		TRACE("lhs:\n");
 		result->dump();
 	}
 
@@ -1465,8 +1465,10 @@ void FlowRunner::emitInitializerTail()
 
 	llvm::verifyFunction(*initializerFn_);
 
-	if (functionPassMgr_)
+	if (functionPassMgr_) {
+		TRACE("running FPM\n");
 		functionPassMgr_->run(*initializerFn_);
+	}
 }
 // }}}
 
@@ -2117,9 +2119,9 @@ void FlowRunner::visit(BinaryExpr& expr)
 				value_ = builder_.CreateICmpEQ(value_, llvm::ConstantInt::get(int32Type(), 0));
 			} else {
 				reportError("Incompatible operand types for operator ==");
-				printf("left:\n");
+				TRACE("left:\n");
 				left->dump();
-				printf("right:\n");
+				TRACE("right:\n");
 				right->dump();
 			}
 			break;
@@ -2149,9 +2151,9 @@ void FlowRunner::visit(BinaryExpr& expr)
 				value_ = builder_.CreateICmpNE(value_, llvm::ConstantInt::get(int32Type(), 0));
 			} else {
 				reportError("Incompatible operand types for operator !=");
-				printf("left:\n");
+				TRACE("left:\n");
 				left->dump();
-				printf("right:\n");
+				TRACE("right:\n");
 				right->dump();
 			}
 			break;
@@ -2304,7 +2306,7 @@ void FlowRunner::visit(RegExpExpr& expr)
 {
 	FNTRACE();
 
-	//printf("runner.visit(regexpexpr&)\n");
+	//TRACE("runner.visit(regexpexpr&)\n");
 	const RegExp *re = & expr.value();
 	value_ = llvm::ConstantInt::get(int64Type(), (int64_t)(re));
 	value_ = builder_.CreateIntToPtr(value_, regexpType_->getPointerTo());
@@ -2330,13 +2332,13 @@ void FlowRunner::visit(VariableExpr& expr)
 	if (expr.variable()->parentScope()
 		&& expr.variable()->parentScope()->outerTable() != NULL)
 	{
-		//printf("local variable in expression: '%s'\n", expr.variable()->name().c_str());
+		//TRACE("local variable in expression: '%s'\n", expr.variable()->name().c_str());
 		if (!requestingLvalue_)
 			value_ = builder_.CreateLoad(value_, expr.variable()->name().c_str());
 	}
 	else
 	{
-		//printf("global variable in expression: '%s'\n", expr.variable()->name().c_str());
+		//TRACE("global variable in expression: '%s'\n", expr.variable()->name().c_str());
 	}
 }
 
