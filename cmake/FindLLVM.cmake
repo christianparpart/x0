@@ -6,9 +6,9 @@
 
 find_program(LLVM_CONFIG_EXECUTABLE NAMES llvm-config DOC "path to llvm-config executable")
 
-# TODO: strip potential -NDEBUG=1 flags off
 execute_process(
-	COMMAND ${LLVM_CONFIG_EXECUTABLE} --cppflags OUTPUT_VARIABLE LLVM_CPPFLAGS
+	COMMAND sh -c "${LLVM_CONFIG_EXECUTABLE} --cppflags | sed s/-DNDEBUG=1//g"
+	OUTPUT_VARIABLE LLVM_CPPFLAGS
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 

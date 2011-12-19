@@ -6,9 +6,9 @@
 
 find_program(MYSQL_CONFIG_EXECUTABLE NAMES mysql_config DOC "path to mysql_config executable")
 
-# TODO: strip off potential -NDEBUG=1 flags
 execute_process(
-	COMMAND ${MYSQL_CONFIG_EXECUTABLE} --cflags OUTPUT_VARIABLE MYSQL_CFLAGS
+	COMMAND sh -c "${MYSQL_CONFIG_EXECUTABLE} --cflags | sed s/-DNDEBUG=1//g"
+	OUTPUT_VARIABLE MYSQL_CFLAGS
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
