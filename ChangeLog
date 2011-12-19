@@ -1,5 +1,8 @@
 0.5.0 (not yet released)
 
+	* updated files headers to new home site, http://xzero.io/
+	* cmake: LLVM and mySQL cannot leak -DNDEBUG=1 anymore (LLVM did for Gentoo/Linux)
+	* silencify some release-build compiler warnings
 	* http: added "precompressed" handler, preferring .gz / .bz2 files over
 	their equivalents and adding respective Content-Encoding header.
 	The precompressed file version is only preferred if both files match their
