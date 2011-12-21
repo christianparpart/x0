@@ -21,6 +21,12 @@ include(CMakeDetermineCCompiler)
 #option(BUILD_STATIC "Build with modules statically linked in [default: off]")
 option(BUILD_TESTS "Build unit tests [default: on]" ON)
 
+option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
+option(ENABLE_WEBDAV "Includes WebDAV support (plugin)" OFF)
+option(ENABLE_RRD "Includes RRD support (plugin)" OFF)
+
+set(RRD_LIBRARIES -lrrd)
+
 # feature flags
 option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
 option(WITH_SSL "Builds with SSL support [default: on]" ON)
@@ -116,8 +122,6 @@ if(WITH_MYSQL)
 	set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
 	add_definitions(${MYSQL_CPPFLAGS})
 endif()
-
-set(RRD_LIBRARIES -lrrd)
 
 # valgrind
 set(VALGRIND OFF CACHE BOOL "generate binary for use with valgrind")

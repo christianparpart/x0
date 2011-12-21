@@ -25,14 +25,23 @@ x0_plugin_simple(dirlisting)
 x0_plugin_simple(proxy)
 x0_plugin_simple(userdir)
 x0_plugin_simple(vhost)
-#x0_plugin_simple(vhost_template)
-x0_plugin_simple(rrd)
-target_link_libraries(rrd ${RRD_LIBRARIES})
+
+if(ENABLE_RRD)
+	x0_plugin_simple(rrd)
+	target_link_libraries(rrd ${RRD_LIBRARIES})
+endif()
+
 x0_plugin_simple(status)
 
-x0_plugin_simple(echo_example)
-x0_plugin_simple(hello_example)
-x0_plugin_simple(filter_example)
+if(ENABLE_WEBDAV)
+	x0_plugin_simple(webdav)
+endif()
+
+if(ENABLE_EXAMPLES)
+	x0_plugin_simple(echo_example)
+	x0_plugin_simple(hello_example)
+	x0_plugin_simple(filter_example)
+endif()
 
 # ---------------------------------------------------------------------------
 # the more complex plugins:
