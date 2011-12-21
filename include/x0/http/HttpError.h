@@ -45,6 +45,7 @@ enum class HttpError // {{{
 	// client error
 	BadRequest = 400,
 	Unauthorized = 401,
+	PaymentRequired = 402, // reserved for future use
 	Forbidden = 403,
 	NotFound = 404,
 	MethodNotAllowed = 405,
