@@ -9,5 +9,8 @@ else
 	cmake "$(dirname $0)" \
 		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -ggdb3 -rdynamic" \
 		-DCMAKE_BUILD_TYPE="debug" \
+		-DENABLE_RRD=ON \
+		-DENABLE_WEBDAV=ON \
+		-DENABLE_EXAMPLES=ON \
 		-DCMAKE_INSTALL_PREFIX="/opt/sandbox"
 fi
