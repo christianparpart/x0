@@ -407,7 +407,7 @@ bool XzeroHttpDaemon::parse()
 		//.
 		{ "version", no_argument, nullptr, 'v' },
 		{ "copyright", no_argument, nullptr, 'y' },
-		{ "config", required_argument, nullptr, 'c' },
+		{ "config", required_argument, nullptr, 'f' },
 		{ "optimization-level", required_argument, &optimizationLevel_, 'O' },
 		{ "help", no_argument, nullptr, 'h' },
 		//.
@@ -424,12 +424,12 @@ bool XzeroHttpDaemon::parse()
 	for (;;)
 	{
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyc:O:p:u:g:l:L:i:hXG", long_options, &long_index))
+		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:l:L:i:hXG", long_options, &long_index))
 		{
 			case 'p':
 				pidfile_ = optarg;
 				break;
-			case 'c':
+			case 'f':
 				configfile_ = optarg;
 				break;
 			case 'O':
@@ -468,7 +468,7 @@ bool XzeroHttpDaemon::parse()
 					<< std::endl
 					<< "options:" << std::endl
 					<< "  -h,--help                 print this help" << std::endl
-					<< "  -c,--config=PATH          specify a custom configuration file [" << configfile_ << "]" << std::endl
+					<< "  -f,--config=PATH          specify a custom configuration file [" << configfile_ << "]" << std::endl
 					<< "  -O,--optimization-level=N sets the configuration optimization level [" << optimizationLevel_ << "]" << std::endl
 					<< "  -X,--no-fork              do not fork into background" << std::endl
 					<< "     --systemd              force systemd-mode, which is auto-detected otherwise" << std::endl
@@ -770,7 +770,7 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 		args.push_back("--instant");
 		args.push_back(instant_.c_str());
 	} else {
-		args.push_back("-c");
+		args.push_back("-f");
 		args.push_back(configfile_.c_str());
 	}
 
