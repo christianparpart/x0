@@ -27,8 +27,8 @@ x0_plugin_simple(userdir)
 x0_plugin_simple(vhost)
 
 if(ENABLE_RRD)
-	x0_plugin_simple(rrd)
-	target_link_libraries(rrd ${RRD_LIBRARIES})
+	x0_plugin_simple(rrdfile)
+	target_link_libraries(rrdfile ${RRD_LIBRARIES})
 endif()
 
 x0_plugin_simple(status)

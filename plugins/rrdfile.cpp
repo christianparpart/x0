@@ -27,7 +27,7 @@
  * \ingroup plugins
  * \brief RRD plugin to keep stats on x0d requests per minute
  */
-class rrd_plugin :
+class RRDFilePlugin :
 	public x0::HttpPlugin
 {
 private:
@@ -41,7 +41,7 @@ private:
 	ev::timer evTimer_;
 
 public:
-	rrd_plugin(x0::HttpServer& srv, const std::string& name) :
+	RRDFilePlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name),
 		numRequests_(0),
 		bytesIn_(0),
@@ -50,14 +50,14 @@ public:
 		step_(0),
 		evTimer_(srv.loop())
 	{
-		evTimer_.set<rrd_plugin, &rrd_plugin::onTimer>(this);
+		evTimer_.set<RRDFilePlugin, &RRDFilePlugin::onTimer>(this);
 
-		registerSetupProperty<rrd_plugin, &rrd_plugin::setup_filename>("rrd.filename", x0::FlowValue::STRING);
-		registerSetupProperty<rrd_plugin, &rrd_plugin::setup_step>("rrd.step", x0::FlowValue::NUMBER);
-		registerHandler<rrd_plugin, &rrd_plugin::logRequest>("rrd");
+		registerSetupProperty<RRDFilePlugin, &RRDFilePlugin::setup_filename>("rrd.filename", x0::FlowValue::STRING);
+		registerSetupProperty<RRDFilePlugin, &RRDFilePlugin::setup_step>("rrd.step", x0::FlowValue::NUMBER);
+		registerHandler<RRDFilePlugin, &RRDFilePlugin::logRequest>("rrd");
 	}
 
-	~rrd_plugin()
+	~RRDFilePlugin()
 	{
 	}
 
@@ -129,4 +129,4 @@ private:
 	}
 };
 
-X0_EXPORT_PLUGIN(rrd)
+X0_EXPORT_PLUGIN_CLASS(RRDFilePlugin)
