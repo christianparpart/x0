@@ -42,10 +42,10 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-message("LLVM config: " ${LLVM_CONFIG_EXECUTABLE})
-message("LLVM cppflags: " ${LLVM_CPPFLAGS})
-message("LLVM ldflags: " ${LLVM_LDFLAGS})
-message("LLVM library dir: " ${LLVM_LIBRARY_DIR})
-message("LLVM include dir: " ${LLVM_INCLUDE_DIR})
-message("LLVM libraries: " ${LLVM_LIBRARIES})
-message("LLVM version: " ${LLVM_VERSION})
+message(STATUS "LLVM config: " ${LLVM_CONFIG_EXECUTABLE})
+message(STATUS "LLVM cppflags: " ${LLVM_CPPFLAGS})
+message(STATUS "LLVM ldflags: " ${LLVM_LDFLAGS})
+message(STATUS "LLVM library dir: " ${LLVM_LIBRARY_DIR})
+message(STATUS "LLVM include dir: " ${LLVM_INCLUDE_DIR})
+message(STATUS "LLVM libraries: " ${LLVM_LIBRARIES})
+message(STATUS "LLVM version: " ${LLVM_VERSION})

@@ -36,8 +36,8 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-message("mySQL config    : " ${MYSQL_CONFIG_EXECUTABLE})
-message("mySQL version   : " ${MYSQL_VERSION})
-message("mySQL cflags    : " ${MYSQL_CFLAGS})
-message("mySQL ldflags   : " ${MYSQL_LDFLAGS})
-message("mySQL ldflags_r : " ${MYSQL_LDFLAGS_R})
+message(STATUS "mySQL config    : " ${MYSQL_CONFIG_EXECUTABLE})
+message(STATUS "mySQL version   : " ${MYSQL_VERSION})
+message(STATUS "mySQL cflags    : " ${MYSQL_CFLAGS})
+message(STATUS "mySQL ldflags   : " ${MYSQL_LDFLAGS})
+message(STATUS "mySQL ldflags_r : " ${MYSQL_LDFLAGS_R})
