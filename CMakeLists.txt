@@ -25,7 +25,9 @@ option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
 option(ENABLE_WEBDAV "Includes WebDAV support (plugin)" OFF)
 option(ENABLE_RRD "Includes RRD support (plugin)" OFF)
 
-set(RRD_LIBRARIES -lrrd)
+if(ENABLE_RRD)
+	find_package(RRD)
+endif()
 
 # feature flags
 option(WITH_INOTIFY "Build with inotify support [default: on]" ON)

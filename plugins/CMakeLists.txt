@@ -28,7 +28,8 @@ x0_plugin_simple(vhost)
 
 if(ENABLE_RRD)
 	x0_plugin_simple(rrdfile)
-	target_link_libraries(rrdfile ${RRD_LIBRARIES})
+	set_target_properties(rrdfile PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${RRD_INCLUDE_PATH}")
+	target_link_libraries(rrdfile ${RRD_LIBRARY_PATH})
 endif()
 
 x0_plugin_simple(status)
