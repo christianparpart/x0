@@ -10,6 +10,7 @@
 #include <x0/io/BufferSink.h>
 #include <x0/io/FileSink.h>
 #include <x0/io/SocketSink.h>
+#include <x0/io/PipeSink.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -97,6 +98,15 @@ void FileSource::visit(FileSink& v)
 void FileSource::visit(SocketSink& v)
 {
 	result_ = v.write(handle(), &offset_, count_);
+
+	if (result_ > 0) {
+		count_ -= result_;
+	}
+}
+
+void FileSource::visit(PipeSink& sink)
+{
+	result_ = sink.pipe()->write(handle(), &offset_, count_);
 
 	if (result_ > 0) {
 		count_ -= result_;

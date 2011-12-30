@@ -16,6 +16,7 @@ namespace x0 {
 class BufferSink;
 class FileSink;
 class SocketSink;
+class PipeSink;
 
 //! \addtogroup io
 //@{
@@ -32,6 +33,7 @@ public:
 	virtual void visit(BufferSink&) = 0;
 	virtual void visit(FileSink&) = 0;
 	virtual void visit(SocketSink&) = 0;
+	virtual void visit(PipeSink&) = 0;
 };
 
 //@}

@@ -12,6 +12,7 @@
 #include <x0/BufferRef.h>
 #include <x0/Defines.h>
 #include <x0/StackTrace.h>
+#include <x0/io/Pipe.h>
 #include <atomic>
 #include <system_error>
 
@@ -58,6 +59,7 @@ Socket::Socket(struct ev_loop* loop) :
 	state_(Closed),
 	mode_(None),
 	tcpCork_(false),
+	splicing_(true),
 	remoteIP_(),
 	remotePort_(0),
 	localIP_(),
@@ -425,6 +427,26 @@ ssize_t Socket::read(Buffer& result)
 	}
 }
 
+ssize_t Socket::read(Pipe* pipe, size_t size)
+{
+	if (splicing())
+	{
+		ssize_t rv = pipe->write(fd_, size);
+
+		if (rv >= 0)
+			return 0;
+
+		if (errno == ENOSYS)
+			setSplicing(false);
+
+		return rv;
+	}
+
+	// TODO fall back to classic userspace read()+write()
+	errno = ENOSYS;
+	return -1;
+}
+
 ssize_t Socket::write(const void *buffer, size_t size)
 {
 	lastActivityAt_.update(ev_now(loop_));
@@ -463,6 +485,26 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #else
 	return ::sendfile(fd_, fd, offset, nbytes);
 #endif
+}
+
+ssize_t Socket::write(Pipe* pipe, size_t size)
+{
+	if (splicing())
+	{
+		ssize_t rv = pipe->read(fd_, size);
+
+		if (rv >= 0)
+			return rv;
+
+		if (errno == ENOSYS)
+			setSplicing(false);
+
+		return rv;
+	}
+
+	// TODO fall back to classic userspace read()+write()
+	errno = ENOSYS;
+	return -1;
 }
 
 void Socket::onConnectComplete()

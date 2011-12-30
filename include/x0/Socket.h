@@ -22,6 +22,7 @@
 namespace x0 {
 
 class SocketSpec;
+class Pipe;
 
 /** \brief represents a network socket.
  *
@@ -61,6 +62,7 @@ private:
 	State state_;
 	Mode mode_;
 	bool tcpCork_;
+	bool splicing_;
 
 	mutable std::string remoteIP_;		//!< internal cache to remote ip
 	mutable unsigned int remotePort_;	//!< internal cache to remote port
@@ -106,6 +108,9 @@ public:
 	bool tcpCork() const;
 	bool setTcpCork(bool enable);
 
+	bool splicing() const;
+	void setSplicing(bool enable);
+
 	std::string remoteIP() const;
 	unsigned int remotePort() const;
 	std::string remote() const;
@@ -139,8 +144,10 @@ public:
 
 	// synchronous non-blocking I/O
 	virtual ssize_t read(Buffer& result);
+	virtual ssize_t read(Pipe* buffer, size_t size);
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 	virtual ssize_t write(const void *buffer, size_t size);
+	virtual ssize_t write(Pipe* buffer, size_t size);
 
 	ssize_t write(const BufferRef& source);
 	template<typename PodType, std::size_t N> ssize_t write(PodType (&value)[N]);
@@ -208,6 +215,16 @@ inline Socket::Mode Socket::mode() const
 inline bool Socket::tcpCork() const
 {
 	return tcpCork_;
+}
+
+inline bool Socket::splicing() const
+{
+	return splicing_;
+}
+
+inline void Socket::setSplicing(bool enable)
+{
+	splicing_ = enable;
 }
 
 inline bool Socket::isOpen() const
