@@ -63,9 +63,11 @@ target_link_libraries(x0cp XzeroBase)
 #target_link_libraries(web_client_test ${CPPUNIT_LIBRARIES} XzeroHttp)
 
 add_executable(fcgi-long-run fcgi-long-run.cpp)
-target_link_libraries(fcgi-long-run fcgi)
+set_target_properties(fcgi-long-run PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${FCGI_INCLUDE_PATH}")
+target_link_libraries(fcgi-long-run ${FCGI_LIBRARY_PATH})
 
 add_executable(fcgi-staticfile fcgi-staticfile.cpp)
-target_link_libraries(fcgi-staticfile fcgi)
+set_target_properties(fcgi-staticfile PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${FCGI_INCLUDE_PATH}")
+target_link_libraries(fcgi-staticfile ${FCGI_LIBRARY_PATH})
 
 endif(BUILD_TESTS)

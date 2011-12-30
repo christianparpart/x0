@@ -185,6 +185,7 @@ if(WITH_SSL)
 endif(WITH_SSL)
 if(BUILD_TESTS)
 	pkg_check_modules(CPPUNIT REQUIRED cppunit>=1.12)
+	find_package(FCGI)
 endif(BUILD_TESTS)
 
 #if(BUILD_STATIC)
