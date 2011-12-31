@@ -1,8 +1,11 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
-- cmake: add a mysql-check
-- cmake: add rrdtool-check, if rrd plugin is to be compiled (or enable only if rrd.h is available)
-- cmake: fcgi library/header check. enable certain tests only if this dependency is installed.
+- flow: named arguments.
+	  balancer.member name => 'app01', weight => 1, check => 5 secs
+	translates to
+	  balancer.member({'name' => 'app01', 'weight' => 1, 'check' => 5 secs});
+- HA: implement feature to load balance backends, to obsolete haproxy infront of x0d.
+	- handler: `balancer.manager` to generate balancer manager/status page (`/haproxy/?stats` equivalent)
 
 ===================================================================================================
 
