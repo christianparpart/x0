@@ -1,6 +1,8 @@
 0.5.0 (not yet released)
 
+	* core: new APIs: Pipe, PipeSource, PipeSink
 	* updated files headers to new home site, http://xzero.io/
+	* cmake: added more auto-tests, as for rrd and fcgi detections.
 	* cmake: LLVM and mySQL cannot leak -DNDEBUG=1 anymore (LLVM did for Gentoo/Linux)
 	* silencify some release-build compiler warnings
 	* http: added "precompressed" handler, preferring .gz / .bz2 files over
