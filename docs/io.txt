@@ -13,7 +13,10 @@ We want the I/O system to meet at least the following requirements:
 - fully *non-blocking* I/O support
 - *multiplexing* support (via libev at least)
 - data to be passed from source to sinks must be *filterable*
-- acceleratable I/O: special system calls (such as *sendfile()*) shall be supported.
+- acceleratable I/O:
+    - special system calls (such as *sendfile()* and *splice()*) shall be supported.
+    - socket-to-socket data transfer acceleration via *splice()* by
+      layering a pipe between the two.
 
 Although, the API does not need to exceed the requirements of the
 *x0 HTTP server project*, though, it is unlikely, that we will implement
@@ -41,10 +44,20 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
     Buffer                  : an in-memory dynamically growing memory region.
     BufferRef               : a view into a sub-region of its referring buffer.
 
+    Pipe                    ; a system pipe()
+
+    Socket                  ; a network socket
+    SocketDriver            ; a network socket driver (for creating sockets)
+    ServerSocket            ; server socket
+
+    FileInfo                ; contains stat() information about a file, and
+                            ; initial operations on it, like open()
+    FileInfoService         ; file-info service API
+
     Source                  : abstract base class for chunk producer
         BufferSource        : in-memory chunk producer (reads from this buffer)
-        SystemSource        : system-handle chunk producer (reads from its handle)
-            FileSource      : chunk producer for regular files
+        PipeSource          : reads chunks from a pipe
+        FileSource          : chunk producer for regular files
         FilterSource        : combines a source with a filter, producing filtered chunks
         CompositeSource     : composes an ordered set of chunks into a virtual single one.
 
@@ -54,6 +67,7 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
         BufferSink          : in-memory chunk consumer (writes into this buffer)
         FileSink            : chunk consumer for regular files
         SocketSink          : writes chunks into a network socket
+        PipeSink            ; writes chunks into a pipe
 
     Filter                  : abstract base class for chunk transformer
         NullFilter          : does not transform at all (a classic NULL filter)
@@ -131,7 +145,7 @@ copy-free data transfer).
 
 
 
-.: Compositing Soources :.
+.: Compositing Sources :.
 
 There is one special type of source (*CompositeSource*) that is used to
 create a complex source by compositing multiple (different types of)
