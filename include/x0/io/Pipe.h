@@ -16,6 +16,9 @@ namespace x0 {
 
 class Socket;
 
+//! \addtogroup io
+//@{
+
 class X0_API Pipe
 {
 private:
@@ -51,6 +54,8 @@ public:
 	ssize_t read(int fd, size_t size);
 	ssize_t read(int fd, off_t *fd_off, size_t size);
 };
+
+//@}
 
 // {{{ impl
 inline Pipe::~Pipe()
