@@ -70,4 +70,7 @@ add_executable(fcgi-staticfile fcgi-staticfile.cpp)
 set_target_properties(fcgi-staticfile PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${FCGI_INCLUDE_PATH}")
 target_link_libraries(fcgi-staticfile ${FCGI_LIBRARY_PATH})
 
+add_executable(splice_test splice_test.cpp)
+target_link_libraries(splice_test XzeroBase)
+
 endif(BUILD_TESTS)

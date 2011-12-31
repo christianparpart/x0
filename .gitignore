@@ -49,6 +49,7 @@ tests/fcgi-long-run
 tests/fcgi-staticfile
 tests/flow_test
 tests/test_flow_lexer
+tests/splice_test
 *.log
 .safe
 .safe?
