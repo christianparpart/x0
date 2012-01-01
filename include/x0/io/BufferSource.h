@@ -63,12 +63,12 @@ inline BufferSource::BufferSource(Buffer&& data) :
 
 inline std::size_t BufferSource::size() const
 {
-	return buffer_.size();
+	return buffer_.size() - pos_;
 }
 
 inline bool BufferSource::empty() const
 {
-	return buffer_.empty();
+	return size() == 0;
 }
 // }}}
 
