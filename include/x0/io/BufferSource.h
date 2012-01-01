@@ -27,15 +27,11 @@ class X0_API BufferSource :
 {
 public:
 	template<typename PodType, std::size_t N> explicit BufferSource(PodType (&value)[N]);
-	explicit BufferSource(const x0::BufferRef& data);
-	explicit BufferSource(x0::BufferRef&& data);
 	explicit BufferSource(const Buffer& data);
 	explicit BufferSource(Buffer&& data);
 
 	std::size_t size() const;
 	bool empty() const;
-
-	const Buffer& buffer() const;
 
 	virtual ssize_t sendto(Sink& sink);
 
@@ -52,16 +48,6 @@ private:
 template<typename PodType, std::size_t N>
 inline BufferSource::BufferSource(PodType (&value)[N]) :
 	buffer_(value, N - 1), pos_(0)
-{
-}
-
-inline BufferSource::BufferSource(const x0::BufferRef& data) :
-	buffer_(data), pos_(0)
-{
-}
-
-inline BufferSource::BufferSource(x0::BufferRef&& data) :
-	buffer_(std::move(data)), pos_(0)
 {
 }
 
@@ -83,11 +69,6 @@ inline std::size_t BufferSource::size() const
 inline bool BufferSource::empty() const
 {
 	return buffer_.empty();
-}
-
-inline const Buffer& BufferSource::buffer() const
-{
-	return buffer_;
 }
 // }}}
 
