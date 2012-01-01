@@ -11,6 +11,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
+#include <x0/io/BufferRefSource.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
@@ -59,7 +60,7 @@ private:
 	void onContent(const x0::BufferRef& chunk)
 	{
 		TRACE("onContent('%s')", chunk.str().c_str());
-		request_->write<x0::BufferSource>(std::move(chunk));
+		request_->write<x0::BufferRefSource>(std::move(chunk));
 		request_->writeCallback<EchoHandler, &EchoHandler::contentWritten>(this);
 	}
 

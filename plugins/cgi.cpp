@@ -31,7 +31,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpMessageProcessor.h>
-#include <x0/io/BufferSource.h>
+#include <x0/io/BufferRefSource.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
 #include <x0/Types.h>
@@ -614,7 +614,7 @@ bool CgiScript::onMessageContent(const x0::BufferRef& value)
 	} else {
 		stdoutTransferActive_ = true;
 		evStdout_.stop();
-		request_->write<x0::BufferSource>(value);
+		request_->write<x0::BufferRefSource>(value);
 		request_->writeCallback<CgiScript, &CgiScript::onStdoutWritten>(this);
 	}
 
@@ -631,7 +631,7 @@ void CgiScript::onStdoutWritten()
 
 	if (stdoutTransferBuffer_.size() > 0) {
 		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
-		request_->write<x0::BufferSource>(std::move(stdoutTransferBuffer_));
+		request_->write<x0::BufferRefSource>(std::move(stdoutTransferBuffer_));
 		request_->writeCallback<CgiScript, &CgiScript::onStdoutWritten>(this);
 	} else {
 		TRACE("stdout: watch");

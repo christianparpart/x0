@@ -10,6 +10,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
+#include <x0/io/BufferRefSource.h>
 #include <x0/SocketSpec.h>
 #include <x0/strutils.h>
 #include <x0/Url.h>
@@ -318,7 +319,7 @@ bool ProxyConnection::onMessageContent(const x0::BufferRef& chunk)
 	backend_->setMode(x0::Socket::None);
 
 	// transfer response-body chunk to client
-	request_->write<x0::BufferSource>(chunk);
+	request_->write<x0::BufferRefSource>(chunk);
 
 	// start listening on backend I/O when chunk has been fully transmitted
 	ref();

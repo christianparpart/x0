@@ -50,6 +50,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/io/BufferSource.h>
+#include <x0/io/BufferRefSource.h>
 #include <x0/SocketSpec.h>
 #include <x0/Logging.h>
 #include <x0/strutils.h>
@@ -695,7 +696,7 @@ bool CgiTransport::onMessageContent(const x0::BufferRef& content)
 {
 	TRACE("CgiTransport.messageContent(len:%ld)", content.size());
 
-	request_->write<x0::BufferSource>(content);
+	request_->write<x0::BufferRefSource>(content);
 
 	// if the above write() operation did not complete and thus
 	// we have data pending to be sent out to the client,
