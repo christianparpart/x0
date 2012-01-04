@@ -180,13 +180,13 @@ bool HttpServer::validateConfig()
 
 	Function* setupFn = runner_->findHandler("setup");
 	if (!setupFn) {
-		log(Severity::error, "no setup-handler defined in config file.\n");
+		log(Severity::error, "no setup-handler defined in config file.");
 		return false;
 	}
 
 	Function* mainFn = runner_->findHandler("main");
 	if (!mainFn) {
-		log(Severity::error, "no main-handler defined in config file.\n");
+		log(Severity::error, "no main-handler defined in config file.");
 		return false;
 	}
 
