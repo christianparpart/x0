@@ -71,12 +71,17 @@ namespace x0 {
 class X0_API HttpMessageProcessor
 {
 public:
+	//! defines whether to parse HTTP requests, responses, or plain messages.
 	enum ParseMode { // {{{
+		//! the message to parse is an HTTP request.
 		REQUEST,
+		//! the message to parse is an HTTP response.
 		RESPONSE,
+		//! the message to parse does not contain either an HTTP request-line nor response status-line but headers and a body.
 		MESSAGE
 	}; // }}}
 
+	//! defines list of states the parser is in while processing the message.
 	enum State { // {{{
 		// artificial
 		SYNTAX_ERROR = 1,
@@ -213,11 +218,30 @@ private:
 // {{{ inlines
 namespace x0 {
 
+/*! represents the current parser-state this HTTP message processor is in.
+ */
 inline enum HttpMessageProcessor::State HttpMessageProcessor::state() const
 {
 	return state_;
 }
 
+/*! represents the remaining length of the content or chunk.
+ *
+ * If the message body is fixed-sized, that is, if a "Content-Length" message-header
+ * was given, then this value represents the remaining size in bytes until
+ * the content has been fully processed.
+ *
+ * If the message body is chunked transfer-encoded, that is, if the "Transfer-Encoding"
+ * message-header is set to "chunked", this value represents the remaining size
+ * in bytes until the current chunk has been fully processed.
+ *
+ * A value of 0 means that there is no (further) content to process
+ * (e.g. Content-Length of 0 or a already fully processed content body).
+ *
+ * Otherwise the value is -1, meaning, that we do not or do not yet know
+ * the length to be processed. (HTTP/1.0 reply messages e.g. do not
+ * contain a hint about the content-length.
+ */
 inline ssize_t HttpMessageProcessor::contentLength() const
 {
 	return contentLength_;
