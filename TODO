@@ -1,5 +1,15 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
+- core: design generic key/value store API
+	- C++ API
+	- flow API
+	- plugs:
+		- malloc
+		- redis
+		- memcached
+- ssl: support different session cache stores:
+	- malloc, memcached, redis
+- core: tcmalloc support (package: google-perftools)
 - flow: named arguments.
 	  balancer.member name => 'app01', weight => 1, check => 5 secs
 	translates to
