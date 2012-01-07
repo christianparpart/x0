@@ -46,14 +46,32 @@ private:
 // {{{ inlines
 inline LocalStream::LocalStream()
 {
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pfd_) < 0)
+	// TODO consider using pipe2() instead of socketpair() - what's the diff?
+	int opts = 0;
+
+#if defined(SOCK_NONBLOCK)
+	opts |= SOCK_NONBLOCK;
+#endif
+
+#if defined(SOCK_CLOEXEC)
+	opts |= SOCK_CLOEXEC;
+#endif
+
+	if (socketpair(AF_UNIX, SOCK_STREAM | opts, 0, pfd_) < 0)
 	{
 		pfd_[0] = pfd_[1] = -1;
 	}
 	else
 	{
+#if !defined(SOCK_NONBLOCK)
+		fcntl(pfd_[0], F_SETFD, fcntl(pfd_[0], F_GETFL) | O_NONBLOCK);
+		fcntl(pfd_[1], F_SETFD, fcntl(pfd_[1], F_GETFL) | O_NONBLOCK);
+#endif
+
+#if !defined(SOCK_CLOEXEC)
 		fcntl(pfd_[0], F_SETFD, fcntl(pfd_[0], F_GETFL) | FD_CLOEXEC);
 		fcntl(pfd_[1], F_SETFD, fcntl(pfd_[1], F_GETFL) | FD_CLOEXEC);
+#endif
 	}
 }
 
