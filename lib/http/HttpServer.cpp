@@ -597,7 +597,8 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 
 		if (somaxconn && spec.backlog > somaxconn) {
 			log(Severity::error,
-				"Listener %s configured with a backlog higher than the system permits (%ld > %ld)",
+				"Listener %s configured with a backlog higher than the system permits (%ld > %ld). "
+				"See /proc/sys/net/core/somaxconn for your system limits.",
 				spec.str().c_str(), spec.backlog, somaxconn);
 
 			return nullptr;
