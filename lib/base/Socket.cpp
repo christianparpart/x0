@@ -133,8 +133,6 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 
 	TRACE("connect(unix=%s)", unixPath.c_str());
 
-	flags |= O_NONBLOCK | O_CLOEXEC;
-
 	int typeMask = 0;
 
 #if defined(SOCK_NONBLOCK)
@@ -186,8 +184,6 @@ bool Socket::openTcp(const IPAddress& host, int port, int flags)
 #ifndef NDEBUG
 	setLoggingPrefix("Socket(tcp:%s:%d)", host.str().c_str(), port);
 #endif
-
-	flags |= O_NONBLOCK | O_CLOEXEC;
 
 	int typeMask = 0;
 
@@ -256,8 +252,6 @@ bool Socket::openTcp(const std::string& hostname, int port, int flags)
 		TRACE("could not get addrinfo of %s:%s: %s", hostname.c_str(), sport, gai_strerror(rv));
 		return false;
 	}
-
-	flags |= O_NONBLOCK | O_CLOEXEC;
 
 	int typeMask = 0;
 #if defined(SOCK_NONBLOCK)
