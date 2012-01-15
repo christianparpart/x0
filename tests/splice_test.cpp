@@ -41,6 +41,31 @@ void test_file2pipe()
 //	::write(1, buf, rv);
 }
 
+#if 0
+void test_file2file(const char* infilename, const char* outfilename)
+{
+	x0::Pipe pipe;
+	x0::FileSource infile(infilename);
+	x0::PipeSource inpipe(&pipe);
+	x0::PipeSink outpipe(&pipe);
+	x0::FileSink outfile(outfilename);
+
+	for (;;) {
+		if (infile.sentto(inpipe) < 0) {
+			sprintf(stderr, "read error: %s\n", strerror(errno));
+			return;
+		} else if (inpipe.isEmpty()) {
+			return;
+		}
+
+		if (outpipe.sendto(outfile) < 0) {
+			sprintf(stderr, "write error: %s\n", strerror(errno));
+			return;
+		}
+	}
+}
+#endif
+
 int main(int argc, char* argv[])
 {
 //	test_pipe2pipe();
