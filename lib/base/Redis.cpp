@@ -7,7 +7,10 @@
  */
 
 #include <x0/cache/Redis.h>
+#include <x0/Defines.h>
 #include <cctype>
+
+#define TRACE(msg...) DEBUG("Redis: " msg)
 
 namespace x0 {
 
@@ -65,156 +68,187 @@ void Redis::_writeArg(const MemRef& arg)
 }
 // }}}
 
-// {{{ response parser
-class Redis::Response
+// {{{ Message
+Redis::Message::Message() :
+	type_(Nil),
+	number_()
 {
-public:
-	enum Type {
-		Unknown = 0,
-		SingleLine = '+',
-		Error = '-',
-		Integer = ':',
-		Bulk = '$',
-		MultiBulk = '*'
-	};
+}
 
-public:
-	explicit Response(const Buffer* buf);
-	~Response();
+Redis::Message::Message(Type t, char* buf, size_t size) :
+	type_(t),
+	number_(size),
+	string_(buf)
+{
+}
 
-	Type type() const { return type_; }
-	bool isPrimitive() const { return type_ == SingleLine; }
-	bool isError() const { return type_ == Error; }
-	bool isInteger() const { return type_ == Integer; }
-	bool isBulk() const { return type_ == Bulk; }
-	bool isMultiBulk() const { return type_ == MultiBulk; }
+Redis::Message::Message(Type t, long long value) :
+	type_(t),
+	number_(value)
+{
+}
 
-	size_t size() const { return arguments_.size(); }
-	const BufferRef& operator[](size_t index) const { return arguments_[index]; }
+Redis::Message::~Message()
+{
+	switch (type_) {
+		case Status:
+		case Error:
+		case String:
+			delete[] string_;
+			break;
+		case Array:
+			delete[] array_;
+			break;
+		default:
+			break;
+	}
+}
 
-protected:
-	enum State {
-		MESSAGE_BEGIN,
+Redis::Message* Redis::Message::createNil()
+{
+	return new Message();
+}
 
-		MESSAGE_TYPE,			// $ : + - *
-		MESSAGE_LINE_BEGIN,		// ...
-		MESSAGE_LINE_OR_CR,		// ... \r
-		MESSAGE_LINE_LF,		//     \n
-		MESSAGE_NUM_ARGS,		// 123
-		MESSAGE_NUM_ARGS_OR_CR,	// 123 \r
-		MESSAGE_LF,				//     \n
+Redis::Message* Redis::Message::createStatus(const BufferRef& message)
+{
+	size_t size = message.size();
+	char* buf = new char[size + 1];
+	memcpy(buf, message.data(), size);
+	buf[size] = 0;
 
-		BULK_BEGIN,				// $
-		BULK_SIZE,				// 1234
-		BULK_SIZE_OR_CR,		// 1234 \r
-		BULK_SIZE_LF,			//      \n
-		BULK_BODY_OR_CR,		// ...  \r
-		BULK_BODY_LF,			//      \n
+	return new Message(Status, buf, size);
+}
 
-		MESSAGE_END,
-		SYNTAX_ERROR
-	};
+Redis::Message* Redis::Message::createError(const BufferRef& message)
+{
+	size_t size = message.size();
+	char* buf = new char[size + 1];
+	memcpy(buf, message.data(), size);
+	buf[size] = 0;
 
-	friend class Redis;
+	return new Message(Error, buf, size);
+}
 
-	void parse();
+Redis::Message* Redis::Message::createNumber(long long value)
+{
+	return new Message(Number, value);
+}
 
-	inline bool isSyntaxError() const { return state_ == SYNTAX_ERROR; }
-	inline bool isEndOfBuffer() const { return pos_ == buffer_->size(); }
-	inline char current() const { return (*buffer_)[pos_]; }
-	inline void next();
-	inline size_t next(size_t n);
-	inline void pushArgument();
+Redis::Message* Redis::Message::createString(const BufferRef& value)
+{
+	size_t size = value.size();
+	char* buf = new char[size + 1];
+	memcpy(buf, value.data(), size);
+	buf[size] = 0;
 
-private:
-	const Buffer* buffer_;	//!< buffer holding the message
-	size_t pos_;			//!< current parse byte-pos
-	State state_;			//!< current parser-state
-	size_t begin_;			//!< first byte of currently parsed argument
-	ssize_t argSize_;		//!< size of the currently parsed argument
-	ssize_t numArgs_;					//!< will hold the number of arguments in a multi-bulk message
-	Type type_;							//!< message type
-	std::vector<BufferRef> arguments_;	//!< parsed message arguments
-};
+	return new Message(String, buf, size);
+}
 
-Redis::Response::Response(const Buffer* buf) :
+Redis::Message* Redis::Message::createArray(size_t size)
+{
+	return new Message(Array, size);
+}
+// }}}
+
+// {{{ MessageParser
+Redis::MessageParser::MessageParser(const Buffer* buf) :
 	buffer_(buf),
 	pos_(0),
-	state_(MESSAGE_BEGIN),
+	currentContext_(nullptr),
 	begin_(0),
-	argSize_(0),
-	numArgs_(0),
-	type_(Unknown),
-	arguments_()
+	argSize_(0)
+{
+	pushContext(); // create root context
+}
+
+Redis::MessageParser::~MessageParser()
 {
 }
 
-Redis::Response::~Response()
-{
-}
-
-void Redis::Response::parse()
+void Redis::MessageParser::parse()
 {
 	while (!isEndOfBuffer()) {
-		switch (state_) {
+		if (std::isprint(currentChar()))
+			TRACE("parse: '%c' (%d)", currentChar(), static_cast<int>(state()));
+		else
+			TRACE("parse: 0x%02X (%d)", currentChar(), static_cast<int>(state()));
+
+		switch (state()) {
 			case MESSAGE_BEGIN:
 				// Syntetic state. Go straight to TYPE.
 			case MESSAGE_TYPE:
-				switch (current()) {
+				switch (currentChar()) {
 					case '+':
 					case '-':
 					case ':':
-						type_ = static_cast<Type>(current());
-						numArgs_ = 1;
-						state_ = MESSAGE_LINE_BEGIN;
-						next();
+						currentContext_->type = static_cast<Message::Type>(currentChar());
+						setState(MESSAGE_LINE_BEGIN);
+						nextChar();
 						break;
 					case '$':
-						type_ = static_cast<Type>(current());
-						numArgs_ = 1;
-						state_ = BULK_BEGIN;
+						currentContext_->type = Message::String;
+						setState(BULK_BEGIN);
 						break;
 					case '*':
-						type_ = static_cast<Type>(current());
-						state_ = MESSAGE_NUM_ARGS;
-						next();
+						currentContext_->type = Message::Array;
+						setState(MESSAGE_NUM_ARGS);
+						nextChar();
 						break;
 					default:
-						type_ = Unknown;
-						state_ = SYNTAX_ERROR;
+						currentContext_->type = Message::Nil;
+						setState(SYNTAX_ERROR);
 						return;
 				}
 				break;
 			case MESSAGE_LINE_BEGIN:
-				if (current() == '\r') {
-					state_ = SYNTAX_ERROR;
+				if (currentChar() == '\r') {
+					setState(SYNTAX_ERROR);
 					return;
 				}
-				state_ = MESSAGE_LINE_OR_CR;
+				setState(MESSAGE_LINE_OR_CR);
 				begin_ = pos_;
-				next();
+				nextChar();
 				break;
 			case MESSAGE_LINE_OR_CR:
-				if (current() == '\n') {
-					state_ = SYNTAX_ERROR;
+				if (currentChar() == '\n') {
+					setState(SYNTAX_ERROR);
 					return;
 				}
 
-				if (current() == '\r')
-					state_ = MESSAGE_LINE_LF;
+				if (currentChar() == '\r')
+					setState(MESSAGE_LINE_LF);
 
 				break;
-			case MESSAGE_LINE_LF:
-				if (current() != '\n') {
-					state_ = SYNTAX_ERROR;
+			case MESSAGE_LINE_LF: {
+				if (currentChar() != '\n') {
+					setState(SYNTAX_ERROR);
 					return;
 				}
-				pushArgument();
-				state_ = MESSAGE_END;
-				next();
+				BufferRef value = pushArgument();
+				switch (currentContext_->type) {
+					case Message::Status:
+						currentContext_->message = Message::createStatus(value);
+						break;
+					case Message::Error:
+						currentContext_->message = Message::createError(value);
+						break;
+					case Message::String:
+						currentContext_->message = Message::createString(value);
+						break;
+					case Message::Number:
+						currentContext_->message = Message::createNumber(value.toInt());
+						break;
+					default:
+						currentContext_->message = Message::createNil();
+						break;
+				}
+				setState(MESSAGE_END);
+				nextChar();
+				popContext();
 				break;
-			case MESSAGE_NUM_ARGS:
-				switch (current()) {
+			}
+			case MESSAGE_NUM_ARGS: {
+				switch (currentChar()) {
 					case '0':
 					case '1':
 					case '2':
@@ -225,18 +259,19 @@ void Redis::Response::parse()
 					case '7':
 					case '8':
 					case '9':
-						numArgs_ *= 10;
-						numArgs_ += current() - '0';
-						state_ = MESSAGE_NUM_ARGS_OR_CR;
-						next();
+						currentContext_->number *= 10;
+						currentContext_->number += currentChar() - '0';
+						setState(MESSAGE_NUM_ARGS_OR_CR);
+						nextChar();
 						break;
 					default:
-						state_ = SYNTAX_ERROR;
+						setState(SYNTAX_ERROR);
 						return;
 				}
 				break;
+			}
 			case MESSAGE_NUM_ARGS_OR_CR:
-				switch (current()) {
+				switch (currentChar()) {
 					case '0':
 					case '1':
 					case '2':
@@ -247,42 +282,45 @@ void Redis::Response::parse()
 					case '7':
 					case '8':
 					case '9':
-						numArgs_ *= 10;
-						numArgs_ += current() - '0';
-						next();
+						currentContext_->number *= 10;
+						currentContext_->number += currentChar() - '0';
+						nextChar();
 						break;
 					case '\r':
-						state_ = MESSAGE_LF;
-						next();
+						setState(MESSAGE_LF);
+						nextChar();
 						break;
 					default:
-						state_ = SYNTAX_ERROR;
+						setState(SYNTAX_ERROR);
 						return;
 				}
 				break;
 			case MESSAGE_LF:
-				if (current() != '\n') {
-					state_ = SYNTAX_ERROR;
+				if (currentChar() != '\n') {
+					setState(SYNTAX_ERROR);
 					return;
 				}
 
-				if (type_ == MultiBulk)
-					state_ = BULK_BEGIN;
-				else
-					state_ = MESSAGE_END;
+				nextChar();
 
-				next();
+				if (currentContext_->type == Message::Array) {
+					setState(BULK_BEGIN);
+					pushContext();
+				} else {
+					setState(MESSAGE_END);
+					popContext();
+				}
 				break;
 			case BULK_BEGIN:
-				if (current() != '$') {
-					state_ = SYNTAX_ERROR;
+				if (currentChar() != '$') {
+					setState(SYNTAX_ERROR);
 					return;
 				}
-				state_ = BULK_SIZE;
-				next();
+				setState(BULK_SIZE);
+				nextChar();
 				break;
 			case BULK_SIZE:
-				switch (current()) {
+				switch (currentChar()) {
 					case '0':
 					case '1':
 					case '2':
@@ -294,17 +332,17 @@ void Redis::Response::parse()
 					case '8':
 					case '9':
 						argSize_ *= 10;
-						argSize_ += current() - '0';
-						state_ = BULK_SIZE_OR_CR;
-						next();
+						argSize_ += currentChar() - '0';
+						setState(BULK_SIZE_OR_CR);
+						nextChar();
 						break;
 					default:
-						state_ = SYNTAX_ERROR;
+						setState(SYNTAX_ERROR);
 						return;
 				}
 				break;
 			case BULK_SIZE_OR_CR:
-				switch (current()) {
+				switch (currentChar()) {
 					case '0':
 					case '1':
 					case '2':
@@ -316,53 +354,49 @@ void Redis::Response::parse()
 					case '8':
 					case '9':
 						argSize_ *= 10;
-						argSize_ += current() - '0';
-						next();
+						argSize_ += currentChar() - '0';
+						nextChar();
 						break;
 					case '\r':
-						state_ = BULK_SIZE_LF;
-						next();
+						setState(BULK_SIZE_LF);
+						nextChar();
 						break;
 					default:
-						state_ = SYNTAX_ERROR;
+						setState(SYNTAX_ERROR);
 						return;
 				}
 				break;
 			case BULK_SIZE_LF:
-				if (current() != '\n') {
-					state_ = SYNTAX_ERROR;
+				if (currentChar() != '\n') {
+					setState(SYNTAX_ERROR);
 					return;
 				}
-				next();
-				state_ = BULK_BODY_OR_CR;
+				nextChar();
+				setState(BULK_BODY_OR_CR);
 				begin_ = pos_;
 				break;
 			case BULK_BODY_OR_CR:
 				if (argSize_ > 0) {
-					argSize_ -= next(argSize_);
-				} else if (current() == '\r') {
-					pushArgument();
-					next();
-					state_ = BULK_BODY_LF;
+					argSize_ -= nextChar(argSize_);
+				} else if (currentChar() == '\r') {
+					currentContext_->message = Message::createString(pushArgument());
+					nextChar();
+					setState(BULK_BODY_LF);
 				} else {
-					state_ = SYNTAX_ERROR;
+					setState(SYNTAX_ERROR);
 					return;
 				}
 				break;
 			case BULK_BODY_LF:
-				if (current() != '\n') {
-					state_ = SYNTAX_ERROR;
+				if (currentChar() != '\n') {
+					setState(SYNTAX_ERROR);
 					return;
 				}
+				nextChar();
 
-				--numArgs_;
+				setState(MESSAGE_END);
+				popContext();
 
-				if (numArgs_ > 0)
-					state_ = BULK_BEGIN;
-				else
-					state_ = MESSAGE_END;
-
-				next();
 				break;
 			case MESSAGE_END:
 				// if we reach here, then only because
@@ -377,14 +411,14 @@ void Redis::Response::parse()
 	}
 }
 
-inline void Redis::Response::next()
+inline void Redis::MessageParser::nextChar()
 {
 	if (!isEndOfBuffer()) {
 		++pos_;
 	}
 }
 
-inline size_t Redis::Response::next(size_t n)
+inline size_t Redis::MessageParser::nextChar(size_t n)
 {
 	size_t avail = buffer_->size() - pos_;
 	n = std::min(n, avail);
@@ -392,14 +426,49 @@ inline size_t Redis::Response::next(size_t n)
 	return n;
 }
 
-inline void Redis::Response::pushArgument()
+inline BufferRef Redis::MessageParser::currentValue() const
+{
+	return buffer_->ref(begin_, pos_ - begin_);
+}
+
+inline BufferRef Redis::MessageParser::pushArgument()
 {
 	auto ref = buffer_->ref(begin_, pos_ - begin_);
-	arguments_.push_back(ref);
-	//arguments_.push_back(buffer_->ref(begin_, pos_ - begin_));
+	//arguments_.push_back(ref);
+	return ref;
+}
+
+void Redis::MessageParser::pushContext()
+{
+	TRACE("pushContext:");
+	ParseContext* pc = new ParseContext();
+	pc->parent = currentContext_;
+	currentContext_ = pc;
+
+	setState(MESSAGE_BEGIN);
+}
+
+void Redis::MessageParser::popContext()
+{
+	TRACE("popContext:");
+	ParseContext* pc = currentContext_;
+
+	if (!pc->parent) {
+		TRACE("popContext: do not pop. we're already at root.");
+		return;
+	}
+
+	currentContext_ = currentContext_
+		? currentContext_->parent
+		: nullptr;
+
+	pc->parent = nullptr;
+
+	delete pc;
 }
 // }}}
 
+// {{{ Redis
 Redis::Redis(struct ev_loop* loop) :
 	loop_(loop),
 	socket_(new Socket(loop)),
@@ -511,28 +580,34 @@ bool Redis::get(const char* key, size_t keysize, Buffer& val)
 	flush();
 
 	buf_.clear();
-	Response response(&buf_);
+	MessageParser parser(&buf_);
 
 	socket_->read(buf_);
-	response.parse();
+	parser.parse();
 
-	if (response.state_ != Response::MESSAGE_END) {
+	if (parser.state() != MessageParser::MESSAGE_END) {
 		// protocol error
+		TRACE("protocol error: %d", parser.state());
 		return false;
 	}
 
-	switch (response.type()) {
-		case Response::MultiBulk:
-		case Response::SingleLine:
-		case Response::Integer:
+	Message* message = parser.message();
+
+	switch (message->type()) {
+		case Message::Array:
+		case Message::Status:
+		case Message::Number:
 			// unexpected result type, but yeah
-		case Response::Bulk:
+		case Message::String:
 			val.clear();
-			val.push_back(response[0]);
+			val.push_back(message->toString());
 			return true;
-		case Response::Error:
-		case Response::Unknown:
+		case Message::Nil:
+			val.clear();
+			return true;
+		case Message::Error:
 		default:
+			TRACE("unknown type");
 			return false;
 	}
 }
@@ -550,5 +625,7 @@ ssize_t Redis::flush()
 	}
 	return n;
 }
+
+// }}}
 
 } // namespace x0
