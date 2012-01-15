@@ -179,7 +179,6 @@ public:
 	inline void nextChar();
 	inline size_t nextChar(size_t n);
 	inline BufferRef currentValue() const;
-	inline BufferRef pushArgument();
 
 	State state() const { return currentContext_->state; }
 	inline void setState(State st) { currentContext_->state = st; }

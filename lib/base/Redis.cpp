@@ -7,10 +7,10 @@
  */
 
 #include <x0/cache/Redis.h>
-#include <x0/Defines.h>
 #include <cctype>
 
-#define TRACE(msg...) DEBUG("Redis: " msg)
+//#define TRACE(msg...) DEBUG("Redis: " msg)
+#define TRACE(msg...) /*!*/ ((void)0)
 
 namespace x0 {
 
@@ -218,13 +218,14 @@ void Redis::MessageParser::parse()
 				if (currentChar() == '\r')
 					setState(MESSAGE_LINE_LF);
 
+				nextChar();
 				break;
 			case MESSAGE_LINE_LF: {
 				if (currentChar() != '\n') {
 					setState(SYNTAX_ERROR);
 					return;
 				}
-				BufferRef value = pushArgument();
+				BufferRef value = buffer_->ref(begin_, pos_ - begin_ - 1);
 				switch (currentContext_->type) {
 					case Message::Status:
 						currentContext_->message = Message::createStatus(value);
@@ -379,7 +380,8 @@ void Redis::MessageParser::parse()
 				if (argSize_ > 0) {
 					argSize_ -= nextChar(argSize_);
 				} else if (currentChar() == '\r') {
-					currentContext_->message = Message::createString(pushArgument());
+					BufferRef value = buffer_->ref(begin_, pos_ - begin_);
+					currentContext_->message = Message::createString(value);
 					nextChar();
 					setState(BULK_BODY_LF);
 				} else {
@@ -429,13 +431,6 @@ inline size_t Redis::MessageParser::nextChar(size_t n)
 inline BufferRef Redis::MessageParser::currentValue() const
 {
 	return buffer_->ref(begin_, pos_ - begin_);
-}
-
-inline BufferRef Redis::MessageParser::pushArgument()
-{
-	auto ref = buffer_->ref(begin_, pos_ - begin_);
-	//arguments_.push_back(ref);
-	return ref;
 }
 
 void Redis::MessageParser::pushContext()

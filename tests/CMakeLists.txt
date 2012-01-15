@@ -23,6 +23,7 @@ add_executable(x0test
 	ternary_search_test.cpp
 	buffer_test.cpp
 	io_test.cpp
+	redis_test.cpp
 	#http11.cpp
 )
 
@@ -55,6 +56,9 @@ target_link_libraries(test_flow_lexer
 
 # -----------------------------------------------------------------
 # some quicky executables
+
+add_executable(quickie quickie.cpp)
+target_link_libraries(quickie XzeroBase)
 
 add_executable(x0cp x0cp.cpp)
 target_link_libraries(x0cp XzeroBase)
