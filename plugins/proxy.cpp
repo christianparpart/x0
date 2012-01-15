@@ -471,12 +471,7 @@ private:
 		}
 
 		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
-		if (spec.isLocal()) {
-			TRACE("unix socket: '%s'", spec.str().c_str());
-			backend->openUnix(spec.local);
-		} else {
-			backend->openTcp(spec.address.str(), spec.port);
-		}
+		backend->open(spec, O_NONBLOCK | O_CLOEXEC);
 
 		if (backend->isOpen()) {
 			TRACE("in.content? %d", in->contentAvailable());
