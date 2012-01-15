@@ -592,9 +592,8 @@ namespace {
 ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 {
 	// validate backlog against system's hard limit
+	int somaxconn = readFile<int>("/proc/sys/net/core/somaxconn", 0);
 	if (spec.backlog > 0) {
-		int somaxconn = readFile<int>("/proc/sys/net/core/somaxconn", 0);
-
 		if (somaxconn && spec.backlog > somaxconn) {
 			log(Severity::error,
 				"Listener %s configured with a backlog higher than the system permits (%ld > %ld). "
@@ -603,6 +602,8 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
 
 			return nullptr;
 		}
+	} else {
+		spec.backlog = somaxconn;
 	}
 
 	// create a new listener
