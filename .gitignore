@@ -50,6 +50,8 @@ tests/fcgi-staticfile
 tests/flow_test
 tests/test_flow_lexer
 tests/splice_test
+tests/quickie
+sandbox/
 *.log
 .safe
 .safe?
