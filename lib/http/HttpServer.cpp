@@ -589,9 +589,10 @@ namespace {
 	}
 }
 
-ServerSocket* HttpServer::setupListener(const SocketSpec& spec)
+ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 {
 	// validate backlog against system's hard limit
+	SocketSpec spec(_spec);
 	int somaxconn = readFile<int>("/proc/sys/net/core/somaxconn", 0);
 	if (spec.backlog > 0) {
 		if (somaxconn && spec.backlog > somaxconn) {
