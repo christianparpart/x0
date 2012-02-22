@@ -603,8 +603,6 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 
 			return nullptr;
 		}
-	} else {
-		spec.backlog = somaxconn;
 	}
 
 	// create a new listener
@@ -612,6 +610,9 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 	lp->set<HttpServer, &HttpServer::onNewConnection>(this);
 
 	listeners_.push_back(lp);
+
+	if (spec.backlog <= 0)
+		lp->setBacklog(somaxconn);
 
 	if (lp->open(spec, O_NONBLOCK | O_CLOEXEC)) {
 		log(Severity::info, "Listening on %s", spec.str().c_str());
