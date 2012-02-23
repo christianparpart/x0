@@ -16,7 +16,12 @@
 namespace x0 {
 
 SqlConnection::SqlConnection() :
-	handle_(NULL)
+	handle_(),
+	username_(),
+	passwd_(),
+	database_(),
+	hostname_(),
+	port_(-1)
 {
 	mysql_init(&handle_);
 }
