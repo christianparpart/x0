@@ -18,18 +18,17 @@ namespace x0 {
 SqlConnection::SqlConnection() :
 	handle_(NULL)
 {
-	handle_ = mysql_init(NULL);
+	mysql_init(&handle_);
 }
 
 SqlConnection::~SqlConnection()
 {
-	if (handle_)
-		mysql_close(handle_);
+	mysql_close(&handle_);
 }
 
 bool SqlConnection::open(const char *hostname, const char *username, const char *passwd, const char *database, int port)
 {
-	if (mysql_real_connect(handle_, hostname, username, passwd, database, port, 0, 0) == NULL)
+	if (mysql_real_connect(&handle_, hostname, username, passwd, database, port, 0, 0) == NULL)
 		return false;
 
 	username_ = username;
@@ -42,22 +41,22 @@ bool SqlConnection::open(const char *hostname, const char *username, const char 
 
 bool SqlConnection::isOpen() const
 {
-	return mysql_ping(handle_) == 0;
+	return mysql_ping(const_cast<MYSQL*>(&handle_)) == 0;
 }
 
 bool SqlConnection::ping()
 {
-	return mysql_ping(handle_) == 0;
+	return mysql_ping(&handle_) == 0;
 }
 
 MYSQL *SqlConnection::handle()
 {
-	return handle_;
+	return &handle_;
 }
 
 SqlConnection::operator MYSQL* () const
 {
-	return handle_;
+	return const_cast<MYSQL*>(&handle_);
 }
 
 std::string SqlConnection::makeQuery(const char *s)
@@ -92,7 +91,7 @@ std::string SqlConnection::queryField<std::string>(const char *tableName,
 
 unsigned long long SqlConnection::affectedRows() const
 {
-	return mysql_affected_rows(handle_);
+	return mysql_affected_rows(const_cast<MYSQL*>(&handle_));
 }
 
 } // namespace x0

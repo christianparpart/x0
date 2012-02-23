@@ -24,7 +24,7 @@ namespace x0 {
 class X0_API SqlConnection
 {
 private:
-	MYSQL *handle_;
+	MYSQL handle_;
 
 	std::string username_;
 	std::string passwd_;
@@ -73,10 +73,10 @@ SqlResult SqlConnection::query(const char *queryStr, Args&&... args)
 
 	do {
 		if (i) sleep(i);
-		rc = mysql_real_query(handle_, q.c_str(), q.size());
-	} while (rc != 0 && mysql_errno(handle_) != CR_SERVER_GONE_ERROR);
+		rc = mysql_real_query(&handle_, q.c_str(), q.size());
+	} while (rc != 0 && mysql_errno(&handle_) != CR_SERVER_GONE_ERROR);
 
-	return SqlResult(handle_);
+	return SqlResult(&handle_);
 }
 
 template<typename T, typename... Args>
