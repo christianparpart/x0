@@ -1,51 +1,56 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
+- http/x0d:
+  - move flow dependencies out of XzeroHttp into x0d directly,
+    like configuration file handling etc, as this is tied to x0d anyways.
+    Doing so enables us to use XzeroHttp module without Flow in external projects
+    that don't need it (the `Desaster Job Queue Manager` for example).
 - core: design generic key/value store API
-	- C++ API
-	- flow API
-	- plugs:
-		- malloc
-		- redis
-		- memcached
+  - C++ API
+  - flow API
+  - plugins:
+    - malloc
+    - redis
+    - memcached
 - ssl: support different session cache stores:
-	- malloc, memcached, redis
+  - malloc, memcached, redis
 - core: tcmalloc support (package: google-perftools)
 - flow: named arguments.
-	  balancer.member name => 'app01', weight => 1, check => 5 secs
-	translates to
-	  balancer.member({'name' => 'app01', 'weight' => 1, 'check' => 5 secs});
+      balancer.member name => 'app01', weight => 1, check => 5 secs
+    translates to
+      balancer.member({'name' => 'app01', 'weight' => 1, 'check' => 5 secs});
 - HA: implement feature to load balance backends, to obsolete haproxy infront of x0d.
-	- handler: `balancer.manager` to generate balancer manager/status page (`/haproxy/?stats` equivalent)
+  - handler: `balancer.manager` to generate balancer manager/status page (`/haproxy/?stats` equivalent)
 
 ===================================================================================================
 
 0.4:
 
 - flow: use FlowString (string interpolation class) for double quoted strings
-	- interpolated string example: "Hello #{42 + i * 3}"
+  - interpolated string example: "Hello #{42 + i * 3}"
 - [plugins] balance: new plugin. initially supporting handler: balance.rr (kind of lighty-style)
 - cgi/fastcgi/proxy: verify to not pass connection-level headers
 - resource management (at least for max_core_size) must be evaluated *after* privilege dropping,
   in case there is some, or they're lost.
 - drop *all* occurences of std::function with raw function pointers+data pairs
 - pool allocator for contexts: [server, worker, connection, request]
-	- the allocated memory should be released on destruction, but
-	  could be passed to the upper layer for later reuse.
-	  e.g. the request memory pool passes its data up to the connection pool, so the next request
-	  can make use of it w/o invoking malloc()/new/etc, and so forth.
+  - the allocated memory should be released on destruction, but
+    could be passed to the upper layer for later reuse.
+    e.g. the request memory pool passes its data up to the connection pool, so the next request
+    can make use of it w/o invoking malloc()/new/etc, and so forth.
 
 - introduce a specialized speed-optimized String class with an API like BufferRef/Buffer
-	- including formatted string building and using external pool-allocator
+  - including formatted string building and using external pool-allocator
 
 - core: add runtime functions:
-	- bool systemd.booted();
-	- bool systemd.controlled(); / bool systemd.supervised();
+  - bool systemd.booted();
+  - bool systemd.controlled(); / bool systemd.supervised();
 - flow: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
 - flow: caseStmt ::=
-			'case' expr
-				('when' expr stmt)+
-				['else' stmt]
-			'end'
+            'case' expr
+                ('when' expr stmt)+
+                ['else' stmt]
+            'end'
 
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
@@ -57,9 +62,9 @@ QUALITY ASSURANCE TODO:
   last-modified field shards this, i should use a cache<time_t, std::string> of configurable max-cost value.
   (NOTE: why did I say that? why does mtime shard the server's "Date:"?)
 - [minor] replace std::function<>-style hooks with a more performant solution:
-	- at least for content generator (virtual method)
-	- second: all hooks involved in request processing (function-member pointers, or virtual method?)
-	- optional: remaining configure-time hooks.
+  - at least for content generator (virtual method)
+  - second: all hooks involved in request processing (function-member pointers, or virtual method?)
+  - optional: remaining configure-time hooks.
 
 
 -----------------------------------------------------------------------------
@@ -77,26 +82,26 @@ CODE CLEANUP TODO:
 FEATURES TODO:
 -----------------------------------------------------------------------------
 * core: when a new connection comes in but we have already reached the
-	connection limit (as per config) then kill some idle connections in 
-	keep-alive state.
-	if there are no keep-alive connections available, drop connection immediately.
-	this eliminates the need of MaxKeepAliveRequests cvar.
+  connection limit (as per config) then kill some idle connections in 
+  keep-alive state.
+  if there are no keep-alive connections available, drop connection immediately.
+  this eliminates the need of MaxKeepAliveRequests cvar.
 - [minor] x0d: add settings option to setup process' cpu affinity
 - proper protocol "Upgrade"-API, as required for web sockets
 - add integrity-checks for lazy programmers to check object healthy:
-	- If response Content-Length was given: do not write more bytes than expected to.
-	- Do not modify response headers/state once serialization has been initiated.
+  - If response Content-Length was given: do not write more bytes than expected to.
+  - Do not modify response headers/state once serialization has been initiated.
 - add response::bytes_transferred (unsigned), which is updated automatically by write() (or something deeper) to
   match the bytes written to the client.
   This is required by the accesslog plugin to log the number of bytes sent (which is not actually content-length, or is it?)
 - debug plugin: config settings for different debug prints
-	- per connection performance timer
-	- per request performance timer
-	- request/response header dumps
+  - per connection performance timer
+  - per request performance timer
+  - request/response header dumps
 - request path rewriting (rewrite)
 - http reverse proxy (plugin)
-	- (DONE) must support live streams (required for YaCS chat stream)
-	- must support fallback nodes (required for YaCS/maintenance)
+  - (DONE) must support live streams (required for YaCS chat stream)
+  - must support fallback nodes (required for YaCS/maintenance)
 - server status API (status)
 - lua server pages (wsapi)
 - c++ server pages (csp) via llvm/clang (compiled in)
@@ -115,8 +120,8 @@ OPTIMIZATION AND CACHING INITIATIVE
 -----------------------------------------------------------------------------
 
 - core optimizations:
-	- ...
+  - ...
 - improve configuration system
-	- dir contexts hierarichally via ternary_search<>
+  - dir contexts hierarichally via ternary_search<>
 
 
