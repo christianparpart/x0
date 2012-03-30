@@ -415,7 +415,7 @@ bool XzeroHttpDaemon::parse()
 	};
 
 	static const char *package_header = 
-		"XzeroHttpDaemon: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
+		"x0d: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
 	static const char *package_copyright =
 		"Copyright (c) 2009 by Christian Parpart <trapni@gentoo.org>";
 	static const char *package_license =
@@ -464,7 +464,7 @@ bool XzeroHttpDaemon::parse()
 					<< package_license << std::endl
 					<< std::endl
 					<< "usage:" << std::endl
-					<< "  XzeroHttpDaemon [options ...]" << std::endl
+					<< "  x0d [options ...]" << std::endl
 					<< std::endl
 					<< "options:" << std::endl
 					<< "  -h,--help                 print this help" << std::endl
@@ -479,7 +479,7 @@ bool XzeroHttpDaemon::parse()
 					<< "  -l,--log-file=PATH        path to log file (ignored when in systemd-mode)" << std::endl
 					<< "  -L,--log-level=VALUE      log level, a value between 0 and 9 (default " << static_cast<int>(logLevel_) << ")" << std::endl
 					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
-					<< "  -i,--instant=PATH[,PORT]  run XzeroHttpDaemon in simple pre-configured instant-mode" << std::endl
+					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
 					<< std::endl;
