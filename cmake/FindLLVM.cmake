@@ -7,7 +7,7 @@
 find_program(LLVM_CONFIG_EXECUTABLE NAMES llvm-config DOC "path to llvm-config executable")
 
 execute_process(
-	COMMAND sh -c "${LLVM_CONFIG_EXECUTABLE} --cppflags | sed s/-DNDEBUG=1//g"
+	COMMAND sh -c "${LLVM_CONFIG_EXECUTABLE} --cppflags | sed 's/-DNDEBUG\\(=1\\)\\?//g'"
 	OUTPUT_VARIABLE LLVM_CPPFLAGS
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
