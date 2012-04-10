@@ -24,8 +24,15 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
 
 ===================================================================================================
 
+FIXME x0d.conf: fastcgi/proxy examples use 'bind' but should use 'address'/'host'
+
 0.4:
 
+- ssl: counter BEAST attack by allowing the user to specify cipher priorities and 
+	provide a secure default priority list.
+	- http://www.g-loaded.eu/2011/09/27/mod_gnutls-rc4-cipher-beast/
+- ssl: add configure option to enable/disable SSL renegotiation (counter CVE)
+	- http://www.thc.org/thc-ssl-dos/
 - flow: use FlowString (string interpolation class) for double quoted strings
   - interpolated string example: "Hello #{42 + i * 3}"
 - [plugins] balance: new plugin. initially supporting handler: balance.rr (kind of lighty-style)
