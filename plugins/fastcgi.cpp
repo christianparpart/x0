@@ -795,7 +795,8 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 
 		transport->bind(in, nextID_, backend);
 	} else {
-		in->log(x0::Severity::error, "fastcgi: connection to backend failed: %s", strerror(errno));
+		in->log(x0::Severity::error, "fastcgi: connection to backend %s failed: %s",
+			spec_.str().c_str(), strerror(errno));
 		in->status = x0::HttpError::ServiceUnavailable;
 		in->finish();
 
