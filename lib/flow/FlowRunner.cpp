@@ -615,21 +615,6 @@ Type *FlowRunner::int8PtrType() const
 // }}}
 
 // {{{ buffer API
-llvm::Value *FlowRunner::emitGlobalBuffer(const std::string& value, const std::string& name)
-{
-	std::vector<llvm::Constant *> vec;
-	vec.push_back(llvm::ConstantInt::get(int64Type(), value.size()));
-	vec.push_back(llvm::ConstantArray::get(cx_, name.c_str(), false));
-
-	llvm::Constant *initializer = llvm::ConstantStruct::get(bufferType_, vec);
-
-	llvm::GlobalVariable *gv = new llvm::GlobalVariable(
-			*module_, bufferType_, true,
-			llvm::GlobalValue::InternalLinkage, initializer, name);
-
-	return gv;
-}
-
 llvm::Value *FlowRunner::emitAllocaBuffer(llvm::Value *length, llvm::Value *data, const std::string& name)
 {
 	llvm::Value *nbuf = builder_.CreateAlloca(bufferType_, NULL, name);

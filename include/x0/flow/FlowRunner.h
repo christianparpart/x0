@@ -190,7 +190,6 @@ private:
 	llvm::Type *makeType(FlowToken t) const;
 
 	// buffer API
-	llvm::Value *emitGlobalBuffer(const std::string& value, const std::string& name = "");
 	llvm::Value *emitAllocaBuffer(llvm::Value *length, llvm::Value *data, const std::string& name = "");
 	llvm::Value *emitLoadBufferLength(llvm::Value *nstr);
 	llvm::Value *emitLoadBufferData(llvm::Value *nstr);
