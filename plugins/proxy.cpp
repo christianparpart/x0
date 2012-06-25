@@ -189,8 +189,9 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 		if (iequals(header.name, "Content-Transfer")
 				|| iequals(header.name, "Expect")
 				|| iequals(header.name, "Connection")
-				|| iequals(header.name, "X-Forwarded-For")
-				|| iequals(header.name, "X-Forwarded-Proto")) {
+			//	|| iequals(header.name, "X-Forwarded-For")
+			//	|| iequals(header.name, "X-Forwarded-Proto")
+			) {
 			TRACE("skip requestHeader(%s: %s)", header.name.str().c_str(), header.value.str().c_str());
 			continue;
 		}
@@ -210,10 +211,12 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 	writeBuffer_.push_back("\r\n");
 
 #if defined(WITH_SSL)
-	if (request_->connection.isSecure())
-		writeBuffer_.push_back("X-Forwarded-Proto: https\r\n");
-	else
-		writeBuffer_.push_back("X-Forwarded-Proto: http\r\n");
+	if (!request_->requestHeader("X-Forwarded-Proto").empty()) {
+		if (request_->connection.isSecure())
+			writeBuffer_.push_back("X-Forwarded-Proto: https\r\n");
+		else
+			writeBuffer_.push_back("X-Forwarded-Proto: http\r\n");
+	}
 #endif
 
 	// request headers terminator
