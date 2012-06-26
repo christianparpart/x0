@@ -211,7 +211,7 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 	writeBuffer_.push_back("\r\n");
 
 #if defined(WITH_SSL)
-	if (!request_->requestHeader("X-Forwarded-Proto").empty()) {
+	if (request_->requestHeader("X-Forwarded-Proto").empty()) {
 		if (request_->connection.isSecure())
 			writeBuffer_.push_back("X-Forwarded-Proto: https\r\n");
 		else
