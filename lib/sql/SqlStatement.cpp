@@ -279,6 +279,7 @@ bool SqlStatement::run()
 				break;
 			default:
 				error_ = mysql_stmt_error(stmt_);
+				fprintf(stderr, "sql: statement execution error: %s\n", error_);
 				return false;
 		}
 	}
