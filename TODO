@@ -1,13 +1,13 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
 - http/x0d:
-  - move flow dependencies out of XzeroHttp into x0d directly,
+  - move Flow dependencies out of XzeroHttp into x0d directly,
     like configuration file handling etc, as this is tied to x0d anyways.
     Doing so enables us to use XzeroHttp module without Flow in external projects
     that don't need it (the `Desaster Job Queue Manager` for example).
 - core: design generic key/value store API
   - C++ API
-  - flow API
+  - Flow API
   - plugins:
     - malloc
     - redis
