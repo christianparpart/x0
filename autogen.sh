@@ -1,5 +1,11 @@
 #! /bin/bash
 
+#if [ -z "$CXX" ]; then
+#	if which clang++ &>/dev/null; then
+#		export CXX=$(which clang++)
+#	fi
+#fi
+
 if [ "$1" == "clean" ]; then
 	find . -name 'CMakeCache.txt' -print | xargs rm -vrf &>/dev/null
 	find . -name 'CMakeFiles*' -print | xargs rm -vrf &>/dev/null
@@ -7,7 +13,7 @@ if [ "$1" == "clean" ]; then
 	rm -f cmake_install.cmake
 else
 	cmake "$(dirname $0)" \
-		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -ggdb3 -rdynamic" \
+		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g3" \
 		-DCMAKE_BUILD_TYPE="debug" \
 		-DENABLE_RRD=ON \
 		-DENABLE_WEBDAV=ON \
