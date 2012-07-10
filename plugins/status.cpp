@@ -112,6 +112,7 @@ private:
 			"td { vertical-align: top; }"
 			".cid { text-align: right; }"
 			".wid { text-align: right; }"
+			".rn { text-align: right; }"
 			".ip { text-align: center; }"
 			".state { text-align: center; }"
 			".age { text-align: right; }"
@@ -147,6 +148,7 @@ private:
 
 		buf << "<th>" << "cid" << "</th>";
 		buf << "<th>" << "wid" << "</th>";
+		buf << "<th>" << "r/n" << "</th>";
 		buf << "<th>" << "IP" << "</th>";
 		buf << "<th>" << "state" << "</th>";
 		buf << "<th>" << "age" << "</th>";
@@ -178,6 +180,7 @@ private:
 
 		out << "<td class='cid'>" << c->id() << "</td>";
 		out << "<td class='wid'>" << c->worker().id() << "</td>";
+		out << "<td class='rn'>" << c->requestCount() << "</td>";
 		out << "<td class='ip'>" << c->remoteIP() << "</td>";
 
 		out << "<td class='state'>" << c->status_str();
