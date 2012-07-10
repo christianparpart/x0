@@ -69,6 +69,8 @@ public:
 
 	unsigned long long id() const;				//!< returns the (mostly) unique, worker-local, ID to this connection
 
+	unsigned requestCount() const { return requestCount_; }
+
 	Status status() const { return status_; }
 	const char* status_str() const;
 
