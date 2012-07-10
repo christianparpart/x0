@@ -11,6 +11,7 @@
 
 #include <x0/Api.h>
 #include <x0/Buffer.h>
+#include <x0/BufferRef.h>
 
 namespace x0 {
 
@@ -32,6 +33,7 @@ public:
 
 	static Buffer decode(const std::string& base64Value);
 	static int decode(const char *input, unsigned char *output);
+	static Buffer decode(const BufferRef& base64Value);
 };
 
 } // namespace x0

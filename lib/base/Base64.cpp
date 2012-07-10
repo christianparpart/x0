@@ -62,6 +62,7 @@ std::string Base64::encode(const unsigned char *buffer, int ALength) {
 		*p++ = base64_[((string[i + 1] & 0xF) << 2) | ((int) (string[i + 2] & 0xC0) >> 6)];
 		*p++ = base64_[string[i + 2] & 0x3F];
 	}
+
 	if (i < len) {
 		*p++ = base64_[(string[i] >> 2) & 0x3F];
 		if (i == (len - 1)) {
@@ -84,12 +85,10 @@ int Base64::decodeLength(const std::string& buffer) {
 }
 
 int Base64::decodeLength(const char *buffer) {
-	register const unsigned char *bufin = (const unsigned char *) buffer;
+	const unsigned char *bufin = (const unsigned char *) buffer;
 
-	while (pr2six_[*(bufin++)] <= 63)
-		;
-
-	const int nprbytes = (bufin - (const unsigned char *)buffer) - 1;
+	while (pr2six_[*(bufin++)] <= 63) ;
+	int nprbytes = (bufin - (const unsigned char *)buffer) - 1;
 	int nbytesdecoded = ((nprbytes + 3) / 4) * 3;
 
 	return nbytesdecoded + 1;
@@ -106,20 +105,56 @@ Buffer Base64::decode(const std::string& value) {
 	return result;
 }
 
+Buffer Base64::decode(const BufferRef& input)
+{
+	size_t decodeLen = decodeLength(input.str().c_str());
+	Buffer output;
+	output.reserve(1 + decodeLen);
+
+	size_t nbleft = 0;
+	for (auto i = input.begin(), e = input.end(); i != e && pr2six_[static_cast<int>(*i)] != 64; ++i)
+		++nbleft;
+
+	unsigned char* inp = (unsigned char*) input.data();
+	unsigned char* outp = (unsigned char*) output.data();
+
+	while (nbleft > 4) {
+		*outp++ = (unsigned char) (pr2six_[inp[0]] << 2 | pr2six_[inp[1]] >> 4);
+		*outp++ = (unsigned char) (pr2six_[inp[1]] << 4 | pr2six_[inp[2]] >> 2);
+		*outp++ = (unsigned char) (pr2six_[inp[2]] << 6 | pr2six_[inp[3]]);
+		inp += 4;
+		nbleft -= 4;
+	}
+
+	if (nbleft > 1) {
+		*outp++ = (unsigned char) (pr2six_[inp[0]] << 2 | pr2six_[inp[1]] >> 4);
+
+		if (nbleft > 2) {
+			*outp++ = (unsigned char) (pr2six_[inp[1]] << 4 | pr2six_[inp[2]] >> 2);
+
+			if (nbleft > 3) {
+				*outp++ = (unsigned char) (pr2six_[inp[2]] << 6 | pr2six_[inp[3]]);
+			}
+		}
+	}
+
+	decodeLen -= (4 - nbleft) & 3;
+	output.resize(decodeLen - 1);
+
+	return std::move(output);
+}
+
 int Base64::decode(const char *input, unsigned char *output) {
 	const char *bufcoded = input;
 	unsigned char *bufplain = output;
 
-	int nbytesdecoded;
-	register const unsigned char *bufin;
-	register unsigned char *bufout;
-	register int nprbytes;
+	const unsigned char *bufin;
+	unsigned char *bufout;
 
 	bufin = (const unsigned char *) bufcoded;
-	while (pr2six_[*(bufin++)] <= 63)
-		;
-	nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
-	nbytesdecoded = (((int)nprbytes + 3) / 4) * 3;
+	while (pr2six_[*(bufin++)] <= 63) ;
+	int nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
+	int nbytesdecoded = (((int)nprbytes + 3) / 4) * 3;
 
 	bufout = (unsigned char *) bufplain;
 	bufin = (const unsigned char *) bufcoded;
@@ -134,16 +169,15 @@ int Base64::decode(const char *input, unsigned char *output) {
 
 	/* Note: (nprbytes == 1) would be an error, so just ingore that case */
 	if (nprbytes > 1) {
-		*(bufout++) =
-		(unsigned char) (pr2six_[*bufin] << 2 | pr2six_[bufin[1]] >> 4);
-	}
-	if (nprbytes > 2) {
-		*(bufout++) =
-		(unsigned char) (pr2six_[bufin[1]] << 4 | pr2six_[bufin[2]] >> 2);
-	}
-	if (nprbytes > 3) {
-		*(bufout++) =
-		(unsigned char) (pr2six_[bufin[2]] << 6 | pr2six_[bufin[3]]);
+		*(bufout++) = (unsigned char) (pr2six_[*bufin] << 2 | pr2six_[bufin[1]] >> 4);
+
+		if (nprbytes > 2) {
+			*(bufout++) = (unsigned char) (pr2six_[bufin[1]] << 4 | pr2six_[bufin[2]] >> 2);
+
+			if (nprbytes > 3) {
+				*(bufout++) = (unsigned char) (pr2six_[bufin[2]] << 6 | pr2six_[bufin[3]]);
+			}
+		}
 	}
 
 	nbytesdecoded -= (4 - (int)nprbytes) & 3;

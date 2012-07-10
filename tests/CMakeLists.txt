@@ -24,6 +24,7 @@ add_executable(x0test
 	buffer_test.cpp
 	io_test.cpp
 	redis_test.cpp
+	base64_test.cpp
 	#http11.cpp
 )
 
@@ -53,6 +54,7 @@ target_link_libraries(test_flow_lexer
 	XzeroBase
 	XzeroFlow
 )
+
 
 # -----------------------------------------------------------------
 # some quicky executables
