@@ -15,6 +15,7 @@ add_definitions(
 
 # ---------------------------------------------------------------------------
 x0_plugin_simple(accesslog)
+x0_plugin_simple(auth)
 x0_plugin_simple(browser)
 x0_plugin_simple(cgi)
 x0_plugin_simple(fastcgi)
