@@ -1,5 +1,6 @@
 0.5.0 (not yet released)
 
+	* auth: new plugin for HTTP Basic Auth
 	* core: new APIs: Pipe, PipeSource, PipeSink
 	* updated files headers to new home site, http://xzero.io/
 	* cmake: added more auto-tests, as for rrd and fcgi detections.
