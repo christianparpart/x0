@@ -166,6 +166,7 @@ public:
 	size_t process(const BufferRef& chunk, size_t* nparsed = nullptr);
 
 	ssize_t contentLength() const;
+	bool isChunked() const { return chunked_; }
 
 private:
 	static inline bool isChar(char value);

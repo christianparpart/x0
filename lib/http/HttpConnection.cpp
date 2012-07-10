@@ -406,7 +406,7 @@ bool HttpConnection::onMessageHeaderEnd()
 	bool contentRequired = request_->method == "POST" || request_->method == "PUT";
 
 	if (contentRequired) {
-		if (request_->connection.contentLength() == -1) {
+		if (request_->connection.contentLength() == -1 && !request_->connection.isChunked()) {
 			request_->status = HttpError::LengthRequired;
 			request_->finish();
 			return true;
