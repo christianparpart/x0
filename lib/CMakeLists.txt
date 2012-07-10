@@ -29,7 +29,7 @@ install(TARGETS XzeroBase DESTINATION ${LIBDIR})
 file(GLOB x0_flow_SRC "flow/*.cpp")
 add_library(XzeroFlow SHARED ${x0_flow_SRC})
 set_target_properties(XzeroFlow PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
-target_link_libraries(XzeroFlow XzeroBase ${LLVM_LIBRARIES} dl pthread udis86)
+target_link_libraries(XzeroFlow XzeroBase ${LLVM_LIBRARIES} dl pthread)
 install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
 
 # XzeroHttp
