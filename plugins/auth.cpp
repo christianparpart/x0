@@ -101,6 +101,8 @@ private:
 				return sendAuthenticateRequest(r, auth->realm);
 			*pass++ = '\0';
 
+			r->username = user;
+
 			r->log(x0::Severity::debug, "auth.require: '%s' -> '%s'", authcode.str().c_str(), plain.c_str());
 
 			if (auth->verify(user, pass)) {

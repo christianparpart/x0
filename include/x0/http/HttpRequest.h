@@ -293,7 +293,7 @@ public:
 	void updatePathInfo();
 
 	// accumulated request data
-	BufferRef username;							///< username this client has authenticated with.
+	std::string username;						///< username this client has authenticated with.
 	std::string documentRoot;					///< the document root directory for this request.
 
 //	std::string if_modified_since;				//!< "If-Modified-Since" request header value, if specified.

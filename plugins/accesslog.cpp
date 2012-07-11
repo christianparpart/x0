@@ -84,7 +84,7 @@ private:
 
 		inline std::string username(x0::HttpRequest *in)
 		{
-			return !in->username.empty() ? in->username.str() : "-";
+			return !in->username.empty() ? in->username : "-";
 		}
 
 		inline std::string request_line(x0::HttpRequest *in)
