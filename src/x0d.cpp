@@ -939,7 +939,7 @@ int main(int argc, char *argv[])
 		const char* args[] = {
 			argv[0],
 			"--no-fork",
-			"-f", "../../src/test.conf",
+			"-f", "src/test.conf",
 			"--pid-file", "test.pid",
 			"--log-file", "/dev/stdout",
 			"--log-level", "9",
