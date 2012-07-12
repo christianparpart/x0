@@ -47,8 +47,9 @@ private:
 // {{{ inlines
 template<typename PodType, std::size_t N>
 inline BufferSource::BufferSource(PodType (&value)[N]) :
-	buffer_(value, N - 1), pos_(0)
+	buffer_(), pos_(0)
 {
+	buffer_.push_back(value, N - 1);
 }
 
 inline BufferSource::BufferSource(const Buffer& data) :
