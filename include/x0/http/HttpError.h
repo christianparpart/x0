@@ -24,7 +24,7 @@ enum class HttpError // {{{
 	// informational
 	ContinueRequest = 100,
 	SwitchingProtocols = 101,
-	Processing = 102,
+	Processing = 102, // WebDAV, RFC 2518
 
 	// successful
 	Ok = 200,
@@ -41,6 +41,8 @@ enum class HttpError // {{{
 	MovedTemporarily = 302,
 	Found = MovedTemporarily,
 	NotModified = 304,
+	TemporaryRedirect = 307, // since HTTP/1.1
+	PermanentRedirect = 308, // Internet-Draft
 
 	// client error
 	BadRequest = 400,
@@ -67,6 +69,10 @@ enum class HttpError // {{{
 	FailedDependency = 424,
 	UnorderedCollection = 425,
 	UpgradeRequired = 426,
+	PreconditionRequired = 428, // RFC 6585
+	TooManyRequests = 429, // RFC 6585
+	RequestHeaderFieldsTooLarge = 430, // RFC 6585
+	NoResponse = 444, // nginx ("Used in Nginx logs to indicate that the server has returned no information to the client and closed the connection")
 
 	// server error
 	InternalServerError = 500,
@@ -75,7 +81,12 @@ enum class HttpError // {{{
 	ServiceUnavailable = 503,
 	GatewayTimedout = 504,
 	HttpVersionNotSupported = 505,
-	InsufficientStorage = 507
+	VariantAlsoNegotiates = 506, // RFC 2295
+	InsufficientStorage = 507, // WebDAV, RFC 4918
+	LoopDetected = 508, // WebDAV, RFC 5842
+	BandwidthExceeded = 509, // Apache
+	NotExtended = 510, // RFC 2774
+	NetworkAuthenticationRequired = 511 // RFC 6585
 };
 // }}}
 
