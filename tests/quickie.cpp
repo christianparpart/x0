@@ -12,7 +12,7 @@
 
 using namespace x0;
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
 	struct ev_loop* loop = ev_default_loop();
 	Redis cli(loop);
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
 	if (argc == 1) {
 		argc = 2;
-		static char *argv_[] = { argv[0], "foo", 0 };
+		static const char *argv_[] = { argv[0], "foo", 0 };
 		argv = argv_;
 	}
 
