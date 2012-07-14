@@ -28,6 +28,10 @@ FIXME x0d.conf: fastcgi/proxy examples use 'bind' but should use 'address'/'host
 
 0.4:
 
+- vhost: invent new setup method (vhost.auto_include) to
+  allow a more generic virtual hosting, one virtual host per file, and the filename
+  matching the virtual host name (Host-header) with a handler inside, that
+  must match the fully qualified host name (e.g. "www.example.com")
 - ssl: counter BEAST attack by allowing the user to specify cipher priorities and 
 	provide a secure default priority list.
 	- http://www.g-loaded.eu/2011/09/27/mod_gnutls-rc4-cipher-beast/
