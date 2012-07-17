@@ -15,9 +15,11 @@ struct HttpDirectorNotes :
 	public CustomData
 {
 	size_t retryCount;
+	HttpBackend* backend;
 
 	HttpDirectorNotes() :
-		retryCount(0)
+		retryCount(0),
+		backend(nullptr)
 	{}
 };
 
@@ -27,6 +29,8 @@ HttpDirector::HttpDirector(const std::string& name) :
 #endif
 	name_(name),
 	backends_(),
+	queue_(),
+	total_(0),
 	lastBackend_(0),
 	cloakOrigin_(true),
 	maxRetryCount_(3)
@@ -82,40 +86,65 @@ HttpBackend* HttpDirector::createBackend(const std::string& name, const std::str
 	return nullptr;
 }
 
-void HttpDirector::enqueue(HttpRequest* r)
+void HttpDirector::schedule(HttpRequest* r)
 {
 	r->responseHeaders.push_back("X-Director-Cluster", name_);
 
 	r->setCustomData<HttpDirectorNotes>(this);
 
-	for (HttpBackend* backend = selectBackend(r); backend; backend = nextBackend(backend, r))
-		if (backend->process(r))
-			return;
+	auto notes = r->customData<HttpDirectorNotes>(this);
 
-	// TODO enqueue to pendings-fifo
-	r->status = HttpError::ServiceUnavailable;
-	r->finish();
+	// try delivering request directly
+	if (HttpBackend* backend = selectBackend(r)) {
+		notes->backend = backend;
+		++backend->active_;
+
+		backend->process(r);
+	} else {
+		enqueue(r);
+	}
 }
 
-bool HttpDirector::requeue(HttpRequest* r, HttpBackend* backend)
+bool HttpDirector::reschedule(HttpRequest* r, HttpBackend* backend)
 {
 	auto notes = r->customData<HttpDirectorNotes>(this);
 
-	++notes->retryCount;
+	--backend->active_;
+	notes->backend = nullptr;
 
 	TRACE("requeue (retry-count: %zi / %zi)", notes->retryCount, maxRetryCount());
 
-	if (notes->retryCount < maxRetryCount())
-		for (backend = nextBackend(backend, r); backend != nullptr; backend = nextBackend(backend, r))
-			if (backend->process(r))
-				return true;
+	if (notes->retryCount == maxRetryCount()) {
+		r->status = HttpError::ServiceUnavailable;
+		r->finish();
+
+		return false;
+	}
+
+	++notes->retryCount;
+
+	backend = nextBackend(backend, r);
+	if (backend != nullptr) {
+		notes->backend = backend;
+		++backend->active_;
+
+		if (backend->process(r)) {
+			return true;
+		}
+	}
 
 	TRACE("requeue (retry-count: %zi / %zi): giving up", notes->retryCount, maxRetryCount());
 
-	r->status = HttpError::ServiceUnavailable;
-	r->finish();
+	enqueue(r);
 
 	return false;
+}
+
+void HttpDirector::enqueue(HttpRequest* r)
+{
+	// direct delivery failed, due to overheated director. queueing then.
+	r->log(Severity::debug, "Director %s overloaded. Queueing request.", name_.c_str());
+	queue_.push_back(r);
 }
 
 HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
@@ -133,10 +162,11 @@ HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
 		size_t c = backend->capacity();
 		size_t avail = c - l;
 
-		TRACE("selectBackend: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
+		r->log(Severity::debug, "selectBackend: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
 
 		if (avail > bestAvail) {
-			TRACE(" - select");
+			r->log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), 
+					best ? best->name().c_str() : "(null)");
 			bestAvail = avail;
 			best = backend;
 		}
@@ -146,7 +176,7 @@ HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
 		r->log(Severity::debug, "selecting backend %s", best->name().c_str());
 		return best;
 	} else {
-		r->log(Severity::debug, "backend select failed. overloaded.");
+		r->log(Severity::debug, "selecting backend failed");
 		return nullptr;
 	}
 }
@@ -173,6 +203,44 @@ HttpBackend* HttpDirector::nextBackend(HttpBackend* backend, HttpRequest* r)
 
 	TRACE("nextBackend: no next backend chosen.");
 	return nullptr;
+}
+
+/*! Invoked by a backend, to tell us, that it is actually processing the request.
+ *
+ * This method is just statistically increasing some numbers,
+ * like total processing count.
+ */
+void HttpDirector::hit()
+{
+	++total_;
+}
+
+/*! Invoked by a backend, once it completed a request.
+ *
+ * \param backend the backend that just completed a request, and thus, is able to potentially handle one more.
+ *
+ * This method is to be invoked by backends, that
+ * just completed serving a request, and thus, invoked
+ * finish() on it, so it could potentially process
+ * the next one, if, and only if, we have
+ * already queued pending requests.
+ *
+ * Otherwise this call will do nothing.
+ *
+ * \see schedule(), reschedule(), enqueue()
+ */
+void HttpDirector::put(HttpBackend* backend)
+{
+	if (!queue_.empty()) {
+		HttpRequest* r = queue_.front();
+		queue_.pop_front();
+
+		auto notes = r->customData<HttpDirectorNotes>(this);
+		notes->backend = backend;
+		++backend->active_;
+
+		backend->process(r);
+	}
 }
 
 } // namespace x0

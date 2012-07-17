@@ -16,6 +16,8 @@ class HttpBackend;
  * It supports weights and multiple states, such as (online/offline)
  * and (active/standby).
  *
+ * \todo thread safety for actual horizontal scalability.
+ * \todo periodic health checks
  * \todo support requeuing requests when designated backend did not respond in time.
  */
 class X0_API HttpDirector :
@@ -29,6 +31,12 @@ private:
 
 	//! set of backends managed by this director.
 	std::vector<HttpBackend*> backends_;
+
+	//! list of queued requests.
+	std::deque<HttpRequest*> queue_;
+
+	//! total number of requests being processed by this director
+	size_t total_;
 
 	//! last backend-index a request has been successfully served with
 	size_t lastBackend_;
@@ -47,6 +55,10 @@ public:
 
 	size_t capacity() const;
 	size_t load() const;
+	size_t total() const { return total_; }
+	size_t queued() const { return queue_.size(); }
+
+	const std::vector<HttpBackend*>& backends() const { return backends_; }
 
 	bool cloakOrigin() const { return cloakOrigin_; }
 	void setCloakOrigin(bool value) { cloakOrigin_ = value; }
@@ -66,12 +78,15 @@ public:
 		return backend;
 	}
 
-	void enqueue(HttpRequest* r);
-	bool requeue(HttpRequest* r, HttpBackend* backend);
+	void schedule(HttpRequest* r);
+	bool reschedule(HttpRequest* r, HttpBackend* backend);
 
 private:
 	HttpBackend* selectBackend(HttpRequest* r);
 	HttpBackend* nextBackend(HttpBackend* backend, HttpRequest* r);
+	void enqueue(HttpRequest* r);
+	void hit();
+	void put(HttpBackend* backend);
 
 	friend class HttpBackend;
 };

@@ -52,7 +52,43 @@ handler `%s.pass` (or `director.%s.pass`) with the director instance as context,
     }
 
     handler main {
-        director.admin 'app-cluster' if request.path == '/director?admin'
+        director.api '/x0/director'
         director.pass 'app-cluster';
     }
+
+# Admin JSON API
+
+By default, this API is not self-protected, but you can easily
+configure with with basic-auth.
+
+    handler main {
+        if req.path =^ '/x0' {
+            auth.realm "http admin area"
+            auth.userfile "/etc/htpasswd"
+            auth.require
+
+            director.api '/x0/director'
+            status.api '/x0/status'
+            errorlog.api '/x0/errorlog'
+        }
+    }
+
+
+    `GET /x0/director/`
+    ->  { "cluster_1": {
+            "total": NUMBER,
+            "members": [
+              {"name": NAME, "total": NUMBER, "load": NUMBER, "capacity": NUMBER}
+            ]
+          },
+          ...
+        }
+
+    `POST $PREFIX/directors/app123?backend=node01&action=enable`
+
+    `POST $PREFIX/directors/$DIRECTOR?backend=$BACKEND&action=$ACTION`
+    with $ACTION one of enable, disable
+
+    `GET $PREFIX/event-stream`
+    sends out state change notifications in SSE-manner (server-sent events)
 

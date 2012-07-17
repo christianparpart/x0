@@ -28,9 +28,128 @@
 #include <x0/http/HttpHeader.h>
 #include <x0/http/HttpDirector.h>
 #include <x0/http/HttpBackend.h>
+#include <x0/io/BufferSource.h>
 #include <x0/Types.h>
 
 using namespace x0;
+
+enum class HttpMethod // {{{
+{
+	Unknown,
+	// HTTP
+	GET,
+	PUT,
+	POST,
+	DELETE,
+	CONNECT,
+	// WebDAV
+	MKCOL,
+	MOVE,
+	COPY,
+	LOCK,
+	UNLOCK,
+};
+
+HttpMethod requestMethod(const BufferRef& value)
+{
+	switch (value[0]) {
+		case 'C':
+			return value == "CONNECT"
+				? HttpMethod::CONNECT
+				: HttpMethod::Unknown;
+		case 'D':
+			return value == "DELETE"
+				? HttpMethod::DELETE
+				: HttpMethod::Unknown;
+		case 'G':
+			return value == "GET"
+				? HttpMethod::GET
+				: HttpMethod::Unknown;
+		case 'L':
+			return value == "LOCK"
+				? HttpMethod::LOCK
+				: HttpMethod::Unknown;
+		case 'M':
+			if (value == "MKCOL")
+				return HttpMethod::MKCOL;
+			else if (value == "MOVE")
+				return HttpMethod::MOVE;
+			else
+				return HttpMethod::Unknown;
+		case 'P':
+			return value == "PUT"
+				? HttpMethod::PUT
+				: value == "POST"
+					? HttpMethod::POST
+					: HttpMethod::Unknown;
+		case 'U':
+			return value == "UNLOCK"
+				? HttpMethod::UNLOCK
+				: HttpMethod::Unknown;
+		default:
+			return HttpMethod::Unknown;
+	}
+}
+// }}}
+
+static inline std::string urldecode(const std::string& AString) { // {{{
+	Buffer sb;
+
+    for (std::string::size_type i = 0, e = AString.size(); i < e; ++i) {
+        if (AString[i] == '%') {
+			std::string snum(AString.substr(++i, 2));
+            ++i;
+			sb.push_back(char(std::strtol(snum.c_str(), 0, 16) & 0xFF));
+        } else if (AString[i] == '+')
+			sb.push_back(' ');
+        else
+			sb.push_back(AString[i]);
+    }
+
+    return sb.str();
+} // }}}
+
+static inline std::unordered_map<std::string, std::string> parseArgs(const char *AQuery) { // {{{
+	std::unordered_map<std::string, std::string> args;
+	const char *data = AQuery;
+
+	for (const char *p = data; *p; ) {
+		unsigned len = 0;
+		const char *q = p;
+
+		while (*q && *q != '=' && *q != '&') {
+			++q;
+			++len;
+		}
+
+		if (len) {
+			std::string name(p, 0, len);
+			p += *q == '=' ? len + 1 : len;
+
+			len = 0;
+			for (q = p; *q && *q != '&'; ++q, ++len)
+				;
+
+			if (len) {
+				std::string value(p, 0, len);
+				p += len;
+
+				for (; *p == '&'; ++p)
+					; // consume '&' chars (usually just one)
+
+				args[urldecode(name)] = urldecode(value);
+			} else {
+				if (*p)
+					++p;
+
+				args[urldecode(name)] = "";
+			}
+		} else if (*p) // && or ?& or &=
+			++p;
+	}
+	return std::move(args);
+}
+// }}}
 
 class DirectorPlugin : // {{{
 	public HttpPlugin
@@ -44,6 +163,7 @@ public:
 	{
 		registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
 		registerHandler<DirectorPlugin, &DirectorPlugin::director_pass>("director.pass");
+		registerHandler<DirectorPlugin, &DirectorPlugin::director_api>("director.api");
 	}
 
 	~DirectorPlugin()
@@ -53,6 +173,7 @@ public:
 	}
 
 private:
+	// {{{ setup_function director.create(...)
 	void director_create(const FlowParams& args, FlowValue& result)
 	{
 		const FlowValue& directorId = args[0];
@@ -85,7 +206,23 @@ private:
 		directors_[director->name()] = director;
 	}
 
-	// handler director.pass(string director_id);
+	HttpDirector* createDirector(const char* id)
+	{
+		server().log(Severity::debug, "director: Creating director %s", id);
+		HttpDirector* director = new HttpDirector(id);
+		return director;
+	}
+
+	HttpBackend* registerBackend(HttpDirector* director, const char* name, const char* url)
+	{
+		server().log(Severity::debug, "director: %s, backend %s: %s",
+				director->name().c_str(), name, url);
+
+		return director->createBackend(name, url);
+	}
+	// }}}
+
+	// {{{ handler director.pass(string director_id);
 	bool director_pass(HttpRequest* r, const FlowParams& args)
 	{
 		HttpDirector* director = selectDirector(r, args);
@@ -93,7 +230,7 @@ private:
 			return false;
 
 		server().log(Severity::debug, "director: passing request to %s.", director->name().c_str());
-		director->enqueue(r);
+		director->schedule(r);
 		return true;
 	}
 
@@ -126,21 +263,101 @@ private:
 			}
 		}
 	}
+	// }}}
 
-	HttpDirector* createDirector(const char* id)
+	// {{{ handler director.api(string prefix);
+	// index:   GET    /
+	// get:     GET    /:director_id
+	// enable:  UNLOCK /:director_id/:backend_id
+	// disable: LOCK   /:director_id/:backend_id
+	bool director_api(HttpRequest* r, const FlowParams& args)
 	{
-		server().log(Severity::debug, "director: Creating director %s", id);
-		HttpDirector* director = new HttpDirector(id);
-		return director;
+		const char* prefix = args[0].toString();
+		if (!r->path.begins(prefix))
+			return false;
+
+		BufferRef path(r->path.ref(strlen(prefix)));
+		r->log(Severity::debug5, "path: '%s'", path.str().c_str());
+
+		switch (requestMethod(r->method)) {
+			case HttpMethod::GET:
+				return path == "/"
+					? api_index(r)
+					: path == "/.sse"
+						? api_eventstream(r)
+						: api_get(r, path);
+			case HttpMethod::UNLOCK:
+				return api_unlock(r, path);
+			case HttpMethod::LOCK:
+				return api_lock(r, path);
+			default:
+				return false;
+		}
 	}
 
-	HttpBackend* registerBackend(HttpDirector* director, const char* name, const char* url)
+	bool api_index(HttpRequest* r)
 	{
-		server().log(Severity::debug, "director: %s, backend %s: %s",
-				director->name().c_str(), name, url);
+		Buffer result;
 
-		return director->createBackend(name, url);
+		result.push_back("{\n");
+		size_t directorNum = 0;
+		for (auto di: directors_) {
+			HttpDirector* director = di.second;
+
+			if (directorNum++)
+				result << ",\n";
+
+			result << "\"" << director->name() << "\": {\n"
+				   << "  \"total\": " << director->total() << ",\n"
+				   << "  \"queued\": " << director->queued() << ",\n"
+				   << "  \"members\": [";
+
+			size_t backendNum = 0;
+			for (auto backend: director->backends()) {
+				if (backendNum++)
+					result << ", ";
+
+				result << "\n    {";
+				backend->writeJSON(result);
+				result << "}";
+			}
+
+			result << "\n  ]\n}\n";
+		}
+		result << "}\n";
+
+		char slen[32];
+		snprintf(slen, sizeof(slen), "%zu", result.size());
+
+		r->responseHeaders.push_back("Content-Type", "application/json");
+		r->responseHeaders.push_back("Access-Control-Allow-Origin", "*");
+		r->responseHeaders.push_back("Content-Length", slen);
+		r->write<BufferSource>(result);
+		r->finish();
+
+		return true;
 	}
+
+	bool api_eventstream(HttpRequest* r)
+	{
+		return false;
+	}
+
+	bool api_get(HttpRequest* r, const BufferRef& path)
+	{
+		return false;
+	}
+
+	bool api_lock(HttpRequest* r, const BufferRef& path)
+	{
+		return false;
+	}
+
+	bool api_unlock(HttpRequest* r, const BufferRef& path)
+	{
+		return false;
+	}
+	// }}}
 }; // }}}
 
 X0_EXPORT_PLUGIN_CLASS(DirectorPlugin)

@@ -31,23 +31,31 @@ protected:
 	std::string name_;
 	//! number of concurrent requests being processable at a time.
 	size_t capacity_;
+	//!< number of active (busy) connections
+	size_t active_;
+	//! number of total requests being processed.
+	size_t total_;
 	//! number of milliseconds to wait until next check
 	unsigned checkInterval_;
+	//! real online/offline state of the backend, tested via health checks.
 	State state_;
+	//! whether or not this director is enabled (default) or disabled (for example for maintenance reasons)
 	bool enabled_;
 
 	//! time in seconds this backend has not been available for processing requests
 	time_t offlineTime_;
 
+	friend class HttpDirector;
+
 public:
 	HttpBackend(HttpDirector* director, const std::string& name, size_t capacity = 1);
 	virtual ~HttpBackend();
 
-	const std::string& name() const { return name_; }
-	HttpDirector* director() const { return director_; } //!< pointer to the owning director.
-	size_t capacity() const;		//!< number of requests this backend can handle in parallel.
-
-	virtual size_t load() const;	//!< number of currently being processed requests.
+	const std::string& name() const { return name_; }		//!< descriptive name of backend.
+	HttpDirector* director() const { return director_; }	//!< pointer to the owning director.
+	size_t capacity() const;								//!< number of requests this backend can handle in parallel.
+	size_t load() const { return active_; }					//!< number of currently being processed requests.
+	size_t total() const { return total_; }					//!< number of requests served in total already.
 
 	unsigned checkInterval() const { return checkInterval_; }
 	void setCheckInterval(unsigned ms);
@@ -63,6 +71,13 @@ public:
 	//! create a readable string containing the backend's state, i.e.
 	//! "HttpBackend<appserver05: role=active, state=online, capacity=8, size=7>"
 	virtual std::string str() const;
+
+	virtual size_t writeJSON(Buffer& output) const;
+
+	void release();
+
+protected:
+	void hit();
 
 private:
 	void onCheckState(ev::timer&, int);
@@ -88,7 +103,6 @@ private:
 
 	std::string hostname_;
 	int port_;
-	size_t active_; //!< number of active (busy) connections
 	std::list<ProxyConnection*> connections_;
 
 public:
@@ -97,8 +111,7 @@ public:
 	~HttpProxy();
 
 	virtual bool process(HttpRequest* r);
-
-	virtual size_t load() const;
+	virtual size_t writeJSON(Buffer& output) const;
 
 private:
 	ProxyConnection* acquireConnection();

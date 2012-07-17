@@ -18,6 +18,8 @@ HttpBackend::HttpBackend(HttpDirector* director, const std::string& name, size_t
 	director_(director),
 	name_(name),
 	capacity_(capacity),
+	active_(0),
+	total_(0),
 	checkInterval_(2000), // ms
 	state_(State::Online),
 	enabled_(true),
@@ -42,15 +44,36 @@ size_t HttpBackend::capacity() const
 }
 
 //virtual
-size_t HttpBackend::load() const
-{
-	return 0; //! TODO
-}
-
-//virtual
 std::string HttpBackend::str() const
 {
 	return "TODO";
+}
+
+size_t HttpBackend::writeJSON(Buffer& output) const
+{
+	size_t offset = output.size();
+
+	output
+		<< "\"name\": \"" << name() << "\", "
+		<< "\"load\": " << load() << ", "
+		<< "\"capacity\": " << capacity() << ", "
+		<< "\"enabled\": " << enabled() << ", "
+		<< "\"total\": " << total()
+		;
+
+	return output.size() - offset;
+}
+
+void HttpBackend::hit()
+{
+	++total_;
+	++director_->total_;
+}
+
+void HttpBackend::release()
+{
+	--active_;
+	director_->put(this);
 }
 
 // ----------------------------------------------------------------

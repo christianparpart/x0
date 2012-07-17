@@ -118,18 +118,21 @@ HttpProxy::ProxyConnection::~ProxyConnection()
 	}
 
 	if (request_) {
-		--proxy_->active_;
-
 		if (request_->status == HttpError::Undefined) {
-			// XXX We failed processing this request, so requeue
+			// We failed processing this request, so reschedule
 			// this request within the director and give it the chance
 			// to be processed by another backend,
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			proxy_->director_->requeue(request_, proxy_);
+			proxy_->director_->reschedule(request_, proxy_);
 		} else {
+			// We actually served ths request, so finish() it.
 			request_->finish();
+
+			// Notify director that this backend has just completed a request,
+			// and thus, is potentially available for surving the next.
+			proxy_->release();
 		}
 	}
 }
@@ -433,18 +436,15 @@ HttpProxy::HttpProxy(HttpDirector* director, const std::string& name,
 	HttpBackend(director, name, capacity),
 	hostname_(hostname),
 	port_(port),
-	active_(0),
 	connections_()
 {
 #ifndef NDEBUG
 	setLoggingPrefix("HttpProxy/%s", name.c_str());
-	TRACE("create");
 #endif
 }
 
 HttpProxy::~HttpProxy()
 {
-	TRACE("destroy");
 }
 
 bool HttpProxy::process(HttpRequest* r)
@@ -458,7 +458,7 @@ bool HttpProxy::process(HttpRequest* r)
 		TRACE("in.content? %d", r->contentAvailable());
 
 		if (ProxyConnection* pc = new ProxyConnection(this)) {
-			++active_;
+			hit();
 			pc->start(r, backend, director_->cloakOrigin());
 			return true;
 		}
@@ -468,9 +468,17 @@ bool HttpProxy::process(HttpRequest* r)
 	return false;
 }
 
-size_t HttpProxy::load() const
+size_t HttpProxy::writeJSON(Buffer& output) const
 {
-	return active_;
+	size_t offset = output.size();
+
+	HttpBackend::writeJSON(output);
+
+	output << ", \"type\": \"http\""
+		   << ", \"hostname\": \"" << hostname_ << "\""
+		   << ", \"port\": " << port_;
+
+	return output.size() - offset;
 }
 // }}}
 
