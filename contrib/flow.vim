@@ -110,6 +110,16 @@ if exists("flow_x0")
 	syn keyword flowCoreFunctions docroot alias
 	syn match flowCoreHandler '\<access\.\(deny\|allow\)\>'
 	syn keyword flowCoreFunctions accesslog autoindex
+
+	" upstream plugin: auth
+	syn match flowCoreFunctions '\<auth\.realm\>'
+	syn match flowCoreFunctions '\<auth\.userfile\>'
+	syn match flowCoreFunctions '\<auth\.require\>'
+
+	" upstream plugin: director
+	syn match flowCoreFunctions '\<director\.create\>'
+	syn match flowCoreHandler '\<director\.pass\>'
+	syn match flowCoreHandler '\<director\.api\>'
 endif
 
 " ---------------------------------------------------------------------------------
