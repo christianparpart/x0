@@ -189,6 +189,8 @@ inline unsigned long long HttpWorker::connectionCount() const
 	return connectionCount_;
 }
 
+/*! \brief Invokes given callback within this worker's thread.
+ */
 template<class K, void (K::*fn)()>
 void HttpWorker::post(K* object)
 {
