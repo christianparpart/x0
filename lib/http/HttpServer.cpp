@@ -709,6 +709,23 @@ bool HttpServer::registerProperty(const std::string& name, const FlowValue::Type
 }
 // }}}
 
+HttpServer* HttpServer::fromText(const std::string& configText, std::future<int>** async)
+{
+	HttpServer* server = new HttpServer(ev_default_loop(0), 1);
+	std::istringstream config(configText);
+	server->setup(&config, "createFromText", 2);
+
+	if (!async)
+		return server;
+
+	*async = new std::future<int>(std::move(std::async(std::launch::async, [&]() {
+		std::shared_ptr<HttpServer> sp(server);
+		return server->run();
+	})));
+
+	return server;
+}
+
 /**
  * loads a plugin into the server.
  *
