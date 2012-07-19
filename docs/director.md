@@ -2,15 +2,79 @@
 
 # Requirements
 
-- should support multiple backend protocols
+- support multiple backend protocols
   - HTTP (via TCP and UNIX domain sockets)
   - FastCGI (via TCP and UNIX domain sockets)
   - ideally costom Flow handlers
-- support request retries and per-director retry-limits
+- active/standby backend modes, where standby backends get only used when all active
+  backends are at its capacity limits (and/or offline/disabled).
+- request queue with a per-director limit, used when no active nor standby backend can currently process 
 - support (per director) connect/read/write timeouts to backend
-- provide admin REST-API for browsing, controlling directors, its backends, and their states/stats.
+- support retrying requests and per-director retry-limits
+- sticky offline mode
+  (when a backend becomes offline, it gets disabled, too,
+  so that it won't be used again, once being back online)
+- support dynamic directors
+  - adding/removing/editing backends at runtime
+  - storing backend configuration in some plain file in /var/lib/x0/director/$NAME.db
+- provide admin JSON-API for browsing, controlling directors, its backends, and their states/stats.
 - reuse already existing code as used in `proxy` and `fastcgi` plugins.
   - existing plugins (proxy, fastcgi) should now reuse the new core API
+
+# Transparent Backend Transport API
+
+The *director* API should support multiple different transport layers, such as
+HTTP and FastCGI over TCP/IP but also UNIX domain sockets, in case some backend
+service is running locally.
+
+# Service Overloading
+
+If the server receives more request than any *active* and *online* marked
+backend can currently handle, *online* *standby* backends are used to take
+over.
+
+If even no *online* *standby* backend is free to serve the incoming request,
+the request gets queued and is processed either as soon as a backend
+becomes available again, or its client receives a timeout response if 
+no backend became available in time.
+
+If the queue becomes full, the server responds with a 503 (Service Unavailable)
+response.
+
+# Failure and Recovery
+
+If a backend fails surving a request to the client, meaning, no data has
+yet been sent to the client, the backend should not just be marked as *Offline*
+but also, the request should directly be requeued to the next available
+backend and retried up to M times with a timeout of N seconds.
+
+If either limit has been reached without success, the client is to
+receive a respective 5xx error response.
+
+## Backend Health Checking
+
+Backends are by default assumed to be in state *Online*.
+If a backend becomes *Offline* while processing a real request, the
+the health check timer gets started to detect when
+this backend becomes *Online* again.
+
+This health check is made frequently within a fixed customized interval,
+and the backend gets only health check when marked as *Offline*.
+Once at least N successfull health checks pass, the backend becomes *Online*
+again, and no health checks are made until it got marked *Offline* again.
+
+## Sticky Offline Mode
+
+There is a need for backends to stay out of the cluster, once being *offline*,
+and must be enabled explicitely by the administrator (or by a script),
+once it got ensured, that the code on it is up-to-date, to not deliver
+out-of-date content.
+
+This sticky-mode should be disabled by default.
+
+# Dynamic Directors
+
+TODO...
 
 # Ideas
 
