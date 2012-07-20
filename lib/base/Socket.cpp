@@ -514,10 +514,13 @@ void Socket::onConnectComplete()
 		} else {
 			TRACE("onConnectComplete: error(%d): %s", val, strerror(val));
 			close();
+			errno = val;
 		}
 	} else {
+		val = errno;
 		TRACE("onConnectComplete: getsocketopt() error: %s", strerror(errno));
 		close();
+		errno = val;
 	}
 
 	if (callback_) {
