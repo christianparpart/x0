@@ -14,6 +14,38 @@
 
 namespace x0 {
 
+class X0_API Url
+{
+public:
+	static Url parse(const std::string& url);
+
+	Url();
+	Url(const Url& url);
+	Url(Url&& url);
+	~Url();
+
+	Url& operator=(const Url& url);
+
+	const std::string& protocol() const { return protocol_; }
+	const std::string& username() const { return username_; }
+	const std::string& password() const { return password_; }
+	const std::string& hostname() const { return hostname_; }
+	int port() const { return port_; }
+	const std::string& path() const { return path_; }
+	const std::string& query() const { return query_; }
+	const std::string& fragment() const { return fragment_; }
+
+private:
+	std::string protocol_;
+	std::string username_;
+	std::string password_;
+	std::string hostname_;
+	int port_;
+	std::string path_;
+	std::string query_;
+	std::string fragment_;
+};
+
 X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path, std::string& query);
 X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path);
 X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port);

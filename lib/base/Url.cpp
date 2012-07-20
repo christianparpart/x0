@@ -10,6 +10,7 @@
 
 namespace x0 {
 
+// {{{
 /** Parses origin server URL.
  *
  * \param spec The URL to parse.
@@ -21,50 +22,15 @@ namespace x0 {
  */
 bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path, std::string& query)
 {
-	std::size_t i = spec.find("://");
-	if (i == std::string::npos)
+	Url url = Url::parse(spec);
+	if (url.protocol().empty())
 		return false;
 
-	protocol = spec.substr(0, i);
-
-	std::size_t k = spec.find("/", i + 3);
-
-	if (k != std::string::npos)
-	{
-		hostname = spec.substr(i + 3, k - i - 3);
-		path = spec.substr(k);
-
-		i = path.find("?");
-		if (i != std::string::npos)
-		{
-			query = path.substr(i + 1);
-			path.resize(i);
-		}
-	}
-	else
-	{
-		hostname = spec.substr(i + 3);
-		path.clear();
-		query.clear();
-	}
-
-	i = hostname.find_last_of(":");
-	if (i != std::string::npos)
-	{
-		port = std::atoi(hostname.c_str() + i + 1);
-		hostname.resize(i);
-	}
-	else
-		port = 0;
-
-	if (!port)
-	{
-		if (protocol == "http")
-			port = 80;
-		else if (protocol == "https")
-			port = 443;
-	}
-
+	protocol = url.protocol();
+	hostname = url.hostname();
+	port = url.port();
+	path = url.path();
+	query = url.query();
 	return true;
 }
 
@@ -82,6 +48,102 @@ bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostn
 
 	bool rv = parseUrl(spec, protocol, hostname, port, path, query);
 	return rv && query.empty() && (path.empty() || path == "/");
+}
+// }}}
+
+Url::Url() :
+	protocol_(),
+	username_(),
+	password_(),
+	hostname_(),
+	port_(),
+	path_(),
+	query_(),
+	fragment_()
+{
+}
+
+Url::Url(const Url& url) :
+	protocol_(url.protocol_),
+	username_(url.username_),
+	password_(url.password_),
+	hostname_(url.hostname_),
+	port_(url.port_),
+	path_(url.path_),
+	query_(url.query_),
+	fragment_(url.fragment_)
+{
+}
+
+Url::Url(Url&& url) :
+	protocol_(std::move(url.protocol_)),
+	username_(std::move(url.username_)),
+	password_(std::move(url.password_)),
+	hostname_(std::move(url.hostname_)),
+	port_(std::move(url.port_)),
+	path_(std::move(url.path_)),
+	query_(std::move(url.query_)),
+	fragment_(std::move(url.fragment_))
+{
+}
+
+Url::~Url()
+{
+}
+
+Url& Url::operator=(const Url& url)
+{
+	protocol_ = url.protocol_;
+	username_ = url.username_;
+	password_ = url.password_;
+	hostname_ = url.hostname_;
+	port_ = url.port_;
+	path_ = url.path_;
+	query_ = url.query_;
+	fragment_ = url.fragment_;
+
+	return *this;
+}
+
+Url Url::parse(const std::string& text)
+{
+	Url url;
+
+	std::size_t i = text.find("://");
+	if (i == std::string::npos)
+		return url;
+
+	url.protocol_ = text.substr(0, i);
+
+	std::size_t k = text.find("/", i + 3);
+
+	if (k != std::string::npos) {
+		url.hostname_ = text.substr(i + 3, k - i - 3);
+		url.path_ = text.substr(k);
+
+		i = url.path_.find("?");
+		if (i != std::string::npos) {
+			url.query_ = url.path_.substr(i + 1);
+			url.path_.resize(i);
+		}
+	} else {
+		url.hostname_ = text.substr(i + 3);
+	}
+
+	i = url.hostname_.find_last_of(":");
+	if (i != std::string::npos) {
+		url.port_ = std::atoi(url.hostname_.c_str() + i + 1);
+		url.hostname_.resize(i);
+	}
+
+	if (!url.port_) {
+		if (url.protocol_ == "http")
+			url.port_ = 80;
+		else if (url.protocol_ == "https")
+			url.port_ = 443;
+	}
+
+	return url;
 }
 
 } // namespace x0
