@@ -29,17 +29,17 @@ service is running locally.
 
 # Service Overloading
 
-If the server receives more request than any *active* and *online* marked
-backend can currently handle, *online* *standby* backends are used to take
-over.
+If the server receives more requests than any *online* *active* marked
+backend can currently handle, *online* *standby* marked backends are used
+to take over.
 
-If even no *online* *standby* backend is free to serve the incoming request,
-the request gets queued and is processed either as soon as a backend
+If even no *online* *standby* marked backend is available to serve the
+incoming request, it gets queued and is processed either as soon as a backend
 becomes available again, or its client receives a timeout response if 
 no backend became available in time.
 
-If the queue becomes full, the server responds with a 503 (Service Unavailable)
-response.
+If the queue becomes full, with a per-director set limit, the server responds
+with a 503 (Service Unavailable) reply.
 
 # Failure and Recovery
 
@@ -53,15 +53,35 @@ receive a respective 5xx error response.
 
 ## Backend Health Checking
 
-Backends are by default assumed to be in state *Online*.
-If a backend becomes *Offline* while processing a real request, the
-the health check timer gets started to detect when
-this backend becomes *Online* again.
+### Mode 1 (Starving)
 
-This health check is made frequently within a fixed customized interval,
-and the backend gets only health check when marked as *Offline*.
-Once at least N successfull health checks pass, the backend becomes *Online*
-again, and no health checks are made until it got marked *Offline* again.
+Backends are by default assumed to be in state *Online*.
+
+If a backend fails to serve a request, e.g. due to networking or protocol
+errors, the backend gets marked as *Offline*, and is in turn suspect to
+health checks every N seconds, as defined per backend.
+
+That means, health checks are only performed on *offline* backends, to
+detect, when they've become online, again.
+The health checks are disabled when the backend has been marked as *online*
+and is in enabled-state.
+
+If N successfull health checks pass, the backend
+becomes *Online* again, and can receive new requests from this time on.
+
+### Mode 2 (Opportunistic)
+
+Additionally to mode 1, the backends get checked for healthiness when
+being idle for at least N seconds.
+
+Performing a health check while being in *Online* mode charges one load unit,
+so if the backend allows 3 concurrent requests, only 2 are left for real
+requests.
+
+### Mode 3 (Paranoid)
+
+Health checks are performed always, regardless of its backend's state
+and activity.
 
 ## Sticky Offline Mode
 
@@ -74,7 +94,35 @@ This sticky-mode should be disabled by default.
 
 # Dynamic Directors
 
-TODO...
+While it is possible to define a static set of backends, one may also
+create a dynamic director, that is, its backends are managed dynamically
+via the _Director API_ and will be stored in a plain-text file in /var/lib/x0/
+to preserve state over process restarts.
+
+# Director API
+
+The *director API* is provided over HTTP, to allow inspecting the live state
+of each director of x0.
+
+Static directors can be inspected, and enabled/disabled at runtime.
+But dynamic directors can be fully configured at runtime,
+i.g adding new backends, removing or updating existing ones.
+
+# Implementation Details
+
+## Thread Safety
+
+The core x0 API ensures, that every I/O activity, caused by its HTTP connection,
+is always processed within the same worker thread, while listener sockets
+always accept new connections on the first (main) worker and then schedule
+them to the least active worker.
+
+We assume, that I/O activity from origin servers are to be processed
+within the same worker thread as the frontend connection.
+
+Health check timers on the other hand do not have any frontend connection
+associated and thus, are assigned to least active worker at the time
+the timer gets spawned.
 
 # Ideas
 
