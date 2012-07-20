@@ -1100,4 +1100,9 @@ done:
 	return *nparsed - chunk.offset();
 }
 
+void HttpMessageProcessor::reset()
+{
+	state_ = MESSAGE_BEGIN;
+}
+
 } // namespace x0
