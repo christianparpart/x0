@@ -407,6 +407,8 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					case RESPONSE:
 						state_ = STATUS_LINE_BEGIN;
 						code_ = 0;
+						versionMajor_ = 0;
+						versionMinor_ = 0;
 						break;
 					case MESSAGE:
 						state_ = HEADER_NAME_BEGIN;
