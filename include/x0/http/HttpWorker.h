@@ -13,6 +13,8 @@
 #include <deque>
 #include <list>
 #include <atomic>
+#include <utility>
+#include <functional>
 #include <ev++.h>
 #include <signal.h>
 #include <pthread.h>
@@ -80,6 +82,9 @@ private:
 
 	PerformanceCounter<15 * 60> performanceCounter_;
 
+	std::list<std::function<void()>> stopHandler_;
+	std::list<std::function<void()>> killHandler_;
+
 	ConnectionList connections_;
 
 	ev::check evLoopCheck_;
@@ -137,6 +142,12 @@ public:
 
 	void suspend();
 	void resume();
+
+	std::list<std::function<void()>>::iterator registerStopHandler(std::function<void()> callback);
+	void unregisterStopHandler(std::list<std::function<void()>>::iterator handle);
+
+	std::list<std::function<void()>>::iterator registerKillHandler(std::function<void()> callback);
+	void unregisterKillHandler(std::list<std::function<void()>>::iterator handle);
 
 private:
 	template<class K, void (K::*fn)()>

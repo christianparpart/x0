@@ -4,6 +4,7 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/ServerSocket.h>
 
+#include <algorithm>
 #include <ext/atomicity.h>
 #include <cstdarg>
 #include <ev++.h>
@@ -42,6 +43,8 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	resumeLock_(),
 	resumeCondition_(),
 	performanceCounter_(),
+	stopHandler_(),
+	killHandler_(),
 	connections_(),
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
@@ -190,6 +193,9 @@ void HttpWorker::_stop()
 
 	ev_ref(loop_);
 	evNewConnection_.stop();
+
+	for (auto handler: stopHandler_)
+		handler();
 }
 
 void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)
@@ -289,6 +295,31 @@ void HttpWorker::_kill()
 			i->debug("connection still open");
 #endif
 	}
+
+	for (auto handler: killHandler_)
+		handler();
+}
+
+std::list<std::function<void()>>::iterator HttpWorker::registerStopHandler(std::function<void()> callback)
+{
+	stopHandler_.push_front(callback);
+	return stopHandler_.begin();
+}
+
+void HttpWorker::unregisterStopHandler(std::list<std::function<void()>>::iterator handle)
+{
+	stopHandler_.erase(handle);
+}
+
+std::list<std::function<void()>>::iterator HttpWorker::registerKillHandler(std::function<void()> callback)
+{
+	killHandler_.push_front(callback);
+	return killHandler_.begin();
+}
+
+void HttpWorker::unregisterKillHandler(std::list<std::function<void()>>::iterator handle)
+{
+	killHandler_.erase(handle);
 }
 
 } // namespace x0
