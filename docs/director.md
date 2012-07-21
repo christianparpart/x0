@@ -27,7 +27,9 @@ The *director* API should support multiple different transport layers, such as
 HTTP and FastCGI over TCP/IP but also UNIX domain sockets, in case some backend
 service is running locally.
 
-# Service Overloading
+# Resource Excaustion
+
+## Backend Concurrency Overloading
 
 If the server receives more requests than any *online* *active* marked
 backend can currently handle, *online* *standby* marked backends are used
@@ -41,7 +43,16 @@ no backend became available in time.
 If the queue becomes full, with a per-director set limit, the server responds
 with a 503 (Service Unavailable) reply.
 
-# Failure and Recovery
+## Host Memory
+
+The service should not die, however, it will take some time until
+*x0* and all its plugins properly handle host memory excaustion.
+
+## File Descriptors
+
+Same as with host memory, but easier handleble.
+
+# Backend Failure and Recovery
 
 If a backend fails surving a request to the client, meaning, no data has
 yet been sent to the client, the backend should not just be marked as *Offline*
@@ -53,7 +64,7 @@ receive a respective 5xx error response.
 
 ## Backend Health Checking
 
-### Mode 1 (Starving)
+### Mode 1 (Lazy)
 
 Backends are by default assumed to be in state *Online*.
 
@@ -80,17 +91,17 @@ requests.
 
 ### Mode 3 (Paranoid)
 
-Health checks are performed always, regardless of its backend's state
+Health checks are always performed, regardless of the backend's state
 and activity.
 
 ## Sticky Offline Mode
 
 There is a need for backends to stay out of the cluster, once being *offline*,
 and must be enabled explicitely by the administrator (or by a script),
-once it got ensured, that the code on it is up-to-date, to not deliver
+once it got ensured, that the code on that node is up-to-date, to not deliver
 out-of-date content.
 
-This sticky-mode should be disabled by default.
+This sticky-mode not enabled by default.
 
 # Dynamic Directors
 

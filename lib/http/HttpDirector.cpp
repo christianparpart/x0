@@ -23,22 +23,40 @@ struct HttpDirectorNotes :
 	{}
 };
 
-HttpDirector::HttpDirector(const std::string& name) :
+HttpDirector::HttpDirector(HttpWorker* worker, const std::string& name) :
 #ifndef NDEBUG
 	Logging("HttpDirector/%s", name.c_str()),
 #endif
+	worker_(worker),
 	name_(name),
 	backends_(),
 	queue_(),
 	total_(0),
 	lastBackend_(0),
 	cloakOrigin_(true),
-	maxRetryCount_(3)
+	maxRetryCount_(6)
 {
+	worker_->registerStopHandler(std::bind(&HttpDirector::onStop, this));
 }
 
 HttpDirector::~HttpDirector()
 {
+}
+
+/**
+ * Callback, invoked when the owning worker thread is to be stopped.
+ *
+ * We're unregistering any possible I/O watchers and timers, as used
+ * by proxying connections and health checks.
+ */
+void HttpDirector::onStop()
+{
+	TRACE("onStop()");
+
+	for (auto backend: backends_) {
+		backend->disable();
+		backend->healthMonitor().stop();
+	}
 }
 
 size_t HttpDirector::capacity() const
@@ -79,7 +97,7 @@ HttpBackend* HttpDirector::createBackend(const std::string& name, const std::str
 {
 	int capacity = 1;
 
-	//TODO createBackend<HttpProxy>(hostname, port);
+	// TODO createBackend<HttpProxy>(hostname, port);
 	if (protocol == "http")
 		return createBackend<HttpProxy>(name, capacity, hostname, port);
 
@@ -143,7 +161,9 @@ bool HttpDirector::reschedule(HttpRequest* r, HttpBackend* backend)
 void HttpDirector::enqueue(HttpRequest* r)
 {
 	// direct delivery failed, due to overheated director. queueing then.
+#ifndef NDEBUG
 	r->log(Severity::debug, "Director %s overloaded. Queueing request.", name_.c_str());
+#endif
 	queue_.push_back(r);
 }
 
@@ -153,7 +173,7 @@ HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
 	size_t bestAvail = 0;
 
 	for (HttpBackend* backend: backends_) {
-		if (!backend->enabled()) {
+		if (!backend->isEnabled() || !backend->healthMonitor().isOnline()) {
 			TRACE("selectBackend: skip %s (disabled)", backend->name().c_str());
 			continue;
 		}
@@ -162,21 +182,29 @@ HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
 		size_t c = backend->capacity();
 		size_t avail = c - l;
 
+#ifndef NDEBUG
 		r->log(Severity::debug, "selectBackend: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
+#endif
 
 		if (avail > bestAvail) {
+#ifndef NDEBUG
 			r->log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), 
 					best ? best->name().c_str() : "(null)");
+#endif
 			bestAvail = avail;
 			best = backend;
 		}
 	}
 
 	if (bestAvail > 0) {
+#ifndef NDEBUG
 		r->log(Severity::debug, "selecting backend %s", best->name().c_str());
+#endif
 		return best;
 	} else {
+#ifndef NDEBUG
 		r->log(Severity::debug, "selecting backend failed");
+#endif
 		return nullptr;
 	}
 }
@@ -189,15 +217,17 @@ HttpBackend* HttpDirector::nextBackend(HttpBackend* backend, HttpRequest* r)
 		++k;
 
 		for (; k != backends_.end(); ++k) {
-			if ((*k)->load() < (*k)->capacity()) {
+			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load() < (*k)->capacity())
 				return *k;
-			}
+
+			TRACE("nextBackend: skip %s", backend->name().c_str());
 		}
 
 		for (k = backends_.begin(); k != i; ++k) {
-			if ((*k)->load() < (*k)->capacity()) {
+			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load() < (*k)->capacity())
 				return *k;
-			}
+
+			TRACE("nextBackend: skip %s", backend->name().c_str());
 		}
 	}
 
@@ -234,6 +264,10 @@ void HttpDirector::put(HttpBackend* backend)
 	if (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
 		queue_.pop_front();
+
+#ifndef NDEBUG
+		r->log(Severity::debug, "Dequeueing request to backend %s", backend->name().c_str());
+#endif
 
 		auto notes = r->customData<HttpDirectorNotes>(this);
 		notes->backend = backend;

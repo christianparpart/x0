@@ -17,7 +17,7 @@
 #include <netdb.h>
 
 
-#if 1
+#if !defined(NDEBUG)
 #	define TRACE(msg...) (this->Logging::debug(msg))
 #else
 #	define TRACE(msg...) do {} while (0)
@@ -257,6 +257,8 @@ void HttpProxy::ProxyConnection::onConnected(Socket* s, int revents)
 		backend_->setMode(Socket::ReadWrite); // flush already serialized request
 	} else {
 		TRACE("onConnected: failed");
+		request_->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
+		proxy_->setState(HttpHealthMonitor::State::Offline);
 		close();
 	}
 }
@@ -435,12 +437,27 @@ HttpProxy::HttpProxy(HttpDirector* director, const std::string& name,
 		size_t capacity, const std::string& hostname, int port) :
 	HttpBackend(director, name, capacity),
 	hostname_(hostname),
-	port_(port),
-	connections_()
+	port_(port)
 {
 #ifndef NDEBUG
 	setLoggingPrefix("HttpProxy/%s", name.c_str());
 #endif
+
+	healthMonitor_.setTarget(SocketSpec(IPAddress(hostname_), port_));
+
+	healthMonitor_.setRequest(
+		"GET / HTTP/1.1\r\n"
+		"Host: %s\r\n"
+		"x0-Health-Check: yes\r\n"
+		"x0-Director: %s\r\n"
+		"x0-Backend: %s\r\n"
+		"\r\n",
+		hostname_.c_str(),
+		director_->name().c_str(),
+		name_.c_str()
+	);
+
+	healthMonitor_.start();
 }
 
 HttpProxy::~HttpProxy()
@@ -464,7 +481,11 @@ bool HttpProxy::process(HttpRequest* r)
 		}
 	}
 
-	r->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
+	r->log(Severity::error, "HTTP proxy: Could not connect to backend %s:%d. %s",
+		hostname_.c_str(), port_, strerror(errno));
+
+	setState(HttpHealthMonitor::State::Offline);
+
 	return false;
 }
 
@@ -474,9 +495,10 @@ size_t HttpProxy::writeJSON(Buffer& output) const
 
 	HttpBackend::writeJSON(output);
 
-	output << ", \"type\": \"http\""
-		   << ", \"hostname\": \"" << hostname_ << "\""
-		   << ", \"port\": " << port_;
+	output
+		<< ",\n     \"type\": \"http\""
+		<< ", \"hostname\": \"" << hostname_ << "\""
+		<< ", \"port\": " << port_;
 
 	return output.size() - offset;
 }

@@ -1,5 +1,14 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
+- proxy: rewrite plugin to use Core API's HttpProxy
+- director: honor standby backends, to favor them over enqueueing
+- director: when a node backend becomes available again, check for enqueued requests and possibly take one
+- director: JSON-API
+  - stats(requests per second): per backend, per director, globally
+  - stats(rps): history over the last N secs (60)
+-------------------------------------------------
+-------------------------------------------------
+
 - http/x0d:
   - move Flow dependencies out of XzeroHttp into x0d directly,
     like configuration file handling etc, as this is tied to x0d anyways.
@@ -136,3 +145,4 @@ OPTIMIZATION AND CACHING INITIATIVE
   - dir contexts hierarichally via ternary_search<>
 
 
+vim:ts=2:sw=2:et

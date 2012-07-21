@@ -209,7 +209,7 @@ private:
 	HttpDirector* createDirector(const char* id)
 	{
 		server().log(Severity::debug, "director: Creating director %s", id);
-		HttpDirector* director = new HttpDirector(id);
+		HttpDirector* director = new HttpDirector(server().nextWorker(), id);
 		return director;
 	}
 

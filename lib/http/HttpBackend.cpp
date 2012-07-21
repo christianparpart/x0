@@ -20,22 +20,23 @@ HttpBackend::HttpBackend(HttpDirector* director, const std::string& name, size_t
 	capacity_(capacity),
 	active_(0),
 	total_(0),
-	checkInterval_(2000), // ms
-	state_(State::Online),
+	role_(Role::Active),
 	enabled_(true),
-	offlineTime_(0)
+	healthMonitor_(director_->worker_)
 {
-	TRACE("create");
+	healthMonitor_.onStateChange([&](HttpHealthMonitor*) {
+		if (healthMonitor_.isOnline()) {
+			director_->worker_->log(Severity::info, "Director '%s': backend '%s' is online now.", director_->name().c_str(), name_.c_str());
+			// try delivering a queued request
+			director_->put(this);
+		} else {
+			director_->worker_->log(Severity::warn, "Director '%s': backend '%s' is offline now.", director_->name().c_str(), name_.c_str());
+		}
+	});
 }
 
 HttpBackend::~HttpBackend()
 {
-	TRACE("destroy");
-}
-
-void HttpBackend::onCheckState(ev::timer&, int)
-{
-	TRACE("checking state");
 }
 
 size_t HttpBackend::capacity() const
@@ -51,14 +52,18 @@ std::string HttpBackend::str() const
 
 size_t HttpBackend::writeJSON(Buffer& output) const
 {
+	static const std::string roleStr[] = { "Active", "Standby" };
+	static const std::string boolStr[] = { "false", "true" };
 	size_t offset = output.size();
 
 	output
-		<< "\"name\": \"" << name() << "\", "
+		<< "\"name\": \"" << name_ << "\", "
 		<< "\"load\": " << load() << ", "
-		<< "\"capacity\": " << capacity() << ", "
-		<< "\"enabled\": " << enabled() << ", "
-		<< "\"total\": " << total()
+		<< "\"capacity\": " << capacity_ << ", "
+		<< "\"enabled\": " << boolStr[enabled_] << ", "
+		<< "\"role\": \"" << roleStr[static_cast<int>(role_)] << "\", "
+		<< "\"state\": \"" << healthMonitor_.state_str() << "\", "
+		<< "\"total\": " << total_
 		;
 
 	return output.size() - offset;
@@ -70,13 +75,18 @@ void HttpBackend::hit()
 	++director_->total_;
 }
 
+void HttpBackend::setState(HttpHealthMonitor::State value)
+{
+	healthMonitor_.setState(value);
+}
+
 void HttpBackend::release()
 {
 	--active_;
 	director_->put(this);
 }
 
-// ----------------------------------------------------------------
+// {{{ NullProxy
 NullProxy::NullProxy(HttpDirector* director, const std::string& name, size_t capacity) :
 	HttpBackend(director, name, capacity)
 {
@@ -88,5 +98,6 @@ bool NullProxy::process(HttpRequest* r)
 	r->finish();
 	return true;
 }
+// }}}
 
 } // namespace x0

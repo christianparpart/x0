@@ -3,6 +3,7 @@
 #include <x0/Api.h>
 #include <x0/Logging.h>
 #include <x0/http/HttpRequest.h>
+#include <ev++.h>
 
 namespace x0 {
 
@@ -26,6 +27,8 @@ class X0_API HttpDirector :
 #endif
 {
 private:
+	HttpWorker* worker_;
+
 	//! directors name, as used for debugging and displaying.
 	std::string name_;
 
@@ -48,7 +51,7 @@ private:
 	size_t maxRetryCount_;
 
 public:
-	explicit HttpDirector(const std::string& name);
+	HttpDirector(HttpWorker* worker, const std::string& name);
 	~HttpDirector();
 
 	const std::string& name() const { return name_; }
@@ -87,6 +90,8 @@ private:
 	void enqueue(HttpRequest* r);
 	void hit();
 	void put(HttpBackend* backend);
+
+	void onStop();
 
 	friend class HttpBackend;
 };

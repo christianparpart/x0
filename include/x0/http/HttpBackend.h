@@ -2,7 +2,9 @@
 
 #include <x0/Api.h>
 #include <x0/Logging.h>
+#include <x0/TimeSpan.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/http/HttpHealthMonitor.h>
 
 namespace x0 {
 
@@ -19,31 +21,22 @@ class X0_API HttpBackend
 #endif
 {
 public:
-	enum class State {
-		Online,
-		Offline,
+	enum class Role {
+		Active,
+		Standby,
 	};
 
 protected:
-	//! director, this backend is registered to
-	HttpDirector* director_;
-	//! common name of this backend, for example: "appserver05"
-	std::string name_;
-	//! number of concurrent requests being processable at a time.
-	size_t capacity_;
-	//!< number of active (busy) connections
-	size_t active_;
-	//! number of total requests being processed.
-	size_t total_;
-	//! number of milliseconds to wait until next check
-	unsigned checkInterval_;
-	//! real online/offline state of the backend, tested via health checks.
-	State state_;
-	//! whether or not this director is enabled (default) or disabled (for example for maintenance reasons)
-	bool enabled_;
+	HttpDirector* director_; //!< director, this backend is registered to
 
-	//! time in seconds this backend has not been available for processing requests
-	time_t offlineTime_;
+	std::string name_; //!< common name of this backend, for example: "appserver05"
+	size_t capacity_; //!< number of concurrent requests being processable at a time.
+	size_t active_; //!< number of active (busy) connections
+	size_t total_; //!< number of total requests being processed.
+
+	Role role_; //!< backend role (Active or Standby)
+	bool enabled_; //!< whether or not this director is enabled (default) or disabled (for example for maintenance reasons)
+	HttpHealthMonitor healthMonitor_; //!< health check timer
 
 	friend class HttpDirector;
 
@@ -57,14 +50,18 @@ public:
 	size_t load() const { return active_; }					//!< number of currently being processed requests.
 	size_t total() const { return total_; }					//!< number of requests served in total already.
 
-	unsigned checkInterval() const { return checkInterval_; }
-	void setCheckInterval(unsigned ms);
+	// role
+	Role role() const { return role_; }
+	void setRole(Role value) { role_ = value; }
 
-	State state() const { return state_; }
-
+	// enable/disable state
 	void enable() { enabled_ = true; }
-	bool enabled() const { return enabled_; }
+	bool isEnabled() const { return enabled_; }
 	void disable() { enabled_ = false; }
+
+	// health state
+	HttpHealthMonitor::State healthState() const { return healthMonitor_.state(); }
+	HttpHealthMonitor& healthMonitor() { return healthMonitor_; }
 
 	virtual bool process(HttpRequest* r) = 0;
 
@@ -78,9 +75,13 @@ public:
 
 protected:
 	void hit();
+	void setState(HttpHealthMonitor::State value);
 
 private:
-	void onCheckState(ev::timer&, int);
+	void startHealthChecks();
+	void stopHealthChecks();
+	void onHealthCheck(ev::timer&, int);
+	void healthCheckHandler(ev::io&, int);
 };
 
 /*! dummy proxy, just returning 503 (service unavailable).
@@ -103,7 +104,6 @@ private:
 
 	std::string hostname_;
 	int port_;
-	std::list<ProxyConnection*> connections_;
 
 public:
 	//HttpProxy(HttpDirector* director, const std::string& name, size_t capacity, const std::string& url);
@@ -123,6 +123,7 @@ public:
 	~FastCgiProxy();
 
 	virtual bool process(HttpRequest* r);
+	virtual size_t writeJSON(Buffer& output) const;
 };
 
 } // namespace x0
