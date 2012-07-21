@@ -10,6 +10,15 @@ namespace x0 {
 class X0_API SocketSpec
 {
 public:
+	SocketSpec();
+
+	SocketSpec(const IPAddress& _ipaddr, int _port) :
+		address(_ipaddr),
+		port(_port),
+		backlog(-1),
+		valid(true)
+	{}
+
 	IPAddress address;
 	std::string local;
 
@@ -17,8 +26,6 @@ public:
 	int backlog;
 
 	bool valid;
-
-	SocketSpec();
 
 	void clear();
 
