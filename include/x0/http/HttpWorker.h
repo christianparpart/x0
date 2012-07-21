@@ -137,6 +137,9 @@ public:
 	template<class K, void (K::*fn)()>
 	void post(K* object);
 
+	template<class K, void (K::*fn)(void*)>
+	void post(K* object, void* arg);
+
 	void stop();
 	void kill();
 
@@ -152,6 +155,9 @@ public:
 private:
 	template<class K, void (K::*fn)()>
 	static void post_thunk(int revents, void* arg);
+
+	template<class K, void (K::*fn)(void*)>
+	static void post_thunk2(int revents, void* arg);
 
 	virtual void run();
 
@@ -200,7 +206,9 @@ inline unsigned long long HttpWorker::connectionCount() const
 	return connectionCount_;
 }
 
-/*! \brief Invokes given callback within this worker's thread.
+/*! Invokes given callback within this worker's thread.
+ *
+ * \param object this-pointer to the target object
  */
 template<class K, void (K::*fn)()>
 void HttpWorker::post(K* object)
@@ -212,6 +220,33 @@ template<class K, void (K::*fn)()>
 void HttpWorker::post_thunk(int revents, void* arg)
 {
 	(static_cast<K *>(arg)->*fn)();
+}
+
+/*! Invokes given callback within this worker's thread.
+ *
+ * \param object this-pointer to the target object
+ * \param arg custom private pointer, passed as argument to the objects member function
+ */
+template<class K, void (K::*fn)(void*)>
+void HttpWorker::post(K* object, void* arg)
+{
+	auto priv = std::make_pair(object, arg);
+	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk2<K, fn>, priv);
+}
+
+template<class K, void (K::*fn)(void*)>
+void HttpWorker::post_thunk2(int revents, void* arg)
+{
+	auto priv = (std::pair<K*, void*>) arg;
+
+	try {
+		(static_cast<K *>(priv->first)->*fn)(priv->second);
+	} catch (...) {
+		delete priv;
+		throw;
+	}
+
+	delete priv;
 }
 
 inline void HttpWorker::fetchPerformanceCounts(double* p1, double* p5, double* p15) const
