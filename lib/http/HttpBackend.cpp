@@ -63,6 +63,7 @@ size_t HttpBackend::writeJSON(Buffer& output) const
 		<< "\"enabled\": " << boolStr[enabled_] << ", "
 		<< "\"role\": \"" << roleStr[static_cast<int>(role_)] << "\", "
 		<< "\"state\": \"" << healthMonitor_.state_str() << "\", "
+		<< "\"health_check_interval\": " << static_cast<unsigned>(healthMonitor_.interval().value()) << ", "
 		<< "\"total\": " << total_
 		;
 
