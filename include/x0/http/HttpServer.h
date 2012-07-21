@@ -79,6 +79,7 @@ public:
 	ev_tstamp startupTime() const { return startupTime_; }
 	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
 
+	HttpWorker* nextWorker();
 	HttpWorker* spawnWorker();
 	HttpWorker* selectWorker();
 	const std::vector<HttpWorker*>& workers() const { return workers_; }
@@ -207,9 +208,7 @@ private:
 	std::map<HttpPlugin*, Library> pluginLibraries_;
 	HttpCore* core_;
 	std::vector<HttpWorker*> workers_;
-#if defined(X0_WORKER_RR)
 	size_t lastWorker_;
-#endif
 	FileInfoService::Config fileinfoConfig_;
 
 public:

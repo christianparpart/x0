@@ -117,9 +117,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	pluginLibraries_(),
 	core_(0),
 	workers_(),
-#if defined(X0_WORKER_RR)
 	lastWorker_(0),
-#endif
 	maxConnections(512),
 	maxKeepAlive(TimeSpan::fromSeconds(60)),
 	maxKeepAliveRequests(100),
@@ -147,6 +145,9 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 		maxConnections = rlim.rlim_cur / 2;
 
 	registerPlugin(core_ = new HttpCore(*this));
+
+	// spawn main-thread worker
+	spawnWorker();
 }
 
 HttpServer::~HttpServer()
@@ -250,9 +251,6 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename, int 
 	TRACE("run 'setup'");
 	if (runner_->invoke(runner_->findHandler("setup")))
 		goto err;
-
-	if (workers_.empty())
-		spawnWorker();
 
 	// grap the request handler
 	TRACE("get pointer to 'main'");
@@ -406,6 +404,20 @@ HttpWorker *HttpServer::spawnWorker()
 	workers_.push_back(worker);
 
 	return worker;
+}
+
+/**
+ * Selects (by round-robin) the next worker.
+ *
+ * \return a worker
+ * \note This method is not thread-safe, and thus, should not be invoked within a request handler.
+ */
+HttpWorker* HttpServer::nextWorker()
+{
+	if (++lastWorker_ == workers_.size())
+		lastWorker_ = 0;
+
+	return workers_[lastWorker_];
 }
 
 HttpWorker *HttpServer::selectWorker()
