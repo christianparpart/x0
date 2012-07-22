@@ -18,19 +18,18 @@ HttpBackend::HttpBackend(HttpDirector* director, const std::string& name, size_t
 	director_(director),
 	name_(name),
 	capacity_(capacity),
-	active_(0),
-	total_(0),
+	load_(),
 	role_(Role::Active),
 	enabled_(true),
 	healthMonitor_(director_->worker_)
 {
 	healthMonitor_.onStateChange([&](HttpHealthMonitor*) {
+		director_->worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
+			director_->name().c_str(), name_.c_str(), healthMonitor_.state_str().c_str());
+
 		if (healthMonitor_.isOnline()) {
-			director_->worker_->log(Severity::info, "Director '%s': backend '%s' is online now.", director_->name().c_str(), name_.c_str());
 			// try delivering a queued request
-			director_->put(this);
-		} else {
-			director_->worker_->log(Severity::warn, "Director '%s': backend '%s' is offline now.", director_->name().c_str(), name_.c_str());
+			director_->dequeueTo(this);
 		}
 	});
 }
@@ -58,22 +57,14 @@ size_t HttpBackend::writeJSON(Buffer& output) const
 
 	output
 		<< "\"name\": \"" << name_ << "\", "
-		<< "\"load\": " << load() << ", "
 		<< "\"capacity\": " << capacity_ << ", "
 		<< "\"enabled\": " << boolStr[enabled_] << ", "
-		<< "\"role\": \"" << roleStr[static_cast<int>(role_)] << "\", "
-		<< "\"state\": \"" << healthMonitor_.state_str() << "\", "
-		<< "\"health_check_interval\": " << static_cast<unsigned>(healthMonitor_.interval().value()) << ", "
-		<< "\"total\": " << total_
+		<< "\"role\": \"" << roleStr[static_cast<int>(role_)] << "\",\n     "
+		<< "\"load\": " << load_ << ",\n     "
+		<< "\"health\": " << healthMonitor_
 		;
 
 	return output.size() - offset;
-}
-
-void HttpBackend::hit()
-{
-	++total_;
-	++director_->total_;
 }
 
 void HttpBackend::setState(HttpHealthMonitor::State value)
@@ -81,10 +72,16 @@ void HttpBackend::setState(HttpHealthMonitor::State value)
 	healthMonitor_.setState(value);
 }
 
+/**
+ * Invoked internally a request has been fully processed.
+ *
+ * This decrements the load-statistics, and potentially
+ * dequeues possibly enqueued requests to take over.
+ */
 void HttpBackend::release()
 {
-	--active_;
-	director_->put(this);
+	--load_;
+	director_->release(this);
 }
 
 // {{{ NullProxy

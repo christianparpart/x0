@@ -385,4 +385,16 @@ void HttpHealthMonitor::logFailure()
 	setState(State::Offline);
 }
 
+Buffer& operator<<(Buffer& output, const HttpHealthMonitor& monitor)
+{
+	output
+		<< "{"
+		<< "\"mode\": \"" << monitor.mode_str() << "\", "
+		<< "\"state\": \"" << monitor.state_str() << "\", "
+		<< "\"impulse\": " << static_cast<unsigned>(monitor.interval().value())
+		<< "}";
+
+	return output;
+}
+
 } // namespace x0

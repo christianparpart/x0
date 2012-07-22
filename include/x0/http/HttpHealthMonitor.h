@@ -1,6 +1,7 @@
 #pragma once
 
 #include <x0/Api.h>
+#include <x0/Buffer.h>
 #include <x0/TimeSpan.h>
 #include <x0/Logging.h>
 #include <x0/Socket.h>
@@ -107,5 +108,7 @@ private:
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
 };
+
+X0_API Buffer& operator<<(Buffer& output, const HttpHealthMonitor& monitor);
 
 } // namespace x0

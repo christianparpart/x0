@@ -1,6 +1,7 @@
 #pragma once
 
 #include <x0/Api.h>
+#include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/http/HttpRequest.h>
 #include <ev++.h>
@@ -35,11 +36,10 @@ private:
 	//! set of backends managed by this director.
 	std::vector<HttpBackend*> backends_;
 
-	//! list of queued requests.
-	std::deque<HttpRequest*> queue_;
+	std::deque<HttpRequest*> queue_; //! list of queued requests.
 
-	//! total number of requests being processed by this director
-	size_t total_;
+	Counter load_;
+	Counter queued_;
 
 	//! last backend-index a request has been successfully served with
 	size_t lastBackend_;
@@ -57,9 +57,9 @@ public:
 	const std::string& name() const { return name_; }
 
 	size_t capacity() const;
-	size_t load() const;
-	size_t total() const { return total_; }
-	size_t queued() const { return queue_.size(); }
+
+	const Counter& load() const { return load_; }
+	const Counter& queued() const { return queued_; }
 
 	const std::vector<HttpBackend*>& backends() const { return backends_; }
 
@@ -84,12 +84,13 @@ public:
 	void schedule(HttpRequest* r);
 	bool reschedule(HttpRequest* r, HttpBackend* backend);
 
+	void dequeueTo(HttpBackend* backend);
+
 private:
 	HttpBackend* selectBackend(HttpRequest* r);
 	HttpBackend* nextBackend(HttpBackend* backend, HttpRequest* r);
 	void enqueue(HttpRequest* r);
-	void hit();
-	void put(HttpBackend* backend);
+	void release(HttpBackend* backend);
 
 	void onStop();
 

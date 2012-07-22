@@ -308,7 +308,7 @@ private:
 				result << ",\n";
 
 			result << "\"" << director->name() << "\": {\n"
-				   << "  \"total\": " << director->total() << ",\n"
+				   << "  \"load\": " << director->load() << ",\n"
 				   << "  \"queued\": " << director->queued() << ",\n"
 				   << "  \"members\": [";
 

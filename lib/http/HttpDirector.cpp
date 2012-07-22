@@ -31,7 +31,8 @@ HttpDirector::HttpDirector(HttpWorker* worker, const std::string& name) :
 	name_(name),
 	backends_(),
 	queue_(),
-	total_(0),
+	load_(),
+	queued_(),
 	lastBackend_(0),
 	cloakOrigin_(true),
 	maxRetryCount_(6)
@@ -65,16 +66,6 @@ size_t HttpDirector::capacity() const
 
 	for (auto b: backends_)
 		result += b->capacity();
-
-	return result;
-}
-
-size_t HttpDirector::load() const
-{
-	size_t result = 0;
-
-	for (auto b: backends_)
-		result += b->load();
 
 	return result;
 }
@@ -115,7 +106,9 @@ void HttpDirector::schedule(HttpRequest* r)
 	// try delivering request directly
 	if (HttpBackend* backend = selectBackend(r)) {
 		notes->backend = backend;
-		++backend->active_;
+
+		++load_;
+		++backend->load_;
 
 		backend->process(r);
 	} else {
@@ -127,12 +120,14 @@ bool HttpDirector::reschedule(HttpRequest* r, HttpBackend* backend)
 {
 	auto notes = r->customData<HttpDirectorNotes>(this);
 
-	--backend->active_;
+	--backend->load_;
 	notes->backend = nullptr;
 
 	TRACE("requeue (retry-count: %zi / %zi)", notes->retryCount, maxRetryCount());
 
 	if (notes->retryCount == maxRetryCount()) {
+		--load_;
+
 		r->status = HttpError::ServiceUnavailable;
 		r->finish();
 
@@ -144,7 +139,7 @@ bool HttpDirector::reschedule(HttpRequest* r, HttpBackend* backend)
 	backend = nextBackend(backend, r);
 	if (backend != nullptr) {
 		notes->backend = backend;
-		++backend->active_;
+		++backend->load_;
 
 		if (backend->process(r)) {
 			return true;
@@ -153,18 +148,25 @@ bool HttpDirector::reschedule(HttpRequest* r, HttpBackend* backend)
 
 	TRACE("requeue (retry-count: %zi / %zi): giving up", notes->retryCount, maxRetryCount());
 
+	--load_;
 	enqueue(r);
 
 	return false;
 }
 
+/**
+ * Enqueues given request onto the request queue.
+ */
 void HttpDirector::enqueue(HttpRequest* r)
 {
 	// direct delivery failed, due to overheated director. queueing then.
+
 #ifndef NDEBUG
 	r->log(Severity::debug, "Director %s overloaded. Queueing request.", name_.c_str());
 #endif
+
 	queue_.push_back(r);
+	++queued_;
 }
 
 HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
@@ -178,7 +180,7 @@ HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
 			continue;
 		}
 
-		size_t l = backend->load();
+		size_t l = backend->load().current();
 		size_t c = backend->capacity();
 		size_t avail = c - l;
 
@@ -217,14 +219,14 @@ HttpBackend* HttpDirector::nextBackend(HttpBackend* backend, HttpRequest* r)
 		++k;
 
 		for (; k != backends_.end(); ++k) {
-			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load() < (*k)->capacity())
+			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
 				return *k;
 
 			TRACE("nextBackend: skip %s", backend->name().c_str());
 		}
 
 		for (k = backends_.begin(); k != i; ++k) {
-			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load() < (*k)->capacity())
+			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
 				return *k;
 
 			TRACE("nextBackend: skip %s", backend->name().c_str());
@@ -235,17 +237,8 @@ HttpBackend* HttpDirector::nextBackend(HttpBackend* backend, HttpRequest* r)
 	return nullptr;
 }
 
-/*! Invoked by a backend, to tell us, that it is actually processing the request.
- *
- * This method is just statistically increasing some numbers,
- * like total processing count.
- */
-void HttpDirector::hit()
-{
-	++total_;
-}
-
-/*! Invoked by a backend, once it completed a request.
+/**
+ * Notifies the director, that the given backend has just completed processing a request.
  *
  * \param backend the backend that just completed a request, and thus, is able to potentially handle one more.
  *
@@ -257,13 +250,26 @@ void HttpDirector::hit()
  *
  * Otherwise this call will do nothing.
  *
- * \see schedule(), reschedule(), enqueue()
+ * \see schedule(), reschedule(), enqueue(), dequeueTo()
  */
-void HttpDirector::put(HttpBackend* backend)
+void HttpDirector::release(HttpBackend* backend)
+{
+	--load_;
+
+	dequeueTo(backend);
+}
+
+/**
+ * Pops an enqueued request from the front of the queue and passes it to the backend for serving.
+ *
+ * \param backend the backend to pass the dequeued request to.
+ */
+void HttpDirector::dequeueTo(HttpBackend* backend)
 {
 	if (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
 		queue_.pop_front();
+		--queued_;
 
 #ifndef NDEBUG
 		r->log(Severity::debug, "Dequeueing request to backend %s", backend->name().c_str());
@@ -271,7 +277,8 @@ void HttpDirector::put(HttpBackend* backend)
 
 		auto notes = r->customData<HttpDirectorNotes>(this);
 		notes->backend = backend;
-		++backend->active_;
+		++backend->load_;
+		++load_;
 
 		backend->process(r);
 	}

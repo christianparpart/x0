@@ -131,7 +131,6 @@ HttpProxy::ProxyConnection::~ProxyConnection()
 			request_->finish();
 
 			// Notify director that this backend has just completed a request,
-			// and thus, is potentially available for surving the next.
 			proxy_->release();
 		}
 	}
@@ -475,7 +474,6 @@ bool HttpProxy::process(HttpRequest* r)
 		TRACE("in.content? %d", r->contentAvailable());
 
 		if (ProxyConnection* pc = new ProxyConnection(this)) {
-			hit();
 			pc->start(r, backend, director_->cloakOrigin());
 			return true;
 		}

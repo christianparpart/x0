@@ -1,6 +1,7 @@
 #pragma once
 
 #include <x0/Api.h>
+#include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/TimeSpan.h>
 #include <x0/http/HttpRequest.h>
@@ -31,8 +32,7 @@ protected:
 
 	std::string name_; //!< common name of this backend, for example: "appserver05"
 	size_t capacity_; //!< number of concurrent requests being processable at a time.
-	size_t active_; //!< number of active (busy) connections
-	size_t total_; //!< number of total requests being processed.
+	Counter load_; //!< number of active (busy) connections
 
 	Role role_; //!< backend role (Active or Standby)
 	bool enabled_; //!< whether or not this director is enabled (default) or disabled (for example for maintenance reasons)
@@ -47,8 +47,7 @@ public:
 	const std::string& name() const { return name_; }		//!< descriptive name of backend.
 	HttpDirector* director() const { return director_; }	//!< pointer to the owning director.
 	size_t capacity() const;								//!< number of requests this backend can handle in parallel.
-	size_t load() const { return active_; }					//!< number of currently being processed requests.
-	size_t total() const { return total_; }					//!< number of requests served in total already.
+	const Counter& load() const { return load_; }					//!< number of currently being processed requests.
 
 	// role
 	Role role() const { return role_; }
@@ -74,7 +73,6 @@ public:
 	void release();
 
 protected:
-	void hit();
 	void setState(HttpHealthMonitor::State value);
 
 private:
