@@ -111,4 +111,14 @@ bool StringTokenizer::end() const
 	return reached;
 }
 
+std::vector<std::string> StringTokenizer::tokenize()
+{
+	std::vector<std::string> tokens;
+
+	while (!end())
+		tokens.push_back(nextToken());
+
+	return std::move(tokens);
+}
+
 } // namespace x0

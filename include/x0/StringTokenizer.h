@@ -11,6 +11,7 @@
 
 #include <x0/Api.h>
 #include <string>
+#include <vector>
 
 namespace x0 {
 
@@ -51,6 +52,8 @@ public:
 	std::string remaining() const {
 		return !end() ? input_.substr(charPos_) : std::string();
 	}
+
+	std::vector<std::string> tokenize();
 };
 
 } // namespace x0
