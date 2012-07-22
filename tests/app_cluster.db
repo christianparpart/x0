@@ -1,0 +1,5 @@
+# name,role,capacity,protocol,enabled,transport,hostname,port
+app3101,active,1,http,true,tcp,127.0.0.1,3101
+app3102,active,1,http,true,tcp,127.0.0.1,3102
+app3103,active,1,http,true,tcp,127.0.0.1,3103
+app3104,active,1,http,true,tcp,127.0.0.1,3104
