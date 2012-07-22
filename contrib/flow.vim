@@ -118,6 +118,7 @@ if exists("flow_x0")
 
 	" upstream plugin: director
 	syn match flowCoreFunctions '\<director\.create\>'
+	syn match flowCoreFunctions '\<director\.load\>'
 	syn match flowCoreHandler '\<director\.pass\>'
 	syn match flowCoreHandler '\<director\.api\>'
 endif

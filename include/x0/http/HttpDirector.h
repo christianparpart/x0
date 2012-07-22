@@ -33,6 +33,8 @@ private:
 	//! directors name, as used for debugging and displaying.
 	std::string name_;
 
+	bool mutable_; //!< whether or not one may create/update/delete backends at runtime
+
 	//! set of backends managed by this director.
 	std::vector<HttpBackend*> backends_;
 
@@ -50,11 +52,16 @@ private:
 	//! number of attempts to pass request to a backend before giving up
 	size_t maxRetryCount_;
 
+	std::string storagePath_;
+
 public:
 	HttpDirector(HttpWorker* worker, const std::string& name);
 	~HttpDirector();
 
 	const std::string& name() const { return name_; }
+
+	bool isMutable() const { return mutable_; }
+	void setMutable(bool value) { mutable_ = value; }
 
 	size_t capacity() const;
 
@@ -85,6 +92,9 @@ public:
 	bool reschedule(HttpRequest* r, HttpBackend* backend);
 
 	void dequeueTo(HttpBackend* backend);
+
+	bool load(const std::string& path);
+	bool store(const std::string& path = "");
 
 private:
 	HttpBackend* selectBackend(HttpRequest* r);

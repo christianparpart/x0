@@ -14,12 +14,15 @@
  *     in front of us.
  *
  * setup API:
- *     function director.create(string title, string key,
+ *     function director.create(string director_name,
  *                              string backend_name_1 => string backend_url_1,
  *                              ...);
  *
+ *     function director.load(string director_name_1 => string path_to_db,
+ *                            ...);
+ *
  * request processing API:
- *     handler director.pass(key);
+ *     handler director.pass(string director_name);
  */
 
 #include <x0/http/HttpPlugin.h>
@@ -162,6 +165,7 @@ public:
 		HttpPlugin(srv, name)
 	{
 		registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
+		registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_load>("director.load", FlowValue::VOID);
 		registerHandler<DirectorPlugin, &DirectorPlugin::director_pass>("director.pass");
 		registerHandler<DirectorPlugin, &DirectorPlugin::director_api>("director.api");
 	}
@@ -173,6 +177,39 @@ public:
 	}
 
 private:
+	// {{{ setup_function director.load(...)
+	void director_load(const FlowParams& args, FlowValue& result)
+	{
+		for (auto& arg: args) {
+			if (!arg.isArray())
+				continue;
+
+			const FlowArray& fa = arg.toArray();
+			if (fa.size() != 2)
+				continue;
+
+			const FlowValue& directorName = fa[0];
+			if (!directorName.isString())
+				continue;
+
+			const FlowValue& path = fa[1];
+			if (!path.isString())
+				continue;
+
+			server().log(Severity::debug, "director: Loading director %s from %s.",
+				directorName.toString(), path.toString());
+
+			HttpDirector* director = new HttpDirector(server().nextWorker(), directorName.toString());
+			if (!director)
+				continue;
+
+			director->load(path.toString());
+
+			directors_[directorName.toString()] = director;
+		}
+	}
+	// }}}
+
 	// {{{ setup_function director.create(...)
 	void director_create(const FlowParams& args, FlowValue& result)
 	{
@@ -310,6 +347,7 @@ private:
 			result << "\"" << director->name() << "\": {\n"
 				   << "  \"load\": " << director->load() << ",\n"
 				   << "  \"queued\": " << director->queued() << ",\n"
+				   << "  \"mutable\": " << (director->isMutable() ? "true" : "false") << ",\n"
 				   << "  \"members\": [";
 
 			size_t backendNum = 0;

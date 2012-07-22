@@ -1,7 +1,9 @@
 #include <x0/http/HttpDirector.h>
 #include <x0/http/HttpBackend.h>
 #include <x0/io/BufferSource.h>
+#include <x0/StringTokenizer.h>
 #include <x0/Url.h>
+#include <fstream>
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) (this->Logging::debug(msg))
@@ -29,13 +31,15 @@ HttpDirector::HttpDirector(HttpWorker* worker, const std::string& name) :
 #endif
 	worker_(worker),
 	name_(name),
+	mutable_(false),
 	backends_(),
 	queue_(),
 	load_(),
 	queued_(),
 	lastBackend_(0),
 	cloakOrigin_(true),
-	maxRetryCount_(6)
+	maxRetryCount_(6),
+	storagePath_()
 {
 	worker_->registerStopHandler(std::bind(&HttpDirector::onStop, this));
 }
@@ -282,6 +286,81 @@ void HttpDirector::dequeueTo(HttpBackend* backend)
 
 		backend->process(r);
 	}
+}
+
+/**
+ * Loads director configuration from given file.
+ *
+ * \param path The path to the file holding the configuration.
+ *
+ * \retval true Success.
+ * \retval false Failed, detailed message in errno.
+ */
+bool HttpDirector::load(const std::string& path)
+{
+	std::ifstream in(path);
+
+	while (in.good()) {
+		char buf[4096];
+		in.getline(buf, sizeof(buf));
+		size_t len = in.gcount();
+
+		if (!len || buf[0] == '#')
+			continue;
+
+		StringTokenizer st(buf, ",", '\\');
+		std::vector<std::string> values(st.tokenize());
+
+		if (values.size() < 8) {
+			worker_->log(Severity::error, "director: Invalid record in director file.");
+			continue;
+		}
+
+		std::string name(values[0]);
+		std::string role(values[1]);
+		size_t capacity = std::atoi(values[2].c_str());
+		std::string protocol(values[3]);
+		bool enabled = values[4] == "true";
+		std::string transport(values[5]);
+		std::string hostname(values[6]);
+		int port = std::atoi(values[7].c_str());
+
+		HttpBackend* backend = new HttpProxy(this, name, capacity, hostname, port);
+		if (!enabled)
+			backend->disable();
+		if (role == "active")
+			backend->setRole(HttpBackend::Role::Active);
+		else if (role == "standby")
+			backend->setRole(HttpBackend::Role::Standby);
+// TODO
+//		else if (role == "backup")
+//			backend->setRole(HttpBackend::Role::Backup);
+		else
+			worker_->log(Severity::error, "Invalid backend role '%s'", role.c_str());
+
+		backends_.push_back(backend);
+	}
+
+	setMutable(true);
+
+	return true;
+}
+
+/**
+ * stores director configuration in a plaintext file.
+ *
+ * \param pathOverride if not empty, store data into this file's path, oetherwise use the one we loaded from.
+ * \todo this must happen asynchronousely, never ever block within the callers thread (or block in a dedicated thread).
+ */
+bool HttpDirector::store(const std::string& pathOverride)
+{
+	static const std::string header("name,role,capacity,protocol,enabled,transport,host,port");
+	std::string path = !pathOverride.empty() ? pathOverride : storagePath_;
+	std::ofstream out(path);
+
+	// TODO
+
+	return true;
 }
 
 } // namespace x0
