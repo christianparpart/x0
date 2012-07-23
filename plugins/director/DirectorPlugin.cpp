@@ -25,75 +25,16 @@
  *     handler director.pass(string director_name);
  */
 
+#include "Director.h"
+#include "Backend.h"
+#include "ApiRequest.h"
+
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpHeader.h>
-#include <x0/http/HttpDirector.h>
-#include <x0/http/HttpBackend.h>
-#include <x0/io/BufferSource.h>
 #include <x0/Types.h>
 
 using namespace x0;
-
-enum class HttpMethod // {{{
-{
-	Unknown,
-	// HTTP
-	GET,
-	PUT,
-	POST,
-	DELETE,
-	CONNECT,
-	// WebDAV
-	MKCOL,
-	MOVE,
-	COPY,
-	LOCK,
-	UNLOCK,
-};
-
-HttpMethod requestMethod(const BufferRef& value)
-{
-	switch (value[0]) {
-		case 'C':
-			return value == "CONNECT"
-				? HttpMethod::CONNECT
-				: HttpMethod::Unknown;
-		case 'D':
-			return value == "DELETE"
-				? HttpMethod::DELETE
-				: HttpMethod::Unknown;
-		case 'G':
-			return value == "GET"
-				? HttpMethod::GET
-				: HttpMethod::Unknown;
-		case 'L':
-			return value == "LOCK"
-				? HttpMethod::LOCK
-				: HttpMethod::Unknown;
-		case 'M':
-			if (value == "MKCOL")
-				return HttpMethod::MKCOL;
-			else if (value == "MOVE")
-				return HttpMethod::MOVE;
-			else
-				return HttpMethod::Unknown;
-		case 'P':
-			return value == "PUT"
-				? HttpMethod::PUT
-				: value == "POST"
-					? HttpMethod::POST
-					: HttpMethod::Unknown;
-		case 'U':
-			return value == "UNLOCK"
-				? HttpMethod::UNLOCK
-				: HttpMethod::Unknown;
-		default:
-			return HttpMethod::Unknown;
-	}
-}
-// }}}
 
 static inline std::string urldecode(const std::string& AString) { // {{{
 	Buffer sb;
@@ -154,11 +95,20 @@ static inline std::unordered_map<std::string, std::string> parseArgs(const char 
 }
 // }}}
 
+static inline BufferRef extractBoundary(const BufferRef& contentType) //{{{
+{
+	size_t i = contentType.find("boundary=");
+	if (i == BufferRef::npos)
+		return BufferRef();
+
+	return contentType.ref(i + 9);
+} // }}}
+
 class DirectorPlugin : // {{{
 	public HttpPlugin
 {
 private:
-	std::unordered_map<std::string, HttpDirector*> directors_;
+	std::unordered_map<std::string, Director*> directors_;
 
 public:
 	DirectorPlugin(HttpServer& srv, const std::string& name) :
@@ -199,7 +149,7 @@ private:
 			server().log(Severity::debug, "director: Loading director %s from %s.",
 				directorName.toString(), path.toString());
 
-			HttpDirector* director = new HttpDirector(server().nextWorker(), directorName.toString());
+			Director* director = new Director(server().nextWorker(), directorName.toString());
 			if (!director)
 				continue;
 
@@ -217,7 +167,7 @@ private:
 		if (!directorId.isString())
 			return;
 
-		HttpDirector* director = createDirector(directorId.toString());
+		Director* director = createDirector(directorId.toString());
 		if (!director)
 			return;
 
@@ -243,14 +193,14 @@ private:
 		directors_[director->name()] = director;
 	}
 
-	HttpDirector* createDirector(const char* id)
+	Director* createDirector(const char* id)
 	{
 		server().log(Severity::debug, "director: Creating director %s", id);
-		HttpDirector* director = new HttpDirector(server().nextWorker(), id);
+		Director* director = new Director(server().nextWorker(), id);
 		return director;
 	}
 
-	HttpBackend* registerBackend(HttpDirector* director, const char* name, const char* url)
+	Backend* registerBackend(Director* director, const char* name, const char* url)
 	{
 		server().log(Severity::debug, "director: %s, backend %s: %s",
 				director->name().c_str(), name, url);
@@ -262,7 +212,7 @@ private:
 	// {{{ handler director.pass(string director_id);
 	bool director_pass(HttpRequest* r, const FlowParams& args)
 	{
-		HttpDirector* director = selectDirector(r, args);
+		Director* director = selectDirector(r, args);
 		if (!director)
 			return false;
 
@@ -271,7 +221,7 @@ private:
 		return true;
 	}
 
-	HttpDirector* selectDirector(HttpRequest* r, const FlowParams& args)
+	Director* selectDirector(HttpRequest* r, const FlowParams& args)
 	{
 		switch (args.size()) {
 			case 0: {
@@ -303,10 +253,6 @@ private:
 	// }}}
 
 	// {{{ handler director.api(string prefix);
-	// index:   GET    /
-	// get:     GET    /:director_id
-	// enable:  UNLOCK /:director_id/:backend_id
-	// disable: LOCK   /:director_id/:backend_id
 	bool director_api(HttpRequest* r, const FlowParams& args)
 	{
 		const char* prefix = args[0].toString();
@@ -316,84 +262,7 @@ private:
 		BufferRef path(r->path.ref(strlen(prefix)));
 		r->log(Severity::debug5, "path: '%s'", path.str().c_str());
 
-		switch (requestMethod(r->method)) {
-			case HttpMethod::GET:
-				return path == "/"
-					? api_index(r)
-					: path == "/.sse"
-						? api_eventstream(r)
-						: api_get(r, path);
-			case HttpMethod::UNLOCK:
-				return api_unlock(r, path);
-			case HttpMethod::LOCK:
-				return api_lock(r, path);
-			default:
-				return false;
-		}
-	}
-
-	bool api_index(HttpRequest* r)
-	{
-		Buffer result;
-
-		result.push_back("{\n");
-		size_t directorNum = 0;
-		for (auto di: directors_) {
-			HttpDirector* director = di.second;
-
-			if (directorNum++)
-				result << ",\n";
-
-			result << "\"" << director->name() << "\": {\n"
-				   << "  \"load\": " << director->load() << ",\n"
-				   << "  \"queued\": " << director->queued() << ",\n"
-				   << "  \"mutable\": " << (director->isMutable() ? "true" : "false") << ",\n"
-				   << "  \"members\": [";
-
-			size_t backendNum = 0;
-			for (auto backend: director->backends()) {
-				if (backendNum++)
-					result << ", ";
-
-				result << "\n    {";
-				backend->writeJSON(result);
-				result << "}";
-			}
-
-			result << "\n  ]\n}\n";
-		}
-		result << "}\n";
-
-		char slen[32];
-		snprintf(slen, sizeof(slen), "%zu", result.size());
-
-		r->responseHeaders.push_back("Content-Type", "application/json");
-		r->responseHeaders.push_back("Access-Control-Allow-Origin", "*");
-		r->responseHeaders.push_back("Content-Length", slen);
-		r->write<BufferSource>(result);
-		r->finish();
-
-		return true;
-	}
-
-	bool api_eventstream(HttpRequest* r)
-	{
-		return false;
-	}
-
-	bool api_get(HttpRequest* r, const BufferRef& path)
-	{
-		return false;
-	}
-
-	bool api_lock(HttpRequest* r, const BufferRef& path)
-	{
-		return false;
-	}
-
-	bool api_unlock(HttpRequest* r, const BufferRef& path)
-	{
-		return false;
+		return ApiReqeust::process(&directors_, r, path);
 	}
 	// }}}
 }; // }}}

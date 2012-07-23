@@ -18,7 +18,6 @@ x0_plugin_simple(accesslog)
 x0_plugin_simple(auth)
 x0_plugin_simple(browser)
 x0_plugin_simple(cgi)
-x0_plugin_simple(director)
 x0_plugin_simple(fastcgi)
 x0_plugin_simple(compress)
 x0_plugin_simple(debug)
@@ -50,3 +49,4 @@ endif()
 # the more complex plugins:
 
 add_subdirectory(ssl)
+add_subdirectory(director)

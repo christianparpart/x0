@@ -1,4 +1,4 @@
-#include <x0/http/HttpHealthMonitor.h>
+#include "HealthMonitor.h"
 #include <cassert>
 #include <cstdarg>
 
@@ -11,7 +11,7 @@
  *   - Lazy
  */
 
-namespace x0 {
+using namespace x0;
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) (this->debug(msg))
@@ -19,8 +19,8 @@ namespace x0 {
 #	define TRACE(msg...) do { } while (0)
 #endif
 
-HttpHealthMonitor::HttpHealthMonitor(HttpWorker* worker) :
-	Logging("HttpHealthMonitor"),
+HealthMonitor::HealthMonitor(HttpWorker* worker) :
+	Logging("HealthMonitor"),
 	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
 	mode_(Mode::Paranoid),
 	worker_(worker),
@@ -40,7 +40,7 @@ HttpHealthMonitor::HttpHealthMonitor(HttpWorker* worker) :
 	failCount_(0),
 	successCount_(0)
 {
-	timer_.set<HttpHealthMonitor, &HttpHealthMonitor::onCheckStart>(this);
+	timer_.set<HealthMonitor, &HealthMonitor::onCheckStart>(this);
 
 	// initialize request message with some reasonable default.
 	setRequest(
@@ -51,12 +51,12 @@ HttpHealthMonitor::HttpHealthMonitor(HttpWorker* worker) :
 	);
 }
 
-HttpHealthMonitor::~HttpHealthMonitor()
+HealthMonitor::~HealthMonitor()
 {
 	stop();
 }
 
-const std::string& HttpHealthMonitor::mode_str() const
+const std::string& HealthMonitor::mode_str() const
 {
 	static const std::string modeStr[] = {
 		"Paranoid", "Opportunistic", "Lazy"
@@ -68,7 +68,7 @@ const std::string& HttpHealthMonitor::mode_str() const
 /**
  * Sets monitoring mode.
  */
-void HttpHealthMonitor::setMode(Mode value)
+void HealthMonitor::setMode(Mode value)
 {
 	if (mode_ == value)
 		return;
@@ -76,7 +76,7 @@ void HttpHealthMonitor::setMode(Mode value)
 	mode_ = value;
 }
 
-const std::string& HttpHealthMonitor::state_str() const
+const std::string& HealthMonitor::state_str() const
 {
 	static const std::string stateStr[] = {
 		"Undefined", "Offline", "Online"
@@ -88,7 +88,7 @@ const std::string& HttpHealthMonitor::state_str() const
 /**
  * Forces a health-state change.
  */
-void HttpHealthMonitor::setState(State value)
+void HealthMonitor::setState(State value)
 {
 	assert(value != State::Undefined && "Setting state to Undefined is not allowed.");
 	if (state_ == value)
@@ -103,35 +103,35 @@ void HttpHealthMonitor::setState(State value)
 	}
 
 	if (state_ == State::Offline) {
-		worker_->post<HttpHealthMonitor, &HttpHealthMonitor::start>(this);
+		worker_->post<HealthMonitor, &HealthMonitor::start>(this);
 	}
 }
 
 /**
  * Sets the callback to be invoked on health state changes.
  */
-void HttpHealthMonitor::onStateChange(const std::function<void(HttpHealthMonitor*)>& callback)
+void HealthMonitor::onStateChange(const std::function<void(HealthMonitor*)>& callback)
 {
 	onStateChange_ = callback;
 }
 
-void HttpHealthMonitor::setTarget(const SocketSpec& value)
+void HealthMonitor::setTarget(const SocketSpec& value)
 {
 	socketSpec_ = value;
 
 #ifndef NDEBUG
-	setLoggingPrefix("HttpHealthMonitor/%s", socketSpec_.str().c_str());
+	setLoggingPrefix("HealthMonitor/%s", socketSpec_.str().c_str());
 #endif
 }
 
-void HttpHealthMonitor::setInterval(const TimeSpan& value)
+void HealthMonitor::setInterval(const TimeSpan& value)
 {
 	interval_ = value;
 }
 
 /** Sets the raw HTTP request, used to perform the health check.
  */
-void HttpHealthMonitor::setRequest(const char* fmt, ...)
+void HealthMonitor::setRequest(const char* fmt, ...)
 {
 	va_list va;
 	size_t blen = std::min(request_.capacity(), 1023lu);
@@ -149,7 +149,7 @@ void HttpHealthMonitor::setRequest(const char* fmt, ...)
 /**
  * Starts health-monitoring an HTTP server.
  */
-void HttpHealthMonitor::start()
+void HealthMonitor::start()
 {
 	TRACE("start()");
 
@@ -166,7 +166,7 @@ void HttpHealthMonitor::start()
 /**
  * Stops any active timer or health-check operation.
  */
-void HttpHealthMonitor::stop()
+void HealthMonitor::stop()
 {
 	TRACE("stop()");
 
@@ -177,7 +177,7 @@ void HttpHealthMonitor::stop()
 /**
  * Callback, timely invoked when a health check is to be started.
  */
-void HttpHealthMonitor::onCheckStart()
+void HealthMonitor::onCheckStart()
 {
 	TRACE("onCheckStart()");
 
@@ -188,9 +188,9 @@ void HttpHealthMonitor::onCheckStart()
 		logFailure();
 	} else if (socket_.state() == Socket::Connecting) {
 		TRACE("connecting asynchronously.");
-		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::onConnectDone>(this);
+		socket_.setReadyCallback<HealthMonitor, &HealthMonitor::onConnectDone>(this);
 	} else {
-		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
+		socket_.setReadyCallback<HealthMonitor, &HealthMonitor::io>(this);
 		TRACE("connected.");
 	}
 }
@@ -198,13 +198,13 @@ void HttpHealthMonitor::onCheckStart()
 /**
  * Callback, invoked on completed asynchronous connect-operation.
  */
-void HttpHealthMonitor::onConnectDone(Socket*, int revents)
+void HealthMonitor::onConnectDone(Socket*, int revents)
 {
 	TRACE("onConnectDone(0x%04x)", revents);
 
 	if (socket_.state() == Socket::Operational) {
 		TRACE("connected");
-		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
+		socket_.setReadyCallback<HealthMonitor, &HealthMonitor::io>(this);
 		socket_.setMode(Socket::ReadWrite);
 	} else {
 		TRACE("Asynchronous connect failed %s", strerror(errno));
@@ -217,7 +217,7 @@ void HttpHealthMonitor::onConnectDone(Socket*, int revents)
 /**
  * Callback, invoked on I/O readiness of origin server connection.
  */
-void HttpHealthMonitor::io(Socket*, int revents)
+void HealthMonitor::io(Socket*, int revents)
 {
 	TRACE("io(0x%04x)", revents);
 
@@ -233,7 +233,7 @@ void HttpHealthMonitor::io(Socket*, int revents)
 /**
  * Writes the request chunk to the origin server.
  */
-void HttpHealthMonitor::writeSome()
+void HealthMonitor::writeSome()
 {
 	TRACE("writeSome()");
 
@@ -257,7 +257,7 @@ void HttpHealthMonitor::writeSome()
 /**
  * Reads and processes a response chunk from origin server.
  */
-void HttpHealthMonitor::readSome()
+void HealthMonitor::readSome()
 {
 	TRACE("readSome()");
 
@@ -306,14 +306,14 @@ void HttpHealthMonitor::readSome()
 /**
  * Origin server timed out in read or write operation.
  */
-void HttpHealthMonitor::onTimeout()
+void HealthMonitor::onTimeout()
 {
 	TRACE("onTimeout()");
 
 	// TODO
 }
 
-void HttpHealthMonitor::recheck()
+void HealthMonitor::recheck()
 {
 	TRACE("recheck()");
 	start();
@@ -322,7 +322,7 @@ void HttpHealthMonitor::recheck()
 /**
  * Callback, invoked on successfully parsed response status line.
  */
-bool HttpHealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text)
+bool HealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text)
 {
 	TRACE("onMessageBegin: (HTTP/%d.%d, %d, '%s')", versionMajor, versionMinor, code, text.str().c_str());
 
@@ -334,7 +334,7 @@ bool HttpHealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int c
 /**
  * Callback, invoked on each successfully parsed response header key/value pair.
  */
-bool HttpHealthMonitor::onMessageHeader(const BufferRef& name, const BufferRef& value)
+bool HealthMonitor::onMessageHeader(const BufferRef& name, const BufferRef& value)
 {
 	// do nothing with response message headers
 	return true;
@@ -343,7 +343,7 @@ bool HttpHealthMonitor::onMessageHeader(const BufferRef& name, const BufferRef& 
 /**
  * Callback, invoked on each partially or fully parsed response body chunk.
  */
-bool HttpHealthMonitor::onMessageContent(const BufferRef& chunk)
+bool HealthMonitor::onMessageContent(const BufferRef& chunk)
 {
 	// do nothing with response body chunk
 	return true;
@@ -352,7 +352,7 @@ bool HttpHealthMonitor::onMessageContent(const BufferRef& chunk)
 /**
  * Callback, invoked when the response message has been fully parsed.
  */
-bool HttpHealthMonitor::onMessageEnd()
+bool HealthMonitor::onMessageEnd()
 {
 	TRACE("onMessageEnd() state:%s", state_str().c_str());
 	processingDone_ = true;
@@ -367,7 +367,7 @@ bool HttpHealthMonitor::onMessageEnd()
 	return false;
 }
 
-void HttpHealthMonitor::logSuccess()
+void HealthMonitor::logSuccess()
 {
 	++successCount_;
 
@@ -377,7 +377,7 @@ void HttpHealthMonitor::logSuccess()
 	}
 }
 
-void HttpHealthMonitor::logFailure()
+void HealthMonitor::logFailure()
 {
 	++failCount_;
 	successCount_ = 0;
@@ -385,16 +385,14 @@ void HttpHealthMonitor::logFailure()
 	setState(State::Offline);
 }
 
-Buffer& operator<<(Buffer& output, const HttpHealthMonitor& monitor)
+Buffer& operator<<(Buffer& output, const HealthMonitor& monitor)
 {
 	output
 		<< "{"
 		<< "\"mode\": \"" << monitor.mode_str() << "\", "
 		<< "\"state\": \"" << monitor.state_str() << "\", "
-		<< "\"impulse\": " << static_cast<unsigned>(monitor.interval().value())
+		<< "\"interval\": " << static_cast<unsigned>(monitor.interval().value())
 		<< "}";
 
 	return output;
 }
-
-} // namespace x0

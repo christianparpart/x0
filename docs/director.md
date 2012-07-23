@@ -215,3 +215,16 @@ configure with with basic-auth.
     `GET $PREFIX/event-stream`
     sends out state change notifications in SSE-manner (server-sent events)
 
+# Implementation
+
+New class naming proposal:
+
+    class DirectorPlugin;
+    class Director;
+    class RequestNotes;
+    class HealthMonitor;
+    class Backend;
+        class HttpBackend;
+        class FastcgiBackend;
+        class NullBackend;
+

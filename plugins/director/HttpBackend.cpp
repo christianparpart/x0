@@ -1,5 +1,6 @@
-#include <x0/http/HttpBackend.h>
-#include <x0/http/HttpDirector.h>
+#include "HttpBackend.h"
+#include "Director.h"
+
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
@@ -23,17 +24,17 @@
 #	define TRACE(msg...) do {} while (0)
 #endif
 
-namespace x0 {
+using namespace x0;
 
-// {{{ HttpProxy::ProxyConnection API
-class HttpProxy::ProxyConnection :
+// {{{ HttpBackend::ProxyConnection API
+class HttpBackend::ProxyConnection :
 #ifndef NDEBUG
 	public Logging,
 #endif
 	public HttpMessageProcessor
 {
 private:
-	HttpProxy* proxy_;			//!< owning proxy
+	HttpBackend* proxy_;			//!< owning proxy
 
 	int refCount_;
 
@@ -53,7 +54,7 @@ private:
 	bool processingDone_;
 
 private:
-	HttpProxy* proxy() const { return proxy_; }
+	HttpBackend* proxy() const { return proxy_; }
 
 	void ref();
 	void unref();
@@ -76,15 +77,15 @@ private:
 	virtual bool onMessageEnd();
 
 public:
-	inline explicit ProxyConnection(HttpProxy* proxy);
+	inline explicit ProxyConnection(HttpBackend* proxy);
 	~ProxyConnection();
 
 	void start(HttpRequest* in, Socket* backend, bool cloak);
 };
 // }}}
 
-// {{{ HttpProxy::ProxyConnection impl
-HttpProxy::ProxyConnection::ProxyConnection(HttpProxy* proxy) :
+// {{{ HttpBackend::ProxyConnection impl
+HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
 	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
 	proxy_(proxy),
 	refCount_(1),
@@ -107,7 +108,7 @@ HttpProxy::ProxyConnection::ProxyConnection(HttpProxy* proxy) :
 	TRACE("ProxyConnection()");
 }
 
-HttpProxy::ProxyConnection::~ProxyConnection()
+HttpBackend::ProxyConnection::~ProxyConnection()
 {
 	TRACE("~ProxyConnection()");
 
@@ -136,12 +137,12 @@ HttpProxy::ProxyConnection::~ProxyConnection()
 	}
 }
 
-void HttpProxy::ProxyConnection::ref()
+void HttpBackend::ProxyConnection::ref()
 {
 	++refCount_;
 }
 
-void HttpProxy::ProxyConnection::unref()
+void HttpBackend::ProxyConnection::unref()
 {
 	assert(refCount_ > 0);
 
@@ -152,7 +153,7 @@ void HttpProxy::ProxyConnection::unref()
 	}
 }
 
-void HttpProxy::ProxyConnection::close()
+void HttpBackend::ProxyConnection::close()
 {
 	if (backend_)
 		// stop watching on any backend I/O events, if active
@@ -161,13 +162,13 @@ void HttpProxy::ProxyConnection::close()
 	unref(); // the one from the constructor
 }
 
-void HttpProxy::ProxyConnection::onAbort(void *p)
+void HttpBackend::ProxyConnection::onAbort(void *p)
 {
 	ProxyConnection *self = reinterpret_cast<ProxyConnection *>(p);
 	self->close();
 }
 
-void HttpProxy::ProxyConnection::start(HttpRequest* in, Socket* backend, bool cloak)
+void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* backend, bool cloak)
 {
 	TRACE("ProxyConnection.start(in, backend, cloak=%d)", cloak);
 
@@ -244,7 +245,7 @@ void HttpProxy::ProxyConnection::start(HttpRequest* in, Socket* backend, bool cl
 	}
 }
 
-void HttpProxy::ProxyConnection::onConnected(Socket* s, int revents)
+void HttpBackend::ProxyConnection::onConnected(Socket* s, int revents)
 {
 	TRACE("onConnected: content? %d", request_->contentAvailable());
 	//TRACE("onConnected.pending:\n%s\n", writeBuffer_.c_str());
@@ -257,13 +258,13 @@ void HttpProxy::ProxyConnection::onConnected(Socket* s, int revents)
 	} else {
 		TRACE("onConnected: failed");
 		request_->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
-		proxy_->setState(HttpHealthMonitor::State::Offline);
+		proxy_->setState(HealthMonitor::State::Offline);
 		close();
 	}
 }
 
 /** transferres a request body chunk to the origin server.  */
-void HttpProxy::ProxyConnection::onRequestChunk(const BufferRef& chunk)
+void HttpBackend::ProxyConnection::onRequestChunk(const BufferRef& chunk)
 {
 	TRACE("onRequestChunk(nb:%ld)", chunk.size());
 	writeBuffer_.push_back(chunk);
@@ -278,7 +279,7 @@ void HttpProxy::ProxyConnection::onRequestChunk(const BufferRef& chunk)
  * We will use the status code only.
  * However, we could pass the text field, too - once x0 core supports it.
  */
-bool HttpProxy::ProxyConnection::onMessageBegin(int major, int minor, int code, const BufferRef& text)
+bool HttpBackend::ProxyConnection::onMessageBegin(int major, int minor, int code, const BufferRef& text)
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", (void*)this, major, minor, code, text.str().c_str());
 
@@ -292,7 +293,7 @@ bool HttpProxy::ProxyConnection::onMessageBegin(int major, int minor, int code, 
  * We will pass this header directly to the client's response,
  * if that is NOT a connection-level header.
  */
-bool HttpProxy::ProxyConnection::onMessageHeader(const BufferRef& name, const BufferRef& value)
+bool HttpBackend::ProxyConnection::onMessageHeader(const BufferRef& name, const BufferRef& value)
 {
 	TRACE("ProxyConnection(%p).onHeader('%s', '%s')", (void*)this, name.str().c_str(), value.str().c_str());
 
@@ -318,7 +319,7 @@ skip:
 }
 
 /** callback, invoked on a new response content chunk. */
-bool HttpProxy::ProxyConnection::onMessageContent(const BufferRef& chunk)
+bool HttpBackend::ProxyConnection::onMessageContent(const BufferRef& chunk)
 {
 	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), backend_->state_str());
 
@@ -335,21 +336,21 @@ bool HttpProxy::ProxyConnection::onMessageContent(const BufferRef& chunk)
 	return true;
 }
 
-void HttpProxy::ProxyConnection::onWriteComplete()
+void HttpBackend::ProxyConnection::onWriteComplete()
 {
 	TRACE("chunk write complete: %s", state_str());
 	backend_->setMode(Socket::Read);
 	unref();
 }
 
-bool HttpProxy::ProxyConnection::onMessageEnd()
+bool HttpBackend::ProxyConnection::onMessageEnd()
 {
 	TRACE("messageEnd() backend-state:%s", backend_->state_str());
 	processingDone_ = true;
 	return false;
 }
 
-void HttpProxy::ProxyConnection::io(Socket* s, int revents)
+void HttpBackend::ProxyConnection::io(Socket* s, int revents)
 {
 	TRACE("io(0x%04x)", revents);
 
@@ -360,7 +361,7 @@ void HttpProxy::ProxyConnection::io(Socket* s, int revents)
 		writeSome();
 }
 
-void HttpProxy::ProxyConnection::writeSome()
+void HttpBackend::ProxyConnection::writeSome()
 {
 	TRACE("writeSome() - %s (%d)", state_str(), request_->contentAvailable());
 
@@ -386,7 +387,7 @@ void HttpProxy::ProxyConnection::writeSome()
 	}
 }
 
-void HttpProxy::ProxyConnection::readSome()
+void HttpBackend::ProxyConnection::readSome()
 {
 	TRACE("readSome() - %s", state_str());
 
@@ -431,15 +432,15 @@ void HttpProxy::ProxyConnection::readSome()
 }
 // }}}
 
-// {{{ HttpProxy impl
-HttpProxy::HttpProxy(HttpDirector* director, const std::string& name,
+// {{{ HttpBackend impl
+HttpBackend::HttpBackend(Director* director, const std::string& name,
 		size_t capacity, const std::string& hostname, int port) :
-	HttpBackend(director, name, capacity),
+	Backend(director, name, capacity),
 	hostname_(hostname),
 	port_(port)
 {
 #ifndef NDEBUG
-	setLoggingPrefix("HttpProxy/%s", name.c_str());
+	setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 
 	healthMonitor_.setTarget(SocketSpec(IPAddress(hostname_), port_));
@@ -459,11 +460,11 @@ HttpProxy::HttpProxy(HttpDirector* director, const std::string& name,
 	healthMonitor_.start();
 }
 
-HttpProxy::~HttpProxy()
+HttpBackend::~HttpBackend()
 {
 }
 
-bool HttpProxy::process(HttpRequest* r)
+bool HttpBackend::process(HttpRequest* r)
 {
 	TRACE("process...");
 
@@ -482,16 +483,16 @@ bool HttpProxy::process(HttpRequest* r)
 	r->log(Severity::error, "HTTP proxy: Could not connect to backend %s:%d. %s",
 		hostname_.c_str(), port_, strerror(errno));
 
-	setState(HttpHealthMonitor::State::Offline);
+	setState(HealthMonitor::State::Offline);
 
 	return false;
 }
 
-size_t HttpProxy::writeJSON(Buffer& output) const
+size_t HttpBackend::writeJSON(Buffer& output) const
 {
 	size_t offset = output.size();
 
-	HttpBackend::writeJSON(output);
+	Backend::writeJSON(output);
 
 	output
 		<< ",\n     \"type\": \"http\""
@@ -501,5 +502,3 @@ size_t HttpProxy::writeJSON(Buffer& output) const
 	return output.size() - offset;
 }
 // }}}
-
-} // namespace x0

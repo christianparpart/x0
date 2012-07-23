@@ -1,7 +1,6 @@
-#include <x0/http/HttpBackend.h>
-#include <x0/http/HttpDirector.h>
-#include <x0/io/BufferSource.h>
-
+#include "Backend.h"
+#include "Director.h"
+#include "HealthMonitor.h"
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) (this->Logging::debug(msg))
@@ -9,11 +8,11 @@
 #	define TRACE(msg...) do {} while (0)
 #endif
 
-namespace x0 {
+using namespace x0;
 
-HttpBackend::HttpBackend(HttpDirector* director, const std::string& name, size_t capacity) :
+Backend::Backend(Director* director, const std::string& name, size_t capacity) :
 #ifndef NDEBUG
-	Logging("HttpBackend/%s", name.c_str()),
+	Logging("Backend/%s", name.c_str()),
 #endif
 	director_(director),
 	name_(name),
@@ -23,7 +22,7 @@ HttpBackend::HttpBackend(HttpDirector* director, const std::string& name, size_t
 	enabled_(true),
 	healthMonitor_(director_->worker_)
 {
-	healthMonitor_.onStateChange([&](HttpHealthMonitor*) {
+	healthMonitor_.onStateChange([&](HealthMonitor*) {
 		director_->worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
 			director_->name().c_str(), name_.c_str(), healthMonitor_.state_str().c_str());
 
@@ -34,22 +33,22 @@ HttpBackend::HttpBackend(HttpDirector* director, const std::string& name, size_t
 	});
 }
 
-HttpBackend::~HttpBackend()
+Backend::~Backend()
 {
 }
 
-size_t HttpBackend::capacity() const
+size_t Backend::capacity() const
 {
 	return capacity_;
 }
 
 //virtual
-std::string HttpBackend::str() const
+std::string Backend::str() const
 {
 	return "TODO";
 }
 
-size_t HttpBackend::writeJSON(Buffer& output) const
+size_t Backend::writeJSON(Buffer& output) const
 {
 	static const std::string roleStr[] = { "Active", "Standby" };
 	static const std::string boolStr[] = { "false", "true" };
@@ -67,7 +66,7 @@ size_t HttpBackend::writeJSON(Buffer& output) const
 	return output.size() - offset;
 }
 
-void HttpBackend::setState(HttpHealthMonitor::State value)
+void Backend::setState(HealthMonitor::State value)
 {
 	healthMonitor_.setState(value);
 }
@@ -78,15 +77,15 @@ void HttpBackend::setState(HttpHealthMonitor::State value)
  * This decrements the load-statistics, and potentially
  * dequeues possibly enqueued requests to take over.
  */
-void HttpBackend::release()
+void Backend::release()
 {
 	--load_;
 	director_->release(this);
 }
 
 // {{{ NullProxy
-NullProxy::NullProxy(HttpDirector* director, const std::string& name, size_t capacity) :
-	HttpBackend(director, name, capacity)
+NullProxy::NullProxy(Director* director, const std::string& name, size_t capacity) :
+	Backend(director, name, capacity)
 {
 }
 
@@ -97,5 +96,3 @@ bool NullProxy::process(HttpRequest* r)
 	return true;
 }
 // }}}
-
-} // namespace x0

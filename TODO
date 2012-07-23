@@ -1,5 +1,11 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
+- director:
+  - dynamic cluster
+  - enforce queue limit. 50x (503?, ... overloaded)
+  - implement active/standby/queue scheduling
+  - json api: backend create/update/delete
+
 - proxy: rewrite plugin to use Core API's HttpProxy
 - director: honor standby backends, to favor them over enqueueing
 - director: when a node backend becomes available again, check for enqueued requests and possibly take one

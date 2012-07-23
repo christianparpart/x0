@@ -1,19 +1,18 @@
 #pragma once
 
-#include <x0/Api.h>
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/http/HttpRequest.h>
 #include <ev++.h>
 
-namespace x0 {
+using namespace x0;
 
-class HttpBackend;
+class Backend;
 
 /*!
  * \brief Load balancing HTTP request proxy.
  *
- * A \c HttpDirector implements load balancing over multiple \c HttpBackend
+ * A \c Director implements load balancing over multiple \c Backend
  * instances of different transport type.
  * It supports weights and multiple states, such as (online/offline)
  * and (active/standby).
@@ -22,7 +21,7 @@ class HttpBackend;
  * \todo periodic health checks
  * \todo support requeuing requests when designated backend did not respond in time.
  */
-class X0_API HttpDirector :
+class Director :
 #ifndef NDEBUG
 	public Logging
 #endif
@@ -36,7 +35,7 @@ private:
 	bool mutable_; //!< whether or not one may create/update/delete backends at runtime
 
 	//! set of backends managed by this director.
-	std::vector<HttpBackend*> backends_;
+	std::vector<Backend*> backends_;
 
 	std::deque<HttpRequest*> queue_; //! list of queued requests.
 
@@ -55,8 +54,8 @@ private:
 	std::string storagePath_;
 
 public:
-	HttpDirector(HttpWorker* worker, const std::string& name);
-	~HttpDirector();
+	Director(HttpWorker* worker, const std::string& name);
+	~Director();
 
 	const std::string& name() const { return name_; }
 
@@ -68,7 +67,7 @@ public:
 	const Counter& load() const { return load_; }
 	const Counter& queued() const { return queued_; }
 
-	const std::vector<HttpBackend*>& backends() const { return backends_; }
+	const std::vector<Backend*>& backends() const { return backends_; }
 
 	bool cloakOrigin() const { return cloakOrigin_; }
 	void setCloakOrigin(bool value) { cloakOrigin_ = value; }
@@ -76,36 +75,33 @@ public:
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
-	HttpBackend* createBackend(const std::string& name, const std::string& url);
+	Backend* createBackend(const std::string& name, const std::string& url);
 
-	HttpBackend* createBackend(const std::string& name, const std::string& protocol, const std::string& hostname,
+	Backend* createBackend(const std::string& name, const std::string& protocol, const std::string& hostname,
 		int port, const std::string& path, const std::string& query);
 
 	template<typename T, typename... Args>
-	HttpBackend* createBackend(const std::string& name, size_t capacity, const Args&... args) {
+	Backend* createBackend(const std::string& name, size_t capacity, const Args&... args) {
 		T* backend = new T(this, name, capacity, args...);
 		backends_.push_back(backend);
 		return backend;
 	}
 
 	void schedule(HttpRequest* r);
-	bool reschedule(HttpRequest* r, HttpBackend* backend);
+	bool reschedule(HttpRequest* r, Backend* backend);
 
-	void dequeueTo(HttpBackend* backend);
+	void dequeueTo(Backend* backend);
 
 	bool load(const std::string& path);
 	bool store(const std::string& path = "");
 
 private:
-	HttpBackend* selectBackend(HttpRequest* r);
-	HttpBackend* nextBackend(HttpBackend* backend, HttpRequest* r);
+	Backend* selectBackend(HttpRequest* r);
+	Backend* nextBackend(Backend* backend, HttpRequest* r);
 	void enqueue(HttpRequest* r);
-	void release(HttpBackend* backend);
+	void release(Backend* backend);
 
 	void onStop();
 
-	friend class HttpBackend;
+	friend class Backend;
 };
-
-} // namespace x0
-

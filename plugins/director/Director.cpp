@@ -1,5 +1,7 @@
-#include <x0/http/HttpDirector.h>
-#include <x0/http/HttpBackend.h>
+#include "Director.h"
+#include "Backend.h"
+#include "HttpBackend.h"
+
 #include <x0/io/BufferSource.h>
 #include <x0/StringTokenizer.h>
 #include <x0/Url.h>
@@ -11,23 +13,23 @@
 #	define TRACE(msg...) do {} while (0)
 #endif
 
-namespace x0 {
+using namespace x0;
 
-struct HttpDirectorNotes :
+struct DirectorNotes :
 	public CustomData
 {
 	size_t retryCount;
-	HttpBackend* backend;
+	Backend* backend;
 
-	HttpDirectorNotes() :
+	DirectorNotes() :
 		retryCount(0),
 		backend(nullptr)
 	{}
 };
 
-HttpDirector::HttpDirector(HttpWorker* worker, const std::string& name) :
+Director::Director(HttpWorker* worker, const std::string& name) :
 #ifndef NDEBUG
-	Logging("HttpDirector/%s", name.c_str()),
+	Logging("Director/%s", name.c_str()),
 #endif
 	worker_(worker),
 	name_(name),
@@ -41,10 +43,10 @@ HttpDirector::HttpDirector(HttpWorker* worker, const std::string& name) :
 	maxRetryCount_(6),
 	storagePath_()
 {
-	worker_->registerStopHandler(std::bind(&HttpDirector::onStop, this));
+	worker_->registerStopHandler(std::bind(&Director::onStop, this));
 }
 
-HttpDirector::~HttpDirector()
+Director::~Director()
 {
 }
 
@@ -54,7 +56,7 @@ HttpDirector::~HttpDirector()
  * We're unregistering any possible I/O watchers and timers, as used
  * by proxying connections and health checks.
  */
-void HttpDirector::onStop()
+void Director::onStop()
 {
 	TRACE("onStop()");
 
@@ -64,7 +66,7 @@ void HttpDirector::onStop()
 	}
 }
 
-size_t HttpDirector::capacity() const
+size_t Director::capacity() const
 {
 	size_t result = 0;
 
@@ -74,7 +76,7 @@ size_t HttpDirector::capacity() const
 	return result;
 }
 
-HttpBackend* HttpDirector::createBackend(const std::string& name, const std::string& url)
+Backend* Director::createBackend(const std::string& name, const std::string& url)
 {
 	std::string protocol, hostname, path, query;
 	int port = 0;
@@ -87,28 +89,28 @@ HttpBackend* HttpDirector::createBackend(const std::string& name, const std::str
 	return createBackend(name, protocol, hostname, port, path, query);
 }
 
-HttpBackend* HttpDirector::createBackend(const std::string& name, const std::string& protocol,
+Backend* Director::createBackend(const std::string& name, const std::string& protocol,
 	const std::string& hostname, int port, const std::string& path, const std::string& query)
 {
 	int capacity = 1;
 
-	// TODO createBackend<HttpProxy>(hostname, port);
+	// TODO createBackend<HttpBackend>(hostname, port);
 	if (protocol == "http")
-		return createBackend<HttpProxy>(name, capacity, hostname, port);
+		return createBackend<HttpBackend>(name, capacity, hostname, port);
 
 	return nullptr;
 }
 
-void HttpDirector::schedule(HttpRequest* r)
+void Director::schedule(HttpRequest* r)
 {
 	r->responseHeaders.push_back("X-Director-Cluster", name_);
 
-	r->setCustomData<HttpDirectorNotes>(this);
+	r->setCustomData<DirectorNotes>(this);
 
-	auto notes = r->customData<HttpDirectorNotes>(this);
+	auto notes = r->customData<DirectorNotes>(this);
 
 	// try delivering request directly
-	if (HttpBackend* backend = selectBackend(r)) {
+	if (Backend* backend = selectBackend(r)) {
 		notes->backend = backend;
 
 		++load_;
@@ -120,9 +122,9 @@ void HttpDirector::schedule(HttpRequest* r)
 	}
 }
 
-bool HttpDirector::reschedule(HttpRequest* r, HttpBackend* backend)
+bool Director::reschedule(HttpRequest* r, Backend* backend)
 {
-	auto notes = r->customData<HttpDirectorNotes>(this);
+	auto notes = r->customData<DirectorNotes>(this);
 
 	--backend->load_;
 	notes->backend = nullptr;
@@ -161,7 +163,7 @@ bool HttpDirector::reschedule(HttpRequest* r, HttpBackend* backend)
 /**
  * Enqueues given request onto the request queue.
  */
-void HttpDirector::enqueue(HttpRequest* r)
+void Director::enqueue(HttpRequest* r)
 {
 	// direct delivery failed, due to overheated director. queueing then.
 
@@ -173,12 +175,12 @@ void HttpDirector::enqueue(HttpRequest* r)
 	++queued_;
 }
 
-HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
+Backend* Director::selectBackend(HttpRequest* r)
 {
-	HttpBackend* best = nullptr;
+	Backend* best = nullptr;
 	size_t bestAvail = 0;
 
-	for (HttpBackend* backend: backends_) {
+	for (Backend* backend: backends_) {
 		if (!backend->isEnabled() || !backend->healthMonitor().isOnline()) {
 			TRACE("selectBackend: skip %s (disabled)", backend->name().c_str());
 			continue;
@@ -215,7 +217,7 @@ HttpBackend* HttpDirector::selectBackend(HttpRequest* r)
 	}
 }
 
-HttpBackend* HttpDirector::nextBackend(HttpBackend* backend, HttpRequest* r)
+Backend* Director::nextBackend(Backend* backend, HttpRequest* r)
 {
 	auto i = std::find(backends_.begin(), backends_.end(), backend);
 	if (i != backends_.end()) {
@@ -256,7 +258,7 @@ HttpBackend* HttpDirector::nextBackend(HttpBackend* backend, HttpRequest* r)
  *
  * \see schedule(), reschedule(), enqueue(), dequeueTo()
  */
-void HttpDirector::release(HttpBackend* backend)
+void Director::release(Backend* backend)
 {
 	--load_;
 
@@ -268,7 +270,7 @@ void HttpDirector::release(HttpBackend* backend)
  *
  * \param backend the backend to pass the dequeued request to.
  */
-void HttpDirector::dequeueTo(HttpBackend* backend)
+void Director::dequeueTo(Backend* backend)
 {
 	if (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
@@ -279,7 +281,7 @@ void HttpDirector::dequeueTo(HttpBackend* backend)
 		r->log(Severity::debug, "Dequeueing request to backend %s", backend->name().c_str());
 #endif
 
-		auto notes = r->customData<HttpDirectorNotes>(this);
+		auto notes = r->customData<DirectorNotes>(this);
 		notes->backend = backend;
 		++backend->load_;
 		++load_;
@@ -296,7 +298,7 @@ void HttpDirector::dequeueTo(HttpBackend* backend)
  * \retval true Success.
  * \retval false Failed, detailed message in errno.
  */
-bool HttpDirector::load(const std::string& path)
+bool Director::load(const std::string& path)
 {
 	std::ifstream in(path);
 
@@ -325,16 +327,16 @@ bool HttpDirector::load(const std::string& path)
 		std::string hostname(values[6]);
 		int port = std::atoi(values[7].c_str());
 
-		HttpBackend* backend = new HttpProxy(this, name, capacity, hostname, port);
+		Backend* backend = new HttpBackend(this, name, capacity, hostname, port);
 		if (!enabled)
 			backend->disable();
 		if (role == "active")
-			backend->setRole(HttpBackend::Role::Active);
+			backend->setRole(Backend::Role::Active);
 		else if (role == "standby")
-			backend->setRole(HttpBackend::Role::Standby);
+			backend->setRole(Backend::Role::Standby);
 // TODO
 //		else if (role == "backup")
-//			backend->setRole(HttpBackend::Role::Backup);
+//			backend->setRole(Backend::Role::Backup);
 		else
 			worker_->log(Severity::error, "Invalid backend role '%s'", role.c_str());
 
@@ -352,7 +354,7 @@ bool HttpDirector::load(const std::string& path)
  * \param pathOverride if not empty, store data into this file's path, oetherwise use the one we loaded from.
  * \todo this must happen asynchronousely, never ever block within the callers thread (or block in a dedicated thread).
  */
-bool HttpDirector::store(const std::string& pathOverride)
+bool Director::store(const std::string& pathOverride)
 {
 	static const std::string header("name,role,capacity,protocol,enabled,transport,host,port");
 	std::string path = !pathOverride.empty() ? pathOverride : storagePath_;
@@ -362,5 +364,3 @@ bool HttpDirector::store(const std::string& pathOverride)
 
 	return true;
 }
-
-} // namespace x0

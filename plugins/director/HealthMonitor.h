@@ -1,6 +1,5 @@
 #pragma once
 
-#include <x0/Api.h>
 #include <x0/Buffer.h>
 #include <x0/TimeSpan.h>
 #include <x0/Logging.h>
@@ -10,16 +9,14 @@
 #include <x0/http/HttpMessageProcessor.h>
 #include <ev++.h>
 
-namespace x0 {
-
 /**
  * Implements HTTP server health monitoring.
  *
  * \note not thread-safe.
  */
-class X0_API HttpHealthMonitor :
-	public Logging,
-	public HttpMessageProcessor
+class HealthMonitor :
+	public x0::Logging,
+	public x0::HttpMessageProcessor
 {
 public:
 	enum class Mode {
@@ -36,17 +33,17 @@ public:
 
 private:
 	Mode mode_;
-	HttpWorker* worker_;
-	SocketSpec socketSpec_;
-	Socket socket_;
-	TimeSpan interval_;
+	x0::HttpWorker* worker_;
+	x0::SocketSpec socketSpec_;
+	x0::Socket socket_;
+	x0::TimeSpan interval_;
 	State state_;
 
-	std::function<void(HttpHealthMonitor*)> onStateChange_;
+	std::function<void(HealthMonitor*)> onStateChange_;
 
-	Buffer request_;
+	x0::Buffer request_;
 	size_t writeOffset_;
-	Buffer response_;
+	x0::Buffer response_;
 	int responseCode_;
 	bool processingDone_;
 
@@ -61,8 +58,8 @@ private:
 	time_t offlineTime_;	//!< total time this node has been offline
 
 public:
-	explicit HttpHealthMonitor(HttpWorker* worker);
-	~HttpHealthMonitor();
+	explicit HealthMonitor(x0::HttpWorker* worker);
+	~HealthMonitor();
 
 	Mode mode() const { return mode_; }
 	const std::string& mode_str() const;
@@ -73,13 +70,13 @@ public:
 	const std::string& state_str() const;
 	bool isOnline() const { return state_ == State::Online; }
 
-	void onStateChange(const std::function<void(HttpHealthMonitor*)>& callback);
+	void onStateChange(const std::function<void(HealthMonitor*)>& callback);
 
-	const SocketSpec& target() const { return socketSpec_; }
-	void setTarget(const SocketSpec& value);
+	const x0::SocketSpec& target() const { return socketSpec_; }
+	void setTarget(const x0::SocketSpec& value);
 
-	const TimeSpan& interval() const { return interval_; }
-	void setInterval(const TimeSpan& value);
+	const x0::TimeSpan& interval() const { return interval_; }
+	void setInterval(const x0::TimeSpan& value);
 
 	void setRequest(const char* fmt, ...);
 
@@ -91,8 +88,8 @@ public:
 
 private:
 	void onCheckStart();
-	void onConnectDone(Socket*, int revents);
-	void io(Socket*, int revents);
+	void onConnectDone(x0::Socket*, int revents);
+	void io(x0::Socket*, int revents);
 	void writeSome();
 	void readSome();
 	void onTimeout();
@@ -103,12 +100,10 @@ private:
 	void recheck();
 
 	// response (HttpMessageProcessor)
-	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
-	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
-	virtual bool onMessageContent(const BufferRef& chunk);
+	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const x0::BufferRef& text);
+	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool onMessageContent(const x0::BufferRef& chunk);
 	virtual bool onMessageEnd();
 };
 
-X0_API Buffer& operator<<(Buffer& output, const HttpHealthMonitor& monitor);
-
-} // namespace x0
+x0::Buffer& operator<<(x0::Buffer& output, const HealthMonitor& monitor);
