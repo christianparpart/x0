@@ -196,35 +196,85 @@ configure with with basic-auth.
         }
     }
 
+## Retrieving Load Balancer State
 
-    `GET /x0/director/`
-    ->  { "cluster_1": {
-            "total": NUMBER,
-            "members": [
-              {"name": NAME, "total": NUMBER, "load": NUMBER, "capacity": NUMBER}
-            ]
-          },
-          ...
-        }
+    curl -v http://localhost:8080/x0/director/
 
-    `POST $PREFIX/directors/app123?backend=node01&action=enable`
+This will return a big *application/json* response containing
+a list of all directors and their configuration and state.
 
-    `POST $PREFIX/directors/$DIRECTOR?backend=$BACKEND&action=$ACTION`
-    with $ACTION one of enable, disable
+## Retrieving Director State
 
-    `GET $PREFIX/event-stream`
-    sends out state change notifications in SSE-manner (server-sent events)
+    curl -v http://localhost:8080/x0/director/app_cluster
 
-# Implementation
+Retrieves state of only one director, by name.
 
-New class naming proposal:
+## Retrieving Backend State
 
-    class DirectorPlugin;
-    class Director;
-    class RequestNotes;
-    class HealthMonitor;
-    class Backend;
-        class HttpBackend;
-        class FastcgiBackend;
-        class NullBackend;
+    curl -v http://localhost:8080/x0/director/app_cluster/backend01
+
+Retrieves state of only one backend from a director, by names.
+
+## Creating a new Backend
+
+    curl -v http://localhost:8080/x0/director/app_cluster -X PUT \
+        -d role=active \
+        -d enabled=false \
+        -d capacity=2 \
+        -d protocol=http \
+        -d hostname=127.0.0.1 \
+        -d port=3101 \
+        -d name=backend01
+
+The *name*-parameter can be also specified as part of the URI path, which
+will always be preferred via request body of *name*.
+
+Others must be specified via request body.
+
+## Updating an existing Backend
+
+    curl -v http://localhost:8080/x0/director/app_cluster/backend01 -X POST \
+        -d role=active \
+        -d enabled=false \
+        -d capacity=2 \
+        -d protocol=http \
+        -d hostname=127.0.0.1 \
+        -d port=3101
+
+## Deleting a Backend
+
+    curl -v http://localhost:8080/x0/director/app_cluster/backend01 -X DELETE
+        -d wait=true
+
+The wait parameter specifies whether or not to kill existing connections on
+given backend or if the backend should wait for them to finish before getting
+removed completely out of the cluster.
+
+*wait* can be either "true" (wait for them to complete) or "false" (kill everything right away).
+
+Deleted but not yet removed backends change their state to "*Terminating*".
+
+# TODO
+
+- Ensure overall thread safety at a minimum of lock contention to scale horizontally.
+- JSON API: backend CRUD (create/read/update/delete)
+- enforce queue limit. 50x (503?, ... overloaded)
+- implement active/standby/queue/backup scheduling
+- historical request count per second data for the last N seconds (N may default to 60)
+  - per backend
+  - per director
+- FastCGI backend protocol support
+
+# Plugin Improvement Ideas
+
+## Request Delivery Timings
+
+Provide the ability to graph the average wait time of requests from the
+point the plugin receied the request until they where actually accepted
+by some backend to be processed.
+This data might be interesting for very active clusters.
+
+## Very nice Web UI atop the JSON API
+
+[Paul Asmuth](http://github.com/paulasmuth) is working on this one. Thanks man. :-)
 

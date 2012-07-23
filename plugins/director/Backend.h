@@ -23,6 +23,7 @@ public:
 	enum class Role {
 		Active,
 		Standby,
+		Backup,
 	};
 
 protected:

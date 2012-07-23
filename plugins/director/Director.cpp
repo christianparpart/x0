@@ -101,6 +101,11 @@ Backend* Director::createBackend(const std::string& name, const std::string& pro
 	return nullptr;
 }
 
+void Director::registerBackend(Backend* backend)
+{
+	backends_.push_back(backend);
+}
+
 void Director::schedule(HttpRequest* r)
 {
 	r->responseHeaders.push_back("X-Director-Cluster", name_);
@@ -334,9 +339,8 @@ bool Director::load(const std::string& path)
 			backend->setRole(Backend::Role::Active);
 		else if (role == "standby")
 			backend->setRole(Backend::Role::Standby);
-// TODO
-//		else if (role == "backup")
-//			backend->setRole(Backend::Role::Backup);
+		else if (role == "backup")
+			backend->setRole(Backend::Role::Backup);
 		else
 			worker_->log(Severity::error, "Invalid backend role '%s'", role.c_str());
 

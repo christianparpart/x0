@@ -87,6 +87,8 @@ public:
 		return backend;
 	}
 
+	void registerBackend(Backend* backend);
+
 	void schedule(HttpRequest* r);
 	bool reschedule(HttpRequest* r, Backend* backend);
 
