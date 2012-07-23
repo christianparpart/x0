@@ -264,6 +264,7 @@ Deleted but not yet removed backends change their state to "*Terminating*".
   - per backend
   - per director
 - FastCGI backend protocol support
+- x0d.conf(5) man-page additions to talk about the director plugin
 
 # Plugin Improvement Ideas
 
