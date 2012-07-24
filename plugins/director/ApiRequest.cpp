@@ -430,6 +430,11 @@ bool ApiReqeust::create()
 		request_->status = x0::HttpError::NotImplemented;
 	} else {
 		// protocol == "http"
+
+		backend = director->findBackend(name);
+		if (backend)
+			return false;
+
 		backend = new HttpBackend(director, name, capacity, hostname, port);
 		request_->status = x0::HttpError::Created;
 	}
