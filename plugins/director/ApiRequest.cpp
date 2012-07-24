@@ -337,7 +337,40 @@ bool ApiReqeust::eventstream()
 // get a single director json object
 bool ApiReqeust::get()
 {
-	return false;
+	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	if (tokens.size() < 1 || tokens.size() >  2)
+		return false;
+
+	Director* director = findDirector(tokens[0]);
+	if (!director) {
+		request_->status = x0::HttpError::NotFound;
+		request_->finish();
+	} else if (tokens.size() == 1) { // director
+		Buffer result;
+		result.push_back("{\n");
+		director->writeJSON(result);
+		result.push_back("}\n");
+
+		request_->status = x0::HttpError::Ok;
+		request_->write<x0::BufferSource>(result);
+		request_->finish();
+	} else { // backend
+		if (Backend* backend = director->findBackend(tokens[1])) {
+			Buffer result;
+			result.push_back("{\n");
+			backend->writeJSON(result);
+			result.push_back("}\n");
+
+			request_->status = x0::HttpError::Ok;
+			request_->write<x0::BufferSource>(result);
+			request_->finish();
+		} else {
+			request_->status = x0::HttpError::NotFound;
+			request_->finish();
+		}
+	}
+
+	return true;
 }
 
 
