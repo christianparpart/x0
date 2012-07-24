@@ -25,11 +25,83 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
-#include <x0/http/HttpAuthUserFile.h>
 #include <x0/Base64.h>
 #include <x0/Types.h>
+#include <fstream>
 
-class AuthBasic : public x0::CustomData {
+class AuthBackend // {{{
+{
+public:
+	virtual ~AuthBackend() {}
+
+	virtual bool authenticate(const std::string& username, const std::string& passwd) = 0;
+};
+// }}}
+
+class AuthUserFile : // {{{
+	public AuthBackend
+{
+private:
+	std::string filename_;
+	std::unordered_map<std::string, std::string> users_;
+
+public:
+	explicit AuthUserFile(const std::string& filename);
+	~AuthUserFile();
+
+	virtual bool authenticate(const std::string& username, const std::string& passwd);
+
+private:
+	bool readFile();
+};
+// }}}
+
+// {{{ AuthUserFile impl
+AuthUserFile::AuthUserFile(const std::string& filename) :
+	filename_(filename),
+	users_()
+{
+}
+
+AuthUserFile::~AuthUserFile()
+{
+}
+
+bool AuthUserFile::readFile()
+{
+	char buf[4096];
+	std::ifstream in(filename_);
+	users_.clear();
+
+	while (in.good()) {
+		in.getline(buf, sizeof(buf));
+		size_t len = in.gcount();
+		if (!len) continue;				// skip empty lines
+		if (buf[0] == '#') continue;	// skip comments
+		char *p = strchr(buf, ':');
+		if (!p) continue;				// invalid line
+		std::string name(buf, p - buf);
+		std::string pass(1 + p, len - (p - buf) - 2);
+		users_[name] = pass;
+	}
+
+	return !users_.empty();
+}
+
+bool AuthUserFile::authenticate(const std::string& username, const std::string& passwd)
+{
+	if (!readFile())
+		return false;
+
+	auto i = users_.find(username);
+	if (i != users_.end())
+		return i->second == passwd;
+
+	return false;
+}
+// }}}
+
+class AuthBasic : public x0::CustomData { // {{{
 public:
 	std::string realm;
 	std::string userfile;
@@ -40,12 +112,13 @@ public:
 	{}
 
 	bool verify(const char* user, const char* pass) {
-		x0::HttpAuthUserFile backend(userfile);
+		AuthUserFile backend(userfile);
 		return backend.authenticate(user, pass);
 	};
 };
+// }}}
 
-class AuthPlugin :
+class AuthPlugin : // {{{
 	public x0::HttpPlugin
 {
 public:
@@ -125,5 +198,6 @@ private:
 		return true;
 	}
 };
+// }}}
 
 X0_EXPORT_PLUGIN_CLASS(AuthPlugin)
