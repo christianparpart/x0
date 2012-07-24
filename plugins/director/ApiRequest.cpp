@@ -313,23 +313,7 @@ bool ApiReqeust::index()
 		if (directorNum++)
 			result << ",\n";
 
-		result << "\"" << director->name() << "\": {\n"
-			   << "  \"load\": " << director->load() << ",\n"
-			   << "  \"queued\": " << director->queued() << ",\n"
-			   << "  \"mutable\": " << (director->isMutable() ? "true" : "false") << ",\n"
-			   << "  \"members\": [";
-
-		size_t backendNum = 0;
-		for (auto backend: director->backends()) {
-			if (backendNum++)
-				result << ", ";
-
-			result << "\n    {";
-			backend->writeJSON(result);
-			result << "}";
-		}
-
-		result << "\n  ]\n}\n";
+		director->writeJSON(result);
 	}
 	result << "}\n";
 

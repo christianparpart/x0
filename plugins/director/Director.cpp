@@ -299,6 +299,28 @@ void Director::dequeueTo(Backend* backend)
 	}
 }
 
+void Director::writeJSON(Buffer& output)
+{
+	output << "\"" << name_ << "\": {\n"
+		   << "  \"load\": " << load_ << ",\n"
+		   << "  \"queued\": " << queued_ << ",\n"
+		   << "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
+		   << "  \"members\": [";
+
+	size_t backendNum = 0;
+
+	for (auto backend: backends_) {
+		if (backendNum++)
+			output << ", ";
+
+		output << "\n    {";
+		backend->writeJSON(output);
+		output << "}";
+	}
+
+	output << "\n  ]\n}\n";
+}
+
 /**
  * Loads director configuration from given file.
  *
