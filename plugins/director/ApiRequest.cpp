@@ -287,9 +287,9 @@ bool ApiReqeust::process()
 					? eventstream()
 					: get();
 		case HttpMethod::UNLOCK:
-			return unlock();
+			return lock(false);
 		case HttpMethod::LOCK:
-			return lock();
+			return lock(true);
 		case HttpMethod::PUT:
 			return create() || update();
 		case HttpMethod::POST:
@@ -356,16 +356,35 @@ bool ApiReqeust::get()
 	return false;
 }
 
-// lock a backend
-bool ApiReqeust::lock()
-{
-	return false;
-}
 
-// unlock a backend
-bool ApiReqeust::unlock()
+// LOCK or UNLOCK /:director_id/:backend_id
+bool ApiReqeust::lock(bool locked)
 {
-	return false;
+	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	if (tokens.size() != 2)
+		return false;
+
+	Director* director = findDirector(tokens[0]);
+	if (!director) {
+		request_->status = x0::HttpError::NotFound;
+		request_->finish();
+		return true;
+	}
+
+	// name can be passed by URI path or via request body
+	std::string name(tokens[1]);
+	if (name.empty())
+		return false;
+
+	if (Backend* backend = director->findBackend(name)) {
+		backend->setEnabled(!locked);
+		request_->status = x0::HttpError::Accepted;
+	} else {
+		request_->status = x0::HttpError::NotFound;
+	}
+
+	request_->finish();
+	return true;
 }
 
 // create a backend - PUT /:director_id(/:backend_id)

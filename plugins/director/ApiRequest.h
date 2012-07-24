@@ -57,8 +57,7 @@ private:
 	bool index();
 	bool eventstream();
 	bool get();
-	bool lock();
-	bool unlock();
+	bool lock(bool enable);
 	bool create();
 	bool update();
 	bool destroy();
