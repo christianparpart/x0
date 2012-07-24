@@ -55,7 +55,7 @@ std::string Backend::str() const
 
 size_t Backend::writeJSON(Buffer& output) const
 {
-	static const std::string roleStr[] = { "Active", "Standby" };
+	static const std::string roleStr[] = { "active", "standby" };
 	static const std::string boolStr[] = { "false", "true" };
 	size_t offset = output.size();
 

@@ -59,7 +59,7 @@ HealthMonitor::~HealthMonitor()
 const std::string& HealthMonitor::mode_str() const
 {
 	static const std::string modeStr[] = {
-		"Paranoid", "Opportunistic", "Lazy"
+		"paranoid", "opportunistic", "lazy"
 	};
 
 	return modeStr[static_cast<size_t>(mode_)];
@@ -79,7 +79,7 @@ void HealthMonitor::setMode(Mode value)
 const std::string& HealthMonitor::state_str() const
 {
 	static const std::string stateStr[] = {
-		"Undefined", "Offline", "Online"
+		"undefined", "offline", "online"
 	};
 
 	return stateStr[static_cast<size_t>(state_)];
