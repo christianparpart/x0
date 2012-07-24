@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>x0 - Director Administration</title>
+
+		<style>
+			html, body {
+				font-family: Arial;
+				font-size: 12px;
+			}
+			h1 {
+				font-family: Arial, Helvetica, sans-serif;
+			}
+			.director {
+				width: 100%;
+				margin-bottom: 10px;
+			}
+			.director > .title {
+				font-size: 16px;
+				font-weight: bold;
+			}
+			table.backends {
+				width: 100%;
+				border: 1px solid black;
+			}
+			table.backends > thead > tr > td {
+				font-weight: bold;
+				text-align: center;
+				background-color: #FF6600;
+				color: white;
+			}
+			table.backends > tbody {
+				color: white;
+			}
+			table.backends > tbody > tr:nth-child(odd) { background-color: #FFCC99; }
+			table.backends > tbody > tr:nth-child(even) { background-color: #FF9966; }
+			table.backends > tbody > tr > td:nth-child(1) { width: 150px; text-align: left; padding-left: 10px; font-weight: bold; }
+			table.backends > tbody > tr > td:nth-child(2) { width: 100px; text-align: center; }
+			table.backends > tbody > tr > td:nth-child(3) { width: 100px; text-align: center; }
+			table.backends > tbody > tr > td:nth-child(4) { width: 100px; text-align: center; }
+			table.backends > tbody > tr > td:nth-child(5) { width: 100px; text-align: center; }
+			table.backends > tbody > tr > td:nth-child(6) { width: 100px; text-align: center; }
+			/* load: cur/max/total */
+			table.backends > tbody > tr > td:nth-child(7) { width: 80px; text-align: center; }
+			table.backends > tbody > tr > td:nth-child(8) { width: 80px; text-align: center; }
+			table.backends > tbody > tr > td:nth-child(9) { width: 80px; text-align: center; }
+
+			table.backends > tbody > tr:hover { background-color: #fdb; }
+			.online { color: green; }
+			.offline { color: red; }
+		</style>
+
+		<script src='director/jquery-1.7.2.min.js' type='text/javascript'></script>
+
+		<script>
+			function createDirector(name, director) {
+				console.log(director.members);
+
+				var directorsElement = document.getElementById('directors');
+
+				var directorElement = directorsElement.appendChild(document.createElement('div'));
+				directorElement.setAttribute('id', 'director-' + name);
+				directorElement.setAttribute('class', 'director');
+
+				var title = directorElement.appendChild(document.createElement('div'));
+				title.innerHTML = name;
+				title.setAttribute('class', 'title');
+
+				var table = directorElement.appendChild(document.createElement('table'));
+				table.setAttribute('cellpadding', '0px');
+				table.setAttribute('cellspacing', '0px');
+				table.setAttribute('class', 'backends');
+
+				// backend-table header
+				var thead = table.appendChild(document.createElement('thead'));
+				var tr = thead.appendChild(document.createElement('tr'));
+				tr.appendChild(document.createElement('td')).innerHTML = "Backend";
+				tr.appendChild(document.createElement('td')).innerHTML = "Mode";
+				tr.appendChild(document.createElement('td')).innerHTML = "Health State";
+				tr.appendChild(document.createElement('td')).innerHTML = "Enabled";
+				tr.appendChild(document.createElement('td')).innerHTML = "Capacity";
+				tr.appendChild(document.createElement('td')).innerHTML = "Load Current";
+				tr.appendChild(document.createElement('td')).innerHTML = "Load Max";
+				tr.appendChild(document.createElement('td')).innerHTML = "Load Total";
+				tr.appendChild(document.createElement('td')).innerHTML = "&nbsp;";
+
+				// backend-table body
+				var tbody = table.appendChild(document.createElement('tbody'));
+
+				for (var i = 0; i < director.members.length; i++) {
+					var backend = director.members[i];
+
+					var tr = tbody.appendChild(document.createElement('tr'));
+					tr.setAttribute('id', 'backend-' + name + '-' + backend.name);
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.innerHTML = backend.name;
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.innerHTML = backend.role;
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.setAttribute("class", backend.health.state);
+					td.innerHTML = backend.health.state;
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.innerHTML = backend.enabled ? "enabled" : "disabled";
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.innerHTML = backend.capacity;
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.innerHTML = backend.load.current;
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.innerHTML = backend.load.max;
+
+					var td = tr.appendChild(document.createElement('td'));
+					td.innerHTML = backend.load.total;
+
+					// trailer
+					var td = tr.appendChild(document.createElement('td'));
+				}
+			}
+
+			function createBackend(backend) {
+				var backendElement = document.createElement('div');
+
+				backendElement.setAttribute('class', 'backend');
+				backendElement.innerHTML = backend.name;
+				// TODO create backend's table-row
+
+				return backendElement;
+			}
+
+			$(function() {
+				$.ajax({
+					url: '/x0/director/',
+					type: 'GET',
+					dataType: 'json',
+					success: function(directors, textStatus) {
+						console.log(directors);
+						$.each(directors, function(directorName, director) {
+							createDirector(directorName, director);
+						});
+					}
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<h1>x0 - Director Administration</h1>
+		<div id='directors'>
+		</div>
+	</body>
+</html>
