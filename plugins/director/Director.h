@@ -18,7 +18,6 @@ class Backend;
  * and (active/standby).
  *
  * \todo thread safety for actual horizontal scalability.
- * \todo periodic health checks
  * \todo support requeuing requests when designated backend did not respond in time.
  */
 class Director :
@@ -82,12 +81,8 @@ public:
 
 	template<typename T, typename... Args>
 	Backend* createBackend(const std::string& name, size_t capacity, const Args&... args) {
-		T* backend = new T(this, name, capacity, args...);
-		backends_.push_back(backend);
-		return backend;
+		return new T(this, name, capacity, args...);
 	}
-
-	void registerBackend(Backend* backend);
 
 	Backend* findBackend(const std::string& name);
 

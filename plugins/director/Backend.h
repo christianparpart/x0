@@ -67,22 +67,12 @@ public:
 
 	virtual bool process(x0::HttpRequest* r) = 0;
 
-	//! create a readable string containing the backend's state, i.e.
-	//! "Backend<appserver05: role=active, state=online, capacity=8, size=7>"
-	virtual std::string str() const;
-
 	virtual size_t writeJSON(x0::Buffer& output) const;
 
 	void release();
 
 protected:
 	void setState(HealthMonitor::State value);
-
-private:
-	void startHealthChecks();
-	void stopHealthChecks();
-	void onHealthCheck(ev::timer&, int);
-	void healthCheckHandler(ev::io&, int);
 };
 
 /*! dummy proxy, just returning 503 (service unavailable).

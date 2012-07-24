@@ -59,8 +59,8 @@ private:
 	bool get();
 	bool lock();
 	bool unlock();
-	bool put();
-	bool post();
+	bool create();
+	bool update();
 	bool destroy();
 
 	// helper

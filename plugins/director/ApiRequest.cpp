@@ -291,9 +291,9 @@ bool ApiReqeust::process()
 		case HttpMethod::LOCK:
 			return lock();
 		case HttpMethod::PUT:
-			return put();
+			return create() || update();
 		case HttpMethod::POST:
-			return post();
+			return update();
 		case HttpMethod::DELETE:
 			return destroy();
 		default:
@@ -369,7 +369,7 @@ bool ApiReqeust::unlock()
 }
 
 // create a backend - PUT /:director_id(/:backend_id)
-bool ApiReqeust::put()
+bool ApiReqeust::create()
 {
 	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
 	if (tokens.size() > 2)
@@ -379,7 +379,7 @@ bool ApiReqeust::put()
 	if (!director)
 		return false;
 
-	// name can be passed by URI path or via POST body
+	// name can be passed by URI path or via request body
 	std::string name;
 	if (tokens.size() == 2)
 		name = tokens[1];
@@ -431,7 +431,7 @@ bool ApiReqeust::put()
 	} else {
 		// protocol == "http"
 		backend = new HttpBackend(director, name, capacity, hostname, port);
-		request_->status = x0::HttpError::Ok;
+		request_->status = x0::HttpError::Created;
 	}
 
 	if (backend) {
@@ -439,11 +439,11 @@ bool ApiReqeust::put()
 		backend->setEnabled(enabled);
 		backend->healthMonitor().setInterval(TimeSpan::fromSeconds(hcInterval));
 		backend->healthMonitor().setMode(hcMode);
-
-		director->registerBackend(backend);
 	}
 
 	request_->finish();
+
+	request_->log(Severity::info, "director: %s. Created backend: %s.", director->name().c_str(), backend->name().c_str());
 
 	return true;
 }
@@ -455,7 +455,7 @@ bool ApiReqeust::put()
 // - role
 // - health-check-mode
 // - health-check-interval
-bool ApiReqeust::post()
+bool ApiReqeust::update()
 {
 	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
 	if (tokens.size() > 2)
@@ -465,7 +465,7 @@ bool ApiReqeust::post()
 	if (!director)
 		return false;
 
-	// name can be passed by URI path or via POST body
+	// name can be passed by URI path or via request body
 	std::string name;
 	if (tokens.size() == 2)
 		name = tokens[1];
@@ -505,8 +505,10 @@ bool ApiReqeust::post()
 	backend->healthMonitor().setInterval(TimeSpan::fromSeconds(hcInterval));
 	backend->healthMonitor().setMode(hcMode);
 
-	request_->status = x0::HttpError::Ok;
+	request_->status = x0::HttpError::Accepted;
 	request_->finish();
+
+	request_->log(Severity::info, "director: %s. Reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
 
 	return true;
 }
