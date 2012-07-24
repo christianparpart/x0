@@ -260,7 +260,6 @@ private:
 			return false;
 
 		BufferRef path(r->path.ref(strlen(prefix)));
-		r->log(Severity::debug5, "path: '%s'", path.str().c_str());
 
 		return ApiReqeust::process(&directors_, r, path);
 	}
