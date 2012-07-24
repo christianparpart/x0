@@ -31,10 +31,16 @@ Backend::Backend(Director* director, const std::string& name, size_t capacity) :
 			director_->dequeueTo(this);
 		}
 	});
+
+	director_->backends_.push_back(this);
 }
 
 Backend::~Backend()
 {
+	auto i = std::find(director_->backends_.begin(), director_->backends_.end(), this);
+	if (i != director_->backends_.end()) {
+		director_->backends_.erase(i);
+	}
 }
 
 size_t Backend::capacity() const

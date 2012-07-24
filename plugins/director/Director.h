@@ -82,12 +82,8 @@ public:
 
 	template<typename T, typename... Args>
 	Backend* createBackend(const std::string& name, size_t capacity, const Args&... args) {
-		T* backend = new T(this, name, capacity, args...);
-		backends_.push_back(backend);
-		return backend;
+		return new T(this, name, capacity, args...);
 	}
-
-	void registerBackend(Backend* backend);
 
 	Backend* findBackend(const std::string& name);
 
