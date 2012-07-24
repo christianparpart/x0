@@ -376,8 +376,11 @@ bool ApiReqeust::create()
 		return false;
 
 	Director* director = findDirector(tokens[0]);
-	if (!director)
-		return false;
+	if (!director) {
+		request_->status = x0::HttpError::NotFound;
+		request_->finish();
+		return true;
+	}
 
 	// name can be passed by URI path or via request body
 	std::string name;
@@ -424,6 +427,12 @@ bool ApiReqeust::create()
 	if (!loadParam("health-check-mode", hcMode))
 		return false;
 
+	if (!director->isMutable()) {
+		request_->status = x0::HttpError::MethodNotAllowed;
+		request_->finish();
+		return true;
+	}
+
 	Backend* backend = nullptr;
 	if (protocol == "fastcgi") {
 		// TODO fastcgi creation
@@ -467,8 +476,11 @@ bool ApiReqeust::update()
 		return false;
 
 	Director* director = findDirector(tokens[0]);
-	if (!director)
-		return false;
+	if (!director) {
+		request_->status = x0::HttpError::NotFound;
+		request_->finish();
+		return true;
+	}
 
 	// name can be passed by URI path or via request body
 	std::string name;
@@ -503,6 +515,12 @@ bool ApiReqeust::update()
 	HealthMonitor::Mode hcMode;
 	if (!loadParam("health-check-mode", hcMode))
 		return false;
+
+	if (!director->isMutable()) {
+		request_->status = x0::HttpError::MethodNotAllowed;
+		request_->finish();
+		return true;
+	}
 
 	backend->setRole(role);
 	backend->setEnabled(enabled);
