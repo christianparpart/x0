@@ -248,6 +248,24 @@ bool ApiReqeust::loadParam(const std::string& key, Backend::Role& result)
 	return true;
 }
 
+bool ApiReqeust::loadParam(const std::string& key, HealthMonitor::Mode& result)
+{
+	auto i = args_.find(key);
+	if (i == args_.end())
+		return false;
+
+	if (i->second == "paranoid")
+		result = HealthMonitor::Mode::Paranoid;
+	else if (i->second == "opportunistic")
+		result = HealthMonitor::Mode::Opportunistic;
+	else if (i->second == "lazy")
+		result = HealthMonitor::Mode::Lazy;
+	else
+		return false;
+
+	return true;
+}
+
 bool ApiReqeust::loadParam(const std::string& key, std::string& result)
 {
 	auto i = args_.find(key);
@@ -398,6 +416,14 @@ bool ApiReqeust::put()
 	if (!loadParam("port", port))
 		return false;
 
+	int hcInterval;
+	if (!loadParam("health-check-interval", hcInterval))
+		return false;
+
+	HealthMonitor::Mode hcMode;
+	if (!loadParam("health-check-mode", hcMode))
+		return false;
+
 	Backend* backend = nullptr;
 	if (protocol == "fastcgi") {
 		// TODO fastcgi creation
@@ -410,9 +436,9 @@ bool ApiReqeust::put()
 
 	if (backend) {
 		backend->setRole(role);
-
-		if (!enabled)
-			backend->disable();
+		backend->setEnabled(enabled);
+		backend->healthMonitor().setInterval(TimeSpan::fromSeconds(hcInterval));
+		backend->healthMonitor().setMode(hcMode);
 
 		director->registerBackend(backend);
 	}
@@ -422,10 +448,67 @@ bool ApiReqeust::put()
 	return true;
 }
 
-// update a backend
+// update a backend - POST /:director_name/:backend_name
+// allows updating of the following attributes:
+// - capacity
+// - enabled
+// - role
+// - health-check-mode
+// - health-check-interval
 bool ApiReqeust::post()
 {
-	return false;
+	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	if (tokens.size() > 2)
+		return false;
+
+	Director* director = findDirector(tokens[0]);
+	if (!director)
+		return false;
+
+	// name can be passed by URI path or via POST body
+	std::string name;
+	if (tokens.size() == 2)
+		name = tokens[1];
+	else if (!loadParam("name", name))
+		return false;
+
+	if (name.empty())
+		return false;
+
+	Backend::Role role;
+	if (!loadParam("role", role))
+		return false;
+
+	bool enabled;
+	if (!loadParam("enabled", enabled))
+		return false;
+
+	size_t capacity;
+	if (!loadParam("capacity", capacity))
+		return false;
+
+	Backend* backend = director->findBackend(name);
+	if (!backend)
+		return false;
+
+	int hcInterval;
+	if (!loadParam("health-check-interval", hcInterval))
+		return false;
+
+	HealthMonitor::Mode hcMode;
+	if (!loadParam("health-check-mode", hcMode))
+		return false;
+
+	backend->setRole(role);
+	backend->setEnabled(enabled);
+	backend->setCapacity(capacity);
+	backend->healthMonitor().setInterval(TimeSpan::fromSeconds(hcInterval));
+	backend->healthMonitor().setMode(hcMode);
+
+	request_->status = x0::HttpError::Ok;
+	request_->finish();
+
+	return true;
 }
 
 // delete a backend

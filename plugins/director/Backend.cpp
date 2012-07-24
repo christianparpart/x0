@@ -42,6 +42,11 @@ size_t Backend::capacity() const
 	return capacity_;
 }
 
+void Backend::setCapacity(size_t value)
+{
+	capacity_ = value;
+}
+
 //virtual
 std::string Backend::str() const
 {

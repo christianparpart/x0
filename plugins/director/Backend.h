@@ -44,8 +44,11 @@ public:
 	virtual ~Backend();
 
 	const std::string& name() const { return name_; }		//!< descriptive name of backend.
-	Director* director() const { return director_; }	//!< pointer to the owning director.
+	Director* director() const { return director_; }		//!< pointer to the owning director.
+
 	size_t capacity() const;								//!< number of requests this backend can handle in parallel.
+	void setCapacity(size_t value);
+
 	const x0::Counter& load() const { return load_; }		//!< number of currently being processed requests.
 
 	// role
@@ -55,6 +58,7 @@ public:
 	// enable/disable state
 	void enable() { enabled_ = true; }
 	bool isEnabled() const { return enabled_; }
+	void setEnabled(bool value) { enabled_ = value; }
 	void disable() { enabled_ = false; }
 
 	// health state

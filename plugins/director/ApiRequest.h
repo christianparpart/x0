@@ -45,6 +45,7 @@ protected:
 	bool loadParam(const std::string& key, int& result);
 	bool loadParam(const std::string& key, size_t& result);
 	bool loadParam(const std::string& key, Backend::Role& result);
+	bool loadParam(const std::string& key, HealthMonitor::Mode& result);
 	bool loadParam(const std::string& key, std::string& result);
 
 private:

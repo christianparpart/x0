@@ -106,6 +106,15 @@ void Director::registerBackend(Backend* backend)
 	backends_.push_back(backend);
 }
 
+Backend* Director::findBackend(const std::string& name)
+{
+	for (auto i: backends_)
+		if (i->name() == name)
+			return i;
+
+	return nullptr;
+}
+
 void Director::schedule(HttpRequest* r)
 {
 	r->responseHeaders.push_back("X-Director-Cluster", name_);
@@ -362,7 +371,7 @@ bool Director::store(const std::string& pathOverride)
 {
 	static const std::string header("name,role,capacity,protocol,enabled,transport,host,port");
 	std::string path = !pathOverride.empty() ? pathOverride : storagePath_;
-	std::ofstream out(path);
+	std::ofstream out(path, std::ios_base::out | std::ios_base::trunc);
 
 	// TODO
 

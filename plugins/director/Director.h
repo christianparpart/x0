@@ -89,6 +89,8 @@ public:
 
 	void registerBackend(Backend* backend);
 
+	Backend* findBackend(const std::string& name);
+
 	void schedule(HttpRequest* r);
 	bool reschedule(HttpRequest* r, Backend* backend);
 

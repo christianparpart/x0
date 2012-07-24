@@ -221,6 +221,8 @@ Retrieves state of only one backend from a director, by names.
         -d role=active \
         -d enabled=false \
         -d capacity=2 \
+        -d health-check-mode=paranoid \
+        -d health-check-interval=2 \
         -d protocol=http \
         -d hostname=127.0.0.1 \
         -d port=3101 \
@@ -237,9 +239,18 @@ Others must be specified via request body.
         -d role=active \
         -d enabled=false \
         -d capacity=2 \
-        -d protocol=http \
-        -d hostname=127.0.0.1 \
-        -d port=3101
+        -d health-check-mode=paranoid \
+        -d health-check-interval=2
+
+You cannot edit all attributes, but:
+
+- role
+- enabled
+- capacity
+- health-check-mode
+- health-check-interval
+
+Updating name, protocol, hostname, or port would literally be the same as just creating a new backend.
 
 ## Deleting a Backend
 
