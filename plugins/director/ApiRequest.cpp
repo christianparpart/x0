@@ -457,7 +457,7 @@ bool ApiReqeust::create()
 
 	request_->finish();
 
-	request_->log(Severity::info, "director: %s. Created backend: %s.", director->name().c_str(), backend->name().c_str());
+	request_->log(Severity::info, "director: %s created backend: %s.", director->name().c_str(), backend->name().c_str());
 
 	return true;
 }
@@ -531,7 +531,7 @@ bool ApiReqeust::update()
 	request_->status = x0::HttpError::Accepted;
 	request_->finish();
 
-	request_->log(Severity::info, "director: %s. Reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
+	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
 
 	return true;
 }
