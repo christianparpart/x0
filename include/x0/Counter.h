@@ -3,24 +3,27 @@
 #include <x0/Api.h>
 #include <x0/Buffer.h>
 
+#include <atomic>
+
 namespace x0 {
 
 class X0_API Counter
 {
 private:
-	size_t current_;
-	size_t max_;
-	size_t total_;
+	std::atomic<size_t> current_;
+	std::atomic<size_t> max_;
+	std::atomic<size_t> total_;
 
 public:
 	Counter();
 	Counter(const Counter& other) = delete;
+	Counter& operator=(const Counter& other) = delete;
 
-	size_t operator()() const { return current_; }
+	size_t operator()() const { return current_.load(); }
 
-	size_t current() const { return current_; }
-	size_t max() const { return max_; }
-	size_t total() const { return total_; }
+	size_t current() const { return current_.load(); }
+	size_t max() const { return max_.load(); }
+	size_t total() const { return total_.load(); }
 
 	Counter& operator++();
 	Counter& operator--();

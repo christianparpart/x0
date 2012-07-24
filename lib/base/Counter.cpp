@@ -14,7 +14,7 @@ Counter& Counter::operator++()
 	++current_;
 
 	if (current_ > max_)
-		max_ = current_;
+		max_.store(current_.load());
 
 	++total_;
 
