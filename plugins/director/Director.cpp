@@ -106,8 +106,12 @@ void Director::schedule(HttpRequest* r)
 
 	auto notes = r->customData<DirectorNotes>(this);
 
-	// try delivering request directly
-	if (Backend* backend = selectBackend(r)) {
+	// favor the pre-selected backend, if non pre-selected, select the least loaded one.
+	Backend* backend = notes->backend;
+	if (!backend)
+		backend = selectBackend(r);
+
+	if (backend) {
 		notes->backend = backend;
 
 		++load_;

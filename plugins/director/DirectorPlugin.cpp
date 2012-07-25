@@ -135,7 +135,7 @@ Backend* DirectorPlugin::registerBackend(Director* director, const char* name, c
 }
 // }}}
 
-// {{{ handler director.pass(string director_id);
+// {{{ handler director.pass(string director_id [, string backend_id] );
 bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 {
 	Director* director = selectDirector(r, args);
@@ -157,7 +157,8 @@ Director* DirectorPlugin::selectDirector(HttpRequest* r, const FlowParams& args)
 			}
 			return directors_.begin()->second;
 		}
-		case 1: {
+		case 1:
+		case 2: {
 			if (!args[0].isString()) {
 				r->log(Severity::error, "director: Passed director configured.");
 				return nullptr;
@@ -168,7 +169,20 @@ Director* DirectorPlugin::selectDirector(HttpRequest* r, const FlowParams& args)
 				r->log(Severity::error, "director: No director with name '%s' configured.", directorId);
 				return nullptr;
 			}
-			return i->second;
+
+			Director* director = i->second;
+
+			// builtin jail: support custom routing
+			if (args.size() == 2) {
+				const char* backendId = args[1].toString();
+				if (Backend* backend = director->findBackend(backendId)) {
+					r->setCustomData<DirectorNotes>(director);
+					auto notes = r->customData<DirectorNotes>(director);
+					notes->backend = backend;
+				}
+			}
+
+			return director;
 		}
 		default: {
 			r->log(Severity::error, "director: Too many arguments passed, to director.pass().");
