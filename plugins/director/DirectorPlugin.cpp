@@ -174,8 +174,8 @@ Director* DirectorPlugin::selectDirector(HttpRequest* r, const FlowParams& args)
 
 			// builtin jail: support custom routing
 			if (args.size() == 2) {
-				const char* backendId = args[1].toString();
-				if (Backend* backend = director->findBackend(backendId)) {
+				std::string backendId(args[1].toString(), args[1].toString() + args[1].toNumber());
+				if (Backend* backend = director->findBackend(backendId.c_str())) {
 					r->setCustomData<DirectorNotes>(director);
 					auto notes = r->customData<DirectorNotes>(director);
 					notes->backend = backend;
