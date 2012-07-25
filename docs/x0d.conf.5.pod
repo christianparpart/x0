@@ -770,6 +770,91 @@ or, for listening on a UNIX domain socket:
 
 =back
 
+=head2 director
+
+The director plugin implements advanced load balancing.
+
+=over 6
+
+=item B<director.create> (name, backend1_name => url [, backend2_name => url, ...])
+
+Statically spawnes a load balancer by given unique name with the passed backends.
+The backend names must be unique within this load balancer instance.
+
+One example might look like:
+
+ handler setup {
+     # ...
+     director.create 'app_cluster',
+         'app01' => 'http://192.168.4.1:8080/?capacity=8',
+         'app02' => 'http://192.168.4.2:8080/?capacity=4',
+         'app03' => 'http://192.168.4.3:8080/?capacity=4',
+         'app04' => 'http://192.168.4.4:8080/?capacity=1',
+ }
+
+=item B<director.load> (name, path)
+
+Spawns a load balancer instance with the given name by loading its
+configuration from a plain-text database file.
+
+Thie file SHOULD NOT edited by hand, even though, it is possible, this
+is not the way to edit the cluster. There is a JSON API for
+manipulating these dynamic load balancers via the B<director.api>() handler.
+
+Example:
+
+ handler setup {
+     director.load 'app_cluster', '/var/lib/x0/app_cluster.db'
+ }
+
+=item B<director.api> ()
+
+A request handler, to provide the client with a JSON API to inspect
+the current load balancer states, their statistics, as well as allowing
+you to actually reconfigure specific backends.
+
+Statically spawned clusters may only enable/disable backends,
+but dynamically spawned clusters are capable of creating new backends,
+reconfiguring them, and having them removed again.
+Dynamic cluster configuration is also kept on local storage and is kept in
+sync with the live configuration's changes.
+
+=item B<director.pass> ()
+
+Passes the request to the one-and-only spawned director.
+This does only with with one director spawned, not two, not three, not zero.
+
+=item B<director.pass> (director_name)
+
+Passes the request to the director by given name.
+This is usually what you are to use in your configuration file.
+
+Example:
+
+ handler main {
+     director.pass 'app_cluster'
+ }
+
+=item B<director.pass> (director_name, backend_name)
+
+Passes the request to a specific backend on the given director.
+Use this to allow clients to decide (for example via cookie
+or request-header) what backend is to server that request,
+which should help you testing code on a single backend before
+rolling out the backend's code change on the full cluster.
+
+If the specified backend is not available, a 503 (Service Unavailable)
+response will be generated and an appropriate error message will be logged.
+
+Please note, that explicitely specifying a backend does ignore
+any configured capacity limits.
+
+ handler main {
+     director.pass 'app_cluster', req.cookie("X-Backend")
+ }
+
+=back
+
 =head2 dirlisting
 
 Automatically generates a directory listing response if the
