@@ -109,6 +109,7 @@ private:
 	void req_url(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_path(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_header(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_cookie(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_host(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_pathinfo(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_is_secure(HttpRequest* r, const FlowParams& args, FlowValue& result);

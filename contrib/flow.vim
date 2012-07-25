@@ -87,7 +87,7 @@ if exists("flow_x0")
 	syn match flowCoreFunctions '\<error\.\(handler\)\>'
 	syn match flowCoreFunctions '\<log\(\.\(err\|info\|debug\)\)\?\>'
 	syn match flowCoreVar '\<sys\.\(env\|pid\|cwd\|now\|now_str\)\>'
-	syn match flowCoreVar '\<req\.\(method\|host\|path\|url\|header\|remoteip\|remoteport\|localip\|localport\)\>'
+	syn match flowCoreVar '\<req\.\(method\|host\|path\|url\|header\|cookie\|remoteip\|remoteport\|localip\|localport\)\>'
 	syn match flowCoreVar '\<phys\.\(path\|exists\|is_reg\|is_dir\|is_exe\|size\|mtime\|mimetype\)\>'
 	syn match flowCoreVar '\<server\.\(advertise\|tags\)\>'
 	syn match flowCoreVar '\<etag\.\(mtime\|size\|inode\)\>'

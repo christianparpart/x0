@@ -12,6 +12,7 @@
 #include <x0/io/CompositeSource.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/FileSource.h>
+#include <x0/StringTokenizer.h>
 #include <x0/SocketSpec.h>
 #include <x0/Types.h>
 #include <x0/DateTime.h>
@@ -115,6 +116,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_url>("req.url", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_path>("req.path", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_header>("req.header", FlowValue::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_cookie>("req.cookie", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_host>("req.host", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_pathinfo>("req.pathinfo", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::req_is_secure>("req.is_secure", FlowValue::BOOLEAN);
@@ -614,6 +616,31 @@ void HttpCore::req_header(HttpRequest* in, const FlowParams& args, FlowValue& re
 {
 	BufferRef ref(in->requestHeader(args[0].toString()));
 	result.set(ref.data(), ref.size());
+}
+
+void HttpCore::req_cookie(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	BufferRef cookie(in->requestHeader("Cookie"));
+	if (!cookie.empty() && !args.empty()) {
+		std::string wanted(args[0].asString());
+		static const std::string sld("; \t");
+		StringTokenizer st1(cookie.str(), sld);
+		std::string kv;
+
+		while (!(kv = st1.nextToken()).empty()) {
+			static const std::string s2d("= \t");
+			StringTokenizer st2(kv, s2d);
+			std::string key(st2.nextToken());
+			std::string value(st2.nextToken());
+			//printf("parsed cookie[%s] = '%s'\n", key.c_str(), value.c_str());
+			if (key == wanted) {
+				result.set(value.c_str(), value.size());
+				return;
+			}
+			//cookies_[key] = value;
+		}
+	}
+	result.set("", 0);
 }
 
 void HttpCore::req_host(HttpRequest* in, const FlowParams& args, FlowValue& result)

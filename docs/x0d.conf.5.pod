@@ -382,6 +382,18 @@ Example:
      # ...
  }
 
+=item B<req.cookie> (name)
+
+Retrieves the value of the cookie with the given name or an empty string if not available.
+
+Example:
+
+ if (req.cookie('route') != '') {
+     # ...
+ } else {
+     # ...
+ }
+
 =item B<req.host>
 
 Retrieves the request hostname.
