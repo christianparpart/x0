@@ -29,14 +29,14 @@ FEATURES
 - HTTP reverse proxy support (plugin)
 - name based virtual hosting (plugin)
 - SSL connection encryption (plugin)
-    - SSL Server Name Indication (SNI) extension
+  - SSL Server Name Indication (SNI) extension
 - dynamic content compression (plugin)
 - basic authentication (plugin)
 - advanced dynamic load balancing (plugin)
-    - supporting different backend protocols, such as HTTP and FastCGI
-    - supporting different transport protocols, such as TCP/IP, and Unix domain sockets.
-    - advanced health monitoring
-    - JSON API for retrieving state, stats, and reconfiguring clusters.
+  - supporting different backend protocols (HTTP and FastCGI)
+  - supporting different transport protocols (TCP/IP, and UNIX Domain Sockets).
+  - advanced health monitoring
+  - JSON API for retrieving state, stats, and reconfiguring clusters.
 - request path aliasing (plugin)
 - automatic directory listing generation (plugin)
 - apache-style access log (plugin)
@@ -68,4 +68,4 @@ sudo make instrall
 `pwd`/src/x0d --instant=`pwd`/www/htdocs,8080
 # have fun hacking.
 
-vim:ts=4:sw=4
+vim:ts=2:sw=2
