@@ -138,57 +138,66 @@ Backend* DirectorPlugin::registerBackend(Director* director, const char* name, c
 // {{{ handler director.pass(string director_id [, string backend_id] );
 bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 {
-	Director* director = selectDirector(r, args);
-	if (!director)
-		return false;
-
-	server().log(Severity::debug, "director: passing request to %s.", director->name().c_str());
-	director->schedule(r);
-	return true;
-}
-
-Director* DirectorPlugin::selectDirector(HttpRequest* r, const FlowParams& args)
-{
+	Director* director = nullptr;
 	switch (args.size()) {
 		case 0: {
 			if (directors_.size() != 1) {
 				r->log(Severity::error, "director: No directors configured.");
-				return nullptr;
+			} else {
+				director = directors_.begin()->second;
 			}
-			return directors_.begin()->second;
+			break;
 		}
 		case 1:
 		case 2: {
 			if (!args[0].isString() && !args[0].isBuffer()) {
 				r->log(Severity::error, "director: Passed director configured.");
-				return nullptr;
+				break;
 			}
-			std::string directorId(args[0].toString(), args[0].toString() + args[0].toNumber());
+
+			std::string directorId(args[0].asString());
 			auto i = directors_.find(directorId);
 			if (i == directors_.end()) {
 				r->log(Severity::error, "director: No director with name '%s' configured.", directorId.c_str());
-				return nullptr;
+				break;
 			}
 
-			Director* director = i->second;
+			director = i->second;
 
-			// builtin jail: support custom routing
+			// custom backend route
 			if (args.size() == 2) {
-				std::string backendId(args[1].toString(), args[1].toString() + args[1].toNumber());
-				if (Backend* backend = director->findBackend(backendId.c_str())) {
+				std::string backendName(args[1].asString());
+				if (Backend* backend = director->findBackend(backendName)) {
 					r->setCustomData<DirectorNotes>(director);
 					auto notes = r->customData<DirectorNotes>(director);
 					notes->backend = backend;
+				} else {
+					// explicit backend specified, but not found -> do not serve.
+					r->log(Severity::error, "director: Requested backend '%s' not found.", backendName.c_str());
+					r->status = x0::HttpError::ServiceUnavailable;
+					director = nullptr;
 				}
 			}
-
-			return director;
+			break;
 		}
 		default: {
 			r->log(Severity::error, "director: Too many arguments passed, to director.pass().");
-			return nullptr;
+			break;
 		}
 	}
+
+	if (!director) {
+		if (r->status != x0::HttpError::Undefined) {
+			r->status = x0::HttpError::InternalServerError;
+		}
+		r->finish();
+		return true;
+	}
+
+	server().log(Severity::debug, "director: passing request to %s.", director->name().c_str());
+	director->schedule(r);
+	return true;
+
 }
 // }}}
 

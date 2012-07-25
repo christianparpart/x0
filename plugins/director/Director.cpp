@@ -108,8 +108,16 @@ void Director::schedule(HttpRequest* r)
 
 	// favor the pre-selected backend, if non pre-selected, select the least loaded one.
 	Backend* backend = notes->backend;
-	if (!backend)
+	if (!backend) {
 		backend = selectBackend(r);
+	} else if (!backend->healthMonitor().isOnline()) {
+		// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
+		r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
+			backend->name().c_str(), backend->healthMonitor().state_str().c_str());
+		r->status = x0::HttpError::ServiceUnavailable;
+		r->finish();
+		return;
+	}
 
 	if (backend) {
 		notes->backend = backend;

@@ -13,7 +13,7 @@ namespace x0 {
 class Director;
 class Backend;
 
-class DirectorPlugin : // {{{
+class DirectorPlugin :
 	public x0::HttpPlugin
 {
 private:
@@ -32,5 +32,4 @@ private:
 
 	Director* createDirector(const char* id);
 	Backend* registerBackend(Director* director, const char* name, const char* url);
-	Director* selectDirector(x0::HttpRequest* r, const x0::FlowParams& args);
 };
