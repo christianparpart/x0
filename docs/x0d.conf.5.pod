@@ -822,7 +822,7 @@ sync with the live configuration's changes.
 =item B<director.pass> ()
 
 Passes the request to the one-and-only spawned director.
-This does only with with one director spawned, not two, not three, not zero.
+This does only work with one director spawned, not two, not three, not zero.
 
 =item B<director.pass> (director_name)
 
