@@ -159,14 +159,14 @@ Director* DirectorPlugin::selectDirector(HttpRequest* r, const FlowParams& args)
 		}
 		case 1:
 		case 2: {
-			if (!args[0].isString()) {
+			if (!args[0].isString() && !args[0].isBuffer()) {
 				r->log(Severity::error, "director: Passed director configured.");
 				return nullptr;
 			}
-			const char* directorId = args[0].toString();
+			std::string directorId(args[0].toString(), args[0].toString() + args[0].toNumber());
 			auto i = directors_.find(directorId);
 			if (i == directors_.end()) {
-				r->log(Severity::error, "director: No director with name '%s' configured.", directorId);
+				r->log(Severity::error, "director: No director with name '%s' configured.", directorId.c_str());
 				return nullptr;
 			}
 
