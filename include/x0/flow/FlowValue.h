@@ -113,6 +113,8 @@ struct X0_PACKED X0_API FlowValue
 	const FlowArray& toArray() const;
 	Function toFunction() const;
 
+	std::string asString() const;
+
 	void dump() const;
 	void dump(bool linefeed) const;
 };
@@ -452,6 +454,24 @@ inline bool FlowValue::load<FlowValue::Function>(Function& result) const
 
 	result = toFunction();
 	return true;
+}
+
+inline std::string FlowValue::asString() const
+{
+	switch (type()) {
+		case STRING:
+			return toString();
+		case BUFFER:
+			return std::string(toString(), toNumber());
+		case NUMBER: {
+			char buf[256];
+			snprintf(buf, sizeof(buf), "%llu", toNumber());
+			return buf;
+		}
+		default:
+			// illegal/unsupported cast
+			return std::string();
+	}
 }
 // }}}
 
