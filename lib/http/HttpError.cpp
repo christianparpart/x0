@@ -75,7 +75,6 @@ private:
 		set(HttpError::GatewayTimedout, "Gateway Timedout");
 		set(HttpError::HttpVersionNotSupported, "HTTP Version Not Supported");
 		set(HttpError::InsufficientStorage, "Insufficient Storage");
-
 		set(HttpError::VariantAlsoNegotiates, "Variant Also Negotiates");
 		set(HttpError::LoopDetected, "Loop Detected");
 		set(HttpError::BandwidthExceeded, "Bandwidth Exceeded");
