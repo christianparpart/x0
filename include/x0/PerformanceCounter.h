@@ -23,6 +23,8 @@ public:
 
 	unsigned current() const;
 	value_type average(unsigned n = PERIOD) const;
+
+	unsigned operator[](size_t i) const;
 };
 
 // {{{ inlines
@@ -107,6 +109,12 @@ inline T PerformanceCounter<PERIOD, T>::average(unsigned n) const
 	result /= n;
 
 	return result;
+}
+
+template<const unsigned PERIOD, typename T>
+unsigned PerformanceCounter<PERIOD, T>::operator[](size_t i) const
+{
+	return counter_[PERIOD - i];
 }
 // }}}
 
