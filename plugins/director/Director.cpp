@@ -15,18 +15,6 @@
 
 using namespace x0;
 
-struct DirectorNotes :
-	public CustomData
-{
-	size_t retryCount;
-	Backend* backend;
-
-	DirectorNotes() :
-		retryCount(0),
-		backend(nullptr)
-	{}
-};
-
 Director::Director(HttpWorker* worker, const std::string& name) :
 #ifndef NDEBUG
 	Logging("Director/%s", name.c_str()),

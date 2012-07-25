@@ -3,11 +3,24 @@
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/CustomDataMgr.h>
 #include <ev++.h>
 
 using namespace x0;
 
 class Backend;
+
+struct DirectorNotes :
+	public CustomData
+{
+	size_t retryCount;
+	Backend* backend;
+
+	DirectorNotes() :
+		retryCount(0),
+		backend(nullptr)
+	{}
+};
 
 /*!
  * \brief Load balancing HTTP request proxy.
