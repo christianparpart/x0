@@ -101,6 +101,7 @@ struct X0_PACKED X0_API FlowValue
 	bool isRegExp() const { return type_ == REGEXP; }
 	bool isIPAddress() const { return type_ == IP; }
 	bool isString() const { return type_ == STRING; }
+	bool isBuffer() const { return type_ == BUFFER; }
 	bool isArray() const { return type_ == ARRAY; }
 	bool isFunction() const { return type_ == FUNCTION; }
 
