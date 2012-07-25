@@ -17,6 +17,7 @@
 - support dynamic directors
   - adding/removing/editing backends at runtime
   - storing backend configuration in some plain file in /var/lib/x0/director/$NAME.db
+- client side routing
 - provide admin JSON-API for browsing, controlling directors, its backends, and their states/stats.
 - reuse already existing code as used in `proxy` and `fastcgi` plugins.
   - existing plugins (proxy, fastcgi) should now reuse the new core API
