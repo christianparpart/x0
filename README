@@ -31,6 +31,12 @@ FEATURES
 - SSL connection encryption (plugin)
 	- SSL Server Name Indication (SNI) extension
 - dynamic content compression (plugin)
+- basic authentication (plugin)
+- advanced dynamic load balancing (plugin)
+	- supporting different backend protocols, such as HTTP and FastCGI
+	- supporting different transport protocols, such as TCP/IP, and Unix domain sockets.
+	- advanced health monitoring
+	- JSON API for retrieving state, stats, and reconfiguring clusters.
 - request path aliasing (plugin)
 - automatic directory listing generation (plugin)
 - apache-style access log (plugin)
