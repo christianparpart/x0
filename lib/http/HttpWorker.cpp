@@ -322,4 +322,11 @@ void HttpWorker::unregisterKillHandler(std::list<std::function<void()>>::iterato
 	killHandler_.erase(handle);
 }
 
+void HttpWorker::post_thunk3(int revents, void* arg)
+{
+	std::function<void()>* callback = static_cast<std::function<void()>*>(arg);
+	(*callback)();
+	delete callback;
+}
+
 } // namespace x0

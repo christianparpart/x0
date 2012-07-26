@@ -140,6 +140,8 @@ public:
 	template<class K, void (K::*fn)(void*)>
 	void post(K* object, void* arg);
 
+	inline void post(const std::function<void()>& callback);
+
 	void stop();
 	void kill();
 
@@ -158,6 +160,8 @@ private:
 
 	template<class K, void (K::*fn)(void*)>
 	static void post_thunk2(int revents, void* arg);
+
+	static void post_thunk3(int revents, void* arg);
 
 	virtual void run();
 
@@ -247,6 +251,12 @@ void HttpWorker::post_thunk2(int revents, void* arg)
 	}
 
 	delete priv;
+}
+
+inline void HttpWorker::post(const std::function<void()>& callback)
+{
+	auto p = new std::function<void()>(callback);
+	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
 }
 
 inline void HttpWorker::fetchPerformanceCounts(double* p1, double* p5, double* p15) const
