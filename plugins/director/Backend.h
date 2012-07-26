@@ -65,11 +65,13 @@ public:
 	HealthMonitor::State healthState() const { return healthMonitor_.state(); }
 	HealthMonitor& healthMonitor() { return healthMonitor_; }
 
-	virtual bool process(x0::HttpRequest* r) = 0;
+	bool assign(x0::HttpRequest* r);
+	void release();
 
 	virtual size_t writeJSON(x0::Buffer& output) const;
 
-	void release();
+protected:
+	virtual bool process(x0::HttpRequest* r) = 0;
 
 protected:
 	void setState(HealthMonitor::State value);

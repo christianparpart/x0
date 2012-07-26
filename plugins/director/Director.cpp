@@ -279,28 +279,31 @@ void Director::release(Backend* backend)
 	dequeueTo(backend);
 }
 
-/**
- * Pops an enqueued request from the front of the queue and passes it to the backend for serving.
- *
- * \param backend the backend to pass the dequeued request to.
- */
-void Director::dequeueTo(Backend* backend)
+HttpRequest* Director::dequeue()
 {
 	if (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
 		queue_.pop_front();
 		--queued_;
+		return r;
+	}
 
+	return nullptr;
+}
+
+/**
+ * Pops an enqueued request from the front of the queue and passes it to the backend for serving.
+ *
+ * \param backend the backend to pass the dequeued request to.
+ * \todo thread safety (queue_)
+ */
+void Director::dequeueTo(Backend* backend)
+{
+	if (HttpRequest* r = dequeue()) {
 #ifndef NDEBUG
 		r->log(Severity::debug, "Dequeueing request to backend %s", backend->name().c_str());
 #endif
-
-		auto notes = r->customData<DirectorNotes>(this);
-		notes->backend = backend;
-		++backend->load_;
-		++load_;
-
-		backend->process(r);
+		r->connection.worker().post([backend, r]() { backend->assign(r); });
 	}
 }
 

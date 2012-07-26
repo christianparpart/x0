@@ -40,7 +40,6 @@ private:
 
 	HttpRequest* request_;		//!< client's request
 	Socket* backend_;			//!< connection to backend app
-	bool cloak_;				//!< to cloak or not to cloak the "Server" response header
 
 	int connectTimeout_;
 	int readTimeout_;
@@ -80,7 +79,7 @@ public:
 	inline explicit ProxyConnection(HttpBackend* proxy);
 	~ProxyConnection();
 
-	void start(HttpRequest* in, Socket* backend, bool cloak);
+	void start(HttpRequest* in, Socket* backend);
 };
 // }}}
 
@@ -91,7 +90,6 @@ HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
 	refCount_(1),
 	request_(nullptr),
 	backend_(nullptr),
-	cloak_(true),
 
 	connectTimeout_(0),
 	readTimeout_(0),
@@ -168,14 +166,13 @@ void HttpBackend::ProxyConnection::onAbort(void *p)
 	self->close();
 }
 
-void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* backend, bool cloak)
+void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* backend)
 {
-	TRACE("ProxyConnection.start(in, backend, cloak=%d)", cloak);
+	TRACE("ProxyConnection.start(in, backend)");
 
 	request_ = in;
 	request_->setAbortHandler(&ProxyConnection::onAbort, this);
 	backend_ = backend;
-	cloak_ = cloak;
 
 	// request line
 	writeBuffer_.push_back(request_->method);
@@ -303,11 +300,6 @@ bool HttpBackend::ProxyConnection::onMessageHeader(const BufferRef& name, const 
 
 	if (iequals(name, "Transfer-Encoding"))
 		goto skip;
-
-	if (cloak_ && iequals(name, "Server")) {
-		TRACE("skipping \"Server\"-header");
-		goto skip;
-	}
 
 	request_->responseHeaders.push_back(name.str(), value.str());
 	return true;
@@ -475,7 +467,7 @@ bool HttpBackend::process(HttpRequest* r)
 		TRACE("in.content? %d", r->contentAvailable());
 
 		if (ProxyConnection* pc = new ProxyConnection(this)) {
-			pc->start(r, backend, director_->cloakOrigin());
+			pc->start(r, backend);
 			return true;
 		}
 	}

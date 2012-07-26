@@ -106,6 +106,7 @@ public:
 	void schedule(HttpRequest* r);
 	bool reschedule(HttpRequest* r, Backend* backend);
 
+	HttpRequest* dequeue();
 	void dequeueTo(Backend* backend);
 
 	void writeJSON(x0::Buffer& output);

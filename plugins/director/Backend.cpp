@@ -76,6 +76,17 @@ void Backend::setState(HealthMonitor::State value)
 	healthMonitor_.setState(value);
 }
 
+bool Backend::assign(HttpRequest* r)
+{
+	auto notes = r->customData<DirectorNotes>(director_);
+	notes->backend = this;
+
+	++load_;
+	++director_->load_;
+
+	return process(r);
+}
+
 /**
  * Invoked internally a request has been fully processed.
  *
