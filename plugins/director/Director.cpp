@@ -28,7 +28,6 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	load_(),
 	queued_(),
 	lastBackend_(0),
-	cloakOrigin_(true),
 	maxRetryCount_(6),
 	storagePath_()
 {
@@ -314,7 +313,6 @@ void Director::writeJSON(Buffer& output)
 		   << "  \"queued\": " << queued_ << ",\n"
 		   << "  \"queue-limit\": " << queueLimit_ << ",\n"
 		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
-		   << "  \"cloak-origin\": " << (cloakOrigin_ ? "true" : "false") << ",\n"
 		   << "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
 		   << "  \"members\": [";
 

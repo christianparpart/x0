@@ -58,9 +58,6 @@ private:
 	//! last backend-index a request has been successfully served with
 	size_t lastBackend_;
 
-	//! whether or not to cloak origin "Server" response-header
-	bool cloakOrigin_;
-
 	//! number of attempts to pass request to a backend before giving up
 	size_t maxRetryCount_;
 
@@ -84,9 +81,6 @@ public:
 	void setQueueLimit(size_t value) { queueLimit_ = value; }
 
 	const std::vector<Backend*>& backends() const { return backends_; }
-
-	bool cloakOrigin() const { return cloakOrigin_; }
-	void setCloakOrigin(bool value) { cloakOrigin_ = value; }
 
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }

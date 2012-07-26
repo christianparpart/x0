@@ -539,13 +539,8 @@ bool ApiReqeust::updateDirector(Director* director)
 	if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
 		return false;
 
-	bool cloakOrigin;
-	if (hasParam("cloak-origin") && !loadParam("cloak-origin", cloakOrigin))
-		return false;
-
 	director->setQueueLimit(queueLimit);
 	director->setMaxRetryCount(maxRetryCount);
-	director->setCloakOrigin(cloakOrigin);
 
 	request_->log(Severity::info, "director: %s reconfigured.", director->name().c_str());
 	request_->status = x0::HttpError::Accepted;
