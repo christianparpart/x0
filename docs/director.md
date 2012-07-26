@@ -268,15 +268,21 @@ Deleted but not yet removed backends change their state to "*Terminating*".
 
 # TODO
 
-- Ensure overall thread safety at a minimum of lock contention to scale horizontally.
-- JSON API: backend CRUD (create/read/update/delete)
-- enforce queue limit. 50x (503?, ... overloaded)
-- implement active/standby/queue/backup scheduling
+- JSON API: implement backend-deletion
+  - mode 1: soft-termination (default)
+  - mode 2: hard-termination (killing all active connections) -- possible?
+- improve scheduling, honoring backend roles:
+    - 1.) active.each {|b| b.tryserve(r)}
+    - 2.) standby.each {|b| b.tryserve(r)}
+    - 3.) if active+standby = down: backup.each {|b| b.tryserve(r)}
+    - 4.) queue.each {|b| b.tryserve(r)} or 503 if queue is full
+    - 5.) 503 Service Unavailable
 - historical request count per second data for the last N seconds (N may default to 60)
   - per backend
   - per director
+- health monitor: add support to customize request URI and host-header.
 - FastCGI backend protocol support
-- x0d.conf(5) man-page additions to talk about the director plugin
+- Ensure overall thread safety at a minimum of lock contention to scale horizontally.
 
 # Plugin Improvement Ideas
 
