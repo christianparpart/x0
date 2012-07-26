@@ -50,6 +50,7 @@ private:
 	std::vector<Backend*> backends_;
 
 	std::deque<HttpRequest*> queue_; //! list of queued requests.
+	size_t queueLimit_;
 
 	Counter load_;
 	Counter queued_;
@@ -78,6 +79,9 @@ public:
 
 	const Counter& load() const { return load_; }
 	const Counter& queued() const { return queued_; }
+
+	size_t queueLimit() const { return queueLimit_; }
+	void setQueueLimit(size_t value) { queueLimit_ = value; }
 
 	const std::vector<Backend*>& backends() const { return backends_; }
 

@@ -41,6 +41,7 @@ public:
 
 protected:
 	Director* findDirector(const std::string& name);
+	bool hasParam(const std::string& key) const;
 	bool loadParam(const std::string& key, bool& result);
 	bool loadParam(const std::string& key, int& result);
 	bool loadParam(const std::string& key, size_t& result);
@@ -60,6 +61,8 @@ private:
 	bool lock(bool enable);
 	bool create();
 	bool update();
+	bool updateDirector(Director* director);
+	bool updateBackend(Director* director, const std::string& name);
 	bool destroy();
 
 	// helper

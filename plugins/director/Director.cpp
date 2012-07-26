@@ -24,6 +24,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	mutable_(false),
 	backends_(),
 	queue_(),
+	queueLimit_(128),
 	load_(),
 	queued_(),
 	lastBackend_(0),
@@ -126,8 +127,12 @@ void Director::schedule(HttpRequest* r)
 		++backend->load_;
 
 		backend->process(r);
-	} else {
+	} else if (queue_.size() < queueLimit_) {
 		enqueue(r);
+	} else {
+		r->log(Severity::error, "director: '%s' queue limit %zu reached. Rejecting request.", name_.c_str(), queueLimit_);
+		r->status = HttpError::ServiceUnavailable;
+		r->finish();
 	}
 }
 
@@ -304,6 +309,9 @@ void Director::writeJSON(Buffer& output)
 	output << "\"" << name_ << "\": {\n"
 		   << "  \"load\": " << load_ << ",\n"
 		   << "  \"queued\": " << queued_ << ",\n"
+		   << "  \"queue-limit\": " << queueLimit_ << ",\n"
+		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
+		   << "  \"cloak-origin\": " << (cloakOrigin_ ? "true" : "false") << ",\n"
 		   << "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
 		   << "  \"members\": [";
 

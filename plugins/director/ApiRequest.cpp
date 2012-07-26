@@ -196,6 +196,11 @@ Director* ApiReqeust::findDirector(const std::string& name)
 	return nullptr;
 }
 
+bool ApiReqeust::hasParam(const std::string& key) const
+{
+	return args_.find(key) != args_.end();
+}
+
 bool ApiReqeust::loadParam(const std::string& key, bool& result)
 {
 	auto i = args_.find(key);
@@ -518,13 +523,39 @@ bool ApiReqeust::update()
 		return true;
 	}
 
-	// name can be passed by URI path or via request body
-	std::string name;
 	if (tokens.size() == 2)
-		name = tokens[1];
-	else if (!loadParam("name", name))
+		return updateBackend(director, tokens[2]);
+	else
+		return updateDirector(director);
+}
+
+bool ApiReqeust::updateDirector(Director* director)
+{
+	size_t queueLimit;
+	if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
 		return false;
 
+	size_t maxRetryCount = director->maxRetryCount();
+	if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
+		return false;
+
+	bool cloakOrigin;
+	if (hasParam("cloak-origin") && !loadParam("cloak-origin", cloakOrigin))
+		return false;
+
+	director->setQueueLimit(queueLimit);
+	director->setMaxRetryCount(maxRetryCount);
+	director->setCloakOrigin(cloakOrigin);
+
+	request_->log(Severity::info, "director: %s reconfigured.", director->name().c_str());
+	request_->status = x0::HttpError::Accepted;
+	request_->finish();
+
+	return true;
+}
+
+bool ApiReqeust::updateBackend(Director* director, const std::string& name)
+{
 	if (name.empty())
 		return false;
 
@@ -564,10 +595,9 @@ bool ApiReqeust::update()
 	backend->healthMonitor().setInterval(TimeSpan::fromSeconds(hcInterval));
 	backend->healthMonitor().setMode(hcMode);
 
+	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
 	request_->status = x0::HttpError::Accepted;
 	request_->finish();
-
-	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
 
 	return true;
 }
