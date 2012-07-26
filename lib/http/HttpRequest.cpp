@@ -60,10 +60,6 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 #endif
 
 	responseHeaders.push_back("Date", connection.worker().now().http_str().str());
-
-	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty())
-		if (!responseHeaders.contains("Server"))
-			responseHeaders.push_back("Server", connection.worker().server().tag());
 }
 
 HttpRequest::~HttpRequest()
@@ -191,9 +187,16 @@ Source* HttpRequest::serialize()
 	else if (status == static_cast<HttpError>(0))
 		status = HttpError::Ok;
 
-	if (!responseHeaders.contains("Content-Type"))
-	{
+	if (!responseHeaders.contains("Content-Type")) {
 		responseHeaders.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
+	}
+
+	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty()) {
+		if (!responseHeaders.contains("Server")) {
+			responseHeaders.push_back("Server", connection.worker().server().tag());
+		} else {
+			responseHeaders.push_back("Via", connection.worker().server().tag());
+		}
 	}
 
 	// post-response hook
