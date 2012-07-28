@@ -24,6 +24,7 @@ public:
 		Active,
 		Standby,
 		Backup,
+		Terminate,
 	};
 
 protected:
@@ -53,7 +54,9 @@ public:
 
 	// role
 	Role role() const { return role_; }
-	void setRole(Role value) { role_ = value; }
+	void setRole(Role value);
+	const std::string& role_str() const;
+	bool isTerminating() const { return role_ == Role::Terminate; }
 
 	// enable/disable state
 	void enable() { enabled_ = true; }
@@ -70,8 +73,11 @@ public:
 
 	virtual size_t writeJSON(x0::Buffer& output) const;
 
+	virtual void terminate();
+
 protected:
 	virtual bool process(x0::HttpRequest* r) = 0;
+	bool tryTermination();
 
 protected:
 	void setState(HealthMonitor::State value);

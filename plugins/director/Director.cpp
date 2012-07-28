@@ -275,7 +275,10 @@ void Director::release(Backend* backend)
 {
 	--load_;
 
-	dequeueTo(backend);
+	if (!backend->isTerminating())
+		dequeueTo(backend);
+	else
+		backend->tryTermination();
 }
 
 HttpRequest* Director::dequeue()

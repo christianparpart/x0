@@ -67,6 +67,8 @@ public:
 	Director(HttpWorker* worker, const std::string& name);
 	~Director();
 
+	HttpWorker& worker() { return *worker_; }
+
 	const std::string& name() const { return name_; }
 
 	bool isMutable() const { return mutable_; }

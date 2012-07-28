@@ -53,9 +53,20 @@ void Backend::setCapacity(size_t value)
 	capacity_ = value;
 }
 
+const std::string& Backend::role_str() const
+{
+	static const std::string str[] = {
+		"active",
+		"standby",
+		"backup",
+		"terminate",
+	};
+
+	return str[static_cast<unsigned>(role_)];
+}
+
 size_t Backend::writeJSON(Buffer& output) const
 {
-	static const std::string roleStr[] = { "active", "standby" };
 	static const std::string boolStr[] = { "false", "true" };
 	size_t offset = output.size();
 
@@ -63,12 +74,45 @@ size_t Backend::writeJSON(Buffer& output) const
 		<< "\"name\": \"" << name_ << "\", "
 		<< "\"capacity\": " << capacity_ << ", "
 		<< "\"enabled\": " << boolStr[enabled_] << ", "
-		<< "\"role\": \"" << roleStr[static_cast<int>(role_)] << "\",\n     "
+		<< "\"role\": \"" << role_str() << "\",\n     "
 		<< "\"load\": " << load_ << ",\n     "
 		<< "\"health\": " << healthMonitor_
 		;
 
 	return output.size() - offset;
+}
+
+void Backend::setRole(Role value)
+{
+	if (role_ != value) {
+		role_ = value;
+
+		if (role_ == Role::Terminate) {
+			director_->worker_->post([this](){ tryTermination(); });
+		}
+	}
+}
+
+/**
+ * \note MUST be invoked from within the director's worker thread.
+ */
+bool Backend::tryTermination()
+{
+	if (role_ != Role::Terminate)
+		return false;
+
+	healthMonitor_.stop();
+
+	if (load().current() > 0)
+		return false;
+
+	delete this;
+	return true;
+}
+
+void Backend::terminate()
+{
+	setRole(Role::Terminate);
 }
 
 void Backend::setState(HealthMonitor::State value)

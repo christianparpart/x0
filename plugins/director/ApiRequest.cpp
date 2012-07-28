@@ -469,7 +469,10 @@ bool ApiReqeust::create()
 		return false;
 
 	if (!director->isMutable()) {
-		request_->status = x0::HttpError::MethodNotAllowed;
+		request_->log(Severity::error, "director: Could not create backend '%s' at director '%s'. Director immutable.",
+			name.c_str(), director->name().c_str());
+
+		request_->status = x0::HttpError::Forbidden;
 		request_->finish();
 		return true;
 	}
@@ -539,6 +542,15 @@ bool ApiReqeust::updateDirector(Director* director)
 	if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
 		return false;
 
+	if (!director->isMutable()) {
+		request_->log(Severity::error, "director: Could not update director '%s'. Director immutable.",
+			director->name().c_str());
+
+		request_->status = x0::HttpError::Forbidden;
+		request_->finish();
+		return true;
+	}
+
 	director->setQueueLimit(queueLimit);
 	director->setMaxRetryCount(maxRetryCount);
 
@@ -579,7 +591,10 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 		return false;
 
 	if (!director->isMutable()) {
-		request_->status = x0::HttpError::MethodNotAllowed;
+		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
+			name.c_str(), director->name().c_str());
+
+		request_->status = x0::HttpError::Forbidden;
 		request_->finish();
 		return true;
 	}
@@ -600,7 +615,54 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 // delete a backend
 bool ApiReqeust::destroy()
 {
-	return false;
+	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	if (tokens.size() != 2) {
+		request_->log(Severity::error, "director: Could not delete backend. Invalid request path '%s'.",
+			path_.str().c_str());
+
+		request_->status = x0::HttpError::InternalServerError;
+		request_->finish();
+		return true;
+	}
+
+	Director* director = findDirector(tokens[0]);
+	if (!director) {
+		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director not found.",
+			tokens[1].c_str(), tokens[0].c_str());
+
+		request_->status = x0::HttpError::NotFound;
+		request_->finish();
+		return true;
+	}
+
+	if (!director->isMutable()) {
+		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director immutable.",
+			tokens[1].c_str(), tokens[0].c_str());
+
+		request_->status = x0::HttpError::Forbidden;
+		request_->finish();
+		return true;
+	}
+
+	Backend* backend = director->findBackend(tokens[1]);
+	if (!backend) {
+		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Backend not found.",
+			tokens[1].c_str(), tokens[0].c_str());
+
+		request_->status = x0::HttpError::NotFound;
+		request_->finish();
+		return true;
+	}
+
+	backend->terminate();
+
+	request_->log(Severity::error, "director: Deleting backend '%s' at director '%s'.",
+		tokens[1].c_str(), tokens[0].c_str());
+
+	request_->status = x0::HttpError::Accepted;
+	request_->finish();
+
+	return true;
 }
 
 std::vector<std::string> ApiReqeust::tokenize(const std::string& input, const std::string& delimiter, char escapeChar, bool exclusive)
