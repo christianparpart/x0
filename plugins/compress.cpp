@@ -34,12 +34,10 @@
 #include <x0/Types.h>
 #include <x0/sysconfig.h>
 
-#include <boost/lexical_cast.hpp>
-#include <boost/tokenizer.hpp>
-
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <cstdlib>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -112,8 +110,7 @@ private:
 
 	void populateContentTypes(const x0::FlowValue& from)
 	{
-		switch (from.type())
-		{
+		switch (from.type()) {
 			case x0::FlowValue::STRING:
 				contentTypes_.push_back(from.toString());
 				break;
@@ -150,7 +147,7 @@ private:
 
 		long long size = 0;
 		if (in->responseHeaders.contains("Content-Length"))
-			size = boost::lexical_cast<int>(in->responseHeaders["Content-Length"]);
+			size = std::atoll(in->responseHeaders["Content-Length"].c_str());
 
 		bool chunked = in->responseHeaders["Transfer->Encoding"] == "chunked";
 
@@ -163,32 +160,23 @@ private:
 		if (!containsMime(in->responseHeaders["Content-Type"]))
 			return;
 
-		if (x0::BufferRef r = in->requestHeader("Accept-Encoding"))
-		{
-			typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
-
+		if (x0::BufferRef r = in->requestHeader("Accept-Encoding")) {
 			std::vector<std::string> items(x0::split<std::string>(r.str(), ", "));
 
 #if defined(HAVE_BZLIB_H)
-			if (std::find(items.begin(), items.end(), "bzip2") != items.end())
-			{
+			if (std::find(items.begin(), items.end(), "bzip2") != items.end()) {
 				in->responseHeaders.push_back("Content-Encoding", "bzip2");
 				in->outputFilters.push_back(std::make_shared<x0::BZip2Filter>(level_));
-			}
-			else
+			} else
 #endif
 #if defined(HAVE_ZLIB_H)
-			if (std::find(items.begin(), items.end(), "gzip") != items.end())
-			{
+			if (std::find(items.begin(), items.end(), "gzip") != items.end()) {
 				in->responseHeaders.push_back("Content-Encoding", "gzip");
 				in->outputFilters.push_back(std::make_shared<x0::GZipFilter>(level_));
-			}
-			else if (std::find(items.begin(), items.end(), "deflate") != items.end())
-			{
+			} else if (std::find(items.begin(), items.end(), "deflate") != items.end()) {
 				in->responseHeaders.push_back("Content-Encoding", "deflate");
 				in->outputFilters.push_back(std::make_shared<x0::DeflateFilter>(level_));
-			}
-			else
+			} else
 #endif
 				return;
 
