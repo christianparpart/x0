@@ -45,6 +45,9 @@ public:
 	static TimeSpan fromHours(std::size_t v) { return TimeSpan(ticksPerHour() * v); }
 	static TimeSpan fromMinutes(std::size_t v) { return TimeSpan(ticksPerMinute() * v); }
 	static TimeSpan fromSeconds(std::size_t v) { return TimeSpan(ticksPerSecond() * v); }
+	static TimeSpan fromMilliseconds(std::size_t v) { return TimeSpan(ev_tstamp(v / 1000 + (v % 1000) / 1000.0f)); }
+
+	std::size_t totalMilliseconds() const { return value_ * 1000; }
 
 	bool operator!() const { return value_ == 0; }
 	operator bool () const { return value_ != 0; }
