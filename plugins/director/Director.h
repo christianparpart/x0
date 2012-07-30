@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Backend.h"
+
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/http/HttpRequest.h>
@@ -7,8 +9,6 @@
 #include <ev++.h>
 
 using namespace x0;
-
-class Backend;
 
 struct DirectorNotes :
 	public CustomData
@@ -46,8 +46,8 @@ private:
 
 	bool mutable_; //!< whether or not one may create/update/delete backends at runtime
 
-	//! set of backends managed by this director.
-	std::vector<Backend*> backends_;
+	// set of backends managed by this director.
+	std::vector<std::vector<Backend*>> backends_;
 
 	std::deque<HttpRequest*> queue_; //! list of queued requests.
 	size_t queueLimit_;
@@ -82,8 +82,6 @@ public:
 	size_t queueLimit() const { return queueLimit_; }
 	void setQueueLimit(size_t value) { queueLimit_ = value; }
 
-	const std::vector<Backend*>& backends() const { return backends_; }
-
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
@@ -111,6 +109,13 @@ public:
 	bool store(const std::string& path = "");
 
 private:
+	const std::vector<Backend*>& backendsWith(Backend::Role role) const;
+	Backend* findLeastLoad(Backend::Role role, bool* allDisabled = nullptr);
+	void pass(HttpRequest* r, DirectorNotes* notes, Backend* backend);
+
+	void link(Backend* backend);
+	void unlink(Backend* backend);
+
 	Backend* selectBackend(HttpRequest* r);
 	Backend* nextBackend(Backend* backend, HttpRequest* r);
 	void enqueue(HttpRequest* r);
@@ -120,3 +125,10 @@ private:
 
 	friend class Backend;
 };
+
+// {{{ inlines
+inline const std::vector<Backend*>& Director::backendsWith(Backend::Role role) const
+{
+	return backends_[static_cast<size_t>(role)];
+}
+// }}}

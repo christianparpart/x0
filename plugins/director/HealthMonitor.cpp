@@ -391,7 +391,7 @@ Buffer& operator<<(Buffer& output, const HealthMonitor& monitor)
 		<< "{"
 		<< "\"mode\": \"" << monitor.mode_str() << "\", "
 		<< "\"state\": \"" << monitor.state_str() << "\", "
-		<< "\"interval\": " << static_cast<unsigned>(monitor.interval().value())
+		<< "\"interval\": " << monitor.interval().totalMilliseconds()
 		<< "}";
 
 	return output;

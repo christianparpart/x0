@@ -26,6 +26,13 @@
 
 using namespace x0;
 
+/**
+ * \class ApiReqeust
+ * \brief implements director's JSON API.
+ *
+ * An instance of this class is to serve one request.
+ */
+
 enum class HttpMethod // {{{
 {
 	Unknown,
@@ -156,6 +163,13 @@ ApiReqeust::~ApiReqeust()
 {
 }
 
+/**
+ * instanciates an ApiReqeust object and passes the given request to it, to actually handle the API request.
+ *
+ * \param directors pointer to the map of directors
+ * \param r the client's request handle
+ * \param path a modified version of the HTTP request path, to be used as such.
+ */
 bool ApiReqeust::process(DirectorMap* directors, HttpRequest* r, const BufferRef& path)
 {
 	ApiReqeust* ar = new ApiReqeust(directors, r, path);
@@ -163,6 +177,9 @@ bool ApiReqeust::process(DirectorMap* directors, HttpRequest* r, const BufferRef
 	return true;
 }
 
+/**
+ * Internal function, used to start processing the request.
+ */
 void ApiReqeust::start()
 {
 	request_->setBodyCallback<ApiReqeust, &ApiReqeust::onBodyChunk>(this);
@@ -204,8 +221,9 @@ bool ApiReqeust::hasParam(const std::string& key) const
 bool ApiReqeust::loadParam(const std::string& key, bool& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
 		return false;
+	}
 
 	result = i->second == "true"
 		|| i->second == "1";
@@ -231,6 +249,17 @@ bool ApiReqeust::loadParam(const std::string& key, size_t& result)
 		return false;
 
 	result = std::atoll(i->second.c_str());
+
+	return true;
+}
+
+bool ApiReqeust::loadParam(const std::string& key, TimeSpan& result)
+{
+	auto i = args_.find(key);
+	if (i == args_.end())
+		return false;
+
+	result = TimeSpan::fromMilliseconds(std::atoll(i->second.c_str()));
 
 	return true;
 }
@@ -460,7 +489,7 @@ bool ApiReqeust::create()
 	if (!loadParam("port", port))
 		return false;
 
-	int hcInterval;
+	TimeSpan hcInterval;
 	if (!loadParam("health-check-interval", hcInterval))
 		return false;
 
@@ -481,7 +510,7 @@ bool ApiReqeust::create()
 	if (protocol == "fastcgi") {
 		// TODO fastcgi creation
 		request_->status = x0::HttpError::NotImplemented;
-	} else {
+	} else if (protocol == "http") {
 		// protocol == "http"
 
 		backend = director->findBackend(name);
@@ -490,12 +519,14 @@ bool ApiReqeust::create()
 
 		backend = new HttpBackend(director, name, capacity, hostname, port);
 		request_->status = x0::HttpError::Created;
+	} else {
+		request_->status = x0::HttpError::BadRequest;
 	}
 
 	if (backend) {
 		backend->setRole(role);
 		backend->setEnabled(enabled);
-		backend->healthMonitor().setInterval(TimeSpan::fromSeconds(hcInterval));
+		backend->healthMonitor().setInterval(hcInterval);
 		backend->healthMonitor().setMode(hcMode);
 	}
 
@@ -521,13 +552,16 @@ bool ApiReqeust::update()
 
 	Director* director = findDirector(tokens[0]);
 	if (!director) {
+		request_->log(Severity::error,
+			"director: Failed to update a resource with director '%s' not found (from path: '%s').",
+			tokens[0].c_str(), path_.ref(1).str().c_str());
 		request_->status = x0::HttpError::NotFound;
 		request_->finish();
 		return true;
 	}
 
 	if (tokens.size() == 2)
-		return updateBackend(director, tokens[2]);
+		return updateBackend(director, tokens[1]);
 	else
 		return updateDirector(director);
 }
@@ -563,32 +597,37 @@ bool ApiReqeust::updateDirector(Director* director)
 
 bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 {
-	if (name.empty())
+	if (name.empty()) {
+		request_->log(Severity::error, "director: Cannot update backend with empty name.");
 		return false;
+	}
+
+	Backend* backend = director->findBackend(name);
+	if (!backend) {
+		request_->log(Severity::error, "director: Could not update backend '%s' of director '%s'. Backend not found.",
+				name.c_str(), director->name().c_str());
+		return false;
+	}
 
 	Backend::Role role;
 	if (!loadParam("role", role))
-		return false;
+		role = backend->role();
 
 	bool enabled;
 	if (!loadParam("enabled", enabled))
-		return false;
+		enabled = backend->isEnabled();
 
 	size_t capacity;
 	if (!loadParam("capacity", capacity))
-		return false;
+		capacity = backend->capacity();
 
-	Backend* backend = director->findBackend(name);
-	if (!backend)
-		return false;
-
-	int hcInterval;
+	TimeSpan hcInterval;
 	if (!loadParam("health-check-interval", hcInterval))
-		return false;
+		hcInterval = backend->healthMonitor().interval();
 
 	HealthMonitor::Mode hcMode;
 	if (!loadParam("health-check-mode", hcMode))
-		return false;
+		hcMode = backend->healthMonitor().mode();
 
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
@@ -602,7 +641,7 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 	backend->setRole(role);
 	backend->setEnabled(enabled);
 	backend->setCapacity(capacity);
-	backend->healthMonitor().setInterval(TimeSpan::fromSeconds(hcInterval));
+	backend->healthMonitor().setInterval(hcInterval);
 	backend->healthMonitor().setMode(hcMode);
 
 	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());

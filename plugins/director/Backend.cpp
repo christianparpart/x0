@@ -32,15 +32,12 @@ Backend::Backend(Director* director, const std::string& name, size_t capacity) :
 		}
 	});
 
-	director_->backends_.push_back(this);
+	director_->link(this);
 }
 
 Backend::~Backend()
 {
-	auto i = std::find(director_->backends_.begin(), director_->backends_.end(), this);
-	if (i != director_->backends_.end()) {
-		director_->backends_.erase(i);
-	}
+	director_->unlink(this);
 }
 
 size_t Backend::capacity() const
@@ -84,8 +81,11 @@ size_t Backend::writeJSON(Buffer& output) const
 
 void Backend::setRole(Role value)
 {
+	director_->worker_->log(Severity::debug, "setRole(%d) (from %d)", value, role_);
 	if (role_ != value) {
+		director_->unlink(this);
 		role_ = value;
+		director_->link(this);
 
 		if (role_ == Role::Terminate) {
 			director_->worker_->post([this](){ tryTermination(); });

@@ -15,6 +15,12 @@
 
 using namespace x0;
 
+/**
+ * Initializes a director object (load balancer instance).
+ *
+ * \param worker the worker associated with this director's local jobs (e.g. backend health checks).
+ * \param name the unique human readable name of this director (load balancer) instance.
+ */
 Director::Director(HttpWorker* worker, const std::string& name) :
 #ifndef NDEBUG
 	Logging("Director/%s", name.c_str()),
@@ -31,6 +37,8 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	maxRetryCount_(6),
 	storagePath_()
 {
+	backends_.resize(4);
+
 	worker_->registerStopHandler(std::bind(&Director::onStop, this));
 }
 
@@ -48,9 +56,11 @@ void Director::onStop()
 {
 	TRACE("onStop()");
 
-	for (auto backend: backends_) {
-		backend->disable();
-		backend->healthMonitor().stop();
+	for (auto& br: backends_) {
+		for (auto backend: br) {
+			backend->disable();
+			backend->healthMonitor().stop();
+		}
 	}
 }
 
@@ -58,8 +68,9 @@ size_t Director::capacity() const
 {
 	size_t result = 0;
 
-	for (auto b: backends_)
-		result += b->capacity();
+	for (auto& br: backends_)
+		for (auto b: br)
+			result += b->capacity();
 
 	return result;
 }
@@ -91,13 +102,18 @@ Backend* Director::createBackend(const std::string& name, const std::string& pro
 
 Backend* Director::findBackend(const std::string& name)
 {
-	for (auto i: backends_)
-		if (i->name() == name)
-			return i;
+	for (auto& br: backends_)
+		for (auto b: br)
+			if (b->name() == name)
+				return b;
 
 	return nullptr;
 }
 
+/**
+ * Schedules the passed request to the best fitting backend.
+ * \param r the request to be processed by one of the directors backends.
+ */
 void Director::schedule(HttpRequest* r)
 {
 	r->responseHeaders.push_back("X-Director-Cluster", name_);
@@ -106,32 +122,112 @@ void Director::schedule(HttpRequest* r)
 
 	auto notes = r->customData<DirectorNotes>(this);
 
-	// favor the pre-selected backend, if non pre-selected, select the least loaded one.
-	Backend* backend = notes->backend;
-	if (!backend) {
-		backend = selectBackend(r);
-	} else if (!backend->healthMonitor().isOnline()) {
-		// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
-		r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
-			backend->name().c_str(), backend->healthMonitor().state_str().c_str());
-		r->status = x0::HttpError::ServiceUnavailable;
-		r->finish();
-		return;
+	bool allDisabled = false;
+
+	if (notes->backend) {
+		if (notes->backend->healthMonitor().isOnline()) {
+			pass(r, notes, notes->backend);
+		} else {
+			// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
+			r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
+				notes->backend->name().c_str(), notes->backend->healthMonitor().state_str().c_str());
+			r->status = x0::HttpError::ServiceUnavailable;
+			r->finish();
+		}
 	}
-
-	if (backend) {
-		notes->backend = backend;
-
-		++load_;
-		++backend->load_;
-
-		backend->process(r);
-	} else if (queue_.size() < queueLimit_) {
+	else if (Backend* backend = findLeastLoad(Backend::Role::Active, &allDisabled)) {
+		pass(r, notes, backend);
+	}
+	else if (Backend* backend = findLeastLoad(Backend::Role::Standby, &allDisabled)) {
+		pass(r, notes, backend);
+	}
+	else if (queue_.size() < queueLimit_ && !allDisabled) {
 		enqueue(r);
-	} else {
+	}
+	else if (Backend* backend = findLeastLoad(Backend::Role::Backup)) {
+		pass(r, notes, backend);
+	}
+	else if (queue_.size() < queueLimit_) {
+		enqueue(r);
+	}
+	else {
 		r->log(Severity::error, "director: '%s' queue limit %zu reached. Rejecting request.", name_.c_str(), queueLimit_);
 		r->status = HttpError::ServiceUnavailable;
 		r->finish();
+	}
+}
+
+Backend* Director::findLeastLoad(Backend::Role role, bool* allDisabled)
+{
+	Backend* best = nullptr;
+	size_t bestAvail = 0;
+	size_t enabledAndOnline = 0;
+
+	for (auto backend: backendsWith(role)) {
+		if (!backend->isEnabled() || !backend->healthMonitor().isOnline()) {
+			TRACE("findLeastLoad: skip %s (disabled)", backend->name().c_str());
+			continue;
+		}
+
+		++enabledAndOnline;
+
+		size_t l = backend->load().current();
+		size_t c = backend->capacity();
+		size_t avail = c - l;
+
+#ifndef NDEBUG
+		worker_->log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
+#endif
+
+		if (avail > bestAvail) {
+#ifndef NDEBUG
+			worker_->log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), 
+					best ? best->name().c_str() : "(null)");
+#endif
+			bestAvail = avail;
+			best = backend;
+		}
+	}
+
+	if (allDisabled != nullptr) {
+		*allDisabled = enabledAndOnline == 0;
+	}
+
+	if (bestAvail > 0) {
+#ifndef NDEBUG
+		worker_->log(Severity::debug, "selecting backend %s", best->name().c_str());
+#endif
+		return best;
+	}
+
+#ifndef NDEBUG
+	worker_->log(Severity::debug, "selecting backend (role %d) failed", static_cast<int>(role));
+#endif
+	return nullptr;
+}
+
+void Director::pass(HttpRequest* r, DirectorNotes* notes, Backend* backend)
+{
+	notes->backend = backend;
+
+	++load_;
+	++backend->load_;
+
+	backend->process(r);
+}
+
+void Director::link(Backend* backend)
+{
+	backends_[static_cast<size_t>(backend->role_)].push_back(backend);
+}
+
+void Director::unlink(Backend* backend)
+{
+	auto& br = backends_[static_cast<size_t>(backend->role_)];
+	auto i = std::find(br.begin(), br.end(), backend);
+
+	if (i != br.end()) {
+		br.erase(i);
 	}
 }
 
@@ -188,63 +284,23 @@ void Director::enqueue(HttpRequest* r)
 	++queued_;
 }
 
-Backend* Director::selectBackend(HttpRequest* r)
-{
-	Backend* best = nullptr;
-	size_t bestAvail = 0;
-
-	for (Backend* backend: backends_) {
-		if (!backend->isEnabled() || !backend->healthMonitor().isOnline()) {
-			TRACE("selectBackend: skip %s (disabled)", backend->name().c_str());
-			continue;
-		}
-
-		size_t l = backend->load().current();
-		size_t c = backend->capacity();
-		size_t avail = c - l;
-
-#ifndef NDEBUG
-		r->log(Severity::debug, "selectBackend: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
-#endif
-
-		if (avail > bestAvail) {
-#ifndef NDEBUG
-			r->log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), 
-					best ? best->name().c_str() : "(null)");
-#endif
-			bestAvail = avail;
-			best = backend;
-		}
-	}
-
-	if (bestAvail > 0) {
-#ifndef NDEBUG
-		r->log(Severity::debug, "selecting backend %s", best->name().c_str());
-#endif
-		return best;
-	} else {
-#ifndef NDEBUG
-		r->log(Severity::debug, "selecting backend failed");
-#endif
-		return nullptr;
-	}
-}
-
 Backend* Director::nextBackend(Backend* backend, HttpRequest* r)
 {
-	auto i = std::find(backends_.begin(), backends_.end(), backend);
-	if (i != backends_.end()) {
+	auto& backends = backendsWith(backend->role());
+	auto i = std::find(backends.begin(), backends.end(), backend);
+
+	if (i != backends.end()) {
 		auto k = i;
 		++k;
 
-		for (; k != backends_.end(); ++k) {
+		for (; k != backends.end(); ++k) {
 			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
 				return *k;
 
 			TRACE("nextBackend: skip %s", backend->name().c_str());
 		}
 
-		for (k = backends_.begin(); k != i; ++k) {
+		for (k = backends.begin(); k != i; ++k) {
 			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
 				return *k;
 
@@ -321,13 +377,15 @@ void Director::writeJSON(Buffer& output)
 
 	size_t backendNum = 0;
 
-	for (auto backend: backends_) {
-		if (backendNum++)
-			output << ", ";
+	for (auto& br: backends_) {
+		for (auto backend: br) {
+			if (backendNum++)
+				output << ", ";
 
-		output << "\n    {";
-		backend->writeJSON(output);
-		output << "}";
+			output << "\n    {";
+			backend->writeJSON(output);
+			output << "}";
+		}
 	}
 
 	output << "\n  ]\n}\n";

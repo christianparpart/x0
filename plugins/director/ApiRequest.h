@@ -5,6 +5,7 @@
 
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
+#include <x0/TimeSpan.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/http/HttpRequest.h>
 
@@ -45,6 +46,7 @@ protected:
 	bool loadParam(const std::string& key, bool& result);
 	bool loadParam(const std::string& key, int& result);
 	bool loadParam(const std::string& key, size_t& result);
+	bool loadParam(const std::string& key, x0::TimeSpan& result);
 	bool loadParam(const std::string& key, Backend::Role& result);
 	bool loadParam(const std::string& key, HealthMonitor::Mode& result);
 	bool loadParam(const std::string& key, std::string& result);
