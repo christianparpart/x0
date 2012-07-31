@@ -3,9 +3,9 @@
 #include "Backend.h"
 
 /*!
- * \brief implements an HTTP (reverse) proxy.
+ * implements the HTTP backend.
  *
- * \see FastCgiProxy
+ * \see FastCgiBackend
  */
 class HttpBackend : public Backend {
 private:
@@ -21,6 +21,9 @@ public:
 
 	virtual bool process(x0::HttpRequest* r);
 	virtual size_t writeJSON(x0::Buffer& output) const;
+
+	const std::string& hostname() const { return hostname_; }
+	int port() const { return port_; }
 
 private:
 	ProxyConnection* acquireConnection();

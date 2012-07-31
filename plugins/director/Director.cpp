@@ -4,6 +4,7 @@
 
 #include <x0/io/BufferSource.h>
 #include <x0/StringTokenizer.h>
+#include <x0/IniFile.h>
 #include <x0/Url.h>
 #include <fstream>
 
@@ -401,45 +402,150 @@ void Director::writeJSON(Buffer& output)
  */
 bool Director::load(const std::string& path)
 {
-	std::ifstream in(path);
+	IniFile settings;
+	if (!settings.loadFile(path)) {
+		worker_->log(Severity::error, "director: Could not load director settings from file '%s'. %s", path.c_str(), strerror(errno));
+		return false;
+	}
 
-	while (in.good()) {
-		char buf[4096];
-		in.getline(buf, sizeof(buf));
-		size_t len = in.gcount();
+	std::string value;
+	if (!settings.load("director", "queue-limit", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
+		return false;
+	}
 
-		if (!len || buf[0] == '#')
+	queueLimit_ = std::atoll(value.c_str());
+
+	if (!settings.load("director", "max-retry-count", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
+		return false;
+	}
+
+	maxRetryCount_ = std::atoll(value.c_str());
+
+	for (auto& section: settings) {
+		static const std::string backendSectionPrefix("backend=");
+
+		std::string key = section.first;
+		if (key == "director")
 			continue;
 
-		StringTokenizer st(buf, ",", '\\');
-		std::vector<std::string> values(st.tokenize());
-
-		if (values.size() < 8) {
-			worker_->log(Severity::error, "director: Invalid record in director file.");
-			continue;
+		if (key.find(backendSectionPrefix) != 0) {
+			worker_->log(Severity::error, "director: Invalid configuration section '%s' in file '%s'.", key.c_str(), path.c_str());
+			return false;
 		}
 
-		std::string name(values[0]);
-		std::string role(values[1]);
-		size_t capacity = std::atoi(values[2].c_str());
-		std::string protocol(values[3]);
-		bool enabled = values[4] == "true";
-		std::string transport(values[5]);
-		std::string hostname(values[6]);
-		int port = std::atoi(values[7].c_str());
+		std::string name = key.substr(backendSectionPrefix.size());
 
-		Backend* backend = new HttpBackend(this, name, capacity, hostname, port);
-		if (!enabled)
-			backend->disable();
-		if (role == "active")
-			backend->setRole(Backend::Role::Active);
-		else if (role == "standby")
-			backend->setRole(Backend::Role::Standby);
-		else if (role == "backup")
-			backend->setRole(Backend::Role::Backup);
-		else
-			worker_->log(Severity::error, "Invalid backend role '%s'", role.c_str());
+		// role
+		std::string roleStr;
+		if (!settings.load(key, "role", roleStr)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'role' not found in section '%s'.", path.c_str(), key.c_str());
+			return false;
+		}
+
+		Backend::Role role = Backend::Role::Terminate; // aka. Undefined
+		if (roleStr == "active")
+			role = Backend::Role::Active;
+		else if (roleStr == "standby")
+			role = Backend::Role::Standby;
+		else if (roleStr == "backup")
+			role = Backend::Role::Backup;
+		else {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'role' for backend '%s' contains invalid data '%s'.", path.c_str(), key.c_str(), roleStr.c_str());
+			return false;
+		}
+
+		// capacity
+		std::string capacityStr;
+		if (!settings.load(key, "capacity", capacityStr)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'capacity' not found in section '%s'.", path.c_str(), key.c_str());
+			return false;
+		}
+		size_t capacity = std::atoll(capacityStr.c_str());
+
+		// protocol
+		std::string protocol;
+		if (!settings.load(key, "protocol", protocol)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'protocol' not found in section '%s'.", path.c_str(), key.c_str());
+			return false;
+		}
+
+		// enabled
+		std::string enabledStr;
+		if (!settings.load(key, "enabled", enabledStr)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'enabled' not found in section '%s'.", path.c_str(), key.c_str());
+			return false;
+		}
+		bool enabled = enabledStr == "true";
+
+		// health-check-interval
+		std::string hcIntervalStr;
+		if (!settings.load(key, "health-check-interval", hcIntervalStr)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-interval' not found in section '%s'.", path.c_str(), key.c_str());
+			return false;
+		}
+		TimeSpan hcInterval = TimeSpan::fromMilliseconds(std::atoll(hcIntervalStr.c_str()));
+
+		// health-check-mode
+		std::string hcModeStr;
+		if (!settings.load(key, "health-check-mode", hcModeStr)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-mode' not found in section '%s'.", path.c_str(), hcModeStr.c_str(), key.c_str());
+			return false;
+		}
+
+		HealthMonitor::Mode hcMode;
+		if (hcModeStr == "paranoid")
+			hcMode = HealthMonitor::Mode::Paranoid;
+		else if (hcModeStr == "opportunistic")
+			hcMode = HealthMonitor::Mode::Opportunistic;
+		else if (hcModeStr == "lazy")
+			hcMode = HealthMonitor::Mode::Lazy;
+		else {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-mode' invalid ('%s') in section '%s'.", path.c_str(), hcModeStr.c_str(), key.c_str());
+			return false;
+		}
+
+		// host
+		std::string host;
+		if (!settings.load(key, "host", host)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'host' not found in section '%s'.", path.c_str(), key.c_str());
+			return false;
+		}
+
+		// port
+		std::string portStr;
+		if (!settings.load(key, "port", portStr)) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'port' not found in section '%s'.", path.c_str(), key.c_str());
+			return false;
+		}
+
+		int port = std::atoi(portStr.c_str());
+		if (port <= 0) {
+			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Invalid port number '%s' for backend '%s'", path.c_str(), portStr.c_str(), name.c_str());
+			return false;
+		}
+
+		// spawn backend (by protocol)
+		Backend* backend = nullptr;
+		if (protocol == "fastcgi") {
+			worker_->log(Severity::error, "director: FastCGI currently not supported.");
+		} else if (protocol == "http") {
+			backend = new HttpBackend(this, name, capacity, host, port);
+		} else {
+			worker_->log(Severity::error, "director: Invalid protocol '%s' for backend '%s' in configuration file '%s'.", protocol.c_str(), name.c_str(), path.c_str());
+		}
+
+		if (!backend)
+			return false;
+
+		backend->setEnabled(enabled);
+		backend->setRole(role);
+		backend->healthMonitor().setMode(hcMode);
+		backend->healthMonitor().setInterval(hcInterval);
 	}
+
+	storagePath_ = path;
 
 	setMutable(true);
 
@@ -449,16 +555,42 @@ bool Director::load(const std::string& path)
 /**
  * stores director configuration in a plaintext file.
  *
- * \param pathOverride if not empty, store data into this file's path, oetherwise use the one we loaded from.
  * \todo this must happen asynchronousely, never ever block within the callers thread (or block in a dedicated thread).
  */
-bool Director::store(const std::string& pathOverride)
+bool Director::save()
 {
 	static const std::string header("name,role,capacity,protocol,enabled,transport,host,port");
-	std::string path = !pathOverride.empty() ? pathOverride : storagePath_;
+	std::string path = storagePath_;
 	std::ofstream out(path, std::ios_base::out | std::ios_base::trunc);
 
-	// TODO
+	out << "# vim:syntax=dosini\n"
+		<< "# !!! DO NOT EDIT !!! THIS FILE IS GENERATED AUTOMATICALLY !!!\n\n"
+		<< "[director]\n"
+		<< "queue-limit=" << queueLimit_ << "\n"
+		<< "max-retry-count=" << maxRetryCount_ << "\n"
+		<< "\n";
+
+	for (auto& br: backends_) {
+		for (auto b: br) {
+			out << "[backend=" << b->name() << "]\n"
+				<< "role=" << b->role_str() << "\n"
+				<< "capacity=" << b->capacity() << "\n"
+				<< "enabled=" << (b->isEnabled() ? "true" : "false") << "\n"
+				<< "transport=" << "tcp" << "\n"
+				<< "health-check-mode=" << b->healthMonitor().mode_str() << "\n"
+				<< "health-check-interval=" << b->healthMonitor().interval().totalMilliseconds() << "\n";
+
+			if (HttpBackend* be = dynamic_cast<HttpBackend*>(b)) {
+				out << "protocol=" << "http" << "\n"
+					<< "host=" << be->hostname() << "\n"
+					<< "port=" << be->port() << "\n";
+			} else {
+				out << "# TODO: writing backend-specific items for this backend not supported\n";
+			}
+
+			out << "\n";
+		}
+	}
 
 	return true;
 }

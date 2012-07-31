@@ -528,6 +528,7 @@ bool ApiReqeust::create()
 		backend->setEnabled(enabled);
 		backend->healthMonitor().setInterval(hcInterval);
 		backend->healthMonitor().setMode(hcMode);
+		director->save();
 	}
 
 	request_->finish();
@@ -587,6 +588,7 @@ bool ApiReqeust::updateDirector(Director* director)
 
 	director->setQueueLimit(queueLimit);
 	director->setMaxRetryCount(maxRetryCount);
+	director->save();
 
 	request_->log(Severity::info, "director: %s reconfigured.", director->name().c_str());
 	request_->status = x0::HttpError::Accepted;
@@ -643,6 +645,7 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 	backend->setCapacity(capacity);
 	backend->healthMonitor().setInterval(hcInterval);
 	backend->healthMonitor().setMode(hcMode);
+	director->save();
 
 	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
 	request_->status = x0::HttpError::Accepted;
@@ -694,6 +697,7 @@ bool ApiReqeust::destroy()
 	}
 
 	backend->terminate();
+	director->save();
 
 	request_->log(Severity::error, "director: Deleting backend '%s' at director '%s'.",
 		tokens[1].c_str(), tokens[0].c_str());

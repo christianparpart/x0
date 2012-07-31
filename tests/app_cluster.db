@@ -1,5 +1,40 @@
-# name,role,capacity,protocol,enabled,transport,hostname,port
-app3101,active,1,http,true,tcp,127.0.0.1,3101
-app3102,active,1,http,true,tcp,127.0.0.1,3102
-app3103,active,1,http,true,tcp,127.0.0.1,3103
-app3104,active,1,http,true,tcp,127.0.0.1,3104
+# vim:syntax=dosini
+# !!! DO NOT EDIT !!! THIS FILE IS GENERATED AUTOMATICALLY !!!
+
+[director]
+queue-limit=127
+max-retry-count=3
+
+[backend=app3101]
+role=active
+capacity=1
+enabled=true
+transport=tcp
+health-check-mode=paranoid
+health-check-interval=2000
+protocol=http
+host=127.0.0.1
+port=3101
+
+[backend=app3102]
+role=standby
+capacity=2
+enabled=true
+transport=tcp
+health-check-mode=paranoid
+health-check-interval=2000
+protocol=http
+host=127.0.0.1
+port=3102
+
+[backend=app3103]
+role=backup
+capacity=3
+enabled=true
+transport=tcp
+health-check-mode=paranoid
+health-check-interval=2000
+protocol=http
+host=127.0.0.1
+port=3103
+

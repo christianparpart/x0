@@ -106,7 +106,7 @@ public:
 	void writeJSON(x0::Buffer& output);
 
 	bool load(const std::string& path);
-	bool store(const std::string& path = "");
+	bool save();
 
 private:
 	const std::vector<Backend*>& backendsWith(Backend::Role role) const;
