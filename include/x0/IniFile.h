@@ -50,14 +50,22 @@ public:
 	/// gets value of given section->key pair.
 	std::string get(const std::string& title, const std::string& key) const;
 
+	bool get(const std::string& title, const std::string& key, std::string& result) const;
+
 	/// sets value of given section->key pair.
 	std::string set(const std::string& title, const std::string& key, const std::string& value);
+
+	/// loads given \p key from given \p title into \p result.
+	bool load(const std::string& title, const std::string& key, std::string& result) const;
 
 	/// removes given data by key from given section.
 	void remove(const std::string& title, const std::string& key);
 
-	const_iterator cbegin() const;
-	const_iterator cend() const;
+	iterator begin() const { return sections_.begin(); }
+	iterator end() const { return sections_.end(); }
+
+	const_iterator cbegin() const { return sections_.cbegin(); }
+	const_iterator cend() const { return sections_.cend(); }
 
 private:
 	mutable SectionMap sections_;

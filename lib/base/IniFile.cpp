@@ -144,17 +144,32 @@ std::string IniFile::get(const std::string& title, const std::string& key) const
 {
 	auto i = sections_.find(title);
 
-	if (i != sections_.end())
-	{
+	if (i != sections_.end()) {
 		auto s = i->second;
 		auto k = s.find(key);
 
-		if (k != s.end())
-		{
+		if (k != s.end()) {
 			return k->second;
 		}
 	}
 	return std::string();
+}
+
+bool IniFile::load(const std::string& title, const std::string& key, std::string& result) const
+{
+	auto i = sections_.find(title);
+
+	if (i == sections_.end())
+		return false;
+
+	auto s = i->second;
+	auto k = s.find(key);
+
+	if (k == s.end()) 
+		return false;
+
+	result = k->second;
+	return true;
 }
 
 std::string IniFile::set(const std::string& title, const std::string& key, const std::string& value)
@@ -173,16 +188,6 @@ void IniFile::remove(const std::string& title, const std::string& key)
 			s.erase(key);
 		}
 	}
-}
-
-IniFile::const_iterator IniFile::cbegin() const
-{
-	return sections_.cbegin();
-}
-
-IniFile::const_iterator IniFile::cend() const
-{
-	return sections_.cend();
 }
 
 } // namespace x0
