@@ -26,6 +26,7 @@ public:
 		backlog_(backlog)
 	{}
 
+	static SocketSpec fromString(const std::string& value);
 	static SocketSpec fromLocal(const std::string& path, int backlog = -1);
 	static SocketSpec fromInet(const IPAddress& ipaddr, int port, int backlog = -1);
 

@@ -45,6 +45,45 @@ std::string SocketSpec::str() const
 	}
 }
 
+// unix:/var/run/x0d.sock
+// [3ffe:1337::2691:1]:8080
+SocketSpec SocketSpec::fromString(const std::string& value)
+{
+	size_t slen = value.size();
+	if (slen == 0)
+		return SocketSpec();
+
+	if (value.find("unix:") == 0)
+		return SocketSpec::fromLocal(value.substr(5));
+
+	if (value[0] == '[') { // IPv6
+		auto e = value.find("]");
+		if (e == std::string::npos)
+			return SocketSpec();
+
+		if (e + 1 <= slen)
+			return SocketSpec();
+
+		if (value[e + 1] != ':')
+			return SocketSpec();
+
+		std::string ipaddr(value.substr(1, e - 1));
+		std::string port(value.substr(e + 2));
+
+		return SocketSpec::fromInet(IPAddress(ipaddr), std::atoi(port.c_str()));
+	}
+
+	auto e = value.find(':');
+
+	if (e <= slen)
+		return SocketSpec();
+
+	std::string ipaddr(value.substr(1, e - 1));
+	std::string port(value.substr(e + 2));
+
+	return SocketSpec::fromInet(IPAddress(ipaddr), std::atoi(port.c_str()));
+}
+
 SocketSpec SocketSpec::fromLocal(const std::string& path, int backlog)
 {
 	SocketSpec ss;
