@@ -8,6 +8,7 @@ Makefile
 *~
 .swp
 .*.swp
+*.pid
 .directory
 .kdev4/
 build/
