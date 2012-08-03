@@ -5,6 +5,7 @@
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/TimeSpan.h>
+#include <x0/SocketSpec.h>
 #include <x0/http/HttpRequest.h>
 
 class Director;
@@ -12,7 +13,7 @@ class Director;
 /*!
  * \brief abstract base class for the actual proxying instances as used by \c Director.
  *
- * \see HttpBackend, FastCgiProxy
+ * \see HttpBackend, FastCgiBackend
  */
 class Backend
 #ifndef NDEBUG
@@ -36,13 +37,16 @@ protected:
 
 	Role role_; //!< backend role (Active or Standby)
 	bool enabled_; //!< whether or not this director is enabled (default) or disabled (for example for maintenance reasons)
+	x0::SocketSpec socketSpec_; //!< Backend socket spec.
 	HealthMonitor healthMonitor_; //!< health check timer
 
 	friend class Director;
 
 public:
-	Backend(Director* director, const std::string& name, size_t capacity = 1);
+	Backend(Director* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity);
 	virtual ~Backend();
+
+	virtual const std::string& protocol() const = 0;
 
 	const std::string& name() const { return name_; }		//!< descriptive name of backend.
 	Director* director() const { return director_; }		//!< pointer to the owning director.
@@ -51,6 +55,8 @@ public:
 	void setCapacity(size_t value);
 
 	const x0::Counter& load() const { return load_; }		//!< number of currently being processed requests.
+
+	const x0::SocketSpec& socketSpec() const { return socketSpec_; } //!< retrieves the backend socket spec
 
 	// role
 	Role role() const { return role_; }
@@ -81,22 +87,4 @@ protected:
 
 protected:
 	void setState(HealthMonitor::State value);
-};
-
-/*! dummy proxy, just returning 503 (service unavailable).
- */
-class NullProxy : public Backend {
-public:
-	NullProxy(Director* director, const std::string& name, size_t capacity);
-
-	virtual bool process(x0::HttpRequest* r);
-};
-
-class FastCgiProxy : public Backend {
-public:
-	FastCgiProxy(Director* director, const std::string& name, size_t capacity, const std::string& url);
-	~FastCgiProxy();
-
-	virtual bool process(x0::HttpRequest* r);
-	virtual size_t writeJSON(x0::Buffer& output) const;
 };

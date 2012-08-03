@@ -10,7 +10,7 @@
 
 using namespace x0;
 
-Backend::Backend(Director* director, const std::string& name, size_t capacity) :
+Backend::Backend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
 #ifndef NDEBUG
 	Logging("Backend/%s", name.c_str()),
 #endif
@@ -20,6 +20,7 @@ Backend::Backend(Director* director, const std::string& name, size_t capacity) :
 	load_(),
 	role_(Role::Active),
 	enabled_(true),
+	socketSpec_(socketSpec),
 	healthMonitor_(director_->worker_)
 {
 	healthMonitor_.onStateChange([&](HealthMonitor*) {
@@ -62,21 +63,27 @@ const std::string& Backend::role_str() const
 	return str[static_cast<unsigned>(role_)];
 }
 
-size_t Backend::writeJSON(Buffer& output) const
+size_t Backend::writeJSON(Buffer& out) const
 {
 	static const std::string boolStr[] = { "false", "true" };
-	size_t offset = output.size();
+	size_t offset = out.size();
 
-	output
-		<< "\"name\": \"" << name_ << "\", "
+	out << "\"name\": \"" << name_ << "\", "
 		<< "\"capacity\": " << capacity_ << ", "
 		<< "\"enabled\": " << boolStr[enabled_] << ", "
+		<< "\"protocol\": \"" << protocol() << "\", "
 		<< "\"role\": \"" << role_str() << "\",\n     "
 		<< "\"load\": " << load_ << ",\n     "
-		<< "\"health\": " << healthMonitor_
-		;
+		<< "\"health\": " << healthMonitor_ << ",\n     ";
 
-	return output.size() - offset;
+	if (socketSpec_.isInet()) {
+		out << "\"hostname\": \"" << socketSpec_.ipaddr().str() << "\"";
+		out << ", \"port\": " << socketSpec_.port();
+	} else {
+		out << "\"path\": \"" << socketSpec_.local() << "\"";
+	}
+
+	return out.size() - offset;
 }
 
 void Backend::setRole(Role value)
@@ -142,17 +149,3 @@ void Backend::release()
 	--load_;
 	director_->release(this);
 }
-
-// {{{ NullProxy
-NullProxy::NullProxy(Director* director, const std::string& name, size_t capacity) :
-	Backend(director, name, capacity)
-{
-}
-
-bool NullProxy::process(HttpRequest* r)
-{
-	r->status = HttpError::ServiceUnavailable;
-	r->finish();
-	return true;
-}
-// }}}

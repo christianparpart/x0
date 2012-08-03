@@ -91,8 +91,8 @@ public:
 		int port, const std::string& path, const std::string& query);
 
 	template<typename T, typename... Args>
-	Backend* createBackend(const std::string& name, size_t capacity, const Args&... args) {
-		return new T(this, name, capacity, args...);
+	Backend* createBackend(const std::string& name, const SocketSpec& ss, size_t capacity, const Args&... args) {
+		return new T(this, name, ss, capacity, args...);
 	}
 
 	Backend* findBackend(const std::string& name);

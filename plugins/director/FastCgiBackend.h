@@ -26,15 +26,15 @@ public:
 	x0::SocketSpec spec_;
 
 public:
-	FastCgiBackend(Director* director, const std::string& name, size_t capacity, const std::string& hostname, int port);
+	FastCgiBackend(Director* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity);
 	~FastCgiBackend();
 
 	x0::HttpServer& server() const { return server_; }
 
 	void setup(const x0::SocketSpec& spec);
 
+	virtual const std::string& protocol() const;
 	virtual bool process(x0::HttpRequest* r);
-	virtual size_t writeJSON(x0::Buffer& output) const;
 
 	void release(CgiTransport *transport);
 };

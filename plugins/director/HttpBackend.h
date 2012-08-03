@@ -11,19 +11,14 @@ class HttpBackend : public Backend {
 private:
 	class ProxyConnection;
 
-	std::string hostname_;
-	int port_;
-
 public:
-	//HttpBackend(Director* director, const std::string& name, size_t capacity, const std::string& url);
-	HttpBackend(Director* director, const std::string& name, size_t capacity, const std::string& hsotname, int port);
+	HttpBackend(Director* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity);
 	~HttpBackend();
 
+	virtual const std::string& protocol() const;
 	virtual bool process(x0::HttpRequest* r);
-	virtual size_t writeJSON(x0::Buffer& output) const;
 
-	const std::string& hostname() const { return hostname_; }
-	int port() const { return port_; }
+	const x0::SocketSpec& socketSpec() const { return socketSpec_; }
 
 private:
 	ProxyConnection* acquireConnection();

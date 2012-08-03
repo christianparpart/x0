@@ -482,13 +482,21 @@ bool ApiReqeust::create()
 	if (protocol != "fastcgi" && protocol != "http")
 		return false;
 
-	std::string hostname;
-	if (!loadParam("hostname", hostname))
-		return false;
+	SocketSpec socketSpec;
+	std::string path;
+	if (loadParam("path", path)) {
+		socketSpec = SocketSpec::fromLocal(path);
+	} else {
+		std::string hostname;
+		if (!loadParam("hostname", hostname))
+			return false;
 
-	int port;
-	if (!loadParam("port", port))
-		return false;
+		int port;
+		if (!loadParam("port", port))
+			return false;
+
+		socketSpec = SocketSpec::fromInet(IPAddress(hostname), port);
+	}
 
 	TimeSpan hcInterval;
 	if (!loadParam("health-check-interval", hcInterval))
@@ -513,7 +521,7 @@ bool ApiReqeust::create()
 		if (backend)
 			return false;
 
-		backend = new FastCgiBackend(director, name, capacity, hostname, port);
+		backend = new FastCgiBackend(director, name, socketSpec, capacity);
 		request_->status = x0::HttpError::Created;
 	} else if (protocol == "http") {
 		// protocol == "http"
@@ -522,7 +530,7 @@ bool ApiReqeust::create()
 		if (backend)
 			return false;
 
-		backend = new HttpBackend(director, name, capacity, hostname, port);
+		backend = new HttpBackend(director, name, socketSpec, capacity);
 		request_->status = x0::HttpError::Created;
 	} else {
 		request_->status = x0::HttpError::BadRequest;

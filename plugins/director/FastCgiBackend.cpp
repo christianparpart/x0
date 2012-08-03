@@ -606,10 +606,9 @@ void CgiTransport::inspect(x0::Buffer& out)
 // {{{ FastCgiBackend impl
 std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 
-FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, size_t capacity, const std::string& hostname, int port) :
-	Backend(director, name, capacity),
-	server_(director->worker().server()),
-	spec_(SocketSpec::fromInet(IPAddress(hostname), port))
+FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
+	Backend(director, name, socketSpec, capacity),
+	server_(director->worker().server())
 {
 }
 
@@ -622,7 +621,13 @@ void FastCgiBackend::setup(const x0::SocketSpec& spec)
 #ifndef NDEBUG
 	setLoggingPrefix("FastCgiBackend(%s)", spec.str().c_str());
 #endif
-	spec_ = spec;
+	socketSpec_ = spec;
+}
+
+const std::string& FastCgiBackend::protocol() const
+{
+	static const std::string value("fastcgi");
+	return value;
 }
 
 bool FastCgiBackend::process(x0::HttpRequest* r)
@@ -630,10 +635,10 @@ bool FastCgiBackend::process(x0::HttpRequest* r)
 	TRACE("FastCgiBackend.process()");
 
 	x0::Socket* socket = new x0::Socket(r->connection.worker().loop());
-	socket->open(spec_, O_NONBLOCK | O_CLOEXEC);
+	socket->open(socketSpec_, O_NONBLOCK | O_CLOEXEC);
 
 	if (!socket->isOpen()) {
-		r->log(x0::Severity::error, "fastcgi: connection to backend %s failed: %s", spec_.str().c_str(), strerror(errno));
+		r->log(x0::Severity::error, "fastcgi: connection to backend %s failed: %s", socketSpec_.str().c_str(), strerror(errno));
 		delete socket;
 		return false;
 	}
@@ -646,24 +651,6 @@ bool FastCgiBackend::process(x0::HttpRequest* r)
 	transport->bind(r, nextID_, socket);
 
 	return true;
-}
-
-size_t FastCgiBackend::writeJSON(x0::Buffer& out) const
-{
-	size_t offset = out.size();
-
-	Backend::writeJSON(out);
-
-	out << ",\n     \"type\": \"fastcgi\"";
-
-	if (spec_.isInet()) {
-		out << ", \"hostname\": \"" << spec_.ipaddr().str() << "\"";
-		out << ", \"port\": " << spec_.port();
-	} else {
-		out << ", \"path\": \"" << spec_.local() << "\"";
-	}
-
-	return out.size() - offset;
 }
 
 /**

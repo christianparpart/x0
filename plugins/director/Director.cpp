@@ -97,7 +97,7 @@ Backend* Director::createBackend(const std::string& name, const std::string& pro
 
 	// TODO createBackend<HttpBackend>(hostname, port);
 	if (protocol == "http")
-		return createBackend<HttpBackend>(name, capacity, hostname, port);
+		return createBackend<HttpBackend>(name, SocketSpec::fromInet(IPAddress(hostname), port), capacity);
 
 	return nullptr;
 }
@@ -507,32 +507,40 @@ bool Director::load(const std::string& path)
 			return false;
 		}
 
-		// host
-		std::string host;
-		if (!settings.load(key, "host", host)) {
-			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'host' not found in section '%s'.", path.c_str(), key.c_str());
-			return false;
-		}
+		SocketSpec socketSpec;
+		std::string path;
+		if (settings.load(key, "path", path)) {
+			socketSpec = SocketSpec::fromLocal(path);
+		} else {
+			// host
+			std::string host;
+			if (!settings.load(key, "host", host)) {
+				worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'host' not found in section '%s'.", path.c_str(), key.c_str());
+				return false;
+			}
 
-		// port
-		std::string portStr;
-		if (!settings.load(key, "port", portStr)) {
-			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'port' not found in section '%s'.", path.c_str(), key.c_str());
-			return false;
-		}
+			// port
+			std::string portStr;
+			if (!settings.load(key, "port", portStr)) {
+				worker_->log(Severity::error, "director: Error loading configuration file '%s'. Item 'port' not found in section '%s'.", path.c_str(), key.c_str());
+				return false;
+			}
 
-		int port = std::atoi(portStr.c_str());
-		if (port <= 0) {
-			worker_->log(Severity::error, "director: Error loading configuration file '%s'. Invalid port number '%s' for backend '%s'", path.c_str(), portStr.c_str(), name.c_str());
-			return false;
+			int port = std::atoi(portStr.c_str());
+			if (port <= 0) {
+				worker_->log(Severity::error, "director: Error loading configuration file '%s'. Invalid port number '%s' for backend '%s'", path.c_str(), portStr.c_str(), name.c_str());
+				return false;
+			}
+
+			socketSpec = SocketSpec::fromInet(IPAddress(host), port);
 		}
 
 		// spawn backend (by protocol)
 		Backend* backend = nullptr;
 		if (protocol == "fastcgi") {
-			backend = new FastCgiBackend(this, name, capacity, host, port);
+			backend = new FastCgiBackend(this, name, socketSpec, capacity);
 		} else if (protocol == "http") {
-			backend = new HttpBackend(this, name, capacity, host, port);
+			backend = new HttpBackend(this, name, socketSpec, capacity);
 		} else {
 			worker_->log(Severity::error, "director: Invalid protocol '%s' for backend '%s' in configuration file '%s'.", protocol.c_str(), name.c_str(), path.c_str());
 		}
@@ -578,15 +586,15 @@ bool Director::save()
 				<< "capacity=" << b->capacity() << "\n"
 				<< "enabled=" << (b->isEnabled() ? "true" : "false") << "\n"
 				<< "transport=" << "tcp" << "\n"
+				<< "protocol=" << b->protocol() << "\n"
 				<< "health-check-mode=" << b->healthMonitor().mode_str() << "\n"
 				<< "health-check-interval=" << b->healthMonitor().interval().totalMilliseconds() << "\n";
 
-			if (HttpBackend* be = dynamic_cast<HttpBackend*>(b)) {
-				out << "protocol=" << "http" << "\n"
-					<< "host=" << be->hostname() << "\n"
-					<< "port=" << be->port() << "\n";
+			if (b->socketSpec().isInet()) {
+				out << "host=" << b->socketSpec().ipaddr().str() << "\n";
+				out << "port=" << b->socketSpec().port() << "\n";
 			} else {
-				out << "# TODO: writing backend-specific items for this backend not supported\n";
+				out << "path=" << b->socketSpec().local() << "\n";
 			}
 
 			out << "\n";

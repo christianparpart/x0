@@ -426,17 +426,16 @@ void HttpBackend::ProxyConnection::readSome()
 
 // {{{ HttpBackend impl
 HttpBackend::HttpBackend(Director* director, const std::string& name,
-		size_t capacity, const std::string& hostname, int port) :
-	Backend(director, name, capacity),
-	hostname_(hostname),
-	port_(port)
+		const SocketSpec& socketSpec, size_t capacity) :
+	Backend(director, name, socketSpec, capacity)
 {
 #ifndef NDEBUG
 	setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 
-	healthMonitor_.setTarget(SocketSpec::fromInet(IPAddress(hostname_), port_));
+	healthMonitor_.setTarget(socketSpec);
 
+	std::string hostname = socketSpec.str();
 	healthMonitor_.setRequest(
 		"GET / HTTP/1.1\r\n"
 		"Host: %s\r\n"
@@ -444,7 +443,7 @@ HttpBackend::HttpBackend(Director* director, const std::string& name,
 		"x0-Director: %s\r\n"
 		"x0-Backend: %s\r\n"
 		"\r\n",
-		hostname_.c_str(),
+		hostname.c_str(),
 		director_->name().c_str(),
 		name_.c_str()
 	);
@@ -456,12 +455,18 @@ HttpBackend::~HttpBackend()
 {
 }
 
+const std::string& HttpBackend::protocol() const
+{
+	static const std::string value("http");
+	return value;
+}
+
 bool HttpBackend::process(HttpRequest* r)
 {
 	TRACE("process...");
 
 	Socket* backend = new Socket(r->connection.worker().loop());
-	backend->openTcp(hostname_, port_, O_NONBLOCK | O_CLOEXEC);
+	backend->open(socketSpec_, O_NONBLOCK | O_CLOEXEC);
 
 	if (backend->isOpen()) {
 		TRACE("in.content? %d", r->contentAvailable());
@@ -472,25 +477,10 @@ bool HttpBackend::process(HttpRequest* r)
 		}
 	}
 
-	r->log(Severity::error, "HTTP proxy: Could not connect to backend %s:%d. %s",
-		hostname_.c_str(), port_, strerror(errno));
+	r->log(Severity::error, "HTTP proxy: Could not connect to backend %s. %s", socketSpec_.str().c_str(), strerror(errno));
 
 	setState(HealthMonitor::State::Offline);
 
 	return false;
-}
-
-size_t HttpBackend::writeJSON(Buffer& output) const
-{
-	size_t offset = output.size();
-
-	Backend::writeJSON(output);
-
-	output
-		<< ",\n     \"type\": \"http\""
-		<< ", \"hostname\": \"" << hostname_ << "\""
-		<< ", \"port\": " << port_;
-
-	return output.size() - offset;
 }
 // }}}
