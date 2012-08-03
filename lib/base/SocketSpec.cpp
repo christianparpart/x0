@@ -13,6 +13,7 @@ SocketSpec::SocketSpec() :
 SocketSpec::SocketSpec(const SocketSpec& ss) :
 	type_(ss.type_),
 	ipaddr_(ss.ipaddr_),
+	local_(ss.local_),
 	port_(ss.port_),
 	backlog_(ss.backlog_)
 {
