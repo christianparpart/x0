@@ -1,6 +1,7 @@
 #include "Director.h"
 #include "Backend.h"
 #include "HttpBackend.h"
+#include "FastCgiBackend.h"
 
 #include <x0/io/BufferSource.h>
 #include <x0/StringTokenizer.h>
@@ -529,7 +530,7 @@ bool Director::load(const std::string& path)
 		// spawn backend (by protocol)
 		Backend* backend = nullptr;
 		if (protocol == "fastcgi") {
-			worker_->log(Severity::error, "director: FastCGI currently not supported.");
+			backend = new FastCgiBackend(this, name, capacity, host, port);
 		} else if (protocol == "http") {
 			backend = new HttpBackend(this, name, capacity, host, port);
 		} else {

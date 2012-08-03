@@ -310,9 +310,9 @@ bool Socket::openTcp(const std::string& hostname, int port, int flags)
 bool Socket::open(const SocketSpec& spec, int flags)
 {
 	if (spec.isLocal())
-		return openUnix(spec.local, flags);
+		return openUnix(spec.local(), flags);
 	else
-		return openTcp(spec.address.str(), spec.port, flags);
+		return openTcp(spec.ipaddr().str(), spec.port(), flags);
 }
 
 bool Socket::setNonBlocking(bool enabled)

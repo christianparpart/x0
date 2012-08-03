@@ -435,7 +435,7 @@ HttpBackend::HttpBackend(Director* director, const std::string& name,
 	setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 
-	healthMonitor_.setTarget(SocketSpec(IPAddress(hostname_), port_));
+	healthMonitor_.setTarget(SocketSpec::fromInet(IPAddress(hostname_), port_));
 
 	healthMonitor_.setRequest(
 		"GET / HTTP/1.1\r\n"

@@ -477,7 +477,7 @@ private:
 		// TODO: reuse already spawned proxy connections instead of recreating each time.
 		x0::SocketSpec spec;
 		spec << args;
-		if (!spec.isValid() || spec.backlog >= 0) {
+		if (!spec.isValid() || spec.backlog() >= 0) {
 			in->log(x0::Severity::error, "Invalid socket spec passed.");
 			return false;
 		}

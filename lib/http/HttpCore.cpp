@@ -358,7 +358,7 @@ void HttpCore::listen(const FlowParams& args, FlowValue& result)
 	SocketSpec socketSpec;
 	socketSpec << args;
 
-	if (!socketSpec.valid) {
+	if (!socketSpec.isValid()) {
 		result.set(false);
 	} else {
 		result.set(server().setupListener(socketSpec));

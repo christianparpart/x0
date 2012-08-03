@@ -1,7 +1,8 @@
 #include "ApiRequest.h"
 #include "Director.h"
-#include "HttpBackend.h"
 #include "Backend.h"
+#include "HttpBackend.h"
+#include "FastCgiBackend.h"
 
 #include <x0/StringTokenizer.h>
 #include <x0/http/HttpHeader.h>
@@ -508,8 +509,12 @@ bool ApiReqeust::create()
 
 	Backend* backend = nullptr;
 	if (protocol == "fastcgi") {
-		// TODO fastcgi creation
-		request_->status = x0::HttpError::NotImplemented;
+		backend = director->findBackend(name);
+		if (backend)
+			return false;
+
+		backend = new FastCgiBackend(director, name, capacity, hostname, port);
+		request_->status = x0::HttpError::Created;
 	} else if (protocol == "http") {
 		// protocol == "http"
 

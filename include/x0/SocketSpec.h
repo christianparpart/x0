@@ -9,31 +9,48 @@ namespace x0 {
 
 class X0_API SocketSpec
 {
-public:
-	SocketSpec();
 
-	SocketSpec(const IPAddress& _ipaddr, int _port) :
-		address(_ipaddr),
-		port(_port),
-		backlog(-1),
-		valid(true)
+public:
+	enum Type {
+		Unknown,
+		Local,
+		Inet,
+	};
+
+	SocketSpec();
+	SocketSpec(const SocketSpec& ss);
+	SocketSpec(const IPAddress& ipaddr, int port, int backlog = -1) :
+		type_(Inet),
+		ipaddr_(ipaddr),
+		port_(port),
+		backlog_(backlog)
 	{}
 
-	IPAddress address;
-	std::string local;
-
-	int port;
-	int backlog;
-
-	bool valid;
+	static SocketSpec fromLocal(const std::string& path, int backlog = -1);
+	static SocketSpec fromInet(const IPAddress& ipaddr, int port, int backlog = -1);
 
 	void clear();
 
-	bool isValid() const { return valid; }
-	bool isLocal() const { return !local.empty(); }
-	bool isInet() const { return local.empty(); }
+	bool isValid() const { return type_ != Unknown; }
+	bool isLocal() const { return type_ == Local; }
+	bool isInet() const { return type_ == Inet; }
+
+	const IPAddress& ipaddr() const { return ipaddr_; }
+	int port() const { return port_; }
+	const std::string& local() const { return local_; }
+	int backlog() const { return backlog_; }
+
+	void setPort(int value);
+	void setBacklog(int value);
 
 	std::string str() const;
+
+private:
+	Type type_;
+	IPAddress ipaddr_;
+	std::string local_;
+	int port_;
+	int backlog_;
 };
 
 } // namespace x0

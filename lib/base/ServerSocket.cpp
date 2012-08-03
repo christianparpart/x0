@@ -545,13 +545,13 @@ err:
 
 bool ServerSocket::open(const SocketSpec& spec, int flags)
 {
-	if (spec.backlog > 0)
-		setBacklog(spec.backlog);
+	if (spec.backlog() > 0)
+		setBacklog(spec.backlog());
 
 	if (spec.isLocal())
-		return open(spec.local, flags);
+		return open(spec.local(), flags);
 	else
-		return open(spec.address.str(), spec.port, flags);
+		return open(spec.ipaddr().str(), spec.port(), flags);
 }
 
 void ServerSocket::start()

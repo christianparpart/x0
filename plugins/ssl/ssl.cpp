@@ -145,7 +145,7 @@ private:
 		x0::SocketSpec socketSpec;
 		socketSpec << args;
 
-		if (!socketSpec.valid) {
+		if (!socketSpec.isValid()) {
 			result.set(false);
 		} else {
 			x0::ServerSocket* listener = server().setupListener(socketSpec);

@@ -15,11 +15,13 @@ add_definitions(
 # ---------------------------------------------------------------------------
 
 set(director_SRC
+	DirectorPlugin.cpp
+	HealthMonitor.cpp
+	ApiRequest.cpp
 	Director.cpp
 	Backend.cpp
 	HttpBackend.cpp
-	HealthMonitor.cpp
-	ApiRequest.cpp
-	DirectorPlugin.cpp)
+	FastCgiBackend.cpp
+)
 
 x0_plugin(director "${director_SRC}")

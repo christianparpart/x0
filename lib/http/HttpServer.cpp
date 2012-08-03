@@ -559,18 +559,12 @@ void HttpServer::log(Severity s, const char *msg, ...)
  */
 ServerSocket* HttpServer::setupListener(const std::string& bind_address, int port, int backlog)
 {
-	SocketSpec spec;
-	spec.address = bind_address;
-	spec.backlog = backlog;
-	return setupListener(spec);
+	return setupListener(SocketSpec::fromInet(IPAddress(bind_address), port, backlog));
 }
 
 ServerSocket *HttpServer::setupUnixListener(const std::string& path, int backlog)
 {
-	SocketSpec spec;
-	spec.local = path;
-	spec.backlog = backlog;
-	return setupListener(spec);
+	return setupListener(SocketSpec::fromLocal(path, backlog));
 }
 
 namespace {
@@ -606,12 +600,12 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 	// validate backlog against system's hard limit
 	SocketSpec spec(_spec);
 	int somaxconn = readFile<int>("/proc/sys/net/core/somaxconn", 0);
-	if (spec.backlog > 0) {
-		if (somaxconn && spec.backlog > somaxconn) {
+	if (spec.backlog() > 0) {
+		if (somaxconn && spec.backlog() > somaxconn) {
 			log(Severity::error,
 				"Listener %s configured with a backlog higher than the system permits (%ld > %ld). "
 				"See /proc/sys/net/core/somaxconn for your system limits.",
-				spec.str().c_str(), spec.backlog, somaxconn);
+				spec.str().c_str(), spec.backlog(), somaxconn);
 
 			return nullptr;
 		}
@@ -623,7 +617,7 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 
 	listeners_.push_back(lp);
 
-	if (spec.backlog <= 0)
+	if (spec.backlog() <= 0)
 		lp->setBacklog(somaxconn);
 
 	if (lp->open(spec, O_NONBLOCK | O_CLOEXEC)) {

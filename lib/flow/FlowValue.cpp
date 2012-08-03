@@ -106,7 +106,7 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 			if (key == "path") { // client UNIX domain socket
 				m = Item::Address;
 				if (r[1].isString()) {
-					spec.local = r[1].toString();
+					spec = SocketSpec::fromLocal(r[1].toString());
 				} else {
 					fprintf(stderr, "Invalid UNIX domain socket path specified (must be a path-string).\n");
 					goto err;
@@ -114,7 +114,7 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 			} else if (key == "address") { // client TCP/IP
 				m = Item::Address;
 				if (r[1].isIPAddress()) {
-					spec.address = r[1].toIPAddress();
+					spec = SocketSpec::fromInet(r[1].toIPAddress(), -1);
 				} else {
 					fprintf(stderr, "Invalid IP address specified.\n");
 					goto err;
@@ -122,9 +122,9 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 			} else if (key == "bind") {
 				m = Item::Address;
 				if (r[1].isIPAddress()) {
-					spec.address = r[1].toIPAddress();
+					spec = SocketSpec::fromInet(r[1].toIPAddress(), -1);
 				} else if (r[1].isString()) {
-					spec.local = r[1].toString();
+					spec = SocketSpec::fromLocal(r[1].toString());
 				} else {
 					fprintf(stderr, "Invalid bind address specified (must be a path-string or IP address).\n");
 					goto err;
@@ -132,7 +132,7 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 			} else if (key == "port") {
 				m = Item::Port;
 				if (r[1].isNumber())
-					spec.port = r[1].toNumber();
+					spec.setPort(r[1].toNumber());
 				else {
 					fprintf(stderr, "Invalid port number given (must be a number).\n");
 					goto err;
@@ -140,7 +140,7 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 			} else if (key == "backlog") {
 				m = Item::Backlog;
 				if (r[1].isNumber())
-					spec.backlog = r[1].toNumber();
+					spec.setBacklog(r[1].toNumber());
 				else {
 					fprintf(stderr, "Invalid backlog size given (must be a number).\n");
 					goto err;
@@ -164,16 +164,15 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 		goto err;
 	}
 
-	if (spec.isLocal() && spec.port >= 0) {
+	if (spec.isLocal() && spec.port() >= 0) {
 		fprintf(stderr, "Local (unix) sockets have no port numbers.\n");
 		goto err;
 	}
 
-	spec.valid = true;
 	return spec;
 
 err:
-	spec.valid = false;
+	spec.clear();
 	return spec;
 }
 // }}}

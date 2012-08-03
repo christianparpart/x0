@@ -268,21 +268,21 @@ Deleted but not yet removed backends change their state to "*Terminating*".
 
 # TODO
 
-- JSON API: implement backend-deletion
-  - mode 1: soft-termination (default)
-  - mode 2: hard-termination (killing all active connections) -- possible?
-- improve scheduling, honoring backend roles:
+- DONE: improve scheduling, honoring backend roles:
     - 1.) active.each {|b| b.tryserve(r)}
     - 2.) standby.each {|b| b.tryserve(r)}
     - 3.) if active+standby = down: backup.each {|b| b.tryserve(r)}
     - 4.) queue.each {|b| b.tryserve(r)} or 503 if queue is full
     - 5.) 503 Service Unavailable
-- historical request count per second data for the last N seconds (N may default to 60)
+- DONE: save/load of mutable directors
+- FastCGI backend protocol support
+- ???: extend HttpRequest API to allow virtual requests, easing internal health checks and possibly internal redirects
+- Health Monitor: add support to customize request URI and host-header.
+- FEATURE: historical request count per second data for the last N seconds (N may default to 60)
   - per backend
   - per director
-- health monitor: add support to customize request URI and host-header.
-- FastCGI backend protocol support
-- Ensure overall thread safety at a minimum of lock contention to scale horizontally.
+- STABILITY: Ensure overall thread safety at a minimum of lock contention to scale horizontally.
+- FAULT-TOLERANCE: saving mutable directors onto disk should not block a thread.
 
 # Plugin Improvement Ideas
 
