@@ -561,8 +561,12 @@ bool ApiReqeust::create()
 bool ApiReqeust::update()
 {
 	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
-	if (tokens.size() > 2)
-		return false;
+	if (tokens.size() == 0 || tokens.size() > 2) {
+		request_->log(Severity::error, "director: Invalid formed request path.");
+		request_->status = x0::HttpError::BadRequest;
+		request_->finish();
+		return true;
+	}
 
 	Director* director = findDirector(tokens[0]);
 	if (!director) {
