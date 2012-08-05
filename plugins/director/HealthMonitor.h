@@ -5,6 +5,7 @@
 #include <x0/Logging.h>
 #include <x0/Socket.h>
 #include <x0/SocketSpec.h>
+#include <x0/http/HttpError.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <ev++.h>
@@ -15,8 +16,8 @@
  * \note not thread-safe.
  */
 class HealthMonitor :
-	public x0::Logging,
-	public x0::HttpMessageProcessor
+	protected x0::Logging,
+	protected x0::HttpMessageProcessor
 {
 public:
 	enum class Mode {
@@ -31,23 +32,16 @@ public:
 		Online
 	};
 
-private:
+protected:
 	Mode mode_;
-	x0::HttpWorker* worker_;
+	x0::HttpWorker& worker_;
 	x0::SocketSpec socketSpec_;
-	x0::Socket socket_;
 	x0::TimeSpan interval_;
 	State state_;
 
 	std::function<void(HealthMonitor*)> onStateChange_;
 
-	x0::Buffer request_;
-	size_t writeOffset_;
-	x0::Buffer response_;
-	int responseCode_;
-	bool processingDone_;
-
-	int expectCode_;
+	x0::HttpError expectCode_;
 
 	ev::timer timer_;
 
@@ -57,9 +51,12 @@ private:
 	size_t successCount_;	//!< consecutive success count
 	time_t offlineTime_;	//!< total time this node has been offline
 
+	x0::HttpError responseCode_;
+	bool processingDone_;
+
 public:
-	explicit HealthMonitor(x0::HttpWorker* worker);
-	~HealthMonitor();
+	explicit HealthMonitor(x0::HttpWorker& worker);
+	virtual ~HealthMonitor();
 
 	Mode mode() const { return mode_; }
 	const std::string& mode_str() const;
@@ -70,33 +67,30 @@ public:
 	const std::string& state_str() const;
 	bool isOnline() const { return state_ == State::Online; }
 
-	void onStateChange(const std::function<void(HealthMonitor*)>& callback);
-
 	const x0::SocketSpec& target() const { return socketSpec_; }
 	void setTarget(const x0::SocketSpec& value);
 
 	const x0::TimeSpan& interval() const { return interval_; }
 	void setInterval(const x0::TimeSpan& value);
 
-	void setRequest(const char* fmt, ...);
+	void setExpectCode(x0::HttpError value) { expectCode_ = value; }
+	x0::HttpError expectCode() const { return expectCode_; }
 
-	void setExpectCode(int value) { expectCode_ = value; }
-	int expectCode() const { return expectCode_; }
+	void setStateChangeCallback(const std::function<void(HealthMonitor*)>& callback);
+
+	virtual void setRequest(const char* fmt, ...) = 0;
+	virtual void reset();
 
 	void start();
 	void stop();
 
-private:
-	void onCheckStart();
-	void onConnectDone(x0::Socket*, int revents);
-	void io(x0::Socket*, int revents);
-	void writeSome();
-	void readSome();
-	void onTimeout();
+protected:
+	virtual void onCheckStart();
 
 	void logSuccess();
 	void logFailure();
 
+private:
 	void recheck();
 
 	// response (HttpMessageProcessor)

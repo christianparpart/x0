@@ -610,7 +610,7 @@ void CgiTransport::inspect(x0::Buffer& out)
 std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 
 FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity),
+	Backend(director, name, socketSpec, capacity, nullptr /* TODO new FastCgiHealthMonitor(director->worker()) */),
 	server_(director->worker().server())
 {
 }

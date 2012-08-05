@@ -10,7 +10,9 @@
 
 using namespace x0;
 
-Backend::Backend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
+Backend::Backend(Director* director,
+	const std::string& name, const SocketSpec& socketSpec, size_t capacity,
+	HealthMonitor* healthMonitor) :
 #ifndef NDEBUG
 	Logging("Backend/%s", name.c_str()),
 #endif
@@ -21,13 +23,13 @@ Backend::Backend(Director* director, const std::string& name, const SocketSpec& 
 	role_(Role::Active),
 	enabled_(true),
 	socketSpec_(socketSpec),
-	healthMonitor_(director_->worker_)
+	healthMonitor_(healthMonitor)
 {
-	healthMonitor_.onStateChange([&](HealthMonitor*) {
+	healthMonitor_->setStateChangeCallback([&](HealthMonitor*) {
 		director_->worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
-			director_->name().c_str(), name_.c_str(), healthMonitor_.state_str().c_str());
+			director_->name().c_str(), name_.c_str(), healthMonitor_->state_str().c_str());
 
-		if (healthMonitor_.isOnline()) {
+		if (healthMonitor_->isOnline()) {
 			// try delivering a queued request
 			director_->dequeueTo(this);
 		}
@@ -74,7 +76,7 @@ size_t Backend::writeJSON(Buffer& out) const
 		<< "\"protocol\": \"" << protocol() << "\", "
 		<< "\"role\": \"" << role_str() << "\",\n     "
 		<< "\"load\": " << load_ << ",\n     "
-		<< "\"health\": " << healthMonitor_ << ",\n     ";
+		<< "\"health\": " << *healthMonitor_ << ",\n     ";
 
 	if (socketSpec_.isInet()) {
 		out << "\"hostname\": \"" << socketSpec_.ipaddr().str() << "\"";
@@ -88,7 +90,7 @@ size_t Backend::writeJSON(Buffer& out) const
 
 void Backend::updateHealthMonitor()
 {
-	// TODO healthMonitor_.setRequest(...);
+	// TODO healthMonitor_->setRequest(...);
 	//
 	// this is currently done in the child classes, such as HttpBackend,
 	// but we might reconsider this when finalizing the FastCGI backend type.
@@ -118,7 +120,7 @@ bool Backend::tryTermination()
 	if (role_ != Role::Terminate)
 		return false;
 
-	healthMonitor_.stop();
+	healthMonitor_->stop();
 
 	if (load().current() > 0)
 		return false;
@@ -134,7 +136,7 @@ void Backend::terminate()
 
 void Backend::setState(HealthMonitor::State value)
 {
-	healthMonitor_.setState(value);
+	healthMonitor_->setState(value);
 }
 
 bool Backend::assign(HttpRequest* r)

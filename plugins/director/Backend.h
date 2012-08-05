@@ -38,12 +38,14 @@ protected:
 	Role role_; //!< backend role (Active or Standby)
 	bool enabled_; //!< whether or not this director is enabled (default) or disabled (for example for maintenance reasons)
 	x0::SocketSpec socketSpec_; //!< Backend socket spec.
-	HealthMonitor healthMonitor_; //!< health check timer
+	HealthMonitor* healthMonitor_; //!< health check timer
 
 	friend class Director;
 
 public:
-	Backend(Director* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity);
+	Backend(Director* director,
+		const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity,
+		HealthMonitor* monitor);
 	virtual ~Backend();
 
 	virtual const std::string& protocol() const = 0;
@@ -71,8 +73,8 @@ public:
 	void disable() { enabled_ = false; }
 
 	// health state
-	HealthMonitor::State healthState() const { return healthMonitor_.state(); }
-	HealthMonitor& healthMonitor() { return healthMonitor_; }
+	HealthMonitor::State healthState() const { return healthMonitor_->state(); }
+	HealthMonitor& healthMonitor() { return *healthMonitor_; }
 
 	bool assign(x0::HttpRequest* r);
 	void release();
@@ -83,8 +85,8 @@ public:
 	virtual void terminate();
 
 protected:
-	virtual bool process(x0::HttpRequest* r) = 0;
 	bool tryTermination();
+	virtual bool process(x0::HttpRequest* r) = 0;
 
 protected:
 	void setState(HealthMonitor::State value);

@@ -21,6 +21,7 @@ set(director_SRC
 	Director.cpp
 	Backend.cpp
 	HttpBackend.cpp
+	HttpHealthMonitor.cpp
 	FastCgiBackend.cpp
 )
 

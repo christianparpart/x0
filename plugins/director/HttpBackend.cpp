@@ -1,4 +1,5 @@
 #include "HttpBackend.h"
+#include "HttpHealthMonitor.h"
 #include "Director.h"
 
 #include <x0/http/HttpServer.h>
@@ -427,21 +428,21 @@ void HttpBackend::ProxyConnection::readSome()
 // {{{ HttpBackend impl
 HttpBackend::HttpBackend(Director* director, const std::string& name,
 		const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity)
+	Backend(director, name, socketSpec, capacity, new HttpHealthMonitor(director->worker()))
 {
 #ifndef NDEBUG
 	setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 
-	healthMonitor_.setTarget(socketSpec);
+	healthMonitor().setTarget(socketSpec);
 	updateHealthMonitor();
 
-	healthMonitor_.start();
+	healthMonitor().start();
 }
 
 void HttpBackend::updateHealthMonitor()
 {
-	healthMonitor_.setRequest(
+	healthMonitor().setRequest(
 		"GET %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"x0-Health-Check: yes\r\n"
