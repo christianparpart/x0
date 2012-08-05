@@ -197,18 +197,29 @@ configure with with basic-auth.
         }
     }
 
-## Retrieving Load Balancer State
+## Retrieving State of all Directors
 
     curl -v http://localhost:8080/x0/director/
 
 This will return a big *application/json* response containing
 a list of all directors and their configuration and state.
 
-## Retrieving Director State
+## Retrieving single Director State
 
     curl -v http://localhost:8080/x0/director/app_cluster
 
 Retrieves state of only one director, by name.
+
+## Updating a Director
+
+    curl -v http://localhost:8080/x0/director/app_cluster -X POST \
+        -d health-check-host-header=example.com
+        -d health-check-request-path=/health
+        -d queue-limit=128
+        -d max-retry-count=3
+
+You can reconfigure any of the directors parameters
+unless this director has been created statically.
 
 ## Retrieving Backend State
 
@@ -277,7 +288,7 @@ Deleted but not yet removed backends change their state to "*Terminating*".
 - DONE: save/load of mutable directors
 - FastCGI backend protocol support
 - ???: extend HttpRequest API to allow virtual requests, easing internal health checks and possibly internal redirects
-- Health Monitor: add support to customize request URI and host-header.
+- DONE: Health Monitor: add support to customize request URI and host-header.
 - FEATURE: historical request count per second data for the last N seconds (N may default to 60)
   - per backend
   - per director
