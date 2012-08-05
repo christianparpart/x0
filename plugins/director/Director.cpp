@@ -604,7 +604,7 @@ bool Director::save()
 				<< "role=" << b->role_str() << "\n"
 				<< "capacity=" << b->capacity() << "\n"
 				<< "enabled=" << (b->isEnabled() ? "true" : "false") << "\n"
-				<< "transport=" << "tcp" << "\n"
+				<< "transport=" << (b->socketSpec().isLocal() ? "local" : "tcp") << "\n"
 				<< "protocol=" << b->protocol() << "\n"
 				<< "health-check-mode=" << b->healthMonitor().mode_str() << "\n"
 				<< "health-check-interval=" << b->healthMonitor().interval().totalMilliseconds() << "\n";
