@@ -67,6 +67,15 @@ HttpRequest::~HttpRequest()
 	TRACE("destructing");
 }
 
+/**
+ * Computes the real fileinfo and pathinfo part.
+ *
+ * Modifies:
+ * <ul>
+ *   <li>pathinfo</li>
+ *   <li>fileinfo</li>
+ * </ul>
+ */
 void HttpRequest::updatePathInfo()
 {
 	if (!fileinfo)
@@ -75,15 +84,18 @@ void HttpRequest::updatePathInfo()
 	// split "/the/tail" from "/path/to/script.php/the/tail"
 
 	std::string fullname(fileinfo->path());
-	size_t origpos = fullname.size() - 1, pos = origpos;
+	size_t origpos = fullname.size() - 1;
+	size_t pos = origpos;
 
 	for (;;) {
 		if (fileinfo->exists()) {
 			if (pos != origpos)
-				pathinfo = fullname.substr(pos);
+				pathinfo = path.ref(path.size() - (origpos - pos + 1));
 
 			break;
-		} if (fileinfo->error() == ENOTDIR) {
+		}
+
+		if (fileinfo->error() == ENOTDIR) {
 			pos = fileinfo->path().rfind('/', pos - 1);
 			fileinfo = connection.worker().fileinfo(fileinfo->path().substr(0, pos));
 		} else {
