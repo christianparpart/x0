@@ -309,11 +309,13 @@ inline void CgiScript::runAsync()
 	environment["REQUEST_METHOD"] = request_->method.str();
 	environment["REDIRECT_STATUS"] = "200"; // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
 
-	environment["PATH_INFO"] = request_->pathinfo;
-	if (!request_->pathinfo.empty())
-		environment["PATH_TRANSLATED"] = request_->documentRoot + request_->pathinfo;
-
-	environment["SCRIPT_NAME"] = request_->path.str();
+	environment["PATH_INFO"] = request_->pathinfo.str();
+	if (!request_->pathinfo.empty()) {
+		environment["PATH_TRANSLATED"] = request_->documentRoot + request_->pathinfo.str();
+		environment["SCRIPT_NAME"] = request_->path.ref(0, request_->path.size() - request_->pathinfo.size()).str();
+	} else {
+		environment["SCRIPT_NAME"] = request_->path.str();
+	}
 	environment["QUERY_STRING"] = request_->query.str(); // unparsed uri
 	environment["REQUEST_URI"] = request_->uri.str();
 

@@ -326,11 +326,14 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 
 	request_->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
 
-	paramWriter_.encode("SCRIPT_NAME", request_->path);
 	paramWriter_.encode("PATH_INFO", request_->pathinfo);
 
-	if (!request_->pathinfo.empty())
+	if (!request_->pathinfo.empty()) {
 		paramWriter_.encode("PATH_TRANSLATED", request_->documentRoot, request_->pathinfo);
+		paramWriter_.encode("SCRIPT_NAME", request_->path.ref(0, request_->path.size() - request_->pathinfo.size()));
+	} else {
+		paramWriter_.encode("SCRIPT_NAME", request_->path);
+	}
 
 	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
 	paramWriter_.encode("REQUEST_URI", request_->uri);
