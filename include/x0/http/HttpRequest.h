@@ -279,7 +279,7 @@ public:
 	BufferRef uri;								///< parsed request uri
 	BufferRef path;								///< decoded path-part
 	FileInfoPtr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
-	std::string pathinfo;
+	BufferRef pathinfo;							///< PATH_INFO part of the HTTP request path.
 	BufferRef query;							///< decoded query-part
 	int httpVersionMajor;						///< HTTP protocol version major part that this request was formed in
 	int httpVersionMinor;						///< HTTP protocol version minor part that this request was formed in
@@ -386,7 +386,7 @@ inline void HttpRequest::clear()
 	uri.clear();
 	path.clear();
 	fileinfo = FileInfoPtr();
-	pathinfo = "";
+	pathinfo.clear();
 	query.clear();
 	httpVersionMajor = httpVersionMinor = 0;
 	hostname.clear();

@@ -650,7 +650,7 @@ void HttpCore::req_host(HttpRequest* in, const FlowParams& args, FlowValue& resu
 
 void HttpCore::req_pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
-	result = in->pathinfo.c_str();
+	result.set(in->pathinfo.data(), in->pathinfo.size());
 }
 
 void HttpCore::req_is_secure(HttpRequest* in, const FlowParams& args, FlowValue& result)
