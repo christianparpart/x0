@@ -86,6 +86,16 @@ size_t Backend::writeJSON(Buffer& out) const
 	return out.size() - offset;
 }
 
+void Backend::updateHealthMonitor()
+{
+	// TODO healthMonitor_.setRequest(...);
+	//
+	// this is currently done in the child classes, such as HttpBackend,
+	// but we might reconsider this when finalizing the FastCGI backend type.
+	// The FastCGI backend type might want to fully message-parse the setRequest()'s
+	// input value in order to encode it into the FastCGI protocol.
+}
+
 void Backend::setRole(Role value)
 {
 	director_->worker_->log(Severity::debug, "setRole(%d) (from %d)", value, role_);

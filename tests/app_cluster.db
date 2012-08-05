@@ -4,15 +4,17 @@
 [director]
 queue-limit=127
 max-retry-count=3
+health-check-host-header=localhost.ialu.de
+health-check-request-path=/health
 
 [backend=app3101]
 role=active
 capacity=1
 enabled=true
 transport=tcp
+protocol=http
 health-check-mode=paranoid
 health-check-interval=2000
-protocol=http
 host=127.0.0.1
 port=3101
 
@@ -21,9 +23,9 @@ role=standby
 capacity=2
 enabled=true
 transport=tcp
+protocol=http
 health-check-mode=paranoid
 health-check-interval=2000
-protocol=http
 host=127.0.0.1
 port=3102
 
@@ -32,9 +34,9 @@ role=backup
 capacity=3
 enabled=true
 transport=tcp
+protocol=http
 health-check-mode=paranoid
 health-check-interval=2000
-protocol=http
 host=127.0.0.1
 port=3103
 

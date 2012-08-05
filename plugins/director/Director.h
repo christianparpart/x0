@@ -46,6 +46,9 @@ private:
 
 	bool mutable_; //!< whether or not one may create/update/delete backends at runtime
 
+	std::string healthCheckHostHeader_;
+	std::string healthCheckRequestPath_;
+
 	// set of backends managed by this director.
 	std::vector<std::vector<Backend*>> backends_;
 
@@ -75,6 +78,12 @@ public:
 	void setMutable(bool value) { mutable_ = value; }
 
 	size_t capacity() const;
+
+	const std::string& healthCheckHostHeader() const { return healthCheckHostHeader_; }
+	void setHealthCheckHostHeader(const std::string& value) { healthCheckHostHeader_ = value; }
+
+	const std::string& healthCheckRequestPath() const { return healthCheckRequestPath_; }
+	void setHealthCheckRequestPath(const std::string& value) { healthCheckRequestPath_ = value; }
 
 	const Counter& load() const { return load_; }
 	const Counter& queued() const { return queued_; }
@@ -107,6 +116,16 @@ public:
 
 	bool load(const std::string& path);
 	bool save();
+
+	template<typename T>
+	inline void eachBackend(T callback)
+	{
+		for (auto& br: backends_) {
+			for (auto b: br) {
+				callback(b);
+			}
+		}
+	}
 
 private:
 	const std::vector<Backend*>& backendsWith(Backend::Role role) const;

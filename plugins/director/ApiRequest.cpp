@@ -586,12 +586,20 @@ bool ApiReqeust::update()
 
 bool ApiReqeust::updateDirector(Director* director)
 {
-	size_t queueLimit;
+	size_t queueLimit = director->queueLimit();
 	if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
 		return false;
 
 	size_t maxRetryCount = director->maxRetryCount();
 	if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
+		return false;
+
+	std::string hcHostHeader = director->healthCheckHostHeader();
+	if (hasParam("health-check-host-header") && !loadParam("health-check-host-header", hcHostHeader))
+		return false;
+
+	std::string hcRequestPath = director->healthCheckRequestPath();
+	if (hasParam("health-check-request-path") && !loadParam("health-check-request-path", hcRequestPath))
 		return false;
 
 	if (!director->isMutable()) {
@@ -605,7 +613,15 @@ bool ApiReqeust::updateDirector(Director* director)
 
 	director->setQueueLimit(queueLimit);
 	director->setMaxRetryCount(maxRetryCount);
+	director->setHealthCheckHostHeader(hcHostHeader);
+	director->setHealthCheckRequestPath(hcRequestPath);
 	director->save();
+
+	director->worker().post([director]() {
+		director->eachBackend([](Backend* backend) {
+			backend->updateHealthMonitor();
+		});
+	});
 
 	request_->log(Severity::info, "director: %s reconfigured.", director->name().c_str());
 	request_->status = x0::HttpError::Accepted;

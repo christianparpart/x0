@@ -189,8 +189,10 @@ void HealthMonitor::onCheckStart()
 	} else if (socket_.state() == Socket::Connecting) {
 		TRACE("connecting asynchronously.");
 		socket_.setReadyCallback<HealthMonitor, &HealthMonitor::onConnectDone>(this);
+		socket_.setMode(Socket::ReadWrite);
 	} else {
 		socket_.setReadyCallback<HealthMonitor, &HealthMonitor::io>(this);
+		socket_.setMode(Socket::ReadWrite);
 		TRACE("connected.");
 	}
 }
@@ -272,7 +274,7 @@ void HealthMonitor::readSome()
 		size_t np = process(response_.ref(lower_bound, rv));
 
 		(void) np;
-		TRACE("readSome(): processed %ld of %ld bytes", np, rv);
+		TRACE("readSome(): processed %ld of %ld bytes (%s)", np, rv, HttpMessageProcessor::state_str());
 
 		if (HttpMessageProcessor::state() == HttpMessageProcessor::SYNTAX_ERROR) {
 			TRACE("syntax error");
@@ -297,6 +299,7 @@ void HealthMonitor::readSome()
 				break;
 			default:
 				TRACE("error reading health-check response from backend. %s", strerror(errno));
+				logFailure();
 				recheck();
 				return;
 		}

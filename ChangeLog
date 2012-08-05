@@ -1,5 +1,12 @@
 0.5.0 (not yet released)
 
+	* director: new load balancer plugin
+	* cgi: fixed bug in SCRIPT_NAME containing PATH_INFO
+	* fastcgi: fixed bug in SCRIPT_NAME containing PATH_INFO
+	* SocketSpec: API improvements
+	* HttpCore: new flow function: `string req.cookie(key)` to retrieve cookie
+	values within main handler
+	* core: HttpRequest::pathinfo changed type from std::string to BufferRef
 	* auth: new plugin for HTTP Basic Auth
 	* core: new APIs: Pipe, PipeSource, PipeSink
 	* updated files headers to new home site, http://xzero.io/
@@ -10,7 +17,7 @@
 	their equivalents and adding respective Content-Encoding header.
 	The precompressed file version is only preferred if both files match their
 	mtimes (semantically equivalent to nginx)
-	* flow: ported from LLVM framework 2.9 to 3.0
+	* flow: ported from LLVM framework 2.9 to 3.0 (/3.1)
 	* http: fixes #541 (warn on backlog > SOMAXCONN)
 	* SqlStatement: code cleanup and logging readability improvements
 	* HttpServer: log listener socket creations

@@ -30,6 +30,8 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	worker_(worker),
 	name_(name),
 	mutable_(false),
+	healthCheckHostHeader_("backend-healthcheck"),
+	healthCheckRequestPath_("/"),
 	backends_(),
 	queue_(),
 	queueLimit_(128),
@@ -374,6 +376,8 @@ void Director::writeJSON(Buffer& output)
 		   << "  \"queued\": " << queued_ << ",\n"
 		   << "  \"queue-limit\": " << queueLimit_ << ",\n"
 		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
+		   << "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
+		   << "  \"health-check-request-path\": \"" << healthCheckRequestPath_ << "\",\n"
 		   << "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
 		   << "  \"members\": [";
 
@@ -403,6 +407,8 @@ void Director::writeJSON(Buffer& output)
  */
 bool Director::load(const std::string& path)
 {
+	// TODO treat director as *empty* and return true if file does not exist.
+
 	IniFile settings;
 	if (!settings.loadFile(path)) {
 		worker_->log(Severity::error, "director: Could not load director settings from file '%s'. %s", path.c_str(), strerror(errno));
@@ -416,6 +422,7 @@ bool Director::load(const std::string& path)
 	}
 
 	queueLimit_ = std::atoll(value.c_str());
+	printf("queue-limit loaded: %zu\n", queueLimit_);
 
 	if (!settings.load("director", "max-retry-count", value)) {
 		worker_->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
@@ -423,6 +430,16 @@ bool Director::load(const std::string& path)
 	}
 
 	maxRetryCount_ = std::atoll(value.c_str());
+
+	if (!settings.load("director", "health-check-host-header", healthCheckHostHeader_)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.health-check-host-header in file '%s'", path.c_str());
+		return false;
+	}
+
+	if (!settings.load("director", "health-check-request-path", healthCheckRequestPath_)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.health-check-request-path in file '%s'", path.c_str());
+		return false;
+	}
 
 	for (auto& section: settings) {
 		static const std::string backendSectionPrefix("backend=");
@@ -577,6 +594,8 @@ bool Director::save()
 		<< "[director]\n"
 		<< "queue-limit=" << queueLimit_ << "\n"
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
+		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
+		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
 		<< "\n";
 
 	for (auto& br: backends_) {

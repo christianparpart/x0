@@ -1,12 +1,10 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
-- core: req.cookie(name) to retrieve the value of a specific cookie
-- proxy: rewrite plugin to use Core API's HttpProxy
-- director: honor standby backends, to favor them over enqueueing
-- director: when a node backend becomes available again, check for enqueued requests and possibly take one
+- copyright notice updates
 - director: JSON-API
-  - stats(requests per second): per backend, per director, globally
-  - stats(rps): history over the last N secs (60)
+  - historical stats (requests per second):
+    - history over the last N secs (60)
+    - per backend, per director, globally
 -------------------------------------------------
 -------------------------------------------------
 

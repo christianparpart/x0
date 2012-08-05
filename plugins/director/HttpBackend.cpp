@@ -434,21 +434,25 @@ HttpBackend::HttpBackend(Director* director, const std::string& name,
 #endif
 
 	healthMonitor_.setTarget(socketSpec);
+	updateHealthMonitor();
 
-	std::string hostname = socketSpec.str();
+	healthMonitor_.start();
+}
+
+void HttpBackend::updateHealthMonitor()
+{
 	healthMonitor_.setRequest(
-		"GET / HTTP/1.1\r\n"
+		"GET %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"x0-Health-Check: yes\r\n"
 		"x0-Director: %s\r\n"
 		"x0-Backend: %s\r\n"
 		"\r\n",
-		hostname.c_str(),
+		director_->healthCheckRequestPath().c_str(),
+		director_->healthCheckHostHeader().c_str(),
 		director_->name().c_str(),
 		name_.c_str()
 	);
-
-	healthMonitor_.start();
 }
 
 HttpBackend::~HttpBackend()
