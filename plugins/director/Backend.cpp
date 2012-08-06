@@ -41,6 +41,7 @@ Backend::Backend(Director* director,
 Backend::~Backend()
 {
 	director_->unlink(this);
+	delete healthMonitor_;
 }
 
 size_t Backend::capacity() const
