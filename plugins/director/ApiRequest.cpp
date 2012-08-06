@@ -193,7 +193,7 @@ void ApiReqeust::onBodyChunk(const BufferRef& chunk)
 	if (chunk.empty()) {
 		parseBody();
 		if (!process()) {
-			request_->status = HttpError::BadRequest;
+			request_->status = HttpStatus::BadRequest;
 			request_->finish();
 		}
 	}
@@ -378,7 +378,7 @@ bool ApiReqeust::get()
 
 	Director* director = findDirector(tokens[0]);
 	if (!director) {
-		request_->status = x0::HttpError::NotFound;
+		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 	} else if (tokens.size() == 1) { // director
 		Buffer result;
@@ -386,7 +386,7 @@ bool ApiReqeust::get()
 		director->writeJSON(result);
 		result.push_back("}\n");
 
-		request_->status = x0::HttpError::Ok;
+		request_->status = x0::HttpStatus::Ok;
 		request_->write<x0::BufferSource>(result);
 		request_->finish();
 	} else { // backend
@@ -396,11 +396,11 @@ bool ApiReqeust::get()
 			backend->writeJSON(result);
 			result.push_back("}\n");
 
-			request_->status = x0::HttpError::Ok;
+			request_->status = x0::HttpStatus::Ok;
 			request_->write<x0::BufferSource>(result);
 			request_->finish();
 		} else {
-			request_->status = x0::HttpError::NotFound;
+			request_->status = x0::HttpStatus::NotFound;
 			request_->finish();
 		}
 	}
@@ -418,7 +418,7 @@ bool ApiReqeust::lock(bool locked)
 
 	Director* director = findDirector(tokens[0]);
 	if (!director) {
-		request_->status = x0::HttpError::NotFound;
+		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 		return true;
 	}
@@ -430,9 +430,9 @@ bool ApiReqeust::lock(bool locked)
 
 	if (Backend* backend = director->findBackend(name)) {
 		backend->setEnabled(!locked);
-		request_->status = x0::HttpError::Accepted;
+		request_->status = x0::HttpStatus::Accepted;
 	} else {
-		request_->status = x0::HttpError::NotFound;
+		request_->status = x0::HttpStatus::NotFound;
 	}
 
 	request_->finish();
@@ -448,7 +448,7 @@ bool ApiReqeust::create()
 
 	Director* director = findDirector(tokens[0]);
 	if (!director) {
-		request_->status = x0::HttpError::NotFound;
+		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 		return true;
 	}
@@ -510,7 +510,7 @@ bool ApiReqeust::create()
 		request_->log(Severity::error, "director: Could not create backend '%s' at director '%s'. Director immutable.",
 			name.c_str(), director->name().c_str());
 
-		request_->status = x0::HttpError::Forbidden;
+		request_->status = x0::HttpStatus::Forbidden;
 		request_->finish();
 		return true;
 	}
@@ -522,7 +522,7 @@ bool ApiReqeust::create()
 			return false;
 
 		backend = new FastCgiBackend(director, name, socketSpec, capacity);
-		request_->status = x0::HttpError::Created;
+		request_->status = x0::HttpStatus::Created;
 	} else if (protocol == "http") {
 		// protocol == "http"
 
@@ -531,9 +531,9 @@ bool ApiReqeust::create()
 			return false;
 
 		backend = new HttpBackend(director, name, socketSpec, capacity);
-		request_->status = x0::HttpError::Created;
+		request_->status = x0::HttpStatus::Created;
 	} else {
-		request_->status = x0::HttpError::BadRequest;
+		request_->status = x0::HttpStatus::BadRequest;
 	}
 
 	if (backend) {
@@ -563,7 +563,7 @@ bool ApiReqeust::update()
 	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
 	if (tokens.size() == 0 || tokens.size() > 2) {
 		request_->log(Severity::error, "director: Invalid formed request path.");
-		request_->status = x0::HttpError::BadRequest;
+		request_->status = x0::HttpStatus::BadRequest;
 		request_->finish();
 		return true;
 	}
@@ -573,7 +573,7 @@ bool ApiReqeust::update()
 		request_->log(Severity::error,
 			"director: Failed to update a resource with director '%s' not found (from path: '%s').",
 			tokens[0].c_str(), path_.ref(1).str().c_str());
-		request_->status = x0::HttpError::NotFound;
+		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 		return true;
 	}
@@ -606,7 +606,7 @@ bool ApiReqeust::updateDirector(Director* director)
 		request_->log(Severity::error, "director: Could not update director '%s'. Director immutable.",
 			director->name().c_str());
 
-		request_->status = x0::HttpError::Forbidden;
+		request_->status = x0::HttpStatus::Forbidden;
 		request_->finish();
 		return true;
 	}
@@ -624,7 +624,7 @@ bool ApiReqeust::updateDirector(Director* director)
 	});
 
 	request_->log(Severity::info, "director: %s reconfigured.", director->name().c_str());
-	request_->status = x0::HttpError::Accepted;
+	request_->status = x0::HttpStatus::Accepted;
 	request_->finish();
 
 	return true;
@@ -668,7 +668,7 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
 			name.c_str(), director->name().c_str());
 
-		request_->status = x0::HttpError::Forbidden;
+		request_->status = x0::HttpStatus::Forbidden;
 		request_->finish();
 		return true;
 	}
@@ -681,7 +681,7 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 	director->save();
 
 	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
-	request_->status = x0::HttpError::Accepted;
+	request_->status = x0::HttpStatus::Accepted;
 	request_->finish();
 
 	return true;
@@ -695,7 +695,7 @@ bool ApiReqeust::destroy()
 		request_->log(Severity::error, "director: Could not delete backend. Invalid request path '%s'.",
 			path_.str().c_str());
 
-		request_->status = x0::HttpError::InternalServerError;
+		request_->status = x0::HttpStatus::InternalServerError;
 		request_->finish();
 		return true;
 	}
@@ -705,7 +705,7 @@ bool ApiReqeust::destroy()
 		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director not found.",
 			tokens[1].c_str(), tokens[0].c_str());
 
-		request_->status = x0::HttpError::NotFound;
+		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 		return true;
 	}
@@ -714,7 +714,7 @@ bool ApiReqeust::destroy()
 		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director immutable.",
 			tokens[1].c_str(), tokens[0].c_str());
 
-		request_->status = x0::HttpError::Forbidden;
+		request_->status = x0::HttpStatus::Forbidden;
 		request_->finish();
 		return true;
 	}
@@ -724,7 +724,7 @@ bool ApiReqeust::destroy()
 		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Backend not found.",
 			tokens[1].c_str(), tokens[0].c_str());
 
-		request_->status = x0::HttpError::NotFound;
+		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 		return true;
 	}
@@ -735,7 +735,7 @@ bool ApiReqeust::destroy()
 	request_->log(Severity::error, "director: Deleting backend '%s' at director '%s'.",
 		tokens[1].c_str(), tokens[0].c_str());
 
-	request_->status = x0::HttpError::Accepted;
+	request_->status = x0::HttpStatus::Accepted;
 	request_->finish();
 
 	return true;

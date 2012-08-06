@@ -156,7 +156,7 @@ private:
 		AuthBasic* auth = r->customData<AuthBasic>(this);
 		if (!auth) {
 			r->log(x0::Severity::error, "auth.require used without specifying a backend");
-			r->status = x0::HttpError::InternalServerError;
+			r->status = x0::HttpStatus::InternalServerError;
 			r->finish();
 			return true;
 		}
@@ -193,7 +193,7 @@ private:
 		char buf[1024];
 		snprintf(buf, sizeof(buf), "Basic realm=\"%s\"", realm.c_str());
 		r->responseHeaders.push_back("WWW-Authenticate", buf);
-		r->status = x0::HttpError::Unauthorized;
+		r->status = x0::HttpStatus::Unauthorized;
 		r->finish();
 		return true;
 	}

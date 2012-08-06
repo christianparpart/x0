@@ -107,8 +107,8 @@ CgiTransport::~CgiTransport()
 	}
 
 	if (request_) {
-		if (request_->status == x0::HttpError::Undefined) {
-			request_->status = x0::HttpError::ServiceUnavailable;
+		if (request_->status == x0::HttpStatus::Undefined) {
+			request_->status = x0::HttpStatus::ServiceUnavailable;
 		}
 
 		request_->finish();
@@ -306,7 +306,7 @@ void CgiTransport::onConnectComplete(x0::Socket* s, int revents)
 {
 	if (s->isClosed()) {
 		TRACE("onConnectComplete() connect() failed");
-		request_->status = x0::HttpError::ServiceUnavailable;
+		request_->status = x0::HttpStatus::ServiceUnavailable;
 		close();
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE("onConnectComplete() flush pending");
@@ -528,10 +528,10 @@ bool CgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::BufferRe
 
 	if (x0::iequals(name, "Status")) {
 		int status = value.ref(0, value.find(' ')).toInt();
-		request_->status = static_cast<x0::HttpError>(status);
+		request_->status = static_cast<x0::HttpStatus>(status);
 	} else {
 		if (name == "Location")
-			request_->status = x0::HttpError::MovedTemporarily;
+			request_->status = x0::HttpStatus::MovedTemporarily;
 
 		request_->responseHeaders.push_back(name.str(), value.str());
 	}

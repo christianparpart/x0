@@ -135,7 +135,7 @@ void Director::schedule(HttpRequest* r)
 			// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
 			r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
 				notes->backend->name().c_str(), notes->backend->healthMonitor().state_str().c_str());
-			r->status = x0::HttpError::ServiceUnavailable;
+			r->status = x0::HttpStatus::ServiceUnavailable;
 			r->finish();
 		}
 	}
@@ -156,7 +156,7 @@ void Director::schedule(HttpRequest* r)
 	}
 	else {
 		r->log(Severity::error, "director: '%s' queue limit %zu reached. Rejecting request.", name_.c_str(), queueLimit_);
-		r->status = HttpError::ServiceUnavailable;
+		r->status = HttpStatus::ServiceUnavailable;
 		r->finish();
 	}
 }
@@ -247,7 +247,7 @@ bool Director::reschedule(HttpRequest* r, Backend* backend)
 	if (notes->retryCount == maxRetryCount()) {
 		--load_;
 
-		r->status = HttpError::ServiceUnavailable;
+		r->status = HttpStatus::ServiceUnavailable;
 		r->finish();
 
 		return false;

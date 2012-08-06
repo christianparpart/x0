@@ -12,7 +12,7 @@
 #include <x0/http/HttpHeader.h>
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpServer.h>
-#include <x0/http/HttpError.h>
+#include <x0/http/HttpStatus.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/CallbackSource.h>
 #include <x0/io/FileInfo.h>
@@ -320,7 +320,7 @@ public:
 	void log(Severity s, Args&&... args);
 
 	// response
-	HttpError status;           //!< HTTP response status code.
+	HttpStatus status;           //!< HTTP response status code.
 	HeaderList responseHeaders; //!< the headers to be included in the response.
 	ChainFilter outputFilters;  //!< response content filters
 	bool isResponseContentForbidden() const;
@@ -340,7 +340,7 @@ public:
 	void finish();
 	bool isFinished() const { return outputState_ == Finished; }
 
-	static std::string statusStr(HttpError status);
+	static std::string statusStr(HttpStatus status);
 
 private:
 	std::list<std::pair<void*, void (*)(void*, Buffer&)> > inspectHandlers_;
@@ -404,7 +404,7 @@ inline void HttpRequest::clear()
 
 	errorHandler_ = nullptr;
 
-	status = HttpError::Undefined;
+	status = HttpStatus::Undefined;
 	responseHeaders.clear();
 	outputFilters.clear();
 

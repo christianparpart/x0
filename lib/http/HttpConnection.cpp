@@ -174,7 +174,7 @@ void HttpConnection::timeout(Socket *)
 		// we do not want further out-timing requests on this conn: just close it.
 		setShouldKeepAlive(false);
 
-		request_->status = HttpError::RequestTimeout;
+		request_->status = HttpStatus::RequestTimeout;
 		status_ = SendingReply;
 		request_->finish();
 		break;
@@ -340,7 +340,7 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 
 	// limit request uri length
 	if (request_->uri.size() > worker().server().maxRequestUriSize()) {
-		request_->status = HttpError::RequestUriTooLong;
+		request_->status = HttpStatus::RequestUriTooLong;
 		request_->finish();
 		return false;
 	}
@@ -377,7 +377,7 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 	// limit the size of a single request header
 	if (name.size() + value.size() > worker().server().maxRequestHeaderSize()) {
 		TRACE("header too long. got %ld / %ld", name.size() + value.size(), worker().server().maxRequestHeaderSize());
-		request_->status = HttpError::RequestEntityTooLarge;
+		request_->status = HttpStatus::RequestEntityTooLarge;
 		request_->finish();
 		return false;
 	}
@@ -385,7 +385,7 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 	// limit the number of request headers
 	if (request_->requestHeaders.size() > worker().server().maxRequestHeaderCount()) {
 		TRACE("header count exceeded. got %ld / %ld", request_->requestHeaders.size(), worker().server().maxRequestHeaderCount());
-		request_->status = HttpError::RequestEntityTooLarge;
+		request_->status = HttpStatus::RequestEntityTooLarge;
 		request_->finish();
 		return false;
 	}
@@ -407,13 +407,13 @@ bool HttpConnection::onMessageHeaderEnd()
 
 	if (contentRequired) {
 		if (request_->connection.contentLength() == -1 && !request_->connection.isChunked()) {
-			request_->status = HttpError::LengthRequired;
+			request_->status = HttpStatus::LengthRequired;
 			request_->finish();
 			return true;
 		}
 	} else {
 		if (request_->contentAvailable()) {
-			request_->status = HttpError::BadRequest; // FIXME do we have a better status code?
+			request_->status = HttpStatus::BadRequest; // FIXME do we have a better status code?
 			request_->finish();
 			return true;
 		}
@@ -423,7 +423,7 @@ bool HttpConnection::onMessageHeaderEnd()
 		request_->expectingContinue = equals(expectHeader, "100-continue");
 
 		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1)) {
-			request_->status = HttpError::ExpectationFailed;
+			request_->status = HttpStatus::ExpectationFailed;
 			request_->finish();
 			return true;
 		}
@@ -713,7 +713,7 @@ bool HttpConnection::process()
 		if (state() == SYNTAX_ERROR) {
 			if (!request_->isFinished()) {
 				setShouldKeepAlive(false);
-				request_->status = HttpError::BadRequest;
+				request_->status = HttpStatus::BadRequest;
 				request_->finish();
 			}
 			return false;

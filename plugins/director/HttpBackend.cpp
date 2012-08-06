@@ -118,7 +118,7 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 	}
 
 	if (request_) {
-		if (request_->status == HttpError::Undefined) {
+		if (request_->status == HttpStatus::Undefined) {
 			// We failed processing this request, so reschedule
 			// this request within the director and give it the chance
 			// to be processed by another backend,
@@ -281,7 +281,7 @@ bool HttpBackend::ProxyConnection::onMessageBegin(int major, int minor, int code
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", (void*)this, major, minor, code, text.str().c_str());
 
-	request_->status = static_cast<HttpError>(code);
+	request_->status = static_cast<HttpStatus>(code);
 	TRACE("status: %d", (int)request_->status);
 	return true;
 }

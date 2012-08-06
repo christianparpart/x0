@@ -178,7 +178,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 				} else {
 					// explicit backend specified, but not found -> do not serve.
 					r->log(Severity::error, "director: Requested backend '%s' not found.", backendName.c_str());
-					r->status = x0::HttpError::ServiceUnavailable;
+					r->status = x0::HttpStatus::ServiceUnavailable;
 					director = nullptr;
 				}
 			}
@@ -191,8 +191,8 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 	}
 
 	if (!director) {
-		if (r->status != x0::HttpError::Undefined) {
-			r->status = x0::HttpError::InternalServerError;
+		if (r->status != x0::HttpStatus::Undefined) {
+			r->status = x0::HttpStatus::InternalServerError;
 		}
 		r->finish();
 		return true;

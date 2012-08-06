@@ -11,7 +11,7 @@
 
 #include <x0/Api.h>
 #include <x0/http/HttpPlugin.h>
-#include <x0/http/HttpError.h>
+#include <x0/http/HttpStatus.h>
 #include <x0/flow/FlowValue.h>
 
 namespace x0 {
@@ -130,7 +130,7 @@ private:
 	void phys_mimetype(HttpRequest* r, const FlowParams& args, FlowValue& result);
 
 	// helpers
-	inline HttpError verifyClientCache(HttpRequest *r);
+	inline HttpStatus verifyClientCache(HttpRequest *r);
 	inline bool processStaticFile(HttpRequest *r, FileInfoPtr transferFile);
 	inline bool processRangeRequest(HttpRequest *r, int fd);
 	inline std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size);

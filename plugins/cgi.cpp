@@ -195,9 +195,9 @@ CgiScript::~CgiScript()
 {
 	TRACE("destructing");
 	if (request_) {
-		if (request_->status == x0::HttpError::Undefined) {
+		if (request_->status == x0::HttpStatus::Undefined) {
 			// we got killed before we could actually generate a response
-			request_->status = x0::HttpError::ServiceUnavailable;
+			request_->status = x0::HttpStatus::ServiceUnavailable;
 		}
 
 		request_->setAbortHandler(nullptr);
@@ -529,7 +529,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 
 			if (!serial_)
 			{
-				request_->status = x0::HttpError::InternalServerError;
+				request_->status = x0::HttpStatus::InternalServerError;
 				request_->log(x0::Severity::error, "CGI script generated no response: %s", request_->fileinfo->path().c_str());
 			}
 		}
@@ -596,10 +596,10 @@ bool CgiScript::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& 
 
 	if (name == "Status") {
 		int status = value.ref(0, value.find(' ')).toInt();
-		request_->status = static_cast<x0::HttpError>(boost::lexical_cast<int>(status));
+		request_->status = static_cast<x0::HttpStatus>(boost::lexical_cast<int>(status));
 	} else {
 		if (name == "Location")
-			request_->status = x0::HttpError::MovedTemporarily;
+			request_->status = x0::HttpStatus::MovedTemporarily;
 
 		request_->responseHeaders.push_back(name.str(), value.str());
 	}

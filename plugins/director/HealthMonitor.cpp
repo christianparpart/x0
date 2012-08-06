@@ -28,12 +28,12 @@ HealthMonitor::HealthMonitor(HttpWorker& worker) :
 	interval_(TimeSpan::fromSeconds(2)),
 	state_(State::Undefined),
 	onStateChange_(),
-	expectCode_(HttpError::Ok),
+	expectCode_(HttpStatus::Ok),
 	timer_(worker_.loop()),
 	successThreshold(2),
 	failCount_(0),
 	successCount_(0),
-	responseCode_(HttpError::Undefined),
+	responseCode_(HttpStatus::Undefined),
 	processingDone_(false)
 {
 	timer_.set<HealthMonitor, &HealthMonitor::onCheckStart>(this);
@@ -119,7 +119,7 @@ void HealthMonitor::setInterval(const TimeSpan& value)
 
 void HealthMonitor::reset()
 {
-	responseCode_ = HttpError::Undefined;
+	responseCode_ = HttpStatus::Undefined;
 	processingDone_ = false;
 }
 
@@ -188,7 +188,7 @@ bool HealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code,
 {
 	TRACE("onMessageBegin: (HTTP/%d.%d, %d, '%s')", versionMajor, versionMinor, code, text.str().c_str());
 
-	responseCode_ = static_cast<HttpError>(code);
+	responseCode_ = static_cast<HttpStatus>(code);
 
 	return true;
 }

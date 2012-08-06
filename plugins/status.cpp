@@ -51,7 +51,7 @@ private:
 	virtual bool handleRequest(x0::HttpRequest *r, const x0::FlowParams& args)
 	{
 		// set response status code
-		r->status = x0::HttpError::Ok;
+		r->status = x0::HttpStatus::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/html; charset=utf-8");
 
 		bool debug = true;

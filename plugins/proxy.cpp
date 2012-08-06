@@ -131,8 +131,8 @@ ProxyConnection::~ProxyConnection()
 	}
 
 	if (request_) {
-		if (request_->status == x0::HttpError::Undefined)
-			request_->status = x0::HttpError::ServiceUnavailable;
+		if (request_->status == x0::HttpStatus::Undefined)
+			request_->status = x0::HttpStatus::ServiceUnavailable;
 
 		request_->finish();
 	}
@@ -292,7 +292,7 @@ bool ProxyConnection::onMessageBegin(int major, int minor, int code, const x0::B
 {
 	TRACE("ProxyConnection(%p).status(HTTP/%d.%d, %d, '%s')", (void*)this, major, minor, code, text.str().c_str());
 
-	request_->status = static_cast<x0::HttpError>(code);
+	request_->status = static_cast<x0::HttpStatus>(code);
 	TRACE("status: %d", (int)request_->status);
 	return true;
 }
@@ -493,7 +493,7 @@ private:
 			}
 		}
 
-		in->status = x0::HttpError::ServiceUnavailable;
+		in->status = x0::HttpStatus::ServiceUnavailable;
 		in->finish();
 
 		return true;

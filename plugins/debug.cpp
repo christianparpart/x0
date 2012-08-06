@@ -31,7 +31,7 @@ public:
 private:
 	bool dumpCore(x0::HttpRequest* r, const x0::FlowParams& args)
 	{
-		r->status = x0::HttpError::Ok;
+		r->status = x0::HttpStatus::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
 
 		x0::Buffer buf;
@@ -47,7 +47,7 @@ private:
 
 	bool dumpCorePost(x0::HttpRequest* r, const x0::FlowParams& args)
 	{
-		r->status = x0::HttpError::Ok;
+		r->status = x0::HttpStatus::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
 
 		x0::Buffer buf;

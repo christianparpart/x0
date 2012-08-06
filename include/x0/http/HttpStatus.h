@@ -1,13 +1,12 @@
-/* <x0/HttpError.h>
+#pragma once
+
+/* <x0/HttpStatus.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.io/
  *
  * (c) 2009-2010 Christian Parpart <trapni@gentoo.org>
  */
-
-#ifndef sw_x0_http_error_hpp
-#define sw_x0_http_error_hpp (1)
 
 #include <x0/Api.h>
 #include <system_error>
@@ -17,7 +16,7 @@
 
 namespace x0 {
 
-enum class HttpError // {{{
+enum class HttpStatus // {{{
 {
 	Undefined = 0,
 
@@ -92,16 +91,16 @@ enum class HttpError // {{{
 
 X0_API const std::error_category& http_category() throw();
 
-X0_API std::error_code make_error_code(HttpError ec);
-X0_API std::error_condition make_error_condition(HttpError ec);
+X0_API std::error_code make_error_code(HttpStatus ec);
+X0_API std::error_condition make_error_condition(HttpStatus ec);
 
-X0_API bool content_forbidden(HttpError code);
+X0_API bool content_forbidden(HttpStatus code);
 
 } // namespace x0
 
 namespace std {
-	// implicit conversion from HttpError to error_code
-	template<> struct X0_API is_error_code_enum<x0::HttpError> : public true_type {};
+	// implicit conversion from HttpStatus to error_code
+	template<> struct X0_API is_error_code_enum<x0::HttpStatus> : public true_type {};
 }
 
 //@}
@@ -109,25 +108,25 @@ namespace std {
 // {{{ inlines
 namespace x0 {
 
-inline std::error_code make_error_code(HttpError ec)
+inline std::error_code make_error_code(HttpStatus ec)
 {
 	return std::error_code(static_cast<int>(ec), http_category());
 }
 
-inline std::error_condition make_error_condition(HttpError ec)
+inline std::error_condition make_error_condition(HttpStatus ec)
 {
 	return std::error_condition(static_cast<int>(ec), http_category());
 }
 
-inline bool content_forbidden(HttpError code)
+inline bool content_forbidden(HttpStatus code)
 {
 	switch (code)
 	{
-		case /*100*/ HttpError::ContinueRequest:
-		case /*101*/ HttpError::SwitchingProtocols:
-		case /*204*/ HttpError::NoContent:
-		case /*205*/ HttpError::ResetContent:
-		case /*304*/ HttpError::NotModified:
+		case /*100*/ HttpStatus::ContinueRequest:
+		case /*101*/ HttpStatus::SwitchingProtocols:
+		case /*204*/ HttpStatus::NoContent:
+		case /*205*/ HttpStatus::ResetContent:
+		case /*304*/ HttpStatus::NotModified:
 			return true;
 		default:
 			return false;
@@ -136,5 +135,3 @@ inline bool content_forbidden(HttpError code)
 
 } // namespace x0
 // }}}
-
-#endif

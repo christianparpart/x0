@@ -741,7 +741,7 @@ void HttpCore::phys_mimetype(HttpRequest* in, const FlowParams& args, FlowValue&
 // {{{ handler
 bool HttpCore::redirect(HttpRequest *in, const FlowParams& args)
 {
-	in->status = HttpError::MovedTemporarily;
+	in->status = HttpStatus::MovedTemporarily;
 	in->responseHeaders.overwrite("Location", args[0].toString());
 	in->finish();
 
@@ -751,7 +751,7 @@ bool HttpCore::redirect(HttpRequest *in, const FlowParams& args)
 bool HttpCore::respond(HttpRequest *in, const FlowParams& args)
 {
 	if (args.size() >= 1 && args[0].isNumber())
-		in->status = static_cast<HttpError>(args[0].toNumber());
+		in->status = static_cast<HttpStatus>(args[0].toNumber());
 
 	in->finish();
 	return true;
@@ -759,7 +759,7 @@ bool HttpCore::respond(HttpRequest *in, const FlowParams& args)
 
 bool HttpCore::blank(HttpRequest* in, const FlowParams& args)
 {
-	in->status = HttpError::Ok;
+	in->status = HttpStatus::Ok;
 	in->finish();
 	return true;
 }
@@ -820,7 +820,7 @@ bool HttpCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 	if (!in->fileinfo->isRegular())
 		return false;
 
-	if (in->status != HttpError::Undefined) {
+	if (in->status != HttpStatus::Undefined) {
 		// processing an internal redirect (to a static file)
 
 		in->responseHeaders.push_back("Last-Modified", in->fileinfo->lastModified());
@@ -843,7 +843,7 @@ bool HttpCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 	}
 
 	in->status = verifyClientCache(in);
-	if (in->status != HttpError::Ok) {
+	if (in->status != HttpStatus::Ok) {
 		in->finish();
 		return true;
 	}
@@ -867,13 +867,13 @@ bool HttpCore::processStaticFile(HttpRequest* in, FileInfoPtr transferFile) // {
 			server_.log(Severity::error, "Could not open file '%s': %s",
 				transferFile->path().c_str(), strerror(errno));
 
-			in->status = HttpError::Forbidden;
+			in->status = HttpStatus::Forbidden;
 			in->finish();
 
 			return true;
 		}
 	} else if (!equals(in->method, "HEAD")) {
-		in->status = HttpError::MethodNotAllowed;
+		in->status = HttpStatus::MethodNotAllowed;
 		in->finish();
 
 		return true;
@@ -905,7 +905,7 @@ bool HttpCore::processStaticFile(HttpRequest* in, FileInfoPtr transferFile) // {
  *
  * \param in request object
  */
-HttpError HttpCore::verifyClientCache(HttpRequest *in) // {{{
+HttpStatus HttpCore::verifyClientCache(HttpRequest *in) // {{{
 {
 	std::string value;
 
@@ -919,14 +919,14 @@ HttpError HttpCore::verifyClientCache(HttpRequest *in) // {{{
 				DateTime date(value);
 
 				if (!date.valid())
-					return HttpError::BadRequest;
+					return HttpStatus::BadRequest;
 
 				if (in->fileinfo->mtime() <= date.unixtime())
-					return HttpError::NotModified;
+					return HttpStatus::NotModified;
 			}
 			else // ETag-only
 			{
-				return HttpError::NotModified;
+				return HttpStatus::NotModified;
 			}
 		}
 	}
@@ -934,13 +934,13 @@ HttpError HttpCore::verifyClientCache(HttpRequest *in) // {{{
 	{
 		DateTime date(value);
 		if (!date.valid())
-			return HttpError::BadRequest;
+			return HttpStatus::BadRequest;
 
 		if (in->fileinfo->mtime() <= date.unixtime())
-			return HttpError::NotModified;
+			return HttpStatus::NotModified;
 	}
 
-	return HttpError::Ok;
+	return HttpStatus::Ok;
 } // }}}
 
 /*! fully processes the ranged requests, if one, or does nothing.
@@ -967,7 +967,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 		}
 	}
 
-	in->status = HttpError::PartialContent;
+	in->status = HttpStatus::PartialContent;
 
 	if (range.size() > 1) {
 		// generate a multipart/byteranged response, as we've more than one range to serve
@@ -980,7 +980,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 		for (int i = 0, e = range.size(); i != e; ++i) {
 			std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[i], in->fileinfo->size()));
 			if (offsets.second < offsets.first) {
-				in->status = HttpError::RequestedRangeNotSatisfiable;
+				in->status = HttpStatus::RequestedRangeNotSatisfiable;
 				in->finish();
 				return true;
 			}
@@ -1033,7 +1033,7 @@ inline bool HttpCore::processRangeRequest(HttpRequest *in, int fd) //{{{
 	{
 		std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[0], in->fileinfo->size()));
 		if (offsets.second < offsets.first) {
-			in->status = HttpError::RequestedRangeNotSatisfiable;
+			in->status = HttpStatus::RequestedRangeNotSatisfiable;
 			in->finish();
 			return true;
 		}
@@ -1236,7 +1236,7 @@ bool HttpCore::redirectOnIncompletePath(HttpRequest *in)
 		url << '?' << in->query.str();
 
 	in->responseHeaders.overwrite("Location", url.str());
-	in->status = HttpError::MovedPermanently;
+	in->status = HttpStatus::MovedPermanently;
 
 	in->finish();
 	return true;

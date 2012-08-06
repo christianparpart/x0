@@ -195,9 +195,9 @@ Source* HttpRequest::serialize()
 	Buffer buffers;
 
 	if (expectingContinue)
-		status = HttpError::ExpectationFailed;
-	else if (status == static_cast<HttpError>(0))
-		status = HttpError::Ok;
+		status = HttpStatus::ExpectationFailed;
+	else if (status == static_cast<HttpStatus>(0))
+		status = HttpStatus::Ok;
 
 	if (!responseHeaders.contains("Content-Type")) {
 		responseHeaders.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
@@ -322,7 +322,7 @@ void HttpRequest::writeDefaultResponseContent()
 	write<BufferSource>(Buffer::fromCopy(buf, nwritten));
 }
 
-std::string HttpRequest::statusStr(HttpError value)
+std::string HttpRequest::statusStr(HttpStatus value)
 {
 	return http_category().message(static_cast<int>(value));
 }
@@ -362,7 +362,7 @@ void HttpRequest::finish()
 	switch (outputState_) {
 		case Unhandled:
 			if (static_cast<int>(status) == 0)
-				status = HttpError::NotFound;
+				status = HttpStatus::NotFound;
 
 			if (errorHandler_) {
 				TRACE("running custom error handler");
@@ -380,7 +380,7 @@ void HttpRequest::finish()
 
 			if (isResponseContentForbidden()) {
 				connection.write(serialize());
-			} else if (status == HttpError::Ok) {
+			} else if (status == HttpStatus::Ok) {
 				responseHeaders.overwrite("Content-Length", "0");
 				connection.write(serialize());
 			} else {

@@ -1,6 +1,6 @@
 #include <x0/WebClient.h>
 #include <x0/Buffer.h>
-#include <x0/http/HttpError.h>
+#include <x0/http/HttpStatus.h>
 #include <x0/Url.h>
 
 #include <functional> // bind(), placeholders

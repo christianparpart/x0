@@ -5,7 +5,7 @@
 #include <x0/Logging.h>
 #include <x0/Socket.h>
 #include <x0/SocketSpec.h>
-#include <x0/http/HttpError.h>
+#include <x0/http/HttpStatus.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <ev++.h>
@@ -41,7 +41,7 @@ protected:
 
 	std::function<void(HealthMonitor*)> onStateChange_;
 
-	x0::HttpError expectCode_;
+	x0::HttpStatus expectCode_;
 
 	ev::timer timer_;
 
@@ -51,7 +51,7 @@ protected:
 	size_t successCount_;	//!< consecutive success count
 	time_t offlineTime_;	//!< total time this node has been offline
 
-	x0::HttpError responseCode_;
+	x0::HttpStatus responseCode_;
 	bool processingDone_;
 
 public:
@@ -73,8 +73,8 @@ public:
 	const x0::TimeSpan& interval() const { return interval_; }
 	void setInterval(const x0::TimeSpan& value);
 
-	void setExpectCode(x0::HttpError value) { expectCode_ = value; }
-	x0::HttpError expectCode() const { return expectCode_; }
+	void setExpectCode(x0::HttpStatus value) { expectCode_ = value; }
+	x0::HttpStatus expectCode() const { return expectCode_; }
 
 	void setStateChangeCallback(const std::function<void(HealthMonitor*)>& callback);
 

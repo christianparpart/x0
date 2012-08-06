@@ -31,7 +31,7 @@ public:
 	void run()
 	{
 		// set response status code
-		request_->status = x0::HttpError::Ok;
+		request_->status = x0::HttpStatus::Ok;
 
 		// set response header "Content-Length",
 		// if request content were not encoded

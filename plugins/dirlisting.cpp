@@ -118,7 +118,7 @@ private:
 		sstr << "<small><pre>" << in->connection.worker().server().tag() << "</pre></small><br/>\n";
 		sstr << "</body></html>\n";
 
-		in->status = x0::HttpError::Ok;
+		in->status = x0::HttpStatus::Ok;
 		in->responseHeaders.push_back("Content-Type", "text/html");
 		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(sstr.size()));
 
@@ -197,7 +197,7 @@ private:
 		char slen[16];
 		snprintf(slen, sizeof(slen), "%zu", buf.size());
 
-		in->status = x0::HttpError::Ok;
+		in->status = x0::HttpStatus::Ok;
 		in->responseHeaders.push_back("Content-Type", "text/html");
 		in->responseHeaders.push_back("Content-Length", slen);
 		in->write<x0::BufferSource>(std::move(buf));

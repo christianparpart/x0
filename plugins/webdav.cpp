@@ -72,7 +72,7 @@ public:
 			fd_ = ::open(request_->fileinfo->path().c_str(), O_WRONLY | O_CREAT, 0666);
 			if (fd_ < 0) {
 				perror("WebDav.Put(open)");
-				request_->status = x0::HttpError::Forbidden;
+				request_->status = x0::HttpStatus::Forbidden;
 				request_->finish();
 				delete this;
 				return true;
@@ -80,7 +80,7 @@ public:
 
 			request_->setBodyCallback<Put, &Put::onContent>(this);
 		} else {
-			request_->status = x0::HttpError::NotImplemented;
+			request_->status = x0::HttpStatus::NotImplemented;
 			request_->finish();
 			delete this;
 		}
@@ -91,9 +91,9 @@ public:
 	{
 		if (chunk.empty()) {
 			if (created_)
-				request_->status = x0::HttpError::Created;
+				request_->status = x0::HttpStatus::Created;
 			else
-				request_->status = x0::HttpError::NoContent;
+				request_->status = x0::HttpStatus::NoContent;
 
 			request_->finish();
 			::close(fd_);
@@ -138,14 +138,14 @@ private:
 		} else if (r->method == "DELETE") {
 			return todo(r);
 		} else {
-			r->status = x0::HttpError::MethodNotAllowed;
+			r->status = x0::HttpStatus::MethodNotAllowed;
 			r->finish();
 			return true;
 		}
 	}
 
 	bool todo(x0::HttpRequest* r) {
-		r->status = x0::HttpError::NotImplemented;
+		r->status = x0::HttpStatus::NotImplemented;
 		r->finish();
 		return true;
 	}
