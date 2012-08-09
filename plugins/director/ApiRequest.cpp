@@ -619,7 +619,7 @@ bool ApiReqeust::updateDirector(Director* director)
 
 	director->worker().post([director]() {
 		director->eachBackend([](Backend* backend) {
-			backend->updateHealthMonitor();
+			backend->healthMonitor().update();
 		});
 	});
 

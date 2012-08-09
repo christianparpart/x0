@@ -23,6 +23,7 @@ set(director_SRC
 	HttpBackend.cpp
 	HttpHealthMonitor.cpp
 	FastCgiBackend.cpp
+	FastCgiHealthMonitor.cpp
 )
 
 x0_plugin(director "${director_SRC}")

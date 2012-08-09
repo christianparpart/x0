@@ -80,7 +80,6 @@ public:
 	void release();
 
 	virtual size_t writeJSON(x0::Buffer& output) const;
-	virtual void updateHealthMonitor();
 
 	virtual void terminate();
 

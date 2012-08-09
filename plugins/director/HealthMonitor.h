@@ -10,6 +10,8 @@
 #include <x0/http/HttpMessageProcessor.h>
 #include <ev++.h>
 
+class Backend;
+
 /**
  * Implements HTTP server health monitoring.
  *
@@ -34,8 +36,8 @@ public:
 
 protected:
 	Mode mode_;
+	Backend* backend_;
 	x0::HttpWorker& worker_;
-	x0::SocketSpec socketSpec_;
 	x0::TimeSpan interval_;
 	State state_;
 
@@ -55,7 +57,7 @@ protected:
 	bool processingDone_;
 
 public:
-	explicit HealthMonitor(x0::HttpWorker& worker);
+	explicit HealthMonitor(x0::HttpWorker& worker, HttpMessageProcessor::ParseMode parseMode = HttpMessageProcessor::RESPONSE);
 	virtual ~HealthMonitor();
 
 	Mode mode() const { return mode_; }
@@ -67,8 +69,10 @@ public:
 	const std::string& state_str() const;
 	bool isOnline() const { return state_ == State::Online; }
 
-	const x0::SocketSpec& target() const { return socketSpec_; }
-	void setTarget(const x0::SocketSpec& value);
+	Backend* backend() const { return backend_; }
+	void setBackend(Backend* backend);
+
+	void update();
 
 	const x0::TimeSpan& interval() const { return interval_; }
 	void setInterval(const x0::TimeSpan& value);
@@ -90,7 +94,6 @@ protected:
 	void logSuccess();
 	void logFailure();
 
-private:
 	void recheck();
 
 	// response (HttpMessageProcessor)

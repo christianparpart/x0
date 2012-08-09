@@ -10,6 +10,15 @@
 
 using namespace x0;
 
+/**
+ * Initializes the backend.
+ *
+ * \param director The director object to attach this backend to.
+ * \param name name of this backend (must be unique within given director's backends).
+ * \param socketSpec backend socket spec (hostname + port, or local unix domain path).
+ * \param capacity number of requests this backend is capable of handling in parallel.
+ * \param healthMonitor specialized health-monitor instanciation, which will be owned by this backend.
+ */
 Backend::Backend(Director* director,
 	const std::string& name, const SocketSpec& socketSpec, size_t capacity,
 	HealthMonitor* healthMonitor) :
@@ -87,16 +96,6 @@ size_t Backend::writeJSON(Buffer& out) const
 	}
 
 	return out.size() - offset;
-}
-
-void Backend::updateHealthMonitor()
-{
-	// TODO healthMonitor_->setRequest(...);
-	//
-	// this is currently done in the child classes, such as HttpBackend,
-	// but we might reconsider this when finalizing the FastCGI backend type.
-	// The FastCGI backend type might want to fully message-parse the setRequest()'s
-	// input value in order to encode it into the FastCGI protocol.
 }
 
 void Backend::setRole(Role value)

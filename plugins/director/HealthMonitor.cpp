@@ -1,4 +1,6 @@
 #include "HealthMonitor.h"
+#include "Backend.h"
+#include "Director.h"
 #include <cassert>
 #include <cstdarg>
 
@@ -19,12 +21,12 @@ using namespace x0;
 #	define TRACE(msg...) do { } while (0)
 #endif
 
-HealthMonitor::HealthMonitor(HttpWorker& worker) :
+HealthMonitor::HealthMonitor(HttpWorker& worker, HttpMessageProcessor::ParseMode parseMode) :
 	Logging("HealthMonitor"),
-	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
+	HttpMessageProcessor(parseMode),
 	mode_(Mode::Paranoid),
+	backend_(nullptr),
 	worker_(worker),
-	socketSpec_(),
 	interval_(TimeSpan::fromSeconds(2)),
 	state_(State::Undefined),
 	onStateChange_(),
@@ -103,13 +105,33 @@ void HealthMonitor::setStateChangeCallback(const std::function<void(HealthMonito
 	onStateChange_ = callback;
 }
 
-void HealthMonitor::setTarget(const SocketSpec& value)
+void HealthMonitor::setBackend(Backend* backend)
 {
-	socketSpec_ = value;
+	backend_ = backend;
 
 #ifndef NDEBUG
-	setLoggingPrefix("HealthMonitor/%s", socketSpec_.str().c_str());
+	setLoggingPrefix("HealthMonitor/%s", backend_->socketSpec().str().c_str());
 #endif
+
+	update();
+
+	start();
+}
+
+void HealthMonitor::update()
+{
+	setRequest(
+		"GET %s HTTP/1.1\r\n"
+		"Host: %s\r\n"
+		"x0-Health-Check: yes\r\n"
+		"x0-Director: %s\r\n"
+		"x0-Backend: %s\r\n"
+		"\r\n",
+		backend_->director()->healthCheckRequestPath().c_str(),
+		backend_->director()->healthCheckHostHeader().c_str(),
+		backend_->director()->name().c_str(),
+		backend_->name().c_str()
+	);
 }
 
 void HealthMonitor::setInterval(const TimeSpan& value)
@@ -119,6 +141,8 @@ void HealthMonitor::setInterval(const TimeSpan& value)
 
 void HealthMonitor::reset()
 {
+	HttpMessageProcessor::reset();
+
 	responseCode_ = HttpStatus::Undefined;
 	processingDone_ = false;
 }
@@ -198,7 +222,13 @@ bool HealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code,
  */
 bool HealthMonitor::onMessageHeader(const BufferRef& name, const BufferRef& value)
 {
-	// do nothing with response message headers
+	TRACE("onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
+
+	if (x0::iequals(name, "Status")) {
+		int status = value.ref(0, value.find(' ')).toInt();
+		responseCode_ = static_cast<x0::HttpStatus>(status);
+	}
+
 	return true;
 }
 

@@ -1,4 +1,5 @@
 #include "HttpHealthMonitor.h"
+#include "Backend.h"
 #include <cassert>
 #include <cstdarg>
 
@@ -30,6 +31,8 @@ HttpHealthMonitor::~HttpHealthMonitor()
 
 void HttpHealthMonitor::reset()
 {
+	HealthMonitor::reset();
+
 	socket_.close();
 
 	writeOffset_ = 0;
@@ -61,7 +64,7 @@ void HttpHealthMonitor::onCheckStart()
 {
 	TRACE("onCheckStart()");
 
-	socket_.open(socketSpec_, O_NONBLOCK | O_CLOEXEC);
+	socket_.open(backend_->socketSpec(), O_NONBLOCK | O_CLOEXEC);
 
 	if (!socket_.isOpen()) {
 		TRACE("Connect failed. %s", strerror(errno));

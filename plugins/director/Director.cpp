@@ -365,7 +365,9 @@ void Director::dequeueTo(Backend* backend)
 #ifndef NDEBUG
 		r->log(Severity::debug, "Dequeueing request to backend %s", backend->name().c_str());
 #endif
-		r->connection.worker().post([backend, r]() { backend->assign(r); });
+		r->connection.worker().post([this, backend, r]() {
+			pass(r, r->customData<DirectorNotes>(this), backend);
+		});
 	}
 }
 
