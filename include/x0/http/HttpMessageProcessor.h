@@ -168,7 +168,7 @@ public:
 	ssize_t contentLength() const;
 	bool isChunked() const { return chunked_; }
 
-	void reset();
+	virtual void reset();
 
 private:
 	static inline bool isChar(char value);
