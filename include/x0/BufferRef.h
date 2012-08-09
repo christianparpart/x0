@@ -130,6 +130,9 @@ public:
 	// cloning
 	Buffer clone() const;
 
+	// mutation
+	Buffer chomp() const;
+
 	// STL string
 	std::string str() const;
 	std::string substr(std::size_t offset) const;
@@ -534,6 +537,13 @@ inline Buffer BufferRef::clone() const
 		return Buffer();
 
 	return Buffer(*this);
+}
+
+inline Buffer BufferRef::chomp() const
+{
+	return ends('\n')
+		? Buffer(*this, 0, size() - 1)
+		: Buffer(*this, 0, size());
 }
 
 inline std::string BufferRef::str() const
