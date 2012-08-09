@@ -1,0 +1,21 @@
+# vim:syntax=dosini
+# !!! DO NOT EDIT !!! THIS FILE IS GENERATED AUTOMATICALLY !!!
+
+[director]
+queue-limit=127
+max-retry-count=3
+health-check-host-header=localhost.ialu.de
+health-check-request-path=/phpinfo.php
+health-check-fcgi-script-filename=/home/trapni/projects/ialu-web/public/phpinfo.php
+
+[backend=php9000]
+role=active
+capacity=2
+enabled=true
+transport=tcp
+protocol=fastcgi
+health-check-mode=paranoid
+health-check-interval=2000
+host=127.0.0.1
+port=9000
+

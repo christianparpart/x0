@@ -398,6 +398,7 @@ void FastCgiTransport::onConnectTimeout(x0::Socket* s)
 {
 	TRACE("onConnectTimeout: Trying to connect to backend timed out.");
 	close();
+	backend_->setState(HealthMonitor::State::Offline);
 }
 
 /** invoked (by open() or asynchronousely by io()) to complete the connection establishment.
@@ -712,8 +713,7 @@ void FastCgiTransport::inspect(x0::Buffer& out)
 std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 
 FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(director->worker())),
-	server_(director->worker().server())
+	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(director->worker()))
 {
 	healthMonitor().setBackend(this);
 }

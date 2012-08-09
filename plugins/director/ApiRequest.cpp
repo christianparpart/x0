@@ -602,6 +602,10 @@ bool ApiReqeust::updateDirector(Director* director)
 	if (hasParam("health-check-request-path") && !loadParam("health-check-request-path", hcRequestPath))
 		return false;
 
+	std::string hcFcgiScriptFileName = director->healthCheckFcgiScriptFilename();
+	if (hasParam("health-check-fcgi-script-filename") && !loadParam("health-check-fcgi-script-filename", hcFcgiScriptFileName))
+		return false;
+
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not update director '%s'. Director immutable.",
 			director->name().c_str());
@@ -615,6 +619,7 @@ bool ApiReqeust::updateDirector(Director* director)
 	director->setMaxRetryCount(maxRetryCount);
 	director->setHealthCheckHostHeader(hcHostHeader);
 	director->setHealthCheckRequestPath(hcRequestPath);
+	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);
 	director->save();
 
 	director->worker().post([director]() {

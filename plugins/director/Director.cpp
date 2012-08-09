@@ -32,6 +32,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	mutable_(false),
 	healthCheckHostHeader_("backend-healthcheck"),
 	healthCheckRequestPath_("/"),
+	healthCheckFcgiScriptFilename_(),
 	backends_(),
 	queue_(),
 	queueLimit_(128),
@@ -380,6 +381,7 @@ void Director::writeJSON(Buffer& output)
 		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
 		   << "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
 		   << "  \"health-check-request-path\": \"" << healthCheckRequestPath_ << "\",\n"
+		   << "  \"health-check-fcgi-script-name\": \"" << healthCheckFcgiScriptFilename_ << "\",\n"
 		   << "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
 		   << "  \"members\": [";
 
@@ -441,6 +443,10 @@ bool Director::load(const std::string& path)
 	if (!settings.load("director", "health-check-request-path", healthCheckRequestPath_)) {
 		worker_->log(Severity::error, "director: Could not load settings value director.health-check-request-path in file '%s'", path.c_str());
 		return false;
+	}
+
+	if (!settings.load("director", "health-check-fcgi-script-filename", healthCheckFcgiScriptFilename_)) {
+		healthCheckFcgiScriptFilename_ = "";
 	}
 
 	for (auto& section: settings) {
@@ -598,6 +604,7 @@ bool Director::save()
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
 		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
 		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
+		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
 		<< "\n";
 
 	for (auto& br: backends_) {

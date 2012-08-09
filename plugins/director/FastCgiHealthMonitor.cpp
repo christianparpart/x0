@@ -1,7 +1,7 @@
 #include "FastCgiHealthMonitor.h"
+#include "FastCgiProtocol.h"
 #include "Backend.h"
-#include "fastcgi_protocol.h"
-#include <cassert>
+#include "Director.h"
 #include <cstdarg>
 
 /*
@@ -123,7 +123,9 @@ void FastCgiHealthMonitor::setRequest(const char* fmt, ...)
 	params.encode("SERVER_SOFTWARE", PACKAGE_NAME "/" PACKAGE_VERSION);
 	params.encode("REQUEST_METHOD", rr.method.str());
 	params.encode("SCRIPT_NAME", rr.path.str());
-	params.encode("SCRIPT_FILENAME", "/home/trapni/projects/ialu-web/public/phpinfo.php"); // FIXME
+
+	if (!backend_->director()->healthCheckFcgiScriptFilename().empty())
+		params.encode("SCRIPT_FILENAME", backend_->director()->healthCheckFcgiScriptFilename());
 
 	for (auto& header: rr.headers) {
 		std::string key;

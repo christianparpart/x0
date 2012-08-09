@@ -48,6 +48,7 @@ private:
 
 	std::string healthCheckHostHeader_;
 	std::string healthCheckRequestPath_;
+	std::string healthCheckFcgiScriptFilename_;
 
 	// set of backends managed by this director.
 	std::vector<std::vector<Backend*>> backends_;
@@ -84,6 +85,9 @@ public:
 
 	const std::string& healthCheckRequestPath() const { return healthCheckRequestPath_; }
 	void setHealthCheckRequestPath(const std::string& value) { healthCheckRequestPath_ = value; }
+
+	const std::string& healthCheckFcgiScriptFilename() const { return healthCheckFcgiScriptFilename_; }
+	void setHealthCheckFcgiScriptFilename(const std::string& value) { healthCheckFcgiScriptFilename_ = value; }
 
 	const Counter& load() const { return load_; }
 	const Counter& queued() const { return queued_; }

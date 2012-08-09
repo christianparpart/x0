@@ -1,5 +1,4 @@
-#ifndef sw_x0_fastcgi_protocol_h
-#define sw_x0_fastcgi_protocol_h
+#pragma once
 
 // this file holds the protocol bits
 
@@ -353,5 +352,3 @@ inline void CgiParamStreamReader::processParams(const char *buf, size_t length)
 // }}}
 
 } // namespace FastCGI
-
-#endif

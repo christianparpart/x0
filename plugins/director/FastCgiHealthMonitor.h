@@ -1,7 +1,7 @@
 #pragma once
 
 #include "HealthMonitor.h"
-#include "fastcgi_protocol.h"
+#include "FastCgiProtocol.h"
 #include <x0/Buffer.h>
 #include <x0/Socket.h>
 #include <x0/http/HttpStatus.h>
