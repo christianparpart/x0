@@ -4,6 +4,7 @@
 [director]
 queue-limit=127
 max-retry-count=3
+sticky-offline-mode=false
 health-check-host-header=localhost.ialu.de
 health-check-request-path=/phpinfo.php
 health-check-fcgi-script-filename=/home/trapni/projects/ialu-web/public/phpinfo.php

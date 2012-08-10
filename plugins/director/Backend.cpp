@@ -35,12 +35,20 @@ Backend::Backend(Director* director,
 	healthMonitor_(healthMonitor)
 {
 	healthMonitor_->setStateChangeCallback([&](HealthMonitor*) {
+
 		director_->worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
 			director_->name().c_str(), name_.c_str(), healthMonitor_->state_str().c_str());
 
 		if (healthMonitor_->isOnline()) {
-			// try delivering a queued request
-			director_->dequeueTo(this);
+			if (!director_->stickyOfflineMode()) {
+				// try delivering a queued request
+				director_->dequeueTo(this);
+			} else {
+				// disable backend due to sticky-offline mode
+				director_->worker_->log(Severity::info, "Director '%s': backend '%s' disabled due to sticky offline mode.",
+					director_->name().c_str(), name_.c_str());
+				setEnabled(false);
+			}
 		}
 	});
 

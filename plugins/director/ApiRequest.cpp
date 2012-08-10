@@ -594,6 +594,10 @@ bool ApiReqeust::updateDirector(Director* director)
 	if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
 		return false;
 
+	bool stickyOfflineMode = director->stickyOfflineMode();
+	if (hasParam("sticky-offline-mode") && !loadParam("sticky-offline-mode", stickyOfflineMode))
+		return false;
+
 	std::string hcHostHeader = director->healthCheckHostHeader();
 	if (hasParam("health-check-host-header") && !loadParam("health-check-host-header", hcHostHeader))
 		return false;
@@ -617,6 +621,7 @@ bool ApiReqeust::updateDirector(Director* director)
 
 	director->setQueueLimit(queueLimit);
 	director->setMaxRetryCount(maxRetryCount);
+	director->setStickyOfflineMode(stickyOfflineMode);
 	director->setHealthCheckHostHeader(hcHostHeader);
 	director->setHealthCheckRequestPath(hcRequestPath);
 	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);

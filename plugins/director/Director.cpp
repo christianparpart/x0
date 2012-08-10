@@ -33,6 +33,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	healthCheckHostHeader_("backend-healthcheck"),
 	healthCheckRequestPath_("/"),
 	healthCheckFcgiScriptFilename_(),
+	stickyOfflineMode_(false),
 	backends_(),
 	queue_(),
 	queueLimit_(128),
@@ -379,6 +380,7 @@ void Director::writeJSON(Buffer& output)
 		   << "  \"queued\": " << queued_ << ",\n"
 		   << "  \"queue-limit\": " << queueLimit_ << ",\n"
 		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
+		   << "  \"sticky-offline-mode\": " << (stickyOfflineMode_ ? "true" : "false") << ",\n"
 		   << "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
 		   << "  \"health-check-request-path\": \"" << healthCheckRequestPath_ << "\",\n"
 		   << "  \"health-check-fcgi-script-name\": \"" << healthCheckFcgiScriptFilename_ << "\",\n"
@@ -430,14 +432,18 @@ bool Director::load(const std::string& path)
 		worker_->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
 		return false;
 	}
-
 	queueLimit_ = std::atoll(value.c_str());
-	printf("queue-limit loaded: %zu\n", queueLimit_);
 
 	if (!settings.load("director", "max-retry-count", value)) {
 		worker_->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
 		return false;
 	}
+
+	if (!settings.load("director", "sticky-offline-mode", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.sticky-offline-mode in file '%s'", path.c_str());
+		return false;
+	}
+	stickyOfflineMode_ = value == "true";
 
 	maxRetryCount_ = std::atoll(value.c_str());
 
@@ -608,6 +614,7 @@ bool Director::save()
 		<< "[director]\n"
 		<< "queue-limit=" << queueLimit_ << "\n"
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
+		<< "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
 		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
 		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
 		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"

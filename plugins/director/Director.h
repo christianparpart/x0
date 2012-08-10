@@ -50,6 +50,8 @@ private:
 	std::string healthCheckRequestPath_;
 	std::string healthCheckFcgiScriptFilename_;
 
+	bool stickyOfflineMode_;
+
 	// set of backends managed by this director.
 	std::vector<std::vector<Backend*>> backends_;
 
@@ -88,6 +90,9 @@ public:
 
 	const std::string& healthCheckFcgiScriptFilename() const { return healthCheckFcgiScriptFilename_; }
 	void setHealthCheckFcgiScriptFilename(const std::string& value) { healthCheckFcgiScriptFilename_ = value; }
+
+	bool stickyOfflineMode() const { return stickyOfflineMode_; }
+	void setStickyOfflineMode(bool value) { stickyOfflineMode_ = value; }
 
 	const Counter& load() const { return load_; }
 	const Counter& queued() const { return queued_; }
