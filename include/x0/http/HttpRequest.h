@@ -342,6 +342,8 @@ public:
 
 	static std::string statusStr(HttpStatus status);
 
+	template<typename T> inline void post(T function) { connection.post(function); }
+
 private:
 	std::list<std::pair<void*, void (*)(void*, Buffer&)> > inspectHandlers_;
 
