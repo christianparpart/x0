@@ -5,11 +5,10 @@
 - support multiple backend protocols
   - HTTP (via TCP and UNIX domain sockets)
   - FastCGI (via TCP and UNIX domain sockets)
-  - ideally costom Flow handlers
 - active/standby/backup backend modes, where standby backends get only used when all active
   backends are at its capacity limits (and/or offline/disabled).
 - request queue with a per-director limit, used when no active nor standby backend can currently process 
-- support (per director) connect/read/write timeouts to backend
+- [TODO] support (per director) connect/read/write timeouts to backend
 - support retrying requests and per-director retry-limits
 - sticky offline mode
   (when a backend becomes offline, it gets disabled, too,
@@ -19,8 +18,6 @@
   - storing backend configuration in some plain file in /var/lib/x0/director/$NAME.db
 - client side routing
 - provide admin JSON-API for browsing, controlling directors, its backends, and their states/stats.
-- reuse already existing code as used in `proxy` and `fastcgi` plugins.
-  - existing plugins (proxy, fastcgi) should now reuse the new core API
 
 # Transparent Backend Transport API
 
@@ -213,14 +210,46 @@ Retrieves state of only one director, by name.
 ## Updating a Director
 
     curl -v http://localhost:8080/x0/director/app_cluster -X POST \
-        -d health-check-host-header=example.com
-        -d health-check-request-path=/health
-        -d health-check-fcgi-script-filename=
-        -d queue-limit=128
-        -d max-retry-count=3
+        -d health-check-host-header=example.com \
+        -d health-check-request-path=/health \
+        -d health-check-fcgi-script-filename= \
+        -d queue-limit=128 \
+        -d queue-timeout=10000 \
+        -d retry-after=60 \
+        -d max-retry-count=3 \
+        -d sticky-offline-mode=false
 
 You can reconfigure any of the directors parameters
 unless this director has been created statically.
+
+### Director Properties
+
+- *health-check-host-header*: defines the Host request-header to be passed when performing health-check requests
+- *health-check-request-path*: the request-path to be passed when performing health-check requests
+- *health-check-fcgi-script-filename*: this is a special property and only applies to FastCGI backends that
+  require a physical underlying file to actually serve the request (such as PHP). This value will
+  translate into the CGI environment variable called *SCRIPT_FILENAME*.
+- *queue-limit*: maximum number of requests that may be enqueued at the same time.
+  Exceeding this value results into 503 (Service Unavailable) instead of enqueuing further.
+  This mechanism is to reduce resource excess.
+- *queue-timeout*: The time-span in milliseconds how long a request may reside in the queue.
+  Exceeding this value will result into a 503 (Service Unavailable).
+- *retry-after*: This value will give the client the delta in seconds when to retry 
+  the failing request.
+  While all time-span values are usually given in milliseconds, this value is not, because
+  the HTTP protocol states, that the corresponding response header is given in seconds.
+- *max-retry-count*: The number of attempts a request is being tried to be passed to one of the
+  existing backends. If a backend has been chosen and the request being passed, but the backend
+  fails connecting to its origin server, the request will be retried up to N times.
+  Exceeding this value will result into a 503 (Service Unavailable).
+- *sticky-offline-mode*: When a backend becomes unavailable (offline) due to failures, then no further
+  attempts are made to deliver any further requests until its corresponding health monitor has
+  detected this backend to be online again.
+  Now, if this property is set to false, the backend may be included into the set of available backends again,
+  but if set to false, it will still become "Online" but also auto-disabled by the health monitor
+  to avoid serving requests by a backend that potentially has been to long offline, that it 
+  might have old backend logig. So setting this value to true might be a wise consideration
+  in continuous developing production environments.
 
 ## Retrieving Backend State
 
@@ -268,13 +297,10 @@ Updating name, protocol, hostname, or port would literally be the same as just c
 ## Deleting a Backend
 
     curl -v http://localhost:8080/x0/director/app_cluster/backend01 -X DELETE
-        -d wait=true
 
 The wait parameter specifies whether or not to kill existing connections on
 given backend or if the backend should wait for them to finish before getting
 removed completely out of the cluster.
-
-*wait* can be either "true" (wait for them to complete) or "false" (kill everything right away).
 
 Deleted but not yet removed backends change their state to "*Terminating*".
 
