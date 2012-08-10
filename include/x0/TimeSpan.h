@@ -47,6 +47,7 @@ public:
 	static TimeSpan fromSeconds(std::size_t v) { return TimeSpan(ticksPerSecond() * v); }
 	static TimeSpan fromMilliseconds(std::size_t v) { return TimeSpan(ev_tstamp(v / 1000 + (unsigned(v) % 1000) / 1000.0)); }
 
+	std::size_t totalSeconds() const { return value_; }
 	std::size_t totalMilliseconds() const { return value_ * 1000; }
 
 	bool operator!() const { return value_ == 0; }
