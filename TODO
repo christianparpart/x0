@@ -1,10 +1,5 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
-- copyright notice updates
-- director: JSON-API
-  - historical stats (requests per second):
-    - history over the last N secs (60)
-    - per backend, per director, globally
 -------------------------------------------------
 -------------------------------------------------
 
