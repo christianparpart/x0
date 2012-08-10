@@ -69,14 +69,13 @@ public:
 		return i != map_.end() ? static_cast<T *>(i->second) : nullptr;
 	}
 
-	template<typename T, typename... Args> bool setCustomData(void *key, Args&&... args)
+	template<typename T, typename... Args> T* setCustomData(void *key, Args&&... args)
 	{
 		auto i = map_.find(key);
 		if (i != map_.end())
-			return false;
+			return static_cast<T*>(i->second);
 
-		map_[key] = new T(args...);
-		return true;
+		return static_cast<T*>(map_[key] = new T(args...));
 	}
 };
 
