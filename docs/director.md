@@ -6,7 +6,7 @@
   - HTTP (via TCP and UNIX domain sockets)
   - FastCGI (via TCP and UNIX domain sockets)
   - ideally costom Flow handlers
-- active/standby backend modes, where standby backends get only used when all active
+- active/standby/backup backend modes, where standby backends get only used when all active
   backends are at its capacity limits (and/or offline/disabled).
 - request queue with a per-director limit, used when no active nor standby backend can currently process 
 - support (per director) connect/read/write timeouts to backend
@@ -215,6 +215,7 @@ Retrieves state of only one director, by name.
     curl -v http://localhost:8080/x0/director/app_cluster -X POST \
         -d health-check-host-header=example.com
         -d health-check-request-path=/health
+        -d health-check-fcgi-script-filename=
         -d queue-limit=128
         -d max-retry-count=3
 
@@ -276,24 +277,6 @@ removed completely out of the cluster.
 *wait* can be either "true" (wait for them to complete) or "false" (kill everything right away).
 
 Deleted but not yet removed backends change their state to "*Terminating*".
-
-# TODO
-
-- DONE: improve scheduling, honoring backend roles:
-    - 1.) active.each {|b| b.tryserve(r)}
-    - 2.) standby.each {|b| b.tryserve(r)}
-    - 3.) if active+standby = down: backup.each {|b| b.tryserve(r)}
-    - 4.) queue.each {|b| b.tryserve(r)} or 503 if queue is full
-    - 5.) 503 Service Unavailable
-- DONE: save/load of mutable directors
-- FastCGI backend protocol support
-- ???: extend HttpRequest API to allow virtual requests, easing internal health checks and possibly internal redirects
-- DONE: Health Monitor: add support to customize request URI and host-header.
-- FEATURE: historical request count per second data for the last N seconds (N may default to 60)
-  - per backend
-  - per director
-- STABILITY: Ensure overall thread safety at a minimum of lock contention to scale horizontally.
-- FAULT-TOLERANCE: saving mutable directors onto disk should not block a thread.
 
 # Plugin Improvement Ideas
 
