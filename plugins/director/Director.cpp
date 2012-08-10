@@ -411,7 +411,13 @@ void Director::writeJSON(Buffer& output)
  */
 bool Director::load(const std::string& path)
 {
-	// TODO treat director as *empty* and return true if file does not exist.
+	// treat director as loaded if db file behind given path does not exist
+	struct stat st;
+	if (stat(path.c_str(), &st) < 0 && errno == ENOENT) {
+		storagePath_ = path;
+		setMutable(true);
+		return save();
+	}
 
 	IniFile settings;
 	if (!settings.loadFile(path)) {
