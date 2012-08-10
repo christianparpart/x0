@@ -103,6 +103,8 @@ public:
 
 	unsigned refCount() const;
 
+	template<typename T> inline void post(T function) { worker_->post(function); }
+
 private:
 	friend class HttpRequest;
 	friend class HttpWorker;
