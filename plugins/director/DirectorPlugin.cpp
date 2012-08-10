@@ -172,9 +172,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 					break;
 
 				if (Backend* backend = director->findBackend(backendName)) {
-					r->setCustomData<DirectorNotes>(director);
-					auto notes = r->customData<DirectorNotes>(director);
-					notes->backend = backend;
+					r->setCustomData<DirectorNotes>(director, director->worker().now(), backend);
 				} else {
 					// explicit backend specified, but not found -> do not serve.
 					r->log(Severity::error, "director: Requested backend '%s' not found.", backendName.c_str());

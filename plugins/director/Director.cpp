@@ -37,6 +37,9 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	backends_(),
 	queue_(),
 	queueLimit_(128),
+	queueTimeout_(TimeSpan::fromSeconds(60)),
+	queueTimer_(worker_->loop()),
+	retryAfter_(TimeSpan::fromSeconds(10)),
 	load_(),
 	queued_(),
 	lastBackend_(0),
@@ -46,6 +49,8 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	backends_.resize(4);
 
 	worker_->registerStopHandler(std::bind(&Director::onStop, this));
+
+	queueTimer_.set<Director, &Director::updateQueueTimer>(this);
 }
 
 Director::~Director()
@@ -124,9 +129,7 @@ void Director::schedule(HttpRequest* r)
 {
 	r->responseHeaders.push_back("X-Director-Cluster", name_);
 
-	r->setCustomData<DirectorNotes>(this);
-
-	auto notes = r->customData<DirectorNotes>(this);
+	auto notes = r->setCustomData<DirectorNotes>(this, worker_->now());
 
 	bool allDisabled = false;
 
@@ -159,6 +162,11 @@ void Director::schedule(HttpRequest* r)
 	else {
 		r->log(Severity::error, "director: '%s' queue limit %zu reached. Rejecting request.", name_.c_str(), queueLimit_);
 		r->status = HttpStatus::ServiceUnavailable;
+		if (retryAfter_) {
+			char value[64];
+			snprintf(value, sizeof(value), "%zu", retryAfter_.totalSeconds());
+			r->responseHeaders.push_back("Retry-After", value);
+		}
 		r->finish();
 	}
 }
@@ -288,6 +296,57 @@ void Director::enqueue(HttpRequest* r)
 
 	queue_.push_back(r);
 	++queued_;
+
+	updateQueueTimer();
+}
+
+void Director::updateQueueTimer()
+{
+	TRACE("updateQueueTimer()");
+
+	// quickly return if queue-timer is already running
+	if (queueTimer_.is_active()) {
+		TRACE("updateQueueTimer: timer is active, returning");
+		return;
+	}
+
+	// finish already timed out requests
+	while (!queue_.empty()) {
+		HttpRequest* r = queue_.front();
+		auto notes = r->customData<DirectorNotes>(this);
+		TimeSpan age(worker_->now() - notes->ctime);
+		if (age < queueTimeout_)
+			break;
+
+		TRACE("updateQueueTimer: dequeueing timed out request");
+		queue_.pop_front();
+		--queued_;
+
+		r->post([this, r]() {
+			TRACE("updateQueueTimer: killing request with 503");
+
+			r->status = HttpStatus::ServiceUnavailable;
+			if (retryAfter_) {
+				char value[64];
+				snprintf(value, sizeof(value), "%zu", retryAfter_.totalSeconds());
+				r->responseHeaders.push_back("Retry-After", value);
+			}
+			r->finish();
+		});
+	}
+
+	if (queue_.empty()) {
+		TRACE("updateQueueTimer: queue empty. not starting new timer.");
+		return;
+	}
+
+	// setup queue timer to wake up after next timeout is reached.
+	HttpRequest* r = queue_.front();
+	auto notes = r->customData<DirectorNotes>(this);
+	TimeSpan age(worker_->now() - notes->ctime);
+	TimeSpan ttl(queueTimeout_ - age);
+	TRACE("updateQueueTimer: starting new timer with ttl %f (%llu)", ttl.value(), ttl.totalMilliseconds());
+	queueTimer_.start(ttl.value(), 0);
 }
 
 Backend* Director::nextBackend(Backend* backend, HttpRequest* r)
@@ -367,7 +426,7 @@ void Director::dequeueTo(Backend* backend)
 #ifndef NDEBUG
 		r->log(Severity::debug, "Dequeueing request to backend %s", backend->name().c_str());
 #endif
-		r->connection.worker().post([this, backend, r]() {
+		r->connection.post([this, backend, r]() {
 			pass(r, r->customData<DirectorNotes>(this), backend);
 		});
 	}
@@ -379,6 +438,8 @@ void Director::writeJSON(Buffer& output)
 		   << "  \"load\": " << load_ << ",\n"
 		   << "  \"queued\": " << queued_ << ",\n"
 		   << "  \"queue-limit\": " << queueLimit_ << ",\n"
+		   << "  \"queue-timeout\": " << queueTimeout_.totalMilliseconds() << ",\n"
+		   << "  \"retry-after\": " << retryAfter_.totalSeconds() << ",\n"
 		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
 		   << "  \"sticky-offline-mode\": " << (stickyOfflineMode_ ? "true" : "false") << ",\n"
 		   << "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
@@ -434,8 +495,20 @@ bool Director::load(const std::string& path)
 	}
 	queueLimit_ = std::atoll(value.c_str());
 
+	if (!settings.load("director", "queue-timeout", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.queue-timeout in file '%s'", path.c_str());
+		return false;
+	}
+	queueTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+
+	if (!settings.load("director", "retry-after", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.retry-after in file '%s'", path.c_str());
+		return false;
+	}
+	retryAfter_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
+
 	if (!settings.load("director", "max-retry-count", value)) {
-		worker_->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
+		worker_->log(Severity::error, "director: Could not load settings value director.queue-retry-count in file '%s'", path.c_str());
 		return false;
 	}
 
@@ -613,6 +686,8 @@ bool Director::save()
 		<< "# !!! DO NOT EDIT !!! THIS FILE IS GENERATED AUTOMATICALLY !!!\n\n"
 		<< "[director]\n"
 		<< "queue-limit=" << queueLimit_ << "\n"
+		<< "queue-timeout=" << queueTimeout_.totalMilliseconds() << "\n"
+		<< "retry-after=" << retryAfter_.totalSeconds() << "\n"
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
 		<< "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
 		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"

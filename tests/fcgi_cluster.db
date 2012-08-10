@@ -3,6 +3,8 @@
 
 [director]
 queue-limit=127
+queue-timeout=10000
+retry-after=60
 max-retry-count=3
 sticky-offline-mode=false
 health-check-host-header=localhost.ialu.de

@@ -88,6 +88,8 @@ public:
 	void start();
 	void stop();
 
+	template<typename T> inline void post(T function) { worker_.post(function); }
+
 protected:
 	virtual void onCheckStart();
 

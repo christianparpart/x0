@@ -590,6 +590,14 @@ bool ApiReqeust::updateDirector(Director* director)
 	if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
 		return false;
 
+	TimeSpan queueTimeout = director->queueTimeout();
+	if (hasParam("queue-timeout") && !loadParam("queue-timeout", queueTimeout))
+		return false;
+
+	TimeSpan retryAfter = director->retryAfter();
+	if (hasParam("retry-after") && !loadParam("retry-after", retryAfter))
+		return false;
+
 	size_t maxRetryCount = director->maxRetryCount();
 	if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
 		return false;
@@ -620,6 +628,8 @@ bool ApiReqeust::updateDirector(Director* director)
 	}
 
 	director->setQueueLimit(queueLimit);
+	director->setQueueTimeout(queueTimeout);
+	director->setRetryAfter(retryAfter);
 	director->setMaxRetryCount(maxRetryCount);
 	director->setStickyOfflineMode(stickyOfflineMode);
 	director->setHealthCheckHostHeader(hcHostHeader);
@@ -627,7 +637,7 @@ bool ApiReqeust::updateDirector(Director* director)
 	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);
 	director->save();
 
-	director->worker().post([director]() {
+	director->post([director]() {
 		director->eachBackend([](Backend* backend) {
 			backend->healthMonitor().update();
 		});

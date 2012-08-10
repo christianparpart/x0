@@ -115,7 +115,7 @@ void Backend::setRole(Role value)
 		director_->link(this);
 
 		if (role_ == Role::Terminate) {
-			director_->worker_->post([this](){ tryTermination(); });
+			director_->post([this](){ tryTermination(); });
 		}
 	}
 }

@@ -4,6 +4,7 @@
 
 #include <x0/Counter.h>
 #include <x0/Logging.h>
+#include <x0/DateTime.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/CustomDataMgr.h>
 #include <ev++.h>
@@ -13,12 +14,14 @@ using namespace x0;
 struct DirectorNotes :
 	public CustomData
 {
-	size_t retryCount;
+	DateTime ctime;
 	Backend* backend;
+	size_t retryCount;
 
-	DirectorNotes() :
-		retryCount(0),
-		backend(nullptr)
+	explicit DirectorNotes(DateTime ct, Backend* b = nullptr) :
+		ctime(ct),
+		backend(b),
+		retryCount(0)
 	{}
 };
 
@@ -57,6 +60,9 @@ private:
 
 	std::deque<HttpRequest*> queue_; //! list of queued requests.
 	size_t queueLimit_;
+	TimeSpan queueTimeout_;
+	ev::timer queueTimer_;
+	TimeSpan retryAfter_;
 
 	Counter load_;
 	Counter queued_;
@@ -100,6 +106,12 @@ public:
 	size_t queueLimit() const { return queueLimit_; }
 	void setQueueLimit(size_t value) { queueLimit_ = value; }
 
+	TimeSpan queueTimeout() const { return queueTimeout_; }
+	void setQueueTimeout(TimeSpan value) { queueTimeout_ = value; }
+
+	TimeSpan retryAfter() const { return retryAfter_; }
+	void setRetryAfter(TimeSpan value) { retryAfter_ = value; }
+
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
@@ -136,6 +148,8 @@ public:
 		}
 	}
 
+	template<typename T> inline void post(T function) { worker_->post(function); }
+
 private:
 	const std::vector<Backend*>& backendsWith(Backend::Role role) const;
 	Backend* findLeastLoad(Backend::Role role, bool* allDisabled = nullptr);
@@ -148,6 +162,8 @@ private:
 	Backend* nextBackend(Backend* backend, HttpRequest* r);
 	void enqueue(HttpRequest* r);
 	void release(Backend* backend);
+
+	void updateQueueTimer();
 
 	void onStop();
 
