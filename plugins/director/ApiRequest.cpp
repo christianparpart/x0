@@ -598,6 +598,18 @@ bool ApiReqeust::updateDirector(Director* director)
 	if (hasParam("retry-after") && !loadParam("retry-after", retryAfter))
 		return false;
 
+	TimeSpan connectTimeout = director->connectTimeout();
+	if (hasParam("connect-timeout") && !loadParam("connect-timeout", connectTimeout))
+		return false;
+
+	TimeSpan readTimeout = director->readTimeout();
+	if (hasParam("read-timeout") && !loadParam("read-timeout", readTimeout))
+		return false;
+
+	TimeSpan writeTimeout = director->writeTimeout();
+	if (hasParam("write-timeout") && !loadParam("write-timeout", writeTimeout))
+		return false;
+
 	size_t maxRetryCount = director->maxRetryCount();
 	if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
 		return false;
@@ -630,6 +642,9 @@ bool ApiReqeust::updateDirector(Director* director)
 	director->setQueueLimit(queueLimit);
 	director->setQueueTimeout(queueTimeout);
 	director->setRetryAfter(retryAfter);
+	director->setConnectTimeout(connectTimeout);
+	director->setReadTimeout(readTimeout);
+	director->setWriteTimeout(writeTimeout);
 	director->setMaxRetryCount(maxRetryCount);
 	director->setStickyOfflineMode(stickyOfflineMode);
 	director->setHealthCheckHostHeader(hcHostHeader);

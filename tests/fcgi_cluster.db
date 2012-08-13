@@ -10,6 +10,9 @@ sticky-offline-mode=false
 health-check-host-header=localhost.ialu.de
 health-check-request-path=/phpinfo.php
 health-check-fcgi-script-filename=/home/trapni/projects/ialu-web/public/phpinfo.php
+connect-timeout=10000
+read-timeout=120000
+write-timeout=10000
 
 [backend=php9000]
 role=active

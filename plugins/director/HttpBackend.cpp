@@ -35,12 +35,12 @@ class HttpBackend::ProxyConnection :
 	public HttpMessageProcessor
 {
 private:
-	HttpBackend* proxy_;			//!< owning proxy
+	HttpBackend* backend_;			//!< owning proxy
 
 	int refCount_;
 
 	HttpRequest* request_;		//!< client's request
-	Socket* backend_;			//!< connection to backend app
+	Socket* socket_;			//!< connection to backend app
 
 	int connectTimeout_;
 	int readTimeout_;
@@ -54,7 +54,7 @@ private:
 	bool processingDone_;
 
 private:
-	HttpBackend* proxy() const { return proxy_; }
+	HttpBackend* proxy() const { return backend_; }
 
 	void ref();
 	void unref();
@@ -69,6 +69,9 @@ private:
 
 	static void onAbort(void *p);
 	void onWriteComplete();
+
+	void onConnectTimeout(x0::Socket* s);
+	void onTimeout(x0::Socket* s);
 
 	// response (HttpMessageProcessor)
 	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
@@ -87,10 +90,10 @@ public:
 // {{{ HttpBackend::ProxyConnection impl
 HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
 	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
-	proxy_(proxy),
+	backend_(proxy),
 	refCount_(1),
 	request_(nullptr),
-	backend_(nullptr),
+	socket_(nullptr),
 
 	connectTimeout_(0),
 	readTimeout_(0),
@@ -111,10 +114,10 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 {
 	TRACE("~ProxyConnection()");
 
-	if (backend_) {
-		backend_->close();
+	if (socket_) {
+		socket_->close();
 
-		delete backend_;
+		delete socket_;
 	}
 
 	if (request_) {
@@ -125,13 +128,13 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			proxy_->director_->reschedule(request_, proxy_);
+			backend_->director_->reschedule(request_, backend_);
 		} else {
 			// We actually served ths request, so finish() it.
 			request_->finish();
 
 			// Notify director that this backend has just completed a request,
-			proxy_->release();
+			backend_->release();
 		}
 	}
 }
@@ -154,9 +157,9 @@ void HttpBackend::ProxyConnection::unref()
 
 void HttpBackend::ProxyConnection::close()
 {
-	if (backend_)
+	if (socket_)
 		// stop watching on any backend I/O events, if active
-		backend_->close();
+		socket_->close();
 
 	unref(); // the one from the constructor
 }
@@ -167,13 +170,13 @@ void HttpBackend::ProxyConnection::onAbort(void *p)
 	self->close();
 }
 
-void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* backend)
+void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* socket)
 {
 	TRACE("ProxyConnection.start(in, backend)");
 
 	request_ = in;
 	request_->setAbortHandler(&ProxyConnection::onAbort, this);
-	backend_ = backend;
+	socket_ = socket;
 
 	// request line
 	writeBuffer_.push_back(request_->method);
@@ -233,14 +236,50 @@ void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* backend)
 		request_->setBodyCallback<ProxyConnection, &ProxyConnection::onRequestChunk>(this);
 	}
 
-	if (backend_->state() == Socket::Connecting) {
+	if (socket_->state() == Socket::Connecting) {
 		TRACE("start: connect in progress");
-		backend_->setReadyCallback<ProxyConnection, &ProxyConnection::onConnected>(this);
+		socket_->setTimeout<ProxyConnection, &HttpBackend::ProxyConnection::onConnectTimeout>(this, backend_->director()->connectTimeout());
+		socket_->setReadyCallback<ProxyConnection, &ProxyConnection::onConnected>(this);
 	} else { // connected
 		TRACE("start: flushing");
-		backend_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
-		backend_->setMode(Socket::ReadWrite);
+		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
+		socket_->setMode(Socket::ReadWrite);
 	}
+}
+
+/**
+ * connect() timeout callback.
+ *
+ * This callback is invoked from within the requests associated thread to notify about
+ * a timed out read/write operation.
+ */
+void HttpBackend::ProxyConnection::onConnectTimeout(x0::Socket* s)
+{
+	request_->log(Severity::error, "http-proxy: Failed to connect to backend %s. Timed out.", backend_->name().c_str());
+
+	if (!request_->status)
+		request_->status = HttpStatus::GatewayTimedout;
+
+	backend_->setState(HealthMonitor::State::Offline);
+	close();
+}
+
+/**
+ * read()/write() timeout callback.
+ *
+ * This callback is invoked from within the requests associated thread to notify about
+ * a timed out read/write operation.
+ */
+void HttpBackend::ProxyConnection::onTimeout(x0::Socket* s)
+{
+	request_->log(x0::Severity::error, "http-proxy: Failed to perform I/O on backend %s. Timed out", backend_->name().c_str());
+	backend_->setState(HealthMonitor::State::Offline);
+
+	if (!request_->status)
+		request_->status = HttpStatus::GatewayTimedout;
+
+	close();
 }
 
 void HttpBackend::ProxyConnection::onConnected(Socket* s, int revents)
@@ -248,15 +287,16 @@ void HttpBackend::ProxyConnection::onConnected(Socket* s, int revents)
 	TRACE("onConnected: content? %d", request_->contentAvailable());
 	//TRACE("onConnected.pending:\n%s\n", writeBuffer_.c_str());
 
-	if (backend_->state() == Socket::Operational) {
+	if (socket_->state() == Socket::Operational) {
 		TRACE("onConnected: flushing");
-		request_->responseHeaders.push_back("X-Director-Backend", proxy_->name());
-		backend_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
-		backend_->setMode(Socket::ReadWrite); // flush already serialized request
+		request_->responseHeaders.push_back("X-Director-Backend", backend_->name());
+		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
+		socket_->setMode(Socket::ReadWrite); // flush already serialized request
 	} else {
 		TRACE("onConnected: failed");
 		request_->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
-		proxy_->setState(HealthMonitor::State::Offline);
+		backend_->setState(HealthMonitor::State::Offline);
 		close();
 	}
 }
@@ -267,8 +307,9 @@ void HttpBackend::ProxyConnection::onRequestChunk(const BufferRef& chunk)
 	TRACE("onRequestChunk(nb:%ld)", chunk.size());
 	writeBuffer_.push_back(chunk);
 
-	if (backend_->state() == Socket::Operational) {
-		backend_->setMode(Socket::ReadWrite);
+	if (socket_->state() == Socket::Operational) {
+		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setMode(Socket::ReadWrite);
 	}
 }
 
@@ -314,10 +355,10 @@ skip:
 /** callback, invoked on a new response content chunk. */
 bool HttpBackend::ProxyConnection::onMessageContent(const BufferRef& chunk)
 {
-	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), backend_->state_str());
+	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), socket_->state_str());
 
 	// stop watching for more input
-	backend_->setMode(Socket::None);
+	socket_->setMode(Socket::None);
 
 	// transfer response-body chunk to client
 	request_->write<BufferRefSource>(chunk);
@@ -332,13 +373,14 @@ bool HttpBackend::ProxyConnection::onMessageContent(const BufferRef& chunk)
 void HttpBackend::ProxyConnection::onWriteComplete()
 {
 	TRACE("chunk write complete: %s", state_str());
-	backend_->setMode(Socket::Read);
+	socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->readTimeout());
+	socket_->setMode(Socket::Read);
 	unref();
 }
 
 bool HttpBackend::ProxyConnection::onMessageEnd()
 {
-	TRACE("messageEnd() backend-state:%s", backend_->state_str());
+	TRACE("messageEnd() backend-state:%s", socket_->state_str());
 	processingDone_ = true;
 	return false;
 }
@@ -358,7 +400,7 @@ void HttpBackend::ProxyConnection::writeSome()
 {
 	TRACE("writeSome() - %s (%d)", state_str(), request_->contentAvailable());
 
-	ssize_t rv = backend_->write(writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
+	ssize_t rv = socket_->write(writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
 
 	if (rv > 0) {
 		TRACE("write request: %ld (of %ld) bytes", rv, writeBuffer_.size() - writeOffset_);
@@ -372,11 +414,26 @@ void HttpBackend::ProxyConnection::writeSome()
 
 			writeOffset_ = 0;
 			writeBuffer_.clear();
-			backend_->setMode(Socket::Read);
+			socket_->setMode(Socket::Read);
+		} else {
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
 		}
-	} else {
-		TRACE("write request failed(%ld): %s", rv, strerror(errno));
-		close();
+	} else if (rv < 0) {
+		switch (errno) {
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+		case EWOULDBLOCK:
+#endif
+		case EAGAIN:
+		case EINTR:
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+			socket_->setMode(Socket::ReadWrite);
+			break;
+		default:
+			request_->log(Severity::error, "Writing to backend %s failed. %s", backend_->socketSpec().str().c_str(), strerror(errno));
+			backend_->setState(HealthMonitor::State::Offline);
+			close();
+			break;
+		}
 	}
 }
 
@@ -389,7 +446,7 @@ void HttpBackend::ProxyConnection::readSome()
 	if (lower_bound == readBuffer_.capacity())
 		readBuffer_.setCapacity(lower_bound + 4096);
 
-	ssize_t rv = backend_->read(readBuffer_);
+	ssize_t rv = socket_->read(readBuffer_);
 
 	if (rv > 0) {
 		TRACE("read response: %ld bytes", rv);
@@ -397,27 +454,38 @@ void HttpBackend::ProxyConnection::readSome()
 		(void) np;
 		TRACE("readSome(): process(): %ld / %ld", np, rv);
 
-		if (processingDone_ || state() == SYNTAX_ERROR) {
+		if (processingDone_) {
 			close();
+		} else if (state() == SYNTAX_ERROR) {
+			close();
+			request_->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
+			backend_->setState(HealthMonitor::State::Offline);
 		} else {
-			TRACE("resume with io:%d, state:%s", backend_->mode(), backend_->state_str());
-			backend_->setMode(Socket::Read);
+			TRACE("resume with io:%d, state:%s", socket_->mode(), socket_->state_str());
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->readTimeout());
+			socket_->setMode(Socket::Read);
 		}
 	} else if (rv == 0) {
 		TRACE("http server connection closed");
+		if (!processingDone_) {
+			// FIXME How does this affect backends with HTTP/1.0 responses? make this check more clever.
+			request_->log(Severity::error, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
+			backend_->setState(HealthMonitor::State::Offline);
+		}
 		close();
 	} else {
-		TRACE("read response failed(%ld): %s", rv, strerror(errno));
-
 		switch (errno) {
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
 		case EWOULDBLOCK:
 #endif
 		case EAGAIN:
 		case EINTR:
-			backend_->setMode(Socket::Read);
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->readTimeout());
+			socket_->setMode(Socket::Read);
 			break;
 		default:
+			request_->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
+			backend_->setState(HealthMonitor::State::Offline);
 			close();
 			break;
 		}
@@ -451,14 +519,14 @@ bool HttpBackend::process(HttpRequest* r)
 {
 	TRACE("process...");
 
-	Socket* backend = new Socket(r->connection.worker().loop());
-	backend->open(socketSpec_, O_NONBLOCK | O_CLOEXEC);
+	Socket* socket = new Socket(r->connection.worker().loop());
+	socket->open(socketSpec_, O_NONBLOCK | O_CLOEXEC);
 
-	if (backend->isOpen()) {
+	if (socket->isOpen()) {
 		TRACE("in.content? %d", r->contentAvailable());
 
 		if (ProxyConnection* pc = new ProxyConnection(this)) {
-			pc->start(r, backend);
+			pc->start(r, socket);
 			return true;
 		}
 	}

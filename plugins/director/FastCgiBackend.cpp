@@ -45,19 +45,6 @@
 #	define TRACE(msg...) /*!*/
 #endif
 
-// TODO make these values configurable
-#define FASTCGI_CONNECT_TIMEOUT 60		/* [director] backend-connect-timeout */
-#define FASTCGI_READ_TIMEOUT 300        /* [director] backend-read-timeout */
-#define FASTCGI_WRITE_TIMEOUT 60        /* [director] backend-write-timeout */
-
-static inline std::string chomp(const std::string& value) // {{{
-{
-	if (value.size() && value[value.size() - 1] == '\n')
-		return value.substr(0, value.size() - 1);
-	else
-		return value;
-} // }}}
-
 class FastCgiTransport : // {{{
 #ifndef NDEBUG
 	public x0::Logging,
@@ -144,7 +131,7 @@ private:
 	void onConnectTimeout(x0::Socket* s);
 
 	void io(x0::Socket* s, int revents);
-	void timeout(x0::Socket* s);
+	void onTimeout(x0::Socket* s);
 
 	inline bool processRecord(const FastCgi::Record *record);
 	void onParam(const std::string& name, const std::string& value);
@@ -323,10 +310,11 @@ void FastCgiTransport::bind(x0::HttpRequest *r, uint16_t id, x0::Socket* backend
 
 	// setup I/O callback
 	if (socket_->state() == x0::Socket::Connecting) {
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onConnectTimeout>(this, FASTCGI_CONNECT_TIMEOUT);
+		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onConnectTimeout>(this, backend_->director()->connectTimeout());
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::onConnectComplete>(this);
-	} else
+	} else {
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::io>(this);
+	}
 
 	// flush out
 	flush();
@@ -386,7 +374,7 @@ void FastCgiTransport::flush()
 {
 	if (socket_->state() == x0::Socket::Operational) {
 		TRACE("flush()");
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::timeout>(this, FASTCGI_WRITE_TIMEOUT);
+		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->director()->writeTimeout());
 		socket_->setMode(x0::Socket::ReadWrite);
 	} else {
 		TRACE("flush() -> pending");
@@ -396,14 +384,17 @@ void FastCgiTransport::flush()
 
 void FastCgiTransport::onConnectTimeout(x0::Socket* s)
 {
-	TRACE("onConnectTimeout: Trying to connect to backend timed out.");
-	close();
+	request_->log(Severity::error, "http-proxy: Failed to connect to backend %s. Timed out.", backend_->name().c_str());
+
+	if (!request_->status)
+		request_->status = HttpStatus::GatewayTimedout;
+
 	backend_->setState(HealthMonitor::State::Offline);
+	close();
 }
 
-/** invoked (by open() or asynchronousely by io()) to complete the connection establishment.
- * \retval true connection establishment completed
- * \retval false finishing connect() failed. object is also invalidated.
+/**
+ * Invoked (by open() or asynchronousely by io()) to complete the connection establishment.
  */
 void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 {
@@ -414,30 +405,31 @@ void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE("onConnectComplete() flush pending");
 		flushPending_ = false;
+		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->director()->writeTimeout());
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::io>(this);
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::timeout>(this, FASTCGI_WRITE_TIMEOUT);
 		socket_->setMode(x0::Socket::ReadWrite);
 	} else {
 		TRACE("onConnectComplete()");
+		// do not install a timeout handler here, even though, we're watching for ev::READ, because all we're to
+		// get is an EOF detection (remote end-point will not sent data unless we did).
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::io>(this);
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::timeout>(this, FASTCGI_READ_TIMEOUT);
 		socket_->setMode(x0::Socket::Read);
 	}
 }
 
 void FastCgiTransport::io(x0::Socket* s, int revents)
 {
-	TRACE("FastCgiTransport::io(0x%04x)", revents);
+	TRACE("io(0x%04x)", revents);
 	ref();
 
 	if (revents & ev::ERROR) {
-		TRACE("libev backend triggered an ev::ERROR");
+		TRACE("io: libev backend triggered an ev::ERROR");
 		unref();
 		close();
 	}
 
 	if (revents & x0::Socket::Read) {
-		TRACE("FastCgiTransport::io(): reading ...");
+		TRACE("io: reading ...");
 		// read as much as possible
 		for (;;) {
 			size_t remaining = readBuffer_.capacity() - readBuffer_.size();
@@ -490,7 +482,7 @@ void FastCgiTransport::io(x0::Socket* s, int revents)
 		if (rv < 0) {
 			if (errno != EINTR && errno != EAGAIN) {
 				request_->log(x0::Severity::error,
-					"fastcgi: write to backend %s failed: %s", backendName_.c_str(), strerror(errno));
+					"fastcgi: write to backend %s failed. %s", backendName_.c_str(), strerror(errno));
 				goto app_err;
 			}
 
@@ -501,7 +493,7 @@ void FastCgiTransport::io(x0::Socket* s, int revents)
 
 		// if set watcher back to EV_READ if the write-buffer has been fully written (to catch connection close events)
 		if (writeOffset_ == writeBuffer_.size()) {
-			TRACE("FastCgiTransport::io(): write buffer fully written to socket (%ld)", writeOffset_);
+			TRACE("io: write buffer fully written to socket (%ld)", writeOffset_);
 			socket_->setMode(x0::Socket::Read);
 			writeBuffer_.clear();
 			writeOffset_ = 0;
@@ -526,12 +518,14 @@ done:
 	unref();
 }
 
-void FastCgiTransport::timeout(x0::Socket* s)
+void FastCgiTransport::onTimeout(x0::Socket* s)
 {
-	request_->log(x0::Severity::error,
-		"fastcgi: I/O timeout to backend %s: %s",
-		backendName_.c_str(), strerror(errno));
+	request_->log(Severity::error, "fastcgi: I/O timeout to backend %s. %s", backendName_.c_str(), strerror(errno));
 
+	if (!request_->status)
+		request_->status = HttpStatus::GatewayTimedout;
+
+	backend_->setState(HealthMonitor::State::Offline);
 	close();
 }
 
@@ -600,12 +594,12 @@ void FastCgiTransport::onStdOut(const x0::BufferRef& chunk)
 
 void FastCgiTransport::onStdErr(const x0::BufferRef& chunk)
 {
-	TRACE("FastCgiTransport.stderr(id:%d): %s", id_, chomp(chunk.str()).c_str());
+	TRACE("FastCgiTransport.stderr(id:%d): %s", id_, chunk.chomp().str().c_str());
 
 	if (!request_)
 		return;
 
-	request_->log(x0::Severity::error, "fastcgi: %s", chomp(chunk.str()).c_str());
+	request_->log(x0::Severity::error, "fastcgi: %s", chunk.chomp().str().c_str());
 }
 
 void FastCgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
@@ -660,7 +654,8 @@ bool FastCgiTransport::onMessageContent(const x0::BufferRef& content)
 	return false;
 }
 
-/** \brief write-completion hook, invoked when a content chunk is written to the HTTP client.
+/**
+ * write-completion hook, invoked when a content chunk is written to the HTTP client.
  */
 void FastCgiTransport::onWriteComplete()
 {
@@ -681,16 +676,16 @@ void FastCgiTransport::onWriteComplete()
 #endif//}}}
 	TRACE("onWriteComplete: output flushed. resume watching on app I/O (read)");
 
-	socket_->setTimeout<FastCgiTransport, &FastCgiTransport::timeout>(this, FASTCGI_READ_TIMEOUT);
+	// read next chunk from backend again
+	socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->director()->readTimeout());
 	socket_->setMode(x0::Socket::Read);
 
-	unref(); // unref the ref(), invoked near the installer code of this callback
+	// unref the ref(), invoked near the installer code of this callback
+	unref();
 }
 
 /**
- * @brief invoked when remote client connected before the response has been fully transmitted.
- *
- * @param p `this pointer` to FastCgiTransport object
+ * Invoked when remote client connected before the response has been fully transmitted.
  */
 void FastCgiTransport::onClientAbort(void *p)
 {
@@ -725,7 +720,7 @@ FastCgiBackend::~FastCgiBackend()
 void FastCgiBackend::setup(const x0::SocketSpec& spec)
 {
 #ifndef NDEBUG
-	setLoggingPrefix("FastCgiBackend(%s)", spec.str().c_str());
+	setLoggingPrefix("FastCgiBackend/%s", spec.str().c_str());
 #endif
 	socketSpec_ = spec;
 }
@@ -738,7 +733,7 @@ const std::string& FastCgiBackend::protocol() const
 
 bool FastCgiBackend::process(x0::HttpRequest* r)
 {
-	TRACE("FastCgiBackend.process()");
+	TRACE("process()");
 
 	x0::Socket* socket = new x0::Socket(r->connection.worker().loop());
 	socket->open(socketSpec_, O_NONBLOCK | O_CLOEXEC);

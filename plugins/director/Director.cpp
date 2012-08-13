@@ -40,6 +40,9 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	queueTimeout_(TimeSpan::fromSeconds(60)),
 	queueTimer_(worker_->loop()),
 	retryAfter_(TimeSpan::fromSeconds(10)),
+	connectTimeout_(TimeSpan::fromSeconds(10)),
+	readTimeout_(TimeSpan::fromSeconds(120)),
+	writeTimeout_(TimeSpan::fromSeconds(10)),
 	load_(),
 	queued_(),
 	lastBackend_(0),
@@ -442,6 +445,9 @@ void Director::writeJSON(Buffer& output)
 		   << "  \"retry-after\": " << retryAfter_.totalSeconds() << ",\n"
 		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
 		   << "  \"sticky-offline-mode\": " << (stickyOfflineMode_ ? "true" : "false") << ",\n"
+		   << "  \"connect-timeout\": " << connectTimeout_.totalMilliseconds() << ",\n"
+		   << "  \"read-timeout\": " << readTimeout_.totalMilliseconds() << ",\n"
+		   << "  \"write-timeout\": " << writeTimeout_.totalMilliseconds() << ",\n"
 		   << "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
 		   << "  \"health-check-request-path\": \"" << healthCheckRequestPath_ << "\",\n"
 		   << "  \"health-check-fcgi-script-name\": \"" << healthCheckFcgiScriptFilename_ << "\",\n"
@@ -506,6 +512,24 @@ bool Director::load(const std::string& path)
 		return false;
 	}
 	retryAfter_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
+
+	if (!settings.load("director", "connect-timeout", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.connect-timeout in file '%s'", path.c_str());
+		return false;
+	}
+	connectTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+
+	if (!settings.load("director", "read-timeout", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.read-timeout in file '%s'", path.c_str());
+		return false;
+	}
+	readTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+
+	if (!settings.load("director", "write-timeout", value)) {
+		worker_->log(Severity::error, "director: Could not load settings value director.write-timeout in file '%s'", path.c_str());
+		return false;
+	}
+	writeTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
 
 	if (!settings.load("director", "max-retry-count", value)) {
 		worker_->log(Severity::error, "director: Could not load settings value director.queue-retry-count in file '%s'", path.c_str());
@@ -690,6 +714,9 @@ bool Director::save()
 		<< "retry-after=" << retryAfter_.totalSeconds() << "\n"
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
 		<< "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
+		<< "connect-timeout=" << connectTimeout_.totalMilliseconds() << "\n"
+		<< "read-timeout=" << readTimeout_.totalMilliseconds() << "\n"
+		<< "write-timeout=" << writeTimeout_.totalMilliseconds() << "\n"
 		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
 		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
 		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"

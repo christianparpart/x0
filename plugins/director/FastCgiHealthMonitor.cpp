@@ -200,9 +200,11 @@ void FastCgiHealthMonitor::onCheckStart()
 		logFailure();
 	} else if (socket_.state() == Socket::Connecting) {
 		TRACE("connecting asynchronously.");
+		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->connectTimeout());
 		socket_.setReadyCallback<FastCgiHealthMonitor, &FastCgiHealthMonitor::onConnectDone>(this);
 		socket_.setMode(Socket::ReadWrite);
 	} else {
+		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->writeTimeout());
 		socket_.setReadyCallback<FastCgiHealthMonitor, &FastCgiHealthMonitor::io>(this);
 		socket_.setMode(Socket::ReadWrite);
 		TRACE("connected.");
@@ -218,6 +220,7 @@ void FastCgiHealthMonitor::onConnectDone(Socket*, int revents)
 
 	if (socket_.state() == Socket::Operational) {
 		TRACE("connected");
+		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->writeTimeout());
 		socket_.setReadyCallback<FastCgiHealthMonitor, &FastCgiHealthMonitor::io>(this);
 		socket_.setMode(Socket::ReadWrite);
 	} else {
@@ -263,6 +266,7 @@ bool FastCgiHealthMonitor::writeSome()
 		writeOffset_ += writeCount;
 
 		if (writeOffset_ == writeBuffer_.size()) {
+			socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->readTimeout());
 			socket_.setMode(Socket::Read);
 		}
 	}
@@ -318,8 +322,11 @@ bool FastCgiHealthMonitor::readSome()
 		readOffset_ += record->size();
 
 		if (!processRecord(record))
-			break;
+			return true;
 	}
+
+	socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->readTimeout());
+
 	return true;
 }
 
@@ -374,7 +381,7 @@ void FastCgiHealthMonitor::onStdOut(const x0::BufferRef& chunk)
 
 void FastCgiHealthMonitor::onStdErr(const x0::BufferRef& chunk)
 {
-	worker_.log(x0::Severity::error, "fastcgi: Health check error. %s", chunk.chomp().c_str());
+	worker_.log(x0::Severity::error, "fastcgi: Health check error. %s", chunk.chomp().str().c_str());
 }
 
 void FastCgiHealthMonitor::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
@@ -400,9 +407,8 @@ void FastCgiHealthMonitor::onEndRequest(int appStatus, FastCgi::ProtocolStatus p
 /**
  * Origin server timed out in read or write operation.
  */
-void FastCgiHealthMonitor::onTimeout()
+void FastCgiHealthMonitor::onTimeout(Socket* s)
 {
 	TRACE("onTimeout()");
-
-	// TODO
+	logFailure();
 }

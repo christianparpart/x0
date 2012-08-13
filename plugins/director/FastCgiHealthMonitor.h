@@ -31,7 +31,7 @@ private:
 	void io(x0::Socket*, int revents);
 	bool writeSome();
 	bool readSome();
-	void onTimeout();
+	void onTimeout(x0::Socket* s);
 
 	bool processRecord(const FastCgi::Record *record);
 	void onStdOut(const x0::BufferRef& chunk);

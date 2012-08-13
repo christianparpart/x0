@@ -25,7 +25,7 @@ private:
 	void io(x0::Socket*, int revents);
 	void writeSome();
 	void readSome();
-	void onTimeout();
+	void onTimeout(x0::Socket* s);
 
 private:
 	x0::Socket socket_;

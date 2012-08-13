@@ -9,6 +9,9 @@ max-retry-count=3
 sticky-offline-mode=false
 health-check-host-header=localhost.ialu.de
 health-check-request-path=/health
+connect-timeout=10000
+read-timeout=120000
+write-timeout=10000
 
 [backend=app3101]
 role=active

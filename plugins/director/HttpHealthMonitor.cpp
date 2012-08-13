@@ -1,4 +1,5 @@
 #include "HttpHealthMonitor.h"
+#include "Director.h"
 #include "Backend.h"
 #include <cassert>
 #include <cstdarg>
@@ -71,9 +72,11 @@ void HttpHealthMonitor::onCheckStart()
 		logFailure();
 	} else if (socket_.state() == Socket::Connecting) {
 		TRACE("connecting asynchronously.");
+		socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->director()->connectTimeout());
 		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::onConnectDone>(this);
 		socket_.setMode(Socket::ReadWrite);
 	} else {
+		socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->director()->writeTimeout());
 		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
 		socket_.setMode(Socket::ReadWrite);
 		TRACE("connected.");
@@ -89,6 +92,7 @@ void HttpHealthMonitor::onConnectDone(Socket*, int revents)
 
 	if (socket_.state() == Socket::Operational) {
 		TRACE("connected");
+		socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->director()->writeTimeout());
 		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
 		socket_.setMode(Socket::ReadWrite);
 	} else {
@@ -130,6 +134,7 @@ void HttpHealthMonitor::writeSome()
 		writeOffset_ += writeCount;
 
 		if (writeOffset_ == request_.size()) {
+			socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->director()->readTimeout());
 			socket_.setMode(Socket::Read);
 		}
 	}
@@ -163,6 +168,7 @@ void HttpHealthMonitor::readSome()
 			logSuccess();
 		} else {
 			TRACE("resume with io:%d, state:%s", socket_.mode(), state_str().c_str());
+			socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->director()->readTimeout());
 			socket_.setMode(Socket::Read);
 		}
 	} else if (rv == 0) {
@@ -186,9 +192,9 @@ void HttpHealthMonitor::readSome()
 /**
  * Origin server timed out in read or write operation.
  */
-void HttpHealthMonitor::onTimeout()
+void HttpHealthMonitor::onTimeout(x0::Socket* s)
 {
 	TRACE("onTimeout()");
-
-	// TODO
+	logFailure();
 }
+

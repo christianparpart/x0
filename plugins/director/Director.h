@@ -64,6 +64,10 @@ private:
 	ev::timer queueTimer_;
 	TimeSpan retryAfter_;
 
+	TimeSpan connectTimeout_;
+	TimeSpan readTimeout_;
+	TimeSpan writeTimeout_;
+
 	Counter load_;
 	Counter queued_;
 
@@ -111,6 +115,15 @@ public:
 
 	TimeSpan retryAfter() const { return retryAfter_; }
 	void setRetryAfter(TimeSpan value) { retryAfter_ = value; }
+
+	TimeSpan connectTimeout() const { return connectTimeout_; }
+	void setConnectTimeout(TimeSpan value) { connectTimeout_ = value; }
+
+	TimeSpan readTimeout() const { return readTimeout_; }
+	void setReadTimeout(TimeSpan value) { readTimeout_ = value; }
+
+	TimeSpan writeTimeout() const { return writeTimeout_; }
+	void setWriteTimeout(TimeSpan value) { writeTimeout_ = value; }
 
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
