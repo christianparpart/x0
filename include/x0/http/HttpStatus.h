@@ -89,6 +89,8 @@ enum class HttpStatus // {{{
 };
 // }}}
 
+inline bool operator!(HttpStatus st) { return st == HttpStatus::Undefined; }
+
 X0_API const std::error_category& http_category() throw();
 
 X0_API std::error_code make_error_code(HttpStatus ec);
