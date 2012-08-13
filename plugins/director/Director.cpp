@@ -540,17 +540,16 @@ bool Director::load(const std::string& path)
 	writeTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
 
 	if (!settings.load("director", "max-retry-count", value)) {
-		worker_->log(Severity::error, "director: Could not load settings value director.queue-retry-count in file '%s'", path.c_str());
+		worker_->log(Severity::error, "director: Could not load settings value director.max-retry-count in file '%s'", path.c_str());
 		return false;
 	}
+	maxRetryCount_ = std::atoll(value.c_str());
 
 	if (!settings.load("director", "sticky-offline-mode", value)) {
 		worker_->log(Severity::error, "director: Could not load settings value director.sticky-offline-mode in file '%s'", path.c_str());
 		return false;
 	}
 	stickyOfflineMode_ = value == "true";
-
-	maxRetryCount_ = std::atoll(value.c_str());
 
 	if (!settings.load("director", "health-check-host-header", healthCheckHostHeader_)) {
 		worker_->log(Severity::error, "director: Could not load settings value director.health-check-host-header in file '%s'", path.c_str());
