@@ -8,7 +8,7 @@
 - active/standby/backup backend modes, where standby backends get only used when all active
   backends are at its capacity limits (and/or offline/disabled).
 - request queue with a per-director limit, used when no active nor standby backend can currently process 
-- [TODO] support (per director) connect/read/write timeouts to backend
+- support (per director) connect/read/write timeouts to backend
 - support retrying requests and per-director retry-limits
 - sticky offline mode
   (when a backend becomes offline, it gets disabled, too,
