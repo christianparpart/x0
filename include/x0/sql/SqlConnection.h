@@ -3,7 +3,7 @@
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.io/
  *
- * (c) 2010-2011 Christian Parpart <trapni@gentoo.org>
+ * (c) 2010-2012 Christian Parpart <trapni@gentoo.org>
  */
 
 #ifndef sw_x0_sql_Connection_h

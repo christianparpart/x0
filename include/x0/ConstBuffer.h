@@ -1,3 +1,11 @@
+/* <ConstBuffer.h>
+ *
+ * This file is part of the x0 web server project and is released under GPL-3.
+ * http://www.xzero.io/
+ *
+ * (c) 2009-2012 Christian Parpart <trapni@gentoo.org>
+ */
+
 #ifndef sw_x0_ConstBuffer_h
 #define sw_x0_ConstBuffer_h 1
 

@@ -3,7 +3,7 @@
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://redmine.xzero.io/projects/flow
  *
- * (c) 2010 Christian Parpart <trapni@gentoo.org>
+ * (c) 2009-2012 Christian Parpart <trapni@gentoo.org>
  */
 
 #ifndef sw_Flow_Token_h
