@@ -131,7 +131,7 @@ public:
 	Buffer clone() const;
 
 	// mutation
-	Buffer chomp() const;
+	BufferRef chomp() const;
 
 	// STL string
 	std::string str() const;
@@ -539,11 +539,11 @@ inline Buffer BufferRef::clone() const
 	return Buffer(*this);
 }
 
-inline Buffer BufferRef::chomp() const
+inline BufferRef BufferRef::chomp() const
 {
 	return ends('\n')
-		? Buffer(*this, 0, size() - 1)
-		: Buffer(*this, 0, size());
+		? ref(0, size_ - 1)
+		: ref(0, size_);
 }
 
 inline std::string BufferRef::str() const
