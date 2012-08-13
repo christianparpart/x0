@@ -10,6 +10,7 @@
 #define sw_x0_Socket_h (1)
 
 #include <x0/IPAddress.h>
+#include <x0/TimeSpan.h>
 #include <x0/Buffer.h>
 #include <x0/BufferRef.h>
 #include <x0/Logging.h>
@@ -119,7 +120,7 @@ public:
 	unsigned int localPort() const;
 	std::string local() const;
 
-	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, int value);
+	template<class K, void (K::*cb)(Socket *)> void setTimeout(K *object, TimeSpan value);
 
 	const char *state_str() const;
 	State state() const;
@@ -128,7 +129,7 @@ public:
 	Mode mode() const;
 	void setMode(Mode m);
 
-	void setTimeout(int value);
+	void setTimeout(TimeSpan value);
 	bool timerActive() const { return timer_.is_active(); }
 
 	template<class K, void (K::*cb)(Socket *, int)> void setReadyCallback(K *object);
@@ -267,10 +268,10 @@ inline void Socket::setReadyCallback(K *object)
 }
 
 template<class K, void (K::*cb)(Socket *)>
-inline void Socket::setTimeout(K *object, int value)
+inline void Socket::setTimeout(K *object, TimeSpan value)
 {
 #if !defined(NDEBUG)
-	debug("setTimeout(%p, %d) active:%s", object, value, timer_.is_active() ? "true" : "false");
+	debug("setTimeout(%p, %d) active:%s", object, value(), timer_.is_active() ? "true" : "false");
 #endif
 
 	timeoutCallback_ = &member_thunk<K, cb>;
@@ -279,8 +280,8 @@ inline void Socket::setTimeout(K *object, int value)
 	if (timer_.is_active())
 		timer_.stop();
 
-	if (value > 0)
-		timer_.start(value, 0.0);
+	if (value)
+		timer_.start(value(), 0.0);
 }
 
 template<class K, void (K::*cb)(Socket *)>
