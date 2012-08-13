@@ -83,9 +83,9 @@
 #endif
 
 // TODO make these values configurable
-#define FASTCGI_CONNECT_TIMEOUT 60		/* fastcgi.connect_idle */
-#define FASTCGI_READ_TIMEOUT 300        /* fastcgi.read_idle */
-#define FASTCGI_WRITE_TIMEOUT 60        /* fastcgi.write_idle */
+#define FASTCGI_CONNECT_TIMEOUT x0::TimeSpan::fromSeconds(60)  /* fastcgi.connect_idle */
+#define FASTCGI_READ_TIMEOUT x0::TimeSpan::fromSeconds(300)    /* fastcgi.read_idle */
+#define FASTCGI_WRITE_TIMEOUT x0::TimeSpan::fromSeconds(60)    /* fastcgi.write_idle */
 
 class CgiContext;
 class CgiTransport;
