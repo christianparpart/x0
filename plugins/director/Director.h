@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Backend.h"
+#include "Scheduler.h"
 
 #include <x0/Counter.h>
 #include <x0/Logging.h>
@@ -19,6 +20,7 @@
 
 using namespace x0;
 
+// TODO: rename to RequestNotes
 struct DirectorNotes :
 	public CustomData
 {
@@ -31,6 +33,11 @@ struct DirectorNotes :
 		backend(b),
 		retryCount(0)
 	{}
+
+	~DirectorNotes()
+	{
+		// TODO: if (backend_) { backend_->director().scheduler().release(backend_); }
+	}
 };
 
 /*!
@@ -44,9 +51,9 @@ struct DirectorNotes :
  * \todo thread safety for actual horizontal scalability.
  * \todo support requeuing requests when designated backend did not respond in time.
  */
-class Director :
+class Director
 #ifndef NDEBUG
-	public Logging
+	: public Logging
 #endif
 {
 private:
@@ -66,26 +73,21 @@ private:
 	// set of backends managed by this director.
 	std::vector<std::vector<Backend*>> backends_;
 
-	std::deque<HttpRequest*> queue_; //! list of queued requests.
 	size_t queueLimit_;
 	TimeSpan queueTimeout_;
-	ev::timer queueTimer_;
+
 	TimeSpan retryAfter_;
 
 	TimeSpan connectTimeout_;
 	TimeSpan readTimeout_;
 	TimeSpan writeTimeout_;
 
-	Counter load_;
-	Counter queued_;
-
-	//! last backend-index a request has been successfully served with
-	size_t lastBackend_;
-
 	//! number of attempts to pass request to a backend before giving up
 	size_t maxRetryCount_;
 
 	std::string storagePath_;
+
+	Scheduler* scheduler_;
 
 public:
 	Director(HttpWorker* worker, const std::string& name);
@@ -112,9 +114,6 @@ public:
 	bool stickyOfflineMode() const { return stickyOfflineMode_; }
 	void setStickyOfflineMode(bool value) { stickyOfflineMode_ = value; }
 
-	const Counter& load() const { return load_; }
-	const Counter& queued() const { return queued_; }
-
 	size_t queueLimit() const { return queueLimit_; }
 	void setQueueLimit(size_t value) { queueLimit_ = value; }
 
@@ -136,6 +135,8 @@ public:
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
+	Scheduler* scheduler() const { return scheduler_; }
+
 	Backend* createBackend(const std::string& name, const std::string& url);
 
 	Backend* createBackend(const std::string& name, const std::string& protocol, const std::string& hostname,
@@ -147,12 +148,6 @@ public:
 	}
 
 	Backend* findBackend(const std::string& name);
-
-	void schedule(HttpRequest* r);
-	bool reschedule(HttpRequest* r, Backend* backend);
-
-	HttpRequest* dequeue();
-	void dequeueTo(Backend* backend);
 
 	void writeJSON(x0::Buffer& output);
 
@@ -171,20 +166,11 @@ public:
 
 	template<typename T> inline void post(T function) { worker_->post(function); }
 
-private:
 	const std::vector<Backend*>& backendsWith(Backend::Role role) const;
-	Backend* findLeastLoad(Backend::Role role, bool* allDisabled = nullptr);
-	void pass(HttpRequest* r, DirectorNotes* notes, Backend* backend);
 
+private:
 	void link(Backend* backend);
 	void unlink(Backend* backend);
-
-	Backend* selectBackend(HttpRequest* r);
-	Backend* nextBackend(Backend* backend, HttpRequest* r);
-	void enqueue(HttpRequest* r);
-	void release(Backend* backend);
-
-	void updateQueueTimer();
 
 	void onStop();
 

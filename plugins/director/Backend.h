@@ -95,6 +95,8 @@ protected:
 	bool tryTermination();
 	virtual bool process(x0::HttpRequest* r) = 0;
 
+	friend class LeastLoadScheduler;
+
 protected:
 	void setState(HealthMonitor::State value);
 };

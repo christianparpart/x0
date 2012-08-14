@@ -20,6 +20,8 @@ set(director_SRC
 	ApiRequest.cpp
 	Director.cpp
 	Backend.cpp
+	Scheduler.cpp
+	LeastLoadScheduler.cpp
 	HttpBackend.cpp
 	HttpHealthMonitor.cpp
 	FastCgiBackend.cpp

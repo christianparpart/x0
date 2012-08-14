@@ -10,6 +10,7 @@
 #include "Backend.h"
 #include "HttpBackend.h"
 #include "FastCgiBackend.h"
+#include "LeastLoadScheduler.h"
 
 #include <x0/io/BufferSource.h>
 #include <x0/StringTokenizer.h>
@@ -43,29 +44,26 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	healthCheckFcgiScriptFilename_(),
 	stickyOfflineMode_(false),
 	backends_(),
-	queue_(),
 	queueLimit_(128),
 	queueTimeout_(TimeSpan::fromSeconds(60)),
-	queueTimer_(worker_->loop()),
 	retryAfter_(TimeSpan::fromSeconds(10)),
 	connectTimeout_(TimeSpan::fromSeconds(10)),
 	readTimeout_(TimeSpan::fromSeconds(120)),
 	writeTimeout_(TimeSpan::fromSeconds(10)),
-	load_(),
-	queued_(),
-	lastBackend_(0),
 	maxRetryCount_(6),
-	storagePath_()
+	storagePath_(),
+	scheduler_(nullptr)
 {
 	backends_.resize(4);
 
 	worker_->registerStopHandler(std::bind(&Director::onStop, this));
 
-	queueTimer_.set<Director, &Director::updateQueueTimer>(this);
+	scheduler_ = new LeastLoadScheduler(this);
 }
 
 Director::~Director()
 {
+	delete scheduler_;
 }
 
 /**
@@ -132,115 +130,6 @@ Backend* Director::findBackend(const std::string& name)
 	return nullptr;
 }
 
-/**
- * Schedules the passed request to the best fitting backend.
- * \param r the request to be processed by one of the directors backends.
- */
-void Director::schedule(HttpRequest* r)
-{
-	r->responseHeaders.push_back("X-Director-Cluster", name_);
-
-	auto notes = r->setCustomData<DirectorNotes>(this, worker_->now());
-
-	bool allDisabled = false;
-
-	if (notes->backend) {
-		if (notes->backend->healthMonitor().isOnline()) {
-			pass(r, notes, notes->backend);
-		} else {
-			// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
-			r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
-				notes->backend->name().c_str(), notes->backend->healthMonitor().state_str().c_str());
-			r->status = x0::HttpStatus::ServiceUnavailable;
-			r->finish();
-		}
-	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Active, &allDisabled)) {
-		pass(r, notes, backend);
-	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Standby, &allDisabled)) {
-		pass(r, notes, backend);
-	}
-	else if (queue_.size() < queueLimit_ && !allDisabled) {
-		enqueue(r);
-	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Backup)) {
-		pass(r, notes, backend);
-	}
-	else if (queue_.size() < queueLimit_) {
-		enqueue(r);
-	}
-	else {
-		r->log(Severity::error, "director: '%s' queue limit %zu reached. Rejecting request.", name_.c_str(), queueLimit_);
-		r->status = HttpStatus::ServiceUnavailable;
-		if (retryAfter_) {
-			char value[64];
-			snprintf(value, sizeof(value), "%zu", retryAfter_.totalSeconds());
-			r->responseHeaders.push_back("Retry-After", value);
-		}
-		r->finish();
-	}
-}
-
-Backend* Director::findLeastLoad(Backend::Role role, bool* allDisabled)
-{
-	Backend* best = nullptr;
-	size_t bestAvail = 0;
-	size_t enabledAndOnline = 0;
-
-	for (auto backend: backendsWith(role)) {
-		if (!backend->isEnabled() || !backend->healthMonitor().isOnline()) {
-			TRACE("findLeastLoad: skip %s (disabled)", backend->name().c_str());
-			continue;
-		}
-
-		++enabledAndOnline;
-
-		size_t l = backend->load().current();
-		size_t c = backend->capacity();
-		size_t avail = c - l;
-
-#ifndef NDEBUG
-		worker_->log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
-#endif
-
-		if (avail > bestAvail) {
-#ifndef NDEBUG
-			worker_->log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), 
-					best ? best->name().c_str() : "(null)");
-#endif
-			bestAvail = avail;
-			best = backend;
-		}
-	}
-
-	if (allDisabled != nullptr) {
-		*allDisabled = enabledAndOnline == 0;
-	}
-
-	if (bestAvail > 0) {
-#ifndef NDEBUG
-		worker_->log(Severity::debug, "selecting backend %s", best->name().c_str());
-#endif
-		return best;
-	}
-
-#ifndef NDEBUG
-	worker_->log(Severity::debug, "selecting backend (role %d) failed", static_cast<int>(role));
-#endif
-	return nullptr;
-}
-
-void Director::pass(HttpRequest* r, DirectorNotes* notes, Backend* backend)
-{
-	notes->backend = backend;
-
-	++load_;
-	++backend->load_;
-
-	backend->process(r);
-}
-
 void Director::link(Backend* backend)
 {
 	backends_[static_cast<size_t>(backend->role_)].push_back(backend);
@@ -256,226 +145,40 @@ void Director::unlink(Backend* backend)
 	}
 }
 
-bool Director::reschedule(HttpRequest* r, Backend* backend)
+void Director::writeJSON(Buffer& out)
 {
-	auto notes = r->customData<DirectorNotes>(this);
+	out << "\"" << name_ << "\": {\n"
+		<< "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
+		<< "  \"queue-limit\": " << queueLimit_ << ",\n"
+		<< "  \"queue-timeout\": " << queueTimeout_.totalMilliseconds() << ",\n"
+		<< "  \"retry-after\": " << retryAfter_.totalSeconds() << ",\n"
+		<< "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
+		<< "  \"sticky-offline-mode\": " << (stickyOfflineMode_ ? "true" : "false") << ",\n"
+		<< "  \"connect-timeout\": " << connectTimeout_.totalMilliseconds() << ",\n"
+		<< "  \"read-timeout\": " << readTimeout_.totalMilliseconds() << ",\n"
+		<< "  \"write-timeout\": " << writeTimeout_.totalMilliseconds() << ",\n"
+		<< "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
+		<< "  \"health-check-request-path\": \"" << healthCheckRequestPath_ << "\",\n"
+		<< "  \"health-check-fcgi-script-name\": \"" << healthCheckFcgiScriptFilename_ << "\",\n";
 
-	--backend->load_;
-	notes->backend = nullptr;
+	scheduler_->writeJSON(out);
 
-	TRACE("requeue (retry-count: %zi / %zi)", notes->retryCount, maxRetryCount());
-
-	if (notes->retryCount == maxRetryCount()) {
-		--load_;
-
-		r->status = HttpStatus::ServiceUnavailable;
-		r->finish();
-
-		return false;
-	}
-
-	++notes->retryCount;
-
-	backend = nextBackend(backend, r);
-	if (backend != nullptr) {
-		notes->backend = backend;
-		++backend->load_;
-
-		if (backend->process(r)) {
-			return true;
-		}
-	}
-
-	TRACE("requeue (retry-count: %zi / %zi): giving up", notes->retryCount, maxRetryCount());
-
-	--load_;
-	enqueue(r);
-
-	return false;
-}
-
-/**
- * Enqueues given request onto the request queue.
- */
-void Director::enqueue(HttpRequest* r)
-{
-	// direct delivery failed, due to overheated director. queueing then.
-
-#ifndef NDEBUG
-	r->log(Severity::debug, "Director %s overloaded. Queueing request.", name_.c_str());
-#endif
-
-	queue_.push_back(r);
-	++queued_;
-
-	updateQueueTimer();
-}
-
-void Director::updateQueueTimer()
-{
-	TRACE("updateQueueTimer()");
-
-	// quickly return if queue-timer is already running
-	if (queueTimer_.is_active()) {
-		TRACE("updateQueueTimer: timer is active, returning");
-		return;
-	}
-
-	// finish already timed out requests
-	while (!queue_.empty()) {
-		HttpRequest* r = queue_.front();
-		auto notes = r->customData<DirectorNotes>(this);
-		TimeSpan age(worker_->now() - notes->ctime);
-		if (age < queueTimeout_)
-			break;
-
-		TRACE("updateQueueTimer: dequeueing timed out request");
-		queue_.pop_front();
-		--queued_;
-
-		r->post([this, r]() {
-			TRACE("updateQueueTimer: killing request with 503");
-
-			r->status = HttpStatus::ServiceUnavailable;
-			if (retryAfter_) {
-				char value[64];
-				snprintf(value, sizeof(value), "%zu", retryAfter_.totalSeconds());
-				r->responseHeaders.push_back("Retry-After", value);
-			}
-			r->finish();
-		});
-	}
-
-	if (queue_.empty()) {
-		TRACE("updateQueueTimer: queue empty. not starting new timer.");
-		return;
-	}
-
-	// setup queue timer to wake up after next timeout is reached.
-	HttpRequest* r = queue_.front();
-	auto notes = r->customData<DirectorNotes>(this);
-	TimeSpan age(worker_->now() - notes->ctime);
-	TimeSpan ttl(queueTimeout_ - age);
-	TRACE("updateQueueTimer: starting new timer with ttl %f (%llu)", ttl.value(), ttl.totalMilliseconds());
-	queueTimer_.start(ttl.value(), 0);
-}
-
-Backend* Director::nextBackend(Backend* backend, HttpRequest* r)
-{
-	auto& backends = backendsWith(backend->role());
-	auto i = std::find(backends.begin(), backends.end(), backend);
-
-	if (i != backends.end()) {
-		auto k = i;
-		++k;
-
-		for (; k != backends.end(); ++k) {
-			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
-				return *k;
-
-			TRACE("nextBackend: skip %s", backend->name().c_str());
-		}
-
-		for (k = backends.begin(); k != i; ++k) {
-			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
-				return *k;
-
-			TRACE("nextBackend: skip %s", backend->name().c_str());
-		}
-	}
-
-	TRACE("nextBackend: no next backend chosen.");
-	return nullptr;
-}
-
-/**
- * Notifies the director, that the given backend has just completed processing a request.
- *
- * \param backend the backend that just completed a request, and thus, is able to potentially handle one more.
- *
- * This method is to be invoked by backends, that
- * just completed serving a request, and thus, invoked
- * finish() on it, so it could potentially process
- * the next one, if, and only if, we have
- * already queued pending requests.
- *
- * Otherwise this call will do nothing.
- *
- * \see schedule(), reschedule(), enqueue(), dequeueTo()
- */
-void Director::release(Backend* backend)
-{
-	--load_;
-
-	if (!backend->isTerminating())
-		dequeueTo(backend);
-	else
-		backend->tryTermination();
-}
-
-HttpRequest* Director::dequeue()
-{
-	if (!queue_.empty()) {
-		HttpRequest* r = queue_.front();
-		queue_.pop_front();
-		--queued_;
-		return r;
-	}
-
-	return nullptr;
-}
-
-/**
- * Pops an enqueued request from the front of the queue and passes it to the backend for serving.
- *
- * \param backend the backend to pass the dequeued request to.
- * \todo thread safety (queue_)
- */
-void Director::dequeueTo(Backend* backend)
-{
-	if (HttpRequest* r = dequeue()) {
-#ifndef NDEBUG
-		r->log(Severity::debug, "Dequeueing request to backend %s", backend->name().c_str());
-#endif
-		r->connection.post([this, backend, r]() {
-			pass(r, r->customData<DirectorNotes>(this), backend);
-		});
-	}
-}
-
-void Director::writeJSON(Buffer& output)
-{
-	output << "\"" << name_ << "\": {\n"
-		   << "  \"load\": " << load_ << ",\n"
-		   << "  \"queued\": " << queued_ << ",\n"
-		   << "  \"queue-limit\": " << queueLimit_ << ",\n"
-		   << "  \"queue-timeout\": " << queueTimeout_.totalMilliseconds() << ",\n"
-		   << "  \"retry-after\": " << retryAfter_.totalSeconds() << ",\n"
-		   << "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
-		   << "  \"sticky-offline-mode\": " << (stickyOfflineMode_ ? "true" : "false") << ",\n"
-		   << "  \"connect-timeout\": " << connectTimeout_.totalMilliseconds() << ",\n"
-		   << "  \"read-timeout\": " << readTimeout_.totalMilliseconds() << ",\n"
-		   << "  \"write-timeout\": " << writeTimeout_.totalMilliseconds() << ",\n"
-		   << "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
-		   << "  \"health-check-request-path\": \"" << healthCheckRequestPath_ << "\",\n"
-		   << "  \"health-check-fcgi-script-name\": \"" << healthCheckFcgiScriptFilename_ << "\",\n"
-		   << "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
-		   << "  \"members\": [";
+	out << "  \"members\": [";
 
 	size_t backendNum = 0;
 
 	for (auto& br: backends_) {
 		for (auto backend: br) {
 			if (backendNum++)
-				output << ", ";
+				out << ", ";
 
-			output << "\n    {";
-			backend->writeJSON(output);
-			output << "}";
+			out << "\n    {";
+			backend->writeJSON(out);
+			out << "}";
 		}
 	}
 
-	output << "\n  ]\n}\n";
+	out << "\n  ]\n}\n";
 }
 
 /**

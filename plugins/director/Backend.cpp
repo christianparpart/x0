@@ -50,7 +50,7 @@ Backend::Backend(Director* director,
 		if (healthMonitor_->isOnline()) {
 			if (!director_->stickyOfflineMode()) {
 				// try delivering a queued request
-				director_->dequeueTo(this);
+				director_->scheduler()->dequeueTo(this);
 			} else {
 				// disable backend due to sticky-offline mode
 				director_->worker_->log(Severity::info, "Director '%s': backend '%s' disabled due to sticky offline mode.",
@@ -161,7 +161,7 @@ bool Backend::assign(HttpRequest* r)
 	notes->backend = this;
 
 	++load_;
-	++director_->load_;
+	++director_->scheduler()->load_;
 
 	return process(r);
 }
@@ -175,5 +175,5 @@ bool Backend::assign(HttpRequest* r)
 void Backend::release()
 {
 	--load_;
-	director_->release(this);
+	director_->scheduler()->release(this);
 }

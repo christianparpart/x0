@@ -197,7 +197,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 	}
 
 	server().log(Severity::debug, "director: passing request to %s.", director->name().c_str());
-	director->schedule(r);
+	director->scheduler()->schedule(r);
 	return true;
 
 }
