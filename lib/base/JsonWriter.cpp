@@ -19,8 +19,8 @@ JsonWriter::JsonWriter(Buffer& output) :
 
 void JsonWriter::indent()
 {
-	for (int i = 0, e = 2 * stack_.size(); i != e; ++i) {
-		output_.push_back(' ');
+	for (size_t i = 0, e = stack_.size(); i != e; ++i) {
+		output_.push_back("  ");
 	}
 }
 
@@ -29,6 +29,9 @@ void JsonWriter::begin(Type t)
 	if (!stack_.empty()) {
 		if (fieldCount() > 0) {
 			output_ << ",\n";
+		}
+		else if (isArray() && fieldCount() == 0) {
+			output_ << "\n";
 		}
 
 		indent();
@@ -70,12 +73,17 @@ JsonWriter& JsonWriter::name(const std::string& name) // "$NAME":
 
 JsonWriter& JsonWriter::beginObject(const std::string& name) // { ... }
 {
-	begin(Type::Object);
-
-	if (!name.empty())
+	if (!name.empty()) {
+		begin(Type::Object);
 		output_ << "\"" << name << "\": {\n";
-	else
+	} else {
+		if (isValue()) {
+			stack_.back().type = Type::Object;
+		} else {
+			begin(Type::Object);
+		}
 		output_ << "{\n";
+	}
 
 	return *this;
 }
@@ -108,40 +116,92 @@ JsonWriter& JsonWriter::endArray()
 	return *this;
 }
 
-JsonWriter& JsonWriter::operator()(char value)
+JsonWriter& operator<<(JsonWriter& json, bool value)
 {
-	preValue();
-	output_ << "\"" << value << "\"";
-	postValue();
-
-	return *this;
+	json.preValue();
+	json.buffer() << (value ? "true" : "false");
+	json.postValue();
+	return json;
 }
 
-JsonWriter& JsonWriter::operator()(const Buffer& value)
+JsonWriter& operator<<(JsonWriter& json, char value)
 {
-	preValue();
-	output_ << "\"" << value << "\"";
-	postValue();
-
-	return *this;
+	json.preValue();
+	json.buffer() << '"' << value << '"';
+	json.postValue();
+	return json;
 }
 
-JsonWriter& JsonWriter::operator()(const BufferRef& value)
+JsonWriter& operator<<(JsonWriter& json, int value)
 {
-	preValue();
-	output_ << "\"" << value << "\"";
-	postValue();
-
-	return *this;
+	json.preValue();
+	json.buffer() << value;
+	json.postValue();
+	return json;
 }
 
-JsonWriter& JsonWriter::operator()(const std::string& value)
+JsonWriter& operator<<(JsonWriter& json, long value)
 {
-	preValue();
-	output_ << "\"" << value << "\"";
-	postValue();
+	json.preValue();
+	json.buffer() << value;
+	json.postValue();
+	return json;
+}
 
-	return *this;
+JsonWriter& operator<<(JsonWriter& json, long long value)
+{
+	json.preValue();
+	json.buffer() << value;
+	json.postValue();
+	return json;
+}
+
+JsonWriter& operator<<(JsonWriter& json, unsigned int value)
+{
+	json.preValue();
+	json.buffer() << value;
+	json.postValue();
+	return json;
+}
+
+JsonWriter& operator<<(JsonWriter& json, unsigned long value)
+{
+	json.preValue();
+	json.buffer() << value;
+	json.postValue();
+	return json;
+}
+
+JsonWriter& operator<<(JsonWriter& json, unsigned long long value)
+{
+	json.preValue();
+	json.buffer() << value;
+	json.postValue();
+	return json;
+}
+
+JsonWriter& operator<<(JsonWriter& json, const std::string& value)
+{
+	json.preValue();
+	json.buffer() << '"' << value << '"';
+	json.postValue();
+	return json;
+}
+
+JsonWriter& operator<<(JsonWriter& json, const Buffer& value)
+{
+	json.preValue();
+	json.buffer() << '"' << value << '"';
+	json.postValue();
+	return json;
+}
+
+JsonWriter& operator<<(JsonWriter& json, const BufferRef& value)
+{
+	json.preValue();
+	json.buffer() << '"' << value << '"';
+	json.postValue();
+	return json;
 }
 
 } // namespace x0

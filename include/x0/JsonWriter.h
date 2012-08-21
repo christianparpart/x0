@@ -36,15 +36,13 @@ private:
 
 	void indent();
 	void begin(Type t);
-	void preValue();
-	void postValue();
 
-	bool isSimple() const { return stack_.back().type == Type::Value; }
-	bool isComplex() const { return stack_.back().type != Type::Value; }
+	bool isSimple() const { return !stack_.empty() && stack_.back().type == Type::Value; }
+	bool isComplex() const { return !stack_.empty() && stack_.back().type != Type::Value; }
 
-	bool isValue() const { return stack_.back().type == Type::Value; }
-	bool isArray() const { return stack_.back().type == Type::Array; }
-	bool isObject() const { return stack_.back().type == Type::Object; }
+	bool isValue() const { return !stack_.empty() && stack_.back().type == Type::Value; }
+	bool isArray() const { return !stack_.empty() && stack_.back().type == Type::Array; }
+	bool isObject() const { return !stack_.empty() && stack_.back().type == Type::Object; }
 
 	size_t fieldCount(size_t roff = 0) const { return stack_[stack_.size() - 1 - roff].fieldCount; }
 	void incrementFieldCount() { ++stack_.back().fieldCount; }
@@ -57,6 +55,8 @@ private:
 public:
 	explicit JsonWriter(Buffer& output);
 
+	Buffer& buffer() const { return output_; }
+
 	JsonWriter& name(const std::string& name); // "$NAME":
 
 	JsonWriter& beginObject(const std::string& name = std::string());
@@ -65,20 +65,23 @@ public:
 	JsonWriter& beginArray(const std::string& name);
 	JsonWriter& endArray();
 
-	template<typename T>
-	JsonWriter& operator()(const T& value)
-	{
-		preValue();
-		output_ << value;
-		postValue();
+	template<typename T> JsonWriter& operator()(const T& value) { *this << value; return *this; }
+	template<typename T> JsonWriter& value(const T& _value) { *this << _value; return *this; }
 
-		return *this;
-	}
-
-	JsonWriter& operator()(char value);
-	JsonWriter& operator()(const Buffer& value);
-	JsonWriter& operator()(const BufferRef& value);
-	JsonWriter& operator()(const std::string& value);
+	void preValue();
+	void postValue();
 };
+
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, bool value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, char value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, int value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, long value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, long long value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, unsigned int value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, unsigned long value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, unsigned long long value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, const std::string& value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, const Buffer& value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, const BufferRef& value);
 
 } // namespace x0
