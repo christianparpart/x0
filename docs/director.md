@@ -133,6 +133,27 @@ Health check timers on the other hand do not have any frontend connection
 associated and thus, are assigned to least active worker at the time
 the timer gets spawned.
 
+### Stanzas
+
+1. HTTP request handlers MUST be executed within its designated worker thread.
+2. Director logic that is not primitiv and is not guarded by std::atomic MUST be
+   executed within the director's designated worker thread.
+3. The request scheduler is executed within the directors designated worker thread.
+4. Health checks MUST be executed within the directors designated worker thread.
+
+The above 4 stanzas draw the following implications:
+
+1. The request scheduler is accessed by any of the workers that are assigned to their
+  callers request handler.
+
+### TODO
+
+- research for: multiple reader one writer (thread synchronization)
+  - possibly required for the least-load request scheduler
+- question: do we want to be able to change the request scheduler algorithm at runtime?
+  - pro: flexible to admins
+  - con: flexibility constrain, possibly a performance constrain too
+
 # Ideas
 
 ## Dynamic `pass`-handler:

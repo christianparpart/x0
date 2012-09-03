@@ -347,18 +347,15 @@ bool ApiReqeust::process()
 bool ApiReqeust::index()
 {
 	Buffer result;
+	JsonWriter json(result);
 
-	result.push_back("{\n");
-	size_t directorNum = 0;
+	json.beginObject();
 	for (auto di: *directors_) {
 		Director* director = di.second;
-
-		if (directorNum++)
-			result << ",\n";
-
-		director->writeJSON(result);
+		json.name(director->name()).value(*director);
 	}
-	result << "}\n";
+	json.endObject();
+	result << "\n";
 
 	char slen[32];
 	snprintf(slen, sizeof(slen), "%zu", result.size());
@@ -390,9 +387,11 @@ bool ApiReqeust::get()
 		request_->finish();
 	} else if (tokens.size() == 1) { // director
 		Buffer result;
-		result.push_back("{\n");
-		director->writeJSON(result);
-		result.push_back("}\n");
+		JsonWriter json(result);
+
+		json.beginObject()
+			.value(*director)
+			.endObject();
 
 		request_->status = x0::HttpStatus::Ok;
 		request_->write<x0::BufferSource>(result);
@@ -400,9 +399,10 @@ bool ApiReqeust::get()
 	} else { // backend
 		if (Backend* backend = director->findBackend(tokens[1])) {
 			Buffer result;
-			result.push_back("{\n");
-			backend->writeJSON(result);
-			result.push_back("}\n");
+			JsonWriter json(result);
+			json.beginObject()
+				.value(*backend)
+				.endObject();
 
 			request_->status = x0::HttpStatus::Ok;
 			request_->write<x0::BufferSource>(result);

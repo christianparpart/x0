@@ -9,6 +9,7 @@
 #include "HttpBackend.h"
 #include "HttpHealthMonitor.h"
 #include "Director.h"
+#include "ClassfulScheduler.h"
 
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
@@ -136,7 +137,7 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			backend_->director()->scheduler()->reschedule(request_, backend_);
+			backend_->director()->scheduler()->reschedule(request_);
 		} else {
 			// We actually served ths request, so finish() it.
 			request_->finish();

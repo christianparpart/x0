@@ -13,13 +13,13 @@
 
 class Director;
 class Backend;
+class RequestNotes;
 
 namespace x0 {
 	class HttpRequest;
 	class Buffer;
 	class IniFile;
 }
-
 
 class Scheduler
 #ifndef NDEBUG
@@ -38,6 +38,7 @@ public:
 	Scheduler(Director* d);
 	virtual ~Scheduler();
 
+	Director* director() const { return director_; }
 	const x0::Counter& load() const { return load_; }
 	const x0::Counter& queued() const { return queued_; }
 
@@ -58,17 +59,20 @@ public:
 	 *
 	 * MUST be invoked from within the requests worker thread.
 	 */
-	virtual bool reschedule(x0::HttpRequest* r, Backend* backend) = 0;
+	virtual void reschedule(x0::HttpRequest* r) = 0;
 
-	virtual void release(Backend* backend) = 0;
-
-	virtual void enqueue(x0::HttpRequest* r) = 0;
-	virtual x0::HttpRequest* dequeue() = 0;
 	virtual void dequeueTo(Backend* backend) = 0;
 
-	virtual void writeJSON(x0::Buffer& out) = 0;
+	void release(Backend* backend);
 
-	virtual bool load(x0::IniFile& settings) = 0;
-	virtual bool save(x0::Buffer& out) = 0;
+	virtual void writeJSON(x0::JsonWriter& json) const;
+
+	virtual bool load(x0::IniFile& settings);
+	virtual bool save(x0::Buffer& out);
 };
 
+inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const Scheduler& value)
+{
+	value.writeJSON(json);
+	return json;
+}

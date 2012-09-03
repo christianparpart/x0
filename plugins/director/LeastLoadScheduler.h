@@ -10,11 +10,12 @@
 
 #include "Scheduler.h"
 #include "Backend.h"
+#include "RequestNotes.h"
 #include <x0/TimeSpan.h>
 #include <deque>
 #include <ev++.h>
 
-class DirectorNotes;
+class RequestNotes;
 
 class LeastLoadScheduler :
 	public Scheduler
@@ -28,13 +29,8 @@ public:
 	~LeastLoadScheduler();
 
 	virtual void schedule(x0::HttpRequest* r);
-	virtual bool reschedule(x0::HttpRequest* r, Backend* backend);
-	void release(Backend* backend);
-
-	virtual void enqueue(x0::HttpRequest* r);
-	virtual x0::HttpRequest* dequeue();
-
-	virtual void writeJSON(x0::Buffer& output);
+	virtual void reschedule(x0::HttpRequest* r);
+	virtual void dequeueTo(Backend* backend);
 
 	virtual bool load(x0::IniFile& settings);
 	virtual bool save(x0::Buffer& out);
@@ -42,7 +38,8 @@ public:
 private:
 	Backend* findLeastLoad(Backend::Role role, bool* allDisabled = nullptr);
 	Backend* nextBackend(Backend* backend, x0::HttpRequest* r);
-	void pass(x0::HttpRequest* r, DirectorNotes* notes, Backend* backend);
-	virtual void dequeueTo(Backend* backend);
+	void pass(x0::HttpRequest* r, RequestNotes* notes, Backend* backend);
+	void enqueue(x0::HttpRequest* r);
 	void updateQueueTimer();
+	x0::HttpRequest* dequeue();
 };

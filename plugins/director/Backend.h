@@ -14,6 +14,7 @@
 #include <x0/Logging.h>
 #include <x0/TimeSpan.h>
 #include <x0/SocketSpec.h>
+#include <x0/JsonWriter.h>
 #include <x0/http/HttpRequest.h>
 
 class Director;
@@ -84,10 +85,10 @@ public:
 	HealthMonitor::State healthState() const { return healthMonitor_->state(); }
 	HealthMonitor& healthMonitor() { return *healthMonitor_; }
 
-	bool assign(x0::HttpRequest* r);
+	//bool assign(x0::HttpRequest* r);
 	void release();
 
-	virtual size_t writeJSON(x0::Buffer& output) const;
+	virtual void writeJSON(x0::JsonWriter& json) const;
 
 	virtual void terminate();
 
@@ -95,8 +96,16 @@ protected:
 	bool tryTermination();
 	virtual bool process(x0::HttpRequest* r) = 0;
 
+	friend class Scheduler;
 	friend class LeastLoadScheduler;
+	friend class ClassfulScheduler;
 
 protected:
 	void setState(HealthMonitor::State value);
 };
+
+X0_API inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const Backend& backend)
+{
+	backend.writeJSON(json);
+	return json;
+}

@@ -35,6 +35,7 @@ private:
 	void director_load(const x0::FlowParams& args, x0::FlowValue& result);
 	void director_create(const x0::FlowParams& args, x0::FlowValue& result);
 
+	void director_segment(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
 	bool director_pass(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_api(x0::HttpRequest* r, const x0::FlowParams& args);
 

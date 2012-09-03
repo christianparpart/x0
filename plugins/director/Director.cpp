@@ -11,6 +11,7 @@
 #include "HttpBackend.h"
 #include "FastCgiBackend.h"
 #include "LeastLoadScheduler.h"
+#include "ClassfulScheduler.h"
 
 #include <x0/io/BufferSource.h>
 #include <x0/StringTokenizer.h>
@@ -58,7 +59,8 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 
 	worker_->registerStopHandler(std::bind(&Director::onStop, this));
 
-	scheduler_ = new LeastLoadScheduler(this);
+	//scheduler_ = new LeastLoadScheduler(this);
+	scheduler_ = new ClassfulScheduler(this);
 }
 
 Director::~Director()
@@ -93,6 +95,16 @@ size_t Director::capacity() const
 			result += b->capacity();
 
 	return result;
+}
+
+RequestNotes* Director::setupRequestNotes(HttpRequest* r, Backend* backend)
+{
+	return r->setCustomData<RequestNotes>(this, worker().now(), backend);
+}
+
+RequestNotes* Director::requestNotes(HttpRequest* r)
+{
+	return r->customData<RequestNotes>(this);
 }
 
 Backend* Director::createBackend(const std::string& name, const std::string& url)
@@ -145,40 +157,40 @@ void Director::unlink(Backend* backend)
 	}
 }
 
-void Director::writeJSON(Buffer& out)
+void Director::writeJSON(JsonWriter& json) const
 {
-	out << "\"" << name_ << "\": {\n"
-		<< "  \"mutable\": " << (isMutable() ? "true" : "false") << ",\n"
-		<< "  \"queue-limit\": " << queueLimit_ << ",\n"
-		<< "  \"queue-timeout\": " << queueTimeout_.totalMilliseconds() << ",\n"
-		<< "  \"retry-after\": " << retryAfter_.totalSeconds() << ",\n"
-		<< "  \"max-retry-count\": " << maxRetryCount_ << ",\n"
-		<< "  \"sticky-offline-mode\": " << (stickyOfflineMode_ ? "true" : "false") << ",\n"
-		<< "  \"connect-timeout\": " << connectTimeout_.totalMilliseconds() << ",\n"
-		<< "  \"read-timeout\": " << readTimeout_.totalMilliseconds() << ",\n"
-		<< "  \"write-timeout\": " << writeTimeout_.totalMilliseconds() << ",\n"
-		<< "  \"health-check-host-header\": \"" << healthCheckHostHeader_ << "\",\n"
-		<< "  \"health-check-request-path\": \"" << healthCheckRequestPath_ << "\",\n"
-		<< "  \"health-check-fcgi-script-name\": \"" << healthCheckFcgiScriptFilename_ << "\",\n";
-
-	scheduler_->writeJSON(out);
-
-	out << "  \"members\": [";
-
-	size_t backendNum = 0;
+	json.beginObject()
+		.name("mutable")(isMutable())
+		.name("queue-limit")(queueLimit_)
+		.name("queue-timeout")(queueTimeout_.totalMilliseconds())
+		.name("retry-after")(retryAfter_.totalSeconds())
+		.name("max-retry-count")(maxRetryCount_)
+		.name("sticky-offline-mode")(stickyOfflineMode_)
+		.name("connect-timeout")(connectTimeout_.totalMilliseconds())
+		.name("read-timeout")(readTimeout_.totalMilliseconds())
+		.name("write-timeout")(writeTimeout_.totalMilliseconds())
+		.name("health-check-host-header")(healthCheckHostHeader_)
+		.name("health-check-request-path")(healthCheckRequestPath_)
+		.name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
+		.name("scheduler")(*scheduler_)
+		.beginArray("members");
 
 	for (auto& br: backends_) {
 		for (auto backend: br) {
-			if (backendNum++)
-				out << ", ";
-
-			out << "\n    {";
-			backend->writeJSON(out);
-			out << "}";
+			json.value(*backend);
 		}
 	}
 
-	out << "\n  ]\n}\n";
+	json.endArray();
+	json.endObject();
+}
+
+namespace x0 {
+	x0::JsonWriter& operator<<(x0::JsonWriter& json, const Director& director)
+	{
+		director.writeJSON(json);
+		return json;
+	}
 }
 
 /**

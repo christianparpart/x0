@@ -22,6 +22,7 @@ set(director_SRC
 	Backend.cpp
 	Scheduler.cpp
 	LeastLoadScheduler.cpp
+	ClassfulScheduler.cpp
 	HttpBackend.cpp
 	HttpHealthMonitor.cpp
 	FastCgiBackend.cpp

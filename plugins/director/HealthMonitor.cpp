@@ -267,14 +267,13 @@ bool HealthMonitor::onMessageEnd()
 	return false;
 }
 
-Buffer& operator<<(Buffer& output, const HealthMonitor& monitor)
+JsonWriter& operator<<(JsonWriter& json, const HealthMonitor& monitor)
 {
-	output
-		<< "{"
-		<< "\"mode\": \"" << monitor.mode_str() << "\", "
-		<< "\"state\": \"" << monitor.state_str() << "\", "
-		<< "\"interval\": " << monitor.interval().totalMilliseconds()
-		<< "}";
+	json.beginObject()
+		.name("mode")(monitor.mode_str())
+		.name("state")(monitor.state_str())
+		.name("interval")(monitor.interval().totalMilliseconds())
+		.endObject();
 
-	return output;
+	return json;
 }

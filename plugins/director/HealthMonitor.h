@@ -13,6 +13,7 @@
 #include <x0/Logging.h>
 #include <x0/Socket.h>
 #include <x0/SocketSpec.h>
+#include <x0/JsonWriter.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpMessageProcessor.h>
@@ -113,4 +114,4 @@ protected:
 	virtual bool onMessageEnd();
 };
 
-x0::Buffer& operator<<(x0::Buffer& output, const HealthMonitor& monitor);
+x0::JsonWriter& operator<<(x0::JsonWriter& json, const HealthMonitor& monitor);

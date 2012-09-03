@@ -8,6 +8,7 @@
 
 #include "Backend.h"
 #include "Director.h"
+#include "RequestNotes.h"
 #include "HealthMonitor.h"
 
 #if !defined(NDEBUG)
@@ -91,27 +92,27 @@ const std::string& Backend::role_str() const
 	return str[static_cast<unsigned>(role_)];
 }
 
-size_t Backend::writeJSON(Buffer& out) const
+void Backend::writeJSON(JsonWriter& json) const
 {
 	static const std::string boolStr[] = { "false", "true" };
-	size_t offset = out.size();
 
-	out << "\"name\": \"" << name_ << "\", "
-		<< "\"capacity\": " << capacity_ << ", "
-		<< "\"enabled\": " << boolStr[enabled_] << ", "
-		<< "\"protocol\": \"" << protocol() << "\", "
-		<< "\"role\": \"" << role_str() << "\",\n     "
-		<< "\"load\": " << load_ << ",\n     "
-		<< "\"health\": " << *healthMonitor_ << ",\n     ";
+	json.beginObject()
+		.name("name")(name_)
+		.name("capacity")(capacity_)
+		.name("enabled")(enabled_)
+		.name("protocol")(protocol())
+		.name("role")(role_str());
 
 	if (socketSpec_.isInet()) {
-		out << "\"hostname\": \"" << socketSpec_.ipaddr().str() << "\"";
-		out << ", \"port\": " << socketSpec_.port();
+		json.name("hostname")(socketSpec_.ipaddr().str())
+			.name("port")(socketSpec_.port());
 	} else {
-		out << "\"path\": \"" << socketSpec_.local() << "\"";
+		json.name("path")(socketSpec_.local());
 	}
 
-	return out.size() - offset;
+	json.name("load")(load_);
+	json.name("health")(*healthMonitor_);
+	json.endObject();
 }
 
 void Backend::setRole(Role value)
@@ -155,16 +156,16 @@ void Backend::setState(HealthMonitor::State value)
 	healthMonitor_->setState(value);
 }
 
-bool Backend::assign(HttpRequest* r)
+/*bool Backend::assign(HttpRequest* r)
 {
-	auto notes = r->customData<DirectorNotes>(director_);
+	auto notes = director_->requestNotes(r);
 	notes->backend = this;
 
 	++load_;
 	++director_->scheduler()->load_;
 
 	return process(r);
-}
+}*/
 
 /**
  * Invoked internally a request has been fully processed.

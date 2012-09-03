@@ -9,36 +9,19 @@
 #pragma once
 
 #include "Backend.h"
-#include "Scheduler.h"
 
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/DateTime.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/CustomDataMgr.h>
+#include <x0/JsonWriter.h>
 #include <ev++.h>
 
 using namespace x0;
 
-// TODO: rename to RequestNotes
-struct DirectorNotes :
-	public CustomData
-{
-	DateTime ctime;
-	Backend* backend;
-	size_t retryCount;
-
-	explicit DirectorNotes(DateTime ct, Backend* b = nullptr) :
-		ctime(ct),
-		backend(b),
-		retryCount(0)
-	{}
-
-	~DirectorNotes()
-	{
-		// TODO: if (backend_) { backend_->director().scheduler().release(backend_); }
-	}
-};
+class ClassfulScheduler;
+class RequestNotes;
 
 /*!
  * \brief Load balancing HTTP request proxy.
@@ -87,7 +70,7 @@ private:
 
 	std::string storagePath_;
 
-	Scheduler* scheduler_;
+	ClassfulScheduler* scheduler_;
 
 public:
 	Director(HttpWorker* worker, const std::string& name);
@@ -135,7 +118,10 @@ public:
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
-	Scheduler* scheduler() const { return scheduler_; }
+	ClassfulScheduler* scheduler() const { return scheduler_; }
+
+	RequestNotes* setupRequestNotes(x0::HttpRequest* r, Backend* backend = nullptr);
+	RequestNotes* requestNotes(x0::HttpRequest* r);
 
 	Backend* createBackend(const std::string& name, const std::string& url);
 
@@ -149,7 +135,7 @@ public:
 
 	Backend* findBackend(const std::string& name);
 
-	void writeJSON(x0::Buffer& output);
+	void writeJSON(x0::JsonWriter& output) const;
 
 	bool load(const std::string& path);
 	bool save();
@@ -176,6 +162,10 @@ private:
 
 	friend class Backend;
 };
+
+namespace x0 {
+	JsonWriter& operator<<(JsonWriter& json, const Director& director);
+}
 
 // {{{ inlines
 inline const std::vector<Backend*>& Director::backendsWith(Backend::Role role) const

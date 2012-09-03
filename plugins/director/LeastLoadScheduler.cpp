@@ -18,9 +18,6 @@
 
 using namespace x0;
 
-// TODO rename DirectorNotes to RequestNotes
-// obsolete release() hook with ~RequestNotes-destructor body
-
 LeastLoadScheduler::LeastLoadScheduler(Director* d) :
 	Scheduler(d),
 	queue_(),
@@ -44,7 +41,9 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 {
 	r->responseHeaders.push_back("X-Director-Cluster", director_->name());
 
-	auto notes = r->setCustomData<DirectorNotes>(this, director_->worker().now());
+	auto notes = director_->requestNotes(r);
+
+	TRACE("schedule()");
 
 	bool allDisabled = false;
 
@@ -86,11 +85,11 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 	}
 }
 
-bool LeastLoadScheduler::reschedule(HttpRequest* r, Backend* backend)
+void LeastLoadScheduler::reschedule(HttpRequest* r)
 {
-	auto notes = r->customData<DirectorNotes>(this);
+	auto notes = director_->requestNotes(r);
 
-	--backend->load_;
+	--notes->backend->load_;
 	notes->backend = nullptr;
 
 	TRACE("requeue (retry-count: %zi / %zi)", notes->retryCount, director_->maxRetryCount());
@@ -101,18 +100,17 @@ bool LeastLoadScheduler::reschedule(HttpRequest* r, Backend* backend)
 		r->status = HttpStatus::ServiceUnavailable;
 		r->finish();
 
-		return false;
+		return;
 	}
 
 	++notes->retryCount;
 
-	backend = nextBackend(backend, r);
-	if (backend != nullptr) {
+	if (Backend* backend = nextBackend(notes->backend, r)) {
 		notes->backend = backend;
 		++backend->load_;
 
 		if (backend->process(r)) {
-			return true;
+			return;
 		}
 	}
 
@@ -120,8 +118,6 @@ bool LeastLoadScheduler::reschedule(HttpRequest* r, Backend* backend)
 
 	--load_;
 	enqueue(r);
-
-	return false;
 }
 
 Backend* LeastLoadScheduler::nextBackend(Backend* backend, HttpRequest* r)
@@ -152,8 +148,9 @@ Backend* LeastLoadScheduler::nextBackend(Backend* backend, HttpRequest* r)
 	return nullptr;
 }
 
-void LeastLoadScheduler::pass(HttpRequest* r, DirectorNotes* notes, Backend* backend)
+void LeastLoadScheduler::pass(HttpRequest* r, RequestNotes* notes, Backend* backend)
 {
+	TRACE("pass(backend:%s)", backend->name().c_str());
 	notes->backend = backend;
 
 	++load_;
@@ -163,36 +160,9 @@ void LeastLoadScheduler::pass(HttpRequest* r, DirectorNotes* notes, Backend* bac
 }
 
 /**
- * Notifies the director, that the given backend has just completed processing a request.
- *
- * \param backend the backend that just completed a request, and thus, is able to potentially handle one more.
- *
- * This method is to be invoked by backends, that
- * just completed serving a request, and thus, invoked
- * finish() on it, so it could potentially process
- * the next one, if, and only if, we have
- * already queued pending requests.
- *
- * Otherwise this call will do nothing.
- *
- * \see schedule(), reschedule(), enqueue(), dequeueTo()
- */
-
-void LeastLoadScheduler::release(Backend* backend)
-{
-	--load_;
-
-	if (!backend->isTerminating())
-		dequeueTo(backend);
-	else
-		backend->tryTermination();
-}
-
-/**
  * Pops an enqueued request from the front of the queue and passes it to the backend for serving.
  *
  * \param backend the backend to pass the dequeued request to.
- * \todo thread safety (queue_)
  */
 void LeastLoadScheduler::dequeueTo(Backend* backend)
 {
@@ -202,7 +172,7 @@ void LeastLoadScheduler::dequeueTo(Backend* backend)
 			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), director_->name().c_str());
 #endif
-			pass(r, r->customData<DirectorNotes>(this), backend);
+			pass(r, director_->requestNotes(r), backend);
 		});
 	}
 }
@@ -293,7 +263,7 @@ void LeastLoadScheduler::updateQueueTimer()
 	// finish already timed out requests
 	while (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
-		auto notes = r->customData<DirectorNotes>(this);
+		auto notes = director_->requestNotes(r);
 		TimeSpan age(director_->worker().now() - notes->ctime);
 		if (age < director_->queueTimeout())
 			break;
@@ -322,17 +292,11 @@ void LeastLoadScheduler::updateQueueTimer()
 
 	// setup queue timer to wake up after next timeout is reached.
 	HttpRequest* r = queue_.front();
-	auto notes = r->customData<DirectorNotes>(this);
+	auto notes = director_->requestNotes(r);
 	TimeSpan age(director_->worker().now() - notes->ctime);
 	TimeSpan ttl(director_->queueTimeout() - age);
 	TRACE("updateQueueTimer: starting new timer with ttl %f (%llu)", ttl.value(), ttl.totalMilliseconds());
 	queueTimer_.start(ttl.value(), 0);
-}
-
-void LeastLoadScheduler::writeJSON(Buffer& out)
-{
-	out << "  \"load\": " << load_ << ",\n"
-		<< "  \"queued\": " << queued_ << ",\n";
 }
 
 bool LeastLoadScheduler::load(x0::IniFile& settings)
