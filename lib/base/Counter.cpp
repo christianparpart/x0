@@ -6,6 +6,7 @@
  * (c) 2009-2012 Christian Parpart <trapni@gentoo.org>
  */
 #include <x0/Counter.h>
+#include <x0/JsonWriter.h>
 
 namespace x0 {
 
@@ -35,16 +36,15 @@ Counter& Counter::operator--()
 	return *this;
 }
 
-Buffer& operator<<(Buffer& output, const Counter& counter)
+JsonWriter& operator<<(JsonWriter& json, const Counter& counter)
 {
-	output
-		<< "{"
-		<< "\"current\": " << counter.current() << ", "
-		<< "\"max\": " << counter.max() << ", "
-		<< "\"total\": " << counter.total()
-		<< "}";
+	json.beginObject()
+		.name("current")(counter.current())
+		.name("max")(counter.max())
+		.name("total")(counter.total())
+		.endObject();
 
-	return output;
+	return json;
 }
 
 } // namespace x0

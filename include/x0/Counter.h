@@ -15,6 +15,8 @@
 
 namespace x0 {
 
+class JsonWriter;
+
 class X0_API Counter
 {
 private:
@@ -37,6 +39,6 @@ public:
 	Counter& operator--();
 };
 
-X0_API Buffer& operator<<(Buffer& output, const Counter& counter);
+X0_API JsonWriter& operator<<(JsonWriter& json, const Counter& counter);
 
 } // namespace x0
