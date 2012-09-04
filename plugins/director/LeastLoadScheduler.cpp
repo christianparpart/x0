@@ -220,7 +220,8 @@ Backend* LeastLoadScheduler::findLeastLoad(Backend::Role role, bool* allDisabled
 		size_t avail = c - l;
 
 #ifndef NDEBUG
-		director_->worker().log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
+		director_->worker().log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)",
+			backend->name().c_str(), l, c, avail);
 #endif
 
 		if (avail > bestAvail) {
