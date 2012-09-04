@@ -901,7 +901,7 @@ void XzeroHttpDaemon::quickShutdownHandler(ev::sig& sig, int)
 {
 	log(x0::Severity::info, "%s received. shutting down NOW.", sig2str(sig.signum).c_str());
 
-	if (!child_.pid) {
+	if (state_ != State::Upgrading) {
 		// we are no garbage parent process
 		sd_notify(0, "STATUS=Shutting down.");
 	}
