@@ -158,15 +158,15 @@ HttpServer::~HttpServer()
 	for (auto i: listeners_)
 		delete i;
 
-	while (!workers_.empty())
-		destroyWorker(workers_[workers_.size() - 1]);
-
 	unregisterPlugin(core_);
 	delete core_;
 	core_ = nullptr;
 
 	while (!plugins_.empty())
 		unloadPlugin(plugins_[plugins_.size() - 1]->name());
+
+	while (!workers_.empty())
+		destroyWorker(workers_[workers_.size() - 1]);
 
 	delete runner_;
 	runner_ = nullptr;
