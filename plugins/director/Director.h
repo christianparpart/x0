@@ -18,6 +18,9 @@
 #include <x0/JsonWriter.h>
 #include <ev++.h>
 
+#include <list>
+#include <functional>
+
 using namespace x0;
 
 class ClassfulScheduler;
@@ -71,6 +74,8 @@ private:
 	std::string storagePath_;
 
 	ClassfulScheduler* scheduler_;
+
+	std::list<std::function<void()>>::iterator stopHandle_;
 
 public:
 	Director(HttpWorker* worker, const std::string& name);
