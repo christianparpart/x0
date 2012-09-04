@@ -23,7 +23,7 @@
 
 using namespace x0;
 
-class ClassfulScheduler;
+class Scheduler;
 class RequestNotes;
 
 /*!
@@ -73,7 +73,7 @@ private:
 
 	std::string storagePath_;
 
-	ClassfulScheduler* scheduler_;
+	Scheduler* scheduler_;
 
 	std::list<std::function<void()>>::iterator stopHandle_;
 
@@ -123,7 +123,7 @@ public:
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
-	ClassfulScheduler* scheduler() const { return scheduler_; }
+	Scheduler* scheduler() const { return scheduler_; }
 
 	RequestNotes* setupRequestNotes(x0::HttpRequest* r, Backend* backend = nullptr);
 	RequestNotes* requestNotes(x0::HttpRequest* r);

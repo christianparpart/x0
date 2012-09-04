@@ -59,8 +59,8 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 
 	stopHandle_ = worker_->registerStopHandler(std::bind(&Director::onStop, this));
 
-	//scheduler_ = new LeastLoadScheduler(this);
-	scheduler_ = new ClassfulScheduler(this);
+	scheduler_ = new LeastLoadScheduler(this);
+	//scheduler_ = new ClassfulScheduler(this);
 }
 
 Director::~Director()
