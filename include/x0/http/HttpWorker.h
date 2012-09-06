@@ -97,7 +97,6 @@ private:
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
-	ev::async evKill_;
 
 	friend class HttpPlugin;
 	friend class HttpCore;
