@@ -202,32 +202,57 @@ HttpRequest* LeastLoadScheduler::dequeue()
 	return nullptr;
 }
 
+#ifndef NDEBUG
+inline const char* roleStr(Backend::Role role)
+{
+	switch (role) {
+		case Backend::Role::Active: return "Active";
+		case Backend::Role::Standby: return "Standby";
+		case Backend::Role::Backup: return "Backup";
+		case Backend::Role::Terminate: return "Terminate";
+		default: return "UNKNOWN";
+	}
+}
+#endif
+
 Backend* LeastLoadScheduler::findLeastLoad(Backend::Role role, bool* allDisabled)
 {
+#ifndef NDEBUG
+	director_->worker().log(Severity::debug, "findLeastLoad(): role=%s", roleStr(role));
+#endif
+
 	Backend* best = nullptr;
-	size_t bestAvail = 0;
+	ssize_t bestAvail = 0;
 	size_t enabledAndOnline = 0;
 
 	for (auto backend: director_->backendsWith(role)) {
-		if (!backend->isEnabled() || !backend->healthMonitor().isOnline()) {
-			TRACE("findLeastLoad: skip %s (disabled)", backend->name().c_str());
+		if (!backend->isEnabled()) {
+			TRACE("findLeastLoad: skipping backend %s (disabled)", backend->name().c_str());
+			continue;
+		}
+
+		if (!backend->healthMonitor().isOnline()) {
+			TRACE("findLeastLoad: skipping backend %s (offline)", backend->name().c_str());
 			continue;
 		}
 
 		++enabledAndOnline;
 
-		size_t l = backend->load().current();
-		size_t c = backend->capacity();
-		size_t avail = c - l;
+		size_t load = backend->load().current();
+		size_t capacity = backend->capacity();
+		ssize_t avail = capacity - load;
 
 #ifndef NDEBUG
-		director_->worker().log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)",
-			backend->name().c_str(), l, c, avail);
+		director_->worker().log(Severity::debug,
+			"findLeastLoad: test backend %s (load:%zi, capacity:%zi, avail:%zi)",
+			backend->name().c_str(), load, capacity, avail);
 #endif
 
 		if (avail > bestAvail) {
 #ifndef NDEBUG
-			director_->worker().log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), best ? best->name().c_str() : "(null)");
+			director_->worker().log(Severity::debug,
+				"findLeastLoad: selecting backend %s (avail:%zi > bestAvail:%zi)",
+				backend->name().c_str(), avail, bestAvail);
 #endif
 			bestAvail = avail;
 			best = backend;
@@ -240,13 +265,13 @@ Backend* LeastLoadScheduler::findLeastLoad(Backend::Role role, bool* allDisabled
 
 	if (bestAvail > 0) {
 #ifndef NDEBUG
-		director_->worker().log(Severity::debug, "selecting backend %s", best->name().c_str());
+		director_->worker().log(Severity::debug, "findLeastLoad: resulting backend %s", best->name().c_str());
 #endif
 		return best;
 	}
 
 #ifndef NDEBUG
-	director_->worker().log(Severity::debug, "selecting backend (role %d) failed", static_cast<int>(role));
+	director_->worker().log(Severity::debug, "findLeastLoad: selecting backend (role %s) failed", roleStr(role));
 #endif
 
 	return nullptr;

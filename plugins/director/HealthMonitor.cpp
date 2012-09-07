@@ -180,7 +180,10 @@ void HealthMonitor::stop()
 {
 	TRACE("stop()");
 
-	timer_.stop();
+	if (timer_.is_active()) {
+		TRACE("stop: stopping active timer");
+		timer_.stop();
+	}
 
 	reset();
 }

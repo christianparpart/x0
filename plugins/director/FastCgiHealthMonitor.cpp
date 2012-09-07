@@ -37,10 +37,13 @@ FastCgiHealthMonitor::FastCgiHealthMonitor(HttpWorker& worker) :
 
 FastCgiHealthMonitor::~FastCgiHealthMonitor()
 {
+	TRACE("~FastCgiHealthMonitor");
 }
 
 void FastCgiHealthMonitor::reset()
 {
+	TRACE("reset()");
+
 	HealthMonitor::reset();
 
 	socket_.close();
