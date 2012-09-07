@@ -271,17 +271,19 @@ template<class K, void (K::*cb)(Socket *)>
 inline void Socket::setTimeout(K *object, TimeSpan value)
 {
 #if !defined(NDEBUG)
-	debug("setTimeout(%p, %d) active:%s", object, value(), timer_.is_active() ? "true" : "false");
+	debug("setTimeout(%p, %.2f) active:%s", object, value(), timer_.is_active() ? "true" : "false");
 #endif
 
 	timeoutCallback_ = &member_thunk<K, cb>;
 	timeoutData_ = object;
 
-	if (timer_.is_active())
+	if (timer_.is_active()) {
 		timer_.stop();
+	}
 
-	if (value)
+	if (value) {
 		timer_.start(value(), 0.0);
+	}
 }
 
 template<class K, void (K::*cb)(Socket *)>

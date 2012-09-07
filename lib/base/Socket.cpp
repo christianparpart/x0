@@ -48,6 +48,9 @@ inline const char * mode_str(Socket::Mode m)
 }
 
 Socket::Socket(struct ev_loop* loop) :
+#ifndef NDEBUG
+	Logging(),
+#endif
 	loop_(loop),
 	watcher_(loop),
 	timer_(loop),
@@ -68,7 +71,7 @@ Socket::Socket(struct ev_loop* loop) :
 	callbackData_(0)
 {
 #ifndef NDEBUG
-	setLogging(false);
+//	setLogging(false);
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
 #endif
@@ -112,8 +115,7 @@ Socket::~Socket()
 {
 	TRACE("destroying. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
 
-	if (fd_ >= 0)
-		::close(fd_);
+	close();
 }
 
 void Socket::set(int fd, int af)
@@ -359,11 +361,13 @@ void Socket::setMode(Mode m)
 			}
 		} else {
 			TRACE("stop watcher and timer");
-			if (watcher_.is_active())
+			if (watcher_.is_active()) {
 				watcher_.stop();
+			}
 
-			if (timer_.is_active())
+			if (timer_.is_active()) {
 				timer_.stop();
+			}
 		}
 
 		mode_ = m;
@@ -378,7 +382,12 @@ void Socket::clearReadyCallback()
 
 void Socket::close()
 {
-	TRACE("close: fd=%d", fd_);
+	TRACE("close: fd=%d (state:%s, timer_active:%s)", fd_, state_str(), timer_.is_active() ? "yes" : "no");
+
+	if (timer_.is_active()) {
+		TRACE("close: stopping active timer");
+		timer_.stop();
+	}
 
 	if (fd_< 0)
 		return;
@@ -386,7 +395,6 @@ void Socket::close()
 	state_ = Closed;
 	mode_ = None;
 	watcher_.stop();
-	timer_.stop();
 
 	::close(fd_);
 	fd_ = -1;
