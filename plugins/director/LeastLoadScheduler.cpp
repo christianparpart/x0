@@ -40,13 +40,10 @@ LeastLoadScheduler::~LeastLoadScheduler()
  */
 void LeastLoadScheduler::schedule(HttpRequest* r)
 {
-	r->responseHeaders.push_back("X-Director-Cluster", director_->name());
-
 	auto notes = director_->requestNotes(r);
-
-	TRACE("schedule()");
-
 	bool allDisabled = false;
+
+	r->responseHeaders.push_back("X-Director-Cluster", director_->name());
 
 	if (notes->backend) {
 		if (notes->backend->healthMonitor().isOnline()) {
