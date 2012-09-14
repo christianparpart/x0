@@ -28,9 +28,6 @@ LeastLoadScheduler::LeastLoadScheduler(Director* d) :
 
 LeastLoadScheduler::~LeastLoadScheduler()
 {
-	if (queueTimer_.is_active()) {
-		ev_ref(director_->worker().loop());
-	}
 }
 
 /**
@@ -321,7 +318,6 @@ void LeastLoadScheduler::updateQueueTimer()
 	TimeSpan ttl(director_->queueTimeout() - age);
 	TRACE("updateQueueTimer: starting new timer with ttl %f (%llu)", ttl.value(), ttl.totalMilliseconds());
 	queueTimer_.start(ttl.value(), 0);
-	ev_unref(director_->worker().loop());
 }
 
 bool LeastLoadScheduler::load(x0::IniFile& settings)
