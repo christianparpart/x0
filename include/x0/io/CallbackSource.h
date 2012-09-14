@@ -26,14 +26,13 @@ class X0_API CallbackSource :
 	public Source
 {
 public:
-	typedef void (*Callback)(void*);
+	typedef std::function<void()> Callback;
 
 private:
 	Callback callback_;
-	void* data_;
 
 public:
-	explicit CallbackSource(Callback cb, void* data = nullptr);
+	explicit CallbackSource(Callback cb);
 	~CallbackSource();
 
 public:
@@ -43,10 +42,9 @@ public:
 //@}
 
 // {{{ inlines
-inline CallbackSource::CallbackSource(Callback cb, void* data) :
+inline CallbackSource::CallbackSource(Callback cb) :
 	Source(),
-	callback_(cb),
-	data_(data)
+	callback_(cb)
 {
 }
 // }}}

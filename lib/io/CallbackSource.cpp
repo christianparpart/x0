@@ -13,7 +13,7 @@ namespace x0 {
 CallbackSource::~CallbackSource()
 {
 	if (callback_) {
-		callback_(data_);
+		callback_();
 	}
 }
 

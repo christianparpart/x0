@@ -322,6 +322,41 @@ void HttpRequest::writeDefaultResponseContent()
 	write<BufferSource>(Buffer::fromCopy(buf, nwritten));
 }
 
+/*! appends a callback source into the output buffer if non-empty or invokes it directly otherwise.
+ *
+ * Invoke this method to get called back (notified) when all preceding content chunks have been
+ * fully sent to the client already.
+ *
+ * This method either appends this callback into the output queue, thus, being invoked when all
+ * preceding output chunks have been handled so far, or the callback gets invoked directly
+ * when there is nothing in the output queue (meaning, that everything has been already fully
+ * sent to the client).
+ *
+ * \retval true The callback will be invoked later (callback appended to output queue).
+ * \retval false The output queue is empty (everything sent out so far *OR* the connection is aborted) and the callback was invoked directly.
+ */
+bool HttpRequest::writeCallback(CallbackSource::Callback cb)
+{
+	if (connection.isAborted()) {
+		cb();
+		return false;
+	}
+
+	assert(outputState_ == Populating);
+
+	if (connection.isOutputPending()) {
+		connection.write<CallbackSource>([this, cb]() {
+			post([cb]() {
+				cb();
+			});
+		});
+		return true;
+	} else {
+		cb();
+		return false;
+	}
+}
+
 std::string HttpRequest::statusStr(HttpStatus value)
 {
 	return http_category().message(static_cast<int>(value));

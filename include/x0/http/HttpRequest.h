@@ -342,7 +342,7 @@ public:
 	void write(Source* chunk);
 	template<class K, void (K::*Callback)()>
 	bool writeCallback(K* object);
-	bool writeCallback(CallbackSource::Callback cb, void* data);
+	bool writeCallback(CallbackSource::Callback cb);
 	template<class T, class... Args> void write(Args&&... args);
 
 	void setAbortHandler(void (*callback)(void *), void *data = NULL);
@@ -487,46 +487,17 @@ inline void HttpRequest::write(Source* chunk)
 	}
 }
 
-template<class K, void (K::*Callback)()>
+template<class K, void (K::*cb)()>
 bool HttpRequest::writeCallback(K* object)
 {
-	return writeCallback(&write_cb_thunk<K, Callback>, object);
-}
-
-/*! appends a callback source into the output buffer if non-empty or invokes it directly otherwise.
- *
- * Invoke this method to get called back (notified) when all preceding content chunks have been
- * fully sent to the client already.
- *
- * This method either appends this callback into the output queue, thus, being invoked when all
- * preceding output chunks have been handled so far, or the callback gets invoked directly
- * when there is nothing in the output queue (meaning, that everything has been already fully
- * sent to the client).
- *
- * \retval true The callback will be invoked later (callback appended to output queue).
- * \retval false The output queue is empty (everything sent out so far *OR* the connection is aborted) and the callback was invoked directly.
- */
-inline bool HttpRequest::writeCallback(CallbackSource::Callback cb, void* data)
-{
-	if (connection.isAborted()) {
-		cb(data);
-		return false;
-	}
-
-	assert(outputState_ == Populating);
-
-	if (connection.isOutputPending()) {
-		connection.write<CallbackSource>(cb, data);
-		return true;
-	} else {
-		cb(data);
-		return false;
-	}
+	return writeCallback([=]() {
+		(object->*cb)();
+	});
 }
 
 /*! writes given data to the underlying connection.
  *
- * \tparam T type of chunk to write. must be derived from \ref Source.
+ * \param T type of chunk to write. must be derived from \ref Source.
  * \param args a list of arguments being passed to the source chunk.
  *
  * \code
