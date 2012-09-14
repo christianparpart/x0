@@ -348,7 +348,7 @@ std::string HttpRequest::statusStr(HttpStatus value)
  */
 void HttpRequest::finish()
 {
-	TRACE("finish(%d)", outputState_);
+	TRACE("finish(outputState=%s)", outputStateStr(outputState_));
 
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);

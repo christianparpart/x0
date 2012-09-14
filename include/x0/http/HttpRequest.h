@@ -264,6 +264,15 @@ private:
 		Finished
 	};
 
+	static inline const char* outputStateStr(OutputState value) {
+		switch (value) {
+			case Unhandled: return "Unhandled";
+			case Populating: return "Populating";
+			case Finished: return "Finished";
+			default: return "UNKNOWN";
+		}
+	}
+
 	OutputState outputState_;
 
 public:
