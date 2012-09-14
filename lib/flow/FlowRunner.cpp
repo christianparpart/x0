@@ -210,6 +210,7 @@ FlowRunner::~FlowRunner()
 
 	delete parser_;
 	delete unit_;
+	delete modulePassMgr_;
 }
 
 int FlowRunner::optimizationLevel() const
