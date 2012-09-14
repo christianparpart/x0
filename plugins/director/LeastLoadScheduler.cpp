@@ -297,6 +297,8 @@ void LeastLoadScheduler::updateQueueTimer()
 			TRACE("updateQueueTimer: killing request with 503");
 
 			r->status = HttpStatus::ServiceUnavailable;
+			r->log(Severity::error, "Queued request timed out. Killing with 503 (Service Unavailable).");
+
 			if (director_->retryAfter()) {
 				char value[64];
 				snprintf(value, sizeof(value), "%zu", director_->retryAfter().totalSeconds());
