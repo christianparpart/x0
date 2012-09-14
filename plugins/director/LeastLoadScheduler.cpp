@@ -85,11 +85,11 @@ void LeastLoadScheduler::reschedule(HttpRequest* r)
 	auto notes = director_->requestNotes(r);
 
 	--notes->backend->load_;
-	notes->backend = nullptr;
 
 	TRACE("requeue (retry-count: %zi / %zi)", notes->retryCount, director_->maxRetryCount());
 
 	if (notes->retryCount == director_->maxRetryCount()) {
+		notes->backend = nullptr;
 		--load_;
 
 		r->status = HttpStatus::ServiceUnavailable;
