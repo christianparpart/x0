@@ -56,15 +56,17 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
 	connections_(),
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
+	evWakeup_(loop_),
 	fileinfo(loop_, &server_.fileinfoConfig_)
 {
 	evLoopCheck_.set<HttpWorker, &HttpWorker::onLoopCheck>(this);
 	evLoopCheck_.start();
-	ev_unref(loop_);
 
 	evNewConnection_.set<HttpWorker, &HttpWorker::onNewConnection>(this);
 	evNewConnection_.start();
-	ev_unref(loop_);
+
+	evWakeup_.set<&HttpWorker::onWakeup>();
+	evWakeup_.start();
 
 	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
 
@@ -85,15 +87,11 @@ HttpWorker::~HttpWorker()
 
 	pthread_spin_destroy(&queueLock_);
 
-	if (evLoopCheck_.is_active()) {
-		ev_ref(loop_);
-		evLoopCheck_.stop();
-	}
+	evLoopCheck_.stop();
+	evNewConnection_.stop();
+	evWakeup_.stop();
 
-	if (evNewConnection_.is_active()) {
-		ev_ref(loop_);
-		evNewConnection_.stop();
-	}
+	ev_loop_destroy(loop_);
 }
 
 void HttpWorker::run()
@@ -155,12 +153,21 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 	pthread_spin_unlock(&queueLock_);
 }
 
+void HttpWorker::onWakeup(ev::async& w, int revents)
+{
+	// no-op - this callback is simply used to wake up the worker's event loop
+}
+
 void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 {
 	TRACE("client connected; fd:%d", client->handle());
 
 	++connectionLoad_;
 	++connectionCount_;
+
+	// XXX since socket has not been used so far, I might be able to defer its creation out of its socket descriptor
+	// XXX so that I do not have to double-initialize libev's loop handles for this socket.
+	client->setLoop(loop_);
 
 	HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
 
@@ -196,10 +203,8 @@ void HttpWorker::_stop()
 {
 	TRACE("_stop");
 
-	ev_ref(loop_);
 	evLoopCheck_.stop();
 
-	ev_ref(loop_);
 	evNewConnection_.stop();
 
 	for (auto handler: stopHandler_)
@@ -272,6 +277,7 @@ void HttpWorker::resume()
 
 void HttpWorker::stop()
 {
+	TRACE("stop: post -> _stop()");
 	post<HttpWorker, &HttpWorker::_stop>(this);
 }
 
@@ -281,6 +287,7 @@ void HttpWorker::stop()
  */
 void HttpWorker::kill()
 {
+	TRACE("kill: post -> _kill()");
 	post<HttpWorker, &HttpWorker::_kill>(this);
 }
 
@@ -292,6 +299,7 @@ void HttpWorker::kill()
  */
 void HttpWorker::_kill()
 {
+	TRACE("_kill()");
 	if (!connections_.empty()) {
 		auto copy = connections_;
 
@@ -304,8 +312,10 @@ void HttpWorker::_kill()
 #endif
 	}
 
-	for (auto handler: killHandler_)
+	for (auto handler: killHandler_) {
+		TRACE("_kill: invoke kill handler");
 		handler();
+	}
 }
 
 std::list<std::function<void()>>::iterator HttpWorker::registerStopHandler(std::function<void()> callback)

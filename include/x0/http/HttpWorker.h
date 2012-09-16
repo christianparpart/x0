@@ -97,6 +97,7 @@ private:
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
+	ev::async evWakeup_;
 
 	friend class HttpPlugin;
 	friend class HttpCore;
@@ -174,6 +175,7 @@ private:
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
+	static void onWakeup(ev::async& w, int revents);
 	void spawnConnection(Socket* client, ServerSocket* listener);
 	void _stop();
 	void _kill();
@@ -225,6 +227,7 @@ template<class K, void (K::*fn)()>
 void HttpWorker::post(K* object)
 {
 	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk<K, fn>, object);
+	evWakeup_.send();
 }
 
 template<class K, void (K::*fn)()>
@@ -243,6 +246,7 @@ void HttpWorker::post(K* object, void* arg)
 {
 	auto priv = std::make_pair(object, arg);
 	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk2<K, fn>, priv);
+	evWakeup_.send();
 }
 
 template<class K, void (K::*fn)(void*)>
@@ -264,6 +268,7 @@ inline void HttpWorker::post(const std::function<void()>& callback)
 {
 	auto p = new std::function<void()>(callback);
 	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
+	evWakeup_.send();
 }
 
 inline void HttpWorker::fetchPerformanceCounts(double* p1, double* p5, double* p15) const
