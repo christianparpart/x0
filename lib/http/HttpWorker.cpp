@@ -204,8 +204,8 @@ void HttpWorker::_stop()
 	TRACE("_stop");
 
 	evLoopCheck_.stop();
-
 	evNewConnection_.stop();
+	evWakeup_.stop();
 
 	for (auto handler: stopHandler_)
 		handler();
