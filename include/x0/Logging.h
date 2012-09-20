@@ -36,6 +36,8 @@ public:
 	void setLoggingPrefix(const char *prefix, ...);
 	void setLogging(bool enable);
 
+	const std::string& loggingPrefix() const { return prefix_; }
+
 	void debug(const char *fmt, ...);
 
 private:
