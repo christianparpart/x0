@@ -387,11 +387,7 @@ bool ApiReqeust::get()
 		request_->finish();
 	} else if (tokens.size() == 1) { // director
 		Buffer result;
-		JsonWriter json(result);
-
-		json.beginObject()
-			.value(*director)
-			.endObject();
+		JsonWriter(result).value(*director);
 
 		request_->status = x0::HttpStatus::Ok;
 		request_->write<x0::BufferSource>(result);
