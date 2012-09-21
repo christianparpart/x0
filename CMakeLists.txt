@@ -181,7 +181,7 @@ endif(Boost_FOUND)
 #message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
 
 if(WITH_SSL)
-	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0 gnutls-extra>=2.0.0)
+	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
 endif(WITH_SSL)
 if(BUILD_TESTS)
 	pkg_check_modules(CPPUNIT REQUIRED cppunit>=1.12)

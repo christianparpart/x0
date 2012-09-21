@@ -26,7 +26,6 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-#include <gnutls/extra.h>
 
 #if 0
 #	define TRACE(msg...) DEBUG("SslContext: " msg)

@@ -14,7 +14,6 @@
 #include <x0/BufferRef.h>
 
 #include <gnutls/gnutls.h>
-#include <gnutls/extra.h>
 
 #if 0
 #	define TRACE(msg...) DEBUG("SslSocket: " msg)

@@ -31,7 +31,6 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-#include <gnutls/extra.h>
 #include <pthread.h>
 #include <gcrypt.h>
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
@@ -83,8 +82,6 @@ public:
 			TRACE("gnutls_global_init: %s", gnutls_strerror(rv));
 			return; //Error::CouldNotInitializeSslLibrary;
 		}
-
-		gnutls_global_init_extra();
 
 		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(nullptr));
 
