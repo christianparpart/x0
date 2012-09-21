@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(x0)
 set(PACKAGE_NAME "x0")
-set(PACKAGE_VERSION "0.4.0")
+set(PACKAGE_VERSION "0.6.0")
 set(PACKAGE_HOMEPAGE_URL "http://redmine.trapni.de/projects/x0")
 set(PACKAGE_BUGTRACKER_URL "http://redmine.trapni.de/projects/x0/issues")
 
