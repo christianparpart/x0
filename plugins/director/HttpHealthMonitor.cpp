@@ -180,8 +180,12 @@ void HttpHealthMonitor::readSome()
 			socket_.setMode(Socket::Read);
 		}
 	} else if (rv == 0) {
-		TRACE("remote endpoint closed connection.");
-		onMessageEnd();
+		if (isContentExpected()) {
+			onMessageEnd();
+		} else {
+			TRACE("remote endpoint closed connection.");
+			logFailure();
+		}
 	} else {
 		switch (errno) {
 			case EAGAIN:

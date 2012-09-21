@@ -884,12 +884,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			}
 			case HEADER_END_LF:
 				if (*i == LF) {
-					bool contentExpected = 
-						contentLength_ > 0 
-						|| chunked_
-						|| mode_ == MESSAGE;
-
-					if (contentExpected)
+					if (isContentExpected())
 						state_ = CONTENT_BEGIN;
 					else
 						state_ = MESSAGE_BEGIN;
@@ -902,7 +897,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 						goto done;
 					}
 
-					if (!contentExpected && !onMessageEnd()) {
+					if (!isContentExpected() && !onMessageEnd()) {
 						goto done;
 					}
 				} else {

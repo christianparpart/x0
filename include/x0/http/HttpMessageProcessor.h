@@ -156,6 +156,7 @@ public:
 
 	bool isProcessingHeader() const;
 	bool isProcessingBody() const;
+	bool isContentExpected() const;
 
 public:
 	explicit HttpMessageProcessor(ParseMode mode);
@@ -285,6 +286,13 @@ inline bool HttpMessageProcessor::isProcessingBody() const
 		default:
 			return false;
 	}
+}
+
+inline bool HttpMessageProcessor::isContentExpected() const
+{
+	return contentLength_ > 0
+		|| chunked_
+		|| mode_ != REQUEST;
 }
 
 } // namespace x0
