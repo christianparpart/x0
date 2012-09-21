@@ -174,12 +174,11 @@ void LeastLoadScheduler::dequeueTo(Backend* backend)
 
 void LeastLoadScheduler::enqueue(HttpRequest* r)
 {
-#ifndef NDEBUG
-	r->log(Severity::debug, "Director %s overloaded. Enqueueing request.", director_->name().c_str());
-#endif
-
 	queue_.push_back(r);
 	++queued_;
+
+	r->log(Severity::info, "Director %s overloaded. Enqueueing request (%d).",
+      director_->name().c_str(), queued_.current());
 
 	updateQueueTimer();
 }
@@ -190,6 +189,10 @@ HttpRequest* LeastLoadScheduler::dequeue()
 		HttpRequest* r = queue_.front();
 		queue_.pop_front();
 		--queued_;
+
+    r->log(Severity::info, "Director %s dequeued request (%d left).",
+        director_->name().c_str(), queued_.current());
+
 		return r;
 	}
 
@@ -297,7 +300,7 @@ void LeastLoadScheduler::updateQueueTimer()
 			TRACE("updateQueueTimer: killing request with 503");
 
 			r->status = HttpStatus::ServiceUnavailable;
-			r->log(Severity::error, "Queued request timed out. Killing with 503 (Service Unavailable).");
+			r->log(Severity::info, "Queued request timed out. Killing with 503 (Service Unavailable).");
 
 			if (director_->retryAfter()) {
 				char value[64];
