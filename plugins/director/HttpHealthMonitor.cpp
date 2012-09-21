@@ -181,6 +181,7 @@ void HttpHealthMonitor::readSome()
 		}
 	} else if (rv == 0) {
 		TRACE("remote endpoint closed connection.");
+		onMessageEnd();
 	} else {
 		switch (errno) {
 			case EAGAIN:
