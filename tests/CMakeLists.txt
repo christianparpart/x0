@@ -29,7 +29,6 @@ add_executable(x0test
 )
 
 target_link_libraries(x0test
-	boost_system boost_signals
 	${LUA_LIBRARIES}
 	${CPPUNIT_LIBRARIES}
 	dl pthread
