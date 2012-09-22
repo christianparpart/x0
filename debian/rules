@@ -1,12 +1,27 @@
 #! /usr/bin/make -f
 # vim:syntax=make
 
+export DH_VERBOSE=1
+
+CXXFLAGS += -fPIC
+CXXFLAGS += -DNDEBUG=1
+
 configure: configure-stamp
 configure-stamp:
+	patch --dry-run -p1 < $(CURDIR)/debian/patches/0100-llvm-3.0.patch \
+		&& patch -p1 < $(CURDIR)/debian/patches/0100-llvm-3.0.patch \
 	cmake \
 		-DCMAKE_BUILD_TYPE=release \
-		-DCMAKE_BUILD_PREFIX=/usr \
+		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DSYSCONFDIR=/etc/xzero \
+		-DINCLUDEDIR=/usr/include \
+		-DLIBDIR=/usr/lib \
+		-DPLUGINDIR=/usr/lib/xzero \
+		-DLOGDIR=/var/log/x0d \
+		\
+		-DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0 \
+		-DCMAKE_CXX_FLAGS="$(CXXFLAGS)" \
+		-DCMAKE_VERBOSE_MAKEFILE=OFF \
 		\
 		-DBUILD_TESTS=OFF \
 		-DENABLE_EXAMPLES=OFF \
@@ -21,11 +36,11 @@ configure-stamp:
 	touch configure-stamp
 
 build: build-stamp
-build-stamp:
+build-stamp: configure
 	dh_testdir
-	make
-	dh_makeshlibs
-	dh_shlibdeps
+	$(make)
+	#dh_makeshlibs
+	#dh_shlibdeps
 	touch build-stamp
 
 install: install-stamp
@@ -34,12 +49,33 @@ install-stamp:
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
-	make install CMAKE_INSTALL_PREFIX=$(DESTDIR)
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/x0
+	mkdir -p $(CURDIR)/debian/x0/etc/xzero
+	cp src/x0d.conf-dist $(CURDIR)/debian/x0/etc/xzero/x0d.conf
 	touch install-stamp
+
+binary-indep: build install
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_install
+	dh_installman
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-arch binary-indep
 
 clean:
 	dh_testdir
 	dh_testroot
 	dh_clean
 
-.PHONY: install clean
+.PHONY: build clean binary-indep binary-arch binary install clean configure
