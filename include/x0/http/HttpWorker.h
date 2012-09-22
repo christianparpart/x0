@@ -150,6 +150,8 @@ public:
 
 	inline void post(const std::function<void()>& callback);
 
+	inline void wakeup();
+
 	void stop();
 	void kill();
 
@@ -268,6 +270,11 @@ inline void HttpWorker::post(const std::function<void()>& callback)
 {
 	auto p = new std::function<void()>(callback);
 	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
+	evWakeup_.send();
+}
+
+inline void HttpWorker::wakeup()
+{
 	evWakeup_.send();
 }
 
