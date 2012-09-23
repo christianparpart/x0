@@ -195,14 +195,14 @@ FastCgiTransport::~FastCgiTransport()
 	}
 
 	if (request_) {
-		if (request_->status == HttpStatus::Undefined) {
+		if (request_->status == HttpStatus::Undefined && !request_->isAborted()) {
 			// We failed processing this request, so reschedule
 			// this request within the director and give it the chance
 			// to be processed by another backend,
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			backend_->director()->scheduler()->reschedule(request_);
+			backend_->director()->scheduler()->schedule(request_);
 		} else {
 			// We actually served ths request, so finish() it.
 			request_->finish();
@@ -719,6 +719,10 @@ std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
 	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(director->worker()))
 {
+#ifndef NDEBUG
+	setLoggingPrefix("FastCgiBackend/%s", name.c_str());
+#endif
+
 	healthMonitor().setBackend(this);
 }
 
@@ -749,7 +753,6 @@ bool FastCgiBackend::process(x0::HttpRequest* r)
 
 	if (!socket->isOpen()) {
 		r->log(x0::Severity::error, "fastcgi: connection to backend %s failed. %s", socketSpec_.str().c_str(), strerror(errno));
-		setState(HealthMonitor::State::Offline);
 		delete socket;
 		return false;
 	}

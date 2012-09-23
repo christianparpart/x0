@@ -35,7 +35,6 @@ public:
 
 	// Scheduler API overrides
 	virtual void schedule(x0::HttpRequest* r);
-	virtual void reschedule(x0::HttpRequest* r);
 
 	virtual void dequeueTo(Backend* backend);
 

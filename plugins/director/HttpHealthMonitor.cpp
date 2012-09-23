@@ -12,11 +12,6 @@
 #include <cassert>
 #include <cstdarg>
 
-/*
- * TODO
- * - connect/read/write timeout handling.
- */
-
 using namespace x0;
 
 #if !defined(NDEBUG)

@@ -130,14 +130,15 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 	}
 
 	if (request_) {
-		if (request_->status == HttpStatus::Undefined) {
+		if (request_->status == HttpStatus::Undefined && !request_->isAborted()) {
 			// We failed processing this request, so reschedule
 			// this request within the director and give it the chance
 			// to be processed by another backend,
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			backend_->director()->scheduler()->reschedule(request_);
+			request_->log(Severity::notice, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
+			backend_->director()->scheduler()->schedule(request_);
 		} else {
 			// We actually served ths request, so finish() it.
 			request_->finish();
@@ -466,9 +467,9 @@ void HttpBackend::ProxyConnection::readSome()
 		if (processingDone_) {
 			close();
 		} else if (state() == SYNTAX_ERROR) {
-			close();
 			request_->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
 			backend_->setState(HealthMonitor::State::Offline);
+			close();
 		} else {
 			TRACE("resume with io:%d, state:%s", socket_->mode(), socket_->state_str());
 			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->readTimeout());
@@ -476,11 +477,6 @@ void HttpBackend::ProxyConnection::readSome()
 		}
 	} else if (rv == 0) {
 		TRACE("http server connection closed");
-		if (!processingDone_) {
-			// FIXME How does this affect backends with HTTP/1.0 responses? make this check more clever.
-			request_->log(Severity::error, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
-			backend_->setState(HealthMonitor::State::Offline);
-		}
 		close();
 	} else {
 		switch (errno) {
@@ -541,9 +537,6 @@ bool HttpBackend::process(HttpRequest* r)
 	}
 
 	r->log(Severity::error, "HTTP proxy: Could not connect to backend %s. %s", socketSpec_.str().c_str(), strerror(errno));
-
-	setState(HealthMonitor::State::Offline);
-
 	return false;
 }
 // }}}

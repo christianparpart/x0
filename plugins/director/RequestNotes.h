@@ -18,7 +18,7 @@ struct RequestNotes :
 {
 	x0::DateTime ctime;
 	Backend* backend;
-	size_t retryCount;
+	size_t tryCount;
 
 	std::string bucketName;
 	ClassfulScheduler::Bucket* bucket;
@@ -26,7 +26,7 @@ struct RequestNotes :
 	explicit RequestNotes(x0::DateTime ct, Backend* b = nullptr) :
 		ctime(ct),
 		backend(b),
-		retryCount(0),
+		tryCount(0),
 		bucketName(),
 		bucket(nullptr)
 	{}

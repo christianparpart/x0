@@ -17,6 +17,8 @@
 #include <x0/JsonWriter.h>
 #include <x0/http/HttpRequest.h>
 
+#include <mutex>
+
 class Director;
 
 /*!
@@ -43,6 +45,8 @@ protected:
 	std::string name_; //!< common name of this backend, for example: "appserver05"
 	size_t capacity_; //!< number of concurrent requests being processable at a time.
 	x0::Counter load_; //!< number of active (busy) connections
+
+	std::mutex lock_; //!< scheduling mutex
 
 	Role role_; //!< backend role (Active or Standby)
 	bool enabled_; //!< whether or not this director is enabled (default) or disabled (for example for maintenance reasons)
@@ -85,7 +89,7 @@ public:
 	HealthMonitor::State healthState() const { return healthMonitor_->state(); }
 	HealthMonitor& healthMonitor() { return *healthMonitor_; }
 
-	//bool assign(x0::HttpRequest* r);
+	bool tryProcess(x0::HttpRequest* r);
 	void release();
 
 	virtual void writeJSON(x0::JsonWriter& json) const;
@@ -94,6 +98,12 @@ public:
 
 protected:
 	bool tryTermination();
+
+	/*!
+	 * \brief initiates actual processing of given request.
+	 *
+	 * \note this method MUST NOT block.
+	 */
 	virtual bool process(x0::HttpRequest* r) = 0;
 
 	friend class Scheduler;

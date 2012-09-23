@@ -13,12 +13,8 @@
 #include <cstdarg>
 
 /*
- * TODO
- * - connect/read/write timeout handling.
- * - proper error reporting.
- * - properly support all modes
- *   - Opportunistic
- *   - Lazy
+ * TODO proper error reporting.
+ * TODO properly support all modes ( Opportunistic, Lazy )
  */
 
 using namespace x0;

@@ -21,7 +21,9 @@ using namespace x0;
 LeastLoadScheduler::LeastLoadScheduler(Director* d) :
 	Scheduler(d),
 	queue_(),
-	queueTimer_(d->worker().loop())
+	queueLock_(),
+	queueTimer_(d->worker().loop()),
+	schedulingLock_()
 {
 	queueTimer_.set<LeastLoadScheduler, &LeastLoadScheduler::updateQueueTimer>(this);
 }
@@ -30,128 +32,80 @@ LeastLoadScheduler::~LeastLoadScheduler()
 {
 }
 
-/**
- * Schedules given request.
- *
- * \note MUST be invoked from within the requests thread.
- */
 void LeastLoadScheduler::schedule(HttpRequest* r)
 {
+	std::lock_guard<std::mutex> _(schedulingLock_);
+
 	auto notes = director_->requestNotes(r);
 	bool allDisabled = false;
 
-	r->responseHeaders.push_back("X-Director-Cluster", director_->name());
+	if (notes->tryCount == 0) {
+		r->responseHeaders.push_back("X-Director-Cluster", director_->name());
 
-	if (notes->backend) {
-		if (notes->backend->healthMonitor().isOnline()) {
-			pass(r, notes, notes->backend);
-		} else {
-			// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
-			r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
-				notes->backend->name().c_str(), notes->backend->healthMonitor().state_str().c_str());
-			r->status = x0::HttpStatus::ServiceUnavailable;
-			r->finish();
+		if (notes->backend) {
+			if (!notes->backend->tryProcess(r)) {
+				// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
+				r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
+					notes->backend->name().c_str(), notes->backend->healthMonitor().state_str().c_str());
+				r->status = x0::HttpStatus::ServiceUnavailable;
+				r->finish();
+
+				// XXX Do NOT increment "dropped"-statistic, as most certainly directed requests are artificial
+				// and the dropped statistic is more for the "real" users.
+			}
+			return;
 		}
-	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Active, &allDisabled)) {
-		pass(r, notes, backend);
-	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Standby, &allDisabled)) {
-		pass(r, notes, backend);
-	}
-	else if (queue_.size() < director_->queueLimit() && !allDisabled) {
-		enqueue(r);
-	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Backup)) {
-		pass(r, notes, backend);
-	}
-	else if (queue_.size() < director_->queueLimit()) {
-		enqueue(r);
-	}
-	else {
-		r->log(Severity::error, "director: '%s' queue limit %zu reached. Rejecting request.", director_->name().c_str(), director_->queueLimit());
-		r->status = HttpStatus::ServiceUnavailable;
-		if (director_->retryAfter()) {
-			char value[64];
-			snprintf(value, sizeof(value), "%zu", director_->retryAfter().totalSeconds());
-			r->responseHeaders.push_back("Retry-After", value);
-		}
-		r->finish();
-	}
-}
-
-void LeastLoadScheduler::reschedule(HttpRequest* r)
-{
-	auto notes = director_->requestNotes(r);
-
-	--notes->backend->load_;
-
-	TRACE("requeue (retry-count: %zi / %zi)", notes->retryCount, director_->maxRetryCount());
-
-	if (notes->retryCount == director_->maxRetryCount()) {
-		notes->backend = nullptr;
+	} else {
+		// rescheduling given request, so decrement the load counters
 		--load_;
+		--notes->backend->load_;
 
-		r->status = HttpStatus::ServiceUnavailable;
-		r->finish();
+		// and set the backend's health state to offline, since it
+		// doesn't seem to function properly
+		notes->backend->setState(HealthMonitor::State::Offline);
 
-		return;
-	}
+		notes->backend = nullptr;
 
-	++notes->retryCount;
+		if (notes->tryCount >= director_->maxRetryCount() + 1) {
+			r->log(Severity::info, "director: %s request failed %d times. Dropping.",
+				director_->name().c_str(), notes->tryCount);
 
-	if (Backend* backend = nextBackend(notes->backend, r)) {
-		notes->backend = backend;
-		++backend->load_;
+			++dropped_;
 
-		if (backend->process(r)) {
+			r->status = HttpStatus::ServiceUnavailable;
+			r->finish();
 			return;
 		}
 	}
 
-	TRACE("requeue (retry-count: %zi / %zi): giving up", notes->retryCount, director_->maxRetryCount());
+	if (tryProcess(r, &allDisabled, Backend::Role::Active))
+		return;
 
-	--load_;
-	enqueue(r);
-}
+	if (tryProcess(r, &allDisabled, Backend::Role::Standby))
+		return;
 
-Backend* LeastLoadScheduler::nextBackend(Backend* backend, HttpRequest* r)
-{
-	auto& backends = director_->backendsWith(backend->role());
-	auto i = std::find(backends.begin(), backends.end(), backend);
+	if (allDisabled && tryProcess(r, &allDisabled, Backend::Role::Backup))
+		return;
 
-	if (i != backends.end()) {
-		auto k = i;
-		++k;
-
-		for (; k != backends.end(); ++k) {
-			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
-				return *k;
-
-			TRACE("nextBackend: skip %s", backend->name().c_str());
-		}
-
-		for (k = backends.begin(); k != i; ++k) {
-			if (backend->isEnabled() && backend->healthMonitor().isOnline() && (*k)->load().current() < (*k)->capacity())
-				return *k;
-
-			TRACE("nextBackend: skip %s", backend->name().c_str());
-		}
+	if (queue_.size() < director_->queueLimit()) {
+		enqueue(r);
+		return;
 	}
 
-	TRACE("nextBackend: no next backend chosen.");
-	return nullptr;
-}
+	r->log(Severity::info, "director: '%s' queue limit %zu reached. Rejecting request.",
+		director_->name().c_str(), director_->queueLimit());
 
-void LeastLoadScheduler::pass(HttpRequest* r, RequestNotes* notes, Backend* backend)
-{
-	TRACE("pass(backend:%s)", backend->name().c_str());
-	notes->backend = backend;
+	++dropped_;
 
-	++load_;
-	++backend->load_;
+	r->status = HttpStatus::ServiceUnavailable;
 
-	backend->process(r);
+	if (director_->retryAfter()) {
+		char value[64];
+		snprintf(value, sizeof(value), "%zu", director_->retryAfter().totalSeconds());
+		r->responseHeaders.push_back("Retry-After", value);
+	}
+
+	r->finish();
 }
 
 /**
@@ -167,31 +121,41 @@ void LeastLoadScheduler::dequeueTo(Backend* backend)
 			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), director_->name().c_str());
 #endif
-			pass(r, director_->requestNotes(r), backend);
+			bool passed = backend->tryProcess(r);
+			if (!passed) {
+				r->log(Severity::error, "Dequeueing request to backend %s @ %s failed.",
+					backend->name().c_str(), director_->name().c_str());
+
+				schedule(r);
+			}
 		});
 	}
 }
 
 void LeastLoadScheduler::enqueue(HttpRequest* r)
 {
+	std::lock_guard<std::mutex> _(queueLock_);
+
 	queue_.push_back(r);
 	++queued_;
 
 	r->log(Severity::info, "Director %s overloaded. Enqueueing request (%d).",
-      director_->name().c_str(), queued_.current());
+	  director_->name().c_str(), queued_.current());
 
 	updateQueueTimer();
 }
 
 HttpRequest* LeastLoadScheduler::dequeue()
 {
+	std::lock_guard<std::mutex> _(queueLock_);
+
 	if (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
 		queue_.pop_front();
 		--queued_;
 
-    r->log(Severity::info, "Director %s dequeued request (%d left).",
-        director_->name().c_str(), queued_.current());
+		r->log(Severity::debug, "Director %s dequeued request (%d left) (%llu).",
+				director_->name().c_str(), queued_.current(), pthread_self());
 
 		return r;
 	}
@@ -212,10 +176,10 @@ inline const char* roleStr(Backend::Role role)
 }
 #endif
 
-Backend* LeastLoadScheduler::findLeastLoad(Backend::Role role, bool* allDisabled)
+bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backend::Role role)
 {
 #ifndef NDEBUG
-	director_->worker().log(Severity::debug, "findLeastLoad(): role=%s", roleStr(role));
+	director_->worker().log(Severity::debug, "tryProcess(): role=%s", roleStr(role));
 #endif
 
 	Backend* best = nullptr;
@@ -224,31 +188,31 @@ Backend* LeastLoadScheduler::findLeastLoad(Backend::Role role, bool* allDisabled
 
 	for (auto backend: director_->backendsWith(role)) {
 		if (!backend->isEnabled()) {
-			TRACE("findLeastLoad: skipping backend %s (disabled)", backend->name().c_str());
+			TRACE("tryProcess: skipping backend %s (disabled)", backend->name().c_str());
 			continue;
 		}
 
 		if (!backend->healthMonitor().isOnline()) {
-			TRACE("findLeastLoad: skipping backend %s (offline)", backend->name().c_str());
+			TRACE("tryProcess: skipping backend %s (offline)", backend->name().c_str());
 			continue;
 		}
 
 		++enabledAndOnline;
 
-		size_t load = backend->load().current();
-		size_t capacity = backend->capacity();
+		ssize_t load = backend->load().current();
+		ssize_t capacity = backend->capacity();
 		ssize_t avail = capacity - load;
 
 #ifndef NDEBUG
 		director_->worker().log(Severity::debug,
-			"findLeastLoad: test backend %s (load:%zi, capacity:%zi, avail:%zi)",
+			"tryProcess: test backend %s (load:%zi, capacity:%zi, avail:%zi)",
 			backend->name().c_str(), load, capacity, avail);
 #endif
 
 		if (avail > bestAvail) {
 #ifndef NDEBUG
 			director_->worker().log(Severity::debug,
-				"findLeastLoad: selecting backend %s (avail:%zi > bestAvail:%zi)",
+				"tryProcess: selecting backend %s (avail:%zi > bestAvail:%zi)",
 				backend->name().c_str(), avail, bestAvail);
 #endif
 			bestAvail = avail;
@@ -262,16 +226,16 @@ Backend* LeastLoadScheduler::findLeastLoad(Backend::Role role, bool* allDisabled
 
 	if (bestAvail > 0) {
 #ifndef NDEBUG
-		director_->worker().log(Severity::debug, "findLeastLoad: resulting backend %s", best->name().c_str());
+		director_->worker().log(Severity::debug, "tryProcess: elected backend %s", best->name().c_str());
 #endif
-		return best;
+		return best->tryProcess(r);
 	}
 
 #ifndef NDEBUG
-	director_->worker().log(Severity::debug, "findLeastLoad: selecting backend (role %s) failed", roleStr(role));
+	director_->worker().log(Severity::debug, "tryProcess: (role %s) failed scheduling request", roleStr(role));
 #endif
 
-	return nullptr;
+	return false;
 }
 
 void LeastLoadScheduler::updateQueueTimer()
@@ -299,8 +263,9 @@ void LeastLoadScheduler::updateQueueTimer()
 		r->post([this, r]() {
 			TRACE("updateQueueTimer: killing request with 503");
 
+			r->log(Severity::info, "Queued request timed out. Dropping.");
 			r->status = HttpStatus::ServiceUnavailable;
-			r->log(Severity::info, "Queued request timed out. Killing with 503 (Service Unavailable).");
+			++dropped_;
 
 			if (director_->retryAfter()) {
 				char value[64];

@@ -31,6 +31,7 @@ protected:
 
 	x0::Counter load_;
 	x0::Counter queued_;
+	std::atomic<unsigned long long> dropped_;
 
 	friend class Backend;
 
@@ -47,19 +48,9 @@ public:
 	 *
 	 * \param r the request to schedule.
 	 *
-	 * MUST be invoked from within the requests worker thread.
+	 * \note <b>MUST</b> be invoked from within the requests worker thread.
 	 */
 	virtual void schedule(x0::HttpRequest* r) = 0;
-
-	/**
-	 * reschedules given request.
-	 *
-	 * \param r the request to reschedule to another backend.
-	 * \param backend the backend that failed to serve the request.
-	 *
-	 * MUST be invoked from within the requests worker thread.
-	 */
-	virtual void reschedule(x0::HttpRequest* r) = 0;
 
 	virtual void dequeueTo(Backend* backend) = 0;
 

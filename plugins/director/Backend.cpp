@@ -38,6 +38,7 @@ Backend::Backend(Director* director,
 	name_(name),
 	capacity_(capacity),
 	load_(),
+	lock_(),
 	role_(Role::Active),
 	enabled_(true),
 	socketSpec_(socketSpec),
@@ -62,6 +63,10 @@ Backend::Backend(Director* director,
 	});
 
 	director_->link(this);
+
+	// wake up the worker's event loop here, so he knows in time about the health check timer we just installed.
+	// TODO we should not need this...
+	director_->worker().wakeup();
 }
 
 Backend::~Backend()
@@ -156,19 +161,48 @@ void Backend::setState(HealthMonitor::State value)
 	healthMonitor_->setState(value);
 }
 
-/*bool Backend::assign(HttpRequest* r)
+/*!
+ * Tries to processes given request on this backend.
+ *
+ * \param r the request to be processed
+ *
+ * It only processes the request if this backend is healthy, enabled and the load has not yet reached its capacity.
+ * It then passes the request to the implementation specific \c process() method. If this fails to initiate
+ * processing, this backend gets flagged as offline automatically, otherwise the load counters are increased accordingly.
+ *
+ * \note <b>MUST</b> be invoked from within the request's worker thread.
+ */
+bool Backend::tryProcess(HttpRequest* r)
 {
+	std::lock_guard<std::mutex> _(lock_);
+
+	if (!healthMonitor().isOnline())
+		return false;
+
+	if (!isEnabled())
+		return false;
+
+	if (load_.current() >= capacity_)
+		return false;
+
 	auto notes = director_->requestNotes(r);
+
 	notes->backend = this;
+	++notes->tryCount;
+
+	if (!process(r)) {
+		setState(HealthMonitor::State::Offline);
+		return false;
+	}
 
 	++load_;
 	++director_->scheduler()->load_;
 
-	return process(r);
-}*/
+	return true;
+}
 
 /**
- * Invoked internally a request has been fully processed.
+ * Invoked internally when a request has been fully processed.
  *
  * This decrements the load-statistics, and potentially
  * dequeues possibly enqueued requests to take over.

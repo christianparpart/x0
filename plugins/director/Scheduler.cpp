@@ -17,7 +17,8 @@ Scheduler::Scheduler(Director* d) :
 #endif
 	director_(d),
 	load_(),
-	queued_()
+	queued_(),
+	dropped_(0)
 {
 }
 
@@ -38,7 +39,7 @@ Scheduler::~Scheduler()
  *
  * Otherwise this call will do nothing.
  *
- * \see schedule(), reschedule(), enqueue(), dequeueTo()
+ * \see schedule(), dequeueTo()
  */
 void Scheduler::release(Backend* backend)
 {
@@ -55,6 +56,7 @@ void Scheduler::writeJSON(x0::JsonWriter& json) const
 	json.beginObject()
 		.name("load")(load_)
 		.name("queued")(queued_)
+		.name("dropped")(dropped_)
 		.endObject();
 }
 

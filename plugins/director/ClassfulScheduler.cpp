@@ -108,10 +108,6 @@ void ClassfulScheduler::schedule(x0::HttpRequest* r)
 	}
 }
 
-void ClassfulScheduler::reschedule(x0::HttpRequest* r)
-{
-}
-
 Backend* ClassfulScheduler::findLeastLoad(Backend::Role role, bool* allDisabled)
 {
 	Backend* best = nullptr;
