@@ -421,6 +421,10 @@ HttpWorker *HttpServer::spawnWorker()
  */
 HttpWorker* HttpServer::nextWorker()
 {
+	// select by RR (round-robin)
+	// this is thread-safe since only one thread is to select a new worker
+	// (the main thread)
+
 	if (++lastWorker_ == workers_.size())
 		lastWorker_ = 0;
 
@@ -429,14 +433,8 @@ HttpWorker* HttpServer::nextWorker()
 
 HttpWorker *HttpServer::selectWorker()
 {
-#if defined(X0_WORKER_RR)
-	// select by RR (round-robin)
-	// this is thread-safe since only one thread is to select a new worker
-	// (the main thread)
-	if (++lastWorker_ == workers_.size())
-		lastWorker_ = 0;
-
-	return workers_[lastWorker_];
+#if 1 // defined(X0_WORKER_RR)
+	return nextWorker();
 #else
 	// select by lowest connection load
 	HttpWorker *best = workers_[0];
