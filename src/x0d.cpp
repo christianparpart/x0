@@ -349,7 +349,14 @@ int XzeroHttpDaemon::run()
 	} else {
 		if (!logFile_.empty()) {
 			auto nowfn = std::bind(&x0::global_now);
-			server_->setLogger(std::make_shared<x0::FileLogger<decltype(nowfn)>>(logFile_, nowfn));
+			auto logger = std::make_shared<x0::FileLogger<decltype(nowfn)>>(logFile_, nowfn);
+			if (logger->handle() < 0) {
+				fprintf(stderr, "Could not open log file '%s': %s\n",
+						logFile_.c_str(), strerror(errno));
+				return 1;
+			}
+
+			server_->setLogger(logger);
 		} else
 			server_->setLogger(std::make_shared<x0::SystemLogger>());
 	}
@@ -445,7 +452,7 @@ bool XzeroHttpDaemon::parse()
 				logFile_ = optarg;
 				break;
 			case 'L':
-				logLevel_ = static_cast<Severity>(std::max(std::min(9, atoi(optarg)), 0));
+				logLevel_ = Severity(optarg);
 				break;
 			case 'i':
 				instant_ = optarg;
@@ -699,7 +706,7 @@ bool XzeroHttpDaemon::createPidFile()
 	}
 
 	if (pidfile_.empty()) {
-		log(x0::Severity::warn, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
+		log(x0::Severity::error, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
 		return false;
 	}
 
