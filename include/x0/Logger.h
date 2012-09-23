@@ -196,7 +196,7 @@ inline void FileLogger<Now>::cycle()
 template<typename Now>
 inline void FileLogger<Now>::write(Severity s, const std::string& message)
 {
-	if (s <= level())
+	if (s <= level() && fd_ >= 0)
 	{
 		char buf[4096];
 		size_t n = snprintf(buf, sizeof(buf), "[%s] [%s] %s\n", now_().c_str(), s.c_str(), message.c_str());
