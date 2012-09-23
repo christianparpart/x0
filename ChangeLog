@@ -1,11 +1,16 @@
-0.6.0 (not yet released)
+0.6.0 (not yet released, maybe 2012-10-12)
 
-	* http: fixed multi threaded mode
+	GOAL: running director plugin in productively in multi threaded mode.
+
+	* http: multi threaded mode fixes
 	* http: stability fixes
 	* http: shutdown process resource cleanup fixes
 	* http: improved diagnostic logging
 	* http: C++ API improvements
-	* director plugin: bug fixes
+	* http: fixed a bug wrt HTTP message processing in an edge case ignoring the message body
+	* director: bug fixes
+	* director: JSON API also shows number of dropped requests per load balancer
+	* x0d: --log-level= now accepts symbolic values and introduced "notice" between "warning" and "info"
 
 0.5.0 (2012-08-12)
 

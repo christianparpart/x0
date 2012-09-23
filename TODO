@@ -3,6 +3,10 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
 -------------------------------------------------
 -------------------------------------------------
 
+- HttpMessageProcessor:
+  - (FIXME) should not forward the Transfer-Encoding header when it already decodes the response body.
+  - update proxy plugins to not care about this one (plugins: proxy, fastcgi, director)
+
 - http/x0d:
   - move Flow dependencies out of XzeroHttp into x0d directly,
     like configuration file handling etc, as this is tied to x0d anyways.
