@@ -8,23 +8,36 @@
 
 #include <x0/Severity.h>
 #include <x0/strutils.h>
+#include <map>
 
 namespace x0 {
 
-Severity::Severity(const std::string& name)
+Severity::Severity(const std::string& value)
 {
-	if (name == "error")
-		value_ = error;
-	else if (name == "warning" || name == "warn" || name.empty()) // <- default: warn
-		value_ = warning;
-	else if (name == "notice")
-		value_ = notice;
-	else if (name == "info")
-		value_ = info;
-	else if (name == "debug")
-		value_ = debug;
-	else
-		throw std::runtime_error(fstringbuilder::format("Invalid Severity '%s'", name.c_str()));
+	std::map<std::string, Severity> map = {
+		{ "err", Severity::error },
+		{ "error", Severity::error },
+		{ "", Severity::warn }, // empty string defaults to warning-level
+		{ "warn", Severity::warn },
+		{ "warning", Severity::warn },
+		{ "notice", Severity::notice },
+		{ "info", Severity::info },
+		{ "debug", Severity::debug },
+		{ "debug1", Severity::debug1 },
+		{ "debug2", Severity::debug2 },
+		{ "debug3", Severity::debug3 },
+		{ "debug4", Severity::debug4 },
+		{ "debug5", Severity::debug5 },
+		{ "debug6", Severity::debug6 },
+	};
+
+	auto i = map.find(value);
+	if (i != map.end()) {
+		value_ = i->second;
+	} else {
+		value_ = std::max(std::min(9, atoi(value.c_str())), 0);
+		// throw std::runtime_error(fstringbuilder::format("Invalid Severity '%s'", value.c_str()));
+	}
 }
 
 const char *Severity::c_str() const
