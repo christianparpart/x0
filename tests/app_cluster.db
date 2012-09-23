@@ -25,8 +25,8 @@ host=127.0.0.1
 port=3101
 
 [backend=app3102]
-role=standby
-capacity=2
+role=active
+capacity=1
 enabled=true
 transport=tcp
 protocol=http
@@ -36,8 +36,8 @@ host=127.0.0.1
 port=3102
 
 [backend=app3103]
-role=backup
-capacity=3
+role=active
+capacity=1
 enabled=true
 transport=tcp
 protocol=http
@@ -45,4 +45,3 @@ health-check-mode=paranoid
 health-check-interval=2000
 host=127.0.0.1
 port=3103
-
