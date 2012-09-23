@@ -433,7 +433,7 @@ HttpWorker *HttpServer::selectWorker()
 #else
 	// select by lowest connection load
 	HttpWorker *best = workers_[0];
-	int value = 1;
+	int value = best->connectionLoad();
 
 	for (size_t i = 1, e = workers_.size(); i != e; ++i) {
 		HttpWorker *w = workers_[i];
