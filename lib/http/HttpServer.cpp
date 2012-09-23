@@ -376,6 +376,13 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename, int 
 	}
 	// }}}
 
+	// XXX post worker wakeup
+	// we do an explicit wakeup of all workers here since there might be already
+	// some (configure-time related) events pending, i.e. director's (fcgi) health checker
+	// FIXME this is more a workaround than a fix.
+	for (auto worker: workers_)
+		worker->wakeup();
+
 	TRACE("setup: done.");
 	return true;
 
