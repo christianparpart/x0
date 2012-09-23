@@ -24,17 +24,21 @@ namespace x0 {
  * \see logger
  */
 struct X0_API Severity {
-	static const int error = 0;
-	static const int warn = 1;
-	static const int info = 2;
-	static const int debug1 = 3;
-	static const int debug2 = 4;
-	static const int debug3 = 5;
-	static const int debug4 = 6;
-	static const int debug5 = 7;
-	static const int debug6 = 8;
-	static const int debug7 = 9;
-	static const int debug = debug1;
+	enum {
+		error = 0,
+		warning = 1,
+		notice = 2,
+		info = 3,
+		debug1 = 4,
+		debug2 = 5,
+		debug3 = 6,
+		debug4 = 7,
+		debug5 = 8,
+		debug6 = 9,
+
+		warn = warning,
+		debug = debug1
+	};
 
 	int value_;
 

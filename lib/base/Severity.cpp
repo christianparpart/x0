@@ -15,8 +15,10 @@ Severity::Severity(const std::string& name)
 {
 	if (name == "error")
 		value_ = error;
-	else if (name == "warn" || name == "warning" || name.empty()) // <- default: warn
-		value_ = warn;
+	else if (name == "warning" || name == "warn" || name.empty()) // <- default: warn
+		value_ = warning;
+	else if (name == "notice")
+		value_ = notice;
 	else if (name == "info")
 		value_ = info;
 	else if (name == "debug")
@@ -27,16 +29,17 @@ Severity::Severity(const std::string& name)
 
 const char *Severity::c_str() const
 {
-	switch (value_)
-	{
+	switch (value_) {
 		case error: return "error";
-		case warn: return "warn";
+		case warning: return "warning";
+		case notice: return "notice";
 		case info: return "info";
-		case debug: return "debug:1";
+		case debug1: return "debug:1";
 		case debug2: return "debug:2";
 		case debug3: return "debug:3";
 		case debug4: return "debug:4";
 		case debug5: return "debug:5";
+		case debug6: return "debug:6";
 		default: return "UNKNOWN";
 	}
 }
