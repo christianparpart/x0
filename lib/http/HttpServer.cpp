@@ -400,14 +400,13 @@ bool HttpServer::setup(const std::string& filename, int optimizationLevel)
 // {{{ worker mgnt
 HttpWorker *HttpServer::spawnWorker()
 {
-	struct ev_loop *loop = !workers_.empty()
+	bool threaded = workers_.size() != 0;
+
+	struct ev_loop *loop = threaded
 		? ev_loop_new(0)
 		: loop_;
 
-	HttpWorker *worker = new HttpWorker(*this, loop, workerIdPool_++);
-
-	if (!workers_.empty())
-		pthread_create(&worker->thread_, nullptr, &HttpServer::runWorker, worker);
+	HttpWorker *worker = new HttpWorker(*this, loop, workerIdPool_++, threaded);
 
 	workers_.push_back(worker);
 
@@ -462,17 +461,10 @@ void HttpServer::destroyWorker(HttpWorker *worker)
 	worker->stop();
 
 	if (worker != workers_.front())
-		pthread_join(worker->thread_, nullptr);
+		worker->join();
 
 	workers_.erase(i);
 	delete worker;
-}
-
-void *HttpServer::runWorker(void *p)
-{
-	HttpWorker *w = (HttpWorker *)p;
-	w->run();
-	return nullptr;
 }
 // }}}
 

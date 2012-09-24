@@ -29,7 +29,15 @@
 
 namespace x0 {
 
-HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id) :
+/*!
+ * Creates an HTTP worker instance.
+ *
+ * \param server   the worker parents server instance
+ * \param loop     the event loop to be used within this worker
+ * \param id       unique ID within the server instance
+ * \param threaded whether or not to spawn a thread to actually run this worker
+ */
+HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded) :
 #ifndef NDEBUG
 	Logging("HttpWorker/%d", id),
 #endif
@@ -43,7 +51,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 	connectionLoad_(0),
 	requestCount_(0),
 	connectionCount_(0),
-	thread_(0),
+	thread_(pthread_self()),
 	queue_(),
 	queueLock_(),
 	resumeLock_(),
@@ -71,6 +79,10 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 	pthread_mutex_init(&resumeLock_, nullptr);
 	pthread_cond_init(&resumeCondition_, nullptr);
 
+	if (threaded) {
+		pthread_create(&thread_, nullptr, &HttpWorker::_run, this);
+	}
+
 	TRACE("spawned");
 }
 
@@ -90,6 +102,12 @@ HttpWorker::~HttpWorker()
 	evWakeup_.stop();
 
 	ev_loop_destroy(loop_);
+}
+
+void* HttpWorker::_run(void* p)
+{
+	reinterpret_cast<HttpWorker*>(p)->run();
+	return nullptr;
 }
 
 void HttpWorker::run()
@@ -224,17 +242,10 @@ void HttpWorker::setAffinity(int cpu)
 
 	TRACE("setAffinity: %d", cpu);
 
-	int rv;
-	if (thread_) {
-		// set thread affinity
-		rv = pthread_setaffinity_np(thread_, sizeof(set), &set);
-	} else {
-		// set process affinity (main)
-		rv = sched_setaffinity(getpid(), sizeof(set), &set);
-	}
-
+	int rv = pthread_setaffinity_np(thread_, sizeof(set), &set);
 	if (rv < 0) {
-		log(Severity::error, "setAffinity(%d) failed: %s", cpu, strerror(errno));
+		log(Severity::error, "setting scheduler affinity on CPU %d failed for worker %u. %s",
+			cpu, id_, strerror(errno));
 	}
 }
 
@@ -277,6 +288,13 @@ void HttpWorker::stop()
 {
 	TRACE("stop: post -> _stop()");
 	post<HttpWorker, &HttpWorker::_stop>(this);
+}
+
+void HttpWorker::join()
+{
+	if (thread_ != pthread_self()) {
+		pthread_join(thread_, nullptr);
+	}
 }
 
 /*! Actually aborts all active connections.

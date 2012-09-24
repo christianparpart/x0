@@ -107,7 +107,7 @@ public:
 	FileInfoService fileinfo;
 
 public:
-	HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id);
+	HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded);
 	~HttpWorker();
 
 	ev_tstamp startupTime() const { return startupTime_; }
@@ -152,6 +152,7 @@ public:
 
 	void stop();
 	void kill();
+	void join();
 
 	void suspend();
 	void resume();
@@ -177,6 +178,7 @@ private:
 	void onNewConnection(ev::async& w, int revents);
 	static void onWakeup(ev::async& w, int revents);
 	void spawnConnection(Socket* client, ServerSocket* listener);
+	static void* _run(void*);
 	void _stop();
 	void _kill();
 	void _suspend();

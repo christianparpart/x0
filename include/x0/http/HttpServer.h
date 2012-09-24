@@ -182,8 +182,6 @@ private:
 	static void gnutls_log(int level, const char* msg);
 #endif
 
-	static void* runWorker(void*);
-
 	bool validateConfig();
 
 	void onNewConnection(Socket*, ServerSocket*);
