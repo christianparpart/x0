@@ -1,0 +1,5 @@
+x0d (0.6.0-pre1) unstable; urgency=low
+
+  * initial debian package
+
+ -- Christian Parpart <trapni@gentoo.org>  Wed, 19 Sep 2012 09:30:00 -0100

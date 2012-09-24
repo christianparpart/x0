@@ -1,0 +1,45 @@
+#! /usr/bin/make -f
+# vim:syntax=make
+
+configure: configure-stamp
+configure-stamp:
+	cmake \
+		-DCMAKE_BUILD_TYPE=release \
+		-DCMAKE_BUILD_PREFIX=/usr \
+		-DSYSCONFDIR=/etc/xzero \
+		\
+		-DBUILD_TESTS=OFF \
+		-DENABLE_EXAMPLES=OFF \
+		-DENABLE_WEBDAV=OFF \
+		-DENABLE_RRD=OFF \
+		\
+		-DWITH_ACCEPT4=ON \
+		-DWITH_PCRE=ON \
+		-DWITH_MYSQL=ON \
+		-DWITH_SSL=ON \
+		-DWITH_TCP_DEFER_ACCEPT=ON
+	touch configure-stamp
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+	make
+	dh_makeshlibs
+	dh_shlibdeps
+	touch build-stamp
+
+install: install-stamp
+install-stamp:
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	make install CMAKE_INSTALL_PREFIX=$(DESTDIR)
+	touch install-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+
+.PHONY: install clean

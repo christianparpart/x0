@@ -1,0 +1,60 @@
+Source: x0
+Section: misc
+Priority: optional
+Maintainer: Christian Parpart <trapni@gentoo.org>
+Standards-Version: 3.8.2
+Build-Depends: debhelper (>= 7.2.0) cmake (>= 2.8.0) gcc (>= 4.6.0)
+	libcppunit
+	libcppunit-dev
+	libgnutls28-dev (>= 2.6.0)
+	libmysqlclient-dev
+	libev-dev
+	zlib1g-dev
+	libbz2-dev
+	libboost1.48-dev
+	llvm-3.0-dev
+
+Package: x0d
+Architecture: all
+Depends: libxzero-base (= 0.6.0) libxzero-flow (= 0.6.0) libxzero-http (= 0.6.0)
+Section: misc
+Priority: optional
+Description: Xzero HTTP Web Server (x0d)
+Homepage: http://xzero.io/
+
+Package: libxzero-base
+Architecture: all
+Depends: libc6 (>= 2.4.0)
+	libgnutls28 (>= 2.6.0)
+	libev4
+	zlib1g
+	libbz2
+	libboost1.48-dev
+	llvm-3.0
+Section: misc
+Priority: optional
+Description: Xzero Base Platform Library
+Homepage: http://xzero.io/
+Vcs-Git: git://github.com/trapni/x0.git
+Vcs-Browser: https://github.com/trapni/x0
+
+Package: libxzero-flow
+Architecture: all
+Depends: libxzero-base (>= 0.6.0)
+Section: misc
+Priority: optional
+Description: Xzero Flow Library
+Homepage: http://xzero.io/
+Vcs-Git: git://github.com/trapni/x0.git
+Vcs-Browser: https://github.com/trapni/x0
+
+Package: libxzero-http
+Architecture: all
+Depends: libxzero-base (>= 0.6.0) libxzero-flow (>= 0.6.0)
+Section: misc
+Priority: optional
+Description: Xzero HTTP Framework
+Homepage: http://xzero.io/
+Vcs-Git: git://github.com/trapni/x0.git
+Vcs-Browser: https://github.com/trapni/x0
+
