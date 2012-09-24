@@ -70,8 +70,6 @@ public:
 	typedef ConnectionList::iterator ConnectionHandle;
 
 private:
-	static unsigned idpool_;
-
 	unsigned id_;
 	State state_;
 	HttpServer& server_;
@@ -109,7 +107,7 @@ public:
 	FileInfoService fileinfo;
 
 public:
-	HttpWorker(HttpServer& server, struct ev_loop *loop);
+	HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id);
 	~HttpWorker();
 
 	ev_tstamp startupTime() const { return startupTime_; }

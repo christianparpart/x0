@@ -116,6 +116,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	plugins_(),
 	pluginLibraries_(),
 	core_(0),
+	workerIdPool_(0),
 	workers_(),
 	lastWorker_(0),
 	maxConnections(512),
@@ -403,7 +404,7 @@ HttpWorker *HttpServer::spawnWorker()
 		? ev_loop_new(0)
 		: loop_;
 
-	HttpWorker *worker = new HttpWorker(*this, loop);
+	HttpWorker *worker = new HttpWorker(*this, loop, workerIdPool_++);
 
 	if (!workers_.empty())
 		pthread_create(&worker->thread_, nullptr, &HttpServer::runWorker, worker);

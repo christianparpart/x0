@@ -207,6 +207,7 @@ private:
 	std::vector<HttpPlugin*> plugins_;
 	std::map<HttpPlugin*, Library> pluginLibraries_;
 	HttpCore* core_;
+	std::atomic<unsigned int> workerIdPool_;
 	std::vector<HttpWorker*> workers_;
 	size_t lastWorker_;
 	FileInfoService::Config fileinfoConfig_;

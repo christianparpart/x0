@@ -29,14 +29,12 @@
 
 namespace x0 {
 
-unsigned HttpWorker::idpool_ = 0;
-
-HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop) :
+HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id) :
 #ifndef NDEBUG
-	Logging("HttpWorker/%d", idpool_),
+	Logging("HttpWorker/%d", id),
 #endif
 	CustomDataMgr(),
-	id_(idpool_++),
+	id_(id),
 	state_(Inactive),
 	server_(server),
 	loop_(loop),
