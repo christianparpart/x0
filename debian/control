@@ -21,10 +21,77 @@ Build-Depends:
   libfcgi-dev,
 Standards-Version: 3.9.3
 
-Package: x0
+Package: x0d
 Architecture: any
 Section: misc
 Priority: optional
 Description: Xzero HTTP Web Server (x0d)
 Homepage: http://xzero.io/
-Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support
+Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support x0-plugins
+
+Package: libxzero-base
+Architecture: any
+Section: misc
+Priority: optional
+Description: Xzero (x0) Base Library
+Homepage: http://xzero.io/
+Depends: ${shlibs:Depends}, ${misc:Depends}
+
+Package: libxzero-flow
+Architecture: any
+Section: misc
+Priority: optional
+Description: Xzero (x0) Flow Library
+Homepage: http://xzero.io/
+Depends: libxzero-base (= ${binary:Version})
+
+Package: libxzero-http
+Architecture: any
+Section: misc
+Priority: optional
+Description: Xzero (x0) HTTP Library
+Homepage: http://xzero.io/
+Depends:
+  libxzero-flow (= ${binary:Version}),
+  libxzero-base (= ${binary:Version})
+
+Package: x0-plugins
+Architecture: any
+Section: misc
+Priority: optional
+Description: Xzero (x0) HTTP Server Plugins
+Homepage: http://xzero.io/
+Depends: ${shlibs:Depends}, ${misc:Depends},
+  libxzero-http (= ${binary:Version}),
+  libxzero-flow (= ${binary:Version}),
+  libxzero-base (= ${binary:Version})
+
+Package: libxzero-base-dev
+Architecture: all
+Section: misc
+Priority: optional
+Description: Xzero (x0) Base Library API
+Homepage: http://xzero.io/
+Depends: ${shlibs:Depends}, ${misc:Depends},
+  libxzero-base (= ${binary:Version})
+
+Package: libxzero-flow-dev
+Architecture: all
+Section: misc
+Priority: optional
+Description: Xzero (x0) Flow Library API
+Homepage: http://xzero.io/
+Depends:
+  libxzero-flow (= ${binary:Version}),
+  libxzero-base-dev (= ${binary:Version})
+
+Package: libxzero-http-dev
+Architecture: all
+Section: misc
+Priority: optional
+Description: Xzero (x0) HTTP Library API
+Homepage: http://xzero.io/
+Depends:
+  libxzero-http (= ${binary:Version}),
+  libxzero-flow-dev (= ${binary:Version}),
+  libxzero-base-dev (= ${binary:Version})

@@ -1,0 +1,2 @@
+debian/tmp/usr/include/x0/http/*.h
+debian/tmp/usr/lib/pkgconfig/XzeroHttp.pc

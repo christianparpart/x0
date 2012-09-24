@@ -1,0 +1,2 @@
+debian/tmp/usr/include/x0/flow/*.h
+debian/tmp/usr/lib/pkgconfig/XzeroFlow.pc

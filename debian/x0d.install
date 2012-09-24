@@ -1,0 +1,3 @@
+debian/tmp/etc/xzero/*
+debian/tmp/usr/sbin/x0d
+debian/tmp/usr/share/man/*

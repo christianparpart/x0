@@ -3,13 +3,11 @@
 
 export DH_VERBOSE=1
 
-CXXFLAGS += -fPIC
 CXXFLAGS += -DNDEBUG=1
+CXXFLAGS += -g
 
 configure: configure-stamp
 configure-stamp:
-	patch --dry-run -p1 < $(CURDIR)/debian/patches/0100-llvm-3.0.patch \
-		&& patch -p1 < $(CURDIR)/debian/patches/0100-llvm-3.0.patch
 	cmake \
 		-DCMAKE_BUILD_TYPE=release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
@@ -33,15 +31,13 @@ configure-stamp:
 		-DWITH_MYSQL=ON \
 		-DWITH_SSL=ON \
 		-DWITH_TCP_DEFER_ACCEPT=ON
-	touch configure-stamp
+	touch $@
 
 build: build-stamp
-build-stamp: configure
+build-stamp: configure-stamp
 	dh_testdir
-	$(make)
-	#dh_makeshlibs
-	#dh_shlibdeps
-	touch build-stamp
+	$(MAKE)
+	touch $@
 
 install: install-stamp
 install-stamp:
@@ -49,10 +45,8 @@ install-stamp:
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
-	$(MAKE) install DESTDIR=$(CURDIR)/debian/x0
-	mkdir -p $(CURDIR)/debian/x0/etc/xzero
-	cp src/x0d.conf-dist $(CURDIR)/debian/x0/etc/xzero/x0d.conf
-	touch install-stamp
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
+	touch $@
 
 binary-indep: build install
 binary-arch: build install
@@ -66,6 +60,8 @@ binary-arch: build install
 	dh_compress
 	dh_fixperms
 	dh_installdeb
+	dh_makeshlibs
+	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol
 	dh_md5sums
@@ -77,5 +73,9 @@ clean:
 	dh_testdir
 	dh_testroot
 	dh_clean
+	#dh_auto_clean
 
-.PHONY: build clean binary-indep binary-arch binary install clean configure
+%:
+	dh $@
+
+.PHONY: configure build binary-indep binary-arch binary install clean
