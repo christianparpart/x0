@@ -59,3 +59,7 @@ sandbox/
 XzeroBase.pc
 XzeroFlow.pc
 XzeroHttp.pc
+lib/libXzeroBase.so.0.6.0
+lib/libXzeroFlow.so.0.6.0
+lib/libXzeroHttp.so.0.6.0
+*-stamp
