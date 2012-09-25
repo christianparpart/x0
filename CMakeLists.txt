@@ -198,7 +198,7 @@ endif(BUILD_TESTS)
 macro(x0_plugin_simple ModuleName)
 	add_library(${ModuleName} MODULE ${ModuleName}.cpp)
 	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
-	install(TARGETS ${ModuleName} DESTINATION ${LIBDIR}/x0)
+	install(TARGETS ${ModuleName} DESTINATION ${PLUGINDIR})
 endmacro()
 
 macro(x0_plugin ModuleName SrcFiles)
