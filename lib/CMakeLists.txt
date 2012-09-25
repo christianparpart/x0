@@ -23,6 +23,7 @@ target_link_libraries(XzeroBase dl pthread
 	${SD_LIBRARIES}
 	${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES}
 	${EV_LIBRARIES} ${MYSQL_LDFLAGS})
+set_target_properties(XzeroBase PROPERTIES VERSION ${PACKAGE_VERSION})
 install(TARGETS XzeroBase DESTINATION ${LIBDIR})
 
 # XzeroFlow
@@ -30,6 +31,7 @@ file(GLOB x0_flow_SRC "flow/*.cpp")
 add_library(XzeroFlow SHARED ${x0_flow_SRC})
 set_target_properties(XzeroFlow PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
 target_link_libraries(XzeroFlow XzeroBase ${LLVM_LIBRARIES} dl pthread)
+set_target_properties(XzeroFlow PROPERTIES VERSION ${PACKAGE_VERSION})
 install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
 
 # XzeroHttp
@@ -37,4 +39,5 @@ file(GLOB x0_http_SRC "http/*.cpp")
 add_library(XzeroHttp SHARED ${x0_http_SRC})
 set_target_properties(XzeroHttp PROPERTIES LINK_FLAGS "${LDFLAGS} ${FLOW_LDFLAGS}")
 target_link_libraries(XzeroHttp XzeroBase XzeroFlow)
+set_target_properties(XzeroHttp PROPERTIES VERSION ${PACKAGE_VERSION})
 install(TARGETS XzeroHttp DESTINATION ${LIBDIR})
