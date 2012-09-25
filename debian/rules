@@ -9,7 +9,7 @@ CXXFLAGS += -DNDEBUG=1
 configure: configure-stamp
 configure-stamp:
 	patch --dry-run -p1 < $(CURDIR)/debian/patches/0100-llvm-3.0.patch \
-		&& patch -p1 < $(CURDIR)/debian/patches/0100-llvm-3.0.patch \
+		&& patch -p1 < $(CURDIR)/debian/patches/0100-llvm-3.0.patch
 	cmake \
 		-DCMAKE_BUILD_TYPE=release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
