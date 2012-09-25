@@ -14,4 +14,4 @@ add_executable(x0d x0d.cpp)
 target_link_libraries(x0d XzeroBase XzeroHttp)
 
 install(TARGETS x0d RUNTIME DESTINATION sbin)
-install(FILES x0d.conf-dist DESTINATION etc)
+install(FILES x0d.conf-dist DESTINATION ${SYSCONFDIR})
