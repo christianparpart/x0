@@ -204,7 +204,7 @@ endmacro()
 macro(x0_plugin ModuleName SrcFiles)
 	add_library(${ModuleName} MODULE ${SrcFiles})
 	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
-	install(TARGETS ${ModuleName} DESTINATION ${LIBDIR}/x0)
+	install(TARGETS ${ModuleName} DESTINATION ${PLUGINDIR})
 endmacro()
 
 # ---------------------------------------------------------------------------
