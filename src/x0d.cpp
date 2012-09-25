@@ -422,9 +422,9 @@ bool XzeroHttpDaemon::parse()
 	};
 
 	static const char *package_header = 
-		"x0d: x0 web server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
+		"x0d: Xzero Web Server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
 	static const char *package_copyright =
-		"Copyright (c) 2009 by Christian Parpart <trapni@gentoo.org>";
+		"Copyright (c) 2009-2012 by Christian Parpart <trapni@gentoo.org>";
 	static const char *package_license =
 		"Licensed under GPL-3 [http://gplv3.fsf.org/]";
 
