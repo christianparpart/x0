@@ -29,6 +29,7 @@ public:
 	template<typename PodType, std::size_t N> explicit BufferSource(PodType (&value)[N]);
 	explicit BufferSource(const Buffer& data);
 	explicit BufferSource(Buffer&& data);
+	~BufferSource();
 
 	std::size_t size() const;
 	bool empty() const;
@@ -59,6 +60,10 @@ inline BufferSource::BufferSource(const Buffer& data) :
 
 inline BufferSource::BufferSource(Buffer&& data) :
 	buffer_(std::move(data)), pos_(0)
+{
+}
+
+inline BufferSource::~BufferSource()
 {
 }
 

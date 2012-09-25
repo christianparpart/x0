@@ -29,6 +29,7 @@ class X0_API BufferRefSource :
 public:
 	explicit BufferRefSource(const BufferRef& data);
 	explicit BufferRefSource(BufferRef&& data);
+	~BufferRefSource();
 
 	std::size_t size() const;
 	bool empty() const;
@@ -51,6 +52,10 @@ inline BufferRefSource::BufferRefSource(const BufferRef& data) :
 
 inline BufferRefSource::BufferRefSource(BufferRef&& data) :
 	buffer_(std::move(data)), pos_(0)
+{
+}
+
+inline BufferRefSource::~BufferRefSource()
 {
 }
 
