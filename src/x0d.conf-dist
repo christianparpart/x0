@@ -3,10 +3,12 @@
 # description: example x0d web server configuration file
 
 import cgi
+import vhost
+import status
+import expire
 import userdir
 import compress
 import accesslog
-import vhost
 import dirlisting
 
 handler setup
