@@ -27,7 +27,7 @@ Section: misc
 Priority: optional
 Description: Xzero HTTP Web Server (x0d)
 Homepage: http://xzero.io/
-Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support x0-plugins
+Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support, x0-plugins
 
 Package: libxzero-base
 Architecture: any
