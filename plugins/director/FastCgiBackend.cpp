@@ -717,7 +717,7 @@ void FastCgiTransport::inspect(x0::Buffer& out)
 std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 
 FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(director->worker()))
+	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(*director->worker().server().nextWorker()))
 {
 #ifndef NDEBUG
 	setLoggingPrefix("FastCgiBackend/%s", name.c_str());

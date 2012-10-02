@@ -501,7 +501,7 @@ void HttpBackend::ProxyConnection::readSome()
 // {{{ HttpBackend impl
 HttpBackend::HttpBackend(Director* director, const std::string& name,
 		const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity, new HttpHealthMonitor(director->worker()))
+	Backend(director, name, socketSpec, capacity, new HttpHealthMonitor(*director->worker().server().nextWorker()))
 {
 #ifndef NDEBUG
 	setLoggingPrefix("HttpBackend/%s", name.c_str());
