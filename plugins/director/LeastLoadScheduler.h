@@ -27,8 +27,6 @@ private:
 	std::mutex queueLock_;
 	ev::timer queueTimer_;
 
-	std::mutex schedulingLock_;
-
 public:
 	explicit LeastLoadScheduler(Director* d);
 	~LeastLoadScheduler();
@@ -41,7 +39,7 @@ public:
 
 private:
 	bool tryProcess(x0::HttpRequest* r, bool* allDisabled, Backend::Role role);
-	void enqueue(x0::HttpRequest* r);
+	bool tryEnqueue(x0::HttpRequest* r);
 	void updateQueueTimer();
 	x0::HttpRequest* dequeue();
 };

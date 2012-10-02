@@ -22,8 +22,7 @@ LeastLoadScheduler::LeastLoadScheduler(Director* d) :
 	Scheduler(d),
 	queue_(),
 	queueLock_(),
-	queueTimer_(d->worker().loop()),
-	schedulingLock_()
+	queueTimer_(d->worker().loop())
 {
 	queueTimer_.set<LeastLoadScheduler, &LeastLoadScheduler::updateQueueTimer>(this);
 }
@@ -34,8 +33,6 @@ LeastLoadScheduler::~LeastLoadScheduler()
 
 void LeastLoadScheduler::schedule(HttpRequest* r)
 {
-	std::lock_guard<std::mutex> _(schedulingLock_);
-
 	auto notes = director_->requestNotes(r);
 	bool allDisabled = false;
 
@@ -87,10 +84,8 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 	if (allDisabled && tryProcess(r, &allDisabled, Backend::Role::Backup))
 		return;
 
-	if (queue_.size() < director_->queueLimit()) {
-		enqueue(r);
+	if (tryEnqueue(r))
 		return;
-	}
 
 	r->log(Severity::info, "director: '%s' queue limit %zu reached. Rejecting request.",
 		director_->name().c_str(), director_->queueLimit());
@@ -132,17 +127,22 @@ void LeastLoadScheduler::dequeueTo(Backend* backend)
 	}
 }
 
-void LeastLoadScheduler::enqueue(HttpRequest* r)
+bool LeastLoadScheduler::tryEnqueue(HttpRequest* r)
 {
 	std::lock_guard<std::mutex> _(queueLock_);
 
-	queue_.push_back(r);
-	++queued_;
+	if (queue_.size() < director_->queueLimit()) {
+		queue_.push_back(r);
+		++queued_;
 
-	r->log(Severity::info, "Director %s overloaded. Enqueueing request (%d).",
-	  director_->name().c_str(), queued_.current());
+		r->log(Severity::info, "Director %s overloaded. Enqueueing request (%d).",
+			director_->name().c_str(), queued_.current());
 
-	updateQueueTimer();
+		updateQueueTimer();
+		return true;
+	}
+
+	return false;
 }
 
 HttpRequest* LeastLoadScheduler::dequeue()
