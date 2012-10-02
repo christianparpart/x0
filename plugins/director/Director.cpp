@@ -101,7 +101,7 @@ size_t Director::capacity() const
 
 RequestNotes* Director::setupRequestNotes(HttpRequest* r, Backend* backend)
 {
-	return r->setCustomData<RequestNotes>(this, worker().now(), backend);
+	return r->setCustomData<RequestNotes>(this, r->connection.worker().now(), backend);
 }
 
 RequestNotes* Director::requestNotes(HttpRequest* r)
