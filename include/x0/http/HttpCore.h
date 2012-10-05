@@ -73,6 +73,8 @@ private:
 	void workers(const FlowParams& args, FlowValue& result);
 
 	// shared properties
+	void systemd_controlled(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void systemd_booted(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void sys_env(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void sys_cwd(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void sys_pid(HttpRequest* r, const FlowParams& args, FlowValue& result);

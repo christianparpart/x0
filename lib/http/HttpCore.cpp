@@ -32,6 +32,8 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include "sd-daemon.h"
+
 namespace x0 {
 
 static Buffer concat(const FlowParams& args)
@@ -94,6 +96,9 @@ HttpCore::HttpCore(HttpServer& server) :
 	// TODO setup error-documents
 
 	// shared
+	registerSharedFunction<HttpCore, &HttpCore::systemd_booted>("systemd.booted", FlowValue::BOOLEAN);
+	registerSharedFunction<HttpCore, &HttpCore::systemd_controlled>("systemd.controlled", FlowValue::BOOLEAN);
+
 	registerSharedFunction<HttpCore, &HttpCore::sys_env>("sys.env", FlowValue::STRING);
 	registerSharedProperty<HttpCore, &HttpCore::sys_cwd>("sys.cwd", FlowValue::STRING);
 	registerSharedProperty<HttpCore, &HttpCore::sys_pid>("sys.pid", FlowValue::NUMBER);
@@ -407,6 +412,18 @@ void HttpCore::workers(const FlowParams& args, FlowValue& result)
 void HttpCore::emit_llvm(const FlowParams& args, FlowValue& result)
 {
 	emitLLVM_ = true;
+}
+// }}}
+
+// {{{ systemd.*
+void HttpCore::systemd_booted(HttpRequest*, const FlowParams& args, FlowValue& result)
+{
+	result.set(sd_booted() == 0);
+}
+
+void HttpCore::systemd_controlled(HttpRequest*, const FlowParams& args, FlowValue& result)
+{
+	result.set(sd_booted() == 0 && getppid() == 1);
 }
 // }}}
 
