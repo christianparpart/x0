@@ -48,6 +48,9 @@ static Buffer concat(const FlowParams& args)
 			case FlowValue::NUMBER:
 				msg << args[i].toNumber();
 				break;
+			case FlowValue::BUFFER:
+				msg << args[i].asString();
+				break;
 			case FlowValue::STRING:
 				msg << args[i].toString();
 				break;
@@ -140,6 +143,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::phys_size>("phys.size", FlowValue::NUMBER);
 	registerProperty<HttpCore, &HttpCore::phys_etag>("phys.etag", FlowValue::STRING);
 	registerProperty<HttpCore, &HttpCore::phys_mimetype>("phys.mimetype", FlowValue::STRING);
+	registerFunction<HttpCore, &HttpCore::regex_group>("regex.group", FlowValue::BUFFER);
 
 	registerFunction<HttpCore, &HttpCore::header_add>("header.add", FlowValue::VOID);
 	registerFunction<HttpCore, &HttpCore::header_append>("header.append", FlowValue::VOID);
@@ -752,6 +756,31 @@ void HttpCore::phys_etag(HttpRequest* in, const FlowParams& args, FlowValue& res
 void HttpCore::phys_mimetype(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->fileinfo ? in->fileinfo->mimetype().c_str() : "");
+}
+// }}}
+
+// {{{ regex
+void HttpCore::regex_group(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	if (args.size() != 1) {
+		// invalid arg count
+		result.set("", 0);
+		return;
+	}
+
+	auto position = args[0].toNumber();
+	if (const RegExp::Result* rr = in->regexMatch()) {
+		if (position < rr->size()) {
+			const auto& match = rr->at(position);
+			result.set(match.first, match.second);
+		} else {
+			// match index out of bounds
+			result.set("", 0);
+		}
+	} else {
+		// no regex match executed
+		result.set("", 0);
+	}
 }
 // }}}
 

@@ -13,6 +13,7 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpStatus.h>
+#include <x0/flow/FlowContext.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/CallbackSource.h>
 #include <x0/io/FileInfo.h>
@@ -48,6 +49,7 @@ struct X0_API HttpRequest :
 #ifndef NDEBUG
 	public Logging,
 #endif
+	public FlowContext,
 	public CustomDataMgr
 {
 public:

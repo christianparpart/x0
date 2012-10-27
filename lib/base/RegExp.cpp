@@ -7,6 +7,8 @@
  */
 
 #include <x0/RegExp.h>
+#include <x0/Buffer.h>
+#include <x0/BufferRef.h>
 #include <cstring>
 #include <pcre.h>
 
@@ -56,7 +58,7 @@ bool RegExp::match(const char *cstring) const
 	return rc > 0;
 }
 
-bool RegExp::match(const char *buffer, size_t size) const
+bool RegExp::match(const char *buffer, size_t size, Result* result) const
 {
 	if (!re_)
 		return false;
@@ -64,7 +66,41 @@ bool RegExp::match(const char *buffer, size_t size) const
 	const size_t OV_COUNT = 3 * 36;
 	int ov[OV_COUNT];
 
+#ifndef NDEBUG
+	for (size_t i = 0; i < OV_COUNT; ++i)
+		ov[i] = 1337;
+#endif
+
 	int rc = pcre_exec(re_, NULL, buffer, size, 0, 0, ov, OV_COUNT);
+	if (result) {
+		if (rc > 0) {
+			Buffer buf(buffer);
+			for (size_t i = 0, e = rc * 2; i != e; i += 2) {
+				const char* value = buffer + ov[i];
+				size_t length = ov[i + 1] - ov[i];
+				result->push_back(std::make_pair(value, length));
+			}
+		} else {
+			result->push_back(std::make_pair("", 0));
+		}
+	}
+	return rc > 0;
+}
+
+bool RegExp::match(const BufferRef& buffer) const
+{
+	if (!re_)
+		return false;
+
+	const size_t OV_COUNT = 3 * 36;
+	int ov[OV_COUNT];
+
+#ifndef NDEBUG
+	for (size_t i = 0; i < OV_COUNT; ++i)
+		ov[i] = 1337;
+#endif
+
+	int rc = pcre_exec(re_, NULL, buffer.data(), buffer.size(), 0, 0, ov, OV_COUNT);
 	return rc > 0;
 }
 

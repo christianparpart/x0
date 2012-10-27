@@ -463,6 +463,17 @@ Retrieves the mimetype of the physical file.
 
 Indicates whether or not the current connection's request is SSL secured or not.
 
+=item B<regex.group> (position)
+
+Retrieves the matched group of a regular expression match.
+
+Example:
+
+  # rewrites /assets/SOMETHING.css to /static/SOMETHING.css
+  if (req.path =~ /^/assets/(.*).css$/) {
+    rewrite "/static/" + regex.group(1) + ".css"
+  }
+
 =item B<docroot> (path)
 
 Sets the requests document root to the given path.

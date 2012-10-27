@@ -12,8 +12,11 @@
 #include <x0/Api.h>
 #include <pcre.h>
 #include <string>
+#include <vector>
 
 namespace x0 {
+
+class BufferRef;
 
 class X0_API RegExp
 {
@@ -22,13 +25,17 @@ private:
 	pcre *re_;
 
 public:
+	typedef std::vector<std::pair<const char*, size_t>> Result;
+
+public:
 	explicit RegExp(const std::string& pattern);
 	RegExp();
 	RegExp(const RegExp& v);
 	~RegExp();
 
+	bool match(const char *buffer, size_t size, Result* result = nullptr) const;
+	bool match(const BufferRef& buffer) const;
 	bool match(const char *cstring) const;
-	bool match(const char *buffer, size_t size) const;
 
 	const char *c_str() const;
 };

@@ -7,6 +7,7 @@
  */
 
 #include <x0/flow/FlowRunner.h>
+#include <x0/flow/FlowContext.h>
 #include <x0/flow/FlowParser.h>
 #include <x0/flow/FlowBackend.h>
 #include <x0/flow/FlowValue.h>
@@ -974,15 +975,17 @@ extern "C" X0_API int flow_StringInArray(size_t textLength, const char *text, co
  * \retval 0 not matched.
  * \retval 1 matched.
  */
-extern "C" X0_API int flow_regexmatch(size_t textLength, const char *text, size_t patternLength, const char *pattern)
+extern "C" X0_API int flow_regexmatch(void* cxp, size_t textLength, const char *text, size_t patternLength, const char *pattern)
 {
 	RegExp re(std::string(pattern, patternLength));
 	return re.match(text, textLength);
 }
 
-extern "C" X0_API int flow_regexmatch2(size_t textLength, const char *text, const RegExp *re)
+extern "C" X0_API int flow_regexmatch2(void* cxp, size_t textLength, const char *text, const RegExp *re)
 {
-	return re->match(text, textLength);
+	FlowContext* cx = static_cast<FlowContext*>(cxp);
+	bool rv = re->match(text, textLength, cx->regexMatch());
+	return rv;
 }
 // }}}
 
@@ -1024,8 +1027,8 @@ void FlowRunner::emitCoreFunctions()
 	emitCoreFunction(CF::arrayadd, "flow_array_add", voidType(), arrayType(), arrayType(), arrayType(), false);
 	emitCoreFunction(CF::arraycmp, "flow_array_cmp", int32Type(), arrayType(), arrayType(), false);
 
-	emitCoreFunction(CF::regexmatch, "flow_regexmatch", int32Type(), int64Type(), stringType(), int64Type(), stringType(), false);
-	emitCoreFunction(CF::regexmatch2, "flow_regexmatch2", int32Type(), int64Type(), stringType(), regexpType_->getPointerTo(), false);
+	emitCoreFunction(CF::regexmatch, "flow_regexmatch", int32Type(), int8PtrType(), int64Type(), stringType(), int64Type(), stringType(), false);
+	emitCoreFunction(CF::regexmatch2, "flow_regexmatch2", int32Type(), int8PtrType(), int64Type(), stringType(), regexpType_->getPointerTo(), false);
 
 	emitCoreFunction(CF::NumberInArray, "flow_NumberInArray", int32Type(), int64Type(), arrayType(), false);
 	emitCoreFunction(CF::StringInArray, "flow_StringInArray", int32Type(), int64Type(), stringType(), arrayType(), false);
@@ -1056,6 +1059,12 @@ void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, Type
 void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, Type *p4, bool isVaArg)
 {
 	Type *p[4] = { p1, p2, p3, p4 };
+	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
+}
+
+void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, Type *p4, Type *p5, bool isVaArg)
+{
+	Type *p[5] = { p1, p2, p3, p4, p5 };
 	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
 }
 
@@ -1230,7 +1239,7 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 
 	callArgs[0] = llvm::ConstantInt::get(llvm::Type::getInt64Ty(cx_), reinterpret_cast<uint64_t>(backend_), false); // self
 	callArgs[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), id, false); // native callback id
-	callArgs[2] = scope_.lookup(NULL); // context userdata
+	callArgs[2] = handlerUserData();
 
 	// argc:
 	int argc = argList ? argList->length() + 1 : 1;
@@ -1348,7 +1357,7 @@ void FlowRunner::visit(Function& function)
 		return;
 	}
 
-	// conbufuct function proto-type
+	// construct function proto-type
 	std::vector<llvm::Type *> argTypes;
 	if (function.isHandler())
 		argTypes.push_back(int8PtrType());
@@ -1370,8 +1379,9 @@ void FlowRunner::visit(Function& function)
 		size_t i = 0;
 		for (llvm::Function::arg_iterator ai = fn->arg_begin(); i != argTypes.size() + 1; ++ai, ++i) {
 			if (i == 0) {
+				// XXX store context data as NULL key in function scope.
 				ai->setName("cx_udata");
-				scope_.insert(NULL, ai);
+				setHandlerUserData(ai);
 			} else {
 				// TODO
 				//ai->setName("arg");
@@ -1669,7 +1679,7 @@ llvm::Value *FlowRunner::emitCmpString(Operator op, llvm::Value *left, llvm::Val
 	}
 
 	llvm::Value *rv = op == Operator::RegexMatch
-		? emitCoreCall(CF::regexmatch, len1, buf1, len2, buf2)
+		? emitCoreCall(CF::regexmatch, handlerUserData(), len1, buf1, len2, buf2)
 		: emitCmpString(len1, buf1, len2, buf2);
 
 	switch (op)
@@ -2233,7 +2243,7 @@ void FlowRunner::visit(BinaryExpr& expr)
 			} else if (isString(left) && isRegExp(right)) {
 				llvm::Value *len = emitLoadStringLength(left);
 				llvm::Value *buf = emitLoadStringBuffer(left);
-				value_ = emitCoreCall(CF::regexmatch2, len, buf, right);
+				value_ = emitCoreCall(CF::regexmatch2, handlerUserData(), len, buf, right);
 			} else {
 				reportError("Incompatible operand types for operator =~");
 			}
@@ -2388,6 +2398,13 @@ llvm::Value *FlowRunner::emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, l
 	return value_ = builder_.CreateCall(calleeFn, p);
 }
 
+llvm::Value *FlowRunner::emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, llvm::Value *p3, llvm::Value *p4, llvm::Value *p5)
+{
+	llvm::Function *calleeFn = coreFunctions_[static_cast<int>(id)];
+	llvm::Value* p[5] = { p1, p2, p3, p4, p5 };
+	return value_ = builder_.CreateCall(calleeFn, p);
+}
+
 /** emits a non-native function call (if function is a handler do handle the result, too).
  *
  * \param callee the function to call.
@@ -2416,7 +2433,7 @@ void FlowRunner::emitCall(Function *callee, ListExpr *callArgs)
 	std::vector<llvm::Value *> args;
 
 	if (callee->isHandler())
-		args.push_back(scope_.lookup(NULL)); // context userdata (id: NULL)
+		args.push_back(handlerUserData());
 
 	if (callArgs)
 	{

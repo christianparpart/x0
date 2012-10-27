@@ -189,6 +189,9 @@ private:
 
 	llvm::Type *makeType(FlowToken t) const;
 
+	void setHandlerUserData(llvm::Value* value) { scope_.insert(nullptr, value); }
+	llvm::Value* handlerUserData() const { return scope_.lookup(nullptr); }
+
 	// buffer API
 	llvm::Value *emitAllocaBuffer(llvm::Value *length, llvm::Value *data, const std::string& name = "");
 	llvm::Value *emitLoadBufferLength(llvm::Value *nstr);
@@ -241,12 +244,14 @@ private:
 	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, bool isVaArg);
 	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, bool isVaArg);
 	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, Type *p4, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, Type *rt, Type *p1, Type *p2, Type *p3, Type *p4, Type *p5, bool isVaArg);
 	template<typename T>
 	void emitCoreFunction(CF id, const std::string& name, Type *rt, T pbegin, T pend, bool isVaArg);
 	llvm::Value *emitCoreCall(CF id, llvm::Value *p1);
 	llvm::Value *emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2);
 	llvm::Value *emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, llvm::Value *p3);
 	llvm::Value *emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, llvm::Value *p3, llvm::Value *p4);
+	llvm::Value *emitCoreCall(CF id, llvm::Value *p1, llvm::Value *p2, llvm::Value *p3, llvm::Value *p4, llvm::Value *p5);
 
 	// native-function API
 	void emitNativeFunctionSignature();

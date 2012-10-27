@@ -130,6 +130,7 @@ private:
 	void phys_size(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void phys_etag(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void phys_mimetype(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void regex_group(HttpRequest* in, const FlowParams& args, FlowValue& result);
 
 	// helpers
 	inline HttpStatus verifyClientCache(HttpRequest *r);
