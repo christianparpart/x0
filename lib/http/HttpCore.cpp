@@ -599,7 +599,7 @@ void HttpCore::rewrite(HttpRequest* in, const FlowParams& args, FlowValue& resul
 	if (!args.size())
 		return;
 
-	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].toString());
+	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].asString());
 }
 
 void HttpCore::pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& result)
