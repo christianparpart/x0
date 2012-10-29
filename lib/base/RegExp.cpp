@@ -73,6 +73,7 @@ bool RegExp::match(const char *buffer, size_t size, Result* result) const
 
 	int rc = pcre_exec(re_, NULL, buffer, size, 0, 0, ov, OV_COUNT);
 	if (result) {
+		result->clear();
 		if (rc > 0) {
 			Buffer buf(buffer);
 			for (size_t i = 0, e = rc * 2; i != e; i += 2) {
