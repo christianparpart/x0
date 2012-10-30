@@ -117,7 +117,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerHandler<HttpCore, &HttpCore::docroot>("docroot");
 	registerHandler<HttpCore, &HttpCore::alias>("alias");
 	registerFunction<HttpCore, &HttpCore::autoindex>("autoindex", FlowValue::VOID);
-	registerFunction<HttpCore, &HttpCore::rewrite>("rewrite", FlowValue::VOID);
+	registerFunction<HttpCore, &HttpCore::rewrite>("rewrite", FlowValue::BOOLEAN);
 	registerFunction<HttpCore, &HttpCore::pathinfo>("pathinfo", FlowValue::VOID);
 	registerFunction<HttpCore, &HttpCore::error_handler>("error.handler", FlowValue::VOID);
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", FlowValue::BUFFER);
@@ -596,10 +596,16 @@ bool HttpCore::alias(HttpRequest* in, const FlowParams& args)
 
 void HttpCore::rewrite(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
-	if (!args.size())
+	if (!args.size()) {
+		in->log(Severity::error,
+				"rewrite: Invalid argument count.");
+		result.set(false);
 		return;
+	}
 
 	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].asString());
+
+	result.set(in->fileinfo ? in->fileinfo->exists() : false);
 }
 
 void HttpCore::pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& result)
