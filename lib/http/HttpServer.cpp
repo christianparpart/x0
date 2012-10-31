@@ -94,6 +94,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	onPostProcess(),
 	onRequestDone(),
 	onConnectionClose(),
+	onConnectionStatusChanged(),
 	onWorkerSpawn(),
 	onWorkerUnspawn(),
 

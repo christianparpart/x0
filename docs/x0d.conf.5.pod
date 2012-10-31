@@ -649,6 +649,27 @@ Example:
 B<x0> comes with a set of standard plugins extending the core
 as described below:
 
+=head2 status
+
+=over 6
+
+=item B<status> ()
+
+is a handler-function that generates a server status page.
+
+Example:
+
+ status if req.path == '/server-status';
+
+=item B<status.nginx_compat> ()
+
+is a handler-function that generates a server status page
+almost compatible to the one Nginx produces.
+
+Example:
+
+ status.nginx_compat if req.path == '/server-status';
+
 =head2 auth
 
 Adds support for HTTP Basic Authentication.

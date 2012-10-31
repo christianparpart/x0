@@ -102,7 +102,7 @@ if exists("flow_x0")
 	syn keyword flowCoreFunctions expire
 
 	" core handlers
-	syn keyword flowCoreHandler redirect respond blank status
+	syn keyword flowCoreHandler redirect respond blank
 
 	" upstream plugin handlers
 	syn keyword flowCoreHandler fastcgi precompressed staticfile
@@ -110,6 +110,10 @@ if exists("flow_x0")
 	syn keyword flowCoreFunctions docroot alias
 	syn match flowCoreHandler '\<access\.\(deny\|allow\)\>'
 	syn keyword flowCoreFunctions accesslog autoindex
+
+	" upstream plugin: status
+	syn match flowCoreHandler '\<status\>'
+	syn match flowCoreHandler '\<status\.nginx_compat\>'
 
 	" upstream plugin: auth
 	syn match flowCoreFunctions '\<auth\.realm\>'

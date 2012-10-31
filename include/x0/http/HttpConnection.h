@@ -49,6 +49,7 @@ class X0_API HttpConnection :
 {
 public:
 	enum Status {
+		Undefined,
 		StartingUp,
 		ReadingRequest,
 		SendingReply,
@@ -72,6 +73,7 @@ public:
 	unsigned requestCount() const { return requestCount_; }
 
 	Status status() const { return status_; }
+	void setStatus(Status value);
 	const char* status_str() const;
 
 	void close();
@@ -201,6 +203,7 @@ inline unsigned HttpConnection::refCount() const
 inline const char* HttpConnection::status_str() const
 {
 	static const char* str[] = {
+		"undefined",
 		"starting-up",
 		"reading-request",
 		"sending-reply",

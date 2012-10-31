@@ -30,6 +30,43 @@
 
 #define TRACE(msg...) DEBUG("status: " msg)
 
+struct Stats :
+	public x0::CustomData
+{
+	unsigned long long connectionsAccepted;
+	unsigned long long requestsAccepted;
+	unsigned long long requestsProcessed;
+	long long active;
+	long long reading;
+	long long writing;
+
+	Stats() :
+		connectionsAccepted(0),
+		requestsAccepted(0),
+		requestsProcessed(0),
+		active(0),
+		reading(0),
+		writing(0)
+	{
+	}
+
+	~Stats()
+	{
+	}
+
+	Stats& operator+=(const Stats& s)
+	{
+		connectionsAccepted += s.connectionsAccepted;
+		requestsAccepted += s.requestsAccepted;
+		requestsProcessed += s.requestsProcessed;
+		active += s.active;
+		reading += s.reading;
+		writing += s.writing;
+
+		return *this;
+	}
+};
+
 /**
  * \ingroup plugins
  * \brief example content generator plugin
@@ -40,15 +77,149 @@ class StatusPlugin :
 private:
 	std::list<x0::HttpConnection*> connections_;
 
+	Stats historical_;
+
+	x0::HttpServer::WorkerHook::Connection onWorkerSpawn_;
+	x0::HttpServer::WorkerHook::Connection onWorkerUnspawn_;
+	x0::HttpServer::ConnectionHook::Connection onConnectionOpen_;
+	x0::HttpServer::ConnectionStatusHook::Connection onConnectionStatusChanged_;
+	x0::HttpServer::ConnectionHook::Connection onConnectionClose_;
+	x0::HttpServer::RequestHook::Connection onPreProcess_;
+	x0::HttpServer::RequestHook::Connection onPostProcess_;
+
 public:
 	StatusPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
 		registerHandler<StatusPlugin, &StatusPlugin::handleRequest>("status");
+		registerHandler<StatusPlugin, &StatusPlugin::nginx_compat>("status.nginx_compat");
+
+		onWorkerSpawn_ = server().onWorkerSpawn.connect<StatusPlugin, &StatusPlugin::onWorkerSpawn>(this);
+		onWorkerUnspawn_ = server().onWorkerUnspawn.connect<StatusPlugin, &StatusPlugin::onWorkerUnspawn>(this);
+
+		onConnectionOpen_ = server().onConnectionOpen.connect<StatusPlugin, &StatusPlugin::onConnectionOpen>(this);
+		onConnectionStatusChanged_ = server().onConnectionStatusChanged.connect<StatusPlugin, &StatusPlugin::onConnectionStatusChanged>(this);
+		onConnectionClose_ = server().onConnectionClose.connect<StatusPlugin, &StatusPlugin::onConnectionClose>(this);
+
+		onPreProcess_ = server().onPreProcess.connect<StatusPlugin, &StatusPlugin::onPreProcess>(this);
+		onPostProcess_ = server().onPostProcess.connect<StatusPlugin, &StatusPlugin::onPostProcess>(this);
+	}
+
+	~StatusPlugin()
+	{
+		server().onWorkerSpawn.disconnect(onWorkerSpawn_);
+		server().onWorkerUnspawn.disconnect(onWorkerUnspawn_);
+
+		server().onConnectionOpen.disconnect(onConnectionOpen_);
+		server().onConnectionStatusChanged.disconnect(onConnectionStatusChanged_);
+		server().onConnectionClose.disconnect(onConnectionClose_);
+
+		server().onPreProcess.disconnect(onPreProcess_);
+		server().onPostProcess.disconnect(onPostProcess_);
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *r, const x0::FlowParams& args)
+	void onWorkerSpawn(x0::HttpWorker* worker) {
+		worker->setCustomData<Stats>(this);
+	}
+
+	void onWorkerUnspawn(x0::HttpWorker* worker) {
+		// XXX stats' active/reading/writing should be all zero at this point already.
+		auto stats = worker->customData<Stats>(this);
+		historical_ += *stats;
+	}
+
+	void onConnectionOpen(x0::HttpConnection* connection) {
+		auto stats = connection->worker().customData<Stats>(this);
+		++stats->connectionsAccepted;
+		++stats->active;
+	}
+
+	void onConnectionStatusChanged(x0::HttpConnection* connection, x0::HttpConnection::Status lastStatus) {
+		auto stats = connection->worker().customData<Stats>(this);
+
+		switch (lastStatus) {
+			case x0::HttpConnection::ReadingRequest:
+				--stats->reading;
+				break;
+			case x0::HttpConnection::SendingReply:
+				--stats->writing;
+				break;
+			default:
+				break;
+		}
+
+		switch (connection->status()) {
+			case x0::HttpConnection::ReadingRequest:
+				++stats->reading;
+				break;
+			case x0::HttpConnection::SendingReply:
+				++stats->writing;
+				break;
+			default:
+				break;
+		}
+	}
+
+	void onConnectionClose(x0::HttpConnection* connection) {
+		auto stats = connection->worker().customData<Stats>(this);
+
+		switch (connection->status()) {
+			case x0::HttpConnection::ReadingRequest:
+				--stats->reading;
+				break;
+			case x0::HttpConnection::SendingReply:
+				--stats->writing;
+				break;
+			default:
+				break;
+		}
+
+		--stats->active;
+	}
+
+	void onPreProcess(x0::HttpRequest* r) {
+		auto stats = r->connection.worker().customData<Stats>(this);
+		++stats->requestsAccepted;
+	}
+
+	void onPostProcess(x0::HttpRequest* r) {
+		auto stats = r->connection.worker().customData<Stats>(this);
+		++stats->requestsProcessed;
+	}
+
+	bool nginx_compat(x0::HttpRequest* r, const x0::FlowParams& args)
+	{
+		x0::Buffer nginxCompatStatus(1024);
+		Stats sum;
+
+		for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
+			const x0::HttpWorker *w = server().workers()[i];
+			const auto stats = w->customData<Stats>(this);
+			sum += *stats;
+		}
+
+		nginxCompatStatus
+			<< "Active connections: " << sum.active << "\n"
+			<< "server accepts handled requests\n"
+			<< sum.connectionsAccepted << ' ' << sum.requestsAccepted << ' ' << sum.requestsProcessed << "\n"
+			<< "Reading: " << sum.reading << " Writing: " << sum.writing << " Waiting: " << (sum.active - (sum.reading + sum.writing)) << "\n"
+			;
+
+		char buf[80];
+		snprintf(buf, sizeof(buf), "%lu", nginxCompatStatus.size());
+		r->responseHeaders.push_back("Content-Length", (char *)buf);
+
+		r->responseHeaders.push_back("Content-Type", "text/plain");
+
+		r->write<x0::BufferSource>(nginxCompatStatus);
+
+		r->finish();
+
+		return true;
+	}
+
+	bool handleRequest(x0::HttpRequest *r, const x0::FlowParams& args)
 	{
 		// set response status code
 		r->status = x0::HttpStatus::Ok;

@@ -58,7 +58,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 #endif
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	refCount_(0),
-	status_(ReadingRequest),
+	status_(Undefined),
 	listener_(nullptr),
 	worker_(w),
 	handle_(),
@@ -74,6 +74,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	abortHandler_(nullptr),
 	abortData_(nullptr)
 {
+	setStatus(ReadingRequest);
 }
 
 /** releases all connection resources  and triggers the onConnectionClose event.
@@ -175,7 +176,7 @@ void HttpConnection::timeout(Socket *)
 		setShouldKeepAlive(false);
 
 		request_->status = HttpStatus::RequestTimeout;
-		status_ = SendingReply;
+		setStatus(SendingReply);
 		request_->finish();
 		break;
 	case KeepAliveRead:
@@ -434,7 +435,7 @@ bool HttpConnection::onMessageHeaderEnd()
 	++worker_->requestCount_;
 
 	flags_ |= IsHandlingRequest;
-	status_ = SendingReply;
+	setStatus(SendingReply);
 
 	worker_->handleRequest(request_);
 
@@ -497,7 +498,7 @@ bool HttpConnection::readSome()
 
 	if (status() == KeepAliveRead) {
 		TRACE("readSome: status was keep-alive-read. resetting to reading-request", request_->outputState_);
-		status_ = ReadingRequest;
+		setStatus(ReadingRequest);
 	}
 
 	ssize_t rv = socket_->read(input_);
@@ -673,7 +674,7 @@ void HttpConnection::resume()
 	TRACE("resume() shouldKeepAlive:%d)", shouldKeepAlive());
 	TRACE("-- (status:%s, inputOffset:%ld, inputSize:%ld)", status_str(), inputOffset_, input_.size());
 
-	status_ = KeepAliveRead;
+	setStatus(KeepAliveRead);
 	request_->clear();
 
 	if (socket()->tcpCork())
@@ -694,7 +695,7 @@ bool HttpConnection::process()
 		// ensure status is up-to-date, in case we came from keep-alive-read
 		if (status_ == KeepAliveRead) {
 			TRACE("process: status=keep-alive-read, resetting to reading-request");
-			status_ = ReadingRequest;
+			setStatus(ReadingRequest);
 			if (request_->isFinished()) {
 				TRACE("process: finalizing request");
 				request_->finalize();
@@ -766,6 +767,13 @@ void HttpConnection::setShouldKeepAlive(bool enabled)
 		flags_ |= IsKeepAliveEnabled;
 	else
 		flags_ &= ~IsKeepAliveEnabled;
+}
+
+void HttpConnection::setStatus(Status value)
+{
+	Status lastStatus = status_;
+	status_ = value;
+	worker().server().onConnectionStatusChanged(this, lastStatus);
 }
 
 } // namespace x0
