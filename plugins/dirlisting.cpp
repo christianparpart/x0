@@ -35,9 +35,6 @@
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
-#include <boost/lexical_cast.hpp>
-#include <boost/logic/tribool.hpp>
-
 #include <cstdio>
 #include <cstring>
 #include <cerrno>
@@ -120,7 +117,7 @@ private:
 
 		in->status = x0::HttpStatus::Ok;
 		in->responseHeaders.push_back("Content-Type", "text/html");
-		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(sstr.size()));
+		in->responseHeaders.push_back("Content-Length", x0::lexical_cast<std::string>(sstr.size()));
 
 		in->write<x0::BufferSource>(std::move(sstr));
 		in->finish();

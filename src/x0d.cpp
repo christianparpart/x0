@@ -10,12 +10,10 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpCore.h>
 #include <x0/flow/FlowRunner.h>
+#include <x0/StringTokenizer.h>
 #include <x0/Logger.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
-
-#include <boost/tokenizer.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <ev++.h>
 #include <sd-daemon.h>
@@ -67,7 +65,8 @@ static std::string& gsub(std::string& buf, const std::string& src, const std::st
 
 static std::string& gsub(std::string& buf, const std::string& src, int dst)
 {
-	std::string tmp(boost::lexical_cast<std::string>(dst));
+	char tmp[64];
+	snprintf(tmp, sizeof(tmp), "%d", dst);
 	return gsub(buf, src, tmp);
 }
 
@@ -592,11 +591,9 @@ bool XzeroHttpDaemon::setupConfig()
 
 	// --instant=docroot[,port[,bind]]
 
-	typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
-
-	auto tokens = x0::split<std::string>(instant_, ",");
+	auto tokens = x0::StringTokenizer::tokenize(instant_, ",");
 	documentRoot_ = tokens.size() > 0 ? tokens[0] : "";
-	int port = tokens.size() > 1 ? boost::lexical_cast<int>(tokens[1]) : 0;
+	int port = tokens.size() > 1 ? std::atoi(tokens[1].c_str()) : 0;
 	std::string bind = tokens.size() > 2 ? tokens[2] : "";
 
 	if (documentRoot_.empty())

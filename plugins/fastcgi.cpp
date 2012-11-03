@@ -319,7 +319,7 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 
 	paramWriter_.encode("SERVER_PROTOCOL", "1.1");
 	paramWriter_.encode("SERVER_ADDR", request_->connection.localIP());
-	paramWriter_.encode("SERVER_PORT", boost::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
+	paramWriter_.encode("SERVER_PORT", x0::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
 
 	paramWriter_.encode("REQUEST_METHOD", request_->method);
 	paramWriter_.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
@@ -340,7 +340,7 @@ void CgiTransport::bind(x0::HttpRequest *in, uint16_t id, x0::Socket* backend)
 
 	//paramWriter_.encode("REMOTE_HOST", "");  // optional
 	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());
-	paramWriter_.encode("REMOTE_PORT", boost::lexical_cast<std::string>(request_->connection.remotePort()));
+	paramWriter_.encode("REMOTE_PORT", x0::lexical_cast<std::string>(request_->connection.remotePort()));
 
 	//paramWriter_.encode("AUTH_TYPE", ""); // TODO
 	//paramWriter_.encode("REMOTE_USER", "");

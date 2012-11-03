@@ -8,7 +8,6 @@
 
 #include <x0/StackTrace.h>
 #include <x0/NativeSymbol.h>
-#include <boost/lexical_cast.hpp>
 #include <execinfo.h>
 #include <cxxabi.h>
 #include <dlfcn.h>

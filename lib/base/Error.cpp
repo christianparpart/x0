@@ -9,8 +9,6 @@
 #include <x0/Error.h>
 #include <x0/Defines.h>
 
-#include <boost/lexical_cast.hpp>
-
 namespace x0 {
 
 class ErrorCategoryImpl :

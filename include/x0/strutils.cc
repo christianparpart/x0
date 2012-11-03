@@ -6,32 +6,10 @@
  * (c) 2009-2012 Christian Parpart <trapni@gentoo.org>
  */
 
-#include <boost/tokenizer.hpp>
-#include <boost/lexical_cast.hpp>
 #include <list>
+#include <stdexcept>
 
 namespace x0 {
-
-template<typename T, typename U>
-inline std::vector<T> split(const std::basic_string<U>& input, const std::basic_string<U>& sep)
-{
-	std::vector<T> result;
-	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-	tokenizer tk(input, boost::char_separator<U>(sep.c_str()));
-
-	for (tokenizer::iterator i = tk.begin(), e = tk.end(); i != e; ++i)
-	{
-		result.push_back(boost::lexical_cast<T>(*i));
-	}
-
-	return result;
-}
-
-template<typename T, typename U>
-inline std::vector<T> split(const std::basic_string<U>& list, const U *sep)
-{
-	return split<T, U>(list, std::basic_string<U>(sep));
-}
 
 inline std::string make_hostid(const std::string& hostname)
 {
@@ -74,7 +52,7 @@ inline int extract_port_from_hostid(const std::string& hostid)
 	std::size_t n = hostid.rfind(":");
 
 	if (n != std::string::npos)
-		return boost::lexical_cast<int>(hostid.substr(n + 1));
+		return std::atoi(hostid.substr(n + 1).c_str());
 
 	throw std::runtime_error("no port specified in hostid: " + hostid);
 }

@@ -377,7 +377,7 @@ bool ApiReqeust::eventstream()
 // get a single director json object
 bool ApiReqeust::get()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	auto tokens = tokenize(path_.ref(1).str(), "/");
 	if (tokens.size() < 1 || tokens.size() >  2)
 		return false;
 
@@ -416,7 +416,7 @@ bool ApiReqeust::get()
 // LOCK or UNLOCK /:director_id/:backend_id
 bool ApiReqeust::lock(bool locked)
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	auto tokens = tokenize(path_.ref(1).str(), "/");
 	if (tokens.size() != 2)
 		return false;
 
@@ -446,7 +446,7 @@ bool ApiReqeust::lock(bool locked)
 // create a backend - PUT /:director_id(/:backend_id)
 bool ApiReqeust::create()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	auto tokens = tokenize(path_.ref(1).str(), "/");
 	if (tokens.size() > 2)
 		return false;
 
@@ -564,7 +564,7 @@ bool ApiReqeust::create()
 // - health-check-interval
 bool ApiReqeust::update()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	auto tokens = tokenize(path_.ref(1).str(), "/");
 	if (tokens.size() == 0 || tokens.size() > 2) {
 		request_->log(Severity::error, "director: Invalid formed request path.");
 		request_->status = x0::HttpStatus::BadRequest;
@@ -729,7 +729,7 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 // delete a backend
 bool ApiReqeust::destroy()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/", '\\');
+	auto tokens = tokenize(path_.ref(1).str(), "/");
 	if (tokens.size() != 2) {
 		request_->log(Severity::error, "director: Could not delete backend. Invalid request path '%s'.",
 			path_.str().c_str());
@@ -780,9 +780,9 @@ bool ApiReqeust::destroy()
 	return true;
 }
 
-std::vector<std::string> ApiReqeust::tokenize(const std::string& input, const std::string& delimiter, char escapeChar, bool exclusive)
+std::vector<std::string> ApiReqeust::tokenize(const std::string& input, const std::string& delimiter)
 {
-	x0::StringTokenizer st(input, delimiter, escapeChar, exclusive);
+	x0::StringTokenizer st(input, delimiter);
 	return st.tokenize();
 }
 

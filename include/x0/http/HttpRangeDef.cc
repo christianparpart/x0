@@ -11,7 +11,7 @@
 
 // XXX http://tools.ietf.org/html/draft-fielding-http-p5-range-00
 
-#include <boost/tokenizer.hpp>
+#include <x0/StringTokenizer.h>
 #include <cstdlib>
 
 namespace x0 {
@@ -48,23 +48,13 @@ inline bool HttpRangeDef::parse(const BufferRef& value)
 	// suffix-byte-range-spec = "-" suffix-length
 	// suffix-length = 1*DIGIT
 
-	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-
-	tokenizer spec(value, boost::char_separator<char>("="));
-	tokenizer::iterator si(spec.begin());
-
-	if (si != spec.end())
+	for (Tokenizer<BufferRef> spec(value, "="); !spec.end(); spec.nextToken())
 	{
-		unitName = *si;
+		unitName = spec.token();
 
-		if (unitName() == "bytes")
-		{
-			std::string brange(*++si);
-			tokenizer t2(brange, boost::char_separator<char>(","));
-
-			for (tokenizer::iterator i = t2.begin(), e = t2.end(); i != e; ++i)
-			{
-				if (!parseRangeSpec(*i))
+		if (unitName() == "bytes") {
+			for (auto& range: Tokenizer<BufferRef>::tokenize(spec.nextToken(), ",")) {
+				if (!parseRangeSpec(range))
 					return false;
 			}
 		}
@@ -72,40 +62,33 @@ inline bool HttpRangeDef::parse(const BufferRef& value)
 	return true;
 }
 
-inline bool HttpRangeDef::parseRangeSpec(const std::string& spec)
+inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec)
 {
 	std::size_t a, b;
-	char *p = const_cast<char *>(spec.c_str());
+	char* i = const_cast<char *>(spec.data());
+	char* e = spec.end();
+
+	if (i == e)
+		return false;
 
 	// parse first element
-	if (std::isdigit(*p))
-	{
-		a = strtoul(p, &p, 10);
-	}
-	else
-	{
-		a = npos;
-	}
+	a = std::isdigit(*i)
+		? strtoul(i, &i, 10)
+		: npos;
 
-	if (*p != '-')
-	{
-		printf("parse error: %s (%s)\n", p, spec.c_str());
+	if (*i != '-') {
+		// printf("parse error: %s (%s)\n", i, spec.c_str());
 		return false;
 	}
 
-	++p;
+	++i;
 
 	// parse second element
-	if (std::isdigit(*p))
-	{
-		b = strtoul(p, &p, 10);
-	}
-	else
-	{
-		b = npos;
-	}
+	b = std::isdigit(*i)
+		? strtoul(i, &i, 10)
+		: npos;
 
-	if (*p != '\0') // garbage at the end
+	if (i != e) // garbage at the end
 		return false;
 
 	ranges_.push_back(std::make_pair(a, b));

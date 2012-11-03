@@ -7,10 +7,9 @@
  */
 
 #include <x0/io/FileInfoService.h>
+#include <x0/StringTokenizer.h>
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
-
-#include <boost/tokenizer.hpp>
 
 namespace x0 {
 
@@ -165,25 +164,20 @@ void FileInfoService::onFileChanged(ev::io& w, int revents)
 
 void FileInfoService::Config::loadMimetypes(const std::string& filename)
 {
-	typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-
 	std::string input(x0::read_file(filename));
-	tokenizer lines(input, boost::char_separator<char>("\n"));
+	auto lines = StringTokenizer::tokenize(input, "\n");
 
 	mimetypes.clear();
 
-	for (auto line: lines)
-	{
+	for (auto line: lines) {
 		line = x0::trim(line);
-		tokenizer columns(line, boost::char_separator<char>(" \t"));
+		auto columns = StringTokenizer::tokenize(line, " \t");
 
-		tokenizer::iterator ci = columns.begin(), ce = columns.end();
+		auto ci = columns.begin(), ce = columns.end();
 		std::string mime = ci != ce ? *ci++ : std::string();
 
-		if (!mime.empty() && mime[0] != '#')
-		{
-			for (; ci != ce; ++ci)
-			{
+		if (!mime.empty() && mime[0] != '#') {
+			for (; ci != ce; ++ci) {
 				mimetypes[*ci] = mime;
 			}
 		}

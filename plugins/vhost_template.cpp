@@ -11,9 +11,6 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
 
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

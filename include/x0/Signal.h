@@ -11,8 +11,8 @@
 
 #include <x0/Types.h>
 #include <x0/Api.h>
-#include <boost/next_prior.hpp>
 #include <list>
+#include <algorithm>
 
 namespace x0 {
 
@@ -75,7 +75,9 @@ public:
 	Connection connect(K *object)
 	{
 		impl_.push_back(std::make_pair(object, &method_thunk<K, method>));
-		return boost::prior(impl_.end());
+		auto handle = impl_.end();
+		--handle;
+		return handle;
 	}
 
 	void disconnect(void* p)

@@ -76,9 +76,5 @@ private:
 	bool destroy();
 
 	// helper
-	std::vector<std::string> tokenize(
-		const std::string& input,
-		const std::string& delimiter,
-		char escapeChar = '\\',
-		bool exclusive = false);
+	std::vector<std::string> tokenize(const std::string& input, const std::string& delimiter);
 };

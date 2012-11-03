@@ -161,7 +161,7 @@ private:
 			return;
 
 		if (x0::BufferRef r = in->requestHeader("Accept-Encoding")) {
-			std::vector<std::string> items(x0::split<std::string>(r.str(), ", "));
+			auto items = x0::StringTokenizer::tokenize(r.str(), ", ");
 
 #if defined(HAVE_BZLIB_H)
 			if (std::find(items.begin(), items.end(), "bzip2") != items.end()) {

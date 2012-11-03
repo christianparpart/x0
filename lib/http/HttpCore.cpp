@@ -19,7 +19,6 @@
 #include <x0/Logger.h>
 #include <x0/strutils.h>
 
-#include <boost/lexical_cast.hpp>
 #include <sstream>
 #include <cstdio>
 
@@ -879,7 +878,7 @@ bool HttpCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 		in->responseHeaders.push_back("ETag", in->fileinfo->etag());
 
 		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
-		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(in->fileinfo->size()));
+		in->responseHeaders.push_back("Content-Length", lexical_cast<std::string>(in->fileinfo->size()));
 
 		int fd = in->fileinfo->open(O_RDONLY | O_NONBLOCK);
 		if (fd < 0) {
@@ -937,7 +936,7 @@ bool HttpCore::processStaticFile(HttpRequest* in, FileInfoPtr transferFile) // {
 	if (!processRangeRequest(in, fd)) {
 		in->responseHeaders.push_back("Accept-Ranges", "bytes");
 		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
-		in->responseHeaders.push_back("Content-Length", boost::lexical_cast<std::string>(transferFile->size()));
+		in->responseHeaders.push_back("Content-Length", lexical_cast<std::string>(transferFile->size()));
 
 		if (fd < 0) { // HEAD request
 			in->finish();
@@ -1168,7 +1167,7 @@ bool HttpCore::precompressed(HttpRequest *in, const FlowParams& args)
 
 	if (BufferRef r = in->requestHeader("Accept-Encoding"))
 	{
-		std::vector<std::string> items(x0::split<std::string>(r.str(), ", "));
+		auto items = StringTokenizer::tokenize(r.str(), ", ");
 
 		static const struct {
 			const char* id;

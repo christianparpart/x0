@@ -37,8 +37,6 @@
 #include <x0/Types.h>
 #include <x0/sysconfig.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include <system_error>
 #include <algorithm>
 #include <string>
@@ -76,7 +74,7 @@
  *	void handler(request& in)
  *	{
  *      CgiScript cgi(in, "/usr/bin/perl");
- *      cgi.ttl(boost::posix_time::seconds(60));        // define maximum ttl this script may run
+ *      cgi.ttl(TimeSpan::fromSeconds(60));     // define maximum ttl this script may run
  * 		cgi.runAsync();
  * 	}
  * \endcode
@@ -304,7 +302,7 @@ inline void CgiScript::runAsync()
 
 	environment["SERVER_PROTOCOL"] = "HTTP/1.1"; // XXX or 1.0
 	environment["SERVER_ADDR"] = request_->connection.localIP();
-	environment["SERVER_PORT"] = boost::lexical_cast<std::string>(request_->connection.localPort()); // TODO this should to be itoa'd only ONCE
+	environment["SERVER_PORT"] = x0::lexical_cast<std::string>(request_->connection.localPort()); // TODO this should to be itoa'd only ONCE
 
 	environment["REQUEST_METHOD"] = request_->method.str();
 	environment["REDIRECT_STATUS"] = "200"; // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
@@ -321,7 +319,7 @@ inline void CgiScript::runAsync()
 
 	//environment["REMOTE_HOST"] = "";  // optional
 	environment["REMOTE_ADDR"] = request_->connection.remoteIP();
-	environment["REMOTE_PORT"] = boost::lexical_cast<std::string>(request_->connection.remotePort());
+	environment["REMOTE_PORT"] = x0::lexical_cast<std::string>(request_->connection.remotePort());
 
 	//environment["AUTH_TYPE"] = "";
 	//environment["REMOTE_USER"] = "";
@@ -596,7 +594,7 @@ bool CgiScript::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& 
 
 	if (name == "Status") {
 		int status = value.ref(0, value.find(' ')).toInt();
-		request_->status = static_cast<x0::HttpStatus>(boost::lexical_cast<int>(status));
+		request_->status = static_cast<x0::HttpStatus>(status);
 	} else {
 		if (name == "Location")
 			request_->status = x0::HttpStatus::MovedTemporarily;

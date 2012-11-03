@@ -1,4 +1,4 @@
-/* <x0/StringTokenizer.cpp>
+/* <x0/Tokenizer.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.io/
@@ -8,117 +8,93 @@
 
 #include <x0/StringTokenizer.h>
 #include <x0/Buffer.h>
+#include <x0/BufferRef.h>
+#include <string>
 
 namespace x0 {
 
-StringTokenizer::StringTokenizer(const std::string& input) :
-	input_(input), lastPos_(0), charPos_(0), wordPos_(0), delimiter_(" \t\r\n"),
-	exclusive_(false), skipped_(false), escapeChar_(0) {
-}
-
-StringTokenizer::StringTokenizer(const std::string& input,
-	const std::string& delimiter, char escapeChar, bool exclusive) :
-	input_(input), lastPos_(0), charPos_(0), wordPos_(0), delimiter_(delimiter),
-	exclusive_(exclusive), skipped_(false), escapeChar_(escapeChar)
-{
-}
-
-std::string StringTokenizer::escape(
-	const std::string& string, 
-	const std::string& delimiter,
-	char escapeChar)
-{
-	Buffer result;
-
-	result.reserve(string.size());
-
-	for (const char *i = string.data(), *e = i + string.size(); i != e; ++i) {
-		if (delimiter.find(*i) != std::string::npos)
-			result << escapeChar;
-		else if (*i == escapeChar)
-			result << *i;
-
-		result << *i;
-	}
-
-	return result.str();
-}
-
-const std::string& StringTokenizer::nextToken()
+template<typename T>
+const T& Tokenizer<T>::nextToken()
 {
 	if (end()) {
-		static const std::string eos;
+		static const T eos;
 		return eos;
 	}
 
-	int isize = input_.size();
+	size_t isize = input_.size();
+	lastPos_ = charPos_;
 
-	skipped_ = false;
-	if (escapeChar_) {
-		lastPos_ = charPos_;
-		token_ = std::string();
-		char ch = input_[charPos_];
-		while (charPos_ < isize && delimiter_.find(ch) == std::string::npos) {
-			if (ch != escapeChar_)
-				if (delimiter_.find(ch) == std::string::npos)
-					token_ += ch;
-				else
-					break;
-			else if (++charPos_ < isize)
-				token_ += input_[charPos_];
-			else
-				token_ += ch;
+	while (charPos_ < isize && delimiter_.find(input_[charPos_]) == T::npos)
+		++charPos_;
 
-			ch = input_[++charPos_];
-		}
-	} else {
-		lastPos_ = charPos_;
-		while (charPos_ < isize && delimiter_.find(input_[charPos_]) == std::string::npos)
-			++charPos_;
+	token_ = substr(lastPos_, charPos_ - lastPos_);
 
-		token_ = input_.substr(lastPos_, charPos_ - lastPos_);
-
-		++wordPos_;
-		lastPos_ = charPos_;
-	}
+	++wordPos_;
+	lastPos_ = charPos_;
 
 	return token_;
 }
 
-bool StringTokenizer::end() const
+template<typename T>
+void Tokenizer<T>::consumeDelimiter()
 {
-	int save = charPos_;
-	int isize = input_.size();
+	size_t isize = input_.size();
 
-	if (!exclusive_)
-		while (charPos_ < isize && delimiter_.find(input_[charPos_]) != std::string::npos)
-			++charPos_;
-	else {
-		if (skipped_)
-			return false;
-
-		if (charPos_ < isize && delimiter_.find(input_[charPos_]) != std::string::npos)
-			++charPos_;
-
-		skipped_ = true;
+	while (charPos_ < isize && delimiter_.find(input_[charPos_]) != T::npos) {
+		++charPos_;
 	}
-
-	bool reached = charPos_ >= isize;
-
-	if (charPos_ != save && !reached)
-		lastPos_ = save;
-
-	return reached;
 }
 
-std::vector<std::string> StringTokenizer::tokenize()
+template<typename T>
+bool Tokenizer<T>::end()
 {
-	std::vector<std::string> tokens;
+	consumeDelimiter();
+
+	if (charPos_ >= input_.size())
+		return true;
+
+	return false;
+}
+
+template<typename T>
+std::vector<T> Tokenizer<T>::tokenize()
+{
+	std::vector<T> tokens;
 
 	while (!end())
 		tokens.push_back(nextToken());
 
 	return std::move(tokens);
 }
+
+template<typename T>
+std::vector<T> Tokenizer<T>::tokenize(const T& input, const std::string& delimiter)
+{
+	Tokenizer<T> t(input, delimiter);
+	return t.tokenize();
+}
+
+template<>
+std::string Tokenizer<std::string>::substr(size_t offset) const {
+	return input_.substr(offset);
+}
+
+template<>
+std::string Tokenizer<std::string>::substr(size_t offset, size_t size) const {
+	return input_.substr(offset, size);
+}
+
+template<>
+BufferRef Tokenizer<BufferRef>::substr(size_t offset, size_t size) const {
+	return input_.ref(offset, size);
+}
+
+template<>
+BufferRef Tokenizer<BufferRef>::substr(size_t offset) const {
+	return input_.ref(offset);
+}
+
+template class Tokenizer<std::string>;
+template class Tokenizer<BufferRef>;
 
 } // namespace x0

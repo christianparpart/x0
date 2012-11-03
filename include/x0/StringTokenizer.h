@@ -1,4 +1,4 @@
-/* <x0/StringTokenizer.h>
+/* <x0/Tokenizer.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.io/
@@ -15,46 +15,50 @@
 
 namespace x0 {
 
-class X0_API StringTokenizer {
+template<typename T>
+class X0_API Tokenizer {
 private:
-	std::string input_;
-	mutable int lastPos_, charPos_;
-	int wordPos_;
+	T input_;
+	T token_;
+
+	mutable size_t lastPos_, charPos_;
+	size_t wordPos_;
 	std::string delimiter_;
-	bool exclusive_;
-	mutable bool skipped_;
-	char escapeChar_;
-	std::string token_;
 
 public:
-	explicit StringTokenizer(const std::string& input, const std::string& delimiter, 
-		char escapeChar = 0, bool exclusive = false);
-	explicit StringTokenizer(const std::string& AInput);
+	explicit Tokenizer(const T& input, const std::string& delimiter = " \t\r\n");
 
-	char escapeChar() const { return escapeChar_; }
+	bool end();
+	const T& nextToken();
+	const T& token() const { return token_; }
 
-	static std::string escape(const std::string& string, const std::string& delimiter, char escapeChar);
+	std::vector<T> tokenize();
+	static std::vector<T> tokenize(const T& input, const std::string& delimiter = " \t\r\n");
 
-	const std::string& nextToken();
+	size_t charPosition() const { return charPos_; }
+	size_t wordPosition() const { return lastPos_; }
 
-	const std::string& token() const { return token_; }
+	T gap() { end(); return charPos_ != lastPos_ ? substr(lastPos_, charPos_ - lastPos_) : T(); }
+	T remaining() { return !end() ? substr(charPos_) : T(); }
 
-	int charPosition() const { return charPos_; }
-	int wordPosition() const { return lastPos_; }
+	Tokenizer<T>& operator++() { nextToken(); return *this; }
+	bool operator !() const { return const_cast<Tokenizer<T>*>(this)->end(); }
 
-	bool end() const;
+private:
+	void consumeDelimiter();
 
-	std::string gap() const {
-		end();
-		return charPos_ != lastPos_ ? input_.substr(lastPos_, charPos_ - lastPos_) : std::string();
-	}
-
-	std::string remaining() const {
-		return !end() ? input_.substr(charPos_) : std::string();
-	}
-
-	std::vector<std::string> tokenize();
+	T substr(size_t offset) const;
+	T substr(size_t offset, size_t size) const;
 };
+
+template<typename T>
+inline Tokenizer<T>::Tokenizer(const T& input, const std::string& delimiter) :
+	input_(input), token_(),
+	lastPos_(0), charPos_(0), wordPos_(0), delimiter_(delimiter)
+{
+}
+
+typedef Tokenizer<std::string> StringTokenizer;
 
 } // namespace x0
 
