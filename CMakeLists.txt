@@ -168,12 +168,6 @@ set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
 # ---------------------------------------------------------------------------
 # }}}
 
-FIND_PACKAGE(Boost REQUIRED)
-if(Boost_FOUND)
-	message(STATUS "Boost library directory: " ${Boost_LIBRARY_DIRS})
-	message(STATUS "Boost include directory: " ${Boost_INCLUDE_DIRS})
-endif(Boost_FOUND)
-
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 #pkg_check_modules(LUA REQUIRED lua>=5.1)
