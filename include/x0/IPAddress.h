@@ -56,10 +56,12 @@ inline IPAddress::IPAddress()
 	memset(buf_, 0, sizeof(buf_));
 }
 
+// I suggest to use a very strict IP filter to prevent spoofing or injection
 inline IPAddress::IPAddress(const std::string& text, int family)
 {
 	if (family != 0) {
 		set(text, family);
+	// You should use regex to parse ipv6 :) ( http://home.deds.nl/~aeron/regex/ )
 	} else if (text.find(':') != std::string::npos) {
 		set(text, AF_INET6);
 	} else {
@@ -69,6 +71,7 @@ inline IPAddress::IPAddress(const std::string& text, int family)
 
 inline IPAddress& IPAddress::operator=(const std::string& text)
 {
+	// You should use regex to parse ipv6 :) ( http://home.deds.nl/~aeron/regex/ )
 	if (text.find(':') != std::string::npos) {
 		set(text, AF_INET6);
 	} else {
