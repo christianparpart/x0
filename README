@@ -6,7 +6,7 @@ official website:   http://xzero.io/
 github:             http://github.com/trapni/x0
 ohloh:              http://www.ohloh.net/p/x0
 
-x0 is a low-latency scalarable HTTP web server and web service framework
+x0 is a low-latency scalable HTTP web server and web service framework
 written in modern C++.
 
 -----------------------------------------------------------------------------
