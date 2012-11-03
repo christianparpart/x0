@@ -168,6 +168,7 @@ void HttpConnection::timeout(Socket *)
 	TRACE("timedout: status=%s",  status_str());
 
 	switch (status()) {
+	case Undefined:
 	case StartingUp:
 		TRACE("timeout: BUG. we should have never reached here.");
 		break;
