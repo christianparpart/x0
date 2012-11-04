@@ -67,6 +67,9 @@ public:
 private:
 	bool simple(x0::HttpRequest *in, const x0::FlowParams& args)
 	{
+		if (in->testDirectoryTraversal())
+			return true;
+
 		x0::Buffer sstr;
 
 		sstr << "<html><head><title>Directory: " << in->path << "</title>";
@@ -127,6 +130,9 @@ private:
 
 	bool google(x0::HttpRequest* in, const x0::FlowParams& args)
 	{
+		if (in->testDirectoryTraversal())
+			return true;
+
 		x0::Buffer buf;
 
 		buf << "<html>\n"

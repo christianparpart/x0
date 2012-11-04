@@ -868,6 +868,9 @@ bool HttpCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 	if (!in->fileinfo->exists())
 		return false;
 
+	if (in->testDirectoryTraversal())
+		return true;
+
 	if (!in->fileinfo->isRegular())
 		return false;
 
@@ -1161,6 +1164,9 @@ bool HttpCore::precompressed(HttpRequest *in, const FlowParams& args)
 
 	if (!in->fileinfo->exists())
 		return false;
+
+	if (in->testDirectoryTraversal())
+		return true;
 
 	if (!in->fileinfo->isRegular())
 		return false;

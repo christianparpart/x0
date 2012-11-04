@@ -14,6 +14,8 @@
 #include <x0/Process.h>                // Process::dumpCore()
 #include <x0/strutils.h>
 #include <strings.h>                   // strcasecmp()
+#include <stdlib.h>                   // realpath()
+#include <limits.h>                   // PATH_MAX
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
@@ -502,6 +504,33 @@ void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
 	if (cb) {
 		connection.watchInput();
 	}
+}
+
+/** Tests resolved path for directory traversal attempts outside document root.
+ *
+ * \retval true directory traversal outside document root detected and a Bad Request response has been sent back to client.
+ * \retval false no directory traversal outside document root detected or real path could not be calculated.
+ *
+ * \note Call this function before you want to actually do something with a requested file or directory.
+ */
+bool HttpRequest::testDirectoryTraversal()
+{
+	char rpath[PATH_MAX];
+	char* rp = realpath(fileinfo->path().c_str(), rpath);
+	if (!rp)
+		// could not resolv path (see errno)
+		return false;
+
+	if (strncmp(rp, documentRoot.c_str(), documentRoot.size()) == 0)
+		// no directory traversal detected
+		return false;
+
+	log(Severity::warn, "directory traversal detected: %s", fileinfo->path().c_str());
+
+	status = HttpStatus::BadRequest;
+	finish();
+
+	return true;
 }
 
 } // namespace x0

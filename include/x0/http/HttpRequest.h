@@ -355,6 +355,9 @@ public:
 
 	template<typename T> inline void post(T function) { connection.post(function); }
 
+	// security advisory
+	bool testDirectoryTraversal();
+
 private:
 	std::list<std::pair<void*, void (*)(void*, Buffer&)> > inspectHandlers_;
 
