@@ -403,38 +403,7 @@ bool HttpConnection::onMessageHeaderEnd()
 	if (request_->isFinished())
 		return true;
 
-#if X0_HTTP_STRICT
-	BufferRef expectHeader = request_->requestHeader("Expect");
-	bool contentRequired = request_->method == "POST" || request_->method == "PUT";
-
-	if (contentRequired) {
-		if (request_->connection.contentLength() == -1 && !request_->connection.isChunked()) {
-			request_->status = HttpStatus::LengthRequired;
-			request_->finish();
-			return true;
-		}
-	} else {
-		if (request_->contentAvailable()) {
-			request_->status = HttpStatus::BadRequest; // FIXME do we have a better status code?
-			request_->finish();
-			return true;
-		}
-	}
-
-	if (expectHeader) {
-		request_->expectingContinue = equals(expectHeader, "100-continue");
-
-		if (!request_->expectingContinue || !request_->supportsProtocol(1, 1)) {
-			request_->status = HttpStatus::ExpectationFailed;
-			request_->finish();
-			return true;
-		}
-	}
-#endif
-
 	++requestCount_;
-	++worker_->requestCount_;
-
 	flags_ |= IsHandlingRequest;
 	setStatus(SendingReply);
 

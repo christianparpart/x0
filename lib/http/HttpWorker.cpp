@@ -208,9 +208,40 @@ void HttpWorker::release(const ConnectionHandle& connection)
 
 void HttpWorker::handleRequest(HttpRequest *r)
 {
+	++requestCount_;
 	performanceCounter_.touch(now_.value());
 
+#if X0_HTTP_STRICT
+	BufferRef expectHeader = r->requestHeader("Expect");
+	bool contentRequired = r->method == "POST" || r->method == "PUT";
+
+	if (contentRequired) {
+		if (r->connection.contentLength() == -1 && !r->connection.isChunked()) {
+			r>status = HttpStatus::LengthRequired;
+			r->finish();
+			return true;
+		}
+	} else {
+		if (r->contentAvailable()) {
+			r->status = HttpStatus::BadRequest; // FIXME do we have a better status code?
+			r->finish();
+			return true;
+		}
+	}
+
+	if (expectHeader) {
+		r->expectingContinue = equals(expectHeader, "100-continue");
+
+		if (!r->expectingContinue || !r->supportsProtocol(1, 1)) {
+			r->status = HttpStatus::ExpectationFailed;
+			r->finish();
+			return true;
+		}
+	}
+#endif
+
 	server_.onPreProcess(r);
+
 	if (!server_.onHandleRequest_(r))
 		r->finish();
 }
