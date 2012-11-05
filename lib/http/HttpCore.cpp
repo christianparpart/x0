@@ -552,6 +552,19 @@ bool HttpCore::docroot(HttpRequest* in, const FlowParams& args)
 		return false;
 
 	in->documentRoot = args[0].toString();
+
+	if (in->documentRoot.empty()) {
+		in->log(Severity::error, "Setting empty document root is not allowed.");
+		in->status = HttpStatus::InternalServerError;
+		in->finish();
+		return true;
+	}
+
+	// cut off trailing slash
+	size_t trailerOffset = in->documentRoot.size() - 1;
+	if (in->documentRoot[trailerOffset] == '/')
+		in->documentRoot.resize(trailerOffset);
+
 	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path.str());
 	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
 
