@@ -455,24 +455,6 @@ inline bool FlowValue::load<FlowValue::Function>(Function& result) const
 	result = toFunction();
 	return true;
 }
-
-inline std::string FlowValue::asString() const
-{
-	switch (type()) {
-		case STRING:
-			return toString();
-		case BUFFER:
-			return std::string(toString(), toNumber());
-		case NUMBER: {
-			char buf[256];
-			snprintf(buf, sizeof(buf), "%llu", toNumber());
-			return buf;
-		}
-		default:
-			// illegal/unsupported cast
-			return std::string();
-	}
-}
 // }}}
 
 } // namespace x0
