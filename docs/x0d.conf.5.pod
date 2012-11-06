@@ -718,6 +718,8 @@ Example:
 
  status.nginx_compat if req.path == '/server-status';
 
+=back
+
 =head2 auth
 
 Adds support for HTTP Basic Authentication.
