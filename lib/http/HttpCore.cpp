@@ -112,6 +112,11 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSharedFunction<HttpCore, &HttpCore::log_info>("log", FlowValue::VOID);
 	registerSharedFunction<HttpCore, &HttpCore::log_debug>("log.debug", FlowValue::VOID);
 
+	registerSharedFunction<HttpCore, &HttpCore::file_exists>("file.exists", FlowValue::BOOLEAN);
+	registerSharedFunction<HttpCore, &HttpCore::file_is_reg>("file.is_reg", FlowValue::BOOLEAN);
+	registerSharedFunction<HttpCore, &HttpCore::file_is_dir>("file.is_dir", FlowValue::BOOLEAN);
+	registerSharedFunction<HttpCore, &HttpCore::file_is_exe>("file.is_exe", FlowValue::BOOLEAN);
+
 	// main
 	registerHandler<HttpCore, &HttpCore::docroot>("docroot");
 	registerHandler<HttpCore, &HttpCore::alias>("alias");
@@ -799,6 +804,76 @@ void HttpCore::regex_group(HttpRequest* in, const FlowParams& args, FlowValue& r
 		// no regex match executed
 		result.set("", 0);
 	}
+}
+// }}}
+
+// {{{ file
+// bool file.exists(string path)
+void HttpCore::file_exists(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	result.set(false);
+
+	if (args.size() != 1) {
+		// invalid arg count
+		return;
+	}
+
+	auto fileinfo = in->connection.worker().fileinfo(args[0].asString());
+	if (!fileinfo)
+		return;
+
+	result.set(fileinfo->exists());
+}
+
+void HttpCore::file_is_reg(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	result.set(false);
+
+	if (args.size() != 1) {
+		// invalid arg count
+		return;
+	}
+
+	HttpWorker* worker = in ? &in->connection.worker() : server().mainWorker();
+	auto fileinfo = worker->fileinfo(args[0].asString());
+	if (!fileinfo)
+		return;
+
+	result.set(fileinfo->isRegular());
+}
+
+void HttpCore::file_is_dir(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	result.set(false);
+
+	if (args.size() != 1) {
+		// invalid arg count
+		return;
+	}
+
+	HttpWorker* worker = in ? &in->connection.worker() : server().mainWorker();
+	auto fileinfo = worker->fileinfo(args[0].asString());
+	if (!fileinfo)
+		return;
+
+	result.set(fileinfo->isDirectory());
+}
+
+void HttpCore::file_is_exe(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	result.set(false);
+
+	if (args.size() != 1) {
+		// invalid arg count
+		return;
+	}
+
+	HttpWorker* worker = in ? &in->connection.worker() : server().mainWorker();
+	auto fileinfo = worker->fileinfo(args[0].asString());
+	if (!fileinfo)
+		return;
+
+	result.set(fileinfo->isExecutable());
 }
 // }}}
 
