@@ -511,6 +511,7 @@ void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
  * \retval true directory traversal outside document root detected and a Bad Request response has been sent back to client.
  * \retval false no directory traversal outside document root detected or real path could not be calculated.
  *
+ * \note We assume \c fileinfo have been set already. Do \b NOT call this function unless \c fileinfo has been set.
  * \note Call this function before you want to actually do something with a requested file or directory.
  */
 bool HttpRequest::testDirectoryTraversal()
