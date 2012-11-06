@@ -166,7 +166,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 		"\e[0m"
 		"\n\n");
 
-	// Load plugins
+	// Load core plugins
 	registerPlugin(core_ = new HttpCore(*this));
 
 	// Spawn main-thread worker
