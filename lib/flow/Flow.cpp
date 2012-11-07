@@ -67,7 +67,7 @@ const std::string& OperatorTraits::toString(Operator op)
 // }}}
 
 // {{{ SymbolTable
-SymbolTable::SymbolTable(SymbolTable *outer) :
+SymbolTable::SymbolTable(SymbolTable* outer) :
 	symbols_(),
 	parents_(),
 	outer_(outer)
@@ -76,35 +76,35 @@ SymbolTable::SymbolTable(SymbolTable *outer) :
 
 SymbolTable::~SymbolTable()
 {
-	for (auto i = parents_.begin(), e = parents_.end(); i != e; ++i)
-		delete *i;
+	for (auto parent: parents_)
+		delete parent;
 
-	for (auto i = symbols_.begin(), e = symbols_.end(); i != e; ++i)
-		delete *i;
+	for (auto symbol: symbols_)
+		delete symbol;
 }
 
-void SymbolTable::setOuterTable(SymbolTable *outer)
+void SymbolTable::setOuterTable(SymbolTable* outer)
 {
 	outer_ = outer;
 }
 
-SymbolTable *SymbolTable::outerTable() const
+SymbolTable* SymbolTable::outerTable() const
 {
 	return outer_;
 }
 
-SymbolTable *SymbolTable::appendParent(SymbolTable *table)
+SymbolTable* SymbolTable::appendParent(SymbolTable* table)
 {
 	parents_.push_back(table);
 	return table;
 }
 
-SymbolTable *SymbolTable::parentAt(size_t i) const
+SymbolTable* SymbolTable::parentAt(size_t i) const
 {
 	return parents_[i];
 }
 
-void SymbolTable::removeParent(SymbolTable *table)
+void SymbolTable::removeParent(SymbolTable* table)
 {
 }
 
@@ -113,13 +113,13 @@ size_t SymbolTable::parentCount() const
 	return parents_.size();
 }
 
-Symbol *SymbolTable::appendSymbol(Symbol *symbol)
+Symbol* SymbolTable::appendSymbol(Symbol* symbol)
 {
 	symbols_.push_back(symbol);
 	return symbol;
 }
 
-void SymbolTable::removeSymbol(Symbol *symbol)
+void SymbolTable::removeSymbol(Symbol* symbol)
 {
 	auto i = std::find(symbols_.begin(), symbols_.end(), symbol);
 
@@ -127,7 +127,7 @@ void SymbolTable::removeSymbol(Symbol *symbol)
 		symbols_.erase(i);
 }
 
-Symbol *SymbolTable::symbolAt(size_t i) const
+Symbol* SymbolTable::symbolAt(size_t i) const
 {
 	return symbols_[i];
 }
@@ -137,18 +137,18 @@ size_t SymbolTable::symbolCount() const
 	return symbols_.size();
 }
 
-Symbol *SymbolTable::lookup(const std::string& name, Lookup method) const
+Symbol* SymbolTable::lookup(const std::string& name, Lookup method) const
 {
 	// search local
 	if (method & Lookup::Self)
-		for (auto i = symbols_.begin(), e = symbols_.end(); i != e; ++i)
-			if ((*i)->name() == name)
-				return *i;
+		for (auto symbol: symbols_)
+			if (symbol->name() == name)
+				return symbol;
 
 	// search parents
 	if (method & Lookup::Parents)
-		for (auto i = parents_.begin(), e = parents_.end(); i != e; ++i)
-			if (Symbol *result = (*i)->lookup(name, method))
+		for (auto parent: parents_)
+			if (Symbol* result = parent->lookup(name, method))
 				return result;
 
 	// search outer
@@ -156,13 +156,13 @@ Symbol *SymbolTable::lookup(const std::string& name, Lookup method) const
 		if (outer_)
 			return outer_->lookup(name, method);
 
-	return NULL;
+	return nullptr;
 }
 // }}}
 
 // {{{ symbols
 // Symbol
-Symbol::Symbol(Type type, SymbolTable *scope, const std::string& name, const SourceLocation& sloc) :
+Symbol::Symbol(Type type, SymbolTable* scope, const std::string& name, const SourceLocation& sloc) :
 	type_(type), scope_(scope), name_(name)
 {
 	setSourceLocation(sloc);
@@ -180,26 +180,26 @@ void Symbol::setName(const std::string& name)
 
 // Variable
 Variable::Variable(const std::string& name, const SourceLocation& sloc) :
-	Symbol(VARIABLE, NULL, name, sloc), value_(NULL)
+	Symbol(VARIABLE, nullptr, name, sloc), value_(nullptr)
 {
 }
 
-Variable::Variable(SymbolTable *scope, const std::string& name, Expr *value, const SourceLocation& sloc) :
+Variable::Variable(SymbolTable* scope, const std::string& name, Expr* value, const SourceLocation& sloc) :
 	Symbol(VARIABLE, scope, name, sloc), value_(value)
 {
 }
 
 Variable::~Variable()
 {
-	setValue(NULL);
+	setValue(nullptr);
 }
 
-Expr *Variable::value() const
+Expr* Variable::value() const
 {
 	return value_;
 }
 
-void Variable::setValue(Expr *value)
+void Variable::setValue(Expr* value)
 {
 	if (value_)
 		delete value_;
@@ -214,9 +214,9 @@ void Variable::accept(ASTVisitor& v)
 
 // Function
 Function::Function(const std::string& name) :
-	Symbol(FUNCTION, NULL, name, SourceLocation()),
-	scope_(NULL),
-	body_(NULL),
+	Symbol(FUNCTION, nullptr, name, SourceLocation()),
+	scope_(nullptr),
+	body_(nullptr),
 	isHandler_(false),
 	returnType_(FlowToken::Void),
 	argTypes_(),
@@ -225,9 +225,9 @@ Function::Function(const std::string& name) :
 }
 
 Function::Function(const std::string& name, bool isHandler, const SourceLocation& sloc) :
-	Symbol(FUNCTION, NULL, name, sloc),
-	scope_(NULL),
-	body_(NULL),
+	Symbol(FUNCTION, nullptr, name, sloc),
+	scope_(nullptr),
+	body_(nullptr),
 	isHandler_(isHandler),
 	returnType_(FlowToken::Void),
 	argTypes_(),
@@ -238,8 +238,8 @@ Function::Function(const std::string& name, bool isHandler, const SourceLocation
 	}
 }
 
-Function::Function(SymbolTable *scope, const std::string& name, Stmt *body, bool isHandler, const SourceLocation& sloc) :
-	Symbol(FUNCTION, scope ? scope->outerTable() : NULL, name, sloc),
+Function::Function(SymbolTable* scope, const std::string& name, Stmt* body, bool isHandler, const SourceLocation& sloc) :
+	Symbol(FUNCTION, scope ? scope->outerTable() : nullptr, name, sloc),
 	scope_(scope),
 	body_(body),
 	isHandler_(isHandler),
@@ -257,15 +257,15 @@ Function::~Function()
 	if (scope_)
 		delete scope_;
 
-	setBody(NULL);
+	setBody(nullptr);
 }
 
-SymbolTable *Function::scope() const
+SymbolTable* Function::scope() const
 {
 	return scope_;
 }
 
-void Function::setScope(SymbolTable *value)
+void Function::setScope(SymbolTable* value)
 {
 	if (scope_ != value && scope_)
 		delete scope_;
@@ -317,12 +317,12 @@ void Function::setIsVarArg(bool value)
 	varArg_ = value;
 }
 
-Stmt *Function::body() const
+Stmt* Function::body() const
 {
 	return body_;
 }
 
-void Function::setBody(Stmt *body)
+void Function::setBody(Stmt* body)
 {
 	if (body_)
 		delete body_;
@@ -336,8 +336,8 @@ void Function::accept(ASTVisitor& v)
 }
 
 Unit::Unit() :
-	Symbol(UNIT, NULL, "#unit", SourceLocation()),
-	members_(NULL)
+	Symbol(UNIT, nullptr, "#unit", SourceLocation()),
+	members_(nullptr)
 {
 	members_ = new SymbolTable();
 }
@@ -352,13 +352,13 @@ SymbolTable& Unit::members() const
 	return *members_;
 }
 
-Symbol *Unit::insert(Symbol *symbol)
+Symbol* Unit::insert(Symbol* symbol)
 {
 	members_->appendSymbol(symbol);
 	return symbol;
 }
 
-Symbol *Unit::lookup(const std::string& name)
+Symbol* Unit::lookup(const std::string& name)
 {
 	return members_->lookup(name, Lookup::All);
 }
@@ -392,7 +392,7 @@ void Unit::accept(ASTVisitor& v)
 
 // {{{ expr
 // UnaryExpr
-UnaryExpr::UnaryExpr(Operator op, Expr *expr, const SourceLocation& sloc) :
+UnaryExpr::UnaryExpr(Operator op, Expr* expr, const SourceLocation& sloc) :
 	Expr(sloc),
 	operator_(op), subExpr_(expr)
 {
@@ -400,7 +400,7 @@ UnaryExpr::UnaryExpr(Operator op, Expr *expr, const SourceLocation& sloc) :
 
 UnaryExpr::~UnaryExpr()
 {
-	setSubExpr(NULL);
+	setSubExpr(nullptr);
 }
 
 Operator UnaryExpr::operatorStyle() const
@@ -413,12 +413,12 @@ void UnaryExpr::setOperatorStyle(Operator op)
 	operator_ = op;
 }
 
-Expr *UnaryExpr::subExpr() const
+Expr* UnaryExpr::subExpr() const
 {
 	return subExpr_;
 }
 
-void UnaryExpr::setSubExpr(Expr *value)
+void UnaryExpr::setSubExpr(Expr* value)
 {
 	if (subExpr_)
 		delete subExpr_;
@@ -432,7 +432,7 @@ void UnaryExpr::accept(ASTVisitor& v)
 }
 
 // BinaryExpr
-BinaryExpr::BinaryExpr(Operator op, Expr *left, Expr *right, const SourceLocation& sloc) :
+BinaryExpr::BinaryExpr(Operator op, Expr* left, Expr* right, const SourceLocation& sloc) :
 	Expr(sloc),
 	operator_(op), left_(left), right_(right)
 {
@@ -457,12 +457,12 @@ void BinaryExpr::setOperatorStyle(Operator op)
 	operator_ = op;
 }
 
-Expr *BinaryExpr::leftExpr() const
+Expr* BinaryExpr::leftExpr() const
 {
 	return left_;
 }
 
-Expr *BinaryExpr::rightExpr() const
+Expr* BinaryExpr::rightExpr() const
 {
 	return right_;
 }
@@ -501,7 +501,7 @@ void ListExpr::clear()
 	list_.clear();
 }
 
-void ListExpr::push_back(Expr *expr)
+void ListExpr::push_back(Expr* expr)
 {
 	list_.push_back(expr);
 }
@@ -511,7 +511,7 @@ int ListExpr::length() const
 	return list_.size();
 }
 
-Expr *ListExpr::at(int i)
+Expr* ListExpr::at(int i)
 {
 	return list_[i];
 }
@@ -534,7 +534,7 @@ void ListExpr::accept(ASTVisitor& v)
 }
 
 // CallExpr
-CallExpr::CallExpr(Function *callee, ListExpr *args, CallStyle cs, const SourceLocation& sloc) :
+CallExpr::CallExpr(Function* callee, ListExpr* args, CallStyle cs, const SourceLocation& sloc) :
 	Expr(sloc),
 	callee_(callee),
 	args_(args ? args : new ListExpr()),
@@ -548,12 +548,12 @@ CallExpr::~CallExpr()
 		delete args_;
 }
 
-Function *CallExpr::callee() const
+Function* CallExpr::callee() const
 {
 	return callee_;
 }
 
-ListExpr *CallExpr::args() const
+ListExpr* CallExpr::args() const
 {
 	return args_;
 }
@@ -568,7 +568,7 @@ void CallExpr::accept(ASTVisitor& v)
 	v.visit(*this);
 }
 
-VariableExpr::VariableExpr(Variable *var, const SourceLocation& sloc) :
+VariableExpr::VariableExpr(Variable* var, const SourceLocation& sloc) :
 	Expr(sloc), variable_(var)
 {
 }
@@ -577,12 +577,12 @@ VariableExpr::~VariableExpr()
 {
 }
 
-Variable *VariableExpr::variable() const
+Variable* VariableExpr::variable() const
 {
 	return variable_;
 }
 
-void VariableExpr::setVariable(Variable *var)
+void VariableExpr::setVariable(Variable* var)
 {
 	variable_ = var;
 }
@@ -593,18 +593,18 @@ void VariableExpr::accept(ASTVisitor& v)
 }
 
 // FunctionRefExpr
-FunctionRefExpr::FunctionRefExpr(Function *ref, const SourceLocation& sloc) :
+FunctionRefExpr::FunctionRefExpr(Function* ref, const SourceLocation& sloc) :
 	Expr(sloc),
 	function_(ref)
 {
 }
 
-Function *FunctionRefExpr::function() const
+Function* FunctionRefExpr::function() const
 {
 	return function_;
 }
 
-void FunctionRefExpr::setFunction(Function *value)
+void FunctionRefExpr::setFunction(Function* value)
 {
 	function_ = value;
 }
@@ -617,7 +617,7 @@ void FunctionRefExpr::accept(ASTVisitor& v)
 
 // {{{ stmt
 // ExprStmt
-ExprStmt::ExprStmt(Expr *expr, const SourceLocation& sloc) :
+ExprStmt::ExprStmt(Expr* expr, const SourceLocation& sloc) :
 	Stmt(sloc), expression_(expr)
 {
 }
@@ -628,12 +628,12 @@ ExprStmt::~ExprStmt()
 		delete expression_;
 }
 
-Expr *ExprStmt::expression() const
+Expr* ExprStmt::expression() const
 {
 	return expression_;
 }
 
-void ExprStmt::setExpression(Expr *value)
+void ExprStmt::setExpression(Expr* value)
 {
 	if (expression_)
 		delete expression_;
@@ -654,11 +654,11 @@ CompoundStmt::CompoundStmt(const SourceLocation& sloc) :
 
 CompoundStmt::~CompoundStmt()
 {
-	for (auto i = statements_.begin(), e = statements_.end(); i != e; ++i)
-		delete *i;
+	for (auto stmt: statements_)
+		delete stmt;
 }
 
-void CompoundStmt::push_back(Stmt *stmt)
+void CompoundStmt::push_back(Stmt* stmt)
 {
 	statements_.push_back(stmt);
 }
@@ -668,7 +668,7 @@ size_t CompoundStmt::length() const
 	return statements_.size();
 }
 
-Stmt *CompoundStmt::at(size_t index) const
+Stmt* CompoundStmt::at(size_t index) const
 {
 	return statements_[index];
 }
@@ -679,7 +679,7 @@ void CompoundStmt::accept(ASTVisitor& v)
 }
 
 // CondStmt
-CondStmt::CondStmt(Expr *cond, Stmt *thenStmt, Stmt *elseStmt, const SourceLocation& sloc) :
+CondStmt::CondStmt(Expr* cond, Stmt* thenStmt, Stmt* elseStmt, const SourceLocation& sloc) :
 	Stmt(sloc),
 	cond_(cond),
 	thenStmt_(thenStmt),
@@ -699,17 +699,17 @@ CondStmt::~CondStmt()
 		delete elseStmt_;
 }
 
-Expr *CondStmt::condition() const
+Expr* CondStmt::condition() const
 {
 	return cond_;
 }
 
-Stmt *CondStmt::thenStmt() const
+Stmt* CondStmt::thenStmt() const
 {
 	return thenStmt_;
 }
 
-Stmt *CondStmt::elseStmt() const
+Stmt* CondStmt::elseStmt() const
 {
 	return elseStmt_;
 }
