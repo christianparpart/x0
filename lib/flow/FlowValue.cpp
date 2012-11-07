@@ -14,6 +14,29 @@
 
 namespace x0 {
 
+std::string FlowValue::asString() const
+{
+	switch (type()) {
+		case STRING:
+			return toString();
+		case BUFFER:
+			return std::string(toString(), toNumber());
+		case NUMBER: {
+			char buf[256];
+			snprintf(buf, sizeof(buf), "%llu", toNumber());
+			return buf;
+		}
+		case BOOLEAN: {
+			static std::string trueStr("true");
+			static std::string falseStr("false");
+			return toBool() ? trueStr : falseStr;
+		}
+		default:
+			// illegal/unsupported cast
+			return std::string();
+	}
+}
+
 void FlowValue::dump() const
 {
 	dump(true);

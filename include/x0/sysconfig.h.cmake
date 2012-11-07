@@ -26,6 +26,8 @@
 #cmakedefine HAVE_PCRE_H
 #cmakedefine HAVE_SYS_UTSNAME_H
 
+#cmakedefine HAVE_LDAP_H
+
 #cmakedefine WITH_SSL
 #cmakedefine WITH_ACCEPT4
 #cmakedefine WITH_TCP_DEFER_ACCEPT

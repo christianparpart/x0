@@ -84,6 +84,7 @@ public:
 	HttpWorker* nextWorker();
 	HttpWorker* spawnWorker();
 	HttpWorker* selectWorker();
+	HttpWorker* mainWorker() const { return workers_[0]; }
 	const std::vector<HttpWorker*>& workers() const { return workers_; }
 	void destroyWorker(HttpWorker* worker);
 

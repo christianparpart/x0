@@ -1,7 +1,40 @@
 for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
 
 -------------------------------------------------
+   0.6.0 release todo
 -------------------------------------------------
+
+- DONE: update src/x0d.conf-dist to actually work
+- DONE: regex match should capture groups and store results in given context (HttpRequest*)
+- ensure basic binary upgrade and config reloads.
+- provide debian package for: x0
+  - sub packages:
+    - DONE: x0d
+    - DONE: x0-plugins
+    - DONE: libxzero-base + dev
+    - DONE: libxzero-flow + dev
+    - DONE: libxzero-http + dev
+    - source packages (how?)
+  - upstart script (with: postinst->autostart, prerm->autostop)
+- boost dependency cleanup (completely get rid of boost)
+- ssl: eliminate deprecation warnings
+- flow: function string(value) to return type string
+- flow: bail out on invalid cast of operator+ (for example and at least)
+- properly working SSL module (also in threaded mode).
+
+-----------------------------------------------------------------------------
+   runtime configuration file reloading
+-----------------------------------------------------------------------------
+
+1. compiles new version of the config file at fixed path
+2. increments configurationGeneration number
+3. applies incremental differences with setup handler
+4. replaces main request handler with the new one
+5. releases resources from last compilation
+
+-----------------------------------------------------------------------------
+   Misc.
+-----------------------------------------------------------------------------
 
 - HttpMessageProcessor:
   - (FIXME) should not forward the Transfer-Encoding header when it already decodes the response body.
@@ -95,7 +128,6 @@ CODE CLEANUP TODO:
 - process: termination handler, some kind of hook that is invoked when the application is terminated (with whatever signal or not).
 - reduce number of syscalls during a single request-processing
 
-
 -----------------------------------------------------------------------------
 FEATURES TODO:
 -----------------------------------------------------------------------------
@@ -109,21 +141,16 @@ FEATURES TODO:
 - add integrity-checks for lazy programmers to check object healthy:
   - If response Content-Length was given: do not write more bytes than expected to.
   - Do not modify response headers/state once serialization has been initiated.
-- add response::bytes_transferred (unsigned), which is updated automatically by write() (or something deeper) to
-  match the bytes written to the client.
-  This is required by the accesslog plugin to log the number of bytes sent (which is not actually content-length, or is it?)
 - debug plugin: config settings for different debug prints
   - per connection performance timer
   - per request performance timer
   - request/response header dumps
 - request path rewriting (rewrite)
-- http reverse proxy (plugin)
-  - (DONE) must support live streams (required for YaCS chat stream)
-  - must support fallback nodes (required for YaCS/maintenance)
 - server status API (status)
 - lua server pages (wsapi)
 - c++ server pages (csp) via llvm/clang (compiled in)
 - webdav support (webdav)
+- SSI (server side includes) plugin.
 
 
 -----------------------------------------------------------------------------

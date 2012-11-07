@@ -110,13 +110,15 @@ void flow_print(void* p, FlowArray& args, void* cx)
 }
 // }}}
 
+//#define X0_DEBUG_BACKEND_CALLBACK 1
+
 extern "C" X0_API void flow_backend_callback(uint64_t iself, int id, void *cx, int argc, FlowValue *argv)
 {
 	FlowBackend *self = (FlowBackend *)iself;
 
-#if 0
-	printf("> flow_backend_callback(iself=%p, id=%d, d=%p, argc=%d)...\n", (void*)self, id, (void*)cx, argc);
-	for (int i = 0; i <= argc; ++i) {
+#if X0_DEBUG_BACKEND_CALLBACK
+	printf("> flow_backend_callback(self=%p, id=%d, cx=%p, argc=%d)...\n", self, id, cx, argc);
+	for (int i = 1; i < argc; ++i) {
 		printf("    [%d]: ", i);
 		argv[i].dump(true);
 	}
@@ -124,7 +126,7 @@ extern "C" X0_API void flow_backend_callback(uint64_t iself, int id, void *cx, i
 
 	self->invoke(id, argc, argv, cx);
 
-#if 0
+#if X0_DEBUG_BACKEND_CALLBACK
 	printf("< flow_backend_callback: returns.\n");
 	printf("    [R]: ");
 	argv[0].dump(true);

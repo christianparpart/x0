@@ -1304,6 +1304,10 @@ void FlowRunner::emitNativeCall(int id, ListExpr *argList)
 				};
 				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, "retval.value.tmp");
 				value_ = builder_.CreateLoad(value_, "retval.value.load");
+
+				if (native->returnType == FlowValue::BOOLEAN) {
+					value_ = builder_.CreateIntCast(value_, boolType(), false, "retval.value.boolcast");
+				}
 			}
 
 			break;
@@ -1353,7 +1357,7 @@ void FlowRunner::visit(Function& function)
 	}
 
 	if (function.body() == NULL) {
-		reportError("Cannot use unknown function '%s'.", function.name().c_str());
+		reportError("Cannot use unknown symbol '%s'.", function.name().c_str());
 		return;
 	}
 

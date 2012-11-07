@@ -86,6 +86,11 @@ private:
 	void log_info(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void log_debug(HttpRequest* r, const FlowParams& args, FlowValue& result);
 
+	void file_exists(HttpRequest* in, const FlowParams& args, FlowValue& result);
+	void file_is_reg(HttpRequest* in, const FlowParams& args, FlowValue& result);
+	void file_is_dir(HttpRequest* in, const FlowParams& args, FlowValue& result);
+	void file_is_exe(HttpRequest* in, const FlowParams& args, FlowValue& result);
+
 	// main handlers
 	bool docroot(HttpRequest* r, const FlowParams& args);
 	bool alias(HttpRequest* r, const FlowParams& args);

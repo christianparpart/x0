@@ -354,6 +354,54 @@ Example:
 
  sys.env("PATH")
 
+=item B<file.exists> (path)
+
+Determines whether or not given filename path exists.
+
+Example:
+
+ if (file.exists("/etc/htpasswd")) {
+     log.debug("File exists.")
+ } else {
+     log.debug("File does not exist.")
+ }
+
+=item B<file.is_reg> (path)
+
+Determines whether or not given filename path exists as regular file.
+
+Example:
+
+ if (file.is_reg("/etc/htpasswd")) {
+     log.debug("Regular file exists.")
+ } else {
+     log.debug("Regular file not exist.")
+ }
+
+=item B<file.is_dir> (path)
+
+Determines whether or not given filename path exists as directory.
+
+Example:
+
+ if (file.is_dir("/etc/htpasswd.d")) {
+     log.debug("Directory exists.")
+ } else {
+     log.debug("Directory does not exist.")
+ }
+
+=item B<file.is_exe> (path)
+
+Determines whether or not given filename path exists as executable file.
+
+Example:
+
+ if (file.is_exe("/bin/bash")) {
+     log.debug("Executable exists.")
+ } else {
+     log.debug("Executable does not exist.")
+ }
+
 =back
 
 =head2 MAIN PROPERTIES
@@ -669,6 +717,8 @@ almost compatible to the one Nginx produces.
 Example:
 
  status.nginx_compat if req.path == '/server-status';
+
+=back
 
 =head2 auth
 

@@ -34,8 +34,8 @@ public:
 	~RegExp();
 
 	bool match(const char *buffer, size_t size, Result* result = nullptr) const;
-	bool match(const BufferRef& buffer) const;
-	bool match(const char *cstring) const;
+	bool match(const BufferRef& buffer, Result* result = nullptr) const;
+	bool match(const char *cstring, Result* result = nullptr) const;
 
 	const char *c_str() const;
 };
