@@ -1005,6 +1005,8 @@ Stmt* FlowParser::callStmt()
 	switch (token()) {
 		case FlowToken::If:
 			return postscriptStmt(new ExprStmt(new CallExpr(lookupOrCreate<Function>(name), nullptr/*args*/, CallExpr::Undefined, sloc), sloc));
+		case FlowToken::Unless:
+			return postscriptStmt(new ExprStmt(new CallExpr(lookupOrCreate<Function>(name), nullptr/*args*/, CallExpr::Undefined, sloc), sloc));
 		case FlowToken::Semicolon:
 			// must be a function/handler
 			nextToken();
@@ -1099,6 +1101,8 @@ Stmt* FlowParser::postscriptStmt(Stmt* baseStmt)
 	switch (token()) {
 		case FlowToken::If:
 			return postscriptIfStmt(baseStmt);
+		case FlowToken::Unless:
+			return postscriptUnlessStmt(baseStmt);
 		default:
 			return baseStmt;
 	}
@@ -1115,6 +1119,26 @@ Stmt* FlowParser::postscriptIfStmt(Stmt* baseStmt)
 	Expr* condExpr = expr();
 	if (!condExpr)
 		return nullptr;
+
+	consumeIf(FlowToken::Semicolon);
+
+	return new CondStmt(condExpr, baseStmt, nullptr, sloc.update(end()));
+}
+
+Stmt* FlowParser::postscriptUnlessStmt(Stmt* baseStmt)
+{
+	printf("unless\n");
+	FNTRACE();
+	// STMT ['unless' EXPR] ';'
+	SourceLocation sloc(location());
+
+	nextToken(); // 'unless'
+
+	Expr* condExpr = expr();
+	if (!condExpr)
+		return nullptr;
+
+	condExpr = new UnaryExpr(Operator::Not, condExpr, sloc);
 
 	consumeIf(FlowToken::Semicolon);
 

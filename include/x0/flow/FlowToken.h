@@ -33,17 +33,17 @@ struct FlowToken
 		Not, BitOr, BitAnd, BitXor,
 		BrOpen, BrClose, RndOpen, RndClose, Begin, End,
 
-		// keywords (35..42)
+		// keywords (35..43)
 		Var, On, Do, Handler,
-		If, Then, Else,
+		If, Then, Else, Unless,
 		Import, From,
 
-		// data types (43..54)
+		// data types (44..55)
 		Void, Char, Int, Long, LongLong,
 		Float, Double, LongDouble, UChar, UInt,
 		ULong, ULongLong,
 
-		// misc (55..60)
+		// misc (56..61)
 		Ident, Period, DblPeriod, Ellipsis, Comment, Eof,
 
 		COUNT
@@ -136,6 +136,7 @@ inline const char *FlowToken::c_str() const throw()
 		case FlowToken::If: return "if";
 		case FlowToken::Then: return "then";
 		case FlowToken::Else: return "else";
+		case FlowToken::Unless: return "unless";
 		case FlowToken::Import: return "import";
 		case FlowToken::From: return "from";
 		case FlowToken::Handler: return "handler";

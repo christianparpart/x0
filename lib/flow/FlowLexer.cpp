@@ -556,6 +556,7 @@ FlowToken FlowLexer::parseIdent()
 		{ "if", FlowToken::If },
 		{ "then", FlowToken::Then },
 		{ "else", FlowToken::Else },
+		{ "unless", FlowToken::Unless },
 		{ "import", FlowToken::Import },
 		{ "from", FlowToken::From },
 		{ "handler", FlowToken::Handler },

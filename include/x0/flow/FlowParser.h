@@ -111,6 +111,7 @@ private:
 	Stmt *compoundStmt();
 	Stmt *postscriptStmt(Stmt *baseStmt);
 	Stmt *postscriptIfStmt(Stmt *baseStmt);
+	Stmt *postscriptUnlessStmt(Stmt *baseStmt);
 
 	// location service
 	SourceLocation location() { return lexer_->location(); }
