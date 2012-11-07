@@ -47,6 +47,9 @@ static Buffer concat(const FlowParams& args)
 			case FlowValue::NUMBER:
 				msg << args[i].toNumber();
 				break;
+			case FlowValue::BOOLEAN:
+				msg << (args[i].toBool() ? "true" : "false");
+				break;
 			case FlowValue::BUFFER:
 				msg << args[i].asString();
 				break;
