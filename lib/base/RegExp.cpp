@@ -46,18 +46,6 @@ RegExp::~RegExp()
 	pcre_free(re_);
 }
 
-bool RegExp::match(const char *cstring) const
-{
-	if (!re_)
-		return false;
-
-	const size_t OV_COUNT = 3 * 36;
-	int ov[OV_COUNT];
-
-	int rc = pcre_exec(re_, NULL, cstring, strlen(cstring), 0, 0, ov, OV_COUNT);
-	return rc > 0;
-}
-
 bool RegExp::match(const char *buffer, size_t size, Result* result) const
 {
 	if (!re_)
@@ -88,21 +76,14 @@ bool RegExp::match(const char *buffer, size_t size, Result* result) const
 	return rc > 0;
 }
 
-bool RegExp::match(const BufferRef& buffer) const
+bool RegExp::match(const BufferRef& buffer, Result* result) const
 {
-	if (!re_)
-		return false;
+	return match(buffer.data(), buffer.size(), result);
+}
 
-	const size_t OV_COUNT = 3 * 36;
-	int ov[OV_COUNT];
-
-#ifndef NDEBUG
-	for (size_t i = 0; i < OV_COUNT; ++i)
-		ov[i] = 1337;
-#endif
-
-	int rc = pcre_exec(re_, NULL, buffer.data(), buffer.size(), 0, 0, ov, OV_COUNT);
-	return rc > 0;
+bool RegExp::match(const char *cstring, Result* result) const
+{
+	return match(cstring, strlen(cstring), result);
 }
 
 const char *RegExp::c_str() const
