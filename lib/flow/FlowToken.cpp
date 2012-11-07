@@ -19,6 +19,7 @@ bool FlowTokenTraits::isKeyword(FlowToken t)
 		case FlowToken::If:
 		case FlowToken::Then:
 		case FlowToken::Else:
+		case FlowToken::Unless:
 		case FlowToken::Import:
 		case FlowToken::From:
 		case FlowToken::Handler:

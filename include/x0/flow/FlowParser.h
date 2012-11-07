@@ -51,8 +51,8 @@ private:
 	FlowToken token() const;
 	FlowToken nextToken() const;
 	bool eof() const;
-	bool skip(FlowToken);
 	bool consume(FlowToken);
+	bool consumeIf(FlowToken);
 	bool consumeUntil(FlowToken);
 
 	template<typename A1, typename... Args> bool consumeOne(A1 token, Args... tokens);
@@ -111,6 +111,7 @@ private:
 	Stmt *compoundStmt();
 	Stmt *postscriptStmt(Stmt *baseStmt);
 	Stmt *postscriptIfStmt(Stmt *baseStmt);
+	Stmt *postscriptUnlessStmt(Stmt *baseStmt);
 
 	// location service
 	SourceLocation location() { return lexer_->location(); }
