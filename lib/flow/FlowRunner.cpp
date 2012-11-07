@@ -1357,7 +1357,7 @@ void FlowRunner::visit(Function& function)
 	}
 
 	if (function.body() == NULL) {
-		reportError("Cannot use unknown function '%s'.", function.name().c_str());
+		reportError("Cannot use unknown symbol '%s'.", function.name().c_str());
 		return;
 	}
 
