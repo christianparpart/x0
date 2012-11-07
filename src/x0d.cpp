@@ -603,31 +603,33 @@ bool XzeroHttpDaemon::setupConfig()
 		port = 8080;
 
 	if (bind.empty())
-		bind = "0.0.0.0"; //TODO: "0::0";
+		bind = "::"; //"0.0.0.0"; //TODO: "0::0";
 
 	std::string source(
-		"import 'compress';\n"
-		"import 'dirlisting';\n"
-		"import 'cgi';\n"
+//		"import compress\n"
+//		"import dirlisting\n"
+//		"import cgi\n"
 		"\n"
-		"handler setup\n"
-		"{\n"
-		"    listen '#{bind}:#{port}';\n"
-		"    worker 1;\n"
+		"handler setup {\n"
+//		"    mimetypes '/etc/mime.types'\n"
+//		"    mimetypes.default 'application/octet-stream'\n"
+		"    listen 'bind' => #{bind}, 'port' => #{port}\n"
+//		"    workers 1\n"
 		"}\n"
 		"\n"
-		"handler main\n"
-		"{\n"
-		"    docroot '#{docroot}';\n"
-		"    autoindex ['index.cgi', 'index.html'];\n"
-		"    cgi.exec if phys.path =$ '.cgi';\n"
-		"    dirlisting;\n"
-		"    staticfile;\n"
+		"handler main {\n"
+		"    docroot '#{docroot}'\n"
+//		"    autoindex ['index.cgi', 'index.html']\n"
+//		"    cgi.exec if phys.path =$ '.cgi'\n"
+//		"    dirlisting\n"
+		"    staticfile\n"
 		"}\n"
 	);
 	gsub(source, "#{docroot}", documentRoot_);
 	gsub(source, "#{bind}", bind);
 	gsub(source, "#{port}", port);
+
+	printf("# source:\n%s\n", source.c_str());
 
 	server_->tcpCork(true);
 
@@ -943,12 +945,21 @@ int main(int argc, char *argv[])
 		const char* args[] = {
 			argv[0],
 			"--no-fork",
-			"-f", "src/test.conf",
 			"--pid-file", "test.pid",
 			"--log-file", "/dev/stdout",
 			"--log-level", "9",
+			"--instant=.,8080",
 			nullptr
 		};
+//		const char* args[] = {
+//			argv[0],
+//			"--no-fork",
+//			"-f", "src/test.conf",
+//			"--pid-file", "test.pid",
+//			"--log-file", "/dev/stdout",
+//			"--log-level", "9",
+//			nullptr
+//		};
 //		const char* args[] = { argv[0], "--systemd", "-c", "../../src/test.conf", nullptr };
 		argv = (char **) args;
 		argc = sizeof(args) / sizeof(*args) - 1;
