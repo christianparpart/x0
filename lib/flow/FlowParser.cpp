@@ -803,7 +803,7 @@ Expr* FlowParser::literalExpr()
 			return e;
 		}
 		default:
-			reportError("Unexpected token: %s", lexer_->tokenString().c_str());
+			reportUnexpectedToken();
 			return nullptr;
 	}
 }
