@@ -7,6 +7,7 @@
  */
 
 #include <x0/flow/FlowToken.h>
+#include <cstdio>
 
 namespace x0 {
 
