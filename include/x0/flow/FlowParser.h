@@ -89,6 +89,7 @@ private:
 
 	// expressions
 	Expr *expr();
+	Expr *assocExpr();
 	Expr *logicExpr();
 	Expr *negExpr();
 	Expr *relExpr();

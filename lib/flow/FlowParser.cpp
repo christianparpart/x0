@@ -161,7 +161,7 @@ FlowToken FlowParser::nextToken() const
 {
 #if defined(FLOW_DEBUG_PARSER)
 	FlowToken t = lexer_->nextToken();
-	lexer_->dump();
+	printf("token: %s\n", lexer_->dump().c_str());
 	return t;
 #else
 	return lexer_->nextToken();
@@ -438,7 +438,30 @@ Function* FlowParser::handlerDecl()
 Expr* FlowParser::expr() // logicExpr
 {
 	FNTRACE();
-	return logicExpr();
+	return assocExpr();
+}
+
+Expr* FlowParser::assocExpr()
+{
+	FNTRACE();
+	SourceLocation sloc(location());
+
+	std::unique_ptr<Expr> lhs(logicExpr());
+	if (!lhs)
+		return nullptr;
+
+	if (!consumeIf(FlowToken::KeyAssign))
+		return lhs.release();
+
+	std::unique_ptr<Expr> rhs(logicExpr());
+	if (!rhs)
+		return nullptr;
+
+	std::unique_ptr<ListExpr> assoc(new ListExpr(sloc.update(end())));
+	assoc->push_back(lhs.release());
+	assoc->push_back(rhs.release());
+
+	return assoc.release();
 }
 
 Expr* FlowParser::logicExpr()
@@ -740,23 +763,8 @@ Expr* FlowParser::subExpr()
 			return hashExpr();
 		case FlowToken::Ident:
 			return symbolExpr();
-		default: {
-			Expr* left = literalExpr();
-
-			if (!left || !consumeIf(FlowToken::KeyAssign))
-				return left;
-
-			Expr* right = expr();
-			if (!right) {
-				delete left;
-				return nullptr;
-			}
-
-			ListExpr* e = new ListExpr(sloc.update(end()));
-			e->push_back(left);
-			e->push_back(right);
-			return e;
-		}
+		default:
+			return literalExpr();
 	}
 }
 
