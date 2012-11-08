@@ -82,6 +82,8 @@ private:
 
 	void registerHost(const char *fqdn, x0::FlowValue::Function handler)
 	{
+		server().log(x0::Severity::debug, "vhost: registering virtual host %s", fqdn);
+
 		if (strchr(fqdn, ':'))
 			qualifiedHosts_[fqdn] = handler;
 		else
