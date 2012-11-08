@@ -2048,7 +2048,6 @@ void FlowRunner::visit(BinaryExpr& expr)
 				len = builder_.CreateSub(len, right);
 				data = builder_.CreateInBoundsGEP(data, right);
 				value_ = emitAllocaBuffer(len, data, "nbufref");
-
 			} else if (isArray(left) && isArray(right)) {
 				// (array, array)
 				llvm::Value* nl = emitLoadArrayLength(left);
