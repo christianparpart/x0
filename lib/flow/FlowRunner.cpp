@@ -2126,6 +2126,12 @@ void FlowRunner::visit(BinaryExpr& expr)
 		case Operator::Div:
 			value_ = builder_.CreateSDiv(left, right);
 			break;
+		case Operator::Mod:
+			if (isNumber(left) && isNumber(right))
+				value_ = builder_.CreateSRem(left, right);
+			else
+				reportError("Operand types not compatible to operator %.");
+			break;
 		case Operator::Equal:
 			if (isBool(left) && isBool(right)) {
 				// (bool, bool)

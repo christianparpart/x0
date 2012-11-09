@@ -595,6 +595,7 @@ Expr* FlowParser::mulExpr()
 		switch (token()) {
 			case FlowToken::Mul:
 			case FlowToken::Div:
+			case FlowToken::Mod:
 			case FlowToken::Shl:
 			case FlowToken::Shr: {
 				Operator op = makeOperator(token());
