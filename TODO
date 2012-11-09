@@ -4,10 +4,16 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
    0.6.0 release todo
 -------------------------------------------------
 
-- DONE: update src/x0d.conf-dist to actually work
-- DONE: regex match should capture groups and store results in given context (HttpRequest*)
-- ensure basic binary upgrade and config reloads.
+- core: BufferRef not dependant on Buffer
+- ssl: eliminate deprecation warnings
+- flow: function string(value) to return type string
+- flow: bail out on invalid cast of operator+ (for example and at least)
+- flow: bool cast
+- flow: int cast
+- ssl: properly working SSL module (also in threaded mode).
+- x0d: ensure basic binary upgrade and config reloads.
 - provide debian package for: x0
+  - upstart script (with: postinst->autostart, prerm->autostop)
   - sub packages:
     - DONE: x0d
     - DONE: x0-plugins
@@ -15,12 +21,12 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
     - DONE: libxzero-flow + dev
     - DONE: libxzero-http + dev
     - source packages (how?)
-  - upstart script (with: postinst->autostart, prerm->autostop)
-- boost dependency cleanup (completely get rid of boost)
-- ssl: eliminate deprecation warnings
-- flow: function string(value) to return type string
-- flow: bail out on invalid cast of operator+ (for example and at least)
-- properly working SSL module (also in threaded mode).
+- DONE: boost dependency cleanup (completely get rid of boost)
+- DONE: string cast function
+- DONE: first attempt of code style cleanup in FlowRunner, FlowParser, ...
+- DONE: postscript "unless" syntax
+- DONE: update src/x0d.conf-dist to actually work
+- DONE: regex match should capture groups and store results in given context (HttpRequest*)
 
 -----------------------------------------------------------------------------
    runtime configuration file reloading

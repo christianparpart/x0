@@ -1,4 +1,4 @@
-0.6.0 (not yet released, maybe 2012-10-12)
+0.6.0 (not yet released, maybe 2012-12-12)
 
 	GOAL: running director plugin in productively in multi threaded mode.
 
@@ -8,9 +8,26 @@
 	* http: improved diagnostic logging
 	* http: C++ API improvements
 	* http: fixed a bug wrt HTTP message processing in an edge case ignoring the message body
+	* http: added support for preventing directory traversal outside document-root.
+	* http: fixed document roots that contained trailing slashes
 	* director: bug fixes
 	* director: JSON API also shows number of dropped requests per load balancer
+	* director: should now run properly in threaded mode.
+	* core-api: added Severity level "notice" (syslog-alike).
+	* status: added support for nginx-compatible status output, handler status.nginx_compat();
+	* config: rewrite() now returns boolean to indicate whether or not rewritten path physically exists or not.
+	* config: added systemd.booted() and systemd.controlled() to indicate systemd hypervisoring.
+	* package: addeda initial Debian/Ubuntu packaging control files
 	* x0d: --log-level= now accepts symbolic values and introduced "notice" between "warning" and "info"
+	* flow: properly handle boolean values as boolean types (not just integer 0 and 1)
+	* flow: added support for integer modulo operation
+	* flow: added support for casting values of type int/bool/string to string.
+	* flow: added support for logical expressions on the left side of an association expression ('=>')
+	* flow: added regex.group(int position) to extract captures from regex matches
+	* flow: added unless postscript statement.
+	* flow: added file.exists(), file.is_reg(), file.is_dir(), file.is_exe()
+	* flow: coding style cleanups and minor refactors
+	* general: dropped dependency to boost framework.
 
 0.5.0 (2012-08-12)
 
