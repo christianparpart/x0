@@ -87,7 +87,7 @@ REL_OP          ::= '==' | '!='
                   | '=^' | '=$' | '=~'
                   | 'in'
 ADD_OP          ::= '+' | '-'
-MUL_OP          ::= '*' | '/' | 'shl' | 'shr'
+MUL_OP          ::= '*' | '/' | '%' | 'shl' | 'shr'
 POW_OP          ::= '**'
 
 expr            ::= assocExpr
