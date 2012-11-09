@@ -11,6 +11,7 @@
 
 #include <x0/flow/FlowToken.h>
 #include <x0/flow/FlowLexer.h> // SourceLocation
+#include <x0/flow/FlowValue.h> // FlowValue::Type
 #include <x0/RegExp.h>
 #include <x0/Api.h>
 #include <string>
@@ -22,6 +23,7 @@ class Expr;
 class UnaryExpr;
 class BinaryExpr;
 class ListExpr;
+class CastExpr;
 class CallExpr;
 class VariableExpr;
 class FunctionRefExpr;
@@ -70,6 +72,7 @@ public:
 	virtual void visit(IPAddressExpr& expr) = 0;
 	virtual void visit(VariableExpr& expr) = 0;
 	virtual void visit(FunctionRefExpr& expr) = 0;
+	virtual void visit(CastExpr& expr) = 0;
 	virtual void visit(CallExpr& expr) = 0;
 	virtual void visit(ListExpr& expr) = 0;
 
@@ -122,6 +125,7 @@ protected:
 	virtual void visit(IPAddressExpr& expr);
 	virtual void visit(VariableExpr& expr);
 	virtual void visit(FunctionRefExpr& expr);
+	virtual void visit(CastExpr& expr);
 	virtual void visit(CallExpr& expr);
 	virtual void visit(ListExpr& expr);
 
@@ -138,7 +142,7 @@ enum class Operator
 	Undefined,
 
 	// 1) unary
-	UnaryPlus, UnaryMinus, Not,
+	UnaryPlus, UnaryMinus, Not, Cast,
 
 	// 4) ext-rel binary
 	Equal, UnEqual, Greater, Less, GreaterOrEqual, LessOrEqual, In,
@@ -155,7 +159,7 @@ enum class Operator
 	Assign,
 
 	// 26) other
-	Bracket, Paren, Is, As
+	Bracket, Paren, Is
 };
 
 struct X0_API OperatorTraits
@@ -422,6 +426,20 @@ public:
 	void setValue(const ValueType& value) { value_ = value; }
 
 	virtual void accept(ASTVisitor& v) { v.visit(*this); }
+};
+
+class X0_API CastExpr : public UnaryExpr
+{
+private:
+	FlowValue::Type targetType_;
+
+public:
+	CastExpr(FlowValue::Type targetType, Expr* subExpr, const SourceLocation& sloc);
+	~CastExpr();
+
+	FlowValue::Type targetType() const { return targetType_; }
+
+	virtual void accept(ASTVisitor& v);
 };
 
 class X0_API CallExpr : public Expr

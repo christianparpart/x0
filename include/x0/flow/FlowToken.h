@@ -38,12 +38,10 @@ struct FlowToken
 		If, Then, Else, Unless,
 		Import, From,
 
-		// data types (44..55)
-		Void, Char, Int, Long, LongLong,
-		Float, Double, LongDouble, UChar, UInt,
-		ULong, ULongLong,
+		// data types (44..46)
+		VoidType, BoolType, IntType, StringType,
 
-		// misc (56..61)
+		// misc (47..52)
 		Ident, Period, DblPeriod, Ellipsis, Comment, Eof,
 
 		COUNT

@@ -41,22 +41,13 @@ bool FlowTokenTraits::isReserved(FlowToken t)
 bool FlowTokenTraits::isType(FlowToken t)
 {
 	switch (t) {
-		case FlowToken::Void:
-		case FlowToken::Boolean:
-		case FlowToken::Char:
-		case FlowToken::Int:
-		case FlowToken::Long:
-		case FlowToken::LongLong:
-		case FlowToken::Float:
-		case FlowToken::Double:
-		case FlowToken::LongDouble:
-		case FlowToken::UChar:
-		case FlowToken::UInt:
-		case FlowToken::ULong:
-		case FlowToken::ULongLong:
-		case FlowToken::String:
+		case FlowToken::VoidType:
+		case FlowToken::BoolType:
+		case FlowToken::IntType:
+		case FlowToken::StringType:
 			return true;
 		default:
+			printf("unknown token: %d\n", (int)t);
 			return false;
 	}
 }
@@ -185,18 +176,10 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Import: return "import";
 		case FlowToken::From: return "from";
 		case FlowToken::Handler: return "handler";
-		case FlowToken::Void: return "void";
-		case FlowToken::Char: return "char";
-		case FlowToken::Int: return "int";
-		case FlowToken::Long: return "long";
-		case FlowToken::LongLong: return "longlong";
-		case FlowToken::Float: return "float";
-		case FlowToken::Double: return "double";
-		case FlowToken::LongDouble: return "longdouble";
-		case FlowToken::UChar: return "uchar";
-		case FlowToken::UInt: return "uint";
-		case FlowToken::ULong: return "ulong";
-		case FlowToken::ULongLong: return "ulonglong";
+		case FlowToken::VoidType: return "void()";
+		case FlowToken::BoolType: return "bool()";
+		case FlowToken::IntType: return "int()";
+		case FlowToken::StringType: return "string()";
 		case FlowToken::Ident: return "Ident";
 		case FlowToken::Period: return "Period";
 		case FlowToken::DblPeriod: return "DblPeriod";

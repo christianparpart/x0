@@ -579,18 +579,11 @@ FlowToken FlowLexer::parseIdent()
 		{ "or", FlowToken::Or },
 		{ "xor", FlowToken::Xor },
 		{ "not", FlowToken::Not },
-		{ "void", FlowToken::Void },
-		{ "char", FlowToken::Char },
-		{ "int", FlowToken::Int },
-		{ "long", FlowToken::Long },
-		{ "longlong", FlowToken::LongLong },
-		{ "float", FlowToken::Float },
-		{ "double", FlowToken::Double },
-		{ "longdouble", FlowToken::LongDouble },
-		{ "uchar", FlowToken::UChar },
-		{ "ulong", FlowToken::ULong },
-		{ "ulonglong", FlowToken::ULongLong },
-		{ "string", FlowToken::String },
+
+		{ "bool", FlowToken::BoolType },
+		{ "int", FlowToken::IntType },
+		{ "string", FlowToken::StringType },
+
 		{ 0, FlowToken::Unknown }
 	};
 
@@ -600,12 +593,12 @@ FlowToken FlowLexer::parseIdent()
 
 	if (stringValue_ == "true" || stringValue_ == "yes") {
 		numberValue_ = 1;
-		return token_ = FlowToken::Number;
+		return token_ = FlowToken::Boolean;
 	}
 
 	if (stringValue_ == "false" || stringValue_ == "no") {
 		numberValue_ = 0;
-		return token_ = FlowToken::Number;
+		return token_ = FlowToken::Boolean;
 	}
 
 	return token_ = FlowToken::Ident;
@@ -619,7 +612,6 @@ std::string FlowLexer::tokenString() const
 		case FlowToken::IP:
 			return ipValue_.str();
 		case FlowToken::RegExp:
-			printf("tokenString returns: '%s'\n", stringValue_.c_str());
 			return "/" + stringValue_ + "/";
 		case FlowToken::RawString:
 		case FlowToken::String:

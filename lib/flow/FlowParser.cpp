@@ -702,6 +702,7 @@ Expr* FlowParser::subExpr()
 {
 	// subExpr ::= literalExpr ['=>' expr]
 	//           | symbolExpr
+	//           | castExpr
 	//			 | '(' expr ')'
 	//			 | '{' stmt '}'
 
@@ -761,11 +762,52 @@ Expr* FlowParser::subExpr()
 		}
 		case FlowToken::BrOpen: // [ expr [',' expr]* ]
 			return hashExpr();
+		case FlowToken::StringType:
+		case FlowToken::IntType:
+		case FlowToken::BoolType:
+			return castExpr();
 		case FlowToken::Ident:
 			return symbolExpr();
 		default:
 			return literalExpr();
 	}
+}
+
+inline FlowValue::Type toType(FlowToken token)
+{
+	switch (token) {
+		case FlowToken::BoolType:
+			return FlowValue::BOOLEAN;
+		case FlowToken::IntType:
+			return FlowValue::NUMBER;
+		case FlowToken::StringType:
+			return FlowValue::STRING;
+		default:
+			return FlowValue::VOID;
+	}
+}
+
+Expr* FlowParser::castExpr()
+{
+	FNTRACE();
+	SourceLocation sloc(location());
+
+	FlowValue::Type targetType = toType(token());
+	nextToken();
+
+	if (targetType == FlowValue::VOID) {
+		reportError("Invalid cast.");
+		return nullptr;
+	}
+
+	consume(FlowToken::RndOpen);
+	std::unique_ptr<Expr> expr(logicExpr());
+	consume(FlowToken::RndClose);
+
+	if (!expr)
+		return nullptr;
+
+	return new CastExpr(targetType, expr.release(), sloc.update(end()));
 }
 
 Expr* FlowParser::literalExpr()

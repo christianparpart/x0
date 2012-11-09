@@ -101,6 +101,7 @@ private:
 	Expr *literalExpr();
 	Expr *hashExpr();
 	Expr *symbolExpr();
+	Expr *castExpr();
 	Expr *callExpr();
 
 	ListExpr *exprList();
