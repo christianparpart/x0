@@ -207,7 +207,7 @@ FlowToken FlowLexer::nextToken()
 			return token_ = FlowToken::RegexMatch;
 		case '>':
 			nextChar();
-			return token_ = FlowToken::KeyAssign;
+			return token_ = FlowToken::HashRocket;
 		default:
 			return token_ = FlowToken::Assign;
 		}

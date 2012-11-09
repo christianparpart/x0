@@ -66,7 +66,7 @@ bool FlowTokenTraits::isOperator(FlowToken t)
 		case FlowToken::PrefixMatch:
 		case FlowToken::SuffixMatch:
 		case FlowToken::RegexMatch:
-		case FlowToken::KeyAssign:
+		case FlowToken::HashRocket:
 		case FlowToken::Plus:
 		case FlowToken::Minus:
 		case FlowToken::Mul:
@@ -145,7 +145,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::PrefixMatch: return "=^";
 		case FlowToken::SuffixMatch: return "=$";
 		case FlowToken::RegexMatch: return "=~";
-		case FlowToken::KeyAssign: return "=>";
+		case FlowToken::HashRocket: return "=>";
 		case FlowToken::In: return "in";
 		case FlowToken::Plus: return "+";
 		case FlowToken::Minus: return "-";

@@ -450,7 +450,7 @@ Expr* FlowParser::assocExpr()
 	if (!lhs)
 		return nullptr;
 
-	if (!consumeIf(FlowToken::KeyAssign))
+	if (!consumeIf(FlowToken::HashRocket))
 		return lhs.release();
 
 	std::unique_ptr<Expr> rhs(logicExpr());

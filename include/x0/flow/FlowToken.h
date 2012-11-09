@@ -28,7 +28,7 @@ struct FlowToken
 		Semicolon, Question, Colon,
 		And, Or, Xor,
 		Equal, UnEqual, Less, Greater, LessOrEqual, GreaterOrEqual,
-		PrefixMatch, SuffixMatch, RegexMatch, In, KeyAssign,
+		PrefixMatch, SuffixMatch, RegexMatch, In, HashRocket,
 		Plus, Minus, Mul, Div, Mod, Shl, Shr, Comma, Pow,
 		Not, BitOr, BitAnd, BitXor,
 		BrOpen, BrClose, RndOpen, RndClose, Begin, End,
