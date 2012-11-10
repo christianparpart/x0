@@ -161,7 +161,7 @@ FlowToken FlowParser::nextToken() const
 {
 #if defined(FLOW_DEBUG_PARSER)
 	FlowToken t = lexer_->nextToken();
-	lexer_->dump();
+	printf("token: %s\n", lexer_->dump().c_str());
 	return t;
 #else
 	return lexer_->nextToken();
@@ -438,7 +438,30 @@ Function* FlowParser::handlerDecl()
 Expr* FlowParser::expr() // logicExpr
 {
 	FNTRACE();
-	return logicExpr();
+	return assocExpr();
+}
+
+Expr* FlowParser::assocExpr()
+{
+	FNTRACE();
+	SourceLocation sloc(location());
+
+	std::unique_ptr<Expr> lhs(logicExpr());
+	if (!lhs)
+		return nullptr;
+
+	if (!consumeIf(FlowToken::HashRocket))
+		return lhs.release();
+
+	std::unique_ptr<Expr> rhs(logicExpr());
+	if (!rhs)
+		return nullptr;
+
+	std::unique_ptr<ListExpr> assoc(new ListExpr(sloc.update(end())));
+	assoc->push_back(lhs.release());
+	assoc->push_back(rhs.release());
+
+	return assoc.release();
 }
 
 Expr* FlowParser::logicExpr()
@@ -572,6 +595,7 @@ Expr* FlowParser::mulExpr()
 		switch (token()) {
 			case FlowToken::Mul:
 			case FlowToken::Div:
+			case FlowToken::Mod:
 			case FlowToken::Shl:
 			case FlowToken::Shr: {
 				Operator op = makeOperator(token());
@@ -679,6 +703,7 @@ Expr* FlowParser::subExpr()
 {
 	// subExpr ::= literalExpr ['=>' expr]
 	//           | symbolExpr
+	//           | castExpr
 	//			 | '(' expr ')'
 	//			 | '{' stmt '}'
 
@@ -738,26 +763,52 @@ Expr* FlowParser::subExpr()
 		}
 		case FlowToken::BrOpen: // [ expr [',' expr]* ]
 			return hashExpr();
+		case FlowToken::StringType:
+		case FlowToken::IntType:
+		case FlowToken::BoolType:
+			return castExpr();
 		case FlowToken::Ident:
 			return symbolExpr();
-		default: {
-			Expr* left = literalExpr();
-
-			if (!left || !consumeIf(FlowToken::KeyAssign))
-				return left;
-
-			Expr* right = expr();
-			if (!right) {
-				delete left;
-				return nullptr;
-			}
-
-			ListExpr* e = new ListExpr(sloc.update(end()));
-			e->push_back(left);
-			e->push_back(right);
-			return e;
-		}
+		default:
+			return literalExpr();
 	}
+}
+
+inline FlowValue::Type toType(FlowToken token)
+{
+	switch (token) {
+		case FlowToken::BoolType:
+			return FlowValue::BOOLEAN;
+		case FlowToken::IntType:
+			return FlowValue::NUMBER;
+		case FlowToken::StringType:
+			return FlowValue::STRING;
+		default:
+			return FlowValue::VOID;
+	}
+}
+
+Expr* FlowParser::castExpr()
+{
+	FNTRACE();
+	SourceLocation sloc(location());
+
+	FlowValue::Type targetType = toType(token());
+	nextToken();
+
+	if (targetType == FlowValue::VOID) {
+		reportError("Invalid cast.");
+		return nullptr;
+	}
+
+	consume(FlowToken::RndOpen);
+	std::unique_ptr<Expr> expr(logicExpr());
+	consume(FlowToken::RndClose);
+
+	if (!expr)
+		return nullptr;
+
+	return new CastExpr(targetType, expr.release(), sloc.update(end()));
 }
 
 Expr* FlowParser::literalExpr()
@@ -795,7 +846,7 @@ Expr* FlowParser::literalExpr()
 			return e;
 		}
 		default:
-			reportError("Unexpected token: %s", lexer_->tokenString().c_str());
+			reportUnexpectedToken();
 			return nullptr;
 	}
 }
@@ -1127,7 +1178,6 @@ Stmt* FlowParser::postscriptIfStmt(Stmt* baseStmt)
 
 Stmt* FlowParser::postscriptUnlessStmt(Stmt* baseStmt)
 {
-	printf("unless\n");
 	FNTRACE();
 	// STMT ['unless' EXPR] ';'
 	SourceLocation sloc(location());

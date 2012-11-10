@@ -20,6 +20,7 @@ bool OperatorTraits::isUnary(Operator op)
 	case Operator::UnaryPlus:
 	case Operator::UnaryMinus:
 	case Operator::Not:
+	case Operator::Cast:
 		return true;
 	default:
 		return false;
@@ -54,13 +55,13 @@ const std::string& OperatorTraits::toString(Operator op)
 {
 	static std::string values[] = {
 		"UNDEFINED",
-		"+", "-", "!",
+		"+", "-", "!", "cast",
 		"==", "!=", ">", "<", ">=", "<=", "in",
 		"=^", "=$", "=~",
 		"+", "-", "||", "^",
 		"*", "/", "%", "<<", ">>", "&",
 		"=",
-		"[]", "()", "is", "as"
+		"[]", "()", "is"
 	};
 	return values[static_cast<size_t>(op)];
 }
@@ -218,7 +219,7 @@ Function::Function(const std::string& name) :
 	scope_(nullptr),
 	body_(nullptr),
 	isHandler_(false),
-	returnType_(FlowToken::Void),
+	returnType_(FlowToken::VoidType),
 	argTypes_(),
 	varArg_(false)
 {
@@ -229,12 +230,12 @@ Function::Function(const std::string& name, bool isHandler, const SourceLocation
 	scope_(nullptr),
 	body_(nullptr),
 	isHandler_(isHandler),
-	returnType_(FlowToken::Void),
+	returnType_(FlowToken::VoidType),
 	argTypes_(),
 	varArg_(false)
 {
 	if (isHandler_) {
-		setReturnType(FlowToken::Boolean);
+		setReturnType(FlowToken::BoolType);
 	}
 }
 
@@ -243,12 +244,12 @@ Function::Function(SymbolTable* scope, const std::string& name, Stmt* body, bool
 	scope_(scope),
 	body_(body),
 	isHandler_(isHandler),
-	returnType_(FlowToken::Void),
+	returnType_(FlowToken::VoidType),
 	argTypes_(),
 	varArg_(false)
 {
 	if (isHandler_) {
-		setReturnType(FlowToken::Boolean);
+		setReturnType(FlowToken::BoolType);
 	}
 }
 
@@ -529,6 +530,22 @@ void ListExpr::replaceAll(Expr* e)
 }
 
 void ListExpr::accept(ASTVisitor& v)
+{
+	v.visit(*this);
+}
+
+// CastExpr
+CastExpr::CastExpr(FlowValue::Type targetType, Expr* subExpr, const SourceLocation& sloc) :
+	UnaryExpr(Operator::Cast, subExpr, sloc),
+	targetType_(targetType)
+{
+}
+
+CastExpr::~CastExpr()
+{
+}
+
+void CastExpr::accept(ASTVisitor& v)
 {
 	v.visit(*this);
 }
@@ -839,6 +856,12 @@ void FlowCallIterator::visit(VariableExpr& expr)
 
 void FlowCallIterator::visit(FunctionRefExpr& expr)
 {
+	// nothing
+}
+
+void FlowCallIterator::visit(CastExpr& expr)
+{
+	// nothing
 }
 
 void FlowCallIterator::visit(CallExpr& call)

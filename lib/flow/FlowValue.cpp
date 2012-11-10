@@ -19,6 +19,8 @@ std::string FlowValue::asString() const
 	switch (type()) {
 		case STRING:
 			return toString();
+		case REGEXP:
+			return toRegExp().pattern();
 		case BUFFER:
 			return std::string(toString(), toNumber());
 		case NUMBER: {
@@ -31,6 +33,9 @@ std::string FlowValue::asString() const
 			static std::string falseStr("false");
 			return toBool() ? trueStr : falseStr;
 		}
+		case ARRAY:
+		case IP:
+		case FUNCTION:
 		default:
 			// illegal/unsupported cast
 			return std::string();

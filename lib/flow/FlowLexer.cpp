@@ -83,6 +83,7 @@ bool FlowLexer::initialize(std::istream *input, const std::string& name)
 
 	lastPos_.set(1, 1, 0);
 	currentPos_.set(1, 0, 0);
+	currentChar_ = '\0';
 
 	location_.fileName = filename_;
 	location_.begin.set(1, 1, 0);
@@ -142,23 +143,21 @@ int FlowLexer::peekChar()
 
 int FlowLexer::nextChar()
 {
+	if (currentChar_ == EOF)
+		return currentChar_;
+
 	int ch = stream_->get();
 
-	if (ch != EOF)
-	{
+	if (ch != EOF) {
 		lastPos_ = currentPos_;
 
-		if (currentChar_ != EOF) {
-			content_ += (char)currentChar_;
-			++currentPos_.offset;
-		}
-
 		if (currentChar_ == '\n') {
+			currentPos_.column = 0;
 			++currentPos_.line;
-			currentPos_.column = 1;
-		} else {
-			++currentPos_.column;
 		}
+		++currentPos_.column;
+		++currentPos_.offset;
+		content_ += static_cast<char>(currentChar_);
 	}
 
 	return currentChar_ = ch;
@@ -208,7 +207,7 @@ FlowToken FlowLexer::nextToken()
 			return token_ = FlowToken::RegexMatch;
 		case '>':
 			nextChar();
-			return token_ = FlowToken::KeyAssign;
+			return token_ = FlowToken::HashRocket;
 		default:
 			return token_ = FlowToken::Assign;
 		}
@@ -344,7 +343,16 @@ FlowToken FlowLexer::nextToken()
 	case '9':
 		return parseNumber();
 	default:
-		return parseIdent();
+		if (std::isalpha(currentChar()) || currentChar() == '_')
+			return parseIdent();
+
+		if (std::isprint(currentChar()))
+			printf("lexer: unknown char %c (0x%02X)\n", currentChar(), currentChar());
+		else
+			printf("lexer: unknown char %u (0x%02X)\n", currentChar() & 0xFF, currentChar() & 0xFF);
+
+		nextChar();
+		return token_ = FlowToken::Unknown;
 	}
 }
 
@@ -402,8 +410,21 @@ bool FlowLexer::consume(char c)
 bool FlowLexer::consumeSpace()
 {
 	// skip spaces
-	while (!eof() && std::isspace(currentChar()))
-		nextChar();
+	for (;; nextChar()) {
+		if (eof())
+			return true;
+
+		if (std::isspace(currentChar_))
+			continue;
+
+		if (std::isprint(currentChar_))
+			break;
+
+		// TODO proper error reporting through API callback
+		std::fprintf(stderr, "%s[%04ld:%02ld]: invalid byte %d (0x%02X)\n",
+				location_.fileName.c_str(), currentPos_.line, currentPos_.column,
+				currentChar() & 0xFF, currentChar() & 0xFF);
+	}
 
 	if (eof())
 		return true;
@@ -522,12 +543,6 @@ FlowToken FlowLexer::parseIdent()
 	stringValue_ += static_cast<char>(currentChar());
 	bool isHex = isHexChar();
 
-	if (!std::isalpha(currentChar()) && currentChar() != '_') {
-		printf("parseIdent: unknown char %d (0x%02X)\n", currentChar(), currentChar());
-		nextChar();
-		return token_ = FlowToken::Unknown;
-	}
-
 	nextChar();
 
 	while (std::isalnum(currentChar()) || currentChar() == '_' || currentChar() == '.') {
@@ -564,18 +579,11 @@ FlowToken FlowLexer::parseIdent()
 		{ "or", FlowToken::Or },
 		{ "xor", FlowToken::Xor },
 		{ "not", FlowToken::Not },
-		{ "void", FlowToken::Void },
-		{ "char", FlowToken::Char },
-		{ "int", FlowToken::Int },
-		{ "long", FlowToken::Long },
-		{ "longlong", FlowToken::LongLong },
-		{ "float", FlowToken::Float },
-		{ "double", FlowToken::Double },
-		{ "longdouble", FlowToken::LongDouble },
-		{ "uchar", FlowToken::UChar },
-		{ "ulong", FlowToken::ULong },
-		{ "ulonglong", FlowToken::ULongLong },
-		{ "string", FlowToken::String },
+
+		{ "bool", FlowToken::BoolType },
+		{ "int", FlowToken::IntType },
+		{ "string", FlowToken::StringType },
+
 		{ 0, FlowToken::Unknown }
 	};
 
@@ -585,12 +593,12 @@ FlowToken FlowLexer::parseIdent()
 
 	if (stringValue_ == "true" || stringValue_ == "yes") {
 		numberValue_ = 1;
-		return token_ = FlowToken::Number;
+		return token_ = FlowToken::Boolean;
 	}
 
 	if (stringValue_ == "false" || stringValue_ == "no") {
 		numberValue_ = 0;
-		return token_ = FlowToken::Number;
+		return token_ = FlowToken::Boolean;
 	}
 
 	return token_ = FlowToken::Ident;
@@ -604,7 +612,6 @@ std::string FlowLexer::tokenString() const
 		case FlowToken::IP:
 			return ipValue_.str();
 		case FlowToken::RegExp:
-			printf("tokenString returns: '%s'\n", stringValue_.c_str());
 			return "/" + stringValue_ + "/";
 		case FlowToken::RawString:
 		case FlowToken::String:

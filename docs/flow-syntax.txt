@@ -42,6 +42,7 @@ IP6_HEXPART     ::= IP6_HEXSEQ
                   | "::" [IP6_HEXSEQ]
 IP6_HEXSEQ      ::= 1*4HEXDIGIT *(':' 1*4HEXDIGIT)
 
+CAST_TYPE       ::= 'string' | 'int' | 'bool'
 
 
 .: DECLARATIONS :.
@@ -66,8 +67,8 @@ handlerDecl     ::= 'handler' IDENT stmt
 
 stmt            ::= ifStmt | compoundStmt | callStmt | emptyStmt
 
-ifStmt          ::= 'if' expr stmt
-                  *('elsif' expr stmt)
+ifStmt          ::= 'if' logicExpr stmt
+                  *('elsif' logicExpr stmt)
                    ['else' stmt]
 
 compoundStmt    ::= '{' *stmt '}'
@@ -89,7 +90,8 @@ ADD_OP          ::= '+' | '-'
 MUL_OP          ::= '*' | '/' | 'shl' | 'shr'
 POW_OP          ::= '**'
 
-expr            ::= logicExpr
+expr            ::= assocExpr
+assocExpr       ::= logicExpr ['=>' logicExpr]
 logicExpr       ::= negExpr *( LOGIC_OP negExpr)
 negExpr         ::= *('!') relExpr
 relExpr         ::= addExpr *(ADD_OP addExpr)
@@ -100,6 +102,7 @@ primaryExpr     ::= subExpr [UNIT]
 subExpr         ::= literalExpr
                   | REGEXP
                   | symbolExpr
+                  | castExpr
                   | keyValueExpr
                   | lambdaExpr
                   | compoundExpr
@@ -108,12 +111,9 @@ variableExpr    ::= IDENT
 functionCallExpr::= IDENT '(' exprList? ')'
 compoundExpr    ::= '(' expr ')'
 lambdaExpr      ::= '{' stmt '}'
-keyValueExpr    ::= literalExpr '=>' expr
 literalExpr     ::= NUMBER [UNIT] | BOOL | STRING | IP_ADDR
 exprList        ::= expr *(',' expr)
-
 arrayExpr       ::= '[' exprList? ']'
-
-
+castExpr        ::= CAST_TYPE '(' logicExpr ')'
 
 vim:et:ts=4

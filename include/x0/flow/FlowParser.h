@@ -89,6 +89,7 @@ private:
 
 	// expressions
 	Expr *expr();
+	Expr *assocExpr();
 	Expr *logicExpr();
 	Expr *negExpr();
 	Expr *relExpr();
@@ -100,6 +101,7 @@ private:
 	Expr *literalExpr();
 	Expr *hashExpr();
 	Expr *symbolExpr();
+	Expr *castExpr();
 	Expr *callExpr();
 
 	ListExpr *exprList();

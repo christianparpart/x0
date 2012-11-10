@@ -669,6 +669,19 @@ llvm::Value* FlowRunner::emitStoreBuffer(llvm::Value* nbuf, llvm::Value* length,
 	return nbuf;
 }
 
+llvm::Value* FlowRunner::emitCastNumberToString(llvm::Value* value)
+{
+	llvm::Value* size = llvm::ConstantInt::get(int32Type(), 64);
+	llvm::Value* result = builder_.CreateAlloca(int8Type(), size, "int2str");
+	emitCoreCall(CF::int2str, result, value);
+	return result;
+}
+
+llvm::Value* FlowRunner::emitCastBoolToString(llvm::Value* value)
+{
+	return emitCoreCall(CF::bool2str, value);
+}
+
 bool FlowRunner::isBufferTy(llvm::Type* type) const
 {
 	return type == bufferType_;
@@ -803,22 +816,14 @@ void FlowRunner::visit(Variable& var)
 llvm::Type* FlowRunner::makeType(FlowToken t) const
 {
 	switch (t) {
-		case FlowToken::Void:
+		case FlowToken::VoidType:
 			return llvm::Type::getVoidTy(cx_);
-		case FlowToken::Boolean:
+		case FlowToken::BoolType:
 			return llvm::Type::getInt1Ty(cx_);
-		case FlowToken::Int:
+		case FlowToken::IntType:
 			return llvm::Type::getInt32Ty(cx_);
-		case FlowToken::Long:
-			return llvm::Type::getInt32Ty(cx_);
-		case FlowToken::LongLong:
-			return llvm::Type::getInt64Ty(cx_);
-		case FlowToken::String:
+		case FlowToken::StringType:
 			return llvm::Type::getInt8PtrTy(cx_);// XXX is this right?
-		case FlowToken::Float:
-			return llvm::Type::getFloatTy(cx_);
-		case FlowToken::Double:
-			return llvm::Type::getDoubleTy(cx_);
 		default:
 			fprintf(stderr, "invalid type: %d\n", (int)t);
 			// TODO remaining types
@@ -1006,6 +1011,32 @@ extern "C" X0_API int flow_ipcmp(const IPAddress* ip1, const IPAddress* ip2)
 {
 	return *ip1 == *ip2 ? 0 : 1;
 }
+
+/**
+ * converts boolean value into a string.
+ *
+ * \param value the boolean value.
+ *
+ * \return pointer to global static constant containing either "true" or "false".
+ */
+extern "C" X0_API const char* flow_bool2str(bool value)
+{
+	return value ? "true" : "false";
+}
+
+/**
+ * converts given value into a string
+ *
+ * \param result result buffer
+ * \param value input integer value
+ *
+ * \returns the number of bytes filled in result
+ */
+extern "C" X0_API uint32_t flow_int2str(char* result, uint64_t value)
+{
+	// XXX we know the result buffer got pre-allocated with size of 64 bytes by the caller.
+	return snprintf(result, 64, "%lu", value);
+}
 // }}}
 
 void FlowRunner::emitCoreFunctions()
@@ -1036,6 +1067,9 @@ void FlowRunner::emitCoreFunctions()
 	emitCoreFunction(CF::ipstrcmp, "flow_ipstrcmp", int32Type(), ipaddrType(), stringType(), false);
 	emitCoreFunction(CF::ipcmp, "flow_ipcmp", int32Type(), ipaddrType(), ipaddrType(), false);
 	emitCoreFunction(CF::pow, "llvm.pow.f64", doubleType(), doubleType(), doubleType(), false);
+
+	emitCoreFunction(CF::bool2str, "flow_bool2str", stringType(), boolType(), false);
+	emitCoreFunction(CF::int2str, "flow_int2str", int32Type(), stringType(), int64Type(), false);
 }
 
 void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type* rt, Type* p1, bool isVaArg)
@@ -2048,7 +2082,6 @@ void FlowRunner::visit(BinaryExpr& expr)
 				len = builder_.CreateSub(len, right);
 				data = builder_.CreateInBoundsGEP(data, right);
 				value_ = emitAllocaBuffer(len, data, "nbufref");
-
 			} else if (isArray(left) && isArray(right)) {
 				// (array, array)
 				llvm::Value* nl = emitLoadArrayLength(left);
@@ -2092,6 +2125,12 @@ void FlowRunner::visit(BinaryExpr& expr)
 			break;
 		case Operator::Div:
 			value_ = builder_.CreateSDiv(left, right);
+			break;
+		case Operator::Mod:
+			if (isNumber(left) && isNumber(right))
+				value_ = builder_.CreateSRem(left, right);
+			else
+				reportError("Operand types not compatible to operator %.");
 			break;
 		case Operator::Equal:
 			if (isBool(left) && isBool(right)) {
@@ -2291,7 +2330,6 @@ void FlowRunner::visit(StringExpr& expr)
 	FNTRACE();
 
 	value_ = builder_.CreateGlobalStringPtr(expr.value().c_str());
-	//value_ = emitGlobalString(expr.value());
 }
 
 void FlowRunner::visit(NumberExpr& expr)
@@ -2305,7 +2343,7 @@ void FlowRunner::visit(BoolExpr& expr)
 {
 	FNTRACE();
 
-	value_ = llvm::ConstantInt::get(numberType(), expr.value() ? 1 : 0);
+	value_ = llvm::ConstantInt::get(boolType(), expr.value() ? 1 : 0);
 }
 
 void FlowRunner::visit(RegExpExpr& expr)
@@ -2353,6 +2391,31 @@ void FlowRunner::visit(FunctionRefExpr& expr)
 	FNTRACE();
 
 	value_ = codegen(expr.function());
+}
+
+void FlowRunner::visit(CastExpr& expr)
+{
+	FNTRACE();
+
+	value_ = codegen(expr.subExpr());
+	if (!value_)
+		return;
+
+	switch (expr.targetType()) {
+		case FlowValue::STRING:
+			if (isNumber(value_))
+				value_ = emitCastNumberToString(value_);
+			else if (isBool(value_))
+				value_ = emitCastBoolToString(value_);
+			else if (!isString(value_))
+				reportError("Invalid string cast. Unsupported source type.");
+			break;
+		case FlowValue::NUMBER:
+		case FlowValue::BOOLEAN:
+			reportError("Invalid cast. Cast target type not yet implemented.");
+		default:
+			reportError("Invalid cast. Internal error.");
+	}
 }
 
 void FlowRunner::visit(CallExpr& call)

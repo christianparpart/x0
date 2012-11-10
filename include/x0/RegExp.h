@@ -37,6 +37,7 @@ public:
 	bool match(const BufferRef& buffer, Result* result = nullptr) const;
 	bool match(const char *cstring, Result* result = nullptr) const;
 
+	const std::string& pattern() const { return pattern_; }
 	const char *c_str() const;
 };
 
