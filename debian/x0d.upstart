@@ -1,0 +1,20 @@
+description "x0d (Xzero) HTTP Web Server"
+author "Christian Parpart <trapni@gentoo.org>"
+
+start on filesystem or runlevel [2345]
+stop on runlevel [!2345]
+
+env LOG_FILE=/dev/stdout
+env LOG_LEVEL=warn
+
+#expect fork
+respawn
+
+exec /usr/sbin/x0d --no-fork -f /etc/x0/x0d.conf --pid-file=/var/run/x0d/x0d.pid --log-file=$LOG_FILE --log-level=$LOG_LEVEL
+
+pre-start script
+	mkdir -p /var/run/x0d
+	chown x0d.x0d /var/run/x0d
+end script
+
+# vim:syntax=upstart
