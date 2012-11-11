@@ -429,13 +429,15 @@ void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 void FastCgiTransport::io(x0::Socket* s, int revents)
 {
 	TRACE("io(0x%04x)", revents);
-	ref();
 
 	if (revents & ev::ERROR) {
-		TRACE("io: libev backend triggered an ev::ERROR");
-		unref();
+		request_->log(x0::Severity::error,
+			"fastcgi: internal error occured while waiting for I/O readiness from backend application.");
 		close();
+		return;
 	}
+
+	ref();
 
 	if (revents & x0::Socket::Read) {
 		TRACE("io: reading ...");
