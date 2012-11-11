@@ -33,6 +33,9 @@
 #include <grp.h>
 #include <unistd.h> // O_CLOEXEC
 
+#include <execinfo.h> // backtrace(), backtrace_symbols_fd()
+#include <ucontext.h> // ucontext
+
 #if !defined(NDEBUG)
 #	define X0D_DEBUG(msg...) XzeroHttpDaemon::log(x0::Severity::debug, msg)
 #else
@@ -938,8 +941,40 @@ void XzeroHttpDaemon::quickShutdownTimeout(ev::timer&, int)
 
 XzeroHttpDaemon* XzeroHttpDaemon::instance_ = 0;
 
+// {{{ crash handler
+void crashHandler(int nr, siginfo_t* info, void* ucp)
+{
+	ucontext* uc = static_cast<ucontext*>(ucp);
+
+	void* addresses[256];
+	int n = backtrace(addresses, sizeof(addresses) / sizeof(*addresses));
+	unsigned char* pc = reinterpret_cast<unsigned char*>(uc->uc_mcontext.gregs[REG_RIP]);
+
+	fprintf(stderr, "Received SIGSEGV at %p.\n", pc);
+	backtrace_symbols_fd(addresses, n, STDERR_FILENO);
+
+	abort();
+}
+
+void installCrashHandler()
+{
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_flags = SA_SIGINFO;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_sigaction = &crashHandler;
+
+	if (sigaction(SIGSEGV, &sa, NULL) < 0) {
+		fprintf(stderr, "Could not install crash handler. %s\n", strerror(errno));
+	}
+}
+// }}}
+
 int main(int argc, char *argv[])
 {
+	installCrashHandler();
+
 #if !defined(NDEBUG)
 	if (argc == 1) {
 		const char* args[] = {
