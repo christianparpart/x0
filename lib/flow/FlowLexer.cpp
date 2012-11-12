@@ -283,10 +283,10 @@ FlowToken FlowLexer::nextToken()
 		nextChar();
 		return token_ = FlowToken::Begin;
 	case '}':
-		nextChar();
 		if (interpolationDepth_) {
 			return token_ = parseInterpolationFragment(false);
 		} else {
+			nextChar();
 			return token_ = FlowToken::End;
 		}
 	case '(':
@@ -335,10 +335,8 @@ FlowToken FlowLexer::nextToken()
 	case '\'':
 		return parseString(true);
 	case '"':
-		nextChar();
 		++interpolationDepth_;
 		token_ = parseInterpolationFragment(true);
-		consume('"');
 		return token_;
 	case '0':
 	case '1':
@@ -496,6 +494,9 @@ FlowToken FlowLexer::parseInterpolationFragment(bool start)
 	int last = -1;
 	stringValue_.clear();
 
+	// skip either '"' or '}' depending on your we entered
+	nextChar();
+
 	for (;;) {
 		if (eof() || (currentChar() == '"' && last != '\\'))
 			break;
@@ -509,6 +510,7 @@ FlowToken FlowLexer::parseInterpolationFragment(bool start)
 		} else if (currentChar() == '#') {
 			nextChar();
 			if (currentChar() == '{') {
+				nextChar();
 				return token_ = FlowToken::InterpolatedStringFragment;
 			} else {
 				stringValue_ += '#';

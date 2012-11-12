@@ -856,6 +856,8 @@ Expr* FlowParser::literalExpr()
 
 Expr* FlowParser::interpolatedStr()
 {
+	FNTRACE();
+
 	SourceLocation sloc(location());
 	std::unique_ptr<Expr> result(new StringExpr(stringValue(), sloc.update(end())));
 	nextToken();
@@ -866,35 +868,48 @@ Expr* FlowParser::interpolatedStr()
 	result.reset(new BinaryExpr(
 		Operator::Plus,
 		result.release(),
-		e.release(),
+		new CastExpr(FlowValue::STRING, e.get(), e->sourceLocation()),
 		sloc.update(end())
 	));
+	e.release();
 
-	for (;;) {
-		switch (token()) {
-			case FlowToken::InterpolatedStringFragment:
-				result.reset(new BinaryExpr(
-					Operator::Plus,
-					result.release(),
-					new StringExpr(stringValue(), sloc.update(end())),
-					sloc.update(end())
-				));
-				nextToken();
-				break;
-			case FlowToken::InterpolatedStringEnd:
-				result.reset(new BinaryExpr(
-					Operator::Plus,
-					result.release(),
-					new StringExpr(stringValue(), sloc.update(end())),
-					sloc.update(end())
-				));
-				nextToken();
-				return result.release();
-			default:
-				reportUnexpectedToken();
-				return nullptr;
-		}
+	while (token() == FlowToken::InterpolatedStringFragment) {
+		result.reset(new BinaryExpr(
+			Operator::Plus,
+			result.release(),
+			new StringExpr(stringValue(), sloc.update(end())),
+			sloc.update(end())
+		));
+		nextToken();
+
+		e.reset(expr());
+		if (!e)
+			return nullptr;
+
+		result.reset(new BinaryExpr(
+			Operator::Plus,
+			result.release(),
+			new CastExpr(FlowValue::STRING, e.get(), e->sourceLocation()),
+			sloc.update(end())
+		));
+		e.release();
 	}
+
+	if (token() == FlowToken::InterpolatedStringEnd) {
+		if (!stringValue().empty()) {
+			result.reset(new BinaryExpr(
+				Operator::Plus,
+				result.release(),
+				new StringExpr(stringValue(), sloc.update(end())),
+				sloc.update(end())
+			));
+		}
+		nextToken();
+		return result.release();
+	}
+
+	reportUnexpectedToken();
+	return nullptr;
 }
 
 Expr* FlowParser::symbolExpr()
