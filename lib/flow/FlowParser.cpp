@@ -833,9 +833,6 @@ Expr* FlowParser::literalExpr()
 		case FlowToken::InterpolatedStringFragment: {
 			return interpolatedStr();
 		}
-		case FlowToken::InterpolatedStringEnd:
-			printf("WHAT? HERE?!?\n");
-			return nullptr;
 		case FlowToken::Boolean: {
 			Expr* e = new BoolExpr(booleanValue(), sloc.update(end()));
 			nextToken();
