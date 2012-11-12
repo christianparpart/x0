@@ -44,6 +44,9 @@ IP6_HEXSEQ      ::= 1*4HEXDIGIT *(':' 1*4HEXDIGIT)
 
 CAST_TYPE       ::= 'string' | 'int' | 'bool'
 
+IPL_STRING      ::= '"' (interpolatedChar* '#{' expr '}')* interpolatedChar* '"'
+IPL_CHAR        ::= any char except '#' with escapes enabled
+
 
 .: DECLARATIONS :.
 
@@ -100,6 +103,7 @@ mulExpr         ::= powExpr *(POW_OP powExpr)
 powExpr         ::= primaryExpr *(POW_OP primaryExpr)
 primaryExpr     ::= subExpr [UNIT]
 subExpr         ::= literalExpr
+                  | IPL_STRING
                   | REGEXP
                   | symbolExpr
                   | castExpr
@@ -115,5 +119,42 @@ literalExpr     ::= NUMBER [UNIT] | BOOL | STRING | IP_ADDR
 exprList        ::= expr *(',' expr)
 arrayExpr       ::= '[' exprList? ']'
 castExpr        ::= CAST_TYPE '(' logicExpr ')'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'hello'
+"hello world"
+"hello #{world}"
+"hello #{world} hello"
+"hello " + world + " hello"
+>>>>>>>>   (expr)  <<<<<<<<
+
+PlusExpr { Literal<Str>, Symbol, Literal<Str> }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 vim:et:ts=4

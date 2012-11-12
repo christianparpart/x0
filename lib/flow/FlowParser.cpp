@@ -830,6 +830,12 @@ Expr* FlowParser::literalExpr()
 			nextToken();
 			return e;
 		}
+		case FlowToken::InterpolatedStringFragment: {
+			return interpolatedStr();
+		}
+		case FlowToken::InterpolatedStringEnd:
+			printf("WHAT? HERE?!?\n");
+			return nullptr;
 		case FlowToken::Boolean: {
 			Expr* e = new BoolExpr(booleanValue(), sloc.update(end()));
 			nextToken();
@@ -848,6 +854,49 @@ Expr* FlowParser::literalExpr()
 		default:
 			reportUnexpectedToken();
 			return nullptr;
+	}
+}
+
+Expr* FlowParser::interpolatedStr()
+{
+	SourceLocation sloc(location());
+	std::unique_ptr<Expr> result(new StringExpr(stringValue(), sloc.update(end())));
+	nextToken();
+	std::unique_ptr<Expr> e(expr());
+	if (!e)
+		return nullptr;
+
+	result.reset(new BinaryExpr(
+		Operator::Plus,
+		result.release(),
+		e.release(),
+		sloc.update(end())
+	));
+
+	for (;;) {
+		switch (token()) {
+			case FlowToken::InterpolatedStringFragment:
+				result.reset(new BinaryExpr(
+					Operator::Plus,
+					result.release(),
+					new StringExpr(stringValue(), sloc.update(end())),
+					sloc.update(end())
+				));
+				nextToken();
+				break;
+			case FlowToken::InterpolatedStringEnd:
+				result.reset(new BinaryExpr(
+					Operator::Plus,
+					result.release(),
+					new StringExpr(stringValue(), sloc.update(end())),
+					sloc.update(end())
+				));
+				nextToken();
+				return result.release();
+			default:
+				reportUnexpectedToken();
+				return nullptr;
+		}
 	}
 }
 

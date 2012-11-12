@@ -101,6 +101,8 @@ bool FlowTokenTraits::isPrimaryOp(FlowToken t)
 bool FlowTokenTraits::isLiteral(FlowToken t)
 {
 	switch (t) {
+		case FlowToken::InterpolatedStringFragment:
+		case FlowToken::InterpolatedStringEnd:
 		case FlowToken::Boolean:
 		case FlowToken::Number:
 		case FlowToken::String:
@@ -186,6 +188,8 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Ellipsis: return "Ellipsis";
 		case FlowToken::Comment: return "Comment";
 		case FlowToken::Eof: return "EOF";
+		case FlowToken::InterpolatedStringFragment: return "InterpolatedStringFragment";
+		case FlowToken::InterpolatedStringEnd: return "InterpolatedStringEnd";
 		default: {
 			static char buf[1024];
 			std::snprintf(buf, sizeof(buf), "FlowToken:%d", value_);

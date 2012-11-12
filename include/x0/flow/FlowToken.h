@@ -23,6 +23,9 @@ struct X0_API FlowToken
 		// literals (1..6)
 		Boolean, Number, String, RawString, RegExp, IP,
 
+		InterpolatedStringFragment, // "hello #{" or "} world #{"
+		InterpolatedStringEnd,      // "} end"
+
 		// symbols (7..34)
 		Assign, OrAssign, AndAssign,
 		PlusAssign, MinusAssign, MulAssign, DivAssign,

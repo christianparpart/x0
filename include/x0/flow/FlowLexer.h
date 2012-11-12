@@ -83,6 +83,8 @@ private:
 	std::string stringValue_;
 	FlowToken token_;
 
+	int interpolationDepth_;
+
 public:
 	FlowLexer();
 	~FlowLexer();
@@ -123,6 +125,7 @@ private:
 	FlowToken parseNumber();
 	FlowToken parseString(bool raw);
 	FlowToken parseString(char delimiter, FlowToken result);
+	FlowToken parseInterpolationFragment(bool start);
 	FlowToken parseIdent();
 
 	FlowToken parseIPv6();
