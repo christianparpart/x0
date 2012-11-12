@@ -121,40 +121,4 @@ arrayExpr       ::= '[' exprList? ']'
 castExpr        ::= CAST_TYPE '(' logicExpr ')'
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-'hello'
-"hello world"
-"hello #{world}"
-"hello #{world} hello"
-"hello " + world + " hello"
->>>>>>>>   (expr)  <<<<<<<<
-
-PlusExpr { Literal<Str>, Symbol, Literal<Str> }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 vim:et:ts=4
