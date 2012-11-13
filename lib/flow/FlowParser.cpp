@@ -48,7 +48,8 @@ struct fntrace {
 #	define TRACE(msg...) DEBUG("FlowParser: " msg)
 #else
 #	define FNTRACE() /*!*/
-#	define TRACE(msg...) /*!*/
+//#	define TRACE(msg...) /*!*/
+#	define TRACE(msg...) DEBUG("FlowParser: " msg)
 #endif
 
 inline Operator makeUnaryOperator(FlowToken token) // {{{
@@ -924,45 +925,43 @@ Expr* FlowParser::symbolExpr()
 	if (token() == FlowToken::RndOpen) {
 		// function call expression
 		nextToken();
-		ListExpr* args = nullptr;
+		std::unique_ptr<ListExpr> args(nullptr);
 		if (token() != FlowToken::RndClose) {
-			args = exprList();
+			args.reset(exprList());
 			if (!args || !consume(FlowToken::RndClose)) {
-				delete args;
 				return nullptr;
 			}
 		} else if (!consume(FlowToken::RndClose)) {
 			return nullptr;
 		}
 		sloc.update(end());
-		return new CallExpr(lookupOrCreate<Function>(name), args, CallExpr::Method, sloc);
+		return new CallExpr(lookupOrCreate<Function>(name), args.release(), CallExpr::Method, sloc);
 	} else {
 		// variable / handler ref expression
 		sloc.update(end());
 
-		Symbol* symbol = scope()->lookup(name, Lookup::All);
-		if (symbol) {
+		if (Symbol* symbol = scope()->lookup(name, Lookup::All)) {
 			switch (symbol->type()) {
-			case Symbol::VARIABLE:
-				return new VariableExpr(static_cast<Variable*>(symbol), sloc);
-			case Symbol::FUNCTION:
-				return new FunctionRefExpr(static_cast<Function*>(symbol), sloc);
-			default:
-				reportError("Invalid reference to symbol '%s'", name.c_str());
-				return nullptr;
+				case Symbol::VARIABLE:
+					TRACE("Creating VariableExpr: '%s'\n", name.c_str());
+					return new VariableExpr(static_cast<Variable*>(symbol), sloc);
+				case Symbol::FUNCTION:
+					TRACE("Creating FunctionRefExpr: '%s'\n", name.c_str());
+					return new FunctionRefExpr(static_cast<Function*>(symbol), sloc);
+				default:
+					reportError("Invalid reference to symbol '%s'", name.c_str());
+					return nullptr;
 			}
+		} else if (backend_->isProperty(name)) {
+			TRACE("Creating Variable(Expr) to native property: '%s'", name.c_str());
+			Variable* v = new Variable(name, sloc);
+			scopeStack_.front()->appendSymbol(v);
+			return new VariableExpr(v, sloc);
 		} else {
-			if (backend_->isProperty(name)) {
-				//printf("var symbol referenced: '%s'\n", name.c_str());
-				Variable* v = new Variable(name, sloc);
-				scopeStack_.front()->appendSymbol(v);
-				return new VariableExpr(v, sloc);
-			} else {
-				//printf("fnref symbol referenced: '%s'\n", name.c_str());
-				Function* f = new Function(name, true);
-				scopeStack_.front()->appendSymbol(f); // register forward to global-scope
-				return new FunctionRefExpr(f, sloc);
-			}
+			TRACE("Creating Function(RefExpr): '%s'\n", name.c_str());
+			Function* f = new Function(name, true);
+			scopeStack_.front()->appendSymbol(f); // register forward to global-scope
+			return new FunctionRefExpr(f, sloc);
 		}
 	}
 }
@@ -1008,43 +1007,6 @@ Expr* FlowParser::hashExpr()
 	}
 	e->setSourceLocation(sloc.update(end()));
 	return e.release();
-}
-
-Expr* FlowParser::callExpr()
-{
-	// callExpr ::= NAME '(' exprList? ')'
-	// where NAME *must* be a function that is not a handler.
-
-	FNTRACE();
-	SourceLocation sloc(location());
-
-	std::string name = stringValue();
-	if (!consume(FlowToken::Ident))
-		return nullptr;
-
-	if (token() != FlowToken::RndOpen) { // reference to a handler
-		sloc.update(end());
-		Function* f = lookupOrCreate<Function>(name, true);
-		if (!f->isHandler()) {
-			reportError("Symbol '%s' must be a handler", name.c_str());
-			return nullptr;
-		}
-		return new FunctionRefExpr(f, sloc);
-	}
-	nextToken(); // RndOpen
-
-	if (!consume(FlowToken::RndOpen))
-		return nullptr;
-
-	std::unique_ptr<ListExpr> args(exprList());
-	if (!args)
-		return nullptr;
-
-	if (!consume(FlowToken::RndClose))
-		return nullptr;
-
-	sloc.update(end());
-	return new CallExpr(lookupOrCreate<Function>(name), args.release(), CallExpr::Method, sloc);
 }
 // }}}
 
