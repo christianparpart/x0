@@ -65,7 +65,8 @@ FlowLexer::FlowLexer() :
 	numberValue_(0),
 	ipValue_(),
 	stringValue_(),
-	token_(FlowToken::Unknown)
+	token_(FlowToken::Unknown),
+	interpolationDepth_(0)
 {
 }
 
@@ -282,8 +283,12 @@ FlowToken FlowLexer::nextToken()
 		nextChar();
 		return token_ = FlowToken::Begin;
 	case '}':
-		nextChar();
-		return token_ = FlowToken::End;
+		if (interpolationDepth_) {
+			return token_ = parseInterpolationFragment(false);
+		} else {
+			nextChar();
+			return token_ = FlowToken::End;
+		}
 	case '(':
 		nextChar();
 		return token_ = FlowToken::RndOpen;
@@ -330,7 +335,9 @@ FlowToken FlowLexer::nextToken()
 	case '\'':
 		return parseString(true);
 	case '"':
-		return parseString(false);
+		++interpolationDepth_;
+		token_ = parseInterpolationFragment(true);
+		return token_;
 	case '0':
 	case '1':
 	case '2':
@@ -480,6 +487,50 @@ FlowToken FlowLexer::parseString(bool raw)
 		stringValue_ = unescape(stringValue_);
 
 	return result;
+}
+
+FlowToken FlowLexer::parseInterpolationFragment(bool start)
+{
+	int last = -1;
+	stringValue_.clear();
+
+	// skip either '"' or '}' depending on your we entered
+	nextChar();
+
+	for (;;) {
+		if (eof() || (currentChar() == '"' && last != '\\'))
+			break;
+
+		if (currentChar() == '\\') {
+			nextChar();
+
+			if (eof()) {
+				break;
+			}
+		} else if (currentChar() == '#') {
+			nextChar();
+			if (currentChar() == '{') {
+				nextChar();
+				return token_ = FlowToken::InterpolatedStringFragment;
+			} else {
+				stringValue_ += '#';
+			}
+		}
+
+		stringValue_ += static_cast<char>(currentChar());
+		last = currentChar();
+		nextChar();
+	}
+
+	if (currentChar() == '"') {
+		nextChar();
+		--interpolationDepth_;
+		return token_ = start ? FlowToken::String : FlowToken::InterpolatedStringEnd;
+	} else if (eof()) {
+		return token_ = FlowToken::Eof;
+	} else {
+		return token_ = FlowToken::Unknown;
+	}
 }
 
 FlowToken FlowLexer::parseNumber()

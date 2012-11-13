@@ -469,7 +469,7 @@ Expr* FlowParser::logicExpr()
 	FNTRACE();
 	SourceLocation sloc(location());
 
-	Expr* left = negExpr();
+	Expr* left = relExpr();
 	if (!left)
 		return nullptr;
 
@@ -481,7 +481,7 @@ Expr* FlowParser::logicExpr()
 				Operator op = makeOperator(token());
 				nextToken();
 
-				Expr* right = negExpr();
+				Expr* right = relExpr();
 				if (!right) {
 					delete left;
 					return nullptr;
@@ -495,27 +495,6 @@ Expr* FlowParser::logicExpr()
 				return left;
 		}
 	}
-}
-
-Expr* FlowParser::negExpr()
-{
-	// negExpr ::= ('!')* relExpr
-	FNTRACE();
-	SourceLocation sloc(location());
-
-	bool negate = false;
-
-	while (consumeIf(FlowToken::Not))
-		negate = !negate;
-
-	Expr* e = relExpr();
-
-	sloc.update(end());
-
-	if (e && negate)
-		e = new UnaryExpr(Operator::Not, e, sloc);
-
-	return e;
 }
 
 Expr* FlowParser::relExpr() // addExpr ((== != <= >= < > =^ =$ =~ 'in') addExpr)*
@@ -587,7 +566,7 @@ Expr* FlowParser::mulExpr()
 
 	FNTRACE();
 	SourceLocation sloc(location());
-	Expr* left = powExpr();
+	Expr* left = negExpr();
 	if (!left)
 		return nullptr;
 
@@ -601,7 +580,7 @@ Expr* FlowParser::mulExpr()
 				Operator op = makeOperator(token());
 				nextToken();
 
-				Expr* right = powExpr();
+				Expr* right = negExpr();
 				if (!right) {
 					delete left;
 					return nullptr;
@@ -612,6 +591,23 @@ Expr* FlowParser::mulExpr()
 			default:
 				return left;
 		}
+	}
+}
+
+Expr* FlowParser::negExpr()
+{
+	// negExpr ::= (('!' | '-' | '+') negExpr)+ | powExpr
+
+	FNTRACE();
+	SourceLocation sloc(location());
+
+	if (FlowTokenTraits::isUnaryOp(token())) {
+		auto op = makeUnaryOperator(token());
+		nextToken();
+		std::unique_ptr<Expr> e(negExpr());
+		return e ? new UnaryExpr(op, e.release(), sloc.update(end())) : nullptr;
+	} else {
+		return powExpr();
 	}
 }
 
@@ -830,6 +826,9 @@ Expr* FlowParser::literalExpr()
 			nextToken();
 			return e;
 		}
+		case FlowToken::InterpolatedStringFragment: {
+			return interpolatedStr();
+		}
 		case FlowToken::Boolean: {
 			Expr* e = new BoolExpr(booleanValue(), sloc.update(end()));
 			nextToken();
@@ -849,6 +848,64 @@ Expr* FlowParser::literalExpr()
 			reportUnexpectedToken();
 			return nullptr;
 	}
+}
+
+Expr* FlowParser::interpolatedStr()
+{
+	FNTRACE();
+
+	SourceLocation sloc(location());
+	std::unique_ptr<Expr> result(new StringExpr(stringValue(), sloc.update(end())));
+	nextToken();
+	std::unique_ptr<Expr> e(expr());
+	if (!e)
+		return nullptr;
+
+	result.reset(new BinaryExpr(
+		Operator::Plus,
+		result.release(),
+		new CastExpr(FlowValue::STRING, e.get(), e->sourceLocation()),
+		sloc.update(end())
+	));
+	e.release();
+
+	while (token() == FlowToken::InterpolatedStringFragment) {
+		result.reset(new BinaryExpr(
+			Operator::Plus,
+			result.release(),
+			new StringExpr(stringValue(), sloc.update(end())),
+			sloc.update(end())
+		));
+		nextToken();
+
+		e.reset(expr());
+		if (!e)
+			return nullptr;
+
+		result.reset(new BinaryExpr(
+			Operator::Plus,
+			result.release(),
+			new CastExpr(FlowValue::STRING, e.get(), e->sourceLocation()),
+			sloc.update(end())
+		));
+		e.release();
+	}
+
+	if (token() == FlowToken::InterpolatedStringEnd) {
+		if (!stringValue().empty()) {
+			result.reset(new BinaryExpr(
+				Operator::Plus,
+				result.release(),
+				new StringExpr(stringValue(), sloc.update(end())),
+				sloc.update(end())
+			));
+		}
+		nextToken();
+		return result.release();
+	}
+
+	reportUnexpectedToken();
+	return nullptr;
 }
 
 Expr* FlowParser::symbolExpr()

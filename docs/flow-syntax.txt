@@ -44,6 +44,9 @@ IP6_HEXSEQ      ::= 1*4HEXDIGIT *(':' 1*4HEXDIGIT)
 
 CAST_TYPE       ::= 'string' | 'int' | 'bool'
 
+IPL_STRING      ::= '"' (interpolatedChar* '#{' expr '}')* interpolatedChar* '"'
+IPL_CHAR        ::= any char except '#' with escapes enabled
+
 
 .: DECLARATIONS :.
 
@@ -87,19 +90,20 @@ REL_OP          ::= '==' | '!='
                   | '=^' | '=$' | '=~'
                   | 'in'
 ADD_OP          ::= '+' | '-'
-MUL_OP          ::= '*' | '/' | 'shl' | 'shr'
+MUL_OP          ::= '*' | '/' | '%' | 'shl' | 'shr'
 POW_OP          ::= '**'
 
 expr            ::= assocExpr
 assocExpr       ::= logicExpr ['=>' logicExpr]
-logicExpr       ::= negExpr *( LOGIC_OP negExpr)
-negExpr         ::= *('!') relExpr
+logicExpr       ::= relExpr *(LOGIC_OP relExpr)
 relExpr         ::= addExpr *(ADD_OP addExpr)
 addExpr         ::= mulExpr *(MUL_OP mulExpr)
-mulExpr         ::= powExpr *(POW_OP powExpr)
+mulExpr         ::= negExpr *(POW_OP negExpr)
+negExpr         ::= *('!' | '-' | '+') relExpr
 powExpr         ::= primaryExpr *(POW_OP primaryExpr)
 primaryExpr     ::= subExpr [UNIT]
 subExpr         ::= literalExpr
+                  | IPL_STRING
                   | REGEXP
                   | symbolExpr
                   | castExpr
@@ -115,5 +119,6 @@ literalExpr     ::= NUMBER [UNIT] | BOOL | STRING | IP_ADDR
 exprList        ::= expr *(',' expr)
 arrayExpr       ::= '[' exprList? ']'
 castExpr        ::= CAST_TYPE '(' logicExpr ')'
+
 
 vim:et:ts=4

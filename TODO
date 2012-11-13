@@ -4,12 +4,13 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
    0.6.0 release todo
 -------------------------------------------------
 
-- core: BufferRef not dependant on Buffer
-- ssl: eliminate deprecation warnings
-- flow: function string(value) to return type string
+- DONE: core: BufferRef not dependant on Buffer
+- DONE: flow: unary (plus/)minus operator
+- DONE: flow: function string(value) to return type string
 - flow: bail out on invalid cast of operator+ (for example and at least)
 - flow: bool cast
 - flow: int cast
+- ssl: eliminate deprecation warnings
 - ssl: properly working SSL module (also in threaded mode).
 - x0d: ensure basic binary upgrade and config reloads.
 - provide debian package for: x0
@@ -83,8 +84,6 @@ FIXME x0d.conf: fastcgi/proxy examples use 'bind' but should use 'address'/'host
 	- http://www.g-loaded.eu/2011/09/27/mod_gnutls-rc4-cipher-beast/
 - ssl: add configure option to enable/disable SSL renegotiation (counter CVE)
 	- http://www.thc.org/thc-ssl-dos/
-- flow: use FlowString (string interpolation class) for double quoted strings
-  - interpolated string example: "Hello #{42 + i * 3}"
 - [plugins] balance: new plugin. initially supporting handler: balance.rr (kind of lighty-style)
 - cgi/fastcgi/proxy: verify to not pass connection-level headers
 - resource management (at least for max_core_size) must be evaluated *after* privilege dropping,

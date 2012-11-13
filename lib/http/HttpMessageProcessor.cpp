@@ -353,10 +353,11 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	 *                  | <entity-body encoded as per Transfer-Encoding>
 	 */
 
-	const char *i = chunk.begin();
-	const char *e = chunk.end();
+	const char* i = chunk.begin();
+	const char* e = chunk.end();
 
-	size_t result = chunk.offset();
+	const size_t initialOutOffset = out_nparsed ? *out_nparsed : 0;
+	size_t result = initialOutOffset;
 	size_t* nparsed = out_nparsed ? out_nparsed : &result;
 
 	//TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
@@ -384,8 +385,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	}
 #endif
 
-	while (i != e)
-	{
+	while (i != e) {
 #if 0
 		if (std::isprint(*i)) {
 			TRACE("parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i, state_str());
@@ -394,8 +394,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 		}
 #endif
 
-		switch (state_)
-		{
+		switch (state_) {
 			case MESSAGE_BEGIN:
 				contentLength_ = -1;
 				switch (mode_) {
@@ -424,7 +423,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			case REQUEST_LINE_BEGIN:
 				if (isToken(*i)) {
 					state_ = REQUEST_METHOD;
-					method_ = chunk.ref(*nparsed - chunk.offset(), 1);
+					method_ = chunk.ref(*nparsed - initialOutOffset, 1);
 
 					++*nparsed;
 					++i;
@@ -447,7 +446,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case REQUEST_ENTITY_BEGIN:
 				if (std::isprint(*i)) {
-					entity_ = chunk.ref(*nparsed - chunk.offset(), 1);
+					entity_ = chunk.ref(*nparsed - initialOutOffset, 1);
 					state_ = REQUEST_ENTITY;
 
 					++*nparsed;
@@ -671,7 +670,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			case STATUS_MESSAGE_BEGIN:
 				if (isText(*i)) {
 					state_ = STATUS_MESSAGE;
-					message_ = chunk.ref(*nparsed - chunk.offset(), 1);
+					message_ = chunk.ref(*nparsed - initialOutOffset, 1);
 					++*nparsed;
 					++i;
 				}
@@ -706,7 +705,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case HEADER_NAME_BEGIN:
 				if (isToken(*i)) {
-					name_ = chunk.ref(*nparsed - chunk.offset(), 1);
+					name_ = chunk.ref(*nparsed - initialOutOffset, 1);
 					state_ = HEADER_NAME;
 					++*nparsed;
 					++i;
@@ -806,7 +805,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case HEADER_VALUE_BEGIN:
 				if (isText(*i)) {
-					value_ = chunk.ref(*nparsed - chunk.offset(), 1);
+					value_ = chunk.ref(*nparsed - initialOutOffset, 1);
 					++*nparsed;
 					++i;
 					state_ = HEADER_VALUE;
@@ -857,8 +856,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					state_ = SYNTAX_ERROR;
 				}
 				break;
-			case HEADER_VALUE_END:
-			{
+			case HEADER_VALUE_END: {
 				TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
 
 				if (iequals(name_, "Content-Length")) {
@@ -912,9 +910,9 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				else
 					state_ = CONTENT_ENDLESS;
 				break;
-			case CONTENT_ENDLESS: // body w/o content-length (allowed in simple MESSAGE types only)
-			{
-				BufferRef c(chunk.ref(*nparsed - chunk.offset()));
+			case CONTENT_ENDLESS: {
+				// body w/o content-length (allowed in simple MESSAGE types only)
+				BufferRef c(chunk.ref(*nparsed - initialOutOffset));
 
 				*nparsed += c.size();
 				i += c.size();
@@ -928,11 +926,10 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 
 				break;
 			}
-			case CONTENT: // fixed size content length
-			{
-				std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - (*nparsed - chunk.offset()));
-
-				std::size_t offset = *nparsed - chunk.offset();
+			case CONTENT: {
+				// fixed size content length
+				std::size_t offset = *nparsed - initialOutOffset;
+				std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - offset);
 
 				contentLength_ -= chunkSize;
 				*nparsed += chunkSize;
@@ -998,9 +995,8 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case CONTENT_CHUNK_BODY:
 				if (contentLength_) {
-					std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - (*nparsed - chunk.offset()));
-
-					std::size_t offset = *nparsed - chunk.offset();
+					std::size_t offset = *nparsed - initialOutOffset;
+					std::size_t chunkSize = std::min(static_cast<size_t>(contentLength_), chunk.size() - offset);
 					contentLength_ -= chunkSize;
 					*nparsed += chunkSize;
 					i += chunkSize;
@@ -1049,8 +1045,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					state_ = MESSAGE_BEGIN;
 				}
 				break;
-			case SYNTAX_ERROR:
-			{
+			case SYNTAX_ERROR: {
 #if !defined(NDEBUG)
 				TRACE("parse: syntax error");
 				if (std::isprint(*i)) {
@@ -1092,7 +1087,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	}
 
 done:
-	return *nparsed - chunk.offset();
+	return *nparsed - initialOutOffset;
 }
 
 void HttpMessageProcessor::reset()

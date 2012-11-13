@@ -99,6 +99,7 @@ private:
 	Expr *primaryExpr();
 	Expr *subExpr();
 	Expr *literalExpr();
+	Expr *interpolatedStr();
 	Expr *hashExpr();
 	Expr *symbolExpr();
 	Expr *castExpr();

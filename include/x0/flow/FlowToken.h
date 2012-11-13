@@ -10,10 +10,11 @@
 #define sw_Flow_Token_h (1)
 
 #include <map>
+#include <x0/Api.h>
 
 namespace x0 {
 
-struct FlowToken
+struct X0_API FlowToken
 {
 	enum _
 	{
@@ -21,6 +22,9 @@ struct FlowToken
 
 		// literals (1..6)
 		Boolean, Number, String, RawString, RegExp, IP,
+
+		InterpolatedStringFragment, // "hello #{" or "} world #{"
+		InterpolatedStringEnd,      // "} end"
 
 		// symbols (7..34)
 		Assign, OrAssign, AndAssign,
@@ -61,7 +65,7 @@ private:
 	int value_;
 };
 
-class FlowTokenTraits
+class X0_API FlowTokenTraits
 {
 public:
 	static bool isKeyword(FlowToken t);
