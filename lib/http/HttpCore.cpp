@@ -302,7 +302,7 @@ void HttpCore::max_files(const FlowParams& args, FlowValue& result)
 	if (args.size() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_NOFILE, args[0].toNumber());
 	else
-		result.set(getrlimit(RLIMIT_NOFILE));
+		result.set(static_cast<long long>(getrlimit(RLIMIT_NOFILE)));
 }
 
 void HttpCore::max_address_space(const FlowParams& args, FlowValue& result)
@@ -310,7 +310,7 @@ void HttpCore::max_address_space(const FlowParams& args, FlowValue& result)
 	if (args.size() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_AS, args[0].toNumber());
 	else
-		result.set(getrlimit(RLIMIT_AS));
+		result.set(static_cast<long long>(getrlimit(RLIMIT_AS)));
 }
 
 void HttpCore::max_core(const FlowParams& args, FlowValue& result)
@@ -318,7 +318,7 @@ void HttpCore::max_core(const FlowParams& args, FlowValue& result)
 	if (args.size() == 1 && args[0].isNumber())
 		setrlimit(RLIMIT_CORE, args[0].toNumber());
 	else
-		result.set(getrlimit(RLIMIT_CORE));
+		result.set(static_cast<long long>(getrlimit(RLIMIT_CORE)));
 }
 
 void HttpCore::tcp_cork(const FlowParams& args, FlowValue& result)
@@ -724,7 +724,7 @@ void HttpCore::conn_remote_ip(HttpRequest* in, const FlowParams& args, FlowValue
 
 void HttpCore::conn_remote_port(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
-	result = in->connection.remotePort();
+	result.set(in->connection.remotePort());
 }
 
 void HttpCore::conn_local_ip(HttpRequest* in, const FlowParams& args, FlowValue& result)
@@ -734,7 +734,7 @@ void HttpCore::conn_local_ip(HttpRequest* in, const FlowParams& args, FlowValue&
 
 void HttpCore::conn_local_port(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
-	result = in->connection.localPort();
+	result.set(in->connection.localPort());
 }
 // }}}
 
@@ -794,7 +794,7 @@ void HttpCore::regex_group(HttpRequest* in, const FlowParams& args, FlowValue& r
 		return;
 	}
 
-	auto position = args[0].toNumber();
+	size_t position = args[0].toNumber() >= 0 ? args[0].toNumber() : 0;
 	if (const RegExp::Result* rr = in->regexMatch()) {
 		if (position < rr->size()) {
 			const auto& match = rr->at(position);

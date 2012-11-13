@@ -919,7 +919,7 @@ extern "C" X0_API int32_t flow_array_cmp(const FlowArray* left, const FlowArray*
 	return 0;
 }
 
-extern "C" X0_API int flow_NumberInArray(uint64_t number, const FlowArray* array)
+extern "C" X0_API int flow_NumberInArray(int64_t number, const FlowArray* array)
 {
 	for (const auto& elem: *array) {
 		switch (elem.type()) {
@@ -947,7 +947,7 @@ extern "C" X0_API int flow_StringInArray(size_t textLength, const char* text, co
 						return true;
 				break;
 			case FlowValue::BUFFER:
-				if (array->toNumber() == textLength)
+				if (static_cast<size_t>(array->toNumber()) == textLength)
 				{
 					const char* t = array->toString();
 					const char* u = text;

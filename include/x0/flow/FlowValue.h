@@ -48,7 +48,7 @@ struct X0_PACKED X0_API FlowValue
 	static const int FunctionOffset = 2;
 
 	uint32_t type_;
-	unsigned long long number_;
+	long long number_;
 	union {
 		const char* string_;
 		const FlowValue* array_;
@@ -59,7 +59,7 @@ struct X0_PACKED X0_API FlowValue
 
 	FlowValue();
 	FlowValue(bool boolean);
-	FlowValue(unsigned long long integer);
+	FlowValue(long long integer);
 	FlowValue(const RegExp* re);
 	FlowValue(const IPAddress* ip);
 	FlowValue(const char* cstring);
@@ -72,8 +72,10 @@ struct X0_PACKED X0_API FlowValue
 
 	FlowValue& set(bool boolean);
 	FlowValue& set(int integer);
-	FlowValue& set(unsigned long integer);
-	FlowValue& set(unsigned long long integer);
+	FlowValue& set(unsigned int integer) { return set(static_cast<long long>(integer)); }
+	FlowValue& set(long integer);
+	FlowValue& set(unsigned long integer) { return set(static_cast<long long>(integer)); }
+	FlowValue& set(long long integer);
 	FlowValue& set(const RegExp* re);
 	FlowValue& set(const IPAddress* ip);
 	FlowValue& set(const char* cstring);
@@ -87,8 +89,10 @@ struct X0_PACKED X0_API FlowValue
 	FlowValue& operator=(const RegExp* value);
 	FlowValue& operator=(const IPAddress* value);
 	FlowValue& operator=(const char* value);
-	FlowValue& operator=(unsigned long long value);
-	FlowValue& operator=(unsigned int value);
+	FlowValue& operator=(long long value);
+	FlowValue& operator=(unsigned long value) { return set(value); }
+	FlowValue& operator=(int value);
+	FlowValue& operator=(unsigned int value) { return set(value); }
 	FlowValue& operator=(Function function);
 
 	Type type() const { return static_cast<Type>(type_); }
@@ -106,7 +110,7 @@ struct X0_PACKED X0_API FlowValue
 	bool isFunction() const { return type_ == FUNCTION; }
 
 	bool toBool() const;
-	unsigned long long toNumber() const;
+	long long toNumber() const;
 	const RegExp& toRegExp() const;
 	const IPAddress& toIPAddress() const;
 	const char* toString() const;
@@ -163,7 +167,7 @@ inline FlowValue::FlowValue(bool value) :
 {
 }
 
-inline FlowValue::FlowValue(unsigned long long value) :
+inline FlowValue::FlowValue(long long value) :
 	type_(NUMBER),
 	number_(value)
 {
@@ -225,7 +229,7 @@ inline FlowValue& FlowValue::set(int value)
 	return *this;
 }
 
-inline FlowValue& FlowValue::set(unsigned long value)
+inline FlowValue& FlowValue::set(long value)
 {
 	type_ = NUMBER;
 	number_ = value;
@@ -233,7 +237,7 @@ inline FlowValue& FlowValue::set(unsigned long value)
 	return *this;
 }
 
-inline FlowValue& FlowValue::set(unsigned long long value)
+inline FlowValue& FlowValue::set(long long value)
 {
 	type_ = NUMBER;
 	number_ = value;
@@ -333,14 +337,14 @@ inline FlowValue& FlowValue::operator=(const char* value)
 	return set(value);
 }
 
-inline FlowValue& FlowValue::operator=(unsigned long long value)
+inline FlowValue& FlowValue::operator=(long long value)
 {
 	return set(value);
 }
 
-inline FlowValue& FlowValue::operator=(unsigned int value)
+inline FlowValue& FlowValue::operator=(int value)
 {
-	return set((unsigned long long)value);
+	return set((long long)value);
 }
 
 inline FlowValue& FlowValue::operator=(Function value)
@@ -353,7 +357,7 @@ inline bool FlowValue::toBool() const
 	return number_ != 0;
 }
 
-inline unsigned long long FlowValue::toNumber() const
+inline long long FlowValue::toNumber() const
 {
 	return number_;
 }
@@ -415,7 +419,7 @@ inline bool FlowValue::load<long>(long& result) const
 }
 
 template<>
-inline bool FlowValue::load<unsigned long long>(unsigned long long& result) const
+inline bool FlowValue::load<long long>(long long& result) const
 {
 	if (!isNumber())
 		return false;
