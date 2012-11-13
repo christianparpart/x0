@@ -1032,10 +1032,10 @@ extern "C" X0_API const char* flow_bool2str(bool value)
  *
  * \returns the number of bytes filled in result
  */
-extern "C" X0_API uint32_t flow_int2str(char* result, uint64_t value)
+extern "C" X0_API uint32_t flow_int2str(char* result, int64_t value)
 {
 	// XXX we know the result buffer got pre-allocated with size of 64 bytes by the caller.
-	return snprintf(result, 64, "%lu", value);
+	return snprintf(result, 64, "%lld", static_cast<long long>(value));
 }
 // }}}
 
@@ -1980,10 +1980,8 @@ void FlowRunner::visit(UnaryExpr& expr)
 	if (!codegen(expr.subExpr()))
 		return;
 
-	switch (expr.operatorStyle())
-	{
-		case Operator::Not:
-		{
+	switch (expr.operatorStyle()) {
+		case Operator::Not: {
 			if (value_->getType()->isIntegerTy()) {
 				value_ = builder_.CreateICmpEQ(value_, llvm::ConstantInt::get(value_->getType(), 0), "cmp.not.i");
 			} else if (isString(value_)) {
@@ -1999,9 +1997,10 @@ void FlowRunner::visit(UnaryExpr& expr)
 			break;
 		}
 		case Operator::UnaryMinus:
-			builder_.CreateNeg(value_);
+			value_ = builder_.CreateNeg(value_, "negate");
 			break;
 		case Operator::UnaryPlus:
+			// basically a no-op from the math point of view
 			break;
 		default:
 			reportError("Unknown operator style (%d) in unary operator", (int)expr.operatorStyle());

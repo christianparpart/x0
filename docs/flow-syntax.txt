@@ -95,11 +95,11 @@ POW_OP          ::= '**'
 
 expr            ::= assocExpr
 assocExpr       ::= logicExpr ['=>' logicExpr]
-logicExpr       ::= negExpr *( LOGIC_OP negExpr)
-negExpr         ::= *('!') relExpr
+logicExpr       ::= relExpr *(LOGIC_OP relExpr)
 relExpr         ::= addExpr *(ADD_OP addExpr)
 addExpr         ::= mulExpr *(MUL_OP mulExpr)
-mulExpr         ::= powExpr *(POW_OP powExpr)
+mulExpr         ::= negExpr *(POW_OP negExpr)
+negExpr         ::= *('!' | '-' | '+') relExpr
 powExpr         ::= primaryExpr *(POW_OP primaryExpr)
 primaryExpr     ::= subExpr [UNIT]
 subExpr         ::= literalExpr

@@ -84,8 +84,9 @@ bool FlowTokenTraits::isOperator(FlowToken t)
 bool FlowTokenTraits::isUnaryOp(FlowToken t)
 {
 	// token Plus and Minus can be both, unary and binary
-	switch (t)
-	{
+	switch (t) {
+		case FlowToken::Minus:
+		case FlowToken::Plus:
 		case FlowToken::Not:
 			return true;
 		default:

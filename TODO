@@ -5,11 +5,12 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
 -------------------------------------------------
 
 - DONE: core: BufferRef not dependant on Buffer
-- ssl: eliminate deprecation warnings
-- flow: function string(value) to return type string
+- DONE: flow: unary (plus/)minus operator
+- DONE: flow: function string(value) to return type string
 - flow: bail out on invalid cast of operator+ (for example and at least)
 - flow: bool cast
 - flow: int cast
+- ssl: eliminate deprecation warnings
 - ssl: properly working SSL module (also in threaded mode).
 - x0d: ensure basic binary upgrade and config reloads.
 - provide debian package for: x0
