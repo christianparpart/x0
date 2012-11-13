@@ -38,12 +38,12 @@ public:
 	static const std::size_t npos = std::size_t(-1);
 
 private:
-	const Buffer* buf_;
-	std::size_t offset_;
+	const char* data_;
 	std::size_t size_;
 
 public:
 	BufferRef();
+	BufferRef(const char* buffer, std::size_t _size);
 	BufferRef(const Buffer* _buffer, std::size_t _offset, std::size_t _size);
 //	BufferRef(iterator begin, iterator end);
 //	BufferRef(const char* buffer, std::size_t n);
@@ -62,11 +62,8 @@ public:
 	// properties
 	bool empty() const;
 	std::size_t size() const;
-	std::size_t offset() const { return offset_; }
-	const Buffer& buffer() const { assert(buf_ != nullptr); return *buf_; }
 
-	value_type *data();
-	const value_type *data() const;
+	const value_type* data() const;
 
 	operator bool() const;
 	bool operator!() const;
@@ -147,8 +144,7 @@ public:
 	double toDouble() const;
 	float toFloat() const;
 
-	// safety checks
-	bool belongsTo(const Buffer& b) const;
+	bool belongsTo(const Buffer& buffer) const;
 };
 
 // free functions
@@ -170,15 +166,19 @@ template<typename PodType, std::size_t N> bool operator==(const BufferRef& a, Po
 
 // {{{ BufferRef impl
 inline BufferRef::BufferRef() :
-	buf_(nullptr),
-	offset_(0),
+	data_(nullptr),
 	size_(0)
 {
 }
 
+inline BufferRef::BufferRef(const char* buffer, std::size_t size) :
+	data_(buffer),
+	size_(size)
+{
+}
+
 inline BufferRef::BufferRef(const Buffer *_buffer, std::size_t _offset, std::size_t _size) :
-	buf_(_buffer),
-	offset_(_offset),
+	data_(_buffer->data() + _offset),
 	size_(_size)
 {
 }
@@ -218,23 +218,20 @@ inline BufferRef::BufferRef(PodType (&value)[N]) :
 #endif
 
 inline BufferRef::BufferRef(const Buffer& v) :
-	buf_(&v),
-	offset_(0),
+	data_(v.data()),
 	size_(v.size())
 {
 }
 
 inline BufferRef::BufferRef(const BufferRef& v) :
-	buf_(v.buf_),
-	offset_(v.offset_),
+	data_(v.data_),
 	size_(v.size_)
 {
 }
 
 inline BufferRef& BufferRef::operator=(const Buffer& v)
 {
-	buf_ = &v;
-	offset_ = 0;
+	data_ = v.data();
 	size_ = v.size();
 
 	return *this;
@@ -242,8 +239,7 @@ inline BufferRef& BufferRef::operator=(const Buffer& v)
 
 inline BufferRef& BufferRef::operator=(const BufferRef& v)
 {
-	buf_ = v.buf_;
-	offset_ = v.offset_;
+	data_ = v.data_;
 	size_ = v.size_;
 
 	return *this;
@@ -264,14 +260,9 @@ inline std::size_t BufferRef::size() const
 	return size_;
 }
 
-inline Buffer::value_type* BufferRef::data()
-{
-	return buf_ ? const_cast<value_type*>(buf_->data()) + offset_ : nullptr;
-}
-
 inline const Buffer::value_type *BufferRef::data() const
 {
-	return buf_ ? buf_->data() + offset_ : nullptr;
+	return data_;
 }
 
 inline BufferRef::operator bool() const
@@ -308,7 +299,7 @@ inline BufferRef::const_iterator BufferRef::cend() const
  */
 inline void BufferRef::shl(ssize_t value)
 {
-	offset_ -= value;
+	data_ -= value;
 }
 
 /** shifts view's right margin by given bytes to the right, thus, increasing view's size.
@@ -502,18 +493,18 @@ inline bool BufferRef::ends(const value_type *value) const
 
 inline BufferRef BufferRef::ref(std::size_t offset) const
 {
-	assert(offset <= size());
-	return BufferRef(buf_, offset_ + offset, size() - offset);
+	assert(offset <= size_);
+	return BufferRef(data_ + offset, size_ - offset);
 }
 
 inline BufferRef BufferRef::ref(std::size_t offset, std::size_t size) const
 {
-	assert(offset <= this->size());
+	assert(offset <= size_);
 	assert(size == npos || offset + size <= size_);
 
 	return size != npos
-		? BufferRef(buf_, offset_ + offset, size)
-		: BufferRef(buf_, offset_ + offset, size_ - offset);
+		? BufferRef(data_ + offset, size)
+		: BufferRef(data_ + offset, size_ - offset);
 }
 
 inline BufferRef BufferRef::operator()(std::size_t offset) const
@@ -699,10 +690,10 @@ inline float BufferRef::toFloat() const
 	return as<float>();
 }
 
-inline bool BufferRef::belongsTo(const Buffer& b) const
+inline bool BufferRef::belongsTo(const Buffer& buffer) const
 {
-	return b.begin() <= begin() && begin() <= b.end()
-		&& b.begin() <= end() && end() <= b.end();
+	return cbegin() >= buffer.cbegin()
+		&& cend() <= buffer.cend();
 }
 // }}}
 
