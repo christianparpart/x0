@@ -11,11 +11,11 @@
 
 #include <x0/Api.h>
 #include <x0/Logging.h>
-#include <mysql/mysql.h>
 #include <vector>
 #include <string>
 #include <string.h> // strcmp(), memset()
 #include <stdio.h> // snprintf(), fprintf()
+#include <mysql.h>
 
 namespace x0 {
 

@@ -7,8 +7,8 @@
  */
 
 #include <x0/sql/SqlStatement.h>
-#include <mysql/errmsg.h>
 #include <assert.h>
+#include <errmsg.h>
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) const_cast<SqlStatement*>(this)->debug(msg)
