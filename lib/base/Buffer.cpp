@@ -44,12 +44,22 @@ bool Buffer::setCapacity(std::size_t value)
 		return true;
 
 
-	data_ = static_cast<value_type *>(std::realloc(data_, value));
-	capacity_ = value;
-
-	return true;
+	if (char* rp = static_cast<value_type *>(std::realloc(data_, value))) {
+		// setting capacity succeed.
+		data_ = rp;
+		capacity_ = value;
+		return true;
+	} else if (value == 0) {
+		// freeing all Memory succeed.
+		capacity_ = value;
+		return true;
+	} else {
+		// setting capacity failed, do not change anything.
+		return false;
+	}
 }
 
+// TODO: move to BufferRef and let this one invoke BufferRef's
 void Buffer::dump(const void *bytes, std::size_t length, const char *description)
 {
 	static char hex[] = "0123456789ABCDEF";
@@ -64,9 +74,9 @@ void Buffer::dump(const void *bytes, std::size_t length, const char *description
 	const char *p = (const char *)bytes;
 
 	if (description && *description)
-		printf("%s (%ld bytes):\n", description, length);
+		std::printf("%s (%ld bytes):\n", description, length);
 	else
-		printf("Memory dump (%ld bytes):\n", length);
+		std::printf("Memory dump (%ld bytes):\n", length);
 
 	while (length > 0)
 	{
@@ -121,7 +131,7 @@ void Buffer::dump(const void *bytes, std::size_t length, const char *description
 		// EOS
 		*v = '\0';
 
-		printf("%s\n", line);
+		std::printf("%s\n", line);
 	}
 }
 

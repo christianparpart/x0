@@ -120,6 +120,8 @@ public:
 	void push_back(const void *value, std::size_t size);
 	template<typename PodType, std::size_t N> void push_back(PodType (&value)[N]);
 
+	Buffer& printf(const char* fmt, ...);
+
 	// random access
 	value_type& operator[](std::size_t index);
 	const value_type& operator[](std::size_t index) const;
@@ -508,6 +510,35 @@ template<typename PodType, std::size_t N>
 inline void Buffer::push_back(PodType (&value)[N])
 {
 	push_back(reinterpret_cast<const void *>(value), N - 1);
+}
+
+inline Buffer& Buffer::printf(const char* fmt, ...)
+{
+	reserve(strlen(fmt) + 1);
+
+	va_list va;
+
+	while (true) {
+		va_start(va, fmt);
+		ssize_t buflen = vsnprintf(data_ + size_, capacity_ - size_, fmt, va);
+		va_end(va);
+
+		if (buflen >= -1 && buflen < static_cast<ssize_t>(capacity_ - size_)) {
+			resize(size_ + buflen);
+			break; // success
+		}
+
+		buflen = buflen > -1
+			? buflen + 1           // glibc >= 2.1
+			: capacity_ * 2;  // glibc <= 2.0
+
+		if (!setCapacity(capacity_ + buflen)) {
+			// increasing capacity failed
+			data_[capacity_ - 1] = '\0';
+			break; // alloc failure
+		}
+	}
+	return *this;
 }
 
 inline Buffer::value_type& Buffer::operator[](std::size_t index)
