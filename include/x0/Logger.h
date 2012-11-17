@@ -57,9 +57,7 @@ public:
 	template<typename A0, typename... Args>
 	void write(Severity s, const char *fmt, A0&& a0, Args&&... args)
 	{
-		char buf[1024];
-		std::snprintf(buf, sizeof(buf), fmt, a0, args...);
-		this->write(s, std::string(buf));
+		this->write(s, Buffer().printf(fmt, a0, args...).str());
 	}
 
 private:
@@ -198,10 +196,10 @@ inline void FileLogger<Now>::write(Severity s, const std::string& message)
 {
 	if (s <= level() && fd_ >= 0)
 	{
-		char buf[4096];
-		size_t n = snprintf(buf, sizeof(buf), "[%s] [%s] %s\n", now_().c_str(), s.c_str(), message.c_str());
+		Buffer buf;
+		buf.printf("[%s] [%s] %s\n", now_().c_str(), s.c_str(), message.c_str());
 
-		int rv = ::write(fd_, buf, n);
+		int rv = ::write(fd_, buf.data(), buf.size());
 
 		if (rv < 0) {
 			perror("FileLogger.write");
