@@ -123,7 +123,7 @@ if(WITH_MYSQL)
 	find_package(MYSQL)
 	include_directories(${MYSQL_INCLUDE_DIR})
 	set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
-	add_definitions(${MYSQL_CPPFLAGS})
+	add_definitions(${MYSQL_CFLAGS})
 endif()
 
 # valgrind
