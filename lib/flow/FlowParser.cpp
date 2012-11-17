@@ -48,8 +48,7 @@ struct fntrace {
 #	define TRACE(msg...) DEBUG("FlowParser: " msg)
 #else
 #	define FNTRACE() /*!*/
-//#	define TRACE(msg...) /*!*/
-#	define TRACE(msg...) DEBUG("FlowParser: " msg)
+#	define TRACE(msg...) /*!*/
 #endif
 
 inline Operator makeUnaryOperator(FlowToken token) // {{{
