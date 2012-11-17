@@ -516,13 +516,30 @@ void HttpServer::kill()
 void HttpServer::log(Severity s, const char *msg, ...)
 {
 	va_list va;
-	va_start(va, msg);
-	char buf[512];
-	int buflen = vsnprintf(buf, sizeof(buf), msg, va);
-	va_end(va);
+	Buffer buf(512);
 
-	if (colored_log_)
-	{
+	while (buf.capacity()) {
+		va_start(va, msg);
+		ssize_t buflen = vsnprintf(const_cast<char*>(buf.data()), buf.capacity(), msg, va);
+		va_end(va);
+
+		if (buflen >= -1 && buflen < static_cast<ssize_t>(buf.capacity())) {
+			buf.resize(buflen);
+			break;
+		}
+
+		buflen = buflen > -1
+			? buflen + 1           // glibc >= 2.1
+			: buf.capacity() * 2;  // glibc <= 2.0
+
+		if (!buf.setCapacity(buflen)) {
+			// increasing capacity faileD
+			buf[buf.capacity() - 1] = '\0';
+			break;
+		}
+	}
+
+	if (colored_log_) {
 		static AnsiColor::Type colors[] = {
 			AnsiColor::Red | AnsiColor::Bold, // error
 			AnsiColor::Yellow | AnsiColor::Bold, // warn
@@ -533,20 +550,17 @@ void HttpServer::log(Severity s, const char *msg, ...)
 
 		Buffer sb;
 		sb.push_back(AnsiColor::make(colors[s + 3]));
-		sb.push_back(buf, buflen);
+		sb.push_back(buf);
 		sb.push_back(AnsiColor::make(AnsiColor::Clear));
 
 		if (logger_)
 			logger_->write(s, sb.str());
 		else
 			std::fprintf(stderr, "%s\n", sb.c_str());
-	}
-	else
-	{
-		if (logger_)
-			logger_->write(s, buf);
-		else
-			std::fprintf(stderr, "%s\n", buf);
+	} else if (logger_) {
+		logger_->write(s, buf.data());
+	} else {
+		std::fprintf(stderr, "%s\n", buf.data());
 	}
 }
 
