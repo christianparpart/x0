@@ -169,16 +169,20 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 		+ strlen(strncpy(addr.sun_path, unixPath.c_str(), sizeof(addr.sun_path)));
 
 	int rv = ::connect(fd_, (struct sockaddr*) &addr, addrlen);
-	if (rv < 0) {
+	if (rv == 0) {
+		state_ = Operational;
+		return true;
+	} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
+		TRACE("connect: backgrounding (fd:%d)", fd_);
+		state_ = Connecting;
+		setMode(Write);
+		return true;
+	} else {
+		TRACE("could not connect to %s: %s", unixPath.c_str(), strerror(errno));
 		::close(fd_);
 		fd_ = -1;
-		TRACE("could not connect to %s: %s", unixPath.c_str(), strerror(errno));
 		return false;
 	}
-
-	state_ = Operational;
-
-	return true;
 }
 
 bool Socket::openTcp(const IPAddress& host, int port, int flags)
