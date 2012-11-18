@@ -231,7 +231,11 @@ bool HttpServer::validateConfig()
 
 void HttpServer::onNewConnection(Socket* cs, ServerSocket* ss)
 {
-	selectWorker()->enqueue(std::make_pair(cs, ss));
+	if (cs) {
+		selectWorker()->enqueue(std::make_pair(cs, ss));
+	} else {
+		log(Severity::error, "Accepting incoming connection failed. %s", strerror(errno));
+	}
 }
 
 bool HttpServer::setup(std::istream *settings, const std::string& filename, int optimizationLevel)
