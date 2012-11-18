@@ -501,8 +501,17 @@ bool XzeroHttpDaemon::parse()
 				break;
 			case 0: // long option with (val!=nullptr && flag=0)
 				break;
-			case -1: // EOF - everything parsed.
-				return true;
+			case -1: { // EOF - everything parsed.
+				if (optind == argc_)
+					return true;
+
+				x0::Buffer args;
+				while (optind < argc_)
+					args.printf(" %s", argv_[optind++]);
+
+				std::fprintf(stderr, "Unknown trailing parameters:%s\n", args.c_str());
+				// fall through
+			}
 			case '?': // ambiguous match / unknown arg
 			default:
 				return false;
