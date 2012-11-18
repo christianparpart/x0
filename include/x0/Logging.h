@@ -32,7 +32,6 @@ private:
 public:
 	Logging();
 	explicit Logging(const char *prefix, ...);
-	virtual ~Logging() {}
 
 	void setLoggingPrefix(const char *prefix, ...);
 	void setLogging(bool enable);

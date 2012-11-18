@@ -21,7 +21,7 @@ public:
 	{
 	}
 
-	virtual const char *name() const noexcept(true)
+	virtual const char *name() const
 	{
 		return "gai";
 	}

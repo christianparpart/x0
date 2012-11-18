@@ -12,7 +12,6 @@
 #include <x0/Api.h>
 #include <x0/Buffer.h>
 #include <x0/sql/SqlResult.h>
-#include <unistd.h> // sleep()
 #include <ev++.h>
 #include <mysql.h>
 #include <errmsg.h>
@@ -73,7 +72,7 @@ SqlResult SqlConnection::query(const char *queryStr, Args&&... args)
 	int rc;
 
 	do {
-		if (i) ::sleep(i);
+		if (i) sleep(i);
 		rc = mysql_real_query(&handle_, q.c_str(), q.size());
 	} while (rc != 0 && mysql_errno(&handle_) != CR_SERVER_GONE_ERROR);
 

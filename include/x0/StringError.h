@@ -29,11 +29,11 @@ private:
 
 public:
 	StringErrorCategoryImpl();
-	~StringErrorCategoryImpl() noexcept(true);
+	~StringErrorCategoryImpl();
 
 	int get(const std::string& msg);
 
-	virtual const char *name() const noexcept(true);
+	virtual const char *name() const;
 	virtual std::string message(int ec) const;
 };
 

@@ -8,7 +8,6 @@
 
 #include <x0/sql/SqlStatement.h>
 #include <assert.h>
-#include <unistd.h> // sleep()
 #include <errmsg.h>
 
 #if !defined(NDEBUG)
