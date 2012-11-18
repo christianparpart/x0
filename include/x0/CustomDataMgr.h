@@ -36,7 +36,7 @@ public:
 	{
 	}
 
-	~CustomDataMgr()
+	virtual ~CustomDataMgr()
 	{
 #if 0
 		assert(map_.empty() && "You must have invoked clearCustomData() in your parent destructor already to avoid unnecessary  bugs.");

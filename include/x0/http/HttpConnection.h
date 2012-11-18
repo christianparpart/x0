@@ -66,7 +66,7 @@ public:
 	 */
 	HttpConnection(HttpWorker* worker, unsigned long long id);
 
-	~HttpConnection();
+	virtual ~HttpConnection();
 
 	unsigned long long id() const;				//!< returns the (mostly) unique, worker-local, ID to this connection
 

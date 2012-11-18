@@ -160,6 +160,7 @@ public:
 
 public:
 	explicit HttpMessageProcessor(ParseMode mode);
+	virtual ~HttpMessageProcessor() {}
 
 	State state() const;
 	const char *state_str() const;
