@@ -109,7 +109,7 @@ size_t FlowLexer::column() const
 
 bool FlowLexer::eof() const
 {
-	return !stream_ || stream_->eof();
+	return currentChar_ == EOF || !stream_ || stream_->eof();
 }
 
 std::string FlowLexer::stringValue() const
