@@ -9,8 +9,8 @@
 #include <x0/sql/SqlResult.h>
 #include <x0/sql/SqlConnection.h>
 
-#include <mysql/mysql.h>
-#include <mysql/errmsg.h>
+#include <mysql.h>
+#include <errmsg.h>
 
 namespace x0 {
 

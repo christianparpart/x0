@@ -110,9 +110,7 @@ subExpr         ::= literalExpr
                   | keyValueExpr
                   | lambdaExpr
                   | compoundExpr
-symbolExpr      ::= variableExpr | functionCallExpr
-variableExpr    ::= IDENT
-functionCallExpr::= IDENT '(' exprList? ')'
+symbolExpr      ::= IDENT ['(' exprList? ')']
 compoundExpr    ::= '(' expr ')'
 lambdaExpr      ::= '{' stmt '}'
 literalExpr     ::= NUMBER [UNIT] | BOOL | STRING | IP_ADDR

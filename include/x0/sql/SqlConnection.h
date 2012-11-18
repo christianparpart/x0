@@ -13,8 +13,8 @@
 #include <x0/Buffer.h>
 #include <x0/sql/SqlResult.h>
 #include <ev++.h>
-#include <mysql/mysql.h>
-#include <mysql/errmsg.h>
+#include <mysql.h>
+#include <errmsg.h>
 
 namespace x0 {
 

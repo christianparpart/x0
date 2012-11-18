@@ -12,7 +12,7 @@
 #include <x0/Api.h>
 #include <string>
 #include <vector>
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 namespace x0 {
 

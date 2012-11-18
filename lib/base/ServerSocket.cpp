@@ -655,7 +655,8 @@ err:
 done:
 	TRACE("accept(): %d", cfd);
 
-	assert(callback_ != nullptr);
+	assert(callback_ != nullptr && "No callback handler defined.");
+
 	callback_(cs, this);
 }
 
