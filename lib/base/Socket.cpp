@@ -174,13 +174,7 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 	if (rv == 0) {
 		state_ = Operational;
 		return true;
-	} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
-		TRACE("connect: backgrounding (fd:%d)", fd_);
-		state_ = Connecting;
-		setMode(Write);
-		return true;
 	} else {
-		TRACE("could not connect to %s: %s", unixPath.c_str(), strerror(errno));
 		::close(fd_);
 		fd_ = -1;
 		return false;
