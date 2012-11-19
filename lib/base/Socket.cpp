@@ -93,6 +93,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af) :
 	state_(Operational),
 	mode_(None),
 	tcpCork_(false),
+	splicing_(true),
 	remoteIP_(),
 	remotePort_(0),
 	localIP_(),
