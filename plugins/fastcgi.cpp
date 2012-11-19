@@ -825,8 +825,15 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 
 		new CgiTransport(this, in, nextID_, backend);
 	} else {
-		in->log(x0::Severity::error, "Connection to backend %s failed: %s",
-			spec_.str().c_str(), strerror(errno));
+		switch (errno) {
+			case EAGAIN:
+				// UNIX domain sockets can return EAGAIN even with O_NONBLOCK set.
+				in->log(x0::Severity::error, "Connection to backend %s failed: Backend overloaded.", spec_.str().c_str(), strerror(errno));
+				break;
+			default:
+				in->log(x0::Severity::error, "Connection to backend %s failed: %s", spec_.str().c_str(), strerror(errno));
+				break;
+		}
 		in->status = x0::HttpStatus::ServiceUnavailable;
 		in->finish();
 
