@@ -24,10 +24,15 @@ option(BUILD_TESTS "Build unit tests [default: on]" ON)
 option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
 option(ENABLE_WEBDAV "Includes WebDAV support (plugin)" OFF)
 option(ENABLE_RRD "Includes RRD support (plugin)" OFF)
+option(ENABLE_IMAGEABLE "Includes Image Resizer plugin [default: off]" OFF)
 
 if(ENABLE_RRD)
 	find_package(RRD)
 endif()
+
+if(ENABLE_IMAGEABLE)
+	pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.7.0)
+endif(ENABLE_IMAGEABLE)
 
 # feature flags
 option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
@@ -178,6 +183,7 @@ set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
 if(WITH_SSL)
 	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
 endif(WITH_SSL)
+
 if(BUILD_TESTS)
 	pkg_check_modules(CPPUNIT REQUIRED cppunit>=1.12)
 	find_package(FCGI)
