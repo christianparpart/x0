@@ -160,7 +160,8 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 
 	if (flags) {
 		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
-			// error
+			TRACE("Setting socket flags failed. %s",  strerror(errno));
+			return false;
 		}
 	}
 
