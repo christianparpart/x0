@@ -76,7 +76,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if !defined(NDEBUG)
+#if 0 //!defined(NDEBUG)
 #	define TRACE(msg...) (this->log(x0::Severity::debug, msg))
 #else
 #	define TRACE(msg...) /*!*/
@@ -278,9 +278,6 @@ CgiTransport::~CgiTransport()
 	TRACE("closing transport connection to upstream server.");
 
 	if (backend_) {
-		if (backend_->isOpen())
-			backend_->close();
-
 		delete backend_;
 	}
 
@@ -522,11 +519,7 @@ void CgiTransport::io(x0::Socket* s, int revents)
 			int rv = backend_->read(readBuffer_);
 
 			if (rv == 0) {
-				if (request_->status == x0::HttpStatus::Undefined) {
-					// we did not actually process any response though
-					log(x0::Severity::error, "Connection to backend lost.");
-				}
-				goto app_err;
+				break;
 			}
 
 			if (rv < 0) {
@@ -537,6 +530,14 @@ void CgiTransport::io(x0::Socket* s, int revents)
 
 				break;
 			}
+		}
+
+		if (readOffset_ == readBuffer_.size()) {
+			if (request_->status == x0::HttpStatus::Undefined) {
+				// we did not actually process any response though
+				log(x0::Severity::error, "Connection to backend lost (read-buffer: offset=%zu, size=%zu).", readOffset_, readBuffer_.size());
+			}
+			goto app_err;
 		}
 
 		// process fully received records
@@ -658,6 +659,8 @@ void CgiTransport::abortRequest()
 	// TODO: install deadline-timer to actually close the connection if not done by the backend.
 	isAborted_ = true;
 	if (backend_->isOpen()) {
+		log(x0::Severity::notice, "Client connection closed early.");
+
 		write<FastCgi::AbortRequestRecord>(id_);
 		flush();
 	}
@@ -775,8 +778,6 @@ void CgiTransport::onClientAbort(void *p)
 {
 	CgiTransport* self = reinterpret_cast<CgiTransport*>(p);
 
-	self->log(x0::Severity::error, "Client closed connection early. Aborting request to upstream server.");
-
 	// notify fcgi app about client abort
 	self->abortRequest();
 }
@@ -815,10 +816,7 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 {
 	//TRACE("CgiContext.handleRequest()");
 
-	x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
-	backend->open(spec_, O_NONBLOCK | O_CLOEXEC);
-
-	if (backend->isOpen()) {
+	if (x0::Socket* backend = x0::Socket::open(in->connection.worker().loop(), spec_, O_NONBLOCK | O_CLOEXEC)) {
 		if (++nextID_ == 0)
 			++nextID_;
 
@@ -833,10 +831,9 @@ void CgiContext::handleRequest(x0::HttpRequest *in)
 				in->log(x0::Severity::error, "Connection to backend %s failed: %s", spec_.str().c_str(), strerror(errno));
 				break;
 		}
+
 		in->status = x0::HttpStatus::ServiceUnavailable;
 		in->finish();
-
-		delete backend;
 	}
 }
 

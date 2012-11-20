@@ -482,10 +482,7 @@ private:
 			return false;
 		}
 
-		x0::Socket* backend = new x0::Socket(in->connection.worker().loop());
-		backend->open(spec, O_NONBLOCK | O_CLOEXEC);
-
-		if (backend->isOpen()) {
+		if (x0::Socket* backend = x0::Socket::open(in->connection.worker().loop(), spec, O_NONBLOCK | O_CLOEXEC)) {
 			TRACE("in.content? %d", in->contentAvailable());
 			if (ProxyConnection* pc = new ProxyConnection()) {
 				pc->start(in, backend, cloak_);

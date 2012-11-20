@@ -780,21 +780,16 @@ bool FastCgiBackend::process(x0::HttpRequest* r)
 {
 	//TRACE("process()");
 
-	x0::Socket* socket = new x0::Socket(r->connection.worker().loop());
-	socket->open(socketSpec_, O_NONBLOCK | O_CLOEXEC);
+	if (x0::Socket* socket = x0::Socket::open(r->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
+		if (++nextID_ == 0)
+			++nextID_;
 
-	if (!socket->isOpen()) {
-		r->log(x0::Severity::error, "fastcgi: connection to backend %s failed. %s", socketSpec_.str().c_str(), strerror(errno));
-		delete socket;
+		new FastCgiTransport(this, r, nextID_, socket);
+		return true;
+	} else {
+		r->log(x0::Severity::notice, "fastcgi: connection to backend %s failed. %s", socketSpec_.str().c_str(), strerror(errno));
 		return false;
 	}
-
-	if (++nextID_ == 0)
-		++nextID_;
-
-	new FastCgiTransport(this, r, nextID_, socket);
-
-	return true;
 }
 
 /**

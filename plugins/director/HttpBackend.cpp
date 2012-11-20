@@ -524,10 +524,7 @@ bool HttpBackend::process(HttpRequest* r)
 {
 	TRACE("process...");
 
-	Socket* socket = new Socket(r->connection.worker().loop());
-	socket->open(socketSpec_, O_NONBLOCK | O_CLOEXEC);
-
-	if (socket->isOpen()) {
+	if (Socket* socket = Socket::open(r->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
 		TRACE("in.content? %d", r->contentAvailable());
 
 		if (ProxyConnection* pc = new ProxyConnection(this)) {
