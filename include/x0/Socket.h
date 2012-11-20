@@ -91,10 +91,7 @@ public:
 
 	void set(int fd, int addressFamily);
 
-	bool openUnix(const std::string& unixPath, int flags = 0);
-	bool openTcp(const std::string& hostname, int port, int flags = 0);
-	bool openTcp(const IPAddress& host, int port, int flags = 0);
-	bool open(const SocketSpec& spec, int flags = 0);
+	static Socket* open(struct ev_loop* loop, const SocketSpec& spec, int flags = 0);
 
 	int handle() const;
 	bool isOpen() const;
@@ -154,6 +151,11 @@ public:
 	template<typename PodType, std::size_t N> ssize_t write(PodType (&value)[N]);
 
 	virtual void inspect(Buffer& out);
+
+	X0_DEPRECATED bool openUnix(const std::string& unixPath, int flags = 0);
+	X0_DEPRECATED bool openTcp(const std::string& hostname, int port, int flags = 0);
+	X0_DEPRECATED bool openTcp(const IPAddress& host, int port, int flags = 0);
+	//X0_DEPRECATED bool open(const SocketSpec& spec, int flags = 0);
 
 private:
 	void queryRemoteName();
