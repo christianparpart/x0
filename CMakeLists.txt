@@ -104,10 +104,14 @@ link_directories(${LLVM_LIBRARY_DIR})
 set(LIBS ${LIBS} ${LLVM_LIBRARIES})
 add_definitions(${LLVM_CPPFLAGS})
 
-set(LLVM_SUPPORTED_VERSION "3.1")
-string(COMPARE NOTEQUAL "${LLVM_VERSION}" "${LLVM_SUPPORTED_VERSION}" LLVM_UNSUPPORTED_VER)
-if(${LLVM_UNSUPPORTED_VER})
-	message(FATAL_ERROR "LLVM version ${LLVM_SUPPORTED_VERSION} is required (You have ${LLVM_VERSION})")
+string(COMPARE EQUAL "${LLVM_VERSION}" "3.0" LLVM_FOUND_V_3_0)
+string(COMPARE EQUAL "${LLVM_VERSION}" "3.1" LLVM_FOUND_V_3_1)
+if(${LLVM_FOUND_V_3_1})
+	message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+elseif(${LLVM_FOUND_V_3_0})
+	message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+else()
+	message(FATAL_ERROR "LLVM version 3.0 or 3.1 is required (You have ${LLVM_VERSION}).\nYou can pass -DLLVM_CONFIG_EXECUTABLE=/path/to/llvm-config for custom paths/names to llvm-config.")
 endif()
 
 # PCRE
