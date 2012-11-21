@@ -28,3 +28,8 @@ Q) Why is x0 *requiring* such a new GCC version X.Y.Z?
 A) People not willing to upgrade their toolchain, are likely not brave enough to pull in security update either.
 Why bothing about those guys when newer GCC/whatever compiler provide the better C++ features, namely
 those coming from C++0x e.g.
+
+Q) Why am I getting "fastcgi: Connection to backend unix:... failed: Backend overloaded."?
+A) x0 is told to connect via UNIX domain socket to the FastCGI backend application which is not
+responding fast enough to not block x0. A UNIX domain listener socket can only have up to N clients
+pending. Everything above this limit cannot be queued and thus would result into blocking the client.

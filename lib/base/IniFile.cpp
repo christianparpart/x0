@@ -8,6 +8,7 @@
 
 #include <x0/IniFile.h>
 #include <x0/StringTokenizer.h>
+#include <x0/strutils.h>
 
 #include <exception>
 #include <iostream>
@@ -22,19 +23,6 @@
 #include <unistd.h>
 
 namespace x0 {
-
-static inline std::string trim(const std::string value)
-{
-	std::size_t left = 0;
-	while (std::isspace(value[left]))
-		++left;
-
-	std::size_t right = value.size() - 1;
-	while (std::isspace(value[right]))
-		--right;
-
-	return std::string(value.data() + left, value.data() + right + 1);
-}
 
 IniFile::IniFile() :
 	sections_()

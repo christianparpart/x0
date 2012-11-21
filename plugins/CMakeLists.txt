@@ -33,6 +33,12 @@ if(ENABLE_RRD)
 	target_link_libraries(rrdfile ${RRD_LIBRARY_PATH})
 endif()
 
+if(ENABLE_IMAGEABLE)
+	x0_plugin_simple(imageable)
+	set_target_properties(imageable PROPERTIES COMPILE_FLAGS "${CFLAGS} ${IMAGEMAGICK_CFLAGS_OTHER} -I${IMAGEMAGICK_INCLUDE_DIRS}")
+	target_link_libraries(imageable ${IMAGEMAGICK_LIBRARIES})
+endif()
+
 x0_plugin_simple(status)
 
 if(ENABLE_WEBDAV)

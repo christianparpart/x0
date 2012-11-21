@@ -1,1 +1,6 @@
-<?php phpinfo(); ?>
+<?php
+
+phpinfo();
+//sleep(1);
+
+?>

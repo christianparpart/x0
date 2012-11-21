@@ -88,7 +88,7 @@ public:
 		initialize_codes();
 	}
 
-	virtual const char *name() const
+	virtual const char *name() const noexcept(true)
 	{
 		return "http";
 	}

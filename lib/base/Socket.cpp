@@ -93,6 +93,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af) :
 	state_(Operational),
 	mode_(None),
 	tcpCork_(false),
+	splicing_(true),
 	remoteIP_(),
 	remotePort_(0),
 	localIP_(),
@@ -159,7 +160,8 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 
 	if (flags) {
 		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
-			// error
+			TRACE("Setting socket flags failed. %s",  strerror(errno));
+			return false;
 		}
 	}
 
@@ -172,13 +174,7 @@ bool Socket::openUnix(const std::string& unixPath, int flags)
 	if (rv == 0) {
 		state_ = Operational;
 		return true;
-	} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
-		TRACE("connect: backgrounding (fd:%d)", fd_);
-		state_ = Connecting;
-		setMode(Write);
-		return true;
 	} else {
-		TRACE("could not connect to %s: %s", unixPath.c_str(), strerror(errno));
 		::close(fd_);
 		fd_ = -1;
 		return false;
@@ -311,6 +307,96 @@ bool Socket::openTcp(const std::string& hostname, int port, int flags)
 
 	freeaddrinfo(res);
 	return result;
+}
+
+static inline bool applyFlags(int fd, int flags)
+{
+	return flags
+		? fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | flags) == 0
+		: true;
+}
+
+Socket* Socket::open(struct ev_loop* loop, const SocketSpec& spec, int flags)
+{
+	// compute type-mask
+	int typeMask = 0;
+#if defined(SOCK_NONBLOCK)
+	if (flags & O_NONBLOCK) {
+		flags &= ~O_NONBLOCK;
+		typeMask |= SOCK_NONBLOCK;
+	}
+#endif
+
+#if defined(SOCK_CLOEXEC)
+	if (flags & O_CLOEXEC) {
+		flags &= ~O_CLOEXEC;
+		typeMask |= SOCK_CLOEXEC;
+	}
+#endif
+
+	if (spec.isLocal()) {
+		int fd = ::socket(PF_UNIX, SOCK_STREAM | typeMask, 0);
+		if (fd < 0)
+			return nullptr;
+
+		if (!applyFlags(fd, flags)) {
+			return nullptr;
+		}
+
+		struct sockaddr_un addr;
+		addr.sun_family = AF_UNIX;
+		size_t addrlen = sizeof(addr.sun_family)
+			+ strlen(strncpy(addr.sun_path, spec.local().c_str(), sizeof(addr.sun_path)));
+
+		if (::connect(fd, (struct sockaddr*) &addr, addrlen) < 0) {
+			::close(fd);
+			return nullptr;
+		}
+		Socket* sock = new Socket(loop, fd, AF_UNIX);
+		return sock;
+	} else {
+		int fd = ::socket(spec.ipaddr().family(), SOCK_STREAM | typeMask, IPPROTO_TCP);
+		if (fd < 0)
+			return nullptr;
+
+		if (!applyFlags(fd, flags))
+			return nullptr;
+
+		char buf[sizeof(sockaddr_in6)];
+		std::size_t size;
+		memset(&buf, 0, sizeof(buf));
+		switch (spec.ipaddr().family()) {
+			case IPAddress::V4:
+				size = sizeof(sockaddr_in);
+				((sockaddr_in *)buf)->sin_port = htons(spec.port());
+				((sockaddr_in *)buf)->sin_family = AF_INET;
+				memcpy(&((sockaddr_in *)buf)->sin_addr, spec.ipaddr().data(), spec.ipaddr().size());
+				break;
+			case IPAddress::V6:
+				size = sizeof(sockaddr_in6);
+				((sockaddr_in6 *)buf)->sin6_port = htons(spec.port());
+				((sockaddr_in6 *)buf)->sin6_family = AF_INET6;
+				memcpy(&((sockaddr_in6 *)buf)->sin6_addr, spec.ipaddr().data(), spec.ipaddr().size());
+				break;
+			default:
+				::close(fd);
+				return nullptr;
+		}
+
+		int rv = ::connect(fd, (struct sockaddr*)buf, size);
+		if (rv == 0) {
+			return new Socket(loop, fd, spec.ipaddr().family());
+		} else if (errno == EINPROGRESS) {
+			Socket* sock = new Socket(loop, fd, spec.ipaddr().family());
+			sock->setState(Connecting);
+			sock->setMode(Write);
+			return sock;
+		} else {
+			::close(fd);
+		}
+	}
+
+	return nullptr;
 }
 
 bool Socket::open(const SocketSpec& spec, int flags)

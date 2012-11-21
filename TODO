@@ -4,6 +4,12 @@ for a long-term todo list, see ticket system at http://redmine.trapni.de/project
    0.6.0 release todo
 -------------------------------------------------
 
+1.) the unix domain socket fix for non-blocking connect
+  - possibly impossible
+2.) the crash regarding the gcc4.7 port
+3.) fastcgi/director[fastcgi]: let debug prints be macros
+3.) better max_conns compuatation.
+
 - DONE: core: BufferRef not dependant on Buffer
 - DONE: flow: unary (plus/)minus operator
 - DONE: flow: function string(value) to return type string

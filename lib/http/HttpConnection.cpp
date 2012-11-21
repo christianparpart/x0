@@ -483,7 +483,7 @@ bool HttpConnection::readSome()
 			watchInput(worker_->server_.maxReadIdle());
 			break;
 		default:
-			log(Severity::error, "Connection read error: %s", strerror(errno));
+			log(Severity::error, "Failed to read from client. %s", strerror(errno));
 			goto err;
 		}
 	} else if (rv == 0) {
@@ -568,7 +568,7 @@ bool HttpConnection::writeSome()
 		watchOutput();
 		break;
 	default:
-		log(Severity::error, "Connection write error: %s", strerror(errno));
+		log(Severity::error, "Failed to write to client. %s", strerror(errno));
 		goto err;
 	}
 

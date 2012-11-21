@@ -131,12 +131,9 @@ private:
 	 *  doesn't contain a trailing path seperator. */
 	static inline std::string pathcat(const std::string& path, const std::string& filename)
 	{
-		if (!path.empty() && path[path.size() - 1] != '/')
-		{
+		if (!path.empty() && path[path.size() - 1] != '/') {
 			return path + "/" + filename;
-		}
-		else
-		{
+		} else {
 			return path + filename;
 		}
 	}
@@ -400,8 +397,7 @@ int XzeroHttpDaemon::run()
 
 bool XzeroHttpDaemon::parse()
 {
-	struct option long_options[] =
-	{
+	struct option long_options[] = {
 		{ "no-fork", no_argument, &nofork_, 1 },
 		{ "fork", no_argument, &nofork_, 0 },
 		{ "systemd", no_argument, &systemd_, 1 },
@@ -430,11 +426,9 @@ bool XzeroHttpDaemon::parse()
 	static const char *package_license =
 		"Licensed under GPL-3 [http://gplv3.fsf.org/]";
 
-	for (;;)
-	{
+	for (;;) {
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:l:L:i:hXG", long_options, &long_index))
-		{
+		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:l:L:i:hXG", long_options, &long_index)) {
 			case 'p':
 				pidfile_ = optarg;
 				break;
@@ -501,8 +495,17 @@ bool XzeroHttpDaemon::parse()
 				break;
 			case 0: // long option with (val!=nullptr && flag=0)
 				break;
-			case -1: // EOF - everything parsed.
-				return true;
+			case -1: { // EOF - everything parsed.
+				if (optind == argc_)
+					return true;
+
+				x0::Buffer args;
+				while (optind < argc_)
+					args.printf(" %s", argv_[optind++]);
+
+				std::fprintf(stderr, "Unknown trailing parameters:%s\n", args.c_str());
+				// fall through
+			}
 			case '?': // ambiguous match / unknown arg
 			default:
 				return false;
@@ -512,8 +515,7 @@ bool XzeroHttpDaemon::parse()
 
 void XzeroHttpDaemon::daemonize()
 {
-	if (::daemon(true /*no chdir*/, true /*no close*/) < 0)
-	{
+	if (::daemon(true /*no chdir*/, true /*no close*/) < 0) {
 		throw std::runtime_error(x0::fstringbuilder::format("Could not daemonize process: %s", strerror(errno)));
 	}
 }
@@ -560,8 +562,7 @@ bool XzeroHttpDaemon::drop_privileges(const std::string& username, const std::st
 		X0D_DEBUG("Dropped user privileges to '%s'.", username.c_str());
 	}
 
-	if (!::getuid() || !::geteuid() || !::getgid() || !::getegid())
-	{
+	if (!::getuid() || !::geteuid() || !::getgid() || !::getegid()) {
 #if defined(X0_RELEASE)
 		log(x0::Severity::error, "Service is not allowed to run with administrative permissionsService is still running with administrative permissions.");
 		return false;
