@@ -15,6 +15,7 @@
 #include <ev++.h>
 #include <mysql.h>
 #include <errmsg.h>
+#include <unistd.h>
 
 namespace x0 {
 

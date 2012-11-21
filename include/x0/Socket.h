@@ -155,7 +155,7 @@ public:
 	X0_DEPRECATED bool openUnix(const std::string& unixPath, int flags = 0);
 	X0_DEPRECATED bool openTcp(const std::string& hostname, int port, int flags = 0);
 	X0_DEPRECATED bool openTcp(const IPAddress& host, int port, int flags = 0);
-	//X0_DEPRECATED bool open(const SocketSpec& spec, int flags = 0);
+	X0_DEPRECATED bool open(const SocketSpec& spec, int flags = 0);
 
 private:
 	void queryRemoteName();

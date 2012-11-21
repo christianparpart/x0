@@ -48,7 +48,7 @@ public:
 		return std::error_code(0, *this);
 	}
 
-	virtual const char *name() const
+	virtual const char *name() const noexcept(true)
 	{
 		return "dlfcn";
 	}

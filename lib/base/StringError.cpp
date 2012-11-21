@@ -18,7 +18,7 @@ StringErrorCategoryImpl::StringErrorCategoryImpl()
 	vector_.push_back("Generic Error");
 }
 
-StringErrorCategoryImpl::~StringErrorCategoryImpl()
+StringErrorCategoryImpl::~StringErrorCategoryImpl() noexcept(true)
 {
 }
 
@@ -35,7 +35,7 @@ int StringErrorCategoryImpl::get(const std::string& msg)
 	return vector_.size() - 1;
 }
 
-const char *StringErrorCategoryImpl::name() const
+const char *StringErrorCategoryImpl::name() const noexcept(true)
 {
 	return "custom";
 }

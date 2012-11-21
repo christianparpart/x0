@@ -10,6 +10,8 @@
 #define sw_x0_StringTokenizer_h
 
 #include <x0/Api.h>
+#include <x0/Buffer.h>
+#include <x0/BufferRef.h>
 #include <string>
 #include <vector>
 
@@ -51,12 +53,95 @@ private:
 	T substr(size_t offset, size_t size) const;
 };
 
+// {{{ impl
 template<typename T>
 inline Tokenizer<T>::Tokenizer(const T& input, const std::string& delimiter) :
 	input_(input), token_(),
 	lastPos_(0), charPos_(0), wordPos_(0), delimiter_(delimiter)
 {
 }
+
+template<typename T>
+const T& Tokenizer<T>::nextToken()
+{
+	if (end()) {
+		static const T eos;
+		return eos;
+	}
+
+	size_t isize = input_.size();
+	lastPos_ = charPos_;
+
+	while (charPos_ < isize && delimiter_.find(input_[charPos_]) == T::npos)
+		++charPos_;
+
+	token_ = substr(lastPos_, charPos_ - lastPos_);
+
+	++wordPos_;
+	lastPos_ = charPos_;
+
+	return token_;
+}
+
+template<typename T>
+void Tokenizer<T>::consumeDelimiter()
+{
+	size_t isize = input_.size();
+
+	while (charPos_ < isize && delimiter_.find(input_[charPos_]) != T::npos) {
+		++charPos_;
+	}
+}
+
+template<typename T>
+bool Tokenizer<T>::end()
+{
+	consumeDelimiter();
+
+	if (charPos_ >= input_.size())
+		return true;
+
+	return false;
+}
+
+template<typename T>
+std::vector<T> Tokenizer<T>::tokenize()
+{
+	std::vector<T> tokens;
+
+	while (!end())
+		tokens.push_back(nextToken());
+
+	return std::move(tokens);
+}
+
+template<typename T>
+inline std::vector<T> Tokenizer<T>::tokenize(const T& input, const std::string& delimiter)
+{
+	Tokenizer<T> t(input, delimiter);
+	return t.tokenize();
+}
+
+template<>
+inline std::string Tokenizer<std::string>::substr(size_t offset) const {
+	return input_.substr(offset);
+}
+
+template<>
+inline std::string Tokenizer<std::string>::substr(size_t offset, size_t size) const {
+	return input_.substr(offset, size);
+}
+
+template<>
+inline BufferRef Tokenizer<BufferRef>::substr(size_t offset, size_t size) const {
+	return input_.ref(offset, size);
+}
+
+template<>
+inline BufferRef Tokenizer<BufferRef>::substr(size_t offset) const {
+	return input_.ref(offset);
+}
+// }}}
 
 typedef Tokenizer<std::string> StringTokenizer;
 

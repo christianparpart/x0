@@ -399,7 +399,6 @@ Socket* Socket::open(struct ev_loop* loop, const SocketSpec& spec, int flags)
 	return nullptr;
 }
 
-#if 0
 bool Socket::open(const SocketSpec& spec, int flags)
 {
 	if (spec.isLocal())
@@ -407,7 +406,6 @@ bool Socket::open(const SocketSpec& spec, int flags)
 	else
 		return openTcp(spec.ipaddr().str(), spec.port(), flags);
 }
-#endif
 
 bool Socket::setNonBlocking(bool enabled)
 {

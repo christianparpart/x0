@@ -9,6 +9,7 @@
 #include <x0/sql/SqlStatement.h>
 #include <assert.h>
 #include <errmsg.h>
+#include <unistd.h>
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) const_cast<SqlStatement*>(this)->debug(msg)
