@@ -116,7 +116,7 @@ Backend* Director::createBackend(const std::string& name, const std::string& url
 
 	if (!parseUrl(url, protocol, hostname, port, path, query)) {
 		TRACE("invalid URL: %s", url.c_str());
-		return false;
+		return nullptr;
 	}
 
 	return createBackend(name, protocol, hostname, port, path, query);
