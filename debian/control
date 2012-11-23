@@ -5,7 +5,8 @@ Maintainer: Christian Parpart <trapni@gentoo.org>
 Build-Depends:
   debhelper (>= 9),
   cmake,
-  gcc,
+  g++,
+  pkg-config,
   libcppunit-dev,
   libgnutls28-dev,
   libgcrypt11-dev,
@@ -14,9 +15,10 @@ Build-Depends:
   zlib1g-dev,
   libbz2-dev,
   llvm-3.0-dev,
-  pkg-config,
   libpcre3-dev,
   libfcgi-dev,
+  librrd-dev,
+  libmagickwand-dev,
 Standards-Version: 3.9.3
 
 Package: x0d
@@ -60,6 +62,7 @@ Priority: optional
 Description: Xzero (x0) HTTP Server Plugins
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends},
+  libmagickwand5,
   libxzero-http (= ${binary:Version}),
   libxzero-flow (= ${binary:Version}),
   libxzero-base (= ${binary:Version})
