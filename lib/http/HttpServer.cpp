@@ -139,9 +139,13 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	auto nowfn = std::bind(&global_now);
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
 
+	// setting a reasonable default max-connection limit.
+	// However, this cannot be computed as we do not know what the user
+	// actually configures, such as fastcgi requires +1 fd, local file +1 fd,
+	// http client connection of course +1 fd, listener sockets, etc.
 	struct rlimit rlim;
 	if (::getrlimit(RLIMIT_NOFILE, &rlim) == 0)
-		maxConnections = rlim.rlim_cur / 2;
+		maxConnections = std::max(int(rlim.rlim_cur / 3) - 5, 1);
 
 	registerPlugin(core_ = new HttpCore(*this));
 
