@@ -11,6 +11,7 @@
 
 #include <x0/Types.h>
 #include <unordered_map>
+#include <memory>
 #include <cassert>
 
 namespace x0 {
@@ -26,58 +27,41 @@ public:
 	virtual ~CustomData() {}
 };
 
-class X0_API CustomDataMgr
-{
-private:
-	std::unordered_map<void *, CustomData *> map_;
-
-public:
-	CustomDataMgr()
-	{
+#define CUSTOMDATA_API_INLINE                                            \
+private:                                                                 \
+	std::unordered_map<void *, std::unique_ptr<CustomData>> customData_; \
+public:                                                                  \
+	void clearCustomData()                                               \
+	{                                                                    \
+		customData_.clear();                                             \
+	}                                                                    \
+                                                                         \
+	CustomData* customData(void* key) const                              \
+	{                                                                    \
+		auto i = customData_.find(key);                                  \
+		return i != customData_.end() ? i->second.get() : nullptr;       \
+	}                                                                    \
+                                                                         \
+	template<typename T>                                                 \
+	T* customData(void* key) const                                       \
+	{                                                                    \
+		auto i = customData_.find(key);                                  \
+		return i != customData_.end()                                    \
+			? static_cast<T*>(i->second.get())                           \
+			: nullptr;                                                   \
+	}                                                                    \
+                                                                         \
+	template<typename T, typename... Args>                               \
+	T* setCustomData(void *key, Args&&... args)                          \
+	{                                                                    \
+		auto i = customData_.find(key);                                  \
+		if (i != customData_.end())                                      \
+			return static_cast<T*>(i->second.get());                     \
+                                                                         \
+		T* value = new T(args...);                                       \
+		customData_[key].reset(value);                                   \
+		return value;                                                    \
 	}
-
-	~CustomDataMgr()
-	{
-#if 0
-		assert(map_.empty() && "You must have invoked clearCustomData() in your parent destructor already to avoid unnecessary  bugs.");
-#else
-		if (!map_.empty())
-			fprintf(stderr, "BUG: You must have invoked clearCustomData() in your parent destructor already to avoid unnecessary  bugs.");
-#endif
-
-		clearCustomData();
-	}
-
-	void clearCustomData()
-	{
-		for (auto i: map_)
-			delete i.second;
-
-		map_.clear();
-	}
-
-	CustomData *customData(void *key) const
-	{
-		auto i = map_.find(key);
-		return i != map_.end() ? i->second : nullptr;
-	}
-
-	template<typename T>
-	T *customData(void *key) const
-	{
-		auto i = map_.find(key);
-		return i != map_.end() ? static_cast<T *>(i->second) : nullptr;
-	}
-
-	template<typename T, typename... Args> T* setCustomData(void *key, Args&&... args)
-	{
-		auto i = map_.find(key);
-		if (i != map_.end())
-			return static_cast<T*>(i->second);
-
-		return static_cast<T*>(map_[key] = new T(args...));
-	}
-};
 
 } // namespace x0
 

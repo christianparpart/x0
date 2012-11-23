@@ -35,9 +35,10 @@ class HttpPlugin;
  *
  * \see FileInfoService, server
  */
-class X0_API FileInfo :
-	public CustomDataMgr
+class X0_API FileInfo
 {
+	CUSTOMDATA_API_INLINE
+
 private:
 	FileInfo(const FileInfo&) = delete;
 	FileInfo& operator=(const FileInfo&) = delete;

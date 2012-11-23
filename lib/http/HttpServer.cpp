@@ -49,7 +49,7 @@
 #include <stdio.h>
 
 #if !defined(NDEBUG)
-#	define TRACE(msg...) (this->Logging::debug(msg))
+#	define TRACE(msg...) DEBUG("HttpServer: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
@@ -84,9 +84,6 @@ X0_EXPORT std::string global_now()
  * \see HttpServer::run()
  */
 HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
-#ifndef NDEBUG
-	Logging("HttpServer"),
-#endif
 	onConnectionOpen(),
 	onPreProcess(),
 	onResolveDocumentRoot(),

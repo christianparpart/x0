@@ -22,7 +22,7 @@
 // XXX one a connection has been passed to a worker, it is *bound* to it.
 
 #ifndef NDEBUG
-#	define TRACE(msg...) (this->debug(msg))
+#	define TRACE(msg...) DEBUG("HttpWorker: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
@@ -38,10 +38,6 @@ namespace x0 {
  * \param threaded whether or not to spawn a thread to actually run this worker
  */
 HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded) :
-#ifndef NDEBUG
-	Logging("HttpWorker/%d", id),
-#endif
-	CustomDataMgr(),
 	id_(id),
 	state_(Inactive),
 	server_(server),
@@ -355,7 +351,7 @@ void HttpWorker::_kill()
 
 #ifndef NDEBUG
 		for (auto i: connections_)
-			i->debug("connection still open");
+			i->log(Severity::debug, "connection still open");
 #endif
 	}
 

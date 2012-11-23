@@ -24,7 +24,7 @@
 #include <arpa/inet.h>
 
 #if !defined(NDEBUG)
-#	define TRACE(msg...) this->debug(msg)
+#	define TRACE(msg...) DEBUG("HttpConnection: " msg)
 #else
 #	define TRACE(msg...) do { } while (0)
 #endif
@@ -53,9 +53,6 @@ namespace x0 {
  * \note This triggers the onConnectionOpen event.
  */
 HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
-#ifndef NDEBUG
-	Logging("HttpConnection"),
-#endif
 	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
 	refCount_(0),
 	status_(Undefined),
@@ -86,7 +83,7 @@ HttpConnection::~HttpConnection()
 
 	clearCustomData();
 
-	TRACE("destructing (rc: %ld)", refCount_);
+	TRACE("destructing (rc: %u)", refCount_);
 	//TRACE("Stack Trace:\n%s", StackTrace().c_str());
 
 	worker_->server_.onConnectionClose(this);
@@ -106,7 +103,7 @@ HttpConnection::~HttpConnection()
 void HttpConnection::ref()
 {
 	++refCount_;
-	TRACE("ref() %ld", refCount_);
+	TRACE("ref() %u", refCount_);
 }
 
 /** Decrements the internal reference count, marking the end of the section using this connection.
@@ -121,7 +118,7 @@ void HttpConnection::unref()
 {
 	--refCount_;
 
-	TRACE("unref() %ld (closed:%d, outputPending:%d)", refCount_, isClosed(), isOutputPending());
+	TRACE("unref() %u (closed:%d, outputPending:%d)", refCount_, isClosed(), isOutputPending());
 
 	if (refCount_ == 0) {
 		worker_->release(handle_);
@@ -220,10 +217,6 @@ void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWor
 #if defined(TCP_NODELAY)
 	if (worker_->server().tcpNoDelay())
 		socket_->setTcpNoDelay(true);
-#endif
-
-#if !defined(NDEBUG)
-	setLoggingPrefix("HttpConnection[%d,%llu|%s:%d]", worker_->id(), id_, remoteIP().c_str(), remotePort());
 #endif
 
 	TRACE("starting (fd=%d)", socket_->handle());
@@ -378,7 +371,7 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 
 	// limit the size of a single request header
 	if (name.size() + value.size() > worker().server().maxRequestHeaderSize()) {
-		TRACE("header too long. got %ld / %ld", name.size() + value.size(), worker().server().maxRequestHeaderSize());
+		TRACE("header too long. got %lu / %lu", name.size() + value.size(), worker().server().maxRequestHeaderSize());
 		request_->status = HttpStatus::RequestEntityTooLarge;
 		request_->finish();
 		return false;
@@ -386,7 +379,7 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 
 	// limit the number of request headers
 	if (request_->requestHeaders.size() > worker().server().maxRequestHeaderCount()) {
-		TRACE("header count exceeded. got %ld / %ld", request_->requestHeaders.size(), worker().server().maxRequestHeaderCount());
+		TRACE("header count exceeded. got %lu / %lu", request_->requestHeaders.size(), worker().server().maxRequestHeaderCount());
 		request_->status = HttpStatus::RequestEntityTooLarge;
 		request_->finish();
 		return false;
@@ -414,7 +407,7 @@ bool HttpConnection::onMessageHeaderEnd()
 
 bool HttpConnection::onMessageContent(const BufferRef& chunk)
 {
-	TRACE("onMessageContent(#%ld)", chunk.size());
+	TRACE("onMessageContent(#%lu)", chunk.size());
 
 	request_->onRequestContent(chunk);
 
@@ -467,7 +460,7 @@ bool HttpConnection::readSome()
 	ref();
 
 	if (status() == KeepAliveRead) {
-		TRACE("readSome: status was keep-alive-read. resetting to reading-request", request_->outputState_);
+		TRACE("readSome: status was keep-alive-read. resetting to reading-request");
 		setStatus(ReadingRequest);
 	}
 
@@ -491,7 +484,7 @@ bool HttpConnection::readSome()
 		TRACE("readSome: (EOF)");
 		goto err;
 	} else {
-		TRACE("readSome: read %ld bytes, status:%s, ros:%d", rv, status_str(), request_->outputState_);
+		TRACE("readSome: read %lu bytes, status:%s, ros:%d", rv, status_str(), request_->outputState_);
 		process();
 	}
 
@@ -534,7 +527,7 @@ bool HttpConnection::writeSome()
 
 	ssize_t rv = output_.sendto(sink_);
 
-	TRACE("writeSome(): sendto().rv=%ld %s", rv, rv < 0 ? strerror(errno) : "");
+	TRACE("writeSome(): sendto().rv=%lu %s", rv, rv < 0 ? strerror(errno) : "");
 
 	if (rv > 0) {
 		// output chunk written
@@ -552,7 +545,7 @@ bool HttpConnection::writeSome()
 			request_->finalize();
 		}
 
-		TRACE("writeSome: output fully written. closed:%d, outputPending:%ld, refCount:%d", isClosed(), output_.size(), refCount_);
+		TRACE("writeSome: output fully written. closed:%d, outputPending:%lu, refCount:%d", isClosed(), output_.size(), refCount_);
 		goto done;
 	}
 
@@ -599,7 +592,7 @@ void HttpConnection::abort()
 	flags_ |= IsAborted;
 
 	if (isOutputPending()) {
-		TRACE("abort: clearing pending output (%ld)", output_.size());
+		TRACE("abort: clearing pending output (%lu)", output_.size());
 		output_.clear();
 	}
 
@@ -642,7 +635,7 @@ void HttpConnection::close()
 void HttpConnection::resume()
 {
 	TRACE("resume() shouldKeepAlive:%d)", shouldKeepAlive());
-	TRACE("-- (status:%s, inputOffset:%ld, inputSize:%ld)", status_str(), inputOffset_, input_.size());
+	TRACE("-- (status:%s, inputOffset:%lu, inputSize:%lu)", status_str(), inputOffset_, input_.size());
 
 	setStatus(KeepAliveRead);
 	request_->clear();
@@ -655,7 +648,7 @@ void HttpConnection::resume()
  */
 bool HttpConnection::process()
 {
-	TRACE("process: offset=%ld, size=%ld (before processing)", inputOffset_, input_.size());
+	TRACE("process: offset=%lu, size=%lu (before processing)", inputOffset_, input_.size());
 
 	while (state() != MESSAGE_BEGIN || status() == ReadingRequest || status() == KeepAliveRead) {
 		BufferRef chunk(input_.ref(inputOffset_));
@@ -672,7 +665,7 @@ bool HttpConnection::process()
 			}
 		}
 
-		TRACE("process: (size: %ld, isHandlingRequest:%d, state:%s status:%s", chunk.size(), (flags_ & IsHandlingRequest) != 0, state_str(), status_str());
+		TRACE("process: (size: %lu, isHandlingRequest:%d, state:%s status:%s", chunk.size(), (flags_ & IsHandlingRequest) != 0, state_str(), status_str());
 		//TRACE("%s", input_.ref(input_.size() - rv).str().c_str());
 
 		HttpMessageProcessor::process(chunk, &inputOffset_);
@@ -691,7 +684,7 @@ bool HttpConnection::process()
 		}
 	}
 
-	TRACE("process: offset=%ld, bs=%ld, state=%s (after processing) io.timer:%d",
+	TRACE("process: offset=%lu, bs=%lu, state=%s (after processing) io.timer:%d",
 			inputOffset_, input_.size(), state_str(), socket_->timerActive());
 
 	return true;
