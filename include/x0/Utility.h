@@ -10,6 +10,19 @@
 #define sw_x0_utility_hpp (1)
 
 #include <tuple>
+#include <memory>
+
+/**
+ * Creates a std::unqiue_ptr<>.
+ *
+ * \note This method will most definitely make it into the next standard.
+ * \link http://herbsutter.com/gotw/_102/
+ */
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&& ...args)
+{
+	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 // meta programming / template utilities
 
