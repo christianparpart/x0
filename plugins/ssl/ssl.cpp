@@ -64,12 +64,12 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
  * \ingroup plugins
  * \brief SSL plugin
  */
-class ssl_plugin :
+class SslPlugin :
 	public x0::HttpPlugin,
 	public SslContextSelector
 {
 public:
-	ssl_plugin(x0::HttpServer& srv, const std::string& name) :
+	SslPlugin(x0::HttpServer& srv, const std::string& name) :
 		x0::HttpPlugin(srv, name)
 	{
 		gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
@@ -83,12 +83,12 @@ public:
 
 		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(nullptr));
 
-		registerSetupFunction<ssl_plugin, &ssl_plugin::add_listener>("ssl.listen", x0::FlowValue::VOID);
-		registerSetupFunction<ssl_plugin, &ssl_plugin::add_context>("ssl.context", x0::FlowValue::VOID);
-		registerSetupProperty<ssl_plugin, &ssl_plugin::set_loglevel>("ssl.loglevel", x0::FlowValue::VOID);
+		registerSetupFunction<SslPlugin, &SslPlugin::add_listener>("ssl.listen", x0::FlowValue::VOID);
+		registerSetupFunction<SslPlugin, &SslPlugin::add_context>("ssl.context", x0::FlowValue::VOID);
+		registerSetupProperty<SslPlugin, &SslPlugin::set_loglevel>("ssl.loglevel", x0::FlowValue::VOID);
 	}
 
-	~ssl_plugin()
+	~SslPlugin()
 	{
 		for (auto i: contexts_)
 			delete i;
@@ -104,12 +104,8 @@ public:
 		if (dnsName.empty())
 			return contexts_.front();
 
-		for (auto i = contexts_.begin(), e = contexts_.end(); i != e; ++i)
-		{
-			SslContext *cx = *i;
-
-			if (cx->isValidDnsName(dnsName))
-			{
+		for (auto cx: contexts_) {
+			if (cx->isValidDnsName(dnsName)) {
 				TRACE("select SslContext: CN:%s, dnsName:%s", cx->commonName().c_str(), dnsName.c_str());
 				return cx;
 			}
@@ -120,8 +116,8 @@ public:
 
 	virtual bool post_config()
 	{
-		for (auto i = contexts_.begin(), e = contexts_.end(); i != e; ++i)
-			(*i)->post_config();
+		for (auto cx: contexts_)
+			cx->post_config();
 
 		return true;
 	}
@@ -155,8 +151,7 @@ private:
 
 	void set_loglevel(const x0::FlowParams& args, x0::FlowValue& result)
 	{
-		if (args.size() == 1)
-		{
+		if (args.size() == 1) {
 			if (args[0].isNumber())
 				setLogLevel(args[0].toNumber());
 		}
@@ -168,7 +163,7 @@ private:
 		TRACE("setLogLevel: %d", value);
 
 		gnutls_global_set_log_level(value);
-		gnutls_global_set_log_function(&ssl_plugin::gnutls_logger);
+		gnutls_global_set_log_function(&SslPlugin::gnutls_logger);
 	}
 
 	static void gnutls_logger(int level, const char *message)
@@ -236,4 +231,4 @@ private:
 	// }}}
 };
 
-X0_EXPORT_PLUGIN(ssl)
+X0_EXPORT_PLUGIN_CLASS(SslPlugin)

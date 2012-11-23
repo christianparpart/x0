@@ -221,8 +221,7 @@ void SslContext::setPriorities(const std::string& value)
 	const char *errp = nullptr;
 	int rv = gnutls_priority_init(&priorities_, value.c_str(), &errp);
 
-	if (rv != GNUTLS_E_SUCCESS)
-	{
+	if (rv != GNUTLS_E_SUCCESS) {
 		TRACE("gnutls_priority_init: error: %s \"%s\"", gnutls_strerror(rv), errp ? errp : "");
 	}
 }
@@ -245,8 +244,7 @@ bool SslContext::post_config()
 //	if (rsaParams_)
 //		gnutls_certificate_set_rsa_export_params(certs_, rsaParams_);
 
-	if (dhParams_)
-	{
+	if (dhParams_) {
 		gnutls_certificate_set_dh_params(certs_, dhParams_);
 		gnutls_anon_set_server_dh_params(anonCreds_, dhParams_);
 	}
@@ -264,8 +262,7 @@ int SslContext::onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret)
 	SslSocket *socket = (SslSocket *)gnutls_session_get_ptr(session);
 	const SslContext *cx = socket->context();
 
-	switch (gnutls_certificate_type_get(session))
-	{
+	switch (gnutls_certificate_type_get(session)) {
 		case GNUTLS_CRT_X509:
 			if (!cx)
 				return GNUTLS_E_INTERNAL_ERROR;
@@ -294,6 +291,7 @@ void SslContext::bind(SslSocket *socket)
 	gnutls_credentials_set(socket->session_, GNUTLS_CRD_ANON, anonCreds_);
 	gnutls_priority_set(socket->session_, priorities_);
 
-	const int cprio[] = { GNUTLS_CRT_X509, 0 };
-	gnutls_certificate_type_set_priority(socket->session_, cprio);
+	// XXX following function is marked deprecated and has no replacement API it seems.
+	//const int cprio[] = { GNUTLS_CRT_X509, 0 };
+	//gnutls_certificate_type_set_priority(socket->session_, cprio);
 }

@@ -39,13 +39,10 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 {
 	TRACE("SslSocket()");
 
-	static int protocolPriorities_[] = { GNUTLS_TLS1_2, GNUTLS_TLS1_1, GNUTLS_TLS1_0, GNUTLS_SSL3, 0 };
-
 	setSecure(true);
 	setState(Handshake);
 
 	GNUTLS_CHECK( gnutls_init(&session_, GNUTLS_SERVER) );
-	GNUTLS_CHECK( gnutls_protocol_set_priority(session_, protocolPriorities_) );
 
 	gnutls_handshake_set_post_client_hello_function(session_, &SslSocket::onClientHello);
 
