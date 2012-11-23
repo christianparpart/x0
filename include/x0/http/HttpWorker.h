@@ -169,7 +169,7 @@ private:
 
 	static void post_thunk3(int revents, void* arg);
 
-	virtual void run();
+	void run();
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
