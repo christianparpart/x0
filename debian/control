@@ -63,6 +63,7 @@ Description: Xzero (x0) HTTP Server Plugins
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends},
   libmagickwand5,
+  libgnutls28,
   libxzero-http (= ${binary:Version}),
   libxzero-flow (= ${binary:Version}),
   libxzero-base (= ${binary:Version})
