@@ -46,7 +46,7 @@ public:
 
 public:
 	FlowBackend();
-	~FlowBackend();
+	virtual ~FlowBackend();
 
 	virtual void import(const std::string& name, const std::string& path);
 

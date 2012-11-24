@@ -49,9 +49,10 @@ struct X0_API HttpRequest :
 #ifndef NDEBUG
 	public Logging,
 #endif
-	public FlowContext,
-	public CustomDataMgr
+	public FlowContext
 {
+	CUSTOMDATA_API_INLINE
+
 public:
 	class HeaderList // {{{
 	{

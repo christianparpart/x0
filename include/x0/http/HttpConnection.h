@@ -18,7 +18,6 @@
 #include <x0/Socket.h>
 #include <x0/Buffer.h>
 #include <x0/Property.h>
-#include <x0/Logging.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
 
@@ -41,12 +40,10 @@ class HttpRequest;
  * @see HttpRequest, HttpServer
  */
 class X0_API HttpConnection :
-#ifndef NDEBUG
-	public Logging,
-#endif
-	public HttpMessageProcessor,
-	public CustomDataMgr
+	public HttpMessageProcessor
 {
+	CUSTOMDATA_API_INLINE
+
 public:
 	enum Status {
 		Undefined,

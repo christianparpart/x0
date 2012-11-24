@@ -57,9 +57,6 @@ class HttpWorker;
  * \see HttpServer::run(), HttpServer::stop()
  */
 class X0_API HttpServer :
-#ifndef NDEBUG
-	public Logging,
-#endif
 	public FlowBackend
 {
 	HttpServer(const HttpServer&) = delete;
@@ -73,7 +70,7 @@ public:
 
 public:
 	explicit HttpServer(struct ::ev_loop* loop, unsigned generation = 1);
-	~HttpServer();
+	virtual ~HttpServer();
 
 	void setLogger(std::shared_ptr<Logger> logger);
 	Logger* logger() const;

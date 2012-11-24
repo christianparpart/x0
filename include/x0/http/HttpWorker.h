@@ -15,7 +15,6 @@
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
-#include <x0/Logging.h>
 #include <x0/PerformanceCounter.h>
 
 #include <deque>
@@ -53,12 +52,10 @@ class HttpRequest;
  *
  * \see HttpServer, CustomDataMgr
  */
-class X0_API HttpWorker :
-#ifndef NDEBUG
-	public Logging,
-#endif
-	public CustomDataMgr
+class X0_API HttpWorker
 {
+	CUSTOMDATA_API_INLINE
+
 public:
 	enum State {
 		Inactive,
@@ -172,7 +169,7 @@ private:
 
 	static void post_thunk3(int revents, void* arg);
 
-	virtual void run();
+	void run();
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);

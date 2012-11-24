@@ -81,9 +81,6 @@
  */
 class CgiScript :
 	public x0::HttpMessageProcessor
-#ifndef NDEBUG
-	, public x0::Logging
-#endif
 {
 public:
 	CgiScript(x0::HttpRequest *in, const std::string& hostprogram = "");
@@ -175,11 +172,6 @@ CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
 	stdoutTransferActive_(false),
 	outputFlags_(NoneClosed)
 {
-#ifndef NDEBUG
-	setLogging(false);
-	//setLoggingPrefix("CgiScript(%s)", request_->fileinfo->path().c_str());
-	setLoggingPrefix("CgiScript(%s)", request_->path.str().c_str());
-#endif
 	TRACE("CgiScript(path=\"%s\", hostprogram=\"%s\")", request_->fileinfo->path().c_str(), hostprogram_.c_str());
 
 	evStdin_.set<CgiScript, &CgiScript::onStdinReady>(this);
@@ -643,9 +635,7 @@ void CgiScript::onAbort(void *p)
 {
 	CgiScript *self = (CgiScript *) p;
 
-#ifndef NDEBUG
-	self->debug("onAbort()");
-#endif
+	TRACE("onAbort()");
 
 	// SIGTERM will also implicitely cause the request to be finish()ed - immediately.
 	self->process_.terminate();
