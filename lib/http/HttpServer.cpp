@@ -79,7 +79,7 @@ X0_EXPORT std::string global_now()
 	return "unknown";
 }
 
-/** initializes the HTTP server object.
+/** Initializes the HTTP server object.
  * \param io_service an Asio io_service to use or nullptr to create our own one.
  * \see HttpServer::run()
  */
@@ -140,12 +140,33 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
 
 	struct rlimit rlim;
-	if (::getrlimit(RLIMIT_NOFILE, &rlim) == 0)
+	if (::getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
 		maxConnections = rlim.rlim_cur / 2;
+	}
 
+	// Welcome message
+	printf("\n\n"
+		"\e[1;37m"
+		"             XXXXXXXXXXX\n"
+		" XX     XX   XX       XX\n"
+		"  XX   XX    XX       XX\n"
+		"   XX XX     XX       XX\n"
+		"    XXX      XX   0   XX - Web server\n"
+		"   XX XX     XX       XX   Version "
+		VERSION
+		"\n"
+		"  XX   XX    XX       XX\n"
+		" XX     XX   XX       XX\n"
+		"             XXXXXXXXXXX\n"
+		"\n"
+		" http://xzero.io/"
+		"\e[0m"
+		"\n\n");
+
+	// Load core plugins
 	registerPlugin(core_ = new HttpCore(*this));
 
-	// spawn main-thread worker
+	// Spawn main-thread worker
 	spawnWorker();
 }
 
@@ -180,13 +201,13 @@ bool HttpServer::validateConfig()
 
 	Function* setupFn = runner_->findHandler("setup");
 	if (!setupFn) {
-		log(Severity::error, "no setup-handler defined in config file.");
+		log(Severity::error, "No setup-handler defined in config file.");
 		return false;
 	}
 
 	Function* mainFn = runner_->findHandler("main");
 	if (!mainFn) {
-		log(Severity::error, "no main-handler defined in config file.");
+		log(Severity::error, "No main-handler defined in config file.");
 		return false;
 	}
 
