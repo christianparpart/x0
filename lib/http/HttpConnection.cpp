@@ -23,7 +23,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if !defined(NDEBUG)
+#if 0 //!defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpConnection: " msg)
 #else
 #	define TRACE(msg...) do { } while (0)

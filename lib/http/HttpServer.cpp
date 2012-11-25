@@ -48,7 +48,7 @@
 #include <getopt.h>
 #include <stdio.h>
 
-#if !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpServer: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
