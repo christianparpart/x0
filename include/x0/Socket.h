@@ -83,7 +83,7 @@ protected:
 
 public:
 	explicit Socket(struct ev_loop *loop);
-	Socket(struct ev_loop *loop, int fd, int addressFamily);
+	Socket(struct ev_loop *loop, int fd, int addressFamily, State state = Operational);
 	virtual ~Socket();
 
 	const DateTime& startedAt() const { return startedAt_; }
@@ -155,9 +155,11 @@ public:
 	X0_DEPRECATED bool openUnix(const std::string& unixPath, int flags = 0);
 	X0_DEPRECATED bool openTcp(const std::string& hostname, int port, int flags = 0);
 	X0_DEPRECATED bool openTcp(const IPAddress& host, int port, int flags = 0);
-	X0_DEPRECATED bool open(const SocketSpec& spec, int flags = 0);
+	bool open(const SocketSpec& spec, int flags = 0);
 
 private:
+	static State open(struct ev_loop* loop, const SocketSpec& spec, int flags, int* fd);
+
 	void queryRemoteName();
 	void queryLocalName();
 
