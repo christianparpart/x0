@@ -89,7 +89,7 @@ public:
 	const DateTime& startedAt() const { return startedAt_; }
 	const DateTime& lastActivityAt() const { return lastActivityAt_; }
 
-	void set(int fd, int addressFamily);
+	X0_DEPRECATED void set(int fd, int addressFamily);
 
 	static Socket* open(struct ev_loop* loop, const SocketSpec& spec, int flags = 0);
 
