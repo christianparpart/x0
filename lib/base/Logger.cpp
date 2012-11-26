@@ -138,9 +138,16 @@ FileLogger::FileLogger(const std::string& filename, std::function<std::string()>
 	cycle();
 }
 
+FileLogger::FileLogger(int fd, std::function<std::string()> now) :
+	filename_(),
+	fd_(fd),
+	now_(now)
+{
+}
+
 FileLogger::~FileLogger()
 {
-	if (fd_ != -1) {
+	if (fd_ != -1 && !filename_.empty()) {
 		::close(fd_);
 		fd_ = -1;
 	}
@@ -153,23 +160,22 @@ int FileLogger::handle() const
 
 void FileLogger::cycle()
 {
+	if (filename_.empty())
+		return;
+
 	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE
 #if defined(O_CLOEXEC)
 			| O_CLOEXEC
 #endif
 			, 0644);
 
-	if (fd2 == -1)
-	{
+	if (fd2 == -1) {
 		write(Severity::error, "Could not (re)open new logfile");
-	}
-	else
-	{
+	} else {
 #if !defined(O_CLOEXEC) && defined(FD_CLOEXEC)
 		fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD) | FD_CLOEXEC);
 #endif
-		if (fd_ != -1)
-		{
+		if (fd_ != -1) {
 			::close(fd_);
 		}
 

@@ -122,7 +122,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	auto nowfn = [this]() -> std::string {
 		return DateTime(ev_now(loop_)).htlog_str().str();
 	};
-	logger_.reset(new FileLogger("/dev/stderr", nowfn));
+	logger_.reset(new FileLogger(STDERR_FILENO, nowfn));
 
 	// setting a reasonable default max-connection limit.
 	// However, this cannot be computed as we do not know what the user

@@ -93,6 +93,7 @@ class X0_API FileLogger :
 {
 public:
 	FileLogger(const std::string& filename, std::function<std::string()> now);
+	FileLogger(int fd, std::function<std::string()> now);
 	~FileLogger();
 
 	virtual void cycle();
