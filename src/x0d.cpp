@@ -12,6 +12,7 @@
 #include <x0/flow/FlowRunner.h>
 #include <x0/StringTokenizer.h>
 #include <x0/Logger.h>
+#include <x0/DateTime.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
 
@@ -320,10 +321,6 @@ XzeroHttpDaemon::~XzeroHttpDaemon()
 	x0::FlowRunner::shutdown();
 }
 
-namespace x0 {
-	std::string global_now(); // defined in HttpServer.cpp
-}
-
 int XzeroHttpDaemon::run()
 {
 	::signal(SIGPIPE, SIG_IGN);
@@ -347,8 +344,10 @@ int XzeroHttpDaemon::run()
 		server_->setLogger(std::make_shared<x0::SystemdLogger>());
 	} else {
 		if (!logFile_.empty()) {
-			auto nowfn = std::bind(&x0::global_now);
-			auto logger = std::make_shared<x0::FileLogger<decltype(nowfn)>>(logFile_, nowfn);
+			auto nowfn = [this]() -> std::string {
+				return x0::DateTime(ev_now(server_->loop())).htlog_str().str();
+			};
+			auto logger = std::make_shared<x0::FileLogger>(logFile_, nowfn);
 			if (logger->handle() < 0) {
 				fprintf(stderr, "Could not open log file '%s': %s\n",
 						logFile_.c_str(), strerror(errno));

@@ -129,4 +129,72 @@ SystemdLogger *SystemdLogger::clone() const
 }
 // }}}
 
+// {{{ FileLogger
+FileLogger::FileLogger(const std::string& filename, std::function<std::string()> now) :
+	filename_(filename),
+	fd_(-1),
+	now_(now)
+{
+	cycle();
+}
+
+FileLogger::~FileLogger()
+{
+	if (fd_ != -1) {
+		::close(fd_);
+		fd_ = -1;
+	}
+}
+
+int FileLogger::handle() const
+{
+	return fd_;
+}
+
+void FileLogger::cycle()
+{
+	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE
+#if defined(O_CLOEXEC)
+			| O_CLOEXEC
+#endif
+			, 0644);
+
+	if (fd2 == -1)
+	{
+		write(Severity::error, "Could not (re)open new logfile");
+	}
+	else
+	{
+#if !defined(O_CLOEXEC) && defined(FD_CLOEXEC)
+		fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD) | FD_CLOEXEC);
+#endif
+		if (fd_ != -1)
+		{
+			::close(fd_);
+		}
+
+		fd_ = fd2;
+	}
+}
+
+inline void FileLogger::write(Severity severity, const std::string& message)
+{
+	if (severity <= level() && fd_ >= 0) {
+		Buffer buf;
+		buf.printf("[%s] [%s] %s\n", now_().c_str(), severity.c_str(), message.c_str());
+
+		int rv = ::write(fd_, buf.data(), buf.size());
+
+		if (rv < 0) {
+			perror("FileLogger.write");
+		}
+	}
+}
+
+inline FileLogger *FileLogger::clone() const
+{
+	return new FileLogger(filename_, now_);
+}
+// }}}
+
 } // namespace x0

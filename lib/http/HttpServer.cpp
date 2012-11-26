@@ -62,23 +62,6 @@ void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
 	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
 }
 
-X0_EXPORT std::string global_now()
-{
-	float val = ev_now(ev_default_loop(0));
-	time_t ts = (time_t)val;
-	struct tm tm;
-
-	if (localtime_r(&ts, &tm)) {
-		char buf[256];
-
-		if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", &tm) != 0) {
-			return buf;
-		}
-	}
-
-	return "unknown";
-}
-
 /** initializes the HTTP server object.
  * \param io_service an Asio io_service to use or nullptr to create our own one.
  * \see HttpServer::run()
@@ -136,8 +119,10 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 
 	HttpRequest::initialize();
 
-	auto nowfn = std::bind(&global_now);
-	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
+	auto nowfn = [this]() -> std::string {
+		return DateTime(ev_now(loop_)).htlog_str().str();
+	};
+	logger_.reset(new FileLogger("/dev/stderr", nowfn));
 
 	// setting a reasonable default max-connection limit.
 	// However, this cannot be computed as we do not know what the user
