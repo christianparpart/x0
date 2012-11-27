@@ -7,6 +7,7 @@
  */
 
 #include <x0/Logger.h>
+#include <x0/DateTime.h>
 #include <x0/strutils.h>
 #include <cstring>
 #include <sd-daemon.h>
@@ -130,7 +131,7 @@ SystemdLogger *SystemdLogger::clone() const
 // }}}
 
 // {{{ FileLogger
-FileLogger::FileLogger(const std::string& filename, std::function<std::string()> now) :
+FileLogger::FileLogger(const std::string& filename, std::function<time_t()> now) :
 	filename_(filename),
 	fd_(-1),
 	now_(now)
@@ -138,7 +139,7 @@ FileLogger::FileLogger(const std::string& filename, std::function<std::string()>
 	cycle();
 }
 
-FileLogger::FileLogger(int fd, std::function<std::string()> now) :
+FileLogger::FileLogger(int fd, std::function<time_t()> now) :
 	filename_(),
 	fd_(fd),
 	now_(now)
@@ -187,7 +188,9 @@ inline void FileLogger::write(Severity severity, const std::string& message)
 {
 	if (severity <= level() && fd_ >= 0) {
 		Buffer buf;
-		buf.printf("[%s] [%s] %s\n", now_().c_str(), severity.c_str(), message.c_str());
+		DateTime ts(now_());
+		// TODO let `ts.htlog_str()` render directly into `buf`
+		buf << "[" << ts.htlog_str() << "] [" << severity.c_str() << "] " << message;
 
 		int rv = ::write(fd_, buf.data(), buf.size());
 

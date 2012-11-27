@@ -344,10 +344,9 @@ int XzeroHttpDaemon::run()
 		server_->setLogger(std::make_shared<x0::SystemdLogger>());
 	} else {
 		if (!logFile_.empty()) {
-			auto nowfn = [this]() -> std::string {
-				return x0::DateTime(ev_now(server_->loop())).htlog_str().str();
-			};
-			auto logger = std::make_shared<x0::FileLogger>(logFile_, nowfn);
+			auto logger = std::make_shared<x0::FileLogger>(logFile_, [this]() {
+				return static_cast<time_t>(ev_now(server_->loop()));
+			});
 			if (logger->handle() < 0) {
 				fprintf(stderr, "Could not open log file '%s': %s\n",
 						logFile_.c_str(), strerror(errno));

@@ -48,15 +48,12 @@ DateTime::~DateTime()
 const Buffer& DateTime::http_str() const
 {
 	pthread_spin_lock(&lock_);
-	if (http_.empty())
-	{
+	if (http_.empty()) {
 		std::time_t ts = unixtime();
-		if (struct tm *tm = gmtime(&ts))
-		{
+		if (struct tm *tm = gmtime(&ts)) {
 			char buf[256];
 
-			if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0)
-			{
+			if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0) {
 				http_ = buf;
 			}
 		}

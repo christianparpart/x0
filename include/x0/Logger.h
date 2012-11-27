@@ -17,6 +17,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <ctime>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -92,8 +93,8 @@ class X0_API FileLogger :
 	public Logger
 {
 public:
-	FileLogger(const std::string& filename, std::function<std::string()> now);
-	FileLogger(int fd, std::function<std::string()> now);
+	FileLogger(const std::string& filename, std::function<time_t()> now);
+	FileLogger(int fd, std::function<time_t()> now);
 	~FileLogger();
 
 	virtual void cycle();
@@ -105,7 +106,7 @@ public:
 private:
 	std::string filename_;
 	int fd_;
-	std::function<std::string()> now_;
+	std::function<time_t()> now_;
 };
 
 /** implements a file based logger.
