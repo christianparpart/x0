@@ -131,25 +131,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	if (::getrlimit(RLIMIT_NOFILE, &rlim) == 0)
 		maxConnections = std::max(int(rlim.rlim_cur / 3) - 5, 1);
 
-	// Welcome message
-	printf("\n\n"
-		"\e[1;37m"
-		"             XXXXXXXXXXX\n"
-		" XX     XX   XX       XX\n"
-		"  XX   XX    XX       XX\n"
-		"   XX XX     XX       XX\n"
-		"    XXX      XX   0   XX - Web server\n"
-		"   XX XX     XX       XX   Version "
-		VERSION
-		"\n"
-		"  XX   XX    XX       XX\n"
-		" XX     XX   XX       XX\n"
-		"             XXXXXXXXXXX\n"
-		"\n"
-		" http://xzero.io/"
-		"\e[0m"
-		"\n\n");
-
 	// Load core plugins
 	registerPlugin(core_ = new HttpCore(*this));
 
