@@ -190,7 +190,7 @@ inline void FileLogger::write(Severity severity, const std::string& message)
 		Buffer buf;
 		DateTime ts(now_());
 		// TODO let `ts.htlog_str()` render directly into `buf`
-		buf << "[" << ts.htlog_str() << "] [" << severity.c_str() << "] " << message;
+		buf << "[" << ts.htlog_str() << "] [" << severity.c_str() << "] " << message << "\n";
 
 		int rv = ::write(fd_, buf.data(), buf.size());
 
