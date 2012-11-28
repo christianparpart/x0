@@ -11,7 +11,7 @@ configure-stamp:
 	cmake \
 		-DCMAKE_BUILD_TYPE=release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DSYSCONFDIR=/etc/xzero \
+		-DSYSCONFDIR=/etc/x0 \
 		-DINCLUDEDIR=/usr/include \
 		-DLIBDIR=/usr/lib \
 		-DPLUGINDIR=/usr/lib/xzero \
@@ -25,6 +25,7 @@ configure-stamp:
 		-DENABLE_EXAMPLES=OFF \
 		-DENABLE_WEBDAV=OFF \
 		-DENABLE_RRD=OFF \
+		-DENABLE_IMAGEABLE=OFF \
 		\
 		-DWITH_ACCEPT4=ON \
 		-DWITH_PCRE=ON \
@@ -32,6 +33,8 @@ configure-stamp:
 		-DWITH_SSL=ON \
 		-DWITH_TCP_DEFER_ACCEPT=ON
 	touch $@
+
+# XXX we disabled some plugins (rrd, iamgeable, webdav, ...) as they're not meant for release yet
 
 build: build-stamp
 build-stamp: configure-stamp
@@ -47,7 +50,7 @@ install-stamp:
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 	mkdir -p $(CURDIR)/debian/tmp/etc/init
-	cp $(CURDIR)/debian/x0d.upstart $(CURDIR)/debian/tmp/etc/init/x0d
+	cp $(CURDIR)/debian/x0d.upstart $(CURDIR)/debian/tmp/etc/init/x0d.conf
 	touch $@
 
 binary-indep: build install

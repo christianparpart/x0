@@ -1,20 +1,38 @@
 description "x0d (Xzero) HTTP Web Server"
-author "Christian Parpart <trapni@gentoo.org>"
+author "Christian Parpart <trapni@gmail.com>"
 
 start on filesystem or runlevel [2345]
 stop on runlevel [!2345]
 
+env CONFFILE=/etc/x0/x0d.conf
+env PIDFILE=/var/run/x0d/x0d.pid
+
+env USER=x0d
+env GROUP=x0d
+
 env LOG_FILE=/dev/stdout
 env LOG_LEVEL=warn
 
-#expect fork
 respawn
-
-exec /usr/sbin/x0d --no-fork -f /etc/x0/x0d.conf --pid-file=/var/run/x0d/x0d.pid --log-file=$LOG_FILE --log-level=$LOG_LEVEL
+#respawn limit 10 5
 
 pre-start script
+	[ -f /etc/default/x0d ] && . /etc/default/x0d
+
 	mkdir -p /var/run/x0d
-	chown x0d.x0d /var/run/x0d
+	chown $USER.$GROUP /var/run/x0d
+
+	mkdir -p /var/log/x0d
+	chown $USER.$GROUP /var/log/x0d
+end script
+
+script
+	[ -f /etc/default/x0d ] && . /etc/default/x0d
+
+	exec /home/trapni/projects/x0/src/x0d -f $CONFFILE \
+		-u $USER -g $GROUP \
+		-p $PIDFILE \
+		-l $LOG_FILE -L $LOG_LEVEL
 end script
 
 # vim:syntax=upstart
