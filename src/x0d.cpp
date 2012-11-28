@@ -223,7 +223,7 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	instant_(),
 	documentRoot_(),
 	nofork_(false),
-	systemd_(getppid() == 1),
+	systemd_(getppid() == 1 && sd_booted()),
 	doguard_(false),
 	dumpIR_(false),
 	optimizationLevel_(2),
