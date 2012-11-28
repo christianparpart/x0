@@ -50,6 +50,8 @@ install-stamp:
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 	mkdir -p $(CURDIR)/debian/tmp/etc/init
+	mkdir -p $(CURDIR)/debian/tmp/var/log/x0d
+	mkdir -p $(CURDIR)/debian/tmp/var/run/x0d
 	cp $(CURDIR)/debian/x0d.upstart $(CURDIR)/debian/tmp/etc/init/x0d.conf
 	touch $@
 
