@@ -424,7 +424,7 @@ bool SqlStatement::bindParam<bool>(const bool& value)
 	b->buffer_length = sizeof(bool);
 	b->length = &b->buffer_length;
 	b->is_unsigned = false;
-	b->is_null = false;
+	b->is_null = nullptr;
 	b->buffer = (char *)&value;
 
 	return true;
@@ -440,7 +440,7 @@ bool SqlStatement::bindParam<int>(const int& value)
 	b->buffer_length = sizeof(int);
 	b->length = &b->buffer_length;
 	b->is_unsigned = false;
-	b->is_null = false;
+	b->is_null = nullptr;
 	b->buffer = (char *)&value;
 
 	return true;
@@ -456,7 +456,7 @@ bool SqlStatement::bindParam<unsigned long long>(const unsigned long long& value
 	b->buffer_length = sizeof(unsigned long long);
 	b->length = &b->buffer_length;
 	b->is_unsigned = true;
-	b->is_null = false;
+	b->is_null = nullptr;
 	b->buffer = (char *)&value;
 
 	return true;
@@ -472,7 +472,7 @@ bool SqlStatement::bindParam<std::string>(const std::string& value)
 	b->buffer_length = value.size();
 	b->length = &b->buffer_length;
 	b->is_unsigned = false;
-	b->is_null = false;
+	b->is_null = nullptr;
 	b->buffer = (char *)value.data();
 
 	return true;
