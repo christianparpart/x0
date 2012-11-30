@@ -63,7 +63,6 @@ bool RegExp::match(const char *buffer, size_t size, Result* result) const
 	if (result) {
 		result->clear();
 		if (rc > 0) {
-			Buffer buf(buffer);
 			for (size_t i = 0, e = rc * 2; i != e; i += 2) {
 				const char* value = buffer + ov[i];
 				size_t length = ov[i + 1] - ov[i];
