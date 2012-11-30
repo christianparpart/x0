@@ -508,6 +508,7 @@ bool XzeroHttpDaemon::parse()
 					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
+					<< "     --splash               print splash greeter to terminal on startup" << std::endl
 					<< std::endl;
 				return false;
 			case 'X':
