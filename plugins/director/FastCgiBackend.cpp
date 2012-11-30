@@ -331,7 +331,10 @@ void FastCgiTransport::bind()
 		paramWriter_.encode(key, i.value);
 	}
 	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
-	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+
+	if (request_->fileinfo) {
+		paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+	}
 
 	write(FastCgi::Type::Params, id_, paramWriter_.output());
 	write(FastCgi::Type::Params, id_, "", 0); // EOS
