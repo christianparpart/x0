@@ -527,7 +527,7 @@ void CgiTransport::io(x0::Socket* s, int revents)
 					// we did not actually process any response though
 					log(x0::Severity::error, "Connection to backend lost (read-buffer: offset=%zu, size=%zu).", readOffset_, readBuffer_.size());
 				}
-				goto app_err;
+				close();
 			}
 
 			if (rv < 0) {
@@ -555,6 +555,10 @@ void CgiTransport::io(x0::Socket* s, int revents)
 
 			if (!processRecord(record))
 				goto done;
+		}
+
+		if (backend_->isClosed()) {
+			goto done;
 		}
 	}
 
