@@ -523,7 +523,11 @@ void CgiTransport::io(x0::Socket* s, int revents)
 			int rv = backend_->read(readBuffer_);
 
 			if (rv == 0) {
-				break;
+				if (request_->status == x0::HttpStatus::Undefined) {
+					// we did not actually process any response though
+					log(x0::Severity::error, "Connection to backend lost (read-buffer: offset=%zu, size=%zu).", readOffset_, readBuffer_.size());
+				}
+				goto app_err;
 			}
 
 			if (rv < 0) {
@@ -534,14 +538,6 @@ void CgiTransport::io(x0::Socket* s, int revents)
 
 				break;
 			}
-		}
-
-		if (readOffset_ == readBuffer_.size()) {
-			if (request_->status == x0::HttpStatus::Undefined) {
-				// we did not actually process any response though
-				log(x0::Severity::error, "Connection to backend lost (read-buffer: offset=%zu, size=%zu).", readOffset_, readBuffer_.size());
-			}
-			goto app_err;
 		}
 
 		// process fully received records
