@@ -38,6 +38,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	query(),
 	httpVersionMajor(0),
 	httpVersionMinor(0),
+	hostname(),
 	requestHeaders(),
 	bytesTransmitted_(0),
 	username(),
