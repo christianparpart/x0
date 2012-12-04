@@ -191,7 +191,7 @@ void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* socket)
 	// request line
 	writeBuffer_.push_back(request_->method);
 	writeBuffer_.push_back(' ');
-	writeBuffer_.push_back(request_->uri);
+	writeBuffer_.push_back(request_->unparsedUri);
 	writeBuffer_.push_back(" HTTP/1.1\r\n");
 
 	BufferRef forwardedFor;

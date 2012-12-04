@@ -32,7 +32,6 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	connection(conn),
 	method(),
 	unparsedUri(),
-	uri(),
 	path(),
 	query(),
 	pathinfo(),

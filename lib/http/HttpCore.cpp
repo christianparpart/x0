@@ -651,7 +651,7 @@ void HttpCore::req_method(HttpRequest* in, const FlowParams& args, FlowValue& re
 
 void HttpCore::req_url(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
-	result.set(in->uri.data(), in->uri.size());
+	result.set(in->unparsedUri.data(), in->unparsedUri.size());
 }
 
 void HttpCore::req_path(HttpRequest* in, const FlowParams& args, FlowValue& result)

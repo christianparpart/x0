@@ -271,6 +271,24 @@ void HttpConnection::handshakeComplete(Socket *)
 	}
 }
 
+static inline Buffer urldecode(const BufferRef& value) { // {{{
+	Buffer sb;
+
+    for (std::size_t i = 0, e = value.size(); i < e; ++i) {
+        if (value[i] == '%' && i + 2 < e) {
+			char snum[3] = { value[i], value[i + 1], 0 };
+            i += 2;
+			sb.push_back(char(std::strtol(snum, 0, 16) & 0xFF));
+        } else if (value[i] == '+') {
+			sb.push_back(' ');
+		} else {
+			sb.push_back(value[i]);
+		}
+    }
+
+    return sb;
+} // }}}
+
 inline bool url_decode(Buffer& value)
 {
 	std::size_t right = value.size();
@@ -311,15 +329,13 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 
 	request_->method = method;
 	request_->unparsedUri = uri;
-	request_->uri = uri.clone();
-	url_decode(request_->uri);
 
-	std::size_t n = request_->uri.ref().find('?');
+	std::size_t n = request_->unparsedUri.find('?');
 	if (n != std::string::npos) {
-		request_->path = request_->uri.ref(0, n);
-		request_->query = request_->uri.ref(n + 1);
+		request_->path = urldecode(request_->unparsedUri.ref(0, n));
+		request_->query = request_->unparsedUri.ref(n + 1);
 	} else {
-		request_->path = request_->uri;
+		request_->path = urldecode(request_->unparsedUri);
 	}
 
 	request_->httpVersionMajor = versionMajor;
@@ -332,7 +348,7 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 		setShouldKeepAlive(false);
 
 	// limit request uri length
-	if (request_->uri.size() > worker().server().maxRequestUriSize()) {
+	if (request_->unparsedUri.size() > worker().server().maxRequestUriSize()) {
 		request_->status = HttpStatus::RequestUriTooLong;
 		request_->finish();
 		return false;

@@ -289,9 +289,8 @@ public:
 	// request properties
 	BufferRef method;							///< HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
 	BufferRef unparsedUri;						///< unparsed request URI
-	Buffer uri;									///< URL-decoded request URI
-	BufferRef path;								///< URL-decoded path-part
-	BufferRef query;							///< URL-decoded query-part
+	Buffer path;								///< URL-decoded path-part
+	BufferRef query;							///< URL-encoded query string
 	BufferRef pathinfo;							///< PATH_INFO part of the HTTP request path.
 	FileInfoPtr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
 	int httpVersionMajor;						///< HTTP protocol version major part that this request was formed in
@@ -401,7 +400,7 @@ inline void HttpRequest::clear()
 	outputState_ = Unhandled;
 
 	method.clear();
-	uri.clear();
+	unparsedUri.clear();
 	path.clear();
 	fileinfo = FileInfoPtr();
 	pathinfo.clear();

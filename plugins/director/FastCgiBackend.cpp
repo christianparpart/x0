@@ -297,7 +297,7 @@ void FastCgiTransport::bind()
 	}
 
 	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
-	paramWriter_.encode("REQUEST_URI", request_->uri);
+	paramWriter_.encode("REQUEST_URI", request_->unparsedUri);
 
 	//paramWriter_.encode("REMOTE_HOST", "");  // optional
 	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());

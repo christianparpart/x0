@@ -365,7 +365,7 @@ private:
 			out << "<td class='written'>" << r->bytesTransmitted() << "</td>";
 			out << "<td class='host'>" << sanitize(r->hostname) << "</td>";
 			out << "<td class='method'>" << sanitize(r->method) << "</td>";
-			out << "<td class='uri'>" << sanitize(r->uri) << "</td>";
+			out << "<td class='uri'>" << sanitize(r->unparsedUri) << "</td>";
 			out << "<td class='status'>" << x0::make_error_code(r->status).message() << "</td>";
 		} else {
 			out << "<td colspan='5'>" << "</td>";
