@@ -21,6 +21,8 @@ class SslDriver :
 	public x0::SocketDriver
 {
 private:
+	gnutls_priority_t priorities_;
+
 	SslContextSelector *selector_;
 
 	SslCacheItem *items_;
@@ -39,7 +41,9 @@ public:
 	virtual SslSocket *create(struct ev_loop *loop, int handle, int af);
 	virtual void destroy(x0::Socket *);
 
-	void cache(SslSocket *socket);
+	void setPriorities(const std::string& value);
+
+	void initialize(SslSocket* socket);
 
 	SslContext *selectContext(const std::string& dnsName) const;
 

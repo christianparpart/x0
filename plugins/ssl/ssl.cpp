@@ -33,7 +33,7 @@
 #include <gcrypt.h>
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
-#if 0
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("ssl: " msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -68,24 +68,31 @@ class SslPlugin :
 	public x0::HttpPlugin,
 	public SslContextSelector
 {
+private:
+	std::list<x0::ServerSocket*> listeners_;
+	std::string priorities_;
+
 public:
 	SslPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+		x0::HttpPlugin(srv, name),
+		listeners_(),
+		priorities_("NORMAL")
 	{
 		gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 
 		int rv = gnutls_global_init();
-		if (rv != GNUTLS_E_SUCCESS)
-		{
+		if (rv != GNUTLS_E_SUCCESS) {
 			TRACE("gnutls_global_init: %s", gnutls_strerror(rv));
 			return; //Error::CouldNotInitializeSslLibrary;
 		}
+		TRACE("gnutls_global_init: %s", gnutls_strerror(rv));
 
 		server().addComponent(std::string("GnuTLS/") + gnutls_check_version(nullptr));
 
 		registerSetupFunction<SslPlugin, &SslPlugin::add_listener>("ssl.listen", x0::FlowValue::VOID);
+		registerSetupFunction<SslPlugin, &SslPlugin::set_loglevel>("ssl.loglevel", x0::FlowValue::VOID);
+		registerSetupFunction<SslPlugin, &SslPlugin::set_priorities>("ssl.priorities", x0::FlowValue::VOID);
 		registerSetupFunction<SslPlugin, &SslPlugin::add_context>("ssl.context", x0::FlowValue::VOID);
-		registerSetupProperty<SslPlugin, &SslPlugin::set_loglevel>("ssl.loglevel", x0::FlowValue::VOID);
 	}
 
 	~SslPlugin()
@@ -116,6 +123,9 @@ public:
 
 	virtual bool post_config()
 	{
+		for (auto listener: listeners_)
+			static_cast<SslDriver*>(listener->socketDriver())->setPriorities(priorities_);
+
 		for (auto cx: contexts_)
 			cx->post_config();
 
@@ -143,6 +153,7 @@ private:
 			if (listener) {
 				SslDriver *driver = new SslDriver(this);
 				listener->setSocketDriver(driver);
+				listeners_.push_back(listener);
 			}
 
 			result.set(listener != nullptr);
@@ -155,6 +166,21 @@ private:
 			if (args[0].isNumber())
 				setLogLevel(args[0].toNumber());
 		}
+	}
+
+	void set_priorities(const x0::FlowParams& args, x0::FlowValue& result)
+	{
+		if (args.size() != 1) {
+			log(x0::Severity::error, "ssl.priorities: Invalid argument count.");
+			return;
+		}
+
+		if (!args[0].isString() && !args[0].isBuffer()) {
+			log(x0::Severity::error, "ssl.priorities: Invalid argument type. Must be a string.");
+			return;
+		}
+
+		//priorities_ = args[0].toString();
 	}
 
 	void setLogLevel(int value)
@@ -216,9 +242,6 @@ private:
 			} else if (keyname == "trustfile") {
 				if (!value->load(sval)) return;
 				cx->trustFile = sval;
-			} else if (keyname == "priorities") {
-				if (!value->load(sval)) return;
-				cx->priorities = sval;
 			} else {
 				server().log(x0::Severity::error, "ssl: Unknown ssl.context key: '%s'\n", keyname.c_str());
 				return;

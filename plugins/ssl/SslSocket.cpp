@@ -16,7 +16,7 @@
 #include <gnutls/gnutls.h>
 
 #if 0
-#	define TRACE(msg...) DEBUG("SslSocket: " msg)
+#	define TRACE(msg...) DEBUG("ssl: SslSocket: " msg)
 #else
 #	define TRACE(msg...)
 #endif
@@ -30,7 +30,7 @@
 
 SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	x0::Socket(loop, fd, af),
-#ifndef NDEBUG
+#ifndef X0_NDEBUG
 	ctime_(ev_now(loop)),
 #endif
 	driver_(driver),
@@ -54,7 +54,7 @@ SslSocket::SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af) :
 	gnutls_session_set_ptr(session_, this);
 	gnutls_transport_set_ptr(session_, reinterpret_cast<gnutls_transport_ptr_t>(handle()));
 
-	driver_->cache(this);
+	driver_->initialize(this);
 }
 
 SslSocket::~SslSocket()
@@ -98,6 +98,8 @@ int SslSocket::onClientHello(gnutls_session_t session)
 	TRACE("onClientHello(): SNI Name: \"%s\"", sniName);
 
 	if (SslContext *cx = socket->driver_->selectContext(sniName))
+		cx->bind(socket);
+	else if (SslContext* cx = socket->driver_->selectContext(""))
 		cx->bind(socket);
 
 	return 0;

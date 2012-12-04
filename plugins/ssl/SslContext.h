@@ -35,7 +35,6 @@ public:
 	void setKeyFile(const std::string& filename);
 	void setCrlFile(const std::string& filename);
 	void setTrustFile(const std::string& filename);
-	void setPriorities(const std::string& value);
 
 	std::string commonName() const;
 
@@ -53,7 +52,6 @@ public:
 	x0::WriteProperty<std::string, SslContext, &SslContext::setKeyFile> keyFile;
 	x0::WriteProperty<std::string, SslContext, &SslContext::setCrlFile> crlFile;
 	x0::WriteProperty<std::string, SslContext, &SslContext::setTrustFile> trustFile;
-	x0::WriteProperty<std::string, SslContext, &SslContext::setPriorities> priorities;
 
 	static int onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret);
 
@@ -81,7 +79,6 @@ private:
 	gnutls_openpgp_privkey_t pgpPrivateKey_;
 
 	// general
-	gnutls_priority_t priorities_;
 	gnutls_rsa_params_t rsaParams_;
 	gnutls_dh_params_t dhParams_;
 	gnutls_x509_crt_t *caList_;
