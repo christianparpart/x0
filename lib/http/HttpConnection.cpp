@@ -271,14 +271,11 @@ void HttpConnection::handshakeComplete(Socket *)
 	}
 }
 
-inline bool url_decode(Buffer& value, BufferRef& url)
+inline bool url_decode(Buffer& value)
 {
-	assert(url.belongsTo(value));
-
-	std::size_t left = url.begin() - value.begin();
-	std::size_t right = left + url.size();
-	std::size_t i = left; // read pos
-	std::size_t d = left; // write pos
+	std::size_t right = value.size();
+	std::size_t i = 0; // read pos
+	std::size_t d = 0; // write pos
 
 	while (i != right) {
 		if (value[i] == '%') {
@@ -304,7 +301,7 @@ inline bool url_decode(Buffer& value, BufferRef& url)
 		}
 	}
 
-	url = value.ref(left, d - left);
+	value.resize(d);
 	return true;
 }
 
@@ -313,10 +310,11 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 	TRACE("onMessageBegin: '%s', '%s', HTTP/%d.%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 
 	request_->method = method;
-	request_->uri = uri;
-	url_decode(input_, request_->uri);
+	request_->unparsedUri = uri;
+	request_->uri = uri.clone();
+	url_decode(request_->uri);
 
-	std::size_t n = request_->uri.find("?");
+	std::size_t n = request_->uri.ref().find('?');
 	if (n != std::string::npos) {
 		request_->path = request_->uri.ref(0, n);
 		request_->query = request_->uri.ref(n + 1);

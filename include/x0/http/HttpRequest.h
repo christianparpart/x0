@@ -288,11 +288,12 @@ public:
 
 	// request properties
 	BufferRef method;							///< HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
-	BufferRef uri;								///< parsed request uri
-	BufferRef path;								///< decoded path-part
-	FileInfoPtr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
+	BufferRef unparsedUri;						///< unparsed request URI
+	Buffer uri;									///< URL-decoded request URI
+	BufferRef path;								///< URL-decoded path-part
+	BufferRef query;							///< URL-decoded query-part
 	BufferRef pathinfo;							///< PATH_INFO part of the HTTP request path.
-	BufferRef query;							///< decoded query-part
+	FileInfoPtr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
 	int httpVersionMajor;						///< HTTP protocol version major part that this request was formed in
 	int httpVersionMinor;						///< HTTP protocol version minor part that this request was formed in
 	BufferRef hostname;							///< Host header field.
