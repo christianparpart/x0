@@ -1,39 +1,65 @@
-for a long-term todo list, see ticket system at http://redmine.trapni.de/projects/x0
+for a long-term todo list, see ticket system at https://github.com/trapni/x0/issues/
+
+- DONE: upstart initscript
+- DONE: source package
+- DONE: x0d splash greeter (conditional, --splash)
+- bring new website in dev-form online (dev-www.xzero.io)
+- ssl:
+  - FIXME: ssl priority string
+    - must be bound to socket *before* the handshake now.
+  - reliability
+  - stability (esp. in threaded mode)
+  - deprecation warning
+- website: basic website
+  - download section to provide 2 types of builds (aka. target environments / audience):
+    - production - release packages with no experimental stuff in it
+    - testing - packages containing potential new code to be merged into production
+- debian mirror behind: http://packages.xzero.io/ubuntu/{precise,quantal,raring}/
+  - create new gpg key-pair with primary email: cp@gmail.com (if available)
+  - officially support: >= precise, quantal, raring
+  - automate uploading to and updating the mirror per current distro
+
+- commit 2775dce31b1729da6b5719d2758677424f056b9d:
+  - check if we actually need it and if we should then apply it to director plugin, too.
 
 -------------------------------------------------
    0.6.0 release todo
 -------------------------------------------------
 
-1.) the unix domain socket fix for non-blocking connect
-  - possibly impossible
-2.) the crash regarding the gcc4.7 port
-3.) fastcgi/director[fastcgi]: let debug prints be macros
-3.) better max_conns compuatation.
-
-- DONE: core: BufferRef not dependant on Buffer
-- DONE: flow: unary (plus/)minus operator
-- DONE: flow: function string(value) to return type string
-- flow: bail out on invalid cast of operator+ (for example and at least)
-- flow: bool cast
-- flow: int cast
 - ssl: eliminate deprecation warnings
 - ssl: properly working SSL module (also in threaded mode).
 - x0d: ensure basic binary upgrade and config reloads.
 - provide debian package for: x0
   - upstart script (with: postinst->autostart, prerm->autostop)
-  - sub packages:
+  - (5/6): sub packages:
     - DONE: x0d
     - DONE: x0-plugins
     - DONE: libxzero-base + dev
     - DONE: libxzero-flow + dev
     - DONE: libxzero-http + dev
     - source packages (how?)
+- DONE: fix crash regarding the gcc4.7 port
+- DONE: fix file-logger always showing same timestamp
 - DONE: boost dependency cleanup (completely get rid of boost)
 - DONE: string cast function
 - DONE: first attempt of code style cleanup in FlowRunner, FlowParser, ...
 - DONE: postscript "unless" syntax
 - DONE: update src/x0d.conf-dist to actually work
 - DONE: regex match should capture groups and store results in given context (HttpRequest*)
+- DONE: better max_conns compuatation.
+- DONE: Socket::open() member function to share code with its static sibling,
+  not marking it deprecated anymore.
+- DONE: core: BufferRef not dependant on Buffer
+- DONE: flow: unary (plus/)minus operator
+- DONE: flow: function string(value) to return type string
+
+-----------------------------------------------------------------------------
+    0.7.0 release todo
+-----------------------------------------------------------------------------
+
+- flow: bail out on invalid cast of operator+ (for example and at least)
+- flow: bool cast
+- flow: int cast
 
 -----------------------------------------------------------------------------
    runtime configuration file reloading

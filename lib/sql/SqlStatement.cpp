@@ -11,8 +11,8 @@
 #include <errmsg.h>
 #include <unistd.h>
 
-#if !defined(NDEBUG)
-#	define TRACE(msg...) const_cast<SqlStatement*>(this)->debug(msg)
+#if 1 // !defined(NDEBUG)
+#	define TRACE(msg...) DEBUG(msg)
 #else
 #	define TRACE(msg...) do { } while (0)
 #endif
@@ -242,6 +242,7 @@ const char *SqlStatement::error() const
 
 bool SqlStatement::bindParam()
 {
+	TRACE("bind param (EOP)");
 	return true;
 }
 
@@ -253,7 +254,7 @@ MYSQL_BIND *SqlStatement::getParam()
 
 bool SqlStatement::run()
 {
-	TRACE("%s", query_);
+	TRACE("run: %s", query_);
 	if (bindOffset_ != mysql_stmt_param_count(stmt_)) {
 		error_ = "Invalid parameter count";
 		fprintf(stderr, "Cannot run argument with invalid parameter count.\n");
@@ -416,7 +417,7 @@ unsigned long long SqlStatement::lastInsertId() const
 template<>
 bool SqlStatement::bindParam<bool>(const bool& value)
 {
-	//DEBUG("bind bool");
+	TRACE("bind bool");
 
 	MYSQL_BIND *b = getParam();
 	memset(b, 0, sizeof(*b));
@@ -433,7 +434,7 @@ bool SqlStatement::bindParam<bool>(const bool& value)
 template<>
 bool SqlStatement::bindParam<int>(const int& value)
 {
-	//debug("bind int");
+	TRACE("bind int");
 	MYSQL_BIND *b = getParam();
 	memset(b, 0, sizeof(*b));
 	b->buffer_type = MYSQL_TYPE_LONG;
@@ -449,7 +450,7 @@ bool SqlStatement::bindParam<int>(const int& value)
 template<>
 bool SqlStatement::bindParam<unsigned long long>(const unsigned long long& value)
 {
-	//debug("bind unsigned long long");
+	TRACE("bind unsigned long long");
 	MYSQL_BIND *b = getParam();
 	memset(b, 0, sizeof(*b));
 	b->buffer_type = MYSQL_TYPE_LONGLONG;
@@ -465,7 +466,7 @@ bool SqlStatement::bindParam<unsigned long long>(const unsigned long long& value
 template<>
 bool SqlStatement::bindParam<std::string>(const std::string& value)
 {
-	//DEBUG("bind string");
+	DEBUG("bind string");
 	MYSQL_BIND *b = getParam();
 	memset(b, 0, sizeof(*b));
 	b->buffer_type = MYSQL_TYPE_STRING;

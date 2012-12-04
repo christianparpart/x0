@@ -86,9 +86,10 @@
 /// the filename only part of __FILE__ (no leading path)
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
-#ifndef NDEBUG
+#ifndef X0_NDEBUG
 #	include <string>
 #	include <ctime>
+#	include <ev.h>
 #	define DEBUG(msg...) do {                               \
 		std::printf("%0.6f: ", ev_now(ev_default_loop(0))); \
 		std::printf(msg); std::printf("\n");                \
