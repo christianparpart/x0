@@ -51,7 +51,7 @@ private:
 	void setModern(const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		std::string browser = args[0].toString();
-		float version = x0::Buffer(args[1].toString()).ref().toFloat();
+		float version = x0::Buffer(args[1].toString()).toFloat();
 
 		modern_[browser] = version;
 	}

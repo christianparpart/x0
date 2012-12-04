@@ -594,7 +594,7 @@ namespace {
 	static inline T readFile(const char* path, const T& defaultValue)
 	{
 		Buffer result(readFile(path));
-		return !result.empty() ? result.ref().as<T>() : defaultValue;
+		return !result.empty() ? result.as<T>() : defaultValue;
 	}
 }
 
