@@ -138,7 +138,7 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 			// timeout has been reached.
 
 			request_->log(Severity::notice, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
-			backend_->director()->scheduler()->schedule(request_);
+			backend_->manager()->reject(request_);
 		} else {
 			// We actually served ths request, so finish() it.
 			request_->finish();
@@ -248,11 +248,11 @@ void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* socket)
 
 	if (socket_->state() == Socket::Connecting) {
 		TRACE("start: connect in progress");
-		socket_->setTimeout<ProxyConnection, &HttpBackend::ProxyConnection::onConnectTimeout>(this, backend_->director()->connectTimeout());
+		socket_->setTimeout<ProxyConnection, &HttpBackend::ProxyConnection::onConnectTimeout>(this, backend_->manager()->connectTimeout());
 		socket_->setReadyCallback<ProxyConnection, &ProxyConnection::onConnected>(this);
 	} else { // connected
 		TRACE("start: flushing");
-		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
 		socket_->setMode(Socket::ReadWrite);
 	}
@@ -300,7 +300,7 @@ void HttpBackend::ProxyConnection::onConnected(Socket* s, int revents)
 	if (socket_->state() == Socket::Operational) {
 		TRACE("onConnected: flushing");
 		request_->responseHeaders.push_back("X-Director-Backend", backend_->name());
-		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
 		socket_->setMode(Socket::ReadWrite); // flush already serialized request
 	} else {
@@ -318,7 +318,7 @@ void HttpBackend::ProxyConnection::onRequestChunk(const BufferRef& chunk)
 	writeBuffer_.push_back(chunk);
 
 	if (socket_->state() == Socket::Operational) {
-		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setMode(Socket::ReadWrite);
 	}
 }
@@ -383,7 +383,7 @@ bool HttpBackend::ProxyConnection::onMessageContent(const BufferRef& chunk)
 void HttpBackend::ProxyConnection::onWriteComplete()
 {
 	TRACE("chunk write complete: %s", state_str());
-	socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->readTimeout());
+	socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->readTimeout());
 	socket_->setMode(Socket::Read);
 	unref();
 }
@@ -426,7 +426,7 @@ void HttpBackend::ProxyConnection::writeSome()
 			writeBuffer_.clear();
 			socket_->setMode(Socket::Read);
 		} else {
-			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->writeTimeout());
 		}
 	} else if (rv < 0) {
 		switch (errno) {
@@ -435,7 +435,7 @@ void HttpBackend::ProxyConnection::writeSome()
 #endif
 		case EAGAIN:
 		case EINTR:
-			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->writeTimeout());
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->writeTimeout());
 			socket_->setMode(Socket::ReadWrite);
 			break;
 		default:
@@ -472,7 +472,7 @@ void HttpBackend::ProxyConnection::readSome()
 			close();
 		} else {
 			TRACE("resume with io:%d, state:%s", socket_->mode(), socket_->state_str());
-			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->readTimeout());
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->readTimeout());
 			socket_->setMode(Socket::Read);
 		}
 	} else if (rv == 0) {
@@ -485,7 +485,7 @@ void HttpBackend::ProxyConnection::readSome()
 #endif
 		case EAGAIN:
 		case EINTR:
-			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->director()->readTimeout());
+			socket_->setTimeout<ProxyConnection, &ProxyConnection::onTimeout>(this, backend_->manager()->readTimeout());
 			socket_->setMode(Socket::Read);
 			break;
 		default:
@@ -501,13 +501,14 @@ void HttpBackend::ProxyConnection::readSome()
 // {{{ HttpBackend impl
 HttpBackend::HttpBackend(Director* director, const std::string& name,
 		const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity, new HttpHealthMonitor(*director->worker().server().nextWorker()))
+	Backend(director, name, socketSpec, capacity,
+		new HttpHealthMonitor(*director->worker()->server().nextWorker()))
 {
 #ifndef NDEBUG
 	setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 
-	healthMonitor().setBackend(this);
+	healthMonitor()->setBackend(this);
 }
 
 HttpBackend::~HttpBackend()

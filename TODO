@@ -1,14 +1,25 @@
 for a long-term todo list, see ticket system at https://github.com/trapni/x0/issues/
 
+- merge of director/fastcgi/proxy plugins
+  - Flow API:
+  - director.fcgi 'address' => 127.0.0.1, 'port' => 9000
+  - director.http 'address' => 127.0.0.1, 'port' => 9000
+  - introduce BackendManager as common base class for the more precise ones:
+    - OnewayProxy: simple proxy to manage only one backend w/o health checks etc.
+    - Director: fully featured reverse proxying load balancer
+
 - DONE: upstart initscript
 - DONE: source package
 - DONE: x0d splash greeter (conditional, --splash)
-- bring new website in dev-form online (dev-www.xzero.io)
+- website: new documentation-focusing  website
+  - DONE: bring it online
+  - write/migrate news(/blog) articles
+  - functional download section
 - ssl:
-  - FIXME: ssl priority string
-    - must be bound to socket *before* the handshake now.
-  - reliability
-  - stability (esp. in threaded mode)
+  - DONE: FIXME: setup_function ssl.priorities(string);
+  - stability, should successfully work in:
+    - threaded mode (ab2 stress test)
+    - complex websites (phpbb2, wordpress, matelife, ialu)
   - deprecation warning
 - website: basic website
   - download section to provide 2 types of builds (aka. target environments / audience):

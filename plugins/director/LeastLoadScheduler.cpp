@@ -22,7 +22,7 @@ LeastLoadScheduler::LeastLoadScheduler(Director* d) :
 	Scheduler(d),
 	queue_(),
 	queueLock_(),
-	queueTimer_(d->worker().loop())
+	queueTimer_(d->worker()->loop())
 {
 	queueTimer_.set<LeastLoadScheduler, &LeastLoadScheduler::updateQueueTimer>(this);
 }
@@ -43,7 +43,7 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 			if (!notes->backend->tryProcess(r)) {
 				// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
 				r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
-					notes->backend->name().c_str(), notes->backend->healthMonitor().state_str().c_str());
+					notes->backend->name().c_str(), notes->backend->healthMonitor()->state_str().c_str());
 				r->status = x0::HttpStatus::ServiceUnavailable;
 				r->finish();
 
@@ -179,7 +179,7 @@ inline const char* roleStr(Backend::Role role)
 bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backend::Role role)
 {
 #ifndef NDEBUG
-	director_->worker().log(Severity::debug, "tryProcess(): role=%s", roleStr(role));
+	director_->worker()->log(Severity::debug, "tryProcess(): role=%s", roleStr(role));
 #endif
 
 	Backend* best = nullptr;
@@ -192,7 +192,7 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 			continue;
 		}
 
-		if (!backend->healthMonitor().isOnline()) {
+		if (!backend->healthMonitor()->isOnline()) {
 			TRACE("tryProcess: skipping backend %s (offline)", backend->name().c_str());
 			continue;
 		}
@@ -204,14 +204,14 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 		ssize_t avail = capacity - load;
 
 #ifndef NDEBUG
-		director_->worker().log(Severity::debug,
+		director_->worker()->log(Severity::debug,
 			"tryProcess: test backend %s (load:%zi, capacity:%zi, avail:%zi)",
 			backend->name().c_str(), load, capacity, avail);
 #endif
 
 		if (avail > bestAvail) {
 #ifndef NDEBUG
-			director_->worker().log(Severity::debug,
+			director_->worker()->log(Severity::debug,
 				"tryProcess: selecting backend %s (avail:%zi > bestAvail:%zi)",
 				backend->name().c_str(), avail, bestAvail);
 #endif
@@ -226,13 +226,13 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 
 	if (bestAvail > 0) {
 #ifndef NDEBUG
-		director_->worker().log(Severity::debug, "tryProcess: elected backend %s", best->name().c_str());
+		director_->worker()->log(Severity::debug, "tryProcess: elected backend %s", best->name().c_str());
 #endif
 		return best->tryProcess(r);
 	}
 
 #ifndef NDEBUG
-	director_->worker().log(Severity::debug, "tryProcess: (role %s) failed scheduling request", roleStr(role));
+	director_->worker()->log(Severity::debug, "tryProcess: (role %s) failed scheduling request", roleStr(role));
 #endif
 
 	return false;
@@ -252,7 +252,7 @@ void LeastLoadScheduler::updateQueueTimer()
 	while (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
 		auto notes = director_->requestNotes(r);
-		TimeSpan age(director_->worker().now() - notes->ctime);
+		TimeSpan age(director_->worker()->now() - notes->ctime);
 		if (age < director_->queueTimeout())
 			break;
 
@@ -284,7 +284,7 @@ void LeastLoadScheduler::updateQueueTimer()
 	// setup queue timer to wake up after next timeout is reached.
 	HttpRequest* r = queue_.front();
 	auto notes = director_->requestNotes(r);
-	TimeSpan age(director_->worker().now() - notes->ctime);
+	TimeSpan age(director_->worker()->now() - notes->ctime);
 	TimeSpan ttl(director_->queueTimeout() - age);
 	TRACE("updateQueueTimer: starting new timer with ttl %f (%llu)", ttl.value(), ttl.totalMilliseconds());
 	queueTimer_.start(ttl.value(), 0);

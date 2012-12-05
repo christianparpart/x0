@@ -7,6 +7,7 @@
  */
 
 #include "Backend.h"
+#include "BackendManager.h"
 #include "Director.h"
 #include "RequestNotes.h"
 #include "HealthMonitor.h"
@@ -34,7 +35,8 @@ Backend::Backend(Director* director,
 #ifndef NDEBUG
 	Logging("Backend/%s", name.c_str()),
 #endif
-	director_(director),
+	manager_(director),
+	director_(director), // FIXME remove me
 	name_(name),
 	capacity_(capacity),
 	load_(),
@@ -44,8 +46,10 @@ Backend::Backend(Director* director,
 	socketSpec_(socketSpec),
 	healthMonitor_(healthMonitor)
 {
-	healthMonitor_->setStateChangeCallback([&](HealthMonitor*) {
+	if (!healthMonitor_)
+		return;
 
+	healthMonitor_->setStateChangeCallback([&](HealthMonitor*) {
 		director_->worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
 			director_->name().c_str(), name_.c_str(), healthMonitor_->state_str().c_str());
 
@@ -61,17 +65,10 @@ Backend::Backend(Director* director,
 			}
 		}
 	});
-
-	director_->link(this);
-
-	// wake up the worker's event loop here, so he knows in time about the health check timer we just installed.
-	// TODO we should not need this...
-	director_->worker().wakeup();
 }
 
 Backend::~Backend()
 {
-	director_->unlink(this);
 	delete healthMonitor_;
 }
 
@@ -176,7 +173,7 @@ bool Backend::tryProcess(HttpRequest* r)
 {
 	std::lock_guard<std::mutex> _(lock_);
 
-	if (!healthMonitor().isOnline())
+	if (healthMonitor() && !healthMonitor()->isOnline())
 		return false;
 
 	if (!isEnabled())
