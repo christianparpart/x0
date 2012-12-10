@@ -374,41 +374,41 @@ private:
 	void ref_as_bool()
 	{
 		// true
-		CPPUNIT_ASSERT(x0::ConstBuffer("true").ref().as<bool>() == true);
-		CPPUNIT_ASSERT(x0::ConstBuffer("TRUE").ref().as<bool>() == true);
-		CPPUNIT_ASSERT(x0::ConstBuffer("True").ref().as<bool>() == true);
-		CPPUNIT_ASSERT(x0::ConstBuffer("1").ref().as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("true").as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("TRUE").as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("True").as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1").as<bool>() == true);
 
 		// false
-		CPPUNIT_ASSERT(!x0::ConstBuffer("false").ref().as<bool>());
-		CPPUNIT_ASSERT(!x0::ConstBuffer("FALSE").ref().as<bool>());
-		CPPUNIT_ASSERT(!x0::ConstBuffer("False").ref().as<bool>());
-		CPPUNIT_ASSERT(!x0::ConstBuffer("0").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("false").as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("FALSE").as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("False").as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("0").as<bool>());
 
 		// invalid cast results into false
-		CPPUNIT_ASSERT(!x0::ConstBuffer("BLAH").ref().as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("BLAH").as<bool>());
 	}
 
 	void ref_as_int()
 	{
-		CPPUNIT_ASSERT(x0::ConstBuffer("1234").ref().as<int>() == 1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1234").as<int>() == 1234);
 
-		CPPUNIT_ASSERT(x0::ConstBuffer("-1234").ref().as<int>() == -1234);
-		CPPUNIT_ASSERT(x0::ConstBuffer("+1234").ref().as<int>() == +1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("-1234").as<int>() == -1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("+1234").as<int>() == +1234);
 
-		CPPUNIT_ASSERT(x0::ConstBuffer("12.34").ref().as<int>() == 12);
+		CPPUNIT_ASSERT(x0::ConstBuffer("12.34").as<int>() == 12);
 	}
 
 	void ref_hex()
 	{
-		CPPUNIT_ASSERT(x0::ConstBuffer("1234").ref().hex<int>() == 0x1234);
-		CPPUNIT_ASSERT(x0::ConstBuffer("5678").ref().hex<int>() == 0x5678);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1234").hex<int>() == 0x1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("5678").hex<int>() == 0x5678);
 
-		CPPUNIT_ASSERT(x0::ConstBuffer("abcdef").ref().hex<int>() == 0xabcdef);
-		CPPUNIT_ASSERT(x0::ConstBuffer("ABCDEF").ref().hex<int>() == 0xABCDEF);
+		CPPUNIT_ASSERT(x0::ConstBuffer("abcdef").hex<int>() == 0xabcdef);
+		CPPUNIT_ASSERT(x0::ConstBuffer("ABCDEF").hex<int>() == 0xABCDEF);
 
-		CPPUNIT_ASSERT(x0::ConstBuffer("ABCDEFG").ref().hex<int>() == 0xABCDEF);
-		CPPUNIT_ASSERT(x0::ConstBuffer("G").ref().hex<int>() == 0);
+		CPPUNIT_ASSERT(x0::ConstBuffer("ABCDEFG").hex<int>() == 0xABCDEF);
+		CPPUNIT_ASSERT(x0::ConstBuffer("G").hex<int>() == 0);
 	}
 	// }}}
 

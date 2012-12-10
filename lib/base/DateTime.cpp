@@ -48,15 +48,12 @@ DateTime::~DateTime()
 const Buffer& DateTime::http_str() const
 {
 	pthread_spin_lock(&lock_);
-	if (http_.empty())
-	{
+	if (http_.empty()) {
 		std::time_t ts = unixtime();
-		if (struct tm *tm = gmtime(&ts))
-		{
+		if (struct tm *tm = gmtime(&ts)) {
 			char buf[256];
 
-			if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0)
-			{
+			if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0) {
 				http_ = buf;
 			}
 		}
@@ -69,24 +66,17 @@ const Buffer& DateTime::http_str() const
 const Buffer& DateTime::htlog_str() const
 {
 	pthread_spin_lock(&lock_);
-	if (htlog_.empty())
-	{
+	if (htlog_.empty()) {
 		std::time_t ts = unixtime();
-		if (struct tm *tm = localtime(&ts))
-		{
+		if (struct tm *tm = localtime(&ts)) {
 			char buf[256];
 
-			if (strftime(buf, sizeof(buf), "%m/%d/%Y:%T %z", tm) != 0)
-			{
+			if (strftime(buf, sizeof(buf), "%m/%d/%Y:%T %z", tm) != 0) {
 				htlog_ = buf;
-			}
-			else
-			{
+			} else {
 				htlog_ = "-";
 			}
-		}
-		else
-		{
+		} else {
 			htlog_ = "-";
 		}
 	}

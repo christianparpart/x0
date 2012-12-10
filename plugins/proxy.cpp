@@ -181,7 +181,7 @@ void ProxyConnection::start(x0::HttpRequest* in, x0::Socket* backend, bool cloak
 	// request line
 	writeBuffer_.push_back(request_->method);
 	writeBuffer_.push_back(' ');
-	writeBuffer_.push_back(request_->uri);
+	writeBuffer_.push_back(request_->unparsedUri);
 	writeBuffer_.push_back(" HTTP/1.1\r\n");
 
 	x0::BufferRef forwardedFor;

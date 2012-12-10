@@ -26,10 +26,17 @@
 #include <gnutls/x509.h>
 
 #if 0
-#	define TRACE(msg...) DEBUG("SslContext: " msg)
+#	define TRACE(msg...) DEBUG("ssl: SslContext: " msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
+
+#define GNUTLS_CHECK(call) { \
+	int rv = (call); \
+	if (rv != GNUTLS_E_SUCCESS) { \
+		TRACE("error running: %s = %d %s", #call, rv, gnutls_strerror(rv)); \
+	} \
+}
 
 std::error_code loadFile(gnutls_datum_t& data, const std::string& filename) // {{{ loadFile / freeFile
 {
@@ -71,7 +78,6 @@ SslContext::SslContext() :
 	keyFile(this),
 	crlFile(this),
 	trustFile(this),
-	priorities(this),
 	error_(),
 	logger_(0),
 	numX509Certs_(0),
@@ -90,9 +96,6 @@ SslContext::SslContext() :
 SslContext::~SslContext()
 {
 	TRACE("~SslContext()");
-
-	if (!priorities().empty())
-		gnutls_priority_deinit(priorities_);
 
 	if (certs_)
 		gnutls_certificate_free_credentials(certs_);
@@ -120,36 +123,35 @@ void SslContext::setCertFile(const std::string& filename)
 
 	int rv;
 	rv = gnutls_x509_crt_list_import(x509Certs_, &numX509Certs_, &data, GNUTLS_X509_FMT_PEM, 0);
-
-#if !defined(NDEBUG)
-	if (rv < 0) {
+	if (rv < 0)
 		TRACE("gnutls_x509_crt_list_import: \"%s\"", gnutls_strerror(rv));
-	}
-#endif
 
-	for (unsigned i = 0; i < numX509Certs_; ++i)
-	{
+	for (unsigned i = 0; i < numX509Certs_; ++i) {
 		// read Common Name (CN):
+		TRACE("retrieving Common Name");
 		std::size_t len = 0;
 		rv = gnutls_x509_crt_get_dn_by_oid(x509Certs_[i], GNUTLS_OID_X520_COMMON_NAME, 0, 0, nullptr, &len);
-		if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
-		{
+		if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1) {
 			char *buf = new char[len + 1];
 			rv = gnutls_x509_crt_get_dn_by_oid(x509Certs_[i], GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf, &len);
+			if (rv < 0)
+				TRACE("gnutls_x509_crt_get_dn_by_oid: \"%s\"", gnutls_strerror(rv));
 			certCN_ = buf;
 			delete[] buf;
 			TRACE("setCertFile: Common Name: \"%s\"", certCN_.c_str());
 		}
 
 		// read Subject Alternative-Name:
-		for (int k = 0; !(rv < 0); ++k)
-		{
+		TRACE("retrieving Alternative-Name");
+		for (int k = 0; !(rv < 0); ++k) {
 			len = 0;
 			rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, nullptr, &len, nullptr);
-			if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1)
-			{
+			if (rv == GNUTLS_E_SHORT_MEMORY_BUFFER && len > 1) {
 				char *buf = new char[len + 1];
 				rv = gnutls_x509_crt_get_subject_alt_name(x509Certs_[i], k, buf, &len, nullptr);
+				if (rv < 0)
+					TRACE("gnutls_x509_crt_get_subject_alt_name: \"%s\"", gnutls_strerror(rv));
+
 				buf[len] = '\0';
 
 				if (rv == GNUTLS_SAN_DNSNAME)
@@ -162,7 +164,7 @@ void SslContext::setCertFile(const std::string& filename)
 	}
 
 	freeFile(data);
-	//TRACE("setCertFile: success.");
+	TRACE("setCertFile: success.");
 }
 
 void SslContext::setKeyFile(const std::string& filename)
@@ -183,16 +185,19 @@ void SslContext::setKeyFile(const std::string& filename)
 		return;
 	}
 
-	if ((rv = gnutls_x509_privkey_import(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM)) < 0)
+	if ((rv = gnutls_x509_privkey_import(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM)) < 0) {
+		TRACE("setKeyFile: failed to import key as x509-fmt-pem. trying pkcs-plain.");
 		rv = gnutls_x509_privkey_import_pkcs8(x509PrivateKey_, &data, GNUTLS_X509_FMT_PEM, nullptr, GNUTLS_PKCS_PLAIN);
+	}
 
 	if (rv < 0) {
+		logger_->write(x0::Severity::error, "Error loading private key file(%s): %s", filename.c_str(), gnutls_strerror(rv));
 		freeFile(data);
 		return;
 	}
 
 	freeFile(data);
-	//TRACE("setKeyFile: success.");
+	TRACE("setKeyFile: success.");
 }
 
 void SslContext::setCrlFile(const std::string& filename)
@@ -211,22 +216,6 @@ void SslContext::setTrustFile(const std::string& filename)
 	TRACE("setCrlFile");
 }
 
-void SslContext::setPriorities(const std::string& value)
-{
-	if (error_) return;
-	if (!enabled) return;
-
-	TRACE("setPriorities: \"%s\"", value.c_str());
-
-	const char *errp = nullptr;
-	int rv = gnutls_priority_init(&priorities_, value.c_str(), &errp);
-
-	if (rv != GNUTLS_E_SUCCESS)
-	{
-		TRACE("gnutls_priority_init: error: %s \"%s\"", gnutls_strerror(rv), errp ? errp : "");
-	}
-}
-
 std::string SslContext::commonName() const
 {
 	return certCN_;
@@ -234,19 +223,16 @@ std::string SslContext::commonName() const
 
 bool SslContext::post_config()
 {
-	TRACE("SslContext.postConfig()\n");
+	TRACE("SslContext.postConfig()");
 
 	if (error_) return false;
 	if (!enabled) return false;
 
-	if (priorities().empty())
-		priorities = "NORMAL";
-
 //	if (rsaParams_)
 //		gnutls_certificate_set_rsa_export_params(certs_, rsaParams_);
 
-	if (dhParams_)
-	{
+	if (dhParams_) {
+		TRACE("setting DH params");
 		gnutls_certificate_set_dh_params(certs_, dhParams_);
 		gnutls_anon_set_server_dh_params(anonCreds_, dhParams_);
 	}
@@ -264,8 +250,7 @@ int SslContext::onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret)
 	SslSocket *socket = (SslSocket *)gnutls_session_get_ptr(session);
 	const SslContext *cx = socket->context();
 
-	switch (gnutls_certificate_type_get(session))
-	{
+	switch (gnutls_certificate_type_get(session)) {
 		case GNUTLS_CRT_X509:
 			if (!cx)
 				return GNUTLS_E_INTERNAL_ERROR;
@@ -292,8 +277,8 @@ void SslContext::bind(SslSocket *socket)
 	gnutls_certificate_server_set_request(socket->session_, clientVerifyMode_);
 	gnutls_credentials_set(socket->session_, GNUTLS_CRD_CERTIFICATE, certs_);
 	gnutls_credentials_set(socket->session_, GNUTLS_CRD_ANON, anonCreds_);
-	gnutls_priority_set(socket->session_, priorities_);
 
-	const int cprio[] = { GNUTLS_CRT_X509, 0 };
-	gnutls_certificate_type_set_priority(socket->session_, cprio);
+	// XXX following function is marked deprecated and has no replacement API it seems.
+	//const int cprio[] = { GNUTLS_CRT_X509, 0 };
+	//gnutls_certificate_type_set_priority(socket->session_, cprio);
 }

@@ -89,12 +89,12 @@ private:
 
 		inline std::string request_line(x0::HttpRequest *in)
 		{
-			std::stringstream str;
+			x0::Buffer buf;
 
-			str << in->method.str() << ' ' << in->uri.str()
+			buf << in->method << ' ' << in->unparsedUri
 				<< " HTTP/" << in->httpVersionMajor << '.' << in->httpVersionMinor;
 
-			return str.str();
+			return buf.str();
 		}
 
 		inline std::string getheader(const x0::HttpRequest *in, const std::string& name)

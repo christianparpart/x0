@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Backend.h"
+#include "BackendManager.h"
 
 #include <x0/Counter.h>
 #include <x0/Logging.h>
@@ -37,17 +38,9 @@ class RequestNotes;
  * \todo thread safety for actual horizontal scalability.
  * \todo support requeuing requests when designated backend did not respond in time.
  */
-class Director
-#ifndef NDEBUG
-	: public Logging
-#endif
+class Director : public BackendManager
 {
 private:
-	HttpWorker* worker_;
-
-	//! directors name, as used for debugging and displaying.
-	std::string name_;
-
 	bool mutable_; //!< whether or not one may create/update/delete backends at runtime
 
 	std::string healthCheckHostHeader_;
@@ -64,10 +57,6 @@ private:
 
 	TimeSpan retryAfter_;
 
-	TimeSpan connectTimeout_;
-	TimeSpan readTimeout_;
-	TimeSpan writeTimeout_;
-
 	//! number of attempts to pass request to a backend before giving up
 	size_t maxRetryCount_;
 
@@ -81,9 +70,7 @@ public:
 	Director(HttpWorker* worker, const std::string& name);
 	~Director();
 
-	HttpWorker& worker() { return *worker_; }
-
-	const std::string& name() const { return name_; }
+	virtual void reject(x0::HttpRequest* r);
 
 	bool isMutable() const { return mutable_; }
 	void setMutable(bool value) { mutable_ = value; }
@@ -111,15 +98,6 @@ public:
 	TimeSpan retryAfter() const { return retryAfter_; }
 	void setRetryAfter(TimeSpan value) { retryAfter_ = value; }
 
-	TimeSpan connectTimeout() const { return connectTimeout_; }
-	void setConnectTimeout(TimeSpan value) { connectTimeout_ = value; }
-
-	TimeSpan readTimeout() const { return readTimeout_; }
-	void setReadTimeout(TimeSpan value) { readTimeout_ = value; }
-
-	TimeSpan writeTimeout() const { return writeTimeout_; }
-	void setWriteTimeout(TimeSpan value) { writeTimeout_ = value; }
-
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
@@ -128,15 +106,8 @@ public:
 	RequestNotes* setupRequestNotes(x0::HttpRequest* r, Backend* backend = nullptr);
 	RequestNotes* requestNotes(x0::HttpRequest* r);
 
-	Backend* createBackend(const std::string& name, const std::string& url);
-
-	Backend* createBackend(const std::string& name, const std::string& protocol, const std::string& hostname,
-		int port, const std::string& path, const std::string& query);
-
-	template<typename T, typename... Args>
-	Backend* createBackend(const std::string& name, const SocketSpec& ss, size_t capacity, const Args&... args) {
-		return new T(this, name, ss, capacity, args...);
-	}
+	Backend* createBackend(const std::string& name, const Url& url);
+	void destroyBackend(Backend* backend);
 
 	Backend* findBackend(const std::string& name);
 
@@ -155,7 +126,7 @@ public:
 		}
 	}
 
-	template<typename T> inline void post(T function) { worker_->post(function); }
+	template<typename T> inline void post(T function) { worker()->post(function); }
 
 	const std::vector<Backend*>& backendsWith(Backend::Role role) const;
 

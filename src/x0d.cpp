@@ -12,6 +12,7 @@
 #include <x0/flow/FlowRunner.h>
 #include <x0/StringTokenizer.h>
 #include <x0/Logger.h>
+#include <x0/DateTime.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
 
@@ -177,6 +178,7 @@ private:
 	State state_;
 	int argc_;
 	char** argv_;
+	bool showGreeter_;
 	std::string configfile_;
 	std::string pidfile_;
 	std::string user_;
@@ -213,6 +215,7 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	state_(State::Inactive),
 	argc_(argc),
 	argv_(argv),
+	showGreeter_(false),
 	configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
 	pidfile_(),
 	user_(),
@@ -222,7 +225,7 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	instant_(),
 	documentRoot_(),
 	nofork_(false),
-	systemd_(getppid() == 1),
+	systemd_(getppid() == 1 && sd_booted()),
 	doguard_(false),
 	dumpIR_(false),
 	optimizationLevel_(2),
@@ -320,10 +323,6 @@ XzeroHttpDaemon::~XzeroHttpDaemon()
 	x0::FlowRunner::shutdown();
 }
 
-namespace x0 {
-	std::string global_now(); // defined in HttpServer.cpp
-}
-
 int XzeroHttpDaemon::run()
 {
 	::signal(SIGPIPE, SIG_IGN);
@@ -347,8 +346,9 @@ int XzeroHttpDaemon::run()
 		server_->setLogger(std::make_shared<x0::SystemdLogger>());
 	} else {
 		if (!logFile_.empty()) {
-			auto nowfn = std::bind(&x0::global_now);
-			auto logger = std::make_shared<x0::FileLogger<decltype(nowfn)>>(logFile_, nowfn);
+			auto logger = std::make_shared<x0::FileLogger>(logFile_, [this]() {
+				return static_cast<time_t>(ev_now(server_->loop()));
+			});
 			if (logger->handle() < 0) {
 				fprintf(stderr, "Could not open log file '%s': %s\n",
 						logFile_.c_str(), strerror(errno));
@@ -386,6 +386,25 @@ int XzeroHttpDaemon::run()
 
 	setState(State::Running);
 
+	if (showGreeter_) {
+		printf("\n\n"
+			"\e[1;37m"
+			"             XXXXXXXXXXX\n"
+			" XX     XX   XX       XX\n"
+			"  XX   XX    XX       XX\n"
+			"   XX XX     XX       XX\n"
+			"    XXX      XX   0   XX - Web Server\n"
+			"   XX XX     XX       XX   Version " PACKAGE_VERSION "\n"
+			"  XX   XX    XX       XX\n"
+			" XX     XX   XX       XX\n"
+			"             XXXXXXXXXXX\n"
+			"\n"
+			" " PACKAGE_HOMEPAGE_URL
+			"\e[0m"
+			"\n\n"
+		);
+	}
+
 	int rv = server_->run();
 
 	// remove PID-file, if exists and not in systemd-mode
@@ -410,6 +429,7 @@ bool XzeroHttpDaemon::parse()
 		{ "instant", required_argument, nullptr, 'i' },
 		{ "dump-ir", no_argument, &dumpIR_, 1 },
 		//.
+		{ "splash", no_argument, nullptr, 'S' },
 		{ "version", no_argument, nullptr, 'v' },
 		{ "copyright", no_argument, nullptr, 'y' },
 		{ "config", required_argument, nullptr, 'f' },
@@ -429,6 +449,9 @@ bool XzeroHttpDaemon::parse()
 	for (;;) {
 		int long_index = 0;
 		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:l:L:i:hXG", long_options, &long_index)) {
+			case 'S':
+				showGreeter_ = true;
+				break;
 			case 'p':
 				pidfile_ = optarg;
 				break;
@@ -485,6 +508,7 @@ bool XzeroHttpDaemon::parse()
 					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
+					<< "     --splash               print splash greeter to terminal on startup" << std::endl
 					<< std::endl;
 				return false;
 			case 'X':

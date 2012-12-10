@@ -10,6 +10,7 @@
 #define sw_x0_buffer_hpp (1)
 
 #include <x0/Api.h>
+#include <x0/BufferRef.h>
 #include <cstddef>
 #include <climits>
 #include <cstring>
@@ -20,8 +21,6 @@
 
 namespace x0 {
 
-class BufferRef;
-
 //! \addtogroup base
 //@{
 
@@ -31,7 +30,8 @@ class BufferRef;
  * This class should be used when sequentially creating and reading parts from it is the main goal
  * of some certain linear information to share.
  */
-class X0_API Buffer
+class X0_API Buffer :
+	public BufferRef
 {
 public:
 	typedef char value_type;
@@ -58,8 +58,6 @@ private:
 	friend class BufferRef;
 
 protected:
-	value_type *data_;
-	std::size_t size_;
 	std::size_t capacity_;
 
 public:
@@ -74,25 +72,19 @@ public:
 	Buffer(const Buffer& v);
 	Buffer(Buffer&& v);
 	Buffer& operator=(Buffer&& v);
-	Buffer& operator=(const Buffer& v);
+	Buffer& operator=(const BufferRef& v);
 	Buffer& operator=(const std::string& v);
 	Buffer& operator=(const value_type *v);
 	virtual ~Buffer();
 
 	void swap(Buffer& other);
 
-	// attributes
-	const value_type *data() const;
-
-	bool empty() const;
-	std::size_t size() const;
 	bool resize(std::size_t value);
 
 	std::size_t capacity() const;
 	virtual bool setCapacity(std::size_t value);
 
 	bool reserve(std::size_t value);
-	void clear();
 
 	operator helper_type() const;
 	bool operator!() const;
@@ -144,21 +136,11 @@ public:
 	static void dump(const void *bytes, std::size_t length, const char *description = nullptr);
 
 	void dump(const char *description = nullptr);
+
+	bool contains(const BufferRef& ref) const;
 };
 
 // free functions
-X0_API bool equals(const Buffer& a, const Buffer& b);
-X0_API bool equals(const Buffer& a, const char *b);
-template<typename PodType, std::size_t N> X0_API bool equals(const Buffer& a, PodType (&b)[N]);
-
-X0_API bool iequals(const Buffer& a, const Buffer& b);
-X0_API bool iequals(const Buffer& a, const char *b);
-template<typename PodType, std::size_t N> X0_API bool iequals(const Buffer& a, PodType (&b)[N]);
-
-X0_API bool operator==(const Buffer& a, const Buffer& b);
-X0_API bool operator==(const Buffer& a, const char *b);
-template<typename PodType, std::size_t N> X0_API bool operator==(const Buffer& a, PodType (&b)[N]);
-
 X0_API Buffer& operator<<(Buffer& b, Buffer::value_type v);
 X0_API Buffer& operator<<(Buffer& b, int v);
 X0_API Buffer& operator<<(Buffer& b, long v);
@@ -175,8 +157,6 @@ template<typename PodType, std::size_t N> X0_API Buffer& operator<<(Buffer& b, P
 } // namespace x0
 
 //@}
-
-#include <x0/BufferRef.h>
 
 // {{{ impl
 
@@ -196,35 +176,35 @@ inline bool Buffer::Hashable::operator()(const Buffer& a, const Buffer& b) const
 
 // {{{ Buffer impl
 inline Buffer::Buffer() :
-	data_(0), size_(0), capacity_(0)
+	BufferRef(), capacity_(0)
 {
 }
 
 inline Buffer::Buffer(std::size_t _capacity) :
-	data_(0), size_(0), capacity_(0)
+	BufferRef(), capacity_(0)
 {
 	setCapacity(_capacity);
 }
 
 inline Buffer::Buffer(const value_type *_data, std::size_t _size) :
-	data_(const_cast<value_type *>(_data)), size_(_size), capacity_(_size)
+	BufferRef(const_cast<value_type*>(_data), _size), capacity_(_size)
 {
 }
 
 inline Buffer::Buffer(const BufferRef& v) :
-	data_(0), size_(0), capacity_(0)
+	BufferRef(), capacity_(0)
 {
 	push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(const BufferRef& v, std::size_t offset, std::size_t size) :
-	data_(0), size_(0), capacity_(0)
+	BufferRef(), capacity_(0)
 {
 	push_back(v.data() + offset, size);
 }
 
 inline Buffer::Buffer(const char* v) :
-	data_(0), size_(0), capacity_(0)
+	BufferRef(), capacity_(0)
 {
 	std::size_t len = std::strlen(v);
 	setCapacity(len + 1);
@@ -232,7 +212,7 @@ inline Buffer::Buffer(const char* v) :
 }
 
 inline Buffer::Buffer(const std::string& v) :
-	data_(0), size_(0), capacity_(0)
+	BufferRef(), capacity_(0)
 {
 	push_back(v.c_str(), v.size() + 1);
 	resize(v.size());
@@ -240,25 +220,22 @@ inline Buffer::Buffer(const std::string& v) :
 
 template<typename PodType, std::size_t N>
 inline Buffer::Buffer(PodType (&value)[N]) :
-	data_(0), size_(0), capacity_(N - 1)
+	BufferRef(), capacity_(0)
 {
 	push_back(value, N);
 	resize(N - 1);
 }
 
 inline Buffer::Buffer(const Buffer& v) :
-	data_(0), size_(0), capacity_(0)
+	BufferRef(), capacity_(0)
 {
 	push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(Buffer&& v) :
-	data_(v.data_),
-	size_(v.size_),
+	BufferRef(std::move(v)),
 	capacity_(v.capacity_)
 {
-	v.data_ = 0;
-	v.size_ = 0;
 	v.capacity_ = 0;
 }
 
@@ -278,7 +255,7 @@ inline Buffer& Buffer::operator=(Buffer&& v)
 	return *this;
 }
 
-inline Buffer& Buffer::operator=(const Buffer& v)
+inline Buffer& Buffer::operator=(const BufferRef& v)
 {
 	clear();
 	push_back(v.data(), v.size());
@@ -314,27 +291,12 @@ inline void Buffer::swap(Buffer& other)
 	std::swap(capacity_, other.capacity_);
 }
 
-inline const Buffer::value_type *Buffer::data() const
-{
-	return data_;
-}
-
-inline bool Buffer::empty() const
-{
-	return !size_;
-}
-
 inline const Buffer::value_type *Buffer::c_str() const
 {
-	if (const_cast<Buffer *>(this)->reserve(size_ + 1))
-		const_cast<Buffer *>(this)->data_[size_] = '\0';
+	if (const_cast<Buffer*>(this)->reserve(size_ + 1))
+		const_cast<Buffer*>(this)->data_[size_] = '\0';
 
 	return data_;
-}
-
-inline std::size_t Buffer::size() const
-{
-	return size_;
 }
 
 inline bool Buffer::resize(std::size_t value)
@@ -357,11 +319,6 @@ inline bool Buffer::reserve(std::size_t value)
 		return true;
 
 	return setCapacity(value);
-}
-
-inline void Buffer::clear()
-{
-	resize(0);
 }
 
 inline Buffer::operator helper_type() const
@@ -564,28 +521,28 @@ inline BufferRef Buffer::ref(std::size_t offset) const
 {
 	assert(offset <= size_);
 
-	return BufferRef(this, offset, size_ - offset);
+	return BufferRef(data_ + offset, size_ - offset);
 }
 
 inline BufferRef Buffer::ref(std::size_t offset, std::size_t count) const
 {
 	assert(offset + count <= size_);
 
-	return BufferRef(this, offset, count);
+	return BufferRef(data_ + offset, count);
 }
 
 inline BufferRef Buffer::operator()(std::size_t offset) const
 {
 	assert(offset <= size_);
 
-	return BufferRef(this, offset, size_ - offset);
+	return BufferRef(data_ + offset, size_ - offset);
 }
 
 inline BufferRef Buffer::operator()(std::size_t offset, std::size_t count) const
 {
 	assert(offset + count < size_);
 
-	return BufferRef(this, offset, count);
+	return BufferRef(data_ + offset, count);
 }
 
 inline std::string Buffer::substr(std::size_t offset) const
@@ -609,97 +566,15 @@ inline void Buffer::dump(const char *description)
 {
 	dump(data_, size_, description);
 }
+
+inline bool Buffer::contains(const BufferRef& ref) const
+{
+	return ref.cbegin() >= cbegin()
+		&& ref.cend() <= cend();
+}
 // }}}
 
 // {{{ free function impl
-inline bool equals(const Buffer& a, const Buffer& b)
-{
-	if (&a == &b)
-		return true;
-
-	if (a.size() != b.size())
-		return false;
-
-	return std::memcmp(a.data(), b.data(), a.size()) == 0;
-}
-
-inline bool equals(const Buffer& a, const char *b)
-{
-	std::size_t bsize = std::strlen(b);
-
-	return a.size() == bsize
-		&& (a.data() == b || std::memcmp(a.data(), b, bsize) == 0);
-}
-
-template<typename PodType, std::size_t N>
-bool equals(const Buffer& a, PodType (&b)[N])
-{
-	const std::size_t bsize = N - 1;
-
-	if (a.size() != bsize)
-		return false;
-
-	if (a.data() == b)
-		return true;
-
-	return std::memcmp(a.data(), b, bsize) == 0;
-}
-
-// --------------------------------------------------------------------
-inline bool iequals(const Buffer& a, const Buffer& b)
-{
-	if (&a == &b)
-		return true;
-
-	if (a.size() != b.size())
-		return false;
-
-	return a.data() == b.data() || strncasecmp(a.data(), b.data(), a.size()) == 0;
-}
-
-inline bool iequals(const Buffer& a, const char *b)
-{
-	std::size_t bsize = b ? std::strlen(b) : 0;
-
-	if (a.size() != bsize)
-		return false;
-
-	if (strncasecmp(a.data(), b, bsize) != 0)
-		return false;
-
-	return true;
-}
-
-template<typename PodType, std::size_t N>
-bool iequals(const Buffer& a, PodType (&b)[N])
-{
-	const std::size_t bsize = N - 1;
-
-	if (a.size() != bsize)
-		return false;
-
-	if (strncasecmp(a.data(), b, bsize) != 0)
-		return false;
-
-	return true;
-}
-
-// ------------------------------------------------------------------------
-inline bool operator==(const x0::Buffer& a, const x0::Buffer& b)
-{
-	return equals(a, b);
-}
-
-inline bool operator==(const x0::Buffer& a, const char *b)
-{
-	return equals(a, b);
-}
-
-template<typename PodType, std::size_t N> bool operator==(const Buffer& a, PodType (&b)[N])
-{
-	return equals<PodType, N>(a, b);
-}
-
 inline Buffer& operator<<(Buffer& b, Buffer::value_type v)
 {
 	b.push_back(v);

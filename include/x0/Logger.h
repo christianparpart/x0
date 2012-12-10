@@ -16,6 +16,8 @@
 #include <cstdio>
 #include <string>
 #include <memory>
+#include <functional>
+#include <ctime>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -87,16 +89,16 @@ public:
  *
  * \see logger, server
  */
-template<class Now>
 class X0_API FileLogger :
 	public Logger
 {
 public:
-	FileLogger(const std::string& filename, Now now);
+	FileLogger(const std::string& filename, std::function<time_t()> now);
+	FileLogger(int fd, std::function<time_t()> now);
 	~FileLogger();
 
 	virtual void cycle();
-	virtual void write(Severity s, const std::string& message);
+	virtual void write(Severity severity, const std::string& message);
 	virtual FileLogger *clone() const;
 
 	int handle() const;
@@ -104,7 +106,7 @@ public:
 private:
 	std::string filename_;
 	int fd_;
-	Now now_;
+	std::function<time_t()> now_;
 };
 
 /** implements a file based logger.
@@ -139,80 +141,6 @@ public:
 	virtual SystemdLogger *clone() const;
 };
 
-// {{{ FileLogger
-template<typename Now>
-inline FileLogger<Now>::FileLogger(const std::string& filename, Now now) :
-	filename_(filename),
-	fd_(-1),
-	now_(now)
-{
-	cycle();
-}
-
-template<typename Now>
-inline FileLogger<Now>::~FileLogger()
-{
-	if (fd_ != -1)
-	{
-		::close(fd_);
-		fd_ = -1;
-	}
-}
-
-template<typename Now>
-inline int FileLogger<Now>::handle() const
-{
-	return fd_;
-}
-
-template<typename Now>
-inline void FileLogger<Now>::cycle()
-{
-	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE
-#if defined(O_CLOEXEC)
-			| O_CLOEXEC
-#endif
-			, 0644);
-
-	if (fd2 == -1)
-	{
-		write(Severity::error, "Could not (re)open new logfile");
-	}
-	else
-	{
-#if !defined(O_CLOEXEC) && defined(FD_CLOEXEC)
-		fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD) | FD_CLOEXEC);
-#endif
-		if (fd_ != -1)
-		{
-			::close(fd_);
-		}
-
-		fd_ = fd2;
-	}
-}
-
-template<typename Now>
-inline void FileLogger<Now>::write(Severity s, const std::string& message)
-{
-	if (s <= level() && fd_ >= 0)
-	{
-		Buffer buf;
-		buf.printf("[%s] [%s] %s\n", now_().c_str(), s.c_str(), message.c_str());
-
-		int rv = ::write(fd_, buf.data(), buf.size());
-
-		if (rv < 0) {
-			perror("FileLogger.write");
-		}
-	}
-}
-
-template<typename Now>
-inline FileLogger<Now> *FileLogger<Now>::clone() const
-{
-	return new FileLogger(filename_, now_);
-}
 // }}}
 
 //@}

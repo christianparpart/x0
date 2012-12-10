@@ -18,6 +18,7 @@ set(director_SRC
 	DirectorPlugin.cpp
 	HealthMonitor.cpp
 	ApiRequest.cpp
+	BackendManager.cpp
 	Director.cpp
 	Backend.cpp
 	Scheduler.cpp

@@ -25,7 +25,7 @@ class SslSocket :
 	public x0::Socket
 {
 private:
-#ifndef NDEBUG
+#ifndef X0_NDEBUG
 	ev_tstamp ctime_;
 #endif
 

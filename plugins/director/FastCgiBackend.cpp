@@ -297,7 +297,7 @@ void FastCgiTransport::bind()
 	}
 
 	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
-	paramWriter_.encode("REQUEST_URI", request_->uri);
+	paramWriter_.encode("REQUEST_URI", request_->unparsedUri);
 
 	//paramWriter_.encode("REMOTE_HOST", "");  // optional
 	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());
@@ -331,7 +331,10 @@ void FastCgiTransport::bind()
 		paramWriter_.encode(key, i.value);
 	}
 	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
-	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+
+	if (request_->fileinfo) {
+		paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+	}
 
 	write(FastCgi::Type::Params, id_, paramWriter_.output());
 	write(FastCgi::Type::Params, id_, "", 0); // EOS
@@ -749,13 +752,13 @@ void FastCgiTransport::inspect(x0::Buffer& out)
 std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 
 FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(*director->worker().server().nextWorker()))
+	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(*director->worker()->server().nextWorker()))
 {
 #ifndef NDEBUG
 	setLoggingPrefix("FastCgiBackend/%s", name.c_str());
 #endif
 
-	healthMonitor().setBackend(this);
+	healthMonitor()->setBackend(this);
 }
 
 FastCgiBackend::~FastCgiBackend()

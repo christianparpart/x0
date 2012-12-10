@@ -23,7 +23,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if !defined(NDEBUG)
+#if 0 //!defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpConnection: " msg)
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -271,14 +271,29 @@ void HttpConnection::handshakeComplete(Socket *)
 	}
 }
 
-inline bool url_decode(Buffer& value, BufferRef& url)
-{
-	assert(url.belongsTo(value));
+static inline Buffer urldecode(const BufferRef& value) { // {{{
+	Buffer sb;
 
-	std::size_t left = url.begin() - value.begin();
-	std::size_t right = left + url.size();
-	std::size_t i = left; // read pos
-	std::size_t d = left; // write pos
+    for (std::size_t i = 0, e = value.size(); i < e; ++i) {
+        if (value[i] == '%' && i + 2 < e) {
+			char snum[3] = { value[i], value[i + 1], 0 };
+            i += 2;
+			sb.push_back(char(std::strtol(snum, 0, 16) & 0xFF));
+        } else if (value[i] == '+') {
+			sb.push_back(' ');
+		} else {
+			sb.push_back(value[i]);
+		}
+    }
+
+    return sb;
+} // }}}
+
+inline bool url_decode(Buffer& value)
+{
+	std::size_t right = value.size();
+	std::size_t i = 0; // read pos
+	std::size_t d = 0; // write pos
 
 	while (i != right) {
 		if (value[i] == '%') {
@@ -304,7 +319,7 @@ inline bool url_decode(Buffer& value, BufferRef& url)
 		}
 	}
 
-	url = value.ref(left, d - left);
+	value.resize(d);
 	return true;
 }
 
@@ -313,15 +328,14 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 	TRACE("onMessageBegin: '%s', '%s', HTTP/%d.%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 
 	request_->method = method;
-	request_->uri = uri;
-	url_decode(input_, request_->uri);
+	request_->unparsedUri = uri;
 
-	std::size_t n = request_->uri.find("?");
+	std::size_t n = request_->unparsedUri.find('?');
 	if (n != std::string::npos) {
-		request_->path = request_->uri.ref(0, n);
-		request_->query = request_->uri.ref(n + 1);
+		request_->path = urldecode(request_->unparsedUri.ref(0, n));
+		request_->query = request_->unparsedUri.ref(n + 1);
 	} else {
-		request_->path = request_->uri;
+		request_->path = urldecode(request_->unparsedUri);
 	}
 
 	request_->httpVersionMajor = versionMajor;
@@ -334,7 +348,7 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 		setShouldKeepAlive(false);
 
 	// limit request uri length
-	if (request_->uri.size() > worker().server().maxRequestUriSize()) {
+	if (request_->unparsedUri.size() > worker().server().maxRequestUriSize()) {
 		request_->status = HttpStatus::RequestUriTooLong;
 		request_->finish();
 		return false;

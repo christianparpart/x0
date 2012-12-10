@@ -34,6 +34,7 @@
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/Url.h>
 #include <x0/Types.h>
 
 using namespace x0;
@@ -73,6 +74,9 @@ void DirectorPlugin::director_load(const FlowParams& args, FlowValue& result)
 		const FlowValue& path = fa[1];
 		if (!path.isString())
 			continue;
+
+		// TODO verify that given director name is still available.
+		// TODO verify that no director has been instanciated already by given path.
 
 		server().log(Severity::debug, "director: Loading director %s from %s.",
 			directorName.toString(), path.toString());
@@ -132,7 +136,7 @@ Backend* DirectorPlugin::registerBackend(Director* director, const char* name, c
 	server().log(Severity::debug, "director: %s, backend %s: %s",
 			director->name().c_str(), name, url);
 
-	return director->createBackend(name, url);
+	return director->createBackend(name, Url::parse(url));
 }
 // }}}
 // {{{ main function director.segment(string segment_id);
@@ -157,14 +161,6 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 	ClassfulScheduler::Bucket* bucket = nullptr;
 
 	switch (args.size()) {
-		case 0: {
-			if (directors_.size() != 1) {
-				r->log(Severity::error, "director: No directors configured.");
-			} else {
-				director = directors_.begin()->second;
-			}
-			break;
-		}
 		case 3:
 			if (!args[2].isString() && !args[2].isBuffer()) {
 				r->log(Severity::error, "director: Invalid argument.");
@@ -215,6 +211,10 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 					director = nullptr;
 				}
 			}
+			break;
+		}
+		case 0: {
+			r->log(Severity::error, "director: No arguments passed, to director.pass().");
 			break;
 		}
 		default: {

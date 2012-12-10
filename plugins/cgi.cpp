@@ -307,7 +307,7 @@ inline void CgiScript::runAsync()
 		environment["SCRIPT_NAME"] = request_->path.str();
 	}
 	environment["QUERY_STRING"] = request_->query.str(); // unparsed uri
-	environment["REQUEST_URI"] = request_->uri.str();
+	environment["REQUEST_URI"] = request_->unparsedUri.str();
 
 	//environment["REMOTE_HOST"] = "";  // optional
 	environment["REMOTE_ADDR"] = request_->connection.remoteIP();

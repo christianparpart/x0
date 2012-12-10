@@ -354,7 +354,7 @@ void CgiTransport::bind()
 	}
 
 	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
-	paramWriter_.encode("REQUEST_URI", request_->uri);
+	paramWriter_.encode("REQUEST_URI", request_->unparsedUri);
 
 	//paramWriter_.encode("REMOTE_HOST", "");  // optional
 	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());
@@ -387,8 +387,12 @@ void CgiTransport::bind()
 
 		paramWriter_.encode(key, i.value);
 	}
+
 	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
-	paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+
+	if (request_->fileinfo) {
+		paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+	}
 
 	write(FastCgi::Type::Params, id_, paramWriter_.output());
 	write(FastCgi::Type::Params, id_, "", 0); // EOS
@@ -519,7 +523,11 @@ void CgiTransport::io(x0::Socket* s, int revents)
 			int rv = backend_->read(readBuffer_);
 
 			if (rv == 0) {
-				break;
+				if (request_->status == x0::HttpStatus::Undefined) {
+					// we did not actually process any response though
+					log(x0::Severity::error, "Connection to backend lost (read-buffer: offset=%zu, size=%zu).", readOffset_, readBuffer_.size());
+				}
+				close();
 			}
 
 			if (rv < 0) {
@@ -530,14 +538,6 @@ void CgiTransport::io(x0::Socket* s, int revents)
 
 				break;
 			}
-		}
-
-		if (readOffset_ == readBuffer_.size()) {
-			if (request_->status == x0::HttpStatus::Undefined) {
-				// we did not actually process any response though
-				log(x0::Severity::error, "Connection to backend lost (read-buffer: offset=%zu, size=%zu).", readOffset_, readBuffer_.size());
-			}
-			goto app_err;
 		}
 
 		// process fully received records
@@ -555,6 +555,10 @@ void CgiTransport::io(x0::Socket* s, int revents)
 
 			if (!processRecord(record))
 				goto done;
+		}
+
+		if (backend_->isClosed()) {
+			goto done;
 		}
 	}
 

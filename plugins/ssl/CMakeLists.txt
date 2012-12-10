@@ -22,4 +22,4 @@ set(ssl_SRC
 	ssl.cpp)
 
 x0_plugin(ssl "${ssl_SRC}")
-target_link_libraries(ssl ${GNUTLS_LIBRARIES})
+target_link_libraries(ssl ${GNUTLS_LIBRARIES} gcrypt)

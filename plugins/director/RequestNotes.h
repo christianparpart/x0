@@ -13,6 +13,10 @@
 
 class Backend;
 
+/** Additional request attributes when using the director cluster.
+ *
+ * \see Director
+ */
 struct RequestNotes :
 	public x0::CustomData
 {

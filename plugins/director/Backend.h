@@ -19,6 +19,7 @@
 
 #include <mutex>
 
+class BackendManager;
 class Director;
 
 /*!
@@ -40,6 +41,7 @@ public:
 	};
 
 protected:
+	BackendManager* manager_; //!< manager, this backend is registered to
 	Director* director_; //!< director, this backend is registered to
 
 	std::string name_; //!< common name of this backend, for example: "appserver05"
@@ -64,6 +66,7 @@ public:
 	virtual const std::string& protocol() const = 0;
 
 	const std::string& name() const { return name_; }		//!< descriptive name of backend.
+	BackendManager* manager() const { return manager_; }	//!< manager instance that owns this backend.
 	Director* director() const { return director_; }		//!< pointer to the owning director.
 
 	size_t capacity() const;								//!< number of requests this backend can handle in parallel.
@@ -87,7 +90,7 @@ public:
 
 	// health state
 	HealthMonitor::State healthState() const { return healthMonitor_->state(); }
-	HealthMonitor& healthMonitor() { return *healthMonitor_; }
+	HealthMonitor* healthMonitor() { return healthMonitor_; }
 
 	bool tryProcess(x0::HttpRequest* r);
 	void release();

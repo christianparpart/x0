@@ -81,7 +81,7 @@ Socket::Socket(struct ev_loop* loop) :
 	timer_.set<Socket, &Socket::timeout>(this);
 }
 
-Socket::Socket(struct ev_loop* loop, int fd, int af) :
+Socket::Socket(struct ev_loop* loop, int fd, int af, State state) :
 	loop_(loop),
 	watcher_(loop),
 	timer_(loop),
@@ -90,7 +90,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af) :
 	fd_(fd),
 	addressFamily_(af),
 	secure_(false),
-	state_(Operational),
+	state_(state),
 	mode_(None),
 	tcpCork_(false),
 	splicing_(true),
@@ -128,187 +128,6 @@ void Socket::set(int fd, int af)
 	localIP_.clear();
 }
 
-bool Socket::openUnix(const std::string& unixPath, int flags)
-{
-#ifndef NDEBUG
-	setLoggingPrefix("Socket(unix:%s)", unixPath.c_str());
-#endif
-
-	TRACE("connect(unix=%s)", unixPath.c_str());
-
-	int typeMask = 0;
-
-#if defined(SOCK_NONBLOCK)
-	if (flags & O_NONBLOCK) {
-		flags &= ~O_NONBLOCK;
-		typeMask |= SOCK_NONBLOCK;
-	}
-#endif
-
-#if defined(SOCK_CLOEXEC)
-	if (flags & O_CLOEXEC) {
-		flags &= ~O_CLOEXEC;
-		typeMask |= SOCK_CLOEXEC;
-	}
-#endif
-
-	fd_ = ::socket(PF_UNIX, SOCK_STREAM | typeMask, 0);
-	if (fd_ < 0) {
-		TRACE("socket creation error: %s",  strerror(errno));
-		return false;
-	}
-
-	if (flags) {
-		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
-			TRACE("Setting socket flags failed. %s",  strerror(errno));
-			return false;
-		}
-	}
-
-	struct sockaddr_un addr;
-	addr.sun_family = AF_UNIX;
-	size_t addrlen = sizeof(addr.sun_family)
-		+ strlen(strncpy(addr.sun_path, unixPath.c_str(), sizeof(addr.sun_path)));
-
-	int rv = ::connect(fd_, (struct sockaddr*) &addr, addrlen);
-	if (rv == 0) {
-		state_ = Operational;
-		return true;
-	} else {
-		::close(fd_);
-		fd_ = -1;
-		return false;
-	}
-}
-
-bool Socket::openTcp(const IPAddress& host, int port, int flags)
-{
-#ifndef NDEBUG
-	setLoggingPrefix("Socket(tcp:%s:%d)", host.str().c_str(), port);
-#endif
-
-	int typeMask = 0;
-
-#if defined(SOCK_NONBLOCK)
-	if (flags & O_NONBLOCK) {
-		flags &= ~O_NONBLOCK;
-		typeMask |= SOCK_NONBLOCK;
-	}
-#endif
-
-#if defined(SOCK_CLOEXEC)
-	if (flags & O_CLOEXEC) {
-		flags &= ~O_CLOEXEC;
-		typeMask |= SOCK_CLOEXEC;
-	}
-#endif
-
-	fd_ = ::socket(host.family(), SOCK_STREAM | typeMask, IPPROTO_TCP);
-	if (fd_ < 0) {
-		TRACE("socket creation error: %s",  strerror(errno));
-		return false;
-	}
-
-	if (flags) {
-		if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
-			// error
-		}
-	}
-
-	int rv = ::connect(fd_, (struct sockaddr*) host.data(), host.size());
-	if (rv == 0) {
-		TRACE("connect: instant success (fd:%d)", fd_);
-		state_ = Operational;
-		return true;
-	} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
-		TRACE("connect: backgrounding (fd:%d)", fd_);
-		state_ = Connecting;
-		setMode(Write);
-		return true;
-	} else {
-		TRACE("could not connect to %s:%d: %s", host.str().c_str(), port, strerror(errno));
-		::close(fd_);
-		fd_ = -1;
-		return false;
-	}
-}
-
-bool Socket::openTcp(const std::string& hostname, int port, int flags)
-{
-	TRACE("connect(hostname=%s, port=%d)", hostname.c_str(), port);
-
-	struct addrinfo hints;
-	struct addrinfo *res;
-	bool result = false;
-
-	std::memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	char sport[16];
-	snprintf(sport, sizeof(sport), "%d", port);
-
-	int rv = getaddrinfo(hostname.c_str(), sport, &hints, &res);
-	if (rv) {
-		TRACE("could not get addrinfo of %s:%s: %s", hostname.c_str(), sport, gai_strerror(rv));
-		return false;
-	}
-
-	int typeMask = 0;
-#if defined(SOCK_NONBLOCK)
-	if (flags & O_NONBLOCK) {
-		flags &= ~O_NONBLOCK;
-		typeMask |= SOCK_NONBLOCK;
-	}
-#endif
-
-#if defined(SOCK_CLOEXEC)
-	if (flags & O_CLOEXEC) {
-		flags &= ~O_CLOEXEC;
-		typeMask |= SOCK_CLOEXEC;
-	}
-#endif
-
-	for (struct addrinfo *rp = res; rp != nullptr; rp = rp->ai_next) {
-		TRACE("creating socket(%d, %d, %d)", rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-		fd_ = ::socket(rp->ai_family, rp->ai_socktype | typeMask, rp->ai_protocol);
-		if (fd_ < 0) {
-			TRACE("socket creation error: %s",  strerror(errno));
-			continue;
-		}
-
-		if (flags) {
-			if (fcntl(fd_, F_SETFL, fcntl(fd_, F_GETFL) | flags) < 0) {
-				// error
-			}
-		}
-
-		rv = ::connect(fd_, rp->ai_addr, rp->ai_addrlen);
-		if (rv == 0) {
-			TRACE("connect: instant success (fd:%d)", fd_);
-			state_ = Operational;
-			result = true;
-			break;
-		} else if (/*rv < 0 &&*/ errno == EINPROGRESS) {
-			TRACE("connect: backgrounding (fd:%d)", fd_);
-
-			state_ = Connecting;
-			setMode(Write);
-
-			result = true;
-			break;
-		} else {
-			TRACE("could not connect to %s:%s: %s", hostname.c_str(), sport, strerror(errno));
-			::close(fd_);
-			fd_ = -1;
-		}
-	}
-
-	freeaddrinfo(res);
-	return result;
-}
-
 static inline bool applyFlags(int fd, int flags)
 {
 	return flags
@@ -317,6 +136,21 @@ static inline bool applyFlags(int fd, int flags)
 }
 
 Socket* Socket::open(struct ev_loop* loop, const SocketSpec& spec, int flags)
+{
+	int fd;
+	State state = open(loop, spec, flags, &fd);
+	if (state == Closed)
+		return nullptr;
+
+	Socket* socket = new Socket(loop, fd, spec.ipaddr().family(), state);
+
+	if (state == Connecting)
+		socket->setMode(Write);
+
+	return socket;
+}
+
+Socket::State Socket::open(struct ev_loop* loop, const SocketSpec& spec, int flags, int* fd)
 {
 	// compute type-mask
 	int typeMask = 0;
@@ -335,32 +169,31 @@ Socket* Socket::open(struct ev_loop* loop, const SocketSpec& spec, int flags)
 #endif
 
 	if (spec.isLocal()) {
-		int fd = ::socket(PF_UNIX, SOCK_STREAM | typeMask, 0);
-		if (fd < 0)
-			return nullptr;
+		*fd = ::socket(PF_UNIX, SOCK_STREAM | typeMask, 0);
+		if (*fd < 0)
+			return Closed;
 
-		if (!applyFlags(fd, flags)) {
-			return nullptr;
-		}
+		if (!applyFlags(*fd, flags))
+			return Closed;
 
 		struct sockaddr_un addr;
 		addr.sun_family = AF_UNIX;
 		size_t addrlen = sizeof(addr.sun_family)
 			+ strlen(strncpy(addr.sun_path, spec.local().c_str(), sizeof(addr.sun_path)));
 
-		if (::connect(fd, (struct sockaddr*) &addr, addrlen) < 0) {
-			::close(fd);
-			return nullptr;
+		if (::connect(*fd, (struct sockaddr*) &addr, addrlen) < 0) {
+			::close(*fd);
+			*fd = -1;
+			return Closed;
 		}
-		Socket* sock = new Socket(loop, fd, AF_UNIX);
-		return sock;
+		return Operational;
 	} else {
-		int fd = ::socket(spec.ipaddr().family(), SOCK_STREAM | typeMask, IPPROTO_TCP);
-		if (fd < 0)
-			return nullptr;
+		*fd = ::socket(spec.ipaddr().family(), SOCK_STREAM | typeMask, IPPROTO_TCP);
+		if (*fd < 0)
+			return Closed;
 
-		if (!applyFlags(fd, flags))
-			return nullptr;
+		if (!applyFlags(*fd, flags))
+			return Closed;
 
 		char buf[sizeof(sockaddr_in6)];
 		std::size_t size;
@@ -379,32 +212,28 @@ Socket* Socket::open(struct ev_loop* loop, const SocketSpec& spec, int flags)
 				memcpy(&((sockaddr_in6 *)buf)->sin6_addr, spec.ipaddr().data(), spec.ipaddr().size());
 				break;
 			default:
-				::close(fd);
-				return nullptr;
+				::close(*fd);
+				*fd = -1;
+				return Closed;
 		}
 
-		int rv = ::connect(fd, (struct sockaddr*)buf, size);
+		int rv = ::connect(*fd, (struct sockaddr*)buf, size);
 		if (rv == 0) {
-			return new Socket(loop, fd, spec.ipaddr().family());
+			return Operational;
 		} else if (errno == EINPROGRESS) {
-			Socket* sock = new Socket(loop, fd, spec.ipaddr().family());
-			sock->setState(Connecting);
-			sock->setMode(Write);
-			return sock;
+			return Connecting;
 		} else {
-			::close(fd);
+			::close(*fd);
+			*fd = -1;
+			return Closed;
 		}
 	}
-
-	return nullptr;
 }
 
 bool Socket::open(const SocketSpec& spec, int flags)
 {
-	if (spec.isLocal())
-		return openUnix(spec.local(), flags);
-	else
-		return openTcp(spec.ipaddr().str(), spec.port(), flags);
+	state_ = Socket::open(loop_, spec, flags, &fd_);
+	return state_ != Closed;
 }
 
 bool Socket::setNonBlocking(bool enabled)

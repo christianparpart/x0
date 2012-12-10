@@ -21,7 +21,7 @@
 
 // XXX one a connection has been passed to a worker, it is *bound* to it.
 
-#ifndef NDEBUG
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpWorker: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)

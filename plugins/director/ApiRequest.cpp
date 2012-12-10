@@ -543,8 +543,8 @@ bool ApiReqeust::create()
 	if (backend) {
 		backend->setRole(role);
 		backend->setEnabled(enabled);
-		backend->healthMonitor().setInterval(hcInterval);
-		backend->healthMonitor().setMode(hcMode);
+		backend->healthMonitor()->setInterval(hcInterval);
+		backend->healthMonitor()->setMode(hcMode);
 		director->save();
 	}
 
@@ -658,7 +658,7 @@ bool ApiReqeust::updateDirector(Director* director)
 
 	director->post([director]() {
 		director->eachBackend([](Backend* backend) {
-			backend->healthMonitor().update();
+			backend->healthMonitor()->update();
 		});
 	});
 
@@ -697,11 +697,11 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 
 	TimeSpan hcInterval;
 	if (!loadParam("health-check-interval", hcInterval))
-		hcInterval = backend->healthMonitor().interval();
+		hcInterval = backend->healthMonitor()->interval();
 
 	HealthMonitor::Mode hcMode;
 	if (!loadParam("health-check-mode", hcMode))
-		hcMode = backend->healthMonitor().mode();
+		hcMode = backend->healthMonitor()->mode();
 
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
@@ -715,8 +715,8 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 	backend->setRole(role);
 	backend->setEnabled(enabled);
 	backend->setCapacity(capacity);
-	backend->healthMonitor().setInterval(hcInterval);
-	backend->healthMonitor().setMode(hcMode);
+	backend->healthMonitor()->setInterval(hcInterval);
+	backend->healthMonitor()->setMode(hcMode);
 	director->save();
 
 	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());

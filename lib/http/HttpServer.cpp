@@ -48,7 +48,7 @@
 #include <getopt.h>
 #include <stdio.h>
 
-#if !defined(NDEBUG)
+#if 0 // !defined(NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpServer: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
@@ -62,24 +62,7 @@ void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
 	srv->log(Severity::error, "%s: %s", cat, msg.c_str());
 }
 
-X0_EXPORT std::string global_now()
-{
-	float val = ev_now(ev_default_loop(0));
-	time_t ts = (time_t)val;
-	struct tm tm;
-
-	if (localtime_r(&ts, &tm)) {
-		char buf[256];
-
-		if (strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", &tm) != 0) {
-			return buf;
-		}
-	}
-
-	return "unknown";
-}
-
-/** Initializes the HTTP server object.
+/** initializes the HTTP server object.
  * \param io_service an Asio io_service to use or nullptr to create our own one.
  * \see HttpServer::run()
  */
@@ -136,32 +119,17 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 
 	HttpRequest::initialize();
 
-	auto nowfn = std::bind(&global_now);
-	logger_.reset(new FileLogger<decltype(nowfn)>("/dev/stderr", nowfn));
+	logger_.reset(new FileLogger(STDERR_FILENO, [this]() {
+		return static_cast<time_t>(ev_now(loop_));
+	}));
 
+	// setting a reasonable default max-connection limit.
+	// However, this cannot be computed as we do not know what the user
+	// actually configures, such as fastcgi requires +1 fd, local file +1 fd,
+	// http client connection of course +1 fd, listener sockets, etc.
 	struct rlimit rlim;
-	if (::getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
-		maxConnections = rlim.rlim_cur / 2;
-	}
-
-	// Welcome message
-	printf("\n\n"
-		"\e[1;37m"
-		"             XXXXXXXXXXX\n"
-		" XX     XX   XX       XX\n"
-		"  XX   XX    XX       XX\n"
-		"   XX XX     XX       XX\n"
-		"    XXX      XX   0   XX - Web server\n"
-		"   XX XX     XX       XX   Version "
-		VERSION
-		"\n"
-		"  XX   XX    XX       XX\n"
-		" XX     XX   XX       XX\n"
-		"             XXXXXXXXXXX\n"
-		"\n"
-		" http://xzero.io/"
-		"\e[0m"
-		"\n\n");
+	if (::getrlimit(RLIMIT_NOFILE, &rlim) == 0)
+		maxConnections = std::max(int(rlim.rlim_cur / 3) - 5, 1);
 
 	// Load core plugins
 	registerPlugin(core_ = new HttpCore(*this));
@@ -626,7 +594,7 @@ namespace {
 	static inline T readFile(const char* path, const T& defaultValue)
 	{
 		Buffer result(readFile(path));
-		return !result.empty() ? result.ref().as<T>() : defaultValue;
+		return !result.empty() ? result.as<T>() : defaultValue;
 	}
 }
 

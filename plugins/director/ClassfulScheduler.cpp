@@ -71,12 +71,12 @@ void ClassfulScheduler::schedule(x0::HttpRequest* r)
 	bool allDisabled = false;
 
 	if (notes->backend) {
-		if (notes->backend->healthMonitor().isOnline()) {
+		if (notes->backend->healthMonitor()->isOnline()) {
 			pass(r, notes, notes->backend);
 		} else {
 			// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
 			r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
-				notes->backend->name().c_str(), notes->backend->healthMonitor().state_str().c_str());
+				notes->backend->name().c_str(), notes->backend->healthMonitor()->state_str().c_str());
 			r->status = x0::HttpStatus::ServiceUnavailable;
 			r->finish();
 		}
@@ -115,7 +115,7 @@ Backend* ClassfulScheduler::findLeastLoad(Backend::Role role, bool* allDisabled)
 	size_t enabledAndOnline = 0;
 
 	for (auto backend: director()->backendsWith(role)) {
-		if (!backend->isEnabled() || !backend->healthMonitor().isOnline()) {
+		if (!backend->isEnabled() || !backend->healthMonitor()->isOnline()) {
 			TRACE("findLeastLoad: skip %s (disabled)", backend->name().c_str());
 			continue;
 		}
@@ -127,12 +127,12 @@ Backend* ClassfulScheduler::findLeastLoad(Backend::Role role, bool* allDisabled)
 		size_t avail = c - l;
 
 #ifndef NDEBUG
-		director()->worker().log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
+		director()->worker()->log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
 #endif
 
 		if (avail > bestAvail) {
 #ifndef NDEBUG
-			director()->worker().log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), best ? best->name().c_str() : "(null)");
+			director()->worker()->log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), best ? best->name().c_str() : "(null)");
 #endif
 			bestAvail = avail;
 			best = backend;
@@ -145,13 +145,13 @@ Backend* ClassfulScheduler::findLeastLoad(Backend::Role role, bool* allDisabled)
 
 	if (bestAvail > 0) {
 #ifndef NDEBUG
-		director()->worker().log(Severity::debug, "selecting backend %s", best->name().c_str());
+		director()->worker()->log(Severity::debug, "selecting backend %s", best->name().c_str());
 #endif
 		return best;
 	}
 
 #ifndef NDEBUG
-	director()->worker().log(Severity::debug, "selecting backend (role %d) failed", static_cast<int>(role));
+	director()->worker()->log(Severity::debug, "selecting backend (role %d) failed", static_cast<int>(role));
 #endif
 
 	return nullptr;
@@ -362,7 +362,7 @@ void ClassfulScheduler::Bucket::updateQueueTimer()
 	while (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
 		auto notes = director()->requestNotes(r);
-		TimeSpan age(director()->worker().now() - notes->ctime);
+		TimeSpan age(director()->worker()->now() - notes->ctime);
 		if (age < director()->queueTimeout())
 			break;
 
@@ -391,7 +391,7 @@ void ClassfulScheduler::Bucket::updateQueueTimer()
 	// setup queue timer to wake up after next timeout is reached.
 	HttpRequest* r = queue_.front();
 	auto notes = director()->requestNotes(r);
-	TimeSpan age(director()->worker().now() - notes->ctime);
+	TimeSpan age(director()->worker()->now() - notes->ctime);
 	TimeSpan ttl(director()->queueTimeout() - age);
 	TRACE("updateQueueTimer: starting new timer with ttl %f (%llu)", ttl.value(), ttl.totalMilliseconds());
 	queueTimer_.start(ttl.value(), 0);
