@@ -30,6 +30,11 @@
 namespace x0 {
 
 /*!
+ * Holds map of spawned workers by thread ID.
+ */
+static std::map<pthread_t, HttpWorker*> workers;
+
+/*!
  * Creates an HTTP worker instance.
  *
  * \param server   the worker parents server instance
@@ -106,8 +111,28 @@ void* HttpWorker::_run(void* p)
 	return nullptr;
 }
 
+/**
+ * Points to the current's worker thread.
+ */
+HttpWorker* HttpWorker::current()
+{
+	auto i = workers.find(pthread_self());
+	return i != workers.end() ? i->second : nullptr;
+}
+
+/**
+ * Returns a numerical ID of the current worker thread or -1 if not found.
+ */
+int HttpWorker::currentId()
+{
+	HttpWorker* currentWorker = current();
+	return currentWorker ? static_cast<int>(currentWorker->id()) : -1;
+}
+
 void HttpWorker::run()
 {
+	workers[pthread_self()] = this;
+
 	state_ = Running;
 
 	// XXX invoke onWorkerSpawned-hook here because we want to ensure this hook is 
@@ -124,6 +149,13 @@ void HttpWorker::run()
 	server_.onWorkerUnspawn(this);
 
 	state_ = Inactive;
+
+	auto i = workers.find(pthread_self());
+	if (i != workers.end()) {
+		workers.erase(i);
+	} else {
+		TRACE("warning: potential bug in HttpWorker::current(). I couldn't find myself.");
+	}
 }
 
 void HttpWorker::log(Severity s, const char *fmt, ...)
