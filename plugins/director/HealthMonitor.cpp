@@ -32,7 +32,7 @@ HealthMonitor::HealthMonitor(HttpWorker& worker, HttpMessageProcessor::ParseMode
 	backend_(nullptr),
 	worker_(worker),
 	interval_(TimeSpan::fromSeconds(2)),
-	state_(State::Undefined),
+	state_(HealthState::Undefined),
 	onStateChange_(),
 	expectCode_(HttpStatus::Ok),
 	timer_(worker_.loop()),
@@ -82,9 +82,9 @@ const std::string& HealthMonitor::state_str() const
 /**
  * Forces a health-state change.
  */
-void HealthMonitor::setState(State value)
+void HealthMonitor::setState(HealthState value)
 {
-	assert(value != State::Undefined && "Setting state to Undefined is not allowed.");
+	assert(value != HealthState::Undefined && "Setting state to Undefined is not allowed.");
 	if (state_ == value)
 		return;
 
@@ -96,7 +96,7 @@ void HealthMonitor::setState(State value)
 		onStateChange_(this);
 	}
 
-	if (state_ == State::Offline) {
+	if (state_ == HealthState::Offline) {
 		worker_.post<HealthMonitor, &HealthMonitor::start>(this);
 	}
 }
@@ -124,6 +124,8 @@ void HealthMonitor::setBackend(Backend* backend)
 
 void HealthMonitor::update()
 {
+	Director* director = static_cast<Director*>(backend_->manager());
+
 	setRequest(
 		"GET %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
@@ -131,9 +133,9 @@ void HealthMonitor::update()
 		"x0-Director: %s\r\n"
 		"x0-Backend: %s\r\n"
 		"\r\n",
-		backend_->director()->healthCheckRequestPath().c_str(),
-		backend_->director()->healthCheckHostHeader().c_str(),
-		backend_->director()->name().c_str(),
+		director->healthCheckRequestPath().c_str(),
+		director->healthCheckHostHeader().c_str(),
+		director->name().c_str(),
 		backend_->name().c_str()
 	);
 }
@@ -196,7 +198,7 @@ void HealthMonitor::logSuccess()
 
 	if (successCount_ >= successThreshold) {
 		TRACE("onMessageEnd: successThreshold reached.");
-		setState(State::Online);
+		setState(HealthState::Online);
 	}
 
 	recheck();
@@ -207,7 +209,7 @@ void HealthMonitor::logFailure()
 	++failCount_;
 	successCount_ = 0;
 
-	setState(State::Offline);
+	setState(HealthState::Offline);
 
 	recheck();
 }

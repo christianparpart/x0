@@ -29,42 +29,21 @@ using namespace x0;
  * \param capacity number of requests this backend is capable of handling in parallel.
  * \param healthMonitor specialized health-monitor instanciation, which will be owned by this backend.
  */
-Backend::Backend(Director* director,
-	const std::string& name, const SocketSpec& socketSpec, size_t capacity,
-	HealthMonitor* healthMonitor) :
+Backend::Backend(BackendManager* bm,
+	const std::string& name, const SocketSpec& socketSpec, size_t capacity, HealthMonitor* healthMonitor) :
 #ifndef NDEBUG
 	Logging("Backend/%s", name.c_str()),
 #endif
-	manager_(director),
-	director_(director), // FIXME remove me
+	manager_(bm),
 	name_(name),
 	capacity_(capacity),
 	load_(),
 	lock_(),
-	role_(Role::Active),
 	enabled_(true),
 	socketSpec_(socketSpec),
-	healthMonitor_(healthMonitor)
+	healthMonitor_(healthMonitor),
+	jsonWriteCallback_()
 {
-	if (!healthMonitor_)
-		return;
-
-	healthMonitor_->setStateChangeCallback([&](HealthMonitor*) {
-		director_->worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
-			director_->name().c_str(), name_.c_str(), healthMonitor_->state_str().c_str());
-
-		if (healthMonitor_->isOnline()) {
-			if (!director_->stickyOfflineMode()) {
-				// try delivering a queued request
-				director_->scheduler()->dequeueTo(this);
-			} else {
-				// disable backend due to sticky-offline mode
-				director_->worker_->log(Severity::info, "Director '%s': backend '%s' disabled due to sticky offline mode.",
-					director_->name().c_str(), name_.c_str());
-				setEnabled(false);
-			}
-		}
-	});
 }
 
 Backend::~Backend()
@@ -82,18 +61,6 @@ void Backend::setCapacity(size_t value)
 	capacity_ = value;
 }
 
-const std::string& Backend::role_str() const
-{
-	static const std::string str[] = {
-		"active",
-		"standby",
-		"backup",
-		"terminate",
-	};
-
-	return str[static_cast<unsigned>(role_)];
-}
-
 void Backend::writeJSON(JsonWriter& json) const
 {
 	static const std::string boolStr[] = { "false", "true" };
@@ -102,8 +69,7 @@ void Backend::writeJSON(JsonWriter& json) const
 		.name("name")(name_)
 		.name("capacity")(capacity_)
 		.name("enabled")(enabled_)
-		.name("protocol")(protocol())
-		.name("role")(role_str());
+		.name("protocol")(protocol());
 
 	if (socketSpec_.isInet()) {
 		json.name("hostname")(socketSpec_.ipaddr().str())
@@ -113,49 +79,32 @@ void Backend::writeJSON(JsonWriter& json) const
 	}
 
 	json.name("load")(load_);
-	json.name("health")(*healthMonitor_);
+
+	if (healthMonitor_) {
+		json.name("health")(*healthMonitor_);
+	}
+
+	if (jsonWriteCallback_)
+		jsonWriteCallback_(this, json);
+
 	json.endObject();
 }
 
-void Backend::setRole(Role value)
+void Backend::setJsonWriteCallback(const std::function<void(const Backend*, JsonWriter&)>& callback)
 {
-	director_->worker_->log(Severity::debug, "setRole(%d) (from %d)", value, role_);
-	if (role_ != value) {
-		director_->unlink(this);
-		role_ = value;
-		director_->link(this);
+	jsonWriteCallback_ = callback;
+}
 
-		if (role_ == Role::Terminate) {
-			director_->post([this](){ tryTermination(); });
-		}
+void Backend::clearJsonWriteCallback()
+{
+	jsonWriteCallback_ = std::function<void(const Backend*, JsonWriter&)>();
+}
+
+void Backend::setState(HealthState value)
+{
+	if (healthMonitor_) {
+		healthMonitor_->setState(value);
 	}
-}
-
-/**
- * \note MUST be invoked from within the director's worker thread.
- */
-bool Backend::tryTermination()
-{
-	if (role_ != Role::Terminate)
-		return false;
-
-	healthMonitor_->stop();
-
-	if (load().current() > 0)
-		return false;
-
-	delete this;
-	return true;
-}
-
-void Backend::terminate()
-{
-	setRole(Role::Terminate);
-}
-
-void Backend::setState(HealthMonitor::State value)
-{
-	healthMonitor_->setState(value);
 }
 
 /*!
@@ -173,27 +122,27 @@ bool Backend::tryProcess(HttpRequest* r)
 {
 	std::lock_guard<std::mutex> _(lock_);
 
-	if (healthMonitor() && !healthMonitor()->isOnline())
+	if (healthMonitor_ && !healthMonitor_->isOnline())
 		return false;
 
 	if (!isEnabled())
 		return false;
 
-	if (load_.current() >= capacity_)
+	if (capacity_ && load_.current() >= capacity_)
 		return false;
 
-	auto notes = director_->requestNotes(r);
+	return pass(r);
+}
 
-	notes->backend = this;
-	++notes->tryCount;
+bool Backend::pass(x0::HttpRequest* r)
+{
+	++load_;
 
 	if (!process(r)) {
-		setState(HealthMonitor::State::Offline);
+		setState(HealthState::Offline);
+		--load_;
 		return false;
 	}
-
-	++load_;
-	++director_->scheduler()->load_;
 
 	return true;
 }
@@ -207,5 +156,22 @@ bool Backend::tryProcess(HttpRequest* r)
 void Backend::release()
 {
 	--load_;
-	director_->scheduler()->release(this);
+	manager_->release(this);
+}
+
+/**
+ * Invoked internally when this backend could not handle this request.
+ *
+ * This decrements the load-statistics and potentially
+ * reschedules the request.
+ */
+void Backend::reject(x0::HttpRequest* r)
+{
+	--load_;
+
+	// and set the backend's health state to offline, since it
+	// doesn't seem to function properly
+	setState(HealthState::Offline);
+
+	manager_->reject(r);
 }

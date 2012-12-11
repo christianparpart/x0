@@ -8,15 +8,17 @@
 
 #pragma once
 
+#include <x0/http/HttpWorker.h>
 #include <x0/Logging.h>
 #include <x0/TimeSpan.h>
 #include <string>
 
 namespace x0 {
 	class HttpRequest;
-	class HttpWorker;
 	class Url;
 }
+
+class Backend;
 
 /** common abstraction of what a backend has to know about its managing owner.
  *
@@ -50,5 +52,11 @@ public:
 	x0::TimeSpan writeTimeout() const { return writeTimeout_; }
 	void setWriteTimeout(x0::TimeSpan value) { writeTimeout_ = value; }
 
+	template<typename T> inline void post(T function) { worker()->post(function); }
+
+	//! Invoked internally when the passed request failed processing.
 	virtual void reject(x0::HttpRequest* r) = 0;
+
+	//! Invoked internally when a request has been fully processed in success.
+	virtual void release(Backend* backend) = 0;
 };

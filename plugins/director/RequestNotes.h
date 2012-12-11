@@ -37,9 +37,11 @@ struct RequestNotes :
 
 	~RequestNotes()
 	{
+#if 0 // temporarily disabled
 		if (bucket) {
 			bucket->put();
 		}
+#endif
 
 		//if (backend_) {
 		//	backend_->director().scheduler().release(backend_);

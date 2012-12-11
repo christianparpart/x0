@@ -21,6 +21,12 @@
 
 class Backend;
 
+enum class HealthState {
+	Undefined,
+	Offline,
+	Online
+};
+
 /**
  * Implements HTTP server health monitoring.
  *
@@ -37,18 +43,12 @@ public:
 		Lazy
 	};
 
-	enum class State {
-		Undefined,
-		Offline,
-		Online
-	};
-
 protected:
 	Mode mode_;
 	Backend* backend_;
 	x0::HttpWorker& worker_;
 	x0::TimeSpan interval_;
-	State state_;
+	HealthState state_;
 
 	std::function<void(HealthMonitor*)> onStateChange_;
 
@@ -73,10 +73,10 @@ public:
 	const std::string& mode_str() const;
 	void setMode(Mode value);
 
-	State state() const { return state_; }
-	void setState(State value);
+	HealthState state() const { return state_; }
+	void setState(HealthState value);
 	const std::string& state_str() const;
-	bool isOnline() const { return state_ == State::Online; }
+	bool isOnline() const { return state_ == HealthState::Online; }
 
 	Backend* backend() const { return backend_; }
 	void setBackend(Backend* backend);

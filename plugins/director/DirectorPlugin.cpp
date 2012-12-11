@@ -23,6 +23,9 @@
  *
  * request processing API:
  *     handler director.pass(string director_name);
+ *
+ *     handler director.fcgi(socket_spec);
+ *     handler director.http(socket_spec);
  */
 
 #include "DirectorPlugin.h"
@@ -30,10 +33,12 @@
 #include "Backend.h"
 #include "ApiRequest.h"
 #include "RequestNotes.h"
+#include "RoadWarrior.h"
 
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/SocketSpec.h>
 #include <x0/Url.h>
 #include <x0/Types.h>
 
@@ -41,13 +46,18 @@ using namespace x0;
 
 DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 	HttpPlugin(srv, name),
-	directors_()
+	directors_(),
+	roadWarrior_()
 {
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_load>("director.load", FlowValue::VOID);
 	registerFunction<DirectorPlugin, &DirectorPlugin::director_segment>("director.segment");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_pass>("director.pass");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_api>("director.api");
+	registerHandler<DirectorPlugin, &DirectorPlugin::director_fcgi>("director.fcgi"); // "fastcgi"
+	registerHandler<DirectorPlugin, &DirectorPlugin::director_http>("director.http"); // "proxy.reverse"
+
+	roadWarrior_ = new RoadWarrior(srv.selectWorker());
 }
 
 DirectorPlugin::~DirectorPlugin()
@@ -190,6 +200,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 
 			director = i->second;
 
+#if 0 // temporarily disabled
 			// bucket
 			if (!bucketName.empty()) {
 				bucket = static_cast<ClassfulScheduler*>(director->scheduler())->findBucket(bucketName);
@@ -199,6 +210,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 						bucketName.c_str(), directorId.c_str());
 				}
 			}
+#endif
 
 			// custom backend route
 			if (!backendName.empty()) {
@@ -236,7 +248,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 	notes->bucket = bucket;
 
 	server().log(Severity::debug, "director: passing request to %s.", director->name().c_str());
-	director->scheduler()->schedule(r);
+	director->schedule(r);
 	return true;
 }
 // }}}
@@ -250,6 +262,24 @@ bool DirectorPlugin::director_api(HttpRequest* r, const FlowParams& args)
 	BufferRef path(r->path.ref(strlen(prefix)));
 
 	return ApiReqeust::process(&directors_, r, path);
+}
+// }}}
+// {{{ handler director.fcgi(socketspec);
+bool DirectorPlugin::director_fcgi(HttpRequest* r, const FlowParams& args)
+{
+	x0::SocketSpec spec;
+	spec << args;
+	roadWarrior_->handleRequest(r, spec, RoadWarrior::FCGI);
+	return true;
+}
+// }}}
+// {{{ handler director.http(socketspec);
+bool DirectorPlugin::director_http(HttpRequest* r, const FlowParams& args)
+{
+	x0::SocketSpec spec;
+	spec << args;
+	roadWarrior_->handleRequest(r, spec, RoadWarrior::HTTP);
+	return true;
 }
 // }}}
 

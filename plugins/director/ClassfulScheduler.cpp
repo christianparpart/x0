@@ -81,16 +81,16 @@ void ClassfulScheduler::schedule(x0::HttpRequest* r)
 			r->finish();
 		}
 	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Active, &allDisabled)) {
+	else if (Backend* backend = findLeastLoad(BackendRole::Active, &allDisabled)) {
 		pass(r, notes, backend);
 	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Standby, &allDisabled)) {
+	else if (Backend* backend = findLeastLoad(BackendRole::Standby, &allDisabled)) {
 		pass(r, notes, backend);
 	}
 	else if (bucket->queued().current() < director()->queueLimit() && !allDisabled) {
 		bucket->enqueue(r);
 	}
-	else if (Backend* backend = findLeastLoad(Backend::Role::Backup)) {
+	else if (Backend* backend = findLeastLoad(BackendRole::Backup)) {
 		pass(r, notes, backend);
 	}
 	else if (bucket->queued().current() < director()->queueLimit()) {
@@ -108,7 +108,7 @@ void ClassfulScheduler::schedule(x0::HttpRequest* r)
 	}
 }
 
-Backend* ClassfulScheduler::findLeastLoad(Backend::Role role, bool* allDisabled)
+Backend* ClassfulScheduler::findLeastLoad(BackendRole role, bool* allDisabled)
 {
 	Backend* best = nullptr;
 	size_t bestAvail = 0;
@@ -163,9 +163,11 @@ void ClassfulScheduler::pass(HttpRequest* r, RequestNotes* notes, Backend* backe
 	notes->backend = backend;
 
 	++load_;
-	++backend->load_;
 
-	backend->process(r);
+	if (backend->tryProcess(r))
+		return;
+
+	--load_;
 }
 
 void ClassfulScheduler::dequeueTo(Backend* backend)

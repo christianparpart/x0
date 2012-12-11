@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Backend.h"
+#include "Director.h"
 #include "HealthMonitor.h"
 
 #include <x0/Buffer.h>
@@ -55,7 +56,7 @@ protected:
 	bool loadParam(const std::string& key, int& result);
 	bool loadParam(const std::string& key, size_t& result);
 	bool loadParam(const std::string& key, x0::TimeSpan& result);
-	bool loadParam(const std::string& key, Backend::Role& result);
+	bool loadParam(const std::string& key, BackendRole& result);
 	bool loadParam(const std::string& key, HealthMonitor::Mode& result);
 	bool loadParam(const std::string& key, std::string& result);
 

@@ -10,6 +10,7 @@
 
 #include "Scheduler.h"
 #include "Backend.h"
+#include "Director.h"
 #include <deque>
 #include <algorithm> // std::max()
 #include <ev++.h>
@@ -43,7 +44,7 @@ public:
 	virtual bool save(x0::Buffer& out);
 
 private:
-	Backend* findLeastLoad(Backend::Role role, bool* allDisabled = nullptr);
+	Backend* findLeastLoad(BackendRole role, bool* allDisabled = nullptr);
 	void pass(x0::HttpRequest* r, RequestNotes* notes, Backend* backend);
 };
 

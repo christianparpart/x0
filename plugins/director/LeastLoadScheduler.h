@@ -38,7 +38,8 @@ public:
 	virtual bool save(x0::Buffer& out);
 
 private:
-	bool tryProcess(x0::HttpRequest* r, bool* allDisabled, Backend::Role role);
+	bool tryProcess(x0::HttpRequest* r, bool* allDisabled, BackendRole role);
+	bool tryProcess(HttpRequest* r, Backend* backend);
 	bool tryEnqueue(x0::HttpRequest* r);
 	void updateQueueTimer();
 	x0::HttpRequest* dequeue();

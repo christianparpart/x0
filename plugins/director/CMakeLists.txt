@@ -23,11 +23,14 @@ set(director_SRC
 	Backend.cpp
 	Scheduler.cpp
 	LeastLoadScheduler.cpp
-	ClassfulScheduler.cpp
 	HttpBackend.cpp
 	HttpHealthMonitor.cpp
 	FastCgiBackend.cpp
 	FastCgiHealthMonitor.cpp
+	RoadWarrior.cpp
 )
+
+# XXX classful scheduling is work-in-progress
+#	ClassfulScheduler.cpp
 
 x0_plugin(director "${director_SRC}")

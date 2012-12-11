@@ -135,8 +135,9 @@ void FastCgiHealthMonitor::setRequest(const char* fmt, ...)
 	params.encode("REQUEST_METHOD", rr.method.str());
 	params.encode("SCRIPT_NAME", rr.path.str());
 
-	if (!backend_->director()->healthCheckFcgiScriptFilename().empty())
-		params.encode("SCRIPT_FILENAME", backend_->director()->healthCheckFcgiScriptFilename());
+	// XXX we know we are only part of a Director backend-manager
+	if (!static_cast<Director*>(backend_->manager())->healthCheckFcgiScriptFilename().empty())
+		params.encode("SCRIPT_FILENAME", static_cast<Director*>(backend_->manager())->healthCheckFcgiScriptFilename());
 
 	for (auto& header: rr.headers) {
 		std::string key;
@@ -211,11 +212,11 @@ void FastCgiHealthMonitor::onCheckStart()
 		logFailure();
 	} else if (socket_.state() == Socket::Connecting) {
 		TRACE("connecting asynchronously.");
-		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->connectTimeout());
+		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->manager()->connectTimeout());
 		socket_.setReadyCallback<FastCgiHealthMonitor, &FastCgiHealthMonitor::onConnectDone>(this);
 		socket_.setMode(Socket::ReadWrite);
 	} else {
-		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_.setReadyCallback<FastCgiHealthMonitor, &FastCgiHealthMonitor::io>(this);
 		socket_.setMode(Socket::ReadWrite);
 		TRACE("connected.");
@@ -231,7 +232,7 @@ void FastCgiHealthMonitor::onConnectDone(Socket*, int revents)
 
 	if (socket_.state() == Socket::Operational) {
 		TRACE("connected");
-		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_.setReadyCallback<FastCgiHealthMonitor, &FastCgiHealthMonitor::io>(this);
 		socket_.setMode(Socket::ReadWrite);
 	} else {
@@ -277,7 +278,7 @@ bool FastCgiHealthMonitor::writeSome()
 		writeOffset_ += writeCount;
 
 		if (writeOffset_ == writeBuffer_.size()) {
-			socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->readTimeout());
+			socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->manager()->readTimeout());
 			socket_.setMode(Socket::Read);
 		}
 	}
@@ -336,7 +337,7 @@ bool FastCgiHealthMonitor::readSome()
 			return true;
 	}
 
-	socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->director()->readTimeout());
+	socket_.setTimeout<FastCgiHealthMonitor, &FastCgiHealthMonitor::onTimeout>(this, backend_->manager()->readTimeout());
 
 	return true;
 }

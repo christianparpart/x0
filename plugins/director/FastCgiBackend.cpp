@@ -223,7 +223,7 @@ FastCgiTransport::~FastCgiTransport()
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			backend_->director()->scheduler()->schedule(request_);
+			backend_->manager()->reject(request_);
 		} else {
 			// We actually served ths request, so finish() it.
 			request_->finish();
@@ -341,7 +341,7 @@ void FastCgiTransport::bind()
 
 	// setup I/O callback
 	if (socket_->state() == x0::Socket::Connecting) {
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onConnectTimeout>(this, backend_->director()->connectTimeout());
+		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onConnectTimeout>(this, backend_->manager()->connectTimeout());
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::onConnectComplete>(this);
 	} else {
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::io>(this);
@@ -403,7 +403,7 @@ void FastCgiTransport::flush()
 {
 	if (socket_->state() == x0::Socket::Operational) {
 		TRACE("flushing pending data to upstream server.");
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setMode(x0::Socket::ReadWrite);
 	} else {
 		TRACE("mark pending data to be flushed to upstream server.");
@@ -418,7 +418,7 @@ void FastCgiTransport::onConnectTimeout(x0::Socket* s)
 	if (!request_->status)
 		request_->status = HttpStatus::GatewayTimedout;
 
-	backend_->setState(HealthMonitor::State::Offline);
+	backend_->setState(HealthState::Offline);
 	close();
 }
 
@@ -434,7 +434,7 @@ void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE("Connected. Flushing pending data.");
 		flushPending_ = false;
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->director()->writeTimeout());
+		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::io>(this);
 		socket_->setMode(x0::Socket::ReadWrite);
 	} else {
@@ -554,7 +554,7 @@ void FastCgiTransport::onTimeout(x0::Socket* s)
 	if (!request_->status)
 		request_->status = HttpStatus::GatewayTimedout;
 
-	backend_->setState(HealthMonitor::State::Offline);
+	backend_->setState(HealthState::Offline);
 	close();
 }
 
@@ -716,7 +716,7 @@ void FastCgiTransport::onWriteComplete()
 		// the upstream server already, even though not all data has been flushed out to the client yet.
 
 		TRACE("Writing to client completed. Resume watching on app I/O for read.");
-		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->director()->readTimeout());
+		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->manager()->readTimeout());
 		socket_->setMode(x0::Socket::Read);
 	} else {
 		TRACE("Writing to client completed (Upstream connection already closed).");
@@ -751,14 +751,16 @@ void FastCgiTransport::inspect(x0::Buffer& out)
 // {{{ FastCgiBackend impl
 std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 
-FastCgiBackend::FastCgiBackend(Director* director, const std::string& name, const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity, new FastCgiHealthMonitor(*director->worker()->server().nextWorker()))
+FastCgiBackend::FastCgiBackend(BackendManager* bm, const std::string& name, const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
+	Backend(bm, name, socketSpec, capacity, healthChecks ? new FastCgiHealthMonitor(*bm->worker()->server().nextWorker()) : nullptr)
 {
 #ifndef NDEBUG
 	setLoggingPrefix("FastCgiBackend/%s", name.c_str());
 #endif
 
-	healthMonitor()->setBackend(this);
+	if (healthChecks) {
+		healthMonitor()->setBackend(this);
+	}
 }
 
 FastCgiBackend::~FastCgiBackend()
@@ -790,7 +792,7 @@ bool FastCgiBackend::process(x0::HttpRequest* r)
 		new FastCgiTransport(this, r, nextID_, socket);
 		return true;
 	} else {
-		r->log(x0::Severity::notice, "fastcgi: connection to backend %s failed. %s", socketSpec_.str().c_str(), strerror(errno));
+		r->log(x0::Severity::notice, "fastcgi: connection to backend %s failed (%d). %s", socketSpec_.str().c_str(), errno, strerror(errno));
 		return false;
 	}
 }
