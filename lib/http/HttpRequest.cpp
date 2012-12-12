@@ -267,7 +267,7 @@ Source* HttpRequest::serialize()
 
 	connection.setShouldKeepAlive(keepalive);
 
-	if (!connection.worker().server().tcpCork())
+	if (connection.worker().server().tcpCork())
 		connection.socket()->setTcpCork(true);
 
 	if (supportsProtocol(1, 1))
