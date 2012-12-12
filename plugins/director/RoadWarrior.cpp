@@ -31,6 +31,10 @@ void RoadWarrior::handleRequest(x0::HttpRequest* r, const x0::SocketSpec& spec, 
 			case FCGI:
 				backend = new FastCgiBackend(this, spec.str(), spec, 0, false);
 				break;
+			default:
+				r->status = x0::HttpStatus::InternalServerError;
+				r->finish();
+				return;
 		}
 		backends_[spec] = backend;
 	}

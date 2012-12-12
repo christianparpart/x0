@@ -467,15 +467,15 @@ bool ApiReqeust::create()
 	if (name.empty())
 		return false;
 
-	BackendRole role;
+	BackendRole role = BackendRole::Active;
 	if (!loadParam("role", role))
 		return false;
 
-	bool enabled;
+	bool enabled = false;
 	if (!loadParam("enabled", enabled))
 		return false;
 
-	size_t capacity;
+	size_t capacity = 0;
 	if (!loadParam("capacity", capacity))
 		return false;
 
@@ -665,25 +665,20 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 		return false;
 	}
 
-	BackendRole role;
-	if (!loadParam("role", role))
-		role = director->backendRole(backend);
+	BackendRole role = director->backendRole(backend);
+	loadParam("role", role);
 
-	bool enabled;
-	if (!loadParam("enabled", enabled))
-		enabled = backend->isEnabled();
+	bool enabled = backend->isEnabled();
+	loadParam("enabled", enabled);
 
-	size_t capacity;
-	if (!loadParam("capacity", capacity))
-		capacity = backend->capacity();
+	size_t capacity = backend->capacity();
+	loadParam("capacity", capacity);
 
-	TimeSpan hcInterval;
-	if (!loadParam("health-check-interval", hcInterval))
-		hcInterval = backend->healthMonitor()->interval();
+	TimeSpan hcInterval = backend->healthMonitor()->interval();
+	loadParam("health-check-interval", hcInterval);
 
-	HealthMonitor::Mode hcMode;
-	if (!loadParam("health-check-mode", hcMode))
-		hcMode = backend->healthMonitor()->mode();
+	HealthMonitor::Mode hcMode = backend->healthMonitor()->mode();
+	loadParam("health-check-mode", hcMode);
 
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
