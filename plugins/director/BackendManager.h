@@ -26,7 +26,7 @@ class Backend;
  */
 class BackendManager
 #ifndef NDEBUG
-	: public Logging
+	: public x0::Logging
 #endif
 {
 protected:
