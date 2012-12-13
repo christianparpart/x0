@@ -112,14 +112,14 @@ bool HttpRequest::setUri(const BufferRef& uri)
 	};
 #endif
 
-	const unsigned char* i = (const unsigned char*) unparsedUri.begin();
-	const unsigned char* e = (const unsigned char*) unparsedUri.end() + 1;
+	const char* i = unparsedUri.begin();
+	const char* e = unparsedUri.end() + 1;
 
 	int depth = 0;
 	UriState state = UriState::Content;
 	UriState quotedState;
 	unsigned char decodedChar;
-	unsigned char ch = *i++;
+	char ch = *i++;
 
 #if !defined(NDEBUG) // suppress uninitialized warning
 	quotedState = UriState::Content;
