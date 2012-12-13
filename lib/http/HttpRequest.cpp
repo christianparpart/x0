@@ -18,9 +18,9 @@
 #include <limits.h>                   // PATH_MAX
 
 #if !defined(NDEBUG)
-#	define TRACE(msg...) this->debug(msg)
+#	define TRACE(level, msg...) log(Severity::debug ## level, "http-request: " msg)
 #else
-#	define TRACE(msg...) do { } while (0)
+#	define TRACE(level, msg...) do { } while (0)
 #endif
 
 namespace x0 {
@@ -67,7 +67,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 
 HttpRequest::~HttpRequest()
 {
-	TRACE("destructing");
+	TRACE(2, "destructing");
 }
 
 /**
@@ -166,10 +166,10 @@ void HttpRequest::setBodyCallback(void (*callback)(const BufferRef&, void*), voi
 void HttpRequest::onRequestContent(const BufferRef& chunk)
 {
 	if (bodyCallback_) {
-		TRACE("onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
+		TRACE(2, "onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
 		bodyCallback_(chunk, bodyCallbackData_);
 	} else {
-		TRACE("onRequestContent(chunkSize=%ld) discard", chunk.size());
+		TRACE(2, "onRequestContent(chunkSize=%ld) discard", chunk.size());
 	}
 }
 
@@ -386,7 +386,7 @@ std::string HttpRequest::statusStr(HttpStatus value)
  */
 void HttpRequest::finish()
 {
-	TRACE("finish(outputState=%s)", outputStateStr(outputState_));
+	TRACE(2, "finish(outputState=%s)", outputStateStr(outputState_));
 
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);
@@ -403,7 +403,7 @@ void HttpRequest::finish()
 				status = HttpStatus::NotFound;
 
 			if (errorHandler_) {
-				TRACE("running custom error handler");
+				TRACE(2, "running custom error handler");
 				// reset the handler right away to avoid endless nesting
 				auto handler = errorHandler_;
 				errorHandler_ = nullptr;
@@ -414,7 +414,7 @@ void HttpRequest::finish()
 				// the handler did not produce any response, so default to the
 				// buildin-output
 			}
-			TRACE("streaming default error content");
+			TRACE(2, "streaming default error content");
 
 			if (isResponseContentForbidden()) {
 				connection.write(serialize());
@@ -461,15 +461,15 @@ void HttpRequest::finish()
  */
 void HttpRequest::finalize()
 {
-	TRACE("finalize()");
+	TRACE(2, "finalize()");
 	connection.worker().server().onRequestDone(this);
 	clearCustomData();
 
 	if (isAborted() || !connection.shouldKeepAlive()) {
-		TRACE("finalize: closing");
+		TRACE(2, "finalize: closing");
 		connection.close();
 	} else {
-		TRACE("finalize: resuming");
+		TRACE(2, "finalize: resuming");
 		clear();
 		connection.resume();
 	}
