@@ -271,58 +271,6 @@ void HttpConnection::handshakeComplete(Socket *)
 	}
 }
 
-static inline Buffer urldecode(const BufferRef& value) { // {{{
-	Buffer sb;
-
-    for (std::size_t i = 0, e = value.size(); i < e; ++i) {
-        if (value[i] == '%' && i + 2 < e) {
-			char snum[3] = { value[i], value[i + 1], 0 };
-            i += 2;
-			sb.push_back(char(std::strtol(snum, 0, 16) & 0xFF));
-        } else if (value[i] == '+') {
-			sb.push_back(' ');
-		} else {
-			sb.push_back(value[i]);
-		}
-    }
-
-    return sb;
-} // }}}
-
-inline bool url_decode(Buffer& value)
-{
-	std::size_t right = value.size();
-	std::size_t i = 0; // read pos
-	std::size_t d = 0; // write pos
-
-	while (i != right) {
-		if (value[i] == '%') {
-			if (i + 3 <= right) {
-				int ival;
-				if (hex2int(value.begin() + i + 1, value.begin() + i + 3, ival)) {
-					value[d++] = static_cast<char>(ival);
-					i += 3;
-				} else {
-					return false;
-				}
-			} else {
-				return false;
-			}
-		} else if (value[i] == '+') {
-			value[d++] = ' ';
-			++i;
-		} else if (d != i) {
-			value[d++] = value[i++];
-		} else {
-			++d;
-			++i;
-		}
-	}
-
-	value.resize(d);
-	return true;
-}
-
 bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& uri, int versionMajor, int versionMinor)
 {
 	TRACE("onMessageBegin: '%s', '%s', HTTP/%d.%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
