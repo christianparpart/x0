@@ -138,7 +138,7 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 			// timeout has been reached.
 
 			request_->log(Severity::notice, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
-			backend_->manager()->reject(request_);
+			backend_->reject(request_);
 		} else {
 			// We actually served ths request, so finish() it.
 			request_->finish();
@@ -271,7 +271,7 @@ void HttpBackend::ProxyConnection::onConnectTimeout(x0::Socket* s)
 	if (!request_->status)
 		request_->status = HttpStatus::GatewayTimedout;
 
-	backend_->setState(HealthMonitor::State::Offline);
+	backend_->setState(HealthState::Offline);
 	close();
 }
 
@@ -284,7 +284,7 @@ void HttpBackend::ProxyConnection::onConnectTimeout(x0::Socket* s)
 void HttpBackend::ProxyConnection::onTimeout(x0::Socket* s)
 {
 	request_->log(x0::Severity::error, "http-proxy: Failed to perform I/O on backend %s. Timed out", backend_->name().c_str());
-	backend_->setState(HealthMonitor::State::Offline);
+	backend_->setState(HealthState::Offline);
 
 	if (!request_->status)
 		request_->status = HttpStatus::GatewayTimedout;
@@ -306,7 +306,7 @@ void HttpBackend::ProxyConnection::onConnected(Socket* s, int revents)
 	} else {
 		TRACE("onConnected: failed");
 		request_->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
-		backend_->setState(HealthMonitor::State::Offline);
+		backend_->setState(HealthState::Offline);
 		close();
 	}
 }
@@ -440,7 +440,7 @@ void HttpBackend::ProxyConnection::writeSome()
 			break;
 		default:
 			request_->log(Severity::error, "Writing to backend %s failed. %s", backend_->socketSpec().str().c_str(), strerror(errno));
-			backend_->setState(HealthMonitor::State::Offline);
+			backend_->setState(HealthState::Offline);
 			close();
 			break;
 		}
@@ -468,7 +468,7 @@ void HttpBackend::ProxyConnection::readSome()
 			close();
 		} else if (state() == SYNTAX_ERROR) {
 			request_->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
-			backend_->setState(HealthMonitor::State::Offline);
+			backend_->setState(HealthState::Offline);
 			close();
 		} else {
 			TRACE("resume with io:%d, state:%s", socket_->mode(), socket_->state_str());
@@ -490,7 +490,7 @@ void HttpBackend::ProxyConnection::readSome()
 			break;
 		default:
 			request_->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
-			backend_->setState(HealthMonitor::State::Offline);
+			backend_->setState(HealthState::Offline);
 			close();
 			break;
 		}
@@ -499,16 +499,17 @@ void HttpBackend::ProxyConnection::readSome()
 // }}}
 
 // {{{ HttpBackend impl
-HttpBackend::HttpBackend(Director* director, const std::string& name,
-		const SocketSpec& socketSpec, size_t capacity) :
-	Backend(director, name, socketSpec, capacity,
-		new HttpHealthMonitor(*director->worker()->server().nextWorker()))
+HttpBackend::HttpBackend(BackendManager* bm, const std::string& name,
+		const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
+	Backend(bm, name, socketSpec, capacity, healthChecks ? new HttpHealthMonitor(*bm->worker()->server().nextWorker()) : nullptr)
 {
 #ifndef NDEBUG
 	setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 
-	healthMonitor()->setBackend(this);
+	if (healthChecks) {
+		healthMonitor()->setBackend(this);
+	}
 }
 
 HttpBackend::~HttpBackend()

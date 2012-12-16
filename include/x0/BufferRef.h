@@ -43,6 +43,7 @@ protected:
 public:
 	BufferRef();
 	BufferRef(const char* buffer, std::size_t _size);
+	BufferRef(const unsigned char* buffer, std::size_t _size);
 //	BufferRef(iterator begin, iterator end);
 //	BufferRef(const char* buffer, std::size_t n);
 //	BufferRef(const char* cstring);
@@ -160,6 +161,12 @@ inline BufferRef::BufferRef() :
 
 inline BufferRef::BufferRef(const char* buffer, std::size_t size) :
 	data_(const_cast<char*>(buffer)),
+	size_(size)
+{
+}
+
+inline BufferRef::BufferRef(const unsigned char* buffer, std::size_t size) :
+	data_((char*) buffer),
 	size_(size)
 {
 }

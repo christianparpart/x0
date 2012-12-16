@@ -40,6 +40,7 @@ public:
 
 	void clear();
 
+	Type type() const { return type_; }
 	bool isValid() const { return type_ != Unknown; }
 	bool isLocal() const { return type_ == Local; }
 	bool isInet() const { return type_ == Inet; }
@@ -62,6 +63,49 @@ private:
 	int backlog_;
 };
 
+
+X0_API bool operator==(const x0::SocketSpec& a, const x0::SocketSpec& b);
+X0_API bool operator!=(const x0::SocketSpec& a, const x0::SocketSpec& b);
+
+inline X0_API bool operator==(const x0::SocketSpec& a, const x0::SocketSpec& b)
+{
+	if (a.type() != b.type())
+		return false;
+
+	switch (a.type()) {
+		case x0::SocketSpec::Local:
+			return a.port() == b.port() && a.ipaddr() == b.ipaddr();
+		case x0::SocketSpec::Inet:
+			return a.local() == b.local();
+		default:
+			return false;
+	}
+}
+
+inline X0_API bool operator!=(const x0::SocketSpec& a, const x0::SocketSpec& b)
+{
+	return !(a == b);
+}
 } // namespace x0
+
+namespace std
+{
+	template <>
+	struct hash<x0::SocketSpec> :
+		public unary_function<x0::SocketSpec, size_t>
+	{
+		size_t operator()(const x0::SocketSpec& v) const
+		{
+			switch (v.type()) {
+				case x0::SocketSpec::Inet:
+					return hash<size_t>()(v.type()) ^ hash<x0::IPAddress>()(v.ipaddr());
+				case x0::SocketSpec::Local:
+					return hash<size_t>()(v.type()) ^ hash<string>()(v.local());
+				default:
+					return 0;
+			}
+		}
+	};
+}
 
 #endif

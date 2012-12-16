@@ -20,7 +20,7 @@ private:
 	class ProxyConnection;
 
 public:
-	HttpBackend(Director* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity);
+	HttpBackend(BackendManager* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
 	~HttpBackend();
 
 	virtual const std::string& protocol() const;

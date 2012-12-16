@@ -34,6 +34,7 @@ protected:
 	std::atomic<unsigned long long> dropped_;
 
 	friend class Backend;
+	friend class Director;
 
 public:
 	Scheduler(Director* d);
@@ -54,7 +55,7 @@ public:
 
 	virtual void dequeueTo(Backend* backend) = 0;
 
-	void release(Backend* backend);
+	void release();
 
 	virtual void writeJSON(x0::JsonWriter& json) const;
 

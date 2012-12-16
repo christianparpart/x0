@@ -273,18 +273,18 @@ bool ApiReqeust::loadParam(const std::string& key, TimeSpan& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, Backend::Role& result)
+bool ApiReqeust::loadParam(const std::string& key, BackendRole& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
 		return false;
 
 	if (i->second == "active")
-		result = Backend::Role::Active;
+		result = BackendRole::Active;
 	else if (i->second == "standby")
-		result = Backend::Role::Standby;
+		result = BackendRole::Standby;
 	else if (i->second == "backup")
-		result = Backend::Role::Backup;
+		result = BackendRole::Backup;
 	else
 		return false;
 
@@ -467,15 +467,15 @@ bool ApiReqeust::create()
 	if (name.empty())
 		return false;
 
-	Backend::Role role;
+	BackendRole role = BackendRole::Active;
 	if (!loadParam("role", role))
 		return false;
 
-	bool enabled;
+	bool enabled = false;
 	if (!loadParam("enabled", enabled))
 		return false;
 
-	size_t capacity;
+	size_t capacity = 0;
 	if (!loadParam("capacity", capacity))
 		return false;
 
@@ -519,38 +519,20 @@ bool ApiReqeust::create()
 		return true;
 	}
 
-	Backend* backend = nullptr;
-	if (protocol == "fastcgi") {
-		backend = director->findBackend(name);
-		if (backend)
-			return false;
-
-		backend = new FastCgiBackend(director, name, socketSpec, capacity);
-		request_->status = x0::HttpStatus::Created;
-	} else if (protocol == "http") {
-		// protocol == "http"
-
-		backend = director->findBackend(name);
-		if (backend)
-			return false;
-
-		backend = new HttpBackend(director, name, socketSpec, capacity);
-		request_->status = x0::HttpStatus::Created;
-	} else {
-		request_->status = x0::HttpStatus::BadRequest;
-	}
+	Backend* backend = director->createBackend(name, protocol, socketSpec, capacity, role);
 
 	if (backend) {
-		backend->setRole(role);
 		backend->setEnabled(enabled);
 		backend->healthMonitor()->setInterval(hcInterval);
 		backend->healthMonitor()->setMode(hcMode);
 		director->save();
+		request_->status = x0::HttpStatus::Created;
+		request_->log(Severity::info, "director: %s created backend: %s.", director->name().c_str(), backend->name().c_str());
+		request_->finish();
+	} else {
+		request_->status = x0::HttpStatus::BadRequest;
+		request_->finish();
 	}
-
-	request_->finish();
-
-	request_->log(Severity::info, "director: %s created backend: %s.", director->name().c_str(), backend->name().c_str());
 
 	return true;
 }
@@ -683,25 +665,20 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 		return false;
 	}
 
-	Backend::Role role;
-	if (!loadParam("role", role))
-		role = backend->role();
+	BackendRole role = director->backendRole(backend);
+	loadParam("role", role);
 
-	bool enabled;
-	if (!loadParam("enabled", enabled))
-		enabled = backend->isEnabled();
+	bool enabled = backend->isEnabled();
+	loadParam("enabled", enabled);
 
-	size_t capacity;
-	if (!loadParam("capacity", capacity))
-		capacity = backend->capacity();
+	size_t capacity = backend->capacity();
+	loadParam("capacity", capacity);
 
-	TimeSpan hcInterval;
-	if (!loadParam("health-check-interval", hcInterval))
-		hcInterval = backend->healthMonitor()->interval();
+	TimeSpan hcInterval = backend->healthMonitor()->interval();
+	loadParam("health-check-interval", hcInterval);
 
-	HealthMonitor::Mode hcMode;
-	if (!loadParam("health-check-mode", hcMode))
-		hcMode = backend->healthMonitor()->mode();
+	HealthMonitor::Mode hcMode = backend->healthMonitor()->mode();
+	loadParam("health-check-mode", hcMode);
 
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
@@ -712,11 +689,17 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 		return true;
 	}
 
-	backend->setRole(role);
-	backend->setEnabled(enabled);
+	if (!enabled)
+		backend->setEnabled(false);
+
+	director->setBackendRole(backend, role);
 	backend->setCapacity(capacity);
 	backend->healthMonitor()->setInterval(hcInterval);
 	backend->healthMonitor()->setMode(hcMode);
+
+	if (enabled)
+		backend->setEnabled(true);
+
 	director->save();
 
 	request_->log(Severity::info, "director: %s reconfigured backend: %s.", director->name().c_str(), backend->name().c_str());
@@ -768,7 +751,14 @@ bool ApiReqeust::destroy()
 		return true;
 	}
 
-	backend->terminate();
+	if (director->backendRole(backend) == BackendRole::Terminate) {
+		request_->log(Severity::warn, "director: trying to terminate a backend that is already initiated for termination.");
+		request_->status = x0::HttpStatus::BadRequest;
+		request_->finish();
+		return true;
+	}
+
+	director->terminateBackend(backend);
 	director->save();
 
 	request_->log(Severity::error, "director: Deleting backend '%s' at director '%s'.",

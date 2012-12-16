@@ -363,11 +363,14 @@ private:
 	std::list<std::pair<void*, void (*)(void*, Buffer&)> > inspectHandlers_;
 
 	mutable std::string hostid_;
+	int directoryDepth_;
 
 	void (*bodyCallback_)(const BufferRef&, void*);
 	void* bodyCallbackData_;
 
 	FlowValue::Function errorHandler_;
+
+	bool setUri(const BufferRef& uri);
 
 	void onRequestContent(const BufferRef& chunk);
 
@@ -415,6 +418,8 @@ inline void HttpRequest::clear()
 	expectingContinue = false;
 
 	hostid_ = ""; // hostname ':' port
+
+	directoryDepth_ = 0;
 
 	bodyCallback_ = nullptr;
 	bodyCallbackData_ = nullptr;

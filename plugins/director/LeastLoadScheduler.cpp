@@ -10,8 +10,13 @@
 #include "Director.h"
 #include "Backend.h"
 
-#if !defined(NDEBUG)
-#	define TRACE(msg...) (this->Logging::debug(msg))
+#if 1 // !defined(NDEBUG)
+#	define TRACE(msg...) { \
+		char buf[4096]; \
+		int n = snprintf(buf, sizeof(buf), "LeastLoadScheduler[%d]: ", x0::HttpWorker::currentId()); \
+		snprintf(buf + n, sizeof(buf) - n, msg); \
+		DEBUG("%s", buf); \
+	}
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
@@ -40,7 +45,7 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 		r->responseHeaders.push_back("X-Director-Cluster", director_->name());
 
 		if (notes->backend) {
-			if (!notes->backend->tryProcess(r)) {
+			if (!tryProcess(r, notes->backend)) {
 				// pre-selected a backend, but this one is not online, so generate a 503 to give the client some feedback
 				r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
 					notes->backend->name().c_str(), notes->backend->healthMonitor()->state_str().c_str());
@@ -55,11 +60,6 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 	} else {
 		// rescheduling given request, so decrement the load counters
 		--load_;
-		--notes->backend->load_;
-
-		// and set the backend's health state to offline, since it
-		// doesn't seem to function properly
-		notes->backend->setState(HealthMonitor::State::Offline);
 
 		notes->backend = nullptr;
 
@@ -75,13 +75,13 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 		}
 	}
 
-	if (tryProcess(r, &allDisabled, Backend::Role::Active))
+	if (tryProcess(r, &allDisabled, BackendRole::Active))
 		return;
 
-	if (tryProcess(r, &allDisabled, Backend::Role::Standby))
+	if (tryProcess(r, &allDisabled, BackendRole::Standby))
 		return;
 
-	if (allDisabled && tryProcess(r, &allDisabled, Backend::Role::Backup))
+	if (allDisabled && tryProcess(r, &allDisabled, BackendRole::Backup))
 		return;
 
 	if (tryEnqueue(r))
@@ -116,8 +116,7 @@ void LeastLoadScheduler::dequeueTo(Backend* backend)
 			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), director_->name().c_str());
 #endif
-			bool passed = backend->tryProcess(r);
-			if (!passed) {
+			if (!tryProcess(r, backend)) {
 				r->log(Severity::error, "Dequeueing request to backend %s @ %s failed.",
 					backend->name().c_str(), director_->name().c_str());
 
@@ -138,7 +137,7 @@ bool LeastLoadScheduler::tryEnqueue(HttpRequest* r)
 		r->log(Severity::info, "Director %s overloaded. Enqueueing request (%d).",
 			director_->name().c_str(), queued_.current());
 
-		updateQueueTimer();
+		director_->worker()->post([&]() { updateQueueTimer(); });
 		return true;
 	}
 
@@ -164,19 +163,19 @@ HttpRequest* LeastLoadScheduler::dequeue()
 }
 
 #ifndef NDEBUG
-inline const char* roleStr(Backend::Role role)
+inline const char* roleStr(BackendRole role)
 {
 	switch (role) {
-		case Backend::Role::Active: return "Active";
-		case Backend::Role::Standby: return "Standby";
-		case Backend::Role::Backup: return "Backup";
-		case Backend::Role::Terminate: return "Terminate";
+		case BackendRole::Active: return "Active";
+		case BackendRole::Standby: return "Standby";
+		case BackendRole::Backup: return "Backup";
+		case BackendRole::Terminate: return "Terminate";
 		default: return "UNKNOWN";
 	}
 }
 #endif
 
-bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backend::Role role)
+bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, BackendRole role)
 {
 #ifndef NDEBUG
 	director_->worker()->log(Severity::debug, "tryProcess(): role=%s", roleStr(role));
@@ -188,12 +187,12 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 
 	for (auto backend: director_->backendsWith(role)) {
 		if (!backend->isEnabled()) {
-			TRACE("tryProcess: skipping backend %s (disabled)", backend->name().c_str());
+			//TRACE("tryProcess: skipping backend %s (disabled)", backend->name().c_str());
 			continue;
 		}
 
 		if (!backend->healthMonitor()->isOnline()) {
-			TRACE("tryProcess: skipping backend %s (offline)", backend->name().c_str());
+			//TRACE("tryProcess: skipping backend %s (offline)", backend->name().c_str());
 			continue;
 		}
 
@@ -228,13 +227,32 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 #ifndef NDEBUG
 		director_->worker()->log(Severity::debug, "tryProcess: elected backend %s", best->name().c_str());
 #endif
-		return best->tryProcess(r);
+		return tryProcess(r, best);
 	}
 
 #ifndef NDEBUG
 	director_->worker()->log(Severity::debug, "tryProcess: (role %s) failed scheduling request", roleStr(role));
 #endif
 
+	return false;
+}
+
+/**
+ * Attempts to process request on given backend.
+ */
+bool LeastLoadScheduler::tryProcess(HttpRequest* r, Backend* backend)
+{
+	auto notes = director_->requestNotes(r);
+
+	notes->backend = backend;
+	++notes->tryCount;
+
+	++load_;
+
+	if (backend->tryProcess(r))
+		return true;
+
+	--load_;
 	return false;
 }
 
@@ -252,7 +270,13 @@ void LeastLoadScheduler::updateQueueTimer()
 	while (!queue_.empty()) {
 		HttpRequest* r = queue_.front();
 		auto notes = director_->requestNotes(r);
-		TimeSpan age(director_->worker()->now() - notes->ctime);
+		TimeSpan age(r->connection.worker().now() - notes->ctime);
+
+		TRACE("ctime(%s), now(%s), age(%s)",
+			notes->ctime.http_str().c_str(),
+			r->connection.worker().now().http_str().c_str(),
+			age.str().c_str());
+
 		if (age < director_->queueTimeout())
 			break;
 
@@ -284,10 +308,11 @@ void LeastLoadScheduler::updateQueueTimer()
 	// setup queue timer to wake up after next timeout is reached.
 	HttpRequest* r = queue_.front();
 	auto notes = director_->requestNotes(r);
-	TimeSpan age(director_->worker()->now() - notes->ctime);
+	TimeSpan age(r->connection.worker().now() - notes->ctime);
 	TimeSpan ttl(director_->queueTimeout() - age);
-	TRACE("updateQueueTimer: starting new timer with ttl %f (%llu)", ttl.value(), ttl.totalMilliseconds());
+	TRACE("updateQueueTimer: starting new timer with ttl %f (%zu)", ttl.value(), ttl.totalMilliseconds());
 	queueTimer_.start(ttl.value(), 0);
+	director_->worker()->wakeup();
 }
 
 bool LeastLoadScheduler::load(x0::IniFile& settings)

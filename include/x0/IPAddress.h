@@ -10,6 +10,7 @@
 #define x0_IPAddress_h
 
 #include <x0/Api.h>
+#include <unordered_map>
 
 #include <cstdint>
 #include <string>
@@ -155,4 +156,16 @@ inline bool operator!=(const IPAddress& a, const IPAddress& b)
 
 } // namespace x0
 
+namespace std
+{
+	template <>
+	struct hash<x0::IPAddress> :
+		public unary_function<x0::IPAddress, size_t>
+	{
+		size_t operator()(const x0::IPAddress& v) const
+		{
+			return *(uint32_t*)(v.data());
+		}
+	};
+}
 #endif

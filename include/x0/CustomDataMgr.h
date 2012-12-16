@@ -29,21 +29,21 @@ public:
 
 #define CUSTOMDATA_API_INLINE                                            \
 private:                                                                 \
-	std::unordered_map<void *, std::unique_ptr<CustomData>> customData_; \
+	std::unordered_map<const void *, std::unique_ptr<x0::CustomData>> customData_; \
 public:                                                                  \
 	void clearCustomData()                                               \
 	{                                                                    \
 		customData_.clear();                                             \
 	}                                                                    \
                                                                          \
-	CustomData* customData(void* key) const                              \
+	x0::CustomData* customData(const void* key) const                    \
 	{                                                                    \
 		auto i = customData_.find(key);                                  \
 		return i != customData_.end() ? i->second.get() : nullptr;       \
 	}                                                                    \
                                                                          \
 	template<typename T>                                                 \
-	T* customData(void* key) const                                       \
+	T* customData(const void* key) const                                 \
 	{                                                                    \
 		auto i = customData_.find(key);                                  \
 		return i != customData_.end()                                    \
@@ -52,7 +52,7 @@ public:                                                                  \
 	}                                                                    \
                                                                          \
 	template<typename T, typename... Args>                               \
-	T* setCustomData(void *key, Args&&... args)                          \
+	T* setCustomData(const void *key, Args&&... args)                    \
 	{                                                                    \
 		auto i = customData_.find(key);                                  \
 		if (i != customData_.end())                                      \

@@ -328,14 +328,11 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 	TRACE("onMessageBegin: '%s', '%s', HTTP/%d.%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 
 	request_->method = method;
-	request_->unparsedUri = uri;
 
-	std::size_t n = request_->unparsedUri.find('?');
-	if (n != std::string::npos) {
-		request_->path = urldecode(request_->unparsedUri.ref(0, n));
-		request_->query = request_->unparsedUri.ref(n + 1);
-	} else {
-		request_->path = urldecode(request_->unparsedUri);
+	if (!request_->setUri(uri)) {
+		request_->status = HttpStatus::BadRequest;
+		request_->finish();
+		return true;
 	}
 
 	request_->httpVersionMajor = versionMajor;

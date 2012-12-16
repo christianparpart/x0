@@ -18,9 +18,9 @@
 #include <limits.h>                   // PATH_MAX
 
 #if !defined(NDEBUG)
-#	define TRACE(msg...) this->debug(msg)
+#	define TRACE(level, msg...) log(Severity::debug ## level, "http-request: " msg)
 #else
-#	define TRACE(msg...) do { } while (0)
+#	define TRACE(level, msg...) do { } while (0)
 #endif
 
 namespace x0 {
@@ -53,6 +53,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	inspectHandlers_(),
 
 	hostid_(),
+	directoryDepth_(0),
 	bodyCallback_(nullptr),
 	bodyCallbackData_(nullptr),
 	errorHandler_(nullptr)
@@ -67,7 +68,282 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 
 HttpRequest::~HttpRequest()
 {
-	TRACE("destructing");
+	TRACE(2, "destructing");
+}
+
+/**
+ * Sssigns unparsed URI to request and decodes it for path and query attributes.
+ *
+ * We also compute the directory depth for directory traversal detection.
+ *
+ * \see HttpRequest::path
+ * \see HttpRequest::query
+ * \see HttpRequest::testDirectoryTraversal()
+ */
+bool HttpRequest::setUri(const BufferRef& uri)
+{
+	unparsedUri = uri;
+
+	if (unparsedUri == "*") {
+		// XXX this is a special case, described in RFC 2616, section 5.1.2
+		path = "*";
+		return true;
+	}
+
+	enum class UriState {
+		Content,
+		Slash,
+		Dot,
+		DotDot,
+		QuoteStart,
+		QuoteChar2,
+		QueryStart,
+	};
+
+#if !defined(NDEBUG)
+	static const char* uriStateNames[] = {
+		"Content",
+		"Slash",
+		"Dot",
+		"DotDot",
+		"QuoteStart",
+		"QuoteChar2",
+		"QueryStart",
+	};
+#endif
+
+	const char* i = unparsedUri.begin();
+	const char* e = unparsedUri.end() + 1;
+
+	int depth = 0;
+	UriState state = UriState::Content;
+	UriState quotedState;
+	unsigned char decodedChar;
+	char ch = *i++;
+
+#if !defined(NDEBUG) // suppress uninitialized warning
+	quotedState = UriState::Content;
+	decodedChar = '\0';
+#endif
+
+	while (i != e) {
+		TRACE(1, "parse-uri: ch:%c, i:%c, state:%s, depth:%d", ch, *i, uriStateNames[(int) state], depth);
+
+		switch (state) {
+			case UriState::Content:
+				switch (ch) {
+					case '/':
+						state = UriState::Slash;
+						path << ch;
+						ch = *i++;
+						break;
+					case '%':
+						quotedState = state;
+						state = UriState::QuoteStart;
+						ch = *i++;
+						break;
+					case '?':
+						state = UriState::QueryStart;
+						ch = *i++;
+						break;
+					default:
+						path << ch;
+						ch = *i++;
+						break;
+				}
+				break;
+			case UriState::Slash:
+				switch (ch) {
+					case '/': // repeated slash "//"
+						path << ch;
+						ch = *i++;
+						break;
+					case '.': // "/."
+						state = UriState::Dot;
+						path << ch;
+						ch = *i++;
+						break;
+					case '%': // "/%"
+						quotedState = state;
+						state = UriState::QuoteStart;
+						ch = *i++;
+						break;
+					case '?': // "/?"
+						state = UriState::QueryStart;
+						ch = *i++;
+						++depth;
+						break;
+					default:
+						state = UriState::Content;
+						path << ch;
+						ch = *i++;
+						++depth;
+						break;
+				}
+				break;
+			case UriState::Dot:
+				switch (ch) {
+					case '/':
+						// "/./"
+						state = UriState::Slash;
+						path << ch;
+						ch = *i++;
+					case '.':
+						// "/.."
+						state = UriState::DotDot;
+						path << ch;
+						ch = *i++;
+						break;
+					case '%':
+						quotedState = state;
+						state = UriState::QuoteStart;
+						ch = *i++;
+						break;
+					case '?':
+						// "/.?"
+						state = UriState::QueryStart;
+						ch = *i++;
+						++depth;
+					default:
+						state = UriState::Content;
+						path << ch;
+						ch = *i++;
+						++depth;
+						break;
+				}
+				break;
+			case UriState::DotDot:
+				switch (ch) {
+					case '/':
+						path << ch;
+						ch = *i++;
+						--depth;
+
+						if (depth < 0) {
+							log(Severity::notice, "Directory traversal detected.");
+							return false;
+						}
+
+						state = UriState::Slash;
+						break;
+					case '%':
+						quotedState = state;
+						state = UriState::QuoteStart;
+						ch = *i++;
+						break;
+					default:
+						state = UriState::Content;
+						path << ch;
+						ch = *i++;
+						++depth;
+						break;
+				}
+				break;
+			case UriState::QuoteStart:
+				if (ch >= '0' && ch <= '9') {
+					state = UriState::QuoteChar2;
+					decodedChar = (ch - '0') << 4;
+					ch = *i++;
+					break;
+				}
+
+				// unsafe convert `ch` to lower-case character
+				ch |= 0x20;
+
+				if (ch >= 'a' && ch <= 'f') {
+					state = UriState::QuoteChar2;
+					decodedChar = (ch - ('a' + 10)) << 4;
+					ch = *i++;
+					break;
+				}
+
+				log(Severity::debug, "Failed decoding Request-URI.");
+				return false;
+			case UriState::QuoteChar2:
+				if (ch >= '0' && ch <= '9') {
+					ch = decodedChar | (ch - '0');
+					log(Severity::debug, "parse-uri: decoded character 0x%02x", ch & 0xFF);
+
+					switch (ch) {
+						case '\0':
+							log(Severity::notice, "Client attempted to inject ASCII-0 into Request-URI.");
+							return false;
+						case '%':
+							state = UriState::Content;
+							path << ch;
+							ch = *i++;
+							break;
+						default:
+							state = quotedState;
+							break;
+					}
+					break;
+				}
+
+				// unsafe convert `ch` to lower-case character
+				ch |= 0x20;
+
+				if (ch >= 'a' && ch <= 'f') {
+					// XXX mathematically, a - b = -(b - a), because:
+					//   a - b = a + (-b) = 1*a + (-1*b) = (-1*-a) + (-1*b) = -1 * (-a + b) = -1 * (b - a) = -(b - a)
+					// so a subtract 10 from a even though you wanted to intentionally to add them, because it's 'a'..'f'
+					// This should be better for the compiler than: `decodedChar + 'a' - 10` as in the latter case it
+					// is not garranteed that the compiler pre-calculates the constants.
+					//
+					// XXX we OR' the values together as we know that their bitfields do not intersect.
+					//
+					ch = decodedChar | (ch - ('a' - 10));
+
+					log(Severity::debug, "parse-uri: decoded character 0x%02x", ch & 0xFF);
+
+					switch (ch) {
+						case '\0':
+							log(Severity::notice, "Client attempted to inject ASCII-0 into Request-URI.");
+							return false;
+						case '%':
+							state = UriState::Content;
+							path << ch;
+							ch = *i++;
+							break;
+						default:
+							state = quotedState;
+							break;
+					}
+
+					break;
+				}
+
+				log(Severity::notice, "Failed decoding Request-URI.");
+				return false;
+			case UriState::QueryStart:
+				if (ch == '?') {
+					// skip repeative "?"'s
+					ch = *i++;
+					break;
+				}
+
+				// XXX (i - 1) because i points to the next byte already
+				query = BufferRef(i - 1, e - i);
+				goto done;
+			default:
+				log(Severity::debug, "Internal error. Unhandled state");
+				return false;
+		}
+	}
+
+	switch (state) {
+		case UriState::QuoteStart:
+		case UriState::QuoteChar2:
+			log(Severity::notice, "Failed decoding Request-URI.");
+			return false;
+		default:
+			break;
+	}
+
+done:
+	TRACE(1, "parse-uri: success. path:%s, query:%s, depth:%d, state:%s", path.c_str(), query.str().c_str(), depth, uriStateNames[(int) state]);
+	directoryDepth_ = depth;
+	return true;
 }
 
 /**
@@ -166,10 +442,10 @@ void HttpRequest::setBodyCallback(void (*callback)(const BufferRef&, void*), voi
 void HttpRequest::onRequestContent(const BufferRef& chunk)
 {
 	if (bodyCallback_) {
-		TRACE("onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
+		TRACE(2, "onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
 		bodyCallback_(chunk, bodyCallbackData_);
 	} else {
-		TRACE("onRequestContent(chunkSize=%ld) discard", chunk.size());
+		TRACE(2, "onRequestContent(chunkSize=%ld) discard", chunk.size());
 	}
 }
 
@@ -267,7 +543,7 @@ Source* HttpRequest::serialize()
 
 	connection.setShouldKeepAlive(keepalive);
 
-	if (!connection.worker().server().tcpCork())
+	if (connection.worker().server().tcpCork())
 		connection.socket()->setTcpCork(true);
 
 	if (supportsProtocol(1, 1))
@@ -386,7 +662,7 @@ std::string HttpRequest::statusStr(HttpStatus value)
  */
 void HttpRequest::finish()
 {
-	TRACE("finish(outputState=%s)", outputStateStr(outputState_));
+	TRACE(2, "finish(outputState=%s)", outputStateStr(outputState_));
 
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);
@@ -403,7 +679,7 @@ void HttpRequest::finish()
 				status = HttpStatus::NotFound;
 
 			if (errorHandler_) {
-				TRACE("running custom error handler");
+				TRACE(2, "running custom error handler");
 				// reset the handler right away to avoid endless nesting
 				auto handler = errorHandler_;
 				errorHandler_ = nullptr;
@@ -414,7 +690,7 @@ void HttpRequest::finish()
 				// the handler did not produce any response, so default to the
 				// buildin-output
 			}
-			TRACE("streaming default error content");
+			TRACE(2, "streaming default error content");
 
 			if (isResponseContentForbidden()) {
 				connection.write(serialize());
@@ -461,15 +737,15 @@ void HttpRequest::finish()
  */
 void HttpRequest::finalize()
 {
-	TRACE("finalize()");
+	TRACE(2, "finalize()");
 	connection.worker().server().onRequestDone(this);
 	clearCustomData();
 
 	if (isAborted() || !connection.shouldKeepAlive()) {
-		TRACE("finalize: closing");
+		TRACE(2, "finalize: closing");
 		connection.close();
 	} else {
-		TRACE("finalize: resuming");
+		TRACE(2, "finalize: resuming");
 		clear();
 		connection.resume();
 	}
@@ -517,14 +793,7 @@ void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
  */
 bool HttpRequest::testDirectoryTraversal()
 {
-	char rpath[PATH_MAX];
-	char* rp = realpath(fileinfo->path().c_str(), rpath);
-	if (!rp)
-		// could not resolv path (see errno)
-		return false;
-
-	if (strncmp(rp, documentRoot.c_str(), documentRoot.size()) == 0)
-		// no directory traversal detected
+	if (directoryDepth_ >= 0)
 		return false;
 
 	log(Severity::warn, "directory traversal detected: %s", fileinfo->path().c_str());

@@ -31,7 +31,7 @@ public:
 	static std::atomic<uint16_t> nextID_;
 
 public:
-	FastCgiBackend(Director* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity);
+	FastCgiBackend(BackendManager* manager, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
 	~FastCgiBackend();
 
 	void setup(const x0::SocketSpec& spec);

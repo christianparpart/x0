@@ -15,6 +15,7 @@
 #include <x0/DateTime.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
+#include <x0/sysconfig.h>
 
 #include <ev++.h>
 #include <sd-daemon.h>
@@ -25,6 +26,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <cstdio>
 #include <cstdarg>
 #include <getopt.h>
@@ -36,6 +38,10 @@
 
 #include <execinfo.h> // backtrace(), backtrace_symbols_fd()
 #include <ucontext.h> // ucontext
+
+#if defined(WITH_TCP_DEFER_ACCEPT)
+#	include <netinet/tcp.h>
+#endif
 
 #if !defined(NDEBUG)
 #	define X0D_DEBUG(msg...) XzeroHttpDaemon::log(x0::Severity::debug, msg)
@@ -434,6 +440,7 @@ bool XzeroHttpDaemon::parse()
 		{ "copyright", no_argument, nullptr, 'y' },
 		{ "config", required_argument, nullptr, 'f' },
 		{ "optimization-level", required_argument, &optimizationLevel_, 'O' },
+		{ "info", no_argument, nullptr, 'V' },
 		{ "help", no_argument, nullptr, 'h' },
 		//.
 		{ 0, 0, 0, 0 }
@@ -448,7 +455,7 @@ bool XzeroHttpDaemon::parse()
 
 	for (;;) {
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:l:L:i:hXG", long_options, &long_index)) {
+		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:l:L:i:hXGV", long_options, &long_index)) {
 			case 'S':
 				showGreeter_ = true;
 				break;
@@ -509,8 +516,45 @@ bool XzeroHttpDaemon::parse()
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
 					<< "     --splash               print splash greeter to terminal on startup" << std::endl
+					<< "  -V,--info                 print software version and compile-time enabled core features" << std::endl
 					<< std::endl;
 				return false;
+			case 'V': {
+				std::vector<std::string> features;
+
+#if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
+				features.push_back("+TCP_DEFER_ACCEPT");
+#else
+				features.push_back("-TCP_DEFER_ACCEPT");
+#endif
+
+#if defined(HAVE_ACCEPT4) && defined(WITH_ACCEPT4)
+				features.push_back("+ACCEPT4");
+#else
+				features.push_back("-ACCEPT4");
+#endif
+
+				// TODO compile-time check for splice() and provide fallback.
+				features.push_back("+SPLICE");
+
+#if defined(HAVE_SYS_INOTIFY_H)
+				features.push_back("+INOTIFY");
+#else
+				features.push_back("-INOTIFY");
+#endif
+
+				std::cout
+					<< package_header << std::endl
+					<< package_copyright << std::endl;
+
+				std::cout << "Features:";
+				for (size_t i = 0, e = features.size(); i != e; ++i) {
+					std::cout << ' ' << features[i];
+				}
+				std::cout << std::endl;
+
+				return false;
+			}
 			case 'X':
 				nofork_ = true;
 				break;

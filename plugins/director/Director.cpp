@@ -19,13 +19,44 @@
 #include <x0/Url.h>
 #include <fstream>
 
-#if !defined(NDEBUG)
-#	define TRACE(msg...) (this->Logging::debug(msg))
+#if 1 // !defined(NDEBUG)
+//#	define TRACE(msg...) DEBUG("director: " msg)
+#	define TRACE(msg...) { \
+		char buf[4096]; \
+		int n = snprintf(buf, sizeof(buf), "director[%d]: ", x0::HttpWorker::currentId()); \
+		snprintf(buf + n, sizeof(buf) - n, msg); \
+		DEBUG("%s", buf); \
+	}
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
 
 using namespace x0;
+
+struct BackendData : public CustomData
+{
+	BackendRole role;
+
+	BackendData() :
+		role()
+	{
+	}
+
+	virtual ~BackendData()
+	{
+	}
+};
+
+static inline const std::string& role2str(BackendRole role)
+{
+	static std::string map[] = {
+		"active",
+		"standby",
+		"backup",
+		"terminate",
+	};
+	return map[static_cast<size_t>(role)];
+}
 
 /**
  * Initializes a director object (load balancer instance).
@@ -70,12 +101,58 @@ Director::~Director()
 	delete scheduler_;
 }
 
+void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor)
+{
+	worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
+		name().c_str(), backend->name_.c_str(), healthMonitor->state_str().c_str());
+
+	if (healthMonitor->isOnline()) {
+		if (!stickyOfflineMode()) {
+			// try delivering a queued request
+			scheduler()->dequeueTo(backend);
+		} else {
+			// disable backend due to sticky-offline mode
+			worker_->log(Severity::info, "Director '%s': backend '%s' disabled due to sticky offline mode.",
+				name().c_str(), backend->name().c_str());
+			backend->setEnabled(false);
+		}
+	}
+}
+
 /** The currently associated backend has rejected processing the given request,
  *  so put it back to the cluster try rescheduling it to another backend.
  */
 void Director::reject(x0::HttpRequest* r)
 {
 	scheduler_->schedule(r);
+}
+
+/**
+ * Notifies the director, that the given backend has just completed processing a request.
+ *
+ * \param backend the backend that just completed a request, and thus, is able to potentially handle one more.
+ *
+ * This method is to be invoked by backends, that
+ * just completed serving a request, and thus, invoked
+ * finish() on it, so it could potentially process
+ * the next one, if, and only if, we have
+ * already queued pending requests.
+ *
+ * Otherwise this call will do nothing.
+ *
+ * \see Backend::release()
+ */
+void Director::release(Backend* backend)
+{
+	scheduler_->release();
+
+	if (backendRole(backend) != BackendRole::Terminate) {
+		scheduler_->dequeueTo(backend);
+	} else if (backend->load().current() == 0) {
+		backend->healthMonitor()->stop();
+		delete backend;
+		save();
+	}
 }
 
 /**
@@ -119,19 +196,40 @@ RequestNotes* Director::requestNotes(HttpRequest* r)
 
 Backend* Director::createBackend(const std::string& name, const Url& url)
 {
+	SocketSpec spec = SocketSpec::fromInet(IPAddress(url.hostname()), url.port());
 	int capacity = 1;
-	Backend* backend;
+	BackendRole role = BackendRole::Active;
 
-	if (url.protocol() == "http")
-		backend = new HttpBackend(this, name,
-			SocketSpec::fromInet(IPAddress(url.hostname()), url.port()), capacity);
-	else if (url.protocol() == "fcgi" || url.protocol() == "fastcgi")
-		backend = new FastCgiBackend(this, name,
-			SocketSpec::fromInet(IPAddress(url.hostname()), url.port()), capacity);
-	else
+	return createBackend(name, url.protocol(), spec, capacity, role);
+}
+
+Backend* Director::createBackend(const std::string& name, const std::string& protocol, const x0::SocketSpec& socketSpec, size_t capacity, BackendRole role)
+{
+	if (findBackend(name))
 		return nullptr;
 
-	link(backend);
+	Backend* backend;
+
+	if (protocol == "fastcgi") {
+		backend = new FastCgiBackend(this, name, socketSpec, capacity, true);
+	} else if (protocol == "http") {
+		backend = new HttpBackend(this, name, socketSpec, capacity, true);
+	} else {
+		return nullptr;
+	}
+
+	BackendData* bd = backend->setCustomData<BackendData>(this);
+	bd->role = role;
+
+	link(backend, role);
+
+	backend->healthMonitor()->setStateChangeCallback([this, backend](HealthMonitor*) {
+		onBackendStateChanged(backend, backend->healthMonitor());
+	});
+
+	backend->setJsonWriteCallback([role](const Backend*, JsonWriter& json) {
+		json.name("role")(role2str(role));
+	});
 
 	// wake up the worker's event loop here, so he knows in time about the health check timer we just installed.
 	// TODO we should not need this...
@@ -140,26 +238,32 @@ Backend* Director::createBackend(const std::string& name, const Url& url)
 	return backend;
 }
 
-void Director::destroyBackend(Backend* backend)
+void Director::terminateBackend(Backend* backend)
 {
-	unlink(backend);
-	save();
-	delete backend;
+	setBackendRole(backend, BackendRole::Terminate);
 }
 
-void Director::link(Backend* backend)
+void Director::link(Backend* backend, BackendRole role)
 {
-	backends_[static_cast<size_t>(backend->role_)].push_back(backend);
+	BackendData* data = backend->customData<BackendData>(this);
+	data->role = role;
+
+	backends_[static_cast<size_t>(role)].push_back(backend);
 }
 
 void Director::unlink(Backend* backend)
 {
-	auto& br = backends_[static_cast<size_t>(backend->role_)];
+	auto& br = backends_[static_cast<size_t>(backendRole(backend))];
 	auto i = std::find(br.begin(), br.end(), backend);
 
 	if (i != br.end()) {
 		br.erase(i);
 	}
+}
+
+BackendRole Director::backendRole(const Backend* backend) const
+{
+	return backend->customData<BackendData>(this)->role;
 }
 
 Backend* Director::findBackend(const std::string& name)
@@ -170,6 +274,28 @@ Backend* Director::findBackend(const std::string& name)
 				return b;
 
 	return nullptr;
+}
+
+void Director::setBackendRole(Backend* backend, BackendRole role)
+{
+	BackendRole currentRole = backendRole(backend);
+	worker_->log(Severity::debug, "setBackendRole(%d) (from %d)", role, currentRole);
+
+	if (role != currentRole) {
+		if (role == BackendRole::Terminate) {
+			unlink(backend);
+
+			if (backend->load().current()) {
+				link(backend, role);
+			} else {
+				delete backend;
+				save();
+			}
+		} else {
+			unlink(backend);
+			link(backend, role);
+		}
+	}
 }
 
 void Director::writeJSON(JsonWriter& json) const
@@ -316,13 +442,13 @@ bool Director::load(const std::string& path)
 			return false;
 		}
 
-		Backend::Role role = Backend::Role::Terminate; // aka. Undefined
+		BackendRole role = BackendRole::Terminate; // aka. Undefined
 		if (roleStr == "active")
-			role = Backend::Role::Active;
+			role = BackendRole::Active;
 		else if (roleStr == "standby")
-			role = Backend::Role::Standby;
+			role = BackendRole::Standby;
 		else if (roleStr == "backup")
-			role = Backend::Role::Backup;
+			role = BackendRole::Backup;
 		else {
 			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'role' for backend '%s' contains invalid data '%s'.", path.c_str(), key.c_str(), roleStr.c_str());
 			return false;
@@ -407,20 +533,13 @@ bool Director::load(const std::string& path)
 		}
 
 		// spawn backend (by protocol)
-		Backend* backend = nullptr;
-		if (protocol == "fastcgi") {
-			backend = new FastCgiBackend(this, name, socketSpec, capacity);
-		} else if (protocol == "http") {
-			backend = new HttpBackend(this, name, socketSpec, capacity);
-		} else {
+		Backend* backend = createBackend(name, protocol, socketSpec, capacity, role);
+		if (!backend) {
 			worker()->log(Severity::error, "director: Invalid protocol '%s' for backend '%s' in configuration file '%s'.", protocol.c_str(), name.c_str(), path.c_str());
+			return false;
 		}
 
-		if (!backend)
-			return false;
-
 		backend->setEnabled(enabled);
-		backend->setRole(role);
 		backend->healthMonitor()->setMode(hcMode);
 		backend->healthMonitor()->setInterval(hcInterval);
 	}
@@ -462,7 +581,7 @@ bool Director::save()
 	for (auto& br: backends_) {
 		for (auto b: br) {
 			out << "[backend=" << b->name() << "]\n"
-				<< "role=" << b->role_str() << "\n"
+				<< "role=" << role2str(backendRole(b)) << "\n"
 				<< "capacity=" << b->capacity() << "\n"
 				<< "enabled=" << (b->isEnabled() ? "true" : "false") << "\n"
 				<< "transport=" << (b->socketSpec().isLocal() ? "local" : "tcp") << "\n"

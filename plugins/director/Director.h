@@ -10,6 +10,7 @@
 
 #include "Backend.h"
 #include "BackendManager.h"
+#include "Scheduler.h"
 
 #include <x0/Counter.h>
 #include <x0/Logging.h>
@@ -26,6 +27,13 @@ using namespace x0;
 
 class Scheduler;
 class RequestNotes;
+
+enum class BackendRole {
+	Active,
+	Standby,
+	Backup,
+	Terminate,
+};
 
 /*!
  * \brief Load balancing HTTP request proxy.
@@ -47,22 +55,16 @@ private:
 	std::string healthCheckRequestPath_;
 	std::string healthCheckFcgiScriptFilename_;
 
-	bool stickyOfflineMode_;
+	bool stickyOfflineMode_;    //!< whether a backend should be marked disabled if it becomes online again
 
-	// set of backends managed by this director.
-	std::vector<std::vector<Backend*>> backends_;
+	std::vector<std::vector<Backend*>> backends_; //!< set of backends managed by this director.
 
-	size_t queueLimit_;
-	TimeSpan queueTimeout_;
-
-	TimeSpan retryAfter_;
-
-	//! number of attempts to pass request to a backend before giving up
-	size_t maxRetryCount_;
-
-	std::string storagePath_;
-
-	Scheduler* scheduler_;
+	size_t queueLimit_;         //!< how many requests to queue in total.
+	TimeSpan queueTimeout_;		//!< how long a request may be queued.
+	TimeSpan retryAfter_;       //!< time a client should wait before retrying a failed request.
+	size_t maxRetryCount_;      //!< number of attempts to pass request to a backend before giving up
+	std::string storagePath_;   //!< path to the local directory this director is serialized from/to.
+	Scheduler* scheduler_;      //!< request scheduler
 
 	std::list<std::function<void()>>::iterator stopHandle_;
 
@@ -70,7 +72,9 @@ public:
 	Director(HttpWorker* worker, const std::string& name);
 	~Director();
 
+	void schedule(x0::HttpRequest* r);
 	virtual void reject(x0::HttpRequest* r);
+	virtual void release(Backend* backend);
 
 	bool isMutable() const { return mutable_; }
 	void setMutable(bool value) { mutable_ = value; }
@@ -107,14 +111,10 @@ public:
 	RequestNotes* requestNotes(x0::HttpRequest* r);
 
 	Backend* createBackend(const std::string& name, const Url& url);
-	void destroyBackend(Backend* backend);
+	Backend* createBackend(const std::string& name, const std::string& protocol, const x0::SocketSpec& spec, size_t capacity, BackendRole role);
+	void terminateBackend(Backend* backend);
 
 	Backend* findBackend(const std::string& name);
-
-	void writeJSON(x0::JsonWriter& output) const;
-
-	bool load(const std::string& path);
-	bool save();
 
 	template<typename T>
 	inline void eachBackend(T callback)
@@ -126,17 +126,22 @@ public:
 		}
 	}
 
-	template<typename T> inline void post(T function) { worker()->post(function); }
+	const std::vector<Backend*>& backendsWith(BackendRole role) const;
 
-	const std::vector<Backend*>& backendsWith(Backend::Role role) const;
+	void writeJSON(x0::JsonWriter& output) const;
+
+	bool load(const std::string& path);
+	bool save();
+
+	BackendRole backendRole(const Backend* backend) const;
+	void setBackendRole(Backend* backend, BackendRole role);
 
 private:
-	void link(Backend* backend);
+	void onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor);
+	void link(Backend* backend, BackendRole role);
 	void unlink(Backend* backend);
 
 	void onStop();
-
-	friend class Backend;
 };
 
 namespace x0 {
@@ -144,7 +149,12 @@ namespace x0 {
 }
 
 // {{{ inlines
-inline const std::vector<Backend*>& Director::backendsWith(Backend::Role role) const
+inline void Director::schedule(x0::HttpRequest* r)
+{
+	scheduler_->schedule(r);
+}
+
+inline const std::vector<Backend*>& Director::backendsWith(BackendRole role) const
 {
 	return backends_[static_cast<size_t>(role)];
 }
