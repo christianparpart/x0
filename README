@@ -64,25 +64,23 @@ HOW TO BUILD:
 -----------------------------------------------------------------------------
 
 # Install git and clone repository
-apt-get install git && git clone git://github.com/trapni/x0.git
+apt-get install git
+git clone git://github.com/trapni/x0.git && cd x0
 
 # Installs required dependencies
 sudo apt-get install make cmake gcc libcppunit-dev libgnutls28-dev libgcrypt11-dev \
     libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config \
-    libpcre3-dev libfcgi-dev libev-dev g++
-
-# For Ubuntu 12.04 LTS, patch CMakeLists.txt
-sed -i -e 's/\(LLVM_SUPPORTED_VERSION \)"3.1"/\1"3.0"/' CMakeLists.txt
+    libpcre3-dev libfcgi-dev libev-dev g++ libmagickwand-dev
 
 # Now run cmake to bootstrap build
 cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=/opt/x0 \
-    -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0 \
+    -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0
 
 # Ensure installation target prefix
-sudo mkdir /opt/x0 && sudo chown ${USER} /opt/x0
+mkdir $HOME/local
 
 # Now compiling should just work.
-sudo make && sudo make install
+make && make install
 
 # Run web server on port 8080
 `pwd`/src/x0d --instant=`pwd`/www/htdocs,8080
