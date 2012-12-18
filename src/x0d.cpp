@@ -190,6 +190,7 @@ private:
 	std::string user_;
 	std::string group_;
 
+	std::string logTarget_;
 	std::string logFile_;
 	Severity logLevel_;
 
@@ -226,6 +227,7 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	pidfile_(),
 	user_(),
 	group_(),
+	logTarget_("file"),
 	logFile_(pathcat(LOGDIR, "x0d.log")),
 	logLevel_(Severity::info),
 	instant_(),
@@ -351,19 +353,28 @@ int XzeroHttpDaemon::run()
 		nofork_ = true;
 		server_->setLogger(std::make_shared<x0::SystemdLogger>());
 	} else {
-		if (!logFile_.empty()) {
-			auto logger = std::make_shared<x0::FileLogger>(logFile_, [this]() {
-				return static_cast<time_t>(ev_now(server_->loop()));
-			});
-			if (logger->handle() < 0) {
-				fprintf(stderr, "Could not open log file '%s': %s\n",
-						logFile_.c_str(), strerror(errno));
-				return 1;
-			}
+		if (logTarget_ == "file") {
+			if (!logFile_.empty()) {
+				auto logger = std::make_shared<x0::FileLogger>(logFile_, [this]() {
+					return static_cast<time_t>(ev_now(server_->loop()));
+				});
+				if (logger->handle() < 0) {
+					fprintf(stderr, "Could not open log file '%s': %s\n",
+							logFile_.c_str(), strerror(errno));
+					return 1;
+				}
 
-			server_->setLogger(logger);
-		} else
+				server_->setLogger(logger);
+			} else {
+				server_->setLogger(std::make_shared<x0::SystemLogger>());
+			}
+		} else if (logTarget_ == "console") {
+			server_->setLogger(std::make_shared<x0::ConsoleLogger>());
+		} else if (logTarget_ == "syslog") {
 			server_->setLogger(std::make_shared<x0::SystemLogger>());
+		} else if (logTarget_ == "systemd") {
+			server_->setLogger(std::make_shared<x0::SystemdLogger>());
+		}
 	}
 
 	server_->logger()->setLevel(logLevel_);
@@ -430,6 +441,7 @@ bool XzeroHttpDaemon::parse()
 		{ "pid-file", required_argument, nullptr, 'p' },
 		{ "user", required_argument, nullptr, 'u' },
 		{ "group", required_argument, nullptr, 'g' },
+		{ "log-target", required_argument, nullptr, 'o' },
 		{ "log-file", required_argument, nullptr, 'l' },
 		{ "log-level", required_argument, nullptr, 'L' },
 		{ "instant", required_argument, nullptr, 'i' },
@@ -455,7 +467,7 @@ bool XzeroHttpDaemon::parse()
 
 	for (;;) {
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:l:L:i:hXGV", long_options, &long_index)) {
+		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:L:i:hXGV", long_options, &long_index)) {
 			case 'S':
 				showGreeter_ = true;
 				break;
@@ -473,6 +485,14 @@ bool XzeroHttpDaemon::parse()
 				break;
 			case 'u':
 				user_ = optarg;
+				break;
+			case 'o':
+				logTarget_ = optarg;
+
+				if (logTarget_ != "file" && logTarget_ != "console" && logTarget_ != "syslog" && logTarget_ != "systemd") {
+					fprintf(stderr, "Invalid log target passed.\n");
+					return false;
+				}
 				break;
 			case 'l':
 				logFile_ = optarg;
@@ -509,6 +529,7 @@ bool XzeroHttpDaemon::parse()
 					<< "  -p,--pid-file=PATH        PID file to create" << std::endl
 					<< "  -u,--user=NAME            user to drop privileges to" << std::endl
 					<< "  -g,--group=NAME           group to drop privileges to" << std::endl
+					<< "  -o,--log-target=TARGET    log target, one of: file, console, syslog, systemd [file]" << std::endl
 					<< "  -l,--log-file=PATH        path to log file (ignored when in systemd-mode)" << std::endl
 					<< "  -L,--log-level=VALUE      log level, a value between 0 and 9 (default " << static_cast<int>(logLevel_) << ")" << std::endl
 					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl

@@ -8,6 +8,7 @@
 
 #include <x0/Logger.h>
 #include <x0/DateTime.h>
+#include <x0/AnsiColor.h>
 #include <x0/strutils.h>
 #include <cstring>
 #include <sd-daemon.h>
@@ -215,23 +216,44 @@ inline FileLogger *FileLogger::clone() const
 }
 // }}}
 
-#if 0
-// ConsoleLogger
+ConsoleLogger::ConsoleLogger()
+{
+}
 
-		static AnsiColor::Type colors[] = {
-			AnsiColor::Red | AnsiColor::Bold, // error
-			AnsiColor::Yellow | AnsiColor::Bold, // warn
-			AnsiColor::Green | AnsiColor::Bold, // notice
-			AnsiColor::Green, // info
-			static_cast<AnsiColor::Type>(0),
-			AnsiColor::Cyan, // debug
-		};
+void ConsoleLogger::cycle()
+{
+}
 
-		Buffer buf;
-		buf << AnsiColor::make(colors[msg.severity() + 3]);
-		buf << msg;
-		buf << AnsiColor::make(AnsiColor::Clear);
+void ConsoleLogger::write(LogMessage& msg)
+{
+	static AnsiColor::Type colors[] = {
+		AnsiColor::Red | AnsiColor::Bold, // error
+		AnsiColor::Yellow | AnsiColor::Bold, // warn
+		AnsiColor::Green | AnsiColor::Bold, // notice
+		AnsiColor::Cyan, // info
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+	};
 
-#endif
+	DateTime ts;
+
+	Buffer buf;
+	buf << AnsiColor::make(colors[msg.severity()]);
+	buf << "[" << ts.htlog_str() << "] [" << msg.severity().c_str() << "] ";
+	buf << msg;
+	buf << AnsiColor::make(AnsiColor::Clear);
+	buf << "\n";
+
+	(void) ::write(STDOUT_FILENO, buf.data(), buf.size());
+}
+
+ConsoleLogger* ConsoleLogger::clone() const
+{
+	return new ConsoleLogger();
+}
 
 } // namespace x0

@@ -119,6 +119,17 @@ private:
 	std::function<time_t()> now_;
 };
 
+class X0_API ConsoleLogger :
+	public Logger
+{
+public:
+	ConsoleLogger();
+
+	virtual void cycle();
+	virtual void write(LogMessage& message);
+	virtual ConsoleLogger* clone() const;
+};
+
 /** implements a file based logger.
  *
  * \see logger, server
