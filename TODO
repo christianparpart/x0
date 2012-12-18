@@ -1,22 +1,10 @@
 for a long-term todo list, see ticket system at https://github.com/trapni/x0/issues/
 
-- merge of director/fastcgi/proxy plugins
-  - Flow API:
-  - director.fcgi 'address' => 127.0.0.1, 'port' => 9000
-  - director.http 'address' => 127.0.0.1, 'port' => 9000
-  - introduce BackendManager as common base class for the more precise ones:
-    - OnewayProxy: simple proxy to manage only one backend w/o health checks etc.
-    - Director: fully featured reverse proxying load balancer
-
-- DONE: upstart initscript
-- DONE: source package
-- DONE: x0d splash greeter (conditional, --splash)
 - website: new documentation-focusing  website
   - DONE: bring it online
   - write/migrate news(/blog) articles
   - functional download section
 - ssl:
-  - DONE: FIXME: setup_function ssl.priorities(string);
   - stability, should successfully work in:
     - threaded mode (ab2 stress test)
     - complex websites (phpbb2, wordpress, matelife, ialu)
@@ -25,7 +13,7 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
   - download section to provide 2 types of builds (aka. target environments / audience):
     - production - release packages with no experimental stuff in it
     - testing - packages containing potential new code to be merged into production
-- debian mirror behind: http://packages.xzero.io/ubuntu/{precise,quantal,raring}/
+- debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
   - create new gpg key-pair with primary email: cp@gmail.com (if available)
   - officially support: >= precise, quantal, raring
   - automate uploading to and updating the mirror per current distro
