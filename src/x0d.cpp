@@ -443,7 +443,7 @@ bool XzeroHttpDaemon::parse()
 		{ "group", required_argument, nullptr, 'g' },
 		{ "log-target", required_argument, nullptr, 'o' },
 		{ "log-file", required_argument, nullptr, 'l' },
-		{ "log-level", required_argument, nullptr, 'L' },
+		{ "log-severity", required_argument, nullptr, 's' },
 		{ "instant", required_argument, nullptr, 'i' },
 		{ "dump-ir", no_argument, &dumpIR_, 1 },
 		//.
@@ -467,7 +467,7 @@ bool XzeroHttpDaemon::parse()
 
 	for (;;) {
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:L:i:hXGV", long_options, &long_index)) {
+		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:s:i:hXGV", long_options, &long_index)) {
 			case 'S':
 				showGreeter_ = true;
 				break;
@@ -497,8 +497,11 @@ bool XzeroHttpDaemon::parse()
 			case 'l':
 				logFile_ = optarg;
 				break;
-			case 'L':
-				logLevel_ = Severity(optarg);
+			case 's':
+				if (!logLevel_.set(optarg)) {
+					fprintf(stderr, "Invalid --log-severity value passed.\n");
+					return false;
+				}
 				break;
 			case 'i':
 				instant_ = optarg;
@@ -530,8 +533,8 @@ bool XzeroHttpDaemon::parse()
 					<< "  -u,--user=NAME            user to drop privileges to" << std::endl
 					<< "  -g,--group=NAME           group to drop privileges to" << std::endl
 					<< "  -o,--log-target=TARGET    log target, one of: file, console, syslog, systemd [file]" << std::endl
-					<< "  -l,--log-file=PATH        path to log file (ignored when in systemd-mode)" << std::endl
-					<< "  -L,--log-level=VALUE      log level, a value between 0 and 9 (default " << static_cast<int>(logLevel_) << ")" << std::endl
+					<< "  -l,--log-file=PATH        path to log file (ignored when log-target is not file)" << std::endl
+					<< "  -s,--log-severity=VALUE   log severity level, one of: error, warning, notice, info, debug, debug1..6 [" << logLevel_.c_str() << "]" << std::endl
 					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
 					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode" << std::endl
 					<< "  -v,--version              print software version" << std::endl
@@ -878,7 +881,7 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 		args.push_back(logFile_.c_str());
 	}
 
-	args.push_back("--log-level");
+	args.push_back("--log-severity");
 	char logLevel[16];
 	snprintf(logLevel, sizeof(logLevel), "%d", static_cast<int>(logLevel_));
 	args.push_back(logLevel);
@@ -1065,31 +1068,6 @@ int main(int argc, char *argv[])
 {
 	installCrashHandler();
 
-#if !defined(NDEBUG)
-	if (argc == 1) {
-		const char* args[] = {
-			argv[0],
-			"--no-fork",
-			"--pid-file", "test.pid",
-			"--log-file", "/dev/stdout",
-			"--log-level", "9",
-			"--instant=.,8080",
-			nullptr
-		};
-//		const char* args[] = {
-//			argv[0],
-//			"--no-fork",
-//			"-f", "src/test.conf",
-//			"--pid-file", "test.pid",
-//			"--log-file", "/dev/stdout",
-//			"--log-level", "9",
-//			nullptr
-//		};
-//		const char* args[] = { argv[0], "--systemd", "-c", "../../src/test.conf", nullptr };
-		argv = (char **) args;
-		argc = sizeof(args) / sizeof(*args) - 1;
-	}
-#endif
 	XzeroHttpDaemon daemon(argc, argv);
 	return daemon.run();
 }

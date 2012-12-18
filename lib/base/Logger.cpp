@@ -70,16 +70,21 @@ void SystemLogger::cycle()
 
 void SystemLogger::write(LogMessage& message)
 {
-	if (message.severity() <= level()) {
+	if (message.severity() >= level()) {
 		static int tr[] = {
+			LOG_DEBUG, // debug6 .. debug1
+			LOG_DEBUG,
+			LOG_DEBUG,
+			LOG_DEBUG,
+			LOG_DEBUG,
 			LOG_DEBUG,
 			LOG_INFO,
 			LOG_NOTICE,
 			LOG_WARNING,
 			LOG_ERR,
-			LOG_CRIT,
-			LOG_ALERT,
-			LOG_EMERG
+//			LOG_CRIT,
+//			LOG_ALERT,
+//			LOG_EMERG
 		};
 
 		Buffer buf;
@@ -112,19 +117,19 @@ void SystemdLogger::cycle()
 void SystemdLogger::write(LogMessage& message)
 {
 	static const char *sd[] = {
-		SD_ERR,
-		SD_WARNING,
-		SD_NOTICE,
+		SD_DEBUG,
+		SD_DEBUG,
+		SD_DEBUG,
+		SD_DEBUG,
+		SD_DEBUG,
+		SD_DEBUG,
 		SD_INFO,
-		SD_DEBUG,
-		SD_DEBUG,
-		SD_DEBUG,
-		SD_DEBUG,
-		SD_DEBUG,
-		SD_DEBUG
+		SD_NOTICE,
+		SD_WARNING,
+		SD_ERR,
 	};
 
-	if (message.severity() <= level()) {
+	if (message.severity() >= level()) {
 		Buffer buf;
 		buf << message;
 
@@ -195,7 +200,7 @@ void FileLogger::cycle()
 
 inline void FileLogger::write(LogMessage& message)
 {
-	if (message.severity() <= level() && fd_ >= 0) {
+	if (message.severity() >= level() && fd_ >= 0) {
 		Buffer buf;
 		DateTime ts(now_());
 
@@ -216,6 +221,7 @@ inline FileLogger *FileLogger::clone() const
 }
 // }}}
 
+// {{{ ConsoleLogger
 ConsoleLogger::ConsoleLogger()
 {
 }
@@ -226,17 +232,20 @@ void ConsoleLogger::cycle()
 
 void ConsoleLogger::write(LogMessage& msg)
 {
+	if (msg.severity() < level())
+		return;
+
 	static AnsiColor::Type colors[] = {
-		AnsiColor::Red | AnsiColor::Bold, // error
-		AnsiColor::Yellow | AnsiColor::Bold, // warn
-		AnsiColor::Green | AnsiColor::Bold, // notice
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
+		AnsiColor::Clear, // debug
 		AnsiColor::Cyan, // info
-		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
+		AnsiColor::Green, // notice
+		AnsiColor::Yellow, // warn
+		AnsiColor::Red | AnsiColor::Bold, // error
 	};
 
 	DateTime ts;
@@ -255,5 +264,6 @@ ConsoleLogger* ConsoleLogger::clone() const
 {
 	return new ConsoleLogger();
 }
+// }}}
 
 } // namespace x0

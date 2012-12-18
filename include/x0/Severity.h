@@ -25,16 +25,16 @@ namespace x0 {
  */
 struct X0_API Severity {
 	enum {
-		error = 0,
-		warning = 1,
-		notice = 2,
-		info = 3,
-		debug1 = 4,
-		debug2 = 5,
-		debug3 = 6,
-		debug4 = 7,
-		debug5 = 8,
-		debug6 = 9,
+		debug1 = 0,
+		debug2 = 1,
+		debug3 = 2,
+		debug4 = 3,
+		debug5 = 4,
+		debug6 = 5,
+		info = 6,
+		notice = 7,
+		warning = 8,
+		error = 9,
 
 		warn = warning,
 		debug = debug1
@@ -53,6 +53,8 @@ struct X0_API Severity {
 	bool isDebug() const { return value_ >= debug; }
 
 	int debugLevel() const { return isDebug() ? 1 + value_ - debug1 : 0; }
+
+	bool set(const char* value);
 };
 
 //@}

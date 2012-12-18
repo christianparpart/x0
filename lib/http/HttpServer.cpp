@@ -505,13 +505,9 @@ void HttpServer::kill()
 
 void HttpServer::log(LogMessage&& msg)
 {
-	if (logLevel() < msg.severity())
-		return;
-
-	if (!logger_)
-		return;
-
-	logger_->write(msg);
+	if (logger_) {
+		logger_->write(msg);
+	}
 }
 
 /**
