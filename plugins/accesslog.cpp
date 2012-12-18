@@ -42,16 +42,18 @@ class AccesslogPlugin :
 	public x0::HttpPlugin
 {
 private:
-	std::unordered_map<std::string, int> logfiles_; // map of file's name-to-fd
+	typedef std::unordered_map<std::string, int> LogMap;
+
+	LogMap logfiles_; // map of file's name-to-fd
 
 	struct RequestLogger // {{{
 		: public x0::CustomData
 	{
-		int fd_;
+		LogMap::iterator log_;
 		x0::HttpRequest *in_;
 
-		RequestLogger(int fd, x0::HttpRequest *in) :
-			fd_(fd), in_(in)
+		RequestLogger(LogMap::iterator log, x0::HttpRequest *in) :
+			log_(log), in_(in)
 		{
 		}
 
@@ -69,11 +71,7 @@ private:
 			sstr << '"' << getheader(in_, "User-Agent") << '"';
 			sstr << '\n';
 
-			int rv = ::write(fd_, sstr.data(), sstr.size());
-
-			if (rv < 0) {
-				perror("accesslog.write");
-			}
+			(void) ::write(log_->second, sstr.data(), sstr.size());
 		}
 
 		inline std::string hostname(x0::HttpRequest *in)
@@ -116,6 +114,23 @@ public:
 		clear();
 	}
 
+	virtual void cycleLogs()
+	{
+		for (auto& i: logfiles_) {
+			int& fd = i.second;
+			if (fd < 0)
+				continue;
+
+			int newfd = ::open(i.first.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
+			if (newfd < 0)
+				continue;
+
+			int oldfd = fd;
+			fd = newfd;
+			::close(oldfd);
+		}
+	}
+
 	void clear()
 	{
 		for (auto& i: logfiles_)
@@ -131,13 +146,13 @@ private:
 		auto i = logfiles_.find(filename);
 		if (i != logfiles_.end()) {
 			if (i->second >= 0) {
-				in->setCustomData<RequestLogger>(this, i->second, in);
+				in->setCustomData<RequestLogger>(this, i, in);
 			}
 		} else {
 			int fd = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
 			if (fd >= 0) {
 				logfiles_[filename] = fd;
-				in->setCustomData<RequestLogger>(this, fd, in);
+				in->setCustomData<RequestLogger>(this, logfiles_.find(filename), in);
 			} else {
 				in->log(x0::Severity::error, "Could not open accesslog file (%s): %s",
 						filename.c_str(), strerror(errno));

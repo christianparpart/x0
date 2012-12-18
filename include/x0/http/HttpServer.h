@@ -75,6 +75,8 @@ public:
 	void setLogger(std::shared_ptr<Logger> logger);
 	Logger* logger() const;
 
+	void cycleLogs();
+
 	ev_tstamp startupTime() const { return startupTime_; }
 	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
 

@@ -822,7 +822,7 @@ bool XzeroHttpDaemon::createPidFile()
 void XzeroHttpDaemon::reopenLogsHandler(ev::sig&, int)
 {
 	server_->log(x0::Severity::info, "Reopening of all log files requested.");
-	/// \! todo implement reopening of all log-files
+	server_->cycleLogs();
 }
 
 /** starts new binary with (new) config - as child process, and gracefully shutdown self.

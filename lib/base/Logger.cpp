@@ -190,11 +190,11 @@ void FileLogger::cycle()
 #if !defined(O_CLOEXEC) && defined(FD_CLOEXEC)
 		fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD) | FD_CLOEXEC);
 #endif
-		if (fd_ != -1) {
-			::close(fd_);
-		}
+		std::swap(fd_, fd2);
 
-		fd_ = fd2;
+		if (fd2 != -1) {
+			::close(fd2);
+		}
 	}
 }
 

@@ -51,4 +51,10 @@ bool HttpPlugin::post_check()
 	return true;
 }
 
+/** hook, invoked on log-cycle event, especially <b>SIGUSR</b> signal.
+ */
+void HttpPlugin::cycleLogs()
+{
+}
+
 } // namespace x0

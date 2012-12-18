@@ -510,6 +510,14 @@ void HttpServer::log(LogMessage&& msg)
 	}
 }
 
+void HttpServer::cycleLogs()
+{
+	for (auto plugin: plugins_)
+		plugin->cycleLogs();
+
+	logger()->cycle();
+}
+
 /**
  * sets up a TCP/IP ServerSocket on given bind_address and port.
  *
