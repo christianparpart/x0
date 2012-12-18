@@ -13,12 +13,19 @@
 	* director: bug fixes
 	* director: JSON API also shows number of dropped requests per load balancer
 	* director: should now run properly in threaded mode.
+	* director: added director.fcgi() and director.http() handlers to
+	deprecate fastcgi and proxy plugins
 	* core-api: added Severity level "notice" (syslog-alike).
+	* core-api: Buffer now inherits from BufferRef.
+	* core-api: Socket API improvements
 	* status: added support for nginx-compatible status output, handler status.nginx_compat();
 	* config: rewrite() now returns boolean to indicate whether or not rewritten path physically exists or not.
 	* config: added systemd.booted() and systemd.controlled() to indicate systemd hypervisoring.
 	* package: addeda initial Debian/Ubuntu packaging control files
-	* x0d: --log-level= now accepts symbolic values and introduced "notice" between "warning" and "info"
+	* x0d: --log-level= renamed to --log-severity= with from 0 (lowest) to 9 (highest)
+	* x0d: --log-severity= also accepts symbolic values and introduced "notice" between "warning" and "info"
+	* x0d: added --log-target=file|console|syslog|systemd
+	* flow: added log.notice() and log.warn() functions
 	* flow: properly handle boolean values as boolean types (not just integer 0 and 1)
 	* flow: added support for integer modulo operation
 	* flow: added support for casting values of type int/bool/string to string.
@@ -27,7 +34,9 @@
 	* flow: added unless postscript statement.
 	* flow: added file.exists(), file.is_reg(), file.is_dir(), file.is_exe()
 	* flow: coding style cleanups and minor refactors
+	* flow: added unary +/- operators
 	* general: dropped dependency to boost framework.
+	* general: log-rotation support via SIGUSR1 implemented.
 
 0.5.0 (2012-08-12)
 
