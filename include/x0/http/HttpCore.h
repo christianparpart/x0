@@ -83,6 +83,8 @@ private:
 
 	// shared functions
 	void log_err(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void log_warn(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void log_notice(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void log_info(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void log_debug(HttpRequest* r, const FlowParams& args, FlowValue& result);
 

@@ -111,6 +111,8 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSharedProperty<HttpCore, &HttpCore::sys_now_str>("sys.now_str", FlowValue::STRING);
 
 	registerSharedFunction<HttpCore, &HttpCore::log_err>("log.err", FlowValue::VOID);
+	registerSharedFunction<HttpCore, &HttpCore::log_warn>("log.warn", FlowValue::VOID);
+	registerSharedFunction<HttpCore, &HttpCore::log_notice>("log.notice", FlowValue::VOID);
 	registerSharedFunction<HttpCore, &HttpCore::log_info>("log.info", FlowValue::VOID);
 	registerSharedFunction<HttpCore, &HttpCore::log_info>("log", FlowValue::VOID);
 	registerSharedFunction<HttpCore, &HttpCore::log_debug>("log.debug", FlowValue::VOID);
@@ -474,6 +476,22 @@ void HttpCore::log_err(HttpRequest* r, const FlowParams& args, FlowValue& /*resu
 		r->log(Severity::error, "%s", concat(args).c_str());
 	else
 		server().log(Severity::error, "%s", concat(args).c_str());
+}
+
+void HttpCore::log_warn(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+{
+	if (r)
+		r->log(Severity::info, "%s", concat(args).c_str());
+	else
+		server().log(Severity::warning, "%s", concat(args).c_str());
+}
+
+void HttpCore::log_notice(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+{
+	if (r)
+		r->log(Severity::info, "%s", concat(args).c_str());
+	else
+		server().log(Severity::notice, "%s", concat(args).c_str());
 }
 
 void HttpCore::log_info(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
