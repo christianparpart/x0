@@ -158,15 +158,11 @@ void HttpWorker::run()
 	}
 }
 
-void HttpWorker::log(Severity s, const char *fmt, ...)
+void HttpWorker::log(LogMessage&& msg)
 {
-	va_list va;
-	va_start(va, fmt);
-	char buf[512];
-	vsnprintf(buf, sizeof(buf), fmt, va);
-	va_end(va);
+	msg.addTag("%u", id());
 
-	server_.log(s, "Worker/%d: %s", id_, buf);
+	server().log(std::forward<LogMessage>(msg));
 }
 
 /** enqueues/assigns/registers given client connection information to this worker.

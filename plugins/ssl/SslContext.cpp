@@ -115,7 +115,7 @@ void SslContext::setCertFile(const std::string& filename)
 	gnutls_datum_t data;
 	error_ = loadFile(data, filename);
 	if (error_) {
-		logger_->write(x0::Severity::error, "Error loading certificate file(%s): %s", filename.c_str(), error_.message().c_str());
+		log(x0::Severity::error, "Error loading certificate file(%s): %s", filename.c_str(), error_.message().c_str());
 		return;
 	}
 
@@ -175,7 +175,7 @@ void SslContext::setKeyFile(const std::string& filename)
 	TRACE("SslContext::setKeyFile: \"%s\"", filename.c_str());
 	gnutls_datum_t data;
 	if ((error_ = loadFile(data, filename))) {
-		logger_->write(x0::Severity::error, "Error loading private key file(%s): %s", filename.c_str(), error_.message().c_str());
+		log(x0::Severity::error, "Error loading private key file(%s): %s", filename.c_str(), error_.message().c_str());
 		return;
 	}
 
@@ -191,7 +191,7 @@ void SslContext::setKeyFile(const std::string& filename)
 	}
 
 	if (rv < 0) {
-		logger_->write(x0::Severity::error, "Error loading private key file(%s): %s", filename.c_str(), gnutls_strerror(rv));
+		log(x0::Severity::error, "Error loading private key file(%s): %s", filename.c_str(), gnutls_strerror(rv));
 		freeFile(data);
 		return;
 	}

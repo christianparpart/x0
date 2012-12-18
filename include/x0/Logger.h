@@ -11,6 +11,7 @@
 
 #include <x0/Buffer.h>
 #include <x0/Severity.h>
+#include <x0/LogMessage.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
 #include <cstdio>
@@ -46,7 +47,7 @@ public:
 	virtual void cycle() = 0;
 
 	/** writes a message into the logger. */
-	virtual void write(Severity s, const std::string& message) = 0;
+	virtual void write(LogMessage& message) = 0;
 
 	/** duplicates (clones) this logger. */
 	virtual Logger *clone() const = 0;
@@ -57,11 +58,20 @@ public:
 	/** sets the loggers Severity level */
 	void setLevel(Severity value) { severity_ = value; }
 
-	template<typename A0, typename... Args>
-	void write(Severity s, const char *fmt, A0&& a0, Args&&... args)
+#if 0
+	void write(Severity s, const char* txt)
 	{
-		this->write(s, Buffer().printf(fmt, a0, args...).str());
+		LogMessage msg(s, txt);
+		this->write(msg);
 	}
+
+	template<typename A0, typename... Args>
+	void write(Severity s, const char* fmt, A0&& a0, Args&&... args)
+	{
+		LogMessage msg(s, fmt, a0, args...);
+		this->write(msg);
+	}
+#endif
 
 private:
 	Severity severity_;
@@ -81,7 +91,7 @@ public:
 	~NullLogger();
 
 	virtual void cycle();
-	virtual void write(Severity s, const std::string& message);
+	virtual void write(LogMessage& message);
 	virtual NullLogger *clone() const;
 };
 
@@ -98,7 +108,7 @@ public:
 	~FileLogger();
 
 	virtual void cycle();
-	virtual void write(Severity severity, const std::string& message);
+	virtual void write(LogMessage& message);
 	virtual FileLogger *clone() const;
 
 	int handle() const;
@@ -121,7 +131,7 @@ public:
 	~SystemLogger();
 
 	virtual void cycle();
-	virtual void write(Severity s, const std::string& message);
+	virtual void write(LogMessage& message);
 	virtual SystemLogger *clone() const;
 };
 
@@ -137,7 +147,7 @@ public:
 	~SystemdLogger();
 
 	virtual void cycle();
-	virtual void write(Severity s, const std::string& message);
+	virtual void write(LogMessage& message);
 	virtual SystemdLogger *clone() const;
 };
 

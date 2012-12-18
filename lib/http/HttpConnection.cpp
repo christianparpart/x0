@@ -669,18 +669,6 @@ unsigned int HttpConnection::localPort() const
 	return listener_->port();
 }
 
-void HttpConnection::log(Severity s, const char *fmt, ...)
-{
-	va_list va;
-	va_start(va, fmt);
-	char buf[512];
-	vsnprintf(buf, sizeof(buf), fmt, va);
-	va_end(va);
-
-	worker().server().log(s, "connection[%s]: %s", !isClosed() ? remoteIP().c_str() : "(null)", buf);
-}
-
-
 void HttpConnection::setShouldKeepAlive(bool enabled)
 {
 	TRACE("setShouldKeepAlive: %d", enabled);

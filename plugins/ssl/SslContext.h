@@ -10,6 +10,7 @@
 #define sw_x0_SslContext_h (1)
 
 #include <x0/Property.h>
+#include <x0/LogMessage.h>
 #include <x0/Logger.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
@@ -30,6 +31,9 @@ public:
 	~SslContext();
 
 	void setLogger(x0::Logger *logger);
+
+	template<typename... Args>
+	void log(x0::Severity severity, const char* fmt, Args... args);
 
 	void setCertFile(const std::string& filename);
 	void setKeyFile(const std::string& filename);
@@ -85,6 +89,15 @@ private:
 };
 
 // {{{ inlines
+template<typename... Args>
+void SslContext::log(x0::Severity severity, const char* fmt, Args... args)
+{
+	if (logger_) {
+		x0::LogMessage msg(severity, fmt, args...);
+		logger_->write(msg);
+	}
+}
+
 inline bool SslContext::isValidDnsName(const std::string& dnsName) const
 {
 	if (imatch(commonName(), dnsName))

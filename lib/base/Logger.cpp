@@ -44,7 +44,7 @@ void NullLogger::cycle()
 {
 }
 
-void NullLogger::write(Severity /*s*/, const std::string& message)
+void NullLogger::write(LogMessage& /*message*/)
 {
 }
 
@@ -67,10 +67,9 @@ void SystemLogger::cycle()
 {
 }
 
-void SystemLogger::write(Severity s, const std::string& message)
+void SystemLogger::write(LogMessage& message)
 {
-	if (s <= level())
-	{
+	if (message.severity() <= level()) {
 		static int tr[] = {
 			LOG_DEBUG,
 			LOG_INFO,
@@ -82,7 +81,10 @@ void SystemLogger::write(Severity s, const std::string& message)
 			LOG_EMERG
 		};
 
-		syslog(tr[s], "%s", message.c_str());
+		Buffer buf;
+		buf << message;
+
+		syslog(tr[message.severity()], "%s", buf.c_str());
 	}
 }
 
@@ -106,12 +108,14 @@ void SystemdLogger::cycle()
 {
 }
 
-void SystemdLogger::write(Severity s, const std::string& message)
+void SystemdLogger::write(LogMessage& message)
 {
 	static const char *sd[] = {
 		SD_ERR,
 		SD_WARNING,
+		SD_NOTICE,
 		SD_INFO,
+		SD_DEBUG,
 		SD_DEBUG,
 		SD_DEBUG,
 		SD_DEBUG,
@@ -119,8 +123,11 @@ void SystemdLogger::write(Severity s, const std::string& message)
 		SD_DEBUG
 	};
 
-	if (s <= level()) {
-		fprintf(stderr, "%s%s\n", sd[s], message.c_str());
+	if (message.severity() <= level()) {
+		Buffer buf;
+		buf << message;
+
+		fprintf(stderr, "%s%s\n", sd[message.severity()], buf.c_str());
 	}
 }
 
@@ -170,8 +177,9 @@ void FileLogger::cycle()
 #endif
 			, 0644);
 
-	if (fd2 == -1) {
-		write(Severity::error, "Could not (re)open new logfile");
+	if (fd2 < 0) {
+		LogMessage msg(Severity::error, "Could not re-open new logfile");
+		write(msg);
 	} else {
 #if !defined(O_CLOEXEC) && defined(FD_CLOEXEC)
 		fcntl(fd2, F_SETFD, fcntl(fd2, F_GETFD) | FD_CLOEXEC);
@@ -184,13 +192,14 @@ void FileLogger::cycle()
 	}
 }
 
-inline void FileLogger::write(Severity severity, const std::string& message)
+inline void FileLogger::write(LogMessage& message)
 {
-	if (severity <= level() && fd_ >= 0) {
+	if (message.severity() <= level() && fd_ >= 0) {
 		Buffer buf;
 		DateTime ts(now_());
+
 		// TODO let `ts.htlog_str()` render directly into `buf`
-		buf << "[" << ts.htlog_str() << "] [" << severity.c_str() << "] " << message << "\n";
+		buf << "[" << ts.htlog_str() << "] [" << message.severity().c_str() << "] " << message << "\n";
 
 		int rv = ::write(fd_, buf.data(), buf.size());
 
@@ -205,5 +214,24 @@ inline FileLogger *FileLogger::clone() const
 	return new FileLogger(filename_, now_);
 }
 // }}}
+
+#if 0
+// ConsoleLogger
+
+		static AnsiColor::Type colors[] = {
+			AnsiColor::Red | AnsiColor::Bold, // error
+			AnsiColor::Yellow | AnsiColor::Bold, // warn
+			AnsiColor::Green | AnsiColor::Bold, // notice
+			AnsiColor::Green, // info
+			static_cast<AnsiColor::Type>(0),
+			AnsiColor::Cyan, // debug
+		};
+
+		Buffer buf;
+		buf << AnsiColor::make(colors[msg.severity() + 3]);
+		buf << msg;
+		buf << AnsiColor::make(AnsiColor::Clear);
+
+#endif
 
 } // namespace x0

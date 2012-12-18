@@ -471,7 +471,7 @@ inline void Buffer::push_back(PodType (&value)[N])
 
 inline Buffer& Buffer::printf(const char* fmt, ...)
 {
-	reserve(strlen(fmt) + 1);
+	reserve(size() + strlen(fmt) + 1);
 
 	va_list va;
 
@@ -495,6 +495,7 @@ inline Buffer& Buffer::printf(const char* fmt, ...)
 			break; // alloc failure
 		}
 	}
+
 	return *this;
 }
 

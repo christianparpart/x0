@@ -14,6 +14,7 @@
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
 #include <x0/CustomDataMgr.h>
+#include <x0/LogMessage.h>
 #include <x0/TimeSpan.h>
 #include <x0/Socket.h>
 #include <x0/Buffer.h>
@@ -137,7 +138,10 @@ private:
 
 	void abort();
 
-	void log(Severity s, const char *fmt, ...);
+	template<typename... Args>
+	void log(Severity s, const char* fmt, Args... args);
+
+	void log(LogMessage&& msg);
 
 	Buffer& inputBuffer() { return input_; }
 	const Buffer& inputBuffer() const { return input_; }
@@ -244,6 +248,19 @@ inline bool HttpConnection::isClosed() const
 inline bool HttpConnection::isOutputPending() const
 {
 	return !output_.empty();
+}
+
+template<typename... Args>
+inline void HttpConnection::log(Severity s, const char* fmt, Args... args)
+{
+	log(LogMessage(s, fmt, args...));
+}
+
+inline void HttpConnection::log(LogMessage&& msg)
+{
+	msg.addTag(!isClosed() ? remoteIP() : "(null)");
+
+	worker().log(std::forward<LogMessage>(msg));
 }
 // }}}
 

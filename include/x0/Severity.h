@@ -52,7 +52,7 @@ struct X0_API Severity {
 	bool isInfo() const { return value_ == info; }
 	bool isDebug() const { return value_ >= debug; }
 
-	int debugLevel() const { return value_ < 0 ? 0 : value_; }
+	int debugLevel() const { return isDebug() ? 1 + value_ - debug1 : 0; }
 };
 
 //@}

@@ -15,6 +15,7 @@
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
+#include <x0/LogMessage.h>
 #include <x0/PerformanceCounter.h>
 
 #include <deque>
@@ -133,7 +134,10 @@ public:
 	void handleRequest(HttpRequest *r);
 	void release(const ConnectionHandle& connection);
 
-	void log(Severity s, const char *fmt, ...);
+	template<typename... Args>
+	void log(Severity s, const char* fmt, Args... args);
+
+	void log(LogMessage&& msg);
 
 	void setAffinity(int cpu);
 
@@ -283,6 +287,12 @@ inline void HttpWorker::fetchPerformanceCounts(double* p1, double* p5, double* p
 	*p1 += performanceCounter_.average(60 * 1);
 	*p5 += performanceCounter_.average(60 * 5);
 	*p15 += performanceCounter_.average(60 * 15);
+}
+
+template<typename... Args>
+inline void HttpWorker::log(Severity s, const char* fmt, Args... args)
+{
+	log(LogMessage(s, fmt, args...));
 }
 // }}}
 

@@ -465,7 +465,10 @@ void HttpRequest::write_cb_thunk(void* data)
 template<typename... Args>
 inline void HttpRequest::log(Severity s, Args&&... args)
 {
-	connection.worker().server().log(s, args...);
+	if (connection.worker().server().logLevel() < s)
+		return;
+
+	connection.log(s, args...);
 }
 
 /** write given source to response content and invoke the completion handler when done.

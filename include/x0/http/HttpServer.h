@@ -10,10 +10,10 @@
 #define sw_x0_http_server_h (1)
 
 #include <x0/io/FileInfoService.h>
-#include <x0/http/HttpWorker.h>
 #include <x0/http/HttpConnection.h> // HttpConnection, HttpConnection::Status
 #include <x0/http/Types.h>
 #include <x0/ServerSocket.h>
+#include <x0/LogMessage.h>
 #include <x0/DateTime.h>
 #include <x0/TimeSpan.h>
 #include <x0/Property.h>
@@ -114,16 +114,13 @@ public:
 	/**
 	 * writes a log entry into the server's error log.
 	 */
-	void log(Severity s, const char *msg, ...);
-
 	template<typename... Args>
-	inline void debug(int level, const char *msg, Args&&... args)
+	void log(Severity s, const char* fmt, Args... args)
 	{
-#if !defined(NDEBUG)
-		if (level <= logLevel_)
-			log(Severity(level), msg, args...);
-#endif
+		log(LogMessage(s, fmt, args...));
 	}
+
+	void log(LogMessage&& msg);
 
 	Severity logLevel() const;
 	void logLevel(Severity value);
