@@ -15,6 +15,6 @@ else
 		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g3" \
 		-DCMAKE_BUILD_TYPE="debug" \
 		-DCMAKE_INSTALL_PREFIX="${HOME}/local" \
-		-DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.1 \
+		-DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0 \
 		-DENABLE_{RRD,WEBDAV,IMAGEABLE,EXAMPLES}=ON
 fi
