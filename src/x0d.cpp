@@ -577,6 +577,8 @@ bool XzeroHttpDaemon::parse()
 				}
 				std::cout << std::endl;
 
+				std::cout << "Plugin directory: " << PLUGINDIR << std::endl;
+
 				return false;
 			}
 			case 'X':
