@@ -355,11 +355,17 @@ void FlowRunner::reportError(const std::string& message)
 	value_ = nullptr;
 }
 
-bool FlowRunner::open(const std::string& filename)
+bool FlowRunner::open(const std::string& filename, std::istream* stream)
 {
 	// parse source
-	std::fstream fs(filename);
-	if (!parser_->initialize(&fs)) {
+	std::unique_ptr<std::fstream> fs;
+
+	if (!stream) {
+		fs.reset(new std::fstream(filename));
+		stream = fs.get();
+	}
+
+	if (!parser_->initialize(stream)) {
 		perror("open");
 		return false;
 	}

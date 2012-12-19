@@ -231,7 +231,7 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename, int 
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
 	runner_->setOptimizationLevel(optimizationLevel);
 
-	if (!runner_->open(filename)) {
+	if (!runner_->open(filename, settings)) {
 		sd_notifyf(0, "ERRNO=%d", errno);
 		goto err;
 	}

@@ -505,6 +505,8 @@ bool XzeroHttpDaemon::parse()
 				break;
 			case 'i':
 				instant_ = optarg;
+				logTarget_ = "console";
+				nofork_ = true;
 				break;
 			case 'v':
 				std::cout
@@ -536,7 +538,8 @@ bool XzeroHttpDaemon::parse()
 					<< "  -l,--log-file=PATH        path to log file (ignored when log-target is not file)" << std::endl
 					<< "  -s,--log-severity=VALUE   log severity level, one of: error, warning, notice, info, debug, debug1..6 [" << logLevel_.c_str() << "]" << std::endl
 					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
-					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode" << std::endl
+					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode,\n"
+					<< "                            also implies --no-fork and --log-target=console" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
 					<< "     --splash               print splash greeter to terminal on startup" << std::endl
@@ -704,30 +707,27 @@ bool XzeroHttpDaemon::setupConfig()
 		bind = "::"; //"0.0.0.0"; //TODO: "0::0";
 
 	std::string source(
-//		"import compress\n"
-//		"import dirlisting\n"
-//		"import cgi\n"
+		"import compress\n"
+		"import dirlisting\n"
+		"import cgi\n"
 		"\n"
 		"handler setup {\n"
-//		"    mimetypes '/etc/mime.types'\n"
-//		"    mimetypes.default 'application/octet-stream'\n"
+		"    mimetypes '/etc/mime.types'\n"
+		"    mimetypes.default 'application/octet-stream'\n"
 		"    listen 'bind' => #{bind}, 'port' => #{port}\n"
-//		"    workers 1\n"
 		"}\n"
 		"\n"
 		"handler main {\n"
 		"    docroot '#{docroot}'\n"
-//		"    autoindex ['index.cgi', 'index.html']\n"
-//		"    cgi.exec if phys.path =$ '.cgi'\n"
-//		"    dirlisting\n"
+		"    autoindex ['index.cgi', 'index.html']\n"
+		"    cgi.exec if phys.path =$ '.cgi'\n"
+		"    dirlisting\n"
 		"    staticfile\n"
 		"}\n"
 	);
 	gsub(source, "#{docroot}", documentRoot_);
 	gsub(source, "#{bind}", bind);
 	gsub(source, "#{port}", port);
-
-	printf("# source:\n%s\n", source.c_str());
 
 	server_->tcpCork(true);
 
@@ -803,8 +803,12 @@ bool XzeroHttpDaemon::createPidFile()
 	}
 
 	if (pidfile_.empty()) {
-		log(x0::Severity::error, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
-		return false;
+		if (nofork_) {
+			return true;
+		} else {
+			log(x0::Severity::error, "No PID file specified. Use %s --pid-file=PATH.", argv_[0]);
+			return false;
+		}
 	}
 
 	FILE *pidfile = fopen(pidfile_.c_str(), "w");

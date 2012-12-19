@@ -155,7 +155,7 @@ public:
 	void setErrorHandler(std::function<void(const std::string&)>&& callback);
 
 	// execution
-	bool open(const std::string& filename);
+	bool open(const std::string& filename, std::istream* stream = nullptr);
 	std::vector<Function*> getHandlerList() const;
 	Function* findHandler(const std::string& name) const;
 	HandlerFunction getPointerTo(Function* handler);
