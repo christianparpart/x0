@@ -654,7 +654,7 @@ private:
 	std::map<std::string, std::string> interpreterMappings_;
 
 	/** time-to-live in seconds a CGI script may run at most. */
-	unsigned long long ttl_;
+	long long ttl_;
 
 public:
 	CgiPlugin(x0::HttpServer& srv, const std::string& name) :
