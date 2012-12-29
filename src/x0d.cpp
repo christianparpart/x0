@@ -35,6 +35,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <unistd.h> // O_CLOEXEC
+#include <limits.h>
+#include <stdlib.h>
 
 #include <execinfo.h> // backtrace(), backtrace_symbols_fd()
 #include <ucontext.h> // ucontext
@@ -699,6 +701,15 @@ bool XzeroHttpDaemon::setupConfig()
 
 	if (documentRoot_.empty())
 		documentRoot_ = getcwd();
+	else {
+		char result[PATH_MAX];
+		if (!realpath(documentRoot_.c_str(), result)) {
+			log(x0::Severity::error, "Could not resolv document root: '%s'. %s", documentRoot_.c_str(), strerror(errno));
+			return false;
+		} else {
+			documentRoot_ = result;
+		}
+	}
 
 	if (!port)
 		port = 8080;
