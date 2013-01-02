@@ -17,4 +17,7 @@ if(ENABLE_EXAMPLES)
 
 	add_executable(app1 app1.cpp)
 	target_link_libraries(app1 XzeroBase XzeroHttp)
+
+	add_executable(tcp-echo-server tcp-echo-server.cpp)
+	target_link_libraries(tcp-echo-server XzeroBase)
 endif()
