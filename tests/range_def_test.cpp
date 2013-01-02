@@ -27,7 +27,7 @@ private:
 		x0::HttpRangeDef r;
 		x0::ConstBuffer spec("bytes=0-499");
 
-		r.parse(spec);
+		r.parse(spec.ref());
 		CPPUNIT_ASSERT(r.unitName() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 1);
 		CPPUNIT_ASSERT(r[0].first == 0);
@@ -39,7 +39,7 @@ private:
 		x0::HttpRangeDef r;
 		x0::ConstBuffer spec("bytes=500-999");
 
-		r.parse(spec);
+		r.parse(spec.ref());
 		CPPUNIT_ASSERT(r.unitName() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 1);
 		CPPUNIT_ASSERT(r[0].first == 500);
@@ -51,7 +51,7 @@ private:
 		x0::HttpRangeDef r;
 
 		x0::ConstBuffer spec("bytes=-500");
-		r.parse(spec);
+		r.parse(spec.ref());
 		CPPUNIT_ASSERT(r.unitName() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 1);
 		CPPUNIT_ASSERT(r[0].first == x0::HttpRangeDef::npos);
@@ -63,7 +63,7 @@ private:
 		x0::HttpRangeDef r;
 
 		x0::ConstBuffer spec("bytes=9500-");
-		r.parse(spec);
+		r.parse(spec.ref());
 		CPPUNIT_ASSERT(r.unitName() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 1);
 		CPPUNIT_ASSERT(r[0].first == 9500);
@@ -75,7 +75,7 @@ private:
 		x0::HttpRangeDef r;
 
 		x0::ConstBuffer spec("bytes=0-0,-1");
-		r.parse(spec);
+		r.parse(spec.ref());
 		CPPUNIT_ASSERT(r.unitName() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 2);
 
@@ -91,7 +91,7 @@ private:
 		x0::HttpRangeDef r;
 
 		x0::ConstBuffer spec("bytes=500-700,601-999");
-		r.parse(spec);
+		r.parse(spec.ref());
 		CPPUNIT_ASSERT(r.unitName() == "bytes");
 		CPPUNIT_ASSERT(r.size() == 2);
 

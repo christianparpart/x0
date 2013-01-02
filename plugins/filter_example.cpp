@@ -45,11 +45,11 @@ x0::Buffer ExampleFilter::process(const x0::BufferRef& input)
 	switch (mode_)
 	{
 		case ExampleFilter::LOWER:
-			for (auto i = input.begin(), e = input.end(); i != e; ++i)
+			for (auto i = input.cbegin(), e = input.cend(); i != e; ++i)
 				result.push_back(static_cast<char>(std::tolower(*i)));
 			break;
 		case ExampleFilter::UPPER:
-			for (auto i = input.begin(), e = input.end(); i != e; ++i)
+			for (auto i = input.cbegin(), e = input.cend(); i != e; ++i)
 				result.push_back(static_cast<char>(std::toupper(*i)));
 			break;
 		case ExampleFilter::IDENTITY:

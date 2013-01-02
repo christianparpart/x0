@@ -1,5 +1,4 @@
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/Base64.h>
 #include <cstdio>
 #include <cppunit/extensions/HelperMacros.h>
@@ -24,7 +23,7 @@ private:
 	}
 
 	bool testDecode(const x0::Buffer& decoded, const x0::Buffer& encoded) {
-		x0::Buffer result(x0::Base64::decode(encoded));
+		x0::Buffer result(x0::Base64::decode(encoded.ref()));
 		return x0::equals(result, decoded);
 	}
 

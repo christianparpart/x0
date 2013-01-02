@@ -30,6 +30,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpRangeDef.h>
 #include <x0/io/CompressFilter.h>
+#include <x0/Tokenizer.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 #include <x0/sysconfig.h>
@@ -161,7 +162,7 @@ private:
 			return;
 
 		if (x0::BufferRef r = in->requestHeader("Accept-Encoding")) {
-			auto items = x0::StringTokenizer::tokenize(r.str(), ", ");
+			auto items = x0::Tokenizer<x0::BufferRef, x0::BufferRef>::tokenize(r, ", ");
 
 #if defined(HAVE_BZLIB_H)
 			if (std::find(items.begin(), items.end(), "bzip2") != items.end()) {

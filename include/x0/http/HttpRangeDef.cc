@@ -9,9 +9,10 @@
 #ifndef x0_HttpRangeDef_ipp
 #define x0_HttpRangeDef_ipp
 
+#include <x0/Tokenizer.h>
+
 // XXX http://tools.ietf.org/html/draft-fielding-http-p5-range-00
 
-#include <x0/StringTokenizer.h>
 #include <cstdlib>
 
 namespace x0 {
@@ -65,16 +66,19 @@ inline bool HttpRangeDef::parse(const BufferRef& value)
 inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec)
 {
 	std::size_t a, b;
-	char* i = const_cast<char *>(spec.data());
-	char* e = spec.end();
+	const char* i = const_cast<char *>(spec.cbegin());
+	const char* e = spec.cend();
 
 	if (i == e)
 		return false;
 
 	// parse first element
+	char* eptr;
 	a = std::isdigit(*i)
-		? strtoul(i, &i, 10)
+		? strtoul(i, &eptr, 10)
 		: npos;
+
+	i = eptr;
 
 	if (*i != '-') {
 		// printf("parse error: %s (%s)\n", i, spec.c_str());
@@ -85,8 +89,10 @@ inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec)
 
 	// parse second element
 	b = std::isdigit(*i)
-		? strtoul(i, &i, 10)
+		? strtoul(i, &eptr, 10)
 		: npos;
+
+	i = eptr;
 
 	if (i != e) // garbage at the end
 		return false;

@@ -12,7 +12,7 @@
 #include <x0/io/CompositeSource.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/FileSource.h>
-#include <x0/StringTokenizer.h>
+#include <x0/Tokenizer.h>
 #include <x0/SocketSpec.h>
 #include <x0/Types.h>
 #include <x0/DateTime.h>
@@ -689,17 +689,17 @@ void HttpCore::req_cookie(HttpRequest* in, const FlowParams& args, FlowValue& re
 	if (!cookie.empty() && !args.empty()) {
 		std::string wanted(args[0].asString());
 		static const std::string sld("; \t");
-		StringTokenizer st1(cookie.str(), sld);
-		std::string kv;
+		Tokenizer<BufferRef> st1(cookie, sld);
+		BufferRef kv;
 
 		while (!(kv = st1.nextToken()).empty()) {
 			static const std::string s2d("= \t");
-			StringTokenizer st2(kv, s2d);
-			std::string key(st2.nextToken());
-			std::string value(st2.nextToken());
+			Tokenizer<BufferRef> st2(kv, s2d);
+			BufferRef key(st2.nextToken());
+			BufferRef value(st2.nextToken());
 			//printf("parsed cookie[%s] = '%s'\n", key.c_str(), value.c_str());
 			if (key == wanted) {
-				result.set(value.c_str(), value.size());
+				result.set(value);
 				return;
 			}
 			//cookies_[key] = value;
@@ -1280,9 +1280,8 @@ bool HttpCore::precompressed(HttpRequest *in, const FlowParams& args)
 	if (!in->fileinfo->isRegular())
 		return false;
 
-	if (BufferRef r = in->requestHeader("Accept-Encoding"))
-	{
-		auto items = StringTokenizer::tokenize(r.str(), ", ");
+	if (BufferRef r = in->requestHeader("Accept-Encoding")) {
+		auto items = Tokenizer<BufferRef>::tokenize(r, ", ");
 
 		static const struct {
 			const char* id;
@@ -1293,14 +1292,11 @@ bool HttpCore::precompressed(HttpRequest *in, const FlowParams& args)
 //			{ "lzma", ".lzma" },
 		};
 
-		for (auto& encoding: encodings)
-		{
-			if (std::find(items.begin(), items.end(), encoding.id) != items.end())
-			{
+		for (auto& encoding: encodings) {
+			if (std::find(items.begin(), items.end(), encoding.id) != items.end()) {
 				FileInfoPtr pc(in->connection.worker().fileinfo(in->fileinfo->path() + encoding.fileExtension));
 
-				if (pc->exists() && pc->isRegular() && pc->mtime() == in->fileinfo->mtime())
-				{
+				if (pc->exists() && pc->isRegular() && pc->mtime() == in->fileinfo->mtime()) {
 					in->responseHeaders.push_back("Content-Encoding", encoding.id);
 					return processStaticFile(in, pc);
 				}

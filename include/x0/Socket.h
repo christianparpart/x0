@@ -12,7 +12,6 @@
 #include <x0/IPAddress.h>
 #include <x0/TimeSpan.h>
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/Logging.h>
 #include <x0/DateTime.h>
 
@@ -147,6 +146,7 @@ public:
 	virtual ssize_t write(const void *buffer, size_t size);
 	virtual ssize_t write(Pipe* buffer, size_t size);
 
+	ssize_t write(const Buffer& source);
 	ssize_t write(const BufferRef& source);
 	template<typename PodType, std::size_t N> ssize_t write(PodType (&value)[N]);
 
@@ -309,6 +309,11 @@ inline void Socket::callback(int revents)
 inline struct ev_loop* Socket::loop() const
 {
 	return loop_;
+}
+
+inline ssize_t Socket::write(const Buffer& source)
+{
+	return write(source.data(), source.size());
 }
 
 inline ssize_t Socket::write(const BufferRef& source)

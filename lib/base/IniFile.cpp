@@ -7,7 +7,6 @@
  */
 
 #include <x0/IniFile.h>
-#include <x0/StringTokenizer.h>
 #include <x0/strutils.h>
 
 #include <exception>

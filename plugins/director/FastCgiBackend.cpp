@@ -48,11 +48,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if !defined(NDEBUG)
-#	define TRACE(msg...) (this->log(x0::Severity::debug, msg))
+#if 1 //!defined(NDEBUG)
+#	define TRACE(level, msg...) log(Severity::debug ## level, msg)
 #else
 #	define TRACE(msg...) /*!*/
 #endif
+
+using x0::Severity;
+using x0::LogMessage;
 
 std::atomic<unsigned long long> transportIds_(0);
 
@@ -151,18 +154,7 @@ private:
 	void inspect(x0::Buffer& out);
 
 	template<typename... Args>
-	void log(x0::Severity severity, const char* fmt, Args&&... args)
-	{
-		if (request_) {
-			x0::Buffer msg;
-			msg.push_back("fastcgi/");
-			msg.push_back(transportId_);
-			msg.push_back(": ");
-			msg.push_back(fmt);
-
-			request_->log(severity, msg.c_str(), args...);
-		}
-	}
+	void log(Severity severity, const char* fmt, Args&&... args);
 }; // }}}
 
 // {{{ FastCgiTransport impl
@@ -190,7 +182,7 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	static std::atomic<int> mi(0);
 	setLoggingPrefix("FastCgiTransport/%d", ++mi);
 #endif
-	TRACE("create");
+	TRACE(1, "create");
 
 	// stream management record: GetValues
 #if 0
@@ -206,7 +198,7 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 
 FastCgiTransport::~FastCgiTransport()
 {
-	TRACE("closing transport connection to upstream server.");
+	TRACE(1, "closing transport connection to upstream server.");
 
 	if (socket_) {
 		if (socket_->isOpen())
@@ -234,9 +226,19 @@ FastCgiTransport::~FastCgiTransport()
 	}
 }
 
+template<typename... Args>
+inline void FastCgiTransport::log(Severity severity, const char* fmt, Args&&... args)
+{
+	if (request_) {
+		LogMessage msg(severity, fmt, args...);
+		msg.addTag("fastcgi/%d", transportId_);
+		request_->log(std::move(msg));
+	}
+}
+
 void FastCgiTransport::close()
 {
-	TRACE("Closing transport connection.");
+	TRACE(1, "Closing transport connection.");
 
 	if (socket_->isOpen())
 		socket_->close();
@@ -248,12 +250,12 @@ void FastCgiTransport::ref()
 {
 	++refCount_;
 
-	TRACE("Incrementing reference count to %d.", refCount_);
+	TRACE(1, "Incrementing reference count to %d.", refCount_);
 }
 
 void FastCgiTransport::unref()
 {
-	TRACE("Decrementing reference count from %d.", refCount_);
+	TRACE(1, "Decrementing reference count from %d.", refCount_);
 
 	assert(refCount_ > 0);
 
@@ -370,7 +372,7 @@ void FastCgiTransport::write(FastCgi::Type type, int requestId, const char *buf,
 
 	if (len == 0) {
 		FastCgi::Record record(type, requestId, 0, 0);
-		TRACE("writing packet (%s) of %ld bytes to upstream server.", record.type_str(), len);
+		TRACE(1, "writing packet (%s) of %ld bytes to upstream server.", record.type_str(), len);
 		writeBuffer_.push_back(record.data(), sizeof(record));
 		return;
 	}
@@ -388,13 +390,13 @@ void FastCgiTransport::write(FastCgi::Type type, int requestId, const char *buf,
 
 		offset += clen;
 
-		TRACE("writing packet (%s) of %ld bytes to upstream server.", record.type_str(), record.size());
+		TRACE(1, "writing packet (%s) of %ld bytes to upstream server.", record.type_str(), record.size());
 	}
 }
 
 void FastCgiTransport::write(FastCgi::Record *record)
 {
-	TRACE("writing packet (%s) of %ld bytes to upstream server.", record->type_str(), record->size());
+	TRACE(1, "writing packet (%s) of %ld bytes to upstream server.", record->type_str(), record->size());
 
 	writeBuffer_.push_back(record->data(), record->size());
 }
@@ -402,11 +404,11 @@ void FastCgiTransport::write(FastCgi::Record *record)
 void FastCgiTransport::flush()
 {
 	if (socket_->state() == x0::Socket::Operational) {
-		TRACE("flushing pending data to upstream server.");
+		TRACE(1, "flushing pending data to upstream server.");
 		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setMode(x0::Socket::ReadWrite);
 	} else {
-		TRACE("mark pending data to be flushed to upstream server.");
+		TRACE(1, "mark pending data to be flushed to upstream server.");
 		flushPending_ = true;
 	}
 }
@@ -432,13 +434,13 @@ void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 		request_->status = x0::HttpStatus::ServiceUnavailable;
 		close();
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
-		TRACE("Connected. Flushing pending data.");
+		TRACE(1, "Connected. Flushing pending data.");
 		flushPending_ = false;
 		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::io>(this);
 		socket_->setMode(x0::Socket::ReadWrite);
 	} else {
-		TRACE("Connected.");
+		TRACE(1, "Connected.");
 		// do not install a timeout handler here, even though, we're watching for ev::READ, because all we're to
 		// get is an EOF detection (remote end-point will not sent data unless we did).
 		socket_->setReadyCallback<FastCgiTransport, &FastCgiTransport::io>(this);
@@ -448,7 +450,7 @@ void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 
 void FastCgiTransport::io(x0::Socket* s, int revents)
 {
-	TRACE("Received I/O activity on upstream socket. revents=0x%04x", revents);
+	TRACE(1, "Received I/O activity on upstream socket. revents=0x%04x", revents);
 
 	if (revents & ev::ERROR) {
 		log(x0::Severity::error, "Internal error occured while waiting for I/O readiness from backend application.");
@@ -459,7 +461,7 @@ void FastCgiTransport::io(x0::Socket* s, int revents)
 	ref();
 
 	if (revents & x0::Socket::Read) {
-		TRACE("reading from upstream server.");
+		TRACE(1, "reading from upstream server.");
 		// read as much as possible
 		for (;;) {
 			size_t remaining = readBuffer_.capacity() - readBuffer_.size();
@@ -496,7 +498,7 @@ void FastCgiTransport::io(x0::Socket* s, int revents)
 
 			readOffset_ += record->size();
 
-			TRACE("Processing received FastCGI packet (%s).", record->type_str());
+			TRACE(1, "Processing received FastCGI packet (%s).", record->type_str());
 
 			if (!processRecord(record))
 				goto done;
@@ -517,11 +519,11 @@ void FastCgiTransport::io(x0::Socket* s, int revents)
 
 		writeOffset_ += rv;
 
-		TRACE("Wrote %ld bytes to upstream server.", rv);
+		TRACE(1, "Wrote %ld bytes to upstream server.", rv);
 
 		// if set watcher back to EV_READ if the write-buffer has been fully written (to catch connection close events)
 		if (writeOffset_ == writeBuffer_.size()) {
-			TRACE("Pending write-buffer fully flushed to upstraem server.");
+			TRACE(1, "Pending write-buffer fully flushed to upstraem server.");
 			socket_->setMode(x0::Socket::Read);
 			writeBuffer_.clear();
 			writeOffset_ = 0;
@@ -537,7 +539,7 @@ done:
 	// are still data chunks pending, then we must be called back on its completion,
 	// so we can continue receiving more data from the backend fcgi node.
 	if (writeCount_) {
-		TRACE("Registering client-write-complete-callback.");
+		TRACE(1, "Registering client-write-complete-callback.");
 		writeCount_ = 0;
 		socket_->setMode(x0::Socket::None);
 		ref(); // will be unref'd in completion-handler, onWriteComplete().
@@ -560,7 +562,7 @@ void FastCgiTransport::onTimeout(x0::Socket* s)
 
 bool FastCgiTransport::processRecord(const FastCgi::Record *record)
 {
-	TRACE("processRecord(type=%s (%d), rid=%d, contentLength=%d, paddingLength=%d)",
+	TRACE(1, "processRecord(type=%s (%d), rid=%d, contentLength=%d, paddingLength=%d)",
 		record->type_str(), record->type(), record->requestId(),
 		record->contentLength(), record->paddingLength());
 
@@ -600,7 +602,7 @@ bool FastCgiTransport::processRecord(const FastCgi::Record *record)
 
 void FastCgiTransport::onParam(const std::string& name, const std::string& value)
 {
-	TRACE("Received protocol parameter %s=%s.", name.c_str(), value.c_str());
+	TRACE(1, "Received protocol parameter %s=%s.", name.c_str(), value.c_str());
 }
 
 void FastCgiTransport::abortRequest()
@@ -615,7 +617,8 @@ void FastCgiTransport::abortRequest()
 
 void FastCgiTransport::onStdOut(const x0::BufferRef& chunk)
 {
-	TRACE("Received %ld bytes from upstream server (state=%s).", chunk.size(), state_str());
+	TRACE(1, "Received %ld bytes from upstream server (state=%s).", chunk.size(), state_str());
+//	TRACE(2, "data: %s", chunk.str().c_str());
 	process(chunk);
 }
 
@@ -634,7 +637,7 @@ void FastCgiTransport::onStdErr(const x0::BufferRef& chunk)
 
 void FastCgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus)
 {
-	TRACE("Received EndRequest-event from upstream server (appStatus=%d protocolStatus=%d). Closing transport.",
+	TRACE(1, "Received EndRequest-event from upstream server (appStatus=%d protocolStatus=%d). Closing transport.",
 		appStatus, static_cast<int>(protocolStatus));
 
 	close();
@@ -642,7 +645,7 @@ void FastCgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus proto
 
 void FastCgiTransport::processRequestBody(const x0::BufferRef& chunk)
 {
-	TRACE("Received %ld / %ld bytes from client body.",
+	TRACE(1, "Received %ld / %ld bytes from client body.",
 		chunk.size(), request_->connection.contentLength());
 
 	// if chunk.size() is 0, this also marks the fcgi stdin stream's end. so just pass it.
@@ -653,7 +656,7 @@ void FastCgiTransport::processRequestBody(const x0::BufferRef& chunk)
 
 bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value)
 {
-	TRACE("parsed HTTP header from upstream server. %s: %s",
+	TRACE(1, "parsed HTTP header from upstream server. %s: %s",
 		name.str().c_str(), value.str().c_str());
 
 	if (x0::iequals(name, "Status")) {
@@ -671,7 +674,8 @@ bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::Buff
 
 bool FastCgiTransport::onMessageContent(const x0::BufferRef& content)
 {
-	TRACE("Parsed HTTP message content of %ld bytes from upstream server.", content.size());
+	TRACE(1, "Parsed HTTP message content of %ld bytes from upstream server.", content.size());
+	//TRACE(2, "Message content chunk: %s", content.str().c_str());
 
 	request_->write<x0::BufferRefSource>(content);
 
@@ -693,21 +697,21 @@ bool FastCgiTransport::onMessageContent(const x0::BufferRef& content)
 void FastCgiTransport::onWriteComplete()
 {
 #if 0//{{{
-	TRACE("FastCgiTransport.onWriteComplete() bufferSize: %ld", writeBuffer_.size());
+	TRACE(1, "FastCgiTransport.onWriteComplete() bufferSize: %ld", writeBuffer_.size());
 
 	if (writeBuffer_.size() != 0) {
-		TRACE("onWriteComplete: queued:%ld", writeBuffer_.size());
+		TRACE(1, "onWriteComplete: queued:%ld", writeBuffer_.size());
 
 		request_->write<x0::BufferSource>(std::move(writeBuffer_));
 
 		if (request_->connection.isOutputPending()) {
-			TRACE("onWriteComplete: output pending. enqueue callback");
+			TRACE(1, "onWriteComplete: output pending. enqueue callback");
 			request_->writeCallback<FastCgiTransport, &FastCgiTransport::onWriteComplete>(this);
 			return;
 		}
 	}
 #endif//}}}
-	TRACE("onWriteComplete: output flushed. resume watching on app I/O (read)");
+	TRACE(1, "onWriteComplete: output flushed. resume watching on app I/O (read)");
 
 	if (socket_->isOpen()) {
 		// the connection to the backend may already have been closed here when
@@ -715,11 +719,11 @@ void FastCgiTransport::onWriteComplete()
 		// which causes a close() on this object and thus closes the connection to
 		// the upstream server already, even though not all data has been flushed out to the client yet.
 
-		TRACE("Writing to client completed. Resume watching on app I/O for read.");
+		TRACE(1, "Writing to client completed. Resume watching on app I/O for read.");
 		socket_->setTimeout<FastCgiTransport, &FastCgiTransport::onTimeout>(this, backend_->manager()->readTimeout());
 		socket_->setMode(x0::Socket::Read);
 	} else {
-		TRACE("Writing to client completed (Upstream connection already closed).");
+		TRACE(1, "Writing to client completed (Upstream connection already closed).");
 	}
 
 	// unref the ref(), invoked near the installer code of this callback
@@ -783,7 +787,7 @@ const std::string& FastCgiBackend::protocol() const
 
 bool FastCgiBackend::process(x0::HttpRequest* r)
 {
-	//TRACE("process()");
+	//TRACE(1, "process()");
 
 	if (x0::Socket* socket = x0::Socket::open(r->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
 		if (++nextID_ == 0)
@@ -803,7 +807,7 @@ bool FastCgiBackend::process(x0::HttpRequest* r)
  */
 void FastCgiBackend::release(FastCgiTransport *transport)
 {
-	//TRACE("FastCgiBackend.release()");
+	//TRACE(1, "FastCgiBackend.release()");
 	delete transport;
 }
 //}}}

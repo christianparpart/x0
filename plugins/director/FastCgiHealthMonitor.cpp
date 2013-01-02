@@ -124,7 +124,7 @@ void FastCgiHealthMonitor::setRequest(const char* fmt, ...)
 	request.resize(blen);
 
 	// XXX actually parse `request` and pre-fill writeBuffer_
-	HttpRequestRec rr = HttpRequestRec::parse(request);
+	HttpRequestRec rr = HttpRequestRec::parse(request.ref());
 	FastCgi::CgiParamStreamWriter params;
 
 	params.encode("GATEWAY_INTERFACE", "CGI/1.1");

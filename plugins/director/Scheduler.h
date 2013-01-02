@@ -9,7 +9,8 @@
 #pragma once
 
 #include <x0/Counter.h>
-#include <x0/Logging.h>
+#include <x0/Severity.h>
+#include <x0/LogMessage.h>
 
 class Director;
 class Backend;
@@ -22,9 +23,6 @@ namespace x0 {
 }
 
 class Scheduler
-#ifndef NDEBUG
-	: public x0::Logging
-#endif
 {
 protected:
 	Director* director_;
@@ -61,6 +59,15 @@ public:
 
 	virtual bool load(x0::IniFile& settings);
 	virtual bool save(x0::Buffer& out);
+
+	template<typename... Args>
+	void log(x0::Severity s, const char* fmt, Args... args)
+	{
+		x0::LogMessage msg(s, fmt, args...);
+		log(msg);
+	}
+
+	void log(x0::LogMessage& msg);
 };
 
 inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const Scheduler& value)

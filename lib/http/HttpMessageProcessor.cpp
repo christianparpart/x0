@@ -11,7 +11,7 @@
 namespace x0 {
 
 #if 0
-#	define TRACE(msg...) DEBUG("HttpMessageProcessor: " msg)
+#	define TRACE(msg...) { printf("http-parser: " msg); printf("\n"); }
 #else
 #	define TRACE(msg...)
 #endif
@@ -353,8 +353,8 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	 *                  | <entity-body encoded as per Transfer-Encoding>
 	 */
 
-	const char* i = chunk.begin();
-	const char* e = chunk.end();
+	const char* i = chunk.cbegin();
+	const char* e = chunk.cend();
 
 	const size_t initialOutOffset = out_nparsed ? *out_nparsed : 0;
 	size_t result = initialOutOffset;
@@ -386,7 +386,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 #endif
 
 	while (i != e) {
-#if 0
+#if 0 // !defined(NDEBUG)
 		if (std::isprint(*i)) {
 			TRACE("parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i, state_str());
 		} else {
@@ -860,7 +860,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
 
 				if (iequals(name_, "Content-Length")) {
-					contentLength_ = value_.as<int>();
+					contentLength_ = value_.toInt();
 					TRACE("set content length to: %ld", contentLength_);
 				} else if (iequals(name_, "Transfer-Encoding")) {
 					if (iequals(value_, "chunked")) {
@@ -914,12 +914,14 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				// body w/o content-length (allowed in simple MESSAGE types only)
 				BufferRef c(chunk.ref(*nparsed - initialOutOffset));
 
+				//TRACE("prepared content-chunk (%ld bytes): %s", c.size(), c.str().c_str());
+
 				*nparsed += c.size();
 				i += c.size();
 
 				bool rv = filters_.empty()
 					? onMessageContent(c)
-					: onMessageContent(filters_.process(c));
+					: onMessageContent(filters_.process(c).ref());
 
 				if (!rv)
 					goto done;
@@ -937,7 +939,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 
 				bool rv = filters_.empty()
 					? onMessageContent(chunk.ref(offset, chunkSize))
-					: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)));
+					: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)).ref());
 
 				if (contentLength_ == 0)
 					state_ = MESSAGE_BEGIN;
@@ -1003,7 +1005,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 
 					bool rv = filters_.empty()
 						? onMessageContent(chunk.ref(offset, chunkSize))
-						: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)));
+						: onMessageContent(filters_.process(chunk.ref(offset, chunkSize)).ref());
 
 					if (!rv) {
 						goto done;
@@ -1053,7 +1055,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				} else {
 					TRACE("parse: syntax error at nparsed: %ld, character: 0x%02X", *nparsed, *i);
 				}
-				Buffer::dump(chunk.data(), chunk.size(), "request chunk (at syntax error)");
+				chunk.dump("request chunk (at syntax error)");
 #endif
 				goto done;
 			}

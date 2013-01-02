@@ -57,6 +57,9 @@ target_link_libraries(test_flow_lexer
 # -----------------------------------------------------------------
 # some quicky executables
 
+add_executable(quickie quickie.cpp)
+target_link_libraries(quickie XzeroBase)
+
 add_executable(x0cp x0cp.cpp)
 target_link_libraries(x0cp XzeroBase)
 

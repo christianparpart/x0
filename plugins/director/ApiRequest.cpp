@@ -12,7 +12,7 @@
 #include "HttpBackend.h"
 #include "FastCgiBackend.h"
 
-#include <x0/StringTokenizer.h>
+#include <x0/Tokenizer.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
 
@@ -212,9 +212,9 @@ void ApiReqeust::parseBody()
 	args_ = parseArgs(body_.c_str());
 }
 
-Director* ApiReqeust::findDirector(const std::string& name)
+Director* ApiReqeust::findDirector(const x0::BufferRef& name)
 {
-	auto i = directors_->find(name);
+	auto i = directors_->find(name.str());
 
 	if (i != directors_->end())
 		return i->second;
@@ -377,7 +377,7 @@ bool ApiReqeust::eventstream()
 // get a single director json object
 bool ApiReqeust::get()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/");
+	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() < 1 || tokens.size() >  2)
 		return false;
 
@@ -393,7 +393,7 @@ bool ApiReqeust::get()
 		request_->write<x0::BufferSource>(result);
 		request_->finish();
 	} else { // backend
-		if (Backend* backend = director->findBackend(tokens[1])) {
+		if (Backend* backend = director->findBackend(tokens[1].str())) {
 			Buffer result;
 			JsonWriter json(result);
 			json.beginObject()
@@ -416,7 +416,7 @@ bool ApiReqeust::get()
 // LOCK or UNLOCK /:director_id/:backend_id
 bool ApiReqeust::lock(bool locked)
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/");
+	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() != 2)
 		return false;
 
@@ -428,11 +428,11 @@ bool ApiReqeust::lock(bool locked)
 	}
 
 	// name can be passed by URI path or via request body
-	std::string name(tokens[1]);
+	auto name = tokens[1];
 	if (name.empty())
 		return false;
 
-	if (Backend* backend = director->findBackend(name)) {
+	if (Backend* backend = director->findBackend(name.str())) {
 		backend->setEnabled(!locked);
 		request_->status = x0::HttpStatus::Accepted;
 	} else {
@@ -446,7 +446,7 @@ bool ApiReqeust::lock(bool locked)
 // create a backend - PUT /:director_id(/:backend_id)
 bool ApiReqeust::create()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/");
+	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() > 2)
 		return false;
 
@@ -460,7 +460,7 @@ bool ApiReqeust::create()
 	// name can be passed by URI path or via request body
 	std::string name;
 	if (tokens.size() == 2)
-		name = tokens[1];
+		name = tokens[1].str();
 	else if (!loadParam("name", name))
 		return false;
 
@@ -546,7 +546,7 @@ bool ApiReqeust::create()
 // - health-check-interval
 bool ApiReqeust::update()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/");
+	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() == 0 || tokens.size() > 2) {
 		request_->log(Severity::error, "director: Invalid formed request path.");
 		request_->status = x0::HttpStatus::BadRequest;
@@ -558,14 +558,14 @@ bool ApiReqeust::update()
 	if (!director) {
 		request_->log(Severity::error,
 			"director: Failed to update a resource with director '%s' not found (from path: '%s').",
-			tokens[0].c_str(), path_.ref(1).str().c_str());
+			tokens[0].str().c_str(), path_.ref(1).str().c_str());
 		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 		return true;
 	}
 
 	if (tokens.size() == 2)
-		return updateBackend(director, tokens[1]);
+		return updateBackend(director, tokens[1].str());
 	else
 		return updateDirector(director);
 }
@@ -712,7 +712,7 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 // delete a backend
 bool ApiReqeust::destroy()
 {
-	auto tokens = tokenize(path_.ref(1).str(), "/");
+	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() != 2) {
 		request_->log(Severity::error, "director: Could not delete backend. Invalid request path '%s'.",
 			path_.str().c_str());
@@ -725,7 +725,7 @@ bool ApiReqeust::destroy()
 	Director* director = findDirector(tokens[0]);
 	if (!director) {
 		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director not found.",
-			tokens[1].c_str(), tokens[0].c_str());
+			tokens[1].str().c_str(), tokens[0].str().c_str());
 
 		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
@@ -734,17 +734,17 @@ bool ApiReqeust::destroy()
 
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director immutable.",
-			tokens[1].c_str(), tokens[0].c_str());
+			tokens[1].str().c_str(), tokens[0].str().c_str());
 
 		request_->status = x0::HttpStatus::Forbidden;
 		request_->finish();
 		return true;
 	}
 
-	Backend* backend = director->findBackend(tokens[1]);
+	Backend* backend = director->findBackend(tokens[1].str());
 	if (!backend) {
 		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Backend not found.",
-			tokens[1].c_str(), tokens[0].c_str());
+			tokens[1].str().c_str(), tokens[0].str().c_str());
 
 		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
@@ -762,7 +762,7 @@ bool ApiReqeust::destroy()
 	director->save();
 
 	request_->log(Severity::error, "director: Deleting backend '%s' at director '%s'.",
-		tokens[1].c_str(), tokens[0].c_str());
+		tokens[1].str().c_str(), tokens[0].str().c_str());
 
 	request_->status = x0::HttpStatus::Accepted;
 	request_->finish();
@@ -770,9 +770,9 @@ bool ApiReqeust::destroy()
 	return true;
 }
 
-std::vector<std::string> ApiReqeust::tokenize(const std::string& input, const std::string& delimiter)
+std::vector<x0::BufferRef> ApiReqeust::tokenize(const x0::BufferRef& input, const std::string& delimiter)
 {
-	x0::StringTokenizer st(input, delimiter);
+	x0::Tokenizer<BufferRef, Buffer> st(input.str(), delimiter);
 	return st.tokenize();
 }
 

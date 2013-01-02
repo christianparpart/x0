@@ -38,6 +38,12 @@ void TextFormatter::print(unsigned long long value, char /*fmt*/)
 void TextFormatter::print(const char* value, char /*fmt*/)
 	{ *output_ << value; }
 
+void TextFormatter::print(const Buffer& value, char /*fmt*/)
+	{ *output_ << value; }
+
+void TextFormatter::print(const BufferRef& value, char /*fmt*/)
+	{ *output_ << value; }
+
 void __f() {
 	TextFormatter::print("Hello, %s", 42);
 }

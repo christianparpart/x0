@@ -59,7 +59,6 @@ bool Buffer::setCapacity(std::size_t value)
 	}
 }
 
-// TODO: move to BufferRef and let this one invoke BufferRef's
 void Buffer::dump(const void *bytes, std::size_t length, const char *description)
 {
 	static char hex[] = "0123456789ABCDEF";
@@ -78,8 +77,7 @@ void Buffer::dump(const void *bytes, std::size_t length, const char *description
 	else
 		std::printf("Memory dump (%ld bytes):\n", length);
 
-	while (length > 0)
-	{
+	while (length > 0) {
 		char *u = line;
 		char *v = u + HEX_WIDTH;
 

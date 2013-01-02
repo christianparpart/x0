@@ -10,13 +10,8 @@
 #include "Director.h"
 #include "Backend.h"
 
-#if 1 // !defined(NDEBUG)
-#	define TRACE(msg...) { \
-		char buf[4096]; \
-		int n = snprintf(buf, sizeof(buf), "LeastLoadScheduler[%d]: ", x0::HttpWorker::currentId()); \
-		snprintf(buf + n, sizeof(buf) - n, msg); \
-		DEBUG("%s", buf); \
-	}
+#if !defined(NDEBUG)
+#	define TRACE(level, msg...) log(Severity::debug ## level, "http-request: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
@@ -187,12 +182,12 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 
 	for (auto backend: director_->backendsWith(role)) {
 		if (!backend->isEnabled()) {
-			//TRACE("tryProcess: skipping backend %s (disabled)", backend->name().c_str());
+			//TRACE(2, "tryProcess: skipping backend %s (disabled)", backend->name().c_str());
 			continue;
 		}
 
 		if (!backend->healthMonitor()->isOnline()) {
-			//TRACE("tryProcess: skipping backend %s (offline)", backend->name().c_str());
+			//TRACE(2, "tryProcess: skipping backend %s (offline)", backend->name().c_str());
 			continue;
 		}
 
@@ -258,11 +253,11 @@ bool LeastLoadScheduler::tryProcess(HttpRequest* r, Backend* backend)
 
 void LeastLoadScheduler::updateQueueTimer()
 {
-	TRACE("updateQueueTimer()");
+	TRACE(2, "updateQueueTimer()");
 
 	// quickly return if queue-timer is already running
 	if (queueTimer_.is_active()) {
-		TRACE("updateQueueTimer: timer is active, returning");
+		TRACE(2, "updateQueueTimer: timer is active, returning");
 		return;
 	}
 
@@ -272,7 +267,7 @@ void LeastLoadScheduler::updateQueueTimer()
 		auto notes = director_->requestNotes(r);
 		TimeSpan age(r->connection.worker().now() - notes->ctime);
 
-		TRACE("ctime(%s), now(%s), age(%s)",
+		TRACE(2, "ctime(%s), now(%s), age(%s)",
 			notes->ctime.http_str().c_str(),
 			r->connection.worker().now().http_str().c_str(),
 			age.str().c_str());
@@ -280,12 +275,12 @@ void LeastLoadScheduler::updateQueueTimer()
 		if (age < director_->queueTimeout())
 			break;
 
-		TRACE("updateQueueTimer: dequeueing timed out request");
+		TRACE(2, "updateQueueTimer: dequeueing timed out request");
 		queue_.pop_front();
 		--queued_;
 
 		r->post([this, r]() {
-			TRACE("updateQueueTimer: killing request with 503");
+			TRACE(2, "updateQueueTimer: killing request with 503");
 
 			r->log(Severity::info, "Queued request timed out. Dropping.");
 			r->status = HttpStatus::ServiceUnavailable;
@@ -301,7 +296,7 @@ void LeastLoadScheduler::updateQueueTimer()
 	}
 
 	if (queue_.empty()) {
-		TRACE("updateQueueTimer: queue empty. not starting new timer.");
+		TRACE(2, "updateQueueTimer: queue empty. not starting new timer.");
 		return;
 	}
 
@@ -310,7 +305,7 @@ void LeastLoadScheduler::updateQueueTimer()
 	auto notes = director_->requestNotes(r);
 	TimeSpan age(r->connection.worker().now() - notes->ctime);
 	TimeSpan ttl(director_->queueTimeout() - age);
-	TRACE("updateQueueTimer: starting new timer with ttl %f (%zu)", ttl.value(), ttl.totalMilliseconds());
+	TRACE(2, "updateQueueTimer: starting new timer with ttl %f (%zu)", ttl.value(), ttl.totalMilliseconds());
 	queueTimer_.start(ttl.value(), 0);
 	director_->worker()->wakeup();
 }

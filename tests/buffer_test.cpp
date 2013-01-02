@@ -1,5 +1,4 @@
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/ConstBuffer.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
@@ -29,7 +28,6 @@ public:
 		CPPUNIT_TEST(push_back);
 		CPPUNIT_TEST(random_access);
 		CPPUNIT_TEST(ref);
-		CPPUNIT_TEST(call);
 		CPPUNIT_TEST(std_string);
 
 		// ConstBuffer
@@ -250,17 +248,6 @@ private:
 		CPPUNIT_ASSERT(a.ref(5) == "");
 	}
 
-	void call()
-	{
-		x0::ConstBuffer a("hello");
-
-		CPPUNIT_ASSERT(a() == "hello");
-		CPPUNIT_ASSERT(a(0) == "hello");
-		CPPUNIT_ASSERT(a(1) == "ello");
-		CPPUNIT_ASSERT(a(2) == "llo");
-		CPPUNIT_ASSERT(a(5) == "");
-	}
-
 	void std_string()
 	{
 		// test std::string() utility functions
@@ -360,7 +347,7 @@ private:
 	void ref_begins()
 	{
 		x0::ConstBuffer b("hello");
-		x0::BufferRef v(b);
+		x0::BufferRef v(b.ref());
 
 		CPPUNIT_ASSERT(v.begins((const char *)0));
 		CPPUNIT_ASSERT(v.begins(""));
@@ -374,29 +361,29 @@ private:
 	void ref_as_bool()
 	{
 		// true
-		CPPUNIT_ASSERT(x0::ConstBuffer("true").as<bool>() == true);
-		CPPUNIT_ASSERT(x0::ConstBuffer("TRUE").as<bool>() == true);
-		CPPUNIT_ASSERT(x0::ConstBuffer("True").as<bool>() == true);
-		CPPUNIT_ASSERT(x0::ConstBuffer("1").as<bool>() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("true").toBool() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("TRUE").toBool() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("True").toBool() == true);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1").toBool() == true);
 
 		// false
-		CPPUNIT_ASSERT(!x0::ConstBuffer("false").as<bool>());
-		CPPUNIT_ASSERT(!x0::ConstBuffer("FALSE").as<bool>());
-		CPPUNIT_ASSERT(!x0::ConstBuffer("False").as<bool>());
-		CPPUNIT_ASSERT(!x0::ConstBuffer("0").as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("false").toBool());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("FALSE").toBool());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("False").toBool());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("0").toBool());
 
 		// invalid cast results into false
-		CPPUNIT_ASSERT(!x0::ConstBuffer("BLAH").as<bool>());
+		CPPUNIT_ASSERT(!x0::ConstBuffer("BLAH").toBool());
 	}
 
 	void ref_as_int()
 	{
-		CPPUNIT_ASSERT(x0::ConstBuffer("1234").as<int>() == 1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("1234").toInt() == 1234);
 
-		CPPUNIT_ASSERT(x0::ConstBuffer("-1234").as<int>() == -1234);
-		CPPUNIT_ASSERT(x0::ConstBuffer("+1234").as<int>() == +1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("-1234").toInt() == -1234);
+		CPPUNIT_ASSERT(x0::ConstBuffer("+1234").toInt() == +1234);
 
-		CPPUNIT_ASSERT(x0::ConstBuffer("12.34").as<int>() == 12);
+		CPPUNIT_ASSERT(x0::ConstBuffer("12.34").toInt() == 12);
 	}
 
 	void ref_hex()

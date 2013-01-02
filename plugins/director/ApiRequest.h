@@ -13,7 +13,6 @@
 #include "HealthMonitor.h"
 
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/TimeSpan.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/http/HttpRequest.h>
@@ -50,7 +49,7 @@ public:
 	static bool process(DirectorMap* directors, x0::HttpRequest* r, const x0::BufferRef& path);
 
 protected:
-	Director* findDirector(const std::string& name);
+	Director* findDirector(const x0::BufferRef& name);
 	bool hasParam(const std::string& key) const;
 	bool loadParam(const std::string& key, bool& result);
 	bool loadParam(const std::string& key, int& result);
@@ -77,5 +76,5 @@ private:
 	bool destroy();
 
 	// helper
-	std::vector<std::string> tokenize(const std::string& input, const std::string& delimiter);
+	std::vector<x0::BufferRef> tokenize(const x0::BufferRef& input, const std::string& delimiter);
 };

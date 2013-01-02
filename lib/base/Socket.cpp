@@ -9,7 +9,6 @@
 #include <x0/Socket.h>
 #include <x0/SocketSpec.h>
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/Defines.h>
 #include <x0/StackTrace.h>
 #include <x0/io/Pipe.h>

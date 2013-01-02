@@ -28,7 +28,7 @@ ssize_t FilterSource::sendto(Sink& sink)
 		if (rv < 0 || (rv == 0 && !force_))
 			return rv;
 
-		buffer_ = (*filter_)(input.buffer());
+		buffer_ = (*filter_)(input.buffer().ref());
 	}
 
 	ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);

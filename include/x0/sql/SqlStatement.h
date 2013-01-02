@@ -92,7 +92,6 @@ public:
 
 public:
 	SqlStatement();
-	SqlStatement(MYSQL *c, const char *s);
 	~SqlStatement();
 
 	bool isError() const;

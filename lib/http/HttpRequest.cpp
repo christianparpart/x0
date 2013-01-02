@@ -112,8 +112,8 @@ bool HttpRequest::setUri(const BufferRef& uri)
 	};
 #endif
 
-	const char* i = unparsedUri.begin();
-	const char* e = unparsedUri.end() + 1;
+	const char* i = unparsedUri.cbegin();
+	const char* e = unparsedUri.cend() + 1;
 
 	int depth = 0;
 	UriState state = UriState::Content;
@@ -127,7 +127,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
 #endif
 
 	while (i != e) {
-		TRACE(1, "parse-uri: ch:%c, i:%c, state:%s, depth:%d", ch, *i, uriStateNames[(int) state], depth);
+		TRACE(2, "parse-uri: ch:%c, i:%c, state:%s, depth:%d", ch, *i, uriStateNames[(int) state], depth);
 
 		switch (state) {
 			case UriState::Content:
@@ -323,7 +323,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
 				}
 
 				// XXX (i - 1) because i points to the next byte already
-				query = BufferRef(i - 1, e - i);
+				query = unparsedUri.ref((i - unparsedUri.cbegin()) - 1, e - i);
 				goto done;
 			default:
 				log(Severity::debug, "Internal error. Unhandled state");
@@ -341,7 +341,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
 	}
 
 done:
-	TRACE(1, "parse-uri: success. path:%s, query:%s, depth:%d, state:%s", path.c_str(), query.str().c_str(), depth, uriStateNames[(int) state]);
+	TRACE(2, "parse-uri: success. path:%s, query:%s, depth:%d, state:%s", path.c_str(), query.str().c_str(), depth, uriStateNames[(int) state]);
 	directoryDepth_ = depth;
 	return true;
 }

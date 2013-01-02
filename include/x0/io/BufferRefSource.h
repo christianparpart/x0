@@ -10,7 +10,6 @@
 #define sw_x0_io_BufferRefSource_hpp 1
 
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/io/Source.h>
 #include <memory>
 
@@ -27,6 +26,7 @@ class X0_API BufferRefSource :
 	public Source
 {
 public:
+	explicit BufferRefSource(const Buffer& data);
 	explicit BufferRefSource(const BufferRef& data);
 	explicit BufferRefSource(BufferRef&& data);
 	~BufferRefSource();
@@ -45,6 +45,11 @@ private:
 //@}
 
 // {{{ inlines
+inline BufferRefSource::BufferRefSource(const Buffer& data) :
+	buffer_(data.ref()), pos_(0)
+{
+}
+
 inline BufferRefSource::BufferRefSource(const BufferRef& data) :
 	buffer_(data), pos_(0)
 {

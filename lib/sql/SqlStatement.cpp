@@ -11,8 +11,9 @@
 #include <errmsg.h>
 #include <unistd.h>
 
-#if 1 // !defined(NDEBUG)
-#	define TRACE(msg...) DEBUG(msg)
+#if 0 // !defined(NDEBUG)
+//#	define TRACE(msg...) DEBUG(msg)
+#	define TRACE(msg...) { printf("SqlStatement: " msg); printf("\n"); }
 #else
 #	define TRACE(msg...) do { } while (0)
 #endif
@@ -466,7 +467,7 @@ bool SqlStatement::bindParam<unsigned long long>(const unsigned long long& value
 template<>
 bool SqlStatement::bindParam<std::string>(const std::string& value)
 {
-	DEBUG("bind string");
+	TRACE("bind string");
 	MYSQL_BIND *b = getParam();
 	memset(b, 0, sizeof(*b));
 	b->buffer_type = MYSQL_TYPE_STRING;

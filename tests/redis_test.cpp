@@ -3,7 +3,6 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <x0/cache/Redis.h>
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <iostream>
 #include <cstdlib>
 #include <cctype>

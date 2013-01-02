@@ -112,11 +112,11 @@ Buffer Base64::decode(const BufferRef& input)
 	output.reserve(1 + decodeLen);
 
 	size_t nbleft = 0;
-	for (auto i = input.begin(), e = input.end(); i != e && pr2six_[static_cast<int>(*i)] != 64; ++i)
+	for (auto i = input.cbegin(), e = input.cend(); i != e && pr2six_[static_cast<int>(*i)] != 64; ++i)
 		++nbleft;
 
-	unsigned char* inp = (unsigned char*) input.data();
-	unsigned char* outp = (unsigned char*) output.data();
+	const unsigned char* inp = (const unsigned char*) &input[0];
+	unsigned char* outp = (unsigned char*) &output[0];
 
 	while (nbleft > 4) {
 		*outp++ = (unsigned char) (pr2six_[inp[0]] << 2 | pr2six_[inp[1]] >> 4);

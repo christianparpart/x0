@@ -21,7 +21,6 @@
 #include <x0/Logging.h>
 #include <x0/Severity.h>
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
@@ -331,6 +330,8 @@ public:
 	template<typename... Args>
 	void log(Severity s, Args&&... args);
 
+	void log(LogMessage&& msg);
+
 	// response
 	HttpStatus status;           //!< HTTP response status code.
 	HeaderList responseHeaders; //!< the headers to be included in the response.
@@ -465,10 +466,16 @@ void HttpRequest::write_cb_thunk(void* data)
 template<typename... Args>
 inline void HttpRequest::log(Severity s, Args&&... args)
 {
-	if (connection.worker().server().logLevel() < s)
-		return;
+	if (s >= connection.worker().server().logLevel()) {
+		connection.log(s, args...);
+	}
+}
 
-	connection.log(s, args...);
+inline void HttpRequest::log(LogMessage&& msg)
+{
+	if (msg.severity() >= connection.worker().server().logLevel()) {
+		connection.log(std::move(msg));
+	}
 }
 
 /** write given source to response content and invoke the completion handler when done.

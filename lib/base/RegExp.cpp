@@ -8,7 +8,6 @@
 
 #include <x0/RegExp.h>
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <cstring>
 #include <pcre.h>
 

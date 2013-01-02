@@ -1,3 +1,4 @@
+#include <x0/Buffer.h>
 #include <x0/http/HttpMessageProcessor.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
@@ -121,7 +122,7 @@ private:
 			"Multi-Line-2:\r\n \t \tmulti value 2\r\n" // complex LWS at the beginning
 			"\r\n"
 		);
-		rp.process(r);
+		rp.process(r.ref());
 	}
 
 	void request_simple()
@@ -171,7 +172,7 @@ private:
 			"hello world"
 		);
 
-		std::size_t np = rp.process(r);
+		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size());
 	}
@@ -196,7 +197,7 @@ private:
 			return true;
 		};
 
-		std::size_t np = rp.process(r);
+		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(on_complete_invoked == true);
@@ -253,7 +254,7 @@ private:
 			"some-body"
 		);
 
-		std::size_t np = rp.process(r);
+		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(body_count == 1);
@@ -294,7 +295,7 @@ private:
 			"some body"
 		);
 
-		std::size_t np = rp.process(r);
+		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np = r.size());
 		CPPUNIT_ASSERT(body_count == 1);
@@ -352,7 +353,7 @@ private:
 			"\r\n"
 		);
 
-		std::size_t np = rp.process(r);
+		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size());
 	}
@@ -395,7 +396,7 @@ private: // message tests
 			return false;
 		};
 
-		std::size_t np = rp.process(r);
+		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
 		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageProcessor::SYNTAX_ERROR);
@@ -464,7 +465,7 @@ private: // message tests
 			return false;
 		};
 
-		std::size_t np = rp.process(r);
+		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
 		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageProcessor::SYNTAX_ERROR);
@@ -486,7 +487,7 @@ private: // message tests
 		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
 		rp.on_complete = [&]() -> bool { ++count; return true; };
 
-		std::size_t np =  rp.process(r);
+		std::size_t np =  rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size());
 		CPPUNIT_ASSERT(count == 2);

@@ -19,7 +19,6 @@
 #include <vector>
 
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 
 namespace FastCgi {
 

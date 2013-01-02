@@ -14,7 +14,7 @@
 #include "ClassfulScheduler.h"
 
 #include <x0/io/BufferSource.h>
-#include <x0/StringTokenizer.h>
+#include <x0/Tokenizer.h>
 #include <x0/IniFile.h>
 #include <x0/Url.h>
 #include <fstream>

@@ -7,7 +7,7 @@
  */
 
 #include <x0/io/FileInfoService.h>
-#include <x0/StringTokenizer.h>
+#include <x0/Tokenizer.h>
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
 
@@ -164,21 +164,21 @@ void FileInfoService::onFileChanged(ev::io& w, int revents)
 
 void FileInfoService::Config::loadMimetypes(const std::string& filename)
 {
-	std::string input(x0::read_file(filename));
-	auto lines = StringTokenizer::tokenize(input, "\n");
+	Buffer input(x0::read_file(filename));
+	auto lines = Tokenizer<BufferRef, Buffer>::tokenize(input, "\n");
 
 	mimetypes.clear();
 
 	for (auto line: lines) {
-		line = x0::trim(line);
-		auto columns = StringTokenizer::tokenize(line, " \t");
+		line = line.trim();
+		auto columns = Tokenizer<BufferRef, BufferRef>::tokenize(line, " \t");
 
 		auto ci = columns.begin(), ce = columns.end();
-		std::string mime = ci != ce ? *ci++ : std::string();
+		BufferRef mime = ci != ce ? *ci++ : BufferRef();
 
 		if (!mime.empty() && mime[0] != '#') {
 			for (; ci != ce; ++ci) {
-				mimetypes[*ci] = mime;
+				mimetypes[ci->str()] = mime.str();
 			}
 		}
 	}

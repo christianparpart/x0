@@ -6,14 +6,13 @@
  * (c) 2009-2012 Christian Parpart <trapni@gentoo.org>
  */
 
-#include <x0/StringTokenizer.h>
+#include <x0/Tokenizer.h>
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <string>
 
 namespace x0 {
 
-template class Tokenizer<std::string>;
-template class Tokenizer<BufferRef>;
+template class Tokenizer<BufferRef, Buffer>;
+template class Tokenizer<BufferRef, BufferRef>;
 
 } // namespace x0

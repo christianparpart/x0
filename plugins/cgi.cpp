@@ -317,19 +317,17 @@ inline void CgiScript::runAsync()
 	//environment["REMOTE_USER"] = "";
 	//environment["REMOTE_IDENT"] = "";
 
-	if (request_->contentAvailable())
-	{
+	if (request_->contentAvailable()) {
 		environment["CONTENT_TYPE"] = request_->requestHeader("Content-Type").str();
 		environment["CONTENT_LENGTH"] = request_->requestHeader("Content-Length").str();
 
 		request_->setBodyCallback<CgiScript, &CgiScript::onStdinAvailable>(this);
-	}
-	else
+	} else {
 		process_.closeInput();
+	}
 
 #if defined(WITH_SSL)
-	if (request_->connection.isSecure())
-	{
+	if (request_->connection.isSecure()) {
 		environment["HTTPS"] = "1";
 	}
 #endif
@@ -338,18 +336,14 @@ inline void CgiScript::runAsync()
 	environment["DOCUMENT_ROOT"] = request_->documentRoot;
 
 	// HTTP request headers
-	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i)
-	{
-		std::string key;
-		key.reserve(5 + i->name.size());
-		key += "HTTP_";
+	for (auto i = request_->requestHeaders.begin(), e = request_->requestHeaders.end(); i != e; ++i) {
+		x0::Buffer key;
+		key.push_back("HTTP_");
 
-		for (auto p = i->name.begin(), q = i->name.end(); p != q; ++p)
-		{
-			key += std::isalnum(*p) ? std::toupper(*p) : '_';
-		}
+		for (auto ch: i->name)
+			key.push_back(std::isalnum(ch) ? std::toupper(ch) : '_');
 
-		environment[key] = i->value.str();
+		environment[key.c_str()] = i->value.str();
 	}
 
 	// platfrom specifics
@@ -623,7 +617,7 @@ void CgiScript::onStdoutWritten()
 
 	if (stdoutTransferBuffer_.size() > 0) {
 		TRACE("flushing stdoutBuffer (%ld)", stdoutTransferBuffer_.size());
-		request_->write<x0::BufferRefSource>(std::move(stdoutTransferBuffer_));
+		request_->write<x0::BufferRefSource>(stdoutTransferBuffer_.ref());
 		request_->writeCallback<CgiScript, &CgiScript::onStdoutWritten>(this);
 	} else {
 		TRACE("stdout: watch");

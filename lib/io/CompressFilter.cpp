@@ -66,11 +66,11 @@ Buffer DeflateFilter::process(const BufferRef& input)
 	}
 */
 	z_.total_out = 0;
-	z_.next_in = reinterpret_cast<Bytef *>(input.begin());
+	z_.next_in = (Bytef*) input.cbegin();
 	z_.avail_in = input.size();
 
 	Buffer output(input.size() * 1.1 + 12 + 18);
-	z_.next_out = reinterpret_cast<Bytef *>(output.end());
+	z_.next_out = (Bytef*) output.end();
 	z_.avail_out = output.capacity();
 
 	do
@@ -139,7 +139,7 @@ Buffer BZip2Filter::process(const BufferRef& input)
 	if (rv != BZ_OK)
 		return Buffer();
 
-	bz_.next_in = input.begin();
+	bz_.next_in = (char*) input.cbegin();
 	bz_.avail_in = input.size();
 	bz_.total_in_lo32 = 0;
 	bz_.total_in_hi32 = 0;

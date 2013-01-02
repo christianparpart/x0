@@ -11,7 +11,6 @@
 #include "SslContext.h"
 #include <x0/Defines.h>
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 
 #include <gnutls/gnutls.h>
 

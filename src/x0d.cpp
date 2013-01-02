@@ -10,7 +10,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpCore.h>
 #include <x0/flow/FlowRunner.h>
-#include <x0/StringTokenizer.h>
+#include <x0/Tokenizer.h>
 #include <x0/Logger.h>
 #include <x0/DateTime.h>
 #include <x0/strutils.h>
@@ -196,7 +196,7 @@ private:
 	std::string logFile_;
 	Severity logLevel_;
 
-	std::string instant_;
+	x0::Buffer instant_;
 	std::string documentRoot_;
 
 	int nofork_;
@@ -694,10 +694,10 @@ bool XzeroHttpDaemon::setupConfig()
 
 	// --instant=docroot[,port[,bind]]
 
-	auto tokens = x0::StringTokenizer::tokenize(instant_, ",");
-	documentRoot_ = tokens.size() > 0 ? tokens[0] : "";
-	int port = tokens.size() > 1 ? std::atoi(tokens[1].c_str()) : 0;
-	std::string bind = tokens.size() > 2 ? tokens[2] : "";
+	auto tokens = x0::Tokenizer<x0::BufferRef, x0::Buffer>::tokenize(instant_, ",");
+	documentRoot_ = tokens.size() > 0 ? tokens[0].str() : "";
+	int port = tokens.size() > 1 ? tokens[1].toInt() : 0;
+	std::string bind = tokens.size() > 2 ? tokens[2].str() : "";
 
 	if (documentRoot_.empty())
 		documentRoot_ = getcwd();
@@ -716,6 +716,9 @@ bool XzeroHttpDaemon::setupConfig()
 
 	if (bind.empty())
 		bind = "::"; //"0.0.0.0"; //TODO: "0::0";
+
+	log(x0::Severity::debug, "docroot: %s", documentRoot_.c_str());
+	log(x0::Severity::debug, "listen: addr=%s, port=%d", bind.c_str(), port);
 
 	std::string source(
 		"import compress\n"
@@ -737,8 +740,10 @@ bool XzeroHttpDaemon::setupConfig()
 		"}\n"
 	);
 	gsub(source, "#{docroot}", documentRoot_);
-	gsub(source, "#{bind}", bind);
+	gsub(source, "#{bind}", bind); // FIXME <--- bind to 1 instead of "::" lol
 	gsub(source, "#{port}", port);
+
+	log(x0::Severity::debug2, "source: %s", source.c_str());
 
 	server_->tcpCork(true);
 

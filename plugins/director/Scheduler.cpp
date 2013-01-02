@@ -12,9 +12,6 @@
 #include <x0/http/HttpWorker.h>
 
 Scheduler::Scheduler(Director* d) :
-#if !defined(NDEBUG)
-	x0::Logging("Scheduler/%s", d->name().c_str()),
-#endif
 	director_(d),
 	load_(),
 	queued_(),
@@ -51,4 +48,12 @@ bool Scheduler::load(x0::IniFile& settings)
 bool Scheduler::save(x0::Buffer& out)
 {
 	return true;
+}
+
+void Scheduler::log(x0::LogMessage& msg)
+{
+	msg.addTag("scheduler");
+	msg.addTag("director/%s", director()->name().c_str());
+	director()->worker()->log(std::move(msg));
+	// TODO use director()->log(...) instead, to addTag(director()->name() there)
 }

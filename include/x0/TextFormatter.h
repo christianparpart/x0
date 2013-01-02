@@ -49,6 +49,8 @@ public:
 	void print(unsigned long value, char fmt);
 	void print(unsigned long long value, char fmt);
 	void print(const char* value, char fmt);
+	void print(const Buffer& value, char fmt);
+	void print(const BufferRef& value, char fmt);
 };
 
 template<typename Domain, typename... Args>

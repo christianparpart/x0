@@ -10,7 +10,6 @@
 #define sw_x0_message_processor_h (1)
 
 #include <x0/Buffer.h>
-#include <x0/BufferRef.h>
 #include <x0/io/ChainFilter.h>
 #include <x0/Defines.h>
 #include <x0/Api.h>
