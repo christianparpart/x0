@@ -49,7 +49,10 @@
 #include <fcntl.h>
 
 #if 1 //!defined(NDEBUG)
-#	define TRACE(level, msg...) log(Severity::debug ## level, msg)
+#	define TRACE(level, msg...) { \
+		static_assert((level) >= 1 && (level) <= 5, "TRACE()-level must be between 1 and 5, matching Severity::debugN values."); \
+		log(Severity::debug ## level, msg); \
+	}
 #else
 #	define TRACE(msg...) /*!*/
 #endif
