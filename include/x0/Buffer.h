@@ -31,17 +31,17 @@ template<>
 struct BufferTraits<char*> {
 	typedef char value_type;
 	typedef char& reference_type;
-	typedef value_type * iterator;
-	typedef const value_type * const_iterator;
+	typedef char* pointer_type;
+	typedef char* iterator;
+	typedef const char* const_iterator;
 	typedef char* data_type;
-	typedef Buffer buffer_type;
 };
 
 /**
  * \brief helper class for BufferRef to point inside a Buffer.
  */
 struct BufferOffset {
-	Buffer* buffer_;
+	mutable Buffer* buffer_;
 	size_t offset_;
 
 	BufferOffset() :
@@ -89,10 +89,10 @@ template<>
 struct BufferTraits<Buffer> {
 	typedef char value_type;
 	typedef char& reference_type;
-	typedef value_type * iterator;
-	typedef const value_type * const_iterator;
+	typedef char* pointer_type;
+	typedef char* iterator;
+	typedef const char* const_iterator;
 	typedef BufferOffset data_type;
-	typedef BufferRef buffer_type;
 };
 // }}}
 // {{{ BufferBase<T>
@@ -102,9 +102,9 @@ class X0_API BufferBase
 public:
 	typedef typename BufferTraits<T>::value_type value_type;
 	typedef typename BufferTraits<T>::reference_type reference_type;
+	typedef typename BufferTraits<T>::pointer_type pointer_type;
 	typedef typename BufferTraits<T>::iterator iterator;
 	typedef typename BufferTraits<T>::const_iterator const_iterator;
-	typedef typename BufferTraits<T>::buffer_type buffer_type;
 	typedef typename BufferTraits<T>::data_type data_type;
 
 	static const size_t npos = size_t(-1);
@@ -130,8 +130,10 @@ public:
 	}
 
 	// properties
-	data_type data() const { return data_; }
-	reference_type at(size_t offset) const { return data()[offset]; }
+	pointer_type data() { return data_; }
+	const pointer_type data() const { return const_cast<BufferBase<T>*>(this)->data_; }
+	reference_type at(size_t offset) { return data()[offset]; }
+	const reference_type at(size_t offset) const { return data()[offset]; }
 	size_t size() const { return size_; }
 
 	bool empty() const { return size_ == 0; }
@@ -323,7 +325,8 @@ public:
 	void shr(ssize_t offset = 1);
 
 	// random access
-	reference_type operator[](size_t offset) const { return data()[offset]; }
+	reference_type operator[](size_t offset) { return data()[offset]; }
+	const reference_type operator[](size_t offset) const { return data()[offset]; }
 
 	Buffer* buffer() const { return data_.buffer(); }
 };
