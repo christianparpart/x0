@@ -64,6 +64,8 @@ DirectorPlugin::~DirectorPlugin()
 {
 	for (auto director: directors_)
 		delete director.second;
+
+	delete roadWarrior_;
 }
 
 // {{{ setup_function director.load(...)
