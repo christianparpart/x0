@@ -660,6 +660,10 @@ void FastCgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus proto
 				log(Severity::error, "Backend appliation terminated request because it cannot handle this role.");
 				request_->status = HttpStatus::InternalServerError;
 				break;
+			default:
+				log(Severity::error, "Backend appliation terminated request with unknown error code %d.", static_cast<int>(protocolStatus));
+				request_->status = HttpStatus::InternalServerError;
+				break;
 		}
 	}
 
