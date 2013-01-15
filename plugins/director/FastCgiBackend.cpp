@@ -649,15 +649,15 @@ void FastCgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus proto
 				request_->status = HttpStatus::Ok;
 				break;
 			case FastCgi::ProtocolStatus::CannotMpxConnection:
-				log(Severity::error, "Backend appliation terminated requested because it says it cannot multiplex connections.");
+				log(Severity::error, "Backend appliation terminated request because it says it cannot multiplex connections.");
 				request_->status = HttpStatus::InternalServerError;
 				break;
 			case FastCgi::ProtocolStatus::Overloaded:
-				log(Severity::error, "Backend appliation terminated requested because it says it is overloaded.");
+				log(Severity::error, "Backend appliation terminated request because it says it is overloaded.");
 				request_->status = HttpStatus::ServiceUnavailable;
 				break;
 			case FastCgi::ProtocolStatus::UnknownRole:
-				log(Severity::error, "Backend appliation terminated requested because it cannot handle this role.");
+				log(Severity::error, "Backend appliation terminated request because it cannot handle this role.");
 				request_->status = HttpStatus::InternalServerError;
 				break;
 		}
