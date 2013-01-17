@@ -48,7 +48,7 @@ inline void PerformanceCounter<PERIOD, T>::clear()
 	for (auto& i: counter_)
 		i = 0;
 
-	last_ = 0;
+	last_ = 1;
 }
 
 template<const unsigned PERIOD, typename T>
