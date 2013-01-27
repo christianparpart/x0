@@ -911,6 +911,11 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 	snprintf(logLevel, sizeof(logLevel), "%d", static_cast<int>(logLevel_));
 	args.push_back(logLevel);
 
+	if (!pidfile_.empty()) {
+		args.push_back("--pid-file");
+		args.push_back(pidfile_.c_str());
+	}
+
 	args.push_back("--no-fork"); // we never fork (potentially again)
 	args.push_back(nullptr);
 
