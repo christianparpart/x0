@@ -938,6 +938,9 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 			child_.set(childPid, 0);
 			child_.start();
 
+			// we lost ownership of the PID file, if we had one as the child overwrites it.
+			pidfile_ = "";
+
 			// FIXME do we want a reexecTimeout, to handle possible cases where the child is not calling back? to kill them, if so!
 			break;
 	}
