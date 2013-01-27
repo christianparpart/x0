@@ -901,7 +901,7 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 	args.push_back("--log-target");
 	args.push_back(logTarget_.c_str());
 
-	if (!logFile_.empty()) {
+	if (!logFile_.empty() && instant_.empty()) {
 		args.push_back("--log-file");
 		args.push_back(logFile_.c_str());
 	}
