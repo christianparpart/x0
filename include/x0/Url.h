@@ -10,13 +10,17 @@
 #define sw_x0_url_hpp (1)
 
 #include <x0/Api.h>
+#include <x0/Buffer.h>
 #include <string>
+#include <unordered_map>
 
 namespace x0 {
 
 class X0_API Url
 {
 public:
+	typedef std::unordered_map<std::string, std::string> ArgsMap;
+
 	static Url parse(const std::string& url);
 
 	Url();
@@ -35,6 +39,19 @@ public:
 	const std::string& query() const { return query_; }
 	const std::string& fragment() const { return fragment_; }
 
+	// helper
+
+	ArgsMap parseQuery() const { return parseQuery(query_.data(), query_.data() + query_.size()); }
+
+	static ArgsMap parseQuery(const std::string& query) { return parseQuery(query.data(), query.data() + query.size()); }
+	static std::string decode(const std::string& value) { return decode(value.data(), value.data() + value.size()); }
+
+	static ArgsMap parseQuery(const BufferRef& query) { return parseQuery(query.data(), query.data() + query.size()); }
+	static std::string decode(const BufferRef& value) { return decode(value.data(), value.data() + value.size()); }
+
+	static ArgsMap parseQuery(const char* begin, const char* end);
+	static std::string decode(const char* begin, const char* end);
+
 private:
 	std::string protocol_;
 	std::string username_;
@@ -49,6 +66,68 @@ private:
 X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path, std::string& query);
 X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port, std::string& path);
 X0_API bool parseUrl(const std::string& spec, std::string& protocol, std::string& hostname, int& port);
+
+// {{{ inline impl
+inline std::string Url::decode(const char* begin, const char* end) {
+	Buffer sb;
+
+	for (const char* i = begin; i != end; ++i) {
+		if (*i == '%') {
+			char snum[3] = { *i, *++i, '\0' };
+			sb.push_back((char)(strtol(snum, 0, 16) & 0xFF));
+		} else if (*i == '+') {
+			sb.push_back(' ');
+		} else {
+			sb.push_back(*i);
+		}
+	}
+	return sb.str();
+}
+
+inline Url::ArgsMap Url::parseQuery(const char* begin, const char* end)
+{
+	ArgsMap args;
+
+	for (const char *p = begin; p != end; ) {
+		size_t len = 0;
+		const char *q = p;
+
+		while (*q && *q != '=' && *q != '&') {
+			++q;
+			++len;
+		}
+
+		if (len) {
+			std::string name(p, 0, len);
+			p += *q == '=' ? len + 1 : len;
+
+			len = 0;
+			for (q = p; *q && *q != '&'; ++q, ++len)
+				;
+
+			if (len) {
+				std::string value(p, 0, len);
+				p += len;
+
+				for (; *p == '&'; ++p)
+					; // consume '&' chars (usually just one)
+
+				args[decode(name)] = decode(value);
+			} else {
+				if (*p) {
+					++p;
+				}
+
+				args[decode(name)] = "";
+			}
+		} else if (*p) { // && or ?& or &=
+			++p;
+		}
+	}
+
+	return std::move(args);
+}
+// }}}
 
 } // namespace x0
 
