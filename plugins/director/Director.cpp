@@ -20,13 +20,7 @@
 #include <fstream>
 
 #if 1 // !defined(NDEBUG)
-//#	define TRACE(msg...) DEBUG("director: " msg)
-#	define TRACE(msg...) { \
-		char buf[4096]; \
-		int n = snprintf(buf, sizeof(buf), "director[%d]: ", x0::HttpWorker::currentId()); \
-		snprintf(buf + n, sizeof(buf) - n, msg); \
-		DEBUG("%s", buf); \
-	}
+#	define TRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
@@ -163,7 +157,7 @@ void Director::release(Backend* backend)
  */
 void Director::onStop()
 {
-	TRACE("onStop()");
+	TRACE(1, "onStop()");
 
 	for (auto& br: backends_) {
 		for (auto backend: br) {
