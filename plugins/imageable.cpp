@@ -37,6 +37,34 @@
  *   // handler to actually serve the processed image
  *   handler imageable();
  * </code>
+ *
+ * HTTP API:
+ *
+ * Image processing actions are passed as URL query arguments.
+ * <code>
+ *  ACTION ::= RESIZE_ACTION | CROP_ACTION | FIT_ACTION
+ * 	RESIZE_ACTION ::= '/resize/' MAGIC_HASH [PARAMS]
+ * 	CROP_ACTION ::= '/crop/' MAGIC_HASH [PARAMS]
+ * 	FIT_ACTION ::= '/fit/' MAGIC_HASH [PARAMS]
+ *
+ * 	PARAMS ::= '?' PARAM ['&' PARAM]*
+ * 	URL  ::= 'http://' hostname [':' PORT] PATH
+ * 	SIZE ::= WIDTH 'x' HEIGHT
+ * 	CROP ::= WIDTH 'x' HEIGHT ['+' X '+' Y] | 'true'
+ *
+ * 	WIDTH ::= NUMBER
+ * 	HEIGHT ::= NUMBER
+ * 	X ::= NUMBER
+ * 	Y ::= NUMBER
+ *
+ * 	NUMBER ::= [0-9]+
+ * 	MAGIC_HASH ::= [0-9a-zA-Z/.-]+
+ * </code>
+ *
+ * Example URLs:
+ * - http://i.dawanda.com/fit/7f848c35/Vorsaetze-fuer-2013.jpg  ?crop=true              &size=160x120 &url=http%3A%2F%2Fs32.dawandastatic.com%2FCampaignImage%2F193%2F193734%2F1356687119-440.jpeg
+ * - http://i.dawanda.com/fit/8809d1bf/Du-schaffst-es.jpg       ?crop=true              &size=336x252 &url=http%3A%2F%2Fs31.dawandastatic.com%2FCampaignImage%2F190%2F190098%2F1354885195-841.jpeg
+ * - http://i.dawanda.com/crop/9b9a3da6/Vorsaetze-fuer-2013.jpg ?crop=589x442%2B9%2B140 &size=336x252 &url=http%3A%2F%2Fs32.dawandastatic.com%2FCampaignImage%2F193%2F193686%2F1356685759-501.jpeg
  */
 
 #include <x0/http/HttpPlugin.h>
@@ -51,40 +79,84 @@
 
 #include <wand/MagickWand.h>
 
-#define TRACE(msg...) DEBUG("imageable: " msg)
+using namespace x0;
 
+#if 1 //!defined(NDEBUG)
+#	define TRACE(level, msg...) { \
+		static_assert((level) >= 1 && (level) <= 5, "TRACE()-level must be between 1 and 5, matching Severity::debugN values."); \
+		log(Severity::debug ## level, msg); \
+	}
+#else
+#	define TRACE(msg...) /*!*/
+#endif
+
+// {{{ UrlFetcher API
+class UrlFetcher :
+	public HttpMessageProcessor
+{
+public:
+	static UrlFetcher* fetch(HttpWorker* worker, const Url& url, const std::function<void()>& completionHandler);
+
+	UrlFetcher(HttpWorker* worker, const Url& url, const std::function<void()>& completionHandler);
+
+private:
+	void io(ev::io& io, int revents);
+	void timeout(ev::timer&);
+
+private:
+	Buffer writeBuffer_;
+	size_t writePos_;
+
+	Buffer readBuffer_;
+	size_t readPos_;
+};
+// }}}
+// {{{ Imageable API
 class Imageable
 {
 private:
-	x0::HttpRequest* request_;
+	HttpRequest* request_;
 	MagickWand* wand_;
 
 public:
-	explicit Imageable(x0::HttpRequest* r);
+	explicit Imageable(HttpRequest* r);
 	~Imageable();
 
 	void perform();
+	void processImage();
 
 private:
 	void wandError();
 };
+// }}}
+// {{{ ImageableProcessor Actor API
+class ImageableProcessor :
+	public Actor<Imageable*>
+{
+protected:
+	virtual void process(Imageable* imageable);
+};
+// }}}
 
+// {{{ UrlFetcher impl
+// }}}
+// {{{ Imageable impl
 void Imageable::wandError()
 {
 	ExceptionType severity;
 	char* description = MagickGetException(wand_, &severity);
 
-	request_->log(x0::Severity::error, "%s %s %lu %s\n", GetMagickModule(), description);
+	request_->log(Severity::error, "%s %s %lu %s\n", GetMagickModule(), description);
 
 	MagickRelinquishMemory(description);
 
-	request_->status = x0::HttpStatus::InternalServerError;
+	request_->status = HttpStatus::InternalServerError;
 	request_->finish();
 
 	delete this;
 }
 
-Imageable::Imageable(x0::HttpRequest* r) :
+Imageable::Imageable(HttpRequest* r) :
 	request_(r),
 	wand_(NewMagickWand())
 {
@@ -97,6 +169,19 @@ Imageable::~Imageable()
 
 void Imageable::perform()
 {
+	auto args = Url::parseQuery(request_->query);
+#ifndef NDEBUG
+	request_->log(Severity::debug1, "url: %s", args["url"].c_str());
+	request_->log(Severity::debug1, "size: %s", args["size"].c_str());
+	request_->log(Severity::debug1, "x: %s", args["x"].c_str());
+	request_->log(Severity::debug1, "y: %s", args["y"].c_str());
+#endif
+
+	processImage();
+}
+
+void Imageable::processImage()
+{
 	MagickBooleanType status = MagickReadImage(wand_, request_->fileinfo->path().c_str());
 
 	if (status == MagickFalse) {
@@ -106,17 +191,16 @@ void Imageable::perform()
 
 	int height = MagickGetImageHeight(wand_);
 	int width = MagickGetImageWidth(wand_);
-	int iterations = MagickGetImageIterations(wand_);
+//	int iterations = MagickGetImageIterations(wand_);
 	double x, y;
 	MagickGetImageResolution(wand_, &x, &y);
 
-	printf("width:%d, height:%d, iters:%d, x:%.2f, y:%.2f\n",
-		width, height, iterations, x, y);
+	//TRACE(1, "width:%d, height:%d, iters:%d, x:%.2f, y:%.2f", width, height, iterations, x, y);
 
 	MagickResetIterator(wand_);
 
 	while (MagickNextImage(wand_) != MagickFalse) {
-		TRACE("Resizing Image ...");
+		//TRACE(1, "Resizing Image ...");
 		printf("image format: %s\n", MagickGetImageFormat(wand_));
 		MagickResizeImage(wand_, width * 1.5, height, LanczosFilter, 1.0);
 	}
@@ -130,7 +214,7 @@ void Imageable::perform()
 
 	auto fileinfo = request_->connection.worker().fileinfo(targetPath);
 	if (!fileinfo) {
-		request_->status = x0::HttpStatus::InternalServerError;
+		request_->status = HttpStatus::InternalServerError;
 		request_->finish();
 		delete this;
 		return;
@@ -139,61 +223,45 @@ void Imageable::perform()
 	request_->responseHeaders.push_back("Content-Type", fileinfo->mimetype());
 	request_->responseHeaders.push_back("Content-Length", x0::lexical_cast<std::string>(fileinfo->size()));
 
-	request_->status = x0::HttpStatus::Ok;
+	request_->status = HttpStatus::Ok;
 
 	int fd = fileinfo->open(O_RDONLY | O_NONBLOCK);
 	if (fd < 0) {
-		request_->log(x0::Severity::error, "Could not open file: '%s': %s", fileinfo->filename().c_str(), strerror(errno));
-		request_->status = x0::HttpStatus::InternalServerError;
+		request_->log(Severity::error, "Could not open file: '%s': %s", fileinfo->filename().c_str(), strerror(errno));
+		request_->status = HttpStatus::InternalServerError;
 		request_->finish();
 		delete this;
 		return;
 	}
 
 	posix_fadvise(fd, 0, fileinfo->size(), POSIX_FADV_SEQUENTIAL);
-	request_->write<x0::FileSource>(fd, 0, fileinfo->size(), true);
+	request_->write<FileSource>(fd, 0, fileinfo->size(), true);
 	request_->finish();
 
 	delete this;
 }
-
-class UrlFetcher :
-	public x0::HttpMessageProcessor
-{
-public:
-	static UrlFetcher* fetch(x0::HttpWorker* worker, const x0::Url& url, const std::function<void()>& completionHandler);
-
-	UrlFetcher(x0::HttpWorker* worker, const x0::Url& url, const std::function<void()>& completionHandler);
-
-private:
-	void io(ev::io& io, int revents);
-	void timeout(ev::timer&);
-};
-
-class ImageableProcessor :
-	public x0::Actor<Imageable*>
-{
-protected:
-	virtual void process(Imageable* imageable);
-};
-
+// }}}
+// {{{ ImageableProcessor Actor impl
 void ImageableProcessor::process(Imageable* imageable)
 {
 	// perform the actual resize-fit-crop action, then pass response transfer job back to http worker.
 	imageable->perform();
 }
-
+// }}}
+// {{{ ImageablePlugin
 class ImageablePlugin :
-	public x0::HttpPlugin
+	public HttpPlugin
 {
 private:
 	ImageableProcessor* processor_;
 
 public:
-	ImageablePlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name),
+	ImageablePlugin(HttpServer& srv, const std::string& name) :
+		HttpPlugin(srv, name),
 		processor_(nullptr)
 	{
+		registerSetupFunction<ImageablePlugin, &ImageablePlugin::setWorkers>("imageable.workers");
+		registerSetupFunction<ImageablePlugin, &ImageablePlugin::setTTL>("imageable.ttl");
 		registerHandler<ImageablePlugin, &ImageablePlugin::handleRequest>("imageable");
 
 		MagickWandGenesis();
@@ -205,20 +273,19 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest* r, const x0::FlowParams& args)
+	void setWorkers(const FlowParams& args, FlowValue& result)
 	{
-		if (!r->fileinfo->isRegular())
-			return false;
+	}
 
-		if (r->testDirectoryTraversal())
-			return true;
+	void setTTL(const FlowParams& args, FlowValue& result)
+	{
+	}
 
-//		processor_->push_back(new Imageable(r));
-		Imageable* ir = new Imageable(r);
-		ir->perform();
-
+	virtual bool handleRequest(HttpRequest* r, const FlowParams& args)
+	{
+		processor_->push_back(new Imageable(r));
 		return true;
 	}
 };
-
 X0_EXPORT_PLUGIN_CLASS(ImageablePlugin)
+// }}}
