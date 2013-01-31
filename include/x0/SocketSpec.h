@@ -74,9 +74,9 @@ inline X0_API bool operator==(const x0::SocketSpec& a, const x0::SocketSpec& b)
 
 	switch (a.type()) {
 		case x0::SocketSpec::Local:
-			return a.port() == b.port() && a.ipaddr() == b.ipaddr();
-		case x0::SocketSpec::Inet:
 			return a.local() == b.local();
+		case x0::SocketSpec::Inet:
+			return a.port() == b.port() && a.ipaddr() == b.ipaddr();
 		default:
 			return false;
 	}
