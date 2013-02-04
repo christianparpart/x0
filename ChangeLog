@@ -25,6 +25,7 @@
 	* x0d: --log-level= renamed to --log-severity= with from 0 (lowest) to 9 (highest)
 	* x0d: --log-severity= also accepts symbolic values and introduced "notice" between "warning" and "info"
 	* x0d: added --log-target=file|console|syslog|systemd
+	* x0d: fixed PID file writing on process re-execution
 	* flow: added log.notice() and log.warn() functions
 	* flow: properly handle boolean values as boolean types (not just integer 0 and 1)
 	* flow: added support for integer modulo operation
@@ -35,6 +36,7 @@
 	* flow: added file.exists(), file.is_reg(), file.is_dir(), file.is_exe()
 	* flow: coding style cleanups and minor refactors
 	* flow: added unary +/- operators
+	* flow: added explicit casting to integers
 	* general: dropped dependency to boost framework.
 	* general: log-rotation support via SIGUSR1 implemented.
 
