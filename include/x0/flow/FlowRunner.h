@@ -79,7 +79,8 @@ private:
 		// conversion
 		bool2str,
 		int2str,
-		// strtol, strtold, ...
+		str2int,
+		buf2int,
 
 		COUNT // synthetic end of enumeration
 	}; // }}}

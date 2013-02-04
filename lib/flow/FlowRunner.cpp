@@ -1043,6 +1043,23 @@ extern "C" X0_API uint32_t flow_int2str(char* result, int64_t value)
 	// XXX we know the result buffer got pre-allocated with size of 64 bytes by the caller.
 	return snprintf(result, 64, "%lld", static_cast<long long>(value));
 }
+
+extern "C" X0_API int64_t flow_str2int(const char* value)
+{
+	return atoll(value);
+}
+
+extern "C" X0_API int64_t flow_buf2int(const char* value, int64_t len)
+{
+	int64_t result = 0;
+
+	while (len > 0 && std::isdigit(*value)) {
+		result += *value - '0';
+		result *= 10;
+	}
+
+	return result;
+}
 // }}}
 
 void FlowRunner::emitCoreFunctions()
@@ -1076,6 +1093,8 @@ void FlowRunner::emitCoreFunctions()
 
 	emitCoreFunction(CF::bool2str, "flow_bool2str", stringType(), boolType(), false);
 	emitCoreFunction(CF::int2str, "flow_int2str", int32Type(), stringType(), int64Type(), false);
+	emitCoreFunction(CF::str2int, "flow_str2int", int64Type(), stringType(), false);
+	emitCoreFunction(CF::buf2int, "flow_buf2int", int64Type(), stringType(), int64Type(), false);
 }
 
 void FlowRunner::emitCoreFunction(CF id, const std::string& name, Type* rt, Type* p1, bool isVaArg)
@@ -2408,18 +2427,43 @@ void FlowRunner::visit(CastExpr& expr)
 
 	switch (expr.targetType()) {
 		case FlowValue::STRING:
-			if (isNumber(value_))
+			if (isNumber(value_)) {
+				printf("number -> string\n");
 				value_ = emitCastNumberToString(value_);
-			else if (isBool(value_))
+			} else if (isBool(value_)) {
+				printf("bool -> string\n");
 				value_ = emitCastBoolToString(value_);
-			else if (!isString(value_))
+			} else if (!isString(value_)) {
 				reportError("Invalid string cast. Unsupported source type.");
+				value_->dump();
+			}
 			break;
 		case FlowValue::NUMBER:
+			if (isCString(value_)) {
+				// cstring -> number
+				value_ = emitCoreCall(CF::str2int, value_);
+			} else if (isBuffer(value_)) {
+				// buffer -> number
+				llvm::Value* bufObj = value_;
+				llvm::Value* buf = emitLoadStringBuffer(bufObj);
+				llvm::Value* len = emitLoadStringLength(bufObj);
+				value_ = emitCoreCall(CF::buf2int, buf, len);
+			} else if (isBool(value_)) {
+				// bool -> number
+				value_ = builder_.CreateIntCast(value_, numberType(), false, "i64cast");
+			} else if (!isNumber(value_)) {
+				reportError("Invalid number cast. Unsupported source type.");
+				value_->dump();
+			}
+			break;
 		case FlowValue::BOOLEAN:
 			reportError("Invalid cast. Cast target type not yet implemented.");
+			value_->dump();
+			break;
 		default:
 			reportError("Invalid cast. Internal error.");
+			value_->dump();
+			break;
 	}
 }
 
