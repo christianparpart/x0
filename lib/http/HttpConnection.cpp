@@ -143,16 +143,17 @@ void HttpConnection::io(Socket *, int revents)
 	if ((revents & Socket::Write) && !writeSome())
 		goto done;
 
-	if (!process())
-		goto done;
-
 	switch (status()) {
 	case ReadingRequest:
+		TRACE(1, "io(): status=%s. Watch for read.", status_str());
 		watchInput(worker_->server_.maxReadIdle());
 		break;
 	case KeepAliveRead:
+		TRACE(1, "io(): status=%s. Watch for write.", status_str());
 		watchInput(worker_->server_.maxKeepAlive());
+		break;
 	default:
+		TRACE(1, "io(): status=%s. Do not touch I/O watcher.", status_str());
 		break;
 	}
 
@@ -243,10 +244,9 @@ void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWor
 		TRACE(1, "start: processing input");
 
 		// it is ensured, that we have data pending, so directly start reading
-		if (readSome())
-			process();
-		else
+		if (!readSome()) {
 			close();
+		}
 
 		TRACE(1, "start: processing input done");
 #else
@@ -638,6 +638,8 @@ bool HttpConnection::process()
 		if (state() == SYNTAX_ERROR) {
 			TRACE(1, "syntax error detected");
 			if (!request_->isFinished()) {
+				flags_ |= IsHandlingRequest;
+				setStatus(SendingReply);
 				setShouldKeepAlive(false);
 				request_->status = HttpStatus::BadRequest;
 				request_->finish();
