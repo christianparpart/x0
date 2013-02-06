@@ -2,7 +2,7 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
 
 - http:
   - BUG: proxy-request results into an endless living connection
-    "GET http://blah/foo HTTP/1.1\r\n...."
+    "GET http://blah/foo HTTP/1.1\r\n....", at: reading-request (header-name-begin)
     "refcount:1, outputState:unhandled, fd:58, timer:0, io.x0:None"
     - in local test it hang at: reading-request (lws-sp-ht-begin), but I can't reproduce again.
 - website: new documentation-focusing  website
