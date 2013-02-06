@@ -750,7 +750,7 @@ inline float BufferBase<T>::toFloat() const
 template<typename T>
 inline void BufferBase<T>::dump(const char *description) const
 {
-	Buffer::dump(data(), 60, description);
+	Buffer::dump(data(), size(), description);
 }
 
 // --------------------------------------------------------------------------
