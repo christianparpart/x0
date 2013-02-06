@@ -40,6 +40,12 @@
 #	define X0_DEPRECATED __attribute__((__deprecated__))
 #	define X0_PURE __attribute__((pure))
 #	define X0_PACKED __attribute__((packed))
+#	if !defined(likely)
+#		define likely(x) __builtin_expect((x), 1)
+#	endif
+#	if !defined(unlikely)
+#		define unlikely(x) __builtin_expect((x), 0)
+#	endif
 #elif defined(__MINGW32__)
 #	define X0_NO_EXPORT /*!*/
 #	define X0_EXPORT __declspec(export)
@@ -49,6 +55,12 @@
 #	define X0_DEPRECATED __attribute__((__deprecated__))
 #	define X0_PURE __attribute__((pure))
 #	define X0_PACKED __attribute__((packed))
+#	if !defined(likely)
+#		define likely(x) (x)
+#	endif
+#	if !defined(unlikely)
+#		define unlikely(x) (x)
+#	endif
 #elif defined(__MSVC__)
 #	define X0_NO_EXPORT /*!*/
 #	define X0_EXPORT __declspec(export)
@@ -58,6 +70,12 @@
 #	define X0_DEPRECATED /*!*/
 #	define X0_PURE /*!*/
 #	define X0_PACKED __packed /* ? */
+#	if !defined(likely)
+#		define likely(x) (x)
+#	endif
+#	if !defined(unlikely)
+#		define unlikely(x) (x)
+#	endif
 #else
 #	warning Unknown platform
 #	define X0_NO_EXPORT /*!*/
@@ -68,6 +86,12 @@
 #	define X0_DEPRECATED /*!*/
 #	define X0_PURE /*!*/
 #	define X0_PACKED /*!*/
+#	if !defined(likely)
+#		define likely(x) (x)
+#	endif
+#	if !defined(unlikely)
+#		define unlikely(x) (x)
+#	endif
 #endif
 
 #if defined(__GNUC__)
