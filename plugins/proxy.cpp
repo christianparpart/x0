@@ -92,6 +92,13 @@ private:
 	virtual bool onMessageContent(const x0::BufferRef& chunk);
 	virtual bool onMessageEnd();
 
+	virtual void log(x0::LogMessage&& msg)
+	{
+		if (request_) {
+			msg.addTag("proxy");
+			request_->log(std::move(msg));
+		}
+	}
 public:
 	inline ProxyConnection();
 	~ProxyConnection();

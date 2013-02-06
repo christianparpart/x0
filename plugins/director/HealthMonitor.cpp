@@ -214,6 +214,12 @@ void HealthMonitor::logFailure()
 	recheck();
 }
 
+void HealthMonitor::log(x0::LogMessage&& msg)
+{
+	msg.addTag("monitor");
+	backend_->manager()->log(std::move(msg));
+}
+
 /**
  * Callback, invoked on successfully parsed response status line.
  */

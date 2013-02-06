@@ -56,6 +56,8 @@ public:
 	Backend(BackendManager* bm, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, HealthMonitor* healthMonitor);
 	virtual ~Backend();
 
+	void log(x0::LogMessage&& msg);
+
 	void setJsonWriteCallback(const std::function<void(const Backend*, x0::JsonWriter&)>& callback);
 	void clearJsonWriteCallback();
 

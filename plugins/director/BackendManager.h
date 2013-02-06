@@ -40,6 +40,8 @@ public:
 	BackendManager(x0::HttpWorker* worker, const std::string& name);
 	virtual ~BackendManager();
 
+	void log(x0::LogMessage&& msg);
+
 	x0::HttpWorker* worker() const { return worker_; }
 	const std::string name() const { return name_; }
 

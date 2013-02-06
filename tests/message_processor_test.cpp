@@ -89,6 +89,10 @@ private:
 
 		return true;
 	}
+
+	virtual void log(x0::LogMessage&& msg)
+	{
+	}
 }; // }}}
 
 class HttpMessageProcessor_test :

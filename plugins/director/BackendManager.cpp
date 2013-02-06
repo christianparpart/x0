@@ -24,3 +24,8 @@ BackendManager::~BackendManager()
 {
 }
 
+void BackendManager::log(x0::LogMessage&& msg)
+{
+	msg.addTag(name_);
+	worker_->log(std::move(msg));
+}

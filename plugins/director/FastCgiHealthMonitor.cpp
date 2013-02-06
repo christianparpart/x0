@@ -100,6 +100,11 @@ private:
 
 		return true;
 	}
+
+	virtual void log(x0::LogMessage&& msg)
+	{
+		// TODO: in order to actually implement me, you must also pass the monitor I am working for
+	}
 };
 // }}}
 

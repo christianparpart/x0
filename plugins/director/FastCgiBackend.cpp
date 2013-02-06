@@ -142,6 +142,11 @@ private:
 	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
 	virtual bool onMessageContent(const x0::BufferRef& content);
 
+	virtual void log(x0::LogMessage&& msg);
+
+	template<typename... Args>
+	void log(Severity severity, const char* fmt, Args&&... args);
+
 	void onWriteComplete();
 	static void onClientAbort(void *p);
 
@@ -155,9 +160,6 @@ private:
 	void onParam(const std::string& name, const std::string& value);
 
 	void inspect(x0::Buffer& out);
-
-	template<typename... Args>
-	void log(Severity severity, const char* fmt, Args&&... args);
 }; // }}}
 
 // {{{ FastCgiTransport impl
@@ -226,16 +228,6 @@ FastCgiTransport::~FastCgiTransport()
 			// Notify director that this backend has just completed a request,
 			backend_->Backend::release();
 		}
-	}
-}
-
-template<typename... Args>
-inline void FastCgiTransport::log(Severity severity, const char* fmt, Args&&... args)
-{
-	if (request_) {
-		LogMessage msg(severity, fmt, args...);
-		msg.addTag("fastcgi/%d", transportId_);
-		request_->log(std::move(msg));
 	}
 }
 
@@ -716,6 +708,20 @@ bool FastCgiTransport::onMessageContent(const x0::BufferRef& content)
 		++writeCount_;
 
 	return false;
+}
+
+void FastCgiTransport::log(x0::LogMessage&& msg)
+{
+	if (request_) {
+		msg.addTag("fastcgi/%d", transportId_);
+		request_->log(std::move(msg));
+	}
+}
+
+template<typename... Args>
+inline void FastCgiTransport::log(Severity severity, const char* fmt, Args&&... args)
+{
+	log(LogMessage(severity, fmt, args...));
 }
 
 /**

@@ -88,6 +88,8 @@ private:
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
 
+	virtual void log(x0::LogMessage&& msg);
+
 public:
 	inline explicit ProxyConnection(HttpBackend* proxy);
 	~ProxyConnection();
@@ -393,6 +395,14 @@ bool HttpBackend::ProxyConnection::onMessageEnd()
 	TRACE("messageEnd() backend-state:%s", socket_->state_str());
 	processingDone_ = true;
 	return false;
+}
+
+void HttpBackend::ProxyConnection::log(x0::LogMessage&& msg)
+{
+	if (request_) {
+		msg.addTag("http-backend");
+		request_->log(std::move(msg));
+	}
 }
 
 void HttpBackend::ProxyConnection::io(Socket* s, int revents)

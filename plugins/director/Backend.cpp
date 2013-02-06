@@ -51,6 +51,12 @@ Backend::~Backend()
 	delete healthMonitor_;
 }
 
+void Backend::log(x0::LogMessage&& msg)
+{
+	msg.addTag(name_);
+	manager_->log(std::move(msg));
+}
+
 size_t Backend::capacity() const
 {
 	return capacity_;

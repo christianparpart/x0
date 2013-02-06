@@ -10,11 +10,16 @@
 
 namespace x0 {
 
-#if 0
-#	define TRACE(msg...) { printf("http-parser: " msg); printf("\n"); }
+#if !defined(NDEBUG)
+#	define TRACE(level, fmt...) do { \
+		LogMessage msg(Severity::debug ## level, fmt); \
+		msg.addTag("parser"); \
+		log(std::move(msg)); \
+	} while (0)
 #else
-#	define TRACE(msg...)
+#	define TRACE(level, msg...) do { } while (0)
 #endif
+
 
 //! Support messages using LF-only as linefeed instead of CRLF,
 //! which is not HTTP conform.
@@ -360,8 +365,8 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	size_t result = initialOutOffset;
 	size_t* nparsed = out_nparsed ? out_nparsed : &result;
 
-	//TRACE("process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
-	TRACE("process(curState:%s): size: %ld", state_str(), chunk.size());
+	//TRACE(2, "process(curState:%s): size: %ld: '%s'", state_str(), chunk.size(), chunk.str().c_str());
+	TRACE(2, "process(curState:%s): size: %ld", state_str(), chunk.size());
 
 #if 0
 	switch (state_) {
@@ -386,11 +391,11 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 #endif
 
 	while (i != e) {
-#if 0 // !defined(NDEBUG)
+#if !defined(NDEBUG)
 		if (std::isprint(*i)) {
-			TRACE("parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i, state_str());
+			TRACE(4, "parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i, state_str());
 		} else {
-			TRACE("parse: %4ld, 0x%02X,     %s", *nparsed, *i, state_str());
+			TRACE(4, "parse: %4ld, 0x%02X,     %s", *nparsed, *i, state_str());
 		}
 #endif
 
@@ -539,7 +544,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					++*nparsed;
 					++i;
 
-					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+					TRACE(2, "request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
 							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					if (!onMessageBegin(method_, entity_, versionMajor_, versionMinor_)) {
@@ -561,7 +566,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					++*nparsed;
 					++i;
 
-					TRACE("request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
+					TRACE(2, "request-line: method=%s, entity=%s, vmaj=%d, vmin=%d",
 							method_.str().c_str(), entity_.str().c_str(), versionMajor_, versionMinor_);
 
 					if (!onMessageBegin(method_, entity_, versionMajor_, versionMinor_)) {
@@ -696,7 +701,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					++*nparsed;
 					++i;
 
-					//TRACE("status-line: HTTP/%d.%d, code=%d, message=%s", versionMajor_, versionMinor_, code_, message_.str().c_str());
+					//TRACE(2, "status-line: HTTP/%d.%d, code=%d, message=%s", versionMajor_, versionMinor_, code_, message_.str().c_str());
 					if (!onMessageBegin(versionMajor_, versionMinor_, code_, message_)) {
 						goto done;
 					}
@@ -857,11 +862,11 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				}
 				break;
 			case HEADER_VALUE_END: {
-				TRACE("header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
+				TRACE(2, "header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
 
 				if (iequals(name_, "Content-Length")) {
 					contentLength_ = value_.toInt();
-					TRACE("set content length to: %ld", contentLength_);
+					TRACE(2, "set content length to: %ld", contentLength_);
 				} else if (iequals(name_, "Transfer-Encoding")) {
 					if (iequals(value_, "chunked")) {
 						chunked_ = true;
@@ -891,7 +896,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 					++i;
 
 					if (!onMessageHeaderEnd()) {
-						TRACE("messageHeaderEnd returned false. returning `Aborted`-state");
+						TRACE(2, "messageHeaderEnd returned false. returning `Aborted`-state");
 						goto done;
 					}
 
@@ -914,7 +919,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				// body w/o content-length (allowed in simple MESSAGE types only)
 				BufferRef c(chunk.ref(*nparsed - initialOutOffset));
 
-				//TRACE("prepared content-chunk (%ld bytes): %s", c.size(), c.str().c_str());
+				//TRACE(2, "prepared content-chunk (%ld bytes): %s", c.size(), c.str().c_str());
 
 				*nparsed += c.size();
 				i += c.size();
@@ -985,7 +990,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				if (*i != LF) {
 					state_ = SYNTAX_ERROR;
 				} else {
-					//TRACE("content_length: %ld", contentLength_);
+					//TRACE(2, "content_length: %ld", contentLength_);
 					if (contentLength_ != 0)
 						state_ = CONTENT_CHUNK_BODY;
 					else
@@ -1049,11 +1054,11 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				break;
 			case SYNTAX_ERROR: {
 #if !defined(NDEBUG)
-				TRACE("parse: syntax error");
+				TRACE(1, "parse: syntax error");
 				if (std::isprint(*i)) {
-					TRACE("parse: syntax error at nparsed: %ld, character: '%c'", *nparsed, *i);
+					TRACE(1, "parse: syntax error at nparsed: %ld, character: '%c'", *nparsed, *i);
 				} else {
-					TRACE("parse: syntax error at nparsed: %ld, character: 0x%02X", *nparsed, *i);
+					TRACE(1, "parse: syntax error at nparsed: %ld, character: 0x%02X", *nparsed, *i);
 				}
 				chunk.dump("request chunk (at syntax error)");
 #endif
@@ -1061,11 +1066,11 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 			}
 			default:
 #if !defined(NDEBUG)
-				TRACE("parse: unknown state %i", state_);
+				TRACE(1, "parse: unknown state %i", state_);
 				if (std::isprint(*i)) {
-					TRACE("parse: internal error at nparsed: %ld, character: '%c'", *nparsed, *i);
+					TRACE(1, "parse: internal error at nparsed: %ld, character: '%c'", *nparsed, *i);
 				} else {
-					TRACE("parse: internal error at nparsed: %ld, character: 0x%02X", *nparsed, *i);
+					TRACE(1, "parse: internal error at nparsed: %ld, character: 0x%02X", *nparsed, *i);
 				}
 				Buffer::dump(chunk.data(), chunk.size(), "request chunk (at unknown state)");
 #endif

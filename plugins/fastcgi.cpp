@@ -194,6 +194,14 @@ private:
 
 	void inspect(x0::Buffer& out);
 
+	virtual void log(x0::LogMessage&& msg)
+	{
+		if (request_) {
+			msg.addTag("fastcgi/%llu", transportId_);
+			request_->log(std::move(msg));
+		}
+	}
+
 	template<typename... Args>
 	void log(x0::Severity severity, const char* fmt, Args&&... args)
 	{
@@ -207,7 +215,6 @@ private:
 			request_->log(severity, msg.c_str(), args...);
 		}
 	}
-
 }; // }}}
 
 class CgiContext //{{{

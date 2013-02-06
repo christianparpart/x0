@@ -90,6 +90,8 @@ public:
 
 	static void runAsync(x0::HttpRequest *in, const std::string& hostprogram = "");
 
+	void log(x0::LogMessage&& msg);
+
 private:
 	// CGI program's response message processor hooks
 	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
@@ -571,6 +573,14 @@ void CgiScript::onStderrAvailable(ev::io& /*w*/, int revents)
 			evStderr_.stop();
 			outputFlags_ |= StderrClosed;
 		}
+	}
+}
+
+void CgiScript::log(x0::LogMessage&& msg)
+{
+	if (request_) {
+		msg.addTag("cgi");
+		request_->log(std::move(msg));
 	}
 }
 

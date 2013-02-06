@@ -112,6 +112,8 @@ protected:
 	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
 	virtual bool onMessageContent(const x0::BufferRef& chunk);
 	virtual bool onMessageEnd();
+
+	virtual void log(x0::LogMessage&& msg);
 };
 
 x0::JsonWriter& operator<<(x0::JsonWriter& json, const HealthMonitor& monitor);

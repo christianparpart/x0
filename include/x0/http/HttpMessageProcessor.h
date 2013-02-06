@@ -11,6 +11,7 @@
 
 #include <x0/Buffer.h>
 #include <x0/io/ChainFilter.h>
+#include <x0/LogMessage.h>
 #include <x0/Defines.h>
 #include <x0/Api.h>
 
@@ -156,6 +157,8 @@ public:
 	bool isProcessingHeader() const;
 	bool isProcessingBody() const;
 	bool isContentExpected() const;
+
+	virtual void log(LogMessage&& msg) = 0;
 
 public:
 	explicit HttpMessageProcessor(ParseMode mode);
