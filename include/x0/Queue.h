@@ -13,6 +13,11 @@
 
 namespace x0 {
 
+/*! Implements a basic lock free & non-blocking queue.
+ *
+ * See http://www.cs.rochester.edu/u/scott/papers/1996_PODC_queues.pdf for further
+ * implementation details.
+ */
 template<typename T>
 class X0_API Queue
 {
