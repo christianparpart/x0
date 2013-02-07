@@ -47,11 +47,9 @@ struct Queue<T>::NodePtr
 	NodePtr(Node* p, unsigned c) : ptr(p), count(c) {}
 
 	NodePtr(const NodePtr& np) :
-		ptr(nullptr),
-		count(0)
+		ptr(np.ptr),
+		count(np.count)
 	{
-		__sync_lock_test_and_set(&count, np.count);
-		__sync_lock_test_and_set(&ptr, np.ptr);
 	}
 
 	NodePtr(const NodePtr* np) :
@@ -59,8 +57,8 @@ struct Queue<T>::NodePtr
 		count(0)
 	{
 		if (likely(np != nullptr)) {
-			__sync_lock_test_and_set(&count, np->count);
-			__sync_lock_test_and_set(&ptr, np->ptr);
+			count = np->count;
+			ptr = np->ptr;
 		}
 	}
 
