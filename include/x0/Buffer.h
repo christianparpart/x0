@@ -25,7 +25,7 @@ class Buffer;
 class BufferRef;
 
 // {{{ BufferTraits
-template<typename T> class BufferTraits;
+template<typename T> struct BufferTraits;
 
 template<>
 struct BufferTraits<char*> {
