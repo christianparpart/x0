@@ -293,9 +293,6 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 			case 0: // invalid network addr format
 				errorText_ = strerror(EINVAL);
 				break;
-			case 1: // success
-				errorText_ = strerror(0);
-				break;
 			default: // unknown error
 				errorText_ = strerror(EINVAL);
 				break;
