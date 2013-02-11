@@ -8,7 +8,7 @@
 
 if [ "$1" == "clean" ]; then
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
-			-o -name 'Makefile' -o cmake_install.cmake \) \
+			-o -name 'Makefile' -o -name cmake_install.cmake \) \
 		-exec rm -rf {} \; 2>/dev/null
 else
 	cmake "$(dirname $0)" \
