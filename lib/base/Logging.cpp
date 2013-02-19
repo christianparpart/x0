@@ -11,6 +11,7 @@
 #include <typeinfo>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 
 namespace x0 {
 
@@ -45,7 +46,7 @@ void Logging::initialize()
 	if (!env_.empty())
 		return;
 
-	const char* env = getenv("XZERO_DEBUG");
+	const char* env = std::getenv("XZERO_DEBUG");
 	if (!env)
 		return; // no debugging output requested et al
 
