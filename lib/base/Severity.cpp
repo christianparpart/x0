@@ -61,7 +61,7 @@ bool Severity::set(const char* value)
 		char* eptr = nullptr;
 		errno = 0;
 
-		int result = strtol(value, &eptr, 10);
+		long int result = strtol(value, &eptr, 10);
 
 		if ((errno == ERANGE && (result == LONG_MAX || result == LONG_MIN)) || (errno != 0 && result == 0)) {
 			perror("strtol");
