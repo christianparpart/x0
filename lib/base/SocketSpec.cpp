@@ -79,7 +79,7 @@ SocketSpec SocketSpec::fromString(const std::string& value)
 		std::string ipaddr(value.substr(1, e - 1));
 		std::string port(value.substr(e + 2));
 
-		return SocketSpec::fromInet(IPAddress(ipaddr), std::atoi(port.c_str()));
+		return SocketSpec::fromInet(IPAddress(ipaddr), std::stoi(port));
 	}
 
 	auto e = value.find(':');
@@ -90,7 +90,7 @@ SocketSpec SocketSpec::fromString(const std::string& value)
 	std::string ipaddr(value.substr(1, e - 1));
 	std::string port(value.substr(e + 2));
 
-	return SocketSpec::fromInet(IPAddress(ipaddr), std::atoi(port.c_str()));
+	return SocketSpec::fromInet(IPAddress(ipaddr), std::stoi(port));
 }
 
 SocketSpec SocketSpec::fromLocal(const std::string& path, int backlog)
