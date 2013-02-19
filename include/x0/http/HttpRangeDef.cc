@@ -73,7 +73,7 @@ inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec)
 		return false;
 
 	// parse first element
-	char* eptr;
+	char* eptr = const_cast<char*>(i);
 	a = std::isdigit(*i)
 		? strtoul(i, &eptr, 10)
 		: npos;
