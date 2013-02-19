@@ -19,7 +19,7 @@ include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
 #option(BUILD_STATIC "Build with modules statically linked in [default: off]")
-option(BUILD_TESTS "Build unit tests [default: on]" ON)
+option(BUILD_TESTS "Build unit tests [default: off]" OFF)
 
 option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
 option(ENABLE_WEBDAV "Includes WebDAV support (plugin)" OFF)
