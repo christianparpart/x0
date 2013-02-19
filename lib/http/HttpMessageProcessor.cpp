@@ -104,7 +104,7 @@ HttpMessageProcessor::HttpMessageProcessor(ParseMode mode) :
 
 inline bool HttpMessageProcessor::isChar(char value)
 {
-	return static_cast<unsigned>(value) >= 0 && static_cast<unsigned>(value) <= 127;
+	return /* static_cast<unsigned>(value) >= 0 && */ static_cast<unsigned>(value) <= 127;
 }
 
 inline bool HttpMessageProcessor::isControl(char value)
