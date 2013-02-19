@@ -23,8 +23,9 @@ class RegExp;
 class FlowArray;
 class SocketSpec;
 
-struct X0_PACKED X0_API FlowValue
+class X0_PACKED X0_API FlowValue
 {
+public:
 	typedef bool (*Function)(void *);
 
 	enum Type {
