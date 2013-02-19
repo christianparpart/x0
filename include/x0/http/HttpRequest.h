@@ -44,7 +44,7 @@ class HttpConnection;
  *
  * \see header, response, HttpConnection, server
  */
-struct X0_API HttpRequest :
+class X0_API HttpRequest :
 #ifndef NDEBUG
 	public Logging,
 #endif
