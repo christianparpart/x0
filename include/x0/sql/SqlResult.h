@@ -12,6 +12,7 @@
 #include <x0/Api.h>
 #include <string>
 #include <vector>
+#include <cstdlib>
 #include <mysql.h>
 
 namespace x0 {
@@ -66,19 +67,19 @@ public:
 template<>
 inline bool SqlResult::at<bool>(size_t index) const
 {
-	return atoi(valueAt(0).c_str()) != 0;
+	return std::stoi(valueAt(0)) != 0;
 }
 
 template<>
 inline int SqlResult::at<int>(size_t index) const
 {
-	return atoi(valueAt(0).c_str());
+	return std::stoi(valueAt(0));
 }
 
 template<>
 inline unsigned long long SqlResult::at<unsigned long long>(size_t index) const
 {
-	return atoll(valueAt(0).c_str());
+	return std::stoll(valueAt(0));
 }
 
 template<>
