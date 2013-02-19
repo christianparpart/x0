@@ -17,7 +17,7 @@ class gai_error_category_impl :
 	public std::error_category
 {
 public:
-	gai_error_category_impl()
+	gai_error_category_impl() noexcept
 	{
 	}
 

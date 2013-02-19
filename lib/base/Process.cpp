@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cstdio>
 #include <ctime>
+#include <cerrno>
 
 namespace x0 {
 
