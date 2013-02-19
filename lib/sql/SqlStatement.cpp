@@ -7,7 +7,8 @@
  */
 
 #include <x0/sql/SqlStatement.h>
-#include <assert.h>
+#include <cassert>
+#include <cstdlib>
 #include <errmsg.h>
 #include <unistd.h>
 
@@ -168,7 +169,7 @@ bool SqlStatement::prepare(MYSQL *c, const char *s)
 		mysql_stmt_close(stmt_);
 
 	if (query_)
-		free(query_);
+		std::free(query_);
 
 	conn_ = c;
 	stmt_ = mysql_stmt_init(conn_);
@@ -334,7 +335,7 @@ bool SqlStatement::fetch()
 		if (!fixedLengths_[i]) {
 			// var-size field
 			if (d->buffer)
-				free(d->buffer);
+				std::free(d->buffer);
 
 			d->buffer = NULL;
 			d->buffer_length = 0;
@@ -697,7 +698,7 @@ SqlStatement::~SqlStatement()
 	for (unsigned i = 0, e = fields_.size(); i != e; ++i) {
 		MYSQL_BIND *d = &data_[i];
 		if (d->buffer) {
-			free(d->buffer);
+			std::free(d->buffer);
 		}
 	}
 
@@ -710,7 +711,7 @@ SqlStatement::~SqlStatement()
 	}
 
 	if (query_) {
-		free(query_);
+		std::free(query_);
 	}
 
 	delete[] fixedLengths_;
