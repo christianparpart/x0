@@ -13,7 +13,6 @@
 #include <x0/ServerSocket.h>
 
 #include <algorithm>
-#include <ext/atomicity.h>
 #include <cstdarg>
 #include <ev++.h>
 #include <signal.h>
