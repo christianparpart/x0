@@ -327,7 +327,7 @@ ssize_t Socket::read(Buffer& result)
 	for (;;)
 	{
 		if (result.capacity() - result.size() < 256) {
-			result.reserve(std::max(4096ul, static_cast<std::size_t>(result.size() * 1.5)));
+			result.reserve(std::max(static_cast<std::size_t>(4096), static_cast<std::size_t>(result.size() * 1.5)));
 		}
 
 		size_t nbytes = result.capacity() - result.size();
