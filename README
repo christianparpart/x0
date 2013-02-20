@@ -65,7 +65,7 @@ HOW TO BUILD:
 
 # Install git and clone repository
 apt-get install git
-git clone git://github.com/trapni/x0.git && cd x0
+git clone git://github.com/xzero/x0.git && cd x0
 
 # Installs required dependencies
 sudo apt-get install make cmake gcc libcppunit-dev libgnutls28-dev libgcrypt11-dev \
@@ -76,7 +76,7 @@ sudo apt-get install make cmake gcc libcppunit-dev libgnutls28-dev libgcrypt11-d
 sudo apt-get install libmagickwand-dev librrd-dev
 
 # Now run cmake to bootstrap build
-cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=/opt/x0 \
+cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local \
     -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0
 
 # Ensure installation target prefix
