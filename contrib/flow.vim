@@ -102,7 +102,7 @@ if exists("flow_x0")
 	syn keyword flowCoreFunctions expire
 
 	" core handlers
-	syn keyword flowCoreHandler redirect respond blank
+	syn keyword flowCoreHandler redirect respond echo blank
 
 	" upstream plugin handlers
 	syn keyword flowCoreHandler fastcgi precompressed staticfile

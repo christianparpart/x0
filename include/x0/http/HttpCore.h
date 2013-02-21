@@ -98,6 +98,7 @@ private:
 	bool alias(HttpRequest* r, const FlowParams& args);
 	bool redirect(HttpRequest *r, const FlowParams& args);
 	bool respond(HttpRequest *r, const FlowParams& args);
+	bool echo(HttpRequest *r, const FlowParams& args);
 	bool blank(HttpRequest *r, const FlowParams& args);
 	bool staticfile(HttpRequest *r, const FlowParams& args);
 	bool precompressed(HttpRequest *r, const FlowParams& args);

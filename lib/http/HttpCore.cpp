@@ -164,6 +164,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerHandler<HttpCore, &HttpCore::precompressed>("precompressed");
 	registerHandler<HttpCore, &HttpCore::redirect>("redirect");
 	registerHandler<HttpCore, &HttpCore::respond>("respond");
+	registerHandler<HttpCore, &HttpCore::echo>("echo");
 	registerHandler<HttpCore, &HttpCore::blank>("blank");
 }
 
@@ -912,6 +913,39 @@ bool HttpCore::respond(HttpRequest *in, const FlowParams& args)
 {
 	if (args.size() >= 1 && args[0].isNumber())
 		in->status = static_cast<HttpStatus>(args[0].toNumber());
+
+	in->finish();
+	return true;
+}
+
+bool HttpCore::echo(HttpRequest *in, const FlowParams& args)
+{
+	if (args.size() != 1) {
+		in->log(Severity::error, "echo: Invalid argument count.");
+		in->status = HttpStatus::InternalServerError;
+		in->finish();
+		return true;
+	}
+
+	switch (args[0].type()) {
+		case FlowValue::STRING:
+			in->write<x0::BufferSource>(args[0].toString());
+			break;
+		case FlowValue::BUFFER:
+			in->write<x0::BufferSource>(Buffer(args[0].toString(), args[0].toNumber()));
+			break;
+		default:
+			in->log(Severity::error, "echo: Invalid argument type.");
+			in->status = HttpStatus::InternalServerError;
+			in->finish();
+			return true;
+	}
+
+	// trailing newline
+	in->write<x0::BufferSource>("\n");
+
+	if (!in->status)
+		in->status = HttpStatus::Ok;
 
 	in->finish();
 	return true;
