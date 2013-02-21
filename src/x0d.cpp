@@ -1075,7 +1075,7 @@ void crashHandler(int nr, siginfo_t* info, void* ucp)
 	void* addresses[256];
 	int n = backtrace(addresses, sizeof(addresses) / sizeof(*addresses));
 
-#if defiend(__x86_64__)
+#if defined(__x86_64__)
 	unsigned char* pc = reinterpret_cast<unsigned char*>(uc->uc_mcontext.gregs[REG_RIP]);
 	fprintf(stderr, "Received SIGSEGV at %p.\n", pc);
 #elif defined(__i386__)
