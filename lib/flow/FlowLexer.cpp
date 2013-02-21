@@ -498,14 +498,38 @@ FlowToken FlowLexer::parseInterpolationFragment(bool start)
 	nextChar();
 
 	for (;;) {
-		if (eof() || (currentChar() == '"' && last != '\\'))
-			break;
+		if (eof())
+			return token_ = FlowToken::Eof;
+
+		if (currentChar() == '"' && last != '\\') {
+			nextChar();
+			--interpolationDepth_;
+			return token_ = start ? FlowToken::String : FlowToken::InterpolatedStringEnd;
+		}
 
 		if (currentChar() == '\\') {
 			nextChar();
 
-			if (eof()) {
-				break;
+			if (eof())
+				return token_ = FlowToken::Eof;
+
+			switch (currentChar()) {
+				case 'r':
+					stringValue_ += '\r';
+					break;
+				case 'n':
+					stringValue_ += '\n';
+					break;
+				case 't':
+					stringValue_ += '\t';
+					break;
+				case '\\':
+					stringValue_ += '\\';
+					break;
+				default:
+					stringValue_ += '\\';
+					stringValue_ += static_cast<char>(currentChar());
+					break;
 			}
 		} else if (currentChar() == '#') {
 			nextChar();
@@ -515,21 +539,13 @@ FlowToken FlowLexer::parseInterpolationFragment(bool start)
 			} else {
 				stringValue_ += '#';
 			}
+			stringValue_ += static_cast<char>(currentChar());
+		} else {
+			stringValue_ += static_cast<char>(currentChar());
 		}
 
-		stringValue_ += static_cast<char>(currentChar());
 		last = currentChar();
 		nextChar();
-	}
-
-	if (currentChar() == '"') {
-		nextChar();
-		--interpolationDepth_;
-		return token_ = start ? FlowToken::String : FlowToken::InterpolatedStringEnd;
-	} else if (eof()) {
-		return token_ = FlowToken::Eof;
-	} else {
-		return token_ = FlowToken::Unknown;
 	}
 }
 
