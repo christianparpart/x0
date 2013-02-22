@@ -49,6 +49,9 @@ public:
 	static ArgsMap parseQuery(const BufferRef& query) { return parseQuery(query.data(), query.data() + query.size()); }
 	static std::string decode(const BufferRef& value) { return decode(value.data(), value.data() + value.size()); }
 
+	static ArgsMap parseQuery(const Buffer& query) { return parseQuery(query.data(), query.data() + query.size()); }
+	static std::string decode(const Buffer& value) { return decode(value.data(), value.data() + value.size()); }
+
 	static ArgsMap parseQuery(const char* begin, const char* end);
 	static std::string decode(const char* begin, const char* end);
 

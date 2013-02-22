@@ -12,9 +12,10 @@
 #include "HttpBackend.h"
 #include "FastCgiBackend.h"
 
-#include <x0/Tokenizer.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
+#include <x0/Tokenizer.h>
+#include <x0/Url.h>
 
 // index:   GET    /
 // get:     GET    /:director_id
@@ -101,65 +102,6 @@ HttpMethod requestMethod(const BufferRef& value)
 }
 // }}}
 
-static inline std::string urldecode(const std::string& AString) { // {{{
-	Buffer sb;
-
-    for (std::string::size_type i = 0, e = AString.size(); i < e; ++i) {
-        if (AString[i] == '%') {
-			std::string snum(AString.substr(++i, 2));
-            ++i;
-			sb.push_back(char(std::strtol(snum.c_str(), 0, 16) & 0xFF));
-        } else if (AString[i] == '+')
-			sb.push_back(' ');
-        else
-			sb.push_back(AString[i]);
-    }
-
-    return sb.str();
-} // }}}
-
-static inline std::unordered_map<std::string, std::string> parseArgs(const char *AQuery) { // {{{
-	std::unordered_map<std::string, std::string> args;
-	const char *data = AQuery;
-
-	for (const char *p = data; *p; ) {
-		unsigned len = 0;
-		const char *q = p;
-
-		while (*q && *q != '=' && *q != '&') {
-			++q;
-			++len;
-		}
-
-		if (len) {
-			std::string name(p, 0, len);
-			p += *q == '=' ? len + 1 : len;
-
-			len = 0;
-			for (q = p; *q && *q != '&'; ++q, ++len)
-				;
-
-			if (len) {
-				std::string value(p, 0, len);
-				p += len;
-
-				for (; *p == '&'; ++p)
-					; // consume '&' chars (usually just one)
-
-				args[urldecode(name)] = urldecode(value);
-			} else {
-				if (*p)
-					++p;
-
-				args[urldecode(name)] = "";
-			}
-		} else if (*p) // && or ?& or &=
-			++p;
-	}
-	return std::move(args);
-}
-// }}}
-
 ApiReqeust::ApiReqeust(DirectorMap* directors, HttpRequest* r, const BufferRef& path) :
 	directors_(directors),
 	request_(r),
@@ -209,7 +151,7 @@ void ApiReqeust::onBodyChunk(const BufferRef& chunk)
 
 void ApiReqeust::parseBody()
 {
-	args_ = parseArgs(body_.c_str());
+	args_ = Url::parseQuery(body_);
 }
 
 Director* ApiReqeust::findDirector(const x0::BufferRef& name)
