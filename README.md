@@ -2,7 +2,7 @@
 
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
-- official website: http://xzero.io/
+- official website: http://xzero.io/ (work in progress)
 - github: http://github.com/xzero/x0
 - ohloh: http://www.ohloh.net/p/x0
 
@@ -63,9 +63,9 @@ written in modern C++.
     git clone git://github.com/xzero/x0.git && cd x0
     
     # Installs required dependencies
-    sudo apt-get install make cmake gcc libcppunit-dev libgnutls28-dev libgcrypt11-dev \
+    sudo apt-get install make cmake gcc g++ libcppunit-dev libgnutls28-dev libgcrypt11-dev \
         libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config \
-        libpcre3-dev libfcgi-dev libev-dev g++
+        libpcre3-dev libfcgi-dev
     
     # Installs optional requirements
     sudo apt-get install libmagickwand-dev librrd-dev
@@ -84,3 +84,11 @@ written in modern C++.
     `pwd`/src/x0d --instant=`pwd`/www/htdocs,8080
 
     # have fun hacking.
+
+# How to build with Clang and libc++
+
+You need the very latest version of Clang (3.3 trunk) and its `libc++`.
+
+Currently, `x0` passes all compilations of clang but the `x0d` binary
+does not seem to link due to linkage errors, possibly a conflict
+between clang's `libc++` and GCC's `libstdc++`.
