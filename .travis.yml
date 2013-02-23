@@ -2,8 +2,8 @@ language: cpp
 compiler:
   - gcc
 before_script:
-  - apt-get update -qq
-  - apt-get install -qq cmake libcppunit-dev libgnutls28-dev libgcrypt11-dev libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config libpcre3-dev libfcgi-dev libmagickwand-dev librrd-dev
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq cmake libcppunit-dev libgnutls28-dev libgcrypt11-dev libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config libpcre3-dev libfcgi-dev libmagickwand-dev librrd-dev
   - cmake -DCMAKE_BUILD_TYPE=debug -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0 -DENABLE_{RRD,EXAMPLES}=ON
 script: make
 branches:
