@@ -1,17 +1,16 @@
------------------------------------------------------------------------------
-x0 - HTTP WEB SERVER AND FRAMEWORK
------------------------------------------------------------------------------
+# x0 - HTTP WEB SERVER AND FRAMEWORK
 
-official website:   http://xzero.io/
-github:             http://github.com/xzero/x0
-ohloh:              http://www.ohloh.net/p/x0
+[ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
+
+- official website: http://xzero.io/
+- github: http://github.com/xzero/x0
+- ohloh: http://www.ohloh.net/p/x0
 
 x0 is a low-latency scalable HTTP web server and web service framework
 written in modern C++.
 
------------------------------------------------------------------------------
-FEATURES
------------------------------------------------------------------------------
+# FEATURES
+
 - HTTP/1.1, including pipelining
 - thin and clean core API with powerful plugin system
 - fully asynchronous response content generation support
@@ -46,9 +45,7 @@ FEATURES
 - browser match support (plugin)
 - customized Expires and Cache-Control response header control (plugin)
 
------------------------------------------------------------------------------
-INSTALLATION REQUIREMENTS:
------------------------------------------------------------------------------
+# INSTALLATION REQUIREMENTS:
 
 - gcc >= 4.6.0 (for building only)
 - libev >= 4.0
@@ -59,33 +56,31 @@ INSTALLATION REQUIREMENTS:
 - gnutls (optional & recommended, for SSL/TLS encryption)
 - cppunit (optional, for unit testing)
 
------------------------------------------------------------------------------
-HOW TO BUILD:
------------------------------------------------------------------------------
+# HOW TO BUILD:
 
-# Install git and clone repository
-apt-get install git
-git clone git://github.com/xzero/x0.git && cd x0
+    # Install git and clone repository
+    apt-get install git
+    git clone git://github.com/xzero/x0.git && cd x0
+    
+    # Installs required dependencies
+    sudo apt-get install make cmake gcc libcppunit-dev libgnutls28-dev libgcrypt11-dev \
+        libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config \
+        libpcre3-dev libfcgi-dev libev-dev g++
+    
+    # Installs optional requirements
+    sudo apt-get install libmagickwand-dev librrd-dev
+    
+    # Now run cmake to bootstrap build
+    cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local \
+        -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0
+    
+    # Ensure installation target prefix
+    mkdir $HOME/local
+    
+    # Now compiling should just work.
+    make && make install
+    
+    # Run web server on port 8080
+    `pwd`/src/x0d --instant=`pwd`/www/htdocs,8080
 
-# Installs required dependencies
-sudo apt-get install make cmake gcc libcppunit-dev libgnutls28-dev libgcrypt11-dev \
-    libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config \
-    libpcre3-dev libfcgi-dev libev-dev g++
-
-# Installs optional requirements
-sudo apt-get install libmagickwand-dev librrd-dev
-
-# Now run cmake to bootstrap build
-cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local \
-    -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0
-
-# Ensure installation target prefix
-mkdir $HOME/local
-
-# Now compiling should just work.
-make && make install
-
-# Run web server on port 8080
-`pwd`/src/x0d --instant=`pwd`/www/htdocs,8080
-
-# have fun hacking.
+    # have fun hacking.
