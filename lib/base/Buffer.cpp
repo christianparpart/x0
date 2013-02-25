@@ -73,9 +73,9 @@ void Buffer::dump(const void *bytes, std::size_t length, const char *description
 	const char *p = (const char *)bytes;
 
 	if (description && *description)
-		std::printf("%s (%ld bytes):\n", description, length);
+		std::printf("%s (%zu bytes):\n", description, length);
 	else
-		std::printf("Memory dump (%ld bytes):\n", length);
+		std::printf("Memory dump (%zu bytes):\n", length);
 
 	while (length > 0) {
 		char *u = line;

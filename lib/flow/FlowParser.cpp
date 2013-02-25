@@ -146,7 +146,7 @@ void FlowParser::reportError(const std::string& message)
 {
 	if (errorHandler_) {
 		char buf[1024];
-		snprintf(buf, sizeof(buf), "[%04ld:%02ld] %s", lexer_->line(), lexer_->column(), message.c_str());
+		snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s", lexer_->line(), lexer_->column(), message.c_str());
 
 		errorHandler_(buf);
 	}
@@ -1146,7 +1146,7 @@ Stmt* FlowParser::callStmt()
 
 void ldump(const SourceLocation& sloc, const char* msg)
 {
-	printf("location %s: { %ld:%ld .. %ld:%ld }\n",
+	printf("location %s: { %zu:%zu .. %zu:%zu }\n",
 			msg, sloc.begin.line, sloc.begin.column,
 			sloc.end.line, sloc.end.column);
 }

@@ -527,14 +527,12 @@ Source* HttpRequest::serialize()
 			if (rlim) {
 				// sent keep-alive timeout and remaining request count
 				char buf[80];
-				snprintf(buf, sizeof(buf), "timeout=%ld, max=%ld",
-					static_cast<time_t>(connection.worker().server().maxKeepAlive().value()), rlim);
+				snprintf(buf, sizeof(buf), "timeout=%lu, max=%zu", static_cast<time_t>(connection.worker().server().maxKeepAlive().value()), rlim);
 				responseHeaders.overwrite("Keep-Alive", buf);
 			} else {
 				// sent keep-alive timeout only (infinite request count)
 				char buf[80];
-				snprintf(buf, sizeof(buf), "timeout=%ld",
-					static_cast<time_t>(connection.worker().server().maxKeepAlive().value()));
+				snprintf(buf, sizeof(buf), "timeout=%lu", static_cast<time_t>(connection.worker().server().maxKeepAlive().value()));
 				responseHeaders.overwrite("Keep-Alive", buf);
 			}
 		} else
@@ -760,7 +758,7 @@ void HttpRequest::initialize()
 {
 	// pre-compute string representations of status codes for use in response serialization
 	for (std::size_t i = 0; i < sizeof(statusCodes_) / sizeof(*statusCodes_); ++i)
-		snprintf(statusCodes_[i], sizeof(*statusCodes_), "%03ld", i);
+		snprintf(statusCodes_[i], sizeof(*statusCodes_), "%03zu", i);
 }
 
 /** sets a callback to invoke on early connection aborts (by the remote end).

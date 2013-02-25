@@ -102,7 +102,7 @@ private:
 			return; // not properly configured
 
 		char format[128];
-		snprintf(format, sizeof(format), "N:%ld:%ld:%ld",
+		snprintf(format, sizeof(format), "N:%zu:%zu:%zu",
 				numRequests_.exchange(0),
 				bytesIn_.exchange(0),
 				bytesOut_.exchange(0));

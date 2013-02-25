@@ -204,7 +204,7 @@ private:
 			;
 
 		char buf[80];
-		snprintf(buf, sizeof(buf), "%lu", nginxCompatStatus.size());
+		snprintf(buf, sizeof(buf), "%zu", nginxCompatStatus.size());
 		r->responseHeaders.push_back("Content-Length", (char *)buf);
 
 		r->responseHeaders.push_back("Content-Type", "text/plain");

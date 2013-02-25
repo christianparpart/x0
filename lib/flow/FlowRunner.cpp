@@ -2594,7 +2594,7 @@ void FlowRunner::visit(ListExpr& expr)
 
 	for (size_t i = 0; i != listSize; ++i) {
 		char name[64];
-		snprintf(name, sizeof(name), "array.value.%ld", i);
+		snprintf(name, sizeof(name), "array.value.%zu", i);
 		emitNativeValue(i, array, codegen(expr.at(i)), name);
 	}
 

@@ -50,7 +50,7 @@ Buffer ChunkedEncoder::process(const BufferRef& input)
 	if (input.size())
 	{
 		char buf[12];
-		int size = snprintf(buf, sizeof(buf), "%lx\r\n", input.size());
+		int size = snprintf(buf, sizeof(buf), "%zx\r\n", input.size());
 
 		output.push_back(buf, size);
 		output.push_back(input);
