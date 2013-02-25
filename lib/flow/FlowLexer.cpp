@@ -45,7 +45,7 @@ static std::string unescape(const std::string& value)
 std::string SourceLocation::dump(const std::string& prefix) const
 {
 	char buf[4096];
-	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %ld:%ld - %ld:%ld }",
+	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %zu:%zu - %zu:%zu }",
 		!prefix.empty() ? prefix.c_str() : "location",
 		begin.line, begin.column,
 		end.line, end.column);
@@ -428,7 +428,7 @@ bool FlowLexer::consumeSpace()
 			break;
 
 		// TODO proper error reporting through API callback
-		std::fprintf(stderr, "%s[%04ld:%02ld]: invalid byte %d (0x%02X)\n",
+		std::fprintf(stderr, "%s[%04zu:%02zu]: invalid byte %d (0x%02X)\n",
 				location_.fileName.c_str(), currentPos_.line, currentPos_.column,
 				currentChar() & 0xFF, currentChar() & 0xFF);
 	}
@@ -703,7 +703,7 @@ std::string FlowLexer::tokenToString(FlowToken value) const
 std::string FlowLexer::dump() const
 {
 	char buf[4096];
-	std::size_t n = snprintf(buf, sizeof(buf), "[%04ld:%02ld] %3d %s",
+	std::size_t n = snprintf(buf, sizeof(buf), "[%04zu:%02zu] %3d %s",
 			line(), column(),
 			static_cast<int>(token()), tokenString().c_str());
 
