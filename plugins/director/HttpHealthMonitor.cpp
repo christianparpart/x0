@@ -49,7 +49,7 @@ void HttpHealthMonitor::reset()
 void HttpHealthMonitor::setRequest(const char* fmt, ...)
 {
 	va_list va;
-	size_t blen = std::min(request_.capacity(), 1023lu);
+	size_t blen = std::min(request_.capacity(), static_cast<size_t>(1023));
 
 	do {
 		request_.reserve(blen + 1);

@@ -9,10 +9,11 @@
 #include <x0/TimeSpan.h>
 #include <x0/Buffer.h>
 #include <string>
+#include <cstdint>
 
 namespace x0 {
 
-const TimeSpan TimeSpan::Zero(0lu);
+const TimeSpan TimeSpan::Zero(static_cast<size_t>(0));
 
 std::string TimeSpan::str() const
 {

@@ -460,7 +460,7 @@ void HttpCore::sys_pid(HttpRequest*, const FlowParams& args, FlowValue& result)
 
 void HttpCore::sys_now(HttpRequest*, const FlowParams& args, FlowValue& result)
 {
-	result.set(static_cast<uint64_t>(server().workers_[0]->now_.unixtime()));
+	result.set(static_cast<int64_t>(server().workers_[0]->now_.unixtime()));
 }
 
 void HttpCore::sys_now_str(HttpRequest*, const FlowParams& args, FlowValue& result)
@@ -785,7 +785,7 @@ void HttpCore::phys_is_exe(HttpRequest* in, const FlowParams& args, FlowValue& r
 
 void HttpCore::phys_mtime(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
-	result.set(static_cast<uint64_t>(in->fileinfo ? in->fileinfo->mtime() : 0));
+	result.set(static_cast<int64_t>(in->fileinfo ? in->fileinfo->mtime() : 0));
 }
 
 void HttpCore::phys_size(HttpRequest* in, const FlowParams& args, FlowValue& result)
