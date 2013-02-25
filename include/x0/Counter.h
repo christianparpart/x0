@@ -11,6 +11,7 @@
 #include <x0/Api.h>
 #include <x0/Buffer.h>
 
+#include <cstdint>
 #include <atomic>
 
 namespace x0 {
@@ -19,21 +20,24 @@ class JsonWriter;
 
 class X0_API Counter
 {
+public:
+	typedef size_t value_type;
+
 private:
-	std::atomic<size_t> current_;
-	std::atomic<size_t> max_;
-	std::atomic<size_t> total_;
+	std::atomic<value_type> current_;
+	std::atomic<value_type> max_;
+	std::atomic<value_type> total_;
 
 public:
 	Counter();
 	Counter(const Counter& other) = delete;
 	Counter& operator=(const Counter& other) = delete;
 
-	size_t operator()() const { return current_.load(); }
+	value_type operator()() const { return current_.load(); }
 
-	size_t current() const { return current_.load(); }
-	size_t max() const { return max_.load(); }
-	size_t total() const { return total_.load(); }
+	value_type current() const { return current_.load(); }
+	value_type max() const { return max_.load(); }
+	value_type total() const { return total_.load(); }
 
 	Counter& operator++();
 	Counter& operator--();
