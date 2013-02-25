@@ -44,11 +44,13 @@ Backend::Backend(BackendManager* bm,
 	healthMonitor_(healthMonitor),
 	jsonWriteCallback_()
 {
+	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
 }
 
 Backend::~Backend()
 {
 	delete healthMonitor_;
+	pthread_spin_destroy(&lock_);
 }
 
 void Backend::log(x0::LogMessage&& msg)
@@ -126,18 +128,23 @@ void Backend::setState(HealthState value)
  */
 bool Backend::tryProcess(HttpRequest* r)
 {
-	std::lock_guard<std::mutex> _(lock_);
+	bool success = false;
+	pthread_spin_lock(&lock_);
 
 	if (healthMonitor_ && !healthMonitor_->isOnline())
-		return false;
+		goto done;
 
 	if (!isEnabled())
-		return false;
+		goto done;
 
 	if (capacity_ && load_.current() >= capacity_)
-		return false;
+		goto done;
 
-	return pass(r);
+	success = pass(r);
+
+done:
+	pthread_spin_unlock(&lock_);
+	return success;
 }
 
 bool Backend::pass(x0::HttpRequest* r)

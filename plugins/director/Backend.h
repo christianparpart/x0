@@ -18,7 +18,7 @@
 #include <x0/CustomDataMgr.h>
 #include <x0/http/HttpRequest.h>
 
-#include <mutex>
+#include <pthread.h>
 
 class BackendManager;
 class Director;
@@ -42,7 +42,7 @@ protected:
 	size_t capacity_; //!< number of concurrent requests being processable at a time.
 	x0::Counter load_; //!< number of active (busy) connections
 
-	std::mutex lock_; //!< scheduling mutex
+	pthread_spinlock_t lock_; //!< scheduling mutex
 
 	bool enabled_; //!< whether or not this backend is enabled (default) or disabled (for example for maintenance reasons)
 	x0::SocketSpec socketSpec_; //!< Backend socket spec.
