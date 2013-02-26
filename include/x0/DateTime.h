@@ -31,7 +31,6 @@ private:
 	ev_tstamp value_;
 	mutable Buffer http_;
 	mutable Buffer htlog_;
-	mutable pthread_spinlock_t lock_;
 
 	static time_t mktime(const char *v);
 
@@ -96,13 +95,10 @@ inline void DateTime::update()
 
 inline void DateTime::update(ev::tstamp v)
 {
-	if (value_ != v)
-	{
-		pthread_spin_lock(&lock_);
+	if (value_ != v) {
 		value_ = v;
 		http_.clear();
 		htlog_.clear();
-		pthread_spin_unlock(&lock_);
 	}
 }
 
