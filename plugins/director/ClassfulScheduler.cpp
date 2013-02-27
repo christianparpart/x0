@@ -317,7 +317,11 @@ void ClassfulScheduler::Bucket::enqueue(x0::HttpRequest* r)
  */
 HttpRequest* ClassfulScheduler::Bucket::dequeue()
 {
+	// Do we have child buckets? Then always first dequeue requests from the childs.
 	if (!children_.empty()) {
+		// In order to preserve fairness across all direct child buckets,
+		// we keep an index of where we dequeued the last, and try to dequeue
+		// the next one relative from there, like RR.
 		dequeueOffset_ = dequeueOffset_ == 0
 			? children_.size() - 1
 			: dequeueOffset_ - 1;
@@ -327,6 +331,8 @@ HttpRequest* ClassfulScheduler::Bucket::dequeue()
 		}
 	}
 
+	// We could not actually dequeue request from any of the child buckets,
+	// so try in current bucket itself, if its queue is non-empty.
 	if (!queue_.empty()) {
 		if (get()) {
 			HttpRequest* r = queue_.front();
@@ -336,6 +342,7 @@ HttpRequest* ClassfulScheduler::Bucket::dequeue()
 		}
 	}
 
+	// No request have been found to be dequeued.
 	return nullptr;
 }
 
