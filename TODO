@@ -62,7 +62,6 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
 
 - flow: bail out on invalid cast of operator+ (for example and at least)
 - flow: bool cast
-- flow: int cast
 
 -----------------------------------------------------------------------------
    runtime configuration file reloading
@@ -71,6 +70,8 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
 1. compiles new version of the config file at fixed path
 2. increments configurationGeneration number
 3. applies incremental differences with setup handler
+   - gracefully handle errors to ensure safe serving of requests (still threaded)
+*. remove settings that were not touched within setup handler stage
 4. replaces main request handler with the new one
 5. releases resources from last compilation
 
