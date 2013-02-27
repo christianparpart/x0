@@ -3,7 +3,7 @@
  * This file is part of the x0 web server project and is released under GPL-3.
  * http://www.xzero.io/
  *
- * (c) 2009-2012 Christian Parpart <trapni@gentoo.org>
+ * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
 #include <x0/http/HttpServer.h>
@@ -463,7 +463,7 @@ bool XzeroHttpDaemon::parse()
 	static const char *package_header = 
 		"x0d: Xzero Web Server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
 	static const char *package_copyright =
-		"Copyright (c) 2009-2012 by Christian Parpart <trapni@gentoo.org>";
+		"Copyright (c) 2009-2013 by Christian Parpart <trapni@gmail.com>";
 	static const char *package_license =
 		"Licensed under GPL-3 [http://gplv3.fsf.org/]";
 
