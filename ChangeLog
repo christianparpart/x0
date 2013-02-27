@@ -1,4 +1,8 @@
-0.6.0 (not yet released, maybe 2012-12-12)
+0.7.0 (to-be-released)
+
+	* http: fixing keep-alive regressions (#52)
+
+0.6.0 (2013-02-27)
 
 	GOAL: running director plugin in productively in multi threaded mode.
 

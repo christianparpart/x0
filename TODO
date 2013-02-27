@@ -5,6 +5,7 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
     "GET http://blah/foo HTTP/1.1\r\n....", at: reading-request (header-name-begin)
     "refcount:1, outputState:unhandled, fd:58, timer:0, io.x0:None"
     - in local test it hang at: reading-request (lws-sp-ht-begin), but I can't reproduce again.
+
 - website: new documentation-focusing  website
   - DONE: bring it online
   - write/migrate news(/blog) articles
@@ -12,27 +13,26 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
   - download section to provide 2 types of builds (aka. target environments / audience):
     - production - release packages with no experimental stuff in it
     - testing - packages containing potential new code to be merged into production
-- ssl:
-  - stability, should successfully work in:
-    - threaded mode (ab2 stress test)
-    - complex websites (phpbb2, wordpress, matelife, ialu)
-  - deprecation warning
-- debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
-  - create new gpg key-pair with primary email: cp@gmail.com (if available)
-  - officially support: >= precise, quantal, raring
-  - automate uploading to and updating the mirror per current distro
 
 - commit 2775dce31b1729da6b5719d2758677424f056b9d:
   - check if we actually need it and if we should then apply it to director plugin, too.
 
 -------------------------------------------------
-   0.6.0 release todo
+   0.7.0 release todo
 -------------------------------------------------
 
+- http: Keep-Alive performance regressions (#52)
+- ssl: properly working on real websites (also in threaded mode).
 - ssl: eliminate deprecation warnings
-- ssl: properly working SSL module (also in threaded mode).
 - x0d: ensure basic binary upgrade and config reloads.
-- provide debian package for: x0
+- flow: bail out on invalid cast of operator+ (for example and at least)
+- flow: bool cast
+
+- provide debian package for: x0 0.6.0
+  - debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
+    - create new gpg key-pair with primary email: trapni@gmail.com
+    - officially support: >= precise, quantal, raring
+    - automate uploading to and updating the mirror per current distro
   - upstart script (with: postinst->autostart, prerm->autostop)
   - (5/6): sub packages:
     - DONE: x0d
@@ -41,27 +41,6 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
     - DONE: libxzero-flow + dev
     - DONE: libxzero-http + dev
     - source packages (how?)
-- DONE: fix crash regarding the gcc4.7 port
-- DONE: fix file-logger always showing same timestamp
-- DONE: boost dependency cleanup (completely get rid of boost)
-- DONE: string cast function
-- DONE: first attempt of code style cleanup in FlowRunner, FlowParser, ...
-- DONE: postscript "unless" syntax
-- DONE: update src/x0d.conf-dist to actually work
-- DONE: regex match should capture groups and store results in given context (HttpRequest*)
-- DONE: better max_conns compuatation.
-- DONE: Socket::open() member function to share code with its static sibling,
-  not marking it deprecated anymore.
-- DONE: core: BufferRef not dependant on Buffer
-- DONE: flow: unary (plus/)minus operator
-- DONE: flow: function string(value) to return type string
-
------------------------------------------------------------------------------
-    0.7.0 release todo
------------------------------------------------------------------------------
-
-- flow: bail out on invalid cast of operator+ (for example and at least)
-- flow: bool cast
 
 -----------------------------------------------------------------------------
    runtime configuration file reloading
