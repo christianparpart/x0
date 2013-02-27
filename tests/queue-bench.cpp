@@ -5,8 +5,50 @@
 #include <ctime>
 #include <pthread.h>
 #include <unistd.h>
+#include <x0/TimeSpan.h>
 
 using namespace x0;
+
+class StopWatch {
+private:
+	ev_tstamp start_;
+
+public:
+	StopWatch() :
+		start_()
+	{
+		reset();
+	}
+
+	void reset()
+	{
+		start_ = now();
+	}
+
+	static ev_tstamp now()
+	{
+		const ev_tstamp NS = 1000000000.0;
+		timespec ts;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		return static_cast<ev_tstamp>(ts.tv_sec) + static_cast<ev_tstamp>(ts.tv_nsec) / NS;
+	}
+
+	TimeSpan get() const
+	{
+		return TimeSpan(now() - start_);
+	}
+
+	static TimeSpan resolution()
+	{
+		timespec now;
+		clock_getres(CLOCK_MONOTONIC, &now);
+
+		const ev_tstamp NS = 1000000000.0;
+		ev_tstamp ts = static_cast<ev_tstamp>(now.tv_sec) + static_cast<ev_tstamp>(now.tv_nsec) / NS;
+
+		return TimeSpan(ts);
+	}
+};
 
 template<typename T>
 class StdQueue {
@@ -69,13 +111,14 @@ public:
 	clock_t operator()()
 	{
 		clock_t a = clock();
-
-		pthread_t producer;
-		pthread_create(&producer, nullptr, &produce, this);
+		StopWatch sw;
 
 		std::vector<pthread_t> consumer(1); // we can't go beyond 1 consumer for this implementation of Queue<>
 		for (auto& c: consumer)
 			pthread_create(&c, nullptr, &consume, this);
+
+		pthread_t producer;
+		pthread_create(&producer, nullptr, &produce, this);
 
 		void* wayne = nullptr;
 		pthread_join(producer, &wayne);
@@ -84,14 +127,18 @@ public:
 			pthread_join(c, &wayne);
 
 		clock_t b = clock();
+		TimeSpan b2 = sw.get();
 
 		printf("%s: time: %zi\n", name_, b - a);
+		printf("%s: time: %s\n", name_, b2.str().c_str());
+
 		return b - a;
 	}
 
 	static void* produce(void* p)
 	{
 		auto* self = (QueueTest<QueueT>*) p;
+		printf("%s: producing ...\n", self->name_);
 
 		size_t count = 100000000;
 		for (size_t i = 0; i < count; ++i) {
@@ -107,6 +154,7 @@ public:
 	static void* consume(void* p)
 	{
 		auto* self = (QueueTest<QueueT>*) p;
+		printf("%s: consuming ...\n", self->name_);
 
 		size_t i = 0;
 		size_t rounds = 0;
