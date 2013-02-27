@@ -5,6 +5,7 @@
 - official website: http://xzero.io/ (work in progress)
 - github: http://github.com/xzero/x0
 - ohloh: http://www.ohloh.net/p/x0
+- travis-ci: https://travis-ci.org/xzero/x0
 
 x0 is a low-latency scalable HTTP web server and web service framework
 written in modern C++.
