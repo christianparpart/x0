@@ -67,6 +67,9 @@ lib/libXzeroBase.so.*
 lib/libXzeroFlow.so.*
 lib/libXzeroHttp.so.*
 
+# CTags file
+tags
+
 # debian packaging temp files
 debian/*.substvars
 debian/*.debhelper

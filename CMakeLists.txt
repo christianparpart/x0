@@ -260,3 +260,7 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
 	PATTERN "*.h"
 	PATTERN "*.hpp"
 	PATTERN "*.cc")
+
+add_custom_target(ctags
+	COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q ${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/include
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
