@@ -17,7 +17,6 @@ namespace x0 {
 
 class X0_API SocketSpec
 {
-
 public:
 	enum Type {
 		Unknown,
@@ -27,11 +26,12 @@ public:
 
 	SocketSpec();
 	SocketSpec(const SocketSpec& ss);
-	SocketSpec(const IPAddress& ipaddr, int port, int backlog = -1) :
+	SocketSpec(const IPAddress& ipaddr, int port, int backlog = -1, size_t maccept = 1) :
 		type_(Inet),
 		ipaddr_(ipaddr),
 		port_(port),
-		backlog_(backlog)
+		backlog_(backlog),
+		multiAcceptCount_(maccept)
 	{}
 
 	static SocketSpec fromString(const std::string& value);
@@ -49,9 +49,11 @@ public:
 	int port() const { return port_; }
 	const std::string& local() const { return local_; }
 	int backlog() const { return backlog_; }
+	size_t multiAcceptCount() const { return multiAcceptCount_; }
 
 	void setPort(int value);
 	void setBacklog(int value);
+	void setMultiAcceptCount(size_t value);
 
 	std::string str() const;
 
@@ -61,6 +63,7 @@ private:
 	std::string local_;
 	int port_;
 	int backlog_;
+	size_t multiAcceptCount_;
 };
 
 

@@ -580,6 +580,9 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 	if (spec.backlog() <= 0)
 		lp->setBacklog(somaxconn);
 
+	if (spec.multiAcceptCount() > 0)
+		lp->setMultiAcceptCount(spec.multiAcceptCount());
+
 	if (lp->open(spec, O_NONBLOCK | O_CLOEXEC)) {
 		log(Severity::info, "Listening on %s", spec.str().c_str());
 		return lp;

@@ -36,6 +36,7 @@ private:
 	int backlog_;
 	int addressFamily_;
 	int fd_;
+	size_t multiAcceptCount_;
 	ev::io io_;
 	SocketDriver* socketDriver_;
 	std::string errorText_;
@@ -73,6 +74,9 @@ public:
 	bool isNonBlocking() const;
 	bool setNonBlocking(bool enable);
 
+	size_t multiAcceptCount() const { return multiAcceptCount_; }
+	void setMultiAcceptCount(size_t value);
+
 	void setSocketDriver(SocketDriver* sd);
 	SocketDriver* socketDriver() { return socketDriver_; }
 	const SocketDriver* socketDriver() const { return socketDriver_; }
@@ -93,6 +97,8 @@ private:
 	static void callback_thunk(Socket* cs, ServerSocket* ss);
 
 	void accept(ev::io&, int);
+
+	inline bool acceptOne();
 };
 
 // {{{

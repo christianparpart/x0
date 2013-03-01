@@ -217,6 +217,7 @@ ServerSocket::ServerSocket(struct ev_loop* loop) :
 	backlog_(SOMAXCONN),
 	addressFamily_(AF_UNSPEC),
 	fd_(-1),
+	multiAcceptCount_(1),
 	io_(loop),
 	socketDriver_(new SocketDriver()),
 	callback_(nullptr),
@@ -592,6 +593,11 @@ void ServerSocket::close()
 	fd_ = -1;
 }
 
+void ServerSocket::setMultiAcceptCount(size_t value)
+{
+	multiAcceptCount_ = std::max(value, static_cast<size_t>(1));
+}
+
 /*! defines a socket driver to be used for creating the client sockets.
  *
  * This is helpful when you want to create an SSL-aware server-socket, then set a custom socket driver, that is
@@ -612,49 +618,60 @@ void ServerSocket::setSocketDriver(SocketDriver* sd)
 
 void ServerSocket::accept(ev::io&, int)
 {
-	Socket* cs = nullptr;
-	int cfd;
+#if defined(WITH_MULTI_ACCEPT)
+	for (size_t n = multiAcceptCount_; n > 0; --n) {
+		if (!acceptOne()) {
+			break;
+		}
+	}
+#else
+	acceptOne();
+#endif
+}
 
+inline bool ServerSocket::acceptOne()
+{
 #if defined(HAVE_ACCEPT4) && defined(WITH_ACCEPT4)
 	bool flagged = true;
-	cfd = ::accept4(fd_, nullptr, 0, typeMask_);
+	int cfd = ::accept4(fd_, nullptr, 0, typeMask_);
 	if (cfd < 0 && errno == ENOSYS) {
 		cfd = ::accept(fd_, nullptr, 0);
 		flagged = false;
 	}
 #else
 	bool flagged = false;
-	cfd = ::accept(fd_, nullptr, 0);
+	int cfd = ::accept(fd_, nullptr, 0);
 #endif
 
 	if (cfd < 0) {
 		switch (errno) {
-			case EINTR:
-			case EAGAIN:
+		case EINTR:
+		case EAGAIN:
 #if EAGAIN != EWOULDBLOCK
-			case EWOULDBLOCK:
+		case EWOULDBLOCK:
 #endif
-				return;
-			default:
-				goto done;
+			goto out;
+		default:
+			goto err;
 		}
 	}
 
 	if (!flagged && flags_ && fcntl(cfd, F_SETFL, fcntl(cfd, F_GETFL) | flags_) < 0)
 		goto err;
 
-	cs = socketDriver_->create(loop_, cfd, addressFamily_);
-	goto done;
+	TRACE("accept(): %d", cfd);
+	callback_(socketDriver_->create(loop_, cfd, addressFamily_), this);
+
+	return true;
 
 err:
+	// notify callback about the error on accept()
 	::close(cfd);
+	callback_(nullptr, this);
 
-done:
-	TRACE("accept(): %d", cfd);
-
-	assert(callback_ != nullptr && "No callback handler defined.");
-
-	callback_(cs, this);
+out:
+	// abort the outer loop
+	return false;
 }
 
 /** enables/disables CLOEXEC-flag on the server listener socket.

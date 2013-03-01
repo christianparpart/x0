@@ -102,7 +102,7 @@ void FlowValue::dump(bool x) const
 SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{ 
 {
 	// server:
-	//   args usage (TCP): 'bind' => address, 'port' => num, ['backlog' => num]
+	//   args usage (TCP): 'bind' => address, 'port' => num, ['backlog' => num], ['multi_accept' => num]
 	//             (unix): 'bind' => path, ['backlog' => num]
 	//
 	// client:
@@ -113,10 +113,11 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 
 	unsigned mask = 0;
 	enum Item {
-		None    = 0x0000,
-		Address = 0x0001,
-		Port    = 0x0002,
-		Backlog = 0x0004
+		None        = 0x0000,
+		Address     = 0x0001,
+		Port        = 0x0002,
+		Backlog     = 0x0004,
+		MultiAccept = 0x0008
 	};
 
 	for (auto& arg: params) {
@@ -171,6 +172,14 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 					spec.setBacklog(r[1].toNumber());
 				else {
 					fprintf(stderr, "Invalid backlog size given (must be a number).\n");
+					goto err;
+				}
+			} else if (key == "multi_accept") {
+				m = Item::MultiAccept;
+				if (r[1].isNumber()) {
+					spec.setMultiAcceptCount(std::max(r[1].toNumber(), 1LL));
+				} else {
+					fprintf(stderr, "Invalid multi_accept given (must be a number).\n");
 					goto err;
 				}
 			} else {
