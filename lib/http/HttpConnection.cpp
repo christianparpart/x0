@@ -137,9 +137,11 @@ void HttpConnection::io(Socket *, int revents)
 		goto done;
 	}
 
+	// socket is ready for read?
 	if ((revents & Socket::Read) && !readSome())
 		goto done;
 
+	// socket is ready for write?
 	if ((revents & Socket::Write) && !writeSome())
 		goto done;
 
@@ -152,6 +154,8 @@ void HttpConnection::io(Socket *, int revents)
 		TRACE(1, "io(): status=%s. Watch for write.", status_str());
 		watchInput(worker_->server_.maxKeepAlive());
 		break;
+	case SendingReply:
+	case Undefined: // should never be reached
 	default:
 		TRACE(1, "io(): status=%s. Do not touch I/O watcher.", status_str());
 		break;
@@ -167,9 +171,6 @@ void HttpConnection::timeout(Socket *)
 
 	switch (status()) {
 	case Undefined:
-	case StartingUp:
-		TRACE(1, "timeout: BUG. we should have never reached here.");
-		break;
 	case ReadingRequest:
 		// we do not want further out-timing requests on this conn: just close it.
 		setShouldKeepAlive(false);
@@ -391,6 +392,7 @@ bool HttpConnection::onMessageEnd()
 
 void HttpConnection::watchInput(const TimeSpan& timeout)
 {
+	TRACE(3, "watchInput");
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
@@ -399,6 +401,7 @@ void HttpConnection::watchInput(const TimeSpan& timeout)
 
 void HttpConnection::watchOutput()
 {
+	TRACE(3, "watchOutput");
 	TimeSpan timeout = worker_->server_.maxWriteIdle();
 
 	if (timeout)
@@ -607,7 +610,7 @@ void HttpConnection::resume()
  */
 bool HttpConnection::process()
 {
-	TRACE(1, "process: offset=%lu, size=%lu (before processing)", inputOffset_, input_.size());
+	TRACE(2, "process: offset=%lu, size=%lu (before processing) %s, %s", inputOffset_, input_.size(), state_str(), status_str());
 
 	while (state() != MESSAGE_BEGIN || status() == ReadingRequest || status() == KeepAliveRead) {
 		BufferRef chunk(input_.ref(inputOffset_));
@@ -687,6 +690,19 @@ void HttpConnection::setShouldKeepAlive(bool enabled)
 
 void HttpConnection::setStatus(Status value)
 {
+#if !defined(NDEBUG)
+	static const char* str[] = {
+		"undefined",
+		"(starting-up)",
+		"reading-request",
+		"sending-reply",
+		"keep-alive-read"
+	};
+	TRACE(1, "setStatus() %s => %s",
+		str[static_cast<size_t>(status_)],
+		str[static_cast<size_t>(value)]);
+#endif
+
 	Status lastStatus = status_;
 	status_ = value;
 	worker().server().onConnectionStatusChanged(this, lastStatus);

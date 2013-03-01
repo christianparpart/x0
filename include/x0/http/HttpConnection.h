@@ -47,11 +47,10 @@ class X0_API HttpConnection :
 
 public:
 	enum Status {
-		Undefined,
-		StartingUp,
-		ReadingRequest,
-		SendingReply,
-		KeepAliveRead
+		Undefined = 0,
+		ReadingRequest = 2,
+		SendingReply = 3,
+		KeepAliveRead = 4
 	};
 
 public:
@@ -92,8 +91,8 @@ public:
 	void write(Source* buffer);
 	template<class T, class... Args> void write(Args&&... args);
 
-	bool isOutputPending() const;
-	bool isHandlingRequest() const;
+	bool isOutputPending() const { return !output_.empty(); }
+	bool isHandlingRequest() const { return flags_ & IsHandlingRequest; }
 
 	const HttpRequest* request() const { return request_; }
 	HttpRequest* request() { return request_; }
@@ -240,14 +239,7 @@ inline bool HttpConnection::isAborted() const
 
 inline bool HttpConnection::isClosed() const
 {
-	return flags_ & IsClosed;
-}
-
-/*! Tests whether or not this connection has pending data to sent to the client.
- */
-inline bool HttpConnection::isOutputPending() const
-{
-	return !output_.empty();
+	return !socket_ || (flags_ & IsClosed);
 }
 
 template<typename... Args>
