@@ -151,8 +151,26 @@ void HttpConnection::io(Socket *, int revents)
 		watchInput(worker_->server_.maxReadIdle());
 		break;
 	case KeepAliveRead:
-		TRACE(1, "io(): status=%s. Watch for write.", status_str());
-		watchInput(worker_->server_.maxKeepAlive());
+		if (isInputPending()) {
+			do {
+				// we're in keep-alive state but have (partial) request in buffer pending
+				// so do process it right away
+				TRACE(1, "io(): status=%s. Pipelined input pending.", status_str());
+				process();
+			} while (isInputPending() && status() == KeepAliveRead);
+
+			if (status() == KeepAliveRead) {
+				// we're still in keep-alive state but no (partial) request in buffer pending
+				// so watch for socket input event.
+				TRACE(1, "io(): status=%s. Watch for read (keep-alive).", status_str());
+				watchInput(worker_->server_.maxKeepAlive());
+			}
+		} else {
+			// we are in keep-alive state and have no (partial) request in buffer pending
+			// so watch for socket input event.
+			TRACE(1, "io(): status=%s. Watch for read (keep-alive).", status_str());
+			watchInput(worker_->server_.maxKeepAlive());
+		}
 		break;
 	case SendingReply:
 	case Undefined: // should never be reached

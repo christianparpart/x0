@@ -100,6 +100,8 @@ public:
 	std::size_t inputSize() const { return input_.size(); }
 	std::size_t inputOffset() const { return inputOffset_; }
 
+	bool isInputPending() const { return inputOffset_ < input_.size(); }
+
 	unsigned refCount() const;
 
 	template<typename T> inline void post(T function) { worker_->post(function); }
