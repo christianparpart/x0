@@ -398,7 +398,8 @@ private:
 // {{{ request impl
 inline void HttpRequest::clear()
 {
-	// custom data is to be cleared in finish() already. clear() is invoked in resume() to clear up the remaining properties and prepare for the next request
+	// XXX custom data is to be cleared in finish() already. clear() is invoked in resume() to clear up
+	// XXX the remaining properties and prepare for the next request
 	// clearCustomData();
 
 	outputState_ = Unhandled;
