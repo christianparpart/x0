@@ -17,6 +17,7 @@
 #include <x0/Severity.h>
 #include <x0/LogMessage.h>
 #include <x0/PerformanceCounter.h>
+#include <x0/Queue.h>
 
 #include <deque>
 #include <list>
@@ -78,8 +79,7 @@ private:
 	std::atomic<unsigned long long> requestCount_;
 	unsigned long long connectionCount_;
 	pthread_t thread_;
-	std::deque<std::pair<Socket*, ServerSocket*> > queue_;
-	mutable pthread_spinlock_t queueLock_;
+	Queue<std::pair<Socket*, ServerSocket*>> queue_;
 
 	pthread_mutex_t resumeLock_;
 	pthread_cond_t resumeCondition_;

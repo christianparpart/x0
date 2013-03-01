@@ -53,7 +53,6 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 	connectionCount_(0),
 	thread_(pthread_self()),
 	queue_(),
-	queueLock_(),
 	resumeLock_(),
 	resumeCondition_(),
 	performanceCounter_(),
@@ -74,8 +73,6 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 	evWakeup_.set<&HttpWorker::onWakeup>();
 	evWakeup_.start();
 
-	pthread_spin_init(&queueLock_, PTHREAD_PROCESS_PRIVATE);
-
 	pthread_mutex_init(&resumeLock_, nullptr);
 	pthread_cond_init(&resumeCondition_, nullptr);
 
@@ -94,8 +91,6 @@ HttpWorker::~HttpWorker()
 
 	pthread_cond_destroy(&resumeCondition_);
 	pthread_mutex_destroy(&resumeLock_);
-
-	pthread_spin_destroy(&queueLock_);
 
 	evLoopCheck_.stop();
 	evNewConnection_.stop();
@@ -168,28 +163,19 @@ void HttpWorker::log(LogMessage&& msg)
  */
 void HttpWorker::enqueue(std::pair<Socket*, ServerSocket*>&& client)
 {
-	pthread_spin_lock(&queueLock_);
-	queue_.push_back(client);
+	queue_.enqueue(client);
 	evNewConnection_.send();
-	pthread_spin_unlock(&queueLock_);
 }
 
 /** callback to be invoked when new connection(s) have been assigned to this worker.
  */
 void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 {
-	pthread_spin_lock(&queueLock_);
-	while (!queue_.empty()) {
-		std::pair<Socket*, ServerSocket*> client(queue_.front());
-		queue_.pop_front();
+	std::pair<Socket*, ServerSocket*> client;
 
-		pthread_spin_unlock(&queueLock_);
-
+	while (queue_.dequeue(&client)) {
 		spawnConnection(client.first, client.second);
-
-		pthread_spin_lock(&queueLock_);
 	}
-	pthread_spin_unlock(&queueLock_);
 }
 
 void HttpWorker::onWakeup(ev::async& w, int revents)
