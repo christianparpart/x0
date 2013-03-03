@@ -263,9 +263,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWor
 		TRACE(1, "start: processing input");
 
 		// it is ensured, that we have data pending, so directly start reading
-		if (!readSome()) {
-			close();
-		}
+		io(nullptr, ev::READ);
 
 		TRACE(1, "start: processing input done");
 #else
