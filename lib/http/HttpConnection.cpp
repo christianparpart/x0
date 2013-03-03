@@ -488,8 +488,11 @@ void HttpConnection::write(Source* chunk)
 		TRACE(1, "write() chunk (%s)", chunk->className());
 		output_.push_back(chunk);
 
+#if defined(WITH_OPPORTUNISTIC_WRITE)
+		writeSome();
+#else
 		watchOutput();
-		//writeSome();
+#endif
 	} else {
 		TRACE(1, "write() ignore chunk (%s) - (connection aborted)", chunk->className());
 		delete chunk;

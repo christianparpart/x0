@@ -1,6 +1,8 @@
 0.7.0 (to-be-released)
 
 	* http: fixing keep-alive regressions (#52)
+	* http: added support opportunistic writes
+	Must be enabled at compilation time via -DWITH_OPPORTUNISTIC_WRITE=ON.
 	* base, flow: added support for multi-accept
 	Must be enabled at compilation time via -DWITH_MULTI_ACCEPT=ON.
 

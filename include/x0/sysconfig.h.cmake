@@ -32,6 +32,7 @@
 #cmakedefine WITH_ACCEPT4
 #cmakedefine WITH_TCP_DEFER_ACCEPT
 #cmakedefine WITH_MULTI_ACCEPT
+#cmakedefine WITH_OPPORTUNISTIC_WRITE
 
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK
