@@ -17,18 +17,26 @@
  *
  * request processing API:
  *     void accesslog(string logfilename);
+ *     void accesslog.syslog();
  */
 
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
+#include <x0/io/SyslogSink.h>
+#include <x0/io/FileSink.h>
+#include <x0/Logger.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#if defined(HAVE_SYSLOG_H)
+#	include <syslog.h>
+#endif
 
 #include <unordered_map>
 #include <string>
@@ -42,17 +50,21 @@ class AccesslogPlugin :
 	public x0::HttpPlugin
 {
 private:
-	typedef std::unordered_map<std::string, int> LogMap;
+	typedef std::unordered_map<std::string, std::shared_ptr<x0::FileSink>> LogMap;
+
+#if defined(HAVE_SYSLOG_H)
+	x0::SyslogSink syslogSink_;
+#endif
 
 	LogMap logfiles_; // map of file's name-to-fd
 
 	struct RequestLogger // {{{
 		: public x0::CustomData
 	{
-		LogMap::iterator log_;
+		x0::Sink* log_;
 		x0::HttpRequest *in_;
 
-		RequestLogger(LogMap::iterator log, x0::HttpRequest *in) :
+		RequestLogger(x0::Sink* log, x0::HttpRequest *in) :
 			log_(log), in_(in)
 		{
 		}
@@ -71,7 +83,9 @@ private:
 			sstr << '"' << getheader(in_, "User-Agent") << '"';
 			sstr << '\n';
 
-			(void) ::write(log_->second, sstr.data(), sstr.size());
+			if (log_->write(sstr.c_str(), sstr.size()) < static_cast<ssize_t>(sstr.size())) {
+				in_->log(x0::Severity::error, "Could not write to accesslog target. %s", strerror(errno));
+			}
 		}
 
 		inline std::string hostname(x0::HttpRequest *in)
@@ -104,9 +118,14 @@ private:
 
 public:
 	AccesslogPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+		x0::HttpPlugin(srv, name),
+#if defined(HAVE_SYSLOG_H)
+		syslogSink_(LOG_INFO),
+#endif
+		logfiles_()
 	{
 		registerProperty<AccesslogPlugin, &AccesslogPlugin::handleRequest>("accesslog", x0::FlowValue::VOID);
+		registerFunction<AccesslogPlugin, &AccesslogPlugin::syslogHandler>("accesslog.syslog");
 	}
 
 	~AccesslogPlugin()
@@ -117,46 +136,35 @@ public:
 	virtual void cycleLogs()
 	{
 		for (auto& i: logfiles_) {
-			int& fd = i.second;
-			if (fd < 0)
-				continue;
-
-			int newfd = ::open(i.first.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
-			if (newfd < 0)
-				continue;
-
-			int oldfd = fd;
-			fd = newfd;
-			::close(oldfd);
+			i.second->cycle();
 		}
 	}
 
 	void clear()
 	{
-		for (auto& i: logfiles_)
-			::close(i.second);
-
 		logfiles_.clear();
 	}
 
 private:
+	void syslogHandler(x0::HttpRequest *in, const x0::FlowParams& args, x0::FlowValue& result)
+	{
+#if defined(HAVE_SYSLOG_H)
+		in->setCustomData<RequestLogger>(this, &syslogSink_, in);
+#endif
+	}
+
 	void handleRequest(x0::HttpRequest *in, const x0::FlowParams& args, x0::FlowValue& result)
 	{
 		std::string filename(args[0].toString());
 		auto i = logfiles_.find(filename);
 		if (i != logfiles_.end()) {
 			if (i->second >= 0) {
-				in->setCustomData<RequestLogger>(this, i, in);
+				in->setCustomData<RequestLogger>(this, i->second.get(), in);
 			}
 		} else {
-			int fd = ::open(filename.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
-			if (fd >= 0) {
-				logfiles_[filename] = fd;
-				in->setCustomData<RequestLogger>(this, logfiles_.find(filename), in);
-			} else {
-				in->log(x0::Severity::error, "Could not open accesslog file (%s): %s",
-						filename.c_str(), strerror(errno));
-			}
+			auto fileSink = new x0::FileSink(filename, O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
+			logfiles_[filename].reset(fileSink);
+			in->setCustomData<RequestLogger>(this, fileSink, in);
 		}
 	}
 };
