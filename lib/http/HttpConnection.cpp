@@ -127,7 +127,7 @@ void HttpConnection::unref()
 
 void HttpConnection::io(Socket *, int revents)
 {
-	TRACE(1, "io(revents=%04x) isHandlingRequest:%d", revents, flags_ & IsHandlingRequest);
+	TRACE(1, "io(revents=%04x) isHandlingRequest:%d", revents, isHandlingRequest());
 
 	ref();
 
@@ -395,7 +395,7 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 
 bool HttpConnection::onMessageEnd()
 {
-	TRACE(1, "onMessageEnd() %s (isHandlingRequest:%d)", status_str(), flags_ & IsHandlingRequest);
+	TRACE(1, "onMessageEnd() %s (isHandlingRequest:%d)", status_str(), isHandlingRequest());
 
 	// marks the request-content EOS, so that the application knows when the request body
 	// has been fully passed to it.
@@ -403,10 +403,10 @@ bool HttpConnection::onMessageEnd()
 
 	// If we are currently procesing a request, then stop parsing at the end of this request.
 	// The next request, if available, is being processed via resume()
-	if (flags_ & IsHandlingRequest)
+	if (isHandlingRequest())
 		return false;
 
-	return true; //shouldKeepAlive();
+	return true;
 }
 
 void HttpConnection::watchInput(const TimeSpan& timeout)
@@ -649,7 +649,7 @@ bool HttpConnection::process()
 			}
 		}
 
-		TRACE(1, "process: (size: %lu, isHandlingRequest:%d, state:%s status:%s", chunk.size(), (flags_ & IsHandlingRequest) != 0, state_str(), status_str());
+		TRACE(1, "process: (size: %lu, isHandlingRequest:%d, state:%s status:%s", chunk.size(), isHandlingRequest(), state_str(), status_str());
 		//TRACE(1, "%s", input_.ref(input_.size() - rv).str().c_str());
 
 		HttpMessageProcessor::process(chunk, &inputOffset_);
