@@ -270,8 +270,8 @@ FlowToken FlowLexer::nextToken()
 			stringValue_.clear();
 			return continueParseIPv6(false);
 		} else {
-			nextChar(); // skip the invalid char
-			return token_ = FlowToken::Unknown;
+			nextChar();
+			return token_ = FlowToken::Colon;
 		}
 	case ';':
 		nextChar();

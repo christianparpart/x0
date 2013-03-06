@@ -441,6 +441,8 @@ Expr* FlowParser::expr() // logicExpr
 	return assocExpr();
 }
 
+// assocExpr ::= logicExpr ['=>' logicExpr]
+//             | symbolExpr ':' logicExpr
 Expr* FlowParser::assocExpr()
 {
 	FNTRACE();
@@ -450,9 +452,40 @@ Expr* FlowParser::assocExpr()
 	if (!lhs)
 		return nullptr;
 
+	// lhSymbol: rhs
+	if (consumeIf(FlowToken::Colon)) {
+		std::unique_ptr<Expr> rhs(logicExpr());
+		if (!rhs)
+			return nullptr;
+
+		// we expect the left-hand to be a simple symbol, lexically.
+		FunctionRefExpr* fr = dynamic_cast<FunctionRefExpr*>(lhs.get());
+		if (!fr) {
+			reportError("Invalid type on left side of ':' operator. Expected a symbol");
+			return nullptr;
+		}
+
+		// if the referring function AST node was created just because of this lhs, then
+		// removed it right away to avoid unnecessary "unresolved symbol" warnings at JIT-time.
+		// XXX However, this is NOT perfect, and should make use of ref-counting for proper counts instead.
+		Function* f = fr->function();
+		if (!f->body())
+			scopeStack_.front()->removeSymbol(f);
+
+		// transform the LHS into a string literal node
+		lhs.reset(new StringExpr(fr->function()->name(), fr->sourceLocation()));
+
+		std::unique_ptr<ListExpr> assoc(new ListExpr(sloc.update(end())));
+		assoc->push_back(lhs.release());
+		assoc->push_back(rhs.release());
+
+		return assoc.release();
+	}
+
 	if (!consumeIf(FlowToken::HashRocket))
 		return lhs.release();
 
+	// lhs '=>' rhs
 	std::unique_ptr<Expr> rhs(logicExpr());
 	if (!rhs)
 		return nullptr;

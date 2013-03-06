@@ -6,6 +6,7 @@
 	Must be enabled at compilation time via -DWITH_OPPORTUNISTIC_WRITE=ON.
 	* base, flow: added support for multi-accept
 	Must be enabled at compilation time via -DWITH_MULTI_ACCEPT=ON.
+	* flow: ruby-1.9 alike named parameter association.
 
 0.6.0 (2013-02-27)
 
