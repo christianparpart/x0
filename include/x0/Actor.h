@@ -10,8 +10,8 @@
 #define sw_x0_Actor_h (1)
 
 #include <x0/Api.h>
+#include <x0/Queue.h>
 
-#include <deque>
 #include <vector>
 #include <thread>
 #include <future>
@@ -27,8 +27,9 @@ class X0_API Actor
 {
 private:
 	bool shutdown_;
-	std::deque<Message> messages_;
+	Queue<Message> messages_;
 	std::vector<std::future<void>> threads_;
+
 	std::mutex mutex_;
 	std::unique_lock<std::mutex> lock_;
 	std::condition_variable cond_;
@@ -38,7 +39,6 @@ public:
 	virtual ~Actor();
 
 	bool empty() const;
-	size_t size() const;
 	int scalability() const { return threads_.size(); }
 
 	void send(const Message& message);
@@ -77,22 +77,13 @@ inline Actor<Message>::~Actor()
 template<typename Message>
 bool Actor<Message>::empty() const
 {
-	return size() == 0;
-}
-
-template<typename Message>
-size_t Actor<Message>::size() const
-{
-	std::lock_guard<decltype(mutex_)> l(mutex_);
-	size_t result = messages_.size();
-	return result;
+	return messages_.empty();
 }
 
 template<typename Message>
 inline void Actor<Message>::send(const Message& message)
 {
-	std::lock_guard<decltype(mutex_)> l(mutex_);
-	messages_.push_back(message);
+	messages_.enqueue(message);
 	cond_.notify_one();
 }
 
@@ -132,17 +123,10 @@ void Actor<Message>::main()
 		if (shutdown_)
 			break;
 
-		Message message = messages_.front();
-		messages_.pop_front();
-
+		Message message;
+		while (messages_.dequeue(&message)) {
 			process(message);
-		/*lock_.unlock();
-		try {
-		} catch (...) {
-			lock_.lock();
-			throw;
 		}
-		lock_.lock();*/
 	}
 }
 // }}}
