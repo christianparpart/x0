@@ -29,14 +29,18 @@ namespace x0 {
  * fork()'s in between, it is generally recommended to pass \b O_CLOEXEC as \a flag aswell.
  */
 
-FileSink::FileSink(const std::string& filename, int flags)
+FileSink::FileSink(const std::string& filename, int flags, int mode) :
+	path_(filename),
+	flags_(flags),
+	mode_(mode),
+	handle_(-1)
 {
 	if (filename == "/dev/stdout")
 		handle_ = 1;
 	else if (filename == "/dev/stderr")
 		handle_ = 2;
 	else {
-		handle_ = open(filename.c_str(), flags, 0666);
+		handle_ = open(path_.c_str(), flags_, mode_);
 		if (handle_ >= 0) {
 			fcntl(handle_, F_SETFD, fcntl(handle_, F_GETFD) | FD_CLOEXEC);
 		}
@@ -62,6 +66,23 @@ void FileSink::accept(SinkVisitor& v)
 ssize_t FileSink::write(const void *buffer, size_t size)
 {
 	return ::write(handle_, buffer, size);
+}
+
+bool FileSink::cycle()
+{
+	if (handle_ < 3)
+		// don't touch (stdin/)stdout/stderr
+		return true;
+
+	int newFd = ::open(path_.c_str(), flags_, mode_);
+	if (newFd < 0)
+		return false;
+
+	int oldFd = handle_;
+	handle_ = newFd;
+	::close(oldFd);
+
+	return true;
 }
 
 } // namespace x0
