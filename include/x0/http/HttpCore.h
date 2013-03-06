@@ -60,6 +60,7 @@ private:
 	void max_core(const FlowParams& args, FlowValue& result);
 	void tcp_cork(const FlowParams& args, FlowValue& result);
 	void tcp_nodelay(const FlowParams& args, FlowValue& result);
+	void lingering(const FlowParams& args, FlowValue& result);
 	void max_request_uri_size(const FlowParams& args, FlowValue& result);
 	void max_request_header_size(const FlowParams& args, FlowValue& result);
 	void max_request_header_count(const FlowParams& args, FlowValue& result);

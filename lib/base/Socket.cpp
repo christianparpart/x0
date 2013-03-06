@@ -262,6 +262,25 @@ bool Socket::setTcpCork(bool enable)
 #endif
 }
 
+TimeSpan Socket::lingering() const
+{
+	struct linger l;
+	socklen_t sz = sizeof(l);
+	if (getsockopt(fd_, SOL_SOCKET, SO_LINGER, &l, &sz) < 0)
+		return TimeSpan::Zero;
+
+	return TimeSpan::fromSeconds(l.l_linger);
+}
+
+bool Socket::setLingering(TimeSpan timeout)
+{
+	struct linger l;
+	l.l_linger = timeout.value();
+	l.l_onoff = l.l_linger > 0;
+
+	return setsockopt(fd_, SOL_SOCKET, SO_LINGER, &l, sizeof(l)) == 0;
+}
+
 void Socket::setMode(Mode m)
 {
 	TRACE("setMode() %s -> %s", mode_str(mode_), mode_str(m));

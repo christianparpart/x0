@@ -107,6 +107,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	maxWriteIdle(TimeSpan::fromSeconds(360)),
 	tcpCork(false),
 	tcpNoDelay(false),
+	lingering(TimeSpan::Zero),
 	tag("x0/" VERSION),
 	advertise(true),
 	maxRequestUriSize(4 * 1024),

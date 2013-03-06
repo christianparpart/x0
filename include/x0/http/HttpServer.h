@@ -216,6 +216,7 @@ public:
 	ValueProperty<TimeSpan> maxWriteIdle;
 	ValueProperty<bool> tcpCork;
 	ValueProperty<bool> tcpNoDelay;
+	ValueProperty<TimeSpan> lingering;
 	ValueProperty<std::string> tag;
 	ValueProperty<bool> advertise;
 

@@ -108,6 +108,9 @@ public:
 	bool splicing() const;
 	void setSplicing(bool enable);
 
+	TimeSpan lingering() const;
+	bool setLingering(TimeSpan timeout);
+
 	std::string remoteIP() const;
 	unsigned int remotePort() const;
 	std::string remote() const;

@@ -239,6 +239,9 @@ void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWor
 		socket_->setTcpNoDelay(true);
 #endif
 
+	if (worker_->server().lingering())
+		socket_->setLingering(worker_->server().lingering());
+
 	TRACE(1, "starting (fd=%d)", socket_->handle());
 
 	ref(); // <-- this reference is being decremented in close()

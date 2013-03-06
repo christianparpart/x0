@@ -93,6 +93,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerSetupProperty<HttpCore, &HttpCore::max_core>("max_core_size", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::tcp_cork>("tcp_cork", FlowValue::BOOLEAN);
 	registerSetupProperty<HttpCore, &HttpCore::tcp_nodelay>("tcp_nodelay", FlowValue::BOOLEAN);
+	registerSetupProperty<HttpCore, &HttpCore::lingering>("lingering", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_request_uri_size>("max_request_uri_size", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_request_header_size>("max_request_header_size", FlowValue::NUMBER);
 	registerSetupProperty<HttpCore, &HttpCore::max_request_header_count>("max_request_header_count", FlowValue::NUMBER);
@@ -338,6 +339,21 @@ void HttpCore::tcp_nodelay(const FlowParams& args, FlowValue& result)
 		server().tcpNoDelay(args[0].toBool());
 	else
 		result.set(server().tcpNoDelay());
+}
+
+void HttpCore::lingering(const FlowParams& args, FlowValue& result)
+{
+	if (args.size() == 1) {
+		if (args[0].isNumber()) {
+			server().lingering = TimeSpan::fromSeconds(args[0].toNumber());
+		} else {
+			server().log(Severity::error, "lingering: Invalid argument type. Must be a number (timespan).");
+		}
+	} else if (args.empty()) {
+		result.set(static_cast<int64_t>(server().lingering().value()));
+	} else {
+		server().log(Severity::error, "lingering: Invalid argument count.");
+	}
 }
 
 void HttpCore::max_request_uri_size(const FlowParams& args, FlowValue& result)

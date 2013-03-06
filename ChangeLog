@@ -2,6 +2,7 @@
 
 	* http: fixing regression regarding HTTP pipelining (#52)
 	* http: added support opportunistic writes
+	* http: added SO_LINGER support via `lingering(timespan)` setup property
 	Must be enabled at compilation time via -DWITH_OPPORTUNISTIC_WRITE=ON.
 	* base, flow: added support for multi-accept
 	Must be enabled at compilation time via -DWITH_MULTI_ACCEPT=ON.
