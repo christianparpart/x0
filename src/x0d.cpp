@@ -10,6 +10,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpCore.h>
 #include <x0/flow/FlowRunner.h>
+#include <x0/io/SyslogSink.h>
 #include <x0/Tokenizer.h>
 #include <x0/Logger.h>
 #include <x0/DateTime.h>
@@ -40,6 +41,10 @@
 
 #include <execinfo.h> // backtrace(), backtrace_symbols_fd()
 #include <ucontext.h> // ucontext
+
+#if defined(HAVE_SYSLOG_H)
+#	include <syslog.h>
+#endif
 
 #if defined(WITH_TCP_DEFER_ACCEPT)
 #	include <netinet/tcp.h>
@@ -331,6 +336,10 @@ XzeroHttpDaemon::~XzeroHttpDaemon()
 	instance_ = nullptr;
 
 	x0::FlowRunner::shutdown();
+
+#if defined(HAVE_SYSLOG_H)
+	x0::SyslogSink::close();
+#endif
 }
 
 int XzeroHttpDaemon::run()
@@ -342,6 +351,10 @@ int XzeroHttpDaemon::run()
 		generation = atoi(v) + 1;
 		unsetenv("XZERO_UPGRADE");
 	}
+
+#if defined(HAVE_SYSLOG_H)
+	x0::SyslogSink::open("x0d", LOG_PID | LOG_NDELAY, LOG_DAEMON);
+#endif
 
 	server_ = new x0::HttpServer(loop_, generation);
 #ifndef NDEBUG
