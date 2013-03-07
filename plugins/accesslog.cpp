@@ -158,7 +158,7 @@ private:
 		std::string filename(args[0].toString());
 		auto i = logfiles_.find(filename);
 		if (i != logfiles_.end()) {
-			if (i->second >= 0) {
+			if (i->second.get()) {
 				in->setCustomData<RequestLogger>(this, i->second.get(), in);
 			}
 		} else {
