@@ -9,6 +9,7 @@
 	* flow: ruby-1.9 alike named parameter association.
 	* plugins: removed plugins proxy & fastcgi. Deprecated by director plugin.
 	* plugins: accesslog plugin now also supports syslog target
+	* plugins: director plugin has experimental support for backend acceleration
 
 0.6.0 (2013-02-27)
 

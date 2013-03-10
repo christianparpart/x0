@@ -34,6 +34,8 @@
 #cmakedefine WITH_MULTI_ACCEPT
 #cmakedefine WITH_OPPORTUNISTIC_WRITE
 
+#cmakedefine WITH_DIRECTOR_BACKEND_ACCELERATION
+
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK
 #cmakedefine HAVE_CHROOT

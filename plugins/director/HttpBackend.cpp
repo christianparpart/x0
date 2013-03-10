@@ -11,6 +11,7 @@
 #include "Director.h"
 #include "ClassfulScheduler.h"
 
+#include <x0/sysconfig.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
@@ -26,7 +27,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <netdb.h>
-
 
 #if !defined(NDEBUG)
 #	define TRACE(msg...) (this->Logging::debug(msg))
@@ -369,6 +369,11 @@ bool HttpBackend::ProxyConnection::onMessageContent(const BufferRef& chunk)
 {
 	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), socket_->state_str());
 
+#if defined(WITH_DIRECTOR_BACKEND_ACCELERATION)
+	request_->write<BufferRefSource>(chunk);
+
+	// TODO: swap out memory region into local file if we exceed certain size of pending bytes to be written.
+#else
 	// stop watching for more input
 	socket_->setMode(Socket::None);
 
@@ -378,6 +383,7 @@ bool HttpBackend::ProxyConnection::onMessageContent(const BufferRef& chunk)
 	// start listening on backend I/O when chunk has been fully transmitted
 	ref();
 	request_->writeCallback<ProxyConnection, &ProxyConnection::onWriteComplete>(this);
+#endif
 
 	return true;
 }
