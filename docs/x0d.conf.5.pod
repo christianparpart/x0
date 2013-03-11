@@ -720,6 +720,39 @@ Example:
 
 =back
 
+=head2 accesslog
+
+=over 6
+
+=item B<accesslog> (logfile_path)
+
+is a function to ensure the currently handled request is being
+logged into the given logfile_path.
+
+The accesslog line format is currently non-configurably set
+to the standard Apache accesslog style.
+
+ handler main {
+     accesslog '/var/log/x0d/access.log'
+
+     docroot '/var/www/localhost/htdocs'
+     staticfile
+ }
+
+=item B<accesslog.sysloc> ()
+
+is a function to ensure the currently handled request is being
+logged into the local syslog.
+
+ handler main {
+     accesslog.syslog
+
+     docroot '/var/www/localhost/htdocs'
+     staticfile
+ }
+
+=back
+
 =head2 auth
 
 Adds support for HTTP Basic Authentication.
