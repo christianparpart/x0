@@ -547,7 +547,7 @@ Example:
          rewrite '/error.html'
          staticfile
      } else {
-         fastcgi 'path' => '/var/run/custom-error-generator.socket'
+         director.fcgi 'path' => '/var/run/custom-error-generator.socket'
      }
  }
 
@@ -722,15 +722,17 @@ Example:
 
 =head2 accesslog
 
+This plugin provides functionality to log handled requests.
+
+The accesslog line format is currently non-configurably set
+to the standard Apache accesslog style.
+
 =over 6
 
 =item B<accesslog> (logfile_path)
 
 is a function to ensure the currently handled request is being
 logged into the given logfile_path.
-
-The accesslog line format is currently non-configurably set
-to the standard Apache accesslog style.
 
  handler main {
      accesslog '/var/log/x0d/access.log'
@@ -839,52 +841,6 @@ Example (runs B<cgi.exec> on any request path that ends with C<.cgi>):
 
 =back
 
-=head2 fastcgi
-
-Adds support for accessing FastCGI applications.
-This plugin currently only supports the responder role of FastCGI.
-
-=over 6
-
-=item B<fastcgi> (backend...)
-
-Passes the current request to a backend FastCGI application listening
-on the given hostname and port.
-
-An example use looks as follows:
-
- fastcgi 'bind' => 127.0.0.1, 'port' => 1234;
-
-or, for listening on a UNIX domain socket:
-
- fastcgi 'path' => '/var/run/program.fcgi';
-
-=back
-
-=head2 proxy
-
-Adds support for HTTP reverse proxying within B<x0>.
-
-=over 6
-
-=item B<proxy.cloak> (flag)
-
-Setup property, defining whether or not to cloak the server tag.
-
-=item B<proxy.reverse> (backend...)
-
-Handler, forwarding the request to a backend HTTP server.
-
-An example use looks as follows:
-
- proxy.reverse 'bind' => 127.0.0.1, 'port' => 1234;
-
-or, for listening on a UNIX domain socket:
-
- proxy.reverse 'path' => '/var/run/program.fcgi';
-
-=back
-
 =head2 director
 
 The director plugin implements advanced load balancing.
@@ -966,6 +922,25 @@ any configured capacity limits.
 
  handler main {
      director.pass 'app_cluster', req.cookie("X-Backend")
+ }
+
+=item B<director.fcgi> (path: unix_domain_socket)
+
+=item B<director.fcgi> (address: IP, port: PORT)
+
+Directly proxies a givenr equest to FastCGI backend application, either via TCP/IP or via TCP/IP.
+
+=item B<director.http> (path: unix_domain_socket)
+
+=item B<director.http> (address: IP, port: PORT)
+
+Directly proxies a givenr equest to FastCGI backend application, either via TCP/IP or via TCP/IP.
+
+ handler main {
+     docroot '/var/www/localhost/htdocs'
+     staticfile if req.path =^ '/assets/'
+
+     director.http address: 127.0.0.1, port: 8081;
  }
 
 =back
