@@ -1,4 +1,17 @@
-for a long-term todo list, see ticket system at https://github.com/trapni/x0/issues/
+for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
+
+-------------------------------------------------------------------------------------
+
+- "GET / HTP/1.1\r\n" already results into a 404, but should report "unsupported protocol"
+- HttpConnection: try to get rid of start() method, or rename it to setup() / initialize().
+- HttpConnection must get its socket at constructor time to allow setState() (etc)
+  to invoke log(), as it would crash otherwise.
+- DONE: HttpConnection: fix pipelining
+- HttpConnection: IsHandlingRequest flag really needed? remove if not.
+- HttpConnection: fix the need/meaning of flags_
+- http: allow the ability to set tcp_nopush / tcp_cork per request (defaults to global setting).
+
+-------------------------------------------------------------------------------------
 
 - http:
   - BUG: proxy-request results into an endless living connection
@@ -21,12 +34,16 @@ for a long-term todo list, see ticket system at https://github.com/trapni/x0/iss
    0.7.0 release todo
 -------------------------------------------------
 
-- http: Keep-Alive performance regressions (#52)
+- director: suppport accelerated backend release
+- DONE: http: pipelining fixes (#52)
+- DONE: http: performance regressions (#52)
+- DONE: flow: extend syntax to allow ruby-1.9 alike named call args
+  - example: `listen bind: 0.0.0.0, port: 80, multi_accept: 4, backlog: 256`
+- flow: bail out on invalid cast of operator+ (for example and at least)
+- flow: bool cast
 - ssl: properly working on real websites (also in threaded mode).
 - ssl: eliminate deprecation warnings
 - x0d: ensure basic binary upgrade and config reloads.
-- flow: bail out on invalid cast of operator+ (for example and at least)
-- flow: bool cast
 
 - provide debian package for: x0 0.6.0
   - debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
