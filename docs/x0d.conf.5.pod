@@ -863,7 +863,7 @@ One example might look like:
          'app04' => 'http://192.168.4.4:8080/?capacity=1',
  }
 
-=item B<director.load> (name, path)
+=item B<director.load> (name: path [, ...])
 
 Spawns a load balancer instance with the given name by loading its
 configuration from a plain-text database file.
@@ -875,7 +875,15 @@ manipulating these dynamic load balancers via the B<director.api>() handler.
 Example:
 
  handler setup {
-     director.load 'app_cluster', '/var/lib/x0/app_cluster.db'
+     # ...
+     
+     # loads the dynamic cluster with unique name 'app_cluster' from given file:
+     director.load app_cluster: '/var/lib/x0/app_cluster.db'
+ }
+ 
+ handler main {
+     # ...
+     director.pass 'app_cluster'
  }
 
 =item B<director.api> ()
@@ -889,6 +897,14 @@ but dynamically spawned clusters are capable of creating new backends,
 reconfiguring them, and having them removed again.
 Dynamic cluster configuration is also kept on local storage and is kept in
 sync with the live configuration's changes.
+
+ handler main {
+     if req.path =^ '/x0' {
+         director.api '/x0'
+	 }
+
+     # ...
+ }
 
 =item B<director.pass> ()
 
