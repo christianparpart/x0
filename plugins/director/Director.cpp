@@ -304,6 +304,7 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("connect-timeout")(connectTimeout_.totalMilliseconds())
 		.name("read-timeout")(readTimeout_.totalMilliseconds())
 		.name("write-timeout")(writeTimeout_.totalMilliseconds())
+		.name("transfer-mode")(transferMode_)
 		.name("health-check-host-header")(healthCheckHostHeader_)
 		.name("health-check-request-path")(healthCheckRequestPath_)
 		.name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
@@ -388,6 +389,12 @@ bool Director::load(const std::string& path)
 		return false;
 	}
 	writeTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+
+	if (!settings.load("director", "transfer-mode", value)) {
+		worker()->log(Severity::error, "director: Could not load settings value director.transfer-mode in file '%s'. Defaulting to 'blocking'.", path.c_str());
+		value = "blocking";
+	}
+	transferMode_ = makeTransferMode(value);
 
 	if (!settings.load("director", "max-retry-count", value)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.max-retry-count in file '%s'", path.c_str());

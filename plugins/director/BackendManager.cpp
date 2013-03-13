@@ -7,6 +7,7 @@
  */
 
 #include "BackendManager.h"
+#include <x0/JsonWriter.h>
 
 BackendManager::BackendManager(x0::HttpWorker* worker, const std::string& name) :
 #ifndef NDEBUG
@@ -16,7 +17,8 @@ BackendManager::BackendManager(x0::HttpWorker* worker, const std::string& name) 
 	name_(name),
 	connectTimeout_(x0::TimeSpan::fromSeconds(10)),
 	readTimeout_(x0::TimeSpan::fromSeconds(120)),
-	writeTimeout_(x0::TimeSpan::fromSeconds(10))
+	writeTimeout_(x0::TimeSpan::fromSeconds(10)),
+	transferMode_(TransferMode::Blocking)
 {
 }
 
@@ -28,4 +30,37 @@ void BackendManager::log(x0::LogMessage&& msg)
 {
 	msg.addTag(name_);
 	worker_->log(std::move(msg));
+}
+
+TransferMode makeTransferMode(const std::string& value)
+{
+	if (value == "file")
+		return TransferMode::FileAccel;
+
+	if (value == "memory")
+		return TransferMode::MemoryAccel;
+
+	if (value == "blocking")
+		return TransferMode::Blocking;
+
+	// default to "blocking" if value is not recognized.
+	return TransferMode::Blocking;
+}
+
+namespace x0 {
+	x0::JsonWriter& operator<<(x0::JsonWriter& json, const TransferMode& mode)
+	{
+		switch (mode) {
+		case TransferMode::FileAccel:
+			json.value("file");
+			break;
+		case TransferMode::MemoryAccel:
+			json.value("memory");
+			break;
+		case TransferMode::Blocking:
+			json.value("blocking");
+			break;
+		}
+		return json;
+	}
 }

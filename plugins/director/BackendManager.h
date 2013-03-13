@@ -20,6 +20,14 @@ namespace x0 {
 
 class Backend;
 
+enum class TransferMode {
+	Blocking = 0,
+	MemoryAccel = 1,
+	FileAccel = 2,
+};
+
+TransferMode makeTransferMode(const std::string& value);
+
 /** common abstraction of what a backend has to know about its managing owner.
  *
  * \see Director
@@ -35,6 +43,7 @@ protected:
 	x0::TimeSpan connectTimeout_;
 	x0::TimeSpan readTimeout_;
 	x0::TimeSpan writeTimeout_;
+	TransferMode transferMode_;		//!< Mode how response payload is transferred.
 
 public:
 	BackendManager(x0::HttpWorker* worker, const std::string& name);
@@ -54,6 +63,9 @@ public:
 	x0::TimeSpan writeTimeout() const { return writeTimeout_; }
 	void setWriteTimeout(x0::TimeSpan value) { writeTimeout_ = value; }
 
+	TransferMode transferMode() const { return transferMode_; }
+	void setTransferMode(TransferMode value) { transferMode_ = value; }
+
 	template<typename T> inline void post(T function) { worker()->post(function); }
 
 	//! Invoked internally when the passed request failed processing.
@@ -62,3 +74,9 @@ public:
 	//! Invoked internally when a request has been fully processed in success.
 	virtual void release(Backend* backend) = 0;
 };
+
+namespace x0 {
+	class JsonWriter;
+	JsonWriter& operator<<(JsonWriter& json, const TransferMode& mode);
+}
+

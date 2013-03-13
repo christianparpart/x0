@@ -16,6 +16,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/BufferRefSource.h>
+#include <x0/io/FileSource.h>
 #include <x0/SocketSpec.h>
 #include <x0/strutils.h>
 #include <x0/Url.h>
@@ -62,6 +63,9 @@ private:
 	Buffer readBuffer_;
 	bool processingDone_;
 
+	int transferHandle_;
+	size_t transferOffset_;
+
 private:
 	HttpBackend* proxy() const { return backend_; }
 
@@ -94,7 +98,7 @@ public:
 	inline explicit ProxyConnection(HttpBackend* proxy);
 	~ProxyConnection();
 
-	void start(HttpRequest* in, Socket* backend);
+	inline void start(HttpRequest* in, Socket* backend);
 };
 // }}}
 
@@ -113,7 +117,10 @@ HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
 	writeOffset_(0),
 	writeProgress_(0),
 	readBuffer_(),
-	processingDone_(false)
+	processingDone_(false),
+
+	transferHandle_(-1),
+	transferOffset_(0)
 {
 #ifndef NDEBUG
 	setLoggingPrefix("ProxyConnection/%p", this);
@@ -129,6 +136,10 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 		socket_->close();
 
 		delete socket_;
+	}
+
+	if (!(transferHandle_ < 0)) {
+		::close(transferHandle_);
 	}
 
 	if (request_) {
@@ -258,6 +269,13 @@ void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* socket)
 		socket_->setReadyCallback<ProxyConnection, &ProxyConnection::io>(this);
 		socket_->setMode(Socket::ReadWrite);
 	}
+
+	if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
+		char path[1024];
+		snprintf(path, sizeof(path), "/tmp/x0d-director-%d", socket_->handle());
+
+		transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	}
 }
 
 /**
@@ -369,21 +387,35 @@ bool HttpBackend::ProxyConnection::onMessageContent(const BufferRef& chunk)
 {
 	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), socket_->state_str());
 
-#if defined(WITH_DIRECTOR_BACKEND_ACCELERATION)
-	request_->write<BufferRefSource>(chunk);
+	switch (backend_->manager()->transferMode()) {
+	case TransferMode::FileAccel:
+		if (!(transferHandle_ < 0)) {
+			ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
+			if (rv == static_cast<ssize_t>(chunk.size())) {
+				request_->write<FileSource>(transferHandle_, transferOffset_, rv, false);
+				transferOffset_ += rv;
+				break;
+			} else if (rv > 0) {
+				// partial write to disk (is this possible?) -- TODO: investigate if that case is possible
+				transferOffset_ += rv;
+			}
+		}
+		// fall through
+	case TransferMode::MemoryAccel:
+		request_->write<BufferRefSource>(chunk);
+		break;
+	case TransferMode::Blocking:
+		// stop watching for more input
+		socket_->setMode(Socket::None);
 
-	// TODO: swap out memory region into local file if we exceed certain size of pending bytes to be written.
-#else
-	// stop watching for more input
-	socket_->setMode(Socket::None);
+		// transfer response-body chunk to client
+		request_->write<BufferRefSource>(chunk);
 
-	// transfer response-body chunk to client
-	request_->write<BufferRefSource>(chunk);
-
-	// start listening on backend I/O when chunk has been fully transmitted
-	ref();
-	request_->writeCallback<ProxyConnection, &ProxyConnection::onWriteComplete>(this);
-#endif
+		// start listening on backend I/O when chunk has been fully transmitted
+		ref();
+		request_->writeCallback<ProxyConnection, &ProxyConnection::onWriteComplete>(this);
+		break;
+	}
 
 	return true;
 }
