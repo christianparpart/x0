@@ -275,6 +275,9 @@ void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* socket)
 		snprintf(path, sizeof(path), "/tmp/x0d-director-%d", socket_->handle());
 
 		transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+		if (transferHandle_ < 0) {
+			request_->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+		}
 	}
 }
 
