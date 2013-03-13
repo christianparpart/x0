@@ -204,4 +204,12 @@ JsonWriter& operator<<(JsonWriter& json, const BufferRef& value)
 	return json;
 }
 
+JsonWriter& operator<<(JsonWriter& json, const char* value)
+{
+	json.preValue();
+	json.buffer() << '"' << value << '"';
+	json.postValue();
+	return json;
+}
+
 } // namespace x0

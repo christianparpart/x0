@@ -83,5 +83,6 @@ X0_API JsonWriter& operator<<(x0::JsonWriter& json, unsigned long long value);
 X0_API JsonWriter& operator<<(x0::JsonWriter& json, const std::string& value);
 X0_API JsonWriter& operator<<(x0::JsonWriter& json, const Buffer& value);
 X0_API JsonWriter& operator<<(x0::JsonWriter& json, const BufferRef& value);
+X0_API JsonWriter& operator<<(x0::JsonWriter& json, const char* value);
 
 } // namespace x0
