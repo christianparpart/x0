@@ -393,9 +393,9 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 	while (i != e) {
 #if !defined(NDEBUG)
 		if (std::isprint(*i)) {
-			TRACE(4, "parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i, state_str());
+			TRACE(3, "parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i, state_str());
 		} else {
-			TRACE(4, "parse: %4ld, 0x%02X,     %s", *nparsed, *i, state_str());
+			TRACE(3, "parse: %4ld, 0x%02X,     %s", *nparsed, *i, state_str());
 		}
 #endif
 

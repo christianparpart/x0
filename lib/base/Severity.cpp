@@ -22,6 +22,9 @@ Severity::Severity(const std::string& value)
 const char *Severity::c_str() const
 {
 	switch (value_) {
+		case emerg: return "emerg";
+		case alert: return "alert";
+		case crit: return "crit";
 		case error: return "error";
 		case warning: return "warning";
 		case notice: return "notice";
@@ -29,9 +32,6 @@ const char *Severity::c_str() const
 		case debug1: return "debug:1";
 		case debug2: return "debug:2";
 		case debug3: return "debug:3";
-		case debug4: return "debug:4";
-		case debug5: return "debug:5";
-		case debug6: return "debug:6";
 		default: return "UNKNOWN";
 	}
 }
@@ -39,6 +39,9 @@ const char *Severity::c_str() const
 bool Severity::set(const char* value)
 {
 	std::map<std::string, Severity> map = {
+		{ "emerg", Severity::emerg },
+		{ "alert", Severity::alert },
+		{ "crit", Severity::crit },
 		{ "error", Severity::error },
 		{ "warn", Severity::warn },
 		{ "warning", Severity::warn },
@@ -48,9 +51,6 @@ bool Severity::set(const char* value)
 		{ "debug1", Severity::debug1 },
 		{ "debug2", Severity::debug2 },
 		{ "debug3", Severity::debug3 },
-		{ "debug4", Severity::debug4 },
-		{ "debug5", Severity::debug5 },
-		{ "debug6", Severity::debug6 },
 	};
 
 	auto i = map.find(value);

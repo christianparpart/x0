@@ -25,16 +25,16 @@ namespace x0 {
  */
 struct X0_API Severity {
 	enum {
-		debug6 = 0,
-		debug5 = 1,
-		debug4 = 2,
-		debug3 = 3,
-		debug2 = 4,
-		debug1 = 5,
-		info = 6,
-		notice = 7,
-		warning = 8,
-		error = 9,
+		debug3 = 0,
+		debug2 = 1,
+		debug1 = 2,
+		info = 3,
+		notice = 4,
+		warning = 5,
+		error = 6,
+		crit = 7,
+		alert = 8,
+		emerg = 9,
 
 		warn = warning,
 		debug = debug1

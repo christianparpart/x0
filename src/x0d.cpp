@@ -358,7 +358,7 @@ int XzeroHttpDaemon::run()
 
 	server_ = new x0::HttpServer(loop_, generation);
 #ifndef NDEBUG
-	server_->logLevel(x0::Severity::debug5);
+	server_->logLevel(x0::Severity::debug3);
 #endif
 
 	if (!parse())

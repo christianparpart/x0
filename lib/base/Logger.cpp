@@ -239,13 +239,13 @@ void ConsoleLogger::write(LogMessage& msg)
 		AnsiColor::Clear, // debug
 		AnsiColor::Clear, // debug
 		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
-		AnsiColor::Clear, // debug
-		AnsiColor::Cyan, // info
-		AnsiColor::Green, // notice
-		AnsiColor::Yellow, // warn
-		AnsiColor::Red | AnsiColor::Bold, // error
+		AnsiColor::Cyan | AnsiColor::Bold, // info
+		AnsiColor::Blue | AnsiColor::Bold, // notice
+		AnsiColor::Cyan, // warn
+		AnsiColor::Yellow, // error
+		AnsiColor::Yellow | AnsiColor::Bold, // crit
+		AnsiColor::Magenta | AnsiColor::Bold, // alert
+		AnsiColor::Red | AnsiColor::Bold, // emerg
 	};
 
 	DateTime ts;
