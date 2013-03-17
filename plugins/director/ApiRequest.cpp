@@ -313,6 +313,7 @@ bool ApiReqeust::index()
 	char slen[32];
 	snprintf(slen, sizeof(slen), "%zu", result.size());
 
+	request_->responseHeaders.push_back("Cache-Control", "no-cache");
 	request_->responseHeaders.push_back("Content-Type", "application/json");
 	request_->responseHeaders.push_back("Access-Control-Allow-Origin", "*");
 	request_->responseHeaders.push_back("Content-Length", slen);
@@ -333,6 +334,8 @@ bool ApiReqeust::get()
 	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() < 1 || tokens.size() >  2)
 		return false;
+
+	request_->responseHeaders.push_back("Cache-Control", "no-cache");
 
 	Director* director = findDirector(tokens[0]);
 	if (!director) {
