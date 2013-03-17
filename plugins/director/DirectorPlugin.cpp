@@ -263,7 +263,7 @@ bool DirectorPlugin::director_api(HttpRequest* r, const FlowParams& args)
 
 	BufferRef path(r->path.ref(strlen(prefix)));
 
-	return ApiReqeust::process(&directors_, r, path);
+	return ApiRequest::process(&directors_, r, path);
 }
 // }}}
 // {{{ handler director.fcgi(socketspec);

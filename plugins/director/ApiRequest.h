@@ -1,4 +1,4 @@
-/* <plugins/director/ApiReqeust.h>
+/* <plugins/director/ApiRequest.h>
  *
  * This file is part of the x0 web server project and is released under GPL-3.
  * http://www.xzero.io/
@@ -32,7 +32,7 @@ class Director;
 
 typedef std::unordered_map<std::string, Director*> DirectorMap;
 
-class ApiReqeust :
+class ApiRequest :
 	public x0::CustomData
 {
 private:
@@ -43,8 +43,8 @@ private:
 	std::unordered_map<std::string, std::string> args_;
 
 public:
-	ApiReqeust(DirectorMap* directors, x0::HttpRequest* r, const x0::BufferRef& path);
-	~ApiReqeust();
+	ApiRequest(DirectorMap* directors, x0::HttpRequest* r, const x0::BufferRef& path);
+	~ApiRequest();
 
 	static bool process(DirectorMap* directors, x0::HttpRequest* r, const x0::BufferRef& path);
 

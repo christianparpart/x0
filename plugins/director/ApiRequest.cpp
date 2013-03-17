@@ -37,7 +37,7 @@
 using namespace x0;
 
 /**
- * \class ApiReqeust
+ * \class ApiRequest
  * \brief implements director's JSON API.
  *
  * An instance of this class is to serve one request.
@@ -102,7 +102,7 @@ HttpMethod requestMethod(const BufferRef& value)
 }
 // }}}
 
-ApiReqeust::ApiReqeust(DirectorMap* directors, HttpRequest* r, const BufferRef& path) :
+ApiRequest::ApiRequest(DirectorMap* directors, HttpRequest* r, const BufferRef& path) :
 	directors_(directors),
 	request_(r),
 	path_(path),
@@ -110,20 +110,20 @@ ApiReqeust::ApiReqeust(DirectorMap* directors, HttpRequest* r, const BufferRef& 
 {
 }
 
-ApiReqeust::~ApiReqeust()
+ApiRequest::~ApiRequest()
 {
 }
 
 /**
- * instanciates an ApiReqeust object and passes the given request to it, to actually handle the API request.
+ * instanciates an ApiRequest object and passes the given request to it, to actually handle the API request.
  *
  * \param directors pointer to the map of directors
  * \param r the client's request handle
  * \param path a modified version of the HTTP request path, to be used as such.
  */
-bool ApiReqeust::process(DirectorMap* directors, HttpRequest* r, const BufferRef& path)
+bool ApiRequest::process(DirectorMap* directors, HttpRequest* r, const BufferRef& path)
 {
-	ApiReqeust* ar = new ApiReqeust(directors, r, path);
+	ApiRequest* ar = new ApiRequest(directors, r, path);
 	ar->start();
 	return true;
 }
@@ -131,12 +131,12 @@ bool ApiReqeust::process(DirectorMap* directors, HttpRequest* r, const BufferRef
 /**
  * Internal function, used to start processing the request.
  */
-void ApiReqeust::start()
+void ApiRequest::start()
 {
-	request_->setBodyCallback<ApiReqeust, &ApiReqeust::onBodyChunk>(this);
+	request_->setBodyCallback<ApiRequest, &ApiRequest::onBodyChunk>(this);
 }
 
-void ApiReqeust::onBodyChunk(const BufferRef& chunk)
+void ApiRequest::onBodyChunk(const BufferRef& chunk)
 {
 	body_ << chunk;
 
@@ -149,12 +149,12 @@ void ApiReqeust::onBodyChunk(const BufferRef& chunk)
 	}
 }
 
-void ApiReqeust::parseBody()
+void ApiRequest::parseBody()
 {
 	args_ = Url::parseQuery(body_);
 }
 
-Director* ApiReqeust::findDirector(const x0::BufferRef& name)
+Director* ApiRequest::findDirector(const x0::BufferRef& name)
 {
 	auto i = directors_->find(name.str());
 
@@ -164,12 +164,12 @@ Director* ApiReqeust::findDirector(const x0::BufferRef& name)
 	return nullptr;
 }
 
-bool ApiReqeust::hasParam(const std::string& key) const
+bool ApiRequest::hasParam(const std::string& key) const
 {
 	return args_.find(key) != args_.end();
 }
 
-bool ApiReqeust::loadParam(const std::string& key, bool& result)
+bool ApiRequest::loadParam(const std::string& key, bool& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end()) {
@@ -182,7 +182,7 @@ bool ApiReqeust::loadParam(const std::string& key, bool& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, int& result)
+bool ApiRequest::loadParam(const std::string& key, int& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
@@ -193,7 +193,7 @@ bool ApiReqeust::loadParam(const std::string& key, int& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, size_t& result)
+bool ApiRequest::loadParam(const std::string& key, size_t& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
@@ -204,7 +204,7 @@ bool ApiReqeust::loadParam(const std::string& key, size_t& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, TimeSpan& result)
+bool ApiRequest::loadParam(const std::string& key, TimeSpan& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
@@ -215,7 +215,7 @@ bool ApiReqeust::loadParam(const std::string& key, TimeSpan& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, BackendRole& result)
+bool ApiRequest::loadParam(const std::string& key, BackendRole& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
@@ -233,7 +233,7 @@ bool ApiReqeust::loadParam(const std::string& key, BackendRole& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, HealthMonitor::Mode& result)
+bool ApiRequest::loadParam(const std::string& key, HealthMonitor::Mode& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
@@ -251,7 +251,7 @@ bool ApiReqeust::loadParam(const std::string& key, HealthMonitor::Mode& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, std::string& result)
+bool ApiRequest::loadParam(const std::string& key, std::string& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
@@ -262,7 +262,7 @@ bool ApiReqeust::loadParam(const std::string& key, std::string& result)
 	return true;
 }
 
-bool ApiReqeust::loadParam(const std::string& key, TransferMode& result)
+bool ApiRequest::loadParam(const std::string& key, TransferMode& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end())
@@ -273,7 +273,7 @@ bool ApiReqeust::loadParam(const std::string& key, TransferMode& result)
 	return true;
 }
 
-bool ApiReqeust::process()
+bool ApiRequest::process()
 {
 	switch (requestMethod(request_->method)) {
 		case HttpMethod::GET:
@@ -297,7 +297,7 @@ bool ApiReqeust::process()
 	}
 }
 
-bool ApiReqeust::index()
+bool ApiRequest::index()
 {
 	Buffer result;
 	JsonWriter json(result);
@@ -323,13 +323,13 @@ bool ApiReqeust::index()
 	return true;
 }
 
-bool ApiReqeust::eventstream()
+bool ApiRequest::eventstream()
 {
 	return false;
 }
 
 // get a single director json object
-bool ApiReqeust::get()
+bool ApiRequest::get()
 {
 	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() < 1 || tokens.size() >  2)
@@ -370,7 +370,7 @@ bool ApiReqeust::get()
 
 
 // LOCK or UNLOCK /:director_id/:backend_id
-bool ApiReqeust::lock(bool locked)
+bool ApiRequest::lock(bool locked)
 {
 	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() != 2)
@@ -400,7 +400,7 @@ bool ApiReqeust::lock(bool locked)
 }
 
 // create a backend - PUT /:director_id(/:backend_id)
-bool ApiReqeust::create()
+bool ApiRequest::create()
 {
 	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() > 2)
@@ -500,7 +500,7 @@ bool ApiReqeust::create()
 // - role
 // - health-check-mode
 // - health-check-interval
-bool ApiReqeust::update()
+bool ApiRequest::update()
 {
 	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() == 0 || tokens.size() > 2) {
@@ -526,7 +526,7 @@ bool ApiReqeust::update()
 		return updateDirector(director);
 }
 
-bool ApiReqeust::updateDirector(Director* director)
+bool ApiRequest::updateDirector(Director* director)
 {
 	size_t queueLimit = director->queueLimit();
 	if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
@@ -612,7 +612,7 @@ bool ApiReqeust::updateDirector(Director* director)
 	return true;
 }
 
-bool ApiReqeust::updateBackend(Director* director, const std::string& name)
+bool ApiRequest::updateBackend(Director* director, const std::string& name)
 {
 	if (name.empty()) {
 		request_->log(Severity::error, "director: Cannot update backend with empty name.");
@@ -671,7 +671,7 @@ bool ApiReqeust::updateBackend(Director* director, const std::string& name)
 }
 
 // delete a backend
-bool ApiReqeust::destroy()
+bool ApiRequest::destroy()
 {
 	auto tokens = tokenize(path_.ref(1), "/");
 	if (tokens.size() != 2) {
@@ -731,9 +731,8 @@ bool ApiReqeust::destroy()
 	return true;
 }
 
-std::vector<x0::BufferRef> ApiReqeust::tokenize(const x0::BufferRef& input, const std::string& delimiter)
+std::vector<x0::BufferRef> ApiRequest::tokenize(const x0::BufferRef& input, const std::string& delimiter)
 {
 	x0::Tokenizer<BufferRef, Buffer> st(input.str(), delimiter);
 	return st.tokenize();
 }
-
