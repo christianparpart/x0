@@ -239,9 +239,9 @@ void ConsoleLogger::write(LogMessage& msg)
 		AnsiColor::Clear, // debug
 		AnsiColor::Clear, // debug
 		AnsiColor::Clear, // debug
-		AnsiColor::Cyan | AnsiColor::Bold, // info
+		AnsiColor::Cyan, // info
 		AnsiColor::Blue | AnsiColor::Bold, // notice
-		AnsiColor::Cyan, // warn
+		AnsiColor::Cyan | AnsiColor::Bold, // warn
 		AnsiColor::Yellow, // error
 		AnsiColor::Yellow | AnsiColor::Bold, // crit
 		AnsiColor::Magenta | AnsiColor::Bold, // alert
