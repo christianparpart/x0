@@ -24,6 +24,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/BufferRefSource.h>
+#include <x0/io/FileSource.h>
 #include <x0/Logging.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
@@ -109,6 +110,9 @@ public:
 	/*! number of write chunks written within a single io() callback. */
 	int writeCount_;
 
+	int transferHandle_;
+	int transferOffset_;
+
 public:
 	explicit FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint16_t id, x0::Socket* backend);
 	~FastCgiTransport();
@@ -181,7 +185,9 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 
 	request_(r),
 	paramWriter_(),
-	writeCount_(0)
+	writeCount_(0),
+	transferHandle_(-1),
+	transferOffset_(0)
 {
 #ifndef NDEBUG
 	static std::atomic<int> mi(0);
@@ -210,6 +216,10 @@ FastCgiTransport::~FastCgiTransport()
 			socket_->close();
 
 		delete socket_;
+	}
+
+	if (!(transferHandle_ < 0)) {
+		::close(transferHandle_);
 	}
 
 	if (request_) {
@@ -346,6 +356,16 @@ void FastCgiTransport::bind()
 
 	// flush out
 	flush();
+
+	if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
+		char path[1024];
+		snprintf(path, sizeof(path), "/tmp/x0d-director-%d", socket_->handle());
+
+		transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+		if (transferHandle_ < 0) {
+			request_->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+		}
+	}
 }
 
 template<typename T, typename... Args>
@@ -691,21 +711,43 @@ bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::Buff
 	return true;
 }
 
-bool FastCgiTransport::onMessageContent(const x0::BufferRef& content)
+bool FastCgiTransport::onMessageContent(const x0::BufferRef& chunk)
 {
-	TRACE(1, "Parsed HTTP message content of %ld bytes from upstream server.", content.size());
-	//TRACE(2, "Message content chunk: %s", content.str().c_str());
+	TRACE(1, "Parsed HTTP message content of %ld bytes from upstream server.", chunk.size());
+	//TRACE(2, "Message content chunk: %s", chunk.str().c_str());
 
-	request_->write<x0::BufferRefSource>(content);
+	switch (backend_->manager()->transferMode()) {
+	case TransferMode::FileAccel:
+		if (!(transferHandle_ < 0)) {
+			ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
+			if (rv == static_cast<ssize_t>(chunk.size())) {
+				request_->write<FileSource>(transferHandle_, transferOffset_, rv, false);
+				transferOffset_ += rv;
+				break;
+			} else if (rv > 0) {
+				// partial write to disk (is this possible?) -- TODO: investigate if that case is possible
+				transferOffset_ += rv;
+			}
+		}
+		// fall through
+		break;
+	case TransferMode::MemoryAccel:
+		request_->write<x0::BufferRefSource>(chunk);
+		break;
+	case TransferMode::Blocking:
+		request_->write<x0::BufferRefSource>(chunk);
 
-	// if the above write() operation did not complete and thus
-	// we have data pending to be sent out to the client,
-	// we need to install a completion callback once
-	// all (possibly proceeding write operations) have been
-	// finished within a single io()-callback run.
+		// if the above write() operation did not complete and thus
+		// we have data pending to be sent out to the client,
+		// we need to install a completion callback once
+		// all (possibly proceeding write operations) have been
+		// finished within a single io()-callback run.
 
-	if (request_->connection.isOutputPending())
-		++writeCount_;
+		if (request_->connection.isOutputPending())
+			++writeCount_;
+
+		break;
+	}
 
 	return false;
 }
