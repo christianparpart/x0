@@ -10,6 +10,7 @@
 	* plugins: removed plugins proxy & fastcgi. Deprecated by director plugin.
 	* plugins: accesslog plugin now also supports syslog target
 	* plugins: director plugin has experimental support for backend acceleration
+	* plugins: director plugin has initial support for HAproxy compatible CSV output
 	* core: introduce severities: crit, alert, emerg
 
 0.6.0 (2013-02-27)

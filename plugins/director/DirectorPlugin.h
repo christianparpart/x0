@@ -21,6 +21,7 @@ namespace x0 {
 class Director;
 class RoadWarrior;
 class Backend;
+class HaproxyApi;
 
 class DirectorPlugin :
 	public x0::HttpPlugin
@@ -28,6 +29,7 @@ class DirectorPlugin :
 private:
 	std::unordered_map<std::string, Director*> directors_;
 	RoadWarrior* roadWarrior_;
+	HaproxyApi* haproxyApi_;
 
 public:
 	DirectorPlugin(x0::HttpServer& srv, const std::string& name);
@@ -42,6 +44,9 @@ private:
 	bool director_api(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_fcgi(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_http(x0::HttpRequest* r, const x0::FlowParams& args);
+
+	bool director_haproxy_monitor(x0::HttpRequest* r, const x0::FlowParams& args);
+	bool director_haproxy_stats(x0::HttpRequest* r, const x0::FlowParams& args);
 
 	Director* createDirector(const char* id);
 	Backend* registerBackend(Director* director, const char* name, const char* url);

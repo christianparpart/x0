@@ -34,6 +34,7 @@
 #include "ApiRequest.h"
 #include "RequestNotes.h"
 #include "RoadWarrior.h"
+#include "HaproxyApi.h"
 
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
@@ -47,7 +48,8 @@ using namespace x0;
 DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 	HttpPlugin(srv, name),
 	directors_(),
-	roadWarrior_()
+	roadWarrior_(),
+	haproxyApi_(new HaproxyApi(&directors_))
 {
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_load>("director.load", FlowValue::VOID);
@@ -56,6 +58,8 @@ DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_api>("director.api");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_fcgi>("director.fcgi"); // "fastcgi"
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_http>("director.http"); // "proxy.reverse"
+	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_stats>("director.haproxy_stats");
+	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_monitor>("director.haproxy_monitor");
 
 	roadWarrior_ = new RoadWarrior(srv.selectWorker());
 }
@@ -66,6 +70,7 @@ DirectorPlugin::~DirectorPlugin()
 		delete director.second;
 
 	delete roadWarrior_;
+	delete haproxyApi_;
 }
 
 // {{{ setup_function director.load(...)
@@ -285,4 +290,58 @@ bool DirectorPlugin::director_http(HttpRequest* r, const FlowParams& args)
 }
 // }}}
 
+// {{{ haproxy compatibility API
+bool DirectorPlugin::director_haproxy_monitor(x0::HttpRequest* r, const x0::FlowParams& args)
+{
+	std::string prefix("/");
+	if (!args.empty()) {
+		if (args.size() > 1) {
+			r->log(Severity::error, "director.haproxy_stats: invalid argument count");
+			r->status = HttpStatus::InternalServerError;
+			r->finish();
+			return true;
+		}
+		if (!args[0].isString()) {
+			r->log(Severity::error, "director.haproxy_stats: invalid argument type.");
+			r->status = HttpStatus::InternalServerError;
+			r->finish();
+			return true;
+		}
+		prefix = args[0].toString();
+	}
+
+	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
+		return false;
+
+	haproxyApi_->monitor(r);
+	return true;
+}
+
+bool DirectorPlugin::director_haproxy_stats(x0::HttpRequest* r, const x0::FlowParams& args)
+{
+	std::string prefix("/");
+
+	if (!args.empty()) {
+		if (args.size() > 1) {
+			r->log(Severity::error, "director.haproxy_stats: invalid argument count");
+			r->status = HttpStatus::InternalServerError;
+			r->finish();
+			return true;
+		}
+		if (!args[0].isString()) {
+			r->log(Severity::error, "director.haproxy_stats: invalid argument type.");
+			r->status = HttpStatus::InternalServerError;
+			r->finish();
+			return true;
+		}
+		prefix = args[0].toString();
+	}
+
+	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
+		return false;
+
+	haproxyApi_->stats(r, prefix);
+	return true;
+}
+// }}}
 X0_EXPORT_PLUGIN_CLASS(DirectorPlugin)

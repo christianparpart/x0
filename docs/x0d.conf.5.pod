@@ -959,6 +959,15 @@ Directly proxies a givenr equest to FastCGI backend application, either via TCP/
      director.http address: 127.0.0.1, port: 8081;
  }
 
+=item B<director.haproxy_monitor> (prefix)
+
+Handler that (if prefix matches the requests URI) serves an HAproxy compatible monitor page.
+
+=item B<director.haproxy_stats> (prefix)
+
+Handler that (if prefix matches the requests URI) serves an HAproxy compatible stats page.
+Currently only its CSV output is implemented.
+
 =back
 
 =head2 dirlisting

@@ -28,6 +28,7 @@ set(director_SRC
 	FastCgiBackend.cpp
 	FastCgiHealthMonitor.cpp
 	RoadWarrior.cpp
+	HaproxyApi.cpp
 )
 
 # XXX classful scheduling is work-in-progress
