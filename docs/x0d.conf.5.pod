@@ -963,10 +963,14 @@ Directly proxies a givenr equest to FastCGI backend application, either via TCP/
 
 Handler that (if prefix matches the requests URI) serves an HAproxy compatible monitor page.
 
+If no prefix a given a prefix of '/' is assumed.
+
 =item B<director.haproxy_stats> (prefix)
 
 Handler that (if prefix matches the requests URI) serves an HAproxy compatible stats page.
 Currently only its CSV output is implemented.
+
+If no prefix a given a prefix of '/' is assumed.
 
 =back
 
