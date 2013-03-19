@@ -11,6 +11,7 @@
 	* plugins: accesslog plugin now also supports syslog target
 	* plugins: director plugin has experimental support for backend acceleration
 	* plugins: director plugin has initial support for HAproxy compatible CSV output
+	* plugins: director plugin fixed wrt. off-by-one bug in scheduler.load stats.
 	* core: introduce severities: crit, alert, emerg
 
 0.6.0 (2013-02-27)

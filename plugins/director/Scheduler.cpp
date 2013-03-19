@@ -23,14 +23,6 @@ Scheduler::~Scheduler()
 {
 }
 
-/**
- * \note Invoked by \p Director::release().
- */
-void Scheduler::release()
-{
-	--load_;
-}
-
 void Scheduler::writeJSON(x0::JsonWriter& json) const
 {
 	json.beginObject()

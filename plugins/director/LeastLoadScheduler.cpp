@@ -53,9 +53,6 @@ void LeastLoadScheduler::schedule(HttpRequest* r)
 			return;
 		}
 	} else {
-		// rescheduling given request, so decrement the load counters
-		--load_;
-
 		notes->backend = nullptr;
 
 		if (notes->tryCount >= director_->maxRetryCount() + 1) {

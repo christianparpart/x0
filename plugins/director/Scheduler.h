@@ -53,7 +53,10 @@ public:
 
 	virtual void dequeueTo(Backend* backend) = 0;
 
-	void release();
+	/**
+	 * \note Invoked by \p Director::release().
+	 */
+	inline void release();
 
 	virtual void writeJSON(x0::JsonWriter& json) const;
 
@@ -70,8 +73,14 @@ public:
 	void log(x0::LogMessage& msg);
 };
 
+inline void Scheduler::release()
+{
+	--load_;
+}
+
 inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const Scheduler& value)
 {
 	value.writeJSON(json);
 	return json;
 }
+
