@@ -10,6 +10,13 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 - HttpConnection: IsHandlingRequest flag really needed? remove if not.
 - HttpConnection: fix the need/meaning of flags_
 - http: allow the ability to set tcp_nopush / tcp_cork per request (defaults to global setting).
+- director:
+  - support for (runtime-configurable) multiple balancer strategies:
+    - RR, RoundRobin
+    - LL, LeastLoad
+    - CC/FF, Chance / FirstFit
+  - support for bucket filter to partition a cluster into multiple smaller hierarichal buckets
+    - support also support the above different balancer strategies
 
 -------------------------------------------------------------------------------------
 
