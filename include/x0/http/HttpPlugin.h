@@ -53,7 +53,7 @@ public:
 	template<typename... Args>
 	inline void debug(int level, const char *msg, Args&&... args);
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	inline int debug_level() const;
 	void debug_level(int value);
 #endif
@@ -75,7 +75,7 @@ protected:
 	HttpServer& server_;
 	std::string name_;
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	int debug_level_;
 #endif 
 private:
@@ -183,7 +183,7 @@ inline void HttpPlugin::log(Severity sv, const char *msg, Args&&... args)
 template<typename... Args>
 inline void HttpPlugin::debug(int level, const char *msg, Args&&... args)
 {
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	if (level <= debug_level_)
 	{
 		Buffer fmt;
@@ -196,7 +196,7 @@ inline void HttpPlugin::debug(int level, const char *msg, Args&&... args)
 #endif
 }
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 inline int HttpPlugin::debug_level() const
 {
 	return debug_level_;

@@ -45,7 +45,7 @@ class HttpConnection;
  * \see header, response, HttpConnection, server
  */
 class X0_API HttpRequest :
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	public Logging,
 #endif
 	public FlowContext

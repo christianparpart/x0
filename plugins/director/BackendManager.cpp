@@ -10,7 +10,7 @@
 #include <x0/JsonWriter.h>
 
 BackendManager::BackendManager(x0::HttpWorker* worker, const std::string& name) :
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	x0::Logging("BackendManager/%s", name.c_str()),
 #endif
 	worker_(worker),

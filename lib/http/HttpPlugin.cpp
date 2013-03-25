@@ -19,7 +19,7 @@ namespace x0 {
 HttpPlugin::HttpPlugin(HttpServer& srv, const std::string& name) :
 	server_(srv),
 	name_(name)
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	, debug_level_(9)
 #endif
 {

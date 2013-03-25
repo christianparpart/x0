@@ -25,7 +25,7 @@ class SocketDriver;
 class IPAddress;
 
 class X0_API ServerSocket
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	: public Logging
 #endif
 {

@@ -12,8 +12,8 @@
 std::string hostname_("localhost");
 std::string port_("8080");
 
-#ifndef NDEBUG
-# define NDEBUG 1
+#ifndef XZERO_NDEBUG
+# define XZERO_NDEBUG 1
 #endif
 
 // {{{ response
@@ -50,7 +50,7 @@ void response::add_header(const std::string& line)
 
 		std::string value(line.substr(n));
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 		std::cout << "> " << key << ": " << value << std::endl;
 #endif
 
@@ -131,14 +131,14 @@ response request(const std::string& line, const std::vector<std::pair<std::strin
 	std::ostream request_stream(&request);
 	request_stream << line << "\r\n";
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	std::cout << "< " << line << std::endl;
 #endif
 
 	for (auto i = headers.begin(), e = headers.end(); i != e; ++i)
 	{
 		request_stream << i->first << ": " << i->second << "\r\n";
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 		std::cout << "< " << i->first << ": " << i->second << std::endl;
 #endif
 	}
@@ -150,7 +150,7 @@ response request(const std::string& line, const std::vector<std::pair<std::strin
 		host += port_;
 	}
 	request_stream << "Host: " << host << "\r\n";
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	std::cout << "< Host: " << host << std::endl;
 #endif
 

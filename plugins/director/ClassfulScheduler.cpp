@@ -11,7 +11,7 @@
 #include "Director.h"
 #include "Backend.h"
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) (this->Logging::debug(msg))
 #else
 #	define TRACE(msg...) do {} while (0)
@@ -126,12 +126,12 @@ Backend* ClassfulScheduler::findLeastLoad(BackendRole role, bool* allDisabled)
 		size_t c = backend->capacity();
 		size_t avail = c - l;
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 		director()->worker()->log(Severity::debug, "findLeastLoad: test %s (%zi/%zi, %zi)", backend->name().c_str(), l, c, avail);
 #endif
 
 		if (avail > bestAvail) {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 			director()->worker()->log(Severity::debug, " - select (%zi > %zi, %s, %s)", avail, bestAvail, backend->name().c_str(), best ? best->name().c_str() : "(null)");
 #endif
 			bestAvail = avail;
@@ -144,13 +144,13 @@ Backend* ClassfulScheduler::findLeastLoad(BackendRole role, bool* allDisabled)
 	}
 
 	if (bestAvail > 0) {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 		director()->worker()->log(Severity::debug, "selecting backend %s", best->name().c_str());
 #endif
 		return best;
 	}
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	director()->worker()->log(Severity::debug, "selecting backend (role %d) failed", static_cast<int>(role));
 #endif
 
@@ -174,7 +174,7 @@ void ClassfulScheduler::dequeueTo(Backend* backend)
 {
 	if (HttpRequest* r = rootBucket_->dequeue()) {
 		r->post([this, backend, r]() {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), director_->name().c_str());
 #endif
@@ -206,7 +206,7 @@ bool ClassfulScheduler::save(x0::Buffer& out)
 // }}}
 // {{{ ClassfulScheduler::Bucket impl
 ClassfulScheduler::Bucket::Bucket(ClassfulScheduler* scheduler, Bucket* parent, const std::string& name, size_t rate, size_t ceil) :
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	x0::Logging("ClassfulScheduler.Bucket[%s, %s]",
 		scheduler->director()->name().c_str(),
 		name.c_str()),

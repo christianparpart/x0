@@ -13,7 +13,7 @@
 #include <cstring>
 #include <cstdio>
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	include <ev.h> // required for DEBUG()
 #endif
 
@@ -110,7 +110,7 @@
 /// the filename only part of __FILE__ (no leading path)
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
-#ifndef X0_NDEBUG
+#ifndef XZERO_NDEBUG
 #	include <string>
 #	include <ctime>
 #	include <ev.h>

@@ -29,7 +29,7 @@ class Director;
  * \see BackendManager, HttpBackend, FastCgiBackend
  */
 class Backend
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	: public x0::Logging
 #endif
 {

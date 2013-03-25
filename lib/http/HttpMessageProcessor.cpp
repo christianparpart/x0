@@ -10,7 +10,7 @@
 
 namespace x0 {
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(level, fmt...) do { \
 		LogMessage msg(Severity::debug ## level, fmt); \
 		msg.addTag("parser"); \
@@ -391,7 +391,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 #endif
 
 	while (i != e) {
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 		if (std::isprint(*i)) {
 			TRACE(3, "parse: %4ld, 0x%02X (%c),  %s", *nparsed, *i, *i, state_str());
 		} else {
@@ -1053,7 +1053,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				}
 				break;
 			case SYNTAX_ERROR: {
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 				TRACE(1, "parse: syntax error");
 				if (std::isprint(*i)) {
 					TRACE(1, "parse: syntax error at nparsed: %ld, character: '%c'", *nparsed, *i);
@@ -1065,7 +1065,7 @@ std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_np
 				goto done;
 			}
 			default:
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 				TRACE(1, "parse: unknown state %i", state_);
 				if (std::isprint(*i)) {
 					TRACE(1, "parse: internal error at nparsed: %ld, character: '%c'", *nparsed, *i);

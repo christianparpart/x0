@@ -23,7 +23,7 @@ namespace x0 {
 //@{
 
 class X0_API SqlStatement
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	: public Logging
 #endif
 {

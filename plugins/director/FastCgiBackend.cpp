@@ -49,7 +49,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 1 //!defined(NDEBUG)
+#if 1 //!defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) { \
 		static_assert((level) >= 1 && (level) <= 5, "TRACE()-level must be between 1 and 5, matching Severity::debugN values."); \
 		log(Severity::debug ## level, msg); \
@@ -64,7 +64,7 @@ using x0::LogMessage;
 std::atomic<unsigned long long> transportIds_(0);
 
 class FastCgiTransport : // {{{
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	public x0::Logging,
 #endif
 	public x0::HttpMessageProcessor
@@ -189,7 +189,7 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	transferHandle_(-1),
 	transferOffset_(0)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	static std::atomic<int> mi(0);
 	setLoggingPrefix("FastCgiTransport/%d", ++mi);
 #endif
@@ -833,7 +833,7 @@ std::atomic<uint16_t> FastCgiBackend::nextID_(0);
 FastCgiBackend::FastCgiBackend(BackendManager* bm, const std::string& name, const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
 	Backend(bm, name, socketSpec, capacity, healthChecks ? new FastCgiHealthMonitor(*bm->worker()->server().nextWorker()) : nullptr)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	setLoggingPrefix("FastCgiBackend/%s", name.c_str());
 #endif
 
@@ -848,7 +848,7 @@ FastCgiBackend::~FastCgiBackend()
 
 void FastCgiBackend::setup(const x0::SocketSpec& spec)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	setLoggingPrefix("FastCgiBackend/%s", spec.str().c_str());
 #endif
 	socketSpec_ = spec;

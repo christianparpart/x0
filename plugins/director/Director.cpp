@@ -19,7 +19,7 @@
 #include <x0/Url.h>
 #include <fstream>
 
-#if 1 // !defined(NDEBUG)
+#if 1 // !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)

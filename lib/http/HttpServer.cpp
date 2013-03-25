@@ -48,7 +48,7 @@
 #include <getopt.h>
 #include <stdio.h>
 
-#if 0 // !defined(NDEBUG)
+#if 0 // !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) DEBUG("HttpServer: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
@@ -714,7 +714,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 
 	std::string plugin_create_name("x0plugin_init");
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	log(Severity::debug, "Loading plugin %s", filename.c_str());
 #endif
 
@@ -739,7 +739,7 @@ HttpPlugin *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
 /** safely unloads a plugin. */
 void HttpServer::unloadPlugin(const std::string& name)
 {
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	log(Severity::debug, "Unloading plugin: %s", name.c_str());
 #endif
 

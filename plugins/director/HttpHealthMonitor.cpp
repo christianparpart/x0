@@ -14,7 +14,7 @@
 
 using namespace x0;
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) (this->debug(msg))
 #else
 #	define TRACE(msg...) do { } while (0)

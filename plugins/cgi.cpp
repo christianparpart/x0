@@ -47,7 +47,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#if 0 // !defined(NDEBUG)
+#if 0 // !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) DEBUG(msg)
 #else
 #	define TRACE(msg...) /*!*/
@@ -354,14 +354,14 @@ inline void CgiScript::runAsync()
 #endif
 
 	// {{{ for valgrind
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	//_loadenv_if("LD_PRELOAD", environment);
 	//_loadenv_if("LD_LIBRARY_PATH", environment);
 #endif
 	// }}}
 	// }}}
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	for (auto i = environment.begin(), e = environment.end(); i != e; ++i)
 		TRACE("env[%s]: '%s'", i->first.c_str(), i->second.c_str());
 #endif

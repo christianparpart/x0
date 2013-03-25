@@ -17,7 +17,7 @@
 #include <stdlib.h>                   // realpath()
 #include <limits.h>                   // PATH_MAX
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) log(Severity::debug ## level, "http-request: " msg)
 #else
 #	define TRACE(level, msg...) do { } while (0)
@@ -58,7 +58,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	bodyCallbackData_(nullptr),
 	errorHandler_(nullptr)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	static std::atomic<unsigned long long> rid(0);
 	setLoggingPrefix("HttpRequest(%lld,%s:%d)", ++rid, connection.remoteIP().c_str(), connection.remotePort());
 #endif
@@ -100,7 +100,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
 		QueryStart,
 	};
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	static const char* uriStateNames[] = {
 		"Content",
 		"Slash",
@@ -121,7 +121,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
 	unsigned char decodedChar;
 	char ch = *i++;
 
-#if !defined(NDEBUG) // suppress uninitialized warning
+#if !defined(XZERO_NDEBUG) // suppress uninitialized warning
 	quotedState = UriState::Content;
 	decodedChar = '\0';
 #endif
@@ -716,7 +716,7 @@ void HttpRequest::finish()
 			}
 			break;
 		case Finished:
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 			log(Severity::error, "BUG: invalid invocation of finish() on a already finished request.");
 			Process::dumpCore();
 #endif

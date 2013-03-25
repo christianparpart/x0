@@ -10,7 +10,7 @@
 #include "Director.h"
 #include "Backend.h"
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) log(Severity::debug ## level, "http-request: " msg)
 #else
 #	define TRACE(msg...) do {} while (0)
@@ -104,7 +104,7 @@ void LeastLoadScheduler::dequeueTo(Backend* backend)
 {
 	if (HttpRequest* r = dequeue()) {
 		r->post([this, backend, r]() {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), director_->name().c_str());
 #endif
@@ -154,7 +154,7 @@ HttpRequest* LeastLoadScheduler::dequeue()
 	return nullptr;
 }
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 inline const char* roleStr(BackendRole role)
 {
 	switch (role) {
@@ -169,7 +169,7 @@ inline const char* roleStr(BackendRole role)
 
 bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, BackendRole role)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	director_->worker()->log(Severity::debug, "tryProcess(): role=%s", roleStr(role));
 #endif
 
@@ -194,14 +194,14 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 		ssize_t capacity = backend->capacity();
 		ssize_t avail = capacity - load;
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 		director_->worker()->log(Severity::debug,
 			"tryProcess: test backend %s (load:%zi, capacity:%zi, avail:%zi)",
 			backend->name().c_str(), load, capacity, avail);
 #endif
 
 		if (avail > bestAvail) {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 			director_->worker()->log(Severity::debug,
 				"tryProcess: selecting backend %s (avail:%zi > bestAvail:%zi)",
 				backend->name().c_str(), avail, bestAvail);
@@ -216,13 +216,13 @@ bool LeastLoadScheduler::tryProcess(x0::HttpRequest* r, bool* allDisabled, Backe
 	}
 
 	if (bestAvail > 0) {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 		director_->worker()->log(Severity::debug, "tryProcess: elected backend %s", best->name().c_str());
 #endif
 		return tryProcess(r, best);
 	}
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	director_->worker()->log(Severity::debug, "tryProcess: (role %s) failed scheduling request", roleStr(role));
 #endif
 

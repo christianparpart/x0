@@ -23,7 +23,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) log(Severity::debug ## level, msg)
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -712,7 +712,7 @@ void HttpConnection::setShouldKeepAlive(bool enabled)
 
 void HttpConnection::setStatus(Status value)
 {
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	static const char* str[] = {
 		"undefined",
 		"(starting-up)",

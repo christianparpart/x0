@@ -66,7 +66,7 @@ SqlConnection::operator MYSQL* () const
 
 std::string SqlConnection::makeQuery(const char *s)
 {
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	const char *ps = s;
 
 	while (*s) {

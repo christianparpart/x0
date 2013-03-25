@@ -29,7 +29,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) (this->Logging::debug(msg))
 #else
 #	define TRACE(msg...) do {} while (0)
@@ -39,7 +39,7 @@ using namespace x0;
 
 // {{{ HttpBackend::ProxyConnection API
 class HttpBackend::ProxyConnection :
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	public Logging,
 #endif
 	public HttpMessageProcessor
@@ -122,7 +122,7 @@ HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
 	transferHandle_(-1),
 	transferOffset_(0)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	setLoggingPrefix("ProxyConnection/%p", this);
 #endif
 	TRACE("ProxyConnection()");
@@ -554,7 +554,7 @@ HttpBackend::HttpBackend(BackendManager* bm, const std::string& name,
 		const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
 	Backend(bm, name, socketSpec, capacity, healthChecks ? new HttpHealthMonitor(*bm->worker()->server().nextWorker()) : nullptr)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	setLoggingPrefix("HttpBackend/%s", name.c_str());
 #endif
 

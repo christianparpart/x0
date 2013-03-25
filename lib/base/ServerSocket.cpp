@@ -27,7 +27,7 @@
 
 namespace x0 {
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -261,7 +261,7 @@ void ServerSocket::setBacklog(int value)
  */
 bool ServerSocket::open(const std::string& address, int port, int flags)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	setLoggingPrefix("ServerSocket(%s:%d)", address.c_str(), port);
 #endif
 	TRACE("opening");
@@ -447,7 +447,7 @@ err:
  */
 bool ServerSocket::open(const std::string& path, int flags)
 {
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	setLoggingPrefix("ServerSocket(%s)", path.c_str());
 #endif
 	TRACE("opening");

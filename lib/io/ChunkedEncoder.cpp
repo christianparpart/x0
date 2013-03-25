@@ -11,7 +11,7 @@
 #include <cassert>
 #include <zlib.h>
 
-#if 0 // !defined(NDEBUG)
+#if 0 // !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) DEBUG("ChunkedEncoder: " msg)
 #else
 #	define TRACE(msg...)

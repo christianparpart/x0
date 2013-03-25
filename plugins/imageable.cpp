@@ -81,7 +81,7 @@
 
 using namespace x0;
 
-#if 1 //!defined(NDEBUG)
+#if 1 //!defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) { \
 		static_assert((level) >= 1 && (level) <= 5, "TRACE()-level must be between 1 and 5, matching Severity::debugN values."); \
 		log(Severity::debug ## level, msg); \
@@ -170,7 +170,7 @@ Imageable::~Imageable()
 void Imageable::perform()
 {
 	auto args = Url::parseQuery(request_->query);
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	request_->log(Severity::debug1, "url: %s", args["url"].c_str());
 	request_->log(Severity::debug1, "size: %s", args["size"].c_str());
 	request_->log(Severity::debug1, "x: %s", args["x"].c_str());

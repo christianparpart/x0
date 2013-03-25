@@ -49,7 +49,7 @@ private:
 };
 
 class ClassfulScheduler::Bucket
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	: public x0::Logging
 #endif
 {

@@ -13,7 +13,7 @@
 
 namespace x0 {
 
-#if 0 // !defined(NDEBUG)
+#if 0 // !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) printf("FileInfoService: " msg)
 #else
 #	define TRACE(msg...) /*!*/

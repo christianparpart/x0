@@ -94,7 +94,7 @@ void Process::dumpCore()
 
 int Process::start(const std::string& exe, const ArgumentList& args, const Environment& env, const std::string& workdir)
 {
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 	//::fprintf(stderr, "proc[%d] start(exe=%s, args=[...], workdir=%s)\n", getpid(), exe.c_str(), workdir.c_str());
 	for (int i = 3; i < 32; ++i)
 		if (!(fcntl(i, F_GETFD) & FD_CLOEXEC))

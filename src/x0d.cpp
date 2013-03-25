@@ -50,7 +50,7 @@
 #	include <netinet/tcp.h>
 #endif
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define X0D_DEBUG(msg...) XzeroHttpDaemon::log(x0::Severity::debug, msg)
 #else
 #	define X0D_DEBUG(msg...) /*!*/ ((void)0)
@@ -357,7 +357,7 @@ int XzeroHttpDaemon::run()
 #endif
 
 	server_ = new x0::HttpServer(loop_, generation);
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	server_->logLevel(x0::Severity::debug3);
 #endif
 

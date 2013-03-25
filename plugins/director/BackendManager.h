@@ -33,7 +33,7 @@ TransferMode makeTransferMode(const std::string& value);
  * \see Director
  */
 class BackendManager
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	: public x0::Logging
 #endif
 {

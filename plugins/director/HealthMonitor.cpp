@@ -19,7 +19,7 @@
 
 using namespace x0;
 
-#if !defined(NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(msg...) (this->debug(msg))
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -113,7 +113,7 @@ void HealthMonitor::setBackend(Backend* backend)
 {
 	backend_ = backend;
 
-#ifndef NDEBUG
+#ifndef XZERO_NDEBUG
 	setLoggingPrefix("HealthMonitor/%s", backend_->socketSpec().str().c_str());
 #endif
 
