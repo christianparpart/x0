@@ -9,7 +9,6 @@
 #include "HttpBackend.h"
 #include "HttpHealthMonitor.h"
 #include "Director.h"
-#include "ClassfulScheduler.h"
 
 #include <x0/sysconfig.h>
 #include <x0/http/HttpServer.h>

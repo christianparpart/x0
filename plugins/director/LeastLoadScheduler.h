@@ -34,9 +34,6 @@ public:
 	virtual void schedule(x0::HttpRequest* r);
 	virtual void dequeueTo(Backend* backend);
 
-	virtual bool load(x0::IniFile& settings);
-	virtual bool save(x0::Buffer& out);
-
 private:
 	bool tryProcess(x0::HttpRequest* r, bool* allDisabled, BackendRole role);
 	bool tryProcess(HttpRequest* r, Backend* backend);

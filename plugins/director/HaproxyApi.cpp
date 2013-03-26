@@ -42,17 +42,17 @@ void HaproxyApi::buildFrontendCSV(Buffer& buf, Director* director)
 	// [02] svname
 	buf << "FRONTEND,";
 	// [03] qcur
-	buf << director->scheduler()->queued().current() << ',';
+	buf << director->queued().current() << ',';
 	// [04] qmax
-	buf << director->scheduler()->queued().max() << ',';
+	buf << director->queued().max() << ',';
 	// [05] scur
-	buf << director->scheduler()->load().current() << ',';
+	buf << director->load().current() << ',';
 	// [06] smax
-	buf << director->scheduler()->load().max() << ',';
+	buf << director->load().max() << ',';
 	// [07] slim
 	buf << ',';
 	// [08] stot
-	buf << director->scheduler()->load().total() << ',';
+	buf << director->load().total() << ',';
 	// [09] bin
 	buf << ',';
 	// [10] bout

@@ -39,8 +39,8 @@ void RoadWarrior::handleRequest(x0::HttpRequest* r, const x0::SocketSpec& spec, 
 		backends_[spec] = backend;
 	}
 
-	bool result = backend->tryProcess(r);
-	if (!result) {
+	SchedulerStatus result = backend->tryProcess(r);
+	if (result != SchedulerStatus::Success) {
 		r->status = x0::HttpStatus::ServiceUnavailable;
 		r->finish();
 	}

@@ -8,14 +8,12 @@
 
 #include "Scheduler.h"
 #include "Director.h"
+#include "Backend.h"
 #include "RequestNotes.h"
 #include <x0/http/HttpWorker.h>
 
-Scheduler::Scheduler(Director* d) :
-	director_(d),
-	load_(),
-	queued_(),
-	dropped_(0)
+Scheduler::Scheduler(BackendList* backends) :
+	backends_(backends)
 {
 }
 
@@ -23,29 +21,47 @@ Scheduler::~Scheduler()
 {
 }
 
-void Scheduler::writeJSON(x0::JsonWriter& json) const
+// ChanceScheduler
+SchedulerStatus ChanceScheduler::schedule(x0::HttpRequest* r)
 {
-	json.beginObject()
-		.name("load")(load_)
-		.name("queued")(queued_)
-		.name("dropped")(dropped_)
-		.endObject();
+	size_t unavailable = 0;
+
+	for (auto backend: backends()) {
+		switch (backend->tryProcess(r)) {
+		case SchedulerStatus::Success:
+			return SchedulerStatus::Success;
+		case SchedulerStatus::Unavailable:
+			++unavailable;
+			break;
+		case SchedulerStatus::Overloaded:
+			break;
+		}
+	}
+
+	return unavailable < backends().size()
+		? SchedulerStatus::Overloaded
+		: SchedulerStatus::Unavailable;
 }
 
-bool Scheduler::load(x0::IniFile& settings)
+// RoundRobinScheduler
+SchedulerStatus RoundRobinScheduler::schedule(x0::HttpRequest* r)
 {
-	return true;
-}
+	unsigned unavailable = 0;
 
-bool Scheduler::save(x0::Buffer& out)
-{
-	return true;
-}
+	for (size_t count = 0, limit = backends().size(); count < limit; ++count, ++next_) {
+		if (next_ >= limit)
+			next_ = 0;
 
-void Scheduler::log(x0::LogMessage& msg)
-{
-	msg.addTag("scheduler");
-	msg.addTag("director/%s", director()->name().c_str());
-	director()->worker()->log(std::move(msg));
-	// TODO use director()->log(...) instead, to addTag(director()->name() there)
+		switch (backends()[next_]->tryProcess(r)) {
+		case SchedulerStatus::Success:
+			return SchedulerStatus::Success;
+		case SchedulerStatus::Unavailable:
+			++unavailable;
+			break;
+		case SchedulerStatus::Overloaded:
+			break;
+		}
+	}
+
+	return backends().size() == unavailable ? SchedulerStatus::Unavailable : SchedulerStatus::Overloaded;
 }

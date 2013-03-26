@@ -18,7 +18,6 @@
 #include "FastCgiBackend.h"
 #include "FastCgiHealthMonitor.h"
 #include "Director.h"
-#include "ClassfulScheduler.h"
 
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>

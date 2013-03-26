@@ -1,3 +1,4 @@
+#pragma once
 /* <plugins/director/RequestNotes.h>
  *
  * This file is part of the x0 web server project and is released under GPL-3.
@@ -5,9 +6,8 @@
  *
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
-#pragma once
 
-#include "ClassfulScheduler.h"
+//#include "ClassfulScheduler.h"
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
 
@@ -25,14 +25,14 @@ struct RequestNotes :
 	size_t tryCount;
 
 	std::string bucketName;
-	ClassfulScheduler::Bucket* bucket;
+//	ClassfulScheduler::Bucket* bucket;
 
 	explicit RequestNotes(x0::DateTime ct, Backend* b = nullptr) :
 		ctime(ct),
 		backend(b),
 		tryCount(0),
-		bucketName(),
-		bucket(nullptr)
+		bucketName()//,
+//		bucket(nullptr)
 	{}
 
 	~RequestNotes()

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "BackendCluster.h"
 #include "Backend.h"
 #include "BackendManager.h"
 #include "Scheduler.h"
@@ -57,7 +58,7 @@ private:
 
 	bool stickyOfflineMode_;    //!< whether a backend should be marked disabled if it becomes online again
 
-	std::vector<std::vector<Backend*>> backends_; //!< set of backends managed by this director.
+	std::vector<BackendCluster> backends_; //!< set of backends managed by this director.
 
 	size_t queueLimit_;         //!< how many requests to queue in total.
 	TimeSpan queueTimeout_;		//!< how long a request may be queued.
@@ -66,11 +67,22 @@ private:
 	std::string storagePath_;   //!< path to the local directory this director is serialized from/to.
 	Scheduler* scheduler_;      //!< request scheduler
 
+	x0::Counter load_;
+	x0::Counter queued_;
+	std::atomic<unsigned long long> dropped_;
+
+	std::deque<x0::HttpRequest*> queue_; //! list of queued requests.
+	std::mutex queueLock_;
+	ev::timer queueTimer_;
+
 	std::list<std::function<void()>>::iterator stopHandle_;
 
 public:
 	Director(HttpWorker* worker, const std::string& name);
 	~Director();
+
+	const x0::Counter& load() const { return load_; }
+	const x0::Counter& queued() const { return queued_; }
 
 	void schedule(x0::HttpRequest* r);
 	virtual void reject(x0::HttpRequest* r);
@@ -104,8 +116,6 @@ public:
 
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
-
-	Scheduler* scheduler() const { return scheduler_; }
 
 	RequestNotes* setupRequestNotes(x0::HttpRequest* r, Backend* backend = nullptr);
 	RequestNotes* requestNotes(x0::HttpRequest* r);
@@ -142,6 +152,15 @@ private:
 	void unlink(Backend* backend);
 
 	void onStop();
+
+	SchedulerStatus tryProcess(x0::HttpRequest* r, BackendRole role);
+	SchedulerStatus tryProcess(x0::HttpRequest* r, Backend* backend);
+	bool tryEnqueue(x0::HttpRequest* r);
+	void dequeueTo(Backend* backend);
+	void updateQueueTimer();
+	x0::HttpRequest* dequeue();
+
+	void serviceUnavailable(x0::HttpRequest* r);
 };
 
 namespace x0 {
@@ -149,13 +168,8 @@ namespace x0 {
 }
 
 // {{{ inlines
-inline void Director::schedule(x0::HttpRequest* r)
-{
-	scheduler_->schedule(r);
-}
-
 inline const std::vector<Backend*>& Director::backendsWith(BackendRole role) const
 {
-	return backends_[static_cast<size_t>(role)];
+	return backends_[static_cast<size_t>(role)].cluster();
 }
 // }}}

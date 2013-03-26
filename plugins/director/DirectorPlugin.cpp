@@ -175,7 +175,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 	std::string backendName;
 	Backend* backend = nullptr;
 	std::string bucketName;
-	ClassfulScheduler::Bucket* bucket = nullptr;
+	//ClassfulScheduler::Bucket* bucket = nullptr;
 
 	switch (args.size()) {
 		case 3:
@@ -252,7 +252,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 
 	auto notes = director->setupRequestNotes(r);
 	notes->backend = backend;
-	notes->bucket = bucket;
+//	notes->bucket = bucket;
 
 	server().log(Severity::debug, "director: passing request to %s.", director->name().c_str());
 	director->schedule(r);

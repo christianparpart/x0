@@ -9,6 +9,7 @@
 #pragma once
 
 #include "HealthMonitor.h"
+#include "SchedulerStatus.h"
 
 #include <x0/Counter.h>
 #include <x0/Logging.h>
@@ -83,8 +84,8 @@ public:
 	HealthMonitor* healthMonitor() { return healthMonitor_; }
 	HealthState healthState() const { return healthMonitor_->state(); }
 
-	bool tryProcess(x0::HttpRequest* r);
-	bool pass(x0::HttpRequest* r);
+	SchedulerStatus tryProcess(x0::HttpRequest* r);
+	SchedulerStatus pass(x0::HttpRequest* r);
 	void release();
 	void reject(x0::HttpRequest* r);
 

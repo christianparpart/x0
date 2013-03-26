@@ -126,9 +126,9 @@ void Backend::setState(HealthState value)
  *
  * \note <b>MUST</b> be invoked from within the request's worker thread.
  */
-bool Backend::tryProcess(HttpRequest* r)
+SchedulerStatus Backend::tryProcess(HttpRequest* r)
 {
-	bool success = false;
+	SchedulerStatus status = SchedulerStatus::Unavailable;
 	pthread_spin_lock(&lock_);
 
 	if (healthMonitor_ && !healthMonitor_->isOnline())
@@ -137,27 +137,28 @@ bool Backend::tryProcess(HttpRequest* r)
 	if (!isEnabled())
 		goto done;
 
+	status = SchedulerStatus::Overloaded;
 	if (capacity_ && load_.current() >= capacity_)
 		goto done;
 
-	success = pass(r);
+	status = pass(r);
 
 done:
 	pthread_spin_unlock(&lock_);
-	return success;
+	return status;
 }
 
-bool Backend::pass(x0::HttpRequest* r)
+SchedulerStatus Backend::pass(x0::HttpRequest* r)
 {
 	++load_;
 
 	if (!process(r)) {
 		setState(HealthState::Offline);
 		--load_;
-		return false;
+		return SchedulerStatus::Unavailable;
 	}
 
-	return true;
+	return SchedulerStatus::Success;
 }
 
 /**

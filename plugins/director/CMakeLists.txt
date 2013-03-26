@@ -19,10 +19,10 @@ set(director_SRC
 	HealthMonitor.cpp
 	ApiRequest.cpp
 	BackendManager.cpp
+	BackendCluster.cpp
 	Director.cpp
 	Backend.cpp
 	Scheduler.cpp
-	LeastLoadScheduler.cpp
 	HttpBackend.cpp
 	HttpHealthMonitor.cpp
 	FastCgiBackend.cpp
@@ -33,5 +33,6 @@ set(director_SRC
 
 # XXX classful scheduling is work-in-progress
 #	ClassfulScheduler.cpp
+#	LeastLoadScheduler.cpp
 
 x0_plugin(director "${director_SRC}")
