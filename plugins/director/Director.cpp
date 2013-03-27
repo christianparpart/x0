@@ -89,10 +89,9 @@ Director::~Director()
 {
 	worker()->unregisterStopHandler(stopHandle_);
 
-	for (auto& backendRoles: backends_) {
-		for (auto backend: backendRoles) {
-			unlink(backend);
-			delete backend;
+	for (auto& backendRole: backends_) {
+		while (!backendRole.empty()) {
+			delete unlink(backendRole.back());
 		}
 	}
 }
@@ -108,7 +107,7 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
 			dequeueTo(backend);
 		} else {
 			// disable backend due to sticky-offline mode
-			worker_->log(Severity::info, "Director '%s': backend '%s' disabled due to sticky offline mode.",
+			worker_->log(Severity::notice, "Director '%s': backend '%s' disabled due to sticky offline mode.",
 				name().c_str(), backend->name().c_str());
 			backend->setEnabled(false);
 		}
@@ -246,10 +245,11 @@ void Director::link(Backend* backend, BackendRole role)
 	backends_[static_cast<size_t>(role)].push_back(backend);
 }
 
-void Director::unlink(Backend* backend)
+Backend* Director::unlink(Backend* backend)
 {
 	auto& br = backends_[static_cast<size_t>(backendRole(backend))];
 	br.remove(backend);
+	return backend;
 }
 
 BackendRole Director::backendRole(const Backend* backend) const
@@ -737,7 +737,16 @@ inline const char* roleStr(BackendRole role)
 
 SchedulerStatus Director::tryProcess(x0::HttpRequest* r, BackendRole role)
 {
-	return backends_[static_cast<size_t>(role)].schedule(r);
+	auto notes = requestNotes(r);
+	++notes->tryCount;
+	++load_;
+
+	SchedulerStatus result = backends_[static_cast<size_t>(role)].schedule(r);
+
+	if (result != SchedulerStatus::Success)
+		--load_;
+
+	return result;
 }
 
 /**

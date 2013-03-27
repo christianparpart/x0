@@ -28,6 +28,7 @@ public:
 
 	SchedulerStatus schedule(x0::HttpRequest* r);
 
+	bool empty() const { return cluster_.empty(); }
 	size_t size() const { return cluster_.size(); }
 	size_t capacity() const;
 
@@ -35,6 +36,9 @@ public:
 	List::const_iterator end() const { return cluster_.end(); }
 	List::const_iterator cbegin() const { return cluster_.cbegin(); }
 	List::const_iterator cend() const { return cluster_.cend(); }
+
+	Backend* front() const { return cluster_.front(); }
+	Backend* back() const { return cluster_.back(); }
 
 	void push_back(Backend* backend);
 	void remove(Backend* backend);

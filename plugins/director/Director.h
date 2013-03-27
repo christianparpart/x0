@@ -149,7 +149,7 @@ public:
 private:
 	void onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor);
 	void link(Backend* backend, BackendRole role);
-	void unlink(Backend* backend);
+	Backend* unlink(Backend* backend);
 
 	void onStop();
 

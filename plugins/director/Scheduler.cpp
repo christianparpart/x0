@@ -52,7 +52,7 @@ SchedulerStatus RoundRobinScheduler::schedule(x0::HttpRequest* r)
 		if (next_ >= limit)
 			next_ = 0;
 
-		switch (backends()[next_]->tryProcess(r)) {
+		switch (backends()[next_++]->tryProcess(r)) {
 		case SchedulerStatus::Success:
 			return SchedulerStatus::Success;
 		case SchedulerStatus::Unavailable:
