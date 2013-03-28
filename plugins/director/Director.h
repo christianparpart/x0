@@ -1,3 +1,5 @@
+#pragma once
+
 /* <plugin/director/Director.h>
  *
  * This file is part of the x0 web server project and is released under GPL-3.
@@ -5,8 +7,6 @@
  *
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
-
-#pragma once
 
 #include "BackendCluster.h"
 #include "Backend.h"
@@ -28,6 +28,7 @@ using namespace x0;
 
 class Scheduler;
 class RequestNotes;
+class Bucket;
 
 enum class BackendRole {
 	Active,

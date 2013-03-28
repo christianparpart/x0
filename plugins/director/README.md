@@ -1,32 +1,39 @@
+# Director Load Balancer Plugin
+
+The director plugin implements a highly scalable reverse proxy HTTP and FastCGI dynamic load balancer.
+
+Features:
+- Supporting different backend protocols (HTTP and FastCGI)
+- Supporting different transport protocols (TCP over IPv4 and IPv6, and UNIX Domain Sockets)
+- (HTB) Cluster Partitioning
+- Advanced health monitoring
+- JSON API for retrieving state, stats, and reconfiguring clusters at runtime (including adding/updating/removing backends)
+- HAproxy compatibility API
+- Client side routing support
+- Sticky offline mode
+
+
 ## Classes
 
-- BackendManager
-  - Director
-  - RoadWarrior
-- Scheduler
-  - LeastLoadScheduler
-  - ClassfulScheduler
-- Backend
-  - HttpBackend
-  - FastCgiBackend
 - HealthMonitor
   - HttpHealthMonitor
   - FastCgiHealthMonitor
+- Backend
+  - HttpBackend
+  - FastCgiBackend
+- BackendCluster
+- Scheduler
+  - LeastLoadScheduler
+  - RoundRobinScheduler
+  - ChanceScheduler
+- BackendManager
+  - Director
+  - RoadWarrior
 - DirectorPlugin
-- ApiRequest
+- JsonApi
+- HaproxyApi
 
 ## Director Plugin Blueprints
-
-### Unification of proxy/fastcgi/director Plugins
-
-We currently have quite a big chunk of code duplication inside
-director plugin that mirrors the core functionality of proxy and fastcgi plugins.
-
-We can mitigate this by deprecating proxy/fastcgi plugins and
-add the ability to quickly pass a request to a floating backend w/o any
-complex load balancing features, such as health checking & queueing.
-
-This should be done by all means and at all cost without loosing too much performance.
 
 ### Scheduler API to *only* schedule
 
@@ -51,6 +58,25 @@ that filters out the backends that a request may be scheduled onto.
     backendFilter_.enqueue(r);
 
 ### Classful Scheduling
+
+With classful request scheduling we provide a facilithy to ensure that certain reuests
+get at least a given percentage of the allocated cluster. Say you have a shop application
+and want to ensure that the checkout process is always preferred over the standard
+page requests, such as viewing the homepage or the search page.
+
+You devide your cluster into buckets, say you have a vip bucket that gets all checkouts and 
+other important reuests and ensure that this bucket has 20% of the cluster capacity ensured
+and may use up to 40%.
+
+The main bucket, at which any other reuests are passed though, will thus get 80% ensured
+and may use up to, say, 100% of the cluster capacity.
+
+So each bucket may borrow from the other but has a certain percentage ensured, so no
+bucket will suffice from starvation.
+
+#### Implementation
+
+    class Bucket
 
 #### TODO
 
