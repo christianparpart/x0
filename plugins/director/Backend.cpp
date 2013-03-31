@@ -152,7 +152,7 @@ SchedulerStatus Backend::pass(x0::HttpRequest* r)
 {
 	++load_;
 
-	r->log(Severity::info, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
+	r->log(Severity::debug, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
 
 	if (!process(r)) {
 		setState(HealthState::Offline);
