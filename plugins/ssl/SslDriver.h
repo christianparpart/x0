@@ -15,7 +15,7 @@
 #include <gnutls/gnutls.h>
 
 struct SslCacheItem;
-struct SslContext;
+class SslContext;
 
 class SslDriver :
 	public x0::SocketDriver

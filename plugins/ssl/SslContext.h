@@ -24,7 +24,7 @@
 
 class SslSocket;
 
-struct SslContext
+class SslContext
 {
 public:
 	SslContext();
