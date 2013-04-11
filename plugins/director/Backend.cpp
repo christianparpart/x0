@@ -71,8 +71,6 @@ void Backend::setCapacity(size_t value)
 
 void Backend::writeJSON(JsonWriter& json) const
 {
-	static const std::string boolStr[] = { "false", "true" };
-
 	json.beginObject()
 		.name("name")(name_)
 		.name("capacity")(capacity_)

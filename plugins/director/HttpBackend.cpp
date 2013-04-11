@@ -51,10 +51,6 @@ private:
 	HttpRequest* request_;		//!< client's request
 	Socket* socket_;			//!< connection to backend app
 
-	int connectTimeout_;
-	int readTimeout_;
-	int writeTimeout_;
-
 	Buffer writeBuffer_;
 	size_t writeOffset_;
 	size_t writeProgress_;
@@ -109,9 +105,6 @@ HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
 	request_(nullptr),
 	socket_(nullptr),
 
-	connectTimeout_(0),
-	readTimeout_(0),
-	writeTimeout_(0),
 	writeBuffer_(),
 	writeOffset_(0),
 	writeProgress_(0),
