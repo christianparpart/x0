@@ -29,9 +29,28 @@ Counter& Counter::operator++()
 	return *this;
 }
 
+Counter& Counter::operator+=(size_t n)
+{
+	current_ += n;
+
+	if (current_ > max_)
+		max_.store(current_.load());
+
+	total_ += n;
+
+	return *this;
+}
+
 Counter& Counter::operator--()
 {
 	--current_;
+
+	return *this;
+}
+
+Counter& Counter::operator-=(size_t n)
+{
+	current_ -= n;
 
 	return *this;
 }

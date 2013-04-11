@@ -40,7 +40,9 @@ public:
 	value_type total() const { return total_.load(); }
 
 	Counter& operator++();
+	Counter& operator+=(size_t n);
 	Counter& operator--();
+	Counter& operator-=(size_t n);
 };
 
 X0_API JsonWriter& operator<<(JsonWriter& json, const Counter& counter);
