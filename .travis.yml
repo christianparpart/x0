@@ -3,7 +3,7 @@ compiler:
   - gcc
 before_script:
   - sudo apt-get install -y -qq cmake libgtest-dev libcppunit-dev libgnutls28-dev libgcrypt11-dev libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config libpcre3-dev libfcgi-dev libmagickwand-dev librrd-dev
-  - cd /usr/src/gtest; cmake . && make && cp libgtest*.so /usr/local/lib/
+  - cd /usr/src/gtest && sudo cmake . && make && cp libgtest*.so /usr/local/lib/
   - cmake -DCMAKE_BUILD_TYPE=debug -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0 -DENABLE_{RRD,EXAMPLES}=ON
 script:
   - make
