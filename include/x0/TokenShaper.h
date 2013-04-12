@@ -19,6 +19,17 @@
 #include <cstdint>
 #include <cassert>
 
+/*! TokenShaper mutation result codes.
+ */
+enum class TokenShaperError
+{
+	Success,           //!< Operation has completed successfully.
+	RateLimitOverflow, //!< Operation failed as rate limit is either too low or too high.
+	CeilLimitOverflow, //!< Operation failed as ceil limit is either too low or too high.
+	NameConflict,      //!< Operation failed as given name already exists somewhere else in the tree.
+	InvalidChildNode,  //!< Operation failed as this node must not be the root node for the operation to complete.
+};
+
 /*! Queuing bucket, inspired by the HTB algorithm, that's being used in Linux traffic shaping.
  *
  * Features:
@@ -56,7 +67,7 @@ public:
 
 	Node* rootNode() const;
 	Node* findNode(const std::string& name) const;
-	Node* createNode(const std::string& name, float rate, float ceil = 0);
+	TokenShaperError createNode(const std::string& name, float rate, float ceil = 0);
 
 	size_t get(size_t tokens = 1) { return root_->get(tokens); }
 	void put(size_t tokens = 1) { return root_->put(tokens); }
@@ -86,9 +97,9 @@ public:
 	size_t tokenCeil() const { return tokenCeil_; }
 
 	void setTimeoutHandler(Callback handler);
-	void setName(const std::string& value);
-	void setRate(float value);
-	void setCeil(float value);
+	TokenShaperError setName(const std::string& value);
+	TokenShaperError setRate(float value);
+	TokenShaperError setCeil(float value);
 
 	size_t actualTokenRate() const { return load_.current(); }
 	size_t tokenOverRate() const { return std::max(static_cast<ssize_t>(actualTokenRate() - tokenRate()), static_cast<ssize_t>(0)); }
@@ -99,9 +110,8 @@ public:
 	size_t tokensAvailable() const;
 
 	static TokenShaper<T>::Node* createRoot(ev::loop_ref loop, size_t tokens);
-	TokenShaper<T>::Node* createChild(const std::string& name, float rate, float ceil = 0);
+	TokenShaperError createChild(const std::string& name, float rate, float ceil = 0);
 	TokenShaper<T>::Node* findChild(const std::string& name) const;
-	TokenShaper<T>::Node* at(const std::string& name) const;
 	TokenShaper<T>::Node* rootNode();
 
 	TokenShaper<T>::Node& operator[](const std::string& name) const { return *findChild(name); }
@@ -214,7 +224,7 @@ typename TokenShaper<T>::Node* TokenShaper<T>::findNode(const std::string& name)
 }
 
 template<typename T>
-typename TokenShaper<T>::Node* TokenShaper<T>::createNode(const std::string& name, float rate, float ceil)
+TokenShaperError TokenShaper<T>::createNode(const std::string& name, float rate, float ceil)
 {
 	return root_->createChild(name, rate, ceil);
 }
@@ -298,16 +308,23 @@ void TokenShaper<T>::Node::setTimeoutHandler(Callback handler)
 }
 
 template<typename T>
-void TokenShaper<T>::Node::setName(const std::string& value)
+TokenShaperError TokenShaper<T>::Node::setName(const std::string& value)
 {
+	if (rootNode()->findChild(value))
+		return TokenShaperError::NameConflict;
+
 	name_ = value;
+	return TokenShaperError::Success;
 }
 
 template<typename T>
-void TokenShaper<T>::Node::setRate(float newRate)
+TokenShaperError TokenShaper<T>::Node::setRate(float newRate)
 {
-	assert(parent_ != nullptr && "You must not change the rate of the root node.");
-	assert(newRate <= ceil_ && "Rate value must not exceed the node's ceiling.");
+	if (!parent_)
+		return TokenShaperError::InvalidChildNode;
+
+	if (newRate < 0.0 || newRate > ceil_)
+		return TokenShaperError::RateLimitOverflow;
 
 	rate_ = newRate;
 	tokenRate_ = parent_->tokenRate() * rate_;
@@ -315,13 +332,18 @@ void TokenShaper<T>::Node::setRate(float newRate)
 	for (auto child: children_) {
 		child->update();
 	}
+
+	return TokenShaperError::Success;
 }
 
 template<typename T>
-void TokenShaper<T>::Node::setCeil(float newCeil)
+TokenShaperError TokenShaper<T>::Node::setCeil(float newCeil)
 {
-	assert(parent_ != nullptr && "You must not change the rate of the root node.");
-	assert(newCeil >= rate_ && "Ceil must not be lower than the node's rate.");
+	if (!parent_)
+		return TokenShaperError::InvalidChildNode;
+
+	if (newCeil < rate_ || newCeil > 1.0)
+		return TokenShaperError::CeilLimitOverflow;
 
 	ceil_ = newCeil;
 	tokenCeil_ = parent_->tokenCeil() * ceil_;
@@ -329,6 +351,8 @@ void TokenShaper<T>::Node::setCeil(float newCeil)
 	for (auto child: children_) {
 		child->update();
 	}
+
+	return TokenShaperError::Success;
 }
 
 template<typename T>
@@ -362,30 +386,24 @@ typename TokenShaper<T>::Node* TokenShaper<T>::Node::createRoot(ev::loop_ref loo
 }
 
 template<typename T>
-typename TokenShaper<T>::Node* TokenShaper<T>::Node::createChild(const std::string& name, float rate, float ceil)
+TokenShaperError TokenShaper<T>::Node::createChild(const std::string& name, float rate, float ceil)
 {
-	assert(rate >= 0.0f && rate <= 1.0f && "rate must be between 0.0 and 1.0");
-	assert(ceil >= 0.0f && ceil <= 1.0f && "ceil must be between 0.0 and 1.0");
-	assert(rate <= ceil && "child's ceil must be greater or equal to its rate");
+	// 0 <= rate <= (1 - childRate)
+	if (rate < 0.0 || rate + childRate() > 1.0)
+		return TokenShaperError::RateLimitOverflow;
 
-	assert(rate + childRate() <= 1.0f && "you cannot overcommit your parent's rate");
+	// rate <= ceil <= 1.0
+	if (ceil < rate || ceil > 1.0)
+		return TokenShaperError::CeilLimitOverflow;
+
+	if (rootNode()->findChild(name))
+		return TokenShaperError::NameConflict;
 
 	size_t tokenRate = tokenRate_ * rate;
 	size_t tokenCeil = tokenCeil_ * ceil;
-
 	TokenShaper<T>::Node* b = new TokenShaper<T>::Node(loop_, name, tokenRate, tokenCeil, rate, ceil, this);
 	children_.push_back(b);
-	return b;
-}
-
-template<typename T>
-typename TokenShaper<T>::Node* TokenShaper<T>::Node::at(const std::string& name) const
-{
-	for (auto n: children_)
-		if (n->name() == name)
-			return n;
-
-	return nullptr;
+	return TokenShaperError::Success;
 }
 
 template<typename T>

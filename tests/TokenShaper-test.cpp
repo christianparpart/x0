@@ -69,9 +69,15 @@ void TokenShaperTest::SetUp()
 {
 	shaper = new Shaper(ev_default_loop(0), 10);
 	root = shaper->rootNode();
-	vip = shaper->createNode("vip", 0.1, 0.3);
-	main = shaper->createNode("main", 0.5, 0.7);
-	upload = main->createChild("upload", 0.5, 0.5);
+
+	shaper->createNode("vip", 0.1, 0.3);
+	vip = shaper->findNode("vip");
+
+	shaper->createNode("main", 0.5, 0.7);
+	main = shaper->findNode("main");
+
+	main->createChild("upload", 0.5, 0.5);
+	upload = shaper->findNode("upload");
 }
 
 void TokenShaperTest::TearDown()
@@ -86,6 +92,10 @@ void TokenShaperTest::dump()
 
 TEST_F(TokenShaperTest, Setup)
 {
+	ASSERT_TRUE(vip != nullptr);
+	ASSERT_TRUE(main != nullptr);
+	ASSERT_TRUE(upload != nullptr);
+
 	ASSERT_EQ(0.1f, vip->rate());
 	ASSERT_EQ(0.3f, vip->ceil());
 	ASSERT_EQ(1, vip->tokenRate());
@@ -100,6 +110,29 @@ TEST_F(TokenShaperTest, Setup)
 	ASSERT_EQ(0.5f, upload->ceil());
 	ASSERT_EQ(2, upload->tokenRate());
 	ASSERT_EQ(3, upload->tokenCeil());
+}
+
+TEST_F(TokenShaperTest, CreateErrors)
+{
+	ASSERT_EQ(TokenShaperError::RateLimitOverflow, shaper->createNode("special", 0.41));
+	ASSERT_EQ(TokenShaperError::RateLimitOverflow, shaper->createNode("special", 1.1));
+	ASSERT_EQ(TokenShaperError::RateLimitOverflow, shaper->createNode("special", -0.1));
+	ASSERT_EQ(TokenShaperError::CeilLimitOverflow, vip->createChild("special", 1.0, 0.40));
+	ASSERT_EQ(TokenShaperError::CeilLimitOverflow, vip->createChild("special", 1.0, 1.01));
+
+	ASSERT_EQ(TokenShaperError::NameConflict, vip->createChild("vip", 1.0, 1.0));
+}
+
+TEST_F(TokenShaperTest, MutateErrors)
+{
+	EXPECT_EQ(TokenShaperError::NameConflict, vip->setName("main"));
+
+	EXPECT_EQ(TokenShaperError::RateLimitOverflow, vip->setRate(0.4));
+	EXPECT_EQ(TokenShaperError::RateLimitOverflow, vip->setRate(-0.1));
+	EXPECT_EQ(TokenShaperError::RateLimitOverflow, vip->setRate(1.1));
+
+	EXPECT_EQ(TokenShaperError::CeilLimitOverflow, vip->setCeil(0.09));
+	EXPECT_EQ(TokenShaperError::CeilLimitOverflow, vip->setCeil(1.1));
 }
 
 TEST_F(TokenShaperTest, GetPut)
@@ -193,7 +226,7 @@ TEST_F(TokenShaperTest, SetRate)
 {
 	// increase rate from 0.5 to 0.6;
 	// this should also update the token rates from this node and all its child nodes recursively.
-	main->setRate(0.6);
+	main->setRate(0.6f);
 
 	ASSERT_EQ(0.6f, main->rate());
 
