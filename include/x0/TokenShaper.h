@@ -92,6 +92,7 @@ public:
 	size_t actualTokenRate() const { return load_.current(); }
 	size_t tokenOverRate() const { return std::max(static_cast<ssize_t>(actualTokenRate() - tokenRate()), static_cast<ssize_t>(0)); }
 
+	float childRate() const;
 	size_t childTokenRate() const;
 	size_t actualTokenChildRate() const;
 
@@ -254,6 +255,17 @@ TokenShaper<T>::Node::~Node()
 }
 
 template<typename T>
+float TokenShaper<T>::Node::childRate() const
+{
+	float sum = 0;
+
+	for (const auto child: children_)
+		sum += child->rate();
+
+	return sum;
+}
+
+template<typename T>
 size_t TokenShaper<T>::Node::childTokenRate() const
 {
 	size_t sum = 0;
@@ -350,14 +362,12 @@ typename TokenShaper<T>::Node* TokenShaper<T>::Node::createChild(const std::stri
 {
 	assert(rate >= 0.0f && rate <= 1.0f && "rate must be between 0.0 and 1.0");
 	assert(ceil >= 0.0f && ceil <= 1.0f && "ceil must be between 0.0 and 1.0");
+	assert(rate <= ceil && "child's ceil must be greater or equal to its rate");
+
+	assert(rate + childRate() <= 1.0f && "you cannot overcommit your parent's rate");
 
 	size_t tokenRate = tokenRate_ * rate;
 	size_t tokenCeil = tokenCeil_ * ceil;
-
-	assert(tokenRate <= tokenRate_ - childTokenRate() && "you cannot overcommit your parent's rate");
-	assert(tokenRate <= tokenRate_ && "child'd rate must not exceed parent's rate");
-
-	assert(rate <= ceil && "child's ceil must be greater or equal to its rate");
 
 	TokenShaper<T>::Node* b = new TokenShaper<T>::Node(loop_, name, tokenRate, tokenCeil, rate, ceil, this);
 	children_.push_back(b);
