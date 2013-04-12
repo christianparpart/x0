@@ -254,6 +254,9 @@ TokenShaper<T>::Node::Node(ev::loop_ref loop, const std::string& name, size_t to
 	dequeueOffset_(0),
 	onTimeout_()
 {
+	if (parent_)
+		onTimeout_ = parent_->onTimeout_;
+
 	queueTimer_.set<Node, &Node::onTimeout>(this);
 }
 
