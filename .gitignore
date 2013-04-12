@@ -26,6 +26,7 @@ tests/web_client_test
 tests/x0test
 tests/testapp-fcgi
 tests/queue-bench
+tests/x0-test
 examples/app1
 examples/tcp-echo-server
 core

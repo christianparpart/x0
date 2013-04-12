@@ -53,7 +53,6 @@ target_link_libraries(test_flow_lexer
 	XzeroFlow
 )
 
-
 # -----------------------------------------------------------------
 # some quicky executables
 
@@ -76,5 +75,11 @@ target_link_libraries(fcgi-staticfile ${FCGI_LIBRARY_PATH})
 
 add_executable(splice_test splice_test.cpp)
 target_link_libraries(splice_test XzeroBase)
+
+# --------------------------------------------------------------------------------------
+# The new test-suite is going to use Google Test Framework and thus links against gtest.
+
+add_executable(x0-test x0-test.cpp TokenShaper-test.cpp)
+target_link_libraries(x0-test XzeroBase gtest)
 
 endif(BUILD_TESTS)
