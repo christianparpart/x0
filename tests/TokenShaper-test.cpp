@@ -187,5 +187,114 @@ TEST_F(TokenShaperTest, Resize)
 	ASSERT_EQ(0.5f, upload->ceil());
 	ASSERT_EQ(50, upload->tokenRate());
 	ASSERT_EQ(70, upload->tokenCeil());
-
 }
+
+TEST_F(TokenShaperTest, SetRate)
+{
+	// increase rate from 0.5 to 0.6;
+	// this should also update the token rates from this node and all its child nodes recursively.
+	main->setRate(0.6);
+
+	ASSERT_EQ(0.6f, main->rate());
+
+	ASSERT_EQ(6, main->tokenRate());
+	ASSERT_EQ(7, main->tokenCeil());
+
+	ASSERT_EQ(3, upload->tokenRate());
+	ASSERT_EQ(3, upload->tokenCeil());
+}
+
+TEST_F(TokenShaperTest, SetCeil)
+{
+	// increase rate from 0.5 to 0.6;
+	// this should also update the token rates from this node and all its child nodes recursively.
+	main->setCeil(0.8);
+
+	ASSERT_EQ(0.8f, main->ceil());
+	ASSERT_EQ(5, main->tokenRate());
+	ASSERT_EQ(8, main->tokenCeil());
+
+	ASSERT_EQ(2, upload->tokenRate());
+	ASSERT_EQ(4, upload->tokenCeil());
+}
+
+TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
+{
+	ASSERT_EQ(1, vip->get()); // passes through
+	ASSERT_EQ(1, vip->get()); // passes through
+	ASSERT_EQ(1, vip->get()); // passes through (overrate)
+	ASSERT_EQ(0, vip->get()); // ok, we must enqueue it then
+
+	vip->enqueue(new int(42));
+	ASSERT_EQ(1, vip->queued().current());
+
+	vip->enqueue(new int(43));
+	ASSERT_EQ(2, vip->queued().current());
+	EXPECT_EQ(0, vip->tokensAvailable());
+
+	// attempt to dequeue when we shouldn't be able to, because we have no spare tokens.
+	auto object = root->dequeue();
+	ASSERT_TRUE(object == nullptr);
+
+	vip->put();
+	EXPECT_EQ(1, vip->tokensAvailable());
+
+	object = root->dequeue();
+	ASSERT_TRUE(object != nullptr);
+	EXPECT_EQ(42, *object);
+	ASSERT_EQ(1, vip->queued().current());
+	EXPECT_EQ(0, vip->tokensAvailable());
+	delete object;
+
+	// Another dequeue must fail because we have no tokens available on vip node.
+	object = root->dequeue();
+	ASSERT_TRUE(object == nullptr);
+
+	// Free a token up on vip node.
+	vip->put();
+	ASSERT_EQ(1, vip->tokensAvailable());
+
+	// Actually dequeue the last item.
+	object = root->dequeue();
+	ASSERT_TRUE(object != nullptr);
+	EXPECT_EQ(43, *object);
+	ASSERT_EQ(0, vip->queued().current());
+	delete object;
+
+	// Release the 2 remaining tokens.
+	vip->put();
+	vip->put();
+
+	// Another dequeue should fail because we have nothing to dequeue anymore.
+	object = root->dequeue();
+	ASSERT_TRUE(object == nullptr);
+}
+
+TEST_F(TokenShaperTest, TimeoutHandling)
+{
+	ev::tstamp start_at = ev::now(shaper->loop());
+	ev::tstamp fired_at = 0;
+	int* object = nullptr;
+
+	vip->setQueueTimeout(TimeSpan::fromSeconds(1));
+	vip->setTimeoutHandler([&](int* obj) {
+		fired_at = ev::now(shaper->loop());
+		object = obj;
+		shaper->loop().break_loop();
+	});
+
+	vip->enqueue(new int(42));
+	shaper->loop().run();
+
+	ev::tstamp duration = fired_at - start_at;
+	ev::tstamp diff = vip->queueTimeout()() - duration;
+
+	EXPECT_TRUE(diff >= -0.001);
+	EXPECT_TRUE(diff <= +0.001);
+	ASSERT_TRUE(object != nullptr);
+	EXPECT_EQ(42, *object);
+
+	delete object;
+}
+
+// TODO: test timeout handling

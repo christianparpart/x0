@@ -49,11 +49,12 @@ public:
 	template<typename H>
 	void setTimeoutHandler(H handler);
 
+	ev::loop_ref loop() const { return root_->loop_; }
+
 	size_t size() const;
 	void resize(size_t capacity);
 
-	Node* rootNode();
-	const Node* rootNode() const;
+	Node* rootNode() const;
 	Node* findNode(const std::string& name) const;
 	Node* createNode(const std::string& name, float rate, float ceil = 0);
 
@@ -95,6 +96,7 @@ public:
 	float childRate() const;
 	size_t childTokenRate() const;
 	size_t actualTokenChildRate() const;
+	size_t tokensAvailable() const;
 
 	static TokenShaper<T>::Node* createRoot(ev::loop_ref loop, size_t tokens);
 	TokenShaper<T>::Node* createChild(const std::string& name, float rate, float ceil = 0);
@@ -132,6 +134,7 @@ private:
 	void update(size_t n);
 	void update();
 	void updateQueueTimer();
+	void onTimeout(ev::timer& timer, int revents);
 
 private:
 	Node(ev::loop_ref loop, const std::string& name, size_t tokenRate, size_t tokenCeil, float rate, float ceil, TokenShaper<T>::Node* parent);
@@ -199,13 +202,7 @@ void TokenShaper<T>::resize(size_t capacity)
 }
 
 template<typename T>
-typename TokenShaper<T>::Node* TokenShaper<T>::rootNode()
-{
-	return root_;
-}
-
-template<typename T>
-const typename TokenShaper<T>::Node* TokenShaper<T>::rootNode() const
+typename TokenShaper<T>::Node* TokenShaper<T>::rootNode() const
 {
 	return root_;
 }
@@ -247,6 +244,7 @@ TokenShaper<T>::Node::Node(ev::loop_ref loop, const std::string& name, size_t to
 	dequeueOffset_(0),
 	onTimeout_()
 {
+	queueTimer_.set<Node, &Node::onTimeout>(this);
 }
 
 template<typename T>
@@ -285,6 +283,12 @@ size_t TokenShaper<T>::Node::actualTokenChildRate() const
 		sum += child->actualTokenRate();
 
 	return sum;
+}
+
+template<typename T>
+size_t TokenShaper<T>::Node::tokensAvailable() const
+{
+	return tokenCeil() - actualTokenRate();
 }
 
 template<typename T>
@@ -569,5 +573,11 @@ void TokenShaper<T>::Node::updateQueueTimer()
 	x0::TimeSpan ttl(queueTimeout_ - age);
 	//TRACE("updateQueueTimer: starting new timer with ttl %.2f secs (%llu ms)", ttl.value(), ttl.totalMilliseconds());
 	queueTimer_.start(ttl.value(), 0);
+}
+
+template<typename T>
+void TokenShaper<T>::Node::onTimeout(ev::timer& timer, int revents)
+{
+	updateQueueTimer();
 }
 // }}}
