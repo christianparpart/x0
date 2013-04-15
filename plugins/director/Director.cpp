@@ -445,8 +445,6 @@ bool Director::load(const std::string& path)
 		BackendRole role = BackendRole::Terminate; // aka. Undefined
 		if (roleStr == "active")
 			role = BackendRole::Active;
-		else if (roleStr == "standby")
-			role = BackendRole::Standby;
 		else if (roleStr == "backup")
 			role = BackendRole::Backup;
 		else {
@@ -639,11 +637,7 @@ void Director::schedule(HttpRequest* r)
 	if (result1 == SchedulerStatus::Success)
 		return;
 
-	SchedulerStatus result2 = tryProcess(r, BackendRole::Standby);
-	if (result2 == SchedulerStatus::Success)
-		return;
-
-	if (result1 == SchedulerStatus::Unavailable && result2 == SchedulerStatus::Unavailable &&
+	if (result1 == SchedulerStatus::Unavailable &&
 			tryProcess(r, BackendRole::Backup) == SchedulerStatus::Success)
 		return;
 
@@ -727,7 +721,6 @@ inline const char* roleStr(BackendRole role)
 {
 	switch (role) {
 		case BackendRole::Active: return "Active";
-		case BackendRole::Standby: return "Standby";
 		case BackendRole::Backup: return "Backup";
 		case BackendRole::Terminate: return "Terminate";
 		default: return "UNKNOWN";

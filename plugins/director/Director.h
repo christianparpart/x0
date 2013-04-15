@@ -32,7 +32,6 @@ class Bucket;
 
 enum class BackendRole {
 	Active,
-	Standby,
 	Backup,
 	Terminate,
 };

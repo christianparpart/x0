@@ -223,8 +223,6 @@ bool ApiRequest::loadParam(const std::string& key, BackendRole& result)
 
 	if (i->second == "active")
 		result = BackendRole::Active;
-	else if (i->second == "standby")
-		result = BackendRole::Standby;
 	else if (i->second == "backup")
 		result = BackendRole::Backup;
 	else

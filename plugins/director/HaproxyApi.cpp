@@ -230,9 +230,6 @@ void HaproxyApi::csv(HttpRequest* r)
 				case BackendRole::Active:
 					buf.push_back("1,0,");
 					break;
-				case BackendRole::Standby:
-					buf.push_back("1,0,"); // well, kind of
-					break;
 				case BackendRole::Backup:
 					buf.push_back("0,1,");
 					break;
