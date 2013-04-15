@@ -82,4 +82,9 @@ target_link_libraries(splice_test XzeroBase)
 add_executable(x0-test x0-test.cpp TokenShaper-test.cpp)
 target_link_libraries(x0-test XzeroBase gtest)
 
+add_custom_target(test
+	DEPENDS x0-test
+	COMMAND ./x0-test ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 endif(BUILD_TESTS)
