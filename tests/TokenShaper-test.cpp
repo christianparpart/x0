@@ -319,14 +319,15 @@ TEST_F(TokenShaperTest, TimeoutHandling)
 	vip->enqueue(new int(42));
 	shaper->loop().run();
 
+	ASSERT_TRUE(object != nullptr);
+	EXPECT_EQ(42, *object);
+
 	ev::tstamp duration = fired_at - start_at;
 	ev::tstamp diff = vip->queueTimeout()() - duration;
 
 	// be a little greedy with the range here as CPU loads might get sick.
 	EXPECT_TRUE(diff >= -0.01);
 	EXPECT_TRUE(diff <= +0.01);
-	ASSERT_TRUE(object != nullptr);
-	EXPECT_EQ(42, *object);
 
 	delete object;
 }
