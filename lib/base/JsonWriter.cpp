@@ -180,6 +180,18 @@ JsonWriter& operator<<(JsonWriter& json, unsigned long long value)
 	return json;
 }
 
+JsonWriter& operator<<(JsonWriter& json, float value)
+{
+	json.preValue();
+
+	char buf[128];
+	ssize_t n = snprintf(buf, sizeof(buf), "%f", value);
+	json.buffer().push_back(buf, n);
+
+	json.postValue();
+	return json;
+}
+
 JsonWriter& operator<<(JsonWriter& json, const std::string& value)
 {
 	json.preValue();
