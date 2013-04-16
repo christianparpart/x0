@@ -322,8 +322,9 @@ TEST_F(TokenShaperTest, TimeoutHandling)
 	ev::tstamp duration = fired_at - start_at;
 	ev::tstamp diff = vip->queueTimeout()() - duration;
 
-	EXPECT_TRUE(diff >= -0.001);
-	EXPECT_TRUE(diff <= +0.001);
+	// be a little greedy with the range here as CPU loads might get sick.
+	EXPECT_TRUE(diff >= -0.01);
+	EXPECT_TRUE(diff <= +0.01);
 	ASSERT_TRUE(object != nullptr);
 	EXPECT_EQ(42, *object);
 
