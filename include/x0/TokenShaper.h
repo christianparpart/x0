@@ -210,6 +210,10 @@ size_t TokenShaper<T>::size() const
 template<typename T>
 void TokenShaper<T>::resize(size_t capacity)
 {
+	// Only recompute tokenRates on child nodes when root node's token rate actually changed.
+	if (root_->tokenRate() == capacity)
+		return;
+
 	root_->update(capacity);
 }
 
