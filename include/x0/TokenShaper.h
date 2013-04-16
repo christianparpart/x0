@@ -19,6 +19,8 @@
 #include <cstdint>
 #include <cassert>
 
+namespace x0 {
+
 /*! TokenShaper mutation result codes.
  */
 enum class TokenShaperError
@@ -602,3 +604,5 @@ void TokenShaper<T>::Node::onTimeout(ev::timer& timer, int revents)
 	updateQueueTimer();
 }
 // }}}
+
+} // namespace x0
