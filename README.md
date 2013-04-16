@@ -92,8 +92,6 @@ written in modern C++.
 
 # How to build with Clang and libc++
 
-You need the very latest version of Clang (3.3 trunk) and its `libc++`.
+You can built x0 with the very latest Clang/LLVM 3.3 branch.
+I tested this against the `libstdc++` of GCC 4.7 and not yet `libc++`.
 
-Currently, `x0` passes all compilations of clang but the `x0d` binary
-does not seem to link due to linkage errors, possibly a conflict
-between clang's `libc++` and GCC's `libstdc++`.
