@@ -36,6 +36,14 @@ public:                                                                  \
 		customData_.clear();                                             \
 	}                                                                    \
                                                                          \
+	void clearCustomData(void *key)                                      \
+	{                                                                    \
+		auto i = customData_.find(key);                                  \
+		if (i != customData_.end()) {                                    \
+			customData_.erase(i);                                        \
+		}                                                                \
+	}                                                                    \
+                                                                         \
 	x0::CustomData* customData(const void* key) const                    \
 	{                                                                    \
 		auto i = customData_.find(key);                                  \
