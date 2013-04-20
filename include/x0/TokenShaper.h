@@ -127,6 +127,7 @@ public:
 
 	const x0::Counter& load() const { return load_; }
 	const x0::Counter& queued() const { return queued_; }
+	const unsigned long long dropped() const { return dropped_.load(); }
 
 	x0::TimeSpan queueTimeout() const { return queueTimeout_; }
 	void setQueueTimeout(x0::TimeSpan value) { queueTimeout_ = value; }
@@ -172,6 +173,7 @@ private:
 
 	x0::Counter load_;              //!< bucket load stats
 	x0::Counter queued_;            //!< bucket queue stats
+	std::atomic<unsigned long long> dropped_;
 
 	x0::TimeSpan queueTimeout_;     //!< time span on how long a token may stay in queue.
 	std::deque<QueueItem> queue_;   //!< FIFO queue of tokens that could not be passed directly.
@@ -254,6 +256,7 @@ TokenShaper<T>::Node::Node(ev::loop_ref loop, const std::string& name, size_t to
 	children_(),
 	load_(),
 	queued_(),
+	dropped_(0),
 	queueTimeout_(x0::TimeSpan::fromSeconds(10)),
 	queue_(),
 	queueTimer_(loop),
@@ -552,6 +555,7 @@ void TokenShaper<T>::Node::writeJSON(x0::JsonWriter& json) const
 		.name("actual-token-rate")(actualTokenRate())
 		.name("load")(load())
 		.name("queued")(queued())
+		.name("dropped")(dropped())
 		.endObject();
 }
 
@@ -572,6 +576,7 @@ void TokenShaper<T>::Node::updateQueueTimer()
 		//TRACE("updateQueueTimer: dequeueing timed out request");
 		queue_.pop_front();
 		--queued_;
+		++dropped_;
 
 		if (onTimeout_)
 			onTimeout_(front.token);
