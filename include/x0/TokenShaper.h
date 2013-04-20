@@ -616,4 +616,13 @@ void TokenShaper<T>::Node::onTimeout(ev::timer& timer, int revents)
 }
 // }}}
 
+// {{{ JsonWriter
+template<typename T>
+inline JsonWriter& operator<<(x0::JsonWriter& json, const TokenShaper<T>& value)
+{
+	value.writeJSON(json);
+	return json;
+}
+// }}}
+
 } // namespace x0
