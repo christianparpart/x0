@@ -512,6 +512,19 @@ void TokenShaper<T>::Node::enqueue(T* value)
 	updateQueueTimer();
 }
 
+/**
+ * Fairly dequeues an item from this node or from any of the child nodes.
+ *
+ * By fair, we mean, that the child nodes always take precedence before
+ * this node itself.
+ * Although, the child nodes are iterated round-robin.
+ *
+ * An item gets only dequeued from a node if and only if (1.) there is 
+ * something to be dequeued and (2.) this node has some tokens available.
+ *
+ * \returns nullptr if nothing could be dequeued or a pointer to the dequeued
+ *          value if there is one <b>and</b> the referring node had a token available.
+ */
 template<typename T>
 T* TokenShaper<T>::Node::dequeue()
 {
