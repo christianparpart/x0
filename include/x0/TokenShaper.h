@@ -578,20 +578,9 @@ void TokenShaper<T>::Node::updateQueueTimer()
 		--queued_;
 		++dropped_;
 
-		if (onTimeout_)
+		if (onTimeout_) {
 			onTimeout_(front.token);
-
-//		r->post([this, r]() {
-//			TRACE("updateQueueTimer: killing request with 503");
-//
-//			r->status = HttpStatus::ServiceUnavailable;
-//			if (director()->retryAfter()) {
-//				char value[64];
-//				snprintf(value, sizeof(value), "%zu", director()->retryAfter().totalSeconds());
-//				r->responseHeaders.push_back("Retry-After", value);
-//			}
-//			r->finish();
-//		});
+		}
 	}
 
 	if (queue_.empty()) {
