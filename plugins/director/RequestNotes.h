@@ -7,9 +7,9 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-//#include "ClassfulScheduler.h"
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
+#include <x0/TokenShaper.h>
 
 class Backend;
 
@@ -17,31 +17,38 @@ class Backend;
  *
  * \see Director
  */
-struct RequestNotes :
+class RequestNotes :
 	public x0::CustomData
 {
+public:
 	x0::DateTime ctime;
 	Backend* backend;
 	size_t tryCount;
 
-	std::string bucketName;
-//	ClassfulScheduler::Bucket* bucket;
+	x0::TokenShaper<x0::HttpRequest>::Node* bucket; //!< the bucket (node) this request is to be scheduled via.
+	size_t tokens; //!< contains the number of currently acquired tokens by this request (usually 0 or 1).
 
 	explicit RequestNotes(x0::DateTime ct, Backend* b = nullptr) :
 		ctime(ct),
 		backend(b),
 		tryCount(0),
-		bucketName()//,
-//		bucket(nullptr)
+		bucket(nullptr),
+		tokens(0)
 	{}
 
 	~RequestNotes()
 	{
-#if 0 // temporarily disabled
-		if (bucket) {
-			bucket->put();
+		if (bucket && tokens) {
+			printf("~RequestNotes: put %zi\n", tokens);
+			bucket->put(tokens);
 		}
-#endif
+
+		if (backend) {
+			TimeSpan diff = ctime - backend->manager()->worker()->now();
+			printf("Request timing: %s\n", diff.str().c_str());
+		} else {
+			printf("no backend assigned\n");
+		}
 
 		//if (backend_) {
 		//	backend_->director().scheduler().release(backend_);

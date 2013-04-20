@@ -88,12 +88,13 @@ void HealthMonitor::setState(HealthState value)
 	if (state_ == value)
 		return;
 
+	HealthState oldState = state_;
 	state_ = value;
 
 	TRACE("setState: %s", state_str().c_str());
 
 	if (onStateChange_) {
-		onStateChange_(this);
+		onStateChange_(this, oldState);
 	}
 
 	if (state_ == HealthState::Offline) {
@@ -104,7 +105,7 @@ void HealthMonitor::setState(HealthState value)
 /**
  * Sets the callback to be invoked on health state changes.
  */
-void HealthMonitor::setStateChangeCallback(const std::function<void(HealthMonitor*)>& callback)
+void HealthMonitor::setStateChangeCallback(const std::function<void(HealthMonitor*, HealthState)>& callback)
 {
 	onStateChange_ = callback;
 }

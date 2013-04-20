@@ -28,7 +28,7 @@ public:
 	void handleRequest(x0::HttpRequest* r, const x0::SocketSpec& spec, Type type);
 
 	virtual void reject(x0::HttpRequest* r);
-	virtual void release(Backend* backend);
+	virtual void release(Backend* backend, x0::HttpRequest* request);
 
 	void writeJSON(x0::JsonWriter& output) const;
 

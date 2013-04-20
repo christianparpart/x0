@@ -149,7 +149,7 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 			request_->finish();
 
 			// Notify director that this backend has just completed a request,
-			backend_->release();
+			backend_->release(request_);
 		}
 	}
 }

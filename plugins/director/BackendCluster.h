@@ -8,6 +8,7 @@
  */
 
 #include "SchedulerStatus.h"
+#include "Scheduler.h"
 #include <vector>
 #include <memory>
 
@@ -17,6 +18,7 @@ namespace x0 {
 
 class Backend;
 class Scheduler;
+class RequestNotes;
 
 class BackendCluster
 {

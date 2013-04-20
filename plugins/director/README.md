@@ -33,6 +33,24 @@ Features:
 - JsonApi
 - HaproxyApi
 
+## Thread Model
+
+Each entity must be only modified within its designated worker thread.
+This includes the request as well as the backend (including health monitor) and the director.
+Every entity gets assigned a worker thread upon instanciation and
+when one entity is to mutate the state of another, it has to invoke
+the corresponding function from within the target's worker thread.
+
+### Benifits
+
+- We do not need any kind of locks, such as mutexes, etc. and thus no lock contention
+  on high traffic with many worker threads..
+- CPU cache locality (less cache misses)
+
+### Drawbacks
+
+- increased latency due to transferring the request across through multiple worker threads.
+
 ## Director Plugin Blueprints
 
 ### Scheduler API to *only* schedule

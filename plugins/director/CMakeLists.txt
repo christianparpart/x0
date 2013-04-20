@@ -31,8 +31,4 @@ set(director_SRC
 	HaproxyApi.cpp
 )
 
-# XXX classful scheduling is work-in-progress
-#	ClassfulScheduler.cpp
-#	LeastLoadScheduler.cpp
-
 x0_plugin(director "${director_SRC}")

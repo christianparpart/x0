@@ -39,7 +39,7 @@ private:
 	void director_load(const x0::FlowParams& args, x0::FlowValue& result);
 	void director_create(const x0::FlowParams& args, x0::FlowValue& result);
 
-	void director_segment(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
+	bool director_balance(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_pass(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_api(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_fcgi(x0::HttpRequest* r, const x0::FlowParams& args);
@@ -48,6 +48,7 @@ private:
 	bool director_haproxy_monitor(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_haproxy_stats(x0::HttpRequest* r, const x0::FlowParams& args);
 
+	bool internalServerError(x0::HttpRequest* r);
 	Director* createDirector(const char* id);
 	Backend* registerBackend(Director* director, const char* name, const char* url);
 };

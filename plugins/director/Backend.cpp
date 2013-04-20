@@ -39,9 +39,10 @@ Backend::Backend(BackendManager* bm,
 	capacity_(capacity),
 	load_(),
 	lock_(),
-	enabled_(true),
+	enabled_(false),
 	socketSpec_(socketSpec),
 	healthMonitor_(healthMonitor),
+	enabledCallback_(),
 	jsonWriteCallback_()
 {
 	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
@@ -96,14 +97,27 @@ void Backend::writeJSON(JsonWriter& json) const
 	json.endObject();
 }
 
+void Backend::setEnabled(bool value)
+{
+	if (enabled_ == value)
+		return;
+
+	enabled_ = value;
+
+	if (!enabledCallback_)
+		return;
+
+	enabledCallback_(this);
+}
+
+void Backend::setEnabledCallback(const std::function<void(const Backend*)>& callback)
+{
+	enabledCallback_ = callback;
+}
+
 void Backend::setJsonWriteCallback(const std::function<void(const Backend*, JsonWriter&)>& callback)
 {
 	jsonWriteCallback_ = callback;
-}
-
-void Backend::clearJsonWriteCallback()
-{
-	jsonWriteCallback_ = std::function<void(const Backend*, JsonWriter&)>();
 }
 
 void Backend::setState(HealthState value)
@@ -167,10 +181,10 @@ SchedulerStatus Backend::pass(x0::HttpRequest* r)
  * This decrements the load-statistics, and potentially
  * dequeues possibly enqueued requests to take over.
  */
-void Backend::release()
+void Backend::release(HttpRequest* r)
 {
 	--load_;
-	manager_->release(this);
+	manager_->release(this, r);
 }
 
 /**

@@ -651,6 +651,10 @@ bool ApiRequest::updateBackend(Director* director, const std::string& name)
 	if (!enabled)
 		backend->setEnabled(false);
 
+	size_t oldCapacity = backend->capacity();
+	if (oldCapacity != capacity)
+		director->shaper()->resize(director->shaper()->size() - oldCapacity + capacity);
+
 	director->setBackendRole(backend, role);
 	backend->setCapacity(capacity);
 	backend->healthMonitor()->setInterval(hcInterval);

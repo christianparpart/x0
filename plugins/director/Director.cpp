@@ -70,19 +70,17 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	retryAfter_(TimeSpan::fromSeconds(10)),
 	maxRetryCount_(6),
 	storagePath_(),
+	shaper_(worker->loop(), 0),
 	load_(),
 	queued_(),
 	dropped_(0),
-	queue_(),
-	queueLock_(),
-	queueTimer_(worker->loop()),
 	stopHandle_()
 {
-	backends_.resize(4);
+	backends_.resize(3);
 
 	stopHandle_ = worker->registerStopHandler(std::bind(&Director::onStop, this));
 
-	queueTimer_.set<Director, &Director::updateQueueTimer>(this);
+	shaper_.setTimeoutHandler(std::bind(&Director::onTimeout, this, std::placeholders::_1));
 }
 
 Director::~Director()
@@ -96,12 +94,55 @@ Director::~Director()
 	}
 }
 
-void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor)
+/** Callback, that updates shaper capacity based on enabled/health state.
+ *
+ * This callback gets invoked when a backend's enabled state toggled between
+ * the values \c true and \c false.
+ * It will then try to either increase the shaping capacity or reduce it.
+ *
+ * \see onBackendStateChanged
+ */
+void Director::onBackendEnabledChanged(const Backend* backend)
 {
+	TRACE(1, "onBackendEnabledChanged: health=%s, enabled=%s",
+			stringify(backend->healthMonitor()->state()).c_str(),
+			backend->isEnabled() ? "true" : "false");
+
+	if (backendRole(backend) != BackendRole::Active)
+		return;
+
+	if (backend->healthMonitor()->isOnline()) {
+		if (backend->isEnabled()) {
+			TRACE(1, "onBackendEnabledChanged: adding capacity to shaper (%zi + %zi)",
+					shaper()->size(), backend->capacity());
+			shaper()->resize(shaper()->size() + backend->capacity());
+		} else {
+			TRACE(1, "onBackendEnabledChanged: removing capacity from shaper (%zi - %zi)",
+					shaper()->size(), backend->capacity());
+			shaper()->resize(shaper()->size() - backend->capacity());
+		}
+	}
+}
+
+void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor, HealthState oldState)
+{
+	TRACE(1, "onBackendEnabledChanged: health=%s -> %s, enabled=%s",
+			stringify(oldState).c_str(),
+			stringify(backend->healthMonitor()->state()).c_str(),
+			backend->isEnabled() ? "true" : "false");
+
 	worker_->log(Severity::info, "Director '%s': backend '%s' is now %s.",
 		name().c_str(), backend->name_.c_str(), healthMonitor->state_str().c_str());
 
 	if (healthMonitor->isOnline()) {
+		if (!backend->isEnabled())
+			return;
+
+		// backend is online and enabled
+
+		TRACE(1, "onBackendStateChanged: adding capacity to shaper (%zi + %zi)", shaper()->size(), backend->capacity());
+		shaper()->resize(shaper()->size() + backend->capacity());
+
 		if (!stickyOfflineMode()) {
 			// try delivering a queued request
 			dequeueTo(backend);
@@ -111,6 +152,10 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
 				name().c_str(), backend->name().c_str());
 			backend->setEnabled(false);
 		}
+	} else if (backend->isEnabled() && oldState == HealthState::Online) {
+		// backend is offline and enabled
+		shaper()->resize(shaper()->size() - backend->capacity());
+		TRACE(1, "onBackendStateChanged: removing capacity from shaper (%zi - %zi)", shaper()->size(), backend->capacity());
 	}
 }
 
@@ -119,7 +164,8 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
  */
 void Director::reject(x0::HttpRequest* r)
 {
-	schedule(r);
+	auto notes = requestNotes(r);
+	schedule(r, notes);
 }
 
 /**
@@ -137,9 +183,12 @@ void Director::reject(x0::HttpRequest* r)
  *
  * \see Backend::release()
  */
-void Director::release(Backend* backend)
+void Director::release(Backend* backend, HttpRequest* r)
 {
 	--load_;
+
+	// explicitely clear reuqest notes here, so we also free up its acquired shaper tokens
+	r->clearCustomData(this);
 
 	if (backendRole(backend) != BackendRole::Terminate) {
 		dequeueTo(backend);
@@ -176,6 +225,25 @@ size_t Director::capacity() const
 		result += br.capacity();
 
 	return result;
+}
+
+x0::TokenShaperError Director::createBucket(const std::string& name, float rate, float ceil)
+{
+	return shaper_.createNode(name, rate, ceil);
+}
+
+RequestShaper::Node* Director::findBucket(const std::string& name) const
+{
+	return shaper_.findNode(name);
+}
+
+bool Director::eachBucket(std::function<bool(RequestShaper::Node*)> body)
+{
+	for (auto& node: *shaper_.rootNode())
+		if (!body(node))
+			return false;
+
+	return true;
 }
 
 RequestNotes* Director::setupRequestNotes(HttpRequest* r, Backend* backend)
@@ -217,8 +285,12 @@ Backend* Director::createBackend(const std::string& name, const std::string& pro
 
 	link(backend, role);
 
-	backend->healthMonitor()->setStateChangeCallback([this, backend](HealthMonitor*) {
-		onBackendStateChanged(backend, backend->healthMonitor());
+	backend->setEnabledCallback([this](const Backend* backend) {
+		onBackendEnabledChanged(backend);
+	});
+
+	backend->healthMonitor()->setStateChangeCallback([this, backend](HealthMonitor*, HealthState oldState) {
+		onBackendStateChanged(backend, backend->healthMonitor(), oldState);
 	});
 
 	backend->setJsonWriteCallback([role](const Backend*, JsonWriter& json) {
@@ -273,6 +345,11 @@ void Director::setBackendRole(Backend* backend, BackendRole role)
 	worker_->log(Severity::debug, "setBackendRole(%d) (from %d)", role, currentRole);
 
 	if (role != currentRole) {
+		if (role == BackendRole::Active)
+			shaper()->resize(shaper()->size() + backend->capacity());
+		else
+			shaper()->resize(shaper()->size() - backend->capacity());
+
 		if (role == BackendRole::Terminate) {
 			unlink(backend);
 
@@ -308,6 +385,7 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("health-check-host-header")(healthCheckHostHeader_)
 		.name("health-check-request-path")(healthCheckRequestPath_)
 		.name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
+		.name("shaper")(shaper_)
 		.beginArray("members");
 
 	for (auto& br: backends_) {
@@ -601,16 +679,115 @@ bool Director::save()
 	return true;
 }
 
-void Director::schedule(HttpRequest* r)
+/**
+ * Schedules a new request to be directly processed by a given backend.
+ *
+ * This has not much to do with scheduling, especially where the target backend
+ * has been already chosen. This target backend must be used or an error
+ * has to be served, e.g. when this backend is offline, disabled, or overloarded.
+ *
+ * This request will be attempted to be scheduled on this backend only once.
+ */
+void Director::schedule(HttpRequest* r, Backend* backend)
 {
-	auto notes = requestNotes(r);
+	auto notes = setupRequestNotes(r);
+	notes->backend = backend;
+	notes->bucket = shaper()->rootNode();
 
+	if (!notes->bucket->get()) {
+		tryEnqueue(r, notes);
+		return;
+	}
+
+	switch (backend->tryProcess(r)) {
+	case SchedulerStatus::Unavailable:
+	case SchedulerStatus::Overloaded:
+		r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
+			backend->name().c_str(), backend->healthMonitor()->state_str().c_str());
+		serviceUnavailable(r);
+
+		// TODO: consider backend-level queues as a feature here (post 0.7 release)
+		break;
+	case SchedulerStatus::Success:
+		break;
+	}
+}
+
+/**
+ * Schedules a new request via the given bucket on this cluster.
+ *
+ * This method will attempt to process the request on any of the available
+ * backends if and only if the chosen bucket has enough resources currently available.
+ *
+ * If the bucket does not allow processing further requests, due to its ceiling limits,
+ * the request must be enqueued in the bucket's local queue.
+ *
+ * If the queue has reached the queue limit already, a 503 (Service Unavailable) will be
+ * responded instead.
+ */
+void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
+{
+	auto notes = setupRequestNotes(r);
+	notes->bucket = bucket;
+
+	if (notes->bucket->get()) {
+		notes->tokens = 1;
+		SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
+		if (result1 == SchedulerStatus::Success)
+			return;
+
+		if (result1 == SchedulerStatus::Unavailable &&
+				tryProcess(r, notes, BackendRole::Backup) == SchedulerStatus::Success)
+			return;
+
+		// we could not actually processes the request, so release the token we just received.
+		notes->bucket->put();
+	}
+
+	tryEnqueue(r, notes);
+}
+
+/**
+ * Verifies number of tries, this request has been attempted to be queued, to be in valid range.
+ *
+ * \retval true tryCount is still below threashold, so further tries are allowed.
+ * \retval false tryCount exceeded limit and a 503 client response has been sent. Dropped-stats have been incremented.
+ */
+bool Director::verifyTryCount(HttpRequest* r, RequestNotes* notes)
+{
+	if (notes->tryCount <= maxRetryCount())
+		return true;
+
+	r->log(Severity::info, "director: %s request failed %d times. Dropping.", name().c_str(), notes->tryCount);
+	serviceUnavailable(r);
+	++dropped_;
+	return false;
+}
+
+void Director::reschedule(HttpRequest* r, RequestNotes* notes)
+{
+	if (!verifyTryCount(r, notes))
+		return;
+
+	SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
+	if (result1 == SchedulerStatus::Success)
+		return;
+
+	if (result1 == SchedulerStatus::Unavailable &&
+			tryProcess(r, notes, BackendRole::Backup) == SchedulerStatus::Success)
+		return;
+
+	tryEnqueue(r, notes);
+}
+
+void Director::schedule(HttpRequest* r, RequestNotes* notes)
+{
 	if (notes->tryCount == 0) {
 		r->responseHeaders.push_back("X-Director-Cluster", name());
 
 		if (notes->backend) {
 			// pre-selected a backend
-			switch (tryProcess(r, notes->backend)) {
+			switch (notes->backend->tryProcess(r)) {
 			case SchedulerStatus::Unavailable:
 			case SchedulerStatus::Overloaded:
 				r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
@@ -633,22 +810,20 @@ void Director::schedule(HttpRequest* r)
 		}
 	}
 
-	SchedulerStatus result1 = tryProcess(r, BackendRole::Active);
+	SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
 	if (result1 == SchedulerStatus::Success)
 		return;
 
 	if (result1 == SchedulerStatus::Unavailable &&
-			tryProcess(r, BackendRole::Backup) == SchedulerStatus::Success)
+			tryProcess(r, notes, BackendRole::Backup) == SchedulerStatus::Success)
 		return;
 
-	if (tryEnqueue(r))
-		return;
-
-	r->log(Severity::info, "director: '%s' queue limit %zu reached. Rejecting request.", name().c_str(), queueLimit());
-	serviceUnavailable(r);
-	++dropped_;
+	tryEnqueue(r, notes);
 }
 
+/**
+ * Finishes a request with a 503 (Service Unavailable) response message.
+ */
 void Director::serviceUnavailable(HttpRequest* r)
 {
 	r->status = HttpStatus::ServiceUnavailable;
@@ -671,45 +846,58 @@ void Director::dequeueTo(Backend* backend)
 {
 	if (HttpRequest* r = dequeue()) {
 		r->post([this, backend, r]() {
+			auto notes = requestNotes(r);
+			notes->tokens = 1;
 #ifndef XZERO_NDEBUG
 			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), name().c_str());
 #endif
-			if (tryProcess(r, backend) != SchedulerStatus::Success) {
+			if (tryProcess(r, notes, backend) != SchedulerStatus::Success) {
 				r->log(Severity::error, "Dequeueing request to backend %s @ %s failed.", backend->name().c_str(), name().c_str());
-				schedule(r);
+				schedule(r, notes);
+			} else {
+				verifyTryCount(r, notes);
 			}
 		});
+	} else {
+		log(LogMessage(Severity::debug, "dequeueTo: queue empty."));
 	}
 }
 
-bool Director::tryEnqueue(HttpRequest* r)
+/**
+ * Attempts to enqueue the request, respecting limits.
+ *
+ * Attempts to enqueue the request on the associated bucket.
+ * If enqueuing fails, it instead finishes the request with a 503 (Service Unavailable).
+ *
+ * \retval true request could be enqueued.
+ * \retval false request could not be enqueued. A 503 error response has been sent out instead.
+ */
+bool Director::tryEnqueue(HttpRequest* r, RequestNotes* notes)
 {
-	std::lock_guard<std::mutex> _(queueLock_);
-
-	if (queue_.size() < queueLimit()) {
-		queue_.push_back(r);
+	if (notes->bucket->queued().current() < queueLimit()) {
+		notes->bucket->enqueue(r);
+		notes->tokens = 0;
 		++queued_;
 
-		r->log(Severity::info, "Director %s overloaded. Enqueueing request (%d).", name().c_str(), queued_.current());
-		worker()->post([&]() { updateQueueTimer(); });
+		r->log(Severity::info, "Director %s [bucket %s] overloaded. Enqueueing request (%d).",
+			name().c_str(), notes->bucket->name().c_str(), notes->bucket->queued().current());
 
 		return true;
 	}
+
+	r->log(Severity::info, "director: '%s' queue limit %zu reached. Rejecting request.", name().c_str(), queueLimit());
+	serviceUnavailable(r);
+	++dropped_;
 
 	return false;
 }
 
 HttpRequest* Director::dequeue()
 {
-	std::lock_guard<std::mutex> _(queueLock_);
-
-	if (!queue_.empty()) {
-		HttpRequest* r = queue_.front();
-		queue_.pop_front();
+	if (HttpRequest* r = shaper()->dequeue()) {
 		--queued_;
 		r->log(Severity::debug, "Director %s dequeued request (%d left).", name().c_str(), queued_.current());
-
 		return r;
 	}
 
@@ -728,9 +916,8 @@ inline const char* roleStr(BackendRole role)
 }
 #endif
 
-SchedulerStatus Director::tryProcess(x0::HttpRequest* r, BackendRole role)
+SchedulerStatus Director::tryProcess(x0::HttpRequest* r, RequestNotes* notes, BackendRole role)
 {
-	auto notes = requestNotes(r);
 	++notes->tryCount;
 	++load_;
 
@@ -745,10 +932,8 @@ SchedulerStatus Director::tryProcess(x0::HttpRequest* r, BackendRole role)
 /**
  * Attempts to process request on given backend.
  */
-SchedulerStatus Director::tryProcess(HttpRequest* r, Backend* backend)
+SchedulerStatus Director::tryProcess(HttpRequest* r, RequestNotes* notes, Backend* backend)
 {
-	auto notes = requestNotes(r);
-
 	notes->backend = backend;
 	++notes->tryCount;
 
@@ -762,54 +947,11 @@ SchedulerStatus Director::tryProcess(HttpRequest* r, Backend* backend)
 	return result;
 }
 
-void Director::updateQueueTimer()
+void Director::onTimeout(HttpRequest* r)
 {
-	TRACE(2, "updateQueueTimer()");
-
-	// quickly return if queue-timer is already running
-	if (queueTimer_.is_active()) {
-		TRACE(2, "updateQueueTimer: timer is active, returning");
-		return;
-	}
-
-	// finish already timed out requests
-	while (!queue_.empty()) {
-		HttpRequest* r = queue_.front();
-		auto notes = requestNotes(r);
-		TimeSpan age(r->connection.worker().now() - notes->ctime);
-
-		TRACE(2, "ctime(%s), now(%s), age(%s)",
-			notes->ctime.http_str().c_str(),
-			r->connection.worker().now().http_str().c_str(),
-			age.str().c_str());
-
-		if (age < queueTimeout())
-			break;
-
-		TRACE(2, "updateQueueTimer: dequeueing timed out request");
-		queue_.pop_front();
-		--queued_;
-
-		r->post([this, r]() {
-			TRACE(2, "updateQueueTimer: killing request with 503");
-
-			r->log(Severity::info, "Queued request timed out. Dropping.");
-			serviceUnavailable(r);
-			++dropped_;
-		});
-	}
-
-	if (queue_.empty()) {
-		TRACE(2, "updateQueueTimer: queue empty. not starting new timer.");
-		return;
-	}
-
-	// setup queue timer to wake up after next timeout is reached.
-	HttpRequest* r = queue_.front();
-	auto notes = requestNotes(r);
-	TimeSpan age(r->connection.worker().now() - notes->ctime);
-	TimeSpan ttl(queueTimeout() - age);
-	TRACE(2, "updateQueueTimer: starting new timer with ttl %f (%zu)", ttl.value(), ttl.totalMilliseconds());
-	queueTimer_.start(ttl.value(), 0);
-	worker()->wakeup();
+	r->post([this, r]() {
+		r->log(Severity::info, "Queued request timed out. Dropping. %s %s", r->method.str().c_str(), r->unparsedUri.str().c_str());
+		serviceUnavailable(r);
+		++dropped_;
+	});
 }

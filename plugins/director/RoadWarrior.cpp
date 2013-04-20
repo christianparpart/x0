@@ -54,7 +54,7 @@ void RoadWarrior::reject(x0::HttpRequest* r)
 	r->finish();
 }
 
-void RoadWarrior::release(Backend* backend)
+void RoadWarrior::release(Backend* backend, x0::HttpRequest* request)
 {
 	// The passed backend just finished serving a request, so we might now pass it a queued request,
 	// in case we would support queuing (do we want that?).

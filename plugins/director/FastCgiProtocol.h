@@ -289,7 +289,7 @@ inline void CgiParamStreamWriter::encode(const char *name, size_t nameLength,
 
 // CgiParamStreamReader
 inline CgiParamStreamReader::CgiParamStreamReader() :
-	length_(0), name_(), value_()
+	state_(NAME), length_(0), name_(), value_()
 {
 }
 

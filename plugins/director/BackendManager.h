@@ -72,7 +72,7 @@ public:
 	virtual void reject(x0::HttpRequest* r) = 0;
 
 	//! Invoked internally when a request has been fully processed in success.
-	virtual void release(Backend* backend) = 0;
+	virtual void release(Backend* backend, x0::HttpRequest* request) = 0;
 };
 
 namespace x0 {

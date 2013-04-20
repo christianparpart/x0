@@ -49,6 +49,7 @@ protected:
 	x0::SocketSpec socketSpec_; //!< Backend socket spec.
 	HealthMonitor* healthMonitor_; //!< health check timer
 
+	std::function<void(const Backend*)> enabledCallback_;
 	std::function<void(const Backend*, x0::JsonWriter&)> jsonWriteCallback_;
 
 	friend class Director;
@@ -59,8 +60,8 @@ public:
 
 	void log(x0::LogMessage&& msg);
 
+	void setEnabledCallback(const std::function<void(const Backend*)>& callback);
 	void setJsonWriteCallback(const std::function<void(const Backend*, x0::JsonWriter&)>& callback);
-	void clearJsonWriteCallback();
 
 	virtual const std::string& protocol() const = 0;
 
@@ -75,18 +76,19 @@ public:
 	const x0::SocketSpec& socketSpec() const { return socketSpec_; } //!< retrieves the backend socket spec
 
 	// enable/disable state
-	void enable() { enabled_ = true; }
+	void enable() { setEnabled(true); }
 	bool isEnabled() const { return enabled_; }
-	void setEnabled(bool value) { enabled_ = value; }
-	void disable() { enabled_ = false; }
+	void setEnabled(bool value);
+	void disable() { setEnabled(false); }
 
 	// health monitoring
 	HealthMonitor* healthMonitor() { return healthMonitor_; }
+	const HealthMonitor* healthMonitor() const { return healthMonitor_; }
 	HealthState healthState() const { return healthMonitor_->state(); }
 
 	SchedulerStatus tryProcess(x0::HttpRequest* r);
 	SchedulerStatus pass(x0::HttpRequest* r);
-	void release();
+	void release(x0::HttpRequest* r);
 	void reject(x0::HttpRequest* r);
 
 	virtual void writeJSON(x0::JsonWriter& json) const;

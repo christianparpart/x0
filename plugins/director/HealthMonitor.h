@@ -27,6 +27,12 @@ enum class HealthState {
 	Online
 };
 
+inline std::string stringify(HealthState value)
+{
+	static const std::string strings[] = { "Undefined", "Offline", "Online" };
+	return strings[static_cast<size_t>(value)];
+}
+
 /**
  * Implements HTTP server health monitoring.
  *
@@ -50,7 +56,7 @@ protected:
 	x0::TimeSpan interval_;
 	HealthState state_;
 
-	std::function<void(HealthMonitor*)> onStateChange_;
+	std::function<void(HealthMonitor*, HealthState)> onStateChange_;
 
 	x0::HttpStatus expectCode_;
 
@@ -89,7 +95,7 @@ public:
 	void setExpectCode(x0::HttpStatus value) { expectCode_ = value; }
 	x0::HttpStatus expectCode() const { return expectCode_; }
 
-	void setStateChangeCallback(const std::function<void(HealthMonitor*)>& callback);
+	void setStateChangeCallback(const std::function<void(HealthMonitor*, HealthState)>& callback);
 
 	virtual void setRequest(const char* fmt, ...) = 0;
 	virtual void reset();

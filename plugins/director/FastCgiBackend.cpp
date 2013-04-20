@@ -235,7 +235,7 @@ FastCgiTransport::~FastCgiTransport()
 			request_->finish();
 
 			// Notify director that this backend has just completed a request,
-			backend_->Backend::release();
+			backend_->Backend::release(request_);
 		}
 	}
 }

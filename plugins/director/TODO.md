@@ -1,3 +1,16 @@
+
+
+# TokenShaper Integration
+
+- Backend hooks on setEnabled & setCapacity should automatically resize the shaper's capacity.
+  - but since Backend doesn't know anything about Director but BackendManager and this one must not know about shaper,
+    we might need a callback here, so that Director can register at each backend to get notified about
+    capacity/enabled state changes.
+- TokenShaper + Director, does it play nice with multiple backend roles like Active/Standby/Backup ?
+- ensure that the director (including backends?) are executed only from within one worker.
+
+------------------------------------------------------------------------------
+
 # GENERAL
 
 - Thread Safety at a minimum of lock contention to scale horizontally.

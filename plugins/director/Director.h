@@ -12,12 +12,14 @@
 #include "Backend.h"
 #include "BackendManager.h"
 #include "Scheduler.h"
+#include "HealthMonitor.h"
 
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/DateTime.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/CustomDataMgr.h>
+#include <x0/TokenShaper.h>
 #include <x0/JsonWriter.h>
 #include <ev++.h>
 
@@ -28,13 +30,14 @@ using namespace x0;
 
 class Scheduler;
 class RequestNotes;
-class Bucket;
 
 enum class BackendRole {
 	Active,
 	Backup,
 	Terminate,
 };
+
+typedef x0::TokenShaper<x0::HttpRequest> RequestShaper;
 
 /*!
  * \brief Load balancing HTTP request proxy.
@@ -65,15 +68,12 @@ private:
 	TimeSpan retryAfter_;       //!< time a client should wait before retrying a failed request.
 	size_t maxRetryCount_;      //!< number of attempts to pass request to a backend before giving up
 	std::string storagePath_;   //!< path to the local directory this director is serialized from/to.
-	Scheduler* scheduler_;      //!< request scheduler
+
+	RequestShaper shaper_;
 
 	x0::Counter load_;
 	x0::Counter queued_;
 	std::atomic<unsigned long long> dropped_;
-
-	std::deque<x0::HttpRequest*> queue_; //! list of queued requests.
-	std::mutex queueLock_;
-	ev::timer queueTimer_;
 
 	std::list<std::function<void()>>::iterator stopHandle_;
 
@@ -84,14 +84,25 @@ public:
 	const x0::Counter& load() const { return load_; }
 	const x0::Counter& queued() const { return queued_; }
 
-	void schedule(x0::HttpRequest* r);
+	X0_DEPRECATED void schedule(x0::HttpRequest* r, RequestNotes* notes);
+	void schedule(HttpRequest* r, Backend* backend);
+	void schedule(HttpRequest* r, RequestShaper::Node* bucket);
+	void reschedule(HttpRequest* r, RequestNotes* notes);
+
 	virtual void reject(x0::HttpRequest* r);
-	virtual void release(Backend* backend);
+	virtual void release(Backend* backend, x0::HttpRequest* r);
 
 	bool isMutable() const { return mutable_; }
 	void setMutable(bool value) { mutable_ = value; }
 
 	size_t capacity() const;
+
+	x0::TokenShaperError createBucket(const std::string& name, float rate, float ceil);
+	RequestShaper::Node* findBucket(const std::string& name) const;
+	RequestShaper::Node* rootBucket() const { return shaper()->rootNode(); }
+	RequestShaper* shaper() { return &shaper_; }
+	const RequestShaper* shaper() const { return &shaper_; }
+	bool eachBucket(std::function<bool(RequestShaper::Node*)> body);
 
 	const std::string& healthCheckHostHeader() const { return healthCheckHostHeader_; }
 	void setHealthCheckHostHeader(const std::string& value) { healthCheckHostHeader_ = value; }
@@ -147,15 +158,18 @@ public:
 	void setBackendRole(Backend* backend, BackendRole role);
 
 private:
-	void onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor);
+	void onTimeout(HttpRequest* r);
+	void onBackendEnabledChanged(const Backend* backend);
+	void onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor, HealthState oldState);
 	void link(Backend* backend, BackendRole role);
 	Backend* unlink(Backend* backend);
 
 	void onStop();
 
-	SchedulerStatus tryProcess(x0::HttpRequest* r, BackendRole role);
-	SchedulerStatus tryProcess(x0::HttpRequest* r, Backend* backend);
-	bool tryEnqueue(x0::HttpRequest* r);
+  bool verifyTryCount(HttpRequest* r, RequestNotes* notes);
+	SchedulerStatus tryProcess(x0::HttpRequest* r, RequestNotes* notes, BackendRole role);
+	SchedulerStatus tryProcess(x0::HttpRequest* r, RequestNotes* notes, Backend* backend);
+	bool tryEnqueue(x0::HttpRequest* r, RequestNotes* notes);
 	void dequeueTo(Backend* backend);
 	void updateQueueTimer();
 	x0::HttpRequest* dequeue();
