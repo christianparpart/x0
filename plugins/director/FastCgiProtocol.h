@@ -53,7 +53,7 @@ enum class ProtocolStatus
 
 struct Record
 {
-private:
+protected:
 	uint8_t version_;
 	uint8_t type_;
 	uint16_t requestId_;
@@ -169,7 +169,7 @@ public:
 /** parses a PARAM stream and reads out name/value paris. */
 class CgiParamStreamReader
 {
-private:
+protected:
 	enum {
 		NAME,
 		VALUE
@@ -196,7 +196,7 @@ public:
 
 struct UnknownTypeRecord : public Record
 {
-private:
+protected:
 	uint8_t unknownType_;
 	uint8_t reserved_[7];
 
