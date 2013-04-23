@@ -160,11 +160,11 @@ void HaproxyApi::csv(HttpRequest* r)
 
 		buildFrontendCSV(buf, director);
 
-		// 01 pxname: proxy name
-		buf.push_back(director->name());
-		buf.push_back(',');
-
 		director->eachBackend([&](Backend* backend) {
+			// 01 pxname: proxy name
+			buf.push_back(director->name());
+			buf.push_back(',');
+
 			// 02 svname: service name (FRONTEND for frontend, BACKEND for backend, any name for server)
 			buf.push_back(backend->name()); // svname
 
