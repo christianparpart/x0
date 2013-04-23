@@ -25,6 +25,7 @@ HaproxyApi::~HaproxyApi()
 
 void HaproxyApi::monitor(HttpRequest* r)
 {
+	r->responseHeaders.push_back("Content-Type", "text/html");
 	r->responseHeaders.push_back("Cache-Control", "no-cache");
 	r->write<x0::BufferSource>("<html><body><h1>200 OK</h1>\r\nHAProxy: service ready.\r\n</body></html>\r\n");
 	r->finish();
