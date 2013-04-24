@@ -13,6 +13,7 @@
 #include <x0/Buffer.h>
 #include <string>
 #include <unordered_map>
+#include <utility>          // std::make_pair()
 
 namespace x0 {
 
@@ -95,33 +96,33 @@ inline Url::ArgsMap Url::parseQuery(const char* begin, const char* end)
 		size_t len = 0;
 		const char *q = p;
 
-		while (*q && *q != '=' && *q != '&') {
+		while (q != end && *q && *q != '=' && *q != '&') {
 			++q;
 			++len;
 		}
 
 		if (len) {
-			std::string name(p, 0, len);
+			auto name = std::make_pair(p, p + len);
 			p += *q == '=' ? len + 1 : len;
 
 			len = 0;
-			for (q = p; *q && *q != '&'; ++q, ++len)
+			for (q = p; q != end && *q && *q != '&'; ++q, ++len)
 				;
 
 			if (len) {
-				std::string value(p, 0, len);
+				auto value = std::make_pair(p, p + len);
 				p += len;
 
-				for (; *p == '&'; ++p)
+				for (; p != end && *p == '&'; ++p)
 					; // consume '&' chars (usually just one)
 
-				args[decode(name)] = decode(value);
+				args[decode(name.first, name.second)] = decode(value.first, value.second);
 			} else {
 				if (*p) {
 					++p;
 				}
 
-				args[decode(name)] = "";
+				args[decode(name.first, name.second)] = "";
 			}
 		} else if (*p) { // && or ?& or &=
 			++p;
