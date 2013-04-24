@@ -79,7 +79,10 @@ target_link_libraries(splice_test XzeroBase)
 # --------------------------------------------------------------------------------------
 # The new test-suite is going to use Google Test Framework and thus links against gtest.
 
-add_executable(x0-test x0-test.cpp TokenShaper-test.cpp)
+add_executable(x0-test x0-test.cpp
+	TokenShaper-test.cpp
+	Tokenizer-test.cpp
+)
 target_link_libraries(x0-test XzeroBase gtest)
 
 add_custom_target(test
