@@ -39,15 +39,7 @@ public:
 	~RequestNotes()
 	{
 		if (bucket && tokens) {
-			printf("~RequestNotes: put %zi\n", tokens);
 			bucket->put(tokens);
-		}
-
-		if (backend) {
-			TimeSpan diff = ctime - backend->manager()->worker()->now();
-			printf("Request timing: %s\n", diff.str().c_str());
-		} else {
-			printf("no backend assigned\n");
 		}
 
 		//if (backend_) {
