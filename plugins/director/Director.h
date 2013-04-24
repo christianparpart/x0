@@ -14,6 +14,7 @@
 #include "Scheduler.h"
 #include "HealthMonitor.h"
 
+#include <x0/IniFile.h>
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/DateTime.h>
@@ -158,6 +159,8 @@ public:
 	void setBackendRole(Backend* backend, BackendRole role);
 
 private:
+	bool loadBackend(const x0::IniFile& settings, const std::string& key);
+	bool loadBucket(const x0::IniFile& settings, const std::string& key);
 	void onTimeout(HttpRequest* r);
 	void onBackendEnabledChanged(const Backend* backend);
 	void onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor, HealthState oldState);

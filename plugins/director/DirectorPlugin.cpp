@@ -184,7 +184,7 @@ bool DirectorPlugin::director_balance(HttpRequest* r, const FlowParams& args)
 				r->log(Severity::error, "director.balance(): Invalid argument.");
 				return internalServerError(r);
 			}
-			bucketName = args[1].toString();
+			bucketName = args[1].asString();
 			// fall through
 		case 1: {
 			if (!args[0].isString() && !args[0].isBuffer()) {

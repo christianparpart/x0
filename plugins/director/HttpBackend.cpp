@@ -29,7 +29,7 @@
 #include <netdb.h>
 
 #if !defined(XZERO_NDEBUG)
-#	define TRACE(msg...) (this->Logging::debug(msg))
+#	define TRACE(msg...) (this->log(LogMessage(Severity::debug1, msg)))
 #else
 #	define TRACE(msg...) do {} while (0)
 #endif
@@ -145,11 +145,11 @@ HttpBackend::ProxyConnection::~ProxyConnection()
 			request_->log(Severity::notice, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
 			backend_->reject(request_);
 		} else {
-			// We actually served ths request, so finish() it.
-			request_->finish();
-
 			// Notify director that this backend has just completed a request,
 			backend_->release(request_);
+
+			// We actually served ths request, so finish() it.
+			request_->finish();
 		}
 	}
 }

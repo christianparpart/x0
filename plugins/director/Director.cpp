@@ -126,7 +126,7 @@ void Director::onBackendEnabledChanged(const Backend* backend)
 
 void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor, HealthState oldState)
 {
-	TRACE(1, "onBackendEnabledChanged: health=%s -> %s, enabled=%s",
+	TRACE(1, "onBackendStateChanged: health=%s -> %s, enabled=%s",
 			stringify(oldState).c_str(),
 			stringify(backend->healthMonitor()->state()).c_str(),
 			backend->isEnabled() ? "true" : "false");
@@ -165,7 +165,7 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
 void Director::reject(x0::HttpRequest* r)
 {
 	auto notes = requestNotes(r);
-	schedule(r, notes);
+	reschedule(r, notes);
 }
 
 /**
@@ -424,6 +424,8 @@ bool Director::load(const std::string& path)
 		return save();
 	}
 
+	storagePath_ = path;
+
 	IniFile settings;
 	if (!settings.loadFile(path)) {
 		worker()->log(Severity::error, "director: Could not load director settings from file '%s'. %s", path.c_str(), strerror(errno));
@@ -506,123 +508,172 @@ bool Director::load(const std::string& path)
 		if (key == "director")
 			continue;
 
-		if (key.find(backendSectionPrefix) != 0) {
+		bool result = false;
+		if (key.find(backendSectionPrefix) == 0)
+			result = loadBackend(settings, key);
+		else if (key.find("bucket=") == 0)
+			result = loadBucket(settings, key);
+		else {
 			worker()->log(Severity::error, "director: Invalid configuration section '%s' in file '%s'.", key.c_str(), path.c_str());
+			result = false;
+		}
+
+		if (!result) {
 			return false;
 		}
-
-		std::string name = key.substr(backendSectionPrefix.size());
-
-		// role
-		std::string roleStr;
-		if (!settings.load(key, "role", roleStr)) {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'role' not found in section '%s'.", path.c_str(), key.c_str());
-			return false;
-		}
-
-		BackendRole role = BackendRole::Terminate; // aka. Undefined
-		if (roleStr == "active")
-			role = BackendRole::Active;
-		else if (roleStr == "backup")
-			role = BackendRole::Backup;
-		else {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'role' for backend '%s' contains invalid data '%s'.", path.c_str(), key.c_str(), roleStr.c_str());
-			return false;
-		}
-
-		// capacity
-		std::string capacityStr;
-		if (!settings.load(key, "capacity", capacityStr)) {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'capacity' not found in section '%s'.", path.c_str(), key.c_str());
-			return false;
-		}
-		size_t capacity = std::atoll(capacityStr.c_str());
-
-		// protocol
-		std::string protocol;
-		if (!settings.load(key, "protocol", protocol)) {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'protocol' not found in section '%s'.", path.c_str(), key.c_str());
-			return false;
-		}
-
-		// enabled
-		std::string enabledStr;
-		if (!settings.load(key, "enabled", enabledStr)) {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'enabled' not found in section '%s'.", path.c_str(), key.c_str());
-			return false;
-		}
-		bool enabled = enabledStr == "true";
-
-		// health-check-interval
-		std::string hcIntervalStr;
-		if (!settings.load(key, "health-check-interval", hcIntervalStr)) {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-interval' not found in section '%s'.", path.c_str(), key.c_str());
-			return false;
-		}
-		TimeSpan hcInterval = TimeSpan::fromMilliseconds(std::atoll(hcIntervalStr.c_str()));
-
-		// health-check-mode
-		std::string hcModeStr;
-		if (!settings.load(key, "health-check-mode", hcModeStr)) {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-mode' not found in section '%s'.", path.c_str(), hcModeStr.c_str(), key.c_str());
-			return false;
-		}
-
-		HealthMonitor::Mode hcMode;
-		if (hcModeStr == "paranoid")
-			hcMode = HealthMonitor::Mode::Paranoid;
-		else if (hcModeStr == "opportunistic")
-			hcMode = HealthMonitor::Mode::Opportunistic;
-		else if (hcModeStr == "lazy")
-			hcMode = HealthMonitor::Mode::Lazy;
-		else {
-			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-mode' invalid ('%s') in section '%s'.", path.c_str(), hcModeStr.c_str(), key.c_str());
-			return false;
-		}
-
-		SocketSpec socketSpec;
-		std::string path;
-		if (settings.load(key, "path", path)) {
-			socketSpec = SocketSpec::fromLocal(path);
-		} else {
-			// host
-			std::string host;
-			if (!settings.load(key, "host", host)) {
-				worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'host' not found in section '%s'.", path.c_str(), key.c_str());
-				return false;
-			}
-
-			// port
-			std::string portStr;
-			if (!settings.load(key, "port", portStr)) {
-				worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'port' not found in section '%s'.", path.c_str(), key.c_str());
-				return false;
-			}
-
-			int port = std::atoi(portStr.c_str());
-			if (port <= 0) {
-				worker()->log(Severity::error, "director: Error loading configuration file '%s'. Invalid port number '%s' for backend '%s'", path.c_str(), portStr.c_str(), name.c_str());
-				return false;
-			}
-
-			socketSpec = SocketSpec::fromInet(IPAddress(host), port);
-		}
-
-		// spawn backend (by protocol)
-		Backend* backend = createBackend(name, protocol, socketSpec, capacity, role);
-		if (!backend) {
-			worker()->log(Severity::error, "director: Invalid protocol '%s' for backend '%s' in configuration file '%s'.", protocol.c_str(), name.c_str(), path.c_str());
-			return false;
-		}
-
-		backend->setEnabled(enabled);
-		backend->healthMonitor()->setMode(hcMode);
-		backend->healthMonitor()->setInterval(hcInterval);
 	}
 
-	storagePath_ = path;
-
 	setMutable(true);
+
+	return true;
+}
+
+bool Director::loadBucket(const IniFile& settings, const std::string& key)
+{
+	std::string name = key.substr(strlen("bucket="));
+
+	std::string rateStr;
+	if (!settings.load(key, "rate", rateStr)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'rate' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+		return false;
+	}
+
+	std::string ceilStr;
+	if (!settings.load(key, "ceil", ceilStr)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'ceil' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+		return false;
+	}
+
+	char* nptr = nullptr;
+	float rate = strtof(rateStr.c_str(), &nptr);
+	float ceil = strtof(ceilStr.c_str(), &nptr);
+
+
+	TokenShaperError ec = createBucket(name, rate, ceil);
+	if (ec != TokenShaperError::Success) {
+		static const char *str[] = {
+			"Success.",
+			"Rate limit overflow.",
+			"Ceil limit overflow.",
+			"Name conflict.",
+			"Invalid child node.",
+		};
+		worker()->log(Severity::error, "Could not create director's bucket. %s", str[(size_t)ec]);
+		return false;
+	}
+
+	return true;
+}
+
+bool Director::loadBackend(const IniFile& settings, const std::string& key)
+{
+	std::string name = key.substr(strlen("backend="));
+
+	// role
+	std::string roleStr;
+	if (!settings.load(key, "role", roleStr)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'role' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+		return false;
+	}
+
+	BackendRole role = BackendRole::Terminate; // aka. Undefined
+	if (roleStr == "active")
+		role = BackendRole::Active;
+	else if (roleStr == "backup")
+		role = BackendRole::Backup;
+	else {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'role' for backend '%s' contains invalid data '%s'.", storagePath_.c_str(), key.c_str(), roleStr.c_str());
+		return false;
+	}
+
+	// capacity
+	std::string capacityStr;
+	if (!settings.load(key, "capacity", capacityStr)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'capacity' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+		return false;
+	}
+	size_t capacity = std::atoll(capacityStr.c_str());
+
+	// protocol
+	std::string protocol;
+	if (!settings.load(key, "protocol", protocol)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'protocol' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+		return false;
+	}
+
+	// enabled
+	std::string enabledStr;
+	if (!settings.load(key, "enabled", enabledStr)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'enabled' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+		return false;
+	}
+	bool enabled = enabledStr == "true";
+
+	// health-check-interval
+	std::string hcIntervalStr;
+	if (!settings.load(key, "health-check-interval", hcIntervalStr)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-interval' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+		return false;
+	}
+	TimeSpan hcInterval = TimeSpan::fromMilliseconds(std::atoll(hcIntervalStr.c_str()));
+
+	// health-check-mode
+	std::string hcModeStr;
+	if (!settings.load(key, "health-check-mode", hcModeStr)) {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-mode' not found in section '%s'.", storagePath_.c_str(), hcModeStr.c_str(), key.c_str());
+		return false;
+	}
+
+	HealthMonitor::Mode hcMode;
+	if (hcModeStr == "paranoid")
+		hcMode = HealthMonitor::Mode::Paranoid;
+	else if (hcModeStr == "opportunistic")
+		hcMode = HealthMonitor::Mode::Opportunistic;
+	else if (hcModeStr == "lazy")
+		hcMode = HealthMonitor::Mode::Lazy;
+	else {
+		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-mode' invalid ('%s') in section '%s'.", storagePath_.c_str(), hcModeStr.c_str(), key.c_str());
+		return false;
+	}
+
+	SocketSpec socketSpec;
+	std::string path;
+	if (settings.load(key, "path", path)) {
+		socketSpec = SocketSpec::fromLocal(path);
+	} else {
+		// host
+		std::string host;
+		if (!settings.load(key, "host", host)) {
+			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'host' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+			return false;
+		}
+
+		// port
+		std::string portStr;
+		if (!settings.load(key, "port", portStr)) {
+			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'port' not found in section '%s'.", storagePath_.c_str(), key.c_str());
+			return false;
+		}
+
+		int port = std::atoi(portStr.c_str());
+		if (port <= 0) {
+			worker()->log(Severity::error, "director: Error loading configuration file '%s'. Invalid port number '%s' for backend '%s'", storagePath_.c_str(), portStr.c_str(), name.c_str());
+			return false;
+		}
+
+		socketSpec = SocketSpec::fromInet(IPAddress(host), port);
+	}
+
+	// spawn backend (by protocol)
+	Backend* backend = createBackend(name, protocol, socketSpec, capacity, role);
+	if (!backend) {
+		worker()->log(Severity::error, "director: Invalid protocol '%s' for backend '%s' in configuration file '%s'.", protocol.c_str(), name.c_str(), storagePath_.c_str());
+		return false;
+	}
+
+	backend->setEnabled(enabled);
+	backend->healthMonitor()->setMode(hcMode);
+	backend->healthMonitor()->setInterval(hcInterval);
 
 	return true;
 }
@@ -653,6 +704,13 @@ bool Director::save()
 		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
 		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
 		<< "\n";
+
+	for (auto& bucket: *shaper()->rootNode()) {
+		out << "[bucket=" << bucket->name() << "]\n"
+			<< "rate=" << bucket->rate() << "\n"
+			<< "ceil=" << bucket->ceil() << "\n"
+			<< "\n";
+	}
 
 	for (auto& br: backends_) {
 		for (auto b: br) {
@@ -694,6 +752,8 @@ void Director::schedule(HttpRequest* r, Backend* backend)
 	notes->backend = backend;
 	notes->bucket = shaper()->rootNode();
 
+	r->responseHeaders.push_back("X-Director-Bucket", notes->bucket->name());
+
 	if (!notes->bucket->get()) {
 		tryEnqueue(r, notes);
 		return;
@@ -729,6 +789,8 @@ void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
 {
 	auto notes = setupRequestNotes(r);
 	notes->bucket = bucket;
+
+	r->responseHeaders.push_back("X-Director-Bucket", bucket->name());
 
 	if (notes->bucket->get()) {
 		notes->tokens = 1;
@@ -880,7 +942,7 @@ bool Director::tryEnqueue(HttpRequest* r, RequestNotes* notes)
 		notes->tokens = 0;
 		++queued_;
 
-		r->log(Severity::info, "Director %s [bucket %s] overloaded. Enqueueing request (%d).",
+		r->log(Severity::info, "Director %s [%s] overloaded. Enqueueing request (%d).",
 			name().c_str(), notes->bucket->name().c_str(), notes->bucket->queued().current());
 
 		return true;
@@ -949,9 +1011,11 @@ SchedulerStatus Director::tryProcess(HttpRequest* r, RequestNotes* notes, Backen
 
 void Director::onTimeout(HttpRequest* r)
 {
+	--queued_;
+	++dropped_;
+
 	r->post([this, r]() {
 		r->log(Severity::info, "Queued request timed out. Dropping. %s %s", r->method.str().c_str(), r->unparsedUri.str().c_str());
 		serviceUnavailable(r);
-		++dropped_;
 	});
 }
