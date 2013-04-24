@@ -28,9 +28,9 @@
 // update backend:   POST   /:director_id/:backend_id
 // delete backend:   DELETE /:director_id/:backend_id
 //
-// create bucket:    PUT    /:director_id/backends/:bucket_id
-// update bucket:    POST   /:director_id/backends/:bucket_id
-// delete bucket:    DELETE /:director_id/backends/:bucket_id
+// create bucket:    PUT    /:director_id/buckets/:bucket_id
+// update bucket:    POST   /:director_id/buckets/:bucket_id
+// delete bucket:    DELETE /:director_id/buckets/:bucket_id
 //
 // PUT / POST args (backend):
 // - mode
