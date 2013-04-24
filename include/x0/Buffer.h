@@ -222,6 +222,7 @@ template<typename T> bool iequals(const std::string& a, const std::string& b);
 template<typename T> bool operator==(const BufferBase<T>& a, const BufferBase<T>& b);
 template<typename T> bool operator==(const BufferBase<T>& a, const std::string& b);
 template<typename T, typename PodType, std::size_t N> bool operator==(const BufferBase<T>& a, PodType (&b)[N]);
+template<typename T, typename PodType, std::size_t N> bool operator==(PodType (&b)[N], const BufferBase<T>& a);
 // }}}
 // {{{ Buffer API
 /**
@@ -853,6 +854,12 @@ template<typename T, typename PodType, std::size_t N>
 inline bool operator==(const BufferBase<T>& a, PodType (&b)[N])
 {
 	return equals<T, PodType, N>(a, b);
+}
+
+template<typename T, typename PodType, std::size_t N>
+inline bool operator==(PodType (&a)[N], const BufferBase<T>& b)
+{
+	return equals<T, PodType, N>(b, a);
 }
 } // namespace x0
 // }}}
