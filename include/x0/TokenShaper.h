@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <algorithm>
 #include <cstdint>
 #include <cassert>
 
@@ -70,6 +71,7 @@ public:
 	Node* rootNode() const;
 	Node* findNode(const std::string& name) const;
 	TokenShaperError createNode(const std::string& name, float rate, float ceil = 0);
+	void destroyNode(Node* n);
 
 	size_t get(size_t tokens = 1) { return root_->get(tokens); }
 	void put(size_t tokens = 1) { return root_->put(tokens); }
@@ -91,6 +93,8 @@ public:
 
 	~Node();
 
+	Node* parentNode() const { return parent_; }
+
 	const std::string& name() const { return name_; }
 	float rate() const { return rate_; }
 	float ceil() const { return ceil_; }
@@ -102,6 +106,7 @@ public:
 	TokenShaperError setName(const std::string& value);
 	TokenShaperError setRate(float value);
 	TokenShaperError setCeil(float value);
+	TokenShaperError setRateAndCeil(float rate, float ceil);
 
 	size_t actualTokenRate() const { return load_.current(); }
 	size_t tokenOverRate() const { return std::max(static_cast<ssize_t>(actualTokenRate() - tokenRate()), static_cast<ssize_t>(0)); }
@@ -115,6 +120,7 @@ public:
 	TokenShaperError createChild(const std::string& name, float rate, float ceil = 0);
 	TokenShaper<T>::Node* findChild(const std::string& name) const;
 	TokenShaper<T>::Node* rootNode();
+	void destroyChild(Node* n);
 
 	TokenShaper<T>::Node& operator[](const std::string& name) const { return *findChild(name); }
 
@@ -235,6 +241,15 @@ template<typename T>
 TokenShaperError TokenShaper<T>::createNode(const std::string& name, float rate, float ceil)
 {
 	return root_->createChild(name, rate, ceil);
+}
+
+template<typename T>
+void TokenShaper<T>::destroyNode(Node* n)
+{
+	if (n == root_)
+		return;
+
+	n->parentNode()->destroyChild(n);
 }
 
 template<typename T>
@@ -368,6 +383,26 @@ TokenShaperError TokenShaper<T>::Node::setCeil(float newCeil)
 }
 
 template<typename T>
+TokenShaperError TokenShaper<T>::Node::setRateAndCeil(float newRate, float newCeil)
+{
+	if (!parent_)
+		return TokenShaperError::InvalidChildNode;
+
+	if (newRate < 0.0 || newRate > newCeil)
+		return TokenShaperError::RateLimitOverflow;
+
+	if (newCeil > 1.0)
+		return TokenShaperError::CeilLimitOverflow;
+
+	rate_ = newRate;
+	ceil_ = newCeil;
+
+	update();
+
+	return TokenShaperError::Success;
+}
+
+template<typename T>
 void TokenShaper<T>::Node::update(size_t capacity)
 {
 	tokenRate_ = capacity * rate_;
@@ -416,6 +451,17 @@ TokenShaperError TokenShaper<T>::Node::createChild(const std::string& name, floa
 	TokenShaper<T>::Node* b = new TokenShaper<T>::Node(loop_, name, tokenRate, tokenCeil, rate, ceil, this);
 	children_.push_back(b);
 	return TokenShaperError::Success;
+}
+
+template<typename T>
+void TokenShaper<T>::Node::destroyChild(Node* n)
+{
+	auto i = std::find(children_.begin(), children_.end(), n);
+
+	if (i != children_.end()) {
+		children_.erase(i);
+		delete n;
+	}
 }
 
 template<typename T>
@@ -561,6 +607,7 @@ template<typename T>
 void TokenShaper<T>::Node::writeJSON(x0::JsonWriter& json) const
 {
 	json.beginObject()
+		.name("name")(name())
 		.name("rate")(rate())
 		.name("ceil")(ceil())
 		.name("token-rate")(tokenRate())
@@ -568,8 +615,15 @@ void TokenShaper<T>::Node::writeJSON(x0::JsonWriter& json) const
 		.name("actual-token-rate")(actualTokenRate())
 		.name("load")(load())
 		.name("queued")(queued())
-		.name("dropped")(dropped())
-		.endObject();
+		.name("dropped")(dropped());
+
+	json.beginArray("children");
+	for (auto n: children_) {
+		n->writeJSON(json);
+	}
+	json.endArray();
+
+	json.endObject();
 }
 
 template<typename T>
@@ -619,6 +673,13 @@ void TokenShaper<T>::Node::onTimeout(ev::timer& timer, int revents)
 // {{{ JsonWriter
 template<typename T>
 inline JsonWriter& operator<<(x0::JsonWriter& json, const TokenShaper<T>& value)
+{
+	value.writeJSON(json);
+	return json;
+}
+
+template<typename T>
+inline JsonWriter& operator<<(x0::JsonWriter& json, const typename TokenShaper<T>::Node& value)
 {
 	value.writeJSON(json);
 	return json;
