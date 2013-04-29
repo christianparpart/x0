@@ -280,6 +280,8 @@ Backend* Director::createBackend(const std::string& name, const std::string& pro
 		return nullptr;
 	}
 
+	backend->disable(); // ensure backend is disabled upon creation
+
 	BackendData* bd = backend->setCustomData<BackendData>(this);
 	bd->role = role;
 
