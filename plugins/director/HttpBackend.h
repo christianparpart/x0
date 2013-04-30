@@ -17,7 +17,7 @@
  */
 class HttpBackend : public Backend {
 private:
-	class ProxyConnection;
+	class Connection;
 
 public:
 	HttpBackend(BackendManager* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
@@ -29,7 +29,7 @@ public:
 	const x0::SocketSpec& socketSpec() const { return socketSpec_; }
 
 private:
-	ProxyConnection* acquireConnection();
+	Connection* acquireConnection();
 };
 
 
