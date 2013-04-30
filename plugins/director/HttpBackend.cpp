@@ -89,21 +89,23 @@ private:
 
 	virtual void log(x0::LogMessage&& msg);
 
+	inline void start();
+
 public:
-	inline explicit ProxyConnection(HttpBackend* proxy);
+	inline explicit ProxyConnection(HttpBackend* proxy, HttpRequest* r, Socket* socket);
 	~ProxyConnection();
 
-	inline void start(HttpRequest* in, Socket* backend);
+	static ProxyConnection* create(HttpBackend* owner, HttpRequest* r);
 };
 // }}}
 
 // {{{ HttpBackend::ProxyConnection impl
-HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
+HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy, HttpRequest* r, Socket* socket) :
 	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
 	backend_(proxy),
 	refCount_(1),
-	request_(nullptr),
-	socket_(nullptr),
+	request_(r),
+	socket_(socket),
 
 	writeBuffer_(),
 	writeOffset_(0),
@@ -118,6 +120,8 @@ HttpBackend::ProxyConnection::ProxyConnection(HttpBackend* proxy) :
 	setLoggingPrefix("ProxyConnection/%p", this);
 #endif
 	TRACE("ProxyConnection()");
+
+	start();
 }
 
 HttpBackend::ProxyConnection::~ProxyConnection()
@@ -185,13 +189,20 @@ void HttpBackend::ProxyConnection::onAbort(void *p)
 	self->close();
 }
 
-void HttpBackend::ProxyConnection::start(HttpRequest* in, Socket* socket)
+HttpBackend::ProxyConnection* HttpBackend::ProxyConnection::create(HttpBackend* owner, HttpRequest* r)
 {
-	TRACE("ProxyConnection.start(in, backend)");
+	Socket* socket = Socket::open(r->connection.worker().loop(), owner->socketSpec(), O_NONBLOCK | O_CLOEXEC);
+	if (!socket)
+		return nullptr;
 
-	request_ = in;
+	return new ProxyConnection(owner, r, socket);
+}
+
+void HttpBackend::ProxyConnection::start()
+{
+	TRACE("ProxyConnection.start()");
+
 	request_->setAbortHandler(&ProxyConnection::onAbort, this);
-	socket_ = socket;
 
 	// request line
 	writeBuffer_.push_back(request_->method);
@@ -567,18 +578,11 @@ const std::string& HttpBackend::protocol() const
 
 bool HttpBackend::process(HttpRequest* r)
 {
-	TRACE("process...");
-
-	if (Socket* socket = Socket::open(r->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
-		TRACE("in.content? %d", r->contentAvailable());
-
-		if (ProxyConnection* pc = new ProxyConnection(this)) {
-			pc->start(r, socket);
-			return true;
-		}
-	}
+	if (ProxyConnection::create(this, r))
+		return true;
 
 	r->log(Severity::error, "HTTP proxy: Could not connect to backend %s. %s", socketSpec_.str().c_str(), strerror(errno));
+
 	return false;
 }
 // }}}
