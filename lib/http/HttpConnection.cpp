@@ -191,11 +191,7 @@ void HttpConnection::timeout(Socket *)
 	case Undefined:
 	case ReadingRequest:
 		// we do not want further out-timing requests on this conn: just close it.
-		setShouldKeepAlive(false);
-
-		request_->status = HttpStatus::RequestTimeout;
-		setStatus(SendingReply);
-		request_->finish();
+		abort(HttpStatus::RequestTimeout);
 		break;
 	case KeepAliveRead:
 		close();
@@ -298,8 +294,7 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 	request_->method = method;
 
 	if (!request_->setUri(uri)) {
-		request_->status = HttpStatus::BadRequest;
-		request_->finish();
+		abort(HttpStatus::BadRequest);
 		return false;
 	}
 
@@ -686,11 +681,7 @@ bool HttpConnection::process()
 		if (state() == SYNTAX_ERROR) {
 			TRACE(1, "syntax error detected");
 			if (!request_->isFinished()) {
-				flags_ |= IsHandlingRequest;
-				setStatus(SendingReply);
-				setShouldKeepAlive(false);
-				request_->status = HttpStatus::BadRequest;
-				request_->finish();
+				abort(HttpStatus::BadRequest);
 			}
 			TRACE(1, "syntax error detected: leaving process()");
 			return false;
