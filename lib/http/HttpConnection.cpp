@@ -300,7 +300,7 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
 	if (!request_->setUri(uri)) {
 		request_->status = HttpStatus::BadRequest;
 		request_->finish();
-		return true;
+		return false;
 	}
 
 	request_->httpVersionMajor = versionMajor;
