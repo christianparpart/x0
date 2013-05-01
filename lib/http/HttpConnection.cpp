@@ -593,6 +593,29 @@ void HttpConnection::abort()
 	}
 }
 
+/**
+ * Aborts processing current request with given HTTP status code.
+ *
+ * This method is supposed to be invoked within the Request parsing state.
+ * It will reply the current request with the given \p status code and close the connection.
+ * This is kind of a soft abort, as the client will be notified about the soft error with a proper reply.
+ *
+ * \param status the HTTP status code (should be a 4xx client error).
+ *
+ * \see abort()
+ */
+void HttpConnection::abort(HttpStatus status)
+{
+	++requestCount_;
+
+	flags_ |= IsHandlingRequest;
+	setStatus(SendingReply);
+	setShouldKeepAlive(false);
+
+	request_->status = status;
+	request_->finish();
+}
+
 /** Closes this HttpConnection, possibly deleting this object (or propagating delayed delete).
  */
 void HttpConnection::close()

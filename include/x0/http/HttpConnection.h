@@ -11,6 +11,7 @@
 
 #include <x0/http/HttpMessageProcessor.h>
 #include <x0/http/HttpWorker.h>
+#include <x0/http/HttpStatus.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
 #include <x0/CustomDataMgr.h>
@@ -138,6 +139,7 @@ private:
 	void timeout(Socket *socket);
 
 	void abort();
+	void abort(HttpStatus status);
 
 	template<typename... Args>
 	void log(Severity s, const char* fmt, Args... args);
