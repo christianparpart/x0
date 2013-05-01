@@ -72,7 +72,7 @@ HttpRequest::~HttpRequest()
 }
 
 /**
- * Sssigns unparsed URI to request and decodes it for path and query attributes.
+ * Assigns unparsed URI to request and decodes it for path and query attributes.
  *
  * We also compute the directory depth for directory traversal detection.
  *
