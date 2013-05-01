@@ -219,10 +219,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
 						ch = *i++;
 						--depth;
 
-						if (depth < 0) {
-							log(Severity::notice, "Directory traversal detected.");
-							return false;
-						}
+						// the directory depth is optionally checked later, if needed.
 
 						state = UriState::Slash;
 						break;
