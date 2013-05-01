@@ -675,8 +675,8 @@ bool HttpConnection::process()
 		TRACE(1, "process: (size: %lu, isHandlingRequest:%d, state:%s status:%s", chunk.size(), isHandlingRequest(), state_str(), status_str());
 		//TRACE(1, "%s", input_.ref(input_.size() - rv).str().c_str());
 
-		HttpMessageProcessor::process(chunk, &inputOffset_);
-		TRACE(1, "process: done process()ing; fd=%d, request=%p state:%s status:%s", socket_->handle(), request_, state_str(), status_str());
+		size_t rv = HttpMessageProcessor::process(chunk, &inputOffset_);
+		TRACE(1, "process: done process()ing; fd=%d, request=%p state:%s status:%s, rv:%d", socket_->handle(), request_, state_str(), status_str(), rv);
 
 		if (isAborted()) {
 			TRACE(1, "abort detected");
@@ -693,6 +693,11 @@ bool HttpConnection::process()
 				request_->finish();
 			}
 			TRACE(1, "syntax error detected: leaving process()");
+			return false;
+		}
+
+		if (rv < chunk.size()) {
+			request_->log(Severity::debug1, "parser aborted early.");
 			return false;
 		}
 	}
