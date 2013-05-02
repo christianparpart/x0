@@ -70,7 +70,7 @@ enum class HttpStatus // {{{
 	UpgradeRequired = 426,
 	PreconditionRequired = 428, // RFC 6585
 	TooManyRequests = 429, // RFC 6585
-	RequestHeaderFieldsTooLarge = 430, // RFC 6585
+	RequestHeaderFieldsTooLarge = 431, // RFC 6585
 	NoResponse = 444, // nginx ("Used in Nginx logs to indicate that the server has returned no information to the client and closed the connection")
 
 	// server error
