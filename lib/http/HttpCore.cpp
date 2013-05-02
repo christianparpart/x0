@@ -383,7 +383,7 @@ void HttpCore::max_request_header_count(const FlowParams& args, FlowValue& resul
 void HttpCore::max_request_body_size(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
-		server().maxRequestBodySize(args[0].toBool());
+		server().maxRequestBodySize(args[0].toNumber());
 	else
 		result.set(server().maxRequestBodySize());
 }
