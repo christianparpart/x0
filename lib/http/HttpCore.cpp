@@ -367,7 +367,7 @@ void HttpCore::max_request_uri_size(const FlowParams& args, FlowValue& result)
 void HttpCore::max_request_header_size(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
-		server().maxRequestHeaderSize(args[0].toBool());
+		server().maxRequestHeaderSize(args[0].toNumber());
 	else
 		result.set(server().maxRequestHeaderSize());
 }
@@ -375,7 +375,7 @@ void HttpCore::max_request_header_size(const FlowParams& args, FlowValue& result
 void HttpCore::max_request_header_count(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isBool())
-		server().maxRequestHeaderCount(args[0].toBool());
+		server().maxRequestHeaderCount(args[0].toNumber());
 	else
 		result.set(server().maxRequestHeaderCount());
 }
