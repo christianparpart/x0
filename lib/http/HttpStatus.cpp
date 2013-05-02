@@ -43,9 +43,12 @@ private:
 		set(HttpStatus::MovedPermanently, "Moved Permanently");
 		set(HttpStatus::MovedTemporarily, "Moved Temporarily");
 		set(HttpStatus::NotModified, "Not Modified");
+		set(HttpStatus::TemporaryRedirect, "Temporary Redirect");
+		set(HttpStatus::PermanentRedirect, "Permanent Redirect");
 
 		set(HttpStatus::BadRequest, "Bad Request");
 		set(HttpStatus::Unauthorized, "Unauthorized");
+		set(HttpStatus::PaymentRequired, "Payment Required");
 		set(HttpStatus::Forbidden, "Forbidden");
 		set(HttpStatus::NotFound, "Not Found");
 		set(HttpStatus::MethodNotAllowed, "Method Not Allowed");
@@ -67,6 +70,10 @@ private:
 		set(HttpStatus::FailedDependency, "Failed Dependency");
 		set(HttpStatus::UnorderedCollection, "Unordered Collection");
 		set(HttpStatus::UpgradeRequired, "Upgrade Required");
+		set(HttpStatus::PreconditionRequired, "Precondition Required");
+		set(HttpStatus::TooManyRequests, "Too Many Requests");
+		set(HttpStatus::RequestHeaderFieldsTooLarge, "Request Header Fields Too Large");
+		set(HttpStatus::NoResponse, "No Response");
 
 		set(HttpStatus::InternalServerError, "Internal Server Error");
 		set(HttpStatus::NotImplemented, "Not Implemented");
@@ -74,8 +81,8 @@ private:
 		set(HttpStatus::ServiceUnavailable, "Service Unavailable");
 		set(HttpStatus::GatewayTimedout, "Gateway Timedout");
 		set(HttpStatus::HttpVersionNotSupported, "HTTP Version Not Supported");
-		set(HttpStatus::InsufficientStorage, "Insufficient Storage");
 		set(HttpStatus::VariantAlsoNegotiates, "Variant Also Negotiates");
+		set(HttpStatus::InsufficientStorage, "Insufficient Storage");
 		set(HttpStatus::LoopDetected, "Loop Detected");
 		set(HttpStatus::BandwidthExceeded, "Bandwidth Exceeded");
 		set(HttpStatus::NotExtended, "Not Extended");
