@@ -351,8 +351,7 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 	}
 
 	// limit the number of request headers
-	if (request_->requestHeaders.size() > worker().server().maxRequestHeaderCount()) {
-		TRACE(1, "header count exceeded. got %lu / %lu", request_->requestHeaders.size(), worker().server().maxRequestHeaderCount());
+	if (request_->requestHeaders.size() >= worker().server().maxRequestHeaderCount()) {
 		abort(HttpStatus::RequestHeaderFieldsTooLarge);
 		return false;
 	}
