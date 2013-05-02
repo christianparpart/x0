@@ -16,6 +16,11 @@
 
 namespace x0 {
 
+/**
+ * HTTP status code.
+ *
+ * \see http://www.iana.org/assignments/http-status-codes/http-status-codes.xml
+ */
 enum class HttpStatus // {{{
 {
 	Undefined = 0,
