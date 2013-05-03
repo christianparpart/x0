@@ -34,6 +34,10 @@ public:
 
 	void enqueue(const T& value);
 	bool dequeue(T* result);
+
+	bool empty() const;
+	const T& front() const;
+	T& front();
 };
 
 // {{{ Queue<T>::NodePtr impl
@@ -43,8 +47,7 @@ struct Queue<T>::NodePtr
 	Node* ptr;
 	unsigned count;
 
-	NodePtr() : ptr(nullptr), count(0) {}
-	NodePtr(Node* p, unsigned c) : ptr(p), count(c) {}
+	explicit NodePtr(Node* p = nullptr, unsigned c = 0) : ptr(p), count(c) {}
 
 	NodePtr(const NodePtr& np) :
 		ptr(np.ptr),
@@ -93,16 +96,16 @@ struct Queue<T>::Node
 // {{{ Queue<T> impl
 template<typename T>
 Queue<T>::Queue() :
-	front_(),
-	back_()
+	front_(new Node()),
+	back_(front_.ptr)
 {
-	front_.ptr = back_.ptr = new Node();
 }
 
 template<typename T>
 Queue<T>::~Queue()
 {
 	// delete dummy-node
+	//delete marker_;
 	delete front_.ptr;
 }
 
@@ -131,6 +134,25 @@ void Queue<T>::enqueue(const T& value)
 			}
 		}
 	}
+}
+
+template<typename T>
+inline bool Queue<T>::empty() const
+{
+	//return front_.ptr == marker_;
+	return front_.ptr == back_.ptr;
+}
+
+template<typename T>
+inline const T& Queue<T>::front() const
+{
+	return front_.ptr->value;
+}
+
+template<typename T>
+inline T& Queue<T>::front()
+{
+	return front_.ptr->value;
 }
 
 template<typename T>
