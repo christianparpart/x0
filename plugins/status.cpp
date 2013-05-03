@@ -124,6 +124,7 @@ private:
 		// XXX stats' active/reading/writing should be all zero at this point already.
 		auto stats = worker->customData<Stats>(this);
 		historical_ += *stats;
+		worker->clearCustomData(this);
 	}
 
 	void onConnectionOpen(x0::HttpConnection* connection) {
