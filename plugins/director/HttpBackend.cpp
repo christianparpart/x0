@@ -129,8 +129,6 @@ HttpBackend::Connection::~Connection()
 	TRACE("~Connection()");
 
 	if (socket_) {
-		socket_->close();
-
 		delete socket_;
 	}
 
