@@ -916,8 +916,11 @@ void Director::dequeueTo(Backend* backend)
 			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), name().c_str());
 #endif
-			if (tryProcess(r, notes, backend) != SchedulerStatus::Success) {
-				r->log(Severity::error, "Dequeueing request to backend %s @ %s failed.", backend->name().c_str(), name().c_str());
+			SchedulerStatus rc = tryProcess(r, notes, backend);
+			if (rc != SchedulerStatus::Success) {
+				static const char* ss[] = { "Unavailable.", "Success.", "Overloaded." };
+				r->log(Severity::error, "Dequeueing request to backend %s @ %s failed. %s",
+					backend->name().c_str(), name().c_str(), ss[(size_t) rc]);
 				schedule(r, notes);
 			} else {
 				verifyTryCount(r, notes);
