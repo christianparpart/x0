@@ -33,6 +33,10 @@ namespace x0 {
 #	define TRACE(msg...) do { } while (0)
 #endif
 
+#if !defined(SO_REUSEPORT)
+#	define SO_REUSEPORT 15
+#endif
+
 // {{{ helpers for finding x0d-inherited file descriptors
 
 // EnvvarFormat ::= [PID ':'] (ListenFD *(';' ListenFD))
@@ -388,6 +392,11 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 #if defined(SO_REUSEADDR)
 		if (::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &rc, sizeof(rc)) < 0)
 			goto syserr;
+#endif
+
+#if defined(SO_REUSEPORT)
+//		if (::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) < 0)
+//			reusePort_ = false;
 #endif
 
 #if defined(TCP_QUICKACK)
