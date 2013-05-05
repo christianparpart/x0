@@ -541,6 +541,11 @@ bool ApiRequest::processIndex()
 
 bool ApiRequest::index()
 {
+	// FIXME: thread safety.
+	// In order to make this method thread-safe, we must ensure that each director's 
+	// json-write is done from within the director's worker thread and finally
+	// the reply be sent to the client from within the request's worker thread.
+
 	Buffer result;
 	JsonWriter json(result);
 
