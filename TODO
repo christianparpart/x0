@@ -37,6 +37,11 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 - commit 2775dce31b1729da6b5719d2758677424f056b9d:
   - check if we actually need it and if we should then apply it to director plugin, too.
 
+- think about adding concurrent/noncurrent versions of some classes:
+  - Counter vs ConcurrentCounter
+  - Queue vs ConcurrentQueue
+  - HashMap vs ConcurrentHashMap
+
 -------------------------------------------------
    0.7.0 release todo
 -------------------------------------------------
