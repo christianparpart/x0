@@ -947,13 +947,13 @@ bool Director::tryEnqueue(HttpRequest* r, RequestNotes* notes)
 		notes->tokens = 0;
 		++queued_;
 
-		r->log(Severity::info, "Director %s [%s] overloaded. Enqueueing request (%d).",
+		r->log(Severity::debug1, "Director %s [%s] overloaded. Enqueueing request (%d).",
 			name().c_str(), notes->bucket->name().c_str(), notes->bucket->queued().current());
 
 		return true;
 	}
 
-	r->log(Severity::info, "director: '%s' queue limit %zu reached. Rejecting request.", name().c_str(), queueLimit());
+	r->log(Severity::debug1, "director: '%s' queue limit %zu reached. Rejecting request.", name().c_str(), queueLimit());
 	serviceUnavailable(r);
 	++dropped_;
 
