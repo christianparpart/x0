@@ -154,6 +154,7 @@ private:
 	void update();
 	void updateQueueTimer();
 	void onTimeout(ev::timer& timer, int revents);
+	size_t getReserved(size_t tokens);
 
 private:
 	Node(ev::loop_ref loop, const std::string& name, size_t tokenRate, size_t tokenCeil, float rate, float ceil, TokenShaper<T>::Node* parent);
@@ -170,11 +171,14 @@ private:
 	ev::loop_ref loop_;
 
 	std::string name_;				//!< bucket name
+
 	size_t tokenRate_;				//!< maximum tokens this bucket and all its children are garanteed.
 	size_t tokenCeil_;				//!< maximum tokens this bucket can send if parent has enough tokens spare.
+
 	float rate_;					//!< rate in percent relative to parent's ceil
 	float ceil_;					//!< ceil in percent relative to parent's ceil
-	Node* parent_;                //!< parent bucket this bucket is a direct child of
+
+	Node* parent_;                  //!< parent bucket this bucket is a direct child of
 	BucketList children_;           //!< direct child buckets
 
 	x0::Counter load_;              //!< bucket load stats
@@ -300,6 +304,11 @@ float TokenShaper<T>::Node::childRate() const
 	return sum;
 }
 
+/**
+ * Number of tokens reserved by child nodes.
+ *
+ * This value will be less or equal to this node's computed token-rate.
+ */
 template<typename T>
 size_t TokenShaper<T>::Node::childTokenRate() const
 {
@@ -508,6 +517,14 @@ bool TokenShaper<T>::Node::send(T* packet, size_t cost)
 /**
  * Allocates up to \p n tokens from this bucket or nothing if allocation failed.
  *
+ * A token is ensured if the actual token rate plus \p n is equal or less than
+ * the number of non-reserved tokens.
+ *
+ * The number of non-reserved tokens equals the node's token rate minus the sum of all children's token rate.
+ *
+ * If the actual token rate plus \p n is below the node's ceiling, we 
+ * attempt to <b>borrow</b> one from the parent.
+ *
  * \return the actual number of allocated tokens, which is either \p n (all requested tokens) or \p 0 if failed.
  */
 template<typename T>
@@ -515,19 +532,57 @@ size_t TokenShaper<T>::Node::get(size_t n)
 {
 	size_t newRate = actualTokenRate() + n;
 
-	if (newRate <= tokenRate()) {
+	// Attempt to acquire tokens from the ensured token pool.
+	if (newRate <= (tokenRate() - childTokenRate())) {
 		load_ += n;
 
 		if (parent_) {
-			size_t rn = parent_->get(n);
-			assert(rn == n);
+			size_t rv = parent_->getReserved(n);
+			assert(rv == n);
 		}
+
 		return n;
-	} else if (newRate <= tokenCeil() && parent_ && parent_->get(n)) {
+	}
+
+	// Attempt to borrow tokens from parent if and only if the resulting node's rate does not exceed its ceiling.
+	if (newRate <= tokenCeil() && parent_ && parent_->get(n)) {
 		load_ += n;
 		return n;
 	}
 
+	// Acquiring %n tokens failed, so return 0 as indication.
+	return 0;
+}
+
+/**
+ * Internal helper function for \c get() that is invoked on parent nodes to also include reserved tokens.
+ *
+ * \see get(size_t n)
+ */
+template<typename T>
+size_t TokenShaper<T>::Node::getReserved(size_t n)
+{
+	size_t newRate = actualTokenRate() + n;
+
+	// Attempt to acquire tokens from the ensured token pool.
+	if (newRate <= tokenRate()) {
+		load_ += n;
+
+		if (parent_) {
+			size_t rv = parent_->getReserved(n);
+			assert(rv == n);
+		}
+
+		return n;
+	}
+
+	// Attempt to borrow tokens from parent if and only if the resulting node's rate does not exceed its ceiling.
+	if (newRate <= tokenCeil() && parent_ && parent_->get(n)) {
+		load_ += n;
+		return n;
+	}
+
+	// Acquiring n tokens failed, so return 0 as indication.
 	return 0;
 }
 
@@ -543,6 +598,7 @@ void TokenShaper<T>::Node::put(size_t n)
 
 	load_ -= n;
 
+	// Release tokens from parent if the the new actual token rate (load) is still not below this node's token-rate.
 	if (parent_) {
 		parent_->put(n);
 	}
