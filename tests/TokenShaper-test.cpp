@@ -44,7 +44,7 @@ public:
 	TokenShaperTest();
 	void SetUp();
 	void TearDown();
-	void dump();
+	void dump(const char* msg = "shaper");
 
 protected:
 	typedef TokenShaper<int> Shaper;
@@ -85,9 +85,9 @@ void TokenShaperTest::TearDown()
 	delete shaper;
 }
 
-void TokenShaperTest::dump()
+void TokenShaperTest::dump(const char* msg)
 {
-	::dump(*shaper, "shaper");
+	::dump(*shaper, msg);
 }
 
 TEST_F(TokenShaperTest, Setup)
@@ -137,54 +137,69 @@ TEST_F(TokenShaperTest, MutateErrors)
 
 TEST_F(TokenShaperTest, GetPut)
 {
-	ASSERT_EQ(1, vip->get());
+	ASSERT_EQ(1, vip->get(1));
 
 	ASSERT_EQ(1, vip->actualTokenRate());
 	ASSERT_EQ(1, root->actualTokenRate());
 
-	vip->put();
+	vip->put(1);
 	ASSERT_EQ(0, vip->actualTokenRate());
 	ASSERT_EQ(0, root->actualTokenRate());
 }
 
 TEST_F(TokenShaperTest, GetOverrate)
 {
-	ASSERT_EQ(1, vip->get());
+	ASSERT_EQ(1, vip->get(1));
 	ASSERT_EQ(1, vip->actualTokenRate());
 	ASSERT_EQ(0, vip->tokenOverRate());
 	ASSERT_EQ(1, root->actualTokenRate());
 	ASSERT_EQ(0, root->tokenOverRate());
 
 	// now get() one that must be enqueued
-	ASSERT_EQ(1, vip->get());
+	ASSERT_EQ(1, vip->get(1));
 	ASSERT_EQ(2, vip->actualTokenRate());
 	ASSERT_EQ(1, vip->tokenOverRate());
 	ASSERT_EQ(2, root->actualTokenRate());
 	ASSERT_EQ(0, root->tokenOverRate());
 
 	// The second one gets through, too.
-	ASSERT_EQ(1, vip->get());
+	ASSERT_EQ(1, vip->get(1));
 	ASSERT_EQ(3, vip->actualTokenRate());
 	ASSERT_EQ(2, vip->tokenOverRate());
 	ASSERT_EQ(3, root->actualTokenRate());
 	ASSERT_EQ(0, root->tokenOverRate());
 
 	// next get() should fail, because we reached ceil already
-	ASSERT_EQ(0, vip->get());
+	ASSERT_EQ(0, vip->get(1));
 
 	// put the one that overrated back, and we should be back at capped rate.
-	vip->put();
+	vip->put(1);
 	ASSERT_EQ(2, vip->actualTokenRate());
 	ASSERT_EQ(1, vip->tokenOverRate());
 	ASSERT_EQ(2, root->actualTokenRate());
 	ASSERT_EQ(0, root->tokenOverRate());
 
 	// put the one that overrated back, and we should be back at capped rate.
-	vip->put();
+	vip->put(1);
 	ASSERT_EQ(1, vip->actualTokenRate());
 	ASSERT_EQ(0, vip->tokenOverRate());
 	ASSERT_EQ(1, root->actualTokenRate());
 	ASSERT_EQ(0, root->tokenOverRate());
+}
+
+TEST_F(TokenShaperTest, OddOverRate)
+{
+	// [vip:  1..3
+	// [main: 5..7 [upload: 2..2]]
+
+	// we increase shaper capacity by 1, so that we get one spare (the elevens)
+	shaper->resize(11);
+
+	ASSERT_EQ(1, vip->get(1));
+	ASSERT_EQ(1, vip->get(1));
+	ASSERT_EQ(1, vip->get(1));
+	ASSERT_EQ(0, vip->get(1));
+	vip->put(1);
 }
 
 TEST_F(TokenShaperTest, Resize)
@@ -253,10 +268,10 @@ TEST_F(TokenShaperTest, SetCeil)
 
 TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
 {
-	ASSERT_EQ(1, vip->get()); // passes through
-	ASSERT_EQ(1, vip->get()); // passes through
-	ASSERT_EQ(1, vip->get()); // passes through (overrate)
-	ASSERT_EQ(0, vip->get()); // ok, we must enqueue it then
+	ASSERT_EQ(1, vip->get(1)); // passes through
+	ASSERT_EQ(1, vip->get(1)); // passes through
+	ASSERT_EQ(1, vip->get(1)); // passes through (overrate)
+	ASSERT_EQ(0, vip->get(1)); // ok, we must enqueue it then
 
 	vip->enqueue(new int(42));
 	ASSERT_EQ(1, vip->queued().current());
@@ -269,7 +284,7 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
 	auto object = root->dequeue();
 	ASSERT_TRUE(object == nullptr);
 
-	vip->put();
+	vip->put(1);
 	EXPECT_EQ(1, vip->tokensAvailable());
 
 	object = root->dequeue();
@@ -284,7 +299,7 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
 	ASSERT_TRUE(object == nullptr);
 
 	// Free a token up on vip node.
-	vip->put();
+	vip->put(1);
 	ASSERT_EQ(1, vip->tokensAvailable());
 
 	// Actually dequeue the last item.
@@ -295,15 +310,15 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
 	delete object;
 
 	// Release the 2 remaining tokens.
-	vip->put();
-	vip->put();
+	vip->put(1);
+	vip->put(1);
 
 	// Another dequeue should fail because we have nothing to dequeue anymore.
 	object = root->dequeue();
 	ASSERT_TRUE(object == nullptr);
 }
 
-TEST_F(TokenShaperTest, TimeoutHandling)
+TEST_F(TokenShaperTest, /*DISABLED_*/ TimeoutHandling)
 {
 	ev::tstamp start_at = ev::now(shaper->loop());
 	ev::tstamp fired_at = 0;
@@ -331,5 +346,3 @@ TEST_F(TokenShaperTest, TimeoutHandling)
 
 	delete object;
 }
-
-// TODO: test timeout handling

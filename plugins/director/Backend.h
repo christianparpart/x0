@@ -87,7 +87,6 @@ public:
 	HealthState healthState() const { return healthMonitor_->state(); }
 
 	SchedulerStatus tryProcess(x0::HttpRequest* r);
-	SchedulerStatus pass(x0::HttpRequest* r);
 	void release(x0::HttpRequest* r);
 	void reject(x0::HttpRequest* r);
 

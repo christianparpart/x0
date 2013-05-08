@@ -28,9 +28,9 @@ public:
 	x0::TokenShaper<x0::HttpRequest>::Node* bucket; //!< the bucket (node) this request is to be scheduled via.
 	size_t tokens; //!< contains the number of currently acquired tokens by this request (usually 0 or 1).
 
-	explicit RequestNotes(x0::DateTime ct, Backend* b = nullptr) :
+	explicit RequestNotes(x0::DateTime ct, Backend* backend = nullptr) :
 		ctime(ct),
-		backend(b),
+		backend(nullptr),
 		tryCount(0),
 		bucket(nullptr),
 		tokens(0)

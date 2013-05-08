@@ -49,7 +49,27 @@ enum class TokenShaperError
  * When you have successfully allocated the token(s) for your task with get(),
  * you have to explicitely free them up when your task with put() has finished.
  *
+ * Rate and ceiling margins are configured in percentage relative to their parent node.
+ * The root node's rate and ceil though must be 100% and cannot be changed.
+ *
+ * Updating rate/ceiling for non-root nodes will trigger a recursive update
+ * for all its descendants.
+ *
+ * Updating the root node's token capacity will trigger a recursive recomputation
+ * of the descendant node's token rate and token ceil values.
+ *
+ * <h2> Node Properties </h2>
+ *
+ * <ul>
+ * 	<li> assured rate (AR) - The rate that is assued to this node. </li>
+ * 	<li> ceil rate (CR) - The rate that must not be exceeded. </li>
+ * 	<li> actual rate (R) - The actual rate of tokens (or packets, ...) that has been acquired through this node. </li>
+ * 	<li> over rate (OR) - The rate between the AR and CR. </li>
+ * </ul>
+ *
  * \note Not threadsafe.
+ *
+ * \see http://luxik.cdi.cz/~devik/qos/htb/manual/theory.htm
  */
 template<typename T>
 class TokenShaper
@@ -73,8 +93,8 @@ public:
 	TokenShaperError createNode(const std::string& name, float rate, float ceil = 0);
 	void destroyNode(Node* n);
 
-	size_t get(size_t tokens = 1) { return root_->get(tokens); }
-	void put(size_t tokens = 1) { return root_->put(tokens); }
+	size_t get(size_t tokens) { return root_->get(tokens); }
+	void put(size_t tokens) { return root_->put(tokens); }
 	T* dequeue() { return root_->dequeue(); }
 
 	void writeJSON(x0::JsonWriter& json) const;
@@ -93,14 +113,10 @@ public:
 
 	~Node();
 
-	Node* parentNode() const { return parent_; }
-
+	// user attributes
 	const std::string& name() const { return name_; }
 	float rate() const { return rate_; }
 	float ceil() const { return ceil_; }
-
-	size_t tokenRate() const { return tokenRate_; }
-	size_t tokenCeil() const { return tokenCeil_; }
 
 	void setTimeoutHandler(Callback handler);
 	TokenShaperError setName(const std::string& value);
@@ -108,14 +124,19 @@ public:
 	TokenShaperError setCeil(float value);
 	TokenShaperError setRateAndCeil(float rate, float ceil);
 
+	size_t tokenRate() const { return tokenRate_; }
+	size_t tokenCeil() const { return tokenCeil_; }
+
 	size_t actualTokenRate() const { return load_.current(); }
 	size_t tokenOverRate() const { return std::max(static_cast<ssize_t>(actualTokenRate() - tokenRate()), static_cast<ssize_t>(0)); }
 
 	float childRate() const;
 	size_t childTokenRate() const;
-	size_t actualTokenChildRate() const;
+	size_t actualChildTokenRate() const;
+	size_t actualChildTokenOverRate() const;
 	size_t tokensAvailable() const;
 
+	// parent/child node access
 	static TokenShaper<T>::Node* createRoot(ev::loop_ref loop, size_t tokens);
 	TokenShaperError createChild(const std::string& name, float rate, float ceil = 0);
 	TokenShaper<T>::Node* findChild(const std::string& name) const;
@@ -124,9 +145,11 @@ public:
 
 	TokenShaper<T>::Node& operator[](const std::string& name) const { return *findChild(name); }
 
+	Node* parentNode() const { return parent_; }
+
 	bool send(T* packet, size_t cost = 1);
-	size_t get(size_t tokens = 1);
-	void put(size_t tokens = 1);
+	size_t get(size_t tokens);
+	void put(size_t tokens);
 
 	void enqueue(T* value);
 	T* dequeue();
@@ -154,7 +177,6 @@ private:
 	void update();
 	void updateQueueTimer();
 	void onTimeout(ev::timer& timer, int revents);
-	size_t getReserved(size_t tokens);
 
 private:
 	Node(ev::loop_ref loop, const std::string& name, size_t tokenRate, size_t tokenCeil, float rate, float ceil, TokenShaper<T>::Node* parent);
@@ -172,7 +194,7 @@ private:
 
 	std::string name_;				//!< bucket name
 
-	size_t tokenRate_;				//!< maximum tokens this bucket and all its children are garanteed.
+	size_t tokenRate_;				//!< maximum tokens this bucket and all its children are guaranteed.
 	size_t tokenCeil_;				//!< maximum tokens this bucket can send if parent has enough tokens spare.
 
 	float rate_;					//!< rate in percent relative to parent's ceil
@@ -320,13 +342,30 @@ size_t TokenShaper<T>::Node::childTokenRate() const
 	return sum;
 }
 
+/**
+ * Number of reserved tokens actually used by its children.
+ *
+ * \see childTokenRate()
+ * \see tokenRate()
+ */
 template<typename T>
-size_t TokenShaper<T>::Node::actualTokenChildRate() const
+size_t TokenShaper<T>::Node::actualChildTokenRate() const
 {
 	size_t sum = 0;
 
 	for (const auto& child: children_)
 		sum += child->actualTokenRate();
+
+	return sum;
+}
+
+template<typename T>
+size_t TokenShaper<T>::Node::actualChildTokenOverRate() const
+{
+	size_t sum = 0;
+
+	for (const auto& child: children_)
+		sum += child->tokenOverRate();
 
 	return sum;
 }
@@ -530,59 +569,24 @@ bool TokenShaper<T>::Node::send(T* packet, size_t cost)
 template<typename T>
 size_t TokenShaper<T>::Node::get(size_t n)
 {
-	size_t newRate = actualTokenRate() + n;
-
 	// Attempt to acquire tokens from the ensured token pool.
-	if (newRate <= (tokenRate() - childTokenRate())) {
+	if (actualTokenRate() + n <= tokenRate()
+			&& childTokenRate() + actualChildTokenOverRate() + n <= tokenRate()) {
 		load_ += n;
 
-		if (parent_) {
-			size_t rv = parent_->getReserved(n);
-			assert(rv == n);
-		}
+		for (Node* p = parent_; p; p = p->parent_)
+			p->load_ += n;
 
 		return n;
 	}
 
 	// Attempt to borrow tokens from parent if and only if the resulting node's rate does not exceed its ceiling.
-	if (newRate <= tokenCeil() && parent_ && parent_->get(n)) {
+	if (actualTokenRate() + n <= tokenCeil() && parent_ && parent_->get(n)) {
 		load_ += n;
 		return n;
 	}
 
 	// Acquiring %n tokens failed, so return 0 as indication.
-	return 0;
-}
-
-/**
- * Internal helper function for \c get() that is invoked on parent nodes to also include reserved tokens.
- *
- * \see get(size_t n)
- */
-template<typename T>
-size_t TokenShaper<T>::Node::getReserved(size_t n)
-{
-	size_t newRate = actualTokenRate() + n;
-
-	// Attempt to acquire tokens from the ensured token pool.
-	if (newRate <= tokenRate()) {
-		load_ += n;
-
-		if (parent_) {
-			size_t rv = parent_->getReserved(n);
-			assert(rv == n);
-		}
-
-		return n;
-	}
-
-	// Attempt to borrow tokens from parent if and only if the resulting node's rate does not exceed its ceiling.
-	if (newRate <= tokenCeil() && parent_ && parent_->get(n)) {
-		load_ += n;
-		return n;
-	}
-
-	// Acquiring n tokens failed, so return 0 as indication.
 	return 0;
 }
 
@@ -594,13 +598,16 @@ void TokenShaper<T>::Node::put(size_t n)
 {
 	// you may not refund more tokens than the bucket's ceiling limit.
 	assert(n <= actualTokenRate());
-	assert(actualTokenChildRate() <= actualTokenRate() - n);
+	assert(actualChildTokenRate() <= actualTokenRate() - n);
 
 	load_ -= n;
 
 	// Release tokens from parent if the the new actual token rate (load) is still not below this node's token-rate.
-	if (parent_) {
-		parent_->put(n);
+	for (Node* p = parent_; p; p = p->parent_) {
+		assert(n <= p->actualTokenRate());
+		assert(p->actualChildTokenRate() <= p->actualTokenRate() - n);
+
+		p->load_ -= n;
 	}
 }
 
@@ -647,7 +654,7 @@ T* TokenShaper<T>::Node::dequeue()
 	// We could not actually dequeue request from any of the child buckets,
 	// so try in current bucket itself, if its queue is non-empty.
 	if (!queue_.empty()) {
-		if (get()) {
+		if (get(1)) { // XXX token count of 1 is hard coded. doh.
 			QueueItem item = queue_.front();
 			queue_.pop_front();
 			--queued_;

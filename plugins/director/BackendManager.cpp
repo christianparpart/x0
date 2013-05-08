@@ -18,7 +18,8 @@ BackendManager::BackendManager(x0::HttpWorker* worker, const std::string& name) 
 	connectTimeout_(x0::TimeSpan::fromSeconds(10)),
 	readTimeout_(x0::TimeSpan::fromSeconds(120)),
 	writeTimeout_(x0::TimeSpan::fromSeconds(10)),
-	transferMode_(TransferMode::Blocking)
+	transferMode_(TransferMode::Blocking),
+	load_()
 {
 }
 

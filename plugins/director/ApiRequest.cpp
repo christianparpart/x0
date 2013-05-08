@@ -154,7 +154,10 @@ void ApiRequest::onBodyChunk(const BufferRef& chunk)
 		parseBody();
 
 		if (!process()) {
-			request_->status = HttpStatus::BadRequest;
+			request_->log(Severity::error, "Error parsing request body.");
+			if (!request_->status)
+				request_->status = HttpStatus::BadRequest;
+
 			request_->finish();
 		}
 	}
@@ -184,6 +187,7 @@ bool ApiRequest::loadParam(const std::string& key, bool& result)
 {
 	auto i = args_.find(key);
 	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
 	}
 
@@ -196,8 +200,10 @@ bool ApiRequest::loadParam(const std::string& key, bool& result)
 bool ApiRequest::loadParam(const std::string& key, int& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	result = std::atoi(i->second.c_str());
 
@@ -207,8 +213,10 @@ bool ApiRequest::loadParam(const std::string& key, int& result)
 bool ApiRequest::loadParam(const std::string& key, size_t& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	result = std::atoll(i->second.c_str());
 
@@ -218,8 +226,10 @@ bool ApiRequest::loadParam(const std::string& key, size_t& result)
 bool ApiRequest::loadParam(const std::string& key, float& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	char* nptr = nullptr;
 	result = strtof(i->second.c_str(), &nptr);
@@ -230,8 +240,10 @@ bool ApiRequest::loadParam(const std::string& key, float& result)
 bool ApiRequest::loadParam(const std::string& key, TimeSpan& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	result = TimeSpan::fromMilliseconds(std::atoll(i->second.c_str()));
 
@@ -241,8 +253,10 @@ bool ApiRequest::loadParam(const std::string& key, TimeSpan& result)
 bool ApiRequest::loadParam(const std::string& key, BackendRole& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	if (i->second == "active")
 		result = BackendRole::Active;
@@ -257,8 +271,10 @@ bool ApiRequest::loadParam(const std::string& key, BackendRole& result)
 bool ApiRequest::loadParam(const std::string& key, HealthMonitor::Mode& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	if (i->second == "paranoid")
 		result = HealthMonitor::Mode::Paranoid;
@@ -275,8 +291,10 @@ bool ApiRequest::loadParam(const std::string& key, HealthMonitor::Mode& result)
 bool ApiRequest::loadParam(const std::string& key, std::string& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	result = i->second;
 
@@ -286,8 +304,10 @@ bool ApiRequest::loadParam(const std::string& key, std::string& result)
 bool ApiRequest::loadParam(const std::string& key, TransferMode& result)
 {
 	auto i = args_.find(key);
-	if (i == args_.end())
+	if (i == args_.end()) {
+		request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
 		return false;
+	}
 
 	result = makeTransferMode(i->second);
 
@@ -513,7 +533,7 @@ bool ApiRequest::processBackend()
 		case HttpMethod::LOCK:
 			return lock(true);
 		case HttpMethod::PUT:
-			return create() || update();
+			return create();
 		case HttpMethod::POST:
 			return update();
 		case HttpMethod::DELETE:
@@ -647,8 +667,12 @@ bool ApiRequest::lock(bool locked)
 // create a backend - PUT /:director_id(/:backend_id)
 bool ApiRequest::create()
 {
-	if (tokens_.size() > 2)
-		return false;
+	if (tokens_.size() > 2) {
+		request_->log(Severity::error, "invalid token count (%zi).", tokens_.size());
+		request_->status = x0::HttpStatus::NotFound;
+		request_->finish();
+		return true;
+	}
 
 	Director* director = findDirector(tokens_[0]);
 	if (!director) {
@@ -664,8 +688,10 @@ bool ApiRequest::create()
 	else if (!loadParam("name", name))
 		return false;
 
-	if (name.empty())
+	if (name.empty()) {
+		request_->log(Severity::error, "Failed parsing attribute 'name'. Name's empty.");
 		return false;
+	}
 
 	BackendRole role = BackendRole::Active;
 	if (!loadParam("role", role))

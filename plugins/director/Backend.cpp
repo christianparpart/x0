@@ -153,26 +153,26 @@ SchedulerStatus Backend::tryProcess(HttpRequest* r)
 	if (capacity_ && load_.current() >= capacity_)
 		goto done;
 
-	status = pass(r);
+	r->log(Severity::debug, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
+
+	++load_;
+	++manager_->load_;
+
+	r->responseHeaders.overwrite("X-Director-Backend", name());
+
+	if (!process(r)) {
+		setState(HealthState::Offline);
+		--manager_->load_;
+		--load_;
+		status = SchedulerStatus::Unavailable;
+		goto done;
+	}
+
+	status = SchedulerStatus::Success;
 
 done:
 	pthread_spin_unlock(&lock_);
 	return status;
-}
-
-SchedulerStatus Backend::pass(x0::HttpRequest* r)
-{
-	++load_;
-
-	r->log(Severity::debug, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
-
-	if (!process(r)) {
-		setState(HealthState::Offline);
-		--load_;
-		return SchedulerStatus::Unavailable;
-	}
-
-	return SchedulerStatus::Success;
 }
 
 /**

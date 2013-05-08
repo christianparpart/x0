@@ -72,7 +72,6 @@ private:
 
 	RequestShaper shaper_;
 
-	x0::Counter load_;
 	x0::Counter queued_;
 	std::atomic<unsigned long long> dropped_;
 
@@ -82,10 +81,8 @@ public:
 	Director(HttpWorker* worker, const std::string& name);
 	~Director();
 
-	const x0::Counter& load() const { return load_; }
 	const x0::Counter& queued() const { return queued_; }
 
-	X0_DEPRECATED void schedule(x0::HttpRequest* r, RequestNotes* notes);
 	void schedule(HttpRequest* r, Backend* backend);
 	void schedule(HttpRequest* r, RequestShaper::Node* bucket);
 	void reschedule(HttpRequest* r, RequestNotes* notes);
@@ -152,6 +149,7 @@ public:
 
 	void writeJSON(x0::JsonWriter& output) const;
 
+	using BackendManager::load;
 	bool load(const std::string& path);
 	bool save();
 

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <x0/http/HttpWorker.h>
+#include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/TimeSpan.h>
 #include <string>
@@ -44,6 +45,9 @@ protected:
 	x0::TimeSpan readTimeout_;
 	x0::TimeSpan writeTimeout_;
 	TransferMode transferMode_;		//!< Mode how response payload is transferred.
+	x0::Counter load_;
+
+	friend class Backend;
 
 public:
 	BackendManager(x0::HttpWorker* worker, const std::string& name);
@@ -65,6 +69,8 @@ public:
 
 	TransferMode transferMode() const { return transferMode_; }
 	void setTransferMode(TransferMode value) { transferMode_ = value; }
+
+	const x0::Counter& load() const { return load_; }
 
 	template<typename T> inline void post(T function) { worker()->post(function); }
 

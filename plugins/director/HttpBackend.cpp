@@ -183,6 +183,7 @@ void HttpBackend::Connection::close()
 
 void HttpBackend::Connection::onAbort(void *p)
 {
+	printf("HttpBackend::Connection(%p)::onAbort()\n", p);
 	Connection *self = reinterpret_cast<Connection *>(p);
 	self->close();
 }
@@ -323,7 +324,6 @@ void HttpBackend::Connection::onConnected(Socket* s, int revents)
 
 	if (socket_->state() == Socket::Operational) {
 		TRACE("onConnected: flushing");
-		request_->responseHeaders.push_back("X-Director-Backend", backend_->name());
 		socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->writeTimeout());
 		socket_->setReadyCallback<Connection, &Connection::io>(this);
 		socket_->setMode(Socket::ReadWrite); // flush already serialized request

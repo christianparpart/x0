@@ -18,10 +18,12 @@
 #include <x0/Url.h>
 #include <fstream>
 
-#if 1 // !defined(XZERO_NDEBUG)
-#	define TRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
+#if !defined(XZERO_NDEBUG)
+#	define TRACE(obj, level, msg...) (obj)->log(Severity::debug ## level, "director: " msg)
+#	define WTRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
 #else
-#	define TRACE(msg...) do {} while (0)
+#	define TRACE(args...) do {} while (0)
+#	define WTRACE(args...) do {} while (0)
 #endif
 
 using namespace x0;
@@ -71,7 +73,6 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	maxRetryCount_(6),
 	storagePath_(),
 	shaper_(worker->loop(), 0),
-	load_(),
 	queued_(),
 	dropped_(0),
 	stopHandle_()
@@ -104,7 +105,7 @@ Director::~Director()
  */
 void Director::onBackendEnabledChanged(const Backend* backend)
 {
-	TRACE(1, "onBackendEnabledChanged: health=%s, enabled=%s",
+	WTRACE(1, "onBackendEnabledChanged: health=%s, enabled=%s",
 			stringify(backend->healthMonitor()->state()).c_str(),
 			backend->isEnabled() ? "true" : "false");
 
@@ -113,11 +114,11 @@ void Director::onBackendEnabledChanged(const Backend* backend)
 
 	if (backend->healthMonitor()->isOnline()) {
 		if (backend->isEnabled()) {
-			TRACE(1, "onBackendEnabledChanged: adding capacity to shaper (%zi + %zi)",
+			WTRACE(1, "onBackendEnabledChanged: adding capacity to shaper (%zi + %zi)",
 					shaper()->size(), backend->capacity());
 			shaper()->resize(shaper()->size() + backend->capacity());
 		} else {
-			TRACE(1, "onBackendEnabledChanged: removing capacity from shaper (%zi - %zi)",
+			WTRACE(1, "onBackendEnabledChanged: removing capacity from shaper (%zi - %zi)",
 					shaper()->size(), backend->capacity());
 			shaper()->resize(shaper()->size() - backend->capacity());
 		}
@@ -126,7 +127,7 @@ void Director::onBackendEnabledChanged(const Backend* backend)
 
 void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor, HealthState oldState)
 {
-	TRACE(1, "onBackendStateChanged: health=%s -> %s, enabled=%s",
+	WTRACE(1, "onBackendStateChanged: health=%s -> %s, enabled=%s",
 			stringify(oldState).c_str(),
 			stringify(backend->healthMonitor()->state()).c_str(),
 			backend->isEnabled() ? "true" : "false");
@@ -140,7 +141,7 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
 
 		// backend is online and enabled
 
-		TRACE(1, "onBackendStateChanged: adding capacity to shaper (%zi + %zi)", shaper()->size(), backend->capacity());
+		WTRACE(1, "onBackendStateChanged: adding capacity to shaper (%zi + %zi)", shaper()->size(), backend->capacity());
 		shaper()->resize(shaper()->size() + backend->capacity());
 
 		if (!stickyOfflineMode()) {
@@ -155,12 +156,17 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
 	} else if (backend->isEnabled() && oldState == HealthState::Online) {
 		// backend is offline and enabled
 		shaper()->resize(shaper()->size() - backend->capacity());
-		TRACE(1, "onBackendStateChanged: removing capacity from shaper (%zi - %zi)", shaper()->size(), backend->capacity());
+		WTRACE(1, "onBackendStateChanged: removing capacity from shaper (%zi - %zi)", shaper()->size(), backend->capacity());
 	}
 }
 
-/** The currently associated backend has rejected processing the given request,
- *  so put it back to the cluster try rescheduling it to another backend.
+/**
+ * The currently associated backend has rejected processing the given request.
+ *
+ * So put it back to the cluster try rescheduling it to another backend.
+ *
+ * \see schedule()
+ * \see reschedule()
  */
 void Director::reject(x0::HttpRequest* r)
 {
@@ -207,7 +213,7 @@ void Director::release(Backend* backend, HttpRequest* r)
  */
 void Director::onStop()
 {
-	TRACE(1, "onStop()");
+	WTRACE(1, "onStop()");
 
 	for (auto& br: backends_) {
 		for (auto backend: br) {
@@ -751,21 +757,14 @@ bool Director::save()
 void Director::schedule(HttpRequest* r, Backend* backend)
 {
 	auto notes = setupRequestNotes(r);
-	notes->backend = backend;
-	notes->bucket = shaper()->rootNode();
 
 	r->responseHeaders.push_back("X-Director-Bucket", notes->bucket->name());
-
-	if (!notes->bucket->get()) {
-		tryEnqueue(r, notes);
-		return;
-	}
 
 	switch (backend->tryProcess(r)) {
 	case SchedulerStatus::Unavailable:
 	case SchedulerStatus::Overloaded:
-		r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
-			backend->name().c_str(), backend->healthMonitor()->state_str().c_str());
+		r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests (attempt %d).",
+			backend->name().c_str(), backend->healthMonitor()->state_str().c_str(), notes->tryCount);
 		serviceUnavailable(r);
 
 		// TODO: consider backend-level queues as a feature here (post 0.7 release)
@@ -794,7 +793,7 @@ void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
 
 	r->responseHeaders.push_back("X-Director-Bucket", bucket->name());
 
-	if (notes->bucket->get()) {
+	if (notes->bucket->get(1)) {
 		notes->tokens = 1;
 		SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
 		if (result1 == SchedulerStatus::Success)
@@ -805,7 +804,7 @@ void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
 			return;
 
 		// we could not actually processes the request, so release the token we just received.
-		notes->bucket->put();
+		notes->bucket->put(1);
 	}
 
 	tryEnqueue(r, notes);
@@ -832,47 +831,6 @@ void Director::reschedule(HttpRequest* r, RequestNotes* notes)
 {
 	if (!verifyTryCount(r, notes))
 		return;
-
-	SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
-	if (result1 == SchedulerStatus::Success)
-		return;
-
-	if (result1 == SchedulerStatus::Unavailable &&
-			tryProcess(r, notes, BackendRole::Backup) == SchedulerStatus::Success)
-		return;
-
-	tryEnqueue(r, notes);
-}
-
-void Director::schedule(HttpRequest* r, RequestNotes* notes)
-{
-	if (notes->tryCount == 0) {
-		r->responseHeaders.push_back("X-Director-Cluster", name());
-
-		if (notes->backend) {
-			// pre-selected a backend
-			switch (notes->backend->tryProcess(r)) {
-			case SchedulerStatus::Unavailable:
-			case SchedulerStatus::Overloaded:
-				r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests.",
-					notes->backend->name().c_str(), notes->backend->healthMonitor()->state_str().c_str());
-				serviceUnavailable(r);
-				break;
-			case SchedulerStatus::Success:
-				break;
-			}
-			return;
-		}
-	} else {
-		notes->backend = nullptr;
-
-		if (notes->tryCount > maxRetryCount()) {
-			r->log(Severity::info, "director: %s request failed %d times. Dropping.", name().c_str(), notes->tryCount);
-			serviceUnavailable(r);
-			++dropped_;
-			return;
-		}
-	}
 
 	SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
 	if (result1 == SchedulerStatus::Success)
@@ -921,7 +879,7 @@ void Director::dequeueTo(Backend* backend)
 				static const char* ss[] = { "Unavailable.", "Success.", "Overloaded." };
 				r->log(Severity::error, "Dequeueing request to backend %s @ %s failed. %s",
 					backend->name().c_str(), name().c_str(), ss[(size_t) rc]);
-				schedule(r, notes);
+				reschedule(r, notes);
 			} else {
 				verifyTryCount(r, notes);
 			}
@@ -985,15 +943,9 @@ inline const char* roleStr(BackendRole role)
 
 SchedulerStatus Director::tryProcess(x0::HttpRequest* r, RequestNotes* notes, BackendRole role)
 {
-	++notes->tryCount;
-	++load_;
+	TRACE(r, 1, "Director.tryProcess(role: %s) tc:%zi", roleStr(role), notes->tryCount);
 
-	SchedulerStatus result = backends_[static_cast<size_t>(role)].schedule(r);
-
-	if (result != SchedulerStatus::Success)
-		--load_;
-
-	return result;
+	return backends_[static_cast<size_t>(role)].schedule(r);
 }
 
 /**
@@ -1001,15 +953,11 @@ SchedulerStatus Director::tryProcess(x0::HttpRequest* r, RequestNotes* notes, Ba
  */
 SchedulerStatus Director::tryProcess(HttpRequest* r, RequestNotes* notes, Backend* backend)
 {
-	notes->backend = backend;
-	++notes->tryCount;
+//	notes->backend = backend;
 
-	++load_;
+	TRACE(r, 1, "Director.tryProcess(backend: %s) tc:%zi", backend->name().c_str(), notes->tryCount);
 
 	SchedulerStatus result = backend->tryProcess(r);
-
-	if (result != SchedulerStatus::Success)
-		--load_;
 
 	return result;
 }
