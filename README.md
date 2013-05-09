@@ -73,7 +73,7 @@ written in modern C++.
 
     # If you want to built the tests, you must install libgtest-dev and then built it yourself
     sudo apt-get install libgtest-dev
-    cd /usr/src/gtest && sudo cmake && sudo make && sudo cp -vpi libgtest*.so /usr/local/lib/
+    cd /usr/src/gtest && sudo cmake . && sudo make && sudo cp -vpi libgtest*.a /usr/local/lib/
     
     # Now run cmake to bootstrap build
     cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local \
