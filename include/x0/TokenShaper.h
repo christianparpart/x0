@@ -115,26 +115,26 @@ public:
 
 	// user attributes
 	const std::string& name() const { return name_; }
-	float rate() const { return rate_; }
-	float ceil() const { return ceil_; }
+	float rateP() const { return ratePercent_; }
+	float ceilP() const { return ceilPercent_; }
 
 	void setTimeoutHandler(Callback handler);
 	TokenShaperError setName(const std::string& value);
 	TokenShaperError setRate(float value);
 	TokenShaperError setCeil(float value);
-	TokenShaperError setRateAndCeil(float rate, float ceil);
+	TokenShaperError setRate(float assuredRate, float ceilRate);
 
-	size_t tokenRate() const { return tokenRate_; }
-	size_t tokenCeil() const { return tokenCeil_; }
+	size_t rate() const { return rate_; }
+	size_t ceil() const { return ceil_; }
 
-	size_t actualTokenRate() const { return load_.current(); }
-	size_t tokenOverRate() const { return std::max(static_cast<ssize_t>(actualTokenRate() - tokenRate()), static_cast<ssize_t>(0)); }
+	size_t actualRate() const { return load_.current(); }
+	size_t overRate() const { return std::max(static_cast<ssize_t>(actualRate() - rate()), static_cast<ssize_t>(0)); }
 
-	float childRate() const;
-	size_t childTokenRate() const;
-	size_t actualChildTokenRate() const;
-	size_t actualChildTokenOverRate() const;
-	size_t tokensAvailable() const;
+	// child rates
+	float childRateP() const;
+	size_t childRate() const;
+	size_t actualChildRate() const;
+	size_t actualChildOverRate() const;
 
 	// parent/child node access
 	static TokenShaper<T>::Node* createRoot(ev::loop_ref loop, size_t tokens);
@@ -179,7 +179,7 @@ private:
 	void onTimeout(ev::timer& timer, int revents);
 
 private:
-	Node(ev::loop_ref loop, const std::string& name, size_t tokenRate, size_t tokenCeil, float rate, float ceil, TokenShaper<T>::Node* parent);
+	Node(ev::loop_ref loop, const std::string& name, size_t tokenRate, size_t tokenCeil, float prate, float pceil, TokenShaper<T>::Node* parent);
 
 	struct QueueItem {
 		T* token;
@@ -190,22 +190,22 @@ private:
 		QueueItem(T* _token, ev::tstamp _ctime) : token(_token), ctime(_ctime) {}
 	};
 
-	ev::loop_ref loop_;
+	ev::loop_ref loop_;				//!< libev loop ref, used for queue timeout management.
 
 	std::string name_;				//!< bucket name
 
-	size_t tokenRate_;				//!< maximum tokens this bucket and all its children are guaranteed.
-	size_t tokenCeil_;				//!< maximum tokens this bucket can send if parent has enough tokens spare.
+	size_t rate_;					//!< maximum tokens this bucket and all its children are guaranteed.
+	size_t ceil_;					//!< maximum tokens this bucket can send if parent has enough tokens spare.
 
-	float rate_;					//!< rate in percent relative to parent's ceil
-	float ceil_;					//!< ceil in percent relative to parent's ceil
+	float ratePercent_;				//!< rate in percent relative to parent's ceil
+	float ceilPercent_;				//!< ceil in percent relative to parent's ceil
 
 	Node* parent_;                  //!< parent bucket this bucket is a direct child of
 	BucketList children_;           //!< direct child buckets
 
 	x0::Counter load_;              //!< bucket load stats
 	x0::Counter queued_;            //!< bucket queue stats
-	std::atomic<unsigned long long> dropped_;
+	std::atomic<unsigned long long> dropped_; //!< Number of tokens dropped due to queue timeouts.
 
 	x0::TimeSpan queueTimeout_;     //!< time span on how long a token may stay in queue.
 	std::deque<QueueItem> queue_;   //!< FIFO queue of tokens that could not be passed directly.
@@ -238,14 +238,14 @@ void TokenShaper<T>::setTimeoutHandler(H handler)
 template<typename T>
 size_t TokenShaper<T>::size() const
 {
-	return root_->tokenRate();
+	return root_->rate();
 }
 
 template<typename T>
 void TokenShaper<T>::resize(size_t capacity)
 {
 	// Only recompute tokenRates on child nodes when root node's token rate actually changed.
-	if (root_->tokenRate() == capacity)
+	if (root_->rate() == capacity)
 		return;
 
 	root_->update(capacity);
@@ -289,10 +289,10 @@ template<typename T>
 TokenShaper<T>::Node::Node(ev::loop_ref loop, const std::string& name, size_t tokenRate, size_t tokenCeil, float rate, float ceil, TokenShaper<T>::Node* parent) :
 	loop_(loop),
 	name_(name),
-	tokenRate_(tokenRate),
-	tokenCeil_(tokenCeil),
-	rate_(rate),
-	ceil_(ceil),
+	rate_(tokenRate),
+	ceil_(tokenCeil),
+	ratePercent_(rate),
+	ceilPercent_(ceil),
 	parent_(parent),
 	children_(),
 	load_(),
@@ -316,12 +316,12 @@ TokenShaper<T>::Node::~Node()
 }
 
 template<typename T>
-float TokenShaper<T>::Node::childRate() const
+float TokenShaper<T>::Node::childRateP() const
 {
 	float sum = 0;
 
 	for (const auto child: children_)
-		sum += child->rate();
+		sum += child->rateP();
 
 	return sum;
 }
@@ -332,12 +332,12 @@ float TokenShaper<T>::Node::childRate() const
  * This value will be less or equal to this node's computed token-rate.
  */
 template<typename T>
-size_t TokenShaper<T>::Node::childTokenRate() const
+size_t TokenShaper<T>::Node::childRate() const
 {
 	size_t sum = 0;
 
 	for (const auto& child: children_)
-		sum += child->tokenRate();
+		sum += child->rate();
 
 	return sum;
 }
@@ -345,35 +345,29 @@ size_t TokenShaper<T>::Node::childTokenRate() const
 /**
  * Number of reserved tokens actually used by its children.
  *
- * \see childTokenRate()
- * \see tokenRate()
+ * \see childRate()
+ * \see rate()
  */
 template<typename T>
-size_t TokenShaper<T>::Node::actualChildTokenRate() const
+size_t TokenShaper<T>::Node::actualChildRate() const
 {
 	size_t sum = 0;
 
 	for (const auto& child: children_)
-		sum += child->actualTokenRate();
+		sum += child->actualRate();
 
 	return sum;
 }
 
 template<typename T>
-size_t TokenShaper<T>::Node::actualChildTokenOverRate() const
+size_t TokenShaper<T>::Node::actualChildOverRate() const
 {
 	size_t sum = 0;
 
 	for (const auto& child: children_)
-		sum += child->tokenOverRate();
+		sum += child->overRate();
 
 	return sum;
-}
-
-template<typename T>
-size_t TokenShaper<T>::Node::tokensAvailable() const
-{
-	return tokenCeil() - actualTokenRate();
 }
 
 template<typename T>
@@ -398,11 +392,11 @@ TokenShaperError TokenShaper<T>::Node::setRate(float newRate)
 	if (!parent_)
 		return TokenShaperError::InvalidChildNode;
 
-	if (newRate < 0.0 || newRate > ceil_)
+	if (newRate < 0.0 || newRate > ceilPercent_)
 		return TokenShaperError::RateLimitOverflow;
 
-	rate_ = newRate;
-	tokenRate_ = parent_->tokenRate() * rate_;
+	ratePercent_ = newRate;
+	rate_ = parent_->rate() * ratePercent_;
 
 	for (auto child: children_) {
 		child->update();
@@ -417,11 +411,11 @@ TokenShaperError TokenShaper<T>::Node::setCeil(float newCeil)
 	if (!parent_)
 		return TokenShaperError::InvalidChildNode;
 
-	if (newCeil < rate_ || newCeil > 1.0)
+	if (newCeil < ratePercent_ || newCeil > 1.0)
 		return TokenShaperError::CeilLimitOverflow;
 
-	ceil_ = newCeil;
-	tokenCeil_ = parent_->tokenCeil() * ceil_;
+	ceilPercent_ = newCeil;
+	ceil_ = parent_->ceil() * ceilPercent_;
 
 	for (auto child: children_) {
 		child->update();
@@ -431,7 +425,7 @@ TokenShaperError TokenShaper<T>::Node::setCeil(float newCeil)
 }
 
 template<typename T>
-TokenShaperError TokenShaper<T>::Node::setRateAndCeil(float newRate, float newCeil)
+TokenShaperError TokenShaper<T>::Node::setRate(float newRate, float newCeil)
 {
 	if (!parent_)
 		return TokenShaperError::InvalidChildNode;
@@ -442,8 +436,8 @@ TokenShaperError TokenShaper<T>::Node::setRateAndCeil(float newRate, float newCe
 	if (newCeil > 1.0)
 		return TokenShaperError::CeilLimitOverflow;
 
-	rate_ = newRate;
-	ceil_ = newCeil;
+	ratePercent_ = newRate;
+	ceilPercent_ = newCeil;
 
 	update();
 
@@ -453,8 +447,8 @@ TokenShaperError TokenShaper<T>::Node::setRateAndCeil(float newRate, float newCe
 template<typename T>
 void TokenShaper<T>::Node::update(size_t capacity)
 {
-	tokenRate_ = capacity * rate_;
-	tokenCeil_ = capacity * ceil_;
+	rate_ = capacity * ratePercent_;
+	ceil_ = capacity * ceilPercent_;
 
 	for (auto child: children_) {
 		update();
@@ -465,8 +459,8 @@ template<typename T>
 void TokenShaper<T>::Node::update()
 {
 	if (parent_) {
-		tokenRate_ = parent_->tokenRate() * rate_;
-		tokenCeil_ = parent_->tokenCeil() * ceil_;
+		rate_ = parent_->rate() * ratePercent_;
+		ceil_ = parent_->ceil() * ceilPercent_;
 	}
 
 	for (auto child: children_) {
@@ -484,7 +478,7 @@ template<typename T>
 TokenShaperError TokenShaper<T>::Node::createChild(const std::string& name, float rate, float ceil)
 {
 	// 0 <= rate <= (1 - childRate)
-	if (rate < 0.0 || rate + childRate() > 1.0)
+	if (rate < 0.0 || rate + childRateP() > 1.0)
 		return TokenShaperError::RateLimitOverflow;
 
 	// rate <= ceil <= 1.0
@@ -494,8 +488,8 @@ TokenShaperError TokenShaper<T>::Node::createChild(const std::string& name, floa
 	if (rootNode()->findChild(name))
 		return TokenShaperError::NameConflict;
 
-	size_t tokenRate = tokenRate_ * rate;
-	size_t tokenCeil = tokenCeil_ * ceil;
+	size_t tokenRate = rate_ * rate;
+	size_t tokenCeil = ceil_ * ceil;
 	TokenShaper<T>::Node* b = new TokenShaper<T>::Node(loop_, name, tokenRate, tokenCeil, rate, ceil, this);
 	children_.push_back(b);
 	return TokenShaperError::Success;
@@ -570,8 +564,8 @@ template<typename T>
 size_t TokenShaper<T>::Node::get(size_t n)
 {
 	// Attempt to acquire tokens from the ensured token pool.
-	if (actualTokenRate() + n <= tokenRate()
-			&& childTokenRate() + actualChildTokenOverRate() + n <= tokenRate()) {
+	if (actualRate() + n <= rate()
+			&& childRate() + actualChildOverRate() + n <= rate()) {
 		load_ += n;
 
 		for (Node* p = parent_; p; p = p->parent_)
@@ -581,7 +575,7 @@ size_t TokenShaper<T>::Node::get(size_t n)
 	}
 
 	// Attempt to borrow tokens from parent if and only if the resulting node's rate does not exceed its ceiling.
-	if (actualTokenRate() + n <= tokenCeil() && parent_ && parent_->get(n)) {
+	if (actualRate() + n <= ceil() && parent_ && parent_->get(n)) {
 		load_ += n;
 		return n;
 	}
@@ -597,15 +591,15 @@ template<typename T>
 void TokenShaper<T>::Node::put(size_t n)
 {
 	// you may not refund more tokens than the bucket's ceiling limit.
-	assert(n <= actualTokenRate());
-	assert(actualChildTokenRate() <= actualTokenRate() - n);
+	assert(n <= actualRate());
+	assert(actualChildRate() <= actualRate() - n);
 
 	load_ -= n;
 
 	// Release tokens from parent if the the new actual token rate (load) is still not below this node's token-rate.
 	for (Node* p = parent_; p; p = p->parent_) {
-		assert(n <= p->actualTokenRate());
-		assert(p->actualChildTokenRate() <= p->actualTokenRate() - n);
+		assert(n <= p->actualRate());
+		assert(p->actualChildRate() <= p->actualRate() - n);
 
 		p->load_ -= n;
 	}
@@ -671,11 +665,11 @@ void TokenShaper<T>::Node::writeJSON(x0::JsonWriter& json) const
 {
 	json.beginObject()
 		.name("name")(name())
-		.name("rate")(rate())
-		.name("ceil")(ceil())
-		.name("token-rate")(tokenRate())
-		.name("token-ceil")(tokenCeil())
-		.name("actual-token-rate")(actualTokenRate())
+		.name("rate")(ratePercent_)
+		.name("ceil")(ceilPercent_)
+		.name("token-rate")(rate())
+		.name("token-ceil")(ceil())
+		.name("actual-token-rate")(actualRate())
 		.name("load")(load())
 		.name("queued")(queued())
 		.name("dropped")(dropped());
