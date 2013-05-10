@@ -66,3 +66,14 @@ health-check-interval=5000
 host=127.0.0.1
 port=3104
 
+[backend=app3105]
+role=active
+capacity=1
+enabled=true
+transport=tcp
+protocol=http
+health-check-mode=paranoid
+health-check-interval=5000
+host=127.0.0.1
+port=3105
+
