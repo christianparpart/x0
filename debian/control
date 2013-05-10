@@ -5,7 +5,7 @@ Maintainer: Christian Parpart <trapni@gentoo.org>
 Build-Depends:
   debhelper (>= 9),
   cmake,
-  g++,
+  g++ (>= 4.6),
   pkg-config,
   libcppunit-dev,
   libgnutls-dev,
@@ -26,7 +26,7 @@ Architecture: any
 Section: misc
 Priority: optional
 Description: Xzero HTTP Web Server (x0d)
-	HTTP web server. This is the main package you want to install.
+  HTTP web server. This is the main package you want to install.
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support, x0-plugins
 
@@ -35,7 +35,7 @@ Architecture: any
 Section: misc
 Priority: optional
 Description: Xzero (x0) Base Library
-	Base framework library for x0.
+  Base framework library for x0.
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends}
 
@@ -44,27 +44,28 @@ Architecture: any
 Section: misc
 Priority: optional
 Description: Xzero (x0) Flow Library
-	Configuration language framework for x0.
+  Configuration language framework for x0.
 Homepage: http://xzero.io/
-Depends: libxzero-base (= ${binary:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends},
+  libxzero-base (= ${binary:Version})
 
 Package: libxzero-http
 Architecture: any
 Section: misc
 Priority: optional
 Description: Xzero (x0) HTTP Library
-	HTTP server framework for x0.
+  HTTP server framework for x0.
 Homepage: http://xzero.io/
-Depends:
+Depends: ${shlibs:Depends}, ${misc:Depends},
   libxzero-flow (= ${binary:Version}),
-  libxzero-base (= ${binary:Version})
+  libxzero-base (= ${binary:Version}),
 
 Package: x0-plugins
 Architecture: any
 Section: misc
 Priority: optional
 Description: Xzero (x0) HTTP Server Plugins
-	This package contains the standard plugins that x0d can load.
+  This package contains the standard plugins that x0d can load.
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends},
   libmagickwand5,
@@ -74,34 +75,34 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
   libxzero-base (= ${binary:Version})
 
 Package: libxzero-base-dev
-Architecture: all
-Section: misc
+Architecture: any
+Section: libdevel
 Priority: optional
 Description: Xzero (x0) Base Library API
-	Development header files.
+  Development header files.
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends},
   libxzero-base (= ${binary:Version})
 
 Package: libxzero-flow-dev
-Architecture: all
-Section: misc
+Architecture: any
+Section: libdevel
 Priority: optional
 Description: Xzero (x0) Flow Library API
-	Development header files.
+  Development header files.
 Homepage: http://xzero.io/
-Depends:
+Depends: ${misc:Depends},
   libxzero-flow (= ${binary:Version}),
-  libxzero-base-dev (= ${binary:Version})
+  libxzero-base-dev (= ${binary:Version}),
 
 Package: libxzero-http-dev
-Architecture: all
-Section: misc
+Architecture: any
+Section: libdevel
 Priority: optional
 Description: Xzero (x0) HTTP Library API
-	Development header files.
+  Development header files.
 Homepage: http://xzero.io/
-Depends:
+Depends: ${misc:Depends},
   libxzero-http (= ${binary:Version}),
   libxzero-flow-dev (= ${binary:Version}),
-  libxzero-base-dev (= ${binary:Version})
+  libxzero-base-dev (= ${binary:Version}),
