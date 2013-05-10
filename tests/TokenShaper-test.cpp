@@ -19,8 +19,8 @@ void dumpNode(const T* bucket, const char* title, int depth)
 
 	printf("name:%-20s rate:%-2zu (%.2f) ceil:%-2zu (%.2f) \tactual-rate:%-2zu queued:%-2zu\n",
 			AnsiColor::colorize(AnsiColor::Green, bucket->name()).c_str(),
-			bucket->tokenRate(), bucket->rate(), bucket->tokenCeil(), bucket->ceil(),
-			bucket->actualTokenRate(),
+			bucket->rate(), bucket->rateP(), bucket->ceil(), bucket->ceilP(),
+			bucket->actualRate(),
 			bucket->queued().current());
 
 	for (const auto& child: *bucket)
@@ -96,20 +96,20 @@ TEST_F(TokenShaperTest, Setup)
 	ASSERT_TRUE(main != nullptr);
 	ASSERT_TRUE(upload != nullptr);
 
-	ASSERT_EQ(0.1f, vip->rate());
-	ASSERT_EQ(0.3f, vip->ceil());
-	ASSERT_EQ(1, vip->tokenRate());
-	ASSERT_EQ(3, vip->tokenCeil());
+	ASSERT_EQ(0.1f, vip->rateP());
+	ASSERT_EQ(0.3f, vip->ceilP());
+	ASSERT_EQ(1, vip->rate());
+	ASSERT_EQ(3, vip->ceil());
 
-	ASSERT_EQ(0.5f, main->rate());
-	ASSERT_EQ(0.7f, main->ceil());
-	ASSERT_EQ(5, main->tokenRate());
-	ASSERT_EQ(7, main->tokenCeil());
+	ASSERT_EQ(0.5f, main->rateP());
+	ASSERT_EQ(0.7f, main->ceilP());
+	ASSERT_EQ(5, main->rate());
+	ASSERT_EQ(7, main->ceil());
 
-	ASSERT_EQ(0.5f, upload->rate());
-	ASSERT_EQ(0.5f, upload->ceil());
-	ASSERT_EQ(2, upload->tokenRate());
-	ASSERT_EQ(3, upload->tokenCeil());
+	ASSERT_EQ(0.5f, upload->rateP());
+	ASSERT_EQ(0.5f, upload->ceilP());
+	ASSERT_EQ(2, upload->rate());
+	ASSERT_EQ(3, upload->ceil());
 }
 
 TEST_F(TokenShaperTest, CreateErrors)
@@ -139,52 +139,52 @@ TEST_F(TokenShaperTest, GetPut)
 {
 	ASSERT_EQ(1, vip->get(1));
 
-	ASSERT_EQ(1, vip->actualTokenRate());
-	ASSERT_EQ(1, root->actualTokenRate());
+	ASSERT_EQ(1, vip->actualRate());
+	ASSERT_EQ(1, root->actualRate());
 
 	vip->put(1);
-	ASSERT_EQ(0, vip->actualTokenRate());
-	ASSERT_EQ(0, root->actualTokenRate());
+	ASSERT_EQ(0, vip->actualRate());
+	ASSERT_EQ(0, root->actualRate());
 }
 
 TEST_F(TokenShaperTest, GetOverrate)
 {
 	ASSERT_EQ(1, vip->get(1));
-	ASSERT_EQ(1, vip->actualTokenRate());
-	ASSERT_EQ(0, vip->tokenOverRate());
-	ASSERT_EQ(1, root->actualTokenRate());
-	ASSERT_EQ(0, root->tokenOverRate());
+	ASSERT_EQ(1, vip->actualRate());
+	ASSERT_EQ(0, vip->overRate());
+	ASSERT_EQ(1, root->actualRate());
+	ASSERT_EQ(0, root->overRate());
 
 	// now get() one that must be enqueued
 	ASSERT_EQ(1, vip->get(1));
-	ASSERT_EQ(2, vip->actualTokenRate());
-	ASSERT_EQ(1, vip->tokenOverRate());
-	ASSERT_EQ(2, root->actualTokenRate());
-	ASSERT_EQ(0, root->tokenOverRate());
+	ASSERT_EQ(2, vip->actualRate());
+	ASSERT_EQ(1, vip->overRate());
+	ASSERT_EQ(2, root->actualRate());
+	ASSERT_EQ(0, root->overRate());
 
 	// The second one gets through, too.
 	ASSERT_EQ(1, vip->get(1));
-	ASSERT_EQ(3, vip->actualTokenRate());
-	ASSERT_EQ(2, vip->tokenOverRate());
-	ASSERT_EQ(3, root->actualTokenRate());
-	ASSERT_EQ(0, root->tokenOverRate());
+	ASSERT_EQ(3, vip->actualRate());
+	ASSERT_EQ(2, vip->overRate());
+	ASSERT_EQ(3, root->actualRate());
+	ASSERT_EQ(0, root->overRate());
 
 	// next get() should fail, because we reached ceil already
 	ASSERT_EQ(0, vip->get(1));
 
 	// put the one that overrated back, and we should be back at capped rate.
 	vip->put(1);
-	ASSERT_EQ(2, vip->actualTokenRate());
-	ASSERT_EQ(1, vip->tokenOverRate());
-	ASSERT_EQ(2, root->actualTokenRate());
-	ASSERT_EQ(0, root->tokenOverRate());
+	ASSERT_EQ(2, vip->actualRate());
+	ASSERT_EQ(1, vip->overRate());
+	ASSERT_EQ(2, root->actualRate());
+	ASSERT_EQ(0, root->overRate());
 
 	// put the one that overrated back, and we should be back at capped rate.
 	vip->put(1);
-	ASSERT_EQ(1, vip->actualTokenRate());
-	ASSERT_EQ(0, vip->tokenOverRate());
-	ASSERT_EQ(1, root->actualTokenRate());
-	ASSERT_EQ(0, root->tokenOverRate());
+	ASSERT_EQ(1, vip->actualRate());
+	ASSERT_EQ(0, vip->overRate());
+	ASSERT_EQ(1, root->actualRate());
+	ASSERT_EQ(0, root->overRate());
 }
 
 TEST_F(TokenShaperTest, OddOverRate)
@@ -205,36 +205,36 @@ TEST_F(TokenShaperTest, OddOverRate)
 TEST_F(TokenShaperTest, Resize)
 {
 	shaper->resize(100);
-	ASSERT_EQ(0.1f, vip->rate());
-	ASSERT_EQ(0.3f, vip->ceil());
-	ASSERT_EQ(10, vip->tokenRate());
-	ASSERT_EQ(30, vip->tokenCeil());
+	ASSERT_EQ(0.1f, vip->rateP());
+	ASSERT_EQ(0.3f, vip->ceilP());
+	ASSERT_EQ(10, vip->rate());
+	ASSERT_EQ(30, vip->ceil());
 
-	ASSERT_EQ(0.5f, main->rate());
-	ASSERT_EQ(0.7f, main->ceil());
-	ASSERT_EQ(50, main->tokenRate());
-	ASSERT_EQ(70, main->tokenCeil());
+	ASSERT_EQ(0.5f, main->rateP());
+	ASSERT_EQ(0.7f, main->ceilP());
+	ASSERT_EQ(50, main->rate());
+	ASSERT_EQ(70, main->ceil());
 
-	ASSERT_EQ(0.5f, upload->rate());
-	ASSERT_EQ(0.5f, upload->ceil());
-	ASSERT_EQ(25, upload->tokenRate());
-	ASSERT_EQ(35, upload->tokenCeil());
+	ASSERT_EQ(0.5f, upload->rateP());
+	ASSERT_EQ(0.5f, upload->ceilP());
+	ASSERT_EQ(25, upload->rate());
+	ASSERT_EQ(35, upload->ceil());
 
 	shaper->resize(200);
-	ASSERT_EQ(0.1f, vip->rate());
-	ASSERT_EQ(0.3f, vip->ceil());
-	ASSERT_EQ(20, vip->tokenRate());
-	ASSERT_EQ(60, vip->tokenCeil());
+	ASSERT_EQ(0.1f, vip->rateP());
+	ASSERT_EQ(0.3f, vip->ceilP());
+	ASSERT_EQ(20, vip->rate());
+	ASSERT_EQ(60, vip->ceil());
 
-	ASSERT_EQ(0.5f, main->rate());
-	ASSERT_EQ(0.7f, main->ceil());
-	ASSERT_EQ(100, main->tokenRate());
-	ASSERT_EQ(140, main->tokenCeil());
+	ASSERT_EQ(0.5f, main->rateP());
+	ASSERT_EQ(0.7f, main->ceilP());
+	ASSERT_EQ(100, main->rate());
+	ASSERT_EQ(140, main->ceil());
 
-	ASSERT_EQ(0.5f, upload->rate());
-	ASSERT_EQ(0.5f, upload->ceil());
-	ASSERT_EQ(50, upload->tokenRate());
-	ASSERT_EQ(70, upload->tokenCeil());
+	ASSERT_EQ(0.5f, upload->rateP());
+	ASSERT_EQ(0.5f, upload->ceilP());
+	ASSERT_EQ(50, upload->rate());
+	ASSERT_EQ(70, upload->ceil());
 }
 
 TEST_F(TokenShaperTest, SetRate)
@@ -243,13 +243,13 @@ TEST_F(TokenShaperTest, SetRate)
 	// this should also update the token rates from this node and all its child nodes recursively.
 	main->setRate(0.6f);
 
-	ASSERT_EQ(0.6f, main->rate());
+	ASSERT_EQ(0.6f, main->rateP());
 
-	ASSERT_EQ(6, main->tokenRate());
-	ASSERT_EQ(7, main->tokenCeil());
+	ASSERT_EQ(6, main->rate());
+	ASSERT_EQ(7, main->ceil());
 
-	ASSERT_EQ(3, upload->tokenRate());
-	ASSERT_EQ(3, upload->tokenCeil());
+	ASSERT_EQ(3, upload->rate());
+	ASSERT_EQ(3, upload->ceil());
 }
 
 TEST_F(TokenShaperTest, SetCeil)
@@ -258,12 +258,12 @@ TEST_F(TokenShaperTest, SetCeil)
 	// this should also update the token rates from this node and all its child nodes recursively.
 	main->setCeil(0.8);
 
-	ASSERT_EQ(0.8f, main->ceil());
-	ASSERT_EQ(5, main->tokenRate());
-	ASSERT_EQ(8, main->tokenCeil());
+	ASSERT_EQ(0.8f, main->ceilP());
+	ASSERT_EQ(5, main->rate());
+	ASSERT_EQ(8, main->ceil());
 
-	ASSERT_EQ(2, upload->tokenRate());
-	ASSERT_EQ(4, upload->tokenCeil());
+	ASSERT_EQ(2, upload->rate());
+	ASSERT_EQ(4, upload->ceil());
 }
 
 TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
@@ -278,20 +278,17 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
 
 	vip->enqueue(new int(43));
 	ASSERT_EQ(2, vip->queued().current());
-	EXPECT_EQ(0, vip->tokensAvailable());
 
 	// attempt to dequeue when we shouldn't be able to, because we have no spare tokens.
 	auto object = root->dequeue();
 	ASSERT_TRUE(object == nullptr);
 
 	vip->put(1);
-	EXPECT_EQ(1, vip->tokensAvailable());
 
 	object = root->dequeue();
 	ASSERT_TRUE(object != nullptr);
 	EXPECT_EQ(42, *object);
 	ASSERT_EQ(1, vip->queued().current());
-	EXPECT_EQ(0, vip->tokensAvailable());
 	delete object;
 
 	// Another dequeue must fail because we have no tokens available on vip node.
@@ -300,7 +297,6 @@ TEST_F(TokenShaperTest, GetWithEnqueuePutDequeue)
 
 	// Free a token up on vip node.
 	vip->put(1);
-	ASSERT_EQ(1, vip->tokensAvailable());
 
 	// Actually dequeue the last item.
 	object = root->dequeue();

@@ -475,7 +475,7 @@ void ApiRequest::processBucket(Director* director)
 				return;
 			}
 
-			TokenShaperError ec = bucket->setRateAndCeil(rate, ceil);
+			TokenShaperError ec = bucket->setRate(rate, ceil);
 
 			if (ec == TokenShaperError::Success) {
 				director->save();
