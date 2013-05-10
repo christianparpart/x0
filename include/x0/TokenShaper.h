@@ -127,7 +127,7 @@ public:
 	size_t rate() const { return rate_; }
 	size_t ceil() const { return ceil_; }
 
-	size_t actualRate() const { return load_.current(); }
+	size_t actualRate() const { return actualRate_.current(); }
 	size_t overRate() const { return std::max(static_cast<ssize_t>(actualRate() - rate()), static_cast<ssize_t>(0)); }
 
 	// child rates
@@ -154,7 +154,6 @@ public:
 	void enqueue(T* value);
 	T* dequeue();
 
-	const x0::Counter& load() const { return load_; }
 	const x0::Counter& queued() const { return queued_; }
 	const unsigned long long dropped() const { return dropped_.load(); }
 
@@ -203,7 +202,7 @@ private:
 	Node* parent_;                  //!< parent bucket this bucket is a direct child of
 	BucketList children_;           //!< direct child buckets
 
-	x0::Counter load_;              //!< bucket load stats
+	x0::Counter actualRate_;        //!< bucket load stats
 	x0::Counter queued_;            //!< bucket queue stats
 	std::atomic<unsigned long long> dropped_; //!< Number of tokens dropped due to queue timeouts.
 
@@ -295,7 +294,7 @@ TokenShaper<T>::Node::Node(ev::loop_ref loop, const std::string& name, size_t to
 	ceilPercent_(ceil),
 	parent_(parent),
 	children_(),
-	load_(),
+	actualRate_(),
 	queued_(),
 	dropped_(0),
 	queueTimeout_(x0::TimeSpan::fromSeconds(10)),
@@ -566,17 +565,17 @@ size_t TokenShaper<T>::Node::get(size_t n)
 	// Attempt to acquire tokens from the ensured token pool.
 	if (actualRate() + n <= rate()
 			&& childRate() + actualChildOverRate() + n <= rate()) {
-		load_ += n;
+		actualRate_ += n;
 
 		for (Node* p = parent_; p; p = p->parent_)
-			p->load_ += n;
+			p->actualRate_ += n;
 
 		return n;
 	}
 
 	// Attempt to borrow tokens from parent if and only if the resulting node's rate does not exceed its ceiling.
 	if (actualRate() + n <= ceil() && parent_ && parent_->get(n)) {
-		load_ += n;
+		actualRate_ += n;
 		return n;
 	}
 
@@ -594,14 +593,14 @@ void TokenShaper<T>::Node::put(size_t n)
 	assert(n <= actualRate());
 	assert(actualChildRate() <= actualRate() - n);
 
-	load_ -= n;
+	actualRate_ -= n;
 
 	// Release tokens from parent if the the new actual token rate (load) is still not below this node's token-rate.
 	for (Node* p = parent_; p; p = p->parent_) {
 		assert(n <= p->actualRate());
 		assert(p->actualChildRate() <= p->actualRate() - n);
 
-		p->load_ -= n;
+		p->actualRate_ -= n;
 	}
 }
 
@@ -669,8 +668,7 @@ void TokenShaper<T>::Node::writeJSON(x0::JsonWriter& json) const
 		.name("ceil")(ceilPercent_)
 		.name("token-rate")(rate())
 		.name("token-ceil")(ceil())
-		.name("actual-token-rate")(actualRate())
-		.name("load")(load())
+		.name("load")(actualRate_)
 		.name("queued")(queued())
 		.name("dropped")(dropped());
 
