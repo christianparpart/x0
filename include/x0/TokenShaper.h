@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cassert>
+#include <pthread.h>
 
 namespace x0 {
 
@@ -212,6 +213,8 @@ private:
 	size_t dequeueOffset_;          //!< dequeue-offset at which child to dequeue next.
 
 	Callback onTimeout_;            //!< Callback, invoked when the token has been queued and just timed out.
+
+	pthread_spinlock_t lock_;
 };
 // }}}
 // {{{ TokenShaper<T> impl
@@ -307,11 +310,13 @@ TokenShaper<T>::Node::Node(ev::loop_ref loop, const std::string& name, size_t to
 		onTimeout_ = parent_->onTimeout_;
 
 	queueTimer_.set<Node, &Node::onTimeout>(this);
+	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
 }
 
 template<typename T>
 TokenShaper<T>::Node::~Node()
 {
+	pthread_spin_destroy(&lock_);
 }
 
 template<typename T>
@@ -562,10 +567,18 @@ bool TokenShaper<T>::Node::send(T* packet, size_t cost)
 template<typename T>
 size_t TokenShaper<T>::Node::get(size_t n)
 {
-	// Attempt to acquire tokens from the ensured token pool.
-	if (actualRate() + n <= rate()
-			&& childRate() + actualChildOverRate() + n <= rate()) {
-		actualRate_ += n;
+	// Attempt to acquire tokens from the assured token pool.
+	for (;;) {
+		auto AR = rate();
+		auto R = actualRate();
+		auto Rc = childRate();
+		auto Oc = actualChildOverRate();
+
+		if (std::max(R, Rc + Oc) + n > AR)
+			break;
+
+		if (!actualRate_.compare_incr(R, n))
+			continue;
 
 		for (Node* p = parent_; p; p = p->parent_)
 			p->actualRate_ += n;
@@ -574,13 +587,17 @@ size_t TokenShaper<T>::Node::get(size_t n)
 	}
 
 	// Attempt to borrow tokens from parent if and only if the resulting node's rate does not exceed its ceiling.
-	if (actualRate() + n <= ceil() && parent_ && parent_->get(n)) {
+	pthread_spin_lock(&lock_);
+
+	if (actualRate() + n <= ceil() && parent_ && parent_->get(n))
 		actualRate_ += n;
-		return n;
-	}
+	else
+		n = 0;
+
+	pthread_spin_unlock(&lock_);
 
 	// Acquiring %n tokens failed, so return 0 as indication.
-	return 0;
+	return n;
 }
 
 /*!
