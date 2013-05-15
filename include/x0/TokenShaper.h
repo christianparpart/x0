@@ -110,7 +110,7 @@ class TokenShaper<T>::Node
 {
 public:
 	typedef std::function<void(T*)> Callback;
-	typedef std::vector<TokenShaper<T>::Node*> BucketList;
+	typedef std::vector<TokenShaper<T>::Node*> BucketList; //!< \todo must be thread safe to allow bucket iteration while modification
 
 	~Node();
 
@@ -194,8 +194,8 @@ private:
 
 	std::string name_;				//!< bucket name
 
-	size_t rate_;					//!< maximum tokens this bucket and all its children are guaranteed.
-	size_t ceil_;					//!< maximum tokens this bucket can send if parent has enough tokens spare.
+	std::atomic<size_t> rate_;		//!< maximum tokens this bucket and all its children are guaranteed.
+	std::atomic<size_t> ceil_;		//!< maximum tokens this bucket can send if parent has enough tokens spare.
 
 	float ratePercent_;				//!< rate in percent relative to parent's ceil
 	float ceilPercent_;				//!< ceil in percent relative to parent's ceil
@@ -421,9 +421,8 @@ TokenShaperError TokenShaper<T>::Node::setCeil(float newCeil)
 	ceilPercent_ = newCeil;
 	ceil_ = parent_->ceil() * ceilPercent_;
 
-	for (auto child: children_) {
+	for (auto child: children_)
 		child->update();
-	}
 
 	return TokenShaperError::Success;
 }
