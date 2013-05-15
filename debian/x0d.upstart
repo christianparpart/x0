@@ -10,8 +10,8 @@ env PIDFILE=/var/run/x0d/x0d.pid
 env USER=x0d
 env GROUP=x0d
 
-env LOG_FILE=/dev/stdout
-env LOG_LEVEL=warn
+env LOG_FILE=/var/log/x0d/x0d.log
+env LOG_SEVERITY=warn
 
 respawn
 #respawn limit 10 5
@@ -29,10 +29,10 @@ end script
 script
 	[ -f /etc/default/x0d ] && . /etc/default/x0d
 
-	exec /home/trapni/projects/x0/src/x0d -f $CONFFILE \
-		-u $USER -g $GROUP \
-		-p $PIDFILE \
-		-l $LOG_FILE -L $LOG_LEVEL
+	exec /usr/sbin/x0d -f $CONFFILE \
+		--user $USER --group $GROUP \
+		--pid-file $PIDFILE \
+		--log-file $LOG_FILE --log-severity $LOG_SEVERITY
 end script
 
 # vim:syntax=upstart
