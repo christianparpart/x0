@@ -472,18 +472,6 @@ int HttpServer::run()
 	return 0;
 }
 
-/**
- * retrieves the listener object that is responsible for the given port number, or null otherwise.
- */
-ServerSocket* HttpServer::listenerByPort(int port) const
-{
-	for (auto listener: listeners_)
-		if (listener->port() == port)
-			return listener;
-
-	return nullptr;
-}
-
 /** unregisters all listeners from the underlying io_service and calls stop on it.
  * \see start(), run()
  */
