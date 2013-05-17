@@ -576,7 +576,7 @@ size_t TokenShaper<T>::Node::get(size_t n)
 		if (std::max(R, Rc + Oc) + n > AR)
 			break;
 
-		if (!actualRate_.compare_incr(R, n))
+		if (!actualRate_.increment(n, R))
 			continue;
 
 		for (Node* p = parent_; p; p = p->parent_)
