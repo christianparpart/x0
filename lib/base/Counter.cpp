@@ -19,17 +19,45 @@ Counter::Counter() :
 
 Counter& Counter::operator++()
 {
-	++current_;
-
-	if (current_ > max_)
-		max_.store(current_.load());
-
-	++total_;
-
+	increment(1);
 	return *this;
 }
 
 Counter& Counter::operator+=(size_t n)
+{
+	increment(n);
+	return *this;
+}
+
+Counter& Counter::operator--()
+{
+	decrement(1);
+	return *this;
+}
+
+Counter& Counter::operator-=(size_t n)
+{
+	decrement(n);
+	return *this;
+}
+
+bool Counter::increment(size_t n, size_t expected)
+{
+	size_t desired = expected + n;
+
+	if (!current_.compare_exchange_weak(expected, desired))
+		return false;
+
+	// XXX this might *not always* result into the highest value, but we're fine with it.
+	if (desired  > max_.load())
+		max_.store(expected + n);
+
+	total_ += n;
+
+	return true;
+}
+
+void Counter::increment(size_t n)
 {
 	current_ += n;
 
@@ -37,22 +65,11 @@ Counter& Counter::operator+=(size_t n)
 		max_.store(current_.load());
 
 	total_ += n;
-
-	return *this;
 }
 
-Counter& Counter::operator--()
-{
-	--current_;
-
-	return *this;
-}
-
-Counter& Counter::operator-=(size_t n)
+void Counter::decrement(size_t n)
 {
 	current_ -= n;
-
-	return *this;
 }
 
 JsonWriter& operator<<(JsonWriter& json, const Counter& counter)

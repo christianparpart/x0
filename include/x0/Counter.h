@@ -44,24 +44,10 @@ public:
 	Counter& operator--();
 	Counter& operator-=(size_t n);
 
-	bool compare_incr(size_t expected, size_t n);
+	bool increment(size_t n, size_t expected);
+	void increment(size_t n);
+	void decrement(size_t n);
 };
-
-inline bool Counter::compare_incr(size_t expected, size_t n)
-{
-	size_t desired = expected + n;
-
-	if (!current_.compare_exchange_weak(expected, desired))
-		return false;
-
-	// XXX this might *not always* result into the highest value, but we're fine with it.
-	if (desired  > max_.load())
-		max_.store(expected + n);
-
-	total_ += n;
-
-	return true;
-}
 
 X0_API JsonWriter& operator<<(JsonWriter& json, const Counter& counter);
 
