@@ -13,6 +13,8 @@
 	* plugins: director plugin has initial support for HAproxy compatible CSV output
 	* plugins: director plugin fixed wrt. off-by-one bug in scheduler.load stats.
 	* core: introduce severities: crit, alert, emerg
+	* core: support SO_REUSEPORT (as introduced in Linux Kernel 3.9.0, and
+			supported by other UNIX OSes already)
 
 0.6.0 (2013-02-27)
 
