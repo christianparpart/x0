@@ -331,7 +331,10 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename, int 
 	// }}}
 
 	// {{{ check for SO_REUSEPORT feature in TCP listeners
-	{
+	if (workers_.size() == 1) {
+		// fast-path scheduling for single-threaded mode
+		workers_.front()->bind(listeners_.front());
+	} else {
 		std::list<ServerSocket*> dups;
 		for (auto listener: listeners_) {
 			if (listener->reusePort()) {
