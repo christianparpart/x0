@@ -289,6 +289,11 @@ void HttpWorker::setAffinity(int cpu)
 	}
 }
 
+void HttpWorker::bind(ServerSocket* s)
+{
+	s->set<HttpWorker, &HttpWorker::spawnConnection>(this);
+}
+
 /** suspend the execution of the worker thread until resume() is invoked.
  *
  * \note has no effect on main worker

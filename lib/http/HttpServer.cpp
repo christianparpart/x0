@@ -330,6 +330,30 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename, int 
 			goto err;
 	// }}}
 
+	// {{{ check for SO_REUSEPORT feature in TCP listeners
+	{
+		std::list<ServerSocket*> dups;
+		for (auto listener: listeners_) {
+			if (listener->reusePort()) {
+				for (auto worker: workers_) {
+					if (worker->id() > 0) {
+						// clone listener for non-main worker
+						listener = listener->clone(worker->loop());
+						dups.push_back(listener);
+					}
+					worker->bind(listener);
+				}
+			}
+		}
+
+		// FIXME: this is not yet well thought.
+		// - how to handle configuration file reloads wrt SO_REUSEPORT?
+		for (auto dup: dups) {
+			listeners_.push_back(dup);
+		}
+	}
+	// }}}
+
 	// {{{ x0d: check for superfluous passed file descriptors (and close them)
 	for (auto fd: ServerSocket::getInheritedSocketList()) {
 		bool found = false;

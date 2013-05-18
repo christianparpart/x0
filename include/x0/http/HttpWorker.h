@@ -141,6 +141,8 @@ public:
 
 	void setAffinity(int cpu);
 
+	void bind(ServerSocket* s);
+
 	template<class K, void (K::*fn)()>
 	void post(K* object);
 

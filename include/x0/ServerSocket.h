@@ -36,6 +36,7 @@ private:
 	int backlog_;
 	int addressFamily_;
 	int fd_;
+	bool reusePort_;
 	size_t multiAcceptCount_;
 	ev::io io_;
 	SocketDriver* socketDriver_;
@@ -51,6 +52,8 @@ public:
 	explicit ServerSocket(struct ev_loop* loop);
 	~ServerSocket();
 
+	ServerSocket* clone(struct ev_loop* loop);
+
 	void setBacklog(int value);
 	int backlog() const { return backlog_; }
 
@@ -63,6 +66,8 @@ public:
 	void start();
 	void stop();
 	void close();
+
+	bool reusePort() const { return reusePort_; }
 
 	int addressFamily() const { return addressFamily_; }
 	bool isLocal() const { return addressFamily_ == AF_UNIX; }
