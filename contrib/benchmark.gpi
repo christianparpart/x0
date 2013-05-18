@@ -1,0 +1,31 @@
+# /usr/sbin/ab2 -g bmt%d.dat ...
+# gnuplot ./gnuplot.p
+
+# output as png image
+set term png
+
+# save file to "benchmark.png"
+set output "benchmark.png"
+
+# graph a title
+set title "ab -k -n 1000000 -c 512"
+
+# nicer aspect ratio for image size
+set size 1,0.7
+
+# y-axis grid
+set grid y
+
+# x-axis label
+set xlabel "request"
+
+# y-axis label
+set ylabel "response time (ms)"
+
+# plot data from "server1.txt" and "server2.txt" using column 9 with smooth
+# sbezier lines
+plot "bmt12.dat" using 9 smooth sbezier with lines title "12-threads:", \
+     "bmt6.dat" using 9 smooth sbezier with lines title "6-threads:", \
+     "bmt4.dat" using 9 smooth sbezier with lines title "4-threads:", \
+     "bmt2.dat" using 9 smooth sbezier with lines title "2-threads:", \
+     "bmt1.dat" using 9 smooth sbezier with lines title "1-threads:"
