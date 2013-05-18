@@ -454,7 +454,7 @@ void TokenShaper<T>::Node::update(size_t capacity)
 	ceil_ = capacity * ceilPercent_;
 
 	for (auto child: children_) {
-		update();
+		child->update();
 	}
 }
 
