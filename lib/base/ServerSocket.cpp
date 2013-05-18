@@ -221,6 +221,7 @@ ServerSocket::ServerSocket(struct ev_loop* loop) :
 	backlog_(SOMAXCONN),
 	addressFamily_(AF_UNSPEC),
 	fd_(-1),
+	reusePort_(false),
 	multiAcceptCount_(1),
 	io_(loop),
 	socketDriver_(new SocketDriver()),
@@ -252,6 +253,20 @@ void ServerSocket::setBacklog(int value)
 	assert(isOpen() == false);
 
 	backlog_ = value;
+}
+
+ServerSocket* ServerSocket::clone(struct ev_loop* loop)
+{
+	ServerSocket* s = new ServerSocket(loop);
+
+	s->setBacklog(backlog_);
+
+	if (isLocal())
+		s->open(address_, flags_);
+	else
+		s->open(address_, port_, flags_);
+
+	return s;
 }
 
 /*! starts listening on a TCP/IP (v4 or v6) address.
@@ -395,8 +410,7 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 #endif
 
 #if defined(SO_REUSEPORT)
-//		if (::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) < 0)
-//			reusePort_ = false;
+		reusePort_ = ::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) == 0;
 #endif
 
 #if defined(TCP_QUICKACK)

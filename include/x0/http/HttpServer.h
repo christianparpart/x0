@@ -147,9 +147,6 @@ public:
 
 	const std::list<ServerSocket*>& listeners() const;
 
-	ServerSocket* listenerByHost(const std::string& hostid) const;
-	ServerSocket* listenerByPort(int port) const;
-
 	void dumpIR() const; // for debugging purpose
 
 	HttpServer* fromText(const std::string& configText, std::future<int>** async = nullptr);
