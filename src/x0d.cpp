@@ -187,6 +187,8 @@ private:
 	void quickShutdownHandler(ev::sig& sig, int);
 	void quickShutdownTimeout(ev::timer&, int);
 
+	void installCrashHandler();
+
 private:
 	State state_;
 	int argc_;
@@ -469,6 +471,7 @@ bool XzeroHttpDaemon::parse()
 		{ "optimization-level", required_argument, &optimizationLevel_, 'O' },
 		{ "info", no_argument, nullptr, 'V' },
 		{ "help", no_argument, nullptr, 'h' },
+		{ "crash-handler", no_argument, nullptr, 'k' },
 		//.
 		{ 0, 0, 0, 0 }
 	};
@@ -482,7 +485,10 @@ bool XzeroHttpDaemon::parse()
 
 	for (;;) {
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:s:i:hXGV", long_options, &long_index)) {
+		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:s:i:khXGV", long_options, &long_index)) {
+			case 'k':
+				installCrashHandler();
+				break;
 			case 'S':
 				showGreeter_ = true;
 				break;
@@ -552,9 +558,10 @@ bool XzeroHttpDaemon::parse()
 					<< "  -o,--log-target=TARGET    log target, one of: file, console, syslog, systemd [file]" << std::endl
 					<< "  -l,--log-file=PATH        path to log file (ignored when log-target is not file)" << std::endl
 					<< "  -s,--log-severity=VALUE   log severity level, one of: error, warning, notice, info, debug, debug1..6 [" << logLevel_.c_str() << "]" << std::endl
-					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
 					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode,\n"
 					<< "                            also implies --no-fork and --log-target=console" << std::endl
+					<< "  -k,--crash-handler        installs SIGSEGV crash handler to print backtrace onto stderr." << std::endl
+					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
 					<< "     --splash               print splash greeter to terminal on startup" << std::endl
@@ -1103,10 +1110,16 @@ void crashHandler(int nr, siginfo_t* info, void* ucp)
 	abort();
 }
 
-void installCrashHandler()
+void XzeroHttpDaemon::installCrashHandler()
 {
-	struct sigaction sa;
+	static bool installed = false;
 
+	if (installed)
+		return;
+
+	installed = true;
+
+	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_flags = SA_SIGINFO;
 	sigemptyset(&sa.sa_mask);
@@ -1120,8 +1133,6 @@ void installCrashHandler()
 
 int main(int argc, char *argv[])
 {
-	installCrashHandler();
-
 	XzeroHttpDaemon daemon(argc, argv);
 	return daemon.run();
 }
