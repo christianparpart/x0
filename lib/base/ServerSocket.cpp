@@ -251,8 +251,13 @@ ServerSocket::~ServerSocket()
 void ServerSocket::setBacklog(int value)
 {
 	assert(isOpen() == false);
-
 	backlog_ = value;
+}
+
+void ServerSocket::setReusePort(bool value)
+{
+	assert(isOpen() == false);
+	reusePort_ = value;
 }
 
 ServerSocket* ServerSocket::clone(struct ev_loop* loop)
@@ -260,6 +265,7 @@ ServerSocket* ServerSocket::clone(struct ev_loop* loop)
 	ServerSocket* s = new ServerSocket(loop);
 
 	s->setBacklog(backlog_);
+	s->setReusePort(reusePort_);
 
 	if (isLocal())
 		s->open(address_, flags_);

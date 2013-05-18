@@ -57,6 +57,9 @@ public:
 	void setBacklog(int value);
 	int backlog() const { return backlog_; }
 
+	void setReusePort(bool enabled);
+	bool reusePort() const { return reusePort_; }
+
 	bool open(const std::string& ipAddress, int port, int flags);
 	bool open(const std::string& localAddress, int flags);
 	bool open(const SocketSpec& spec, int flags);
@@ -66,8 +69,6 @@ public:
 	void start();
 	void stop();
 	void close();
-
-	bool reusePort() const { return reusePort_; }
 
 	int addressFamily() const { return addressFamily_; }
 	bool isLocal() const { return addressFamily_ == AF_UNIX; }
