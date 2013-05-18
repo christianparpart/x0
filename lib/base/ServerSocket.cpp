@@ -410,7 +410,10 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 #endif
 
 #if defined(SO_REUSEPORT)
-		reusePort_ = ::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) == 0;
+		if (reusePort_) {
+			reusePort_ = ::setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &rc, sizeof(rc)) == 0;
+			// enabling this can still fail if the OS doesn't support it (ENOPROTOOPT)
+		}
 #endif
 
 #if defined(TCP_QUICKACK)
@@ -577,6 +580,8 @@ bool ServerSocket::open(const SocketSpec& spec, int flags)
 	if (spec.backlog() > 0)
 		setBacklog(spec.backlog());
 
+	reusePort_ = spec.reusePort();
+
 	if (spec.isLocal())
 		return open(spec.local(), flags);
 	else
@@ -614,6 +619,8 @@ void ServerSocket::close()
 
 	::close(fd_);
 	fd_ = -1;
+	reusePort_ = false;
+	multiAcceptCount_ = 1;
 }
 
 void ServerSocket::setMultiAcceptCount(size_t value)

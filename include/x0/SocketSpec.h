@@ -26,12 +26,13 @@ public:
 
 	SocketSpec();
 	SocketSpec(const SocketSpec& ss);
-	SocketSpec(const IPAddress& ipaddr, int port, int backlog = -1, size_t maccept = 1) :
+	SocketSpec(const IPAddress& ipaddr, int port, int backlog = -1, size_t maccept = 1, bool reusePort = false) :
 		type_(Inet),
 		ipaddr_(ipaddr),
 		port_(port),
 		backlog_(backlog),
-		multiAcceptCount_(maccept)
+		multiAcceptCount_(maccept),
+		reusePort_(reusePort)
 	{}
 
 	static SocketSpec fromString(const std::string& value);
@@ -50,10 +51,12 @@ public:
 	const std::string& local() const { return local_; }
 	int backlog() const { return backlog_; }
 	size_t multiAcceptCount() const { return multiAcceptCount_; }
+	bool reusePort() const { return reusePort_; }
 
 	void setPort(int value);
 	void setBacklog(int value);
 	void setMultiAcceptCount(size_t value);
+	void setReusePort(bool value);
 
 	std::string str() const;
 
@@ -64,6 +67,7 @@ private:
 	int port_;
 	int backlog_;
 	size_t multiAcceptCount_;
+	bool reusePort_;
 };
 
 

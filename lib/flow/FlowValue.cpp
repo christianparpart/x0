@@ -102,12 +102,12 @@ void FlowValue::dump(bool x) const
 SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{ 
 {
 	// server:
-	//   args usage (TCP): 'bind' => address, 'port' => num, ['backlog' => num], ['multi_accept' => num]
-	//             (unix): 'bind' => path, ['backlog' => num]
+	//   args usage (TCP): bind: address, port: num, [backlog: num], [multi_accept: num, reuse_port: bool]
+	//             (unix): bind: path, [backlog: num]
 	//
 	// client:
-	//   args usage (TCP): 'address' => address, 'port' => num
-	//             (unix): 'path' => path
+	//   args usage (TCP): address: address, port: num
+	//             (unix): path: path
 
 	spec.clear();
 
@@ -117,7 +117,8 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 		Address     = 0x0001,
 		Port        = 0x0002,
 		Backlog     = 0x0004,
-		MultiAccept = 0x0008
+		MultiAccept = 0x0008,
+		ReusePort	= 0x0010,
 	};
 
 	for (auto& arg: params) {
@@ -180,6 +181,14 @@ SocketSpec& operator<<(SocketSpec& spec, const FlowParams& params) // {{{
 					spec.setMultiAcceptCount(std::max(r[1].toNumber(), 1LL));
 				} else {
 					fprintf(stderr, "Invalid multi_accept given (must be a number).\n");
+					goto err;
+				}
+			} else if (key == "reuse_port") {
+				m = Item::ReusePort;
+				if (r[1].isBool()) {
+					spec.setReusePort(r[1].toBool());
+				} else {
+					fprintf(stderr, "Invalid reuse_port given (must be a boolean).\n");
 					goto err;
 				}
 			} else {

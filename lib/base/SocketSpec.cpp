@@ -15,7 +15,8 @@ SocketSpec::SocketSpec() :
 	ipaddr_(),
 	port_(-1),
 	backlog_(-1),
-	multiAcceptCount_(1)
+	multiAcceptCount_(1),
+	reusePort_(false)
 {
 }
 
@@ -25,7 +26,8 @@ SocketSpec::SocketSpec(const SocketSpec& ss) :
 	local_(ss.local_),
 	port_(ss.port_),
 	backlog_(ss.backlog_),
-	multiAcceptCount_(ss.multiAcceptCount_)
+	multiAcceptCount_(ss.multiAcceptCount_),
+	reusePort_(ss.reusePort_)
 {
 }
 
@@ -39,6 +41,7 @@ void SocketSpec::clear()
 	port_ = -1;
 	backlog_ = -1;
 	multiAcceptCount_ = 1;
+	reusePort_ = false;
 }
 
 std::string SocketSpec::str() const
@@ -125,6 +128,11 @@ void SocketSpec::setBacklog(int value)
 void SocketSpec::setMultiAcceptCount(size_t value)
 {
 	multiAcceptCount_ = value;
+}
+
+void SocketSpec::setReusePort(bool value)
+{
+	reusePort_ = value;
 }
 
 } // namespace x0
