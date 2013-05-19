@@ -138,6 +138,16 @@ static std::string sig2str(int sig)
 }
 // }}}
 
+class XzeroEventHandler;
+
+enum class State {
+	Inactive,
+	Initializing,
+	Running,
+	Upgrading,
+	GracefullyShuttingdown
+};
+
 class XzeroHttpDaemon // {{{
 {
 private:
@@ -152,14 +162,6 @@ private:
 		}
 	}
 
-	enum class State {
-		Inactive,
-		Initializing,
-		Running,
-		Upgrading,
-		GracefullyShuttingdown
-	};
-
 public:
 	XzeroHttpDaemon(int argc, char *argv[]);
 	~XzeroHttpDaemon();
@@ -168,24 +170,18 @@ public:
 
 	int run();
 
-private:
-	bool createPidFile();
-	bool parse();
-	void setState(State newState);
-	bool setupConfig();
-	void daemonize();
-	bool drop_privileges(const std::string& username, const std::string& groupname);
+	void reexec();
+
+	x0::HttpServer* server() const { return server_; }
 
 	void log(Severity severity, const char *msg, ...);
 
-	void reopenLogsHandler(ev::sig&, int);
-	void reexecHandler(ev::sig& sig, int);
-	void onChild(ev::child&, int);
-	void suspendHandler(ev::sig& sig, int);
-	void resumeHandler(ev::sig& sig, int);
-	void gracefulShutdownHandler(ev::sig& sig, int);
-	void quickShutdownHandler(ev::sig& sig, int);
-	void quickShutdownTimeout(ev::timer&, int);
+private:
+	bool createPidFile();
+	bool parse();
+	bool setupConfig();
+	void daemonize();
+	bool drop_privileges(const std::string& username, const std::string& groupname);
 
 	void installCrashHandler();
 
@@ -211,8 +207,40 @@ private:
 	int doguard_;
 	int dumpIR_;
 	int optimizationLevel_;
-	struct ev_loop* loop_;
 	x0::HttpServer *server_;
+	unsigned evFlags_;
+	XzeroEventHandler* eventHandler_;
+
+	static XzeroHttpDaemon* instance_;
+}; // }}}
+
+// {{{ XzeroEventHandler API
+class XzeroEventHandler
+{
+public:
+	XzeroEventHandler(XzeroHttpDaemon* daemon, ev::loop_ref loop);
+	~XzeroEventHandler();
+
+	ev::loop_ref loop() const { return loop_; }
+	x0::HttpServer* server() const { return daemon_->server(); }
+	State state() const { return state_; }
+	void setState(State newState);
+	void setupChild(int pid);
+
+private:
+	void reopenLogsHandler(ev::sig&, int);
+	void reexecHandler(ev::sig& sig, int);
+	void onChild(ev::child&, int);
+	void suspendHandler(ev::sig& sig, int);
+	void resumeHandler(ev::sig& sig, int);
+	void gracefulShutdownHandler(ev::sig& sig, int);
+	void quickShutdownHandler(ev::sig& sig, int);
+	void quickShutdownTimeout(ev::timer&, int);
+
+private:
+	XzeroHttpDaemon* daemon_;
+	ev::loop_ref loop_;
+	State state_;
 	ev::sig terminateSignal_;
 	ev::sig ctrlcSignal_;
 	ev::sig quitSignal_;
@@ -222,32 +250,14 @@ private:
 	ev::sig resumeSignal_;
 	ev::timer terminationTimeout_;
 	ev::child child_;
+};
+// }}}
 
-	static XzeroHttpDaemon* instance_;
-}; // }}}
-
-// {{{
-XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
+// {{{ XzeroEventHandler impl
+XzeroEventHandler::XzeroEventHandler(XzeroHttpDaemon* daemon, ev::loop_ref loop) :
+	daemon_(daemon),
+	loop_(loop),
 	state_(State::Inactive),
-	argc_(argc),
-	argv_(argv),
-	showGreeter_(false),
-	configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
-	pidfile_(),
-	user_(),
-	group_(),
-	logTarget_("file"),
-	logFile_(pathcat(LOGDIR, "x0d.log")),
-	logLevel_(Severity::info),
-	instant_(),
-	documentRoot_(),
-	nofork_(false),
-	systemd_(getppid() == 1 && sd_booted()),
-	doguard_(false),
-	dumpIR_(false),
-	optimizationLevel_(2),
-	loop_(ev_default_loop()),
-	server_(nullptr),
 	terminateSignal_(loop_),
 	ctrlcSignal_(loop_),
 	quitSignal_(loop_),
@@ -257,40 +267,37 @@ XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
 	child_(loop_)
 {
 	setState(State::Initializing);
-	x0::FlowRunner::initialize();
 
-	instance_ = this;
-
-	terminateSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownHandler>(this);
+	terminateSignal_.set<XzeroEventHandler, &XzeroEventHandler::quickShutdownHandler>(this);
 	terminateSignal_.start(SIGTERM);
 	ev_unref(loop_);
 
-	ctrlcSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownHandler>(this);
+	ctrlcSignal_.set<XzeroEventHandler, &XzeroEventHandler::quickShutdownHandler>(this);
 	ctrlcSignal_.start(SIGINT);
 	ev_unref(loop_);
 
-	quitSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::gracefulShutdownHandler>(this);
+	quitSignal_.set<XzeroEventHandler, &XzeroEventHandler::gracefulShutdownHandler>(this);
 	quitSignal_.start(SIGQUIT);
 	ev_unref(loop_);
 
-	user1Signal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::reopenLogsHandler>(this);
+	user1Signal_.set<XzeroEventHandler, &XzeroEventHandler::reopenLogsHandler>(this);
 	user1Signal_.start(SIGUSR1);
 	ev_unref(loop_);
 
-	hupSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::reexecHandler>(this);
+	hupSignal_.set<XzeroEventHandler, &XzeroEventHandler::reexecHandler>(this);
 	hupSignal_.start(SIGHUP);
 	ev_unref(loop_);
 
-	suspendSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::suspendHandler>(this);
+	suspendSignal_.set<XzeroEventHandler, &XzeroEventHandler::suspendHandler>(this);
 	suspendSignal_.start(SIG_X0_SUSPEND);
 	ev_unref(loop_);
 
-	resumeSignal_.set<XzeroHttpDaemon, &XzeroHttpDaemon::resumeHandler>(this);
+	resumeSignal_.set<XzeroEventHandler, &XzeroEventHandler::resumeHandler>(this);
 	resumeSignal_.start(SIG_X0_RESUME);
 	ev_unref(loop_);
 }
 
-XzeroHttpDaemon::~XzeroHttpDaemon()
+XzeroEventHandler::~XzeroEventHandler()
 {
 	if (terminationTimeout_.is_active()) {
 		ev_ref(loop_);
@@ -331,6 +338,234 @@ XzeroHttpDaemon::~XzeroHttpDaemon()
 		ev_ref(loop_);
 		resumeSignal_.stop();
 	}
+}
+
+/*! Updates state change, and tell supervisors about our state change.
+ */
+void XzeroEventHandler::setState(State newState)
+{
+	if (state_ == newState) {
+		// most probabely a bug
+	}
+
+	switch (newState) {
+		case State::Inactive:
+			break;
+		case State::Initializing:
+			sd_notify(0, "STATUS=Initializing ...");
+			break;
+		case State::Running:
+			if (server()->generation() == 1) {
+				// we have been started up directoy (e.g. by systemd)
+				sd_notifyf(0,
+					"MAINPID=%d\n"
+					"STATUS=Accepting requests ...\n"
+					"READY=1\n",
+					getpid()
+				);
+			} else {
+				// we have been invoked by x0d itself, e.g. a executable upgrade and/or
+				// configuration reload.
+				// Tell the parent-x0d to shutdown gracefully.
+				// On receive, the parent process will tell systemd, that we are the new master.
+				::kill(getppid(), SIGQUIT);
+			}
+			break;
+		case State::Upgrading:
+			sd_notify(0, "STATUS=Upgrading");
+			server()->log(x0::Severity::info, "Upgrading ...");
+			break;
+		case State::GracefullyShuttingdown:
+			if (state_ == State::Running) {
+				sd_notify(0, "STATUS=Shutting down gracefully ...");
+			} else if (state_ == State::Upgrading) {
+				// we're not the master anymore
+				// tell systemd, that our freshly spawned child is taking over, and the new master
+				// XXX as of systemd v28, RELOADED=1 is not yet implemented, but on their TODO list
+				sd_notifyf(0,
+					"MAINPID=%d\n"
+					"STATUS=Accepting requests ...\n"
+					"RELOADED=1\n",
+					child_.pid
+				);
+			}
+			break;
+		default:
+			// must be a bug
+			break;
+	}
+
+	state_ = newState;
+}
+
+void XzeroEventHandler::reexecHandler(ev::sig& sig, int)
+{
+	daemon_->reexec();
+}
+
+void XzeroEventHandler::reopenLogsHandler(ev::sig&, int)
+{
+	server()->log(x0::Severity::info, "Reopening of all log files requested.");
+	server()->cycleLogs();
+}
+
+/** temporarily suspends processing new and currently active connections.
+ */
+void XzeroEventHandler::suspendHandler(ev::sig& sig, int)
+{
+	// suspend worker threads while performing the reexec
+	for (x0::HttpWorker* worker: server()->workers()) {
+		worker->suspend();
+	}
+
+	for (x0::ServerSocket* listener: server()->listeners()) {
+		// stop accepting new connections
+		listener->stop();
+	}
+}
+
+/** resumes previousely suspended execution.
+ */
+void XzeroEventHandler::resumeHandler(ev::sig& sig, int)
+{
+	server()->log(x0::Severity::debug, "Siganl %s received.", sig2str(sig.signum).c_str());
+
+	server()->log(x0::Severity::debug, "Resuming worker threads.");
+	for (x0::HttpWorker* worker: server()->workers()) {
+		worker->resume();
+	}
+}
+
+// stage-1 termination handler
+void XzeroEventHandler::gracefulShutdownHandler(ev::sig& sig, int)
+{
+	server()->log(x0::Severity::info, "%s received. Shutting down gracefully.", sig2str(sig.signum).c_str());
+
+	for (x0::ServerSocket* listener: server()->listeners())
+		listener->close();
+
+	if (state_ == State::Upgrading) {
+		child_.stop();
+
+		for (x0::HttpWorker* worker: server()->workers()) {
+			worker->resume();
+		}
+	}
+	setState(State::GracefullyShuttingdown);
+
+	// initiate graceful server-stop
+	server()->maxKeepAlive = x0::TimeSpan::Zero;
+	server()->stop();
+}
+
+// stage-2 termination handler
+void XzeroEventHandler::quickShutdownHandler(ev::sig& sig, int)
+{
+	daemon_->log(x0::Severity::info, "%s received. shutting down NOW.", sig2str(sig.signum).c_str());
+
+	if (state_ != State::Upgrading) {
+		// we are no garbage parent process
+		sd_notify(0, "STATUS=Shutting down.");
+	}
+
+	// default to standard signal-handler
+	ev_ref(loop_);
+	sig.stop();
+
+	// install shutdown timeout handler
+	terminationTimeout_.set<XzeroEventHandler, &XzeroEventHandler::quickShutdownTimeout>(this);
+	terminationTimeout_.start(10, 0);
+	ev_unref(loop_);
+
+	// kill active HTTP connections
+	server()->kill();
+}
+
+void XzeroEventHandler::quickShutdownTimeout(ev::timer&, int)
+{
+	daemon_->log(x0::Severity::warn, "Quick shutdown timed out. Terminating.");
+
+	ev_ref(loop_);
+	terminationTimeout_.stop();
+
+	ev_break(loop_, ev::ALL);
+}
+
+/**
+ * Watches over x0d-fork.
+ * \param pid Child process ID.
+ *
+ */
+void XzeroEventHandler::setupChild(int pid)
+{
+	child_.set<XzeroEventHandler, &XzeroEventHandler::onChild>(this);
+	child_.set(pid, 0);
+	child_.start();
+}
+
+void XzeroEventHandler::onChild(ev::child&, int)
+{
+	// the child exited before we receive a SUCCESS from it. so resume normal operation again.
+	server()->log(x0::Severity::error, "New process exited with %d. Resuming normal operation.");
+
+	child_.stop();
+
+	// reenable HUP-signal
+	if (!hupSignal_.is_active()) {
+		server()->log(x0::Severity::error, "Reenable HUP-signal.");
+		hupSignal_.start();
+		ev_unref(loop_);
+	}
+
+	server()->log(x0::Severity::debug, "Reactivating listeners.");
+	for (x0::ServerSocket* listener: server()->listeners()) {
+		// reenable O_CLOEXEC on listener socket
+		listener->setCloseOnExec(true);
+
+		// start accepting new connections
+		listener->start();
+	}
+
+	server()->log(x0::Severity::debug, "Resuming workers.");
+	for (x0::HttpWorker* worker: server()->workers()) {
+		worker->resume();
+	}
+}
+// }}}
+
+// {{{ XzeroHttpDaemon impl
+XzeroHttpDaemon::XzeroHttpDaemon(int argc, char *argv[]) :
+	state_(State::Inactive),
+	argc_(argc),
+	argv_(argv),
+	showGreeter_(false),
+	configfile_(pathcat(SYSCONFDIR, "x0d.conf")),
+	pidfile_(),
+	user_(),
+	group_(),
+	logTarget_("file"),
+	logFile_(pathcat(LOGDIR, "x0d.log")),
+	logLevel_(Severity::info),
+	instant_(),
+	documentRoot_(),
+	nofork_(false),
+	systemd_(getppid() == 1 && sd_booted()),
+	doguard_(false),
+	dumpIR_(false),
+	optimizationLevel_(2),
+	server_(nullptr),
+	evFlags_(0),
+	eventHandler_(nullptr)
+{
+	x0::FlowRunner::initialize();
+
+	instance_ = this;
+}
+
+XzeroHttpDaemon::~XzeroHttpDaemon()
+{
+	delete eventHandler_;
+	eventHandler_ = nullptr;
 
 	delete server_;
 	server_ = nullptr;
@@ -358,13 +593,15 @@ int XzeroHttpDaemon::run()
 	x0::SyslogSink::open("x0d", LOG_PID | LOG_NDELAY, LOG_DAEMON);
 #endif
 
-	server_ = new x0::HttpServer(loop_, generation);
+	if (!parse())
+		return 1;
+
+	eventHandler_ = new XzeroEventHandler(this, ev::default_loop(evFlags_));
+	server_ = new x0::HttpServer(eventHandler_->loop(), generation);
+
 #ifndef XZERO_NDEBUG
 	server_->logLevel(x0::Severity::debug3);
 #endif
-
-	if (!parse())
-		return 1;
 
 	if (systemd_) {
 		nofork_ = true;
@@ -418,8 +655,6 @@ int XzeroHttpDaemon::run()
 	if (!drop_privileges(user_, group_))
 		return -1;
 
-	setState(State::Running);
-
 	if (showGreeter_) {
 		printf("\n\n"
 			"\e[1;37m"
@@ -438,6 +673,8 @@ int XzeroHttpDaemon::run()
 			"\n\n"
 		);
 	}
+
+	eventHandler_->setState(State::Running);
 
 	int rv = server_->run();
 
@@ -461,6 +698,7 @@ bool XzeroHttpDaemon::parse()
 		{ "log-target", required_argument, nullptr, 'o' },
 		{ "log-file", required_argument, nullptr, 'l' },
 		{ "log-severity", required_argument, nullptr, 's' },
+		{ "event-loop", required_argument, nullptr, 'e' },
 		{ "instant", required_argument, nullptr, 'i' },
 		{ "dump-ir", no_argument, &dumpIR_, 1 },
 		//.
@@ -485,7 +723,37 @@ bool XzeroHttpDaemon::parse()
 
 	for (;;) {
 		int long_index = 0;
-		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:s:i:khXGV", long_options, &long_index)) {
+		switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:s:i:e:khXGV", long_options, &long_index)) {
+			case 'e': {
+				char* saveptr = nullptr;
+				char* input = optarg;
+				std::vector<char*> items;
+				for (;; input = nullptr) {
+					if (char* token = strtok_r(input, ",:", &saveptr))
+						items.push_back(token);
+					else
+						break;
+				}
+				for (auto item: items) {
+					if (strcmp(item, "select") == 0)
+						evFlags_ |= EVBACKEND_SELECT;
+					else if (strcmp(item, "poll") == 0)
+						evFlags_ |= EVBACKEND_POLL;
+					else if (strcmp(item, "epoll") == 0)
+						evFlags_ |= EVBACKEND_EPOLL;
+					else if (strcmp(item, "kqueue") == 0)
+						evFlags_ |= EVBACKEND_KQUEUE;
+					else if (strcmp(item, "devpoll") == 0)
+						evFlags_ |= EVBACKEND_DEVPOLL;
+					else if (strcmp(item, "port") == 0)
+						evFlags_ |= EVBACKEND_PORT;
+					else {
+						printf("Unknown event backend passed: '%s'.\n", item);
+						return false;
+					}
+				}
+				break;
+			}
 			case 'k':
 				installCrashHandler();
 				break;
@@ -771,64 +1039,6 @@ bool XzeroHttpDaemon::setupConfig()
 	return server_->setup(&s, "instant-mode.conf", optimizationLevel_);
 }
 
-/*! Updates state change, and tell supervisors about our state change.
- */
-void XzeroHttpDaemon::setState(State newState)
-{
-	if (state_ == newState) {
-		// most probabely a bug
-	}
-
-	switch (newState) {
-		case State::Inactive:
-			break;
-		case State::Initializing:
-			sd_notify(0, "STATUS=Initializing ...");
-			break;
-		case State::Running:
-			if (server_->generation() == 1) {
-				// we have been started up directoy (e.g. by systemd)
-				sd_notifyf(0,
-					"MAINPID=%d\n"
-					"STATUS=Accepting requests ...\n"
-					"READY=1\n",
-					getpid()
-				);
-			} else {
-				// we have been invoked by x0d itself, e.g. a executable upgrade and/or
-				// configuration reload.
-				// Tell the parent-x0d to shutdown gracefully.
-				// On receive, the parent process will tell systemd, that we are the new master.
-				::kill(getppid(), SIGQUIT);
-			}
-			break;
-		case State::Upgrading:
-			sd_notify(0, "STATUS=Upgrading");
-			server_->log(x0::Severity::info, "Upgrading ...");
-			break;
-		case State::GracefullyShuttingdown:
-			if (state_ == State::Running) {
-				sd_notify(0, "STATUS=Shutting down gracefully ...");
-			} else if (state_ == State::Upgrading) {
-				// we're not the master anymore
-				// tell systemd, that our freshly spawned child is taking over, and the new master
-				// XXX as of systemd v28, RELOADED=1 is not yet implemented, but on their TODO list
-				sd_notifyf(0,
-					"MAINPID=%d\n"
-					"STATUS=Accepting requests ...\n"
-					"RELOADED=1\n",
-					child_.pid
-				);
-			}
-			break;
-		default:
-			// must be a bug
-			break;
-	}
-
-	state_ = newState;
-}
-
 bool XzeroHttpDaemon::createPidFile()
 {
 	if (systemd_) {
@@ -861,22 +1071,16 @@ bool XzeroHttpDaemon::createPidFile()
 	return true;
 }
 
-void XzeroHttpDaemon::reopenLogsHandler(ev::sig&, int)
-{
-	server_->log(x0::Severity::info, "Reopening of all log files requested.");
-	server_->cycleLogs();
-}
-
 /** starts new binary with (new) config - as child process, and gracefully shutdown self.
  */
-void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
+void XzeroHttpDaemon::reexec()
 {
 	if (state_ != State::Running) {
 		server_->log(x0::Severity::info, "Reexec requested again?. Ignoring.");
 		return;
 	}
 
-	setState(State::Upgrading);
+	eventHandler_->setState(State::Upgrading);
 
 	// suspend worker threads while performing the reexec
 	for (x0::HttpWorker* worker: server_->workers()) {
@@ -954,9 +1158,7 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 		default:
 			// in parent
 			// the child process must tell us whether to gracefully shutdown or to resume.
-			child_.set<XzeroHttpDaemon, &XzeroHttpDaemon::onChild>(this);
-			child_.set(childPid, 0);
-			child_.start();
+			eventHandler_->setupChild(childPid);
 
 			// we lost ownership of the PID file, if we had one as the child overwrites it.
 			pidfile_ = "";
@@ -971,121 +1173,9 @@ void XzeroHttpDaemon::reexecHandler(ev::sig& sig, int)
 		listener->setCloseOnExec(true);
 	}
 }
-
-void XzeroHttpDaemon::onChild(ev::child&, int)
-{
-	// the child exited before we receive a SUCCESS from it. so resume normal operation again.
-	server_->log(x0::Severity::error, "New process exited with %d. Resuming normal operation.");
-
-	child_.stop();
-
-	// reenable HUP-signal
-	if (!hupSignal_.is_active()) {
-		server_->log(x0::Severity::error, "Reenable HUP-signal.");
-		hupSignal_.start();
-		ev_unref(loop_);
-	}
-
-	server_->log(x0::Severity::debug, "Reactivating listeners.");
-	for (x0::ServerSocket* listener: server_->listeners()) {
-		// reenable O_CLOEXEC on listener socket
-		listener->setCloseOnExec(true);
-
-		// start accepting new connections
-		listener->start();
-	}
-
-	server_->log(x0::Severity::debug, "Resuming workers.");
-	for (x0::HttpWorker* worker: server_->workers()) {
-		worker->resume();
-	}
-}
-
-/** temporarily suspends processing new and currently active connections.
- */
-void XzeroHttpDaemon::suspendHandler(ev::sig& sig, int)
-{
-	// suspend worker threads while performing the reexec
-	for (x0::HttpWorker* worker: server_->workers()) {
-		worker->suspend();
-	}
-
-	for (x0::ServerSocket* listener: server_->listeners()) {
-		// stop accepting new connections
-		listener->stop();
-	}
-}
-
-/** resumes previousely suspended execution.
- */
-void XzeroHttpDaemon::resumeHandler(ev::sig& sig, int)
-{
-	server_->log(x0::Severity::debug, "Siganl %s received.", sig2str(sig.signum).c_str());
-
-	server_->log(x0::Severity::debug, "Resuming worker threads.");
-	for (x0::HttpWorker* worker: server_->workers()) {
-		worker->resume();
-	}
-}
-
-// stage-1 termination handler
-void XzeroHttpDaemon::gracefulShutdownHandler(ev::sig& sig, int)
-{
-	log(x0::Severity::info, "%s received. Shutting down gracefully.", sig2str(sig.signum).c_str());
-
-	for (x0::ServerSocket* listener: server_->listeners()) {
-		listener->close();
-	}
-
-	if (state_ == State::Upgrading) {
-		child_.stop();
-
-		for (x0::HttpWorker* worker: server_->workers()) {
-			worker->resume();
-		}
-	}
-	setState(State::GracefullyShuttingdown);
-
-	// initiate graceful server-stop
-	server_->maxKeepAlive = x0::TimeSpan::Zero;
-	server_->stop();
-}
-
-// stage-2 termination handler
-void XzeroHttpDaemon::quickShutdownHandler(ev::sig& sig, int)
-{
-	log(x0::Severity::info, "%s received. shutting down NOW.", sig2str(sig.signum).c_str());
-
-	if (state_ != State::Upgrading) {
-		// we are no garbage parent process
-		sd_notify(0, "STATUS=Shutting down.");
-	}
-
-	// default to standard signal-handler
-	ev_ref(loop_);
-	sig.stop();
-
-	// install shutdown timeout handler
-	terminationTimeout_.set<XzeroHttpDaemon, &XzeroHttpDaemon::quickShutdownTimeout>(this);
-	terminationTimeout_.start(10, 0);
-	ev_unref(loop_);
-
-	// kill active HTTP connections
-	server_->kill();
-}
-
-void XzeroHttpDaemon::quickShutdownTimeout(ev::timer&, int)
-{
-	log(x0::Severity::warn, "Quick shutdown timed out. Terminating.");
-
-	ev_ref(loop_);
-	terminationTimeout_.stop();
-
-	ev_break(loop_, ev::ALL);
-}
 // }}}
 
-XzeroHttpDaemon* XzeroHttpDaemon::instance_ = 0;
+XzeroHttpDaemon* XzeroHttpDaemon::instance_ = nullptr;
 
 // {{{ crash handler
 void crashHandler(int nr, siginfo_t* info, void* ucp)

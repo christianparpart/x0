@@ -16,6 +16,7 @@
 	* core: Support SO_REUSEPORT (as introduced in Linux Kernel 3.9.0, and
 			supported by other UNIX OSes already)
 	* x0d: Added bash completion.
+	* x0d: Support -e epoll,select,poll,.... to choose event-system backend x0d should run on.
 
 0.6.0 (2013-02-27)
 
