@@ -120,6 +120,7 @@ private:
 
 	void ref();
 	void unref();
+	void clear();
 
 	void start(ServerSocket* listener, Socket* client, const HttpWorker::ConnectionHandle& handle);
 	void resume();
@@ -186,6 +187,9 @@ private:
 	// connection abort callback
 	void (*abortHandler_)(void*);
 	void* abortData_;
+
+	HttpConnection* next_;
+	size_t useCount_;
 };
 
 // {{{ inlines

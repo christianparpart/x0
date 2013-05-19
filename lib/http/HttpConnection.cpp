@@ -69,9 +69,10 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	socket_(nullptr),
 	sink_(nullptr),
 	abortHandler_(nullptr),
-	abortData_(nullptr)
+	abortData_(nullptr),
+	next_(nullptr),
+	useCount_(1)
 {
-	setStatus(ReadingRequest);
 }
 
 /** releases all connection resources  and triggers the onConnectionClose event.
@@ -81,14 +82,25 @@ HttpConnection::~HttpConnection()
 	if (request_)
 		delete request_;
 
+	if (socket_)
+		delete socket_;
+}
+
+void HttpConnection::clear()
+{
+	if (request_) {
+		request_->clear();
+	}
+
 	clearCustomData();
 
 	TRACE(1, "destructing (rc: %u)", refCount_);
 	//TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
 
 	worker_->server_.onConnectionClose(this);
-
 	delete socket_;
+	socket_ = nullptr;
+	flags_ = 0;
 }
 
 /** Increments the internal reference count and ensures that this object remains valid until its unref().
@@ -121,6 +133,7 @@ void HttpConnection::unref()
 	TRACE(1, "unref() %u (closed:%d, outputPending:%d)", refCount_, isClosed(), isOutputPending());
 
 	if (refCount_ == 0) {
+		clear();
 		worker_->release(handle_);
 	}
 }
@@ -222,6 +235,8 @@ bool HttpConnection::isSecure() const
  */
 void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWorker::ConnectionHandle& handle)
 {
+	setStatus(ReadingRequest);
+
 	handle_ = handle;
 	listener_ = listener;
 

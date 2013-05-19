@@ -90,6 +90,7 @@ private:
 	std::list<std::function<void()>> killHandler_;
 
 	ConnectionList connections_;
+	HttpConnection* freeConnections_;
 
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;

@@ -26,6 +26,8 @@
 #	define TRACE(msg...) do {} while (0)
 #endif
 
+#define X0_FREE_LIST 1
+
 namespace x0 {
 
 /*!
@@ -54,6 +56,9 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 	stopHandler_(),
 	killHandler_(),
 	connections_(),
+#if defined(X0_FREE_LIST)
+	freeConnections_(nullptr),
+#endif
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
 	evWakeup_(loop_),
@@ -90,6 +95,18 @@ HttpWorker::~HttpWorker()
 	evLoopCheck_.stop();
 	evNewConnection_.stop();
 	evWakeup_.stop();
+
+#if defined(X0_FREE_LIST)
+	size_t i = 0;
+	while (freeConnections_) {
+		auto next = freeConnections_->next_;
+		TRACE("free connection: %zi times used", freeConnections_->useCount_);
+		delete freeConnections_;
+		freeConnections_ = next;
+		++i;
+	}
+	TRACE("cleared %zu free-connections items", i);
+#endif
 
 	ev_loop_destroy(loop_);
 }
@@ -162,7 +179,17 @@ void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 	// XXX so that I do not have to double-initialize libev's loop handles for this socket.
 	client->setLoop(loop_);
 
-	HttpConnection* c = new HttpConnection(this, connectionCount_/*id*/);
+	HttpConnection* c;
+#if defined(X0_FREE_LIST)
+	if (likely(freeConnections_ != nullptr)) {
+		c = freeConnections_;
+		c->id_ = connectionCount_;
+		++c->useCount_;
+		freeConnections_ = c->next_;
+	}
+	else
+#endif
+		c = new HttpConnection(this, connectionCount_/*id*/);
 
 	connections_.push_front(c);
 	ConnectionHandle i = connections_.begin();
@@ -180,7 +207,13 @@ void HttpWorker::release(const ConnectionHandle& connection)
 
 	HttpConnection* c = *connection;
 	connections_.erase(connection);
+
+#if defined(X0_FREE_LIST)
+	c->next_ = freeConnections_;
+	freeConnections_ = c;
+#else
 	delete c;
+#endif
 }
 
 void HttpWorker::handleRequest(HttpRequest *r)
