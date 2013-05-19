@@ -419,13 +419,11 @@ bool HttpServer::setup(const std::string& filename, int optimizationLevel)
 // {{{ worker mgnt
 HttpWorker *HttpServer::spawnWorker()
 {
-	bool threaded = workers_.size() != 0;
+	bool isMainWorker = workers_.empty();
 
-	struct ev_loop *loop = threaded
-		? ev_loop_new(0)
-		: loop_;
+	struct ev_loop *loop = isMainWorker ? loop_ : ev_loop_new(0);
 
-	HttpWorker *worker = new HttpWorker(*this, loop, workerIdPool_++, threaded);
+	HttpWorker *worker = new HttpWorker(*this, loop, workerIdPool_++, !isMainWorker);
 
 	workers_.push_back(worker);
 
@@ -693,23 +691,6 @@ bool HttpServer::registerProperty(const std::string& name, const FlowValue::Type
 	return FlowBackend::registerProperty(name, returnType, callback, userdata);
 }
 // }}}
-
-HttpServer* HttpServer::fromText(const std::string& configText, std::future<int>** async)
-{
-	HttpServer* server = new HttpServer(ev_default_loop(0), 1);
-	std::istringstream config(configText);
-	server->setup(&config, "createFromText", 2);
-
-	if (!async)
-		return server;
-
-	*async = new std::future<int>(std::move(std::async(std::launch::async, [&]() {
-		std::shared_ptr<HttpServer> sp(server);
-		return server->run();
-	})));
-
-	return server;
-}
 
 /**
  * loads a plugin into the server.

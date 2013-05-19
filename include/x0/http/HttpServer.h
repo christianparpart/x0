@@ -29,7 +29,6 @@
 #include <cstring>
 #include <string>
 #include <memory>
-#include <future>
 #include <list>
 #include <map>
 
@@ -148,8 +147,6 @@ public:
 	const std::list<ServerSocket*>& listeners() const;
 
 	void dumpIR() const; // for debugging purpose
-
-	HttpServer* fromText(const std::string& configText, std::future<int>** async = nullptr);
 
 	friend class HttpConnection;
 	friend class HttpPlugin;
