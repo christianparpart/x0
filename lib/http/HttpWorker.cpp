@@ -96,17 +96,7 @@ HttpWorker::~HttpWorker()
 	evNewConnection_.stop();
 	evWakeup_.stop();
 
-#if defined(X0_FREE_LIST)
-	size_t i = 0;
-	while (freeConnections_) {
-		auto next = freeConnections_->next_;
-		TRACE("free connection: %zi times used", freeConnections_->useCount_);
-		delete freeConnections_;
-		freeConnections_ = next;
-		++i;
-	}
-	TRACE("cleared %zu free-connections items", i);
-#endif
+	freeCache();
 
 	ev_loop_destroy(loop_);
 }
@@ -180,16 +170,15 @@ void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 	client->setLoop(loop_);
 
 	HttpConnection* c;
-#if defined(X0_FREE_LIST)
 	if (likely(freeConnections_ != nullptr)) {
 		c = freeConnections_;
 		c->id_ = connectionCount_;
 		++c->useCount_;
 		freeConnections_ = c->next_;
 	}
-	else
-#endif
+	else {
 		c = new HttpConnection(this, connectionCount_/*id*/);
+	}
 
 	connections_.push_front(c);
 	ConnectionHandle i = connections_.begin();
@@ -208,12 +197,24 @@ void HttpWorker::release(const ConnectionHandle& connection)
 	HttpConnection* c = *connection;
 	connections_.erase(connection);
 
-#if defined(X0_FREE_LIST)
 	c->next_ = freeConnections_;
 	freeConnections_ = c;
-#else
-	delete c;
-#endif
+}
+
+/**
+ * Clear some cached objects to free up memory.
+ */
+void HttpWorker::freeCache()
+{
+	size_t i = 0;
+	while (freeConnections_) {
+		auto next = freeConnections_->next_;
+		TRACE("freeing connection %llu: %zi times used", freeConnections_->id(), freeConnections_->useCount());
+		delete freeConnections_;
+		freeConnections_ = next;
+		++i;
+	}
+	TRACE("cleared %zu free-connections items", i);
 }
 
 void HttpWorker::handleRequest(HttpRequest *r)

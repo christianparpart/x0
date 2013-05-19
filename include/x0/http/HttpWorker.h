@@ -167,6 +167,8 @@ public:
 	std::list<std::function<void()>>::iterator registerKillHandler(std::function<void()> callback);
 	void unregisterKillHandler(std::list<std::function<void()>>::iterator handle);
 
+	void freeCache();
+
 private:
 	template<class K, void (K::*fn)()>
 	static void post_thunk(int revents, void* arg);
