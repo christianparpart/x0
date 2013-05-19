@@ -1,8 +1,8 @@
 0.7.0 (to-be-released)
 
-	* http: fixing regression regarding HTTP pipelining (#52)
-	* http: added support opportunistic writes
-	* http: added SO_LINGER support via `lingering(timespan)` setup property
+	* http: Fixing regression regarding HTTP pipelining (#52).
+	* http: Added support opportunistic writes.
+	* http: Added SO_LINGER support via `lingering(timespan)` setup property.
 	Must be enabled at compilation time via -DWITH_OPPORTUNISTIC_WRITE=ON.
 	* base, flow: added support for multi-accept
 	Must be enabled at compilation time via -DWITH_MULTI_ACCEPT=ON.
@@ -12,9 +12,10 @@
 	* plugins: director plugin has experimental support for backend acceleration
 	* plugins: director plugin has initial support for HAproxy compatible CSV output
 	* plugins: director plugin fixed wrt. off-by-one bug in scheduler.load stats.
-	* core: introduce severities: crit, alert, emerg
-	* core: support SO_REUSEPORT (as introduced in Linux Kernel 3.9.0, and
+	* core: Introduce severities: crit, alert, emerg.
+	* core: Support SO_REUSEPORT (as introduced in Linux Kernel 3.9.0, and
 			supported by other UNIX OSes already)
+	* x0d: Added bash completion.
 
 0.6.0 (2013-02-27)
 
