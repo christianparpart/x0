@@ -209,7 +209,7 @@ void HttpWorker::freeCache()
 	size_t i = 0;
 	while (freeConnections_) {
 		auto next = freeConnections_->next_;
-		TRACE("freeing connection %llu: %zi times used", freeConnections_->id(), freeConnections_->useCount());
+		TRACE("freeing connection %llu: %zi times used", freeConnections_->id(), freeConnections_->useCount_);
 		delete freeConnections_;
 		freeConnections_ = next;
 		++i;
