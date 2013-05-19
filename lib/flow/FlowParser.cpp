@@ -379,7 +379,7 @@ Variable* FlowParser::varDecl()
 
 Function* FlowParser::handlerDecl()
 {
-	// handlerDecl ::= 'handler' (';' | [do] stmt)
+	// handlerDecl ::= 'handler' IDENT (';' | [do] stmt)
 
 	FNTRACE();
 	SourceLocation sloc(location());
