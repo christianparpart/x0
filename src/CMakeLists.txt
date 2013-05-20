@@ -11,7 +11,7 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 add_executable(x0d x0d.cpp)
-target_link_libraries(x0d XzeroBase XzeroHttp ${TCMALLOC_LIBRARIES})
+target_link_libraries(x0d ${TCMALLOC_LIBRARIES} XzeroBase XzeroHttp)
 
 install(TARGETS x0d RUNTIME DESTINATION sbin)
 install(FILES x0d.conf-dist DESTINATION ${SYSCONFDIR})
