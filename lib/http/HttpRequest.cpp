@@ -475,17 +475,7 @@ Source* HttpRequest::serialize()
 	else if (status == static_cast<HttpStatus>(0))
 		status = HttpStatus::Ok;
 
-	if (!responseHeaders.contains("Content-Type")) {
-		responseHeaders.push_back("Content-Type", "text/plain"); //!< \todo pass "default" content-type instead!
-	}
-
-	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty()) {
-		if (!responseHeaders.contains("Server")) {
-			responseHeaders.push_back("Server", connection.worker().server().tag());
-		} else {
-			responseHeaders.push_back("Via", connection.worker().server().tag());
-		}
-	}
+	bool hasServerHeader = responseHeaders.contains("Server");
 
 	// post-response hook
 	connection.worker().server().onPostProcess(this);
@@ -516,31 +506,6 @@ Source* HttpRequest::serialize()
 			keepalive = false;
 	}
 
-	// only set Connection-response-header if found as request-header, too
-	if (!requestHeader("Connection").empty() || keepalive != connection.shouldKeepAlive()) {
-		if (keepalive) {
-			responseHeaders.overwrite("Connection", "keep-alive");
-
-			if (rlim) {
-				// sent keep-alive timeout and remaining request count
-				char buf[80];
-				snprintf(buf, sizeof(buf), "timeout=%lu, max=%zu", static_cast<time_t>(connection.worker().server().maxKeepAlive().value()), rlim);
-				responseHeaders.overwrite("Keep-Alive", buf);
-			} else {
-				// sent keep-alive timeout only (infinite request count)
-				char buf[80];
-				snprintf(buf, sizeof(buf), "timeout=%lu", static_cast<time_t>(connection.worker().server().maxKeepAlive().value()));
-				responseHeaders.overwrite("Keep-Alive", buf);
-			}
-		} else
-			responseHeaders.overwrite("Connection", "close");
-	}
-
-	connection.setShouldKeepAlive(keepalive);
-
-	if (connection.worker().server().tcpCork())
-		connection.socket()->setTcpCork(true);
-
 	if (supportsProtocol(1, 1))
 		buffers.push_back("HTTP/1.1 ");
 	else if (supportsProtocol(1, 0))
@@ -560,7 +525,38 @@ Source* HttpRequest::serialize()
 		buffers.push_back("\r\n");
 	};
 
+	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty()) {
+		if (hasServerHeader)
+			buffers.push_back("Via: ");
+		else
+			buffers.push_back("Server: ");
+		buffers.push_back(connection.worker().server().tag());
+		buffers.push_back("\r\n");
+	}
+
+	// only set Connection-response-header if found as request-header, too
+	if (!requestHeader("Connection").empty() || keepalive != connection.shouldKeepAlive()) {
+		if (keepalive) {
+			buffers.push_back("Connection: keep-alive\r\n");
+
+			if (rlim) {
+				// sent keep-alive timeout and remaining request count
+				buffers.printf("Keep-Alive: timeout=%lu, max=%zu\r\n",static_cast<time_t>(connection.worker().server().maxKeepAlive().value()), rlim);
+			} else {
+				// sent keep-alive timeout only (infinite request count)
+				buffers.printf("Keep-Alive: timeout=%lu\r\n", static_cast<time_t>(connection.worker().server().maxKeepAlive().value()));
+			}
+		} else {
+			buffers.push_back("Connection: close\r\n");
+		}
+	}
+
 	buffers.push_back("\r\n");
+
+	connection.setShouldKeepAlive(keepalive);
+
+	if (connection.worker().server().tcpCork())
+		connection.socket()->setTcpCork(true);
 
 	return new BufferSource(std::move(buffers));
 }
