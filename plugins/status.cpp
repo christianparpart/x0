@@ -332,9 +332,14 @@ private:
 		if (debug)
 			buf << "<th>" << "debug" << "</th>";
 
-		for (auto w: server().workers())
-			for (auto c: w->connections())
+		// {{{ FIXME make this one being serialized better
+		for (auto w: server().workers()) {
+			w->eachConnection([&](x0::HttpConnection* c) -> bool {
 				dump(buf, c, debug);
+				return true;
+			});
+		}
+		// FIXME end. }}}
 
 		buf << "</table>\n";
 
