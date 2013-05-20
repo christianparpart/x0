@@ -86,7 +86,8 @@ endif(WITH_INOTIFY)
 
 if(WITH_TCMALLOC)
 	CHECK_INCLUDE_FILES(google/tcmalloc.h HAVE_GOOGLE_TCMALLOC_H)
-	pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
+#	pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
+	set(TCMALLOC_LIBRARIES tcmalloc)
 endif(WITH_TCMALLOC)
 
 CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
