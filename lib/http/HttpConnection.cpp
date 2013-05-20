@@ -29,8 +29,6 @@
 #	define TRACE(msg...) do { } while (0)
 #endif
 
-#define X0_HTTP_STRICT 1
-
 namespace x0 {
 
 /**
