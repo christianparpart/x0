@@ -26,8 +26,6 @@
 #	define TRACE(msg...) do {} while (0)
 #endif
 
-#define X0_FREE_LIST 1
-
 namespace x0 {
 
 /*!
@@ -55,10 +53,8 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 	performanceCounter_(),
 	stopHandler_(),
 	killHandler_(),
-	connections_(),
-#if defined(X0_FREE_LIST)
+	connections_(nullptr),
 	freeConnections_(nullptr),
-#endif
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
 	evWakeup_(loop_),
@@ -118,8 +114,7 @@ void HttpWorker::run()
 	TRACE("enter loop");
 	ev_loop(loop_, 0);
 
-	TRACE("event loop left. killing remaining connections (%ld).", connections_.size());
-	if (!connections_.empty())
+	while (connections_)
 		_kill();
 
 	server_.onWorkerUnspawn(this);
@@ -173,31 +168,49 @@ void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 	if (likely(freeConnections_ != nullptr)) {
 		c = freeConnections_;
 		c->id_ = connectionCount_;
-		++c->useCount_;
 		freeConnections_ = c->next_;
 	}
 	else {
 		c = new HttpConnection(this, connectionCount_/*id*/);
 	}
 
-	connections_.push_front(c);
-	ConnectionHandle i = connections_.begin();
+	if (connections_)
+		connections_->prev_ = c;
 
-	c->start(listener, client, i);
+	c->next_ = connections_;
+	connections_ = c;
+
+	c->start(listener, client);
 }
 
 /** releases/unregisters given (and to-be-destroyed) connection from this worker.
  *
  * This decrements the connection-load counter by one.
  */
-void HttpWorker::release(const ConnectionHandle& connection)
+void HttpWorker::release(HttpConnection* c)
 {
+	//    /--<--\   /--<--\   /--<--\
+	// NULL     item1     item2     item3     NULL
+	//              \-->--/   \-->--/   \-->--/
+
 	--connectionLoad_;
 
-	HttpConnection* c = *connection;
-	connections_.erase(connection);
+	HttpConnection* prev = c->prev_;
+	HttpConnection* next = c->next_;
+
+	if (prev)
+		prev->next_ = next;
+
+	if (next)
+		next->prev_ = prev;
+
+	if (c == connections_)
+		connections_ = next;
 
 	c->next_ = freeConnections_;
+	c->prev_ = nullptr;					// not needed
+	if (freeConnections_ && freeConnections_->prev_)
+		freeConnections_->prev_ = c;	// not needed
 	freeConnections_ = c;
 }
 
@@ -209,7 +222,6 @@ void HttpWorker::freeCache()
 	size_t i = 0;
 	while (freeConnections_) {
 		auto next = freeConnections_->next_;
-		TRACE("freeing connection %llu: %zi times used", freeConnections_->id(), freeConnections_->useCount_);
 		delete freeConnections_;
 		freeConnections_ = next;
 		++i;
@@ -363,15 +375,18 @@ void HttpWorker::kill()
 void HttpWorker::_kill()
 {
 	TRACE("_kill()");
-	if (!connections_.empty()) {
-		auto copy = connections_;
+	while (connections_) {
+		std::list<HttpConnection*> copy;
+
+		for (HttpConnection* c = connections_; c != nullptr; c = c->next_)
+			copy.push_back(c);
 
 		for (auto c: copy)
 			c->abort();
 
 #ifndef XZERO_NDEBUG
-		for (auto i: connections_)
-			i->log(Severity::debug, "connection still open");
+		for (HttpConnection* c = connections_; c != nullptr; c = c->next_)
+			c->log(Severity::debug, "connection still open");
 #endif
 	}
 

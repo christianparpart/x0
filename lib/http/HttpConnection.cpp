@@ -8,6 +8,7 @@
 
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/http/HttpWorker.h>
 #include <x0/ServerSocket.h>
 #include <x0/SocketDriver.h>
 #include <x0/StackTrace.h>
@@ -56,7 +57,6 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	status_(Undefined),
 	listener_(nullptr),
 	worker_(w),
-	handle_(),
 	id_(id),
 	requestCount_(0),
 	flags_(0),
@@ -68,8 +68,8 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	sink_(nullptr),
 	abortHandler_(nullptr),
 	abortData_(nullptr),
-	next_(nullptr),
-	useCount_(1)
+	prev_(nullptr),
+	next_(nullptr)
 {
 }
 
@@ -133,7 +133,7 @@ void HttpConnection::unref()
 
 	if (refCount_ == 0) {
 		clear();
-		worker_->release(handle_);
+		worker_->release(this);
 	}
 }
 
@@ -232,11 +232,10 @@ bool HttpConnection::isSecure() const
  *
  * \see stop()
  */
-void HttpConnection::start(ServerSocket* listener, Socket* client, const HttpWorker::ConnectionHandle& handle)
+void HttpConnection::start(ServerSocket* listener, Socket* client)
 {
 	setStatus(ReadingRequest);
 
-	handle_ = handle;
 	listener_ = listener;
 
 	socket_ = client;
@@ -758,6 +757,19 @@ void HttpConnection::setStatus(Status value)
 	Status lastStatus = status_;
 	status_ = value;
 	worker().server().onConnectionStatusChanged(this, lastStatus);
+}
+
+
+void HttpConnection::log(LogMessage&& msg)
+{
+	msg.addTag(!isClosed() ? remoteIP() : "(null)");
+
+	worker().log(std::forward<LogMessage>(msg));
+}
+
+void HttpConnection::post(const std::function<void()>& function)
+{
+	worker_->post(function);
 }
 
 } // namespace x0

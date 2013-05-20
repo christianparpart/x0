@@ -30,7 +30,8 @@
 #include <string>
 #include <memory>
 #include <list>
-#include <map>
+#include <unordered_map>
+#include <atomic>
 
 #include <ev++.h>
 
@@ -195,7 +196,7 @@ private:
 	bool colored_log_;
 	std::string pluginDirectory_;
 	std::vector<HttpPlugin*> plugins_;
-	std::map<HttpPlugin*, Library> pluginLibraries_;
+	std::unordered_map<HttpPlugin*, Library> pluginLibraries_;
 	HttpCore* core_;
 	std::atomic<unsigned int> workerIdPool_;
 	std::vector<HttpWorker*> workers_;

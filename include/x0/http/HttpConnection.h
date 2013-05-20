@@ -10,7 +10,6 @@
 #define x0_connection_h (1)
 
 #include <x0/http/HttpMessageProcessor.h>
-#include <x0/http/HttpWorker.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
@@ -36,6 +35,8 @@ namespace x0 {
 //@{
 
 class HttpRequest;
+class HttpWorker;
+class ServerSocket;
 
 /**
  * @brief HTTP client connection object.
@@ -105,7 +106,7 @@ public:
 
 	unsigned refCount() const;
 
-	template<typename T> inline void post(T function) { worker_->post(function); }
+	void post(const std::function<void()>& function);
 
 private:
 	friend class HttpRequest;
@@ -122,7 +123,7 @@ private:
 	void unref();
 	void clear();
 
-	void start(ServerSocket* listener, Socket* client, const HttpWorker::ConnectionHandle& handle);
+	void start(ServerSocket* listener, Socket* client);
 	void resume();
 
 	bool isAborted() const;
@@ -160,7 +161,6 @@ private:
 
 	ServerSocket* listener_;
 	HttpWorker* worker_;
-	HttpWorker::ConnectionHandle handle_;
 
 	unsigned long long id_;				//!< the worker-local connection-ID
 	unsigned requestCount_;				//!< the number of requests already processed or currently in process
@@ -188,8 +188,8 @@ private:
 	void (*abortHandler_)(void*);
 	void* abortData_;
 
+	HttpConnection* prev_;
 	HttpConnection* next_;
-	size_t useCount_;
 };
 
 // {{{ inlines
@@ -254,13 +254,6 @@ template<typename... Args>
 inline void HttpConnection::log(Severity s, const char* fmt, Args... args)
 {
 	log(LogMessage(s, fmt, args...));
-}
-
-inline void HttpConnection::log(LogMessage&& msg)
-{
-	msg.addTag(!isClosed() ? remoteIP() : "(null)");
-
-	worker().log(std::forward<LogMessage>(msg));
 }
 // }}}
 

@@ -11,6 +11,7 @@
 
 #include <x0/http/HttpHeader.h>
 #include <x0/http/HttpConnection.h>
+#include <x0/http/HttpWorker.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/flow/FlowContext.h>

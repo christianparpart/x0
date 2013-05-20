@@ -11,6 +11,7 @@
 
 #include <x0/Api.h>
 #include <x0/http/Types.h>
+#include <x0/http/HttpConnection.h>
 #include <x0/io/FileInfoService.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
@@ -89,7 +90,7 @@ private:
 	std::list<std::function<void()>> stopHandler_;
 	std::list<std::function<void()>> killHandler_;
 
-	ConnectionList connections_;
+	HttpConnection* connections_;
 	HttpConnection* freeConnections_;
 
 	ev::check evLoopCheck_;
@@ -122,8 +123,14 @@ public:
 	bool isRunning() const { return state_ == Running; }
 	bool isSuspended() const { return state_ == Suspended; }
 
-	ConnectionList& connections() { return connections_; }
-	const ConnectionList& connections() const { return connections_; }
+	template<typename T>
+	bool eachConnection(T cb) {
+		for (HttpConnection* c = connections_; c != nullptr; c = c->next_)
+			if (!cb(c))
+				return false;
+
+		return true;
+	}
 
 	int connectionLoad() const;
 	unsigned long long requestCount() const;
@@ -133,7 +140,7 @@ public:
 
 	void enqueue(std::pair<Socket*, ServerSocket*>&& handle);
 	void handleRequest(HttpRequest *r);
-	void release(const ConnectionHandle& connection);
+	void release(HttpConnection* connection);
 
 	template<typename... Args>
 	void log(Severity s, const char* fmt, Args... args);
