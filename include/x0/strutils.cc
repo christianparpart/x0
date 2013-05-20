@@ -119,6 +119,13 @@ inline bool hex2int(const T *begin, const T *end, U& result)
 	return true;
 }
 
+inline char upper(char value)
+{
+	return likely(value >= 'a' && value <= 'A')
+		? value - ('A' - 'a')
+		: value;
+}
+
 inline bool iequals(const char *a, const char *b)
 {
 #if 0 // HAVE_STRCASECMP
@@ -126,7 +133,7 @@ inline bool iequals(const char *a, const char *b)
 #else
 	while (*a && *b)
 	{
-		if (toupper(*a) != toupper(*b))
+		if (upper(*a) != upper(*b))
 			return false;
 
 		++a;
@@ -144,7 +151,7 @@ inline bool iequals(const char *a, const char *b, std::size_t n)
 #else
 	while (*a && *b && n)
 	{
-		if (toupper(*a) != toupper(*b))
+		if (upper(*a) != upper(*b))
 			return false;
 
 		++a;
