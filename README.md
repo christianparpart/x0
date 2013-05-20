@@ -65,8 +65,8 @@ written in modern C++.
     
     # Installs required dependencies
     sudo apt-get install make cmake gcc g++ libcppunit-dev libgnutls28-dev libgcrypt11-dev \
-        libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.0-dev pkg-config \
-        libpcre3-dev libfcgi-dev
+        libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev llvm-3.1-dev pkg-config \
+        libpcre3-dev libfcgi-dev libgoogle-perftools4
     
     # Installs optional requirements
     sudo apt-get install libmagickwand-dev librrd-dev
@@ -77,7 +77,7 @@ written in modern C++.
     
     # Now run cmake to bootstrap build
     cmake -DCMAKE_BUILD_TYPE=debug -DCMAKE_INSTALL_PREFIX=$HOME/local \
-        -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0
+        -DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.1
     
     # Ensure installation target prefix
     mkdir $HOME/local
