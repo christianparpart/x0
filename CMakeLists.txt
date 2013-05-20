@@ -41,6 +41,7 @@ option(WITH_ACCEPT4 "Builds with support for accept4() system-call, if found [de
 option(WITH_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
 option(WITH_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: off]" OFF)
 option(WITH_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
+option(WITH_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
 #option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
 
 add_definitions(-Wall -Wno-variadic-macros)
@@ -82,6 +83,11 @@ if(WITH_INOTIFY)
 		CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
 	endif(HAVE_SYS_INOTIFY_H)
 endif(WITH_INOTIFY)
+
+if(WITH_TCMALLOC)
+	CHECK_INCLUDE_FILES(google/tcmalloc.h HAVE_GOOGLE_TCMALLOC_H)
+	pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
+endif(WITH_TCMALLOC)
 
 CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
 if(HAVE_ZLIB_H)
