@@ -53,7 +53,7 @@ EchoServer::EchoServer(struct ev_loop* loop, const char* bind, int port, Logger*
 	ss_(nullptr),
 	logger_(logger)
 {
-	ss_ = new ServerSocket(loop);
+	ss_ = new ServerSocket(loop_);
 	ss_->set<EchoServer, &EchoServer::incoming>(this);
 	ss_->open(bind, port, O_NONBLOCK);
 
