@@ -141,13 +141,6 @@ private:
 	void phys_mimetype(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void regex_group(HttpRequest* in, const FlowParams& args, FlowValue& result);
 
-	// helpers
-	inline HttpStatus verifyClientCache(HttpRequest *r);
-	inline bool processStaticFile(HttpRequest *r, FileInfoPtr transferFile);
-	inline bool processRangeRequest(HttpRequest *r, int fd);
-	inline std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actual_size);
-	inline std::string generateBoundaryID() const;
-
 	// {{{ legacy
 private:
 	unsigned long long getrlimit(int resource);

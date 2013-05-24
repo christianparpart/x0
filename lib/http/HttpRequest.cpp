@@ -7,9 +7,11 @@
  */
 
 #include <x0/http/HttpRequest.h>
+#include <x0/http/HttpRangeDef.h>
 #include <x0/http/HttpConnection.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/FilterSource.h>
+#include <x0/io/FileSource.h>
 #include <x0/io/ChunkedEncoder.h>
 #include <x0/Process.h>                // Process::dumpCore()
 #include <x0/strutils.h>
@@ -24,6 +26,38 @@
 #endif
 
 namespace x0 {
+
+// {{{ helper methods
+/**
+ * converts a range-spec into real offsets.
+ */
+inline constexpr std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actualSize)
+{
+	return p.first == HttpRangeDef::npos
+		? std::make_pair(actualSize - p.second, actualSize - 1)         // last N bytes
+		: p.second == HttpRangeDef::npos && p.second > actualSize
+			? std::make_pair(p.first, actualSize - 1)                   // from fixed N to the end of file
+			: std::make_pair(p.first, p.second);                        // fixed range
+}
+
+/**
+ * generates a boundary tag.
+ *
+ * \return a value usable as boundary tag.
+ */
+inline std::string generateBoundaryID()
+{
+	static const char *map = "0123456789abcdef";
+	char buf[16 + 1];
+
+	for (std::size_t i = 0; i < sizeof(buf) - 1; ++i)
+		buf[i] = map[random() % (sizeof(buf) - 1)];
+
+	buf[sizeof(buf) - 1] = '\0';
+
+	return std::string(buf);
+}
+// }}}
 
 char HttpRequest::statusCodes_[512][4];
 
@@ -795,4 +829,205 @@ bool HttpRequest::testDirectoryTraversal()
 	return true;
 }
 
+bool HttpRequest::sendfile()
+{
+	return sendfile(fileinfo);
+}
+
+bool HttpRequest::sendfile(const std::string& filename)
+{
+	return sendfile(connection.worker().fileinfo(filename));
+}
+
+bool HttpRequest::sendfile(FileInfoPtr transferFile)
+{
+	status = verifyClientCache(transferFile);
+	if (status != HttpStatus::Ok)
+		return true;
+
+	int fd = -1;
+	if (equals(method, "GET")) {
+		int flags = O_RDONLY | O_NONBLOCK;
+
+#if defined(O_CLOEXEC)
+		flags |= O_CLOEXEC;
+#endif
+
+		fd = transferFile->open(flags);
+
+		if (fd < 0) {
+			log(Severity::error, "Could not open file '%s': %s", transferFile->path().c_str(), strerror(errno));
+			status = HttpStatus::Forbidden;
+			return true;
+		}
+	} else if (!equals(method, "HEAD")) {
+		status = HttpStatus::MethodNotAllowed;
+		return true;
+	}
+
+	responseHeaders.push_back("Last-Modified", transferFile->lastModified());
+	responseHeaders.push_back("ETag", transferFile->etag());
+
+	if (!processRangeRequest(transferFile, fd)) {
+		responseHeaders.push_back("Accept-Ranges", "bytes");
+		responseHeaders.push_back("Content-Type", transferFile->mimetype());
+		responseHeaders.push_back("Content-Length", lexical_cast<std::string>(transferFile->size()));
+
+		if (fd >= 0) { // GET request
+			posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
+			write<FileSource>(fd, 0, transferFile->size(), true);
+		}
+	}
+
+	return true;
+}
+
+/**
+ * verifies wether the client may use its cache or not.
+ *
+ * \param in request object
+ */
+HttpStatus HttpRequest::verifyClientCache(FileInfoPtr transferFile) const
+{
+	std::string value;
+
+	// If-None-Match, If-Modified-Since
+	if ((value = requestHeader("If-None-Match")) != "") {
+		if (value == transferFile->etag()) {
+			if ((value = requestHeader("If-Modified-Since")) != "") { // ETag + If-Modified-Since
+				DateTime date(value);
+
+				if (!date.valid())
+					return HttpStatus::BadRequest;
+
+				if (transferFile->mtime() <= date.unixtime())
+					return HttpStatus::NotModified;
+			} else { // ETag-only
+				return HttpStatus::NotModified;
+			}
+		}
+	}
+	else if ((value = requestHeader("If-Modified-Since")) != "") {
+		DateTime date(value);
+		if (!date.valid())
+			return HttpStatus::BadRequest;
+
+		if (transferFile->mtime() <= date.unixtime())
+			return HttpStatus::NotModified;
+	}
+
+	return HttpStatus::Ok;
+}
+
+/*! fully processes the ranged requests, if one, or does nothing.
+ *
+ * \retval true this was a ranged request and we fully processed it (invoked finish())
+ * \internal false this is no ranged request. nothing is done on it.
+ */
+bool HttpRequest::processRangeRequest(FileInfoPtr transferFile, int fd) //{{{
+{
+	BufferRef range_value(requestHeader("Range"));
+	HttpRangeDef range;
+
+	// if no range request or range request was invalid (by syntax) we fall back to a full response
+	if (range_value.empty() || !range.parse(range_value))
+		return false;
+
+	BufferRef ifRangeCond(requestHeader("If-Range"));
+	if (!ifRangeCond.empty()) {
+		//printf("If-Range specified: %s\n", ifRangeCond.str().c_str());
+		if (!equals(ifRangeCond, transferFile->etag())
+				&& !equals(ifRangeCond, transferFile->lastModified())) {
+			//printf("-> does not equal\n");
+			return false;
+		}
+	}
+
+	status = HttpStatus::PartialContent;
+
+	if (range.size() > 1) {
+		// generate a multipart/byteranged response, as we've more than one range to serve
+
+		CompositeSource* content = new CompositeSource();
+		Buffer buf;
+		std::string boundary(generateBoundaryID());
+		std::size_t contentLength = 0;
+
+		for (int i = 0, e = range.size(); i != e; ++i) {
+			std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[i], transferFile->size()));
+			if (offsets.second < offsets.first) {
+				status = HttpStatus::RequestedRangeNotSatisfiable;
+				return true;
+			}
+
+			std::size_t partLength = 1 + offsets.second - offsets.first;
+
+			buf.clear();
+			buf.push_back("\r\n--");
+			buf.push_back(boundary);
+			buf.push_back("\r\nContent-Type: ");
+			buf.push_back(transferFile->mimetype());
+
+			buf.push_back("\r\nContent-Range: bytes ");
+			buf.push_back(offsets.first);
+			buf.push_back("-");
+			buf.push_back(offsets.second);
+			buf.push_back("/");
+			buf.push_back(transferFile->size());
+			buf.push_back("\r\n\r\n");
+
+			contentLength += buf.size() + partLength;
+
+			if (fd >= 0) {
+				bool lastChunk = i + 1 == e;
+				content->push_back<BufferSource>(std::move(buf));
+				content->push_back<FileSource>(fd, offsets.first, partLength, lastChunk);
+			}
+		}
+
+		buf.clear();
+		buf.push_back("\r\n--");
+		buf.push_back(boundary);
+		buf.push_back("--\r\n");
+
+		contentLength += buf.size();
+		content->push_back<BufferSource>(std::move(buf));
+
+		// push the prepared ranged response into the client
+		char slen[32];
+		snprintf(slen, sizeof(slen), "%zu", contentLength);
+
+		responseHeaders.push_back("Content-Type", "multipart/byteranges; boundary=" + boundary);
+		responseHeaders.push_back("Content-Length", slen);
+
+		if (fd >= 0) {
+			write(content);
+		}
+	} else { // generate a simple (single) partial response
+		std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[0], transferFile->size()));
+		if (offsets.second < offsets.first) {
+			status = HttpStatus::RequestedRangeNotSatisfiable;
+			return true;
+		}
+
+		responseHeaders.push_back("Content-Type", transferFile->mimetype());
+
+		std::size_t length = 1 + offsets.second - offsets.first;
+
+		char slen[32];
+		snprintf(slen, sizeof(slen), "%zu", length);
+		responseHeaders.push_back("Content-Length", slen);
+
+		char cr[128];
+		snprintf(cr, sizeof(cr), "bytes %zu-%zu/%zu", offsets.first, offsets.second, transferFile->size());
+		responseHeaders.push_back("Content-Range", cr);
+
+		if (fd >= 0) {
+			posix_fadvise(fd, offsets.first, length, POSIX_FADV_SEQUENTIAL);
+			write<FileSource>(fd, offsets.first, length, true);
+		}
+	}
+
+	return true;
+} //}}}
 } // namespace x0

@@ -344,6 +344,12 @@ public:
 	OutputState outputState() const;
 	unsigned long long bytesTransmitted() const;
 
+	// full response writer - but do not invoke finish()
+	bool sendfile();
+	bool sendfile(const std::string& filename);
+	bool sendfile(FileInfoPtr transferFile);
+
+	// dynamic response writer
 	void write(Source* chunk);
 	template<class K, void (K::*Callback)()>
 	bool writeCallback(K* object);
@@ -384,6 +390,9 @@ private:
 
 	template<class K, void (K::*cb)()>
 	static void write_cb_thunk(void* data);
+
+	HttpStatus verifyClientCache(FileInfoPtr transferFile) const;
+	bool processRangeRequest(FileInfoPtr transferFile, int fd);
 
 	// response write helper
 	Source* serialize();
