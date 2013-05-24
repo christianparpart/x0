@@ -32,13 +32,16 @@ written in modern C++.
 - dynamic content compression (plugin)
 - basic authentication (plugin)
 - advanced dynamic load balancer (plugin)
+  - supporting different backend transports (TCP/IP, and UNIX Domain Sockets).
   - supporting different backend protocols (HTTP and FastCGI)
-  - supporting different transport protocols (TCP/IP, and UNIX Domain Sockets).
+  - supporting different backend acceleration strategies (memory, disk)
   - advanced health monitoring
   - JSON API for retrieving state, stats,
     and reconfiguring clusters (including adding/updating/removing backends).
   - client side routing support
   - sticky offline mode
+  - X-Sendfile support, full static file transmission acceleration
+  - HAproxy compatible CSV output
 - request path aliasing (plugin)
 - automatic directory listing generation (plugin)
 - apache-style access log (plugin)
