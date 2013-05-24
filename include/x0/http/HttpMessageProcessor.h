@@ -295,7 +295,7 @@ inline bool HttpMessageProcessor::isContentExpected() const
 {
 	return contentLength_ > 0
 		|| chunked_
-		|| mode_ != REQUEST;
+		|| (contentLength_ < 0 && mode_ != REQUEST);
 }
 
 } // namespace x0
