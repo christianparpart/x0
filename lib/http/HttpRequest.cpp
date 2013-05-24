@@ -96,8 +96,6 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	static std::atomic<unsigned long long> rid(0);
 	setLoggingPrefix("HttpRequest(%lld,%s:%d)", ++rid, connection.remoteIP().c_str(), connection.remotePort());
 #endif
-
-	responseHeaders.push_back("Date", connection.worker().now().http_str().str());
 }
 
 HttpRequest::~HttpRequest()
@@ -552,12 +550,23 @@ Source* HttpRequest::serialize()
 	buffers.push_back(statusStr(status));
 	buffers.push_back("\r\n");
 
+	bool dateFound = false;
+
 	for (auto& i: responseHeaders) {
+		if (unlikely(iequals(i.name, "Date")))
+			dateFound = true;
+
 		buffers.push_back(i.name.data(), i.name.size());
 		buffers.push_back(": ");
 		buffers.push_back(i.value.data(), i.value.size());
 		buffers.push_back("\r\n");
 	};
+
+	if (likely(!dateFound)) {
+		buffers.push_back("Date: ");
+		buffers.push_back(connection.worker().now().http_str());
+		buffers.push_back("\r\n");
+	}
 
 	if (connection.worker().server().advertise() && !connection.worker().server().tag().empty()) {
 		if (hasServerHeader)
