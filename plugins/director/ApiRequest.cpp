@@ -833,6 +833,10 @@ bool ApiRequest::updateDirector(Director* director)
 	if (hasParam("sticky-offline-mode") && !loadParam("sticky-offline-mode", stickyOfflineMode))
 		return false;
 
+	bool allowXSendfile = director->allowXSendfile();
+	if (hasParam("allow-x-sendfile") && !loadParam("allow-x-sendfile", allowXSendfile))
+		return false;
+
 	std::string hcHostHeader = director->healthCheckHostHeader();
 	if (hasParam("health-check-host-header") && !loadParam("health-check-host-header", hcHostHeader))
 		return false;
@@ -863,6 +867,7 @@ bool ApiRequest::updateDirector(Director* director)
 	director->setTransferMode(transferMode);
 	director->setMaxRetryCount(maxRetryCount);
 	director->setStickyOfflineMode(stickyOfflineMode);
+	director->setAllowXSendfile(allowXSendfile);
 	director->setHealthCheckHostHeader(hcHostHeader);
 	director->setHealthCheckRequestPath(hcRequestPath);
 	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);

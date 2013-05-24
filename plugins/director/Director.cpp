@@ -386,6 +386,7 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("retry-after")(retryAfter_.totalSeconds())
 		.name("max-retry-count")(maxRetryCount_)
 		.name("sticky-offline-mode")(stickyOfflineMode_)
+		.name("allow-x-sendfile")(allowXSendfile_)
 		.name("connect-timeout")(connectTimeout_.totalMilliseconds())
 		.name("read-timeout")(readTimeout_.totalMilliseconds())
 		.name("write-timeout")(writeTimeout_.totalMilliseconds())
@@ -494,6 +495,13 @@ bool Director::load(const std::string& path)
 		return false;
 	}
 	stickyOfflineMode_ = value == "true";
+
+	if (!settings.load("director", "allow-x-sendfile", value)) {
+		worker()->log(Severity::warn, "director: Could not load settings value director.x-sendfile in file '%s'", path.c_str());
+		allowXSendfile_ = false;
+	} else {
+		allowXSendfile_ = value == "true";
+	}
 
 	if (!settings.load("director", "health-check-host-header", healthCheckHostHeader_)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.health-check-host-header in file '%s'", path.c_str());
@@ -705,6 +713,7 @@ bool Director::save()
 		<< "retry-after=" << retryAfter_.totalSeconds() << "\n"
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
 		<< "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
+		<< "allow-x-sendfile=" << (allowXSendfile_ ? "true" : "false") << "\n"
 		<< "connect-timeout=" << connectTimeout_.totalMilliseconds() << "\n"
 		<< "read-timeout=" << readTimeout_.totalMilliseconds() << "\n"
 		<< "write-timeout=" << writeTimeout_.totalMilliseconds() << "\n"

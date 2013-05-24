@@ -61,6 +61,7 @@ private:
 	std::string healthCheckFcgiScriptFilename_;
 
 	bool stickyOfflineMode_;    //!< whether a backend should be marked disabled if it becomes online again
+	bool allowXSendfile_;		//!< whether or not to evaluate the X-Sendfile response header.
 
 	std::vector<BackendCluster> backends_; //!< set of backends managed by this director.
 
@@ -113,6 +114,9 @@ public:
 
 	bool stickyOfflineMode() const { return stickyOfflineMode_; }
 	void setStickyOfflineMode(bool value) { stickyOfflineMode_ = value; }
+
+	bool allowXSendfile() const { return allowXSendfile_; }
+	void setAllowXSendfile(bool value) { allowXSendfile_ = value; }
 
 	size_t queueLimit() const { return queueLimit_; }
 	void setQueueLimit(size_t value) { queueLimit_ = value; }

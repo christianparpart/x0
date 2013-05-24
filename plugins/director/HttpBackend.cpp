@@ -61,6 +61,8 @@ private:
 	int transferHandle_;
 	size_t transferOffset_;
 
+	std::string sendfile_;
+
 private:
 	HttpBackend* proxy() const { return backend_; }
 
@@ -84,6 +86,7 @@ private:
 	// response (HttpMessageProcessor)
 	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
 	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
+	virtual bool onMessageHeaderEnd();
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
 
@@ -377,6 +380,11 @@ bool HttpBackend::Connection::onMessageHeader(const BufferRef& name, const Buffe
 	if (iequals(name, "Transfer-Encoding"))
 		goto skip;
 
+	if (unlikely(iequals(name, "X-Sendfile"))) {
+		sendfile_ = value.str();
+		goto skip;
+	}
+
 	request_->responseHeaders.push_back(name.str(), value.str());
 	return true;
 
@@ -386,10 +394,22 @@ skip:
 	return true;
 }
 
+bool HttpBackend::Connection::onMessageHeaderEnd()
+{
+	if (unlikely(!sendfile_.empty()))
+		request_->sendfile(sendfile_);
+
+	return true;
+}
+
 /** callback, invoked on a new response content chunk. */
 bool HttpBackend::Connection::onMessageContent(const BufferRef& chunk)
 {
 	TRACE("messageContent(nb:%lu) state:%s", chunk.size(), socket_->state_str());
+
+	if (unlikely(!sendfile_.empty()))
+		// we ignore the backend's message body as we've replaced it with the file contents of X-Sendfile's file.
+		return true;
 
 	switch (backend_->manager()->transferMode()) {
 	case TransferMode::FileAccel:
