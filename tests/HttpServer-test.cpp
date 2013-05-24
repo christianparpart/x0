@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 #include <x0/http/HttpServer.h>
+#include <x0/http/HttpClient.h>
 #include <x0/Buffer.h>
 #include <iostream>
 #include <fstream>
 #include <ev++.h>
+
+using namespace x0;
 
 class HttpServerTest : public ::testing::Test
 {
@@ -17,25 +20,48 @@ public:
 
 private:
 	struct ev::loop_ref loop_;
-	x0::HttpServer* http_;
+	HttpServer* http_;
 };
 
 HttpServerTest::HttpServerTest() :
-	loop_(ev::default_loop(0)),
+	loop_(ev::default_loop()),
 	http_(nullptr)
 {
-	x0::FlowRunner::initialize();
+	FlowRunner::initialize();
 }
 
 void HttpServerTest::SetUp()
 {
-	http_ = new x0::HttpServer(loop_);
+	http_ = new HttpServer(loop_);
 }
 
 void HttpServerTest::TearDown()
 {
 	delete http_;
 	http_ = nullptr;
+}
+
+void HttpServerTest::request(const std::string& method, const std::string& path,
+	const std::initializer_list<std::pair<std::string, std::string>>& headers, const Buffer& content,
+	ResponseHandler callback)
+{
+	std::unordered_map<std::string, std::string> headerMap;
+	for (auto item: headers)
+		headerMap[item.first] = item.second;
+
+	HttpClient::request(host_, port_, method, path, headerMap, content, callback);
+}
+
+TEST_F(HttpServerTest, Get)
+{
+	HttpClient::HeaderMap headers;
+	Buffer body;
+
+	HttpClient::request(IPAddress("127.0.0.1"), 8080, "GET", "/", {{"Foo", "bar"}, {"User-Agent", "HttpClient/1.0"}}, body,
+	[&](HttpClientError ec, int status, const HttpClient::HeaderMap& headers, const BufferRef& content) {
+		ASSERT_EQ(200, status);
+		ASSERT_EQ(0, content.size());
+	});
 }
 
 TEST_F(HttpServerTest, DirectoryTraversal)
