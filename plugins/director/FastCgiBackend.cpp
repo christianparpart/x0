@@ -718,8 +718,12 @@ bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::Buff
 
 bool FastCgiTransport::onMessageHeaderEnd()
 {
-	if (unlikely(!sendfile_.empty()))
+	if (unlikely(!sendfile_.empty())) {
+		request_->responseHeaders.remove("Content-Type");
+		request_->responseHeaders.remove("Content-Length");
+		request_->responseHeaders.remove("ETag");
 		request_->sendfile(sendfile_);
+	}
 
 	return true;
 }
