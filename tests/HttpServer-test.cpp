@@ -18,13 +18,21 @@ public:
 
 	void DirectoryTraversal();
 
+	void request(const std::string& method, const std::string& path,
+		const std::initializer_list<std::pair<std::string, std::string>>& headers, const Buffer& content,
+		HttpClient::ResponseHandler callback);
+
 private:
 	struct ev::loop_ref loop_;
+	IPAddress host_;
+	int port_;
 	HttpServer* http_;
 };
 
 HttpServerTest::HttpServerTest() :
 	loop_(ev::default_loop()),
+	host_("127.0.0.1"),
+	port_(8080),
 	http_(nullptr)
 {
 	FlowRunner::initialize();
@@ -43,7 +51,7 @@ void HttpServerTest::TearDown()
 
 void HttpServerTest::request(const std::string& method, const std::string& path,
 	const std::initializer_list<std::pair<std::string, std::string>>& headers, const Buffer& content,
-	ResponseHandler callback)
+	HttpClient::ResponseHandler callback)
 {
 	std::unordered_map<std::string, std::string> headerMap;
 	for (auto item: headers)
