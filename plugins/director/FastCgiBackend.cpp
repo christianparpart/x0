@@ -112,6 +112,8 @@ public:
 	int transferHandle_;
 	int transferOffset_;
 
+	std::string sendfile_;
+
 public:
 	explicit FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint16_t id, x0::Socket* backend);
 	~FastCgiTransport();
@@ -143,6 +145,7 @@ private:
 	void processRequestBody(const x0::BufferRef& chunk);
 
 	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
+	virtual bool onMessageHeaderEnd();
 	virtual bool onMessageContent(const x0::BufferRef& content);
 
 	virtual void log(x0::LogMessage&& msg);
@@ -186,7 +189,8 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	paramWriter_(),
 	writeCount_(0),
 	transferHandle_(-1),
-	transferOffset_(0)
+	transferOffset_(0),
+	sendfile_()
 {
 #ifndef XZERO_NDEBUG
 	static std::atomic<int> mi(0);
@@ -700,6 +704,8 @@ bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::Buff
 	if (x0::iequals(name, "Status")) {
 		int status = value.ref(0, value.find(' ')).toInt();
 		request_->status = static_cast<x0::HttpStatus>(status);
+	} else if (x0::iequals(name, "X-Sendfile")) {
+		sendfile_ = value.str();
 	} else {
 		if (name == "Location")
 			request_->status = x0::HttpStatus::MovedTemporarily;
@@ -710,10 +716,22 @@ bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::Buff
 	return true;
 }
 
+bool FastCgiTransport::onMessageHeaderEnd()
+{
+	if (unlikely(!sendfile_.empty()))
+		request_->sendfile(sendfile_);
+
+	return true;
+}
+
 bool FastCgiTransport::onMessageContent(const x0::BufferRef& chunk)
 {
 	TRACE(1, "Parsed HTTP message content of %ld bytes from upstream server.", chunk.size());
 	//TRACE(2, "Message content chunk: %s", chunk.str().c_str());
+
+	if (unlikely(!sendfile_.empty()))
+		// we ignore the backend's message body as we've replaced it with the file contents of X-Sendfile's file.
+		return true;
 
 	switch (backend_->manager()->transferMode()) {
 	case TransferMode::FileAccel:
