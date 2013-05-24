@@ -7,16 +7,17 @@
 	* base, flow: added support for multi-accept
 	Must be enabled at compilation time via -DWITH_MULTI_ACCEPT=ON.
 	* flow: ruby-1.9 alike named parameter association.
-	* plugins: removed plugins proxy & fastcgi. Deprecated by director plugin.
-	* plugins: accesslog plugin now also supports syslog target
-	* plugins: director plugin has experimental support for backend acceleration
-	* plugins: director plugin has initial support for HAproxy compatible CSV output
-	* plugins: director plugin fixed wrt. off-by-one bug in scheduler.load stats.
 	* core: Introduce severities: crit, alert, emerg.
 	* core: Support SO_REUSEPORT (as introduced in Linux Kernel 3.9.0, and
 			supported by other UNIX OSes already)
 	* x0d: Added bash completion.
 	* x0d: Support -e epoll,select,poll,.... to choose event-system backend x0d should run on.
+	* plugins: removed plugins proxy & fastcgi. Deprecated by director plugin.
+	* plugins: accesslog plugin now also supports syslog target
+	* plugins: director plugin has experimental support for backend acceleration
+	* plugins: director plugin has initial support for HAproxy compatible CSV output
+	* plugins: director plugin fixed wrt. off-by-one bug in scheduler.load stats.
+	* plugins: director plugin now supports X-Sendfile for HTTP & FastCGI backends.
 
 0.6.0 (2013-02-27)
 
