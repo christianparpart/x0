@@ -119,18 +119,16 @@ bool List<T>::remove(const T& value)
 
 	for (;;) {
 		auto curr = pred->next;
-		if (curr == tail_)
+		if (unlikely(curr == tail_))
 			return false;
 
-		if (unlikely(curr->value == value)) {
-			if (pred->next.compareAndSwap(curr, curr->next)) {
-				--size_;
-				delete curr.ptr();
-				return true;
-			}
-		} else {
+		if (likely(curr->value != value)) {
 			pred = curr;
 			curr = curr->next;
+		} else if (likely(pred->next.compareAndSwap(curr, curr->next))) {
+			--size_;
+			delete curr.ptr();
+			return true;
 		}
 	}
 	return false;
