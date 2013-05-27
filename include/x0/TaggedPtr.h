@@ -45,6 +45,13 @@ public:
 	constexpr bool operator==(const TaggedPtr& other) const volatile { return ptr() == other.ptr() && tag() == other.tag(); }
 	constexpr bool operator!=(const TaggedPtr& other) const volatile { return !(*this == other); }
 
+	bool compareAndSwap(const TaggedPtr<T>& expected, const TaggedPtr<T>& exchange) {
+		if (expected.ptr_ == __sync_val_compare_and_swap(&ptr_, expected.ptr_, exchange.ptr_)) {
+			return true;
+		}
+		return false;
+	}
+
 private:
 	static constexpr uint64_t pack(pointer_type p, tag_type t)
 	{
@@ -88,6 +95,14 @@ public:
 
 	constexpr bool operator==(volatile const TaggedPtr<T>& other) const { return ptr_ == other.ptr_ && tag_ == other.tag_; }
 	constexpr bool operator!=(volatile const TaggedPtr<T>& other) const { return !operator==(other); }
+
+	bool compareAndSwap(const TaggedPtr<T>& expected, const TaggedPtr<T>& exchange) {
+		if (expected.ptr_ == __sync_val_compare_and_swap(&ptr_, expected.ptr_, exchange.ptr_)) {
+			__sync_lock_test_and_set(&tag_, exchange.tag_);
+			return true;
+		}
+		return false;
+	}
 };
 
 #endif
