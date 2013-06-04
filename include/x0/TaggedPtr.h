@@ -52,6 +52,10 @@ public:
 		return false;
 	}
 
+	bool tryTag(const TaggedPtr<T>& expected, tag_type t) {
+		return compareAndSwap(expected, TaggedPtr<T>(expected.ptr(), t));
+	}
+
 private:
 	static constexpr uint64_t pack(pointer_type p, tag_type t)
 	{
@@ -102,6 +106,10 @@ public:
 			return true;
 		}
 		return false;
+	}
+
+	bool tryTag(const TaggedPtr<T>& expected, tag_type t) {
+		return compareAndSwap(expected, TaggedPtr<T>(expected.ptr(), t));
 	}
 };
 
