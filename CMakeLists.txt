@@ -31,7 +31,7 @@ if(ENABLE_RRD)
 endif()
 
 if(ENABLE_IMAGEABLE)
-	pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.7.0)
+	pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
 endif(ENABLE_IMAGEABLE)
 
 # feature flags
