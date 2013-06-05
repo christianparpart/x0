@@ -717,6 +717,7 @@ bool Director::save()
 		<< "connect-timeout=" << connectTimeout_.totalMilliseconds() << "\n"
 		<< "read-timeout=" << readTimeout_.totalMilliseconds() << "\n"
 		<< "write-timeout=" << writeTimeout_.totalMilliseconds() << "\n"
+		<< "transfer-mode=" << tos(transferMode_) << "\n"
 		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
 		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
 		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
