@@ -435,6 +435,7 @@ bool Director::load(const std::string& path)
 
 	storagePath_ = path;
 
+	size_t changed = 0;
 	IniFile settings;
 	if (!settings.loadFile(path)) {
 		worker()->log(Severity::error, "director: Could not load director settings from file '%s'. %s", path.c_str(), strerror(errno));
@@ -479,10 +480,12 @@ bool Director::load(const std::string& path)
 	writeTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
 
 	if (!settings.load("director", "transfer-mode", value)) {
-		worker()->log(Severity::error, "director: Could not load settings value director.transfer-mode in file '%s'. Defaulting to 'blocking'.", path.c_str());
-		value = "blocking";
+		worker()->log(Severity::warn, "director: Could not load settings value director.transfer-mode in file '%s'. Defaulting to 'blocking'.", path.c_str());
+		transferMode_ = TransferMode::Blocking;
+		++changed;
+	} else {
+		transferMode_ = makeTransferMode(value);
 	}
-	transferMode_ = makeTransferMode(value);
 
 	if (!settings.load("director", "max-retry-count", value)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.max-retry-count in file '%s'", path.c_str());
@@ -499,6 +502,7 @@ bool Director::load(const std::string& path)
 	if (!settings.load("director", "allow-x-sendfile", value)) {
 		worker()->log(Severity::warn, "director: Could not load settings value director.x-sendfile in file '%s'", path.c_str());
 		allowXSendfile_ = false;
+		++changed;
 	} else {
 		allowXSendfile_ = value == "true";
 	}
@@ -519,6 +523,7 @@ bool Director::load(const std::string& path)
 
 	for (auto& section: settings) {
 		static const std::string backendSectionPrefix("backend=");
+		static const std::string bucketSectionPrefix("bucket=");
 
 		std::string key = section.first;
 		if (key == "director")
@@ -527,7 +532,7 @@ bool Director::load(const std::string& path)
 		bool result = false;
 		if (key.find(backendSectionPrefix) == 0)
 			result = loadBackend(settings, key);
-		else if (key.find("bucket=") == 0)
+		else if (key.find(bucketSectionPrefix) == 0)
 			result = loadBucket(settings, key);
 		else {
 			worker()->log(Severity::error, "director: Invalid configuration section '%s' in file '%s'.", key.c_str(), path.c_str());
@@ -540,6 +545,11 @@ bool Director::load(const std::string& path)
 	}
 
 	setMutable(true);
+
+	if (changed) {
+		worker()->log(Severity::notice, "director: Rewriting configuration, as %d attribute(s) changed while loading.", changed);
+		save();
+	}
 
 	return true;
 }
@@ -563,7 +573,6 @@ bool Director::loadBucket(const IniFile& settings, const std::string& key)
 	char* nptr = nullptr;
 	float rate = strtof(rateStr.c_str(), &nptr);
 	float ceil = strtof(ceilStr.c_str(), &nptr);
-
 
 	TokenShaperError ec = createBucket(name, rate, ceil);
 	if (ec != TokenShaperError::Success) {
@@ -725,8 +734,8 @@ bool Director::save()
 
 	for (auto& bucket: *shaper()->rootNode()) {
 		out << "[bucket=" << bucket->name() << "]\n"
-			<< "rate=" << bucket->rate() << "\n"
-			<< "ceil=" << bucket->ceil() << "\n"
+			<< "rate=" << bucket->rateP() << "\n"
+			<< "ceil=" << bucket->ceilP() << "\n"
 			<< "\n";
 	}
 

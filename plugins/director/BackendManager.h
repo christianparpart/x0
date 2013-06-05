@@ -28,6 +28,7 @@ enum class TransferMode {
 };
 
 TransferMode makeTransferMode(const std::string& value);
+std::string tos(TransferMode value);
 
 /** common abstraction of what a backend has to know about its managing owner.
  *

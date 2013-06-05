@@ -48,6 +48,16 @@ TransferMode makeTransferMode(const std::string& value)
 	return TransferMode::Blocking;
 }
 
+std::string tos(TransferMode value)
+{
+	static const std::string s[] = {
+		"blocking",
+		"memory",
+		"file"
+	};
+	return s[static_cast<size_t>(value)];
+}
+
 namespace x0 {
 	x0::JsonWriter& operator<<(x0::JsonWriter& json, const TransferMode& mode)
 	{
