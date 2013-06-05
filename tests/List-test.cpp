@@ -4,6 +4,26 @@
 
 using namespace x0;
 
+std::vector<int> vectorize(List<int>& r)
+{
+	std::vector<int> v;
+	r.each([&](int& value) -> bool {
+		v.push_back(value);
+		return true;
+	});
+	return v;
+}
+
+void dump(List<int>& list)
+{
+	printf("Dumping %zu items\n", list.size());
+	int i = 0;
+	for (auto& item: list) {
+		printf("[%d] %d\n", i, item);
+		++i;
+	}
+}
+
 TEST(ListTest, Empty)
 {
 	List<int> r;
@@ -12,7 +32,7 @@ TEST(ListTest, Empty)
 	ASSERT_EQ(0, r.size());
 }
 
-TEST(ListTest, Add)
+TEST(ListTest, PushFront)
 {
 	List<int> r;
 	r.push_front(7);
@@ -24,16 +44,46 @@ TEST(ListTest, Add)
 	ASSERT_EQ(9, r.front());
 }
 
-TEST(ListTest, Remove)
+TEST(ListTest, PushBack)
+{
+	List<int> r;
+	r.push_back(1);
+	r.push_back(2);
+	r.push_back(3);
+	ASSERT_EQ(3, r.size());
+
+	auto v = vectorize(r);
+	ASSERT_EQ(1, v[0]);
+	ASSERT_EQ(2, v[1]);
+	ASSERT_EQ(3, v[2]);
+	ASSERT_EQ(3, v.size());
+}
+
+TEST(ListTest, PopFront)
 {
 	List<int> r;
 	r.push_front(1);
 	r.push_front(2);
 	r.push_front(3);
+	ASSERT_EQ(3, r.pop_front());
+	ASSERT_EQ(2, r.pop_front());
+	ASSERT_EQ(1, r.pop_front());
+}
 
-	ASSERT_FALSE(r.remove(42));
-	ASSERT_TRUE(r.remove(2));
+TEST(ListTest, Remove)
+{
+	List<int> r;
+	r.push_back(1);
+	r.push_back(2);
+	r.push_back(3);
+
+	r.remove(2);
 	ASSERT_EQ(2, r.size());
+
+	auto v = vectorize(r);
+	ASSERT_EQ(2, v.size());
+	ASSERT_EQ(1, v[0]);
+	ASSERT_EQ(3, v[1]);
 }
 
 TEST(ListTest, Each)
@@ -43,13 +93,7 @@ TEST(ListTest, Each)
 	r.push_front(2);
 	r.push_front(3);
 
-	std::vector<int> v;
-
-	r.each([&](int& value) -> bool {
-		v.push_back(value);
-		return true;
-	});
-
+	auto v = vectorize(r);
 	ASSERT_EQ(3, v.size());
 	ASSERT_EQ(3, v[0]);
 	ASSERT_EQ(2, v[1]);
