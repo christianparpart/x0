@@ -20,6 +20,11 @@ class Backend;
 class Scheduler;
 class RequestNotes;
 
+/**
+ * Manages a set of backends of one role.
+ *
+ * \see BackendRole
+ */
 class BackendCluster
 {
 public:
@@ -46,14 +51,32 @@ public:
 	List::const_iterator cbegin() const { return cluster_.cbegin(); }
 	List::const_iterator cend() const { return cluster_.cend(); }
 
-	Backend* front() const { return cluster_.front(); }
-	Backend* back() const { return cluster_.back(); }
+//	Backend* front() const { return cluster_.front(); }
+//	Backend* back() const { return cluster_.back(); }
 
 	void push_back(Backend* backend);
 	void remove(Backend* backend);
 
 	List& cluster() { return cluster_; }
 	const List& cluster() const { return cluster_; }
+
+	template<typename Callback>
+	bool each(Callback cb)
+	{
+		for (auto& item: *this)
+			if (!cb(item))
+				return false;
+		return true;
+	}
+
+	template<typename Callback>
+	bool each(Callback cb) const
+	{
+		for (const auto& item: *this)
+			if (!cb(item))
+				return false;
+		return true;
+	}
 
 protected:
 	List cluster_;

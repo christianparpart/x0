@@ -16,7 +16,6 @@
 
 namespace x0 {
 	class HttpRequest;
-	class Url;
 }
 
 class Backend;
@@ -30,9 +29,12 @@ enum class TransferMode {
 TransferMode makeTransferMode(const std::string& value);
 std::string tos(TransferMode value);
 
-/** common abstraction of what a backend has to know about its managing owner.
+/**
+ * Core interface for a backend manager.
  *
- * \see Director
+ * Common abstraction of what a backend has to know about its managing owner.
+ *
+ * \see Director, Roadwarrior
  */
 class BackendManager
 #ifndef XZERO_NDEBUG

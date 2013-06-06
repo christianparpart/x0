@@ -89,9 +89,10 @@ Director::~Director()
 	worker()->unregisterStopHandler(stopHandle_);
 
 	for (auto& backendRole: backends_) {
-		while (!backendRole.empty()) {
-			delete unlink(backendRole.back());
-		}
+		backendRole.each([&](Backend* b) -> bool {
+			delete b;
+			return true;
+		});
 	}
 }
 
@@ -398,9 +399,10 @@ void Director::writeJSON(JsonWriter& json) const
 		.beginArray("members");
 
 	for (auto& br: backends_) {
-		for (auto& backend: br) {
+		br.each([&](const Backend* backend) -> bool {
 			json.value(*backend);
-		}
+			return true;
+		});
 	}
 
 	json.endArray();

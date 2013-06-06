@@ -27,15 +27,22 @@
 #include <list>
 #include <functional>
 
-using namespace x0;
-
 class Scheduler;
 class RequestNotes;
 
+namespace x0 {
+	class Url;
+}
+
+using namespace x0;
+
+/**
+ * Defines the role of a backend.
+ */
 enum class BackendRole {
-	Active,
-	Backup,
-	Terminate,
+	Active,    //!< backends that are part potentially getting new requests scheduled.
+	Backup,    //!< backends that are used when the active backends are all down.
+	Terminate, //!< artificial role that contains all backends in termination-progress.
 };
 
 typedef x0::TokenShaper<x0::HttpRequest> RequestShaper;
@@ -149,7 +156,7 @@ public:
 		}
 	}
 
-	const std::vector<Backend*>& backendsWith(BackendRole role) const;
+	const BackendCluster::List& backendsWith(BackendRole role) const;
 
 	void writeJSON(x0::JsonWriter& output) const;
 
@@ -187,7 +194,7 @@ namespace x0 {
 }
 
 // {{{ inlines
-inline const std::vector<Backend*>& Director::backendsWith(BackendRole role) const
+inline const BackendCluster::List& Director::backendsWith(BackendRole role) const
 {
 	return backends_[static_cast<size_t>(role)].cluster();
 }
