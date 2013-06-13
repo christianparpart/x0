@@ -705,6 +705,11 @@ bool ApiRequest::create()
 	if (!loadParam("capacity", capacity))
 		return false;
 
+	bool terminateProtection = false;
+	if (hasParam("terminate-protection"))
+		if (!loadParam("terminate-protection", terminateProtection))
+			return false;
+
 	std::string protocol;
 	if (!loadParam("protocol", protocol))
 		return false;
@@ -748,6 +753,7 @@ bool ApiRequest::create()
 	Backend* backend = director->createBackend(name, protocol, socketSpec, capacity, role);
 
 	if (backend) {
+		backend->setTerminateProtection(terminateProtection);
 		backend->setEnabled(enabled);
 		backend->healthMonitor()->setInterval(hcInterval);
 		backend->healthMonitor()->setMode(hcMode);
@@ -766,6 +772,7 @@ bool ApiRequest::create()
 // update a backend - POST /:director_name/:backend_name
 // allows updating of the following attributes:
 // - capacity
+// - protected
 // - enabled
 // - role
 // - health-check-mode
@@ -909,6 +916,10 @@ bool ApiRequest::updateBackend(Director* director, const std::string& name)
 	size_t capacity = backend->capacity();
 	loadParam("capacity", capacity);
 
+	bool terminateProtection = backend->terminateProtection();
+	if (hasParam("terminate-protection"))
+		loadParam("terminate-protection", terminateProtection);
+
 	TimeSpan hcInterval = backend->healthMonitor()->interval();
 	loadParam("health-check-interval", hcInterval);
 
@@ -933,6 +944,7 @@ bool ApiRequest::updateBackend(Director* director, const std::string& name)
 
 	director->setBackendRole(backend, role);
 	backend->setCapacity(capacity);
+	backend->setTerminateProtection(terminateProtection);
 	backend->healthMonitor()->setInterval(hcInterval);
 	backend->healthMonitor()->setMode(hcMode);
 
@@ -985,6 +997,15 @@ bool ApiRequest::destroy()
 			tokens_[1].str().c_str(), tokens_[0].str().c_str());
 
 		request_->status = x0::HttpStatus::NotFound;
+		request_->finish();
+		return true;
+	}
+
+	if (backend->terminateProtection()) {
+		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Backend is termination protected.",
+			tokens_[1].str().c_str(), tokens_[0].str().c_str());
+
+		request_->status = x0::HttpStatus::Forbidden;
 		request_->finish();
 		return true;
 	}

@@ -41,6 +41,7 @@ protected:
 
 	std::string name_; //!< common name of this backend, for example: "appserver05"
 	size_t capacity_; //!< number of concurrent requests being processable at a time.
+	bool terminateProtection_; //!< termination-protected
 	x0::Counter load_; //!< number of active (busy) connections
 
 	pthread_spinlock_t lock_; //!< scheduling mutex
@@ -70,6 +71,9 @@ public:
 
 	size_t capacity() const;								//!< number of requests this backend can handle in parallel.
 	void setCapacity(size_t value);
+
+	bool terminateProtection() const { return terminateProtection_; }
+	void setTerminateProtection(bool value) { terminateProtection_ = value; }
 
 	const x0::Counter& load() const { return load_; }		//!< number of currently being processed requests.
 

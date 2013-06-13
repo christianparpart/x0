@@ -37,6 +37,7 @@ Backend::Backend(BackendManager* bm,
 	manager_(bm),
 	name_(name),
 	capacity_(capacity),
+	terminateProtection_(false),
 	load_(),
 	lock_(),
 	enabled_(true),
@@ -75,6 +76,7 @@ void Backend::writeJSON(JsonWriter& json) const
 	json.beginObject()
 		.name("name")(name_)
 		.name("capacity")(capacity_)
+		.name("terminate-protection")(terminateProtection_)
 		.name("enabled")(enabled_)
 		.name("protocol")(protocol());
 
