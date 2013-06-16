@@ -115,7 +115,7 @@ inline bool DateTime::valid() const
 
 inline int DateTime::compare(const DateTime& a, const DateTime& b)
 {
-	return b.unixtime() - a.unixtime();
+	return a.unixtime() - b.unixtime();
 }
 
 inline TimeSpan operator-(const DateTime& a, const DateTime& b)
