@@ -18,6 +18,7 @@ Build-Depends:
   libpcre3-dev,
   libfcgi-dev,
   librrd-dev,
+  libtbb-dev,
   libmagickwand-dev,
 Standards-Version: 3.9.3
 
@@ -37,7 +38,7 @@ Priority: optional
 Description: Xzero (x0) Base Library
   Base framework library for x0.
 Homepage: http://xzero.io/
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libtbb2
 
 Package: libxzero-flow
 Architecture: any
