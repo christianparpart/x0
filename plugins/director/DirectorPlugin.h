@@ -9,6 +9,7 @@
 #pragma once
 
 #include <x0/http/HttpPlugin.h>
+#include <x0/http/HttpServer.h>
 
 #include <string>
 #include <unordered_map>
@@ -30,6 +31,7 @@ private:
 	std::unordered_map<std::string, Director*> directors_;
 	RoadWarrior* roadWarrior_;
 	HaproxyApi* haproxyApi_;
+	x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
 	DirectorPlugin(x0::HttpServer& srv, const std::string& name);
@@ -38,6 +40,8 @@ public:
 private:
 	void director_load(const x0::FlowParams& args, x0::FlowValue& result);
 	void director_create(const x0::FlowParams& args, x0::FlowValue& result);
+
+	void director_cache_bypass(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
 
 	bool director_balance(x0::HttpRequest* r, const x0::FlowParams& args);
 	bool director_pass(x0::HttpRequest* r, const x0::FlowParams& args);

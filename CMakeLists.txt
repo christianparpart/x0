@@ -25,6 +25,7 @@ option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
 option(ENABLE_WEBDAV "Includes WebDAV support (plugin)" OFF)
 option(ENABLE_RRD "Includes RRD support (plugin)" OFF)
 option(ENABLE_IMAGEABLE "Includes Image Resizer plugin [default: off]" OFF)
+option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: off]" OFF)
 
 if(ENABLE_RRD)
 	find_package(RRD)

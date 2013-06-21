@@ -12,6 +12,12 @@
 #include "RequestNotes.h"
 #include "FastCgiBackend.h"
 
+#include <x0/sysconfig.h>
+
+#if defined(X0_DIRECTOR_CACHE)
+#  include "ObjectCache.h"
+#endif
+
 #include <x0/io/BufferSource.h>
 #include <x0/Tokenizer.h>
 #include <x0/IniFile.h>
@@ -75,6 +81,13 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	shaper_(worker->loop(), 0),
 	queued_(),
 	dropped_(0),
+#if defined(X0_DIRECTOR_CACHE)
+	objectCache_(nullptr),
+	cacheHits_(0),
+	cacheShadowHits_(0),
+	cacheMisses_(0),
+	cachePurges_(0),
+#endif
 	stopHandle_()
 {
 	backends_.resize(3);
@@ -82,6 +95,10 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	stopHandle_ = worker->registerStopHandler(std::bind(&Director::onStop, this));
 
 	shaper_.setTimeoutHandler(std::bind(&Director::onTimeout, this, std::placeholders::_1));
+
+#if defined(X0_DIRECTOR_CACHE)
+	objectCache_ = new MallocStore();
+#endif
 }
 
 Director::~Director()
@@ -94,6 +111,10 @@ Director::~Director()
 			return true;
 		});
 	}
+
+#if defined(X0_DIRECTOR_CACHE)
+	delete objectCache_;
+#endif
 }
 
 /** Callback, that updates shaper capacity based on enabled/health state.
@@ -395,6 +416,15 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("health-check-host-header")(healthCheckHostHeader_)
 		.name("health-check-request-path")(healthCheckRequestPath_)
 		.name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
+#if defined(X0_DIRECTOR_CACHE)
+		.name("cache-enabled")(objectCache_->enabled())
+		.name("cache-deliver-active")(objectCache_->deliverActive())
+		.name("cache-deliver-shadow")(objectCache_->deliverShadow())
+		.name("cache-misses")(cacheMisses_)
+		.name("cache-hits")(cacheHits_)
+		.name("cache-shadow-hits")(cacheShadowHits_)
+		.name("cache-purges")(cachePurges_)
+#endif
 		.name("shaper")(shaper_)
 		.beginArray("members");
 
@@ -786,7 +816,7 @@ void Director::schedule(HttpRequest* r, Backend* backend)
 	case SchedulerStatus::Overloaded:
 		r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests (attempt %d).",
 			backend->name().c_str(), backend->healthMonitor()->state_str().c_str(), notes->tryCount);
-		serviceUnavailable(r);
+		serviceUnavailable(r, notes);
 
 		// TODO: consider backend-level queues as a feature here (post 0.7 release)
 		break;
@@ -794,6 +824,102 @@ void Director::schedule(HttpRequest* r, Backend* backend)
 		break;
 	}
 }
+
+#if defined(X0_DIRECTOR_CACHE)
+/*!
+ * Validates request against a possibly existing cached object and delivers it or requests updating it.
+ *
+ * \retval true request has been processed and will receive a cached object.
+ * \retval false the request must be processed by a backend server, possibly updating the corresponding stale cache object.
+ */
+bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
+{
+	if (!objectCache_->enabled())
+		return false;
+
+	// hack begin. TODO: support setting cacheKey properly
+	if (notes->cacheKey.empty()) {
+		notes->cacheKey = r->path.str();
+	}
+	// hack end.
+
+	if (unlikely(notes->cacheKey.empty()))
+		return false;
+
+	if (unlikely(equals(r->method, "PURGE"))) {
+		objectCache_->find(notes->cacheKey, [&](ObjectCache::Object* object) {
+			if (object) {
+				++cachePurges_;
+				object->expire();
+
+				r->status = HttpStatus::Ok;
+				r->finish();
+			} else {
+				r->status = HttpStatus::NotFound;
+				r->finish();
+			}
+		});
+		return true;
+	}
+
+	if (unlikely(notes->cacheIgnore))
+		return false;
+
+	if (!objectCache_->deliverActive())
+		return false;
+
+	static const char* allowedMethods[] = { "GET", "HEAD" };
+	bool methodFound = false;
+	for (auto& method: allowedMethods) {
+		if (equals(r->method, method)) {
+			methodFound = true;
+			break;
+		}
+	}
+	if (!methodFound)
+		return false;
+
+	bool processed = false;
+	objectCache_->acquire(notes->cacheKey, [&](ObjectCache::Object* object, bool created) {
+		const DateTime now = r->connection.worker().now();
+		const DateTime expiry = object->ctime() + objectCache_->defaultTTL();
+		const bool valid = now <= expiry;
+		const auto state = object->state();
+		if (created) {
+			// cache object did not exist and got just created for by this request
+			//printf("Director.processCacheObject: object created\n");
+			++cacheMisses_;
+			object->update(r);
+			processed = false;
+		} else if (object) {
+			switch (state) {
+				case ObjectCache::Object::Spawning:
+				case ObjectCache::Object::Updating:
+					++cacheShadowHits_;
+					object->deliver(r);
+					processed = true;
+					break;
+				case ObjectCache::Object::Active:
+					if (valid) {
+						++cacheHits_;
+						object->deliver(r);
+						processed = true;
+						break;
+					}
+					// fall through
+				case ObjectCache::Object::Stale:
+					//printf("deliver stale object (%s)\n", to_s(state).c_str());
+					++cacheMisses_;
+					object->update(r);
+					processed = false;
+					break;
+			}
+		}
+	});
+
+	return processed;
+}
+#endif
 
 /**
  * Schedules a new request via the given bucket on this cluster.
@@ -811,6 +937,11 @@ void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
 {
 	auto notes = setupRequestNotes(r);
 	notes->bucket = bucket;
+
+#if defined(X0_DIRECTOR_CACHE)
+	if (processCacheObject(r, notes))
+		return;
+#endif
 
 	r->responseHeaders.push_back("X-Director-Bucket", bucket->name());
 
@@ -842,9 +973,8 @@ bool Director::verifyTryCount(HttpRequest* r, RequestNotes* notes)
 	if (notes->tryCount <= maxRetryCount())
 		return true;
 
-	r->log(Severity::info, "director: %s request failed %d times. Dropping.", name().c_str(), notes->tryCount);
-	serviceUnavailable(r);
-	++dropped_;
+	r->log(Severity::info, "director %s: request failed %d times.", name().c_str(), notes->tryCount);
+	serviceUnavailable(r, notes);
 	return false;
 }
 
@@ -867,9 +997,24 @@ void Director::reschedule(HttpRequest* r, RequestNotes* notes)
 /**
  * Finishes a request with a 503 (Service Unavailable) response message.
  */
-void Director::serviceUnavailable(HttpRequest* r)
+void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
 {
-	r->status = HttpStatus::ServiceUnavailable;
+#if defined(X0_DIRECTOR_CACHE)
+	if (objectCache_->deliverShadow()) {
+		if (objectCache_->find(notes->cacheKey,
+			[&](ObjectCache::Object* object) {
+				if (object) {
+					r->responseHeaders.push_back("X-Director-Cache", "shadow");
+					object->deliver(r);
+					++cacheShadowHits_;
+				}
+			}
+		))
+		{
+			return;
+		}
+	}
+#endif
 
 	if (retryAfter()) {
 		char value[64];
@@ -877,7 +1022,9 @@ void Director::serviceUnavailable(HttpRequest* r)
 		r->responseHeaders.push_back("Retry-After", value);
 	}
 
+	r->status = HttpStatus::ServiceUnavailable;
 	r->finish();
+	++dropped_;
 }
 
 /**
@@ -932,9 +1079,8 @@ bool Director::tryEnqueue(HttpRequest* r, RequestNotes* notes)
 		return true;
 	}
 
-	r->log(Severity::debug1, "director: '%s' queue limit %zu reached. Rejecting request.", name().c_str(), queueLimit());
-	serviceUnavailable(r);
-	++dropped_;
+	r->log(Severity::debug1, "director: '%s' queue limit %zu reached.", name().c_str(), queueLimit());
+	serviceUnavailable(r, notes);
 
 	return false;
 }
@@ -986,10 +1132,9 @@ SchedulerStatus Director::tryProcess(HttpRequest* r, RequestNotes* notes, Backen
 void Director::onTimeout(HttpRequest* r)
 {
 	--queued_;
-	++dropped_;
 
 	r->post([this, r]() {
-		r->log(Severity::info, "Queued request timed out. Dropping. %s %s", r->method.str().c_str(), r->unparsedUri.str().c_str());
-		serviceUnavailable(r);
+		r->log(Severity::info, "Queued request timed out.");
+		serviceUnavailable(r, requestNotes(r));
 	});
 }

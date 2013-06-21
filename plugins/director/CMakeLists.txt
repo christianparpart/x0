@@ -14,6 +14,10 @@ add_definitions(
 
 # ---------------------------------------------------------------------------
 
+if(X0_DIRECTOR_CACHE)
+set(director_cache_SRC ObjectCache.cpp)
+endif(X0_DIRECTOR_CACHE)
+
 set(director_SRC
 	DirectorPlugin.cpp
 	HealthMonitor.cpp
@@ -29,6 +33,10 @@ set(director_SRC
 	FastCgiHealthMonitor.cpp
 	RoadWarrior.cpp
 	HaproxyApi.cpp
+	${director_cache_SRC}
 )
 
+set(tbb_LIBRARIES tbb)
+
 x0_plugin(director "${director_SRC}")
+target_link_libraries(director ${tbb_LIBRARIES})

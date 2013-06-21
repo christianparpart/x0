@@ -52,5 +52,6 @@
 
 /* x0 features */
 #cmakedefine X0_WORKER_RR 1                /* use RR for worker-select instead of lowest-load */
+#cmakedefine X0_DIRECTOR_CACHE
 
 #endif

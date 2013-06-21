@@ -29,6 +29,7 @@
 
 class Scheduler;
 class RequestNotes;
+class ObjectCache;
 
 namespace x0 {
 	class Url;
@@ -83,11 +84,24 @@ private:
 	x0::Counter queued_;
 	std::atomic<unsigned long long> dropped_;
 
+#if defined(X0_DIRECTOR_CACHE)
+	ObjectCache* objectCache_;	//!< response object cache
+	std::atomic<unsigned long long> cacheHits_;
+	std::atomic<unsigned long long> cacheShadowHits_;
+	std::atomic<unsigned long long> cacheMisses_;
+	std::atomic<unsigned long long> cachePurges_; //!< explicit purges
+	std::atomic<unsigned long long> cacheExpiries_; //!< automatic expiries
+#endif
+
 	std::list<std::function<void()>>::iterator stopHandle_;
 
 public:
 	Director(HttpWorker* worker, const std::string& name);
 	~Director();
+
+#if defined(X0_DIRECTOR_CACHE)
+	ObjectCache& objectCache() const { return *objectCache_; }
+#endif
 
 	const x0::Counter& queued() const { return queued_; }
 
@@ -168,6 +182,7 @@ public:
 	void setBackendRole(Backend* backend, BackendRole role);
 
 private:
+	bool processCacheObject(HttpRequest* r, RequestNotes* notes);
 	bool loadBackend(const x0::IniFile& settings, const std::string& key);
 	bool loadBucket(const x0::IniFile& settings, const std::string& key);
 	void onTimeout(HttpRequest* r);
@@ -178,7 +193,7 @@ private:
 
 	void onStop();
 
-  bool verifyTryCount(HttpRequest* r, RequestNotes* notes);
+	bool verifyTryCount(HttpRequest* r, RequestNotes* notes);
 	SchedulerStatus tryProcess(x0::HttpRequest* r, RequestNotes* notes, BackendRole role);
 	SchedulerStatus tryProcess(x0::HttpRequest* r, RequestNotes* notes, Backend* backend);
 	bool tryEnqueue(x0::HttpRequest* r, RequestNotes* notes);
@@ -186,7 +201,7 @@ private:
 	void updateQueueTimer();
 	x0::HttpRequest* dequeue();
 
-	void serviceUnavailable(x0::HttpRequest* r);
+	void serviceUnavailable(x0::HttpRequest* r, RequestNotes* notes);
 };
 
 namespace x0 {

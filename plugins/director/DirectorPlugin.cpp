@@ -21,11 +21,22 @@
  *     function director.load(string director_name_1 => string path_to_db,
  *                            ...);
  *
+ *     function director.cache.ttl(timespan, [timespan])
+ *     function director.cache.deliver_stale
+ *     function director.cache.deliver_active
+ *
  * request processing API:
- *     handler director.pass(string director_name);
+ *     handler director.balance(string director, string bucket = "");
+ *     handler director.pass(string director, string backend);
  *
  *     handler director.fcgi(socket_spec);
  *     handler director.http(socket_spec);
+ *
+ *     handler director.ondemand();
+ *     function director.cache.ttl(timespan ttl);
+ *     function director.cache.ttl(timespan ttl, timespan shadow_ttl);
+ *     function director.cache.key(string pattern);
+ *     function director.cache.bypass();
  */
 
 #include "DirectorPlugin.h"
@@ -53,6 +64,7 @@ DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 {
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_load>("director.load", FlowValue::VOID);
+	registerFunction<DirectorPlugin, &DirectorPlugin::director_cache_bypass>("director.cache.bypass", FlowValue::VOID);
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_balance>("director.balance");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_pass>("director.pass");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_api>("director.api");
@@ -60,7 +72,6 @@ DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_http>("director.http"); // "proxy.reverse"
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_stats>("director.haproxy_stats");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_monitor>("director.haproxy_monitor");
-
 	roadWarrior_ = new RoadWarrior(srv.selectWorker());
 }
 
@@ -154,6 +165,17 @@ Backend* DirectorPlugin::registerBackend(Director* director, const char* name, c
 			director->name().c_str(), name, url);
 
 	return director->createBackend(name, Url::parse(url));
+}
+// }}}
+// {{{ function director.cache.bypass()
+void DirectorPlugin::director_cache_bypass(HttpRequest* r, const FlowParams& args, FlowValue& result)
+{
+	// FIXME we cannot do this currently, as requestNotes is director-dependant (which is wrong, a request can belong to only one director anyway)
+	// TODO: then add `RequestNotes::manager`.
+#if 0
+	auto notes = requestNotes(r);
+	notes->cacheIgnore = true;
+#endif
 }
 // }}}
 // {{{ handler director.balance(string director_id [, string segment_id ] );
