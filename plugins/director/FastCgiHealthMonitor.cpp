@@ -82,7 +82,10 @@ public:
 
 private:
 	HttpRequestRec() :
-		HttpMessageProcessor(HttpMessageProcessor::REQUEST)
+		HttpMessageProcessor(HttpMessageProcessor::REQUEST),
+		method(),
+		path(),
+		headers()
 	{
 	}
 

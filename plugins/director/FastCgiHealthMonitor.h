@@ -56,6 +56,4 @@ private:
 
 	x0::Buffer readBuffer_;
 	size_t readOffset_;
-
-	x0::HttpStatus responseStatus_;
 };
