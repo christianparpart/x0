@@ -100,6 +100,9 @@ void HttpConnection::clear()
 	socket_ = nullptr;
 	flags_ = 0;
 	requestCount_ = 0;
+
+	inputOffset_ = 0;
+	input_.clear();
 }
 
 /** Increments the internal reference count and ensures that this object remains valid until its unref().
