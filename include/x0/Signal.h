@@ -97,6 +97,11 @@ public:
 		}
 	}
 
+	void clear()
+	{
+		impl_.clear();
+	}
+
 private:
 	list_type impl_;
 };
