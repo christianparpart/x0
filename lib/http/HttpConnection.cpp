@@ -24,8 +24,9 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if !defined(XZERO_NDEBUG)
+#if 0//!defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) log(Severity::debug ## level, msg)
+//#	define TRACE(level, msg...) log(Severity::notice, msg)
 #else
 #	define TRACE(msg...) do { } while (0)
 #endif
@@ -84,16 +85,26 @@ HttpConnection::~HttpConnection()
 		delete socket_;
 }
 
+/**
+ * Frees up any resources and resets state of this connection.
+ *
+ * This method is invoked only after the connection has been closed and
+ * this resource may now either be physically destructed or put into
+ * a list of free connection objects for later use of newly incoming
+ * connections (to avoid too many memory allocations).
+ */
 void HttpConnection::clear()
 {
+	TRACE(1, "clear(): refCount: %zu, conn.status: %s, parser.state: %s", refCount_, status_str(), state_str());
+	//TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
+
+	HttpMessageProcessor::reset();
+
 	if (request_) {
 		request_->clear();
 	}
 
 	clearCustomData();
-
-	TRACE(1, "destructing (rc: %u)", refCount_);
-	//TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
 
 	worker_->server_.onConnectionClose(this);
 	delete socket_;
@@ -187,9 +198,10 @@ void HttpConnection::io(Socket *, int revents)
 			watchInput(worker_->server_.maxKeepAlive());
 		}
 		break;
+	case ProcessingRequest:
+	case SendingReplyDone:
 	case SendingReply:
 	case Undefined: // should never be reached
-	default:
 		TRACE(1, "io(): status=%s. Do not touch I/O watcher.", status_str());
 		break;
 	}
@@ -205,14 +217,16 @@ void HttpConnection::timeout(Socket *)
 	switch (status()) {
 	case Undefined:
 	case ReadingRequest:
+	case ProcessingRequest:
 		// we do not want further out-timing requests on this conn: just close it.
 		abort(HttpStatus::RequestTimeout);
 		break;
+	case SendingReply:
+	case SendingReplyDone:
+		abort();
+		break;
 	case KeepAliveRead:
 		close();
-		break;
-	case SendingReply:
-		abort();
 		break;
 	}
 }
@@ -384,8 +398,8 @@ bool HttpConnection::onMessageHeaderEnd()
 		return true;
 
 	++requestCount_;
-	flags_ |= IsHandlingRequest;
-	setStatus(SendingReply);
+	flags_ |= IsHandlingRequest; // TODO: remove me, make me obsolete
+	setStatus(ProcessingRequest);
 
 	worker_->handleRequest(request_);
 
@@ -470,10 +484,10 @@ bool HttpConnection::readSome()
 		}
 	} else if (rv == 0) {
 		// EOF
-		TRACE(1, "readSome: (EOF)");
+		TRACE(1, "readSome: (EOF), status:%s", status_str());
 		goto err;
 	} else {
-		TRACE(1, "readSome: read %lu bytes, status:%s, ros:%d", rv, status_str(), request_->outputState_);
+		TRACE(1, "readSome: read %lu bytes, status:%s", rv, status_str());
 		process();
 	}
 
@@ -596,7 +610,6 @@ void HttpConnection::abort()
 
 		abortHandler_(abortData_);
 	} else {
-		request_->clearCustomData();
 		close();
 	}
 }
@@ -617,7 +630,7 @@ void HttpConnection::abort(HttpStatus status)
 	++requestCount_;
 
 	flags_ |= IsHandlingRequest;
-	setStatus(SendingReply);
+	setStatus(ProcessingRequest);
 	setShouldKeepAlive(false);
 
 	request_->status = status;
@@ -636,6 +649,12 @@ void HttpConnection::close()
 		return;
 
 	flags_ |= IsClosed;
+
+	if (status_ == SendingReplyDone) {
+		// usercode has issued a request->finish() but it didn't come to finalize it yet.
+		request_->finalize();
+	}
+	status_ = Undefined;
 
 	unref(); // <-- this refers to ref() in start()
 }
@@ -747,14 +766,14 @@ void HttpConnection::setStatus(Status value)
 #if !defined(XZERO_NDEBUG)
 	static const char* str[] = {
 		"undefined",
-		"(starting-up)",
 		"reading-request",
+		"processing-request",
 		"sending-reply",
+		"sending-reply-done",
 		"keep-alive-read"
 	};
-	TRACE(1, "setStatus() %s => %s",
-		str[static_cast<size_t>(status_)],
-		str[static_cast<size_t>(value)]);
+	(void) str;
+	TRACE(1, "setStatus() %s => %s", str[static_cast<size_t>(status_)], str[static_cast<size_t>(value)]);
 #endif
 
 	Status lastStatus = status_;

@@ -62,7 +62,8 @@ inline std::string generateBoundaryID()
 char HttpRequest::statusCodes_[512][4];
 
 HttpRequest::HttpRequest(HttpConnection& conn) :
-	outputState_(Unhandled),
+	onPostProcess(),
+	onRequestDone(),
 	connection(conn),
 	method(),
 	unparsedUri(),
@@ -510,6 +511,7 @@ Source* HttpRequest::serialize()
 	bool hasServerHeader = responseHeaders.contains("Server");
 
 	// post-response hook
+	onPostProcess();
 	connection.worker().server().onPostProcess(this);
 
 	// setup (connection-level) response transfer
@@ -655,8 +657,6 @@ bool HttpRequest::writeCallback(CallbackSource::Callback cb)
 		return false;
 	}
 
-	assert(outputState_ == Populating);
-
 	if (connection.isOutputPending()) {
 		connection.write<CallbackSource>([this, cb]() {
 			post([cb]() {
@@ -696,19 +696,23 @@ std::string HttpRequest::statusStr(HttpStatus value)
  */
 void HttpRequest::finish()
 {
-	TRACE(2, "finish(outputState=%s)", outputStateStr(outputState_));
+	TRACE(2, "finish(): isOutputPending:%s, cstate:%s", connection.isOutputPending() ? "true" : "false", connection.status_str());
 
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);
 
 	if (isAborted()) {
-		outputState_ = Finished;
+		connection.setStatus(HttpConnection::SendingReplyDone);
 		finalize();
 		return;
 	}
 
-	switch (outputState_) {
-		case Unhandled:
+	switch (connection.status()) {
+		case HttpConnection::Undefined:
+			// fall through (should never happen)
+		case HttpConnection::ReadingRequest:
+			// fall through (should never happen, should it?)
+		case HttpConnection::ProcessingRequest:
 			if (static_cast<int>(status) == 0)
 				status = HttpStatus::NotFound;
 
@@ -735,27 +739,36 @@ void HttpRequest::finish()
 				writeDefaultResponseContent();
 			}
 			/* fall through */
-		case Populating:
+		case HttpConnection::SendingReply:
 			// FIXME: can it become an issue when the response body may not be non-empty
 			// but we have outputFilters defined, thus, writing a single (possibly empty?)
 			// response body chunk?
+
 			if (!outputFilters.empty()) {
 				// mark the end of stream (EOS) by passing an empty chunk to the outputFilters.
 				connection.write<FilterSource>(&outputFilters, true);
+
+				// FIXME: this EOS chunk doesn't get written always, i.e. when this request is `Connection: closed` and the content is known ahead.
+				// This causes problems with ObjectCache::Builder to get to know when the stream has ended.
+				// b/c onRequestEnd isn't invoked, ...
 			}
 
-			outputState_ = Finished;
+			connection.setStatus(HttpConnection::SendingReplyDone);
 
 			if (!connection.isOutputPending()) {
 				// the response body is already fully transmitted, so finalize this request object directly.
 				finalize();
+			} else {
+				;//printf("HttpRequest.finish(): delay finalize() as we've output pending\n");
 			}
 			break;
-		case Finished:
+		case HttpConnection::SendingReplyDone:
 #if !defined(XZERO_NDEBUG)
 			log(Severity::error, "BUG: invalid invocation of finish() on a already finished request.");
 			Process::dumpCore();
 #endif
+			break;
+		case HttpConnection::KeepAliveRead:
 			break;
 	}
 }
@@ -772,7 +785,12 @@ void HttpRequest::finish()
 void HttpRequest::finalize()
 {
 	TRACE(2, "finalize()");
+
+	onRequestDone();
 	connection.worker().server().onRequestDone(this);
+
+	onPostProcess.clear();
+	onRequestDone.clear();
 	clearCustomData();
 
 	if (isAborted() || !connection.shouldKeepAlive()) {

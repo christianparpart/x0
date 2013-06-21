@@ -195,6 +195,7 @@ void HttpWorker::release(HttpConnection* c)
 
 	--connectionLoad_;
 
+	// unlink from active-list
 	HttpConnection* prev = c->prev_;
 	HttpConnection* next = c->next_;
 
@@ -207,6 +208,7 @@ void HttpWorker::release(HttpConnection* c)
 	if (c == connections_)
 		connections_ = next;
 
+	// link into free-list
 	c->next_ = freeConnections_;
 	c->prev_ = nullptr;					// not needed
 	if (freeConnections_ && freeConnections_->prev_)

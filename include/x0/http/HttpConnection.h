@@ -49,10 +49,12 @@ class X0_API HttpConnection :
 
 public:
 	enum Status {
-		Undefined = 0,
-		ReadingRequest = 2,
-		SendingReply = 3,
-		KeepAliveRead = 4
+		Undefined = 0,			//!< Object got just constructed.
+		ReadingRequest,			//!< Parses HTTP request.
+		ProcessingRequest,		//!< request handler: has taken over but not sent out anythng
+		SendingReply,			//!< request handler: response headers written, sending body
+		SendingReplyDone,		//!< request handler: populating message done, still pending data to sent.
+		KeepAliveRead			//!< Waiting for next HTTP request in keep-alive state.
 	};
 
 public:
@@ -212,12 +214,13 @@ inline const char* HttpConnection::status_str() const
 {
 	static const char* str[] = {
 		"undefined",
-		"starting-up",
 		"reading-request",
+		"processing-request",
 		"sending-reply",
+		"sending-reply-done",
 		"keep-alive-read"
 	};
-	return str[static_cast<int>(status_)];
+	return str[static_cast<size_t>(status_)];
 }
 
 inline HttpWorker& HttpConnection::worker() const

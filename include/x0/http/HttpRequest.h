@@ -22,6 +22,7 @@
 #include <x0/Logging.h>
 #include <x0/Severity.h>
 #include <x0/Buffer.h>
+#include <x0/Signal.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 #include <x0/Api.h>
@@ -257,32 +258,14 @@ private:
 	/// pre-computed string representations of status codes, ready to be used by serializer
 	static char statusCodes_[512][4];
 
-	// response state
-	enum OutputState {
-		//! nothing has been sent (or triggered for sending) to the client yet.
-		Unhandled,
-		//! at least response headers are to be written to the client.
-		Populating,
-		//! response message is fully populated
-		Finished
-	};
-
-	static inline const char* outputStateStr(OutputState value) {
-		switch (value) {
-			case Unhandled: return "Unhandled";
-			case Populating: return "Populating";
-			case Finished: return "Finished";
-			default: return "UNKNOWN";
-		}
-	}
-
-	OutputState outputState_;
-
 public:
 	explicit HttpRequest(HttpConnection& connection);
 	~HttpRequest();
 
 	void clear();
+
+	Signal<void()> onPostProcess;
+	Signal<void()> onRequestDone;
 
 	HttpConnection& connection;					///< the TCP/IP connection this request has been sent through
 
@@ -341,7 +324,6 @@ public:
 
 	bool isAborted() const;
 
-	OutputState outputState() const;
 	unsigned long long bytesTransmitted() const;
 
 	// full response writer - but do not invoke finish()
@@ -358,7 +340,7 @@ public:
 
 	void setAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
-	bool isFinished() const { return outputState_ == Finished; }
+	bool isFinished() const { return connection.status() == HttpConnection::SendingReplyDone; }
 
 	static std::string statusStr(HttpStatus status);
 
@@ -411,8 +393,6 @@ inline void HttpRequest::clear()
 	// XXX custom data is to be cleared in finish() already. clear() is invoked in resume() to clear up
 	// XXX the remaining properties and prepare for the next request
 	// clearCustomData();
-
-	outputState_ = Unhandled;
 
 	method.clear();
 	unparsedUri.clear();
@@ -498,25 +478,32 @@ inline void HttpRequest::log(LogMessage&& msg)
  */
 inline void HttpRequest::write(Source* chunk)
 {
-	if (connection.isAborted()) {
+	if (unlikely(connection.isAborted())) {
 		delete chunk;
 		return;
 	}
 
-	switch (outputState_) {
-		case Unhandled:
-			outputState_ = Populating;
+	switch (connection.status()) {
+		case HttpConnection::Undefined:
+		case HttpConnection::ReadingRequest:
+			// XXX bad state
+			break;
+		case HttpConnection::ProcessingRequest:
+			connection.setStatus(HttpConnection::SendingReply);
 			connection.write(serialize());
-			/* fall through */
-		case Populating:
+			// fall through
+		case HttpConnection::SendingReply:
 			if (outputFilters.empty())
 				connection.write(chunk);
 			else
 				connection.write<FilterSource>(chunk, &outputFilters, false);
 			break;
-		case Finished:
-			assert(0 && "BUG");
+		case HttpConnection::SendingReplyDone:
+		case HttpConnection::KeepAliveRead:
+			// XXX bad state
+			break;
 	}
+
 }
 
 template<class K, void (K::*cb)()>
@@ -545,11 +532,6 @@ inline void HttpRequest::write(Args&&... args)
 	if (!isAborted()) {
 		write(new T(std::move(args)...));
 	}
-}
-
-inline HttpRequest::OutputState HttpRequest::outputState() const
-{
-	return outputState_;
 }
 
 /*! retrieves the number of bytes successfully transmitted within this very request.
@@ -594,7 +576,6 @@ inline void HttpRequest::inspect(Buffer& output)
 	}
 }
 // }}}
-
 //@}
 
 } // namespace x0
