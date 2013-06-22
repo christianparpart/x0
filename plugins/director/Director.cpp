@@ -238,10 +238,10 @@ void Director::onStop()
 	WTRACE(1, "onStop()");
 
 	for (auto& br: backends_) {
-		for (auto backend: br) {
+		br.each([&](Backend* backend) {
 			backend->disable();
 			backend->healthMonitor()->stop();
-		}
+		});
 	}
 }
 
@@ -359,12 +359,23 @@ BackendRole Director::backendRole(const Backend* backend) const
 	return backend->customData<BackendData>(this)->role;
 }
 
+bool Director::findBackend(const std::string& name, const std::function<void(Backend*)>& cb)
+{
+	for (auto& br: backends_) {
+		if (auto b = br.find(name)) {
+			cb(b);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 Backend* Director::findBackend(const std::string& name)
 {
 	for (auto& br: backends_)
-		for (auto b: br)
-			if (b->name() == name)
-				return b;
+		if (auto b = br.find(name))
+			return b;
 
 	return nullptr;
 }
@@ -772,7 +783,7 @@ bool Director::save()
 	}
 
 	for (auto& br: backends_) {
-		for (auto b: br) {
+		br.each([&](Backend* b) {
 			out << "[backend=" << b->name() << "]\n"
 				<< "role=" << role2str(backendRole(b)) << "\n"
 				<< "capacity=" << b->capacity() << "\n"
@@ -790,7 +801,7 @@ bool Director::save()
 			}
 
 			out << "\n";
-		}
+		});
 	}
 
 	return true;

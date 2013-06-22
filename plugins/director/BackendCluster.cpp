@@ -52,3 +52,45 @@ void BackendCluster::remove(Backend* backend)
 	}
 }
 
+/*!
+ * Traverses all backends for read/write.
+ */
+void BackendCluster::each(const std::function<void(Backend*)>& cb)
+{
+	for (auto& item: cluster_) {
+		cb(item);
+	}
+}
+
+/*!
+ * Traverses all backends for read-only.
+ */
+void BackendCluster::each(const std::function<void(const Backend*)>& cb) const
+{
+	for (const auto& item: cluster_) {
+		cb(item);
+	}
+}
+
+bool BackendCluster::find(const std::string& name, const std::function<void(Backend*)>& cb)
+{
+	for (const auto& item: cluster_) {
+		if (item->name() == name) {
+			cb(item);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+Backend* BackendCluster::find(const std::string& name)
+{
+	for (const auto& item: cluster_) {
+		if (item->name() == name) {
+			return item;
+		}
+	}
+
+	return nullptr;
+}

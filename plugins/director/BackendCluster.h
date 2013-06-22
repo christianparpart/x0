@@ -9,6 +9,7 @@
 
 #include "SchedulerStatus.h"
 #include "Scheduler.h"
+#include <functional>
 #include <vector>
 #include <memory>
 
@@ -35,8 +36,9 @@ public:
 
 	template<typename T>
 	void setScheduler() {
-		delete scheduler_;
+		auto old = scheduler_;
 		scheduler_ = new T(&cluster_);
+		delete old;
 	}
 	Scheduler* scheduler() const { return scheduler_; }
 
@@ -46,37 +48,13 @@ public:
 	size_t size() const { return cluster_.size(); }
 	size_t capacity() const;
 
-	List::const_iterator begin() const { return cluster_.begin(); }
-	List::const_iterator end() const { return cluster_.end(); }
-	List::const_iterator cbegin() const { return cluster_.cbegin(); }
-	List::const_iterator cend() const { return cluster_.cend(); }
-
-//	Backend* front() const { return cluster_.front(); }
-//	Backend* back() const { return cluster_.back(); }
-
 	void push_back(Backend* backend);
 	void remove(Backend* backend);
 
-	List& cluster() { return cluster_; }
-	const List& cluster() const { return cluster_; }
-
-	template<typename Callback>
-	bool each(Callback cb)
-	{
-		for (auto& item: *this)
-			if (!cb(item))
-				return false;
-		return true;
-	}
-
-	template<typename Callback>
-	bool each(Callback cb) const
-	{
-		for (const auto& item: *this)
-			if (!cb(item))
-				return false;
-		return true;
-	}
+	void each(const std::function<void(Backend*)>& cb);
+	void each(const std::function<void(const Backend*)>& cb) const;
+	bool find(const std::string& name, const std::function<void(Backend*)>& cb);
+	Backend* find(const std::string& name);
 
 protected:
 	List cluster_;

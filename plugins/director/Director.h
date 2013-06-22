@@ -158,19 +158,19 @@ public:
 	Backend* createBackend(const std::string& name, const std::string& protocol, const x0::SocketSpec& spec, size_t capacity, BackendRole role);
 	void terminateBackend(Backend* backend);
 
+	bool findBackend(const std::string& name, const std::function<void(Backend*)>& cb);
 	Backend* findBackend(const std::string& name);
 
-	template<typename T>
-	inline void eachBackend(T callback)
+	void eachBackend(const std::function<void(Backend*)>& callback)
 	{
 		for (auto& br: backends_) {
-			for (auto b: br) {
-				callback(b);
-			}
+			br.each([&](Backend* backend) {
+				callback(backend);
+			});
 		}
 	}
 
-	const BackendCluster::List& backendsWith(BackendRole role) const;
+	const BackendCluster& backendsWith(BackendRole role) const;
 
 	void writeJSON(x0::JsonWriter& output) const;
 
@@ -209,8 +209,8 @@ namespace x0 {
 }
 
 // {{{ inlines
-inline const BackendCluster::List& Director::backendsWith(BackendRole role) const
+inline const BackendCluster& Director::backendsWith(BackendRole role) const
 {
-	return backends_[static_cast<size_t>(role)].cluster();
+	return backends_[static_cast<size_t>(role)];
 }
 // }}}
