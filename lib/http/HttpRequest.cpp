@@ -30,8 +30,10 @@ namespace x0 {
 // {{{ helper methods
 /**
  * converts a range-spec into real offsets.
+ *
+ * \todo Mark this fn as \c constexpr as soon Ubuntu's LTS default compiler supports it (14.04)
  */
-inline constexpr std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actualSize)
+inline /*constexpr*/ std::pair<std::size_t, std::size_t> makeOffsets(const std::pair<std::size_t, std::size_t>& p, std::size_t actualSize)
 {
 	return p.first == HttpRangeDef::npos
 		? std::make_pair(actualSize - p.second, actualSize - 1)         // last N bytes
