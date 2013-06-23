@@ -16,8 +16,6 @@ public:
 	void SetUp();
 	void TearDown();
 
-	void DirectoryTraversal();
-
 	void request(const std::string& method, const std::string& path,
 		const std::initializer_list<std::pair<std::string, std::string>>& headers, const Buffer& content,
 		HttpClient::ResponseHandler callback);
@@ -60,7 +58,7 @@ void HttpServerTest::request(const std::string& method, const std::string& path,
 	HttpClient::request(host_, port_, method, path, headerMap, content, callback);
 }
 
-TEST_F(HttpServerTest, Get)
+TEST_F(HttpServerTest, DISABLED_Get)
 {
 	HttpClient::HeaderMap headers;
 	Buffer body;
@@ -72,7 +70,7 @@ TEST_F(HttpServerTest, Get)
 	});
 }
 
-TEST_F(HttpServerTest, DirectoryTraversal)
+TEST_F(HttpServerTest, DISABLED_DirectoryTraversal)
 {
 	// TODO
 }
