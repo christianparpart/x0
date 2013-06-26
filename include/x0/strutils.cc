@@ -29,9 +29,6 @@ inline std::string make_hostid(const String& hostname, int port)
 	if (n != String::npos)
 		return std::string(hostname.data(), hostname.size());
 
-#if 0
-	return hostname + ":" + boost::lexical_cast<std::string>(port);
-#else
 	const int BUFSIZE = 128;
 	char buf[BUFSIZE];
 	int i = BUFSIZE - 1;
@@ -44,7 +41,6 @@ inline std::string make_hostid(const String& hostname, int port)
 	memcpy(buf + i, hostname.data(), hostname.size());
 
 	return std::string(buf + i, BUFSIZE - i);
-#endif
 }
 
 inline int extract_port_from_hostid(const std::string& hostid)
