@@ -12,11 +12,12 @@
 #include <x0/TimeSpan.h>
 #include <x0/DateTime.h>
 #include <x0/http/HttpStatus.h>
-#include <x0/http/HttpRequest.h>
 #include <unordered_map>
 #include <tbb/concurrent_hash_map.h>
 #include <string>
 #include <atomic>
+#include <utility>
+#include <list>
 #include <cstdint>
 
 namespace x0 {

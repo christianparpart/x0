@@ -9,6 +9,7 @@
 #include "ObjectCache.h"
 #include "RequestNotes.h"
 #include <x0/io/BufferRefSource.h>
+#include <x0/http/HttpRequest.h>
 
 using namespace x0;
 
