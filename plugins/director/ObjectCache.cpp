@@ -45,6 +45,69 @@ ObjectCache::ObjectCache() :
 ObjectCache::~ObjectCache()
 {
 }
+
+bool ObjectCache::serve(x0::HttpRequest* r, const std::string& cacheKey)
+{
+	if (!deliverActive())
+		return false;
+
+	bool processed = false;
+	acquire(cacheKey, [&](Object* object, bool created) {
+		const DateTime now = r->connection.worker().now();
+		const DateTime expiry = object->ctime() + defaultTTL();
+		const bool valid = now <= expiry;
+		const auto state = object->state();
+		if (created) {
+			// cache object did not exist and got just created for by this request
+			//printf("Director.processCacheObject: object created\n");
+			object->update(r);
+			processed = false;
+		} else if (object) {
+			switch (state) {
+				case Object::Spawning:
+				case Object::Updating:
+					object->deliver(r);
+					processed = true;
+					break;
+				case Object::Active:
+					if (valid) {
+						object->deliver(r);
+						processed = true;
+						break;
+					}
+					// fall through
+				case Object::Stale:
+					//printf("deliver stale object (%s)\n", to_s(state).c_str());
+					object->update(r);
+					processed = false;
+					break;
+			}
+		}
+	});
+
+	return processed;
+}
+
+bool ObjectCache::resque(x0::HttpRequest* r, const std::string& cacheKey)
+{
+	if (deliverShadow()) {
+		if (find(cacheKey,
+				[&](Object* object)
+				{
+					if (object) {
+						r->responseHeaders.push_back("X-Director-Cache", "shadow");
+						object->deliver(r);
+					}
+				}
+			))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 // }}}
 // {{{ MallocStore
 MallocStore::MallocStore() :
@@ -87,12 +150,17 @@ bool MallocStore::acquire(const std::string& cacheKey, const std::function<void(
 	}
 }
 
-void MallocStore::purge(const std::string& cacheKey)
+bool MallocStore::purge(const std::string& cacheKey)
 {
+	bool result = false;
 	ObjectMap::accessor accessor;
+
 	if (objects_.find(accessor, cacheKey)) {
 		accessor->second->expire();
+		result = true;
 	}
+
+	return result;
 }
 
 void MallocStore::clear(bool physically)
@@ -309,11 +377,10 @@ void MallocStore::Object::deliver(x0::HttpRequest* r)
 			++store_->cacheShadowHits_;
 			internalDeliver(r);
 			break;
-		case Active: {
+		case Active:
 			++store_->cacheHits_;
 			internalDeliver(r);
 			break;
-		}
 	}
 }
 

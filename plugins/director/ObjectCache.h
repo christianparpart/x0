@@ -134,6 +134,27 @@ public:
 	unsigned long long cacheExpiries() const { return cacheExpiries_; }
 
 	/**
+	 * Attempts to serve the request from cache.
+	 *
+	 * \retval true request is being served from cache.
+	 * \retval false request is \b NOT being served from cache, but an object construction listener has been installed to populate the cache object.
+	 *
+	 * \see resque()
+	 */
+	bool serve(x0::HttpRequest* r, const std::string& cacheKey);
+
+	/**
+	 * Attempts to serve the request from cache if available, doesn't do anything else otherwise.
+	 *
+	 * \retval true request is being served from cache.
+	 * \retval false request is \b NOT being served from cache, and no other modifications has been done either.
+	 *
+	 * \see serve()
+	 */
+	bool resque(x0::HttpRequest* r, const std::string& cacheKey);
+
+public:
+	/**
 	 * Searches for a cache object for read access.
 	 */
 	virtual bool find(const std::string& cacheKey, const std::function<void(Object*)>& callback) = 0;
@@ -148,8 +169,11 @@ public:
 	 *
 	 * This does not mean that the cache object is gone from the store. It is usually
 	 * just flagged as invalid, so it can still be served if stale content is requested.
+	 *
+	 * \retval true Object found.
+	 * \retval false Object not found.
 	 */
-	virtual void purge(const std::string& cacheKey) = 0;
+	virtual bool purge(const std::string& cacheKey) = 0;
 
 	/**
 	 *
@@ -252,7 +276,7 @@ public:
 
 	bool find(const std::string& cacheKey, const std::function<void(ObjectCache::Object*)>& callback) final;
 	bool acquire(const std::string& cacheKey, const std::function<void(ObjectCache::Object*, bool /*created*/)>& callback) final;
-	void purge(const std::string& cacheKey) final;
+	bool purge(const std::string& cacheKey) final;
 	void clear(bool physically) final;
 
 private:

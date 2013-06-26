@@ -854,24 +854,18 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
 		return false;
 
 	if (unlikely(equals(r->method, "PURGE"))) {
-		objectCache_->find(notes->cacheKey, [&](ObjectCache::Object* object) {
-			if (object) {
-				object->expire();
+		if (objectCache_->purge(notes->cacheKey)) {
+			r->status = HttpStatus::Ok;
+			r->finish();
+		} else {
+			r->status = HttpStatus::NotFound;
+			r->finish();
+		}
 
-				r->status = HttpStatus::Ok;
-				r->finish();
-			} else {
-				r->status = HttpStatus::NotFound;
-				r->finish();
-			}
-		});
 		return true;
 	}
 
 	if (unlikely(notes->cacheIgnore))
-		return false;
-
-	if (!objectCache_->deliverActive())
 		return false;
 
 	static const char* allowedMethods[] = { "GET", "HEAD" };
@@ -885,41 +879,7 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
 	if (!methodFound)
 		return false;
 
-	bool processed = false;
-	objectCache_->acquire(notes->cacheKey, [&](ObjectCache::Object* object, bool created) {
-		const DateTime now = r->connection.worker().now();
-		const DateTime expiry = object->ctime() + objectCache_->defaultTTL();
-		const bool valid = now <= expiry;
-		const auto state = object->state();
-		if (created) {
-			// cache object did not exist and got just created for by this request
-			//printf("Director.processCacheObject: object created\n");
-			object->update(r);
-			processed = false;
-		} else if (object) {
-			switch (state) {
-				case ObjectCache::Object::Spawning:
-				case ObjectCache::Object::Updating:
-					object->deliver(r);
-					processed = true;
-					break;
-				case ObjectCache::Object::Active:
-					if (valid) {
-						object->deliver(r);
-						processed = true;
-						break;
-					}
-					// fall through
-				case ObjectCache::Object::Stale:
-					//printf("deliver stale object (%s)\n", to_s(state).c_str());
-					object->update(r);
-					processed = false;
-					break;
-			}
-		}
-	});
-
-	return processed;
+	return objectCache_->serve(r, notes->cacheKey);
 }
 #endif
 
@@ -1002,19 +962,8 @@ void Director::reschedule(HttpRequest* r, RequestNotes* notes)
 void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
 {
 #if defined(X0_DIRECTOR_CACHE)
-	if (objectCache_->deliverShadow()) {
-		if (objectCache_->find(notes->cacheKey,
-			[&](ObjectCache::Object* object) {
-				if (object) {
-					r->responseHeaders.push_back("X-Director-Cache", "shadow");
-					object->deliver(r);
-				}
-			}
-		))
-		{
-			return;
-		}
-	}
+	if (objectCache_->resque(r, notes->cacheKey))
+		return;
 #endif
 
 	if (retryAfter()) {
