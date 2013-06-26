@@ -86,11 +86,6 @@ private:
 
 #if defined(X0_DIRECTOR_CACHE)
 	ObjectCache* objectCache_;	//!< response object cache
-	std::atomic<unsigned long long> cacheHits_;
-	std::atomic<unsigned long long> cacheShadowHits_;
-	std::atomic<unsigned long long> cacheMisses_;
-	std::atomic<unsigned long long> cachePurges_; //!< explicit purges
-	std::atomic<unsigned long long> cacheExpiries_; //!< automatic expiries
 #endif
 
 	std::list<std::function<void()>>::iterator stopHandle_;

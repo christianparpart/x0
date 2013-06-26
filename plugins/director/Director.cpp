@@ -83,10 +83,6 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	dropped_(0),
 #if defined(X0_DIRECTOR_CACHE)
 	objectCache_(nullptr),
-	cacheHits_(0),
-	cacheShadowHits_(0),
-	cacheMisses_(0),
-	cachePurges_(0),
 #endif
 	stopHandle_()
 {
@@ -431,10 +427,10 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("cache-enabled")(objectCache_->enabled())
 		.name("cache-deliver-active")(objectCache_->deliverActive())
 		.name("cache-deliver-shadow")(objectCache_->deliverShadow())
-		.name("cache-misses")(cacheMisses_)
-		.name("cache-hits")(cacheHits_)
-		.name("cache-shadow-hits")(cacheShadowHits_)
-		.name("cache-purges")(cachePurges_)
+		.name("cache-misses")(objectCache_->cacheMisses())
+		.name("cache-hits")(objectCache_->cacheHits())
+		.name("cache-shadow-hits")(objectCache_->cacheShadowHits())
+		.name("cache-purges")(objectCache_->cachePurges())
 #endif
 		.name("shaper")(shaper_)
 		.beginArray("members");
@@ -860,7 +856,6 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
 	if (unlikely(equals(r->method, "PURGE"))) {
 		objectCache_->find(notes->cacheKey, [&](ObjectCache::Object* object) {
 			if (object) {
-				++cachePurges_;
 				object->expire();
 
 				r->status = HttpStatus::Ok;
@@ -899,20 +894,17 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
 		if (created) {
 			// cache object did not exist and got just created for by this request
 			//printf("Director.processCacheObject: object created\n");
-			++cacheMisses_;
 			object->update(r);
 			processed = false;
 		} else if (object) {
 			switch (state) {
 				case ObjectCache::Object::Spawning:
 				case ObjectCache::Object::Updating:
-					++cacheShadowHits_;
 					object->deliver(r);
 					processed = true;
 					break;
 				case ObjectCache::Object::Active:
 					if (valid) {
-						++cacheHits_;
 						object->deliver(r);
 						processed = true;
 						break;
@@ -920,7 +912,6 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
 					// fall through
 				case ObjectCache::Object::Stale:
 					//printf("deliver stale object (%s)\n", to_s(state).c_str());
-					++cacheMisses_;
 					object->update(r);
 					processed = false;
 					break;
@@ -1017,7 +1008,6 @@ void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
 				if (object) {
 					r->responseHeaders.push_back("X-Director-Cache", "shadow");
 					object->deliver(r);
-					++cacheShadowHits_;
 				}
 			}
 		))

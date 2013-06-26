@@ -34,7 +34,11 @@ ObjectCache::ObjectCache() :
 	lockOnUpdate_(true),
 	updateLockTimeout_(TimeSpan::fromSeconds(10)),
 	defaultTTL_(TimeSpan::fromSeconds(20)), //TimeSpan::Zero),
-	defaultShadowTTL_(TimeSpan::Zero)
+	defaultShadowTTL_(TimeSpan::Zero),
+	cacheHits_(0),
+	cacheShadowHits_(0),
+	cacheMisses_(0),
+	cachePurges_(0)
 {
 }
 
@@ -204,7 +208,7 @@ void MallocStore::Object::addHeaders(HttpRequest* r, bool hit)
 	r->responseHeaders.push_back("X-Cache-Lookup", ss[(size_t)state_]);
 
 	char buf[32];
-	snprintf(buf, sizeof(buf), "%zu", hit ? frontBuffer().hitCount : 0);
+	snprintf(buf, sizeof(buf), "%zu", hit ? frontBuffer().hits : 0);
 	r->responseHeaders.push_back("X-Cache-Hits", buf);
 
 	TimeSpan age(r->connection.worker().now() - frontBuffer().ctime);
@@ -256,6 +260,8 @@ DateTime MallocStore::Object::ctime() const
  */
 void MallocStore::Object::update(HttpRequest* r)
 {
+	++store_->cacheMisses_;
+
 	if (state_ != Spawning)
 		state_ = Updating;
 
@@ -287,40 +293,52 @@ void MallocStore::Object::deliver(x0::HttpRequest* r)
 {
 	switch (state()) {
 		case Spawning:
+			++store_->cacheHits_;
 			enqueue(r);
 			TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Spawning\n", interests_.size());
 			break;
 		case Updating:
 			if (store_->lockOnUpdate()) {
+				++store_->cacheHits_;
 				enqueue(r);
 				TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Updating\n", interests_.size());
 				break;
 			}
 			// fall through
 		case Stale:
+			++store_->cacheShadowHits_;
+			internalDeliver(r);
+			break;
 		case Active: {
-			++frontBuffer().hitCount;
-
-			TRACE(3, "Object.deliver(): hit %zu, state %s\n", frontBuffer().hitCount, to_s(state_).c_str());
-
-			r->status = frontBuffer().status;
-
-			for (auto header: frontBuffer().headers)
-				r->responseHeaders.push_back(header.first, header.second);
-
-			addHeaders(r, true);
-
-			if (!equals(r->method, "HEAD"))
-				r->write<BufferRefSource>(frontBuffer().body);
-
-			r->finish();
+			++store_->cacheHits_;
+			internalDeliver(r);
 			break;
 		}
 	}
 }
 
+void MallocStore::Object::internalDeliver(x0::HttpRequest* r)
+{
+	++frontBuffer().hits;
+
+	TRACE(3, "Object.deliver(): hit %zu, state %s\n", frontBuffer().hits, to_s(state_).c_str());
+
+	r->status = frontBuffer().status;
+
+	for (auto header: frontBuffer().headers)
+		r->responseHeaders.push_back(header.first, header.second);
+
+	addHeaders(r, true);
+
+	if (!equals(r->method, "HEAD"))
+		r->write<BufferRefSource>(frontBuffer().body);
+
+	r->finish();
+}
+
 void MallocStore::Object::expire()
 {
+	++store_->cachePurges_;
 	state_ = Stale;
 }
 

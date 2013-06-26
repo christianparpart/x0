@@ -16,6 +16,8 @@
 #include <unordered_map>
 #include <tbb/concurrent_hash_map.h>
 #include <string>
+#include <atomic>
+#include <cstdint>
 
 namespace x0 {
 	class HttpRequest;
@@ -71,6 +73,11 @@ protected:
 	std::string defaultKey_;
 	x0::TimeSpan defaultTTL_;
 	x0::TimeSpan defaultShadowTTL_;
+	std::atomic<unsigned long long> cacheHits_;
+	std::atomic<unsigned long long> cacheShadowHits_;
+	std::atomic<unsigned long long> cacheMisses_;
+	std::atomic<unsigned long long> cachePurges_; //!< explicit purges
+	std::atomic<unsigned long long> cacheExpiries_; //!< automatic expiries
 
 public:
 	ObjectCache();
@@ -119,6 +126,12 @@ public:
 	 */
 	x0::TimeSpan defaultShadowTTL() const { return defaultShadowTTL_; }
 	void setDefaultShadowTTL(const x0::TimeSpan& value) { defaultShadowTTL_ = value; }
+
+	unsigned long long cacheHits() const { return cacheHits_; }
+	unsigned long long cacheShadowHits() const { return cacheShadowHits_; }
+	unsigned long long cacheMisses() const { return cacheShadowHits_; }
+	unsigned long long cachePurges() const { return cachePurges_; }
+	unsigned long long cacheExpiries() const { return cacheExpiries_; }
 
 	/**
 	 * Searches for a cache object for read access.
@@ -171,19 +184,21 @@ private:
 		void expire() final;
 
 	private:
+		inline void internalDeliver(x0::HttpRequest* r);
+
 		struct Buffer { // {{{
 			x0::DateTime ctime;
 			x0::HttpStatus status;
 			std::list<std::pair<std::string, std::string>> headers;
 			x0::Buffer body;
-			size_t hitCount;
+			size_t hits;
 
 			Buffer() :
 				ctime(),
 				status(x0::HttpStatus::Undefined),
 				headers(),
 				body(),
-				hitCount(0)
+				hits(0)
 			{
 			}
 
@@ -191,7 +206,7 @@ private:
 				status = x0::HttpStatus::Undefined;
 				headers.clear();
 				body.clear();
-				hitCount = 0;
+				hits = 0;
 			}
 		}; // }}}
 
