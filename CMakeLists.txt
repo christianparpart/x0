@@ -103,6 +103,9 @@ if(HAVE_BZLIB_H)
 	set(BZIP2_LIBRARIES bz2)
 endif(HAVE_BZLIB_H)
 
+# TODO dynamic check for tbb
+set(TBB_LIBRARIES tbb)
+
 # ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
