@@ -2,12 +2,12 @@
 -----------------------------------------------------------------------------
 INSTALL REQUIREMENTS:
 
-- GCC 4.6.0 (or higher but absolutely not prior, we use C++0x in our code)
-- tbb - (Threading Building Blocks, a threading concurrency framework)
-- cmake 2.8.0 - for building
-- cppunit 1.12.1 - optional, for unit tests
+- GCC 4.6.0 - required, (or higher but absolutely not prior, we use C++0x in our code)
+- tbb - required, (Threading Building Blocks, a threading concurrency framework)
+- cmake 2.8.0 - required, for building
+- gtest - optional, for unit tests (Google Test Framework)
 - gnutls - optional, for SSL/TLS encryption
-- pod2man - part of perl, to generate the man pages
+- pod2man - required, part of perl, to generate the man pages
 - doxygen - optional, to generate developer-API documentation.
 
 fetch the sources from https://github.com/xzero/x0 (i guess you already did that).
@@ -23,7 +23,7 @@ make
 sudo make install
 
 # now test the daemon:
-./src/x0d --no-fork --config=src/test.conf
+./src/x0d --no-fork --config=src/test.conf --log-severity=info --log-target=console
 
 # run in a simple instant-mode, sharing one dir at given port:
 ./src/x0d --instant=`pwd`,8080
