@@ -3,20 +3,20 @@
 INSTALL REQUIREMENTS:
 
 - GCC 4.6.0 (or higher but absolutely not prior, we use C++0x in our code)
-- boost 1.42 - a few pieces still use boost code
+- tbb - (Threading Building Blocks, a threading concurrency framework)
 - cmake 2.8.0 - for building
 - cppunit 1.12.1 - optional, for unit tests
 - gnutls - optional, for SSL/TLS encryption
 - pod2man - part of perl, to generate the man pages
 - doxygen - optional, to generate developer-API documentation.
 
-fetch the sources from github.com/trapni/x0 (i guess you already did that).
+fetch the sources from https://github.com/xzero/x0 (i guess you already did that).
 
 -----------------------------------------------------------------------------
 HOW TO BUILD:
 
 # now lets fetch and compile x0
-git clone git://github.com/trapni/x0.git
+git clone git://github.com/xzero/x0.git
 cd x0/
 cmake .
 make
