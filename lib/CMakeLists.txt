@@ -19,8 +19,10 @@ if(WITH_MYSQL)
 	add_definitions(${MYSQL_CFLAGS})
 endif()
 add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
+
 target_link_libraries(XzeroBase dl pthread
 	${SD_LIBRARIES}
+	${TBB_LIBRARIES}
 	${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES}
 	${EV_LIBRARIES} ${MYSQL_LDFLAGS})
 set_target_properties(XzeroBase PROPERTIES VERSION ${PACKAGE_VERSION})
