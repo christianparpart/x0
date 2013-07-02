@@ -14,21 +14,30 @@
 #include <x0/IPAddress.h>
 #include <x0/RegExp.h>
 
+#if defined(LLVM_VERSION_3_3)
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/Analysis/Passes.h>
+#else
 #include <llvm/DerivedTypes.h>
 #include <llvm/LLVMContext.h>
 #include <llvm/Module.h>
 #include <llvm/LLVMContext.h>
-#include <llvm/PassManager.h>
 #include <llvm/DefaultPasses.h>
-#include <llvm/Analysis/Verifier.h>
 #include <llvm/Support/IRBuilder.h>
+#include <llvm/Target/TargetData.h>
+#endif
+
+#include <llvm/PassManager.h>
+#include <llvm/Analysis/Verifier.h>
 #include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JIT.h>
-#include <llvm/Target/TargetData.h>
 #include <llvm/Target/TargetLibraryInfo.h>
 #include <llvm/ADT/Triple.h>
 
@@ -237,12 +246,16 @@ void FlowRunner::setOptimizationLevel(int value)
 
 	// function pass manager
 	functionPassMgr_ = new llvm::FunctionPassManager(module_);
+#if !defined(LLVM_VERSION_3_3) // TODO port to LLVM 3.3+
 	functionPassMgr_->add(new llvm::TargetData(module_));
+#endif
 	pmBuilder.populateFunctionPassManager(*functionPassMgr_);
 
 	// module pass manager
 	modulePassMgr_ = new llvm::PassManager();
+#if !defined(LLVM_VERSION_3_3) // TODO port to LLVM 3.3+
 	modulePassMgr_->add(new llvm::TargetData(module_));
+#endif
 	pmBuilder.populateModulePassManager(*modulePassMgr_);
 }
 

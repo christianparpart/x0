@@ -9,15 +9,24 @@
 #ifndef sw_flow_runner_h
 #define sw_flow_runner_h
 
+#include <x0/sysconfig.h>
 #include <x0/flow/Flow.h>
 #include <x0/flow/FlowValue.h>
 #include <x0/flow/FlowToken.h>
 
+#if defined(LLVM_VERSION_3_3)
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/Analysis/Verifier.h>
+#else // something older
 #include <llvm/DerivedTypes.h>
 #include <llvm/LLVMContext.h>
 #include <llvm/Module.h>
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/Support/IRBuilder.h>
+#endif
 
 #include <functional>
 #include <cstdio>

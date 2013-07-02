@@ -54,4 +54,9 @@
 #cmakedefine X0_WORKER_RR 1                /* use RR for worker-select instead of lowest-load */
 #cmakedefine X0_DIRECTOR_CACHE
 
+#cmakedefine LLVM_VERSION_3_0
+#cmakedefine LLVM_VERSION_3_1
+#cmakedefine LLVM_VERSION_3_2
+#cmakedefine LLVM_VERSION_3_3
+
 #endif
