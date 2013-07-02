@@ -13,6 +13,13 @@
 
 namespace x0 {
 
+/**
+ * MPSC Concurrent Timeout Scheduler.
+ *
+ * Multiple Producer single consumer timeout scheduler, that means,
+ * every thread can add timeouts concurrently but timeouts may only
+ * be from within a single thread.
+ */
 class X0_API TimeoutScheduler {
 private:
 	struct Timeout {
@@ -32,6 +39,12 @@ private:
 	tbb::concurrent_priority_queue<Timeout> queue;
 
 public:
+	/**
+	 * Adds a timeout handler to the queue.
+	 *
+	 * \param when Absolute timestamp when to fire the event.
+	 * \param handler Callback to invoke on fire.
+	 */
 	void push(time_t when, const std::function<void()>& handler);
 	void pulse(time_t now);
 };
