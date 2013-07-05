@@ -12,7 +12,6 @@
 #include <x0/TimeSpan.h>
 #include <x0/DateTime.h>
 #include <x0/http/HttpStatus.h>
-#include <unordered_map>
 #include <tbb/concurrent_hash_map.h>
 #include <string>
 #include <atomic>
@@ -22,6 +21,7 @@
 
 namespace x0 {
 	class HttpRequest;
+	class JsonWriter;
 }
 
 class RequestNotes;
@@ -140,7 +140,7 @@ public:
 	 * \retval true request is being served from cache.
 	 * \retval false request is \b NOT being served from cache, but an object construction listener has been installed to populate the cache object.
 	 *
-	 * \see resque()
+	 * \see rescue()
 	 */
 	bool serve(x0::HttpRequest* r, const std::string& cacheKey);
 
@@ -152,7 +152,7 @@ public:
 	 *
 	 * \see serve()
 	 */
-	bool resque(x0::HttpRequest* r, const std::string& cacheKey);
+	bool rescue(x0::HttpRequest* r, const std::string& cacheKey);
 
 public:
 	/**
@@ -184,7 +184,14 @@ public:
 	 * just flagged as invalid, so they can still be served if stale content is requested.
 	 */
 	virtual void clear(bool physically) = 0;
+
+	virtual void writeJSON(x0::JsonWriter& json) const;
 };
+
+inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const ObjectCache& cache) {
+	cache.writeJSON(json);
+	return json;
+}
 
 class MallocStore :
 	public ObjectCache
@@ -268,7 +275,7 @@ private:
 	};
 
 	typedef tbb::concurrent_hash_map<std::string, Object*> ObjectMap;
-	
+
 	ObjectMap objects_;
 
 public:

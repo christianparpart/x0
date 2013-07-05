@@ -13,7 +13,11 @@
 
 using namespace x0;
 
-#define TRACE(n, msg...) ((void*)0) /*!*/
+#if 1
+#	define TRACE(n, msg...) ((void*)0) /*!*/
+#else
+#	define TRACE(n, msg...) { printf("[ObjectStore] "); printf(msg); printf("\n"); }
+#endif
 
 // TODO thread safety
 // TODO test cache validity when output compression is enabled (or other output filters are applied).
@@ -89,7 +93,7 @@ bool ObjectCache::serve(x0::HttpRequest* r, const std::string& cacheKey)
 	return processed;
 }
 
-bool ObjectCache::resque(x0::HttpRequest* r, const std::string& cacheKey)
+bool ObjectCache::rescue(x0::HttpRequest* r, const std::string& cacheKey)
 {
 	if (deliverShadow()) {
 		if (find(cacheKey,
@@ -109,6 +113,18 @@ bool ObjectCache::resque(x0::HttpRequest* r, const std::string& cacheKey)
 	return false;
 }
 
+void ObjectCache::writeJSON(x0::JsonWriter& json) const
+{
+	json.beginObject()
+		.name("enabled")(enabled())
+		.name("deliver-active")(deliverActive())
+		.name("deliver-shadow")(deliverShadow())
+		.name("misses")(cacheMisses())
+		.name("hits")(cacheHits())
+		.name("shadow-hits")(cacheShadowHits())
+		.name("purges")(cachePurges())
+		.endObject();
+}
 // }}}
 // {{{ MallocStore
 MallocStore::MallocStore() :
@@ -199,7 +215,7 @@ Buffer MallocStore::Builder::process(const BufferRef& chunk)
 	if (object_) {
 		if (!chunk.empty()) {
 			object_->backBuffer().body.push_back(chunk);
-			TRACE(3, "MallocStore.Builder.process(): %zu bytes\n", chunk.size());
+			TRACE(3, "MallocStore.Builder.process(): %zu bytes", chunk.size());
 		}
 	}
 
@@ -223,22 +239,21 @@ MallocStore::Object::~Object()
 
 void MallocStore::Object::postProcess()
 {
-	TRACE(3, "Object.postProcess() status: %d\n", request_->status);
-	request_->outputFilters.push_back(std::make_shared<Builder>(this));
-	request_->onRequestDone.connect<MallocStore::Object, &MallocStore::Object::commit>(this);
-	backBuffer().status = request_->status;
+	TRACE(3, "Object.postProcess() status: %d", request_->status);
 
 	for (auto header: request_->responseHeaders) {
-//		if (unlikely(iequals(header.name, "Set-Cookie"))) {
-//			request_->log(Severity::info, "Caching requested but origin server provides uncacheable response header, Set-Cookie. Do not cache.");
-//			destroy();
-//			return;
-//		}
+		TRACE(3, "Object.postProcess() %s: %s", header.name.c_str(), header.value.c_str());
+		if (unlikely(iequals(header.name, "Set-Cookie"))) {
+			request_->log(Severity::info, "Caching requested but origin server provides uncacheable response header, Set-Cookie. Do not cache.");
+			destroy();
+			return;
+		}
 
-//		if (unlikely(iequals(header.name, "Cache-Control") && iequals(header.value, "no-cache"))) {
-//			destroy();
-//			return;
-//		}
+		if (unlikely(iequals(header.name, "Cache-Control") && iequals(header.value, "no-cache"))) {
+			TRACE(2, "Cache-Control detected. do not record object then.");
+			destroy();
+			return;
+		}
 
 		if (unlikely(iequals(header.name, "X-Director-Cache")))
 			continue;
@@ -257,6 +272,10 @@ void MallocStore::Object::postProcess()
 	}
 
 	addHeaders(request_, false);
+
+	request_->outputFilters.push_back(std::make_shared<Builder>(this));
+	request_->onRequestDone.connect<MallocStore::Object, &MallocStore::Object::commit>(this);
+	backBuffer().status = request_->status;
 }
 
 std::string to_s(ObjectCache::Object::State value)
@@ -297,7 +316,7 @@ void MallocStore::Object::append(const x0::BufferRef& ref)
 
 void MallocStore::Object::commit()
 {
-	TRACE(3, "Object: commit\n");
+	TRACE(3, "Object: commit");
 	backBuffer().ctime = request_->connection.worker().now();
 	swapBuffers();
 	request_ = nullptr;
@@ -307,7 +326,7 @@ void MallocStore::Object::commit()
 	size_t i = 0;
 	(void) i;
 	for (auto request: pendingRequests) {
-		TRACE(3, "commit: deliver to pending request %zu\n", ++i);
+		TRACE(3, "commit: deliver to pending request %zu", ++i);
 		request->post([=]() {
 			deliver(request);
 		});
@@ -334,7 +353,7 @@ void MallocStore::Object::update(HttpRequest* r)
 	if (state_ != Spawning)
 		state_ = Updating;
 
-	TRACE(3, "Object.update() -> %s\n", to_s(state_).c_str());
+	TRACE(3, "Object.update() -> %s", to_s(state_).c_str());
 	request_ = r;
 	request_->onPostProcess.connect<Object, &Object::postProcess>(this);
 }
@@ -364,13 +383,13 @@ void MallocStore::Object::deliver(x0::HttpRequest* r)
 		case Spawning:
 			++store_->cacheHits_;
 			enqueue(r);
-			TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Spawning\n", interests_.size());
+			TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Spawning", interests_.size());
 			break;
 		case Updating:
 			if (store_->lockOnUpdate()) {
 				++store_->cacheHits_;
 				enqueue(r);
-				TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Updating\n", interests_.size());
+				TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Updating", interests_.size());
 				break;
 			}
 			// fall through
@@ -389,7 +408,7 @@ void MallocStore::Object::internalDeliver(x0::HttpRequest* r)
 {
 	++frontBuffer().hits;
 
-	TRACE(3, "Object.deliver(): hit %zu, state %s\n", frontBuffer().hits, to_s(state_).c_str());
+	TRACE(3, "Object.deliver(): hit %zu, state %s", frontBuffer().hits, to_s(state_).c_str());
 
 	r->status = frontBuffer().status;
 

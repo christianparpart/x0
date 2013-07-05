@@ -424,13 +424,7 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("health-check-request-path")(healthCheckRequestPath_)
 		.name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
 #if defined(X0_DIRECTOR_CACHE)
-		.name("cache-enabled")(objectCache_->enabled())
-		.name("cache-deliver-active")(objectCache_->deliverActive())
-		.name("cache-deliver-shadow")(objectCache_->deliverShadow())
-		.name("cache-misses")(objectCache_->cacheMisses())
-		.name("cache-hits")(objectCache_->cacheHits())
-		.name("cache-shadow-hits")(objectCache_->cacheShadowHits())
-		.name("cache-purges")(objectCache_->cachePurges())
+		.name("cache")(*objectCache_)
 #endif
 		.name("shaper")(shaper_)
 		.beginArray("members");
@@ -962,7 +956,7 @@ void Director::reschedule(HttpRequest* r, RequestNotes* notes)
 void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
 {
 #if defined(X0_DIRECTOR_CACHE)
-	if (objectCache_->resque(r, notes->cacheKey))
+	if (objectCache_->rescue(r, notes->cacheKey))
 		return;
 #endif
 

@@ -36,7 +36,4 @@ set(director_SRC
 	${director_cache_SRC}
 )
 
-set(tbb_LIBRARIES tbb)
-
 x0_plugin(director "${director_SRC}")
-target_link_libraries(director ${tbb_LIBRARIES})
