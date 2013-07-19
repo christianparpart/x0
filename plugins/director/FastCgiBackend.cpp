@@ -104,7 +104,6 @@ public:
 
 	// aka CgiRequest
 	x0::HttpRequest *request_;
-	FastCgi::CgiParamStreamWriter paramWriter_;
 
 	/*! number of write chunks written within a single io() callback. */
 	int writeCount_;
@@ -121,7 +120,7 @@ public:
 	void ref();
 	void unref();
 
-	void bind();
+	void bind(x0::HttpRequest* r);
 	void close();
 
 	// server-to-application
@@ -185,8 +184,7 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	flushPending_(false),
 	configured_(false),
 
-	request_(r),
-	paramWriter_(),
+	request_(nullptr),
 	writeCount_(0),
 	transferHandle_(-1),
 	transferOffset_(0),
@@ -207,7 +205,7 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	write(FastCgi::Type::GetValues, 0, mr.output());
 #endif
 
-	bind();
+	bind(r);
 }
 
 FastCgiTransport::~FastCgiTransport()
@@ -274,8 +272,18 @@ void FastCgiTransport::unref()
 	}
 }
 
-void FastCgiTransport::bind()
+/**
+ * @brief binds the given request to this FastCGI transport connection.
+ *
+ * @param r the HTTP client request to bind to this FastCGI transport connection.
+ *
+ * Requests bound to a FastCGI transport will be passed to the connected 
+ * transport backend and served by it.
+ */
+void FastCgiTransport::bind(x0::HttpRequest* r)
 {
+	request_ = r;
+
 	// initialize object
 	request_->setAbortHandler(&FastCgiTransport::onClientAbort, this);
 
@@ -284,49 +292,50 @@ void FastCgiTransport::bind()
 	// initialize stream
 	write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, id_, true);
 
-	paramWriter_.encode("SERVER_SOFTWARE", PACKAGE_NAME "/" PACKAGE_VERSION);
-	paramWriter_.encode("SERVER_NAME", request_->requestHeader("Host"));
-	paramWriter_.encode("GATEWAY_INTERFACE", "CGI/1.1");
+	FastCgi::CgiParamStreamWriter params;
+	params.encode("SERVER_SOFTWARE", PACKAGE_NAME "/" PACKAGE_VERSION);
+	params.encode("SERVER_NAME", request_->requestHeader("Host"));
+	params.encode("GATEWAY_INTERFACE", "CGI/1.1");
 
-	paramWriter_.encode("SERVER_PROTOCOL", "1.1");
-	paramWriter_.encode("SERVER_ADDR", request_->connection.localIP());
-	paramWriter_.encode("SERVER_PORT", x0::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
+	params.encode("SERVER_PROTOCOL", "1.1");
+	params.encode("SERVER_ADDR", request_->connection.localIP());
+	params.encode("SERVER_PORT", x0::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
 
-	paramWriter_.encode("REQUEST_METHOD", request_->method);
-	paramWriter_.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
+	params.encode("REQUEST_METHOD", request_->method);
+	params.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
 
 	request_->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
 
-	paramWriter_.encode("PATH_INFO", request_->pathinfo);
+	params.encode("PATH_INFO", request_->pathinfo);
 
 	if (!request_->pathinfo.empty()) {
-		paramWriter_.encode("PATH_TRANSLATED", request_->documentRoot, request_->pathinfo);
-		paramWriter_.encode("SCRIPT_NAME", request_->path.ref(0, request_->path.size() - request_->pathinfo.size()));
+		params.encode("PATH_TRANSLATED", request_->documentRoot, request_->pathinfo);
+		params.encode("SCRIPT_NAME", request_->path.ref(0, request_->path.size() - request_->pathinfo.size()));
 	} else {
-		paramWriter_.encode("SCRIPT_NAME", request_->path);
+		params.encode("SCRIPT_NAME", request_->path);
 	}
 
-	paramWriter_.encode("QUERY_STRING", request_->query);			// unparsed uri
-	paramWriter_.encode("REQUEST_URI", request_->unparsedUri);
+	params.encode("QUERY_STRING", request_->query);			// unparsed uri
+	params.encode("REQUEST_URI", request_->unparsedUri);
 
-	//paramWriter_.encode("REMOTE_HOST", "");  // optional
-	paramWriter_.encode("REMOTE_ADDR", request_->connection.remoteIP());
-	paramWriter_.encode("REMOTE_PORT", x0::lexical_cast<std::string>(request_->connection.remotePort()));
+	//params.encode("REMOTE_HOST", "");  // optional
+	params.encode("REMOTE_ADDR", request_->connection.remoteIP());
+	params.encode("REMOTE_PORT", x0::lexical_cast<std::string>(request_->connection.remotePort()));
 
-	//paramWriter_.encode("AUTH_TYPE", ""); // TODO
-	//paramWriter_.encode("REMOTE_USER", "");
-	//paramWriter_.encode("REMOTE_IDENT", "");
+	//params.encode("AUTH_TYPE", ""); // TODO
+	//params.encode("REMOTE_USER", "");
+	//params.encode("REMOTE_IDENT", "");
 
 	if (request_->contentAvailable()) {
-		paramWriter_.encode("CONTENT_TYPE", request_->requestHeader("Content-Type"));
-		paramWriter_.encode("CONTENT_LENGTH", request_->requestHeader("Content-Length"));
+		params.encode("CONTENT_TYPE", request_->requestHeader("Content-Type"));
+		params.encode("CONTENT_LENGTH", request_->requestHeader("Content-Length"));
 
 		request_->setBodyCallback<FastCgiTransport, &FastCgiTransport::processRequestBody>(this);
 	}
 
 #if defined(WITH_SSL)
 	if (request_->connection.isSecure())
-		paramWriter_.encode("HTTPS", "on");
+		params.encode("HTTPS", "on");
 #endif
 
 	// HTTP request headers
@@ -338,15 +347,15 @@ void FastCgiTransport::bind()
 		for (auto p = i.name.begin(), q = i.name.end(); p != q; ++p)
 			key += std::isalnum(*p) ? std::toupper(*p) : '_';
 
-		paramWriter_.encode(key, i.value);
+		params.encode(key, i.value);
 	}
-	paramWriter_.encode("DOCUMENT_ROOT", request_->documentRoot);
+	params.encode("DOCUMENT_ROOT", request_->documentRoot);
 
 	if (request_->fileinfo) {
-		paramWriter_.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+		params.encode("SCRIPT_FILENAME", request_->fileinfo->path());
 	}
 
-	write(FastCgi::Type::Params, id_, paramWriter_.output());
+	write(FastCgi::Type::Params, id_, params.output());
 	write(FastCgi::Type::Params, id_, "", 0); // EOS
 
 	// setup I/O callback
