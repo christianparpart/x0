@@ -201,9 +201,9 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	// stream management record: GetValues
 #if 0
 	FastCgi::CgiParamStreamWriter mr;
-	mr.encode("FCGI_MPXS_CONNS", "");
-	mr.encode("FCGI_MAX_CONNS", "");
-	mr.encode("FCGI_MAX_REQS", "");
+	mr.encode("FCGI_MPXS_CONNS", "");   // defaults to 1
+	mr.encode("FCGI_MAX_CONNS", "");    // defaults to 1
+	mr.encode("FCGI_MAX_REQS", "");     // defaults to 1
 	write(FastCgi::Type::GetValues, 0, mr.output());
 #endif
 
@@ -251,7 +251,7 @@ void FastCgiTransport::close()
 	if (socket_->isOpen())
 		socket_->close();
 
-	unref(); // related to the increment in contructer CgiTransport()
+	unref(); // related to the increment in contructer FastCgiTransport()
 }
 
 void FastCgiTransport::ref()
