@@ -1223,6 +1223,8 @@ void XzeroHttpDaemon::installCrashHandler()
 
 int main(int argc, char *argv[])
 {
+	//installCrashHandler();
+
 	XzeroHttpDaemon daemon(argc, argv);
 	return daemon.run();
 }

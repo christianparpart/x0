@@ -2,6 +2,7 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 
 -------------------------------------------------------------------------------------
 
+- prctl(PR_SET_NAME, "max15chars_\0") for all threads, if naming is available. fall back to pthread_setname_np, or pthread_set_name_np.
 - "GET / HTP/1.1\r\n" already results into a 404, but should report "unsupported protocol"
 - HttpConnection: try to get rid of start() method, or rename it to setup() / initialize().
 - HttpConnection must get its socket at constructor time to allow setState() (etc)
