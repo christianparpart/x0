@@ -110,6 +110,8 @@ public:
 	HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded);
 	~HttpWorker();
 
+	void setName(const char* fmt, ...);
+
 	ev_tstamp startupTime() const { return startupTime_; }
 	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
 

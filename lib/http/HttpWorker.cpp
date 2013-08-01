@@ -76,6 +76,8 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 		pthread_create(&thread_, nullptr, &HttpWorker::_run, this);
 	}
 
+	setName("worker/%d", id_);
+
 	TRACE("spawned");
 }
 
@@ -120,6 +122,21 @@ void HttpWorker::run()
 	server_.onWorkerUnspawn(this);
 
 	state_ = Inactive;
+}
+
+/*!
+ * Sets the thread/process name that's running this worker.
+ */
+void HttpWorker::setName(const char* fmt, ...)
+{
+	char buf[17]; // the name may be at most 16 bytes long.
+	va_list va;
+
+	va_start(va, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, va);
+	va_end(va);
+
+	pthread_setname_np(thread_, buf);
 }
 
 void HttpWorker::log(LogMessage&& msg)
