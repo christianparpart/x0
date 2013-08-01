@@ -24,6 +24,15 @@ namespace x0 {
 
 class FastCgiTransport;
 
+/**
+ * @brief implements the handling of one FCGI backend.
+ *
+ * A FCGI backend may manage multiple transport connections,
+ * each either idle, or serving one or more currently active
+ * HTTP client requests.
+ *
+ * @see FastCgiTransport
+ */
 class FastCgiBackend :
 	public Backend
 {
