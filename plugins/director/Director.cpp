@@ -870,10 +870,11 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
 			break;
 		}
 	}
+
 	if (!methodFound)
 		return false;
 
-	return objectCache_->serve(r, notes->cacheKey);
+	return objectCache_->deliverActive(r, notes->cacheKey);
 }
 #endif
 
@@ -956,7 +957,7 @@ void Director::reschedule(HttpRequest* r, RequestNotes* notes)
 void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
 {
 #if defined(X0_DIRECTOR_CACHE)
-	if (objectCache_->rescue(r, notes->cacheKey))
+	if (objectCache_->deliverShadow(r, notes->cacheKey))
 		return;
 #endif
 

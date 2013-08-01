@@ -140,9 +140,9 @@ public:
 	 * \retval true request is being served from cache.
 	 * \retval false request is \b NOT being served from cache, but an object construction listener has been installed to populate the cache object.
 	 *
-	 * \see rescue()
+	 * \see deliverShadow(x0::HttpRequest* r, const std::string& cacheKey);
 	 */
-	bool serve(x0::HttpRequest* r, const std::string& cacheKey);
+	bool deliverActive(x0::HttpRequest* r, const std::string& cacheKey);
 
 	/**
 	 * Attempts to serve the request from cache if available, doesn't do anything else otherwise.
@@ -150,9 +150,9 @@ public:
 	 * \retval true request is being served from cache.
 	 * \retval false request is \b NOT being served from cache, and no other modifications has been done either.
 	 *
-	 * \see serve()
+	 * \see deliverActive(x0::HttpRequest* r, const std::string& cacheKey);
 	 */
-	bool rescue(x0::HttpRequest* r, const std::string& cacheKey);
+	bool deliverShadow(x0::HttpRequest* r, const std::string& cacheKey);
 
 public:
 	/**

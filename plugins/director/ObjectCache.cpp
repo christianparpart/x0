@@ -51,7 +51,7 @@ ObjectCache::~ObjectCache()
 {
 }
 
-bool ObjectCache::serve(x0::HttpRequest* r, const std::string& cacheKey)
+bool ObjectCache::deliverActive(x0::HttpRequest* r, const std::string& cacheKey)
 {
 	if (!deliverActive())
 		return false;
@@ -93,7 +93,7 @@ bool ObjectCache::serve(x0::HttpRequest* r, const std::string& cacheKey)
 	return processed;
 }
 
-bool ObjectCache::rescue(x0::HttpRequest* r, const std::string& cacheKey)
+bool ObjectCache::deliverShadow(x0::HttpRequest* r, const std::string& cacheKey)
 {
 	if (deliverShadow()) {
 		if (find(cacheKey,
