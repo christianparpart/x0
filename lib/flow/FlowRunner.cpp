@@ -2441,10 +2441,10 @@ void FlowRunner::visit(CastExpr& expr)
 	switch (expr.targetType()) {
 		case FlowValue::STRING:
 			if (isNumber(value_)) {
-				printf("number -> string\n");
+				TRACE("number -> string\n");
 				value_ = emitCastNumberToString(value_);
 			} else if (isBool(value_)) {
-				printf("bool -> string\n");
+				TRACE("bool -> string\n");
 				value_ = emitCastBoolToString(value_);
 			} else if (!isString(value_)) {
 				reportError("Invalid string cast. Unsupported source type.");
