@@ -60,6 +60,7 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
         FileSource          : chunk producer for regular files
         FilterSource        : combines a source with a filter, producing filtered chunks
         CompositeSource     : composes an ordered set of chunks into a virtual single one.
+        NullSource          : Source containing zero (0) bytes.
 
     SinkVisitor             : visitor-pattern interface for the sink types below.
 

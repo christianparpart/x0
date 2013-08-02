@@ -524,7 +524,7 @@ bool HttpRequest::writeCallback(K* object)
  *   request->write<FileSource>("/var/www/notes.html");
  * \endcode
  *
- * \see BufferSource, CallbackSource, CompositeSource, EmptySource, FileSource, FilterSource, Source
+ * \see BufferSource, CallbackSource, CompositeSource, FileSource, FilterSource, Source
  */
 template<class T, class... Args>
 inline void HttpRequest::write(Args&&... args)

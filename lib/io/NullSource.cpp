@@ -1,4 +1,4 @@
-/* <x0/EmptySource.cpp>
+/* <x0/NullSource.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.io/
@@ -6,18 +6,18 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/io/EmptySource.h>
+#include <x0/io/NullSource.h>
 
 namespace x0 {
 
-ssize_t EmptySource::sendto(Sink& sink)
+ssize_t NullSource::sendto(Sink& sink)
 {
 	return 0;
 }
 
-const char* EmptySource::className() const
+const char* NullSource::className() const
 {
-	return "EmptySource";
+	return "NullSource";
 }
 
 } // namespace x0
