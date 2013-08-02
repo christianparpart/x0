@@ -14,11 +14,11 @@ We want the I/O system to meet at least the following requirements:
 - *multiplexing* support (via libev at least)
 - data to be passed from source to sinks must be *filterable*
 - acceleratable I/O:
-    - special system calls (such as *sendfile()* and *splice()*) shall be supported.
-    - socket-to-socket data transfer acceleration via *splice()* by
-      layering a pipe between the two.
+  - special system calls (such as `sendfile()` and `splice()`) shall be supported.
+  - socket-to-socket data transfer acceleration via `splice()` by
+    layering a pipe between the two.
 
-Although, the API does not need to exceed the requirements of the
+he API does not need to exceed the requirements of the
 *x0 HTTP server project*, though, it is unlikely, that we will implement
 a SocketSource class, for example.
 
@@ -27,57 +27,57 @@ a SocketSource class, for example.
 .: API Design :.
 
 The I/O API is following the source/sink-approach, where an I/O path has two
-ends, the source (class *Source*) and the destination (class *Sink*).
-On the way through, the data (also known as a *Chunk*) may be filtered
-(class *Filter*), but the data may take a short-cut when no
+ends, the source (class `Source`) and the destination (class `Sink`).
+On the way through, the data (also known as a `Chunk`) may be filtered
+(class `Filter`), but the data may take a short-cut when no
 data-filtering is required.
 
 We want to provide different types of sources, sinks, and filters.
 Though, we provide a common base class for each of the above with the
 minimum actions in common and will provide specialized classes to implement
-the actual derivate (e.g. *FileSource* or *SocketSink*).
+the actual derivate (e.g. `FileSource` or `SocketSink`).
 
 
 
 .: Class Hierarchy :.
 
-    Buffer                  : an in-memory dynamically growing memory region.
-    BufferRef               : a view into a sub-region of its referring buffer.
+  Buffer                  : an in-memory dynamically growing memory region.
+  BufferRef               : a view into a sub-region of its referring buffer.
 
-    Pipe                    ; a system pipe()
+  Pipe                    ; a system pipe()
 
-    Socket                  ; a network socket
-    SocketDriver            ; a network socket driver (for creating sockets)
-    ServerSocket            ; server socket
+  Socket                  ; a network socket
+  SocketDriver            ; a network socket driver (for creating sockets)
+  ServerSocket            ; server socket
 
-    FileInfo                ; contains stat() information about a file, and
-                            ; initial operations on it, like open()
-    FileInfoService         ; file-info service API
+  FileInfo                ; contains stat() information about a file, and
+                          ; initial operations on it, like open()
+  FileInfoService         ; file-info service API
 
-    Source                  : abstract base class for chunk producer
-        BufferSource        : in-memory chunk producer (reads from this buffer)
-        PipeSource          : reads chunks from a pipe
-        FileSource          : chunk producer for regular files
-        FilterSource        : combines a source with a filter, producing filtered chunks
-        CompositeSource     : composes an ordered set of chunks into a virtual single one.
-        NullSource          : Source containing zero (0) bytes.
+  Source                  : abstract base class for chunk producer
+      BufferSource        : in-memory chunk producer (reads from this buffer)
+      PipeSource          : reads chunks from a pipe
+      FileSource          : chunk producer for regular files
+      FilterSource        : combines a source with a filter, producing filtered chunks
+      CompositeSource     : composes an ordered set of chunks into a virtual single one.
+      NullSource          : Source containing zero (0) bytes.
 
-    SinkVisitor             : visitor-pattern interface for the sink types below.
+  SinkVisitor             : visitor-pattern interface for the sink types below.
 
-    Sink                    : abstract base class for chunk consumer
-        BufferSink          : in-memory chunk consumer (writes into this buffer)
-        FileSink            : chunk consumer for regular files
-        SocketSink          : writes chunks into a network socket
-        PipeSink            ; writes chunks into a pipe
+  Sink                    : abstract base class for chunk consumer
+      BufferSink          : in-memory chunk consumer (writes into this buffer)
+      FileSink            : chunk consumer for regular files
+      SocketSink          : writes chunks into a network socket
+      PipeSink            ; writes chunks into a pipe
 
-    Filter                  : abstract base class for chunk transformer
-        NullFilter          : does not transform at all (a classic NULL filter)
-        CompressFilter      : base class for compressing filters
-            DeflateFilter   : compresses with deflate-algorithm
-                GZipFilter  : compresses with gzip-algorithm
-            BZip2Filter     : compresses with bzip2-algorithm
-        ChainFilter         : passes incoming chunks through a chained list of filters.
-        ChunkedEncoder      : wraps incoming data into chunked transfer encoding.
+  Filter                  : abstract base class for chunk transformer
+      NullFilter          : does not transform at all (a classic NULL filter)
+      CompressFilter      : base class for compressing filters
+          DeflateFilter   : compresses with deflate-algorithm
+              GZipFilter  : compresses with gzip-algorithm
+          BZip2Filter     : compresses with bzip2-algorithm
+      ChainFilter         : passes incoming chunks through a chained list of filters.
+      ChunkedEncoder      : wraps incoming data into chunked transfer encoding.
 
 
 
@@ -86,40 +86,41 @@ the actual derivate (e.g. *FileSource* or *SocketSink*).
 When copying data from one end to another (e.g. a file from a server to a client)
 common semantics are found:
 
-  - The server's file is called *Source* and the client is our *Sink*.
+- The server's file is called `Source` and the client is our `Sink`.
 
-  - But as we can't assume to just send the whole source as one big blob to
-    our sink, we will divide it into smaller ones, which we call *Chunk*.
+- But as we can't assume to just send the whole source as one big blob to
+  our sink, we will divide it into smaller ones, which we call *Chunk*.
 
-  - Sometimes we wish to transform the data before finally pumping it to
-    the sink - this will be done by the chunk transformer, the *Filter*.
+- Sometimes we wish to transform the data before finally pumping it to
+  the sink - this will be done by the chunk transformer, the `Filter`.
 
 The source is represented as a data stream and splitted dynamically
 into (smaller) chunks:
 
-  - produced by a source (chunk producer),
+- produced by a source (chunk producer),
 
-  - possibly transformed by a filter, and finally
+- possibly transformed by a filter, and finally
 
-  - consumed by a sink (chunk consumer).
+- consumed by a sink (chunk consumer).
 
 
 
 .: Chunks :.
 
 A chunk is an array of bytes, represented in memory.
-We (re-)use the class *Buffer* and *BufferRef* as they serve exactly
+We (re-)use the class `Buffer` and `BufferRef` as they serve exactly
 what we require.
 
 
 
 .: Sources (Chunk Producer) :.
 
-The *Source* class abstracts all kinds of chunk producers (files, buffers,
+The `Source` class abstracts all kinds of chunk producers (files, buffers,
 network sockets, composite set of different source types).
 
 abstract interface:
-    virtual ssize_t sendto(Sink& sink);
+
+  virtual ssize_t sendto(Sink& sink);
 
 Every source specialization needs to implement the function(s) above.
 
@@ -135,11 +136,12 @@ Sinks will actually consume the chunks produced, thus, writing into a network
 socket, a memory region, or regular file onto your local filesystem.
 
 abstract interface:
-    virtual ssize_t ssize_t write(const void *buffer, size_t size);
-    virtual void accept(SinkVisitor& visitor);
 
-Each sink implementation must implement the methods above. The *write()*
-method is usually invoked by the *Source* objects *sendto()* method
+  virtual ssize_t ssize_t write(const void *buffer, size_t size);
+  virtual void accept(SinkVisitor& visitor);
+
+Each sink implementation must implement the methods above. The `write()`
+method is usually invoked by the `Source` object's `sendto()` method
 unless it does not provide a more intelligent way to accelerate
 the data transfer (like splice() and sendfile() system-calls for
 copy-free data transfer).
@@ -148,7 +150,7 @@ copy-free data transfer).
 
 .: Compositing Sources :.
 
-There is one special type of source (*CompositeSource*) that is used to
+There is one special type of source (`CompositeSource`) that is used to
 create a complex source by compositing multiple (different types of)
 sources together into one linear stream.
 
@@ -167,14 +169,15 @@ copying it into the sink.
 Filters are created on demand for a fixed source and sink.
 
 abstract interface:
-    virtual Buffer process(const BufferRef& input, bool eof);
+
+  virtual Buffer process(const BufferRef& input, bool eof);
 
 Each filter is must implement the above method, which is invoked repeatily
 over all produced chunks, and where its input parameter represents
 the chunk to filter (transform) and eof is the flag, indicating whether
 or not this is last chunk within this stream, thus, this is the last
-invokation of *process()* before this filter is destroyed again.
+invokation of `process()` before this filter is destroyed again.
 
 
 
-vim:et:ts=4
+vim:et:ts=2:sw=2:syntax=asciidoc
