@@ -478,6 +478,12 @@ bool Director::load(const std::string& path)
 	}
 
 	std::string value;
+	if (!settings.load("director", "enabled", value)) {
+		worker()->log(Severity::error, "director: Could not load settings value director.enabled  in file '%s'", path.c_str());
+		return false;
+	}
+	enabled_ = value == "true";
+
 	if (!settings.load("director", "queue-limit", value)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
 		return false;
@@ -752,6 +758,7 @@ bool Director::save()
 	out << "# vim:syntax=dosini\n"
 		<< "# !!! DO NOT EDIT !!! THIS FILE IS GENERATED AUTOMATICALLY !!!\n\n"
 		<< "[director]\n"
+		<< "enabled=" << (enabled_ ? "true" : "false") << "\n"
 		<< "queue-limit=" << queueLimit_ << "\n"
 		<< "queue-timeout=" << queueTimeout_.totalMilliseconds() << "\n"
 		<< "retry-after=" << retryAfter_.totalSeconds() << "\n"
