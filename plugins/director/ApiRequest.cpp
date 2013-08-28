@@ -19,14 +19,17 @@
 #include <cstdlib>
 
 // list directors:   GET    /
+//
 // get director:     GET    /:director_id
+// update director:  POST   /:director_id
+// enable director:  LOCK   /:director_id
+// disable director: UNLOCK /:director_id
 //
-// enable director:  UNLOCK /:director_id/:backend_id
-// disable director: LOCK   /:director_id/:backend_id
-//
-// create backend:   PUT    /:director_id/:backend_id
-// update backend:   POST   /:director_id/:backend_id
-// delete backend:   DELETE /:director_id/:backend_id
+// create backend:   PUT    /:director_id/backends/:backend_id
+// update backend:   POST   /:director_id/backends/:backend_id
+// enable backend:   UNLOCK /:director_id/backends/:backend_id
+// disable backend:  LOCK   /:director_id/backends/:backend_id
+// delete backend:   DELETE /:director_id/backends/:backend_id
 //
 // create bucket:    PUT    /:director_id/buckets/:bucket_id
 // update bucket:    POST   /:director_id/buckets/:bucket_id
@@ -36,10 +39,27 @@
 // - mode
 // - capacity
 // - enabled
+// - protected
+// - role
+// - health-check-mode
+// - health-check-interval
 //
 // PUT / POST args (bucket):
 // - rate
 // - ceil
+//
+// POST args (director):
+// - queue-limit
+// - retry-after
+// - connect-timeout
+// - read-timeout
+// - write-timeout
+// - max-retry-count
+// - sticky-offline-mode
+// - allow-x-sendfile
+// - health-check-host-header
+// - health-check-request-path
+// - health-check-fcgi-script-filename
 
 #define X_FORM_URL_ENCODED "application/x-www-form-urlencoded"
 
@@ -52,24 +72,7 @@ using namespace x0;
  * An instance of this class is to serve one request.
  */
 
-enum class HttpMethod // {{{
-{
-	Unknown,
-	// HTTP
-	GET,
-	PUT,
-	POST,
-	DELETE,
-	CONNECT,
-	// WebDAV
-	MKCOL,
-	MOVE,
-	COPY,
-	LOCK,
-	UNLOCK,
-};
-
-HttpMethod requestMethod(const BufferRef& value)
+inline HttpMethod requestMethod(const x0::BufferRef& value)
 {
 	switch (value[0]) {
 		case 'C':
@@ -109,11 +112,11 @@ HttpMethod requestMethod(const BufferRef& value)
 			return HttpMethod::Unknown;
 	}
 }
-// }}}
 
 ApiRequest::ApiRequest(DirectorMap* directors, HttpRequest* r, const BufferRef& path) :
 	directors_(directors),
 	request_(r),
+	method_(::requestMethod(request_->method)),
 	path_(path),
 	tokens_(tokenize(path_.ref(1), "/")),
 	body_()
@@ -174,6 +177,8 @@ Director* ApiRequest::findDirector(const x0::BufferRef& name)
 
 	if (i != directors_->end())
 		return i->second;
+
+	request_->log(Severity::error, "Director '%s' not found.", name.str().c_str());
 
 	return nullptr;
 }
@@ -317,248 +322,40 @@ bool ApiRequest::loadParam(const std::string& key, TransferMode& result)
 bool ApiRequest::process()
 {
 	switch (tokens_.size()) {
-		case 3: // '/:director_id/buckets/:bucket_id'
-			if (tokens_[1] == "buckets")
+		case 3:
+			if (tokens_[1] == "buckets")          // /:director_id/buckets/:bucket_id
 				return processBucket();
-			else if (tokens_[1] == "backends")
+			else if (tokens_[1] == "backends")    // /:director_id/backends/:bucket_id
 				return processBackend();
 			else
 				return false;
-		case 2: // '/:director_id/:backend_id'
-			return processBackend();
-		case 1: // '/:director_id'
+		case 2:
+			if (requestMethod() == HttpMethod::PUT) {
+				if (tokens_[1] == "buckets")      // PUT /:director_id/buckets
+					return createBucket(findDirector(tokens_[0]));
+				else if (tokens_[1] == "backends") // PUT /:director_id/backends
+					return createBackend(findDirector(tokens_[0]));    
+			}
+			return badRequest();
+		case 1:                                   // /:director_id
 			return processDirector();
-		case 0: // '/'
+		case 0:                                   // /
 			return processIndex();
 		default:
 			return false;
 	}
 }
 
-bool ApiRequest::resourceNotFound(const std::string& name, const std::string& value)
-{
-	request_->post([&]() {
-		request_->log(Severity::error,
-			"director: Failed to update a %s '%s'. Not found (from path: '%s').",
-			name.c_str(), value.c_str(), path_.ref(1).str().c_str());
-
-		request_->status = x0::HttpStatus::NotFound;
-		request_->finish();
-	});
-
-	return true;
-}
-
-bool ApiRequest::processBucket()
-{
-	// methods: GET, PUT, POST, DELETE
-	// route: /:director_id/buckets/:bucket_id
-
-	Director* director = findDirector(tokens_[0]);
-	if (!director)
-		return resourceNotFound("director", tokens_[0].str());
-
-	// XXX The capture-by-value is intentional, as captures might not be reachable within the block.
-	director->post([=]() {
-		processBucket(director);
-	});
-
-	return true;
-}
-
-void ApiRequest::processBucket(Director* director)
-{
-	auto bucket = director->findBucket(tokens_[2].str());
-
-	switch (requestMethod(request_->method)) {
-		case HttpMethod::GET: {
-			if (!bucket) {
-				resourceNotFound("bucket", tokens_[2].str());
-				return;
-			}
-
-			Buffer result;
-			JsonWriter json(result);
-			bucket->writeJSON(json);
-			result << "\n";
-
-			request_->post([&]() {
-				char slen[32];
-				snprintf(slen, sizeof(slen), "%zu", result.size());
-				request_->responseHeaders.push_back("Cache-Control", "no-cache");
-				request_->responseHeaders.push_back("Content-Type", "application/json");
-				request_->responseHeaders.push_back("Access-Control-Allow-Origin", "*");
-				request_->responseHeaders.push_back("Content-Length", slen);
-				request_->write<BufferSource>(result);
-				request_->finish();
-			});
-		}
-		case HttpMethod::PUT: { // create a new bucket
-			std::string name = tokens_[2].str();
-			float rate = 0;
-			float ceil = 0;
-
-			if (!loadParam("rate", rate)) {
-				request_->post([&]() {
-					request_->log(Severity::error, "invalid rate");
-					request_->status = HttpStatus::BadRequest;
-					request_->finish();
-				});
-				return;
-			}
-
-			if (!loadParam("ceil", ceil)) {
-				request_->post([&]() {
-					request_->log(Severity::error, "invalid ceil");
-					request_->status = HttpStatus::BadRequest;
-					request_->finish();
-				});
-				return;
-			}
-
-			if (bucket) {
-				// resource already exists
-				request_->post([&]() {
-					request_->log(Severity::notice, "Attempting to create a bucket with a name that already exists: %s.", name.c_str());
-					request_->status = HttpStatus::Ok;
-					request_->finish();
-				});
-				return;
-			}
-
-			TokenShaperError ec = director->createBucket(name, rate, ceil);
-			if (ec == TokenShaperError::Success) {
-				director->save();
-				request_->status = HttpStatus::Ok;
-			} else {
-				static const char *str[] = {
-					"Success.",
-					"Rate limit overflow.",
-					"Ceil limit overflow.",
-					"Name conflict.",
-					"Invalid child node.",
-				};
-				director->worker()->log(Severity::error, "Could not create director's bucket. %s", str[(size_t)ec]);
-				request_->status = HttpStatus::BadRequest;
-			}
-
-			request_->post([&]() {
-				request_->finish();
-			});
-			return;
-		}
-		case HttpMethod::POST: { // update existing bucket
-			if (!bucket) {
-				resourceNotFound("bucket", tokens_[2].str());
-				return;
-			}
-
-			std::string name = tokens_[2].str();
-			float rate = 0;
-			float ceil = 0;
-
-			if (!loadParam("rate", rate)) {
-				request_->post([&]() {
-					request_->log(Severity::error, "invalid rate");
-					request_->status = HttpStatus::BadRequest;
-					request_->finish();
-				});
-				return;
-			}
-
-			if (!loadParam("ceil", ceil)) {
-				request_->post([&]() {
-					request_->log(Severity::error, "invalid ceil");
-					request_->status = HttpStatus::BadRequest;
-					request_->finish();
-				});
-				return;
-			}
-
-			TokenShaperError ec = bucket->setRate(rate, ceil);
-
-			if (ec == TokenShaperError::Success) {
-				director->save();
-				request_->status = HttpStatus::Ok;
-			} else {
-				static const char *str[] = {
-					"Success.",
-					"Rate limit overflow.",
-					"Ceil limit overflow.",
-					"Name conflict.",
-					"Invalid child node.",
-				};
-				director->worker()->log(Severity::error, "Could not create director's bucket. %s", str[(size_t)ec]);
-				request_->status = HttpStatus::BadRequest;
-			}
-
-			request_->post([&]() {
-				request_->finish();
-			});
-			return;
-		}
-		case HttpMethod::DELETE: { // delete bucket
-			if (!bucket) {
-				resourceNotFound("bucket", tokens_[2].str());
-				return;
-			}
-
-			director->worker()->log(Severity::debug, "director %s: Destroying bucket %s",
-				director->name().c_str(), bucket->name().c_str());
-
-			director->shaper()->destroyNode(bucket);
-			director->save();
-
-			request_->post([&]() {
-				request_->status = HttpStatus::Ok;
-				request_->finish();
-			});
-			return;
-		}
-		default: {
-			request_->post([&]() {
-				request_->status = HttpStatus::BadRequest;
-				request_->finish();
-			});
-			return;
-		}
-	}
-}
-
-bool ApiRequest::processBackend()
-{
-	switch (requestMethod(request_->method)) {
-		case HttpMethod::UNLOCK:
-			return lock(false);
-		case HttpMethod::LOCK:
-			return lock(true);
-		case HttpMethod::PUT:
-			return create();
-		case HttpMethod::POST:
-			return update();
-		case HttpMethod::DELETE:
-			return destroy();
-		default:
-			return false;
-	}
-}
-
-bool ApiRequest::processDirector()
-{
-	if (requestMethod(request_->method) == HttpMethod::GET)
-		return get();
-
-	return false;
-}
-
+// {{{ index
 bool ApiRequest::processIndex()
 {
-	if (requestMethod(request_->method) == HttpMethod::GET)
+	if (requestMethod() == HttpMethod::GET)
 		return index();
 
 	return false;
 }
 
+// GET /
 bool ApiRequest::index()
 {
 	// FIXME: thread safety.
@@ -590,57 +387,10 @@ bool ApiRequest::index()
 	return true;
 }
 
-bool ApiRequest::eventstream()
+// }}}
+// {{{ directors
+bool ApiRequest::processDirector()
 {
-	return false;
-}
-
-// get a single director json object
-bool ApiRequest::get()
-{
-	if (tokens_.size() < 1 || tokens_.size() >  2)
-		return false;
-
-	request_->responseHeaders.push_back("Cache-Control", "no-cache");
-
-	Director* director = findDirector(tokens_[0]);
-	if (!director) {
-		request_->status = x0::HttpStatus::NotFound;
-		request_->finish();
-	} else if (tokens_.size() == 1) { // director
-		Buffer result;
-		JsonWriter(result).value(*director);
-
-		request_->status = x0::HttpStatus::Ok;
-		request_->write<x0::BufferSource>(result);
-		request_->finish();
-	} else { // backend
-		if (Backend* backend = director->findBackend(tokens_[1].str())) {
-			Buffer result;
-			JsonWriter json(result);
-			json.beginObject()
-				.value(*backend)
-				.endObject();
-
-			request_->status = x0::HttpStatus::Ok;
-			request_->write<x0::BufferSource>(result);
-			request_->finish();
-		} else {
-			request_->status = x0::HttpStatus::NotFound;
-			request_->finish();
-		}
-	}
-
-	return true;
-}
-
-
-// LOCK or UNLOCK /:director_id/:backend_id
-bool ApiRequest::lock(bool locked)
-{
-	if (tokens_.size() != 2)
-		return false;
-
 	Director* director = findDirector(tokens_[0]);
 	if (!director) {
 		request_->status = x0::HttpStatus::NotFound;
@@ -648,161 +398,30 @@ bool ApiRequest::lock(bool locked)
 		return true;
 	}
 
-	// name can be passed by URI path or via request body
-	auto name = tokens_[1];
-	if (name.empty())
-		return false;
-
-	if (Backend* backend = director->findBackend(name.str())) {
-		backend->setEnabled(!locked);
-		request_->status = x0::HttpStatus::Accepted;
-	} else {
-		request_->status = x0::HttpStatus::NotFound;
+	switch (requestMethod()) {
+		case HttpMethod::GET:
+			return show(director);
+		case HttpMethod::POST:
+			return update(director);
+		default:
+			return false;
 	}
+}
 
+// GET /:director
+bool ApiRequest::show(Director* director)
+{
+	Buffer result;
+	JsonWriter(result).value(*director);
+
+	request_->status = x0::HttpStatus::Ok;
+	request_->write<x0::BufferSource>(result);
 	request_->finish();
-	return true;
-}
-
-// create a backend - PUT /:director_id(/:backend_id)
-bool ApiRequest::create()
-{
-	if (tokens_.size() > 2) {
-		request_->log(Severity::error, "invalid token count (%zi).", tokens_.size());
-		request_->status = x0::HttpStatus::NotFound;
-		request_->finish();
-		return true;
-	}
-
-	Director* director = findDirector(tokens_[0]);
-	if (!director) {
-		request_->status = x0::HttpStatus::NotFound;
-		request_->finish();
-		return true;
-	}
-
-	// name can be passed by URI path or via request body
-	std::string name;
-	if (tokens_.size() == 2)
-		name = tokens_[1].str();
-	else if (!loadParam("name", name))
-		return false;
-
-	if (name.empty()) {
-		request_->log(Severity::error, "Failed parsing attribute 'name'. Name's empty.");
-		return false;
-	}
-
-	BackendRole role = BackendRole::Active;
-	if (!loadParam("role", role))
-		return false;
-
-	bool enabled = false;
-	if (!loadParam("enabled", enabled))
-		return false;
-
-	size_t capacity = 0;
-	if (!loadParam("capacity", capacity))
-		return false;
-
-	bool terminateProtection = false;
-	if (hasParam("terminate-protection"))
-		if (!loadParam("terminate-protection", terminateProtection))
-			return false;
-
-	std::string protocol;
-	if (!loadParam("protocol", protocol))
-		return false;
-
-	if (protocol != "fastcgi" && protocol != "http")
-		return false;
-
-	SocketSpec socketSpec;
-	std::string path;
-	if (loadParam("path", path)) {
-		socketSpec = SocketSpec::fromLocal(path);
-	} else {
-		std::string hostname;
-		if (!loadParam("hostname", hostname))
-			return false;
-
-		int port;
-		if (!loadParam("port", port))
-			return false;
-
-		socketSpec = SocketSpec::fromInet(IPAddress(hostname), port);
-	}
-
-	TimeSpan hcInterval;
-	if (!loadParam("health-check-interval", hcInterval))
-		return false;
-
-	HealthMonitor::Mode hcMode;
-	if (!loadParam("health-check-mode", hcMode))
-		return false;
-
-	if (!director->isMutable()) {
-		request_->log(Severity::error, "director: Could not create backend '%s' at director '%s'. Director immutable.",
-			name.c_str(), director->name().c_str());
-
-		request_->status = x0::HttpStatus::Forbidden;
-		request_->finish();
-		return true;
-	}
-
-	Backend* backend = director->createBackend(name, protocol, socketSpec, capacity, role);
-
-	if (backend) {
-		backend->setTerminateProtection(terminateProtection);
-		backend->setEnabled(enabled);
-		backend->healthMonitor()->setInterval(hcInterval);
-		backend->healthMonitor()->setMode(hcMode);
-		director->save();
-		request_->status = x0::HttpStatus::Created;
-		request_->log(Severity::info, "director: %s created backend: %s.", director->name().c_str(), backend->name().c_str());
-		request_->finish();
-	} else {
-		request_->status = x0::HttpStatus::BadRequest;
-		request_->finish();
-	}
 
 	return true;
 }
 
-// update a backend - POST /:director_name/:backend_name
-// allows updating of the following attributes:
-// - capacity
-// - protected
-// - enabled
-// - role
-// - health-check-mode
-// - health-check-interval
-bool ApiRequest::update()
-{
-	if (tokens_.size() == 0 || tokens_.size() > 2) {
-		request_->log(Severity::error, "director: Invalid formed request path.");
-		request_->status = x0::HttpStatus::BadRequest;
-		request_->finish();
-		return true;
-	}
-
-	Director* director = findDirector(tokens_[0]);
-	if (!director) {
-		request_->log(Severity::error,
-			"director: Failed to update a resource with director '%s' not found (from path: '%s').",
-			tokens_[0].str().c_str(), path_.ref(1).str().c_str());
-		request_->status = x0::HttpStatus::NotFound;
-		request_->finish();
-		return true;
-	}
-
-	if (tokens_.size() == 2)
-		return updateBackend(director, tokens_[1].str());
-	else
-		return updateDirector(director);
-}
-
-bool ApiRequest::updateDirector(Director* director)
+bool ApiRequest::update(Director* director)
 {
 	size_t queueLimit = director->queueLimit();
 	if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
@@ -893,18 +512,153 @@ bool ApiRequest::updateDirector(Director* director)
 	return true;
 }
 
-bool ApiRequest::updateBackend(Director* director, const std::string& name)
+// }}}
+// {{{ backends
+bool ApiRequest::processBackend()
 {
-	if (name.empty()) {
-		request_->log(Severity::error, "director: Cannot update backend with empty name.");
-		return false;
+	Director* director = findDirector(tokens_[0]);
+	if (!director) {
+		request_->status = x0::HttpStatus::NotFound;
+		request_->finish();
+		return true;
 	}
 
-	Backend* backend = director->findBackend(name);
-	if (!backend) {
-		request_->log(Severity::error, "director: Could not update backend '%s' of director '%s'. Backend not found.",
-				name.c_str(), director->name().c_str());
+	switch (requestMethod()) {
+		case HttpMethod::GET:
+			return show(director->findBackend(tokens_[2].str()));
+		case HttpMethod::POST:
+			return update(director->findBackend(tokens_[2].str()), director);
+		case HttpMethod::UNLOCK:
+			return lock(false, director->findBackend(tokens_[2].str()), director);
+		case HttpMethod::LOCK:
+			return lock(true, director->findBackend(tokens_[2].str()), director);
+		case HttpMethod::DELETE:
+			return destroy(director->findBackend(tokens_[2].str()), director);
+		default:
+			return false;
+	}
+}
+
+// GET /:director/:backend
+bool ApiRequest::show(Backend* backend)
+{
+	Buffer result;
+	JsonWriter json(result);
+	json.beginObject()
+		.value(*backend)
+		.endObject();
+
+	request_->status = x0::HttpStatus::Ok;
+	request_->write<x0::BufferSource>(result);
+	request_->finish();
+
+	return true;
+}
+
+// PUT /:director_id/backends
+bool ApiRequest::createBackend(Director* director)
+{
+	if (!director) {
+		request_->status = x0::HttpStatus::NotFound;
+		request_->finish();
+		return true;
+	}
+
+	std::string name;
+	if (!loadParam("name", name))
 		return false;
+
+	if (name.empty())
+		return badRequest("Failed parsing attribute 'name'. value is empty.");
+
+	BackendRole role = BackendRole::Active;
+	if (!loadParam("role", role))
+		return false;
+
+	bool enabled = false;
+	if (!loadParam("enabled", enabled))
+		return false;
+
+	size_t capacity = 0;
+	if (!loadParam("capacity", capacity))
+		return false;
+
+	bool terminateProtection = false;
+	if (hasParam("terminate-protection"))
+		if (!loadParam("terminate-protection", terminateProtection))
+			return false;
+
+	std::string protocol;
+	if (!loadParam("protocol", protocol))
+		return false;
+
+	if (protocol != "fastcgi" && protocol != "http")
+		return false;
+
+	SocketSpec socketSpec;
+	std::string path;
+	if (loadParam("path", path)) {
+		socketSpec = SocketSpec::fromLocal(path);
+	} else {
+		std::string hostname;
+		if (!loadParam("hostname", hostname))
+			return false;
+
+		int port;
+		if (!loadParam("port", port))
+			return false;
+
+		socketSpec = SocketSpec::fromInet(IPAddress(hostname), port);
+	}
+
+	TimeSpan hcInterval;
+	if (!loadParam("health-check-interval", hcInterval))
+		return false;
+
+	HealthMonitor::Mode hcMode;
+	if (!loadParam("health-check-mode", hcMode))
+		return false;
+
+	if (!director->isMutable()) {
+		request_->log(Severity::error, "director: Could not create backend '%s' at director '%s'. Director immutable.",
+			name.c_str(), director->name().c_str());
+
+		request_->status = x0::HttpStatus::Forbidden;
+		request_->finish();
+		return true;
+	}
+
+	Backend* backend = director->createBackend(name, protocol, socketSpec, capacity, role);
+	if (!backend)
+		return badRequest("Creating backend failed.");
+
+	backend->setTerminateProtection(terminateProtection);
+	backend->setEnabled(enabled);
+	backend->healthMonitor()->setInterval(hcInterval);
+	backend->healthMonitor()->setMode(hcMode);
+	director->save();
+	request_->status = x0::HttpStatus::Created;
+	request_->log(Severity::info, "director: %s created backend: %s.", director->name().c_str(), backend->name().c_str());
+	request_->finish();
+
+	return true;
+}
+
+bool ApiRequest::update(Backend* backend, Director* director)
+{
+	if (!backend) {
+		request_->status = x0::HttpStatus::NotFound;
+		request_->finish();
+		return true;
+	}
+
+	if (!director->isMutable()) {
+		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
+			backend->name().c_str(), director->name().c_str());
+
+		request_->status = x0::HttpStatus::Forbidden;
+		request_->finish();
+		return true;
 	}
 
 	BackendRole role = director->backendRole(backend);
@@ -925,15 +679,6 @@ bool ApiRequest::updateBackend(Director* director, const std::string& name)
 
 	HealthMonitor::Mode hcMode = backend->healthMonitor()->mode();
 	loadParam("health-check-mode", hcMode);
-
-	if (!director->isMutable()) {
-		request_->log(Severity::error, "director: Could not update backend '%s' at director '%s'. Director immutable.",
-			name.c_str(), director->name().c_str());
-
-		request_->status = x0::HttpStatus::Forbidden;
-		request_->finish();
-		return true;
-	}
 
 	if (!enabled)
 		backend->setEnabled(false);
@@ -960,43 +705,23 @@ bool ApiRequest::updateBackend(Director* director, const std::string& name)
 	return true;
 }
 
-// delete a backend
-bool ApiRequest::destroy()
+// LOCK or UNLOCK /:director_id/:backend_id
+bool ApiRequest::lock(bool locked, Backend* backend, Director* director)
 {
-	if (tokens_.size() != 2) {
-		request_->log(Severity::error, "director: Could not delete backend. Invalid request path '%s'.",
-			path_.str().c_str());
+	backend->setEnabled(!locked);
+	request_->status = x0::HttpStatus::Accepted;
+	request_->finish();
+	return true;
+}
 
-		request_->status = x0::HttpStatus::InternalServerError;
-		request_->finish();
-		return true;
-	}
-
-	Director* director = findDirector(tokens_[0]);
-	if (!director) {
-		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director not found.",
-			tokens_[1].str().c_str(), tokens_[0].str().c_str());
-
-		request_->status = x0::HttpStatus::NotFound;
-		request_->finish();
-		return true;
-	}
-
+// delete a backend
+bool ApiRequest::destroy(Backend* backend, Director* director)
+{
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Director immutable.",
 			tokens_[1].str().c_str(), tokens_[0].str().c_str());
 
 		request_->status = x0::HttpStatus::Forbidden;
-		request_->finish();
-		return true;
-	}
-
-	Backend* backend = director->findBackend(tokens_[1].str());
-	if (!backend) {
-		request_->log(Severity::error, "director: Could not delete backend '%s' at director '%s'. Backend not found.",
-			tokens_[1].str().c_str(), tokens_[0].str().c_str());
-
-		request_->status = x0::HttpStatus::NotFound;
 		request_->finish();
 		return true;
 	}
@@ -1029,8 +754,216 @@ bool ApiRequest::destroy()
 	return true;
 }
 
+// }}}
+// {{{ buckets
+bool ApiRequest::processBucket()
+{
+	// methods: GET, PUT, POST, DELETE
+	// route: /:director_id/buckets/:bucket_id
+
+	Director* director = findDirector(tokens_[0]);
+	if (!director)
+		return resourceNotFound("director", tokens_[0].str());
+
+	// XXX The capture-by-value is intentional, as captures might not be reachable within the block.
+	director->post([=]() {
+		processBucket(director);
+	});
+
+	return true;
+}
+
+void ApiRequest::processBucket(Director* director)
+{
+	auto bucket = director->findBucket(tokens_[2].str());
+	if (!bucket) {
+		resourceNotFound("bucket", tokens_[2].str());
+		return;
+	}
+
+	switch (requestMethod()) {
+		case HttpMethod::GET: {
+			show(bucket);
+			break;
+		}
+		case HttpMethod::POST: { // update existing bucket
+			return;
+		}
+		case HttpMethod::DELETE: { // delete bucket
+			if (!bucket) {
+				resourceNotFound("bucket", tokens_[2].str());
+				return;
+			}
+
+			director->worker()->log(Severity::debug, "director %s: Destroying bucket %s",
+				director->name().c_str(), bucket->name().c_str());
+
+			director->shaper()->destroyNode(bucket);
+			director->save();
+
+			request_->post([&]() {
+				request_->status = HttpStatus::Ok;
+				request_->finish();
+			});
+			return;
+		}
+		default: {
+			request_->post([&]() {
+				request_->status = HttpStatus::BadRequest;
+				request_->finish();
+			});
+			return;
+		}
+	}
+}
+
+bool ApiRequest::createBucket(Director* director)
+{
+	if (!director) {
+		request_->status = x0::HttpStatus::NotFound;
+		request_->finish();
+		return true;
+	}
+
+	std::string name = tokens_[2].str();
+	float rate = 0;
+	float ceil = 0;
+
+	if (!loadParam("rate", rate))
+		return badRequest("invalid bucket rate");
+
+	if (!loadParam("ceil", ceil))
+		return badRequest("invalid bucket ceil");
+
+	auto bucket = director->findBucket(tokens_[2].str());
+	if (bucket) {
+		// resource already exists
+		request_->post([&]() {
+			request_->log(Severity::notice, "Attempting to create a bucket with a name that already exists: %s.", name.c_str());
+			request_->status = HttpStatus::Ok;
+			request_->finish();
+		});
+		return true;
+	}
+
+	TokenShaperError ec = director->createBucket(name, rate, ceil);
+	if (ec == TokenShaperError::Success) {
+		director->save();
+		request_->status = HttpStatus::Ok;
+	} else {
+		static const char *str[] = {
+			"Success.",
+			"Rate limit overflow.",
+			"Ceil limit overflow.",
+			"Name conflict.",
+			"Invalid child node.",
+		};
+		director->worker()->log(Severity::error, "Could not create director's bucket. %s", str[(size_t)ec]);
+		request_->status = HttpStatus::BadRequest;
+	}
+
+	request_->post([&]() {
+		request_->finish();
+	});
+	return true;
+}
+
+void ApiRequest::show(RequestShaper::Node* bucket)
+{
+	Buffer result;
+	JsonWriter json(result);
+	bucket->writeJSON(json);
+	result << "\n";
+
+	request_->post([&]() {
+		char slen[32];
+		snprintf(slen, sizeof(slen), "%zu", result.size());
+		request_->responseHeaders.push_back("Cache-Control", "no-cache");
+		request_->responseHeaders.push_back("Content-Type", "application/json");
+		request_->responseHeaders.push_back("Access-Control-Allow-Origin", "*");
+		request_->responseHeaders.push_back("Content-Length", slen);
+		request_->write<BufferSource>(result);
+		request_->finish();
+	});
+}
+
+void ApiRequest::update(RequestShaper::Node* bucket, Director* director)
+{
+	std::string name = tokens_[2].str();
+	float rate = 0;
+	float ceil = 0;
+
+	if (!loadParam("rate", rate)) {
+		request_->post([&]() {
+			request_->log(Severity::error, "invalid rate");
+			request_->status = HttpStatus::BadRequest;
+			request_->finish();
+		});
+		return;
+	}
+
+	if (!loadParam("ceil", ceil)) {
+		request_->post([&]() {
+			request_->log(Severity::error, "invalid ceil");
+			request_->status = HttpStatus::BadRequest;
+			request_->finish();
+		});
+		return;
+	}
+
+	TokenShaperError ec = bucket->setRate(rate, ceil);
+
+	if (ec == TokenShaperError::Success) {
+		director->save();
+		request_->status = HttpStatus::Ok;
+	} else {
+		static const char *str[] = {
+			"Success.",
+			"Rate limit overflow.",
+			"Ceil limit overflow.",
+			"Name conflict.",
+			"Invalid child node.",
+		};
+		director->worker()->log(Severity::error, "Could not create director's bucket. %s", str[(size_t)ec]);
+		request_->status = HttpStatus::BadRequest;
+	}
+
+	request_->post([&]() {
+		request_->finish();
+	});
+}
+
+// }}}
+// {{{ helper
 std::vector<x0::BufferRef> ApiRequest::tokenize(const x0::BufferRef& input, const std::string& delimiter)
 {
 	x0::Tokenizer<BufferRef, BufferRef> st(input, delimiter);
 	return st.tokenize();
 }
+
+bool ApiRequest::resourceNotFound(const std::string& name, const std::string& value)
+{
+	request_->post([&]() {
+		request_->log(Severity::error,
+			"director: Failed to update a %s '%s'. Not found (from path: '%s').",
+			name.c_str(), value.c_str(), path_.ref(1).str().c_str());
+
+		request_->status = x0::HttpStatus::NotFound;
+		request_->finish();
+	});
+
+	return true;
+}
+
+bool ApiRequest::badRequest(const char* msg)
+{
+	request_->post([&]() {
+		if (msg && *msg)
+			request_->log(Severity::error, "%s", msg);
+
+		request_->status = x0::HttpStatus::BadRequest;
+		request_->finish();
+	});
+	return true;
+}
+// }}}

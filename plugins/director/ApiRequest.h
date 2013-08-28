@@ -22,12 +22,32 @@ class Director;
 
 typedef std::unordered_map<std::string, Director*> DirectorMap;
 
+enum class HttpMethod
+{
+	Unknown,
+
+	// HTTP
+	GET,
+	PUT,
+	POST,
+	DELETE,
+	CONNECT,
+
+	// WebDAV
+	MKCOL,
+	MOVE,
+	COPY,
+	LOCK,
+	UNLOCK,
+};
+
 class ApiRequest :
 	public x0::CustomData
 {
 private:
 	DirectorMap* directors_;
 	x0::HttpRequest* request_;
+	HttpMethod method_;
 	x0::BufferRef path_;
 	std::vector<BufferRef> tokens_;
 	x0::Buffer body_;
@@ -53,27 +73,41 @@ protected:
 	bool loadParam(const std::string& key, TransferMode& result);
 
 private:
+	HttpMethod requestMethod() const { return method_; }
+
 	void start();
 	void onBodyChunk(const x0::BufferRef& chunk);
 	void parseBody();
 	bool process();
+
+	// index
+	bool processIndex();
+	bool index();
+
+	// director
+	bool processDirector();
+	bool show(Director* director);
+	bool show(Backend* backend);
+	bool update(Director* director);
+	bool lock(bool enable, Director* director);
+
+	// backend
+	bool processBackend();
+	bool createBackend(Director* director);
+	bool update(Backend* backend, Director* director);
+	bool lock(bool enable, Backend* backend, Director* director);
+	bool destroy(Backend* backend, Director* director);
+
+	// bucket
 	bool processBucket();
 	void processBucket(Director* director);
-	bool processBackend();
-	bool processDirector();
-	bool processIndex();
+	bool createBucket(Director* director);
+	void show(RequestShaper::Node* bucket);
+	void update(RequestShaper::Node* bucket, Director* director);
 
-	bool index();
-	bool eventstream();
-	bool get();
-	bool lock(bool enable);
-	bool create();
-	bool update();
-	bool updateDirector(Director* director);
-	bool updateBackend(Director* director, const std::string& name);
-	bool destroy();
 
 	// helper
 	static std::vector<x0::BufferRef> tokenize(const x0::BufferRef& input, const std::string& delimiter);
 	bool resourceNotFound(const std::string& name, const std::string& value);
+	bool badRequest(const char* msg = nullptr);
 };
