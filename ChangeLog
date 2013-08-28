@@ -18,6 +18,7 @@
 	* plugins: director plugin has initial support for HAproxy compatible CSV output
 	* plugins: director plugin fixed wrt. off-by-one bug in scheduler.load stats.
 	* plugins: director plugin now supports X-Sendfile for HTTP & FastCGI backends.
+	* plugins: director plugin can now enable/disable complete clusters, resulting in 503 responses if disabled.
 
 0.6.0 (2013-02-27)
 
