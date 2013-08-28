@@ -71,6 +71,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	healthCheckHostHeader_("backend-healthcheck"),
 	healthCheckRequestPath_("/"),
 	healthCheckFcgiScriptFilename_(),
+	enabled_(true),
 	stickyOfflineMode_(false),
 	backends_(),
 	queueLimit_(128),
@@ -407,6 +408,7 @@ void Director::writeJSON(JsonWriter& json) const
 {
 	json.beginObject()
 		.name("mutable")(isMutable())
+		.name("enabled")(isEnabled())
 		.name("load")(load_)
 		.name("queued")(queued_)
 		.name("dropped")(dropped_)
@@ -894,6 +896,11 @@ void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
 {
 	auto notes = setupRequestNotes(r);
 	notes->bucket = bucket;
+
+	if (!enabled_) {
+		serviceUnavailable(r, notes);
+		return;
+	}
 
 #if defined(X0_DIRECTOR_CACHE)
 	if (processCacheObject(r, notes))

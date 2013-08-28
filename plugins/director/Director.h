@@ -68,6 +68,7 @@ private:
 	std::string healthCheckRequestPath_;
 	std::string healthCheckFcgiScriptFilename_;
 
+	bool enabled_;				//!< whether this director actually load balances or raises a 503 when being disabled temporarily.
 	bool stickyOfflineMode_;    //!< whether a backend should be marked disabled if it becomes online again
 	bool allowXSendfile_;		//!< whether or not to evaluate the X-Sendfile response header.
 
@@ -109,6 +110,11 @@ public:
 
 	bool isMutable() const { return mutable_; }
 	void setMutable(bool value) { mutable_ = value; }
+
+	bool isEnabled() const { return enabled_; }
+	void setEnabled(bool value) { enabled_ = value; }
+	void enable() { enabled_ = true; }
+	void disable() { enabled_ = false; }
 
 	size_t capacity() const;
 

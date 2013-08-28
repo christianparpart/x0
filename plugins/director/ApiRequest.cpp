@@ -49,6 +49,7 @@
 // - ceil
 //
 // POST args (director):
+// - enabled
 // - queue-limit
 // - retry-after
 // - connect-timeout
@@ -423,6 +424,10 @@ bool ApiRequest::show(Director* director)
 
 bool ApiRequest::update(Director* director)
 {
+	bool enabled = director->isEnabled();
+	if (hasParam("enabled") && !loadParam("enabled", enabled))
+		return false;
+
 	size_t queueLimit = director->queueLimit();
 	if (hasParam("queue-limit") && !loadParam("queue-limit", queueLimit))
 		return false;
@@ -484,6 +489,7 @@ bool ApiRequest::update(Director* director)
 		return true;
 	}
 
+	director->setEnabled(enabled);
 	director->setQueueLimit(queueLimit);
 	director->setQueueTimeout(queueTimeout);
 	director->setRetryAfter(retryAfter);
