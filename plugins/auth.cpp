@@ -142,8 +142,7 @@ bool AuthUserFile::authenticate(const std::string& username, const std::string& 
 }
 // }}}
 
-class AuthBasic : public x0::CustomData { // {{{
-public:
+struct AuthBasic : public x0::CustomData { // {{{
 	std::string realm;
 	std::string userfile;
 

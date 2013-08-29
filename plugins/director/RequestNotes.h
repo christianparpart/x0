@@ -19,10 +19,9 @@ class Backend;
  *
  * \see Director
  */
-class RequestNotes :
+struct RequestNotes :
 	public x0::CustomData
 {
-public:
 	x0::DateTime ctime;
 	Backend* backend;
 	size_t tryCount;

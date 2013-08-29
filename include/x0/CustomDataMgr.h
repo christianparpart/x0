@@ -16,13 +16,10 @@
 
 namespace x0 {
 
-class X0_API CustomData
+struct X0_API CustomData
 {
-private:
 	CustomData(const CustomData&) = delete;
 	CustomData& operator=(const CustomData&) = delete;
-
-public:
 	CustomData() = default;
 	virtual ~CustomData() {}
 };
