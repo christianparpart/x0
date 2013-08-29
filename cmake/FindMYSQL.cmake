@@ -7,7 +7,7 @@
 find_program(MYSQL_CONFIG_EXECUTABLE NAMES mysql_config DOC "path to mysql_config executable")
 
 execute_process(
-	COMMAND sh -c "${MYSQL_CONFIG_EXECUTABLE} --cflags | sed -e 's/-DNDEBUG\\(=1\\)\\?//g'"
+	COMMAND sh -c "${MYSQL_CONFIG_EXECUTABLE} --cflags | sed -e 's/-DNDEBUG\\(=1\\)\\?//g' | sed -e 's/-fabi-version=.//'"
 	OUTPUT_VARIABLE MYSQL_CFLAGS
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
