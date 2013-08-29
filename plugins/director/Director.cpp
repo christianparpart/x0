@@ -478,11 +478,16 @@ bool Director::load(const std::string& path)
 	}
 
 	std::string value;
-	if (!settings.load("director", "enabled", value)) {
-		worker()->log(Severity::error, "director: Could not load settings value director.enabled  in file '%s'", path.c_str());
-		return false;
+
+	if (settings.contains("director", "enabled")) {
+		if (!settings.load("director", "enabled", value)) {
+			worker()->log(Severity::error, "director: Could not load settings value director.enabled  in file '%s'", path.c_str());
+			return false;
+		}
+		enabled_ = value == "true";
+	} else {
+		++changed;
 	}
-	enabled_ = value == "true";
 
 	if (!settings.load("director", "queue-limit", value)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.queue-limit in file '%s'", path.c_str());
