@@ -64,7 +64,9 @@ DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 {
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_load>("director.load", FlowValue::VOID);
+#if defined(X0_DIRECTOR_CACHE)
 	registerFunction<DirectorPlugin, &DirectorPlugin::director_cache_bypass>("director.cache.bypass", FlowValue::VOID);
+#endif
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_balance>("director.balance");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_pass>("director.pass");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_api>("director.api");
@@ -176,15 +178,13 @@ Backend* DirectorPlugin::registerBackend(Director* director, const char* name, c
 }
 // }}}
 // {{{ function director.cache.bypass()
+#if defined(X0_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_bypass(HttpRequest* r, const FlowParams& args, FlowValue& result)
 {
-	// FIXME we cannot do this currently, as requestNotes is director-dependant (which is wrong, a request can belong to only one director anyway)
-	// TODO: then add `RequestNotes::manager`.
-#if 0
 	auto notes = requestNotes(r);
 	notes->cacheIgnore = true;
-#endif
 }
+#endif
 // }}}
 // {{{ handler director.balance(string director_id [, string segment_id ] );
 /**
