@@ -218,7 +218,10 @@ void Director::release(RequestNotes* rn)
 	--load_;
 
 	// explicitely clear reuqest notes here, so we also free up its acquired shaper tokens
-	r->clearCustomData(this);
+	if (rn->bucket && rn->tokens) {
+		rn->bucket->put(rn->tokens);
+		rn->tokens = 0;
+	}
 
 	if (backendRole(backend) != BackendRole::Terminate) {
 		dequeueTo(backend);
@@ -934,6 +937,7 @@ void Director::schedule(RequestNotes* notes, RequestShaper::Node* bucket)
 
 		// we could not actually processes the request, so release the token we just received.
 		notes->bucket->put(1);
+		notes->tokens = 0;
 	}
 
 	tryEnqueue(notes);
@@ -1010,6 +1014,7 @@ void Director::dequeueTo(Backend* backend)
 #endif
 			SchedulerStatus rc = backend->tryProcess(notes);
 			if (rc != SchedulerStatus::Success) {
+				notes->tokens = 0;
 				static const char* ss[] = { "Unavailable.", "Success.", "Overloaded." };
 				notes->request->log(Severity::error, "Dequeueing request to backend %s @ %s failed. %s",
 					backend->name().c_str(), name().c_str(), ss[(size_t) rc]);
@@ -1036,7 +1041,6 @@ void Director::dequeueTo(Backend* backend)
 bool Director::tryEnqueue(RequestNotes* rn)
 {
 	if (rn->bucket->queued().current() < queueLimit()) {
-		rn->tokens = 0;
 		rn->backend = nullptr;
 		rn->bucket->enqueue(rn);
 		++queued_;

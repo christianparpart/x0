@@ -233,11 +233,11 @@ FastCgiTransport::~FastCgiTransport()
 
 			backend_->manager()->reject(rn_);
 		} else {
-			// We actually served ths request, so finish() it.
-			rn_->request->finish();
-
 			// Notify director that this backend has just completed a request,
 			backend_->release(rn_);
+
+			// We actually served ths request, so finish() it.
+			rn_->request->finish();
 		}
 	}
 }

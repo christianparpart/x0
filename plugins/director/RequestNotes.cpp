@@ -38,11 +38,8 @@ RequestNotes::RequestNotes(x0::HttpRequest* r) :
 RequestNotes::~RequestNotes()
 {
 	if (bucket && tokens) {
+		// XXX We should never reach here, because tokens must have been put back by Director::release() already.
 		bucket->put(tokens);
-	}
-
-	if (backend) {
-		// Notify director that this backend has just completed a request,
-		backend->release(this);
+		tokens = 0;
 	}
 }

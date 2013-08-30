@@ -149,6 +149,9 @@ HttpBackend::Connection::~Connection()
 			rn_->request->log(Severity::notice, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
 			backend_->reject(rn_);
 		} else {
+			// Notify director that this backend has just completed a request,
+			backend_->release(rn_);
+
 			// We actually served ths request, so finish() it.
 			rn_->request->finish();
 		}
