@@ -295,7 +295,7 @@ void HttpBackend::Connection::onConnectTimeout(x0::Socket* s)
 	rn_->request->log(Severity::error, "http-proxy: Failed to connect to backend %s. Timed out.", backend_->name().c_str());
 
 	if (!rn_->request->status)
-		rn_->request->status = HttpStatus::GatewayTimedout;
+		rn_->request->status = HttpStatus::GatewayTimeout;
 
 	backend_->setState(HealthState::Offline);
 	close();
@@ -313,7 +313,7 @@ void HttpBackend::Connection::onTimeout(x0::Socket* s)
 	backend_->setState(HealthState::Offline);
 
 	if (!rn_->request->status)
-		rn_->request->status = HttpStatus::GatewayTimedout;
+		rn_->request->status = HttpStatus::GatewayTimeout;
 
 	close();
 }

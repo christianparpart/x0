@@ -83,7 +83,7 @@ enum class HttpStatus // {{{
 	NotImplemented = 501,
 	BadGateway = 502,
 	ServiceUnavailable = 503,
-	GatewayTimedout = 504,
+	GatewayTimeout = 504,
 	HttpVersionNotSupported = 505,
 	VariantAlsoNegotiates = 506, // RFC 2295
 	InsufficientStorage = 507, // WebDAV, RFC 4918

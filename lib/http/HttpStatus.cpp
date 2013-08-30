@@ -79,7 +79,7 @@ private:
 		set(HttpStatus::NotImplemented, "Not Implemented");
 		set(HttpStatus::BadGateway, "Bad Gateway");
 		set(HttpStatus::ServiceUnavailable, "Service Unavailable");
-		set(HttpStatus::GatewayTimedout, "Gateway Timedout");
+		set(HttpStatus::GatewayTimeout, "Gateway Timedout");
 		set(HttpStatus::HttpVersionNotSupported, "HTTP Version Not Supported");
 		set(HttpStatus::VariantAlsoNegotiates, "Variant Also Negotiates");
 		set(HttpStatus::InsufficientStorage, "Insufficient Storage");

@@ -1094,6 +1094,6 @@ void Director::onTimeout(RequestNotes* rn)
 		TimeSpan diff = rn->request->connection.worker().now() - rn->ctime;
 		rn->request->log(Severity::info, "request time: %s", diff.str().c_str());
 
-		serviceUnavailable(rn, HttpStatus::GatewayTimedout);
+		serviceUnavailable(rn, HttpStatus::GatewayTimeout);
 	});
 }

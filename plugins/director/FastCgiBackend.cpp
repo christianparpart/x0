@@ -446,7 +446,7 @@ void FastCgiTransport::onConnectTimeout(x0::Socket* s)
 	log(x0::Severity::error, "Trying to connect to upstream server %s was timing out.", backend_->name().c_str());
 
 	if (!rn_->request->status)
-		rn_->request->status = HttpStatus::GatewayTimedout;
+		rn_->request->status = HttpStatus::GatewayTimeout;
 
 	backend_->setState(HealthState::Offline);
 	close();
@@ -582,7 +582,7 @@ void FastCgiTransport::onTimeout(x0::Socket* s)
 	log(x0::Severity::error, "I/O timeout to backend %s: %s", backendName_.c_str(), strerror(errno));
 
 	if (!rn_->request->status)
-		rn_->request->status = HttpStatus::GatewayTimedout;
+		rn_->request->status = HttpStatus::GatewayTimeout;
 
 	backend_->setState(HealthState::Offline);
 	close();
