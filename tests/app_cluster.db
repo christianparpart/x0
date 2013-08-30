@@ -2,6 +2,7 @@
 # !!! DO NOT EDIT !!! THIS FILE IS GENERATED AUTOMATICALLY !!!
 
 [director]
+enabled=true
 queue-limit=127
 queue-timeout=10000
 retry-after=60
