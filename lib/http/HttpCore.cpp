@@ -133,6 +133,7 @@ HttpCore::HttpCore(HttpServer& server) :
 	registerProperty<HttpCore, &HttpCore::req_method>("req.method", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_url>("req.url", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_path>("req.path", FlowValue::BUFFER);
+	registerProperty<HttpCore, &HttpCore::req_query>("req.query", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_header>("req.header", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_cookie>("req.cookie", FlowValue::BUFFER);
 	registerProperty<HttpCore, &HttpCore::req_host>("req.host", FlowValue::BUFFER);
@@ -692,6 +693,11 @@ void HttpCore::req_url(HttpRequest* in, const FlowParams& args, FlowValue& resul
 void HttpCore::req_path(HttpRequest* in, const FlowParams& args, FlowValue& result)
 {
 	result.set(in->path.data(), in->path.size());
+}
+
+void HttpCore::req_query(HttpRequest* in, const FlowParams& args, FlowValue& result)
+{
+	result.set(in->query.data(), in->query.size());
 }
 
 void HttpCore::req_header(HttpRequest* in, const FlowParams& args, FlowValue& result)

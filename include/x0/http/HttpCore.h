@@ -119,6 +119,7 @@ private:
 	void req_method(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_url(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_path(HttpRequest* r, const FlowParams& args, FlowValue& result);
+	void req_query(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_header(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_cookie(HttpRequest* r, const FlowParams& args, FlowValue& result);
 	void req_host(HttpRequest* r, const FlowParams& args, FlowValue& result);
