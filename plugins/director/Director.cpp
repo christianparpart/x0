@@ -24,8 +24,10 @@
 #include <x0/Url.h>
 #include <fstream>
 
-#if !defined(XZERO_NDEBUG)
-#	define TRACE(obj, level, msg...) (obj)->log(Severity::debug ## level, "director: " msg)
+#include <x0/AnsiColor.h> // dumpNode()
+
+#if 1//!defined(XZERO_NDEBUG)
+#	define TRACE(obj, level, msg...) (obj)->request->log(Severity::debug ## level, "director: " msg)
 #	define WTRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
 #else
 #	define TRACE(args...) do {} while (0)
@@ -187,16 +189,16 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
  * \see schedule()
  * \see reschedule()
  */
-void Director::reject(x0::HttpRequest* r)
+void Director::reject(RequestNotes* rn)
 {
-	auto notes = requestNotes(r);
-	reschedule(r, notes);
+	reschedule(rn);
 }
 
 /**
  * Notifies the director, that the given backend has just completed processing a request.
  *
- * \param backend the backend that just completed a request, and thus, is able to potentially handle one more.
+ * @param backend the backend that just completed a request, and thus, is able to potentially handle one more.
+ * @param r the request that just got completed.
  *
  * This method is to be invoked by backends, that
  * just completed serving a request, and thus, invoked
@@ -206,10 +208,13 @@ void Director::reject(x0::HttpRequest* r)
  *
  * Otherwise this call will do nothing.
  *
- * \see Backend::release()
+ * @see Backend::release()
  */
-void Director::release(Backend* backend, HttpRequest* r)
+void Director::release(RequestNotes* rn)
 {
+	auto backend = rn->backend;
+	auto r = rn->request;
+
 	--load_;
 
 	// explicitely clear reuqest notes here, so we also free up its acquired shaper tokens
@@ -269,16 +274,6 @@ bool Director::eachBucket(std::function<bool(RequestShaper::Node*)> body)
 			return false;
 
 	return true;
-}
-
-RequestNotes* Director::setupRequestNotes(HttpRequest* r, Backend* backend)
-{
-	return r->setCustomData<RequestNotes>(this, r->connection.worker().now(), backend);
-}
-
-RequestNotes* Director::requestNotes(HttpRequest* r)
-{
-	return r->customData<RequestNotes>(this);
 }
 
 Backend* Director::createBackend(const std::string& name, const Url& url)
@@ -820,18 +815,19 @@ bool Director::save()
  *
  * This request will be attempted to be scheduled on this backend only once.
  */
-void Director::schedule(HttpRequest* r, Backend* backend)
+void Director::schedule(RequestNotes* notes, Backend* backend)
 {
-	auto notes = setupRequestNotes(r);
+	auto r = notes->request;
+	notes->backend = backend;
 
 	r->responseHeaders.push_back("X-Director-Bucket", notes->bucket->name());
 
-	switch (backend->tryProcess(r)) {
+	switch (backend->tryProcess(notes)) {
 	case SchedulerStatus::Unavailable:
 	case SchedulerStatus::Overloaded:
 		r->log(Severity::error, "director: Requested backend '%s' is %s, and is unable to process requests (attempt %d).",
 			backend->name().c_str(), backend->healthMonitor()->state_str().c_str(), notes->tryCount);
-		serviceUnavailable(r, notes);
+		serviceUnavailable(notes);
 
 		// TODO: consider backend-level queues as a feature here (post 0.7 release)
 		break;
@@ -847,8 +843,10 @@ void Director::schedule(HttpRequest* r, Backend* backend)
  * \retval true request has been processed and will receive a cached object.
  * \retval false the request must be processed by a backend server, possibly updating the corresponding stale cache object.
  */
-bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
+bool Director::processCacheObject(RequestNotes* notes)
 {
+	auto r = notes->request;
+
 	if (!objectCache_->enabled())
 		return false;
 
@@ -895,6 +893,9 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
 /**
  * Schedules a new request via the given bucket on this cluster.
  *
+ * @param notes
+ * @param bucket
+ *
  * This method will attempt to process the request on any of the available
  * backends if and only if the chosen bucket has enough resources currently available.
  *
@@ -904,18 +905,18 @@ bool Director::processCacheObject(HttpRequest* r, RequestNotes* notes)
  * If the queue has reached the queue limit already, a 503 (Service Unavailable) will be
  * responded instead.
  */
-void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
+void Director::schedule(RequestNotes* notes, RequestShaper::Node* bucket)
 {
-	auto notes = setupRequestNotes(r);
+	auto r = notes->request;
 	notes->bucket = bucket;
 
 	if (!enabled_) {
-		serviceUnavailable(r, notes);
+		serviceUnavailable(notes);
 		return;
 	}
 
 #if defined(X0_DIRECTOR_CACHE)
-	if (processCacheObject(r, notes))
+	if (processCacheObject(notes))
 		return;
 #endif
 
@@ -923,19 +924,19 @@ void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
 
 	if (notes->bucket->get(1)) {
 		notes->tokens = 1;
-		SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
+		SchedulerStatus result1 = tryProcess(notes, BackendRole::Active);
 		if (result1 == SchedulerStatus::Success)
 			return;
 
 		if (result1 == SchedulerStatus::Unavailable &&
-				tryProcess(r, notes, BackendRole::Backup) == SchedulerStatus::Success)
+				tryProcess(notes, BackendRole::Backup) == SchedulerStatus::Success)
 			return;
 
 		// we could not actually processes the request, so release the token we just received.
 		notes->bucket->put(1);
 	}
 
-	tryEnqueue(r, notes);
+	tryEnqueue(notes);
 }
 
 /**
@@ -944,37 +945,39 @@ void Director::schedule(HttpRequest* r, RequestShaper::Node* bucket)
  * \retval true tryCount is still below threashold, so further tries are allowed.
  * \retval false tryCount exceeded limit and a 503 client response has been sent. Dropped-stats have been incremented.
  */
-bool Director::verifyTryCount(HttpRequest* r, RequestNotes* notes)
+bool Director::verifyTryCount(RequestNotes* notes)
 {
 	if (notes->tryCount <= maxRetryCount())
 		return true;
 
-	r->log(Severity::info, "director %s: request failed %d times.", name().c_str(), notes->tryCount);
-	serviceUnavailable(r, notes);
+	notes->request->log(Severity::info, "director %s: request failed %d times.", name().c_str(), notes->tryCount);
+	serviceUnavailable(notes);
 	return false;
 }
 
-void Director::reschedule(HttpRequest* r, RequestNotes* notes)
+void Director::reschedule(RequestNotes* notes)
 {
-	if (!verifyTryCount(r, notes))
+	if (!verifyTryCount(notes))
 		return;
 
-	SchedulerStatus result1 = tryProcess(r, notes, BackendRole::Active);
+	SchedulerStatus result1 = tryProcess(notes, BackendRole::Active);
 	if (result1 == SchedulerStatus::Success)
 		return;
 
 	if (result1 == SchedulerStatus::Unavailable &&
-			tryProcess(r, notes, BackendRole::Backup) == SchedulerStatus::Success)
+			tryProcess(notes, BackendRole::Backup) == SchedulerStatus::Success)
 		return;
 
-	tryEnqueue(r, notes);
+	tryEnqueue(notes);
 }
 
 /**
  * Finishes a request with a 503 (Service Unavailable) response message.
  */
-void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
+void Director::serviceUnavailable(RequestNotes* notes, x0::HttpStatus status)
 {
+	auto r = notes->request;
+
 #if defined(X0_DIRECTOR_CACHE)
 	if (objectCache_->deliverShadow(r, notes->cacheKey))
 		return;
@@ -986,7 +989,7 @@ void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
 		r->responseHeaders.push_back("Retry-After", value);
 	}
 
-	r->status = HttpStatus::ServiceUnavailable;
+	r->status = status;
 	r->finish();
 	++dropped_;
 }
@@ -998,22 +1001,22 @@ void Director::serviceUnavailable(HttpRequest* r, RequestNotes* notes)
  */
 void Director::dequeueTo(Backend* backend)
 {
-	if (HttpRequest* r = dequeue()) {
-		r->post([this, backend, r]() {
-			auto notes = requestNotes(r);
+	if (auto notes = dequeue()) {
+		notes->request->post([this, backend, notes]() {
 			notes->tokens = 1;
 #ifndef XZERO_NDEBUG
-			r->log(Severity::debug, "Dequeueing request to backend %s @ %s",
+			notes->request->log(Severity::debug, "Dequeueing request to backend %s @ %s",
 				backend->name().c_str(), name().c_str());
 #endif
-			SchedulerStatus rc = tryProcess(r, notes, backend);
+			SchedulerStatus rc = backend->tryProcess(notes);
 			if (rc != SchedulerStatus::Success) {
 				static const char* ss[] = { "Unavailable.", "Success.", "Overloaded." };
-				r->log(Severity::error, "Dequeueing request to backend %s @ %s failed. %s",
+				notes->request->log(Severity::error, "Dequeueing request to backend %s @ %s failed. %s",
 					backend->name().c_str(), name().c_str(), ss[(size_t) rc]);
-				reschedule(r, notes);
+				reschedule(notes);
 			} else {
-				verifyTryCount(r, notes);
+				// FIXME: really here????
+				verifyTryCount(notes);
 			}
 		});
 	} else {
@@ -1030,32 +1033,34 @@ void Director::dequeueTo(Backend* backend)
  * \retval true request could be enqueued.
  * \retval false request could not be enqueued. A 503 error response has been sent out instead.
  */
-bool Director::tryEnqueue(HttpRequest* r, RequestNotes* notes)
+bool Director::tryEnqueue(RequestNotes* rn)
 {
-	if (notes->bucket->queued().current() < queueLimit()) {
-		notes->bucket->enqueue(r);
-		notes->tokens = 0;
+	if (rn->bucket->queued().current() < queueLimit()) {
+		rn->tokens = 0;
+		rn->backend = nullptr;
+		rn->bucket->enqueue(rn);
 		++queued_;
 
-		r->log(Severity::debug1, "Director %s [%s] overloaded. Enqueueing request (%d).",
-			name().c_str(), notes->bucket->name().c_str(), notes->bucket->queued().current());
+		rn->request->log(Severity::debug1, "Director %s [%s] overloaded. Enqueueing request (%d).",
+			name().c_str(), rn->bucket->name().c_str(), rn->bucket->queued().current());
 
 		return true;
 	}
 
-	r->log(Severity::debug1, "director: '%s' queue limit %zu reached.", name().c_str(), queueLimit());
-	serviceUnavailable(r, notes);
+	rn->request->log(Severity::debug1, "director: '%s' queue limit %zu reached.", name().c_str(), queueLimit());
+	serviceUnavailable(rn);
 
 	return false;
 }
 
-HttpRequest* Director::dequeue()
+RequestNotes* Director::dequeue()
 {
-	if (HttpRequest* r = shaper()->dequeue()) {
+	if (auto rn = shaper()->dequeue()) {
 		--queued_;
-		r->log(Severity::debug, "Director %s dequeued request (%d left).", name().c_str(), queued_.current());
-		return r;
+		rn->request->log(Severity::debug, "Director %s dequeued request (%zu pending).", name().c_str(), queued_.current());
+		return rn;
 	}
+	log(LogMessage(Severity::debug, "Director %s dequeue() failed (%zu pending).", name().c_str(), queued_.current()));
 
 	return nullptr;
 }
@@ -1072,33 +1077,23 @@ inline const char* roleStr(BackendRole role)
 }
 #endif
 
-SchedulerStatus Director::tryProcess(x0::HttpRequest* r, RequestNotes* notes, BackendRole role)
+SchedulerStatus Director::tryProcess(RequestNotes* rn, BackendRole role)
 {
-	TRACE(r, 1, "Director.tryProcess(role: %s) tc:%zi", roleStr(role), notes->tryCount);
+	TRACE(rn, 1, "Director.tryProcess(role: %s) tc:%zi", roleStr(role), rn->tryCount);
 
-	return backends_[static_cast<size_t>(role)].schedule(r);
+	return backends_[static_cast<size_t>(role)].schedule(rn);
 }
 
-/**
- * Attempts to process request on given backend.
- */
-SchedulerStatus Director::tryProcess(HttpRequest* r, RequestNotes* notes, Backend* backend)
-{
-//	notes->backend = backend;
-
-	TRACE(r, 1, "Director.tryProcess(backend: %s) tc:%zi", backend->name().c_str(), notes->tryCount);
-
-	SchedulerStatus result = backend->tryProcess(r);
-
-	return result;
-}
-
-void Director::onTimeout(HttpRequest* r)
+void Director::onTimeout(RequestNotes* rn)
 {
 	--queued_;
 
-	r->post([this, r]() {
-		r->log(Severity::info, "Queued request timed out.");
-		serviceUnavailable(r, requestNotes(r));
+	rn->request->post([this, rn]() {
+		rn->request->log(Severity::info, "Queued request timed out. %s %s", rn->request->method.str().c_str(), rn->request->path.c_str());
+
+		TimeSpan diff = rn->request->connection.worker().now() - rn->ctime;
+		rn->request->log(Severity::info, "request time: %s", diff.str().c_str());
+
+		serviceUnavailable(rn, HttpStatus::GatewayTimedout);
 	});
 }

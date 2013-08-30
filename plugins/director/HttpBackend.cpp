@@ -12,7 +12,6 @@
 
 #include <x0/sysconfig.h>
 #include <x0/http/HttpServer.h>
-#include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
 #include <x0/io/BufferRefSource.h>
 #include <x0/io/FileSource.h>
@@ -48,7 +47,7 @@ private:
 
 	int refCount_;
 
-	HttpRequest* request_;		//!< client's request
+	RequestNotes* rn_;			//!< client request
 	Socket* socket_;			//!< connection to backend app
 
 	Buffer writeBuffer_;
@@ -95,19 +94,19 @@ private:
 	inline void start();
 
 public:
-	inline explicit Connection(HttpBackend* proxy, HttpRequest* r, Socket* socket);
+	inline explicit Connection(HttpBackend* proxy, RequestNotes* rn, Socket* socket);
 	~Connection();
 
-	static Connection* create(HttpBackend* owner, HttpRequest* r);
+	static Connection* create(HttpBackend* owner, RequestNotes* rn);
 };
 // }}}
 
 // {{{ HttpBackend::Connection impl
-HttpBackend::Connection::Connection(HttpBackend* proxy, HttpRequest* r, Socket* socket) :
+HttpBackend::Connection::Connection(HttpBackend* proxy, RequestNotes* rn, Socket* socket) :
 	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
 	backend_(proxy),
 	refCount_(1),
-	request_(r),
+	rn_(rn),
 	socket_(socket),
 
 	writeBuffer_(),
@@ -139,22 +138,19 @@ HttpBackend::Connection::~Connection()
 		::close(transferHandle_);
 	}
 
-	if (request_) {
-		if (request_->status == HttpStatus::Undefined && !request_->isAborted()) {
+	if (rn_) {
+		if (rn_->request->status == HttpStatus::Undefined && !rn_->request->isAborted()) {
 			// We failed processing this request, so reschedule
 			// this request within the director and give it the chance
 			// to be processed by another backend,
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			request_->log(Severity::notice, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
-			backend_->reject(request_);
+			rn_->request->log(Severity::notice, "Reading response from backend %s failed. Backend closed connection early.", backend_->socketSpec().str().c_str());
+			backend_->reject(rn_);
 		} else {
-			// Notify director that this backend has just completed a request,
-			backend_->release(request_);
-
 			// We actually served ths request, so finish() it.
-			request_->finish();
+			rn_->request->finish();
 		}
 	}
 }
@@ -191,31 +187,33 @@ void HttpBackend::Connection::onAbort(void *p)
 	self->close();
 }
 
-HttpBackend::Connection* HttpBackend::Connection::create(HttpBackend* owner, HttpRequest* r)
+HttpBackend::Connection* HttpBackend::Connection::create(HttpBackend* owner, RequestNotes* rn)
 {
-	Socket* socket = Socket::open(r->connection.worker().loop(), owner->socketSpec(), O_NONBLOCK | O_CLOEXEC);
+	Socket* socket = Socket::open(rn->request->connection.worker().loop(), owner->socketSpec(), O_NONBLOCK | O_CLOEXEC);
 	if (!socket)
 		return nullptr;
 
-	return new Connection(owner, r, socket);
+	return new Connection(owner, rn, socket);
 }
 
 void HttpBackend::Connection::start()
 {
+	auto r = rn_->request;
+
 	TRACE("Connection.start()");
 
-	request_->setAbortHandler(&Connection::onAbort, this);
+	r->setAbortHandler(&Connection::onAbort, this);
 
 	// request line
-	writeBuffer_.push_back(request_->method);
+	writeBuffer_.push_back(r->method);
 	writeBuffer_.push_back(' ');
-	writeBuffer_.push_back(request_->unparsedUri);
+	writeBuffer_.push_back(r->unparsedUri);
 	writeBuffer_.push_back(" HTTP/1.1\r\n");
 
 	BufferRef forwardedFor;
 
 	// request headers
-	for (auto& header: request_->requestHeaders) {
+	for (auto& header: r->requestHeaders) {
 		if (iequals(header.name, "X-Forwarded-For")) {
 			forwardedFor = header.value;
 			continue;
@@ -243,13 +241,13 @@ void HttpBackend::Connection::start()
 		writeBuffer_.push_back(forwardedFor);
 		writeBuffer_.push_back(", ");
 	}
-	writeBuffer_.push_back(request_->connection.remoteIP());
+	writeBuffer_.push_back(r->connection.remoteIP());
 	writeBuffer_.push_back("\r\n");
 
 #if defined(WITH_SSL)
 	// X-Forwarded-Proto
-	if (request_->requestHeader("X-Forwarded-Proto").empty()) {
-		if (request_->connection.isSecure())
+	if (r->requestHeader("X-Forwarded-Proto").empty()) {
+		if (r->connection.isSecure())
 			writeBuffer_.push_back("X-Forwarded-Proto: https\r\n");
 		else
 			writeBuffer_.push_back("X-Forwarded-Proto: http\r\n");
@@ -259,9 +257,9 @@ void HttpBackend::Connection::start()
 	// request headers terminator
 	writeBuffer_.push_back("\r\n");
 
-	if (request_->contentAvailable()) {
+	if (r->contentAvailable()) {
 		TRACE("start: request content available: reading.");
-		request_->setBodyCallback<Connection, &Connection::onRequestChunk>(this);
+		r->setBodyCallback<Connection, &Connection::onRequestChunk>(this);
 	}
 
 	if (socket_->state() == Socket::Connecting) {
@@ -281,7 +279,7 @@ void HttpBackend::Connection::start()
 
 		transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 		if (transferHandle_ < 0) {
-			request_->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+			r->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
 		}
 	}
 }
@@ -294,10 +292,10 @@ void HttpBackend::Connection::start()
  */
 void HttpBackend::Connection::onConnectTimeout(x0::Socket* s)
 {
-	request_->log(Severity::error, "http-proxy: Failed to connect to backend %s. Timed out.", backend_->name().c_str());
+	rn_->request->log(Severity::error, "http-proxy: Failed to connect to backend %s. Timed out.", backend_->name().c_str());
 
-	if (!request_->status)
-		request_->status = HttpStatus::GatewayTimedout;
+	if (!rn_->request->status)
+		rn_->request->status = HttpStatus::GatewayTimedout;
 
 	backend_->setState(HealthState::Offline);
 	close();
@@ -311,18 +309,18 @@ void HttpBackend::Connection::onConnectTimeout(x0::Socket* s)
  */
 void HttpBackend::Connection::onTimeout(x0::Socket* s)
 {
-	request_->log(x0::Severity::error, "http-proxy: Failed to perform I/O on backend %s. Timed out", backend_->name().c_str());
+	rn_->request->log(x0::Severity::error, "http-proxy: Failed to perform I/O on backend %s. Timed out", backend_->name().c_str());
 	backend_->setState(HealthState::Offline);
 
-	if (!request_->status)
-		request_->status = HttpStatus::GatewayTimedout;
+	if (!rn_->request->status)
+		rn_->request->status = HttpStatus::GatewayTimedout;
 
 	close();
 }
 
 void HttpBackend::Connection::onConnected(Socket* s, int revents)
 {
-	TRACE("onConnected: content? %d", request_->contentAvailable());
+	TRACE("onConnected: content? %d", rn_->request->contentAvailable());
 	//TRACE("onConnected.pending:\n%s\n", writeBuffer_.c_str());
 
 	if (socket_->state() == Socket::Operational) {
@@ -332,7 +330,7 @@ void HttpBackend::Connection::onConnected(Socket* s, int revents)
 		socket_->setMode(Socket::ReadWrite); // flush already serialized request
 	} else {
 		TRACE("onConnected: failed");
-		request_->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
+		rn_->request->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
 		backend_->setState(HealthState::Offline);
 		close();
 	}
@@ -359,8 +357,8 @@ bool HttpBackend::Connection::onMessageBegin(int major, int minor, int code, con
 {
 	TRACE("Connection(%p).status(HTTP/%d.%d, %d, '%s')", (void*)this, major, minor, code, text.str().c_str());
 
-	request_->status = static_cast<HttpStatus>(code);
-	TRACE("status: %d", (int)request_->status);
+	rn_->request->status = static_cast<HttpStatus>(code);
+	TRACE("status: %d", (int)rn_->request->status);
 	return true;
 }
 
@@ -385,7 +383,7 @@ bool HttpBackend::Connection::onMessageHeader(const BufferRef& name, const Buffe
 		goto skip;
 	}
 
-	request_->responseHeaders.push_back(name.str(), value.str());
+	rn_->request->responseHeaders.push_back(name.str(), value.str());
 	return true;
 
 skip:
@@ -397,10 +395,11 @@ skip:
 bool HttpBackend::Connection::onMessageHeaderEnd()
 {
 	if (unlikely(!sendfile_.empty())) {
-		request_->responseHeaders.remove("Content-Type");
-		request_->responseHeaders.remove("Content-Length");
-		request_->responseHeaders.remove("ETag");
-		request_->sendfile(sendfile_);
+		auto r = rn_->request;
+		r->responseHeaders.remove("Content-Type");
+		r->responseHeaders.remove("Content-Length");
+		r->responseHeaders.remove("ETag");
+		r->sendfile(sendfile_);
 	}
 
 	return true;
@@ -420,7 +419,7 @@ bool HttpBackend::Connection::onMessageContent(const BufferRef& chunk)
 		if (!(transferHandle_ < 0)) {
 			ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
 			if (rv == static_cast<ssize_t>(chunk.size())) {
-				request_->write<FileSource>(transferHandle_, transferOffset_, rv, false);
+				rn_->request->write<FileSource>(transferHandle_, transferOffset_, rv, false);
 				transferOffset_ += rv;
 				break;
 			} else if (rv > 0) {
@@ -430,18 +429,18 @@ bool HttpBackend::Connection::onMessageContent(const BufferRef& chunk)
 		}
 		// fall through
 	case TransferMode::MemoryAccel:
-		request_->write<BufferRefSource>(chunk);
+		rn_->request->write<BufferRefSource>(chunk);
 		break;
 	case TransferMode::Blocking:
 		// stop watching for more input
 		socket_->setMode(Socket::None);
 
 		// transfer response-body chunk to client
-		request_->write<BufferRefSource>(chunk);
+		rn_->request->write<BufferRefSource>(chunk);
 
 		// start listening on backend I/O when chunk has been fully transmitted
 		ref();
-		request_->writeCallback<Connection, &Connection::onWriteComplete>(this);
+		rn_->request->writeCallback<Connection, &Connection::onWriteComplete>(this);
 		break;
 	}
 
@@ -465,9 +464,9 @@ bool HttpBackend::Connection::onMessageEnd()
 
 void HttpBackend::Connection::log(x0::LogMessage&& msg)
 {
-	if (request_) {
+	if (rn_) {
 		msg.addTag("http-backend");
-		request_->log(std::move(msg));
+		rn_->request->log(std::move(msg));
 	}
 }
 
@@ -484,7 +483,8 @@ void HttpBackend::Connection::io(Socket* s, int revents)
 
 void HttpBackend::Connection::writeSome()
 {
-	TRACE("writeSome() - %s (%d)", state_str(), request_->contentAvailable());
+	auto r = rn_->request;
+	TRACE("writeSome() - %s (%d)", state_str(), r->contentAvailable());
 
 	ssize_t rv = socket_->write(writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
 
@@ -496,7 +496,7 @@ void HttpBackend::Connection::writeSome()
 
 		if (writeOffset_ == writeBuffer_.size()) {
 			TRACE("writeOffset == writeBuffser.size (%ld) p:%ld, ca: %d, clr:%ld", writeOffset_,
-				writeProgress_, request_->contentAvailable(), request_->connection.contentLength());
+				writeProgress_, r->contentAvailable(), r->connection.contentLength());
 
 			writeOffset_ = 0;
 			writeBuffer_.clear();
@@ -515,7 +515,7 @@ void HttpBackend::Connection::writeSome()
 			socket_->setMode(Socket::ReadWrite);
 			break;
 		default:
-			request_->log(Severity::error, "Writing to backend %s failed. %s", backend_->socketSpec().str().c_str(), strerror(errno));
+			r->log(Severity::error, "Writing to backend %s failed. %s", backend_->socketSpec().str().c_str(), strerror(errno));
 			backend_->setState(HealthState::Offline);
 			close();
 			break;
@@ -543,7 +543,7 @@ void HttpBackend::Connection::readSome()
 		if (processingDone_) {
 			close();
 		} else if (state() == SYNTAX_ERROR) {
-			request_->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
+			rn_->request->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
 			backend_->setState(HealthState::Offline);
 			close();
 		} else {
@@ -565,7 +565,7 @@ void HttpBackend::Connection::readSome()
 			socket_->setMode(Socket::Read);
 			break;
 		default:
-			request_->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
+			rn_->request->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
 			backend_->setState(HealthState::Offline);
 			close();
 			break;
@@ -598,12 +598,12 @@ const std::string& HttpBackend::protocol() const
 	return value;
 }
 
-bool HttpBackend::process(HttpRequest* r)
+bool HttpBackend::process(RequestNotes* rn)
 {
-	if (Connection::create(this, r))
+	if (Connection::create(this, rn))
 		return true;
 
-	r->log(Severity::error, "HTTP proxy: Could not connect to backend %s. %s", socketSpec_.str().c_str(), strerror(errno));
+	rn->request->log(Severity::error, "HTTP proxy: Could not connect to backend %s. %s", socketSpec_.str().c_str(), strerror(errno));
 
 	return false;
 }

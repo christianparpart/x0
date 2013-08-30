@@ -13,13 +13,9 @@
 #include <vector>
 #include <memory>
 
-namespace x0 {
-	class HttpRequest;
-}
-
 class Backend;
 class Scheduler;
-class RequestNotes;
+struct RequestNotes;
 
 /**
  * Manages a set of backends of one role.
@@ -42,7 +38,7 @@ public:
 	}
 	Scheduler* scheduler() const { return scheduler_; }
 
-	SchedulerStatus schedule(x0::HttpRequest* r);
+	SchedulerStatus schedule(RequestNotes* rn);
 
 	bool empty() const { return cluster_.empty(); }
 	size_t size() const { return cluster_.size(); }

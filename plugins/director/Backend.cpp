@@ -132,7 +132,7 @@ void Backend::setState(HealthState value)
 /*!
  * Tries to processes given request on this backend.
  *
- * \param r the request to be processed
+ * \param rn the request to be processed
  *
  * It only processes the request if this backend is healthy, enabled and the load has not yet reached its capacity.
  * It then passes the request to the implementation specific \c process() method. If this fails to initiate
@@ -140,7 +140,7 @@ void Backend::setState(HealthState value)
  *
  * \note <b>MUST</b> be invoked from within the request's worker thread.
  */
-SchedulerStatus Backend::tryProcess(HttpRequest* r)
+SchedulerStatus Backend::tryProcess(RequestNotes* rn)
 {
 	SchedulerStatus status = SchedulerStatus::Unavailable;
 	pthread_spin_lock(&lock_);
@@ -155,15 +155,17 @@ SchedulerStatus Backend::tryProcess(HttpRequest* r)
 	if (capacity_ && load_.current() >= capacity_)
 		goto done;
 
-	r->log(Severity::debug, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
+	rn->request->log(Severity::debug, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
 
 	++load_;
 	++manager_->load_;
 
-	r->responseHeaders.overwrite("X-Director-Backend", name());
+	rn->backend = this;
+	rn->request->responseHeaders.overwrite("X-Director-Backend", name());
 
-	if (!process(r)) {
+	if (!process(rn)) {
 		setState(HealthState::Offline);
+		rn->backend = nullptr;
 		--manager_->load_;
 		--load_;
 		status = SchedulerStatus::Unavailable;
@@ -183,10 +185,10 @@ done:
  * This decrements the load-statistics, and potentially
  * dequeues possibly enqueued requests to take over.
  */
-void Backend::release(HttpRequest* r)
+void Backend::release(RequestNotes* rn)
 {
 	--load_;
-	manager_->release(this, r);
+	manager_->release(rn);
 }
 
 /**
@@ -195,7 +197,7 @@ void Backend::release(HttpRequest* r)
  * This decrements the load-statistics and potentially
  * reschedules the request.
  */
-void Backend::reject(x0::HttpRequest* r)
+void Backend::reject(RequestNotes* rn)
 {
 	--load_;
 
@@ -203,5 +205,5 @@ void Backend::reject(x0::HttpRequest* r)
 	// doesn't seem to function properly
 	setState(HealthState::Offline);
 
-	manager_->reject(r);
+	manager_->reject(rn);
 }

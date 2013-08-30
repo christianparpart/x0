@@ -24,7 +24,7 @@ public:
 	~HttpBackend();
 
 	virtual const std::string& protocol() const;
-	virtual bool process(x0::HttpRequest* r);
+	virtual bool process(RequestNotes* rn);
 
 	const x0::SocketSpec& socketSpec() const { return socketSpec_; }
 

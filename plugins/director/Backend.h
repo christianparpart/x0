@@ -17,12 +17,12 @@
 #include <x0/SocketSpec.h>
 #include <x0/JsonWriter.h>
 #include <x0/CustomDataMgr.h>
-#include <x0/http/HttpRequest.h>
 
 #include <pthread.h>
 
 class BackendManager;
 class Director;
+struct RequestNotes;
 
 /*!
  * \brief abstract base class for the actual proxying instances as used by \c BackendManager.
@@ -90,9 +90,9 @@ public:
 	const HealthMonitor* healthMonitor() const { return healthMonitor_; }
 	HealthState healthState() const { return healthMonitor_->state(); }
 
-	SchedulerStatus tryProcess(x0::HttpRequest* r);
-	void release(x0::HttpRequest* r);
-	void reject(x0::HttpRequest* r);
+	SchedulerStatus tryProcess(RequestNotes* rn);
+	void release(RequestNotes* rn);
+	void reject(RequestNotes* rn);
 
 	virtual void writeJSON(x0::JsonWriter& json) const;
 
@@ -102,7 +102,7 @@ protected:
 	 *
 	 * \note this method MUST NOT block.
 	 */
-	virtual bool process(x0::HttpRequest* r) = 0;
+	virtual bool process(RequestNotes* rn) = 0;
 
 //	friend class Scheduler;
 //	friend class LeastLoadScheduler;

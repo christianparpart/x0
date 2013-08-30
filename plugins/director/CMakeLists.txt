@@ -19,6 +19,7 @@ set(director_cache_SRC ObjectCache.cpp)
 endif(X0_DIRECTOR_CACHE)
 
 set(director_SRC
+	RequestNotes.cpp
 	DirectorPlugin.cpp
 	HealthMonitor.cpp
 	ApiRequest.cpp

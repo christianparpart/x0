@@ -24,7 +24,7 @@ namespace x0 {
 	class JsonWriter;
 }
 
-class RequestNotes;
+struct RequestNotes;
 
 class ObjectCache {
 public:

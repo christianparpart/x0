@@ -7,7 +7,6 @@
  */
 
 #include "Scheduler.h"
-#include "Director.h"
 #include "Backend.h"
 #include "RequestNotes.h"
 #include <x0/http/HttpWorker.h>
@@ -22,12 +21,12 @@ Scheduler::~Scheduler()
 }
 
 // ChanceScheduler
-SchedulerStatus ChanceScheduler::schedule(x0::HttpRequest* r)
+SchedulerStatus ChanceScheduler::schedule(RequestNotes* rn)
 {
 	size_t unavailable = 0;
 
 	for (auto backend: backends()) {
-		switch (backend->tryProcess(r)) {
+		switch (backend->tryProcess(rn)) {
 		case SchedulerStatus::Success:
 			return SchedulerStatus::Success;
 		case SchedulerStatus::Unavailable:
@@ -44,7 +43,7 @@ SchedulerStatus ChanceScheduler::schedule(x0::HttpRequest* r)
 }
 
 // RoundRobinScheduler
-SchedulerStatus RoundRobinScheduler::schedule(x0::HttpRequest* r)
+SchedulerStatus RoundRobinScheduler::schedule(RequestNotes* rn)
 {
 	unsigned unavailable = 0;
 
@@ -52,7 +51,7 @@ SchedulerStatus RoundRobinScheduler::schedule(x0::HttpRequest* r)
 		if (next_ >= limit)
 			next_ = 0;
 
-		switch (backends()[next_++]->tryProcess(r)) {
+		switch (backends()[next_++]->tryProcess(rn)) {
 		case SchedulerStatus::Success:
 			return SchedulerStatus::Success;
 		case SchedulerStatus::Unavailable:

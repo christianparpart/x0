@@ -25,10 +25,10 @@ public:
 	explicit RoadWarrior(x0::HttpWorker* worker);
 	~RoadWarrior();
 
-	void handleRequest(x0::HttpRequest* r, const x0::SocketSpec& spec, Type type);
+	void handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Type type);
 
-	virtual void reject(x0::HttpRequest* r);
-	virtual void release(Backend* backend, x0::HttpRequest* request);
+	virtual void reject(RequestNotes* rn);
+	virtual void release(RequestNotes* rn);
 
 	void writeJSON(x0::JsonWriter& output) const;
 

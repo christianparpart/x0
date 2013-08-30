@@ -84,6 +84,14 @@ DirectorPlugin::~DirectorPlugin()
 	delete haproxyApi_;
 }
 
+RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r)
+{
+	if (auto notes = r->customData<RequestNotes>(this))
+		return notes;
+
+	return r->setCustomData<RequestNotes>(this, r);
+}
+
 // {{{ setup_function director.load(...)
 void DirectorPlugin::director_load(const FlowParams& args, FlowValue& result)
 {
@@ -243,11 +251,14 @@ bool DirectorPlugin::director_balance(HttpRequest* r, const FlowParams& args)
 			return internalServerError(r);
 	}
 
+	auto rn = requestNotes(r);
+	rn->manager = director;
+
 	server().log(Severity::debug, "director: passing request to %s [%s].", director->name().c_str(), bucket->name().c_str());
-	director->schedule(r, bucket);
+	director->schedule(rn, bucket);
 	return true;
 } // }}}
-// {{{ handler director.pass(string director_id [, segment_id, [, string backend_id ]] );
+// {{{ handler director.pass(string director_id [, string backend_id ] );
 bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 {
 	std::string directorName;
@@ -305,7 +316,11 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 		return internalServerError(r);
 
 	server().log(Severity::debug, "director: passing request to %s [backend %s].", director->name().c_str(), backend->name().c_str());
-	director->schedule(r, backend);
+
+	auto rn = requestNotes(r);
+	rn->manager = director;
+
+	director->schedule(rn, backend);
 	return true;
 }
 // }}}
@@ -326,7 +341,7 @@ bool DirectorPlugin::director_fcgi(HttpRequest* r, const FlowParams& args)
 {
 	x0::SocketSpec spec;
 	spec << args;
-	roadWarrior_->handleRequest(r, spec, RoadWarrior::FCGI);
+	roadWarrior_->handleRequest(requestNotes(r), spec, RoadWarrior::FCGI);
 	return true;
 }
 // }}}
@@ -335,7 +350,7 @@ bool DirectorPlugin::director_http(HttpRequest* r, const FlowParams& args)
 {
 	x0::SocketSpec spec;
 	spec << args;
-	roadWarrior_->handleRequest(r, spec, RoadWarrior::HTTP);
+	roadWarrior_->handleRequest(requestNotes(r), spec, RoadWarrior::HTTP);
 	return true;
 }
 // }}}

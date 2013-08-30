@@ -14,11 +14,8 @@
 #include <x0/TimeSpan.h>
 #include <string>
 
-namespace x0 {
-	class HttpRequest;
-}
-
 class Backend;
+struct RequestNotes;
 
 enum class TransferMode {
 	Blocking = 0,
@@ -78,10 +75,10 @@ public:
 	template<typename T> inline void post(T function) { worker()->post(function); }
 
 	//! Invoked internally when the passed request failed processing.
-	virtual void reject(x0::HttpRequest* r) = 0;
+	virtual void reject(RequestNotes* rn) = 0;
 
 	//! Invoked internally when a request has been fully processed in success.
-	virtual void release(Backend* backend, x0::HttpRequest* request) = 0;
+	virtual void release(RequestNotes* rn) = 0;
 };
 
 namespace x0 {

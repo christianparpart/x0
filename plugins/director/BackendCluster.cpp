@@ -33,9 +33,9 @@ size_t BackendCluster::capacity() const
 	return result;
 }
 
-SchedulerStatus BackendCluster::schedule(x0::HttpRequest* r)
+SchedulerStatus BackendCluster::schedule(RequestNotes* rn)
 {
-	return scheduler_->schedule(r);
+	return scheduler_->schedule(rn);
 }
 
 void BackendCluster::push_back(Backend* backend)

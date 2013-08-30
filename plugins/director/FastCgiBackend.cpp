@@ -103,7 +103,7 @@ public:
 	bool configured_;
 
 	// aka CgiRequest
-	x0::HttpRequest *request_;
+	RequestNotes* rn_;
 
 	/*! number of write chunks written within a single io() callback. */
 	int writeCount_;
@@ -114,13 +114,13 @@ public:
 	std::string sendfile_;
 
 public:
-	explicit FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint16_t id, x0::Socket* backend);
+	explicit FastCgiTransport(FastCgiBackend* cx, RequestNotes* rn, uint16_t id, x0::Socket* backend);
 	~FastCgiTransport();
 
 	void ref();
 	void unref();
 
-	void bind(x0::HttpRequest* r);
+	void bind(RequestNotes* rn);
 	void close();
 
 	// server-to-application
@@ -168,7 +168,7 @@ private:
 }; // }}}
 
 // {{{ FastCgiTransport impl
-FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint16_t id, x0::Socket* upstream) :
+FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, RequestNotes* rn, uint16_t id, x0::Socket* upstream) :
 	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
 	transportId_(++transportIds_),
 	refCount_(1),
@@ -184,7 +184,7 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	flushPending_(false),
 	configured_(false),
 
-	request_(nullptr),
+	rn_(nullptr),
 	writeCount_(0),
 	transferHandle_(-1),
 	transferOffset_(0),
@@ -205,7 +205,7 @@ FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, x0::HttpRequest* r, uint1
 	write(FastCgi::Type::GetValues, 0, mr.output());
 #endif
 
-	bind(r);
+	bind(rn);
 }
 
 FastCgiTransport::~FastCgiTransport()
@@ -223,21 +223,21 @@ FastCgiTransport::~FastCgiTransport()
 		::close(transferHandle_);
 	}
 
-	if (request_) {
-		if (request_->status == HttpStatus::Undefined && !request_->isAborted()) {
+	if (rn_) {
+		if (rn_->request->status == HttpStatus::Undefined && !rn_->request->isAborted()) {
 			// We failed processing this request, so reschedule
 			// this request within the director and give it the chance
 			// to be processed by another backend,
 			// or give up when the director's request processing
 			// timeout has been reached.
 
-			backend_->manager()->reject(request_);
+			backend_->manager()->reject(rn_);
 		} else {
 			// We actually served ths request, so finish() it.
-			request_->finish();
+			rn_->request->finish();
 
 			// Notify director that this backend has just completed a request,
-			backend_->Backend::release(request_);
+			backend_->release(rn_);
 		}
 	}
 }
@@ -280,66 +280,67 @@ void FastCgiTransport::unref()
  * Requests bound to a FastCGI transport will be passed to the connected 
  * transport backend and served by it.
  */
-void FastCgiTransport::bind(x0::HttpRequest* r)
+void FastCgiTransport::bind(RequestNotes* rn)
 {
-	request_ = r;
+	rn_ = rn;
+	auto r = rn_->request;
 
 	// initialize object
-	request_->setAbortHandler(&FastCgiTransport::onClientAbort, this);
+	r->setAbortHandler(&FastCgiTransport::onClientAbort, this);
 
-	request_->registerInspectHandler<FastCgiTransport, &FastCgiTransport::inspect>(this);
+	r->registerInspectHandler<FastCgiTransport, &FastCgiTransport::inspect>(this);
 
 	// initialize stream
 	write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, id_, true);
 
 	FastCgi::CgiParamStreamWriter params;
 	params.encode("SERVER_SOFTWARE", PACKAGE_NAME "/" PACKAGE_VERSION);
-	params.encode("SERVER_NAME", request_->requestHeader("Host"));
+	params.encode("SERVER_NAME", r->requestHeader("Host"));
 	params.encode("GATEWAY_INTERFACE", "CGI/1.1");
 
 	params.encode("SERVER_PROTOCOL", "1.1");
-	params.encode("SERVER_ADDR", request_->connection.localIP());
-	params.encode("SERVER_PORT", x0::lexical_cast<std::string>(request_->connection.localPort()));// TODO this should to be itoa'd only ONCE
+	params.encode("SERVER_ADDR", r->connection.localIP());
+	params.encode("SERVER_PORT", x0::lexical_cast<std::string>(r->connection.localPort()));// TODO this should to be itoa'd only ONCE
 
-	params.encode("REQUEST_METHOD", request_->method);
+	params.encode("REQUEST_METHOD", r->method);
 	params.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
 
-	request_->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
+	r->updatePathInfo(); // should we invoke this explicitely? I'd vote for no... however.
 
-	params.encode("PATH_INFO", request_->pathinfo);
+	params.encode("PATH_INFO", r->pathinfo);
 
-	if (!request_->pathinfo.empty()) {
-		params.encode("PATH_TRANSLATED", request_->documentRoot, request_->pathinfo);
-		params.encode("SCRIPT_NAME", request_->path.ref(0, request_->path.size() - request_->pathinfo.size()));
+	if (!r->pathinfo.empty()) {
+		params.encode("PATH_TRANSLATED", r->documentRoot, r->pathinfo);
+		params.encode("SCRIPT_NAME", r->path.ref(0, r->path.size() - r->pathinfo.size()));
 	} else {
-		params.encode("SCRIPT_NAME", request_->path);
+		params.encode("SCRIPT_NAME", r->path);
 	}
 
-	params.encode("QUERY_STRING", request_->query);			// unparsed uri
-	params.encode("REQUEST_URI", request_->unparsedUri);
+	params.encode("QUERY_STRING", r->query);			// unparsed uri
+	params.encode("REQUEST_URI", r->unparsedUri);
 
 	//params.encode("REMOTE_HOST", "");  // optional
-	params.encode("REMOTE_ADDR", request_->connection.remoteIP());
-	params.encode("REMOTE_PORT", x0::lexical_cast<std::string>(request_->connection.remotePort()));
+	params.encode("REMOTE_ADDR", r->connection.remoteIP());
+	params.encode("REMOTE_PORT", x0::lexical_cast<std::string>(r->connection.remotePort()));
 
 	//params.encode("AUTH_TYPE", ""); // TODO
 	//params.encode("REMOTE_USER", "");
 	//params.encode("REMOTE_IDENT", "");
 
-	if (request_->contentAvailable()) {
-		params.encode("CONTENT_TYPE", request_->requestHeader("Content-Type"));
-		params.encode("CONTENT_LENGTH", request_->requestHeader("Content-Length"));
+	if (r->contentAvailable()) {
+		params.encode("CONTENT_TYPE", r->requestHeader("Content-Type"));
+		params.encode("CONTENT_LENGTH", r->requestHeader("Content-Length"));
 
-		request_->setBodyCallback<FastCgiTransport, &FastCgiTransport::processRequestBody>(this);
+		r->setBodyCallback<FastCgiTransport, &FastCgiTransport::processRequestBody>(this);
 	}
 
 #if defined(WITH_SSL)
-	if (request_->connection.isSecure())
+	if (r->connection.isSecure())
 		params.encode("HTTPS", "on");
 #endif
 
 	// HTTP request headers
-	for (auto& i: request_->requestHeaders) {
+	for (auto& i: r->requestHeaders) {
 		std::string key;
 		key.reserve(5 + i.name.size());
 		key += "HTTP_";
@@ -349,10 +350,10 @@ void FastCgiTransport::bind(x0::HttpRequest* r)
 
 		params.encode(key, i.value);
 	}
-	params.encode("DOCUMENT_ROOT", request_->documentRoot);
+	params.encode("DOCUMENT_ROOT", r->documentRoot);
 
-	if (request_->fileinfo) {
-		params.encode("SCRIPT_FILENAME", request_->fileinfo->path());
+	if (r->fileinfo) {
+		params.encode("SCRIPT_FILENAME", r->fileinfo->path());
 	}
 
 	write(FastCgi::Type::Params, id_, params.output());
@@ -375,7 +376,7 @@ void FastCgiTransport::bind(x0::HttpRequest* r)
 
 		transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 		if (transferHandle_ < 0) {
-			request_->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+			r->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
 		}
 	}
 }
@@ -444,8 +445,8 @@ void FastCgiTransport::onConnectTimeout(x0::Socket* s)
 {
 	log(x0::Severity::error, "Trying to connect to upstream server %s was timing out.", backend_->name().c_str());
 
-	if (!request_->status)
-		request_->status = HttpStatus::GatewayTimedout;
+	if (!rn_->request->status)
+		rn_->request->status = HttpStatus::GatewayTimedout;
 
 	backend_->setState(HealthState::Offline);
 	close();
@@ -458,7 +459,7 @@ void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 {
 	if (s->isClosed()) {
 		log(x0::Severity::error, "connection to upstream server failed. %s", strerror(errno));
-		request_->status = x0::HttpStatus::ServiceUnavailable;
+		rn_->request->status = x0::HttpStatus::ServiceUnavailable;
 		close();
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE(1, "Connected. Flushing pending data.");
@@ -570,7 +571,7 @@ done:
 		writeCount_ = 0;
 		socket_->setMode(x0::Socket::None);
 		ref(); // will be unref'd in completion-handler, onWriteComplete().
-		request_->writeCallback<FastCgiTransport, &FastCgiTransport::onWriteComplete>(this);
+		rn_->request->writeCallback<FastCgiTransport, &FastCgiTransport::onWriteComplete>(this);
 	}
 
 	unref();
@@ -580,8 +581,8 @@ void FastCgiTransport::onTimeout(x0::Socket* s)
 {
 	log(x0::Severity::error, "I/O timeout to backend %s: %s", backendName_.c_str(), strerror(errno));
 
-	if (!request_->status)
-		request_->status = HttpStatus::GatewayTimedout;
+	if (!rn_->request->status)
+		rn_->request->status = HttpStatus::GatewayTimedout;
 
 	backend_->setState(HealthState::Offline);
 	close();
@@ -667,26 +668,27 @@ void FastCgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus proto
 	TRACE(1, "Received EndRequest-event from upstream server (appStatus=%d protocolStatus=%d). Closing transport.",
 		appStatus, static_cast<int>(protocolStatus));
 
-	if (!request_->status) {
+	auto r = rn_->request;
+	if (!r->status) {
 		switch (protocolStatus) {
 			case FastCgi::ProtocolStatus::RequestComplete:
-				request_->status = HttpStatus::Ok;
+				r->status = HttpStatus::Ok;
 				break;
 			case FastCgi::ProtocolStatus::CannotMpxConnection:
 				log(Severity::error, "Backend appliation terminated request because it says it cannot multiplex connections.");
-				request_->status = HttpStatus::InternalServerError;
+				r->status = HttpStatus::InternalServerError;
 				break;
 			case FastCgi::ProtocolStatus::Overloaded:
 				log(Severity::error, "Backend appliation terminated request because it says it is overloaded.");
-				request_->status = HttpStatus::ServiceUnavailable;
+				r->status = HttpStatus::ServiceUnavailable;
 				break;
 			case FastCgi::ProtocolStatus::UnknownRole:
 				log(Severity::error, "Backend appliation terminated request because it cannot handle this role.");
-				request_->status = HttpStatus::InternalServerError;
+				r->status = HttpStatus::InternalServerError;
 				break;
 			default:
 				log(Severity::error, "Backend appliation terminated request with unknown error code %d.", static_cast<int>(protocolStatus));
-				request_->status = HttpStatus::InternalServerError;
+				r->status = HttpStatus::InternalServerError;
 				break;
 		}
 	}
@@ -697,7 +699,7 @@ void FastCgiTransport::onEndRequest(int appStatus, FastCgi::ProtocolStatus proto
 void FastCgiTransport::processRequestBody(const x0::BufferRef& chunk)
 {
 	TRACE(1, "Received %ld / %ld bytes from client body.",
-		chunk.size(), request_->connection.contentLength());
+		chunk.size(), rn_->request->connection.contentLength());
 
 	// if chunk.size() is 0, this also marks the fcgi stdin stream's end. so just pass it.
 	write(FastCgi::Type::StdIn, id_, chunk.data(), chunk.size());
@@ -712,14 +714,14 @@ bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::Buff
 
 	if (x0::iequals(name, "Status")) {
 		int status = value.ref(0, value.find(' ')).toInt();
-		request_->status = static_cast<x0::HttpStatus>(status);
+		rn_->request->status = static_cast<x0::HttpStatus>(status);
 	} else if (x0::iequals(name, "X-Sendfile")) {
 		sendfile_ = value.str();
 	} else {
 		if (name == "Location")
-			request_->status = x0::HttpStatus::MovedTemporarily;
+			rn_->request->status = x0::HttpStatus::MovedTemporarily;
 
-		request_->responseHeaders.push_back(name.str(), value.str());
+		rn_->request->responseHeaders.push_back(name.str(), value.str());
 	}
 
 	return true;
@@ -728,10 +730,11 @@ bool FastCgiTransport::onMessageHeader(const x0::BufferRef& name, const x0::Buff
 bool FastCgiTransport::onMessageHeaderEnd()
 {
 	if (unlikely(!sendfile_.empty())) {
-		request_->responseHeaders.remove("Content-Type");
-		request_->responseHeaders.remove("Content-Length");
-		request_->responseHeaders.remove("ETag");
-		request_->sendfile(sendfile_);
+		auto r = rn_->request;
+		r->responseHeaders.remove("Content-Type");
+		r->responseHeaders.remove("Content-Length");
+		r->responseHeaders.remove("ETag");
+		r->sendfile(sendfile_);
 	}
 
 	return true;
@@ -739,6 +742,8 @@ bool FastCgiTransport::onMessageHeaderEnd()
 
 bool FastCgiTransport::onMessageContent(const x0::BufferRef& chunk)
 {
+	auto r = rn_->request;
+
 	TRACE(1, "Parsed HTTP message content of %ld bytes from upstream server.", chunk.size());
 	//TRACE(2, "Message content chunk: %s", chunk.str().c_str());
 
@@ -751,7 +756,7 @@ bool FastCgiTransport::onMessageContent(const x0::BufferRef& chunk)
 		if (!(transferHandle_ < 0)) {
 			ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
 			if (rv == static_cast<ssize_t>(chunk.size())) {
-				request_->write<FileSource>(transferHandle_, transferOffset_, rv, false);
+				r->write<FileSource>(transferHandle_, transferOffset_, rv, false);
 				transferOffset_ += rv;
 				break;
 			} else if (rv > 0) {
@@ -762,10 +767,10 @@ bool FastCgiTransport::onMessageContent(const x0::BufferRef& chunk)
 		// fall through
 		break;
 	case TransferMode::MemoryAccel:
-		request_->write<x0::BufferRefSource>(chunk);
+		r->write<x0::BufferRefSource>(chunk);
 		break;
 	case TransferMode::Blocking:
-		request_->write<x0::BufferRefSource>(chunk);
+		r->write<x0::BufferRefSource>(chunk);
 
 		// if the above write() operation did not complete and thus
 		// we have data pending to be sent out to the client,
@@ -773,7 +778,7 @@ bool FastCgiTransport::onMessageContent(const x0::BufferRef& chunk)
 		// all (possibly proceeding write operations) have been
 		// finished within a single io()-callback run.
 
-		if (request_->connection.isOutputPending())
+		if (r->connection.isOutputPending())
 			++writeCount_;
 
 		break;
@@ -784,9 +789,9 @@ bool FastCgiTransport::onMessageContent(const x0::BufferRef& chunk)
 
 void FastCgiTransport::log(x0::LogMessage&& msg)
 {
-	if (request_) {
+	if (rn_) {
 		msg.addTag("fastcgi/%d", transportId_);
-		request_->log(std::move(msg));
+		rn_->request->log(std::move(msg));
 	}
 }
 
@@ -807,11 +812,13 @@ void FastCgiTransport::onWriteComplete()
 	if (writeBuffer_.size() != 0) {
 		TRACE(1, "onWriteComplete: queued:%ld", writeBuffer_.size());
 
-		request_->write<x0::BufferSource>(std::move(writeBuffer_));
+		auto r = rn_->request;
 
-		if (request_->connection.isOutputPending()) {
+		r->write<x0::BufferSource>(std::move(writeBuffer_));
+
+		if (r->connection.isOutputPending()) {
 			TRACE(1, "onWriteComplete: output pending. enqueue callback");
-			request_->writeCallback<FastCgiTransport, &FastCgiTransport::onWriteComplete>(this);
+			r->writeCallback<FastCgiTransport, &FastCgiTransport::onWriteComplete>(this);
 			return;
 		}
 	}
@@ -890,18 +897,18 @@ const std::string& FastCgiBackend::protocol() const
 	return value;
 }
 
-bool FastCgiBackend::process(x0::HttpRequest* r)
+bool FastCgiBackend::process(RequestNotes* rn)
 {
 	//TRACE(1, "process()");
 
-	if (x0::Socket* socket = x0::Socket::open(r->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
+	if (x0::Socket* socket = x0::Socket::open(rn->request->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
 		if (++nextID_ == 0)
 			++nextID_;
 
-		new FastCgiTransport(this, r, nextID_, socket);
+		new FastCgiTransport(this, rn, nextID_, socket);
 		return true;
 	} else {
-		r->log(x0::Severity::notice, "fastcgi: connection to backend %s failed (%d). %s", socketSpec_.str().c_str(), errno, strerror(errno));
+		rn->request->log(x0::Severity::notice, "fastcgi: connection to backend %s failed (%d). %s", socketSpec_.str().c_str(), errno, strerror(errno));
 		return false;
 	}
 }

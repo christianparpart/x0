@@ -23,6 +23,7 @@ class Director;
 class RoadWarrior;
 class Backend;
 class HaproxyApi;
+struct RequestNotes;
 
 class DirectorPlugin :
 	public x0::HttpPlugin
@@ -38,6 +39,8 @@ public:
 	~DirectorPlugin();
 
 private:
+	RequestNotes* requestNotes(x0::HttpRequest* r);
+
 	void director_load(const x0::FlowParams& args, x0::FlowValue& result);
 	void director_create(const x0::FlowParams& args, x0::FlowValue& result);
 

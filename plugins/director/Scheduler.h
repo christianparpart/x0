@@ -14,13 +14,8 @@
 #include <x0/Severity.h>
 #include <x0/LogMessage.h>
 
-class Director;
 class Backend;
-class RequestNotes;
-
-namespace x0 {
-	class HttpRequest;
-}
+struct RequestNotes;
 
 class Scheduler
 {
@@ -37,21 +32,21 @@ public:
 	explicit Scheduler(BackendList* backends);
 	virtual ~Scheduler();
 
-	virtual SchedulerStatus schedule(x0::HttpRequest* r) = 0;
+	virtual SchedulerStatus schedule(RequestNotes* rn) = 0;
 };
 
 class ChanceScheduler : public Scheduler {
 public:
 	explicit ChanceScheduler(BackendList* backends) : Scheduler(backends) {}
 
-	virtual SchedulerStatus schedule(x0::HttpRequest* r);
+	virtual SchedulerStatus schedule(RequestNotes* rn);
 };
 
 class RoundRobinScheduler : public Scheduler {
 public:
 	explicit RoundRobinScheduler(BackendList* backends) : Scheduler(backends), next_(0) {}
 
-	virtual SchedulerStatus schedule(x0::HttpRequest* r);
+	virtual SchedulerStatus schedule(RequestNotes* rn);
 
 private:
 	size_t next_;

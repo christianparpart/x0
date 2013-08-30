@@ -12,6 +12,7 @@
 #include "Backend.h"
 #include "BackendManager.h"
 #include "Scheduler.h"
+#include "RequestNotes.h"
 #include "HealthMonitor.h"
 
 #include <x0/IniFile.h>
@@ -28,7 +29,6 @@
 #include <functional>
 
 class Scheduler;
-class RequestNotes;
 class ObjectCache;
 
 namespace x0 {
@@ -46,7 +46,7 @@ enum class BackendRole {
 	Terminate, //!< artificial role that contains all backends in termination-progress.
 };
 
-typedef x0::TokenShaper<x0::HttpRequest> RequestShaper;
+typedef x0::TokenShaper<RequestNotes> RequestShaper;
 
 /*!
  * \brief Load balancing HTTP request proxy.
@@ -101,12 +101,12 @@ public:
 
 	const x0::Counter& queued() const { return queued_; }
 
-	void schedule(HttpRequest* r, Backend* backend);
-	void schedule(HttpRequest* r, RequestShaper::Node* bucket);
-	void reschedule(HttpRequest* r, RequestNotes* notes);
+	void schedule(RequestNotes* rn, Backend* backend);
+	void schedule(RequestNotes* rn, RequestShaper::Node* bucket);
+	void reschedule(RequestNotes* rn);
 
-	virtual void reject(x0::HttpRequest* r);
-	virtual void release(Backend* backend, x0::HttpRequest* r);
+	virtual void reject(RequestNotes* rn);
+	virtual void release(RequestNotes* rn);
 
 	bool isMutable() const { return mutable_; }
 	void setMutable(bool value) { mutable_ = value; }
@@ -152,9 +152,6 @@ public:
 	size_t maxRetryCount() const { return maxRetryCount_; }
 	void setMaxRetryCount(size_t value) { maxRetryCount_ = value; }
 
-	RequestNotes* setupRequestNotes(x0::HttpRequest* r, Backend* backend = nullptr);
-	RequestNotes* requestNotes(x0::HttpRequest* r);
-
 	Backend* createBackend(const std::string& name, const Url& url);
 	Backend* createBackend(const std::string& name, const std::string& protocol, const x0::SocketSpec& spec, size_t capacity, BackendRole role);
 	void terminateBackend(Backend* backend);
@@ -183,10 +180,10 @@ public:
 	void setBackendRole(Backend* backend, BackendRole role);
 
 private:
-	bool processCacheObject(HttpRequest* r, RequestNotes* notes);
+	bool processCacheObject(RequestNotes* notes);
 	bool loadBackend(const x0::IniFile& settings, const std::string& key);
 	bool loadBucket(const x0::IniFile& settings, const std::string& key);
-	void onTimeout(HttpRequest* r);
+	void onTimeout(RequestNotes* rn);
 	void onBackendEnabledChanged(const Backend* backend);
 	void onBackendStateChanged(Backend* backend, HealthMonitor* healthMonitor, HealthState oldState);
 	void link(Backend* backend, BackendRole role);
@@ -194,15 +191,14 @@ private:
 
 	void onStop();
 
-	bool verifyTryCount(HttpRequest* r, RequestNotes* notes);
-	SchedulerStatus tryProcess(x0::HttpRequest* r, RequestNotes* notes, BackendRole role);
-	SchedulerStatus tryProcess(x0::HttpRequest* r, RequestNotes* notes, Backend* backend);
-	bool tryEnqueue(x0::HttpRequest* r, RequestNotes* notes);
+	bool verifyTryCount(RequestNotes* notes);
+	SchedulerStatus tryProcess(RequestNotes* notes, BackendRole role);
+	bool tryEnqueue(RequestNotes* notes);
 	void dequeueTo(Backend* backend);
 	void updateQueueTimer();
-	x0::HttpRequest* dequeue();
+	RequestNotes* dequeue();
 
-	void serviceUnavailable(x0::HttpRequest* r, RequestNotes* notes);
+	void serviceUnavailable(RequestNotes* notes, x0::HttpStatus status = x0::HttpStatus::ServiceUnavailable);
 };
 
 namespace x0 {
