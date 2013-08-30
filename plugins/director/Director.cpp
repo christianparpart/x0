@@ -213,7 +213,6 @@ void Director::reject(RequestNotes* rn)
 void Director::release(RequestNotes* rn)
 {
 	auto backend = rn->backend;
-	auto r = rn->request;
 
 	--load_;
 
