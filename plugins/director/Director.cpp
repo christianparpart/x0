@@ -19,6 +19,7 @@
 #endif
 
 #include <x0/io/BufferSource.h>
+#include <x0/DebugLogger.h>
 #include <x0/Tokenizer.h>
 #include <x0/IniFile.h>
 #include <x0/Url.h>
@@ -26,9 +27,19 @@
 
 #include <x0/AnsiColor.h> // dumpNode()
 
+template<typename... Args>
+static inline void logRequest(HttpRequest* r, int level, const char* fmt, const Args&... args)
+{
+	LogMessage msg(level, fmt, args...);
+	msg.addTag("director");
+	r->log(std::move(msg));
+}
+
 #if 1//!defined(XZERO_NDEBUG)
-#	define TRACE(obj, level, msg...) (obj)->request->log(Severity::debug ## level, "director: " msg)
-#	define WTRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
+//#	define TRACE(obj, level, msg...) (obj)->request->log(Severity::debug ## level, "director: " msg)
+//#	define WTRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
+#	define TRACE(obj, level, msg...) ::logRequest((obj)->request, level, msg)
+#	define WTRACE(level, msg...) do { LogMessage m(Severity::debug ## level, msg); m.addTag("director"); worker_->log(std::move(m)); } while (0)
 #else
 #	define TRACE(args...) do {} while (0)
 #	define WTRACE(args...) do {} while (0)
@@ -377,7 +388,7 @@ Backend* Director::findBackend(const std::string& name)
 void Director::setBackendRole(Backend* backend, BackendRole role)
 {
 	BackendRole currentRole = backendRole(backend);
-	worker_->log(Severity::debug, "setBackendRole(%d) (from %d)", role, currentRole);
+	WTRACE(1, "setBackendRole(%d) (from %d)", role, currentRole);
 
 	if (role != currentRole) {
 		if (role == BackendRole::Active)
@@ -852,11 +863,8 @@ bool Director::processCacheObject(RequestNotes* notes)
 	if (!objectCache_->enabled())
 		return false;
 
-	// hack begin. TODO: support setting cacheKey properly
-	if (notes->cacheKey.empty()) {
-		notes->cacheKey = r->path.str();
-	}
-	// hack end.
+	if (notes->cacheKey.empty())
+		notes->setCacheKey("%h#%r#%q");
 
 	if (unlikely(notes->cacheKey.empty()))
 		return false;
@@ -1007,10 +1015,7 @@ void Director::dequeueTo(Backend* backend)
 	if (auto notes = dequeue()) {
 		notes->request->post([this, backend, notes]() {
 			notes->tokens = 1;
-#ifndef XZERO_NDEBUG
-			notes->request->log(Severity::debug, "Dequeueing request to backend %s @ %s",
-				backend->name().c_str(), name().c_str());
-#endif
+			TRACE(notes, 1, "Dequeueing request to backend %s @ %s", backend->name().c_str(), name().c_str());
 			SchedulerStatus rc = backend->tryProcess(notes);
 			if (rc != SchedulerStatus::Success) {
 				notes->tokens = 0;
@@ -1024,7 +1029,7 @@ void Director::dequeueTo(Backend* backend)
 			}
 		});
 	} else {
-		log(LogMessage(Severity::debug, "dequeueTo: queue empty."));
+		WTRACE(1, "dequeueTo: queue empty.");
 	}
 }
 
@@ -1044,13 +1049,13 @@ bool Director::tryEnqueue(RequestNotes* rn)
 		rn->bucket->enqueue(rn);
 		++queued_;
 
-		rn->request->log(Severity::debug1, "Director %s [%s] overloaded. Enqueueing request (%d).",
+		TRACE(rn, 1, "Director %s [%s] overloaded. Enqueueing request (%d).",
 			name().c_str(), rn->bucket->name().c_str(), rn->bucket->queued().current());
 
 		return true;
 	}
 
-	rn->request->log(Severity::debug1, "director: '%s' queue limit %zu reached.", name().c_str(), queueLimit());
+	TRACE(rn, 1, "director: '%s' queue limit %zu reached.", name().c_str(), queueLimit());
 	serviceUnavailable(rn);
 
 	return false;
@@ -1060,10 +1065,10 @@ RequestNotes* Director::dequeue()
 {
 	if (auto rn = shaper()->dequeue()) {
 		--queued_;
-		rn->request->log(Severity::debug, "Director %s dequeued request (%zu pending).", name().c_str(), queued_.current());
+		TRACE(rn, 1, "Director %s dequeued request (%zu pending).", name().c_str(), queued_.current());
 		return rn;
 	}
-	log(LogMessage(Severity::debug, "Director %s dequeue() failed (%zu pending).", name().c_str(), queued_.current()));
+	WTRACE(1, "Director %s dequeue() failed (%zu pending).", name().c_str(), queued_.current());
 
 	return nullptr;
 }
