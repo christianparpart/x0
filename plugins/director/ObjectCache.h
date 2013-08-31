@@ -207,13 +207,13 @@ private:
 		Object(MallocStore* store, const std::string& cacheKey);
 		~Object();
 
-		void update(x0::HttpRequest* r) final;
+		void update(x0::HttpRequest* r);
 
-		State state() const final;
+		State state() const;
 
-		x0::DateTime ctime() const final;
-		void deliver(x0::HttpRequest* r) final;
-		void expire() final;
+		x0::DateTime ctime() const;
+		void deliver(x0::HttpRequest* r);
+		void expire();
 
 	private:
 		inline void internalDeliver(x0::HttpRequest* r);
@@ -282,10 +282,10 @@ public:
 	MallocStore();
 	~MallocStore();
 
-	bool find(const std::string& cacheKey, const std::function<void(ObjectCache::Object*)>& callback) final;
-	bool acquire(const std::string& cacheKey, const std::function<void(ObjectCache::Object*, bool /*created*/)>& callback) final;
-	bool purge(const std::string& cacheKey) final;
-	void clear(bool physically) final;
+	bool find(const std::string& cacheKey, const std::function<void(ObjectCache::Object*)>& callback);
+	bool acquire(const std::string& cacheKey, const std::function<void(ObjectCache::Object*, bool /*created*/)>& callback);
+	bool purge(const std::string& cacheKey);
+	void clear(bool physically);
 
 private:
 	void commit(Object* object);

@@ -202,7 +202,7 @@ private:
 public:
 	explicit Builder(Object* object);
 
-	virtual x0::Buffer process(const x0::BufferRef& chunk) final;
+	virtual x0::Buffer process(const x0::BufferRef& chunk);
 };
 
 MallocStore::Builder::Builder(Object* object) :
