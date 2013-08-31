@@ -50,7 +50,9 @@ struct RequestNotes :
 	explicit RequestNotes(x0::HttpRequest* r);
 	~RequestNotes();
 
+#if defined(X0_DIRECTOR_CACHE)
 	void setCacheKey(const char* data, const char* eptr);
 	void setCacheKey(const char* data) { setCacheKey(data, data + std::strlen(data)); }
 	void setCacheKey(const std::string& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }
+#endif
 };

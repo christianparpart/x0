@@ -46,7 +46,7 @@ RequestNotes::~RequestNotes()
 	}
 }
 
-
+#if defined(X0_DIRECTOR_CACHE)
 void RequestNotes::setCacheKey(const char* i, const char* e)
 {
 	Buffer result;
@@ -92,3 +92,4 @@ void RequestNotes::setCacheKey(const char* i, const char* e)
 	cacheKey = result.str();
 	printf("cache key: '%s'\n", cacheKey.c_str());
 }
+#endif
