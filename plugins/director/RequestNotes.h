@@ -12,6 +12,9 @@
 #include <x0/TokenShaper.h>
 #include <x0/TimeSpan.h>
 #include <x0/sysconfig.h>
+#include <cstring> // strlen()
+#include <string>
+#include <list>
 
 namespace x0 {
 	class HttpRequest;
@@ -46,4 +49,8 @@ struct RequestNotes :
 
 	explicit RequestNotes(x0::HttpRequest* r);
 	~RequestNotes();
+
+	void setCacheKey(const char* data, const char* eptr);
+	void setCacheKey(const char* data) { setCacheKey(data, data + std::strlen(data)); }
+	void setCacheKey(const std::string& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }
 };

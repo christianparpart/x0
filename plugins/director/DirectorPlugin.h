@@ -44,6 +44,7 @@ private:
 	void director_load(const x0::FlowParams& args, x0::FlowValue& result);
 	void director_create(const x0::FlowParams& args, x0::FlowValue& result);
 
+	void director_cache_key(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
 	void director_cache_bypass(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
 
 	bool director_balance(x0::HttpRequest* r, const x0::FlowParams& args);

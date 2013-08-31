@@ -46,6 +46,7 @@
 #include "RequestNotes.h"
 #include "RoadWarrior.h"
 #include "HaproxyApi.h"
+#include "ObjectCache.h"
 
 #include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
@@ -65,6 +66,7 @@ DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
 	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_load>("director.load", FlowValue::VOID);
 #if defined(X0_DIRECTOR_CACHE)
+	registerProperty<DirectorPlugin, &DirectorPlugin::director_cache_key>("director.cache.key", FlowValue::STRING);
 	registerFunction<DirectorPlugin, &DirectorPlugin::director_cache_bypass>("director.cache.bypass", FlowValue::VOID);
 #endif
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_balance>("director.balance");
@@ -179,6 +181,31 @@ Backend* DirectorPlugin::registerBackend(Director* director, const char* name, c
 // }}}
 // {{{ function director.cache.bypass()
 #if defined(X0_DIRECTOR_CACHE)
+void DirectorPlugin::director_cache_key(HttpRequest* r, const FlowParams& args, FlowValue& result)
+{
+	auto notes = requestNotes(r);
+
+	switch (args.size()) {
+		case 1: {
+			if (!args[0].isString() && !args[0].isBuffer()) {
+				r->log(Severity::error, "director.cache.key(): Invalid argument.");
+			} else {
+				auto fmt = args[0].asString();
+				notes->setCacheKey(fmt);
+			}
+			break;
+		}
+		case 0: {
+			result.set(notes->cacheKey.c_str());
+			break;
+		}
+		default: {
+			r->log(Severity::error, "director.cache.key(): Invalid argument count.");
+			break;
+		}
+	}
+}
+
 void DirectorPlugin::director_cache_bypass(HttpRequest* r, const FlowParams& args, FlowValue& result)
 {
 	auto notes = requestNotes(r);
