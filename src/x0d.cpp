@@ -16,6 +16,7 @@
 #include <x0/DateTime.h>
 #include <x0/strutils.h>
 #include <x0/Severity.h>
+#include <x0/DebugLogger.h>
 #include <x0/sysconfig.h>
 
 #include <ev++.h>
@@ -1223,6 +1224,8 @@ void XzeroHttpDaemon::installCrashHandler()
 
 int main(int argc, char *argv[])
 {
+	x0::DebugLogger::get().configure("XZERO_DEBUG");
+
 	//installCrashHandler();
 
 	XzeroHttpDaemon daemon(argc, argv);

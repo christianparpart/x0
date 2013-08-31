@@ -15,6 +15,7 @@
 #include <x0/SocketSpec.h>
 #include <x0/Error.h>
 #include <x0/Logger.h>
+#include <x0/DebugLogger.h>
 #include <x0/Library.h>
 #include <x0/AnsiColor.h>
 #include <x0/strutils.h>
@@ -115,6 +116,11 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	maxRequestHeaderCount(100),
 	maxRequestBodySize(2 * 1024 * 1024)
 {
+	DebugLogger::get().onLogWrite = [&](const char* msg, size_t n) {
+		LogMessage lm(Severity::debug1, "%s", msg);
+		logger_->write(lm);
+	};
+
 	runner_ = new FlowRunner(this);
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
 
@@ -162,6 +168,9 @@ HttpServer::~HttpServer()
 
 	delete unit_;
 	unit_ = nullptr;
+
+	// explicit cleanup
+	DebugLogger::get().reset();
 }
 
 bool HttpServer::validateConfig()
@@ -520,6 +529,20 @@ void HttpServer::kill()
 void HttpServer::log(LogMessage&& msg)
 {
 	if (logger_) {
+#if !defined(XZERO_NDEBUG)
+		if (msg.isDebug() && msg.hasTags() && DebugLogger::get().isConfigured()) {
+			int level = 3 - msg.severity(); // compute proper debug level
+			Buffer text;
+			text << msg;
+			BufferRef tag = msg.tagAt(msg.tagCount() - 1);
+			size_t i = tag.find('/');
+			if (i != tag.npos)
+				tag = tag.ref(0, i);
+
+			DebugLogger::get().logUntagged(tag.str(), level, "%s", text.c_str());
+			return;
+		}
+#endif
 		logger_->write(msg);
 	}
 }

@@ -11,6 +11,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpConnection.h>
 #include <x0/ServerSocket.h>
+#include <x0/DebugLogger.h>
 
 #include <algorithm>
 #include <cstdarg>
@@ -20,10 +21,11 @@
 
 // XXX one a connection has been passed to a worker, it is *bound* to it.
 
-#if 0 // !defined(XZERO_NDEBUG)
-#	define TRACE(msg...) DEBUG("HttpWorker: " msg)
+#if !defined(XZERO_NDEBUG)
+//#	define TRACE(n, msg...) X0_DEBUG("worker", (n), msg)
+#	define TRACE(n, msg...) log(Severity::debug ## n, msg)
 #else
-#	define TRACE(msg...) do {} while (0)
+#	define TRACE(n, msg...) do {} while (0)
 #endif
 
 namespace x0 {
@@ -78,12 +80,12 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 
 	setName("worker/%d", id_);
 
-	TRACE("spawned");
+	TRACE(1, "spawned");
 }
 
 HttpWorker::~HttpWorker()
 {
-	TRACE("destroying");
+	TRACE(1, "destroying");
 
 	clearCustomData();
 
@@ -113,7 +115,7 @@ void HttpWorker::run()
 	// XXX being invoked from *within* the worker-thread.
 	server_.onWorkerSpawn(this);
 
-	TRACE("enter loop");
+	TRACE(1, "enter loop");
 	ev_loop(loop_, 0);
 
 	while (connections_)
@@ -141,7 +143,7 @@ void HttpWorker::setName(const char* fmt, ...)
 
 void HttpWorker::log(LogMessage&& msg)
 {
-	msg.addTag("%u", id());
+	msg.addTag("worker/%u", id());
 
 	server().log(std::forward<LogMessage>(msg));
 }
@@ -172,7 +174,7 @@ void HttpWorker::onWakeup(ev::async& w, int revents)
 
 void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 {
-	TRACE("client connected; fd:%d", client->handle());
+	TRACE(1, "client connected; fd:%d", client->handle());
 
 	++connectionLoad_;
 	++connectionCount_;
@@ -245,7 +247,7 @@ void HttpWorker::freeCache()
 		freeConnections_ = next;
 		++i;
 	}
-	TRACE("cleared %zu free-connections items", i);
+	TRACE(1, "cleared %zu free-connections items", i);
 }
 
 void HttpWorker::handleRequest(HttpRequest *r)
@@ -290,7 +292,7 @@ void HttpWorker::handleRequest(HttpRequest *r)
 
 void HttpWorker::_stop()
 {
-	TRACE("_stop");
+	TRACE(1, "_stop");
 
 	evLoopCheck_.stop();
 	evNewConnection_.stop();
@@ -313,7 +315,7 @@ void HttpWorker::setAffinity(int cpu)
 	CPU_ZERO(&set);
 	CPU_SET(cpu, &set);
 
-	TRACE("setAffinity: %d", cpu);
+	TRACE(1, "setAffinity: %d", cpu);
 
 	int rv = pthread_setaffinity_np(thread_, sizeof(set), &set);
 	if (rv < 0) {
@@ -334,7 +336,7 @@ void HttpWorker::bind(ServerSocket* s)
  */
 void HttpWorker::suspend()
 {
-	TRACE("suspend");
+	TRACE(1, "suspend");
 
 	if (id_ != 0)
 		post<HttpWorker, &HttpWorker::_suspend>(this);
@@ -342,7 +344,7 @@ void HttpWorker::suspend()
 
 void HttpWorker::_suspend()
 {
-	TRACE("_suspend");
+	TRACE(1, "_suspend");
 	pthread_mutex_lock(&resumeLock_);
 	state_ = Suspended;
 	pthread_cond_wait(&resumeCondition_, &resumeLock_);
@@ -357,14 +359,14 @@ void HttpWorker::_suspend()
  */
 void HttpWorker::resume()
 {
-	TRACE("resume");
+	TRACE(1, "resume");
 	if (id_ != 0)
 		pthread_cond_signal(&resumeCondition_);
 }
 
 void HttpWorker::stop()
 {
-	TRACE("stop: post -> _stop()");
+	TRACE(1, "stop: post -> _stop()");
 	post<HttpWorker, &HttpWorker::_stop>(this);
 }
 
@@ -381,7 +383,7 @@ void HttpWorker::join()
  */
 void HttpWorker::kill()
 {
-	TRACE("kill: post -> _kill()");
+	TRACE(1, "kill: post -> _kill()");
 	post<HttpWorker, &HttpWorker::_kill>(this);
 }
 
@@ -393,7 +395,7 @@ void HttpWorker::kill()
  */
 void HttpWorker::_kill()
 {
-	TRACE("_kill()");
+	TRACE(1, "_kill()");
 	while (connections_) {
 		std::list<HttpConnection*> copy;
 
@@ -410,7 +412,7 @@ void HttpWorker::_kill()
 	}
 
 	for (auto handler: killHandler_) {
-		TRACE("_kill: invoke kill handler");
+		TRACE(1, "_kill: invoke kill handler");
 		handler();
 	}
 }
