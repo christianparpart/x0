@@ -110,6 +110,7 @@ Buffer Base64::decode(const BufferRef& input)
 	size_t decodeLen = decodeLength(input.str().c_str());
 	Buffer output;
 	output.reserve(1 + decodeLen);
+	output.resize(output.capacity());
 
 	size_t nbleft = 0;
 	for (auto i = input.cbegin(), e = input.cend(); i != e && pr2six_[static_cast<int>(*i)] != 64; ++i)
