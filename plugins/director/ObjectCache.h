@@ -140,6 +140,8 @@ public:
 	 * \retval true request is being served from cache.
 	 * \retval false request is \b NOT being served from cache, but an object construction listener has been installed to populate the cache object.
 	 *
+	 * \note Invoked from within the thread context of its served request.
+	 *
 	 * \see deliverShadow(x0::HttpRequest* r, const std::string& cacheKey);
 	 */
 	bool deliverActive(x0::HttpRequest* r, const std::string& cacheKey);
@@ -157,11 +159,30 @@ public:
 public:
 	/**
 	 * Searches for a cache object for read access.
+	 *
+	 * @param cacheKey the unique cache key identifying the cache object to be acquired.
+	 * @param callback a callback invoked with the cache-object.
+	 *
+	 * @retval true the cache-object was found.
+	 * @retval false the cache-object was not found.
+	 *
+	 * If the cache-object was not found, the callback must still be invoked with
+	 * its argument set to NULL.
 	 */
 	virtual bool find(const std::string& cacheKey, const std::function<void(Object*)>& callback) = 0;
 
 	/**
 	 * Searches for a cache object for read/write access.
+	 *
+	 * @param cacheKey the unique cache key identifying the cache object to be acquired.
+	 * @param callback a callback invoked with the cache-object.
+	 *
+	 * @retval true the cache-object was found.
+	 * @retval false the cache-object was not found.
+	 *
+	 * The callback gets itself two arguments, first, the cache-object, and second,
+	 * a boolean indicating if this object got just created with this call,
+	 * or false if this cache-object has been already in the cache store.
 	 */
 	virtual bool acquire(const std::string& cacheKey, const std::function<void(Object*, bool)>& callback) = 0;
 
