@@ -863,11 +863,8 @@ bool Director::processCacheObject(RequestNotes* notes)
 	if (!objectCache_->enabled())
 		return false;
 
-	if (notes->cacheKey.empty())
-		notes->setCacheKey("%h#%r#%q");
-
 	if (unlikely(notes->cacheKey.empty()))
-		return false;
+		notes->setCacheKey("%h#%r#%q");
 
 	if (unlikely(equals(r->method, "PURGE"))) {
 		if (objectCache_->purge(notes->cacheKey)) {
