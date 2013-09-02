@@ -64,6 +64,7 @@ private:
 
 	std::string service_;
 	pam_conv conv_;
+	pam_response* response_;
 	std::string username_;
 	std::string password_;
 };
@@ -72,12 +73,14 @@ private:
 AuthPAM::AuthPAM(const std::string& service)
 {
 	service_ = service;
+	response_ = nullptr;
 	conv_.conv = AuthPAM::callback;
 	conv_.appdata_ptr = this;
 }
 
 AuthPAM::~AuthPAM()
 {
+	free(response_);
 }
 
 bool AuthPAM::authenticate(const std::string& username, const std::string& passwd)
@@ -107,19 +110,29 @@ int AuthPAM::callback(int num_msg, const struct pam_message **msg, struct pam_re
 {
 	AuthPAM* self = (AuthPAM*) appdata_ptr;
 
+	if (self->response_) {
+		free(self->response_);
+		self->response_ = nullptr;
+	}
+
 	pam_response* response = (pam_response*) malloc(num_msg * sizeof(pam_response));
 	if (!response)
 		return PAM_CONV_ERR;
 
 	for (int i = 0; i < num_msg; ++i) {
+		response[i].resp_retcode = 0;
 		switch (msg[i]->msg_style) {
 			case PAM_PROMPT_ECHO_ON:
-				response[i].resp = strdup(self->username_.c_str());
-				response[i].resp_retcode = 0;
+				response[i].resp = strdup(self->username_.c_str()); // free()'d by PAM
 				break;
 			case PAM_PROMPT_ECHO_OFF:
-				response[i].resp = strdup(self->password_.c_str());
-				response[i].resp_retcode = 0;
+				response[i].resp = strdup(self->password_.c_str()); // free()'d by PAM
+				break;
+			case PAM_ERROR_MSG:
+				// should display an error message
+				break;
+			case PAM_TEXT_INFO:
+				// should display some informational text
 				break;
 			default:
 				free(response);
@@ -128,6 +141,7 @@ int AuthPAM::callback(int num_msg, const struct pam_message **msg, struct pam_re
 	}
 
 	*resp = response;
+	self->response_ = response; // so we can free it upon completion
 	return PAM_SUCCESS;
 }
 #endif
