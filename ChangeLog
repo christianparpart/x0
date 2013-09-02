@@ -15,6 +15,7 @@
 	* x0d: Support -e epoll,select,poll,.... to choose event-system backend x0d should run on.
 	* plugins: removed plugins proxy & fastcgi. Deprecated by director plugin.
 	* plugins: accesslog plugin now also supports syslog target
+	* plugins: auth plugin now supports PAM authentication (compile-time enabled by default)
 	* plugins: director plugin has experimental support for backend acceleration
 	* plugins: director plugin has initial support for HAproxy compatible CSV output
 	* plugins: director plugin fixed wrt. off-by-one bug in scheduler.load stats.

@@ -118,6 +118,7 @@ if exists("flow_x0")
 	" upstream plugin: auth
 	syn match flowCoreFunctions '\<auth\.realm\>'
 	syn match flowCoreFunctions '\<auth\.userfile\>'
+	syn match flowCoreFunctions '\<auth\.pam\>'
 	syn match flowCoreFunctions '\<auth\.require\>'
 
 	" upstream plugin: director

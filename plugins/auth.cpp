@@ -32,6 +32,10 @@
 #include <x0/sysconfig.h>
 #include <fstream>
 
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+#include <security/pam_appl.h>
+#endif
+
 #ifdef HAVE_LDAP_H
 #include <ldap.h>
 #endif
@@ -44,6 +48,91 @@ public:
 	virtual bool authenticate(const std::string& username, const std::string& passwd) = 0;
 };
 // }}}
+
+// {{{ PAM support
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+class AuthPAM : public AuthBackend
+{
+public:
+	explicit AuthPAM(const std::string& service);
+	virtual ~AuthPAM();
+
+	virtual bool authenticate(const std::string& username, const std::string& passwd);
+
+private:
+	static int callback(int num_msg, const struct pam_message **msg, struct pam_response **resp, void *appdata_ptr);
+
+	std::string service_;
+	pam_conv conv_;
+	std::string username_;
+	std::string password_;
+};
+
+
+AuthPAM::AuthPAM(const std::string& service)
+{
+	service_ = service;
+	conv_.conv = AuthPAM::callback;
+	conv_.appdata_ptr = this;
+}
+
+AuthPAM::~AuthPAM()
+{
+}
+
+bool AuthPAM::authenticate(const std::string& username, const std::string& passwd)
+{
+	username_ = username;
+	password_ = passwd;
+
+	pam_handle_t* pam = nullptr;
+	int rv;
+
+	rv = pam_start(service_.c_str(), username_.c_str(), &conv_, &pam);
+	if (rv != PAM_SUCCESS)
+		goto done;
+
+	rv = pam_authenticate(pam, 0);
+	if (rv != PAM_SUCCESS)
+		goto done;
+
+	rv = pam_acct_mgmt(pam, 0);
+
+done:
+	pam_end(pam, rv);
+	return rv == PAM_SUCCESS;
+}
+
+int AuthPAM::callback(int num_msg, const struct pam_message **msg, struct pam_response **resp, void *appdata_ptr)
+{
+	AuthPAM* self = (AuthPAM*) appdata_ptr;
+
+	pam_response* response = (pam_response*) malloc(num_msg * sizeof(pam_response));
+	if (!response)
+		return PAM_CONV_ERR;
+
+	for (int i = 0; i < num_msg; ++i) {
+		switch (msg[i]->msg_style) {
+			case PAM_PROMPT_ECHO_ON:
+				response[i].resp = strdup(self->username_.c_str());
+				response[i].resp_retcode = 0;
+				break;
+			case PAM_PROMPT_ECHO_OFF:
+				response[i].resp = strdup(self->password_.c_str());
+				response[i].resp_retcode = 0;
+				break;
+			default:
+				free(response);
+				return PAM_CONV_ERR;
+		}
+	}
+
+	*resp = response;
+	return PAM_SUCCESS;
+}
+#endif
+// }}}
+
 #if 0
 class AuthLDAP // {{{
 {
@@ -79,6 +168,7 @@ bool AuthLDAP::setup()
 }
 // }}}
 #endif
+
 class AuthUserFile : // {{{
 	public AuthBackend
 {
@@ -144,16 +234,29 @@ bool AuthUserFile::authenticate(const std::string& username, const std::string& 
 
 struct AuthBasic : public x0::CustomData { // {{{
 	std::string realm;
-	std::string userfile;
+	std::shared_ptr<AuthBackend> backend;
 
 	AuthBasic() :
 		realm("Restricted Area"),
-		userfile()
-	{}
+		backend()
+	{
+	}
 
-	bool verify(const char* user, const char* pass) {
-		AuthUserFile backend(userfile);
-		return backend.authenticate(user, pass);
+	~AuthBasic()
+	{
+	}
+
+	void setupUserfile(const std::string& userfile) {
+		backend.reset(new AuthUserFile(userfile));
+	}
+
+	void setupPAM(const std::string& service) {
+		backend.reset(new AuthPAM(service));
+	}
+
+	bool verify(const char* user, const char* pass)
+	{
+		return backend->authenticate(user, pass);
 	};
 };
 // }}}
@@ -167,6 +270,11 @@ public:
 	{
 		registerFunction<AuthPlugin, &AuthPlugin::auth_realm>("auth.realm");
 		registerFunction<AuthPlugin, &AuthPlugin::auth_userfile>("auth.userfile");
+
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+		registerFunction<AuthPlugin, &AuthPlugin::auth_pam>("auth.pam");
+#endif
+
 		registerHandler<AuthPlugin, &AuthPlugin::auth_require>("auth.require");
 	}
 
@@ -188,13 +296,23 @@ private:
 		if (!r->customData<AuthBasic>(this))
 			r->setCustomData<AuthBasic>(this);
 
-		r->customData<AuthBasic>(this)->userfile = args[0].toString();
+		r->customData<AuthBasic>(this)->setupUserfile(args.size() != 0 ? args[0].toString() : "/etc/htpasswd");
 	}
+
+#if defined(HAVE_SECURITY_PAM_APPL_H)
+	void auth_pam(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result)
+	{
+		if (!r->customData<AuthBasic>(this))
+			r->setCustomData<AuthBasic>(this);
+
+		r->customData<AuthBasic>(this)->setupPAM(args.size() != 0 ? args[0].toString() : "x0");
+	}
+#endif
 
 	bool auth_require(x0::HttpRequest *r, const x0::FlowParams& args)
 	{
 		AuthBasic* auth = r->customData<AuthBasic>(this);
-		if (!auth) {
+		if (!auth || !auth->backend) {
 			r->log(x0::Severity::error, "auth.require used without specifying a backend");
 			r->status = x0::HttpStatus::InternalServerError;
 			r->finish();

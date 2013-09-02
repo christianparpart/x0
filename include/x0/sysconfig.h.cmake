@@ -25,6 +25,7 @@
 #cmakedefine HAVE_LUA_H
 #cmakedefine HAVE_PCRE_H
 #cmakedefine HAVE_SYS_UTSNAME_H
+#cmakedefine HAVE_SECURITY_PAM_APPL_H
 
 #cmakedefine HAVE_LDAP_H
 

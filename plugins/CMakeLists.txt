@@ -15,7 +15,6 @@ add_definitions(
 
 # ---------------------------------------------------------------------------
 x0_plugin_simple(accesslog)
-x0_plugin_simple(auth)
 x0_plugin_simple(browser)
 x0_plugin_simple(cgi)
 x0_plugin_simple(compress)
@@ -25,11 +24,19 @@ x0_plugin_simple(dirlisting)
 x0_plugin_simple(userdir)
 x0_plugin_simple(vhost)
 
+x0_plugin_simple(auth)
+if(HAVE_SECURITY_PAM_APPL_H)
+	# optionally link against libpam if its header file was found and 
+	# we are to include PAM support
+	target_link_libraries(auth pam)
+endif(HAVE_SECURITY_PAM_APPL_H)
+
 if(ENABLE_RRD)
 	x0_plugin_simple(rrdfile)
 	set_target_properties(rrdfile PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${RRD_INCLUDE_PATH}")
 	target_link_libraries(rrdfile ${RRD_LIBRARY_PATH})
 endif()
+
 
 # XXX Disabled until Ubuntu 14.04 comes out, as it (should) support a newer
 # XXX cmake version that actually supports this way of linking (or tell me how to

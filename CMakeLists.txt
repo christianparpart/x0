@@ -38,6 +38,7 @@ endif(ENABLE_IMAGEABLE)
 # feature flags
 option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
 option(WITH_SSL "Builds with SSL support [default: on]" ON)
+option(WITH_PAM "Build with PAM authentication support in auth plugin [default: on]" ON)
 option(WITH_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
 option(WITH_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
 option(WITH_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: off]" OFF)
@@ -72,6 +73,10 @@ CHECK_INCLUDE_FILES(syslog.h HAVE_SYSLOG_H)
 CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
 CHECK_INCLUDE_FILES(sys/utsname.h HAVE_SYS_UTSNAME_H)
 CHECK_INCLUDE_FILES(ldap.h HAVE_LDAP_H)
+
+if(WITH_PAM)
+	CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
+endif(WITH_PAM)
 
 CHECK_FUNCTION_EXISTS(fork HAVE_FORK)
 CHECK_FUNCTION_EXISTS(chroot HAVE_CHROOT)
