@@ -11,7 +11,9 @@
 #include <x0/TimeSpan.h>
 #include <x0/DateTime.h>
 #include <x0/http/HttpStatus.h>
+#include <x0/io/Filter.h>
 #include <tbb/concurrent_hash_map.h>
+#include <unordered_map>
 #include <string>
 #include <atomic>
 #include <utility>
@@ -36,68 +38,13 @@ namespace x0 {
  */
 class ObjectCache {
 public:
-	/**
-	 * A cache-object that contains a response message.
-	 */
-	class Object {
-	public:
-		Object();
-		virtual ~Object();
-
-		/*!
-		 * Updates given object by hooking into the requests output stream.
-		 *
-		 * \param r The request whose response will be used to update this object.
-		 *
-		 * When invoking update with a request while another request is already in progress
-		 * of updating this object, this request will be put onto the interest list instead
-		 * and will get the response once the initial request's response has arrived.
-		 *
-		 * This method must be invoked from within thre requests thread context.
-		 *
-		 * @retval true This request is not used for updating the object and got just enqueued for the response instead.
-		 * @retval false This request is being used for updating the object. So further processing must occur.
-		 */
-		virtual bool update(x0::HttpRequest* r) = 0;
-
-		//! The object's state.
-		enum State {
-			Spawning,  //!< the cache object is just being constructed, and not yet completed.
-			Active,    //!< the cache object is valid and ready to be delivered
-			Stale,     //!< the cache object is stale
-			Updating,  //!< the cache object is stale but is already in progress of being updated.
-		};
-
-		virtual State state() const = 0;
-
-		bool isSpawning() const { return state() == Spawning; }
-		bool isStale() const { return state() == Stale; }
-
-		/**
-		 * creation time of given cache object or the time it was last updated.
-		 */
-		virtual x0::DateTime ctime() const = 0;
-
-		/*!
-		 * Delivers this object to the given HTTP client.
-		 *
-		 * It directly serves the object if it is in state \c Active or \c Stale.
-		 * If the object is in state \p Updating or \p Spawning otherwise, it will
-		 * append the HTTP request to the list of pending clients and wait there
-		 * for cache object completion and will be served as sonn as this object
-		 * became ready.
-		 *
-		 * \param r the request this object should be served as response to.
-		 */
-		virtual void deliver(x0::HttpRequest* r) = 0;
-
-		//! marks object as expired but does not destruct it from the store.
-		virtual void expire() = 0;
-	};
-
-	class Blob;
+	class Builder;
+	class Object;
+	class VaryingObject;
 
 protected:
+	typedef tbb::concurrent_hash_map<std::string, Object*> ObjectMap;
+
 	bool enabled_;
 	bool deliverActive_;
 	bool deliverShadow_;
@@ -112,9 +59,11 @@ protected:
 	std::atomic<unsigned long long> cachePurges_;     //!< Explicit purges.
 	std::atomic<unsigned long long> cacheExpiries_;   //!< Automatic expiries.
 
+	ObjectMap objects_;
+
 public:
 	ObjectCache();
-	virtual ~ObjectCache();
+	~ObjectCache();
 
 	/**
 	 * Global flag to either enable or disable object caching.
@@ -201,7 +150,7 @@ public:
 	 * If the cache-object was not found, the callback must still be invoked with
 	 * its argument set to NULL.
 	 */
-	virtual bool find(const std::string& cacheKey, const std::function<void(Object*)>& callback) = 0;
+	bool find(const std::string& cacheKey, const std::function<void(Object*)>& callback);
 
 	/**
 	 * Searches for a cache object for read/write access.
@@ -216,7 +165,7 @@ public:
 	 * a boolean indicating if this object got just created with this call,
 	 * or false if this cache-object has been already in the cache store.
 	 */
-	virtual bool acquire(const std::string& cacheKey, const std::function<void(Object*, bool)>& callback) = 0;
+	bool acquire(const std::string& cacheKey, const std::function<void(Object*, bool)>& callback);
 
 	/**
 	 * Actively purges (expires) a cache object from the store.
@@ -227,7 +176,7 @@ public:
 	 * \retval true Object found.
 	 * \retval false Object not found.
 	 */
-	virtual bool purge(const std::string& cacheKey) = 0;
+	bool purge(const std::string& cacheKey);
 
 	/**
 	 *
@@ -236,9 +185,154 @@ public:
 	 * This does not mean that the cache objects are gone from the store. They are usually
 	 * just flagged as invalid, so they can still be served if stale content is requested.
 	 */
-	virtual void clear(bool physically) = 0;
+	void clear(bool physically);
 
-	virtual void writeJSON(x0::JsonWriter& json) const;
+	void writeJSON(x0::JsonWriter& json) const;
+};
+
+/**
+ * A cache-object that contains a response message.
+ */
+class ObjectCache::Object {
+public:
+	Object(ObjectCache* store, const std::string& cacheKey);
+	~Object();
+
+	/*!
+	 * Updates given object by hooking into the requests output stream.
+	 *
+	 * \param r The request whose response will be used to update this object.
+	 *
+	 * When invoking update with a request while another request is already in progress
+	 * of updating this object, this request will be put onto the interest list instead
+	 * and will get the response once the initial request's response has arrived.
+	 *
+	 * This method must be invoked from within thre requests thread context.
+	 *
+	 * @retval true This request is not used for updating the object and got just enqueued for the response instead.
+	 * @retval false This request is being used for updating the object. So further processing must occur.
+	 */
+	bool update(x0::HttpRequest* r);
+
+	//! The object's state.
+	enum State {
+		Spawning,  //!< the cache object is just being constructed, and not yet completed.
+		Active,    //!< the cache object is valid and ready to be delivered
+		Stale,     //!< the cache object is stale
+		Updating,  //!< the cache object is stale but is already in progress of being updated.
+	};
+
+	State state() const;
+
+	bool isSpawning() const { return state() == Spawning; }
+	bool isStale() const { return state() == Stale; }
+
+	/**
+	 * creation time of given cache object or the time it was last updated.
+	 */
+	x0::DateTime ctime() const;
+
+	/*!
+	 * Delivers this object to the given HTTP client.
+	 *
+	 * It directly serves the object if it is in state \c Active or \c Stale.
+	 * If the object is in state \p Updating or \p Spawning otherwise, it will
+	 * append the HTTP request to the list of pending clients and wait there
+	 * for cache object completion and will be served as sonn as this object
+	 * became ready.
+	 *
+	 * \param r the request this object should be served as response to.
+	 */
+	void deliver(x0::HttpRequest* r);
+
+	//! marks object as expired but does not destruct it from the store.
+	void expire();
+
+	std::string requestHeader(const std::string& name) const;
+
+private:
+	inline void internalDeliver(x0::HttpRequest* r);
+
+	struct Buffer { // {{{
+		x0::DateTime ctime;
+		x0::HttpStatus status;
+		std::list<std::pair<std::string, std::string>> headers;
+		x0::Buffer body;
+		size_t hits;
+
+		Buffer() :
+			ctime(),
+			status(x0::HttpStatus::Undefined),
+			headers(),
+			body(),
+			hits(0)
+		{
+		}
+
+		void reset() {
+			status = x0::HttpStatus::Undefined;
+			headers.clear();
+			body.clear();
+			hits = 0;
+		}
+	}; // }}}
+
+	void postProcess();
+	void addHeaders(x0::HttpRequest* r, bool hit);
+	void destroy();
+
+	// used at construction/update state
+	void append(const x0::BufferRef& ref);
+	void commit(); // FIXME: why not used ATM ?
+
+	const Buffer& frontBuffer() const { return buffer_[bufferIndex_]; }
+	Buffer& frontBuffer() { return buffer_[bufferIndex_]; }
+	Buffer& backBuffer() { return buffer_[!bufferIndex_]; }
+
+	void swapBuffers() {
+		bufferIndex_ = !bufferIndex_;
+		backBuffer().reset();
+	}
+
+private:
+	ObjectCache* store_;
+	std::string cacheKey_;
+
+	x0::HttpRequest* request_;              //!< either NULL or pointer to request currently updating this object.
+	std::list<x0::HttpRequest*> interests_; //!< list of requests that have to deliver this object ASAP.
+
+	State state_;
+
+	std::unordered_map<std::string, std::string> requestHeaders_;
+
+	size_t bufferIndex_;
+	Buffer buffer_[2];
+
+	friend class ObjectCache;
+};
+
+class ObjectCache::VaryingObject {
+public:
+	/**
+	 * selects a cache object
+	 */
+	Object* select(const x0::HttpRequest* request) const;
+
+	bool testMatch(const x0::HttpRequest* request, const Object* object) const;
+
+private:
+	std::list<std::string> requestHeaders_;
+	std::list<Object*> objects_;
+};
+
+class ObjectCache::Builder : public x0::Filter {
+private:
+	Object* object_;
+
+public:
+	explicit Builder(Object* object);
+
+	virtual x0::Buffer process(const x0::BufferRef& chunk);
 };
 
 inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const ObjectCache& cache) {
@@ -246,128 +340,4 @@ inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const ObjectCache& cache
 	return json;
 }
 
-class MallocStore :
-	public ObjectCache
-{
-private:
-	class Builder;
-
-	/*!
-	 * Double-buffered HTTP response object cache.
-	 */
-	class Object : public ObjectCache::Object {
-	public:
-		Object(MallocStore* store, const std::string& cacheKey);
-		~Object();
-
-		bool update(x0::HttpRequest* r);
-
-		State state() const;
-
-		x0::DateTime ctime() const;
-		void deliver(x0::HttpRequest* r);
-		void expire();
-
-	private:
-		inline void internalDeliver(x0::HttpRequest* r);
-
-		struct Buffer { // {{{
-			x0::DateTime ctime;
-			x0::HttpStatus status;
-			std::list<std::pair<std::string, std::string>> headers;
-			x0::Buffer body;
-			size_t hits;
-
-			Buffer() :
-				ctime(),
-				status(x0::HttpStatus::Undefined),
-				headers(),
-				body(),
-				hits(0)
-			{
-			}
-
-			void reset() {
-				status = x0::HttpStatus::Undefined;
-				headers.clear();
-				body.clear();
-				hits = 0;
-			}
-		}; // }}}
-
-		void postProcess();
-		void addHeaders(x0::HttpRequest* r, bool hit);
-		void destroy();
-
-		// used at construction/update state
-		void append(const x0::BufferRef& ref);
-		void commit();
-
-		const Buffer& frontBuffer() const { return buffer_[bufferIndex_]; }
-		Buffer& frontBuffer() { return buffer_[bufferIndex_]; }
-		Buffer& backBuffer() { return buffer_[!bufferIndex_]; }
-
-		void swapBuffers() {
-			bufferIndex_ = !bufferIndex_;
-			backBuffer().reset();
-		}
-
-	private:
-		MallocStore* store_;
-		std::string cacheKey_;
-		x0::HttpRequest* request_;              //!< either NULL or pointer to request currently updating this object.
-		std::list<x0::HttpRequest*> interests_; //!< list of requests that have to deliver this object ASAP.
-
-		State state_;
-
-		size_t bufferIndex_;
-		Buffer buffer_[2];
-
-		friend class MallocStore;
-	};
-
-	typedef tbb::concurrent_hash_map<std::string, Object*> ObjectMap;
-
-	ObjectMap objects_;
-
-public:
-	MallocStore();
-	~MallocStore();
-
-	bool find(const std::string& cacheKey, const std::function<void(ObjectCache::Object*)>& callback);
-	bool acquire(const std::string& cacheKey, const std::function<void(ObjectCache::Object*, bool /*created*/)>& callback);
-	bool purge(const std::string& cacheKey);
-	void clear(bool physically);
-
-private:
-	void commit(Object* object);
-};
-
 std::string to_s(ObjectCache::Object::State value);
-
-#if 0
-class ObjectCache::Blob: public ObjectCache::Object { // {{{
-private:
-	struct X0_PACKED Header {
-		uint32_t status;
-		uint32_t headerSize;
-		ev::tstamp ctime;
-	};
-	x0::Buffer message_;
-
-	const Header& header() const { return *reinterpret_cast<const Header*>(message_.data()); }
-	Header& header() { return *reinterpret_cast<Header*>(message_.data()); }
-
-public:
-	Blob(x0::HttpStatus status, x0::HttpRequest::HeaderList* responseHeaders);
-	~Blob();
-
-	//! access to the raw data representing the cache object.
-	const x0::Buffer& data() const { return message_; }
-
-	x0::DateTime ctime() const { return x0::DateTime(header().ctime); }
-	x0::HttpStatus messageStatus() const { return static_cast<x0::HttpStatus>(header().status); }
-	x0::BufferRef messageHeaders() const { return message_.ref(sizeof(Header), header().headerSize); }
-	x0::BufferRef messageBody() const { return message_.ref(sizeof(Header) + header().headerSize); }
-}; // }}}
-#endif

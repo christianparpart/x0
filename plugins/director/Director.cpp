@@ -107,7 +107,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	shaper_.setTimeoutHandler(std::bind(&Director::onTimeout, this, std::placeholders::_1));
 
 #if defined(X0_DIRECTOR_CACHE)
-	objectCache_ = new MallocStore();
+	objectCache_ = new ObjectCache();
 #endif
 }
 
