@@ -330,7 +330,7 @@ void MallocStore::Object::addHeaders(HttpRequest* r, bool hit)
 
 	TimeSpan age(r->connection.worker().now() - frontBuffer().ctime);
 	snprintf(buf, sizeof(buf), "%zu", (size_t)(hit ? age.totalSeconds() : 0));
-	r->responseHeaders.push_back("Cache-Age", buf);
+	r->responseHeaders.push_back("Age", buf);
 }
 
 MallocStore::Object::State MallocStore::Object::state() const
