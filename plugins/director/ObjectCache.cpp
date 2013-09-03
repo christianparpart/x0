@@ -11,6 +11,21 @@
 #include <x0/io/BufferRefSource.h>
 #include <x0/http/HttpRequest.h>
 
+/*
+ * List of messages headers that must be taken into account when checking for freshness.
+ *
+ * REQUEST HEADERS
+ * - If-Modified-Since
+ * - If-None-Match
+ *
+ * RESPONSE HEADERS
+ * - Last-Modified
+ * - ETag
+ * - Expires
+ * - Cache-Control
+ * - Vary (list of request headers that make a response unique in addition to its cache key, or "*" for literally all request headers)
+ */
+
 using namespace x0;
 
 #if 1
@@ -57,34 +72,44 @@ bool ObjectCache::deliverActive(x0::HttpRequest* r, const std::string& cacheKey)
 		return false;
 
 	bool processed = false;
+
 	acquire(cacheKey, [&](Object* object, bool created) {
-		const DateTime now = r->connection.worker().now();
-		const DateTime expiry = object->ctime() + defaultTTL();
-		const bool valid = now <= expiry;
-		const auto state = object->state();
 		if (created) {
 			// cache object did not exist and got just created for by this request
 			//printf("Director.processCacheObject: object created\n");
-			object->update(r);
-			processed = false;
+			++cacheMisses_;
+			processed = object->update(r);
 		} else if (object) {
-			switch (state) {
+			const DateTime now = r->connection.worker().now();
+			const DateTime expiry = object->ctime() + defaultTTL();
+
+			if (expiry < now)
+				object->expire();
+
+			switch (object->state()) {
 				case Object::Spawning:
+					++cacheHits_;
+					processed = object->update(r);
+					break;
 				case Object::Updating:
-					object->deliver(r);
-					processed = true;
+					if (lockOnUpdate()) {
+						++cacheHits_;
+						processed = !object->update(r);
+					} else {
+						++cacheShadowHits_;
+						processed = true;
+						object->deliver(r);
+						//TRACE(3, "Object.deliver(): deliver shadow object");
+					}
+					break;
+				case Object::Stale:
+					++cacheMisses_;
+					processed = object->update(r);
 					break;
 				case Object::Active:
-					if (valid) {
-						object->deliver(r);
-						processed = true;
-						break;
-					}
-					// fall through
-				case Object::Stale:
-					//printf("deliver stale object (%s)\n", to_s(state).c_str());
-					object->update(r);
-					processed = false;
+					processed = true;
+					++cacheHits_;
+					object->deliver(r);
 					break;
 			}
 		}
@@ -100,6 +125,7 @@ bool ObjectCache::deliverShadow(x0::HttpRequest* r, const std::string& cacheKey)
 				[&](Object* object)
 				{
 					if (object) {
+						++cacheShadowHits_;
 						r->responseHeaders.push_back("X-Director-Cache", "shadow");
 						object->deliver(r);
 					}
@@ -173,6 +199,7 @@ bool MallocStore::purge(const std::string& cacheKey)
 	ObjectMap::accessor accessor;
 
 	if (objects_.find(accessor, cacheKey)) {
+		++cachePurges_;
 		accessor->second->expire();
 		result = true;
 	}
@@ -186,9 +213,11 @@ void MallocStore::clear(bool physically)
 		for (auto object: objects_) {
 			delete object.second;
 		}
+		cachePurges_ += objects_.size();
 		objects_.clear();
 	} else {
 		for (auto object: objects_) {
+			++cachePurges_;
 			object.second->expire();
 		}
 	}
@@ -301,7 +330,7 @@ void MallocStore::Object::addHeaders(HttpRequest* r, bool hit)
 
 	TimeSpan age(r->connection.worker().now() - frontBuffer().ctime);
 	snprintf(buf, sizeof(buf), "%zu", (size_t)(hit ? age.totalSeconds() : 0));
-	r->responseHeaders.push_back("X-Cache-Age", buf);
+	r->responseHeaders.push_back("Cache-Age", buf);
 }
 
 MallocStore::Object::State MallocStore::Object::state() const
@@ -338,70 +367,29 @@ DateTime MallocStore::Object::ctime() const
 	return frontBuffer().ctime;
 }
 
-/*!
- * Updates given object by hooking into the requests output stream.
- *
- * Any other requests that will be added to the interests list past this method call
- * will be invoked as soon as this object has become valid again.
- *
- * \param r the request whose response will be used to update this object.
- */
-void MallocStore::Object::update(HttpRequest* r)
+bool MallocStore::Object::update(HttpRequest* r)
 {
-	++store_->cacheMisses_;
-
 	if (state_ != Spawning)
 		state_ = Updating;
 
 	TRACE(3, "Object.update() -> %s", to_s(state_).c_str());
-	request_ = r;
-	request_->onPostProcess.connect<Object, &Object::postProcess>(this);
+	if (!request_) {
+		// this is the first interest request, so it must be responsible for updating this object, too.
+		request_ = r;
+		r->onPostProcess.connect<Object, &Object::postProcess>(this);
+		return false;
+	} else {
+		// we have already some request that's updating this object, so add us to the interest list
+		// and wait for the response.
+		interests_.push_back(r); // TODO honor updateLockTimeout
+		return true;
+	}
+
 }
 
-void MallocStore::Object::enqueue(HttpRequest* r)
-{
-	// TODO: honor updateLockTimeout
-
-	interests_.push_back(r);
-}
-
-/*!
- * Delivers this object to the given HTTP client.
- *
- * It directly serves the object if it is in state \c Active or \c Stale.
- * If the object is in state \p Updating or \p Spawning otherwise, it will
- * append the HTTP request to the list of pending clients and wait there
- * for cache object completion and will be served as sonn as this object
- * became ready.
- *
- * \param r the request this object should be served as response to.
- *
- */
 void MallocStore::Object::deliver(x0::HttpRequest* r)
 {
-	switch (state()) {
-		case Spawning:
-			++store_->cacheHits_;
-			enqueue(r);
-			TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Spawning", interests_.size());
-			break;
-		case Updating:
-			if (store_->lockOnUpdate()) {
-				++store_->cacheHits_;
-				enqueue(r);
-				TRACE(3, "Object.deliver(): adding R to interest list (%zu) as we're still Updating", interests_.size());
-				break;
-			}
-			// fall through
-		case Stale:
-			++store_->cacheShadowHits_;
-			internalDeliver(r);
-			break;
-		case Active:
-			++store_->cacheHits_;
-			internalDeliver(r);
-			break;
-	}
+	internalDeliver(r);
 }
 
 void MallocStore::Object::internalDeliver(x0::HttpRequest* r)
@@ -425,7 +413,6 @@ void MallocStore::Object::internalDeliver(x0::HttpRequest* r)
 
 void MallocStore::Object::expire()
 {
-	++store_->cachePurges_;
 	state_ = Stale;
 }
 

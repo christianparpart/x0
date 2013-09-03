@@ -1,3 +1,4 @@
+#pragma once
 /* <plugins/director/ObjectCache.h>
  *
  * This file is part of the x0 web server project and is released under GPL-3.
@@ -5,8 +6,6 @@
  *
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
-
-#pragma once
 
 #include <x0/Buffer.h>
 #include <x0/TimeSpan.h>
@@ -24,23 +23,44 @@ namespace x0 {
 	class JsonWriter;
 }
 
-struct RequestNotes;
-
+/**
+ * Response Message Object Cache.
+ *
+ * Used to cache response messages.
+ *
+ * Concurrent access is generally (to be) supported
+ * by using concurrent hash map as central cache store.
+ *
+ * Each method passing an HTTP request usually has to be
+ * invoked from within the requests thread context.
+ */
 class ObjectCache {
 public:
-	struct Stats {
-		uint64_t activeObjects;
-		uint64_t shadowObjects;
-		uint64_t purges;
-	};
-
+	/**
+	 * A cache-object that contains a response message.
+	 */
 	class Object {
 	public:
 		Object();
 		virtual ~Object();
 
-		virtual void update(x0::HttpRequest* r) = 0;
+		/*!
+		 * Updates given object by hooking into the requests output stream.
+		 *
+		 * \param r The request whose response will be used to update this object.
+		 *
+		 * When invoking update with a request while another request is already in progress
+		 * of updating this object, this request will be put onto the interest list instead
+		 * and will get the response once the initial request's response has arrived.
+		 *
+		 * This method must be invoked from within thre requests thread context.
+		 *
+		 * @retval true This request is not used for updating the object and got just enqueued for the response instead.
+		 * @retval false This request is being used for updating the object. So further processing must occur.
+		 */
+		virtual bool update(x0::HttpRequest* r) = 0;
 
+		//! The object's state.
 		enum State {
 			Spawning,  //!< the cache object is just being constructed, and not yet completed.
 			Active,    //!< the cache object is valid and ready to be delivered
@@ -53,10 +73,22 @@ public:
 		bool isSpawning() const { return state() == Spawning; }
 		bool isStale() const { return state() == Stale; }
 
-		//! creation time of given object.
+		/**
+		 * creation time of given cache object or the time it was last updated.
+		 */
 		virtual x0::DateTime ctime() const = 0;
 
-		//! delivers given object.
+		/*!
+		 * Delivers this object to the given HTTP client.
+		 *
+		 * It directly serves the object if it is in state \c Active or \c Stale.
+		 * If the object is in state \p Updating or \p Spawning otherwise, it will
+		 * append the HTTP request to the list of pending clients and wait there
+		 * for cache object completion and will be served as sonn as this object
+		 * became ready.
+		 *
+		 * \param r the request this object should be served as response to.
+		 */
 		virtual void deliver(x0::HttpRequest* r) = 0;
 
 		//! marks object as expired but does not destruct it from the store.
@@ -74,11 +106,11 @@ protected:
 	std::string defaultKey_;
 	x0::TimeSpan defaultTTL_;
 	x0::TimeSpan defaultShadowTTL_;
-	std::atomic<unsigned long long> cacheHits_;
-	std::atomic<unsigned long long> cacheShadowHits_;
-	std::atomic<unsigned long long> cacheMisses_;
-	std::atomic<unsigned long long> cachePurges_; //!< explicit purges
-	std::atomic<unsigned long long> cacheExpiries_; //!< automatic expiries
+	std::atomic<unsigned long long> cacheHits_;       //!< Total number of cache hits.
+	std::atomic<unsigned long long> cacheShadowHits_; //!< Total number hits against shadow objects.
+	std::atomic<unsigned long long> cacheMisses_;     //!< Total number of cache misses.
+	std::atomic<unsigned long long> cachePurges_;     //!< Explicit purges.
+	std::atomic<unsigned long long> cacheExpiries_;   //!< Automatic expiries.
 
 public:
 	ObjectCache();
@@ -228,7 +260,7 @@ private:
 		Object(MallocStore* store, const std::string& cacheKey);
 		~Object();
 
-		void update(x0::HttpRequest* r);
+		bool update(x0::HttpRequest* r);
 
 		State state() const;
 
@@ -263,7 +295,6 @@ private:
 			}
 		}; // }}}
 
-		void enqueue(x0::HttpRequest* r);
 		void postProcess();
 		void addHeaders(x0::HttpRequest* r, bool hit);
 		void destroy();
