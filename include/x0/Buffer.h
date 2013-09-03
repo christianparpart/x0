@@ -223,6 +223,11 @@ template<typename T> bool operator==(const BufferBase<T>& a, const BufferBase<T>
 template<typename T> bool operator==(const BufferBase<T>& a, const std::string& b);
 template<typename T, typename PodType, std::size_t N> bool operator==(const BufferBase<T>& a, PodType (&b)[N]);
 template<typename T, typename PodType, std::size_t N> bool operator==(PodType (&b)[N], const BufferBase<T>& a);
+
+template<typename T> bool operator!=(const BufferBase<T>& a, const BufferBase<T>& b) { return !(a == b); }
+template<typename T> bool operator!=(const BufferBase<T>& a, const std::string& b) { return !(a == b); }
+template<typename T, typename PodType, std::size_t N> bool operator!=(const BufferBase<T>& a, PodType (&b)[N]) { return !(a == b); }
+template<typename T, typename PodType, std::size_t N> bool operator!=(PodType (&b)[N], const BufferBase<T>& a) { return !(a == b); }
 // }}}
 // {{{ Buffer API
 /**
