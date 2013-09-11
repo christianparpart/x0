@@ -284,6 +284,7 @@ public:
 
 	/** retrieve value of a given request header */
 	BufferRef requestHeader(const std::string& name) const;
+	BufferRef requestHeader(const BufferRef& name) const;
 
 	void updatePathInfo();
 

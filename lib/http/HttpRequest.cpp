@@ -424,6 +424,15 @@ BufferRef HttpRequest::requestHeader(const std::string& name) const
 	return BufferRef();
 }
 
+BufferRef HttpRequest::requestHeader(const BufferRef& name) const
+{
+	for (auto& i: requestHeaders)
+		if (iequals(i.name, name))
+			return i.value;
+
+	return BufferRef();
+}
+
 std::string HttpRequest::hostid() const
 {
 	if (hostid_.empty())
