@@ -927,7 +927,7 @@ bool HttpRequest::sendfile(FileInfoPtr transferFile)
  */
 HttpStatus HttpRequest::verifyClientCache(FileInfoPtr transferFile) const
 {
-	std::string value;
+	BufferRef value;
 
 	// If-None-Match, If-Modified-Since
 	if ((value = requestHeader("If-None-Match")) != "") {
