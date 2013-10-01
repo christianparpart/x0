@@ -1,5 +1,16 @@
+/* <src/capi.cpp>
+ *
+ * This file is part of the x0 web server project and is released under GPL-3.
+ * http://www.xzero.io/
+ *
+ * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
+ */
+
 #ifndef x0_capi_h
 #define x0_capi_h
+
+#include <sys/param.h> /* off_t */
+#include <stdint.h>
 
 /*
  * This file is meant to create a C-API wrapper ontop of the x0 C++ API
@@ -9,6 +20,10 @@
  * - support single-threaded use as well as multi-threaded use.
  * - ...
  */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 // {{{ types and defs
 #define X0_HTTP_VERSION_UNKNOWN 0
@@ -23,8 +38,8 @@
 #define X0_REQUEST_METHOD_PUT     3
 #define X0_REQUEST_METHOD_DELETE  4
 
-typedef void* x0_listener_t;
-typedef void* x0_request_t;
+typedef struct x0_listener_s x0_listener_t;
+typedef struct x0_request_s x0_request_t;
 
 typedef int (*x0_handler_t)(x0_request_t*, void*);
 // }}}
@@ -140,6 +155,24 @@ int x0_response_finish(x0_request_t* r);
  * @return 0 on success, an error code otherwise.
  */
 int x0_response_complete(x0_request_t* r, int code, const char* headers, size_t header_count, const char* body, size_t size);
+
+/**
+ * Sends given statis file.
+ *
+ * This cll is an all-in-one response creation function that
+ * sends a local file to the client, respecting potential request headers
+ * that might modify the response (for example ranged requests).
+ *
+ * The request handle must not be accessed after this call as it is potentially invalid.
+ *
+ * @param r Handle to request.
+ * @param path path to local file to send to the client.
+ */
+int x0_response_sendfile(x0_request_t* r, const char* path);
 // }}}
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
