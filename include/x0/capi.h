@@ -38,10 +38,19 @@ extern "C" {
 #define X0_REQUEST_METHOD_PUT     3
 #define X0_REQUEST_METHOD_DELETE  4
 
+typedef struct x0_bufref_s x0_bufref_t;
+
 typedef struct x0_listener_s x0_listener_t;
 typedef struct x0_request_s x0_request_t;
 
 typedef int (*x0_handler_t)(x0_request_t*, void*);
+// }}}
+// {{{ bufref (maybe I need this; maybe I don't)
+const char* x0_bufref_data(const x0_bufref_t* buf);
+size_t x0_bufref_size(const x0_bufref_t* buf);
+
+int x0_bufref_equals(const x0_bufref_t* a, const char* b);
+int x0_bufref_iequals(const x0_bufref_t* a, const char* b);
 // }}}
 // {{{ listener setup
 /**
@@ -56,7 +65,7 @@ x0_listener_t* x0_listener_create(int port, const char* bind, struct ev_loop* lo
 /**
  *
  */
-int x0_listener_destroy(x0_listener_t* listener);
+void x0_listener_destroy(x0_listener_t* listener);
 
 /**
  * Initializes that many workers to serve the requests on given listener.
