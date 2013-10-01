@@ -110,7 +110,7 @@
 /// the filename only part of __FILE__ (no leading path)
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
-#ifndef XZERO_NDEBUG
+#if !defined(XZERO_NDEBUG) && defined(__cplusplus)
 #	include <string>
 #	include <ctime>
 #	include <ev.h>
