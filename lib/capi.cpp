@@ -13,7 +13,7 @@
 
 using namespace x0;
 
-struct x0_listener_s
+struct x0_server_s
 {
 	HttpServer server;
 	ServerSocket* listener;
@@ -21,7 +21,7 @@ struct x0_listener_s
 	x0_handler_t callback_handler;
 	void* callback_userdata;
 
-	x0_listener_s(struct ev_loop* loop) :
+	x0_server_s(struct ev_loop* loop) :
 		server(loop),
 		listener(nullptr),
 		callback_handler(nullptr),
@@ -31,34 +31,34 @@ struct x0_listener_s
 
 struct x0_request_s
 {
-	x0_listener_t* listener;
+	x0_server_t* server;
 	HttpRequest* request;
 };
 
-x0_listener_t* x0_listener_create(int port, const char* bind, struct ev_loop* loop)
+x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop)
 {
-	auto li = new x0_listener_t(loop);
+	auto li = new x0_server_t(loop);
 	return li;
 }
 
-void x0_listener_destroy(x0_listener_t* listener, int kill)
+void x0_server_destroy(x0_server_t* server, int kill)
 {
-	delete listener;
+	delete server;
 }
 
-void x0_setup_connection_limit(x0_listener_t* li, size_t limit)
+void x0_setup_connection_limit(x0_server_t* li, size_t limit)
 {
 	li->server.maxConnections = limit;
 }
 
-void x0_setup_timeouts(x0_listener_t* listener, int read, int write)
+void x0_setup_timeouts(x0_server_t* server, int read, int write)
 {
-	listener->server.maxReadIdle = TimeSpan::fromSeconds(read);
-	listener->server.maxWriteIdle = TimeSpan::fromSeconds(write);
+	server->server.maxReadIdle = TimeSpan::fromSeconds(read);
+	server->server.maxWriteIdle = TimeSpan::fromSeconds(write);
 }
 
-void x0_setup_keepalive(x0_listener_t* listener, int timeout, int count)
+void x0_setup_keepalive(x0_server_t* server, int timeout, int count)
 {
-	listener->server.maxKeepAlive = TimeSpan::fromSeconds(timeout);
-	listener->server.maxKeepAliveRequests = count;
+	server->server.maxKeepAlive = TimeSpan::fromSeconds(timeout);
+	server->server.maxKeepAliveRequests = count;
 }
