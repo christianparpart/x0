@@ -24,6 +24,8 @@
 #define X0_REQUEST_METHOD_DELETE  4
 
 typedef void* x0_listener_t;
+typedef void* x0_request_t;
+
 typedef int (*x0_handler_t)(x0_request_t*, void*);
 // }}}
 // {{{ listener setup
