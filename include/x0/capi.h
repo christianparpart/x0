@@ -63,9 +63,12 @@ int x0_bufref_iequals(const x0_bufref_t* a, const char* b);
 x0_listener_t* x0_listener_create(int port, const char* bind, struct ev_loop* loop);
 
 /**
+ * Destroys an HTTP listener object and all its dependant handles.
  *
+ * @param listener
+ * @param kill 1 means it'll hard-kill all currently running connections; with 0 it'll wait until all requests have been fully served.
  */
-void x0_listener_destroy(x0_listener_t* listener);
+void x0_listener_destroy(x0_listener_t* listener, int kill);
 
 /**
  * Initializes that many workers to serve the requests on given listener.
@@ -83,6 +86,16 @@ int x0_worker_setup(x0_listener_t* listener, int count);
  * @param userdata Userdata to be passed to every callback in addition to the request.
  */
 void x0_setup_handler(x0_listener_t* listener, x0_handler_t* handler, void* userdata);
+
+/**
+ * Configures I/O timeouts.
+ */
+void x0_setup_timeouts(x0_listener_t* listener, int read, int write);
+
+/**
+ *
+ */
+void x0_setup_keepalive(x0_listener_t* listener, int timeout, int count);
 // }}}
 // {{{ request inspection
 int x0_request_method(x0_request_t* r);
