@@ -41,7 +41,24 @@ x0_listener_t* x0_listener_create(int port, const char* bind, struct ev_loop* lo
 	return li;
 }
 
-void x0_listener_destroy(x0_listener_t* listener)
+void x0_listener_destroy(x0_listener_t* listener, int kill)
 {
 	delete listener;
+}
+
+void x0_setup_connection_limit(x0_listener_t* li, size_t limit)
+{
+	li->server.maxConnections = limit;
+}
+
+void x0_setup_timeouts(x0_listener_t* listener, int read, int write)
+{
+	listener->server.maxReadIdle = TimeSpan::fromSeconds(read);
+	listener->server.maxWriteIdle = TimeSpan::fromSeconds(write);
+}
+
+void x0_setup_keepalive(x0_listener_t* listener, int timeout, int count)
+{
+	listener->server.maxKeepAlive = TimeSpan::fromSeconds(timeout);
+	listener->server.maxKeepAliveRequests = count;
 }

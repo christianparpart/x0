@@ -38,64 +38,60 @@ extern "C" {
 #define X0_REQUEST_METHOD_PUT     3
 #define X0_REQUEST_METHOD_DELETE  4
 
-typedef struct x0_bufref_s x0_bufref_t;
-
-typedef struct x0_listener_s x0_listener_t;
+typedef struct x0_server_s x0_server_t;
 typedef struct x0_request_s x0_request_t;
 
 typedef int (*x0_handler_t)(x0_request_t*, void*);
 // }}}
-// {{{ bufref (maybe I need this; maybe I don't)
-const char* x0_bufref_data(const x0_bufref_t* buf);
-size_t x0_bufref_size(const x0_bufref_t* buf);
-
-int x0_bufref_equals(const x0_bufref_t* a, const char* b);
-int x0_bufref_iequals(const x0_bufref_t* a, const char* b);
-// }}}
-// {{{ listener setup
+// {{{ server setup
 /**
- * Creates a new listener on given port/bind.
+ * Creates a new server on given port/bind.
  *
  * @param port
  * @param bind
  * @param loop libev's loop handle to use for x0's main thread.
  */
-x0_listener_t* x0_listener_create(int port, const char* bind, struct ev_loop* loop);
+x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop);
 
 /**
- * Destroys an HTTP listener object and all its dependant handles.
+ * Destroys an HTTP server object and all its dependant handles.
  *
- * @param listener
+ * @param server
  * @param kill 1 means it'll hard-kill all currently running connections; with 0 it'll wait until all requests have been fully served.
  */
-void x0_listener_destroy(x0_listener_t* listener, int kill);
+void x0_server_destroy(x0_server_t* server, int kill);
 
 /**
- * Initializes that many workers to serve the requests on given listener.
+ * Initializes that many workers to serve the requests on given server.
  *
- * @param listener Listener handle.
+ * @param server Server handle.
  * @param count worker count to initialize (including main-worker).
  *
  * @return 0 if okay, -1 otherwise.
  */
-int x0_worker_setup(x0_listener_t* listener, int count);
+int x0_worker_setup(x0_server_t* server, int count);
 
 /**
- * @param listener Listener handle.
+ * @param server Server handle.
  * @param handler Callback handler to be invoked on every fully parsed request.
  * @param userdata Userdata to be passed to every callback in addition to the request.
  */
-void x0_setup_handler(x0_listener_t* listener, x0_handler_t* handler, void* userdata);
+void x0_setup_handler(x0_server_t* server, x0_handler_t* handler, void* userdata);
+
+/**
+ * Configures maximum number of concurrent connections.
+ */
+void x0_setup_connection_limit(x0_server_t* server, size_t limit);
 
 /**
  * Configures I/O timeouts.
  */
-void x0_setup_timeouts(x0_listener_t* listener, int read, int write);
+void x0_setup_timeouts(x0_server_t* server, int read, int write);
 
 /**
  *
  */
-void x0_setup_keepalive(x0_listener_t* listener, int timeout, int count);
+void x0_setup_keepalive(x0_server_t* server, int timeout, int count);
 // }}}
 // {{{ request inspection
 int x0_request_method(x0_request_t* r);
