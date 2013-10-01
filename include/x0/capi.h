@@ -1,5 +1,5 @@
-#ifndef x0_api_h
-#define x0_api_h
+#ifndef x0_capi_h
+#define x0_capi_h
 
 /*
  * This file is meant to create a C-API wrapper ontop of the x0 C++ API
