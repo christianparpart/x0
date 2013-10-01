@@ -9,9 +9,9 @@
 #ifndef sw_x0_defines_hpp
 #define sw_x0_defines_hpp (1)
 
-#include <cstddef>
-#include <cstring>
-#include <cstdio>
+#include <stddef.h>
+#include <string.h>
+#include <stdio.h>
 
 #if !defined(XZERO_NDEBUG)
 #	include <ev.h> // required for DEBUG()
