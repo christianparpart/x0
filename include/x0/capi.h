@@ -105,8 +105,36 @@ X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
 X0_API void x0_server_stop(x0_server_t* server);
 // }}}
 // {{{ request inspection
+/**
+ * Retrieves the request method as a unique ID.
+ *
+ * @retval X0_REQUEST_METHOD_GET GET
+ * @retval X0_REQUEST_METHOD_POST POST
+ * @retval X0_REQUEST_METHOD_PUT PUT
+ * @retval X0_REQUEST_METHOD_DELETE DELETE
+ * @retval X0_REQUEST_METHOD_UNKNOWN any other request method
+ */
 X0_API int x0_request_method(x0_request_t* r);
+
+/**
+ * Retrieves the request path.
+ *
+ * @param buf Target buffer to store the request path in.
+ * @param size Capacity of the given buffer.
+ *
+ * @return the number of bytes stored in the target buffer, excluding trailing null-byte.
+ */
 X0_API size_t x0_request_path(x0_request_t* r, char* buf, size_t size);
+
+/**
+ * Retrieves the client specified HTTP version.
+ *
+ * @retval X0_HTTP_VERSION_UNKNOWN Unknown/unsupported HTTP version
+ * @retval X0_HTTP_VERSION_0_9 HTTP version 0.9
+ * @retval X0_HTTP_VERSION_1_0 HTTP version 1.0
+ * @retval X0_HTTP_VERSION_1_1 HTTP version 1.1
+ * @retval X0_HTTP_VERSION_2_0 not yet supported
+ */
 X0_API int x0_request_version(x0_request_t* r);
 
 X0_API int x0_request_header_get(x0_request_t* r, const char* header_name, char* buf, size_t size);

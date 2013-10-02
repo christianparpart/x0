@@ -119,6 +119,25 @@ void x0_setup_keepalive(x0_server_t* server, int count, int timeout)
 	server->server.maxKeepAlive = TimeSpan::fromSeconds(timeout);
 }
 
+// --------------------------------------------------------------------------
+
+int x0_request_method(x0_request_t* r)
+{
+	if (r->request->method == "GET")
+		return X0_REQUEST_METHOD_GET;
+
+	if (r->request->method == "POST")
+		return X0_REQUEST_METHOD_POST;
+
+	if (r->request->method == "PUT")
+		return X0_REQUEST_METHOD_PUT;
+
+	if (r->request->method == "DELETE")
+		return X0_REQUEST_METHOD_DELETE;
+
+	return X0_REQUEST_METHOD_UNKNOWN;
+}
+
 size_t x0_request_path(x0_request_t* r, char* buf, size_t size)
 {
 	size_t rsize = std::min(size - 1, r->request->path.size());
@@ -126,6 +145,8 @@ size_t x0_request_path(x0_request_t* r, char* buf, size_t size)
 	buf[rsize] = '\0';
 	return rsize + 1;
 }
+
+// --------------------------------------------------------------------------
 
 void x0_response_write(x0_request_t* r, const char* buf, size_t size)
 {
