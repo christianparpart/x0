@@ -29,6 +29,7 @@ option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [def
 
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
 option(ENABLE_X0D "Compile x0d binary [default: on]" ON)
+option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
 
 if(ENABLE_RRD)
 	find_package(RRD)

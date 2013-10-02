@@ -1,3 +1,5 @@
+if(ENABLE_MANPAGES)
+
 add_custom_command(
 	OUTPUT x0d.8 
 	DEPENDS x0d.8.pod
@@ -21,3 +23,5 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/x0d.8
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/x0d.conf.5
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man/man5)
+
+endif(ENABLE_MANPAGES)
