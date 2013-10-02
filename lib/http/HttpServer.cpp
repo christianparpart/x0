@@ -68,6 +68,8 @@ void wrap_log_error(HttpServer *srv, const char *cat, const std::string& msg)
  * \see HttpServer::run()
  */
 HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
+	requestHandler(),
+
 	onConnectionOpen(),
 	onPreProcess(),
 	onResolveDocumentRoot(),
@@ -86,7 +88,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	runner_(nullptr),
 	setupApi_(),
 	mainApi_(),
-	onHandleRequest_(),
 
 	listeners_(),
 	loop_(loop ? loop : ev_default_loop(0)),
@@ -236,6 +237,8 @@ void HttpServer::onNewConnection(Socket* cs, ServerSocket* ss)
 
 bool HttpServer::setup(std::istream *settings, const std::string& filename, int optimizationLevel)
 {
+	bool (*main)(void*);
+
 	TRACE("setup(%s)", filename.c_str());
 
 	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
@@ -256,10 +259,13 @@ bool HttpServer::setup(std::istream *settings, const std::string& filename, int 
 
 	// grap the request handler
 	TRACE("get pointer to 'main'");
-	onHandleRequest_ = runner_->getPointerTo(runner_->findHandler("main"));
 
-	if (!onHandleRequest_)
+	main = runner_->getPointerTo(runner_->findHandler("main"));
+
+	if (!main)
 		goto err;
+
+	requestHandler = main;
 
 	// {{{ setup server-tag
 	{

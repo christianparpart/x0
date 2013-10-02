@@ -9,8 +9,10 @@
 #ifndef x0_capi_h
 #define x0_capi_h
 
+#include <x0/Api.h>
 #include <sys/param.h> /* off_t */
 #include <stdint.h>
+#include <ev.h>
 
 /*
  * This file is meant to create a C-API wrapper ontop of the x0 C++ API
@@ -41,7 +43,7 @@ extern "C" {
 typedef struct x0_server_s x0_server_t;
 typedef struct x0_request_s x0_request_t;
 
-typedef int (*x0_handler_t)(x0_request_t*, void*);
+typedef void (*x0_handler_t)(x0_request_t*, void*);
 // }}}
 // {{{ server setup
 /**
@@ -51,7 +53,7 @@ typedef int (*x0_handler_t)(x0_request_t*, void*);
  * @param bind
  * @param loop libev's loop handle to use for x0's main thread.
  */
-x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop);
+X0_API x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop);
 
 /**
  * Destroys an HTTP server object and all its dependant handles.
@@ -59,7 +61,7 @@ x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop);
  * @param server
  * @param kill 1 means it'll hard-kill all currently running connections; with 0 it'll wait until all requests have been fully served.
  */
-void x0_server_destroy(x0_server_t* server, int kill);
+X0_API void x0_server_destroy(x0_server_t* server, int kill);
 
 /**
  * Initializes that many workers to serve the requests on given server.
@@ -69,42 +71,53 @@ void x0_server_destroy(x0_server_t* server, int kill);
  *
  * @return 0 if okay, -1 otherwise.
  */
-int x0_worker_setup(x0_server_t* server, int count);
+X0_API int x0_worker_setup(x0_server_t* server, int count);
 
 /**
  * @param server Server handle.
  * @param handler Callback handler to be invoked on every fully parsed request.
  * @param userdata Userdata to be passed to every callback in addition to the request.
  */
-void x0_setup_handler(x0_server_t* server, x0_handler_t* handler, void* userdata);
+X0_API void x0_setup_handler(x0_server_t* server, x0_handler_t handler, void* userdata);
 
 /**
  * Configures maximum number of concurrent connections.
  */
-void x0_setup_connection_limit(x0_server_t* server, size_t limit);
+X0_API void x0_setup_connection_limit(x0_server_t* server, size_t limit);
 
 /**
  * Configures I/O timeouts.
+ *
+ * @param read read timeout in seconds.
+ * @param write write timeout in seconds.
  */
-void x0_setup_timeouts(x0_server_t* server, int read, int write);
+X0_API void x0_setup_timeouts(x0_server_t* server, int read, int write);
 
 /**
+ * Configures HTTP keepalive.
  *
+ * @param server Server handle.
+ * @param count maximum number of requests that may be served via one connection.
+ * @param timeout timeout in seconds to wait in maximum for the next request before terminating the connection.
  */
-void x0_setup_keepalive(x0_server_t* server, int timeout, int count);
+X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
+
+X0_API void x0_server_stop(x0_server_t* server);
 // }}}
 // {{{ request inspection
-int x0_request_method(x0_request_t* r);
-int x0_request_path(x0_request_t* r, char* buf, size_t size);
-int x0_request_version(x0_request_t* r);
+X0_API int x0_request_method(x0_request_t* r);
+X0_API size_t x0_request_path(x0_request_t* r, char* buf, size_t size);
+X0_API int x0_request_version(x0_request_t* r);
 
-int x0_request_header_get(x0_request_t* r, const char* header_name, char* buf, size_t size);
-int x0_request_header_exists(x0_request_t* r, const char* name);
+X0_API int x0_request_header_get(x0_request_t* r, const char* header_name, char* buf, size_t size);
+X0_API int x0_request_header_exists(x0_request_t* r, const char* name);
+
+X0_API int x0_request_cookie_get(x0_request_t* r, const char* cookie, char* buf, size_t size);
 
 /**
  * Retrieves the total number request headers.
  */
-int x0_request_header_count(x0_request_t* r);
+X0_API int x0_request_header_count(x0_request_t* r);
 
 /**
  * Retrieves a request header at given offset.
@@ -114,23 +127,18 @@ int x0_request_header_count(x0_request_t* r);
  * @param size total size of the buffer in bytes that can be used to store the value, including trailing null-byte.
  * @return actual size of the request header (excluding trailing null-byte)
  */
-int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size);
+X0_API int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size);
 // }}}
 // {{{ response creation
 /**
  * Sets a new response header, possibly overwriting an existing one, if the header name equals.
  */
-int x0_response_header_set(x0_request_t* r, const char* header, const char* value);
+X0_API void x0_response_header_set(x0_request_t* r, const char* header, const char* value);
 
 /**
  * Sets the response status code.
  */
-int x0_response_status_set(x0_request_t* r, int code);
-
-/**
- * Sets the response status code including a custom status text.
- */
-int x0_response_status_setn(x0_request_t* r, int code, const char* text);
+X0_API void x0_response_status_set(x0_request_t* r, int code);
 
 /**
  * Writes one chunk of the response body.
@@ -142,8 +150,9 @@ int x0_response_status_setn(x0_request_t* r, int code, const char* text);
  * When writing the body, the response headers <b>MUST</b> be fully set up already,
  * as the first write will automatically flush the response status line and response headers.
  */
-int x0_response_write(x0_request_t* r, const char* buf, size_t size);
-int x0_response_printf(x0_request_t* r, const char* fmt, ...);
+X0_API void x0_response_write(x0_request_t* r, const char* buf, size_t size);
+
+X0_API int x0_response_printf(x0_request_t* r, const char* fmt, ...);
 
 /**
  * Marks this request as fully handled.
@@ -154,7 +163,7 @@ int x0_response_printf(x0_request_t* r, const char* fmt, ...);
  *
  * @note This implies, that the request handle becomes invalid right after this call.
  */
-int x0_response_finish(x0_request_t* r);
+X0_API void x0_response_finish(x0_request_t* r);
 
 /**
  * Creates a full response to the given request and actually finishes it.
@@ -167,12 +176,16 @@ int x0_response_finish(x0_request_t* r);
  *
  * @param r Request handle to create the response for.
  * @param code Response status code.
+ * @param headers array of header name/value pairs.
+ * @param header_count number of header name/value pairs stored.
  * @param body Response body buffer.
  * @param size Response body size in bytes.
  *
  * @return 0 on success, an error code otherwise.
  */
-int x0_response_complete(x0_request_t* r, int code, const char* headers, size_t header_count, const char* body, size_t size);
+X0_API int x0_response_complete(x0_request_t* r, int code,
+	const char** headers, size_t header_count,
+	const char* body, size_t size);
 
 /**
  * Sends given statis file.
@@ -186,7 +199,7 @@ int x0_response_complete(x0_request_t* r, int code, const char* headers, size_t 
  * @param r Handle to request.
  * @param path path to local file to send to the client.
  */
-int x0_response_sendfile(x0_request_t* r, const char* path);
+X0_API int x0_response_sendfile(x0_request_t* r, const char* path);
 // }}}
 
 #if defined(__cplusplus)

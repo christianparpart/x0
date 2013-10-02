@@ -67,6 +67,8 @@ public:
 	typedef Signal<void(HttpWorker*)> WorkerHook;
 
 public:
+	std::function<bool(HttpRequest*)> requestHandler;
+
 	explicit HttpServer(struct ::ev_loop* loop, unsigned generation = 1);
 	virtual ~HttpServer();
 
@@ -186,7 +188,6 @@ private:
 	FlowRunner* runner_;
 	std::vector<std::string> setupApi_;
 	std::vector<std::string> mainApi_;
-	bool (*onHandleRequest_)(void*);
 
 	std::list<ServerSocket*> listeners_;
 	struct ::ev_loop* loop_;

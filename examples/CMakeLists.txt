@@ -7,7 +7,6 @@ if(ENABLE_EXAMPLES)
 		-Dlinux=1
 		-Wall -Wno-deprecated
 		-pthread
-		-std=c++0x
 		${LLVM_CFLAGS}
 		-DPACKAGE_NAME="${PACKAGE_NAME}"
 		-DPACKAGE_VERSION="${PACKAGE_VERSION}"
@@ -15,8 +14,14 @@ if(ENABLE_EXAMPLES)
 		-DSYSCONFDIR="${SYSCONFDIR}"
 		-DVERSION="${PACKAGE_VERSION}")
 
+	set(CMAKE_C_FLAGS "-std=c11")
+	set(CMAKE_CXX_FLAGS "-std=c++11")
+
 	add_executable(app1 app1.cpp)
 	target_link_libraries(app1 XzeroBase XzeroHttp)
+
+	add_executable(capi-app1 capi-app1.c)
+	target_link_libraries(capi-app1 XzeroBase x0capi)
 
 	add_executable(tcp-echo-server tcp-echo-server.cpp)
 	target_link_libraries(tcp-echo-server XzeroBase)

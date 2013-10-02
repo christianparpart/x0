@@ -286,7 +286,7 @@ void HttpWorker::handleRequest(HttpRequest *r)
 
 	server_.onPreProcess(r);
 
-	if (!server_.onHandleRequest_(r))
+	if (!server_.requestHandler(r))
 		r->finish();
 }
 

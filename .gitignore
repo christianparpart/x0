@@ -29,6 +29,7 @@ tests/queue-bench
 tests/x0-test
 examples/app1
 examples/tcp-echo-server
+examples/capi-app1
 core
 core.*
 vgcore.*
