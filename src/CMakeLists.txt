@@ -1,3 +1,5 @@
+if(ENABLE_X0D)
+
 add_definitions(
 	-Dlinux=1
 	-pthread
@@ -15,3 +17,5 @@ target_link_libraries(x0d ${TCMALLOC_LIBRARIES} XzeroBase XzeroHttp)
 
 install(TARGETS x0d RUNTIME DESTINATION sbin)
 install(FILES x0d.conf-dist DESTINATION ${SYSCONFDIR})
+
+endif(ENABLE_X0D)

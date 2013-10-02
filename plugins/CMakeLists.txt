@@ -1,9 +1,4 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
-include_directories(${ASIO_INCLUDEDIR})
-include_directories(${BOOST_INCLUDEDIR})
-
 add_definitions(
-	-Dlinux=1
 	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
@@ -14,6 +9,7 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 # ---------------------------------------------------------------------------
+if(ENABLE_PLUGINS)
 x0_plugin_simple(accesslog)
 x0_plugin_simple(browser)
 x0_plugin_simple(cgi)
@@ -66,3 +62,5 @@ endif()
 
 add_subdirectory(ssl)
 add_subdirectory(director)
+
+endif(ENABLE_PLUGINS)

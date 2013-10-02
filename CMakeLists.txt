@@ -27,6 +27,9 @@ option(ENABLE_RRD "Includes RRD support (plugin)" OFF)
 option(ENABLE_IMAGEABLE "Includes Image Resizer plugin [default: off]" OFF)
 option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: off]" OFF)
 
+option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
+option(ENABLE_X0D "Compile x0d binary [default: on]" ON)
+
 if(ENABLE_RRD)
 	find_package(RRD)
 endif()
