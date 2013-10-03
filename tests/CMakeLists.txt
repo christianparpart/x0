@@ -15,6 +15,7 @@ add_executable(x0-test x0-test.cpp
 	List-test.cpp
 	Base64-test.cpp
 	HttpServer-test.cpp
+	Vary-test.cpp
 )
 
 target_link_libraries(x0-test XzeroBase XzeroHttp XzeroFlow gtest)
