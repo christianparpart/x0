@@ -25,16 +25,20 @@ void handler(x0_request_t* r, void* userdata)
 
 int main(int argc, const char* argv[])
 {
+	const char* bind = "0.0.0.0";
+	int port = 8080;
 	x0_server_t* server;
 	struct ev_loop* loop;
 
 	loop = ev_default_loop(0);
-	server = x0_server_create(8080, "0.0.0.0", loop);
+	server = x0_server_create(port, bind, loop);
 
 	x0_setup_timeouts(server, /*read*/ 30, /*write*/ 10);
 	x0_setup_keepalive(server, /*count*/ 5, /*timeout*/ 8);
 
 	x0_setup_handler(server, &handler, server);
+
+	printf("[HTTP] Listening on %s port %d\n", bind, port);
 
 	ev_run(loop, 0);
 
