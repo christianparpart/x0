@@ -16,6 +16,7 @@
 #include <x0/Types.h>
 #include <x0/Api.h>
 #include <string>
+#include <cassert>
 
 namespace x0 {
 
@@ -33,6 +34,20 @@ struct X0_API HttpHeader {
 	HttpHeader() : name(), value() { }
 	HttpHeader(const HttpHeader& v) : name(v.name), value(v.value) { }
 	HttpHeader(const T& name, const T& value) : name(name), value(value) { }
+
+	HttpHeader(const std::initializer_list<T>& pair) :
+		name(), value()
+	{
+		assert(pair.size() == 2 && "Expects a pair of 2 elements.");
+		size_t i = 0;
+		for (const auto& item: pair) {
+			if (!i)
+				name = item;
+			else
+				value = item;
+			++i;
+		}
+	}
 };
 
 typedef HttpHeader<BufferRef> HttpRequestHeader;
