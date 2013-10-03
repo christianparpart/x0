@@ -264,9 +264,11 @@ struct AuthBasic : public x0::CustomData { // {{{
 		backend.reset(new AuthUserFile(userfile));
 	}
 
+#if defined(HAVE_SECURITY_PAM_APPL_H)
 	void setupPAM(const std::string& service) {
 		backend.reset(new AuthPAM(service));
 	}
+#endif
 
 	bool verify(const char* user, const char* pass)
 	{
