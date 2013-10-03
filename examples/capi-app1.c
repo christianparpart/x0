@@ -31,12 +31,17 @@ int main(int argc, const char* argv[])
 	struct ev_loop* loop;
 
 	loop = ev_default_loop(0);
-	server = x0_server_create(port, bind, loop);
+	server = x0_server_create(loop);
+
+	if (x0_listener_add(server, bind, port, 128) < 0) {
+		perror("x0_listener_add");
+		x0_server_destroy(server, 0);
+		return 1;
+	}
 
 	x0_setup_timeouts(server, /*read*/ 30, /*write*/ 10);
 	x0_setup_keepalive(server, /*count*/ 5, /*timeout*/ 8);
-
-	x0_setup_handler(server, &handler, server);
+	x0_setup_handler(server, /*callback*/ &handler, /*userdata*/ server);
 
 	printf("[HTTP] Listening on %s port %d\n", bind, port);
 

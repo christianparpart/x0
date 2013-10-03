@@ -29,15 +29,9 @@ struct x0_request_s
 	HttpRequest* request;
 };
 
-x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop)
+x0_server_t* x0_server_create(struct ev_loop* loop)
 {
 	auto s = new x0_server_t(loop);
-
-	auto listener = s->server.setupListener(bind, port, 128);
-	if (!listener) {
-		delete s;
-		return nullptr;
-	}
 
 	s->server.requestHandler = [](HttpRequest* r) -> bool {
 		BufferSource body("Hello, I am lazy to serve anything; I wasn't configured properly\n");
@@ -57,6 +51,15 @@ x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop)
 	};
 
 	return s;
+}
+
+int x0_listener_add(x0_server_t* server, const char* bind, int port, int backlog)
+{
+	auto listener = server->server.setupListener(bind, port, 128);
+	if (listener == nullptr)
+		return -1;
+
+	return 0;
 }
 
 void x0_server_destroy(x0_server_t* server, int kill)

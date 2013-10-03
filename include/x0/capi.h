@@ -47,13 +47,11 @@ typedef void (*x0_handler_t)(x0_request_t*, void*);
 // }}}
 // {{{ server setup
 /**
- * Creates a new server on given port/bind.
+ * Creates a new server.
  *
- * @param port
- * @param bind
  * @param loop libev's loop handle to use for x0's main thread.
  */
-X0_API x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop);
+X0_API x0_server_t* x0_server_create(struct ev_loop* loop);
 
 /**
  * Destroys an HTTP server object and all its dependant handles.
@@ -62,6 +60,15 @@ X0_API x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop*
  * @param kill 1 means it'll hard-kill all currently running connections; with 0 it'll wait until all requests have been fully served.
  */
 X0_API void x0_server_destroy(x0_server_t* server, int kill);
+
+/**
+ * Creates a listener to accept incoming HTTP connections on this server instance.
+ *
+ * @param port TODO
+ * @param bind TODO
+ * @param backlog TODO
+ */
+X0_API int x0_listener_add(x0_server_t* server, const char* bind, int port, int backlog);
 
 /**
  * Initializes that many workers to serve the requests on given server.
