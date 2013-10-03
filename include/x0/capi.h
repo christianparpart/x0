@@ -9,6 +9,11 @@
  * AN IMPROVEMENT.
  */
 
+/* TODO
+ * - post data handling
+ * - query args
+ */
+
 #ifndef x0_capi_h
 #define x0_capi_h
 
@@ -206,40 +211,16 @@ X0_API void x0_response_vprintf(x0_request_t* r, const char* fmt, va_list args);
 X0_API void x0_response_finish(x0_request_t* r);
 
 /**
- * Creates a full response to the given request and actually finishes it.
- *
- * This call is all-in-one response creation function that sets the
- * response status code, writes the response body and flushes the response
- * full out, marking it as finished.
- *
- * The request handle must not be accessed after this call as it is potentially invalid.
- *
- * @param r Request handle to create the response for.
- * @param code Response status code.
- * @param headers array of header name/value pairs.
- * @param header_count number of header name/value pairs stored.
- * @param body Response body buffer.
- * @param size Response body size in bytes.
- *
- * @return 0 on success, an error code otherwise.
- */
-X0_API int x0_response_complete(x0_request_t* r, int code,
-	const char** headers, size_t header_count,
-	const char* body, size_t size);
-
-/**
  * Sends given statis file.
  *
  * This cll is an all-in-one response creation function that
  * sends a local file to the client, respecting potential request headers
  * that might modify the response (for example ranged requests).
  *
- * The request handle must not be accessed after this call as it is potentially invalid.
- *
  * @param r Handle to request.
  * @param path path to local file to send to the client.
  */
-X0_API int x0_response_sendfile(x0_request_t* r, const char* path);
+X0_API void x0_response_sendfile(x0_request_t* r, const char* path);
 // }}}
 
 #if defined(__cplusplus)

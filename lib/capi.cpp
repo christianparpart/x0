@@ -105,6 +105,7 @@ void x0_setup_keepalive(x0_server_t* server, int count, int timeout)
 }
 
 // --------------------------------------------------------------------------
+// REQUEST
 
 int x0_request_method(x0_request_t* r)
 {
@@ -152,6 +153,53 @@ int x0_request_version(x0_request_t* r)
 			return version.code;
 
 	return X0_HTTP_VERSION_UNKNOWN;
+}
+
+int x0_request_header_exists(x0_request_t* r, const char* name)
+{
+	for (const auto& header: r->request->requestHeaders)
+		if (header.name == name)
+			return 1;
+
+	return 0;
+}
+
+int x0_request_header_get(x0_request_t* r, const char* name, char* buf, size_t size)
+{
+	if (size) {
+		for (const auto& header: r->request->requestHeaders) {
+			if (header.name == name) {
+				size_t len = std::min(header.value.size(), size - 1);
+				memcpy(buf, header.value.data(), len);
+				buf[len] = '\0';
+				return len;
+			}
+		}
+	}
+
+	return 0;
+}
+
+int x0_request_cookie_get(x0_request_t* r, const char* cookie, char* buf, size_t size)
+{
+	return 0; // TODO cookie retrieval
+}
+
+int x0_request_header_count(x0_request_t* r)
+{
+	return r->request->requestHeaders.size();
+}
+
+int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size)
+{
+	if (size && index < r->request->requestHeaders.size()) {
+		const auto& header = r->request->requestHeaders[index];
+		size_t len = std::min(header.value.size(), size - 1);
+		memcpy(buf, header.value.data(), len);
+		buf[len] = '\0';
+		return len;
+	}
+	return 0;
 }
 
 // --------------------------------------------------------------------------
@@ -204,3 +252,7 @@ void x0_response_finish(x0_request_t* r)
 	delete r;
 }
 
+void x0_response_sendfile(x0_request_t* r, const char* path)
+{
+	r->request->sendfile(path);
+}

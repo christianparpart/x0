@@ -6,19 +6,24 @@
 void handler(x0_request_t* r, void* userdata)
 {
 	x0_server_t* server = (x0_server_t*) userdata;
-	char body[] = "This Is Sparta!\n";
-
 	char path[1024];
+
 	x0_request_path(r, path, sizeof(path));
 
 	printf("Request-Path: %s\n", path);
 
 	x0_response_status_set(r, 200);
 	x0_response_header_set(r, "Content-Type", "text/plain");
-	x0_response_write(r, body, sizeof(body) - 1);
+
+	if (strncmp(path, "/sendfile", 9) == 0) {
+		x0_response_sendfile(r, path + 9);
+	} else {
+		static const char body[] = "This Is Sparta!\n";
+		x0_response_write(r, body, sizeof(body) - 1);
+	}
 	x0_response_finish(r);
 
-	if (strcmp(path, "/halt") == 0) {
+	if (strcmp(path, "/quit") == 0) {
 		x0_server_stop(server);
 	}
 }
