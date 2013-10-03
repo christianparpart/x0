@@ -1,9 +1,12 @@
-/* <src/capi.cpp>
+/* <x0/capi.h>
  *
  * This file is part of the x0 web server project and is released under GPL-3.
  * http://www.xzero.io/
  *
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
+ *
+ * THIS C API IS EXPERIMENTAL AND SUBJECT TO CHANGE WHENEVER IT FEELS TO BE
+ * AN IMPROVEMENT.
  */
 
 #ifndef x0_capi_h
@@ -13,15 +16,6 @@
 #include <sys/param.h> /* off_t */
 #include <stdint.h>
 #include <ev.h>
-
-/*
- * This file is meant to create a C-API wrapper ontop of the x0 C++ API
- * for embedding x0 as a library into your own application.
- *
- * GOALS:
- * - support single-threaded use as well as multi-threaded use.
- * - ...
- */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -175,14 +169,14 @@ X0_API int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_
 // }}}
 // {{{ response creation
 /**
- * Sets a new response header, possibly overwriting an existing one, if the header name equals.
- */
-X0_API void x0_response_header_set(x0_request_t* r, const char* header, const char* value);
-
-/**
  * Sets the response status code.
  */
 X0_API void x0_response_status_set(x0_request_t* r, int code);
+
+/**
+ * Sets a new response header, possibly overwriting an existing one, if the header name equals.
+ */
+X0_API void x0_response_header_set(x0_request_t* r, const char* header, const char* value);
 
 /**
  * Writes one chunk of the response body.
@@ -196,7 +190,9 @@ X0_API void x0_response_status_set(x0_request_t* r, int code);
  */
 X0_API void x0_response_write(x0_request_t* r, const char* buf, size_t size);
 
-X0_API int x0_response_printf(x0_request_t* r, const char* fmt, ...);
+X0_API void x0_response_printf(x0_request_t* r, const char* fmt, ...);
+
+X0_API void x0_response_vprintf(x0_request_t* r, const char* fmt, va_list args);
 
 /**
  * Marks this request as fully handled.

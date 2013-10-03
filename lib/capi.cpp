@@ -11,6 +11,7 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
+#include <cstdarg>
 
 using namespace x0;
 
@@ -86,22 +87,6 @@ void x0_setup_handler(x0_server_t* server, x0_handler_t handler, void* userdata)
 	};
 }
 
-void x0_response_status_set(x0_request_t* r, int code)
-{
-	r->request->status = static_cast<HttpStatus>(code);
-}
-
-void x0_response_header_set(x0_request_t* r, const char* name, const char* value)
-{
-	r->request->responseHeaders.overwrite(name, value);
-}
-
-void x0_response_finish(x0_request_t* r)
-{
-	r->request->finish();
-	delete r;
-}
-
 void x0_setup_connection_limit(x0_server_t* li, size_t limit)
 {
 	li->server.maxConnections = limit;
@@ -170,6 +155,17 @@ int x0_request_version(x0_request_t* r)
 }
 
 // --------------------------------------------------------------------------
+// RESPONSE
+
+void x0_response_status_set(x0_request_t* r, int code)
+{
+	r->request->status = static_cast<HttpStatus>(code);
+}
+
+void x0_response_header_set(x0_request_t* r, const char* name, const char* value)
+{
+	r->request->responseHeaders.overwrite(name, value);
+}
 
 void x0_response_write(x0_request_t* r, const char* buf, size_t size)
 {
@@ -177,3 +173,34 @@ void x0_response_write(x0_request_t* r, const char* buf, size_t size)
 	b.push_back(buf, size);
 	r->request->write<BufferSource>(b);
 }
+
+void x0_response_printf(x0_request_t* r, const char* fmt, ...)
+{
+	Buffer b;
+	va_list ap;
+
+	va_start(ap, fmt);
+	b.vprintf(fmt, ap);
+	va_end(ap);
+
+	r->request->write<BufferSource>(b);
+}
+
+void x0_response_vprintf(x0_request_t* r, const char* fmt, va_list args)
+{
+	Buffer b;
+	va_list va;
+
+	va_copy(va, args);
+	b.vprintf(fmt, va);
+	va_end(va);
+
+	r->request->write<BufferSource>(b);
+}
+
+void x0_response_finish(x0_request_t* r)
+{
+	r->request->finish();
+	delete r;
+}
+
