@@ -298,6 +298,8 @@ public:
 	void push_back(const void *value, size_t size);
 	template<typename PodType, size_t N> void push_back(PodType (&value)[N]);
 
+	Buffer& vprintf(const char* fmt, va_list args);
+
 	template<typename... Args>
 	Buffer& printf(const char* fmt, Args... args);
 
@@ -1160,6 +1162,35 @@ template<typename PodType, size_t N>
 inline void Buffer::push_back(PodType (&value)[N])
 {
 	push_back(reinterpret_cast<const void *>(value), N - 1);
+}
+
+inline Buffer& Buffer::vprintf(const char* fmt, va_list args)
+{
+	reserve(size() + strlen(fmt) + 1);
+
+	while (true) {
+		va_list va;
+		va_copy(va, args);
+		ssize_t buflen = vsnprintf(data_ + size_, capacity_ - size_, fmt, va);
+		va_end(va);
+
+		if (buflen >= -1 && buflen < static_cast<ssize_t>(capacity_ - size_)) {
+			resize(size_ + buflen);
+			break; // success
+		}
+
+		buflen = buflen > -1
+			? buflen + 1      // glibc >= 2.1
+			: capacity_ * 2;  // glibc <= 2.0
+
+		if (!setCapacity(capacity_ + buflen)) {
+			// increasing capacity failed
+			data_[capacity_ - 1] = '\0';
+			break; // alloc failure
+		}
+	}
+
+	return *this;
 }
 
 template<typename... Args>
