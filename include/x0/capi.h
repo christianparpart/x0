@@ -137,8 +137,17 @@ X0_API size_t x0_request_path(x0_request_t* r, char* buf, size_t size);
  */
 X0_API int x0_request_version(x0_request_t* r);
 
-X0_API int x0_request_header_get(x0_request_t* r, const char* header_name, char* buf, size_t size);
+/**
+ * Tests for existense of a given request header.
+ *
+ * @retval 0 Header name found.
+ * @retval 1 Header name not found.
+ */
 X0_API int x0_request_header_exists(x0_request_t* r, const char* name);
+
+/**
+ */
+X0_API int x0_request_header_get(x0_request_t* r, const char* header_name, char* buf, size_t size);
 
 X0_API int x0_request_cookie_get(x0_request_t* r, const char* cookie, char* buf, size_t size);
 

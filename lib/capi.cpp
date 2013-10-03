@@ -146,6 +146,29 @@ size_t x0_request_path(x0_request_t* r, char* buf, size_t size)
 	return rsize + 1;
 }
 
+int x0_request_version(x0_request_t* r)
+{
+	static const struct {
+		int major;
+		int minor;
+		int code;
+	} versions[] = {
+		{ 0, 9, X0_HTTP_VERSION_0_9 },
+		{ 1, 0, X0_HTTP_VERSION_1_0 },
+		{ 1, 1, X0_HTTP_VERSION_1_1 },
+		{ 2, 0, X0_HTTP_VERSION_2_0 },
+	};
+
+	int major = r->request->httpVersionMajor;
+	int minor = r->request->httpVersionMinor;
+
+	for (const auto& version: versions)
+		if (version.major == major && version.minor == minor)
+			return version.code;
+
+	return X0_HTTP_VERSION_UNKNOWN;
+}
+
 // --------------------------------------------------------------------------
 
 void x0_response_write(x0_request_t* r, const char* buf, size_t size)
