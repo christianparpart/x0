@@ -17,16 +17,9 @@ using namespace x0;
 struct x0_server_s
 {
 	HttpServer server;
-	ServerSocket* listener;
-
-	x0_handler_t callback_handler;
-	void* callback_userdata;
 
 	x0_server_s(struct ev_loop* loop) :
-		server(loop),
-		listener(nullptr),
-		callback_handler(nullptr),
-		callback_userdata(nullptr)
+		server(loop)
 	{}
 };
 
@@ -40,7 +33,11 @@ x0_server_t* x0_server_create(int port, const char* bind, struct ev_loop* loop)
 {
 	auto s = new x0_server_t(loop);
 
-	s->listener = s->server.setupListener(bind, port, 128);
+	auto listener = s->server.setupListener(bind, port, 128);
+	if (!listener) {
+		delete s;
+		return nullptr;
+	}
 
 	s->server.requestHandler = [](HttpRequest* r) -> bool {
 		BufferSource body("Hello, I am lazy to serve anything; I wasn't configured properly\n");
