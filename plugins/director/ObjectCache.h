@@ -39,6 +39,7 @@ namespace x0 {
 class ObjectCache {
 public:
 	class Builder;
+	class ObjectBase;
 	class Object;
 	class VaryingObject;
 
@@ -190,6 +191,33 @@ public:
 	void writeJSON(x0::JsonWriter& json) const;
 };
 
+class ObjectCache::ObjectBase {
+public:
+	virtual ~ObjectBase() {}
+
+	virtual Object* select(const x0::HttpRequest* request) const = 0;
+	virtual bool update(x0::HttpRequest* r) = 0;
+	virtual void deliver(x0::HttpRequest* r) = 0;
+	virtual void expire() = 0;
+};
+
+class ObjectCache::VaryingObject : public ObjectBase {
+public:
+	VaryingObject();
+	~VaryingObject();
+
+	virtual Object* select(const x0::HttpRequest* request) const;
+	virtual bool update(x0::HttpRequest* r);
+	virtual void deliver(x0::HttpRequest* r);
+	virtual void expire(); // expires all sub-objects
+
+private:
+	bool testMatch(const x0::HttpRequest* request, const Object* object) const;
+
+	std::list<std::string> requestHeaders_;
+	std::list<Object*> objects_;
+};
+
 /**
  * A cache-object that contains a response message.
  */
@@ -283,7 +311,13 @@ private:
 
 	// used at construction/update state
 	void append(const x0::BufferRef& ref);
-	void commit(); // FIXME: why not used ATM ?
+
+	/**
+	 * Invoked upon completion of an update process.
+	 *
+	 * @see HttpServer::onRequestDone
+	 */
+	void commit();
 
 	const Buffer& frontBuffer() const { return buffer_[bufferIndex_]; }
 	Buffer& frontBuffer() { return buffer_[bufferIndex_]; }
@@ -309,20 +343,6 @@ private:
 	Buffer buffer_[2];
 
 	friend class ObjectCache;
-};
-
-class ObjectCache::VaryingObject {
-public:
-	/**
-	 * selects a cache object
-	 */
-	Object* select(const x0::HttpRequest* request) const;
-
-	bool testMatch(const x0::HttpRequest* request, const Object* object) const;
-
-private:
-	std::list<std::string> requestHeaders_;
-	std::list<Object*> objects_;
 };
 
 class ObjectCache::Builder : public x0::Filter {

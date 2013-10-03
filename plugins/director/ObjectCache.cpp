@@ -32,7 +32,15 @@
 
 using namespace x0;
 
-#define TRACE(n, msg...) X0_DEBUG("director-cache", (n), msg)
+#define TRACE(r, n, msg...) do { \
+	if (r) { \
+		LogMessage m(Severity::debug ## n, msg); \
+		m.addTag("director-cache"); \
+		r->log(std::move(m)); \
+	} else { \
+		X0_DEBUG("director-cache", (n), msg); \
+	} \
+} while (0)
 
 // {{{ ObjectCache::Object
 ObjectCache::Object::Object(ObjectCache* store, const std::string& cacheKey) :
@@ -57,10 +65,10 @@ std::string ObjectCache::Object::requestHeader(const std::string& name) const
 
 void ObjectCache::Object::postProcess()
 {
-	TRACE(3, "Object.postProcess() status: %d", request_->status);
+	TRACE(request_, 3, "Object.postProcess() status: %d", request_->status);
 
 	for (auto header: request_->responseHeaders) {
-		TRACE(3, "Object.postProcess() %s: %s", header.name.c_str(), header.value.c_str());
+		TRACE(request_, 3, "Object.postProcess() %s: %s", header.name.c_str(), header.value.c_str());
 		if (unlikely(iequals(header.name, "Set-Cookie"))) {
 			request_->log(Severity::info, "Caching requested but origin server provides uncacheable response header, Set-Cookie. Do not cache.");
 			destroy();
@@ -68,7 +76,7 @@ void ObjectCache::Object::postProcess()
 		}
 
 		if (unlikely(iequals(header.name, "Cache-Control") && iequals(header.value, "no-cache"))) {
-			TRACE(2, "Cache-Control detected. do not record object then.");
+			TRACE(request_, 2, "Cache-Control detected. do not record object then.");
 			destroy();
 			return;
 		}
@@ -134,7 +142,7 @@ void ObjectCache::Object::append(const x0::BufferRef& ref)
 
 void ObjectCache::Object::commit()
 {
-	TRACE(2, "Object: commit");
+	TRACE(request_, 2, "Object: commit");
 	backBuffer().ctime = request_->connection.worker().now();
 	swapBuffers();
 	request_ = nullptr;
@@ -144,7 +152,7 @@ void ObjectCache::Object::commit()
 	size_t i = 0;
 	(void) i;
 	for (auto request: pendingRequests) {
-		TRACE(3, "commit: deliver to pending request %zu", ++i);
+		TRACE(request_, 3, "commit: deliver to pending request %zu", ++i);
 		request->post([=]() {
 			deliver(request);
 		});
@@ -158,10 +166,11 @@ DateTime ObjectCache::Object::ctime() const
 
 bool ObjectCache::Object::update(HttpRequest* r)
 {
+	TRACE(request_, 3, "Object.update() -> %s", to_s(state_).c_str());
+
 	if (state_ != Spawning)
 		state_ = Updating;
 
-	TRACE(3, "Object.update() -> %s", to_s(state_).c_str());
 	if (!request_) {
 		// this is the first interest request, so it must be responsible for updating this object, too.
 		request_ = r;
@@ -184,7 +193,7 @@ void ObjectCache::Object::internalDeliver(x0::HttpRequest* r)
 {
 	++frontBuffer().hits;
 
-	TRACE(3, "Object.deliver(): hit %zu, state %s", frontBuffer().hits, to_s(state_).c_str());
+	TRACE(r, 3, "Object.deliver(): hit %zu, state %s", frontBuffer().hits, to_s(state_).c_str());
 
 	r->status = frontBuffer().status;
 
@@ -409,11 +418,9 @@ ObjectCache::Builder::Builder(Object* object) :
 Buffer ObjectCache::Builder::process(const BufferRef& chunk)
 {
 	if (object_) {
+		TRACE(object_->request_, 3, "ObjectCache.Builder.process(): %zu bytes", chunk.size());
 		if (!chunk.empty()) {
 			object_->backBuffer().body.push_back(chunk);
-			TRACE(3, "ObjectCache.Builder.process(): %zu bytes", chunk.size());
-		} else {
-			object_->commit();
 		}
 	}
 
