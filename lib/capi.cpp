@@ -32,17 +32,29 @@ struct x0_request_s
 	x0_request_body_fn body_cb;
 	void* body_userdata;
 
+	x0_request_abort_fn abort_cb;
+	void* abort_userdata;
+
 	x0_request_s(HttpRequest* r, x0_server_t* s) :
 		server(s),
 		request(r),
 		body_cb(nullptr),
-		body_userdata(nullptr)
+		body_userdata(nullptr),
+		abort_cb(nullptr),
+		abort_userdata(nullptr)
 	{
 	}
 
 	void bodyCallback(const BufferRef& ref) {
 		if (body_cb) {
 			body_cb(this, ref.data(), ref.size(), body_userdata);
+		}
+	}
+
+	static void abortCallback(void* p) {
+		x0_request_s* self = (x0_request_s*) p;
+		if (self->abort_cb) {
+			self->abort_cb(self->abort_userdata);
 		}
 	}
 };
@@ -102,11 +114,6 @@ void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* 
 	};
 }
 
-void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata)
-{
-	r->request->setBodyCallback<x0_request_t, &x0_request_t::bodyCallback>(r);
-}
-
 void x0_setup_connection_limit(x0_server_t* li, size_t limit)
 {
 	li->server.maxConnections = limit;
@@ -125,9 +132,26 @@ void x0_setup_keepalive(x0_server_t* server, int count, int timeout)
 }
 
 // --------------------------------------------------------------------------
+// REQUEST SETUP
+
+void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata)
+{
+	r->request->setBodyCallback<x0_request_t, &x0_request_t::bodyCallback>(r);
+	r->body_cb = handler;
+	r->body_userdata = userdata;
+}
+
+void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handler, void* userdata)
+{
+	r->request->setAbortHandler(&x0_request_t::abortCallback, r);
+	r->abort_cb = handler;
+	r->abort_userdata = userdata;
+}
+
+// --------------------------------------------------------------------------
 // REQUEST
 
-int x0_request_method(x0_request_t* r)
+int x0_request_method_id(x0_request_t* r)
 {
 	if (r->request->method == "GET")
 		return X0_REQUEST_METHOD_GET;
@@ -144,7 +168,7 @@ int x0_request_method(x0_request_t* r)
 	return X0_REQUEST_METHOD_UNKNOWN;
 }
 
-size_t x0_request_method_str(x0_request_t* r, char* buf, size_t size)
+size_t x0_request_method(x0_request_t* r, char* buf, size_t size)
 {
 	if (!size)
 		return 0;

@@ -43,8 +43,8 @@ typedef struct x0_server_s x0_server_t;
 typedef struct x0_request_s x0_request_t;
 
 typedef void (*x0_request_handler_fn)(x0_request_t*, void* userdata);
-
 typedef void (*x0_request_body_fn)(x0_request_t*, const char* buf, size_t size, void* userdata);
+typedef void (*x0_request_abort_fn)(void* userdata);
 // }}}
 // {{{ server setup
 /**
@@ -89,15 +89,6 @@ X0_API int x0_worker_setup(x0_server_t* server, int count);
 X0_API void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* userdata);
 
 /**
- * Installs a request body handler for given request.
- *
- * @param r request to install the request body handler for
- * @param handler callback for handling the request body
- * @param userdata custom userdata poiinter to be passed to the handler
- */
-X0_API void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata);
-
-/**
  * Configures maximum number of concurrent connections.
  */
 X0_API void x0_setup_connection_limit(x0_server_t* server, size_t limit);
@@ -121,6 +112,25 @@ X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
 
 X0_API void x0_server_stop(x0_server_t* server);
 // }}}
+// {{{ request setup
+/**
+ * Installs a request body handler for given request.
+ *
+ * @param r request to install the request body handler for
+ * @param handler callback for handling the request body
+ * @param userdata custom userdata pointer to be passed to the handler
+ */
+X0_API void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata);
+
+/**
+ * Installs a client abort handler for given request.
+ *
+ * @param r request to install the client abort handler for
+ * @param handler callback for handling the client aborts
+ * @param userdata custom userdata pointer to be passed to the handler
+ */
+X0_API void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handler, void* userdata);
+// }}}
 // {{{ request inspection
 /**
  * Retrieves the request method as a unique ID.
@@ -131,7 +141,7 @@ X0_API void x0_server_stop(x0_server_t* server);
  * @retval X0_REQUEST_METHOD_DELETE DELETE
  * @retval X0_REQUEST_METHOD_UNKNOWN any other request method
  */
-X0_API int x0_request_method(x0_request_t* r);
+X0_API int x0_request_method_id(x0_request_t* r);
 
 /**
  * Retrieves the request method.
@@ -141,7 +151,7 @@ X0_API int x0_request_method(x0_request_t* r);
  *
  * @return number of bytes written to the output buffer.
  */
-X0_API size_t x0_request_method_str(x0_request_t* r, char* buf, size_t size);
+X0_API size_t x0_request_method(x0_request_t* r, char* buf, size_t size);
 
 /**
  * Retrieves the request path.

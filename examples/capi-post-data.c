@@ -1,10 +1,18 @@
 #include <x0/capi.h>
 #include <getopt.h>
-#include <ev.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ev.h>
 
-typedef struct buffer_s {
+/*
+ * SAMPLE HTTP REQUESTS:
+ *
+ *   curl http://localhost:8080/
+ *   curl -X POST http://localhost:8080/upload --data-binary @/etc/shadow
+ *   curl http://localhost:8080/quit
+ */
+
+typedef struct {
 	char* body_data;
 	size_t body_size;
 	x0_server_t* server;
@@ -12,13 +20,17 @@ typedef struct buffer_s {
 
 void process_request(x0_request_t* r, request_udata_t* udata)
 {
-	printf("process_request()\n");
-
+	char method[16];
 	char path[1024];
-	x0_request_path(r, path, sizeof(path));
-	printf("Request-Path: %s\n", path);
 
-	printf("processed payload size: %zu\n", udata->body_size);
+	x0_request_method(r, method, sizeof(method));
+	x0_request_path(r, path, sizeof(path));
+
+	printf("%s %s\n", method, path);
+	if (udata->body_size) {
+		fwrite(udata->body_data, udata->body_size, 1, stdout);
+		fflush(stdout);
+	}
 
 	x0_response_status_set(r, 200);
 	x0_response_header_set(r, "Content-Type", "text/plain");
@@ -30,12 +42,13 @@ void process_request(x0_request_t* r, request_udata_t* udata)
 	if (strcmp(path, "/quit") == 0) {
 		x0_server_stop(udata->server);
 	}
+
+	free(udata->body_data);
+	free(udata);
 }
 
 void body_handler(x0_request_t* r, const char* data, size_t size, void* userdata)
 {
-	printf("body_handler(size: %zu)\n", size);
-
 	request_udata_t* udata = (request_udata_t*) userdata;
 
 	if (size) {
@@ -49,8 +62,6 @@ void body_handler(x0_request_t* r, const char* data, size_t size, void* userdata
 
 void request_handler(x0_request_t* r, void* userdata)
 {
-	printf("request_handler()\n");
-
 	x0_server_t* server = (x0_server_t*) userdata;
 
 	request_udata_t* udata = malloc(sizeof(request_udata_t));
