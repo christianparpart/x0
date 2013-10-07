@@ -32,6 +32,14 @@ struct x0_request_s
 	x0_request_body_fn body_cb;
 	void* body_userdata;
 
+	x0_request_s(HttpRequest* r, x0_server_t* s) :
+		server(s),
+		request(r),
+		body_cb(nullptr),
+		body_userdata(nullptr)
+	{
+	}
+
 	void bodyCallback(const BufferRef& ref) {
 		if (body_cb) {
 			body_cb(this, ref.data(), ref.size(), body_userdata);
@@ -88,9 +96,7 @@ void x0_server_stop(x0_server_t* server)
 void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* userdata)
 {
 	server->server.requestHandler = [=](HttpRequest* r) -> bool {
-		auto rr = new x0_request_t;
-		rr->request = r;
-		rr->server = server;
+		auto rr = new x0_request_t(r, server);
 		handler(rr, userdata);
 		return true;
 	};
