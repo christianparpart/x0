@@ -47,7 +47,7 @@
 #	include <syslog.h>
 #endif
 
-#if defined(WITH_TCP_DEFER_ACCEPT)
+#if defined(ENABLE_TCP_DEFER_ACCEPT)
 #	include <netinet/tcp.h>
 #endif
 
@@ -840,13 +840,13 @@ bool XzeroHttpDaemon::parse()
 			case 'V': {
 				std::vector<std::string> features;
 
-#if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
+#if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
 				features.push_back("+TCP_DEFER_ACCEPT");
 #else
 				features.push_back("-TCP_DEFER_ACCEPT");
 #endif
 
-#if defined(HAVE_ACCEPT4) && defined(WITH_ACCEPT4)
+#if defined(HAVE_ACCEPT4) && defined(ENABLE_ACCEPT4)
 				features.push_back("+ACCEPT4");
 #else
 				features.push_back("-ACCEPT4");

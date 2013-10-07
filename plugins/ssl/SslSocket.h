@@ -12,7 +12,7 @@
 #include <x0/Socket.h>
 #include <x0/sysconfig.h>
 
-#if defined(WITH_SSL)
+#if defined(ENABLE_SSL)
 #	include <gnutls/gnutls.h>
 #endif
 

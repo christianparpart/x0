@@ -14,13 +14,13 @@ add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1)
 # XzeroBase
 file(GLOB x0_base_SRC "base/*.cpp")
 file(GLOB x0_io_SRC "io/*.cpp")
-if(WITH_MYSQL)
+if(ENABLE_MYSQL)
 	file(GLOB x0_sql_SRC "sql/*.cpp")
 	add_definitions(${MYSQL_CFLAGS})
 endif()
 add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
 
-if(WITH_MYSQL)
+if(ENABLE_MYSQL)
 	target_link_libraries(XzeroBase ${MYSQL_LDFLAGS})
 endif()
 

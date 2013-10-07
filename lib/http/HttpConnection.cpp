@@ -288,7 +288,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 		TRACE(1, "start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
 	} else {
-#if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
+#if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
 		TRACE(1, "start: processing input");
 
 		// it is ensured, that we have data pending, so directly start reading
@@ -511,7 +511,7 @@ void HttpConnection::write(Source* chunk)
 		TRACE(1, "write() chunk (%s)", chunk->className());
 		output_.push_back(chunk);
 
-#if defined(WITH_OPPORTUNISTIC_WRITE)
+#if defined(ENABLE_OPPORTUNISTIC_WRITE)
 		writeSome();
 #else
 		watchOutput();

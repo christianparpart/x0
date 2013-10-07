@@ -173,7 +173,7 @@ public: // FlowBackend overrides
 	bool registerProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
 
 private:
-#if defined(WITH_SSL)
+#if defined(ENABLE_SSL)
 	static void gnutls_log(int level, const char* msg);
 #endif
 

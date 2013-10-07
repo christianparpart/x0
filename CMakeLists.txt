@@ -31,6 +31,11 @@ option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
 option(ENABLE_X0D "Compile x0d binary [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
 
+option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: off]" OFF)
+option(ENABLE_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
+option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
+option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
+
 if(ENABLE_RRD)
 	find_package(RRD)
 endif()
@@ -40,15 +45,10 @@ if(ENABLE_IMAGEABLE)
 endif(ENABLE_IMAGEABLE)
 
 # feature flags
-option(WITH_INOTIFY "Build with inotify support [default: on]" ON)
-option(WITH_SSL "Builds with SSL support [default: on]" ON)
-option(WITH_PAM "Build with PAM authentication support in auth plugin [default: on]" ON)
-option(WITH_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
-option(WITH_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
-option(WITH_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: off]" OFF)
-option(WITH_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
-option(WITH_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
-#option(WITH_LIBAIO "Build with libaio support [default: on]" ON)
+option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
+option(ENABLE_SSL "Builds with SSL support [default: on]" ON)
+option(ENABLE_PAM "Build with PAM authentication support in auth plugin [default: on]" ON)
+option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
 
 add_definitions(-Wall -Wno-variadic-macros)
 
@@ -78,27 +78,27 @@ CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
 CHECK_INCLUDE_FILES(sys/utsname.h HAVE_SYS_UTSNAME_H)
 CHECK_INCLUDE_FILES(ldap.h HAVE_LDAP_H)
 
-if(WITH_PAM)
+if(ENABLE_PAM)
 	CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
-endif(WITH_PAM)
+endif()
 
 CHECK_FUNCTION_EXISTS(fork HAVE_FORK)
 CHECK_FUNCTION_EXISTS(chroot HAVE_CHROOT)
 CHECK_FUNCTION_EXISTS(pathconf HAVE_PATHCONF)
 CHECK_FUNCTION_EXISTS(accept4 HAVE_ACCEPT4)
 
-if(WITH_INOTIFY)
+if(ENABLE_INOTIFY)
 	CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
 	if(HAVE_SYS_INOTIFY_H)
 		CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
 	endif(HAVE_SYS_INOTIFY_H)
-endif(WITH_INOTIFY)
+endif()
 
-if(WITH_TCMALLOC)
+if(ENABLE_TCMALLOC)
 	CHECK_INCLUDE_FILES(google/tcmalloc.h HAVE_GOOGLE_TCMALLOC_H)
 #	pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
 	set(TCMALLOC_LIBRARIES tcmalloc)
-endif(WITH_TCMALLOC)
+endif()
 
 CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
 if(HAVE_ZLIB_H)
@@ -141,10 +141,10 @@ else()
 endif()
 
 # PCRE
-option(WITH_PCRE "With PCRE support [default: off]" ON)
-if(WITH_PCRE)
+option(ENABLE_PCRE "With PCRE support [default: off]" ON)
+if(ENABLE_PCRE)
 	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
-endif(WITH_PCRE)
+endif()
 
 # ev
 find_package(EV)
@@ -153,8 +153,8 @@ link_directories(${EV_LIBRARY_DIR})
 add_definitions(${EV_CPPFLAGS})
 
 # mySQL
-option(WITH_MYSQL "With mySQL support [default: on]" ON)
-if(WITH_MYSQL)
+option(ENABLE_MYSQL "With mySQL support [default: on]" ON)
+if(ENABLE_MYSQL)
 	find_package(MYSQL)
 	include_directories(${MYSQL_INCLUDE_DIR})
 	set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
@@ -210,14 +210,14 @@ set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
 #message(STATUS "LUA include directory: " ${LUA_INCLUDE_DIRS})
 #message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
 
-if(WITH_SSL)
+if(ENABLE_SSL)
 	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
-endif(WITH_SSL)
+endif()
 
 if(BUILD_TESTS)
 	find_package(FCGI)
 	CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
-endif(BUILD_TESTS)
+endif()
 
 #if(BUILD_STATIC)
 	# ...

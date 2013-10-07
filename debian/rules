@@ -27,11 +27,11 @@ configure-stamp:
 		-DENABLE_RRD=OFF \
 		-DENABLE_IMAGEABLE=OFF \
 		\
-		-DWITH_ACCEPT4=ON \
-		-DWITH_PCRE=ON \
-		-DWITH_MYSQL=ON \
-		-DWITH_SSL=ON \
-		-DWITH_TCP_DEFER_ACCEPT=ON
+		-DENABLE_ACCEPT4=ON \
+		-DENABLE_PCRE=ON \
+		-DENABLE_MYSQL=ON \
+		-DENABLE_SSL=ON \
+		-DENABLE_TCP_DEFER_ACCEPT=ON
 	touch $@
 
 # XXX we disabled some plugins (rrd, iamgeable, webdav, ...) as they're not meant for release yet

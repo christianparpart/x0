@@ -381,7 +381,7 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 						goto syserr;
 #endif
 
-#if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
+#if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
 					if (::setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0)
 						goto syserr;
 #endif
@@ -427,7 +427,7 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 			goto syserr;
 #endif
 
-#if defined(TCP_DEFER_ACCEPT) && defined(WITH_TCP_DEFER_ACCEPT)
+#if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
 		if (::setsockopt(fd, SOL_TCP, TCP_DEFER_ACCEPT, &rc, sizeof(rc)) < 0)
 			goto syserr;
 #endif
@@ -654,7 +654,7 @@ void ServerSocket::setSocketDriver(SocketDriver* sd)
 
 void ServerSocket::accept(ev::io&, int)
 {
-#if defined(WITH_MULTI_ACCEPT)
+#if defined(ENABLE_MULTI_ACCEPT)
 	for (size_t n = multiAcceptCount_; n > 0; --n) {
 		if (!acceptOne()) {
 			break;
@@ -667,7 +667,7 @@ void ServerSocket::accept(ev::io&, int)
 
 inline bool ServerSocket::acceptOne()
 {
-#if defined(HAVE_ACCEPT4) && defined(WITH_ACCEPT4)
+#if defined(HAVE_ACCEPT4) && defined(ENABLE_ACCEPT4)
 	bool flagged = true;
 	int cfd = ::accept4(fd_, nullptr, 0, typeMask_);
 	if (cfd < 0 && errno == ENOSYS) {

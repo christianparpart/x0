@@ -334,10 +334,8 @@ void FastCgiTransport::bind(RequestNotes* rn)
 		r->setBodyCallback<FastCgiTransport, &FastCgiTransport::processRequestBody>(this);
 	}
 
-#if defined(WITH_SSL)
 	if (r->connection.isSecure())
 		params.encode("HTTPS", "on");
-#endif
 
 	// HTTP request headers
 	for (auto& i: r->requestHeaders) {

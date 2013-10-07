@@ -29,11 +29,15 @@
 
 #cmakedefine HAVE_LDAP_H
 
-#cmakedefine WITH_SSL
-#cmakedefine WITH_ACCEPT4
-#cmakedefine WITH_TCP_DEFER_ACCEPT
-#cmakedefine WITH_MULTI_ACCEPT
-#cmakedefine WITH_OPPORTUNISTIC_WRITE
+#cmakedefine ENABLE_SSL
+#cmakedefine ENABLE_INOTIFY
+#cmakedefine ENABLE_PAM
+#cmakedefine ENABLE_PCRE
+
+#cmakedefine ENABLE_ACCEPT4
+#cmakedefine ENABLE_TCP_DEFER_ACCEPT
+#cmakedefine ENABLE_MULTI_ACCEPT
+#cmakedefine ENABLE_OPPORTUNISTIC_WRITE
 
 #cmakedefine HAVE_INOTIFY_CREATE1
 #cmakedefine HAVE_FORK

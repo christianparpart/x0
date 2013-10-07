@@ -247,7 +247,6 @@ void HttpBackend::Connection::start()
 	writeBuffer_.push_back(r->connection.remoteIP());
 	writeBuffer_.push_back("\r\n");
 
-#if defined(WITH_SSL)
 	// X-Forwarded-Proto
 	if (r->requestHeader("X-Forwarded-Proto").empty()) {
 		if (r->connection.isSecure())
@@ -255,7 +254,6 @@ void HttpBackend::Connection::start()
 		else
 			writeBuffer_.push_back("X-Forwarded-Proto: http\r\n");
 	}
-#endif
 
 	// request headers terminator
 	writeBuffer_.push_back("\r\n");

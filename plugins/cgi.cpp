@@ -328,7 +328,7 @@ inline void CgiScript::runAsync()
 		process_.closeInput();
 	}
 
-#if defined(WITH_SSL)
+#if defined(ENABLE_SSL)
 	if (request_->connection.isSecure()) {
 		environment["HTTPS"] = "1";
 	}
