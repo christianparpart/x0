@@ -42,7 +42,9 @@ extern "C" {
 typedef struct x0_server_s x0_server_t;
 typedef struct x0_request_s x0_request_t;
 
-typedef void (*x0_handler_t)(x0_request_t*, void*);
+typedef void (*x0_request_handler_fn)(x0_request_t*, void* userdata);
+
+typedef void (*x0_request_body_fn)(x0_request_t*, const char* buf, size_t size, void* userdata);
 // }}}
 // {{{ server setup
 /**
@@ -84,7 +86,16 @@ X0_API int x0_worker_setup(x0_server_t* server, int count);
  * @param handler Callback handler to be invoked on every fully parsed request.
  * @param userdata Userdata to be passed to every callback in addition to the request.
  */
-X0_API void x0_setup_handler(x0_server_t* server, x0_handler_t handler, void* userdata);
+X0_API void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* userdata);
+
+/**
+ * Installs a request body handler for given request.
+ *
+ * @param r request to install the request body handler for
+ * @param handler callback for handling the request body
+ * @param userdata custom userdata poiinter to be passed to the handler
+ */
+X0_API void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata);
 
 /**
  * Configures maximum number of concurrent connections.
@@ -123,12 +134,22 @@ X0_API void x0_server_stop(x0_server_t* server);
 X0_API int x0_request_method(x0_request_t* r);
 
 /**
+ * Retrieves the request method.
+ *
+ * @param buf buffer to write the method string into (including trailing zero-byte)
+ * @param size buffer capacity.
+ *
+ * @return number of bytes written to the output buffer.
+ */
+X0_API size_t x0_request_method_str(x0_request_t* r, char* buf, size_t size);
+
+/**
  * Retrieves the request path.
  *
  * @param buf Target buffer to store the request path in.
  * @param size Capacity of the given buffer.
  *
- * @return the number of bytes stored in the target buffer, excluding trailing null-byte.
+ * @return the number of bytes stored in the target buffer, excluding trailing zero-byte.
  */
 X0_API size_t x0_request_path(x0_request_t* r, char* buf, size_t size);
 
@@ -166,9 +187,9 @@ X0_API int x0_request_header_count(x0_request_t* r);
  * Retrieves a request header at given offset.
  *
  * @param index the offset the request header to query at.
- * @param buf result buffer to store the request header's value into, including trailing null-byte.
- * @param size total size of the buffer in bytes that can be used to store the value, including trailing null-byte.
- * @return actual size of the request header (excluding trailing null-byte)
+ * @param buf result buffer to store the request header's value into, including trailing zero-byte.
+ * @param size total size of the buffer in bytes that can be used to store the value, including trailing zero-byte.
+ * @return actual size of the request header (excluding trailing zero-byte)
  */
 X0_API int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size);
 // }}}

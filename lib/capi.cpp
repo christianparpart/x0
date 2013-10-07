@@ -28,6 +28,15 @@ struct x0_request_s
 {
 	x0_server_t* server;
 	HttpRequest* request;
+
+	x0_request_body_fn body_cb;
+	void* body_userdata;
+
+	void bodyCallback(const BufferRef& ref) {
+		if (body_cb) {
+			body_cb(this, ref.data(), ref.size(), body_userdata);
+		}
+	}
 };
 
 x0_server_t* x0_server_create(struct ev_loop* loop)
@@ -76,7 +85,7 @@ void x0_server_stop(x0_server_t* server)
 	server->server.stop();
 }
 
-void x0_setup_handler(x0_server_t* server, x0_handler_t handler, void* userdata)
+void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* userdata)
 {
 	server->server.requestHandler = [=](HttpRequest* r) -> bool {
 		auto rr = new x0_request_t;
@@ -85,6 +94,11 @@ void x0_setup_handler(x0_server_t* server, x0_handler_t handler, void* userdata)
 		handler(rr, userdata);
 		return true;
 	};
+}
+
+void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata)
+{
+	r->request->setBodyCallback<x0_request_t, &x0_request_t::bodyCallback>(r);
 }
 
 void x0_setup_connection_limit(x0_server_t* li, size_t limit)
@@ -122,6 +136,17 @@ int x0_request_method(x0_request_t* r)
 		return X0_REQUEST_METHOD_DELETE;
 
 	return X0_REQUEST_METHOD_UNKNOWN;
+}
+
+size_t x0_request_method_str(x0_request_t* r, char* buf, size_t size)
+{
+	if (!size)
+		return 0;
+
+	size_t n = std::min(r->request->method.size(), size - 1);
+	memcpy(buf, r->request->method.data(), n);
+	buf[n] = '\0';
+	return n;
 }
 
 size_t x0_request_path(x0_request_t* r, char* buf, size_t size)
