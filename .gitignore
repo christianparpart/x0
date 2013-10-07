@@ -91,3 +91,4 @@ debian/x0/
 debian/tmp/
 debian/files
 *-stamp
+examples/capi-post-data
