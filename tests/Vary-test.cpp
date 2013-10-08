@@ -15,12 +15,6 @@ void dump(const Vary& vary)
 	}
 }
 
-TEST(Vary, Empty)
-{
-	Vary vary(0);
-	ASSERT_EQ(0, vary.size());
-}
-
 auto requestHeaders() -> const std::vector<Header>& {
 	static const std::vector<Header> headers = {
 		{ "Accept-Encoding", "gzip" },
@@ -28,6 +22,17 @@ auto requestHeaders() -> const std::vector<Header>& {
 		{ "User-Agent", "gtest" },
 	};
 	return headers;
+}
+
+TEST(Vary, Create0)
+{
+	auto vary = Vary::create("", requestHeaders());
+	ASSERT_TRUE(vary.get() != nullptr);
+	ASSERT_EQ(0, vary->size());
+
+	auto i = vary->begin();
+	auto e = vary->end();
+	ASSERT_EQ(true, i == e);
 }
 
 TEST(Vary, Create1)
@@ -56,10 +61,24 @@ TEST(Vary, Foreach0)
 {
 	auto vary = Vary::create("", requestHeaders());
 	ASSERT_TRUE(vary.get() != nullptr);
-	dump(*vary);
 	auto i = vary->begin();
 	auto e = vary->end();
 	ASSERT_EQ(true, i == e);
+}
+
+TEST(Vary, Foreach1)
+{
+	auto vary = Vary::create("Accept-Encoding", requestHeaders());
+
+	auto i = vary->begin();
+	auto e = vary->end();
+
+	ASSERT_TRUE(i != e);
+	ASSERT_EQ("Accept-Encoding", i.name());
+	ASSERT_EQ("gzip", i.value());
+
+	++i;
+	ASSERT_TRUE(i == e);
 }
 
 TEST(Vary, Foreach2)
