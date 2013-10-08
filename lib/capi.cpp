@@ -156,6 +156,13 @@ void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handler, voi
 	r->abort_userdata = userdata;
 }
 
+void x0_request_post(x0_request_t* r, x0_request_post_fn fn, void* userdata)
+{
+	r->request->post([=]() {
+		fn(r, userdata);
+	});
+}
+
 // --------------------------------------------------------------------------
 // REQUEST
 

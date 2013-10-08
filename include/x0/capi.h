@@ -45,6 +45,8 @@ typedef struct x0_request_s x0_request_t;
 typedef void (*x0_request_handler_fn)(x0_request_t*, void* userdata);
 typedef void (*x0_request_body_fn)(x0_request_t*, const char* buf, size_t size, void* userdata);
 typedef void (*x0_request_abort_fn)(void* userdata);
+typedef void (*x0_request_post_fn)(x0_request_t* r, void* userdata);
+
 // }}}
 // {{{ server setup
 /**
@@ -124,7 +126,7 @@ X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
 X0_API void x0_setup_autoflush(x0_server_t* s, int value);
 
 // }}}
-// {{{ request setup
+// {{{ request management
 /**
  * Installs a request body handler for given request.
  *
@@ -142,6 +144,17 @@ X0_API void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler
  * @param userdata custom userdata pointer to be passed to the handler
  */
 X0_API void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handler, void* userdata);
+
+/**
+ * Pushes a callback into the request's corresponding worker thread for execution.
+ *
+ * It is ensured that given callback is invoked from within the request's worker thread.
+ *
+ * @param r Request to enqueue the post handler to.
+ * @param fn Callback to be invoked from within the request's worker thread.
+ * @param userdata Userdata to be passed additionally to the callback.
+ */
+X0_API void x0_request_post(x0_request_t* r, x0_request_post_fn fn, void* userdata);
 // }}}
 // {{{ request inspection
 /**
