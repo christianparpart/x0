@@ -12,6 +12,7 @@
 #include <climits>
 #include <cstring>
 #include <cstdlib>
+#include <cstdarg>
 #include <cassert>
 #include <string>
 #include <stdexcept>
