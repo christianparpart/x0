@@ -18,9 +18,11 @@ using namespace x0;
 struct x0_server_s
 {
 	HttpServer server;
+	bool autoflush;
 
 	x0_server_s(struct ev_loop* loop) :
-		server(loop)
+		server(loop),
+		autoflush(true)
 	{}
 };
 
@@ -43,6 +45,7 @@ struct x0_request_s
 		abort_cb(nullptr),
 		abort_userdata(nullptr)
 	{
+		request->connection.setAutoFlush(server->autoflush);
 	}
 
 	void bodyCallback(const BufferRef& ref) {
@@ -129,6 +132,11 @@ void x0_setup_keepalive(x0_server_t* server, int count, int timeout)
 {
 	server->server.maxKeepAliveRequests = count;
 	server->server.maxKeepAlive = TimeSpan::fromSeconds(timeout);
+}
+
+void x0_setup_autoflush(x0_server_t* server, int value)
+{
+	server->autoflush = value;
 }
 
 // --------------------------------------------------------------------------
@@ -259,6 +267,11 @@ int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size)
 
 // --------------------------------------------------------------------------
 // RESPONSE
+
+void x0_response_flush(x0_request_t* r)
+{
+	r->request->connection.flush();
+}
 
 void x0_response_status_set(x0_request_t* r, int code)
 {

@@ -63,6 +63,11 @@ X0_API x0_server_t* x0_server_create(struct ev_loop* loop);
 X0_API void x0_server_destroy(x0_server_t* server, int kill);
 
 /**
+ * Signals graceful server stop.
+ */
+X0_API void x0_server_stop(x0_server_t* server);
+
+/**
  * Creates a listener to accept incoming HTTP connections on this server instance.
  *
  * @param port TODO
@@ -110,7 +115,14 @@ X0_API void x0_setup_timeouts(x0_server_t* server, int read, int write);
  */
 X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
 
-X0_API void x0_server_stop(x0_server_t* server);
+/**
+ * Sets whether or not to auto-flush given response.
+ *
+ * @param s HTTP server to set the flag for.
+ * @param value boolean indicating whether or not to auto-flush response chunks.
+ */
+X0_API void x0_setup_autoflush(x0_server_t* s, int value);
+
 // }}}
 // {{{ request setup
 /**
@@ -204,6 +216,12 @@ X0_API int x0_request_header_count(x0_request_t* r);
 X0_API int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size);
 // }}}
 // {{{ response creation
+
+/**
+ * Immediately flushes any pending response data chunks.
+ */
+X0_API void x0_response_flush(x0_request_t* r);
+
 /**
  * Sets the response status code.
  */
