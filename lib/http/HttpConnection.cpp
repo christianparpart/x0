@@ -67,6 +67,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	output_(),
 	socket_(nullptr),
 	sink_(nullptr),
+	autoFlush_(true),
 	abortHandler_(nullptr),
 	abortData_(nullptr),
 	prev_(nullptr),
@@ -511,15 +512,22 @@ void HttpConnection::write(Source* chunk)
 		TRACE(1, "write() chunk (%s)", chunk->className());
 		output_.push_back(chunk);
 
-#if defined(ENABLE_OPPORTUNISTIC_WRITE)
-		writeSome();
-#else
-		watchOutput();
-#endif
+		if (autoFlush_) {
+			flush();
+		}
 	} else {
 		TRACE(1, "write() ignore chunk (%s) - (connection aborted)", chunk->className());
 		delete chunk;
 	}
+}
+
+void HttpConnection::flush()
+{
+#if defined(ENABLE_OPPORTUNISTIC_WRITE)
+	writeSome();
+#else
+	watchOutput();
+#endif
 }
 
 /**

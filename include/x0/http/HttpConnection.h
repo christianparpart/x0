@@ -95,6 +95,10 @@ public:
 	void write(Source* buffer);
 	template<class T, class... Args> void write(Args&&... args);
 
+	void flush();
+	bool autoFlush() const { return autoFlush_; }
+	void setAutoFlush(bool value) { autoFlush_ = value; if (value) { flush(); } }
+
 	bool isOutputPending() const { return !output_.empty(); }
 	bool isHandlingRequest() const { return flags_ & IsHandlingRequest; }
 
@@ -185,6 +189,7 @@ private:
 	CompositeSource output_;			//!< pending write-chunks
 	Socket* socket_;					//!< underlying communication socket
 	SocketSink sink_;					//!< sink wrapper for socket_
+	bool autoFlush_;					//!< true if flush() is invoked automatically after every write()
 
 	// connection abort callback
 	void (*abortHandler_)(void*);
