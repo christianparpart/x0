@@ -35,7 +35,7 @@ bool testDecode(const Buffer& decoded, const Buffer& encoded) {
 }
 //}}}
 
-TEST(Base64Test, encode)
+TEST(Base64, encode)
 {
 	ASSERT_EQ("YQ==", Base64::encode(std::string("a")));
 	ASSERT_EQ("YWI=", Base64::encode(std::string("ab")));
@@ -44,7 +44,7 @@ TEST(Base64Test, encode)
 	ASSERT_EQ("Zm9vOmJhcg==", Base64::encode(std::string("foo:bar")));
 }
 
-TEST(Base64Test, decode)
+TEST(Base64, decode)
 {
 	ASSERT_EQ(true, testDecode("a",    "YQ=="));
 	ASSERT_EQ(true, testDecode("ab",   "YWI="));
