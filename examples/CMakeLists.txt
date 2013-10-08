@@ -15,7 +15,7 @@ if(ENABLE_EXAMPLES)
 		-DVERSION="${PACKAGE_VERSION}")
 
 	set(CMAKE_C_FLAGS "-std=c11")
-	set(CMAKE_CXX_FLAGS "-std=c++11")
+	set(CMAKE_CXX_FLAGS "-std=c++0x")
 
 	add_executable(app1 app1.cpp)
 	target_link_libraries(app1 XzeroBase XzeroHttp)
