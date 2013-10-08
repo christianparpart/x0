@@ -77,6 +77,7 @@ std::string Base64::encode(const unsigned char *buffer, int ALength) {
 	}
 	//*p++ = '\0';
 	int outlen = p - encoded;
+	encoded[outlen] = '\0';
 	return std::string(encoded, 0, outlen);
 }
 
