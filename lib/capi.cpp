@@ -247,7 +247,7 @@ int x0_request_header_count(x0_request_t* r)
 
 int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size)
 {
-	if (size && index < r->request->requestHeaders.size()) {
+	if (size && (size_t)index < r->request->requestHeaders.size()) {
 		const auto& header = r->request->requestHeaders[index];
 		size_t len = std::min(header.value.size(), size - 1);
 		memcpy(buf, header.value.data(), len);
