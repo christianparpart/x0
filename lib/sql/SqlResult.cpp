@@ -104,7 +104,7 @@ bool SqlResult::fetch()
 
 	for (unsigned i = 0, e = fields_.size(); i != e; ++i) {
 		if (lengths[i])
-			data_[i] = std::string(row[i], 0, lengths[i]);
+			data_[i] = std::string(row[i], lengths[i]);
 		else
 			data_[i].clear();
 	}

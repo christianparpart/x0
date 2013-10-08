@@ -34,7 +34,7 @@ std::string SqlStatement::valueAt<std::string>(unsigned index) const
 		case MYSQL_TYPE_VAR_STRING:
 		case MYSQL_TYPE_VARCHAR:
 			if (d->buffer_length) {
-				return std::string((char*)d->buffer, 0, d->buffer_length);
+				return std::string((char*)d->buffer, d->buffer_length);
 			} else
 				return std::string();
 		case MYSQL_TYPE_LONG:
@@ -42,7 +42,7 @@ std::string SqlStatement::valueAt<std::string>(unsigned index) const
 			char buf[64];
 			snprintf(buf, sizeof(buf), "%d", *(int32_t *)d->buffer);
 			return buf;
-			//return std::string((char*)d->buffer, 0, d->buffer_length);
+			//return std::string((char*)d->buffer, d->buffer_length);
 		}
 		case MYSQL_TYPE_TINY: {
 			static std::string boolstr[] = { "false", "true" };

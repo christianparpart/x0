@@ -128,7 +128,7 @@ std::unique_ptr<Vary> Vary::create(const std::string& varyHeader, const std::vec
 	vary.reset(new Vary(tokens.size()));
 	for (size_t i = 0, e = tokens.size(); i != e; ++i) {
 		auto name = tokens[i];
-		vary->names_[i] = std::string(name.data(), 0, name.size());
+		vary->names_[i] = std::string(name.data(), name.size());
 		vary->values_[i] = find(name, requestHeaders);
 	}
 
