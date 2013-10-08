@@ -117,8 +117,8 @@ inline T Vary::find(const U& name, const std::vector<HttpHeader<T>>& requestHead
 template<typename T>
 std::unique_ptr<Vary> Vary::create(const std::string& varyHeader, const std::vector<HttpHeader<T>>& requestHeaders)
 {
-	if (varyHeader.empty())
-		return std::unique_ptr<Vary>();
+//	if (varyHeader.empty())
+//		return std::unique_ptr<Vary>();
 
 	Buffer header;
 	header.push_back(varyHeader);
