@@ -23,9 +23,6 @@
 
 #include <x0/sysconfig.h>
 
-#include <x0/flow/FlowBackend.h>
-#include <x0/flow/FlowRunner.h>
-
 #include <cstring>
 #include <string>
 #include <memory>
@@ -35,8 +32,6 @@
 
 #include <ev++.h>
 
-class x0d; // friend declared in HttpServer
-
 namespace x0 {
 
 class SocketSpec;
@@ -44,18 +39,16 @@ class SocketSpec;
 //! \addtogroup http
 //@{
 
-class HttpPlugin;
 class HttpCore;
 class HttpWorker;
 
 /**
  * \brief implements the x0 web server.
  *
- * \see HttpConnection, HttpRequest, HttpPlugin
+ * \see HttpConnection, HttpRequest
  * \see HttpServer::run(), HttpServer::stop()
  */
-class X0_API HttpServer :
-	public FlowBackend
+class X0_API HttpServer
 {
 	HttpServer(const HttpServer&) = delete;
 	HttpServer& operator=(const HttpServer&) = delete;
@@ -75,8 +68,6 @@ public:
 	void setLogger(std::shared_ptr<Logger> logger);
 	Logger* logger() const;
 
-	void cycleLogs();
-
 	ev_tstamp startupTime() const { return startupTime_; }
 	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
 
@@ -88,8 +79,6 @@ public:
 	void destroyWorker(HttpWorker* worker);
 
 	// {{{ service control
-	bool setup(std::istream* settings, const std::string& filename = std::string(), int optimizationLevel = 2);
-	bool setup(const std::string& filename, int optimizationLevel = 2);
 	int run();
 	void stop();
 	void kill();
@@ -111,8 +100,6 @@ public:
 
 	unsigned generation() const { return generation_; }
 
-	void addComponent(const std::string& value);
-
 	/**
 	 * writes a log entry into the server's error log.
 	 */
@@ -132,62 +119,23 @@ public:
 	ServerSocket* setupListener(const SocketSpec& spec);
 	void destroyListener(ServerSocket* listener);
 
-	std::string pluginDirectory() const;
-	void setPluginDirectory(const std::string& value);
-
-	HttpPlugin* loadPlugin(const std::string& name, std::error_code& ec);
-	template<typename T> T* loadPlugin(const std::string& name, std::error_code& ec);
-	void unloadPlugin(const std::string& name);
-	std::vector<std::string> pluginsLoaded() const;
-
-	HttpPlugin* registerPlugin(HttpPlugin* plugin);
-	HttpPlugin* unregisterPlugin(HttpPlugin* plugin);
-
 	struct ::ev_loop* loop() const;
 
-	HttpCore& core() const;
-
 	const std::list<ServerSocket*>& listeners() const;
-
-	void dumpIR() const; // for debugging purpose
+	std::list<ServerSocket*>& listeners();
 
 	friend class HttpConnection;
-	friend class HttpPlugin;
 	friend class HttpWorker;
-	friend class HttpCore;
-
-public: // FlowBackend overrides
-	virtual void import(const std::string& name, const std::string& path);
-
-	// setup
-	bool registerSetupFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-	bool registerSetupProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-
-	// shared
-	bool registerSharedFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-	bool registerSharedProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-
-	// main
-	bool registerHandler(const std::string& name, CallbackFunction callback, void* userdata = nullptr);
-	bool registerFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-	bool registerProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	friend class XzeroCore; // FIXME: make needed functions public instead
 
 private:
 #if defined(ENABLE_SSL)
 	static void gnutls_log(int level, const char* msg);
 #endif
 
-	bool validateConfig();
-
 	void onNewConnection(Socket*, ServerSocket*);
 
 	unsigned generation_;
-	std::vector<std::string> components_;
-
-	Unit* unit_;
-	FlowRunner* runner_;
-	std::vector<std::string> setupApi_;
-	std::vector<std::string> mainApi_;
 
 	std::list<ServerSocket*> listeners_;
 	struct ::ev_loop* loop_;
@@ -195,10 +143,6 @@ private:
 	LoggerPtr logger_;
 	Severity logLevel_;
 	bool colored_log_;
-	std::string pluginDirectory_;
-	std::vector<HttpPlugin*> plugins_;
-	std::unordered_map<HttpPlugin*, Library> pluginLibraries_;
-	HttpCore* core_;
 	std::atomic<unsigned int> workerIdPool_;
 	std::vector<HttpWorker*> workers_;
 	size_t lastWorker_;
@@ -239,20 +183,14 @@ inline struct ::ev_loop* HttpServer::loop() const
 	return loop_;
 }
 
-inline HttpCore& HttpServer::core() const
-{
-	return *core_;
-}
-
 inline const std::list<ServerSocket*>& HttpServer::listeners() const
 {
 	return listeners_;
 }
 
-template<typename T>
-inline T *HttpServer::loadPlugin(const std::string& name, std::error_code& ec)
+inline std::list<ServerSocket*>& HttpServer::listeners()
 {
-	return dynamic_cast<T*>(loadPlugin(name, ec));
+	return listeners_;
 }
 
 inline Severity HttpServer::logLevel() const

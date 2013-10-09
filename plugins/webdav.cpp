@@ -15,7 +15,7 @@
  * Should be usable as an NFS-replacement at our company at least.
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -110,11 +110,11 @@ public:
  * \brief example content generator plugin
  */
 class WebDAVPlugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 public:
-	WebDAVPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+	WebDAVPlugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name)
 	{
 		registerHandler<WebDAVPlugin, &WebDAVPlugin::handleRequest>("webdav");
 	}

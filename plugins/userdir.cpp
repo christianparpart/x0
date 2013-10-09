@@ -19,7 +19,7 @@
  *     void userdir();
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -32,15 +32,15 @@
  * \brief implements automatic index file resolving, if mapped request path is a path.
  */
 class userdir_plugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	x0::HttpServer::RequestHook::Connection c;
 	std::string dirname_;
 
 public:
-	userdir_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name),
+	userdir_plugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name),
 		dirname_("/public_html")
 	{
 		registerSetupProperty<userdir_plugin, &userdir_plugin::setup_userdir>("userdir.name", x0::FlowValue::STRING);

@@ -33,7 +33,6 @@ HttpServerTest::HttpServerTest() :
 	port_(8080),
 	http_(nullptr)
 {
-	FlowRunner::initialize();
 }
 
 void HttpServerTest::SetUp()

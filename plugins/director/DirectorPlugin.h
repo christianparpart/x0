@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 
 #include <string>
@@ -26,7 +26,7 @@ class HaproxyApi;
 struct RequestNotes;
 
 class DirectorPlugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	std::unordered_map<std::string, Director*> directors_;
@@ -35,7 +35,7 @@ private:
 	x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
-	DirectorPlugin(x0::HttpServer& srv, const std::string& name);
+	DirectorPlugin(x0::XzeroDaemon* d, const std::string& name);
 	~DirectorPlugin();
 
 private:

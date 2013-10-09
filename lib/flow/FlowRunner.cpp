@@ -7,7 +7,6 @@
  */
 
 #include <x0/flow/FlowRunner.h>
-#include <x0/flow/FlowContext.h>
 #include <x0/flow/FlowParser.h>
 #include <x0/flow/FlowBackend.h>
 #include <x0/flow/FlowValue.h>
@@ -1007,7 +1006,7 @@ extern "C" X0_API int flow_regexmatch(void* cxp, size_t textLength, const char* 
 
 extern "C" X0_API int flow_regexmatch2(void* cxp, size_t textLength, const char* text, const RegExp* re)
 {
-	FlowContext* cx = static_cast<FlowContext*>(cxp);
+	RegExpContext* cx = static_cast<RegExpContext*>(cxp);
 	bool rv = re->match(text, textLength, cx->regexMatch());
 	return rv;
 }

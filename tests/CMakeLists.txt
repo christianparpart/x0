@@ -6,7 +6,7 @@ add_definitions(
 	-std=c++0x
 )
 
-if(BUILD_TESTS)
+if(ENABLE_TESTS)
 
 add_executable(x0-test x0-test.cpp
 	TokenShaper-test.cpp
@@ -25,4 +25,4 @@ add_custom_target(test
 	COMMAND ./x0-test ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-endif(BUILD_TESTS)
+endif()

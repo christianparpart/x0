@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <x0/http/HttpServer.h>
+#include <x0/flow/FlowRunner.h>
 #include <ev++.h>
 
 class MyServer
@@ -39,9 +40,9 @@ public:
 		sigterm_.start(SIGTERM);
 		ev_unref(loop_);
 
-		x0::FlowRunner::initialize();
 		http_ = new x0::HttpServer(loop_);
 
+		x0::FlowRunner::initialize();
 		http_->setup("app1.conf");
 
 		std::clog << "Running ..." << std::endl;

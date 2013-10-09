@@ -48,7 +48,6 @@
 #include "HaproxyApi.h"
 #include "ObjectCache.h"
 
-#include <x0/http/HttpPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/SocketSpec.h>
@@ -57,8 +56,8 @@
 
 using namespace x0;
 
-DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
-	HttpPlugin(srv, name),
+DirectorPlugin::DirectorPlugin(XzeroDaemon* d, const std::string& name) :
+	XzeroPlugin(d, name),
 	directors_(),
 	roadWarrior_(),
 	haproxyApi_(new HaproxyApi(&directors_))
@@ -76,7 +75,7 @@ DirectorPlugin::DirectorPlugin(HttpServer& srv, const std::string& name) :
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_http>("director.http"); // "proxy.reverse"
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_stats>("director.haproxy_stats");
 	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_monitor>("director.haproxy_monitor");
-	roadWarrior_ = new RoadWarrior(srv.selectWorker());
+	roadWarrior_ = new RoadWarrior(server().selectWorker());
 }
 
 DirectorPlugin::~DirectorPlugin()

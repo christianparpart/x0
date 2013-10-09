@@ -41,6 +41,23 @@ public:
 	const char *c_str() const;
 };
 
+class X0_API RegExpContext
+{
+public:
+	RegExpContext();
+	virtual ~RegExpContext();
+
+	RegExp::Result* regexMatch() {
+		if (!regexMatch_)
+			regexMatch_ = new RegExp::Result();
+
+		return regexMatch_;
+	}
+
+private:
+	RegExp::Result* regexMatch_;
+};
+
 } // namespace x0
 
 #endif

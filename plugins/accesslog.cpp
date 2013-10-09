@@ -20,7 +20,7 @@
  *     void accesslog.syslog();
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -47,7 +47,7 @@
  * \brief implements an accesslog log facility - in spirit of "combined" mode of apache's accesslog logs.
  */
 class AccesslogPlugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	typedef std::unordered_map<std::string, std::shared_ptr<x0::FileSink>> LogMap;
@@ -117,8 +117,8 @@ private:
 	}; // }}}
 
 public:
-	AccesslogPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name),
+	AccesslogPlugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name),
 #if defined(HAVE_SYSLOG_H)
 		syslogSink_(LOG_INFO),
 #endif

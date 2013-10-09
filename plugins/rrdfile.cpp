@@ -12,7 +12,7 @@
  * XXX However, I'll make it more worthy as soon as I have more time for stats and alike :)
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -28,7 +28,7 @@
  * \brief RRD plugin to keep stats on x0d requests per minute
  */
 class RRDFilePlugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	std::atomic<std::size_t> numRequests_;
@@ -41,14 +41,14 @@ private:
 	ev::timer evTimer_;
 
 public:
-	RRDFilePlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name),
+	RRDFilePlugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name),
 		numRequests_(0),
 		bytesIn_(0),
 		bytesOut_(0),
 		filename_(),
 		step_(0),
-		evTimer_(srv.loop())
+		evTimer_(server().loop())
 	{
 		evTimer_.set<RRDFilePlugin, &RRDFilePlugin::onTimer>(this);
 

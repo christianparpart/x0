@@ -25,7 +25,7 @@
  *     none
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpRangeDef.h>
@@ -55,7 +55,7 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class compress_plugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	std::vector<std::string> contentTypes_;
@@ -75,8 +75,8 @@ private:
 	x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
-	compress_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name),
+	compress_plugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name),
 		contentTypes_(),			// no types
 		level_(9),					// best compression
 		minSize_(256),				// 256 byte
@@ -88,7 +88,7 @@ public:
 		contentTypes_.push_back("application/xml");
 		contentTypes_.push_back("application/xhtml+xml");
 
-		postProcess_ = server_.onPostProcess.connect<compress_plugin, &compress_plugin::postProcess>(this);
+		postProcess_ = server().onPostProcess.connect<compress_plugin, &compress_plugin::postProcess>(this);
 
 		registerSetupProperty<compress_plugin, &compress_plugin::setup_types>("compress.types", x0::FlowValue::VOID);
 		registerSetupProperty<compress_plugin, &compress_plugin::setup_level>("compress.level", x0::FlowValue::VOID);
@@ -97,7 +97,7 @@ public:
 	}
 
 	~compress_plugin() {
-		server_.onPostProcess.disconnect(postProcess_);
+		server().onPostProcess.disconnect(postProcess_);
 	}
 
 private:

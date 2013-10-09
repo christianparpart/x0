@@ -1,4 +1,4 @@
-/* <HttpCore.h>
+/* <XzeroCore.h>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.io/
@@ -6,30 +6,30 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#ifndef sw_x0_HttpCore_h
-#define sw_x0_HttpCore_h 1
+#ifndef sw_x0_XzeroCore_h
+#define sw_x0_XzeroCore_h 1
 
-#include <x0/Api.h>
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/flow/FlowValue.h>
+#include <x0/Api.h>
 
 namespace x0 {
 
 //! \addtogroup http
 //@{
 
-class HttpServer;
+class XzeroDaemon;
 
-class X0_API HttpCore :
-	public HttpPlugin
+class X0_API XzeroCore :
+	public XzeroPlugin
 {
 private:
 	bool emitLLVM_;
 
 public:
-	explicit HttpCore(HttpServer& server);
-	~HttpCore();
+	explicit XzeroCore(XzeroDaemon* d);
+	~XzeroCore();
 
 	Property<unsigned long long> max_fds;
 

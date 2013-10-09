@@ -6,7 +6,7 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpResponse.h>
@@ -20,7 +20,7 @@
  * \brief provides a basic template-based mass virtual hosting facility.
  */
 class vhost_template_plugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	std::string server_root_;
@@ -30,7 +30,7 @@ private:
 
 public:
 	vhost_template_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+		x0::XzeroPlugin(srv, name)
 	{
 		c = server_.onResolveDocumentRoot.connect<vhost_template_plugin, &vhost_template_plugin::resolveDocumentRoot>(this);
 	}

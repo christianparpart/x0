@@ -1,4 +1,4 @@
-/* <x0/HttpPlugin.cpp>
+/* <XzeroPlugin.cpp>
  *
  * This file is part of the x0 web server project and is released under LGPL-3.
  * http://www.xzero.io/
@@ -6,7 +6,8 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
+#include <x0/daemon/XzeroDaemon.h>
 #include <x0/http/HttpRequest.h>
 
 namespace x0 {
@@ -16,8 +17,9 @@ namespace x0 {
   * \param srv reference to owning server object
   * \param name unique and descriptive plugin-name.
   */
-HttpPlugin::HttpPlugin(HttpServer& srv, const std::string& name) :
-	server_(srv),
+XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
+	daemon_(daemon),
+	server_(daemon->server()),
 	name_(name)
 #if !defined(XZERO_NDEBUG)
 	, debug_level_(9)
@@ -32,11 +34,11 @@ HttpPlugin::HttpPlugin(HttpServer& srv, const std::string& name) :
 
 /** \brief safely destructs the plugin.
   */
-HttpPlugin::~HttpPlugin()
+XzeroPlugin::~XzeroPlugin()
 {
 }
 
-bool HttpPlugin::post_config()
+bool XzeroPlugin::post_config()
 {
 	return true;
 }
@@ -46,14 +48,14 @@ bool HttpPlugin::post_config()
  * \retval true everything turned out well.
  * \retval false something went wrong and x0 should not startup.
  */
-bool HttpPlugin::post_check()
+bool XzeroPlugin::post_check()
 {
 	return true;
 }
 
 /** hook, invoked on log-cycle event, especially <b>SIGUSR</b> signal.
  */
-void HttpPlugin::cycleLogs()
+void XzeroPlugin::cycleLogs()
 {
 }
 

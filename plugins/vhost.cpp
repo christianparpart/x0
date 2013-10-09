@@ -19,7 +19,7 @@
  *     handler vhost.map();
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -32,7 +32,7 @@
  * \brief virtual host mapping plugin
  */
 class vhost_plugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	typedef std::map<std::string, x0::FlowValue::Function> NamedHostMap;
@@ -41,8 +41,8 @@ private:
 	NamedHostMap unqualifiedHosts_;
 
 public:
-	vhost_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+	vhost_plugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name)
 	{
 		registerSetupFunction<vhost_plugin, &vhost_plugin::addHost>("vhost.mapping", x0::FlowValue::VOID);
 		registerHandler<vhost_plugin, &vhost_plugin::mapRequest>("vhost.map");

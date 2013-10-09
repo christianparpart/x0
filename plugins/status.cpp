@@ -6,7 +6,7 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpConnection.h>
@@ -69,7 +69,7 @@ struct Stats :
  * \brief example content generator plugin
  */
 class StatusPlugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	std::list<x0::HttpConnection*> connections_;
@@ -85,8 +85,8 @@ private:
 	x0::HttpServer::RequestHook::Connection onPostProcess_;
 
 public:
-	StatusPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+	StatusPlugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name)
 	{
 		registerHandler<StatusPlugin, &StatusPlugin::handleRequest>("status");
 		registerHandler<StatusPlugin, &StatusPlugin::nginx_compat>("status.nginx_compat");

@@ -67,7 +67,7 @@
  * - http://i.dawanda.com/crop/9b9a3da6/Vorsaetze-fuer-2013.jpg ?crop=589x442%2B9%2B140 &size=336x252 &url=http%3A%2F%2Fs32.dawandastatic.com%2FCampaignImage%2F193%2F193686%2F1356685759-501.jpeg
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -250,14 +250,14 @@ void ImageableProcessor::process(Imageable* imageable)
 // }}}
 // {{{ ImageablePlugin
 class ImageablePlugin :
-	public HttpPlugin
+	public XzeroPlugin
 {
 private:
 	ImageableProcessor* processor_;
 
 public:
 	ImageablePlugin(HttpServer& srv, const std::string& name) :
-		HttpPlugin(srv, name),
+		XzeroPlugin(srv, name),
 		processor_(nullptr)
 	{
 		registerSetupFunction<ImageablePlugin, &ImageablePlugin::setWorkers>("imageable.workers");

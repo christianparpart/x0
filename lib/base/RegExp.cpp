@@ -89,4 +89,15 @@ const char *RegExp::c_str() const
 	return pattern_.c_str();
 }
 
+RegExpContext::RegExpContext() :
+	regexMatch_(nullptr)
+{
+}
+
+RegExpContext::~RegExpContext()
+{
+	if (regexMatch_ != nullptr)
+		delete regexMatch_;
+}
+
 } // namespace x0

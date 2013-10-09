@@ -6,7 +6,7 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -30,11 +30,11 @@
  * \brief example content generator plugin
  */
 class HelloPlugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 public:
-	HelloPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+	HelloPlugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name)
 	{
 		registerHandler<HelloPlugin, &HelloPlugin::handleRequest>("hello_example");
 	}

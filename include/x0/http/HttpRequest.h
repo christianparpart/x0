@@ -14,11 +14,11 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpStatus.h>
-#include <x0/flow/FlowContext.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/CallbackSource.h>
 #include <x0/io/FileInfo.h>
 #include <x0/CustomDataMgr.h>
+#include <x0/RegExp.h>
 #include <x0/Logging.h>
 #include <x0/Severity.h>
 #include <x0/Buffer.h>
@@ -50,7 +50,7 @@ class X0_API HttpRequest :
 #ifndef XZERO_NDEBUG
 	public Logging,
 #endif
-	public FlowContext
+	public RegExpContext
 {
 	CUSTOMDATA_API_INLINE
 
@@ -299,7 +299,7 @@ public:
 	bool expectingContinue;
 
 public:
-	void setErrorHandler(FlowValue::Function handler) { errorHandler_ = handler; }
+	void setErrorHandler(bool (*handler)(void*)) { errorHandler_ = handler; }
 
 	template<typename T, void (T::*cb)(Buffer& output)> void registerInspectHandler(T* object);
 	void inspect(Buffer& output);
@@ -361,7 +361,7 @@ private:
 	void (*bodyCallback_)(const BufferRef&, void*);
 	void* bodyCallbackData_;
 
-	FlowValue::Function errorHandler_;
+	bool (*errorHandler_)(void*);
 
 	bool setUri(const BufferRef& uri);
 

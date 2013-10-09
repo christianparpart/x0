@@ -27,7 +27,7 @@
  *     ttl/kill-ttl/max-scripts are not yet implemented!
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpMessageProcessor.h>
@@ -651,7 +651,7 @@ void CgiScript::onAbort(void *p)
  * \brief serves static files from server's local filesystem to client.
  */
 class CgiPlugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 private:
 	/** a set of extension-to-interpreter mappings. */
@@ -661,8 +661,8 @@ private:
 	long long ttl_;
 
 public:
-	CgiPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name),
+	CgiPlugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name),
 		interpreterMappings_(),
 		ttl_(0)
 	{

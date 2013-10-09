@@ -19,7 +19,7 @@ include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
 #option(BUILD_STATIC "Build with modules statically linked in [default: off]")
-option(BUILD_TESTS "Build unit tests [default: off]" OFF)
+option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
 
 option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
 option(ENABLE_WEBDAV "Includes WebDAV support (plugin)" OFF)
@@ -30,25 +30,28 @@ option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [def
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
 option(ENABLE_X0D "Compile x0d binary [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
+option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
 
-option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: off]" OFF)
+option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: on]" ON)
 option(ENABLE_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
 option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
-
-if(ENABLE_RRD)
-	find_package(RRD)
-endif()
-
-if(ENABLE_IMAGEABLE)
-	pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
-endif(ENABLE_IMAGEABLE)
 
 # feature flags
 option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
 option(ENABLE_SSL "Builds with SSL support [default: on]" ON)
 option(ENABLE_PAM "Build with PAM authentication support in auth plugin [default: on]" ON)
 option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
+
+if(ENABLE_PLUGINS)
+	if(ENABLE_RRD)
+		find_package(RRD)
+	endif()
+
+	if(ENABLE_IMAGEABLE)
+		pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
+	endif(ENABLE_IMAGEABLE)
+endif()
 
 add_definitions(-Wall -Wno-variadic-macros)
 
@@ -76,7 +79,6 @@ CHECK_INCLUDE_FILES(pwd.h HAVE_PWD_H)
 CHECK_INCLUDE_FILES(syslog.h HAVE_SYSLOG_H)
 CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
 CHECK_INCLUDE_FILES(sys/utsname.h HAVE_SYS_UTSNAME_H)
-CHECK_INCLUDE_FILES(ldap.h HAVE_LDAP_H)
 
 if(ENABLE_PAM)
 	CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
@@ -121,23 +123,25 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support/sd-daemon)
 
 # LLVM
-find_package(LLVM)
-include_directories(${LLVM_INCLUDE_DIR})
-link_directories(${LLVM_LIBRARY_DIR})
-set(LIBS ${LIBS} ${LLVM_LIBRARIES})
-add_definitions(${LLVM_CPPFLAGS})
+if(ENABLE_XZERO_FLOW)
+	find_package(LLVM)
+	include_directories(${LLVM_INCLUDE_DIR})
+	link_directories(${LLVM_LIBRARY_DIR})
+	set(LIBS ${LIBS} ${LLVM_LIBRARIES})
+	add_definitions(${LLVM_CPPFLAGS})
 
-string(COMPARE EQUAL "${LLVM_VERSION}" "3.0" LLVM_VERSION_3_0)
-string(COMPARE EQUAL "${LLVM_VERSION}" "3.1" LLVM_VERSION_3_1)
-string(COMPARE EQUAL "${LLVM_VERSION}" "3.3" LLVM_VERSION_3_3)
-if(${LLVM_VERSION_3_1})
-	message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-elseif(${LLVM_VERSION_3_0})
-	message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-elseif(${LLVM_VERSION_3_3})
-	message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-else()
-	message(FATAL_ERROR "LLVM version 3.0, 3.1, or 3.3 is required (You have ${LLVM_VERSION}).\nYou can pass -DLLVM_CONFIG_EXECUTABLE=/path/to/llvm-config for custom paths/names to llvm-config.")
+	string(COMPARE EQUAL "${LLVM_VERSION}" "3.0" LLVM_VERSION_3_0)
+	string(COMPARE EQUAL "${LLVM_VERSION}" "3.1" LLVM_VERSION_3_1)
+	string(COMPARE EQUAL "${LLVM_VERSION}" "3.3" LLVM_VERSION_3_3)
+	if(${LLVM_VERSION_3_1})
+		message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+	elseif(${LLVM_VERSION_3_0})
+		message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+	elseif(${LLVM_VERSION_3_3})
+		message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+	else()
+		message(FATAL_ERROR "LLVM version 3.0, 3.1, or 3.3 is required (You have ${LLVM_VERSION}).\nYou can pass -DLLVM_CONFIG_EXECUTABLE=/path/to/llvm-config for custom paths/names to llvm-config.")
+	endif()
 endif()
 
 # PCRE
@@ -160,9 +164,6 @@ if(ENABLE_MYSQL)
 	set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
 	add_definitions(${MYSQL_CFLAGS})
 endif()
-
-# valgrind
-set(VALGRIND OFF CACHE BOOL "generate binary for use with valgrind")
 
 # systemd support (implemented in support/sd-daemon/)
 set(SD_LIBRARIES sd-daemon)

@@ -23,7 +23,7 @@
  *     handler auth.require();
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -278,11 +278,11 @@ struct AuthBasic : public x0::CustomData { // {{{
 // }}}
 
 class AuthPlugin : // {{{
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 public:
-	AuthPlugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+	AuthPlugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name)
 	{
 		registerFunction<AuthPlugin, &AuthPlugin::auth_realm>("auth.realm");
 		registerFunction<AuthPlugin, &AuthPlugin::auth_userfile>("auth.userfile");

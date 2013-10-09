@@ -27,7 +27,7 @@
  * TODO: add HTML sanitizing of file/path names.
  */
 
-#include <x0/http/HttpPlugin.h>
+#include <x0/daemon/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
@@ -54,11 +54,11 @@
  * \todo allow config overrides: server/vhost/location
  */
 class dirlisting_plugin :
-	public x0::HttpPlugin
+	public x0::XzeroPlugin
 {
 public:
-	dirlisting_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::HttpPlugin(srv, name)
+	dirlisting_plugin(x0::XzeroDaemon* d, const std::string& name) :
+		x0::XzeroPlugin(d, name)
 	{
 		registerHandler<dirlisting_plugin, &dirlisting_plugin::simple>("dirlisting");
 		registerHandler<dirlisting_plugin, &dirlisting_plugin::google>("dirlisting.google");
