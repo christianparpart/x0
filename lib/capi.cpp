@@ -262,7 +262,15 @@ int x0_request_header_get(x0_request_t* r, const char* name, char* buf, size_t s
 
 int x0_request_cookie_get(x0_request_t* r, const char* cookie, char* buf, size_t size)
 {
-	return 0; // TODO cookie retrieval
+	if (size == 0)
+		return 0;
+
+	BufferRef value = r->request->cookie(cookie);
+	size_t n = std::min(value.size(), size - 1);
+	memcpy(buf, value.data(), n);
+	buf[n] = '\0';
+
+	return n;
 }
 
 int x0_request_header_count(x0_request_t* r)

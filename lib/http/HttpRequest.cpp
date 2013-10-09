@@ -433,6 +433,29 @@ BufferRef HttpRequest::requestHeader(const BufferRef& name) const
 	return BufferRef();
 }
 
+BufferRef HttpRequest::cookie(const std::string& name) const
+{
+	BufferRef cookie(requestHeader("Cookie"));
+	if (!cookie.empty() && !name.empty()) {
+		static const std::string sld("; \t");
+		Tokenizer<BufferRef> st1(cookie, sld);
+		BufferRef kv;
+
+		while (!(kv = st1.nextToken()).empty()) {
+			static const std::string s2d("= \t");
+			Tokenizer<BufferRef> st2(kv, s2d);
+			BufferRef key(st2.nextToken());
+			BufferRef value(st2.nextToken());
+			//printf("parsed cookie[%s] = '%s'\n", key.str().c_str(), value.str().c_str());
+			if (key == name) {
+				return value;
+			}
+			//cookies_[key] = value;
+		}
+	}
+	return BufferRef();
+}
+
 std::string HttpRequest::hostid() const
 {
 	if (hostid_.empty())

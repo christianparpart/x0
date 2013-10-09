@@ -286,6 +286,8 @@ public:
 	BufferRef requestHeader(const std::string& name) const;
 	BufferRef requestHeader(const BufferRef& name) const;
 
+	BufferRef cookie(const std::string& name) const;
+
 	void updatePathInfo();
 
 	// accumulated request data
