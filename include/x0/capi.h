@@ -86,7 +86,7 @@ X0_API int x0_listener_add(x0_server_t* server, const char* bind, int port, int 
  *
  * @return 0 if okay, -1 otherwise.
  */
-X0_API int x0_worker_setup(x0_server_t* server, int count);
+X0_API int x0_setup_worker_count(x0_server_t* server, int count);
 
 /**
  * @param server Server handle.

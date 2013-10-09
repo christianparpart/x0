@@ -108,6 +108,16 @@ void x0_server_stop(x0_server_t* server)
 	server->server.stop();
 }
 
+int x0_setup_worker_count(x0_server_t* server, int count)
+{
+	ssize_t current = server->server.workers().size();
+	while (current < count) {
+		server->server.spawnWorker();
+		current = server->server.workers().size();
+	}
+	return 0;
+}
+
 void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* userdata)
 {
 	server->server.requestHandler = [=](HttpRequest* r) -> bool {
