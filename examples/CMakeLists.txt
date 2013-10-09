@@ -14,7 +14,9 @@ if(ENABLE_EXAMPLES)
 		-DSYSCONFDIR="${SYSCONFDIR}"
 		-DVERSION="${PACKAGE_VERSION}")
 
-	set(CMAKE_C_FLAGS "-std=c11")
+	#not supported on GCC 4.6 (Ubuntu 12.04?)
+	#set(CMAKE_C_FLAGS "-std=c11")
+
 	set(CMAKE_CXX_FLAGS "-std=c++0x")
 
 	# FIXME: temporarily disabled, due to major restructurings in API composition
