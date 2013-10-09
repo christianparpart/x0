@@ -78,7 +78,7 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 		pthread_create(&thread_, nullptr, &HttpWorker::_run, this);
 	}
 
-	setName("worker/%d", id_);
+	setName("xzero-io/%d", id_);
 
 	TRACE(1, "spawned");
 }
