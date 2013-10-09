@@ -11,6 +11,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(FindPkgConfig)
 include(FindDoxygen)
 include(CheckIncludeFiles)
+include(CheckIncludeFileCXX)
 include(CheckFunctionExists)
 include(CheckVariableExists)
 include(CheckTypeSize)
@@ -115,7 +116,13 @@ if(HAVE_BZLIB_H)
 endif(HAVE_BZLIB_H)
 
 # TODO dynamic check for tbb
-set(TBB_LIBRARIES tbb)
+# tbb is required for director plugin and for base's TimeoutScheduler (needed?)
+CHECK_INCLUDE_FILE_CXX("tbb/tbbd.h" HAVE_TBB_TBB_H)
+SET(TBB_LIBRARIES tbb)
+IF(NOT HAVE_TBB_TBB_H)
+	MESSAGE(FATAL_ERROR "Can't find <tbb/tbb.h> include file.
+        Please install Threading Building Blocks (e.g. libtbb-dev).")
+ENDIF()
 
 # ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
