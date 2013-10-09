@@ -282,7 +282,8 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 		return;
 	}
 
-	request_ = new HttpRequest(*this);
+	if (!request_)
+		request_ = new HttpRequest(*this);
 
 	ref();
 	if (socket_->state() == Socket::Handshake) {
