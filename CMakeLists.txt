@@ -117,7 +117,7 @@ endif(HAVE_BZLIB_H)
 
 # TODO dynamic check for tbb
 # tbb is required for director plugin and for base's TimeoutScheduler (needed?)
-CHECK_INCLUDE_FILE_CXX("tbb/tbbd.h" HAVE_TBB_TBB_H)
+CHECK_INCLUDE_FILE_CXX("tbb/tbb.h" HAVE_TBB_TBB_H)
 SET(TBB_LIBRARIES tbb)
 IF(NOT HAVE_TBB_TBB_H)
 	MESSAGE(FATAL_ERROR "Can't find <tbb/tbb.h> include file.
