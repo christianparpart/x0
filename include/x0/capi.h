@@ -226,7 +226,9 @@ X0_API int x0_request_header_count(x0_request_t* r);
  * @param size total size of the buffer in bytes that can be used to store the value, including trailing zero-byte.
  * @return actual size of the request header (excluding trailing zero-byte)
  */
-X0_API int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size);
+X0_API int x0_request_header_value_geti(x0_request_t* r, off_t index, char* buf, size_t size);
+
+X0_API int x0_request_header_name_geti(x0_request_t* r, off_t index, char* buf, size_t size);
 // }}}
 // {{{ response creation
 

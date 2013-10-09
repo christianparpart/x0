@@ -260,7 +260,19 @@ int x0_request_header_count(x0_request_t* r)
 	return r->request->requestHeaders.size();
 }
 
-int x0_request_header_geti(x0_request_t* r, off_t index, char* buf, size_t size)
+int x0_request_header_name_geti(x0_request_t* r, off_t index, char* buf, size_t size)
+{
+	if (size && (size_t)index < r->request->requestHeaders.size()) {
+		const auto& header = r->request->requestHeaders[index];
+		size_t len = std::min(header.name.size(), size - 1);
+		memcpy(buf, header.name.data(), len);
+		buf[len] = '\0';
+		return len;
+	}
+	return 0;
+}
+
+int x0_request_header_value_geti(x0_request_t* r, off_t index, char* buf, size_t size)
 {
 	if (size && (size_t)index < r->request->requestHeaders.size()) {
 		const auto& header = r->request->requestHeaders[index];
