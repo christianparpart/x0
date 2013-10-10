@@ -132,6 +132,22 @@ X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
  */
 X0_API void x0_setup_autoflush(x0_server_t* s, int value);
 
+/**
+ * Sets whether or not to enable \c TCP_CORK on HTTP client connections when writing the response.
+ *
+ * @param s HTTP server to set the flag for.
+ * @param value boolean indicating whether or not to set this flag.
+ */
+X0_API void x0_server_tcp_cork_set(x0_server_t* server, int flag);
+
+/**
+ * Sets whether or not to enable \c TCP_NODELAY on HTTP client connections when writing the response.
+ *
+ * @param s HTTP server to set the flag for.
+ * @param value boolean indicating whether or not to set this flag.
+ */
+X0_API void x0_server_tcp_nodelay_set(x0_server_t* server, int flag);
+
 // }}}
 // {{{ request management
 /**

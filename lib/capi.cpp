@@ -154,6 +154,16 @@ void x0_setup_autoflush(x0_server_t* server, int value)
 	server->autoflush = value;
 }
 
+void x0_server_tcp_cork_set(x0_server_t* server, int flag)
+{
+	server->server.tcpCork = flag;
+}
+
+void x0_server_tcp_nodelay_set(x0_server_t* server, int flag)
+{
+	server->server.tcpNoDelay = flag;
+}
+
 // --------------------------------------------------------------------------
 // REQUEST SETUP
 
@@ -211,6 +221,9 @@ size_t x0_request_method(x0_request_t* r, char* buf, size_t size)
 
 size_t x0_request_path(x0_request_t* r, char* buf, size_t size)
 {
+	if (!size)
+		return 0;
+
 	size_t rsize = std::min(size - 1, r->request->path.size());
 	memcpy(buf, r->request->path.data(), rsize);
 	buf[rsize] = '\0';
@@ -219,6 +232,9 @@ size_t x0_request_path(x0_request_t* r, char* buf, size_t size)
 
 size_t x0_request_query(x0_request_t* r, char* buf, size_t size)
 {
+	if (!size)
+		return 0;
+
 	size_t rsize = std::min(size - 1, r->request->query.size());
 	memcpy(buf, r->request->query.data(), rsize);
 	buf[rsize] = '\0';
