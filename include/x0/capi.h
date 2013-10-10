@@ -48,7 +48,7 @@ typedef void (*x0_request_abort_fn)(void* userdata);
 typedef void (*x0_request_post_fn)(x0_request_t* r, void* userdata);
 
 // }}}
-// {{{ server setup
+// {{{ server management
 /**
  * Creates a new server.
  *
@@ -63,6 +63,13 @@ X0_API x0_server_t* x0_server_create(struct ev_loop* loop);
  * @param kill 1 means it'll hard-kill all currently running connections; with 0 it'll wait until all requests have been fully served.
  */
 X0_API void x0_server_destroy(x0_server_t* server, int kill);
+
+/**
+ * Runs given server's main worker until stopped.
+ *
+ * @note It is highly recommended to us this call instead of libev's ev_run() as this call is doing a little more management stuff around that call.
+ */
+X0_API void x0_server_run(x0_server_t* server);
 
 /**
  * Signals graceful server stop.

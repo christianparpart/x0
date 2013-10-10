@@ -103,6 +103,11 @@ void x0_server_destroy(x0_server_t* server, int kill)
 	delete server;
 }
 
+void x0_server_run(x0_server_t* server)
+{
+	server->server.run();
+}
+
 void x0_server_stop(x0_server_t* server)
 {
 	server->server.stop();
