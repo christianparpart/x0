@@ -1,5 +1,8 @@
 0.7.0 (to-be-released)
 
+	* general: major source tree restructures, to make things more clear.
+	* http: libXzeroHttp now no longer depends on libXzeroFlow, eliminating unneeded dependencies.
+	* http: Added C-API for basic HTTP server embedding that you can use by linking against libx0capi.so.
 	* http: Fixing regression regarding HTTP pipelining (#52).
 	* http: Added support opportunistic writes.
 	* http: Added SO_LINGER support via `lingering(timespan)` setup property.
