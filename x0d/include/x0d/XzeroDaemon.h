@@ -11,6 +11,7 @@
 #include <x0/flow/FlowRunner.h>
 
 #include <string>
+#include <unordered_map>
 #include <system_error>
 
 namespace x0 {
