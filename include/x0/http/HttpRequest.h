@@ -397,35 +397,30 @@ inline void HttpRequest::clear()
 	// XXX the remaining properties and prepare for the next request
 	// clearCustomData();
 
+	onPostProcess.clear();
+	onRequestDone.clear();
 	method.clear();
 	unparsedUri.clear();
 	path.clear();
-	fileinfo = FileInfoPtr();
-	pathinfo.clear();
 	query.clear();
+	pathinfo.clear();
+	fileinfo = FileInfoPtr();
 	httpVersionMajor = httpVersionMinor = 0;
 	hostname.clear();
 	requestHeaders.clear();
 	bytesTransmitted_ = 0;
-
 	username.clear();
 	documentRoot = "";
 	expectingContinue = false;
-
-	hostid_ = ""; // hostname ':' port
-
-	directoryDepth_ = 0;
-
-	bodyCallback_ = nullptr;
-	bodyCallbackData_ = nullptr;
-
-	errorHandler_ = nullptr;
-
 	status = HttpStatus::Undefined;
 	responseHeaders.clear();
 	outputFilters.clear();
-
 	inspectHandlers_.clear();
+	hostid_.clear();
+	directoryDepth_ = 0;
+	bodyCallback_ = nullptr;
+	bodyCallbackData_ = nullptr;
+	errorHandler_ = nullptr;
 }
 
 inline bool HttpRequest::supportsProtocol(int major, int minor) const
