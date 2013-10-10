@@ -3,7 +3,7 @@
 
 export DH_VERBOSE=1
 
-CXXFLAGS += -DNDEBUG=1
+CXXFLAGS += -DNDEBUG=1 -DXZERO_NDEBUG=1
 CXXFLAGS += -g
 
 configure: configure-stamp
@@ -14,24 +14,25 @@ configure-stamp:
 		-DSYSCONFDIR=/etc/x0 \
 		-DINCLUDEDIR=/usr/include \
 		-DLIBDIR=/usr/lib \
-		-DPLUGINDIR=/usr/lib/xzero \
-		-DLOGDIR=/var/log/x0d \
-		\
-		-DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.0 \
-		-DCMAKE_CXX_FLAGS="$(CXXFLAGS)" \
-		-DCMAKE_VERBOSE_MAKEFILE=OFF \
+		-DPLUGINDIR=/usr/lib/x0 \
+		-DLOGDIR=/var/log/x0 \
 		\
 		-DBUILD_TESTS=OFF \
 		-DENABLE_EXAMPLES=OFF \
-		-DENABLE_WEBDAV=OFF \
-		-DENABLE_RRD=OFF \
-		-DENABLE_IMAGEABLE=OFF \
+		-DENABLE_PLUGIN_WEBDAV=OFF \
+		-DENABLE_PLUGIN_RRD=OFF \
+		-DENABLE_PLUGIN_IMAGEABLE=OFF \
+		-DENABLE_PLUGIN_SSL=ON \
 		\
 		-DENABLE_ACCEPT4=ON \
 		-DENABLE_PCRE=ON \
 		-DENABLE_MYSQL=ON \
-		-DENABLE_SSL=ON \
-		-DENABLE_TCP_DEFER_ACCEPT=ON
+		-DENABLE_TCP_DEFER_ACCEPT=ON \
+		\
+		-DLLVM_CONFIG_EXECUTABLE=/usr/bin/llvm-config-3.1 \
+		-DCMAKE_CXX_FLAGS="$(CXXFLAGS)" \
+		-DCMAKE_C_FLAGS="$(CFLAGS)" \
+		-DCMAKE_VERBOSE_MAKEFILE=OFF
 	touch $@
 
 # XXX we disabled some plugins (rrd, iamgeable, webdav, ...) as they're not meant for release yet
@@ -50,8 +51,8 @@ install-stamp:
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 	mkdir -p $(CURDIR)/debian/tmp/etc/init
-	mkdir -p $(CURDIR)/debian/tmp/var/log/x0d
-	mkdir -p $(CURDIR)/debian/tmp/var/run/x0d
+	mkdir -p $(CURDIR)/debian/tmp/var/log/x0
+	mkdir -p $(CURDIR)/debian/tmp/var/run/x0
 	cp $(CURDIR)/debian/x0d.upstart $(CURDIR)/debian/tmp/etc/init/x0d.conf
 	touch $@
 
