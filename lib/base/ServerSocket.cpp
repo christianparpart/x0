@@ -27,7 +27,7 @@
 
 namespace x0 {
 
-#if !defined(XZERO_NDEBUG)
+#if 0//!defined(XZERO_NDEBUG)
 #	define TRACE(msg...) this->debug(msg)
 #else
 #	define TRACE(msg...) do { } while (0)
