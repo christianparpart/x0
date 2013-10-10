@@ -21,7 +21,7 @@
 
 // XXX one a connection has been passed to a worker, it is *bound* to it.
 
-#if !defined(XZERO_NDEBUG)
+#if 0//!defined(XZERO_NDEBUG)
 //#	define TRACE(n, msg...) X0_DEBUG("worker", (n), msg)
 #	define TRACE(n, msg...) log(Severity::debug ## n, msg)
 #else
