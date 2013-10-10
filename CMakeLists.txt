@@ -53,7 +53,7 @@ endif()
 
 if(ENABLE_PLUGIN_IMAGEABLE)
 	pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
-endif(ENABLE_IMAGEABLE)
+endif()
 
 if(ENABLE_PLUGIN_RRD)
 	find_package(RRD)
