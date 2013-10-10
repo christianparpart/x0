@@ -61,9 +61,9 @@ class X0_API HttpWorker
 
 public:
 	enum State {
-		Inactive,
-		Running,
-		Suspended
+		Inactive = 0,
+		Running = 1,
+		Suspended = 2
 	};
 
 	typedef std::list<HttpConnection*> ConnectionList;
