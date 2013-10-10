@@ -53,12 +53,13 @@ written in modern C++.
 
 - gcc >= 4.6.0 (for building only)
 - libev >= 4.0
-- LLVM 3.0 or 3.1
+- LLVM 3.0 or 3.1 or 3.3 (not 3.2 or 3.4)
 - cmake (for building only)
+- tbb, Threading Building Blocks (required)
 - zlib (optional & recommended, for compression)
 - bzip2 (optional & recommended, for compression)
 - gnutls (optional & recommended, for SSL/TLS encryption)
-- cppunit (optional, for unit testing)
+- gtest (optional, for unit testing)
 
 # HOW TO BUILD:
 
@@ -89,7 +90,10 @@ written in modern C++.
     make && make install
     
     # Run web server on port 8080
-    `pwd`/src/x0d --instant=`pwd`/www/htdocs,8080
+    `pwd`/x0d/src/x0d --instant=`pwd`/www/htdocs,8080
+    
+    # or try its CLI help
+    `pwd`/x0d/src/x0d -h
 
     # have fun hacking.
 

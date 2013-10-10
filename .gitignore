@@ -17,8 +17,10 @@ test.key
 install_manifest.txt
 certtool.cfg
 docs/html/
-src/x0d
-src/*.pid
+
+x0d/src/x0d
+x0d/src/*.pid
+
 include/x0/sysconfig.h
 src/x0/test-*.*
 src/x0/test-*
@@ -64,6 +66,7 @@ sandbox/
 XzeroBase.pc
 XzeroFlow.pc
 XzeroHttp.pc
+x0d.pc
 
 lib/libXzeroBase.so.*
 lib/libXzeroFlow.so.*

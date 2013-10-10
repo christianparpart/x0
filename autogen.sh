@@ -20,8 +20,10 @@ fi
 : ${LLVM_CONFIG_EXECUTABLE:=$(which llvm-config 2>/dev/null)}
 
 if [[ "$1" == "clean" ]]; then
+	rm -vf src/x0d
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
 			-o -name 'Makefile' -o -name cmake_install.cmake \
+			-o -name '*.so' -o -name '*.a' \
 			-o -name 'vgcore.*' -o -name core \
 			\) \
 		-exec rm -rf {} \; 2>/dev/null
