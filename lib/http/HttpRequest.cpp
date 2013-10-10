@@ -83,7 +83,7 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 	expectingContinue(false),
 	//customData(),
 
-	status(),
+	status(HttpStatus::Undefined),
 	responseHeaders(),
 	outputFilters(),
 
