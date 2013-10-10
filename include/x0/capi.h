@@ -189,6 +189,16 @@ X0_API size_t x0_request_method(x0_request_t* r, char* buf, size_t size);
 X0_API size_t x0_request_path(x0_request_t* r, char* buf, size_t size);
 
 /**
+ * Retrieves the unparsed query part.
+ *
+ * @param buf Target buffer to store the request query in.
+ * @param size Capacity of the given buffer.
+ *
+ * @return the number of bytes stored in the target buffer, excluding trailing zero-byte.
+ */
+X0_API size_t x0_request_query(x0_request_t* r, char* buf, size_t size);
+
+/**
  * Retrieves the client specified HTTP version.
  *
  * @retval X0_HTTP_VERSION_UNKNOWN Unknown/unsupported HTTP version
@@ -211,7 +221,7 @@ X0_API int x0_request_header_exists(x0_request_t* r, const char* name);
  */
 X0_API int x0_request_header_get(x0_request_t* r, const char* header_name, char* buf, size_t size);
 
-X0_API int x0_request_cookie_get(x0_request_t* r, const char* cookie, char* buf, size_t size);
+X0_API int x0_request_cookie(x0_request_t* r, const char* cookie, char* buf, size_t size);
 
 /**
  * Retrieves the total number request headers.

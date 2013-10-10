@@ -212,6 +212,14 @@ size_t x0_request_path(x0_request_t* r, char* buf, size_t size)
 	return rsize + 1;
 }
 
+size_t x0_request_query(x0_request_t* r, char* buf, size_t size)
+{
+	size_t rsize = std::min(size - 1, r->request->query.size());
+	memcpy(buf, r->request->query.data(), rsize);
+	buf[rsize] = '\0';
+	return rsize + 1;
+}
+
 int x0_request_version(x0_request_t* r)
 {
 	static const struct {
@@ -260,7 +268,7 @@ int x0_request_header_get(x0_request_t* r, const char* name, char* buf, size_t s
 	return 0;
 }
 
-int x0_request_cookie_get(x0_request_t* r, const char* cookie, char* buf, size_t size)
+int x0_request_cookie(x0_request_t* r, const char* cookie, char* buf, size_t size)
 {
 	if (size == 0)
 		return 0;
