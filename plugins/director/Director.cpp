@@ -35,7 +35,7 @@ static inline void logRequest(HttpRequest* r, int level, const char* fmt, const 
 	r->log(std::move(msg));
 }
 
-#if 1//!defined(XZERO_NDEBUG)
+#if !defined(XZERO_NDEBUG)
 //#	define TRACE(obj, level, msg...) (obj)->request->log(Severity::debug ## level, "director: " msg)
 //#	define WTRACE(level, msg...) worker_->log(Severity::debug ## level, "director: " msg)
 #	define TRACE(obj, level, msg...) ::logRequest((obj)->request, level, msg)
