@@ -96,7 +96,9 @@ static std::string sig2str(int sig)
 }
 // }}}
 
-namespace x0 {
+namespace x0d {
+
+using namespace x0;
 
 XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon, ev::loop_ref loop) :
 	daemon_(daemon),
@@ -381,4 +383,4 @@ void XzeroEventHandler::onChild(ev::child&, int)
 	}
 }
 
-} // namespace x0
+} // namespace x0d

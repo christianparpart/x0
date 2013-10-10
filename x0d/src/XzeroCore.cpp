@@ -34,7 +34,9 @@
 
 #include "sd-daemon.h"
 
-namespace x0 {
+namespace x0d {
+
+using namespace x0;
 
 static Buffer concat(const FlowParams& args)
 {
@@ -407,7 +409,7 @@ void XzeroCore::workers(const FlowParams& args, FlowValue& result)
 	if (args.size() == 1) {
 		if (args[0].isArray()) {
 			size_t i = 0;
-			size_t count = server_->workers_.size();
+			size_t count = server_->workers().size();
 
 			// spawn or set affinity of a set of workers as passed via input array
 			for (auto value: args[0].toArray()) {
@@ -415,17 +417,17 @@ void XzeroCore::workers(const FlowParams& args, FlowValue& result)
 					if (i >= count)
 						server_->spawnWorker();
 
-					server_->workers_[i]->setAffinity(value.toNumber());
+					server_->workers()[i]->setAffinity(value.toNumber());
 					++i;
 				}
 			}
 
 			// destroy workers that exceed our input array
-			for (count = server_->workers_.size(); i < count; --count) {
-				server_->destroyWorker(server_->workers_[count - 1]);
+			for (count = server_->workers().size(); i < count; --count) {
+				server_->destroyWorker(server_->workers()[count - 1]);
 			}
 		} else {
-			size_t cur = server_->workers_.size();
+			size_t cur = server_->workers().size();
 			size_t count = args.size() == 1 ? args[0].toNumber() : 1;
 
 			for (; cur < count; ++cur) {
@@ -433,12 +435,12 @@ void XzeroCore::workers(const FlowParams& args, FlowValue& result)
 			}
 
 			for (; cur > count; --cur) {
-				server_->destroyWorker(server_->workers_[cur - 1]);
+				server_->destroyWorker(server_->workers()[cur - 1]);
 			}
 		}
 	}
 
-	result.set(server_->workers_.size());
+	result.set(server_->workers().size());
 }
 
 void XzeroCore::emit_llvm(const FlowParams& args, FlowValue& result)
@@ -478,12 +480,12 @@ void XzeroCore::sys_pid(HttpRequest*, const FlowParams& args, FlowValue& result)
 
 void XzeroCore::sys_now(HttpRequest*, const FlowParams& args, FlowValue& result)
 {
-	result.set(static_cast<int64_t>(server().workers_[0]->now().unixtime()));
+	result.set(static_cast<int64_t>(server().workers()[0]->now().unixtime()));
 }
 
-void XzeroCore::sys_now_str(HttpRequest*, const FlowParams& args, FlowValue& result)
+void XzeroCore::sys_now_str(HttpRequest* r, const FlowParams& args, FlowValue& result)
 {
-	auto& s = server().workers_[0]->now().http_str();
+	auto& s = r->connection.worker().now().http_str();
 	result.set(s.data(), s.size());
 }
 // }}}
@@ -1207,4 +1209,4 @@ bool XzeroCore::redirectOnIncompletePath(HttpRequest *in)
 	return true;
 }
 
-} // namespace x0
+} // namespace x0d

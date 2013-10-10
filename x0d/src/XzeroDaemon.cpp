@@ -97,7 +97,9 @@ static std::string& gsub(std::string& buf, const std::string& src, int dst)
 }
 // }}}
 
-namespace x0 {
+namespace x0d {
+
+using namespace x0;
 
 typedef XzeroPlugin *(*plugin_create_t)(XzeroDaemon*, const std::string&);
 
@@ -1251,4 +1253,4 @@ void XzeroDaemon::dumpIR() const
 }
 // }}}
 
-} // namespace x0
+} // namespace x0d

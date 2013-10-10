@@ -27,7 +27,7 @@ if(HAVE_SECURITY_PAM_APPL_H)
 	target_link_libraries(auth pam)
 endif(HAVE_SECURITY_PAM_APPL_H)
 
-if(ENABLE_RRD)
+if(ENABLE_PLUGIN_RRD)
 	x0_plugin_simple(rrdfile)
 	set_target_properties(rrdfile PROPERTIES COMPILE_FLAGS "${CFLAGS} -I${RRD_INCLUDE_PATH}")
 	target_link_libraries(rrdfile ${RRD_LIBRARY_PATH})
@@ -38,7 +38,7 @@ endif()
 # XXX cmake version that actually supports this way of linking (or tell me how to
 # XXX do it on the older one)
 #
-#if(ENABLE_IMAGEABLE)
+#if(ENABLE_PLUGIN_IMAGEABLE)
 #	x0_plugin_simple(imageable)
 #	set_target_properties(imageable PROPERTIES COMPILE_FLAGS ${IMAGEMAGICK_CFLAGS})
 #	target_include_directories(imageable PUBLIC ${IMAGEMAGICK_INCLUDE_DIRS})
@@ -47,7 +47,7 @@ endif()
 
 x0_plugin_simple(status)
 
-if(ENABLE_WEBDAV)
+if(ENABLE_PLUGIN_WEBDAV)
 	x0_plugin_simple(webdav)
 endif()
 

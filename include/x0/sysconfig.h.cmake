@@ -29,11 +29,11 @@
 
 #cmakedefine HAVE_LDAP_H
 
-#cmakedefine ENABLE_SSL
-#cmakedefine ENABLE_INOTIFY
-#cmakedefine ENABLE_PAM
-#cmakedefine ENABLE_PCRE
+#cmakedefine ENABLE_PLUGIN_SSL
+#cmakedefine ENABLE_PLUGIN_AUTH_PAM
 
+#cmakedefine ENABLE_INOTIFY
+#cmakedefine ENABLE_PCRE
 #cmakedefine ENABLE_ACCEPT4
 #cmakedefine ENABLE_TCP_DEFER_ACCEPT
 #cmakedefine ENABLE_MULTI_ACCEPT

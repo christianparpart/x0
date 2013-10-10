@@ -129,10 +129,6 @@ public:
 	friend class XzeroCore; // FIXME: make needed functions public instead
 
 private:
-#if defined(ENABLE_SSL)
-	static void gnutls_log(int level, const char* msg);
-#endif
-
 	void onNewConnection(Socket*, ServerSocket*);
 
 	unsigned generation_;
@@ -146,6 +142,8 @@ private:
 	std::atomic<unsigned int> workerIdPool_;
 	std::vector<HttpWorker*> workers_;
 	size_t lastWorker_;
+
+public:
 	FileInfoService::Config fileinfoConfig_;
 
 public:

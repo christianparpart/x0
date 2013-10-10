@@ -12,9 +12,7 @@
 #include <x0/Socket.h>
 #include <x0/sysconfig.h>
 
-#if defined(ENABLE_SSL)
-#	include <gnutls/gnutls.h>
-#endif
+#include <gnutls/gnutls.h>
 
 class SslDriver;
 class SslContext;
@@ -25,7 +23,7 @@ class SslSocket :
 	public x0::Socket
 {
 private:
-#ifndef X0_NDEBUG
+#ifndef XZERO_NDEBUG
 	ev_tstamp ctime_;
 #endif
 

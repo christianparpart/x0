@@ -328,11 +328,9 @@ inline void CgiScript::runAsync()
 		process_.closeInput();
 	}
 
-#if defined(ENABLE_SSL)
 	if (request_->connection.isSecure()) {
 		environment["HTTPS"] = "1";
 	}
-#endif
 
 	environment["SCRIPT_FILENAME"] = request_->fileinfo->path();
 	environment["DOCUMENT_ROOT"] = request_->documentRoot;

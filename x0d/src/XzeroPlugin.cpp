@@ -10,7 +10,9 @@
 #include <x0d/XzeroDaemon.h>
 #include <x0/http/HttpRequest.h>
 
-namespace x0 {
+namespace x0d {
+
+using namespace x0;
 
 /** \brief initializes the plugin.
   *
@@ -59,4 +61,4 @@ void XzeroPlugin::cycleLogs()
 {
 }
 
-} // namespace x0
+} // namespace x0d

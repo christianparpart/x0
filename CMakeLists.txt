@@ -23,35 +23,44 @@ include(CMakeDetermineCCompiler)
 option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
 
 option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
-option(ENABLE_WEBDAV "Includes WebDAV support (plugin)" OFF)
-option(ENABLE_RRD "Includes RRD support (plugin)" OFF)
-option(ENABLE_IMAGEABLE "Includes Image Resizer plugin [default: off]" OFF)
-option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: off]" OFF)
 
-option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
-option(ENABLE_X0D "Compile x0d binary [default: on]" ON)
-option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
 option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
 
-option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: on]" ON)
-option(ENABLE_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
-option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
-option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
+option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
+option(ENABLE_PLUGIN_AUTH_PAM "Build with 'auth' plugin with PAM authentication support [default: on]" ON)
+option(ENABLE_PLUGIN_IMAGEABLE "Includes Image Resizer plugin [default: off]" OFF)
+option(ENABLE_PLUGIN_RRD "Includes RRD support (plugin) [default: off]" OFF)
+option(ENABLE_PLUGIN_SSL "Builds with SSL support [default: on]" ON)
+option(ENABLE_PLUGIN_WEBDAV "Includes WebDAV support (plugin) [default: off]" OFF)
+
+option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: off]" OFF)
+
+option(ENABLE_X0D "Compile x0d binary [default: on]" ON)
+option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
 
 # feature flags
+option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
+option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: on]" ON)
+option(ENABLE_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
+option(ENABLE_PCRE "With PCRE support [default: off]" ON)
+option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
 option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
-option(ENABLE_SSL "Builds with SSL support [default: on]" ON)
-option(ENABLE_PAM "Build with PAM authentication support in auth plugin [default: on]" ON)
 option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
 
-if(ENABLE_PLUGINS)
-	if(ENABLE_RRD)
-		find_package(RRD)
-	endif()
+if(ENABLE_PLUGIN_AUTH_PAM)
+	CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
+endif()
 
-	if(ENABLE_IMAGEABLE)
-		pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
-	endif(ENABLE_IMAGEABLE)
+if(ENABLE_PLUGIN_IMAGEABLE)
+	pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
+endif(ENABLE_IMAGEABLE)
+
+if(ENABLE_PLUGIN_RRD)
+	find_package(RRD)
+endif()
+
+if(ENABLE_PLUGIN_SSL)
+	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
 endif()
 
 add_definitions(-Wall -Wno-variadic-macros)
@@ -80,10 +89,6 @@ CHECK_INCLUDE_FILES(pwd.h HAVE_PWD_H)
 CHECK_INCLUDE_FILES(syslog.h HAVE_SYSLOG_H)
 CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
 CHECK_INCLUDE_FILES(sys/utsname.h HAVE_SYS_UTSNAME_H)
-
-if(ENABLE_PAM)
-	CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
-endif()
 
 CHECK_FUNCTION_EXISTS(fork HAVE_FORK)
 CHECK_FUNCTION_EXISTS(chroot HAVE_CHROOT)
@@ -129,8 +134,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support/sd-daemon)
 
-# LLVM
 if(ENABLE_XZERO_FLOW)
+	# LLVM
 	find_package(LLVM)
 	include_directories(${LLVM_INCLUDE_DIR})
 	link_directories(${LLVM_LIBRARY_DIR})
@@ -152,7 +157,6 @@ if(ENABLE_XZERO_FLOW)
 endif()
 
 # PCRE
-option(ENABLE_PCRE "With PCRE support [default: off]" ON)
 if(ENABLE_PCRE)
 	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
 endif()
@@ -217,10 +221,6 @@ set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
 #pkg_check_modules(LUA REQUIRED lua>=5.1)
 #message(STATUS "LUA include directory: " ${LUA_INCLUDE_DIRS})
 #message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
-
-if(ENABLE_SSL)
-	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
-endif()
 
 if(ENABLE_TESTS)
 	find_package(FCGI)
