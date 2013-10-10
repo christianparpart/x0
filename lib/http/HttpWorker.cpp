@@ -186,8 +186,8 @@ void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 	HttpConnection* c;
 	if (likely(freeConnections_ != nullptr)) {
 		c = freeConnections_;
-		freeConnections_ = freeConnections_->next_;
 		c->id_ = connectionCount_;
+		freeConnections_ = c->next_;
 	}
 	else {
 		c = new HttpConnection(this, connectionCount_/*id*/);
@@ -229,6 +229,9 @@ void HttpWorker::release(HttpConnection* c)
 
 	// link into free-list
 	c->next_ = freeConnections_;
+	c->prev_ = nullptr;					// not needed
+	if (freeConnections_ && freeConnections_->prev_)
+		freeConnections_->prev_ = c;	// not needed
 	freeConnections_ = c;
 }
 
