@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <cassert>
+#include <functional> // hash<>
 #include <string>
 #include <stdexcept>
 

@@ -10,8 +10,8 @@
 #define x0_IPAddress_h
 
 #include <x0/Api.h>
-#include <unordered_map>
 
+#include <functional>   // hash<>
 #include <cstdint>
 #include <string>
 #include <string.h>     // memset()

@@ -11,6 +11,7 @@
 
 #include <x0/Api.h>
 #include <x0/IPAddress.h>
+#include <functional>   // hash<>
 #include <string>
 
 namespace x0 {
