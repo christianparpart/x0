@@ -361,7 +361,11 @@ void HttpWorker::resume()
 
 void HttpWorker::stop()
 {
-	TRACE(1, "stop: post -> _stop()");
+	TRACE(1, "stop: post -> _stop() (while in state: %d)", state_);
+
+	if (state_ != Running)
+		return;
+
 	post<HttpWorker, &HttpWorker::_stop>(this);
 }
 
