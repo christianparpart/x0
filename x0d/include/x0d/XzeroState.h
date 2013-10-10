@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace x0 {
+namespace x0d {
 
 enum class XzeroState {
 	Inactive,

@@ -47,7 +47,7 @@
  * \brief implements an accesslog log facility - in spirit of "combined" mode of apache's accesslog logs.
  */
 class AccesslogPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	typedef std::unordered_map<std::string, std::shared_ptr<x0::FileSink>> LogMap;
@@ -117,8 +117,8 @@ private:
 	}; // }}}
 
 public:
-	AccesslogPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name),
+	AccesslogPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name),
 #if defined(HAVE_SYSLOG_H)
 		syslogSink_(LOG_INFO),
 #endif

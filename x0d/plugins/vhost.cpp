@@ -32,7 +32,7 @@
  * \brief virtual host mapping plugin
  */
 class vhost_plugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	typedef std::map<std::string, x0::FlowValue::Function> NamedHostMap;
@@ -41,8 +41,8 @@ private:
 	NamedHostMap unqualifiedHosts_;
 
 public:
-	vhost_plugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	vhost_plugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerSetupFunction<vhost_plugin, &vhost_plugin::addHost>("vhost.mapping", x0::FlowValue::VOID);
 		registerHandler<vhost_plugin, &vhost_plugin::mapRequest>("vhost.map");

@@ -14,15 +14,17 @@
 #include <system_error>
 
 namespace x0 {
+	class HttpServer;
+}
 
-class HttpServer;
+namespace x0d {
 
 class XzeroEventHandler;
 class XzeroPlugin;
 class XzeroCore;
 
 class X0_API XzeroDaemon :
-	public FlowBackend
+	public x0::FlowBackend
 {
 private:
 	friend class XzeroPlugin;
@@ -49,9 +51,9 @@ public:
 
 	void reexec();
 
-	HttpServer* server() const { return server_; }
+	x0::HttpServer* server() const { return server_; }
 
-	void log(Severity severity, const char *msg, ...);
+	void log(x0::Severity severity, const char *msg, ...);
 
 	void cycleLogs();
 
@@ -79,17 +81,17 @@ public: // FlowBackend overrides
 	virtual void import(const std::string& name, const std::string& path);
 
 	// setup
-	bool registerSetupFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-	bool registerSetupProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerSetupFunction(const std::string& name, const x0::FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerSetupProperty(const std::string& name, const x0::FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
 
 	// shared
-	bool registerSharedFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-	bool registerSharedProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerSharedFunction(const std::string& name, const x0::FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerSharedProperty(const std::string& name, const x0::FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
 
 	// main
 	bool registerHandler(const std::string& name, CallbackFunction callback, void* userdata = nullptr);
-	bool registerFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
-	bool registerProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerFunction(const std::string& name, const x0::FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
+	bool registerProperty(const std::string& name, const x0::FlowValue::Type returnType, CallbackFunction callback, void* userdata = nullptr);
 
 private:
 	bool validateConfig();
@@ -113,9 +115,9 @@ private:
 
 	std::string logTarget_;
 	std::string logFile_;
-	Severity logLevel_;
+	x0::Severity logLevel_;
 
-	Buffer instant_;
+	x0::Buffer instant_;
 	std::string documentRoot_;
 
 	int nofork_;
@@ -123,19 +125,19 @@ private:
 	int doguard_;
 	int dumpIR_;
 	int optimizationLevel_;
-	HttpServer *server_;
+	x0::HttpServer *server_;
 	unsigned evFlags_;
 	XzeroEventHandler* eventHandler_;
 
 	std::string pluginDirectory_;
 	std::vector<XzeroPlugin*> plugins_;
-	std::unordered_map<XzeroPlugin*, Library> pluginLibraries_;
+	std::unordered_map<XzeroPlugin*, x0::Library> pluginLibraries_;
 	XzeroCore* core_;
 	std::vector<std::string> components_;
 
 	// flow configuration
-	Unit* unit_;
-	FlowRunner* runner_;
+	x0::Unit* unit_;
+	x0::FlowRunner* runner_;
 	std::vector<std::string> setupApi_;
 	std::vector<std::string> mainApi_;
 

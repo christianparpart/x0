@@ -30,11 +30,11 @@
  * \brief example content generator plugin
  */
 class HelloPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	HelloPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	HelloPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerHandler<HelloPlugin, &HelloPlugin::handleRequest>("hello_example");
 	}

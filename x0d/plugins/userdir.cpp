@@ -32,15 +32,15 @@
  * \brief implements automatic index file resolving, if mapped request path is a path.
  */
 class userdir_plugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	x0::HttpServer::RequestHook::Connection c;
 	std::string dirname_;
 
 public:
-	userdir_plugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name),
+	userdir_plugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name),
 		dirname_("/public_html")
 	{
 		registerSetupProperty<userdir_plugin, &userdir_plugin::setup_userdir>("userdir.name", x0::FlowValue::STRING);

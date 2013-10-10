@@ -54,11 +54,11 @@
  * \brief adds Expires and Cache-Control response header
  */
 class ExpirePlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	ExpirePlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	ExpirePlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerFunction<ExpirePlugin, &ExpirePlugin::expire>("expire", x0::FlowValue::VOID);
 	}

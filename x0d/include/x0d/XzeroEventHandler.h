@@ -11,8 +11,11 @@
 #include <ev++.h>
 
 namespace x0 {
+	class HttpServer;
+}
 
-class HttpServer;
+namespace x0d {
+
 class XzeroDaemon;
 
 class X0_API XzeroEventHandler
@@ -55,4 +58,4 @@ private:
 	ev::child child_;
 };
 
-} // namespace x0
+} // namespace x0d

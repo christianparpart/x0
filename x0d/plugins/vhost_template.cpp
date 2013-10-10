@@ -20,7 +20,7 @@
  * \brief provides a basic template-based mass virtual hosting facility.
  */
 class vhost_template_plugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	std::string server_root_;
@@ -30,7 +30,7 @@ private:
 
 public:
 	vhost_template_plugin(x0::HttpServer& srv, const std::string& name) :
-		x0::XzeroPlugin(srv, name)
+		x0d::XzeroPlugin(srv, name)
 	{
 		c = server_.onResolveDocumentRoot.connect<vhost_template_plugin, &vhost_template_plugin::resolveDocumentRoot>(this);
 	}

@@ -17,11 +17,11 @@
  * \brief plugin with some debugging/testing helpers
  */
 class DebugPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	DebugPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	DebugPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerHandler<DebugPlugin, &DebugPlugin::slowResponse>("debug.slow_response");
 		registerHandler<DebugPlugin, &DebugPlugin::dumpCore>("debug.coredump");

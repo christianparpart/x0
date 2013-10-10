@@ -278,11 +278,11 @@ struct AuthBasic : public x0::CustomData { // {{{
 // }}}
 
 class AuthPlugin : // {{{
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	AuthPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	AuthPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerFunction<AuthPlugin, &AuthPlugin::auth_realm>("auth.realm");
 		registerFunction<AuthPlugin, &AuthPlugin::auth_userfile>("auth.userfile");

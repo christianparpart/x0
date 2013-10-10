@@ -56,8 +56,8 @@
 
 using namespace x0;
 
-DirectorPlugin::DirectorPlugin(XzeroDaemon* d, const std::string& name) :
-	XzeroPlugin(d, name),
+DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+	x0d::XzeroPlugin(d, name),
 	directors_(),
 	roadWarrior_(),
 	haproxyApi_(new HaproxyApi(&directors_))

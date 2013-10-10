@@ -20,11 +20,11 @@
  * \brief example content generator plugin
  */
 class BrowserPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	BrowserPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	BrowserPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setAncient>("browser.ancient");
 		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setModern>("browser.modern");

@@ -87,11 +87,11 @@ private:
  * \brief echo content generator plugin
  */
 class EchoPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	EchoPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	EchoPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerHandler<EchoPlugin, &EchoPlugin::handleRequest>("echo_example");
 	}

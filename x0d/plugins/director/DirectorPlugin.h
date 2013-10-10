@@ -26,7 +26,7 @@ class HaproxyApi;
 struct RequestNotes;
 
 class DirectorPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	std::unordered_map<std::string, Director*> directors_;
@@ -35,7 +35,7 @@ private:
 	x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
-	DirectorPlugin(x0::XzeroDaemon* d, const std::string& name);
+	DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name);
 	~DirectorPlugin();
 
 private:

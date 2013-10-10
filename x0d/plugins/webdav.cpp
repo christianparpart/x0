@@ -110,11 +110,11 @@ public:
  * \brief example content generator plugin
  */
 class WebDAVPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	WebDAVPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	WebDAVPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerHandler<WebDAVPlugin, &WebDAVPlugin::handleRequest>("webdav");
 	}

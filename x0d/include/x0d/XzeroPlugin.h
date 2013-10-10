@@ -23,11 +23,13 @@
 #include <system_error>
 
 namespace x0 {
-
-class HttpServer;
+	class HttpServer;
+}
 
 //! \addtogroup daemon
 //@{
+
+namespace x0d {
 
 class XzeroDaemon;
 
@@ -53,7 +55,7 @@ public:
 	virtual void cycleLogs();
 
 	template<typename... Args>
-	inline void log(Severity sv, const char *msg, Args&&... args);
+	inline void log(x0::Severity sv, const char *msg, Args&&... args);
 
 	template<typename... Args>
 	inline void debug(int level, const char *msg, Args&&... args);
@@ -64,103 +66,103 @@ public:
 #endif
 
 	XzeroDaemon& daemon() const;
-	HttpServer& server() const;
+	x0::HttpServer& server() const;
 
 protected:
-	template<typename T, void (T::*cb)(const FlowParams&, FlowValue&)> void registerSetupProperty(const std::string& name, FlowValue::Type resultType);
-	template<typename T, void (T::*cb)(const FlowParams&, FlowValue&)> void registerSetupFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
+	template<typename T, void (T::*cb)(const x0::FlowParams&, x0::FlowValue&)> void registerSetupProperty(const std::string& name, x0::FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(const x0::FlowParams&, x0::FlowValue&)> void registerSetupFunction(const std::string& name, x0::FlowValue::Type resultType = x0::FlowValue::VOID);
 
-	template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)> void registerSharedProperty(const std::string& name, FlowValue::Type resultType);
-	template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)> void registerSharedFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
+	template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)> void registerSharedProperty(const std::string& name, x0::FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)> void registerSharedFunction(const std::string& name, x0::FlowValue::Type resultType = x0::FlowValue::VOID);
 
-	template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)> void registerProperty(const std::string& name, FlowValue::Type resultType);
-	template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)> void registerFunction(const std::string& name, FlowValue::Type resultType = FlowValue::VOID);
-	template<typename T, bool (T::*cb)(HttpRequest*, const FlowParams&)> void registerHandler(const std::string& name);
+	template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)> void registerProperty(const std::string& name, x0::FlowValue::Type resultType);
+	template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)> void registerFunction(const std::string& name, x0::FlowValue::Type resultType = x0::FlowValue::VOID);
+	template<typename T, bool (T::*cb)(x0::HttpRequest*, const x0::FlowParams&)> void registerHandler(const std::string& name);
 
 protected:
 	XzeroDaemon* daemon_;
-	HttpServer* server_;
+	x0::HttpServer* server_;
 	std::string name_;
 
 #if !defined(XZERO_NDEBUG)
 	int debug_level_;
 #endif 
 private:
-	template<class T, void (T::*cb)(const FlowParams&, FlowValue&)> static void setup_thunk(void* p, FlowArray& args, void* cx);
-	template<class T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)> static void method_thunk(void* p, FlowArray& args, void* cx);
-	template<class T, bool (T::*cb)(HttpRequest*, const FlowParams&)> static void handler_thunk(void* p, FlowArray& args, void* cx);
+	template<class T, void (T::*cb)(const x0::FlowParams&, x0::FlowValue&)> static void setup_thunk(void* p, x0::FlowArray& args, void* cx);
+	template<class T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)> static void method_thunk(void* p, x0::FlowArray& args, void* cx);
+	template<class T, bool (T::*cb)(x0::HttpRequest*, const x0::FlowParams&)> static void handler_thunk(void* p, x0::FlowArray& args, void* cx);
 
 	friend class XzeroDaemon;
 };
 
 // {{{ flow integration
 // setup properties
-template<typename T, void (T::*cb)(const FlowParams&, FlowValue&)>
-void XzeroPlugin::registerSetupProperty(const std::string& name, FlowValue::Type resultType)
+template<typename T, void (T::*cb)(const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::registerSetupProperty(const std::string& name, x0::FlowValue::Type resultType)
 {
 	daemon_->registerSetupProperty(name, resultType, &setup_thunk<T, cb>, static_cast<T*>(this));
 }
 
 // setup functions
-template<typename T, void (T::*cb)(const FlowParams&, FlowValue&)>
-void XzeroPlugin::registerSetupFunction(const std::string& name, FlowValue::Type resultType)
+template<typename T, void (T::*cb)(const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::registerSetupFunction(const std::string& name, x0::FlowValue::Type resultType)
 {
 	daemon_->registerSetupFunction(name, resultType, &setup_thunk<T, cb>, static_cast<T*>(this));
 }
 
-template<class T, void (T::*cb)(const FlowParams&, FlowValue&)>
-void XzeroPlugin::setup_thunk(void* p, FlowArray& args, void* /*cx*/)
+template<class T, void (T::*cb)(const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::setup_thunk(void* p, x0::FlowArray& args, void* /*cx*/)
 {
-	FlowParams pargs(args.size() - 1, &args[1]);
+	x0::FlowParams pargs(args.size() - 1, &args[1]);
 	(static_cast<T*>(p)->*cb)(pargs, args[0]);
 }
 
 // shared
-template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)>
-void XzeroPlugin::registerSharedProperty(const std::string& name, FlowValue::Type resultType)
+template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::registerSharedProperty(const std::string& name, x0::FlowValue::Type resultType)
 {
 	daemon_->registerSharedProperty(name, resultType, &method_thunk<T, cb>, static_cast<T*>(this));
 }
 
-template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)>
-void XzeroPlugin::registerSharedFunction(const std::string& name, FlowValue::Type resultType)
+template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::registerSharedFunction(const std::string& name, x0::FlowValue::Type resultType)
 {
 	daemon_->registerSharedFunction(name, resultType, &method_thunk<T, cb>, static_cast<T*>(this));
 }
 
 // main properties
-template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)>
-void XzeroPlugin::registerProperty(const std::string& name, FlowValue::Type resultType)
+template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::registerProperty(const std::string& name, x0::FlowValue::Type resultType)
 {
 	daemon_->registerProperty(name, resultType, &method_thunk<T, cb>, static_cast<T*>(this));
 }
 
 // main functions
-template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)>
-void XzeroPlugin::registerFunction(const std::string& name, FlowValue::Type resultType)
+template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::registerFunction(const std::string& name, x0::FlowValue::Type resultType)
 {
 	daemon_->registerFunction(name, resultType, &method_thunk<T, cb>, static_cast<T*>(this));
 }
 
-template<typename T, void (T::*cb)(HttpRequest*, const FlowParams&, FlowValue&)>
-void XzeroPlugin::method_thunk(void* p, FlowArray& args, void* cx)
+template<typename T, void (T::*cb)(x0::HttpRequest*, const x0::FlowParams&, x0::FlowValue&)>
+void XzeroPlugin::method_thunk(void* p, x0::FlowArray& args, void* cx)
 {
-	FlowParams pargs(args.size() - 1, &args[1]);
-	(static_cast<T*>(p)->*cb)(static_cast<HttpRequest*>(cx), pargs, args[0]);
+	x0::FlowParams pargs(args.size() - 1, &args[1]);
+	(static_cast<T*>(p)->*cb)(static_cast<x0::HttpRequest*>(cx), pargs, args[0]);
 }
 
 // main handler
-template<typename T, bool (T::*cb)(HttpRequest *, const FlowParams&)>
+template<typename T, bool (T::*cb)(x0::HttpRequest *, const x0::FlowParams&)>
 void XzeroPlugin::registerHandler(const std::string& name)
 {
 	daemon_->registerHandler(name, &handler_thunk<T, cb>, static_cast<T*>(this));
 }
 
-template<typename T, bool (T::*cb)(HttpRequest *, const FlowParams& args)>
-void XzeroPlugin::handler_thunk(void *p, FlowArray& args, void *cx)
+template<typename T, bool (T::*cb)(x0::HttpRequest *, const x0::FlowParams& args)>
+void XzeroPlugin::handler_thunk(void *p, x0::FlowArray& args, void *cx)
 {
-	FlowParams pargs(args.size() - 1, &args[1]);
-	args[0].set((static_cast<T*>(p)->*cb)(static_cast<HttpRequest*>(cx), pargs));
+	x0::FlowParams pargs(args.size() - 1, &args[1]);
+	args[0].set((static_cast<T*>(p)->*cb)(static_cast<x0::HttpRequest*>(cx), pargs));
 }
 // }}}
 
@@ -170,7 +172,7 @@ inline XzeroDaemon& XzeroPlugin::daemon() const
 	return *daemon_;
 }
 
-inline HttpServer& XzeroPlugin::server() const
+inline x0::HttpServer& XzeroPlugin::server() const
 {
 	return *server_;
 }
@@ -182,9 +184,9 @@ inline std::string XzeroPlugin::name() const
 }
 
 template<typename... Args>
-inline void XzeroPlugin::log(Severity sv, const char *msg, Args&&... args)
+inline void XzeroPlugin::log(x0::Severity sv, const char *msg, Args&&... args)
 {
-	Buffer fmt;
+	x0::Buffer fmt;
 	fmt.push_back(name_);
 	fmt.push_back(": ");
 	fmt.push_back(msg);
@@ -198,12 +200,12 @@ inline void XzeroPlugin::debug(int level, const char *msg, Args&&... args)
 #if !defined(XZERO_NDEBUG)
 	if (level <= debug_level_)
 	{
-		Buffer fmt;
+		x0::Buffer fmt;
 		fmt.push_back(name_);
 		fmt.push_back(": ");
 		fmt.push_back(msg);
 
-		server_->log(Severity::debug, fmt.c_str(), args...);
+		server_->log(x0::Severity::debug, fmt.c_str(), args...);
 	}
 #endif
 }
@@ -225,12 +227,12 @@ inline void XzeroPlugin::debug_level(int value)
 	X0_EXPORT_PLUGIN_CLASS(pluginName##_plugin)
 
 #define X0_EXPORT_PLUGIN_CLASS(className) \
-	extern "C" X0_EXPORT x0::XzeroPlugin *x0plugin_init(x0::XzeroDaemon* d, const std::string& name) { \
+	extern "C" X0_EXPORT x0d::XzeroPlugin *x0plugin_init(x0d::XzeroDaemon* d, const std::string& name) { \
 		return new className(d, name); \
 	}
 
-//@}
+} // namespace x0d
 
-} // namespace x0
+//@}
 
 #endif

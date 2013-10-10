@@ -65,7 +65,7 @@ GCRY_THREAD_OPTION_PTHREAD_IMPL;
  * \brief SSL plugin
  */
 class SslPlugin :
-	public x0::XzeroPlugin,
+	public x0d::XzeroPlugin,
 	public SslContextSelector
 {
 private:
@@ -73,8 +73,8 @@ private:
 	std::string priorities_;
 
 public:
-	SslPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name),
+	SslPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name),
 		listeners_(),
 		priorities_("NORMAL")
 	{

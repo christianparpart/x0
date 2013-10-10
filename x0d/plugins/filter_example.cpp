@@ -66,11 +66,11 @@ x0::Buffer ExampleFilter::process(const x0::BufferRef& input)
  * \brief ...
  */
 class filter_plugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	filter_plugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	filter_plugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerFunction<filter_plugin, &filter_plugin::install_filter>("example_filter", x0::FlowValue::VOID);
 	}

@@ -55,7 +55,7 @@
  * \brief serves static files from server's local filesystem to client.
  */
 class compress_plugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	std::vector<std::string> contentTypes_;
@@ -75,8 +75,8 @@ private:
 	x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
-	compress_plugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name),
+	compress_plugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name),
 		contentTypes_(),			// no types
 		level_(9),					// best compression
 		minSize_(256),				// 256 byte

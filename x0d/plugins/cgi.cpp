@@ -651,7 +651,7 @@ void CgiScript::onAbort(void *p)
  * \brief serves static files from server's local filesystem to client.
  */
 class CgiPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	/** a set of extension-to-interpreter mappings. */
@@ -661,8 +661,8 @@ private:
 	long long ttl_;
 
 public:
-	CgiPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name),
+	CgiPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name),
 		interpreterMappings_(),
 		ttl_(0)
 	{

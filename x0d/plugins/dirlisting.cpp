@@ -54,11 +54,11 @@
  * \todo allow config overrides: server/vhost/location
  */
 class dirlisting_plugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 public:
-	dirlisting_plugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	dirlisting_plugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerHandler<dirlisting_plugin, &dirlisting_plugin::simple>("dirlisting");
 		registerHandler<dirlisting_plugin, &dirlisting_plugin::google>("dirlisting.google");

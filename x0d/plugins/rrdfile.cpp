@@ -28,7 +28,7 @@
  * \brief RRD plugin to keep stats on x0d requests per minute
  */
 class RRDFilePlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	std::atomic<std::size_t> numRequests_;
@@ -41,8 +41,8 @@ private:
 	ev::timer evTimer_;
 
 public:
-	RRDFilePlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name),
+	RRDFilePlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name),
 		numRequests_(0),
 		bytesIn_(0),
 		bytesOut_(0),

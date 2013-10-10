@@ -69,7 +69,7 @@ struct Stats :
  * \brief example content generator plugin
  */
 class StatusPlugin :
-	public x0::XzeroPlugin
+	public x0d::XzeroPlugin
 {
 private:
 	std::list<x0::HttpConnection*> connections_;
@@ -85,8 +85,8 @@ private:
 	x0::HttpServer::RequestHook::Connection onPostProcess_;
 
 public:
-	StatusPlugin(x0::XzeroDaemon* d, const std::string& name) :
-		x0::XzeroPlugin(d, name)
+	StatusPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+		x0d::XzeroPlugin(d, name)
 	{
 		registerHandler<StatusPlugin, &StatusPlugin::handleRequest>("status");
 		registerHandler<StatusPlugin, &StatusPlugin::nginx_compat>("status.nginx_compat");
