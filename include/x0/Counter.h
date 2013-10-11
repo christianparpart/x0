@@ -11,8 +11,11 @@
 #include <x0/Api.h>
 #include <x0/Buffer.h>
 
-#include <cstdint>
+#include <stdint.h>
+
+#ifndef __APPLE__
 #include <atomic>
+#endif
 
 namespace x0 {
 
@@ -24,20 +27,48 @@ public:
 	typedef size_t value_type;
 
 private:
+#ifndef __APPLE__
 	std::atomic<value_type> current_;
 	std::atomic<value_type> max_;
 	std::atomic<value_type> total_;
+#endif
 
 public:
 	Counter();
 	Counter(const Counter& other) = delete;
 	Counter& operator=(const Counter& other) = delete;
 
-	value_type operator()() const { return current_.load(); }
+	value_type operator()() const {
+#ifdef __APPLE__
+		return 0;
+#else
+		return current_.load();
+#endif
+	}
 
-	value_type current() const { return current_.load(); }
-	value_type max() const { return max_.load(); }
-	value_type total() const { return total_.load(); }
+	value_type current() const {
+#ifdef __APPLE__
+		return 0;
+#else
+		return current_.load();
+#endif
+	}
+
+	value_type max() const {
+#ifdef __APPLE__
+		return 0;
+#else
+		return max_.load();
+#endif
+}
+
+	value_type total() const {
+#ifdef __APPLE__
+		return 0;
+#else
+		return total_.load();
+#endif
+	}
 
 	Counter& operator++();
 	Counter& operator+=(size_t n);

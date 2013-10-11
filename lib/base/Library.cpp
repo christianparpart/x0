@@ -26,11 +26,13 @@ class dlfcn_error_category_impl :
 private:
 	std::vector<std::string> vector_;
 
+#ifndef __APPLE__
 public:
 	dlfcn_error_category_impl()
 	{
 		vector_.push_back("Success");
 	}
+#endif
 
 	std::error_code make()
 	{
@@ -67,12 +69,13 @@ namespace std {
 }
 
 // ------------------------------------------------------------
-
+#ifndef __APPLE__
 dlfcn_error_category_impl& dlfcn_category() throw()
 {
 	static dlfcn_error_category_impl impl;
 	return impl;
 }
+#endif
 // }}}
 
 namespace x0 {
@@ -118,7 +121,9 @@ bool Library::open(const std::string& filename, std::error_code& ec)
 
 	if (!handle_)
 	{
+#ifndef __APPLE__
 		ec = dlfcn_category().make();
+#endif
 		return false;
 	}
 
@@ -137,9 +142,11 @@ void *Library::resolve(const std::string& symbol, std::error_code& ec)
 
 	void *result = dlsym(handle_, symbol.c_str());
 
+#ifndef __APPLE__
 	if (!result)
 		ec = dlfcn_category().make();
 	else
+#endif
 		ec.clear();
 
 	return result;

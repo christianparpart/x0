@@ -177,7 +177,10 @@ void FileLogger::cycle()
 	if (filename_.empty())
 		return;
 
-	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE
+	int fd2 = ::open(filename_.c_str(), O_APPEND | O_WRONLY | O_CREAT
+#ifdef O_LARGEFILE
+			| O_LARGEFILE
+#endif
 #if defined(O_CLOEXEC)
 			| O_CLOEXEC
 #endif

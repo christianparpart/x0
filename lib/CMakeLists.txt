@@ -13,6 +13,10 @@ add_definitions(
 
 add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1)
 
+if(APPLE)
+  add_definitions(-stdlib=libc++)
+endif()
+
 # XzeroBase
 file(GLOB x0_base_SRC "base/*.cpp")
 file(GLOB x0_io_SRC "io/*.cpp")

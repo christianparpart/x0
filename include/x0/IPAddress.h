@@ -12,7 +12,7 @@
 #include <x0/Api.h>
 
 #include <functional>   // hash<>
-#include <cstdint>
+#include <stdint.h>
 #include <string>
 #include <string.h>     // memset()
 #include <netinet/in.h> // in_addr, in6_addr
