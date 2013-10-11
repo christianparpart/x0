@@ -1,16 +1,24 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
--------------------------------------------------------------------------------------
-- make http code indpendant from flow
--------------------------------------------------------------------------------------
+- provide debian package for: x0 0.7.0
+  - debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
+    - create new gpg key-pair with primary email: trapni@gmail.com
+    - officially support: >= precise, quantal, raring
+    - automate uploading to and updating the mirror per current distro
+  - upstart script (with: postinst->autostart, prerm->autostop)
+  - (5/6): sub packages:
+    - x0d
+    - x0d-dev
+    - x0d-plugins
+    - libxzero-base + dev
+    - libxzero-flow + dev
+    - libxzero-http + dev
+    - FIXME: source packages
 
-- cmake: check for TBB available (required by director plugin at least)
-- prctl(PR_SET_NAME, "max15chars_\0") for all threads, if naming is available. fall back to pthread_setname_np, or pthread_set_name_np.
 - "GET / HTP/1.1\r\n" already results into a 404, but should report "unsupported protocol"
 - HttpConnection: try to get rid of start() method, or rename it to setup() / initialize().
 - HttpConnection must get its socket at constructor time to allow setState() (etc)
   to invoke log(), as it would crash otherwise.
-- DONE: HttpConnection: fix pipelining
 - HttpConnection: IsHandlingRequest flag really needed? remove if not.
 - HttpConnection: fix the need/meaning of flags_
 - http: allow the ability to set tcp_nopush / tcp_cork per request (defaults to global setting).
@@ -60,20 +68,6 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 - ssl: properly working on real websites (also in threaded mode).
 - ssl: eliminate deprecation warnings
 - x0d: ensure basic binary upgrade and config reloads.
-
-- provide debian package for: x0 0.6.0
-  - debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
-    - create new gpg key-pair with primary email: trapni@gmail.com
-    - officially support: >= precise, quantal, raring
-    - automate uploading to and updating the mirror per current distro
-  - upstart script (with: postinst->autostart, prerm->autostop)
-  - (5/6): sub packages:
-    - DONE: x0d
-    - DONE: x0-plugins
-    - DONE: libxzero-base + dev
-    - DONE: libxzero-flow + dev
-    - DONE: libxzero-http + dev
-    - source packages (how?)
 
 -----------------------------------------------------------------------------
    runtime configuration file reloading
