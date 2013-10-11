@@ -337,19 +337,18 @@ bool ServerSocket::open(const std::string& address, int port, int flags)
 	typeMask_ = 0;
 	flags_ = flags;
 
-#ifdef O_CLOEXEC
+#ifndef __APPLE__
 	if (flags & O_CLOEXEC) {
 		flags_ &= ~O_CLOEXEC;
 		typeMask_ |= SOCK_CLOEXEC;
 	}
-#endif
-
+	
+	// FIXME TODO mac osx build uses blocking io!
 	if (flags & O_NONBLOCK) {
-#ifdef __APPLE__
 		flags_ &= ~O_NONBLOCK;
 		typeMask_ |= SOCK_NONBLOCK;
-#endif
 	}
+#endif
 
 	// check if passed by parent x0d first
 	for (ri = res; ri != nullptr; ri = ri->ai_next) {
@@ -495,15 +494,18 @@ bool ServerSocket::open(const std::string& path, int flags)
 	typeMask_ = 0;
 	flags_ = flags;
 
+#ifndef __APPLE__
 	if (flags & O_CLOEXEC) {
 		flags_ &= ~O_CLOEXEC;
 		typeMask_ |= SOCK_CLOEXEC;
 	}
 
+	// FIXME TODO mac osx build uses blocking io!
 	if (flags & O_NONBLOCK) {
 		flags_ &= ~O_NONBLOCK;
 		typeMask_ |= SOCK_NONBLOCK;
 	}
+#endif
 
 	// check if passed by parent x0d first
 	if ((fd = x0::getSocketUnix(path.c_str())) >= 0) {
