@@ -26,7 +26,6 @@ if [[ "$1" == "clean" ]]; then
 	rm -vf debian/*.debhelper
 	rm -rvf debian/{files,tmp,x0d,x0d-plugins}
 	rm -rvf debian/libxzero-{base,http,flow}{,-dev}
-	exit 0
 
 	rm -vf x0d/src/x0d
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
