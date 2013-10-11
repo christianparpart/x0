@@ -18,7 +18,11 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#ifdef __APPLE__
+#include <sys/uio.h>
+#else
 #include <sys/sendfile.h>
+#endif
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -246,7 +250,7 @@ bool Socket::setNonBlocking(bool enabled)
 bool Socket::setTcpNoDelay(bool enable)
 {
 	int flag = enable ? 1 : 0;
-	return setsockopt(fd_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0;
+	return setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0;
 }
 
 bool Socket::setTcpCork(bool enable)
@@ -413,16 +417,25 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 		return 0;
 
 #if !defined(XZERO_NDEBUG)
-	auto offset0 = *offset;
-	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
-	TRACE("write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset0, *offset, nbytes, rv);
+	auto offset_ = *offset;
+#ifdef __APPLE__
+	ssize_t rv = ::sendfile(fd_, fd, offset_, (off_t *) &nbytes, NULL, 0);
+#else
+	ssize_t rv = ::sendfile(fd_, fd, offset_, nbytes);
+#endif
+
+	TRACE("write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset_, *offset, nbytes, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
 
 	return rv;
 #else
+#ifdef __APPLE__
+	return ::sendfile(fd_, fd, offset, (off_t *) &nbytes, NULL, 0);
+#else
 	return ::sendfile(fd_, fd, offset, nbytes);
+#endif
 #endif
 }
 
