@@ -419,7 +419,7 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #if !defined(XZERO_NDEBUG)
 	auto offset_ = *offset;
 #ifdef __APPLE__
-	ssize_t rv = ::sendfile(fd_, fd, offset, (off_t *) &nbytes, NULL, 0);
+	ssize_t rv = ::sendfile(fd_, fd, offset_, (off_t *) &nbytes, NULL, 0);
 #else
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
 #endif
