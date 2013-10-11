@@ -20,7 +20,15 @@ fi
 : ${LLVM_CONFIG_EXECUTABLE:=$(which llvm-config 2>/dev/null)}
 
 if [[ "$1" == "clean" ]]; then
-	rm -vf src/x0d
+	rm -vf {configure,build,install}-stamp
+	rm -vf debian/*.log
+	rm -vf debian/*.substvars
+	rm -vf debian/*.debhelper
+	rm -rvf debian/{files,tmp,x0d,x0d-plugins}
+	rm -rvf debian/libxzero-{base,http,flow}{,-dev}
+	exit 0
+
+	rm -vf x0d/src/x0d
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
 			-o -name 'Makefile' -o -name cmake_install.cmake \
 			-o -name '*.so' -o -name '*.a' \
