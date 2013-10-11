@@ -3,7 +3,6 @@ add_definitions(
 	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
-	-stdlib=libc++
 	-DPACKAGE_NAME="${PACKAGE_NAME}"
 	-DPACKAGE_VERSION="${PACKAGE_VERSION}"
 	-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
@@ -13,6 +12,10 @@ add_definitions(
 	-DVERSION="${PACKAGE_VERSION}")
 
 add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1)
+
+if(APPLE)
+  add_definitions(-stdlib=libc++)
+endif()
 
 # XzeroBase
 file(GLOB x0_base_SRC "base/*.cpp")
