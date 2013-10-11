@@ -246,7 +246,7 @@ bool Socket::setNonBlocking(bool enabled)
 bool Socket::setTcpNoDelay(bool enable)
 {
 	int flag = enable ? 1 : 0;
-	return setsockopt(fd_, SOL_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0;
+	return setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0;
 }
 
 bool Socket::setTcpCork(bool enable)
