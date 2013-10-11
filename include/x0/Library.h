@@ -11,6 +11,7 @@
 
 #include <x0/Api.h>
 #include <system_error>
+#include <string>
 
 namespace x0 {
 
