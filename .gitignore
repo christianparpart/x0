@@ -32,6 +32,7 @@ tests/x0-test
 examples/app1
 examples/tcp-echo-server
 examples/capi-app1
+examples/capi-post-data
 core
 core.*
 vgcore.*
@@ -80,18 +81,17 @@ tags
 cscope.*
 
 # debian packaging temp files
-debian/*.substvars
-debian/*.debhelper
-debian/libxzero-base/
-debian/libxzero-flow/
-debian/libxzero-http/
-debian/libxzero-base-dev/
-debian/libxzero-flow-dev/
-debian/libxzero-http-dev/
-debian/x0-plugins/
-debian/x0d/
-debian/x0/
-debian/tmp/
-debian/files
-*-stamp
-examples/capi-post-data
+#debian/*.substvars
+#debian/*.debhelper
+#debian/libxzero-base/
+#debian/libxzero-flow/
+#debian/libxzero-http/
+#debian/libxzero-base-dev/
+#debian/libxzero-flow-dev/
+#debian/libxzero-http-dev/
+#debian/x0-plugins/
+#debian/x0d/
+#debian/x0/
+#debian/tmp/
+#debian/files
+#*-stamp
