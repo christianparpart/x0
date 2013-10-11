@@ -11,7 +11,6 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/ServerSocket.h>
 #include <x0/SocketSpec.h>
-#include <x0/Error.h>
 #include <x0/Logger.h>
 #include <x0/DebugLogger.h>
 #include <x0/Library.h>
