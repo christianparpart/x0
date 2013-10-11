@@ -9,7 +9,7 @@
 #pragma once
 
 #include <x0/TaggedPtr.h>
-#include <cstdint>
+#include <stdint.h>
 #include <atomic>
 
 namespace x0 {

@@ -18,4 +18,13 @@
 #	define X0_API X0_IMPORT
 #endif
 
+#if defined(__cplusplus) && defined(__APPLE__)
+// XXX WORKAROUND FOR APPLE OS X
+namespace std {
+        template<typename T> const T& move(const T& value) { return value; }
+        template<typename T> const T& forward(const T& value) { return value; }
+        template<typename> struct hash;
+}
+#endif
+
 #endif
