@@ -13,10 +13,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#if !defined(XZERO_NDEBUG)
-#	include <ev.h> // required for DEBUG()
-#endif
-
 // platforms
 #if defined(_WIN32) || defined(__WIN32__)
 #	define X0_OS_WIN32 1
@@ -110,15 +106,8 @@
 /// the filename only part of __FILE__ (no leading path)
 #define __FILENAME__ ((std::strrchr(__FILE__, '/') ?: __FILE__ - 1) + 1)
 
-#if !defined(XZERO_NDEBUG) && defined(__cplusplus)
-#	include <string>
-#	include <ctime>
-#	include <ev.h>
-#	define DEBUG(msg...) do {                               \
-		std::printf("%0.6f: ", ev_now(ev_default_loop(0))); \
-		std::printf(msg); std::printf("\n");                \
-	} while (false)
-#else
+#if !defined(DEBUG)
+// TODO remove me
 #	define DEBUG(msg...) /*!*/
 #endif
 
