@@ -19,10 +19,6 @@ namespace x0 {
 #	define TRACE(msg...) /*!*/
 #endif
 
-#if defined(HAVE_SYS_INOTIFY_H)
-#	undef HAVE_SYS_INOTIFY_H
-#endif
-
 FileInfoService::FileInfoService(struct ::ev_loop *loop, const Config *config) :
 	loop_(loop),
 #if defined(HAVE_SYS_INOTIFY_H)
