@@ -90,9 +90,9 @@ public:
 
 	int open(int flags = O_RDONLY
 #ifndef __APPLE__
-| O_NOATIME
+		| O_NOATIME
 #endif
-);
+	);
 
 private:
 	std::string get_mime_type(std::string ext) const;
