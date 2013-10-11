@@ -3,7 +3,8 @@
  * It just serves static pages.
  */
 #include <x0/http/HttpServer.h>
-#include <x0/flow/FlowRunner.h>
+#include <x0/http/HttpRequest.h>
+#include <x0/io/BufferSource.h>
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -33,8 +34,15 @@ public:
 
 	bool requestHandler(x0::HttpRequest* r)
 	{
+		x0::Buffer body;
+		body.push_back("Hello, World\n");
+
 		r->status = x0::HttpStatus::ServiceUnavailable;
+		r->responseHeaders.push_back("Content-Type", "text/plain");
+		r->write<x0::BufferSource>(body);
 		r->finish();
+
+		return true;
 	}
 
 	int run()
@@ -44,8 +52,9 @@ public:
 		sigterm_.start(SIGTERM);
 		ev_unref(loop_);
 
-		http_.reset(x0::HttpServer(loop_));
-		http_->requestHandler = std::bind(MyServer::requestHandler, this, std::placeholders::_1);
+		http_.reset(new x0::HttpServer(loop_));
+		http_->requestHandler = std::bind(&MyServer::requestHandler, this, std::placeholders::_1);
+		http_->setupListener("0.0.0.0", 3000);
 
 		std::clog << "Running ..." << std::endl;
 		int rv = http_->run();
