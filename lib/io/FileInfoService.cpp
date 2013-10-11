@@ -25,7 +25,7 @@ namespace x0 {
 
 FileInfoService::FileInfoService(struct ::ev_loop *loop, const Config *config) :
 	loop_(loop),
-#if 1 // defined(HAVE_SYS_INOTIFY_H)
+#if defined(HAVE_SYS_INOTIFY_H)
 	handle_(-1),
 	inotify_(loop_),
 	inotifies_(),
