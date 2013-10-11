@@ -29,7 +29,6 @@
 #include <x0/Process.h>
 #include <x0/Buffer.h>
 #include <x0/Types.h>
-#include <x0/gai_error.h>
 #include <x0/StackTrace.h>
 #include <x0/sysconfig.h>
 
