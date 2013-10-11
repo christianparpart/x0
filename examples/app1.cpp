@@ -37,7 +37,7 @@ public:
 		x0::Buffer body;
 		body.push_back("Hello, World\n");
 
-		r->status = x0::HttpStatus::ServiceUnavailable;
+		r->status = x0::HttpStatus::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/plain");
 		r->write<x0::BufferSource>(body);
 		r->finish();
