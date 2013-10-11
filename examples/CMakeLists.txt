@@ -20,8 +20,8 @@ if(ENABLE_EXAMPLES)
 	set(CMAKE_CXX_FLAGS "-std=c++0x")
 
 	# FIXME: temporarily disabled, due to major restructurings in API composition
-	#add_executable(app1 app1.cpp)
-	#target_link_libraries(app1 XzeroBase XzeroHttp)
+	add_executable(app1 app1.cpp)
+	target_link_libraries(app1 XzeroBase XzeroHttp)
 
 	add_executable(capi-app1 capi-app1.c)
 	target_link_libraries(capi-app1 XzeroBase x0capi)

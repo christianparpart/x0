@@ -2,24 +2,24 @@
  *
  * It just serves static pages.
  */
-#include <iostream>
-#include <fstream>
 #include <x0/http/HttpServer.h>
 #include <x0/flow/FlowRunner.h>
+#include <iostream>
+#include <fstream>
+#include <memory>
 #include <ev++.h>
 
-class MyServer
-{
+class MyServer {
 private:
 	struct ev_loop* loop_;
 	ev::sig sigterm_;
-	x0::HttpServer* http_;
+	std::unique_ptr<x0::HttpServer> http_;
 
 public:
 	MyServer() :
 		loop_(ev_default_loop()),
 		sigterm_(loop_),
-		http_(nullptr)
+		http_()
 	{
 	}
 
@@ -29,8 +29,12 @@ public:
 			ev_ref(loop_);
 			sigterm_.stop();
 		}
+	}
 
-		delete http_;
+	bool requestHandler(x0::HttpRequest* r)
+	{
+		r->status = x0::HttpStatus::ServiceUnavailable;
+		r->finish();
 	}
 
 	int run()
@@ -40,10 +44,8 @@ public:
 		sigterm_.start(SIGTERM);
 		ev_unref(loop_);
 
-		http_ = new x0::HttpServer(loop_);
-
-		x0::FlowRunner::initialize();
-		http_->setup("app1.conf");
+		http_.reset(x0::HttpServer(loop_));
+		http_->requestHandler = std::bind(MyServer::requestHandler, this, std::placeholders::_1);
 
 		std::clog << "Running ..." << std::endl;
 		int rv = http_->run();
