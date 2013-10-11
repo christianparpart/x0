@@ -14,10 +14,6 @@ namespace x0 {
 class ErrorCategoryImpl :
 	public std::error_category
 {
-public:
-	ErrorCategoryImpl()
-	{
-	}
 
 	virtual const char *name() const noexcept(true)
 	{
@@ -37,13 +33,16 @@ public:
 		};
 		return msg[ec];
 	}
+
 };
 
+#ifndef __APPLE__
 const std::error_category& errorCategory() throw()
 {
 	static ErrorCategoryImpl errorCategoryImpl_;
 	return errorCategoryImpl_;
 }
+#endif
 
 } // namespace x0
 

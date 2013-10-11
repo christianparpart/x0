@@ -16,10 +16,6 @@ namespace x0 {
 class gai_error_category_impl :
 	public std::error_category
 {
-public:
-	gai_error_category_impl() noexcept
-	{
-	}
 
 	virtual const char *name() const noexcept(true)
 	{
@@ -32,11 +28,13 @@ public:
 	}
 };
 
+#ifndef __APPLE__
 gai_error_category_impl gai_category_impl_;
 
 const std::error_category& gai_category() throw()
 {
 	return gai_category_impl_;
 }
+#endif
 
 } // namespace x0
