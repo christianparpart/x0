@@ -17,5 +17,11 @@
 #else
 #	define X0_API X0_IMPORT
 #endif
-
+namespace std {
+        template<typename T>
+        const T& move(const T& value) { return value; }
+        template<typename T>
+        const T& forward(const T& value) { return value; }
+        template<typename T> struct hash;
+}
 #endif

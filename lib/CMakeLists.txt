@@ -3,6 +3,7 @@ add_definitions(
 	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
+	-stdlib=libc++
 	-DPACKAGE_NAME="${PACKAGE_NAME}"
 	-DPACKAGE_VERSION="${PACKAGE_VERSION}"
 	-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
