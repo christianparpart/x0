@@ -1,5 +1,5 @@
 debian/tmp/etc/x0/*
 debian/tmp/usr/sbin/x0d
 debian/tmp/usr/share/man/*
-debian/tmp/var/log/x0d
+debian/tmp/var/log/x0
 debian/tmp/etc/init/x0d.conf
