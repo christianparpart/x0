@@ -25,13 +25,17 @@ public:
 	HttpFileRef(HttpFile* f) :
 		object_(f)
 	{
-		object_->ref();
+		if (object_) {
+			object_->ref();
+		}
 	}
 
 	HttpFileRef(const HttpFileRef& v) :
 		object_(v.object_)
 	{
-		object_->ref();
+		if (object_) {
+			object_->ref();
+		}
 	}
 
 	HttpFileRef& operator=(const HttpFileRef& v)
