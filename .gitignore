@@ -33,6 +33,7 @@ tests/x0-test
 examples/app1
 examples/tcp-echo-server
 examples/capi-app1
+examples/capi-app2
 examples/capi-post-data
 core
 core.*
