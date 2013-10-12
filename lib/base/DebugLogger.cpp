@@ -22,6 +22,18 @@ DebugLogger::Instance::~Instance()
 {
 }
 
+void DebugLogger::Instance::enable()
+{
+	printf("Instance(%s).enable()\n", tag_.c_str());
+	enabled_ = true;
+}
+
+void DebugLogger::Instance::disable()
+{
+	printf("Instance(%s).disable()\n", tag_.c_str());
+	enabled_ = false;
+}
+
 void DebugLogger::Instance::setPreference(const std::string& value)
 {
 	static const struct {

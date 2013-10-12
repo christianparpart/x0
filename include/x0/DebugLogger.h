@@ -24,8 +24,8 @@ public:
 		const std::string& tag() const { return tag_; }
 		bool isEnabled() const { return enabled_; }
 		void setEnabled(bool value) { enabled_ = value; }
-		void enable() { enabled_ = true; }
-		void disable() { enabled_ = false; }
+		void enable();
+		void disable();
 
 		void setVerbosity(int value) { verbosity_ = value; }
 		void setPreference(const std::string& value);
