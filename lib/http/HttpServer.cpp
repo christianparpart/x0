@@ -97,10 +97,12 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	maxRequestHeaderCount(100),
 	maxRequestBodySize(2 * 1024 * 1024)
 {
+#ifndef __APPLE__
 	DebugLogger::get().onLogWrite = [&](const char* msg, size_t n) {
 		LogMessage lm(Severity::debug1, "%s", msg);
 		logger_->write(lm);
 	};
+#endif
 
 	HttpRequest::initialize();
 
@@ -131,9 +133,12 @@ HttpServer::~HttpServer()
 	while (!workers_.empty())
 		destroyWorker(workers_[workers_.size() - 1]);
 
+#ifndef __APPLE__
 	// explicit cleanup
 	DebugLogger::get().reset();
+#endif
 }
+
 
 void HttpServer::onNewConnection(Socket* cs, ServerSocket* ss)
 {
@@ -249,6 +254,7 @@ void HttpServer::log(LogMessage&& msg)
 {
 	if (logger_) {
 #if !defined(XZERO_NDEBUG)
+#ifndef __APPLE__
 		if (msg.isDebug() && msg.hasTags() && DebugLogger::get().isConfigured()) {
 			int level = 3 - msg.severity(); // compute proper debug level
 			Buffer text;
@@ -261,6 +267,7 @@ void HttpServer::log(LogMessage&& msg)
 			DebugLogger::get().logUntagged(tag.str(), level, "%s", text.c_str());
 			return;
 		}
+#endif
 #endif
 		logger_->write(msg);
 	}
