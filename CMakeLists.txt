@@ -65,6 +65,9 @@ endif()
 
 add_definitions(-Wall -Wno-variadic-macros)
 
+# temporary workaround for: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=56627
+add_definitions(-Wno-mismatched-tags)
+
 # we need the following definitions in order to get some special
 # OS-level features like posix_fadvise() or readahead().
 add_definitions(-DXOPEN_SOURCE=600)
