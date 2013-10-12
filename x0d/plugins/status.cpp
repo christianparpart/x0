@@ -372,7 +372,7 @@ private:
 			out << "<td class='host'>" << sanitize(r->hostname) << "</td>";
 			out << "<td class='method'>" << sanitize(r->method) << "</td>";
 			out << "<td class='uri'>" << sanitize(r->unparsedUri) << "</td>";
-			out << "<td class='status'>" << x0::make_error_code(r->status).message() << "</td>";
+			out << "<td class='status'>" << r->statusStr(r->status) << "</td>";
 		} else {
 			out << "<td colspan='5'>" << "</td>";
 		}
