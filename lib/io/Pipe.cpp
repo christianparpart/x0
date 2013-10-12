@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#ifndef __APPLE__
 namespace x0 {
 
 /* creates a pipe
@@ -107,3 +108,4 @@ ssize_t Pipe::read(int fd, off_t* fd_off, size_t size)
 }
 
 } // namespace x0
+#endif
