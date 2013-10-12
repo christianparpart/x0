@@ -110,11 +110,16 @@ void HttpConnection::clear()
 	worker_->server_.onConnectionClose(this);
 	delete socket_;
 	socket_ = nullptr;
-	flags_ = 0;
 	requestCount_ = 0;
 
 	inputOffset_ = 0;
 	input_.clear();
+}
+
+void HttpConnection::reinitialize()
+{
+	flags_ = 0;
+	socket_ = nullptr;
 }
 
 /** Increments the internal reference count and ensures that this object remains valid until its unref().

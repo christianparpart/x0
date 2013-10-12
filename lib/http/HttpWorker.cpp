@@ -188,6 +188,8 @@ void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 		c = freeConnections_;
 		c->id_ = connectionCount_;
 		freeConnections_ = c->next_;
+
+		c->reinitialize();
 	}
 	else {
 		c = new HttpConnection(this, connectionCount_/*id*/);

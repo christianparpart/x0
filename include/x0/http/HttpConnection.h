@@ -121,6 +121,8 @@ private:
 	friend class HttpRequest;
 	friend class HttpWorker;
 
+	void reinitialize();
+
 	// overrides from HttpMessageProcessor:
 	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
 	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
