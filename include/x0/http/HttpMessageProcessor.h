@@ -22,46 +22,6 @@
 //! \addtogroup http
 //@{
 
-// {{{ enum class HttpMessageError
-namespace x0 {
-	enum class HttpMessageError
-	{
-		/** the request has been fully parsed, including possibly existing request body. */
-		Success = 0,
-		/** the request chunk passed has been successsfully parsed, but the request is incomplete (partial). */
-		Partial,
-		/** the request has been parsed up to a point where a callback raised an "abort-parsing"-notice. */
-		Aborted,
-		/** a syntax error occurred while parsing the request chunk. */
-		SyntaxError
-	};
-
-	const std::error_category& http_message_category() throw();
-
-	std::error_code make_error_code(HttpMessageError ec);
-	std::error_condition make_error_condition(HttpMessageError ec);
-}
-
-namespace std {
-	// implicit conversion from HttpMessageError to error_code
-	template<> struct is_error_code_enum<x0::HttpMessageError> : public true_type {};
-}
-
-// {{{ inlines
-namespace x0 {
-	inline std::error_code make_error_code(HttpMessageError ec)
-	{
-		return std::error_code(static_cast<int>(ec), x0::http_message_category());
-	}
-
-	inline std::error_condition make_error_condition(HttpMessageError ec)
-	{
-		return std::error_condition(static_cast<int>(ec), x0::http_message_category());
-	}
-}
-// }}}
-// }}}
-
 namespace x0 {
 
 /**

@@ -25,54 +25,6 @@ namespace x0 {
 //! which is not HTTP conform.
 #define X0_HTTP_SUPPORT_SHORT_LF 1
 
-// {{{ const std::error_category& http_message_category() throw()
-class http_message_category_impl :
-	public std::error_category
-{
-private:
-	std::string codes_[32];
-
-	void set(HttpMessageError ec, const std::string& message)
-	{
-		codes_[static_cast<int>(ec)] = message;
-	}
-
-	void initialize_codes()
-	{
-		for (std::size_t i = 0; i < sizeof(codes_) / sizeof(*codes_); ++i)
-			codes_[i] = "Undefined";
-
-		set(HttpMessageError::Success, "Success");
-		set(HttpMessageError::Partial, "Partial");
-		set(HttpMessageError::Aborted, "Aborted");
-		set(HttpMessageError::SyntaxError, "Invalid Syntax");
-	}
-
-public:
-	http_message_category_impl()
-	{
-		initialize_codes();
-	}
-
-	virtual const char *name() const noexcept(true)
-	{
-		return "HttpMessage";
-	}
-
-	virtual std::string message(int ec) const
-	{
-		return codes_[ec];
-	}
-};
-
-http_message_category_impl http_message_category_impl_;
-
-const std::error_category& http_message_category() throw()
-{
-	return http_message_category_impl_;
-}
-// }}}
-
 /** initializes the HTTP/1.1 message processor.
  *
  * \param mode REQUEST: parses and processes an HTTP/1.1 Request,
