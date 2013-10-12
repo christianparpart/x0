@@ -94,7 +94,7 @@ private:
 			    "<td class='mimetype'>Mime type</td>"
 			    "</thead>\n";
 
-		int rv = dirlisting(in->fileinfo, in->connection.worker().fileinfo, [&](x0::FileInfoPtr file) {
+		int rv = dirlisting(in->fileinfo, in->connection.worker().fileinfo, [&](x0::HttpFileRef file) {
 			sstr << "\t<tr>\n";
 			if (file->isDirectory()) {
 				sstr << "\t\t<td class='subdir' colspan='2'><a href='"
@@ -153,7 +153,7 @@ private:
 				"data.addColumn('string', 'Mime Type');\n"
 				"data.addColumn('number', 'is-directory');\n";
 
-		int rv = dirlisting(in->fileinfo, in->connection.worker().fileinfo, [&](x0::FileInfoPtr file) {
+		int rv = dirlisting(in->fileinfo, in->connection.worker().fileinfo, [&](x0::HttpFileRef file) {
 			buf << "data.addRow(['"
 				<< file->filename();
 
@@ -208,7 +208,7 @@ private:
 		return true;
 	}
 
-	bool dirlisting(x0::FileInfoPtr fi, x0::FileInfoService& fis, std::function<void(x0::FileInfoPtr)> callback)
+	bool dirlisting(x0::HttpFileRef fi, x0::HttpFileMgr& fis, std::function<void(x0::HttpFileRef)> callback)
 	{
 		if (!fi)
 			return false;
@@ -239,7 +239,7 @@ private:
 			filename.push_back(static_cast<char*>(dep->d_name));
 
 			// send fileinfo struct to caller, if possible
-			if (x0::FileInfoPtr fi = fis.query(filename.str()))
+			if (auto fi = fis.query(filename.str()))
 				callback(fi);
 
 			// reset filename to its base-length

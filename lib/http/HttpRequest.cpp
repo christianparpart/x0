@@ -900,7 +900,7 @@ bool HttpRequest::sendfile(const std::string& filename)
 	return sendfile(connection.worker().fileinfo(filename));
 }
 
-bool HttpRequest::sendfile(FileInfoPtr transferFile)
+bool HttpRequest::sendfile(const HttpFileRef& transferFile)
 {
 	status = verifyClientCache(transferFile);
 	if (status != HttpStatus::Ok)
@@ -908,13 +908,7 @@ bool HttpRequest::sendfile(FileInfoPtr transferFile)
 
 	int fd = -1;
 	if (equals(method, "GET")) {
-		int flags = O_RDONLY | O_NONBLOCK;
-
-#if defined(O_CLOEXEC)
-		flags |= O_CLOEXEC;
-#endif
-
-		fd = transferFile->open(flags);
+		fd = transferFile->handle();
 
 		if (fd < 0) {
 			log(Severity::error, "Could not open file '%s': %s", transferFile->path().c_str(), strerror(errno));
@@ -948,7 +942,7 @@ bool HttpRequest::sendfile(FileInfoPtr transferFile)
  *
  * \param in request object
  */
-HttpStatus HttpRequest::verifyClientCache(FileInfoPtr transferFile) const
+HttpStatus HttpRequest::verifyClientCache(const HttpFileRef& transferFile) const
 {
 	BufferRef value;
 
@@ -985,7 +979,7 @@ HttpStatus HttpRequest::verifyClientCache(FileInfoPtr transferFile) const
  * \retval true this was a ranged request and we fully processed it (invoked finish())
  * \internal false this is no ranged request. nothing is done on it.
  */
-bool HttpRequest::processRangeRequest(FileInfoPtr transferFile, int fd) //{{{
+bool HttpRequest::processRangeRequest(const HttpFileRef& transferFile, int fd) //{{{
 {
 	BufferRef range_value(requestHeader("Range"));
 	HttpRangeDef range;

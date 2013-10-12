@@ -14,9 +14,9 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpStatus.h>
+#include <x0/http/HttpFileRef.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/CallbackSource.h>
-#include <x0/io/FileInfo.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/RegExp.h>
 #include <x0/Logging.h>
@@ -275,7 +275,7 @@ public:
 	Buffer path;								///< URL-decoded path-part
 	BufferRef query;							///< URL-encoded query string
 	BufferRef pathinfo;							///< PATH_INFO part of the HTTP request path.
-	FileInfoPtr fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
+	HttpFileRef fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
 	int httpVersionMajor;						///< HTTP protocol version major part that this request was formed in
 	int httpVersionMinor;						///< HTTP protocol version minor part that this request was formed in
 	BufferRef hostname;							///< Host header field.
@@ -332,7 +332,7 @@ public:
 	// full response writer - but do not invoke finish()
 	bool sendfile();
 	bool sendfile(const std::string& filename);
-	bool sendfile(FileInfoPtr transferFile);
+	bool sendfile(const HttpFileRef& transferFile);
 
 	// dynamic response writer
 	void write(Source* chunk);
@@ -376,8 +376,8 @@ private:
 	template<class K, void (K::*cb)()>
 	static void write_cb_thunk(void* data);
 
-	HttpStatus verifyClientCache(FileInfoPtr transferFile) const;
-	bool processRangeRequest(FileInfoPtr transferFile, int fd);
+	HttpStatus verifyClientCache(const HttpFileRef& transferFile) const;
+	bool processRangeRequest(const HttpFileRef& transferFile, int fd);
 
 	// response write helper
 	Source* serialize();
@@ -404,7 +404,7 @@ inline void HttpRequest::clear()
 	path.clear();
 	query.clear();
 	pathinfo.clear();
-	fileinfo = FileInfoPtr();
+	fileinfo.reset();
 	httpVersionMajor = httpVersionMinor = 0;
 	hostname.clear();
 	requestHeaders.clear();

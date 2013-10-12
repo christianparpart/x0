@@ -54,9 +54,18 @@ public:
 		}
 	}
 		
-	HttpFile* operator->()
+	HttpFile* operator->() { return object_; }
+	const HttpFile* operator->() const { return object_; }
+
+	bool operator!() const { return object_ == nullptr; }
+	operator bool() const { return object_ != nullptr; }
+
+	void reset()
 	{
-		return object_;
+		if (object_) {
+			object_->unref();
+		}
+		object_ = nullptr;
 	}
 };
 

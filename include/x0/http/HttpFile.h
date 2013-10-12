@@ -31,6 +31,7 @@ private:
 	int fd_;
 	struct stat stat_;
 	int refs_;
+	int errno_;
 
 	std::string etag_;
 	mutable std::string mtime_;
@@ -47,16 +48,20 @@ public:
 	bool update(HttpFileMgr* mgr);
 	void close();
 
+	const std::string& filename() const { return path_; }
+	bool exists() const { return errno_ == 0; }
+	int error() const { return errno_; }
+
 	// attribute accessors
 
-	int handle() const { return fd_; }
+	int handle() const { if (fd_ < 0) const_cast<HttpFile*>(this)->open(nullptr); return fd_; }
 	operator const struct stat* () const { return &stat_; }
 	const std::string& path() const { return path_; }
-	const std::string& entityTag() const { return etag_; }
+	const std::string& etag() const { return etag_; }
 	const std::string& lastModified() const;
 	const std::string& mimetype() const { return mimetype_; }
 
-	size_t size() const { return stat_.st_size; }
+	std::size_t size() const { return stat_.st_size; }
 	time_t mtime() const { return stat_.st_mtime; }
 
 	bool isDirectory() const { return S_ISDIR(stat_.st_mode); }

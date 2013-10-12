@@ -14,6 +14,7 @@ HttpFile::HttpFile(const std::string& path, HttpFileMgr* mgr) :
 	fd_(-1),
 	stat_(),
 	refs_(0),
+	errno_(0),
 	etag_(),
 	mtime_(),
 	mimetype_()
@@ -30,7 +31,7 @@ HttpFile::~HttpFile()
 
 bool HttpFile::open(HttpFileMgr* mgr)
 {
-	int flags = O_RDONLY;
+	int flags = O_RDONLY | O_NONBLOCK;
 
 #if 0 // defined(O_NOATIME)
 	flags |= O_NOATIME;
@@ -41,8 +42,10 @@ bool HttpFile::open(HttpFileMgr* mgr)
 #endif
 
 	fd_ = ::open(path_.c_str(), flags);
-	if (fd_ < 0)
+	if (fd_ < 0) {
+		errno_ = errno;
 		return false;
+	}
 
 	return update(mgr);
 
@@ -52,8 +55,10 @@ bool HttpFile::open(HttpFileMgr* mgr)
 bool HttpFile::update(HttpFileMgr* mgr)
 {
 	int rv = fstat(fd_, &stat_);
-	if (rv < 0)
+	if (rv < 0) {
+		errno_ = errno;
 		return false;
+	}
 
 	if (mgr == nullptr) {
 		mimetype_.clear();
@@ -155,4 +160,5 @@ const std::string& HttpFile::lastModified() const
 
 	return mtime_;
 }
+
 } // namespace x0

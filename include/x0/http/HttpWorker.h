@@ -12,7 +12,7 @@
 #include <x0/Api.h>
 #include <x0/http/Types.h>
 #include <x0/http/HttpConnection.h>
-#include <x0/io/FileInfoService.h>
+#include <x0/http/HttpFileMgr.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
 #include <x0/Severity.h>
@@ -104,7 +104,7 @@ private:
 	friend class HttpRequest;
 
 public:
-	FileInfoService fileinfo;
+	HttpFileMgr fileinfo;
 
 public:
 	HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded);

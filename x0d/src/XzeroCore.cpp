@@ -182,7 +182,7 @@ void XzeroCore::mimetypes(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isString())
 	{
-		server().fileinfoConfig_.loadMimetypes(args[0].toString());
+		server().fileinfoConfig_.openMimeTypes(args[0].toString());
 	}
 }
 
@@ -221,9 +221,9 @@ void XzeroCore::etag_inode(const FlowParams& args, FlowValue& result)
 void XzeroCore::fileinfo_cache_ttl(const FlowParams& args, FlowValue& result)
 {
 	if (args.size() == 1 && args[0].isNumber())
-		server().fileinfoConfig_.cacheTTL_ = args[0].toNumber();
+		server().fileinfoConfig_.cacheTTL = args[0].toNumber();
 	else
-		result.set(server().fileinfoConfig_.cacheTTL_);
+		result.set(server().fileinfoConfig_.cacheTTL);
 }
 
 void XzeroCore::server_advertise(const FlowParams& args, FlowValue& result)
@@ -569,7 +569,7 @@ bool XzeroCore::matchIndex(HttpRequest *in, const FlowValue& arg)
 				ipath += "/";
 			ipath += arg.toString();
 
-			if (x0::FileInfoPtr fi = in->connection.worker().fileinfo(ipath))
+			if (auto fi = in->connection.worker().fileinfo(ipath))
 			{
 				if (fi->isRegular())
 				{
@@ -1050,7 +1050,7 @@ bool XzeroCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 		in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
 		in->responseHeaders.push_back("Content-Length", lexical_cast<std::string>(in->fileinfo->size()));
 
-		int fd = in->fileinfo->open(O_RDONLY | O_NONBLOCK);
+		int fd = in->fileinfo->handle();
 		if (fd < 0) {
 			log(Severity::error, "Could not open file: '%s': %s", in->fileinfo->filename().c_str(), strerror(errno));
 			return false;
@@ -1099,7 +1099,7 @@ bool XzeroCore::precompressed(HttpRequest *in, const FlowParams& args)
 
 		for (auto& encoding: encodings) {
 			if (std::find(items.begin(), items.end(), encoding.id) != items.end()) {
-				FileInfoPtr pc(in->connection.worker().fileinfo(in->fileinfo->path() + encoding.fileExtension));
+				auto pc = in->connection.worker().fileinfo(in->fileinfo->path() + encoding.fileExtension);
 
 				if (pc->exists() && pc->isRegular() && pc->mtime() == in->fileinfo->mtime()) {
 					in->responseHeaders.push_back("Content-Encoding", encoding.id);

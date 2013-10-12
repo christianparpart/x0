@@ -9,7 +9,7 @@
 #ifndef sw_x0_http_server_h
 #define sw_x0_http_server_h (1)
 
-#include <x0/io/FileInfoService.h>
+#include <x0/http/HttpFileMgr.h>
 #include <x0/http/HttpConnection.h> // HttpConnection, HttpConnection::Status
 #include <x0/http/Types.h>
 #include <x0/ServerSocket.h>
@@ -144,7 +144,7 @@ private:
 	size_t lastWorker_;
 
 public:
-	FileInfoService::Config fileinfoConfig_;
+	HttpFileMgr::Settings fileinfoConfig_;
 
 public:
 	ValueProperty<std::size_t> maxConnections;
