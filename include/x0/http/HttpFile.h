@@ -13,6 +13,7 @@
 #include <x0/CustomDataMgr.h>
 #include <x0/sysconfig.h>
 
+#include <string>
 #include <ctime>
 #include <sys/stat.h>
 #include <sys/types.h>
