@@ -416,7 +416,6 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 	if (nbytes == 0)
 		return 0;
 
-#if !defined(XZERO_NDEBUG)
 	auto offset_ = *offset;
 #ifdef __APPLE__
 	ssize_t rv = ::sendfile(fd_, fd, offset_, (off_t *) &nbytes, NULL, 0);
@@ -424,19 +423,14 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
 #endif
 
+#if !defined(XZERO_NDEBUG)
 	TRACE("write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset_, *offset, nbytes, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
+#endif
 
 	return rv;
-#else
-#ifdef __APPLE__
-	return ::sendfile(fd_, fd, offset, (off_t *) &nbytes, NULL, 0);
-#else
-	return ::sendfile(fd_, fd, offset, nbytes);
-#endif
-#endif
 }
 
 ssize_t Socket::write(Pipe* pipe, size_t size)
