@@ -705,7 +705,6 @@ bool HttpRequest::writeCallback(CallbackSource::Callback cb)
 	}
 }
 
-
 std::array<std::string, 600> initialize_codes()
 {
 	std::array<std::string, 600> codes;
