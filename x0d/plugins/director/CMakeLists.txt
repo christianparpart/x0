@@ -35,4 +35,5 @@ if(ENABLE_PLUGIN_DIRECTOR)
 	)
 
 	x0_plugin(director "${director_SRC}")
+	target_link_libraries(director ${TBB_LIBRARIES})
 endif()

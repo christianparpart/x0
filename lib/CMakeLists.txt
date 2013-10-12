@@ -30,7 +30,6 @@ endif()
 
 target_link_libraries(XzeroBase dl pthread
 	${SD_LIBRARIES}
-	${TBB_LIBRARIES}
 	${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES}
 	${EV_LIBRARIES})
 set_target_properties(XzeroBase PROPERTIES VERSION ${PACKAGE_VERSION})
