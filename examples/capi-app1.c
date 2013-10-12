@@ -50,8 +50,7 @@ int main(int argc, const char* argv[])
 
 	printf("[HTTP] Listening on %s port %d\n", bind, port);
 
-	ev_run(loop, 0);
-
+	x0_server_run(server);
 	x0_server_destroy(server, 0);
 
 	return 0;
