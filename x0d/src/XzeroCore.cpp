@@ -1057,7 +1057,7 @@ bool XzeroCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 		}
 
 		posix_fadvise(fd, 0, in->fileinfo->size(), POSIX_FADV_SEQUENTIAL);
-		in->write<FileSource>(fd, 0, in->fileinfo->size(), true);
+		in->write<FileSource>(fd, 0, in->fileinfo->size(), false);
 		in->finish();
 
 		return true;

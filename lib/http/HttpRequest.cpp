@@ -930,7 +930,7 @@ bool HttpRequest::sendfile(const HttpFileRef& transferFile)
 
 		if (fd >= 0) { // GET request
 			posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
-			write<FileSource>(fd, 0, transferFile->size(), true);
+			write<FileSource>(fd, 0, transferFile->size(), false);
 		}
 	}
 
