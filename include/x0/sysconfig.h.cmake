@@ -29,7 +29,6 @@
 
 #cmakedefine HAVE_LDAP_H
 
-#cmakedefine ENABLE_PLUGIN_SSL
 #cmakedefine ENABLE_PLUGIN_AUTH_PAM
 
 #cmakedefine ENABLE_INOTIFY
