@@ -28,8 +28,8 @@ Pipe::Pipe(int flags) :
 		pipe_[0] = -errno;
 		pipe_[1] = -1;
 	} else {
-		fcntl(pipe_[0], F_SETFL, fcntl(handle_, F_GETFL) | flags);
-		fcntl(pipe_[1], F_SETFL, fcntl(handle_, F_GETFL) | flags);
+		fcntl(pipe_[0], F_SETFL, fcntl(pipe_[0], F_GETFL) | flags);
+		fcntl(pipe_[1], F_SETFL, fcntl(pipe_[1], F_GETFL) | flags);
 	}
 #else
 	if (::pipe2(pipe_, flags) < 0) {
