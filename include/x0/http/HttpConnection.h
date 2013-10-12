@@ -114,6 +114,9 @@ public:
 
 	void post(const std::function<void()>& function);
 
+	bool isAborted() const;
+	bool isClosed() const;
+
 private:
 	friend class HttpRequest;
 	friend class HttpWorker;
@@ -131,9 +134,6 @@ private:
 
 	void start(ServerSocket* listener, Socket* client);
 	void resume();
-
-	bool isAborted() const;
-	bool isClosed() const;
 
 	void handshakeComplete(Socket *);
 
