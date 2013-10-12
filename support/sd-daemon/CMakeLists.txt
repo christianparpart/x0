@@ -5,4 +5,4 @@ set(SD_HEADERS sd-daemon.h)
 add_definitions(-fPIC)
 
 add_library(sd-daemon STATIC ${SD_SOURCES})
-target_link_libraries(sd-daemon rt)
+target_link_libraries(sd-daemon)

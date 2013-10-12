@@ -48,6 +48,16 @@ option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if fou
 option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
 option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
 
+if (APPLE)
+	set(ENABLE_PLUGIN_SSL OFF)
+	set(ENABLE_XZERO_FLOW OFF)
+	set(ENABLE_PLUGINS OFF)
+	set(ENABLE_PLUGIN_SSL OFF)
+	set(ENABLE_PLUGIN_DIRECTOR OFF)
+	set(ENABLE_PLUGIN_AUTH_PAM OFF)
+	set(ENABLE_MANPAGES OFF)
+endif()
+
 if(ENABLE_PLUGIN_AUTH_PAM)
 	CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
 endif()
