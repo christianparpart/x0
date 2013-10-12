@@ -97,8 +97,6 @@ HttpWorker::~HttpWorker()
 	evWakeup_.stop();
 
 	freeCache();
-
-	ev_loop_destroy(loop_);
 }
 
 void* HttpWorker::_run(void* p)
@@ -368,6 +366,8 @@ void HttpWorker::stop()
 
 	if (state_ != Running)
 		return;
+
+//	fileinfo.stop();
 
 	post<HttpWorker, &HttpWorker::_stop>(this);
 }

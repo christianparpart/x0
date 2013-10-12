@@ -8,18 +8,29 @@
 
 #pragma once
 
+#include <x0/sysconfig.h>
 #include <x0/http/HttpFile.h>
 #include <x0/http/HttpFileRef.h>
 #include <ev++.h>
 
+#if defined(HAVE_SYS_INOTIFY_H)
+#	include <sys/inotify.h>
+#	include <sys/fcntl.h>
+#endif
+
 namespace x0 {
 
 class X0_API HttpFileMgr {
+	HttpFileMgr(const HttpFileMgr&) = delete;
+	HttpFileMgr& operator=(const HttpFileMgr&) = delete;
+
 public:
 	struct Settings;
 
-	HttpFileMgr(ev::loop_ref loop, Settings* settings);
+	HttpFileMgr(struct ev_loop* loop, Settings* settings);
 	~HttpFileMgr();
+
+	void stop();
 
 	HttpFileRef query(const std::string& path);
 
@@ -29,8 +40,17 @@ public:
 
 private:
 	ev::loop_ref loop_;
+
+#if defined(HAVE_SYS_INOTIFY_H)
+	int handle_;                                     //!< inotify handle
+	ev::io inotify_;
+	std::unordered_map<int, HttpFileRef> inotifies_;
+
+	void onFileChanged(ev::io& w, int revents);
+#endif
+
 	const Settings* settings_;
-	std::unordered_map<std::string, HttpFileRef> files_;
+	std::unordered_map<std::string, HttpFileRef> cache_;
 
 	friend class HttpFile;
 };

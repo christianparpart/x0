@@ -10,31 +10,51 @@
 namespace x0 {
 
 HttpFile::HttpFile(const std::string& path, HttpFileMgr* mgr) :
+	mgr_(mgr),
 	path_(path),
 	fd_(-1),
 	stat_(),
 	refs_(0),
 	errno_(0),
+#if defined(HAVE_SYS_INOTIFY_H)
+	inotifyId_(-1),
+#endif
+	cachedAt_(0),
 	etag_(),
 	mtime_(),
 	mimetype_()
 {
-	open(mgr);
+	open();
 }
 
 HttpFile::~HttpFile()
 {
+	clearCache();
+
 	if (fd_ >= 0) {
 		::close(fd_);
 	}
 }
 
-bool HttpFile::open(HttpFileMgr* mgr)
+std::string HttpFile::filename() const
+{
+	std::size_t n = path_.rfind('/');
+
+	return n != std::string::npos
+		? path_.substr(n + 1)
+		: path_;
+}
+
+bool HttpFile::open()
 {
 	int flags = O_RDONLY | O_NONBLOCK;
 
 #if 0 // defined(O_NOATIME)
 	flags |= O_NOATIME;
+#endif
+
+#if defined(O_LARGEFILE)
+	flags |= O_LARGEFILE;
 #endif
 
 #if defined(O_CLOEXEC)
@@ -47,12 +67,10 @@ bool HttpFile::open(HttpFileMgr* mgr)
 		return false;
 	}
 
-	return update(mgr);
-
-	return true;
+	return update();
 }
 
-bool HttpFile::update(HttpFileMgr* mgr)
+bool HttpFile::update()
 {
 	int rv = fstat(fd_, &stat_);
 	if (rv < 0) {
@@ -60,67 +78,7 @@ bool HttpFile::update(HttpFileMgr* mgr)
 		return false;
 	}
 
-	if (mgr == nullptr) {
-		mimetype_.clear();
-		return true;
-	}
-
-	// compute entity tag
-	{
-		size_t count = 0;
-		Buffer buf(256);
-		buf.push_back('"');
-
-		if (mgr->settings_->etagConsiderMtime) {
-			if (count++) buf.push_back('-');
-			buf.push_back(stat_.st_mtime);
-		}
-
-		if (mgr->settings_->etagConsiderSize) {
-			if (count++) buf.push_back('-');
-			buf.push_back(stat_.st_size);
-		}
-
-		if (mgr->settings_->etagConsiderInode) {
-			if (count++) buf.push_back('-');
-			buf.push_back(stat_.st_ino);
-		}
-
-		buf.push_back('"');
-
-		etag_ = buf.str();
-	}
-
-	// query mimetype
-	std::size_t ndot = path_.find_last_of(".");
-	std::size_t nslash = path_.find_last_of("/");
-
-	if (ndot != std::string::npos && ndot > nslash) {
-		const auto& mimetypes = mgr->settings_->mimetypes;
-		std::string ext(path_.substr(ndot + 1));
-
-		mimetype_.clear();
-
-		while (ext.size()) {
-			auto i = mimetypes.find(ext);
-
-			if (i != mimetypes.end()) {
-				//DEBUG("filename(%s), ext(%s), use mimetype: %s", path_.c_str(), ext.c_str(), i->second.c_str());
-				mimetype_ = i->second;
-			}
-
-			if (ext[ext.size() - 1] != '~')
-				break;
-
-			ext.resize(ext.size() - 1);
-		}
-
-		if (mimetype_.empty()) {
-			mimetype_ = mgr->settings_->defaultMimetype;
-		}
-	} else {
-		mimetype_ = mgr->settings_->defaultMimetype;
-	}
+	cachedAt_ = ev_now(mgr_->loop_);
 
 	return true;
 }
@@ -146,6 +104,26 @@ void HttpFile::unref() {
 		delete this;
 }
 
+void HttpFile::clearCache()
+{
+	clearCustomData();
+	etag_.clear();
+	mtime_.clear();
+	// do not clear mimetype, as this didn't change
+}
+
+
+bool HttpFile::isValid() const
+{
+#if defined(HAVE_SYS_INOTIFY_H)
+	return inotifyId_ > 0
+		|| cachedAt_ + mgr_->settings_->cacheTTL > ev_now(mgr_->loop_);
+#else
+	return cachedAt_ + config_->cacheTTL > ev_now(mgr_->loop_);
+#endif
+}
+
+
 const std::string& HttpFile::lastModified() const
 {
 	if (mtime_.empty()) {
@@ -159,6 +137,76 @@ const std::string& HttpFile::lastModified() const
 	}
 
 	return mtime_;
+}
+
+const std::string& HttpFile::etag() const
+{
+	// compute entity tag
+	if (etag_.empty()) {
+		size_t count = 0;
+		Buffer buf(256);
+		buf.push_back('"');
+
+		if (mgr_->settings_->etagConsiderMtime) {
+			if (count++) buf.push_back('-');
+			buf.push_back(stat_.st_mtime);
+		}
+
+		if (mgr_->settings_->etagConsiderSize) {
+			if (count++) buf.push_back('-');
+			buf.push_back(stat_.st_size);
+		}
+
+		if (mgr_->settings_->etagConsiderInode) {
+			if (count++) buf.push_back('-');
+			buf.push_back(stat_.st_ino);
+		}
+
+		buf.push_back('"');
+
+		etag_ = buf.str();
+	}
+
+	return etag_;
+}
+
+const std::string& HttpFile::mimetype() const
+{
+	if (!mimetype_.empty())
+		return mimetype_;
+
+	// query mimetype
+	std::size_t ndot = path_.find_last_of(".");
+	std::size_t nslash = path_.find_last_of("/");
+
+	if (ndot != std::string::npos && ndot > nslash) {
+		const auto& mimetypes = mgr_->settings_->mimetypes;
+		std::string ext(path_.substr(ndot + 1));
+
+		mimetype_.clear();
+
+		while (ext.size()) {
+			auto i = mimetypes.find(ext);
+
+			if (i != mimetypes.end()) {
+				//DEBUG("filename(%s), ext(%s), use mimetype: %s", path_.c_str(), ext.c_str(), i->second.c_str());
+				mimetype_ = i->second;
+			}
+
+			if (ext[ext.size() - 1] != '~')
+				break;
+
+			ext.resize(ext.size() - 1);
+		}
+
+		if (mimetype_.empty()) {
+			mimetype_ = mgr_->settings_->defaultMimetype;
+		}
+	} else {
+		mimetype_ = mgr_->settings_->defaultMimetype;
+	}
+
+	return mimetype_;
 }
 
 } // namespace x0

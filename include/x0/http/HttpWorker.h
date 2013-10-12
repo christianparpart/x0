@@ -73,7 +73,7 @@ private:
 	unsigned id_;
 	State state_;
 	HttpServer& server_;
-	struct ev_loop *loop_;
+	ev::loop_ref loop_;
 	ev_tstamp startupTime_;
 	DateTime now_;
 	std::atomic<int> connectionLoad_;
