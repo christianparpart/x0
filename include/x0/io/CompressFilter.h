@@ -11,9 +11,15 @@
 
 #include <x0/io/Filter.h>
 #include <x0/Api.h>
+#include <x0/sysconfig.h>
 
-#include <zlib.h>
-#include <bzlib.h>
+#if defined(HAVE_ZLIB_H)
+#	include <zlib.h>
+#endif
+
+#if defined(HAVE_BZLIB_H)
+#	include <bzlib.h>
+#endif
 
 namespace x0 {
 
@@ -48,6 +54,7 @@ inline int CompressFilter::level() const
 }
 // }}}
 
+#if defined(HAVE_ZLIB_H)
 // {{{ DeflateFilter
 /** deflate compression filter.
  */
@@ -71,7 +78,6 @@ private:
 	bool raw_;
 };
 // }}}
-
 // {{{ GZipFilter
 /** gzip compression filter.
  */
@@ -87,7 +93,9 @@ inline GZipFilter::GZipFilter(int level) :
 {
 }
 // }}}
+#endif
 
+#if defined(HAVE_BZLIB_H)
 // {{{ BZip2Filter
 class X0_API BZip2Filter :
 	public CompressFilter
@@ -101,6 +109,7 @@ private:
 	bz_stream bz_;
 };
 // }}}
+#endif
 //@}
 
 } // namespace x0

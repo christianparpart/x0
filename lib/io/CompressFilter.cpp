@@ -15,6 +15,7 @@
 
 namespace x0 {
 
+#if defined(HAVE_ZLIB_H)
 // {{{ DeflateFilter
 void DeflateFilter::initialize()
 {
@@ -115,7 +116,9 @@ Buffer DeflateFilter::process(const BufferRef& input)
 	return output;
 }
 // }}}
+#endif
 
+#if defined(HAVE_BZLIB_H)
 // {{{ BZip2Filter
 BZip2Filter::BZip2Filter(int level) :
 	CompressFilter(level)
@@ -169,5 +172,5 @@ Buffer BZip2Filter::process(const BufferRef& input)
 	return output;
 }
 // }}}
-
+#endif
 } // namespace x0
