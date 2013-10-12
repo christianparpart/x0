@@ -63,7 +63,13 @@ bool HttpFile::open()
 
 	fd_ = ::open(path_.c_str(), flags);
 	if (fd_ < 0) {
+
+#ifdef __APPLE__
+		errno_ = 5;
+#else
 		errno_ = errno;
+#endif
+
 		return false;
 	}
 
@@ -74,7 +80,13 @@ bool HttpFile::update()
 {
 	int rv = fstat(fd_, &stat_);
 	if (rv < 0) {
+
+#ifdef __APPLE__
+		errno_ = 5;
+#else
 		errno_ = errno;
+#endif
+
 		return false;
 	}
 
@@ -119,7 +131,7 @@ bool HttpFile::isValid() const
 	return inotifyId_ > 0
 		|| cachedAt_ + mgr_->settings_->cacheTTL > ev_now(mgr_->loop_);
 #else
-	return cachedAt_ + config_->cacheTTL > ev_now(mgr_->loop_);
+	return cachedAt_ + mgr_->settings_->cacheTTL > ev_now(mgr_->loop_);
 #endif
 }
 
