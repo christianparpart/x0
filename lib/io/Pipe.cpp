@@ -24,7 +24,13 @@ Pipe::Pipe(int flags) :
 	size_(0)
 {
 #ifdef __APPLE__
-	assert(__APPLE__);
+	if (::pipe(pipe_) < 0) {
+		pipe_[0] = -errno;
+		pipe_[1] = -1;
+	} else {
+		fcntl(pipe_[0], F_SETFL, fcntl(handle_, F_GETFL) | flags);
+		fcntl(pipe_[1], F_SETFL, fcntl(handle_, F_GETFL) | flags);
+	}
 #else
 	if (::pipe2(pipe_, flags) < 0) {
 		pipe_[0] = -errno;
