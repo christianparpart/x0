@@ -1,6 +1,4 @@
 add_definitions(
-	-Dlinux=1
-	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
 	-DPACKAGE_NAME="${PACKAGE_NAME}"

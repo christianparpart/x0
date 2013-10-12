@@ -1,15 +1,9 @@
-include_directories(../src)
-
 add_definitions(
-	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
 )
 
 if(ENABLE_TESTS)
-
-add_executable(foo foo.cpp)
-target_link_libraries(foo XzeroBase XzeroHttp)
 
 add_executable(x0-test x0-test.cpp
 	TokenShaper-test.cpp

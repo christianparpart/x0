@@ -4,10 +4,7 @@ if(ENABLE_EXAMPLES)
 	include_directories(${BOOST_INCLUDEDIR})
 
 	add_definitions(
-		-Dlinux=1
-		-Wall -Wno-deprecated
 		-pthread
-		${LLVM_CFLAGS}
 		-DPACKAGE_NAME="${PACKAGE_NAME}"
 		-DPACKAGE_VERSION="${PACKAGE_VERSION}"
 		-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"

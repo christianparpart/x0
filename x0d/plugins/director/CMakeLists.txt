@@ -1,8 +1,6 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 add_definitions(
-	-Dlinux=1
-	-Wall -Wno-deprecated
 	-pthread
 	-std=c++0x
 	-fvisibility=hidden
