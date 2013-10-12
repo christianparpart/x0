@@ -11,10 +11,6 @@ add_definitions(
 
 add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1)
 
-if(APPLE)
-  add_definitions(-stdlib=libc++)
-endif()
-
 # XzeroBase
 file(GLOB x0_base_SRC "base/*.cpp")
 file(GLOB x0_io_SRC "io/*.cpp")
@@ -23,6 +19,11 @@ if(ENABLE_MYSQL)
 	add_definitions(${MYSQL_CFLAGS})
 endif()
 add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
+
+if(APPLE)
+  add_definitions(-stdlib=libc++)
+	target_link_libraries(XzeroBase -stdlib=libc++)
+endif()
 
 if(ENABLE_MYSQL)
 	target_link_libraries(XzeroBase ${MYSQL_LDFLAGS})
