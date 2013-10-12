@@ -136,7 +136,9 @@ void HttpWorker::setName(const char* fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
+#ifndef __APPLE__
 	pthread_setname_np(thread_, buf);
+#endif
 }
 
 void HttpWorker::log(LogMessage&& msg)
@@ -306,6 +308,7 @@ void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)
 
 void HttpWorker::setAffinity(int cpu)
 {
+#ifndef __APPLE__
 	cpu_set_t set;
 
 	CPU_ZERO(&set);
@@ -318,6 +321,7 @@ void HttpWorker::setAffinity(int cpu)
 		log(Severity::error, "setting scheduler affinity on CPU %d failed for worker %u. %s",
 			cpu, id_, strerror(errno));
 	}
+#endif
 }
 
 void HttpWorker::bind(ServerSocket* s)
