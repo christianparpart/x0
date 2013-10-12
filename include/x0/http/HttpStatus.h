@@ -9,7 +9,6 @@
  */
 
 #include <x0/Api.h>
-#include <system_error>
 
 //! \addtogroup http
 //@{
