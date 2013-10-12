@@ -136,7 +136,9 @@ void HttpWorker::setName(const char* fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
+#ifndef __APPLE__
 	pthread_setname_np(thread_, buf);
+#endif
 }
 
 void HttpWorker::log(LogMessage&& msg)
