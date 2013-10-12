@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 #include <time.h>
 
 namespace x0 {
@@ -63,13 +64,7 @@ bool HttpFile::open()
 
 	fd_ = ::open(path_.c_str(), flags);
 	if (fd_ < 0) {
-
-#ifdef __APPLE__
-		errno_ = 5;
-#else
 		errno_ = errno;
-#endif
-
 		return false;
 	}
 
@@ -80,13 +75,7 @@ bool HttpFile::update()
 {
 	int rv = fstat(fd_, &stat_);
 	if (rv < 0) {
-
-#ifdef __APPLE__
-		errno_ = 5;
-#else
 		errno_ = errno;
-#endif
-
 		return false;
 	}
 
