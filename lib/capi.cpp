@@ -11,6 +11,7 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
+#include <x0/DebugLogger.h>
 #include <cstdarg>
 
 using namespace x0;
@@ -64,6 +65,8 @@ struct x0_request_s
 
 x0_server_t* x0_server_create(struct ev_loop* loop)
 {
+	DebugLogger::get().configure("XZERO_DEBUG");
+
 	auto s = new x0_server_t(loop);
 
 	s->server.requestHandler = [](HttpRequest* r) -> bool {
