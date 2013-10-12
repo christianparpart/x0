@@ -96,35 +96,11 @@ enum class HttpStatus // {{{
 
 inline bool operator!(HttpStatus st) { return st == HttpStatus::Undefined; }
 
-X0_API const std::error_category& http_category() throw();
-
-X0_API std::error_code make_error_code(HttpStatus ec);
-X0_API std::error_condition make_error_condition(HttpStatus ec);
-
 X0_API bool content_forbidden(HttpStatus code);
-
-} // namespace x0
-
-namespace std {
-	// implicit conversion from HttpStatus to error_code
-	template<> struct X0_API is_error_code_enum<x0::HttpStatus> : public true_type {};
-}
 
 //@}
 
 // {{{ inlines
-namespace x0 {
-
-inline std::error_code make_error_code(HttpStatus ec)
-{
-	return std::error_code(static_cast<int>(ec), http_category());
-}
-
-inline std::error_condition make_error_condition(HttpStatus ec)
-{
-	return std::error_condition(static_cast<int>(ec), http_category());
-}
-
 inline bool content_forbidden(HttpStatus code)
 {
 	switch (code)
@@ -139,6 +115,6 @@ inline bool content_forbidden(HttpStatus code)
 			return false;
 	}
 }
+// }}}
 
 } // namespace x0
-// }}}
