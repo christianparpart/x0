@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstdarg>
 
-#ifndef __APPLE__
 namespace x0 {
 
 DebugLogger::Instance::Instance(DebugLogger* logger, const std::string& tag) :
@@ -238,4 +237,3 @@ void DebugLogger::disable()
 }
 
 } // namespace x0
-#endif

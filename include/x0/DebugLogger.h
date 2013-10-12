@@ -3,7 +3,6 @@
 #include <x0/Buffer.h>
 #include <x0/Api.h>
 
-#ifndef __APPLE__
 #include <unordered_map>
 #include <vector>
 #include <functional>
@@ -151,4 +150,3 @@ private:
 #define XZERO_DEBUG(tag, level, msg...) X0_DEBUG((tag), (level), msg)
 
 } // namespace x0
-#endif
