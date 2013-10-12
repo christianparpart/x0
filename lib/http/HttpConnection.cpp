@@ -14,6 +14,7 @@
 #include <x0/StackTrace.h>
 #include <x0/Socket.h>
 #include <x0/Types.h>
+#include <x0/DebugLogger.h>
 #include <x0/sysconfig.h>
 
 #include <functional>
@@ -24,9 +25,8 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 0//!defined(XZERO_NDEBUG)
-#	define TRACE(level, msg...) log(Severity::debug ## level, msg)
-//#	define TRACE(level, msg...) log(Severity::notice, msg)
+#if !defined(XZERO_NDEBUG)
+#	define TRACE(level, msg...) XZERO_DEBUG("HttpConnection", (level), msg)
 #else
 #	define TRACE(msg...) do { } while (0)
 #endif
@@ -651,7 +651,7 @@ void HttpConnection::abort(HttpStatus status)
 void HttpConnection::close()
 {
 	TRACE(1, "close()");
-	//TRACE(1, "Stack Trace:%s\n", StackTrace().c_str());
+	TRACE(2, "Stack Trace:%s\n", StackTrace().c_str());
 
 	if (isClosed())
 		// XXX should we treat this as a bug?
