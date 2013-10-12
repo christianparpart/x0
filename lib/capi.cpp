@@ -385,10 +385,12 @@ void x0_response_vprintf(x0_request_t* r, const char* fmt, va_list args)
 
 void x0_response_finish(x0_request_t* r)
 {
-	r->request->finish();
-
-	if (!r->server->autoflush)
+	if (!r->server->autoflush) {
+		r->request->connection.setAutoFlush(true);
 		r->request->connection.flush();
+	}
+
+	r->request->finish();
 
 	delete r;
 }
