@@ -18,6 +18,7 @@
 #include <strings.h>                   // strcasecmp()
 #include <stdlib.h>                   // realpath()
 #include <limits.h>                   // PATH_MAX
+#include <array>
 
 #if !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) log(Severity::debug ## level, "http-request: " msg)
@@ -705,16 +706,15 @@ bool HttpRequest::writeCallback(CallbackSource::Callback cb)
 }
 
 
-static std::string codes_[600];
-
-__attribute__((constructor))
-void initialize_codes()
+std::array<std::string, 600> initialize_codes()
 {
-	for (std::size_t i = 0; i < sizeof(codes_) / sizeof(*codes_); ++i)
-		codes_[i] = "Undefined";
+	std::array<std::string, 600> codes;
 
-	auto set = [](HttpStatus st, const char* txt) -> void {
-		codes_[static_cast<int>(st)] = txt;
+	for (std::size_t i = 0; i < codes.size(); ++i)
+		codes[i] = "Undefined";
+
+	auto set = [&](HttpStatus st, const char* txt) -> void {
+		codes[static_cast<int>(st)] = txt;
 	};
 
 	set(HttpStatus::ContinueRequest, "Continue");
@@ -777,7 +777,11 @@ void initialize_codes()
 	set(HttpStatus::BandwidthExceeded, "Bandwidth Exceeded");
 	set(HttpStatus::NotExtended, "Not Extended");
 	set(HttpStatus::NetworkAuthenticationRequired, "Network Authentication Required");
+
+	return std::move(codes);
 }
+
+static std::array<std::string, 600> codes_ = initialize_codes();
 
 std::string HttpRequest::statusStr(HttpStatus value)
 {
