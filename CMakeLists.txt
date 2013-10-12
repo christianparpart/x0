@@ -31,6 +31,7 @@ option(ENABLE_PLUGIN_AUTH_PAM "Build with 'auth' plugin with PAM authentication 
 option(ENABLE_PLUGIN_IMAGEABLE "Includes Image Resizer plugin [default: off]" OFF)
 option(ENABLE_PLUGIN_RRD "Includes RRD support (plugin) [default: off]" OFF)
 option(ENABLE_PLUGIN_SSL "Builds with SSL support [default: on]" ON)
+option(ENABLE_PLUGIN_DIRECTOR "Builds director plugin (http/fastcgi proxy+loadbalancer) [default: on]" ON)
 option(ENABLE_PLUGIN_WEBDAV "Includes WebDAV support (plugin) [default: off]" OFF)
 
 option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: off]" OFF)
@@ -125,12 +126,13 @@ endif(HAVE_BZLIB_H)
 
 # TODO dynamic check for tbb
 # tbb is required for director plugin and for base's TimeoutScheduler (needed?)
-CHECK_INCLUDE_FILE_CXX("tbb/tbb.h" HAVE_TBB_TBB_H)
-SET(TBB_LIBRARIES tbb)
-IF(NOT HAVE_TBB_TBB_H)
-	MESSAGE(FATAL_ERROR "Can't find <tbb/tbb.h> include file.
-        Please install Threading Building Blocks (e.g. libtbb-dev).")
-ENDIF()
+if(ENABLE_PLUGIN_DIRECTOR)
+	CHECK_INCLUDE_FILE_CXX("tbb/tbb.h" HAVE_TBB_TBB_H)
+	set(TBB_LIBRARIES tbb)
+	if(NOT HAVE_TBB_TBB_H)
+		message(FATAL_ERROR "Can't find <tbb/tbb.h> include file.\nPlease install Threading Building Blocks (e.g. libtbb-dev).")
+	endif()
+endif()
 
 # ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
