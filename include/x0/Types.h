@@ -43,14 +43,6 @@ namespace x0 {
  * @brief x0 web server plugins.
  */
 
-//! \addtogroup io
-//@{
-
-class FileInfo;
-typedef std::shared_ptr<FileInfo> FileInfoPtr;
-
-//@}
-
 } // namespace x0
 
 #endif

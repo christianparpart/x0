@@ -50,10 +50,6 @@ the actual derivate (e.g. `FileSource` or `SocketSink`).
   SocketDriver            ; a network socket driver (for creating sockets)
   ServerSocket            ; server socket
 
-  FileInfo                ; contains stat() information about a file, and
-                          ; initial operations on it, like open()
-  FileInfoService         ; file-info service API
-
   Source                  : abstract base class for chunk producer
       BufferSource        : in-memory chunk producer (reads from this buffer)
       PipeSource          : reads chunks from a pipe
