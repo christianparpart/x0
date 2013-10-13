@@ -12,6 +12,7 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/ServerSocket.h>
 #include <x0/DebugLogger.h>
+#include <x0/sysconfig.h>
 
 #include <algorithm>
 #include <cstdarg>
@@ -148,7 +149,7 @@ void HttpWorker::setName(const char* fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, va);
 	va_end(va);
 
-#ifndef __APPLE__
+#if defined(HAVE_PTHREAD_SETNAME_NP)
 	pthread_setname_np(thread_, buf);
 #endif
 }
@@ -339,7 +340,7 @@ void HttpWorker::onLoopCheck(ev::check& /*w*/, int /*revents*/)
 
 void HttpWorker::setAffinity(int cpu)
 {
-#ifndef __APPLE__
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
 	cpu_set_t set;
 
 	CPU_ZERO(&set);
@@ -349,9 +350,10 @@ void HttpWorker::setAffinity(int cpu)
 
 	int rv = pthread_setaffinity_np(thread_, sizeof(set), &set);
 	if (rv < 0) {
-		log(Severity::error, "setting scheduler affinity on CPU %d failed for worker %u. %s",
-			cpu, id_, strerror(errno));
+		log(Severity::error, "setting scheduler affinity on CPU %d failed for worker %u. %s", cpu, id_, strerror(errno));
 	}
+#else
+	log(Severity::error, "setting scheduler affinity on CPU %d failed for worker %u. %s", cpu, id_, strerror(ENOTSUP));
 #endif
 }
 
