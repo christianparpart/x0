@@ -190,10 +190,10 @@ void DebugLogger::configure(const char* envvar)
 
 			auto prefs = Tokenizer::tokenize(tagSpec.ref(i + 1), "/");
 			for (const auto& pref: prefs) {
-				if (int verbosity = pref.toInt()) {
-					instance->setVerbosity(verbosity);
-				} else {
+				if (!std::isdigit(pref[0])) {
 					instance->setPreference(pref.str());
+				} else {
+					instance->setVerbosity(pref.toInt());
 				}
 			}
 		}
