@@ -110,9 +110,13 @@ void DebugLogger::Instance::log(int level, const char* fmt, ...)
 	va_end(va);
 
 	if (logger_->colored()) {
-		printf("%s[%s:%d] %s%s\n", pre_.c_str(), tag_.c_str(), level, msg, post_.c_str());
+		Buffer buf;
+		buf.printf("%s[%s:%d] %s%s", pre_.c_str(), tag_.c_str(), level, msg, post_.c_str());
+		logger_->onLogWrite(buf.c_str(), buf.size());
 	} else {
-		printf("[%s:%d] %s\n", tag_.c_str(), level, msg);
+		Buffer buf;
+		buf.printf("[%s:%d] %s", tag_.c_str(), level, msg);
+		logger_->onLogWrite(buf.c_str(), buf.size());
 	}
 }
 
