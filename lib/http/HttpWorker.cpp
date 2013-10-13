@@ -60,15 +60,23 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 	evLoopCheck_(loop_),
 	evNewConnection_(loop_),
 	evWakeup_(loop_),
+#if !defined(X0_WORKER_POST_LIBEV)
+	postLock_(),
+	postQueue_(),
+#endif
 	fileinfo(loop_, &server_.fileinfoConfig_)
 {
+#if !defined(X0_WORKER_POST_LIBEV)
+	pthread_mutex_init(&postLock_, nullptr);
+#endif
+
 	evLoopCheck_.set<HttpWorker, &HttpWorker::onLoopCheck>(this);
 	evLoopCheck_.start();
 
 	evNewConnection_.set<HttpWorker, &HttpWorker::onNewConnection>(this);
 	evNewConnection_.start();
 
-	evWakeup_.set<&HttpWorker::onWakeup>();
+	evWakeup_.set<HttpWorker, &HttpWorker::onWakeup>(this);
 	evWakeup_.start();
 
 	pthread_mutex_init(&resumeLock_, nullptr);
@@ -88,6 +96,10 @@ HttpWorker::~HttpWorker()
 	TRACE(1, "destroying");
 
 	clearCustomData();
+
+#if !defined(X0_WORKER_POST_LIBEV)
+	pthread_mutex_destroy(&postLock_);
+#endif
 
 	pthread_cond_destroy(&resumeCondition_);
 	pthread_mutex_destroy(&resumeLock_);
@@ -169,7 +181,24 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 
 void HttpWorker::onWakeup(ev::async& w, int revents)
 {
-	// no-op - this callback is simply used to wake up the worker's event loop
+	std::function<void()> fn;
+
+	while (true) {
+		pthread_mutex_lock(&postLock_);
+		if (postQueue_.empty())
+			goto out;
+
+		fn = postQueue_.front();
+		postQueue_.pop_front();
+		pthread_mutex_unlock(&postLock_);
+
+		if (fn) {
+			fn();
+		}
+	}
+
+out:
+	pthread_mutex_unlock(&postLock_);
 }
 
 void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)

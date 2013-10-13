@@ -41,6 +41,8 @@ class HttpServer;
 class HttpConnection;
 class HttpRequest;
 
+//#define X0_WORKER_POST_LIBEV
+
 /**
  * \brief thread-local worker.
  *
@@ -96,6 +98,11 @@ private:
 	ev::check evLoopCheck_;
 	ev::async evNewConnection_;
 	ev::async evWakeup_;
+
+#if !defined(X0_WORKER_POST_LIBEV)
+	pthread_mutex_t postLock_;
+	std::deque<std::function<void()>> postQueue_;
+#endif
 
 	friend class HttpPlugin;
 	friend class HttpCore;
@@ -191,7 +198,7 @@ private:
 
 	void onLoopCheck(ev::check& w, int revents);
 	void onNewConnection(ev::async& w, int revents);
-	static void onWakeup(ev::async& w, int revents);
+	void onWakeup(ev::async& w, int revents);
 	void spawnConnection(Socket* client, ServerSocket* listener);
 	static void* _run(void*);
 	void _stop();
@@ -243,7 +250,13 @@ inline unsigned long long HttpWorker::connectionCount() const
 template<class K, void (K::*fn)()>
 void HttpWorker::post(K* object)
 {
+#if !defined(X0_WORKER_POST_LIBEV)
+	pthread_mutex_lock(&postLock_);
+	postQueue_.push_back(std::bind(fn, object));
+	pthread_mutex_unlock(&postLock_);
+#else
 	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk<K, fn>, object);
+#endif
 	evWakeup_.send();
 }
 
@@ -261,8 +274,14 @@ void HttpWorker::post_thunk(int revents, void* arg)
 template<class K, void (K::*fn)(void*)>
 void HttpWorker::post(K* object, void* arg)
 {
+#if !defined(X0_WORKER_POST_LIBEV)
+	pthread_mutex_lock(&postLock_);
+	postQueue_.push_back(std::bind(fn, object, arg));
+	pthread_mutex_unlock(&postLock_);
+#else
 	auto priv = std::make_pair(object, arg);
 	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk2<K, fn>, priv);
+#endif
 	evWakeup_.send();
 }
 
@@ -283,8 +302,14 @@ void HttpWorker::post_thunk2(int revents, void* arg)
 
 inline void HttpWorker::post(const std::function<void()>& callback)
 {
+#if !defined(X0_WORKER_POST_LIBEV)
+	pthread_mutex_lock(&postLock_);
+	postQueue_.push_back(callback);
+	pthread_mutex_unlock(&postLock_);
+#else
 	auto p = new std::function<void()>(callback);
 	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
+#endif
 	evWakeup_.send();
 }
 

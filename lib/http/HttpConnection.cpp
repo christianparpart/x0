@@ -535,6 +535,9 @@ void HttpConnection::flush()
 //    fprintf(stderr, "ALERT(%p): Potential bug as we're to flush into a connection that is already now under our control (why?)\n", this);
 //    return;
 //  }
+	if (!isOutputPending())
+		return;
+
 #if defined(ENABLE_OPPORTUNISTIC_WRITE)
 	writeSome();
 #else
