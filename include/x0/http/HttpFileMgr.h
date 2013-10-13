@@ -38,13 +38,14 @@ public:
 	HttpFileRef operator()(const std::string& path) { return query(path); }
 	HttpFileRef operator[](const std::string& path) { return query(path); }
 
+	void release(HttpFile* file);
 private:
 	ev::loop_ref loop_;
 
 #if defined(HAVE_SYS_INOTIFY_H)
 	int handle_;                                     //!< inotify handle
 	ev::io inotify_;
-	std::unordered_map<int, HttpFileRef> inotifies_;
+	std::unordered_map<int, HttpFile*> inotifies_;
 
 	void onFileChanged(ev::io& w, int revents);
 #endif

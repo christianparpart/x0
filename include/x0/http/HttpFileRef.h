@@ -57,6 +57,8 @@ public:
 			object_->unref();
 		}
 	}
+
+	HttpFile* get() const { return object_; }
 		
 	HttpFile* operator->() { return object_; }
 	const HttpFile* operator->() const { return object_; }

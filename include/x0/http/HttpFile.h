@@ -26,6 +26,30 @@ namespace x0 {
 
 class HttpFileMgr;
 
+/**
+ * Abstracts a static file to be served by the HTTP stack, providing some bonus properties.
+ *
+ * This class is meant to speed up getting and computing file properties, such as
+ * mimetype, etag, and last-modified string versions, as required to be sent by an
+ * HTTP server.
+ *
+ * Although, the file resource handle, used to serve the actual content is shared
+ * and re-used if there are concurrent requests to this file, reducing the number
+ * of file descriptor resources in use and speeding up serving as we spare
+ * the system-calls to open+fstat+close, too.
+ *
+ * In order to properly invalidate cached properties, each file object has a TTL
+ * until the cached properties have to be regenerated.
+ * On systems that support file system change notifications (e.g. inotify),
+ * will get property invalidate in realtime.
+ *
+ * A user application can attach custom data to it that gets also automatically
+ * cleared upon file properties invalidation.
+ *
+ * @see HttpFileMgr
+ * @see HttpFileRef
+ * @see CustomData
+ */
 class X0_API HttpFile {
 	CUSTOMDATA_API_INLINE
 private:
@@ -64,9 +88,9 @@ public:
 	bool exists() const { return errno_ == 0; }
 	int error() const { return errno_; }
 
-	// attribute accessors
-
 	int handle() const { if (fd_ < 0) const_cast<HttpFile*>(this)->open(); return fd_; }
+
+	// property accessors
 	operator const struct stat* () const { return &stat_; }
 	const std::string& path() const { return path_; }
 	std::string filename() const;

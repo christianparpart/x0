@@ -1,10 +1,14 @@
 #include <x0/http/HttpFileMgr.h>
 #include <x0/Buffer.h>
 #include <x0/Tokenizer.h>
+#include <x0/DebugLogger.h>
 #include <stdio.h>
 
-#define TRACE(msg...) do {} while (0)
-//#define TRACE(msg...) printf(msg)
+#if 1
+#	define TRACE(level, msg...) XZERO_DEBUG("HttpFileMgr", (level), msg)
+#else
+#	define TRACE(level, msg...) do {} while (0)
+#endif
 
 namespace x0 {
 
@@ -24,13 +28,13 @@ HttpFileMgr::HttpFileMgr(struct ev_loop* loop, Settings* settings) :
 		if (fcntl(handle_, F_SETFL, fcntl(handle_, F_GETFL) | O_NONBLOCK) < 0)
 			fprintf(stderr, "Error setting nonblock/cloexec flags on inotify handle\n");
 
-//		if (fcntl(handle_, F_SETFD, fcntl(handle_, F_GETFD) | FD_CLOEXEC) < 0)
-//			fprintf(stderr, "Error setting cloexec flags on inotify handle\n");
+		if (fcntl(handle_, F_SETFD, fcntl(handle_, F_GETFD) | FD_CLOEXEC) < 0)
+			fprintf(stderr, "Error setting cloexec flags on inotify handle\n");
 
 		inotify_.set<HttpFileMgr, &HttpFileMgr::onFileChanged>(this);
 		inotify_.start(handle_, ev::READ);
 		loop_.unref();
-		TRACE("HttpFileMgr (handle=%d)\n", handle_);
+		TRACE(1, "inotify handle=%d\n", handle_);
 	} else {
 		fprintf(stderr, "Error initializing inotify: %s\n", strerror(errno));
 	}
@@ -39,14 +43,16 @@ HttpFileMgr::HttpFileMgr(struct ev_loop* loop, Settings* settings) :
 
 HttpFileMgr::~HttpFileMgr()
 {
-	TRACE("~HttpFileMgr (handle=%d)\n", handle_);
+#if defined(HAVE_SYS_INOTIFY_H)
+	TRACE(1, "~HttpFileMgr (inotify=%d)\n", handle_);
+#endif
 	stop();
 }
 
 void HttpFileMgr::stop()
 {
 #if defined(HAVE_SYS_INOTIFY_H)
-	TRACE("HttpFileMgr.close() (handle=%d)\n", handle_);
+	TRACE(1, "close() (inotify=%d)\n", handle_);
 	if (handle_ != -1) {
 		loop_.ref();
 		inotify_.stop();
@@ -60,7 +66,7 @@ HttpFileRef HttpFileMgr::query(const std::string& path)
 {
 	auto i = cache_.find(path);
 	if (i != cache_.end()) {
-		TRACE("query(%s).cached; len:%ld\n", path.c_str(), i->second->size());
+		TRACE(1, "query(%s).cached; size:%ld\n", path.c_str(), i->second->size());
 		return i->second;
 	}
 
@@ -75,15 +81,15 @@ HttpFileRef HttpFileMgr::query(const std::string& path)
 				IN_DELETE_SELF | IN_MOVE_SELF)
 			: -1;
 
-	TRACE("query(%s).new -> %d len:%ld\n", path.c_str(), wd, file->size());
+	TRACE(1, "query(%s).new -> %d len:%ld\n", path.c_str(), wd, file->size());
 
 	if (wd != -1) {
 		file->inotifyId_ = wd;
-		inotifies_[wd] = file;
+		inotifies_[wd] = file.get();
 		cache_[path] = file;
 	}
 #else
-	TRACE("query(%s)! len:%ld\n", path.c_str(), file->size());
+	TRACE(1, "query(%s)! len:%ld\n", path.c_str(), file->size());
 	cache_[path] = file;
 #endif
 	return file;
@@ -140,15 +146,29 @@ bool HttpFileMgr::Settings::openMimeTypes(const std::string& path)
 	return true;
 }
 
+void HttpFileMgr::release(HttpFile* file)
+{
+	TRACE(1, "release(%p, %s) rc:%d\n", file, file->path().c_str(), file->refs_);
+#if defined(HAVE_SYS_INOTIFY_H)
+	auto wi = inotifies_.find(file->inotifyId_);
+	if (wi != inotifies_.end())
+		inotifies_.erase(wi);
+#endif
+
+	auto k = cache_.find(file->path());
+	if (k != cache_.end())
+		cache_.erase(k);
+}
+
 #if defined(HAVE_SYS_INOTIFY_H)
 void HttpFileMgr::onFileChanged(ev::io& w, int revents)
 {
-	TRACE("onFileChanged()\n");
+	TRACE(1, "onFileChanged()\n");
 
 	char buf[sizeof(inotify_event) * 256];
 	ssize_t rv = ::read(handle_, &buf, sizeof(buf));
 
-	TRACE("read returned: %ld (%% %ld, %ld)\n",
+	TRACE(2, "read returned: %ld (%% %ld, %ld)\n",
 		rv, sizeof(inotify_event), rv / sizeof(inotify_event));
 
 	if (rv > 0) {
@@ -157,23 +177,23 @@ void HttpFileMgr::onFileChanged(ev::io& w, int revents)
 		inotify_event *ev = (inotify_event *)i;
 
 		for (; i < e && ev->wd != 0; i += sizeof(*ev) + ev->len, ev = (inotify_event *)i) {
-			TRACE("traverse: (wd:%d, mask:0x%04x, cookie:%d)\n", ev->wd, ev->mask, ev->cookie);
+			TRACE(2, "traverse: (wd:%d, mask:0x%04x, cookie:%d)\n", ev->wd, ev->mask, ev->cookie);
 			auto wi = inotifies_.find(ev->wd);
 			if (wi == inotifies_.end()) {
-				TRACE("-skipping\n");
+				TRACE(3, "-skipping\n");
 				continue;
 			}
 
 			auto k = cache_.find(wi->second->path());
-			TRACE("invalidate: %s\n", k->first.c_str());
+			TRACE(1, "invalidate: %s\n", k->first.c_str());
 			// onInvalidate(k->first, k->second);
-			cache_.erase(k);
 			inotifies_.erase(wi);
+			cache_.erase(k);
 			int rv = inotify_rm_watch(handle_, ev->wd);
 			if (rv < 0) {
-				TRACE("error removing inotify watch (%d, %s): %s\n", ev->wd, ev->name, strerror(errno));
+				TRACE(1, "error removing inotify watch (%d, %s): %s\n", ev->wd, ev->name, strerror(errno));
 			} else {
-				TRACE("inotify_rm_watch: %d (ok)\n", rv);
+				TRACE(2, "inotify_rm_watch: %d (ok)\n", rv);
 			}
 		}
 	}

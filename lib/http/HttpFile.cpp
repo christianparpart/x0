@@ -1,5 +1,6 @@
 #include <x0/http/HttpFile.h>
 #include <x0/http/HttpFileMgr.h>
+#include <x0/DebugLogger.h>
 #include <x0/Buffer.h>
 
 #include <sys/stat.h>
@@ -7,6 +8,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+
+#define TRACE(level, msg...) XZERO_DEBUG("HttpFile", (level), msg)
 
 namespace x0 {
 
@@ -25,6 +28,7 @@ HttpFile::HttpFile(const std::string& path, HttpFileMgr* mgr) :
 	mtime_(),
 	mimetype_()
 {
+	TRACE(2, "(%s).new", path_.c_str());
 	open();
 }
 
@@ -32,9 +36,8 @@ HttpFile::~HttpFile()
 {
 	clearCache();
 
-	if (fd_ >= 0) {
-		::close(fd_);
-	}
+	close();
+	TRACE(2, "(%s).destruct", path_.c_str());
 }
 
 std::string HttpFile::filename() const
@@ -87,21 +90,28 @@ bool HttpFile::update()
 void HttpFile::close()
 {
 	if (fd_ >= 0) {
+		TRACE(1, "(%s).close() fd:%d", path_.c_str(), fd_);
 		::close(fd_);
 		fd_ = -1;
 	}
 }
 
-void HttpFile::ref() {
+void HttpFile::ref()
+{
 	++refs_;
-//	printf("HttpFile[%s].ref() -> %i\n", path_.c_str(), refs_);
+
+	TRACE(2, "(%s).ref() -> %i", path_.c_str(), refs_);
 }
 
-void HttpFile::unref() {
+void HttpFile::unref()
+{
 	--refs_;
-//	printf("HttpFile[%s].unref() -> %i\n", path_.c_str(), refs_);
 
-	if (refs_ <= 0)
+	TRACE(2, "(%s).unref() -> %i", path_.c_str(), refs_);
+
+	if (refs_ == 1)
+		mgr_->release(this);
+	else if (refs_ <= 0)
 		delete this;
 }
 
