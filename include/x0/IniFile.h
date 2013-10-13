@@ -67,6 +67,8 @@ public:
 	const_iterator cbegin() const { return sections_.cbegin(); }
 	const_iterator cend() const { return sections_.cend(); }
 
+	size_t size() const { return sections_.size(); }
+
 private:
 	mutable SectionMap sections_;
 };

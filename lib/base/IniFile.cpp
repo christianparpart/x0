@@ -142,6 +142,22 @@ std::string IniFile::get(const std::string& title, const std::string& key) const
 	return std::string();
 }
 
+bool IniFile::get(const std::string& title, const std::string& key, std::string& value) const
+{
+	auto i = sections_.find(title);
+
+	if (i != sections_.end()) {
+		auto s = i->second;
+		auto k = s.find(key);
+
+		if (k != s.end()) {
+			value = k->second;
+			return true;
+		}
+	}
+	return false;
+}
+
 bool IniFile::load(const std::string& title, const std::string& key, std::string& result) const
 {
 	auto i = sections_.find(title);
