@@ -59,14 +59,16 @@ void HttpFileMgr::stop()
 HttpFileRef HttpFileMgr::query(const std::string& path)
 {
 	auto i = cache_.find(path);
-	if (i != cache_.end())
+	if (i != cache_.end()) {
+		TRACE("query(%s).cached; len:%ld\n", path.c_str(), i->second->size());
 		return i->second;
+	}
 
 //	return cache_[path] = HttpFileRef(new HttpFile(path, this));
 
 	auto file = HttpFileRef(new HttpFile(path, this));
 
-#if 0// defined(HAVE_SYS_INOTIFY_H)
+#if defined(HAVE_SYS_INOTIFY_H)
 	int wd = handle_ != -1 && file->exists()
 			? ::inotify_add_watch(handle_, path.c_str(),
 				/*IN_ONESHOT |*/ IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT |
@@ -78,8 +80,8 @@ HttpFileRef HttpFileMgr::query(const std::string& path)
 	if (wd != -1) {
 		file->inotifyId_ = wd;
 		inotifies_[wd] = file;
+		cache_[path] = file;
 	}
-	cache_[path] = file;
 #else
 	TRACE("query(%s)! len:%ld\n", path.c_str(), file->size());
 	cache_[path] = file;
@@ -162,7 +164,7 @@ void HttpFileMgr::onFileChanged(ev::io& w, int revents)
 				continue;
 			}
 
-			auto k = cache_.find(wi->second->filename());
+			auto k = cache_.find(wi->second->path());
 			TRACE("invalidate: %s\n", k->first.c_str());
 			// onInvalidate(k->first, k->second);
 			cache_.erase(k);
