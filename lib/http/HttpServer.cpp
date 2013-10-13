@@ -97,12 +97,10 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	maxRequestHeaderCount(100),
 	maxRequestBodySize(2 * 1024 * 1024)
 {
-#ifndef __APPLE__
 	DebugLogger::get().onLogWrite = [&](const char* msg, size_t n) {
 		LogMessage lm(Severity::debug1, "%s", msg);
 		logger_->write(lm);
 	};
-#endif
 
 	HttpRequest::initialize();
 
