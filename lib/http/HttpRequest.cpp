@@ -15,6 +15,7 @@
 #include <x0/io/ChunkedEncoder.h>
 #include <x0/Process.h>                // Process::dumpCore()
 #include <x0/strutils.h>
+#include <x0/sysconfig.h>
 #include <strings.h>                   // strcasecmp()
 #include <stdlib.h>                   // realpath()
 #include <limits.h>                   // PATH_MAX
@@ -1007,7 +1008,7 @@ bool HttpRequest::sendfile(const HttpFileRef& transferFile)
 		responseHeaders.push_back("Content-Length", lexical_cast<std::string>(transferFile->size()));
 
 		if (fd >= 0) { // GET request
-#ifndef __APPLE__
+#if defined(HAVE_POSIX_FADVISE)
 			posix_fadvise(fd, 0, transferFile->size(), POSIX_FADV_SEQUENTIAL);
 #endif
 			write<FileSource>(fd, 0, transferFile->size(), false);
@@ -1158,7 +1159,7 @@ bool HttpRequest::processRangeRequest(const HttpFileRef& transferFile, int fd) /
 		responseHeaders.push_back("Content-Range", cr);
 
 		if (fd >= 0) {
-#ifndef __APPLE__
+#if defined(HAVE_POSIX_FADVISE)
 			posix_fadvise(fd, offsets.first, length, POSIX_FADV_SEQUENTIAL);
 #endif
 			write<FileSource>(fd, offsets.first, length, true);
