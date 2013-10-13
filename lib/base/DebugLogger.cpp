@@ -4,6 +4,12 @@
 #include <cstdlib>
 #include <cstdarg>
 
+#if 0
+#	define ITRACE(msg...) do { printf("DebugLogger(%s): ", tag_.c_str()); printf(msg); printf("\n"); } while (0)
+#else
+#	define	ITRACE(msg...) do {} while (0)
+#endif
+
 namespace x0 {
 
 DebugLogger::Instance::Instance(DebugLogger* logger, const std::string& tag) :
@@ -15,29 +21,36 @@ DebugLogger::Instance::Instance(DebugLogger* logger, const std::string& tag) :
 	pre_(),
 	post_()
 {
+	ITRACE("spawned");
 }
 
 DebugLogger::Instance::~Instance()
 {
+	ITRACE("despawn");
 }
 
 void DebugLogger::Instance::enable()
 {
 	enabled_ = true;
+	ITRACE("enable()");
 }
 
 void DebugLogger::Instance::disable()
 {
 	enabled_ = false;
+	ITRACE("disable()");
 }
 
 void DebugLogger::Instance::setVerbosity(int value)
 {
 	verbosity_ = value;
+	ITRACE("setVerbosity(%d)", value);
 }
 
 void DebugLogger::Instance::setPreference(const std::string& value)
 {
+	ITRACE("setPreference(\"%s\")", value.c_str());
+
 	static const struct {
 		int value;
 		const std::string name;
@@ -100,6 +113,7 @@ void DebugLogger::Instance::setPreference(const std::string& value)
 
 void DebugLogger::Instance::log(int level, const char* fmt, ...)
 {
+	ITRACE("log(level=%d); verbosity=%d, enabled=%d", level, verbosity_, enabled_);
 	if (!enabled_)
 		return;
 
