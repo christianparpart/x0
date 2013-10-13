@@ -4,6 +4,7 @@
 #include <x0/Api.h>
 
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <functional>
 
@@ -26,7 +27,7 @@ public:
 		void enable();
 		void disable();
 
-		void setVerbosity(int value) { verbosity_ = value; }
+		void setVerbosity(int value);
 		void setPreference(const std::string& value);
 
 		void log(int level, const char* fmt, ...);
@@ -63,7 +64,7 @@ public:
 	void log(const std::string& tag, int level, const char* fmt, const Args&... args)
 	{
 		if (auto instance = get(tag)) {
-			instance->log(level, fmt, args...);
+			instance->log(level, fmt, std::move(args)...);
 		}
 	}
 
@@ -71,7 +72,7 @@ public:
 	void logUntagged(const std::string& tag, int level, const char* fmt, const Args&... args)
 	{
 		if (auto instance = get(tag)) {
-			instance->logUntagged(level, fmt, args...);
+			instance->logUntagged(level, fmt, std::move(args)...);
 		}
 	}
 
