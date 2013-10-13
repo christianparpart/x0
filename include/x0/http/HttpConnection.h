@@ -117,6 +117,9 @@ public:
 	bool isAborted() const;
 	bool isClosed() const;
 
+	void ref();
+	void unref();
+
 private:
 	friend class HttpRequest;
 	friend class HttpWorker;
@@ -130,8 +133,6 @@ private:
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
 
-	void ref();
-	void unref();
 	void clear();
 
 	void start(ServerSocket* listener, Socket* client);

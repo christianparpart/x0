@@ -25,7 +25,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if !defined(XZERO_NDEBUG)
+#if 0 //!defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) XZERO_DEBUG("HttpConnection", (level), msg)
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -529,6 +529,12 @@ void HttpConnection::write(Source* chunk)
 
 void HttpConnection::flush()
 {
+  // mom, hab noch was...
+//  let the rock crash
+//  if (socket_ == nullptr) {
+//    fprintf(stderr, "ALERT(%p): Potential bug as we're to flush into a connection that is already now under our control (why?)\n", this);
+//    return;
+//  }
 #if defined(ENABLE_OPPORTUNISTIC_WRITE)
 	writeSome();
 #else

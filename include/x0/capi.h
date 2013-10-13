@@ -178,6 +178,9 @@ X0_API void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handl
  * @param userdata Userdata to be passed additionally to the callback.
  */
 X0_API void x0_request_post(x0_request_t* r, x0_request_post_fn fn, void* userdata);
+
+X0_API void x0_request_ref(x0_request_t* r);
+X0_API void x0_request_unref(x0_request_t* r);
 // }}}
 // {{{ request inspection
 /**

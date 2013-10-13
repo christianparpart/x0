@@ -191,6 +191,16 @@ void x0_request_post(x0_request_t* r, x0_request_post_fn fn, void* userdata)
 	});
 }
 
+void x0_request_ref(x0_request_t* r)
+{
+  r->request->connection.ref();
+}
+
+void x0_request_unref(x0_request_t* r)
+{
+  r->request->connection.unref();
+}
+
 // --------------------------------------------------------------------------
 // REQUEST
 
