@@ -529,12 +529,6 @@ void HttpConnection::write(Source* chunk)
 
 void HttpConnection::flush()
 {
-  // mom, hab noch was...
-//  let the rock crash
-//  if (socket_ == nullptr) {
-//    fprintf(stderr, "ALERT(%p): Potential bug as we're to flush into a connection that is already now under our control (why?)\n", this);
-//    return;
-//  }
 	if (!isOutputPending())
 		return;
 
