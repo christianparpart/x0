@@ -25,7 +25,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
-#if 0 //!defined(XZERO_NDEBUG)
+#if !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) XZERO_DEBUG("HttpConnection", (level), msg)
 #else
 #	define TRACE(msg...) do { } while (0)
@@ -79,6 +79,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
  */
 HttpConnection::~HttpConnection()
 {
+	TRACE(1, "%d: destructing", id_);
 	if (request_)
 		delete request_;
 
