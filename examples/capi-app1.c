@@ -10,8 +10,6 @@ void handler(x0_request_t* r, void* userdata)
 
 	x0_request_path(r, path, sizeof(path));
 
-	printf("Request-Path: %s\n", path);
-
 	x0_response_status_set(r, 200);
 	x0_response_header_set(r, "Content-Type", "text/plain");
 
