@@ -174,8 +174,6 @@ and the operator precedence is quite like it, too.
 
 B<RHS> must be a number, and does basically do nothing.
 
-=back
-
 =item B<-> RHS
 
 Negates the expression.
