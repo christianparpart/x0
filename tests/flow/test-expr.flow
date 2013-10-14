@@ -33,7 +33,10 @@ handler test_expr_number_units
 
 handler test_expr_and
 {
-	# TODO
+	assert true and true, 'true & true'
+	assert not (true and false), 'true & false'
+	assert not (false and true), 'false & true'
+
 }
 
 handler test_expr_or
@@ -56,7 +59,7 @@ handler test_expr_to_bool
 	assert mkbuf(foo), 'mkbuf(foo)';
 	assert not mkbuf(), 'not mkbuf()';
 }
-
+/*
 handler test_expr_xor
 {
 	# TODO
@@ -227,14 +230,14 @@ handler test_array
 	var c = [0, 3, 5];
 	var d = [];
 
-	// equality
+	# equality
 	assert a == a, "a == b";
 	assert a != b, "a != b";
 
 	assert !!a, "!!a";
 	assert !d, "!d";
 
-	// plus
+	# plus
 	assert a + c == (1, 2, 4, 8, 0, 3, 5), "a + c";
 	assert c + a == (0, 3, 5, 1, 2, 4, 8), "c + a";
 }
@@ -253,3 +256,4 @@ handler test_post_condstmt
 	assert (true, "if true") if true;
 	assert (false, "if false") if false;
 }
+*/

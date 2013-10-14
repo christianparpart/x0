@@ -98,3 +98,4 @@ cscope.*
 #debian/tmp/
 #debian/files
 #*-stamp
+flow-tool/flow-tool

@@ -36,8 +36,9 @@ option(ENABLE_PLUGIN_WEBDAV "Includes WebDAV support (plugin) [default: off]" OF
 
 option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: off]" OFF)
 
-option(ENABLE_X0D "Compile x0d binary [default: on]" ON)
+option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
+option(ENABLE_FLOW_TOOL "Build flow-tool [default: on]" ON)
 
 # feature flags
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
@@ -51,6 +52,7 @@ option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF
 if (APPLE)
 	set(ENABLE_PLUGIN_SSL OFF)
 	set(ENABLE_XZERO_FLOW OFF)
+  set(ENABLE_FLOW_TOOL OFF)
 	set(ENABLE_PLUGINS OFF)
 	set(ENABLE_PLUGIN_SSL OFF)
 	set(ENABLE_PLUGIN_DIRECTOR OFF)
@@ -173,6 +175,9 @@ if(ENABLE_XZERO_FLOW)
 	else()
 		message(FATAL_ERROR "LLVM version 3.0, 3.1, or 3.3 is required (You have ${LLVM_VERSION}).\nYou can pass -DLLVM_CONFIG_EXECUTABLE=/path/to/llvm-config for custom paths/names to llvm-config.")
 	endif()
+else()
+  # we cannot compile flow-tool if libXzeroFlow is not built.
+  set(ENABLE_FLOW_TOOL OFF CACHE BOOL "Build flow-tool [default: on]")
 endif()
 
 # PCRE
@@ -296,6 +301,7 @@ add_subdirectory(docs)
 add_subdirectory(support)
 add_subdirectory(lib)
 add_subdirectory(x0d)
+add_subdirectory(flow-tool)
 add_subdirectory(tests)
 add_subdirectory(examples)
 
