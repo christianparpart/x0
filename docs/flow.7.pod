@@ -188,8 +188,33 @@ blah
 
 =head1 CONDITIONS
 
-TODO (if statement, postfix-if statement)
+B<Flow> is not meant to run loops but to define paths of decisions.
 
+Though, B<Flow> only supports the if condition.
+
+I<Note, it is planned to later support a switch-alike condition, too.>
+
+=head2 if-statement
+
+You can branch at any given point with the if-statement to conditionally continue processing depending on certain input data conditions. You may optionally also add an alternative branch that is executed instead if the expression is not evaluated to be true.
+The condition expression may or may not be surrounded by round braces, this is up to your own style preferences.
+
+  if EXPRESSION
+      STATEMENT    # when expression evaluates to true
+
+  if EXPRESSION
+      STATEMENT    # when expression evaluates to true
+  else
+      STATEMENT    # when expression evaluates to false
+
+Example:
+
+  var i = 42;
+  
+  if (i > 13)
+    log.debug("that's true");
+  else
+    log.debug("World is odd.");
 
 =head1 COMMENTS
 
