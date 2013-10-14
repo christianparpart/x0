@@ -1,0 +1,218 @@
+=head1 NAME
+
+Flow Language Specification
+
+=head1 SYNOPSIS
+
+Flow is a tiny language, designed to control the program flow of some hook of an application,
+e.g. an HTTP server's request handling.
+
+=head1 DESCRIPTION
+
+A Flow source (or configuration-) file specifies a list of named handlers.
+
+These handlers may be invoked by the host application (e.g. an HTTP web server) on certain events, e.g. an incoming request to be processed.
+The handler then decides - depending on the request properties (such as source IP, hostname, or request path) - how to exactly handle this request,
+e.g. either passing it to a fastcgi backend server, the static file handler, or just responding with a 403 (access denied) response directly.
+
+You can define custom sub handlers within your file for common tasks frequently handled, e.g. a custom php or cgi handler
+that may be referenced by others.
+
+With this in mind, B<Flow> can be used to build up complex decision control flows that make it pretty easy to tweak.
+
+B<Flow> itself is built upon five basic features:
+
+=over 6
+
+=item B<handlers> - to define the handlers your backend invokes to actually execute your Flow, or sub-handlers, a handler that is called by other handlers.
+
+=item B<variables> - mainly provided by your backend to make your control Flow dependant on them, e.g. the hostname, a request header or the client ip.
+
+=item B<functions> - only provided by the backend to aid your control Flow with common tasks, e.g. setting the document-root, getting environment variables, writing into a log file, etc. You cannot define a function within a Flow file itself. Functions must be provided by the backend.
+
+=item B<expressions> - make the flow control actually more useful, as it allows you to composite more complex tests or eases the readability
+
+=item B<conditions> - are the most interesting part. You write a condition to test on a specific state of your request and depending on the result you pass control to either a certain sub-block or another
+
+=back
+
+=head1 HANDLERS
+
+A handler is a named group of ordered statements to be invoked by the host program to handle certain events. You may call also handlers within your own handler to devide your big flow into multiple smaller and more comprehensible ones.
+
+A minimal handler, not doing anything, looks like follows:
+
+  handler HANDLER_NAME { }
+
+Every handler starts with the keyword B<handler> followed by its handler name. The next must be a valid statement or a block of statements.
+Statement blocks are embraced by B<{>and B<}>, so, the above handler defines an empty statement block with no statements inside, resulting
+into a no-operation when invoked.
+
+A handler may also invoke other handlers. Though, looking at the following example:
+
+  handler helper
+  {
+  }
+
+  handler main
+  {
+      helper;
+  }
+
+The helper handler is doing nothing and the main handler is invoking the helper handler
+
+=head1 VARIABLES
+
+Variables are values that are referenced by its well known name but can contain (and even change over time) any arbitary value, depending on the variable's use and origin.
+
+Variables are usually provided by the backend (e.g. a chat or HTTP server) and have a specific use.
+But you may also define your own variables to aid your flow with readability.
+
+The syntax for defining own variables looks as follows:
+
+  var VARIABLE_NAME = VALUE;
+
+A variable definition is always introduced with the keyword B<var>, followed by its variable name you want to use,
+and B<=> sign and the initial expression this variable represents.
+
+Examples:
+
+  var i = 32;
+  var hello = 'Hello, World';
+  var value = 2 + 3 * i;
+
+As you can see, you may assign simple values to your variable, e.g. 32 or a string,
+as well as more complex expressions, such as C<2 + 3 * i>.
+
+Any place you use your variables, they will represent the values assigned to it.
+
+=head1 DATA TYPES
+
+=over 6
+
+=item number
+
+=item string
+
+=item buffer
+
+=item IPv4 address
+
+=item IPv6 address
+
+=item regular expression
+
+=back
+
+=head1 FUNCTIONS
+
+Functions are always and thus must be provided by the backend and cannot be defined within B<Flow> itself.
+They help you defining your flow by e.g. configuring the request for post processing,
+a log function to log arbitary data (e.g. strings) to your log file, or communicating with other services.
+The backend is absolutely free in what it does in its functions.
+
+Though, the flowtest-tool defines e.g. the following function:
+
+  __print(value, ...);
+
+that can be used to print any value (or list of values) to your controlling terminal. e.g.:
+
+  __print(hello, i, value);
+  __print('this is me. the flow');
+
+
+=head1 EXPRESSIONS
+
+We have seen expressions already above, e.g. the little mathematical example C<2 + 3 * i>, or just C<42>.
+However, expressions can be much more powerful than that.
+As a help rule, you may say, that an expressions like quite like a mathematical one,
+and the operator precedence is quite like it, too.
+
+=head2 Operators
+
+=over 6
+
+=item LHS B<and> RHS
+
+=item LHS B<or> RHS
+
+=item LHS B<xor> RHS
+
+=item LHS B<==> RHS
+
+=item LHS B<!=> RHS
+
+=item LHS B<<=> RHS
+
+=item LHS B<E<gt>=> RHS
+
+=item LHS B<in> RHS
+
+=item LHS B<shl> RHS
+
+=item LHS B<shr> RHS
+
+=item LHS B<=^> RHS
+
+=item LHS B<=$> RHS
+
+=item LHS B<=~> RHS
+
+=item LHS B<+> RHS
+
+=item LHS B<-> RHS
+
+=item LHS B<*> RHS
+
+=item LHS B</> RHS
+
+=item LHS B<**> RHS
+
+=item B<not> RHS
+
+=item B<+> RHS
+
+B<RHS> must be a number, and does basically do nothing.
+
+=back
+
+=item B<-> RHS
+
+Negates the expression.
+
+=item B<(> EXPR B<)>
+
+blah
+
+=back
+
+=head1 CONDITIONS
+
+TODO (if statement, postfix-if statement)
+
+
+=head1 COMMENTS
+
+=over 6
+
+=item C-style comments
+
+=item C++-style comments
+
+=item Shell-style comments
+
+=back
+
+=head1 AUTHOR
+
+The B<Flow> language is designed and implemented by Christian Parpart <trapni@gmail.com> for the x0 (Xzero) HTTP web server project.
+
+=head1 SEE ALSO
+
+L<x0d(8)>, L<x0d.conf(5)>
+
+L<http://github.com/xzero/x0>, x0 Project Management Page
+
+L<http://xzero.io>, x0 Official Website
+
+L<http://perldoc.perl.org/perlpod.html>, POD perldoc documentation
