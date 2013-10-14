@@ -387,6 +387,10 @@ bool FlowRunner::open(const std::string& filename, std::istream* stream)
 	if (!unit_)
 		return false;
 
+	if (onParseComplete)
+		if (!onParseComplete(unit_))
+			return false;
+
 	// generate machine code
 	if (executionEngine_ == nullptr)
 		if (!reinitialize())

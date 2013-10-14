@@ -148,6 +148,9 @@ private:
 	std::vector<llvm::Function *> functions_;
 
 public:
+	// processing hooks
+	std::function<bool(Unit*)> onParseComplete;
+
 	explicit FlowRunner(FlowBackend* backend);
 	~FlowRunner();
 
