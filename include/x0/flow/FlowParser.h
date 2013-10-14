@@ -118,7 +118,8 @@ private:
 
 	// location service
 	SourceLocation location() { return lexer_->location(); }
-	FilePos end() { return lexer_->lastLocation().end; }
+	FilePos lastPos() { return lexer_->lastPos(); }
+	FilePos end() { return lexer_->location().end; }
 };
 
 // {{{ inlines

@@ -371,7 +371,7 @@ Variable* FlowParser::varDecl()
 	if (!value)
 		return nullptr;
 
-	sloc.update(end());
+	sloc.update(value->sourceLocation().end);
 	consumeIf(FlowToken::Semicolon);
 
 	return new Variable(scope(), name, value, sloc);
@@ -405,7 +405,7 @@ Function* FlowParser::handlerDecl()
 		return nullptr;
 	}
 
-	sloc.update(end());
+	sloc.update(body->sourceLocation().end);
 	Function* f = static_cast<Function *>(scope()->lookup(name, Lookup::Self));
 	if (!f)
 		return new Function(st, name, body, true, sloc);
@@ -475,7 +475,7 @@ Expr* FlowParser::assocExpr()
 		// transform the LHS into a string literal node
 		lhs.reset(new StringExpr(fr->function()->name(), fr->sourceLocation()));
 
-		std::unique_ptr<ListExpr> assoc(new ListExpr(sloc.update(end())));
+		std::unique_ptr<ListExpr> assoc(new ListExpr(sloc.update(rhs->sourceLocation().end)));
 		assoc->push_back(lhs.release());
 		assoc->push_back(rhs.release());
 
@@ -490,7 +490,7 @@ Expr* FlowParser::assocExpr()
 	if (!rhs)
 		return nullptr;
 
-	std::unique_ptr<ListExpr> assoc(new ListExpr(sloc.update(end())));
+	std::unique_ptr<ListExpr> assoc(new ListExpr(sloc.update(rhs->sourceLocation().end)));
 	assoc->push_back(lhs.release());
 	assoc->push_back(rhs.release());
 
@@ -520,7 +520,7 @@ Expr* FlowParser::logicExpr()
 					return nullptr;
 				}
 
-				sloc.update(end());
+				sloc.update(right->sourceLocation().end);
 				left = new BinaryExpr(op, left, right, sloc);
 				break;
 			}
@@ -555,7 +555,7 @@ Expr* FlowParser::relExpr() // addExpr ((== != <= >= < > =^ =$ =~ 'in') addExpr)
 					delete left;
 					return nullptr;
 				}
-				left = new BinaryExpr(op, left, right, sloc.update(end()));
+				left = new BinaryExpr(op, left, right, sloc.update(right->sourceLocation().end));
 			}
 			default:
 				return left;
@@ -584,7 +584,7 @@ Expr* FlowParser::addExpr() // mulExpr (('+' | '-') mulExpr)*
 					return nullptr;
 				}
 
-				left = new BinaryExpr(op, left, right, sloc.update(end()));
+				left = new BinaryExpr(op, left, right, sloc.update(right->sourceLocation().end));
 				break;
 			}
 			default:
@@ -618,7 +618,7 @@ Expr* FlowParser::mulExpr()
 					delete left;
 					return nullptr;
 				}
-				left = new BinaryExpr(op, left, right, sloc.update(end()));
+				left = new BinaryExpr(op, left, right, sloc.update(right->sourceLocation().end));
 				break;
 			}
 			default:
@@ -638,7 +638,8 @@ Expr* FlowParser::negExpr()
 		auto op = makeUnaryOperator(token());
 		nextToken();
 		std::unique_ptr<Expr> e(negExpr());
-		return e ? new UnaryExpr(op, e.release(), sloc.update(end())) : nullptr;
+		sloc.update(e->sourceLocation().end);
+		return e ? new UnaryExpr(op, e.release(), sloc) : nullptr;
 	} else {
 		return powExpr();
 	}
@@ -664,7 +665,7 @@ Expr* FlowParser::powExpr()
 					delete left;
 					return nullptr;
 				}
-				left = new BinaryExpr(op, left, right, sloc.update(end()));
+				left = new BinaryExpr(op, left, right, sloc.update(right->sourceLocation().end));
 				break;
 			}
 			default:
@@ -849,13 +850,13 @@ Expr* FlowParser::literalExpr()
 
 	switch (token()) {
 		case FlowToken::RegExp: {
-			Expr* e = new RegExpExpr(RegExp(stringValue()), sloc.update(end()));
+			Expr* e = new RegExpExpr(RegExp(stringValue()), sloc);
 			nextToken();
 			return e;
 		}
 		case FlowToken::String:
 		case FlowToken::RawString: {
-			Expr* e = new StringExpr(stringValue(), sloc.update(end()));
+			Expr* e = new StringExpr(stringValue(), sloc);
 			nextToken();
 			return e;
 		}
@@ -863,17 +864,17 @@ Expr* FlowParser::literalExpr()
 			return interpolatedStr();
 		}
 		case FlowToken::Boolean: {
-			Expr* e = new BoolExpr(booleanValue(), sloc.update(end()));
+			Expr* e = new BoolExpr(booleanValue(), sloc); //.update(end()));
 			nextToken();
 			return e;
 		}
 		case FlowToken::Number: {
-			Expr* e = new NumberExpr(numberValue(), sloc.update(end()));
+			Expr* e = new NumberExpr(numberValue(), sloc);
 			nextToken();
 			return e;
 		}
 		case FlowToken::IP: {
-			Expr* e = new IPAddressExpr(lexer_->ipValue(), sloc.update(end()));
+			Expr* e = new IPAddressExpr(lexer_->ipValue(), sloc);
 			nextToken();
 			return e;
 		}
@@ -1001,12 +1002,9 @@ Expr* FlowParser::symbolExpr()
 ListExpr* FlowParser::exprList() // expr (',' expr)
 {
 	FNTRACE();
-	SourceLocation sloc(location());
+	SourceLocation sloc(location()); // XXX preserve sloc.begin; update sloc.end
 
-	printf("expr at: %zu:%zu / %zu\n", sloc.begin.line, sloc.begin.column, sloc.begin.offset);
 	if (Expr* e = expr()) {
-		FilePos epos = lexer_->location().end;
-		printf("expr step: %zu:%zu / %zu\n", epos.line, epos.column, epos.offset);
 		std::unique_ptr<ListExpr> list(new ListExpr(sloc));
 		list->push_back(e);
 
@@ -1017,7 +1015,9 @@ ListExpr* FlowParser::exprList() // expr (',' expr)
 				return nullptr;
 		}
 
-		list->sourceLocation().update(end());
+		//list->sourceLocation().update(end());
+		list->sourceLocation().update(list->back()->sourceLocation().end);
+
 		return list.release();
 	}
 	return nullptr;

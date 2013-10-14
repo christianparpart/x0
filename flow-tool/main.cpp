@@ -40,11 +40,10 @@ int lexdump(const char* filename)
 {
 	FlowLexer lexer;
 	std::fstream input(filename);
-	if (!lexer.initialize(&input))
+	if (!lexer.initialize(&input, filename))
 		return 1;
 
-	for (FlowToken t = lexer.token(); t != FlowToken::Eof; t = lexer.nextToken())
-	{
+	for (FlowToken t = lexer.token(); t != FlowToken::Eof; t = lexer.nextToken()) {
 		SourceLocation location = lexer.location();
 		std::string ts = lexer.tokenToString(t);
 		std::string raw = lexer.locationContent();
@@ -65,9 +64,10 @@ int main(int argc, char *argv[])
 	Flower flower;
 	bool testMode = false;
 	bool lexMode = false;
-
 	int opt;
-	while ((opt = getopt(argc, argv, "tO:hLe:l")) != -1) {
+	int rv = 0;
+
+	while ((opt = getopt(argc, argv, "tO:hLe:l")) != -1) { // {{{
 		switch (opt) {
 		case 'h':
 			usage(argv[0]);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 			usage(argv[0]);
 			return 1;
 		}
-	}
+	} // }}}
 
 	if (optind >= argc) {
 		printf("Expected argument after options.\n");
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 
 		if (testMode) {
 			printf("%s:\n", fileName);
-			flower.runAll(fileName);
+			rv = flower.runAll(fileName);
 		} else {
 			flower.run(fileName, handlerName);
 		}
@@ -122,5 +122,5 @@ int main(int argc, char *argv[])
 
 	FlowRunner::shutdown();
 
-	return 0;
+	return rv;
 }

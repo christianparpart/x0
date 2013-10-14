@@ -10,9 +10,34 @@
 #include <cstring>
 #include <cstdio>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 namespace x0 {
 
-static std::string unescape(const std::string& value)
+inline std::string escape(char value)
+{
+	switch (value) {
+		case '\t': return "<TAB>";
+		case '\r': return "<CR>";
+		case '\n': return "<LF>";
+		case ' ': return "<SPACE>";
+		default: break;
+	}
+	if (std::isprint(value)) {
+		std::string s;
+		s += value;
+		return s;
+	} else {
+		char buf[16];
+		snprintf(buf, sizeof(buf), "0x%02X", value);
+		return buf;
+	}
+}
+
+static inline std::string unescape(const std::string& value)
 {
 	std::string result;
 
@@ -45,19 +70,52 @@ static std::string unescape(const std::string& value)
 std::string SourceLocation::dump(const std::string& prefix) const
 {
 	char buf[4096];
-	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %zu:%zu/%zu - %zu:%zu/%zu }",
+	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %zu:%zu.%zu - %zu:%zu.%zu }",
 		!prefix.empty() ? prefix.c_str() : "location",
 		begin.line, begin.column, begin.offset,
 		end.line, end.column, end.offset);
 	return std::string(buf, n);
 }
 
+std::string SourceLocation::text() const
+{
+	std::string result;
+	char* buf = nullptr;
+	ssize_t size;
+	ssize_t n;
+	int fd;
+
+	fd = open(fileName.c_str(), O_RDONLY);
+	if (fd < 0)
+		return std::string();
+
+	size = 1 + end.offset - begin.offset;
+	if (size <= 0)
+		goto out;
+
+	if (lseek(fd, begin.offset, SEEK_SET) < 0)
+		goto out;
+
+	buf = new char[size + 1];
+	n = read(fd, buf, size); 
+	if (n < 0)
+		goto out;
+
+	result = std::string(buf, n);
+
+out:
+	delete[] buf;
+	close(fd);
+	return result;
+}
+
 FlowLexer::FlowLexer() :
 	filename_(),
 	stream_(NULL),
 	lastPos_(),
-	currentPos_(),
-	location_(),
+	currPos_(),
+	nextPos_(),
+	currLocation_(),
 	lastLocation_(),
 
 	currentChar_(EOF),
@@ -83,12 +141,13 @@ bool FlowLexer::initialize(std::istream *input, const std::string& name)
 		return false;
 
 	lastPos_.set(1, 1, 0);
-	currentPos_.set(1, 0, 0);
+	currPos_.set(1, 1, 0);
+	nextPos_.set(1, 1, 0);
 	currentChar_ = '\0';
 
-	location_.fileName = filename_;
-	location_.begin.set(1, 1, 0);
-	location_.end.set(1, 0, 0);
+	currLocation_.fileName = filename_;
+	currLocation_.begin.set(1, 1, 0);
+	currLocation_.end.set(1, 1, 0);
 	content_.clear();
 
 	nextChar();
@@ -99,12 +158,12 @@ bool FlowLexer::initialize(std::istream *input, const std::string& name)
 
 size_t FlowLexer::line() const
 {
-	return currentPos_.line;
+	return currPos_.line;
 }
 
 size_t FlowLexer::column() const
 {
-	return currentPos_.column;
+	return currPos_.column;
 }
 
 bool FlowLexer::eof() const
@@ -147,21 +206,27 @@ int FlowLexer::nextChar()
 	if (currentChar_ == EOF)
 		return currentChar_;
 
+	currLocation_.end = currPos_;
+	currPos_ = nextPos_;
+
 	int ch = stream_->get();
-
-	if (ch != EOF) {
-		lastPos_ = currentPos_;
-
-		if (currentChar_ == '\n') {
-			currentPos_.column = 0;
-			++currentPos_.line;
-		}
-		++currentPos_.column;
-		++currentPos_.offset;
-		content_ += static_cast<char>(currentChar_);
+	if (ch == EOF) {
+		currentChar_ = ch;
+		return ch;
 	}
 
-	return currentChar_ = ch;
+	currentChar_ = ch;
+	content_ += static_cast<char>(currentChar_);
+	++nextPos_.offset;
+
+	if (currentChar_ != '\n') {
+		++nextPos_.column;
+	} else {
+		nextPos_.column = 1;
+		nextPos_.line++;
+	}
+
+	return currentChar_;
 }
 
 bool FlowLexer::advanceUntil(char value)
@@ -180,14 +245,21 @@ FlowToken FlowLexer::token() const
 FlowToken FlowLexer::nextToken()
 {
 	bool expectsValue = token() == FlowToken::Ident || FlowTokenTraits::isOperator(token());
-	//printf("FlowLexer.nextToken(): current:%s, EV:%d\n", tokenToString(token()).c_str(), expectsValue);
+
+	lastPos_ = currPos_;
 
 	if (consumeSpace())
 		return token_ = FlowToken::Eof;
 
-	lastLocation_ = location_;
-	location_.begin = currentPos_;
+//	printf("FlowLexer.nextToken: currentChar %s curr[%zu:%zu.%zu] next[%zu:%zu.%zu]\n",
+//		escape(currentChar_).c_str(),
+//		currPos_.line, currPos_.column, currPos_.offset,
+//		nextPos_.line, nextPos_.column, nextPos_.offset);
+
 	content_.clear();
+	content_ += static_cast<char>(currentChar_);
+	lastLocation_ = currLocation_;
+	currLocation_.begin = currPos_;
 
 	switch (currentChar_) {
 	case EOF: // (-1)
@@ -317,7 +389,7 @@ FlowToken FlowLexer::nextToken()
 		}
 	case '/':
 		if (expectsValue)
-			return parseString('/', FlowToken::RegExp);
+			return token_ = parseString('/', FlowToken::RegExp);
 
 		nextChar();
 		return token_ = FlowToken::Div;
@@ -333,11 +405,10 @@ FlowToken FlowLexer::nextToken()
 				return token_ = FlowToken::Not;
 		}
 	case '\'':
-		return parseString(true);
+		return token_ = parseString(true);
 	case '"':
 		++interpolationDepth_;
-		token_ = parseInterpolationFragment(true);
-		return token_;
+		return token_ = parseInterpolationFragment(true);
 	case '0':
 	case '1':
 	case '2':
@@ -351,7 +422,7 @@ FlowToken FlowLexer::nextToken()
 		return parseNumber();
 	default:
 		if (std::isalpha(currentChar()) || currentChar() == '_')
-			return parseIdent();
+			return token_ = parseIdent();
 
 		if (std::isprint(currentChar()))
 			printf("lexer: unknown char %c (0x%02X)\n", currentChar(), currentChar());
@@ -387,10 +458,9 @@ FlowToken FlowLexer::parseString(char delimiter, FlowToken result)
 	return token_ = FlowToken::Unknown;
 }
 
-SourceLocation FlowLexer::location()
+const SourceLocation& FlowLexer::location() const
 {
-	location_.end = lastPos_;
-	return location_;
+	return currLocation_;
 }
 
 const SourceLocation& FlowLexer::lastLocation() const
@@ -400,7 +470,7 @@ const SourceLocation& FlowLexer::lastLocation() const
 
 std::string FlowLexer::locationContent()
 {
-	return content_;
+	return !content_.empty() ? content_.substr(0, content_.size() - 1) : content_;
 }
 
 bool FlowLexer::consume(char c)
@@ -429,7 +499,7 @@ bool FlowLexer::consumeSpace()
 
 		// TODO proper error reporting through API callback
 		std::fprintf(stderr, "%s[%04zu:%02zu]: invalid byte %d (0x%02X)\n",
-				location_.fileName.c_str(), currentPos_.line, currentPos_.column,
+				currLocation_.fileName.c_str(), nextPos_.line, nextPos_.column,
 				currentChar() & 0xFF, currentChar() & 0xFF);
 	}
 

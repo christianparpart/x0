@@ -23,6 +23,9 @@ class Flower : public x0::FlowBackend
 private:
 	std::string filename_;
 	x0::FlowRunner runner_;
+	size_t totalCases_;		// total number of cases ran
+	size_t totalSuccess_;	// total number of succeed tests
+	size_t totalFailed_;	// total number of failed tests
 
 public:
 	Flower();

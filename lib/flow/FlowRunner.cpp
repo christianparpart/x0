@@ -377,7 +377,7 @@ bool FlowRunner::open(const std::string& filename, std::istream* stream)
 		stream = fs.get();
 	}
 
-	if (!parser_->initialize(stream)) {
+	if (!parser_->initialize(stream, filename)) {
 		perror("open");
 		return false;
 	}

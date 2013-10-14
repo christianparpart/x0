@@ -14,11 +14,6 @@
 #include <memory>
 #include <utility>
 #include <cstdio>
-#include <unistd.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
 
 using namespace x0;
 
@@ -36,7 +31,10 @@ void reportError(const char *category, const std::string& msg)
 
 Flower::Flower() :
 	FlowBackend(),
-	runner_(this)
+	runner_(this),
+	totalCases_(0),
+	totalSuccess_(0),
+	totalFailed_(0)
 {
 	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
 	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
@@ -52,7 +50,7 @@ Flower::Flower() :
 	// unit test aiding handlers
 	registerHandler("error", &flow_error);
 	registerHandler("finish", &flow_finish); // XXX rename to 'success'
-	registerHandler("assert", &flow_assert);
+	registerHandler("assert", &Flower::flow_assert, this);
 	registerHandler("assert_fail", &flow_assertFail);
 
 	registerHandler("fail", &flow_fail);
@@ -63,171 +61,22 @@ Flower::~Flower()
 {
 }
 
-class CallCollector : public ASTVisitor // {{{
-{
-public:
-	static void run(Unit* unit, std::list<Symbol*>& result)
-	{
-		CallCollector cc(result);
-		cc.collect(unit);
-	}
-
-protected:
-	std::list<Symbol*>& result_;
-	int depth_;
-
-	template<typename... Args>
-	ssize_t printf(const char* fmt, const Args&... args)
-	{
-		for (int i = 0; i < depth_; ++i) std::printf("  ");
-		return std::printf(fmt, args...);
-	}
-
-	void collect(ASTNode* n)
-	{
-		++depth_;
-		n->accept(*this);
-		--depth_;
-	}
-
-	CallCollector(std::list<Symbol*>& result) :
-		result_(result),
-		depth_(0)
-	{
-	}
-
-	virtual void visit(Variable& var)
-	{
-		// no interest
-	}
-
-	virtual void visit(Function& func)
-	{
-		printf("Function: '%s'\n", func.name().c_str());
-	}
-
-	virtual void visit(Unit& unit)
-	{
-		printf("Unit: '%s'\n", unit.name().c_str());
-		for (Symbol* sym: unit.members())
-			collect(sym);
-	}
-
-	virtual void visit(UnaryExpr& expr)
-	{
-		collect(expr.subExpr());
-	}
-
-	virtual void visit(BinaryExpr& expr)
-	{
-		collect(expr.leftExpr());
-		collect(expr.rightExpr());
-	}
-
-	virtual void visit(StringExpr& expr)
-	{
-	}
-
-	virtual void visit(NumberExpr& expr)
-	{
-	}
-
-	virtual void visit(BoolExpr& expr)
-	{
-	}
-
-	virtual void visit(RegExpExpr& expr)
-	{
-	}
-
-	virtual void visit(IPAddressExpr& expr)
-	{
-	}
-
-	virtual void visit(VariableExpr& expr)
-	{
-	}
-
-	virtual void visit(FunctionRefExpr& expr)
-	{
-		printf("FunctionRefExpr to '%s'\n", expr.function()->name().c_str());
-	}
-
-	virtual void visit(CastExpr& expr)
-	{
-	}
-
-	virtual void visit(CallExpr& expr)
-	{
-	}
-
-	virtual void visit(ListExpr& expr)
-	{
-	}
-
-	virtual void visit(ExprStmt& stmt)
-	{
-	}
-
-	virtual void visit(CompoundStmt& stmt)
-	{
-	}
-
-	virtual void visit(CondStmt& stmt)
-	{
-	}
-};
-// }}}
-
-std::string dumpSource(const std::string& filename, const FilePos& begin, const FilePos& end) // {{{
-{
-	std::string result;
-	char* buf = nullptr;
-	ssize_t size;
-	ssize_t n;
-	int fd;
-
-	fd = open(filename.c_str(), O_RDONLY);
-	if (fd < 0)
-		return std::string();
-
-	size = end.offset - begin.offset;
-	if (size <= 0)
-		goto out;
-
-	if (lseek(fd, begin.offset, SEEK_SET) < 0)
-		goto out;
-
-	buf = new char[size + 1];
-	n = read(fd, buf, size); 
-	if (n < 0)
-		goto out;
-
-	result = std::string(buf, n);
-
-out:
-	delete[] buf;
-	close(fd);
-	return result;
-} // }}}
-
 bool Flower::onParseComplete(Unit* unit)
 {
 	std::list<Symbol*> calls;
 	printf("Flower.onParseComplete()\n");
-//	CallCollector::run(unit, calls);
 
 	for (auto& call: FlowCallIterator(unit)) {
-		if (call->callee()->name() != "assert") continue;
+		if (call->callee()->name() != "assert" && call->callee()->name() != "assert_fail")
+			continue;
 
 		ListExpr* args = call->args();
 		if (args->empty()) continue;
 
+		// add a string argument that equals the expression's source code
 		Expr* arg = args->at(0);
-		SourceLocation& sloc = arg->sourceLocation();
-		std::string dump = sloc.dump();
-		//std::string dump = dumpSource(filename_, sloc.begin, sloc.end);
-		printf("call to: '%s' -> '%s'\n", call->callee()->name().c_str(), dump.c_str());
+		std::string source = arg->sourceLocation().text();
+		args->push_back(new StringExpr(source, SourceLocation()));
 	}
 
 	return true;
@@ -243,12 +92,21 @@ int Flower::runAll(const char *fileName)
 
 	for (auto fn: runner_.getHandlerList()) {
 		if (strncmp(fn->name().c_str(), "test_", 5) == 0) { // only consider handlers beginning with "test_"
+			printf("[ -------- ] Testing %s\n", fn->name().c_str());
+			totalCases_++;
 			bool failed = runner_.invoke(fn);
-			printf("Running %s... %s\n", fn->name().c_str(), failed ? "FAILED" : "OK");
+			if (failed) totalFailed_++;
+			printf("[ -------- ] %s\n\n", failed ? "FAILED" : "OK");
 		}
 	}
 
-	return 0;
+	printf("[ ======== ] %zu tests from %zu cases ran\n", totalSuccess_ + totalFailed_, totalCases_);
+	if (totalSuccess_)
+		printf("[  PASSED  ] %zu tests\n", totalSuccess_);
+	if (totalFailed_)
+		printf("[  FAILED  ] %zu tests\n", totalFailed_);
+
+	return totalFailed_;
 }
 
 int Flower::run(const char* fileName, const char* handlerName)
@@ -327,22 +185,21 @@ void Flower::flow_finish(void *, x0::FlowParams& args, void *)
 	args[0].set(true);
 }
 
-void Flower::flow_assert(void *, x0::FlowParams& args, void *)
+void Flower::flow_assert(void *u, x0::FlowParams& args, void *)
 {
-	if (!args[1].toBool())
-	{
-		if (args.size() == 3 && args[2].isString())
-			fprintf(stderr, "Assertion failed. %s\n", args[2].toString());
-		else
-			fprintf(stderr, "Assertion failed.\n");
+	Flower* self = (Flower*) u;
 
-		fflush(stderr);
+	const FlowValue& sourceValue = args[args.size() - 1];
+	std::string source;
+	if (sourceValue.isString())
+		source = sourceValue.toString();
 
+	if (!args[1].toBool()) {
+		printf("[   FAILED ] %s\n", source.c_str());
 		args[0].set(true);
-	}
-	else
-	{
-		//printf("assert ok (%d, %f)\n", args[1].type_, args[1].toNumber());
+	} else {
+		printf("[       OK ] %s\n", source.c_str());
+		++self->totalSuccess_;
 		args[0].set(false);
 	}
 }

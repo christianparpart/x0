@@ -511,6 +511,7 @@ public:
 	void clear();
 
 	void push_back(Expr* expr);
+	Expr* back() { return !list_.empty() ? list_.back() : nullptr; }
 	int length() const;
 	Expr* at(int i);
 

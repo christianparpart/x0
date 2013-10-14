@@ -12,11 +12,11 @@ handler test_handler_sub1
 
 handler sub_noop
 {
-	// do nothing.
+	# do nothing.
 }
 
 handler test_handler_sub2
 {
 	sub_noop;
-	assert 1, 'should be reached';
+	assert true, 'should be reached';
 }

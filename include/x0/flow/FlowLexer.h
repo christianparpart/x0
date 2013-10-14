@@ -44,8 +44,8 @@ struct X0_API SourceLocation // {{{
 {
 public:
 	SourceLocation() : fileName(), begin(), end() {}
-	SourceLocation(const std::string& fileeName, FilePos begin, FilePos end) :
-		fileName(), begin(), end() {}
+	SourceLocation(const std::string& _fileName) : fileName(_fileName), begin(), end() {}
+	SourceLocation(const std::string& _fileName, FilePos _beg, FilePos _end) : fileName(_fileName), begin(_beg), end(_end) {}
 
 	std::string fileName;
 	FilePos begin;
@@ -54,6 +54,7 @@ public:
 	SourceLocation& update(const FilePos& endPos) { end = endPos; return *this; }
 
 	std::string dump(const std::string& prefix = std::string()) const;
+	std::string text() const;
 }; // }}}
 
 class X0_API FlowLexer
@@ -70,8 +71,9 @@ private:
 	std::istream *stream_;
 
 	FilePos lastPos_;
-	FilePos currentPos_;
-	SourceLocation location_;
+	FilePos currPos_;
+	FilePos nextPos_;
+	SourceLocation currLocation_;
 	SourceLocation lastLocation_;
 	std::string content_;
 
@@ -88,6 +90,8 @@ private:
 public:
 	FlowLexer();
 	~FlowLexer();
+
+	const FilePos& lastPos() const { return lastPos_; }
 
 	bool initialize(std::istream *input, const std::string& name = std::string());
 
@@ -112,7 +116,7 @@ public:
 	std::string tokenString() const;
 	std::string tokenToString(FlowToken value) const;
 
-	SourceLocation location();
+	const SourceLocation& location() const;
 	const SourceLocation& lastLocation() const;
 	std::string locationContent();
 

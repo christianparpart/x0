@@ -324,10 +324,9 @@ add_custom_target(ctags
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_target(cscope
-	COMMAND find ${CMAKE_SOURCE_DIR}/include -name '*.h' -o -name '*.cc'
-				-o -name '*.hpp' > ${CMAKE_SOURCE_DIR}/cscope.files
-			&& find ${CMAKE_SOURCE_DIR}/lib -name '*.h' -o -name '*.cc'
-				-o -name '*.hpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
+	COMMAND echo -n > ${CMAKE_SOURCE_DIR}/cscope.files
+			&& find ${CMAKE_SOURCE_DIR}/lib -name '*.h' -o -name '*.cc' -o -name '*.cpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
+			&& find ${CMAKE_SOURCE_DIR}/include -name '*.h' -o -name '*.cc' -o -name '*.hpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
 			&& cscope -q -R -b -i cscope.files
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	)
