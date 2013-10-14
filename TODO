@@ -1,5 +1,7 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- flow: support nested config files (e.g. via #include "file_or_directory_glob" directive)
+
 - provide debian package for: x0 0.7.0
   - debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
     - create new gpg key-pair with primary email: trapni@gmail.com
