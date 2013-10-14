@@ -1003,7 +1003,10 @@ ListExpr* FlowParser::exprList() // expr (',' expr)
 	FNTRACE();
 	SourceLocation sloc(location());
 
+	printf("expr at: %zu:%zu / %zu\n", sloc.begin.line, sloc.begin.column, sloc.begin.offset);
 	if (Expr* e = expr()) {
+		FilePos epos = lexer_->location().end;
+		printf("expr step: %zu:%zu / %zu\n", epos.line, epos.column, epos.offset);
 		std::unique_ptr<ListExpr> list(new ListExpr(sloc));
 		list->push_back(e);
 

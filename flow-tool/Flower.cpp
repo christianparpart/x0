@@ -12,8 +12,13 @@
 #include <x0/flow/FlowBackend.h>
 #include <fstream>
 #include <memory>
+#include <utility>
 #include <cstdio>
 #include <unistd.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
 using namespace x0;
 
@@ -34,6 +39,7 @@ Flower::Flower() :
 	runner_(this)
 {
 	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
+	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
 
 	// properties
 	registerProperty("cwd", FlowValue::STRING, &get_cwd);
@@ -57,8 +63,179 @@ Flower::~Flower()
 {
 }
 
+class CallCollector : public ASTVisitor // {{{
+{
+public:
+	static void run(Unit* unit, std::list<Symbol*>& result)
+	{
+		CallCollector cc(result);
+		cc.collect(unit);
+	}
+
+protected:
+	std::list<Symbol*>& result_;
+	int depth_;
+
+	template<typename... Args>
+	ssize_t printf(const char* fmt, const Args&... args)
+	{
+		for (int i = 0; i < depth_; ++i) std::printf("  ");
+		return std::printf(fmt, args...);
+	}
+
+	void collect(ASTNode* n)
+	{
+		++depth_;
+		n->accept(*this);
+		--depth_;
+	}
+
+	CallCollector(std::list<Symbol*>& result) :
+		result_(result),
+		depth_(0)
+	{
+	}
+
+	virtual void visit(Variable& var)
+	{
+		// no interest
+	}
+
+	virtual void visit(Function& func)
+	{
+		printf("Function: '%s'\n", func.name().c_str());
+	}
+
+	virtual void visit(Unit& unit)
+	{
+		printf("Unit: '%s'\n", unit.name().c_str());
+		for (Symbol* sym: unit.members())
+			collect(sym);
+	}
+
+	virtual void visit(UnaryExpr& expr)
+	{
+		collect(expr.subExpr());
+	}
+
+	virtual void visit(BinaryExpr& expr)
+	{
+		collect(expr.leftExpr());
+		collect(expr.rightExpr());
+	}
+
+	virtual void visit(StringExpr& expr)
+	{
+	}
+
+	virtual void visit(NumberExpr& expr)
+	{
+	}
+
+	virtual void visit(BoolExpr& expr)
+	{
+	}
+
+	virtual void visit(RegExpExpr& expr)
+	{
+	}
+
+	virtual void visit(IPAddressExpr& expr)
+	{
+	}
+
+	virtual void visit(VariableExpr& expr)
+	{
+	}
+
+	virtual void visit(FunctionRefExpr& expr)
+	{
+		printf("FunctionRefExpr to '%s'\n", expr.function()->name().c_str());
+	}
+
+	virtual void visit(CastExpr& expr)
+	{
+	}
+
+	virtual void visit(CallExpr& expr)
+	{
+	}
+
+	virtual void visit(ListExpr& expr)
+	{
+	}
+
+	virtual void visit(ExprStmt& stmt)
+	{
+	}
+
+	virtual void visit(CompoundStmt& stmt)
+	{
+	}
+
+	virtual void visit(CondStmt& stmt)
+	{
+	}
+};
+// }}}
+
+std::string dumpSource(const std::string& filename, const FilePos& begin, const FilePos& end) // {{{
+{
+	std::string result;
+	char* buf = nullptr;
+	ssize_t size;
+	ssize_t n;
+	int fd;
+
+	fd = open(filename.c_str(), O_RDONLY);
+	if (fd < 0)
+		return std::string();
+
+	size = end.offset - begin.offset;
+	if (size <= 0)
+		goto out;
+
+	if (lseek(fd, begin.offset, SEEK_SET) < 0)
+		goto out;
+
+	buf = new char[size + 1];
+	n = read(fd, buf, size); 
+	if (n < 0)
+		goto out;
+
+	result = std::string(buf, n);
+
+out:
+	delete[] buf;
+	close(fd);
+	return result;
+} // }}}
+
+bool Flower::onParseComplete(Unit* unit)
+{
+	std::list<Symbol*> calls;
+	printf("Flower.onParseComplete()\n");
+//	CallCollector::run(unit, calls);
+
+	for (auto& call: FlowCallIterator(unit)) {
+		if (call->callee()->name() != "assert") continue;
+
+		ListExpr* args = call->args();
+		if (args->empty()) continue;
+
+		Expr* arg = args->at(0);
+		SourceLocation& sloc = arg->sourceLocation();
+		std::string dump = sloc.dump();
+		//std::string dump = dumpSource(filename_, sloc.begin, sloc.end);
+		printf("call to: '%s' -> '%s'\n", call->callee()->name().c_str(), dump.c_str());
+	}
+
+	return true;
+}
+
 int Flower::runAll(const char *fileName)
 {
+	filename_ = fileName;
 	if (!runner_.open(fileName)) {
 		printf("Failed to load file: %s\n", fileName);
 		return -1;
@@ -81,6 +258,7 @@ int Flower::run(const char* fileName, const char* handlerName)
 		return -1;
 	}
 
+	filename_ = fileName;
 	if (!runner_.open(fileName)) {
 		printf("Failed to load file: %s\n", fileName);
 		return -1;

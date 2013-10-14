@@ -31,12 +31,17 @@ handler test_expr_number_units
 	assert 1 year == 365 days, 'year';
 }
 
+handler test_expr_not
+{
+	assert not false, 'not false'
+	assert not not true, 'not not true'
+}
+
 handler test_expr_and
 {
 	assert true and true, 'true & true'
 	assert not (true and false), 'true & false'
 	assert not (false and true), 'false & true'
-
 }
 
 handler test_expr_or
@@ -53,23 +58,22 @@ handler test_expr_to_bool
 	assert 1, '1';
 	assert not 0, 'not null';
 
-	assert foo, "foo";
+	#assert foo, "foo";
 	assert not '', "not ''";
 
 	assert mkbuf(foo), 'mkbuf(foo)';
 	assert not mkbuf(), 'not mkbuf()';
 }
-/*
+
 handler test_expr_xor
 {
+	assert true xor false, 'true xor false'
+	assert false xor true, 'false xor true'
+	assert not (true xor true), 'not (true xor true)'
+	assert not (false xor false), 'not (false xor true)'
 	# TODO
 }
-
-handler test_expr_not
-{
-	# well, already tested alot in almost all other cases
-}
-
+/*
 handler test_expr_equal
 {
 	# (string, int)

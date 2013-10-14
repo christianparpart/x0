@@ -11,6 +11,7 @@
 #include <x0/flow/FlowParser.h>
 #include <x0/flow/FlowRunner.h>
 #include <x0/flow/FlowBackend.h>
+#include <string>
 #include <memory>
 #include <cstdio>
 #include <unistd.h>
@@ -20,6 +21,7 @@ using namespace x0;
 class Flower : public x0::FlowBackend
 {
 private:
+	std::string filename_;
 	x0::FlowRunner runner_;
 
 public:
@@ -35,6 +37,8 @@ public:
 	void clear();
 
 private:
+	bool onParseComplete(x0::Unit* unit);
+
 	static void get_cwd(void *, x0::FlowParams& args, void *);
 	static void flow_mkbuf(void *, x0::FlowParams& args, void *);
 	static void flow_getbuf(void *, x0::FlowParams& args, void *);

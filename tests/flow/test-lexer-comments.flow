@@ -1,9 +1,7 @@
 handler noop {}
 
-handler main
+handler test_comments
 {
-	noop; // assert 0, 'one-line comment';
-
 	noop; # assert 0, another one-line comment
 
 	noop; /* assert 0, 'multi line comment';

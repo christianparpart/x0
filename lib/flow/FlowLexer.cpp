@@ -45,10 +45,10 @@ static std::string unescape(const std::string& value)
 std::string SourceLocation::dump(const std::string& prefix) const
 {
 	char buf[4096];
-	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %zu:%zu - %zu:%zu }",
+	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %zu:%zu/%zu - %zu:%zu/%zu }",
 		!prefix.empty() ? prefix.c_str() : "location",
-		begin.line, begin.column,
-		end.line, end.column);
+		begin.line, begin.column, begin.offset,
+		end.line, end.column, end.offset);
 	return std::string(buf, n);
 }
 
