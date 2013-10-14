@@ -1,4 +1,4 @@
-# x0 - HTTP WEB SERVER AND FRAMEWORK
+# x0 - HTTP Web Server and Framework
 
 [ ![Build status - Travis-ci](https://secure.travis-ci.org/xzero/x0.png) ](http://travis-ci.org/xzero/x0)
 
