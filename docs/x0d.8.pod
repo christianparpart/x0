@@ -177,5 +177,6 @@ B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <tr
 =head1 SEE ALSO
 
 L<x0d.conf(5)>,
+L<flow(7)>,
 L<logrotate(8)>,
 L<spawn-fcgi(1)>

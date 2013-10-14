@@ -27,13 +27,16 @@ This file is used to configure B<x0d>.
 
 =head1 SYNTAX
 
-The configuration-engine behind B<x0d> is B<Flow>, a sub-project of B<x0>.
+The configuration-language behind B<x0d> is L<flow(7)>, a sub-project of B<x0>.
 Thus, the configuration file directly matches the B<Flow>-syntax.
 
 B<Flow> is a handler-driven language. This means, that all you do is defining
 handlers and their actions.
+
 The actions can itself be passing control to another self defined handler
 or a host-application defined handler.
+
+For a detailed language documentation, please see the L<flow(7)> manual page.
 
 =head2 HANDLERS
 

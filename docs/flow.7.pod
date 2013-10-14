@@ -9,30 +9,74 @@ e.g. an HTTP server's request handling.
 
 =head1 DESCRIPTION
 
-A Flow source (or configuration-) file specifies a list of named handlers.
+A B<Flow> source (or configuration-) file specifies a list of named handlers.
 
-These handlers may be invoked by the host application (e.g. an HTTP web server) on certain events, e.g. an incoming request to be processed.
-The handler then decides - depending on the request properties (such as source IP, hostname, or request path) - how to exactly handle this request,
-e.g. either passing it to a fastcgi backend server, the static file handler, or just responding with a 403 (access denied) response directly.
+These handlers may be invoked by the host application (e.g. an HTTP web server)
+on certain events, e.g. an incoming request to be processed.
+The handler then decides - depending on the request properties
+(such as source IP, hostname, or request path) - how to exactly handle this request,
+e.g. either passing it to a fastcgi backend server, the static file handler,
+or just responding with a 403 (access denied) response directly.
 
-You can define custom sub handlers within your file for common tasks frequently handled, e.g. a custom php or cgi handler
-that may be referenced by others.
+You can define custom sub handlers within your file for common tasks
+frequently handled, e.g. a custom php or cgi handler that may be
+referenced by others.
 
-With this in mind, B<Flow> can be used to build up complex decision control flows that make it pretty easy to tweak.
+With this in mind, B<Flow> can be used to build up complex decision control
+flows that make it pretty easy to tweak.
 
-B<Flow> itself is built upon five basic features:
+B<Flow> itself is built upon five basic concepts:
 
 =over 6
 
-=item B<handlers> - to define the handlers your backend invokes to actually execute your Flow, or sub-handlers, a handler that is called by other handlers.
+=item B<handlers>
 
-=item B<variables> - mainly provided by your backend to make your control Flow dependant on them, e.g. the hostname, a request header or the client ip.
+define the handlers your backend invokes to actually execute your flow,
+or sub-handlers, a handler that is called by other handlers.
 
-=item B<functions> - only provided by the backend to aid your control Flow with common tasks, e.g. setting the document-root, getting environment variables, writing into a log file, etc. You cannot define a function within a Flow file itself. Functions must be provided by the backend.
+A handler is special as it
+B<only returns to the caller if it has not processed the context>
+(e.g. an HTTP request).
 
-=item B<expressions> - make the flow control actually more useful, as it allows you to composite more complex tests or eases the readability
+In pseudo-language, you may describe it as follows:
 
-=item B<conditions> - are the most interesting part. You write a condition to test on a specific state of your request and depending on the result you pass control to either a certain sub-block or another
+  if (call_my_handler("handler1", context) == HANDLED_MY_DATA)
+      return HANDLED_MY_DATA;
+
+  // else: proceed with the next statement
+
+So the B<Flow> parser will implicitely generate the if-clause after
+every handler-invokation to jump out with a special result state
+as soon as a handler has handled the context.
+
+=item B<variables>
+
+mainly provided by your backend to make your control Flow dependant on them,
+e.g. the hostname, a request header or the client IP.
+
+But you can also declare your own local variables for readability purposes.
+
+=item B<functions>
+
+only provided by the backend to aid your control Flow with common tasks,
+e.g. setting the document-root, getting environment variables,
+writing into a log file, etc.
+
+You cannot define a function within a Flow file itself.
+Functions must be provided by the backend.
+
+=item B<expressions>
+
+make the flow control actually more useful, as it allows you to composite
+more complex tests or eases the readability
+
+=item B<statements>
+
+Statements are the most interesting part.
+You write a condition-statement to test on a specific state of your
+request and depending on the result you pass control to either a certain
+sub-block or another that itself can then invoke handlers, statements or
+even yet another if-statement, etc.
 
 =back
 
