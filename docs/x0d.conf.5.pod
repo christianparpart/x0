@@ -1206,7 +1206,7 @@ B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <tr
 
 =head1 SEE ALSO
 
-L<x0d(8)>, L<spawn-fcgi(1)>, L<idn(1)>
+L<x0d(8)>, L<flow(7)>, L<spawn-fcgi(1)>, L<idn(1)>
 
 L<http://redmine.trapni.de/projects/x0>, x0 project management page
 
