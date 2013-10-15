@@ -142,7 +142,7 @@ if(ENABLE_XZERO_FLOW2)
 	set_target_properties(XzeroFlow2 PROPERTIES VERSION ${PACKAGE_VERSION})
 	install(TARGETS XzeroFlow2 DESTINATION ${LIBDIR})
 
-  add_executable(flow2-tool flow2/flow2.cpp)
+  add_executable(flow2-tool flow2/flow2-tool.cpp)
   target_link_libraries(flow2-tool XzeroBase XzeroFlow2)
 endif()
 
