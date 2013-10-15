@@ -1,5 +1,6 @@
-#include <x0/flow2/FlowLexer.h>
 #include <x0/flow2/AST.h>
+#include <x0/flow2/FlowLexer.h>
+#include <x0/flow2/FlowParser.h>
 #include <x0/DebugLogger.h>
 
 using namespace x0;
@@ -29,12 +30,13 @@ int lexdump(const char* filename) // {{{
 // }}}
 int parsedump(const char* filename) // {{{
 {
-//	FlowParser parser;
-//	if (!parser.open(filename)) {
-//		perror("parser.open");
-//		return 1;
-//	}
+	FlowParser parser;
+	if (!parser.open(filename)) {
+		perror("parser.open");
+		return 1;
+	}
 	//parser.parse();
+	return 0;
 }
 // }}}
 

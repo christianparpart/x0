@@ -8,27 +8,12 @@
 #include <utility>
 #include <memory>
 #include <vector>
+#include <list>
 
 namespace x0 {
 
 class ASTVisitor;
 class FlowBackend;
-
-enum class Lookup
-{
-	Self            = 1,
-	Parents         = 2,
-	Outer           = 4,
-	SelfAndParents  = 3,
-	SelfAndOuter    = 5,
-	OuterAndParents = 6,
-	All             = 7
-};
-
-inline bool operator&(Lookup a, Lookup b)
-{
-	return static_cast<unsigned>(a) & static_cast<unsigned>(b);
-}
 
 class X0_API ASTNode // {{{
 {
@@ -51,37 +36,97 @@ class X0_API Symbol : public ASTNode {
 	std::string name_;
 
 protected:
-	Symbol(const std::string& name, const FlowLocation& loc);
+	Symbol(const std::string& name, const FlowLocation& loc) :
+		ASTNode(loc),
+		name_(name)
+	{}
 
 public:
 	const std::string& name() const { return name_; }
 	void setName(const std::string& value) { name_ = value; }
-
-	virtual void accept(ASTVisitor& v);
 };
 
+enum class Lookup {
+	Self            = 1,
+	Parents         = 2,
+	Outer           = 4,
+	SelfAndParents  = 3,
+	SelfAndOuter    = 5,
+	OuterAndParents = 6,
+	All             = 7
+};
+
+inline bool operator&(Lookup a, Lookup b) {
+	return static_cast<unsigned>(a) & static_cast<unsigned>(b);
+}
+
 class X0_API SymbolTable {
-	Symbol* find(const std::string& name, Lookup lookupMethod) const;
+public:
+	typedef std::vector<Symbol*> list_type;
+	typedef list_type::iterator iterator;
+	typedef list_type::const_iterator const_iterator;
+
+public:
+	explicit SymbolTable(SymbolTable* outer);
+	~SymbolTable();
+
+	void setOuterTable(SymbolTable* table) { outerTable_ = table; }
+	SymbolTable* outerTable() const { return outerTable_; }
+
+	SymbolTable* appendParent(SymbolTable* table);
+	SymbolTable* parentAt(size_t i) const;
+	void removeParent(SymbolTable* table);
+	size_t parentCount() const;
+
+	Symbol* appendSymbol(Symbol* symbol);
+	void removeSymbol(Symbol* symbol);
+	Symbol* symbolAt(size_t i) const;
+	size_t symbolCount() const;
+
+	Symbol* lookup(const std::string& name, Lookup lookupMethod) const;
+
+	template<typename T>
+	T* lookup(const std::string& name, Lookup lookupMethod) { return dynamic_cast<T*>(lookup(name, lookupMethod)); }
+
+	iterator begin() { return symbols_.begin(); }
+	iterator end() { return symbols_.end(); }
+
+private:
+	list_type symbols_;
+	std::vector<SymbolTable*> parents_;
+	SymbolTable* outerTable_;
 };
 
 class X0_API ScopedSymbol : public Symbol {
 protected:
-	SymbolTable scope_;
+	std::unique_ptr<SymbolTable> scope_;
 
 protected:
-	ScopedSymbol(const std::string& name, const FlowLocation& loc);
+	ScopedSymbol(SymbolTable* outer, const std::string& name, const FlowLocation& loc) :
+		Symbol(name, loc),
+		scope_(new SymbolTable(outer))
+	{}
+
+	ScopedSymbol(std::unique_ptr<SymbolTable>&& scope, const std::string& name, const FlowLocation& loc) :
+		Symbol(name, loc),
+		scope_(std::move(scope))
+	{}
 
 public:
-	SymbolTable* scope() const { return &scope_; }
-
-	void setParentScope(SymbolTable* scope);
+	SymbolTable* scope() { return scope_.get(); }
+	const SymbolTable* scope() const { return scope_.get(); }
+	void setScope(std::unique_ptr<SymbolTable>&& table) { scope_ = std::move(table); }
 };
 
 class X0_API Variable : public Symbol {
+private:
 	std::unique_ptr<Expr> initializer_;
+
 public:
-	Variable();
-	Variable(const std::unique_ptr<Expr>& value);
+	Variable(const std::string& name,
+			std::unique_ptr<Expr>&& initializer,
+			const FlowLocation& loc) :
+		Symbol(name, loc), initializer_(std::move(initializer)) {}
 
 	Expr* initializer() const { return initializer_.get(); }
 	void setInitializer(std::unique_ptr<Expr>&& value) { initializer_ = std::move(value); }
@@ -94,8 +139,25 @@ private:
 	std::unique_ptr<Stmt> body_;
 
 public:
-	Handler(std::unique_ptr<Stmt>&& body) :
-		body_(std::move(body)) {}
+	Handler(const std::string& name, const FlowLocation& loc) :
+		ScopedSymbol(nullptr, name, loc),
+		body_(nullptr /*forward declared*/)
+	{
+	}
+
+	Handler(const std::string& name,
+		std::unique_ptr<SymbolTable>&& scope,
+		std::unique_ptr<Stmt>&& body,
+		const FlowLocation& loc) :
+		ScopedSymbol(std::move(scope), name, loc),
+		body_(std::move(body))
+	{
+	}
+
+	bool isForwardDeclared() const { return body_.get() == nullptr; }
+
+	Stmt* body() const { return body_.get(); }
+	void setBody(std::unique_ptr<Stmt>&& body) { body_ = std::move(body); }
 
 	virtual void accept(ASTVisitor& v);
 };
@@ -127,19 +189,42 @@ private:
 public:
 	BuiltinHandler(FlowBackend* owner, const std::string& name, const FlowLocation& loc) :
 		Symbol(name, loc),
-		owner_(owner),
+		owner_(owner)
+	{
+	}
 
 	virtual void accept(ASTVisitor& v);
 };
 
-class X0_API Unit : public Symbol {
-	std::list<Variable*> globals_;
-	std::list<Handler*> handlers_;
+class X0_API Unit : public ScopedSymbol {
+	std::vector<std::pair<std::string, std::string> > imports_;
+//	std::list<Variable*> globals_;
+//	std::list<Handler*> handlers_;
+
+public:
+	Unit() :
+		ScopedSymbol(nullptr, "#unit", FlowLocation()),
+		imports_()
+	{}
+
+	// global scope
+	Symbol* insert(Symbol* symbol) {
+		scope()->appendSymbol(symbol);
+		return symbol;
+	}
+
+	// plugins
+	void import(const std::string& moduleName, const std::string& path) {
+		imports_.push_back(std::make_pair(moduleName, path));
+	}
+
+	virtual void accept(ASTVisitor& v);
 };
 // }}}
 // {{{ Expr
 class X0_API Expr : public ASTNode {
 protected:
+	Expr();
 	explicit Expr(const FlowLocation&);
 };
 class X0_API UnaryExpr : public Expr {
@@ -276,7 +361,7 @@ public:
 class X0_API CompoundStmt : public Stmt
 {
 private:
-	std::vector<std::unique_ptr<Stmt>> statements_;
+	std::list<std::unique_ptr<Stmt>> statements_;
 
 public:
 	explicit CompoundStmt(const FlowLocation& sloc);
@@ -286,8 +371,8 @@ public:
 	size_t length() const;
 	Stmt* at(size_t index) const;
 
-	std::vector<Stmt*>::iterator begin();
-	std::vector<Stmt*>::iterator end();
+	std::list<Stmt*>::iterator begin();
+	std::list<Stmt*>::iterator end();
 
 	virtual void accept(ASTVisitor&);
 };

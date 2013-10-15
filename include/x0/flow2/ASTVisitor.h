@@ -2,6 +2,7 @@
 
 #include <x0/Api.h>
 #include <x0/RegExp.h>
+#include <x0/IPAddress.h>
 #include <utility>
 #include <memory>
 
