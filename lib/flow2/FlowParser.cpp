@@ -687,6 +687,7 @@ std::unique_ptr<Stmt> FlowParser::ifStmt()
 	return nullptr; // TODO
 }
 
+// compoundStmt ::= '{' varDecl* stmt* '}'
 std::unique_ptr<Stmt> FlowParser::compoundStmt()
 {
 	FNTRACE();
