@@ -26,6 +26,7 @@ public:
 	ASTNode(const FlowLocation& loc) : location_(loc) {}
 	virtual ~ASTNode() {}
 
+	FlowLocation& location() { return location_; }
 	const FlowLocation& location() const { return location_; }
 	void setLocation(const FlowLocation& loc) { location_ = loc; }
 
@@ -371,15 +372,15 @@ private:
 	std::list<std::unique_ptr<Stmt>> statements_;
 
 public:
-	explicit CompoundStmt(const FlowLocation& loc);
-	~CompoundStmt();
+	explicit CompoundStmt(const FlowLocation& loc) : Stmt(loc) {}
 
-	void push_back(std::unique_ptr<Stmt> stmt);
-	size_t length() const;
-	Stmt* at(size_t index) const;
+	void push_back(std::unique_ptr<Stmt>&& stmt);
 
-	std::list<Stmt*>::iterator begin();
-	std::list<Stmt*>::iterator end();
+	bool empty() const { return statements_.empty(); }
+	size_t count() const { return statements_.size(); }
+
+	std::list<std::unique_ptr<Stmt>>::iterator begin() { return statements_.begin(); }
+	std::list<std::unique_ptr<Stmt>>::iterator end() { return statements_.end(); }
 
 	virtual void accept(ASTVisitor&);
 };

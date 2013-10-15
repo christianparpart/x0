@@ -35,7 +35,7 @@ int parsedump(const char* filename) // {{{
 		perror("parser.open");
 		return 1;
 	}
-	//parser.parse();
+	parser.parse();
 	return 0;
 }
 // }}}

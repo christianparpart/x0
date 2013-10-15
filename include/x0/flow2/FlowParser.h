@@ -100,6 +100,7 @@ private:
 	std::unique_ptr<Stmt> stmt();
 	std::unique_ptr<Stmt> ifStmt();
 	std::unique_ptr<Stmt> compoundStmt();
+	std::unique_ptr<Stmt> callStmt();
 };
 
 // {{{ inlines

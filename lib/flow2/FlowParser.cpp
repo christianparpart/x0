@@ -2,11 +2,12 @@
 #include <x0/flow2/FlowLexer.h>
 #include <x0/flow2/AST.h>
 #include <x0/Utility.h>
+#include <x0/DebugLogger.h>
 #include <unordered_map>
 
 namespace x0 {
 
-//#define FLOW_DEBUG_PARSER 1
+#define FLOW_DEBUG_PARSER 1
 
 #if defined(FLOW_DEBUG_PARSER)
 // {{{ trace
@@ -35,10 +36,10 @@ struct fntrace {
 };
 // }}}
 #	define FNTRACE() fntrace _(__PRETTY_FUNCTION__)
-#	define TRACE(msg...) XZERO_DEBUG("FlowParser", (level), msg)
+#	define TRACE(level, msg...) XZERO_DEBUG("FlowParser", (level), msg)
 #else
 #	define FNTRACE() /*!*/
-#	define TRACE(msg...) /*!*/
+#	define TRACE(level, msg...) /*!*/
 #endif
 
 // {{{ scoped(SCOPED_SYMBOL)
@@ -101,7 +102,7 @@ bool FlowParser::open(const std::string& filename)
 	if (!lexer_->open(filename))
 		return false;
 
-	return false;
+	return true;
 }
 
 SymbolTable* FlowParser::enter(SymbolTable* scope)
@@ -321,6 +322,8 @@ bool FlowParser::importOne(std::list<std::string>& names)
 // handlerDecl ::= 'handler' IDENT (';' | [do] stmt)
 std::unique_ptr<Handler> FlowParser::handlerDecl()
 {
+	FNTRACE();
+
 	FlowLocation loc(location());
 	nextToken(); // 'handler'
 
@@ -407,6 +410,7 @@ int binopPrecedence(FlowToken op) {
 // rhsExpr ::= (BIN_OP primaryExpr)*
 std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPrecedence)
 {
+	FNTRACE();
 	// http://en.wikipedia.org/wiki/Operator-precedence_parser
 
 	for (;;) {
@@ -443,6 +447,7 @@ std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPre
 //               | '(' expr ')'
 std::unique_ptr<Expr> FlowParser::primaryExpr()
 {
+	FNTRACE();
 	static struct {
 		const char* ident;
 		long long nominator;
@@ -648,6 +653,7 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 //            | 'bool' '(' expr ')'
 std::unique_ptr<Expr> FlowParser::castExpr()
 {
+	FNTRACE();
 	return nullptr; // TODO
 }
 
@@ -655,18 +661,66 @@ std::unique_ptr<Expr> FlowParser::castExpr()
 // {{{ stmt
 std::unique_ptr<Stmt> FlowParser::stmt()
 {
-	return nullptr; // TODO
+	FNTRACE();
+
+	switch (token()) {
+		case FlowToken::If:
+			return ifStmt();
+		case FlowToken::Begin:
+			return compoundStmt();
+		case FlowToken::Ident:
+			return callStmt();
+		case FlowToken::Semicolon: {
+			FlowLocation sloc(location());
+			nextToken();
+			return std::make_unique<CompoundStmt>(sloc.update(end()));
+		}
+		default:
+			reportError("Unexpected token '%s'. Expected a statement instead.", token().c_str());
+			return nullptr;
+	}
 }
 
 std::unique_ptr<Stmt> FlowParser::ifStmt()
 {
+	FNTRACE();
 	return nullptr; // TODO
 }
 
 std::unique_ptr<Stmt> FlowParser::compoundStmt()
 {
+	FNTRACE();
+	FlowLocation sloc(location());
+	nextToken(); // '{'
+
+	std::unique_ptr<CompoundStmt> cs = std::make_unique<CompoundStmt>(sloc);
+
+	while (token() == FlowToken::Var) {
+		if (std::unique_ptr<Variable> var = varDecl())
+			scope()->appendSymbol(var.release()); //FIXME std::move(var));
+		else
+			return nullptr;
+	}
+
+	for (;;) {
+		if (consumeIf(FlowToken::End)) {
+			cs->location().update(end());
+			return std::unique_ptr<Stmt>(cs.release());
+		}
+
+		if (std::unique_ptr<Stmt> s = stmt())
+			cs->push_back(std::move(s));
+		else
+			return nullptr;
+	}
+}
+
+std::unique_ptr<Stmt> FlowParser::callStmt()
+{
+	FNTRACE();
 	return nullptr; // TODO
 }
+
 // }}}
 
 } // namespace x0

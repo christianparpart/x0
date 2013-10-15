@@ -129,4 +129,14 @@ void HandlerRefExpr::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 
+void CompoundStmt::push_back(std::unique_ptr<Stmt>&& stmt)
+{
+	location_.update(stmt->location().end);
+	statements_.push_back(std::move(stmt));
+}
+
+void CompoundStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
 } // namespace x0
