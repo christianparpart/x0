@@ -100,4 +100,33 @@ void Handler::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 
+void UnaryExpr::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+BinaryExpr::BinaryExpr(FlowToken op, std::unique_ptr<Expr>&& lhs, std::unique_ptr<Expr>&& rhs) :
+	Expr(rhs->location() - lhs->location()),
+	operator_(op),
+	lhs_(std::move(lhs)),
+	rhs_(std::move(rhs))
+{
+}
+
+void BinaryExpr::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void ListExpr::push_back(std::unique_ptr<Expr> expr) {
+	location_.update(expr->location().end);
+	list_.push_back(std::move(expr));
+}
+
+void ListExpr::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void HandlerRefExpr::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
 } // namespace x0

@@ -667,7 +667,7 @@ FlowToken FlowLexer::parseIdent()
 		{ "not", FlowToken::Not },
 
 		{ "bool", FlowToken::BoolType },
-		{ "int", FlowToken::IntType },
+		{ "int", FlowToken::NumberType },
 		{ "string", FlowToken::StringType },
 
 		{ 0, FlowToken::Unknown }

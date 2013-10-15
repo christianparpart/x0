@@ -57,4 +57,8 @@ struct X0_API FlowLocation // {{{
 	std::string text() const;
 }; // }}}
 
+inline FlowLocation operator-(const FlowLocation& end, const FlowLocation& beg) {
+	return FlowLocation(beg.filename, beg.begin, end.end);
+}
+
 } // namespace x0

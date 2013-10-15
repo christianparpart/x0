@@ -36,7 +36,7 @@ bool FlowTokenTraits::isType(FlowToken t)
 	switch (t) {
 		case FlowToken::VoidType:
 		case FlowToken::BoolType:
-		case FlowToken::IntType:
+		case FlowToken::NumberType:
 		case FlowToken::StringType:
 			return true;
 		default:
@@ -174,7 +174,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Handler: return "handler";
 		case FlowToken::VoidType: return "void()";
 		case FlowToken::BoolType: return "bool()";
-		case FlowToken::IntType: return "int()";
+		case FlowToken::NumberType: return "int()";
 		case FlowToken::StringType: return "string()";
 		case FlowToken::Ident: return "Ident";
 		case FlowToken::Period: return "Period";

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <x0/flow2/FlowType.h>
+#include <x0/flow2/FlowToken.h>
 #include <x0/flow2/FlowLocation.h>
 #include <x0/flow2/ASTVisitor.h>
 #include <x0/RegExp.h>
@@ -22,11 +23,11 @@ protected:
 
 public:
 	ASTNode() {}
-	ASTNode(const FlowLocation& sloc) : location_(sloc) {}
+	ASTNode(const FlowLocation& loc) : location_(loc) {}
 	virtual ~ASTNode() {}
 
 	const FlowLocation& location() const { return location_; }
-	void setLocation(const FlowLocation& sloc) { location_ = sloc; }
+	void setLocation(const FlowLocation& loc) { location_ = loc; }
 
 	virtual void accept(ASTVisitor& v) = 0;
 };
@@ -197,9 +198,8 @@ public:
 };
 
 class X0_API Unit : public ScopedSymbol {
+private:
 	std::vector<std::pair<std::string, std::string> > imports_;
-//	std::list<Variable*> globals_;
-//	std::list<Handler*> handlers_;
 
 public:
 	Unit() :
@@ -224,18 +224,38 @@ public:
 // {{{ Expr
 class X0_API Expr : public ASTNode {
 protected:
-	Expr();
-	explicit Expr(const FlowLocation&);
+	explicit Expr(const FlowLocation& loc) : ASTNode(loc) {}
 };
+
 class X0_API UnaryExpr : public Expr {
+	FlowToken operator_;
+	std::unique_ptr<Expr> subExpr_;
+
+public:
+	UnaryExpr(FlowToken op, std::unique_ptr<Expr>&& subExpr, const FlowLocation& loc) :
+		Expr(loc), operator_(op), subExpr_(std::move(subExpr))
+	{}
+
+	FlowToken op() const { return operator_; }
+	Expr* subExpr() const { return subExpr_.get(); }
+
+	virtual void accept(ASTVisitor& v);
 };
 
 class X0_API BinaryExpr : public Expr {
+private:
+	FlowToken operator_;
 	std::unique_ptr<Expr> lhs_;
 	std::unique_ptr<Expr> rhs_;
 
-private:
-	BinaryExpr(Expr* lhs, Expr* rhs);
+public:
+	BinaryExpr(FlowToken op, std::unique_ptr<Expr>&& lhs, std::unique_ptr<Expr>&& rhs);
+
+	FlowToken op() const { return operator_; }
+	Expr* leftExpr() const { return lhs_.get(); }
+	Expr* rightExpr() const { return rhs_.get(); }
+
+	virtual void accept(ASTVisitor& v);
 };
 
 template<typename T>
@@ -244,28 +264,13 @@ private:
 	T value_;
 
 public:
-	explicit LiteralExpr(const T& value, const FlowLocation& sloc) :
-		Expr(sloc), value_(value) {}
+	explicit LiteralExpr(const T& value, const FlowLocation& loc) :
+		Expr(loc), value_(value) {}
 
 	const T& value() const { return value_; }
 	void setValue(const T& value) { value_ = value; }
 
 	virtual void accept(ASTVisitor& v) { v.visit(*this); }
-};
-
-class X0_API CastExpr : public UnaryExpr
-{
-private:
-	FlowType targetType_;
-
-public:
-	CastExpr(FlowType targetType, std::unique_ptr<Expr> subExpr, const FlowLocation& loc);
-	~CastExpr();
-
-	FlowType targetType() const { return targetType_; }
-	void setTargetType(FlowType t) { targetType_ = t; }
-
-	virtual void accept(ASTVisitor& v);
 };
 
 class X0_API FunctionCallExpr : public Expr {
@@ -285,7 +290,7 @@ private:
 	Variable* variable_;
 
 public:
-	VariableExpr(Variable* var, const FlowLocation& sloc);
+	VariableExpr(Variable* var, const FlowLocation& loc);
 	~VariableExpr();
 
 	Variable* variable() const;
@@ -297,13 +302,16 @@ public:
 class X0_API HandlerRefExpr : public Expr
 {
 private:
-	Handler* function_;
+	Handler* handler_;
 
 public:
-	HandlerRefExpr(Handler* ref, const FlowLocation& sloc);
+	HandlerRefExpr(Handler* ref, const FlowLocation& loc) :
+		Expr(loc),
+		handler_(ref)
+	{}
 
-	Handler* handler() const;
-	void setHandler(Handler* handler);
+	Handler* handler() const { return handler_; }
+	void setHandler(Handler* handler) { handler_ = handler; }
 
 	virtual void accept(ASTVisitor& v);
 };
@@ -314,15 +322,14 @@ private:
 	std::vector<std::unique_ptr<Expr>> list_;
 
 public:
-	ListExpr();
-	~ListExpr();
+	explicit ListExpr(const FlowLocation& loc) : Expr(loc), list_() {}
 
-	void push_back(Expr* expr);
+	void push_back(std::unique_ptr<Expr> expr);
 	Expr* back() { return !list_.empty() ? list_.back().get() : nullptr; }
-	size_t size() const;
-	Expr* at(int i);
-	bool empty() const;
-	void clear();
+	size_t size() const { return list_.size(); }
+	Expr* at(size_t i) { return list_[i].get(); }
+	bool empty() const { return list_.empty(); }
+	void clear() { return list_.clear(); }
 
 	void replaceAt(size_t i, Expr* expr);
 	void replaceAll(Expr* expr);
@@ -340,7 +347,7 @@ public:
 class X0_API Stmt : public ASTNode
 {
 protected:
-	explicit Stmt(const FlowLocation& sloc) : ASTNode(sloc) {}
+	explicit Stmt(const FlowLocation& loc) : ASTNode(loc) {}
 };
 
 class X0_API ExprStmt : public Stmt
@@ -349,7 +356,7 @@ private:
 	std::unique_ptr<Expr> expression_;
 
 public:
-	ExprStmt(std::unique_ptr<Expr> expr, const FlowLocation& sloc);
+	ExprStmt(std::unique_ptr<Expr> expr, const FlowLocation& loc);
 	~ExprStmt();
 
 	Expr *expression() const;
@@ -364,7 +371,7 @@ private:
 	std::list<std::unique_ptr<Stmt>> statements_;
 
 public:
-	explicit CompoundStmt(const FlowLocation& sloc);
+	explicit CompoundStmt(const FlowLocation& loc);
 	~CompoundStmt();
 
 	void push_back(std::unique_ptr<Stmt> stmt);
@@ -393,7 +400,7 @@ private:
 
 public:
 	CondStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> thenStmt,
-			std::unique_ptr<Stmt> elseStmt, const FlowLocation& sloc);
+			std::unique_ptr<Stmt> elseStmt, const FlowLocation& loc);
 	~CondStmt();
 
 	Expr* condition() const;

@@ -20,7 +20,6 @@ class Unit;
 class Expr;
 class BinaryExpr;
 class UnaryExpr;
-class CastExpr;
 template<typename> class LiteralExpr;
 class FunctionCallExpr;
 class VariableExpr;
@@ -54,7 +53,6 @@ public:
 	// expressions
 	virtual void visit(UnaryExpr& expr) = 0;
 	virtual void visit(BinaryExpr& expr) = 0;
-	virtual void visit(CastExpr& expr) = 0;
 	virtual void visit(FunctionCallExpr& expr) = 0;
 	virtual void visit(VariableExpr& expr) = 0;
 	virtual void visit(HandlerRefExpr& expr) = 0;

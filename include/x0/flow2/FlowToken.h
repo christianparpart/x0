@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <memory>
+#include <cstdint>
 #include <x0/Api.h>
 
 namespace x0 {
@@ -35,7 +36,7 @@ struct X0_API FlowToken
 		Import, From,
 
 		// data types (44..46)
-		VoidType, BoolType, IntType, StringType,
+		VoidType, BoolType, NumberType, StringType,
 
 		// misc (47..52)
 		Ident, Period, DblPeriod, Ellipsis, Comment, Eof,
@@ -71,3 +72,11 @@ public:
 };
 
 } // namespace x0
+
+namespace std {
+	template<> struct std::hash<x0::FlowToken> {
+		uint32_t operator()(x0::FlowToken v) const {
+			return static_cast<uint32_t>(v.value());
+		}
+	};
+}
