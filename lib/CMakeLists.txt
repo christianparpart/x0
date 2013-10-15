@@ -129,6 +129,23 @@ if(ENABLE_XZERO_FLOW)
 	install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
 endif()
 
+if(ENABLE_XZERO_FLOW2)
+	# XzeroFlow
+	set(x0_flow2_SRC
+		flow2/FlowLexer.cpp
+    flow2/FlowLocation.cpp
+		flow2/FlowToken.cpp
+	)
+	add_library(XzeroFlow2 SHARED ${x0_flow2_SRC})
+	set_target_properties(XzeroFlow2 PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
+	target_link_libraries(XzeroFlow2 LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
+	set_target_properties(XzeroFlow2 PROPERTIES VERSION ${PACKAGE_VERSION})
+	install(TARGETS XzeroFlow2 DESTINATION ${LIBDIR})
+
+  add_executable(flow2-tool flow2/flow2.cpp)
+  target_link_libraries(flow2-tool XzeroBase XzeroFlow2)
+endif()
+
 # Xzero C API
 add_library(x0capi SHARED
 	capi/http.cpp
