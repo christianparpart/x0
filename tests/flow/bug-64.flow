@@ -1,0 +1,7 @@
+var a = 'a';
+var b = a + 'b'; # invalid LLVM IR caused compilation to abort
+
+handler test_bug_64 {
+	assert a == 'a';
+	assert b == 'ab';
+}
