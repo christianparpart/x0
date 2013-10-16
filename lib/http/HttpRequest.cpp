@@ -465,7 +465,7 @@ std::string HttpRequest::requestHeaderCumulative(const std::string& name) const
 std::string HttpRequest::cookie(const std::string& name) const
 {
 	char* input = strdup(requestHeaderCumulative("Cookie").c_str());
-	char* value = nullptr;
+	char* value;
 
 	for (char *str1 = input, *s1; ; str1 = NULL) {
 		char *kvpair = strtok_r(str1, ";", &s1);
@@ -473,18 +473,22 @@ std::string HttpRequest::cookie(const std::string& name) const
 
 		value = nullptr;
 		char* key = strtok_r(kvpair, "= ", &value);
-		if (key) {
-			while (*value && (*value == ' ' || *value == '=')) ++value; // trip leading
-			if (size_t vlen = strlen(value)) {
-				while (isspace(value[vlen - 1]))
-					--vlen;
-				value[vlen] = '\0';
-			}
-			if (strcmp(name.c_str(), key) == 0) {
-				std::string result(value);
-				free(input);
-				return std::move(result);
-			}
+		if (!key)
+			continue;
+
+		if (strcmp(name.c_str(), key) == 0) {
+			// strip leading spaces
+			while (*value && (*value == ' ' || *value == '='))
+				++value;
+
+			// strip trailing spaces
+			size_t vlen = strlen(value);
+			while (isspace(value[vlen - 1]))
+				--vlen;
+
+			std::string result(value, vlen);
+			free(input);
+			return std::move(result);
 		}
 	}
 	free(input);
