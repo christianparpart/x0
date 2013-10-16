@@ -71,14 +71,35 @@ private:
 	// scoping
 	SymbolTable *scope() { return scopeStack_.front(); }
 	SymbolTable *enter(SymbolTable *scope);
+	std::unique_ptr<SymbolTable> enterScope() { return std::unique_ptr<SymbolTable>(enter(new SymbolTable(scope()))); }
+	SymbolTable *leaveScope() { return leave(); }
 	SymbolTable *leave();
 
 	// symbol mgnt
-	template<typename T, typename... Args> T *createSymbol(const std::string& name, Args&&... args)
+	template<typename T> T* lookup(const std::string& name)
+	{
+		if (T* result = static_cast<T*>(scope()->lookup(name, Lookup::All)))
+			return result;
+
+		return nullptr;
+	}
+
+	template<typename T, typename... Args> T* createSymbol(const std::string& name, Args&&... args)
 	{
 		T *symbol = new T(args...);
 		scope()->appendSymbol(symbol);
 		return symbol;
+	}
+
+	template<typename T, typename... Args> T* lookupOrCreate(const std::string& name, Args&&... args)
+	{
+		if (T* result = static_cast<T*>(scope()->lookup(name, Lookup::All)))
+			return result;
+
+		// create symbol in global-scope
+		T* result = new T(name, args...);
+		scopeStack_.front()->appendSymbol(result);
+		return result;
 	}
 
 	// syntax: decls
@@ -95,6 +116,7 @@ private:
 	std::unique_ptr<Expr> primaryExpr();
 	std::unique_ptr<Expr> interpolatedStr();
 	std::unique_ptr<Expr> castExpr();
+	std::unique_ptr<ListExpr> listExpr();
 
 	// syntax: statements
 	std::unique_ptr<Stmt> stmt();

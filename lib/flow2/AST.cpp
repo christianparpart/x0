@@ -139,4 +139,28 @@ void CompoundStmt::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 
+void ExprStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void HandlerCallStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void FunctionCallExpr::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void BuiltinHandlerCallStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void BuiltinFunction::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void VariableExpr::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
 } // namespace x0

@@ -4,6 +4,7 @@
 #include <x0/Utility.h>
 #include <x0/DebugLogger.h>
 #include <unordered_map>
+#include <unistd.h>
 
 namespace x0 {
 
@@ -17,21 +18,38 @@ struct fntrace {
 
 	fntrace(const char* msg) : msg_(msg)
 	{
+		size_t i = 0;
+		char fmt[1024];
+
+		for (i = 0; i < 2 * fnd; ) {
+			fmt[i++] = ' ';
+			fmt[i++] = ' ';
+		}
+		fmt[i++] = '-';
+		fmt[i++] = '>';
+		fmt[i++] = ' ';
+		strcpy(fmt + i, msg_.c_str());
+
+		XZERO_DEBUG("FlowParser", 5, "%s", fmt);
 		++fnd;
-
-		for (size_t i = 0; i < fnd; ++i)
-			printf("  ");
-
-		printf("-> %s\n", msg_.c_str());
 	}
 
 	~fntrace() {
-		for (size_t i = 0; i < fnd; ++i)
-			printf("  ");
-
 		--fnd;
 
-		printf("<- %s\n", msg_.c_str());
+		size_t i = 0;
+		char fmt[1024];
+
+		for (i = 0; i < 2 * fnd; ) {
+			fmt[i++] = ' ';
+			fmt[i++] = ' ';
+		}
+		fmt[i++] = '<';
+		fmt[i++] = '-';
+		fmt[i++] = ' ';
+		strcpy(fmt + i, msg_.c_str());
+
+		XZERO_DEBUG("FlowParser", 5, "%s", fmt);
 	}
 };
 // }}}
@@ -61,6 +79,14 @@ public:
 	Scope(FlowParser* parser, ScopedSymbol* symbol) :
 		parser_(parser),
 		table_(symbol->scope()),
+		flipped_(false)
+	{
+		parser_->enter(table_);
+	}
+
+	Scope(FlowParser* parser, std::unique_ptr<SymbolTable>& table) :
+		parser_(parser),
+		table_(table.get()),
 		flipped_(false)
 	{
 		parser_->enter(table_);
@@ -131,8 +157,13 @@ void FlowParser::reportUnexpectedToken()
 
 void FlowParser::reportError(const std::string& message)
 {
-	if (!errorHandler_)
+
+	if (!errorHandler_) {
+		char buf[1024];
+		int n = snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s\n", lexer_->line(), lexer_->column(), message.c_str());
+		write(2, buf, n);
 		return;
+	}
 
 	char buf[1024];
 	snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s", lexer_->line(), lexer_->column(), message.c_str());
@@ -180,7 +211,6 @@ bool FlowParser::consumeUntil(FlowToken value)
 		nextToken();
 	}
 }
-
 // }}}
 // {{{ decls
 std::unique_ptr<Unit> FlowParser::unit()
@@ -334,30 +364,28 @@ std::unique_ptr<Handler> FlowParser::handlerDecl()
 		return std::make_unique<Handler>(name, loc);
 	}
 
-	SymbolTable* st = new SymbolTable(scope());
-	scoped (st) {
-		std::unique_ptr<Stmt> body = stmt();
-		if (!body)
+	std::unique_ptr<SymbolTable> st = enterScope();
+	std::unique_ptr<Stmt> body = stmt();
+	leaveScope();
+
+	if (!body)
+		return nullptr;
+
+	loc.update(body->location().end);
+
+	// forward-declared / previousely -declared?
+	if (Handler* handler = scope()->lookup<Handler>(name, Lookup::Self)) {
+		if (handler->body() != nullptr) {
+			// TODO say where we found the other hand, compared to this one.
+			reportError("Redeclaring handler '%s'", handler->name().c_str());
 			return nullptr;
-
-		loc.update(body->location().end);
-
-		// forward-declared / previousely -declared?
-		if (Handler* handler = scope()->lookup<Handler>(name, Lookup::Self)) {
-			if (handler->body() != nullptr) {
-				// TODO say where we found the other hand, compared to this one.
-				reportError("Redeclaring handler '%s'", handler->name().c_str());
-				return nullptr;
-			}
-			handler->setScope(std::unique_ptr<SymbolTable>(st));
-			handler->setBody(std::move(body));
-			scope()->removeSymbol(handler);
 		}
-
-		return std::make_unique<Handler>(name, std::unique_ptr<SymbolTable>(st), std::move(body), loc);
+		handler->setScope(std::move(st));
+		handler->setBody(std::move(body));
+		scope()->removeSymbol(handler);
 	}
 
-	return nullptr;
+	return std::make_unique<Handler>(name, std::move(st), std::move(body), loc);
 }
 // }}}
 // {{{ expr
@@ -384,6 +412,10 @@ int binopPrecedence(FlowToken op) {
 		{ FlowToken::Greater, 2 },
 		{ FlowToken::LessOrEqual, 2 },
 		{ FlowToken::GreaterOrEqual, 2 },
+		{ FlowToken::PrefixMatch, 2 },
+		{ FlowToken::SuffixMatch, 2 },
+		{ FlowToken::RegexMatch, 2 },
+		{ FlowToken::In, 2 },
 
 		// add expr
 		{ FlowToken::Plus, 2 },
@@ -393,6 +425,10 @@ int binopPrecedence(FlowToken op) {
 		{ FlowToken::Mul, 3 },
 		{ FlowToken::Div, 3 },
 		{ FlowToken::Mod, 3 },
+		{ FlowToken::Shl, 3 },
+		{ FlowToken::Shr, 3 },
+
+		{ FlowToken::Pow, 4 },
 
 		// bit-wise expr
 		{ FlowToken::BitAnd, 5 },
@@ -411,7 +447,6 @@ int binopPrecedence(FlowToken op) {
 std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPrecedence)
 {
 	FNTRACE();
-	// http://en.wikipedia.org/wiki/Operator-precedence_parser
 
 	for (;;) {
 		// quit if this is not a binOp *or* its binOp-precedence is lower than the 
@@ -434,9 +469,7 @@ std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPre
 				return nullptr;
 		}
 
-		lhs = std::make_unique<BinaryExpr>(
-			binaryOperator, std::move(lhs), std::move(rhs)
-		);
+		lhs = std::make_unique<BinaryExpr>(binaryOperator, std::move(lhs), std::move(rhs));
 	}
 }
 
@@ -448,6 +481,7 @@ std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPre
 std::unique_ptr<Expr> FlowParser::primaryExpr()
 {
 	FNTRACE();
+
 	static struct {
 		const char* ident;
 		long long nominator;
@@ -476,8 +510,28 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 	FlowLocation loc(location());
 
 	switch (token()) {
-		case FlowToken::Ident:
-			return nullptr; // TODO
+		case FlowToken::Ident: {
+			std::string name = stringValue();
+			nextToken();
+
+			Symbol* symbol = scope()->lookup(name, Lookup::All);
+			if (!symbol) {
+				reportError("Unknown symbol '%s' in expression.", name.c_str());
+				return nullptr;
+			}
+
+			if (auto variable = dynamic_cast<Variable*>(symbol))
+				return std::make_unique<VariableExpr>(variable, loc);
+
+			if (auto handler = dynamic_cast<Handler*>(symbol))
+				return std::make_unique<HandlerRefExpr>(handler, loc);
+
+			if (auto function = dynamic_cast<BuiltinFunction*>(symbol))
+				return std::make_unique<FunctionCallExpr>(function, nullptr/*args*/, loc);
+
+			reportError("Unsupported symbol type of '%s' in expression.", name.c_str());
+			return nullptr;
+		}
 		case FlowToken::Boolean: {
 			std::unique_ptr<BoolExpr> e = std::make_unique<BoolExpr>(booleanValue(), loc);
 			nextToken();
@@ -594,6 +648,36 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 	}
 }
 
+std::unique_ptr<ListExpr> FlowParser::listExpr()
+{
+	std::unique_ptr<Expr> e = expr();
+	if (!e)
+		return nullptr;
+
+	if (token() == FlowToken::Comma) {
+		std::unique_ptr<ListExpr> le = std::make_unique<ListExpr>(loc);
+		le->push_back(std::move(e));
+
+		do {
+			nextToken(); // ','
+			if (std::unique_ptr<Expr> elem = expr())
+				le->push_back(std::move(elem));
+			else
+				return nullptr;
+		}
+		while (token() == FlowToken::Comma);
+
+		e = std::move(le);
+	}
+
+	if (!consume(FlowToken::RndClose)) {
+		return nullptr;
+	}
+
+	e->setLocation(loc.update(end()));
+	return e;
+}
+
 std::unique_ptr<Expr> FlowParser::interpolatedStr()
 {
 	FNTRACE();
@@ -633,19 +717,18 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 		);
 	}
 
-	if (token() == FlowToken::InterpolatedStringEnd) {
-		if (!stringValue().empty()) {
-			result = std::make_unique<BinaryExpr>(
-				FlowToken::Plus,
-				std::move(result),
-				std::make_unique<StringExpr>(stringValue(), sloc.update(end()))
-			);
-		}
-		nextToken();
-		return result;
+	if (!consume(FlowToken::InterpolatedStringEnd))
+		return nullptr;
+
+	if (!stringValue().empty()) {
+		result = std::make_unique<BinaryExpr>(
+			FlowToken::Plus,
+			std::move(result),
+			std::make_unique<StringExpr>(stringValue(), sloc.update(end()))
+		);
 	}
-	reportUnexpectedToken();
-	return nullptr;
+	nextToken();
+	return result;
 }
 
 // castExpr ::= 'int' '(' expr ')'
@@ -654,9 +737,24 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 std::unique_ptr<Expr> FlowParser::castExpr()
 {
 	FNTRACE();
-	return nullptr; // TODO
-}
+	FlowLocation sloc(location());
 
+	FlowToken targetType = token();
+	nextToken();
+
+	if (!consume(FlowToken::RndOpen))
+		return nullptr;
+
+	std::unique_ptr<Expr> e(expr());
+
+	if (!consume(FlowToken::RndClose))
+		return nullptr;
+
+	if (!e)
+		return nullptr;
+
+	return std::make_unique<UnaryExpr>(targetType, std::move(e), sloc.update(end()));
+}
 // }}}
 // {{{ stmt
 std::unique_ptr<Stmt> FlowParser::stmt()
@@ -718,10 +816,71 @@ std::unique_ptr<Stmt> FlowParser::compoundStmt()
 
 std::unique_ptr<Stmt> FlowParser::callStmt()
 {
-	FNTRACE();
-	return nullptr; // TODO
-}
+	// callStmt ::= NAME ['(' exprList ')' | exprList] (';' | LF)
+	// 			 | NAME '=' expr [';' | LF]
+	// NAME may be a builtin-function, builtin-handler, handler-name, or variable.
 
+	FNTRACE();
+
+	FlowLocation loc(location());
+	std::string name = stringValue();
+	nextToken(); // IDENT
+
+	std::unique_ptr<Stmt> stmt;
+	Symbol* callee = scope()->lookup(name, Lookup::All);
+	switch (callee->type()) {
+		case Symbol::Variable: // var '=' expr (';' | LF)
+			reportError("TODO AssgnStmt: var '=' expr (';' | LF)");
+			break; // TODO AssgnStmt
+		case Symbol::Handler:  // handler
+			stmt = std::make_unique<HandlerCallStmt>((Handler*) callee, loc);
+			break;
+		case Symbol::BuiltinHandler:
+			stmt = std::make_unique<BuiltinHandlerCallStmt>((BuiltinHandler*) callee, loc);
+			break;
+		case Symbol::BuiltinFunction:
+			stmt = std::make_unique<ExprStmt>(std::make_unique<FunctionCallExpr>((BuiltinFunction*) callee, nullptr/*args*/, loc), loc);
+			if (token() == FlowToken::RndOpen) {
+				nextToken();
+				auto e = exprList();
+				consume(FlowToken::RndClose);
+			}
+			break;
+		default:
+			break;
+	}
+
+	switch (token()) {
+		case FlowToken::If:
+			// stmt 'if' expr (';' | LF)
+			return nullptr; // TODO
+		case FlowToken::Unless:
+			// stmt 'unless' expr (';' | LF)
+			return nullptr; // TODO
+		case FlowToken::Semicolon: {
+			// stmt ';'
+			// one of: BuiltinFunction, BuiltinHandler, Handler
+			nextToken();
+			loc.update(end());
+			printf("stmt: %s;\n", name.c_str());
+
+			if (auto callee = lookup<Handler>(name))
+				return std::make_unique<HandlerCallStmt>(callee, loc);
+
+			if (auto callee = lookup<BuiltinHandler>(name))
+				return std::make_unique<BuiltinHandlerCallStmt>(callee, loc);
+			
+			if (auto callee = lookup<BuiltinFunction>(name))
+				return std::make_unique<ExprStmt>(std::make_unique<FunctionCallExpr>(callee, nullptr/*args*/, loc), loc);
+
+			reportError("Unknown identifier '%s' as call statement.", name.c_str());
+			return nullptr;
+		}
+		default:
+			reportError("Unexpected call statement to identifier: %s.", name.c_str());
+			return nullptr;
+	}
+}
 // }}}
 
 } // namespace x0

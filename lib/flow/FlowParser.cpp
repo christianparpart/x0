@@ -1116,7 +1116,8 @@ Stmt* FlowParser::callStmt()
 			// must be a function/handler
 			nextToken();
 			sloc.update(end());
-			return new ExprStmt(new CallExpr(lookupOrCreate<Function>(name), nullptr/*args*/, CallExpr::Undefined, sloc), sloc);
+			return new ExprStmt(new CallExpr(
+				lookupOrCreate<Function>(name), nullptr/*args*/, CallExpr::Undefined, sloc), sloc);
 		case FlowToken::Assign: {
 			// must be a writable variable.
 			nextToken(); // skip '='

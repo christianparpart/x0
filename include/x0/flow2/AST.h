@@ -15,6 +15,7 @@ namespace x0 {
 
 class ASTVisitor;
 class FlowBackend;
+class SymbolTable;
 
 class X0_API ASTNode // {{{
 {
@@ -35,25 +36,43 @@ public:
 // }}}
 // {{{ Symbols
 class X0_API Symbol : public ASTNode {
+public:
+	enum Type {
+		Variable = 1,
+		Handler,
+		BuiltinFunction,
+		BuiltinHandler,
+		Unit,
+	};
+
+private:
+	Type type_;
 	std::string name_;
 
 protected:
-	Symbol(const std::string& name, const FlowLocation& loc) :
+	friend class SymbolTable;
+	SymbolTable* owner_;
+
+	Symbol(Type t, const std::string& name, const FlowLocation& loc) :
 		ASTNode(loc),
-		name_(name)
+		type_(t),
+		name_(name),
+		owner_(nullptr)
 	{}
 
 public:
+	Type type() const { return type_; }
+
 	const std::string& name() const { return name_; }
 	void setName(const std::string& value) { name_ = value; }
 };
 
 enum class Lookup {
-	Self            = 1,
-	Parents         = 2,
-	Outer           = 4,
-	SelfAndParents  = 3,
-	SelfAndOuter    = 5,
+	Self            = 1, //!< local table only.
+	Parents         = 2, //!< local's parent tables, used for class inheritance.
+	Outer           = 4, //!< outer scope.
+	SelfAndParents  = 3, //!< search local's parent tables, used for class inheritance.
+	SelfAndOuter    = 5, //!< local scope and any outer scopes
 	OuterAndParents = 6,
 	All             = 7
 };
@@ -72,14 +91,17 @@ public:
 	explicit SymbolTable(SymbolTable* outer);
 	~SymbolTable();
 
+	// nested scoping
 	void setOuterTable(SymbolTable* table) { outerTable_ = table; }
 	SymbolTable* outerTable() const { return outerTable_; }
 
+	// class inheritance
 	SymbolTable* appendParent(SymbolTable* table);
 	SymbolTable* parentAt(size_t i) const;
 	void removeParent(SymbolTable* table);
 	size_t parentCount() const;
 
+	// symbols
 	Symbol* appendSymbol(Symbol* symbol);
 	void removeSymbol(Symbol* symbol);
 	Symbol* symbolAt(size_t i) const;
@@ -104,13 +126,13 @@ protected:
 	std::unique_ptr<SymbolTable> scope_;
 
 protected:
-	ScopedSymbol(SymbolTable* outer, const std::string& name, const FlowLocation& loc) :
-		Symbol(name, loc),
+	ScopedSymbol(Type t, SymbolTable* outer, const std::string& name, const FlowLocation& loc) :
+		Symbol(t, name, loc),
 		scope_(new SymbolTable(outer))
 	{}
 
-	ScopedSymbol(std::unique_ptr<SymbolTable>&& scope, const std::string& name, const FlowLocation& loc) :
-		Symbol(name, loc),
+	ScopedSymbol(Type t, std::unique_ptr<SymbolTable>&& scope, const std::string& name, const FlowLocation& loc) :
+		Symbol(t, name, loc),
 		scope_(std::move(scope))
 	{}
 
@@ -128,7 +150,7 @@ public:
 	Variable(const std::string& name,
 			std::unique_ptr<Expr>&& initializer,
 			const FlowLocation& loc) :
-		Symbol(name, loc), initializer_(std::move(initializer)) {}
+		Symbol(Symbol::Variable, name, loc), initializer_(std::move(initializer)) {}
 
 	Expr* initializer() const { return initializer_.get(); }
 	void setInitializer(std::unique_ptr<Expr>&& value) { initializer_ = std::move(value); }
@@ -142,7 +164,7 @@ private:
 
 public:
 	Handler(const std::string& name, const FlowLocation& loc) :
-		ScopedSymbol(nullptr, name, loc),
+		ScopedSymbol(Symbol::Handler, nullptr, name, loc),
 		body_(nullptr /*forward declared*/)
 	{
 	}
@@ -151,7 +173,7 @@ public:
 		std::unique_ptr<SymbolTable>&& scope,
 		std::unique_ptr<Stmt>&& body,
 		const FlowLocation& loc) :
-		ScopedSymbol(std::move(scope), name, loc),
+		ScopedSymbol(Symbol::Handler, std::move(scope), name, loc),
 		body_(std::move(body))
 	{
 	}
@@ -171,7 +193,11 @@ private:
 	std::vector<FlowType> signature_;
 
 public:
-	BuiltinFunction(FlowBackend* owner, FlowType rt);
+	BuiltinFunction(FlowBackend* owner, const std::string& name, FlowType rt, const FlowLocation& loc) :
+		Symbol(Symbol::BuiltinFunction, name, loc),
+		owner_(owner),
+		returnType_(rt)
+	{}
 
 	FlowBackend* owner() const { return owner_; }
 
@@ -190,7 +216,7 @@ private:
 
 public:
 	BuiltinHandler(FlowBackend* owner, const std::string& name, const FlowLocation& loc) :
-		Symbol(name, loc),
+		Symbol(Symbol::BuiltinHandler, name, loc),
 		owner_(owner)
 	{
 	}
@@ -204,7 +230,7 @@ private:
 
 public:
 	Unit() :
-		ScopedSymbol(nullptr, "#unit", FlowLocation()),
+		ScopedSymbol(Symbol::Unit, nullptr, "#unit", FlowLocation()),
 		imports_()
 	{}
 
@@ -279,6 +305,12 @@ class X0_API FunctionCallExpr : public Expr {
 	std::unique_ptr<ListExpr> args_;
 
 public:
+	FunctionCallExpr(BuiltinFunction* callee, std::unique_ptr<ListExpr>&& args, const FlowLocation& loc) :
+		Expr(loc),
+		callee_(callee),
+		args_(std::move(args))
+	{}
+
 	BuiltinFunction* callee() const { return callee_; }
 	ListExpr* args() const { return args_.get(); }
 
@@ -291,11 +323,11 @@ private:
 	Variable* variable_;
 
 public:
-	VariableExpr(Variable* var, const FlowLocation& loc);
-	~VariableExpr();
+	VariableExpr(Variable* var, const FlowLocation& loc) :
+		Expr(loc), variable_(var) {}
 
-	Variable* variable() const;
-	void setVariable(Variable* var);
+	Variable* variable() const { return variable_; }
+	void setVariable(Variable* var) { variable_ = var; }
 
 	virtual void accept(ASTVisitor& v);
 };
@@ -357,11 +389,13 @@ private:
 	std::unique_ptr<Expr> expression_;
 
 public:
-	ExprStmt(std::unique_ptr<Expr> expr, const FlowLocation& loc);
-	~ExprStmt();
+	ExprStmt(std::unique_ptr<Expr>&& expr, const FlowLocation& loc) :
+		Stmt(loc),
+		expression_(std::move(expr))
+	{}
 
-	Expr *expression() const;
-	void setExpression(std::unique_ptr<Expr> value);
+	Expr *expression() const { return expression_.get(); }
+	void setExpression(std::unique_ptr<Expr>&& expr) { expression_ = std::move(expr); }
 
 	virtual void accept(ASTVisitor&);
 };
@@ -386,9 +420,34 @@ public:
 };
 
 class X0_API HandlerCallStmt : public Stmt {
+private:
 	Handler* handler_;
 
 public:
+	HandlerCallStmt(Handler* handler, const FlowLocation& loc) :
+		Stmt(loc),
+		handler_(handler)
+	{}
+
+	Handler* handler() const { return handler_; }
+	void setHandler(Handler* handler) { handler_ = handler; }
+
+	virtual void accept(ASTVisitor&);
+};
+
+class X0_API BuiltinHandlerCallStmt : public Stmt {
+private:
+	BuiltinHandler* handler_;
+
+public:
+	BuiltinHandlerCallStmt(BuiltinHandler* handler, const FlowLocation& loc) :
+		Stmt(loc),
+		handler_(handler)
+	{}
+
+	BuiltinHandler* handler() const { return handler_; }
+	void setHandler(BuiltinHandler* handler) { handler_ = handler; }
+
 	virtual void accept(ASTVisitor&);
 };
 
