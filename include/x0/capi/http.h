@@ -279,6 +279,11 @@ X0_API void x0_response_status_set(x0_request_t* r, int code);
 X0_API void x0_response_header_set(x0_request_t* r, const char* header, const char* value);
 
 /**
+ * Appends a value to an existing header or creates a new header if it doesn't exist yet.
+ */
+X0_API void x0_response_header_append(x0_request_t* r, const char* header, const char* value);
+
+/**
  * Writes one chunk of the response body.
  *
  * @param r Request handle to write some response to.

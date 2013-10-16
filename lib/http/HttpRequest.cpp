@@ -19,6 +19,7 @@
 #include <strings.h>                   // strcasecmp()
 #include <stdlib.h>                   // realpath()
 #include <limits.h>                   // PATH_MAX
+#include <string.h>
 #include <array>
 
 #if !defined(XZERO_NDEBUG)
@@ -435,27 +436,59 @@ BufferRef HttpRequest::requestHeader(const BufferRef& name) const
 	return BufferRef();
 }
 
-BufferRef HttpRequest::cookie(const std::string& name) const
+std::string HttpRequest::requestHeaderCumulative(const std::string& name) const
 {
-	BufferRef cookie(requestHeader("Cookie"));
-	if (!cookie.empty() && !name.empty()) {
-		static const std::string sld("; \t");
-		Tokenizer<BufferRef> st1(cookie, sld);
-		BufferRef kv;
+	std::vector<BufferRef> fields;
+	for (auto& i: requestHeaders)
+		if (iequals(i.name, name))
+			fields.push_back(i.value);
 
-		while (!(kv = st1.nextToken()).empty()) {
-			static const std::string s2d("= \t");
-			Tokenizer<BufferRef> st2(kv, s2d);
-			BufferRef key(st2.nextToken());
-			BufferRef value(st2.nextToken());
-			//printf("parsed cookie[%s] = '%s'\n", key.str().c_str(), value.str().c_str());
-			if (key == name) {
-				return value;
+	switch (fields.size()) {
+		case 0:
+			return std::string();
+		case 1:
+			return fields[0].str();
+		default: {
+			std::string result;
+			result += fields[0];
+			for (size_t i = 1, e = fields.size(); i != e; ++i) {
+				if (!std::isspace(result[result.size() - 1]))
+					result += "; ";
+
+				result += fields[i];
 			}
-			//cookies_[key] = value;
+			return result;
 		}
 	}
-	return BufferRef();
+}
+
+std::string HttpRequest::cookie(const std::string& name) const
+{
+	char* input = strdup(requestHeaderCumulative("Cookie").c_str());
+	char* value = nullptr;
+
+	for (char *str1 = input, *s1; ; str1 = NULL) {
+		char *kvpair = strtok_r(str1, ";", &s1);
+		if (kvpair == NULL) break;
+
+		value = nullptr;
+		char* key = strtok_r(kvpair, "= ", &value);
+		if (key) {
+			while (*value && (*value == ' ' || *value == '=')) ++value; // trip leading
+			if (size_t vlen = strlen(value)) {
+				while (isspace(value[vlen - 1]))
+					--vlen;
+				value[vlen] = '\0';
+			}
+			if (strcmp(name.c_str(), key) == 0) {
+				std::string result(value);
+				free(input);
+				return std::move(result);
+			}
+		}
+	}
+	free(input);
+	return std::string();
 }
 
 std::string HttpRequest::hostid() const

@@ -283,10 +283,11 @@ public:
 	unsigned long long bytesTransmitted_;
 
 	/** retrieve value of a given request header */
-	BufferRef requestHeader(const std::string& name) const;
 	BufferRef requestHeader(const BufferRef& name) const;
+	BufferRef requestHeader(const std::string& name) const;
+	std::string requestHeaderCumulative(const std::string& name) const;
 
-	BufferRef cookie(const std::string& name) const;
+	std::string cookie(const std::string& name) const;
 
 	void updatePathInfo();
 

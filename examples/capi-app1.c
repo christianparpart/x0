@@ -12,6 +12,8 @@ void handler(x0_request_t* r, void* userdata)
 
 	x0_response_status_set(r, 200);
 	x0_response_header_set(r, "Content-Type", "text/plain");
+	x0_response_header_append(r, "X-Fnord", "foo");
+	x0_response_header_append(r, "X-Fnord", "bar");
 
 	if (strncmp(path, "/sendfile", 9) == 0) {
 		x0_response_sendfile(r, path + 9);
