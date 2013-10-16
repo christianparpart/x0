@@ -362,6 +362,29 @@ void x0_response_header_set(x0_request_t* r, const char* name, const char* value
 	r->request->responseHeaders.overwrite(name, value);
 }
 
+void x0_response_header_append(x0_request_t* r, const char* name, const char* value)
+{
+	auto header = r->request->responseHeaders.findHeader(name);
+	if (!header) {
+		r->request->responseHeaders.push_back(name, value);
+		return;
+	}
+
+	std::string& hval = header->value;
+	if (hval.empty()) {
+		hval = value;
+		return;
+	}
+
+	if (std::isspace(hval[hval.size() - 1])) {
+		hval += value;
+		return;
+	}
+
+	hval += ' ';
+	hval += value;
+}
+
 void x0_response_write(x0_request_t* r, const char* buf, size_t size)
 {
 	Buffer b;
