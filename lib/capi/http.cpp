@@ -307,7 +307,7 @@ int x0_request_cookie(x0_request_t* r, const char* cookie, char* buf, size_t siz
 	if (size == 0)
 		return 0;
 
-	BufferRef value = r->request->cookie(cookie);
+	std::string value = r->request->cookie(cookie);
 	size_t n = std::min(value.size(), size - 1);
 	memcpy(buf, value.data(), n);
 	buf[n] = '\0';
