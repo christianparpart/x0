@@ -3,6 +3,7 @@
 #include <x0/Tokenizer.h>
 #include <x0/DebugLogger.h>
 #include <stdio.h>
+#include <errno.h>
 
 #if 1
 #	define TRACE(level, msg...) XZERO_DEBUG("HttpFileMgr", (level), msg)
