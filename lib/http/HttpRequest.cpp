@@ -465,34 +465,33 @@ std::string HttpRequest::requestHeaderCumulative(const std::string& name) const
 std::string HttpRequest::cookie(const std::string& name) const
 {
 	char* input = strdup(requestHeaderCumulative("Cookie").c_str());
-	char* value;
+	std::string result;
 
 	for (char *str1 = input, *s1; ; str1 = NULL) {
 		char *kvpair = strtok_r(str1, ";", &s1);
 		if (kvpair == NULL) break;
 
-		value = nullptr;
+		char* value = nullptr;
 		char* key = strtok_r(kvpair, "= ", &value);
 		if (!key)
 			continue;
 
-		if (strcmp(name.c_str(), key) == 0) {
-			// strip leading spaces
-			while (*value && (*value == ' ' || *value == '='))
-				++value;
+		if (strcmp(name.c_str(), key) != 0)
+			continue;
 
-			// strip trailing spaces
-			size_t vlen = strlen(value);
-			while (isspace(value[vlen - 1]))
-				--vlen;
+		// strip leading spaces
+		while (*value && (*value == ' ' || *value == '='))
+			++value;
 
-			std::string result(value, vlen);
-			free(input);
-			return std::move(result);
-		}
+		// strip trailing spaces
+		size_t vlen = strlen(value);
+		while (isspace(value[vlen - 1]))
+			--vlen;
+
+		result = std::string(value, vlen);
 	}
 	free(input);
-	return std::string();
+	return std::move(result);
 }
 
 std::string HttpRequest::hostid() const
