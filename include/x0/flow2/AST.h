@@ -102,7 +102,7 @@ public:
 	size_t parentCount() const;
 
 	// symbols
-	Symbol* appendSymbol(Symbol* symbol);
+	void appendSymbol(std::unique_ptr<Symbol> symbol);
 	void removeSymbol(Symbol* symbol);
 	Symbol* symbolAt(size_t i) const;
 	size_t symbolCount() const;
@@ -235,9 +235,8 @@ public:
 	{}
 
 	// global scope
-	Symbol* insert(Symbol* symbol) {
-		scope()->appendSymbol(symbol);
-		return symbol;
+	void insert(std::unique_ptr<Symbol> symbol) {
+		scope()->appendSymbol(std::move(symbol));
 	}
 
 	// plugins

@@ -223,7 +223,7 @@ std::unique_ptr<Unit> FlowParser::unit()
 				return nullptr;
 
 		while (std::unique_ptr<Symbol> symbol = decl())
-			unit->insert(symbol.release());
+			unit->insert(std::move(symbol));
 	}
 
 	return unit;
@@ -765,7 +765,7 @@ std::unique_ptr<Stmt> FlowParser::compoundStmt()
 
 	while (token() == FlowToken::Var) {
 		if (std::unique_ptr<Variable> var = varDecl())
-			scope()->appendSymbol(var.release()); //FIXME std::move(var));
+			scope()->appendSymbol(std::move(var));
 		else
 			return nullptr;
 	}
