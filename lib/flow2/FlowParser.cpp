@@ -606,40 +606,10 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 		}
 		case FlowToken::RndOpen: {
 			nextToken();
-			if (token() != FlowToken::RndClose) {
-				std::unique_ptr<Expr> e = expr();
-				if (!e)
-					return nullptr;
-
-				if (token() == FlowToken::Comma) {
-					std::unique_ptr<ListExpr> le = std::make_unique<ListExpr>(loc);
-					le->push_back(std::move(e));
-
-					do {
-						nextToken(); // ','
-						if (std::unique_ptr<Expr> elem = expr())
-							le->push_back(std::move(elem));
-						else
-							return nullptr;
-					}
-					while (token() == FlowToken::Comma);
-
-					e = std::move(le);
-				}
-
-				if (!consume(FlowToken::RndClose)) {
-					return nullptr;
-				}
-
-				e->setLocation(loc.update(end()));
-				return e;
-			} else {
-				if (!consume(FlowToken::RndClose))
-					return nullptr;
-
-				// empty list expression
-				return std::make_unique<ListExpr>(loc.update(end()));
-			}
+			std::unique_ptr<Expr> e = expr();
+			consume(FlowToken::RndClose);
+			e->setLocation(loc.update(end()));
+			return e;
 		}
 		default:
 			TRACE(1, "Expected primary expression. Got something... else.");
@@ -650,32 +620,23 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 
 std::unique_ptr<ListExpr> FlowParser::listExpr()
 {
+	FlowLocation loc(location());
 	std::unique_ptr<Expr> e = expr();
 	if (!e)
 		return nullptr;
 
-	if (token() == FlowToken::Comma) {
-		std::unique_ptr<ListExpr> le = std::make_unique<ListExpr>(loc);
-		le->push_back(std::move(e));
+	std::unique_ptr<ListExpr> list(new ListExpr(loc));
+	list->push_back(std::move(e));
 
-		do {
-			nextToken(); // ','
-			if (std::unique_ptr<Expr> elem = expr())
-				le->push_back(std::move(elem));
-			else
-				return nullptr;
-		}
-		while (token() == FlowToken::Comma);
-
-		e = std::move(le);
+	while (token() == FlowToken::Comma) {
+		nextToken();
+		e = expr();
+		if (!e) return nullptr;
+		list->push_back(std::move(e));
 	}
 
-	if (!consume(FlowToken::RndClose)) {
-		return nullptr;
-	}
-
-	e->setLocation(loc.update(end()));
-	return e;
+	list->setLocation(loc.update(end()));
+	return list;
 }
 
 std::unique_ptr<Expr> FlowParser::interpolatedStr()
@@ -839,11 +800,12 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			stmt = std::make_unique<BuiltinHandlerCallStmt>((BuiltinHandler*) callee, loc);
 			break;
 		case Symbol::BuiltinFunction:
-			stmt = std::make_unique<ExprStmt>(std::make_unique<FunctionCallExpr>((BuiltinFunction*) callee, nullptr/*args*/, loc), loc);
 			if (token() == FlowToken::RndOpen) {
 				nextToken();
-				auto e = exprList();
+				auto args = listExpr();
 				consume(FlowToken::RndClose);
+				if (!args) return nullptr;
+				stmt = std::make_unique<ExprStmt>(std::make_unique<FunctionCallExpr>((BuiltinFunction*) callee, std::move(args), loc), loc);
 			}
 			break;
 		default:
