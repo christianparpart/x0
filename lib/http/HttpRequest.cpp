@@ -473,10 +473,7 @@ std::string HttpRequest::cookie(const std::string& name) const
 
 		char* value = nullptr;
 		char* key = strtok_r(kvpair, "= ", &value);
-		if (!key)
-			continue;
-
-		if (strcmp(name.c_str(), key) != 0)
+		if (!key || strcmp(key, name.c_str()) != 0)
 			continue;
 
 		// strip leading spaces
