@@ -222,8 +222,8 @@ std::unique_ptr<Unit> FlowParser::unit()
 			if (!importDecl(unit.get()))
 				return nullptr;
 
-		while (auto symbol = decl())
-			unit->insert(symbol.get());
+		while (std::unique_ptr<Symbol> symbol = decl())
+			unit->insert(symbol.release());
 	}
 
 	return unit;
@@ -526,8 +526,16 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			if (auto handler = dynamic_cast<Handler*>(symbol))
 				return std::make_unique<HandlerRefExpr>(handler, loc);
 
-			if (auto function = dynamic_cast<BuiltinFunction*>(symbol))
-				return std::make_unique<FunctionCallExpr>(function, nullptr/*args*/, loc);
+			if (symbol->type() == Symbol::BuiltinFunction) {
+				if (token() != FlowToken::RndOpen)
+					return std::make_unique<FunctionCallExpr>((BuiltinFunction*) symbol, nullptr/*args*/, loc);
+
+				nextToken();
+				auto args = listExpr();
+				consume(FlowToken::RndClose);
+				if (!args) return nullptr;
+				return std::make_unique<FunctionCallExpr>((BuiltinFunction*) symbol, std::move(args), loc);
+			}
 
 			reportError("Unsupported symbol type of '%s' in expression.", name.c_str());
 			return nullptr;
