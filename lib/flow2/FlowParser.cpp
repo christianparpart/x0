@@ -789,6 +789,11 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 
 	std::unique_ptr<Stmt> stmt;
 	Symbol* callee = scope()->lookup(name, Lookup::All);
+	if (!callee) {
+		reportError("Unknown symbol '%s'.", name.c_str());
+		return nullptr;
+	}
+
 	switch (callee->type()) {
 		case Symbol::Variable: // var '=' expr (';' | LF)
 			reportError("TODO AssgnStmt: var '=' expr (';' | LF)");
