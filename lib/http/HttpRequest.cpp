@@ -486,6 +486,7 @@ std::string HttpRequest::cookie(const std::string& name) const
 			--vlen;
 
 		result = std::string(value, vlen);
+		break;
 	}
 	free(input);
 	return std::move(result);
