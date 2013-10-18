@@ -750,8 +750,28 @@ std::unique_ptr<Stmt> FlowParser::stmt()
 
 std::unique_ptr<Stmt> FlowParser::ifStmt()
 {
+	// ifStmt ::= 'if' expr ['then'] stmt ['else' stmt]
 	FNTRACE();
-	return nullptr; // TODO
+	FlowLocation sloc(location());
+
+	consume(FlowToken::If);
+	std::unique_ptr<Expr> cond(expr());
+	consumeIf(FlowToken::Then);
+
+	std::unique_ptr<Stmt> thenStmt(stmt());
+	if (!thenStmt)
+		return nullptr;
+
+	std::unique_ptr<Stmt> elseStmt;
+
+	if (consumeIf(FlowToken::Else)) {
+		elseStmt = std::move(stmt());
+		if (!elseStmt) {
+			return nullptr;
+		}
+	}
+
+	return nullptr;// TODO new CondStmt(std::move(cond), thenStmt.release(), elseStmt.release(), sloc.update(end()));
 }
 
 // compoundStmt ::= '{' varDecl* stmt* '}'
