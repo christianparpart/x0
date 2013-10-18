@@ -89,7 +89,7 @@ A minimal handler, not doing anything, looks like follows:
   handler HANDLER_NAME { }
 
 Every handler starts with the keyword B<handler> followed by its handler name. The next must be a valid statement or a block of statements.
-Statement blocks are embraced by B<{>and B<}>, so, the above handler defines an empty statement block with no statements inside, resulting
+Statement blocks are embraced by B<{> and B<}>, so, the above handler defines an empty statement block with no statements inside, resulting
 into a no-operation when invoked.
 
 A handler may also invoke other handlers. Though, looking at the following example:
