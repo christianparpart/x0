@@ -450,6 +450,28 @@ public:
 	virtual void accept(ASTVisitor&);
 };
 
+class X0_API AssignStmt : public Stmt
+{
+private:
+	Variable* variable_;
+	std::unique_ptr<Expr> expr_;
+
+public:
+	AssignStmt(Variable* var, std::unique_ptr<Expr> expr, const FlowLocation& loc) :
+		Stmt(loc),
+		variable_(var),
+		expr_(std::move(expr))
+	{}
+
+	Variable* variable() const { return variable_; }
+	void setVariable(Variable* var) { variable_ = var; }
+
+	Expr* expression() const  { return expr_.get(); }
+	void setExpression(std::unique_ptr<Expr> expr) { expr_ = std::move(expr); }
+
+	virtual void accept(ASTVisitor&);
+};
+
 class X0_API CondStmt : public Stmt
 {
 private:
@@ -459,12 +481,21 @@ private:
 
 public:
 	CondStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> thenStmt,
-			std::unique_ptr<Stmt> elseStmt, const FlowLocation& loc);
-	~CondStmt();
+			std::unique_ptr<Stmt> elseStmt, const FlowLocation& loc) :
+		Stmt(loc),
+		cond_(std::move(cond)),
+		thenStmt_(std::move(thenStmt)),
+		elseStmt_(std::move(elseStmt))
+	{}
 
-	Expr* condition() const;
-	Stmt* thenStmt() const;
-	Stmt* elseStmt() const;
+	Expr* condition() const { return cond_.get(); }
+	void setCondition(std::unique_ptr<Expr> cond) { cond_ = std::move(cond); }
+
+	Stmt* thenStmt() const { return thenStmt_.get(); }
+	void setThenStmt(std::unique_ptr<Stmt> stmt) { thenStmt_ = std::move(stmt); }
+
+	Stmt* elseStmt() const { return elseStmt_.get(); }
+	void setElseStmt(std::unique_ptr<Stmt> stmt) { elseStmt_ = std::move(stmt); }
 
 	virtual void accept(ASTVisitor&);
 };

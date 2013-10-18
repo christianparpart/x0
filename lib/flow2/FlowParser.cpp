@@ -473,6 +473,27 @@ std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPre
 	}
 }
 
+/*
+ * 1 ^ 2 ^ 3 ^ 4
+ *
+ *   ^
+ *  / \
+ * 1   ^              ^
+ *    / \            / \
+ *   2  ^           ^   4
+ *     / \         / \
+ *    3   4       ^   3
+ *               / \
+ *              1   2
+ *
+ *              1 ^  2 ^  3 ^ 4
+ *              1 ^ (2 ^ (3 ^ 4))
+ *
+ * Q: what is a binary operator
+ * A: a binop must comply to (a x b) == (b x a) ? (nop, see rel ops)
+ * Stmt: the power operator is *not* a binary operator
+ */
+
 // primaryExpr ::= NUMBER
 //               | STRING
 //               | variable
@@ -559,26 +580,23 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			return std::move(e);
 		}
 		case FlowToken::Number: { // NUMBER [UNIT]
-			std::unique_ptr<Expr> e = std::make_unique<StringExpr>(stringValue(), loc);
+			auto number = numberValue();
 			nextToken();
-			std::string sv(stringValue());
-			for (size_t i = 0; units[i].ident; ++i) {
-				if (sv == units[i].ident
-					|| (sv[sv.size() - 1] == 's' && sv.substr(0, sv.size() - 1) == units[i].ident))
-				{
-					nextToken(); // UNIT
-					e = std::make_unique<BinaryExpr>(FlowToken::Div,
-							std::make_unique<BinaryExpr>(FlowToken::Mul,
-								std::move(e),
-								std::make_unique<NumberExpr>(units[i].nominator, loc)
-							),
-							std::make_unique<NumberExpr>(units[i].denominator, loc)
-					);
-					break;
+
+			if (token() == FlowToken::Ident) {
+				std::string sv(stringValue());
+				for (size_t i = 0; units[i].ident; ++i) {
+					if (sv == units[i].ident
+						|| (sv[sv.size() - 1] == 's' && sv.substr(0, sv.size() - 1) == units[i].ident))
+					{
+						nextToken(); // UNIT
+						number = number * units[i].nominator / units[i].denominator;
+						loc.update(end());
+						break;
+					}
 				}
 			}
-
-			return std::move(e);
+			return std::make_unique<NumberExpr>(number, loc);
 		}
 		case FlowToken::IP: {
 			std::unique_ptr<IPAddressExpr> e = std::make_unique<IPAddressExpr>(lexer_->ipValue(), loc);
@@ -771,7 +789,8 @@ std::unique_ptr<Stmt> FlowParser::ifStmt()
 		}
 	}
 
-	return nullptr;// TODO new CondStmt(std::move(cond), thenStmt.release(), elseStmt.release(), sloc.update(end()));
+	return std::make_unique<CondStmt>(std::move(cond),
+		std::move(thenStmt), std::move(elseStmt), sloc.update(end()));
 }
 
 // compoundStmt ::= '{' varDecl* stmt* '}'
@@ -823,9 +842,17 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 	}
 
 	switch (callee->type()) {
-		case Symbol::Variable: // var '=' expr (';' | LF)
-			reportError("TODO AssgnStmt: var '=' expr (';' | LF)");
-			break; // TODO AssgnStmt
+		case Symbol::Variable: { // var '=' expr (';' | LF)
+			if (!consume(FlowToken::Assign))
+				return nullptr;
+
+			std::unique_ptr<Expr> value = expr();
+			if (!value)
+				return nullptr;
+
+			stmt = std::make_unique<AssignStmt>(static_cast<Variable*>(callee), std::move(value), loc.update(end()));
+			break;
+		}
 		case Symbol::Handler:  // handler
 			stmt = std::make_unique<HandlerCallStmt>((Handler*) callee, loc);
 			break;
@@ -857,19 +884,8 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			// one of: BuiltinFunction, BuiltinHandler, Handler
 			nextToken();
 			loc.update(end());
-			printf("stmt: %s;\n", name.c_str());
 
-			if (auto callee = lookup<Handler>(name))
-				return std::make_unique<HandlerCallStmt>(callee, loc);
-
-			if (auto callee = lookup<BuiltinHandler>(name))
-				return std::make_unique<BuiltinHandlerCallStmt>(callee, loc);
-			
-			if (auto callee = lookup<BuiltinFunction>(name))
-				return std::make_unique<ExprStmt>(std::make_unique<FunctionCallExpr>(callee, nullptr/*args*/, loc), loc);
-
-			reportError("Unknown identifier '%s' as call statement.", name.c_str());
-			return nullptr;
+			return stmt;
 		}
 		default:
 			reportError("Unexpected call statement to identifier: %s.", name.c_str());

@@ -38,6 +38,7 @@ class CompoundStmt;
 class HandlerCallStmt;
 class BuiltinHandlerCallStmt;
 class CondStmt;
+class AssignStmt;
 
 class X0_API ASTVisitor
 {
@@ -69,6 +70,7 @@ public:
 	virtual void visit(ExprStmt& stmt) = 0;
 	virtual void visit(CompoundStmt& stmt) = 0;
 	virtual void visit(CondStmt& stmt) = 0;
+	virtual void visit(AssignStmt& stmt) = 0;
 	virtual void visit(HandlerCallStmt& stmt) = 0;
 	virtual void visit(BuiltinHandlerCallStmt& stmt) = 0;
 };

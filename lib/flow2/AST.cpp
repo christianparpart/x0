@@ -162,4 +162,12 @@ void VariableExpr::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 
+void CondStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void AssignStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
 } // namespace x0

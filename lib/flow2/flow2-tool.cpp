@@ -1,4 +1,5 @@
 #include <x0/flow2/AST.h>
+#include <x0/flow2/ASTPrinter.h>
 #include <x0/flow2/FlowLexer.h>
 #include <x0/flow2/FlowParser.h>
 #include <x0/DebugLogger.h>
@@ -35,7 +36,14 @@ int parsedump(const char* filename) // {{{
 		perror("parser.open");
 		return 1;
 	}
-	parser.parse();
+	std::unique_ptr<Unit> unit = parser.parse();
+	if (!unit) {
+		printf("parsing failed\n");
+		return 1;
+	}
+
+	ASTPrinter::print(unit.get());
+
 	return 0;
 }
 // }}}
