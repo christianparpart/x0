@@ -133,6 +133,7 @@ if(ENABLE_XZERO_FLOW2)
 	# XzeroFlow
 	set(x0_flow2_SRC
     flow2/AST.cpp
+    flow2/ASTPrinter.cpp
 		flow2/FlowLexer.cpp
     flow2/FlowLocation.cpp
 		flow2/FlowParser.cpp

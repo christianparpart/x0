@@ -40,10 +40,9 @@ size_t SymbolTable::parentCount() const
 	return parents_.size();
 }
 
-Symbol* SymbolTable::appendSymbol(Symbol* symbol)
+void SymbolTable::appendSymbol(std::unique_ptr<Symbol> symbol)
 {
-	symbols_.push_back(symbol);
-	return symbol;
+	symbols_.push_back(symbol.release());
 }
 
 void SymbolTable::removeSymbol(Symbol* symbol)
@@ -160,6 +159,14 @@ void BuiltinFunction::accept(ASTVisitor& v) {
 }
 
 void VariableExpr::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void CondStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void AssignStmt::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 

@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <errmsg.h>
 #include <unistd.h>
+#include <time.h>
 
 #if 0 // !defined(XZERO_NDEBUG)
 //#	define TRACE(msg...) DEBUG(msg)
