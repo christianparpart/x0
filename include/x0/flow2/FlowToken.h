@@ -74,7 +74,7 @@ public:
 } // namespace x0
 
 namespace std {
-	template<> struct std::hash<x0::FlowToken> {
+	template<> struct hash<x0::FlowToken> {
 		uint32_t operator()(x0::FlowToken v) const {
 			return static_cast<uint32_t>(v.value());
 		}
