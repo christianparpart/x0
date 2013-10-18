@@ -198,7 +198,7 @@ bool FlowLexer::consumeSpace()
 		return true;
 
 	if (currentChar() == '#') {
-		bool maybeCommand = scope()->currPos.column = 1;
+		bool maybeCommand = scope()->currPos.column == 1;
 		std::string line;
 		nextChar();
 		// skip chars until EOL

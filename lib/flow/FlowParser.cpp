@@ -243,9 +243,25 @@ Unit* FlowParser::unit()
 		if (!importDecl(unit))
 			goto err;
 
-	while (Symbol* sym = decl()) {
-		TRACE("unit: parsed symbol: %s", sym->name().c_str());
-		unit->insert(sym);
+	// For now, we do *NOT* allow global variable declaration, as initializer expressions can be non-trivial
+	// and I appearently haven't generated the right LLVM IR to handle such cases properly.
+	// So I disabled it until I can fix it properly
+	while (token() == FlowToken::Var) {
+		if (Symbol* sym = varDecl()) {
+			reportError("Global variables are currently not supported.");
+			delete sym;
+			//unit->insert(sym);
+		} else {
+			break;
+		}
+	}
+
+	while (token() == FlowToken::Handler) {
+		if (Symbol* handler = handlerDecl()) {
+			unit->insert(handler);
+		} else {
+			break;
+		}
 	}
 
 	leave();
