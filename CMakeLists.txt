@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(x0)
 set(PACKAGE_NAME "x0")
-set(PACKAGE_VERSION "0.7.0-dev")
+set(PACKAGE_VERSION "0.7.0")
 set(PACKAGE_HOMEPAGE_URL "http://xzero.io/")
 set(PACKAGE_BUGTRACKER_URL "https://github.com/xzero/x0/issues/")
 
@@ -50,6 +50,7 @@ option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if fou
 option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
 option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
 
+# FIXME this is quite a hack, however, it helps the recommender project (soon to be open-sourced) to compile nicely on OSX, too.
 if (APPLE)
 	set(ENABLE_PLUGIN_SSL OFF)
 	set(ENABLE_XZERO_FLOW OFF)
