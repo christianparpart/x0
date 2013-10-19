@@ -2,23 +2,23 @@ if(ENABLE_X0D)
 if(ENABLE_XZERO_FLOW)
 
 add_definitions(
-	-pthread
-	-std=c++0x
-	-DPACKAGE_NAME="${PACKAGE_NAME}"
-	-DPACKAGE_VERSION="${PACKAGE_VERSION}"
-	-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
-	-DSYSCONFDIR="${SYSCONFDIR}"
-	-DLOGDIR="${LOGDIR}"
-	-DPLUGINDIR="${PLUGINDIR}"
-	-DVERSION="${PACKAGE_VERSION}"
+  -pthread
+  -std=c++0x
+  -DPACKAGE_NAME="${PACKAGE_NAME}"
+  -DPACKAGE_VERSION="${PACKAGE_VERSION}"
+  -DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
+  -DSYSCONFDIR="${SYSCONFDIR}"
+  -DLOGDIR="${LOGDIR}"
+  -DPLUGINDIR="${PLUGINDIR}"
+  -DVERSION="${PACKAGE_VERSION}"
 )
 
 set(x0d_SRC
-	XzeroCore.cpp
-	XzeroDaemon.cpp
-	XzeroEventHandler.cpp
-	XzeroPlugin.cpp
-	x0d.cpp
+  XzeroCore.cpp
+  XzeroDaemon.cpp
+  XzeroEventHandler.cpp
+  XzeroPlugin.cpp
+  x0d.cpp
 )
 
 add_executable(x0d ${x0d_SRC})

@@ -52,30 +52,30 @@ option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF
 
 # FIXME this is quite a hack, however, it helps the recommender project (soon to be open-sourced) to compile nicely on OSX, too.
 if (APPLE)
-	set(ENABLE_PLUGIN_SSL OFF)
-	set(ENABLE_XZERO_FLOW OFF)
+  set(ENABLE_PLUGIN_SSL OFF)
+  set(ENABLE_XZERO_FLOW OFF)
   set(ENABLE_FLOW_TOOL OFF)
-	set(ENABLE_PLUGINS OFF)
-	set(ENABLE_PLUGIN_SSL OFF)
-	set(ENABLE_PLUGIN_DIRECTOR OFF)
-	set(ENABLE_PLUGIN_AUTH_PAM OFF)
-	set(ENABLE_MANPAGES OFF)
+  set(ENABLE_PLUGINS OFF)
+  set(ENABLE_PLUGIN_SSL OFF)
+  set(ENABLE_PLUGIN_DIRECTOR OFF)
+  set(ENABLE_PLUGIN_AUTH_PAM OFF)
+  set(ENABLE_MANPAGES OFF)
 endif()
 
 if(ENABLE_PLUGIN_AUTH_PAM)
-	CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
+  CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
 endif()
 
 if(ENABLE_PLUGIN_IMAGEABLE)
-	pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
+  pkg_check_modules(IMAGEMAGICK REQUIRED MagickWand>=6.6.0)
 endif()
 
 if(ENABLE_PLUGIN_RRD)
-	find_package(RRD)
+  find_package(RRD)
 endif()
 
 if(ENABLE_PLUGIN_SSL)
-	pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
+  pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
 endif()
 
 add_definitions(-Wall -Wno-variadic-macros)
@@ -116,38 +116,38 @@ CHECK_LIBRARY_EXISTS(pthread pthread_setname_np "" HAVE_PTHREAD_SETNAME_NP)
 CHECK_LIBRARY_EXISTS(pthread pthread_setaffinity_np "" HAVE_PTHREAD_SETAFFINITY_NP)
 
 if(ENABLE_INOTIFY)
-	CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
-	if(HAVE_SYS_INOTIFY_H)
-		CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
-	endif(HAVE_SYS_INOTIFY_H)
+  CHECK_INCLUDE_FILES(sys/inotify.h HAVE_SYS_INOTIFY_H)
+  if(HAVE_SYS_INOTIFY_H)
+    CHECK_FUNCTION_EXISTS(inotify_init1 HAVE_INOTIFY_INIT1)
+  endif(HAVE_SYS_INOTIFY_H)
 endif()
 
 if(ENABLE_TCMALLOC)
-	CHECK_INCLUDE_FILES(google/tcmalloc.h HAVE_GOOGLE_TCMALLOC_H)
-#	pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
-	set(TCMALLOC_LIBRARIES tcmalloc)
+  CHECK_INCLUDE_FILES(google/tcmalloc.h HAVE_GOOGLE_TCMALLOC_H)
+#  pkg_check_modules(TCMALLOC REQUIRED libtcmalloc>=1.8.3)
+  set(TCMALLOC_LIBRARIES tcmalloc)
 endif()
 
 CHECK_INCLUDE_FILES(zlib.h HAVE_ZLIB_H)
 if(HAVE_ZLIB_H)
-	CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
-	set(ZLIB_LIBRARIES z)
+  CHECK_LIBRARY_EXISTS(z deflate "" HAVE_LIBZ)
+  set(ZLIB_LIBRARIES z)
 endif(HAVE_ZLIB_H)
 
 CHECK_INCLUDE_FILES(bzlib.h HAVE_BZLIB_H)
 if(HAVE_BZLIB_H)
-	CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
-	set(BZIP2_LIBRARIES bz2)
+  CHECK_LIBRARY_EXISTS(bz2 BZ2_bzCompressInit "" HAVE_LIBBZ2)
+  set(BZIP2_LIBRARIES bz2)
 endif(HAVE_BZLIB_H)
 
 # TODO dynamic check for tbb
 # tbb is required for director plugin and for base's TimeoutScheduler (needed?)
 if(ENABLE_PLUGIN_DIRECTOR)
-	CHECK_INCLUDE_FILE_CXX("tbb/tbb.h" HAVE_TBB_TBB_H)
-	set(TBB_LIBRARIES tbb)
-	if(NOT HAVE_TBB_TBB_H)
-		message(FATAL_ERROR "Can't find <tbb/tbb.h> include file.\nPlease install Threading Building Blocks (e.g. libtbb-dev).")
-	endif()
+  CHECK_INCLUDE_FILE_CXX("tbb/tbb.h" HAVE_TBB_TBB_H)
+  set(TBB_LIBRARIES tbb)
+  if(NOT HAVE_TBB_TBB_H)
+    message(FATAL_ERROR "Can't find <tbb/tbb.h> include file.\nPlease install Threading Building Blocks (e.g. libtbb-dev).")
+  endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -156,27 +156,27 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support/sd-daemon)
 
 if(ENABLE_XZERO_FLOW)
-	# LLVM
-	find_package(LLVM)
-	include_directories(${LLVM_INCLUDE_DIR})
-	link_directories(${LLVM_LIBRARY_DIR})
-	set(LIBS ${LIBS} ${LLVM_LIBRARIES})
-	add_definitions(${LLVM_CPPFLAGS})
+  # LLVM
+  find_package(LLVM)
+  include_directories(${LLVM_INCLUDE_DIR})
+  link_directories(${LLVM_LIBRARY_DIR})
+  set(LIBS ${LIBS} ${LLVM_LIBRARIES})
+  add_definitions(${LLVM_CPPFLAGS})
 
-	string(COMPARE EQUAL "${LLVM_VERSION}" "3.0" LLVM_VERSION_3_0)
-	string(COMPARE EQUAL "${LLVM_VERSION}" "3.1" LLVM_VERSION_3_1)
-	string(COMPARE EQUAL "${LLVM_VERSION}" "3.3" LLVM_VERSION_3_3)
-	if(${LLVM_VERSION_3_1})
-		message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-	elseif(${LLVM_VERSION_3_0})
-		message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-	elseif(${LLVM_VERSION_3_3})
-		message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-	else(APPLE)
-		message(STATUS "Using Apple LLVM")
-	else()
-		message(FATAL_ERROR "LLVM version 3.0, 3.1, or 3.3 is required (You have ${LLVM_VERSION}).\nYou can pass -DLLVM_CONFIG_EXECUTABLE=/path/to/llvm-config for custom paths/names to llvm-config.")
-	endif()
+  string(COMPARE EQUAL "${LLVM_VERSION}" "3.0" LLVM_VERSION_3_0)
+  string(COMPARE EQUAL "${LLVM_VERSION}" "3.1" LLVM_VERSION_3_1)
+  string(COMPARE EQUAL "${LLVM_VERSION}" "3.3" LLVM_VERSION_3_3)
+  if(${LLVM_VERSION_3_1})
+    message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+  elseif(${LLVM_VERSION_3_0})
+    message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+  elseif(${LLVM_VERSION_3_3})
+    message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
+  else(APPLE)
+    message(STATUS "Using Apple LLVM")
+  else()
+    message(FATAL_ERROR "LLVM version 3.0, 3.1, or 3.3 is required (You have ${LLVM_VERSION}).\nYou can pass -DLLVM_CONFIG_EXECUTABLE=/path/to/llvm-config for custom paths/names to llvm-config.")
+  endif()
 else()
   # we cannot compile flow-tool if libXzeroFlow is not built.
   set(ENABLE_FLOW_TOOL OFF CACHE BOOL "Build flow-tool [default: on]")
@@ -184,7 +184,7 @@ endif()
 
 # PCRE
 if(ENABLE_PCRE)
-	pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
+  pkg_check_modules(PCRE REQUIRED libpcre>=7.0)
 endif()
 
 # ev
@@ -196,10 +196,10 @@ add_definitions(${EV_CPPFLAGS})
 # mySQL
 option(ENABLE_MYSQL "With mySQL support [default: on]" ON)
 if(ENABLE_MYSQL)
-	find_package(MYSQL)
-	include_directories(${MYSQL_INCLUDE_DIR})
-	set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
-	add_definitions(${MYSQL_CFLAGS})
+  find_package(MYSQL)
+  include_directories(${MYSQL_INCLUDE_DIR})
+  set(LIBS ${LIBS} ${MYSQL_LDFLAGS})
+  add_definitions(${MYSQL_CFLAGS})
 endif()
 
 # systemd support (implemented in support/sd-daemon/)
@@ -208,34 +208,34 @@ set(SD_LIBRARIES sd-daemon)
 # {{{ path prefixes
 # ---------------------------------------------------------------------------
 if (DEFINED CMAKE_INSTALL_PREFIX)
-	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "x0d configuration directory")
-	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "x0 include directory")
-	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "x0 library directory")
-	set(LOGDIR ${CMAKE_INSTALL_PREFIX}/var/log CACHE PATH "log file directory")
+  set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "x0d configuration directory")
+  set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "x0 include directory")
+  set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "x0 library directory")
+  set(LOGDIR ${CMAKE_INSTALL_PREFIX}/var/log CACHE PATH "log file directory")
 endif()
 
 if (DEFINED SYSCONFDIR)
-	set(SYSCONFDIR ${SYSCONFDIR} CACHE PATH "configuration directory")
+  set(SYSCONFDIR ${SYSCONFDIR} CACHE PATH "configuration directory")
 else()
-	set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
+  set(SYSCONFDIR ${CMAKE_INSTALL_PREFIX}/etc CACHE PATH "configuration directory")
 endif()
 
 if (DEFINED INCLUDEDIR)
-	set(INCLUDEDIR ${INCLUDEDIR} CACHE PATH "path to library includes")
+  set(INCLUDEDIR ${INCLUDEDIR} CACHE PATH "path to library includes")
 else()
-	set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "path to library includes")
+  set(INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "path to library includes")
 endif()
 
 if (DEFINED LIBDIR)
-	set(LIBDIR ${LIBDIR} CACHE PATH "path to program libraries")
+  set(LIBDIR ${LIBDIR} CACHE PATH "path to program libraries")
 else()
-	set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path to program libraries")
+  set(LIBDIR ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path to program libraries")
 endif()
 
 if (DEFINED LOGDIR)
-	set(LOGDIR ${LOGDIR} CACHE PATH "log file directory")
+  set(LOGDIR ${LOGDIR} CACHE PATH "log file directory")
 else()
-	set(LOGDIR ${CMAKE_INSTALL_PREFIX}/var/log CACHE PATH "log file directory")
+  set(LOGDIR ${CMAKE_INSTALL_PREFIX}/var/log CACHE PATH "log file directory")
 endif()
 
 set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
@@ -249,50 +249,50 @@ set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
 #message(STATUS "LUA libraries: " ${LUA_LIBRARIES})
 
 if(ENABLE_TESTS)
-	find_package(FCGI)
-	CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
+  find_package(FCGI)
+  CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
 endif()
 
 #if(BUILD_STATIC)
-	# ...
+  # ...
 #else(BUILD_STATIC)
-	CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
+  CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
 #endif(BUILD_STATIC)
 
 # ---------------------------------------------------------------------------
 macro(x0_plugin_simple ModuleName)
-	add_library(${ModuleName} MODULE ${ModuleName}.cpp)
-	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
-	install(TARGETS ${ModuleName} DESTINATION ${PLUGINDIR})
+  add_library(${ModuleName} MODULE ${ModuleName}.cpp)
+  set_target_properties(${ModuleName} PROPERTIES PREFIX "")
+  install(TARGETS ${ModuleName} DESTINATION ${PLUGINDIR})
 endmacro()
 
 macro(x0_plugin ModuleName SrcFiles)
-	add_library(${ModuleName} MODULE ${SrcFiles})
-	set_target_properties(${ModuleName} PROPERTIES PREFIX "")
-	install(TARGETS ${ModuleName} DESTINATION ${PLUGINDIR})
+  add_library(${ModuleName} MODULE ${SrcFiles})
+  set_target_properties(${ModuleName} PROPERTIES PREFIX "")
+  install(TARGETS ${ModuleName} DESTINATION ${PLUGINDIR})
 endmacro()
 
 # ---------------------------------------------------------------------------
 configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/include/x0/sysconfig.h.cmake
-	${CMAKE_CURRENT_BINARY_DIR}/include/x0/sysconfig.h)
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/x0/sysconfig.h.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/include/x0/sysconfig.h)
 
 # ---------------------------------------------------------------------------
 configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/XzeroBase.pc.cmake
-	${CMAKE_CURRENT_BINARY_DIR}/XzeroBase.pc)
+  ${CMAKE_CURRENT_SOURCE_DIR}/XzeroBase.pc.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/XzeroBase.pc)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroBase.pc DESTINATION ${LIBDIR}/pkgconfig)
 
 configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/XzeroFlow.pc.cmake
-	${CMAKE_CURRENT_BINARY_DIR}/XzeroFlow.pc)
+  ${CMAKE_CURRENT_SOURCE_DIR}/XzeroFlow.pc.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/XzeroFlow.pc)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroFlow.pc DESTINATION ${LIBDIR}/pkgconfig)
 
 configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/XzeroHttp.pc.cmake
-	${CMAKE_CURRENT_BINARY_DIR}/XzeroHttp.pc)
+  ${CMAKE_CURRENT_SOURCE_DIR}/XzeroHttp.pc.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/XzeroHttp.pc)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/XzeroHttp.pc DESTINATION ${LIBDIR}/pkgconfig)
 
@@ -308,27 +308,27 @@ add_subdirectory(tests)
 add_subdirectory(examples)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-	DESTINATION ${INCLUDEDIR}
-	FILES_MATCHING
-	PATTERN "*.h"
-	PATTERN "*.hpp"
-	PATTERN "*.cc")
+  DESTINATION ${INCLUDEDIR}
+  FILES_MATCHING
+  PATTERN "*.h"
+  PATTERN "*.hpp"
+  PATTERN "*.cc")
 
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
-	DESTINATION ${INCLUDEDIR}
-	FILES_MATCHING
-	PATTERN "*.h"
-	PATTERN "*.hpp"
-	PATTERN "*.cc")
+  DESTINATION ${INCLUDEDIR}
+  FILES_MATCHING
+  PATTERN "*.h"
+  PATTERN "*.hpp"
+  PATTERN "*.cc")
 
 add_custom_target(ctags
-	COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q ${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/include
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+  COMMAND ctags -R --c++-kinds=+p --fields=+iaS --extra=+q ${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/include
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_target(cscope
-	COMMAND echo -n > ${CMAKE_SOURCE_DIR}/cscope.files
-			&& find ${CMAKE_SOURCE_DIR}/lib -name '*.h' -o -name '*.cc' -o -name '*.cpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
-			&& find ${CMAKE_SOURCE_DIR}/include -name '*.h' -o -name '*.cc' -o -name '*.hpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
-			&& cscope -q -R -b -i cscope.files
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-	)
+  COMMAND echo -n > ${CMAKE_SOURCE_DIR}/cscope.files
+          && find ${CMAKE_SOURCE_DIR}/lib -name '*.h' -o -name '*.cc' -o -name '*.cpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
+          && find ${CMAKE_SOURCE_DIR}/include -name '*.h' -o -name '*.cc' -o -name '*.hpp' >> ${CMAKE_SOURCE_DIR}/cscope.files
+          && cscope -q -R -b -i cscope.files
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)

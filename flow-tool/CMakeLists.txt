@@ -1,6 +1,6 @@
 add_definitions(
-	-pthread
-	-std=c++0x
+  -pthread
+  -std=c++0x
 )
 
 if(ENABLE_FLOW_TOOL)

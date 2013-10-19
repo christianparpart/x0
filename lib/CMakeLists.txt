@@ -1,92 +1,92 @@
 add_definitions(
-	-pthread
-	-std=c++0x
-	-DPACKAGE_NAME="${PACKAGE_NAME}"
-	-DPACKAGE_VERSION="${PACKAGE_VERSION}"
-	-DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
-	-DSYSCONFDIR="${SYSCONFDIR}"
-	-DPLUGINDIR="${PLUGINDIR}"
-	-DLOGDIR="${LOGDIR}"
-	-DVERSION="${PACKAGE_VERSION}")
+  -pthread
+  -std=c++0x
+  -DPACKAGE_NAME="${PACKAGE_NAME}"
+  -DPACKAGE_VERSION="${PACKAGE_VERSION}"
+  -DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
+  -DSYSCONFDIR="${SYSCONFDIR}"
+  -DPLUGINDIR="${PLUGINDIR}"
+  -DLOGDIR="${LOGDIR}"
+  -DVERSION="${PACKAGE_VERSION}")
 
 add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1)
 
 if(APPLE)
-	add_definitions(-stdlib=libc++)
+  add_definitions(-stdlib=libc++)
 endif()
 
 # {{{ XzeroBase
 set(x0_base_SRC
-	base/AnsiColor.cpp
-	base/Base64.cpp
-	base/Buffer.cpp
+  base/AnsiColor.cpp
+  base/Base64.cpp
+  base/Buffer.cpp
   base/Cidr.cpp
-	base/CacheService.cpp
-	base/ConstBuffer.cpp
-	base/Counter.cpp
-	base/DateTime.cpp
-	base/DebugLogger.cpp
-	base/IniFile.cpp
-	base/JsonWriter.cpp
-	base/Library.cpp
-	base/Logger.cpp
-	base/Logging.cpp
-	base/MemoryPool.cpp
-	base/NativeSymbol.cpp
-	base/Process.cpp
-	base/RegExp.cpp
-	base/ServerSocket.cpp
-	base/Severity.cpp
-	base/Socket.cpp
-	base/SocketDriver.cpp
-	base/SocketSpec.cpp
-	base/StackTrace.cpp
-	base/strutils.cpp
-	base/TextFormatter.cpp
-	base/TimeSpan.cpp
-	base/Tokenizer.cpp
-	base/Url.cpp
+  base/CacheService.cpp
+  base/ConstBuffer.cpp
+  base/Counter.cpp
+  base/DateTime.cpp
+  base/DebugLogger.cpp
+  base/IniFile.cpp
+  base/JsonWriter.cpp
+  base/Library.cpp
+  base/Logger.cpp
+  base/Logging.cpp
+  base/MemoryPool.cpp
+  base/NativeSymbol.cpp
+  base/Process.cpp
+  base/RegExp.cpp
+  base/ServerSocket.cpp
+  base/Severity.cpp
+  base/Socket.cpp
+  base/SocketDriver.cpp
+  base/SocketSpec.cpp
+  base/StackTrace.cpp
+  base/strutils.cpp
+  base/TextFormatter.cpp
+  base/TimeSpan.cpp
+  base/Tokenizer.cpp
+  base/Url.cpp
 )
 
 set(x0_io_SRC
-	io/BufferRefSource.cpp
-	io/BufferSink.cpp
-	io/BufferSource.cpp
-	io/CallbackSource.cpp
-	io/ChainFilter.cpp
-	io/ChunkedEncoder.cpp
-	io/CompositeSource.cpp
-	io/CompressFilter.cpp
-	io/FileSink.cpp
-	io/FileSource.cpp
-	io/Filter.cpp
-	io/FilterSource.cpp
-	io/NullFilter.cpp
-	io/NullSource.cpp
-	io/Pipe.cpp
-	io/PipeSink.cpp
-	io/PipeSource.cpp
-	io/SocketSink.cpp
-	io/SyslogSink.cpp
+  io/BufferRefSource.cpp
+  io/BufferSink.cpp
+  io/BufferSource.cpp
+  io/CallbackSource.cpp
+  io/ChainFilter.cpp
+  io/ChunkedEncoder.cpp
+  io/CompositeSource.cpp
+  io/CompressFilter.cpp
+  io/FileSink.cpp
+  io/FileSource.cpp
+  io/Filter.cpp
+  io/FilterSource.cpp
+  io/NullFilter.cpp
+  io/NullSource.cpp
+  io/Pipe.cpp
+  io/PipeSink.cpp
+  io/PipeSource.cpp
+  io/SocketSink.cpp
+  io/SyslogSink.cpp
 )
 
 if(ENABLE_MYSQL)
-	set(x0_sql_SRC
-		sql/SqlConnection.cpp
-		sql/SqlResult.cpp
-		sql/SqlStatement.cpp
-	)
-	add_definitions(${MYSQL_CFLAGS})
+  set(x0_sql_SRC
+    sql/SqlConnection.cpp
+    sql/SqlResult.cpp
+    sql/SqlStatement.cpp
+  )
+  add_definitions(${MYSQL_CFLAGS})
 endif()
 
 add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
 
 if(APPLE)
-	target_link_libraries(XzeroBase -stdlib=libc++)
+  target_link_libraries(XzeroBase -stdlib=libc++)
 endif()
 
 if(ENABLE_MYSQL)
-	target_link_libraries(XzeroBase ${MYSQL_LDFLAGS})
+  target_link_libraries(XzeroBase ${MYSQL_LDFLAGS})
 endif()
 
 target_link_libraries(XzeroBase dl pthread ${SD_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES} ${EV_LIBRARIES})
@@ -96,16 +96,16 @@ install(TARGETS XzeroBase DESTINATION ${LIBDIR})
 
 # XzeroHttp
 set(x0_http_SRC
-	http/HttpClient.cpp
-	http/HttpConnection.cpp
-	http/HttpFile.cpp
-	http/HttpFileMgr.cpp
-	http/HttpMessageProcessor.cpp
-	http/HttpRequest.cpp
-	http/HttpServer.cpp
-	http/HttpStatus.cpp
-	http/HttpWorker.cpp
-	http/Vary.cpp
+  http/HttpClient.cpp
+  http/HttpConnection.cpp
+  http/HttpFile.cpp
+  http/HttpFileMgr.cpp
+  http/HttpMessageProcessor.cpp
+  http/HttpRequest.cpp
+  http/HttpServer.cpp
+  http/HttpStatus.cpp
+  http/HttpWorker.cpp
+  http/Vary.cpp
 )
 add_library(XzeroHttp SHARED ${x0_http_SRC})
 target_link_libraries(XzeroHttp XzeroBase)
@@ -113,38 +113,38 @@ set_target_properties(XzeroHttp PROPERTIES VERSION ${PACKAGE_VERSION})
 install(TARGETS XzeroHttp DESTINATION ${LIBDIR})
 
 if(ENABLE_XZERO_FLOW)
-	# XzeroFlow
-	set(x0_flow_SRC
-		flow/FlowBackend.cpp
-		flow/Flow.cpp
-		flow/FlowLexer.cpp
-		flow/FlowParser.cpp
-		flow/FlowRunner.cpp
-		flow/FlowToken.cpp
-		flow/FlowValue.cpp
-	)
-	add_library(XzeroFlow SHARED ${x0_flow_SRC})
-	set_target_properties(XzeroFlow PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
-	target_link_libraries(XzeroFlow LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
-	set_target_properties(XzeroFlow PROPERTIES VERSION ${PACKAGE_VERSION})
-	install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
+  # XzeroFlow
+  set(x0_flow_SRC
+    flow/FlowBackend.cpp
+    flow/Flow.cpp
+    flow/FlowLexer.cpp
+    flow/FlowParser.cpp
+    flow/FlowRunner.cpp
+    flow/FlowToken.cpp
+    flow/FlowValue.cpp
+  )
+  add_library(XzeroFlow SHARED ${x0_flow_SRC})
+  set_target_properties(XzeroFlow PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
+  target_link_libraries(XzeroFlow LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
+  set_target_properties(XzeroFlow PROPERTIES VERSION ${PACKAGE_VERSION})
+  install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
 endif()
 
 if(ENABLE_XZERO_FLOW2)
-	# XzeroFlow
-	set(x0_flow2_SRC
+  # XzeroFlow
+  set(x0_flow2_SRC
     flow2/AST.cpp
     flow2/ASTPrinter.cpp
-		flow2/FlowLexer.cpp
+    flow2/FlowLexer.cpp
     flow2/FlowLocation.cpp
-		flow2/FlowParser.cpp
-		flow2/FlowToken.cpp
-	)
-	add_library(XzeroFlow2 SHARED ${x0_flow2_SRC})
-	set_target_properties(XzeroFlow2 PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
-	target_link_libraries(XzeroFlow2 LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
-	set_target_properties(XzeroFlow2 PROPERTIES VERSION ${PACKAGE_VERSION})
-	install(TARGETS XzeroFlow2 DESTINATION ${LIBDIR})
+    flow2/FlowParser.cpp
+    flow2/FlowToken.cpp
+  )
+  add_library(XzeroFlow2 SHARED ${x0_flow2_SRC})
+  set_target_properties(XzeroFlow2 PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
+  target_link_libraries(XzeroFlow2 LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
+  set_target_properties(XzeroFlow2 PROPERTIES VERSION ${PACKAGE_VERSION})
+  install(TARGETS XzeroFlow2 DESTINATION ${LIBDIR})
 
   add_executable(flow2-tool flow2/flow2-tool.cpp)
   target_link_libraries(flow2-tool XzeroBase XzeroFlow2)
@@ -152,8 +152,8 @@ endif()
 
 # Xzero C API
 add_library(x0capi SHARED
-	capi/http.cpp
-	capi/inifile.cpp
+  capi/http.cpp
+  capi/inifile.cpp
 )
 target_link_libraries(x0capi XzeroHttp XzeroBase)
 set_target_properties(x0capi PROPERTIES VERSION ${PACKAGE_VERSION})
