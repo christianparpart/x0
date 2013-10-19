@@ -624,7 +624,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			snprintf(name, sizeof(name), "__lambda_%lu", ++i);
 
 			Handler* handler = new Handler(name, std::move(st), std::move(body), loc);
-			// TODO: add handler to unit's global scope, i.e. via:
+			// TODO (memory leak): add handler to unit's global scope, i.e. via:
 			//       - scope()->rootScope()->insert(handler);
 			//       - unit_->scope()->insert(handler);
 			//       to get free'd
