@@ -494,27 +494,6 @@ std::unique_ptr<Expr> FlowParser::powExpr()
 	return left;
 }
 
-/*
- * 1 ^ 2 ^ 3 ^ 4
- *
- *   ^
- *  / \
- * 1   ^              ^
- *    / \            / \
- *   2  ^           ^   4
- *     / \         / \
- *    3   4       ^   3
- *               / \
- *              1   2
- *
- *              1 ^  2 ^  3 ^ 4
- *              1 ^ (2 ^ (3 ^ 4))
- *
- * Q: what is a binary operator
- * A: a binop must comply to (a x b) == (b x a) ? (nop, see rel ops)
- * Stmt: the power operator is *not* a binary operator
- */
-
 // primaryExpr ::= NUMBER
 //               | STRING
 //               | variable
