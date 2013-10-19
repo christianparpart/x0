@@ -1,5 +1,6 @@
 0.8.0 (yet-to-be-released)
 
+	* base: Added Cidr API for general CIDR management.
 	* flow: Properly implement power operator's disassociativety.
 	* flow: Added support for nested file parsing (via `#include "path"`), including filename globbing.
 	* director: Added response output caching support.
