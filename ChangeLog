@@ -1,3 +1,9 @@
+0.8.0 (yet-to-be-released)
+
+	* flow: Properly implement power operator's disassociativety.
+	* flow: Added support for nested file parsing (via `#include "path"`), including filename globbing.
+	* director: Added response output caching support.
+
 0.7.0 (2013-10-18)
 
 	* general: major source tree restructures, to make things more clear.
