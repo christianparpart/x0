@@ -7,10 +7,10 @@
  */
 
 #include "Flower.h"
-#include <x0/flow/Flow.h>
-#include <x0/flow/FlowParser.h>
-#include <x0/flow/FlowRunner.h>
-#include <x0/flow/FlowBackend.h>
+#include <x0/flow2/AST.h>
+#include <x0/flow2/ASTPrinter.h>
+#include <x0/flow2/FlowLexer.h>
+#include <x0/flow2/FlowParser.h>
 #include <fstream>
 #include <memory>
 #include <cstdio>
@@ -36,26 +36,48 @@ int usage(const char *program)
 	return 0;
 }
 
-int lexdump(const char* filename)
+int lexdump(const char* filename) // {{{
 {
 	FlowLexer lexer;
-	std::fstream input(filename);
-	if (!lexer.initialize(&input, filename))
+	if (!lexer.open(filename)) {
+		perror("lexer.open");
 		return 1;
+	}
 
 	for (FlowToken t = lexer.token(); t != FlowToken::Eof; t = lexer.nextToken()) {
-		SourceLocation location = lexer.location();
-		std::string ts = lexer.tokenToString(t);
-		std::string raw = lexer.locationContent();
+		FlowLocation location = lexer.location();
+		std::string raw = lexer.location().text();
 
-		printf("[%04ld:%03ld.%03ld - %04ld:%03ld.%03ld] (%s): %s\n",
+		printf("[%04ld:%03ld.%04ld - %04ld:%03ld.%04ld] %10s %-30s %s\n",
 			location.begin.line, location.begin.column, location.begin.offset,
 			location.end.line, location.end.column, location.end.offset,
-			ts.c_str(), raw.c_str());
+			t.c_str(), raw.c_str(),
+			location.filename.c_str()
+		);
 	}
 
 	return 0;
 }
+// }}}
+int parsedump(const char* filename) // {{{
+{
+	FlowParser parser;
+	if (!parser.open(filename)) {
+		perror("parser.open");
+		return 1;
+	}
+
+	std::unique_ptr<Unit> unit = parser.parse();
+	if (!unit) {
+		printf("parsing failed\n");
+		return 1;
+	}
+
+	ASTPrinter::print(unit.get());
+
+	return 0;
+}
+// }}}
 
 int main(int argc, char *argv[])
 {
@@ -64,10 +86,11 @@ int main(int argc, char *argv[])
 	Flower flower;
 	bool testMode = false;
 	bool lexMode = false;
+	bool parseDump = false;
 	int opt;
 	int rv = 0;
 
-	while ((opt = getopt(argc, argv, "tO:hLe:l")) != -1) { // {{{
+	while ((opt = getopt(argc, argv, "tO:hLe:ls")) != -1) { // {{{
 		switch (opt) {
 		case 'h':
 			usage(argv[0]);
@@ -78,6 +101,8 @@ int main(int argc, char *argv[])
 		case 'l':
 			lexMode = true;
 			break;
+		case 's':
+			parseDump = true;
 		case 't':
 			testMode = true;
 			break;
@@ -102,8 +127,11 @@ int main(int argc, char *argv[])
 		const char *fileName = argv[optind];
 		++optind;
 
+		if (parseDump) {
+			return parsedump(fileName);
+		}
+
 		if (lexMode) {
-			printf("%s:\n", fileName);
 			return lexdump(fileName);
 		}
 
@@ -119,8 +147,6 @@ int main(int argc, char *argv[])
 
 		flower.clear();
 	}
-
-	FlowRunner::shutdown();
 
 	return rv;
 }

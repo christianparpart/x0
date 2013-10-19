@@ -1,5 +1,8 @@
 #pragma once
 
+#include <x0/Api.h>
+#include <x0/flow2/FlowValue.h>
+
 #include <utility>
 #include <memory>
 #include <vector>
@@ -23,6 +26,12 @@ public:
 
 	void registerHandler(const std::string& name, const FlowHandlerCB& fn);
 	void registerFunction(const std::string& name, const FlowFunctionCB& fn);
+
+//	template<typename Result, typename... Args>
+//	void registerFunction(const std::string& name, const FlowFunctionCB& fn);
+
+//	template<Result(typename... Args)>
+//	void registerFunction(const std::string& name, const FlowFunctionCB& fn);
 };
 
 } // namespace x0

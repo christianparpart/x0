@@ -6,10 +6,10 @@
  * (c) 2010-2013 Christian Parpart <trapni@gmail.com>
  */
 #include "Flower.h"
-#include <x0/flow/Flow.h>
-#include <x0/flow/FlowParser.h>
-#include <x0/flow/FlowRunner.h>
-#include <x0/flow/FlowBackend.h>
+#include <x0/flow2/AST.h>
+#include <x0/flow2/FlowParser.h>
+#include <x0/flow2/FlowBackend.h>
+// #include <x0/flow/FlowRunner.h>
 #include <fstream>
 #include <memory>
 #include <utility>
@@ -31,34 +31,35 @@ void reportError(const char *category, const std::string& msg)
 
 Flower::Flower() :
 	FlowBackend(),
-	runner_(this),
+//	runner_(this),
 	totalCases_(0),
 	totalSuccess_(0),
 	totalFailed_(0)
 {
-	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
-	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
+//	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
+//	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
 
 	// properties
-	registerProperty("cwd", FlowValue::STRING, &get_cwd);
+//	registerProperty("cwd", FlowValue::STRING, &get_cwd);
 
 	// functions
-	registerFunction("getenv", FlowValue::STRING, &flow_getenv);
-	registerFunction("mkbuf", FlowValue::BUFFER, &flow_mkbuf);
-	registerFunction("getbuf", FlowValue::BUFFER, &flow_getbuf);
+//	registerFunction("getenv", FlowValue::STRING, &flow_getenv);
+//	registerFunction("mkbuf", FlowValue::BUFFER, &flow_mkbuf);
+//	registerFunction("getbuf", FlowValue::BUFFER, &flow_getbuf);
 
 	// unit test aiding handlers
-	registerHandler("error", &flow_error);
-	registerHandler("finish", &flow_finish); // XXX rename to 'success'
-	registerHandler("assert", &Flower::flow_assert, this);
-	registerHandler("assert_fail", &flow_assertFail);
+//	registerHandler("error", &flow_error);
+//	registerHandler("finish", &flow_finish); // XXX rename to 'success'
+//	registerHandler("assert", &Flower::flow_assert, this);
+//	registerHandler("assert_fail", &flow_assertFail);
 
-	registerHandler("fail", &flow_fail);
-	registerHandler("pass", &flow_pass);
+//	registerHandler("fail", &flow_fail);
+//	registerHandler("pass", &flow_pass);
 }
 
 Flower::~Flower()
 {
+//	FlowRunner::shutdown();
 }
 
 bool Flower::onParseComplete(Unit* unit)
@@ -66,6 +67,7 @@ bool Flower::onParseComplete(Unit* unit)
 	std::list<Symbol*> calls;
 	printf("Flower.onParseComplete()\n");
 
+#if 0 // TODO
 	for (auto& call: FlowCallIterator(unit)) {
 		if (call->callee()->name() != "assert" && call->callee()->name() != "assert_fail")
 			continue;
@@ -78,6 +80,7 @@ bool Flower::onParseComplete(Unit* unit)
 		std::string source = arg->sourceLocation().text();
 		args->push_back(new StringExpr(source, SourceLocation()));
 	}
+#endif
 
 	return true;
 }
@@ -85,20 +88,20 @@ bool Flower::onParseComplete(Unit* unit)
 int Flower::runAll(const char *fileName)
 {
 	filename_ = fileName;
-	if (!runner_.open(fileName)) {
-		printf("Failed to load file: %s\n", fileName);
-		return -1;
-	}
+//	if (!runner_.open(fileName)) {
+//		printf("Failed to load file: %s\n", fileName);
+//		return -1;
+//	}
 
-	for (auto fn: runner_.getHandlerList()) {
-		if (strncmp(fn->name().c_str(), "test_", 5) == 0) { // only consider handlers beginning with "test_"
-			printf("[ -------- ] Testing %s\n", fn->name().c_str());
-			totalCases_++;
-			bool failed = runner_.invoke(fn);
-			if (failed) totalFailed_++;
-			printf("[ -------- ] %s\n\n", failed ? "FAILED" : "OK");
-		}
-	}
+//	for (auto fn: runner_.getHandlerList()) {
+//		if (strncmp(fn->name().c_str(), "test_", 5) == 0) { // only consider handlers beginning with "test_"
+//			printf("[ -------- ] Testing %s\n", fn->name().c_str());
+//			totalCases_++;
+//			bool failed = runner_.invoke(fn);
+//			if (failed) totalFailed_++;
+//			printf("[ -------- ] %s\n\n", failed ? "FAILED" : "OK");
+//		}
+//	}
 
 	printf("[ ======== ] %zu tests from %zu cases ran\n", totalSuccess_ + totalFailed_, totalCases_);
 	if (totalSuccess_)
@@ -117,19 +120,19 @@ int Flower::run(const char* fileName, const char* handlerName)
 	}
 
 	filename_ = fileName;
-	if (!runner_.open(fileName)) {
-		printf("Failed to load file: %s\n", fileName);
-		return -1;
-	}
+//	if (!runner_.open(fileName)) {
+//		printf("Failed to load file: %s\n", fileName);
+//		return -1;
+//	}
 
-	Function* fn = runner_.findHandler(handlerName);
+	Handler* fn = nullptr; // runner_.findHandler(handlerName);
 	if (!fn) {
 		printf("No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
 		return -1;
 	}
 
 	if (handlerName) {
-		bool handled = runner_.invoke(fn);
+		bool handled = false; // runner_.invoke(fn);
 		return handled ? 0 : 1;
 	}
 	return 1;
@@ -137,14 +140,15 @@ int Flower::run(const char* fileName, const char* handlerName)
 
 void Flower::dump()
 {
-	runner_.dump();
+//	runner_.dump();
 }
 
 void Flower::clear()
 {
-	runner_.clear();
+	//runner_.clear();
 }
 
+#if 0
 void Flower::get_cwd(void *, x0::FlowParams& args, void *)
 {
 	static char buf[1024];
@@ -275,3 +279,4 @@ bool Flower::printValue(const FlowValue& value, bool lf)
 
 	return true;
 }
+#endif
