@@ -205,12 +205,9 @@ void ASTPrinter::visit(AssignStmt& assign)
 {
 	printf("AssignStmt\n");
 	enter();
-		printf("lhs: %s\n", assign.variable()->name().c_str());
-		print(assign.variable());
-
-		printf("rhs\n");
-		print(assign.expression());
+		printf("lhs(var): %s\n", assign.variable()->name().c_str());
 	leave();
+	print("rhs", assign.expression());
 }
 
 void ASTPrinter::visit(HandlerCallStmt& handlerCall)
