@@ -31,7 +31,7 @@ public:
 	size_t prefix() const { return prefix_; }
 	void setPrefix(size_t n) { prefix_ = n; }
 
-	inline std::string str() const;
+	std::string str() const;
 
 	friend bool operator==(const Cidr& a, const Cidr& b);
 	friend bool operator!=(const Cidr& a, const Cidr& b);
