@@ -391,7 +391,7 @@ std::unique_ptr<Handler> FlowParser::handlerDecl()
 // {{{ expr
 std::unique_ptr<Expr> FlowParser::expr()
 {
-	std::unique_ptr<Expr> lhs = primaryExpr();
+	std::unique_ptr<Expr> lhs = powExpr();
 	if (!lhs)
 		return nullptr;
 
@@ -428,8 +428,6 @@ int binopPrecedence(FlowToken op) {
 		{ FlowToken::Shl, 3 },
 		{ FlowToken::Shr, 3 },
 
-		{ FlowToken::Pow, 4 },
-
 		// bit-wise expr
 		{ FlowToken::BitAnd, 5 },
 		{ FlowToken::BitOr, 5 },
@@ -452,25 +450,48 @@ std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPre
 		// quit if this is not a binOp *or* its binOp-precedence is lower than the 
 		// minimal-binOp-requirement of our caller
 		int thisPrecedence = binopPrecedence(token());
-		if (thisPrecedence < lastPrecedence)
+		if (thisPrecedence <= lastPrecedence)
 			return lhs;
 
 		FlowToken binaryOperator = token();
 		nextToken();
 
-		std::unique_ptr<Expr> rhs = primaryExpr();
+		std::unique_ptr<Expr> rhs = powExpr();
 		if (!rhs)
 			return nullptr;
 
 		int nextPrecedence = binopPrecedence(token());
 		if (thisPrecedence < nextPrecedence) {
-			rhs = rhsExpr(std::move(rhs), thisPrecedence + 1);
+			rhs = rhsExpr(std::move(rhs), thisPrecedence + 0);
 			if (!rhs)
 				return nullptr;
 		}
 
 		lhs = std::make_unique<BinaryExpr>(binaryOperator, std::move(lhs), std::move(rhs));
 	}
+}
+
+std::unique_ptr<Expr> FlowParser::powExpr()
+{
+	// powExpr ::= primaryExpr ('**' powExpr)*
+	FNTRACE();
+
+	FlowLocation sloc(location());
+	std::unique_ptr<Expr> left = primaryExpr();
+	if (!left)
+		return nullptr;
+
+	while (token() == FlowToken::Pow) {
+		nextToken();
+
+		std::unique_ptr<Expr> right = powExpr();
+		if (!right)
+			return nullptr;
+
+		left = std::make_unique<BinaryExpr>(FlowToken::Pow, std::move(left), std::move(right));
+	}
+
+	return left;
 }
 
 /*

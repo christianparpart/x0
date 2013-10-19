@@ -113,6 +113,7 @@ private:
 	// syntax: expressions
 	std::unique_ptr<Expr> expr();
 	std::unique_ptr<Expr> rhsExpr(std::unique_ptr<Expr> lhs, int precedence);
+	std::unique_ptr<Expr> powExpr();
 	std::unique_ptr<Expr> primaryExpr();
 	std::unique_ptr<Expr> interpolatedStr();
 	std::unique_ptr<Expr> castExpr();
