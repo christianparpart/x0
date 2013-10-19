@@ -452,9 +452,7 @@ std::string HttpRequest::requestHeaderCumulative(const std::string& name) const
 			std::string result;
 			result += fields[0];
 			for (size_t i = 1, e = fields.size(); i != e; ++i) {
-				if (!std::isspace(result[result.size() - 1]))
-					result += "; ";
-
+				result += "; ";
 				result += fields[i];
 			}
 			return result;
