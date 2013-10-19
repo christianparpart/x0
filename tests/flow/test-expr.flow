@@ -229,6 +229,13 @@ handler test_expr_pow
 	assert 2 ** 1 == 2, '2 ** 1';
 	assert 2 ** 2 == 4, '2 ** 2';
 	assert 2 ** 3 == 8, '2 ** 3';
+
+	# ensure non-associativety rule
+	assert 2 ** 3 ** 4 == 2417851639229258349412352;
+	assert 2 ** (3 ** 4) == 2417851639229258349412352;
+	assert (2 ** 3) ** 4 == 4096;
+
+	# TODO: implement assert_eq / assert_ne / etc; in order to provide better error diagnostics in case of test failures.
 }
 
 handler test_array
