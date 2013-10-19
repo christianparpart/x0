@@ -178,6 +178,11 @@ void ASTPrinter::visit(IPAddressExpr& ipaddr)
 	printf("IPAddressExpr: %s\n", ipaddr.value().str().c_str());
 }
 
+void ASTPrinter::visit(CidrExpr& cidr)
+{
+	printf("CidrExpr: %s\n", cidr.value().str().c_str());
+}
+
 void ASTPrinter::visit(ExprStmt& stmt)
 {
 	printf("ExprStmt\n");

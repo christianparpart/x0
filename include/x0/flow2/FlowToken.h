@@ -14,7 +14,7 @@ struct X0_API FlowToken
 		Unknown,
 
 		// literals (1..6)
-		Boolean, Number, String, RawString, RegExp, IP,
+		Boolean, Number, String, RawString, RegExp, IP, Cidr,
 
 		InterpolatedStringFragment, // "hello #{" or "} world #{"
 		InterpolatedStringEnd,      // "} end"

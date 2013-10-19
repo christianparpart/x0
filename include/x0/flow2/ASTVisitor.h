@@ -3,6 +3,7 @@
 #include <x0/Api.h>
 #include <x0/RegExp.h>
 #include <x0/IPAddress.h>
+#include <x0/Cidr.h>
 #include <utility>
 #include <memory>
 
@@ -31,6 +32,7 @@ typedef LiteralExpr<long long> NumberExpr;
 typedef LiteralExpr<bool> BoolExpr;
 typedef LiteralExpr<RegExp> RegExpExpr;
 typedef LiteralExpr<IPAddress> IPAddressExpr;
+typedef LiteralExpr<Cidr> CidrExpr;
 
 class Stmt;
 class ExprStmt;
@@ -65,6 +67,7 @@ public:
 	virtual void visit(BoolExpr& expr) = 0;
 	virtual void visit(RegExpExpr& expr) = 0;
 	virtual void visit(IPAddressExpr& expr) = 0;
+	virtual void visit(CidrExpr& cidr) = 0;
 
 	// statements
 	virtual void visit(ExprStmt& stmt) = 0;

@@ -39,6 +39,7 @@ private:
 	virtual void visit(BoolExpr& expr);
 	virtual void visit(RegExpExpr& expr);
 	virtual void visit(IPAddressExpr& expr);
+	virtual void visit(CidrExpr& cidr);
 	virtual void visit(ExprStmt& stmt);
 	virtual void visit(CompoundStmt& stmt);
 	virtual void visit(CondStmt& stmt);

@@ -620,7 +620,11 @@ FlowToken FlowLexer::parseNumber()
 
 	ipValue_.set(stringValue_.c_str(), IPAddress::V4);
 
-	return token_ = FlowToken::IP;
+	if (currentChar() != '/')
+		return token_ = FlowToken::IP;
+
+	// IPv4 CIDR
+	return continueCidr(32);
 }
 
 FlowToken FlowLexer::parseIdent()
@@ -789,10 +793,47 @@ FlowToken FlowLexer::continueParseIPv6(bool firstComplete)
 		}
 	}
 
-	if (rv && ipValue_.set(stringValue_.c_str(), IPAddress::V6))
-		return token_ = FlowToken::IP;
-	else
+	if (!rv)
+		// Invalid IPv6
 		return token_ = FlowToken::Unknown;
+
+	if (!ipValue_.set(stringValue_.c_str(), IPAddress::V6))
+		// Invalid IPv6
+		return token_ = FlowToken::Unknown;
+	
+	if (currentChar_ != '/')
+		return token_ = FlowToken::IP;
+
+	return continueCidr(128);
+}
+
+FlowToken FlowLexer::continueCidr(size_t range)
+{
+	// IPv6 CIDR
+	nextChar(); // consume '/'
+
+	if (!std::isdigit(currentChar())) {
+		TRACE(1, "%s[%04zu:%02zu]: invalid byte 0x%02X\n",
+				location_.filename.c_str(), line(), column(),
+				currentChar() & 0xFF);
+		return token_ = FlowToken::Unknown;
+	}
+
+	numberValue_ = 0;
+	while (std::isdigit(currentChar())) {
+		numberValue_ *= 10;
+		numberValue_ += currentChar() - '0';
+		stringValue_ += static_cast<char>(currentChar());
+		nextChar();
+	}
+
+	if (numberValue_ > range) {
+		TRACE(1, "%s[%04zu:%02zu]: CIDR prefix out of range.\n",
+				location_.filename.c_str(), line(), column());
+		return token_ = FlowToken::Unknown;
+	}
+
+	return token_ = FlowToken::Cidr;
 }
 // }}}
 

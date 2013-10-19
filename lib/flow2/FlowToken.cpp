@@ -103,6 +103,7 @@ bool FlowTokenTraits::isLiteral(FlowToken t)
 		case FlowToken::RawString:
 		case FlowToken::RegExp:
 		case FlowToken::IP:
+		case FlowToken::Cidr:
 			return true;
 		default:
 			return false;
@@ -119,6 +120,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::RawString: return "RawString";
 		case FlowToken::RegExp: return "RegExp";
 		case FlowToken::IP: return "IP";
+		case FlowToken::Cidr: return "CIDR";
 		case FlowToken::Assign: return "=";
 		case FlowToken::OrAssign: return "|=";
 		case FlowToken::AndAssign: return "&=";

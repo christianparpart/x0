@@ -3,6 +3,7 @@
 #include <x0/flow2/FlowLocation.h>
 #include <x0/flow2/FlowToken.h>
 #include <x0/IPAddress.h>
+#include <x0/Cidr.h>
 #include <x0/Api.h>
 
 #include <utility>
@@ -34,6 +35,7 @@ public:
 
 	std::string stringValue() const { return stringValue_; }
 	const IPAddress& ipValue() const { return ipValue_; }
+	Cidr cidr() const { return Cidr(ipValue_, numberValue_); }
 	long long numberValue() const { return numberValue_; }
 
 private:
@@ -59,6 +61,7 @@ private:
 	FlowToken parseIdent();
 
 	FlowToken continueParseIPv6(bool firstComplete);
+	FlowToken continueCidr(size_t range);
 	bool ipv6HexPart();
 	bool ipv6HexSeq();
 	bool ipv6HexDigit4();

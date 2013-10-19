@@ -603,6 +603,11 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			nextToken();
 			return std::move(e);
 		}
+		case FlowToken::Cidr: {
+			std::unique_ptr<CidrExpr> e = std::make_unique<CidrExpr>(lexer_->cidr(), loc);
+			nextToken();
+			return std::move(e);
+		}
 		case FlowToken::StringType:
 		case FlowToken::NumberType:
 		case FlowToken::BoolType:
