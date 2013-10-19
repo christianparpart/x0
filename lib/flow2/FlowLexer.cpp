@@ -665,6 +665,8 @@ FlowToken FlowLexer::parseIdent()
 		{ "or", FlowToken::Or },
 		{ "xor", FlowToken::Xor },
 		{ "not", FlowToken::Not },
+		{ "shl", FlowToken::Shl },
+		{ "shr", FlowToken::Shr },
 
 		{ "bool", FlowToken::BoolType },
 		{ "int", FlowToken::NumberType },
