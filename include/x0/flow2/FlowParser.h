@@ -124,6 +124,7 @@ private:
 	std::unique_ptr<Stmt> ifStmt();
 	std::unique_ptr<Stmt> compoundStmt();
 	std::unique_ptr<Stmt> callStmt();
+	std::unique_ptr<Stmt> postscriptStmt(std::unique_ptr<Stmt> baseStmt);
 };
 
 // {{{ inlines

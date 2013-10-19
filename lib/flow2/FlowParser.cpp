@@ -874,23 +874,61 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 
 	switch (token()) {
 		case FlowToken::If:
-			// stmt 'if' expr (';' | LF)
-			return nullptr; // TODO
 		case FlowToken::Unless:
-			// stmt 'unless' expr (';' | LF)
-			return nullptr; // TODO
-		case FlowToken::Semicolon: {
+			return postscriptStmt(std::move(stmt));
+		case FlowToken::Semicolon:
 			// stmt ';'
 			// one of: BuiltinFunction, BuiltinHandler, Handler
 			nextToken();
 			loc.update(end());
-
 			return stmt;
-		}
 		default:
-			reportError("Unexpected call statement to identifier: %s.", name.c_str());
+			if (stmt->location().end.line != lexer_->line())
+				return stmt;
+
+			reportUnexpectedToken();
 			return nullptr;
 	}
+}
+
+std::unique_ptr<Stmt> FlowParser::postscriptStmt(std::unique_ptr<Stmt> baseStmt)
+{
+	FNTRACE();
+
+	if (token() == FlowToken::Semicolon) {
+		nextToken();
+		return baseStmt;
+	}
+
+	if (baseStmt->location().end.line != lexer_->line())
+		return baseStmt;
+
+	FlowToken op = token();
+	switch (op) {
+		case FlowToken::If:
+		case FlowToken::Unless:
+			break;
+		default:
+			return baseStmt;
+	}
+
+	// STMT ['if' EXPR] ';'
+	// STMT ['unless' EXPR] ';'
+
+	FlowLocation sloc = location();
+
+	nextToken(); // 'if' | 'unless'
+
+	std::unique_ptr<Expr> condExpr = expr();
+	if (!condExpr)
+		return nullptr;
+
+	consumeIf(FlowToken::Semicolon);
+
+	if (op == FlowToken::Unless)
+		condExpr = std::make_unique<UnaryExpr>(FlowToken::Not, std::move(condExpr), sloc);
+
+	return std::make_unique<CondStmt>(std::move(condExpr), std::move(baseStmt), nullptr, sloc.update(end()));
 }
 // }}}
 
