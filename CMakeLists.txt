@@ -35,7 +35,7 @@ option(ENABLE_PLUGIN_SSL "Builds with SSL support [default: on]" ON)
 option(ENABLE_PLUGIN_DIRECTOR "Builds director plugin (http/fastcgi proxy+loadbalancer) [default: on]" ON)
 option(ENABLE_PLUGIN_WEBDAV "Includes WebDAV support (plugin) [default: off]" OFF)
 
-option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: off]" OFF)
+option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: on]" ON)
 
 option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
