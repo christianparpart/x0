@@ -20,6 +20,7 @@ set(x0_base_SRC
 	base/AnsiColor.cpp
 	base/Base64.cpp
 	base/Buffer.cpp
+  base/Cidr.cpp
 	base/CacheService.cpp
 	base/ConstBuffer.cpp
 	base/Counter.cpp
