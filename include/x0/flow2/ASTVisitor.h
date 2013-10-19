@@ -48,11 +48,11 @@ public:
 	virtual ~ASTVisitor() {}
 
 	// symbols
+	virtual void visit(Unit& symbol) = 0;
 	virtual void visit(Variable& variable) = 0;
 	virtual void visit(Handler& handler) = 0;
 	virtual void visit(BuiltinFunction& symbol) = 0;
 	virtual void visit(BuiltinHandler& symbol) = 0;
-	virtual void visit(Unit& symbol) = 0;
 
 	// expressions
 	virtual void visit(UnaryExpr& expr) = 0;

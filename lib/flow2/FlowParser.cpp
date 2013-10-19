@@ -118,8 +118,9 @@ public:
 FlowParser::FlowParser() :
 	lexer_(new FlowLexer()),
 	scopeStack_(),
-	errorHandler_(),
-	backend_(nullptr)
+	backend_(nullptr),
+	errorHandler(),
+	importHandler()
 {
 }
 
@@ -158,7 +159,7 @@ void FlowParser::reportUnexpectedToken()
 void FlowParser::reportError(const std::string& message)
 {
 
-	if (!errorHandler_) {
+	if (!errorHandler) {
 		char buf[1024];
 		int n = snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s\n", lexer_->line(), lexer_->column(), message.c_str());
 		write(2, buf, n);
@@ -167,7 +168,7 @@ void FlowParser::reportError(const std::string& message)
 
 	char buf[1024];
 	snprintf(buf, sizeof(buf), "[%04zu:%02zu] %s", lexer_->line(), lexer_->column(), message.c_str());
-	errorHandler_(buf);
+	errorHandler(buf);
 }
 // }}}
 // {{{ lexing
@@ -312,8 +313,12 @@ bool FlowParser::importDecl(Unit* unit)
 		}
 	}
 
-	for (auto i = names.begin(), e = names.end(); i != e; ++i)
+	for (auto i = names.begin(), e = names.end(); i != e; ++i) {
+		if (importHandler && !importHandler(*i, path))
+			return false;
+
 		unit->import(*i, path);
+	}
 
 	consumeIf(FlowToken::Semicolon);
 	return true;

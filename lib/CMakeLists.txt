@@ -139,6 +139,7 @@ if(ENABLE_XZERO_FLOW2)
     flow2/FlowContext.cpp
     flow2/FlowLexer.cpp
     flow2/FlowLocation.cpp
+    flow2/FlowMachine.cpp
     flow2/FlowParser.cpp
     flow2/FlowToken.cpp
     flow2/FlowValue.cpp
@@ -148,9 +149,6 @@ if(ENABLE_XZERO_FLOW2)
   target_link_libraries(XzeroFlow2 LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
   set_target_properties(XzeroFlow2 PROPERTIES VERSION ${PACKAGE_VERSION})
   install(TARGETS XzeroFlow2 DESTINATION ${LIBDIR})
-
-  add_executable(flow2-tool flow2/flow2-tool.cpp)
-  target_link_libraries(flow2-tool XzeroBase XzeroFlow2)
 endif()
 
 # Xzero C API

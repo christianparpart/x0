@@ -25,19 +25,17 @@ class FlowLexer;
 class X0_API FlowParser {
 	std::unique_ptr<FlowLexer> lexer_;
 	std::list<SymbolTable*> scopeStack_;
-	std::function<void(const std::string&)> errorHandler_;
 	FlowBackend* backend_;
 
 public:
+	std::function<void(const std::string&)> errorHandler;
+	std::function<bool(const std::string&, const std::string&)> importHandler;
+
 	FlowParser();
 
 	bool open(const std::string& filename);
 
 	std::unique_ptr<Unit> parse();
-
-	template<typename CB>
-	void setErrorHandler(const CB& cb) { errorHandler_ = cb; }
-	const std::function<void(const std::string&)>& errorHandler() const { return errorHandler_; }
 
 	void setBackend(FlowBackend* backend) { backend_ = backend; }
 	FlowBackend* backend() const { return backend_; }

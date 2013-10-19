@@ -7,10 +7,11 @@
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/Api.h>
-#include <x0/Defines.h>
+#include <x0/flow2/FlowType.h>
 #include <x0/IPAddress.h>
+#include <x0/Defines.h>
 #include <x0/Cidr.h>
+#include <x0/Api.h>
 
 #include <string>
 #include <cstring>
@@ -22,23 +23,9 @@ class RegExp;
 class FlowArray;
 class SocketSpec;
 
-
 struct X0_PACKED X0_API FlowValue
 {
 	typedef bool (*Handler)(void *);
-
-	enum Type {
-		VOID     = 0,	// nothing
-		BOOLEAN  = 1,   // a boolean value
-		NUMBER   = 2,   // an integer value
-		REGEXP   = 3,   // RegExp instance, a precompiled regular expression
-		STRING   = 4,   // zero-terminated C-string
-		BUFFER   = 5,   // a string buffer with its length stored in the number_ field
-		ARRAY    = 6,   // FlowArray instance, an array of Flow values
-		IP       = 7,   // IPAddress instance, (IPv4 or IPv6 address)
-		CIDR     = 8,   // CIDR subnet
-		HANDLER  = 9,   // function pointer to user-defined handler
-	};
 
 	uint32_t type_;
 	union {
@@ -60,14 +47,14 @@ struct X0_PACKED X0_API FlowValue
 	} data;
 
 	FlowValue();
-	FlowValue(bool boolean);
-	FlowValue(long long integer);
-	FlowValue(const RegExp* re);
-	FlowValue(const IPAddress* ip);
-	FlowValue(const Cidr* cidr);
-	FlowValue(const char* cstring);
-	FlowValue(const char* buffer, size_t length);
 	FlowValue(const FlowValue&);
+	explicit FlowValue(bool boolean);
+	explicit FlowValue(long long integer);
+	explicit FlowValue(const RegExp* re);
+	explicit FlowValue(const IPAddress* ip);
+	explicit FlowValue(const Cidr* cidr);
+	explicit FlowValue(const char* cstring);
+	explicit FlowValue(const char* buffer, size_t length);
 	explicit FlowValue(Handler handler);
 	~FlowValue();
 
@@ -87,25 +74,26 @@ struct X0_PACKED X0_API FlowValue
 
 	void clear();
 
-	Type type() const { return static_cast<Type>(type_); }
+	FlowType type() const { return static_cast<FlowType>(type_); }
 
 	template<typename T> bool load(T& result) const;
 
-	bool isVoid() const { return type_ == VOID; }
-	bool isBool() const { return type_ == BOOLEAN; }
-	bool isNumber() const { return type_ == NUMBER; }
-	bool isRegExp() const { return type_ == REGEXP; }
-	bool isIPAddress() const { return type_ == IP; }
-	bool isCidr() const { return type_ == CIDR; }
-	bool isString() const { return type_ == STRING; }
-	bool isBuffer() const { return type_ == BUFFER; }
-	bool isArray() const { return type_ == ARRAY; }
-	bool isHandler() const { return type_ == HANDLER; }
+	bool isVoid() const { return type() == FlowType::Void; }
+	bool isBool() const { return type() == FlowType::Boolean; }
+	bool isNumber() const { return type() == FlowType::Number; }
+	bool isRegExp() const { return type() == FlowType::RegExp; }
+	bool isIPAddress() const { return type() == FlowType::IPAddress; }
+	bool isCidr() const { return type() == FlowType::Cidr; }
+	bool isString() const { return type() == FlowType::String; }
+	bool isBuffer() const { return type() == FlowType::Buffer; }
+	bool isArray() const { return type() == FlowType::Array; }
+	bool isHandler() const { return type() == FlowType::Handler; }
 
 	bool toBool() const;
 	long long toNumber() const;
 	const RegExp& toRegExp() const;
 	const IPAddress& toIPAddress() const;
+	const Cidr& toCidr() const;
 	const char* toString() const;
 	const FlowArray& toArray() const;
 	Handler toHandler() const;
@@ -116,12 +104,10 @@ struct X0_PACKED X0_API FlowValue
 	void dump(bool linefeed) const;
 };
 
-class X0_API FlowArray : protected FlowValue {
-public:
-	FlowArray(int argc, FlowValue* argv) :
-		FlowValue()
-	{
-		type_ = ARRAY;
+struct X0_API FlowArray : protected FlowValue
+{
+	FlowArray(int argc, FlowValue* argv) : FlowValue() {
+		type_ = static_cast<decltype(type_)>(FlowType::Array);
 		data.array.size = argc;
 		data.array.values = argv;
 	}

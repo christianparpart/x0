@@ -155,6 +155,10 @@ public:
 	Expr* initializer() const { return initializer_.get(); }
 	void setInitializer(std::unique_ptr<Expr>&& value) { initializer_ = std::move(value); }
 
+	// TODO: should we ref the scope here, for methods like these?
+//	bool isLocal() const { return !scope() || scope()->outerTable() != nullptr; }
+//	bool isGlobal() const { return !isLocal(); }
+
 	virtual void accept(ASTVisitor& v);
 };
 

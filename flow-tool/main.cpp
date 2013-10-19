@@ -62,10 +62,20 @@ int lexdump(const char* filename) // {{{
 int parsedump(const char* filename) // {{{
 {
 	FlowParser parser;
+
 	if (!parser.open(filename)) {
 		perror("parser.open");
 		return 1;
 	}
+
+	parser.errorHandler = [&](const std::string& message) {
+		fprintf(stderr, "Parser Error. %s\n", message.c_str());
+	};
+
+	parser.importHandler = [&](const std::string& moduleName, const std::string& path) -> bool {
+		printf("importHandler: '%s' from '%s'\n", moduleName.c_str(), path.c_str());
+		return true;
+	};
 
 	std::unique_ptr<Unit> unit = parser.parse();
 	if (!unit) {
@@ -79,7 +89,7 @@ int parsedump(const char* filename) // {{{
 }
 // }}}
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
 	const char *handlerName = NULL;
 	bool dumpIR = false;
@@ -90,7 +100,18 @@ int main(int argc, char *argv[])
 	int opt;
 	int rv = 0;
 
-	while ((opt = getopt(argc, argv, "tO:hLe:ls")) != -1) { // {{{
+	if (argc == 1) {
+		static const char* debugArgs[] = {
+			argv[0],
+			"-s",
+			"./parse.flow",
+			nullptr
+		};
+		argc = 3;
+		argv = debugArgs;
+	}
+
+	while ((opt = getopt(argc, (char**) argv, "tO:hLe:ls")) != -1) { // {{{
 		switch (opt) {
 		case 'h':
 			usage(argv[0]);

@@ -31,6 +31,8 @@ public:
 	Flower();
 	~Flower();
 
+	virtual bool import(const std::string& name, const std::string& path);
+
 	int optimizationLevel() { return 0; } // TODO runner_.optimizationLevel(); }
 	void setOptimizationLevel(int val) { } // TODO runner_.setOptimizationLevel(val); }
 
