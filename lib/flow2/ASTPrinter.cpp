@@ -3,6 +3,35 @@
 
 namespace x0 {
 
+inline std::string escape(char value) // {{{
+{
+	switch (value) {
+		case '\t': return "<TAB>";
+		case '\r': return "<CR>";
+		case '\n': return "<LF>";
+		case ' ': return "<SPACE>";
+		default: break;
+	}
+	if (std::isprint(value)) {
+		std::string s;
+		s += value;
+		return s;
+	} else {
+		char buf[16];
+		snprintf(buf, sizeof(buf), "0x%02X", value);
+		return buf;
+	}
+} // }}}
+inline std::string escape(const std::string& value) // {{{
+{
+	std::string result;
+
+	for (const char ch: value)
+		result += escape(ch);
+
+	return result;
+} // }}}
+
 void ASTPrinter::print(ASTNode* node)
 {
 	ASTPrinter printer;
@@ -17,32 +46,37 @@ ASTPrinter::ASTPrinter() :
 void ASTPrinter::prefix()
 {
 	for (int i = 0; i < depth_; ++i)
-		printf("  ");
+		std::printf("  ");
 }
 
-void ASTPrinter::visit(Variable& variable)
+void ASTPrinter::print(const char* title, ASTNode* node)
 {
-	prefix(); printf("Variable: '%s'\n", variable.name().c_str());
 	enter();
-		prefix(); printf("initializer:\n");
+		printf("%s\n", title);
 		enter();
-			variable.initializer()->accept(*this);
+		node->accept(*this);
 		leave();
 	leave();
 }
 
+void ASTPrinter::visit(Variable& variable)
+{
+	printf("Variable: '%s'\n", variable.name().c_str());
+	print("initializer", variable.initializer());
+}
+
 void ASTPrinter::visit(Handler& handler)
 {
-	prefix(); printf("Handler: %s\n", handler.name().c_str());
+	printf("Handler: %s\n", handler.name().c_str());
 
 	enter();
-	prefix(); printf("scope:\n");
+		printf("scope:\n");
 		enter();
 			for (Symbol* symbol: *handler.scope())
 				symbol->accept(*this);
 		leave();
 
-		prefix(); printf("body:\n");
+		printf("body:\n");
 		enter();
 			handler.body()->accept(*this);
 		leave();
@@ -51,15 +85,17 @@ void ASTPrinter::visit(Handler& handler)
 
 void ASTPrinter::visit(BuiltinFunction& symbol)
 {
+	printf("BuiltinFunction TODO\n");
 }
 
 void ASTPrinter::visit(BuiltinHandler& symbol)
 {
+	printf("BuiltinHandler TODO\n");
 }
 
 void ASTPrinter::visit(Unit& unit)
 {
-	prefix(); printf("Unit: %s\n", unit.name().c_str());
+	printf("Unit: %s\n", unit.name().c_str());
 
 	enter();
 	for (Symbol* symbol: *unit.scope())
@@ -70,19 +106,20 @@ void ASTPrinter::visit(Unit& unit)
 
 void ASTPrinter::visit(UnaryExpr& expr)
 {
+	printf("UnaryExpr TODO\n");
 }
 
 void ASTPrinter::visit(BinaryExpr& expr)
 {
-	prefix(); printf("BinaryExpr: %s\n", expr.op().c_str());
+	printf("BinaryExpr: %s\n", expr.op().c_str());
 	enter();
-		prefix(); printf("lhs:\n");
+		printf("lhs:\n");
 		enter();
 			expr.leftExpr()->accept(*this);
 		leave();
 	leave();
 	enter();
-		prefix(); printf("rhs:\n");
+		printf("rhs:\n");
 		enter();
 			expr.rightExpr()->accept(*this);
 		leave();
@@ -91,50 +128,64 @@ void ASTPrinter::visit(BinaryExpr& expr)
 
 void ASTPrinter::visit(FunctionCallExpr& expr)
 {
+	printf("FunctionCallExpr TODO\n");
 }
 
 void ASTPrinter::visit(VariableExpr& expr)
 {
-	prefix(); printf("VariableExpr: %s\n", expr.variable()->name().c_str());
+	printf("VariableExpr: %s\n", expr.variable()->name().c_str());
 }
 
-void ASTPrinter::visit(HandlerRefExpr& expr)
+void ASTPrinter::visit(HandlerRefExpr& handlerRef)
 {
+	printf("HandlerRefExpr TODO\n");
 }
 
-void ASTPrinter::visit(ListExpr& expr)
+void ASTPrinter::visit(ListExpr& list)
 {
+	printf("ListExpr (%zu elements)\n", list.size());
+
+	size_t i = 0;
+	for (const auto& expr: list) {
+		char buf[16];
+		snprintf(buf, sizeof(buf), "[%zu]", i++);
+		print(buf, expr.get());
+	}
 }
 
-void ASTPrinter::visit(StringExpr& expr)
+void ASTPrinter::visit(StringExpr& string)
 {
+	printf("StringExpr: \"%s\"", escape(string.value()).c_str());
 }
 
-void ASTPrinter::visit(NumberExpr& expr)
+void ASTPrinter::visit(NumberExpr& number)
 {
-	prefix(); printf("NumberExpr: %lli\n", expr.value());
+	printf("NumberExpr: %lli\n", number.value());
 }
 
-void ASTPrinter::visit(BoolExpr& expr)
+void ASTPrinter::visit(BoolExpr& boolean)
 {
+	printf("BoolExpr: %s\n", boolean.value() ? "true" : "false");
 }
 
-void ASTPrinter::visit(RegExpExpr& expr)
+void ASTPrinter::visit(RegExpExpr& regexp)
 {
+	printf("RegExpExpr: /%s/\n", regexp.value().c_str());
 }
 
-void ASTPrinter::visit(IPAddressExpr& expr)
+void ASTPrinter::visit(IPAddressExpr& ipaddr)
 {
+	printf("IPAddressExpr: %s\n", ipaddr.value().str().c_str());
 }
 
 void ASTPrinter::visit(ExprStmt& stmt)
 {
-	prefix(); printf("ExprStmt\n");
+	printf("ExprStmt\n");
 }
 
 void ASTPrinter::visit(CompoundStmt& compoundStmt)
 {
-	prefix(); printf("CompoundStmt\n");
+	printf("CompoundStmt (%d statements)\n", compoundStmt.count());
 	enter();
 	for (auto& stmt: compoundStmt) {
 		stmt->accept(*this);
@@ -142,34 +193,34 @@ void ASTPrinter::visit(CompoundStmt& compoundStmt)
 	leave();
 }
 
-void ASTPrinter::visit(CondStmt& stmt)
+void ASTPrinter::visit(CondStmt& cond)
 {
-	prefix(); printf("CondStmt\n");
+	printf("CondStmt\n");
+	print("condition", cond.condition());
+	print("thenStmt", cond.thenStmt());
+	print("elseStmt", cond.elseStmt());
 }
 
 void ASTPrinter::visit(AssignStmt& assign)
 {
-	prefix(); printf("AssignStmt\n");
+	printf("AssignStmt\n");
 	enter();
-		prefix(); printf("lhs: %s\n", assign.variable()->name().c_str());
-		enter();
-			assign.variable()->accept(*this);
-		leave();
-		prefix(); printf("rhs\n");
-		enter();
-			assign.expression()->accept(*this);
-		leave();
+		printf("lhs: %s\n", assign.variable()->name().c_str());
+		print(assign.variable());
+
+		printf("rhs\n");
+		print(assign.expression());
 	leave();
 }
 
-void ASTPrinter::visit(HandlerCallStmt& stmt)
+void ASTPrinter::visit(HandlerCallStmt& handlerCall)
 {
-	prefix(); printf("HandlerCallStmt\n");
+	printf("HandlerCallStmt: %s\n", handlerCall.handler()->name().c_str());
 }
 
-void ASTPrinter::visit(BuiltinHandlerCallStmt& stmt)
+void ASTPrinter::visit(BuiltinHandlerCallStmt& handlerCall)
 {
-	prefix(); printf("BuiltinHandlerCallStmt\n");
+	printf("BuiltinHandlerCallStmt: %s\n", handlerCall.handler()->name().c_str());
 }
 
 } // namespace x0

@@ -18,6 +18,10 @@ private:
 	void enter() { ++depth_; }
 	void leave() { --depth_; }
 	void prefix();
+	void print(const char* title, ASTNode* node);
+
+	void printf(const char* msg) { prefix(); std::printf("%s", msg); }
+	template<typename... Args> void printf(const char* fmt, Args... args) { prefix(); std::printf(fmt, args...); }
 
 	virtual void visit(Variable& variable);
 	virtual void visit(Handler& handler);

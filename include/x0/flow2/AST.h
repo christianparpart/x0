@@ -366,11 +366,11 @@ public:
 	void replaceAt(size_t i, Expr* expr);
 	void replaceAll(Expr* expr);
 
-	std::vector<Expr*>::iterator begin();
-	std::vector<Expr*>::iterator end();
+	std::vector<std::unique_ptr<Expr>>::iterator begin() { return list_.begin(); }
+	std::vector<std::unique_ptr<Expr>>::iterator end() { return list_.end(); }
 
-	std::vector<Expr*>::const_iterator begin() const;
-	std::vector<Expr*>::const_iterator end() const;
+	std::vector<std::unique_ptr<Expr>>::const_iterator begin() const;
+	std::vector<std::unique_ptr<Expr>>::const_iterator end() const;
 
 	virtual void accept(ASTVisitor& v);
 };
