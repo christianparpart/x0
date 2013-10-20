@@ -118,9 +118,80 @@ enum class CoreFunction {
 	pow,
 };
 
+// {{{ FlowMachine::Scope
+FlowMachine::Scope::Scope()
+{
+	enter(); // global scope
+}
+
+FlowMachine::Scope::~Scope()
+{
+	while (scope_.size())
+		leave();
+}
+
+void FlowMachine::Scope::clear()
+{
+	// pop all scopes
+	while (scope_.size())
+		leave();
+
+	// re-enter new global scope
+	enter();
+}
+
+void FlowMachine::Scope::enter()
+{
+	scope_.push_front(new std::unordered_map<Symbol*, llvm::Value*>());
+}
+
+void FlowMachine::Scope::leave()
+{
+	delete scope_.front();
+	scope_.pop_front();
+}
+
+llvm::Value* FlowMachine::Scope::lookup(Symbol* symbol) const
+{
+	for (auto i: scope_) {
+		auto k = i->find(symbol);
+
+		if (k != i->end()) {
+			return k->second;
+		}
+	}
+
+	return nullptr;
+}
+
+void FlowMachine::Scope::insert(Symbol* symbol, llvm::Value* value)
+{
+	(*scope_.front())[symbol] = value;
+}
+
+void FlowMachine::Scope::insertGlobal(Symbol* symbol, llvm::Value* value)
+{
+	(*scope_.back())[symbol] = value;
+}
+
+void FlowMachine::Scope::remove(Symbol* symbol)
+{
+	auto i = scope_.front()->find(symbol);
+
+	if (i != scope_.front()->end())
+		scope_.front()->erase(i);
+}
+// }}}
+
 FlowMachine::FlowMachine() :
+	optimizationLevel_(0),
+	backend_(nullptr),
+	scope_(nullptr),
 	cx_(),
 	module_(nullptr),
+	executionEngine_(nullptr),
+	modulePassMgr_(nullptr),
+	functionPassMgr_(nullptr),
 	valueType_(nullptr),
 	regexType_(nullptr),
 	arrayType_(nullptr),
@@ -133,10 +204,12 @@ FlowMachine::FlowMachine() :
 	initializerFn_(nullptr),
 	initializerBB_(nullptr)
 {
+	scope_ = new Scope();
 }
 
 FlowMachine::~FlowMachine()
 {
+	delete scope_;
 }
 
 void FlowMachine::initialize()
@@ -159,19 +232,59 @@ void FlowMachine::clear()
 
 bool FlowMachine::prepare()
 {
-//	module_ = new llvm::Module("flow", cx_);
+	module_ = new llvm::Module("flow", cx_);
 
-//	std::string errorStr;
-//	executionEngine_ = llvm::EngineBuilder(module_).setErrorStr(&errorStr).create();
-//	if (!executionEngine_) {
-//		TRACE(1, "execution engine creation failed. %s", errorStr.c_str());
-//		return false;
-//	}
+	std::string errorStr;
+	executionEngine_ = llvm::EngineBuilder(module_).setErrorStr(&errorStr).create();
+	if (!executionEngine_) {
+		TRACE(1, "execution engine creation failed. %s", errorStr.c_str());
+		return false;
+	}
 
-//	std::vector<llvm::Type*> elts;
-//	elts.push_back(int8PtrType());   // name (const char *)
-//	elts.push_back(int8PtrType());   // handle (pcre *)
-//	regexpType_ = llvm::StructType::create(cx_, elts, "RegExp", true/*packed*/);
+	{ // {{{ setup optimization
+		llvm::PassManagerBuilder pmBuilder;
+		pmBuilder.OptLevel = optimizationLevel_;
+		pmBuilder.LibraryInfo = new llvm::TargetLibraryInfo(llvm::Triple(module_->getTargetTriple()));
+
+		// module pass mgr
+		modulePassMgr_ = new llvm::PassManager();
+#if !defined(LLVM_VERSION_3_3) // TODO port to LLVM 3.3+
+		modulePassMgr_->add(new llvm::TargetData(module_));
+#endif
+		pmBuilder.populateModulePassManager(*modulePassMgr_);
+
+		// function pass mgr
+		functionPassMgr_ = new llvm::FunctionPassManager(module_);
+#if !defined(LLVM_VERSION_3_3) // TODO port to LLVM 3.3+
+		functionPassMgr_->add(new llvm::TargetData(module_));
+#endif
+		pmBuilder.populateFunctionPassManager(*functionPassMgr_);
+	} // }}}
+
+	// RegExp
+	std::vector<llvm::Type*> elts;
+	elts.push_back(int8PtrType());   // name (const char *)
+	elts.push_back(int8PtrType());   // handle (pcre *)
+	regexType_ = llvm::StructType::create(cx_, elts, "RegExp", true/*packed*/);
+
+	// IPAddress
+	elts.clear();
+	elts.push_back(int32Type());	// domain (AF_INET, AF_INET6)
+	for (size_t i = 0; i < 8; ++i)	// IPv6 raw address (128 bits)
+		elts.push_back(int16Type());
+	ipaddrType_ = llvm::StructType::create(cx_, elts, "IPAddress", true/*packed*/);
+
+	// BufferRef
+	elts.clear();
+	elts.push_back(int64Type());     // buffer length
+	elts.push_back(int8PtrType());   // buffer data
+	bufferType_ = llvm::StructType::create(cx_, elts, "BufferRef", true/*packed*/);
+
+	// FlowValue
+	elts.push_back(int32Type());     // type id
+	elts.push_back(numberType());    // number (long long)
+	elts.push_back(int8PtrType());   // string (char*)
+	valueType_ = llvm::StructType::create(cx_, elts, "Value", true/*packed*/);
 
 	return true;
 }
@@ -237,6 +350,11 @@ llvm::Type* FlowMachine::int64Type() const
 llvm::Type* FlowMachine::numberType() const
 {
 	return int64Type();
+}
+
+llvm::Type* FlowMachine::int8PtrType() const
+{
+	return int8Type()->getPointerTo();
 }
 
 void FlowMachine::visit(Variable& variable)

@@ -89,7 +89,7 @@ struct X0_PACKED X0_API FlowValue
 	bool isArray() const { return type() == FlowType::Array; }
 	bool isHandler() const { return type() == FlowType::Handler; }
 
-	bool toBool() const;
+	bool toBoolean() const;
 	long long toNumber() const;
 	const RegExp& toRegExp() const;
 	const IPAddress& toIPAddress() const;
@@ -102,6 +102,9 @@ struct X0_PACKED X0_API FlowValue
 
 	void dump() const;
 	void dump(bool linefeed) const;
+
+private:
+	void setType(FlowType t) { type_ = static_cast<decltype(type_)>(t); }
 };
 
 struct X0_API FlowArray : protected FlowValue
@@ -133,6 +136,28 @@ struct X0_API FlowArray : protected FlowValue
 typedef FlowArray FlowParams;
 
 // {{{ inlines
+inline const char* FlowValue::toString() const
+{
+	return data.string;
+}
+
+inline long long FlowValue::toNumber() const
+{
+	return data.number;
+}
+
+inline bool FlowValue::toBoolean() const
+{
+	return data.boolean;
+}
+
+inline FlowValue& FlowValue::set(bool boolean)
+{
+	setType(FlowType::Boolean);
+	data.boolean = boolean;
+	return *this;
+}
+
 // }}}
 
 } // namespace x0

@@ -99,3 +99,4 @@ cscope.*
 #debian/files
 #*-stamp
 flow-tool/flow-tool
+lib/libXzeroFlow2.*

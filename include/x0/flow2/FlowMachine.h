@@ -25,6 +25,12 @@
 #include <deque>
 #include <unordered_map>
 
+namespace llvm {
+	class ExecutionEngine;
+	class PassManager;
+	class FunctionPassManager;
+}
+
 namespace x0 {
 
 class X0_API FlowMachine
@@ -65,6 +71,8 @@ private:
 	llvm::Type* int64Type() const;
 	llvm::Type* numberType() const;
 
+	llvm::Type* int8PtrType() const;
+
 	// AST code generation
 	virtual void visit(Variable& variable);
 	virtual void visit(Handler& handler);
@@ -93,11 +101,16 @@ private:
 private:
 	class Scope;
 
+	int optimizationLevel_;
 	FlowBackend* backend_;
 	Scope* scope_;
 
 	mutable llvm::LLVMContext cx_;
 	llvm::Module* module_;
+
+	llvm::ExecutionEngine* executionEngine_;
+	llvm::PassManager* modulePassMgr_;
+	llvm::FunctionPassManager* functionPassMgr_;
 
 	llvm::StructType* valueType_;
 	llvm::StructType* regexType_;

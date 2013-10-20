@@ -28,6 +28,7 @@ private:
 	size_t totalFailed_;	// total number of failed tests
 
 	bool dumpAST_;
+	bool dumpIR_;
 
 public:
 	Flower();
@@ -35,10 +36,11 @@ public:
 
 	virtual bool import(const std::string& name, const std::string& path);
 
-	int optimizationLevel() { return 0; } // TODO runner_.optimizationLevel(); }
+	int optimizationLevel() { return 0; }  // TODO runner_.optimizationLevel(); }
 	void setOptimizationLevel(int val) { } // TODO runner_.setOptimizationLevel(val); }
 
-	void setDumpAST(bool value) { dumpAST_ = true; }
+	void setDumpAST(bool value) { dumpAST_ = value; }
+	void setDumpIR(bool value) { dumpIR_ = value; }
 
 	int run(const char *filename, const char *handler);
 	int runAll(const char *filename);
@@ -54,7 +56,7 @@ private:
 //	static void flow_getenv(void *, x0::FlowParams& args, void *);
 //	static void flow_error(void *, x0::FlowParams& args, void *);
 //	static void flow_finish(void *, x0::FlowParams& args, void *);
-//	static void flow_assert(void *, x0::FlowParams& args, void *);
+	void flow_assert(FlowContext* cx, FlowParams& args);
 //	static void flow_fail(void *, x0::FlowParams& args, void *);
 //	static void flow_pass(void *, x0::FlowParams& args, void *);
 //	static void flow_assertFail(void *, x0::FlowParams& args, void *);

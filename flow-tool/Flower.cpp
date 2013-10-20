@@ -36,7 +36,8 @@ Flower::Flower() :
 	totalCases_(0),
 	totalSuccess_(0),
 	totalFailed_(0),
-	dumpAST_(false)
+	dumpAST_(false),
+	dumpIR_(false)
 {
 //	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
 //	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
@@ -52,7 +53,7 @@ Flower::Flower() :
 	// unit test aiding handlers
 //	registerHandler("error", &flow_error);
 //	registerHandler("finish", &flow_finish); // XXX rename to 'success'
-//	registerHandler("assert", &Flower::flow_assert, this);
+	registerHandler("assert", std::bind(&Flower::flow_assert, this, std::placeholders::_1, std::placeholders::_2));
 //	registerHandler("assert_fail", &flow_assertFail);
 
 //	registerHandler("fail", &flow_fail);
@@ -154,6 +155,9 @@ int Flower::run(const char* fileName, const char* handlerName)
 		return -1;
 	}
 
+	if (dumpIR_)
+		; // TODO
+
 	if (handlerName) {
 		bool handled = false; // runner_.invoke(fn);
 		return handled ? 0 : 1;
@@ -169,6 +173,23 @@ void Flower::dump()
 void Flower::clear()
 {
 	//runner_.clear();
+}
+
+void Flower::flow_assert(FlowContext* cx, FlowParams& args)
+{
+	const FlowValue& sourceValue = args[args.size() - 1];
+	std::string source;
+	if (sourceValue.isString())
+		source = sourceValue.toString();
+
+	if (!args[1].toBoolean()) {
+		printf("[   FAILED ] %s\n", source.c_str());
+		args[0].set(true);
+	} else {
+		printf("[       OK ] %s\n", source.c_str());
+		++totalSuccess_;
+		args[0].set(false);
+	}
 }
 
 #if 0
@@ -210,25 +231,6 @@ void Flower::flow_error(void *, x0::FlowParams& args, void *)
 void Flower::flow_finish(void *, x0::FlowParams& args, void *)
 {
 	args[0].set(true);
-}
-
-void Flower::flow_assert(void *u, x0::FlowParams& args, void *)
-{
-	Flower* self = (Flower*) u;
-
-	const FlowValue& sourceValue = args[args.size() - 1];
-	std::string source;
-	if (sourceValue.isString())
-		source = sourceValue.toString();
-
-	if (!args[1].toBool()) {
-		printf("[   FAILED ] %s\n", source.c_str());
-		args[0].set(true);
-	} else {
-		printf("[       OK ] %s\n", source.c_str());
-		++self->totalSuccess_;
-		args[0].set(false);
-	}
 }
 
 void Flower::flow_fail(void *, x0::FlowParams& args, void *)
