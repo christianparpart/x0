@@ -100,6 +100,7 @@ int main(int argc, const char *argv[])
 	int opt;
 	int rv = 0;
 
+	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)
 	if (argc == 1) {
 		static const char* debugArgs[] = { argv[0], "-s", "-e", "main", "./parse.flow", nullptr };
@@ -108,7 +109,7 @@ int main(int argc, const char *argv[])
 	}
 #endif
 
-	while ((opt = getopt(argc, (char**) argv, "tO:hLe:ls")) != -1) { // {{{
+	while ((opt = getopt(argc, (char**) argv, "tO:hLe:ls")) != -1) {
 		switch (opt) {
 		case 'h':
 			usage(argv[0]);
@@ -135,12 +136,13 @@ int main(int argc, const char *argv[])
 			usage(argv[0]);
 			return 1;
 		}
-	} // }}}
+	}
 
 	if (optind >= argc) {
 		printf("Expected argument after options.\n");
 		return EXIT_FAILURE;
 	}
+	// }}}
 
 	while (argv[optind]) {
 		const char *fileName = argv[optind];

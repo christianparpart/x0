@@ -27,7 +27,7 @@
 
 namespace x0 {
 
-class FlowMachine
+class X0_API FlowMachine
 {
 public:
 	typedef FlowValue::Handler Handler;

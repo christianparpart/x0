@@ -29,9 +29,10 @@ void reportError(const char *category, const std::string& msg)
 {
 	printf("%s error: %s\n", category, msg.c_str());
 }
+
 Flower::Flower() :
 	FlowBackend(),
-//	runner_(this),
+	vm_(),
 	totalCases_(0),
 	totalSuccess_(0),
 	totalFailed_(0),
