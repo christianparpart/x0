@@ -46,6 +46,8 @@ public:
 	Handler findHandler(const std::string& name);
 
 private:
+	bool prepare();
+
 	// error handling
 	void reportError(const std::string& message);
 	template<typename... Args> void reportError(const std::string& fmt, Args ...);

@@ -1,6 +1,33 @@
 #include <x0/flow2/FlowMachine.h>
 #include <x0/DebugLogger.h>
 
+#if defined(LLVM_VERSION_3_3)
+#  include <llvm/IR/DerivedTypes.h>
+#  include <llvm/IR/LLVMContext.h>
+#  include <llvm/IR/Module.h>
+#  include <llvm/IR/IRBuilder.h>
+#  include <llvm/Analysis/Passes.h>
+#else
+#  include <llvm/DerivedTypes.h>
+#  include <llvm/LLVMContext.h>
+#  include <llvm/Module.h>
+#  include <llvm/LLVMContext.h>
+#  include <llvm/DefaultPasses.h>
+#  include <llvm/Support/IRBuilder.h>
+#  include <llvm/Target/TargetData.h>
+#endif
+
+#include <llvm/PassManager.h>
+#include <llvm/Analysis/Verifier.h>
+#include <llvm/Support/ManagedStatic.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/JIT.h>
+#include <llvm/Target/TargetLibraryInfo.h>
+#include <llvm/ADT/Triple.h>
+
 namespace x0 {
 
 #define FLOW_DEBUG_CODEGEN 1
@@ -55,6 +82,42 @@ struct fntrace {
 #	define TRACE(level, msg...) /*!*/
 #endif
 
+enum class CoreFunction {
+	strlen = 1,
+	strcasecmp,
+	strncasecmp,
+	strcasestr,
+	strcmp,
+	strncmp,
+	regexmatch,
+	regexmatch2,
+	endsWith,
+	strcat,
+	strcpy,
+	memcpy,
+
+	arraylen,
+	arrayadd,
+	arraycmp,
+
+	NumberInArray,
+	StringInArray,
+
+	ipstrcmp,	// compare(IPAddress, String)
+	ipcmp,		// compare(IPAddress, IPAddress)
+	ipInCidr,	// IP in CIDR
+	ipInArray,	// IP in [...]
+
+	// conversion
+	bool2str,
+	int2str,
+	str2int,
+	buf2int,
+
+	// mathematical helper
+	pow,
+};
+
 FlowMachine::FlowMachine() :
 	cx_(),
 	module_(nullptr),
@@ -78,10 +141,12 @@ FlowMachine::~FlowMachine()
 
 void FlowMachine::initialize()
 {
+	llvm::InitializeNativeTarget();
 }
 
 void FlowMachine::shutdown()
 {
+	llvm::llvm_shutdown();
 }
 
 void FlowMachine::dump()
@@ -92,8 +157,30 @@ void FlowMachine::clear()
 {
 }
 
+bool FlowMachine::prepare()
+{
+//	module_ = new llvm::Module("flow", cx_);
+
+//	std::string errorStr;
+//	executionEngine_ = llvm::EngineBuilder(module_).setErrorStr(&errorStr).create();
+//	if (!executionEngine_) {
+//		TRACE(1, "execution engine creation failed. %s", errorStr.c_str());
+//		return false;
+//	}
+
+//	std::vector<llvm::Type*> elts;
+//	elts.push_back(int8PtrType());   // name (const char *)
+//	elts.push_back(int8PtrType());   // handle (pcre *)
+//	regexpType_ = llvm::StructType::create(cx_, elts, "RegExp", true/*packed*/);
+
+	return true;
+}
+
 bool FlowMachine::codegen(Unit* unit)
 {
+	if (!prepare())
+		return false;
+
 	return false;
 }
 
