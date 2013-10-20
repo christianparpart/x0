@@ -52,10 +52,14 @@ void ASTPrinter::prefix()
 void ASTPrinter::print(const char* title, ASTNode* node)
 {
 	enter();
+	if (node) {
 		printf("%s\n", title);
 		enter();
 		node->accept(*this);
 		leave();
+	} else {
+		printf("%s (nil)\n", title);
+	}
 	leave();
 }
 
