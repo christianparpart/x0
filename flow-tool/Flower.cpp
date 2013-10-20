@@ -7,6 +7,7 @@
  */
 #include "Flower.h"
 #include <x0/flow2/AST.h>
+#include <x0/flow2/ASTPrinter.h>
 #include <x0/flow2/FlowParser.h>
 #include <x0/flow2/FlowBackend.h>
 // #include <x0/flow/FlowRunner.h>
@@ -33,7 +34,8 @@ Flower::Flower() :
 //	runner_(this),
 	totalCases_(0),
 	totalSuccess_(0),
-	totalFailed_(0)
+	totalFailed_(0),
+	dumpAST_(false)
 {
 //	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
 //	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
@@ -124,10 +126,26 @@ int Flower::run(const char* fileName, const char* handlerName)
 	}
 
 	filename_ = fileName;
+
 //	if (!runner_.open(fileName)) {
 //		printf("Failed to load file: %s\n", fileName);
 //		return -1;
 //	}
+
+	FlowParser parser;
+	if (!parser.open(fileName)) {
+		fprintf(stderr, "Failed to open file: %s\n", fileName);
+		return -1;
+	}
+
+	std::unique_ptr<Unit> unit = parser.parse();
+	if (!unit) {
+		fprintf(stderr, "Failed to parse file: %s\n", fileName);
+		return -1;
+	}
+
+	if (dumpAST_)
+		ASTPrinter::print(unit.get());
 
 	Handler* fn = nullptr; // runner_.findHandler(handlerName);
 	if (!fn) {

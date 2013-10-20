@@ -22,11 +22,12 @@ using namespace x0;
 int usage(const char *program)
 {
 	printf(
-		"usage: %s [-h] [-t] [-l] [-L] [-e entry_point] filename\n"
+		"usage: %s [-h] [-t] [-l] [-s] [-L] [-e entry_point] filename\n"
 		"\n"
 		"    -h      prints this help\n"
 		"    -L      dumps LLVM IR of the compiled module\n"
 		"    -l      Dump lexical output and exit\n"
+		"    -s      Dump AST after parsing process\n"
 		"    -e      entry point to start execution from. if not passed, nothing will be executed.\n"
 		"    -On     set optimization level, with n ranging from 0 (no optimization) to 4 (maximum).\n"
 		"    -t      enables unit-test mode\n"
@@ -96,20 +97,16 @@ int main(int argc, const char *argv[])
 	Flower flower;
 	bool testMode = false;
 	bool lexMode = false;
-	bool parseDump = false;
 	int opt;
 	int rv = 0;
 
+#if !defined(XZERO_NDEBUG)
 	if (argc == 1) {
-		static const char* debugArgs[] = {
-			argv[0],
-			"-s",
-			"./parse.flow",
-			nullptr
-		};
-		argc = 3;
+		static const char* debugArgs[] = { argv[0], "-s", "-e", "main", "./parse.flow", nullptr };
+		argc = sizeof(debugArgs) / sizeof(*debugArgs) - 1;
 		argv = debugArgs;
 	}
+#endif
 
 	while ((opt = getopt(argc, (char**) argv, "tO:hLe:ls")) != -1) { // {{{
 		switch (opt) {
@@ -123,7 +120,8 @@ int main(int argc, const char *argv[])
 			lexMode = true;
 			break;
 		case 's':
-			parseDump = true;
+			flower.setDumpAST(true);
+			break;
 		case 't':
 			testMode = true;
 			break;
@@ -148,13 +146,8 @@ int main(int argc, const char *argv[])
 		const char *fileName = argv[optind];
 		++optind;
 
-		if (parseDump) {
-			return parsedump(fileName);
-		}
-
-		if (lexMode) {
+		if (lexMode)
 			return lexdump(fileName);
-		}
 
 		if (testMode) {
 			printf("%s:\n", fileName);

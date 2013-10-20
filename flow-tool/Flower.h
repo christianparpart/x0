@@ -27,6 +27,8 @@ private:
 	size_t totalSuccess_;	// total number of succeed tests
 	size_t totalFailed_;	// total number of failed tests
 
+	bool dumpAST_;
+
 public:
 	Flower();
 	~Flower();
@@ -35,6 +37,8 @@ public:
 
 	int optimizationLevel() { return 0; } // TODO runner_.optimizationLevel(); }
 	void setOptimizationLevel(int val) { } // TODO runner_.setOptimizationLevel(val); }
+
+	void setDumpAST(bool value) { dumpAST_ = true; }
 
 	int run(const char *filename, const char *handler);
 	int runAll(const char *filename);
