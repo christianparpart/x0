@@ -183,14 +183,19 @@ handler test_expr_suffix_match
 handler test_expr_in
 {
 	# (string, string)
-	assert foo in foobar, 'foo in foobar';
-	assert foobar in foobar, 'foobar in foobar';
-	assert not foobar in foo, 'not foobar in foo';
+	assert foo in foobar;
+	assert foobar in foobar;
+	assert not foobar in foo;
 
-	# (string, list)
-#	var my = [foo, bar];
-#	assert foo in my;
-#	assert not foobar in my;
+	# (ip, cidr)
+	assert 10.26.91.1 in 10.26.91.0/24;
+	assert fe80::2001:7 in fe80::/64;
+	assert not 2001::1 in fe80::/64;
+
+	# (cidr, cidr)
+	assert 10.0.0.0/19 in 10.0.0.0/8;
+	assert fe80::/16 in fe80::/64;
+	assert not fe80:fe90::/16 in fe80::/64;
 }
 
 handler test_expr_plus
