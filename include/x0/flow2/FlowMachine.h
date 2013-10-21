@@ -76,6 +76,11 @@ private:
 	llvm::Type* numberType() const;
 
 	llvm::Type* int8PtrType() const;
+	bool isBool(llvm::Type* type) const;
+	bool isBool(llvm::Value* value) const;
+	bool isInteger(llvm::Value* value) const;
+	bool isString(llvm::Value* value) const;
+	bool isBuffer(llvm::Value* value) const;
 
 	// AST code generation
 	virtual void visit(Variable& variable);
@@ -101,6 +106,10 @@ private:
 	virtual void visit(AssignStmt& stmt);
 	virtual void visit(HandlerCallStmt& stmt);
 	virtual void visit(BuiltinHandlerCallStmt& stmt);
+
+	void emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* right);
+	void emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* right);
+	void emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right);
 
 private:
 	int optimizationLevel_;

@@ -7,6 +7,7 @@
 #  include <llvm/IR/LLVMContext.h>
 #  include <llvm/IR/Module.h>
 #  include <llvm/IR/IRBuilder.h>
+#  include <llvm/IR/Intrinsics.h>
 #  include <llvm/Analysis/Passes.h>
 #else
 #  include <llvm/DerivedTypes.h>
@@ -15,6 +16,7 @@
 #  include <llvm/LLVMContext.h>
 #  include <llvm/DefaultPasses.h>
 #  include <llvm/Support/IRBuilder.h>
+#  include <llvm/Intrinsics.h>
 #  include <llvm/Target/TargetData.h>
 #endif
 
@@ -36,10 +38,10 @@ namespace x0 {
 #if defined(FLOW_DEBUG_CODEGEN)
 // {{{ trace
 static size_t fnd = 0;
-struct fntrace {
+struct fntrace2 {
 	std::string msg_;
 
-	fntrace(const char* msg) : msg_(msg)
+	fntrace2(const char* msg) : msg_(msg)
 	{
 		size_t i = 0;
 		char fmt[1024];
@@ -57,7 +59,7 @@ struct fntrace {
 		++fnd;
 	}
 
-	~fntrace() {
+	~fntrace2() {
 		--fnd;
 
 		size_t i = 0;
@@ -76,12 +78,42 @@ struct fntrace {
 	}
 };
 // }}}
-#	define FNTRACE() fntrace _(__PRETTY_FUNCTION__)
+#	define FNTRACE() fntrace2 _(__PRETTY_FUNCTION__)
 #	define TRACE(level, msg...) XZERO_DEBUG("FlowMachine", (level), msg)
 #else
 #	define FNTRACE() /*!*/
 #	define TRACE(level, msg...) /*!*/
 #endif
+
+/*
+ * BINARY OPERATIONS
+ *
+ *   (int, int)        == != <= >= < > + - * / shl shr mod pow
+ *   (bool, bool)      == !=
+ *   (string, string)  == != <= >= < > +
+ *   (ip, ip)          == !=
+ *   (cidr, cidr)      == !=
+ *   (ip, cidr)        in
+ *   (string, regex)   =~
+ *   (handler)         (nothing)
+ *
+ * UNARY OPERATION: `not`
+ *
+ *   int               0
+ *   bool              false
+ *   string            empty
+ *
+ * BUILTIN FUNCTIONS:
+ *
+ *   int strlen(string)
+ *   string bool2str(bool)
+ *   string int2str(int)
+ *   string re2str(regex)
+ *   string ip2str(ip)
+ *   string cidr2str(cidr)
+ *   string buf2str(buf)
+ *   string handler2str(handlerRef)
+ */
 
 enum class CoreFunction {
 	strlen = 1,
@@ -410,6 +442,12 @@ void FlowMachine::codegen(Stmt* stmt)
 llvm::Value* FlowMachine::toBool(llvm::Value* value)
 {
 	FNTRACE();
+	if (isBool(value->getType()))
+		return value;
+
+	if (value->getType()->isIntegerTy())
+		return builder_.CreateICmpNE(value, llvm::ConstantInt::get(value->getType(), 0), "int2bool");
+
 	return value_; // TODO nullptr;
 }
 
@@ -446,6 +484,38 @@ llvm::Type* FlowMachine::numberType() const
 llvm::Type* FlowMachine::int8PtrType() const
 {
 	return int8Type()->getPointerTo();
+}
+
+bool FlowMachine::isBool(llvm::Type* type) const
+{
+	if (!type->isIntegerTy())
+		return false;
+
+	llvm::IntegerType* i = static_cast<llvm::IntegerType *>(type);
+	if (i->getBitWidth() != 1)
+		return false;
+
+	return true;
+}
+
+bool FlowMachine::isBool(llvm::Value* value) const
+{
+	return isBool(value->getType());
+}
+
+bool FlowMachine::isInteger(llvm::Value* value) const
+{
+	return value->getType()->isIntegerTy();
+}
+
+bool FlowMachine::isString(llvm::Value* value) const
+{
+	return false; // TODO
+}
+
+bool FlowMachine::isBuffer(llvm::Value* value) const
+{
+	return false; // TODO
 }
 
 void FlowMachine::visit(Variable& var)
@@ -519,7 +589,8 @@ void FlowMachine::visit(Handler& handler)
 	scope().insertGlobal(&handler, value_);
 
 	TRACE(1, "handler `%s` compiled", handler.name().c_str());
-	fn->dump();
+	//fn->dump();
+	module_->dump();
 }
 
 void FlowMachine::visit(BuiltinFunction& symbol)
@@ -552,26 +623,123 @@ void FlowMachine::visit(UnaryExpr& expr)
 void FlowMachine::visit(BinaryExpr& expr)
 {
 	FNTRACE();
+
+	llvm::Value* left = codegen(expr.leftExpr());
+	llvm::Value* right = codegen(expr.rightExpr());
+
+	if (isBool(left) && isBool(right))
+		return emitOpBoolBool(expr.op(), left, right);
+
+	if (isInteger(left) && isInteger(right))
+		return emitOpIntInt(expr.op(), left, right);
+
+	if (isString(left) && isString(right))
+		return emitOpStrStr(expr.op(), left, right);
+
+	fprintf(stderr, "Code generation type error (%s).\n", expr.op().c_str());
+	left->dump();
+	right->dump();
+
+	value_ = nullptr;
+}
+
+void FlowMachine::emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* right)
+{
+}
+
+void FlowMachine::emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* right)
+{
+	switch (op) {
+		case FlowToken::And:
+			value_ = builder_.CreateAnd(toBool(left), toBool(codegen(expr.rightExpr())));
+			break;
+		case FlowToken::Or: {
+			//value_ = builder_.CreateOr(toBool(left), toBool(codegen(expr.rightExpr())));
+			// TODO
+			break;
+		}
+		case FlowToken::Xor:
+			value_ = builder_.CreateXor(toBool(left), toBool(codegen(expr.rightExpr())));
+			break;
+		case FlowToken::Equal:
+			if (static_cast<llvm::IntegerType *>(left->getType())->getBitWidth() < 64)
+				left = builder_.CreateIntCast(left, numberType(), false, "lhs.i64cast");
+
+			if (static_cast<llvm::IntegerType *>(right->getType())->getBitWidth() < 64)
+				right = builder_.CreateIntCast(right, numberType(), false, "rhs.i64cast");
+
+			value_ = builder_.CreateICmpEQ(left, right);
+		case FlowToken::UnEqual:
+			if (static_cast<llvm::IntegerType *>(left->getType())->getBitWidth() < 64)
+				left = builder_.CreateIntCast(left, numberType(), false, "lhs.i64cast");
+
+			if (static_cast<llvm::IntegerType *>(right->getType())->getBitWidth() < 64)
+				right = builder_.CreateIntCast(right, numberType(), false, "rhs.i64cast");
+
+			value_ = builder_.CreateICmpNE(left, right);
+			break;
+		case FlowToken::Less:
+		case FlowToken::Greater:
+		case FlowToken::LessOrEqual:
+		case FlowToken::GreaterOrEqual:
+		case FlowToken::PrefixMatch:
+		case FlowToken::SuffixMatch:
+		case FlowToken::RegexMatch:
+		case FlowToken::In:
+		case FlowToken::Plus:
+		case FlowToken::Minus:
+		case FlowToken::Mul:
+		case FlowToken::Div:
+		case FlowToken::Mod:
+		case FlowToken::Shl:
+		case FlowToken::Shr:
+		case FlowToken::BitAnd:
+		case FlowToken::BitOr:
+		case FlowToken::BitXor:
+			printf("op: %s\n", op.c_str());
+			assert(!"Invalid binary operator passed to code generator.");
+			break;
+		case FlowToken::Pow: {
+			auto argType = llvm::Type::getDoubleTy(cx_);
+			left = builder_.CreateSIToFP(left, argType);
+			right = builder_.CreateSIToFP(right, argType);
+			auto pow = llvm::Intrinsic::getDeclaration(module_, llvm::Intrinsic::pow, left->getType());
+			value_ = builder_.CreateCall2(pow, left, right);
+			break;
+		}
+		default:
+			printf("op: %s\n", op.c_str());
+			assert(!"Invalid binary operator passed to code generator.");
+	}
+}
+
+void FlowMachine::emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right)
+{
+	// TODO
 }
 
 void FlowMachine::visit(FunctionCallExpr& expr)
 {
 	FNTRACE();
+	// TODO
 }
 
 void FlowMachine::visit(VariableExpr& expr)
 {
 	FNTRACE();
+	// TODO
 }
 
 void FlowMachine::visit(HandlerRefExpr& expr)
 {
 	FNTRACE();
+	// TODO
 }
 
 void FlowMachine::visit(ListExpr& expr)
 {
 	FNTRACE();
+	// TODO
 }
 
 void FlowMachine::visit(StringExpr& expr)
