@@ -13,7 +13,7 @@ namespace x0 {
 
 class FlowContext;
 
-typedef std::function<void(FlowContext* context, FlowParams& args)> FlowCallback;
+typedef std::function<void(FlowParams& args, FlowContext* cx)> FlowCallback;
 
 class X0_API FlowBackend {
 private:
@@ -30,8 +30,8 @@ private:
 			signature.push_back(_returnType);
 		}
 
-		void invoke(FlowContext* cx, FlowParams& args) {
-			function(cx, args);
+		void invoke(FlowParams& args, FlowContext* cx) {
+			function(args, cx);
 		}
 
 		template<typename... ArgTypes>
@@ -60,9 +60,20 @@ public:
 	virtual bool import(const std::string& name, const std::string& path) = 0;
 
 	bool contains(const std::string& name) const;
+	int find(const std::string& name) const;
+
 	bool registerHandler(const std::string& name, const FlowCallback& fn);
+
 	template<typename... Args>
 	bool registerFunction(const std::string& name, const FlowCallback& fn, FlowType returnType, Args... args);
+
+	void invoke(int id, int argc, FlowValue* argv, FlowContext* cx);
 };
+
+inline void FlowBackend::invoke(int id, int argc, FlowValue* argv, FlowContext* cx)
+{
+	FlowArray args(argc, argv);
+	return callbacks_[id].invoke(args, cx);
+}
 
 } // namespace x0

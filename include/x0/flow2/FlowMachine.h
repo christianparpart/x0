@@ -33,26 +33,29 @@ namespace llvm {
 
 namespace x0 {
 
-class X0_API FlowMachine
+class X0_API FlowMachine :
+	public ASTVisitor
 {
-public:
-	typedef FlowValue::Handler Handler;
+	class Scope;
 
-	FlowMachine();
+public:
+	explicit FlowMachine(FlowBackend* backend);
 	~FlowMachine();
 
-	static void initialize();
 	static void shutdown();
 
 	void dump();
 	void clear();
 
-	bool codegen(Unit* unit);
+	bool compile(Unit* unit);
 
-	Handler findHandler(const std::string& name);
+	FlowValue::Handler findHandler(const std::string& name);
 
 private:
 	bool prepare();
+	int findNative(const std::string& name) const;
+	void emitInitializerTail();
+	Scope& scope() const { return *scope_; }
 
 	// error handling
 	void reportError(const std::string& message);
@@ -60,6 +63,7 @@ private:
 
 	// code generation entries
 	llvm::Value* codegen(Expr* expr);
+	llvm::Value* codegen(Symbol* stmt);
 	void codegen(Stmt* stmt);
 
 	// code generation helper
@@ -99,8 +103,6 @@ private:
 	virtual void visit(BuiltinHandlerCallStmt& stmt);
 
 private:
-	class Scope;
-
 	int optimizationLevel_;
 	FlowBackend* backend_;
 	Scope* scope_;
@@ -112,6 +114,7 @@ private:
 	llvm::PassManager* modulePassMgr_;
 	llvm::FunctionPassManager* functionPassMgr_;
 
+	llvm::Type* valuePtrType_;
 	llvm::StructType* valueType_;
 	llvm::StructType* regexType_;
 	llvm::StructType* arrayType_;
@@ -125,6 +128,8 @@ private:
 	llvm::Value* value_;
 	llvm::Function* initializerFn_;
 	llvm::BasicBlock* initializerBB_;
+
+	std::vector<llvm::Function *> functions_;
 };
 
 // {{{ class FlowMachine::Scope

@@ -37,12 +37,12 @@ struct X0_PACKED X0_API FlowValue
 		const Cidr* cidr;
 		Handler handler;
 		struct {
-			uint32_t size;
 			FlowValue* values;
+			uint32_t size;
 		} array;
 		struct bufref {
-			uint32_t size;
 			const char* data;
+			uint32_t size;
 		} bufref;
 	} data;
 

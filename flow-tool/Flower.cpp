@@ -32,7 +32,7 @@ void reportError(const char *category, const std::string& msg)
 
 Flower::Flower() :
 	FlowBackend(),
-	vm_(),
+	vm_(this),
 	totalCases_(0),
 	totalSuccess_(0),
 	totalFailed_(0),
@@ -62,7 +62,7 @@ Flower::Flower() :
 
 Flower::~Flower()
 {
-//	FlowRunner::shutdown();
+	FlowMachine::shutdown();
 }
 
 bool Flower::import(const std::string& name, const std::string& path)
@@ -149,6 +149,11 @@ int Flower::run(const char* fileName, const char* handlerName)
 	if (dumpAST_)
 		ASTPrinter::print(unit.get());
 
+	if (!vm_.compile(unit.get())) {
+		fprintf(stderr, "Failed to compile file: %s\n", fileName);
+		return -1;
+	}
+
 	Handler* fn = nullptr; // runner_.findHandler(handlerName);
 	if (!fn) {
 		printf("No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
@@ -175,7 +180,7 @@ void Flower::clear()
 	//runner_.clear();
 }
 
-void Flower::flow_assert(FlowContext* cx, FlowParams& args)
+void Flower::flow_assert(FlowArray& args, FlowContext* /*cx*/)
 {
 	const FlowValue& sourceValue = args[args.size() - 1];
 	std::string source;

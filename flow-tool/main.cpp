@@ -11,6 +11,7 @@
 #include <x0/flow2/ASTPrinter.h>
 #include <x0/flow2/FlowLexer.h>
 #include <x0/flow2/FlowParser.h>
+#include <x0/DebugLogger.h>
 #include <fstream>
 #include <memory>
 #include <cstdio>
@@ -99,6 +100,8 @@ int main(int argc, const char *argv[])
 	bool lexMode = false;
 	int opt;
 	int rv = 0;
+
+	DebugLogger::get().configure("XZERO_DEBUG");
 
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)

@@ -20,6 +20,15 @@ bool FlowBackend::contains(const std::string& name) const
 	return true;
 }
 
+int FlowBackend::find(const std::string& name) const
+{
+	for (int i = 0, e = callbacks_.size(); i != e; ++i)
+		if (callbacks_[i].name == name)
+			return i;
+
+	return -1;
+}
+
 bool FlowBackend::registerHandler(const std::string& name, const FlowCallback& cb)
 {
 	if (contains(name))

@@ -1,4 +1,5 @@
 #include <x0/flow2/FlowMachine.h>
+#include <x0/flow2/FlowBackend.h>
 #include <x0/DebugLogger.h>
 
 #if defined(LLVM_VERSION_3_3)
@@ -52,7 +53,7 @@ struct fntrace {
 		fmt[i++] = ' ';
 		strcpy(fmt + i, msg_.c_str());
 
-		XZERO_DEBUG("FlowParser", 5, "%s", fmt);
+		XZERO_DEBUG("FlowMachine", 5, "%s", fmt);
 		++fnd;
 	}
 
@@ -71,7 +72,7 @@ struct fntrace {
 		fmt[i++] = ' ';
 		strcpy(fmt + i, msg_.c_str());
 
-		XZERO_DEBUG("FlowParser", 5, "%s", fmt);
+		XZERO_DEBUG("FlowMachine", 5, "%s", fmt);
 	}
 };
 // }}}
@@ -183,15 +184,16 @@ void FlowMachine::Scope::remove(Symbol* symbol)
 }
 // }}}
 
-FlowMachine::FlowMachine() :
+FlowMachine::FlowMachine(FlowBackend* backend) :
 	optimizationLevel_(0),
-	backend_(nullptr),
+	backend_(backend),
 	scope_(nullptr),
 	cx_(),
 	module_(nullptr),
 	executionEngine_(nullptr),
 	modulePassMgr_(nullptr),
 	functionPassMgr_(nullptr),
+	valuePtrType_(nullptr),
 	valueType_(nullptr),
 	regexType_(nullptr),
 	arrayType_(nullptr),
@@ -202,19 +204,16 @@ FlowMachine::FlowMachine() :
 	builder_(cx_),
 	value_(nullptr),
 	initializerFn_(nullptr),
-	initializerBB_(nullptr)
+	initializerBB_(nullptr),
+	functions_()
 {
 	scope_ = new Scope();
+	llvm::InitializeNativeTarget();
 }
 
 FlowMachine::~FlowMachine()
 {
 	delete scope_;
-}
-
-void FlowMachine::initialize()
-{
-	llvm::InitializeNativeTarget();
 }
 
 void FlowMachine::shutdown()
@@ -262,42 +261,89 @@ bool FlowMachine::prepare()
 	} // }}}
 
 	// RegExp
-	std::vector<llvm::Type*> elts;
-	elts.push_back(int8PtrType());   // name (const char *)
-	elts.push_back(int8PtrType());   // handle (pcre *)
-	regexType_ = llvm::StructType::create(cx_, elts, "RegExp", true/*packed*/);
+	std::vector<llvm::Type*> argTypes;
+	argTypes.push_back(int8PtrType());   // name (const char *)
+	argTypes.push_back(int8PtrType());   // handle (pcre *)
+	regexType_ = llvm::StructType::create(cx_, argTypes, "RegExp", true /*packed*/);
 
 	// IPAddress
-	elts.clear();
-	elts.push_back(int32Type());	// domain (AF_INET, AF_INET6)
+	argTypes.clear();
+	argTypes.push_back(int32Type());	// domain (AF_INET, AF_INET6)
 	for (size_t i = 0; i < 8; ++i)	// IPv6 raw address (128 bits)
-		elts.push_back(int16Type());
-	ipaddrType_ = llvm::StructType::create(cx_, elts, "IPAddress", true/*packed*/);
+		argTypes.push_back(int16Type());
+	ipaddrType_ = llvm::StructType::create(cx_, argTypes, "IPAddress", true /*packed*/);
 
 	// BufferRef
-	elts.clear();
-	elts.push_back(int64Type());     // buffer length
-	elts.push_back(int8PtrType());   // buffer data
-	bufferType_ = llvm::StructType::create(cx_, elts, "BufferRef", true/*packed*/);
+	argTypes.clear();
+	argTypes.push_back(int8PtrType());   // buffer data (char*)
+	argTypes.push_back(int64Type());     // buffer length
+	bufferType_ = llvm::StructType::create(cx_, argTypes, "BufferRef", true /*packed*/);
 
 	// FlowValue
-	elts.push_back(int32Type());     // type id
-	elts.push_back(numberType());    // number (long long)
-	elts.push_back(int8PtrType());   // string (char*)
-	valueType_ = llvm::StructType::create(cx_, elts, "Value", true/*packed*/);
+	argTypes.clear();
+	argTypes.push_back(int32Type());     // type id
+	argTypes.push_back(numberType());    // number (long long)
+	argTypes.push_back(int8PtrType());   // string (char*)
+	valueType_ = llvm::StructType::create(cx_, argTypes, "Value", true /*packed*/);
+	valuePtrType_ = valueType_->getPointerTo();
+
+	// FlowValue Array
+	argTypes.clear();
+	argTypes.push_back(valuePtrType_); // FlowValue*
+	argTypes.push_back(int32Type());     // type id
+	arrayType_ = llvm::StructType::create(cx_, argTypes, "ValueArray", true /*packed*/);
+
+	// Cidr
+	argTypes.clear();
+	argTypes.push_back(ipaddrType_->getPointerTo());
+	argTypes.push_back(int32Type());
+	cidrType_ = llvm::StructType::create(cx_, argTypes, "Cidr", true /*packed*/);
+
+	// initializer
+	argTypes.clear();
+	initializerFn_ = llvm::Function::Create(
+		llvm::FunctionType::get(llvm::Type::getVoidTy(cx_), argTypes, false),
+		llvm::Function::ExternalLinkage, "__flow_initialize", module_);
+	initializerBB_ = llvm::BasicBlock::Create(cx_, "entry", initializerFn_);
 
 	return true;
 }
 
-bool FlowMachine::codegen(Unit* unit)
+void FlowMachine::emitInitializerTail()
+{
+	llvm::BasicBlock* lastBB = builder_.GetInsertBlock();
+	builder_.SetInsertPoint(initializerBB_);
+
+	builder_.CreateRetVoid();
+
+	if (lastBB)
+		builder_.SetInsertPoint(lastBB);
+	else
+		builder_.ClearInsertionPoint();
+
+	llvm::verifyFunction(*initializerFn_);
+
+	if (functionPassMgr_) {
+		functionPassMgr_->run(*initializerFn_);
+	}
+}
+
+int FlowMachine::findNative(const std::string& name) const
+{
+	return backend_->find(name);
+}
+
+bool FlowMachine::compile(Unit* unit)
 {
 	if (!prepare())
 		return false;
 
-	return false;
+	codegen(unit);
+
+	return value_ != nullptr;
 }
 
-FlowMachine::Handler FlowMachine::findHandler(const std::string& name)
+FlowValue::Handler FlowMachine::findHandler(const std::string& name)
 {
 	return nullptr;
 }
@@ -308,18 +354,63 @@ void FlowMachine::reportError(const std::string& message)
 
 llvm::Value* FlowMachine::codegen(Expr* expr)
 {
-	return nullptr;
+	FNTRACE();
+
+	auto c1 = builder_.GetInsertBlock();
+
+	if (expr)
+		expr->accept(*this);
+
+	auto c2 = builder_.GetInsertBlock();
+
+	assert(c1->getParent() == c2->getParent());
+	(void) c1;
+	(void) c2;
+
+	return value_;
+}
+
+llvm::Value* FlowMachine::codegen(Symbol* symbol)
+{
+	FNTRACE();
+
+	if (llvm::Value* v = scope().lookup(symbol))
+		return value_ = v;
+
+	auto c1 = builder_.GetInsertBlock();
+
+	if (symbol)
+		symbol->accept(*this);
+
+	auto c2 = builder_.GetInsertBlock();
+
+	if (c1 && c2 && c1->getParent() != c2->getParent())
+		module_->dump();
+	assert((!c1 && !c2) || (c1 && c2 && c1->getParent() == c2->getParent()));
+
+	return value_;
 }
 
 void FlowMachine::codegen(Stmt* stmt)
 {
 	FNTRACE();
+
+	auto c1 = builder_.GetInsertBlock();
+
+	if (stmt)
+		stmt->accept(*this);
+
+	auto c2 = builder_.GetInsertBlock();
+
+	assert(c1->getParent() == c2->getParent());
+	(void) c1;
+	(void) c2;
 }
 
 llvm::Value* FlowMachine::toBool(llvm::Value* value)
 {
 	FNTRACE();
-	return nullptr;
+	return value_; // TODO nullptr;
 }
 
 llvm::Type* FlowMachine::boolType() const
@@ -357,14 +448,78 @@ llvm::Type* FlowMachine::int8PtrType() const
 	return int8Type()->getPointerTo();
 }
 
-void FlowMachine::visit(Variable& variable)
+void FlowMachine::visit(Variable& var)
 {
 	FNTRACE();
+
+	// local variables: put into the functions entry block with an alloca inbufuction
+	TRACE(1, "local variable '%s'", var.name().c_str());
+	llvm::Value* initialValue = codegen(var.initializer());
+	if (!initialValue)
+		return;
+
+	llvm::Function* fn = builder_.GetInsertBlock()->getParent();
+
+	llvm::IRBuilder<> ebb(&fn->getEntryBlock(), fn->getEntryBlock().begin());
+
+	value_ = ebb.CreateAlloca(initialValue->getType(), 0, (var.name() + ".ptr").c_str());
+	builder_.CreateStore(initialValue, value_);
+
+	scope().insert(&var, value_);
 }
 
 void FlowMachine::visit(Handler& handler)
 {
 	FNTRACE();
+
+	std::vector<llvm::Type *> argTypes;
+	argTypes.push_back(int8PtrType()); // FlowContext*
+
+	llvm::Function* fn = llvm::Function::Create(
+		llvm::FunctionType::get(boolType(), argTypes, false /*no vaarg*/),
+		llvm::Function::ExternalLinkage,
+		handler.name(),
+		module_
+	);
+	functions_.push_back(fn);
+
+	scope().enter();
+
+	// create entry-BasicBlock for this function and enter inner scope
+	llvm::BasicBlock* lastBB = builder_.GetInsertBlock();
+	llvm::BasicBlock* bb = llvm::BasicBlock::Create(cx_, "entry", fn);
+	builder_.SetInsertPoint(bb);
+
+	// generate code: local-scope variables
+	for (auto i = handler.scope()->begin(), e = handler.scope()->end(); i != e; ++i)
+		codegen(*i);
+
+	// generate code: function body
+	codegen(handler.body());
+
+	// generate code: catch-all return
+	builder_.CreateRet(llvm::ConstantInt::get(boolType(), 0));
+
+	TRACE(1, "verify function");
+	llvm::verifyFunction(*fn);
+
+	// perform function-level optimizations
+	if (functionPassMgr_)
+		functionPassMgr_->run(*fn);
+
+	// restore outer BB insert-point & leave scope
+	scope().leave();
+
+	if (lastBB)
+		builder_.SetInsertPoint(lastBB);
+	else
+		builder_.ClearInsertionPoint();
+
+	value_ = fn;
+	scope().insertGlobal(&handler, value_);
+
+	TRACE(1, "handler `%s` compiled", handler.name().c_str());
+	fn->dump();
 }
 
 void FlowMachine::visit(BuiltinFunction& symbol)
@@ -377,9 +532,16 @@ void FlowMachine::visit(BuiltinHandler& symbol)
 	FNTRACE();
 }
 
-void FlowMachine::visit(Unit& symbol)
+void FlowMachine::visit(Unit& unit)
 {
 	FNTRACE();
+
+	for (auto i = unit.scope()->begin(), e = unit.scope()->end(); i != e; ++i)
+		codegen(*i);
+
+	emitInitializerTail();
+
+	//value_ = nullptr;
 }
 
 void FlowMachine::visit(UnaryExpr& expr)
@@ -453,11 +615,39 @@ void FlowMachine::visit(ExprStmt& stmt)
 void FlowMachine::visit(CompoundStmt& stmt)
 {
 	FNTRACE();
+
+	for (auto& s: stmt)
+		codegen(s.get());
 }
 
 void FlowMachine::visit(CondStmt& stmt)
 {
 	FNTRACE();
+
+	llvm::Function* caller = builder_.GetInsertBlock()->getParent();
+
+	llvm::Value* condValue = toBool(codegen(stmt.condition()));
+
+	llvm::BasicBlock* thenBlock = llvm::BasicBlock::Create(cx_, "on.then", caller);
+	llvm::BasicBlock* elseBlock = llvm::BasicBlock::Create(cx_, "on.else");
+	llvm::BasicBlock* contBlock = llvm::BasicBlock::Create(cx_, "on.cont");
+	builder_.CreateCondBr(condValue, thenBlock, elseBlock);
+
+	// emit on.then block
+	builder_.SetInsertPoint(thenBlock);
+	codegen(stmt.thenStmt());
+	builder_.CreateBr(contBlock);
+	thenBlock = builder_.GetInsertBlock();
+
+	// emit on.else block
+	caller->getBasicBlockList().push_back(elseBlock);
+	builder_.SetInsertPoint(elseBlock);
+	codegen(stmt.elseStmt());
+	builder_.CreateBr(contBlock);
+
+	// emit on.cont block
+	caller->getBasicBlockList().push_back(contBlock);
+	builder_.SetInsertPoint(contBlock);
 }
 
 void FlowMachine::visit(AssignStmt& stmt)

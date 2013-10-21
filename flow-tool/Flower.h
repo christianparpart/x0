@@ -56,7 +56,7 @@ private:
 //	static void flow_getenv(void *, x0::FlowParams& args, void *);
 //	static void flow_error(void *, x0::FlowParams& args, void *);
 //	static void flow_finish(void *, x0::FlowParams& args, void *);
-	void flow_assert(FlowContext* cx, FlowParams& args);
+	void flow_assert(FlowParams& args, FlowContext* cx);
 //	static void flow_fail(void *, x0::FlowParams& args, void *);
 //	static void flow_pass(void *, x0::FlowParams& args, void *);
 //	static void flow_assertFail(void *, x0::FlowParams& args, void *);
