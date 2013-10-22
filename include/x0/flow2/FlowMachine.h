@@ -137,6 +137,7 @@ private:
 	llvm::Value* value_;
 	llvm::Function* initializerFn_;
 	llvm::BasicBlock* initializerBB_;
+	bool requestingLvalue_;
 
 	std::vector<llvm::Function *> functions_;
 };

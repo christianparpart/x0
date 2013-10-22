@@ -89,13 +89,12 @@ struct fntrace2 {
  * BINARY OPERATIONS
  *
  *   (int, int)        == != <= >= < > + - * / shl shr mod pow
- *   (bool, bool)      == !=
- *   (string, string)  == != <= >= < > +
+ *   (bool, bool)      == != and or xor
+ *   (string, string)  == != <= >= < > + and or xor
  *   (ip, ip)          == !=
  *   (cidr, cidr)      == !=
  *   (ip, cidr)        in
  *   (string, regex)   =~
- *   (handler)         (nothing)
  *
  * UNARY OPERATION: `not`
  *
@@ -237,6 +236,7 @@ FlowMachine::FlowMachine(FlowBackend* backend) :
 	value_(nullptr),
 	initializerFn_(nullptr),
 	initializerBB_(nullptr),
+	requestingLvalue_(false),
 	functions_()
 {
 	scope_ = new Scope();
@@ -442,6 +442,9 @@ void FlowMachine::codegen(Stmt* stmt)
 llvm::Value* FlowMachine::toBool(llvm::Value* value)
 {
 	FNTRACE();
+	if (!value)
+		return value_ = nullptr;
+
 	if (isBool(value->getType()))
 		return value;
 
@@ -624,6 +627,39 @@ void FlowMachine::visit(BinaryExpr& expr)
 {
 	FNTRACE();
 
+	if (expr.op() == FlowToken::Or) {
+		requestingLvalue_ = true;
+		llvm::Value* left = toBool(codegen(expr.leftExpr()));
+		requestingLvalue_ = false;
+		if (!left) return;
+
+		llvm::Function* caller = builder_.GetInsertBlock()->getParent();
+		llvm::BasicBlock* rhsBB = llvm::BasicBlock::Create(cx_, "or.rhs", caller);
+		llvm::BasicBlock* contBB = llvm::BasicBlock::Create(cx_, "or.cont");
+
+		// cond
+		builder_.CreateCondBr(left, contBB, rhsBB);
+		llvm::BasicBlock* cmpBB = builder_.GetInsertBlock();
+
+		// rhs-bb
+		builder_.SetInsertPoint(rhsBB);
+		llvm::Value* right = toBool(codegen(expr.rightExpr()));
+		if (!right) return;
+		builder_.CreateBr(contBB);
+		rhsBB = builder_.GetInsertBlock();
+
+		// cont-bb
+		caller->getBasicBlockList().push_back(contBB);
+		builder_.SetInsertPoint(contBB);
+
+		llvm::PHINode* pn = builder_.CreatePHI(llvm::Type::getInt1Ty(cx_), 2, "or.phi");
+		pn->addIncoming(left, cmpBB);
+		pn->addIncoming(right, rhsBB);
+
+		value_ = pn;
+		return;
+	}
+
 	llvm::Value* left = codegen(expr.leftExpr());
 	llvm::Value* right = codegen(expr.rightExpr());
 
@@ -651,15 +687,10 @@ void FlowMachine::emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* rig
 {
 	switch (op) {
 		case FlowToken::And:
-			value_ = builder_.CreateAnd(toBool(left), toBool(codegen(expr.rightExpr())));
+			value_ = builder_.CreateAnd(toBool(left), toBool(right));
 			break;
-		case FlowToken::Or: {
-			//value_ = builder_.CreateOr(toBool(left), toBool(codegen(expr.rightExpr())));
-			// TODO
-			break;
-		}
 		case FlowToken::Xor:
-			value_ = builder_.CreateXor(toBool(left), toBool(codegen(expr.rightExpr())));
+			value_ = builder_.CreateXor(toBool(left), toBool(right));
 			break;
 		case FlowToken::Equal:
 			if (static_cast<llvm::IntegerType *>(left->getType())->getBitWidth() < 64)
@@ -682,11 +713,12 @@ void FlowMachine::emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* rig
 		case FlowToken::Greater:
 		case FlowToken::LessOrEqual:
 		case FlowToken::GreaterOrEqual:
-		case FlowToken::PrefixMatch:
-		case FlowToken::SuffixMatch:
-		case FlowToken::RegexMatch:
-		case FlowToken::In:
+			printf("op: %s\n", op.c_str());
+			assert(!"Invalid binary operator passed to code generator.");
+			break;
 		case FlowToken::Plus:
+			value_ = builder_.CreateAdd(left, right);
+			break;
 		case FlowToken::Minus:
 		case FlowToken::Mul:
 		case FlowToken::Div:
@@ -727,7 +759,13 @@ void FlowMachine::visit(FunctionCallExpr& expr)
 void FlowMachine::visit(VariableExpr& expr)
 {
 	FNTRACE();
-	// TODO
+
+	value_ = codegen(expr.variable());
+	if (!value_)
+		return;
+
+	if (!requestingLvalue_)
+		value_ = builder_.CreateLoad(value_, expr.variable()->name().c_str());
 }
 
 void FlowMachine::visit(HandlerRefExpr& expr)
@@ -821,6 +859,10 @@ void FlowMachine::visit(CondStmt& stmt)
 void FlowMachine::visit(AssignStmt& stmt)
 {
 	FNTRACE();
+
+	requestingLvalue_ = true;
+	llvm::Value* left = codegen(assign.variable());
+	requestingLvalue_ = false;
 }
 
 void FlowMachine::visit(HandlerCallStmt& stmt)
