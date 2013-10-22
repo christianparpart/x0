@@ -102,6 +102,16 @@ struct fntrace2 {
  *   bool              false
  *   string            empty
  *
+ * OPERATOR CLASSES;
+ *
+ *   logic             and or xor
+ *   rel               == != <= >= < >
+ *   group             + - * / ** shl shr
+ *     assoc
+ *     right-assoc
+ *   set               in
+ *   bit-logic         & | ~
+ *
  * BUILTIN FUNCTIONS:
  *
  *   int strlen(string)
@@ -856,13 +866,17 @@ void FlowMachine::visit(CondStmt& stmt)
 	builder_.SetInsertPoint(contBlock);
 }
 
-void FlowMachine::visit(AssignStmt& stmt)
+void FlowMachine::visit(AssignStmt& assign)
 {
 	FNTRACE();
 
 	requestingLvalue_ = true;
 	llvm::Value* left = codegen(assign.variable());
 	requestingLvalue_ = false;
+
+	llvm::Value* right = codegen(assign.expression());
+
+	value_ = builder_.CreateStore(right, left);
 }
 
 void FlowMachine::visit(HandlerCallStmt& stmt)

@@ -2,10 +2,10 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: x0
 Source: http://xzero.io/
 Copyright: © 2009-2011 Christian Parpart
-License: AAGPL-3+
+License: AGPL-3+
 Comment: n/a
 
 Files: *
 Copyright: © 2009-2012 Christian Parpart <trapni@gentoo.org>
-License: AAGPL-3+
+License: AGPL-3+
 Comment: n/a
