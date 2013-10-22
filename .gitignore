@@ -19,6 +19,10 @@ install_manifest.txt
 certtool.cfg
 docs/html/
 
+*.ll
+*.s
+*.flow
+
 x0d/src/x0d
 x0d/src/*.pid
 
