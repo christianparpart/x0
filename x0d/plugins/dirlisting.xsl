@@ -3,7 +3,7 @@
 <!--
 	<dirlisting.xsl>
 
-	This file is part of the x0 web server project and is released under GPL-3.
+	This file is part of the x0 web server project and is released under AGPL-3.
 
 	(c) 2009 Chrisitan Parpart <trapni@gentoo.org>
 -->

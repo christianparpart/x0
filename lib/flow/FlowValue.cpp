@@ -1,6 +1,6 @@
 /* <flow/FlowValue.cpp>
  *
- * This file is part of the x0 web server project and is released under LGPL-3.
+ * This file is part of the x0 web server project and is released under AGPL-3.
  * http://redmine.xzero.io/projects/flow
  *
  * (c) 2010-2013 Christian Parpart <trapni@gmail.com>

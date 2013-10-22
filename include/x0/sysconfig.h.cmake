@@ -1,6 +1,6 @@
 /* <x0/sysconfig.h.cmake>
  *
- * This file is part of the x0 web server project and is released under LGPL-3.
+ * This file is part of the x0 web server project and is released under AGPL-3.
  *
  * (c) 2009-2010 Chrisitan Parpart <trapni@gentoo.org>
  */

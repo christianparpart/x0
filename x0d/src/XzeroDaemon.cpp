@@ -1,6 +1,6 @@
 /* <XzeroDaemon.cpp>
  *
- * This file is part of the x0 web server project and is released under GPL-3.
+ * This file is part of the x0 web server project and is released under AAGPL-3.
  * http://www.xzero.io/
  *
  * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
@@ -323,7 +323,7 @@ bool XzeroDaemon::parse()
 	static const char *package_copyright =
 		"Copyright (c) 2009-2013 by Christian Parpart <trapni@gmail.com>";
 	static const char *package_license =
-		"Licensed under GPL-3 [http://gplv3.fsf.org/]";
+		"Licensed under AAGPL-3 [http://gplv3.fsf.org/]";
 
 	for (;;) {
 		int long_index = 0;

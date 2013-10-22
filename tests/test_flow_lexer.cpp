@@ -1,6 +1,6 @@
 /* <x0/test_flow_lexer.cpp>
  *
- * This file is part of the x0 web server project and is released under LGPL-3.
+ * This file is part of the x0 web server project and is released under AGPL-3.
  * http://redmine.xzero.io/projects/flow
  *
  * (c) 2010 Christian Parpart <trapni@gmail.com>
