@@ -86,6 +86,9 @@ struct fntrace2 {
 #endif
 
 /*
+ * TODO:
+ *  - Do we wanna support *signed* numbers et all? or just unsigned numbers?
+ *
  * BINARY OPERATIONS
  *
  *   (int, int)        == != <= >= < > + - * / shl shr mod pow
@@ -634,6 +637,8 @@ void FlowMachine::visit(UnaryExpr& expr)
 	// TODO: not BOOL
 	// TODO: not STRING
 	// TODO: not BUFFER
+	//
+	// TODO: - INT
 
 	FNTRACE();
 }
