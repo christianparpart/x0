@@ -265,6 +265,7 @@ void FlowMachine::shutdown()
 
 void FlowMachine::dump()
 {
+	module_->dump();
 }
 
 void FlowMachine::clear()
@@ -603,7 +604,6 @@ void FlowMachine::visit(Handler& handler)
 
 	TRACE(1, "handler `%s` compiled", handler.name().c_str());
 	//fn->dump();
-	module_->dump();
 }
 
 void FlowMachine::visit(BuiltinFunction& symbol)
@@ -630,6 +630,11 @@ void FlowMachine::visit(Unit& unit)
 
 void FlowMachine::visit(UnaryExpr& expr)
 {
+	// TODO: not INT
+	// TODO: not BOOL
+	// TODO: not STRING
+	// TODO: not BUFFER
+
 	FNTRACE();
 }
 
@@ -673,14 +678,23 @@ void FlowMachine::visit(BinaryExpr& expr)
 	llvm::Value* left = codegen(expr.leftExpr());
 	llvm::Value* right = codegen(expr.rightExpr());
 
+	// bool, bool
 	if (isBool(left) && isBool(right))
 		return emitOpBoolBool(expr.op(), left, right);
 
+	// int, int
 	if (isInteger(left) && isInteger(right))
 		return emitOpIntInt(expr.op(), left, right);
 
+	// string, string
 	if (isString(left) && isString(right))
 		return emitOpStrStr(expr.op(), left, right);
+
+	// TODO: string, string
+	// TODO: IP, IP
+	// TODO: CIDR, CIDR
+	// TODO: IP, CIDR
+	// TODO: string, regex
 
 	fprintf(stderr, "Code generation type error (%s).\n", expr.op().c_str());
 	left->dump();
@@ -691,10 +705,32 @@ void FlowMachine::visit(BinaryExpr& expr)
 
 void FlowMachine::emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* right)
 {
+	// the "or"-case is already handled
+
+	switch (op) {
+		case FlowToken::And:
+			value_ = builder_.CreateAnd(left, right);
+			break;
+		case FlowToken::Xor:
+			value_ = builder_.CreateXor(left, right);
+			break;
+		case FlowToken::Equal:
+			value_ = builder_.CreateICmpEQ(left, right);
+			break;
+		case FlowToken::UnEqual:
+			value_ = builder_.CreateICmpNE(left, right);
+			break;
+		default:
+			value_ = nullptr;
+			reportError("Invalid binary operator passed to code generator: (int %s int)\n", op.c_str());
+			assert(!"Invalid binary operator passed to code generator");
+	}
 }
 
 void FlowMachine::emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* right)
 {
+	// the "or"-case is already handled
+
 	switch (op) {
 		case FlowToken::And:
 			value_ = builder_.CreateAnd(toBool(left), toBool(right));
@@ -720,38 +756,61 @@ void FlowMachine::emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* rig
 			value_ = builder_.CreateICmpNE(left, right);
 			break;
 		case FlowToken::Less:
+			value_ = builder_.CreateICmpSLT(left, right);
+			break;
 		case FlowToken::Greater:
+			value_ = builder_.CreateICmpSGT(left, right);
+			break;
 		case FlowToken::LessOrEqual:
+			value_ = builder_.CreateICmpSGE(left, right);
+			break;
 		case FlowToken::GreaterOrEqual:
-			printf("op: %s\n", op.c_str());
-			assert(!"Invalid binary operator passed to code generator.");
+			value_ = builder_.CreateICmpSGE(left, right);
 			break;
 		case FlowToken::Plus:
 			value_ = builder_.CreateAdd(left, right);
 			break;
 		case FlowToken::Minus:
+			value_ = builder_.CreateSub(left, right);
+			break;
 		case FlowToken::Mul:
+			value_ = builder_.CreateMul(left, right);
+			break;
 		case FlowToken::Div:
+			value_ = builder_.CreateSDiv(left, right);
+			break;
 		case FlowToken::Mod:
+			value_ = builder_.CreateSRem(left, right);
+			break;
 		case FlowToken::Shl:
+			value_ = builder_.CreateShl(left, right);
+			break;
 		case FlowToken::Shr:
+			// logical bit-shift right (meaning, it does not honor possible signedness)
+			value_ = builder_.CreateLShr(left, right);
+			break;
 		case FlowToken::BitAnd:
+			value_ = builder_.CreateAnd(left, right);
+			break;
 		case FlowToken::BitOr:
+			value_ = builder_.CreateOr(left, right);
+			break;
 		case FlowToken::BitXor:
-			printf("op: %s\n", op.c_str());
-			assert(!"Invalid binary operator passed to code generator.");
+			value_ = builder_.CreateXor(left, right);
 			break;
 		case FlowToken::Pow: {
 			auto argType = llvm::Type::getDoubleTy(cx_);
-			left = builder_.CreateSIToFP(left, argType);
-			right = builder_.CreateSIToFP(right, argType);
+			left = builder_.CreateSIToFP(left, argType, "pow.lhs");
+			right = builder_.CreateSIToFP(right, argType, "pow.rhs");
 			auto pow = llvm::Intrinsic::getDeclaration(module_, llvm::Intrinsic::pow, left->getType());
-			value_ = builder_.CreateCall2(pow, left, right);
+			value_ = builder_.CreateCall2(pow, left, right, "pow.result");
+			value_ = builder_.CreateIntCast(left, numberType(), false, "pow_result_to_i64");
 			break;
 		}
 		default:
-			printf("op: %s\n", op.c_str());
-			assert(!"Invalid binary operator passed to code generator.");
+			value_ = nullptr;
+			reportError("Invalid binary operator passed to code generator: (int %s int)\n", op.c_str());
+			assert(!"Invalid binary operator passed to code generator");
 	}
 }
 

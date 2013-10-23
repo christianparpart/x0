@@ -348,6 +348,9 @@ FlowToken FlowLexer::nextToken()
 			default:
 				return token_ = FlowToken::Greater;
 		}
+	case '^':
+		nextChar();
+		return token_ = FlowToken::BitXor;
 	case '|':
 		switch (nextChar()) {
 			case '|':

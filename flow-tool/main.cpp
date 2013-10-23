@@ -94,7 +94,6 @@ int parsedump(const char* filename) // {{{
 int main(int argc, const char *argv[])
 {
 	const char *handlerName = NULL;
-	bool dumpIR = false;
 	Flower flower;
 	bool testMode = false;
 	bool lexMode = false;
@@ -106,7 +105,7 @@ int main(int argc, const char *argv[])
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)
 	if (argc == 1) {
-		static const char* debugArgs[] = { argv[0], "-s", "-e", "main", "./parse.flow", nullptr };
+		static const char* debugArgs[] = { argv[0], "-s", "-L", "-e", "main", "./parse.flow", nullptr };
 		argc = sizeof(debugArgs) / sizeof(*debugArgs) - 1;
 		argv = debugArgs;
 	}
@@ -118,7 +117,7 @@ int main(int argc, const char *argv[])
 			usage(argv[0]);
 			return 0;
 		case 'L':
-			dumpIR = true;
+			flower.setDumpIR(true);
 			break;
 		case 'l':
 			lexMode = true;
@@ -160,9 +159,6 @@ int main(int argc, const char *argv[])
 		} else {
 			flower.run(fileName, handlerName);
 		}
-
-		if (dumpIR)
-			flower.dump();
 
 		flower.clear();
 	}

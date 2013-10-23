@@ -154,14 +154,16 @@ int Flower::run(const char* fileName, const char* handlerName)
 		return -1;
 	}
 
+	if (dumpIR_) {
+		printf("Dumping IR ...\n");
+		vm_.dump();
+	}
+
 	Handler* fn = nullptr; // runner_.findHandler(handlerName);
 	if (!fn) {
 		printf("No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
 		return -1;
 	}
-
-	if (dumpIR_)
-		; // TODO
 
 	if (handlerName) {
 		bool handled = false; // runner_.invoke(fn);

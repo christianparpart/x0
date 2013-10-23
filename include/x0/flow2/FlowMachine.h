@@ -59,7 +59,7 @@ private:
 
 	// error handling
 	void reportError(const std::string& message);
-	template<typename... Args> void reportError(const std::string& fmt, Args ...);
+	template<typename... Args> void reportError(const std::string& fmt, Args&&...);
 
 	// code generation entries
 	llvm::Value* codegen(Expr* expr);
@@ -166,10 +166,10 @@ public:
 
 //{{{ FlowMachine inlines
 template<typename... Args>
-inline void FlowMachine::reportError(const std::string& fmt, Args... args)
+inline void FlowMachine::reportError(const std::string& fmt, Args&&... args)
 {
 	char buf[1024];
-	ssize_t n = snprintf(buf, sizeof(buf), fmt.c_str(), std::forward(args)...);
+	ssize_t n = snprintf(buf, sizeof(buf), fmt.c_str(), std::forward<Args>(args)...);
 
 	if (n > 0) {
 		reportError(buf);
