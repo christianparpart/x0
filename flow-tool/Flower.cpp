@@ -10,7 +10,7 @@
 #include <x0/flow2/ASTPrinter.h>
 #include <x0/flow2/FlowParser.h>
 #include <x0/flow2/FlowBackend.h>
-// #include <x0/flow/FlowRunner.h>
+#include <x0/flow2/FlowMachine.h>
 #include <fstream>
 #include <memory>
 #include <utility>

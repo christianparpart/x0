@@ -376,6 +376,7 @@ void FlowMachine::emitInitializerTail()
 
 int FlowMachine::findNative(const std::string& name) const
 {
+	FNTRACE();
 	return backend_->find(name);
 }
 
@@ -1063,9 +1064,17 @@ void FlowMachine::visit(HandlerCallStmt& stmt)
 	FNTRACE();
 }
 
-void FlowMachine::visit(BuiltinHandlerCallStmt& stmt)
+void FlowMachine::visit(BuiltinHandlerCallStmt& handlerStmt)
 {
 	FNTRACE();
+
+	int id = findNative(handlerStmt.handler()->name());
+	if (id < 0) {
+		reportError("Unknown native builtin-handler. %s\n", handlerStmt.handler()->name().c_str());
+		value_ = nullptr;
+		return;
+	}
+	//emitNativeCall(id, call.args());
 }
 
 } // namespace x0
