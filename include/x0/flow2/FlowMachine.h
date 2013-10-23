@@ -66,21 +66,34 @@ private:
 	llvm::Value* codegen(Symbol* stmt);
 	void codegen(Stmt* stmt);
 
-	// code generation helper
+	// CG: casts
 	llvm::Value* toBool(llvm::Value* value);
+
+	// IR types
 	llvm::Type* boolType() const;
 	llvm::Type* int8Type() const;
 	llvm::Type* int16Type() const;
 	llvm::Type* int32Type() const;
 	llvm::Type* int64Type() const;
 	llvm::Type* numberType() const;
-
 	llvm::Type* int8PtrType() const;
+
+	// type checks
 	bool isBool(llvm::Type* type) const;
 	bool isBool(llvm::Value* value) const;
 	bool isInteger(llvm::Value* value) const;
+
+	bool isCString(llvm::Value* value) const;
+	bool isCString(llvm::Type* type) const;
+
 	bool isString(llvm::Value* value) const;
+	bool isString(llvm::Type* type) const;
+
 	bool isBuffer(llvm::Value* value) const;
+	bool isBuffer(llvm::Type* type) const;
+
+	bool isBufferPtr(llvm::Value* value) const;
+	bool isBufferPtr(llvm::Type* type) const;
 
 	// AST code generation
 	virtual void visit(Variable& variable);
@@ -110,6 +123,7 @@ private:
 	void emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right);
+	void emitNativeValue(size_t index, llvm::Value* target, llvm::Value* source, const std::string& name = "");
 
 private:
 	int optimizationLevel_;

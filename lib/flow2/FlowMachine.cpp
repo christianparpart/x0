@@ -525,14 +525,56 @@ bool FlowMachine::isInteger(llvm::Value* value) const
 	return value->getType()->isIntegerTy();
 }
 
+bool FlowMachine::isCString(llvm::Value* value) const
+{
+	return value && isCString(value->getType());
+}
+
+bool FlowMachine::isCString(llvm::Type* type) const
+{
+	if (!type || !type->isPointerTy())
+		return false;
+
+	llvm::PointerType* ptr = static_cast<llvm::PointerType *>(type);
+
+	if (!ptr->getElementType()->isIntegerTy())
+		return false;
+
+	llvm::IntegerType* i = static_cast<llvm::IntegerType *>(ptr->getElementType());
+	if (i->getBitWidth() != 8)
+		return false;
+
+	return true;
+}
+
 bool FlowMachine::isString(llvm::Value* value) const
 {
-	return false; // TODO
+	return isCString(value) || isBuffer(value);
+}
+
+bool FlowMachine::isString(llvm::Type* type) const
+{
+	return isCString(type) || isBuffer(type);
 }
 
 bool FlowMachine::isBuffer(llvm::Value* value) const
 {
-	return false; // TODO
+	return value && isBuffer(value->getType());
+}
+
+bool FlowMachine::isBuffer(llvm::Type* type) const
+{
+	return type == bufferType_;
+}
+
+bool FlowMachine::isBufferPtr(llvm::Type* type) const
+{
+	return type == bufferType_->getPointerTo();
+}
+
+bool FlowMachine::isBufferPtr(llvm::Value* value) const
+{
+	return value && isBufferPtr(value->getType());
 }
 
 void FlowMachine::visit(Variable& var)
@@ -647,37 +689,61 @@ void FlowMachine::visit(BinaryExpr& expr)
 {
 	FNTRACE();
 
-	if (expr.op() == FlowToken::Or) {
-		requestingLvalue_ = true;
-		llvm::Value* left = toBool(codegen(expr.leftExpr()));
-		requestingLvalue_ = false;
-		if (!left) return;
+	switch (expr.op()) {
+		case FlowToken::And: {
+			llvm::Value* left = toBool(codegen(expr.leftExpr()));
+			if (!left) return;
 
-		llvm::Function* caller = builder_.GetInsertBlock()->getParent();
-		llvm::BasicBlock* rhsBB = llvm::BasicBlock::Create(cx_, "or.rhs", caller);
-		llvm::BasicBlock* contBB = llvm::BasicBlock::Create(cx_, "or.cont");
+			llvm::Value* right = toBool(codegen(expr.rightExpr()));
+			if (!right) return;
 
-		// cond
-		builder_.CreateCondBr(left, contBB, rhsBB);
-		llvm::BasicBlock* cmpBB = builder_.GetInsertBlock();
+			value_ = builder_.CreateAnd(left, right);
+			break;
+		}
+		case FlowToken::Xor: {
+			llvm::Value* left = toBool(codegen(expr.leftExpr()));
+			if (!left) return;
 
-		// rhs-bb
-		builder_.SetInsertPoint(rhsBB);
-		llvm::Value* right = toBool(codegen(expr.rightExpr()));
-		if (!right) return;
-		builder_.CreateBr(contBB);
-		rhsBB = builder_.GetInsertBlock();
+			llvm::Value* right = toBool(codegen(expr.rightExpr()));
+			if (!right) return;
 
-		// cont-bb
-		caller->getBasicBlockList().push_back(contBB);
-		builder_.SetInsertPoint(contBB);
+			value_ = builder_.CreateXor(left, right);
+			break;
+		}
+		case FlowToken::Or: {
+			requestingLvalue_ = true;
+			llvm::Value* left = toBool(codegen(expr.leftExpr()));
+			requestingLvalue_ = false;
+			if (!left) return;
 
-		llvm::PHINode* pn = builder_.CreatePHI(llvm::Type::getInt1Ty(cx_), 2, "or.phi");
-		pn->addIncoming(left, cmpBB);
-		pn->addIncoming(right, rhsBB);
+			llvm::Function* caller = builder_.GetInsertBlock()->getParent();
+			llvm::BasicBlock* rhsBB = llvm::BasicBlock::Create(cx_, "or.rhs", caller);
+			llvm::BasicBlock* contBB = llvm::BasicBlock::Create(cx_, "or.cont");
 
-		value_ = pn;
-		return;
+			// cond
+			builder_.CreateCondBr(left, contBB, rhsBB);
+			llvm::BasicBlock* cmpBB = builder_.GetInsertBlock();
+
+			// rhs-bb
+			builder_.SetInsertPoint(rhsBB);
+			llvm::Value* right = toBool(codegen(expr.rightExpr()));
+			if (!right) return;
+			builder_.CreateBr(contBB);
+			rhsBB = builder_.GetInsertBlock();
+
+			// cont-bb
+			caller->getBasicBlockList().push_back(contBB);
+			builder_.SetInsertPoint(contBB);
+
+			llvm::PHINode* pn = builder_.CreatePHI(llvm::Type::getInt1Ty(cx_), 2, "or.phi");
+			pn->addIncoming(left, cmpBB);
+			pn->addIncoming(right, rhsBB);
+
+			value_ = pn;
+			return;
+		}
+		default:
+			break;
 	}
 
 	llvm::Value* left = codegen(expr.leftExpr());
@@ -695,7 +761,6 @@ void FlowMachine::visit(BinaryExpr& expr)
 	if (isString(left) && isString(right))
 		return emitOpStrStr(expr.op(), left, right);
 
-	// TODO: string, string
 	// TODO: IP, IP
 	// TODO: CIDR, CIDR
 	// TODO: IP, CIDR
@@ -710,15 +775,9 @@ void FlowMachine::visit(BinaryExpr& expr)
 
 void FlowMachine::emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* right)
 {
-	// the "or"-case is already handled
+	// logical AND/OR/XOR already handled
 
 	switch (op) {
-		case FlowToken::And:
-			value_ = builder_.CreateAnd(left, right);
-			break;
-		case FlowToken::Xor:
-			value_ = builder_.CreateXor(left, right);
-			break;
 		case FlowToken::Equal:
 			value_ = builder_.CreateICmpEQ(left, right);
 			break;
@@ -734,15 +793,9 @@ void FlowMachine::emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* r
 
 void FlowMachine::emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* right)
 {
-	// the "or"-case is already handled
+	// logical AND/OR/XOR already handled
 
 	switch (op) {
-		case FlowToken::And:
-			value_ = builder_.CreateAnd(toBool(left), toBool(right));
-			break;
-		case FlowToken::Xor:
-			value_ = builder_.CreateXor(toBool(left), toBool(right));
-			break;
 		case FlowToken::Equal:
 			if (static_cast<llvm::IntegerType *>(left->getType())->getBitWidth() < 64)
 				left = builder_.CreateIntCast(left, numberType(), false, "lhs.i64cast");
@@ -821,7 +874,56 @@ void FlowMachine::emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* rig
 
 void FlowMachine::emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right)
 {
-	// TODO
+	// TODO (string, string)  == != <= >= < > + and or xor
+#if 1 == 0
+	llvm::Value* len1;
+	llvm::Value* buf1;
+	llvm::Value* len2;
+	llvm::Value* buf2;
+
+	if (isBufferPtr(left)) {
+		len1 = emitLoadBufferLength(left);
+		buf1 = emitLoadBufferData(left);
+	} else {
+		len1 = emitCoreCall(CF::strlen, left);
+		buf1 = left;
+	}
+
+	if (isBufferPtr(right)) {
+		len2 = emitLoadBufferLength(right);
+		buf2 = emitLoadBufferData(right);
+	} else {
+		len2 = emitCoreCall(CF::strlen, right);
+		buf2 = right;
+	}
+
+	llvm::Value* rv = op == Operator::RegexMatch
+		? emitCoreCall(CF::regexmatch, handlerUserData(), len1, buf1, len2, buf2)
+		: emitCmpString(len1, buf1, len2, buf2);
+
+	switch (op) {
+		case FlowToken::RegexMatch:
+			return builder_.CreateICmpNE(rv, llvm::ConstantInt::get(int32Type(), 0));
+		case FlowToken::Equal:
+			return builder_.CreateICmpEQ(rv, llvm::ConstantInt::get(int64Type(), 0));
+		case FlowToken::UnEqual:
+			return builder_.CreateICmpNE(rv, llvm::ConstantInt::get(int64Type(), 0));
+		case FlowToken::LessOrEqual:
+			return builder_.CreateICmpSLE(rv, llvm::ConstantInt::get(int64Type(), 0));
+		case FlowToken::GreaterOrEqual:
+			return builder_.CreateICmpSGE(rv, llvm::ConstantInt::get(int64Type(), 0));
+		case FlowToken::Less:
+			return builder_.CreateICmpSLT(rv, llvm::ConstantInt::get(int64Type(), 0));
+		case FlowToken::Greater:
+			return builder_.CreateICmpSGT(rv, llvm::ConstantInt::get(int64Type(), 0));
+		case FlowToken::Plus:
+			// TODO
+		default:
+			value_ = nullptr;
+			reportError("Invalid binary operator passed to code generator: (int %s int)\n", op.c_str());
+			assert(!"Invalid binary operator passed to code generator");
+	}
+#endif
 }
 
 void FlowMachine::visit(FunctionCallExpr& expr)
@@ -848,10 +950,23 @@ void FlowMachine::visit(HandlerRefExpr& expr)
 	// TODO
 }
 
-void FlowMachine::visit(ListExpr& expr)
+void FlowMachine::visit(ListExpr& list)
 {
 	FNTRACE();
-	// TODO
+
+	size_t listSize = list.size();
+
+	llvm::Value* sizeValue = llvm::ConstantInt::get(int32Type(), listSize);
+	llvm::Value* array = builder_.CreateAlloca(valueType_, sizeValue, "array");
+
+	for (size_t i = 0; i != listSize; ++i) {
+		char name[64];
+		snprintf(name, sizeof(name), "array.value.%zu", i);
+		// TODO emitNativeValue(i, array, codegen(list.at(i)), name);
+	}
+
+	value_ = array;
+//	listSize_ = listSize;
 }
 
 void FlowMachine::visit(StringExpr& expr)
