@@ -1,4 +1,5 @@
 #include <x0/flow2/AST.h>
+#include <x0/Buffer.h>
 #include <algorithm>
 
 namespace x0 {
@@ -40,9 +41,11 @@ size_t SymbolTable::parentCount() const
 	return parents_.size();
 }
 
-void SymbolTable::appendSymbol(std::unique_ptr<Symbol> symbol)
+Symbol* SymbolTable::appendSymbol(std::unique_ptr<Symbol> symbol)
 {
-	symbols_.push_back(symbol.release());
+	printf("SymbolTable(%p).appendSymbol: %s\n", this, symbol->name().c_str());
+	symbols_.push_back(symbol.get());
+	return symbol.release();
 }
 
 void SymbolTable::removeSymbol(Symbol* symbol)
@@ -85,6 +88,23 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method) const
 	return nullptr;
 }
 // }}}
+
+std::string Callable::signatureID() const
+{
+	Buffer s;
+	s.push_back("builtin ");
+	s.push_back(tos(signature_[0]));
+	s.push_back(" ");
+	s.push_back(name().c_str());
+	s.push_back("(");
+	for (size_t i = 1, e = signature_.size(); i != e; ++i) {
+		if (i > 1) s.push_back(", ");
+		s.push_back(tos(signature_[i]));
+	}
+	s.push_back(");");
+
+	return s.str();
+}
 
 void Variable::accept(ASTVisitor& v)
 {
@@ -167,6 +187,10 @@ void CondStmt::accept(ASTVisitor& v) {
 }
 
 void AssignStmt::accept(ASTVisitor& v) {
+	v.visit(*this);
+}
+
+void BuiltinHandler::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 

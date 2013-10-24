@@ -53,7 +53,10 @@ Flower::Flower() :
 	// unit test aiding handlers
 //	registerHandler("error", &flow_error);
 //	registerHandler("finish", &flow_finish); // XXX rename to 'success'
-	registerHandler("assert", std::bind(&Flower::flow_assert, this, std::placeholders::_1, std::placeholders::_2));
+
+	registerHandler("assert").signature(FlowType::Boolean)
+		(std::bind(&Flower::flow_assert, this, std::placeholders::_1, std::placeholders::_2));
+
 //	registerHandler("assert_fail", &flow_assertFail);
 
 //	registerHandler("fail", &flow_fail);
@@ -134,7 +137,13 @@ int Flower::run(const char* fileName, const char* handlerName)
 //		return -1;
 //	}
 
-	FlowParser parser;
+	FlowParser parser(this);
+
+	parser.importHandler = [&](const std::string& name, const std::string& basedir) -> bool {
+		fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
+		return false;
+	};
+
 	if (!parser.open(fileName)) {
 		fprintf(stderr, "Failed to open file: %s\n", fileName);
 		return -1;

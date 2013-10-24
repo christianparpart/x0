@@ -3,7 +3,7 @@
 namespace x0 {
 
 FlowBackend::FlowBackend() :
-	callbacks_()
+	builtins_()
 {
 }
 
@@ -13,8 +13,8 @@ FlowBackend::~FlowBackend()
 
 bool FlowBackend::contains(const std::string& name) const
 {
-	for (const auto& cb: callbacks_)
-		if (cb.name == name)
+	for (const auto& cb: builtins_)
+		if (cb.name_ == name)
 			return false;
 
 	return true;
@@ -22,20 +22,21 @@ bool FlowBackend::contains(const std::string& name) const
 
 int FlowBackend::find(const std::string& name) const
 {
-	for (int i = 0, e = callbacks_.size(); i != e; ++i)
-		if (callbacks_[i].name == name)
+	for (int i = 0, e = builtins_.size(); i != e; ++i)
+		if (builtins_[i].name_ == name)
 			return i;
 
 	return -1;
 }
 
-bool FlowBackend::registerHandler(const std::string& name, const FlowCallback& cb)
+FlowBackend::Callback& FlowBackend::registerHandler(const std::string& name)
 {
-	if (contains(name))
-		return false;
+	for (auto i = builtins_.begin(), e = builtins_.end(); i != e; ++i)
+		if (i->name_ == name)
+			return *i;
 
-	callbacks_.push_back(Callback::makeHandler(name, cb));
-	return true;
+	builtins_.push_back(Callback::makeHandler(name));
+	return builtins_[builtins_.size() - 1];
 }
 
 } // namespace x0 

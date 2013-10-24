@@ -13,6 +13,8 @@
 #include <string>
 #include <functional>
 
+#include <x0/Api.h>
+#include <x0/Utility.h>
 #include <x0/flow2/FlowToken.h>
 #include <x0/flow2/FlowLexer.h>
 #include <x0/flow2/AST.h> // SymbolTable
@@ -31,13 +33,13 @@ public:
 	std::function<void(const std::string&)> errorHandler;
 	std::function<bool(const std::string&, const std::string&)> importHandler;
 
-	FlowParser();
+	explicit FlowParser(FlowBackend* backend);
+	~FlowParser();
 
 	bool open(const std::string& filename);
 
 	std::unique_ptr<Unit> parse();
 
-	void setBackend(FlowBackend* backend) { backend_ = backend; }
 	FlowBackend* backend() const { return backend_; }
 
 private:
@@ -84,9 +86,7 @@ private:
 
 	template<typename T, typename... Args> T* createSymbol(const std::string& name, Args&&... args)
 	{
-		T *symbol = new T(args...);
-		scope()->appendSymbol(symbol);
-		return symbol;
+		return static_cast<T*>(scope()->appendSymbol(std::make_unique<T>(name, std::forward<Args>(args)...)));
 	}
 
 	template<typename T, typename... Args> T* lookupOrCreate(const std::string& name, Args&&... args)

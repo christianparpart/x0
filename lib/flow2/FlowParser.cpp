@@ -1,5 +1,6 @@
 #include <x0/flow2/FlowParser.h>
 #include <x0/flow2/FlowLexer.h>
+#include <x0/flow2/FlowBackend.h>
 #include <x0/flow2/AST.h>
 #include <x0/Utility.h>
 #include <x0/DebugLogger.h>
@@ -115,13 +116,19 @@ public:
 #define scoped(SCOPED_SYMBOL) for (FlowParser::Scope _(this, (SCOPED_SYMBOL)); _.flip(); )
 // }}}
 
-FlowParser::FlowParser() :
+FlowParser::FlowParser(FlowBackend* backend) :
 	lexer_(new FlowLexer()),
 	scopeStack_(),
-	backend_(nullptr),
+	backend_(backend),
 	errorHandler(),
 	importHandler()
 {
+	enter(new SymbolTable(nullptr));
+}
+
+FlowParser::~FlowParser()
+{
+	leave();
 }
 
 bool FlowParser::open(const std::string& filename)
@@ -129,11 +136,35 @@ bool FlowParser::open(const std::string& filename)
 	if (!lexer_->open(filename))
 		return false;
 
+	if (backend_) {
+		printf("backend, %zu builtins\n", backend_->builtins().size());
+		Buffer s;
+		for (const auto& builtin: backend_->builtins()) {
+			s.clear();
+			s.push_back("builtin ");
+			s.push_back(tos(builtin.signature()[0]));
+			s.push_back(" ");
+			s.push_back(builtin.name().c_str());
+			s.push_back("(");
+			for (size_t i = 1, e = builtin.signature().size(); i != e; ++i) {
+				if (i > 1) s.push_back(", ");
+				s.push_back(tos(builtin.signature()[i]));
+			}
+			s.push_back(");");
+			printf("%s\n", s.c_str());
+
+			// TODO determine if it's a handler or a function
+
+			createSymbol<BuiltinHandler>(builtin.name(), FlowLocation());
+		}
+	}
+
 	return true;
 }
 
 SymbolTable* FlowParser::enter(SymbolTable* scope)
 {
+	scope->setOuterTable(scopeStack_.front());
 	scopeStack_.push_front(scope);
 	return scope;
 }
@@ -851,6 +882,7 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 		return nullptr;
 	}
 
+	bool callArgs = false;
 	switch (callee->type()) {
 		case Symbol::Variable: { // var '=' expr (';' | LF)
 			if (!consume(FlowToken::Assign))
@@ -864,22 +896,29 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			break;
 		}
 		case Symbol::Handler:  // handler
-			stmt = std::make_unique<HandlerCallStmt>((Handler*) callee, loc);
-			break;
 		case Symbol::BuiltinHandler:
-			stmt = std::make_unique<BuiltinHandlerCallStmt>((BuiltinHandler*) callee, loc);
-			break;
 		case Symbol::BuiltinFunction:
-			if (token() == FlowToken::RndOpen) {
-				nextToken();
-				auto args = listExpr();
-				consume(FlowToken::RndClose);
-				if (!args) return nullptr;
-				stmt = std::make_unique<ExprStmt>(std::make_unique<FunctionCallExpr>((BuiltinFunction*) callee, std::move(args), loc), loc);
-			}
+			printf("Found handler/function, %s\n", callee->name().c_str());
+			stmt = std::make_unique<CallStmt>(loc, (Callable*) callee);
+			callArgs = true;
 			break;
 		default:
 			break;
+	}
+
+	Callable* callable = static_cast<Callable*>(callee);
+
+	printf("callArgs: %s\n", callArgs ? "true" : "false");
+	printf("token: %s\n", token().c_str());
+
+	if (callArgs) {
+		if (token() == FlowToken::RndOpen) {
+			nextToken();
+			auto args = listExpr();
+			consume(FlowToken::RndClose);
+			if (!args) return nullptr;
+			std::make_unique<CallStmt>(callable, std::move(args));
+		}
 	}
 
 	switch (token()) {

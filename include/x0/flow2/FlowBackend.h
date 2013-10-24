@@ -16,42 +16,73 @@ class FlowContext;
 typedef std::function<void(FlowParams& args, FlowContext* cx)> FlowCallback;
 
 class X0_API FlowBackend {
-private:
+public:
 	struct Callback { // {{{
-		std::string name;
-		FlowCallback function;
-		std::vector<FlowType> signature;
+		std::string name_;
+		FlowCallback function_;
+		std::vector<FlowType> signature_;
 
-		Callback(const std::string& _name, const FlowCallback& _callback, FlowType _returnType) :
-			name(_name),
-			function(_callback),
-			signature()
+		const std::string name() const { return name_; }
+		const std::vector<FlowType>& signature() const { return signature_; }
+
+		Callback(const std::string& _name, FlowType _returnType) :
+			name_(_name),
+			function_(),
+			signature_()
 		{
-			signature.push_back(_returnType);
+			signature_.push_back(_returnType);
+		}
+
+		Callback(const std::string& _name, const FlowCallback& _builtin, FlowType _returnType) :
+			name_(_name),
+			function_(_builtin),
+			signature_()
+		{
+			signature_.push_back(_returnType);
 		}
 
 		void invoke(FlowParams& args, FlowContext* cx) {
-			function(args, cx);
+			function_(args, cx);
 		}
+
+		template<typename Arg1>
+		Callback& signature(Arg1 a1) {
+			signature_.push_back(a1);
+			return *this;
+		}
+
+		template<typename Arg1, typename... Args>
+		Callback& signature(Arg1 a1, Args... more) {
+			signature_.push_back(a1);
+			return signature(more...);
+		}
+
+		Callback& callback(const FlowCallback& cb) {
+			function_ = cb;
+			return *this;
+		}
+
+		Callback& operator()(const FlowCallback& cb) {
+			function_ = cb;
+			return *this;
+		}
+
+		// static factory
 
 		template<typename... ArgTypes>
 		static Callback makeFunction(const std::string& name, const FlowCallback& function, FlowType rt, ArgTypes... args) {
 			Callback cb(name, function, rt);
-			cb.push_back(args...);
+			cb.signature(args...);
 			return cb;
 		}
 
-		static Callback makeHandler(const std::string& name, const FlowCallback& function) {
-			return Callback(name, function, FlowType::Boolean);
-		}
-
-		template<typename Arg1, typename... Args>
-		void push_back(Arg1 a1, Args... args) {
-			signature.push_back(a1);
-			push_back(args...);
+		static Callback makeHandler(const std::string& name) {
+			return Callback(name, FlowType::Boolean);
 		}
 	}; // }}}
-	std::vector<Callback> callbacks_;
+
+private:
+	std::vector<Callback> builtins_;
 
 public:
 	FlowBackend();
@@ -61,19 +92,20 @@ public:
 
 	bool contains(const std::string& name) const;
 	int find(const std::string& name) const;
+	const std::vector<Callback>& builtins() const { return builtins_; }
 
-	bool registerHandler(const std::string& name, const FlowCallback& fn);
+	Callback& registerHandler(const std::string& name);
 
-	template<typename... Args>
-	bool registerFunction(const std::string& name, const FlowCallback& fn, FlowType returnType, Args... args);
+//	template<typename... Args>
+//	Callback& registerFunction(const std::string& name, const FlowCallback& fn, FlowType returnType, Args... args);
 
 	void invoke(int id, int argc, FlowValue* argv, FlowContext* cx);
 };
 
-inline void FlowBackend::invoke(int id, int argc, FlowValue* argv, FlowContext* cx)
-{
-	FlowArray args(argc, argv);
-	return callbacks_[id].invoke(args, cx);
-}
+//inline void FlowBackend::invoke(int id, int argc, FlowValue* argv, FlowContext* cx)
+//{
+//	FlowArray args(argc, argv);
+//	return builtins_[id].invoke(args, cx);
+//}
 
 } // namespace x0

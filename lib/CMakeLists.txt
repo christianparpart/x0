@@ -142,6 +142,7 @@ if(ENABLE_XZERO_FLOW2)
     flow2/FlowMachine.cpp
     flow2/FlowParser.cpp
     flow2/FlowToken.cpp
+    flow2/FlowType.cpp
     flow2/FlowValue.cpp
   )
   add_library(XzeroFlow2 SHARED ${x0_flow2_SRC})

@@ -102,7 +102,7 @@ public:
 	size_t parentCount() const;
 
 	// symbols
-	void appendSymbol(std::unique_ptr<Symbol> symbol);
+	Symbol* appendSymbol(std::unique_ptr<Symbol> symbol);
 	void removeSymbol(Symbol* symbol);
 	Symbol* symbolAt(size_t i) const;
 	size_t symbolCount() const;
@@ -162,25 +162,52 @@ public:
 	virtual void accept(ASTVisitor& v);
 };
 
-class X0_API Handler : public ScopedSymbol {
+class X0_API Callable : public Symbol {
+protected:
+	std::vector<FlowType> signature_;
+
+public:
+	Callable(Type t, const std::string& name, const FlowLocation& loc) :
+		Symbol(t, name, loc)
+	{
+	}
+
+	bool isHandler() const { return type() == Symbol::Handler || type() == Symbol::BuiltinHandler; }
+	bool isBuiltin() const { return type() == Symbol::BuiltinHandler || type() == Symbol::BuiltinFunction; }
+
+	FlowType returnType() const { return signature_[0]; }
+
+	const std::vector<FlowType>& signature() const { return signature_; }
+	std::vector<FlowType>& signature() { return signature_; }
+
+	std::string signatureID() const;
+};
+
+class X0_API Handler : public Callable {
 private:
+	std::unique_ptr<SymbolTable> scope_;
 	std::unique_ptr<Stmt> body_;
 
 public:
 	Handler(const std::string& name, const FlowLocation& loc) :
-		ScopedSymbol(Symbol::Handler, nullptr, name, loc),
+		Callable(Symbol::Handler, name, loc),
 		body_(nullptr /*forward declared*/)
 	{
 	}
 
 	Handler(const std::string& name,
-		std::unique_ptr<SymbolTable>&& scope,
-		std::unique_ptr<Stmt>&& body,
-		const FlowLocation& loc) :
-		ScopedSymbol(Symbol::Handler, std::move(scope), name, loc),
+			std::unique_ptr<SymbolTable>&& scope,
+			std::unique_ptr<Stmt>&& body,
+			const FlowLocation& loc) :
+		Callable(Symbol::Handler, name, loc),
+		scope_(std::move(scope)),
 		body_(std::move(body))
 	{
 	}
+
+	SymbolTable* scope() { return scope_.get(); }
+	const SymbolTable* scope() const { return scope_.get(); }
+	void setScope(std::unique_ptr<SymbolTable>&& table) { scope_ = std::move(table); }
 
 	bool isForwardDeclared() const { return body_.get() == nullptr; }
 
@@ -190,39 +217,23 @@ public:
 	virtual void accept(ASTVisitor& v);
 };
 
-class X0_API BuiltinFunction : public Symbol {
-private:
-	FlowBackend* owner_;
-	FlowType returnType_;
-	std::vector<FlowType> signature_;
-
+class X0_API BuiltinFunction : public Callable {
 public:
-	BuiltinFunction(FlowBackend* owner, const std::string& name, FlowType rt, const FlowLocation& loc) :
-		Symbol(Symbol::BuiltinFunction, name, loc),
-		owner_(owner),
-		returnType_(rt)
-	{}
-
-	FlowBackend* owner() const { return owner_; }
-
-	FlowType returnType() const { return returnType_; }
-	void setReturnType(FlowType type) { returnType_ = type; }
-
-	const std::vector<FlowType>& signature() const { return signature_; }
-	std::vector<FlowType>& signature() { return signature_; }
+	BuiltinFunction(const std::string& name, FlowType returnType, const FlowLocation& loc) :
+		Callable(Symbol::BuiltinFunction, name, loc)
+	{
+		signature_.push_back(returnType);
+	}
 
 	virtual void accept(ASTVisitor& v);
 };
 
-class X0_API BuiltinHandler : public Symbol {
-private:
-	FlowBackend* owner_;
-
+class X0_API BuiltinHandler : public Callable {
 public:
-	BuiltinHandler(FlowBackend* owner, const std::string& name, const FlowLocation& loc) :
-		Symbol(Symbol::BuiltinHandler, name, loc),
-		owner_(owner)
+	BuiltinHandler(const std::string& name, const FlowLocation& loc) :
+		Callable(Symbol::BuiltinHandler, name, loc)
 	{
+		signature_.push_back(FlowType::Boolean);
 	}
 
 	virtual void accept(ASTVisitor& v);
@@ -422,34 +433,46 @@ public:
 	virtual void accept(ASTVisitor&);
 };
 
-class X0_API HandlerCallStmt : public Stmt {
-private:
-	Handler* handler_;
+class X0_API CallStmt : public Stmt {
+protected:
+	Callable* callee_;
+	std::unique_ptr<ListExpr> args_;
 
 public:
-	HandlerCallStmt(Handler* handler, const FlowLocation& loc) :
-		Stmt(loc),
-		handler_(handler)
-	{}
+	CallStmt(const FlowLocation& loc, Callable* callable) :
+		Stmt(loc), callee_(callable), args_()
+	{
+		location().update(args()->location().end);
+	}
 
-	Handler* handler() const { return handler_; }
-	void setHandler(Handler* handler) { handler_ = handler; }
+	bool isHandler() const { return callee_->isHandler(); }
+
+	Callable* callee() const { return callee_; }
+
+	ListExpr* args() const { return args_.get(); }
+	void setArgs(std::unique_ptr<ListExpr>&& args);
 
 	virtual void accept(ASTVisitor&);
 };
 
-class X0_API BuiltinHandlerCallStmt : public Stmt {
-private:
-	BuiltinHandler* handler_;
-
+class X0_API HandlerCallStmt : public CallStmt {
 public:
-	BuiltinHandlerCallStmt(BuiltinHandler* handler, const FlowLocation& loc) :
-		Stmt(loc),
-		handler_(handler)
+	HandlerCallStmt(const FlowLocation& loc, Handler* handler) :
+		CallStmt(loc, handler)
 	{}
 
-	BuiltinHandler* handler() const { return handler_; }
-	void setHandler(BuiltinHandler* handler) { handler_ = handler; }
+	Handler* handler() const { return static_cast<Handler*>(callee()); }
+
+	virtual void accept(ASTVisitor&);
+};
+
+class X0_API BuiltinHandlerCallStmt : public CallStmt {
+public:
+	BuiltinHandlerCallStmt(const FlowLocation& loc, BuiltinHandler* handler) :
+		CallStmt(loc, handler)
+	{}
+
+	BuiltinHandler* handler() const { return static_cast<BuiltinHandler*>(callee()); }
 
 	virtual void accept(ASTVisitor&);
 };

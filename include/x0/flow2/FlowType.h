@@ -1,6 +1,7 @@
 #pragma once
 
 #include <x0/Api.h>
+#include <string>
 
 namespace x0 {
 
@@ -16,5 +17,7 @@ enum class FlowType {
 	Array = 8,      // FlowValue[]
 	Handler = 9,    // bool (*native_handler)(FlowContext*);
 };
+
+X0_API std::string tos(FlowType type);
 
 } // namespace x0

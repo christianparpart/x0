@@ -63,7 +63,7 @@ int lexdump(const char* filename) // {{{
 // }}}
 int parsedump(const char* filename) // {{{
 {
-	FlowParser parser;
+	FlowParser parser(nullptr);
 
 	if (!parser.open(filename)) {
 		perror("parser.open");
