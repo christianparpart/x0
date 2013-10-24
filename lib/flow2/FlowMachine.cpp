@@ -1059,21 +1059,18 @@ void FlowMachine::visit(AssignStmt& assign)
 	value_ = builder_.CreateStore(right, left);
 }
 
-void FlowMachine::visit(HandlerCallStmt& stmt)
-{
-	FNTRACE();
-}
-
-void FlowMachine::visit(BuiltinHandlerCallStmt& handlerStmt)
+void FlowMachine::visit(CallStmt& callStmt)
 {
 	FNTRACE();
 
-	int id = findNative(handlerStmt.handler()->name());
+	int id = findNative(callStmt.callee()->name());
 	if (id < 0) {
-		reportError("Unknown native builtin-handler. %s\n", handlerStmt.handler()->name().c_str());
+		reportError("Unknown native builtin. %s\n", callStmt.callee()->name().c_str());
 		value_ = nullptr;
 		return;
 	}
+	printf("emit native builtin call (%d), %s\n", id, callStmt.callee()->name().c_str());
+	llvm::Value* args = codegen(callStmt.args());
 	//emitNativeCall(id, call.args());
 }
 

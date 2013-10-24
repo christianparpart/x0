@@ -44,8 +44,7 @@ private:
 	virtual void visit(CompoundStmt& stmt);
 	virtual void visit(CondStmt& stmt);
 	virtual void visit(AssignStmt& stmt);
-	virtual void visit(HandlerCallStmt& stmt);
-	virtual void visit(BuiltinHandlerCallStmt& stmt);
+	virtual void visit(CallStmt& stmt);
 };
 
 } // namespace x0

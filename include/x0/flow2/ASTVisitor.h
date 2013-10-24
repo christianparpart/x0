@@ -37,8 +37,7 @@ typedef LiteralExpr<Cidr> CidrExpr;
 class Stmt;
 class ExprStmt;
 class CompoundStmt;
-class HandlerCallStmt;
-class BuiltinHandlerCallStmt;
+class CallStmt;
 class CondStmt;
 class AssignStmt;
 
@@ -74,8 +73,7 @@ public:
 	virtual void visit(CompoundStmt& stmt) = 0;
 	virtual void visit(CondStmt& stmt) = 0;
 	virtual void visit(AssignStmt& stmt) = 0;
-	virtual void visit(HandlerCallStmt& stmt) = 0;
-	virtual void visit(BuiltinHandlerCallStmt& stmt) = 0;
+	virtual void visit(CallStmt& stmt) = 0;
 };
 
 } // namespace x0

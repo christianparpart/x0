@@ -162,15 +162,11 @@ void ExprStmt::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 
-void HandlerCallStmt::accept(ASTVisitor& v) {
+void CallStmt::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 
 void FunctionCallExpr::accept(ASTVisitor& v) {
-	v.visit(*this);
-}
-
-void BuiltinHandlerCallStmt::accept(ASTVisitor& v) {
 	v.visit(*this);
 }
 

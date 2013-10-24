@@ -219,14 +219,9 @@ void ASTPrinter::visit(AssignStmt& assign)
 	print("rhs", assign.expression());
 }
 
-void ASTPrinter::visit(HandlerCallStmt& handlerCall)
+void ASTPrinter::visit(CallStmt& call)
 {
-	printf("HandlerCallStmt: %s\n", handlerCall.handler()->name().c_str());
-}
-
-void ASTPrinter::visit(BuiltinHandlerCallStmt& handlerCall)
-{
-	printf("BuiltinHandlerCallStmt: %s\n", handlerCall.handler()->name().c_str());
+	printf("CallStmt: %s\n", call.callee()->name().c_str());
 }
 
 } // namespace x0

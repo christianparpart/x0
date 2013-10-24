@@ -908,17 +908,15 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 
 	Callable* callable = static_cast<Callable*>(callee);
 
-	printf("callArgs: %s\n", callArgs ? "true" : "false");
-	printf("token: %s\n", token().c_str());
-
 	if (callArgs) {
 		if (token() == FlowToken::RndOpen) {
 			nextToken();
 			auto args = listExpr();
 			consume(FlowToken::RndClose);
 			if (!args) return nullptr;
-			std::make_unique<CallStmt>(callable, std::move(args));
+			std::make_unique<CallStmt>(loc, callable, std::move(args));
 		}
+		// TODO other arg modes
 	}
 
 	switch (token()) {

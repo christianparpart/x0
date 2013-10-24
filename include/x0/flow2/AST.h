@@ -439,10 +439,10 @@ protected:
 	std::unique_ptr<ListExpr> args_;
 
 public:
-	CallStmt(const FlowLocation& loc, Callable* callable) :
-		Stmt(loc), callee_(callable), args_()
+	CallStmt(const FlowLocation& loc, Callable* callable, std::unique_ptr<ListExpr>&& arguments = nullptr) :
+		Stmt(loc), callee_(callable), args_(std::move(arguments))
 	{
-		location().update(args()->location().end);
+		setArgs(std::forward<decltype(arguments)>(arguments));
 	}
 
 	bool isHandler() const { return callee_->isHandler(); }
@@ -450,29 +450,13 @@ public:
 	Callable* callee() const { return callee_; }
 
 	ListExpr* args() const { return args_.get(); }
-	void setArgs(std::unique_ptr<ListExpr>&& args);
 
-	virtual void accept(ASTVisitor&);
-};
-
-class X0_API HandlerCallStmt : public CallStmt {
-public:
-	HandlerCallStmt(const FlowLocation& loc, Handler* handler) :
-		CallStmt(loc, handler)
-	{}
-
-	Handler* handler() const { return static_cast<Handler*>(callee()); }
-
-	virtual void accept(ASTVisitor&);
-};
-
-class X0_API BuiltinHandlerCallStmt : public CallStmt {
-public:
-	BuiltinHandlerCallStmt(const FlowLocation& loc, BuiltinHandler* handler) :
-		CallStmt(loc, handler)
-	{}
-
-	BuiltinHandler* handler() const { return static_cast<BuiltinHandler*>(callee()); }
+	void setArgs(std::unique_ptr<ListExpr>&& args) {
+		args_ = std::move(args);
+		if (args) {
+			location().update(args_->location().end);
+		}
+	}
 
 	virtual void accept(ASTVisitor&);
 };
