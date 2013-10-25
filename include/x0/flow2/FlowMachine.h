@@ -70,18 +70,22 @@ private:
 	llvm::Value* toBool(llvm::Value* value);
 
 	// IR types
-	llvm::Type* boolType() const;
-	llvm::Type* int8Type() const;
-	llvm::Type* int16Type() const;
-	llvm::Type* int32Type() const;
-	llvm::Type* int64Type() const;
-	llvm::Type* numberType() const;
-	llvm::Type* int8PtrType() const;
+	llvm::Type* boolType() const { return llvm::Type::getInt1Ty(cx_); }
+	llvm::Type* int8Type() const { return llvm::Type::getInt8Ty(cx_); }
+	llvm::Type* int16Type() const { return llvm::Type::getInt16Ty(cx_); }
+	llvm::Type* int32Type() const { return llvm::Type::getInt32Ty(cx_); }
+	llvm::Type* int64Type() const { return llvm::Type::getInt64Ty(cx_); }
+	llvm::Type* numberType() const { return int64Type(); }
+	llvm::Type* int8PtrType() const { return llvm::Type::getInt8PtrTy(cx_); }
+
+	llvm::Type* arrayType() const { return arrayType_; }
 
 	// type checks
 	bool isBool(llvm::Type* type) const;
 	bool isBool(llvm::Value* value) const;
+
 	bool isInteger(llvm::Value* value) const;
+	bool isNumber(llvm::Value* v) const;
 
 	bool isCString(llvm::Value* value) const;
 	bool isCString(llvm::Type* type) const;
@@ -94,6 +98,13 @@ private:
 
 	bool isBufferPtr(llvm::Value* value) const;
 	bool isBufferPtr(llvm::Type* type) const;
+
+	bool isRegExp(llvm::Value* value) const;
+	bool isIPAddress(llvm::Value* value) const;
+	bool isFunctionPtr(llvm::Value* value) const;
+
+	bool isArray(llvm::Value* value) const;
+	bool isArray(llvm::Type* type) const;
 
 	// AST code generation
 	virtual void visit(Variable& variable);
@@ -123,6 +134,12 @@ private:
 	void emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitNativeValue(size_t index, llvm::Value* target, llvm::Value* source, const std::string& name = "");
+	void emitCall(Callable* callee, ListExpr* argList);
+	llvm::Value* emitToValue(llvm::Value* rhs, const std::string& name);
+	llvm::Value* emitNativeValue(int index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name);
+
+	void setHandlerUserData(llvm::Value* value) { userdata_ = value; }
+	llvm::Value* handlerUserData() const { return userdata_; }
 
 private:
 	int optimizationLevel_;
@@ -145,9 +162,11 @@ private:
 	llvm::StructType* bufferType_;
 
 	std::vector<llvm::Function*> coreFunctions_;
+	llvm::Value* userdata_;
 
 	llvm::IRBuilder<> builder_;
 	llvm::Value* value_;
+	size_t listSize_;
 	llvm::Function* initializerFn_;
 	llvm::BasicBlock* initializerBB_;
 	bool requestingLvalue_;

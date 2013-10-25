@@ -43,7 +43,6 @@ size_t SymbolTable::parentCount() const
 
 Symbol* SymbolTable::appendSymbol(std::unique_ptr<Symbol> symbol)
 {
-	printf("SymbolTable(%p).appendSymbol: %s\n", this, symbol->name().c_str());
 	symbols_.push_back(symbol.get());
 	return symbol.release();
 }

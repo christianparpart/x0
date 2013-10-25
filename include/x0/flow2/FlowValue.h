@@ -16,6 +16,7 @@
 #include <string>
 #include <cstring>
 #include <cassert>
+#include <cstddef>
 
 namespace x0 {
 
@@ -106,6 +107,30 @@ struct X0_PACKED X0_API FlowValue
 private:
 	void setType(FlowType t) { type_ = static_cast<decltype(type_)>(t); }
 };
+
+struct FlowValueOffset {
+	enum Name {
+		Type        = offsetof(FlowValue, type_),
+		Boolean     = offsetof(FlowValue, data.boolean),
+		Number      = offsetof(FlowValue, data.number),
+		String      = offsetof(FlowValue, data.string),
+		RegExp      = offsetof(FlowValue, data.regexp),
+		IPAddress   = offsetof(FlowValue, data.ipaddr),
+		BufferData  = offsetof(FlowValue, data.bufref.data),
+		BufferSize  = offsetof(FlowValue, data.bufref.size),
+		ArrayData   = offsetof(FlowValue, data.array.values),
+		ArraySize   = offsetof(FlowValue, data.array.size),
+		Handler     = offsetof(FlowValue, data.handler),
+	};
+
+	Name value;
+	FlowValueOffset() = default;
+	FlowValueOffset(Name v) : value(v) {}
+	FlowValueOffset(int v) : value((Name) v) {}
+
+	operator size_t () const { return (uint64_t) value; }
+};
+
 
 struct X0_API FlowArray : protected FlowValue
 {
