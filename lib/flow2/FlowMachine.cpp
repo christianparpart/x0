@@ -255,6 +255,7 @@ FlowMachine::FlowMachine(FlowBackend* backend) :
 	requestingLvalue_(false),
 	functions_()
 {
+	std::memset(coreFunctions_, 0, sizeof(coreFunctions_));
 	scope_ = new Scope();
 	llvm::InitializeNativeTarget();
 }
@@ -267,6 +268,11 @@ FlowMachine::~FlowMachine()
 void FlowMachine::shutdown()
 {
 	llvm::llvm_shutdown();
+}
+
+extern "C" void flow_native_call(FlowMachine* self, uint32_t id, FlowContext* cx, uint32_t argc, FlowValue* argv)
+{
+	printf("flow_native_call(self:%p, id:%d, cx:%p, argc:%d, argv:%p)\n", self, id, cx, argc, argv);
 }
 
 void FlowMachine::dump()
@@ -354,6 +360,9 @@ bool FlowMachine::prepare()
 		llvm::FunctionType::get(llvm::Type::getVoidTy(cx_), argTypes, false),
 		llvm::Function::ExternalLinkage, "__flow_initialize", module_);
 	initializerBB_ = llvm::BasicBlock::Create(cx_, "entry", initializerFn_);
+
+	emitNativeFunctionSignature();
+	emitCoreFunctions();
 
 	return true;
 }
@@ -544,6 +553,37 @@ bool FlowMachine::isBufferPtr(llvm::Type* type) const
 bool FlowMachine::isBufferPtr(llvm::Value* value) const
 {
 	return value && isBufferPtr(value->getType());
+}
+
+bool FlowMachine::isRegExp(llvm::Value* value) const
+{
+	return value && isRegExp(value->getType());
+}
+
+bool FlowMachine::isRegExp(llvm::Type* type) const
+{
+	return type == regexType_->getPointerTo();
+}
+
+bool FlowMachine::isIPAddress(llvm::Value* value) const
+{
+	return value && value->getType() == ipaddrType_->getPointerTo();
+}
+
+bool FlowMachine::isHandlerRef(llvm::Value* value) const
+{
+	if (!value->getType()->isPointerTy())
+		return false;
+
+	llvm::PointerType* ptr = static_cast<llvm::PointerType *>(value->getType());
+	llvm::Type* elementType = ptr->getElementType();
+
+	if (!elementType->isFunctionTy())
+		return false;
+
+	// TODO: check prototype: i1 (i8* cx_udata)
+
+	return true;
 }
 
 bool FlowMachine::isArray(llvm::Value* value) const
@@ -750,6 +790,110 @@ void FlowMachine::visit(BinaryExpr& expr)
 	right->dump();
 
 	value_ = nullptr;
+}
+
+void FlowMachine::emitNativeFunctionSignature()
+{
+	std::vector<llvm::Type *> argTypes;
+
+	argTypes.push_back(int64Type());                // self ptr
+	argTypes.push_back(int32Type());                // function id
+	argTypes.push_back(int8PtrType());              // context userdata
+	argTypes.push_back(int32Type());                // argc
+	argTypes.push_back(valueType_->getPointerTo()); // FlowValue* argv
+
+	llvm::FunctionType* ft = llvm::FunctionType::get(
+		voidType(), // return type
+		argTypes,   // arg types
+		false       // isVaArg
+	);
+
+	coreFunctions_[static_cast<size_t>(CF::native)] = llvm::Function::Create(
+		ft,
+		llvm::Function::ExternalLinkage,
+		"flow_native_call",
+		module_
+	);
+}
+
+void FlowMachine::emitCoreFunctions() // TODO
+{
+	emitCoreFunction(CF::strlen, "strlen", int64Type(), stringType(), false);
+	emitCoreFunction(CF::strcat, "strcat", stringType(), stringType(), stringType(), false);
+	emitCoreFunction(CF::strcpy, "strcpy", stringType(), stringType(), stringType(), false);
+	emitCoreFunction(CF::memcpy, "memcpy", stringType(), stringType(), stringType(), int64Type(), false);
+
+	emitCoreFunction(CF::strcasecmp, "strcasecmp", int32Type(), stringType(), stringType(), false);
+	emitCoreFunction(CF::strncasecmp, "strncasecmp", int32Type(), stringType(), stringType(), int64Type(), false);
+	emitCoreFunction(CF::strcasestr, "strcasestr", stringType(), stringType(), stringType(), false);
+
+	emitCoreFunction(CF::strcmp, "strcmp", int32Type(), stringType(), stringType(), false);
+	emitCoreFunction(CF::strncmp, "strncmp", int32Type(), stringType(), stringType(), false);
+
+	emitCoreFunction(CF::endsWith, "flow_endsWidth", int32Type(), stringType(), stringType(), false);
+
+	emitCoreFunction(CF::arrayadd, "flow_array_add", voidType(), arrayType(), arrayType(), arrayType(), false);
+	emitCoreFunction(CF::arraycmp, "flow_array_cmp", int32Type(), arrayType(), arrayType(), false);
+
+	emitCoreFunction(CF::regexmatch, "flow_regexmatch", int32Type(), int8PtrType(), int64Type(), stringType(), int64Type(), stringType(), false);
+	emitCoreFunction(CF::regexmatch2, "flow_regexmatch2", int32Type(), int8PtrType(), int64Type(), stringType(), regexType_->getPointerTo(), false);
+
+	emitCoreFunction(CF::NumberInArray, "flow_NumberInArray", int32Type(), int64Type(), arrayType(), false);
+	emitCoreFunction(CF::StringInArray, "flow_StringInArray", int32Type(), int64Type(), stringType(), arrayType(), false);
+
+	emitCoreFunction(CF::ipstrcmp, "flow_ipstrcmp", int32Type(), ipaddrType(), stringType(), false);
+	emitCoreFunction(CF::ipcmp, "flow_ipcmp", int32Type(), ipaddrType(), ipaddrType(), false);
+	emitCoreFunction(CF::pow, "llvm.pow.f64", doubleType(), doubleType(), doubleType(), false);
+
+	emitCoreFunction(CF::bool2str, "flow_bool2str", stringType(), boolType(), false);
+	emitCoreFunction(CF::int2str, "flow_int2str", int32Type(), stringType(), int64Type(), false);
+	emitCoreFunction(CF::str2int, "flow_str2int", int64Type(), stringType(), false);
+	emitCoreFunction(CF::buf2int, "flow_buf2int", int64Type(), stringType(), int64Type(), false);
+}
+
+void FlowMachine::emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, bool isVaArg)
+{
+	llvm::Type* p[1] = { p1 };
+	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
+}
+
+void FlowMachine::emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, bool isVaArg)
+{
+	llvm::Type* p[2] = { p1, p2 };
+	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
+}
+
+void FlowMachine::emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, llvm::Type* p3, bool isVaArg)
+{
+	llvm::Type* p[3] = { p1, p2, p3 };
+	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
+}
+
+void FlowMachine::emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, llvm::Type* p3, llvm::Type* p4, bool isVaArg)
+{
+	llvm::Type* p[4] = { p1, p2, p3, p4 };
+	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
+}
+
+void FlowMachine::emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, llvm::Type* p3, llvm::Type* p4, llvm::Type* p5, bool isVaArg)
+{
+	llvm::Type* p[5] = { p1, p2, p3, p4, p5 };
+	emitCoreFunction(id, name, rt, p, p + sizeof(p) / sizeof(*p), isVaArg);
+}
+
+template<typename T>
+void FlowMachine::emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, T pbegin, T pend, bool isVaArg)
+{
+	std::vector<llvm::Type *> params;
+	for (; pbegin != pend; ++pbegin)
+		params.push_back(*pbegin);
+
+	coreFunctions_[static_cast<size_t>(id)] = llvm::Function::Create(
+		llvm::FunctionType::get(rt, params, isVaArg),
+		llvm::Function::ExternalLinkage,
+		name,
+		module_
+	);
 }
 
 void FlowMachine::emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* right)
@@ -1059,7 +1203,7 @@ llvm::Value* FlowMachine::emitToValue(llvm::Value* rhs, const std::string& name)
  *
  * \returns &lhs[index] or the temporary holding the result.
  */
-llvm::Value* FlowMachine::emitNativeValue(int index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name)
+llvm::Value* FlowMachine::emitNativeValue(size_t index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name)
 {
 	llvm::Value* result = lhs != nullptr
 		? lhs
@@ -1111,7 +1255,7 @@ llvm::Value* FlowMachine::emitNativeValue(int index, llvm::Value* lhs, llvm::Val
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
 		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "stor.ip");
 	}
-	else if (isFunctionPtr(rhs)) {
+	else if (isHandlerRef(rhs)) {
 		typeCode = FlowType::Handler;
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValueOffset::Handler);
 		rhs = builder_.CreateBitCast(rhs, int8PtrType());
@@ -1265,7 +1409,7 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 
 	// emit call
 	value_ = builder_.CreateCall(
-		coreFunctions_[static_cast<size_t>(0)], //CF::native)],
+		coreFunctions_[static_cast<size_t>(CF::native)],
 		llvm::ArrayRef<llvm::Value*>(callArgs, sizeof(callArgs) / sizeof(*callArgs))
 	);
 

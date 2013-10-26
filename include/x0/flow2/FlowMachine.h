@@ -52,9 +52,46 @@ public:
 	FlowValue::Handler findHandler(const std::string& name);
 
 private:
+	enum class CF { // {{{
+		native, // for native callbacks
+
+		// string compare operators
+		strlen,
+		strcasecmp,
+		strncasecmp,
+		strcasestr,
+		strcmp,
+		strncmp,
+		regexmatch,
+		regexmatch2,
+
+		endsWith,
+		pow,
+		strcat,
+		strcpy,
+		memcpy,
+
+		arraylen,
+		arrayadd,
+		arraycmp,
+
+		NumberInArray,
+		StringInArray,
+
+		ipstrcmp, // compare(IPAddress, String)
+		ipcmp,    // compare(IPAddress, IPAddress)
+
+		// conversion
+		bool2str,
+		int2str,
+		str2int,
+		buf2int,
+
+		COUNT // synthetic end of enumeration
+	}; // }}}
+
 	bool prepare();
 	int findNative(const std::string& name) const;
-	void emitInitializerTail();
 	Scope& scope() const { return *scope_; }
 
 	// error handling
@@ -70,14 +107,19 @@ private:
 	llvm::Value* toBool(llvm::Value* value);
 
 	// IR types
+	llvm::Type* voidType() const { return llvm::Type::getVoidTy(cx_); }
 	llvm::Type* boolType() const { return llvm::Type::getInt1Ty(cx_); }
 	llvm::Type* int8Type() const { return llvm::Type::getInt8Ty(cx_); }
 	llvm::Type* int16Type() const { return llvm::Type::getInt16Ty(cx_); }
 	llvm::Type* int32Type() const { return llvm::Type::getInt32Ty(cx_); }
 	llvm::Type* int64Type() const { return llvm::Type::getInt64Ty(cx_); }
 	llvm::Type* numberType() const { return int64Type(); }
-	llvm::Type* int8PtrType() const { return llvm::Type::getInt8PtrTy(cx_); }
+	llvm::Type* doubleType() const { return llvm::Type::getDoubleTy(cx_); }
 
+	llvm::Type* int8PtrType() const { return llvm::Type::getInt8PtrTy(cx_); }
+	llvm::Type* stringType() const { return int8PtrType(); }
+
+	llvm::Type* ipaddrType() const { return ipaddrType_; }
 	llvm::Type* arrayType() const { return arrayType_; }
 
 	// type checks
@@ -100,8 +142,10 @@ private:
 	bool isBufferPtr(llvm::Type* type) const;
 
 	bool isRegExp(llvm::Value* value) const;
+	bool isRegExp(llvm::Type* type) const;
+
 	bool isIPAddress(llvm::Value* value) const;
-	bool isFunctionPtr(llvm::Value* value) const;
+	bool isHandlerRef(llvm::Value* value) const;
 
 	bool isArray(llvm::Value* value) const;
 	bool isArray(llvm::Type* type) const;
@@ -130,14 +174,23 @@ private:
 	virtual void visit(AssignStmt& stmt);
 	virtual void visit(CallStmt& stmt);
 
+	void emitInitializerTail();
+	void emitNativeFunctionSignature();
+	void emitCoreFunctions();
+	void emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, llvm::Type* p3, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, llvm::Type* p3, llvm::Type* p4, bool isVaArg);
+	void emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, llvm::Type* p1, llvm::Type* p2, llvm::Type* p3, llvm::Type* p4, llvm::Type* p5, bool isVaArg);
+	template<typename T> void emitCoreFunction(CF id, const std::string& name, llvm::Type* rt, T pbegin, T pend, bool isVaArg);
+
 	void emitOpBoolBool(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitOpIntInt(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right);
-	void emitNativeValue(size_t index, llvm::Value* target, llvm::Value* source, const std::string& name = "");
 	void emitCall(Callable* callee, ListExpr* argList);
 
 	llvm::Value* emitToValue(llvm::Value* rhs, const std::string& name);
-	llvm::Value* emitNativeValue(int index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name);
+	llvm::Value* emitNativeValue(size_t index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name = "");
 	llvm::Value* emitLoadBufferData(llvm::Value* nbuf);
 	llvm::Value* emitLoadBufferLength(llvm::Value* nbuf);
 	llvm::Value* emitAllocaBuffer(llvm::Value* data, llvm::Value* length, const std::string& name);
@@ -168,7 +221,7 @@ private:
 	llvm::StructType* cidrType_;
 	llvm::StructType* bufferType_;
 
-	std::vector<llvm::Function*> coreFunctions_;
+	llvm::Function* coreFunctions_[static_cast<size_t>(CF::COUNT)];
 	llvm::Value* userdata_;
 
 	llvm::IRBuilder<> builder_;
