@@ -1205,6 +1205,8 @@ llvm::Value* FlowMachine::emitToValue(llvm::Value* rhs, const std::string& name)
  */
 llvm::Value* FlowMachine::emitNativeValue(size_t index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name)
 {
+	FNTRACE();
+
 	llvm::Value* result = lhs != nullptr
 		? lhs
 		: builder_.CreateAlloca(valueType_, llvm::ConstantInt::get(int32Type(), 1), name);
@@ -1380,7 +1382,7 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 		value_ = nullptr;
 		return;
 	}
-	printf("emit native builtin call (%d), %s\n", id, callee->name().c_str());
+	TRACE(1, "emit native builtin call (%d), %s\n", id, callee->name().c_str());
 
 	// prepare handler parameters
 	llvm::Value* callArgs[5];
@@ -1392,6 +1394,7 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 	// argc:
 	int argc = argList ? argList->size() + 1 : 1;
 	callArgs[3] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), argc);
+	TRACE(1, "argc: %d\n", argc);
 
 	// argv:
 	callArgs[4] = builder_.CreateAlloca(valueType_,
