@@ -135,8 +135,15 @@ private:
 	void emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitNativeValue(size_t index, llvm::Value* target, llvm::Value* source, const std::string& name = "");
 	void emitCall(Callable* callee, ListExpr* argList);
+
 	llvm::Value* emitToValue(llvm::Value* rhs, const std::string& name);
 	llvm::Value* emitNativeValue(int index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name);
+	llvm::Value* emitLoadBufferData(llvm::Value* nbuf);
+	llvm::Value* emitLoadBufferLength(llvm::Value* nbuf);
+	llvm::Value* emitAllocaBuffer(llvm::Value* data, llvm::Value* length, const std::string& name);
+	llvm::Value* emitStoreBufferLength(llvm::Value* nbuf, llvm::Value* length);
+	llvm::Value* emitStoreBufferData(llvm::Value* nbuf, llvm::Value* data);
+	llvm::Value* emitStoreBuffer(llvm::Value* nbuf, llvm::Value* length, llvm::Value* data);
 
 	void setHandlerUserData(llvm::Value* value) { userdata_ = value; }
 	llvm::Value* handlerUserData() const { return userdata_; }

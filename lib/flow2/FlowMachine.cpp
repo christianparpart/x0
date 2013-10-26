@@ -1164,6 +1164,67 @@ llvm::Value* FlowMachine::emitNativeValue(int index, llvm::Value* lhs, llvm::Val
 	return result;
 }
 
+llvm::Value* FlowMachine::emitLoadBufferData(llvm::Value* nbuf)
+{
+	llvm::Value* ii[2] = {
+		llvm::ConstantInt::get(int32Type(), 0),
+		llvm::ConstantInt::get(int32Type(), 1)
+	};
+	return builder_.CreateLoad(builder_.CreateInBoundsGEP(nbuf, ii), "load.nbuf.data");
+}
+
+llvm::Value* FlowMachine::emitLoadBufferLength(llvm::Value* nbuf)
+{
+	llvm::Value* ii[2] = {
+		llvm::ConstantInt::get(int32Type(), 0),
+		llvm::ConstantInt::get(int32Type(), 0)
+	};
+	return builder_.CreateLoad(builder_.CreateInBoundsGEP(nbuf, ii), "load.nbuf.len");
+}
+
+/**
+ * Allocates a new buffer on stack and stores some data into it.
+ *
+ * @param data the data to store into the new buffer.
+ * @param length number of bytes for the buffer, and which are to be filled by the input data.
+ * @param name hint name of the new buffer.
+ *
+ * @return a handle to the allocated buffer.
+ */
+llvm::Value* FlowMachine::emitAllocaBuffer(llvm::Value* data, llvm::Value* length, const std::string& name)
+{
+	llvm::Value* nbuf = builder_.CreateAlloca(bufferType_, nullptr, name);
+	emitStoreBuffer(nbuf, length, data);
+	return nbuf;
+}
+
+llvm::Value* FlowMachine::emitStoreBufferLength(llvm::Value* nbuf, llvm::Value* length)
+{
+	llvm::Value* index[2] = {
+		llvm::ConstantInt::get(int32Type(), 0),
+		llvm::ConstantInt::get(int32Type(), 0)
+	};
+	llvm::Value* dest = builder_.CreateInBoundsGEP(nbuf, index);
+	return builder_.CreateStore(length, dest, "store.nbuf.len");
+}
+
+llvm::Value* FlowMachine::emitStoreBufferData(llvm::Value* nbuf, llvm::Value* data)
+{
+	llvm::Value* index[2] = {
+		llvm::ConstantInt::get(int32Type(), 0),
+		llvm::ConstantInt::get(int32Type(), 1)
+	};
+	llvm::Value* dest = builder_.CreateInBoundsGEP(nbuf, index);
+	return builder_.CreateStore(data, dest, "store.nbuf.data");
+}
+
+llvm::Value* FlowMachine::emitStoreBuffer(llvm::Value* nbuf, llvm::Value* length, llvm::Value* data)
+{
+	emitStoreBufferLength(nbuf, length);
+	emitStoreBufferData(nbuf, data);
+	return nbuf;
+}
+
 void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 {
 	FNTRACE();
@@ -1225,11 +1286,11 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, "retval.buf.tmp");
 				llvm::Value* data = builder_.CreateLoad(value_, "retval.buf.load");
 
-				value_ = emitAllocaBuffer(length, data, "retval");
+				value_ = emitAllocaBuffer(data, length, "retval");
 			}
 			else { // no buffer
 				int valueIndex;
-				switch (native->returnType) {
+				switch (callee->returnType()) {
 					case FlowType::Boolean: valueIndex = FlowValueOffset::Boolean; break;
 					case FlowType::Number: valueIndex = FlowValueOffset::Number; break;
 					case FlowType::String: valueIndex = FlowValueOffset::String; break;
@@ -1243,7 +1304,7 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 				value_ = builder_.CreateInBoundsGEP(callArgs[4], valueIndices, "retval.value.tmp");
 				value_ = builder_.CreateLoad(value_, "retval.value.load");
 
-				if (native->returnType == FlowValue::BOOLEAN) {
+				if (callee->returnType() == FlowType::Boolean) {
 					value_ = builder_.CreateIntCast(value_, boolType(), false, "retval.value.boolcast");
 				}
 			}
@@ -1281,7 +1342,7 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 			break;
 		}
 		default:
-			reportError("Unknown callback type (%d) encountered.", native->type);
+			reportError("Unknown callback type (%d) encountered.", callee->type());
 			break;
 	}
 }
