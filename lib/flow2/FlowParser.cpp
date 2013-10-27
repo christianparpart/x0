@@ -906,9 +906,9 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			break;
 	}
 
-	CallStmt* callStmt = static_cast<CallStmt*>(stmt.get());
-
 	if (callArgs) {
+		CallStmt* callStmt = static_cast<CallStmt*>(stmt.get());
+
 		if (token() == FlowToken::RndOpen) {
 			nextToken();
 			auto args = listExpr();
@@ -916,7 +916,11 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			if (!args) return nullptr;
 			callStmt->setArgs(std::move(args));
 		}
-		// TODO other arg modes
+		else if (lexer_->line() == loc.begin.line) {
+			auto args = listExpr();
+			if (!args) return nullptr;
+			callStmt->setArgs(std::move(args));
+		}
 	}
 
 	switch (token()) {
@@ -925,9 +929,8 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			return postscriptStmt(std::move(stmt));
 		case FlowToken::Semicolon:
 			// stmt ';'
-			// one of: BuiltinFunction, BuiltinHandler, Handler
 			nextToken();
-			loc.update(end());
+			stmt->location().update(end());
 			return stmt;
 		default:
 			if (stmt->location().end.line != lexer_->line())

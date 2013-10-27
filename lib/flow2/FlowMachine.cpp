@@ -328,23 +328,22 @@ bool FlowMachine::prepare()
 		argTypes.push_back(int16Type());
 	ipaddrType_ = llvm::StructType::create(cx_, argTypes, "IPAddress", true /*packed*/);
 
-	// BufferRef
-	argTypes.clear();
-	argTypes.push_back(int8PtrType());   // buffer data (char*)
-	argTypes.push_back(int64Type());     // buffer length
-	bufferType_ = llvm::StructType::create(cx_, argTypes, "BufferRef", true /*packed*/);
-
 	// FlowValue
 	argTypes.clear();
 	argTypes.push_back(int32Type());     // type id
-	argTypes.push_back(numberType());    // number (long long)
 	argTypes.push_back(int8PtrType());   // string (char*)
 	valueType_ = llvm::StructType::create(cx_, argTypes, "Value", true /*packed*/);
 	valuePtrType_ = valueType_->getPointerTo();
 
+	// FlowBuffer
+	argTypes.clear();
+	argTypes.push_back(int8PtrType());   // data (char*)
+	argTypes.push_back(int32Type());     // size (uint32_t)
+	bufferType_ = llvm::StructType::create(cx_, argTypes, "Buffer", true /*packed*/);
+
 	// FlowValue Array
 	argTypes.clear();
-	argTypes.push_back(valuePtrType_); // FlowValue*
+	argTypes.push_back(valuePtrType_);   // FlowValue*
 	argTypes.push_back(int32Type());     // type id
 	arrayType_ = llvm::StructType::create(cx_, argTypes, "ValueArray", true /*packed*/);
 
@@ -1223,9 +1222,26 @@ llvm::Value* FlowMachine::emitNativeValue(size_t index, llvm::Value* lhs, llvm::
 	}
 	else if (isBool(rhs)) {
 		typeCode = FlowType::Boolean;
-		rhs = builder_.CreateIntCast(rhs, numberType(), false, "bool2int");
+
+		printf("emitNativeValue(bool): %%value:\n");
+		valueType_->dump();
+
+		printf("\nemitNativeValue(bool): result:\n");
+		result->dump();
+
+		llvm::Value* source = builder_.CreateIntCast(rhs, numberType(), false, "bool2int");
+		printf("emitNativeValue(bool): source:\n");
+		source->dump();
+
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValueOffset::Number);
-		builder_.CreateStore(rhs, builder_.CreateInBoundsGEP(result, valueIndices), "store.arg.value");
+		llvm::Value* target = builder_.CreateInBoundsGEP(result, valueIndices);
+		printf("emitNativeValue(bool): target:\n");
+		target->dump();
+
+		llvm::Value* inst = builder_.CreateStore(source, target, "store.arg.value");
+
+		printf("emitNativeValue(bool): inst:\n");
+		inst->dump();
 	}
 	else if (rhs->getType()->isIntegerTy()) {
 		typeCode = FlowType::Number;

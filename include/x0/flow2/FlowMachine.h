@@ -213,13 +213,14 @@ private:
 	llvm::PassManager* modulePassMgr_;
 	llvm::FunctionPassManager* functionPassMgr_;
 
-	llvm::Type* valuePtrType_;
-	llvm::StructType* valueType_;
-	llvm::StructType* regexType_;
-	llvm::StructType* arrayType_;
-	llvm::StructType* ipaddrType_;
-	llvm::StructType* cidrType_;
-	llvm::StructType* bufferType_;
+	llvm::Type* valuePtrType_;      // Value*
+	llvm::StructType* valueType_;   // <u32 type, u8* generic>
+
+	llvm::StructType* regexType_;   // <u8* name, u8* handle>
+	llvm::StructType* arrayType_;   // <Value* items, u32 size>
+	llvm::StructType* ipaddrType_;  // <u32 domain, u16, u16, u16, u16, u16, u16, u16, u16>
+	llvm::StructType* cidrType_;    // <IPAddress ip, u32 prefix>
+	llvm::StructType* bufferType_;  // <u8* data, u32 size>
 
 	llvm::Function* coreFunctions_[static_cast<size_t>(CF::COUNT)];
 	llvm::Value* userdata_;
