@@ -29,23 +29,15 @@ struct X0_PACKED X0_API FlowValue
 	typedef bool (*Handler)(void *);
 
 	uint32_t type_;
+	int64_t number_;
 	union {
-		uint64_t number;
-		bool boolean;
-		const char* string;
-		const RegExp* regexp;
-		const IPAddress* ipaddr;
-		const Cidr* cidr;
-		Handler handler;
-		struct {
-			FlowValue* values;
-			uint32_t size;
-		} array;
-		struct bufref {
-			const char* data;
-			uint32_t size;
-		} bufref;
-	} data;
+		const char* string_;
+		const RegExp* regexp_;
+		const IPAddress* ipaddr_;
+		const Cidr* cidr_;
+		Handler handler_;
+		FlowValue* array_;
+	};
 
 	FlowValue();
 	FlowValue(const FlowValue&);
@@ -110,17 +102,17 @@ private:
 
 struct FlowValueOffset {
 	enum Name {
-		Type        = offsetof(FlowValue, type_),
-		Boolean     = offsetof(FlowValue, data.boolean),
-		Number      = offsetof(FlowValue, data.number),
-		String      = offsetof(FlowValue, data.string),
-		RegExp      = offsetof(FlowValue, data.regexp),
-		IPAddress   = offsetof(FlowValue, data.ipaddr),
-		BufferData  = offsetof(FlowValue, data.bufref.data),
-		BufferSize  = offsetof(FlowValue, data.bufref.size),
-		ArrayData   = offsetof(FlowValue, data.array.values),
-		ArraySize   = offsetof(FlowValue, data.array.size),
-		Handler     = offsetof(FlowValue, data.handler),
+		Type        = 0, //offsetof(FlowValue, type_),
+		Boolean     = 1, //offsetof(FlowValue, number_),
+		Number      = 1, //offsetof(FlowValue, number_),
+		String      = 2, //offsetof(FlowValue, string_),
+		RegExp      = 2, //offsetof(FlowValue, regexp_),
+		IPAddress   = 2, //offsetof(FlowValue, ipaddr_),
+		BufferData  = 2, //offsetof(FlowValue, string_),
+		BufferSize  = 2, //offsetof(FlowValue, number_),
+		ArrayData   = 2, //offsetof(FlowValue, array_),
+		ArraySize   = 2, //offsetof(FlowValue, number_),
+		Handler     = 2, //offsetof(FlowValue, handler_),
 	};
 
 	Name value;
@@ -136,21 +128,21 @@ struct X0_API FlowArray : protected FlowValue
 {
 	FlowArray(int argc, FlowValue* argv) : FlowValue() {
 		type_ = static_cast<decltype(type_)>(FlowType::Array);
-		data.array.size = argc;
-		data.array.values = argv;
+		number_ = argc;
+		array_ = argv;
 	}
 
-	bool empty() const { return data.array.size == 0; }
-	size_t size() const { return data.array.size; }
+	bool empty() const { return number_ == 0; }
+	size_t size() const { return number_; }
 
-	const FlowValue& at(size_t i) const { return data.array.values[i]; }
-	FlowValue& at(size_t i) { return const_cast<FlowValue*>(data.array.values)[i]; }
+	const FlowValue& at(size_t i) const { return array_[i]; }
+	FlowValue& at(size_t i) { return const_cast<FlowValue*>(array_)[i]; }
 
-	const FlowValue& operator[](size_t i) const { return data.array.values[i]; }
-	FlowValue& operator[](size_t i) { return const_cast<FlowValue*>(data.array.values)[i]; }
+	const FlowValue& operator[](size_t i) const { return array_[i]; }
+	FlowValue& operator[](size_t i) { return const_cast<FlowValue*>(array_)[i]; }
 
-	const FlowValue* begin() const { return data.array.values; }
-	const FlowValue* end() const { return data.array.values + size(); }
+	const FlowValue* begin() const { return array_; }
+	const FlowValue* end() const { return array_ + size(); }
 
 	template<typename T>
 	inline bool load(size_t i, T& out) const { return i < size() ? at(i).load(out) : false; }
@@ -163,26 +155,25 @@ typedef FlowArray FlowParams;
 // {{{ inlines
 inline const char* FlowValue::toString() const
 {
-	return data.string;
+	return string_;
 }
 
 inline long long FlowValue::toNumber() const
 {
-	return data.number;
+	return number_;
 }
 
 inline bool FlowValue::toBoolean() const
 {
-	return data.boolean;
+	return number_ != 0;
 }
 
 inline FlowValue& FlowValue::set(bool boolean)
 {
 	setType(FlowType::Boolean);
-	data.boolean = boolean;
+	number_ = boolean;
 	return *this;
 }
-
 // }}}
 
 } // namespace x0

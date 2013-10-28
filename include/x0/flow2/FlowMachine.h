@@ -120,7 +120,7 @@ private:
 	llvm::Type* stringType() const { return int8PtrType(); }
 
 	llvm::Type* ipaddrType() const { return ipaddrType_; }
-	llvm::Type* arrayType() const { return arrayType_; }
+	llvm::Type* arrayType() const { return valueType_->getPointerTo(); }
 
 	// type checks
 	bool isBool(llvm::Type* type) const;
@@ -189,7 +189,6 @@ private:
 	void emitOpStrStr(FlowToken op, llvm::Value* left, llvm::Value* right);
 	void emitCall(Callable* callee, ListExpr* argList);
 
-	llvm::Value* emitToValue(llvm::Value* rhs, const std::string& name);
 	llvm::Value* emitNativeValue(size_t index, llvm::Value* lhs, llvm::Value* rhs, const std::string& name = "");
 	llvm::Value* emitLoadBufferData(llvm::Value* nbuf);
 	llvm::Value* emitLoadBufferLength(llvm::Value* nbuf);
@@ -217,7 +216,6 @@ private:
 	llvm::StructType* valueType_;   // <u32 type, u8* generic>
 
 	llvm::StructType* regexType_;   // <u8* name, u8* handle>
-	llvm::StructType* arrayType_;   // <Value* items, u32 size>
 	llvm::StructType* ipaddrType_;  // <u32 domain, u16, u16, u16, u16, u16, u16, u16, u16>
 	llvm::StructType* cidrType_;    // <IPAddress ip, u32 prefix>
 	llvm::StructType* bufferType_;  // <u8* data, u32 size>

@@ -241,7 +241,6 @@ FlowMachine::FlowMachine(FlowBackend* backend) :
 	valuePtrType_(nullptr),
 	valueType_(nullptr),
 	regexType_(nullptr),
-	arrayType_(nullptr),
 	ipaddrType_(nullptr),
 	cidrType_(nullptr),
 	bufferType_(nullptr),
@@ -331,21 +330,16 @@ bool FlowMachine::prepare()
 	// FlowValue
 	argTypes.clear();
 	argTypes.push_back(int32Type());     // type id
-	argTypes.push_back(int8PtrType());   // string (char*)
+	argTypes.push_back(int64Type());     // number
+	argTypes.push_back(int8PtrType());   // data ptr
 	valueType_ = llvm::StructType::create(cx_, argTypes, "Value", true /*packed*/);
 	valuePtrType_ = valueType_->getPointerTo();
 
 	// FlowBuffer
 	argTypes.clear();
+	argTypes.push_back(int64Type());     // size (uint64_t)
 	argTypes.push_back(int8PtrType());   // data (char*)
-	argTypes.push_back(int32Type());     // size (uint32_t)
 	bufferType_ = llvm::StructType::create(cx_, argTypes, "Buffer", true /*packed*/);
-
-	// FlowValue Array
-	argTypes.clear();
-	argTypes.push_back(valuePtrType_);   // FlowValue*
-	argTypes.push_back(int32Type());     // type id
-	arrayType_ = llvm::StructType::create(cx_, argTypes, "ValueArray", true /*packed*/);
 
 	// Cidr
 	argTypes.clear();
@@ -632,6 +626,10 @@ void FlowMachine::visit(Handler& handler)
 
 	scope().enter();
 
+	// save handler's userdata (context) data, for later reference
+	fn->getArgumentList().front().setName("userdata");
+	userdata_ = &fn->getArgumentList().front();
+
 	// create entry-BasicBlock for this function and enter inner scope
 	llvm::BasicBlock* lastBB = builder_.GetInsertBlock();
 	llvm::BasicBlock* bb = llvm::BasicBlock::Create(cx_, "entry", fn);
@@ -666,7 +664,6 @@ void FlowMachine::visit(Handler& handler)
 	scope().insertGlobal(&handler, value_);
 
 	TRACE(1, "handler `%s` compiled", handler.name().c_str());
-	//fn->dump();
 }
 
 void FlowMachine::visit(BuiltinFunction& symbol)
@@ -1187,12 +1184,6 @@ void FlowMachine::visit(CallStmt& callStmt)
 	emitCall(callStmt.callee(), callStmt.args());
 }
 
-llvm::Value* FlowMachine::emitToValue(llvm::Value* rhs, const std::string& name)
-{
-	FNTRACE();
-	return emitNativeValue(0, nullptr, rhs, name);
-}
-
 /** emits rhs into a FlowValue at lhs[index] (if lhs != null).
  *
  * @param index
@@ -1222,26 +1213,10 @@ llvm::Value* FlowMachine::emitNativeValue(size_t index, llvm::Value* lhs, llvm::
 	}
 	else if (isBool(rhs)) {
 		typeCode = FlowType::Boolean;
-
-		printf("emitNativeValue(bool): %%value:\n");
-		valueType_->dump();
-
-		printf("\nemitNativeValue(bool): result:\n");
-		result->dump();
-
 		llvm::Value* source = builder_.CreateIntCast(rhs, numberType(), false, "bool2int");
-		printf("emitNativeValue(bool): source:\n");
-		source->dump();
-
 		valueIndices[1] = llvm::ConstantInt::get(llvm::Type::getInt32Ty(cx_), FlowValueOffset::Number);
-		llvm::Value* target = builder_.CreateInBoundsGEP(result, valueIndices);
-		printf("emitNativeValue(bool): target:\n");
-		target->dump();
-
-		llvm::Value* inst = builder_.CreateStore(source, target, "store.arg.value");
-
-		printf("emitNativeValue(bool): inst:\n");
-		inst->dump();
+		llvm::Value* target = builder_.CreateInBoundsGEP(result, valueIndices, "val.bool");
+		builder_.CreateStore(source, target, "store.arg.value");
 	}
 	else if (rhs->getType()->isIntegerTy()) {
 		typeCode = FlowType::Number;
@@ -1419,12 +1394,9 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 	emitNativeValue(0, callArgs[4], nullptr); // initialize return value
 
 	int index = 1;
-	if (argc > 1) {
-		for (auto i = argList->begin(), e = argList->end(); i != e; ++i) {
-			//storeValueInVector(index++, callArgs[4], emitToValue(codegen(*i)));
+	if (argc > 1)
+		for (auto i = argList->begin(), e = argList->end(); i != e; ++i)
 			emitNativeValue(index++, callArgs[4], codegen(i->get()));
-		}
-	}
 
 	// emit call
 	value_ = builder_.CreateCall(
@@ -1501,7 +1473,6 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 			// emit handler.cont block
 			caller->getBasicBlockList().push_back(contBlock);
 			builder_.SetInsertPoint(contBlock);
-
 			break;
 		}
 		default:
