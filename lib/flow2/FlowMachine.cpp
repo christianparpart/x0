@@ -347,15 +347,16 @@ bool FlowMachine::prepare()
 	argTypes.push_back(int32Type());
 	cidrType_ = llvm::StructType::create(cx_, argTypes, "Cidr", true /*packed*/);
 
+	// function decls
+	emitNativeFunctionSignature();
+	emitCoreFunctions();
+
 	// initializer
 	argTypes.clear();
 	initializerFn_ = llvm::Function::Create(
 		llvm::FunctionType::get(llvm::Type::getVoidTy(cx_), argTypes, false),
 		llvm::Function::ExternalLinkage, "__flow_initialize", module_);
 	initializerBB_ = llvm::BasicBlock::Create(cx_, "entry", initializerFn_);
-
-	emitNativeFunctionSignature();
-	emitCoreFunctions();
 
 	return true;
 }
