@@ -49,7 +49,7 @@ public:
 
 	bool compile(Unit* unit);
 
-	FlowValue::Handler findHandler(const std::string& name);
+	FlowValue::Handler findHandler(Handler* handlerSym);
 
 private:
 	enum class CF { // {{{

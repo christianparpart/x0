@@ -269,7 +269,7 @@ void FlowMachine::shutdown()
 	llvm::llvm_shutdown();
 }
 
-extern "C" void flow_native_call(FlowMachine* self, uint32_t id, FlowContext* cx, uint32_t argc, FlowValue* argv)
+extern "C" X0_EXPORT void flow_native_call(FlowMachine* self, uint32_t id, FlowContext* cx, uint32_t argc, FlowValue* argv)
 {
 	printf("flow_native_call(self:%p, id:%d, cx:%p, argc:%d, argv:%p)\n", self, id, cx, argc, argv);
 }
@@ -396,13 +396,20 @@ bool FlowMachine::compile(Unit* unit)
 	return value_ != nullptr;
 }
 
-FlowValue::Handler FlowMachine::findHandler(const std::string& name)
+FlowValue::Handler FlowMachine::findHandler(Handler* handlerSym)
 {
-	return nullptr;
+	llvm::Function* fn = (llvm::Function*) scope().lookup(handlerSym);
+	if (!fn) {
+		TRACE(1, "function IR generation failed\n");
+		return nullptr;
+	}
+
+	return reinterpret_cast<FlowValue::Handler>(executionEngine_->getPointerToFunction(fn));
 }
 
 void FlowMachine::reportError(const std::string& message)
 {
+	fprintf(stderr, "%s\n", message.c_str());
 }
 
 llvm::Value* FlowMachine::codegen(Expr* expr)

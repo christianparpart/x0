@@ -110,6 +110,14 @@ void Variable::accept(ASTVisitor& v)
 	v.visit(*this);
 }
 
+Handler* Unit::findHandler(const std::string& name)
+{
+	if (class Handler* handler = dynamic_cast<class Handler*>(scope()->lookup(name, Lookup::Self)))
+		return handler;
+
+	return nullptr;
+}
+
 void Unit::accept(ASTVisitor& v) {
 	v.visit(*this);
 }

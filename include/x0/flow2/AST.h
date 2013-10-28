@@ -259,6 +259,8 @@ public:
 		imports_.push_back(std::make_pair(moduleName, path));
 	}
 
+	class Handler* findHandler(const std::string& name);
+
 	virtual void accept(ASTVisitor& v);
 };
 // }}}
