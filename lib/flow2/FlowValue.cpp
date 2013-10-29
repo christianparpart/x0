@@ -17,12 +17,17 @@ std::string FlowValue::asString() const
 		case FlowType::String:
 		   return toString();
 		case FlowType::Buffer:
+			return "TODO (Buffer)";
 		case FlowType::IPAddress:
+			return "TODO (IPAddress)";
 		case FlowType::Cidr:
+			return "TODO (Cidr)";
 		case FlowType::RegExp:
+			return "TODO (RegExp)";
 		case FlowType::Array:
+			return "TODO (Array)";
 		case FlowType::Handler:
-			return "TODO";
+			return "TODO (Handler)";
 	}
 }
 

@@ -50,12 +50,17 @@ Flower::Flower() :
 //	registerFunction("mkbuf", FlowValue::BUFFER, &flow_mkbuf);
 //	registerFunction("getbuf", FlowValue::BUFFER, &flow_getbuf);
 
+	registerFunction("__print", FlowType::Void)
+		.signature(FlowType::String) // TODO: support FlowType::Generic (or FlowType::Any)
+		.bind(&Flower::flow_print, this, std::placeholders::_1);
+
 	// unit test aiding handlers
 //	registerHandler("error", &flow_error);
 //	registerHandler("finish", &flow_finish); // XXX rename to 'success'
 
-	registerHandler("assert").signature(FlowType::Boolean)
-		(std::bind(&Flower::flow_assert, this, std::placeholders::_1, std::placeholders::_2));
+	registerHandler("assert")
+		.signature(FlowType::Boolean)
+		.bind(&Flower::flow_assert, this, std::placeholders::_1);
 
 //	registerHandler("assert_fail", &flow_assertFail);
 
@@ -194,7 +199,12 @@ void Flower::clear()
 	//runner_.clear();
 }
 
-void Flower::flow_assert(FlowArray& args, FlowContext* /*cx*/)
+void Flower::flow_print(FlowArray& args)
+{
+	printf("%s\n", args[1].asString().c_str());
+}
+
+void Flower::flow_assert(FlowArray& args)
 {
 	const FlowValue& sourceValue = args[args.size() - 1];
 	std::string source;

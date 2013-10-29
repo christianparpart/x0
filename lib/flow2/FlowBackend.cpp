@@ -29,11 +29,27 @@ int FlowBackend::find(const std::string& name) const
 	return -1;
 }
 
+FlowBackend::Callback& FlowBackend::registerFunction(const std::string& name, FlowType returnType)
+{
+	for (auto i = builtins_.begin(), e = builtins_.end(); i != e; ++i) {
+		if (i->name_ == name) {
+			fprintf(stderr, "FlowBackend: There is already a native callback with that name '%s'\n", name.c_str());
+			abort();
+		}
+	}
+
+	builtins_.push_back(Callback::makeFunction(name, returnType));
+	return builtins_[builtins_.size() - 1];
+}
+
 FlowBackend::Callback& FlowBackend::registerHandler(const std::string& name)
 {
-	for (auto i = builtins_.begin(), e = builtins_.end(); i != e; ++i)
-		if (i->name_ == name)
-			return *i;
+	for (auto i = builtins_.begin(), e = builtins_.end(); i != e; ++i) {
+		if (i->name_ == name) {
+			fprintf(stderr, "FlowBackend: There is already a native callback with that name '%s'\n", name.c_str());
+			abort();
+		}
+	}
 
 	builtins_.push_back(Callback::makeHandler(name));
 	return builtins_[builtins_.size() - 1];
@@ -41,7 +57,7 @@ FlowBackend::Callback& FlowBackend::registerHandler(const std::string& name)
 
 extern "C" X0_EXPORT void flow_native_call(FlowBackend* self, uint32_t id, FlowContext* cx, uint32_t argc, FlowValue* argv)
 {
-	printf("flow_native_call(self:%p, id:%d, cx:%p, argc:%d, argv:%p)\n", self, id, cx, argc, argv);
+	//printf("flow_native_call(self:%p, id:%d, cx:%p, argc:%d, argv:%p)\n", self, id, cx, argc, argv);
 	FlowParams args(argc, argv);
 	self->builtins()[id].invoke(args, cx);
 }

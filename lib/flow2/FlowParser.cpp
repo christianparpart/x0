@@ -153,9 +153,12 @@ bool FlowParser::open(const std::string& filename)
 			s.push_back(");");
 			printf("%s\n", s.c_str());
 
-			// TODO determine if it's a handler or a function
+			if (builtin.isHandler())
+				createSymbol<BuiltinHandler>(builtin.name(), FlowLocation());
+			else
+				createSymbol<BuiltinFunction>(builtin.name(), builtin.signature()[0], FlowLocation());
 
-			createSymbol<BuiltinHandler>(builtin.name(), FlowLocation());
+			// TODO propagate signature (maybe?)
 		}
 	}
 

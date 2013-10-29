@@ -672,11 +672,13 @@ void FlowMachine::visit(Handler& handler)
 void FlowMachine::visit(BuiltinFunction& symbol)
 {
 	FNTRACE();
+	// native functions do not need code generated
 }
 
 void FlowMachine::visit(BuiltinHandler& symbol)
 {
 	FNTRACE();
+	// native handlers do not need code generated
 }
 
 void FlowMachine::visit(Unit& unit)
@@ -1408,6 +1410,7 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 	);
 
 	// handle return value
+	printf("Calee: %d\n", callee->type());
 	switch (callee->type()) {
 		case Symbol::BuiltinFunction: {
 			if (callee->returnType() == FlowType::Buffer) {

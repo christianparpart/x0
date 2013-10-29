@@ -18,14 +18,28 @@ typedef std::function<void(FlowParams& args, FlowContext* cx)> FlowCallback;
 class X0_API FlowBackend {
 public:
 	struct Callback { // {{{
+		bool isHandler_;
 		std::string name_;
 		FlowCallback function_;
 		std::vector<FlowType> signature_;
 
+		bool isHandler() const { return isHandler_; }
 		const std::string name() const { return name_; }
 		const std::vector<FlowType>& signature() const { return signature_; }
 
+		// constructs a handler callback
+		explicit Callback(const std::string& _name) :
+			isHandler_(true),
+			name_(_name),
+			function_(),
+			signature_()
+		{
+			signature_.push_back(FlowType::Boolean);
+		}
+
+		// constructs a function callback
 		Callback(const std::string& _name, FlowType _returnType) :
+			isHandler_(false),
 			name_(_name),
 			function_(),
 			signature_()
@@ -34,6 +48,7 @@ public:
 		}
 
 		Callback(const std::string& _name, const FlowCallback& _builtin, FlowType _returnType) :
+			isHandler_(false),
 			name_(_name),
 			function_(_builtin),
 			signature_()
@@ -67,17 +82,20 @@ public:
 			return *this;
 		}
 
+		template<typename... Args>
+		Callback& bind(Args&&... args) {
+			function_ = std::bind(std::forward<Args>(args)...);
+			return *this;
+		}
+
 		// static factory
 
-		template<typename... ArgTypes>
-		static Callback makeFunction(const std::string& name, const FlowCallback& function, FlowType rt, ArgTypes... args) {
-			Callback cb(name, function, rt);
-			cb.signature(args...);
-			return cb;
+		static Callback makeFunction(const std::string& name, FlowType rt) {
+			return Callback(name, rt);
 		}
 
 		static Callback makeHandler(const std::string& name) {
-			return Callback(name, FlowType::Boolean);
+			return Callback(name);
 		}
 	}; // }}}
 
@@ -95,6 +113,7 @@ public:
 	const std::vector<Callback>& builtins() const { return builtins_; }
 
 	Callback& registerHandler(const std::string& name);
+	Callback& registerFunction(const std::string& name, FlowType returnType);
 
 //	template<typename... Args>
 //	Callback& registerFunction(const std::string& name, const FlowCallback& fn, FlowType returnType, Args... args);
