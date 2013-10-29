@@ -817,7 +817,7 @@ void FlowMachine::emitNativeFunctionSignature()
 	);
 }
 
-void FlowMachine::emitCoreFunctions() // TODO
+void FlowMachine::emitCoreFunctions()
 {
 	emitCoreFunction(CF::strlen, "strlen", int64Type(), stringType(), false);
 	emitCoreFunction(CF::strcat, "strcat", stringType(), stringType(), stringType(), false);
@@ -1410,7 +1410,6 @@ void FlowMachine::emitCall(Callable* callee, ListExpr* argList)
 	);
 
 	// handle return value
-	printf("Calee: %d\n", callee->type());
 	switch (callee->type()) {
 		case Symbol::BuiltinFunction: {
 			if (callee->returnType() == FlowType::Buffer) {
