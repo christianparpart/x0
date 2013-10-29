@@ -153,6 +153,15 @@ struct X0_API FlowArray : protected FlowValue
 typedef FlowArray FlowParams;
 
 // {{{ inlines
+inline FlowValue::FlowValue() :
+	type_(static_cast<decltype(type_)>(FlowType::Void))
+{
+}
+
+inline FlowValue::~FlowValue()
+{
+}
+
 inline const char* FlowValue::toString() const
 {
 	return string_;

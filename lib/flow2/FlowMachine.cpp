@@ -269,11 +269,6 @@ void FlowMachine::shutdown()
 	llvm::llvm_shutdown();
 }
 
-extern "C" X0_EXPORT void flow_native_call(FlowMachine* self, uint32_t id, FlowContext* cx, uint32_t argc, FlowValue* argv)
-{
-	printf("flow_native_call(self:%p, id:%d, cx:%p, argc:%d, argv:%p)\n", self, id, cx, argc, argv);
-}
-
 void FlowMachine::dump()
 {
 	module_->dump();

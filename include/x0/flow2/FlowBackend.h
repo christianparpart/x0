@@ -41,7 +41,7 @@ public:
 			signature_.push_back(_returnType);
 		}
 
-		void invoke(FlowParams& args, FlowContext* cx) {
+		void invoke(FlowParams& args, FlowContext* cx) const {
 			function_(args, cx);
 		}
 
