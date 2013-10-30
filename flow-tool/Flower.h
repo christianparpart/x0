@@ -10,7 +10,7 @@
 #include <x0/flow2/AST.h>
 #include <x0/flow2/FlowParser.h>
 #include <x0/flow2/FlowBackend.h>
-#include <x0/flow2/FlowMachine.h>
+#include <x0/flow2/FlowEngine.h>
 #include <string>
 #include <memory>
 #include <cstdio>
@@ -22,7 +22,7 @@ class Flower : public x0::FlowBackend
 {
 private:
 	std::string filename_;
-	x0::FlowMachine vm_;
+	x0::FlowEngine vm_;
 	size_t totalCases_;		// total number of cases ran
 	size_t totalSuccess_;	// total number of succeed tests
 	size_t totalFailed_;	// total number of failed tests

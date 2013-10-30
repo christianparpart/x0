@@ -178,7 +178,7 @@ int Flower::run(const char* fileName, const char* handlerName)
 		printf("No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
 		return -1;
 	}
-
+#if 0
 	FlowValue::Handler handler = vm_.findHandler(handlerSym);
 	if (!handler) {
 		printf("No handler with name '%s' found in codegen unit '%s'.\n", handlerName, fileName);
@@ -187,6 +187,12 @@ int Flower::run(const char* fileName, const char* handlerName)
 
 	bool handled = handler(nullptr); //false; // runner_.invoke(fn);
 	return handled ? 0 : 1;
+#else
+	if (vm_.run(handlerSym, nullptr))
+		return 0;
+	else
+		return 1;
+#endif
 }
 
 void Flower::dump()

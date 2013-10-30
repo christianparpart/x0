@@ -137,6 +137,7 @@ if(ENABLE_XZERO_FLOW2)
     flow2/ASTPrinter.cpp
     flow2/FlowBackend.cpp
     flow2/FlowContext.cpp
+    flow2/FlowEngine.cpp
     flow2/FlowLexer.cpp
     flow2/FlowLocation.cpp
     flow2/FlowMachine.cpp
