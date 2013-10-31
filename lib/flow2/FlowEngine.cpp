@@ -107,8 +107,8 @@ struct fntrace3 {
 #endif // }}}
 
 FlowEngine::FlowEngine(FlowBackend* backend) :
-	backend_(backend),
 	data_(),
+	backend_(backend),
 	userdata_(nullptr),
 	currentNode_(nullptr),
 	result_(nullptr)
@@ -135,12 +135,7 @@ bool FlowEngine::run(Handler* handler, void* userdata)
 	userdata_ = userdata;
 
 	visit(*handler);
-	return toBoolean();
-}
-
-bool FlowEngine::toBoolean()
-{
-	return false; // TODO
+	return false;
 }
 
 void FlowEngine::visit(Unit& symbol)

@@ -24,7 +24,7 @@ public:
 	bool run(Handler* handler, void* userdata);
 
 private:
-	std::unordered_map<Handler* handler, uint8_t*> handlerEntryPoints_;
+	std::unordered_map<Handler*, uint8_t*> handlerEntryPoints_;
 	uint8_t* program_;
 	uint8_t* pc_;
 
@@ -39,8 +39,7 @@ private:
 	ASTNode* currentNode_;
 	FlowValue* result_;
 
-	bool toBoolean();
-
+	// {{{ byte code generator
 	// symbols
 	virtual void visit(Unit& symbol);
 	virtual void visit(Variable& variable);
@@ -69,6 +68,7 @@ private:
 	virtual void visit(CondStmt& stmt);
 	virtual void visit(AssignStmt& stmt);
 	virtual void visit(CallStmt& stmt);
+	// }}}
 };
 
 } // namespace x0 
