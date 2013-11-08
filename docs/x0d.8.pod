@@ -168,7 +168,7 @@ high performance HTTP web server and framework in modern C++.
 
 B<x0d> and its standard plugins is licensed under AGPL-3.
 
-The B<x0 core framework> provided by the x0 project is licensed unter AAGPL-3.
+The B<x0 core framework> provided by the x0 project is licensed unter AGPL-3.
 
 =head1 AUTHOR
 
