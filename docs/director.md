@@ -280,7 +280,7 @@ Retrieves state of only one backend from a director, by names.
 
 ## Creating a new Backend
 
-    curl -v http://localhost:8080/x0/director/app_cluster -X PUT \
+    curl -v http://localhost:8080/x0/director/app_cluster/backends -X PUT \
         -d role=active \
         -d enabled=false \
         -d capacity=2 \
@@ -298,7 +298,7 @@ Others must be specified via request body.
 
 ## Updating an existing Backend
 
-    curl -v http://localhost:8080/x0/director/app_cluster/backend01 -X POST \
+    curl -v http://localhost:8080/x0/director/app_cluster/backends/backend01 -X POST \
         -d role=active \
         -d enabled=false \
         -d capacity=2 \
@@ -317,7 +317,7 @@ Updating name, protocol, hostname, or port would literally be the same as just c
 
 ## Deleting a Backend
 
-    curl -v http://localhost:8080/x0/director/app_cluster/backend01 -X DELETE
+    curl -v http://localhost:8080/x0/director/app_cluster/backends/backend01 -X DELETE
 
 The wait parameter specifies whether or not to kill existing connections on
 given backend or if the backend should wait for them to finish before getting
