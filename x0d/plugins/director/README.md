@@ -105,3 +105,10 @@ bucket will suffice from starvation.
 - make classful scheduler the default, and/or even think about only supporting
   this kind of queueing scheduler algorithm.
 
+### Web Interface
+
+- Overview-page (haproxy-alike), listing all clusters, and its backends with their stats, and allowing to enable/disable those
+- Live-page showing live stats:
+  - charts, and historical graphs of cluster/bucket/backend utilization
+  - current reuest-per-second for all
+
