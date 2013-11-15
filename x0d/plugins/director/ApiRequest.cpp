@@ -24,6 +24,8 @@
 // update director:  POST   /:director_id
 // enable director:  LOCK   /:director_id
 // disable director: UNLOCK /:director_id
+// delete director:  DELETE /:director_id
+// create director:  PUT    /:director_id
 //
 // create backend:   PUT    /:director_id/backends/:backend_id
 // update backend:   POST   /:director_id/backends/:backend_id
@@ -61,6 +63,9 @@
 // - health-check-host-header
 // - health-check-request-path
 // - health-check-fcgi-script-filename
+//
+// - hostname
+// - port
 
 #define X_FORM_URL_ENCODED "application/x-www-form-urlencoded"
 
@@ -392,6 +397,10 @@ bool ApiRequest::index()
 // {{{ directors
 bool ApiRequest::processDirector()
 {
+	if (requestMethod() == HttpMethod::PUT) {
+		return createDirector(tokens_[0].str());
+	}
+
 	Director* director = findDirector(tokens_[0]);
 	if (!director) {
 		request_->status = x0::HttpStatus::NotFound;
@@ -404,6 +413,8 @@ bool ApiRequest::processDirector()
 			return show(director);
 		case HttpMethod::POST:
 			return update(director);
+		case HttpMethod::DELETE:
+			return destroy(director);
 		default:
 			return false;
 	}
@@ -422,6 +433,7 @@ bool ApiRequest::show(Director* director)
 	return true;
 }
 
+// POST /:director
 bool ApiRequest::update(Director* director)
 {
 	bool enabled = director->isEnabled();
@@ -518,6 +530,17 @@ bool ApiRequest::update(Director* director)
 	return true;
 }
 
+// PUT /:director
+bool ApiRequest::createDirector(const std::string& name)
+{
+	return false; // TODO
+}
+
+// DELETE /:director
+bool ApiRequest::destroy(Director* director)
+{
+	return false; // TODO
+}
 // }}}
 // {{{ backends
 bool ApiRequest::processBackend()

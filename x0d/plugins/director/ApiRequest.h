@@ -90,6 +90,8 @@ private:
 	bool show(Backend* backend);
 	bool update(Director* director);
 	bool lock(bool enable, Director* director);
+	bool destroy(Director* director);
+	bool createDirector(const std::string& name);
 
 	// backend
 	bool processBackend();
