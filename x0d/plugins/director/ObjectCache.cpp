@@ -75,10 +75,13 @@ void ObjectCache::Object::postProcess()
 			return;
 		}
 
-		if (unlikely(iequals(header.name, "Cache-Control") && iequals(header.value, "no-cache"))) {
-			TRACE(request_, 2, "Cache-Control detected. do not record object then.");
-			destroy();
-			return;
+		if (unlikely(iequals(header.name, "Cache-Control"))) {
+			if (iequals(header.value, "no-cache")) {
+				TRACE(request_, 2, "Cache-Control detected. do not record object then.");
+				destroy();
+				return;
+			}
+			// TODO we can actually cache it if it's max-age=N is N > 0 for exact N seconds.
 		}
 
 		if (unlikely(iequals(header.name, "X-Director-Cache")))
