@@ -141,10 +141,13 @@ if(ENABLE_XZERO_FLOW2)
     flow2/FlowLexer.cpp
     flow2/FlowLocation.cpp
     flow2/FlowMachine.cpp
+    flow2/FlowProgram.cpp
+    flow2/FlowCompiler.cpp
     flow2/FlowParser.cpp
     flow2/FlowToken.cpp
     flow2/FlowType.cpp
     flow2/FlowValue.cpp
+    flow2/FlowVM.cpp
   )
   add_library(XzeroFlow2 SHARED ${x0_flow2_SRC})
   set_target_properties(XzeroFlow2 PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")

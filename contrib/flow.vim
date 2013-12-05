@@ -19,7 +19,7 @@ syn region flowBlock start="{" end="}" transparent fold
 
 " keywords
 syn keyword flowKeywords import from
-syn keyword flowKeywords handler on do extern var if then else unless
+syn keyword flowKeywords handler match on do extern var if then else unless
 syn keyword flowCoreHandler assert assert_fail finish
 syn keyword flowCoreFunctions __print tonumber tostring tobool
 

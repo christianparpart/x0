@@ -158,8 +158,41 @@ inline FlowValue::FlowValue() :
 {
 }
 
+inline FlowValue::FlowValue(const FlowValue& v) :
+	type_(static_cast<decltype(type_)>(FlowType::Void))
+{
+    set(v);
+}
+
+inline FlowValue::FlowValue(bool value) :
+	type_(static_cast<decltype(type_)>(FlowType::Boolean)),
+    number_(value)
+{
+}
+
+inline FlowValue::FlowValue(long long value) :
+	type_(static_cast<decltype(type_)>(FlowType::Number)),
+    number_(value)
+{
+}
+
+inline FlowValue::FlowValue(const char* buf, size_t length) :
+	type_(static_cast<decltype(type_)>(FlowType::Buffer)),
+    number_(length)
+{
+    string_ = buf;
+}
+
 inline FlowValue::~FlowValue()
 {
+}
+
+inline FlowValue& FlowValue::set(const FlowValue& v)
+{
+    type_ = v.type_;
+    number_ = v.number_;
+    string_ = v.string_;
+    return *this;
 }
 
 inline const char* FlowValue::toString() const
@@ -182,6 +215,13 @@ inline FlowValue& FlowValue::set(bool boolean)
 	setType(FlowType::Boolean);
 	number_ = boolean;
 	return *this;
+}
+
+inline FlowValue& FlowValue::set(long long integer)
+{
+	setType(FlowType::Number);
+    number_ = integer;
+    return *this;
 }
 // }}}
 

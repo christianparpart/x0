@@ -11,6 +11,7 @@
 #include <x0/flow2/FlowParser.h>
 #include <x0/flow2/FlowBackend.h>
 #include <x0/flow2/FlowMachine.h>
+#include <x0/flow2/FlowContext.h>
 #include <fstream>
 #include <memory>
 #include <utility>

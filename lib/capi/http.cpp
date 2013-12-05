@@ -108,6 +108,7 @@ void x0_server_destroy(x0_server_t* server, int kill)
 
 void x0_server_run(x0_server_t* server)
 {
+	DebugLogger::get().configure("XZERO_DEBUG");
 	server->server.run();
 }
 
@@ -430,5 +431,6 @@ void x0_response_finish(x0_request_t* r)
 
 void x0_response_sendfile(x0_request_t* r, const char* path)
 {
+	printf("sendfile: '%s'\n", path);
 	r->request->sendfile(path);
 }
