@@ -9,20 +9,25 @@
 
 #include <x0/flow2/AST.h>
 #include <x0/flow2/FlowParser.h>
-#include <x0/flow2/FlowBackend.h>
-#include <x0/flow2/FlowEngine.h>
+#include <x0/flow2/vm/Runtime.h>
 #include <string>
 #include <memory>
 #include <cstdio>
 #include <unistd.h>
 
+namespace x0 {
+    namespace FlowVM {
+        class Program;
+    }
+}
+
 using namespace x0;
 
-class Flower : public x0::FlowBackend
+class Flower : public x0::FlowVM::Runtime
 {
 private:
 	std::string filename_;
-	x0::FlowEngine vm_;
+    std::unique_ptr<FlowVM::Program> program_;
 	size_t totalCases_;		// total number of cases ran
 	size_t totalSuccess_;	// total number of succeed tests
 	size_t totalFailed_;	// total number of failed tests
@@ -36,8 +41,8 @@ public:
 
 	virtual bool import(const std::string& name, const std::string& path);
 
-	int optimizationLevel() { return 0; }  // TODO runner_.optimizationLevel(); }
-	void setOptimizationLevel(int val) { } // TODO runner_.setOptimizationLevel(val); }
+	int optimizationLevel() { return 0; }
+	void setOptimizationLevel(int val) { }
 
 	void setDumpAST(bool value) { dumpAST_ = value; }
 	void setDumpIR(bool value) { dumpIR_ = value; }
@@ -51,21 +56,21 @@ private:
 	bool onParseComplete(x0::Unit* unit);
 
 	// functions
-	void flow_print(FlowParams& args);
+	void flow_print(FlowVM::Params& args);
 
 	// handlers
-	void flow_assert(FlowParams& args);
+	void flow_assert(FlowVM::Params& args);
 
 	// TODO: not ported yet
-//	static void get_cwd(void *, x0::FlowParams& args, void *);
-//	static void flow_mkbuf(void *, x0::FlowParams& args, void *);
-//	static void flow_getbuf(void *, x0::FlowParams& args, void *);
-//	static void flow_getenv(void *, x0::FlowParams& args, void *);
-//	static void flow_error(void *, x0::FlowParams& args, void *);
-//	static void flow_finish(void *, x0::FlowParams& args, void *);
-//	static void flow_fail(void *, x0::FlowParams& args, void *);
-//	static void flow_pass(void *, x0::FlowParams& args, void *);
-//	static void flow_assertFail(void *, x0::FlowParams& args, void *);
+//	void get_cwd(FlowVM::Params& args);
+//	void flow_mkbuf(FlowVM::Params& args);
+//	void flow_getbuf(FlowVM::Params& args);
+//	void flow_getenv(FlowVM::Params& args);
+//	void flow_error(FlowVM::Params& args);
+//	void flow_finish(FlowVM::Params& args);
+//	void flow_fail(FlowVM::Params& args);
+//	void flow_pass(FlowVM::Params& args);
+//	void flow_assertFail(FlowVM::Params& args);
 
-//	static bool printValue(const x0::FlowValue& value, bool lf);
+//	bool printValue(const x0::FlowValue& value, bool lf);
 };

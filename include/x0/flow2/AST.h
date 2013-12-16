@@ -1,5 +1,7 @@
 #pragma once
 
+#include <x0/flow2/vm/Signature.h>
+#include <x0/flow2/vm/Instruction.h> // Opcode
 #include <x0/flow2/FlowType.h>
 #include <x0/flow2/FlowToken.h>
 #include <x0/flow2/FlowLocation.h>
@@ -16,6 +18,10 @@ namespace x0 {
 class ASTVisitor;
 class FlowBackend;
 class SymbolTable;
+class Expr;
+
+//typedef std::vector<std::unique_ptr<Expr*>> ExprList;
+typedef std::vector<Expr*> ExprList;
 
 class X0_API ASTNode // {{{
 {
@@ -60,21 +66,21 @@ protected:
 		owner_(nullptr)
 	{}
 
+    friend class SymbolTable;
+
 public:
 	Type type() const { return type_; }
 
 	const std::string& name() const { return name_; }
 	void setName(const std::string& value) { name_ = value; }
+    SymbolTable* owner() const { return owner_; }
 };
 
 enum class Lookup {
-	Self            = 1, //!< local table only.
-	Parents         = 2, //!< local's parent tables, used for class inheritance.
-	Outer           = 4, //!< outer scope.
-	SelfAndParents  = 3, //!< search local's parent tables, used for class inheritance.
-	SelfAndOuter    = 5, //!< local scope and any outer scopes
-	OuterAndParents = 6,
-	All             = 7
+	Self            = 0x0001, //!< local table only.
+	Outer           = 0x0002, //!< outer scope.
+	SelfAndOuter    = 0x0003, //!< local scope and any outer scopes
+	All             = 0xFFFF,
 };
 
 inline bool operator&(Lookup a, Lookup b) {
@@ -88,18 +94,12 @@ public:
 	typedef list_type::const_iterator const_iterator;
 
 public:
-	explicit SymbolTable(SymbolTable* outer);
+	SymbolTable(SymbolTable* outer, const std::string& name);
 	~SymbolTable();
 
 	// nested scoping
 	void setOuterTable(SymbolTable* table) { outerTable_ = table; }
 	SymbolTable* outerTable() const { return outerTable_; }
-
-	// class inheritance
-	SymbolTable* appendParent(SymbolTable* table);
-	SymbolTable* parentAt(size_t i) const;
-	void removeParent(SymbolTable* table);
-	size_t parentCount() const;
 
 	// symbols
 	Symbol* appendSymbol(std::unique_ptr<Symbol> symbol);
@@ -115,10 +115,12 @@ public:
 	iterator begin() { return symbols_.begin(); }
 	iterator end() { return symbols_.end(); }
 
+    const std::string& name() const { return name_; }
+
 private:
 	list_type symbols_;
-	std::vector<SymbolTable*> parents_;
 	SymbolTable* outerTable_;
+    std::string name_;
 };
 
 class X0_API ScopedSymbol : public Symbol {
@@ -128,7 +130,7 @@ protected:
 protected:
 	ScopedSymbol(Type t, SymbolTable* outer, const std::string& name, const FlowLocation& loc) :
 		Symbol(t, name, loc),
-		scope_(new SymbolTable(outer))
+		scope_(new SymbolTable(outer, name))
 	{}
 
 	ScopedSymbol(Type t, std::unique_ptr<SymbolTable>&& scope, const std::string& name, const FlowLocation& loc) :
@@ -164,23 +166,19 @@ public:
 
 class X0_API Callable : public Symbol {
 protected:
-	std::vector<FlowType> signature_;
+    FlowVM::Signature signature_;
 
 public:
-	Callable(Type t, const std::string& name, const FlowLocation& loc) :
-		Symbol(t, name, loc)
+	Callable(Type t, const FlowVM::Signature& signature, const FlowLocation& loc) :
+		Symbol(t, signature.name(), loc),
+        signature_(signature)
 	{
 	}
 
-	bool isHandler() const { return type() == Symbol::Handler || type() == Symbol::BuiltinHandler; }
-	bool isBuiltin() const { return type() == Symbol::BuiltinHandler || type() == Symbol::BuiltinFunction; }
+    bool isHandler() const { return type() == Symbol::Handler || type() == Symbol::BuiltinHandler; }
+    bool isBuiltin() const { return type() == Symbol::BuiltinHandler || type() == Symbol::BuiltinFunction; }
 
-	FlowType returnType() const { return signature_[0]; }
-
-	const std::vector<FlowType>& signature() const { return signature_; }
-	std::vector<FlowType>& signature() { return signature_; }
-
-	std::string signatureID() const;
+    const FlowVM::Signature& signature() const { return signature_; }
 };
 
 class X0_API Handler : public Callable {
@@ -189,17 +187,19 @@ private:
 	std::unique_ptr<Stmt> body_;
 
 public:
+    /** create forward-declared handler. */
 	Handler(const std::string& name, const FlowLocation& loc) :
-		Callable(Symbol::Handler, name, loc),
+		Callable(Symbol::Handler, FlowVM::Signature(name + "()B"), loc),
 		body_(nullptr /*forward declared*/)
 	{
 	}
 
+    /** create handler. */
 	Handler(const std::string& name,
 			std::unique_ptr<SymbolTable>&& scope,
 			std::unique_ptr<Stmt>&& body,
 			const FlowLocation& loc) :
-		Callable(Symbol::Handler, name, loc),
+		Callable(Symbol::Handler, FlowVM::Signature(name + "()B"), loc),
 		scope_(std::move(scope)),
 		body_(std::move(body))
 	{
@@ -207,22 +207,20 @@ public:
 
 	SymbolTable* scope() { return scope_.get(); }
 	const SymbolTable* scope() const { return scope_.get(); }
-	void setScope(std::unique_ptr<SymbolTable>&& table) { scope_ = std::move(table); }
+	Stmt* body() const { return body_.get(); }
 
 	bool isForwardDeclared() const { return body_.get() == nullptr; }
 
-	Stmt* body() const { return body_.get(); }
-	void setBody(std::unique_ptr<Stmt>&& body) { body_ = std::move(body); }
+    void implement(std::unique_ptr<SymbolTable>&& table, std::unique_ptr<Stmt>&& body);
 
 	virtual void accept(ASTVisitor& v);
 };
 
 class X0_API BuiltinFunction : public Callable {
 public:
-	BuiltinFunction(const std::string& name, FlowType returnType, const FlowLocation& loc) :
-		Callable(Symbol::BuiltinFunction, name, loc)
+	BuiltinFunction(const FlowVM::Signature& signature) :
+		Callable(Symbol::BuiltinFunction, signature, FlowLocation())
 	{
-		signature_.push_back(returnType);
 	}
 
 	virtual void accept(ASTVisitor& v);
@@ -230,10 +228,9 @@ public:
 
 class X0_API BuiltinHandler : public Callable {
 public:
-	BuiltinHandler(const std::string& name, const FlowLocation& loc) :
-		Callable(Symbol::BuiltinHandler, name, loc)
+	explicit BuiltinHandler(const FlowVM::Signature& signature) :
+		Callable(Symbol::BuiltinHandler, signature, FlowLocation())
 	{
-		signature_.push_back(FlowType::Boolean);
 	}
 
 	virtual void accept(ASTVisitor& v);
@@ -249,15 +246,12 @@ public:
 		imports_()
 	{}
 
-	// global scope
-	void insert(std::unique_ptr<Symbol> symbol) {
-		scope()->appendSymbol(std::move(symbol));
-	}
-
 	// plugins
 	void import(const std::string& moduleName, const std::string& path) {
 		imports_.push_back(std::make_pair(moduleName, path));
 	}
+
+    const std::vector<std::pair<std::string, std::string>>& imports() const { return imports_; }
 
 	class Handler* findHandler(const std::string& name);
 
@@ -268,37 +262,43 @@ public:
 class X0_API Expr : public ASTNode {
 protected:
 	explicit Expr(const FlowLocation& loc) : ASTNode(loc) {}
+
+public:
+    virtual FlowType getType() const = 0;
 };
 
 class X0_API UnaryExpr : public Expr {
-	FlowToken operator_;
+private:
+    FlowVM::Opcode operator_;
 	std::unique_ptr<Expr> subExpr_;
 
 public:
-	UnaryExpr(FlowToken op, std::unique_ptr<Expr>&& subExpr, const FlowLocation& loc) :
+	UnaryExpr(FlowVM::Opcode op, std::unique_ptr<Expr>&& subExpr, const FlowLocation& loc) :
 		Expr(loc), operator_(op), subExpr_(std::move(subExpr))
 	{}
 
-	FlowToken op() const { return operator_; }
+    FlowVM::Opcode op() const { return operator_; }
 	Expr* subExpr() const { return subExpr_.get(); }
 
 	virtual void accept(ASTVisitor& v);
+    virtual FlowType getType() const;
 };
 
 class X0_API BinaryExpr : public Expr {
 private:
-	FlowToken operator_;
+    FlowVM::Opcode operator_;
 	std::unique_ptr<Expr> lhs_;
 	std::unique_ptr<Expr> rhs_;
 
 public:
-	BinaryExpr(FlowToken op, std::unique_ptr<Expr>&& lhs, std::unique_ptr<Expr>&& rhs);
+	BinaryExpr(FlowVM::Opcode op, std::unique_ptr<Expr>&& lhs, std::unique_ptr<Expr>&& rhs);
 
-	FlowToken op() const { return operator_; }
+    FlowVM::Opcode op() const { return operator_; }
 	Expr* leftExpr() const { return lhs_.get(); }
 	Expr* rightExpr() const { return rhs_.get(); }
 
 	virtual void accept(ASTVisitor& v);
+    virtual FlowType getType() const;
 };
 
 template<typename T>
@@ -313,24 +313,28 @@ public:
 	const T& value() const { return value_; }
 	void setValue(const T& value) { value_ = value; }
 
+    virtual FlowType getType() const;
+
 	virtual void accept(ASTVisitor& v) { v.visit(*this); }
 };
 
 class X0_API FunctionCallExpr : public Expr {
 	BuiltinFunction* callee_;
-	std::unique_ptr<ListExpr> args_;
+    ExprList args_;
 
 public:
-	FunctionCallExpr(BuiltinFunction* callee, std::unique_ptr<ListExpr>&& args, const FlowLocation& loc) :
+	FunctionCallExpr(BuiltinFunction* callee, ExprList&& args, const FlowLocation& loc) :
 		Expr(loc),
 		callee_(callee),
 		args_(std::move(args))
 	{}
 
 	BuiltinFunction* callee() const { return callee_; }
-	ListExpr* args() const { return args_.get(); }
+	const ExprList& args() const { return args_; }
+	ExprList& args() { return args_; }
 
 	virtual void accept(ASTVisitor& v);
+    virtual FlowType getType() const;
 };
 
 class X0_API VariableExpr : public Expr
@@ -346,6 +350,7 @@ public:
 	void setVariable(Variable* var) { variable_ = var; }
 
 	virtual void accept(ASTVisitor& v);
+    virtual FlowType getType() const;
 };
 
 class X0_API HandlerRefExpr : public Expr
@@ -363,33 +368,7 @@ public:
 	void setHandler(Handler* handler) { handler_ = handler; }
 
 	virtual void accept(ASTVisitor& v);
-};
-
-class X0_API ListExpr : public Expr
-{
-private:
-	std::vector<std::unique_ptr<Expr>> list_;
-
-public:
-	explicit ListExpr(const FlowLocation& loc) : Expr(loc), list_() {}
-
-	void push_back(std::unique_ptr<Expr> expr);
-	Expr* back() { return !list_.empty() ? list_.back().get() : nullptr; }
-	size_t size() const { return list_.size(); }
-	Expr* at(size_t i) { return list_[i].get(); }
-	bool empty() const { return list_.empty(); }
-	void clear() { return list_.clear(); }
-
-	void replaceAt(size_t i, Expr* expr);
-	void replaceAll(Expr* expr);
-
-	std::vector<std::unique_ptr<Expr>>::iterator begin() { return list_.begin(); }
-	std::vector<std::unique_ptr<Expr>>::iterator end() { return list_.end(); }
-
-	std::vector<std::unique_ptr<Expr>>::const_iterator begin() const;
-	std::vector<std::unique_ptr<Expr>>::const_iterator end() const;
-
-	virtual void accept(ASTVisitor& v);
+    virtual FlowType getType() const;
 };
 // }}}
 // {{{ Stmt
@@ -438,10 +417,10 @@ public:
 class X0_API CallStmt : public Stmt {
 protected:
 	Callable* callee_;
-	std::unique_ptr<ListExpr> args_;
+    ExprList args_;
 
 public:
-	CallStmt(const FlowLocation& loc, Callable* callable, std::unique_ptr<ListExpr>&& arguments = nullptr) :
+	CallStmt(const FlowLocation& loc, Callable* callable, ExprList&& arguments = {}) :
 		Stmt(loc), callee_(callable), args_(std::move(arguments))
 	{
 		setArgs(std::forward<decltype(arguments)>(arguments));
@@ -451,14 +430,10 @@ public:
 
 	Callable* callee() const { return callee_; }
 
-	ListExpr* args() const { return args_.get(); }
+	const ExprList& args() const { return args_; }
+	ExprList& args() { return args_; }
 
-	void setArgs(std::unique_ptr<ListExpr>&& args) {
-		args_ = std::move(args);
-		if (args) {
-			location().update(args_->location().end);
-		}
-	}
+	bool setArgs(ExprList&& args);
 
 	virtual void accept(ASTVisitor&);
 };

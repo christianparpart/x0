@@ -11,7 +11,6 @@
 #include <x0/flow2/ASTPrinter.h>
 #include <x0/flow2/FlowLexer.h>
 #include <x0/flow2/FlowParser.h>
-#include <x0/flow2/FlowContext.h>
 #include <x0/DebugLogger.h>
 #include <fstream>
 #include <memory>
@@ -92,123 +91,6 @@ int parsedump(const char* filename) // {{{
 }
 // }}}
 
-bool tescht()
-{
-    using namespace x0;
-
-    FlowContext cx;
-    FlowProgram program;
-    program.stackSize_ = 32;
-    program.localsSize_ = 32;
-
-    // {{{ program writers
-    auto write8 = [&](uint8_t value) {
-        program.program_.push_back((uint8_t) value);
-    };
-    auto write16 = [&](uint16_t value) {
-        write8((value >> 8) & 0xFF);
-        write8(value & 0xFF);
-    };
-    auto write32 = [&](uint32_t value) {
-        write16((value >> 16) & 0xFFFF);
-        write16(value & 0xFFFF);
-    };
-    auto write64 = [&](uint64_t value) {
-        /*
-        write8((value >> 56) & 0xFF);
-        write8((value >> 48) & 0xFF);
-        write8((value >> 40) & 0xFF);
-        write8((value >> 32) & 0xFF);
-        write8((value >> 24) & 0xFF);
-        write8((value >> 16) & 0xFF);
-        write8((value >>  8) & 0xFF);
-        write8((value >>  0) & 0xFF);
-        */
-
-        write32((value >> 32) & 0xFFFFFFF);
-        write32(value & 0xFFFFFFF);
-    };
-    auto writeInstr = [&](FlowInstruction instr) {
-        write8((uint8_t) instr);
-    };
-    auto rewriteJump = [&](size_t instructionPayloadOffset, size_t jumpOffset) {
-        printf("writeJump(%zu, %zu)\n", instructionPayloadOffset, jumpOffset);
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 0]) = 0;
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 1]) = 0;
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 2]) = 0;
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 3]) = 0;
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 4]) = (jumpOffset << 24) & 0xFF;
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 5]) = (jumpOffset << 16) & 0xFF;
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 6]) = (jumpOffset <<  8) & 0xFF;
-        *((uint8_t*)&program.program_[instructionPayloadOffset + 7]) = (jumpOffset      ) & 0xFF;
-    };
-    // }}}
-
-    // 1 + 2 * 4
-#if 0
-    writeInstr(FlowInstruction::IConst1);   // push 1
-    writeInstr(FlowInstruction::IConst2);   // push 2
-    writeInstr(FlowInstruction::IAdd);      // add (1, 2): 3
-    writeInstr(FlowInstruction::IConst);    // push 4
-    write64(4);
-    writeInstr(FlowInstruction::IMul);      // mul (3, 4): 12
-    writeInstr(FlowInstruction::Dup);       // dup 12
-    writeInstr(FlowInstruction::IStore);    // store #0
-    write32(0);
-    writeInstr(FlowInstruction::Return);
-#endif
-
-    // a=0; b=0; while (a < 4) { b += a; a++; } return b;
-    writeInstr(FlowInstruction::IConst0);   // push 0    ; a
-    writeInstr(FlowInstruction::IStore);    // store #0
-    write64(0);
-    writeInstr(FlowInstruction::IConst0);   // push 0    ; b
-    writeInstr(FlowInstruction::IStore);    // store #1
-    write64(1);
-
-    writeInstr(FlowInstruction::Goto);      // goto #PLACEHOLDER
-    size_t tailJumpPC = program.programSize();
-    write64(0xFFFFFFFFFFFFFFFFllu);
-
-    // loop body
-    size_t loopHeadPC = program.programSize();
-    writeInstr(FlowInstruction::ILoad);     // iload 0  ; a
-    write64(0);
-    writeInstr(FlowInstruction::ILoad);     // iload 1  ; b
-    write64(1);
-    writeInstr(FlowInstruction::IAdd);      // iadd
-    writeInstr(FlowInstruction::IStore);    // istore 1 ; b
-    write64(1);
-
-    writeInstr(FlowInstruction::ILoad);     // iload 0  ; a
-    write64(0);
-    writeInstr(FlowInstruction::IConst1);   // iconst 1
-    writeInstr(FlowInstruction::IAdd);      // iadd (1 + a)
-    writeInstr(FlowInstruction::IStore);
-    write64(0);
-
-    // while-condition
-    rewriteJump(tailJumpPC, program.programSize());
-    writeInstr(FlowInstruction::ILoad);     // iload 0  ; a
-    write64(0);
-    writeInstr(FlowInstruction::IConst);    // iconst 4
-    write64(4);
-    writeInstr(FlowInstruction::ICmpLT);    // icmplt   ; [a < 4]
-    writeInstr(FlowInstruction::CondBr);
-    write64(loopHeadPC);
-
-    writeInstr(FlowInstruction::ILoad);     // iload 1  ; b
-    write64(1);
-    writeInstr(FlowInstruction::Return);    // return
-
-    printf("program size: %zu\n", program.programSize());
-    printf("----------------------------\n");
-    cx.setProgram(program);
-
-    cx.run();
-    return true;
-}
-
 int main(int argc, const char *argv[])
 {
 	const char *handlerName = NULL;
@@ -219,9 +101,6 @@ int main(int argc, const char *argv[])
 	int rv = 0;
 
 	DebugLogger::get().configure("XZERO_DEBUG");
-
-    if (tescht())
-        return 0;
 
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)

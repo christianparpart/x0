@@ -21,26 +21,29 @@
 
 namespace x0 {
 
-class FlowBackend;
+namespace FlowVM {
+    class Runtime;
+};
+
 class FlowLexer;
 
 class X0_API FlowParser {
 	std::unique_ptr<FlowLexer> lexer_;
-	std::list<SymbolTable*> scopeStack_;
-	FlowBackend* backend_;
+	SymbolTable* scopeStack_;
+    FlowVM::Runtime* runtime_;
 
 public:
 	std::function<void(const std::string&)> errorHandler;
 	std::function<bool(const std::string&, const std::string&)> importHandler;
 
-	explicit FlowParser(FlowBackend* backend);
+	explicit FlowParser(FlowVM::Runtime* runtime);
 	~FlowParser();
 
 	bool open(const std::string& filename);
 
 	std::unique_ptr<Unit> parse();
 
-	FlowBackend* backend() const { return backend_; }
+    FlowVM::Runtime* runtime() const { return runtime_; }
 
 private:
 	class Scope;
@@ -69,9 +72,10 @@ private:
 	bool booleanValue() const { return lexer_->numberValue(); }
 
 	// scoping
-	SymbolTable *scope() { return scopeStack_.front(); }
+	SymbolTable *scope() { return scopeStack_; }
+	SymbolTable *globalScope();
 	SymbolTable *enter(SymbolTable *scope);
-	std::unique_ptr<SymbolTable> enterScope() { return std::unique_ptr<SymbolTable>(enter(new SymbolTable(scope()))); }
+	std::unique_ptr<SymbolTable> enterScope(const std::string& title) { return std::unique_ptr<SymbolTable>(enter(new SymbolTable(scope(), title))); }
 	SymbolTable *leaveScope() { return leave(); }
 	SymbolTable *leave();
 
@@ -84,9 +88,9 @@ private:
 		return nullptr;
 	}
 
-	template<typename T, typename... Args> T* createSymbol(const std::string& name, Args&&... args)
+	template<typename T, typename... Args> T* createSymbol(Args&&... args)
 	{
-		return static_cast<T*>(scope()->appendSymbol(std::make_unique<T>(name, std::forward<Args>(args)...)));
+		return static_cast<T*>(scope()->appendSymbol(std::make_unique<T>(std::forward<Args>(args)...)));
 	}
 
 	template<typename T, typename... Args> T* lookupOrCreate(const std::string& name, Args&&... args)
@@ -96,9 +100,11 @@ private:
 
 		// create symbol in global-scope
 		T* result = new T(name, args...);
-		scopeStack_.front()->appendSymbol(result);
+		scopeStack_->appendSymbol(result);
 		return result;
 	}
+
+    void importRuntime();
 
 	// syntax: decls
 	std::unique_ptr<Unit> unit();
@@ -115,7 +121,7 @@ private:
 	std::unique_ptr<Expr> primaryExpr();
 	std::unique_ptr<Expr> interpolatedStr();
 	std::unique_ptr<Expr> castExpr();
-	std::unique_ptr<ListExpr> listExpr();
+	bool listExpr(ExprList& list);
 
 	// syntax: statements
 	std::unique_ptr<Stmt> stmt();
@@ -126,6 +132,17 @@ private:
 };
 
 // {{{ inlines
+inline SymbolTable *FlowParser::globalScope()
+{
+    if (SymbolTable* st = scopeStack_) {
+        while (st->outerTable()) {
+            st = st->outerTable();
+        }
+        return st;
+    }
+    return nullptr;
+}
+
 template<typename... Args>
 inline void FlowParser::reportError(const std::string& fmt, Args&&... args)
 {

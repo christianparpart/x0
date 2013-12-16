@@ -65,7 +65,7 @@ void ASTPrinter::print(const char* title, ASTNode* node)
 
 void ASTPrinter::visit(Variable& variable)
 {
-	printf("Variable: '%s'\n", variable.name().c_str());
+	printf("Variable: %s as %s\n", variable.name().c_str(), tos(variable.initializer()->getType()).c_str());
 	print("initializer", variable.initializer());
 }
 
@@ -74,27 +74,31 @@ void ASTPrinter::visit(Handler& handler)
 	printf("Handler: %s\n", handler.name().c_str());
 
 	enter();
-		printf("scope:\n");
-		enter();
-			for (Symbol* symbol: *handler.scope())
-				symbol->accept(*this);
-		leave();
+        if (handler.isForwardDeclared()) {
+            printf("handler is forward-declared (unresolved)\n");
+        } else {
+            printf("scope:\n");
+            enter();
+                for (Symbol* symbol: *handler.scope())
+                    symbol->accept(*this);
+            leave();
 
-		printf("body:\n");
-		enter();
-			handler.body()->accept(*this);
-		leave();
+            printf("body:\n");
+            enter();
+                handler.body()->accept(*this);
+            leave();
+        }
 	leave();
 }
 
 void ASTPrinter::visit(BuiltinFunction& symbol)
 {
-	printf("BuiltinFunction TODO\n");
+	printf("BuiltinFunction: %s\n", symbol.signature().to_s().c_str());
 }
 
 void ASTPrinter::visit(BuiltinHandler& symbol)
 {
-	printf("BuiltinHandler TODO\n");
+	printf("BuiltinHandler: %s\n", symbol.signature().to_s().c_str());
 }
 
 void ASTPrinter::visit(Unit& unit)
@@ -110,12 +114,13 @@ void ASTPrinter::visit(Unit& unit)
 
 void ASTPrinter::visit(UnaryExpr& expr)
 {
-	printf("UnaryExpr TODO\n");
+	printf("UnaryExpr: %s\n", mnemonic(expr.op()));
+	print("subExpr", expr.subExpr());
 }
 
 void ASTPrinter::visit(BinaryExpr& expr)
 {
-	printf("BinaryExpr: %s\n", expr.op().c_str());
+	printf("BinaryExpr: %s\n", mnemonic(expr.op()));
 	enter();
 		printf("lhs:\n");
 		enter();
@@ -142,24 +147,12 @@ void ASTPrinter::visit(VariableExpr& expr)
 
 void ASTPrinter::visit(HandlerRefExpr& handlerRef)
 {
-	printf("HandlerRefExpr TODO\n");
-}
-
-void ASTPrinter::visit(ListExpr& list)
-{
-	printf("ListExpr (%zu elements)\n", list.size());
-
-	size_t i = 0;
-	for (const auto& expr: list) {
-		char buf[16];
-		snprintf(buf, sizeof(buf), "[%zu]", i++);
-		print(buf, expr.get());
-	}
+	printf("HandlerRefExpr: %s\n", handlerRef.handler()->name().c_str());
 }
 
 void ASTPrinter::visit(StringExpr& string)
 {
-	printf("StringExpr: \"%s\"", escape(string.value()).c_str());
+	printf("StringExpr: \"%s\"\n", escape(string.value()).c_str());
 }
 
 void ASTPrinter::visit(NumberExpr& number)
@@ -222,6 +215,11 @@ void ASTPrinter::visit(AssignStmt& assign)
 void ASTPrinter::visit(CallStmt& call)
 {
 	printf("CallStmt: %s\n", call.callee()->name().c_str());
+    for (int i = 1, e = call.args().size(); i <= e; ++i) {
+        char title[256];
+        snprintf(title, sizeof(title), "param %d:", i);
+        print(title, call.args()[i - 1]);
+    }
 }
 
 } // namespace x0

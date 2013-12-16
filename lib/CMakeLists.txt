@@ -135,19 +135,18 @@ if(ENABLE_XZERO_FLOW2)
   set(x0_flow2_SRC
     flow2/AST.cpp
     flow2/ASTPrinter.cpp
-    flow2/FlowBackend.cpp
-    flow2/FlowContext.cpp
-    flow2/FlowEngine.cpp
+    flow2/FlowAssemblyBuilder.cpp
     flow2/FlowLexer.cpp
     flow2/FlowLocation.cpp
-    flow2/FlowMachine.cpp
-    flow2/FlowProgram.cpp
-    flow2/FlowCompiler.cpp
     flow2/FlowParser.cpp
     flow2/FlowToken.cpp
     flow2/FlowType.cpp
-    flow2/FlowValue.cpp
-    flow2/FlowVM.cpp
+    flow2/vm/Handler.cpp
+    flow2/vm/Instruction.cpp
+    flow2/vm/Program.cpp
+    flow2/vm/Runner.cpp
+    flow2/vm/Runtime.cpp
+    flow2/vm/Signature.cpp
   )
   add_library(XzeroFlow2 SHARED ${x0_flow2_SRC})
   set_target_properties(XzeroFlow2 PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")

@@ -9,13 +9,15 @@
 #include <x0/flow2/AST.h>
 #include <x0/flow2/ASTPrinter.h>
 #include <x0/flow2/FlowParser.h>
-#include <x0/flow2/FlowBackend.h>
-#include <x0/flow2/FlowMachine.h>
-#include <x0/flow2/FlowContext.h>
+#include <x0/flow2/FlowAssemblyBuilder.h>
+#include <x0/flow2/vm/Runtime.h>
+#include <x0/flow2/vm/NativeCallback.h>
+#include <x0/flow2/vm/Runner.h>
 #include <fstream>
 #include <memory>
 #include <utility>
 #include <cstdio>
+#include <cassert>
 
 using namespace x0;
 
@@ -32,8 +34,9 @@ void reportError(const char *category, const std::string& msg)
 }
 
 Flower::Flower() :
-	FlowBackend(),
-	vm_(this),
+	Runtime(),
+    filename_(),
+    program_(nullptr),
 	totalCases_(0),
 	totalSuccess_(0),
 	totalFailed_(0),
@@ -53,15 +56,15 @@ Flower::Flower() :
 
 	registerFunction("__print", FlowType::Void)
 		.signature(FlowType::String) // TODO: support FlowType::Generic (or FlowType::Any)
-		.bind(&Flower::flow_print, this, std::placeholders::_1);
+		.bind(&Flower::flow_print);
 
 	// unit test aiding handlers
 //	registerHandler("error", &flow_error);
 //	registerHandler("finish", &flow_finish); // XXX rename to 'success'
 
 	registerHandler("assert")
-		.signature(FlowType::Boolean)
-		.bind(&Flower::flow_assert, this, std::placeholders::_1);
+		.signature(FlowType::Boolean, FlowType::String)
+		.bind(&Flower::flow_assert);
 
 //	registerHandler("assert_fail", &flow_assertFail);
 
@@ -71,7 +74,6 @@ Flower::Flower() :
 
 Flower::~Flower()
 {
-	FlowMachine::shutdown();
 }
 
 bool Flower::import(const std::string& name, const std::string& path)
@@ -164,41 +166,43 @@ int Flower::run(const char* fileName, const char* handlerName)
 	if (dumpAST_)
 		ASTPrinter::print(unit.get());
 
-	if (!vm_.compile(unit.get())) {
-		fprintf(stderr, "Failed to compile file: %s\n", fileName);
-		return -1;
-	}
-
-	if (dumpIR_) {
-		printf("Dumping IR ...\n");
-		vm_.dump();
-	}
+//	if (!vm_.compile(unit.get())) {
+//		fprintf(stderr, "Failed to compile file: %s\n", fileName);
+//		return -1;
+//	}
 
 	Handler* handlerSym = unit->findHandler(handlerName);
 	if (!handlerSym) {
-		printf("No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
-		return -1;
-	}
-#if 0
-	FlowValue::Handler handler = vm_.findHandler(handlerSym);
-	if (!handler) {
-		printf("No handler with name '%s' found in codegen unit '%s'.\n", handlerName, fileName);
+		fprintf(stderr, "No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
 		return -1;
 	}
 
-	bool handled = handler(nullptr); //false; // runner_.invoke(fn);
-	return handled ? 0 : 1;
-#else
-	if (vm_.run(handlerSym, nullptr))
-		return 0;
-	else
-		return 1;
-#endif
+    program_ = FlowAssemblyBuilder::compile(unit.get());
+    if (!program_) {
+        fprintf(stderr, "Code generation failed. Aborting.\n");
+        return -1;
+    }
+
+    if (!program_->link(this)) {
+        fprintf(stderr, "Program linking failed. Aborting.\n");
+        return -1;
+    }
+
+    if (dumpIR_) {
+        printf("Dumping IR ...\n");
+        program_->dump();
+    }
+
+    FlowVM::Handler* handler = program_->findHandler(handlerName);
+    assert(handler != nullptr);
+
+    bool rv = false;//TODO (tmp disabled) handler->run(nullptr /*userdata*/ );
+    return rv;
 }
 
 void Flower::dump()
 {
-//	runner_.dump();
+    program_->dump();
 }
 
 void Flower::clear()
@@ -206,25 +210,22 @@ void Flower::clear()
 	//runner_.clear();
 }
 
-void Flower::flow_print(FlowArray& args)
+void Flower::flow_print(FlowVM::Params& args)
 {
-	printf("%s\n", args[1].asString().c_str());
+	printf("%s\n", args.get<FlowString*>(1)->c_str());
 }
 
-void Flower::flow_assert(FlowArray& args)
+void Flower::flow_assert(FlowVM::Params& args)
 {
-	const FlowValue& sourceValue = args[args.size() - 1];
-	std::string source;
-	if (sourceValue.isString())
-		source = sourceValue.toString();
+	const FlowString* sourceValue = args.get<FlowString*>(args.size() - 1);
 
-	if (!args[1].toBoolean()) {
-		printf("[   FAILED ] %s\n", source.c_str());
-		args[0].set(true);
+    if (!args.get<bool>(1)) {
+		printf("[   FAILED ] %s\n", sourceValue->c_str());
+		args.setResult(true);
 	} else {
-		printf("[       OK ] %s\n", source.c_str());
+		printf("[       OK ] %s\n", sourceValue->c_str());
 		++totalSuccess_;
-		args[0].set(false);
+		args.setResult(false);
 	}
 }
 

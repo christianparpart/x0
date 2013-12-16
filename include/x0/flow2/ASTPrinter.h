@@ -33,7 +33,6 @@ private:
 	virtual void visit(FunctionCallExpr& expr);
 	virtual void visit(VariableExpr& expr);
 	virtual void visit(HandlerRefExpr& expr);
-	virtual void visit(ListExpr& expr);
 	virtual void visit(StringExpr& expr);
 	virtual void visit(NumberExpr& expr);
 	virtual void visit(BoolExpr& expr);

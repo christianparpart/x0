@@ -25,7 +25,6 @@ template<typename> class LiteralExpr;
 class FunctionCallExpr;
 class VariableExpr;
 class HandlerRefExpr;
-class ListExpr;
 
 typedef LiteralExpr<std::string> StringExpr;
 typedef LiteralExpr<long long> NumberExpr;
@@ -59,7 +58,6 @@ public:
 	virtual void visit(FunctionCallExpr& expr) = 0;
 	virtual void visit(VariableExpr& expr) = 0;
 	virtual void visit(HandlerRefExpr& expr) = 0;
-	virtual void visit(ListExpr& expr) = 0;
 
 	virtual void visit(StringExpr& expr) = 0;
 	virtual void visit(NumberExpr& expr) = 0;
