@@ -13,7 +13,13 @@
 
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/flow/FlowRunner.h>
+#include <x0/flow/vm/Runner.h>
+#include <x0/flow/vm/Program.h>
+#include <x0/flow/FlowAssemblyBuilder.h>
+#include <x0/flow/FlowCallVisitor.h>
+#include <x0/flow/FlowParser.h>
+#include <x0/flow/ASTPrinter.h>
+#include <x0/flow/AST.h>
 #include <x0/io/SyslogSink.h>
 #include <x0/Tokenizer.h>
 #include <x0/Logger.h>
@@ -137,16 +143,12 @@ XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
 	pluginLibraries_(),
 	core_(nullptr),
 	components_(),
-	unit_(nullptr),
-	runner_(nullptr),
+	unit_(),
+	program_(),
+    main_(nullptr),
 	setupApi_(),
 	mainApi_()
 {
-	x0::FlowRunner::initialize();
-
-	runner_ = new FlowRunner(this);
-	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "codegen", std::placeholders::_1));
-
 	instance_ = this;
 }
 
@@ -162,18 +164,12 @@ XzeroDaemon::~XzeroDaemon()
 	while (!plugins_.empty())
 		unloadPlugin(plugins_[plugins_.size() - 1]->name());
 
-	delete runner_;
-	runner_ = nullptr;
-
-	delete unit_;
-	unit_ = nullptr;
+    main_ = nullptr;
 
 	delete server_;
 	server_ = nullptr;
 
 	instance_ = nullptr;
-
-	x0::FlowRunner::shutdown();
 
 #if defined(HAVE_SYSLOG_H)
 	x0::SyslogSink::close();
@@ -940,8 +936,10 @@ void XzeroDaemon::addComponent(const std::string& value)
 }
 // }}}
 // {{{ Flow helper
-void XzeroDaemon::import(const std::string& name, const std::string& path)
+bool XzeroDaemon::import(const std::string& name, const std::string& path)
 {
+    // TODO: do skip loading plugin if already loaded.
+
 	std::string filename = path;
 	if (!filename.empty() && filename[filename.size() - 1] != '/')
 		filename += "/";
@@ -950,55 +948,11 @@ void XzeroDaemon::import(const std::string& name, const std::string& path)
 	std::error_code ec;
 	loadPlugin(filename, ec);
 
-	if (ec)
+	if (ec) {
 		log(Severity::error, "Error loading plugin: %s: %s", filename.c_str(), ec.message().c_str());
-}
-
-// setup
-bool XzeroDaemon::registerSetupFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
-{
-	setupApi_.push_back(name);
-	return FlowBackend::registerFunction(name, returnType, callback, userdata);
-}
-
-bool XzeroDaemon::registerSetupProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
-{
-	setupApi_.push_back(name);
-	return FlowBackend::registerProperty(name, returnType, callback, userdata);
-}
-
-// shared
-bool XzeroDaemon::registerSharedFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
-{
-	setupApi_.push_back(name);
-	mainApi_.push_back(name);
-	return FlowBackend::registerFunction(name, returnType, callback, userdata);
-}
-
-bool XzeroDaemon::registerSharedProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
-{
-	setupApi_.push_back(name);
-	mainApi_.push_back(name);
-	return FlowBackend::registerProperty(name, returnType, callback, userdata);
-}
-
-// main
-bool XzeroDaemon::registerHandler(const std::string& name, CallbackFunction callback, void* userdata)
-{
-	mainApi_.push_back(name);
-	return FlowBackend::registerHandler(name, callback, userdata);
-}
-
-bool XzeroDaemon::registerFunction(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
-{
-	mainApi_.push_back(name);
-	return FlowBackend::registerFunction(name, returnType, callback, userdata);
-}
-
-bool XzeroDaemon::registerProperty(const std::string& name, const FlowValue::Type returnType, CallbackFunction callback, void* userdata)
-{
-	mainApi_.push_back(name);
-	return FlowBackend::registerProperty(name, returnType, callback, userdata);
+        return false;
+    }
+    return true;
 }
 // }}}
 // {{{ configuration management
@@ -1012,34 +966,55 @@ bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int
 {
 	TRACE("setup(%s)", filename.c_str());
 
-	runner_->setErrorHandler(std::bind(&wrap_log_error, this, "parser", std::placeholders::_1));
-	runner_->setOptimizationLevel(optimizationLevel);
+	FlowParser parser(this);
+	parser.importHandler = [&](const std::string& name, const std::string& basedir) -> bool {
+		fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
+		return false;
+	};
 
-	if (!runner_->open(filename, settings)) {
-		sd_notifyf(0, "ERRNO=%d", errno);
-		goto err;
-	}
+    if (!parser.open(filename)) {
+        sd_notifyf(0, "ERRNO=%d", errno);
+        fprintf(stderr, "Failed to open file: %s\n", filename.c_str());
+        return false;
+    }
 
-	if (!validateConfig())
-		goto err;
+	unit_ = parser.parse();
+    if (!unit_)
+        return false;
+
+    ASTPrinter::print(unit_.get());
+
+    program_ = FlowAssemblyBuilder::compile(unit_.get());
+    if (!program_) {
+        fprintf(stderr, "Code generation failed. Aborting.\n");
+        return false;
+    }
+
+    if (!program_->link(this)) {
+        fprintf(stderr, "Program linking failed. Aborting.\n");
+        return false;
+    }
+
+	if (!validateConfig()) {
+		return false;
+    }
 
 	// run setup
 	TRACE("run 'setup'");
-	if (runner_->invoke(runner_->findHandler("setup")))
-		goto err;
+    if (program_->findHandler("setup")->run(nullptr))
+        // should not return true
+        return false;
 
 	// grap the request handler
 	TRACE("get pointer to 'main'");
 
-	{
-		bool (*main)(void*);
-		main = runner_->getPointerTo(runner_->findHandler("main"));
+    {
+        auto main = program_->findHandler("main");
 
-		if (!main)
-			goto err;
-
-		server_->requestHandler = main;
-	}
+        server_->requestHandler = [=](x0::HttpRequest* r) -> bool {
+            return main->run(r);
+        };
+    }
 
 	// {{{ setup server-tag
 	{
@@ -1195,61 +1170,63 @@ err:
 	return false;
 }
 
+
 bool XzeroDaemon::validateConfig()
 {
 	TRACE("validateConfig()");
 
-	Function* setupFn = runner_->findHandler("setup");
+	auto setupFn = unit_->findHandler("setup");
 	if (!setupFn) {
 		log(Severity::error, "No setup-handler defined in config file.");
 		return false;
 	}
 
-	Function* mainFn = runner_->findHandler("main");
+	auto mainFn = unit_->findHandler("main");
 	if (!mainFn) {
 		log(Severity::error, "No main-handler defined in config file.");
 		return false;
 	}
 
-	unsigned errors = 0;
-
 	TRACE("validateConfig: setup:");
-	for (auto& i: FlowCallIterator(setupFn)) {
-		if (i->callee()->body())
-			// skip script user-defined handlers
-			continue;
 
-		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
+    FlowCallVisitor setupCalls(setupFn);
+    if (!validate("setup", setupCalls.handlerCalls(), setupApi_))
+        return false;
+    if (!validate("setup", setupCalls.functionCalls(), setupApi_))
+        return false;
 
-		if (std::find( setupApi_.begin(), setupApi_.end(), i->callee()->name()) == setupApi_.end()) {
-			log(Severity::error, "Symbol '%s' found within setup-handler (or its callees) but may be only invoked from within the main-handler.", i->callee()->name().c_str());
-			log(Severity::error, "%s", i->sourceLocation().dump().c_str());
-			++errors;
-		}
-	}
-
-	TRACE("validateConfig: main:");
-	for (auto& i: FlowCallIterator(mainFn)) {
-		if (i->callee()->body())
-			// skip script user-defined handlers
-			continue;
-
-		TRACE(" - %s %ld", i->callee()->name().c_str(), i->args()->size());
-
-		if (std::find(mainApi_.begin(), mainApi_.end(), i->callee()->name()) == mainApi_.end()) {
-			log(Severity::error, "Symbol '%s' found within main-handler (or its callees) but may be only invoked from within the setup-handler.", i->callee()->name().c_str());
-			log(Severity::error, "%s", i->sourceLocation().dump().c_str());
-			++errors;
-		}
-	}
+    FlowCallVisitor mainCalls(mainFn);
+    if (!validate("main", mainCalls.handlerCalls(), mainApi_))
+        return false;
+    if (!validate("main", mainCalls.functionCalls(), mainApi_))
+        return false;
 
 	TRACE("validateConfig finished");
-	return errors == 0;
+	return true;
 }
 
+template<typename T>
+bool XzeroDaemon::validate(const std::string& context, const std::vector<T*>& calls, const std::vector<std::string>& api)
+{
+    for (const auto& i: calls) {
+        if (!i->callee()->isBuiltin()) {
+			// skip script user-defined handlers
+			continue;
+        }
+
+		TRACE(" - %s (%ld args)", i->callee()->name().c_str(), i->args().size());
+
+		if (std::find(api.begin(), api.end(), i->callee()->name()) == api.end()) {
+			log(Severity::error, "Illegal call to '%s' found within %s-handler (or its callees).", i->callee()->name().c_str(), context.c_str());
+			log(Severity::error, "%s", i->location().dump().c_str());
+            return false;
+		}
+	}
+    return true;
+}
 void XzeroDaemon::dumpIR() const
 {
-	runner_->dump();
+	program_->dump();
 }
 // }}}
 

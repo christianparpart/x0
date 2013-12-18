@@ -38,7 +38,9 @@ namespace x0d {
 
 using namespace x0;
 
-static Buffer concat(const FlowParams& args)
+typedef x0::FlowVM::Params FlowParams;
+
+static Buffer concat(FlowParams& args)
 {
 	Buffer msg;
 
@@ -46,131 +48,127 @@ static Buffer concat(const FlowParams& args)
 		if (i)
 			msg << " ";
 
-		switch (args[i].type()) {
-			case FlowValue::NUMBER:
-				msg << args[i].toNumber();
-				break;
-			case FlowValue::BOOLEAN:
-				msg << (args[i].toBool() ? "true" : "false");
-				break;
-			case FlowValue::BUFFER:
-				msg << args[i].asString();
-				break;
-			case FlowValue::STRING:
-				msg << args[i].toString();
-				break;
-			default:
-				// TODO
-				break;
-		}
+        msg.push_back(*(FlowString*) args[i]);
 	}
-	return msg;
+
+	return std::move(msg);
 }
 
 XzeroCore::XzeroCore(XzeroDaemon* d) :
 	XzeroPlugin(d, "core"),
-	emitLLVM_(false),
+	emitIR_(false),
 	max_fds(std::bind(&XzeroCore::getrlimit, this, RLIMIT_NOFILE),
 			std::bind(&XzeroCore::setrlimit, this, RLIMIT_NOFILE, std::placeholders::_1))
 {
-	// setup
-	registerSetupFunction<XzeroCore, &XzeroCore::emit_llvm>("llvm.dump", FlowValue::VOID);
-	registerSetupFunction<XzeroCore, &XzeroCore::listen>("listen", FlowValue::BOOLEAN);
-	registerSetupProperty<XzeroCore, &XzeroCore::workers>("workers", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::mimetypes>("mimetypes", FlowValue::VOID); // write-only (array)
-	registerSetupProperty<XzeroCore, &XzeroCore::mimetypes_default>("mimetypes.default", FlowValue::VOID); // write-only (array)
-	registerSetupProperty<XzeroCore, &XzeroCore::etag_mtime>("etag.mtime", FlowValue::VOID); // write-only (array)
-	registerSetupProperty<XzeroCore, &XzeroCore::etag_size>("etag.size", FlowValue::VOID); // write-only (array)
-	registerSetupProperty<XzeroCore, &XzeroCore::etag_inode>("etag.inode", FlowValue::VOID); // write-only (array)
-	registerSetupProperty<XzeroCore, &XzeroCore::fileinfo_cache_ttl>("fileinfo.ttl", FlowValue::VOID); // write-only (int)
-	registerSetupProperty<XzeroCore, &XzeroCore::server_advertise>("server.advertise", FlowValue::BOOLEAN);
-	registerSetupProperty<XzeroCore, &XzeroCore::server_tags>("server.tags", FlowValue::VOID); // write-only (array)
+	// setup: functions
+    setupFunction("ir.dump", &XzeroCore::dump_ir);
+    setupFunction("listen", &XzeroCore::listen)
+        .param<IPAddress>("address", IPAddress("0.0.0.0"))
+        .param<int>("port", 80)
+        .param<int>("backlog", 128)
+        .param<int>("multi_accept", 1)
+        .param<bool>("reuse_port", false);
 
-	registerSetupProperty<XzeroCore, &XzeroCore::max_read_idle>("max_read_idle", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_write_idle>("max_write_idle", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_keepalive_idle>("max_keepalive_idle", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_keepalive_requests>("max_keepalive_requests", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_conns>("max_connections", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_files>("max_files", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_address_space>("max_address_space", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_core>("max_core_size", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::tcp_cork>("tcp_cork", FlowValue::BOOLEAN);
-	registerSetupProperty<XzeroCore, &XzeroCore::tcp_nodelay>("tcp_nodelay", FlowValue::BOOLEAN);
-	registerSetupProperty<XzeroCore, &XzeroCore::lingering>("lingering", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_request_uri_size>("max_request_uri_size", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_request_header_size>("max_request_header_size", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_request_header_count>("max_request_header_count", FlowValue::NUMBER);
-	registerSetupProperty<XzeroCore, &XzeroCore::max_request_body_size>("max_request_body_size", FlowValue::NUMBER);
+    // setup: properties (write-only)
+    setupFunction("workers", &XzeroCore::workers, FlowType::Number);
+  //setupFunction("workers.affinity", &XzeroCore::workers, FlowType::Array, FlowType::Number);
+    setupFunction("mimetypes", &XzeroCore::mimetypes, FlowType::String);
+    setupFunction("mimetypes.default", &XzeroCore::mimetypes_default, FlowType::String);
+    setupFunction("etag.mtime", &XzeroCore::etag_mtime, FlowType::Boolean);
+    setupFunction("etag.size", &XzeroCore::etag_size, FlowType::Boolean);
+    setupFunction("etag.inode", &XzeroCore::etag_inode, FlowType::Boolean);
+    setupFunction("fileinfo.ttl", &XzeroCore::fileinfo_cache_ttl, FlowType::Number);
+    setupFunction("server.advertise", &XzeroCore::server_advertise, FlowType::Boolean);
+    setupFunction("server.tags", &XzeroCore::server_tags, FlowType::Array, FlowType::String);
+    setupFunction("max_read_idle", &XzeroCore::max_read_idle, FlowType::Number);
+    setupFunction("max_write_idle", &XzeroCore::max_write_idle, FlowType::Number);
+    setupFunction("max_keepalive_idle", &XzeroCore::max_keepalive_idle, FlowType::Number);
+    setupFunction("max_keepalive_requests", &XzeroCore::max_keepalive_requests, FlowType::Number);
+    setupFunction("max_connections", &XzeroCore::max_conns, FlowType::Number);
+    setupFunction("max_files", &XzeroCore::max_files, FlowType::Number);
+    setupFunction("max_address_space", &XzeroCore::max_address_space, FlowType::Number);
+    setupFunction("max_core_size", &XzeroCore::max_core, FlowType::Number);
+    setupFunction("tcp_cork", &XzeroCore::tcp_cork, FlowType::Boolean);
+    setupFunction("tcp_nodelay", &XzeroCore::tcp_nodelay, FlowType::Boolean);
+    setupFunction("lingering", &XzeroCore::lingering, FlowType::Number);
+    setupFunction("max_request_uri_size", &XzeroCore::max_request_uri_size, FlowType::Number);
+    setupFunction("max_request_header_size", &XzeroCore::max_request_header_size, FlowType::Number);
+    setupFunction("max_request_header_count", &XzeroCore::max_request_header_count, FlowType::Number);
+    setupFunction("max_request_body_size", &XzeroCore::max_request_body_size, FlowType::Number);
 
 	// TODO setup error-documents
 
-	// shared
-	registerSharedFunction<XzeroCore, &XzeroCore::systemd_booted>("systemd.booted", FlowValue::BOOLEAN);
-	registerSharedFunction<XzeroCore, &XzeroCore::systemd_controlled>("systemd.controlled", FlowValue::BOOLEAN);
+	// shared properties (read-only)
+    sharedFunction("systemd.booted", &XzeroCore::systemd_booted).returnType(FlowType::Boolean);
+    sharedFunction("systemd.controlled", &XzeroCore::systemd_controlled).returnType(FlowType::Boolean);
 
-	registerSharedFunction<XzeroCore, &XzeroCore::sys_env>("sys.env", FlowValue::STRING);
-	registerSharedProperty<XzeroCore, &XzeroCore::sys_cwd>("sys.cwd", FlowValue::STRING);
-	registerSharedProperty<XzeroCore, &XzeroCore::sys_pid>("sys.pid", FlowValue::NUMBER);
-	registerSharedProperty<XzeroCore, &XzeroCore::sys_now>("sys.now", FlowValue::NUMBER);
-	registerSharedProperty<XzeroCore, &XzeroCore::sys_now_str>("sys.now_str", FlowValue::STRING);
+    sharedFunction("sys.env", &XzeroCore::sys_env).returnType(FlowType::String);
+    sharedFunction("sys.cwd", &XzeroCore::sys_cwd).returnType(FlowType::String);
+    sharedFunction("sys.pid", &XzeroCore::sys_pid).returnType(FlowType::String);
+    sharedFunction("sys.now", &XzeroCore::sys_now).returnType(FlowType::String);
+    sharedFunction("sys.now_str", &XzeroCore::sys_now_str).returnType(FlowType::String);
 
-	registerSharedFunction<XzeroCore, &XzeroCore::log_err>("log.err", FlowValue::VOID);
-	registerSharedFunction<XzeroCore, &XzeroCore::log_warn>("log.warn", FlowValue::VOID);
-	registerSharedFunction<XzeroCore, &XzeroCore::log_notice>("log.notice", FlowValue::VOID);
-	registerSharedFunction<XzeroCore, &XzeroCore::log_info>("log.info", FlowValue::VOID);
-	registerSharedFunction<XzeroCore, &XzeroCore::log_info>("log", FlowValue::VOID);
-	registerSharedFunction<XzeroCore, &XzeroCore::log_debug>("log.debug", FlowValue::VOID);
+    sharedFunction("file.exists", &XzeroCore::file_exists).returnType(FlowType::Boolean);
+    sharedFunction("file.is_reg", &XzeroCore::file_is_reg).returnType(FlowType::Boolean);
+    sharedFunction("file.is_dir", &XzeroCore::file_is_dir).returnType(FlowType::Boolean);
+    sharedFunction("file.is_exe", &XzeroCore::file_is_exe).returnType(FlowType::Boolean);
 
-	registerSharedFunction<XzeroCore, &XzeroCore::file_exists>("file.exists", FlowValue::BOOLEAN);
-	registerSharedFunction<XzeroCore, &XzeroCore::file_is_reg>("file.is_reg", FlowValue::BOOLEAN);
-	registerSharedFunction<XzeroCore, &XzeroCore::file_is_dir>("file.is_dir", FlowValue::BOOLEAN);
-	registerSharedFunction<XzeroCore, &XzeroCore::file_is_exe>("file.is_exe", FlowValue::BOOLEAN);
+    sharedFunction("log.err", &XzeroCore::log_err, FlowType::String);
+    sharedFunction("log.warn", &XzeroCore::log_warn, FlowType::String);
+    sharedFunction("log.notice", &XzeroCore::log_notice, FlowType::String);
+    sharedFunction("log.info", &XzeroCore::log_info, FlowType::String);
+    sharedFunction("log", &XzeroCore::log_info, FlowType::String);
+    sharedFunction("log.debug", &XzeroCore::log_debug, FlowType::String);
 
-	// main
-	registerHandler<XzeroCore, &XzeroCore::docroot>("docroot");
-	registerHandler<XzeroCore, &XzeroCore::alias>("alias");
-	registerFunction<XzeroCore, &XzeroCore::autoindex>("autoindex", FlowValue::VOID);
-	registerFunction<XzeroCore, &XzeroCore::rewrite>("rewrite", FlowValue::BOOLEAN);
-	registerFunction<XzeroCore, &XzeroCore::pathinfo>("pathinfo", FlowValue::VOID);
-	registerFunction<XzeroCore, &XzeroCore::error_handler>("error.handler", FlowValue::VOID);
-	registerProperty<XzeroCore, &XzeroCore::req_method>("req.method", FlowValue::BUFFER);
-	registerProperty<XzeroCore, &XzeroCore::req_url>("req.url", FlowValue::BUFFER);
-	registerProperty<XzeroCore, &XzeroCore::req_path>("req.path", FlowValue::BUFFER);
-	registerProperty<XzeroCore, &XzeroCore::req_query>("req.query", FlowValue::BUFFER);
-	registerProperty<XzeroCore, &XzeroCore::req_header>("req.header", FlowValue::BUFFER);
-	registerProperty<XzeroCore, &XzeroCore::req_cookie>("req.cookie", FlowValue::BUFFER);
-	registerProperty<XzeroCore, &XzeroCore::req_host>("req.host", FlowValue::BUFFER);
-	registerProperty<XzeroCore, &XzeroCore::req_pathinfo>("req.pathinfo", FlowValue::STRING);
-	registerProperty<XzeroCore, &XzeroCore::req_is_secure>("req.is_secure", FlowValue::BOOLEAN);
-	registerProperty<XzeroCore, &XzeroCore::req_scheme>("req.scheme", FlowValue::STRING);
-	registerProperty<XzeroCore, &XzeroCore::req_status_code>("req.status", FlowValue::NUMBER);
-	registerProperty<XzeroCore, &XzeroCore::conn_remote_ip>("req.remoteip", FlowValue::STRING);
-	registerProperty<XzeroCore, &XzeroCore::conn_remote_port>("req.remoteport", FlowValue::NUMBER);
-	registerProperty<XzeroCore, &XzeroCore::conn_local_ip>("req.localip", FlowValue::STRING);
-	registerProperty<XzeroCore, &XzeroCore::conn_local_port>("req.localport", FlowValue::NUMBER);
-	registerProperty<XzeroCore, &XzeroCore::phys_path>("phys.path", FlowValue::STRING);
-	registerProperty<XzeroCore, &XzeroCore::phys_exists>("phys.exists", FlowValue::BOOLEAN);
-	registerProperty<XzeroCore, &XzeroCore::phys_is_reg>("phys.is_reg", FlowValue::BOOLEAN);
-	registerProperty<XzeroCore, &XzeroCore::phys_is_dir>("phys.is_dir", FlowValue::BOOLEAN);
-	registerProperty<XzeroCore, &XzeroCore::phys_is_exe>("phys.is_exe", FlowValue::BOOLEAN);
-	registerProperty<XzeroCore, &XzeroCore::phys_mtime>("phys.mtime", FlowValue::NUMBER);
-	registerProperty<XzeroCore, &XzeroCore::phys_size>("phys.size", FlowValue::NUMBER);
-	registerProperty<XzeroCore, &XzeroCore::phys_etag>("phys.etag", FlowValue::STRING);
-	registerProperty<XzeroCore, &XzeroCore::phys_mimetype>("phys.mimetype", FlowValue::STRING);
-	registerFunction<XzeroCore, &XzeroCore::regex_group>("regex.group", FlowValue::BUFFER);
+	// main: read-only attributes
+	mainFunction("req.method", &XzeroCore::req_method).returnType(FlowType::String);
+	mainFunction("req.url", &XzeroCore::req_url).returnType(FlowType::String);
+	mainFunction("req.path", &XzeroCore::req_path).returnType(FlowType::String);
+	mainFunction("req.query", &XzeroCore::req_query).returnType(FlowType::String);
+	mainFunction("req.header", &XzeroCore::req_header).returnType(FlowType::String);
+	mainFunction("req.cookie", &XzeroCore::req_cookie).returnType(FlowType::String);
+	mainFunction("req.host", &XzeroCore::req_host).returnType(FlowType::String);
+	mainFunction("req.pathinfo", &XzeroCore::req_pathinfo).returnType(FlowType::String);
+	mainFunction("req.is_secure", &XzeroCore::req_is_secure).returnType(FlowType::Boolean);
+	mainFunction("req.scheme", &XzeroCore::req_scheme).returnType(FlowType::String);
+	mainFunction("req.status", &XzeroCore::req_status_code).returnType(FlowType::Number);
+	mainFunction("req.remoteip", &XzeroCore::conn_remote_ip).returnType(FlowType::String);
+	mainFunction("req.remoteport", &XzeroCore::conn_remote_port).returnType(FlowType::Number);
+	mainFunction("req.localip", &XzeroCore::conn_local_ip).returnType(FlowType::String);
+	mainFunction("req.localport", &XzeroCore::conn_local_port).returnType(FlowType::Number);
+	mainFunction("phys.path", &XzeroCore::phys_path).returnType(FlowType::String);
+	mainFunction("phys.exists", &XzeroCore::phys_exists).returnType(FlowType::Boolean);
+	mainFunction("phys.is_reg", &XzeroCore::phys_is_reg).returnType(FlowType::Boolean);
+	mainFunction("phys.is_dir", &XzeroCore::phys_is_dir).returnType(FlowType::Boolean);
+	mainFunction("phys.is_exe", &XzeroCore::phys_is_exe).returnType(FlowType::Boolean);
+	mainFunction("phys.mtime", &XzeroCore::phys_mtime).returnType(FlowType::Number);
+	mainFunction("phys.size", &XzeroCore::phys_size).returnType(FlowType::Number);
+	mainFunction("phys.etag", &XzeroCore::phys_etag).returnType(FlowType::String);
+	mainFunction("phys.mimetype", &XzeroCore::phys_mimetype).returnType(FlowType::String);
 
-	registerFunction<XzeroCore, &XzeroCore::header_add>("header.add", FlowValue::VOID);
-	registerFunction<XzeroCore, &XzeroCore::header_append>("header.append", FlowValue::VOID);
-	registerFunction<XzeroCore, &XzeroCore::header_overwrite>("header.overwrite", FlowValue::VOID);
-	registerFunction<XzeroCore, &XzeroCore::header_remove>("header.remove", FlowValue::VOID);
+    // main: getter functions
+	mainFunction("regex.group", &XzeroCore::regex_group, FlowType::Number).returnType(FlowType::String);
 
-	// main handlers
-	registerHandler<XzeroCore, &XzeroCore::staticfile>("staticfile");
-	registerHandler<XzeroCore, &XzeroCore::precompressed>("precompressed");
-	registerHandler<XzeroCore, &XzeroCore::redirect>("redirect");
-	registerHandler<XzeroCore, &XzeroCore::respond>("respond");
-	registerHandler<XzeroCore, &XzeroCore::echo>("echo");
-	registerHandler<XzeroCore, &XzeroCore::blank>("blank");
+    // main: manipulation functions
+	mainFunction("header.add", &XzeroCore::header_add, FlowType::String, FlowType::String);
+	mainFunction("header.append", &XzeroCore::header_append, FlowType::String, FlowType::String);
+	mainFunction("header.overwrite", &XzeroCore::header_overwrite, FlowType::String, FlowType::String);
+	mainFunction("header.remove", &XzeroCore::header_remove, FlowType::String);
+
+	mainFunction("autoindex", &XzeroCore::autoindex, FlowType::Array, FlowType::String);
+	mainFunction("rewrite", &XzeroCore::rewrite, FlowType::String).returnType(FlowType::Boolean);
+	mainFunction("pathinfo", &XzeroCore::pathinfo);
+	mainFunction("error.handler", &XzeroCore::error_handler, FlowType::Handler);
+
+	// main: handlers
+	mainHandler("docroot", &XzeroCore::docroot).params(FlowType::String);
+	mainHandler("alias", &XzeroCore::alias).params(FlowType::String, FlowType::String);
+	mainHandler("staticfile", &XzeroCore::staticfile);
+	mainHandler("precompressed", &XzeroCore::precompressed);
+	mainHandler("redirect", &XzeroCore::redirect);
+	mainHandler("respond", &XzeroCore::respond).params(FlowType::Number);
+	mainHandler("echo", &XzeroCore::echo).params(FlowType::String);
+	mainHandler("blank", &XzeroCore::blank);
 }
 
 XzeroCore::~XzeroCore()
@@ -178,320 +176,227 @@ XzeroCore::~XzeroCore()
 }
 
 // {{{ setup
-void XzeroCore::mimetypes(const FlowParams& args, FlowValue& result)
+void XzeroCore::mimetypes(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isString())
-	{
-		server().fileinfoConfig_.openMimeTypes(args[0].toString());
-	}
+    server().fileinfoConfig_.openMimeTypes(args.get<FlowString>(1));
 }
 
-void XzeroCore::mimetypes_default(const FlowParams& args, FlowValue& result)
+void XzeroCore::mimetypes_default(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isString())
-	{
-		server().fileinfoConfig_.defaultMimetype = args[0].toString();
-	}
+    server().fileinfoConfig_.defaultMimetype = args.get<FlowString>(1);
 }
 
-void XzeroCore::etag_mtime(const FlowParams& args, FlowValue& result)
+void XzeroCore::etag_mtime(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isBool())
-		server().fileinfoConfig_.etagConsiderMtime = args[0].toBool();
-	else
-		result.set(server().fileinfoConfig_.etagConsiderMtime);
+    server().fileinfoConfig_.etagConsiderMtime = args.get<bool>(1);
 }
 
-void XzeroCore::etag_size(const FlowParams& args, FlowValue& result)
+void XzeroCore::etag_size(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isBool())
-		server().fileinfoConfig_.etagConsiderSize = args[0].toBool();
-	else
-		result.set(server().fileinfoConfig_.etagConsiderSize);
+    server().fileinfoConfig_.etagConsiderSize = args.get<bool>(1);
 }
 
-void XzeroCore::etag_inode(const FlowParams& args, FlowValue& result)
+void XzeroCore::etag_inode(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isBool())
-		server().fileinfoConfig_.etagConsiderInode = args[0].toBool();
-	else
-		result.set(server().fileinfoConfig_.etagConsiderInode);
+    server().fileinfoConfig_.etagConsiderInode = args.get<bool>(1);
 }
 
-void XzeroCore::fileinfo_cache_ttl(const FlowParams& args, FlowValue& result)
+void XzeroCore::fileinfo_cache_ttl(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().fileinfoConfig_.cacheTTL = args[0].toNumber();
-	else
-		result.set(server().fileinfoConfig_.cacheTTL);
+    server().fileinfoConfig_.cacheTTL = args.get<FlowNumber>(1);
 }
 
-void XzeroCore::server_advertise(const FlowParams& args, FlowValue& result)
+void XzeroCore::server_advertise(FlowParams& args)
 {
-	if (args.empty())
-	{
-		result.set(server().advertise());
-	}
-	else // TODO if (args.expect(FlowValue::NUMBER))
-	{
-		server().advertise(args[0].toBool());
-	}
+    server().advertise(args.get<bool>(1));
 }
 
-void XzeroCore::server_tags(const FlowParams& args, FlowValue& result)
+void XzeroCore::server_tags(FlowParams& args)
 {
-	for (size_t i = 0, e = args.size(); i != e; ++i)
-		loadServerTag(args[i]);
+    for (const auto& arg: args) {
+        daemon().components_.push_back(*(FlowString*)arg);
+    }
 }
 
-void XzeroCore::loadServerTag(const FlowValue& tag)
+void XzeroCore::max_read_idle(FlowParams& args)
 {
-	switch (tag.type())
-	{
-		case FlowValue::ARRAY:
-			for (auto a: tag.toArray())
-				loadServerTag(a);
-			break;
-		case FlowValue::STRING:
-			if (*tag.toString() != '\0')
-				daemon().components_.push_back(tag.toString());
-			break;
-		case FlowValue::BUFFER:
-			if (tag.toNumber() > 0)
-				daemon().components_.push_back(std::string(tag.toString(), tag.toNumber()));
-			break;
-		default:
-			;//TODO reportWarning("Skip invalid value in server.tag: '%s'.", d->dump().c_str());
-	}
+    server().maxReadIdle(TimeSpan::fromSeconds(args.get<FlowNumber>(1)));
 }
 
-void XzeroCore::max_read_idle(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_write_idle(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxReadIdle(TimeSpan::fromSeconds(args[0].toNumber()));
-	else
-		result.set(server().maxReadIdle());
+    server().maxWriteIdle(TimeSpan::fromSeconds(args.get<FlowNumber>(1)));
 }
 
-void XzeroCore::max_write_idle(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_keepalive_idle(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxWriteIdle(TimeSpan::fromSeconds(args[0].toNumber()));
-	else
-		result.set(server().maxWriteIdle());
+    server().maxKeepAlive(TimeSpan::fromSeconds(args.get<FlowNumber>(1)));
 }
 
-void XzeroCore::max_keepalive_idle(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_keepalive_requests(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxKeepAlive(TimeSpan::fromSeconds(args[0].toNumber()));
-	else
-		result.set(server().maxKeepAlive());
+    server().maxKeepAliveRequests(args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_keepalive_requests(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_conns(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxKeepAliveRequests(args[0].toNumber());
-	else
-		result.set(server().maxKeepAliveRequests());
+    server().maxConnections(args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_conns(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_files(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxConnections(args[0].toNumber());
-	else
-		result.set(server().maxConnections());
+    setrlimit(RLIMIT_NOFILE, args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_files(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_address_space(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		setrlimit(RLIMIT_NOFILE, args[0].toNumber());
-	else
-		result.set(static_cast<long long>(getrlimit(RLIMIT_NOFILE)));
+    setrlimit(RLIMIT_AS, args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_address_space(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_core(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		setrlimit(RLIMIT_AS, args[0].toNumber());
-	else
-		result.set(static_cast<long long>(getrlimit(RLIMIT_AS)));
+    setrlimit(RLIMIT_CORE, args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_core(const FlowParams& args, FlowValue& result)
+void XzeroCore::tcp_cork(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		setrlimit(RLIMIT_CORE, args[0].toNumber());
-	else
-		result.set(static_cast<long long>(getrlimit(RLIMIT_CORE)));
+    server().tcpCork(args.get<bool>(1));
 }
 
-void XzeroCore::tcp_cork(const FlowParams& args, FlowValue& result)
+void XzeroCore::tcp_nodelay(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isBool())
-		server().tcpCork(args[0].toBool());
-	else
-		result.set(server().tcpCork());
+    server().tcpNoDelay(args.get<bool>(1));
 }
 
-void XzeroCore::tcp_nodelay(const FlowParams& args, FlowValue& result)
+void XzeroCore::lingering(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isBool())
-		server().tcpNoDelay(args[0].toBool());
-	else
-		result.set(server().tcpNoDelay());
+    server().lingering = TimeSpan::fromSeconds(args.get<FlowNumber>(1));
 }
 
-void XzeroCore::lingering(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_request_uri_size(FlowParams& args)
 {
-	if (args.size() == 1) {
-		if (args[0].isNumber()) {
-			server().lingering = TimeSpan::fromSeconds(args[0].toNumber());
-		} else {
-			server().log(Severity::error, "lingering: Invalid argument type. Must be a number (timespan).");
-		}
-	} else if (args.empty()) {
-		result.set(static_cast<int64_t>(server().lingering().value()));
-	} else {
-		server().log(Severity::error, "lingering: Invalid argument count.");
-	}
+    server().maxRequestUriSize(args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_request_uri_size(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_request_header_size(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxRequestUriSize(args[0].toNumber());
-	else
-		result.set(server().maxRequestUriSize());
+    server().maxRequestHeaderSize(args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_request_header_size(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_request_header_count(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxRequestHeaderSize(args[0].toNumber());
-	else
-		result.set(server().maxRequestHeaderSize());
+    server().maxRequestHeaderCount(args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_request_header_count(const FlowParams& args, FlowValue& result)
+void XzeroCore::max_request_body_size(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isNumber())
-		server().maxRequestHeaderCount(args[0].toNumber());
-	else
-		result.set(server().maxRequestHeaderCount());
+    server().maxRequestBodySize(args.get<FlowNumber>(1));
 }
 
-void XzeroCore::max_request_body_size(const FlowParams& args, FlowValue& result)
+void XzeroCore::listen(FlowParams& args)
 {
-	if (args.size() == 1 && args[0].isBool())
-		server().maxRequestBodySize(args[0].toNumber());
-	else
-		result.set(server().maxRequestBodySize());
+    SocketSpec socketSpec(
+        args.get<IPAddress>(1),  // bind addr
+        args.get<FlowNumber>(2), // port
+        args.get<FlowNumber>(3), // backlog
+        args.get<FlowNumber>(4), // multi accept
+        args.get<bool>(5)        // reuse port
+    );
+
+    server().setupListener(socketSpec);
 }
 
-void XzeroCore::listen(const FlowParams& args, FlowValue& result)
+void XzeroCore::workers(FlowParams& args)
 {
-	SocketSpec socketSpec;
-	socketSpec << args;
+    size_t cur = server_->workers().size();
+    size_t count = args.get<FlowNumber>(1);
 
-	if (!socketSpec.isValid()) {
-		result.set(false);
-	} else {
-		result.set(server().setupListener(socketSpec));
-	}
+    if (count < 1)
+        count = 1;
+
+    while (cur < count) {
+        server_->spawnWorker();
+        ++cur;
+    }
+
+    while (cur > count) {
+        --cur;
+        server_->destroyWorker(server_->workers()[cur]);
+    }
 }
 
-void XzeroCore::workers(const FlowParams& args, FlowValue& result)
+// "workers.affinity([I]V"
+void XzeroCore::workers_affinity(FlowParams& args)
 {
-	if (args.size() == 1) {
-		if (args[0].isArray()) {
-			size_t i = 0;
-			size_t count = server_->workers().size();
+    size_t cur = server_->workers().size();
+    size_t count = args.size();
 
-			// spawn or set affinity of a set of workers as passed via input array
-			for (auto value: args[0].toArray()) {
-				if (value.isNumber()) {
-					if (i >= count)
-						server_->spawnWorker();
+    if (count > 0) {
+        // spawn or set affinity of a set of workers as passed via input array
+        for (size_t i = 1, e = args.size(); i <= e; ++i) {
+            if (i >= cur)
+                server_->spawnWorker();
 
-					server_->workers()[i]->setAffinity(value.toNumber());
-					++i;
-				}
-			}
+            server_->workers()[i]->setAffinity(args.get<FlowNumber>(i));
+        }
+    }
 
-			// destroy workers that exceed our input array
-			for (count = server_->workers().size(); i < count; --count) {
-				server_->destroyWorker(server_->workers()[count - 1]);
-			}
-		} else {
-			size_t cur = server_->workers().size();
-			size_t count = args.size() == 1 ? args[0].toNumber() : 1;
-
-			for (; cur < count; ++cur) {
-				server_->spawnWorker();
-			}
-
-			for (; cur > count; --cur) {
-				server_->destroyWorker(server_->workers()[cur - 1]);
-			}
-		}
-	}
-
-	result.set(server_->workers().size());
+    // destroy workers that exceed our input array
+    cur = server_->workers().size();
+    while (cur > count) {
+        --cur;
+        server_->destroyWorker(server_->workers()[cur]);
+    }
 }
 
-void XzeroCore::emit_llvm(const FlowParams& args, FlowValue& result)
+
+void XzeroCore::dump_ir(FlowParams& args)
 {
-	emitLLVM_ = true;
+	emitIR_ = true;
 }
 // }}}
-
 // {{{ systemd.*
-void XzeroCore::systemd_booted(HttpRequest*, const FlowParams& args, FlowValue& result)
+void XzeroCore::systemd_booted(HttpRequest*, FlowParams& args)
 {
-	result.set(sd_booted() == 0);
+	args.setResult(sd_booted() == 0);
 }
 
-void XzeroCore::systemd_controlled(HttpRequest*, const FlowParams& args, FlowValue& result)
+void XzeroCore::systemd_controlled(HttpRequest*, FlowParams& args)
 {
-	result.set(sd_booted() == 0 && getppid() == 1);
+	args.setResult(sd_booted() == 0 && getppid() == 1);
 }
 // }}}
-
 // {{{ sys
-void XzeroCore::sys_env(HttpRequest*, const FlowParams& args, FlowValue& result)
+void XzeroCore::sys_env(HttpRequest*, FlowParams& args)
 {
-	result.set(getenv(args[0].toString()));
+    args.setResult(getenv(args.get<FlowString*>(1)->c_str()));
 }
 
-void XzeroCore::sys_cwd(HttpRequest*, const FlowParams& args, FlowValue& result)
+
+void XzeroCore::sys_cwd(HttpRequest*, FlowParams& args)
 {
 	static char buf[1024];
-	result.set(getcwd(buf, sizeof(buf)));
+	args.setResult(getcwd(buf, sizeof(buf)));
 }
 
-void XzeroCore::sys_pid(HttpRequest*, const FlowParams& args, FlowValue& result)
+void XzeroCore::sys_pid(HttpRequest*, FlowParams& args)
 {
-	result.set(getpid());
+	args.setResult(static_cast<FlowNumber>(getpid()));
 }
 
-void XzeroCore::sys_now(HttpRequest*, const FlowParams& args, FlowValue& result)
+void XzeroCore::sys_now(HttpRequest*, FlowParams& args)
 {
-	result.set(static_cast<int64_t>(server().workers()[0]->now().unixtime()));
+	args.setResult(static_cast<FlowNumber>(server().workers()[0]->now().unixtime()));
 }
 
-void XzeroCore::sys_now_str(HttpRequest* r, const FlowParams& args, FlowValue& result)
+void XzeroCore::sys_now_str(HttpRequest* r, FlowParams& args)
 {
-	auto& s = r->connection.worker().now().http_str();
-	result.set(s.data(), s.size());
+	const auto& s = r->connection.worker().now().http_str();
+	args.setResult(s.c_str());
 }
 // }}}
-
 // {{{ log.*
-void XzeroCore::log_err(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+void XzeroCore::log_err(HttpRequest* r, FlowParams& args)
 {
 	if (r)
 		r->log(Severity::error, "%s", concat(args).c_str());
@@ -499,7 +404,7 @@ void XzeroCore::log_err(HttpRequest* r, const FlowParams& args, FlowValue& /*res
 		server().log(Severity::error, "%s", concat(args).c_str());
 }
 
-void XzeroCore::log_warn(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+void XzeroCore::log_warn(HttpRequest* r, FlowParams& args)
 {
 	if (r)
 		r->log(Severity::info, "%s", concat(args).c_str());
@@ -507,7 +412,7 @@ void XzeroCore::log_warn(HttpRequest* r, const FlowParams& args, FlowValue& /*re
 		server().log(Severity::warning, "%s", concat(args).c_str());
 }
 
-void XzeroCore::log_notice(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+void XzeroCore::log_notice(HttpRequest* r, FlowParams& args)
 {
 	if (r)
 		r->log(Severity::info, "%s", concat(args).c_str());
@@ -515,7 +420,7 @@ void XzeroCore::log_notice(HttpRequest* r, const FlowParams& args, FlowValue& /*
 		server().log(Severity::notice, "%s", concat(args).c_str());
 }
 
-void XzeroCore::log_info(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+void XzeroCore::log_info(HttpRequest* r, FlowParams& args)
 {
 	if (r)
 		r->log(Severity::info, "%s", concat(args).c_str());
@@ -523,7 +428,7 @@ void XzeroCore::log_info(HttpRequest* r, const FlowParams& args, FlowValue& /*re
 		server().log(Severity::info, "%s", concat(args).c_str());
 }
 
-void XzeroCore::log_debug(HttpRequest* r, const FlowParams& args, FlowValue& /*result*/)
+void XzeroCore::log_debug(HttpRequest* r, FlowParams& args)
 {
 	if (r)
 		r->log(Severity::debug, "%s", concat(args).c_str());
@@ -531,74 +436,55 @@ void XzeroCore::log_debug(HttpRequest* r, const FlowParams& args, FlowValue& /*r
 		server().log(Severity::debug, "%s", concat(args).c_str());
 }
 // }}}
-
 // {{{ req
-void XzeroCore::autoindex(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::autoindex(HttpRequest* r, FlowParams& args)
 {
-	if (in->documentRoot.empty()) {
+	if (r->documentRoot.empty()) {
 		server().log(Severity::error, "autoindex: No document root set yet. Skipping.");
 		return; // error: must have a document-root set first.
 	}
 
-	if (!in->fileinfo)
+	if (!r->fileinfo)
 		return; // something went wrong, just be sure we SEGFAULT here
 
-	if (!in->fileinfo->isDirectory())
+	if (!r->fileinfo->isDirectory())
 		return;
 
 	if (args.size() < 1)
 		return;
 
 	for (size_t i = 0, e = args.size(); i != e; ++i)
-		if (matchIndex(in, args[i]))
+		if (matchIndex(r, *(FlowString*)args[i]))
 			return;
 }
 
-bool XzeroCore::matchIndex(HttpRequest *in, const FlowValue& arg)
+bool XzeroCore::matchIndex(HttpRequest *r, const std::string& arg)
 {
-	std::string path(in->fileinfo->path());
+	std::string path(r->fileinfo->path());
 
-	switch (arg.type())
-	{
-		case FlowValue::STRING:
-		{
-			std::string ipath;
-			ipath.reserve(path.length() + 1 + strlen(arg.toString()));
-			ipath += path;
-			if (path[path.size() - 1] != '/')
-				ipath += "/";
-			ipath += arg.toString();
+    std::string ipath;
+    ipath.reserve(path.length() + 1 + arg.size());
+    ipath += path;
+    if (path[path.size() - 1] != '/')
+        ipath += "/";
+    ipath += arg;
 
-			if (auto fi = in->connection.worker().fileinfo(ipath))
-			{
-				if (fi->isRegular())
-				{
-					in->fileinfo = fi;
-					return true;
-				}
-			}
-			break;
-		}
-		case FlowValue::ARRAY:
-		{
-			for (auto a: arg.toArray())
-				if (matchIndex(in, a))
-					return true;
+    if (auto fi = r->connection.worker().fileinfo(ipath)) {
+        if (fi->isRegular()) {
+            r->fileinfo = fi;
+            return true;
+        }
+    }
 
-			break;
-		}
-		default:
-			break;
-	}
 	return false;
 }
 
-bool XzeroCore::docroot(HttpRequest* in, const FlowParams& args)
+bool XzeroCore::docroot(HttpRequest* in, FlowParams& args)
 {
 	if (args.size() != 1)
 		return false;
 
-	in->documentRoot = args[0].toString();
+	in->documentRoot = args.get<FlowString>(1);
 
 	if (in->documentRoot.empty()) {
 		in->log(Severity::error, "Setting empty document root is not allowed.");
@@ -618,23 +504,8 @@ bool XzeroCore::docroot(HttpRequest* in, const FlowParams& args)
 	return redirectOnIncompletePath(in);
 }
 
-bool XzeroCore::alias(HttpRequest* in, const FlowParams& args)
+bool XzeroCore::alias(HttpRequest* in, FlowParams& args)
 {
-	if (args.size() != 1 || !args[0].isArray()) {
-		server().log(Severity::error, "alias: invalid argument count");
-		return false;
-	}
-
-	const FlowArray& r = args[0].toArray();
-
-	if (r.size() != 2)
-		return false;
-
-	if (!r[0].isString() || !r[1].isString()) {
-		server().log(Severity::error, "alias: invalid argument types");
-		return false;
-	}
-
 	// input:
 	//    URI: /some/uri/path
 	//    Alias '/some' => '/srv/special';
@@ -643,9 +514,9 @@ bool XzeroCore::alias(HttpRequest* in, const FlowParams& args)
 	//    docroot: /srv/special
 	//    fileinfo: /srv/special/uri/path
 
-	std::string prefix = r[0].toString();
+	std::string prefix = args.get<FlowString>(1);
 	size_t prefixLength = prefix.size();
-	std::string alias = r[1].toString();
+	std::string alias = args.get<FlowString>(2);
 
 	if (in->path.begins(prefix))
 		in->fileinfo = in->connection.worker().fileinfo(alias + in->path.substr(prefixLength));
@@ -653,67 +524,61 @@ bool XzeroCore::alias(HttpRequest* in, const FlowParams& args)
 	return redirectOnIncompletePath(in);
 }
 
-void XzeroCore::rewrite(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::rewrite(HttpRequest* in, FlowParams& args)
 {
-	if (!args.size()) {
-		in->log(Severity::error,
-				"rewrite: Invalid argument count.");
-		result.set(false);
-		return;
-	}
+    in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + *args.get<FlowString*>(1));
 
-	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args[0].asString());
-
-	result.set(in->fileinfo ? in->fileinfo->exists() : false);
+    args.setResult(in->fileinfo ? in->fileinfo->exists() : false);
 }
 
-void XzeroCore::pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::pathinfo(HttpRequest* r, FlowParams& args)
 {
-	if (!in->fileinfo) {
-		in->log(Severity::error,
-				"pathinfo: no file information available. Please set document root first.");
-		return;
-	}
+    if (!r->fileinfo) {
+        r->log(Severity::error, "pathinfo: no file information available. Please set document root first.");
+        return;
+    }
 
-	in->updatePathInfo();
+    r->updatePathInfo();
 }
 
-void XzeroCore::error_handler(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::error_handler(HttpRequest* r, FlowParams& args)
 {
-	in->setErrorHandler(args[0].toFunction());
+    FlowVM::Handler* handler = args.get<FlowVM::Handler*>(1);
+
+    r->setErrorHandler([=](HttpRequest* r) -> bool { return handler->run(r); });
 }
 
-void XzeroCore::req_method(HttpRequest* in, const FlowParams& args, FlowValue& result)
+
+void XzeroCore::req_method(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->method.data(), in->method.size());
+	args.setResult(in->method.str());
 }
 
-void XzeroCore::req_url(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_url(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->unparsedUri.data(), in->unparsedUri.size());
+	args.setResult(in->unparsedUri.str());
 }
 
-void XzeroCore::req_path(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_path(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->path.data(), in->path.size());
+	args.setResult(in->path.str());
 }
 
-void XzeroCore::req_query(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_query(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->query.data(), in->query.size());
+	args.setResult(in->query.str());
 }
 
-void XzeroCore::req_header(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_header(HttpRequest* in, FlowParams& args)
 {
-	BufferRef ref(in->requestHeader(args[0].toString()));
-	result.set(ref.data(), ref.size());
+	args.setResult(in->requestHeader(args.get<FlowString>(1)).str());
 }
 
-void XzeroCore::req_cookie(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_cookie(HttpRequest* in, FlowParams& args)
 {
 	BufferRef cookie(in->requestHeader("Cookie"));
-	if (!cookie.empty() && !args.empty()) {
-		std::string wanted(args[0].asString());
+	if (!cookie.empty()) {
+		std::string wanted(args.get<FlowString>(1));
 		static const std::string sld("; \t");
 		Tokenizer<BufferRef> st1(cookie, sld);
 		BufferRef kv;
@@ -725,246 +590,188 @@ void XzeroCore::req_cookie(HttpRequest* in, const FlowParams& args, FlowValue& r
 			BufferRef value(st2.nextToken());
 			//printf("parsed cookie[%s] = '%s'\n", key.c_str(), value.c_str());
 			if (key == wanted) {
-				result.set(value);
+				args.setResult(value);
 				return;
 			}
 			//cookies_[key] = value;
 		}
 	}
-	result.set("", 0);
+	args.setResult("");
 }
 
-void XzeroCore::req_host(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_host(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->hostname.data(), in->hostname.size());
+	args.setResult(in->hostname.str());
 }
 
-void XzeroCore::req_pathinfo(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_pathinfo(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->pathinfo.data(), in->pathinfo.size());
+	args.setResult(in->pathinfo.str());
 }
 
-void XzeroCore::req_is_secure(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_is_secure(HttpRequest* in, FlowParams& args)
 {
-	result = in->connection.isSecure();
+	args.setResult(in->connection.isSecure());
 }
 
-void XzeroCore::req_scheme(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_scheme(HttpRequest* in, FlowParams& args)
 {
-	result = in->connection.isSecure() ? "https" : "http";
+	args.setResult(in->connection.isSecure() ? "https" : "http");
 }
 
-void XzeroCore::req_status_code(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::req_status_code(HttpRequest* in, FlowParams& args)
 {
-	result = static_cast<unsigned>(in->status);
+	args.setResult(static_cast<FlowNumber>(in->status));
 }
 // }}}
-
 // {{{ connection
-void XzeroCore::conn_remote_ip(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::conn_remote_ip(HttpRequest* in, FlowParams& args)
 {
-	result = in->connection.remoteIP().c_str();
+	args.setResult(in->connection.remoteIP());
 }
 
-void XzeroCore::conn_remote_port(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::conn_remote_port(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->connection.remotePort());
+	args.setResult(static_cast<FlowNumber>(in->connection.remotePort()));
 }
 
-void XzeroCore::conn_local_ip(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::conn_local_ip(HttpRequest* in, FlowParams& args)
 {
-	result = in->connection.localIP().c_str();
+	args.setResult(in->connection.localIP());
 }
 
-void XzeroCore::conn_local_port(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::conn_local_port(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->connection.localPort());
+	args.setResult(static_cast<FlowNumber>(in->connection.localPort()));
 }
 // }}}
-
 // {{{ phys
-void XzeroCore::phys_path(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_path(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->path().c_str() : "");
+	args.setResult(in->fileinfo ? in->fileinfo->path().c_str() : "");
 }
 
-void XzeroCore::phys_exists(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_exists(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->exists() : false);
+	args.setResult(in->fileinfo ? in->fileinfo->exists() : false);
 }
 
-void XzeroCore::phys_is_reg(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_is_reg(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->isRegular() : false);
+	args.setResult(in->fileinfo ? in->fileinfo->isRegular() : false);
 }
 
-void XzeroCore::phys_is_dir(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_is_dir(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->isDirectory() : false);
+	args.setResult(in->fileinfo ? in->fileinfo->isDirectory() : false);
 }
 
-void XzeroCore::phys_is_exe(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_is_exe(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->isExecutable() : false);
+	args.setResult(in->fileinfo ? in->fileinfo->isExecutable() : false);
 }
 
-void XzeroCore::phys_mtime(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_mtime(HttpRequest* in, FlowParams& args)
 {
-	result.set(static_cast<int64_t>(in->fileinfo ? in->fileinfo->mtime() : 0));
+	args.setResult(static_cast<FlowNumber>(in->fileinfo ? in->fileinfo->mtime() : 0));
 }
 
-void XzeroCore::phys_size(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_size(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->size() : 0);
+	args.setResult(static_cast<FlowNumber>(in->fileinfo ? in->fileinfo->size() : 0));
 }
 
-void XzeroCore::phys_etag(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_etag(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->etag().c_str() : "");
+	args.setResult(in->fileinfo ? in->fileinfo->etag().c_str() : "");
 }
 
-void XzeroCore::phys_mimetype(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::phys_mimetype(HttpRequest* in, FlowParams& args)
 {
-	result.set(in->fileinfo ? in->fileinfo->mimetype().c_str() : "");
+	args.setResult(in->fileinfo ? in->fileinfo->mimetype().c_str() : "");
 }
 // }}}
-
 // {{{ regex
-void XzeroCore::regex_group(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::regex_group(HttpRequest* in, FlowParams& args)
 {
-	if (args.size() != 1) {
-		// invalid arg count
-		result.set("", 0);
-		return;
-	}
+	size_t position = args.get<FlowNumber>(1) >= 0 ? args.get<FlowNumber>(1) : 0;
 
-	size_t position = args[0].toNumber() >= 0 ? args[0].toNumber() : 0;
 	if (const RegExp::Result* rr = in->regexMatch()) {
 		if (position < rr->size()) {
 			const auto& match = rr->at(position);
-			result.set(match.first, match.second);
+			args.setResult(FlowString(match.first, match.second));
 		} else {
 			// match index out of bounds
-			result.set("", 0);
+			args.setResult("");
 		}
 	} else {
 		// no regex match executed
-		result.set("", 0);
+		args.setResult("");
 	}
 }
 // }}}
-
 // {{{ file
 // bool file.exists(string path)
-void XzeroCore::file_exists(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::file_exists(HttpRequest* in, FlowParams& args)
 {
-	result.set(false);
-
-	if (args.size() != 1) {
-		// invalid arg count
-		return;
-	}
-
-	auto fileinfo = in->connection.worker().fileinfo(args[0].asString());
+	auto fileinfo = in->connection.worker().fileinfo(args.get<FlowString>(1));
 	if (!fileinfo)
-		return;
-
-	result.set(fileinfo->exists());
+        args.setResult(false);
+    else
+        args.setResult(fileinfo->exists());
 }
 
-void XzeroCore::file_is_reg(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::file_is_reg(HttpRequest* in, FlowParams& args)
 {
-	result.set(false);
-
-	if (args.size() != 1) {
-		// invalid arg count
-		return;
-	}
-
-	HttpWorker* worker = in ? &in->connection.worker() : server().mainWorker();
-	auto fileinfo = worker->fileinfo(args[0].asString());
-	if (!fileinfo)
-		return;
-
-	result.set(fileinfo->isRegular());
+    HttpWorker* worker = in ? &in->connection.worker() : server().mainWorker();
+    auto fileinfo = worker->fileinfo(args.get<FlowString>(1));
+    if (!fileinfo)
+        args.setResult(false);
+    else
+        args.setResult(fileinfo->isRegular());
 }
 
-void XzeroCore::file_is_dir(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::file_is_dir(HttpRequest* in, FlowParams& args)
 {
-	result.set(false);
-
-	if (args.size() != 1) {
-		// invalid arg count
-		return;
-	}
-
 	HttpWorker* worker = in ? &in->connection.worker() : server().mainWorker();
-	auto fileinfo = worker->fileinfo(args[0].asString());
+	auto fileinfo = worker->fileinfo(args.get<FlowString>(1));
 	if (!fileinfo)
-		return;
-
-	result.set(fileinfo->isDirectory());
+        args.setResult(false);
+    else
+        args.setResult(fileinfo->isDirectory());
 }
 
-void XzeroCore::file_is_exe(HttpRequest* in, const FlowParams& args, FlowValue& result)
+void XzeroCore::file_is_exe(HttpRequest* in, FlowParams& args)
 {
-	result.set(false);
-
-	if (args.size() != 1) {
-		// invalid arg count
-		return;
-	}
-
 	HttpWorker* worker = in ? &in->connection.worker() : server().mainWorker();
-	auto fileinfo = worker->fileinfo(args[0].asString());
+	auto fileinfo = worker->fileinfo(args.get<FlowString>(1));
 	if (!fileinfo)
-		return;
-
-	result.set(fileinfo->isExecutable());
+        args.setResult(false);
+    else
+        args.setResult(fileinfo->isExecutable());
 }
 // }}}
-
 // {{{ handler
-bool XzeroCore::redirect(HttpRequest *in, const FlowParams& args)
+bool XzeroCore::redirect(HttpRequest *in, FlowParams& args)
 {
 	in->status = HttpStatus::MovedTemporarily;
-	in->responseHeaders.overwrite("Location", args[0].toString());
+	in->responseHeaders.overwrite("Location", args.get<FlowString>(1));
 	in->finish();
 
 	return true;
 }
 
-bool XzeroCore::respond(HttpRequest *in, const FlowParams& args)
+bool XzeroCore::respond(HttpRequest *in, FlowParams& args)
 {
-	if (args.size() >= 1 && args[0].isNumber())
-		in->status = static_cast<HttpStatus>(args[0].toNumber());
-
+    in->status = static_cast<HttpStatus>(args.get<FlowNumber>(1));
 	in->finish();
+
 	return true;
 }
 
-bool XzeroCore::echo(HttpRequest *in, const FlowParams& args)
+bool XzeroCore::echo(HttpRequest *in, FlowParams& args)
 {
-	if (args.size() != 1) {
-		in->log(Severity::error, "echo: Invalid argument count.");
-		in->status = HttpStatus::InternalServerError;
-		in->finish();
-		return true;
-	}
-
-	switch (args[0].type()) {
-		case FlowValue::STRING:
-			in->write<x0::BufferSource>(args[0].toString());
-			break;
-		case FlowValue::BUFFER:
-			in->write<x0::BufferSource>(Buffer(args[0].toString(), args[0].toNumber()));
-			break;
-		default:
-			in->log(Severity::error, "echo: Invalid argument type.");
-			in->status = HttpStatus::InternalServerError;
-			in->finish();
-			return true;
-	}
+    in->write<x0::BufferSource>(args.get<FlowString>(1));
 
 	// trailing newline
 	in->write<x0::BufferSource>("\n");
@@ -976,58 +783,37 @@ bool XzeroCore::echo(HttpRequest *in, const FlowParams& args)
 	return true;
 }
 
-bool XzeroCore::blank(HttpRequest* in, const FlowParams& args)
+bool XzeroCore::blank(HttpRequest* in, FlowParams& args)
 {
 	in->status = HttpStatus::Ok;
 	in->finish();
+
 	return true;
 }
 // }}}
-
 // {{{ response's header.* functions
-void XzeroCore::header_add(HttpRequest* r, const FlowParams& args, FlowValue& result)
+void XzeroCore::header_add(HttpRequest* r, FlowParams& args)
 {
-	if (args.size() != 2)
-		return;
-
-	if (args[0].isString() && args[1].isString()) {
-		r->responseHeaders.push_back(args[0].toString(), args[1].toString());
-	}
+    r->responseHeaders.push_back(args.get<FlowString>(1), args.get<FlowString>(2));
 }
 
 // header.append(headerName, appendValue)
-void XzeroCore::header_append(HttpRequest* r, const FlowParams& args, FlowValue& result)
+void XzeroCore::header_append(HttpRequest* r, FlowParams& args)
 {
-	if (args.size() != 2)
-		return;
-
-	if (args[0].isString() && args[1].isString()) {
-		r->responseHeaders[args[0].toString()] += args[1].toString();
-	}
+    r->responseHeaders[args.get<FlowString>(1)] += args.get<FlowString>(2);
 }
 
-void XzeroCore::header_overwrite(HttpRequest* r, const FlowParams& args, FlowValue& result)
+void XzeroCore::header_overwrite(HttpRequest* r, FlowParams& args)
 {
-	if (args.size() != 2)
-		return;
-
-	if (args[0].isString() && args[1].isString()) {
-		r->responseHeaders.overwrite(args[0].toString(), args[1].toString());
-	}
+    r->responseHeaders.overwrite(args.get<FlowString>(1), args.get<FlowString>(2));
 }
 
-void XzeroCore::header_remove(HttpRequest* r, const FlowParams& args, FlowValue& result)
+void XzeroCore::header_remove(HttpRequest* r, FlowParams& args)
 {
-	if (args.size() != 1)
-		return;
-
-	if (args[0].isString()) {
-		r->responseHeaders.remove(args[0].toString());
-	}
+    r->responseHeaders.remove(args.get<FlowString>(1));
 }
 // }}}
-
-bool XzeroCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
+bool XzeroCore::staticfile(HttpRequest *in, FlowParams& args) // {{{
 {
 	if (!in->fileinfo)
 		return false;
@@ -1069,9 +855,8 @@ bool XzeroCore::staticfile(HttpRequest *in, const FlowParams& args) // {{{
 	}
 	return false;
 } // }}}
-
 // {{{ handler: precompressed
-bool XzeroCore::precompressed(HttpRequest *in, const FlowParams& args)
+bool XzeroCore::precompressed(HttpRequest *in, FlowParams& args)
 {
 	if (!in->fileinfo)
 		return false;
@@ -1111,20 +896,17 @@ bool XzeroCore::precompressed(HttpRequest *in, const FlowParams& args)
 
 	return false;
 } // }}}
-
 // {{{ post_config
 bool XzeroCore::post_config()
 {
-	if (emitLLVM_)
-	{
-		// XXX we could certainly dump this into a special destination instead to stderr.
-		daemon().runner_->dump();
-	}
+    if (emitIR_) {
+        // XXX we could certainly dump this into a special destination instead to stderr.
+        daemon().program_->dump();
+    }
 
-	return true;
+    return true;
 }
 // }}}
-
 // {{{ getrimit / setrlimit
 static inline const char *rc2str(int resource)
 {

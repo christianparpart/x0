@@ -7,10 +7,10 @@
  */
 
 #include "Flower.h"
-#include <x0/flow2/AST.h>
-#include <x0/flow2/ASTPrinter.h>
-#include <x0/flow2/FlowLexer.h>
-#include <x0/flow2/FlowParser.h>
+#include <x0/flow/AST.h>
+#include <x0/flow/ASTPrinter.h>
+#include <x0/flow/FlowLexer.h>
+#include <x0/flow/FlowParser.h>
 #include <x0/DebugLogger.h>
 #include <fstream>
 #include <memory>

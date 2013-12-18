@@ -1,23 +1,14 @@
-/* <flow/FlowLexer.cpp>
- *
- * This file is part of the x0 web server project and is released under AGPL-3.
- * http://redmine.xzero.io/projects/flow
- *
- * (c) 2010-2013 Christian Parpart <trapni@gmail.com>
- */
-
 #include <x0/flow/FlowLexer.h>
-#include <cstring>
-#include <cstdio>
+#include <x0/IPAddress.h>
+#include <x0/DebugLogger.h>
+#include <string.h>
+#include <glob.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+#define TRACE(level, msg...) XZERO_DEBUG("FlowLexer", (level), msg)
 
 namespace x0 {
 
-inline std::string escape(char value)
+inline std::string escape(char value) // {{{
 {
 	switch (value) {
 		case '\t': return "<TAB>";
@@ -35,9 +26,9 @@ inline std::string escape(char value)
 		snprintf(buf, sizeof(buf), "0x%02X", value);
 		return buf;
 	}
-}
+} // }}}
 
-static inline std::string unescape(const std::string& value)
+static inline std::string unescape(const std::string& value) // {{{
 {
 	std::string result;
 
@@ -66,65 +57,27 @@ static inline std::string unescape(const std::string& value)
 
 	return result;
 }
-
-std::string SourceLocation::dump(const std::string& prefix) const
-{
-	char buf[4096];
-	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %zu:%zu.%zu - %zu:%zu.%zu }",
-		!prefix.empty() ? prefix.c_str() : "location",
-		begin.line, begin.column, begin.offset,
-		end.line, end.column, end.offset);
-	return std::string(buf, n);
-}
-
-std::string SourceLocation::text() const
-{
-	std::string result;
-	char* buf = nullptr;
-	ssize_t size;
-	ssize_t n;
-	int fd;
-
-	fd = open(fileName.c_str(), O_RDONLY);
-	if (fd < 0)
-		return std::string();
-
-	size = 1 + end.offset - begin.offset;
-	if (size <= 0)
-		goto out;
-
-	if (lseek(fd, begin.offset, SEEK_SET) < 0)
-		goto out;
-
-	buf = new char[size + 1];
-	n = read(fd, buf, size); 
-	if (n < 0)
-		goto out;
-
-	result = std::string(buf, n);
-
-out:
-	delete[] buf;
-	close(fd);
-	return result;
-}
+// }}}
 
 FlowLexer::FlowLexer() :
-	filename_(),
-	stream_(NULL),
-	lastPos_(),
-	currPos_(),
-	nextPos_(),
-	currLocation_(),
-	lastLocation_(),
-
+	contexts_(),
 	currentChar_(EOF),
 	ipv6HexDigits_(0),
-	numberValue_(0),
-	ipValue_(),
+	location_(),
+	token_(FlowToken::Eof),
 	stringValue_(),
-	token_(FlowToken::Unknown),
+	ipValue_(),
+	numberValue_(0),
 	interpolationDepth_(0)
+{
+}
+
+FlowLexer::Scope::Scope() :
+	filename(),
+	basedir(),
+	stream(),
+	currPos(),
+	nextPos()
 {
 }
 
@@ -132,138 +85,227 @@ FlowLexer::~FlowLexer()
 {
 }
 
-bool FlowLexer::initialize(std::istream *input, const std::string& name)
+bool FlowLexer::open(const std::string& filename)
 {
-	stream_ = input;
-	filename_ = name;
-
-	if (stream_ == NULL)
+	if (enterScope(filename) == nullptr)
 		return false;
 
-	lastPos_.set(1, 1, 0);
-	currPos_.set(1, 1, 0);
-	nextPos_.set(1, 1, 0);
-	currentChar_ = '\0';
-
-	currLocation_.fileName = filename_;
-	currLocation_.begin.set(1, 1, 0);
-	currLocation_.end.set(1, 1, 0);
-	content_.clear();
-
-	nextChar();
 	nextToken();
-
 	return true;
 }
 
-size_t FlowLexer::line() const
+FlowLexer::Scope* FlowLexer::enterScope(const std::string& filename)
 {
-	return currPos_.line;
+	std::unique_ptr<Scope> cx(new Scope());
+
+	TRACE(1, "ENTER CONTEXT '%s' (depth: %zu)", filename.c_str(), contexts_.size() + 1);
+
+	cx->filename = filename;
+	cx->stream.open(filename);
+	cx->basedir = "TODO";
+	cx->backupChar = currentChar_;
+
+	contexts_.push_front(std::move(cx));
+
+	// parse first char in new context
+	currentChar_ = '\0'; // something that is not EOF
+	nextChar();
+
+	return contexts_.front().get();
 }
 
-size_t FlowLexer::column() const
+void FlowLexer::leaveScope()
 {
-	return currPos_.column;
-}
+	TRACE(1, "LEAVE CONTEXT '%s' (depth: %zu)", scope()->filename.c_str(), contexts_.size());
 
-bool FlowLexer::eof() const
-{
-	return currentChar_ == EOF || !stream_ || stream_->eof();
-}
-
-std::string FlowLexer::stringValue() const
-{
-	return stringValue_;
-}
-
-long long FlowLexer::numberValue() const
-{
-	return numberValue_;
-}
-
-const IPAddress& FlowLexer::ipValue() const
-{
-	return ipValue_;
-}
-
-bool FlowLexer::booleanValue() const
-{
-	return numberValue_ != 0;
-}
-
-int FlowLexer::currentChar() const
-{
-	return currentChar_;
+	currentChar_ = scope()->backupChar;
+	contexts_.pop_front();
 }
 
 int FlowLexer::peekChar()
 {
-	return stream_->peek();
+	return scope()->stream.peek();
 }
 
-int FlowLexer::nextChar()
+bool FlowLexer::eof() const
+{
+	return currentChar_ == EOF || scope()->stream.eof();
+}
+
+int FlowLexer::nextChar(bool interscope)
 {
 	if (currentChar_ == EOF)
 		return currentChar_;
 
-	currLocation_.end = currPos_;
-	currPos_ = nextPos_;
+	location_.end = scope()->currPos;
+	scope()->currPos = scope()->nextPos;
 
-	int ch = stream_->get();
+	int ch = scope()->stream.get();
 	if (ch == EOF) {
 		currentChar_ = ch;
-		return ch;
+
+		if (interscope && contexts_.size() > 1) {
+			leaveScope();
+		}
+		return currentChar_;
 	}
 
 	currentChar_ = ch;
-	content_ += static_cast<char>(currentChar_);
-	++nextPos_.offset;
+	//content_ += static_cast<char>(currentChar_);
+	scope()->nextPos.offset++;
 
 	if (currentChar_ != '\n') {
-		++nextPos_.column;
+		scope()->nextPos.column++;
 	} else {
-		nextPos_.column = 1;
-		nextPos_.line++;
+		scope()->nextPos.column = 1;
+		scope()->nextPos.line++;
 	}
 
 	return currentChar_;
 }
 
-bool FlowLexer::advanceUntil(char value)
+bool FlowLexer::consume(char ch)
 {
-	while (currentChar() != value && !eof())
-		nextChar();
-
-	return !eof();
+	bool result = currentChar() == ch;
+	nextChar();
+	return result;
 }
 
-FlowToken FlowLexer::token() const
+/**
+ * @retval true data pending
+ * @retval false EOF reached
+ */
+bool FlowLexer::consumeSpace()
 {
-	return token_;
+	// skip spaces
+	for (;; nextChar()) {
+		if (eof())
+			return false;
+
+		if (std::isspace(currentChar_))
+			continue;
+
+		if (std::isprint(currentChar_))
+			break;
+
+		// TODO proper error reporting through API callback
+		TRACE(1, "%s[%04zu:%02zu]: invalid byte 0x%02X\n",
+				location_.filename.c_str(), line(), column(),
+				currentChar() & 0xFF);
+	}
+
+	if (eof())
+		return true;
+
+	if (currentChar() == '#') {
+		bool maybeCommand = scope()->currPos.column == 1;
+		std::string line;
+		nextChar();
+		// skip chars until EOL
+		for (;;) {
+			if (eof()) {
+				token_ = FlowToken::Eof;
+				if (maybeCommand)
+					processCommand(line);
+				return token_ != FlowToken::Eof;
+			}
+
+			if (currentChar() == '\n') {
+				if (maybeCommand)
+					processCommand(line);
+				return consumeSpace();
+			}
+
+			line += static_cast<char>(currentChar());
+			nextChar();
+		}
+	}
+
+	if (currentChar() == '/' && peekChar() == '*') { // "/*" ... "*/"
+		// parse multiline comment
+		nextChar();
+
+		for (;;) {
+			if (eof()) {
+				token_ = FlowToken::Eof;
+				// reportError(Error::UnexpectedEof);
+				return false;
+			}
+
+			if (currentChar() == '*' && peekChar() == '/') {
+				nextChar(); // skip '*'
+				nextChar(); // skip '/'
+				break;
+			}
+
+			nextChar();
+		}
+
+		return consumeSpace();
+	}
+
+	return true;
+}
+
+void FlowLexer::processCommand(const std::string& line)
+{
+	// `#include "glob"`
+
+	if (strncmp(line.c_str(), "include", 7) != 0)
+		return;
+
+	// TODO this is *very* basic sub-tokenization, but it does well until properly implemented.
+
+	size_t beg = line.find('"');
+	size_t end = line.rfind('"');
+	if (beg == std::string::npos || end == std::string::npos) {
+		TRACE(1, "Malformed #include line\n");
+		return;
+	}
+
+	std::string pattern = line.substr(beg + 1, end - beg - 1);
+
+	TRACE(1, "Process include: '%s'", pattern.c_str());
+
+	glob_t gl;
+	int rv = glob(pattern.c_str(), GLOB_TILDE, nullptr, &gl);
+	if (rv != 0) {
+		static const char* globErrs[] = {
+			[GLOB_NOSPACE] = "No space",
+			[GLOB_ABORTED] = "Aborted",
+			[GLOB_NOMATCH] = "No Match",
+		};
+		TRACE(1, "glob() error: %s", globErrs[rv]);
+		return;
+	}
+
+	// put globbed files on stack in reverse order, to be lexed in the right order
+	for (size_t i = 0; i < gl.gl_pathc; ++i) {
+		const char* filename = gl.gl_pathv[gl.gl_pathc - i - 1];
+		enterScope(filename);
+	}
+
+	globfree(&gl);
 }
 
 FlowToken FlowLexer::nextToken()
 {
 	bool expectsValue = token() == FlowToken::Ident || FlowTokenTraits::isOperator(token());
 
-	lastPos_ = currPos_;
-
-	if (consumeSpace())
+	if (!consumeSpace())
 		return token_ = FlowToken::Eof;
 
-//	printf("FlowLexer.nextToken: currentChar %s curr[%zu:%zu.%zu] next[%zu:%zu.%zu]\n",
-//		escape(currentChar_).c_str(),
-//		currPos_.line, currPos_.column, currPos_.offset,
-//		nextPos_.line, nextPos_.column, nextPos_.offset);
+	location_.filename = scope()->filename;
+	location_.begin = scope()->currPos;
 
-	content_.clear();
-	content_ += static_cast<char>(currentChar_);
-	lastLocation_ = currLocation_;
-	currLocation_.begin = currPos_;
+	TRACE(2, "nextToken(): currentChar %s curr[%zu:%zu.%zu] next[%zu:%zu.%zu]%s",
+		escape(currentChar_).c_str(),
+		scope()->currPos.line, scope()->currPos.column, scope()->currPos.offset,
+		scope()->nextPos.line, scope()->nextPos.column, scope()->nextPos.offset,
+		expectsValue ? " expectsValue" : ""
+	);
 
-	switch (currentChar_) {
-	case EOF: // (-1)
-		return token_ = FlowToken::Eof;
+	switch (currentChar()) {
 	case '=':
 		switch (nextChar()) {
 		case '=':
@@ -306,6 +348,9 @@ FlowToken FlowLexer::nextToken()
 			default:
 				return token_ = FlowToken::Greater;
 		}
+	case '^':
+		nextChar();
+		return token_ = FlowToken::BitXor;
 	case '|':
 		switch (nextChar()) {
 			case '|':
@@ -424,14 +469,23 @@ FlowToken FlowLexer::nextToken()
 		if (std::isalpha(currentChar()) || currentChar() == '_')
 			return token_ = parseIdent();
 
-		if (std::isprint(currentChar()))
-			printf("lexer: unknown char %c (0x%02X)\n", currentChar(), currentChar());
-		else
-			printf("lexer: unknown char %u (0x%02X)\n", currentChar() & 0xFF, currentChar() & 0xFF);
+		TRACE(1, "nextToken: unknown char %s (0x%02X)\n", escape(currentChar()).c_str(), currentChar() & 0xFF);
 
 		nextChar();
 		return token_ = FlowToken::Unknown;
 	}
+
+	return token_;
+}
+
+FlowToken FlowLexer::parseString(bool raw)
+{
+	FlowToken result = parseString(raw ? '\'' : '"', FlowToken::String);
+
+	if (result == FlowToken::String && raw)
+		stringValue_ = unescape(stringValue_);
+
+	return result;
 }
 
 FlowToken FlowLexer::parseString(char delimiter, FlowToken result)
@@ -457,108 +511,6 @@ FlowToken FlowLexer::parseString(char delimiter, FlowToken result)
 
 	return token_ = FlowToken::Unknown;
 }
-
-const SourceLocation& FlowLexer::location() const
-{
-	return currLocation_;
-}
-
-const SourceLocation& FlowLexer::lastLocation() const
-{
-	return lastLocation_;
-}
-
-std::string FlowLexer::locationContent()
-{
-	return !content_.empty() ? content_.substr(0, content_.size() - 1) : content_;
-}
-
-bool FlowLexer::consume(char c)
-{
-	bool result = currentChar() == c;
-	nextChar();
-	return result;
-}
-
-/**
- * \retval true abort tokenizing in caller
- * \retval false continue tokenizing in caller
- */
-bool FlowLexer::consumeSpace()
-{
-	// skip spaces
-	for (;; nextChar()) {
-		if (eof())
-			return true;
-
-		if (std::isspace(currentChar_))
-			continue;
-
-		if (std::isprint(currentChar_))
-			break;
-
-		// TODO proper error reporting through API callback
-		std::fprintf(stderr, "%s[%04zu:%02zu]: invalid byte %d (0x%02X)\n",
-				currLocation_.fileName.c_str(), nextPos_.line, nextPos_.column,
-				currentChar() & 0xFF, currentChar() & 0xFF);
-	}
-
-	if (eof())
-		return true;
-
-	if (currentChar() == '#') {
-		// skip chars until EOL
-		for (;;) {
-			if (eof()) {
-				token_ = FlowToken::Eof;
-				return true;
-			}
-
-			if (currentChar() == '\n') {
-				nextChar();
-				return consumeSpace();
-			}
-
-			nextChar();
-		}
-	}
-
-	if (currentChar() == '/' && peekChar() == '*') { // "/*" ... "*/"
-		// parse multiline comment
-		nextChar();
-
-		for (;;) {
-			if (eof()) {
-				token_ = FlowToken::Eof;
-				// reportError(Error::UnexpectedEof);
-				return true;
-			}
-
-			if (currentChar() == '*' && peekChar() == '/') {
-				nextChar(); // skip '*'
-				nextChar(); // skip '/'
-				break;
-			}
-
-			nextChar();
-		}
-
-		return consumeSpace();
-	}
-
-	return false;
-}
-
-FlowToken FlowLexer::parseString(bool raw)
-{
-	FlowToken result = parseString(raw ? '\'' : '"', FlowToken::String);
-
-	if (result == FlowToken::String && raw)
-		stringValue_ = unescape(stringValue_);
-
-	return result;
-}
-
 FlowToken FlowLexer::parseInterpolationFragment(bool start)
 {
 	int last = -1;
@@ -671,7 +623,11 @@ FlowToken FlowLexer::parseNumber()
 
 	ipValue_.set(stringValue_.c_str(), IPAddress::V4);
 
-	return token_ = FlowToken::IP;
+	if (currentChar() != '/')
+		return token_ = FlowToken::IP;
+
+	// IPv4 CIDR
+	return continueCidr(32);
 }
 
 FlowToken FlowLexer::parseIdent()
@@ -716,9 +672,11 @@ FlowToken FlowLexer::parseIdent()
 		{ "or", FlowToken::Or },
 		{ "xor", FlowToken::Xor },
 		{ "not", FlowToken::Not },
+		{ "shl", FlowToken::Shl },
+		{ "shr", FlowToken::Shr },
 
 		{ "bool", FlowToken::BoolType },
-		{ "int", FlowToken::IntType },
+		{ "int", FlowToken::NumberType },
 		{ "string", FlowToken::StringType },
 
 		{ 0, FlowToken::Unknown }
@@ -740,61 +698,7 @@ FlowToken FlowLexer::parseIdent()
 
 	return token_ = FlowToken::Ident;
 }
-
-std::string FlowLexer::tokenString() const
-{
-	switch (token()) {
-		case FlowToken::Ident:
-			return std::string("ident:") + stringValue_;
-		case FlowToken::IP:
-			return ipValue_.str();
-		case FlowToken::RegExp:
-			return "/" + stringValue_ + "/";
-		case FlowToken::RawString:
-		case FlowToken::String:
-			return "string:'" + stringValue_ + "'";
-		case FlowToken::Number: {
-			char buf[64];
-			snprintf(buf, sizeof(buf), "%lld", numberValue_);
-			return buf;
-		}
-		case FlowToken::Boolean:
-			return booleanValue() ? "true" : "false";
-		default:
-			return tokenToString(token());
-	}
-}
-
-std::string FlowLexer::tokenToString(FlowToken value) const
-{
-	return value.c_str();
-}
-
-std::string FlowLexer::dump() const
-{
-	char buf[4096];
-	std::size_t n = snprintf(buf, sizeof(buf), "[%04zu:%02zu] %3d %s",
-			line(), column(),
-			static_cast<int>(token()), tokenString().c_str());
-
-	return std::string(buf, n);
-}
-
-bool FlowLexer::isHexChar() const
-{
-	return (currentChar_ >= '0' && currentChar_ <= '9')
-		|| (currentChar_ >= 'a' && currentChar_ <= 'f')
-		|| (currentChar_ >= 'A' && currentChar_ <= 'F');
-}
-
 // {{{ IPv6 address parser
-
-// IPv6_HexPart [':' IPv4_Addr]
-FlowToken FlowLexer::parseIPv6()
-{
-	return token_ = FlowToken::Unknown;
-}
-
 // IPv6_HexPart ::= IPv6_HexSeq                        # (1)
 //                | IPv6_HexSeq "::" [IPv6_HexSeq]     # (2)
 //                            | "::" [IPv6_HexSeq]     # (3)
@@ -892,10 +796,47 @@ FlowToken FlowLexer::continueParseIPv6(bool firstComplete)
 		}
 	}
 
-	if (rv && ipValue_.set(stringValue_.c_str(), IPAddress::V6))
-		return token_ = FlowToken::IP;
-	else
+	if (!rv)
+		// Invalid IPv6
 		return token_ = FlowToken::Unknown;
+
+	if (!ipValue_.set(stringValue_.c_str(), IPAddress::V6))
+		// Invalid IPv6
+		return token_ = FlowToken::Unknown;
+	
+	if (currentChar_ != '/')
+		return token_ = FlowToken::IP;
+
+	return continueCidr(128);
+}
+
+FlowToken FlowLexer::continueCidr(size_t range)
+{
+	// IPv6 CIDR
+	nextChar(); // consume '/'
+
+	if (!std::isdigit(currentChar())) {
+		TRACE(1, "%s[%04zu:%02zu]: invalid byte 0x%02X\n",
+				location_.filename.c_str(), line(), column(),
+				currentChar() & 0xFF);
+		return token_ = FlowToken::Unknown;
+	}
+
+	numberValue_ = 0;
+	while (std::isdigit(currentChar())) {
+		numberValue_ *= 10;
+		numberValue_ += currentChar() - '0';
+		stringValue_ += static_cast<char>(currentChar());
+		nextChar();
+	}
+
+	if (numberValue_ > range) {
+		TRACE(1, "%s[%04zu:%02zu]: CIDR prefix out of range.\n",
+				location_.filename.c_str(), line(), column());
+		return token_ = FlowToken::Unknown;
+	}
+
+	return token_ = FlowToken::Cidr;
 }
 // }}}
 

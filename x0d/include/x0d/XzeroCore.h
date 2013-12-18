@@ -11,7 +11,6 @@
 
 #include <x0d/XzeroPlugin.h>
 #include <x0/http/HttpStatus.h>
-#include <x0/flow/FlowValue.h>
 #include <x0/Api.h>
 
 namespace x0d {
@@ -25,7 +24,7 @@ class X0_API XzeroCore :
 	public XzeroPlugin
 {
 private:
-	bool emitLLVM_;
+	bool emitIR_;
 
 public:
 	explicit XzeroCore(XzeroDaemon* d);
@@ -39,108 +38,108 @@ public:
 
 private:
 	// setup properties
-	void plugin_directory(const x0::FlowParams& args, x0::FlowValue& result);
-	void mimetypes(const x0::FlowParams& args, x0::FlowValue& result);
-	void mimetypes_default(const x0::FlowParams& args, x0::FlowValue& result);
-	void etag_mtime(const x0::FlowParams& args, x0::FlowValue& result);
-	void etag_size(const x0::FlowParams& args, x0::FlowValue& result);
-	void etag_inode(const x0::FlowParams& args, x0::FlowValue& result);
-	void fileinfo_cache_ttl(const x0::FlowParams& args, x0::FlowValue& result);
-	void server_advertise(const x0::FlowParams& args, x0::FlowValue& result);
-	void server_tags(const x0::FlowParams& args, x0::FlowValue& result);
-	void loadServerTag(const x0::FlowValue& tag);
+	void plugin_directory(x0::FlowVM::Params& args);
+	void mimetypes(x0::FlowVM::Params& args);
+	void mimetypes_default(x0::FlowVM::Params& args);
+	void etag_mtime(x0::FlowVM::Params& args);
+	void etag_size(x0::FlowVM::Params& args);
+	void etag_inode(x0::FlowVM::Params& args);
+	void fileinfo_cache_ttl(x0::FlowVM::Params& args);
+	void server_advertise(x0::FlowVM::Params& args);
+	void server_tags(x0::FlowVM::Params& args);
 
-	void max_read_idle(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_write_idle(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_keepalive_idle(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_keepalive_requests(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_conns(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_files(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_address_space(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_core(const x0::FlowParams& args, x0::FlowValue& result);
-	void tcp_cork(const x0::FlowParams& args, x0::FlowValue& result);
-	void tcp_nodelay(const x0::FlowParams& args, x0::FlowValue& result);
-	void lingering(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_request_uri_size(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_request_header_size(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_request_header_count(const x0::FlowParams& args, x0::FlowValue& result);
-	void max_request_body_size(const x0::FlowParams& args, x0::FlowValue& result);
+	void max_read_idle(x0::FlowVM::Params& args);
+	void max_write_idle(x0::FlowVM::Params& args);
+	void max_keepalive_idle(x0::FlowVM::Params& args);
+	void max_keepalive_requests(x0::FlowVM::Params& args);
+	void max_conns(x0::FlowVM::Params& args);
+	void max_files(x0::FlowVM::Params& args);
+	void max_address_space(x0::FlowVM::Params& args);
+	void max_core(x0::FlowVM::Params& args);
+	void tcp_cork(x0::FlowVM::Params& args);
+	void tcp_nodelay(x0::FlowVM::Params& args);
+	void lingering(x0::FlowVM::Params& args);
+	void max_request_uri_size(x0::FlowVM::Params& args);
+	void max_request_header_size(x0::FlowVM::Params& args);
+	void max_request_header_count(x0::FlowVM::Params& args);
+	void max_request_body_size(x0::FlowVM::Params& args);
 
 	// debugging
-	void emit_llvm(const x0::FlowParams& args, x0::FlowValue& result);
+	void dump_ir(x0::FlowVM::Params& args);
 
 	// setup functions
-	void listen(const x0::FlowParams& args, x0::FlowValue& result);
-	void workers(const x0::FlowParams& args, x0::FlowValue& result);
+	void listen(x0::FlowVM::Params& args);
+	void workers(x0::FlowVM::Params& args);
+    void workers_affinity(x0::FlowVM::Params& args);
 
 	// shared properties
-	void systemd_controlled(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void systemd_booted(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void sys_env(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void sys_cwd(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void sys_pid(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void sys_now(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void sys_now_str(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
+	void systemd_controlled(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void systemd_booted(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void sys_env(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void sys_cwd(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void sys_pid(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void sys_now(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void sys_now_str(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	// shared functions
-	void log_err(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void log_warn(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void log_notice(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void log_info(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void log_debug(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
+	void log_err(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void log_warn(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void log_notice(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void log_info(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void log_debug(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
-	void file_exists(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void file_is_reg(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void file_is_dir(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void file_is_exe(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
+	void file_exists(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void file_is_reg(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void file_is_dir(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void file_is_exe(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	// main handlers
-	bool docroot(x0::HttpRequest* r, const x0::FlowParams& args);
-	bool alias(x0::HttpRequest* r, const x0::FlowParams& args);
-	bool redirect(x0::HttpRequest *r, const x0::FlowParams& args);
-	bool respond(x0::HttpRequest *r, const x0::FlowParams& args);
-	bool echo(x0::HttpRequest *r, const x0::FlowParams& args);
-	bool blank(x0::HttpRequest *r, const x0::FlowParams& args);
-	bool staticfile(x0::HttpRequest *r, const x0::FlowParams& args);
-	bool precompressed(x0::HttpRequest *r, const x0::FlowParams& args);
+	bool docroot(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool alias(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool redirect(x0::HttpRequest *r, x0::FlowVM::Params& args);
+	bool respond(x0::HttpRequest *r, x0::FlowVM::Params& args);
+	bool echo(x0::HttpRequest *r, x0::FlowVM::Params& args);
+	bool blank(x0::HttpRequest *r, x0::FlowVM::Params& args);
+	bool staticfile(x0::HttpRequest *r, x0::FlowVM::Params& args);
+	bool precompressed(x0::HttpRequest *r, x0::FlowVM::Params& args);
 
 	// main functions
-	void autoindex(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	bool matchIndex(x0::HttpRequest *r, const x0::FlowValue& arg);
-	void rewrite(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void pathinfo(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void error_handler(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void header_add(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void header_append(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void header_overwrite(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void header_remove(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
+	void autoindex(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool matchIndex(x0::HttpRequest *r, const std::string& arg);
+	void rewrite(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void pathinfo(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void error_handler(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void header_add(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void header_append(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void header_overwrite(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void header_remove(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	// main properties
-	void req_method(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_url(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_path(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_query(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_header(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_cookie(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_host(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_pathinfo(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_is_secure(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_scheme(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void req_status_code(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void conn_remote_ip(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void conn_remote_port(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void conn_local_ip(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void conn_local_port(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_path(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_exists(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_is_reg(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_is_dir(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_is_exe(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_mtime(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_size(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_etag(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void phys_mimetype(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void regex_group(x0::HttpRequest* in, const x0::FlowParams& args, x0::FlowValue& result);
+	void req_method(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_url(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_path(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_query(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_header(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_cookie(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_host(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_pathinfo(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_is_secure(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_scheme(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void req_status_code(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void conn_remote_ip(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void conn_remote_port(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void conn_local_ip(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void conn_local_port(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_path(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_exists(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_is_reg(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_is_dir(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_is_exe(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_mtime(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_size(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_etag(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void phys_mimetype(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void regex_group(x0::HttpRequest* in, x0::FlowVM::Params& args);
 
 	// {{{ legacy
 private:

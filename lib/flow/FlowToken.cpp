@@ -1,13 +1,6 @@
-/* <flow/FlowToken.cpp>
- *
- * This file is part of the x0 web server project and is released under AGPL-3.
- * http://redmine.xzero.io/projects/flow
- *
- * (c) 2010-2013 Christian Parpart <trapni@gmail.com>
- */
-
 #include <x0/flow/FlowToken.h>
 #include <cstdio>
+#include <assert.h>
 
 namespace x0 {
 
@@ -43,7 +36,7 @@ bool FlowTokenTraits::isType(FlowToken t)
 	switch (t) {
 		case FlowToken::VoidType:
 		case FlowToken::BoolType:
-		case FlowToken::IntType:
+		case FlowToken::NumberType:
 		case FlowToken::StringType:
 			return true;
 		default:
@@ -110,6 +103,7 @@ bool FlowTokenTraits::isLiteral(FlowToken t)
 		case FlowToken::RawString:
 		case FlowToken::RegExp:
 		case FlowToken::IP:
+		case FlowToken::Cidr:
 			return true;
 		default:
 			return false;
@@ -126,6 +120,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::RawString: return "RawString";
 		case FlowToken::RegExp: return "RegExp";
 		case FlowToken::IP: return "IP";
+		case FlowToken::Cidr: return "CIDR";
 		case FlowToken::Assign: return "=";
 		case FlowToken::OrAssign: return "|=";
 		case FlowToken::AndAssign: return "&=";
@@ -181,7 +176,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Handler: return "handler";
 		case FlowToken::VoidType: return "void()";
 		case FlowToken::BoolType: return "bool()";
-		case FlowToken::IntType: return "int()";
+		case FlowToken::NumberType: return "int()";
 		case FlowToken::StringType: return "string()";
 		case FlowToken::Ident: return "Ident";
 		case FlowToken::Period: return "Period";
@@ -191,12 +186,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Eof: return "EOF";
 		case FlowToken::InterpolatedStringFragment: return "InterpolatedStringFragment";
 		case FlowToken::InterpolatedStringEnd: return "InterpolatedStringEnd";
-		default: {
-			static char buf[1024];
-			std::snprintf(buf, sizeof(buf), "FlowToken:%d", value_);
-			return buf;
-			//return "UNKNOWN";
-		}
+		default: assert(!"FIXME: Invalid Token.");
 	}
 }
 

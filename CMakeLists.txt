@@ -25,7 +25,6 @@ option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
 option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
 
 option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
-option(ENABLE_XZERO_FLOW2 "Build libXzeroFlow2 [default: off]" OFF)
 
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
 option(ENABLE_PLUGIN_AUTH_PAM "Build with 'auth' plugin with PAM authentication support [default: on]" ON)

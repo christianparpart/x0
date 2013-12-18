@@ -7,9 +7,9 @@
  * (c) 2010-2013 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/flow2/AST.h>
-#include <x0/flow2/FlowParser.h>
-#include <x0/flow2/vm/Runtime.h>
+#include <x0/flow/AST.h>
+#include <x0/flow/FlowParser.h>
+#include <x0/flow/vm/Runtime.h>
 #include <string>
 #include <memory>
 #include <cstdio>

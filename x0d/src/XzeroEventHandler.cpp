@@ -10,7 +10,6 @@
 #include <x0d/XzeroDaemon.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/flow/FlowRunner.h>
 #include <x0/io/SyslogSink.h>
 #include <x0/Tokenizer.h>
 #include <x0/Logger.h>

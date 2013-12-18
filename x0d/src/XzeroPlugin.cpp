@@ -24,7 +24,7 @@ XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
 	server_(daemon->server()),
 	name_(name)
 #if !defined(XZERO_NDEBUG)
-	, debug_level_(9)
+	, debugLevel_(9)
 #endif
 {
 	// ensure that it's only the base-name we store

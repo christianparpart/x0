@@ -865,7 +865,7 @@ void HttpRequest::finish()
 				TRACE(2, "running custom error handler");
 				// reset the handler right away to avoid endless nesting
 				auto handler = errorHandler_;
-				errorHandler_ = nullptr;
+				errorHandler_ = decltype(errorHandler_)();
 
 				if (handler(this))
 					return;

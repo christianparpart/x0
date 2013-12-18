@@ -1,15 +1,8 @@
-/* <flow/FlowToken.h>
- *
- * This file is part of the x0 web server project and is released under AGPL-3.
- * http://redmine.xzero.io/projects/flow
- *
- * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
- */
+#pragma once
 
-#ifndef sw_Flow_Token_h
-#define sw_Flow_Token_h (1)
-
-#include <map>
+#include <utility>
+#include <memory>
+#include <cstdint>
 #include <x0/Api.h>
 
 namespace x0 {
@@ -21,7 +14,7 @@ struct X0_API FlowToken
 		Unknown,
 
 		// literals (1..6)
-		Boolean, Number, String, RawString, RegExp, IP,
+		Boolean, Number, String, RawString, RegExp, IP, Cidr,
 
 		InterpolatedStringFragment, // "hello #{" or "} world #{"
 		InterpolatedStringEnd,      // "} end"
@@ -43,7 +36,7 @@ struct X0_API FlowToken
 		Import, From,
 
 		// data types (44..46)
-		VoidType, BoolType, IntType, StringType,
+		VoidType, BoolType, NumberType, StringType,
 
 		// misc (47..52)
 		Ident, Period, DblPeriod, Ellipsis, Comment, Eof,
@@ -78,6 +71,12 @@ public:
 	static bool isPrimaryOp(FlowToken t);
 };
 
-} // namespace Flow
+} // namespace x0
 
-#endif
+namespace std {
+	template<> struct hash<x0::FlowToken> {
+		uint32_t operator()(x0::FlowToken v) const {
+			return static_cast<uint32_t>(v.value());
+		}
+	};
+}

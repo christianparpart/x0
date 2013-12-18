@@ -300,7 +300,7 @@ public:
 	bool expectingContinue;
 
 public:
-	void setErrorHandler(bool (*handler)(void*)) { errorHandler_ = handler; }
+    void setErrorHandler(const std::function<bool(HttpRequest*)>& cb){ errorHandler_ = cb; }
 
 	template<typename T, void (T::*cb)(Buffer& output)> void registerInspectHandler(T* object);
 	void inspect(Buffer& output);
@@ -362,7 +362,7 @@ private:
 	void (*bodyCallback_)(const BufferRef&, void*);
 	void* bodyCallbackData_;
 
-	bool (*errorHandler_)(void*);
+    std::function<bool(HttpRequest*)> errorHandler_;
 
 	bool setUri(const BufferRef& uri);
 
@@ -421,7 +421,7 @@ inline void HttpRequest::clear()
 	directoryDepth_ = 0;
 	bodyCallback_ = nullptr;
 	bodyCallbackData_ = nullptr;
-	errorHandler_ = nullptr;
+	errorHandler_ = std::function<bool(HttpRequest*)>();;
 }
 
 inline bool HttpRequest::supportsProtocol(int major, int minor) const

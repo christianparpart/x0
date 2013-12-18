@@ -115,44 +115,28 @@ install(TARGETS XzeroHttp DESTINATION ${LIBDIR})
 if(ENABLE_XZERO_FLOW)
   # XzeroFlow
   set(x0_flow_SRC
-    flow/FlowBackend.cpp
-    flow/Flow.cpp
+    flow/AST.cpp
+    flow/ASTPrinter.cpp
+    flow/FlowAssemblyBuilder.cpp
+    flow/FlowCallVisitor.cpp
     flow/FlowLexer.cpp
+    flow/FlowLocation.cpp
     flow/FlowParser.cpp
-    flow/FlowRunner.cpp
     flow/FlowToken.cpp
-    flow/FlowValue.cpp
+    flow/FlowType.cpp
+    flow/vm/Handler.cpp
+    flow/vm/Instruction.cpp
+    flow/vm/NativeCallback.cpp
+    flow/vm/Program.cpp
+    flow/vm/Runner.cpp
+    flow/vm/Runtime.cpp
+    flow/vm/Signature.cpp
   )
   add_library(XzeroFlow SHARED ${x0_flow_SRC})
-  set_target_properties(XzeroFlow PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
-  target_link_libraries(XzeroFlow LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
+  set_target_properties(XzeroFlow PROPERTIES LINK_FLAGS "${LDFLAGS}")
+  target_link_libraries(XzeroFlow LINK_PRIVATE XzeroBase dl pthread)
   set_target_properties(XzeroFlow PROPERTIES VERSION ${PACKAGE_VERSION})
   install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
-endif()
-
-if(ENABLE_XZERO_FLOW2)
-  # XzeroFlow
-  set(x0_flow2_SRC
-    flow2/AST.cpp
-    flow2/ASTPrinter.cpp
-    flow2/FlowAssemblyBuilder.cpp
-    flow2/FlowLexer.cpp
-    flow2/FlowLocation.cpp
-    flow2/FlowParser.cpp
-    flow2/FlowToken.cpp
-    flow2/FlowType.cpp
-    flow2/vm/Handler.cpp
-    flow2/vm/Instruction.cpp
-    flow2/vm/Program.cpp
-    flow2/vm/Runner.cpp
-    flow2/vm/Runtime.cpp
-    flow2/vm/Signature.cpp
-  )
-  add_library(XzeroFlow2 SHARED ${x0_flow2_SRC})
-  set_target_properties(XzeroFlow2 PROPERTIES LINK_FLAGS "${LDFLAGS} ${LLVM_LDFLAGS}")
-  target_link_libraries(XzeroFlow2 LINK_PRIVATE ${LLVM_LIBRARIES} XzeroBase dl pthread)
-  set_target_properties(XzeroFlow2 PROPERTIES VERSION ${PACKAGE_VERSION})
-  install(TARGETS XzeroFlow2 DESTINATION ${LIBDIR})
 endif()
 
 # Xzero C API

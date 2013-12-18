@@ -6,13 +6,13 @@
  * (c) 2010-2013 Christian Parpart <trapni@gmail.com>
  */
 #include "Flower.h"
-#include <x0/flow2/AST.h>
-#include <x0/flow2/ASTPrinter.h>
-#include <x0/flow2/FlowParser.h>
-#include <x0/flow2/FlowAssemblyBuilder.h>
-#include <x0/flow2/vm/Runtime.h>
-#include <x0/flow2/vm/NativeCallback.h>
-#include <x0/flow2/vm/Runner.h>
+#include <x0/flow/AST.h>
+#include <x0/flow/ASTPrinter.h>
+#include <x0/flow/FlowParser.h>
+#include <x0/flow/FlowAssemblyBuilder.h>
+#include <x0/flow/vm/Runtime.h>
+#include <x0/flow/vm/NativeCallback.h>
+#include <x0/flow/vm/Runner.h>
 #include <fstream>
 #include <memory>
 #include <utility>
@@ -55,7 +55,7 @@ Flower::Flower() :
 //	registerFunction("getbuf", FlowValue::BUFFER, &flow_getbuf);
 
 	registerFunction("__print", FlowType::Void)
-		.signature(FlowType::String) // TODO: support FlowType::Generic (or FlowType::Any)
+		.params(FlowType::String) // TODO: support FlowType::Generic (or FlowType::Any)
 		.bind(&Flower::flow_print);
 
 	// unit test aiding handlers
@@ -63,7 +63,7 @@ Flower::Flower() :
 //	registerHandler("finish", &flow_finish); // XXX rename to 'success'
 
 	registerHandler("assert")
-		.signature(FlowType::Boolean, FlowType::String)
+		.params(FlowType::Boolean, FlowType::String)
 		.bind(&Flower::flow_assert);
 
 //	registerHandler("assert_fail", &flow_assertFail);
