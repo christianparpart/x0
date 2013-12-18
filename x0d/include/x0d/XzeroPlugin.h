@@ -71,7 +71,7 @@ protected:
     template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& setupFunction(const std::string& name, void (Class::*method)(x0::FlowVM::Params&), ArgTypes... argTypes);
     template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& sharedFunction(const std::string& name, void (Class::*method)(x0::HttpRequest* r, x0::FlowVM::Params&), ArgTypes... argTypes);
     template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& mainFunction(const std::string& name, void (Class::*method)(x0::HttpRequest* r, x0::FlowVM::Params&), ArgTypes... argTypes);
-    template<typename Class> x0::FlowVM::NativeCallback& mainHandler(const std::string& name, bool (Class::*method)(x0::HttpRequest* r, x0::FlowVM::Params&));
+    template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& mainHandler(const std::string& name, bool (Class::*method)(x0::HttpRequest* r, x0::FlowVM::Params&), ArgTypes... argTypes);
 
 protected:
 	XzeroDaemon* daemon_;
@@ -101,11 +101,11 @@ template<typename Class, typename... ArgTypes> inline x0::FlowVM::NativeCallback
     return daemon_->mainFunction(name, [=](x0::FlowVM::Params& args) { (((Class*)this)->*method)((x0::HttpRequest*) args.caller()->userdata(), args); }, argTypes...);
 }
 
-template<typename Class>
+template<typename Class, typename... ArgTypes>
 inline x0::FlowVM::NativeCallback& XzeroPlugin::mainHandler(
-        const std::string& name, bool (Class::*method)(x0::HttpRequest*, x0::FlowVM::Params&))
+        const std::string& name, bool (Class::*method)(x0::HttpRequest*, x0::FlowVM::Params&), ArgTypes... argTypes)
 {
-    return daemon_->mainHandler(name, [=](x0::FlowVM::Params& args) -> bool { return (((Class*)this)->*method)((x0::HttpRequest*) args.caller()->userdata(), args); });
+    return daemon_->mainHandler(name, [=](x0::FlowVM::Params& args) -> bool { return (((Class*)this)->*method)((x0::HttpRequest*) args.caller()->userdata(), args); }, argTypes...);
 }
 // }}}
 

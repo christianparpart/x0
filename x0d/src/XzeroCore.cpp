@@ -161,13 +161,13 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 	mainFunction("error.handler", &XzeroCore::error_handler, FlowType::Handler);
 
 	// main: handlers
-	mainHandler("docroot", &XzeroCore::docroot).params(FlowType::String);
-	mainHandler("alias", &XzeroCore::alias).params(FlowType::String, FlowType::String);
+	mainHandler("docroot", &XzeroCore::docroot, FlowType::String);
+	mainHandler("alias", &XzeroCore::alias, FlowType::String, FlowType::String);
 	mainHandler("staticfile", &XzeroCore::staticfile);
 	mainHandler("precompressed", &XzeroCore::precompressed);
 	mainHandler("redirect", &XzeroCore::redirect);
-	mainHandler("respond", &XzeroCore::respond).params(FlowType::Number);
-	mainHandler("echo", &XzeroCore::echo).params(FlowType::String);
+	mainHandler("respond", &XzeroCore::respond, FlowType::Number);
+	mainHandler("echo", &XzeroCore::echo, FlowType::String);
 	mainHandler("blank", &XzeroCore::blank);
 }
 

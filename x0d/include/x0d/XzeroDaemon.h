@@ -87,7 +87,7 @@ public: // FlowBackend overrides
     template<typename... ArgTypes> x0::FlowVM::NativeCallback& setupFunction(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb, ArgTypes... argTypes);
     template<typename... ArgTypes> x0::FlowVM::NativeCallback& sharedFunction(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb, ArgTypes... argTypes);
     template<typename... ArgTypes> x0::FlowVM::NativeCallback& mainFunction(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb, ArgTypes... argTypes);
-    x0::FlowVM::NativeCallback& mainHandler(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb);
+    template<typename... ArgTypes> x0::FlowVM::NativeCallback& mainHandler(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb, ArgTypes... argTypes);
 
 private:
 	bool validateConfig();
@@ -176,7 +176,8 @@ template<typename... ArgTypes> inline x0::FlowVM::NativeCallback& XzeroDaemon::m
     return registerFunction(name, x0::FlowType::Void).bind(cb).params(argTypes...);
 }
 
-inline x0::FlowVM::NativeCallback& XzeroDaemon::mainHandler(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb)
+template<typename... ArgTypes>
+inline x0::FlowVM::NativeCallback& XzeroDaemon::mainHandler(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb, ArgTypes... argTypes)
 {
 	mainApi_.push_back(name);
     return registerHandler(name).bind(cb);
