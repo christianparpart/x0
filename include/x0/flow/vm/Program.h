@@ -9,6 +9,9 @@
 #include <memory>
 
 namespace x0 {
+
+class IPAddress;
+
 namespace FlowVM {
 
 class Runner;
@@ -23,6 +26,7 @@ public:
     Program(
         const std::vector<FlowNumber>& constNumbers,
         const std::vector<std::string>& constStrings,
+        const std::vector<IPAddress>& ipaddrs,
         const std::vector<std::string>& regularExpressions,
         const std::vector<std::pair<std::string, std::string>>& modules,
         const std::vector<std::string>& nativeHandlerSignatures,
@@ -34,6 +38,7 @@ public:
 
     inline const std::vector<FlowNumber>& numbers() const { return numbers_; }
     inline const std::vector<FlowString>& strings() const { return strings_; }
+    inline const std::vector<IPAddress>& ipaddrs() const { return ipaddrs_; }
     inline const std::vector<std::string>& regularExpressions() const { return regularExpressions_; }
     inline const std::vector<Handler*> handlers() const { return handlers_; }
 
@@ -53,6 +58,7 @@ public:
 private:
     std::vector<FlowNumber> numbers_;
     std::vector<FlowString> strings_;
+    std::vector<IPAddress> ipaddrs_;
     std::vector<std::string> regularExpressions_;               // XXX to be a pre-compiled handled during runtime
     std::vector<std::pair<std::string, std::string>> modules_;
     std::vector<std::string> nativeHandlerSignatures_;

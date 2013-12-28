@@ -55,8 +55,9 @@ bool Runner::run()
     #define B  operandB(*pc)
     #define C  operandC(*pc)
 
-    #define toString(R) (*(FlowString*) data_[R])
-    #define toNumber(R)   ((FlowNumber) data_[R])
+    #define toString(R)     (*(FlowString*) data_[R])
+    #define toIPAddress(R)  (*(IPAddress*) data_[R])
+    #define toNumber(R)     ((FlowNumber) data_[R])
 
     #define instr(name) \
         l_##name: \
@@ -120,6 +121,11 @@ bool Runner::run()
         [Opcode::SLEN]      = &&l_slen,
         [Opcode::SISEMPTY]  = &&l_sisempty,
         [Opcode::SPRINT]    = &&l_sprint,
+
+        // ipaddr
+        [Opcode::PCONST]    = &&l_pconst,
+        [Opcode::PCMPEQ]    = &&l_pcmpeq,
+        [Opcode::PCMPNE]    = &&l_pcmpne,
 
         // regex
         [Opcode::SREGMATCH] = &&l_sregmatch,
@@ -369,6 +375,22 @@ bool Runner::run()
 
     instr (sprint) {
         printf("%s\n", toString(A).c_str());
+        next;
+    }
+    // }}}
+    // {{{ ipaddr
+    instr (pconst) { // A = stringConstTable[B]
+        data_[A] = (Register) &program->ipaddrs()[B];
+        next;
+    }
+
+    instr (pcmpeq) {
+        data_[A] = toIPAddress(B) == toIPAddress(C);
+        next;
+    }
+
+    instr (pcmpne) {
+        data_[A] = toIPAddress(B) != toIPAddress(C);
         next;
     }
     // }}}

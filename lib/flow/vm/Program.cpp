@@ -38,6 +38,7 @@ namespace FlowVM {
 Program::Program() :
     numbers_(),
     strings_(),
+    ipaddrs_(),
     regularExpressions_(),
     modules_(),
     nativeHandlerSignatures_(),
@@ -52,12 +53,14 @@ Program::Program() :
 Program::Program(
         const std::vector<FlowNumber>& numbers,
         const std::vector<FlowString>& strings,
+        const std::vector<IPAddress>& ipaddrs,
         const std::vector<std::string>& regularExpressions,
         const std::vector<std::pair<std::string, std::string>>& modules,
         const std::vector<std::string>& nativeHandlerSignatures,
         const std::vector<std::string>& nativeFunctionSignatures) :
     numbers_(numbers),
     strings_(strings),
+    ipaddrs_(ipaddrs),
     regularExpressions_(regularExpressions),
     modules_(modules),
     nativeHandlerSignatures_(nativeHandlerSignatures),
@@ -153,6 +156,13 @@ void Program::dump()
         printf("\n; String Constants\n");
         for (size_t i = 0, e = strings_.size(); i != e; ++i) {
             printf(".const string %6zu = '%s'\n", i, strings_[i].c_str());
+        }
+    }
+
+    if (!ipaddrs_.empty()) {
+        printf("\n; IP Constants\n");
+        for (size_t i = 0, e = ipaddrs_.size(); i != e; ++i) {
+            printf(".const ip %6zu = '%s'\n", i, ipaddrs_[i].str().c_str());
         }
     }
 

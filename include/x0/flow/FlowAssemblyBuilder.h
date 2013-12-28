@@ -79,6 +79,7 @@ private:
 
     Register literal(FlowNumber value);
     Register literal(const FlowString& value);
+    Register literal(const IPAddress& value);
     size_t handlerRef(Handler* handler);
     Register nativeHandler(BuiltinHandler* handler);
     Register nativeFunction(BuiltinFunction* function);
@@ -92,6 +93,7 @@ private:
     // program output
     std::vector<FlowNumber> numbers_;
     std::vector<FlowString> strings_;
+    std::vector<IPAddress> ipaddrs_;
     std::vector<std::string> regularExpressions_;               // XXX to be a pre-compiled handled during runtime
     std::vector<std::pair<std::string, std::string>> modules_;
     std::vector<std::string> nativeHandlerSignatures_;

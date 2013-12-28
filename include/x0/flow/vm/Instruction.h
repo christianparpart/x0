@@ -63,6 +63,11 @@ enum Opcode {
     SISEMPTY,       // A = strlen(B) == 0
     SPRINT,         // puts(A)              /* prints string A to stdout */
 
+    // IP address
+    PCONST,         // A = ipconst[B]
+    PCMPEQ,         // A = ip(B) == ip(C)
+    PCMPNE,         // A = ip(B) != ip(C)
+
     // regex
     SREGMATCH,      // A = B =~ C           /* regex match against regexPool[C] */
     SREGGROUP,      // A = regex.match(B)   /* regex match result */
@@ -175,6 +180,10 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::SLEN]      = InstructionSig::RR,
         [Opcode::SISEMPTY]  = InstructionSig::RR,
         [Opcode::SPRINT]    = InstructionSig::R,
+        // ipaddr
+        [Opcode::PCONST]    = InstructionSig::RI,
+        [Opcode::PCMPEQ]    = InstructionSig::RRR,
+        [Opcode::PCMPNE]    = InstructionSig::RRR,
         // regex
         [Opcode::SREGMATCH] = InstructionSig::RRR,
         [Opcode::SREGGROUP] = InstructionSig::RR,
@@ -240,6 +249,10 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::SLEN]      = "SLEN",
         [Opcode::SISEMPTY]  = "SISEMPTY",
         [Opcode::SPRINT]    = "SPRINT",
+        // ipaddr
+        [Opcode::PCONST]    = "PCONST",
+        [Opcode::PCMPEQ]    = "PCMPEQ",
+        [Opcode::PCMPNE]    = "PCMPNE",
         // regex
         [Opcode::SREGMATCH] = "SREGMATCH",
         [Opcode::SREGGROUP] = "SREGGROUP",
@@ -305,6 +318,10 @@ inline FlowType resultType(Opcode opc) {
         [Opcode::SLEN]      = FlowType::Number,
         [Opcode::SISEMPTY]  = FlowType::Boolean,
         [Opcode::SPRINT]    = FlowType::Void,
+        // ipaddr
+        [Opcode::PCONST]    = FlowType::IPAddress,
+        [Opcode::PCMPEQ]    = FlowType::Boolean,
+        [Opcode::PCMPNE]    = FlowType::Boolean,
         // regex
         [Opcode::SREGMATCH] = FlowType::Boolean,
         [Opcode::SREGGROUP] = FlowType::String,

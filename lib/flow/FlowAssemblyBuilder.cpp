@@ -107,6 +107,7 @@ void FlowAssemblyBuilder::accept(Unit& unit)
     program_ = std::unique_ptr<FlowVM::Program>(new FlowVM::Program(
         numbers_,
         strings_,
+        ipaddrs_,
         regularExpressions_,
         unit.imports(),
         nativeHandlerSignatures_,
@@ -189,6 +190,16 @@ Register FlowAssemblyBuilder::literal(const FlowString& value)
     return strings_.size() - 1;
 }
 
+Register FlowAssemblyBuilder::literal(const IPAddress& value)
+{
+    for (size_t i = 0, e = ipaddrs_.size(); i != e; ++i)
+        if (ipaddrs_[i] == value)
+            return i;
+
+    ipaddrs_.push_back(value);
+    return ipaddrs_.size() - 1;
+}
+
 /**
  * Retrieves the program's handler ID for given handler, possibly forward-declaring given handler if not (yet) found.
  */
@@ -239,8 +250,8 @@ void FlowAssemblyBuilder::accept(RegExpExpr& expr)
 
 void FlowAssemblyBuilder::accept(IPAddressExpr& expr)
 {
-    printf("TODO: ipaddr expr\n");
     result_ = allocate();
+    emit(Opcode::PCONST, result_, literal(expr.value()));
 }
 
 void FlowAssemblyBuilder::accept(CidrExpr& cidr)
