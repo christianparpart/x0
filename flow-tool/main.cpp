@@ -105,13 +105,13 @@ int main(int argc, const char *argv[])
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)
 	if (argc == 1) {
-		static const char* debugArgs[] = { argv[0], "-s", "-L", "-e", "main", "./parse.flow", nullptr };
+		static const char* debugArgs[] = { argv[0], "-L", "-e", "main", "./parse.flow", nullptr };
 		argc = sizeof(debugArgs) / sizeof(*debugArgs) - 1;
 		argv = debugArgs;
 	}
 #endif
 
-	while ((opt = getopt(argc, (char**) argv, "tO:hLe:ls")) != -1) {
+	while ((opt = getopt(argc, (char**) argv, "tO:hSLe:l")) != -1) {
 		switch (opt) {
 		case 'h':
 			usage(argv[0]);
@@ -122,7 +122,7 @@ int main(int argc, const char *argv[])
 		case 'l':
 			lexMode = true;
 			break;
-		case 's':
+		case 'S':
 			flower.setDumpAST(true);
 			break;
 		case 't':

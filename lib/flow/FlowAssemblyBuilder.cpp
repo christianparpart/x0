@@ -240,6 +240,7 @@ void FlowAssemblyBuilder::accept(RegExpExpr& expr)
 void FlowAssemblyBuilder::accept(IPAddressExpr& expr)
 {
     printf("TODO: ipaddr expr\n");
+    result_ = allocate();
 }
 
 void FlowAssemblyBuilder::accept(CidrExpr& cidr)
@@ -249,7 +250,6 @@ void FlowAssemblyBuilder::accept(CidrExpr& cidr)
 
 void FlowAssemblyBuilder::accept(ExprStmt& stmt)
 {
-    printf("TODO: expr stmt\n");
     codegen(stmt.expression());
 }
 
@@ -298,16 +298,18 @@ void FlowAssemblyBuilder::accept(HandlerCall& call)
     }
 }
 
-void FlowAssemblyBuilder::codegenBuiltin(Callable* callee, const ExprList& args)
+void FlowAssemblyBuilder::codegenBuiltin(Callable* callee, const ParamList& args)
 {
     int argc = args.size() + 1;
     Register rbase = allocate(argc);
 
+    // emit call args
     for (int i = 1; i < argc; ++i) {
-        Register tmp = codegen(args[i - 1]);
+        Register tmp = codegen(args.values()[i - 1]);
         emit(Opcode::MOV, rbase + i, tmp);
     }
 
+    // emit call
     if (callee->isHandler()) {
         Register nativeId = nativeHandler(static_cast<BuiltinHandler*>(callee));
         emit(Opcode::HANDLER, nativeId, argc, rbase);

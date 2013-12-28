@@ -104,6 +104,7 @@ bool FlowTokenTraits::isLiteral(FlowToken t)
 		case FlowToken::RegExp:
 		case FlowToken::IP:
 		case FlowToken::Cidr:
+        case FlowToken::NamedParam:
 			return true;
 		default:
 			return false;
@@ -184,6 +185,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Ellipsis: return "Ellipsis";
 		case FlowToken::Comment: return "Comment";
 		case FlowToken::Eof: return "EOF";
+        case FlowToken::NamedParam: return "NamedParam";
 		case FlowToken::InterpolatedStringFragment: return "InterpolatedStringFragment";
 		case FlowToken::InterpolatedStringEnd: return "InterpolatedStringEnd";
 		default: assert(!"FIXME: Invalid Token.");

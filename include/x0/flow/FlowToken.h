@@ -13,13 +13,13 @@ struct X0_API FlowToken
 	{
 		Unknown,
 
-		// literals (1..6)
+		// literals
 		Boolean, Number, String, RawString, RegExp, IP, Cidr,
-
+        NamedParam,
 		InterpolatedStringFragment, // "hello #{" or "} world #{"
 		InterpolatedStringEnd,      // "} end"
 
-		// symbols (7..34)
+		// symbols
 		Assign, OrAssign, AndAssign,
 		PlusAssign, MinusAssign, MulAssign, DivAssign,
 		Semicolon, Question, Colon,
@@ -30,15 +30,15 @@ struct X0_API FlowToken
 		Not, BitOr, BitAnd, BitXor,
 		BrOpen, BrClose, RndOpen, RndClose, Begin, End,
 
-		// keywords (35..43)
+		// keywords
 		Var, On, Do, Handler,
 		If, Then, Else, Unless,
 		Import, From,
 
-		// data types (44..46)
+		// data types
 		VoidType, BoolType, NumberType, StringType,
 
-		// misc (47..52)
+		// misc
 		Ident, Period, DblPeriod, Ellipsis, Comment, Eof,
 
 		COUNT

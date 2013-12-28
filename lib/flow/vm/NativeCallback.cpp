@@ -34,8 +34,10 @@ NativeCallback::~NativeCallback()
         FlowType type = signature_.args()[i];
         switch (type) {
             case FlowType::Boolean:
+                delete (bool*) defaults_[i];
                 break;
             case FlowType::Number:
+                delete (FlowNumber*) defaults_[i];
                 break;
             case FlowType::String:
                 delete (std::string*) defaults_[i];
@@ -70,6 +72,15 @@ const std::string NativeCallback::name() const
 const Signature& NativeCallback::signature() const
 {
     return signature_;
+}
+
+int NativeCallback::find(const std::string& name) const
+{
+    for (int i = 0, e = names_.size(); i != e; ++i)
+        if (names_[i] == name)
+            return i;
+
+    return -1;
 }
 
 void NativeCallback::invoke(Params& args) const

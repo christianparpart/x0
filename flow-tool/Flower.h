@@ -57,6 +57,7 @@ private:
 
 	// functions
 	void flow_print(FlowVM::Params& args);
+    void flow_log(FlowVM::Params& args);
 
 	// handlers
 	void flow_assert(FlowVM::Params& args);

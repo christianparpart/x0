@@ -42,6 +42,7 @@ public:
     const std::string name() const;
     const Signature& signature() const;
 
+    // signature builder
     NativeCallback& returnType(FlowType type);
 
     template<typename T> NativeCallback& param(const std::string& name); //!< Declare a single named parameter.
@@ -52,6 +53,13 @@ public:
     template<typename Class> NativeCallback& bind(void (Class::*method)(Params&), Class* obj);
     template<typename Class> NativeCallback& bind(void (Class::*method)(Params&));
 
+    // named parameter handling
+    bool isNamed() const;
+    const std::string& getNameAt(size_t i) const;
+    const void* getDefaultAt(size_t i) const;
+    int find(const std::string& name) const;
+
+    // runtime
     void invoke(Params& args) const;
 };
 
@@ -77,7 +85,36 @@ inline NativeCallback& NativeCallback::param<bool>(const std::string& name, bool
 {
     signature_.args().push_back(FlowType::Boolean);
     names_.push_back(name);
-    defaults_.push_back((void*) defaultValue);
+
+    bool* value = new bool;
+    *value = defaultValue;
+
+    defaults_.push_back((void*) value);
+    
+    return *this;
+}
+
+template<>
+inline NativeCallback& NativeCallback::param<FlowNumber>(const std::string& name)
+{
+    signature_.args().push_back(FlowType::Number);
+    names_.push_back(name);
+
+    defaults_.push_back(nullptr /*no default value*/);
+
+    return *this;
+}
+
+template<>
+inline NativeCallback& NativeCallback::param<FlowNumber>(const std::string& name, FlowNumber defaultValue)
+{
+    signature_.args().push_back(FlowType::Number);
+    names_.push_back(name);
+
+    FlowNumber* value = new FlowNumber;
+    *value = defaultValue;
+
+    defaults_.push_back((void*) value);
     
     return *this;
 }
@@ -209,6 +246,21 @@ inline NativeCallback& NativeCallback::bind(void (Class::*method)(Params&))
 {
     function_ = std::bind(method, static_cast<Class*>(runtime_), std::placeholders::_1);
     return *this;
+}
+
+inline bool NativeCallback::isNamed() const
+{
+    return !names_.empty();
+}
+
+inline const std::string& NativeCallback::getNameAt(size_t i) const
+{
+    return names_[i];
+}
+
+inline const void* NativeCallback::getDefaultAt(size_t i) const
+{
+    return defaults_[i];
 }
 // }}}
 

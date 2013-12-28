@@ -15,13 +15,14 @@
 
 namespace x0 {
 
+namespace FlowVM {
+    class NativeCallback;
+}
+
 class ASTVisitor;
 class FlowBackend;
 class SymbolTable;
 class Expr;
-
-//typedef std::vector<std::unique_ptr<Expr*>> ExprList;
-typedef std::vector<Expr*> ExprList;
 
 class X0_API ASTNode // {{{
 {
@@ -307,8 +308,11 @@ private:
 	T value_;
 
 public:
-	explicit LiteralExpr(const T& value, const FlowLocation& loc) :
-		Expr(loc), value_(value) {}
+    explicit LiteralExpr(const T& value) :
+        Expr(FlowLocation()), value_(value) {}
+
+    LiteralExpr(const T& value, const FlowLocation& loc) :
+        Expr(loc), value_(value) {}
 
 	const T& value() const { return value_; }
 	void setValue(const T& value) { value_ = value; }
@@ -318,20 +322,65 @@ public:
 	virtual void visit(ASTVisitor& v) { v.accept(*this); }
 };
 
-class X0_API FunctionCall : public Expr {
-	BuiltinFunction* callee_;
-    ExprList args_;
+class X0_API ParamList
+{
+private:
+    bool isNamed_;
+    std::vector<std::string> names_;
+    std::vector<Expr*> values_;
 
 public:
-	FunctionCall(const FlowLocation& loc, BuiltinFunction* callee, ExprList&& args = {}) :
+    ParamList(const ParamList&) = delete;
+    ParamList& operator=(const ParamList&) = delete;
+
+    ParamList() : isNamed_(false), names_(), values_() {}
+    explicit ParamList(bool named) : isNamed_(named), names_(), values_() {}
+    ParamList(ParamList&& v) : isNamed_(v.isNamed_), names_(std::move(v.names_)), values_(std::move(v.values_)) {}
+    ParamList& operator=(ParamList&& v);
+    ~ParamList();
+
+    void push_back(const std::string& name, std::unique_ptr<Expr>&& arg);
+    void push_back(std::unique_ptr<Expr>&& arg);
+
+    bool contains(const std::string& name) const;
+    void swap(size_t source, size_t dest);
+    void reorder(const FlowVM::NativeCallback* source, std::vector<std::string>* superfluous);
+    int find(const std::string& name) const;
+
+    bool isNamed() const { return isNamed_; }
+
+    size_t size() const;
+    bool empty() const;
+    std::pair<std::string, Expr*> at(size_t offset) const;
+    std::pair<std::string, Expr*> operator[](size_t offset) const { return at(offset); }
+    const std::vector<std::string>& names() const { return names_; }
+    const std::vector<Expr*> values() const { return values_; }
+
+    Expr* back() const { return values_.back(); }
+
+    void dump(const char* title = nullptr);
+};
+
+class X0_API FunctionCall : public Expr {
+	BuiltinFunction* callee_;
+    ParamList args_;
+
+public:
+	FunctionCall(const FlowLocation& loc, BuiltinFunction* callee) :
+		Expr(loc),
+		callee_(callee),
+		args_()
+	{}
+
+	FunctionCall(const FlowLocation& loc, BuiltinFunction* callee, ParamList&& args) :
 		Expr(loc),
 		callee_(callee),
 		args_(std::move(args))
 	{}
 
 	BuiltinFunction* callee() const { return callee_; }
-	const ExprList& args() const { return args_; }
-	ExprList& args() { return args_; }
+	const ParamList& args() const { return args_; }
+	ParamList& args() { return args_; }
 
 	virtual void visit(ASTVisitor& v);
     virtual FlowType getType() const;
@@ -417,11 +466,16 @@ public:
 class X0_API HandlerCall : public Stmt {
 protected:
     Callable* callee_;
-    ExprList args_;
+    ParamList args_;
 
 public:
-	HandlerCall(const FlowLocation& loc, Callable* callable, ExprList&& arguments = {}) :
-		Stmt(loc), callee_(callable), args_(std::move(arguments))
+	HandlerCall(const FlowLocation& loc, Callable* callable) :
+		Stmt(loc), callee_(callable), args_()
+	{
+	}
+
+	HandlerCall(const FlowLocation& loc, Callable* callable, ParamList&& arguments) :
+		Stmt(loc), callee_(callable), args_()
 	{
 		setArgs(std::forward<decltype(arguments)>(arguments));
 	}
@@ -430,10 +484,10 @@ public:
 
 	Callable* callee() const { return callee_; }
 
-	const ExprList& args() const { return args_; }
-	ExprList& args() { return args_; }
+	const ParamList& args() const { return args_; }
+	ParamList& args() { return args_; }
 
-	bool setArgs(ExprList&& args);
+	bool setArgs(ParamList&& args);
 
 	virtual void visit(ASTVisitor&);
 };

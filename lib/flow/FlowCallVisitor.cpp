@@ -76,7 +76,7 @@ void FlowCallVisitor::accept(BinaryExpr& expr)
 
 void FlowCallVisitor::accept(FunctionCall& call)
 {
-    for (const auto& arg: call.args()) {
+    for (const auto& arg: call.args().values()) {
         visit(arg);
     }
 
@@ -141,7 +141,7 @@ void FlowCallVisitor::accept(AssignStmt& assignStmt)
 
 void FlowCallVisitor::accept(HandlerCall& call)
 {
-    for (const auto& arg: call.args()) {
+    for (const auto& arg: call.args().values()) {
         visit(arg);
     }
 

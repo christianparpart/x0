@@ -55,8 +55,14 @@ Flower::Flower() :
 //	registerFunction("getbuf", FlowValue::BUFFER, &flow_getbuf);
 
 	registerFunction("__print", FlowType::Void)
-		.params(FlowType::String) // TODO: support FlowType::Generic (or FlowType::Any)
+		.params(FlowType::String)
 		.bind(&Flower::flow_print);
+
+    registerFunction("log", FlowType::Void)
+        .param<FlowString>("message", "<whaaaaat!>")
+        .param<FlowNumber>("severity", 42)
+        .bind(&Flower::flow_log)
+        ;
 
 	// unit test aiding handlers
 //	registerHandler("error", &flow_error);
@@ -196,8 +202,9 @@ int Flower::run(const char* fileName, const char* handlerName)
     FlowVM::Handler* handler = program_->findHandler(handlerName);
     assert(handler != nullptr);
 
-    bool rv = false;//TODO (tmp disabled) handler->run(nullptr /*userdata*/ );
-    return rv;
+    printf("Running handler %s ...\n", handlerName);
+    return handler->run(nullptr /*userdata*/ );
+    //return false;
 }
 
 void Flower::dump()
@@ -213,6 +220,14 @@ void Flower::clear()
 void Flower::flow_print(FlowVM::Params& args)
 {
 	printf("%s\n", args.get<FlowString*>(1)->c_str());
+}
+
+void Flower::flow_log(FlowVM::Params& args)
+{
+    FlowString* message = args.get<FlowString*>(1);
+    FlowNumber severity = args.get<FlowNumber>(2);
+
+    printf("<%lu> %s\n", severity, message->c_str());
 }
 
 void Flower::flow_assert(FlowVM::Params& args)

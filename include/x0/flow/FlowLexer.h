@@ -9,6 +9,7 @@
 #include <utility>
 #include <memory>
 #include <fstream>
+#include <cctype>
 #include <list>
 
 namespace x0 {
@@ -95,9 +96,7 @@ struct FlowLexer::Scope {
 // {{{ inlines
 inline bool FlowLexer::isHexChar() const
 {
-	return (currentChar_ >= '0' && currentChar_ <= '9')
-		|| (currentChar_ >= 'a' && currentChar_ <= 'f')
-		|| (currentChar_ >= 'A' && currentChar_ <= 'F');
+    return std::isxdigit(currentChar_);
 }
 
 inline int FlowLexer::currentChar() const

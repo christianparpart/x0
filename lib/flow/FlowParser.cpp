@@ -587,7 +587,7 @@ std::unique_ptr<Handler> FlowParser::handlerDecl()
 	if (Handler* handler = scope()->lookup<Handler>(name, Lookup::Self)) {
 		if (handler->body() != nullptr) {
 			// TODO say where we found the other hand, compared to this one.
-			reportError("Redeclaring handler '%s'", handler->name().c_str());
+			reportError("Redeclaring handler \"%s\"", handler->name().c_str());
 			return nullptr;
 		}
 		handler->implement(std::move(st), std::move(body));
@@ -721,7 +721,7 @@ std::unique_ptr<Expr> FlowParser::powExpr()
 // primaryExpr ::= NUMBER
 //               | STRING
 //               | variable
-//               | function '(' exprList ')'
+//               | function '(' paramList ')'
 //               | '(' expr ')'
 std::unique_ptr<Expr> FlowParser::primaryExpr()
 {
@@ -777,14 +777,18 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 					return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol);
 
                 consume(FlowToken::RndOpen);
-                ExprList args;
-				bool rv = listExpr(args);
+                std::unique_ptr<ParamList> args;
+                if (token() != FlowToken::RndClose) {
+                    args = paramList();
+                    if (!args) {
+                        return nullptr;
+                    }
+                }
 				consume(FlowToken::RndClose);
-				if (!rv) return nullptr;
-				return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol, std::move(args));
+                return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol, std::move(*args));
 			}
 
-			reportError("Unsupported symbol type of '%s' in expression.", name.c_str());
+			reportError("Unsupported symbol type of \"%s\" in expression.", name.c_str());
 			return nullptr;
 		}
 		case FlowToken::Boolean: {
@@ -876,26 +880,70 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 	}
 }
 
-bool FlowParser::listExpr(ExprList& list)
+std::unique_ptr<ParamList> FlowParser::paramList()
 {
-	FlowLocation loc(location());
-	std::unique_ptr<Expr> e = expr();
-	if (!e)
-		return false;
+    // paramList       ::= namedExpr *(',' namedExpr)
+    //                   | expr *(',' expr)
 
-	list.push_back(e.release());
+    if (token() == FlowToken::NamedParam) {
+        std::unique_ptr<ParamList> args(new ParamList(true));
+        std::string name;
+        std::unique_ptr<Expr> e = namedExpr(&name);
+        if (!e)
+            return nullptr;
 
-	while (token() == FlowToken::Comma) {
-		nextToken();
+        args->push_back(name, std::move(e));
 
-		e = expr();
-		if (!e)
-            return false;
+        while (token() == FlowToken::Comma) {
+            nextToken();
 
-		list.push_back(e.release());
-	}
+            if (token() == FlowToken::RndClose)
+                break;
 
-	return true;
+            e = namedExpr(&name);
+            if (!e)
+                return nullptr;
+
+            args->push_back(name, std::move(e));
+        }
+        return args;
+    } else {
+        // unnamed param list
+        std::unique_ptr<ParamList> args(new ParamList(false));
+
+        std::unique_ptr<Expr> e = expr();
+        if (!e)
+            return nullptr;
+
+        args->push_back(std::move(e));
+
+        while (token() == FlowToken::Comma) {
+            nextToken();
+
+            if (token() == FlowToken::RndClose)
+                break;
+
+            e = expr();
+            if (!e)
+                return nullptr;
+
+            args->push_back(std::move(e));
+        }
+        return args;
+    }
+}
+
+std::unique_ptr<Expr> FlowParser::namedExpr(std::string* name)
+{
+    // namedExpr       ::= NAMED_PARAM expr
+
+    // FIXME: wtf? what way around?
+
+    *name = stringValue();
+    if (!consume(FlowToken::NamedParam))
+        return nullptr;
+
+    return expr();
 }
 
 std::unique_ptr<Expr> asString(std::unique_ptr<Expr>&& expr)
@@ -1020,7 +1068,7 @@ std::unique_ptr<Stmt> FlowParser::stmt()
 			return std::make_unique<CompoundStmt>(sloc.update(end()));
 		}
 		default:
-			reportError("Unexpected token '%s'. Expected a statement instead.", token().c_str());
+			reportError("Unexpected token \"%s\". Expected a statement instead.", token().c_str());
 			return nullptr;
 	}
 }
@@ -1083,9 +1131,11 @@ std::unique_ptr<Stmt> FlowParser::compoundStmt()
 
 std::unique_ptr<Stmt> FlowParser::callStmt()
 {
-	// callStmt ::= NAME ['(' exprList ')' | exprList] (';' | LF)
+	// callStmt ::= NAME ['(' paramList ')' | paramList] (';' | LF)
 	// 			 | NAME '=' expr [';' | LF]
 	// NAME may be a builtin-function, builtin-handler, handler-name, or variable.
+    //
+    // namedArg ::= NAME ':' expr
 
 	FNTRACE();
 
@@ -1114,13 +1164,15 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 		}
         case Symbol::BuiltinHandler: {
             HandlerCall* call = new HandlerCall(loc, (BuiltinHandler*) callee);
-            callArgs(loc, call->callee(), call->args());
+            if (!callArgs(loc, call->callee(), call->args()))
+                return nullptr;
             stmt.reset(call);
             break;
         }
         case Symbol::BuiltinFunction: {
             std::unique_ptr<FunctionCall> call = std::make_unique<FunctionCall>(loc, (BuiltinFunction*) callee);
-            callArgs(loc, call->callee(), call->args());
+            if (!callArgs(loc, call->callee(), call->args()))
+                return nullptr;
             stmt = std::make_unique<ExprStmt>(std::move(call));
             break;
         }
@@ -1149,38 +1201,128 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 	}
 }
 
-bool FlowParser::callArgs(const FlowLocation& loc, Callable* callee, ExprList& args)
+/**
+ * Parses function/handler call parameters and performs semantic checks.
+ *
+ * @param loc    Source location of the call.
+ * @param callee Pointer to the callee's AST node.
+ * @param args   Output argument list to store parsed parameters into.
+ *
+ * @retval false Parsing or sema checks failed.
+ * @retval true  Parsing and sema checks succeed.
+ */
+bool FlowParser::callArgs(const FlowLocation& loc, Callable* callee, ParamList& args)
 {
-    // parse arguments
+    // callArgs ::= '(' paramList ')'
+    //            | paramList           /* if starting on same line */
 
     if (token() == FlowToken::RndOpen) {
         nextToken();
-        ExprList args;
-        bool rv = listExpr(args);
+        if (token() != FlowToken::RndClose) {
+            auto ra = paramList();
+            if (!ra) {
+                return false;
+            }
+            args = std::move(*ra);
+        }
         consume(FlowToken::RndClose);
-        if (!rv) {
+    } else if (lexer_->line() == loc.begin.line) {
+        auto ra = paramList();
+        if (!ra) {
             return false;
         }
-    } else if (lexer_->line() == loc.begin.line) {
-        ExprList args;
-        if (!listExpr(args)) {
-            return false;
+        args = std::move(*ra);
+    }
+
+    if (args.isNamed()) {
+        return verifyParamsNamed(callee, args);
+    } else {
+        return verifyParamsPositional(callee, args);
+    }
+}
+
+/**
+ * Verify <b>named</b> call-parameters, possibly auto-fill missing defaults and reorder them if needed.
+ *
+ * @param callee  callee to verify
+ * @param args    callees argument list
+ *
+ * @retval true   Verification succeed.
+ * @retval false  Verification failed.
+ */
+bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
+{
+    // auto-fill missing for defaulted parameters
+    const FlowVM::NativeCallback* native = runtime_->find(callee->signature());
+    if (!native->isNamed()) {
+        reportError("Callee \"%s\" invoked with named parameters, but no names provided by runtime.",
+                callee->name().c_str());
+        return false;
+    }
+
+    int argc = native->signature().args().size();
+    for (int i = 0; i != argc; ++i) {
+        const auto& name = native->getNameAt(i);
+        if (!args.contains(name)) {
+            const void* defaultValue = native->getDefaultAt(i);
+            if (!defaultValue) {
+                reportError("Callee \"%s\" invoked without named parameter \"%s\".",
+                        callee->name().c_str(), name.c_str());
+                return false;
+            }
+            FlowType type = native->signature().args()[i];
+            switch (type) {
+                case FlowType::Boolean:
+                    args.push_back(name, std::make_unique<BoolExpr>((bool) defaultValue));
+                    break;
+                case FlowType::Number:
+                    args.push_back(name, std::make_unique<NumberExpr>((FlowNumber) defaultValue));
+                    break;
+                case FlowType::String:
+                    args.push_back(name, std::make_unique<StringExpr>(*(std::string*) defaultValue));
+                    break;
+                case FlowType::IPAddress: // TODO
+                case FlowType::Cidr: // TODO
+                default:
+                    reportError("Unsupported type `%s` for named parameter \"%s\" completion in callee \"%s\".",
+                            tos(type).c_str(), name.c_str(), callee->name().c_str());
+                    return false;
+            }
         }
     }
 
-    // match call parameters
+    // reorder args (and detect superfluous args)
+    std::vector<std::string> superfluous;
+    args.reorder(native, &superfluous);
+    if (!superfluous.empty()) {
+        std::string t;
+        for (const auto& s: superfluous) {
+            if (!t.empty()) t += ", ";
+            t += "\"";
+            t += s;
+            t += "\"";
+        }
+        reportError("Superfluous arguments passed to callee \"%s\": %s.",
+            callee->name().c_str(), t.c_str());
+        return false;
+    }
 
+    return true;
+}
+
+bool FlowParser::verifyParamsPositional(const Callable* callee, const ParamList& args)
+{
     FlowVM::Signature sig;
     sig.setName(callee->name());
     sig.setReturnType(callee->signature().returnType()); // XXX cheetah
     std::vector<FlowType> argTypes;
-    for (const auto& arg: args) {
+    for (const auto& arg: args.values()) {
         argTypes.push_back(arg->getType());
     }
     sig.setArgs(argTypes);
 
     if (sig != callee->signature()) {
-        reportError("Callee parameter type signature mismatch: %s passed, but %s expected.\n", 
+        reportError("Callee parameter type signature mismatch: %s passed, but %s expected.", 
                 sig.to_s().c_str(), callee->signature().to_s().c_str());
         return false;
     }

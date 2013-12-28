@@ -121,14 +121,18 @@ private:
 	std::unique_ptr<Expr> primaryExpr();
 	std::unique_ptr<Expr> interpolatedStr();
 	std::unique_ptr<Expr> castExpr();
-	bool listExpr(ExprList& list);
+
+    std::unique_ptr<ParamList> paramList();
+    std::unique_ptr<Expr> namedExpr(std::string* name);
 
 	// syntax: statements
 	std::unique_ptr<Stmt> stmt();
 	std::unique_ptr<Stmt> ifStmt();
 	std::unique_ptr<Stmt> compoundStmt();
 	std::unique_ptr<Stmt> callStmt();
-    bool callArgs(const FlowLocation& loc, Callable* callee, ExprList& args);
+    bool callArgs(const FlowLocation& loc, Callable* callee, ParamList& args);
+    bool verifyParamsNamed(const Callable* callee, ParamList& args);
+    bool verifyParamsPositional(const Callable* callee, const ParamList& args);
 	std::unique_ptr<Stmt> postscriptStmt(std::unique_ptr<Stmt> baseStmt);
 };
 

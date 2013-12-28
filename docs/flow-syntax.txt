@@ -15,6 +15,8 @@ NUMBER          ::= 1*DIGIT
 CHAR            ::= 'a' .. 'z' | 'A' .. 'Z'
 IDENT           ::= CHAR *(CHAR | DIGIT | '_' | '.')
 
+NAMED_PARAM     ::= IDENT ':'
+
 HEX4DIGIT       ::= '0'..'9' | 'A'..'F' | 'a'..'f'
 
 BOOL            ::= 'true' | 'false'
@@ -76,7 +78,7 @@ ifStmt          ::= 'if' logicExpr stmt
 
 compoundStmt    ::= '{' *stmt '}'
 
-callStmt        ::= IDENT ['(' exprList? ')' | exprList?] (';' | LF)
+callStmt        ::= IDENT ['(' paramList? ')' | paramList?] (';' | LF)
 
 emptyStmt       ::= ';'
 
@@ -93,8 +95,7 @@ ADD_OP          ::= '+' | '-'
 MUL_OP          ::= '*' | '/' | '%' | 'shl' | 'shr'
 POW_OP          ::= '**'
 
-expr            ::= assocExpr
-assocExpr       ::= logicExpr ['=>' logicExpr]
+expr            ::= logicExpr
 logicExpr       ::= relExpr *(LOGIC_OP relExpr)
 relExpr         ::= addExpr *(ADD_OP addExpr)
 addExpr         ::= mulExpr *(MUL_OP mulExpr)
@@ -110,13 +111,31 @@ subExpr         ::= literalExpr
                   | keyValueExpr
                   | lambdaExpr
                   | compoundExpr
-symbolExpr      ::= IDENT ['(' exprList? ')']
+symbolExpr      ::= IDENT ['(' paramList? ')']
 compoundExpr    ::= '(' expr ')'
 lambdaExpr      ::= '{' stmt '}'
 literalExpr     ::= NUMBER [UNIT] | BOOL | STRING | IP_ADDR
-exprList        ::= expr *(',' expr)
-arrayExpr       ::= '[' exprList? ']'
 castExpr        ::= CAST_TYPE '(' logicExpr ')'
+paramList       ::= namedExpr *(',' namedExpr)
+                  | expr *(',' expr)
+namedExpr       ::= NAMED_PARAM expr
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+handler setup {
+    docroot.default '/var/www/localhost';
+
+    listen(
+        address: 0.0.0.0,
+        port: 80,
+        backlog: 1024,
+        multi_accept: 4,
+        reuse_port: true
+    );
+}
+
+handler main {
+    staticfile;
+}
 
 vim:et:ts=4

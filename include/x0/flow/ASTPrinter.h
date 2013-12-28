@@ -19,6 +19,7 @@ private:
 	void leave() { --depth_; }
 	void prefix();
 	void print(const char* title, ASTNode* node);
+    void print(const std::pair<std::string, Expr*>& node, size_t pos);
 
 	void printf(const char* msg) { prefix(); std::printf("%s", msg); }
 	template<typename... Args> void printf(const char* fmt, Args... args) { prefix(); std::printf(fmt, args...); }

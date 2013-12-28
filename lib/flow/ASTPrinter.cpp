@@ -63,6 +63,17 @@ void ASTPrinter::print(const char* title, ASTNode* node)
 	leave();
 }
 
+void ASTPrinter::print(const std::pair<std::string, Expr*>& node, size_t pos)
+{
+    char buf[1024];
+    if (!node.first.empty()) {
+        snprintf(buf, sizeof(buf), "%s:", node.first.c_str());
+    } else {
+        snprintf(buf, sizeof(buf), "param #%zu:", pos);
+    }
+    print(buf, node.second);
+}
+
 void ASTPrinter::accept(Variable& variable)
 {
 	printf("Variable: %s as %s\n", variable.name().c_str(), tos(variable.initializer()->getType()).c_str());
@@ -138,10 +149,8 @@ void ASTPrinter::accept(BinaryExpr& expr)
 void ASTPrinter::accept(FunctionCall& call)
 {
 	printf("FunctionCall: %s\n", call.callee()->name().c_str());
-    for (int i = 1, e = call.args().size(); i <= e; ++i) {
-        char title[256];
-        snprintf(title, sizeof(title), "param %d:", i);
-        print(title, call.args()[i - 1]);
+    for (int i = 0, e = call.args().size(); i != e; ++i) {
+        print(call.args()[i], i);
     }
 }
 
@@ -221,10 +230,8 @@ void ASTPrinter::accept(AssignStmt& assign)
 void ASTPrinter::accept(HandlerCall& call)
 {
 	printf("HandlerCall: %s\n", call.callee()->name().c_str());
-    for (int i = 1, e = call.args().size(); i <= e; ++i) {
-        char title[256];
-        snprintf(title, sizeof(title), "param %d:", i);
-        print(title, call.args()[i - 1]);
+    for (int i = 0, e = call.args().size(); i != e; ++i) {
+        print(call.args()[i], i);
     }
 }
 

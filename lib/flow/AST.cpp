@@ -1,5 +1,7 @@
 #include <x0/flow/AST.h>
+#include <x0/flow/ASTPrinter.h>
 #include <x0/flow/vm/Signature.h>
+#include <x0/flow/vm/NativeCallback.h>
 #include <x0/Buffer.h>
 #include <algorithm>
 
@@ -67,6 +69,132 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method) const
 
     //printf("SymbolTable(%s).lookup: \"%s\" -> not found\n", name_.c_str(), name.c_str());
 	return nullptr;
+}
+// }}}
+
+// {{{ ParamList
+ParamList& ParamList::operator=(ParamList&& v)
+{
+    isNamed_ = v.isNamed_;
+    names_ = std::move(v.names_);
+    values_ = std::move(v.values_);
+
+    return *this;
+}
+
+ParamList::~ParamList()
+{
+    for (Expr* arg: values_) {
+        delete arg;
+    }
+}
+
+void ParamList::push_back(const std::string& name, std::unique_ptr<Expr>&& arg)
+{
+    assert(names_.size() == values_.size() && "Cannot mix named with unnamed parameters.");
+
+    names_.push_back(name);
+    values_.push_back(arg.release());
+}
+
+void ParamList::push_back(std::unique_ptr<Expr>&& arg)
+{
+    assert(names_.empty() && "Cannot mix unnamed with named parameters.");
+
+    values_.push_back(arg.release());
+}
+
+bool ParamList::contains(const std::string& name) const
+{
+    for (const auto& arg: names_)
+        if (name == arg)
+            return true;
+
+    return false;
+}
+
+void ParamList::swap(size_t source, size_t dest)
+{
+    assert(source <= size());
+    assert(dest <= size());
+
+    //printf("Swapping parameter #%zu (%s) with #%zu (%s).\n", source, names_[source].c_str(), dest, names_[dest].c_str());
+
+    std::swap(names_[source], names_[dest]);
+    std::swap(values_[source], values_[dest]);
+}
+
+size_t ParamList::size() const
+{
+    return values_.size();
+}
+
+bool ParamList::empty() const
+{
+    return values_.empty();
+}
+
+std::pair<std::string, Expr*> ParamList::at(size_t offset) const
+{
+    return std::make_pair(isNamed() ? names_[offset] : "", values_[offset]);
+}
+
+void ParamList::reorder(const FlowVM::NativeCallback* native, std::vector<std::string>* superfluous)
+{
+    //dump("ParamList::reorder (before)");
+
+    size_t argc = std::min(native->signature().args().size(), names_.size());
+
+    assert(values_.size() >= argc && "Argument count mismatch.");
+
+    for (int i = 0; i != argc; ++i) {
+        const std::string& localName = names_[i];
+        const std::string& otherName = native->getNameAt(i);
+        int nativeIndex = native->find(localName);
+
+        if (nativeIndex == i) {
+            // OK: argument at correct position
+            continue;
+        }
+
+        if (nativeIndex == -1) {
+            superfluous->push_back(localName);
+            int other = find(otherName);
+            if (other != -1) {
+                // OK: found expected arg at [other].
+                swap(i, other);
+            }
+            continue;
+        }
+
+        if (localName != otherName) {
+            int other = find(otherName);
+            assert(other != -1);
+            swap(i, other);
+        }
+    }
+
+    //dump("ParamList::reorder (after)");
+}
+
+void ParamList::dump(const char* title)
+{
+    if (title && *title) {
+        printf("%s\n", title);
+    }
+    for (int i = 0, e = names_.size(); i != e; ++i) {
+        printf("%16s: ", names_[i].c_str());
+        ASTPrinter::print(values_[i]);
+    }
+}
+
+int ParamList::find(const std::string& name) const
+{
+    for (int i = 0, e = names_.size(); i != e; ++i) {
+        if (names_[i] == name)
+            return i;
+    }
+    return -1;
 }
 // }}}
 
@@ -159,7 +287,7 @@ void Handler::implement(std::unique_ptr<SymbolTable>&& table, std::unique_ptr<St
     body_ = std::move(body);
 }
 
-bool HandlerCall::setArgs(ExprList&& args)
+bool HandlerCall::setArgs(ParamList&& args)
 {
     args_ = std::move(args);
     if (!args_.empty()) {

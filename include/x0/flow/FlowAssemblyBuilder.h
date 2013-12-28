@@ -83,7 +83,7 @@ private:
     Register nativeHandler(BuiltinHandler* handler);
     Register nativeFunction(BuiltinFunction* function);
     void codegenInline(Handler* handler);
-    void codegenBuiltin(Callable* callee, const ExprList& args);
+    void codegenBuiltin(Callable* callee, const ParamList& args);
 
 private:
     Scope* scope_;

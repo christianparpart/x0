@@ -23,6 +23,7 @@ public:
 
     bool contains(const std::string& signature) const;
     NativeCallback* find(const std::string& signature);
+    NativeCallback* find(const Signature& signature);
     const std::vector<NativeCallback*>& builtins() const { return builtins_; }
 
     NativeCallback& registerHandler(const std::string& name);

@@ -646,6 +646,11 @@ FlowToken FlowLexer::parseIdent()
 		nextChar();
 	}
 
+    if (currentChar() == ':' && !isHex) {
+        nextChar(); // skip ':'
+        return FlowToken::NamedParam;
+    }
+
 	// ipv6HexDigit4 *(':' ipv6HexDigit4) ['::' [ipv6HexSeq]]
 	if (stringValue_.size() <= 4 && isHex && currentChar() == ':')
 		return continueParseIPv6(true);

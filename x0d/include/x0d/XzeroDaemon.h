@@ -180,7 +180,7 @@ template<typename... ArgTypes>
 inline x0::FlowVM::NativeCallback& XzeroDaemon::mainHandler(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb, ArgTypes... argTypes)
 {
 	mainApi_.push_back(name);
-    return registerHandler(name).bind(cb);
+    return registerHandler(name).bind(cb).params(argTypes...);
 }
 // }}}
 

@@ -25,6 +25,11 @@ NativeCallback* Runtime::find(const std::string& signature)
     return nullptr;
 }
 
+NativeCallback* Runtime::find(const Signature& signature)
+{
+    return find(signature.to_s());
+}
+
 void Runtime::unregisterNative(const std::string& name)
 {
     for (auto i = builtins_.begin(), e = builtins_.end(); i != e; ++i) {
