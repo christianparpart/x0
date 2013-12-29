@@ -152,7 +152,6 @@ bool Runner::run()
     // }}}
     // {{{ control
     instr (exit) {
-        printf("exiting program. ran %lu instructions\n", ticks);
         return A != 0;
     }
 
@@ -450,8 +449,9 @@ bool Runner::run()
 
         Params args(argc, argv, this);
         handler_->program()->nativeHandler(id)->invoke(args);
+        const bool handled = (bool) argv[0];
 
-        if (argv[0] != 0) {
+        if (handled) {
             return true;
         }
 
