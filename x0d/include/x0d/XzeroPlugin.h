@@ -105,7 +105,9 @@ template<typename Class, typename... ArgTypes>
 inline x0::FlowVM::NativeCallback& XzeroPlugin::mainHandler(
         const std::string& name, bool (Class::*method)(x0::HttpRequest*, x0::FlowVM::Params&), ArgTypes... argTypes)
 {
-    return daemon_->mainHandler(name, [=](x0::FlowVM::Params& args) -> bool { return (((Class*)this)->*method)((x0::HttpRequest*) args.caller()->userdata(), args); }, argTypes...);
+    return daemon_->mainHandler(name, [=](x0::FlowVM::Params& args) {
+        args.setResult((((Class*)this)->*method)((x0::HttpRequest*) args.caller()->userdata(), args));
+    }, argTypes...);
 }
 // }}}
 
