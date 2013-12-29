@@ -133,6 +133,7 @@ XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
 	nofork_(false),
 	systemd_(getppid() == 1 && sd_booted()),
 	doguard_(false),
+    dumpAST_(false),
 	dumpIR_(false),
 	optimizationLevel_(2),
 	server_(nullptr),
@@ -300,6 +301,7 @@ bool XzeroDaemon::parse()
 		{ "log-severity", required_argument, nullptr, 's' },
 		{ "event-loop", required_argument, nullptr, 'e' },
 		{ "instant", required_argument, nullptr, 'i' },
+        { "dump-ast", no_argument, &dumpAST_, 1 },
 		{ "dump-ir", no_argument, &dumpIR_, 1 },
 		//.
 		{ "splash", no_argument, nullptr, 'S' },
@@ -429,6 +431,7 @@ bool XzeroDaemon::parse()
 					<< "  -i,--instant=PATH[,PORT]  run x0d in simple pre-configured instant-mode,\n"
 					<< "                            also implies --no-fork and --log-target=console" << std::endl
 					<< "  -k,--crash-handler        installs SIGSEGV crash handler to print backtrace onto stderr." << std::endl
+                    << "     --dump-ast             dumps parsed AST of the configuration file (for debugging purposes)" << std::endl
 					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
@@ -982,7 +985,8 @@ bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int
     if (!unit_)
         return false;
 
-    ASTPrinter::print(unit_.get());
+    if (dumpAST_)
+        ASTPrinter::print(unit_.get());
 
     program_ = FlowAssemblyBuilder::compile(unit_.get());
     if (!program_) {
