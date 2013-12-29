@@ -9,12 +9,11 @@ a bytecode VM interpreter to execute your control flow as fast as possible.
 
 ### TODO
 
-- maybe use 16-bit width register identification instead of 8-bit inside the opcode, effectively raising the register limit, would raise instruction size from 32-bit to 64-bit.
-- support multi-branch instruction (merely like tableswitch in JVM)
-- code: regex impl
-- code: multi branch instruction (design & impl)
-- code: FlowAST-to-IR compiler to actually get this to life
-- code: direct-threaded Runner impl (token-threaded-to-direct-threaded transform & interpreter)
+- find solution to support `compress.types(string_array)` alike signatures
+- find solution to implement effective named based vhost matching (`vhost.mapping`)
+- `match`-keyword, support multi-branch instruction (merely like tableswitch in JVM)
+- regex primitive type
+- direct-threaded VM impl and token-threaded-to-direct-threaded opcode transformer
 
 ### Data Types
 
