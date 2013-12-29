@@ -162,7 +162,7 @@ void Program::dump()
     if (!ipaddrs_.empty()) {
         printf("\n; IP Constants\n");
         for (size_t i = 0, e = ipaddrs_.size(); i != e; ++i) {
-            printf(".const ip %6zu = '%s'\n", i, ipaddrs_[i].str().c_str());
+            printf(".const ipaddr %6zu = '%s'\n", i, ipaddrs_[i].str().c_str());
         }
     }
 
