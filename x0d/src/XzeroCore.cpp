@@ -44,7 +44,7 @@ static Buffer concat(FlowParams& args)
 {
 	Buffer msg;
 
-	for (size_t i = 0, e = args.size(); i != e; ++i) {
+	for (size_t i = 1, e = args.size(); i != e; ++i) {
 		if (i)
 			msg << " ";
 
@@ -333,7 +333,7 @@ void XzeroCore::workers_affinity(FlowParams& args)
 
     if (count > 0) {
         // spawn or set affinity of a set of workers as passed via input array
-        for (size_t i = 1, e = args.size(); i <= e; ++i) {
+        for (size_t i = 1, e = args.size(); i < e; ++i) {
             if (i >= cur)
                 server_->spawnWorker();
 
@@ -450,10 +450,7 @@ void XzeroCore::autoindex(HttpRequest* r, FlowParams& args)
 	if (!r->fileinfo->isDirectory())
 		return;
 
-	if (args.size() < 1)
-		return;
-
-	for (size_t i = 0, e = args.size(); i != e; ++i)
+	for (size_t i = 1, e = args.size(); i != e; ++i)
 		if (matchIndex(r, *(FlowString*)args[i]))
 			return;
 }
@@ -481,9 +478,6 @@ bool XzeroCore::matchIndex(HttpRequest *r, const std::string& arg)
 
 bool XzeroCore::docroot(HttpRequest* in, FlowParams& args)
 {
-	if (args.size() != 1)
-		return false;
-
 	in->documentRoot = args.get<FlowString>(1);
 
 	if (in->documentRoot.empty()) {

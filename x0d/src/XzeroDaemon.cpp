@@ -432,7 +432,7 @@ bool XzeroDaemon::parse()
 					<< "                            also implies --no-fork and --log-target=console" << std::endl
 					<< "  -k,--crash-handler        installs SIGSEGV crash handler to print backtrace onto stderr." << std::endl
                     << "     --dump-ast             dumps parsed AST of the configuration file (for debugging purposes)" << std::endl
-					<< "     --dump-ir              dumps LLVM IR of the configuration file (for debugging purposes)" << std::endl
+					<< "     --dump-ir              dumps IR of the configuration file (for debugging purposes)" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
 					<< "     --splash               print splash greeter to terminal on startup" << std::endl
