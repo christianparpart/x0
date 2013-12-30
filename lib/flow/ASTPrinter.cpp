@@ -229,7 +229,7 @@ void ASTPrinter::accept(MatchStmt& match)
         print("stmt", one.second.get());
         leave();
     }
-	print("elseStmt", match.elseStmt());
+	print("else", match.elseStmt());
 }
 
 void ASTPrinter::accept(AssignStmt& assign)

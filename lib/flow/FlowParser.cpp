@@ -736,8 +736,7 @@ std::unique_ptr<Expr> FlowParser::powExpr()
 	return left;
 }
 
-// primaryExpr ::= NUMBER
-//               | STRING
+// primaryExpr ::= literalExpr
 //               | variable
 //               | function '(' paramList ')'
 //               | '(' expr ')'
@@ -745,35 +744,23 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 {
 	FNTRACE();
 
-	static struct {
-		const char* ident;
-		long long nominator;
-		long long denominator;
-	} units[] = {
-		{ "byte", 1, 1 },
-		{ "kbyte", 1024llu, 1 },
-		{ "mbyte", 1024llu * 1024, 1 },
-		{ "gbyte", 1024llu * 1024 * 1024, 1 },
-		{ "tbyte", 1024llu * 1024 * 1024 * 1024, 1 },
-		{ "bit", 1, 8 },
-		{ "kbit", 1024llu, 8 },
-		{ "mbit", 1024llu * 1024, 8 },
-		{ "gbit", 1024llu * 1024 * 1024, 8 },
-		{ "tbit", 1024llu * 1024 * 1024 * 1024, 8 },
-		{ "sec", 1, 1 },
-		{ "min", 60llu, 1 },
-		{ "hour", 60llu * 60, 1 },
-		{ "day", 60llu * 60 * 24, 1 },
-		{ "week", 60llu * 60 * 24 * 7, 1 },
-		{ "month", 60llu * 60 * 24 * 30, 1 },
-		{ "year", 60llu * 60 * 24 * 365, 1 },
-		{ nullptr, 1, 1 }
-	};
-
-	FlowLocation loc(location());
-
 	switch (token()) {
+        case FlowToken::String:
+        case FlowToken::RawString:
+        case FlowToken::Number:
+        case FlowToken::Boolean:
+        case FlowToken::IP:
+        case FlowToken::Cidr:
+        case FlowToken::RegExp:
+            return literalExpr();
+        case FlowToken::StringType:
+        case FlowToken::NumberType:
+        case FlowToken::BoolType:
+            return castExpr();
+        case FlowToken::InterpolatedStringFragment:
+            return interpolatedStr();
 		case FlowToken::Ident: {
+			FlowLocation loc = location();
 			std::string name = stringValue();
 			nextToken();
 
@@ -809,57 +796,6 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			reportError("Unsupported symbol type of \"%s\" in expression.", name.c_str());
 			return nullptr;
 		}
-		case FlowToken::Boolean: {
-			std::unique_ptr<BoolExpr> e = std::make_unique<BoolExpr>(booleanValue(), loc);
-			nextToken();
-			return std::move(e);
-		}
-		case FlowToken::RegExp: {
-			std::unique_ptr<RegExpExpr> e = std::make_unique<RegExpExpr>(RegExp(stringValue()), loc);
-			nextToken();
-			return std::move(e);
-		}
-		case FlowToken::InterpolatedStringFragment:
-			return interpolatedStr();
-		case FlowToken::String:
-		case FlowToken::RawString: {
-			std::unique_ptr<StringExpr> e = std::make_unique<StringExpr>(stringValue(), loc);
-			nextToken();
-			return std::move(e);
-		}
-		case FlowToken::Number: { // NUMBER [UNIT]
-			auto number = numberValue();
-			nextToken();
-
-			if (token() == FlowToken::Ident) {
-				std::string sv(stringValue());
-				for (size_t i = 0; units[i].ident; ++i) {
-					if (sv == units[i].ident
-						|| (sv[sv.size() - 1] == 's' && sv.substr(0, sv.size() - 1) == units[i].ident))
-					{
-						nextToken(); // UNIT
-						number = number * units[i].nominator / units[i].denominator;
-						loc.update(end());
-						break;
-					}
-				}
-			}
-			return std::make_unique<NumberExpr>(number, loc);
-		}
-		case FlowToken::IP: {
-			std::unique_ptr<IPAddressExpr> e = std::make_unique<IPAddressExpr>(lexer_->ipValue(), loc);
-			nextToken();
-			return std::move(e);
-		}
-		case FlowToken::Cidr: {
-			std::unique_ptr<CidrExpr> e = std::make_unique<CidrExpr>(lexer_->cidr(), loc);
-			nextToken();
-			return std::move(e);
-		}
-		case FlowToken::StringType:
-		case FlowToken::NumberType:
-		case FlowToken::BoolType:
-			return castExpr();
 		case FlowToken::Begin: { // lambda-like inline function ref
 			char name[64];
 			static unsigned long i = 0;
@@ -885,6 +821,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			return std::make_unique<HandlerRefExpr>(handler, loc);
 		}
 		case FlowToken::RndOpen: {
+			FlowLocation loc = location();
 			nextToken();
 			std::unique_ptr<Expr> e = expr();
 			consume(FlowToken::RndClose);
@@ -896,6 +833,93 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			reportUnexpectedToken();
 			return nullptr;
 	}
+}
+
+std::unique_ptr<Expr> FlowParser::literalExpr()
+{
+    // literalExpr  ::= NUMBER [UNIT]
+    //                | BOOL
+    //                | STRING
+    //                | IP_ADDR
+    //                | IP_CIDR
+    //                | REGEXP
+
+    static struct {
+        const char* ident;
+        long long nominator;
+        long long denominator;
+    } units[] = {
+        { "byte",  1, 1 },
+        { "kbyte", 1024llu, 1 },
+        { "mbyte", 1024llu * 1024, 1 },
+        { "gbyte", 1024llu * 1024 * 1024, 1 },
+        { "tbyte", 1024llu * 1024 * 1024 * 1024, 1 },
+        { "bit",   1, 8 },
+        { "kbit",  1024llu, 8 },
+        { "mbit",  1024llu * 1024, 8 },
+        { "gbit",  1024llu * 1024 * 1024, 8 },
+        { "tbit",  1024llu * 1024 * 1024 * 1024, 8 },
+        { "sec",   1, 1 },
+        { "min",   60llu, 1 },
+        { "hour",  60llu * 60, 1 },
+        { "day",   60llu * 60 * 24, 1 },
+        { "week",  60llu * 60 * 24 * 7, 1 },
+        { "month", 60llu * 60 * 24 * 30, 1 },
+        { "year",  60llu * 60 * 24 * 365, 1 },
+        { nullptr, 1, 1 }
+    };
+
+    FlowLocation loc(location());
+
+    switch (token()) {
+        case FlowToken::Number: { // NUMBER [UNIT]
+            auto number = numberValue();
+            nextToken();
+
+            if (token() == FlowToken::Ident) {
+                std::string sv(stringValue());
+                for (size_t i = 0; units[i].ident; ++i) {
+                    if (sv == units[i].ident
+                        || (sv[sv.size() - 1] == 's' && sv.substr(0, sv.size() - 1) == units[i].ident))
+                    {
+                        nextToken(); // UNIT
+                        number = number * units[i].nominator / units[i].denominator;
+                        loc.update(end());
+                        break;
+                    }
+                }
+            }
+            return std::make_unique<NumberExpr>(number, loc);
+        }
+        case FlowToken::Boolean: {
+            std::unique_ptr<BoolExpr> e = std::make_unique<BoolExpr>(booleanValue(), loc);
+            nextToken();
+            return std::move(e);
+        }
+        case FlowToken::String:
+        case FlowToken::RawString: {
+            std::unique_ptr<StringExpr> e = std::make_unique<StringExpr>(stringValue(), loc);
+            nextToken();
+            return std::move(e);
+        }
+        case FlowToken::IP: {
+            std::unique_ptr<IPAddressExpr> e = std::make_unique<IPAddressExpr>(lexer_->ipValue(), loc);
+            nextToken();
+            return std::move(e);
+        }
+        case FlowToken::Cidr: {
+            std::unique_ptr<CidrExpr> e = std::make_unique<CidrExpr>(lexer_->cidr(), loc);
+            nextToken();
+            return std::move(e);
+        }
+        case FlowToken::RegExp: {
+            std::unique_ptr<RegExpExpr> e = std::make_unique<RegExpExpr>(RegExp(stringValue()), loc);
+            nextToken();
+            return std::move(e);
+        }
+        default:
+            return nullptr;
+    }
 }
 
 std::unique_ptr<ParamList> FlowParser::paramList()
@@ -1163,7 +1187,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
         nextToken();
 
         MatchCase one;
-        one.first = expr();
+        one.first = literalExpr();
         if (!one.first)
             return nullptr;
 
