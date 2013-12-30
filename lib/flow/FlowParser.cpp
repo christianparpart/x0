@@ -918,6 +918,7 @@ std::unique_ptr<Expr> FlowParser::literalExpr()
             return std::move(e);
         }
         default:
+            reportError("Expected literal expression, but got %s.", token().c_str());
             return nullptr;
     }
 }
@@ -1161,14 +1162,23 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
     if (!cond)
         return nullptr;
 
+    FlowType matchType = cond->getType();
+
+    if (matchType != FlowType::String) {
+        reportError("Expected match condition type <%s>, found \"%s\" instead.",
+                tos(FlowType::String).c_str(), tos(matchType).c_str());
+        return nullptr;
+    }
+
     // [MATCH_OP]
-    FlowToken op = token();
-    if (FlowTokenTraits::isOperator(op)) {
-        switch (op) {
+    FlowToken op = FlowToken::Equal;
+    if (FlowTokenTraits::isOperator(token())) {
+        switch (token()) {
             case FlowToken::Equal:
             case FlowToken::PrefixMatch:
             case FlowToken::SuffixMatch:
             case FlowToken::RegexMatch:
+                op = token();
                 break;
             default:
                 reportError("Expected match oeprator, found \"%s\" instead.", token().c_str());
@@ -1177,19 +1187,31 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
         nextToken();
     }
 
+    if (op == FlowToken::RegexMatch)
+        matchType = FlowType::RegExp;
+
     // '{'
     if (!consume(FlowToken::Begin))
         return nullptr;
 
     // *('on' expr stmt)
     MatchStmt::CaseList cases;
-    while (token() == FlowToken::On) {
-        nextToken();
+    do {
+        if (!consume(FlowToken::On)) {
+            return nullptr;
+        }
 
         MatchCase one;
         one.first = literalExpr();
         if (!one.first)
             return nullptr;
+
+        FlowType caseType = one.first->getType();
+        if (matchType != caseType) {
+            reportError("Type mismatch in match-on statement. Expected <%s> but got <%s>.",
+                    tos(matchType).c_str(), tos(caseType).c_str());
+            return nullptr;
+        }
 
         one.second = stmt();
         if (!one.second)
@@ -1197,6 +1219,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
 
         cases.push_back(std::move(one));
     }
+    while (token() == FlowToken::On);
 
     // ['else' stmt]
     std::unique_ptr<Stmt> elseStmt;
@@ -1210,10 +1233,6 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
     // '}'
     if (!consume(FlowToken::End))
         return nullptr;
-
-    // TODO check semantics:
-    // - all cases have same type on match expressions
-    // - REL_OP is compatible to match expressions type
 
     return std::make_unique<MatchStmt>(sloc.update(end()), std::move(cond), op, std::move(cases), std::move(elseStmt));
 }

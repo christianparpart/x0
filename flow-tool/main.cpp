@@ -26,9 +26,9 @@ int usage(const char *program)
 		"usage: %s [-h] [-t] [-l] [-s] [-L] [-e entry_point] filename\n"
 		"\n"
 		"    -h      prints this help\n"
-		"    -L      dumps LLVM IR of the compiled module\n"
+		"    -L      dumps IR of the compiled module\n"
 		"    -l      Dump lexical output and exit\n"
-		"    -s      Dump AST after parsing process\n"
+		"    -S      Dump AST after parsing process\n"
 		"    -e      entry point to start execution from. if not passed, nothing will be executed.\n"
 		"    -On     set optimization level, with n ranging from 0 (no optimization) to 4 (maximum).\n"
 		"    -t      enables unit-test mode\n"
@@ -105,7 +105,7 @@ int main(int argc, const char *argv[])
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)
 	if (argc == 1) {
-		static const char* debugArgs[] = { argv[0], "-L", "-e", "main", "./parse.flow", nullptr };
+		static const char* debugArgs[] = { argv[0], "-S", "-L", "-e", "main", "./parse.flow", nullptr };
 		argc = sizeof(debugArgs) / sizeof(*debugArgs) - 1;
 		argv = debugArgs;
 	}

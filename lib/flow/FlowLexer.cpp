@@ -290,7 +290,9 @@ void FlowLexer::processCommand(const std::string& line)
 
 FlowToken FlowLexer::nextToken()
 {
-	bool expectsValue = token() == FlowToken::Ident || FlowTokenTraits::isOperator(token());
+	bool expectsValue = token() == FlowToken::Ident
+                     || token() == FlowToken::On // match-on
+                     || FlowTokenTraits::isOperator(token());
 
 	if (!consumeSpace())
 		return token_ = FlowToken::Eof;
