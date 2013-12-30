@@ -664,6 +664,7 @@ FlowToken FlowLexer::parseIdent()
 	} keywords[] = {
 		{ "in", FlowToken::In },
 		{ "var", FlowToken::Var },
+        { "match", FlowToken::Match },
 		{ "on", FlowToken::On },
 		{ "do", FlowToken::Do },
 		{ "if", FlowToken::If },

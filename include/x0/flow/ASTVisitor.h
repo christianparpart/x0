@@ -38,6 +38,7 @@ class ExprStmt;
 class CompoundStmt;
 class HandlerCall;
 class CondStmt;
+class MatchStmt;
 class AssignStmt;
 
 class X0_API ASTVisitor
@@ -70,6 +71,7 @@ public:
 	virtual void accept(ExprStmt& stmt) = 0;
 	virtual void accept(CompoundStmt& stmt) = 0;
 	virtual void accept(CondStmt& stmt) = 0;
+	virtual void accept(MatchStmt& stmt) = 0;
 	virtual void accept(AssignStmt& stmt) = 0;
 	virtual void accept(HandlerCall& stmt) = 0;
 };

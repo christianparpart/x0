@@ -218,6 +218,20 @@ void ASTPrinter::accept(CondStmt& cond)
 	print("elseStmt", cond.elseStmt());
 }
 
+void ASTPrinter::accept(MatchStmt& match)
+{
+    printf("MatchStmt: %s\n", match.op().c_str());
+    print("cond", match.condition());
+    for (auto& one: match.cases()) {
+        printf("  case\n");
+        enter();
+        print("on", one.first.get());
+        print("stmt", one.second.get());
+        leave();
+    }
+	print("elseStmt", match.elseStmt());
+}
+
 void ASTPrinter::accept(AssignStmt& assign)
 {
 	printf("AssignStmt\n");

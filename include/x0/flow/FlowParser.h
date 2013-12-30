@@ -117,6 +117,7 @@ private:
 	// syntax: expressions
 	std::unique_ptr<Expr> expr();
 	std::unique_ptr<Expr> rhsExpr(std::unique_ptr<Expr> lhs, int precedence);
+    std::unique_ptr<Expr> addExpr();
 	std::unique_ptr<Expr> powExpr();
 	std::unique_ptr<Expr> primaryExpr();
 	std::unique_ptr<Expr> interpolatedStr();
@@ -128,6 +129,7 @@ private:
 	// syntax: statements
 	std::unique_ptr<Stmt> stmt();
 	std::unique_ptr<Stmt> ifStmt();
+	std::unique_ptr<Stmt> matchStmt();
 	std::unique_ptr<Stmt> compoundStmt();
 	std::unique_ptr<Stmt> callStmt();
     bool callArgs(const FlowLocation& loc, Callable* callee, ParamList& args);

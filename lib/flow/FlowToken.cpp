@@ -11,6 +11,7 @@ bool FlowTokenTraits::isKeyword(FlowToken t)
 		case FlowToken::On:
 		case FlowToken::Do:
 		case FlowToken::If:
+		case FlowToken::Match:
 		case FlowToken::Then:
 		case FlowToken::Else:
 		case FlowToken::Unless:
@@ -50,6 +51,9 @@ bool FlowTokenTraits::isOperator(FlowToken t)
 	switch (t) {
 		case FlowToken::Assign:
 		case FlowToken::Question:
+		case FlowToken::And:
+		case FlowToken::Or:
+		case FlowToken::Xor:
 		case FlowToken::Equal:
 		case FlowToken::UnEqual:
 		case FlowToken::Less:
@@ -90,6 +94,24 @@ bool FlowTokenTraits::isUnaryOp(FlowToken t)
 bool FlowTokenTraits::isPrimaryOp(FlowToken t)
 {
 	return false;
+}
+
+bool FlowTokenTraits::isRelOp(FlowToken t)
+{
+    switch (t) {
+		case FlowToken::Equal:
+		case FlowToken::UnEqual:
+		case FlowToken::Less:
+		case FlowToken::Greater:
+		case FlowToken::LessOrEqual:
+		case FlowToken::GreaterOrEqual:
+		case FlowToken::PrefixMatch:
+		case FlowToken::SuffixMatch:
+		case FlowToken::RegexMatch:
+            return true;
+        default:
+            return false;
+    }
 }
 
 bool FlowTokenTraits::isLiteral(FlowToken t)
@@ -166,12 +188,13 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Begin: return "{";
 		case FlowToken::End: return "}";
 		case FlowToken::Var: return "var";
-		case FlowToken::On: return "on";
 		case FlowToken::Do: return "do";
 		case FlowToken::If: return "if";
 		case FlowToken::Then: return "then";
 		case FlowToken::Else: return "else";
 		case FlowToken::Unless: return "unless";
+		case FlowToken::Match: return "match";
+		case FlowToken::On: return "on";
 		case FlowToken::Import: return "import";
 		case FlowToken::From: return "from";
 		case FlowToken::Handler: return "handler";

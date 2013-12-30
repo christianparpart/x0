@@ -134,6 +134,16 @@ void FlowCallVisitor::accept(CondStmt& condStmt)
     visit(condStmt.elseStmt());
 }
 
+void FlowCallVisitor::accept(MatchStmt& stmt)
+{
+    visit(stmt.condition());
+    for (auto& one: stmt.cases()) {
+        visit(one.first.get());
+        visit(one.second.get());
+    }
+    visit(stmt.elseStmt());
+}
+
 void FlowCallVisitor::accept(AssignStmt& assignStmt)
 {
     visit(assignStmt.expression());

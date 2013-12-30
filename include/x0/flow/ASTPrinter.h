@@ -43,6 +43,7 @@ private:
 	virtual void accept(ExprStmt& stmt);
 	virtual void accept(CompoundStmt& stmt);
 	virtual void accept(CondStmt& stmt);
+	virtual void accept(MatchStmt& stmt);
 	virtual void accept(AssignStmt& stmt);
 	virtual void accept(HandlerCall& stmt);
 };

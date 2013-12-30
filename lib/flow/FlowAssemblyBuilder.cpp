@@ -288,6 +288,11 @@ void FlowAssemblyBuilder::accept(CondStmt& stmt)
     code_[end] = makeInstruction(Opcode::JMP, elseBlockEnd);
 }
 
+void FlowAssemblyBuilder::accept(MatchStmt& stmt)
+{
+    printf("TODO: (CG) MatchStmt\n");
+}
+
 void FlowAssemblyBuilder::accept(AssignStmt& assign)
 {
     Register lhs = scope().lookup(assign.variable());

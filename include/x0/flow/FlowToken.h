@@ -31,8 +31,8 @@ struct X0_API FlowToken
 		BrOpen, BrClose, RndOpen, RndClose, Begin, End,
 
 		// keywords
-		Var, On, Do, Handler,
-		If, Then, Else, Unless,
+		Var, Do, Handler,
+		If, Then, Else, Unless, Match, On,
 		Import, From,
 
 		// data types
@@ -69,6 +69,7 @@ public:
 	static bool isOperator(FlowToken t);
 	static bool isUnaryOp(FlowToken t);
 	static bool isPrimaryOp(FlowToken t);
+	static bool isRelOp(FlowToken t);
 };
 
 } // namespace x0

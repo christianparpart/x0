@@ -541,6 +541,34 @@ public:
 
 	virtual void visit(ASTVisitor&);
 };
+
+typedef std::pair<std::unique_ptr<Expr>, std::unique_ptr<Stmt>> MatchCase;
+
+class X0_API MatchStmt : public Stmt
+{
+public:
+    typedef std::list<MatchCase> CaseList;
+
+    MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond, FlowToken op, std::list<MatchCase>&& cases, std::unique_ptr<Stmt>&& elseStmt);
+    MatchStmt(MatchStmt&& other);
+    MatchStmt& operator=(MatchStmt&& other);
+    ~MatchStmt();
+
+    Expr* condition() { return cond_.get(); }
+    FlowToken op() const { return op_; }
+    CaseList& cases() { return cases_; }
+
+	Stmt* elseStmt() const { return elseStmt_.get(); }
+	void setElseStmt(std::unique_ptr<Stmt> stmt) { elseStmt_ = std::move(stmt); }
+
+	virtual void visit(ASTVisitor&);
+
+private:
+    std::unique_ptr<Expr> cond_;
+    FlowToken op_;
+    CaseList cases_;
+    std::unique_ptr<Stmt> elseStmt_;
+};
 // }}}
 
 } // namespace x0

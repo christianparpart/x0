@@ -297,6 +297,42 @@ bool HandlerCall::setArgs(ParamList&& args)
     return true;
 }
 
+MatchStmt::MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond, FlowToken op, std::list<MatchCase>&& cases, std::unique_ptr<Stmt>&& elseStmt) :
+    Stmt(loc),
+    cond_(std::move(cond)),
+    op_(op),
+    cases_(std::move(cases)),
+    elseStmt_(std::move(elseStmt))
+{
+}
+
+MatchStmt::MatchStmt(MatchStmt&& other) :
+    Stmt(other.location()),
+    cond_(std::move(other.cond_)),
+    op_(std::move(other.op_)),
+    cases_(std::move(other.cases_))
+{
+}
+
+MatchStmt& MatchStmt::operator=(MatchStmt&& other)
+{
+    setLocation(other.location());
+    cond_ = std::move(other.cond_);
+    op_ = std::move(other.op_);
+    cases_ = std::move(other.cases_);
+
+    return *this;
+}
+
+MatchStmt::~MatchStmt()
+{
+}
+
+void MatchStmt::visit(ASTVisitor& v)
+{
+    v.accept(*this);
+}
+
 // {{{ type system
 FlowType UnaryExpr::getType() const
 {

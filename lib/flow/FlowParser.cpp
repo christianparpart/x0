@@ -628,15 +628,15 @@ int binopPrecedence(FlowToken op) {
 		{ FlowToken::In, 2 },
 
 		// add expr
-		{ FlowToken::Plus, 2 },
-		{ FlowToken::Minus, 2 },
+		{ FlowToken::Plus, 3 },
+		{ FlowToken::Minus, 3 },
 
 		// mul expr
-		{ FlowToken::Mul, 3 },
-		{ FlowToken::Div, 3 },
-		{ FlowToken::Mod, 3 },
-		{ FlowToken::Shl, 3 },
-		{ FlowToken::Shr, 3 },
+		{ FlowToken::Mul, 4 },
+		{ FlowToken::Div, 4 },
+		{ FlowToken::Mod, 4 },
+		{ FlowToken::Shl, 4 },
+		{ FlowToken::Shr, 4 },
 
 		// bit-wise expr
 		{ FlowToken::BitAnd, 5 },
@@ -651,9 +651,27 @@ int binopPrecedence(FlowToken op) {
 	return i->second;
 }
 
-// rhsExpr ::= (BIN_OP primaryExpr)*
+std::unique_ptr<Expr> FlowParser::addExpr()
+{
+	std::unique_ptr<Expr> lhs = powExpr();
+	if (!lhs)
+		return nullptr;
+
+	return rhsExpr(std::move(lhs), 2 /* REL_OP precedence */ );
+}
+
+/**
+ * Parses a binary expression.
+ *
+ * @param lhs            left hand side of the binary expression
+ * @param lastPrecedence precedence of \p lhs.
+ *
+ * @return nullptr on failure, the resulting expression AST otherwise.
+ */
 std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPrecedence)
 {
+    // rhsExpr ::= (BIN_OP primaryExpr)*
+
 	FNTRACE();
 
 	for (;;) {
@@ -1058,6 +1076,8 @@ std::unique_ptr<Stmt> FlowParser::stmt()
 	switch (token()) {
 		case FlowToken::If:
 			return ifStmt();
+        case FlowToken::Match:
+            return matchStmt();
 		case FlowToken::Begin:
 			return compoundStmt();
 		case FlowToken::Ident:
@@ -1098,6 +1118,80 @@ std::unique_ptr<Stmt> FlowParser::ifStmt()
 
 	return std::make_unique<CondStmt>(std::move(cond),
 		std::move(thenStmt), std::move(elseStmt), sloc.update(end()));
+}
+
+std::unique_ptr<Stmt> FlowParser::matchStmt()
+{
+	FNTRACE();
+
+    // matchStmt       ::= 'match' expr [MATCH_OP] '{' *matchCase ['else' stmt] '}'
+    // matchCase       ::= 'on' literalExpr stmt
+    // MATCH_OP        ::= '==' | '=^' | '=$' | '=~'
+
+	FlowLocation sloc(location());
+
+    if (!consume(FlowToken::Match))
+        return nullptr;
+
+    auto cond = addExpr();
+    if (!cond)
+        return nullptr;
+
+    // [MATCH_OP]
+    FlowToken op = token();
+    if (FlowTokenTraits::isOperator(op)) {
+        switch (op) {
+            case FlowToken::Equal:
+            case FlowToken::PrefixMatch:
+            case FlowToken::SuffixMatch:
+            case FlowToken::RegexMatch:
+                break;
+            default:
+                reportError("Expected match oeprator, found \"%s\" instead.", token().c_str());
+                return nullptr;
+        }
+        nextToken();
+    }
+
+    // '{'
+    if (!consume(FlowToken::Begin))
+        return nullptr;
+
+    // *('on' expr stmt)
+    MatchStmt::CaseList cases;
+    while (token() == FlowToken::On) {
+        nextToken();
+
+        MatchCase one;
+        one.first = expr();
+        if (!one.first)
+            return nullptr;
+
+        one.second = stmt();
+        if (!one.second)
+            return nullptr;
+
+        cases.push_back(std::move(one));
+    }
+
+    // ['else' stmt]
+    std::unique_ptr<Stmt> elseStmt;
+    if (consumeIf(FlowToken::Else)) {
+        elseStmt = stmt();
+        if (!elseStmt) {
+            return nullptr;
+        }
+    }
+
+    // '}'
+    if (!consume(FlowToken::End))
+        return nullptr;
+
+    // TODO check semantics:
+    // - all cases have same type on match expressions
+    // - REL_OP is compatible to match expressions type
+
+    return std::make_unique<MatchStmt>(sloc.update(end()), std::move(cond), op, std::move(cases), std::move(elseStmt));
 }
 
 // compoundStmt ::= '{' varDecl* stmt* '}'
