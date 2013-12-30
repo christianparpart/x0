@@ -37,7 +37,7 @@ IPv4_CIDR       ::= IPv4_ADDR '/' 1*2DIGIT
 IP4_OCTET       ::= <1*3DIGIT between 0..255>
 
 IPv6_ADDR       ::= IP6_HEXPART [':' IPv4_ADDR]
-IPv6_CIDR       ::= IP6_HEXPART '/' 1*2DIGIT
+IPv6_CIDR       ::= IPv6_ADDR '/' 1*2DIGIT
 
 IP6_HEXPART     ::= IP6_HEXSEQ
                   | IP6_HEXSEQ "::" [IP6_HEXSEQ]
@@ -76,6 +76,9 @@ ifStmt          ::= 'if' logicExpr stmt
                   *('elsif' logicExpr stmt)
                    ['else' stmt]
 
+matchStmt       ::= 'match' expr [REL_OP] '{' *matchCase ['else' stmt] '}'
+matchCase       ::= 'on' literalExpr stmt
+
 compoundStmt    ::= '{' *stmt '}'
 
 callStmt        ::= IDENT ['(' paramList? ')' | paramList?] (';' | LF)
@@ -97,15 +100,14 @@ POW_OP          ::= '**'
 
 expr            ::= logicExpr
 logicExpr       ::= relExpr *(LOGIC_OP relExpr)
-relExpr         ::= addExpr *(ADD_OP addExpr)
-addExpr         ::= mulExpr *(MUL_OP mulExpr)
-mulExpr         ::= negExpr *(POW_OP negExpr)
-negExpr         ::= *('!' | '-' | '+') relExpr
-powExpr         ::= primaryExpr *(POW_OP primaryExpr)
+relExpr         ::= addExpr *(REL_OP addExpr)
+addExpr         ::= mulExpr *(ADD_OP mulExpr)
+mulExpr         ::= powExpr *(MUL_OP powExpr)
+powExpr         ::= negExpr *(POW_OP negExpr)
+negExpr         ::= *('!' | '-' | '+') primaryExpr
 primaryExpr     ::= subExpr [UNIT]
 subExpr         ::= literalExpr
                   | IPL_STRING
-                  | REGEXP
                   | symbolExpr
                   | castExpr
                   | keyValueExpr
@@ -114,28 +116,15 @@ subExpr         ::= literalExpr
 symbolExpr      ::= IDENT ['(' paramList? ')']
 compoundExpr    ::= '(' expr ')'
 lambdaExpr      ::= '{' stmt '}'
-literalExpr     ::= NUMBER [UNIT] | BOOL | STRING | IP_ADDR
+literalExpr     ::= NUMBER [UNIT]
+                  | BOOL
+                  | STRING
+                  | IP_ADDR
+                  | IP_CIDR
+                  | REGEXP
 castExpr        ::= CAST_TYPE '(' logicExpr ')'
 paramList       ::= namedExpr *(',' namedExpr)
                   | expr *(',' expr)
 namedExpr       ::= NAMED_PARAM expr
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-handler setup {
-    docroot.default '/var/www/localhost';
-
-    listen(
-        address: 0.0.0.0,
-        port: 80,
-        backlog: 1024,
-        multi_accept: 4,
-        reuse_port: true
-    );
-}
-
-handler main {
-    staticfile;
-}
 
 vim:et:ts=4
