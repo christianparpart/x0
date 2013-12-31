@@ -73,7 +73,8 @@ bool Runner::run()
         // control
         [Opcode::EXIT]      = &&l_exit,
         [Opcode::JMP]       = &&l_jmp,
-        [Opcode::CONDBR]    = &&l_condbr,
+        [Opcode::JN]        = &&l_jn,
+        [Opcode::JZ]        = &&l_jz,
 
         // debug
         [Opcode::NTICKS]    = &&l_nticks,
@@ -160,8 +161,17 @@ bool Runner::run()
         goto *ops[OP];
     }
 
-    instr (condbr) {
+    instr (jn) {
         if (data_[A] != 0) {
+            pc = code.data() + B;
+            goto *ops[OP];
+        } else {
+            next;
+        }
+    }
+
+    instr (jz) {
+        if (data_[A] == 0) {
             pc = code.data() + B;
             goto *ops[OP];
         } else {

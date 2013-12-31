@@ -274,7 +274,7 @@ void FlowAssemblyBuilder::accept(CompoundStmt& compound)
 void FlowAssemblyBuilder::accept(CondStmt& stmt)
 {
     Register expr = codegen(stmt.condition());
-    emit(Opcode::CONDBR, expr, code_.size() + 2);
+    emit(Opcode::JN, expr, code_.size() + 2);
     size_t elseBlock = emit(Opcode::JMP, 0);
 
     codegen(stmt.thenStmt());

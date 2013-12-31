@@ -13,7 +13,8 @@ enum Opcode {
     NOP = 0,        // NOP                 ; no operation
     EXIT,           // EXIT imm            ; exit program
     JMP,            // JMP imm             ; unconditional jump
-    CONDBR,         // CONDBR reg, imm     ; conditional jump
+    JN,             // JN reg, imm         ; conditional jump (A != 0)
+    JZ,             // JZ reg, imm         ; conditional jump (A == 0)
 
     // debugging
     NTICKS,         // instruction performance counter
@@ -136,7 +137,8 @@ inline InstructionSig operandSignature(Opcode opc) {
         // control
         [Opcode::EXIT]      = InstructionSig::I,
         [Opcode::JMP]       = InstructionSig::I,
-        [Opcode::CONDBR]    = InstructionSig::RI,
+        [Opcode::JN]        = InstructionSig::RI,
+        [Opcode::JZ]        = InstructionSig::RI,
         // debug
         [Opcode::NTICKS]    = InstructionSig::R,
         [Opcode::NDUMPN]    = InstructionSig::RI,
@@ -205,7 +207,8 @@ inline const char* mnemonic(Opcode opc) {
         // control
         [Opcode::EXIT]   = "EXIT",
         [Opcode::JMP]    = "JMP",
-        [Opcode::CONDBR] = "CONDBR",
+        [Opcode::JN]     = "JN",
+        [Opcode::JZ]     = "JZ",
         // copy
         [Opcode::MOV]    = "MOV",
         // debug
@@ -274,7 +277,8 @@ inline FlowType resultType(Opcode opc) {
         // control
         [Opcode::EXIT]      = FlowType::Void,
         [Opcode::JMP]       = FlowType::Void,
-        [Opcode::CONDBR]    = FlowType::Void,
+        [Opcode::JN]        = FlowType::Void,
+        [Opcode::JZ]        = FlowType::Void,
         // debug
         [Opcode::NTICKS]    = FlowType::Number,
         [Opcode::NDUMPN]    = FlowType::Void,
