@@ -60,7 +60,6 @@ uint64_t MatchHead::evaluate(const FlowString* condition, Runner* env) const
 {
     uint64_t result;
     if (map_.lookup(*condition, &result)) {
-        printf("map.lookup found: %s -> %lu\n", condition->c_str(), result);
         return result;
     }
 
