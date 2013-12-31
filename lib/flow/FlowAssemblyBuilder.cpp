@@ -363,7 +363,9 @@ Register FlowAssemblyBuilder::codegen(Expr* expression)
 
 void FlowAssemblyBuilder::codegen(Stmt* stmt)
 {
-    stmt->visit(*this);
+    if (stmt) {
+        stmt->visit(*this);
+    }
 }
 
 } // namespace x0
