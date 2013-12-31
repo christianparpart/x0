@@ -220,7 +220,7 @@ void ASTPrinter::accept(CondStmt& cond)
 
 void ASTPrinter::accept(MatchStmt& match)
 {
-    printf("MatchStmt: %s\n", match.op().c_str());
+    printf("MatchStmt: %s\n", tos(match.op()).c_str());
     print("cond", match.condition());
     for (auto& one: match.cases()) {
         printf("  case\n");

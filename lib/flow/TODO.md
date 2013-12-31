@@ -4,8 +4,12 @@
 - 'match' stmt
   - DONE: AST
   - DONE: syntax
-  - semantic validation (case expr must have same base type and match op must be compatible to this one)
-  - code generation
+  - DONE: semantic validation (case expr must have same base type and match op must be compatible to this one)
+  - DONE: code generation
+  - DONE: vm: == (MatchSame)
+  - DONE: vm: =^ (MatchHead)
+  - vm: =$ (MatchTail)
+  - vm: =~ (MatchRegEx)
 - DONE: codegen: native function
 - DONE: codegen: custom handler invokation
 - sema: native handler/function signature check (as a pass between parse and codegen)

@@ -11,6 +11,8 @@
 #include <x0/flow/ASTPrinter.h>
 #include <x0/flow/FlowLexer.h>
 #include <x0/flow/FlowParser.h>
+#include <x0/Trie.h>
+#include <x0/PrefixTree.h>
 #include <x0/DebugLogger.h>
 #include <fstream>
 #include <memory>
@@ -91,6 +93,20 @@ int parsedump(const char* filename) // {{{
 }
 // }}}
 
+int trietest(int argc, const char* argv[])
+{
+    x0::PrefixTree<std::string, uint64_t> t;
+    t.insert("/foo", 10);
+    t.insert("/foo/bar", 11);
+    t.insert("/bar", 20);
+
+    uint64_t result;
+    if (t.lookup(argv[1], &result))
+        printf("lookup: %lu\n", result);
+
+    return 0;
+}
+
 int main(int argc, const char *argv[])
 {
 	const char *handlerName = NULL;
@@ -101,6 +117,8 @@ int main(int argc, const char *argv[])
 	int rv = 0;
 
 	DebugLogger::get().configure("XZERO_DEBUG");
+
+    //return trietest(argc, argv);
 
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)

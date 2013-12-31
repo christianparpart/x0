@@ -5,6 +5,7 @@
 #include <x0/flow/AST.h>
 #include <x0/flow/ASTVisitor.h>
 #include <x0/flow/vm/Instruction.h>
+#include <x0/flow/vm/Match.h>
 
 #include <functional>
 #include <cstdio>
@@ -96,12 +97,14 @@ private:
     std::vector<FlowString> strings_;
     std::vector<IPAddress> ipaddrs_;
     std::vector<std::string> regularExpressions_;               // XXX to be a pre-compiled handled during runtime
+    std::vector<FlowVM::MatchDef> matches_;
     std::vector<std::pair<std::string, std::string>> modules_;
     std::vector<std::string> nativeHandlerSignatures_;
     std::vector<std::string> nativeFunctionSignatures_;
 
     std::vector<std::pair<std::string, std::vector<FlowVM::Instruction>>> handlers_;
     FlowVM::Handler* handler_;                  //!< current handler 
+    size_t handlerId_;                          //!< current handler's ID
     std::vector<FlowVM::Instruction> code_;     //!< current handler's code 
     std::unique_ptr<FlowVM::Program> program_;  //!< current program
     Register registerCount_;                    //!< number of currently allocated registers

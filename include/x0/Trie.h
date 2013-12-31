@@ -9,9 +9,10 @@
 #ifndef x0_trie_h
 #define x0_trie_H
 
-#include <x0/api.hpp>
+#include <x0/Api.h>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 namespace x0 {
 
@@ -26,7 +27,7 @@ namespace x0 {
  * \see http://paste.lisp.org/display/12161 (trie in C#, suffix trie)
  */
 template<typename _Key, typename _Value>
-class trie
+class X0_API trie
 {
 public:
 	typedef _Key key_type;
@@ -43,11 +44,11 @@ private:
 		node *children;
 
 		/** searches for a node with given key */
-		node *find(keyelem_type key)
+		node *find(keyelem_type key) const
 		{
 			for (auto cur = this; cur != 0; cur = cur->next)
 				if (cur->key == key)
-					return cur;
+					return (node*) cur;
 
 			return 0;
 		}
@@ -90,6 +91,11 @@ private:
 		}
 
 		value_type& operator*()
+		{
+			return np_->value;
+		}
+
+		const value_type& operator*() const
 		{
 			return np_->value;
 		}
@@ -154,17 +160,17 @@ public:
 		return size_;
 	}
 
-	iterator begin()
+	iterator begin() const
 	{
 		throw std::runtime_error("not implemented");
 	}
 
-	iterator end()
+	iterator end() const
 	{
 		return iterator();
 	}
 
-	iterator insert(const key_type&& key, const value_type&& value)
+	iterator insert(const key_type& key, const value_type& value)
 	{
 		std::cout << "trie.insert(" << key << ", " << value << ")" << std::endl;
 		node *level = &root_;
@@ -198,21 +204,20 @@ public:
 		return find(key) != end();
 	}
 
-	iterator find(const key_type& key)
+	iterator find(const key_type& key) const
 	{
 		return find(key.c_str());
 	}
 
-	iterator find(const keyelem_type *key)
+	iterator find(const keyelem_type *key) const
 	{
 		std::cout << "trie.find(" << key << ")" << std::endl;
 
-		node *level = &root_;
-		const keyelem_type *kp = key;
+		const node* level = &root_;
+		const keyelem_type* kp = key;
 
-		while (node *found = level->children->find(*kp))
-		{
-			std::cout << "  lookup(" << (*kp ?: '$') << ")" << std::endl;
+		while (node *found = level->children->find(*kp)) {
+			std::cout << "  lookup(" << ((char)(*kp ? *kp : '$')) << ")" << std::endl;
 			if (*kp++ == '\0')
 				return iterator(found);
 
@@ -220,7 +225,7 @@ public:
 		}
 
 		if (*kp == '\0')
-			return iterator(level);
+			return iterator((node*) level);
 
 //		if (level->children == 0)
 //			return iterator(level);

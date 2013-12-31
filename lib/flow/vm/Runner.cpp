@@ -3,6 +3,7 @@
 #include <x0/flow/vm/NativeCallback.h>
 #include <x0/flow/vm/Handler.h>
 #include <x0/flow/vm/Program.h>
+#include <x0/flow/vm/Match.h>
 #include <x0/flow/vm/Instruction.h>
 #include <vector>
 #include <utility>
@@ -55,6 +56,7 @@ bool Runner::run()
     #define B  operandB(*pc)
     #define C  operandC(*pc)
 
+    #define toStringPtr(R)  ((FlowString*) data_[R])
     #define toString(R)     (*(FlowString*) data_[R])
     #define toIPAddress(R)  (*(IPAddress*) data_[R])
     #define toNumber(R)     ((FlowNumber) data_[R])
@@ -122,6 +124,10 @@ bool Runner::run()
         [Opcode::SLEN]      = &&l_slen,
         [Opcode::SISEMPTY]  = &&l_sisempty,
         [Opcode::SPRINT]    = &&l_sprint,
+        [Opcode::SMATCHEQ]  = &&l_smatch,
+        [Opcode::SMATCHBEG] = &&l_smatch,
+        [Opcode::SMATCHEND] = &&l_smatch,
+        [Opcode::SMATCHR]   = &&l_smatch,
 
         // ipaddr
         [Opcode::PCONST]    = &&l_pconst,
@@ -385,6 +391,12 @@ bool Runner::run()
     instr (sprint) {
         printf("%s\n", toString(A).c_str());
         next;
+    }
+
+    instr (smatch) {
+        auto result = program_->matches()[B]->evaluate(toStringPtr(A), this);
+        pc = code.data() + result;
+        goto *ops[OP];
     }
     // }}}
     // {{{ ipaddr

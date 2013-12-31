@@ -1171,23 +1171,31 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
     }
 
     // [MATCH_OP]
-    FlowToken op = FlowToken::Equal;
+    FlowVM::MatchClass op;
     if (FlowTokenTraits::isOperator(token())) {
         switch (token()) {
             case FlowToken::Equal:
+                op = FlowVM::MatchClass::Same;
+                break;
             case FlowToken::PrefixMatch:
+                op = FlowVM::MatchClass::Head;
+                break;
             case FlowToken::SuffixMatch:
+                op = FlowVM::MatchClass::Tail;
+                break;
             case FlowToken::RegexMatch:
-                op = token();
+                op = FlowVM::MatchClass::RegExp;
                 break;
             default:
                 reportError("Expected match oeprator, found \"%s\" instead.", token().c_str());
                 return nullptr;
         }
         nextToken();
+    } else {
+        op = FlowVM::MatchClass::Same;
     }
 
-    if (op == FlowToken::RegexMatch)
+    if (op == FlowVM::MatchClass::RegExp)
         matchType = FlowType::RegExp;
 
     // '{'

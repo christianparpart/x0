@@ -126,6 +126,8 @@ if(ENABLE_XZERO_FLOW)
     flow/FlowType.cpp
     flow/vm/Handler.cpp
     flow/vm/Instruction.cpp
+    flow/vm/Match.cpp
+    flow/vm/MatchClass.cpp
     flow/vm/NativeCallback.cpp
     flow/vm/Program.cpp
     flow/vm/Runner.cpp

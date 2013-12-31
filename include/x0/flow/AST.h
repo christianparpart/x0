@@ -2,6 +2,7 @@
 
 #include <x0/flow/vm/Signature.h>
 #include <x0/flow/vm/Instruction.h> // Opcode
+#include <x0/flow/vm/MatchClass.h>
 #include <x0/flow/FlowType.h>
 #include <x0/flow/FlowToken.h>
 #include <x0/flow/FlowLocation.h>
@@ -549,13 +550,13 @@ class X0_API MatchStmt : public Stmt
 public:
     typedef std::list<MatchCase> CaseList;
 
-    MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond, FlowToken op, std::list<MatchCase>&& cases, std::unique_ptr<Stmt>&& elseStmt);
+    MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond, FlowVM::MatchClass op, std::list<MatchCase>&& cases, std::unique_ptr<Stmt>&& elseStmt);
     MatchStmt(MatchStmt&& other);
     MatchStmt& operator=(MatchStmt&& other);
     ~MatchStmt();
 
     Expr* condition() { return cond_.get(); }
-    FlowToken op() const { return op_; }
+    FlowVM::MatchClass op() const { return op_; }
     CaseList& cases() { return cases_; }
 
 	Stmt* elseStmt() const { return elseStmt_.get(); }
@@ -565,7 +566,7 @@ public:
 
 private:
     std::unique_ptr<Expr> cond_;
-    FlowToken op_;
+    FlowVM::MatchClass op_;
     CaseList cases_;
     std::unique_ptr<Stmt> elseStmt_;
 };

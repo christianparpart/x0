@@ -191,6 +191,10 @@ Constants are all stored in a constant table, each type of constants in its own 
     0x??    SREGMATCH vres    str   regex   A = B =~ C
     0x??    SREGGROUP vres    num   -       A = regex_group(B /* regex-context offset */)
     0x??    SLEN      vres    str   -       A = strlen(B)
+    0x??    SMATCHEQ  str     imm   -       $pc = MatchSame[A].evaluate(str);
+    0x??    SMATCHBEG str     imm   -       $pc = MatchBegin[A].evaluate(str);
+    0x??    SMATCHEND str     imm   -       $pc = MatchEnd[A].evaluate(str);
+    0x??    SMATCHR   str     imm   -       $pc = MatchRegEx[A].evaluate(str);
 
 #### IP Address Ops
 

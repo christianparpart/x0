@@ -1,5 +1,6 @@
 #include <x0/flow/FlowAssemblyBuilder.h>
 #include <x0/flow/vm/Program.h>
+#include <x0/flow/vm/Match.h>
 #include <cassert>
 
 namespace x0 {
@@ -12,11 +13,14 @@ FlowAssemblyBuilder::FlowAssemblyBuilder() :
     unit_(nullptr),
     numbers_(),
     strings_(),
+    regularExpressions_(),
+    matches_(),
     modules_(),
     nativeHandlerSignatures_(),
     nativeFunctionSignatures_(),
     handlers_(),
     handler_(nullptr),
+    handlerId_(0),
     code_(),
     program_(),
     registerCount_(1),
@@ -68,20 +72,15 @@ void FlowAssemblyBuilder::accept(Handler& handler)
         return;
     }
 
+    // explicitely forward-declare handler, so we can use its ID internally.
+    handlerId_ = handlerRef(&handler);
+
     registerCount_ = 1;
 
     codegenInline(&handler);
     emit(Opcode::EXIT, 0);
 
-    for (auto& hand: handlers_) {
-        if (hand.first == handler.name()) {
-            // implement forward-referenced handler
-            hand.second = std::move(code_);
-            return;
-        }
-    }
-    // implement handler
-    handlers_.push_back(std::make_pair(handler.name(), std::move(code_)));
+    handlers_[handlerId_].second = std::move(code_);
 }
 
 void FlowAssemblyBuilder::accept(BuiltinFunction& symbol)
@@ -109,14 +108,12 @@ void FlowAssemblyBuilder::accept(Unit& unit)
         strings_,
         ipaddrs_,
         regularExpressions_,
+        matches_,
         unit.imports(),
         nativeHandlerSignatures_,
-        nativeFunctionSignatures_
+        nativeFunctionSignatures_,
+        handlers_
     ));
-
-    for (auto handler: handlers_) {
-        program_->createHandler(handler.first, handler.second);
-    }
 }
 
 void FlowAssemblyBuilder::accept(UnaryExpr& expr)
@@ -290,7 +287,57 @@ void FlowAssemblyBuilder::accept(CondStmt& stmt)
 
 void FlowAssemblyBuilder::accept(MatchStmt& stmt)
 {
-    printf("TODO: (CG) MatchStmt\n");
+    FlowVM::MatchDef def;
+    def.handlerId = handlerId_;
+    def.op = stmt.op();
+    def.elsePC = 0; // is properly initialized later
+
+    Register cond = codegen(stmt.condition());
+    size_t matchId = matches_.size();
+
+    Opcode opc;
+    switch (stmt.op()) {
+        case FlowVM::MatchClass::Same:
+            opc = Opcode::SMATCHEQ;
+            break;
+        case FlowVM::MatchClass::Head:
+            opc = Opcode::SMATCHBEG;
+            break;
+        case FlowVM::MatchClass::Tail:
+            opc = Opcode::SMATCHEND;
+            break;
+        case FlowVM::MatchClass::RegExp:
+            opc = Opcode::SMATCHR;
+            break;
+        default:
+            assert(!"FIXME: unsupported Match class");
+            return;
+    }
+    emit(opc, cond, matchId);
+
+    std::vector<size_t> exitJumps;
+
+    for (const MatchCase& one: stmt.cases()) {
+        auto label = literal(dynamic_cast<StringExpr*>(one.first.get())->value());
+        Stmt* code = one.second.get();
+
+        def.cases.push_back(FlowVM::MatchCaseDef(label, code_.size()));
+        codegen(code);
+        exitJumps.push_back(emit(Opcode::JMP, 0));
+    }
+
+    def.elsePC = code_.size();
+    if (stmt.elseStmt()) {
+        codegen(stmt.elseStmt());
+    }
+
+    auto exitLabel = code_.size();
+
+    for (const auto& jump: exitJumps) {
+        code_[jump] = makeInstruction(Opcode::JMP, exitLabel);
+    }
+
+    matches_.push_back(def);
 }
 
 void FlowAssemblyBuilder::accept(AssignStmt& assign)

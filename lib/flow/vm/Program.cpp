@@ -3,6 +3,7 @@
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/vm/Runtime.h>
 #include <x0/flow/vm/Runner.h>
+#include <x0/flow/vm/Match.h>
 #include <utility>
 #include <vector>
 #include <memory>
@@ -40,6 +41,7 @@ Program::Program() :
     strings_(),
     ipaddrs_(),
     regularExpressions_(),
+    matches_(),
     modules_(),
     nativeHandlerSignatures_(),
     nativeFunctionSignatures_(),
@@ -55,13 +57,16 @@ Program::Program(
         const std::vector<FlowString>& strings,
         const std::vector<IPAddress>& ipaddrs,
         const std::vector<std::string>& regularExpressions,
+        const std::vector<MatchDef>& matches,
         const std::vector<std::pair<std::string, std::string>>& modules,
         const std::vector<std::string>& nativeHandlerSignatures,
-        const std::vector<std::string>& nativeFunctionSignatures) :
+        const std::vector<std::string>& nativeFunctionSignatures,
+        const std::vector<std::pair<std::string, std::vector<Instruction>>>& handlers) :
     numbers_(numbers),
     strings_(strings),
     ipaddrs_(ipaddrs),
     regularExpressions_(regularExpressions),
+    matches_(),
     modules_(modules),
     nativeHandlerSignatures_(nativeHandlerSignatures),
     nativeFunctionSignatures_(nativeFunctionSignatures),
@@ -70,12 +75,38 @@ Program::Program(
     handlers_(),
     runtime_(nullptr)
 {
+    for (const auto& handler: handlers) {
+        createHandler(handler.first, handler.second);
+    }
+
+    setup(matches);
 }
 
 Program::~Program()
 {
     for (auto& handler: handlers_)
         delete handler;
+}
+
+void Program::setup(const std::vector<MatchDef>& matches)
+{
+    printf("setup %zu matches\n", matches.size());
+
+    for (size_t i = 0, e = matches.size(); i != e; ++i) {
+        const MatchDef& def = matches[i];
+        switch (def.op) {
+            case MatchClass::Same:
+                matches_.push_back(new MatchSame(def, this));
+                break;
+            case MatchClass::Head:
+                matches_.push_back(new MatchHead(def, this));
+                break;
+            case MatchClass::Tail:
+            case MatchClass::RegExp:
+                printf("TODO: Match type %d\n", (int) def.op);
+                matches_.push_back(nullptr); // TODO
+        }
+    }
 }
 
 Handler* Program::createHandler(const std::string& name)
@@ -170,6 +201,25 @@ void Program::dump()
         printf("\n; Regular Expression Constants\n");
         for (size_t i = 0, e = regularExpressions_.size(); i != e; ++i) {
             printf(".const regex %7zu = /%s/\n", i, regularExpressions_[i].c_str());
+        }
+    }
+
+    if (!matches_.empty()) {
+        printf("\n; Match Table\n");
+        for (size_t i = 0, e = matches_.size(); i != e; ++i) {
+            const MatchDef& def = matches_[i]->def();
+            printf(".const match %7zu = handler %zu /* %s */, op %s, elsePC %lu\n",
+                i,
+                def.handlerId,
+                handler(def.handlerId)->name().c_str(),
+                tos(def.op).c_str(),
+                def.elsePC
+            );
+
+            for (size_t k = 0, m = def.cases.size(); k != m; ++k) {
+                const MatchCaseDef& one = def.cases[k];
+                printf("                       case %zu = label %zu, pc %zu\n", k, one.label, one.pc);
+            }
         }
     }
 

@@ -63,6 +63,10 @@ enum Opcode {
     SLEN,           // A = strlen(B)
     SISEMPTY,       // A = strlen(B) == 0
     SPRINT,         // puts(A)              /* prints string A to stdout */
+    SMATCHEQ,       // $pc = MatchSame[A].evaluate(B);
+    SMATCHBEG,      // $pc = MatchBegin[A].evaluate(B);
+    SMATCHEND,      // $pc = MatchEnd[A].evaluate(B);
+    SMATCHR,        // $pc = MatchRegEx[A].evaluate(B);
 
     // IP address
     PCONST,         // A = ipconst[B]
@@ -182,6 +186,10 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::SLEN]      = InstructionSig::RR,
         [Opcode::SISEMPTY]  = InstructionSig::RR,
         [Opcode::SPRINT]    = InstructionSig::R,
+        [Opcode::SMATCHEQ]  = InstructionSig::RI,
+        [Opcode::SMATCHBEG] = InstructionSig::RI,
+        [Opcode::SMATCHEND] = InstructionSig::RI,
+        [Opcode::SMATCHR]   = InstructionSig::RI,
         // ipaddr
         [Opcode::PCONST]    = InstructionSig::RI,
         [Opcode::PCMPEQ]    = InstructionSig::RRR,
@@ -252,6 +260,10 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::SLEN]      = "SLEN",
         [Opcode::SISEMPTY]  = "SISEMPTY",
         [Opcode::SPRINT]    = "SPRINT",
+        [Opcode::SMATCHEQ]  = "SMATCHEQ",
+        [Opcode::SMATCHBEG] = "SMATCHBEG",
+        [Opcode::SMATCHEND] = "SMATCHEND",
+        [Opcode::SMATCHR]   = "SMATCHR",
         // ipaddr
         [Opcode::PCONST]    = "PCONST",
         [Opcode::PCMPEQ]    = "PCMPEQ",
@@ -322,6 +334,10 @@ inline FlowType resultType(Opcode opc) {
         [Opcode::SLEN]      = FlowType::Number,
         [Opcode::SISEMPTY]  = FlowType::Boolean,
         [Opcode::SPRINT]    = FlowType::Void,
+        [Opcode::SMATCHEQ]  = FlowType::Void,
+        [Opcode::SMATCHBEG] = FlowType::Void,
+        [Opcode::SMATCHEND] = FlowType::Void,
+        [Opcode::SMATCHR]   = FlowType::Void,
         // ipaddr
         [Opcode::PCONST]    = FlowType::IPAddress,
         [Opcode::PCMPEQ]    = FlowType::Boolean,

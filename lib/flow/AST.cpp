@@ -297,7 +297,7 @@ bool HandlerCall::setArgs(ParamList&& args)
     return true;
 }
 
-MatchStmt::MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond, FlowToken op, std::list<MatchCase>&& cases, std::unique_ptr<Stmt>&& elseStmt) :
+MatchStmt::MatchStmt(const FlowLocation& loc, std::unique_ptr<Expr>&& cond, FlowVM::MatchClass op, std::list<MatchCase>&& cases, std::unique_ptr<Stmt>&& elseStmt) :
     Stmt(loc),
     cond_(std::move(cond)),
     op_(op),
