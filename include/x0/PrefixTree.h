@@ -1,3 +1,11 @@
+/* <PrefixTree.h>
+ *
+ * This file is part of the x0 web server project and is released under AGPL-3.
+ * http://www.xzero.io/
+ *
+ * (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+ */
+
 #pragma once
 
 #include <x0/Api.h>
@@ -6,11 +14,11 @@
 namespace x0 {
 
 template<typename K, typename V>
-class PrefixTree
+class X0_API PrefixTree
 {
 public:
     typedef K Key;
-    typedef char Elem;
+    typedef typename Key::value_type Elem;
     typedef V Value;
 
     PrefixTree();
@@ -20,7 +28,7 @@ public:
     bool lookup(const Key& key, Value* value) const;
 
 private:
-    struct Node {
+    struct Node { // {{{
         Node* parent;
         Elem element;
         std::unordered_map<Elem, Node*> children;
@@ -41,7 +49,7 @@ private:
                 return &i->second;
             return &children[e];
         }
-    };
+    }; // }}}
 
     Node root_;
 
@@ -87,10 +95,6 @@ template<typename K, typename V>
 bool PrefixTree<K, V>::lookup(const Key& key, Value* value) const
 {
     const Node* level = &root_;
-
-    // tree   : "/foo/bar"
-    // lookup : "/foo/bar/blob"
-    // lookup : "/fo"
 
     for (const auto& ke: key) {
         auto i = level->children.find(ke);
