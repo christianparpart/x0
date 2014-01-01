@@ -3,7 +3,7 @@
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
  *
- * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
+ * (c) 2009-2014 Christian Parpart <trapni@gmail.com>
  *
  * THIS C API IS EXPERIMENTAL AND SUBJECT TO CHANGE WHENEVER IT FEELS TO BE
  * AN IMPROVEMENT.

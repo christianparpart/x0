@@ -3,7 +3,7 @@
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
  *
- * (c) 2009-2013 Christian Parpart <trapni@gmail.com>
+ * (c) 2009-2014 Christian Parpart <trapni@gmail.com>
  */
 
 #include <x0d/XzeroDaemon.h>
@@ -319,7 +319,7 @@ bool XzeroDaemon::parse()
 	static const char *package_header = 
 		"x0d: Xzero Web Server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
 	static const char *package_copyright =
-		"Copyright (c) 2009-2013 by Christian Parpart <trapni@gmail.com>";
+		"Copyright (c) 2009-2014 by Christian Parpart <trapni@gmail.com>";
 	static const char *package_license =
 		"Licensed under AGPL-3 [http://gnu.org/licenses/agpl-3.0.txt]";
 

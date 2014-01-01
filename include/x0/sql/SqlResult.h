@@ -3,7 +3,7 @@
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
  *
- * (c) 2010-2013 Christian Parpart <trapni@gmail.com>
+ * (c) 2010-2014 Christian Parpart <trapni@gmail.com>
  */
 
 #ifndef sw_x0_sql_SqlResult_h
