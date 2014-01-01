@@ -1304,7 +1304,16 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			if (!value)
 				return nullptr;
 
-			stmt = std::make_unique<AssignStmt>(static_cast<Variable*>(callee), std::move(value), loc.update(end()));
+            Variable* var = static_cast<Variable*>(callee);
+            FlowType leftType = var->initializer()->getType();
+            FlowType rightType = value->getType();
+            if (leftType != rightType) {
+                reportError("Type mismatch in assignment. Expected <%s> but got <%s>.",
+                        tos(leftType).c_str(), tos(rightType).c_str());
+                return nullptr;
+            }
+
+            stmt = std::make_unique<AssignStmt>(var, std::move(value), loc.update(end()));
 			break;
 		}
         case Symbol::BuiltinHandler: {
