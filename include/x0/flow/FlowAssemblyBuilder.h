@@ -82,6 +82,7 @@ private:
     Register literal(FlowNumber value);
     Register literal(const FlowString& value);
     Register literal(const IPAddress& value);
+    Register literal(const RegExpExpr* re);
     size_t handlerRef(Handler* handler);
     Register nativeHandler(BuiltinHandler* handler);
     Register nativeFunction(BuiltinFunction* function);

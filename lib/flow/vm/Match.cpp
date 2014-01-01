@@ -87,6 +87,31 @@ uint64_t MatchTail::evaluate(const FlowString* condition) const
     return def_.elsePC; // no match found
 }
 // }}}
+// {{{ MatchRegEx
+MatchRegEx::MatchRegEx(const MatchDef& def, Program* program) :
+    Match(def, program),
+    map_()
+{
+    for (const auto& one: def.cases) {
+        map_.push_back(std::make_pair(program->regularExpressions()[one.label], one.pc));
+    }
+}
+
+MatchRegEx::~MatchRegEx()
+{
+}
+
+uint64_t MatchRegEx::evaluate(const FlowString* condition) const
+{
+    for (const auto& one: map_) {
+        if (one.first->match(condition->c_str())) {
+            return one.second;
+        }
+    }
+
+    return def_.elsePC; // no match found
+}
+// }}}
 
 } // namespace FlowVM
 } // namespace x0

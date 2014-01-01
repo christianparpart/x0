@@ -65,7 +65,7 @@ Program::Program(
     numbers_(numbers),
     strings_(strings),
     ipaddrs_(ipaddrs),
-    regularExpressions_(regularExpressions),
+    regularExpressions_(),
     matches_(),
     modules_(modules),
     nativeHandlerSignatures_(nativeHandlerSignatures),
@@ -75,6 +75,9 @@ Program::Program(
     handlers_(),
     runtime_(nullptr)
 {
+    for (const auto& s: regularExpressions)
+        regularExpressions_.push_back(new RegExp(s));
+
     for (const auto& handler: handlers) {
         createHandler(handler.first, handler.second);
     }
@@ -86,6 +89,12 @@ Program::~Program()
 {
     for (auto& handler: handlers_)
         delete handler;
+
+    for (auto re: regularExpressions_)
+        delete re;
+
+    for (auto m: matches_)
+        delete m;
 }
 
 void Program::setup(const std::vector<MatchDef>& matches)
@@ -103,8 +112,8 @@ void Program::setup(const std::vector<MatchDef>& matches)
                 matches_.push_back(new MatchTail(def, this));
                 break;
             case MatchClass::RegExp:
-                printf("TODO: Match type %d\n", (int) def.op);
-                matches_.push_back(nullptr); // TODO
+                matches_.push_back(new MatchRegEx(def, this));
+                break;
         }
     }
 }
@@ -200,7 +209,7 @@ void Program::dump()
     if (!regularExpressions_.empty()) {
         printf("\n; Regular Expression Constants\n");
         for (size_t i = 0, e = regularExpressions_.size(); i != e; ++i) {
-            printf(".const regex %7zu = /%s/\n", i, regularExpressions_[i].c_str());
+            printf(".const regex %7zu = /%s/\n", i, regularExpressions_[i]->c_str());
         }
     }
 
@@ -208,17 +217,24 @@ void Program::dump()
         printf("\n; Match Table\n");
         for (size_t i = 0, e = matches_.size(); i != e; ++i) {
             const MatchDef& def = matches_[i]->def();
-            printf(".const match %7zu = handler %zu /* %s */, op %s, elsePC %lu\n",
+            printf(".const match %7zu = handler %zu, op %s, elsePC %lu ; %s\n",
                 i,
                 def.handlerId,
-                handler(def.handlerId)->name().c_str(),
                 tos(def.op).c_str(),
-                def.elsePC
+                def.elsePC,
+                handler(def.handlerId)->name().c_str()
             );
 
             for (size_t k = 0, m = def.cases.size(); k != m; ++k) {
                 const MatchCaseDef& one = def.cases[k];
-                printf("                       case %zu = label %zu, pc %zu\n", k, one.label, one.pc);
+
+                printf("                       case %3zu = label %2zu, pc %4zu ; ", k, one.label, one.pc);
+
+                if (def.op == MatchClass::RegExp) {
+                    printf("/%s/\n", regularExpressions_[one.label]->c_str());
+                } else {
+                    printf("'%s'\n", strings_[one.label].c_str());
+                }
             }
         }
     }

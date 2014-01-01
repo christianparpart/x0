@@ -33,6 +33,9 @@ public:
 	RegExp(const RegExp& v);
 	~RegExp();
 
+	RegExp(RegExp&& v);
+	RegExp& operator=(RegExp&& v);
+
 	bool match(const char *buffer, size_t size, Result* result = nullptr) const;
 	bool match(const BufferRef& buffer, Result* result = nullptr) const;
 	bool match(const char *cstring, Result* result = nullptr) const;

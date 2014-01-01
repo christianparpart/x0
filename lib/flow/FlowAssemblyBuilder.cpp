@@ -197,6 +197,16 @@ Register FlowAssemblyBuilder::literal(const IPAddress& value)
     return ipaddrs_.size() - 1;
 }
 
+Register FlowAssemblyBuilder::literal(const RegExpExpr* re)
+{
+    for (size_t i = 0, e = regularExpressions_.size(); i != e; ++i)
+        if (regularExpressions_[i] == re->value().c_str())
+            return i;
+
+    regularExpressions_.push_back(re->value().c_str());
+    return regularExpressions_.size() - 1;
+}
+
 /**
  * Retrieves the program's handler ID for given handler, possibly forward-declaring given handler if not (yet) found.
  */
@@ -318,7 +328,17 @@ void FlowAssemblyBuilder::accept(MatchStmt& stmt)
     std::vector<size_t> exitJumps;
 
     for (const MatchCase& one: stmt.cases()) {
-        auto label = literal(dynamic_cast<StringExpr*>(one.first.get())->value());
+        Register label;
+        if (auto e = dynamic_cast<StringExpr*>(one.first.get()))
+            label = literal(e->value());
+        else if (auto e = dynamic_cast<RegExpExpr*>(one.first.get()))
+            label = literal(e);
+        else {
+            reportError("FIXME: Invalid (unsupported) literal type <%s> in match case.",
+                    tos(one.first->getType()).c_str());
+            return;
+        }
+
         Stmt* code = one.second.get();
 
         def.cases.push_back(FlowVM::MatchCaseDef(label, code_.size()));

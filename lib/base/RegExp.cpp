@@ -45,6 +45,26 @@ RegExp::~RegExp()
 	pcre_free(re_);
 }
 
+RegExp::RegExp(RegExp&& v) :
+    pattern_(std::move(v.pattern_)),
+    re_(v.re_)
+{
+    v.re_ = nullptr;
+}
+
+RegExp& RegExp::operator=(RegExp&& v)
+{
+    pattern_ = std::move(v.pattern_);
+
+    if (re_) {
+        pcre_free(re_);
+    }
+    re_ = v.re_;
+    v.re_ = nullptr;
+
+    return *this;
+}
+
 bool RegExp::match(const char *buffer, size_t size, Result* result) const
 {
 	if (!re_)

@@ -5,6 +5,7 @@
 #include <x0/flow/vm/MatchClass.h>
 #include <x0/PrefixTree.h>
 #include <x0/SuffixTree.h>
+#include <x0/RegExp.h>
 #include <sys/types.h>
 #include <cstdint>
 #include <vector>
@@ -91,7 +92,16 @@ private:
 };
 
 /** Implements SMATCHR instruction. */
-//class X0_API MatchRegEx : public Match { };
+class X0_API MatchRegEx : public Match {
+public:
+    MatchRegEx(const MatchDef& def, Program* program);
+    ~MatchRegEx();
+
+    virtual uint64_t evaluate(const FlowString* condition) const;
+
+private:
+    std::vector<std::pair<RegExp*, uint64_t>> map_;
+};
 
 } // namespace FlowVM
 } // namespace x0

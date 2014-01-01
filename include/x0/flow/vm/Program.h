@@ -3,6 +3,7 @@
 #include <x0/Api.h>
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/FlowType.h>           // FlowNumber
+#include <x0/RegExp.h>
 
 #include <vector>
 #include <utility>
@@ -43,7 +44,7 @@ public:
     inline const std::vector<FlowNumber>& numbers() const { return numbers_; }
     inline const std::vector<FlowString>& strings() const { return strings_; }
     inline const std::vector<IPAddress>& ipaddrs() const { return ipaddrs_; }
-    inline const std::vector<std::string>& regularExpressions() const { return regularExpressions_; }
+    inline const std::vector<RegExp*>& regularExpressions() const { return regularExpressions_; }
     const std::vector<Match*>& matches() const { return matches_; }
     inline const std::vector<Handler*> handlers() const { return handlers_; }
 
@@ -67,7 +68,7 @@ private:
     std::vector<FlowNumber> numbers_;
     std::vector<FlowString> strings_;
     std::vector<IPAddress> ipaddrs_;
-    std::vector<std::string> regularExpressions_;               // XXX to be a pre-compiled handled during runtime
+    std::vector<RegExp*> regularExpressions_;
     std::vector<Match*> matches_;
     std::vector<std::pair<std::string, std::string>> modules_;
     std::vector<std::string> nativeHandlerSignatures_;
