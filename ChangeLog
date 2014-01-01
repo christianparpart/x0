@@ -1,9 +1,10 @@
 0.8.0 (yet-to-be-released)
 
 	* base: Added Cidr API for general CIDR management.
+	* flow: dropped LLVM-dependency and run Flow on a dedicated VM.
 	* flow: Properly implement power operator's disassociativety.
 	* flow: Added support for nested file parsing (via `#include "path"`), including filename globbing.
-	* flow: dropped LLVM-dependency and run Flow on a dedicated VM.
+	* flow: Added new keyword `match` for optimized multi-branch pattern matching.
 	* x0d: added --dump-ast parameter to dump Flow's parsed AST.
 	* director: Added response output caching support.
 
