@@ -90,8 +90,6 @@ Program::~Program()
 
 void Program::setup(const std::vector<MatchDef>& matches)
 {
-    printf("setup %zu matches\n", matches.size());
-
     for (size_t i = 0, e = matches.size(); i != e; ++i) {
         const MatchDef& def = matches[i];
         switch (def.op) {
