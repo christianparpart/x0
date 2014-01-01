@@ -394,7 +394,7 @@ bool Runner::run()
     }
 
     instr (smatch) {
-        auto result = program_->matches()[B]->evaluate(toStringPtr(A), this);
+        auto result = program_->matches()[B]->evaluate(toStringPtr(A));
         pc = code.data() + result;
         goto *ops[OP];
     }

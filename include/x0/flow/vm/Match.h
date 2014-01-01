@@ -4,6 +4,7 @@
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/vm/MatchClass.h>
 #include <x0/PrefixTree.h>
+#include <x0/SuffixTree.h>
 #include <sys/types.h>
 #include <cstdint>
 #include <vector>
@@ -44,7 +45,7 @@ public:
      * Matches input condition.
      * \return a code pointer to continue processing
      */
-    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const = 0;
+    virtual uint64_t evaluate(const FlowString* condition) const = 0;
 
 protected:
     MatchDef def_;
@@ -59,22 +60,34 @@ public:
     MatchSame(const MatchDef& def, Program* program);
     ~MatchSame();
 
-    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
+    virtual uint64_t evaluate(const FlowString* condition) const;
 
 private:
     std::unordered_map<std::string, uint64_t> map_;
 };
 
 /** Implements SMATCHBEG instruction. */
-class X0_API MatchHead  : public Match {
+class X0_API MatchHead : public Match {
 public:
     MatchHead(const MatchDef& def, Program* program);
     ~MatchHead();
 
-    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
+    virtual uint64_t evaluate(const FlowString* condition) const;
 
 private:
     PrefixTree<std::string, uint64_t> map_;
+};
+
+/** Implements SMATCHBEG instruction. */
+class X0_API MatchTail : public Match {
+public:
+    MatchTail(const MatchDef& def, Program* program);
+    ~MatchTail();
+
+    virtual uint64_t evaluate(const FlowString* condition) const;
+
+private:
+    SuffixTree<std::string, uint64_t> map_;
 };
 
 /** Implements SMATCHR instruction. */

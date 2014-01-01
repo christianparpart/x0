@@ -102,6 +102,8 @@ void Program::setup(const std::vector<MatchDef>& matches)
                 matches_.push_back(new MatchHead(def, this));
                 break;
             case MatchClass::Tail:
+                matches_.push_back(new MatchTail(def, this));
+                break;
             case MatchClass::RegExp:
                 printf("TODO: Match type %d\n", (int) def.op);
                 matches_.push_back(nullptr); // TODO
