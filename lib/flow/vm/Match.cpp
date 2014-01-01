@@ -59,9 +59,8 @@ MatchHead::~MatchHead()
 uint64_t MatchHead::evaluate(const FlowString* condition, Runner* env) const
 {
     uint64_t result;
-    if (map_.lookup(*condition, &result)) {
+    if (map_.lookup(*condition, &result))
         return result;
-    }
 
     return elsePC_; // no match found
 }
