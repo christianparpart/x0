@@ -32,7 +32,7 @@ MatchSame::~MatchSame()
 {
 }
 
-uint64_t MatchSame::evaluate(const FlowString* condition) const
+uint64_t MatchSame::evaluate(const FlowString* condition, Runner* env) const
 {
     const auto i = map_.find(*condition);
     if (i != map_.end())
@@ -55,7 +55,7 @@ MatchHead::~MatchHead()
 {
 }
 
-uint64_t MatchHead::evaluate(const FlowString* condition) const
+uint64_t MatchHead::evaluate(const FlowString* condition, Runner* env) const
 {
     uint64_t result;
     if (map_.lookup(*condition, &result))
@@ -78,7 +78,7 @@ MatchTail::~MatchTail()
 {
 }
 
-uint64_t MatchTail::evaluate(const FlowString* condition) const
+uint64_t MatchTail::evaluate(const FlowString* condition, Runner* env) const
 {
     uint64_t result;
     if (map_.lookup(*condition, &result))
@@ -101,10 +101,10 @@ MatchRegEx::~MatchRegEx()
 {
 }
 
-uint64_t MatchRegEx::evaluate(const FlowString* condition) const
+uint64_t MatchRegEx::evaluate(const FlowString* condition, Runner* env) const
 {
     for (const auto& one: map_) {
-        if (one.first->match(condition->c_str())) {
+        if (one.first->match(condition->c_str()), ((RegExpContext*) env->userdata())->regexMatch()) {
             return one.second;
         }
     }

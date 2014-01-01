@@ -46,7 +46,7 @@ public:
      * Matches input condition.
      * \return a code pointer to continue processing
      */
-    virtual uint64_t evaluate(const FlowString* condition) const = 0;
+    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const = 0;
 
 protected:
     MatchDef def_;
@@ -61,7 +61,7 @@ public:
     MatchSame(const MatchDef& def, Program* program);
     ~MatchSame();
 
-    virtual uint64_t evaluate(const FlowString* condition) const;
+    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
     std::unordered_map<std::string, uint64_t> map_;
@@ -73,7 +73,7 @@ public:
     MatchHead(const MatchDef& def, Program* program);
     ~MatchHead();
 
-    virtual uint64_t evaluate(const FlowString* condition) const;
+    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
     PrefixTree<std::string, uint64_t> map_;
@@ -85,7 +85,7 @@ public:
     MatchTail(const MatchDef& def, Program* program);
     ~MatchTail();
 
-    virtual uint64_t evaluate(const FlowString* condition) const;
+    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
     SuffixTree<std::string, uint64_t> map_;
@@ -97,7 +97,7 @@ public:
     MatchRegEx(const MatchDef& def, Program* program);
     ~MatchRegEx();
 
-    virtual uint64_t evaluate(const FlowString* condition) const;
+    virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
     std::vector<std::pair<RegExp*, uint64_t>> map_;
