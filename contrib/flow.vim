@@ -93,6 +93,7 @@ if exists("flow_x0")
 	syn match flowCoreVar '\<etag\.\(mtime\|size\|inode\)\>'
 	syn match flowCoreVar '\<compress\.\(min\|max\|level\|types\)\>'
 	syn match flowCoreFunctions '\<ssl\.\(listen\|context\|loglevel\|priorities\)\>'
+	syn match flowCoreFunctions '\<regex\.\(group\)\>'
 	syn match flowCoreVar '\<browser\.\(ancient\|modern\|is_ancient\|is_modern\)\>'
 	syn match flowCoreVar '\<\(userdir.name\|userdir\)\>'
 	syn match flowCoreVar '\<log\.\(level\|file\)\>'
