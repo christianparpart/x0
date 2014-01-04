@@ -10,7 +10,7 @@
   - DONE: vm: =^ (MatchHead)
   - DONE: vm: =$ (MatchTail)
   - DONE: vm: =~ (MatchRegEx)
-  - regex match context
+  - DONE: regex match context
 - DONE: codegen: native function
 - DONE: codegen: custom handler invokation
 - sema: native handler/function signature check (as a pass between parse and codegen)

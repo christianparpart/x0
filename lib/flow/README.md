@@ -9,17 +9,13 @@ IDEAS
 2. Thus, we do not need a stack, as every variable symbol directly maps onto one storage location.
 3. We can map the AST onto an array of opcodes and invoke these instead.
 4. Every handler invokation inside a handler is inlined.
+5. Allow serializing VM programs in binary form to disk, to be reloaded later.
 
-TODO
-----
+PROCEDURE
+---------
 
-- AST: string interpolation (anytype-to-string auto-cast)
-
-#### FlowAssemblyBuilder
-
-This API transforms an AST into an opcode-based program that links against a data chunk for temporary variables.
-
-#### FlowVM::Runner
-
-Implements the program execution context, including managing temporary variables.
+1. source code gets parsed into an AST
+2. the AST gets transformed into an IR (SSA form)
+3. run optimization passes on that IR
+4. generate VM program
 
