@@ -14,7 +14,6 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <cassert>
-#include <functional> // hash<>
 #include <string>
 #include <stdexcept>
 
@@ -23,8 +22,12 @@ namespace x0 {
 //! \addtogroup base
 //@{
 
-class Buffer;
+template<typename> class BufferBase;
+template<bool (*ensure)(void*, size_t)> class MutableBuffer;
 class BufferRef;
+class BufferSlice;
+class FixedBuffer;
+class Buffer;
 
 // {{{ BufferTraits
 template<typename T> struct BufferTraits;
@@ -39,10 +42,7 @@ struct BufferTraits<char*> {
 	typedef char* data_type;
 };
 
-/**
- * \brief helper class for BufferRef to point inside a Buffer.
- */
-struct BufferOffset {
+struct BufferOffset { // {{{
 	mutable Buffer* buffer_;
 	size_t offset_;
 
@@ -85,7 +85,7 @@ struct BufferOffset {
 
 	operator const char* () const;
 	operator char* ();
-};
+}; // }}}
 
 template<>
 struct BufferTraits<Buffer> {
@@ -109,7 +109,7 @@ public:
 	typedef typename BufferTraits<T>::const_iterator const_iterator;
 	typedef typename BufferTraits<T>::data_type data_type;
 
-	static const size_t npos = size_t(-1);
+	enum { npos = size_t(-1) };
 
 protected:
 	data_type data_;
@@ -119,17 +119,6 @@ public:
 	BufferBase() : data_(), size_(0) {}
 	BufferBase(data_type data, size_t size) : data_(data), size_(size) {}
 	BufferBase(const BufferBase<T>& v) : data_(v.data_), size_(v.size_) {}
-	BufferBase(BufferBase<T>&& v) :
-		data_(std::move(v.data_)),
-		size_(std::move(v.size_))
-	{
-	}
-
-	BufferBase<T>& operator=(BufferBase<T>& v) {
-		data_ = v.data_;
-		size_ = v.size_;
-		return *this;
-	}
 
 	// properties
 	pointer_type data() { return data_; }
@@ -164,6 +153,13 @@ public:
 	size_t rfind(const BufferRef& value) const;
 	size_t rfind(value_type value) const;
 	size_t rfind(value_type value, size_t offset) const;
+
+	// contains
+	bool contains(const BufferBase<T>& ref) const;
+
+	// split
+	std::pair<BufferRef, BufferRef> split(char delimiter) const;
+	std::pair<BufferRef, BufferRef> split(const value_type* delimiter) const;
 
 	// begins / ibegins
 	bool begins(const BufferRef& value) const;
@@ -231,58 +227,59 @@ template<typename T> bool operator!=(const BufferBase<T>& a, const std::string& 
 template<typename T, typename PodType, std::size_t N> bool operator!=(const BufferBase<T>& a, PodType (&b)[N]) { return !(a == b); }
 template<typename T, typename PodType, std::size_t N> bool operator!=(PodType (&b)[N], const BufferBase<T>& a) { return !(a == b); }
 // }}}
-// {{{ Buffer API
-/**
- * \brief defines a memory buffer construction and access API.
- *
- * This class should be used when sequentially creating and reading parts from it is the main goal
- * of some certain linear information to share.
- */
-class X0_API Buffer :
-	public BufferBase<char*>
+// {{{ BufferRef
+class X0_API BufferRef : public BufferBase<char*>
 {
 public:
-	//static const size_t CHUNK_SIZE = 4096;
-	enum { CHUNK_SIZE = 4096 };
+	BufferRef() : BufferBase<char*>() {}
+	BufferRef(const char* data, size_t size) : BufferBase<char*>((data_type) data, size) {}
+	BufferRef(const BufferRef& v) : BufferBase<char*>(v) {}
+	BufferRef(const std::string& v) : BufferBase<char*>((data_type) v.data(), v.size()) {}
+	template<typename PodType, size_t N> BufferRef(PodType (&value)[N]) : BufferBase<char*>((data_type)value, N - 1) {}
 
-	struct helper { int i; };
-	typedef int (helper::*helper_type);
+	BufferRef& operator=(const BufferRef& v);
 
+	// random access
+	const reference_type operator[](size_t index) const;
+
+    void shl(ssize_t offset = 1);
+    void shr(ssize_t offset = 1);
+
+    using BufferBase<char*>::dump;
+    static void dump(const void *bytes, std::size_t length, const char *description);
+};
+// }}}
+// {{{ MutableBuffer
+
+inline bool immutableEnsure(void* self, size_t size);
+inline bool mutableEnsure(void* self, size_t size);
+
+/**
+ * \brief Fixed size unmanaged mutable buffer.
+ *
+ * @param ensure function invoked to ensure that enough space is available to write to.
+ */
+template<bool (*ensure)(void*, size_t)>
+class X0_API MutableBuffer :
+	public BufferRef
+{
 protected:
 	size_t capacity_;
 
 public:
-	Buffer();
-	explicit Buffer(size_t _capacity);
+	MutableBuffer();
+	MutableBuffer(char* value, size_t capacity);
+	MutableBuffer(char* value, size_t capacity, size_t size);
+	MutableBuffer(MutableBuffer&& v);
 
-	Buffer(const char* value);
-	Buffer(const std::string& v);
-	template<typename PodType, size_t N> explicit Buffer(PodType (&value)[N]);
-	Buffer(const Buffer& v);
-	Buffer(Buffer&& v);
-	explicit Buffer(const BufferRef& v);
-	Buffer(const BufferRef& v, size_t offset, size_t size);
-	Buffer(const value_type *_data, size_t _size); // XXX better be private?
-
-	Buffer& operator=(Buffer&& v);
-	Buffer& operator=(const Buffer& v);
-	Buffer& operator=(const BufferRef& v);
-	Buffer& operator=(const std::string& v);
-	Buffer& operator=(const value_type* v);
-
-	~Buffer();
-
-	void swap(Buffer& other);
+	void swap(MutableBuffer<ensure>& v);
 
 	bool resize(size_t value);
 
 	size_t capacity() const;
-	virtual bool setCapacity(size_t value);
+	bool operator!() const;
 
 	bool reserve(size_t value);
-
-	operator helper_type() const;
-	bool operator!() const;
 
 	// buffer builders
 	void push_back(value_type value);
@@ -292,44 +289,112 @@ public:
 	void push_back(unsigned value);
 	void push_back(unsigned long value);
 	void push_back(unsigned long long value);
-	void push_back(const value_type *value);
-	void push_back(const Buffer& value);
 	void push_back(const BufferRef& value);
 	void push_back(const BufferRef& value, size_t offset, size_t length);
 	void push_back(const std::string& value);
 	void push_back(const void *value, size_t size);
 	template<typename PodType, size_t N> void push_back(PodType (&value)[N]);
 
-	Buffer& vprintf(const char* fmt, va_list args);
+	MutableBuffer& vprintf(const char* fmt, va_list args);
+
+	MutableBuffer& printf(const char* fmt);
 
 	template<typename... Args>
-	Buffer& printf(const char* fmt, Args... args);
+	MutableBuffer& printf(const char* fmt, Args... args);
 
 	// random access
 	reference_type operator[](size_t index);
 	const reference_type operator[](size_t index) const;
 
 	const value_type *c_str() const;
-
-	static Buffer fromCopy(const value_type *data, size_t count);
-
-	bool contains(const BufferRef& ref) const;
-
-	static void dump(const void *bytes, std::size_t length, const char *description);
 };
 // }}}
-// {{{ BufferRef API
-/** holds a reference to a region of a buffer
+// {{{ FixedBuffer
+class FixedBuffer :
+	public MutableBuffer<immutableEnsure>
+{
+public:
+	FixedBuffer();
+	FixedBuffer(char* data, size_t size);
+	FixedBuffer(char* data, size_t capacity, size_t size);
+};
+
+inline FixedBuffer::FixedBuffer() :
+	MutableBuffer<immutableEnsure>()
+{
+}
+
+inline FixedBuffer::FixedBuffer(char* data, size_t size) :
+	MutableBuffer<immutableEnsure>(data, size, size)
+{
+	push_back(data, size);
+}
+
+inline FixedBuffer::FixedBuffer(char* data, size_t capacity, size_t size) :
+	MutableBuffer<immutableEnsure>(data, capacity, size)
+{
+}
+// }}}
+// {{{ Buffer
+/**
+ * \brief defines a memory buffer construction and access API.
+ *
+ * This class should be used when sequentially creating and reading parts from it is the main goal
+ * of some certain linear information to share.
  */
-class X0_API BufferRef :
+class X0_API Buffer :
+	public MutableBuffer<mutableEnsure>
+{
+public:
+	enum { CHUNK_SIZE = 4096 };
+
+public:
+	Buffer();
+	explicit Buffer(size_t capacity);
+	explicit Buffer(const char* value);
+	explicit Buffer(const BufferRef& v);
+	template<typename PodType, size_t N> explicit Buffer(PodType (&value)[N]);
+	Buffer(const std::string& v);
+	Buffer(const Buffer& v);
+	Buffer(const BufferRef& v, size_t offset, size_t size);
+	Buffer(const value_type *value, size_t size);
+	Buffer(Buffer&& v);
+	~Buffer();
+
+	Buffer& operator=(Buffer&& v);
+	Buffer& operator=(const Buffer& v);
+	Buffer& operator=(const BufferRef& v);
+	Buffer& operator=(const std::string& v);
+	Buffer& operator=(const value_type* v);
+
+	BufferSlice slice(size_t offset = 0) const;
+	BufferSlice slice(size_t offset, size_t size) const;
+
+	const char* c_str() const;
+
+	bool setCapacity(size_t value);
+
+	operator bool () const;
+	bool operator!() const;
+
+    static Buffer fromCopy(const value_type *data, size_t count);
+};
+// }}}
+// {{{ BufferSlice
+/** Holds a reference to a slice (region) of a managed mutable buffer.
+ */
+class X0_API BufferSlice :
 	public BufferBase<Buffer>
 {
 public:
-	BufferRef();
-	BufferRef(Buffer& buffer, size_t offset, size_t _size);
-	BufferRef(const BufferRef& v);
+	BufferSlice();
+	BufferSlice(Buffer& buffer, size_t offset, size_t _size);
+	BufferSlice(const BufferSlice& v);
 
-	BufferRef& operator=(const BufferRef& v);
+	BufferSlice& operator=(const BufferSlice& v);
+
+	BufferSlice slice(size_t offset = 0) const;
+	BufferSlice slice(size_t offset, size_t size) const;
 
 	void shl(ssize_t offset = 1);
 	void shr(ssize_t offset = 1);
@@ -342,41 +407,43 @@ public:
 };
 // }}}
 // {{{ free functions API
-X0_API Buffer& operator<<(Buffer& b, Buffer::value_type v);
-X0_API Buffer& operator<<(Buffer& b, int v);
-X0_API Buffer& operator<<(Buffer& b, long v);
-X0_API Buffer& operator<<(Buffer& b, long long v);
-X0_API Buffer& operator<<(Buffer& b, unsigned v);
-X0_API Buffer& operator<<(Buffer& b, unsigned long v);
-X0_API Buffer& operator<<(Buffer& b, unsigned long long v);
-X0_API Buffer& operator<<(Buffer& b, const Buffer::value_type *v);
-X0_API Buffer& operator<<(Buffer& b, const Buffer& v);
-X0_API Buffer& operator<<(Buffer& b, const BufferRef& v);
-X0_API Buffer& operator<<(Buffer& b, const std::string& v);
-template<typename PodType, size_t N> X0_API Buffer& operator<<(Buffer& b, PodType (&v)[N]);
-// }}}
 
-} // namespace x0
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, int v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long long v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long long v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const MutableBuffer<ensure>& v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const BufferRef& v);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const std::string& v);
+template<bool (*ensure)(void*, size_t), typename PodType, size_t N> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, PodType (&v)[N]);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type* v);
+// }}}
 
 //@}
 
 // {{{ BufferTraits helper impl
-namespace x0 {
-
 inline BufferOffset::operator char* ()
 {
-	return buffer_ ? buffer_->data() + offset_ : nullptr;
+	assert(buffer_ != nullptr && "BufferSlice must not be empty when accessing data.");
+	return buffer_->data() + offset_;
 }
 
 inline BufferOffset::operator const char* () const
 {
+	assert(buffer_ != nullptr && "BufferSlice must not be empty when accessing data.");
 	return const_cast<BufferOffset*>(this)->buffer_->data() + offset_;
 }
-
-} // namespace x0
 // }}}
 // {{{ BufferBase<T> impl
-namespace x0 {
+template<typename T>
+inline bool BufferBase<T>::contains(const BufferBase<T>& ref) const
+{
+	return ref.cbegin() >= cbegin()
+		&& ref.cend() <= cend();
+}
 
 template<typename T>
 inline size_t BufferBase<T>::find(const value_type *value, size_t offset) const
@@ -514,9 +581,29 @@ size_t BufferBase<T>::rfind(PodType (&value)[N]) const
 }
 
 template<typename T>
+std::pair<BufferRef, BufferRef> BufferBase<T>::split(char delimiter) const
+{
+	size_t i = find(delimiter);
+	if (i == npos)
+		return std::make_pair(ref(), BufferRef());
+	else
+		return std::make_pair(ref(0, i), ref(i + 1, npos));
+}
+
+template<typename T>
+std::pair<BufferRef, BufferRef> BufferBase<T>::split(const value_type* delimiter) const
+{
+	size_t i = find(delimiter);
+	if (i == npos)
+		return std::make_pair(ref(), BufferRef());
+	else
+		return std::make_pair(ref(0, i), ref(i + strlen(delimiter), npos));
+}
+
+template<typename T>
 inline bool BufferBase<T>::begins(const BufferRef& value) const
 {
-	return value.size() <= size() && memcmp(data(), value.data(), value.size()) == 0;
+	return value.size() <= size() && std::memcmp(data(), value.data(), value.size()) == 0;
 }
 
 template<typename T>
@@ -526,7 +613,7 @@ inline bool BufferBase<T>::begins(const value_type *value) const
 		return true;
 
 	size_t len = std::strlen(value);
-	return len <= size() && memcmp(data(), value, len) == 0;
+	return len <= size() && std::memcmp(data(), value, len) == 0;
 }
 
 template<typename T>
@@ -535,13 +622,27 @@ inline bool BufferBase<T>::begins(const std::string& value) const
 	if (value.empty())
 		return true;
 
-	return value.size() <= size() && memcmp(data(), value.data(), value.size()) == 0;
+	return value.size() <= size() && std::memcmp(data(), value.data(), value.size()) == 0;
 }
 
 template<typename T>
 inline bool BufferBase<T>::begins(value_type value) const
 {
 	return size() >= 1 && data()[0] == value;
+}
+
+template<typename T>
+inline bool BufferBase<T>::ends(const BufferRef& value) const
+{
+	if (value.empty())
+		return true;
+
+	size_t valueLength = value.size();
+
+	if (size() < valueLength)
+		return false;
+
+	return std::memcmp(data() + size() - valueLength, value.data(), valueLength) == 0;
 }
 
 template<typename T>
@@ -561,15 +662,14 @@ inline bool BufferBase<T>::ends(const value_type *value) const
 	if (size() < valueLength)
 		return false;
 
-	return memcmp(data() + size() - valueLength, value, valueLength) == 0;
+	return std::memcmp(data() + size() - valueLength, value, valueLength) == 0;
 }
-
 
 template<>
 inline BufferRef BufferBase<char*>::ref(size_t offset) const
 {
 	assert(offset <= size());
-	return BufferRef(*(Buffer*) this, offset, size() - offset);
+	return BufferRef(data() + offset, size() - offset);
 }
 
 template<>
@@ -579,8 +679,8 @@ inline BufferRef BufferBase<char*>::ref(size_t offset, size_t count) const
 	assert(count == npos || offset + count <= size());
 
 	return count != npos
-		? BufferRef(*(Buffer*) this, offset, count)
-		: BufferRef(*(Buffer*) this, offset, size() - offset);
+		? BufferRef(data() + offset, count)
+		: BufferRef(data() + offset, size() - offset);
 }
 
 template<>
@@ -588,7 +688,7 @@ inline BufferRef BufferBase<Buffer>::ref(size_t offset) const
 {
 	assert(offset <= size());
 
-	return BufferRef(*data_.buffer(), data_.offset() + offset, size() - offset);
+	return BufferRef(data() + offset, size() - offset);
 }
 
 template<>
@@ -598,8 +698,8 @@ inline BufferRef BufferBase<Buffer>::ref(size_t offset, size_t count) const
 	assert(count == npos || offset + count <= size());
 
 	return count != npos
-		? BufferRef(*data_.buffer(), data_.offset() + offset, count)
-		: BufferRef(*data_.buffer(), data_.offset() + offset, size() - offset);
+		? BufferRef(data() + offset, count)
+		: BufferRef(data() + offset, size() - offset);
 }
 
 template<typename T>
@@ -760,7 +860,7 @@ inline float BufferBase<T>::toFloat() const
 template<typename T>
 inline void BufferBase<T>::dump(const char *description) const
 {
-	Buffer::dump(data(), size(), description);
+	BufferRef::dump(data(), size(), description);
 }
 
 // --------------------------------------------------------------------------
@@ -870,88 +970,456 @@ inline bool operator==(PodType (&a)[N], const BufferBase<T>& b)
 {
 	return equals<T, PodType, N>(b, a);
 }
-} // namespace x0
+
+inline bool immutableEnsure(void* self, size_t size)
+{
+	MutableBuffer<immutableEnsure>* buffer = (MutableBuffer<immutableEnsure>*) self;
+	return size <= buffer->capacity();
+}
+
+inline bool mutableEnsure(void* self, size_t size)
+{
+	Buffer* buffer = (Buffer*) self;
+	return size > buffer->capacity() || size == 0 
+		? buffer->setCapacity(size)
+		: true;
+}
+// }}}
+// {{{ BufferRef impl
+inline BufferRef& BufferRef::operator=(const BufferRef& v) {
+	data_ = v.data_;
+	size_ = v.size_;
+	return *this;
+}
+
+inline const BufferRef::reference_type BufferRef::operator[](size_t index) const
+{
+    assert(index < size_);
+
+    return data_[index];
+}
+
+/** shifts view's left margin by given bytes to the left, thus, increasing view's size.
+ */
+inline void BufferRef::shl(ssize_t value)
+{
+    data_ -= value;
+}
+
+/** shifts view's right margin by given bytes to the right, thus, increasing view's size.
+ */
+inline void BufferRef::shr(ssize_t value)
+{
+	size_ += value;
+}
+// }}}
+// {{{ MutableBuffer<ensure> impl
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>::MutableBuffer() :
+	BufferRef(),
+	capacity_(0)
+{
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>::MutableBuffer(MutableBuffer&& v) :
+	BufferRef(std::move(v)),
+	capacity_(std::move(v.capacity_))
+{
+    v.data_ = nullptr;
+    v.size_ = 0;
+    v.capacity_ = 0;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>::MutableBuffer(char* value, size_t size) :
+	BufferRef(value, size),
+	capacity_(size)
+{
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>::MutableBuffer(char* value, size_t capacity, size_t size) :
+	BufferRef(value, size),
+	capacity_(capacity)
+{
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::swap(MutableBuffer<ensure>& other)
+{
+	std::swap(data_, other.data_);
+	std::swap(size_, other.size_);
+	std::swap(capacity_, other.capacity_);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline bool MutableBuffer<ensure>::resize(size_t value)
+{
+	if (value > capacity_)
+		return false;
+
+	size_ = value;
+	return true;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline size_t MutableBuffer<ensure>::capacity() const
+{
+	return capacity_;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline bool MutableBuffer<ensure>::reserve(size_t value)
+{
+	return ensure(this, value);
+}
+
+// TODO: implement operator bool() and verify it's working for: 
+//     if (BufferRef r = foo()) {}
+//     if (foo()) {}
+//     if (someBufferRef) {}
+
+template<bool (*ensure)(void*, size_t)>
+inline bool MutableBuffer<ensure>::operator!() const
+{
+	return empty();
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(value_type value)
+{
+	if (reserve(size() + sizeof(value))) {
+		data_[size_++] = value;
+	}
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(int value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%d", value);
+	push_back(buf, n);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(long value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%ld", value);
+	push_back(buf, n);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(long long value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%lld", value);
+	push_back(buf, n);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(unsigned value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%u", value);
+	push_back(buf, n);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(unsigned long value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%lu", value);
+	push_back(buf, n);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(unsigned long long value)
+{
+	char buf[32];
+	int n = std::snprintf(buf, sizeof(buf), "%llu", value);
+	push_back(buf, n);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(const BufferRef& value)
+{
+	if (size_t len = value.size()) {
+		if (reserve(size_ + len)) {
+			std::memcpy(end(), value.cbegin(), len);
+			size_ += len;
+		}
+	}
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(const BufferRef& value, size_t offset, size_t length)
+{
+	assert(value.size() <= offset + length);
+
+	if (!length)
+		return;
+
+	if (reserve(size_ + length)) {
+		memcpy(end(), value.cbegin() + offset, length);
+		size_ += length;
+	}
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(const std::string& value)
+{
+	if (size_t len = value.size()) {
+		if (reserve(size_ + len)) {
+			std::memcpy(end(), value.data(), len);
+			size_ += len;
+		}
+	}
+}
+
+template<bool (*ensure)(void*, size_t)>
+template<typename PodType, size_t N>
+inline void MutableBuffer<ensure>::push_back(PodType (&value)[N])
+{
+	push_back(reinterpret_cast<const void *>(value), N - 1);
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline void MutableBuffer<ensure>::push_back(const void* value, size_t size)
+{
+	if (size) {
+		if (reserve(size_ + size)) {
+			std::memcpy(end(), value, size);
+			size_ += size;
+		}
+	}
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& MutableBuffer<ensure>::vprintf(const char* fmt, va_list args)
+{
+	reserve(size() + strlen(fmt) + 1);
+
+	while (true) {
+		va_list va;
+		va_copy(va, args);
+		ssize_t buflen = vsnprintf(data_ + size_, capacity_ - size_, fmt, va);
+		va_end(va);
+
+		if (buflen >= -1 && buflen < static_cast<ssize_t>(capacity_ - size_)) {
+			resize(size_ + buflen);
+			break; // success
+		}
+
+		buflen = buflen > -1
+			? buflen + 1      // glibc >= 2.1
+			: capacity_ * 2;  // glibc <= 2.0
+
+		if (!reserve(capacity_ + buflen)) {
+			// increasing capacity failed
+			data_[capacity_ - 1] = '\0';
+			break; // alloc failure
+		}
+	}
+
+	return *this;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& MutableBuffer<ensure>::printf(const char* fmt)
+{
+	push_back(fmt);
+	return *this;
+}
+
+template<bool (*ensure)(void*, size_t)>
+template<typename... Args>
+inline MutableBuffer<ensure>& MutableBuffer<ensure>::printf(const char* fmt, Args... args)
+{
+	reserve(size() + strlen(fmt) + 1);
+
+	while (true) {
+		ssize_t buflen = snprintf(data_ + size_, capacity_ - size_, fmt, args...);
+
+		if (buflen >= -1 && buflen < static_cast<ssize_t>(capacity_ - size_)) {
+			resize(size_ + buflen);
+			break; // success
+		}
+
+		buflen = buflen > -1
+			? buflen + 1      // glibc >= 2.1
+			: capacity_ * 2;  // glibc <= 2.0
+
+		if (!reserve(capacity_ + buflen)) {
+			// increasing capacity failed
+			data_[capacity_ - 1] = '\0';
+			break; // alloc failure
+		}
+	}
+
+	return *this;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline typename MutableBuffer<ensure>::reference_type MutableBuffer<ensure>::operator[](size_t index)
+{
+	assert(index < size_);
+
+	return data_[index];
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline const typename MutableBuffer<ensure>::reference_type MutableBuffer<ensure>::operator[](size_t index) const
+{
+	assert(index < size_);
+
+	return data_[index];
+}
+// }}}
+// {{{ MutableBuffer<ensure>& operator<<() impl
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, int v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long long v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long long v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const MutableBuffer<ensure>& v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const BufferRef& v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const std::string& v)
+{
+	b.push_back(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t), typename PodType, size_t N>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, PodType (&v)[N])
+{
+	b.template push_back<PodType, N>(v);
+	return b;
+}
+
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type* v)
+{
+	b.push_back(v);
+	return b;
+}
 // }}}
 // {{{ Buffer impl
-namespace x0 {
-// {{{ Buffer impl
 inline Buffer::Buffer() :
-	BufferBase<char*>(),
-	capacity_(0)
+	MutableBuffer<mutableEnsure>()
 {
-}
-
-inline Buffer::Buffer(size_t _capacity) :
-	BufferBase<char*>(),
-	capacity_(0)
-{
-	setCapacity(_capacity);
-}
-
-inline Buffer::Buffer(const char* v) :
-	BufferBase<char*>(),
-	capacity_(0)
-{
-	push_back(v);
-}
-
-inline Buffer::Buffer(const std::string& v) :
-	BufferBase<char*>(),
-	capacity_(0)
-{
-	push_back(v.c_str(), v.size() + 1);
-	resize(v.size());
-}
-
-template<typename PodType, size_t N>
-inline Buffer::Buffer(PodType (&value)[N]) :
-	BufferBase<char*>(),
-	capacity_(0)
-{
-	push_back(value, N);
-	resize(N - 1);
-}
-
-inline Buffer::Buffer(const Buffer& v) :
-	BufferBase<char*>(),
-	capacity_(0)
-{
-	push_back(v.data(), v.size());
-}
-
-inline Buffer::Buffer(Buffer&& v) :
-	BufferBase<char*>(std::move(v)),
-	capacity_(v.capacity_)
-{
-	v.capacity_ = 0;
-}
-
-inline Buffer::Buffer(const value_type* _data, size_t _size) :
-	BufferBase<char*>(const_cast<value_type*>(_data), _size),
-	capacity_(_size)
-{
-}
-
-inline Buffer::Buffer(const BufferRef& v) :
-	BufferBase<char*>(),
-	capacity_(0)
-{
-	push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(const BufferRef& v, size_t offset, size_t count) :
-	BufferBase<char*>(),
-	capacity_(0)
+	MutableBuffer<mutableEnsure>()
 {
 	assert(offset + count <= v.size());
 
 	push_back(v.data() + offset, count);
 }
 
+inline Buffer::Buffer(const BufferRef& v) :
+	MutableBuffer<mutableEnsure>()
+{
+	push_back(v.data(), v.size());
+}
+
+inline Buffer::Buffer(size_t _capacity) :
+	MutableBuffer<mutableEnsure>()
+{
+	reserve(_capacity);
+}
+
+inline Buffer::Buffer(const char* v) :
+	MutableBuffer<mutableEnsure>()
+{
+	push_back(v);
+}
+
+inline Buffer::Buffer(const std::string& v) :
+	MutableBuffer<mutableEnsure>()
+{
+	push_back(v.c_str(), v.size() + 1);
+	resize(v.size());
+}
+
+inline Buffer::Buffer(const Buffer& v) :
+	MutableBuffer<mutableEnsure>()
+{
+	push_back(v.data(), v.size());
+}
+
+inline Buffer::Buffer(Buffer&& v) :
+    MutableBuffer<mutableEnsure>(std::move(v))
+{
+}
+
+inline Buffer::~Buffer()
+{
+	reserve(0);
+}
+
 inline Buffer& Buffer::operator=(Buffer&& v)
 {
-	if (capacity_)
-		setCapacity(0);
+	reserve(0); // special case, frees the buffer if available and managed
 
 	data_ = v.data_;
 	size_ = v.size_;
@@ -964,18 +1432,10 @@ inline Buffer& Buffer::operator=(Buffer&& v)
 	return *this;
 }
 
-inline Buffer& Buffer::operator=(const Buffer& v)
-{
-	clear();
-	push_back(v);
-
-	return *this;
-}
-
 inline Buffer& Buffer::operator=(const BufferRef& v)
 {
 	clear();
-	push_back(v.data(), v.size());
+	push_back(v);
 
 	return *this;
 }
@@ -996,16 +1456,20 @@ inline Buffer& Buffer::operator=(const value_type* v)
 	return *this;
 }
 
-inline Buffer::~Buffer()
+inline BufferSlice Buffer::slice(size_t offset) const
 {
-	setCapacity(0);
+	assert(offset <= size());
+	return BufferSlice(*(Buffer*) this, offset, size() - offset);
 }
 
-inline void Buffer::swap(Buffer& other)
+inline BufferSlice Buffer::slice(size_t offset, size_t count) const
 {
-	std::swap(data_, other.data_);
-	std::swap(size_, other.size_);
-	std::swap(capacity_, other.capacity_);
+	assert(offset <= size());
+	assert(count == npos || offset + count <= size());
+
+	return count != npos
+		? BufferSlice(*(Buffer*) this, offset, count)
+		: BufferSlice(*(Buffer*) this, offset, size() - offset);
 }
 
 inline const Buffer::value_type *Buffer::c_str() const
@@ -1016,333 +1480,30 @@ inline const Buffer::value_type *Buffer::c_str() const
 	return data_;
 }
 
-inline bool Buffer::resize(size_t value)
-{
-	if (!reserve(value))
-		return false;
-
-	size_ = value;
-	return true;
-}
-
-inline size_t Buffer::capacity() const
-{
-	return capacity_;
-}
-
-inline bool Buffer::reserve(size_t value)
-{
-	if (value <= capacity_)
-		return true;
-
-	return setCapacity(value);
-}
-
-inline Buffer::operator helper_type() const
-{
-	return !empty() ? &helper::i : 0;
-}
-
-inline bool Buffer::operator!() const
-{
-	return empty();
-}
-
-inline void Buffer::push_back(value_type value)
-{
-	if (reserve(size_ + sizeof(value))) {
-		data_[size_++] = value;
-	}
-}
-
-inline void Buffer::push_back(int value)
-{
-	char buf[32];
-	int n = std::snprintf(buf, sizeof(buf), "%d", value);
-	push_back(buf, n);
-}
-
-inline void Buffer::push_back(long value)
-{
-	char buf[32];
-	int n = std::snprintf(buf, sizeof(buf), "%ld", value);
-	push_back(buf, n);
-}
-
-inline void Buffer::push_back(long long value)
-{
-	char buf[32];
-	int n = std::snprintf(buf, sizeof(buf), "%lld", value);
-	push_back(buf, n);
-}
-
-inline void Buffer::push_back(unsigned value)
-{
-	char buf[32];
-	int n = std::snprintf(buf, sizeof(buf), "%u", value);
-	push_back(buf, n);
-}
-
-inline void Buffer::push_back(unsigned long value)
-{
-	char buf[32];
-	int n = std::snprintf(buf, sizeof(buf), "%lu", value);
-	push_back(buf, n);
-}
-
-inline void Buffer::push_back(unsigned long long value)
-{
-	char buf[32];
-	int n = std::snprintf(buf, sizeof(buf), "%llu", value);
-	push_back(buf, n);
-}
-
-inline void Buffer::push_back(const value_type *value)
-{
-	if (size_t len = std::strlen(value)) {
-		if (reserve(size_ + len)) {
-			std::memcpy(end(), value, len);
-			size_ += len;
-		}
-	}
-}
-
-inline void Buffer::push_back(const Buffer& value)
-{
-	if (size_t len = value.size()) {
-		if (reserve(size_ + len)) {
-			std::memcpy(end(), value.cbegin(), len);
-			size_ += len;
-		}
-	}
-}
-
-inline void Buffer::push_back(const BufferRef& value)
-{
-	if (size_t len = value.size()) {
-		if (reserve(size_ + len)) {
-			std::memcpy(end(), value.cbegin(), len);
-			size_ += len;
-		}
-	}
-}
-
-inline void Buffer::push_back(const BufferRef& value, size_t offset, size_t length)
-{
-	assert(value.size() <= offset + length);
-
-	if (!length)
-		return;
-
-	if (reserve(size_ + length)) {
-		memcpy(end(), value.cbegin() + offset, length);
-		size_ += length;
-	}
-}
-
-inline void Buffer::push_back(const std::string& value)
-{
-	if (size_t len = value.size()) {
-		if (reserve(size_ + len)) {
-			std::memcpy(end(), value.data(), len);
-			size_ += len;
-		}
-	}
-}
-
-inline void Buffer::push_back(const void* value, size_t size)
-{
-	if (size) {
-		if (reserve(size_ + size)) {
-			std::memcpy(end(), value, size);
-			size_ += size;
-		}
-	}
-}
-
-template<typename PodType, size_t N>
-inline void Buffer::push_back(PodType (&value)[N])
-{
-	push_back(reinterpret_cast<const void *>(value), N - 1);
-}
-
-inline Buffer& Buffer::vprintf(const char* fmt, va_list args)
-{
-	reserve(size() + strlen(fmt) + 1);
-
-	while (true) {
-		va_list va;
-		va_copy(va, args);
-		ssize_t buflen = vsnprintf(data_ + size_, capacity_ - size_, fmt, va);
-		va_end(va);
-
-		if (buflen >= -1 && buflen < static_cast<ssize_t>(capacity_ - size_)) {
-			resize(size_ + buflen);
-			break; // success
-		}
-
-		buflen = buflen > -1
-			? buflen + 1      // glibc >= 2.1
-			: capacity_ * 2;  // glibc <= 2.0
-
-		if (!setCapacity(capacity_ + buflen)) {
-			// increasing capacity failed
-			data_[capacity_ - 1] = '\0';
-			break; // alloc failure
-		}
-	}
-
-	return *this;
-}
-
-template<typename... Args>
-inline Buffer& Buffer::printf(const char* fmt, Args... args)
-{
-	reserve(size() + strlen(fmt) + 1);
-
-	while (true) {
-		ssize_t buflen = snprintf(data_ + size_, capacity_ - size_, fmt, args...);
-
-		if (buflen >= -1 && buflen < static_cast<ssize_t>(capacity_ - size_)) {
-			resize(size_ + buflen);
-			break; // success
-		}
-
-		buflen = buflen > -1
-			? buflen + 1      // glibc >= 2.1
-			: capacity_ * 2;  // glibc <= 2.0
-
-		if (!setCapacity(capacity_ + buflen)) {
-			// increasing capacity failed
-			data_[capacity_ - 1] = '\0';
-			break; // alloc failure
-		}
-	}
-
-	return *this;
-}
-
-inline Buffer::reference_type Buffer::operator[](size_t index)
-{
-	assert(index < size_);
-
-	return data_[index];
-}
-
-inline const Buffer::reference_type Buffer::operator[](size_t index) const
-{
-	assert(index < size_);
-
-	return data_[index];
-}
-
 inline Buffer Buffer::fromCopy(const value_type *data, size_t count)
 {
-	Buffer result(count);
-	result.push_back(data, count);
-	return result;
-}
-
-inline bool Buffer::contains(const BufferRef& ref) const
-{
-	return ref.cbegin() >= cbegin()
-		&& ref.cend() <= cend();
+    Buffer result(count);
+    result.push_back(data, count);
+    return result;
 }
 // }}}
-// {{{ free function impl
-inline Buffer& operator<<(Buffer& b, Buffer::value_type v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, int v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, long v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, long long v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, unsigned v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, unsigned long v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, unsigned long long v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, const Buffer::value_type *v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, const Buffer& v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, const BufferRef& v)
-{
-	b.push_back(v);
-	return b;
-}
-
-inline Buffer& operator<<(Buffer& b, const std::string& v)
-{
-	b.push_back(v);
-	return b;
-}
-
-template<typename PodType, size_t N> inline Buffer& operator<<(Buffer& b, PodType (&v)[N])
-{
-	b.push_back<PodType, N>(v);
-	return b;
-}
-// }}}
-} // namespace x0
-// }}}
-// {{{ BufferRef impl
-namespace x0 {
-
-inline BufferRef::BufferRef() :
+// {{{ BufferSlice impl
+inline BufferSlice::BufferSlice() :
 	BufferBase<Buffer>()
 {
 }
 
-inline BufferRef::BufferRef(Buffer& buffer, size_t offset, size_t size) :
+inline BufferSlice::BufferSlice(Buffer& buffer, size_t offset, size_t size) :
 	BufferBase<Buffer>(data_type(&buffer, offset), size)
 {
 }
 
-inline BufferRef::BufferRef(const BufferRef& v) :
+inline BufferSlice::BufferSlice(const BufferSlice& v) :
 	BufferBase<Buffer>(v)
 {
 }
 
-inline BufferRef& BufferRef::operator=(const BufferRef& v)
+inline BufferSlice& BufferSlice::operator=(const BufferSlice& v)
 {
 	data_ = v.data_;
 	size_ = v.size_;
@@ -1350,22 +1511,40 @@ inline BufferRef& BufferRef::operator=(const BufferRef& v)
 	return *this;
 }
 
+inline BufferSlice BufferSlice::slice(size_t offset) const
+{
+	assert(offset <= size());
+	return BufferSlice(*data_.buffer(), data_.offset() + offset, size() - offset);
+}
+
+inline BufferSlice BufferSlice::slice(size_t offset, size_t count) const
+{
+	assert(offset <= size());
+	assert(count == npos || offset + count <= size());
+
+	return count != npos
+		? BufferSlice(*data_.buffer(), data_.offset() + offset, count)
+		: BufferSlice(*data_.buffer(), data_.offset() + offset, size() - offset);
+}
+
 /** shifts view's left margin by given bytes to the left, thus, increasing view's size.
  */
-inline void BufferRef::shl(ssize_t value)
+inline void BufferSlice::shl(ssize_t value)
 {
+	assert(data_.offset_ - value >= 0);
 	data_.offset_ -= value;
 }
 
 /** shifts view's right margin by given bytes to the right, thus, increasing view's size.
  */
-inline void BufferRef::shr(ssize_t value)
+inline void BufferSlice::shr(ssize_t value)
 {
 	size_ += value;
 }
+// }}}
 
 } // namespace x0
-// }}}
+
 // {{{ std::hash<BufferBase<T>>
 namespace x0 {
 	// Fowler / Noll / Vo (FNV) Hash-Implementation
@@ -1384,8 +1563,18 @@ namespace x0 {
 
 namespace std {
 	template<>
+	struct hash<x0::BufferSlice> {
+		typedef x0::BufferSlice argument_type;
+		typedef uint32_t result_type;
+
+		result_type operator()(const argument_type& value) const noexcept {
+			return x0::hash(value);
+		}
+	};
+
+	template<>
 	struct hash<x0::BufferRef> {
-		typedef x0::BufferRef argument_type;
+		typedef x0::BufferRef  argument_type;
 		typedef uint32_t result_type;
 
 		result_type operator()(const argument_type& value) const noexcept {

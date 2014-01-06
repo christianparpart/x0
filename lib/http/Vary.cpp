@@ -25,7 +25,7 @@ Vary::~Vary()
 
 std::unique_ptr<Vary> Vary::create(const x0::HttpRequest* r)
 {
-	return create(r->responseHeaders["Vary"], r->requestHeaders);
+	return create(BufferRef(r->responseHeaders["Vary"]), r->requestHeaders);
 }
 
 VaryMatch Vary::match(const Vary& other) const

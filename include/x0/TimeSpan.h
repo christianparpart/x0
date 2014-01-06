@@ -98,7 +98,8 @@ inline TimeSpan operator-(const TimeSpan& a, const TimeSpan& b)
 	return TimeSpan(a() - b());
 }
 
-inline Buffer& operator<<(Buffer& buf, const TimeSpan& ts)
+template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& buf, const TimeSpan& ts)
 {
 	char tmp[64];
 	int n = snprintf(tmp, sizeof(tmp), "%d.%02d:%02d:%02d", ts.days(), ts.hours(), ts.minutes(), ts.seconds());

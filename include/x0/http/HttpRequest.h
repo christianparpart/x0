@@ -271,20 +271,19 @@ public:
 
 	// request properties
 	BufferRef method;							///< HTTP request method, e.g. HEAD, GET, POST, PUT, etc.
-	BufferRef unparsedUri;						///< unparsed request URI
+	BufferRef unparsedUri;					///< unparsed request URI
 	Buffer path;								///< URL-decoded path-part
 	BufferRef query;							///< URL-encoded query string
-	BufferRef pathinfo;							///< PATH_INFO part of the HTTP request path.
+	BufferRef pathinfo;						///< PATH_INFO part of the HTTP request path.
 	HttpFileRef fileinfo;						///< the final entity to be served, for example the full path to the file on disk.
 	int httpVersionMajor;						///< HTTP protocol version major part that this request was formed in
 	int httpVersionMinor;						///< HTTP protocol version minor part that this request was formed in
-	BufferRef hostname;							///< Host header field.
+	BufferRef hostname;						///< Host header field.
 	std::vector<HttpRequestHeader> requestHeaders; ///< request headers
 	unsigned long long bytesTransmitted_;
 
 	/** retrieve value of a given request header */
 	BufferRef requestHeader(const BufferRef& name) const;
-	BufferRef requestHeader(const std::string& name) const;
 	std::string requestHeaderCumulative(const std::string& name) const;
 
 	std::string cookie(const std::string& name) const;

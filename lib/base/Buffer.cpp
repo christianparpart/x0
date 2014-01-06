@@ -29,6 +29,12 @@ namespace x0 {
  */
 bool Buffer::setCapacity(std::size_t value)
 {
+	if (value == 0 && capacity_) {
+		free(data_);
+		capacity_ = 0;
+		return true;
+	}
+
 	if (value > capacity_) {
 		if (capacity_) {
 			// pad up to CHUNK_SIZE, only if continuous regrowth)
@@ -42,7 +48,6 @@ bool Buffer::setCapacity(std::size_t value)
 	} else
 		// nothing changed
 		return true;
-
 
 	if (char* rp = static_cast<value_type *>(std::realloc(data_, value))) {
 		// setting capacity succeed.
@@ -59,7 +64,7 @@ bool Buffer::setCapacity(std::size_t value)
 	}
 }
 
-void Buffer::dump(const void *bytes, std::size_t length, const char *description)
+void BufferRef::dump(const void *bytes, std::size_t length, const char *description)
 {
 	static char hex[] = "0123456789ABCDEF";
 	const int BLOCK_SIZE = 8;

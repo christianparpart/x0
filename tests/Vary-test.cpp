@@ -10,8 +10,8 @@ void dump(const Vary& vary)
 {
 	printf("Vary fields (%zu):\n", vary.size());
 	for (size_t i = 0, e = vary.size(); i != e; ++i) {
-		printf("%20s: %s\n", vary.names()[i].c_str(),
-				vary.values()[i].c_str());
+		printf("%20s: %s\n", vary.names()[i].str().c_str(),
+				vary.values()[i].str().c_str());
 	}
 }
 

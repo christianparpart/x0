@@ -158,15 +158,15 @@ private:
 	State lwsNull_;     //!< state to apply on (CR LF) but no 1*(SP | HT)
 
 	// request-line
-	BufferRef method_;		//!< HTTP request method
-	BufferRef entity_;		//!< HTTP request entity
+    BufferRef method_;      //!< HTTP request method
+    BufferRef entity_;      //!< HTTP request entity
 
 	int versionMajor_;		//!< HTTP request/response version major
 	int versionMinor_;		//!< HTTP request/response version minor
 
 	// status-line
 	int code_;				//!< response status code
-	BufferRef message_;		//!< response status message
+    BufferRef message_;     //!< response status message
 
 	// current parsed header
 	BufferRef name_;

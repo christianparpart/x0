@@ -39,8 +39,7 @@ public:
     void* userdata() const { return userdata_; }
     void setUserData(void* p) { userdata_ = p; }
 
-    FlowString* createString(const std::string& value);
-    FlowString* newString(const std::string& value) { return createString(value); }
+    FlowString* newString(const std::string& value);
 
 private:
     explicit Runner(Handler* handler);

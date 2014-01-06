@@ -25,8 +25,8 @@ public:
 
 	size_t size() const;
 
-	const std::vector<std::string>& names() const;
-	const std::vector<std::string>& values() const;
+	const std::vector<BufferRef>& names() const;
+	const std::vector<BufferRef>& values() const;
 
 	VaryMatch match(const x0::HttpRequest* r) const;
 	VaryMatch match(const Vary& other) const;
@@ -39,8 +39,8 @@ public:
 	 *
 	 * @return a Vary instance reflecting the list of varying fields.
 	 */
-	template<typename T>
-	static std::unique_ptr<Vary> create(const std::string& vary, const std::vector<HttpHeader<T>>& requestHeaders);
+	template<typename T, typename U>
+	static std::unique_ptr<Vary> create(const U& vary, const std::vector<HttpHeader<T>>& requestHeaders);
 
 	/**
 	 * Creates a Vary object, based on the Response request header
@@ -63,12 +63,12 @@ public:
 		bool operator==(const iterator& other) { return i_ == other.i_; }
 		bool operator!=(const iterator& other) { return !(*this == other); }
 
-		std::pair<const std::string&, const std::string&>  operator*() const {
+		std::pair<const BufferRef&, const BufferRef&>  operator*() const {
 			return std::make_pair(vary_->names()[i_], vary_->values()[i_]);
 		}
 
-		const std::string& name() const { return vary_->names()[i_]; }
-		const std::string& value() const { return vary_->values()[i_]; }
+		const BufferRef& name() const { return vary_->names()[i_]; }
+		const BufferRef& value() const { return vary_->values()[i_]; }
 
 	private:
 		Vary* vary_;
@@ -84,8 +84,8 @@ private:
 	static inline T find(const U& name, const std::vector<HttpHeader<T>>& requestHeaders);
 
 private:
-	std::vector<std::string> names_;
-	std::vector<std::string> values_;
+	std::vector<BufferRef> names_;
+	std::vector<BufferRef> values_;
 };
 
 // {{{ inlines
@@ -94,12 +94,12 @@ inline size_t Vary::size() const
 	return names_.size(); // this is okay since names.size() always equals values.size()
 }
 
-inline const std::vector<std::string>& Vary::names() const
+inline const std::vector<BufferRef>& Vary::names() const
 {
 	return names_;
 }
 
-inline const std::vector<std::string>& Vary::values() const
+inline const std::vector<BufferRef>& Vary::values() const
 {
 	return values_;
 }
@@ -114,8 +114,8 @@ inline T Vary::find(const U& name, const std::vector<HttpHeader<T>>& requestHead
 	return T();
 }
 
-template<typename T>
-std::unique_ptr<Vary> Vary::create(const std::string& varyHeader, const std::vector<HttpHeader<T>>& requestHeaders)
+template<typename T, typename U>
+std::unique_ptr<Vary> Vary::create(const U& varyHeader, const std::vector<HttpHeader<T>>& requestHeaders)
 {
 //	if (varyHeader.empty())
 //		return std::unique_ptr<Vary>();
@@ -128,7 +128,7 @@ std::unique_ptr<Vary> Vary::create(const std::string& varyHeader, const std::vec
 	vary.reset(new Vary(tokens.size()));
 	for (size_t i = 0, e = tokens.size(); i != e; ++i) {
 		auto name = tokens[i];
-		vary->names_[i] = std::string(name.data(), name.size());
+		vary->names_[i] = name;
 		vary->values_[i] = find(name, requestHeaders);
 	}
 

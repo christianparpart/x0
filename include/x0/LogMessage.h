@@ -51,7 +51,7 @@ private:
 	std::deque<std::pair<size_t, size_t>> tags_;
 };
 
-Buffer& operator<<(Buffer& output, const LogMessage& logMessage);
+template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const LogMessage& v);
 
 // {{{
 inline LogMessage::LogMessage(Severity severity, const char* msg) :
@@ -97,7 +97,7 @@ inline void LogMessage::addTag(const char* fmt, Arg1 arg1, Args... args)
 	tags_.push_front(std::make_pair(begin, tagBuffer_.size() - begin));
 }
 
-inline Buffer& operator<<(Buffer& output, const LogMessage& logMessage)
+template<bool (*ensure)(void*, size_t)> inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& output, const LogMessage& logMessage)
 {
 	if (logMessage.hasTags()) {
 		for (size_t i = 0, e = logMessage.tagCount(); i != e; ++i) {

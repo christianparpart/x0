@@ -38,7 +38,7 @@ void Runner::operator delete (void* p)
     free(p);
 }
 
-FlowString* Runner::createString(const std::string& value)
+FlowString* Runner::newString(const std::string& value)
 {
     stringGarbage_.push_back(value);
     return &stringGarbage_.back();
@@ -320,12 +320,12 @@ bool Runner::run()
     }
 
     instr (sadd) { // A = concat(B, C)
-        data_[A] = (Register) createString(toString(B) + toString(C));
+        data_[A] = (Register) newString(toString(B) + toString(C));
         next;
     }
 
     instr (ssubstr) { // A = substr(B, C /*offset*/, C+1 /*count*/)
-        data_[A] = (Register) createString(toString(B).substr(data_[C], data_[C + 1]));
+        data_[A] = (Register) newString(toString(B).substr(data_[C], data_[C + 1]));
         next;
     }
 
@@ -435,9 +435,9 @@ bool Runner::run()
     instr (i2s) { // A = itoa(B)
         char buf[64];
         if (snprintf(buf, sizeof(buf), "%li", (int64_t) data_[B]) > 0) {
-            data_[A] = (Register) createString(buf);
+            data_[A] = (Register) newString(buf);
         } else {
-            data_[A] = (Register) createString("");
+            data_[A] = (Register) newString("");
         }
         next;
     }

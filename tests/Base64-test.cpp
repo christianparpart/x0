@@ -28,9 +28,8 @@ void print(const BufferRef& v, const char *msg = 0)
 		printf("\n%s: NULL\n", prefix);
 }
 
-bool testDecode(const Buffer& decoded, const Buffer& encoded) {
-	auto ref = encoded.ref();
-	Buffer result = Base64::decode(ref);
+bool testDecode(const BufferRef& decoded, const BufferRef& encoded) {
+	Buffer result = Base64::decode(encoded);
 	return equals(result, decoded);
 }
 //}}}
