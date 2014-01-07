@@ -449,7 +449,7 @@ bool Runner::run()
         next;
     }
 
-    instr (sreggroup) { // A = regex.match(B)
+    instr (sreggroup) { // A = regex.group(B)
         FlowNumber position = toNumber(B);
         RegExpContext* cx = (RegExpContext*) userdata();
         RegExp::Result* rr = cx->regexMatch();
