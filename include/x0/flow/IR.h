@@ -122,8 +122,22 @@ public:
     virtual void dump();
 };
 
+/**
+ * Conditional branch instruction.
+ *
+ * Creates a terminate instruction that transfers control to one of the two
+ * given alternate basic blocks, depending on the given input condition.
+ */
 class X0_API CondBrInstr : public Instr {
 public:
+    /**
+     * Initializes the object.
+     *
+     * @param parent owning basic block this instruction is inserted to
+     * @param cond input condition that (if true) causes \p trueBlock to be jumped to, \p falseBlock otherwise.
+     * @param trueBlock basic block to run if input condition evaluated to true.
+     * @param falseBlock basic block to run if input condition evaluated to false.
+     */
     CondBrInstr(BasicBlock* parent, Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name = "") :
         Instr(parent, FlowType::Void, {cond, trueBlock, falseBlock}, name)
     {}
@@ -131,6 +145,9 @@ public:
     virtual void dump();
 };
 
+/**
+ * Unconditional jump instruction.
+ */
 class X0_API BrInstr : public Instr {
 public:
     BrInstr(BasicBlock* parent, BasicBlock* targetBlock, const std::string& name = "") :
@@ -140,6 +157,9 @@ public:
     virtual void dump();
 };
 
+/**
+ * Match instruction, implementing the Flow match-keyword.
+ */
 class X0_API MatchInstr : public Instr {
 public:
     MatchInstr(BasicBlock* parent, FlowVM::MatchClass op, const std::string& name = "");
