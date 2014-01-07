@@ -247,6 +247,21 @@ public:
 
     using BufferBase<char*>::dump;
     static void dump(const void *bytes, std::size_t length, const char *description);
+
+    class X0_API reverse_iterator { // {{{
+    private:
+        BufferRef* buf_;
+        int cur_;
+    public:
+        reverse_iterator(BufferRef* r, int cur) : buf_(r), cur_(cur) {}
+        reverse_iterator& operator++() { if (cur_ >= 0) { --cur_; } return *this; }
+        const char& operator*() const { assert(cur_ >= 0 && cur_ < buf_->size()); return (*buf_)[cur_]; }
+        bool operator==(const reverse_iterator& other) const { return buf_ == other.buf_ && cur_ == other.cur_; }
+        bool operator!=(const reverse_iterator& other) const { return !(*this == other); }
+    }; // }}}
+
+    reverse_iterator rbegin() const { return reverse_iterator((BufferRef*) this, size() - 1); }
+    reverse_iterator rend() const { return reverse_iterator((BufferRef*) this, -1); }
 };
 // }}}
 // {{{ MutableBuffer
