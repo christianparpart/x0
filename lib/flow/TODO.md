@@ -13,14 +13,13 @@
   - DONE: regex match context
 - DONE: codegen: native function
 - DONE: codegen: custom handler invokation
-- sema: native handler/function signature check (as a pass between parse and codegen)
+- DONE: sema: native handler/function signature check (as a pass between parse and codegen)
 - flowtool: auto-add source string as 2nd arg to `assert` + `assert_fail` handlers, via old onParseComplete hook
 
 - data type code generation (for passing data to native functions/handlers)
   - DONE: number
   - DONE: boolean
   - DONE: string
-  - buffer
   - DONE: ipaddr
   - cidr
 
