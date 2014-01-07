@@ -1436,9 +1436,8 @@ bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
                     args.push_back(name, std::make_unique<StringExpr>(*(std::string*) defaultValue));
                     break;
                 case FlowType::IPAddress:
-                    // TODO
-                    //args.push_back(name, std::make_unique<RegExpExpr>(*(RegExp*) defaultValue));
-                    //break;
+                    args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
+                    break;
                 case FlowType::Cidr: // TODO
                 default:
                     reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
