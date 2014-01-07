@@ -33,8 +33,10 @@ public:
 
 	std::string str() const;
 
-	friend bool operator==(const Cidr& a, const Cidr& b);
-	friend bool operator!=(const Cidr& a, const Cidr& b);
+    bool contains(const IPAddress& ipaddr) const;
+
+	friend X0_API bool operator==(const Cidr& a, const Cidr& b);
+	friend X0_API bool operator!=(const Cidr& a, const Cidr& b);
 };
 
 } // namespace x0

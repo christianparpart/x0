@@ -23,6 +23,24 @@ std::string Cidr::str() const
 	return result;
 }
 
+bool Cidr::contains(const IPAddress& ipaddr) const
+{
+    if (ipaddr.family() != address().family())
+        return false;
+
+    // IPv4
+    if (ipaddr.family() == AF_INET) {
+        uint32_t ip = *(uint32_t*) ipaddr.data();
+        uint32_t subnet = *(uint32_t*) address().data();
+        uint32_t match = ip & (0xFFFFFFFF >> (32 - prefix()));
+
+        return match == subnet;
+    }
+
+    // IPv6 TODO
+    return false;
+}
+
 bool operator==(const Cidr& a, const Cidr& b)
 {
 	if (&a == &b)
