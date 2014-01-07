@@ -417,7 +417,8 @@ bool Runner::run()
     // }}}
     // {{{ regex
     instr (sregmatch) { // A = B =~ C
-        // TODO
+        RegExpContext* cx = (RegExpContext*) userdata();
+        data_[A] = program_->regularExpression(C)->match(toString(B), cx ? cx->regexMatch() : nullptr);
         next;
     }
 
