@@ -1420,7 +1420,7 @@ bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
         if (!args.contains(name)) {
             const void* defaultValue = native->getDefaultAt(i);
             if (!defaultValue) {
-                reportError("Callee \"%s\" invoked without named parameter \"%s\".",
+                reportError("Callee \"%s\" invoked without required named parameter \"%s\".",
                         callee->name().c_str(), name.c_str());
                 return false;
             }
