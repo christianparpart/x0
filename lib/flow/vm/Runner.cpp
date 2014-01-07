@@ -445,11 +445,18 @@ bool Runner::run()
     instr (sregmatch) { // A = B =~ C
         RegExpContext* cx = (RegExpContext*) userdata();
         data_[A] = program_->regularExpression(C)->match(toString(B), cx ? cx->regexMatch() : nullptr);
+
         next;
     }
 
     instr (sreggroup) { // A = regex.match(B)
-        // TODO
+        FlowNumber position = toNumber(B);
+        RegExpContext* cx = (RegExpContext*) userdata();
+        RegExp::Result* rr = cx->regexMatch();
+        const auto& match = rr->at(position);
+
+        data_[A] = (Register) newString(match.first, match.second);
+
         next;
     }
     // }}}
