@@ -1441,8 +1441,8 @@ bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
                     //break;
                 case FlowType::Cidr: // TODO
                 default:
-                    reportError("Cannot complete named paramter \"%s\". Unsupported type `%s` for completion in callee \"%s\".",
-                            name.c_str(), tos(type).c_str(), callee->name().c_str());
+                    reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
+                            name.c_str(), callee->name().c_str(), tos(type).c_str());
                     return false;
             }
         }
