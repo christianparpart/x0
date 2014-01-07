@@ -107,6 +107,7 @@ void FlowAssemblyBuilder::accept(Unit& unit)
         numbers_,
         strings_,
         ipaddrs_,
+        cidrs_,
         regularExpressions_,
         matches_,
         unit.imports(),
@@ -197,6 +198,16 @@ Register FlowAssemblyBuilder::literal(const IPAddress& value)
     return ipaddrs_.size() - 1;
 }
 
+Register FlowAssemblyBuilder::literal(const Cidr& value)
+{
+    for (size_t i = 0, e = cidrs_.size(); i != e; ++i)
+        if (cidrs_[i] == value)
+            return i;
+
+    cidrs_.push_back(value);
+    return cidrs_.size() - 1;
+}
+
 Register FlowAssemblyBuilder::literal(const RegExp& re)
 {
     for (size_t i = 0, e = regularExpressions_.size(); i != e; ++i)
@@ -265,7 +276,8 @@ void FlowAssemblyBuilder::accept(IPAddressExpr& expr)
 
 void FlowAssemblyBuilder::accept(CidrExpr& cidr)
 {
-    printf("TODO: cidr expr\n");
+    result_ = allocate();
+    emit(Opcode::CCONST, result_, literal(cidr.value()));
 }
 
 void FlowAssemblyBuilder::accept(ExprStmt& stmt)

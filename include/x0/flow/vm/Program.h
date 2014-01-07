@@ -5,6 +5,7 @@
 #include <x0/flow/FlowType.h>           // FlowNumber
 #include <x0/RegExp.h>
 #include <x0/IPAddress.h>
+#include <x0/Cidr.h>
 
 #include <vector>
 #include <utility>
@@ -29,6 +30,7 @@ public:
         const std::vector<FlowNumber>& constNumbers,
         const std::vector<std::string>& constStrings,
         const std::vector<IPAddress>& ipaddrs,
+        const std::vector<Cidr>& cidrs,
         const std::vector<std::string>& regularExpressions,
         const std::vector<MatchDef>& matches,
         const std::vector<std::pair<std::string, std::string>>& modules,
@@ -43,6 +45,7 @@ public:
     FlowNumber number(size_t index) const { return numbers_[index]; }
     const FlowString& string(size_t index) const { return strings_[index].second; }
     const IPAddress& ipaddr(size_t index) const { return ipaddrs_[index]; }
+    const Cidr& cidr(size_t index) const { return cidrs_[index]; }
     const RegExp* regularExpression(size_t index) const { return regularExpressions_[index]; }
     const Match* match(size_t index) const { return matches_[index]; }
     Handler* handler(size_t index) const { return handlers_[index]; }
@@ -72,6 +75,7 @@ private:
     std::vector<FlowNumber> numbers_;
     std::vector<std::pair<std::string, FlowString>> strings_;
     std::vector<IPAddress> ipaddrs_;
+    std::vector<Cidr> cidrs_;
     std::vector<RegExp*> regularExpressions_;
     std::vector<Match*> matches_;
     std::vector<std::pair<std::string, std::string>> modules_;

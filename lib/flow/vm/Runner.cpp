@@ -82,10 +82,13 @@ bool Runner::run()
     #define B  operandB(*pc)
     #define C  operandC(*pc)
 
-    #define toStringPtr(R)  ((FlowString*) data_[R])
     #define toString(R)     (*(FlowString*) data_[R])
     #define toIPAddress(R)  (*(IPAddress*) data_[R])
+    #define toCidr(R)       (*(Cidr*) data_[R])
     #define toNumber(R)     ((FlowNumber) data_[R])
+
+    #define toStringPtr(R)  ((FlowString*) data_[R])
+    #define toCidrPtr(R)    ((Cidr*) data_[R])
 
     #define instr(name) \
         l_##name: \
@@ -159,6 +162,10 @@ bool Runner::run()
         [Opcode::PCONST]    = &&l_pconst,
         [Opcode::PCMPEQ]    = &&l_pcmpeq,
         [Opcode::PCMPNE]    = &&l_pcmpne,
+        [Opcode::PINCIDR]   = &&l_pincidr,
+
+        // cidr
+        [Opcode::CCONST]    = &&l_cconst,
 
         // regex
         [Opcode::SREGMATCH] = &&l_sregmatch,
@@ -438,6 +445,19 @@ bool Runner::run()
 
     instr (pcmpne) {
         data_[A] = toIPAddress(B) != toIPAddress(C);
+        next;
+    }
+
+    instr (pincidr) {
+        const IPAddress& ipaddr = toIPAddress(B);
+        const Cidr& cidr = toCidr(C);
+        data_[A] = cidr.contains(ipaddr);
+        next;
+    }
+    // }}}
+    // {{{ cidr
+    instr (cconst) {
+        data_[A] = (Register) &program->cidr(B);
         next;
     }
     // }}}

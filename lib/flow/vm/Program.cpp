@@ -40,6 +40,7 @@ Program::Program() :
     numbers_(),
     strings_(),
     ipaddrs_(),
+    cidrs_(),
     regularExpressions_(),
     matches_(),
     modules_(),
@@ -56,6 +57,7 @@ Program::Program(
         const std::vector<FlowNumber>& numbers,
         const std::vector<std::string>& strings,
         const std::vector<IPAddress>& ipaddrs,
+        const std::vector<Cidr>& cidrs,
         const std::vector<std::string>& regularExpressions,
         const std::vector<MatchDef>& matches,
         const std::vector<std::pair<std::string, std::string>>& modules,
@@ -65,6 +67,7 @@ Program::Program(
     numbers_(numbers),
     strings_(),
     ipaddrs_(ipaddrs),
+    cidrs_(cidrs),
     regularExpressions_(),
     matches_(),
     modules_(modules),
@@ -209,6 +212,13 @@ void Program::dump()
         printf("\n; IP Constants\n");
         for (size_t i = 0, e = ipaddrs_.size(); i != e; ++i) {
             printf(".const ipaddr %6zu = %s\n", i, ipaddrs_[i].str().c_str());
+        }
+    }
+
+    if (!cidrs_.empty()) {
+        printf("\n; CIDR Constants\n");
+        for (size_t i = 0, e = cidrs_.size(); i != e; ++i) {
+            printf(".const cidr %8zu = %s\n", i, cidrs_[i].str().c_str());
         }
     }
 

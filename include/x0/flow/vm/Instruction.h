@@ -72,6 +72,10 @@ enum Opcode {
     PCONST,         // A = ipconst[B]
     PCMPEQ,         // A = ip(B) == ip(C)
     PCMPNE,         // A = ip(B) != ip(C)
+    PINCIDR,        // A = cidr(C).contains(ip(B))
+
+    // CIDR
+    CCONST,         // A = cidr(C)
 
     // regex
     SREGMATCH,      // A = B =~ C           /* regex match against regexPool[C] */
@@ -194,6 +198,9 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::PCONST]    = InstructionSig::RI,
         [Opcode::PCMPEQ]    = InstructionSig::RRR,
         [Opcode::PCMPNE]    = InstructionSig::RRR,
+        [Opcode::PINCIDR]   = InstructionSig::RRR,
+        // cidr
+        [Opcode::CCONST]    = InstructionSig::RI,
         // regex
         [Opcode::SREGMATCH] = InstructionSig::RRR,
         [Opcode::SREGGROUP] = InstructionSig::RR,
@@ -268,6 +275,9 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::PCONST]    = "PCONST",
         [Opcode::PCMPEQ]    = "PCMPEQ",
         [Opcode::PCMPNE]    = "PCMPNE",
+        [Opcode::PINCIDR]   = "PINCIDR",
+        // cidr
+        [Opcode::CCONST]    = "CCONST",
         // regex
         [Opcode::SREGMATCH] = "SREGMATCH",
         [Opcode::SREGGROUP] = "SREGGROUP",
@@ -342,6 +352,9 @@ inline FlowType resultType(Opcode opc) {
         [Opcode::PCONST]    = FlowType::IPAddress,
         [Opcode::PCMPEQ]    = FlowType::Boolean,
         [Opcode::PCMPNE]    = FlowType::Boolean,
+        [Opcode::PINCIDR]   = FlowType::Boolean,
+        // cidr
+        [Opcode::CCONST]    = FlowType::Cidr,
         // regex
         [Opcode::SREGMATCH] = FlowType::Boolean,
         [Opcode::SREGGROUP] = FlowType::String,

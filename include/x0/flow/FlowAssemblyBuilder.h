@@ -82,6 +82,7 @@ private:
     Register literal(FlowNumber value);
     Register literal(const std::string& value);
     Register literal(const IPAddress& value);
+    Register literal(const Cidr& value);
     Register literal(const RegExp& re);
     size_t handlerRef(Handler* handler);
     Register nativeHandler(BuiltinHandler* handler);
@@ -97,6 +98,7 @@ private:
     std::vector<FlowNumber> numbers_;
     std::vector<std::string> strings_;
     std::vector<IPAddress> ipaddrs_;
+    std::vector<Cidr> cidrs_;
     std::vector<std::string> regularExpressions_;               // XXX to be a pre-compiled handled during runtime
     std::vector<FlowVM::MatchDef> matches_;
     std::vector<std::pair<std::string, std::string>> modules_;

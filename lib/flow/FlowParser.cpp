@@ -268,7 +268,7 @@ FlowVM::Opcode makeOperator(FlowToken token , Expr* left, Expr* right)
             {FlowToken::UnEqual, Opcode::NOP},
         }},
         {OpSig::IpCidr, {
-            {FlowToken::In, Opcode::NOP},
+            {FlowToken::In, Opcode::PINCIDR},
         }},
         {OpSig::CidrCidr, {
             {FlowToken::Equal, Opcode::NOP},
@@ -1438,7 +1438,9 @@ bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
                 case FlowType::IPAddress:
                     args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
                     break;
-                case FlowType::Cidr: // TODO
+                case FlowType::Cidr:
+                    args.push_back(name, std::make_unique<CidrExpr>(*(Cidr*) defaultValue));
+                    break;
                 default:
                     reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
                             name.c_str(), callee->name().c_str(), tos(type).c_str());
