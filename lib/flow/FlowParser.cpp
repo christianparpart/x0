@@ -202,7 +202,7 @@ FlowVM::Opcode makeOperator(FlowToken token , Expr* left, Expr* right)
     // (string, string) == != <= >= < > in
     // (string, regex)  =~
     // (ip, ip)         == !=
-    // (ip, cidr) in    in
+    // (ip, cidr)       in
     // (cidr, cidr)     == != in
 
     auto isString = [](FlowType t) { return t == FlowType::String; };
