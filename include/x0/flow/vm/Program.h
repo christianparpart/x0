@@ -4,14 +4,13 @@
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/FlowType.h>           // FlowNumber
 #include <x0/RegExp.h>
+#include <x0/IPAddress.h>
 
 #include <vector>
 #include <utility>
 #include <memory>
 
 namespace x0 {
-
-class IPAddress;
 
 namespace FlowVM {
 
@@ -41,8 +40,17 @@ public:
     Program& operator=(Program&) = delete;
     ~Program();
 
+    FlowNumber number(size_t index) const { return numbers_[index]; }
+    const FlowString& string(size_t index) const { return strings_[index].second; }
+    const IPAddress& ipaddr(size_t index) const { return ipaddrs_[index]; }
+    const RegExp* regularExpression(size_t index) const { return regularExpressions_[index]; }
+    const Match* match(size_t index) const { return matches_[index]; }
+    Handler* handler(size_t index) const { return handlers_[index]; }
+    NativeCallback* nativeHandler(size_t index) const { return nativeHandlers_[index]; }
+    NativeCallback* nativeFunction(size_t index) const { return nativeFunctions_[index]; }
+
     inline const std::vector<FlowNumber>& numbers() const { return numbers_; }
-    inline const std::vector<FlowString>& strings() const { return strings_; }
+    inline const std::vector<std::pair<std::string, FlowString>>& strings() const { return strings_; }
     inline const std::vector<IPAddress>& ipaddrs() const { return ipaddrs_; }
     inline const std::vector<RegExp*>& regularExpressions() const { return regularExpressions_; }
     const std::vector<Match*>& matches() const { return matches_; }
@@ -51,11 +59,7 @@ public:
     Handler* createHandler(const std::string& name);
     Handler* createHandler(const std::string& name, const std::vector<Instruction>& instructions);
     Handler* findHandler(const std::string& name) const;
-    Handler* handler(size_t index) const { return handlers_[index]; }
     int indexOf(const Handler* handler) const;
-
-    NativeCallback* nativeHandler(size_t id) const { return nativeHandlers_[id]; }
-    NativeCallback* nativeFunction(size_t id) const { return nativeFunctions_[id]; }
 
     bool link(Runtime* runtime);
 
@@ -66,7 +70,7 @@ private:
 
 private:
     std::vector<FlowNumber> numbers_;
-    std::vector<FlowString> strings_;
+    std::vector<std::pair<std::string, FlowString>> strings_;
     std::vector<IPAddress> ipaddrs_;
     std::vector<RegExp*> regularExpressions_;
     std::vector<Match*> matches_;

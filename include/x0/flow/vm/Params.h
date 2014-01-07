@@ -26,6 +26,7 @@ public:
     void setResult(FlowNumber value) { argv_[0] = (Register) value; }
     void setResult(Handler* handler) { argv_[0] = caller_->program()->indexOf(handler); }
     void setResult(const char* cstr) { argv_[0] = (Register) caller_->newString(cstr); }
+    void setResult(const std::string& str) { argv_[0] = (Register) caller_->newString(str.data(), str.size()); }
     void setResult(const FlowString& str) { argv_[0] = (Register) &str; }
     void setResult(const FlowString* str) { argv_[0] = (Register) str; }
 

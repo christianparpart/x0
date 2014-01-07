@@ -177,7 +177,7 @@ Register FlowAssemblyBuilder::literal(FlowNumber value)
     return numbers_.size() - 1;
 }
 
-Register FlowAssemblyBuilder::literal(const FlowString& value)
+Register FlowAssemblyBuilder::literal(const std::string& value)
 {
     for (size_t i = 0, e = strings_.size(); i != e; ++i)
         if (strings_[i] == value)
@@ -197,13 +197,13 @@ Register FlowAssemblyBuilder::literal(const IPAddress& value)
     return ipaddrs_.size() - 1;
 }
 
-Register FlowAssemblyBuilder::literal(const RegExpExpr* re)
+Register FlowAssemblyBuilder::literal(const RegExp& re)
 {
     for (size_t i = 0, e = regularExpressions_.size(); i != e; ++i)
-        if (regularExpressions_[i] == re->value().c_str())
+        if (regularExpressions_[i] == re.c_str())
             return i;
 
-    regularExpressions_.push_back(re->value().c_str());
+    regularExpressions_.push_back(re.c_str());
     return regularExpressions_.size() - 1;
 }
 
@@ -252,7 +252,9 @@ void FlowAssemblyBuilder::accept(BoolExpr& expr)
 
 void FlowAssemblyBuilder::accept(RegExpExpr& expr)
 {
-    printf("TODO: regex expr\n");
+//    result_ = allocate();
+//    emit(Opcode::IMOV, result_, literal(expr.value()));
+    result_ = literal(expr.value());
 }
 
 void FlowAssemblyBuilder::accept(IPAddressExpr& expr)
@@ -332,7 +334,7 @@ void FlowAssemblyBuilder::accept(MatchStmt& stmt)
         if (auto e = dynamic_cast<StringExpr*>(one.first.get()))
             label = literal(e->value());
         else if (auto e = dynamic_cast<RegExpExpr*>(one.first.get()))
-            label = literal(e);
+            label = literal(e->value());
         else {
             reportError("FIXME: Invalid (unsupported) literal type <%s> in match case.",
                     tos(one.first->getType()).c_str());

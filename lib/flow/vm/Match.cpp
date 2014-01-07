@@ -24,7 +24,7 @@ MatchSame::MatchSame(const MatchDef& def, Program* program) :
     map_()
 {
     for (const auto& one: def.cases) {
-        map_[program->strings()[one.label]] = one.pc;
+        map_[program->string(one.label)] = one.pc;
     }
 }
 
@@ -47,7 +47,7 @@ MatchHead::MatchHead(const MatchDef& def, Program* program) :
     map_()
 {
     for (const auto& one: def.cases) {
-        map_.insert(program->strings()[one.label], one.pc);
+        map_.insert(program->string(one.label), one.pc);
     }
 }
 
@@ -70,7 +70,7 @@ MatchTail::MatchTail(const MatchDef& def, Program* program) :
     map_()
 {
     for (const auto& one: def.cases) {
-        map_.insert(program->strings()[one.label], one.pc);
+        map_.insert(program->string(one.label), one.pc);
     }
 }
 
@@ -106,7 +106,7 @@ uint64_t MatchRegEx::evaluate(const FlowString* condition, Runner* env) const
     RegExpContext* cx = (RegExpContext*) env->userdata();
     RegExp::Result* rs = cx ? cx->regexMatch() : nullptr;
     for (const auto& one: map_) {
-        if (one.first->match(condition->c_str()), rs) {
+        if (one.first->match(*condition, rs)) {
             return one.second;
         }
     }

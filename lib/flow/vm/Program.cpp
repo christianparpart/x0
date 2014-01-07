@@ -54,7 +54,7 @@ Program::Program() :
 
 Program::Program(
         const std::vector<FlowNumber>& numbers,
-        const std::vector<FlowString>& strings,
+        const std::vector<std::string>& strings,
         const std::vector<IPAddress>& ipaddrs,
         const std::vector<std::string>& regularExpressions,
         const std::vector<MatchDef>& matches,
@@ -63,7 +63,7 @@ Program::Program(
         const std::vector<std::string>& nativeFunctionSignatures,
         const std::vector<std::pair<std::string, std::vector<Instruction>>>& handlers) :
     numbers_(numbers),
-    strings_(strings),
+    strings_(),
     ipaddrs_(ipaddrs),
     regularExpressions_(),
     matches_(),
@@ -75,12 +75,18 @@ Program::Program(
     handlers_(),
     runtime_(nullptr)
 {
+    strings_.resize(strings.size());
+    for (size_t i = 0, e = strings.size(); i != e; ++i) {
+        auto& one = strings_[i];
+        one.first = strings[i];
+        one.second = BufferRef(one.first);
+    }
+
     for (const auto& s: regularExpressions)
         regularExpressions_.push_back(new RegExp(s));
 
-    for (const auto& handler: handlers) {
+    for (const auto& handler: handlers)
         createHandler(handler.first, handler.second);
-    }
 
     setup(matches);
 }
@@ -195,7 +201,7 @@ void Program::dump()
     if (!strings_.empty()) {
         printf("\n; String Constants\n");
         for (size_t i = 0, e = strings_.size(); i != e; ++i) {
-            printf(".const string %6zu = '%s'\n", i, strings_[i].c_str());
+            printf(".const string %6zu = '%s'\n", i, strings_[i].first.c_str());
         }
     }
 
@@ -233,7 +239,7 @@ void Program::dump()
                 if (def.op == MatchClass::RegExp) {
                     printf("/%s/\n", regularExpressions_[one.label]->c_str());
                 } else {
-                    printf("'%s'\n", strings_[one.label].c_str());
+                    printf("'%s'\n", strings_[one.label].first.c_str());
                 }
             }
         }

@@ -24,7 +24,7 @@ private:
     Program* program_;
     void* userdata_;        //!< pointer to the currently executed request handler in our case
 
-    std::list<std::string> stringGarbage_;
+    std::list<FlowString> stringGarbage_;
 
     Register data_[];
 
@@ -40,6 +40,9 @@ public:
     void setUserData(void* p) { userdata_ = p; }
 
     FlowString* newString(const std::string& value);
+    FlowString* newString(const char* p, size_t n);
+    FlowString* catString(const FlowString& a, const FlowString& b);
+    FlowString* emptyString() const { return (FlowString*) &*stringGarbage_.begin(); }
 
 private:
     explicit Runner(Handler* handler);

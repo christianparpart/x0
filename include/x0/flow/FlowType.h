@@ -1,5 +1,6 @@
 #pragma once
 
+#include <x0/Buffer.h>
 #include <string>
 #include <cstdint>
 
@@ -21,7 +22,7 @@ enum class FlowType {
 typedef uint64_t Register; // FlowVM
 
 typedef int64_t FlowNumber;
-typedef std::string FlowString;
+typedef BufferRef FlowString;
 
 std::string tos(FlowType type);
 

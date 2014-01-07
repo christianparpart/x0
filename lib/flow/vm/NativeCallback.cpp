@@ -40,7 +40,7 @@ NativeCallback::~NativeCallback()
                 delete (FlowNumber*) defaults_[i];
                 break;
             case FlowType::String:
-                delete (std::string*) defaults_[i];
+                delete (FlowString*) defaults_[i];
                 break;
             case FlowType::IPAddress:
                 delete (IPAddress*) defaults_[i];

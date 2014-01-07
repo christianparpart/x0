@@ -140,7 +140,7 @@ inline NativeCallback& NativeCallback::param<int>(const std::string& name, int d
 }
 
 template<>
-inline NativeCallback& NativeCallback::param<std::string>(const std::string& name)
+inline NativeCallback& NativeCallback::param<FlowString>(const std::string& name)
 {
     signature_.args().push_back(FlowType::String);
     names_.push_back(name);
@@ -150,11 +150,11 @@ inline NativeCallback& NativeCallback::param<std::string>(const std::string& nam
 }
 
 template<>
-inline NativeCallback& NativeCallback::param<std::string>(const std::string& name, std::string defaultValue)
+inline NativeCallback& NativeCallback::param<FlowString>(const std::string& name, FlowString defaultValue)
 {
     signature_.args().push_back(FlowType::String);
     names_.push_back(name);
-    defaults_.push_back((void*) new std::string(defaultValue));
+    defaults_.push_back((void*) new FlowString(defaultValue));
     
     return *this;
 }

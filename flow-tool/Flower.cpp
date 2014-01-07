@@ -219,7 +219,7 @@ void Flower::clear()
 
 void Flower::flow_print(FlowVM::Params& args)
 {
-	printf("%s\n", args.get<FlowString*>(1)->c_str());
+	printf("%s\n", args.get<FlowString*>(1)->str().c_str());
 }
 
 void Flower::flow_log(FlowVM::Params& args)
@@ -227,7 +227,7 @@ void Flower::flow_log(FlowVM::Params& args)
     FlowString* message = args.get<FlowString*>(1);
     FlowNumber severity = args.get<FlowNumber>(2);
 
-    printf("<%lu> %s\n", severity, message->c_str());
+    printf("<%lu> %s\n", severity, message->str().c_str());
 }
 
 void Flower::flow_assert(FlowVM::Params& args)
@@ -235,10 +235,10 @@ void Flower::flow_assert(FlowVM::Params& args)
 	const FlowString* sourceValue = args.get<FlowString*>(args.size() - 1);
 
     if (!args.get<bool>(1)) {
-		printf("[   FAILED ] %s\n", sourceValue->c_str());
+		printf("[   FAILED ] %s\n", sourceValue->str().c_str());
 		args.setResult(true);
 	} else {
-		printf("[       OK ] %s\n", sourceValue->c_str());
+		printf("[       OK ] %s\n", sourceValue->str().c_str());
 		++totalSuccess_;
 		args.setResult(false);
 	}

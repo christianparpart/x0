@@ -30,6 +30,10 @@ Runner::Runner(Handler* handler) :
     userdata_(nullptr),
     stringGarbage_()
 {
+    // initialize emptyString()
+    newString("");
+
+    // initialize registers
     memset(data_, 0, sizeof(Register) * handler_->registerCount());
 }
 
@@ -40,7 +44,29 @@ void Runner::operator delete (void* p)
 
 FlowString* Runner::newString(const std::string& value)
 {
-    stringGarbage_.push_back(value);
+    stringGarbage_.push_back(FlowString(strdup(value.c_str()), value.size()));
+    return &stringGarbage_.back();
+}
+
+FlowString* Runner::newString(const char* p, size_t n)
+{
+    char* s = (char*) malloc(n);
+
+    memcpy(s, p, n);
+    stringGarbage_.push_back(FlowString(s, n));
+
+    return &stringGarbage_.back();
+}
+
+FlowString* Runner::catString(const FlowString& a, const FlowString& b)
+{
+    size_t n = a.size() + b.size();
+    char* s = (char*) malloc(n);
+
+    memcpy(s, a.data(), a.size());
+    memcpy(s + a.size(), b.data(), b.size());
+    stringGarbage_.push_back(FlowString(s, n));
+
     return &stringGarbage_.back();
 }
 
@@ -63,7 +89,7 @@ bool Runner::run()
 
     #define instr(name) \
         l_##name: \
-        /*disassemble(*pc, pc - code.data());*/ \
+        disassemble(*pc, pc - code.data()); \
         ++ticks;
 
     #define next goto *ops[opcode(*++pc)]
@@ -315,12 +341,12 @@ bool Runner::run()
     // }}}
     // {{{ string
     instr (sconst) { // A = stringConstTable[B]
-        data_[A] = (Register) &program->strings()[B];
+        data_[A] = (Register) &program->string(B);
         next;
     }
 
     instr (sadd) { // A = concat(B, C)
-        data_[A] = (Register) newString(toString(B) + toString(C));
+        data_[A] = (Register) catString(toString(B), toString(C));
         next;
     }
 
@@ -362,14 +388,14 @@ bool Runner::run()
     instr (scmpbeg) {
         const auto& b = toString(B);
         const auto& c = toString(C);
-        data_[A] = b.size() >= c.size() && strncmp(b.c_str(), c.c_str(), c.size()) == 0;
+        data_[A] = b.begins(c);
         next;
     }
 
     instr (scmpend) {
         const auto& b = toString(B);
         const auto& c = toString(C);
-        data_[A] = b.size() >= c.size() && strcmp(b.c_str() + c.size() - c.size(), c.c_str()) == 0;
+        data_[A] = b.ends(c);
         next;
     }
 
@@ -389,12 +415,12 @@ bool Runner::run()
     }
 
     instr (sprint) {
-        printf("%s\n", toString(A).c_str());
+        printf("%s\n", toString(A).str().c_str());
         next;
     }
 
     instr (smatch) {
-        auto result = program_->matches()[B]->evaluate(toStringPtr(A), this);
+        auto result = program_->match(B)->evaluate(toStringPtr(A), this);
         pc = code.data() + result;
         goto *ops[OP];
     }
@@ -429,7 +455,7 @@ bool Runner::run()
     // }}}
     // {{{ conversion
     instr (s2i) { // A = atoi(B)
-        data_[A] = strtoll(toString(B).c_str(), nullptr, 10);
+        data_[A] = toString(B).toInt();
         next;
     }
 
@@ -438,7 +464,7 @@ bool Runner::run()
         if (snprintf(buf, sizeof(buf), "%li", (int64_t) data_[B]) > 0) {
             data_[A] = (Register) newString(buf);
         } else {
-            data_[A] = (Register) newString("");
+            data_[A] = (Register) emptyString();
         }
         next;
     }

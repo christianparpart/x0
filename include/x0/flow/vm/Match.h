@@ -3,6 +3,7 @@
 #include <x0/Api.h>
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/vm/MatchClass.h>
+#include <x0/flow/FlowType.h>
 #include <x0/PrefixTree.h>
 #include <x0/SuffixTree.h>
 #include <x0/RegExp.h>
@@ -64,7 +65,7 @@ public:
     virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
-    std::unordered_map<std::string, uint64_t> map_;
+    std::unordered_map<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHBEG instruction. */
@@ -76,7 +77,7 @@ public:
     virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
-    PrefixTree<std::string, uint64_t> map_;
+    PrefixTree<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHBEG instruction. */
@@ -88,7 +89,7 @@ public:
     virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
-    SuffixTree<std::string, uint64_t> map_;
+    SuffixTree<FlowString, uint64_t> map_;
 };
 
 /** Implements SMATCHR instruction. */

@@ -80,9 +80,9 @@ private:
     size_t emit(FlowVM::Instruction instr);
 
     Register literal(FlowNumber value);
-    Register literal(const FlowString& value);
+    Register literal(const std::string& value);
     Register literal(const IPAddress& value);
-    Register literal(const RegExpExpr* re);
+    Register literal(const RegExp& re);
     size_t handlerRef(Handler* handler);
     Register nativeHandler(BuiltinHandler* handler);
     Register nativeFunction(BuiltinFunction* function);
@@ -95,7 +95,7 @@ private:
 
     // program output
     std::vector<FlowNumber> numbers_;
-    std::vector<FlowString> strings_;
+    std::vector<std::string> strings_;
     std::vector<IPAddress> ipaddrs_;
     std::vector<std::string> regularExpressions_;               // XXX to be a pre-compiled handled during runtime
     std::vector<FlowVM::MatchDef> matches_;
