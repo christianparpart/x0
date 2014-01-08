@@ -198,8 +198,8 @@ std::unique_ptr<Unit> FlowParser::parse()
 FlowVM::Opcode makeOperator(FlowToken token , Expr* left, Expr* right)
 {
     // (bool, bool)     == !=
-    // (num, num)       + - * / % ** << >> & | ^ and or xor
-    // (string, string) == != <= >= < > in
+    // (num, num)       + - * / % ** << >> & | ^ and or xor == != <= >= < >
+    // (string, string) + == != <= >= < > =^ =$ in
     // (string, regex)  =~
     // (ip, ip)         == !=
     // (ip, cidr)       in
@@ -238,15 +238,18 @@ FlowVM::Opcode makeOperator(FlowToken token , Expr* left, Expr* right)
             {FlowToken::Mul, Opcode::NMUL},
             {FlowToken::Div, Opcode::NDIV},
             {FlowToken::Mod, Opcode::NREM},
+            {FlowToken::Pow, Opcode::NPOW},
+            {FlowToken::Shl, Opcode::NSHL},
+            {FlowToken::Shr, Opcode::NSHR},
+            {FlowToken::BitAnd, Opcode::NAND},
+            {FlowToken::BitOr, Opcode::NOR},
+            {FlowToken::BitXor, Opcode::NXOR},
             {FlowToken::Equal, Opcode::NCMPEQ},
             {FlowToken::UnEqual, Opcode::NCMPNE},
             {FlowToken::LessOrEqual, Opcode::NCMPLT},
             {FlowToken::GreaterOrEqual, Opcode::NCMPGT},
             {FlowToken::Less, Opcode::NCMPLE},
             {FlowToken::Greater, Opcode::NCMPGE},
-            {FlowToken::BitAnd, Opcode::NAND},
-            {FlowToken::BitOr, Opcode::NOR},
-            {FlowToken::BitXor, Opcode::NXOR},
         }},
         {OpSig::StringString, {
             {FlowToken::Plus, Opcode::SADD},
@@ -264,16 +267,16 @@ FlowVM::Opcode makeOperator(FlowToken token , Expr* left, Expr* right)
             {FlowToken::RegexMatch, Opcode::SREGMATCH},
         }},
         {OpSig::IpIp, {
-            {FlowToken::Equal, Opcode::NOP},
-            {FlowToken::UnEqual, Opcode::NOP},
+            {FlowToken::Equal, Opcode::PCMPEQ},
+            {FlowToken::UnEqual, Opcode::PCMPNE},
         }},
         {OpSig::IpCidr, {
             {FlowToken::In, Opcode::PINCIDR},
         }},
         {OpSig::CidrCidr, {
-            {FlowToken::Equal, Opcode::NOP},
-            {FlowToken::UnEqual, Opcode::NOP},
-            {FlowToken::In, Opcode::NOP},
+            {FlowToken::Equal, Opcode::NOP}, // TODO
+            {FlowToken::UnEqual, Opcode::NOP}, // TODO
+            {FlowToken::In, Opcode::NOP}, // TODO
         }},
     };
 
