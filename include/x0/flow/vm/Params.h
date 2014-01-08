@@ -8,6 +8,9 @@
 #include <x0/IPAddress.h>
 
 namespace x0 {
+
+class Cidr;
+
 namespace FlowVM {
 
 class X0_API Params {
@@ -29,6 +32,8 @@ public:
     void setResult(const std::string& str) { argv_[0] = (Register) caller_->newString(str.data(), str.size()); }
     void setResult(const FlowString& str) { argv_[0] = (Register) &str; }
     void setResult(const FlowString* str) { argv_[0] = (Register) str; }
+    void setResult(const IPAddress* ip) { argv_[0] = (Register) ip; }
+    void setResult(const Cidr* cidr) { argv_[0] = (Register) cidr; }
 
     int size() const { return argc_; }
     int count() const { return argc_; }
