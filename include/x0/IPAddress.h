@@ -30,6 +30,7 @@ public:
 
 private:
 	int family_;
+    mutable char cstr_[INET6_ADDRSTRLEN];
 	uint8_t buf_[sizeof(struct in6_addr)];
 
 public:
@@ -45,6 +46,7 @@ public:
 	const void *data() const;
 	size_t size() const;
 	std::string str() const;
+    const char* c_str() const;
 
 	friend bool operator==(const IPAddress& a, const IPAddress& b);
 	friend bool operator!=(const IPAddress& a, const IPAddress& b);
@@ -54,6 +56,7 @@ public:
 inline IPAddress::IPAddress()
 {
 	family_ = 0;
+    cstr_[0] = '\0';
 	memset(buf_, 0, sizeof(buf_));
 }
 
@@ -84,6 +87,7 @@ inline IPAddress& IPAddress::operator=(const std::string& text)
 inline IPAddress& IPAddress::operator=(const IPAddress& v)
 {
 	family_ = v.family_;
+    strncpy(cstr_, v.cstr_, sizeof(cstr_));
 	memcpy(buf_, v.buf_, v.size());
 
 	return *this;
@@ -99,8 +103,10 @@ inline bool IPAddress::set(const std::string& text, int family)
 		else
 			fprintf(stderr, "IP address Not in presentation format: %s\n", text.c_str());
 
+        cstr_[0] = 0;
 		return false;
 	}
+    strncpy(cstr_, text.c_str(), sizeof(cstr_));
 	return true;
 }
 
@@ -123,10 +129,15 @@ inline size_t IPAddress::size() const
 
 inline std::string IPAddress::str() const
 {
-	char result[INET6_ADDRSTRLEN];
-	inet_ntop(family_, &buf_, result, sizeof(result));
+	return c_str();
+}
 
-	return result;
+inline const char* IPAddress::c_str() const
+{
+    if (*cstr_ == '\0') {
+        inet_ntop(family_, &buf_, cstr_, sizeof(cstr_));
+    }
+    return cstr_;
 }
 
 inline bool operator==(const IPAddress& a, const IPAddress& b)
