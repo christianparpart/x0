@@ -82,10 +82,10 @@ public:
 	Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
 	HttpWorker& worker() const;					//!< Retrieves a reference to the owning worker.
 
-	std::string remoteIP() const;				//!< Retrieves the IP address of the remote end point (client).
+    const IPAddress& remoteIP() const { return socket_->remoteIP(); }
 	unsigned int remotePort() const;			//!< Retrieves the TCP port numer of the remote end point (client).
 
-	std::string localIP() const;
+    const IPAddress& localIP() const { return socket_->localIP(); }
 	unsigned int localPort() const;
 
 	const ServerSocket& listener() const;

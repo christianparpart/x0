@@ -749,19 +749,9 @@ bool HttpConnection::process()
 	return true;
 }
 
-std::string HttpConnection::remoteIP() const
-{
-	return socket_->remoteIP();
-}
-
 unsigned int HttpConnection::remotePort() const
 {
 	return socket_->remotePort();
-}
-
-std::string HttpConnection::localIP() const
-{
-	return listener_->address();
 }
 
 unsigned int HttpConnection::localPort() const
@@ -802,7 +792,7 @@ void HttpConnection::setStatus(Status value)
 
 void HttpConnection::log(LogMessage&& msg)
 {
-	msg.addTag(!isClosed() ? remoteIP() : "(null)");
+	msg.addTag(!isClosed() ? remoteIP().c_str() : "(null)");
 
 	worker().log(std::forward<LogMessage>(msg));
 }

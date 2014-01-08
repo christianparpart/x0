@@ -64,10 +64,10 @@ private:
 	bool tcpCork_;
 	bool splicing_;
 
-	mutable std::string remoteIP_;		//!< internal cache to remote ip
+    mutable IPAddress remoteIP_;        //!< internal cache to remote ip
 	mutable unsigned int remotePort_;	//!< internal cache to remote port
 
-	mutable std::string localIP_;		//!< internal cache to local ip
+    mutable IPAddress localIP_;         //!< internal cache to local ip
 	mutable unsigned int localPort_;	//!< internal cache to local port
 
 	void (*callback_)(Socket *, void *, int);
@@ -111,11 +111,11 @@ public:
 	TimeSpan lingering() const;
 	bool setLingering(TimeSpan timeout);
 
-	std::string remoteIP() const;
+    const IPAddress& remoteIP() const;
 	unsigned int remotePort() const;
 	std::string remote() const;
 
-	std::string localIP() const;
+    const IPAddress& localIP() const;
 	unsigned int localPort() const;
 	std::string local() const;
 

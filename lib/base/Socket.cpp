@@ -127,7 +127,10 @@ void Socket::set(int fd, int af)
 	fd_ = fd;
 	addressFamily_ = af;
 
+    remotePort_ = 0;
 	remoteIP_.clear();
+
+    localPort_ = 0;
 	localIP_.clear();
 }
 
@@ -511,10 +514,10 @@ void Socket::timeout(ev::timer& timer, int revents)
 		timeoutCallback_(this, timeoutData_);
 }
 
-std::string Socket::remoteIP() const
+const IPAddress& Socket::remoteIP() const
 {
 	const_cast<Socket *>(this)->queryRemoteName();
-	return remoteIP_;
+    return remoteIP_;
 }
 
 unsigned int Socket::remotePort() const
@@ -534,12 +537,8 @@ void Socket::queryRemoteName()
 			sockaddr_in6 saddr;
 			socklen_t slen = sizeof(saddr);
 			if (getpeername(fd_, (sockaddr *)&saddr, &slen) == 0) {
-				char buf[128];
-
-				if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf))) {
-					remoteIP_ = buf;
-					remotePort_ = ntohs(saddr.sin6_port);
-				}
+                remoteIP_ = IPAddress(&saddr);
+                remotePort_ = ntohs(saddr.sin6_port);
 			}
 			break;
 		}
@@ -547,12 +546,8 @@ void Socket::queryRemoteName()
 			sockaddr_in saddr;
 			socklen_t slen = sizeof(saddr);
 			if (getpeername(fd_, (sockaddr *)&saddr, &slen) == 0) {
-				char buf[128];
-
-				if (inet_ntop(AF_INET, &saddr.sin_addr, buf, sizeof(buf))) {
-					remoteIP_ = buf;
-					remotePort_ = ntohs(saddr.sin_port);
-				}
+                remoteIP_ = IPAddress(&saddr);
+                remotePort_ = ntohs(saddr.sin_port);
 			}
 			break;
 		}
@@ -561,10 +556,10 @@ void Socket::queryRemoteName()
 	}
 }
 
-std::string Socket::localIP() const
+const IPAddress& Socket::localIP() const
 {
 	const_cast<Socket *>(this)->queryLocalName();
-	return localIP_;
+    return localIP_;
 }
 
 unsigned int Socket::localPort() const
@@ -618,12 +613,8 @@ void Socket::queryLocalName()
 				socklen_t slen = sizeof(saddr);
 
 				if (getsockname(fd_, (sockaddr *)&saddr, &slen) == 0) {
-					char buf[128];
-
-					if (inet_ntop(AF_INET6, &saddr.sin6_addr, buf, sizeof(buf))) {
-						localIP_ = buf;
-						localPort_ = ntohs(saddr.sin6_port);
-					}
+                    localIP_ = IPAddress(&saddr);
+                    localPort_ = ntohs(saddr.sin6_port);
 				}
 				break;
 			}
@@ -632,12 +623,8 @@ void Socket::queryLocalName()
 				socklen_t slen = sizeof(saddr);
 
 				if (getsockname(fd_, (sockaddr *)&saddr, &slen) == 0) {
-					char buf[128];
-
-					if (inet_ntop(AF_INET, &saddr.sin_addr, buf, sizeof(buf))) {
-						localIP_ = buf;
-						localPort_ = ntohs(saddr.sin_port);
-					}
+                    localIP_ = IPAddress(&saddr);
+                    localPort_ = ntohs(saddr.sin_port);
 				}
 				break;
 			}
