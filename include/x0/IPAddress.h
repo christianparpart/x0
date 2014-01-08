@@ -35,6 +35,8 @@ private:
 
 public:
 	IPAddress();
+    explicit IPAddress(const sockaddr_in* saddr);
+    explicit IPAddress(const sockaddr_in6* saddr);
 	explicit IPAddress(const std::string& text, int family = 0);
 
 	IPAddress& operator=(const std::string& value);
@@ -58,6 +60,20 @@ inline IPAddress::IPAddress()
 	family_ = 0;
     cstr_[0] = '\0';
 	memset(buf_, 0, sizeof(buf_));
+}
+
+inline IPAddress::IPAddress(const sockaddr_in* saddr)
+{
+    family_ = AF_INET;
+    cstr_[0] = '\0';
+    memcpy(buf_, &saddr->sin_addr, sizeof(saddr->sin_addr));
+}
+
+inline IPAddress::IPAddress(const sockaddr_in6* saddr)
+{
+    family_ = AF_INET6;
+    cstr_[0] = '\0';
+    memcpy(buf_, &saddr->sin6_addr, sizeof(saddr->sin6_addr));
 }
 
 // I suggest to use a very strict IP filter to prevent spoofing or injection
