@@ -1,6 +1,10 @@
 
 ### Incomplete Flow Rewrite TODO
 
+- flowtool: auto-add source string as 2nd arg to `assert` + `assert_fail` handlers, via old onParseComplete hook
+- array type support or an alternative to express `compress.types(StringArray)`
+- IPv6 support in Cidr.contains(IPAddress)
+
 - 'match' stmt
   - DONE: AST
   - DONE: syntax
@@ -14,14 +18,13 @@
 - DONE: codegen: native function
 - DONE: codegen: custom handler invokation
 - DONE: sema: native handler/function signature check (as a pass between parse and codegen)
-- flowtool: auto-add source string as 2nd arg to `assert` + `assert_fail` handlers, via old onParseComplete hook
 
 - data type code generation (for passing data to native functions/handlers)
   - DONE: number
   - DONE: boolean
   - DONE: string
   - DONE: ipaddr
-  - cidr
+  - DONE: cidr
 
 - expression operator implementation
   - DONE: `expr and expr`
@@ -30,8 +33,9 @@
   - DONE: `bool == bool`
   - DONE: `bool != bool`
   - DONE: (num, num): `== != < > <= >= + - * / mod shl shr & | ^ **`
-  - (string, string): `== != < > <= >= + in`
-  - (ip, ip): `== !=`
-  - (cidr, cidr): `== != in`
-  - (ip, cidr): `in`
-  - (string, regex): `=~`
+  - DONE: (string, string): `== != < > <= >= + in`
+  - DONE: (ip, ip): `== !=`
+  - DONE: (cidr, cidr): `== !=`
+  - DONE: (ip, cidr): `in`
+  - DONE: (string, regex): `=~`
+
