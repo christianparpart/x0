@@ -44,6 +44,8 @@ public:
 
 	bool set(const std::string& text, int family);
 
+    void clear();
+
 	int family() const;
 	const void *data() const;
 	size_t size() const;
@@ -124,6 +126,13 @@ inline bool IPAddress::set(const std::string& text, int family)
 	}
     strncpy(cstr_, text.c_str(), sizeof(cstr_));
 	return true;
+}
+
+inline void IPAddress::clear()
+{
+    family_ = 0;
+    cstr_[0] = 0;
+    memset(buf_, 0, sizeof(buf_));
 }
 
 inline int IPAddress::family() const
