@@ -132,9 +132,9 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 	mainFunction("req.is_secure", &XzeroCore::req_is_secure).returnType(FlowType::Boolean);
 	mainFunction("req.scheme", &XzeroCore::req_scheme).returnType(FlowType::String);
 	mainFunction("req.status", &XzeroCore::req_status_code).returnType(FlowType::Number);
-	mainFunction("req.remoteip", &XzeroCore::conn_remote_ip).returnType(FlowType::String);
+	mainFunction("req.remoteip", &XzeroCore::conn_remote_ip).returnType(FlowType::IPAddress);
 	mainFunction("req.remoteport", &XzeroCore::conn_remote_port).returnType(FlowType::Number);
-	mainFunction("req.localip", &XzeroCore::conn_local_ip).returnType(FlowType::String);
+	mainFunction("req.localip", &XzeroCore::conn_local_ip).returnType(FlowType::IPAddress);
 	mainFunction("req.localport", &XzeroCore::conn_local_port).returnType(FlowType::Number);
 	mainFunction("phys.path", &XzeroCore::phys_path).returnType(FlowType::String);
 	mainFunction("phys.exists", &XzeroCore::phys_exists).returnType(FlowType::Boolean);
@@ -621,7 +621,7 @@ void XzeroCore::req_status_code(HttpRequest* in, FlowParams& args)
 // {{{ connection
 void XzeroCore::conn_remote_ip(HttpRequest* in, FlowParams& args)
 {
-	args.setResult(in->connection.remoteIP());
+	args.setResult(&in->connection.remoteIP());
 }
 
 void XzeroCore::conn_remote_port(HttpRequest* in, FlowParams& args)
@@ -631,7 +631,7 @@ void XzeroCore::conn_remote_port(HttpRequest* in, FlowParams& args)
 
 void XzeroCore::conn_local_ip(HttpRequest* in, FlowParams& args)
 {
-	args.setResult(in->connection.localIP());
+	args.setResult(&in->connection.localIP());
 }
 
 void XzeroCore::conn_local_port(HttpRequest* in, FlowParams& args)
