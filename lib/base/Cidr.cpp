@@ -29,7 +29,7 @@ bool Cidr::contains(const IPAddress& ipaddr) const
         return false;
 
     // IPv4
-    if (ipaddr.family() == AF_INET) {
+    if (ipaddr.family() == IPAddress::V4) {
         uint32_t ip = *(uint32_t*) ipaddr.data();
         uint32_t subnet = *(uint32_t*) address().data();
         uint32_t match = ip & (0xFFFFFFFF >> (32 - prefix()));
