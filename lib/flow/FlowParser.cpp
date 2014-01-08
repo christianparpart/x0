@@ -307,16 +307,17 @@ Opcode makeOperator(FlowToken token, Expr* e)
             {FlowToken::NumberType, Opcode::S2I},
             {FlowToken::StringType, Opcode::NOP},
         }},
+        {FlowType::IPAddress, {
+            {FlowToken::StringType, Opcode::P2S},
+            {FlowToken::IPType, Opcode::NOP},
+        }},
+        {FlowType::Cidr, {
+            {FlowToken::StringType, Opcode::C2S},
+            {FlowToken::CidrType, Opcode::NOP},
+        }},
 #if 0 // TODO
         {FlowType::RegExp, {
             {FlowToken::StringType, Opcode::REGEXP2S},
-        }},
-        {FlowType::IPAddress, {
-            {FlowToken::StringType, Opcode::IP2S},
-            {FlowToken::IP, Opcode::NOP},
-        }},
-        {FlowType::Cidr, {
-            {FlowToken::StringType, Opcode::CIDR2S},
         }},
 #endif
     };

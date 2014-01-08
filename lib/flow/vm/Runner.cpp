@@ -174,6 +174,8 @@ bool Runner::run()
         // conversion
         [Opcode::S2I] = &&l_s2i,
         [Opcode::I2S] = &&l_i2s,
+        [Opcode::P2S] = &&l_p2s,
+        [Opcode::C2S] = &&l_c2s,
         [Opcode::SURLENC] = &&l_surlenc,
         [Opcode::SURLDEC] = &&l_surldec,
 
@@ -493,6 +495,18 @@ bool Runner::run()
         } else {
             data_[A] = (Register) emptyString();
         }
+        next;
+    }
+
+    instr (p2s) { // A = ip(B).toString()
+        const IPAddress& ipaddr = toIPAddress(B);
+        data_[A] = (Register) newString(ipaddr.str());
+        next;
+    }
+
+    instr (c2s) { // A = cidr(B).toString()
+        const Cidr& cidr = toCidr(B);
+        data_[A] = (Register) newString(cidr.str());
         next;
     }
 

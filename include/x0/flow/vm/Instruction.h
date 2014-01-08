@@ -83,6 +83,8 @@ enum Opcode {
 
     // conversion
     I2S,            // A = itoa(B)
+    P2S,            // A = ip(B).toString();
+    C2S,            // A = cidr(B).toString();
     S2I,            // A = atoi(B)
     SURLENC,        // A = urlencode(B)
     SURLDEC,        // A = urldecode(B)
@@ -206,6 +208,8 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::SREGGROUP] = InstructionSig::RR,
         // conversion
         [Opcode::I2S]       = InstructionSig::RR,
+        [Opcode::P2S]       = InstructionSig::RR,
+        [Opcode::C2S]       = InstructionSig::RR,
         [Opcode::S2I]       = InstructionSig::RR,
         [Opcode::SURLENC]   = InstructionSig::RR,
         [Opcode::SURLDEC]   = InstructionSig::RR,
@@ -283,6 +287,8 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::SREGGROUP] = "SREGGROUP",
         // conversion
         [Opcode::I2S]       = "I2S",
+        [Opcode::P2S]       = "P2S",
+        [Opcode::C2S]       = "C2S",
         [Opcode::S2I]       = "S2I",
         [Opcode::SURLENC]   = "SURLENC",
         [Opcode::SURLDEC]   = "SURLDEC",
@@ -360,6 +366,8 @@ inline FlowType resultType(Opcode opc) {
         [Opcode::SREGGROUP] = FlowType::String,
         // conversion
         [Opcode::I2S]       = FlowType::String,
+        [Opcode::P2S]       = FlowType::String,
+        [Opcode::C2S]       = FlowType::String,
         [Opcode::S2I]       = FlowType::Number,
         [Opcode::SURLENC]   = FlowType::String,
         [Opcode::SURLDEC]   = FlowType::String,
