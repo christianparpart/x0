@@ -344,32 +344,32 @@ FlowType BinaryExpr::getType() const
     return resultType(op());
 }
 
-template<> FlowType LiteralExpr<RegExp>::getType() const
+template<> X0_API FlowType LiteralExpr<RegExp>::getType() const
 {
     return FlowType::RegExp;
 }
 
-template<> FlowType LiteralExpr<Cidr>::getType() const
+template<> X0_API FlowType LiteralExpr<Cidr>::getType() const
 {
     return FlowType::Cidr;
 }
 
-template<> FlowType LiteralExpr<bool>::getType() const
+template<> X0_API FlowType LiteralExpr<bool>::getType() const
 {
     return FlowType::Boolean;
 }
 
-template<> FlowType LiteralExpr<IPAddress>::getType() const
+template<> X0_API FlowType LiteralExpr<IPAddress>::getType() const
 {
     return FlowType::IPAddress;
 }
 
-template<> FlowType LiteralExpr<long long>::getType() const
+template<> X0_API FlowType LiteralExpr<long long>::getType() const
 {
     return FlowType::Number;
 }
 
-template<> FlowType LiteralExpr<std::string>::getType() const
+template<> X0_API FlowType LiteralExpr<std::string>::getType() const
 {
     return FlowType::String;
 }
