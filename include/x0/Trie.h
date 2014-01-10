@@ -7,7 +7,7 @@
  */
 
 #ifndef x0_trie_h
-#define x0_trie_H
+#define x0_trie_h
 
 #include <x0/Api.h>
 #include <stdexcept>
