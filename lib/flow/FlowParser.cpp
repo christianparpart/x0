@@ -1016,11 +1016,13 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 	if (!e)
 		return nullptr;
 
-    result = asString(std::move(result));
-    if (!result) {
+    e = asString(std::move(e));
+    if (!e) {
         reportError("Cast error in string interpolation.");
         return nullptr;
     }
+
+    result = std::make_unique<BinaryExpr>(Opcode::SADD, std::move(result), std::move(e));
 
 	while (token() == FlowToken::InterpolatedStringFragment) {
 		FlowLocation tloc = sloc.update(end());
