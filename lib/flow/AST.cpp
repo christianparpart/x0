@@ -104,6 +104,22 @@ void ParamList::push_back(std::unique_ptr<Expr>&& arg)
     values_.push_back(arg.release());
 }
 
+bool ParamList::replace(const std::string& name, std::unique_ptr<Expr>&& value)
+{
+    assert(!names_.empty() && "Cannot mix unnamed with named parameters.");
+    for (size_t i = 0, e = names_.size(); i != e; ++i) {
+        if (names_[i] == name) {
+            delete values_[i];
+            values_[i] = value.release();
+            return true;
+        }
+    }
+
+    names_.push_back(name);
+    values_.push_back(value.release());
+    return false;
+}
+
 bool ParamList::contains(const std::string& name) const
 {
     for (const auto& arg: names_)
