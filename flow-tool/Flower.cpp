@@ -13,6 +13,7 @@
 #include <x0/flow/vm/Runtime.h>
 #include <x0/flow/vm/NativeCallback.h>
 #include <x0/flow/vm/Runner.h>
+#include <x0/flow/FlowCallVisitor.h>
 #include <fstream>
 #include <memory>
 #include <utility>
@@ -69,7 +70,8 @@ Flower::Flower() :
 //	registerHandler("finish", &flow_finish); // XXX rename to 'success'
 
 	registerHandler("assert")
-		.params(FlowType::Boolean, FlowType::String)
+		.param<bool>("condition")
+        .param<FlowString>("description", "")
 		.bind(&Flower::flow_assert);
 
 //	registerHandler("assert_fail", &flow_assertFail);
@@ -89,23 +91,21 @@ bool Flower::import(const std::string& name, const std::string& path)
 
 bool Flower::onParseComplete(Unit* unit)
 {
-	std::list<Symbol*> calls;
-	printf("Flower.onParseComplete()\n");
+    FlowCallVisitor callv(unit);
 
-#if 0 // TODO
-	for (auto& call: FlowCallIterator(unit)) {
-		if (call->callee()->name() != "assert" && call->callee()->name() != "assert_fail")
-			continue;
+    for (auto& call: callv.handlerCalls()) {
+        if (call->callee()->name() != "assert" && call->callee()->name() != "assert_fail")
+            continue;
 
-		ListExpr* args = call->args();
-		if (args->empty()) continue;
+        ParamList& args = call->args();
+        if (args.empty())
+            continue;
 
-		// add a string argument that equals the expression's source code
-		Expr* arg = args->at(0);
-		std::string source = arg->sourceLocation().text();
-		args->push_back(new StringExpr(source, SourceLocation()));
-	}
-#endif
+        // add a string argument that equals the expression's source code
+        Expr* arg = args.values()[0];
+        std::string source = arg->location().text();
+        args.replace("description", std::make_unique<StringExpr>(source, FlowLocation()));
+    }
 
 	return true;
 }
@@ -168,6 +168,8 @@ int Flower::run(const char* fileName, const char* handlerName)
 		fprintf(stderr, "Failed to parse file: %s\n", fileName);
 		return -1;
 	}
+
+    onParseComplete(unit.get());
 
 	if (dumpAST_)
 		ASTPrinter::print(unit.get());
@@ -232,7 +234,8 @@ void Flower::flow_log(FlowVM::Params& args)
 
 void Flower::flow_assert(FlowVM::Params& args)
 {
-	const FlowString* sourceValue = args.get<FlowString*>(args.size() - 1);
+	const FlowString* sourceValue = args.get<FlowString*>(2);
+    printf("argc: %d\n", args.size());
 
     if (!args.get<bool>(1)) {
 		printf("[   FAILED ] %s\n", sourceValue->str().c_str());
