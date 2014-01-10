@@ -300,9 +300,10 @@ FlowToken FlowLexer::nextToken()
 	location_.filename = scope()->filename;
 	location_.begin = scope()->currPos;
 
-	TRACE(2, "nextToken(): currentChar %s curr[%zu:%zu.%zu] next[%zu:%zu.%zu]%s",
+	TRACE(2, "nextToken(): currentChar %s curr[%zu:%zu.%zu] curr_tok(%s) next[%zu:%zu.%zu]%s",
 		escape(currentChar_).c_str(),
 		scope()->currPos.line, scope()->currPos.column, scope()->currPos.offset,
+        token().c_str(),
 		scope()->nextPos.line, scope()->nextPos.column, scope()->nextPos.offset,
 		expectsValue ? " expectsValue" : ""
 	);
