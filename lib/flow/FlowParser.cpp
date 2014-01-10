@@ -1437,9 +1437,11 @@ bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
                 case FlowType::Number:
                     args.push_back(name, std::make_unique<NumberExpr>((FlowNumber) defaultValue));
                     break;
-                case FlowType::String:
-                    args.push_back(name, std::make_unique<StringExpr>(*(std::string*) defaultValue));
+                case FlowType::String: {
+                    const FlowString* s = (FlowString*) defaultValue;
+                    args.push_back(name, std::make_unique<StringExpr>(s->str()));
                     break;
+                }
                 case FlowType::IPAddress:
                     args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
                     break;
