@@ -92,7 +92,7 @@ bool Runner::run()
 
     #define instr(name) \
         l_##name: \
-        disassemble(*pc, pc - code.data()); \
+        /*disassemble(*pc, pc - code.data());*/ \
         ++ticks;
 
     #define next goto *ops[opcode(*++pc)]
