@@ -98,8 +98,7 @@ bool Flower::onParseComplete(Unit* unit)
             continue;
 
         ParamList& args = call->args();
-        if (args.empty())
-            continue;
+        assert(args.size() == 2);
 
         // add a string argument that equals the expression's source code
         Expr* arg = args.values()[0];
@@ -235,7 +234,6 @@ void Flower::flow_log(FlowVM::Params& args)
 void Flower::flow_assert(FlowVM::Params& args)
 {
 	const FlowString* sourceValue = args.get<FlowString*>(2);
-    printf("argc: %d\n", args.size());
 
     if (!args.get<bool>(1)) {
 		printf("[   FAILED ] %s\n", sourceValue->str().c_str());
