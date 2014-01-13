@@ -19,6 +19,7 @@
 #include <utility>
 #include <cstdio>
 #include <cassert>
+#include <cstring>
 
 using namespace x0;
 
@@ -153,10 +154,16 @@ int Flower::runAll(const char *fileName)
     }
 
     for (auto handler: program_->handlers()) {
+        if (strncmp(handler->name().c_str(), "test_", 5) != 0)
+            continue;
+
         printf("[ -------- ] Testing %s\n", handler->name().c_str());
         totalCases_++;
+
         bool failed = handler->run(nullptr);
-        if (failed) totalFailed_++;
+        if (failed)
+            totalFailed_++;
+
         printf("[ -------- ] %s\n\n", failed ? "FAILED" : "OK");
     }
 
