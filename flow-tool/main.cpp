@@ -162,8 +162,6 @@ int main(int argc, const char *argv[])
 		} else {
 			flower.run(fileName, handlerName);
 		}
-
-		flower.clear();
 	}
 
 	return rv;

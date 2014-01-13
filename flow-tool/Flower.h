@@ -50,7 +50,6 @@ public:
 	int run(const char *filename, const char *handler);
 	int runAll(const char *filename);
 	void dump();
-	void clear();
 
 private:
 	bool onParseComplete(x0::Unit* unit);

@@ -45,9 +45,6 @@ Flower::Flower() :
 	dumpAST_(false),
 	dumpIR_(false)
 {
-//	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
-//	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
-
     // properties
     registerFunction("cwd", FlowType::String).bind(&Flower::flow_getcwd);
 
@@ -240,11 +237,6 @@ void Flower::dump()
     program_->dump();
 }
 
-void Flower::clear()
-{
-	//runner_.clear();
-}
-
 void Flower::flow_print(FlowVM::Params& args)
 {
 	printf("%s\n", args.get<FlowString*>(1)->str().c_str());
@@ -318,47 +310,3 @@ void Flower::flow_assertFail(FlowVM::Params& args)
         args.setResult(false);
     }
 }
-
-#if 0
-bool Flower::printValue(const FlowValue& value, bool lf)
-{
-	switch (value.type_)
-	{
-		case FlowValue::BOOLEAN:
-			printf(value.toBool() ? "true" : "false");
-			break;
-		case FlowValue::NUMBER:
-			printf("%lld", value.toNumber());
-			break;
-		case FlowValue::STRING:
-			printf("%s", value.toString());
-			break;
-		case FlowValue::BUFFER: {
-			long long length = value.toNumber();
-			const char *p = value.toString();
-			std::string data(p, p + length);
-			printf("buffer.len  : %lld\n", length);
-			printf("buffer.data : %s\n", data.c_str());
-			break;
-		}
-		case FlowValue::ARRAY: {
-			const FlowArray& p = value.toArray();
-			printf("(");
-			for (size_t k = 0, ke = p.size(); k != ke; ++k) {
-				if (k) printf(", ");
-				printValue(p[k], false);
-			}
-			printf(")");
-
-			break;
-		}
-		default:
-			return false;
-	}
-
-	if (lf)
-		printf("\n");
-
-	return true;
-}
-#endif
