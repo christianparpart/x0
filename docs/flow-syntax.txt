@@ -46,7 +46,7 @@ IP6_HEXSEQ      ::= 1*4HEXDIGIT *(':' 1*4HEXDIGIT)
 
 CAST_TYPE       ::= 'string' | 'int' | 'bool'
 
-IPL_STRING      ::= '"' (interpolatedChar* '#{' expr '}')* interpolatedChar* '"'
+IPL_STRING      ::= '"' (interpolatedChar* '${' expr '}')* interpolatedChar* '"'
 IPL_CHAR        ::= any char except '#' with escapes enabled
 
 

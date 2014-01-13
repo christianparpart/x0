@@ -16,7 +16,7 @@ struct X0_API FlowToken
 		// literals
 		Boolean, Number, String, RawString, RegExp, IP, Cidr,
         NamedParam,
-		InterpolatedStringFragment, // "hello #{" or "} world #{"
+		InterpolatedStringFragment, // "hello ${" or "} world ${"
 		InterpolatedStringEnd,      // "} end"
 
 		// symbols
