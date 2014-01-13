@@ -53,7 +53,7 @@ struct X0_API FlowLocation // {{{
 	FlowLocation& update(const FilePos& endPos) { end = endPos; return *this; }
 	FlowLocation& update(const FlowLocation& endLocation) { end = endLocation.end; return *this; }
 
-	std::string dump(const std::string& prefix = std::string()) const;
+	std::string str() const;
 	std::string text() const;
 }; // }}}
 

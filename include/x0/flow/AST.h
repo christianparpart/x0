@@ -359,9 +359,12 @@ public:
     const std::vector<std::string>& names() const { return names_; }
     const std::vector<Expr*> values() const { return values_; }
 
+    Expr* front() const { return values_.front(); }
     Expr* back() const { return values_.back(); }
 
     void dump(const char* title = nullptr);
+
+    FlowLocation location() const;
 };
 
 class X0_API FunctionCall : public Expr {

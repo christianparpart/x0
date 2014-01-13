@@ -1222,7 +1222,7 @@ bool XzeroDaemon::validate(const std::string& context, const std::vector<T*>& ca
 
 		if (std::find(api.begin(), api.end(), i->callee()->name()) == api.end()) {
 			log(Severity::error, "Illegal call to '%s' found within %s-handler (or its callees).", i->callee()->name().c_str(), context.c_str());
-			log(Severity::error, "%s", i->location().dump().c_str());
+			log(Severity::error, "%s", i->location().str().c_str());
             return false;
 		}
 	}

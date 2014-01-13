@@ -7,11 +7,10 @@
 
 namespace x0 {
 
-std::string FlowLocation::dump(const std::string& prefix) const
+std::string FlowLocation::str() const
 {
-	char buf[4096];
-	std::size_t n = snprintf(buf, sizeof(buf), "%s: { %zu:%zu.%zu - %zu:%zu.%zu }",
-		!prefix.empty() ? prefix.c_str() : "location",
+	char buf[256];
+	std::size_t n = snprintf(buf, sizeof(buf), "{ %zu:%zu.%zu - %zu:%zu.%zu }",
 		begin.line, begin.column, begin.offset,
 		end.line, end.column, end.offset);
 	return std::string(buf, n);

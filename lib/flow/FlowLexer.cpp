@@ -297,6 +297,8 @@ FlowToken FlowLexer::nextToken()
 	if (!consumeSpace())
 		return token_ = FlowToken::Eof;
 
+    lastLocation_ = location_;
+
 	location_.filename = scope()->filename;
 	location_.begin = scope()->currPos;
 

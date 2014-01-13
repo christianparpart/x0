@@ -364,12 +364,19 @@ FlowToken FlowParser::nextToken() const
 	return lexer_->nextToken();
 }
 
-bool FlowParser::consume(FlowToken value)
+bool FlowParser::expect(FlowToken value)
 {
 	if (token() != value) {
 		reportError("Unexpected token '%s' (expected: '%s')", token().c_str(), value.c_str());
 		return false;
 	}
+    return true;
+}
+
+bool FlowParser::consume(FlowToken value)
+{
+    if (!expect(value))
+        return false;
 
 	nextToken();
 	return true;
@@ -977,6 +984,7 @@ std::unique_ptr<ParamList> FlowParser::paramList()
 
             args->push_back(std::move(e));
         }
+        printf("paramList's end location: %s\n", args->location().str().c_str());
         return args;
     }
 }
@@ -1049,8 +1057,7 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 		result = std::make_unique<BinaryExpr>(Opcode::SADD, std::move(result), std::move(e));
 	}
 
-    if (token() != FlowToken::InterpolatedStringEnd) {
-		reportError("Unexpected token '%s' (expected: '%s')", token().c_str(), FlowToken(FlowToken::InterpolatedStringEnd).c_str());
+    if (!expect(FlowToken::InterpolatedStringEnd)) {
         return nullptr;
     }
 
@@ -1100,7 +1107,7 @@ std::unique_ptr<Expr> FlowParser::castExpr()
         return e;
     }
 
-    printf("Type cast from %s to %s: %s\n", tos(e->getType()).c_str(), targetTypeToken.c_str(), mnemonic(targetType));
+    //printf("Type cast from %s to %s: %s\n", tos(e->getType()).c_str(), targetTypeToken.c_str(), mnemonic(targetType));
 	return std::make_unique<UnaryExpr>(targetType, std::move(e), sloc.update(end()));
 }
 // }}}
@@ -1329,14 +1336,17 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 		}
         case Symbol::BuiltinHandler: {
             HandlerCall* call = new HandlerCall(loc, (BuiltinHandler*) callee);
-            if (!callArgs(loc, call->callee(), call->args()))
+            if (!callArgs(call, call->callee(), call->args()))
                 return nullptr;
+            printf("call location   : %s\n", call->location().str().c_str());
+            printf("params location : %s\n", call->args().location().str().c_str());
+            //printf("location: %zu:%zu\n", call->location().end.line, call->location().end.column);
             stmt.reset(call);
             break;
         }
         case Symbol::BuiltinFunction: {
             std::unique_ptr<FunctionCall> call = std::make_unique<FunctionCall>(loc, (BuiltinFunction*) callee);
-            if (!callArgs(loc, call->callee(), call->args()))
+            if (!callArgs(call.get(), call->callee(), call->args()))
                 return nullptr;
             stmt = std::make_unique<ExprStmt>(std::move(call));
             break;
@@ -1358,6 +1368,8 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			stmt->location().update(end());
 			return stmt;
 		default:
+			printf("stmt location  : %s\n", stmt->location().str().c_str());
+            printf("lexer location : %s\n", lexer_->location().str().c_str());
 			if (stmt->location().end.line != lexer_->line())
 				return stmt;
 
@@ -1376,7 +1388,7 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
  * @retval false Parsing or sema checks failed.
  * @retval true  Parsing and sema checks succeed.
  */
-bool FlowParser::callArgs(const FlowLocation& loc, Callable* callee, ParamList& args)
+bool FlowParser::callArgs(ASTNode* call, Callable* callee, ParamList& args)
 {
     // callArgs ::= '(' paramList ')'
     //            | paramList           /* if starting on same line */
@@ -1392,13 +1404,15 @@ bool FlowParser::callArgs(const FlowLocation& loc, Callable* callee, ParamList& 
             }
             args = std::move(*ra);
         }
+        call->location().end = location().end;
         consume(FlowToken::RndClose);
-    } else if (lexer_->line() == loc.begin.line) {
+    } else if (lexer_->line() == lastLocation().end.line) {
         auto ra = paramList();
         if (!ra) {
             return false;
         }
         args = std::move(*ra);
+        call->location().end = args.location().end;
     }
 
     if (args.isNamed()) {
@@ -1521,39 +1535,41 @@ bool FlowParser::verifyParamsPositional(const Callable* callee, ParamList& args)
 
 bool FlowParser::completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name)
 {
+    FlowLocation loc = FlowLocation(location().filename, location().begin, location().begin);
+
     switch (type) {
         case FlowType::Boolean:
             if (args.isNamed())
-                args.push_back(name, std::make_unique<BoolExpr>((bool) defaultValue));
+                args.push_back(name, std::make_unique<BoolExpr>((bool) defaultValue, loc));
             else
-                args.push_back(std::make_unique<BoolExpr>((bool) defaultValue));
+                args.push_back(std::make_unique<BoolExpr>((bool) defaultValue, loc));
             break;
         case FlowType::Number:
             if (args.isNamed())
-                args.push_back(name, std::make_unique<NumberExpr>((FlowNumber) defaultValue));
+                args.push_back(name, std::make_unique<NumberExpr>((FlowNumber) defaultValue, loc));
             else
-                args.push_back(std::make_unique<NumberExpr>((FlowNumber) defaultValue));
+                args.push_back(std::make_unique<NumberExpr>((FlowNumber) defaultValue, loc));
             break;
         case FlowType::String: {
             const FlowString* s = (FlowString*) defaultValue;
             //printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n", name.c_str(), tos(type).c_str(), s->str().c_str());
             if (args.isNamed())
-                args.push_back(name, std::make_unique<StringExpr>(s->str()));
+                args.push_back(name, std::make_unique<StringExpr>(s->str(), loc));
             else
-                args.push_back(std::make_unique<StringExpr>(s->str()));
+                args.push_back(std::make_unique<StringExpr>(s->str(), loc));
             break;
         }
         case FlowType::IPAddress:
             if (args.isNamed())
-                args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
+                args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue, loc));
             else
-                args.push_back(std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
+                args.push_back(std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue, loc));
             break;
         case FlowType::Cidr:
             if (args.isNamed())
-                args.push_back(name, std::make_unique<CidrExpr>(*(Cidr*) defaultValue));
+                args.push_back(name, std::make_unique<CidrExpr>(*(Cidr*) defaultValue, loc));
             else
-                args.push_back(std::make_unique<CidrExpr>(*(Cidr*) defaultValue));
+                args.push_back(std::make_unique<CidrExpr>(*(Cidr*) defaultValue, loc));
             break;
         default:
             return false;

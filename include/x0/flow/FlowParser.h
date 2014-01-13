@@ -55,10 +55,12 @@ private:
 
 	// lexing
 	FlowToken token() const { return lexer_->token(); }
+	const FlowLocation& lastLocation() { return lexer_->lastLocation(); }
 	const FlowLocation& location() { return lexer_->location(); }
 	const FilePos& end() const { return lexer_->location().end; }
 	FlowToken nextToken() const;
 	bool eof() const { return lexer_->eof(); }
+	bool expect(FlowToken token);
 	bool consume(FlowToken);
 	bool consumeIf(FlowToken);
 	bool consumeUntil(FlowToken);
@@ -133,7 +135,7 @@ private:
 	std::unique_ptr<Stmt> matchStmt();
 	std::unique_ptr<Stmt> compoundStmt();
 	std::unique_ptr<Stmt> callStmt();
-    bool callArgs(const FlowLocation& loc, Callable* callee, ParamList& args);
+    bool callArgs(ASTNode* call, Callable* callee, ParamList& args);
     bool verifyParamsNamed(const Callable* callee, ParamList& args);
     bool verifyParamsPositional(const Callable* callee, ParamList& args);
     bool completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name);

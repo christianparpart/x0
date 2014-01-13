@@ -28,6 +28,7 @@ public:
 
 	// current parser state
 	FlowToken token() const { return token_; }
+	const FlowLocation& lastLocation() const { return lastLocation_; }
 	const FlowLocation& location() const { return location_; }
 
 	const std::string& filename() const { return location_.filename; }
@@ -73,6 +74,7 @@ private:
 	int currentChar_;
 	size_t ipv6HexDigits_;
 
+	FlowLocation lastLocation_;
 	FlowLocation location_;
 	FlowToken token_;
 	std::string stringValue_;

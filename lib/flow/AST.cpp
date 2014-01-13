@@ -220,6 +220,17 @@ int ParamList::find(const std::string& name) const
     }
     return -1;
 }
+
+FlowLocation ParamList::location() const {
+    if (values_.empty())
+        return FlowLocation();
+
+    return FlowLocation(
+        front()->location().filename,
+        front()->location().begin,
+        back()->location().end
+    );
+}
 // }}}
 
 void Variable::visit(ASTVisitor& v)
