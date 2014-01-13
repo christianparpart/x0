@@ -29,9 +29,9 @@ int usage(const char *program)
 		"usage: %s [-h] [-t] [-l] [-s] [-L] [-e entry_point] filename\n"
 		"\n"
 		"    -h      prints this help\n"
-		"    -L      dumps IR of the compiled module\n"
-		"    -l      Dump lexical output and exit\n"
-		"    -S      Dump AST after parsing process\n"
+		"    -I      dumps IR of the compiled module\n"
+		"    -L      Dump lexical output and exit\n"
+		"    -T      Dump AST after parsing process\n"
 		"    -e      entry point to start execution from. if not passed, nothing will be executed.\n"
 		"    -On     set optimization level, with n ranging from 0 (no optimization) to 4 (maximum).\n"
 		"    -t      enables unit-test mode\n"
@@ -108,24 +108,24 @@ int main(int argc, const char *argv[])
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)
 	if (argc == 1) {
-		static const char* debugArgs[] = { argv[0], "-S", "-L", "-e", "main", "./parse.flow", nullptr };
+		static const char* debugArgs[] = { argv[0], "-I", "-T", "-e", "main", "./parse.flow", nullptr };
 		argc = sizeof(debugArgs) / sizeof(*debugArgs) - 1;
 		argv = debugArgs;
 	}
 #endif
 
-	while ((opt = getopt(argc, (char**) argv, "tO:hSLe:l")) != -1) {
+	while ((opt = getopt(argc, (char**) argv, "tO:hILTe:")) != -1) {
 		switch (opt) {
 		case 'h':
 			usage(argv[0]);
 			return 0;
-		case 'L':
+		case 'I':
 			flower.setDumpIR(true);
 			break;
-		case 'l':
+		case 'L':
 			lexMode = true;
 			break;
-		case 'S':
+		case 'T':
 			flower.setDumpAST(true);
 			break;
 		case 't':
