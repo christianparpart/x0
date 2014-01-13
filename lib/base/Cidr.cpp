@@ -37,8 +37,25 @@ bool Cidr::contains(const IPAddress& ipaddr) const
         return match == subnet;
     }
 
-    // IPv6 TODO
-    return false;
+    // IPv6
+    int bits = prefix();
+    const uint32_t* words = (const uint32_t*) address().data();
+    const uint32_t* input = (const uint32_t*) ipaddr.data();
+    while (bits >= 32) {
+        uint32_t match = *words & 0xFFFFFFFF;
+        if (match != *input)
+            return false;
+
+        words++;
+        input++;
+        bits -= 32;
+    }
+
+    uint32_t match = *words & 0xFFFFFFFF >> (32 - bits);
+    if (match != *input)
+        return false;
+
+    return true;
 }
 
 bool operator==(const Cidr& a, const Cidr& b)
