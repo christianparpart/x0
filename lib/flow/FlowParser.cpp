@@ -931,6 +931,8 @@ std::unique_ptr<ParamList> FlowParser::paramList()
     // paramList       ::= namedExpr *(',' namedExpr)
     //                   | expr *(',' expr)
 
+    FNTRACE();
+
     if (token() == FlowToken::NamedParam) {
         std::unique_ptr<ParamList> args(new ParamList(true));
         std::string name;
@@ -1047,8 +1049,10 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 		result = std::make_unique<BinaryExpr>(Opcode::SADD, std::move(result), std::move(e));
 	}
 
-	if (!consume(FlowToken::InterpolatedStringEnd))
-		return nullptr;
+    if (token() != FlowToken::InterpolatedStringEnd) {
+		reportError("Unexpected token '%s' (expected: '%s')", token().c_str(), FlowToken(FlowToken::InterpolatedStringEnd).c_str());
+        return nullptr;
+    }
 
 	if (!stringValue().empty()) {
 		result = std::make_unique<BinaryExpr>(
@@ -1057,7 +1061,9 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 			std::make_unique<StringExpr>(stringValue(), sloc.update(end()))
 		);
 	}
-	nextToken();
+
+	nextToken(); // skip InterpolatedStringEnd
+
 	return result;
 }
 
@@ -1374,6 +1380,8 @@ bool FlowParser::callArgs(const FlowLocation& loc, Callable* callee, ParamList& 
 {
     // callArgs ::= '(' paramList ')'
     //            | paramList           /* if starting on same line */
+
+    FNTRACE();
 
     if (token() == FlowToken::RndOpen) {
         nextToken();
