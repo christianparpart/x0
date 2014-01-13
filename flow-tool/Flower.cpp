@@ -98,8 +98,17 @@ bool Flower::onParseComplete(Unit* unit)
 
         // add a string argument that equals the expression's source code
         Expr* arg = args.values()[0];
+
+        if (StringExpr* descriptionExpr = dynamic_cast<StringExpr*>(args.values()[1])) {
+            std::string description = descriptionExpr->value();
+            if (!description.empty()) {
+                // XXX Preserve custom passed value.
+                continue;
+            }
+        }
+
         std::string source = arg->location().text();
-        args.replace("description", std::make_unique<StringExpr>(source, FlowLocation()));
+        args.replace(1, std::make_unique<StringExpr>(source, FlowLocation()));
     }
 
 	return true;

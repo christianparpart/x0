@@ -135,7 +135,8 @@ private:
 	std::unique_ptr<Stmt> callStmt();
     bool callArgs(const FlowLocation& loc, Callable* callee, ParamList& args);
     bool verifyParamsNamed(const Callable* callee, ParamList& args);
-    bool verifyParamsPositional(const Callable* callee, const ParamList& args);
+    bool verifyParamsPositional(const Callable* callee, ParamList& args);
+    bool completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name);
 	std::unique_ptr<Stmt> postscriptStmt(std::unique_ptr<Stmt> baseStmt);
 };
 

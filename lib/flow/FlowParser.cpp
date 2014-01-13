@@ -1438,28 +1438,10 @@ bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
                 return false;
             }
             FlowType type = native->signature().args()[i];
-            switch (type) {
-                case FlowType::Boolean:
-                    args.push_back(name, std::make_unique<BoolExpr>((bool) defaultValue));
-                    break;
-                case FlowType::Number:
-                    args.push_back(name, std::make_unique<NumberExpr>((FlowNumber) defaultValue));
-                    break;
-                case FlowType::String: {
-                    const FlowString* s = (FlowString*) defaultValue;
-                    args.push_back(name, std::make_unique<StringExpr>(s->str()));
-                    break;
-                }
-                case FlowType::IPAddress:
-                    args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
-                    break;
-                case FlowType::Cidr:
-                    args.push_back(name, std::make_unique<CidrExpr>(*(Cidr*) defaultValue));
-                    break;
-                default:
-                    reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
-                            name.c_str(), callee->name().c_str(), tos(type).c_str());
-                    return false;
+            if (!completeDefaultValue(args, type, defaultValue, name)) {
+                reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
+                        name.c_str(), callee->name().c_str(), tos(type).c_str());
+                return false;
             }
         }
     }
@@ -1483,8 +1465,42 @@ bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
     return true;
 }
 
-bool FlowParser::verifyParamsPositional(const Callable* callee, const ParamList& args)
+bool FlowParser::verifyParamsPositional(const Callable* callee, ParamList& args)
 {
+    // get the `native` to actually auto-complete possible default parameters
+    const FlowVM::NativeCallback* native = runtime_->find(callee->signature());
+
+    if (args.size() > native->signature().args().size()) {
+        reportError("Superfluous parameters to callee %s.", callee->signature().to_s().c_str());
+        return false;
+    }
+
+    for (size_t i = 0, e = args.size(); i != e; ++i) {
+        FlowType expectedType = native->signature().args()[i];
+        FlowType givenType = args.values()[i]->getType();
+        if (givenType != expectedType) {
+            reportError("Type mismatch in positional parameter %d, callee %s.",
+                i + 1, callee->signature().to_s().c_str());
+            return false;
+        }
+    }
+
+    for (size_t i = args.size(), e = callee->signature().args().size(); i != e; ++i) {
+        const void* defaultValue = native->getDefaultAt(i);
+        if (!defaultValue) {
+            reportError("No default value provided for positional parameter %d, callee %s.",
+                i + 1, callee->signature().to_s().c_str());
+            return false;
+        }
+        const std::string& name = native->getNameAt(i);
+        FlowType type = native->signature().args()[i];
+        if (!completeDefaultValue(args, type, defaultValue, name)) {
+            reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
+                    name.c_str(), callee->name().c_str(), tos(type).c_str());
+            return false;
+        }
+    }
+
     FlowVM::Signature sig;
     sig.setName(callee->name());
     sig.setReturnType(callee->signature().returnType()); // XXX cheetah
@@ -1500,6 +1516,49 @@ bool FlowParser::verifyParamsPositional(const Callable* callee, const ParamList&
         return false;
     }
 
+    return true;
+}
+
+bool FlowParser::completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name)
+{
+    switch (type) {
+        case FlowType::Boolean:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<BoolExpr>((bool) defaultValue));
+            else
+                args.push_back(std::make_unique<BoolExpr>((bool) defaultValue));
+            break;
+        case FlowType::Number:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<NumberExpr>((FlowNumber) defaultValue));
+            else
+                args.push_back(std::make_unique<NumberExpr>((FlowNumber) defaultValue));
+            break;
+        case FlowType::String: {
+            const FlowString* s = (FlowString*) defaultValue;
+            printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n",
+                    name.c_str(), tos(type).c_str(), s->str().c_str());
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<StringExpr>(s->str()));
+            else
+                args.push_back(std::make_unique<StringExpr>(s->str()));
+            break;
+        }
+        case FlowType::IPAddress:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
+            else
+                args.push_back(std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue));
+            break;
+        case FlowType::Cidr:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<CidrExpr>(*(Cidr*) defaultValue));
+            else
+                args.push_back(std::make_unique<CidrExpr>(*(Cidr*) defaultValue));
+            break;
+        default:
+            return false;
+    }
     return true;
 }
 
