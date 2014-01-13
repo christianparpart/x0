@@ -984,7 +984,6 @@ std::unique_ptr<ParamList> FlowParser::paramList()
 
             args->push_back(std::move(e));
         }
-        printf("paramList's end location: %s\n", args->location().str().c_str());
         return args;
     }
 }
@@ -1338,9 +1337,6 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
             HandlerCall* call = new HandlerCall(loc, (BuiltinHandler*) callee);
             if (!callArgs(call, call->callee(), call->args()))
                 return nullptr;
-            printf("call location   : %s\n", call->location().str().c_str());
-            printf("params location : %s\n", call->args().location().str().c_str());
-            //printf("location: %zu:%zu\n", call->location().end.line, call->location().end.column);
             stmt.reset(call);
             break;
         }
@@ -1368,8 +1364,6 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			stmt->location().update(end());
 			return stmt;
 		default:
-			printf("stmt location  : %s\n", stmt->location().str().c_str());
-            printf("lexer location : %s\n", lexer_->location().str().c_str());
 			if (stmt->location().end.line != lexer_->line())
 				return stmt;
 
