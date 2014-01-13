@@ -1536,8 +1536,7 @@ bool FlowParser::completeDefaultValue(ParamList& args, FlowType type, const void
             break;
         case FlowType::String: {
             const FlowString* s = (FlowString*) defaultValue;
-            printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n",
-                    name.c_str(), tos(type).c_str(), s->str().c_str());
+            //printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n", name.c_str(), tos(type).c_str(), s->str().c_str());
             if (args.isNamed())
                 args.push_back(name, std::make_unique<StringExpr>(s->str()));
             else
