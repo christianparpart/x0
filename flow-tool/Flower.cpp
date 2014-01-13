@@ -59,7 +59,9 @@ Flower::Flower() :
         .bind(&Flower::flow_log);
 
 	// unit test aiding handlers
-    registerHandler("error").bind(&Flower::flow_error);
+    registerHandler("error")
+        .param<FlowString>("message", "")
+        .bind(&Flower::flow_error);
     registerHandler("finish").bind(&Flower::flow_finish); // XXX rename to 'success'
 
     registerHandler("assert")
@@ -72,8 +74,15 @@ Flower::Flower() :
         .param<FlowString>("description", "")
         .bind(&Flower::flow_assertFail);
 
-    registerHandler("fail").bind(&Flower::flow_fail);
-    registerHandler("pass").bind(&Flower::flow_pass);
+    registerHandler("fail")
+        .param<FlowNumber>("a1", 0)
+        .param<FlowNumber>("a2", 0)
+        .bind(&Flower::flow_fail);
+
+    registerHandler("pass")
+        .param<FlowNumber>("a1", 0)
+        .param<FlowNumber>("a2", 0)
+        .bind(&Flower::flow_pass);
 }
 
 Flower::~Flower()
