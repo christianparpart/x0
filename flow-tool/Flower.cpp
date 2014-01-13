@@ -111,29 +111,62 @@ bool Flower::onParseComplete(Unit* unit)
 
 int Flower::runAll(const char *fileName)
 {
-	filename_ = fileName;
-//	if (!runner_.open(fileName)) {
-//		printf("Failed to load file: %s\n", fileName);
-//		return -1;
-//	}
+    filename_ = fileName;
 
-//	for (auto fn: runner_.getHandlerList()) {
-//		if (strncmp(fn->name().c_str(), "test_", 5) == 0) { // only consider handlers beginning with "test_"
-//			printf("[ -------- ] Testing %s\n", fn->name().c_str());
-//			totalCases_++;
-//			bool failed = runner_.invoke(fn);
-//			if (failed) totalFailed_++;
-//			printf("[ -------- ] %s\n\n", failed ? "FAILED" : "OK");
-//		}
-//	}
+    FlowParser parser(this);
 
-	printf("[ ======== ] %zu tests from %zu cases ran\n", totalSuccess_ + totalFailed_, totalCases_);
-	if (totalSuccess_)
-		printf("[  PASSED  ] %zu tests\n", totalSuccess_);
-	if (totalFailed_)
-		printf("[  FAILED  ] %zu tests\n", totalFailed_);
+    parser.importHandler = [&](const std::string& name, const std::string& basedir) -> bool {
+        fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
+        return false;
+    };
 
-	return totalFailed_;
+    if (!parser.open(fileName)) {
+        fprintf(stderr, "Failed to open file: %s\n", fileName);
+        return -1;
+    }
+
+    std::unique_ptr<Unit> unit = parser.parse();
+    if (!unit) {
+        fprintf(stderr, "Failed to parse file: %s\n", fileName);
+        return -1;
+    }
+
+    onParseComplete(unit.get());
+
+    if (dumpAST_)
+        ASTPrinter::print(unit.get());
+
+    program_ = FlowAssemblyBuilder::compile(unit.get());
+    if (!program_) {
+        fprintf(stderr, "Code generation failed. Aborting.\n");
+        return -1;
+    }
+
+    if (!program_->link(this)) {
+        fprintf(stderr, "Program linking failed. Aborting.\n");
+        return -1;
+    }
+
+    if (dumpIR_) {
+        printf("Dumping IR ...\n");
+        program_->dump();
+    }
+
+    for (auto handler: program_->handlers()) {
+        printf("[ -------- ] Testing %s\n", handler->name().c_str());
+        totalCases_++;
+        bool failed = handler->run(nullptr);
+        if (failed) totalFailed_++;
+        printf("[ -------- ] %s\n\n", failed ? "FAILED" : "OK");
+    }
+
+    printf("[ ======== ] %zu tests from %zu cases ran\n", totalSuccess_ + totalFailed_, totalCases_);
+    if (totalSuccess_)
+        printf("[  PASSED  ] %zu tests\n", totalSuccess_);
+    if (totalFailed_)
+        printf("[  FAILED  ] %zu tests\n", totalFailed_);
+
+    return totalFailed_;
 }
 
 int Flower::run(const char* fileName, const char* handlerName)
@@ -173,11 +206,6 @@ int Flower::run(const char* fileName, const char* handlerName)
 	if (dumpAST_)
 		ASTPrinter::print(unit.get());
 
-//	if (!vm_.compile(unit.get())) {
-//		fprintf(stderr, "Failed to compile file: %s\n", fileName);
-//		return -1;
-//	}
-
 	Handler* handlerSym = unit->findHandler(handlerName);
 	if (!handlerSym) {
 		fprintf(stderr, "No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
@@ -205,7 +233,6 @@ int Flower::run(const char* fileName, const char* handlerName)
 
     printf("Running handler %s ...\n", handlerName);
     return handler->run(nullptr /*userdata*/ );
-    //return false;
 }
 
 void Flower::dump()
