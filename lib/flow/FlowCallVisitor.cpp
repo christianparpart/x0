@@ -40,8 +40,10 @@ void FlowCallVisitor::accept(Variable& variable)
 
 void FlowCallVisitor::accept(Handler& handler)
 {
-    for (auto sym: *handler.scope()) {
-        visit(sym);
+    if (handler.scope()) {
+        for (auto sym: *handler.scope()) {
+            visit(sym);
+        }
     }
 
     visit(handler.body());
