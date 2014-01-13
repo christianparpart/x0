@@ -48,37 +48,35 @@ Flower::Flower() :
 //	runner_.setErrorHandler(std::bind(&reportError, "vm", std::placeholders::_1));
 //	runner_.onParseComplete = std::bind(&Flower::onParseComplete, this, std::placeholders::_1);
 
-	// properties
-//	registerProperty("cwd", FlowValue::STRING, &get_cwd);
+    // properties
+    registerFunction("cwd", FlowType::String).bind(&Flower::flow_getcwd);
 
-	// functions
-//	registerFunction("getenv", FlowValue::STRING, &flow_getenv);
-//	registerFunction("mkbuf", FlowValue::BUFFER, &flow_mkbuf);
-//	registerFunction("getbuf", FlowValue::BUFFER, &flow_getbuf);
-
-	registerFunction("__print", FlowType::Void)
-		.params(FlowType::String)
-		.bind(&Flower::flow_print);
+    // functions
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::String)
+        .bind(&Flower::flow_print);
 
     registerFunction("log", FlowType::Void)
         .param<FlowString>("message", "<whaaaaat!>")
         .param<FlowNumber>("severity", 42)
-        .bind(&Flower::flow_log)
-        ;
+        .bind(&Flower::flow_log);
 
 	// unit test aiding handlers
-//	registerHandler("error", &flow_error);
-//	registerHandler("finish", &flow_finish); // XXX rename to 'success'
+    registerHandler("error").bind(&Flower::flow_error);
+    registerHandler("finish").bind(&Flower::flow_finish); // XXX rename to 'success'
 
-	registerHandler("assert")
-		.param<bool>("condition")
+    registerHandler("assert")
+        .param<bool>("condition")
         .param<FlowString>("description", "")
-		.bind(&Flower::flow_assert);
+        .bind(&Flower::flow_assert);
 
-//	registerHandler("assert_fail", &flow_assertFail);
+	registerHandler("assert_fail")
+        .param<bool>("condition")
+        .param<FlowString>("description", "")
+        .bind(&Flower::flow_assertFail);
 
-//	registerHandler("fail", &flow_fail);
-//	registerHandler("pass", &flow_pass);
+    registerHandler("fail").bind(&Flower::flow_fail);
+    registerHandler("pass").bind(&Flower::flow_pass);
 }
 
 Flower::~Flower()
@@ -185,11 +183,6 @@ int Flower::run(const char* fileName, const char* handlerName)
 
 	filename_ = fileName;
 
-//	if (!runner_.open(fileName)) {
-//		printf("Failed to load file: %s\n", fileName);
-//		return -1;
-//	}
-
 	FlowParser parser(this);
 
 	parser.importHandler = [&](const std::string& name, const std::string& basedir) -> bool {
@@ -279,77 +272,54 @@ void Flower::flow_assert(FlowVM::Params& args)
 	}
 }
 
+void Flower::flow_getcwd(FlowVM::Params& args)
+{
+    char buf[PATH_MAX];
+
+    args.setResult(getcwd(buf, sizeof(buf)) ? buf : strerror(errno));
+}
+
+void Flower::flow_getenv(FlowVM::Params& args)
+{
+	args.setResult(getenv(args.get<FlowString>(1).str().c_str()));
+}
+
+void Flower::flow_error(FlowVM::Params& args)
+{
+    if (args.size() == 2)
+        printf("Error. %s\n", args.get<FlowString>(1).str().c_str());
+    else
+        printf("Error\n");
+
+    args.setResult(true);
+}
+
+void Flower::flow_finish(FlowVM::Params& args)
+{
+    args.setResult(true);
+}
+
+void Flower::flow_fail(FlowVM::Params& args)
+{
+    args.setResult(true);
+}
+
+void Flower::flow_pass(FlowVM::Params& args)
+{
+    args.setResult(false);
+}
+
+void Flower::flow_assertFail(FlowVM::Params& args)
+{
+    if (args.get<bool>(1)) {
+        fprintf(stderr, "Assertion failed. %s\n", args.get<FlowString>(2).str().c_str());
+        args.setResult(true);
+    } else {
+        args.setResult(false);
+    }
+}
+
 #if 0
-void Flower::get_cwd(void *, x0::FlowParams& args, void *)
-{
-	static char buf[1024];
-
-	args[0].set(getcwd(buf, sizeof(buf)) ? buf : strerror(errno));
-}
-
-void Flower::flow_mkbuf(void *, x0::FlowParams& args, void *)
-{
-	if (args.size() == 2 && args[1].isString())
-		args[0].set(args[1].toString(), strlen(args[1].toString()));
-	else
-		args[0].set("", 0); // empty buffer
-}
-
-void Flower::flow_getbuf(void *, x0::FlowParams& args, void *)
-{
-	args[0].set("Some Long Buffer blabla", 9);
-}
-
-void Flower::flow_getenv(void *, x0::FlowParams& args, void *)
-{
-	args[0].set(getenv(args[1].toString()));
-}
-
-void Flower::flow_error(void *, x0::FlowParams& args, void *)
-{
-	if (args.size() == 2)
-		printf("error. %s\n", args[1].toString());
-	else
-		printf("error\n");
-
-	args[0].set(true);
-}
-
-void Flower::flow_finish(void *, x0::FlowParams& args, void *)
-{
-	args[0].set(true);
-}
-
-void Flower::flow_fail(void *, x0::FlowParams& args, void *)
-{
-	args[0].set(true);
-}
-
-void Flower::flow_pass(void *, x0::FlowParams& args, void *)
-{
-	args[0].set(false);
-}
-
-void Flower::flow_assertFail(void *, x0::FlowParams& args, void *)
-{
-	if (args[1].toBool())
-	{
-		if (args.size() == 3 && args[2].isString())
-			fprintf(stderr, "Assertion failed. %s\n", args[2].toString());
-		else
-			fprintf(stderr, "Assertion failed.\n");
-
-		fflush(stderr);
-
-		args[0].set(true);
-	}
-	else
-	{
-		//printf("assert ok (%d, %f)\n", args[1].type_, args[1].toNumber());
-		args[0].set(false);
-	}
-}
-
 bool Flower::printValue(const FlowValue& value, bool lf)
 {
 	switch (value.type_)

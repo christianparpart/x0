@@ -61,17 +61,17 @@ private:
 
 	// handlers
 	void flow_assert(FlowVM::Params& args);
+    void flow_finish(FlowVM::Params& args);
+    void flow_pass(FlowVM::Params& args);
+    void flow_assertFail(FlowVM::Params& args);
+    void flow_fail(FlowVM::Params& args);
+    void flow_error(FlowVM::Params& args);
+    void flow_getcwd(FlowVM::Params& args);
+    void flow_getenv(FlowVM::Params& args);
 
 	// TODO: not ported yet
-//	void get_cwd(FlowVM::Params& args);
 //	void flow_mkbuf(FlowVM::Params& args);
 //	void flow_getbuf(FlowVM::Params& args);
-//	void flow_getenv(FlowVM::Params& args);
-//	void flow_error(FlowVM::Params& args);
-//	void flow_finish(FlowVM::Params& args);
-//	void flow_fail(FlowVM::Params& args);
-//	void flow_pass(FlowVM::Params& args);
-//	void flow_assertFail(FlowVM::Params& args);
 
 //	bool printValue(const x0::FlowValue& value, bool lf);
 };
