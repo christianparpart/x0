@@ -342,6 +342,7 @@ public:
 
     void push_back(const std::string& name, std::unique_ptr<Expr>&& arg);
     void push_back(std::unique_ptr<Expr>&& arg);
+    void replace(size_t index, std::unique_ptr<Expr>&& value);
     bool replace(const std::string& name, std::unique_ptr<Expr>&& value);
 
     bool contains(const std::string& name) const;

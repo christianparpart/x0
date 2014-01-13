@@ -104,6 +104,14 @@ void ParamList::push_back(std::unique_ptr<Expr>&& arg)
     values_.push_back(arg.release());
 }
 
+void ParamList::replace(size_t index, std::unique_ptr<Expr>&& value)
+{
+    assert(index < values_.size() && "Index out of bounds.");
+
+    delete values_[index];
+    values_[index] = value.release();
+}
+
 bool ParamList::replace(const std::string& name, std::unique_ptr<Expr>&& value)
 {
     assert(!names_.empty() && "Cannot mix unnamed with named parameters.");
