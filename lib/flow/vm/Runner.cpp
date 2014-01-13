@@ -74,7 +74,7 @@ bool Runner::run()
 {
     const Program* program = handler_->program();
     const auto& code = handler_->code();
-    register const Instruction* pc = code.data();
+    const Instruction* pc = code.data();
     uint64_t ticks = 0;
 
     #define OP opcode(*pc)
