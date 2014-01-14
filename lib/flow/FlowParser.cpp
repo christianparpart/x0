@@ -649,24 +649,27 @@ std::unique_ptr<Expr> FlowParser::logicExpr()
 
 std::unique_ptr<Expr> FlowParser::notExpr()
 {
-    if (token() == FlowToken::Not) {
-        FlowLocation loc = location();
-        nextToken(); // skip 'not'
+    size_t nots = 0;
 
-        std::unique_ptr<Expr> subExpr = relExpr();
-        if (!subExpr)
-            return nullptr;
+    FlowLocation loc = location();
 
-        FlowVM::Opcode op = makeOperator(FlowToken::Not, subExpr.get());
-        if (op == Opcode::EXIT) {
-            reportError("Type cast error in unary 'not'-operator. Invalid source type <%s>.", subExpr->getType());
-            return nullptr;
-        }
+    while (consumeIf(FlowToken::Not))
+        nots++;
 
-        return std::make_unique<UnaryExpr>(op, std::move(subExpr), loc.update(end()));
+    std::unique_ptr<Expr> subExpr = relExpr();
+    if (!subExpr)
+        return nullptr;
+
+    if ((nots % 2) == 0)
+        return subExpr;
+
+    FlowVM::Opcode op = makeOperator(FlowToken::Not, subExpr.get());
+    if (op == Opcode::EXIT) {
+        reportError("Type cast error in unary 'not'-operator. Invalid source type <%s>.", subExpr->getType());
+        return nullptr;
     }
 
-    return relExpr();
+    return std::make_unique<UnaryExpr>(op, std::move(subExpr), loc.update(end()));
 }
 
 std::unique_ptr<Expr> FlowParser::relExpr()
