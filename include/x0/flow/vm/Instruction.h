@@ -26,6 +26,7 @@ enum Opcode {
     // numerical
     IMOV,           // A = B/imm
     NCONST,         // A = numberConstants[B]
+    NNOT,           // A = !A
     NNEG,           // A = -A
     NADD,           // A = B + C
     NSUB,           // A = B - C
@@ -157,6 +158,7 @@ inline InstructionSig operandSignature(Opcode opc) {
         // numerical
         [Opcode::IMOV]      = InstructionSig::RI,
         [Opcode::NCONST]    = InstructionSig::RI,
+        [Opcode::NNOT]      = InstructionSig::RR,
         [Opcode::NNEG]      = InstructionSig::RR,
         [Opcode::NADD]      = InstructionSig::RRR,
         [Opcode::NSUB]      = InstructionSig::RRR,
@@ -236,6 +238,7 @@ inline const char* mnemonic(Opcode opc) {
         // numerical
         [Opcode::IMOV]   = "IMOV",
         [Opcode::NCONST] = "NCONST",
+        [Opcode::NNOT]   = "NNOT",
         [Opcode::NNEG]   = "NNEG",
         [Opcode::NADD]   = "NADD",
         [Opcode::NSUB]   = "NSUB",
@@ -315,6 +318,7 @@ inline FlowType resultType(Opcode opc) {
         // numerical
         [Opcode::IMOV]      = FlowType::Number,
         [Opcode::NCONST]    = FlowType::Number,
+        [Opcode::NNOT]      = FlowType::Number,
         [Opcode::NNEG]      = FlowType::Number,
         [Opcode::NADD]      = FlowType::Number,
         [Opcode::NSUB]      = FlowType::Number,

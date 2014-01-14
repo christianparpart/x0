@@ -117,6 +117,7 @@ bool Runner::run()
         // numerical
         [Opcode::IMOV]      = &&l_imov,
         [Opcode::NCONST]    = &&l_nconst,
+        [Opcode::NNOT]      = &&l_nnot,
         [Opcode::NNEG]      = &&l_nneg,
         [Opcode::NADD]      = &&l_nadd,
         [Opcode::NSUB]      = &&l_nsub,
@@ -250,6 +251,11 @@ bool Runner::run()
 
     instr (nconst) {
         data_[A] = program->numbers()[B];
+        next;
+    }
+
+    instr (nnot) {
+        data_[A] = (Register) (!toNumber(B));
         next;
     }
 

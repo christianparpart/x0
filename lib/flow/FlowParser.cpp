@@ -302,7 +302,7 @@ Opcode makeOperator(FlowToken token, Expr* e)
             {FlowToken::NumberType, Opcode::NOP},
         }},
         {FlowType::Boolean, {
-            {FlowToken::Not, Opcode::NNEG},
+            {FlowToken::Not, Opcode::NNOT},
             {FlowToken::BoolType, Opcode::NOP},
             {FlowToken::StringType, Opcode::I2S}, // XXX or better print "true" | "false" ?
         }},
