@@ -318,7 +318,7 @@ inline FlowType resultType(Opcode opc) {
         // numerical
         [Opcode::IMOV]      = FlowType::Number,
         [Opcode::NCONST]    = FlowType::Number,
-        [Opcode::NNOT]      = FlowType::Number,
+        [Opcode::NNOT]      = FlowType::Boolean,
         [Opcode::NNEG]      = FlowType::Number,
         [Opcode::NADD]      = FlowType::Number,
         [Opcode::NSUB]      = FlowType::Number,
