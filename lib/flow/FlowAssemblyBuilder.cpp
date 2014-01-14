@@ -148,9 +148,6 @@ void FlowAssemblyBuilder::accept(BinaryExpr& expr)
             result_ = lhs;
             break;
         }
-        case Opcode::BXOR: { // boolean XOR
-            // TODO
-        }
         default: {
             Register lhs = codegen(expr.leftExpr());
             Register rhs = codegen(expr.rightExpr());
