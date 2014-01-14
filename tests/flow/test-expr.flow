@@ -5,7 +5,7 @@ var foo = 'foo';
 var bar = 'bar';
 var foobar = 'foobar';
 
-/*handler test_expr_number_units
+handler test_expr_number_units
 {
 	# verify bit units
 	assert 8 bit == 1 byte;
@@ -29,12 +29,21 @@ var foobar = 'foobar';
 	assert 1 week == 7 days;
 	assert 1 month == 30 days;
 	assert 1 year == 365 days;
-}*/
+}
 
 handler test_expr_not
 {
-	assert not false;
-	assert not not true;
+    assert not false;
+    assert not not true;
+    assert not ( not true );
+}
+
+handler test_operator_precedence
+{
+    assert not true == false;
+    assert 2 + 3 * 4 == 14;
+    assert 2 * 3 ** 2 == 18;
+    assert ((2 * 3) ** 2 == 36);
 }
 
 handler test_expr_and
@@ -61,9 +70,6 @@ handler test_expr_to_bool
 
 	assert not '';
 
-	assert mkbuf(foo);
-	assert not mkbuf();
-
 	assert "Hello, Literal!"; # FIXME eval
 	assert foo; # FIXME: eval
 }
@@ -82,8 +88,6 @@ handler test_expr_equal
 	assert not foobar == 5, 'foobar == 5';
 	assert foobar == 6, 'foobar == 6';
 	assert not foobar == 7, 'foobar == 7';
-
-	assert mkbuf(foobar) == 6, 'mkbuf(foobar) == 6';
 
 	# (string, string)
 	assert foobar == foobar, 'foobar == foobar';
@@ -121,45 +125,61 @@ handler test_expr_lessequ
 /*
 handler test_expr_greaterequ
 {
-	# (string, int)
-	assert foobar >= 5, 'foobar >= 5';
-	assert foobar >= 6, 'foobar >= 6';
-	assert not foobar >= 7, 'foobar >= 7';
+    var foo = "foo";
+    var bar = "bar";
+    var foobar = "foobar";
 
-	# (string, string)
-	assert foo >= bar, 'foo >= bar';
-	assert foo >= foo, 'foo >= foo';
-	assert foobar >= foo, 'foobar >= foo';
-	assert not bar >= foo, 'not bar >= foo';
-	assert not foo >= foobar, 'not foo >= foobar';
+    # (string, int)
+    assert foobar >= 5, 'foobar >= 5';
+    assert foobar >= 6, 'foobar >= 6';
+    assert not foobar >= 7, 'foobar >= 7';
+
+    # (string, string)
+    assert foo >= bar, 'foo >= bar';
+    assert foo >= foo, 'foo >= foo';
+    assert foobar >= foo, 'foobar >= foo';
+    assert not bar >= foo, 'not bar >= foo';
+    assert not foo >= foobar, 'not foo >= foobar';
 }
 
 handler test_expr_less
 {
-	# (string, int)
-	assert not foobar < 5, 'foobar < 5';
-	assert not foobar < 6, 'foobar < 6';
-	assert foobar < 7, 'foobar < 7';
+    var foo = "foo";
+    var bar = "bar";
+    var foobar = "foobar";
 
-	# (string, string)
-	assert bar < foo, 'bar < foo';
-	assert not foo < bar, 'not foo < bar';
+    # (string, int)
+    assert not foobar < 5, 'foobar < 5';
+    assert not foobar < 6, 'foobar < 6';
+    assert foobar < 7, 'foobar < 7';
+
+    # (string, string)
+    assert bar < foo, 'bar < foo';
+    assert not foo < bar, 'not foo < bar';
 }
 
 handler test_expr_greater
 {
-	# (string, int)
-	assert foobar > 5, 'foobar > 5';
-	assert not foobar > 6, 'foobar > 6';
-	assert not foobar > 7, 'foobar > 7';
+    var foo = "foo";
+    var bar = "bar";
+    var foobar = "foobar";
 
-	# (string, string)
-	assert foo > bar, 'foo > bar';
-	assert not bar > foo, 'not bar > foo';
+    # (string, int)
+    assert foobar > 5, 'foobar > 5';
+    assert not foobar > 6, 'foobar > 6';
+    assert not foobar > 7, 'foobar > 7';
+
+    # (string, string)
+    assert foo > bar, 'foo > bar';
+    assert not bar > foo, 'not bar > foo';
 }
 
 handler test_expr_prefix_match
 {
+    var foo = "foo";
+    var bar = "bar";
+    var foobar = "foobar";
+
 	# (string, string)
 	assert foobar =^ foo, 'foobar =^ foo';
 	assert foobar =^ foobar, 'foobar =^ foobar';
@@ -168,20 +188,23 @@ handler test_expr_prefix_match
 
 handler test_expr_suffix_match
 {
-	var b_foobar = mkbuf(foobar);
+    var foo = "foo";
+    var bar = "bar";
+    var foobar = "foobar";
 
-	# (string, string)
-	assert foobar =$ bar, 'foobar =$ bar';
-	assert foobar =$ foobar, 'foobar =$ foobar';
-	assert not foobar =$ foo, 'not foobar =$ foo';
-	assert not bar =$ foobar, 'not bar =$ foobar';
-
-	# (buf, string)
-	assert b_foobar =$ bar, 'b_foobar =$ bar';
+    # (string, string)
+    assert foobar =$ bar, 'foobar =$ bar';
+    assert foobar =$ foobar, 'foobar =$ foobar';
+    assert not foobar =$ foo, 'not foobar =$ foo';
+    assert not bar =$ foobar, 'not bar =$ foobar';
 }
 
 handler test_expr_in
 {
+    var foo = "foo";
+    var bar = "bar";
+    var foobar = "foobar";
+
 	# (string, string)
 	assert foo in foobar;
 	assert foobar in foobar;
@@ -214,12 +237,7 @@ handler test_expr_minus
 
 handler test_expr_mul
 {
-	# TODO
-	assert 3 * 4 == 12, '3 * 4';
-
-	# (string, number)
-#	assert foo * 2 == foo + foo;
-#	assert 2 * foo == foo + foo;
+    assert 3 * 4 == 12;
 }
 
 handler test_expr_div
@@ -229,20 +247,19 @@ handler test_expr_div
 
 handler test_expr_pow
 {
-	# (number, number)
-	assert 2 ** 0 == 1, '2 ** 0';
-	assert 2 ** 1 == 2, '2 ** 1';
-	assert 2 ** 2 == 4, '2 ** 2';
-	assert 2 ** 3 == 8, '2 ** 3';
+    # (number, number)
+    assert 2 ** 0 == 1;
+    assert 2 ** 1 == 2;
+    assert 2 ** 2 == 4;
+    assert 2 ** 3 == 8;
 
-	# ensure non-associativety rule
-	assert 2 ** 3 ** 4 == 2417851639229258349412352;
-	assert 2 ** (3 ** 4) == 2417851639229258349412352;
-	assert (2 ** 3) ** 4 == 4096;
-
-	# TODO: implement assert_eq / assert_ne / etc; in order to provide better error diagnostics in case of test failures.
+    # ensure non-associativety rule
+    assert 2 ** 3 ** 4 == 2417851639229258349412352;
+    assert 2 ** (3 ** 4) == 2417851639229258349412352;
+    assert (2 ** 3) ** 4 == 4096;
 }
 
+/*
 handler test_array
 {
 	var a = [1, 2, 4, 8];
@@ -267,13 +284,13 @@ handler fail { assert false, "fail"; }
 
 handler test_post_condstmt
 {
-	ok if true;
-	fail if false;
+    ok if true;
+    fail if false;
 
-	assert true, "if true" if true;
-	assert false, "if false" if false;
+    assert true, "if true" if true;
+    assert false, "if false" if false;
 
-	assert (true, "if true") if true;
-	assert (false, "if false") if false;
+    assert (true, "if true") if true;
+    assert (false, "if false") if false;
 }
 */
