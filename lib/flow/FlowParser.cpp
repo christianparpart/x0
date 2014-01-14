@@ -611,109 +611,169 @@ std::unique_ptr<Handler> FlowParser::handlerDecl()
 // {{{ expr
 std::unique_ptr<Expr> FlowParser::expr()
 {
-	std::unique_ptr<Expr> lhs = powExpr();
+    return logicExpr();
+}
+
+std::unique_ptr<Expr> FlowParser::logicExpr()
+{
+	std::unique_ptr<Expr> lhs = notExpr();
 	if (!lhs)
 		return nullptr;
 
-	return rhsExpr(std::move(lhs), 0);
+    for (;;) {
+        switch (token()) {
+            case FlowToken::And:
+            case FlowToken::Xor:
+            case FlowToken::Or: {
+                FlowToken binop = token();
+                nextToken();
+
+                std::unique_ptr<Expr> rhs = notExpr();
+                if (!rhs)
+                    return nullptr;
+
+                Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
+                if (opc == Opcode::EXIT) {
+                    reportError("Type error in binary expression (%s versus %s).",
+                        tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+                    return nullptr;
+                }
+
+                lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
+            }
+            default:
+                return lhs;
+        }
+    }
 }
 
-int binopPrecedence(FlowToken op) {
-	static const std::unordered_map<FlowToken, int> map = {
-		// logical expr
-		{ FlowToken::And, 1 },
-		{ FlowToken::Or, 1 },
-		{ FlowToken::Xor, 1 },
+std::unique_ptr<Expr> FlowParser::notExpr()
+{
+    if (token() == FlowToken::Not) {
+        FlowLocation loc = location();
+        nextToken(); // skip 'not'
 
-		// rel expr
-		{ FlowToken::Equal, 2 },
-		{ FlowToken::UnEqual, 2 },
-		{ FlowToken::Less, 2 },
-		{ FlowToken::Greater, 2 },
-		{ FlowToken::LessOrEqual, 2 },
-		{ FlowToken::GreaterOrEqual, 2 },
-		{ FlowToken::PrefixMatch, 2 },
-		{ FlowToken::SuffixMatch, 2 },
-		{ FlowToken::RegexMatch, 2 },
-		{ FlowToken::In, 2 },
+        std::unique_ptr<Expr> subExpr = relExpr();
+        if (!subExpr)
+            return nullptr;
 
-		// add expr
-		{ FlowToken::Plus, 3 },
-		{ FlowToken::Minus, 3 },
+        FlowVM::Opcode op = makeOperator(FlowToken::Not, subExpr.get());
+        if (op == Opcode::EXIT) {
+            reportError("Type cast error in unary 'not'-operator. Invalid source type <%s>.", subExpr->getType());
+            return nullptr;
+        }
 
-		// mul expr
-		{ FlowToken::Mul, 4 },
-		{ FlowToken::Div, 4 },
-		{ FlowToken::Mod, 4 },
-		{ FlowToken::Shl, 4 },
-		{ FlowToken::Shr, 4 },
+        return std::make_unique<UnaryExpr>(op, std::move(subExpr), loc.update(end()));
+    }
 
-		// bit-wise expr
-		{ FlowToken::BitAnd, 5 },
-		{ FlowToken::BitOr, 5 },
-		{ FlowToken::BitXor, 5 },
-	};
+    return relExpr();
+}
 
-	auto i = map.find(op);
-	if (i == map.end())
-		return -1; // not a binary operator
+std::unique_ptr<Expr> FlowParser::relExpr()
+{
+	std::unique_ptr<Expr> lhs = addExpr();
+	if (!lhs)
+		return nullptr;
 
-	return i->second;
+    for (;;) {
+        switch (token()) {
+            case FlowToken::Equal:
+            case FlowToken::UnEqual:
+            case FlowToken::Less:
+            case FlowToken::Greater:
+            case FlowToken::LessOrEqual:
+            case FlowToken::GreaterOrEqual:
+            case FlowToken::PrefixMatch:
+            case FlowToken::SuffixMatch:
+            case FlowToken::RegexMatch:
+            case FlowToken::In: {
+                FlowToken binop = token();
+                nextToken();
+
+                std::unique_ptr<Expr> rhs = addExpr();
+                if (!rhs)
+                    return nullptr;
+
+                Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
+                if (opc == Opcode::EXIT) {
+                    reportError("Type error in binary expression (%s versus %s).",
+                        tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+                    return nullptr;
+                }
+
+                lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
+            }
+            default:
+                return lhs;
+        }
+    }
 }
 
 std::unique_ptr<Expr> FlowParser::addExpr()
 {
+	std::unique_ptr<Expr> lhs = mulExpr();
+	if (!lhs)
+		return nullptr;
+
+    for (;;) {
+        switch (token()) {
+            case FlowToken::Plus:
+            case FlowToken::Minus: {
+                FlowToken binop = token();
+                nextToken();
+
+                std::unique_ptr<Expr> rhs = mulExpr();
+                if (!rhs)
+                    return nullptr;
+
+                Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
+                if (opc == Opcode::EXIT) {
+                    reportError("Type error in binary expression (%s versus %s).",
+                        tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+                    return nullptr;
+                }
+
+                lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
+            }
+            default:
+                return lhs;
+        }
+    }
+}
+
+std::unique_ptr<Expr> FlowParser::mulExpr()
+{
 	std::unique_ptr<Expr> lhs = powExpr();
 	if (!lhs)
 		return nullptr;
 
-	return rhsExpr(std::move(lhs), 2 /* REL_OP precedence */ );
-}
+    for (;;) {
+        switch (token()) {
+            case FlowToken::Mul:
+            case FlowToken::Div:
+            case FlowToken::Mod:
+            case FlowToken::Shl:
+            case FlowToken::Shr: {
+                FlowToken binop = token();
+                nextToken();
 
-/**
- * Parses a binary expression.
- *
- * @param lhs            left hand side of the binary expression
- * @param lastPrecedence precedence of \p lhs.
- *
- * @return nullptr on failure, the resulting expression AST otherwise.
- */
-std::unique_ptr<Expr> FlowParser::rhsExpr(std::unique_ptr<Expr> lhs, int lastPrecedence)
-{
-    // rhsExpr ::= (BIN_OP primaryExpr)*
+                std::unique_ptr<Expr> rhs = powExpr();
+                if (!rhs)
+                    return nullptr;
 
-	FNTRACE();
-
-	for (;;) {
-		// quit if this is not a binOp *or* its binOp-precedence is lower than the 
-		// minimal-binOp-requirement of our caller
-		int thisPrecedence = binopPrecedence(token());
-		if (thisPrecedence <= lastPrecedence)
-			return lhs;
-
-		FlowToken binaryOperator = token();
-		nextToken();
-
-		std::unique_ptr<Expr> rhs = powExpr();
-		if (!rhs)
-			return nullptr;
-
-		int nextPrecedence = binopPrecedence(token());
-		if (thisPrecedence < nextPrecedence) {
-			rhs = rhsExpr(std::move(rhs), thisPrecedence + 0);
-			if (!rhs)
-				return nullptr;
-		}
-
-        Opcode opc = makeOperator(binaryOperator, lhs.get(), rhs.get());
-        if (opc == Opcode::EXIT) {
-            reportError("Type error in binary expression (%s versus %s).",
+                Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
+                if (opc == Opcode::EXIT) {
+                    reportError("Type error in binary expression (%s versus %s).",
                         tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
-            return nullptr;
-        }
+                    return nullptr;
+                }
 
-		lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
-	}
+                lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
+            }
+            default:
+                return lhs;
+        }
+    }
 }
 
 std::unique_ptr<Expr> FlowParser::powExpr()
@@ -1398,15 +1458,18 @@ bool FlowParser::callArgs(ASTNode* call, Callable* callee, ParamList& args)
             }
             args = std::move(*ra);
         }
-        call->location().end = location().end;
+        call->location().end = lastLocation().end;
         consume(FlowToken::RndClose);
     } else if (lexer_->line() == lastLocation().end.line) {
-        auto ra = paramList();
-        if (!ra) {
-            return false;
+        if (token() != FlowToken::If && token() != FlowToken::Unless) {
+            auto ra = paramList();
+            if (!ra) {
+                return false;
+            }
+
+            args = std::move(*ra);
+            call->location().end = args.location().end;
         }
-        args = std::move(*ra);
-        call->location().end = args.location().end;
     }
 
     if (args.isNamed()) {
@@ -1519,7 +1582,7 @@ bool FlowParser::verifyParamsPositional(const Callable* callee, ParamList& args)
     sig.setArgs(argTypes);
 
     if (sig != callee->signature()) {
-        reportError("Callee parameter type signature mismatch: %s passed, but %s expected.", 
+        reportError("Callee parameter type signature mismatch: %s passed, but %s expected.",
                 sig.to_s().c_str(), callee->signature().to_s().c_str());
         return false;
     }

@@ -1,11 +1,18 @@
 
 ### Incomplete Flow Rewrite TODO
 
-- parser: call statement parsing multiline args and postscript conditionals
-- flowtool: auto-add source string as 2nd arg to `assert` + `assert_fail` handlers, via old onParseComplete hook
+- DONE: unary operator: not
 - array type support or an alternative to express `compress.types(StringArray)`
-- IPv6 support in Cidr.contains(IPAddress)
-- fully-working string interpolation
+  - variable arg count (each further type must be the same as the last specific type)
+  - native support for arrays
+    - array expressions (declaring)
+    - passing to natives
+    - array return types explicitely prohibited
+    - array manipulation explicitely prohibited
+- DONE: IPv6 support in Cidr.contains(IPAddress)
+- DONE: parser: call statement parsing multiline args and postscript conditionals
+- DONE: flowtool: auto-add source string as 2nd arg to `assert` + `assert_fail` handlers, via old onParseComplete hook
+- DONE: fully-working string interpolation
 
 - 'match' stmt
   - DONE: AST

@@ -57,7 +57,7 @@ private:
 	FlowToken token() const { return lexer_->token(); }
 	const FlowLocation& lastLocation() { return lexer_->lastLocation(); }
 	const FlowLocation& location() { return lexer_->location(); }
-	const FilePos& end() const { return lexer_->location().end; }
+	const FilePos& end() const { return lexer_->lastLocation().end; }
 	FlowToken nextToken() const;
 	bool eof() const { return lexer_->eof(); }
 	bool expect(FlowToken token);
@@ -118,9 +118,12 @@ private:
 
 	// syntax: expressions
 	std::unique_ptr<Expr> expr();
-	std::unique_ptr<Expr> rhsExpr(std::unique_ptr<Expr> lhs, int precedence);
-    std::unique_ptr<Expr> addExpr();
-	std::unique_ptr<Expr> powExpr();
+    std::unique_ptr<Expr> logicExpr();          // and or xor
+    std::unique_ptr<Expr> notExpr();            // not
+    std::unique_ptr<Expr> relExpr();            // == != <= >= < > =^ =$ =~
+    std::unique_ptr<Expr> addExpr();            // + -
+    std::unique_ptr<Expr> mulExpr();            // * / shl shr
+	std::unique_ptr<Expr> powExpr();            // **
 	std::unique_ptr<Expr> primaryExpr();
 	std::unique_ptr<Expr> literalExpr();
 	std::unique_ptr<Expr> interpolatedStr();
