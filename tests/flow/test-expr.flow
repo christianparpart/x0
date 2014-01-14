@@ -56,16 +56,16 @@ handler test_expr_and
 handler test_expr_or
 {
 	# (number, number)
-	assert ((0 or 1) == 1);
-	assert ((1 or 0) == 1);
-	assert ((1 or 1) == 1);
-	assert ((0 or 0) == 0);
+	assert ((false or true)  == true);
+	assert ((true  or false) == true);
+	assert ((true  or true)  == true);
+	assert ((false or false) == false);
 }
 
 handler test_expr_to_bool
 {
-	assert 1;
-	assert -1;
+	assert bool(1);
+	assert bool( (-1) );
 	assert not 0;
 
 	assert not '';

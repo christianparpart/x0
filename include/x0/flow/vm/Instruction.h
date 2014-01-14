@@ -26,7 +26,6 @@ enum Opcode {
     // numerical
     IMOV,           // A = B/imm
     NCONST,         // A = numberConstants[B]
-    NNOT,           // A = !A
     NNEG,           // A = -A
     NADD,           // A = B + C
     NSUB,           // A = B - C
@@ -46,6 +45,12 @@ enum Opcode {
     NCMPGE,         // A = B >= C
     NCMPLT,         // A = B < C
     NCMPGT,         // A = B > C
+
+    // boolean
+    BNOT,           // A = !A
+    BAND,           // A = B and C
+    BOR,            // A = B or C
+    BXOR,           // A = B xor C
 
     // string
     SCONST,         // A = stringConstants[B]
@@ -158,7 +163,6 @@ inline InstructionSig operandSignature(Opcode opc) {
         // numerical
         [Opcode::IMOV]      = InstructionSig::RI,
         [Opcode::NCONST]    = InstructionSig::RI,
-        [Opcode::NNOT]      = InstructionSig::RR,
         [Opcode::NNEG]      = InstructionSig::RR,
         [Opcode::NADD]      = InstructionSig::RRR,
         [Opcode::NSUB]      = InstructionSig::RRR,
@@ -178,6 +182,11 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::NCMPGE]    = InstructionSig::RRR,
         [Opcode::NCMPLT]    = InstructionSig::RRR,
         [Opcode::NCMPGT]    = InstructionSig::RRR,
+        // boolean
+        [Opcode::BNOT]      = InstructionSig::RR,
+        [Opcode::BAND]      = InstructionSig::RRR,
+        [Opcode::BOR]       = InstructionSig::RRR,
+        [Opcode::BXOR]      = InstructionSig::RRR,
         // string
         [Opcode::SCONST]    = InstructionSig::RI,
         [Opcode::SADD]      = InstructionSig::RRR,
@@ -238,7 +247,6 @@ inline const char* mnemonic(Opcode opc) {
         // numerical
         [Opcode::IMOV]   = "IMOV",
         [Opcode::NCONST] = "NCONST",
-        [Opcode::NNOT]   = "NNOT",
         [Opcode::NNEG]   = "NNEG",
         [Opcode::NADD]   = "NADD",
         [Opcode::NSUB]   = "NSUB",
@@ -258,6 +266,11 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::NCMPGE] = "NCMPGE",
         [Opcode::NCMPLT] = "NCMPLT",
         [Opcode::NCMPGT] = "NCMPGT",
+        // boolean
+        [Opcode::BNOT]      = "BNOT",
+        [Opcode::BAND]      = "BAND",
+        [Opcode::BOR]       = "BOR",
+        [Opcode::BXOR]      = "BXOR",
         // string
         [Opcode::SCONST]    = "SCONST",
         [Opcode::SADD]      = "SADD",
@@ -318,7 +331,6 @@ inline FlowType resultType(Opcode opc) {
         // numerical
         [Opcode::IMOV]      = FlowType::Number,
         [Opcode::NCONST]    = FlowType::Number,
-        [Opcode::NNOT]      = FlowType::Boolean,
         [Opcode::NNEG]      = FlowType::Number,
         [Opcode::NADD]      = FlowType::Number,
         [Opcode::NSUB]      = FlowType::Number,
@@ -338,6 +350,11 @@ inline FlowType resultType(Opcode opc) {
         [Opcode::NCMPGE]    = FlowType::Boolean,
         [Opcode::NCMPLT]    = FlowType::Boolean,
         [Opcode::NCMPGT]    = FlowType::Boolean,
+        // boolean
+        [Opcode::BNOT]      = FlowType::Boolean,
+        [Opcode::BAND]      = FlowType::Boolean,
+        [Opcode::BOR]       = FlowType::Boolean,
+        [Opcode::BXOR]      = FlowType::Boolean,
         // string
         [Opcode::SCONST]    = FlowType::String,
         [Opcode::SADD]      = FlowType::String,

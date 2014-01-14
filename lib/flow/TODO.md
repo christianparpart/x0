@@ -1,8 +1,7 @@
 
 ### Incomplete Flow Rewrite TODO
 
-- DONE: unary operator: not
-- array type support or an alternative to express `compress.types(StringArray)`
+- array type support or an alternative to express *compress.types(StringArray)*
   - variable arg count (each further type must be the same as the last specific type)
   - native support for arrays
     - array expressions (declaring)
@@ -13,6 +12,8 @@
 - DONE: parser: call statement parsing multiline args and postscript conditionals
 - DONE: flowtool: auto-add source string as 2nd arg to `assert` + `assert_fail` handlers, via old onParseComplete hook
 - DONE: fully-working string interpolation
+- DONE: logical ops must be treated as boolean results for proper type checking (`assert true and not false` should work)
+- DONE: unary operator: not
 
 - 'match' stmt
   - DONE: AST

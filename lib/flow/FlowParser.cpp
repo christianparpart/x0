@@ -228,9 +228,9 @@ FlowVM::Opcode makeOperator(FlowToken token , Expr* left, Expr* right)
         {OpSig::BoolBool, {
             {FlowToken::Equal, Opcode::NCMPEQ},
             {FlowToken::UnEqual, Opcode::NCMPNE},
-            {FlowToken::And, Opcode::NAND},
-            {FlowToken::Or, Opcode::NOR},
-            {FlowToken::Xor, Opcode::NXOR},
+            {FlowToken::And, Opcode::BAND},
+            {FlowToken::Or, Opcode::BOR},
+            {FlowToken::Xor, Opcode::BXOR},
         }},
         {OpSig::NumNum, {
             {FlowToken::Plus, Opcode::NADD},
@@ -302,7 +302,7 @@ Opcode makeOperator(FlowToken token, Expr* e)
             {FlowToken::NumberType, Opcode::NOP},
         }},
         {FlowType::Boolean, {
-            {FlowToken::Not, Opcode::NNOT},
+            {FlowToken::Not, Opcode::BNOT},
             {FlowToken::BoolType, Opcode::NOP},
             {FlowToken::StringType, Opcode::I2S}, // XXX or better print "true" | "false" ?
         }},
@@ -611,11 +611,15 @@ std::unique_ptr<Handler> FlowParser::handlerDecl()
 // {{{ expr
 std::unique_ptr<Expr> FlowParser::expr()
 {
+	FNTRACE();
+
     return logicExpr();
 }
 
 std::unique_ptr<Expr> FlowParser::logicExpr()
 {
+	FNTRACE();
+
 	std::unique_ptr<Expr> lhs = notExpr();
 	if (!lhs)
 		return nullptr;
@@ -634,8 +638,10 @@ std::unique_ptr<Expr> FlowParser::logicExpr()
 
                 Opcode opc = makeOperator(binop, lhs.get(), rhs.get());
                 if (opc == Opcode::EXIT) {
-                    reportError("Type error in binary expression (%s versus %s).",
-                        tos(lhs->getType()).c_str(), tos(rhs->getType()).c_str());
+                    reportError("Type error in binary expression (%s %s %s).",
+                        tos(lhs->getType()).c_str(),
+                        binop.c_str(),
+                        tos(rhs->getType()).c_str());
                     return nullptr;
                 }
 
@@ -649,6 +655,8 @@ std::unique_ptr<Expr> FlowParser::logicExpr()
 
 std::unique_ptr<Expr> FlowParser::notExpr()
 {
+	FNTRACE();
+
     size_t nots = 0;
 
     FlowLocation loc = location();
@@ -674,6 +682,8 @@ std::unique_ptr<Expr> FlowParser::notExpr()
 
 std::unique_ptr<Expr> FlowParser::relExpr()
 {
+	FNTRACE();
+
 	std::unique_ptr<Expr> lhs = addExpr();
 	if (!lhs)
 		return nullptr;
@@ -714,6 +724,8 @@ std::unique_ptr<Expr> FlowParser::relExpr()
 
 std::unique_ptr<Expr> FlowParser::addExpr()
 {
+	FNTRACE();
+
 	std::unique_ptr<Expr> lhs = mulExpr();
 	if (!lhs)
 		return nullptr;
@@ -746,6 +758,8 @@ std::unique_ptr<Expr> FlowParser::addExpr()
 
 std::unique_ptr<Expr> FlowParser::mulExpr()
 {
+	FNTRACE();
+
 	std::unique_ptr<Expr> lhs = powExpr();
 	if (!lhs)
 		return nullptr;
@@ -781,11 +795,11 @@ std::unique_ptr<Expr> FlowParser::mulExpr()
 
 std::unique_ptr<Expr> FlowParser::powExpr()
 {
-	// powExpr ::= primaryExpr ('**' powExpr)*
+	// powExpr ::= negExpr ('**' powExpr)*
 	FNTRACE();
 
 	FlowLocation sloc(location());
-	std::unique_ptr<Expr> left = primaryExpr();
+	std::unique_ptr<Expr> left = negExpr();
 	if (!left)
 		return nullptr;
 
@@ -807,6 +821,31 @@ std::unique_ptr<Expr> FlowParser::powExpr()
 	}
 
 	return left;
+}
+
+std::unique_ptr<Expr> FlowParser::negExpr()
+{
+    // negExpr ::= ['-'] primaryExpr
+    FNTRACE();
+
+    FlowLocation loc = location();
+
+    if (consumeIf(FlowToken::Minus)) {
+        std::unique_ptr<Expr> e = primaryExpr();
+        if (!e)
+            return nullptr;
+
+        FlowVM::Opcode op = makeOperator(FlowToken::Minus, e.get());
+        if (op == Opcode::EXIT) {
+            reportError("Type cast error in unary 'not'-operator. Invalid source type <%s>.", e->getType());
+            return nullptr;
+        }
+
+        e = std::make_unique<UnaryExpr>(op, std::move(e), loc.update(end()));
+        return e;
+    } else {
+        return primaryExpr();
+    }
 }
 
 // primaryExpr ::= literalExpr
@@ -898,7 +937,9 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			nextToken();
 			std::unique_ptr<Expr> e = expr();
 			consume(FlowToken::RndClose);
-			e->setLocation(loc.update(end()));
+            if (e) {
+                e->setLocation(loc.update(end()));
+            }
 			return e;
 		}
 		default:
@@ -910,6 +951,8 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 
 std::unique_ptr<Expr> FlowParser::literalExpr()
 {
+	FNTRACE();
+
     // literalExpr  ::= NUMBER [UNIT]
     //                | BOOL
     //                | STRING
@@ -1142,6 +1185,7 @@ std::unique_ptr<Expr> FlowParser::interpolatedStr()
 std::unique_ptr<Expr> FlowParser::castExpr()
 {
 	FNTRACE();
+
 	FlowLocation sloc(location());
 
 	FlowToken targetTypeToken = token();

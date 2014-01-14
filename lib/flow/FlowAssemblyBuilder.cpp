@@ -126,11 +126,39 @@ void FlowAssemblyBuilder::accept(UnaryExpr& expr)
 
 void FlowAssemblyBuilder::accept(BinaryExpr& expr)
 {
-    Register lhs = codegen(expr.leftExpr());
-    Register rhs = codegen(expr.rightExpr());
-    result_ = allocate();
+    switch (expr.op()) {
+        case Opcode::BOR: { // boolean OR
+            // (lhs || rhs)
+            //
+            //   L = lhs();
+            //   if (L) goto end;
+            //   R = rhs();
+            //   L = R;
+            // end:
+            //   result = L;
+            //
+            Register lhs = codegen(expr.leftExpr());
+            size_t contJump = emit(Opcode::JN, lhs, 0/*XXX*/);
 
-    emit(expr.op(), result_, lhs, rhs);
+            Register rhs = codegen(expr.rightExpr());
+            emit(Opcode::MOV, lhs, rhs);
+
+            code_[contJump] = makeInstruction(Opcode::JN, lhs, code_.size());
+
+            result_ = lhs;
+            break;
+        }
+        case Opcode::BXOR: { // boolean XOR
+            // TODO
+        }
+        default: {
+            Register lhs = codegen(expr.leftExpr());
+            Register rhs = codegen(expr.rightExpr());
+            result_ = allocate();
+            emit(expr.op(), result_, lhs, rhs);
+            break;
+        }
+    }
 }
 
 void FlowAssemblyBuilder::accept(FunctionCall& call)

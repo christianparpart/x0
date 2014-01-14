@@ -117,7 +117,6 @@ bool Runner::run()
         // numerical
         [Opcode::IMOV]      = &&l_imov,
         [Opcode::NCONST]    = &&l_nconst,
-        [Opcode::NNOT]      = &&l_nnot,
         [Opcode::NNEG]      = &&l_nneg,
         [Opcode::NADD]      = &&l_nadd,
         [Opcode::NSUB]      = &&l_nsub,
@@ -137,6 +136,12 @@ bool Runner::run()
         [Opcode::NCMPGE]    = &&l_ncmpge,
         [Opcode::NCMPLT]    = &&l_ncmplt,
         [Opcode::NCMPGT]    = &&l_ncmpgt,
+
+        // boolean op
+        [Opcode::BNOT]      = &&l_bnot,
+        [Opcode::BAND]      = &&l_band,
+        [Opcode::BOR]       = &&l_bor,
+        [Opcode::BXOR]      = &&l_bxor,
 
         // string op
         [Opcode::SCONST]    = &&l_sconst,
@@ -254,11 +259,6 @@ bool Runner::run()
         next;
     }
 
-    instr (nnot) {
-        data_[A] = (Register) (!toNumber(B));
-        next;
-    }
-
     instr (nneg) {
         data_[A] = (Register) (-toNumber(B));
         next;
@@ -353,6 +353,28 @@ bool Runner::run()
         data_[A] = static_cast<Register>(toNumber(B) > toNumber(C));
         next;
     }
+    // }}}
+    // {{{ boolean
+    instr (bnot) {
+        data_[A] = (Register) (!toNumber(B));
+        next;
+    }
+
+    instr (band) {
+        data_[A] = toNumber(B) && toNumber(C);
+        next;
+    }
+
+    instr (bor) {
+        data_[A] = toNumber(B) || toNumber(C);
+        next;
+    }
+
+    instr (bxor) {
+        data_[A] = toNumber(B) ^ toNumber(C);
+        next;
+    }
+
     // }}}
     // {{{ string
     instr (sconst) { // A = stringConstTable[B]
