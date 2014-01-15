@@ -45,7 +45,7 @@ static Buffer concat(FlowParams& args)
 	Buffer msg;
 
 	for (size_t i = 1, e = args.size(); i != e; ++i) {
-		if (i)
+		if (i > 1)
 			msg << " ";
 
         msg.push_back(*(FlowString*) args[i]);
