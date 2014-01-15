@@ -29,6 +29,8 @@ void disassemble(Instruction pc, ImmOperand ip, const char* comment)
         case InstructionSig::RR:   rv = printf(" r%d, r%d", A, B); break;
         case InstructionSig::RRR:  rv = printf(" r%d, r%d, r%d", A, B, C); break;
         case InstructionSig::RI:   rv = printf(" r%d, %d", A, B); break;
+        case InstructionSig::RII:  rv = printf(" r%d, %d, %d", A, B, C); break;
+        case InstructionSig::RIR:  rv = printf(" r%d, %d, r%d", A, B, C); break;
         case InstructionSig::RRI:  rv = printf(" r%d, r%d, %d", A, B, C); break;
         case InstructionSig::IRR:  rv = printf(" %d, r%d, r%d", A, B, C); break;
         case InstructionSig::IIR:  rv = printf(" %d, %d, r%d", A, B, C); break;
@@ -84,6 +86,12 @@ size_t registerMax(Instruction instr)
         case InstructionSig::IIR:
             result = std::max(result, (Operand) (1 + operandC(instr)));
             return static_cast<size_t>(result);
+        case InstructionSig::RIR:
+            result = std::max(result, (Operand) (1 + operandA(instr)));
+            result = std::max(result, (Operand) (1 + operandC(instr)));
+            return result;
+        case InstructionSig::RII:
+            return std::max(result, (Operand) (1 + operandA(instr)));
     }
 }
 

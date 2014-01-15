@@ -108,6 +108,8 @@ enum class InstructionSig {
     RRR,        // reg, reg, reg     (ABC)
     RI,         // reg, imm16        (AB)
     RRI,        // reg, reg, imm16   (ABC)
+    RII,        // reg, imm16, imm16 (ABC)
+    RIR,        // reg, imm16, reg   (ABC)
     IRR,        // imm16, reg, reg   (ABC)
     IIR,        // imm16, imm16, reg (ABC)
     I,          // imm16             (A)
