@@ -75,6 +75,7 @@ private:
 	// shared properties
 	void systemd_controlled(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void systemd_booted(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void sys_cpu_count(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void sys_env(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void sys_cwd(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void sys_pid(x0::HttpRequest* r, x0::FlowVM::Params& args);

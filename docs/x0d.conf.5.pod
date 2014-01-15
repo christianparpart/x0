@@ -289,6 +289,15 @@ HTTP response streams..
 
 Default: false
 
+=item B<sys.cpu_count> ()
+
+Retrieves the actual number of CPU cores on the current system.
+
+Example:
+
+ var num_cpus = sys.cpu_count()
+ log.debug("CPU count: ${num_cpus}")
+
 =back
 
 =head2 SETUP FUNCTIONS

@@ -102,6 +102,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     sharedFunction("systemd.booted", &XzeroCore::systemd_booted).returnType(FlowType::Boolean);
     sharedFunction("systemd.controlled", &XzeroCore::systemd_controlled).returnType(FlowType::Boolean);
 
+    sharedFunction("sys.cpu_count", &XzeroCore::sys_cpu_count).returnType(FlowType::Number);
     sharedFunction("sys.env", &XzeroCore::sys_env).returnType(FlowType::String);
     sharedFunction("sys.cwd", &XzeroCore::sys_cwd).returnType(FlowType::String);
     sharedFunction("sys.pid", &XzeroCore::sys_pid).returnType(FlowType::String);
@@ -367,6 +368,16 @@ void XzeroCore::systemd_controlled(HttpRequest*, FlowParams& args)
 }
 // }}}
 // {{{ sys
+void XzeroCore::sys_cpu_count(HttpRequest*, x0::FlowVM::Params& args)
+{
+    long numCPU = sysconf(_SC_NPROCESSORS_ONLN);
+
+    if (numCPU < 0)
+        numCPU = 1;
+
+    args.setResult(numCPU);
+}
+
 void XzeroCore::sys_env(HttpRequest*, FlowParams& args)
 {
     args.setResult(getenv(args.get<FlowString*>(1)->str().c_str()));
