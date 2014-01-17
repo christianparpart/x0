@@ -303,6 +303,22 @@ public:
     virtual FlowType getType() const;
 };
 
+class X0_API ArrayExpr : public Expr {
+private:
+    std::vector<std::unique_ptr<Expr>> values_;
+
+public:
+    ArrayExpr(FlowLocation& loc, std::vector<std::unique_ptr<Expr>>&& values);
+    ~ArrayExpr();
+
+    const std::vector<std::unique_ptr<Expr>>& values() const { return values_; }
+    std::vector<std::unique_ptr<Expr>>& values() { return values_; }
+
+    virtual FlowType getType() const;
+
+	virtual void visit(ASTVisitor& v);
+};
+
 template<typename T>
 class X0_API LiteralExpr : public Expr {
 private:

@@ -266,8 +266,23 @@ BinaryExpr::BinaryExpr(FlowVM::Opcode op, std::unique_ptr<Expr>&& lhs, std::uniq
 {
 }
 
+ArrayExpr::ArrayExpr(FlowLocation& loc, std::vector<std::unique_ptr<Expr>>&& values) :
+    Expr(loc),
+    values_(std::move(values))
+{
+}
+
+ArrayExpr::~ArrayExpr()
+{
+}
+
 void BinaryExpr::visit(ASTVisitor& v) {
 	v.accept(*this);
+}
+
+void ArrayExpr::visit(ASTVisitor& v)
+{
+    v.accept(*this);
 }
 
 void HandlerRefExpr::visit(ASTVisitor& v) {
@@ -377,6 +392,18 @@ FlowType UnaryExpr::getType() const
 FlowType BinaryExpr::getType() const
 {
     return resultType(op());
+}
+
+FlowType ArrayExpr::getType() const
+{
+    switch (values_.front()->getType()) {
+        case FlowType::Number:
+            return FlowType::IntArray;
+        case FlowType::String:
+            return FlowType::StringArray;
+        default:
+            return FlowType::Void; // XXX error
+    }
 }
 
 template<> X0_API FlowType LiteralExpr<RegExp>::getType() const

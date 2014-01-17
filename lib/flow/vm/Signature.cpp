@@ -96,8 +96,8 @@ FlowType typeSignature(char ch)
         case 'C': return FlowType::Cidr;
         case 'R': return FlowType::RegExp;
         case 'H': return FlowType::Handler;
-        case '[': return FlowType::Array;
-        case '>': return FlowType::AssocArray;
+        case 's': return FlowType::StringArray;
+        case 'i': return FlowType::IntArray;
         default: return FlowType::Void; //XXX
     }
 }
@@ -113,8 +113,8 @@ char signatureType(FlowType t)
         case FlowType::Cidr: return 'C';
         case FlowType::RegExp: return 'R';
         case FlowType::Handler: return 'H';
-        case FlowType::Array: return '[';
-        case FlowType::AssocArray: return '>';
+        case FlowType::StringArray: return 's';
+        case FlowType::IntArray: return 'i';
         default: return '?';
     }
 }

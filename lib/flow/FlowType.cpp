@@ -13,12 +13,15 @@ std::string tos(FlowType type)
 		case FlowType::Cidr: return "Cidr";
 		case FlowType::RegExp: return "RegExp";
 		case FlowType::Handler: return "HandlerRef";
-		case FlowType::Array: return "Array";
-		case FlowType::AssocArray: return "AssocArray";
+		case FlowType::IntArray: return "IntArray";
+		case FlowType::StringArray: return "StringArray";
 		default:
 			return "";
 	}
 }
 
+template<> class X0_API GCObject<std::vector<FlowNumber>>;
+template<> class X0_API GCObject<std::vector<FlowString>>;
+template<> class X0_API GCObject<FlowString>;
 
 } // namespace x0

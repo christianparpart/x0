@@ -24,11 +24,14 @@ private:
     Program* program_;
     void* userdata_;        //!< pointer to the currently executed request handler in our case
 
-    std::list<FlowString> stringGarbage_;
+    std::list<Buffer> stringGarbage_;
+    std::list<Object*> garbage_;
 
     Register data_[];
 
 public:
+    ~Runner();
+
     static std::unique_ptr<Runner> create(Handler* handler);
     static void operator delete (void* p);
 
@@ -42,7 +45,7 @@ public:
     FlowString* newString(const std::string& value);
     FlowString* newString(const char* p, size_t n);
     FlowString* catString(const FlowString& a, const FlowString& b);
-    FlowString* emptyString() const { return (FlowString*) &*stringGarbage_.begin(); }
+    const FlowString* emptyString() const { return &*stringGarbage_.begin(); }
 
 private:
     explicit Runner(Handler* handler);

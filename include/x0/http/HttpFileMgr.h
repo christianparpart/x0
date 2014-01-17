@@ -9,6 +9,7 @@
 #pragma once
 
 #include <x0/sysconfig.h>
+#include <x0/Buffer.h>
 #include <x0/http/HttpFile.h>
 #include <x0/http/HttpFileRef.h>
 #include <ev++.h>
@@ -32,9 +33,11 @@ public:
 
 	void stop();
 
+	HttpFileRef query(const BufferRef& path);
 	HttpFileRef query(const std::string& path);
 
 	HttpFileRef get(const std::string& path) { return query(path); }
+	HttpFileRef operator()(const BufferRef& path) { return query(path); }
 	HttpFileRef operator()(const std::string& path) { return query(path); }
 	HttpFileRef operator[](const std::string& path) { return query(path); }
 

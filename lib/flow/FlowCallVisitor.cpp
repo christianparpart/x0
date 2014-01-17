@@ -117,6 +117,13 @@ void FlowCallVisitor::accept(CidrExpr& expr)
 {
 }
 
+void FlowCallVisitor::accept(ArrayExpr& array)
+{
+    for (const auto& e: array.values()) {
+        visit(e.get());
+    }
+}
+
 void FlowCallVisitor::accept(ExprStmt& stmt)
 {
 }

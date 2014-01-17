@@ -63,6 +63,11 @@ void HttpFileMgr::stop()
 #endif
 }
 
+HttpFileRef HttpFileMgr::query(const BufferRef& path)
+{
+    return query(path.str());
+}
+
 HttpFileRef HttpFileMgr::query(const std::string& path)
 {
 	auto i = cache_.find(path);

@@ -852,6 +852,7 @@ std::unique_ptr<Expr> FlowParser::negExpr()
 //               | variable
 //               | function '(' paramList ')'
 //               | '(' expr ')'
+//               | '[' exprList ']'
 std::unique_ptr<Expr> FlowParser::primaryExpr()
 {
 	FNTRACE();
@@ -946,11 +947,40 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
             }
 			return e;
 		}
+        case FlowToken::BrOpen:
+            return arrayExpr();
 		default:
 			TRACE(1, "Expected primary expression. Got something... else.");
 			reportUnexpectedToken();
 			return nullptr;
 	}
+}
+
+std::unique_ptr<Expr> FlowParser::arrayExpr()
+{
+    FlowLocation loc = location();
+    nextToken(); // '['
+    std::vector<std::unique_ptr<Expr>> fields;
+
+    if (token() != FlowToken::BrClose) {
+        auto e = expr();
+        if (!e)
+            return nullptr;
+
+        fields.push_back(std::move(e));
+
+        while (consumeIf(FlowToken::Comma)) {
+            e = expr();
+            if (!e)
+                return nullptr;
+
+            fields.push_back(std::move(e));
+        }
+    }
+
+    consume(FlowToken::BrClose);
+
+    return std::make_unique<ArrayExpr>(loc.update(end()), std::move(fields));
 }
 
 std::unique_ptr<Expr> FlowParser::literalExpr()

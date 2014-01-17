@@ -43,9 +43,11 @@ IPv4 could be directly represented via the least significant 32-bit from a numbe
     10.10.0.0/19
     3ffe::/16
 
-#### String Arrays
+#### Arrays
 
     ["text/plain", "application/octet-stream"]
+
+    [0, 2, 4, 6, 8]
 
 ### Instruction Stream
 
@@ -109,6 +111,7 @@ Constants are all stored in a constant table, each type of constants in its own 
  - *S* - string constant
  - *P* - IP address
  - *R* - regular expression
+ - *A* - array
 
 #### Instruction Operand Types
 
@@ -212,6 +215,16 @@ Constants are all stored in a constant table, each type of constants in its own 
     0x??    CCMPEQ    vres    cidr  cidr    A = cidr(B) == cidr(C)
     0x??    CCMPNE    vres    cidr  cidr    A = cidr(B) != cidr(C)
     0x??    CCONTAINS vres    cidr  ip      A = cidr(B).contains(ip(C))
+
+#### Array Ops
+
+    Opcode  Mnemonic  A       B     C       Description
+    --------------------------------------------------------------------------------------------
+    0x??    ASNEW     vres    imm   -       vres = new Array<int>(imm)
+    0x??    ASINIT    array   index value   array[index] = toString(value)
+    0x??    ANNEW     vres    imm   -       vres = new Array<int>(imm)
+    0x??    ANINIT    vres    index value   array[index] = toNumber(value)
+    0x??    ANINITI   vres    index imm     array[index] = value
 
 #### Control Ops
 

@@ -126,6 +126,7 @@ private:
 	std::unique_ptr<Expr> powExpr();            // **
 	std::unique_ptr<Expr> negExpr();            // -
 	std::unique_ptr<Expr> primaryExpr();
+	std::unique_ptr<Expr> arrayExpr();
 	std::unique_ptr<Expr> literalExpr();
 	std::unique_ptr<Expr> interpolatedStr();
 	std::unique_ptr<Expr> castExpr();

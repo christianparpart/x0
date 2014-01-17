@@ -1,13 +1,9 @@
 
 ### Incomplete Flow Rewrite TODO
 
-- array type support or an alternative to express *compress.types(StringArray)*
-  - variable arg count (each further type must be the same as the last specific type)
-  - native support for arrays
-    - array expressions (declaring)
-    - passing to natives
-    - array return types explicitely prohibited
-    - array manipulation explicitely prohibited
+- method overloading (needs updates to symbol lookup, not just by name but by signature)
+  - allows us to provide multiple implementations for example: workers(I)V and workers(i)V
+- DONE: array type support for string arrays and int arrays
 - DONE: IPv6 support in Cidr.contains(IPAddress)
 - DONE: parser: call statement parsing multiline args and postscript conditionals
 - DONE: flowtool: auto-add source string as 2nd arg to `assert` + `assert_fail` handlers, via old onParseComplete hook

@@ -221,6 +221,30 @@ inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name, Re
     return *this;
 }
 
+template<>
+inline NativeCallback& NativeCallback::param<GCIntArray>(const std::string& name)
+{
+    assert(defaults_.size() == names_.size());
+
+    signature_.args().push_back(FlowType::IntArray);
+    names_.push_back(name);
+    defaults_.push_back(nullptr /*no default value*/);
+
+    return *this;
+}
+
+template<>
+inline NativeCallback& NativeCallback::param<GCStringArray>(const std::string& name)
+{
+    assert(defaults_.size() == names_.size());
+
+    signature_.args().push_back(FlowType::StringArray);
+    names_.push_back(name);
+    defaults_.push_back(nullptr /*no default value*/);
+
+    return *this;
+}
+
 // ------------------------------------------------------------------------------------------
 
 template<typename... Args>

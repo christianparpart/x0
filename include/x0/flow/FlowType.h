@@ -2,6 +2,7 @@
 
 #include <x0/Buffer.h>
 #include <string>
+#include <vector>
 #include <cstdint>
 
 namespace x0 {
@@ -15,8 +16,8 @@ enum class FlowType {
 	Cidr = 6,           // Cidr*
 	RegExp = 7,         // RegExp*
 	Handler = 8,        // bool (*native_handler)(FlowContext*);
-    Array = 9,          // array<V>
-    AssocArray = 10,    // assocarray<K, V>
+    IntArray = 9,       // array<int>
+    StringArray = 10,   // array<string>
 };
 
 typedef uint64_t Register; // FlowVM
@@ -25,6 +26,29 @@ typedef int64_t FlowNumber;
 typedef BufferRef FlowString;
 
 std::string tos(FlowType type);
+
+class X0_API Object {
+public:
+    virtual ~Object() {}
+};
+
+template<typename T>
+class X0_API GCObject : public Object {
+private:
+    T data_;
+
+public:
+    template<typename... Args>
+    explicit GCObject(Args&&... args) :
+        data_(args...)
+    {}
+
+    T& data() { return data_; }
+    const T& data() const { return data_; }
+};
+
+typedef GCObject<std::vector<FlowNumber>> GCIntArray;
+typedef GCObject<std::vector<FlowString>> GCStringArray;
 
 } // namespace x0
 

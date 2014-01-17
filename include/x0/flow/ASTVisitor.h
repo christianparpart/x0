@@ -25,6 +25,7 @@ template<typename> class LiteralExpr;
 class FunctionCall;
 class VariableExpr;
 class HandlerRefExpr;
+class ArrayExpr;
 
 typedef LiteralExpr<std::string> StringExpr;
 typedef LiteralExpr<long long> NumberExpr;
@@ -65,7 +66,8 @@ public:
 	virtual void accept(BoolExpr& expr) = 0;
 	virtual void accept(RegExpExpr& expr) = 0;
 	virtual void accept(IPAddressExpr& expr) = 0;
-	virtual void accept(CidrExpr& cidr) = 0;
+	virtual void accept(CidrExpr& array) = 0;
+	virtual void accept(ArrayExpr& cidr) = 0;
 
 	// statements
 	virtual void accept(ExprStmt& stmt) = 0;

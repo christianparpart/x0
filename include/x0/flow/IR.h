@@ -336,6 +336,7 @@ private:
     virtual void accept(RegExpExpr& expr);
     virtual void accept(IPAddressExpr& expr);
     virtual void accept(CidrExpr& cidr);
+    virtual void accept(ArrayExpr& array);
 
     // statements
     virtual void accept(ExprStmt& stmt);

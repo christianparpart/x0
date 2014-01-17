@@ -83,6 +83,14 @@ Flower::Flower() :
         .param<FlowNumber>("a1", 0)
         .param<FlowNumber>("a2", 0)
         .bind(&Flower::flow_pass);
+
+    registerFunction("numbers", FlowType::Void)
+        .param<GCIntArray>("values")
+        .bind(&Flower::flow_numbers);
+
+    registerFunction("names", FlowType::Void)
+        .param<GCStringArray>("values")
+        .bind(&Flower::flow_names);
 }
 
 Flower::~Flower()
@@ -328,3 +336,22 @@ void Flower::flow_assertFail(FlowVM::Params& args)
         args.setResult(false);
     }
 }
+
+void Flower::flow_numbers(FlowVM::Params& args)
+{
+    GCIntArray* array = args.get<GCIntArray*>(1);
+
+    for (FlowNumber value: array->data()) {
+        printf("number: %li\n", value);
+    }
+}
+
+void Flower::flow_names(FlowVM::Params& args)
+{
+    GCStringArray* array = args.get<GCStringArray*>(1);
+
+    for (const FlowString& value: array->data()) {
+        printf("string: %s\n", value.str().c_str());
+    }
+}
+

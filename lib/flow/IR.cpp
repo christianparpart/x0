@@ -449,6 +449,11 @@ void IRGenerator::accept(CidrExpr& literal)
     // TODO
 }
 
+void IRGenerator::accept(ArrayExpr& array)
+{
+    // TODO
+}
+
 void IRGenerator::accept(ExprStmt& stmt)
 {
     generate(stmt.expression());

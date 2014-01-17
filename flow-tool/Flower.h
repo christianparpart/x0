@@ -68,6 +68,9 @@ private:
     void flow_getcwd(FlowVM::Params& args);
     void flow_getenv(FlowVM::Params& args);
 
+    void flow_numbers(FlowVM::Params& args);
+    void flow_names(FlowVM::Params& args);
+
 	// TODO: not ported yet
 //	void flow_mkbuf(FlowVM::Params& args);
 //	void flow_getbuf(FlowVM::Params& args);

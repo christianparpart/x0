@@ -95,6 +95,15 @@ enum Opcode {
     SURLENC,        // A = urlencode(B)
     SURLDEC,        // A = urldecode(B)
 
+    // string arrays [S
+    ASNEW,          // A = new StringArray(B)
+    ASINIT,         // A[imm(B)] = C
+
+    // number arrays [I
+    ANNEW,          // A = new IntArray(B);
+    ANINIT,         // A[imm(B)] = C
+    ANINITI,        // A[imm(B)] = imm(C)
+
     // invokation
     // CALL A = id, B = argc, C = rbase for argv
     CALL,           // [C+0] = functions[A] ([C+1 ... C+B])
@@ -226,6 +235,12 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::S2I]       = InstructionSig::RR,
         [Opcode::SURLENC]   = InstructionSig::RR,
         [Opcode::SURLDEC]   = InstructionSig::RR,
+        // array
+        [Opcode::ASNEW]     = InstructionSig::RI,
+        [Opcode::ASINIT]    = InstructionSig::RIR,
+        [Opcode::ANNEW]     = InstructionSig::RI,
+        [Opcode::ANINIT]    = InstructionSig::RIR,
+        [Opcode::ANINITI]   = InstructionSig::RII,
         // invokation
         [Opcode::CALL]      = InstructionSig::IIR,
         [Opcode::HANDLER]   = InstructionSig::IIR,
@@ -310,6 +325,12 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::S2I]       = "S2I",
         [Opcode::SURLENC]   = "SURLENC",
         [Opcode::SURLDEC]   = "SURLDEC",
+        // array
+        [Opcode::ASNEW]     = "ASNEW",
+        [Opcode::ASINIT]    = "ASINIT",
+        [Opcode::ANNEW]     = "ANNEW",
+        [Opcode::ANINIT]    = "ANINIT",
+        [Opcode::ANINITI]   = "ANINITI",
         // invokation
         [Opcode::CALL]      = "CALL",
         [Opcode::HANDLER]   = "HANDLER",
@@ -394,6 +415,12 @@ inline FlowType resultType(Opcode opc) {
         [Opcode::S2I]       = FlowType::Number,
         [Opcode::SURLENC]   = FlowType::String,
         [Opcode::SURLDEC]   = FlowType::String,
+        // array
+        [Opcode::ASNEW]     = FlowType::StringArray,
+        [Opcode::ASINIT]    = FlowType::Void,
+        [Opcode::ANNEW]     = FlowType::IntArray,
+        [Opcode::ANINIT]    = FlowType::Void,
+        [Opcode::ANINITI]   = FlowType::Void,
         // invokation
         [Opcode::CALL]      = FlowType::Void,
         [Opcode::HANDLER]   = FlowType::Void,

@@ -71,7 +71,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 
     // setup: properties (write-only)
     setupFunction("workers", &XzeroCore::workers, FlowType::Number);
-  //setupFunction("workers.affinity", &XzeroCore::workers, FlowType::Array, FlowType::Number);
+    setupFunction("workers.affinity", &XzeroCore::workers_affinity, FlowType::IntArray);
     setupFunction("mimetypes", &XzeroCore::mimetypes, FlowType::String);
     setupFunction("mimetypes.default", &XzeroCore::mimetypes_default, FlowType::String);
     setupFunction("etag.mtime", &XzeroCore::etag_mtime, FlowType::Boolean);
@@ -79,7 +79,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     setupFunction("etag.inode", &XzeroCore::etag_inode, FlowType::Boolean);
     setupFunction("fileinfo.ttl", &XzeroCore::fileinfo_cache_ttl, FlowType::Number);
     setupFunction("server.advertise", &XzeroCore::server_advertise, FlowType::Boolean);
-    setupFunction("server.tags", &XzeroCore::server_tags, FlowType::Array, FlowType::String);
+    setupFunction("server.tags", &XzeroCore::server_tags, FlowType::StringArray, FlowType::String);
     setupFunction("max_read_idle", &XzeroCore::max_read_idle, FlowType::Number);
     setupFunction("max_write_idle", &XzeroCore::max_write_idle, FlowType::Number);
     setupFunction("max_keepalive_idle", &XzeroCore::max_keepalive_idle, FlowType::Number);
@@ -156,7 +156,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 	mainFunction("header.overwrite", &XzeroCore::header_overwrite, FlowType::String, FlowType::String);
 	mainFunction("header.remove", &XzeroCore::header_remove, FlowType::String);
 
-	mainFunction("autoindex", &XzeroCore::autoindex, FlowType::Array, FlowType::String);
+	mainFunction("autoindex", &XzeroCore::autoindex, FlowType::StringArray);
 	mainFunction("rewrite", &XzeroCore::rewrite, FlowType::String).returnType(FlowType::Boolean);
 	mainFunction("pathinfo", &XzeroCore::pathinfo);
 	mainFunction("error.handler", &XzeroCore::error_handler, FlowType::Handler);
@@ -214,8 +214,9 @@ void XzeroCore::server_advertise(FlowParams& args)
 
 void XzeroCore::server_tags(FlowParams& args)
 {
-    for (const auto& arg: args) {
-        daemon().components_.push_back((*(FlowString*)arg).str());
+    GCStringArray* array = args.get<GCStringArray*>(1);
+    for (const auto& arg: array->data()) {
+        daemon().components_.push_back(arg.str());
     }
 }
 
@@ -329,16 +330,17 @@ void XzeroCore::workers(FlowParams& args)
 // "workers.affinity([I]V"
 void XzeroCore::workers_affinity(FlowParams& args)
 {
+    const auto& affinities = args.get<GCIntArray*>(1)->data();
     size_t cur = server_->workers().size();
-    size_t count = args.size();
+    size_t count = affinities.size();
 
     if (count > 0) {
         // spawn or set affinity of a set of workers as passed via input array
-        for (size_t i = 1, e = args.size(); i < e; ++i) {
+        for (size_t i = 1, e = affinities.size(); i < e; ++i) {
             if (i >= cur)
                 server_->spawnWorker();
 
-            server_->workers()[i]->setAffinity(args.get<FlowNumber>(i));
+            server_->workers()[i]->setAffinity(affinities[i]);
         }
     }
 
@@ -461,21 +463,22 @@ void XzeroCore::autoindex(HttpRequest* r, FlowParams& args)
 	if (!r->fileinfo->isDirectory())
 		return;
 
-	for (size_t i = 1, e = args.size(); i != e; ++i)
-		if (matchIndex(r, ((FlowString*)args[i])->str()))
+    GCStringArray* indexfiles = args.get<GCStringArray*>(1);
+	for (size_t i = 1, e = indexfiles->data().size(); i != e; ++i)
+		if (matchIndex(r, indexfiles->data()[i]))
 			return;
 }
 
-bool XzeroCore::matchIndex(HttpRequest *r, const std::string& arg)
+bool XzeroCore::matchIndex(HttpRequest *r, const BufferRef& arg)
 {
 	std::string path(r->fileinfo->path());
 
-    std::string ipath;
+    Buffer ipath;
     ipath.reserve(path.length() + 1 + arg.size());
-    ipath += path;
+    ipath.push_back(path);
     if (path[path.size() - 1] != '/')
-        ipath += "/";
-    ipath += arg;
+        ipath.push_back("/");
+    ipath.push_back(arg);
 
     if (auto fi = r->connection.worker().fileinfo(ipath)) {
         if (fi->isRegular()) {

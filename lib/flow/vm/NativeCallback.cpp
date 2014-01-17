@@ -52,7 +52,8 @@ NativeCallback::~NativeCallback()
                 delete (RegExp*) defaults_[i];
                 break;
             case FlowType::Handler:
-            case FlowType::Array:
+            case FlowType::StringArray:
+            case FlowType::IntArray:
             default:
                 break;
         }

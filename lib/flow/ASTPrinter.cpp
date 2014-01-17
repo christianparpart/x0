@@ -194,6 +194,15 @@ void ASTPrinter::accept(CidrExpr& cidr)
 	printf("CidrExpr: %s\n", cidr.value().str().c_str());
 }
 
+void ASTPrinter::accept(ArrayExpr& array)
+{
+    printf("ArrayExpr:\n");
+
+    for (const auto& e: array.values()) {
+        print("expr", e.get());
+    }
+}
+
 void ASTPrinter::accept(ExprStmt& stmt)
 {
 	printf("ExprStmt\n");

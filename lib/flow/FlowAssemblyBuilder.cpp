@@ -31,6 +31,7 @@ FlowAssemblyBuilder::FlowAssemblyBuilder() :
 
 FlowAssemblyBuilder::~FlowAssemblyBuilder()
 {
+    delete scope_;
 }
 
 std::unique_ptr<FlowVM::Program> FlowAssemblyBuilder::compile(Unit* unit)
@@ -303,6 +304,31 @@ void FlowAssemblyBuilder::accept(CidrExpr& cidr)
 {
     result_ = allocate();
     emit(Opcode::CCONST, result_, literal(cidr.value()));
+}
+
+void FlowAssemblyBuilder::accept(ArrayExpr& arrayExpr)
+{
+    Register array = allocate();
+    switch (arrayExpr.getType()) {
+        case FlowType::StringArray:
+            emit(Opcode::ASNEW, array, arrayExpr.values().size());
+            for (size_t i = 0, e = arrayExpr.values().size(); i != e; ++i) {
+                Register value = codegen(arrayExpr.values()[i].get());
+                emit(Opcode::ASINIT, array, i, value);
+            }
+            break;
+        case FlowType::IntArray:
+            emit(Opcode::ANNEW, array, arrayExpr.values().size());
+            for (size_t i = 0, e = arrayExpr.values().size(); i != e; ++i) {
+                Register value = codegen(arrayExpr.values()[i].get());
+                emit(Opcode::ANINIT, array, i, value);
+            }
+            break;
+        default:
+            return;
+    }
+
+    result_ = array;
 }
 
 void FlowAssemblyBuilder::accept(ExprStmt& stmt)

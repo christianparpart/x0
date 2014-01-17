@@ -24,17 +24,27 @@ std::unique_ptr<Runner> Runner::create(Handler* handler)
     return std::unique_ptr<Runner>(p);
 }
 
+static FlowString* t = nullptr;
+
 Runner::Runner(Handler* handler) :
     handler_(handler),
     program_(handler->program()),
     userdata_(nullptr),
-    stringGarbage_()
+    stringGarbage_(),
+    garbage_()
 {
     // initialize emptyString()
-    newString("");
+    t = newString("");
 
     // initialize registers
     memset(data_, 0, sizeof(Register) * handler_->registerCount());
+}
+
+Runner::~Runner()
+{
+    for (Object* obj: garbage_) {
+        delete obj;
+    }
 }
 
 void Runner::operator delete (void* p)
@@ -44,28 +54,23 @@ void Runner::operator delete (void* p)
 
 FlowString* Runner::newString(const std::string& value)
 {
-    stringGarbage_.push_back(FlowString(strdup(value.c_str()), value.size()));
+    stringGarbage_.push_back(Buffer(value.c_str(), value.size()));
     return &stringGarbage_.back();
 }
 
 FlowString* Runner::newString(const char* p, size_t n)
 {
-    char* s = (char*) malloc(n);
-
-    memcpy(s, p, n);
-    stringGarbage_.push_back(FlowString(s, n));
-
+    stringGarbage_.push_back(Buffer(p, n));
     return &stringGarbage_.back();
 }
 
 FlowString* Runner::catString(const FlowString& a, const FlowString& b)
 {
-    size_t n = a.size() + b.size();
-    char* s = (char*) malloc(n);
+    Buffer s(a.size() + b.size() + 1);
+    s.push_back(a);
+    s.push_back(b);
 
-    memcpy(s, a.data(), a.size());
-    memcpy(s + a.size(), b.data(), b.size());
-    stringGarbage_.push_back(FlowString(s, n));
+    stringGarbage_.push_back(std::move(s));
 
     return &stringGarbage_.back();
 }
@@ -184,6 +189,14 @@ bool Runner::run()
         [Opcode::C2S] = &&l_c2s,
         [Opcode::SURLENC] = &&l_surlenc,
         [Opcode::SURLDEC] = &&l_surldec,
+
+        // arrays
+        [Opcode::ASNEW] = &&l_asnew,
+        [Opcode::ASINIT] = &&l_asinit,
+
+        [Opcode::ANNEW] = &&l_annew,
+        [Opcode::ANINIT] = &&l_aninit,
+        [Opcode::ANINITI] = &&l_aniniti,
 
         // invokation
         [Opcode::CALL] = &&l_call,
@@ -545,6 +558,56 @@ bool Runner::run()
 
     instr (surldec) { // B = urldecode(B)
         // TODO
+        next;
+    }
+    // }}}
+    // {{{ arrays
+    instr (asnew) { // RI
+        GCStringArray* array = new GCStringArray(B);
+        garbage_.push_back(array);
+        data_[A] = (Register) array;
+
+        next;
+    }
+
+    instr (asinit) { // RIR
+        GCStringArray* array = (GCStringArray*) data_[A];
+        size_t index = B;
+        const FlowString& value = toString(C);
+
+        array->data()[index] = value;
+
+        next;
+    }
+
+    // ANEW(array, size)
+    instr (annew) { // RI
+        GCIntArray* array = new GCIntArray(B);
+        garbage_.push_back(array);
+        data_[A] = (Register) array;
+
+        next;
+    }
+
+    // ANINIT(array, index, value)
+    instr (aninit) { // RIR
+        GCIntArray* array = (GCIntArray*) data_[A];
+        size_t index = B;
+        FlowNumber value = toNumber(C);
+
+        array->data()[index] = value;
+
+        next;
+    }
+
+    // ANINITI(array, index, value)
+    instr (aniniti) { // RII
+        GCIntArray* array = (GCIntArray*) data_[A];
+        size_t index = B;
+        FlowNumber value = C;
+
+        array->data()[index] = value;
+
         next;
     }
     // }}}

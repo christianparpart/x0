@@ -106,7 +106,7 @@ private:
 
 	// main functions
 	void autoindex(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	bool matchIndex(x0::HttpRequest *r, const std::string& arg);
+	bool matchIndex(x0::HttpRequest *r, const x0::BufferRef& arg);
 	void rewrite(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void pathinfo(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void error_handler(x0::HttpRequest* r, x0::FlowVM::Params& args);
