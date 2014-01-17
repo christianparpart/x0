@@ -890,8 +890,9 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 				return std::make_unique<HandlerRefExpr>(handler, loc);
 
 			if (symbol->type() == Symbol::BuiltinFunction) {
+
 				if (token() != FlowToken::RndOpen)
-					return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol);
+					return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol, ParamList());
 
                 consume(FlowToken::RndOpen);
                 std::unique_ptr<ParamList> args;
@@ -900,8 +901,11 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
                     if (!args) {
                         return nullptr;
                     }
+                } else {
+                    args = std::make_unique<ParamList>();
                 }
 				consume(FlowToken::RndClose);
+
                 return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol, std::move(*args));
 			}
 
@@ -1441,21 +1445,21 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			break;
 		}
         case Symbol::BuiltinHandler: {
-            HandlerCall* call = new HandlerCall(loc, (BuiltinHandler*) callee);
+            HandlerCall* call = new HandlerCall(loc, (BuiltinHandler*) callee, ParamList());
             if (!callArgs(call, call->callee(), call->args()))
                 return nullptr;
             stmt.reset(call);
             break;
         }
         case Symbol::BuiltinFunction: {
-            std::unique_ptr<FunctionCall> call = std::make_unique<FunctionCall>(loc, (BuiltinFunction*) callee);
+            std::unique_ptr<FunctionCall> call = std::make_unique<FunctionCall>(loc, (BuiltinFunction*) callee, ParamList());
             if (!callArgs(call.get(), call->callee(), call->args()))
                 return nullptr;
             stmt = std::make_unique<ExprStmt>(std::move(call));
             break;
         }
 		case Symbol::Handler:
-			stmt = std::make_unique<HandlerCall>(loc, (Callable*) callee);
+			stmt = std::make_unique<HandlerCall>(loc, (Callable*) callee, ParamList());
             break;
 		default:
 			break;

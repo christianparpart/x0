@@ -372,12 +372,6 @@ class X0_API FunctionCall : public Expr {
     ParamList args_;
 
 public:
-	FunctionCall(const FlowLocation& loc, BuiltinFunction* callee) :
-		Expr(loc),
-		callee_(callee),
-		args_()
-	{}
-
 	FunctionCall(const FlowLocation& loc, BuiltinFunction* callee, ParamList&& args) :
 		Expr(loc),
 		callee_(callee),
@@ -475,11 +469,6 @@ protected:
     ParamList args_;
 
 public:
-	HandlerCall(const FlowLocation& loc, Callable* callable) :
-		Stmt(loc), callee_(callable), args_()
-	{
-	}
-
 	HandlerCall(const FlowLocation& loc, Callable* callable, ParamList&& arguments) :
 		Stmt(loc), callee_(callable), args_()
 	{
