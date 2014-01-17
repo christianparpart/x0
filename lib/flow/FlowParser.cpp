@@ -1648,15 +1648,15 @@ bool FlowParser::completeDefaultValue(ParamList& args, FlowType type, const void
     switch (type) {
         case FlowType::Boolean:
             if (args.isNamed())
-                args.push_back(name, std::make_unique<BoolExpr>((bool) defaultValue, loc));
+                args.push_back(name, std::make_unique<BoolExpr>(*(bool*) defaultValue, loc));
             else
-                args.push_back(std::make_unique<BoolExpr>((bool) defaultValue, loc));
+                args.push_back(std::make_unique<BoolExpr>(*(bool*) defaultValue, loc));
             break;
         case FlowType::Number:
             if (args.isNamed())
-                args.push_back(name, std::make_unique<NumberExpr>((FlowNumber) defaultValue, loc));
+                args.push_back(name, std::make_unique<NumberExpr>(*(FlowNumber*) defaultValue, loc));
             else
-                args.push_back(std::make_unique<NumberExpr>((FlowNumber) defaultValue, loc));
+                args.push_back(std::make_unique<NumberExpr>(*(FlowNumber*) defaultValue, loc));
             break;
         case FlowType::String: {
             const FlowString* s = (FlowString*) defaultValue;

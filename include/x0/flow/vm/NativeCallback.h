@@ -113,8 +113,7 @@ inline NativeCallback& NativeCallback::param<FlowNumber>(const std::string& name
 
     FlowNumber* value = new FlowNumber;
     *value = defaultValue;
-
-    defaults_.push_back((void*) value);
+    defaults_.push_back(value);
     
     return *this;
 }
@@ -134,7 +133,10 @@ inline NativeCallback& NativeCallback::param<int>(const std::string& name, int d
 {
     signature_.args().push_back(FlowType::Number);
     names_.push_back(name);
-    defaults_.push_back((void*) (long long) defaultValue);
+
+    FlowNumber* value = new FlowNumber;
+    *value = defaultValue;
+    defaults_.push_back((void*) value);
     
     return *this;
 }
@@ -255,12 +257,13 @@ inline bool NativeCallback::isNamed() const
 
 inline const std::string& NativeCallback::getNameAt(size_t i) const
 {
+    assert(i < names_.size());
     return names_[i];
 }
 
 inline const void* NativeCallback::getDefaultAt(size_t i) const
 {
-    return defaults_[i];
+    return i < defaults_.size() ? defaults_[i] : nullptr;
 }
 // }}}
 
