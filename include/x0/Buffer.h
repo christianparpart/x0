@@ -1432,6 +1432,13 @@ inline Buffer::Buffer(size_t _capacity) :
 	reserve(_capacity);
 }
 
+inline Buffer::Buffer(const value_type *value, size_t size) :
+    MutableBuffer<mutableEnsure>()
+{
+    reserve(size + 1);
+    push_back(value, size);
+}
+
 inline Buffer::Buffer(const char* v) :
 	MutableBuffer<mutableEnsure>()
 {
