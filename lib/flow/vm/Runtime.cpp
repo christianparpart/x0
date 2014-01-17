@@ -4,6 +4,12 @@
 namespace x0 {
 namespace FlowVM {
 
+Runtime::~Runtime()
+{
+    for (auto b: builtins_)
+        delete b;
+}
+
 NativeCallback& Runtime::registerHandler(const std::string& name)
 {
     builtins_.push_back(new NativeCallback(this, name));

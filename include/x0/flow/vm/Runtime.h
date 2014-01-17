@@ -19,6 +19,8 @@ class NativeCallback;
 class X0_API Runtime
 {
 public:
+    virtual ~Runtime();
+
     virtual bool import(const std::string& name, const std::string& path) = 0;
 
     bool contains(const std::string& signature) const;
