@@ -846,6 +846,12 @@ void XzeroDaemon::setPluginDirectory(const std::string& value)
  */
 XzeroPlugin *XzeroDaemon::loadPlugin(const std::string& name, std::error_code& ec)
 {
+    for (XzeroPlugin* plugin: plugins_) {
+        if (plugin->name() == name) {
+            return plugin;
+        }
+    }
+
 	if (!pluginDirectory_.empty() && pluginDirectory_[pluginDirectory_.size() - 1] != '/')
 		pluginDirectory_ += "/";
 
@@ -904,6 +910,17 @@ void XzeroDaemon::unloadPlugin(const std::string& name)
 	}
 }
 
+bool XzeroDaemon::pluginLoaded(const std::string& name) const
+{
+    for (const XzeroPlugin* plugin: plugins_) {
+        if (plugin->name() == name) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /** retrieves a list of currently loaded plugins */
 std::vector<std::string> XzeroDaemon::pluginsLoaded() const
 {
@@ -939,9 +956,10 @@ void XzeroDaemon::addComponent(const std::string& value)
 }
 // }}}
 // {{{ Flow helper
-bool XzeroDaemon::import(const std::string& name, const std::string& path)
+bool XzeroDaemon::import(const std::string& name, const std::string& path, std::vector<FlowVM::NativeCallback*>* builtins)
 {
-    // TODO: do skip loading plugin if already loaded.
+    if (pluginLoaded(name))
+        return true;
 
 	std::string filename = path;
 	if (!filename.empty() && filename[filename.size() - 1] != '/')
@@ -949,12 +967,21 @@ bool XzeroDaemon::import(const std::string& name, const std::string& path)
 	filename += name;
 
 	std::error_code ec;
-	loadPlugin(filename, ec);
+	XzeroPlugin* plugin = loadPlugin(filename, ec);
 
 	if (ec) {
 		log(Severity::error, "Error loading plugin: %s: %s", filename.c_str(), ec.message().c_str());
         return false;
     }
+
+    printf("XzeroPlugin::import(\"%s\", \"%s\", @%p)\n", name.c_str(), path.c_str(), builtins);
+    if (builtins) {
+        for (x0::FlowVM::NativeCallback* native: plugin->natives_) {
+            printf("  native name: %s\n", native->signature().to_s().c_str());
+            builtins->push_back(native);
+        }
+    }
+
     return true;
 }
 // }}}
@@ -969,11 +996,9 @@ bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int
 {
 	TRACE("setup(%s)", filename.c_str());
 
-	FlowParser parser(this);
-	parser.importHandler = [&](const std::string& name, const std::string& basedir) -> bool {
-		fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
-		return false;
-	};
+    FlowParser parser(this);
+    parser.importHandler = std::bind(&XzeroDaemon::import, this, std::placeholders::_1, std::placeholders::_2,
+            std::placeholders::_3);
 
     if (!parser.open(filename)) {
         sd_notifyf(0, "ERRNO=%d", errno);

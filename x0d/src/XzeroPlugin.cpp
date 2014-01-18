@@ -22,7 +22,8 @@ using namespace x0;
 XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
 	daemon_(daemon),
 	server_(daemon->server()),
-	name_(name)
+	name_(name),
+    natives_()
 #if !defined(XZERO_NDEBUG)
 	, debugLevel_(9)
 #endif
@@ -38,6 +39,9 @@ XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
   */
 XzeroPlugin::~XzeroPlugin()
 {
+    for (auto native: natives_) {
+        daemon_->unregisterNative(native->name());
+    }
 }
 
 bool XzeroPlugin::post_config()

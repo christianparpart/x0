@@ -279,7 +279,7 @@ bool Program::link(Runtime* runtime)
 
     // load runtime modules
     for (const auto& module: modules_) {
-        if (!runtime->import(module.first, module.second)) {
+        if (!runtime->import(module.first, module.second, nullptr)) {
             errors++;
         }
     }

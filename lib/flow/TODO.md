@@ -1,9 +1,11 @@
 
 ### Incomplete Flow Rewrite TODO
 
+- proper plugin unloading
 - fixme: `voidfunc;` parse error, should equal to `voidfunc();` and `voidfunc\n`
 - method overloading (needs updates to symbol lookup, not just by name but by signature)
   - allows us to provide multiple implementations for example: workers(I)V and workers(i)V
+- DONE: plugin loading
 - DONE: array type support for string arrays and int arrays
 - DONE: IPv6 support in Cidr.contains(IPAddress)
 - DONE: parser: call statement parsing multiline args and postscript conditionals

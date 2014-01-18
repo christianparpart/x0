@@ -432,17 +432,23 @@ std::unique_ptr<Unit> FlowParser::unit()
 void FlowParser::importRuntime()
 {
     if (runtime_) {
-		//printf("runtime, %zu builtins\n", runtime_->builtins().size());
-		for (const auto& builtin: runtime_->builtins()) {
-            //printf("%s\n", builtin->signature().to_s().c_str());
+        TRACE(1, "importing runtime, %zu builtins", runtime_->builtins().size());
 
-			if (builtin->isHandler()) {
-				createSymbol<BuiltinHandler>(builtin->signature());
-            } else {
-				createSymbol<BuiltinFunction>(builtin->signature());
-            }
-		}
-	}
+        for (const auto& builtin: runtime_->builtins()) {
+            declareBuiltin(builtin);
+        }
+    }
+}
+
+void FlowParser::declareBuiltin(const FlowVM::NativeCallback* native)
+{
+    TRACE(1, "declareBuiltin (scope:%p): %s", scope(), native->signature().to_s().c_str());
+
+    if (native->isHandler()) {
+        createSymbol<BuiltinHandler>(native->signature());
+    } else {
+        createSymbol<BuiltinFunction>(native->signature());
+    }
 }
 
 std::unique_ptr<Symbol> FlowParser::decl()
@@ -529,10 +535,16 @@ bool FlowParser::importDecl(Unit* unit)
 	}
 
 	for (auto i = names.begin(), e = names.end(); i != e; ++i) {
-		if (importHandler && !importHandler(*i, path))
+        std::vector<FlowVM::NativeCallback*> builtins;
+
+		if (importHandler && !importHandler(*i, path, &builtins))
 			return false;
 
 		unit->import(*i, path);
+
+        for (FlowVM::NativeCallback* native: builtins) {
+            declareBuiltin(native);
+        }
 	}
 
 	consumeIf(FlowToken::Semicolon);

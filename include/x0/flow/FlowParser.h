@@ -10,6 +10,7 @@
 #define sw_flow_parser_h (1)
 
 #include <list>
+#include <vector>
 #include <string>
 #include <functional>
 
@@ -23,6 +24,7 @@ namespace x0 {
 
 namespace FlowVM {
     class Runtime;
+    class NativeCallback;
 };
 
 class FlowLexer;
@@ -34,7 +36,7 @@ class X0_API FlowParser {
 
 public:
 	std::function<void(const std::string&)> errorHandler;
-	std::function<bool(const std::string&, const std::string&)> importHandler;
+	std::function<bool(const std::string&, const std::string&, std::vector<FlowVM::NativeCallback*>*)> importHandler;
 
 	explicit FlowParser(FlowVM::Runtime* runtime);
 	~FlowParser();
@@ -107,6 +109,7 @@ private:
 	}
 
     void importRuntime();
+    void declareBuiltin(const FlowVM::NativeCallback* native);
 
 	// syntax: decls
 	std::unique_ptr<Unit> unit();

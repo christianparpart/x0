@@ -67,6 +67,7 @@ public:
 	XzeroPlugin* loadPlugin(const std::string& name, std::error_code& ec);
 	template<typename T> T* loadPlugin(const std::string& name, std::error_code& ec);
 	void unloadPlugin(const std::string& name);
+    bool pluginLoaded(const std::string& name) const;
 	std::vector<std::string> pluginsLoaded() const;
 
 	XzeroPlugin* registerPlugin(XzeroPlugin* plugin);
@@ -81,7 +82,7 @@ public:
 	void dumpIR() const; // for debugging purpose
 
 public: // FlowBackend overrides
-	virtual bool import(const std::string& name, const std::string& path);
+    virtual bool import(const std::string& name, const std::string& path, std::vector<x0::FlowVM::NativeCallback*>* builtins);
 
     // new
     template<typename... ArgTypes> x0::FlowVM::NativeCallback& setupFunction(const std::string& name, const x0::FlowVM::NativeCallback::Functor& cb, ArgTypes... argTypes);
