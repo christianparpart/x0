@@ -284,14 +284,14 @@ public:
 	AuthPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerFunction<AuthPlugin, &AuthPlugin::auth_realm>("auth.realm");
-		registerFunction<AuthPlugin, &AuthPlugin::auth_userfile>("auth.userfile");
+		mainFunction("auth.realm", &AuthPlugin::auth_realm, x0::FlowType::String);
+		mainFunction("auth.userfile", &AuthPlugin::auth_userfile, x0::FlowType::String);
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-		registerFunction<AuthPlugin, &AuthPlugin::auth_pam>("auth.pam");
+		mainFunction("auth.pam", &AuthPlugin::auth_pam, x0::FlowType::String);
 #endif
 
-		registerHandler<AuthPlugin, &AuthPlugin::auth_require>("auth.require");
+		mainHandler("auth.require", &AuthPlugin::auth_require);
 	}
 
 	~AuthPlugin()
@@ -299,33 +299,33 @@ public:
 	}
 
 private:
-	void auth_realm(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result)
+	void auth_realm(x0::HttpRequest* r, x0::FlowVM::Params& args)
 	{
 		if (!r->customData<AuthBasic>(this))
 			r->setCustomData<AuthBasic>(this);
 
-		r->customData<AuthBasic>(this)->realm = args[0].toString();
+		r->customData<AuthBasic>(this)->realm = args.get<x0::FlowString>(1).str();
 	}
 
-	void auth_userfile(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result)
+	void auth_userfile(x0::HttpRequest* r, x0::FlowVM::Params& args)
 	{
 		if (!r->customData<AuthBasic>(this))
 			r->setCustomData<AuthBasic>(this);
 
-		r->customData<AuthBasic>(this)->setupUserfile(args.size() != 0 ? args[0].toString() : "/etc/htpasswd");
+		r->customData<AuthBasic>(this)->setupUserfile(args.get<x0::FlowString>(1).str());
 	}
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
-	void auth_pam(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result)
+	void auth_pam(x0::HttpRequest* r, x0::FlowVM::Params& args)
 	{
 		if (!r->customData<AuthBasic>(this))
 			r->setCustomData<AuthBasic>(this);
 
-		r->customData<AuthBasic>(this)->setupPAM(args.size() != 0 ? args[0].toString() : "x0");
+		r->customData<AuthBasic>(this)->setupPAM(args.get<x0::FlowString>(1).str());
 	}
 #endif
 
-	bool auth_require(x0::HttpRequest *r, const x0::FlowParams& args)
+	bool auth_require(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		AuthBasic* auth = r->customData<AuthBasic>(this);
 		if (!auth || !auth->backend) {
