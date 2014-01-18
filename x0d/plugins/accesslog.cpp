@@ -90,7 +90,7 @@ private:
 
 		inline std::string hostname(x0::HttpRequest *in)
 		{
-			std::string name = in->connection.remoteIP();
+			std::string name = in->connection.remoteIP().str();
 			return !name.empty() ? name : "-";
 		}
 
@@ -124,8 +124,8 @@ public:
 #endif
 		logfiles_()
 	{
-		registerProperty<AccesslogPlugin, &AccesslogPlugin::handleRequest>("accesslog", x0::FlowValue::VOID);
-		registerFunction<AccesslogPlugin, &AccesslogPlugin::syslogHandler>("accesslog.syslog");
+		mainFunction("accesslog", &AccesslogPlugin::handleRequest, x0::FlowType::String);
+		mainFunction("accesslog.syslog", &AccesslogPlugin::syslogHandler);
 	}
 
 	~AccesslogPlugin()
@@ -146,16 +146,16 @@ public:
 	}
 
 private:
-	void syslogHandler(x0::HttpRequest *in, const x0::FlowParams& args, x0::FlowValue& result)
+	void syslogHandler(x0::HttpRequest *in, x0::FlowVM::Params& args)
 	{
 #if defined(HAVE_SYSLOG_H)
 		in->setCustomData<RequestLogger>(this, &syslogSink_, in);
 #endif
 	}
 
-	void handleRequest(x0::HttpRequest *in, const x0::FlowParams& args, x0::FlowValue& result)
+	void handleRequest(x0::HttpRequest *in, x0::FlowVM::Params& args)
 	{
-		std::string filename(args[0].toString());
+		std::string filename(args.get<x0::FlowString>(1).str());
 		auto i = logfiles_.find(filename);
 		if (i != logfiles_.end()) {
 			if (i->second.get()) {
