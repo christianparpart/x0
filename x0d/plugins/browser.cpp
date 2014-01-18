@@ -26,11 +26,11 @@ public:
 	BrowserPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setAncient>("browser.ancient");
-		registerSetupFunction<BrowserPlugin, &BrowserPlugin::setModern>("browser.modern");
+		setupFunction("browser.ancient", &BrowserPlugin::setAncient, x0::FlowType::String);
+		setupFunction("browser.modern", &BrowserPlugin::setModern, x0::FlowType::String, x0::FlowType::String);
 
-		registerFunction<BrowserPlugin, &BrowserPlugin::isAncient>("browser.is_ancient", x0::FlowValue::BOOLEAN);
-		registerFunction<BrowserPlugin, &BrowserPlugin::isModern>("browser.is_modern", x0::FlowValue::BOOLEAN);
+		mainFunction("browser.is_ancient", &BrowserPlugin::isAncient, x0::FlowType::Boolean);
+		mainFunction("browser.is_modern", &BrowserPlugin::isModern, x0::FlowType::Boolean);
 	}
 
 	~BrowserPlugin()
@@ -41,35 +41,35 @@ private:
 	std::vector<std::string> ancients_;
 	std::map<std::string, float> modern_;
 
-	void setAncient(const x0::FlowParams& args, x0::FlowValue& result)
+	void setAncient(x0::FlowVM::Params& args)
 	{
-		std::string ident = args[0].toString();
+		std::string ident = args.get<x0::FlowString>(1).str();
 
 		ancients_.push_back(ident);
 	}
 
-	void setModern(const x0::FlowParams& args, x0::FlowValue& result)
+	void setModern(x0::FlowVM::Params& args)
 	{
-		std::string browser = args[0].toString();
-		float version = x0::Buffer(args[1].toString()).toFloat();
+		std::string browser = args.get<x0::FlowString>(1).str();
+		float version = x0::Buffer(args.get<x0::FlowString>(2).str()).toFloat();
 
 		modern_[browser] = version;
 	}
 
-	void isAncient(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& result)
+	void isAncient(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		x0::BufferRef userAgent(r->requestHeader("User-Agent"));
 
 		for (auto& ancient: ancients_) {
 			if (userAgent.find(ancient.c_str()) != x0::BufferRef::npos) {
-				result.set(true);
+				args.setResult(true);
 				return;
 			}
 		}
-		result.set(false);
+		args.setResult(false);
 	}
 
-	void isModern(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& result)
+	void isModern(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		x0::BufferRef userAgent(r->requestHeader("User-Agent"));
 
@@ -87,10 +87,10 @@ private:
 			if (version < modern.second)
 				continue;
 
-			result.set(true);
+			args.setResult(true);
 			return;
 		}
-		result.set(false);
+		args.setResult(false);
 	}
 };
 
