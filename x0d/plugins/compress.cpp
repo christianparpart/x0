@@ -38,6 +38,7 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <unordered_map>
 #include <cstdlib>
 
 #include <sys/types.h>
@@ -58,18 +59,14 @@ class compress_plugin :
 	public x0d::XzeroPlugin
 {
 private:
-	std::vector<std::string> contentTypes_;
+	std::unordered_map<std::string, int> contentTypes_;
 	int level_;
 	long long minSize_;
 	long long maxSize_;
 
 	bool containsMime(const std::string& value) const
 	{
-		for (auto i = contentTypes_.begin(), e = contentTypes_.end(); i != e; ++i)
-			if (*i == value)
-				return true;
-
-		return false;
+        return contentTypes_.find(value) != contentTypes_.end();
 	}
 
 	x0::HttpServer::RequestHook::Connection postProcess_;
@@ -82,18 +79,18 @@ public:
 		minSize_(256),				// 256 byte
 		maxSize_(128 * 1024 * 1024)	// 128 MB
 	{
-		contentTypes_.push_back("text/html");
-		contentTypes_.push_back("text/css");
-		contentTypes_.push_back("text/plain");
-		contentTypes_.push_back("application/xml");
-		contentTypes_.push_back("application/xhtml+xml");
+		contentTypes_["text/html"] = 0;
+		contentTypes_["text/css"] = 0;
+		contentTypes_["text/plain"] = 0;
+		contentTypes_["application/xml"] = 0;
+		contentTypes_["application/xhtml+xml"] = 0;
 
 		postProcess_ = server().onPostProcess.connect<compress_plugin, &compress_plugin::postProcess>(this);
 
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_types>("compress.types", x0::FlowValue::VOID);
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_level>("compress.level", x0::FlowValue::VOID);
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_minsize>("compress.min", x0::FlowValue::VOID);
-		registerSetupProperty<compress_plugin, &compress_plugin::setup_maxsize>("compress.max", x0::FlowValue::VOID);
+		setupFunction("compress.types", &compress_plugin::setup_types, x0::FlowType::StringArray);
+		setupFunction("compress.level", &compress_plugin::setup_level, x0::FlowType::Number);
+		setupFunction("compress.min", &compress_plugin::setup_minsize, x0::FlowType::Number);
+		setupFunction("compress.max", &compress_plugin::setup_maxsize, x0::FlowType::Number);
 	}
 
 	~compress_plugin() {
@@ -101,43 +98,31 @@ public:
 	}
 
 private:
-	void setup_types(const x0::FlowParams& args, x0::FlowValue& result)
+	void setup_types(x0::FlowVM::Params& args)
 	{
 		contentTypes_.clear();
 
-		for (int i = 0, e = args.size(); i != e; ++i)
-			populateContentTypes(args[i]);
+        const auto& x = *args.get<x0::GCStringArray*>(1);
+
+		for (int i = 0, e = args.size(); i != e; ++i) {
+            contentTypes_[x.data()[i].str()] = 0;
+        }
 	}
 
-	void populateContentTypes(const x0::FlowValue& from)
+	void setup_level(x0::FlowVM::Params& args)
 	{
-		switch (from.type()) {
-			case x0::FlowValue::STRING:
-				contentTypes_.push_back(from.toString());
-				break;
-			case x0::FlowValue::ARRAY:
-				for (auto p: from.toArray())
-					populateContentTypes(p);
-				break;
-			default:
-				;
-		}
-	}
-
-	void setup_level(const x0::FlowParams& args, x0::FlowValue& result)
-	{
-		level_ = args[0].toNumber();
+		level_ = args.get<int>(1);
 		level_ = std::min(std::max(level_, 0), 10);
 	}
 
-	void setup_minsize(const x0::FlowParams& args, x0::FlowValue& result)
+	void setup_minsize(x0::FlowVM::Params& args)
 	{
-		minSize_ = args[0].toNumber();
+		minSize_ = args.get<int>(1);
 	}
 
-	void setup_maxsize(const x0::FlowParams& args, x0::FlowValue& result)
+	void setup_maxsize(x0::FlowVM::Params& args)
 	{
-		maxSize_ = args[0].toNumber();
+		maxSize_ = args.get<int>(1);
 	}
 
 private:
