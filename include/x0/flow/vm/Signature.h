@@ -7,7 +7,7 @@
 namespace x0 {
 namespace FlowVM {
 
-class Signature {
+class X0_API Signature {
 private:
     std::string name_;
     FlowType returnType_;
