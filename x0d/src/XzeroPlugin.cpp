@@ -9,10 +9,17 @@
 #include <x0d/XzeroPlugin.h>
 #include <x0d/XzeroDaemon.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/DebugLogger.h>
 
 namespace x0d {
 
 using namespace x0;
+
+#if !defined(XZERO_NDEBUG)
+#	define TRACE(n, msg...) XZERO_DEBUG("XzeroPlugin", (n), msg)
+#else
+#	define TRACE(n, msg...) /*!*/ ((void)0)
+#endif
 
 /** \brief initializes the plugin.
   *
@@ -28,6 +35,7 @@ XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
 	, debugLevel_(9)
 #endif
 {
+    TRACE(1, "initializing %s", name_.c_str());
 	// ensure that it's only the base-name we store
 	// (fixes some certain cases where we've a path prefix supplied.)
 	size_t i = name_.rfind('/');
@@ -39,6 +47,8 @@ XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
   */
 XzeroPlugin::~XzeroPlugin()
 {
+    TRACE(1, "destructing %s", name_.c_str());
+
     for (auto native: natives_) {
         daemon_->unregisterNative(native->name());
     }

@@ -150,23 +150,27 @@ XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
 	setupApi_(),
 	mainApi_()
 {
+    TRACE(2, "initializing");
 	instance_ = this;
 }
 
 XzeroDaemon::~XzeroDaemon()
 {
+    TRACE(2, "deleting eventHandler");
 	delete eventHandler_;
 	eventHandler_ = nullptr;
-
-	unregisterPlugin(core_);
-	delete core_;
-	core_ = nullptr;
 
 	while (!plugins_.empty())
 		unloadPlugin(plugins_[plugins_.size() - 1]->name());
 
+    TRACE(2, "deleting plugin core");
+	unregisterPlugin(core_);
+	delete core_;
+	core_ = nullptr;
+
     main_ = nullptr;
 
+    TRACE(2, "deleting server");
 	delete server_;
 	server_ = nullptr;
 
@@ -888,19 +892,14 @@ XzeroPlugin *XzeroDaemon::loadPlugin(const std::string& name, std::error_code& e
 /** safely unloads a plugin. */
 void XzeroDaemon::unloadPlugin(const std::string& name)
 {
-#if !defined(XZERO_NDEBUG)
 	log(Severity::debug, "Unloading plugin: %s", name.c_str());
-#endif
 
-	for (auto plugin: plugins_)
-	{
-		if (plugin->name() == name)
-		{
+	for (auto plugin: plugins_) {
+		if (plugin->name() == name) {
 			unregisterPlugin(plugin);
 
 			auto m = pluginLibraries_.find(plugin);
-			if (m != pluginLibraries_.end())
-			{
+			if (m != pluginLibraries_.end()) {
 				delete plugin;
 				m->second.close();
 				pluginLibraries_.erase(m);
@@ -941,9 +940,9 @@ XzeroPlugin *XzeroDaemon::registerPlugin(XzeroPlugin *plugin)
 
 XzeroPlugin *XzeroDaemon::unregisterPlugin(XzeroPlugin *plugin)
 {
+    TRACE(1, "unregisterPlugin(\"%s\")", plugin->name().c_str());
 	auto i = std::find(plugins_.begin(), plugins_.end(), plugin);
 	if (i != plugins_.end()) {
-		unregisterNative(plugin->name());
 		plugins_.erase(i);
 	}
 
