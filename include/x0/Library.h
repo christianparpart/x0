@@ -33,6 +33,7 @@ public:
 	void *operator[](const std::string& symbol);
 
 private:
+    std::string filename_;
 	void *handle_;
 };
 

@@ -8,10 +8,17 @@
 
 #include <x0/Library.h>
 #include <x0/Defines.h>
+#include <x0/DebugLogger.h>
 #include <x0/sysconfig.h>
 
 #include <vector>
 #include <dlfcn.h>
+
+#if !defined(XZERO_NDEBUG)
+#	define TRACE(n, msg...) XZERO_DEBUG("Library", (n), msg)
+#else
+#	define TRACE(n, msg...) /*!*/ ((void)0)
+#endif
 
 // {{{ errors
 enum class dlfcn_error
@@ -94,6 +101,7 @@ Library::~Library()
 }
 
 Library::Library(Library&& movable) :
+    filename_(std::move(movable.filename_)),
 	handle_(movable.handle_)
 {
 	movable.handle_ = 0;
@@ -101,6 +109,8 @@ Library::Library(Library&& movable) :
 
 Library& Library::operator=(Library&& movable)
 {
+    filename_ = std::move(movable.filename_);
+
 	handle_ = movable.handle_;
 	movable.handle_ = 0;
 
@@ -116,11 +126,13 @@ std::error_code Library::open(const std::string& filename)
 
 bool Library::open(const std::string& filename, std::error_code& ec)
 {
+    filename_ = filename;
+    TRACE(1, "open(): %s", filename_.c_str());
+
 	ec.clear();
 	handle_ = dlopen(filename.c_str(), RTLD_GLOBAL | RTLD_NOW);
 
-	if (!handle_)
-	{
+	if (!handle_) {
 #ifndef __APPLE__
 		ec = dlfcn_category().make();
 #endif
@@ -160,6 +172,7 @@ void *Library::operator[](const std::string& symbol)
 
 void Library::close()
 {
+    TRACE(1, "close() %s", filename_.c_str());
 	if (handle_)
 	{
 		dlclose(handle_);
