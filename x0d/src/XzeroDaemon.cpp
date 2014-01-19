@@ -71,9 +71,9 @@
 #endif
 
 #if !defined(XZERO_NDEBUG)
-#	define TRACE(msg...) XzeroDaemon::log(x0::Severity::debug, msg)
+#	define TRACE(n, msg...) XZERO_DEBUG("XzeroDaemon", (n), msg)
 #else
-#	define TRACE(msg...) /*!*/ ((void)0)
+#	define TRACE(n, msg...) /*!*/ ((void)0)
 #endif
 
 // {{{ helper
@@ -529,7 +529,7 @@ bool XzeroDaemon::drop_privileges(const std::string& username, const std::string
 			log(Severity::error, "Could not find group: %s", groupname.c_str());
 			return false;
 		}
-		TRACE("Dropped group privileges to '%s'.", groupname.c_str());
+		TRACE(1, "Dropped group privileges to '%s'.", groupname.c_str());
 	}
 
 	if (!username.empty() && !getuid()) {
@@ -549,7 +549,7 @@ bool XzeroDaemon::drop_privileges(const std::string& username, const std::string
 			return false;
 		}
 
-		TRACE("Dropped user privileges to '%s'.", username.c_str());
+		TRACE(1, "Dropped user privileges to '%s'.", username.c_str());
 	}
 
 	if (!::getuid() || !::geteuid() || !::getgid() || !::getegid()) {
@@ -974,10 +974,10 @@ bool XzeroDaemon::import(const std::string& name, const std::string& path, std::
         return false;
     }
 
-    printf("XzeroPlugin::import(\"%s\", \"%s\", @%p)\n", name.c_str(), path.c_str(), builtins);
+    TRACE(1, "import(\"%s\", \"%s\", @%p)", name.c_str(), path.c_str(), builtins);
     if (builtins) {
         for (x0::FlowVM::NativeCallback* native: plugin->natives_) {
-            printf("  native name: %s\n", native->signature().to_s().c_str());
+            TRACE(2, "  native name: %s", native->signature().to_s().c_str());
             builtins->push_back(native);
         }
     }
@@ -994,7 +994,7 @@ bool XzeroDaemon::setup(const std::string& filename, int optimizationLevel)
 
 bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int optimizationLevel)
 {
-	TRACE("setup(%s)", filename.c_str());
+	TRACE(1, "setup(%s)", filename.c_str());
 
     FlowParser parser(this);
     parser.importHandler = std::bind(&XzeroDaemon::import, this, std::placeholders::_1, std::placeholders::_2,
@@ -1029,13 +1029,13 @@ bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int
     }
 
 	// run setup
-	TRACE("run 'setup'");
+	TRACE(1, "run 'setup'");
     if (program_->findHandler("setup")->run(nullptr))
         // should not return true
         return false;
 
 	// grap the request handler
-	TRACE("get pointer to 'main'");
+	TRACE(1, "get pointer to 'main'");
 
     {
         auto main = program_->findHandler("main");
@@ -1096,14 +1096,14 @@ bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int
 	// }}}
 
 	// {{{ run post-config hooks
-	TRACE("setup: post_config");
+	TRACE(1, "setup: post_config");
 	for (auto i: plugins_)
 		if (!i->post_config())
 			goto err;
 	// }}}
 
 	// {{{ run post-check hooks
-	TRACE("setup: post_check");
+	TRACE(1, "setup: post_check");
 	for (auto i: plugins_)
 		if (!i->post_check())
 			goto err;
@@ -1192,7 +1192,7 @@ bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int
 	for (auto worker: server_->workers())
 		worker->wakeup();
 
-	TRACE("setup: done.");
+	TRACE(1, "setup: done.");
 	return true;
 
 err:
@@ -1202,7 +1202,7 @@ err:
 
 bool XzeroDaemon::validateConfig()
 {
-	TRACE("validateConfig()");
+	TRACE(1, "validateConfig()");
 
 	auto setupFn = unit_->findHandler("setup");
 	if (!setupFn) {
@@ -1216,7 +1216,7 @@ bool XzeroDaemon::validateConfig()
 		return false;
 	}
 
-	TRACE("validateConfig: setup:");
+	TRACE(1, "validateConfig: setup:");
 
     FlowCallVisitor setupCalls(setupFn);
     if (!validate("setup", setupCalls.handlerCalls(), setupApi_))
@@ -1230,7 +1230,7 @@ bool XzeroDaemon::validateConfig()
     if (!validate("main", mainCalls.functionCalls(), mainApi_))
         return false;
 
-	TRACE("validateConfig finished");
+	TRACE(1, "validateConfig finished");
 	return true;
 }
 
@@ -1243,7 +1243,7 @@ bool XzeroDaemon::validate(const std::string& context, const std::vector<T*>& ca
 			continue;
         }
 
-		TRACE(" - %s (%ld args)", i->callee()->name().c_str(), i->args().size());
+		TRACE(1, " - %s (%ld args)", i->callee()->name().c_str(), i->args().size());
 
 		if (std::find(api.begin(), api.end(), i->callee()->name()) == api.end()) {
 			log(Severity::error, "Illegal call to '%s' found within %s-handler (or its callees).", i->callee()->name().c_str(), context.c_str());
