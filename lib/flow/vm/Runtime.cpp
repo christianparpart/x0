@@ -45,7 +45,7 @@ void Runtime::unregisterNative(const std::string& name)
 {
     printf("Runtime::unregisterNative(): %s\n", name.c_str());
     for (size_t i = 0, e = builtins_.size(); i != e; ++i) {
-        if (builtins_[i]->signature().name() == name) {
+        if (builtins_[i] && builtins_[i]->signature().name() == name) {
             delete builtins_[i];
             builtins_[i] = nullptr;
             return;
