@@ -1,9 +1,31 @@
 
 ### Incomplete Flow Rewrite TODO
 
+- port plugins:
+  - DONE: accesslog
+  - DONE: browser
+  - cgi
+  - DONE: compress
+  - debug
+  - expire
+  - dirlisting
+  - userdir
+  - vhost (maybe remove?)
+  - auth
+  - rrdfile
+  - imageable
+  - status
+  - webdav
+  - `echo_example`
+  - `hello_example`
+  - `filter_example`
+  - director
+  - ssl
+
 - fixme: `voidfunc;` parse error, should equal to `voidfunc();` and `voidfunc\n`
 - method overloading (needs updates to symbol lookup, not just by name but by signature)
   - allows us to provide multiple implementations for example: workers(I)V and workers(i)V
+
 - DONE: proper plugin unloading
 - DONE: plugin loading
 - DONE: array type support for string arrays and int arrays
