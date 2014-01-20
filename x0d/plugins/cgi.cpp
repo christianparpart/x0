@@ -13,15 +13,13 @@
  *     Serves CGI/1.1 scripts
  *
  * setup API:
- *     int cgi.ttl = 5;                ; max time in seconds a cgi may run until SIGTERM is issued (-1 for unlimited).
- *     int cgi.kill_ttl = 5            ; max time to wait from SIGTERM on before a SIGKILL is ussued (-1 for unlimited).
- *     int cgi.max_scripts = 20        ; max number of scripts to run in concurrently (-1 for unlimited)
- *     hash cgi.mapping = {}           ; list of file-extension/program pairs for running several cgi scripts with.
+ *     int cgi.ttl = 5;                    ; max time in seconds a cgi may run until SIGTERM is issued (-1 for unlimited).
+ *     int cgi.kill_ttl = 5                ; max time to wait from SIGTERM on before a SIGKILL is ussued (-1 for unlimited).
+ *     int cgi.max_scripts = 20            ; max number of scripts to run in concurrently (-1 for unlimited)
  *
  * request processing API:
- *     handler cgi.prefix(prefix => path) ; processes prefix-mapped executables as CGI (well known ScriptAlias)
- *     handler cgi.exec()                 ; processes executable files as CGI (apache-style: ExecCGI-option)
- *     handler cgi.map()                  ; processes cgi mappings
+ *     handler cgi.exec()                  ; processes executable files as CGI (apache-style: ExecCGI-option)
+ *     handler cgi.run(string executable)  ; processes given executable as CGI on current requested file
  *
  * notes:
  *     ttl/kill-ttl/max-scripts are not yet implemented!
@@ -295,7 +293,7 @@ inline void CgiScript::runAsync()
 	environment["GATEWAY_INTERFACE"] = "CGI/1.1";
 
 	environment["SERVER_PROTOCOL"] = "HTTP/1.1"; // XXX or 1.0
-	environment["SERVER_ADDR"] = request_->connection.localIP();
+	environment["SERVER_ADDR"] = request_->connection.localIP().str();
 	environment["SERVER_PORT"] = x0::lexical_cast<std::string>(request_->connection.localPort()); // TODO this should to be itoa'd only ONCE
 
 	environment["REQUEST_METHOD"] = request_->method.str();
@@ -312,7 +310,7 @@ inline void CgiScript::runAsync()
 	environment["REQUEST_URI"] = request_->unparsedUri.str();
 
 	//environment["REMOTE_HOST"] = "";  // optional
-	environment["REMOTE_ADDR"] = request_->connection.remoteIP();
+	environment["REMOTE_ADDR"] = request_->connection.remoteIP().str();
 	environment["REMOTE_PORT"] = x0::lexical_cast<std::string>(request_->connection.remotePort());
 
 	//environment["AUTH_TYPE"] = "";
@@ -652,93 +650,28 @@ class CgiPlugin :
 	public x0d::XzeroPlugin
 {
 private:
-	/** a set of extension-to-interpreter mappings. */
-	std::map<std::string, std::string> interpreterMappings_;
-
 	/** time-to-live in seconds a CGI script may run at most. */
 	long long ttl_;
 
 public:
-	CgiPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-		x0d::XzeroPlugin(d, name),
-		interpreterMappings_(),
-		ttl_(0)
-	{
-		registerSetupProperty<CgiPlugin, &CgiPlugin::set_ttl>("cgi.ttl", x0::FlowValue::NUMBER);
-		registerSetupFunction<CgiPlugin, &CgiPlugin::set_mapping>("cgi.mapping", x0::FlowValue::VOID);
+    CgiPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+        x0d::XzeroPlugin(d, name),
+        ttl_(0)
+    {
+        setupFunction("cgi.ttl", &CgiPlugin::set_ttl, x0::FlowType::Number);
 
-		registerHandler<CgiPlugin, &CgiPlugin::prefix>("cgi.prefix");
-		registerHandler<CgiPlugin, &CgiPlugin::exec>("cgi.exec");
-		registerHandler<CgiPlugin, &CgiPlugin::map>("cgi.map");
-	}
+        mainHandler("cgi.exec", &CgiPlugin::exec);
+        mainHandler("cgi.run", &CgiPlugin::run, x0::FlowType::String);
+    }
 
 private:
-	// {{{ setup functions
-	void set_ttl(const x0::FlowParams& args, x0::FlowValue& result)
+	void set_ttl(x0::FlowVM::Params& args)
 	{
-		args.load(0, ttl_);
-	}
-
-	// cgi.mapping(ext => bin, ext => bin, ...);
-	void set_mapping(const x0::FlowParams& args, x0::FlowValue& result)
-	{
-		for (auto& arg: args)
-			if (arg.isArray())
-				addMapping(arg.toArray());
-	}
-
-	void addMapping(const x0::FlowArray& mapping)
-	{
-		std::vector<const x0::FlowValue*> items;
-		for (auto& item: mapping)
-			items.push_back(&item);
-
-		if (items.size() != 2)
-		{
-			for (auto item: items)
-				if (item->isArray())
-					addMapping(item->toArray());
-		}
-		else if (items[0]->isString() && items[1]->isString())
-		{
-			interpreterMappings_[items[0]->toString()] = items[1]->toString();
-		}
-	}
-	// }}}
-
-	// {{{ request handler
-	// cgi.prefix(prefix => path)
-	bool prefix(x0::HttpRequest *in, const x0::FlowParams& args)
-	{
-		const x0::FlowArray& r = args[0].toArray();
-
-		if (r.size() != 2)
-			return false;
-
-		const char *prefix = r[0].toString();
-		const char *path = r[1].toString();
-
-		if (!in->path.begins(prefix))
-			return false;
-
-		// rule: "/cgi-bin/" => "/var/www/localhost/cgi-bin/"
-		// appl: "/cgi-bin/special/test.cgi" => "/var/www/localhost/cgi-bin/" "special/test.cgi"
-		x0::Buffer phys;
-		phys.push_back(path);
-		phys.push_back(in->path.ref(strlen(prefix)));
-
-		auto  fi = in->connection.worker().fileinfo(phys.c_str());
-		if (fi && fi->isRegular() && fi->isExecutable())
-		{
-			in->fileinfo = fi;
-			CgiScript::runAsync(in);
-			return true;
-		}
-		return false;
+        ttl_ = args.get<x0::FlowNumber>(1);
 	}
 
 	// handler cgi.exec();
-	bool exec(x0::HttpRequest *in, const x0::FlowParams& args)
+	bool exec(x0::HttpRequest *in, x0::FlowVM::Params& args)
 	{
 		std::string path(in->fileinfo->path());
 
@@ -752,55 +685,14 @@ private:
 		return false;
 	}
 
-	// handler cgi.map();
-	bool map(x0::HttpRequest *in, const x0::FlowParams& args)
-	{
-		std::string path(in->fileinfo->path());
+    // handler cgi.run(string executable);
+    bool run(x0::HttpRequest* r, x0::FlowVM::Params& args)
+    {
+        std::string interpreter = args.get<x0::FlowString*>(1)->str();
 
-		auto fi = in->connection.worker().fileinfo(path);
-		if (!fi)
-			return false;
-		
-		if (!fi->isRegular())
-			return false;
-
-		std::string interpreter;
-		if (!lookupInterpreter(in, interpreter))
-			return false;
-
-		CgiScript::runAsync(in, interpreter);
-		return true;
-	}
-	// }}}
-
-	/** searches for an interpreter for this request.
-	 *
-	 * \param in the incoming request we search an interpreter executable for.
-	 * \param interpreter out value used to store the result, if found.
-	 * \retval true we found an interpreter for given request, its path is stored in \p interpreter.
-	 * \retval false no interpreter found for given request.
-	 *
-	 * For wether or not an interpreter can be found is determined by the entities file extension
-	 * this request maps to. If this extension is known/mapped to any interpreter in the local database,
-	 * this value is used.
-	 */
-	bool lookupInterpreter(x0::HttpRequest *in, std::string& interpreter)
-	{
-		std::string::size_type rpos = in->fileinfo->path().rfind('.');
-
-		if (rpos != std::string::npos)
-		{
-			std::string ext(in->fileinfo->path().substr(rpos));
-			auto i = interpreterMappings_.find(ext);
-
-			if (i != interpreterMappings_.end())
-			{
-				interpreter = i->second;
-				return true;
-			}
-		}
-		return false;
-	}
+        CgiScript::runAsync(r, interpreter);
+        return true;
+    }
 };
 
 X0_EXPORT_PLUGIN_CLASS(CgiPlugin)
