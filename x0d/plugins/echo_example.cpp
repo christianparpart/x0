@@ -93,7 +93,7 @@ public:
 	EchoPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerHandler<EchoPlugin, &EchoPlugin::handleRequest>("echo_example");
+		mainHandler("echo_example", &EchoPlugin::handleRequest);
 	}
 
 	~EchoPlugin()
@@ -101,7 +101,7 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *in, const x0::FlowParams& args)
+	virtual bool handleRequest(x0::HttpRequest *in, x0::FlowVM::Params& args)
 	{
 		// create a handler serving this very request.
 		(new EchoHandler(in))->run();

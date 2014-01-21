@@ -244,7 +244,7 @@ void HttpBackend::Connection::start()
 		writeBuffer_.push_back(forwardedFor);
 		writeBuffer_.push_back(", ");
 	}
-	writeBuffer_.push_back(r->connection.remoteIP());
+	writeBuffer_.push_back(r->connection.remoteIP().str());
 	writeBuffer_.push_back("\r\n");
 
 	// X-Forwarded-Proto

@@ -89,10 +89,21 @@ public:
 
 		daemon().addComponent(std::string("GnuTLS/") + gnutls_check_version(nullptr));
 
-		registerSetupFunction<SslPlugin, &SslPlugin::add_listener>("ssl.listen", x0::FlowValue::VOID);
-		registerSetupFunction<SslPlugin, &SslPlugin::set_loglevel>("ssl.loglevel", x0::FlowValue::VOID);
-		registerSetupFunction<SslPlugin, &SslPlugin::set_priorities>("ssl.priorities", x0::FlowValue::VOID);
-		registerSetupFunction<SslPlugin, &SslPlugin::add_context>("ssl.context", x0::FlowValue::VOID);
+        setupFunction("ssl.listen", &SslPlugin::add_listener)
+            .param<x0::IPAddress>("address", x0::IPAddress("0.0.0.0"))
+            .param<int>("port", 80)
+            .param<int>("backlog", 128)
+            .param<int>("multi_accept", 1)
+            .param<bool>("reuse_port", false);
+
+        setupFunction("ssl.loglevel", &SslPlugin::set_loglevel, x0::FlowType::Number);
+        setupFunction("ssl.priorities", &SslPlugin::set_priorities, x0::FlowType::String);
+
+        setupFunction("ssl.context", &SslPlugin::add_context)
+            .param<x0::FlowString>("keyfile")
+            .param<x0::FlowString>("certfile")
+            .param<x0::FlowString>("trustfile")
+            .param<x0::FlowString>("priorities");
 	}
 
 	~SslPlugin()
@@ -141,46 +152,32 @@ public:
 	// {{{ config
 private:
 	// ssl.listener(BINDADDR_PORT);
-	void add_listener(const x0::FlowParams& args, x0::FlowValue& result)
+	void add_listener(x0::FlowVM::Params& args)
 	{
-		x0::SocketSpec socketSpec;
-		socketSpec << args;
+        x0::SocketSpec socketSpec(
+            args.get<x0::IPAddress>(1),     // bind addr
+            args.get<x0::FlowNumber>(2),    // port
+            args.get<x0::FlowNumber>(3),    // backlog
+            args.get<x0::FlowNumber>(4),    // multi accept
+            args.get<bool>(5)               // reuse port
+        );
 
-		if (!socketSpec.isValid()) {
-			result.set(false);
-		} else {
-			x0::ServerSocket* listener = server().setupListener(socketSpec);
-			if (listener) {
-				SslDriver *driver = new SslDriver(this);
-				listener->setSocketDriver(driver);
-				listeners_.push_back(listener);
-			}
-
-			result.set(listener != nullptr);
-		}
+        x0::ServerSocket* listener = server().setupListener(socketSpec);
+        if (listener) {
+            SslDriver *driver = new SslDriver(this);
+            listener->setSocketDriver(driver);
+            listeners_.push_back(listener);
+        }
 	}
 
-	void set_loglevel(const x0::FlowParams& args, x0::FlowValue& result)
+	void set_loglevel(x0::FlowVM::Params& args)
 	{
-		if (args.size() == 1) {
-			if (args[0].isNumber())
-				setLogLevel(args[0].toNumber());
-		}
+        setLogLevel(args.get<int>(1));
 	}
 
-	void set_priorities(const x0::FlowParams& args, x0::FlowValue& result)
+	void set_priorities(x0::FlowVM::Params& args)
 	{
-		if (args.size() != 1) {
-			log(x0::Severity::error, "ssl.priorities: Invalid argument count.");
-			return;
-		}
-
-		if (!args[0].isString() && !args[0].isBuffer()) {
-			log(x0::Severity::error, "ssl.priorities: Invalid argument type. Must be a string.");
-			return;
-		}
-
-		//priorities_ = args[0].toString();
+        //TODO priorities_ = args[0].toString();
 	}
 
 	void setLogLevel(int value)
@@ -200,53 +197,22 @@ private:
 		TRACE("gnutls [%d] %s", level, msg.c_str());
 	}
 
-	// ssl.add(
-	// 		'keyfile' => PATH,
-	// 		'certfile' => PATH,
-	// 		'trustfile' => PATH,
-	// 		'priorities' => CIPHERS);
+	// ssl.add(keyfile: PATH,
+	// 	       certfile: PATH,
+	// 	       trustfile: PATH,
+	// 	       priorities: CIPHERS
+    // );
 	//
-	void add_context(const x0::FlowParams& args, x0::FlowValue& result)
+	void add_context(x0::FlowVM::Params& args)
 	{
 		std::auto_ptr<SslContext> cx(new SslContext());
+
 		cx->setLogger(server().logger());
-		std::string keyname;
 
-		for (std::size_t i = 0, e = args.size(); i != e; ++i)
-		{
-			if (!args[i].isArray())
-				continue;
-
-			const x0::FlowArray& arg = args[i].toArray(); // key => value
-			if (arg.size() != 2)
-				continue;
-
-			const x0::FlowValue* key = &arg[0];
-			const x0::FlowValue* value = &arg[1];
-
-			if (!key->isString())
-				continue;
-
-			keyname = key->toString();
-
-			if (!value->isString() && !value->isNumber() && !value->isBool())
-				continue;
-
-			std::string sval;
-			if (keyname == "certfile") {
-				if (!value->load(sval)) return;
-				cx->certFile = sval;
-			} else if (keyname == "keyfile") {
-				if (!value->load(sval)) return;
-				cx->keyFile = sval;
-			} else if (keyname == "trustfile") {
-				if (!value->load(sval)) return;
-				cx->trustFile = sval;
-			} else {
-				server().log(x0::Severity::error, "ssl: Unknown ssl.context key: '%s'\n", keyname.c_str());
-				return;
-			}
-		}
+        cx->keyFile = args.get<std::string>(1);
+        cx->certFile = args.get<std::string>(2);
+        cx->trustFile = args.get<std::string>(3);
+        std::string priorities = args.get<std::string>(4);
 
 		// context setup successful -> put into our ssl context set.
 		contexts_.push_back(cx.release());

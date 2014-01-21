@@ -60,12 +60,12 @@ public:
 	dirlisting_plugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerHandler<dirlisting_plugin, &dirlisting_plugin::simple>("dirlisting");
-		registerHandler<dirlisting_plugin, &dirlisting_plugin::google>("dirlisting.google");
+		mainHandler("dirlisting", &dirlisting_plugin::simple);
+		mainHandler("dirlisting.google", &dirlisting_plugin::google);
 	}
 
 private:
-	bool simple(x0::HttpRequest *in, const x0::FlowParams& args)
+	bool simple(x0::HttpRequest *in, x0::FlowVM::Params& args)
 	{
 		if (in->testDirectoryTraversal())
 			return true;
@@ -128,7 +128,7 @@ private:
 		return true;
 	}
 
-	bool google(x0::HttpRequest* in, const x0::FlowParams& args)
+	bool google(x0::HttpRequest* in, x0::FlowVM::Params& args)
 	{
 		if (in->testDirectoryTraversal())
 			return true;

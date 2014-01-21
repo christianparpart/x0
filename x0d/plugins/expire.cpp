@@ -60,19 +60,16 @@ public:
 	ExpirePlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerFunction<ExpirePlugin, &ExpirePlugin::expire>("expire", x0::FlowValue::VOID);
+		mainFunction("expire", &ExpirePlugin::expire).params(x0::FlowType::Number);
 	}
 
 private:
 	// void expire(datetime / timespan)
-	void expire(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& result)
+	void expire(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
-		if (args.size() < 1)
-			return;
-
 		time_t now = r->connection.worker().now().unixtime();
 		time_t mtime = r->fileinfo ? r->fileinfo->mtime() : now;
-		time_t value = args[0].toNumber();
+        time_t value = args.get<int>(1);
 
 		// passed a timespan
 		if (value < mtime)

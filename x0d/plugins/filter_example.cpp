@@ -72,29 +72,17 @@ public:
 	filter_plugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerFunction<filter_plugin, &filter_plugin::install_filter>("example_filter", x0::FlowValue::VOID);
+		mainFunction("example_filter", &filter_plugin::install_filter, x0::FlowType::String);
 	}
 
-	~filter_plugin() {
-	}
-
-	void install_filter(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& /*result*/)
+	void install_filter(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
-		if (args.size() != 1) {
-			log(x0::Severity::error, "No argument passed.");
-			return;
-		}
-
-		if (!args[0].isString()) {
-			log(x0::Severity::error, "Invalid argument type passed.");
-			return;
-		}
-
-		if (strcmp(args[0].toString(), "identity") == 0)
+        auto algo = args.get<x0::FlowString>(1);
+		if (equals(algo, "identity"))
 			r->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::IDENTITY));
-		else if (strcmp(args[0].toString(), "upper") == 0)
+		else if (equals(algo, "upper"))
 			r->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::UPPER));
-		else if (strcmp(args[0].toString(), "lower") == 0)
+		else if (equals(algo, "lower"))
 			r->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::LOWER));
 		else {
 			log(x0::Severity::error, "Invalid argument value passed.");

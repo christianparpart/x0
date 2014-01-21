@@ -1,4 +1,4 @@
-/* <plugins/director/DirectorPlugin.cpp>
+/* <x0d/plugins/director/DirectorPlugin.cpp>
  *
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
@@ -14,10 +14,6 @@
  *     in front of us.
  *
  * setup API:
- *     function director.create(string director_name,
- *                              string backend_name_1 => string backend_url_1,
- *                              ...);
- *
  *     function director.load(string director_name_1 => string path_to_db,
  *                            ...);
  *
@@ -62,20 +58,47 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 	roadWarrior_(),
 	haproxyApi_(new HaproxyApi(&directors_))
 {
-	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_create>("director.create", FlowValue::VOID);
-	registerSetupFunction<DirectorPlugin, &DirectorPlugin::director_load>("director.load", FlowValue::VOID);
+    setupFunction("director.load", &DirectorPlugin::director_load)
+        .param<FlowString>("name")
+        .param<FlowString>("path");
+
 #if defined(X0_DIRECTOR_CACHE)
-	registerProperty<DirectorPlugin, &DirectorPlugin::director_cache_key>("director.cache.key", FlowValue::STRING);
-	registerFunction<DirectorPlugin, &DirectorPlugin::director_cache_bypass>("director.cache.bypass", FlowValue::VOID);
+    mainFunction("director.cache.key", &DirectorPlugin::director_cache_key, FlowType::String);
+    mainFunction("director.cache.bypass", &DirectorPlugin::director_cache_bypass);
 #endif
-	registerHandler<DirectorPlugin, &DirectorPlugin::director_balance>("director.balance");
-	registerHandler<DirectorPlugin, &DirectorPlugin::director_pass>("director.pass");
-	registerHandler<DirectorPlugin, &DirectorPlugin::director_api>("director.api");
-	registerHandler<DirectorPlugin, &DirectorPlugin::director_fcgi>("director.fcgi"); // "fastcgi"
-	registerHandler<DirectorPlugin, &DirectorPlugin::director_http>("director.http"); // "proxy.reverse"
-	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_stats>("director.haproxy_stats");
-	registerHandler<DirectorPlugin, &DirectorPlugin::director_haproxy_monitor>("director.haproxy_monitor");
-	roadWarrior_ = new RoadWarrior(server().selectWorker());
+
+    mainHandler("director.balance", &DirectorPlugin::director_balance)
+        .param<FlowString>("director")
+        .param<FlowString>("bucket", "");
+
+    mainHandler("director.pass", &DirectorPlugin::director_pass)
+        .param<FlowString>("director")
+        .param<FlowString>("backend");
+
+    mainHandler("director.api", &DirectorPlugin::director_api)
+        .param<FlowString>("prefix", "/");
+
+    mainHandler("director.fcgi", &DirectorPlugin::director_fcgi)
+        .param<IPAddress>("address", IPAddress("0.0.0.0"))
+        .param<int>("port", 80)
+        .param<int>("backlog", 128)
+        .param<int>("multi_accept", 1)
+        .param<bool>("reuse_port", false);
+
+    mainHandler("director.http", &DirectorPlugin::director_http)
+        .param<IPAddress>("address", IPAddress("0.0.0.0"))
+        .param<int>("port", 80)
+        .param<int>("backlog", 128)
+        .param<int>("multi_accept", 1)
+        .param<bool>("reuse_port", false);
+
+    mainHandler("director.haproxy_stats", &DirectorPlugin::director_haproxy_stats)
+        .param<FlowString>("prefix", "/");
+
+    mainHandler("director.haproxy_monitor", &DirectorPlugin::director_haproxy_monitor)
+        .param<FlowString>("prefix", "/");
+
+    roadWarrior_ = new RoadWarrior(server().selectWorker());
 }
 
 DirectorPlugin::~DirectorPlugin()
@@ -95,117 +118,35 @@ RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r)
 	return r->setCustomData<RequestNotes>(this, r);
 }
 
-// {{{ setup_function director.load(...)
-void DirectorPlugin::director_load(const FlowParams& args, FlowValue& result)
+// {{{ setup_function director.load(name, path)
+void DirectorPlugin::director_load(FlowVM::Params& args)
 {
-	for (auto& arg: args) {
-		if (!arg.isArray())
-			continue;
+    const auto directorName = args.get<std::string>(1);
+    const auto path = args.get<std::string>(2);
 
-		const FlowArray& fa = arg.toArray();
-		if (fa.size() != 2)
-			continue;
+    // TODO verify that given director name is still available.
+    // TODO verify that no director has been instanciated already by given path.
 
-		const FlowValue& directorName = fa[0];
-		if (!directorName.isString())
-			continue;
+    server().log(Severity::debug, "director: Loading director %s from %s.", directorName.c_str(), path.c_str());
 
-		const FlowValue& path = fa[1];
-		if (!path.isString())
-			continue;
+    Director* director = new Director(server().nextWorker(), directorName);
+    if (!director)
+        return;
 
-		// TODO verify that given director name is still available.
-		// TODO verify that no director has been instanciated already by given path.
+    director->load(path);
 
-		server().log(Severity::debug, "director: Loading director %s from %s.",
-			directorName.toString(), path.toString());
-
-		Director* director = new Director(server().nextWorker(), directorName.toString());
-		if (!director)
-			continue;
-
-		director->load(path.toString());
-
-		directors_[directorName.toString()] = director;
-	}
-}
-// }}}
-// {{{ setup_function director.create(...)
-void DirectorPlugin::director_create(const FlowParams& args, FlowValue& result)
-{
-	const FlowValue& directorId = args[0];
-	if (!directorId.isString())
-		return;
-
-	Director* director = createDirector(directorId.toString());
-	if (!director)
-		return;
-
-	for (auto& arg: args.shift()) {
-		if (!arg.isArray())
-			continue;
-
-		const FlowArray& fa = arg.toArray();
-		if (fa.size() != 2)
-			continue;
-
-		const FlowValue& backendName = fa[0];
-		if (!backendName.isString())
-			continue;
-
-		const FlowValue& backendUrl = fa[1];
-		if (!backendUrl.isString())
-			continue;
-
-		registerBackend(director, backendName.toString(), backendUrl.toString());
-	}
-
-	directors_[director->name()] = director;
-}
-
-Director* DirectorPlugin::createDirector(const char* id)
-{
-	server().log(Severity::debug, "director: Creating director %s", id);
-	Director* director = new Director(server().nextWorker(), id);
-	return director;
-}
-
-Backend* DirectorPlugin::registerBackend(Director* director, const char* name, const char* url)
-{
-	server().log(Severity::debug, "director: %s, backend %s: %s",
-			director->name().c_str(), name, url);
-
-	return director->createBackend(name, Url::parse(url));
+    directors_[directorName] = director;
 }
 // }}}
 // {{{ function director.cache.bypass()
 #if defined(X0_DIRECTOR_CACHE)
-void DirectorPlugin::director_cache_key(HttpRequest* r, const FlowParams& args, FlowValue& result)
+void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
 {
 	auto notes = requestNotes(r);
-
-	switch (args.size()) {
-		case 1: {
-			if (!args[0].isString() && !args[0].isBuffer()) {
-				r->log(Severity::error, "director.cache.key(): Invalid argument.");
-			} else {
-				auto fmt = args[0].asString();
-				notes->setCacheKey(fmt);
-			}
-			break;
-		}
-		case 0: {
-			result.set(notes->cacheKey.c_str());
-			break;
-		}
-		default: {
-			r->log(Severity::error, "director.cache.key(): Invalid argument count.");
-			break;
-		}
-	}
+    notes->setCacheKey(args.get<FlowString>(1).str());
 }
 
-void DirectorPlugin::director_cache_bypass(HttpRequest* r, const FlowParams& args, FlowValue& result)
+void DirectorPlugin::director_cache_bypass(HttpRequest* r, FlowVM::Params& args)
 {
 	auto notes = requestNotes(r);
 	notes->cacheIgnore = true;
@@ -218,64 +159,38 @@ void DirectorPlugin::director_cache_bypass(HttpRequest* r, const FlowParams& arg
  */
 bool DirectorPlugin::internalServerError(HttpRequest* r)
 {
-	if (r->status != x0::HttpStatus::Undefined)
-		r->status = x0::HttpStatus::InternalServerError;
+	if (r->status != HttpStatus::Undefined)
+		r->status = HttpStatus::InternalServerError;
 
 	r->finish();
 	return true;
 }
 
 // handler director.balance(string director_name, string bucket_name = '');
-bool DirectorPlugin::director_balance(HttpRequest* r, const FlowParams& args)
+bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
 {
-	std::string directorName;
-	Director* director = nullptr;
+	std::string directorName = args.get<FlowString>(1).str();
+	std::string bucketName = args.get<FlowString>(2).str();
 
-	std::string bucketName;
+    auto i = directors_.find(directorName);
+    if (i == directors_.end()) {
+        r->log(Severity::error, "director.balance(): No director with name '%s' configured.", directorName.c_str());
+        return internalServerError(r);
+    }
+	Director* director = i->second;
+
 	RequestShaper::Node* bucket = nullptr;
-
-	switch (args.size()) {
-		case 2:
-			if (!args[1].isString() && !args[1].isBuffer()) {
-				r->log(Severity::error, "director.balance(): Invalid argument.");
-				return internalServerError(r);
-			}
-			bucketName = args[1].asString();
-			// fall through
-		case 1: {
-			if (!args[0].isString() && !args[0].isBuffer()) {
-				r->log(Severity::error, "director.balance(): Invalid argument.");
-				return internalServerError(r);
-			}
-
-			directorName = args[0].asString();
-			auto i = directors_.find(directorName);
-			if (i == directors_.end()) {
-				r->log(Severity::error, "director.balance(): No director with name '%s' configured.", directorName.c_str());
-				return internalServerError(r);
-			}
-			director = i->second;
-
-			if (!bucketName.empty()) {
-				bucket = director->findBucket(bucketName);
-				if (!bucket) {
-					// explicit bucket specified, but not found -> ignore.
-					bucket = director->rootBucket();
-					r->log(Severity::error, "director: Requested bucket '%s' not found in director '%s'. Assigning root bucket.",
-						bucketName.c_str(), directorName.c_str());
-				}
-			} else {
-				bucket = director->rootBucket();
-			}
-			break;
-		}
-		case 0:
-			r->log(Severity::error, "director.balance(): No arguments passed.");
-			return internalServerError(r);
-		default:
-			r->log(Severity::error, "director.balance(): Invalid argument count passed.");
-			return internalServerError(r);
-	}
+    if (!bucketName.empty()) {
+        bucket = director->findBucket(bucketName);
+        if (!bucket) {
+            // explicit bucket specified, but not found -> ignore.
+            bucket = director->rootBucket();
+            r->log(Severity::error, "director: Requested bucket '%s' not found in director '%s'. Assigning root bucket.",
+                bucketName.c_str(), directorName.c_str());
+        }
+    } else {
+        bucket = director->rootBucket();
+    }
 
 	auto rn = requestNotes(r);
 	rn->manager = director;
@@ -285,61 +200,28 @@ bool DirectorPlugin::director_balance(HttpRequest* r, const FlowParams& args)
 	return true;
 } // }}}
 // {{{ handler director.pass(string director_id [, string backend_id ] );
-bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
+bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
 {
-	std::string directorName;
-	Director* director = nullptr;
+    std::string directorName = args.get<FlowString>(1).str();
+    auto i = directors_.find(directorName);
+    if (i == directors_.end()) {
+        r->log(Severity::error, "director.pass(): No director with name '%s' configured.", directorName.c_str());
+        return internalServerError(r);
+    }
+    Director* director = i->second;
 
-	std::string backendName;
-	Backend* backend = nullptr;
+    // custom backend route
+    std::string backendName = args.get<FlowString>(2).str();
+    Backend* backend = nullptr;
+    if (!backendName.empty()) {
+        backend = director->findBackend(backendName);
 
-	switch (args.size()) {
-		case 2:
-			if (!args[1].isString() && !args[1].isBuffer()) {
-				r->log(Severity::error, "director.pass(): Invalid argument.");
-				break;
-			}
-			backendName = args[1].asString();
-			// fall though
-		case 1: {
-			if (!args[0].isString() && !args[0].isBuffer()) {
-				r->log(Severity::error, "director.pass(): Invalid argument.");
-				break;
-			}
-
-			directorName = args[0].asString();
-			auto i = directors_.find(directorName);
-			if (i == directors_.end()) {
-				r->log(Severity::error, "director.pass(): No director with name '%s' configured.", directorName.c_str());
-				break;
-			}
-
-			director = i->second;
-
-			// custom backend route
-			if (!backendName.empty()) {
-				backend = director->findBackend(backendName);
-
-				if (!backend) {
-					// explicit backend specified, but not found -> do not serve.
-					r->log(Severity::error, "director: Requested backend '%s' not found.", backendName.c_str());
-					return internalServerError(r);
-				}
-			}
-			break;
-		}
-		case 0: {
-			r->log(Severity::error, "director.pass(): No arguments passed.");
-			break;
-		}
-		default: {
-			r->log(Severity::error, "director.pass(): Too many arguments passed.");
-			break;
-		}
-	}
-
-	if (!director)
-		return internalServerError(r);
+        if (!backend) {
+            // explicit backend specified, but not found -> do not serve.
+            r->log(Severity::error, "director: Requested backend '%s' not found.", backendName.c_str());
+            return internalServerError(r);
+        }
+    }
 
 	server().log(Severity::debug, "director: passing request to %s [backend %s].", director->name().c_str(), backend->name().c_str());
 
@@ -347,90 +229,73 @@ bool DirectorPlugin::director_pass(HttpRequest* r, const FlowParams& args)
 	rn->manager = director;
 
 	director->schedule(rn, backend);
+
 	return true;
 }
 // }}}
 // {{{ handler director.api(string prefix);
-bool DirectorPlugin::director_api(HttpRequest* r, const FlowParams& args)
+bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args)
 {
-	const char* prefix = args[0].toString();
-	if (!r->path.begins(prefix))
-		return false;
+    const FlowString* prefix = args.get<FlowString*>(1);
 
-	BufferRef path(r->path.ref(strlen(prefix)));
+    if (!r->path.begins(*prefix))
+        return false;
 
-	return ApiRequest::process(&directors_, r, path);
+    BufferRef path(r->path.ref(prefix->size()));
+
+    return ApiRequest::process(&directors_, r, path);
 }
 // }}}
 // {{{ handler director.fcgi(socketspec);
-bool DirectorPlugin::director_fcgi(HttpRequest* r, const FlowParams& args)
+bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
 {
-	x0::SocketSpec spec;
-	spec << args;
-	roadWarrior_->handleRequest(requestNotes(r), spec, RoadWarrior::FCGI);
-	return true;
+    SocketSpec socketSpec(
+        args.get<IPAddress>(1),  // bind addr
+        args.get<FlowNumber>(2), // port
+        args.get<FlowNumber>(3), // backlog
+        args.get<FlowNumber>(4), // multi accept
+        args.get<bool>(5)        // reuse port
+    );
+
+    roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::FCGI);
+    return true;
 }
 // }}}
 // {{{ handler director.http(socketspec);
-bool DirectorPlugin::director_http(HttpRequest* r, const FlowParams& args)
+bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
 {
-	x0::SocketSpec spec;
-	spec << args;
-	roadWarrior_->handleRequest(requestNotes(r), spec, RoadWarrior::HTTP);
-	return true;
+    SocketSpec socketSpec(
+        args.get<IPAddress>(1),  // bind addr
+        args.get<FlowNumber>(2), // port
+        args.get<FlowNumber>(3), // backlog
+        args.get<FlowNumber>(4), // multi accept
+        args.get<bool>(5)        // reuse port
+    );
+
+    roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
+    return true;
 }
 // }}}
 // {{{ haproxy compatibility API
-bool DirectorPlugin::director_haproxy_monitor(x0::HttpRequest* r, const x0::FlowParams& args)
+bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r, FlowVM::Params& args)
 {
-	std::string prefix("/");
-	if (!args.empty()) {
-		if (args.size() > 1) {
-			r->log(Severity::error, "director.haproxy_stats: invalid argument count");
-			r->status = HttpStatus::InternalServerError;
-			r->finish();
-			return true;
-		}
-		if (!args[0].isString()) {
-			r->log(Severity::error, "director.haproxy_stats: invalid argument type.");
-			r->status = HttpStatus::InternalServerError;
-			r->finish();
-			return true;
-		}
-		prefix = args[0].toString();
-	}
+	const FlowString* prefix = args.get<FlowString*>(1);
 
-	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
+	if (!r->path.begins(*prefix) && !r->unparsedUri.begins(*prefix))
 		return false;
 
 	haproxyApi_->monitor(r);
 	return true;
 }
 
-bool DirectorPlugin::director_haproxy_stats(x0::HttpRequest* r, const x0::FlowParams& args)
+bool DirectorPlugin::director_haproxy_stats(HttpRequest* r, FlowVM::Params& args)
 {
-	std::string prefix("/");
+	const FlowString* prefix = args.get<FlowString*>(1);
 
-	if (!args.empty()) {
-		if (args.size() > 1) {
-			r->log(Severity::error, "director.haproxy_stats: invalid argument count");
-			r->status = HttpStatus::InternalServerError;
-			r->finish();
-			return true;
-		}
-		if (!args[0].isString()) {
-			r->log(Severity::error, "director.haproxy_stats: invalid argument type.");
-			r->status = HttpStatus::InternalServerError;
-			r->finish();
-			return true;
-		}
-		prefix = args[0].toString();
-	}
-
-	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
+	if (!r->path.begins(*prefix) && !r->unparsedUri.begins(*prefix))
 		return false;
 
-	haproxyApi_->stats(r, prefix);
+	haproxyApi_->stats(r, prefix->str());
 	return true;
 }
 // }}}

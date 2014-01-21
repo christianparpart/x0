@@ -1,4 +1,4 @@
-/* <x0/plugins/status.cpp>
+/* <x0d/plugins/status.cpp>
  *
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
@@ -88,8 +88,8 @@ public:
 	StatusPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerHandler<StatusPlugin, &StatusPlugin::handleRequest>("status");
-		registerHandler<StatusPlugin, &StatusPlugin::nginx_compat>("status.nginx_compat");
+		mainHandler("status", &StatusPlugin::handleRequest);
+		mainHandler("status.nginx_compat", &StatusPlugin::nginx_compat);
 
 		onWorkerSpawn_ = server().onWorkerSpawn.connect<StatusPlugin, &StatusPlugin::onWorkerSpawn>(this);
 		onWorkerUnspawn_ = server().onWorkerUnspawn.connect<StatusPlugin, &StatusPlugin::onWorkerUnspawn>(this);
@@ -186,7 +186,7 @@ private:
 		++stats->requestsProcessed;
 	}
 
-	bool nginx_compat(x0::HttpRequest* r, const x0::FlowParams& args)
+	bool nginx_compat(x0::HttpRequest* r, x0::FlowVM::Params& args)
 	{
 		x0::Buffer nginxCompatStatus(1024);
 		Stats sum;
@@ -217,7 +217,7 @@ private:
 		return true;
 	}
 
-	bool handleRequest(x0::HttpRequest *r, const x0::FlowParams& args)
+	bool handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		// set response status code
 		r->status = x0::HttpStatus::Ok;
@@ -355,7 +355,7 @@ private:
 		out << "<td class='cid'>" << c->id() << "</td>";
 		out << "<td class='wid'>" << c->worker().id() << "</td>";
 		out << "<td class='rn'>" << c->requestCount() << "</td>";
-		out << "<td class='ip'>" << c->remoteIP() << "</td>";
+		out << "<td class='ip'>" << c->remoteIP().str() << "</td>";
 
 		out << "<td class='state'>" << c->status_str();
 		if (c->status() == x0::HttpConnection::ReadingRequest)

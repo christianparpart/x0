@@ -39,7 +39,7 @@ public:
 	Flower();
 	~Flower();
 
-	virtual bool import(const std::string& name, const std::string& path);
+    virtual bool import(const std::string& name, const std::string& path, std::vector<FlowVM::NativeCallback*>* builtins);
 
 	int optimizationLevel() { return 0; }
 	void setOptimizationLevel(int val) { }

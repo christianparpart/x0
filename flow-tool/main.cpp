@@ -77,7 +77,7 @@ int parsedump(const char* filename) // {{{
 		fprintf(stderr, "Parser Error. %s\n", message.c_str());
 	};
 
-	parser.importHandler = [&](const std::string& moduleName, const std::string& path) -> bool {
+	parser.importHandler = [&](const std::string& moduleName, const std::string& path, std::vector<FlowVM::NativeCallback*>*) -> bool {
 		printf("importHandler: '%s' from '%s'\n", moduleName.c_str(), path.c_str());
 		return true;
 	};

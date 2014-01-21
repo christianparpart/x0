@@ -41,20 +41,19 @@ public:
 private:
 	RequestNotes* requestNotes(x0::HttpRequest* r);
 
-	void director_load(const x0::FlowParams& args, x0::FlowValue& result);
-	void director_create(const x0::FlowParams& args, x0::FlowValue& result);
+	void director_load(x0::FlowVM::Params& args);
 
-	void director_cache_key(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
-	void director_cache_bypass(x0::HttpRequest* r, const x0::FlowParams& args, x0::FlowValue& result);
+	void director_cache_key(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void director_cache_bypass(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
-	bool director_balance(x0::HttpRequest* r, const x0::FlowParams& args);
-	bool director_pass(x0::HttpRequest* r, const x0::FlowParams& args);
-	bool director_api(x0::HttpRequest* r, const x0::FlowParams& args);
-	bool director_fcgi(x0::HttpRequest* r, const x0::FlowParams& args);
-	bool director_http(x0::HttpRequest* r, const x0::FlowParams& args);
+	bool director_balance(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool director_pass(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool director_api(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool director_fcgi(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool director_http(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
-	bool director_haproxy_monitor(x0::HttpRequest* r, const x0::FlowParams& args);
-	bool director_haproxy_stats(x0::HttpRequest* r, const x0::FlowParams& args);
+	bool director_haproxy_monitor(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	bool director_haproxy_stats(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	bool internalServerError(x0::HttpRequest* r);
 	Director* createDirector(const char* id);

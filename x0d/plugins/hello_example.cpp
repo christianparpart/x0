@@ -36,7 +36,7 @@ public:
 	HelloPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerHandler<HelloPlugin, &HelloPlugin::handleRequest>("hello_example");
+		mainHandler("hello_example", &HelloPlugin::handleRequest);
 	}
 
 	~HelloPlugin()
@@ -44,7 +44,7 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *r, const x0::FlowParams& args)
+	bool handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		// set response status code
 		r->status = x0::HttpStatus::Ok;

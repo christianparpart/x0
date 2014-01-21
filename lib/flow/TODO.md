@@ -1,26 +1,28 @@
 
 ### Incomplete Flow Rewrite TODO
 
-- port plugins:
+- add `NativeCallback::verifier(std::function<bool(AST&)>)` to implement easy call verifier
+- update man-page for x0d.conf
+- DONE: port plugins:
   - DONE: accesslog
   - DONE: browser
-  - cgi
+  - DONE: cgi
   - DONE: compress
-  - debug
-  - expire
-  - dirlisting
-  - userdir
-  - vhost (maybe remove?)
-  - auth
-  - rrdfile
-  - imageable
-  - status
-  - webdav
-  - `echo_example`
-  - `hello_example`
-  - `filter_example`
-  - director
-  - ssl
+  - DONE: debug
+  - DONE: expire
+  - DONE: dirlisting
+  - DONE: userdir
+  - DONE: auth
+  - DONE: rrdfile
+  - DONE: status
+  - DONE: webdav
+  - DONE: `echo_example`
+  - DONE: `hello_example`
+  - DONE: `filter_example`
+  - DONE: ssl
+  - DONE: director
+  - DONE: imageable
+  - DONE: vhost (REMOVED due to `match`-keyword support)
 
 - fixme: `voidfunc;` parse error, should equal to `voidfunc();` and `voidfunc\n`
 - method overloading (needs updates to symbol lookup, not just by name but by signature)

@@ -17,7 +17,6 @@ x0_plugin_simple(debug)
 x0_plugin_simple(expire)
 x0_plugin_simple(dirlisting)
 x0_plugin_simple(userdir)
-x0_plugin_simple(vhost)
 
 x0_plugin_simple(auth)
 if(HAVE_SECURITY_PAM_APPL_H)

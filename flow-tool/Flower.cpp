@@ -97,7 +97,7 @@ Flower::~Flower()
 {
 }
 
-bool Flower::import(const std::string& name, const std::string& path)
+bool Flower::import(const std::string& name, const std::string& path, std::vector<FlowVM::NativeCallback*>* builtins)
 {
 	return false;
 }
@@ -137,7 +137,7 @@ int Flower::runAll(const char *fileName)
 
     FlowParser parser(this);
 
-    parser.importHandler = [&](const std::string& name, const std::string& basedir) -> bool {
+    parser.importHandler = [&](const std::string& name, const std::string& basedir, std::vector<FlowVM::NativeCallback*>*) -> bool {
         fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
         return false;
     };
@@ -208,7 +208,7 @@ int Flower::run(const char* fileName, const char* handlerName)
 
 	FlowParser parser(this);
 
-	parser.importHandler = [&](const std::string& name, const std::string& basedir) -> bool {
+    parser.importHandler = [&](const std::string& name, const std::string& basedir, std::vector<FlowVM::NativeCallback*>*) -> bool {
 		fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
 		return false;
 	};

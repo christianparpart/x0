@@ -43,28 +43,21 @@ public:
 		x0d::XzeroPlugin(d, name),
 		dirname_("/public_html")
 	{
-		registerSetupProperty<userdir_plugin, &userdir_plugin::setup_userdir>("userdir.name", x0::FlowValue::STRING);
-		registerFunction<userdir_plugin, &userdir_plugin::handleRequest>("userdir", x0::FlowValue::VOID);
+		setupFunction("userdir.name", &userdir_plugin::setup_userdir, x0::FlowType::String);
+		mainFunction("userdir", &userdir_plugin::handleRequest);
 	}
 
 	~userdir_plugin()
 	{
 	}
 
-	void setup_userdir(const x0::FlowParams& args, x0::FlowValue& result)
+	void setup_userdir(x0::FlowVM::Params& args)
 	{
-		if (args.empty()) {
-			result.set(dirname_.c_str());
-			return;
-		}
-
-		std::string dirname;
-		if (!args[0].load(dirname))
-			return;
+		std::string dirname = args.get<x0::FlowString>(1).str();
 
 		std::error_code ec = validate(dirname);
 		if (ec) {
-			server().log(x0::Severity::error, "userdir: %s", ec.message().c_str());
+			server().log(x0::Severity::error, "userdir \"%s\": %s", dirname.c_str(), ec.message().c_str());
 			return;
 		}
 
@@ -88,7 +81,7 @@ public:
 	}
 
 private:
-	void handleRequest(x0::HttpRequest *r, const x0::FlowParams& args, x0::FlowValue& result)
+	void handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		if (dirname_.empty())
 			return;
@@ -99,19 +92,15 @@ private:
 		const std::size_t i = r->path.find("/", 2);
 		std::string userName, userPath;
 
-		if (i != std::string::npos)
-		{
+		if (i != std::string::npos) {
 			userName = r->path.substr(2, i - 2);
 			userPath = r->path.substr(i);
-		}
-		else
-		{
+		} else {
 			userName = r->path.substr(2);
 			userPath = "";
 		}
 
-		if (struct passwd *pw = getpwnam(userName.c_str()))
-		{
+		if (struct passwd *pw = getpwnam(userName.c_str())) {
 			r->documentRoot = pw->pw_dir + dirname_;
 			r->fileinfo = r->connection.worker().fileinfo(r->documentRoot + userPath);
 			//debug(0, "docroot[%s], fileinfo[%s]", r->documentRoot.c_str(), r->fileinfo->filename().c_str());

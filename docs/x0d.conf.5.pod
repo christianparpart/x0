@@ -1108,44 +1108,6 @@ Do only allow SSL renegotiation in trusted environments.
 
 =back
 
-=head2 vhost
-
-Provides support for easy basic mass virtual hosting.
-
-=over 6
-
-=item B<vhost.mapping> (fqdn => handler, fqdn => handler, ...)
-
-This setup-function associates the given fully qualified domain names with a 
-handler to invoke when an incoming request matches the given
-FQDN.
-
-You may invoke this function multiple times or just pass
-multiple associations at once.
-
- handler setup {
-     # ...
-     vhost.mapping 'www.example.com' => example_hp
- }
-
- handler example_hp {
-     docroot '/var/www/localhost/htdocs'
-     # ...
-     staticfile
- }
-
-=item B<vhost.map> ()
-
-This handler-function actually walks through the previousely initialized
-map and if the request hostname matches a given hostname in the map its
-associated handler is invoked to continue request processing.
-
- handler main {
-     vhost.map
- }
-
-=back
-
 =head1 IDN - INTERNATIONALIZED DOMAIN NAMES
 
 Making B<x0d> IDN-ready is totally up to the system administrator,

@@ -23,13 +23,13 @@ public:
 	DebugPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerHandler<DebugPlugin, &DebugPlugin::slowResponse>("debug.slow_response");
-		registerHandler<DebugPlugin, &DebugPlugin::dumpCore>("debug.coredump");
-		registerHandler<DebugPlugin, &DebugPlugin::dumpCorePost>("debug.coredump.post");
+		mainHandler("debug.slow_response", &DebugPlugin::slowResponse);
+		mainHandler("debug.coredump", &DebugPlugin::dumpCore);
+		mainHandler("debug.coredump.post", &DebugPlugin::dumpCorePost);
 	}
 
 private:
-	bool dumpCore(x0::HttpRequest* r, const x0::FlowParams& args)
+	bool dumpCore(x0::HttpRequest* r, x0::FlowVM::Params& args)
 	{
 		r->status = x0::HttpStatus::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
@@ -45,7 +45,7 @@ private:
 		return true;
 	}
 
-	bool dumpCorePost(x0::HttpRequest* r, const x0::FlowParams& args)
+	bool dumpCorePost(x0::HttpRequest* r, x0::FlowVM::Params& args)
 	{
 		r->status = x0::HttpStatus::Ok;
 		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
@@ -66,7 +66,7 @@ private:
 		x0::Process::dumpCore();
 	}
 
-	bool slowResponse(x0::HttpRequest* r, const x0::FlowParams& args)
+	bool slowResponse(x0::HttpRequest* r, x0::FlowVM::Params& args)
 	{
 		const unsigned count = 8;
 		for (unsigned i = 0; i < count; ++i) {

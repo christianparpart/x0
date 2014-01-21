@@ -260,9 +260,9 @@ public:
 		XzeroPlugin(srv, name),
 		processor_(nullptr)
 	{
-		registerSetupFunction<ImageablePlugin, &ImageablePlugin::setWorkers>("imageable.workers");
-		registerSetupFunction<ImageablePlugin, &ImageablePlugin::setTTL>("imageable.ttl");
-		registerHandler<ImageablePlugin, &ImageablePlugin::handleRequest>("imageable");
+		setupFunction("imageable.workers", &ImageablePlugin::setWorkers, FlowType::Number);
+		setupFunction("imageable.ttl", &ImageablePlugin::setTTL, FlowType::Number);
+		mainHandler("imageable", &ImageablePlugin::handleRequest);
 
 		MagickWandGenesis();
 	}
@@ -273,15 +273,15 @@ public:
 	}
 
 private:
-	void setWorkers(const FlowParams& args, FlowValue& result)
+	void setWorkers(FlowParams& args)
 	{
 	}
 
-	void setTTL(const FlowParams& args, FlowValue& result)
+	void setTTL(FlowParams& args)
 	{
 	}
 
-	virtual bool handleRequest(HttpRequest* r, const FlowParams& args)
+	bool handleRequest(HttpRequest* r, const FlowParams& args)
 	{
 		processor_->push_back(new Imageable(r));
 		return true;

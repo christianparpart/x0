@@ -298,7 +298,7 @@ void FastCgiTransport::bind(RequestNotes* rn)
 	params.encode("GATEWAY_INTERFACE", "CGI/1.1");
 
 	params.encode("SERVER_PROTOCOL", "1.1");
-	params.encode("SERVER_ADDR", r->connection.localIP());
+	params.encode("SERVER_ADDR", r->connection.localIP().str());
 	params.encode("SERVER_PORT", x0::lexical_cast<std::string>(r->connection.localPort()));// TODO this should to be itoa'd only ONCE
 
 	params.encode("REQUEST_METHOD", r->method);
@@ -319,7 +319,7 @@ void FastCgiTransport::bind(RequestNotes* rn)
 	params.encode("REQUEST_URI", r->unparsedUri);
 
 	//params.encode("REMOTE_HOST", "");  // optional
-	params.encode("REMOTE_ADDR", r->connection.remoteIP());
+	params.encode("REMOTE_ADDR", r->connection.remoteIP().str());
 	params.encode("REMOTE_PORT", x0::lexical_cast<std::string>(r->connection.remotePort()));
 
 	//params.encode("AUTH_TYPE", ""); // TODO

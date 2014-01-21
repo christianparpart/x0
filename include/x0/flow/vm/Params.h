@@ -83,6 +83,7 @@ template<> X0_API inline bool Params::get<bool>(size_t offset) const { return at
 template<> X0_API inline FlowNumber Params::get<FlowNumber>(size_t offset) const { return at(offset); }
 template<> X0_API inline FlowString Params::get<FlowString>(size_t offset) const { return *((FlowString*) at(offset)); }
 template<> X0_API inline FlowString* Params::get<FlowString*>(size_t offset) const { return ((FlowString*) at(offset)); }
+template<> X0_API inline std::string Params::get<std::string>(size_t offset) const { return ((FlowString*) at(offset))->str(); }
 template<> X0_API inline Handler* Params::get<Handler*>(size_t offset) const { return caller_->program()->handler(at(offset)); }
 template<> X0_API inline IPAddress Params::get<IPAddress>(size_t offset) const { return *((IPAddress*) at(offset)); }
 template<> X0_API inline IPAddress* Params::get<IPAddress*>(size_t offset) const { return ((IPAddress*) at(offset)); }

@@ -116,7 +116,7 @@ public:
 	WebDAVPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 		x0d::XzeroPlugin(d, name)
 	{
-		registerHandler<WebDAVPlugin, &WebDAVPlugin::handleRequest>("webdav");
+		mainHandler("webdav", &WebDAVPlugin::handleRequest);
 	}
 
 	~WebDAVPlugin()
@@ -124,7 +124,7 @@ public:
 	}
 
 private:
-	virtual bool handleRequest(x0::HttpRequest *r, const x0::FlowParams& args)
+	bool handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		if (r->method == "GET") {
 			return todo(r);

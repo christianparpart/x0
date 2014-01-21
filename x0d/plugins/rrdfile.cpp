@@ -52,9 +52,9 @@ public:
 	{
 		evTimer_.set<RRDFilePlugin, &RRDFilePlugin::onTimer>(this);
 
-		registerSetupProperty<RRDFilePlugin, &RRDFilePlugin::setup_filename>("rrd.filename", x0::FlowValue::STRING);
-		registerSetupProperty<RRDFilePlugin, &RRDFilePlugin::setup_step>("rrd.step", x0::FlowValue::NUMBER);
-		registerHandler<RRDFilePlugin, &RRDFilePlugin::logRequest>("rrd");
+        setupFunction("rrd.filename", &RRDFilePlugin::setup_filename, x0::FlowType::String);
+        setupFunction("rrd.step", &RRDFilePlugin::setup_step, x0::FlowType::Number);
+        mainHandler("rrd", &RRDFilePlugin::logRequest);
 	}
 
 	~RRDFilePlugin()
@@ -62,14 +62,9 @@ public:
 	}
 
 private:
-	void setup_step(const x0::FlowParams& args, x0::FlowValue& result)
+	void setup_step(x0::FlowVM::Params& args)
 	{
-		if (args.empty()) {
-			result.set(step_);
-			return;
-		}
-
-		args[0].load(step_);
+        step_ = args.get<x0::FlowNumber>(1);
 
 		if (step_)
 			evTimer_.set(step_, step_);
@@ -77,14 +72,9 @@ private:
 		checkStart();
 	}
 
-	void setup_filename(const x0::FlowParams& args, x0::FlowValue& result)
+	void setup_filename(x0::FlowVM::Params& args)
 	{
-		if (args.empty()) {
-			result.set(filename_.c_str());
-			return;
-		}
-
-		args[0].load(filename_);
+        filename_ = args.get<x0::FlowString>(1);
 
 		checkStart();
 	}
@@ -121,7 +111,7 @@ private:
 		}
 	}
 
-	virtual bool logRequest(x0::HttpRequest *r, const x0::FlowParams& args)
+	bool logRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
 		//++ worker().get<local>(this).counter_[filename];
 		++numRequests_;
