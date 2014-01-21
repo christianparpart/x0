@@ -164,9 +164,11 @@ XzeroDaemon::~XzeroDaemon()
 		unloadPlugin(plugins_[plugins_.size() - 1]->name());
 
     TRACE(2, "deleting plugin core");
-	unregisterPlugin(core_);
-	delete core_;
-	core_ = nullptr;
+    if (core_) {
+        unregisterPlugin(core_);
+        delete core_;
+        core_ = nullptr;
+    }
 
     main_ = nullptr;
 
