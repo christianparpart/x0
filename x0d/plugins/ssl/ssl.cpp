@@ -172,7 +172,7 @@ private:
 
 	void set_loglevel(x0::FlowVM::Params& args)
 	{
-        setLogLevel(args.get<int>(1));
+        setLogLevel(args.get<x0::FlowNumber>(1));
 	}
 
 	void set_priorities(x0::FlowVM::Params& args)

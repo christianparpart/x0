@@ -111,18 +111,18 @@ private:
 
 	void setup_level(x0::FlowVM::Params& args)
 	{
-		level_ = args.get<int>(1);
+		level_ = args.get<x0::FlowNumber>(1);
 		level_ = std::min(std::max(level_, 0), 10);
 	}
 
 	void setup_minsize(x0::FlowVM::Params& args)
 	{
-		minSize_ = args.get<int>(1);
+		minSize_ = args.get<x0::FlowNumber>(1);
 	}
 
 	void setup_maxsize(x0::FlowVM::Params& args)
 	{
-		maxSize_ = args.get<int>(1);
+		maxSize_ = args.get<x0::FlowNumber>(1);
 	}
 
 private:

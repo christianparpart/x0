@@ -69,7 +69,7 @@ private:
 	{
 		time_t now = r->connection.worker().now().unixtime();
 		time_t mtime = r->fileinfo ? r->fileinfo->mtime() : now;
-        time_t value = args.get<int>(1);
+        time_t value = args.get<x0::FlowNumber>(1);
 
 		// passed a timespan
 		if (value < mtime)
