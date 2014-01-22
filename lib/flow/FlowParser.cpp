@@ -905,7 +905,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			if (symbol->type() == Symbol::BuiltinFunction) {
 
 				if (token() != FlowToken::RndOpen)
-					return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol, ParamList());
+					return std::make_unique<CallExpr>(loc, (Callable*) symbol, ParamList());
 
                 consume(FlowToken::RndOpen);
                 std::unique_ptr<ParamList> args;
@@ -919,7 +919,7 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
                 }
 				consume(FlowToken::RndClose);
 
-                return std::make_unique<FunctionCall>(loc, (BuiltinFunction*) symbol, std::move(*args));
+                return std::make_unique<CallExpr>(loc, (Callable*) symbol, std::move(*args));
 			}
 
 			reportError("Unsupported symbol type of \"%s\" in expression.", name.c_str());
@@ -1486,22 +1486,16 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
             stmt = std::make_unique<AssignStmt>(var, std::move(value), loc.update(end()));
 			break;
 		}
+        case Symbol::BuiltinFunction:
         case Symbol::BuiltinHandler: {
-            HandlerCall* call = new HandlerCall(loc, (BuiltinHandler*) callee, ParamList());
-            if (!callArgs(call, call->callee(), call->args()))
-                return nullptr;
-            stmt.reset(call);
-            break;
-        }
-        case Symbol::BuiltinFunction: {
-            std::unique_ptr<FunctionCall> call = std::make_unique<FunctionCall>(loc, (BuiltinFunction*) callee, ParamList());
+            std::unique_ptr<CallExpr> call = std::make_unique<CallExpr>(loc, (Callable*) callee, ParamList());
             if (!callArgs(call.get(), call->callee(), call->args()))
                 return nullptr;
             stmt = std::make_unique<ExprStmt>(std::move(call));
             break;
         }
 		case Symbol::Handler:
-			stmt = std::make_unique<HandlerCall>(loc, (Callable*) callee, ParamList());
+			stmt = std::make_unique<ExprStmt>(std::make_unique<CallExpr>(loc, (Callable*) callee, ParamList()));
             break;
 		default:
 			break;

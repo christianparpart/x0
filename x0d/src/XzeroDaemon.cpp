@@ -1220,23 +1220,18 @@ bool XzeroDaemon::validateConfig()
 	TRACE(1, "validateConfig: setup:");
 
     FlowCallVisitor setupCalls(setupFn);
-    if (!validate("setup", setupCalls.handlerCalls(), setupApi_))
-        return false;
-    if (!validate("setup", setupCalls.functionCalls(), setupApi_))
+    if (!validate("setup", setupCalls.calls(), setupApi_))
         return false;
 
     FlowCallVisitor mainCalls(mainFn);
-    if (!validate("main", mainCalls.handlerCalls(), mainApi_))
-        return false;
-    if (!validate("main", mainCalls.functionCalls(), mainApi_))
+    if (!validate("main", mainCalls.calls(), mainApi_))
         return false;
 
 	TRACE(1, "validateConfig finished");
 	return true;
 }
 
-template<typename T>
-bool XzeroDaemon::validate(const std::string& context, const std::vector<T*>& calls, const std::vector<std::string>& api)
+bool XzeroDaemon::validate(const std::string& context, const std::vector<CallExpr*>& calls, const std::vector<std::string>& api)
 {
     for (const auto& i: calls) {
         if (!i->callee()->isBuiltin()) {
@@ -1254,6 +1249,7 @@ bool XzeroDaemon::validate(const std::string& context, const std::vector<T*>& ca
 	}
     return true;
 }
+
 void XzeroDaemon::dumpIR() const
 {
 	program_->dump();

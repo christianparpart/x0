@@ -383,22 +383,30 @@ public:
     FlowLocation location() const;
 };
 
-class X0_API FunctionCall : public Expr {
-	BuiltinFunction* callee_;
+/**
+ * Call to native function, native handler or source handler.
+ *
+ * @see Callable
+ * @see ParamList
+ */
+class X0_API CallExpr : public Expr {
+private:
+	Callable* callee_;
     ParamList args_;
 
 public:
-	FunctionCall(const FlowLocation& loc, BuiltinFunction* callee, ParamList&& args) :
-		Expr(loc),
-		callee_(callee),
-		args_(std::move(args))
-	{}
+    CallExpr(const FlowLocation& loc, Callable* callee, ParamList&& args) :
+        Expr(loc),
+        callee_(callee),
+        args_(std::move(args))
+    {}
 
-	BuiltinFunction* callee() const { return callee_; }
-	const ParamList& args() const { return args_; }
-	ParamList& args() { return args_; }
+    Callable* callee() const { return callee_; }
+    const ParamList& args() const { return args_; }
+    ParamList& args() { return args_; }
+    bool setArgs(ParamList&& args);
 
-	virtual void visit(ASTVisitor& v);
+    virtual void visit(ASTVisitor& v);
     virtual FlowType getType() const;
 };
 
@@ -475,30 +483,6 @@ public:
 
 	std::list<std::unique_ptr<Stmt>>::iterator begin() { return statements_.begin(); }
 	std::list<std::unique_ptr<Stmt>>::iterator end() { return statements_.end(); }
-
-	virtual void visit(ASTVisitor&);
-};
-
-class X0_API HandlerCall : public Stmt {
-protected:
-    Callable* callee_;
-    ParamList args_;
-
-public:
-	HandlerCall(const FlowLocation& loc, Callable* callable, ParamList&& arguments) :
-		Stmt(loc), callee_(callable), args_()
-	{
-		setArgs(std::forward<decltype(arguments)>(arguments));
-	}
-
-	bool isHandler() const { return callee_->isHandler(); }
-
-	Callable* callee() const { return callee_; }
-
-	const ParamList& args() const { return args_; }
-	ParamList& args() { return args_; }
-
-	bool setArgs(ParamList&& args);
 
 	virtual void visit(ASTVisitor&);
 };

@@ -106,7 +106,7 @@ bool Flower::onParseComplete(Unit* unit)
 {
     FlowCallVisitor callv(unit);
 
-    for (auto& call: callv.handlerCalls()) {
+    for (auto& call: callv.calls()) {
         if (call->callee()->name() != "assert" && call->callee()->name() != "assert_fail")
             continue;
 

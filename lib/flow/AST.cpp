@@ -303,11 +303,7 @@ void ExprStmt::visit(ASTVisitor& v) {
 	v.accept(*this);
 }
 
-void HandlerCall::visit(ASTVisitor& v) {
-	v.accept(*this);
-}
-
-void FunctionCall::visit(ASTVisitor& v) {
+void CallExpr::visit(ASTVisitor& v) {
 	v.accept(*this);
 }
 
@@ -337,7 +333,7 @@ void Handler::implement(std::unique_ptr<SymbolTable>&& table, std::unique_ptr<St
     body_ = std::move(body);
 }
 
-bool HandlerCall::setArgs(ParamList&& args)
+bool CallExpr::setArgs(ParamList&& args)
 {
     args_ = std::move(args);
     if (!args_.empty()) {
@@ -436,7 +432,7 @@ template<> X0_API FlowType LiteralExpr<std::string>::getType() const
     return FlowType::String;
 }
 
-FlowType FunctionCall::getType() const
+FlowType CallExpr::getType() const
 {
     return callee_->signature().returnType();
 }

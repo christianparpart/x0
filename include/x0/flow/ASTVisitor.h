@@ -22,7 +22,7 @@ class Expr;
 class BinaryExpr;
 class UnaryExpr;
 template<typename> class LiteralExpr;
-class FunctionCall;
+class CallExpr;
 class VariableExpr;
 class HandlerRefExpr;
 class ArrayExpr;
@@ -37,7 +37,6 @@ typedef LiteralExpr<Cidr> CidrExpr;
 class Stmt;
 class ExprStmt;
 class CompoundStmt;
-class HandlerCall;
 class CondStmt;
 class MatchStmt;
 class AssignStmt;
@@ -57,7 +56,7 @@ public:
 	// expressions
 	virtual void accept(UnaryExpr& expr) = 0;
 	virtual void accept(BinaryExpr& expr) = 0;
-	virtual void accept(FunctionCall& expr) = 0;
+	virtual void accept(CallExpr& expr) = 0;
 	virtual void accept(VariableExpr& expr) = 0;
 	virtual void accept(HandlerRefExpr& expr) = 0;
 
@@ -75,7 +74,6 @@ public:
 	virtual void accept(CondStmt& stmt) = 0;
 	virtual void accept(MatchStmt& stmt) = 0;
 	virtual void accept(AssignStmt& stmt) = 0;
-	virtual void accept(HandlerCall& stmt) = 0;
 };
 
 } // namespace x0

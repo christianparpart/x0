@@ -21,8 +21,7 @@ class X0_API FlowCallVisitor :
     public ASTVisitor
 {
 private:
-    std::vector<FunctionCall*> functionCalls_;
-    std::vector<HandlerCall*> handlerCalls_;
+    std::vector<CallExpr*> calls_;
 
 public:
     explicit FlowCallVisitor(ASTNode* root = nullptr);
@@ -30,10 +29,9 @@ public:
 
     void visit(ASTNode* root);
 
-    void clear() { functionCalls_.clear(); handlerCalls_.clear(); }
+    void clear() { calls_.clear(); }
 
-    const std::vector<FunctionCall*>& functionCalls() const { return functionCalls_; }
-    const std::vector<HandlerCall*>& handlerCalls() const { return handlerCalls_; }
+    const std::vector<CallExpr*>& calls() const { return calls_; }
 
 protected:
     // symbols
@@ -46,7 +44,7 @@ protected:
     // expressions
     virtual void accept(UnaryExpr& expr);
     virtual void accept(BinaryExpr& expr);
-    virtual void accept(FunctionCall& expr);
+    virtual void accept(CallExpr& expr);
     virtual void accept(VariableExpr& expr);
     virtual void accept(HandlerRefExpr& expr);
 
@@ -64,7 +62,6 @@ protected:
     virtual void accept(CondStmt& stmt);
     virtual void accept(MatchStmt& stmt);
     virtual void accept(AssignStmt& stmt);
-    virtual void accept(HandlerCall& stmt);
 };
 
 } // namespace x0

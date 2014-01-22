@@ -18,6 +18,7 @@
 namespace x0 {
 	class HttpServer;
     class Unit;
+    class CallExpr;
 }
 
 namespace x0d {
@@ -93,8 +94,7 @@ public: // FlowBackend overrides
 private:
 	bool validateConfig();
 
-    template<typename T> 
-    bool validate(const std::string& context, const std::vector<T*>& calls, const std::vector<std::string>& api);
+    bool validate(const std::string& context, const std::vector<x0::CallExpr*>& calls, const std::vector<std::string>& api);
 
 	bool createPidFile();
 	bool parse();

@@ -15,8 +15,7 @@
 namespace x0 {
 
 FlowCallVisitor::FlowCallVisitor(ASTNode* root) :
-    functionCalls_(),
-    handlerCalls_()
+    calls_()
 {
     visit(root);
 }
@@ -76,13 +75,14 @@ void FlowCallVisitor::accept(BinaryExpr& expr)
     visit(expr.rightExpr());
 }
 
-void FlowCallVisitor::accept(FunctionCall& call)
+void FlowCallVisitor::accept(CallExpr& call)
 {
     for (const auto& arg: call.args().values()) {
         visit(arg);
     }
 
-    functionCalls_.push_back(&call);
+    if (call.callee() && call.callee()->isBuiltin())
+        calls_.push_back(&call);
 }
 
 void FlowCallVisitor::accept(VariableExpr& expr)
@@ -156,15 +156,6 @@ void FlowCallVisitor::accept(MatchStmt& stmt)
 void FlowCallVisitor::accept(AssignStmt& assignStmt)
 {
     visit(assignStmt.expression());
-}
-
-void FlowCallVisitor::accept(HandlerCall& call)
-{
-    for (const auto& arg: call.args().values()) {
-        visit(arg);
-    }
-
-    handlerCalls_.push_back(&call);
 }
 // }}}
 

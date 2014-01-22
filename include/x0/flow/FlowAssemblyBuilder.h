@@ -52,7 +52,7 @@ private:
     virtual void accept(Unit& symbol);
     virtual void accept(UnaryExpr& expr);
     virtual void accept(BinaryExpr& expr);
-    virtual void accept(FunctionCall& expr);
+    virtual void accept(CallExpr& expr);
     virtual void accept(VariableExpr& expr);
     virtual void accept(HandlerRefExpr& expr);
     virtual void accept(StringExpr& expr);
@@ -67,7 +67,6 @@ private:
     virtual void accept(CondStmt& stmt);
     virtual void accept(MatchStmt& stmt);
     virtual void accept(AssignStmt& stmt);
-    virtual void accept(HandlerCall& stmt);
 
     Register allocate(size_t n = 1);
     Register codegen(Symbol* symbol);

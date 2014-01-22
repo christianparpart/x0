@@ -159,9 +159,17 @@ void FlowAssemblyBuilder::accept(BinaryExpr& expr)
     }
 }
 
-void FlowAssemblyBuilder::accept(FunctionCall& call)
+void FlowAssemblyBuilder::accept(CallExpr& call)
 {
-    codegenBuiltin(call.callee(), call.args());
+    if (call.callee()->isBuiltin()) {
+        // call to builtin handler/function
+        codegenBuiltin(call.callee(), call.args());
+    } else {
+        assert(call.callee()->isHandler());
+        size_t mark = registerCount_;
+        codegenInline(static_cast<Handler*>(call.callee()));
+        registerCount_ = mark; // unwind
+    }
 }
 
 void FlowAssemblyBuilder::accept(VariableExpr& expr)
@@ -431,19 +439,6 @@ void FlowAssemblyBuilder::accept(AssignStmt& assign)
     Register rhs = codegen(assign.expression());
 
     emit(Opcode::MOV, lhs, rhs);
-}
-
-void FlowAssemblyBuilder::accept(HandlerCall& call)
-{
-    if (call.callee()->isBuiltin()) {
-        // call to builtin handler/function
-        codegenBuiltin(call.callee(), call.args());
-    } else {
-        assert(call.callee()->isHandler());
-        size_t mark = registerCount_;
-        codegenInline(static_cast<Handler*>(call.callee()));
-        registerCount_ = mark; // unwind
-    }
 }
 
 void FlowAssemblyBuilder::codegenBuiltin(Callable* callee, const ParamList& args)

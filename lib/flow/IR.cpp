@@ -404,7 +404,7 @@ void IRGenerator::accept(BinaryExpr& expr)
     result_ = insert(new VmInstr(getInsertPoint(), expr.op(), {lhs, rhs}));
 }
 
-void IRGenerator::accept(FunctionCall& expr)
+void IRGenerator::accept(CallExpr& expr)
 {
     // TODO
 }
@@ -535,10 +535,6 @@ void IRGenerator::accept(AssignStmt& stmt)
     Value* rhs = generate(stmt.expression());
 
     result_ = createStore(lhs, rhs, stmt.variable()->name());
-}
-
-void IRGenerator::accept(HandlerCall& stmt)
-{
 }
 
 void IRGenerator::reportError(const std::string& message)

@@ -146,7 +146,7 @@ void ASTPrinter::accept(BinaryExpr& expr)
 	leave();
 }
 
-void ASTPrinter::accept(FunctionCall& call)
+void ASTPrinter::accept(CallExpr& call)
 {
 	printf("FunctionCall: %s\n", call.callee()->name().c_str());
     for (int i = 0, e = call.args().size(); i != e; ++i) {
@@ -248,14 +248,6 @@ void ASTPrinter::accept(AssignStmt& assign)
 		printf("lhs(var): %s\n", assign.variable()->name().c_str());
 	leave();
 	print("rhs", assign.expression());
-}
-
-void ASTPrinter::accept(HandlerCall& call)
-{
-	printf("HandlerCall: %s\n", call.callee()->name().c_str());
-    for (int i = 0, e = call.args().size(); i != e; ++i) {
-        print(call.args()[i], i);
-    }
 }
 
 } // namespace x0

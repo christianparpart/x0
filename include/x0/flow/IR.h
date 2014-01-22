@@ -326,7 +326,7 @@ private:
     // expressions
     virtual void accept(UnaryExpr& expr);
     virtual void accept(BinaryExpr& expr);
-    virtual void accept(FunctionCall& expr);
+    virtual void accept(CallExpr& expr);
     virtual void accept(VariableExpr& expr);
     virtual void accept(HandlerRefExpr& expr);
 
@@ -344,7 +344,6 @@ private:
     virtual void accept(CondStmt& stmt);
     virtual void accept(MatchStmt& stmt);
     virtual void accept(AssignStmt& stmt);
-    virtual void accept(HandlerCall& stmt);
 
     // error handling
     void reportError(const std::string& message);
