@@ -25,6 +25,7 @@ option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
 option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
 
 option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
+option(ENABLE_FLOW_TOOL "Build flow-tool [default: off]" OFF)
 
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
 option(ENABLE_PLUGIN_AUTH_PAM "Build with 'auth' plugin with PAM authentication support [default: on]" ON)
@@ -38,7 +39,6 @@ option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [def
 
 option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
-option(ENABLE_FLOW_TOOL "Build flow-tool [default: off]" OFF)
 
 # feature flags
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
@@ -153,33 +153,6 @@ endif()
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/support/sd-daemon)
-
-if(ENABLE_XZERO_FLOW)
-  # LLVM
-  find_package(LLVM)
-  include_directories(${LLVM_INCLUDE_DIR})
-  link_directories(${LLVM_LIBRARY_DIR})
-  set(LIBS ${LIBS} ${LLVM_LIBRARIES})
-  add_definitions(${LLVM_CPPFLAGS})
-
-  string(COMPARE EQUAL "${LLVM_VERSION}" "3.0" LLVM_VERSION_3_0)
-  string(COMPARE EQUAL "${LLVM_VERSION}" "3.1" LLVM_VERSION_3_1)
-  string(COMPARE EQUAL "${LLVM_VERSION}" "3.3" LLVM_VERSION_3_3)
-  if(${LLVM_VERSION_3_1})
-    message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-  elseif(${LLVM_VERSION_3_0})
-    message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-  elseif(${LLVM_VERSION_3_3})
-    message(STATUS "Your LLVM version is supported: ${LLVM_VERSION}")
-  else(APPLE)
-    message(STATUS "Using Apple LLVM")
-  else()
-    message(FATAL_ERROR "LLVM version 3.0, 3.1, or 3.3 is required (You have ${LLVM_VERSION}).\nYou can pass -DLLVM_CONFIG_EXECUTABLE=/path/to/llvm-config for custom paths/names to llvm-config.")
-  endif()
-else()
-  # we cannot compile flow-tool if libXzeroFlow is not built.
-  set(ENABLE_FLOW_TOOL OFF CACHE BOOL "Build flow-tool [default: on]")
-endif()
 
 # PCRE
 if(ENABLE_PCRE)

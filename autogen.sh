@@ -13,12 +13,6 @@ if [[ -z "$CXX" ]]; then
 	fi
 fi
 
-# find the best matching LLVM
-: ${LLVM_CONFIG_EXECUTABLE:=$(which llvm-config-3.3 2>/dev/null)}
-: ${LLVM_CONFIG_EXECUTABLE:=$(which llvm-config-3.1 2>/dev/null)}
-: ${LLVM_CONFIG_EXECUTABLE:=$(which llvm-config-3.0 2>/dev/null)}
-: ${LLVM_CONFIG_EXECUTABLE:=$(which llvm-config 2>/dev/null)}
-
 if [[ "$1" == "clean" ]]; then
 	rm -vf {configure,build,install}-stamp
 	rm -vf debian/*.log
@@ -41,7 +35,6 @@ else
 		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g3" \
 		-DCMAKE_BUILD_TYPE="debug" \
 		-DCMAKE_INSTALL_PREFIX="${HOME}/local" \
-		-DLLVM_CONFIG_EXECUTABLE="${LLVM_CONFIG_EXECUTABLE}" \
 		-DENABLE_PLUGIN_{RRD,IMAGEABLE,WEBDAV}=ON \
 		-DENABLE_EXAMPLES=ON \
 		-DENABLE_TESTS=ON
