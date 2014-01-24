@@ -1,8 +1,11 @@
 
 ### Incomplete Flow Rewrite TODO
 
-- add `NativeCallback::verifier(std::function<bool(AST&)>)` to implement easy call verifier
-- update man-page for x0d.conf
+- constant folding on AST
+- update documentation
+  - manual page: x0d.conf.5
+  - manual page: x0d.8
+  - manual page: flow.7
 - DONE: port plugins:
   - DONE: accesslog
   - DONE: browser
@@ -23,6 +26,7 @@
   - DONE: director
   - DONE: imageable
   - DONE: vhost (REMOVED due to `match`-keyword support)
+- DONE: add `NativeCallback::verifier(std::function<bool(AST&)>)` to implement easy call verifier
 
 - fixme: `voidfunc;` parse error, should equal to `voidfunc();` and `voidfunc\n`
 - method overloading (needs updates to symbol lookup, not just by name but by signature)
