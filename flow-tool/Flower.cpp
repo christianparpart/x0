@@ -86,6 +86,7 @@ Flower::Flower() :
 
     registerFunction("numbers", FlowType::Void)
         .param<GCIntArray>("values")
+        .verifier(&Flower::verify_numbers)
         .bind(&Flower::flow_numbers);
 
     registerFunction("names", FlowType::Void)
@@ -150,6 +151,11 @@ int Flower::runAll(const char *fileName)
     std::unique_ptr<Unit> unit = parser.parse();
     if (!unit) {
         fprintf(stderr, "Failed to parse file: %s\n", fileName);
+        return -1;
+    }
+
+    if (!verify(unit.get())) {
+        fprintf(stderr, "User verification failed.\n");
         return -1;
     }
 
@@ -223,6 +229,11 @@ int Flower::run(const char* fileName, const char* handlerName)
 		fprintf(stderr, "Failed to parse file: %s\n", fileName);
 		return -1;
 	}
+
+    if (!verify(unit.get())) {
+        fprintf(stderr, "User verification failed.\n");
+        return -1;
+    }
 
     onParseComplete(unit.get());
 
@@ -335,6 +346,29 @@ void Flower::flow_assertFail(FlowVM::Params& args)
     } else {
         args.setResult(false);
     }
+}
+
+bool Flower::verify_numbers(CallExpr* call)
+{
+    printf("Verify numbers!\n");
+
+    const ArrayExpr* array = (const ArrayExpr*) call->args()[0].second;
+
+    for (size_t i = 0, e = array->values().size(); i != e; ++i) {
+        const Expr* arg = array->values()[i].get();
+
+        if (const auto e = dynamic_cast<const NumberExpr*>(arg)) {
+            if (e->value() % 2) {
+                printf("Odd numbers not allowed.\n");
+                return false;
+            }
+        } else {
+            printf("call args to numbers() must be literal.\n");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void Flower::flow_numbers(FlowVM::Params& args)

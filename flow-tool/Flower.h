@@ -68,6 +68,7 @@ private:
     void flow_getcwd(FlowVM::Params& args);
     void flow_getenv(FlowVM::Params& args);
 
+    bool verify_numbers(CallExpr* call);
     void flow_numbers(FlowVM::Params& args);
     void flow_names(FlowVM::Params& args);
 
