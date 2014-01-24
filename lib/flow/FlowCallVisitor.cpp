@@ -81,8 +81,9 @@ void FlowCallVisitor::accept(CallExpr& call)
         visit(arg);
     }
 
-    if (call.callee() && call.callee()->isBuiltin())
+    if (call.callee() && call.callee()->isBuiltin()) {
         calls_.push_back(&call);
+    }
 }
 
 void FlowCallVisitor::accept(VariableExpr& expr)
@@ -126,6 +127,7 @@ void FlowCallVisitor::accept(ArrayExpr& array)
 
 void FlowCallVisitor::accept(ExprStmt& stmt)
 {
+    visit(stmt.expression());
 }
 // }}}
 // {{{ stmt

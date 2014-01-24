@@ -9,6 +9,9 @@
 #include <functional>
 
 namespace x0 {
+
+class Unit;
+
 namespace FlowVM {
 
 typedef uint64_t Value;
@@ -33,6 +36,8 @@ public:
     void unregisterNative(const std::string& name);
 
     void invoke(int id, int argc, Value* argv, Runner* cx);
+
+    bool verify(Unit* unit);
 
 private:
     std::vector<NativeCallback*> builtins_;

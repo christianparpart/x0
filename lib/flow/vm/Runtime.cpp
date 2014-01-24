@@ -1,5 +1,7 @@
 #include <x0/flow/vm/Runtime.h>
 #include <x0/flow/vm/NativeCallback.h>
+#include <x0/flow/FlowCallVisitor.h>
+#include <x0/flow/AST.h>
 
 namespace x0 {
 namespace FlowVM {
@@ -48,6 +50,21 @@ void Runtime::unregisterNative(const std::string& name)
             return;
         }
     }
+}
+
+bool Runtime::verify(Unit* unit)
+{
+    FlowCallVisitor cv(unit);
+
+    for (auto& call: cv.calls()) {
+        if (FlowVM::NativeCallback* native = find(call->callee()->signature())) {
+            if (!native->verify(call)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 } // namespace FlowVM

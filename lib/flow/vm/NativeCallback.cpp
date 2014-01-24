@@ -10,6 +10,7 @@ namespace FlowVM {
 NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name) :
     runtime_(runtime),
     isHandler_(true),
+    verifier_(),
     function_(),
     signature_()
 {
@@ -21,6 +22,7 @@ NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name) :
 NativeCallback::NativeCallback(Runtime* runtime, const std::string& _name, FlowType _returnType) :
     runtime_(runtime),
     isHandler_(false),
+    verifier_(),
     function_(),
     signature_()
 {

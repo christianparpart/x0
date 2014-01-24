@@ -11,6 +11,9 @@
 #include <functional>
 
 namespace x0 {
+
+class CallExpr;
+
 namespace FlowVM {
 
 typedef uint64_t Value;
@@ -22,10 +25,12 @@ class Runtime;
 class X0_API NativeCallback {
 public:
     typedef std::function<void(Params& args)> Functor;
+    typedef std::function<bool(CallExpr*)> Verifier;
 
 private:
     Runtime* runtime_;
     bool isHandler_;
+    Verifier verifier_;
     Functor function_;
     Signature signature_;
 
@@ -49,6 +54,13 @@ public:
     template<typename T> NativeCallback& param(const std::string& name, T defaultValue); //!< Declare a singly named parameter with default value.
     template<typename... Args> NativeCallback& params(Args... args); //!< Declare ordered parameter signature.
 
+    // semantic verifier
+    NativeCallback& verifier(const Verifier& vf);
+    template<typename Class> NativeCallback& verifier(bool (Class::*method)(CallExpr*), Class* obj);
+    template<typename Class> NativeCallback& verifier(bool (Class::*method)(CallExpr*));
+    bool verify(CallExpr* call);
+
+    // bind callback
     NativeCallback& bind(const Functor& cb);
     template<typename Class> NativeCallback& bind(void (Class::*method)(Params&), Class* obj);
     template<typename Class> NativeCallback& bind(void (Class::*method)(Params&));
@@ -252,6 +264,32 @@ inline NativeCallback& NativeCallback::params(Args... args)
 {
     signature_.setArgs({args...});
     return *this;
+}
+
+inline NativeCallback& NativeCallback::verifier(const Verifier& vf)
+{
+    verifier_ = vf;
+    return *this;
+}
+
+template<typename Class> inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(CallExpr*), Class* obj)
+{
+    verifier_ = std::bind(method, obj, std::placeholders::_1);
+    return *this;
+}
+
+template<typename Class> inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(CallExpr*))
+{
+    verifier_ = std::bind(method, static_cast<Class*>(runtime_), std::placeholders::_1);
+    return *this;
+}
+
+inline bool NativeCallback::verify(CallExpr* call)
+{
+    if (!verifier_)
+        return true;
+
+    return verifier_(call);
 }
 
 inline NativeCallback& NativeCallback::bind(const Functor& cb)

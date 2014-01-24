@@ -148,7 +148,7 @@ void ASTPrinter::accept(BinaryExpr& expr)
 
 void ASTPrinter::accept(CallExpr& call)
 {
-	printf("FunctionCall: %s\n", call.callee()->name().c_str());
+	printf("CallExpr: %s\n", call.callee()->signature().to_s().c_str());
     for (int i = 0, e = call.args().size(); i != e; ++i) {
         print(call.args()[i], i);
     }
