@@ -178,6 +178,7 @@ public:
 	}
 
     bool isHandler() const { return type() == Symbol::Handler || type() == Symbol::BuiltinHandler; }
+    bool isFunction() const { return type() == Symbol::BuiltinFunction; }
     bool isBuiltin() const { return type() == Symbol::BuiltinHandler || type() == Symbol::BuiltinFunction; }
 
     const FlowVM::Signature& signature() const { return signature_; }
