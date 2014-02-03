@@ -317,11 +317,9 @@ Opcode makeOperator(FlowToken token, Expr* e)
         {FlowType::Cidr, {
             {FlowToken::StringType, Opcode::C2S},
         }},
-#if 0 // TODO
         {FlowType::RegExp, {
-            {FlowToken::StringType, Opcode::REGEXP2S},
+            {FlowToken::StringType, Opcode::R2S},
         }},
-#endif
     };
 
     FlowType type = e->getType();

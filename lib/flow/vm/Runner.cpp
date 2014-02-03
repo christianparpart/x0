@@ -90,6 +90,7 @@ bool Runner::run()
     #define toString(R)     (*(FlowString*) data_[R])
     #define toIPAddress(R)  (*(IPAddress*) data_[R])
     #define toCidr(R)       (*(Cidr*) data_[R])
+    #define toRegExp(R)     (*(RegExp*) data_[R])
     #define toNumber(R)     ((FlowNumber) data_[R])
 
     #define toStringPtr(R)  ((FlowString*) data_[R])
@@ -187,6 +188,7 @@ bool Runner::run()
         [Opcode::I2S] = &&l_i2s,
         [Opcode::P2S] = &&l_p2s,
         [Opcode::C2S] = &&l_c2s,
+        [Opcode::R2S] = &&l_r2s,
         [Opcode::SURLENC] = &&l_surlenc,
         [Opcode::SURLDEC] = &&l_surldec,
 
@@ -548,6 +550,12 @@ bool Runner::run()
     instr (c2s) { // A = cidr(B).toString()
         const Cidr& cidr = toCidr(B);
         data_[A] = (Register) newString(cidr.str());
+        next;
+    }
+
+    instr (r2s) { // A = regex(B).toString()
+        const RegExp& re = toRegExp(B);
+        data_[A] = (Register) newString(re.pattern());
         next;
     }
 
