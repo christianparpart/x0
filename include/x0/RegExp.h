@@ -42,6 +42,13 @@ public:
 
 	const std::string& pattern() const { return pattern_; }
 	const char *c_str() const;
+
+    friend bool operator==(const RegExp& a, const RegExp& b) { return a.pattern() == b.pattern(); }
+    friend bool operator!=(const RegExp& a, const RegExp& b) { return a.pattern() != b.pattern(); }
+    friend bool operator<=(const RegExp& a, const RegExp& b) { return a.pattern() <= b.pattern(); }
+    friend bool operator>=(const RegExp& a, const RegExp& b) { return a.pattern() >= b.pattern(); }
+    friend bool operator<(const RegExp& a, const RegExp& b) { return a.pattern() < b.pattern(); }
+    friend bool operator>(const RegExp& a, const RegExp& b) { return a.pattern() > b.pattern(); }
 };
 
 class X0_API RegExpContext
