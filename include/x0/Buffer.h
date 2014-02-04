@@ -690,6 +690,20 @@ inline bool BufferBase<T>::ends(const BufferRef& value) const
 }
 
 template<typename T>
+inline bool BufferBase<T>::ends(const std::string& value) const
+{
+	if (value.empty())
+		return true;
+
+	size_t valueLength = value.size();
+
+	if (size() < valueLength)
+		return false;
+
+	return std::memcmp(data() + size() - valueLength, value.data(), valueLength) == 0;
+}
+
+template<typename T>
 inline bool BufferBase<T>::ends(value_type value) const
 {
 	return size() >= 1 && data()[size() - 1] == value;
