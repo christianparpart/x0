@@ -36,6 +36,7 @@ template<>
 struct BufferTraits<char*> {
 	typedef char value_type;
 	typedef char& reference_type;
+	typedef const char& const_reference_type;
 	typedef char* pointer_type;
 	typedef char* iterator;
 	typedef const char* const_iterator;
@@ -91,6 +92,7 @@ template<>
 struct BufferTraits<Buffer> {
 	typedef char value_type;
 	typedef char& reference_type;
+	typedef const char& const_reference_type;
 	typedef char* pointer_type;
 	typedef char* iterator;
 	typedef const char* const_iterator;
@@ -104,6 +106,7 @@ class X0_API BufferBase
 public:
 	typedef typename BufferTraits<T>::value_type value_type;
 	typedef typename BufferTraits<T>::reference_type reference_type;
+	typedef typename BufferTraits<T>::const_reference_type const_reference_type;
 	typedef typename BufferTraits<T>::pointer_type pointer_type;
 	typedef typename BufferTraits<T>::iterator iterator;
 	typedef typename BufferTraits<T>::const_iterator const_iterator;
@@ -319,7 +322,7 @@ public:
 
 	// random access
 	reference_type operator[](size_t index);
-	const reference_type operator[](size_t index) const;
+	const_reference_type operator[](size_t index) const;
 
 	const value_type *c_str() const;
 };
@@ -1328,7 +1331,7 @@ inline typename MutableBuffer<ensure>::reference_type MutableBuffer<ensure>::ope
 }
 
 template<bool (*ensure)(void*, size_t)>
-inline const typename MutableBuffer<ensure>::reference_type MutableBuffer<ensure>::operator[](size_t index) const
+inline typename MutableBuffer<ensure>::const_reference_type MutableBuffer<ensure>::operator[](size_t index) const
 {
 	assert(index < size_);
 
