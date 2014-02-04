@@ -134,17 +134,15 @@ Any place you use your variables, they will represent the values assigned to it.
 
 =over 6
 
-=item number
+=item * Number
 
-=item string
+=item * String
 
-=item buffer
+=item * IP Address (IPv4, IPv6)
 
-=item IPv4 address
+=item * CIDR Network Address (IPv4, IPv6)
 
-=item IPv6 address
-
-=item regular expression
+=item * Regular Expression
 
 =back
 

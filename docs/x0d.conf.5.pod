@@ -11,7 +11,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
  handler setup {
      workers 2;
      userdir.name 'public_html';
-     listen 'bind' => 0.0.0.0, 'port' => 8080, 'backlog' => 128;
+     listen bind: 0.0.0.0, port: 8080, backlog: 128;
  }
 
  # main handler, invoked on every incoming request
@@ -23,7 +23,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
 
 =head1 DESCRIPTION
 
-This file is used to configure B<x0d>.
+This I<file> is used to configure B<x0d>.
 
 =head1 SYNTAX
 
@@ -41,17 +41,18 @@ For a detailed language documentation, please see the L<flow(7)> manual page.
 =head2 HANDLERS
 
 Handlers are meant to handle something. In B<x0d> these are incoming HTTP requests
-and the setup handler, which is to handle simply the setup stage and no requests
+being handled by the "main"-handler and and the setup handler,
+which is to handle simply the setup stage and no requests
 at all.
 
-A handler may either actually process for what it's there for and directly return
-to the host application, or it may fail to process the request, and thus returns
-to its intermediate caller for further execution (e.g. trying other handlers).
+A handler may either actually process for what it's there for (an HTTP request)
+and directly return to the host application, or it may fail to process the request,
+and thus returns to its intermediate caller for further execution (e.g. trying other handlers).
 
 Although, you cannot pass any parameters to handlers yourself.
 If a handler calls another handler, the parameters (secretly) passed to the outer
 handler will also (secretly) passed to the inner handler.
-The I<secret> parameter passed to handlers is there context.
+The I<secret> parameter passed to handlers is their context.
 In our case, this is the HTTP request associated with our B<main>-handler and
 to all descendent handlers being called from here.
 
@@ -60,7 +61,8 @@ The B<setup> handler has no context passed to it
 =head2 FUNCTIONS
 
 Functions do something and - unlike handlers - do always return to their caller
-and cannot be defined - but only - yourself.
+and cannot be defined in your source configuration file. Functions are provided
+by the runtime B<x0d> provides.
 They are there to configure something, and thus, are most seen in the
 B<setup>-handler, to start listening on a given TCP/IP port for example.
 
@@ -69,13 +71,11 @@ is something you can read later in that page. Parameters are comma
 separated and parameters may be surrounded by round brackets.
 So the following two lines are equally the same.
 
- cgi.mapping '.php' => '/usr/bin/php',
-             '.lsp' => '/usr/bin/lua';
+ listen address: 0.0.0.0, port: 80;
 
 Is equal to
 
- cgi.mapping('.php' => '/usr/bin/php',
-             '.lsp' => '/usr/bin/lua');
+ listen(address: 0.0.0.0, port: 80);
 
 However, you B<must> have passed the parameter separator (comma) at the end
 of the first line if you want to split your function call across multiple lines,
@@ -85,7 +85,29 @@ brackets, like in the second example.
 
 =head2 VARIABLES
 
-TODO: variable declaration
+You can declare variables in your handler, for later reference.
+
+ var fnord = 42;
+
+Variables are strongly typed, that is, that when you initially assign a value of
+type "number" to your named variable, further re-assignments to that variable
+must remain of that type "number."
+
+Supported data types are:
+
+=over 3
+
+=item * Boolean
+
+=item * Number
+
+=item * String
+
+=item * IPAddress
+
+=item * CIDR
+
+=back
 
 =head2 STATEMENTS
 
@@ -304,26 +326,28 @@ Example:
 
 =over 6
 
-=item B<listen> (address:port)
+=item B<listen> (address: IP, port: number, backlog: number = 128, reuse_addr: bool = false, multi_accept: number = 1)
 
 Configures a listener on given address and port.
-The address may be IPv4, IPv6, or a DNS name (to be resolved at startup).
+
+The address parameter may be an IPv4 or IPv6 address.
+Parameters with default values will be filled automatically with their respective default values.
 
 Example 1:
 
  handler setup {
      # listen on IPv4 address 127.0.0.1 with port 8081
-     listen 'bind' => 127.0.0.1, 'port' => 8081;
+     listen bind: => 127.0.0.1, port: 8081;
  }
 
 Example 2:
 
  handler setup {
      # listens on IPv6 address with port 8080
-     listen 'bind' => fe80::2c0:26ff:fe85:b3, 'port' => 8080;
+     listen bind: fe80::2c0:26ff:fe85:b3, port: 8080;
 
      # listen on any IPv6 address with port 9090
-     listen 'bind' => ::, 'port' => 9090;
+     listen bind: ::, port: 9090;
  }
 
 =back
@@ -1071,10 +1095,10 @@ An example use looks as follows:
 
  handler setup {
      # ...
-     ssl.listen 'bind' => 0.0.0.0, 'port' => 443;
+     ssl.listen bind: 0.0.0.0, port: 443;
  }
 
-=item B<ssl.context> ('keyfile' => PATH, 'crtfile' => PATH, ...)
+=item B<ssl.context> (keyfile: PATH, crtfile: PATH)
 
 This setup-function defines a certificate context.
 A certificate context must at least provide a B<keyfile> and
@@ -1091,9 +1115,9 @@ An example use looks as follows:
 
  handler setup {
      # ...
-     ssl.context 'keyfile' => '/etc/certs/xzero.io.key',
-                 'crtfile' => '/etc/certs/xzero.io.crt',
-                 'priorities' => "NONE:+VERS-TLS1.0:+ARCFOUR-128:+RSA:+SHA1:+COMP-NULL";
+     ssl.context keyfile: '/etc/certs/xzero.io.key',
+                 crtfile: '/etc/certs/xzero.io.crt',
+                 priorities: 'NONE:+VERS-TLS1.0:+ARCFOUR-128:+RSA:+SHA1:+COMP-NULL';
  }
 
 In order to mitigate the SSL/TLS cipher suite vulnerability (CVE-2009-3555)
