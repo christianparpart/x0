@@ -8,8 +8,10 @@
 
 #include <x0/flow/IR.h>
 #include <x0/flow/AST.h>
-#include <utility> // make_pair
+#include <x0/DebugLogger.h> // XZERO_DEBUG
+#include <utility>          // make_pair
 #include <assert.h>
+#include <math.h>
 
 /*
  * GOAL:
@@ -21,37 +23,11 @@
  *   - dead code elimination
  *   - jump threading
  *
- * Useful references:
- * ~~~~~~~~~~~~~~~~~~
- *
- * - http://en.wikipedia.org/wiki/Static_single_assignment_form
- * - http://en.wikipedia.org/wiki/Basic_block
- * - http://en.wikipedia.org/wiki/Use-define_chain
- * - http://en.wikipedia.org/wiki/Compiler_optimization
- * - http://llvm.org/doxygen/classllvm_1_1Value.html
- *
- * CLASS HIERARCHY:
- * ~~~~~~~~~~~~~~~~
- *
- * - Value
- *   - Constant
- *     - ConstantBase<T>
- *       - ConstantInt <int64_t>
- *       - ConstantStr <string>
- *       - ConstantIP <IPAddress>
- *       - ConstantCidr <Cidr>
- *       - ConstantRegExp <RegExp>
- *     - IRHandler
- *   - Instr
- *     - VmInstr
- *     - PhiNode
- *   - BasicBlock
- * - IRProgram
- * - IRBuilder
  */
 
 namespace x0 {
 
+// {{{ Value
 Value::Value(FlowType ty, const std::string& name) :
     type_(ty),
     name_(name)
@@ -66,12 +42,14 @@ void Value::dump()
 {
     printf("Value '%s': %s\n", name_.c_str(), tos(type_).c_str());
 }
-
+// }}}
+// {{{ Constant
 void Constant::dump()
 {
     printf("Constant %zu '%s': %s\n", id_, name().c_str(), tos(type()).c_str());
 }
-
+// }}}
+// {{{ Instr
 Instr::Instr(BasicBlock* parent, FlowType ty, const std::vector<Value*>& ops, const std::string& name) :
     Value(ty, name),
     parent_(parent),
@@ -113,18 +91,6 @@ void PhiNode::dump()
     }
 }
 
-BasicBlock::BasicBlock(IRHandler* parent, const std::string& name) :
-    Value(FlowType::Void, name),
-    parent_(parent)
-{
-}
-
-BasicBlock::~BasicBlock()
-{
-    for (auto instr: code_)
-        delete instr;
-}
-
 void CondBrInstr::dump()
 {
     printf("condbr %s, %s, %s ; %s\n",
@@ -140,6 +106,7 @@ void BrInstr::dump()
     printf("br %s ; %s\n", operands()[0]->name().c_str(), name().c_str());
 }
 
+// }}}
 // {{{ MatchInstr
 MatchInstr::MatchInstr(BasicBlock* parent, FlowVM::MatchClass op, const std::string& name) :
     Instr(parent, FlowType::Void, {}, name),
@@ -157,6 +124,19 @@ void MatchInstr::setCondition(Value* condition)
 void MatchInstr::addCase(Value* label, BasicBlock* code)
 {
     cases_.push_back(std::make_pair(label, code));
+}
+// }}}
+// {{{ BasicBlock
+BasicBlock::BasicBlock(IRHandler* parent, const std::string& name) :
+    Value(FlowType::Void, name),
+    parent_(parent)
+{
+}
+
+BasicBlock::~BasicBlock()
+{
+    for (auto instr: code_)
+        delete instr;
 }
 // }}}
 // {{{ IRHandler
@@ -193,17 +173,29 @@ IRProgram::IRProgram() :
 
 IRProgram::~IRProgram()
 {
-    for (auto& value: numbers_) delete value.second;
-    for (auto& value: strings_) delete value.second;
-    for (auto& value: ipaddrs_) delete value.second;
-    for (auto& value: cidrs_) delete value.second;
-    for (auto& value: regexps_) delete value.second;
-    for (auto& value: handlers_) delete value.second;
+    for (auto& value: numbers_) delete value;
+    for (auto& value: strings_) delete value;
+    for (auto& value: ipaddrs_) delete value;
+    for (auto& value: cidrs_) delete value;
+    for (auto& value: regexps_) delete value;
+    for (auto& value: handlers_) delete value;
 }
 
 void IRProgram::dump()
 {
     printf("; IRProgram\n");
+}
+
+template<typename T, typename U>
+T* IRProgram::get(std::vector<T*>& table, const U& literal)
+{
+    for (size_t i = 0, e = table.size(); i != e; ++i)
+        if (table[i]->get() == literal)
+            return table[i];
+
+    T* value = new T(table.size(), literal);
+    table.push_back(value);
+    return value;
 }
 // }}}
 // {{{ IRBuilder
@@ -218,9 +210,12 @@ IRBuilder::~IRBuilder()
 {
 }
 
+// {{{ context management
 void IRBuilder::setProgram(IRProgram* prog)
 {
     program_ = prog;
+    handler_ = nullptr;
+    insertPoint_ = nullptr;
 }
 
 void IRBuilder::setHandler(IRHandler* hn)
@@ -228,6 +223,7 @@ void IRBuilder::setHandler(IRHandler* hn)
     assert(hn->parent() == program_);
 
     handler_ = hn;
+    insertPoint_ = nullptr;
 }
 
 BasicBlock* IRBuilder::createBlock(const std::string& name)
@@ -238,6 +234,7 @@ BasicBlock* IRBuilder::createBlock(const std::string& name)
 void IRBuilder::setInsertPoint(BasicBlock* bb)
 {
     assert(bb != nullptr);
+    assert(bb->parent() == handler() && "insert point must belong to the current handler.");
 
     insertPoint_ = bb;
     bb->parent_ = handler_;
@@ -246,86 +243,601 @@ void IRBuilder::setInsertPoint(BasicBlock* bb)
 Instr* IRBuilder::insert(Instr* instr)
 {
     assert(instr != nullptr);
-    assert(insertPoint_ != nullptr);
+    assert(getInsertPoint() != nullptr);
     assert(instr->parent() == nullptr);
 
-    instr->setParent(insertPoint_);
-    insertPoint_->code_.push_back(instr);
-    insertPoint_->setType(instr->type());
+    instr->setParent(getInsertPoint());
+    getInsertPoint()->code_.push_back(instr);
+    getInsertPoint()->setType(instr->type());
 
     return instr;
 }
-
+// }}}
+// {{{ handler pool
 IRHandler* IRBuilder::getHandler(const std::string& name)
 {
     for (auto& item: program_->handlers_) {
-        if (item.first == name)
-            return item.second;
+        if (item->name() == name)
+            return item;
     }
 
     size_t id = program_->handlers_.size();
     IRHandler* h = new IRHandler(program_, id, name);
-    program_->handlers_.push_back(std::make_pair(name, h));
+    program_->handlers_.push_back(h);
 
     return h;
 }
-
-Value* IRBuilder::get(int64_t literal)
-{
-    return nullptr; // TODO
-}
-
-Value* IRBuilder::get(const std::string& literal)
-{
-    return nullptr; // TODO
-}
-
-Value* IRBuilder::get(const RegExp& literal)
-{
-    return nullptr; // TODO
-}
-
+// }}}
 // {{{ value management
-Instr* IRBuilder::createAlloca(FlowType ty, size_t arraySize, const std::string& name)
+/**
+ * dynamically allocates an array of given element type and size.
+ */
+Instr* IRBuilder::createAlloca(FlowType ty, Value* arraySize, const std::string& name)
 {
-    return nullptr; // TODO
+    return insert(new AllocaInstr(getInsertPoint(), ty, arraySize, name));
 }
 
+/**
+ * initializes an array at given index.
+ */
+Instr* IRBuilder::createArraySet(Value* array, Value* index, Value* value, const std::string& name)
+{
+    return insert(new ArraySetInstr(getInsertPoint(), array, index, value, name));
+}
+
+/**
+ * Loads given value
+ */
+Value* IRBuilder::createLoad(Value* value, const std::string& name)
+{
+    if (dynamic_cast<Constant*>(value))
+        return value;
+
+    if (dynamic_cast<Variable*>(value))
+        return insert(new LoadInstr(getInsertPoint(), value, name));
+
+    assert(!"Value must be of type Constant or Variable.");
+    return nullptr;
+}
+
+/**
+ * emits a STORE of value \p rhs to variable \p lhs.
+ */
 Instr* IRBuilder::createStore(Value* lhs, Value* rhs, const std::string& name)
 {
-    return nullptr; // TODO
+    assert(lhs->type() == rhs->type() && "Type of lhs and rhs must be equal.");
+    assert(dynamic_cast<Variable*>(lhs) && "lhs must be of type Variable.");
+
+    return insert(new StoreInstr(getInsertPoint(), lhs, rhs, name));
+}
+
+Instr* IRBuilder::createPhi(const std::vector<Value*>& incomings, const std::string& name)
+{
+    return insert(new PhiNode(getInsertPoint(), incomings, name));
 }
 // }}}
+// {{{ numerical ops
+Value* IRBuilder::createNeg(Value* rhs, const std::string& name)
+{
+    assert(rhs->type() == FlowType::Number);
+
+    if (auto a = dynamic_cast<ConstantInt*>(rhs))
+        return get(-a->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NNEG, {rhs}, name));
+}
 
 Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name)
 {
     assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
 
-    switch (lhs->type()) {
-        case FlowType::Number:
-            return insert(new VmInstr(insertPoint_, FlowVM::Opcode::NADD, {lhs, rhs}, name));
-        case FlowType::String:
-            return insert(new VmInstr(insertPoint_, FlowVM::Opcode::SADD, {lhs, rhs}, name));
-        default:
-            assert(!"Unsupported type");
-            return nullptr;
-    }
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() + b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NADD, {lhs, rhs}, name));
 }
 
+Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() - b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NSUB, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() * b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NMUL, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() / b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NMUL, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() % b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NREM, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() << b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NSHL, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() >> b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NSHR, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(powl(a->get(), b->get()));
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NPOW, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() & b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NAND, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() | b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NOR, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() ^ b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NXOR, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() == b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NCMPEQ, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() != b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NCMPNE, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() <= b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NCMPLE, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() >= b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NCMPGE, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() < b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NCMPLT, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::Number);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() > b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::NCMPGT, {lhs, rhs}, name));
+}
+// }}}
+// {{{ string ops
+Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::String);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(a->get() + b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SADD, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::String);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(a->get() == b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPEQ, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::String);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(a->get() != b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPNE, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::String);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(a->get() <= b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPLE, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::String);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(a->get() >= b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPGE, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::String);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(a->get() < b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPLT, {lhs, rhs}, name));
+}
+
+Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == rhs->type());
+    assert(lhs->type() == FlowType::String);
+
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(a->get() > b->get());
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPGT, {lhs, rhs}, name));
+}
+
+/**
+ * Compare string \p lhs against regexp \p rhs.
+ */
+Value* IRBuilder::createSCmpRE(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(lhs->type() == FlowType::String);
+    assert(rhs->type() == FlowType::RegExp);
+
+    // XXX don't perform constant folding on (string =~ regexp) as this operation yields side affects to: regex.group(I)S
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SREGMATCH, {lhs, rhs}, name));
+}
+
+/**
+ * Tests if string \p lhs begins with string \p rhs.
+ *
+ * @param lhs test string
+ * @param rhs sub string needle
+ * @param name Name of the given operations result value.
+ *
+ * @return boolean result.
+ */
+Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs, const std::string& name)
+{
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(BufferRef(a->get()).begins(b->get()));
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPBEG, {lhs, rhs}, name));
+}
+
+/**
+ * Tests if string \p lhs ends with string \p rhs.
+ *
+ * @param lhs test string
+ * @param rhs sub string needle
+ * @param name Name of the given operations result value.
+ *
+ * @return boolean result.
+ */
+Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs, const std::string& name)
+{
+    // constant folding
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(BufferRef(a->get()).ends(b->get()));
+
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SCMPEND, {lhs, rhs}, name));
+}
+// }}}
+// {{{ cast ops
+/**
+ * Converts given value to target type.
+ *
+ * @param ty target type to convert to
+ * @param rhs source value to convert from
+ *
+ * @return \c nullptr if invalid conversion, a converted value otherwise.
+ */
+Value* IRBuilder::createConvert(FlowType ty, Value* rhs, const std::string& name)
+{
+    using FlowVM::Opcode;
+
+    assert(rhs != nullptr);
+    assert(ty == FlowType::Number
+        || ty == FlowType::Boolean
+        || ty == FlowType::String
+        || ty == FlowType::IPAddress
+        || ty == FlowType::Cidr
+        || ty == FlowType::RegExp
+        );
+
+    static const std::unordered_map<FlowType, std::unordered_map<FlowType, Opcode>> ops = {
+        {FlowType::Number, {
+            {FlowType::Number, Opcode::NOP},
+            {FlowType::Boolean, Opcode::NCMPZ},
+            {FlowType::String, Opcode::I2S},
+        }},
+        {FlowType::Boolean, {
+            {FlowType::Boolean, Opcode::NOP},
+            {FlowType::Number, Opcode::NOP},
+            {FlowType::String, Opcode::I2S},
+        }},
+        {FlowType::String, {
+            {FlowType::String, Opcode::NOP},
+            {FlowType::Number, Opcode::S2I},
+        }},
+        {FlowType::IPAddress, {
+            {FlowType::IPAddress, Opcode::NOP},
+            {FlowType::String, Opcode::P2S},
+        }},
+        {FlowType::Cidr, {
+            {FlowType::Cidr, Opcode::NOP},
+            {FlowType::String, Opcode::C2S},
+        }},
+        {FlowType::RegExp, {
+            {FlowType::RegExp, Opcode::NOP},
+            {FlowType::String, Opcode::R2S},
+        }},
+    };
+
+    if (ty == rhs->type())
+        return rhs;
+
+    // source type
+    auto a = ops.find(rhs->type());
+    if (a == ops.end())
+        return nullptr;
+
+    // target type
+    auto b = a->second.find(ty);
+    if (b == a->second.end())
+        return nullptr;
+
+    auto op = b->second;
+
+    // constant folding
+    if (dynamic_cast<Constant*>(rhs)) {
+        switch (op) {
+            case Opcode::NCMPZ: // int -> bool
+                return get(static_cast<ConstantInt*>(rhs)->get() != 0);
+            case Opcode::I2S:   // int,bool -> str
+                if (auto a = dynamic_cast<ConstantBoolean*>(rhs)) {
+                    return get(a->get() ? "true" : "false");
+                } else {
+                    auto b = static_cast<ConstantInt*>(rhs)->get();
+                    char buf[64];
+                    snprintf(buf, sizeof(buf), "%li", b);
+                    return get(buf);
+                }
+            case Opcode::S2I:   // str -> bool
+                return get(static_cast<ConstantString*>(rhs)->get().size() != 0);
+            case Opcode::P2S:   // ip -> str
+                return get(static_cast<ConstantIP*>(rhs)->get().str());
+            case Opcode::C2S:   // cidr -> str
+                return get(static_cast<ConstantCidr*>(rhs)->get().str());
+            case Opcode::R2S:   // regex -> str
+                return get(static_cast<ConstantRegExp*>(rhs)->get().pattern());
+            case Opcode::NOP:
+                // no need to cast into the same type
+                return rhs;
+            default:
+                XZERO_DEBUG("IR", 1, "Unexpected cast op: %i", op);
+                break;
+        }
+    }
+
+    return insert(new VmInstr(getInsertPoint(), op, {rhs}, name));
+}
+// }}}
+// {{{ call creators
+Instr* IRBuilder::createCallFunction(Value* function, const std::vector<Value*>& args, const std::string& name)
+{
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::CALL, args, name));
+}
+
+Instr* IRBuilder::createInvokeHandler(Value* handler, const std::vector<Value*>& args, const std::string& name)
+{
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::HANDLER, args, name));
+}
+// }}}
+// {{{ exit point creators
 Instr* IRBuilder::createRet(Value* result, const std::string& name)
 {
-    return nullptr; // TODO
+    return insert(new RetInstr(getInsertPoint(), name));
 }
 
-Instr* IRBuilder::createBr(BasicBlock* bb)
+Instr* IRBuilder::createBr(BasicBlock* target)
 {
-    return insert(new VmInstr(insertPoint_, FlowVM::Opcode::JMP, {}, ""));
+    return insert(new BrInstr(getInsertPoint(), {target}, ""));
 }
 
 Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name)
 {
-    return insert(new CondBrInstr(insertPoint_, condValue, trueBlock, falseBlock, name));
+    return insert(new CondBrInstr(getInsertPoint(), condValue, trueBlock, falseBlock, name));
 }
+
+Value* IRBuilder::createMatchSame(Value* cond, size_t matchId, const std::string& name)
+{
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SMATCHEQ, {get(matchId)}, name));
+}
+
+Value* IRBuilder::createMatchHead(Value* cond, size_t matchId, const std::string& name)
+{
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SMATCHBEG, {get(matchId)}, name));
+}
+
+Value* IRBuilder::createMatchTail(Value* cond, size_t matchId, const std::string& name)
+{
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SMATCHEND, {get(matchId)}, name));
+}
+
+Value* IRBuilder::createMatchRegExp(Value* cond, size_t matchId, const std::string& name)
+{
+    return insert(new VmInstr(getInsertPoint(), FlowVM::Opcode::SMATCHR, {get(matchId)}, name));
+}
+// }}}
 // }}}
 // {{{ IRGenerator
 IRGenerator::IRGenerator() :
@@ -375,6 +887,7 @@ void IRGenerator::accept(Unit& unit)
 
 void IRGenerator::accept(Variable& variable)
 {
+    // TODO declare given variable in current handler
 }
 
 void IRGenerator::accept(Handler& handler)
@@ -404,54 +917,99 @@ void IRGenerator::accept(BinaryExpr& expr)
     result_ = insert(new VmInstr(getInsertPoint(), expr.op(), {lhs, rhs}));
 }
 
-void IRGenerator::accept(CallExpr& expr)
+void IRGenerator::accept(CallExpr& call)
 {
-    // TODO
+    std::vector<Value*> args;
+    for (Expr* arg: call.args().values()) {
+        if (Value* v = generate(arg)) {
+            args.push_back(v);
+        } else {
+            return;
+        }
+    }
+
+    Value* f = generate(call.callee());
+
+    if (call.callee()->isFunction()) {
+        // builtin function
+        result_ = createCallFunction(f, args);
+    } else if (call.callee()->isBuiltin()) {
+        // builtin handler
+        result_ = createInvokeHandler(f, args);
+    } else {
+        // source handler
+        result_ = nullptr; // TODO: inline source handler
+    }
 }
 
 void IRGenerator::accept(VariableExpr& expr)
 {
-    // TODO
+    // loads the value of the given variable
+
+    result_ = generate(expr.variable());
 }
 
 void IRGenerator::accept(HandlerRefExpr& literal)
 {
-    // TODO
+    // lodas a handler reference (handler ID) to a handler, possibly generating the code for this handler.
+
+    result_ = generate(literal.handler());
 }
 
 void IRGenerator::accept(StringExpr& literal)
 {
+    // loads a string literal
+
     result_ = get(literal.value());
 }
 
 void IRGenerator::accept(NumberExpr& literal)
 {
+    // loads a number literal
+
     result_ = get(literal.value());
 }
 
 void IRGenerator::accept(BoolExpr& literal)
 {
+    // loads a boolean literal
+
     result_ = get(int64_t(literal.value()));
 }
 
 void IRGenerator::accept(RegExpExpr& literal)
 {
-    // TODO
+    // loads a regex literal by reference ID to the const table
+
+    result_ = get(literal.value());
 }
 
 void IRGenerator::accept(IPAddressExpr& literal)
 {
-    // TODO
+    // loads an ip address by reference ID to the const table
+
+    result_ = get(literal.value());
 }
 
 void IRGenerator::accept(CidrExpr& literal)
 {
-    // TODO
+    // loads a CIDR network by reference ID to the const table
+
+    result_ = get(literal.value());
 }
 
-void IRGenerator::accept(ArrayExpr& array)
+void IRGenerator::accept(ArrayExpr& arrayExpr)
 {
-    // TODO
+    // loads a new array of given elements
+
+    Value* array = createAlloca(arrayExpr.getType(), get(arrayExpr.values().size()));
+
+    for (size_t i = 0, e = arrayExpr.values().size(); i != e; ++i) {
+        Value* element = generate(arrayExpr.values()[i].get());
+        createArraySet(array, get(i), element);
+    }
+
+    result_ = array;
 }
 
 void IRGenerator::accept(ExprStmt& stmt)
@@ -505,6 +1063,7 @@ void IRGenerator::accept(MatchStmt& stmt)
         else {
             reportError("FIXME: Invalid (unsupported) literal type <%s> in match case.",
                     tos(one.first->getType()).c_str());
+            result_ = nullptr;
             return;
         }
 

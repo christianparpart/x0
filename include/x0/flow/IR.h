@@ -64,6 +64,27 @@ private:
     int64_t id_;
 };
 
+template<typename T, const FlowType Ty>
+class X0_API ConstantValue : public Constant {
+public:
+    ConstantValue(size_t id, const T& value, const std::string& name = "") :
+        Constant(Ty, id, name),
+        value_(value)
+        {}
+
+    T get() const { return value_; }
+
+private:
+    T value_;
+};
+
+typedef ConstantValue<int64_t, FlowType::Number> ConstantInt;
+typedef ConstantValue<bool, FlowType::Boolean> ConstantBoolean;
+typedef ConstantValue<std::string, FlowType::String> ConstantString;
+typedef ConstantValue<IPAddress, FlowType::IPAddress> ConstantIP;
+typedef ConstantValue<Cidr, FlowType::Cidr> ConstantCidr;
+typedef ConstantValue<RegExp, FlowType::RegExp> ConstantRegExp;
+
 class X0_API BasicBlock : public Value {
 public:
     explicit BasicBlock(IRHandler* parent, const std::string& name = "");
@@ -96,6 +117,69 @@ private:
     std::vector<Value*> operands_;
 };
 
+/**
+ * Allocates an array of given type and elements.
+ */
+class X0_API AllocaInstr : public Instr {
+public:
+    AllocaInstr(BasicBlock* parent, FlowType ty, Value* n, const std::string& name = "") :
+        Instr(parent,
+            ty == FlowType::Number
+                ? FlowType::IntArray
+                : (ty == FlowType::String
+                    ? FlowType::StringArray
+                    : FlowType::Void),
+            {n},
+            name)
+    {
+    }
+
+    FlowType elementType() const {
+        switch (type()) {
+            case FlowType::StringArray:
+                return FlowType::String;
+            case FlowType::IntArray:
+                return FlowType::Number;
+            default:
+                return FlowType::Void;
+        }
+    }
+
+    Value* arraySize() const { return operands()[0]; }
+
+private:
+};
+
+class X0_API ArraySetInstr : public Instr {
+public:
+    ArraySetInstr(BasicBlock* parent, Value* array, Value* index, Value* value, const std::string& name = "") :
+        Instr(parent, FlowType::Void, {array, index, value}, name)
+        {}
+
+    Value* array() const { return operands()[0]; }
+    Value* index() const { return operands()[1]; }
+    Value* value() const { return operands()[2]; }
+};
+
+class X0_API StoreInstr : public Instr {
+public:
+    StoreInstr(BasicBlock* parent, Value* variable, Value* expression, const std::string& name = "") :
+        Instr(parent, variable->type(), {variable, expression}, name)
+        {}
+
+    Value* variable() const { return operands()[0]; }
+    Value* expression() const { return operands()[1]; }
+};
+
+class X0_API LoadInstr : public Instr {
+public:
+    LoadInstr(BasicBlock* parent, Value* variable, const std::string& name = "") :
+        Instr(parent, variable->type(), {variable}, name)
+        {}
+
+    Value* variable() const { return operands()[0]; }
+};
+
 class X0_API VmInstr : public Instr {
 public:
     VmInstr(BasicBlock* parent, FlowVM::Opcode opcode, const std::vector<Value*>& ops = {}, const std::string& name = "");
@@ -122,13 +206,20 @@ public:
     virtual void dump();
 };
 
+class X0_API BranchInstr : public Instr {
+public:
+    BranchInstr(BasicBlock* parent, const std::vector<Value*>& ops = {}, const std::string& name = "") :
+        Instr(parent, FlowType::Void, ops, name)
+        {}
+};
+
 /**
  * Conditional branch instruction.
  *
  * Creates a terminate instruction that transfers control to one of the two
  * given alternate basic blocks, depending on the given input condition.
  */
-class X0_API CondBrInstr : public Instr {
+class X0_API CondBrInstr : public BranchInstr {
 public:
     /**
      * Initializes the object.
@@ -139,7 +230,7 @@ public:
      * @param falseBlock basic block to run if input condition evaluated to false.
      */
     CondBrInstr(BasicBlock* parent, Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name = "") :
-        Instr(parent, FlowType::Void, {cond, trueBlock, falseBlock}, name)
+        BranchInstr(parent, {cond, trueBlock, falseBlock}, name)
     {}
 
     virtual void dump();
@@ -148,13 +239,23 @@ public:
 /**
  * Unconditional jump instruction.
  */
-class X0_API BrInstr : public Instr {
+class X0_API BrInstr : public BranchInstr {
 public:
     BrInstr(BasicBlock* parent, BasicBlock* targetBlock, const std::string& name = "") :
-        Instr(parent, FlowType::Void, {targetBlock}, name)
+        BranchInstr(parent, {targetBlock}, name)
     {}
 
     virtual void dump();
+};
+
+/**
+ * handler-return instruction.
+ */
+class X0_API RetInstr : public Instr {
+public:
+    RetInstr(BasicBlock* parent, const std::string& name = "") :
+        Instr(parent, FlowType::Boolean, {}, name)
+        {}
 };
 
 /**
@@ -208,13 +309,22 @@ public:
 
     void dump();
 
+    ConstantInt* get(int64_t literal) { return get<ConstantInt>(numbers_, literal); }
+    ConstantString* get(const std::string& literal) { return get<ConstantString>(strings_, literal); }
+    ConstantIP* get(const IPAddress& literal) { return get<ConstantIP>(ipaddrs_, literal); }
+    ConstantCidr* get(const Cidr& literal) { return get<ConstantCidr>(cidrs_, literal); }
+    ConstantRegExp* get(const RegExp& literal) { return get<ConstantRegExp>(regexps_, literal); }
+
+    template<typename T, typename U>
+    T* get(std::vector<T*>& table, const U& literal);
+
 private:
-    std::vector<std::pair<int64_t, Constant*>> numbers_;
-    std::vector<std::pair<std::string, Constant*>> strings_;
-    std::vector<std::pair<IPAddress, Constant*>> ipaddrs_;
-    std::vector<std::pair<Cidr, Constant*>> cidrs_;
-    std::vector<std::pair<RegExp, Constant*>> regexps_;
-    std::vector<std::pair<std::string, IRHandler*>> handlers_;
+    std::vector<ConstantInt*> numbers_;
+    std::vector<ConstantString*> strings_;
+    std::vector<ConstantIP*> ipaddrs_;
+    std::vector<ConstantCidr*> cidrs_;
+    std::vector<ConstantRegExp*> regexps_;
+    std::vector<IRHandler*> handlers_;
 
     friend class IRBuilder;
 };
@@ -235,58 +345,67 @@ public:
     void setHandler(IRHandler* hn);
     IRHandler* handler() const { return handler_; }
 
-    BasicBlock* createBlock(const std::string& name = "");
+    BasicBlock* createBlock(const std::string& name);
 
     void setInsertPoint(BasicBlock* bb);
     BasicBlock* getInsertPoint() const { return insertPoint_; }
 
     Instr* insert(Instr* instr);
 
-    // literals
-    Value* get(int64_t number);
-    Value* get(const std::string& ipaddr);
-    Value* get(const IPAddress& ipaddr);
-    Value* get(const Cidr& cidr);
-    Value* get(const RegExp& regexp);
     IRHandler* getHandler(const std::string& name);
 
+    // literals
+    ConstantInt* get(int64_t literal) { return program_->get(literal); }
+    ConstantString* get(const std::string& literal) { return program_->get(literal); }
+    ConstantIP* get(const IPAddress& literal) { return program_->get(literal); }
+    ConstantCidr* get(const Cidr& literal) { return program_->get(literal); }
+    ConstantRegExp* get(const RegExp& literal) { return program_->get(literal); }
+
     // values
-    Instr* createAlloca(FlowType ty, size_t arraySize = 1, const std::string& name = "");
-    Instr* createLoad(Value* value, const std::string& name = "");
+    Instr* createAlloca(FlowType ty, Value* arraySize, const std::string& name = "");
+    Instr* createArraySet(Value* array, Value* index, Value* value, const std::string& name = "");
+    Value* createLoad(Value* value, const std::string& name = "");
     Instr* createStore(Value* lhs, Value* rhs, const std::string& name = "");
-    Instr* createPhi(const std::vector<Value*>& incomings);
+    Instr* createPhi(const std::vector<Value*>& incomings, const std::string& name = "");
 
-    // binary data manipulation
-    Value* createConvert(FlowType ty, Value* rhs, const std::string& name = "");
-    Value* createAdd(Value* lhs, Value* rhs, const std::string& name = "");   // +
-    Value* createSub(Value* lhs, Value* rhs, const std::string& name = "");   // -
-    Value* createMul(Value* lhs, Value* rhs, const std::string& name = "");   // *
-    Value* createDiv(Value* lhs, Value* rhs, const std::string& name = "");   // /
-    Value* createRem(Value* lhs, Value* rhs, const std::string& name = "");   // %
-    Value* createShl(Value* lhs, Value* rhs, const std::string& name = "");   // <<
-    Value* createShr(Value* lhs, Value* rhs, const std::string& name = "");   // >>
-    Value* createPow(Value* lhs, Value* rhs, const std::string& name = "");   // **
-    Value* createAnd(Value* lhs, Value* rhs, const std::string& name = "");   // &
-    Value* createOr(Value* lhs, Value* rhs, const std::string& name = "");    // |
-    Value* createXor(Value* lhs, Value* rhs, const std::string& name = "");   // ^
+    // numerical operations
+    Value* createNeg(Value* rhs, const std::string& name = "");                  // -
+    Value* createAdd(Value* lhs, Value* rhs, const std::string& name = "");      // +
+    Value* createSub(Value* lhs, Value* rhs, const std::string& name = "");      // -
+    Value* createMul(Value* lhs, Value* rhs, const std::string& name = "");      // *
+    Value* createDiv(Value* lhs, Value* rhs, const std::string& name = "");      // /
+    Value* createRem(Value* lhs, Value* rhs, const std::string& name = "");      // %
+    Value* createShl(Value* lhs, Value* rhs, const std::string& name = "");      // <<
+    Value* createShr(Value* lhs, Value* rhs, const std::string& name = "");      // >>
+    Value* createPow(Value* lhs, Value* rhs, const std::string& name = "");      // **
+    Value* createAnd(Value* lhs, Value* rhs, const std::string& name = "");      // &
+    Value* createOr(Value* lhs, Value* rhs, const std::string& name = "");       // |
+    Value* createXor(Value* lhs, Value* rhs, const std::string& name = "");      // ^
+    Value* createNCmpEQ(Value* lhs, Value* rhs, const std::string& name = "");   // ==
+    Value* createNCmpNE(Value* lhs, Value* rhs, const std::string& name = "");   // !=
+    Value* createNCmpLE(Value* lhs, Value* rhs, const std::string& name = "");   // <=
+    Value* createNCmpGE(Value* lhs, Value* rhs, const std::string& name = "");   // >=
+    Value* createNCmpLT(Value* lhs, Value* rhs, const std::string& name = "");   // <
+    Value* createNCmpGT(Value* lhs, Value* rhs, const std::string& name = "");   // >
 
-    Value* createCmpEQ(Value* lhs, Value* rhs, const std::string& name = ""); // ==
-    Value* createCmpNE(Value* lhs, Value* rhs, const std::string& name = ""); // !=
-    Value* createCmpLE(Value* lhs, Value* rhs, const std::string& name = ""); // <=
-    Value* createCmpGE(Value* lhs, Value* rhs, const std::string& name = ""); // >=
-    Value* createCmpLT(Value* lhs, Value* rhs, const std::string& name = ""); // <
-    Value* createCmpGT(Value* lhs, Value* rhs, const std::string& name = ""); // >
-    Value* createCmpRE(Value* lhs, Value* rhs, const std::string& name = ""); // =~
-    Value* createCmpEB(Value* lhs, Value* rhs, const std::string& name = ""); // =^
-    Value* createCmpEE(Value* lhs, Value* rhs, const std::string& name = ""); // =$
+    // string ops
+    Value* createSAdd(Value* lhs, Value* rhs, const std::string& name = "");     // +
+    Value* createSCmpEQ(Value* lhs, Value* rhs, const std::string& name = "");   // ==
+    Value* createSCmpNE(Value* lhs, Value* rhs, const std::string& name = "");   // !=
+    Value* createSCmpLE(Value* lhs, Value* rhs, const std::string& name = "");   // <=
+    Value* createSCmpGE(Value* lhs, Value* rhs, const std::string& name = "");   // >=
+    Value* createSCmpLT(Value* lhs, Value* rhs, const std::string& name = "");   // <
+    Value* createSCmpGT(Value* lhs, Value* rhs, const std::string& name = "");   // >
+    Value* createSCmpRE(Value* lhs, Value* rhs, const std::string& name = "");   // =~
+    Value* createSCmpEB(Value* lhs, Value* rhs, const std::string& name = "");   // =^
+    Value* createSCmpEE(Value* lhs, Value* rhs, const std::string& name = "");   // =$
 
-    // unary data manipulation
-    Value* createNeg(Value* rhs, const std::string& name = ""); // -
-    Value* createNot(Value* rhs, const std::string& name = ""); // ~ (int) ! (bool)
+    // cast
+    Value* createConvert(FlowType ty, Value* rhs, const std::string& name = ""); // cast<T>()
 
     // calls
-    Instr* createCallFunction(Value* callee /*, ...*/);
-    Instr* createInvokeHandler(Value* callee /*, ...*/);
+    Instr* createCallFunction(Value* callee, const std::vector<Value*>& args, const std::string& name = "");
+    Instr* createInvokeHandler(Value* callee, const std::vector<Value*>& args, const std::string& name = "");
 
     // exit points
     Instr* createRet(Value* result, const std::string& name = "");
@@ -298,7 +417,11 @@ public:
     Value* createMatchRegExp(Value* cond, size_t matchId, const std::string& name = "");
 };
 
-class IRGenerator :
+/**
+ * Transforms a Flow-AST into an SSA-conform IR.
+ *
+ */
+class X0_API IRGenerator :
     public IRBuilder,
     public ASTVisitor
 {
