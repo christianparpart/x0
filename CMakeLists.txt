@@ -85,7 +85,7 @@ add_definitions(-Wno-mismatched-tags)
 # we need the following definitions in order to get some special
 # OS-level features like posix_fadvise() or readahead().
 add_definitions(-DXOPEN_SOURCE=600)
-add_definitions(-DGNU_SOURCE)
+add_definitions(-D_GNU_SOURCE)
 
 # enforce 64bit i/o operations, even on 32bit platforms
 add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGE_FILES)
