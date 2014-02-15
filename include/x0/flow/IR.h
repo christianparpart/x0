@@ -11,7 +11,7 @@
 #include <x0/Api.h>
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/vm/MatchClass.h>
-#include <x0/flow/ASTVisitor.h>
+#include <x0/flow/vm/Signature.h>
 #include <x0/IPAddress.h>
 #include <x0/Cidr.h>
 #include <x0/RegExp.h>
@@ -44,11 +44,20 @@ public:
     const std::string& name() const { return name_; }
     void setName(const std::string& n) { name_ = n; }
 
-    virtual void dump();
+    virtual void dump() = 0;
 
 private:
     FlowType type_;
     std::string name_;
+};
+
+class X0_API IRVariable : public Value {
+public:
+    explicit IRVariable(FlowType ty, const std::string& name = "") :
+        Value(ty, name)
+        {}
+
+    void dump() override;
 };
 
 class X0_API Constant : public Value {
@@ -58,10 +67,24 @@ public:
 
     size_t id() const { return id_; }
 
-    virtual void dump();
+    void dump() override;
 
 private:
     int64_t id_;
+};
+
+class X0_API IRBuiltinFunction : public Constant {
+public:
+    IRBuiltinFunction(size_t id, const FlowVM::Signature& sig) :
+        Constant(sig.returnType(), id, sig.name()),
+        signature_(sig)
+    {}
+
+    const FlowVM::Signature& signature() const { return signature_; }
+    const FlowVM::Signature& get() const { return signature_; }
+
+private:
+    FlowVM::Signature signature_;
 };
 
 template<typename T, const FlowType Ty>
@@ -87,23 +110,26 @@ typedef ConstantValue<RegExp, FlowType::RegExp> ConstantRegExp;
 
 class X0_API BasicBlock : public Value {
 public:
-    explicit BasicBlock(IRHandler* parent, const std::string& name = "");
+    explicit BasicBlock(const std::string& name = "");
     ~BasicBlock();
 
     IRHandler* parent() const { return parent_; }
     void setParent(IRHandler* handler) { parent_ = handler; }
+
+    void dump() override;
 
 private:
     IRHandler* parent_;
     std::vector<Instr*> code_;
 
     friend class IRBuilder;
+    friend class Instr;
 };
 
 // NCMPEQ, NADD, SMATCHR, JMP, EXIT, ...
 class X0_API Instr : public Value {
 public:
-    Instr(BasicBlock* parent, FlowType ty, const std::vector<Value*>& ops = {}, const std::string& name = "");
+    Instr(FlowType ty, const std::vector<Value*>& ops = {}, const std::string& name = "");
     ~Instr();
 
     BasicBlock* parent() const { return parent_; }
@@ -111,6 +137,9 @@ public:
 
     const std::vector<Value*>& operands() const { return operands_; }
     std::vector<Value*>& operands() { return operands_; }
+
+protected:
+    void dumpOne(const char* mnemonic);
 
 private:
     BasicBlock* parent_;
@@ -121,14 +150,32 @@ private:
  * Allocates an array of given type and elements.
  */
 class X0_API AllocaInstr : public Instr {
+private:
+    static FlowType computeType(FlowType elementType, Value* size) {
+        if (auto n = dynamic_cast<ConstantInt*>(size)) {
+            if (n->get() == 1)
+                return elementType;
+        }
+
+        switch (elementType) {
+            case FlowType::Number:
+                return FlowType::IntArray;
+            case FlowType::String:
+                return FlowType::StringArray;
+            default:
+                return FlowType::Void;
+        }
+    }
+
 public:
-    AllocaInstr(BasicBlock* parent, FlowType ty, Value* n, const std::string& name = "") :
-        Instr(parent,
-            ty == FlowType::Number
+    AllocaInstr(FlowType ty, Value* n, const std::string& name = "") :
+        Instr(
+            computeType(ty, n),
+            /*ty == FlowType::Number
                 ? FlowType::IntArray
                 : (ty == FlowType::String
                     ? FlowType::StringArray
-                    : FlowType::Void),
+                    : FlowType::Void),*/
             {n},
             name)
     {
@@ -147,46 +194,61 @@ public:
 
     Value* arraySize() const { return operands()[0]; }
 
-private:
+    void dump() override;
 };
 
 class X0_API ArraySetInstr : public Instr {
 public:
-    ArraySetInstr(BasicBlock* parent, Value* array, Value* index, Value* value, const std::string& name = "") :
-        Instr(parent, FlowType::Void, {array, index, value}, name)
+    ArraySetInstr(Value* array, Value* index, Value* value, const std::string& name = "") :
+        Instr(FlowType::Void, {array, index, value}, name)
         {}
 
     Value* array() const { return operands()[0]; }
     Value* index() const { return operands()[1]; }
     Value* value() const { return operands()[2]; }
+
+    void dump() override;
 };
 
 class X0_API StoreInstr : public Instr {
 public:
-    StoreInstr(BasicBlock* parent, Value* variable, Value* expression, const std::string& name = "") :
-        Instr(parent, variable->type(), {variable, expression}, name)
+    StoreInstr(Value* variable, Value* expression, const std::string& name = "") :
+        Instr(variable->type(), {variable, expression}, name)
         {}
 
     Value* variable() const { return operands()[0]; }
     Value* expression() const { return operands()[1]; }
+
+    void dump() override;
 };
 
 class X0_API LoadInstr : public Instr {
 public:
-    LoadInstr(BasicBlock* parent, Value* variable, const std::string& name = "") :
-        Instr(parent, variable->type(), {variable}, name)
+    LoadInstr(Value* variable, const std::string& name = "") :
+        Instr(variable->type(), {variable}, name)
         {}
 
     Value* variable() const { return operands()[0]; }
+
+    void dump() override;
+};
+
+class X0_API CallInstr : public Instr {
+public:
+    CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name = "");
+
+    IRBuiltinFunction* callee() const { return (IRBuiltinFunction*) operands()[0]; }
+
+    void dump() override;
 };
 
 class X0_API VmInstr : public Instr {
 public:
-    VmInstr(BasicBlock* parent, FlowVM::Opcode opcode, const std::vector<Value*>& ops = {}, const std::string& name = "");
+    VmInstr(FlowVM::Opcode opcode, const std::vector<Value*>& ops = {}, const std::string& name = "");
 
     FlowVM::Opcode opcode() const { return opcode_; }
 
-    virtual void dump();
+    void dump() override;
 
 private:
     FlowVM::Opcode opcode_;
@@ -201,15 +263,15 @@ private:
  */
 class X0_API PhiNode : public Instr {
 public:
-    explicit PhiNode(BasicBlock* parent, const std::vector<Value*>& ops, const std::string& name = "");
+    explicit PhiNode(const std::vector<Value*>& ops, const std::string& name = "");
 
-    virtual void dump();
+    void dump() override;
 };
 
 class X0_API BranchInstr : public Instr {
 public:
-    BranchInstr(BasicBlock* parent, const std::vector<Value*>& ops = {}, const std::string& name = "") :
-        Instr(parent, FlowType::Void, ops, name)
+    BranchInstr(const std::vector<Value*>& ops = {}, const std::string& name = "") :
+        Instr(FlowType::Void, ops, name)
         {}
 };
 
@@ -224,16 +286,15 @@ public:
     /**
      * Initializes the object.
      *
-     * @param parent owning basic block this instruction is inserted to
      * @param cond input condition that (if true) causes \p trueBlock to be jumped to, \p falseBlock otherwise.
      * @param trueBlock basic block to run if input condition evaluated to true.
      * @param falseBlock basic block to run if input condition evaluated to false.
      */
-    CondBrInstr(BasicBlock* parent, Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name = "") :
-        BranchInstr(parent, {cond, trueBlock, falseBlock}, name)
+    CondBrInstr(Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name = "") :
+        BranchInstr({cond, trueBlock, falseBlock}, name)
     {}
 
-    virtual void dump();
+    void dump() override;
 };
 
 /**
@@ -241,11 +302,11 @@ public:
  */
 class X0_API BrInstr : public BranchInstr {
 public:
-    BrInstr(BasicBlock* parent, BasicBlock* targetBlock, const std::string& name = "") :
-        BranchInstr(parent, {targetBlock}, name)
+    BrInstr(BasicBlock* targetBlock, const std::string& name = "") :
+        BranchInstr({targetBlock}, name)
     {}
 
-    virtual void dump();
+    void dump() override;
 };
 
 /**
@@ -253,9 +314,11 @@ public:
  */
 class X0_API RetInstr : public Instr {
 public:
-    RetInstr(BasicBlock* parent, const std::string& name = "") :
-        Instr(parent, FlowType::Boolean, {}, name)
+    explicit RetInstr(Value* result, const std::string& name = "") :
+        Instr(FlowType::Boolean, {result}, name)
         {}
+
+    void dump() override;
 };
 
 /**
@@ -263,7 +326,7 @@ public:
  */
 class X0_API MatchInstr : public Instr {
 public:
-    MatchInstr(BasicBlock* parent, FlowVM::MatchClass op, const std::string& name = "");
+    MatchInstr(FlowVM::MatchClass op, const std::string& name = "");
 
     void setCondition(Value* condition);
 
@@ -276,6 +339,8 @@ public:
     BasicBlock* elseBlock() const { return elseBlock_; }
     void setElseBlock(BasicBlock* code) { elseBlock_ = code; }
 
+    void dump() override;
+
 private:
     FlowVM::MatchClass op_;
     BasicBlock* elseBlock_;
@@ -284,15 +349,18 @@ private:
 
 class X0_API IRHandler : public Constant {
 public:
-    IRHandler(IRProgram* parent, size_t id, const std::string& name);
+    IRHandler(size_t id, const std::string& name);
     ~IRHandler();
 
     BasicBlock* createBlock(const std::string& name = "");
 
-    void setEntryPoint(BasicBlock* bb);
+    BasicBlock* setEntryPoint(BasicBlock* bb);
     BasicBlock* entryPoint() const { return entryPoint_; }
 
     IRProgram* parent() const { return parent_; }
+    void setParent(IRProgram* prog) { parent_ = prog; }
+
+    void dump() override;
 
 private:
     IRProgram* parent_;
@@ -315,6 +383,8 @@ public:
     ConstantCidr* get(const Cidr& literal) { return get<ConstantCidr>(cidrs_, literal); }
     ConstantRegExp* get(const RegExp& literal) { return get<ConstantRegExp>(regexps_, literal); }
 
+    IRBuiltinFunction* get(const FlowVM::Signature& sig) { return get<IRBuiltinFunction>(builtinFunctions_, sig); }
+
     template<typename T, typename U>
     T* get(std::vector<T*>& table, const U& literal);
 
@@ -324,6 +394,7 @@ private:
     std::vector<ConstantIP*> ipaddrs_;
     std::vector<ConstantCidr*> cidrs_;
     std::vector<ConstantRegExp*> regexps_;
+    std::vector<IRBuiltinFunction*> builtinFunctions_;
     std::vector<IRHandler*> handlers_;
 
     friend class IRBuilder;
@@ -334,15 +405,18 @@ private:
     IRProgram* program_;
     IRHandler* handler_;
     BasicBlock* insertPoint_;
+    std::unordered_map<std::string, unsigned long> nameStore_;
 
 public:
     IRBuilder();
     ~IRBuilder();
 
+    std::string makeName(const std::string& name);
+
     void setProgram(IRProgram* program);
     IRProgram* program() const { return program_; }
 
-    void setHandler(IRHandler* hn);
+    IRHandler* setHandler(IRHandler* hn);
     IRHandler* handler() const { return handler_; }
 
     BasicBlock* createBlock(const std::string& name);
@@ -360,9 +434,10 @@ public:
     ConstantIP* get(const IPAddress& literal) { return program_->get(literal); }
     ConstantCidr* get(const Cidr& literal) { return program_->get(literal); }
     ConstantRegExp* get(const RegExp& literal) { return program_->get(literal); }
+    IRBuiltinFunction* get(const FlowVM::Signature& sig) { return program_->get(sig); }
 
     // values
-    Instr* createAlloca(FlowType ty, Value* arraySize, const std::string& name = "");
+    AllocaInstr* createAlloca(FlowType ty, Value* arraySize, const std::string& name = "");
     Instr* createArraySet(Value* array, Value* index, Value* value, const std::string& name = "");
     Value* createLoad(Value* value, const std::string& name = "");
     Instr* createStore(Value* lhs, Value* rhs, const std::string& name = "");
@@ -402,10 +477,16 @@ public:
 
     // cast
     Value* createConvert(FlowType ty, Value* rhs, const std::string& name = ""); // cast<T>()
+    Value* createB2S(Value* rhs, const std::string& name = "");
+    Value* createI2S(Value* rhs, const std::string& name = "");
+    Value* createP2S(Value* rhs, const std::string& name = "");
+    Value* createC2S(Value* rhs, const std::string& name = "");
+    Value* createR2S(Value* rhs, const std::string& name = "");
+    Value* createS2I(Value* rhs, const std::string& name = "");
 
     // calls
-    Instr* createCallFunction(Value* callee, const std::vector<Value*>& args, const std::string& name = "");
-    Instr* createInvokeHandler(Value* callee, const std::vector<Value*>& args, const std::string& name = "");
+    Instr* createCallFunction(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name = "");
+    Instr* createInvokeHandler(const std::vector<Value*>& args, const std::string& name = "");
 
     // exit points
     Instr* createRet(Value* result, const std::string& name = "");
@@ -416,74 +497,5 @@ public:
     Value* createMatchTail(Value* cond, size_t matchId, const std::string& name = "");
     Value* createMatchRegExp(Value* cond, size_t matchId, const std::string& name = "");
 };
-
-/**
- * Transforms a Flow-AST into an SSA-conform IR.
- *
- */
-class X0_API IRGenerator :
-    public IRBuilder,
-    public ASTVisitor
-{
-public:
-    IRGenerator();
-    ~IRGenerator();
-
-    static IRProgram* generate(Unit* unit);
-
-private:
-    Value* result_;
-
-    Value* generate(Expr* expr);
-    Value* generate(Stmt* stmt);
-    Value* generate(Symbol* sym);
-
-private:
-    // symbols
-    virtual void accept(Unit& symbol);
-    virtual void accept(Variable& variable);
-    virtual void accept(Handler& handler);
-    virtual void accept(BuiltinFunction& symbol);
-    virtual void accept(BuiltinHandler& symbol);
-
-    // expressions
-    virtual void accept(UnaryExpr& expr);
-    virtual void accept(BinaryExpr& expr);
-    virtual void accept(CallExpr& expr);
-    virtual void accept(VariableExpr& expr);
-    virtual void accept(HandlerRefExpr& expr);
-
-    virtual void accept(StringExpr& expr);
-    virtual void accept(NumberExpr& expr);
-    virtual void accept(BoolExpr& expr);
-    virtual void accept(RegExpExpr& expr);
-    virtual void accept(IPAddressExpr& expr);
-    virtual void accept(CidrExpr& cidr);
-    virtual void accept(ArrayExpr& array);
-
-    // statements
-    virtual void accept(ExprStmt& stmt);
-    virtual void accept(CompoundStmt& stmt);
-    virtual void accept(CondStmt& stmt);
-    virtual void accept(MatchStmt& stmt);
-    virtual void accept(AssignStmt& stmt);
-
-    // error handling
-    void reportError(const std::string& message);
-    template<typename... Args> void reportError(const std::string& fmt, Args&&...);
-};
-
-// {{{ IRGenerator inlines
-template<typename... Args>
-inline void IRGenerator::reportError(const std::string& fmt, Args&&... args)
-{
-    char buf[1024];
-    ssize_t n = snprintf(buf, sizeof(buf), fmt.c_str(), std::forward<Args>(args)...);
-
-    if (n > 0) {
-        reportError(buf);
-    }
-}
-// }}}
 
 } // namespace x0

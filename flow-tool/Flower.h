@@ -66,6 +66,7 @@ private:
     void flow_fail(FlowVM::Params& args);
     void flow_error(FlowVM::Params& args);
     void flow_getcwd(FlowVM::Params& args);
+    void flow_random(FlowVM::Params& args);
     void flow_getenv(FlowVM::Params& args);
 
     bool verify_numbers(CallExpr* call);

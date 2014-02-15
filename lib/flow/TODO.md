@@ -1,11 +1,11 @@
 
 ### Incomplete Flow Rewrite TODO
 
-- constant folding on AST
 - update documentation
   - manual page: x0d.conf.5
   - manual page: x0d.8
   - manual page: flow.7
+- DONE: constant folding on IR generation
 - DONE: port plugins:
   - DONE: accesslog
   - DONE: browser

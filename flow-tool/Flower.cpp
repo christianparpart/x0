@@ -13,6 +13,8 @@
 #include <x0/flow/vm/Runtime.h>
 #include <x0/flow/vm/NativeCallback.h>
 #include <x0/flow/vm/Runner.h>
+#include <x0/flow/IR.h>
+#include <x0/flow/IRGenerator.h>
 #include <x0/flow/FlowCallVisitor.h>
 #include <fstream>
 #include <memory>
@@ -49,6 +51,8 @@ Flower::Flower() :
     registerFunction("cwd", FlowType::String).bind(&Flower::flow_getcwd);
 
     // functions
+    registerFunction("random", FlowType::Number).bind(&Flower::flow_random);
+
     registerFunction("__print", FlowType::Void)
         .params(FlowType::String)
         .bind(&Flower::flow_print);
@@ -240,6 +244,15 @@ int Flower::run(const char* fileName, const char* handlerName)
 	if (dumpAST_)
 		ASTPrinter::print(unit.get());
 
+    {
+        printf("============================================================\n");
+        IRProgram* program = IRGenerator::generate(unit.get());
+        if (program) {
+            program->dump();
+        }
+        printf("============================================================\n");
+    }
+
 	Handler* handlerSym = unit->findHandler(handlerName);
 	if (!handlerSym) {
 		fprintf(stderr, "No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
@@ -306,6 +319,12 @@ void Flower::flow_getcwd(FlowVM::Params& args)
     char buf[PATH_MAX];
 
     args.setResult(getcwd(buf, sizeof(buf)) ? buf : strerror(errno));
+}
+
+void Flower::flow_random(FlowVM::Params& args)
+{
+    srand(time(NULL));
+    args.setResult(random());
 }
 
 void Flower::flow_getenv(FlowVM::Params& args)

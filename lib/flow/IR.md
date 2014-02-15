@@ -18,7 +18,10 @@
 - IRProgram
 - IRBuilder
   - IRGenerator
+- VMCodeGenerator
 - Value
+  - BasicBlock            SSA-conform code sequence block
+  - IRVariable            a writable variable
   - Constant              Base class for constants
     - ConstantValue<T>
       - ConstantString    <Buffer>
@@ -26,7 +29,6 @@
       - ConstantCidr      <Cidr>
       - ConstantRegExp    <RegExp>
       - IRHandler
-  - BasicBlock            SSA-conform code sequence block
   - Instr
     - PhiNode             merge branched values 
     - VmInstr             generic non-branching VM instruction
