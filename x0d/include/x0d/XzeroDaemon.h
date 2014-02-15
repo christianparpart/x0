@@ -78,7 +78,7 @@ public:
 
 	void addComponent(const std::string& value);
 
-	bool setup(std::istream* settings, const std::string& filename = std::string(), int optimizationLevel = 2);
+	bool setup(std::unique_ptr<std::istream>&& settings, const std::string& filename = std::string(), int optimizationLevel = 2);
 	bool setup(const std::string& filename, int optimizationLevel = 2);
 	void dumpIR() const; // for debugging purpose
 

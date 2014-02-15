@@ -154,10 +154,12 @@ FlowParser::~FlowParser()
 
 bool FlowParser::open(const std::string& filename)
 {
-	if (!lexer_->open(filename))
-		return false;
+	return lexer_->open(filename);
+}
 
-	return true;
+bool FlowParser::open(const std::string& filename, std::unique_ptr<std::istream>&& ifs)
+{
+	return lexer_->open(filename, std::move(ifs));
 }
 
 SymbolTable* FlowParser::enter(SymbolTable* scope)

@@ -585,8 +585,7 @@ bool XzeroDaemon::setupConfig()
 {
 	if (instant_.empty()) {
 		// this is no instant-mode, so setup via configuration file.
-		std::ifstream ifs(configfile_);
-		return setup(&ifs, configfile_, optimizationLevel_);
+		return setup(std::make_unique<std::ifstream>(configfile_), configfile_, optimizationLevel_);
 	}
 
 	// --instant=docroot[,port[,bind]]
@@ -623,17 +622,17 @@ bool XzeroDaemon::setupConfig()
 		"import cgi\n"
 		"\n"
 		"handler setup {\n"
-		"    mimetypes '/etc/mime.types'\n"
-		"    mimetypes.default 'application/octet-stream'\n"
-		"    listen 'bind' => #{bind}, 'port' => #{port}\n"
+		"    mimetypes('/etc/mime.types');\n"
+		"    mimetypes.default('application/octet-stream');\n"
+		"    listen(address: #{bind}, port: #{port});\n"
 		"}\n"
 		"\n"
 		"handler main {\n"
-		"    docroot '#{docroot}'\n"
-		"    autoindex ['index.cgi', 'index.html']\n"
-		"    cgi.exec if phys.path =$ '.cgi'\n"
-		"    dirlisting\n"
-		"    staticfile\n"
+		"    docroot('#{docroot}');\n"
+		"    autoindex(['index.cgi', 'index.html']);\n"
+		"    cgi.exec() if phys.path =$ '.cgi';\n"
+		"    dirlisting();\n"
+		"    staticfile();\n"
 		"}\n"
 	);
 	gsub(source, "#{docroot}", documentRoot_);
@@ -644,8 +643,7 @@ bool XzeroDaemon::setupConfig()
 
 	server_->tcpCork(true);
 
-	std::istringstream s(source);
-	return setup(&s, "instant-mode.conf", optimizationLevel_);
+	return setup(std::make_unique<std::istringstream>(source), "instant-mode.conf", optimizationLevel_);
 }
 
 bool XzeroDaemon::createPidFile()
@@ -989,11 +987,11 @@ bool XzeroDaemon::import(const std::string& name, const std::string& path, std::
 // {{{ configuration management
 bool XzeroDaemon::setup(const std::string& filename, int optimizationLevel)
 {
-	std::ifstream s(filename);
-	return setup(&s, filename, optimizationLevel);
+    std::unique_ptr<std::ifstream> s(new std::ifstream(filename));
+	return setup(std::move(s), filename, optimizationLevel);
 }
 
-bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int optimizationLevel)
+bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::string& filename, int optimizationLevel)
 {
 	TRACE(1, "setup(%s)", filename.c_str());
 
@@ -1001,7 +999,7 @@ bool XzeroDaemon::setup(std::istream *settings, const std::string& filename, int
     parser.importHandler = std::bind(&XzeroDaemon::import, this, std::placeholders::_1, std::placeholders::_2,
             std::placeholders::_3);
 
-    if (!parser.open(filename)) {
+    if (!parser.open(filename, std::move(settings))) {
         sd_notifyf(0, "ERRNO=%d", errno);
         fprintf(stderr, "Failed to open file: %s\n", filename.c_str());
         return false;

@@ -42,6 +42,7 @@ public:
 	~FlowParser();
 
 	bool open(const std::string& filename);
+	bool open(const std::string& filename, std::unique_ptr<std::istream>&& ifs);
 
 	std::unique_ptr<Unit> parse();
 

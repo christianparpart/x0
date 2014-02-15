@@ -20,6 +20,7 @@ public:
 	~FlowLexer();
 
 	bool open(const std::string& filename);
+	bool open(const std::string& filename, std::unique_ptr<std::istream>&& ifs);
 	size_t depth() const { return contexts_.size(); }
 	bool eof() const;
 
@@ -44,6 +45,7 @@ private:
 	struct Scope;
 
 	Scope* enterScope(const std::string& filename);
+	Scope* enterScope(const std::string& filename, std::unique_ptr<std::istream>&& ifs);
 	Scope* scope() const;
 	void leaveScope();
 
@@ -87,12 +89,15 @@ private:
 struct FlowLexer::Scope {
 	std::string filename;
 	std::string basedir;
-	std::ifstream stream;
+    std::unique_ptr<std::istream> stream;
 	FilePos currPos;
 	FilePos nextPos;
 	int backupChar;       //!< backup of the outer scope's currentChar
 
 	Scope();
+	explicit Scope(std::unique_ptr<std::istream>&& input);
+
+    void setStream(const std::string& filename, std::unique_ptr<std::istream>&& istream);
 };
 
 // {{{ inlines

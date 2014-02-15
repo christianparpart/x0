@@ -81,6 +81,13 @@ FlowLexer::Scope::Scope() :
 {
 }
 
+void FlowLexer::Scope::setStream(const std::string& filename, std::unique_ptr<std::istream>&& istream)
+{
+    this->filename = filename;
+    this->stream = std::move(istream);
+    this->basedir = "TODO";
+}
+
 FlowLexer::~FlowLexer()
 {
 }
@@ -94,24 +101,46 @@ bool FlowLexer::open(const std::string& filename)
 	return true;
 }
 
+bool FlowLexer::open(const std::string& filename, std::unique_ptr<std::istream>&& ifs)
+{
+	if (enterScope(filename, std::move(ifs)) == nullptr)
+		return false;
+
+	nextToken();
+	return true;
+}
+
+FlowLexer::Scope* FlowLexer::enterScope(const std::string& filename, std::unique_ptr<std::istream>&& ifs)
+{
+    std::unique_ptr<Scope> cx(new Scope());
+    if (!cx)
+        return nullptr;
+
+    TRACE(1, "ENTER CONTEXT '%s' (depth: %zu)", filename.c_str(), contexts_.size() + 1);
+
+    cx->setStream(filename, std::move(ifs));
+    cx->backupChar = currentChar();
+
+    contexts_.push_front(std::move(cx));
+
+    // parse first char in new context
+    currentChar_ = '\0'; // something that is not EOF
+    nextChar();
+
+    return contexts_.front().get();
+}
+
 FlowLexer::Scope* FlowLexer::enterScope(const std::string& filename)
 {
-	std::unique_ptr<Scope> cx(new Scope());
+    auto ifs = std::unique_ptr<std::ifstream>(new std::ifstream());
+    if (!ifs)
+        return nullptr;
 
-	TRACE(1, "ENTER CONTEXT '%s' (depth: %zu)", filename.c_str(), contexts_.size() + 1);
+    ifs->open(filename);
+    if (!ifs->good())
+        return nullptr;
 
-	cx->filename = filename;
-	cx->stream.open(filename);
-	cx->basedir = "TODO";
-	cx->backupChar = currentChar_;
-
-	contexts_.push_front(std::move(cx));
-
-	// parse first char in new context
-	currentChar_ = '\0'; // something that is not EOF
-	nextChar();
-
-	return contexts_.front().get();
+    return enterScope(filename, std::move(ifs));
 }
 
 void FlowLexer::leaveScope()
@@ -124,12 +153,12 @@ void FlowLexer::leaveScope()
 
 int FlowLexer::peekChar()
 {
-	return scope()->stream.peek();
+	return scope()->stream->peek();
 }
 
 bool FlowLexer::eof() const
 {
-	return currentChar_ == EOF || scope()->stream.eof();
+	return currentChar_ == EOF || scope()->stream->eof();
 }
 
 int FlowLexer::nextChar(bool interscope)
@@ -140,7 +169,7 @@ int FlowLexer::nextChar(bool interscope)
 	location_.end = scope()->currPos;
 	scope()->currPos = scope()->nextPos;
 
-	int ch = scope()->stream.get();
+	int ch = scope()->stream->get();
 	if (ch == EOF) {
 		currentChar_ = ch;
 
