@@ -49,6 +49,7 @@ public:
 	void update();
 	void update(ev::tstamp vvalue);
 	DateTime& operator=(ev::tstamp value);
+	DateTime& operator=(const DateTime& value);
 
 	bool valid() const;
 
@@ -106,6 +107,12 @@ inline DateTime& DateTime::operator=(ev::tstamp value)
 {
 	update(value);
 	return *this;
+}
+
+inline DateTime& DateTime::operator=(const DateTime& dt)
+{
+    update(dt.value());
+    return *this;
 }
 
 inline bool DateTime::valid() const
