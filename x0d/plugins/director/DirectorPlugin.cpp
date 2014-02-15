@@ -80,17 +80,11 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 
     mainHandler("director.fcgi", &DirectorPlugin::director_fcgi)
         .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port", 80)
-        .param<int>("backlog", 128)
-        .param<int>("multi_accept", 1)
-        .param<bool>("reuse_port", false);
+        .param<int>("port", 80);
 
     mainHandler("director.http", &DirectorPlugin::director_http)
         .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port", 80)
-        .param<int>("backlog", 128)
-        .param<int>("multi_accept", 1)
-        .param<bool>("reuse_port", false);
+        .param<int>("port", 80);
 
     mainHandler("director.haproxy_stats", &DirectorPlugin::director_haproxy_stats)
         .param<FlowString>("prefix", "/");
@@ -251,10 +245,7 @@ bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
 {
     SocketSpec socketSpec(
         args.get<IPAddress>(1),  // bind addr
-        args.get<FlowNumber>(2), // port
-        args.get<FlowNumber>(3), // backlog
-        args.get<FlowNumber>(4), // multi accept
-        args.get<bool>(5)        // reuse port
+        args.get<FlowNumber>(2)  // port
     );
 
     roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::FCGI);
@@ -266,10 +257,7 @@ bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
 {
     SocketSpec socketSpec(
         args.get<IPAddress>(1),  // bind addr
-        args.get<FlowNumber>(2), // port
-        args.get<FlowNumber>(3), // backlog
-        args.get<FlowNumber>(4), // multi accept
-        args.get<bool>(5)        // reuse port
+        args.get<FlowNumber>(2)  // port
     );
 
     roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
