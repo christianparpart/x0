@@ -71,7 +71,7 @@ written in modern C++.
     sudo apt-get install make cmake gcc g++ libcppunit-dev libgnutls28-dev libgcrypt11-dev \
         libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config \
         libpcre3-dev libfcgi-dev libgoogle-perftools0 libtbb-dev libpam-dev
-    
+
     # Installs optional requirements
     sudo apt-get install libmagickwand-dev librrd-dev
 
