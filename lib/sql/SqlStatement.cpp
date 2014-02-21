@@ -7,6 +7,7 @@
  */
 
 #include <x0/sql/SqlStatement.h>
+#include <x0/DateTime.h>
 #include <cassert>
 #include <cstdlib>
 #include <errmsg.h>
@@ -478,6 +479,30 @@ bool SqlStatement::bindParam<std::string>(const std::string& value)
 	b->is_unsigned = false;
 	b->is_null = nullptr;
 	b->buffer = (char *)value.data();
+
+	return true;
+}
+
+template<>
+bool SqlStatement::bindParam<DateTime>(const DateTime& value)
+{
+	TRACE("bind DateTime");
+
+    struct tm tm;
+    time_t timep = value.unixtime();
+    localtime_r(&timep, &tm);
+
+    char buf[80];
+    size_t n = strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+
+	MYSQL_BIND *b = getParam();
+	memset(b, 0, sizeof(*b));
+	b->buffer_type = MYSQL_TYPE_STRING;
+	b->buffer_length = n;
+	b->length = &b->buffer_length;
+	b->is_unsigned = false;
+	b->is_null = nullptr;
+	b->buffer = (char *) buf;
 
 	return true;
 }
