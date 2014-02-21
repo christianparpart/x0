@@ -15,6 +15,7 @@
 #include <x0/flow/vm/Runner.h>
 #include <x0/flow/IR.h>
 #include <x0/flow/IRGenerator.h>
+#include <x0/flow/VMCodeGenerator.h>
 #include <x0/flow/FlowCallVisitor.h>
 #include <fstream>
 #include <memory>
@@ -245,11 +246,41 @@ int Flower::run(const char* fileName, const char* handlerName)
 		ASTPrinter::print(unit.get());
 
     {
-        printf("============================================================\n");
+        printf("================================================ IR\n");
         IRProgram* program = IRGenerator::generate(unit.get());
         if (program) {
             program->dump();
         }
+
+        printf("================================================ def-uses\n");
+        for (IRHandler* handler: program->handlers()) {
+            printf("handler:\n");
+            for (BasicBlock* bb: handler->basicBlocks()) {
+                printf("bb:\n");
+                for (Instr* instr: bb->instructions()) {
+                    printf("def : ");
+                    instr->dump();
+                    for (Instr* use: instr->uses()) {
+                        printf("use : ");
+                        use->dump();
+                    }
+                    if (instr->uses().empty()) {
+                        printf("no uses\n");
+                    }
+                    printf("\n");
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+
+        printf("================================================ IR codegen dump\n");
+        {
+            if (auto vmprogram = VMCodeGenerator().generate(program)) {
+                vmprogram->dump();
+            }
+        }
+
         printf("============================================================\n");
     }
 

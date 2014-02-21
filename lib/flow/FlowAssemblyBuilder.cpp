@@ -19,7 +19,6 @@ FlowAssemblyBuilder::FlowAssemblyBuilder() :
     nativeHandlerSignatures_(),
     nativeFunctionSignatures_(),
     handlers_(),
-    handler_(nullptr),
     handlerId_(0),
     code_(),
     program_(),

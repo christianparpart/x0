@@ -8,6 +8,7 @@
 
 #include <x0/flow/IR.h>
 #include <x0/flow/AST.h>
+#include <x0/flow/InstructionVisitor.h>
 #include <x0/DebugLogger.h> // XZERO_DEBUG
 #include <utility>          // make_pair
 #include <assert.h>
@@ -28,6 +29,7 @@
 namespace x0 {
 
 #define FLOW_DEBUG_IR 1
+#define FLOW_CONSTANT_FOLDING 1
 
 #if defined(FLOW_DEBUG_IR)
 #	define TRACE(level, msg...) XZERO_DEBUG("IR", (level), msg)
@@ -38,7 +40,8 @@ namespace x0 {
 // {{{ Value
 Value::Value(FlowType ty, const std::string& name) :
     type_(ty),
-    name_(name)
+    name_(name),
+    uses_()
 {
     if (name_.empty()) {
         static unsigned long long i = 1;
@@ -52,6 +55,11 @@ Value::Value(FlowType ty, const std::string& name) :
 
 Value::~Value()
 {
+}
+
+void Value::addUse(Instr* user)
+{
+    uses_.push_back(user);
 }
 
 void Value::dump()
@@ -83,6 +91,9 @@ Instr::Instr(FlowType ty, const std::vector<Value*>& ops, const std::string& nam
     parent_(nullptr),
     operands_(ops)
 {
+    for (Value* op: operands_) {
+        op->addUse(this);
+    }
 }
 
 Instr::~Instr() {
@@ -156,6 +167,66 @@ VmInstr::VmInstr(FlowVM::Opcode opcode, const std::vector<Value*>& ops, const st
 void VmInstr::dump()
 {
     dumpOne(mnemonic(opcode_));
+}
+
+void AllocaInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void ArraySetInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void StoreInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void LoadInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void CallInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void VmInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void PhiNode::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void BranchInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void CondBrInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void BrInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void RetInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void MatchInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
 }
 
 PhiNode::PhiNode(const std::vector<Value*>& ops, const std::string& name) :
@@ -289,6 +360,7 @@ void IRHandler::dump()
 // }}}
 // {{{ IRProgram
 IRProgram::IRProgram() :
+    imports_(),
     numbers_(),
     strings_(),
     ipaddrs_(),
@@ -463,8 +535,10 @@ Instr* IRBuilder::createArraySet(Value* array, Value* index, Value* value, const
  */
 Value* IRBuilder::createLoad(Value* value, const std::string& name)
 {
+#if defined(FLOW_CONSTANT_FOLDING)
     if (dynamic_cast<Constant*>(value))
         return value;
+#endif
 
     //if (dynamic_cast<Variable*>(value))
         return insert(new LoadInstr(value, makeName(name)));
@@ -494,8 +568,10 @@ Value* IRBuilder::createNeg(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::Number);
 
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(rhs))
         return get(-a->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NNEG, {rhs}, makeName(name)));
 }
@@ -505,10 +581,11 @@ Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() + b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NADD, {lhs, rhs}, makeName(name)));
 }
@@ -518,10 +595,11 @@ Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() - b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NSUB, {lhs, rhs}, makeName(name)));
 }
@@ -531,10 +609,11 @@ Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() * b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NMUL, {lhs, rhs}, makeName(name)));
 }
@@ -544,10 +623,11 @@ Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() / b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NMUL, {lhs, rhs}, makeName(name)));
 }
@@ -557,10 +637,11 @@ Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() % b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NREM, {lhs, rhs}, makeName(name)));
 }
@@ -570,10 +651,11 @@ Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() << b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NSHL, {lhs, rhs}, makeName(name)));
 }
@@ -583,10 +665,11 @@ Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() >> b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NSHR, {lhs, rhs}, makeName(name)));
 }
@@ -596,10 +679,11 @@ Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(powl(a->get(), b->get()));
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NPOW, {lhs, rhs}, makeName(name)));
 }
@@ -609,10 +693,11 @@ Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() & b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NAND, {lhs, rhs}, makeName(name)));
 }
@@ -622,10 +707,11 @@ Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() | b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NOR, {lhs, rhs}, makeName(name)));
 }
@@ -635,10 +721,11 @@ Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() ^ b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NXOR, {lhs, rhs}, makeName(name)));
 }
@@ -648,10 +735,11 @@ Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() == b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NCMPEQ, {lhs, rhs}, makeName(name)));
 }
@@ -661,10 +749,11 @@ Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() != b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NCMPNE, {lhs, rhs}, makeName(name)));
 }
@@ -674,10 +763,11 @@ Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() <= b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NCMPLE, {lhs, rhs}, makeName(name)));
 }
@@ -687,10 +777,11 @@ Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() >= b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NCMPGE, {lhs, rhs}, makeName(name)));
 }
@@ -700,10 +791,11 @@ Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() < b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NCMPLT, {lhs, rhs}, makeName(name)));
 }
@@ -713,10 +805,11 @@ Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantInt*>(lhs))
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() > b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::NCMPGT, {lhs, rhs}, makeName(name)));
 }
@@ -727,7 +820,7 @@ Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::String);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs)) {
         if (auto b = dynamic_cast<ConstantString*>(rhs)) {
             return get(a->get() + b->get());
@@ -741,6 +834,7 @@ Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name)
             return rhs;
         }
     }
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SADD, {lhs, rhs}, makeName(name)));
 }
@@ -750,10 +844,11 @@ Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::String);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() == b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPEQ, {lhs, rhs}, makeName(name)));
 }
@@ -763,10 +858,11 @@ Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::String);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() != b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPNE, {lhs, rhs}, makeName(name)));
 }
@@ -776,10 +872,11 @@ Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::String);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() <= b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPLE, {lhs, rhs}, makeName(name)));
 }
@@ -789,10 +886,11 @@ Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::String);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() >= b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPGE, {lhs, rhs}, makeName(name)));
 }
@@ -802,10 +900,11 @@ Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::String);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() < b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPLT, {lhs, rhs}, makeName(name)));
 }
@@ -815,10 +914,11 @@ Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::String);
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() > b->get());
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPGT, {lhs, rhs}, makeName(name)));
 }
@@ -847,10 +947,11 @@ Value* IRBuilder::createSCmpRE(Value* lhs, Value* rhs, const std::string& name)
  */
 Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs, const std::string& name)
 {
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(BufferRef(a->get()).begins(b->get()));
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPBEG, {lhs, rhs}, makeName(name)));
 }
@@ -866,10 +967,11 @@ Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs, const std::string& name)
  */
 Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs, const std::string& name)
 {
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto a = dynamic_cast<ConstantString*>(lhs))
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(BufferRef(a->get()).ends(b->get()));
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::SCMPEND, {lhs, rhs}, makeName(name)));
 }
@@ -940,7 +1042,7 @@ Value* IRBuilder::createConvert(FlowType ty, Value* rhs, const std::string& name
 
     auto op = b->second;
 
-    // constant folding
+#if defined(FLOW_CONSTANT_FOLDING)
     if (dynamic_cast<Constant*>(rhs)) {
         switch (op) {
             case Opcode::NCMPZ: // int -> bool
@@ -970,6 +1072,7 @@ Value* IRBuilder::createConvert(FlowType ty, Value* rhs, const std::string& name
                 break;
         }
     }
+#endif
 
     return insert(new VmInstr(op, {rhs}, makeName(name)));
 }
@@ -978,9 +1081,10 @@ Value* IRBuilder::createB2S(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::Boolean);
 
-    if (auto a = dynamic_cast<ConstantBoolean*>(rhs)) {
+#if defined(FLOW_CONSTANT_FOLDING)
+    if (auto a = dynamic_cast<ConstantBoolean*>(rhs))
         return get(a->get() ? "true" : "false");
-    }
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::I2S, {rhs}, makeName(name)));
 }
@@ -989,11 +1093,13 @@ Value* IRBuilder::createI2S(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::Number);
 
+#if defined(FLOW_CONSTANT_FOLDING)
     if (auto i = dynamic_cast<ConstantInt*>(rhs)) {
         char buf[64];
         snprintf(buf, sizeof(buf), "%li", i->get());
         return get(buf);
     }
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::I2S, {rhs}, makeName(name)));
 }
@@ -1002,9 +1108,10 @@ Value* IRBuilder::createP2S(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::IPAddress);
 
-    if (auto ip = dynamic_cast<ConstantIP*>(rhs)) {
+#if defined(FLOW_CONSTANT_FOLDING)
+    if (auto ip = dynamic_cast<ConstantIP*>(rhs))
         return get(ip->get().str());
-    }
+#endif
 
     return insert(new VmInstr(FlowVM::Opcode::P2S, {rhs}, makeName(name)));
 }
@@ -1013,9 +1120,10 @@ Value* IRBuilder::createC2S(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::Cidr);
 
-    if (auto ip = dynamic_cast<ConstantCidr*>(rhs)) {
+#if defined(FLOW_CONSTANT_FOLDING)
+    if (auto ip = dynamic_cast<ConstantCidr*>(rhs))
         return get(ip->get().str());
-    }
+#endif
 
     return createConvert(FlowType::String, rhs, makeName(name));
 }
@@ -1024,9 +1132,10 @@ Value* IRBuilder::createR2S(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::RegExp);
 
-    if (auto ip = dynamic_cast<ConstantRegExp*>(rhs)) {
+#if defined(FLOW_CONSTANT_FOLDING)
+    if (auto ip = dynamic_cast<ConstantRegExp*>(rhs))
         return get(ip->get().pattern());
-    }
+#endif
 
     return createConvert(FlowType::String, rhs, makeName(name));
 }
@@ -1035,9 +1144,10 @@ Value* IRBuilder::createS2I(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::String);
 
-    if (auto ip = dynamic_cast<ConstantString*>(rhs)) {
+#if defined(FLOW_CONSTANT_FOLDING)
+    if (auto ip = dynamic_cast<ConstantString*>(rhs))
         return get(stoi(ip->get()));
-    }
+#endif
 
     return createConvert(FlowType::String, rhs, makeName(name));
 }

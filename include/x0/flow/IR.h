@@ -44,11 +44,16 @@ public:
     const std::string& name() const { return name_; }
     void setName(const std::string& n) { name_ = n; }
 
+    void addUse(Instr* user);
+    const std::vector<Instr*>& uses() const { return uses_; }
+
     virtual void dump() = 0;
 
 private:
     FlowType type_;
     std::string name_;
+
+    std::vector<Instr*> uses_; //! list of instructions that <b>use</b> this value.
 };
 
 class X0_API IRVariable : public Value {
@@ -116,6 +121,9 @@ public:
     IRHandler* parent() const { return parent_; }
     void setParent(IRHandler* handler) { parent_ = handler; }
 
+    const std::vector<Instr*>& instructions() const { return code_; }
+    std::vector<Instr*>& instructions() { return code_; }
+
     void dump() override;
 
 private:
@@ -125,6 +133,8 @@ private:
     friend class IRBuilder;
     friend class Instr;
 };
+
+class InstructionVisitor;
 
 // NCMPEQ, NADD, SMATCHR, JMP, EXIT, ...
 class X0_API Instr : public Value {
@@ -137,6 +147,8 @@ public:
 
     const std::vector<Value*>& operands() const { return operands_; }
     std::vector<Value*>& operands() { return operands_; }
+
+    virtual void accept(InstructionVisitor& v) = 0;
 
 protected:
     void dumpOne(const char* mnemonic);
@@ -195,6 +207,8 @@ public:
     Value* arraySize() const { return operands()[0]; }
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 class X0_API ArraySetInstr : public Instr {
@@ -208,29 +222,35 @@ public:
     Value* value() const { return operands()[2]; }
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 class X0_API StoreInstr : public Instr {
 public:
     StoreInstr(Value* variable, Value* expression, const std::string& name = "") :
-        Instr(variable->type(), {variable, expression}, name)
+        Instr(FlowType::Void, {variable, expression}, name)
         {}
 
     Value* variable() const { return operands()[0]; }
     Value* expression() const { return operands()[1]; }
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 class X0_API LoadInstr : public Instr {
 public:
     LoadInstr(Value* variable, const std::string& name = "") :
-        Instr(variable->type(), {variable}, name)
+        Instr(FlowType::Void, {variable}, name)
         {}
 
     Value* variable() const { return operands()[0]; }
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 class X0_API CallInstr : public Instr {
@@ -240,15 +260,20 @@ public:
     IRBuiltinFunction* callee() const { return (IRBuiltinFunction*) operands()[0]; }
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 class X0_API VmInstr : public Instr {
 public:
     VmInstr(FlowVM::Opcode opcode, const std::vector<Value*>& ops = {}, const std::string& name = "");
 
+    void setOpcode(FlowVM::Opcode opc) { opcode_ = opc; }
     FlowVM::Opcode opcode() const { return opcode_; }
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 
 private:
     FlowVM::Opcode opcode_;
@@ -266,6 +291,8 @@ public:
     explicit PhiNode(const std::vector<Value*>& ops, const std::string& name = "");
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 class X0_API BranchInstr : public Instr {
@@ -273,6 +300,8 @@ public:
     BranchInstr(const std::vector<Value*>& ops = {}, const std::string& name = "") :
         Instr(FlowType::Void, ops, name)
         {}
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 /**
@@ -295,6 +324,12 @@ public:
     {}
 
     void dump() override;
+
+    Value* condition() const { return operands()[0]; }
+    BasicBlock* trueBlock() const { return (BasicBlock*) operands()[1]; }
+    BasicBlock* falseBlock() const { return (BasicBlock*) operands()[2]; }
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 /**
@@ -307,6 +342,10 @@ public:
     {}
 
     void dump() override;
+
+    BasicBlock* targetBlock() const { return (BasicBlock*) operands()[0]; }
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 /**
@@ -315,10 +354,12 @@ public:
 class X0_API RetInstr : public Instr {
 public:
     explicit RetInstr(Value* result, const std::string& name = "") :
-        Instr(FlowType::Boolean, {result}, name)
+        Instr(FlowType::Void, {result}, name)
         {}
 
     void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
 };
 
 /**
@@ -341,6 +382,8 @@ public:
 
     void dump() override;
 
+    virtual void accept(InstructionVisitor& v);
+
 private:
     FlowVM::MatchClass op_;
     BasicBlock* elseBlock_;
@@ -361,6 +404,8 @@ public:
     void setParent(IRProgram* prog) { parent_ = prog; }
 
     void dump() override;
+
+    const std::list<BasicBlock*>& basicBlocks() const { return blocks_; }
 
 private:
     IRProgram* parent_;
@@ -388,7 +433,13 @@ public:
     template<typename T, typename U>
     T* get(std::vector<T*>& table, const U& literal);
 
+    void addImport(const std::string& name, const std::string& path) { imports_.push_back(std::make_pair(name, path)); }
+
+	const std::vector<std::pair<std::string, std::string>>& imports() const { return imports_; }
+    const std::vector<IRHandler*>& handlers() const { return handlers_; }
+
 private:
+	std::vector<std::pair<std::string, std::string> > imports_;
     std::vector<ConstantInt*> numbers_;
     std::vector<ConstantString*> strings_;
     std::vector<ConstantIP*> ipaddrs_;
