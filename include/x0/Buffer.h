@@ -371,7 +371,7 @@ public:
 	explicit Buffer(size_t capacity);
 	explicit Buffer(const char* value);
 	explicit Buffer(const BufferRef& v);
-	template<typename PodType, size_t N> explicit Buffer(PodType (&value)[N]);
+//	template<typename PodType, size_t N> explicit Buffer(PodType (&value)[N]);
 	Buffer(const std::string& v);
 	Buffer(const Buffer& v);
 	Buffer(const BufferRef& v, size_t offset, size_t size);
@@ -392,8 +392,8 @@ public:
 
 	bool setCapacity(size_t value);
 
-	operator bool () const;
-	bool operator!() const;
+//	operator bool () const;
+//	bool operator!() const;
 
     static Buffer fromCopy(const value_type *data, size_t count);
 };
@@ -425,19 +425,20 @@ public:
 };
 // }}}
 // {{{ free functions API
+X0_API Buffer& operator<<(Buffer& b, Buffer::value_type v);
+X0_API Buffer& operator<<(Buffer& b, int v);
+X0_API Buffer& operator<<(Buffer& b, long v);
+X0_API Buffer& operator<<(Buffer& b, long long v);
+X0_API Buffer& operator<<(Buffer& b, unsigned v);
+X0_API Buffer& operator<<(Buffer& b, unsigned long v);
+X0_API Buffer& operator<<(Buffer& b, unsigned long long v);
+X0_API Buffer& operator<<(Buffer& b, const Buffer& v);
+X0_API Buffer& operator<<(Buffer& b, const BufferRef& v);
+X0_API Buffer& operator<<(Buffer& b, const std::string& v);
+X0_API Buffer& operator<<(Buffer& b, typename Buffer::value_type* v);
 
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, int v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long long v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long long v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const MutableBuffer<ensure>& v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const BufferRef& v);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const std::string& v);
-template<bool (*ensure)(void*, size_t), typename PodType, size_t N> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, PodType (&v)[N]);
-template<bool (*ensure)(void*, size_t)> X0_API MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type* v);
+template<typename PodType, size_t N>
+X0_API Buffer& operator<<(Buffer& b, PodType (&v)[N]);
 // }}}
 
 //@}
@@ -1338,86 +1339,75 @@ inline typename MutableBuffer<ensure>::const_reference_type MutableBuffer<ensure
 	return data_[index];
 }
 // }}}
-// {{{ MutableBuffer<ensure>& operator<<() impl
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type v)
+// {{{ Buffer& operator<<() impl
+inline Buffer& operator<<(Buffer& b, Buffer::value_type v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, int v)
+inline Buffer& operator<<(Buffer& b, int v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long v)
+inline Buffer& operator<<(Buffer& b, long v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, long long v)
+inline Buffer& operator<<(Buffer& b, long long v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned v)
+inline Buffer& operator<<(Buffer& b, unsigned v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long v)
+inline Buffer& operator<<(Buffer& b, unsigned long v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, unsigned long long v)
+inline Buffer& operator<<(Buffer& b, unsigned long long v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const MutableBuffer<ensure>& v)
+inline Buffer& operator<<(Buffer& b, const Buffer& v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const BufferRef& v)
+inline Buffer& operator<<(Buffer& b, const BufferRef& v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, const std::string& v)
+inline Buffer& operator<<(Buffer& b, const std::string& v)
 {
 	b.push_back(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t), typename PodType, size_t N>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, PodType (&v)[N])
+template<typename PodType, size_t N>
+inline Buffer& operator<<(Buffer& b, PodType (&v)[N])
 {
 	b.template push_back<PodType, N>(v);
 	return b;
 }
 
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& operator<<(MutableBuffer<ensure>& b, typename MutableBuffer<ensure>::value_type* v)
+inline Buffer& operator<<(Buffer& b, typename Buffer::value_type* v)
 {
 	b.push_back(v);
 	return b;
@@ -1498,6 +1488,14 @@ inline Buffer& Buffer::operator=(Buffer&& v)
 	v.capacity_ = 0;
 
 	return *this;
+}
+
+inline Buffer& Buffer::operator=(const Buffer& v)
+{
+    clear();
+    push_back(v);
+
+    return *this;
 }
 
 inline Buffer& Buffer::operator=(const BufferRef& v)
