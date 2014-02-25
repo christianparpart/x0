@@ -143,6 +143,25 @@ bool Runner::run()
         [Opcode::NCMPLT]    = &&l_ncmplt,
         [Opcode::NCMPGT]    = &&l_ncmpgt,
 
+        // numerical (reg, imm)
+        [Opcode::NIADD]      = &&l_niadd,
+        [Opcode::NISUB]      = &&l_nisub,
+        [Opcode::NIMUL]      = &&l_nimul,
+        [Opcode::NIDIV]      = &&l_nidiv,
+        [Opcode::NIREM]      = &&l_nirem,
+        [Opcode::NISHL]      = &&l_nishl,
+        [Opcode::NISHR]      = &&l_nishr,
+        [Opcode::NIPOW]      = &&l_nipow,
+        [Opcode::NIAND]      = &&l_niand,
+        [Opcode::NIOR]       = &&l_nior,
+        [Opcode::NIXOR]      = &&l_nixor,
+        [Opcode::NICMPEQ]    = &&l_nicmpeq,
+        [Opcode::NICMPNE]    = &&l_nicmpne,
+        [Opcode::NICMPLE]    = &&l_nicmple,
+        [Opcode::NICMPGE]    = &&l_nicmpge,
+        [Opcode::NICMPLT]    = &&l_nicmplt,
+        [Opcode::NICMPGT]    = &&l_nicmpgt,
+
         // boolean op
         [Opcode::BNOT]      = &&l_bnot,
         [Opcode::BAND]      = &&l_band,
@@ -366,6 +385,92 @@ bool Runner::run()
 
     instr (ncmpgt) {
         data_[A] = static_cast<Register>(toNumber(B) > toNumber(C));
+        next;
+    }
+    // }}}
+    // {{{ numerical binary (reg, imm)
+    instr (niadd) {
+        data_[A] = static_cast<Register>(toNumber(B) + C);
+        next;
+    }
+
+    instr (nisub) {
+        data_[A] = static_cast<Register>(toNumber(B) - C);
+        next;
+    }
+
+    instr (nimul) {
+        data_[A] = static_cast<Register>(toNumber(B) * C);
+        next;
+    }
+
+    instr (nidiv) {
+        data_[A] = static_cast<Register>(toNumber(B) / C);
+        next;
+    }
+
+    instr (nirem) {
+        data_[A] = static_cast<Register>(toNumber(B) % C);
+        next;
+    }
+
+    instr (nishl) {
+        data_[A] = static_cast<Register>(toNumber(B) << C);
+        next;
+    }
+
+    instr (nishr) {
+        data_[A] = static_cast<Register>(toNumber(B) >> C);
+        next;
+    }
+
+    instr (nipow) {
+        data_[A] = static_cast<Register>(powl(toNumber(B), C));
+        next;
+    }
+
+    instr (niand) {
+        data_[A] = data_[B] & C;
+        next;
+    }
+
+    instr (nior) {
+        data_[A] = data_[B] | C;
+        next;
+    }
+
+    instr (nixor) {
+        data_[A] = data_[B] ^ C;
+        next;
+    }
+
+    instr (nicmpeq) {
+        data_[A] = static_cast<Register>(toNumber(B) == C);
+        next;
+    }
+
+    instr (nicmpne) {
+        data_[A] = static_cast<Register>(toNumber(B) != C);
+        next;
+    }
+
+    instr (nicmple) {
+        data_[A] = static_cast<Register>(toNumber(B) <= C);
+        next;
+    }
+
+    instr (nicmpge) {
+        data_[A] = static_cast<Register>(toNumber(B) >= C);
+        next;
+    }
+
+    instr (nicmplt) {
+        data_[A] = static_cast<Register>(toNumber(B) < C);
+        next;
+    }
+
+    instr (nicmpgt) {
+        data_[A] = static_cast<Register>(toNumber(B) > C);
         next;
     }
     // }}}

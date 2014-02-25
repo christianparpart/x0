@@ -46,6 +46,25 @@ enum Opcode {
     NCMPLT,         // A = B < C
     NCMPGT,         // A = B > C
 
+    // numerical (reg, imm)
+    NIADD,           // A = B + C
+    NISUB,           // A = B - C
+    NIMUL,           // A = B * C
+    NIDIV,           // A = B / C
+    NIREM,           // A = B % C
+    NISHL,           // A = B << C
+    NISHR,           // A = B >> C
+    NIPOW,           // A = B ** C
+    NIAND,           // A = B & C
+    NIOR,            // A = B | C
+    NIXOR,           // A = B ^ C
+    NICMPEQ,         // A = B == C
+    NICMPNE,         // A = B != C
+    NICMPLE,         // A = B <= C
+    NICMPGE,         // A = B >= C
+    NICMPLT,         // A = B < C
+    NICMPGT,         // A = B > C
+
     // boolean
     BNOT,           // A = !A
     BAND,           // A = B and C
@@ -194,6 +213,24 @@ inline InstructionSig operandSignature(Opcode opc) {
         [Opcode::NCMPGE]    = InstructionSig::RRR,
         [Opcode::NCMPLT]    = InstructionSig::RRR,
         [Opcode::NCMPGT]    = InstructionSig::RRR,
+        // numerical (reg, imm)
+        [Opcode::NIADD]     = InstructionSig::RRI,
+        [Opcode::NISUB]     = InstructionSig::RRI,
+        [Opcode::NIMUL]     = InstructionSig::RRI,
+        [Opcode::NIDIV]     = InstructionSig::RRI,
+        [Opcode::NIREM]     = InstructionSig::RRI,
+        [Opcode::NISHL]     = InstructionSig::RRI,
+        [Opcode::NISHR]     = InstructionSig::RRI,
+        [Opcode::NIPOW]     = InstructionSig::RRI,
+        [Opcode::NIAND]     = InstructionSig::RRI,
+        [Opcode::NIOR]      = InstructionSig::RRI,
+        [Opcode::NIXOR]     = InstructionSig::RRI,
+        [Opcode::NICMPEQ]   = InstructionSig::RRI,
+        [Opcode::NICMPNE]   = InstructionSig::RRI,
+        [Opcode::NICMPLE]   = InstructionSig::RRI,
+        [Opcode::NICMPGE]   = InstructionSig::RRI,
+        [Opcode::NICMPLT]   = InstructionSig::RRI,
+        [Opcode::NICMPGT]   = InstructionSig::RRI,
         // boolean
         [Opcode::BNOT]      = InstructionSig::RR,
         [Opcode::BAND]      = InstructionSig::RRR,
@@ -285,6 +322,24 @@ inline const char* mnemonic(Opcode opc) {
         [Opcode::NCMPGE] = "NCMPGE",
         [Opcode::NCMPLT] = "NCMPLT",
         [Opcode::NCMPGT] = "NCMPGT",
+        // numerical (reg, imm)
+        [Opcode::NIADD]   = "NIADD",
+        [Opcode::NISUB]   = "NISUB",
+        [Opcode::NIMUL]   = "NIMUL",
+        [Opcode::NIDIV]   = "NIDIV",
+        [Opcode::NIREM]   = "NIREM",
+        [Opcode::NISHL]   = "NISHL",
+        [Opcode::NISHR]   = "NISHR",
+        [Opcode::NIPOW]   = "NIPOW",
+        [Opcode::NIAND]   = "NIADN",
+        [Opcode::NIOR]    = "NIOR",
+        [Opcode::NIXOR]   = "NIXOR",
+        [Opcode::NICMPEQ] = "NICMPEQ",
+        [Opcode::NICMPNE] = "NICMPNE",
+        [Opcode::NICMPLE] = "NICMPLE",
+        [Opcode::NICMPGE] = "NICMPGE",
+        [Opcode::NICMPLT] = "NICMPLT",
+        [Opcode::NICMPGT] = "NICMPGT",
         // boolean
         [Opcode::BNOT]      = "BNOT",
         [Opcode::BAND]      = "BAND",
@@ -376,6 +431,24 @@ inline FlowType resultType(Opcode opc) {
         [Opcode::NCMPGE]    = FlowType::Boolean,
         [Opcode::NCMPLT]    = FlowType::Boolean,
         [Opcode::NCMPGT]    = FlowType::Boolean,
+        // numerical (reg, imm)
+        [Opcode::NIADD]      = FlowType::Number,
+        [Opcode::NISUB]      = FlowType::Number,
+        [Opcode::NIMUL]      = FlowType::Number,
+        [Opcode::NIDIV]      = FlowType::Number,
+        [Opcode::NIREM]      = FlowType::Number,
+        [Opcode::NISHL]      = FlowType::Number,
+        [Opcode::NISHR]      = FlowType::Number,
+        [Opcode::NIPOW]      = FlowType::Number,
+        [Opcode::NIAND]      = FlowType::Number,
+        [Opcode::NIOR]       = FlowType::Number,
+        [Opcode::NIXOR]      = FlowType::Number,
+        [Opcode::NICMPEQ]    = FlowType::Boolean,
+        [Opcode::NICMPNE]    = FlowType::Boolean,
+        [Opcode::NICMPLE]    = FlowType::Boolean,
+        [Opcode::NICMPGE]    = FlowType::Boolean,
+        [Opcode::NICMPLT]    = FlowType::Boolean,
+        [Opcode::NICMPGT]    = FlowType::Boolean,
         // boolean
         [Opcode::BNOT]      = FlowType::Boolean,
         [Opcode::BAND]      = FlowType::Boolean,
