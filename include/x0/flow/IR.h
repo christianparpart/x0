@@ -126,9 +126,26 @@ public:
 
     void dump() override;
 
+    /** Retrieves all predecessors of given basic block. */
+    std::vector<BasicBlock*>& predecessors() { return predecessors_; }
+
+    /** Retrieves all uccessors of the given basic block. */
+    std::vector<BasicBlock*>& successors() { return successors_; }
+
+    /** Retrieves all dominators of given basic block. */
+    std::vector<BasicBlock*> dominators();
+
+    /** Retrieves all immediate dominators of given basic block. */
+    std::vector<BasicBlock*> immediateDominators();
+
+private:
+    void collectIDom(std::vector<BasicBlock*>& output);
+
 private:
     IRHandler* parent_;
     std::vector<Instr*> code_;
+    std::vector<BasicBlock*> predecessors_;
+    std::vector<BasicBlock*> successors_;
 
     friend class IRBuilder;
     friend class Instr;
@@ -243,7 +260,7 @@ public:
 class X0_API LoadInstr : public Instr {
 public:
     LoadInstr(Value* variable, const std::string& name = "") :
-        Instr(FlowType::Void, {variable}, name)
+        Instr(variable->type(), {variable}, name)
         {}
 
     Value* variable() const { return operands()[0]; }
@@ -269,6 +286,40 @@ public:
     VmInstr(FlowVM::Opcode opcode, const std::vector<Value*>& ops = {}, const std::string& name = "");
 
     void setOpcode(FlowVM::Opcode opc) { opcode_ = opc; }
+    FlowVM::Opcode opcode() const { return opcode_; }
+
+    void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
+
+private:
+    FlowVM::Opcode opcode_;
+};
+
+class X0_API UnaryInstr : public Instr {
+public:
+    UnaryInstr(FlowVM::Opcode opcode, Value* op, const std::string& name = "") :
+        Instr(FlowVM::resultType(opcode), {op}, name),
+        opcode_(opcode)
+        {}
+
+    FlowVM::Opcode opcode() const { return opcode_; }
+
+    void dump() override;
+
+    virtual void accept(InstructionVisitor& v);
+
+private:
+    FlowVM::Opcode opcode_;
+};
+
+class X0_API BinaryInstr : public Instr {
+public:
+    BinaryInstr(FlowVM::Opcode opcode, Value* lhs, Value* rhs, const std::string& name = "") :
+        Instr(FlowVM::resultType(opcode), {lhs, rhs}, name),
+        opcode_(opcode)
+        {}
+
     FlowVM::Opcode opcode() const { return opcode_; }
 
     void dump() override;
@@ -367,18 +418,15 @@ public:
  */
 class X0_API MatchInstr : public Instr {
 public:
-    MatchInstr(FlowVM::MatchClass op, const std::string& name = "");
-
-    void setCondition(Value* condition);
+    MatchInstr(FlowVM::MatchClass op, Value* cond, const std::string& name = "");
 
     FlowVM::MatchClass op() const { return op_; }
 
-    void addCase(Value* label, BasicBlock* code);
-    const std::vector<std::pair<Value*, BasicBlock*>>& cases() const { return cases_; }
-    std::vector<std::pair<Value*, BasicBlock*>>& cases() { return cases_; }
+    void addCase(Constant* label, BasicBlock* code);
+    std::vector<std::pair<Constant*, BasicBlock*>>& cases() { return cases_; }
 
     BasicBlock* elseBlock() const { return elseBlock_; }
-    void setElseBlock(BasicBlock* code) { elseBlock_ = code; }
+    void setElseBlock(BasicBlock* code);
 
     void dump() override;
 
@@ -386,8 +434,8 @@ public:
 
 private:
     FlowVM::MatchClass op_;
+    std::vector<std::pair<Constant*, BasicBlock*>> cases_;
     BasicBlock* elseBlock_;
-    std::vector<std::pair<Value*, BasicBlock*>> cases_;
 };
 
 class X0_API IRHandler : public Constant {
@@ -539,14 +587,15 @@ public:
     Instr* createCallFunction(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name = "");
     Instr* createInvokeHandler(const std::vector<Value*>& args, const std::string& name = "");
 
-    // exit points
+    // termination instructions
     Instr* createRet(Value* result, const std::string& name = "");
     Instr* createBr(BasicBlock* block);
     Instr* createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name = "");
-    Value* createMatchSame(Value* cond, size_t matchId, const std::string& name = "");
-    Value* createMatchHead(Value* cond, size_t matchId, const std::string& name = "");
-    Value* createMatchTail(Value* cond, size_t matchId, const std::string& name = "");
-    Value* createMatchRegExp(Value* cond, size_t matchId, const std::string& name = "");
+    MatchInstr* createMatch(FlowVM::MatchClass opc, Value* cond, const std::string& name = "");
+    Value* createMatchSame(Value* cond, const std::string& name = "");
+    Value* createMatchHead(Value* cond, const std::string& name = "");
+    Value* createMatchTail(Value* cond, const std::string& name = "");
+    Value* createMatchRegExp(Value* cond, const std::string& name = "");
 };
 
 } // namespace x0

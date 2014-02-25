@@ -53,6 +53,8 @@ protected:
     virtual void visit(LoadInstr& instr);
     virtual void visit(CallInstr& instr);
     virtual void visit(VmInstr& instr);
+    virtual void visit(UnaryInstr& instr);
+    virtual void visit(BinaryInstr& instr);
     virtual void visit(PhiNode& instr);
     virtual void visit(BranchInstr& instr);
     virtual void visit(CondBrInstr& instr);

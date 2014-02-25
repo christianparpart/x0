@@ -8,6 +8,8 @@ class StoreInstr;
 class LoadInstr;
 class CallInstr;
 class VmInstr;
+class UnaryInstr;
+class BinaryInstr;
 class PhiNode;
 class BranchInstr;
 class CondBrInstr;
@@ -24,7 +26,9 @@ public:
     virtual void visit(StoreInstr& instr) = 0;
     virtual void visit(LoadInstr& instr) = 0;
     virtual void visit(CallInstr& instr) = 0;
-    virtual void visit(VmInstr& instr) = 0;
+    virtual void visit(VmInstr& instr) = 0; // XXX DEPRECATE ME
+    virtual void visit(UnaryInstr& instr) = 0;
+    virtual void visit(BinaryInstr& instr) = 0;
     virtual void visit(PhiNode& instr) = 0;
     virtual void visit(BranchInstr& instr) = 0;
     virtual void visit(CondBrInstr& instr) = 0;

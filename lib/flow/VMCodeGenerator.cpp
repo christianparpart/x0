@@ -251,6 +251,58 @@ void VMCodeGenerator::visit(VmInstr& instr)
     }
 }
 
+void VMCodeGenerator::visit(UnaryInstr& instr)
+{
+    switch (operandSignature(instr.opcode())) {
+        case InstructionSig::RR: {
+            // reg, reg    (AB)
+            Register result = allocate(1);
+            Register a = getRegister(instr.operands()[0]);
+            emit(instr.opcode(), result, a);
+            variables_[&instr] = result;
+            break;
+        }
+        case InstructionSig::RI: {
+            Register result = allocate(1);
+            Register a = getConstantInt(instr.operands()[0]);
+            emit(instr.opcode(), result, a);
+            variables_[&instr] = result;
+        }
+        default: {
+            assert(!"Invalid signature for binary operator.");
+            break;
+        }
+    }
+}
+
+void VMCodeGenerator::visit(BinaryInstr& instr)
+{
+    switch (operandSignature(instr.opcode())) {
+        case InstructionSig::RRR: {
+            // reg, reg, reg    (ABC)
+            Register result = allocate(1);
+            Register a = getRegister(instr.operands()[0]);
+            Register b = getRegister(instr.operands()[1]);
+            emit(instr.opcode(), result, a, b);
+            variables_[&instr] = result;
+            break;
+        }
+        case InstructionSig::RRI: {
+            // reg, reg, imm16  (ABC)
+            Register result = allocate(1);
+            Register a = getRegister(instr.operands()[0]);
+            Register b = getConstantInt(instr.operands()[1]);
+            emit(instr.opcode(), result, a, b);
+            variables_[&instr] = result;
+            break;
+        }
+        default: {
+            assert(!"Invalid signature for binary operator.");
+            break;
+        }
+    }
+}
+
 void VMCodeGenerator::visit(PhiNode& instr)
 {
     assert(!"Should never reach here, as PHI instruction nodes should have been replaced by target registers.");

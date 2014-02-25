@@ -190,7 +190,7 @@ void IRGenerator::accept(UnaryExpr& expr)
         result_ = (this->*i->second)(rhs, "");
     } else {
         assert(!"Unsupported unary expression in IRGenerator.");
-        result_ = insert(new VmInstr(expr.op(), {rhs}));
+        result_ = insert(new UnaryInstr(expr.op(), rhs));
     }
 }
 
@@ -245,7 +245,7 @@ void IRGenerator::accept(BinaryExpr& expr)
         result_ = (this->*i->second)(lhs, rhs, "");
     } else {
         // fall back to generic VmInstr
-        result_ = insert(new VmInstr(expr.op(), {lhs, rhs}));
+        result_ = insert(new BinaryInstr(expr.op(), lhs, rhs));
     }
 }
 
@@ -411,30 +411,29 @@ void IRGenerator::accept(CondStmt& stmt)
     setInsertPoint(contBlock);
 }
 
+Constant* IRGenerator::getConstant(Expr* expr)
+{
+    if (auto e = dynamic_cast<StringExpr*>(expr))
+        return get(e->value());
+    else if (auto e = dynamic_cast<RegExpExpr*>(expr))
+        return get(e->value());
+    else {
+        reportError("FIXME: Invalid (unsupported) literal type <%s> in match case.",
+                tos(expr->getType()).c_str());
+        return nullptr;
+    }
+}
+
 void IRGenerator::accept(MatchStmt& stmt)
 {
     FNTRACE();
 
-    // TODO
-
-    BasicBlock* contBlock = createBlock("match.cont");
-    MatchInstr* matchInstr = new MatchInstr(stmt.op());
-
     Value* cond = codegen(stmt.condition());
-    matchInstr->setCondition(cond);
+    BasicBlock* contBlock = createBlock("match.cont");
+    MatchInstr* matchInstr = createMatch(stmt.op(), cond);
 
     for (const MatchCase& one: stmt.cases()) {
-        Value* label;
-        if (auto e = dynamic_cast<StringExpr*>(one.first.get()))
-            label = get(e->value());
-        else if (auto e = dynamic_cast<RegExpExpr*>(one.first.get()))
-            label = get(e->value());
-        else {
-            reportError("FIXME: Invalid (unsupported) literal type <%s> in match case.",
-                    tos(one.first->getType()).c_str());
-            result_ = nullptr;
-            return;
-        }
+        Constant* label = getConstant(one.first.get());
 
         BasicBlock* bb = createBlock("match.case");
         setInsertPoint(bb);

@@ -28,6 +28,8 @@
 
 namespace x0 {
 
+using namespace FlowVM;
+
 #define FLOW_DEBUG_IR 1
 #define FLOW_CONSTANT_FOLDING 1
 
@@ -141,6 +143,8 @@ void Instr::dumpOne(const char* mnemonic)
     printf("\n");
 }
 
+// }}}
+// {{{ other instructions
 template<typename T, typename U>
 std::vector<U> join(const T& a, const std::vector<U>& vec)
 {
@@ -158,13 +162,23 @@ CallInstr::CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args,
 {
 }
 
-VmInstr::VmInstr(FlowVM::Opcode opcode, const std::vector<Value*>& ops, const std::string& name) :
+VmInstr::VmInstr(Opcode opcode, const std::vector<Value*>& ops, const std::string& name) :
     Instr(FlowVM::resultType(opcode), ops, name),
     opcode_(opcode)
 {
 }
 
 void VmInstr::dump()
+{
+    dumpOne(mnemonic(opcode_));
+}
+
+void UnaryInstr::dump()
+{
+    dumpOne(mnemonic(opcode_));
+}
+
+void BinaryInstr::dump()
 {
     dumpOne(mnemonic(opcode_));
 }
@@ -195,6 +209,16 @@ void CallInstr::accept(InstructionVisitor& visitor)
 }
 
 void VmInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void UnaryInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void BinaryInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
 }
@@ -285,35 +309,49 @@ void CallInstr::dump()
 
 // }}}
 // {{{ MatchInstr
-MatchInstr::MatchInstr(FlowVM::MatchClass op, const std::string& name) :
+MatchInstr::MatchInstr(MatchClass op, Value* cond, const std::string& name) :
     Instr(FlowType::Void, {}, name),
     op_(op),
+    cases_(),
     elseBlock_(nullptr)
 {
-    operands().push_back(nullptr); // condition placeholder
+    assert(cond != nullptr);
+    operands().push_back(cond);
 }
 
-void MatchInstr::setCondition(Value* condition)
+void MatchInstr::addCase(Constant* label, BasicBlock* code)
 {
-    operands()[0] = condition;
-}
+    code->predecessors().push_back(parent());
+    parent()->successors().push_back(code);
 
-void MatchInstr::addCase(Value* label, BasicBlock* code)
-{
     cases_.push_back(std::make_pair(label, code));
+}
+
+void MatchInstr::setElseBlock(BasicBlock* code)
+{
+    assert(elseBlock_ == nullptr);
+
+    code->predecessors().push_back(parent());
+    parent()->successors().push_back(code);
+
+    elseBlock_ = code;
 }
 // }}}
 // {{{ BasicBlock
 BasicBlock::BasicBlock(const std::string& name) :
     Value(FlowType::Void, name),
-    parent_(nullptr)
+    parent_(nullptr),
+    code_(),
+    predecessors_(),
+    successors_()
 {
 }
 
 BasicBlock::~BasicBlock()
 {
-    for (auto instr: code_)
+    for (auto instr: code_) {
         delete instr;
+    }
 }
 
 void BasicBlock::dump()
@@ -323,6 +361,28 @@ void BasicBlock::dump()
         code_[i]->dump();
     }
     printf("\n");
+}
+
+std::vector<BasicBlock*> BasicBlock::dominators()
+{
+    std::vector<BasicBlock*> result;
+    collectIDom(result);
+    result.push_back(this);
+    return result;
+}
+
+std::vector<BasicBlock*> BasicBlock::immediateDominators()
+{
+    std::vector<BasicBlock*> result;
+    collectIDom(result);
+    return result;
+}
+
+void BasicBlock::collectIDom(std::vector<BasicBlock*>& output)
+{
+    for (BasicBlock* p: predecessors()) {
+        p->collectIDom(output);
+    }
 }
 // }}}
 // {{{ IRHandler
@@ -406,7 +466,7 @@ template ConstantString* IRProgram::get<ConstantString, std::string>(std::vector
 template ConstantIP* IRProgram::get<ConstantIP, IPAddress>(std::vector<ConstantIP*>&, const IPAddress&);
 template ConstantCidr* IRProgram::get<ConstantCidr, Cidr>(std::vector<ConstantCidr*>&, const Cidr&);
 template ConstantRegExp* IRProgram::get<ConstantRegExp, RegExp>(std::vector<ConstantRegExp*>&, const RegExp&);
-template IRBuiltinFunction* IRProgram::get<IRBuiltinFunction, FlowVM::Signature>(std::vector<IRBuiltinFunction*>&, const FlowVM::Signature&);
+template IRBuiltinFunction* IRProgram::get<IRBuiltinFunction, Signature>(std::vector<IRBuiltinFunction*>&, const Signature&);
 // }}}
 // {{{ IRBuilder
 IRBuilder::IRBuilder() :
@@ -573,7 +633,7 @@ Value* IRBuilder::createNeg(Value* rhs, const std::string& name)
         return get(-a->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NNEG, {rhs}, makeName(name)));
+    return insert(new UnaryInstr(Opcode::NNEG, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name)
@@ -587,7 +647,7 @@ Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() + b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NADD, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NADD, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name)
@@ -601,7 +661,7 @@ Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() - b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NSUB, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NSUB, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name)
@@ -615,7 +675,7 @@ Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() * b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NMUL, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NMUL, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name)
@@ -629,7 +689,7 @@ Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() / b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NMUL, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NMUL, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name)
@@ -643,7 +703,7 @@ Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() % b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NREM, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NREM, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name)
@@ -657,7 +717,7 @@ Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() << b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NSHL, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NSHL, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name)
@@ -671,7 +731,7 @@ Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() >> b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NSHR, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NSHR, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name)
@@ -685,7 +745,7 @@ Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name)
             return get(powl(a->get(), b->get()));
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NPOW, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NPOW, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name)
@@ -699,7 +759,7 @@ Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() & b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NAND, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NAND, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name)
@@ -713,7 +773,7 @@ Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() | b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NOR, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NOR, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name)
@@ -727,7 +787,7 @@ Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() ^ b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NXOR, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NXOR, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs, const std::string& name)
@@ -735,13 +795,19 @@ Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-#if defined(FLOW_CONSTANT_FOLDING)
-    if (auto a = dynamic_cast<ConstantInt*>(lhs))
-        if (auto b = dynamic_cast<ConstantInt*>(rhs))
-            return get(a->get() == b->get());
-#endif
+    auto a = dynamic_cast<ConstantInt*>(lhs);
+    auto b = dynamic_cast<ConstantInt*>(rhs);
 
-    return insert(new VmInstr(FlowVM::Opcode::NCMPEQ, {lhs, rhs}, makeName(name)));
+    if (a && b)
+        return get(a->get() == b->get());
+
+    if (a && !b)
+        return insert(new BinaryInstr(Opcode::NICMPEQ, lhs, rhs, makeName(name)));
+
+    if (b && !a)
+        return insert(new BinaryInstr(Opcode::NICMPEQ, rhs, lhs, makeName(name)));
+
+    return insert(new BinaryInstr(Opcode::NCMPEQ, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs, const std::string& name)
@@ -755,7 +821,7 @@ Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() != b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NCMPNE, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NCMPNE, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs, const std::string& name)
@@ -769,7 +835,7 @@ Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() <= b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NCMPLE, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NCMPLE, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs, const std::string& name)
@@ -783,7 +849,7 @@ Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() >= b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NCMPGE, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NCMPGE, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs, const std::string& name)
@@ -797,7 +863,7 @@ Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() < b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NCMPLT, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NCMPLT, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs, const std::string& name)
@@ -811,7 +877,7 @@ Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() > b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::NCMPGT, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::NCMPGT, lhs, rhs, makeName(name)));
 }
 // }}}
 // {{{ string ops
@@ -836,7 +902,7 @@ Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name)
     }
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SADD, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SADD, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs, const std::string& name)
@@ -850,7 +916,7 @@ Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() == b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPEQ, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPEQ, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs, const std::string& name)
@@ -864,7 +930,7 @@ Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() != b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPNE, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPNE, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs, const std::string& name)
@@ -878,7 +944,7 @@ Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() <= b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPLE, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPLE, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs, const std::string& name)
@@ -892,7 +958,7 @@ Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() >= b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPGE, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPGE, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs, const std::string& name)
@@ -906,7 +972,7 @@ Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() < b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPLT, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPLT, lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs, const std::string& name)
@@ -920,7 +986,7 @@ Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs, const std::string& name)
             return get(a->get() > b->get());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPGT, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPGT, lhs, rhs, makeName(name)));
 }
 
 /**
@@ -933,7 +999,7 @@ Value* IRBuilder::createSCmpRE(Value* lhs, Value* rhs, const std::string& name)
 
     // XXX don't perform constant folding on (string =~ regexp) as this operation yields side affects to: regex.group(I)S
 
-    return insert(new VmInstr(FlowVM::Opcode::SREGMATCH, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SREGMATCH, lhs, rhs, makeName(name)));
 }
 
 /**
@@ -953,7 +1019,7 @@ Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs, const std::string& name)
             return get(BufferRef(a->get()).begins(b->get()));
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPBEG, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPBEG, lhs, rhs, makeName(name)));
 }
 
 /**
@@ -973,7 +1039,7 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs, const std::string& name)
             return get(BufferRef(a->get()).ends(b->get()));
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::SCMPEND, {lhs, rhs}, makeName(name)));
+    return insert(new BinaryInstr(Opcode::SCMPEND, lhs, rhs, makeName(name)));
 }
 // }}}
 // {{{ cast ops
@@ -987,8 +1053,6 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs, const std::string& name)
  */
 Value* IRBuilder::createConvert(FlowType ty, Value* rhs, const std::string& name)
 {
-    using FlowVM::Opcode;
-
     assert(rhs != nullptr);
     assert(ty == FlowType::Number
         || ty == FlowType::Boolean
@@ -1074,7 +1138,7 @@ Value* IRBuilder::createConvert(FlowType ty, Value* rhs, const std::string& name
     }
 #endif
 
-    return insert(new VmInstr(op, {rhs}, makeName(name)));
+    return insert(new UnaryInstr(op, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createB2S(Value* rhs, const std::string& name)
@@ -1086,7 +1150,7 @@ Value* IRBuilder::createB2S(Value* rhs, const std::string& name)
         return get(a->get() ? "true" : "false");
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::I2S, {rhs}, makeName(name)));
+    return insert(new UnaryInstr(Opcode::I2S, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createI2S(Value* rhs, const std::string& name)
@@ -1101,7 +1165,7 @@ Value* IRBuilder::createI2S(Value* rhs, const std::string& name)
     }
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::I2S, {rhs}, makeName(name)));
+    return insert(new UnaryInstr(Opcode::I2S, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createP2S(Value* rhs, const std::string& name)
@@ -1113,7 +1177,7 @@ Value* IRBuilder::createP2S(Value* rhs, const std::string& name)
         return get(ip->get().str());
 #endif
 
-    return insert(new VmInstr(FlowVM::Opcode::P2S, {rhs}, makeName(name)));
+    return insert(new UnaryInstr(Opcode::P2S, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createC2S(Value* rhs, const std::string& name)
@@ -1160,7 +1224,7 @@ Instr* IRBuilder::createCallFunction(IRBuiltinFunction* callee, const std::vecto
 
 Instr* IRBuilder::createInvokeHandler(const std::vector<Value*>& args, const std::string& name)
 {
-    return insert(new VmInstr(FlowVM::Opcode::HANDLER, args, makeName(name)));
+    return insert(new VmInstr(Opcode::HANDLER, args, makeName(name)));
 }
 // }}}
 // {{{ exit point creators
@@ -1171,32 +1235,46 @@ Instr* IRBuilder::createRet(Value* result, const std::string& name)
 
 Instr* IRBuilder::createBr(BasicBlock* target)
 {
+    target->predecessors().push_back(getInsertPoint());
+    getInsertPoint()->successors().push_back(target);
+
     return insert(new BrInstr({target}, ""));
 }
 
 Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name)
 {
+    trueBlock->predecessors().push_back(getInsertPoint());
+    getInsertPoint()->successors().push_back(trueBlock);
+
+    falseBlock->predecessors().push_back(getInsertPoint());
+    getInsertPoint()->successors().push_back(falseBlock);
+
     return insert(new CondBrInstr(condValue, trueBlock, falseBlock, makeName(name)));
 }
 
-Value* IRBuilder::createMatchSame(Value* cond, size_t matchId, const std::string& name)
+MatchInstr* IRBuilder::createMatch(FlowVM::MatchClass opc, Value* cond, const std::string& name)
 {
-    return insert(new VmInstr(FlowVM::Opcode::SMATCHEQ, {get(matchId)}, makeName(name)));
+    return static_cast<MatchInstr*>(insert(new MatchInstr(opc, cond, makeName(name))));
 }
 
-Value* IRBuilder::createMatchHead(Value* cond, size_t matchId, const std::string& name)
+Value* IRBuilder::createMatchSame(Value* cond, const std::string& name)
 {
-    return insert(new VmInstr(FlowVM::Opcode::SMATCHBEG, {get(matchId)}, makeName(name)));
+    return createMatch(MatchClass::Same, cond, name);
 }
 
-Value* IRBuilder::createMatchTail(Value* cond, size_t matchId, const std::string& name)
+Value* IRBuilder::createMatchHead(Value* cond, const std::string& name)
 {
-    return insert(new VmInstr(FlowVM::Opcode::SMATCHEND, {get(matchId)}, makeName(name)));
+    return createMatch(MatchClass::Head, cond, name);
 }
 
-Value* IRBuilder::createMatchRegExp(Value* cond, size_t matchId, const std::string& name)
+Value* IRBuilder::createMatchTail(Value* cond, const std::string& name)
 {
-    return insert(new VmInstr(FlowVM::Opcode::SMATCHR, {get(matchId)}, makeName(name)));
+    return createMatch(MatchClass::Tail, cond, name);
+}
+
+Value* IRBuilder::createMatchRegExp(Value* cond, const std::string& name)
+{
+    return createMatch(MatchClass::RegExp, cond, makeName(name));
 }
 // }}}
 // }}}

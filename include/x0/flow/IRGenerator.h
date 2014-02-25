@@ -39,6 +39,8 @@ private:
     Value* codegen(Stmt* stmt);
     Value* codegen(Symbol* sym);
 
+    Constant* getConstant(Expr* expr);
+
     Scope& scope() { return *scope_; }
 
     // symbols
