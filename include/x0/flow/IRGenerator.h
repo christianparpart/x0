@@ -10,7 +10,7 @@
 
 #include <x0/Api.h>
 #include <x0/flow/ASTVisitor.h>
-#include <x0/flow/IR.h>
+#include <x0/flow/ir/IRBuilder.h>
 
 namespace x0 {
 

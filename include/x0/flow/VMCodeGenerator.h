@@ -1,10 +1,10 @@
 #pragma once
 
-#include <x0/Cidr.h>
-#include <x0/IPAddress.h>
 #include <x0/flow/FlowType.h>
-#include <x0/flow/InstructionVisitor.h>
+#include <x0/flow/ir/InstructionVisitor.h>
 #include <x0/flow/vm/Match.h>
+#include <x0/IPAddress.h>
+#include <x0/Cidr.h>
 #include <x0/Api.h>
 
 #include <string>

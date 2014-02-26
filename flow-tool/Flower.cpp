@@ -13,7 +13,10 @@
 #include <x0/flow/vm/Runtime.h>
 #include <x0/flow/vm/NativeCallback.h>
 #include <x0/flow/vm/Runner.h>
-#include <x0/flow/IR.h>
+#include <x0/flow/ir/IRProgram.h>
+#include <x0/flow/ir/IRHandler.h>
+#include <x0/flow/ir/BasicBlock.h>
+#include <x0/flow/ir/Instr.h>
 #include <x0/flow/IRGenerator.h>
 #include <x0/flow/VMCodeGenerator.h>
 #include <x0/flow/FlowCallVisitor.h>

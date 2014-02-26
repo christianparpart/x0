@@ -124,9 +124,20 @@ if(ENABLE_XZERO_FLOW)
     flow/FlowParser.cpp
     flow/FlowToken.cpp
     flow/FlowType.cpp
-    flow/IR.cpp
     flow/IRGenerator.cpp
     flow/VMCodeGenerator.cpp
+
+    flow/ir/BasicBlock.cpp
+    flow/ir/Constant.cpp
+    flow/ir/ConstantValue.cpp
+    flow/ir/Instr.cpp
+    flow/ir/Instructions.cpp
+    flow/ir/InstructionVisitor.cpp
+    flow/ir/IRBuilder.cpp
+    flow/ir/IRHandler.cpp
+    flow/ir/IRProgram.cpp
+    flow/ir/Value.cpp
+
     flow/vm/Handler.cpp
     flow/vm/Instruction.cpp
     flow/vm/Match.cpp

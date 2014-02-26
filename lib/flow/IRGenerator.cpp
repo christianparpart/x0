@@ -7,7 +7,9 @@
  */
 
 #include <x0/flow/IRGenerator.h>
-#include <x0/flow/IR.h>
+#include <x0/flow/ir/IRProgram.h>
+#include <x0/flow/ir/IRHandler.h>
+#include <x0/flow/ir/Instructions.h>
 #include <x0/flow/AST.h>
 #include <x0/DebugLogger.h> // XZERO_DEBUG
 #include <assert.h>
@@ -20,10 +22,10 @@ namespace x0 {
 #if defined(FLOW_DEBUG_IR)
 // {{{ trace
 static size_t fnd = 0;
-struct fntrace2 {
+struct fntrace3 {
 	std::string msg_;
 
-	fntrace2(const char* msg) : msg_(msg)
+	fntrace3(const char* msg) : msg_(msg)
 	{
 		size_t i = 0;
 		char fmt[1024];
@@ -41,7 +43,7 @@ struct fntrace2 {
 		++fnd;
 	}
 
-	~fntrace2() {
+	~fntrace3() {
 		--fnd;
 
 		size_t i = 0;
@@ -60,7 +62,7 @@ struct fntrace2 {
 	}
 };
 // }}}
-#	define FNTRACE() fntrace2 _(__PRETTY_FUNCTION__)
+#	define FNTRACE() fntrace3 _(__PRETTY_FUNCTION__)
 #	define TRACE(level, msg...) XZERO_DEBUG("IRGenerator", (level), msg)
 #else
 #	define FNTRACE() /*!*/

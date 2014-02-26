@@ -1,6 +1,12 @@
 #include <x0/flow/VMCodeGenerator.h>
 #include <x0/flow/vm/Program.h>
-#include <x0/flow/IR.h>
+#include <x0/flow/ir/BasicBlock.h>
+#include <x0/flow/ir/ConstantValue.h>
+#include <x0/flow/ir/Instructions.h>
+#include <x0/flow/ir/IRProgram.h>
+#include <x0/flow/ir/IRHandler.h>
+#include <x0/flow/ir/IRBuiltinHandler.h>
+#include <x0/flow/ir/IRBuiltinFunction.h>
 
 namespace x0 {
 
