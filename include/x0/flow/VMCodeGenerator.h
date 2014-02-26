@@ -15,6 +15,7 @@
 namespace x0 {
 
 class Value;
+class Instr;
 class IRProgram;
 class IRHandler;
 class BasicBlock;
@@ -39,28 +40,80 @@ protected:
     size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1, FlowVM::Operand op2) { return emit(FlowVM::makeInstruction(opc, op1, op2)); }
     size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1, FlowVM::Operand op2, FlowVM::Operand op3) { return emit(FlowVM::makeInstruction(opc, op1, op2, op3)); }
     size_t emit(FlowVM::Instruction instr);
+    size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr, FlowVM::Opcode ri);
+    size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr);
+    size_t emitUnary(Instr& instr, FlowVM::Opcode r);
 
     FlowVM::Operand getRegister(Value* value);
     FlowVM::Operand getConstantInt(Value* value);
     FlowVM::Operand getLabel(BasicBlock* bb);
 
+    size_t allocate(size_t count, Instr& instr);
     size_t allocate(size_t count);
     void free(size_t base, size_t count);
 
-    virtual void visit(AllocaInstr& instr);
-    virtual void visit(ArraySetInstr& instr);
-    virtual void visit(StoreInstr& instr);
-    virtual void visit(LoadInstr& instr);
-    virtual void visit(CallInstr& instr);
-    virtual void visit(VmInstr& instr);
-    virtual void visit(UnaryInstr& instr);
-    virtual void visit(BinaryInstr& instr);
-    virtual void visit(PhiNode& instr);
-    virtual void visit(BranchInstr& instr);
-    virtual void visit(CondBrInstr& instr);
-    virtual void visit(BrInstr& instr);
-    virtual void visit(RetInstr& instr);
-    virtual void visit(MatchInstr& instr);
+    // storage
+    void visit(AllocaInstr& instr) override;
+    void visit(ArraySetInstr& instr) override;
+    void visit(StoreInstr& instr) override;
+    void visit(LoadInstr& instr) override;
+    void visit(PhiNode& instr) override;
+
+    // calls
+    void visit(CallInstr& instr) override;
+
+    // terminator
+    void visit(BranchInstr& instr) override;
+    void visit(CondBrInstr& instr) override;
+    void visit(BrInstr& instr) override;
+    void visit(RetInstr& instr) override;
+    void visit(MatchInstr& instr) override;
+
+    // type cast
+    void visit(CastInstr& instr) override;
+
+    // numeric
+    void visit(INegInstr& instr) override;
+    void visit(INotInstr& instr) override;
+    void visit(IAddInstr& instr) override;
+    void visit(ISubInstr& instr) override;
+    void visit(IMulInstr& instr) override;
+    void visit(IDivInstr& instr) override;
+    void visit(IRemInstr& instr) override;
+    void visit(IPowInstr& instr) override;
+    void visit(IAndInstr& instr) override;
+    void visit(IOrInstr& instr) override;
+    void visit(IXorInstr& instr) override;
+    void visit(IShlInstr& instr) override;
+    void visit(IShrInstr& instr) override;
+    void visit(ICmpEQInstr& instr) override;
+    void visit(ICmpNEInstr& instr) override;
+    void visit(ICmpLEInstr& instr) override;
+    void visit(ICmpGEInstr& instr) override;
+    void visit(ICmpLTInstr& instr) override;
+    void visit(ICmpGTInstr& instr) override;
+
+    // boolean
+    void visit(BNotInstr& instr) override;
+    void visit(BAndInstr& instr) override;
+    void visit(BOrInstr& instr) override;
+    void visit(BXorInstr& instr) override;
+
+    // string
+    void visit(SLenInstr& instr) override;
+    void visit(SIsEmptyInstr& instr) override;
+    void visit(SAddInstr& instr) override;
+    void visit(SSubStrInstr& instr) override;
+    void visit(SCmpEQInstr& instr) override;
+    void visit(SCmpNEInstr& instr) override;
+    void visit(SCmpLEInstr& instr) override;
+    void visit(SCmpGEInstr& instr) override;
+    void visit(SCmpLTInstr& instr) override;
+    void visit(SCmpGTInstr& instr) override;
+    void visit(SCmpREInstr& instr) override;
+    void visit(SCmpBegInstr& instr) override;
+    void visit(SCmpEndInstr& instr) override;
+    void visit(SInInstr& instr) override;
 
 private:
     std::vector<std::string> errors_;           //!< list of raised errors during code generation.

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <x0/Api.h>
+#include <x0/flow/InstructionVisitor.h>
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/vm/MatchClass.h>
 #include <x0/flow/vm/Signature.h>
@@ -92,6 +93,20 @@ private:
     FlowVM::Signature signature_;
 };
 
+class X0_API IRBuiltinHandler : public Constant {
+public:
+    IRBuiltinHandler(size_t id, const FlowVM::Signature& sig) :
+        Constant(FlowType::Boolean, id, sig.name()),
+        signature_(sig)
+    {}
+
+    const FlowVM::Signature& signature() const { return signature_; }
+    const FlowVM::Signature& get() const { return signature_; }
+
+private:
+    FlowVM::Signature signature_;
+};
+
 template<typename T, const FlowType Ty>
 class X0_API ConstantValue : public Constant {
 public:
@@ -125,6 +140,9 @@ public:
     std::vector<Instr*>& instructions() { return code_; }
 
     void dump() override;
+
+    void link(BasicBlock* successor);
+    void unlink(BasicBlock* successor);
 
     /** Retrieves all predecessors of given basic block. */
     std::vector<BasicBlock*>& predecessors() { return predecessors_; }
@@ -164,6 +182,7 @@ public:
 
     const std::vector<Value*>& operands() const { return operands_; }
     std::vector<Value*>& operands() { return operands_; }
+    Value* operand(size_t index) const { return operands_[index]; }
 
     virtual void accept(InstructionVisitor& v) = 0;
 
@@ -224,8 +243,7 @@ public:
     Value* arraySize() const { return operands()[0]; }
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 };
 
 class X0_API ArraySetInstr : public Instr {
@@ -234,13 +252,12 @@ public:
         Instr(FlowType::Void, {array, index, value}, name)
         {}
 
-    Value* array() const { return operands()[0]; }
-    Value* index() const { return operands()[1]; }
-    Value* value() const { return operands()[2]; }
+    Value* array() const { return operand(0); }
+    Value* index() const { return operand(1); }
+    Value* value() const { return operand(2); }
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 };
 
 class X0_API StoreInstr : public Instr {
@@ -249,12 +266,11 @@ public:
         Instr(FlowType::Void, {variable, expression}, name)
         {}
 
-    Value* variable() const { return operands()[0]; }
-    Value* expression() const { return operands()[1]; }
+    Value* variable() const { return operand(0); }
+    Value* expression() const { return operand(1); }
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 };
 
 class X0_API LoadInstr : public Instr {
@@ -263,71 +279,90 @@ public:
         Instr(variable->type(), {variable}, name)
         {}
 
-    Value* variable() const { return operands()[0]; }
+    Value* variable() const { return operand(0); }
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 };
 
 class X0_API CallInstr : public Instr {
 public:
     CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name = "");
 
-    IRBuiltinFunction* callee() const { return (IRBuiltinFunction*) operands()[0]; }
+    IRBuiltinFunction* callee() const { return (IRBuiltinFunction*) operand(0); }
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 };
 
-class X0_API VmInstr : public Instr {
+class X0_API HandlerCallInstr : public Instr {
 public:
-    VmInstr(FlowVM::Opcode opcode, const std::vector<Value*>& ops = {}, const std::string& name = "");
+    HandlerCallInstr(IRBuiltinHandler* callee, const std::vector<Value*>& args);
 
-    void setOpcode(FlowVM::Opcode opc) { opcode_ = opc; }
-    FlowVM::Opcode opcode() const { return opcode_; }
+    IRBuiltinHandler* callee() const { return (IRBuiltinHandler*) operand(0); }
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
-
-private:
-    FlowVM::Opcode opcode_;
+    void accept(InstructionVisitor& v) override;
 };
 
+class X0_API CastInstr : public Instr {
+public:
+    CastInstr(FlowType resultType, Value* op, const std::string& name = "") :
+        Instr(resultType, {op}, name)
+        {}
+
+    Value* source() const { return operand(0); }
+
+    void dump() override;
+    void accept(InstructionVisitor& v) override;
+};
+
+template<const UnaryOperator Operator, const FlowType ResultType>
 class X0_API UnaryInstr : public Instr {
 public:
-    UnaryInstr(FlowVM::Opcode opcode, Value* op, const std::string& name = "") :
-        Instr(FlowVM::resultType(opcode), {op}, name),
-        opcode_(opcode)
+    UnaryInstr(Value* op, const std::string& name = "") :
+        Instr(ResultType, {op}, name),
+        operator_(Operator)
         {}
 
-    FlowVM::Opcode opcode() const { return opcode_; }
+    UnaryOperator op() const {
+        return operator_;
+    }
 
-    void dump() override;
+    void dump() override {
+        dumpOne(cstr(operator_));
+    }
 
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override {
+        v.visit(*this);
+    }
 
 private:
-    FlowVM::Opcode opcode_;
+    UnaryOperator operator_;
 };
 
+template<const BinaryOperator Operator, const FlowType ResultType>
 class X0_API BinaryInstr : public Instr {
 public:
-    BinaryInstr(FlowVM::Opcode opcode, Value* lhs, Value* rhs, const std::string& name = "") :
-        Instr(FlowVM::resultType(opcode), {lhs, rhs}, name),
-        opcode_(opcode)
+    BinaryInstr(Value* lhs, Value* rhs, const std::string& name = "") :
+        Instr(ResultType, {lhs, rhs}, name),
+        operator_(Operator)
         {}
 
-    FlowVM::Opcode opcode() const { return opcode_; }
+    BinaryOperator op() const {
+        return operator_;
+    }
 
-    void dump() override;
+    void dump() override {
+        dumpOne(cstr(operator_));
+    }
 
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override {
+        v.visit(*this);
+    }
 
 private:
-    FlowVM::Opcode opcode_;
+    BinaryOperator operator_;
 };
 
 /**
@@ -342,8 +377,7 @@ public:
     explicit PhiNode(const std::vector<Value*>& ops, const std::string& name = "");
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 };
 
 class X0_API BranchInstr : public Instr {
@@ -352,7 +386,8 @@ public:
         Instr(FlowType::Void, ops, name)
         {}
 
-    virtual void accept(InstructionVisitor& v);
+    void dump() override;
+    void accept(InstructionVisitor& v) override;
 };
 
 /**
@@ -374,13 +409,12 @@ public:
         BranchInstr({cond, trueBlock, falseBlock}, name)
     {}
 
-    void dump() override;
-
     Value* condition() const { return operands()[0]; }
     BasicBlock* trueBlock() const { return (BasicBlock*) operands()[1]; }
     BasicBlock* falseBlock() const { return (BasicBlock*) operands()[2]; }
 
-    virtual void accept(InstructionVisitor& v);
+    void dump() override;
+    void accept(InstructionVisitor& v) override;
 };
 
 /**
@@ -392,11 +426,10 @@ public:
         BranchInstr({targetBlock}, name)
     {}
 
-    void dump() override;
-
     BasicBlock* targetBlock() const { return (BasicBlock*) operands()[0]; }
 
-    virtual void accept(InstructionVisitor& v);
+    void dump() override;
+    void accept(InstructionVisitor& v) override;
 };
 
 /**
@@ -409,8 +442,7 @@ public:
         {}
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 };
 
 /**
@@ -429,8 +461,7 @@ public:
     void setElseBlock(BasicBlock* code);
 
     void dump() override;
-
-    virtual void accept(InstructionVisitor& v);
+    void accept(InstructionVisitor& v) override;
 
 private:
     FlowVM::MatchClass op_;
@@ -476,7 +507,8 @@ public:
     ConstantCidr* get(const Cidr& literal) { return get<ConstantCidr>(cidrs_, literal); }
     ConstantRegExp* get(const RegExp& literal) { return get<ConstantRegExp>(regexps_, literal); }
 
-    IRBuiltinFunction* get(const FlowVM::Signature& sig) { return get<IRBuiltinFunction>(builtinFunctions_, sig); }
+    IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) { return get<IRBuiltinHandler>(builtinHandlers_, sig); }
+    IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) { return get<IRBuiltinFunction>(builtinFunctions_, sig); }
 
     template<typename T, typename U>
     T* get(std::vector<T*>& table, const U& literal);
@@ -494,6 +526,7 @@ private:
     std::vector<ConstantCidr*> cidrs_;
     std::vector<ConstantRegExp*> regexps_;
     std::vector<IRBuiltinFunction*> builtinFunctions_;
+    std::vector<IRBuiltinHandler*> builtinHandlers_;
     std::vector<IRHandler*> handlers_;
 
     friend class IRBuilder;
@@ -533,7 +566,8 @@ public:
     ConstantIP* get(const IPAddress& literal) { return program_->get(literal); }
     ConstantCidr* get(const Cidr& literal) { return program_->get(literal); }
     ConstantRegExp* get(const RegExp& literal) { return program_->get(literal); }
-    IRBuiltinFunction* get(const FlowVM::Signature& sig) { return program_->get(sig); }
+    IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) { return program_->getBuiltinHandler(sig); }
+    IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) { return program_->getBuiltinFunction(sig); }
 
     // values
     AllocaInstr* createAlloca(FlowType ty, Value* arraySize, const std::string& name = "");
@@ -585,7 +619,7 @@ public:
 
     // calls
     Instr* createCallFunction(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name = "");
-    Instr* createInvokeHandler(const std::vector<Value*>& args, const std::string& name = "");
+    Instr* createInvokeHandler(IRBuiltinHandler* callee, const std::vector<Value*>& args);
 
     // termination instructions
     Instr* createRet(Value* result, const std::string& name = "");

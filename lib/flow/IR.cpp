@@ -24,6 +24,8 @@
  *   - dead code elimination
  *   - jump threading
  *
+ * TODOS:
+ * - assert() on last instruction in current BB is not a terminator instr.
  */
 
 namespace x0 {
@@ -37,6 +39,65 @@ using namespace FlowVM;
 #else
 #	define TRACE(level, msg...) /*!*/
 #endif
+
+const char* cstr(UnaryOperator op)
+{
+    static const char* ops[] = {
+        // numerical
+        [(size_t)UnaryOperator::INeg] = "ineg",
+        [(size_t)UnaryOperator::INot] = "inot",
+        // binary
+        [(size_t)UnaryOperator::BNot] = "bnot",
+        // string
+        [(size_t)UnaryOperator::SLen] = "slen",
+        [(size_t)UnaryOperator::SIsEmpty] = "sisempty",
+    };
+
+    return ops[(size_t)op];
+}
+
+const char* cstr(BinaryOperator op)
+{
+    static const char* ops[] = {
+        // numerical
+        [(size_t)BinaryOperator::IAdd] = "iadd",
+        [(size_t)BinaryOperator::ISub] = "isub",
+        [(size_t)BinaryOperator::IMul] = "imul",
+        [(size_t)BinaryOperator::IDiv] = "idiv",
+        [(size_t)BinaryOperator::IRem] = "irem",
+        [(size_t)BinaryOperator::IPow] = "ipow",
+        [(size_t)BinaryOperator::IAnd] = "iand",
+        [(size_t)BinaryOperator::IOr] = "ior",
+        [(size_t)BinaryOperator::IXor] = "ixor",
+        [(size_t)BinaryOperator::IShl] = "ishl",
+        [(size_t)BinaryOperator::IShr] = "ishr",
+        [(size_t)BinaryOperator::ICmpEQ] = "icmpeq",
+        [(size_t)BinaryOperator::ICmpNE] = "icmpne",
+        [(size_t)BinaryOperator::ICmpLE] = "icmple",
+        [(size_t)BinaryOperator::ICmpGE] = "icmpge",
+        [(size_t)BinaryOperator::ICmpLT] = "icmplt",
+        [(size_t)BinaryOperator::ICmpGT] = "icmpgt",
+        // boolean
+        [(size_t)BinaryOperator::BAnd] = "band",
+        [(size_t)BinaryOperator::BOr] = "bor",
+        [(size_t)BinaryOperator::BXor] = "bxor",
+        // string
+        [(size_t)BinaryOperator::SAdd] = "sadd",
+        [(size_t)BinaryOperator::SSubStr] = "ssubstr",
+        [(size_t)BinaryOperator::SCmpEQ] = "scmpeq",
+        [(size_t)BinaryOperator::SCmpNE] = "scmpne",
+        [(size_t)BinaryOperator::SCmpLE] = "scmple",
+        [(size_t)BinaryOperator::SCmpGE] = "scmpge",
+        [(size_t)BinaryOperator::SCmpLT] = "scmplt",
+        [(size_t)BinaryOperator::SCmpGT] = "scmpgt",
+        [(size_t)BinaryOperator::SCmpRE] = "scmpre",
+        [(size_t)BinaryOperator::SCmpBeg] = "scmpbeg",
+        [(size_t)BinaryOperator::SCmpEnd] = "scmpend",
+        [(size_t)BinaryOperator::SIn] = "sin",
+    };
+
+    return ops[(size_t)op];
+}
 
 // {{{ Value
 Value::Value(FlowType ty, const std::string& name) :
@@ -141,7 +202,28 @@ void Instr::dumpOne(const char* mnemonic)
     }
     printf("\n");
 }
+// }}}
+// {{{ CastInstr
+void CastInstr::dump()
+{
+    dumpOne(tos(type()).c_str());
+}
 
+void CastInstr::accept(InstructionVisitor& v)
+{
+    v.visit(*this);
+}
+// }}}
+// {{{ BranchInstr
+void BranchInstr::dump()
+{
+    dumpOne("br");
+}
+
+void BranchInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
 // }}}
 // {{{ other instructions
 template<typename T, typename U>
@@ -159,27 +241,6 @@ std::vector<U> join(const T& a, const std::vector<U>& vec)
 CallInstr::CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name) :
     Instr(callee->signature().returnType(), join(callee, args), name)
 {
-}
-
-VmInstr::VmInstr(Opcode opcode, const std::vector<Value*>& ops, const std::string& name) :
-    Instr(FlowVM::resultType(opcode), ops, name),
-    opcode_(opcode)
-{
-}
-
-void VmInstr::dump()
-{
-    dumpOne(mnemonic(opcode_));
-}
-
-void UnaryInstr::dump()
-{
-    dumpOne(mnemonic(opcode_));
-}
-
-void BinaryInstr::dump()
-{
-    dumpOne(mnemonic(opcode_));
 }
 
 void AllocaInstr::accept(InstructionVisitor& visitor)
@@ -207,27 +268,7 @@ void CallInstr::accept(InstructionVisitor& visitor)
     visitor.visit(*this);
 }
 
-void VmInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void UnaryInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void BinaryInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 void PhiNode::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void BranchInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
 }
@@ -320,8 +361,7 @@ MatchInstr::MatchInstr(MatchClass op, Value* cond, const std::string& name) :
 
 void MatchInstr::addCase(Constant* label, BasicBlock* code)
 {
-    code->predecessors().push_back(parent());
-    parent()->successors().push_back(code);
+    parent()->link(code);
 
     cases_.push_back(std::make_pair(label, code));
 }
@@ -330,8 +370,7 @@ void MatchInstr::setElseBlock(BasicBlock* code)
 {
     assert(elseBlock_ == nullptr);
 
-    code->predecessors().push_back(parent());
-    parent()->successors().push_back(code);
+    parent()->link(code);
 
     elseBlock_ = code;
 }
@@ -360,6 +399,19 @@ void BasicBlock::dump()
         code_[i]->dump();
     }
     printf("\n");
+}
+
+void BasicBlock::link(BasicBlock* successor)
+{
+    assert(successor != nullptr);
+
+    successors().push_back(successor);
+    successor->predecessors().push_back(this);
+}
+
+void BasicBlock::unlink(BasicBlock* successor)
+{
+    assert(!"TODO");
 }
 
 std::vector<BasicBlock*> BasicBlock::dominators()
@@ -426,6 +478,7 @@ IRProgram::IRProgram() :
     cidrs_(),
     regexps_(),
     builtinFunctions_(),
+    builtinHandlers_(),
     handlers_()
 {
 }
@@ -465,6 +518,7 @@ template ConstantString* IRProgram::get<ConstantString, std::string>(std::vector
 template ConstantIP* IRProgram::get<ConstantIP, IPAddress>(std::vector<ConstantIP*>&, const IPAddress&);
 template ConstantCidr* IRProgram::get<ConstantCidr, Cidr>(std::vector<ConstantCidr*>&, const Cidr&);
 template ConstantRegExp* IRProgram::get<ConstantRegExp, RegExp>(std::vector<ConstantRegExp*>&, const RegExp&);
+template IRBuiltinHandler* IRProgram::get<IRBuiltinHandler, Signature>(std::vector<IRBuiltinHandler*>&, const Signature&);
 template IRBuiltinFunction* IRProgram::get<IRBuiltinFunction, Signature>(std::vector<IRBuiltinFunction*>&, const Signature&);
 // }}}
 // {{{ IRBuilder
@@ -609,6 +663,7 @@ Value* IRBuilder::createLoad(Value* value, const std::string& name)
  */
 Instr* IRBuilder::createStore(Value* lhs, Value* rhs, const std::string& name)
 {
+    assert(dynamic_cast<AllocaInstr*>(lhs) && "lhs must be of type AllocaInstr in order to STORE to.");
     //assert(lhs->type() == rhs->type() && "Type of lhs and rhs must be equal.");
     //assert(dynamic_cast<IRVariable*>(lhs) && "lhs must be of type Variable.");
 
@@ -628,7 +683,7 @@ Value* IRBuilder::createNeg(Value* rhs, const std::string& name)
     if (auto a = dynamic_cast<ConstantInt*>(rhs))
         return get(-a->get());
 
-    return insert(new UnaryInstr(Opcode::NNEG, rhs, makeName(name)));
+    return insert(new INegInstr(rhs, makeName(name)));
 }
 
 Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name)
@@ -640,7 +695,7 @@ Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() + b->get());
 
-    return insert(new BinaryInstr(Opcode::NADD, lhs, rhs, makeName(name)));
+    return insert(new IAddInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name)
@@ -652,7 +707,7 @@ Value* IRBuilder::createSub(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() - b->get());
 
-    return insert(new BinaryInstr(Opcode::NSUB, lhs, rhs, makeName(name)));
+    return insert(new ISubInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name)
@@ -664,7 +719,7 @@ Value* IRBuilder::createMul(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() * b->get());
 
-    return insert(new BinaryInstr(Opcode::NMUL, lhs, rhs, makeName(name)));
+    return insert(new IMulInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name)
@@ -676,7 +731,7 @@ Value* IRBuilder::createDiv(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() / b->get());
 
-    return insert(new BinaryInstr(Opcode::NMUL, lhs, rhs, makeName(name)));
+    return insert(new IDivInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name)
@@ -688,7 +743,7 @@ Value* IRBuilder::createRem(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() % b->get());
 
-    return insert(new BinaryInstr(Opcode::NREM, lhs, rhs, makeName(name)));
+    return insert(new IRemInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name)
@@ -700,7 +755,7 @@ Value* IRBuilder::createShl(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() << b->get());
 
-    return insert(new BinaryInstr(Opcode::NSHL, lhs, rhs, makeName(name)));
+    return insert(new IShlInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name)
@@ -712,7 +767,7 @@ Value* IRBuilder::createShr(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() >> b->get());
 
-    return insert(new BinaryInstr(Opcode::NSHR, lhs, rhs, makeName(name)));
+    return insert(new IShrInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name)
@@ -724,7 +779,7 @@ Value* IRBuilder::createPow(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(powl(a->get(), b->get()));
 
-    return insert(new BinaryInstr(Opcode::NPOW, lhs, rhs, makeName(name)));
+    return insert(new IPowInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name)
@@ -736,7 +791,7 @@ Value* IRBuilder::createAnd(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() & b->get());
 
-    return insert(new BinaryInstr(Opcode::NAND, lhs, rhs, makeName(name)));
+    return insert(new IAndInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name)
@@ -748,7 +803,7 @@ Value* IRBuilder::createOr(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() | b->get());
 
-    return insert(new BinaryInstr(Opcode::NOR, lhs, rhs, makeName(name)));
+    return insert(new IOrInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name)
@@ -760,7 +815,7 @@ Value* IRBuilder::createXor(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() ^ b->get());
 
-    return insert(new BinaryInstr(Opcode::NXOR, lhs, rhs, makeName(name)));
+    return insert(new IXorInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs, const std::string& name)
@@ -768,19 +823,11 @@ Value* IRBuilder::createNCmpEQ(Value* lhs, Value* rhs, const std::string& name)
     assert(lhs->type() == rhs->type());
     assert(lhs->type() == FlowType::Number);
 
-    auto a = dynamic_cast<ConstantInt*>(lhs);
-    auto b = dynamic_cast<ConstantInt*>(rhs);
+    if (auto a = dynamic_cast<ConstantInt*>(lhs))
+        if (auto b = dynamic_cast<ConstantInt*>(rhs))
+            return get(a->get() == b->get());
 
-    if (a && b)
-        return get(a->get() == b->get());
-
-    if (a && !b)
-        return insert(new BinaryInstr(Opcode::NICMPEQ, lhs, rhs, makeName(name)));
-
-    if (b && !a)
-        return insert(new BinaryInstr(Opcode::NICMPEQ, rhs, lhs, makeName(name)));
-
-    return insert(new BinaryInstr(Opcode::NCMPEQ, lhs, rhs, makeName(name)));
+    return insert(new ICmpEQInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs, const std::string& name)
@@ -792,7 +839,7 @@ Value* IRBuilder::createNCmpNE(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() != b->get());
 
-    return insert(new BinaryInstr(Opcode::NCMPNE, lhs, rhs, makeName(name)));
+    return insert(new ICmpNEInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs, const std::string& name)
@@ -804,7 +851,7 @@ Value* IRBuilder::createNCmpLE(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() <= b->get());
 
-    return insert(new BinaryInstr(Opcode::NCMPLE, lhs, rhs, makeName(name)));
+    return insert(new ICmpLEInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs, const std::string& name)
@@ -816,7 +863,7 @@ Value* IRBuilder::createNCmpGE(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() >= b->get());
 
-    return insert(new BinaryInstr(Opcode::NCMPGE, lhs, rhs, makeName(name)));
+    return insert(new ICmpGEInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs, const std::string& name)
@@ -828,7 +875,7 @@ Value* IRBuilder::createNCmpLT(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() < b->get());
 
-    return insert(new BinaryInstr(Opcode::NCMPLT, lhs, rhs, makeName(name)));
+    return insert(new ICmpLTInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs, const std::string& name)
@@ -840,7 +887,7 @@ Value* IRBuilder::createNCmpGT(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantInt*>(rhs))
             return get(a->get() > b->get());
 
-    return insert(new BinaryInstr(Opcode::NCMPGT, lhs, rhs, makeName(name)));
+    return insert(new ICmpGTInstr(lhs, rhs, makeName(name)));
 }
 // }}}
 // {{{ string ops
@@ -863,7 +910,7 @@ Value* IRBuilder::createSAdd(Value* lhs, Value* rhs, const std::string& name)
         }
     }
 
-    return insert(new BinaryInstr(Opcode::SADD, lhs, rhs, makeName(name)));
+    return insert(new SAddInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs, const std::string& name)
@@ -875,7 +922,7 @@ Value* IRBuilder::createSCmpEQ(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() == b->get());
 
-    return insert(new BinaryInstr(Opcode::SCMPEQ, lhs, rhs, makeName(name)));
+    return insert(new SCmpEQInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs, const std::string& name)
@@ -887,7 +934,7 @@ Value* IRBuilder::createSCmpNE(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() != b->get());
 
-    return insert(new BinaryInstr(Opcode::SCMPNE, lhs, rhs, makeName(name)));
+    return insert(new SCmpNEInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs, const std::string& name)
@@ -899,7 +946,7 @@ Value* IRBuilder::createSCmpLE(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() <= b->get());
 
-    return insert(new BinaryInstr(Opcode::SCMPLE, lhs, rhs, makeName(name)));
+    return insert(new SCmpLEInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs, const std::string& name)
@@ -911,7 +958,7 @@ Value* IRBuilder::createSCmpGE(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() >= b->get());
 
-    return insert(new BinaryInstr(Opcode::SCMPGE, lhs, rhs, makeName(name)));
+    return insert(new SCmpGEInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs, const std::string& name)
@@ -923,7 +970,7 @@ Value* IRBuilder::createSCmpLT(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() < b->get());
 
-    return insert(new BinaryInstr(Opcode::SCMPLT, lhs, rhs, makeName(name)));
+    return insert(new SCmpLTInstr(lhs, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs, const std::string& name)
@@ -935,7 +982,7 @@ Value* IRBuilder::createSCmpGT(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(a->get() > b->get());
 
-    return insert(new BinaryInstr(Opcode::SCMPGT, lhs, rhs, makeName(name)));
+    return insert(new SCmpGTInstr(lhs, rhs, makeName(name)));
 }
 
 /**
@@ -948,7 +995,7 @@ Value* IRBuilder::createSCmpRE(Value* lhs, Value* rhs, const std::string& name)
 
     // XXX don't perform constant folding on (string =~ regexp) as this operation yields side affects to: regex.group(I)S
 
-    return insert(new BinaryInstr(Opcode::SREGMATCH, lhs, rhs, makeName(name)));
+    return insert(new SCmpREInstr(lhs, rhs, makeName(name)));
 }
 
 /**
@@ -966,7 +1013,7 @@ Value* IRBuilder::createSCmpEB(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(BufferRef(a->get()).begins(b->get()));
 
-    return insert(new BinaryInstr(Opcode::SCMPBEG, lhs, rhs, makeName(name)));
+    return insert(new SCmpBegInstr(lhs, rhs, makeName(name)));
 }
 
 /**
@@ -984,106 +1031,10 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs, const std::string& name)
         if (auto b = dynamic_cast<ConstantString*>(rhs))
             return get(BufferRef(a->get()).ends(b->get()));
 
-    return insert(new BinaryInstr(Opcode::SCMPEND, lhs, rhs, makeName(name)));
+    return insert(new SCmpEndInstr(lhs, rhs, makeName(name)));
 }
 // }}}
 // {{{ cast ops
-/**
- * Converts given value to target type.
- *
- * @param ty target type to convert to
- * @param rhs source value to convert from
- *
- * @return \c nullptr if invalid conversion, a converted value otherwise.
- */
-Value* IRBuilder::createConvert(FlowType ty, Value* rhs, const std::string& name)
-{
-    assert(rhs != nullptr);
-    assert(ty == FlowType::Number
-        || ty == FlowType::Boolean
-        || ty == FlowType::String
-        || ty == FlowType::IPAddress
-        || ty == FlowType::Cidr
-        || ty == FlowType::RegExp
-        );
-
-    static const std::unordered_map<FlowType, std::unordered_map<FlowType, Opcode>> ops = {
-        {FlowType::Number, {
-            {FlowType::Number, Opcode::NOP},
-            {FlowType::Boolean, Opcode::NCMPZ},
-            {FlowType::String, Opcode::I2S},
-        }},
-        {FlowType::Boolean, {
-            {FlowType::Boolean, Opcode::NOP},
-            {FlowType::Number, Opcode::NOP},
-            {FlowType::String, Opcode::I2S},
-        }},
-        {FlowType::String, {
-            {FlowType::String, Opcode::NOP},
-            {FlowType::Number, Opcode::S2I},
-        }},
-        {FlowType::IPAddress, {
-            {FlowType::IPAddress, Opcode::NOP},
-            {FlowType::String, Opcode::P2S},
-        }},
-        {FlowType::Cidr, {
-            {FlowType::Cidr, Opcode::NOP},
-            {FlowType::String, Opcode::C2S},
-        }},
-        {FlowType::RegExp, {
-            {FlowType::RegExp, Opcode::NOP},
-            {FlowType::String, Opcode::R2S},
-        }},
-    };
-
-    if (ty == rhs->type())
-        return rhs;
-
-    // source type
-    auto a = ops.find(rhs->type());
-    if (a == ops.end())
-        return nullptr;
-
-    // target type
-    auto b = a->second.find(ty);
-    if (b == a->second.end())
-        return nullptr;
-
-    auto op = b->second;
-
-    if (dynamic_cast<Constant*>(rhs)) {
-        switch (op) {
-            case Opcode::NCMPZ: // int -> bool
-                return get(static_cast<ConstantInt*>(rhs)->get() != 0);
-            case Opcode::I2S:   // int,bool -> str
-                if (auto a = dynamic_cast<ConstantBoolean*>(rhs)) {
-                    return get(a->get() ? "true" : "false");
-                } else {
-                    auto b = static_cast<ConstantInt*>(rhs)->get();
-                    char buf[64];
-                    snprintf(buf, sizeof(buf), "%li", b);
-                    return get(buf);
-                }
-            case Opcode::S2I:   // str -> bool
-                return get(static_cast<ConstantString*>(rhs)->get().size() != 0);
-            case Opcode::P2S:   // ip -> str
-                return get(static_cast<ConstantIP*>(rhs)->get().str());
-            case Opcode::C2S:   // cidr -> str
-                return get(static_cast<ConstantCidr*>(rhs)->get().str());
-            case Opcode::R2S:   // regex -> str
-                return get(static_cast<ConstantRegExp*>(rhs)->get().pattern());
-            case Opcode::NOP:
-                // no need to cast into the same type
-                return rhs;
-            default:
-                XZERO_DEBUG("IR", 1, "Unexpected cast op: %i", op);
-                break;
-        }
-    }
-
-    return insert(new UnaryInstr(op, rhs, makeName(name)));
-}
-
 Value* IRBuilder::createB2S(Value* rhs, const std::string& name)
 {
     assert(rhs->type() == FlowType::Boolean);
@@ -1091,7 +1042,7 @@ Value* IRBuilder::createB2S(Value* rhs, const std::string& name)
     if (auto a = dynamic_cast<ConstantBoolean*>(rhs))
         return get(a->get() ? "true" : "false");
 
-    return insert(new UnaryInstr(Opcode::I2S, rhs, makeName(name)));
+    return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createI2S(Value* rhs, const std::string& name)
@@ -1104,7 +1055,7 @@ Value* IRBuilder::createI2S(Value* rhs, const std::string& name)
         return get(buf);
     }
 
-    return insert(new UnaryInstr(Opcode::I2S, rhs, makeName(name)));
+    return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createP2S(Value* rhs, const std::string& name)
@@ -1114,7 +1065,7 @@ Value* IRBuilder::createP2S(Value* rhs, const std::string& name)
     if (auto ip = dynamic_cast<ConstantIP*>(rhs))
         return get(ip->get().str());
 
-    return insert(new UnaryInstr(Opcode::P2S, rhs, makeName(name)));
+    return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createC2S(Value* rhs, const std::string& name)
@@ -1124,7 +1075,7 @@ Value* IRBuilder::createC2S(Value* rhs, const std::string& name)
     if (auto ip = dynamic_cast<ConstantCidr*>(rhs))
         return get(ip->get().str());
 
-    return createConvert(FlowType::String, rhs, makeName(name));
+    return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createR2S(Value* rhs, const std::string& name)
@@ -1134,7 +1085,7 @@ Value* IRBuilder::createR2S(Value* rhs, const std::string& name)
     if (auto ip = dynamic_cast<ConstantRegExp*>(rhs))
         return get(ip->get().pattern());
 
-    return createConvert(FlowType::String, rhs, makeName(name));
+    return insert(new CastInstr(FlowType::String, rhs, makeName(name)));
 }
 
 Value* IRBuilder::createS2I(Value* rhs, const std::string& name)
@@ -1144,7 +1095,7 @@ Value* IRBuilder::createS2I(Value* rhs, const std::string& name)
     if (auto ip = dynamic_cast<ConstantString*>(rhs))
         return get(stoi(ip->get()));
 
-    return createConvert(FlowType::String, rhs, makeName(name));
+    return insert(new CastInstr(FlowType::Number, rhs, makeName(name)));
 }
 // }}}
 // {{{ call creators
@@ -1153,9 +1104,10 @@ Instr* IRBuilder::createCallFunction(IRBuiltinFunction* callee, const std::vecto
     return insert(new CallInstr(callee, args, makeName(name)));
 }
 
-Instr* IRBuilder::createInvokeHandler(const std::vector<Value*>& args, const std::string& name)
+Instr* IRBuilder::createInvokeHandler(IRBuiltinHandler* callee, const std::vector<Value*>& args)
 {
-    return insert(new VmInstr(Opcode::HANDLER, args, makeName(name)));
+    assert(!"TODO");
+    return nullptr; // TODO insert(new HandlerCallInstr(args, makeName(name)));
 }
 // }}}
 // {{{ exit point creators
@@ -1166,19 +1118,15 @@ Instr* IRBuilder::createRet(Value* result, const std::string& name)
 
 Instr* IRBuilder::createBr(BasicBlock* target)
 {
-    target->predecessors().push_back(getInsertPoint());
-    getInsertPoint()->successors().push_back(target);
+    getInsertPoint()->link(target);
 
     return insert(new BrInstr({target}, ""));
 }
 
 Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name)
 {
-    trueBlock->predecessors().push_back(getInsertPoint());
-    getInsertPoint()->successors().push_back(trueBlock);
-
-    falseBlock->predecessors().push_back(getInsertPoint());
-    getInsertPoint()->successors().push_back(falseBlock);
+    getInsertPoint()->link(falseBlock);
+    getInsertPoint()->link(trueBlock);
 
     return insert(new CondBrInstr(condValue, trueBlock, falseBlock, makeName(name)));
 }

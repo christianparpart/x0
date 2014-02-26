@@ -156,15 +156,14 @@ void IRGenerator::accept(BuiltinFunction& builtin)
 {
     FNTRACE();
 
-    result_ = get(builtin.signature());
+    result_ = getBuiltinFunction(builtin.signature());
 }
 
-void IRGenerator::accept(BuiltinHandler& symbol)
+void IRGenerator::accept(BuiltinHandler& builtin)
 {
     FNTRACE();
 
-    // TODO
-    result_ = nullptr;
+    result_ = getBuiltinHandler(builtin.signature());
 }
 
 void IRGenerator::accept(UnaryExpr& expr)
@@ -190,7 +189,7 @@ void IRGenerator::accept(UnaryExpr& expr)
         result_ = (this->*i->second)(rhs, "");
     } else {
         assert(!"Unsupported unary expression in IRGenerator.");
-        result_ = insert(new UnaryInstr(expr.op(), rhs));
+        result_ = nullptr;
     }
 }
 
@@ -244,8 +243,8 @@ void IRGenerator::accept(BinaryExpr& expr)
     if (i != ops.end()) {
         result_ = (this->*i->second)(lhs, rhs, "");
     } else {
-        // fall back to generic VmInstr
-        result_ = insert(new BinaryInstr(expr.op(), lhs, rhs));
+        assert(!"Unimplemented");
+        result_ = nullptr;
     }
 }
 
@@ -270,9 +269,10 @@ void IRGenerator::accept(CallExpr& call)
         result_ = createCallFunction(static_cast<IRBuiltinFunction*>(callee), args);
     } else if (call.callee()->isBuiltin()) {
         // builtin handler
-        result_ = createInvokeHandler(args);
+        result_ = createInvokeHandler(static_cast<IRBuiltinHandler*>(callee), args);
     } else {
         // source handler
+        assert(!"TODO");
         result_ = nullptr; // TODO: inline source handler
     }
 }
