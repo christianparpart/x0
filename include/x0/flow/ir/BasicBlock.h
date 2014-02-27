@@ -24,9 +24,15 @@
 namespace x0 {
 
 class Instr;
+class BranchInstr;
 class IRHandler;
 class IRBuilder;
 
+/**
+ * An SSA based instruction basic block.
+ *
+ * @see Instr, IRHandler, IRBuilder
+ */
 class X0_API BasicBlock : public Value {
 public:
     explicit BasicBlock(const std::string& name);
@@ -35,13 +41,73 @@ public:
     IRHandler* parent() const { return parent_; }
     void setParent(IRHandler* handler) { parent_ = handler; }
 
-    const std::vector<Instr*>& instructions() const { return code_; }
+    /*!
+     * Retrieves the last terminating instruction in this basic block.
+     *
+     * This instruction must be a termination instruction, such as
+     * a branching instruction or a handler terminating instruction.
+     *
+     * @see BrInstr, CondBrInstr, MatchInstr, RetInstr
+     */
+    BranchInstr* getTerminator() const;
+
+    /**
+     * Retrieves the linear ordered list of instructions of instructions in this basic block.
+     */
     std::vector<Instr*>& instructions() { return code_; }
 
-    void dump() override;
+    /**
+     * Moves this basic block after the other basic block, \p otherBB.
+     *
+     * @param otherBB the future prior basic block.
+     *
+     * In a function, all basic blocks (starting from the entry block)
+     * will be aligned linear into the execution segment.
+     *
+     * This function moves the given basic block directly after
+     * the other basic block, \p otherBB.
+     *
+     * @see moveBefore()
+     */
+    void moveAfter(BasicBlock* otherBB);
 
-    void link(BasicBlock* successor);
-    void unlink(BasicBlock* successor);
+    /**
+     * Moves this basic block before the other basic block, \p otherBB.
+     *
+     * @see moveAfter()
+     */
+    void moveBefore(BasicBlock* otherBB);
+
+    /**
+     * Tests whether or not given block is straight-line located after this block.
+     *
+     * @retval true \p otherBB is straight-line located after this block.
+     * @retval false \p otherBB is not straight-line located after this block.
+     *
+     * @see moveAfter()
+     */
+    bool isAfter(const BasicBlock* otherBB) const;
+
+    /**
+     * Links given \p successor basic block to this predecessor.
+     *
+     * @param successor the basic block to link as an successor of this basic block.
+     *
+     * This will also automatically link this basic block as
+     * future predecessor of the \p successor.
+     *
+     * @see unlinkSuccessor()
+     * @see successors(), predecessors()
+     */
+    void linkSuccessor(BasicBlock* successor);
+
+    /**
+     * Unlink given \p successor basic block from this predecessor.
+     *
+     * @see linkSuccessor()
+     * @see successors(), predecessors()
+     */
+    void unlinkSuccessor(BasicBlock* successor);
 
     /** Retrieves all predecessors of given basic block. */
     std::vector<BasicBlock*>& predecessors() { return predecessors_; }
@@ -54,6 +120,8 @@ public:
 
     /** Retrieves all immediate dominators of given basic block. */
     std::vector<BasicBlock*> immediateDominators();
+
+    void dump() override;
 
 private:
     void collectIDom(std::vector<BasicBlock*>& output);

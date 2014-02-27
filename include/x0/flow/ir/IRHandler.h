@@ -36,7 +36,9 @@ public:
 
     void dump() override;
 
-    const std::list<BasicBlock*>& basicBlocks() const { return blocks_; }
+    std::list<BasicBlock*>& basicBlocks() { return blocks_; }
+
+    BasicBlock* getEntryBlock() const { return blocks_.front(); }
 
 private:
     IRProgram* parent_;

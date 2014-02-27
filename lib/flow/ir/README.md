@@ -2,15 +2,17 @@
 
 ### TODO
 
-- IR (pretty) printer
-- AST-to-IR converter
+- renames
+  - IRBuilder -> IRBuilderBase
+  - IRGenerator -> IRBuilder
+  - VMCodeGenerator -> MCBuilder
+
 - IR optimizations
   - constant folding
   - same-BasicBlock merging
   - dead code elimination
   - jump threading
   - efficient register allocator
-- IR-to-VM converter
 
 ### Class Hierarchy
 

@@ -258,7 +258,11 @@ void Program::dump()
     for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
         Handler* handler = handlers_[i];
         printf("\n.handler %-20s ; #%zu (%zu registers, %zu instructions)\n",
-                handler->name().c_str(), i, handler->registerCount(), handler->code().size());
+                handler->name().c_str(),
+                i,
+                handler->registerCount() - 1, // r0 is never used
+                handler->code().size()
+        );
         handler->disassemble();
     }
 

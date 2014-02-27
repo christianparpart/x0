@@ -48,7 +48,7 @@ private:
     }
 
 public:
-    AllocaInstr(FlowType ty, Value* n, const std::string& name = "") :
+    AllocaInstr(FlowType ty, Value* n, const std::string& name) :
         Instr(
             computeType(ty, n),
             /*ty == FlowType::Number
@@ -80,7 +80,7 @@ public:
 
 class X0_API ArraySetInstr : public Instr {
 public:
-    ArraySetInstr(Value* array, Value* index, Value* value, const std::string& name = "") :
+    ArraySetInstr(Value* array, Value* index, Value* value, const std::string& name) :
         Instr(FlowType::Void, {array, index, value}, name)
         {}
 
@@ -94,7 +94,7 @@ public:
 
 class X0_API StoreInstr : public Instr {
 public:
-    StoreInstr(Value* variable, Value* expression, const std::string& name = "") :
+    StoreInstr(Value* variable, Value* expression, const std::string& name) :
         Instr(FlowType::Void, {variable, expression}, name)
         {}
 
@@ -107,7 +107,7 @@ public:
 
 class X0_API LoadInstr : public Instr {
 public:
-    LoadInstr(Value* variable, const std::string& name = "") :
+    LoadInstr(Value* variable, const std::string& name) :
         Instr(variable->type(), {variable}, name)
         {}
 
@@ -139,7 +139,7 @@ public:
 
 class X0_API CastInstr : public Instr {
 public:
-    CastInstr(FlowType resultType, Value* op, const std::string& name = "") :
+    CastInstr(FlowType resultType, Value* op, const std::string& name) :
         Instr(resultType, {op}, name)
         {}
 
@@ -152,7 +152,7 @@ public:
 template<const UnaryOperator Operator, const FlowType ResultType>
 class X0_API UnaryInstr : public Instr {
 public:
-    UnaryInstr(Value* op, const std::string& name = "") :
+    UnaryInstr(Value* op, const std::string& name) :
         Instr(ResultType, {op}, name),
         operator_(Operator)
         {}
@@ -176,7 +176,7 @@ private:
 template<const BinaryOperator Operator, const FlowType ResultType>
 class X0_API BinaryInstr : public Instr {
 public:
-    BinaryInstr(Value* lhs, Value* rhs, const std::string& name = "") :
+    BinaryInstr(Value* lhs, Value* rhs, const std::string& name) :
         Instr(ResultType, {lhs, rhs}, name),
         operator_(Operator)
         {}
@@ -217,9 +217,6 @@ public:
     BranchInstr(const std::vector<Value*>& ops, const std::string& name) :
         Instr(FlowType::Void, ops, name)
         {}
-
-    void dump() override;
-    void accept(InstructionVisitor& v) override;
 };
 
 /**
@@ -263,11 +260,9 @@ public:
 /**
  * handler-return instruction.
  */
-class X0_API RetInstr : public Instr {
+class X0_API RetInstr : public BranchInstr {
 public:
-    explicit RetInstr(Value* result, const std::string& name = "") :
-        Instr(FlowType::Void, {result}, name)
-        {}
+    RetInstr(Value* result, const std::string& name);
 
     void dump() override;
     void accept(InstructionVisitor& v) override;
@@ -276,9 +271,9 @@ public:
 /**
  * Match instruction, implementing the Flow match-keyword.
  */
-class X0_API MatchInstr : public Instr {
+class X0_API MatchInstr : public BranchInstr {
 public:
-    MatchInstr(FlowVM::MatchClass op, Value* cond, const std::string& name = "");
+    MatchInstr(FlowVM::MatchClass op, Value* cond, const std::string& name);
 
     FlowVM::MatchClass op() const { return op_; }
 

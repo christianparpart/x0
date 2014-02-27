@@ -7,6 +7,9 @@
 
 #include <x0/flow/ir/BasicBlock.h>
 #include <x0/flow/ir/Instr.h>
+#include <x0/flow/ir/Instructions.h>
+#include <x0/flow/ir/IRHandler.h>
+#include <algorithm>
 #include <assert.h>
 #include <math.h>
 
@@ -32,6 +35,49 @@ BasicBlock::~BasicBlock()
     }
 }
 
+BranchInstr* BasicBlock::getTerminator() const
+{
+    return dynamic_cast<BranchInstr*>(code_.back());
+}
+
+void BasicBlock::moveAfter(BasicBlock* otherBB)
+{
+    assert(parent() == otherBB->parent());
+
+    IRHandler* handler = parent();
+    auto& list = handler->basicBlocks();
+
+    list.remove(otherBB);
+
+    auto i = std::find(list.begin(), list.end(), this);
+    ++i;
+    list.insert(i, otherBB);
+}
+
+void BasicBlock::moveBefore(BasicBlock* otherBB)
+{
+    assert(parent() == otherBB->parent());
+
+    IRHandler* handler = parent();
+    auto& list = handler->basicBlocks();
+
+    list.remove(otherBB);
+
+    auto i = std::find(list.begin(), list.end(), this);
+    list.insert(i, otherBB);
+}
+
+bool BasicBlock::isAfter(const BasicBlock* otherBB) const
+{
+    assert(parent() == otherBB->parent());
+
+    const auto& list = parent()->basicBlocks();
+    auto i = std::find(list.cbegin(), list.cend(), this);
+    ++i;
+
+    return *i == otherBB;
+}
+
 void BasicBlock::dump()
 {
     printf("%%%s:\n", name().c_str());
@@ -41,7 +87,7 @@ void BasicBlock::dump()
     printf("\n");
 }
 
-void BasicBlock::link(BasicBlock* successor)
+void BasicBlock::linkSuccessor(BasicBlock* successor)
 {
     assert(successor != nullptr);
 
@@ -49,7 +95,7 @@ void BasicBlock::link(BasicBlock* successor)
     successor->predecessors().push_back(this);
 }
 
-void BasicBlock::unlink(BasicBlock* successor)
+void BasicBlock::unlinkSuccessor(BasicBlock* successor)
 {
     assert(!"TODO");
 }

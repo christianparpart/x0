@@ -35,7 +35,6 @@ class LoadInstr;
 class CallInstr;
 class HandlerCallInstr;
 class PhiNode;
-class BranchInstr;
 class CondBrInstr;
 class BrInstr;
 class RetInstr;
@@ -108,7 +107,6 @@ public:
     virtual void visit(HandlerCallInstr& instr) = 0;
 
     // terminator
-    virtual void visit(BranchInstr& instr) = 0;
     virtual void visit(CondBrInstr& instr) = 0;
     virtual void visit(BrInstr& instr) = 0;
     virtual void visit(RetInstr& instr) = 0;

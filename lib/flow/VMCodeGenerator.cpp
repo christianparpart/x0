@@ -133,10 +133,10 @@ size_t VMCodeGenerator::emitUnary(Instr& instr, FlowVM::Opcode r)
     return emit(r, a, b);
 }
 
-size_t VMCodeGenerator::allocate(size_t count, Instr& instr)
+size_t VMCodeGenerator::allocate(size_t count, Value& alias)
 {
     int rbase = allocate(count);
-    variables_[&instr] = rbase;
+    variables_[&alias] = rbase;
     return rbase;
 }
 
@@ -158,9 +158,7 @@ void VMCodeGenerator::free(size_t base, size_t count)
 void VMCodeGenerator::visit(AllocaInstr& instr)
 {
     size_t count = getConstantInt(instr.operands()[0]);
-    size_t base = allocate(count);
-
-    variables_[&instr] = (Register) base;
+    size_t base = allocate(count, instr);
 
     printf("alloca %s => r%lu\n", instr.name().c_str(), base);
 }
@@ -172,6 +170,19 @@ void VMCodeGenerator::visit(ArraySetInstr& instr)
     assert(dynamic_cast<AllocaInstr*>(instr.array()));
     assert(dynamic_cast<ConstantInt*>(instr.index()));
 
+    Operand array = getRegister(instr.array());
+    Operand index = getConstantInt(instr.index());
+
+    if (auto i = dynamic_cast<ConstantInt*>(instr.value())) {
+        emit(Opcode::ANINITI, array, index, i->get());
+        return;
+    }
+
+    if (auto s = dynamic_cast<ConstantString*>(instr.value())) {
+        emit(Opcode::ASINIT, array, index, s->id());
+        return;
+    }
+
     // TODO
 }
 
@@ -182,13 +193,45 @@ void VMCodeGenerator::visit(StoreInstr& instr)
 
     Register lhsReg = getRegister(lhs);
 
-    // var = int
+    // const int
     if (auto integer = dynamic_cast<ConstantInt*>(rhs)) {
-        emit(Opcode::IMOV, lhsReg, integer->get());
+        if (integer->get() >= -32768 && integer->get() <= 32767) { // limit to 16bit signed width
+            emit(Opcode::IMOV, lhsReg, integer->get());
+        } else {
+            emit(Opcode::NCONST, lhsReg, integer->id());
+        }
         return;
     }
 
-    // TODO var = other types (string, ip, ...)
+    // const boolean
+    if (auto boolean = dynamic_cast<ConstantBoolean*>(rhs)) {
+        emit(Opcode::IMOV, lhsReg, boolean->get());
+        return;
+    }
+
+    // const string
+    if (auto string = dynamic_cast<ConstantString*>(rhs)) {
+        emit(Opcode::SCONST, lhsReg, string->id());
+        return;
+    }
+
+    // const IP address
+    if (auto ip = dynamic_cast<ConstantIP*>(rhs)) {
+        emit(Opcode::PCONST, lhsReg, ip->id());
+        return;
+    }
+
+    // const Cidr
+    if (auto cidr = dynamic_cast<ConstantCidr*>(rhs)) {
+        emit(Opcode::CCONST, lhsReg, cidr->id());
+        return;
+    }
+
+    // TODO const RegExp
+    if (/*auto re =*/ dynamic_cast<ConstantRegExp*>(rhs)) {
+        assert(!"TODO store const RegExp");
+        return;
+    }
 
     // var = var
     auto i = variables_.find(rhs);
@@ -197,21 +240,22 @@ void VMCodeGenerator::visit(StoreInstr& instr)
         return;
     }
 
+#ifndef NDEBUG
     printf("instr:\n");
     instr.dump();
     printf("lhs:\n");
     lhs->dump();
     printf("rhs:\n");
     rhs->dump();
-    //assert(!"TODO Following store is not implemented:\n");
+#endif
+    assert(!"Store variant not implemented!");
 }
 
 void VMCodeGenerator::visit(LoadInstr& instr)
 {
-    printf("LOAD INSTRUCTION: ");
-    instr.dump();
-
-    variables_[&instr] = allocate(1);
+    // no need to *load* the variable into a register as
+    // we have only one variable store
+    variables_[&instr] = getRegister(instr.variable());
 }
 
 void VMCodeGenerator::visit(CallInstr& instr)
@@ -226,7 +270,7 @@ void VMCodeGenerator::visit(CallInstr& instr)
     }
 
     // emit call
-    Register nativeId = 0;//nativeFunction(static_cast<BuiltinFunction*>(callee));
+    Register nativeId = 0;// TODO nativeFunction(static_cast<BuiltinFunction*>(callee));
     emit(Opcode::CALL, nativeId, argc, rbase);
 
     variables_[&instr] = rbase;
@@ -261,15 +305,14 @@ FlowVM::Operand VMCodeGenerator::getRegister(Value* value)
         return i->second;
 
     if (ConstantInt* integer = dynamic_cast<ConstantInt*>(value)) {
-        Register reg = allocate(1);
+        Register reg = allocate(1, integer);
         emit(Opcode::IMOV, reg, integer->get());
         return reg;
     }
 
-    Register reg = allocate(1);
-    variables_[value] = reg;
+    // TODO: other const-to-reg implicits (string, ip, cidr, regex)
 
-    return reg;
+    return allocate(1, value);
 }
 
 void VMCodeGenerator::visit(PhiNode& instr)
@@ -277,28 +320,20 @@ void VMCodeGenerator::visit(PhiNode& instr)
     assert(!"Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
 }
 
-void VMCodeGenerator::visit(BranchInstr& instr)
-{
-    printf("TODO: "); instr.dump();
-
-}
-
 void VMCodeGenerator::visit(CondBrInstr& instr)
 {
-    printf("TODO: "); instr.dump();
+    // ensure that trueBlock is straight-line after the current one
+    //instr.parent()->moveAfter(instr.trueBlock());
+    assert(instr.parent()->isAfter(instr.trueBlock()));
 
     auto condition = getRegister(instr.condition());
-    auto trueLabel = getLabel(instr.trueBlock());
     auto falseLabel = getLabel(instr.falseBlock());
 
-    emit(Opcode::JN, condition, trueLabel);
-    emit(Opcode::JMP, falseLabel);
+    emit(Opcode::JZ, condition, falseLabel);
 }
 
 void VMCodeGenerator::visit(BrInstr& instr)
 {
-    printf("TODO: "); instr.dump();
-
     Operand label = getLabel(instr.targetBlock());
     emit(Opcode::JMP, label);
 }

@@ -621,15 +621,15 @@ Instr* IRBuilder::createRet(Value* result, const std::string& name)
 
 Instr* IRBuilder::createBr(BasicBlock* target)
 {
-    getInsertPoint()->link(target);
+    getInsertPoint()->linkSuccessor(target);
 
     return insert(new BrInstr({target}, ""));
 }
 
 Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name)
 {
-    getInsertPoint()->link(falseBlock);
-    getInsertPoint()->link(trueBlock);
+    getInsertPoint()->linkSuccessor(falseBlock);
+    getInsertPoint()->linkSuccessor(trueBlock);
 
     return insert(new CondBrInstr(condValue, trueBlock, falseBlock, makeName(name)));
 }

@@ -48,7 +48,8 @@ protected:
     FlowVM::Operand getConstantInt(Value* value);
     FlowVM::Operand getLabel(BasicBlock* bb);
 
-    size_t allocate(size_t count, Instr& instr);
+    size_t allocate(size_t count, Value* alias) { return allocate(count, *alias); }
+    size_t allocate(size_t count, Value& alias);
     size_t allocate(size_t count);
     void free(size_t base, size_t count);
 
@@ -64,7 +65,6 @@ protected:
     void visit(HandlerCallInstr& instr) override;
 
     // terminator
-    void visit(BranchInstr& instr) override;
     void visit(CondBrInstr& instr) override;
     void visit(BrInstr& instr) override;
     void visit(RetInstr& instr) override;

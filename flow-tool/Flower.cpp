@@ -255,6 +255,7 @@ int Flower::run(const char* fileName, const char* handlerName)
             program->dump();
         }
 
+#if 0
         printf("================================================ def-uses\n");
         for (IRHandler* handler: program->handlers()) {
             printf("handler:\n");
@@ -276,6 +277,7 @@ int Flower::run(const char* fileName, const char* handlerName)
             }
             printf("\n");
         }
+#endif
 
         printf("================================================ IR codegen dump\n");
         {
@@ -285,6 +287,7 @@ int Flower::run(const char* fileName, const char* handlerName)
         }
 
         printf("============================================================\n");
+        program->dump();
     }
 
 	Handler* handlerSym = unit->findHandler(handlerName);

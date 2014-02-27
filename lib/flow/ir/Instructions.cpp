@@ -87,17 +87,6 @@ void CastInstr::accept(InstructionVisitor& v)
     v.visit(*this);
 }
 // }}}
-// {{{ BranchInstr
-void BranchInstr::dump()
-{
-    dumpOne("br");
-}
-
-void BranchInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-// }}}
 // {{{ CondBrInstr
 CondBrInstr::CondBrInstr(Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name) :
     BranchInstr({cond, trueBlock, falseBlock}, name)
@@ -119,21 +108,29 @@ BrInstr::BrInstr(BasicBlock* targetBlock, const std::string& name) :
     BranchInstr({targetBlock}, name)
 {
 }
+
+void BrInstr::dump()
+{
+    dumpOne("br");
+}
+
+void BrInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
 // }}}
 // {{{ MatchInstr
 MatchInstr::MatchInstr(MatchClass op, Value* cond, const std::string& name) :
-    Instr(FlowType::Void, {}, name),
+    BranchInstr({cond}, name),
     op_(op),
     cases_(),
     elseBlock_(nullptr)
 {
-    assert(cond != nullptr);
-    operands().push_back(cond);
 }
 
 void MatchInstr::addCase(Constant* label, BasicBlock* code)
 {
-    parent()->link(code);
+    parent()->linkSuccessor(code);
 
     cases_.push_back(std::make_pair(label, code));
 }
@@ -142,9 +139,48 @@ void MatchInstr::setElseBlock(BasicBlock* code)
 {
     assert(elseBlock_ == nullptr);
 
-    parent()->link(code);
+    parent()->linkSuccessor(code);
 
     elseBlock_ = code;
+}
+
+void MatchInstr::dump()
+{
+    switch (op()) {
+        case MatchClass::Same:
+            dumpOne("match.same");
+            break;
+        case MatchClass::Head:
+            dumpOne("match.head");
+            break;
+        case MatchClass::Tail:
+            dumpOne("match.tail");
+            break;
+        case MatchClass::RegExp:
+            dumpOne("match.re");
+            break;
+    }
+}
+
+void MatchInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+// }}}
+// {{{ RetInstr
+RetInstr::RetInstr(Value* result, const std::string& name) :
+    BranchInstr({result}, name)
+{
+}
+
+void RetInstr::dump()
+{
+    dumpOne("ret");
+}
+
+void RetInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
 }
 // }}}
 // {{{ other instructions
@@ -210,21 +246,6 @@ void PhiNode::accept(InstructionVisitor& visitor)
     visitor.visit(*this);
 }
 
-void BrInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void RetInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void MatchInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 PhiNode::PhiNode(const std::vector<Value*>& ops, const std::string& name) :
     Instr(ops[0]->type(), ops, name)
 {
@@ -233,16 +254,6 @@ PhiNode::PhiNode(const std::vector<Value*>& ops, const std::string& name) :
 void PhiNode::dump()
 {
     dumpOne("phi");
-}
-
-void BrInstr::dump()
-{
-    dumpOne("BR");
-}
-
-void RetInstr::dump()
-{
-    dumpOne("RET");
 }
 
 void AllocaInstr::dump()
@@ -265,10 +276,6 @@ void StoreInstr::dump()
     dumpOne("store");
 }
 
-void MatchInstr::dump()
-{
-    dumpOne("MATCH");
-}
 void CallInstr::dump()
 {
     dumpOne("CALL");
