@@ -165,6 +165,21 @@ CallInstr::CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args,
 {
 }
 
+HandlerCallInstr::HandlerCallInstr(IRBuiltinHandler* callee, const std::vector<Value*>& args) :
+    Instr(FlowType::Boolean, join(callee, args), "")
+{
+}
+
+void HandlerCallInstr::dump()
+{
+    dumpOne("hcall");
+}
+
+void HandlerCallInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
 void AllocaInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);

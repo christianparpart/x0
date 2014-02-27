@@ -234,6 +234,11 @@ void VMCodeGenerator::visit(CallInstr& instr)
     free(rbase + 1, argc - 1);
 }
 
+void VMCodeGenerator::visit(HandlerCallInstr& instr)
+{
+    assert(!"TODO");
+}
+
 FlowVM::Operand VMCodeGenerator::getConstantInt(Value* value)
 {
     if (auto i = dynamic_cast<ConstantInt*>(value))

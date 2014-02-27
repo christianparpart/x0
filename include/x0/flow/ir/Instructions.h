@@ -119,7 +119,7 @@ public:
 
 class X0_API CallInstr : public Instr {
 public:
-    CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name = "");
+    CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name);
 
     IRBuiltinFunction* callee() const { return (IRBuiltinFunction*) operand(0); }
 

@@ -33,6 +33,7 @@ class ArraySetInstr;
 class StoreInstr;
 class LoadInstr;
 class CallInstr;
+class HandlerCallInstr;
 class PhiNode;
 class BranchInstr;
 class CondBrInstr;
@@ -104,6 +105,7 @@ public:
 
     // calls
     virtual void visit(CallInstr& instr) = 0;
+    virtual void visit(HandlerCallInstr& instr) = 0;
 
     // terminator
     virtual void visit(BranchInstr& instr) = 0;

@@ -61,6 +61,7 @@ protected:
 
     // calls
     void visit(CallInstr& instr) override;
+    void visit(HandlerCallInstr& instr) override;
 
     // terminator
     void visit(BranchInstr& instr) override;

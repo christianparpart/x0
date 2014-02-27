@@ -610,8 +610,7 @@ Instr* IRBuilder::createCallFunction(IRBuiltinFunction* callee, const std::vecto
 
 Instr* IRBuilder::createInvokeHandler(IRBuiltinHandler* callee, const std::vector<Value*>& args)
 {
-    assert(!"TODO");
-    return nullptr; // TODO insert(new HandlerCallInstr(args, makeName(name)));
+    return insert(new HandlerCallInstr(callee, args));
 }
 // }}}
 // {{{ exit point creators
