@@ -138,6 +138,8 @@ if(ENABLE_XZERO_FLOW)
     flow/ir/IRProgram.cpp
     flow/ir/Value.cpp
 
+    flow/transform/EmptyBlockElimination.cpp
+
     flow/vm/Handler.cpp
     flow/vm/Instruction.cpp
     flow/vm/Match.cpp

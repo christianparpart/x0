@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <list>
 #include <utility>
 #include <memory>
 
@@ -40,6 +41,30 @@ protected:
     size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1, FlowVM::Operand op2) { return emit(FlowVM::makeInstruction(opc, op1, op2)); }
     size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1, FlowVM::Operand op2, FlowVM::Operand op3) { return emit(FlowVM::makeInstruction(opc, op1, op2, op3)); }
     size_t emit(FlowVM::Instruction instr);
+
+    /**
+     * Emits conditional jump instruction.
+     *
+     * @param opcode Opcode for the conditional jump.
+     * @param cond Condition to to evaluated by given \p opcode.
+     * @param bb Target basic block to jump to by \p opcode.
+     *
+     * This function will just emit a placeholder and will remember the instruction pointer and passed operands
+     * for later back-patching once all basic block addresses have been computed.
+     */
+    size_t emit(FlowVM::Opcode opcode, Register cond, BasicBlock* bb);
+
+    /**
+     * Emits unconditional jump instruction.
+     *
+     * @param opcode Opcode for the conditional jump.
+     * @param bb Target basic block to jump to by \p opcode.
+     *
+     * This function will just emit a placeholder and will remember the instruction pointer and passed operands
+     * for later back-patching once all basic block addresses have been computed.
+     */
+    size_t emit(FlowVM::Opcode opcode, BasicBlock* bb);
+
     size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr, FlowVM::Opcode ri);
     size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr);
     size_t emitBinary(Instr& instr, FlowVM::Opcode rr);
@@ -47,7 +72,7 @@ protected:
 
     FlowVM::Operand getRegister(Value* value);
     FlowVM::Operand getConstantInt(Value* value);
-    FlowVM::Operand getLabel(BasicBlock* bb);
+    size_t getInstructionPointer() const { return code_.size(); }
 
     size_t allocate(size_t count, Value* alias) { return allocate(count, *alias); }
     size_t allocate(size_t count, Value& alias);
@@ -118,7 +143,23 @@ protected:
     void visit(SInInstr& instr) override;
 
 private:
-    std::vector<std::string> errors_;           //!< list of raised errors during code generation.
+    struct ConditionalJump {
+        size_t pc;
+        FlowVM::Opcode opcode;
+        Register condition;
+    };
+
+    struct UnconditionalJump {
+        size_t pc;
+        FlowVM::Opcode opcode;
+    };
+
+    //!< list of raised errors during code generation.
+    std::vector<std::string> errors_;
+
+    std::unordered_map<BasicBlock*, std::list<ConditionalJump>> conditionalJumps_;
+    std::unordered_map<BasicBlock*, std::list<UnconditionalJump>> unconditionalJumps_;
+    std::list<std::pair<MatchInstr*, size_t>> matchHints_;
 
     // target program output
     std::vector<FlowNumber> constNumbers_;

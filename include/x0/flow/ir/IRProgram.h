@@ -13,6 +13,7 @@
 #include <x0/flow/ir/ConstantValue.h>
 #include <x0/flow/ir/IRBuiltinHandler.h>
 #include <x0/flow/ir/IRBuiltinFunction.h>
+#include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/vm/Signature.h>
 #include <x0/IPAddress.h>
 #include <x0/RegExp.h>
@@ -23,7 +24,6 @@
 
 namespace x0 {
 
-class IRHandler;
 class IRBuilder;
 
 class X0_API IRProgram {
@@ -49,6 +49,20 @@ public:
 
 	const std::vector<std::pair<std::string, std::string>>& imports() const { return imports_; }
     const std::vector<IRHandler*>& handlers() const { return handlers_; }
+
+    /**
+     * Performs given transformation on all handlers by given type.
+     *
+     * @see HandlerPass
+     */
+    template<typename TheHandlerPass, typename... Args>
+    size_t transform(Args&&... args) {
+        size_t count = 0;
+        for (IRHandler* handler: handlers()) {
+            count += handler->transform<TheHandlerPass>(args...);
+        }
+        return count;
+    }
 
 private:
 	std::vector<std::pair<std::string, std::string> > imports_;

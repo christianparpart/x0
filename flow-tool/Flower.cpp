@@ -16,6 +16,7 @@
 #include <x0/flow/ir/IRProgram.h>
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/BasicBlock.h>
+#include <x0/flow/transform/EmptyBlockElimination.h>
 #include <x0/flow/ir/Instr.h>
 #include <x0/flow/IRGenerator.h>
 #include <x0/flow/TargetCodeGenerator.h>
@@ -211,6 +212,31 @@ int Flower::runAll(const char *fileName)
     return totalFailed_;
 }
 
+void printDefUseChain(IRProgram* program)
+{
+    printf("================================================ def-use chain\n");
+    for (IRHandler* handler: program->handlers()) {
+        printf("handler:\n");
+        for (BasicBlock* bb: handler->basicBlocks()) {
+            printf("bb:\n");
+            for (Instr* instr: bb->instructions()) {
+                printf("def : ");
+                instr->dump();
+                for (Instr* use: instr->uses()) {
+                    printf("use : ");
+                    use->dump();
+                }
+                if (instr->uses().empty()) {
+                    printf("no uses\n");
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+}
+
 int Flower::run(const char* fileName, const char* handlerName)
 {
 	if (!handlerName || !*handlerName) {
@@ -251,43 +277,23 @@ int Flower::run(const char* fileName, const char* handlerName)
     {
         printf("================================================ IR\n");
         IRProgram* program = IRGenerator::generate(unit.get());
+
+        program->transform<EmptyBlockElimination>();
+
         if (program) {
             program->dump();
         }
 
-#if 0
-        printf("================================================ def-uses\n");
-        for (IRHandler* handler: program->handlers()) {
-            printf("handler:\n");
-            for (BasicBlock* bb: handler->basicBlocks()) {
-                printf("bb:\n");
-                for (Instr* instr: bb->instructions()) {
-                    printf("def : ");
-                    instr->dump();
-                    for (Instr* use: instr->uses()) {
-                        printf("use : ");
-                        use->dump();
-                    }
-                    if (instr->uses().empty()) {
-                        printf("no uses\n");
-                    }
-                    printf("\n");
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-#endif
+        //printDefUseChain(program);
 
-        printf("================================================ IR codegen dump\n");
         {
+            printf("================================================ IR codegen dump\n");
             if (auto vmprogram = TargetCodeGenerator().generate(program)) {
                 vmprogram->dump();
             }
         }
 
         printf("============================================================\n");
-        program->dump();
     }
 
 	Handler* handlerSym = unit->findHandler(handlerName);

@@ -7,6 +7,7 @@
 
 #include <x0/flow/ir/IRProgram.h>
 #include <x0/flow/ir/IRHandler.h>
+#include <x0/flow/ir/HandlerPass.h>
 #include <assert.h>
 
 namespace x0 {

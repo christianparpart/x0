@@ -143,7 +143,6 @@ void IRGenerator::accept(Handler& handler)
 
     setHandler(getHandler(handler.name()));
     setInsertPoint(createBlock("EntryPoint"));
-    this->handler()->setEntryPoint(getInsertPoint());
 
     for (Symbol* symbol: *handler.scope()) {
         codegen(symbol);

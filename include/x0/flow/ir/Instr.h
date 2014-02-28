@@ -45,6 +45,16 @@ public:
     std::vector<Value*>& operands() { return operands_; }
     Value* operand(size_t index) const { return operands_[index]; }
 
+    /**
+     * Replaces \p old operand with \p replacement.
+     *
+     * @param old value to replace
+     * @param replacement new value to put at the offset of \p old.
+     *
+     * @returns number of actual performed replacements.
+     */
+    size_t replaceOperand(Value* old, Value* replacement);
+
     virtual void accept(InstructionVisitor& v) = 0;
 
 protected:

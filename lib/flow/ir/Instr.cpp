@@ -9,6 +9,7 @@
 #include <x0/flow/ir/ConstantValue.h>
 #include <x0/flow/ir/IRBuiltinHandler.h>
 #include <x0/flow/ir/IRBuiltinFunction.h>
+#include <x0/flow/ir/BasicBlock.h>
 #include <utility>
 #include <assert.h>
 
@@ -28,6 +29,27 @@ Instr::Instr(FlowType ty, const std::vector<Value*>& ops, const std::string& nam
 
 Instr::~Instr()
 {
+}
+
+size_t Instr::replaceOperand(Value* old, Value* replacement)
+{
+    size_t count = 0;
+
+    for (size_t i = 0, e = operands_.size(); i != e; ++i) {
+        if (operands_[i] == old) {
+            operands_[i] = replacement;
+
+            if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(old))
+                parent()->unlinkSuccessor(oldBB);
+
+            if (BasicBlock* newBB = dynamic_cast<BasicBlock*>(replacement))
+                parent()->linkSuccessor(newBB);
+
+            ++count;
+        }
+    }
+
+    return count;
 }
 
 void Instr::dumpOne(const char* mnemonic)

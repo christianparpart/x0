@@ -16,6 +16,8 @@ using namespace FlowVM;
 
 TargetCodeGenerator::TargetCodeGenerator() :
     errors_(),
+    conditionalJumps_(),
+    unconditionalJumps_(),
     constNumbers_(),
     constStrings_(),
     ipaddrs_(),
@@ -64,11 +66,48 @@ void TargetCodeGenerator::generate(IRHandler* handler)
     // explicitely forward-declare handler, so we can use its ID internally.
     handlerId_ = handlerRef(handler);
 
+    std::unordered_map<BasicBlock*, size_t> basicBlockEntryPoints;
+
+    // generate code for all basic blocks, sequentially
     for (BasicBlock* bb: handler->basicBlocks()) {
+        basicBlockEntryPoints[bb] = getInstructionPointer();
         for (Instr* instr: bb->instructions()) {
             instr->accept(*this);
         }
     }
+
+    // fixiate conditional jump instructions
+    for (const auto& target: conditionalJumps_) {
+        size_t targetPC = basicBlockEntryPoints[target.first];
+        for (const auto& source: target.second) {
+            code_[source.pc] = makeInstruction(source.opcode, source.condition, targetPC);
+        }
+    }
+    conditionalJumps_.clear();
+
+    // fixiate unconditional jump instructions
+    for (const auto& target: unconditionalJumps_) {
+        size_t targetPC = basicBlockEntryPoints[target.first];
+        for (const auto& source: target.second) {
+            code_[source.pc] = makeInstruction(source.opcode, targetPC);
+        }
+    }
+    unconditionalJumps_.clear();
+
+    // fixiate match jump table
+    for (const auto& hint: matchHints_) {
+        MatchInstr* instr = hint.first;
+        size_t matchId = hint.second;
+
+        for (size_t i = 0, e = instr->cases().size(); i != e; ++i) {
+            matches_[matchId].cases[i].pc = basicBlockEntryPoints[instr->cases()[i].second];
+        }
+
+        if (instr->elseBlock()) {
+            matches_[matchId].elsePC = basicBlockEntryPoints[instr->elseBlock()];
+        }
+    }
+    matchHints_.clear();
 
     handlers_[handlerId_].second = std::move(code_);
 }
@@ -89,7 +128,21 @@ size_t TargetCodeGenerator::handlerRef(IRHandler* handler)
 size_t TargetCodeGenerator::emit(FlowVM::Instruction instr)
 {
     code_.push_back(instr);
-    return code_.size() - 1;
+    return getInstructionPointer() - 1;
+}
+
+size_t TargetCodeGenerator::emit(FlowVM::Opcode opcode, Register cond, BasicBlock* bb)
+{
+    size_t pc = emit(Opcode::NOP);
+    conditionalJumps_[bb].push_back({pc, opcode, cond});
+    return pc;
+}
+
+size_t TargetCodeGenerator::emit(FlowVM::Opcode opcode, BasicBlock* bb)
+{
+    size_t pc = emit(Opcode::NOP);
+    unconditionalJumps_[bb].push_back({pc, opcode});
+    return pc;
 }
 
 size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode rr)
@@ -168,6 +221,7 @@ void TargetCodeGenerator::free(size_t base, size_t count)
     }
 }
 
+// {{{ instruction code generation
 void TargetCodeGenerator::visit(AllocaInstr& instr)
 {
     size_t count = getConstantInt(instr.operands()[0]);
@@ -310,12 +364,6 @@ FlowVM::Operand TargetCodeGenerator::getConstantInt(Value* value)
     return 0;
 }
 
-FlowVM::Operand TargetCodeGenerator::getLabel(BasicBlock* bb)
-{
-    printf("GET_LABEL: TODO\n");
-    return 0; // TODO: compute label (IP) of given BB
-}
-
 FlowVM::Operand TargetCodeGenerator::getRegister(Value* value)
 {
     auto i = variables_.find(value);
@@ -341,21 +389,15 @@ void TargetCodeGenerator::visit(PhiNode& instr)
 
 void TargetCodeGenerator::visit(CondBrInstr& instr)
 {
-    auto condition = getRegister(instr.condition());
-
     if (instr.parent()->isAfter(instr.trueBlock())) {
-        auto falseLabel = getLabel(instr.falseBlock());
-        emit(Opcode::JZ, condition, falseLabel);
+        emit(Opcode::JZ, getRegister(instr.condition()), instr.falseBlock());
     }
     else if (instr.parent()->isAfter(instr.falseBlock())) {
-        auto trueLabel = getLabel(instr.trueBlock());
-        emit(Opcode::JN, condition, trueLabel);
+        emit(Opcode::JN, getRegister(instr.condition()), instr.trueBlock());
     }
     else {
-        auto trueLabel = getLabel(instr.trueBlock());
-        auto falseLabel = getLabel(instr.falseBlock());
-        emit(Opcode::JN, condition, trueLabel);
-        emit(Opcode::JMP, condition, falseLabel);
+        emit(Opcode::JN, getRegister(instr.condition()), instr.trueBlock());
+        emit(Opcode::JMP, instr.falseBlock());
     }
 }
 
@@ -365,8 +407,7 @@ void TargetCodeGenerator::visit(BrInstr& instr)
     if (instr.parent()->isAfter(instr.targetBlock()))
         return;
 
-    Operand label = getLabel(instr.targetBlock());
-    emit(Opcode::JMP, label);
+    emit(Opcode::JMP, instr.targetBlock());
 }
 
 void TargetCodeGenerator::visit(RetInstr& instr)
@@ -376,7 +417,32 @@ void TargetCodeGenerator::visit(RetInstr& instr)
 
 void TargetCodeGenerator::visit(MatchInstr& instr)
 {
-    assert(!"TODO: MatchInstr CG");
+    static const Opcode ops[] = {
+        [(size_t) MatchClass::Same] = Opcode::SMATCHEQ,
+        [(size_t) MatchClass::Head] = Opcode::SMATCHBEG,
+        [(size_t) MatchClass::Tail] = Opcode::SMATCHEND,
+        [(size_t) MatchClass::RegExp] = Opcode::SMATCHR,
+    };
+
+    const size_t matchId = matches_.size();
+
+    MatchDef matchDef;
+    matchDef.handlerId = handlerRef(instr.parent()->parent());
+    matchDef.op = instr.op();
+    matchDef.elsePC = 0; // XXX to be filled in post-processing the handler
+
+    matchHints_.push_back({&instr, matchId});
+
+    for (const auto& one: instr.cases()) {
+        MatchCaseDef caseDef;
+        caseDef.label = static_cast<Constant*>(one.first)->id();
+        caseDef.pc = 0; // XXX to be filled in post-processing the handler
+
+        matchDef.cases.push_back(caseDef);
+    }
+
+    emit(ops[(size_t) matchDef.op], matchId);
+    matches_.push_back(std::move(matchDef));
 }
 
 void TargetCodeGenerator::visit(CastInstr& instr)
@@ -603,5 +669,6 @@ void TargetCodeGenerator::visit(SInInstr& instr)
 {
     emitBinary(instr, Opcode::SCONTAINS);
 }
+// }}}
 
 } // namespace x0

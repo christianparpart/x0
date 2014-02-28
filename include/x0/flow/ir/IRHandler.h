@@ -28,8 +28,7 @@ public:
 
     BasicBlock* createBlock(const std::string& name = "");
 
-    BasicBlock* setEntryPoint(BasicBlock* bb);
-    BasicBlock* entryPoint() const { return entryPoint_; }
+    BasicBlock* entryPoint() const { return blocks_.front(); }
 
     IRProgram* parent() const { return parent_; }
     void setParent(IRProgram* prog) { parent_ = prog; }
@@ -40,9 +39,23 @@ public:
 
     BasicBlock* getEntryBlock() const { return blocks_.front(); }
 
+    /**
+     * Removes given basic block \p bb from handler.
+     */
+    void remove(BasicBlock* bb);
+
+    /**
+     * Performs given transformation on this handler.
+     *
+     * @see HandlerPass
+     */
+    template<typename TheHandlerPass, typename... Args>
+    size_t transform(Args&&... args) {
+        return TheHandlerPass(args...).run(this);
+    }
+
 private:
     IRProgram* parent_;
-    BasicBlock* entryPoint_;
     std::list<BasicBlock*> blocks_;
 
     friend class IRBuilder;

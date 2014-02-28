@@ -73,6 +73,10 @@ bool BasicBlock::isAfter(const BasicBlock* otherBB) const
 
     const auto& list = parent()->basicBlocks();
     auto i = std::find(list.cbegin(), list.cend(), this);
+
+    if (i == list.cend())
+        return false;
+
     ++i;
 
     return *i == otherBB;
@@ -106,7 +110,13 @@ void BasicBlock::linkSuccessor(BasicBlock* successor)
 
 void BasicBlock::unlinkSuccessor(BasicBlock* successor)
 {
-    assert(!"TODO");
+    assert(successor != nullptr);
+
+    auto s = std::find(successors_.begin(), successors_.end(), successor);
+    successors_.erase(s);
+
+    auto p = std::find(successor->predecessors_.begin(), successor->predecessors_.end(), this);
+    successor->predecessors_.erase(p);
 }
 
 std::vector<BasicBlock*> BasicBlock::dominators()
