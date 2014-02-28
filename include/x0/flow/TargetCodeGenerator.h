@@ -24,10 +24,10 @@ namespace FlowVM {
     class Program;
 }
 
-class X0_API VMCodeGenerator : public InstructionVisitor {
+class X0_API TargetCodeGenerator : public InstructionVisitor {
 public:
-    VMCodeGenerator();
-    ~VMCodeGenerator();
+    TargetCodeGenerator();
+    ~TargetCodeGenerator();
 
     std::unique_ptr<FlowVM::Program> generate(IRProgram* program);
 

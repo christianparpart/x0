@@ -1,4 +1,4 @@
-#include <x0/flow/VMCodeGenerator.h>
+#include <x0/flow/TargetCodeGenerator.h>
 #include <x0/flow/vm/Program.h>
 #include <x0/flow/ir/BasicBlock.h>
 #include <x0/flow/ir/ConstantValue.h>
@@ -14,7 +14,7 @@ namespace x0 {
 
 using namespace FlowVM;
 
-VMCodeGenerator::VMCodeGenerator() :
+TargetCodeGenerator::TargetCodeGenerator() :
     errors_(),
     constNumbers_(),
     constStrings_(),
@@ -35,11 +35,11 @@ VMCodeGenerator::VMCodeGenerator() :
     allocations_.push_back(true);
 }
 
-VMCodeGenerator::~VMCodeGenerator()
+TargetCodeGenerator::~TargetCodeGenerator()
 {
 }
 
-std::unique_ptr<FlowVM::Program> VMCodeGenerator::generate(IRProgram* program)
+std::unique_ptr<FlowVM::Program> TargetCodeGenerator::generate(IRProgram* program)
 {
     for (IRHandler* handler: program->handlers()) {
         generate(handler);
@@ -59,7 +59,7 @@ std::unique_ptr<FlowVM::Program> VMCodeGenerator::generate(IRProgram* program)
     ));
 }
 
-void VMCodeGenerator::generate(IRHandler* handler)
+void TargetCodeGenerator::generate(IRHandler* handler)
 {
     // explicitely forward-declare handler, so we can use its ID internally.
     handlerId_ = handlerRef(handler);
@@ -76,7 +76,7 @@ void VMCodeGenerator::generate(IRHandler* handler)
 /**
  * Retrieves the program's handler ID for given handler, possibly forward-declaring given handler if not (yet) found.
  */
-size_t VMCodeGenerator::handlerRef(IRHandler* handler)
+size_t TargetCodeGenerator::handlerRef(IRHandler* handler)
 {
     for (size_t i = 0, e = handlers_.size(); i != e; ++i)
         if (handlers_[i].first == handler->name())
@@ -86,13 +86,13 @@ size_t VMCodeGenerator::handlerRef(IRHandler* handler)
     return handlers_.size() - 1;
 }
 
-size_t VMCodeGenerator::emit(FlowVM::Instruction instr)
+size_t TargetCodeGenerator::emit(FlowVM::Instruction instr)
 {
     code_.push_back(instr);
     return code_.size() - 1;
 }
 
-size_t VMCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr, Opcode ri)
+size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr, Opcode ri)
 {
     assert(operandSignature(rr) == InstructionSig::RRR);
     assert(operandSignature(ri) == InstructionSig::RRI);
@@ -114,7 +114,7 @@ size_t VMCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr, Opcode ri)
     return emit(rr, a, b, c);
 }
 
-size_t VMCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr)
+size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr)
 {
     assert(operandSignature(rr) == InstructionSig::RRR);
 
@@ -125,7 +125,7 @@ size_t VMCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr)
     return emit(rr, a, b, c);
 }
 
-size_t VMCodeGenerator::emitUnary(Instr& instr, FlowVM::Opcode r)
+size_t TargetCodeGenerator::emitUnary(Instr& instr, FlowVM::Opcode r)
 {
     assert(operandSignature(r) == InstructionSig::RR);
 
@@ -135,14 +135,14 @@ size_t VMCodeGenerator::emitUnary(Instr& instr, FlowVM::Opcode r)
     return emit(r, a, b);
 }
 
-size_t VMCodeGenerator::allocate(size_t count, Value& alias)
+size_t TargetCodeGenerator::allocate(size_t count, Value& alias)
 {
     int rbase = allocate(count);
     variables_[&alias] = rbase;
     return rbase;
 }
 
-size_t VMCodeGenerator::allocate(size_t count)
+size_t TargetCodeGenerator::allocate(size_t count)
 {
     for (size_t i = 0; i < count; ++i)
         allocations_.push_back(true);
@@ -150,21 +150,21 @@ size_t VMCodeGenerator::allocate(size_t count)
     return allocations_.size() - count;
 }
 
-void VMCodeGenerator::free(size_t base, size_t count)
+void TargetCodeGenerator::free(size_t base, size_t count)
 {
     for (int i = base, e = base + count; i != e; ++i) {
         allocations_[i] = false;
     }
 }
 
-void VMCodeGenerator::visit(AllocaInstr& instr)
+void TargetCodeGenerator::visit(AllocaInstr& instr)
 {
     size_t count = getConstantInt(instr.operands()[0]);
 
     allocate(count, instr);
 }
 
-void VMCodeGenerator::visit(ArraySetInstr& instr)
+void TargetCodeGenerator::visit(ArraySetInstr& instr)
 {
     assert(dynamic_cast<AllocaInstr*>(instr.array()));
     assert(dynamic_cast<ConstantInt*>(instr.index()));
@@ -193,7 +193,7 @@ void VMCodeGenerator::visit(ArraySetInstr& instr)
     assert(!"TODO: missing implementation of ArraySetInstr sub types");
 }
 
-void VMCodeGenerator::visit(StoreInstr& instr)
+void TargetCodeGenerator::visit(StoreInstr& instr)
 {
     Value* lhs = instr.variable();
     Value* rhs = instr.expression();
@@ -258,14 +258,14 @@ void VMCodeGenerator::visit(StoreInstr& instr)
     assert(!"Store variant not implemented!");
 }
 
-void VMCodeGenerator::visit(LoadInstr& instr)
+void TargetCodeGenerator::visit(LoadInstr& instr)
 {
     // no need to *load* the variable into a register as
     // we have only one variable store
     variables_[&instr] = getRegister(instr.variable());
 }
 
-void VMCodeGenerator::visit(CallInstr& instr)
+void TargetCodeGenerator::visit(CallInstr& instr)
 {
     int argc = instr.operands().size();
     Register rbase = allocate(argc);
@@ -285,12 +285,12 @@ void VMCodeGenerator::visit(CallInstr& instr)
     free(rbase + 1, argc - 1);
 }
 
-void VMCodeGenerator::visit(HandlerCallInstr& instr)
+void TargetCodeGenerator::visit(HandlerCallInstr& instr)
 {
     assert(!"TODO");
 }
 
-FlowVM::Operand VMCodeGenerator::getConstantInt(Value* value)
+FlowVM::Operand TargetCodeGenerator::getConstantInt(Value* value)
 {
     if (auto i = dynamic_cast<ConstantInt*>(value))
         return i->get();
@@ -299,13 +299,13 @@ FlowVM::Operand VMCodeGenerator::getConstantInt(Value* value)
     return 0;
 }
 
-FlowVM::Operand VMCodeGenerator::getLabel(BasicBlock* bb)
+FlowVM::Operand TargetCodeGenerator::getLabel(BasicBlock* bb)
 {
     printf("GET_LABEL: TODO\n");
     return 0; // TODO: compute label (IP) of given BB
 }
 
-FlowVM::Operand VMCodeGenerator::getRegister(Value* value)
+FlowVM::Operand TargetCodeGenerator::getRegister(Value* value)
 {
     auto i = variables_.find(value);
     if (i != variables_.end())
@@ -323,12 +323,12 @@ FlowVM::Operand VMCodeGenerator::getRegister(Value* value)
     return allocate(1, value);
 }
 
-void VMCodeGenerator::visit(PhiNode& instr)
+void TargetCodeGenerator::visit(PhiNode& instr)
 {
     assert(!"Should never reach here, as PHI instruction nodes should have been replaced by target registers.");
 }
 
-void VMCodeGenerator::visit(CondBrInstr& instr)
+void TargetCodeGenerator::visit(CondBrInstr& instr)
 {
     auto condition = getRegister(instr.condition());
 
@@ -348,7 +348,7 @@ void VMCodeGenerator::visit(CondBrInstr& instr)
     }
 }
 
-void VMCodeGenerator::visit(BrInstr& instr)
+void TargetCodeGenerator::visit(BrInstr& instr)
 {
     // to not emit the JMP if the target block is emitted right after this block (and thus, right after this instruction).
     if (instr.parent()->isAfter(instr.targetBlock()))
@@ -358,18 +358,18 @@ void VMCodeGenerator::visit(BrInstr& instr)
     emit(Opcode::JMP, label);
 }
 
-void VMCodeGenerator::visit(RetInstr& instr)
+void TargetCodeGenerator::visit(RetInstr& instr)
 {
     emit(Opcode::EXIT, getConstantInt(instr.operands()[0]));
 }
 
-void VMCodeGenerator::visit(MatchInstr& instr)
+void TargetCodeGenerator::visit(MatchInstr& instr)
 {
     printf("TODO: "); instr.dump();
 
 }
 
-void VMCodeGenerator::visit(CastInstr& instr)
+void TargetCodeGenerator::visit(CastInstr& instr)
 {
     // map of (target, source, opcode)
     static const std::unordered_map<FlowType, std::unordered_map<FlowType, Opcode>> map = {
@@ -406,14 +406,14 @@ void VMCodeGenerator::visit(CastInstr& instr)
     emit(op, result, a);
 }
 
-void VMCodeGenerator::visit(INegInstr& instr)
+void TargetCodeGenerator::visit(INegInstr& instr)
 {
     Register result = allocate(1, instr);
     Register a = getRegister(instr.operands()[0]);
     emit(Opcode::NNEG, result, a);
 }
 
-void VMCodeGenerator::visit(INotInstr& instr)
+void TargetCodeGenerator::visit(INotInstr& instr)
 {
     assert(!"~ operator not yet implemented in VM");
     //Register a = allocate(1, instr);
@@ -421,169 +421,169 @@ void VMCodeGenerator::visit(INotInstr& instr)
     //emit(Opcode::NNOT, a, b);
 }
 
-void VMCodeGenerator::visit(IAddInstr& instr)
+void TargetCodeGenerator::visit(IAddInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NADD, Opcode::NIADD);
 }
 
-void VMCodeGenerator::visit(ISubInstr& instr)
+void TargetCodeGenerator::visit(ISubInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NSUB, Opcode::NISUB);
 }
 
-void VMCodeGenerator::visit(IMulInstr& instr)
+void TargetCodeGenerator::visit(IMulInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NMUL, Opcode::NIMUL);
 }
 
-void VMCodeGenerator::visit(IDivInstr& instr)
+void TargetCodeGenerator::visit(IDivInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NDIV, Opcode::NIDIV);
 }
 
-void VMCodeGenerator::visit(IRemInstr& instr)
+void TargetCodeGenerator::visit(IRemInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NREM, Opcode::NIREM);
 }
 
-void VMCodeGenerator::visit(IPowInstr& instr)
+void TargetCodeGenerator::visit(IPowInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NPOW);
 }
 
-void VMCodeGenerator::visit(IAndInstr& instr)
+void TargetCodeGenerator::visit(IAndInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NAND, Opcode::NIAND);
 }
 
-void VMCodeGenerator::visit(IOrInstr& instr)
+void TargetCodeGenerator::visit(IOrInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NOR, Opcode::NIOR);
 }
 
-void VMCodeGenerator::visit(IXorInstr& instr)
+void TargetCodeGenerator::visit(IXorInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NXOR, Opcode::NIXOR);
 }
 
-void VMCodeGenerator::visit(IShlInstr& instr)
+void TargetCodeGenerator::visit(IShlInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NSHL, Opcode::NISHL);
 }
 
-void VMCodeGenerator::visit(IShrInstr& instr)
+void TargetCodeGenerator::visit(IShrInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NSHR, Opcode::NISHR);
 }
 
-void VMCodeGenerator::visit(ICmpEQInstr& instr)
+void TargetCodeGenerator::visit(ICmpEQInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NCMPEQ, Opcode::NICMPEQ);
 }
 
-void VMCodeGenerator::visit(ICmpNEInstr& instr)
+void TargetCodeGenerator::visit(ICmpNEInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NCMPNE, Opcode::NICMPNE);
 }
 
-void VMCodeGenerator::visit(ICmpLEInstr& instr)
+void TargetCodeGenerator::visit(ICmpLEInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NCMPLE, Opcode::NICMPLE);
 }
 
-void VMCodeGenerator::visit(ICmpGEInstr& instr)
+void TargetCodeGenerator::visit(ICmpGEInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NCMPGE, Opcode::NICMPGE);
 }
 
-void VMCodeGenerator::visit(ICmpLTInstr& instr)
+void TargetCodeGenerator::visit(ICmpLTInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NCMPLT, Opcode::NICMPLT);
 }
 
-void VMCodeGenerator::visit(ICmpGTInstr& instr)
+void TargetCodeGenerator::visit(ICmpGTInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::NCMPGT, Opcode::NICMPGT);
 }
 
-void VMCodeGenerator::visit(BNotInstr& instr)
+void TargetCodeGenerator::visit(BNotInstr& instr)
 {
     emitUnary(instr, Opcode::BNOT);
 }
 
-void VMCodeGenerator::visit(BAndInstr& instr)
+void TargetCodeGenerator::visit(BAndInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::BAND);
 }
 
-void VMCodeGenerator::visit(BOrInstr& instr)
+void TargetCodeGenerator::visit(BOrInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::BOR);
 }
 
-void VMCodeGenerator::visit(BXorInstr& instr)
+void TargetCodeGenerator::visit(BXorInstr& instr)
 {
     emitBinaryAssoc(instr, Opcode::BXOR);
 }
 
-void VMCodeGenerator::visit(SLenInstr& instr)
+void TargetCodeGenerator::visit(SLenInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SIsEmptyInstr& instr)
+void TargetCodeGenerator::visit(SIsEmptyInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SAddInstr& instr)
+void TargetCodeGenerator::visit(SAddInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SSubStrInstr& instr)
+void TargetCodeGenerator::visit(SSubStrInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpEQInstr& instr)
+void TargetCodeGenerator::visit(SCmpEQInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpNEInstr& instr)
+void TargetCodeGenerator::visit(SCmpNEInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpLEInstr& instr)
+void TargetCodeGenerator::visit(SCmpLEInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpGEInstr& instr)
+void TargetCodeGenerator::visit(SCmpGEInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpLTInstr& instr)
+void TargetCodeGenerator::visit(SCmpLTInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpGTInstr& instr)
+void TargetCodeGenerator::visit(SCmpGTInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpREInstr& instr)
+void TargetCodeGenerator::visit(SCmpREInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpBegInstr& instr)
+void TargetCodeGenerator::visit(SCmpBegInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SCmpEndInstr& instr)
+void TargetCodeGenerator::visit(SCmpEndInstr& instr)
 {
 }
 
-void VMCodeGenerator::visit(SInInstr& instr)
+void TargetCodeGenerator::visit(SInInstr& instr)
 {
 }
 
 #if 0
-void VMCodeGenerator::visit(UnaryInstr& instr)
+void TargetCodeGenerator::visit(UnaryInstr& instr)
 {
     switch (operandSignature(instr.opcode())) {
         case InstructionSig::RR: {
@@ -607,7 +607,7 @@ void VMCodeGenerator::visit(UnaryInstr& instr)
     }
 }
 
-void VMCodeGenerator::visit(BinaryInstr& instr)
+void TargetCodeGenerator::visit(BinaryInstr& instr)
 {
     switch (operandSignature(instr.opcode())) {
         case InstructionSig::RRR: {
@@ -635,7 +635,7 @@ void VMCodeGenerator::visit(BinaryInstr& instr)
     }
 }
 
-void VMCodeGenerator::visit(VmInstr& instr)
+void TargetCodeGenerator::visit(VmInstr& instr)
 {
     switch (operandSignature(instr.opcode())) {
         case InstructionSig::None: {//                   ()

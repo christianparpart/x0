@@ -125,7 +125,7 @@ if(ENABLE_XZERO_FLOW)
     flow/FlowToken.cpp
     flow/FlowType.cpp
     flow/IRGenerator.cpp
-    flow/VMCodeGenerator.cpp
+    flow/TargetCodeGenerator.cpp
 
     flow/ir/BasicBlock.cpp
     flow/ir/Constant.cpp

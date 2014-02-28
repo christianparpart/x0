@@ -18,7 +18,7 @@
 #include <x0/flow/ir/BasicBlock.h>
 #include <x0/flow/ir/Instr.h>
 #include <x0/flow/IRGenerator.h>
-#include <x0/flow/VMCodeGenerator.h>
+#include <x0/flow/TargetCodeGenerator.h>
 #include <x0/flow/FlowCallVisitor.h>
 #include <fstream>
 #include <memory>
@@ -281,7 +281,7 @@ int Flower::run(const char* fileName, const char* handlerName)
 
         printf("================================================ IR codegen dump\n");
         {
-            if (auto vmprogram = VMCodeGenerator().generate(program)) {
+            if (auto vmprogram = TargetCodeGenerator().generate(program)) {
                 vmprogram->dump();
             }
         }
