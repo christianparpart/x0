@@ -80,7 +80,16 @@ bool BasicBlock::isAfter(const BasicBlock* otherBB) const
 
 void BasicBlock::dump()
 {
-    printf("%%%s:\n", name().c_str());
+    int n = printf("%%%s:", name().c_str());
+    if (!predecessors().empty()) {
+        printf("%*c; [preds: ", 20 - n, ' ');
+        for (size_t i = 0, e = predecessors().size(); i != e; ++i) {
+            if (i) printf(", ");
+            printf("%%%s", predecessors()[i]->name().c_str());
+        }
+        printf("]");
+    }
+    printf("\n");
     for (size_t i = 0, e = code_.size(); i != e; ++i) {
         code_[i]->dump();
     }

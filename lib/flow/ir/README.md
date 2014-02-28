@@ -1,12 +1,5 @@
 # Linear IR
 
-### TODO
-
-- renames
-  - IRBuilder -> IRBuilderBase
-  - IRGenerator -> IRBuilder
-  - VMCodeGenerator -> MCBuilder
-
 - IR optimizations
   - constant folding
   - same-BasicBlock merging

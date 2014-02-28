@@ -7,6 +7,8 @@
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/IRBuiltinHandler.h>
 #include <x0/flow/ir/IRBuiltinFunction.h>
+#include <x0/flow/FlowType.h>
+#include <unordered_map>
 
 namespace x0 {
 
@@ -158,32 +160,37 @@ void VMCodeGenerator::free(size_t base, size_t count)
 void VMCodeGenerator::visit(AllocaInstr& instr)
 {
     size_t count = getConstantInt(instr.operands()[0]);
-    size_t base = allocate(count, instr);
 
-    printf("alloca %s => r%lu\n", instr.name().c_str(), base);
+    allocate(count, instr);
 }
 
 void VMCodeGenerator::visit(ArraySetInstr& instr)
 {
-    printf("TODO: "); instr.dump();
-
     assert(dynamic_cast<AllocaInstr*>(instr.array()));
     assert(dynamic_cast<ConstantInt*>(instr.index()));
 
     Operand array = getRegister(instr.array());
     Operand index = getConstantInt(instr.index());
 
-    if (auto i = dynamic_cast<ConstantInt*>(instr.value())) {
-        emit(Opcode::ANINITI, array, index, i->get());
-        return;
-    }
-
+    // array[index] = string_literal;
     if (auto s = dynamic_cast<ConstantString*>(instr.value())) {
         emit(Opcode::ASINIT, array, index, s->id());
         return;
     }
 
-    // TODO
+    // array[index] = integer_literal;
+    if (auto i = dynamic_cast<ConstantInt*>(instr.value())) {
+        emit(Opcode::ANINITI, array, index, i->get());
+        return;
+    }
+
+    // array[index] = integer_variable;
+    if (instr.value()->type() == FlowType::Number) {
+        emit(Opcode::ANINIT, array, index, getRegister(instr.value()));
+        return;
+    };
+
+    assert(!"TODO: missing implementation of ArraySetInstr sub types");
 }
 
 void VMCodeGenerator::visit(StoreInstr& instr)
@@ -305,6 +312,7 @@ FlowVM::Operand VMCodeGenerator::getRegister(Value* value)
         return i->second;
 
     if (ConstantInt* integer = dynamic_cast<ConstantInt*>(value)) {
+        // FIXME this constant initialization should pretty much be done in the entry block
         Register reg = allocate(1, integer);
         emit(Opcode::IMOV, reg, integer->get());
         return reg;
@@ -322,29 +330,37 @@ void VMCodeGenerator::visit(PhiNode& instr)
 
 void VMCodeGenerator::visit(CondBrInstr& instr)
 {
-    // ensure that trueBlock is straight-line after the current one
-    //instr.parent()->moveAfter(instr.trueBlock());
-    assert(instr.parent()->isAfter(instr.trueBlock()));
-
     auto condition = getRegister(instr.condition());
-    auto falseLabel = getLabel(instr.falseBlock());
 
-    emit(Opcode::JZ, condition, falseLabel);
+    if (instr.parent()->isAfter(instr.trueBlock())) {
+        auto falseLabel = getLabel(instr.falseBlock());
+        emit(Opcode::JZ, condition, falseLabel);
+    }
+    else if (instr.parent()->isAfter(instr.falseBlock())) {
+        auto trueLabel = getLabel(instr.trueBlock());
+        emit(Opcode::JN, condition, trueLabel);
+    }
+    else {
+        auto trueLabel = getLabel(instr.trueBlock());
+        auto falseLabel = getLabel(instr.falseBlock());
+        emit(Opcode::JN, condition, trueLabel);
+        emit(Opcode::JMP, condition, falseLabel);
+    }
 }
 
 void VMCodeGenerator::visit(BrInstr& instr)
 {
+    // to not emit the JMP if the target block is emitted right after this block (and thus, right after this instruction).
+    if (instr.parent()->isAfter(instr.targetBlock()))
+        return;
+
     Operand label = getLabel(instr.targetBlock());
     emit(Opcode::JMP, label);
 }
 
 void VMCodeGenerator::visit(RetInstr& instr)
 {
-    if (instr.operands().empty()) {
-        emit(Opcode::EXIT);
-    } else {
-        emit(Opcode::EXIT, getConstantInt(instr.operands()[0]));
-    }
+    emit(Opcode::EXIT, getConstantInt(instr.operands()[0]));
 }
 
 void VMCodeGenerator::visit(MatchInstr& instr)
@@ -355,15 +371,39 @@ void VMCodeGenerator::visit(MatchInstr& instr)
 
 void VMCodeGenerator::visit(CastInstr& instr)
 {
-    if (instr.type() == FlowType::Number) {
-        assert(instr.source()->type() == FlowType::String);
-        Register result = allocate(1, instr);
-        Register a = getRegister(instr.source());
-        emit(Opcode::S2I, result, a);
+    // map of (target, source, opcode)
+    static const std::unordered_map<FlowType, std::unordered_map<FlowType, Opcode>> map = {
+        { FlowType::String, {
+            { FlowType::Number, Opcode::I2S },
+            { FlowType::IPAddress, Opcode::P2S },
+            { FlowType::Cidr, Opcode::C2S },
+            { FlowType::RegExp, Opcode::R2S },
+        }},
+        { FlowType::Number, {
+            { FlowType::String, Opcode::I2S },
+        }},
+    };
+
+    // just alias same-type casts
+    if (instr.type() == instr.source()->type()) {
+        variables_[&instr] = getRegister(instr.source());
         return;
     }
 
-    assert(!"Cast combination not implemented.");
+    // lookup target type
+    const auto i = map.find(instr.type());
+    assert(i != map.end() && "Cast target type not found.");
+
+    // lookup source type
+    const auto& sub = i->second;
+    auto k = sub.find(instr.source()->type());
+    assert(k != sub.end() && "Cast source type not found.");
+    Opcode op = k->second;
+
+    // emit instruction
+    Register result = allocate(1, instr);
+    Register a = getRegister(instr.source());
+    emit(op, result, a);
 }
 
 void VMCodeGenerator::visit(INegInstr& instr)
