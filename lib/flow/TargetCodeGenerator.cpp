@@ -92,6 +92,17 @@ size_t TargetCodeGenerator::emit(FlowVM::Instruction instr)
     return code_.size() - 1;
 }
 
+size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode rr)
+{
+    assert(operandSignature(rr) == InstructionSig::RRR);
+
+    Register a = allocate(1, instr);
+    Register b = getRegister(instr.operand(0));
+    Register c = getRegister(instr.operand(1));
+
+    return emit(rr, a, b, c);
+}
+
 size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr, Opcode ri)
 {
     assert(operandSignature(rr) == InstructionSig::RRR);
@@ -268,7 +279,7 @@ void TargetCodeGenerator::visit(LoadInstr& instr)
 void TargetCodeGenerator::visit(CallInstr& instr)
 {
     int argc = instr.operands().size();
-    Register rbase = allocate(argc);
+    Register rbase = allocate(argc, instr);
 
     // emit call args
     for (int i = 1; i < argc; ++i) {
@@ -277,7 +288,7 @@ void TargetCodeGenerator::visit(CallInstr& instr)
     }
 
     // emit call
-    Register nativeId = 0;// TODO nativeFunction(static_cast<BuiltinFunction*>(callee));
+    Register nativeId = 0;// TODO: nativeFunction(static_cast<BuiltinFunction*>(callee));
     emit(Opcode::CALL, nativeId, argc, rbase);
 
     variables_[&instr] = rbase;
@@ -287,7 +298,7 @@ void TargetCodeGenerator::visit(CallInstr& instr)
 
 void TargetCodeGenerator::visit(HandlerCallInstr& instr)
 {
-    assert(!"TODO");
+    assert(!"TODO: HandlerCallInstr CG");
 }
 
 FlowVM::Operand TargetCodeGenerator::getConstantInt(Value* value)
@@ -365,8 +376,7 @@ void TargetCodeGenerator::visit(RetInstr& instr)
 
 void TargetCodeGenerator::visit(MatchInstr& instr)
 {
-    printf("TODO: "); instr.dump();
-
+    assert(!"TODO: MatchInstr CG");
 }
 
 void TargetCodeGenerator::visit(CastInstr& instr)
@@ -408,14 +418,12 @@ void TargetCodeGenerator::visit(CastInstr& instr)
 
 void TargetCodeGenerator::visit(INegInstr& instr)
 {
-    Register result = allocate(1, instr);
-    Register a = getRegister(instr.operands()[0]);
-    emit(Opcode::NNEG, result, a);
+    emitUnary(instr, Opcode::NNEG);
 }
 
 void TargetCodeGenerator::visit(INotInstr& instr)
 {
-    assert(!"~ operator not yet implemented in VM");
+    assert(!"TODO: ~ operator not yet implemented in VM");
     //Register a = allocate(1, instr);
     //Register b = getRegister(instr.operands()[0]);
     //emit(Opcode::NNOT, a, b);
@@ -528,152 +536,72 @@ void TargetCodeGenerator::visit(BXorInstr& instr)
 
 void TargetCodeGenerator::visit(SLenInstr& instr)
 {
+    assert(!"TODO: SLenInstr CG");
 }
 
 void TargetCodeGenerator::visit(SIsEmptyInstr& instr)
 {
+    assert(!"TODO: SIsEmptyInstr CG");
 }
 
 void TargetCodeGenerator::visit(SAddInstr& instr)
 {
+    emitBinary(instr, Opcode::SADD);
 }
 
 void TargetCodeGenerator::visit(SSubStrInstr& instr)
 {
+    assert(!"TODO: SSubStrInstr CG");
 }
 
 void TargetCodeGenerator::visit(SCmpEQInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPEQ);
 }
 
 void TargetCodeGenerator::visit(SCmpNEInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPNE);
 }
 
 void TargetCodeGenerator::visit(SCmpLEInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPLE);
 }
 
 void TargetCodeGenerator::visit(SCmpGEInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPGE);
 }
 
 void TargetCodeGenerator::visit(SCmpLTInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPLT);
 }
 
 void TargetCodeGenerator::visit(SCmpGTInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPGT);
 }
 
 void TargetCodeGenerator::visit(SCmpREInstr& instr)
 {
+    emitBinary(instr, Opcode::SREGMATCH);
 }
 
 void TargetCodeGenerator::visit(SCmpBegInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPBEG);
 }
 
 void TargetCodeGenerator::visit(SCmpEndInstr& instr)
 {
+    emitBinary(instr, Opcode::SCMPEND);
 }
 
 void TargetCodeGenerator::visit(SInInstr& instr)
 {
+    emitBinary(instr, Opcode::SCONTAINS);
 }
-
-#if 0
-void TargetCodeGenerator::visit(UnaryInstr& instr)
-{
-    switch (operandSignature(instr.opcode())) {
-        case InstructionSig::RR: {
-            // reg, reg    (AB)
-            Register result = allocate(1);
-            Register a = getRegister(instr.operands()[0]);
-            emit(instr.opcode(), result, a);
-            variables_[&instr] = result;
-            break;
-        }
-        case InstructionSig::RI: {
-            Register result = allocate(1);
-            Register a = getConstantInt(instr.operands()[0]);
-            emit(instr.opcode(), result, a);
-            variables_[&instr] = result;
-        }
-        default: {
-            assert(!"Invalid signature for binary operator.");
-            break;
-        }
-    }
-}
-
-void TargetCodeGenerator::visit(BinaryInstr& instr)
-{
-    switch (operandSignature(instr.opcode())) {
-        case InstructionSig::RRR: {
-            // reg, reg, reg    (ABC)
-            Register result = allocate(1);
-            Register a = getRegister(instr.operands()[0]);
-            Register b = getRegister(instr.operands()[1]);
-            emit(instr.opcode(), result, a, b);
-            variables_[&instr] = result;
-            break;
-        }
-        case InstructionSig::RRI: {
-            // reg, reg, imm16  (ABC)
-            Register result = allocate(1);
-            Register a = getRegister(instr.operands()[0]);
-            Register b = getConstantInt(instr.operands()[1]);
-            emit(instr.opcode(), result, a, b);
-            variables_[&instr] = result;
-            break;
-        }
-        default: {
-            assert(!"Invalid signature for binary operator.");
-            break;
-        }
-    }
-}
-
-void TargetCodeGenerator::visit(VmInstr& instr)
-{
-    switch (operandSignature(instr.opcode())) {
-        case InstructionSig::None: {//                   ()
-            emit(instr.opcode());
-            break;
-        }
-        case InstructionSig::RRR: { // reg, reg, reg     (ABC)
-            Register result = allocate(1);
-            Register a = getRegister(instr.operands()[0]);
-            Register b = getRegister(instr.operands()[1]);
-            emit(instr.opcode(), result, a, b);
-            variables_[&instr] = result;
-            break;
-        }
-        case InstructionSig::I: {   // imm16             (A)
-            emit(instr.opcode(), getConstantInt(instr.operands()[0]));
-            break;
-        }
-        case InstructionSig::R:    // reg               (A)
-            if (resultType(instr.opcode()) == FlowType::Void) {
-                emit(instr.opcode(), getRegister(instr.operands()[0]));
-            } else {
-                Register result = allocate(1);
-                variables_[&instr] = result;
-                emit(instr.opcode(), result);
-            }
-            break;
-        case InstructionSig::RR:   // reg, reg          (AB)
-        case InstructionSig::RI:   // reg, imm16        (AB)
-        case InstructionSig::RRI:  // reg, reg, imm16   (ABC)
-        case InstructionSig::RII:  // reg, imm16, imm16 (ABC)
-        case InstructionSig::RIR:  // reg, imm16, reg   (ABC)
-        case InstructionSig::IRR:  // imm16, reg, reg   (ABC)
-        case InstructionSig::IIR:  // imm16, imm16, reg (ABC)
-            assert(!"TODO");
-            break;
-    }
-}
-#endif
 
 } // namespace x0
