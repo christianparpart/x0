@@ -190,17 +190,6 @@ size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr, Opcode ri)
     return emit(rr, a, b, c);
 }
 
-size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr)
-{
-    assert(operandSignature(rr) == InstructionSig::RRR);
-
-    Register a = allocate(1, instr);
-    Register b = getRegister(instr.operand(0));
-    Register c = getRegister(instr.operand(1));
-
-    return emit(rr, a, b, c);
-}
-
 size_t TargetCodeGenerator::emitUnary(Instr& instr, FlowVM::Opcode r)
 {
     assert(operandSignature(r) == InstructionSig::RR);
@@ -394,6 +383,12 @@ FlowVM::Operand TargetCodeGenerator::getRegister(Value* value)
         return reg;
     }
 
+    if (ConstantString* str = dynamic_cast<ConstantString*>(value)) {
+        Register reg = allocate(1, str);
+        emit(Opcode::SCONST, reg, str->id());
+        return reg;
+    }
+
     // TODO: other const-to-reg implicits (string, ip, cidr, regex)
 
     return allocate(1, value);
@@ -539,7 +534,7 @@ void TargetCodeGenerator::visit(IRemInstr& instr)
 
 void TargetCodeGenerator::visit(IPowInstr& instr)
 {
-    emitBinaryAssoc(instr, Opcode::NPOW);
+    emitBinary(instr, Opcode::NPOW);
 }
 
 void TargetCodeGenerator::visit(IAndInstr& instr)
@@ -604,17 +599,17 @@ void TargetCodeGenerator::visit(BNotInstr& instr)
 
 void TargetCodeGenerator::visit(BAndInstr& instr)
 {
-    emitBinaryAssoc(instr, Opcode::BAND);
+    emitBinary(instr, Opcode::BAND);
 }
 
 void TargetCodeGenerator::visit(BOrInstr& instr)
 {
-    emitBinaryAssoc(instr, Opcode::BOR);
+    emitBinary(instr, Opcode::BOR);
 }
 
 void TargetCodeGenerator::visit(BXorInstr& instr)
 {
-    emitBinaryAssoc(instr, Opcode::BXOR);
+    emitBinary(instr, Opcode::BXOR);
 }
 
 void TargetCodeGenerator::visit(SLenInstr& instr)

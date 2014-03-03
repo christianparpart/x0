@@ -66,7 +66,6 @@ protected:
     size_t emit(FlowVM::Opcode opcode, BasicBlock* bb);
 
     size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr, FlowVM::Opcode ri);
-    size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr);
     size_t emitBinary(Instr& instr, FlowVM::Opcode rr);
     size_t emitUnary(Instr& instr, FlowVM::Opcode r);
 
