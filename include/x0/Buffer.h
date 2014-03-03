@@ -258,7 +258,7 @@ public:
     public:
         reverse_iterator(BufferRef* r, int cur) : buf_(r), cur_(cur) {}
         reverse_iterator& operator++() { if (cur_ >= 0) { --cur_; } return *this; }
-        const char& operator*() const { assert(cur_ >= 0 && cur_ < buf_->size()); return (*buf_)[cur_]; }
+        const char& operator*() const { assert(cur_ >= 0 && cur_ < (int)buf_->size()); return (*buf_)[cur_]; }
         bool operator==(const reverse_iterator& other) const { return buf_ == other.buf_ && cur_ == other.cur_; }
         bool operator!=(const reverse_iterator& other) const { return !(*this == other); }
     }; // }}}
