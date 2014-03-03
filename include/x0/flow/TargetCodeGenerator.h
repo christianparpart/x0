@@ -162,11 +162,6 @@ private:
     std::list<std::pair<MatchInstr*, size_t>> matchHints_;
 
     // target program output
-    std::vector<FlowNumber> constNumbers_;
-    std::vector<std::string> constStrings_;
-    std::vector<IPAddress> ipaddrs_;
-    std::vector<Cidr> cidrs_;
-    std::vector<std::string> regularExpressions_;
     std::vector<FlowVM::MatchDef> matches_;
     std::vector<std::pair<std::string, std::string>> modules_;
     std::vector<std::string> nativeHandlerSignatures_;

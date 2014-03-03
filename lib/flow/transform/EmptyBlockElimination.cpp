@@ -6,7 +6,7 @@
 
 namespace x0 {
 
-size_t EmptyBlockElimination::run(IRHandler* handler)
+bool EmptyBlockElimination::run(IRHandler* handler)
 {
     std::list<BasicBlock*> eliminated;
 
@@ -26,10 +26,12 @@ size_t EmptyBlockElimination::run(IRHandler* handler)
     }
 
     for (BasicBlock* bb: eliminated) {
+        printf("eliminated: %s\n", bb->name().c_str());
         bb->parent()->remove(bb);
+        delete bb;
     }
 
-    return eliminated.size();
+    return eliminated.size() > 0;
 }
 
 } // namespace x0

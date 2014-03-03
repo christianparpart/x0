@@ -100,15 +100,9 @@ void IRBuilder::setInsertPoint(BasicBlock* bb)
 
 Instr* IRBuilder::insert(Instr* instr)
 {
-    assert(instr != nullptr);
     assert(getInsertPoint() != nullptr);
-    assert(instr->parent() == nullptr);
 
-    instr->setParent(getInsertPoint());
-    getInsertPoint()->code_.push_back(instr);
-
-    // XXX the resulting type of a basic block always equals the one of its last inserted instruction
-    getInsertPoint()->setType(instr->type());
+    getInsertPoint()->push_back(instr);
 
     return instr;
 }
@@ -623,7 +617,7 @@ Instr* IRBuilder::createBr(BasicBlock* target)
 {
     getInsertPoint()->linkSuccessor(target);
 
-    return insert(new BrInstr({target}, ""));
+    return insert(new BrInstr(target));
 }
 
 Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name)

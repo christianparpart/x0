@@ -55,6 +55,24 @@ public:
      * Retrieves the linear ordered list of instructions of instructions in this basic block.
      */
     std::vector<Instr*>& instructions() { return code_; }
+    const std::vector<Instr*>& instructions() const { return code_; }
+
+    /**
+     * Removes given instruction from this basic block.
+     */
+    Instr* remove(Instr* childInstr);
+
+    /**
+     * Appends a new instruction, \p instr, to this basic block.
+     */
+    void push_back(Instr* instr);
+
+    /**
+     * Merges given basic block's instructions into this ones end.
+     *
+     * The passed basic block's instructions will not be touched.
+     */
+    void merge_back(BasicBlock* bb);
 
     /**
      * Moves this basic block after the other basic block, \p otherBB.
@@ -114,6 +132,7 @@ public:
 
     /** Retrieves all uccessors of the given basic block. */
     std::vector<BasicBlock*>& successors() { return successors_; }
+    const std::vector<BasicBlock*>& successors() const { return successors_; }
 
     /** Retrieves all dominators of given basic block. */
     std::vector<BasicBlock*> dominators();

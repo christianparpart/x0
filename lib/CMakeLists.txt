@@ -136,9 +136,11 @@ if(ENABLE_XZERO_FLOW)
     flow/ir/IRBuilder.cpp
     flow/ir/IRHandler.cpp
     flow/ir/IRProgram.cpp
+    flow/ir/PassManager.cpp
     flow/ir/Value.cpp
 
     flow/transform/EmptyBlockElimination.cpp
+    flow/transform/InstructionElimination.cpp
 
     flow/vm/Handler.cpp
     flow/vm/Instruction.cpp

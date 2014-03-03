@@ -104,8 +104,8 @@ void CondBrInstr::accept(InstructionVisitor& visitor)
 }
 // }}}
 // {{{ BrInstr
-BrInstr::BrInstr(BasicBlock* targetBlock, const std::string& name) :
-    BranchInstr({targetBlock}, name)
+BrInstr::BrInstr(BasicBlock* targetBlock) :
+    BranchInstr({targetBlock})
 {
 }
 

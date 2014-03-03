@@ -39,6 +39,12 @@ public:
     ConstantCidr* get(const Cidr& literal) { return get<ConstantCidr>(cidrs_, literal); }
     ConstantRegExp* get(const RegExp& literal) { return get<ConstantRegExp>(regexps_, literal); }
 
+    const std::vector<ConstantInt*>& numbers() const { return numbers_; }
+    const std::vector<ConstantString*>& strings() const { return strings_; }
+    const std::vector<ConstantIP*>& ipaddrs() const { return ipaddrs_; }
+    const std::vector<ConstantCidr*>& cidrs() const { return cidrs_; }
+    const std::vector<ConstantRegExp*>& regularExpressions() const { return regexps_; }
+
     IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) { return get<IRBuiltinHandler>(builtinHandlers_, sig); }
     IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) { return get<IRBuiltinFunction>(builtinFunctions_, sig); }
 

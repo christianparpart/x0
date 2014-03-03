@@ -43,6 +43,8 @@ public:
 	const std::string& pattern() const { return pattern_; }
 	const char *c_str() const;
 
+    operator const std::string& () const { return pattern_; }
+
     friend bool operator==(const RegExp& a, const RegExp& b) { return a.pattern() == b.pattern(); }
     friend bool operator!=(const RegExp& a, const RegExp& b) { return a.pattern() != b.pattern(); }
     friend bool operator<=(const RegExp& a, const RegExp& b) { return a.pattern() <= b.pattern(); }

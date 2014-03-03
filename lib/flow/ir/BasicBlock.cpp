@@ -33,11 +33,60 @@ BasicBlock::~BasicBlock()
     for (auto instr: code_) {
         delete instr;
     }
+
+    for (BasicBlock* bb: predecessors()) {
+        bb->unlinkSuccessor(this);
+    }
+
+    for (BasicBlock* bb: successors()) {
+        unlinkSuccessor(bb);
+    }
 }
 
 BranchInstr* BasicBlock::getTerminator() const
 {
     return dynamic_cast<BranchInstr*>(code_.back());
+}
+
+Instr* BasicBlock::remove(Instr* instr)
+{
+    auto i = std::find(code_.begin(), code_.end(), instr);
+    assert(i != code_.end());
+    code_.erase(i);
+    instr->setParent(nullptr);
+    return instr;
+}
+
+void BasicBlock::push_back(Instr* instr)
+{
+    assert(instr != nullptr);
+    assert(instr->parent() == nullptr);
+
+    instr->setParent(this);
+    code_.push_back(instr);
+
+    // XXX the resulting type of a basic block always equals the one of its last inserted instruction
+    setType(instr->type());
+}
+
+void BasicBlock::merge_back(BasicBlock* bb)
+{
+    assert(getTerminator() == nullptr);
+    assert(!"FIXME: implementation unclear yet");
+
+    for (Instr* instr: bb->code_) {
+        instr->setParent(nullptr);
+        push_back(instr);
+    }
+    bb->code_.clear();
+
+    for (BasicBlock* succ: bb->successors()) {
+        linkSuccessor(succ);
+    }
+
+    for (BasicBlock* succ: successors()) {
+        bb->unlinkSuccessor(succ);
+    }
 }
 
 void BasicBlock::moveAfter(BasicBlock* otherBB)
@@ -94,9 +143,20 @@ void BasicBlock::dump()
         printf("]");
     }
     printf("\n");
+
+    if (!successors().empty()) {
+        printf("%20c; [succs: ", ' ');
+        for (size_t i = 0, e = successors().size(); i != e; ++i) {
+            if (i) printf(", ");
+            printf("%%%s", successors()[i]->name().c_str());
+        }
+        printf("]\n");
+    }
+
     for (size_t i = 0, e = code_.size(); i != e; ++i) {
         code_[i]->dump();
     }
+
     printf("\n");
 }
 
@@ -112,11 +172,20 @@ void BasicBlock::unlinkSuccessor(BasicBlock* successor)
 {
     assert(successor != nullptr);
 
-    auto s = std::find(successors_.begin(), successors_.end(), successor);
-    successors_.erase(s);
+    printf("BasicBlock(%s).unlinkSuccessor(%s)\n", name().c_str(), successor->name().c_str());
+    printf("successor's preds:");
+    for (const BasicBlock* bb: successor->predecessors()) {
+        printf(" %s", bb->name().c_str());
+    }
+    printf("\n");
 
     auto p = std::find(successor->predecessors_.begin(), successor->predecessors_.end(), this);
+    assert(p != successor->predecessors_.end());
     successor->predecessors_.erase(p);
+
+    auto s = std::find(successors_.begin(), successors_.end(), successor);
+    assert(s != successors_.end());
+    successors_.erase(s);
 }
 
 std::vector<BasicBlock*> BasicBlock::dominators()

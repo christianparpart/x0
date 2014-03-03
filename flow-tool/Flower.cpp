@@ -10,17 +10,19 @@
 #include <x0/flow/ASTPrinter.h>
 #include <x0/flow/FlowParser.h>
 #include <x0/flow/FlowAssemblyBuilder.h>
-#include <x0/flow/vm/Runtime.h>
-#include <x0/flow/vm/NativeCallback.h>
-#include <x0/flow/vm/Runner.h>
-#include <x0/flow/ir/IRProgram.h>
-#include <x0/flow/ir/IRHandler.h>
-#include <x0/flow/ir/BasicBlock.h>
-#include <x0/flow/transform/EmptyBlockElimination.h>
-#include <x0/flow/ir/Instr.h>
 #include <x0/flow/IRGenerator.h>
 #include <x0/flow/TargetCodeGenerator.h>
 #include <x0/flow/FlowCallVisitor.h>
+#include <x0/flow/ir/IRProgram.h>
+#include <x0/flow/ir/IRHandler.h>
+#include <x0/flow/ir/BasicBlock.h>
+#include <x0/flow/ir/Instr.h>
+#include <x0/flow/ir/PassManager.h>
+#include <x0/flow/transform/EmptyBlockElimination.h>
+#include <x0/flow/transform/InstructionElimination.h>
+#include <x0/flow/vm/Runtime.h>
+#include <x0/flow/vm/NativeCallback.h>
+#include <x0/flow/vm/Runner.h>
 #include <fstream>
 #include <memory>
 #include <utility>
@@ -278,7 +280,13 @@ int Flower::run(const char* fileName, const char* handlerName)
         printf("================================================ IR\n");
         IRProgram* program = IRGenerator::generate(unit.get());
 
-        program->transform<EmptyBlockElimination>();
+
+        {
+            PassManager pm;
+            pm.registerPass(std::make_unique<EmptyBlockElimination>());
+            pm.registerPass(std::make_unique<InstructionElimination>());
+            pm.run(program);
+        }
 
         if (program) {
             program->dump();

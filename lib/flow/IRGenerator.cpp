@@ -7,10 +7,10 @@
  */
 
 #include <x0/flow/IRGenerator.h>
+#include <x0/flow/AST.h>
 #include <x0/flow/ir/IRProgram.h>
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/Instructions.h>
-#include <x0/flow/AST.h>
 #include <x0/DebugLogger.h> // XZERO_DEBUG
 #include <assert.h>
 #include <math.h>

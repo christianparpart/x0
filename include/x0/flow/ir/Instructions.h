@@ -214,7 +214,7 @@ public:
 
 class X0_API BranchInstr : public Instr {
 public:
-    BranchInstr(const std::vector<Value*>& ops, const std::string& name) :
+    BranchInstr(const std::vector<Value*>& ops, const std::string& name = "") :
         Instr(FlowType::Void, ops, name)
         {}
 };
@@ -249,7 +249,7 @@ public:
  */
 class X0_API BrInstr : public BranchInstr {
 public:
-    BrInstr(BasicBlock* targetBlock, const std::string& name);
+    explicit BrInstr(BasicBlock* targetBlock);
 
     BasicBlock* targetBlock() const { return (BasicBlock*) operands()[0]; }
 

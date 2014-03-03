@@ -18,11 +18,6 @@ TargetCodeGenerator::TargetCodeGenerator() :
     errors_(),
     conditionalJumps_(),
     unconditionalJumps_(),
-    constNumbers_(),
-    constStrings_(),
-    ipaddrs_(),
-    cidrs_(),
-    regularExpressions_(),
     matches_(),
     modules_(),
     nativeHandlerSignatures_(),
@@ -41,18 +36,35 @@ TargetCodeGenerator::~TargetCodeGenerator()
 {
 }
 
+template<typename T, typename S>
+std::vector<T> convert(const std::vector<S>& source)
+{
+    std::vector<T> target(source.size());
+
+    for (S value: source)
+        target[value->id()] = value->get();
+
+    return target;
+}
+
 std::unique_ptr<FlowVM::Program> TargetCodeGenerator::generate(IRProgram* program)
 {
-    for (IRHandler* handler: program->handlers()) {
+    for (IRHandler* handler: program->handlers())
         generate(handler);
-    }
+
+    // FIXME: only include those const ints that actually caused an LOAD from the constant table.
+    std::vector<FlowNumber> numbers(convert<FlowNumber>(program->numbers()));
+    std::vector<std::string> strings(convert<std::string>(program->strings()));
+    std::vector<IPAddress> ipaddrs(convert<IPAddress>(program->ipaddrs()));
+    std::vector<Cidr> cidrs(convert<Cidr>(program->cidrs()));
+    std::vector<std::string> regularExpressions(convert<std::string>(program->regularExpressions()));
 
     return std::unique_ptr<FlowVM::Program>(new FlowVM::Program(
-        constNumbers_,
-        constStrings_,
-        ipaddrs_,
-        cidrs_,
-        regularExpressions_,
+        numbers,
+        strings,
+        ipaddrs,
+        cidrs,
+        regularExpressions,
         matches_,
         program->imports(),
         nativeHandlerSignatures_,
