@@ -10,11 +10,8 @@ namespace x0 {
 bool InstructionElimination::run(IRHandler* handler)
 {
     for (BasicBlock* bb: handler->basicBlocks()) {
-        if (rewriteCondBrToSameBranches(bb))
-            return true;
-
-        if (eliminateLinearBr(bb))
-            return true;
+        if (rewriteCondBrToSameBranches(bb)) return true;
+        if (eliminateLinearBr(bb)) return true;
     }
 
     return false;
@@ -24,19 +21,21 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb)
 {
     // attempt to eliminate useless condbr
     if (CondBrInstr* condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
+        printf("rewriteCondBrToSameBranches\n");
+        bb->dump();
+
         if (condbr->trueBlock() != condbr->falseBlock())
             return false;
 
         BasicBlock* nextBB = condbr->trueBlock();
 
         // remove old terminator
-        bb->unlinkSuccessor(condbr->trueBlock());
-        bb->unlinkSuccessor(condbr->falseBlock());
-        delete bb->remove(condbr);
+        bb->remove(condbr);
 
         // create new terminator
-        bb->linkSuccessor(nextBB);
-        bb->push_back(new BrInstr(nextBB));
+        bb->push_back(new BrInstr(nextBB)); // FIXME causes crash
+
+        delete condbr;
 
         return true;
     }
@@ -56,11 +55,13 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb)
         BasicBlock* nextBB = br->targetBlock();
 
         // remove old terminator
-        bb->unlinkSuccessor(nextBB);
         delete bb->remove(br);
 
         // merge nextBB
         bb->merge_back(nextBB);
+
+        bb->parent()->remove(nextBB);
+        delete nextBB;
 
         return true;
     }

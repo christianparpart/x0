@@ -17,6 +17,17 @@ namespace x0 {
 
 using namespace FlowVM;
 
+template<typename T, typename U> inline std::vector<U> join(const T& a, const std::vector<U>& vec) // {{{
+{
+    std::vector<U> res;
+
+    res.push_back(a);
+    for (const U& v: vec)
+        res.push_back(v);
+
+    return std::move(res);
+}
+// }}}
 const char* cstr(UnaryOperator op) // {{{
 {
     static const char* ops[] = {
@@ -76,10 +87,31 @@ const char* cstr(BinaryOperator op) // {{{
     return ops[(size_t)op];
 }
 // }}}
+// {{{ NopInstr
+void NopInstr::dump()
+{
+    dumpOne("NOP");
+}
+
+Instr* NopInstr::clone()
+{
+    return new NopInstr();
+}
+
+void NopInstr::accept(InstructionVisitor& v)
+{
+    v.visit(*this);
+}
+// }}}
 // {{{ CastInstr
 void CastInstr::dump()
 {
     dumpOne(tos(type()).c_str());
+}
+
+Instr* CastInstr::clone()
+{
+    return new CastInstr(type(), source(), name());
 }
 
 void CastInstr::accept(InstructionVisitor& v)
@@ -88,14 +120,19 @@ void CastInstr::accept(InstructionVisitor& v)
 }
 // }}}
 // {{{ CondBrInstr
-CondBrInstr::CondBrInstr(Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name) :
-    BranchInstr({cond, trueBlock, falseBlock}, name)
+CondBrInstr::CondBrInstr(Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock) :
+    TerminateInstr({cond, trueBlock, falseBlock})
 {
 }
 
 void CondBrInstr::dump()
 {
     dumpOne("condbr");
+}
+
+Instr* CondBrInstr::clone()
+{
+    return new CondBrInstr(condition(), trueBlock(), falseBlock());
 }
 
 void CondBrInstr::accept(InstructionVisitor& visitor)
@@ -105,7 +142,7 @@ void CondBrInstr::accept(InstructionVisitor& visitor)
 // }}}
 // {{{ BrInstr
 BrInstr::BrInstr(BasicBlock* targetBlock) :
-    BranchInstr({targetBlock})
+    TerminateInstr({targetBlock})
 {
 }
 
@@ -114,14 +151,19 @@ void BrInstr::dump()
     dumpOne("br");
 }
 
+Instr* BrInstr::clone()
+{
+    return new BrInstr(targetBlock());
+}
+
 void BrInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
 }
 // }}}
 // {{{ MatchInstr
-MatchInstr::MatchInstr(MatchClass op, Value* cond, const std::string& name) :
-    BranchInstr({cond}, name),
+MatchInstr::MatchInstr(MatchClass op, Value* cond) :
+    TerminateInstr({cond}),
     op_(op),
     cases_(),
     elseBlock_(nullptr)
@@ -162,14 +204,25 @@ void MatchInstr::dump()
     }
 }
 
+Instr* MatchInstr::clone()
+{
+    MatchInstr* match = new MatchInstr(op(), condition());
+    for (const auto& one: cases()) {
+        match->addCase(one.first, one.second);
+    }
+    match->setElseBlock(elseBlock());
+
+    return match;
+}
+
 void MatchInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
 }
 // }}}
 // {{{ RetInstr
-RetInstr::RetInstr(Value* result, const std::string& name) :
-    BranchInstr({result}, name)
+RetInstr::RetInstr(Value* result) :
+    TerminateInstr({result})
 {
 }
 
@@ -178,26 +231,45 @@ void RetInstr::dump()
     dumpOne("ret");
 }
 
+Instr* RetInstr::clone()
+{
+    return new RetInstr(operand(0));
+}
+
 void RetInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
 }
 // }}}
-// {{{ other instructions
-template<typename T, typename U>
-inline std::vector<U> join(const T& a, const std::vector<U>& vec)
+// {{{ CallInstr
+CallInstr::CallInstr(const std::vector<Value*>& args, const std::string& name) :
+    Instr(static_cast<IRBuiltinFunction*>(args[0])->signature().returnType(), args, name)
 {
-    std::vector<U> res;
-
-    res.push_back(a);
-    for (const U& v: vec)
-        res.push_back(v);
-
-    return std::move(res);
 }
 
 CallInstr::CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name) :
     Instr(callee->signature().returnType(), join(callee, args), name)
+{
+}
+
+void CallInstr::dump()
+{
+    dumpOne("CALL");
+}
+
+Instr* CallInstr::clone()
+{
+    return new CallInstr(operands(), name());
+}
+
+void CallInstr::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+// }}}
+// {{{ HandlerCallInstr
+HandlerCallInstr::HandlerCallInstr(const std::vector<Value*>& args) :
+    Instr(FlowType::Boolean, args, "")
 {
 }
 
@@ -211,11 +283,38 @@ void HandlerCallInstr::dump()
     dumpOne("hcall");
 }
 
+Instr* HandlerCallInstr::clone()
+{
+    return new HandlerCallInstr(operands());
+}
+
 void HandlerCallInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
 }
+// }}} 
+// {{{ PhiNode
+PhiNode::PhiNode(const std::vector<Value*>& ops, const std::string& name) :
+    Instr(ops[0]->type(), ops, name)
+{
+}
 
+void PhiNode::dump()
+{
+    dumpOne("phi");
+}
+
+Instr* PhiNode::clone()
+{
+    return new PhiNode(operands(), name());
+}
+
+void PhiNode::accept(InstructionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+// }}}
+// {{{ other instructions
 void AllocaInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
@@ -236,29 +335,14 @@ void LoadInstr::accept(InstructionVisitor& visitor)
     visitor.visit(*this);
 }
 
-void CallInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void PhiNode::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-PhiNode::PhiNode(const std::vector<Value*>& ops, const std::string& name) :
-    Instr(ops[0]->type(), ops, name)
-{
-}
-
-void PhiNode::dump()
-{
-    dumpOne("phi");
-}
-
 void AllocaInstr::dump()
 {
     dumpOne("alloca");
+}
+
+Instr* AllocaInstr::clone()
+{
+    return new AllocaInstr(type(), operand(0), name());
 }
 
 void ArraySetInstr::dump()
@@ -266,9 +350,19 @@ void ArraySetInstr::dump()
     dumpOne("ARRAYSET");
 }
 
+Instr* ArraySetInstr::clone()
+{
+    return new ArraySetInstr(array(), index(), value(), name());
+}
+
 void LoadInstr::dump()
 {
     dumpOne("load");
+}
+
+Instr* LoadInstr::clone()
+{
+    return new LoadInstr(variable(), name());
 }
 
 void StoreInstr::dump()
@@ -276,11 +370,10 @@ void StoreInstr::dump()
     dumpOne("store");
 }
 
-void CallInstr::dump()
+Instr* StoreInstr::clone()
 {
-    dumpOne("CALL");
+    return new StoreInstr(variable(), expression(), name());
 }
-
 // }}}
 
 } // namespace x0

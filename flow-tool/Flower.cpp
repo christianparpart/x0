@@ -281,7 +281,7 @@ int Flower::run(const char* fileName, const char* handlerName)
         IRProgram* program = IRGenerator::generate(unit.get());
 
 
-        {
+        if (1) {
             PassManager pm;
             pm.registerPass(std::make_unique<EmptyBlockElimination>());
             pm.registerPass(std::make_unique<InstructionElimination>());

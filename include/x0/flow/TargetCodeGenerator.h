@@ -79,6 +79,8 @@ protected:
     size_t allocate(size_t count);
     void free(size_t base, size_t count);
 
+    void visit(NopInstr& instr) override;
+
     // storage
     void visit(AllocaInstr& instr) override;
     void visit(ArraySetInstr& instr) override;

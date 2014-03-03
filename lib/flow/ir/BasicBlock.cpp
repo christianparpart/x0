@@ -34,6 +34,7 @@ BasicBlock::~BasicBlock()
         delete instr;
     }
 
+    assert(predecessors().empty() && "Cannot remove a basic block that some other basic block still refers to.");
     for (BasicBlock* bb: predecessors()) {
         bb->unlinkSuccessor(this);
     }
@@ -43,13 +44,23 @@ BasicBlock::~BasicBlock()
     }
 }
 
-BranchInstr* BasicBlock::getTerminator() const
+TerminateInstr* BasicBlock::getTerminator() const
 {
-    return dynamic_cast<BranchInstr*>(code_.back());
+    return dynamic_cast<TerminateInstr*>(code_.back());
 }
 
 Instr* BasicBlock::remove(Instr* instr)
 {
+    // if we're removing the terminator instruction
+    if (instr == getTerminator()) {
+        // then unlink all successors also
+        for (Value* operand: instr->operands()) {
+            if (BasicBlock* bb = dynamic_cast<BasicBlock*>(operand)) {
+                unlinkSuccessor(bb);
+            }
+        }
+    }
+
     auto i = std::find(code_.begin(), code_.end(), instr);
     assert(i != code_.end());
     code_.erase(i);
@@ -65,27 +76,26 @@ void BasicBlock::push_back(Instr* instr)
     instr->setParent(this);
     code_.push_back(instr);
 
-    // XXX the resulting type of a basic block always equals the one of its last inserted instruction
+    // FIXME: do we need this? I'd say NOPE.
     setType(instr->type());
+
+    // are we're now adding the terminate instruction?
+    if (dynamic_cast<TerminateInstr*>(instr)) {
+        // then check for possible successors
+        for (auto operand: instr->operands()) {
+            if (BasicBlock* bb = dynamic_cast<BasicBlock*>(operand)) {
+                linkSuccessor(bb);
+            }
+        }
+    }
 }
 
 void BasicBlock::merge_back(BasicBlock* bb)
 {
     assert(getTerminator() == nullptr);
-    assert(!"FIXME: implementation unclear yet");
 
-    for (Instr* instr: bb->code_) {
-        instr->setParent(nullptr);
-        push_back(instr);
-    }
-    bb->code_.clear();
-
-    for (BasicBlock* succ: bb->successors()) {
-        linkSuccessor(succ);
-    }
-
-    for (BasicBlock* succ: successors()) {
-        bb->unlinkSuccessor(succ);
+    for (Instr* i: bb->code_) {
+        push_back(i->clone());
     }
 }
 
@@ -171,13 +181,6 @@ void BasicBlock::linkSuccessor(BasicBlock* successor)
 void BasicBlock::unlinkSuccessor(BasicBlock* successor)
 {
     assert(successor != nullptr);
-
-    printf("BasicBlock(%s).unlinkSuccessor(%s)\n", name().c_str(), successor->name().c_str());
-    printf("successor's preds:");
-    for (const BasicBlock* bb: successor->predecessors()) {
-        printf(" %s", bb->name().c_str());
-    }
-    printf("\n");
 
     auto p = std::find(successor->predecessors_.begin(), successor->predecessors_.end(), this);
     assert(p != successor->predecessors_.end());

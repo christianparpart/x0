@@ -399,7 +399,7 @@ void IRGenerator::accept(CondStmt& stmt)
     BasicBlock* contBlock = createBlock("contBlock");
 
     Value* cond = codegen(stmt.condition());
-    createCondBr(cond, trueBlock, falseBlock, "if.cond");
+    createCondBr(cond, trueBlock, falseBlock);
 
     setInsertPoint(trueBlock);
     codegen(stmt.thenStmt());

@@ -608,49 +608,44 @@ Instr* IRBuilder::createInvokeHandler(IRBuiltinHandler* callee, const std::vecto
 }
 // }}}
 // {{{ exit point creators
-Instr* IRBuilder::createRet(Value* result, const std::string& name)
+Instr* IRBuilder::createRet(Value* result)
 {
-    return insert(new RetInstr(result, makeName(name)));
+    return insert(new RetInstr(result));
 }
 
 Instr* IRBuilder::createBr(BasicBlock* target)
 {
-    getInsertPoint()->linkSuccessor(target);
-
     return insert(new BrInstr(target));
 }
 
-Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name)
+Instr* IRBuilder::createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock)
 {
-    getInsertPoint()->linkSuccessor(falseBlock);
-    getInsertPoint()->linkSuccessor(trueBlock);
-
-    return insert(new CondBrInstr(condValue, trueBlock, falseBlock, makeName(name)));
+    return insert(new CondBrInstr(condValue, trueBlock, falseBlock));
 }
 
-MatchInstr* IRBuilder::createMatch(FlowVM::MatchClass opc, Value* cond, const std::string& name)
+MatchInstr* IRBuilder::createMatch(FlowVM::MatchClass opc, Value* cond)
 {
-    return static_cast<MatchInstr*>(insert(new MatchInstr(opc, cond, makeName(name))));
+    return static_cast<MatchInstr*>(insert(new MatchInstr(opc, cond)));
 }
 
-Value* IRBuilder::createMatchSame(Value* cond, const std::string& name)
+Value* IRBuilder::createMatchSame(Value* cond)
 {
-    return createMatch(MatchClass::Same, cond, name);
+    return createMatch(MatchClass::Same, cond);
 }
 
-Value* IRBuilder::createMatchHead(Value* cond, const std::string& name)
+Value* IRBuilder::createMatchHead(Value* cond)
 {
-    return createMatch(MatchClass::Head, cond, name);
+    return createMatch(MatchClass::Head, cond);
 }
 
-Value* IRBuilder::createMatchTail(Value* cond, const std::string& name)
+Value* IRBuilder::createMatchTail(Value* cond)
 {
-    return createMatch(MatchClass::Tail, cond, name);
+    return createMatch(MatchClass::Tail, cond);
 }
 
-Value* IRBuilder::createMatchRegExp(Value* cond, const std::string& name)
+Value* IRBuilder::createMatchRegExp(Value* cond)
 {
-    return createMatch(MatchClass::RegExp, cond, makeName(name));
+    return createMatch(MatchClass::RegExp, cond);
 }
 // }}}
 

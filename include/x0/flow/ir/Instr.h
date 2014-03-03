@@ -55,6 +55,7 @@ public:
      */
     size_t replaceOperand(Value* old, Value* replacement);
 
+    virtual Instr* clone() = 0;
     virtual void accept(InstructionVisitor& v) = 0;
 
 protected:

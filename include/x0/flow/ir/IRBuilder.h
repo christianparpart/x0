@@ -125,14 +125,14 @@ public:
     Instr* createInvokeHandler(IRBuiltinHandler* callee, const std::vector<Value*>& args);
 
     // termination instructions
-    Instr* createRet(Value* result, const std::string& name = "");
+    Instr* createRet(Value* result);
     Instr* createBr(BasicBlock* block);
-    Instr* createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name = "");
-    MatchInstr* createMatch(FlowVM::MatchClass opc, Value* cond, const std::string& name = "");
-    Value* createMatchSame(Value* cond, const std::string& name = "");
-    Value* createMatchHead(Value* cond, const std::string& name = "");
-    Value* createMatchTail(Value* cond, const std::string& name = "");
-    Value* createMatchRegExp(Value* cond, const std::string& name = "");
+    Instr* createCondBr(Value* condValue, BasicBlock* trueBlock, BasicBlock* falseBlock);
+    MatchInstr* createMatch(FlowVM::MatchClass opc, Value* cond);
+    Value* createMatchSame(Value* cond);
+    Value* createMatchHead(Value* cond);
+    Value* createMatchTail(Value* cond);
+    Value* createMatchRegExp(Value* cond);
 };
 
 } // namespace x0

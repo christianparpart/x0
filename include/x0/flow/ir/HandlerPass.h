@@ -8,6 +8,9 @@ class IRHandler;
 
 class X0_API HandlerPass {
 public:
+    explicit HandlerPass(const char* name) :
+        name_(name) {}
+
     virtual ~HandlerPass() {}
 
     /**
@@ -17,6 +20,11 @@ public:
      * @retval false The handler was not modified.
      */
     virtual bool run(IRHandler* handler) = 0;
+
+    const char* name() const { return name_; }
+
+private:
+    const char* name_;
 };
 
 } // namespace x0

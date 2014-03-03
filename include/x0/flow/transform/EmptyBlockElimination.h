@@ -10,6 +10,8 @@ namespace x0 {
  */
 class X0_API EmptyBlockElimination : public HandlerPass {
 public:
+    EmptyBlockElimination() : HandlerPass("EmptyBlockElimination") {}
+
     bool run(IRHandler* handler) override;
 };
 

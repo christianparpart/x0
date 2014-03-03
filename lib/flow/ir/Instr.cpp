@@ -35,21 +35,15 @@ size_t Instr::replaceOperand(Value* old, Value* replacement)
 {
     size_t count = 0;
 
-    printf("replaceOperand: %s\n", old->name().c_str());
-    printf("          with: %s\n", replacement->name().c_str());
-
     for (size_t i = 0, e = operands_.size(); i != e; ++i) {
         if (operands_[i] == old) {
-            printf("found at operand #%zu\n", i);
             operands_[i] = replacement;
 
             if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(old)) {
-                printf("unlinking oldBB: %s\n", oldBB->name().c_str());
                 parent()->unlinkSuccessor(oldBB);
             }
 
             if (BasicBlock* newBB = dynamic_cast<BasicBlock*>(replacement)) {
-                printf("linking newBB: %s\n", newBB->name().c_str());
                 parent()->linkSuccessor(newBB);
             }
 

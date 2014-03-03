@@ -12,6 +12,8 @@ class BasicBlock;
  */
 class X0_API InstructionElimination : public HandlerPass {
 public:
+    InstructionElimination() : HandlerPass("InstructionElimination") {}
+
     bool run(IRHandler* handler) override;
 
 private:

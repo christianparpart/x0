@@ -28,6 +28,7 @@ enum class BinaryOperator {
 X0_API const char* cstr(BinaryOperator op);
 X0_API const char* cstr(UnaryOperator op);
 
+class NopInstr;
 class AllocaInstr;
 class ArraySetInstr;
 class StoreInstr;
@@ -94,6 +95,8 @@ typedef BinaryInstr<BinaryOperator::SIn,     FlowType::Boolean> SInInstr;
 class X0_API InstructionVisitor {
 public:
     virtual ~InstructionVisitor() {};
+
+    virtual void visit(NopInstr& instr) = 0;
 
     // storage
     virtual void visit(AllocaInstr& instr) = 0;

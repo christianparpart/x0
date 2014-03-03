@@ -28,6 +28,7 @@ void PassManager::run(IRHandler* handler)
 {
 again:
     for (auto& pass: handlerPasses_) {
+        printf("Running pass: %s\n", pass->name());
         if (pass->run(handler)) {
             goto again;
         }

@@ -24,7 +24,7 @@
 namespace x0 {
 
 class Instr;
-class BranchInstr;
+class TerminateInstr;
 class IRHandler;
 class IRBuilder;
 
@@ -49,7 +49,7 @@ public:
      *
      * @see BrInstr, CondBrInstr, MatchInstr, RetInstr
      */
-    BranchInstr* getTerminator() const;
+    TerminateInstr* getTerminator() const;
 
     /**
      * Retrieves the linear ordered list of instructions of instructions in this basic block.

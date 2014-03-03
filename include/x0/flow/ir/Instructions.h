@@ -26,6 +26,18 @@ class IRBuilder;
 class IRBuiltinHandler;
 class IRBuiltinFunction;
 
+class X0_API NopInstr : public Instr {
+public:
+    NopInstr() :
+        Instr(FlowType::Void, {}, "nop")
+    {
+    }
+
+    void dump() override;
+    Instr* clone() override;
+    void accept(InstructionVisitor& v) override;
+};
+
 /**
  * Allocates an array of given type and elements.
  */
@@ -75,6 +87,7 @@ public:
     Value* arraySize() const { return operands()[0]; }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
@@ -89,6 +102,7 @@ public:
     Value* value() const { return operand(2); }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
@@ -102,6 +116,7 @@ public:
     Value* expression() const { return operand(1); }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
@@ -114,26 +129,35 @@ public:
     Value* variable() const { return operand(0); }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
 class X0_API CallInstr : public Instr {
+private:
+    CallInstr(const std::vector<Value*>& args, const std::string& name);
+
 public:
     CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args, const std::string& name);
 
     IRBuiltinFunction* callee() const { return (IRBuiltinFunction*) operand(0); }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
 class X0_API HandlerCallInstr : public Instr {
+private:
+    explicit HandlerCallInstr(const std::vector<Value*>& args);
+
 public:
     HandlerCallInstr(IRBuiltinHandler* callee, const std::vector<Value*>& args);
 
     IRBuiltinHandler* callee() const { return (IRBuiltinHandler*) operand(0); }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
@@ -146,6 +170,7 @@ public:
     Value* source() const { return operand(0); }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
@@ -163,6 +188,10 @@ public:
 
     void dump() override {
         dumpOne(cstr(operator_));
+    }
+
+    Instr* clone() override {
+        return new UnaryInstr<Operator, ResultType>(operand(0), name());
     }
 
     void accept(InstructionVisitor& v) override {
@@ -189,6 +218,10 @@ public:
         dumpOne(cstr(operator_));
     }
 
+    Instr* clone() override {
+        return new BinaryInstr<Operator, ResultType>(operand(0), operand(1), name());
+    }
+
     void accept(InstructionVisitor& v) override {
         v.visit(*this);
     }
@@ -209,13 +242,14 @@ public:
     PhiNode(const std::vector<Value*>& ops, const std::string& name);
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
-class X0_API BranchInstr : public Instr {
+class X0_API TerminateInstr : public Instr {
 public:
-    BranchInstr(const std::vector<Value*>& ops, const std::string& name = "") :
-        Instr(FlowType::Void, ops, name)
+    TerminateInstr(const std::vector<Value*>& ops) :
+        Instr(FlowType::Void, ops, "")
         {}
 };
 
@@ -225,7 +259,7 @@ public:
  * Creates a terminate instruction that transfers control to one of the two
  * given alternate basic blocks, depending on the given input condition.
  */
-class X0_API CondBrInstr : public BranchInstr {
+class X0_API CondBrInstr : public TerminateInstr {
 public:
     /**
      * Initializes the object.
@@ -234,48 +268,53 @@ public:
      * @param trueBlock basic block to run if input condition evaluated to true.
      * @param falseBlock basic block to run if input condition evaluated to false.
      */
-    CondBrInstr(Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock, const std::string& name);
+    CondBrInstr(Value* cond, BasicBlock* trueBlock, BasicBlock* falseBlock);
 
     Value* condition() const { return operands()[0]; }
     BasicBlock* trueBlock() const { return (BasicBlock*) operands()[1]; }
     BasicBlock* falseBlock() const { return (BasicBlock*) operands()[2]; }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
 /**
  * Unconditional jump instruction.
  */
-class X0_API BrInstr : public BranchInstr {
+class X0_API BrInstr : public TerminateInstr {
 public:
     explicit BrInstr(BasicBlock* targetBlock);
 
     BasicBlock* targetBlock() const { return (BasicBlock*) operands()[0]; }
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
 /**
  * handler-return instruction.
  */
-class X0_API RetInstr : public BranchInstr {
+class X0_API RetInstr : public TerminateInstr {
 public:
-    RetInstr(Value* result, const std::string& name);
+    RetInstr(Value* result);
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 };
 
 /**
  * Match instruction, implementing the Flow match-keyword.
  */
-class X0_API MatchInstr : public BranchInstr {
+class X0_API MatchInstr : public TerminateInstr {
 public:
-    MatchInstr(FlowVM::MatchClass op, Value* cond, const std::string& name);
+    MatchInstr(FlowVM::MatchClass op, Value* cond);
 
     FlowVM::MatchClass op() const { return op_; }
+
+    Value* condition() const { return operand(0); }
 
     void addCase(Constant* label, BasicBlock* code);
     std::vector<std::pair<Constant*, BasicBlock*>>& cases() { return cases_; }
@@ -284,6 +323,7 @@ public:
     void setElseBlock(BasicBlock* code);
 
     void dump() override;
+    Instr* clone() override;
     void accept(InstructionVisitor& v) override;
 
 private:

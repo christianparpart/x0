@@ -234,6 +234,11 @@ void TargetCodeGenerator::free(size_t base, size_t count)
 }
 
 // {{{ instruction code generation
+void TargetCodeGenerator::visit(NopInstr& instr)
+{
+    emit(Opcode::NOP);
+}
+
 void TargetCodeGenerator::visit(AllocaInstr& instr)
 {
     size_t count = getConstantInt(instr.operands()[0]);
