@@ -49,7 +49,7 @@ std::string IRBuilder::makeName(const std::string& name)
         return theName;
     }
 
-    unsigned long id = id = ++i->second;
+    unsigned long id = ++i->second;
 
     char buf[512];
     snprintf(buf, sizeof(buf), "%s%lu", theName.c_str(), id);

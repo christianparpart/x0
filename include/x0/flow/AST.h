@@ -68,8 +68,6 @@ protected:
 		owner_(nullptr)
 	{}
 
-    friend class SymbolTable;
-
 public:
 	Type type() const { return type_; }
 

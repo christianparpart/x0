@@ -20,8 +20,8 @@ std::string tos(FlowType type)
 	}
 }
 
-template<> class X0_API GCObject<std::vector<FlowNumber>>;
-template<> class X0_API GCObject<std::vector<FlowString>>;
-template<> class X0_API GCObject<FlowString>;
+template<> class GCObject<std::vector<FlowNumber>>;
+template<> class GCObject<std::vector<FlowString>>;
+template<> class GCObject<FlowString>;
 
 } // namespace x0

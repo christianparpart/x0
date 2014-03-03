@@ -4,9 +4,340 @@
 #include <cstdlib>
 #include <cstdio>
 #include <climits>
+#include <unordered_map>
 
 namespace x0 {
 namespace FlowVM {
+
+InstructionSig operandSignature(Opcode opc)
+{
+    static std::unordered_map<size_t, InstructionSig> map = {
+        {Opcode::NOP, InstructionSig::None},
+        // control
+        {Opcode::EXIT, InstructionSig::I},
+        {Opcode::JMP, InstructionSig::I},
+        {Opcode::JN, InstructionSig::RI},
+        {Opcode::JZ, InstructionSig::RI},
+        // debug
+        {Opcode::NTICKS, InstructionSig::R},
+        {Opcode::NDUMPN, InstructionSig::RI},
+        // copy
+        {Opcode::MOV, InstructionSig::RR},
+        // numerical
+        {Opcode::IMOV, InstructionSig::RI},
+        {Opcode::NCONST, InstructionSig::RI},
+        {Opcode::NNEG, InstructionSig::RR},
+        {Opcode::NADD, InstructionSig::RRR},
+        {Opcode::NSUB, InstructionSig::RRR},
+        {Opcode::NMUL, InstructionSig::RRR},
+        {Opcode::NDIV, InstructionSig::RRR},
+        {Opcode::NREM, InstructionSig::RRR},
+        {Opcode::NSHL, InstructionSig::RRR},
+        {Opcode::NSHR, InstructionSig::RRR},
+        {Opcode::NPOW, InstructionSig::RRR},
+        {Opcode::NAND, InstructionSig::RRR},
+        {Opcode::NOR, InstructionSig::RRR},
+        {Opcode::NXOR, InstructionSig::RRR},
+        {Opcode::NCMPZ, InstructionSig::RR},
+        {Opcode::NCMPEQ, InstructionSig::RRR},
+        {Opcode::NCMPNE, InstructionSig::RRR},
+        {Opcode::NCMPLE, InstructionSig::RRR},
+        {Opcode::NCMPGE, InstructionSig::RRR},
+        {Opcode::NCMPLT, InstructionSig::RRR},
+        {Opcode::NCMPGT, InstructionSig::RRR},
+        // numerical (reg, imm)
+        {Opcode::NIADD, InstructionSig::RRI},
+        {Opcode::NISUB, InstructionSig::RRI},
+        {Opcode::NIMUL, InstructionSig::RRI},
+        {Opcode::NIDIV, InstructionSig::RRI},
+        {Opcode::NIREM, InstructionSig::RRI},
+        {Opcode::NISHL, InstructionSig::RRI},
+        {Opcode::NISHR, InstructionSig::RRI},
+        {Opcode::NIPOW, InstructionSig::RRI},
+        {Opcode::NIAND, InstructionSig::RRI},
+        {Opcode::NIOR, InstructionSig::RRI},
+        {Opcode::NIXOR, InstructionSig::RRI},
+        {Opcode::NICMPEQ, InstructionSig::RRI},
+        {Opcode::NICMPNE, InstructionSig::RRI},
+        {Opcode::NICMPLE, InstructionSig::RRI},
+        {Opcode::NICMPGE, InstructionSig::RRI},
+        {Opcode::NICMPLT, InstructionSig::RRI},
+        {Opcode::NICMPGT, InstructionSig::RRI},
+        // boolean
+        {Opcode::BNOT, InstructionSig::RR},
+        {Opcode::BAND, InstructionSig::RRR},
+        {Opcode::BOR, InstructionSig::RRR},
+        {Opcode::BXOR, InstructionSig::RRR},
+        // string
+        {Opcode::SCONST, InstructionSig::RI},
+        {Opcode::SADD, InstructionSig::RRR},
+        {Opcode::SSUBSTR, InstructionSig::RRR},
+        {Opcode::SCMPEQ, InstructionSig::RRR},
+        {Opcode::SCMPNE, InstructionSig::RRR},
+        {Opcode::SCMPLE, InstructionSig::RRR},
+        {Opcode::SCMPGE, InstructionSig::RRR},
+        {Opcode::SCMPLT, InstructionSig::RRR},
+        {Opcode::SCMPGT, InstructionSig::RRR},
+        {Opcode::SCMPBEG, InstructionSig::RRR},
+        {Opcode::SCMPEND, InstructionSig::RRR},
+        {Opcode::SCONTAINS, InstructionSig::RRR},
+        {Opcode::SLEN, InstructionSig::RR},
+        {Opcode::SISEMPTY, InstructionSig::RR},
+        {Opcode::SPRINT, InstructionSig::R},
+        {Opcode::SMATCHEQ, InstructionSig::RI},
+        {Opcode::SMATCHBEG, InstructionSig::RI},
+        {Opcode::SMATCHEND, InstructionSig::RI},
+        {Opcode::SMATCHR, InstructionSig::RI},
+        // ipaddr
+        {Opcode::PCONST, InstructionSig::RI},
+        {Opcode::PCMPEQ, InstructionSig::RRR},
+        {Opcode::PCMPNE, InstructionSig::RRR},
+        {Opcode::PINCIDR, InstructionSig::RRR},
+        // cidr
+        {Opcode::CCONST, InstructionSig::RI},
+        // regex
+        {Opcode::SREGMATCH, InstructionSig::RRR},
+        {Opcode::SREGGROUP, InstructionSig::RR},
+        // conversion
+        {Opcode::I2S, InstructionSig::RR},
+        {Opcode::P2S, InstructionSig::RR},
+        {Opcode::C2S, InstructionSig::RR},
+        {Opcode::R2S, InstructionSig::RR},
+        {Opcode::S2I, InstructionSig::RR},
+        {Opcode::SURLENC, InstructionSig::RR},
+        {Opcode::SURLDEC, InstructionSig::RR},
+        // array
+        {Opcode::ASNEW, InstructionSig::RI},
+        {Opcode::ASINIT, InstructionSig::RIR},
+        {Opcode::ANNEW, InstructionSig::RI},
+        {Opcode::ANINIT, InstructionSig::RIR},
+        {Opcode::ANINITI, InstructionSig::RII},
+        // invokation
+        {Opcode::CALL, InstructionSig::IIR},
+        {Opcode::HANDLER, InstructionSig::IIR},
+    };
+    return map[static_cast<size_t>(opc)];
+};
+
+const char* mnemonic(Opcode opc)
+{
+    static std::unordered_map<size_t, const char*> map = {
+        {Opcode::NOP, "NOP"},
+        // control
+        {Opcode::EXIT, "EXIT"},
+        {Opcode::JMP, "JMP"},
+        {Opcode::JN, "JN"},
+        {Opcode::JZ, "JZ"},
+        // copy
+        {Opcode::MOV, "MOV"},
+        // debug
+        {Opcode::NTICKS, "NTICKS"},
+        {Opcode::NDUMPN, "NDUMPN"},
+        // numerical
+        {Opcode::IMOV, "IMOV"},
+        {Opcode::NCONST, "NCONST"},
+        {Opcode::NNEG, "NNEG"},
+        {Opcode::NADD, "NADD"},
+        {Opcode::NSUB, "NSUB"},
+        {Opcode::NMUL, "NMUL"},
+        {Opcode::NDIV, "NDIV"},
+        {Opcode::NREM, "NREM"},
+        {Opcode::NSHL, "NSHL"},
+        {Opcode::NSHR, "NSHR"},
+        {Opcode::NPOW, "NPOW"},
+        {Opcode::NAND, "NADN"},
+        {Opcode::NOR, "NOR"},
+        {Opcode::NXOR, "NXOR"},
+        {Opcode::NCMPZ, "NCMPZ"},
+        {Opcode::NCMPEQ, "NCMPEQ"},
+        {Opcode::NCMPNE, "NCMPNE"},
+        {Opcode::NCMPLE, "NCMPLE"},
+        {Opcode::NCMPGE, "NCMPGE"},
+        {Opcode::NCMPLT, "NCMPLT"},
+        {Opcode::NCMPGT, "NCMPGT"},
+        // numerical (reg, imm)
+        {Opcode::NIADD, "NIADD"},
+        {Opcode::NISUB, "NISUB"},
+        {Opcode::NIMUL, "NIMUL"},
+        {Opcode::NIDIV, "NIDIV"},
+        {Opcode::NIREM, "NIREM"},
+        {Opcode::NISHL, "NISHL"},
+        {Opcode::NISHR, "NISHR"},
+        {Opcode::NIPOW, "NIPOW"},
+        {Opcode::NIAND, "NIADN"},
+        {Opcode::NIOR, "NIOR"},
+        {Opcode::NIXOR, "NIXOR"},
+        {Opcode::NICMPEQ, "NICMPEQ"},
+        {Opcode::NICMPNE, "NICMPNE"},
+        {Opcode::NICMPLE, "NICMPLE"},
+        {Opcode::NICMPGE, "NICMPGE"},
+        {Opcode::NICMPLT, "NICMPLT"},
+        {Opcode::NICMPGT, "NICMPGT"},
+        // boolean
+        {Opcode::BNOT, "BNOT"},
+        {Opcode::BAND, "BAND"},
+        {Opcode::BOR, "BOR"},
+        {Opcode::BXOR, "BXOR"},
+        // string
+        {Opcode::SCONST, "SCONST"},
+        {Opcode::SADD, "SADD"},
+        {Opcode::SSUBSTR, "SSUBSTR"},
+        {Opcode::SCMPEQ, "SCMPEQ"},
+        {Opcode::SCMPNE, "SCMPNE"},
+        {Opcode::SCMPLE, "SCMPLE"},
+        {Opcode::SCMPGE, "SCMPGE"},
+        {Opcode::SCMPLT, "SCMPLT"},
+        {Opcode::SCMPGT, "SCMPGT"},
+        {Opcode::SCMPBEG, "SCMPBEG"},
+        {Opcode::SCMPEND, "SCMPEND"},
+        {Opcode::SCONTAINS, "SCONTAINS"},
+        {Opcode::SLEN, "SLEN"},
+        {Opcode::SISEMPTY, "SISEMPTY"},
+        {Opcode::SPRINT, "SPRINT"},
+        {Opcode::SMATCHEQ, "SMATCHEQ"},
+        {Opcode::SMATCHBEG, "SMATCHBEG"},
+        {Opcode::SMATCHEND, "SMATCHEND"},
+        {Opcode::SMATCHR, "SMATCHR"},
+        // ipaddr
+        {Opcode::PCONST, "PCONST"},
+        {Opcode::PCMPEQ, "PCMPEQ"},
+        {Opcode::PCMPNE, "PCMPNE"},
+        {Opcode::PINCIDR, "PINCIDR"},
+        // cidr
+        {Opcode::CCONST, "CCONST"},
+        // regex
+        {Opcode::SREGMATCH, "SREGMATCH"},
+        {Opcode::SREGGROUP, "SREGGROUP"},
+        // conversion
+        {Opcode::I2S, "I2S"},
+        {Opcode::P2S, "P2S"},
+        {Opcode::C2S, "C2S"},
+        {Opcode::R2S, "R2S"},
+        {Opcode::S2I, "S2I"},
+        {Opcode::SURLENC, "SURLENC"},
+        {Opcode::SURLDEC, "SURLDEC"},
+        // array
+        {Opcode::ASNEW, "ASNEW"},
+        {Opcode::ASINIT, "ASINIT"},
+        {Opcode::ANNEW, "ANNEW"},
+        {Opcode::ANINIT, "ANINIT"},
+        {Opcode::ANINITI, "ANINITI"},
+        // invokation
+        {Opcode::CALL, "CALL"},
+        {Opcode::HANDLER, "HANDLER"},
+    };
+    return map[static_cast<size_t>(opc)];
+}
+
+FlowType resultType(Opcode opc)
+{
+    static std::unordered_map<size_t, FlowType> map = {
+        {Opcode::NOP, FlowType::Void},
+        // control
+        {Opcode::EXIT, FlowType::Void},
+        {Opcode::JMP, FlowType::Void},
+        {Opcode::JN, FlowType::Void},
+        {Opcode::JZ, FlowType::Void},
+        // debug
+        {Opcode::NTICKS, FlowType::Number},
+        {Opcode::NDUMPN, FlowType::Void},
+        // copy
+        {Opcode::MOV, FlowType::Void},
+        // numerical
+        {Opcode::IMOV, FlowType::Number},
+        {Opcode::NCONST, FlowType::Number},
+        {Opcode::NNEG, FlowType::Number},
+        {Opcode::NADD, FlowType::Number},
+        {Opcode::NSUB, FlowType::Number},
+        {Opcode::NMUL, FlowType::Number},
+        {Opcode::NDIV, FlowType::Number},
+        {Opcode::NREM, FlowType::Number},
+        {Opcode::NSHL, FlowType::Number},
+        {Opcode::NSHR, FlowType::Number},
+        {Opcode::NPOW, FlowType::Number},
+        {Opcode::NAND, FlowType::Number},
+        {Opcode::NOR, FlowType::Number},
+        {Opcode::NXOR, FlowType::Number},
+        {Opcode::NCMPZ, FlowType::Boolean},
+        {Opcode::NCMPEQ, FlowType::Boolean},
+        {Opcode::NCMPNE, FlowType::Boolean},
+        {Opcode::NCMPLE, FlowType::Boolean},
+        {Opcode::NCMPGE, FlowType::Boolean},
+        {Opcode::NCMPLT, FlowType::Boolean},
+        {Opcode::NCMPGT, FlowType::Boolean},
+        // numerical (reg, imm)
+        {Opcode::NIADD, FlowType::Number},
+        {Opcode::NISUB, FlowType::Number},
+        {Opcode::NIMUL, FlowType::Number},
+        {Opcode::NIDIV, FlowType::Number},
+        {Opcode::NIREM, FlowType::Number},
+        {Opcode::NISHL, FlowType::Number},
+        {Opcode::NISHR, FlowType::Number},
+        {Opcode::NIPOW, FlowType::Number},
+        {Opcode::NIAND, FlowType::Number},
+        {Opcode::NIOR, FlowType::Number},
+        {Opcode::NIXOR, FlowType::Number},
+        {Opcode::NICMPEQ, FlowType::Boolean},
+        {Opcode::NICMPNE, FlowType::Boolean},
+        {Opcode::NICMPLE, FlowType::Boolean},
+        {Opcode::NICMPGE, FlowType::Boolean},
+        {Opcode::NICMPLT, FlowType::Boolean},
+        {Opcode::NICMPGT, FlowType::Boolean},
+        // boolean
+        {Opcode::BNOT, FlowType::Boolean},
+        {Opcode::BAND, FlowType::Boolean},
+        {Opcode::BOR, FlowType::Boolean},
+        {Opcode::BXOR, FlowType::Boolean},
+        // string
+        {Opcode::SCONST, FlowType::String},
+        {Opcode::SADD, FlowType::String},
+        {Opcode::SSUBSTR, FlowType::String},
+        {Opcode::SCMPEQ, FlowType::Boolean},
+        {Opcode::SCMPNE, FlowType::Boolean},
+        {Opcode::SCMPLE, FlowType::Boolean},
+        {Opcode::SCMPGE, FlowType::Boolean},
+        {Opcode::SCMPLT, FlowType::Boolean},
+        {Opcode::SCMPGT, FlowType::Boolean},
+        {Opcode::SCMPBEG, FlowType::Boolean},
+        {Opcode::SCMPEND, FlowType::Boolean},
+        {Opcode::SCONTAINS, FlowType::Boolean},
+        {Opcode::SLEN, FlowType::Number},
+        {Opcode::SISEMPTY, FlowType::Boolean},
+        {Opcode::SPRINT, FlowType::Void},
+        {Opcode::SMATCHEQ, FlowType::Void},
+        {Opcode::SMATCHBEG, FlowType::Void},
+        {Opcode::SMATCHEND, FlowType::Void},
+        {Opcode::SMATCHR, FlowType::Void},
+        // ipaddr
+        {Opcode::PCONST, FlowType::IPAddress},
+        {Opcode::PCMPEQ, FlowType::Boolean},
+        {Opcode::PCMPNE, FlowType::Boolean},
+        {Opcode::PINCIDR, FlowType::Boolean},
+        // cidr
+        {Opcode::CCONST, FlowType::Cidr},
+        // regex
+        {Opcode::SREGMATCH, FlowType::Boolean},
+        {Opcode::SREGGROUP, FlowType::String},
+        // conversion
+        {Opcode::I2S, FlowType::String},
+        {Opcode::P2S, FlowType::String},
+        {Opcode::C2S, FlowType::String},
+        {Opcode::R2S, FlowType::String},
+        {Opcode::S2I, FlowType::Number},
+        {Opcode::SURLENC, FlowType::String},
+        {Opcode::SURLDEC, FlowType::String},
+        // array
+        {Opcode::ASNEW, FlowType::StringArray},
+        {Opcode::ASINIT, FlowType::Void},
+        {Opcode::ANNEW, FlowType::IntArray},
+        {Opcode::ANINIT, FlowType::Void},
+        {Opcode::ANINITI, FlowType::Void},
+        // invokation
+        {Opcode::CALL, FlowType::Void},
+        {Opcode::HANDLER, FlowType::Void},
+    };
+    return map[static_cast<size_t>(opc)];
+}
 
 void disassemble(Instruction pc, ImmOperand ip, const char* comment)
 {
@@ -93,6 +424,8 @@ size_t registerMax(Instruction instr)
         case InstructionSig::RII:
             return std::max(result, (Operand) (1 + operandA(instr)));
     }
+    assert(!"FIXME");
+    return result;
 }
 
 size_t computeRegisterCount(const Instruction* code, size_t size)

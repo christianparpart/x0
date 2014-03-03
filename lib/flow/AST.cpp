@@ -171,12 +171,12 @@ void ParamList::reorder(const FlowVM::NativeCallback* native, std::vector<std::s
 
     assert(values_.size() >= argc && "Argument count mismatch.");
 
-    for (int i = 0; i != argc; ++i) {
+    for (size_t i = 0; i != argc; ++i) {
         const std::string& localName = names_[i];
         const std::string& otherName = native->getNameAt(i);
         int nativeIndex = native->find(localName);
 
-        if (nativeIndex == i) {
+        if (static_cast<size_t>(nativeIndex) == i) {
             // OK: argument at correct position
             continue;
         }

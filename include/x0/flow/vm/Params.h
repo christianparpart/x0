@@ -60,7 +60,7 @@ public:
         const Register& operator*() const { return params_->argv_[current_]; }
 
         iterator& operator++() {
-            if (current_ != params_->argc_) {
+            if (current_ != static_cast<decltype(current_)>(params_->argc_)) {
                 ++current_;
             }
             return *this;

@@ -104,145 +104,148 @@ bool Runner::run()
     #define next goto *ops[opcode(*++pc)]
 
     // {{{ jump table
+    #define label(opcode) && l_##opcode
     static const void* ops[] = {
-        [Opcode::NOP]      = &&l_nop,
+        // misc
+        label(NOP),
 
         // control
-        [Opcode::EXIT]      = &&l_exit,
-        [Opcode::JMP]       = &&l_jmp,
-        [Opcode::JN]        = &&l_jn,
-        [Opcode::JZ]        = &&l_jz,
+        label(EXIT),
+        label(JMP),
+        label(JN),
+        label(JZ),
 
         // debug
-        [Opcode::NTICKS]    = &&l_nticks,
-        [Opcode::NDUMPN]    = &&l_ndumpn,
+        label(NTICKS),
+        label(NDUMPN),
 
         // copy
-        [Opcode::MOV]       = &&l_mov,
+        label(MOV),
 
         // numerical
-        [Opcode::IMOV]      = &&l_imov,
-        [Opcode::NCONST]    = &&l_nconst,
-        [Opcode::NNEG]      = &&l_nneg,
-        [Opcode::NADD]      = &&l_nadd,
-        [Opcode::NSUB]      = &&l_nsub,
-        [Opcode::NMUL]      = &&l_nmul,
-        [Opcode::NDIV]      = &&l_ndiv,
-        [Opcode::NREM]      = &&l_nrem,
-        [Opcode::NSHL]      = &&l_nshl,
-        [Opcode::NSHR]      = &&l_nshr,
-        [Opcode::NPOW]      = &&l_npow,
-        [Opcode::NAND]      = &&l_nand,
-        [Opcode::NOR]       = &&l_nor,
-        [Opcode::NXOR]      = &&l_nxor,
-        [Opcode::NCMPZ]     = &&l_ncmpz,
-        [Opcode::NCMPEQ]    = &&l_ncmpeq,
-        [Opcode::NCMPNE]    = &&l_ncmpne,
-        [Opcode::NCMPLE]    = &&l_ncmple,
-        [Opcode::NCMPGE]    = &&l_ncmpge,
-        [Opcode::NCMPLT]    = &&l_ncmplt,
-        [Opcode::NCMPGT]    = &&l_ncmpgt,
+        label(IMOV),
+        label(NCONST),
+        label(NNEG),
+        label(NADD),
+        label(NSUB),
+        label(NMUL),
+        label(NDIV),
+        label(NREM),
+        label(NSHL),
+        label(NSHR),
+        label(NPOW),
+        label(NAND),
+        label(NOR),
+        label(NXOR),
+        label(NCMPZ),
+        label(NCMPEQ),
+        label(NCMPNE),
+        label(NCMPLE),
+        label(NCMPGE),
+        label(NCMPLT),
+        label(NCMPGT),
 
         // numerical (reg, imm)
-        [Opcode::NIADD]      = &&l_niadd,
-        [Opcode::NISUB]      = &&l_nisub,
-        [Opcode::NIMUL]      = &&l_nimul,
-        [Opcode::NIDIV]      = &&l_nidiv,
-        [Opcode::NIREM]      = &&l_nirem,
-        [Opcode::NISHL]      = &&l_nishl,
-        [Opcode::NISHR]      = &&l_nishr,
-        [Opcode::NIPOW]      = &&l_nipow,
-        [Opcode::NIAND]      = &&l_niand,
-        [Opcode::NIOR]       = &&l_nior,
-        [Opcode::NIXOR]      = &&l_nixor,
-        [Opcode::NICMPEQ]    = &&l_nicmpeq,
-        [Opcode::NICMPNE]    = &&l_nicmpne,
-        [Opcode::NICMPLE]    = &&l_nicmple,
-        [Opcode::NICMPGE]    = &&l_nicmpge,
-        [Opcode::NICMPLT]    = &&l_nicmplt,
-        [Opcode::NICMPGT]    = &&l_nicmpgt,
+        label(NIADD),
+        label(NISUB),
+        label(NIMUL),
+        label(NIDIV),
+        label(NIREM),
+        label(NISHL),
+        label(NISHR),
+        label(NIPOW),
+        label(NIAND),
+        label(NIOR),
+        label(NIXOR),
+        label(NICMPEQ),
+        label(NICMPNE),
+        label(NICMPLE),
+        label(NICMPGE),
+        label(NICMPLT),
+        label(NICMPGT),
 
         // boolean op
-        [Opcode::BNOT]      = &&l_bnot,
-        [Opcode::BAND]      = &&l_band,
-        [Opcode::BOR]       = &&l_bor,
-        [Opcode::BXOR]      = &&l_bxor,
+        label(BNOT),
+        label(BAND),
+        label(BOR),
+        label(BXOR),
 
         // string op
-        [Opcode::SCONST]    = &&l_sconst,
-        [Opcode::SADD]      = &&l_sadd,
-        [Opcode::SSUBSTR]   = &&l_ssubstr,
-        [Opcode::SCMPEQ]    = &&l_scmpeq,
-        [Opcode::SCMPNE]    = &&l_scmpne,
-        [Opcode::SCMPLE]    = &&l_scmple,
-        [Opcode::SCMPGE]    = &&l_scmpge,
-        [Opcode::SCMPLT]    = &&l_scmplt,
-        [Opcode::SCMPGT]    = &&l_scmpgt,
-        [Opcode::SCMPBEG]   = &&l_scmpbeg,
-        [Opcode::SCMPEND]   = &&l_scmpend,
-        [Opcode::SCONTAINS] = &&l_scontains,
-        [Opcode::SLEN]      = &&l_slen,
-        [Opcode::SISEMPTY]  = &&l_sisempty,
-        [Opcode::SPRINT]    = &&l_sprint,
-        [Opcode::SMATCHEQ]  = &&l_smatch,
-        [Opcode::SMATCHBEG] = &&l_smatch,
-        [Opcode::SMATCHEND] = &&l_smatch,
-        [Opcode::SMATCHR]   = &&l_smatch,
+        label(SCONST),
+        label(SADD),
+        label(SADDMULTI),
+        label(SSUBSTR),
+        label(SCMPEQ),
+        label(SCMPNE),
+        label(SCMPLE),
+        label(SCMPGE),
+        label(SCMPLT),
+        label(SCMPGT),
+        label(SCMPBEG),
+        label(SCMPEND),
+        label(SCONTAINS),
+        label(SLEN),
+        label(SISEMPTY),
+        label(SPRINT),
+        label(SMATCHEQ),
+        label(SMATCHBEG),
+        label(SMATCHEND),
+        label(SMATCHR),
 
         // ipaddr
-        [Opcode::PCONST]    = &&l_pconst,
-        [Opcode::PCMPEQ]    = &&l_pcmpeq,
-        [Opcode::PCMPNE]    = &&l_pcmpne,
-        [Opcode::PINCIDR]   = &&l_pincidr,
+        label(PCONST),
+        label(PCMPEQ),
+        label(PCMPNE),
+        label(PINCIDR),
 
         // cidr
-        [Opcode::CCONST]    = &&l_cconst,
+        label(CCONST),
 
         // regex
-        [Opcode::SREGMATCH] = &&l_sregmatch,
-        [Opcode::SREGGROUP] = &&l_sreggroup,
+        label(SREGMATCH),
+        label(SREGGROUP),
 
         // conversion
-        [Opcode::S2I] = &&l_s2i,
-        [Opcode::I2S] = &&l_i2s,
-        [Opcode::P2S] = &&l_p2s,
-        [Opcode::C2S] = &&l_c2s,
-        [Opcode::R2S] = &&l_r2s,
-        [Opcode::SURLENC] = &&l_surlenc,
-        [Opcode::SURLDEC] = &&l_surldec,
+        label(I2S),
+        label(P2S),
+        label(C2S),
+        label(R2S),
+        label(S2I),
+        label(SURLENC),
+        label(SURLDEC),
 
         // arrays
-        [Opcode::ASNEW] = &&l_asnew,
-        [Opcode::ASINIT] = &&l_asinit,
+        label(ASNEW),
+        label(ASINIT),
 
-        [Opcode::ANNEW] = &&l_annew,
-        [Opcode::ANINIT] = &&l_aninit,
-        [Opcode::ANINITI] = &&l_aniniti,
+        label(ANNEW),
+        label(ANINIT),
+        label(ANINITI),
 
         // invokation
-        [Opcode::CALL] = &&l_call,
-        [Opcode::HANDLER] = &&l_handler,
+        label(CALL),
+        label(HANDLER),
     };
     // }}}
 
     goto *ops[opcode(*pc)];
 
     // {{{ misc
-    instr (nop) {
+    instr (NOP) {
         next;
     }
     // }}}
     // {{{ control
-    instr (exit) {
+    instr (EXIT) {
         return A != 0;
     }
 
-    instr (jmp) {
+    instr (JMP) {
         pc = code.data() + A;
         goto *ops[OP];
     }
 
-    instr (jn) {
+    instr (JN) {
         if (data_[A] != 0) {
             pc = code.data() + B;
             goto *ops[OP];
@@ -251,7 +254,7 @@ bool Runner::run()
         }
     }
 
-    instr (jz) {
+    instr (JZ) {
         if (data_[A] == 0) {
             pc = code.data() + B;
             goto *ops[OP];
@@ -261,18 +264,18 @@ bool Runner::run()
     }
     // }}}
     // {{{ copy
-    instr (mov) {
+    instr (MOV) {
         data_[A] = data_[B];
         next;
     }
     // }}}
     // {{{ debug
-    instr (nticks) {
+    instr (NTICKS) {
         data_[A] = ticks;
         next;
     }
 
-    instr (ndumpn) {
+    instr (NDUMPN) {
         printf("regdump: ");
         for (int i = 0; i < B; ++i) {
             if (i) printf(", ");
@@ -283,322 +286,343 @@ bool Runner::run()
     }
     // }}}
     // {{{ numerical
-    instr (imov) {
+    instr (IMOV) {
         data_[A] = B;
         next;
     }
 
-    instr (nconst) {
+    instr (NCONST) {
         data_[A] = program->numbers()[B];
         next;
     }
 
-    instr (nneg) {
+    instr (NNEG) {
         data_[A] = (Register) (-toNumber(B));
         next;
     }
 
-    instr (nadd) {
+    instr (NADD) {
         data_[A] = static_cast<Register>(toNumber(B) + toNumber(C));
         next;
     }
 
-    instr (nsub) {
+    instr (NSUB) {
         data_[A] = static_cast<Register>(toNumber(B) - toNumber(C));
         next;
     }
 
-    instr (nmul) {
+    instr (NMUL) {
         data_[A] = static_cast<Register>(toNumber(B) * toNumber(C));
         next;
     }
 
-    instr (ndiv) {
+    instr (NDIV) {
         data_[A] = static_cast<Register>(toNumber(B) / toNumber(C));
         next;
     }
 
-    instr (nrem) {
+    instr (NREM) {
         data_[A] = static_cast<Register>(toNumber(B) % toNumber(C));
         next;
     }
 
-    instr (nshl) {
+    instr (NSHL) {
         data_[A] = static_cast<Register>(toNumber(B) << toNumber(C));
         next;
     }
 
-    instr (nshr) {
+    instr (NSHR) {
         data_[A] = static_cast<Register>(toNumber(B) >> toNumber(C));
         next;
     }
 
-    instr (npow) {
+    instr (NPOW) {
         data_[A] = static_cast<Register>(powl(toNumber(B), toNumber(C)));
         next;
     }
 
-    instr (nand) {
+    instr (NAND) {
         data_[A] = data_[B] & data_[C];
         next;
     }
 
-    instr (nor) {
+    instr (NOR) {
         data_[A] = data_[B] | data_[C];
         next;
     }
 
-    instr (nxor) {
+    instr (NXOR) {
         data_[A] = data_[B] ^ data_[C];
         next;
     }
 
-    instr (ncmpz) {
+    instr (NCMPZ) {
         data_[A] = static_cast<Register>(toNumber(B) == 0);
         next;
     }
 
-    instr (ncmpeq) {
+    instr (NCMPEQ) {
         data_[A] = static_cast<Register>(toNumber(B) == toNumber(C));
         next;
     }
 
-    instr (ncmpne) {
+    instr (NCMPNE) {
         data_[A] = static_cast<Register>(toNumber(B) != toNumber(C));
         next;
     }
 
-    instr (ncmple) {
+    instr (NCMPLE) {
         data_[A] = static_cast<Register>(toNumber(B) <= toNumber(C));
         next;
     }
 
-    instr (ncmpge) {
+    instr (NCMPGE) {
         data_[A] = static_cast<Register>(toNumber(B) >= toNumber(C));
         next;
     }
 
-    instr (ncmplt) {
+    instr (NCMPLT) {
         data_[A] = static_cast<Register>(toNumber(B) < toNumber(C));
         next;
     }
 
-    instr (ncmpgt) {
+    instr (NCMPGT) {
         data_[A] = static_cast<Register>(toNumber(B) > toNumber(C));
         next;
     }
     // }}}
     // {{{ numerical binary (reg, imm)
-    instr (niadd) {
+    instr (NIADD) {
         data_[A] = static_cast<Register>(toNumber(B) + C);
         next;
     }
 
-    instr (nisub) {
+    instr (NISUB) {
         data_[A] = static_cast<Register>(toNumber(B) - C);
         next;
     }
 
-    instr (nimul) {
+    instr (NIMUL) {
         data_[A] = static_cast<Register>(toNumber(B) * C);
         next;
     }
 
-    instr (nidiv) {
+    instr (NIDIV) {
         data_[A] = static_cast<Register>(toNumber(B) / C);
         next;
     }
 
-    instr (nirem) {
+    instr (NIREM) {
         data_[A] = static_cast<Register>(toNumber(B) % C);
         next;
     }
 
-    instr (nishl) {
+    instr (NISHL) {
         data_[A] = static_cast<Register>(toNumber(B) << C);
         next;
     }
 
-    instr (nishr) {
+    instr (NISHR) {
         data_[A] = static_cast<Register>(toNumber(B) >> C);
         next;
     }
 
-    instr (nipow) {
+    instr (NIPOW) {
         data_[A] = static_cast<Register>(powl(toNumber(B), C));
         next;
     }
 
-    instr (niand) {
+    instr (NIAND) {
         data_[A] = data_[B] & C;
         next;
     }
 
-    instr (nior) {
+    instr (NIOR) {
         data_[A] = data_[B] | C;
         next;
     }
 
-    instr (nixor) {
+    instr (NIXOR) {
         data_[A] = data_[B] ^ C;
         next;
     }
 
-    instr (nicmpeq) {
+    instr (NICMPEQ) {
         data_[A] = static_cast<Register>(toNumber(B) == C);
         next;
     }
 
-    instr (nicmpne) {
+    instr (NICMPNE) {
         data_[A] = static_cast<Register>(toNumber(B) != C);
         next;
     }
 
-    instr (nicmple) {
+    instr (NICMPLE) {
         data_[A] = static_cast<Register>(toNumber(B) <= C);
         next;
     }
 
-    instr (nicmpge) {
+    instr (NICMPGE) {
         data_[A] = static_cast<Register>(toNumber(B) >= C);
         next;
     }
 
-    instr (nicmplt) {
+    instr (NICMPLT) {
         data_[A] = static_cast<Register>(toNumber(B) < C);
         next;
     }
 
-    instr (nicmpgt) {
+    instr (NICMPGT) {
         data_[A] = static_cast<Register>(toNumber(B) > C);
         next;
     }
     // }}}
     // {{{ boolean
-    instr (bnot) {
+    instr (BNOT) {
         data_[A] = (Register) (!toNumber(B));
         next;
     }
 
-    instr (band) {
+    instr (BAND) {
         data_[A] = toNumber(B) && toNumber(C);
         next;
     }
 
-    instr (bor) {
+    instr (BOR) {
         data_[A] = toNumber(B) || toNumber(C);
         next;
     }
 
-    instr (bxor) {
+    instr (BXOR) {
         data_[A] = toNumber(B) ^ toNumber(C);
         next;
     }
-
     // }}}
     // {{{ string
-    instr (sconst) { // A = stringConstTable[B]
+    instr (SCONST) { // A = stringConstTable[B]
         data_[A] = (Register) &program->string(B);
         next;
     }
 
-    instr (sadd) { // A = concat(B, C)
+    instr (SADD) { // A = concat(B, C)
         data_[A] = (Register) catString(toString(B), toString(C));
         next;
     }
 
-    instr (ssubstr) { // A = substr(B, C /*offset*/, C+1 /*count*/)
+    instr (SSUBSTR) { // A = substr(B, C /*offset*/, C+1 /*count*/)
         data_[A] = (Register) newString(toString(B).substr(data_[C], data_[C + 1]));
         next;
     }
 
-    instr (scmpeq) {
+    instr (SADDMULTI) { // TODO: A = concat(B /*rbase*/, C /*count*/)
+        next;
+    }
+
+    instr (SCMPEQ) {
         data_[A] = toString(B) == toString(C);
         next;
     }
 
-    instr (scmpne) {
+    instr (SCMPNE) {
         data_[A] = toString(B) != toString(C);
         next;
     }
 
-    instr (scmple) {
+    instr (SCMPLE) {
         data_[A] = toString(B) <= toString(C);
         next;
     }
 
-    instr (scmpge) {
+    instr (SCMPGE) {
         data_[A] = toString(B) >= toString(C);
         next;
     }
 
-    instr (scmplt) {
+    instr (SCMPLT) {
         data_[A] = toString(B) < toString(C);
         next;
     }
 
-    instr (scmpgt) {
+    instr (SCMPGT) {
         data_[A] = toString(B) > toString(C);
         next;
     }
 
-    instr (scmpbeg) {
+    instr (SCMPBEG) {
         const auto& b = toString(B);
         const auto& c = toString(C);
         data_[A] = b.begins(c);
         next;
     }
 
-    instr (scmpend) {
+    instr (SCMPEND) {
         const auto& b = toString(B);
         const auto& c = toString(C);
         data_[A] = b.ends(c);
         next;
     }
 
-    instr (scontains) {
+    instr (SCONTAINS) {
         data_[A] = toString(B).find(toString(C)) != FlowString::npos;
         next;
     }
 
-    instr (slen) {
+    instr (SLEN) {
         data_[A] = toString(B).size();
         next;
     }
 
-    instr (sisempty) {
+    instr (SISEMPTY) {
         data_[A] = toString(B).empty();
         next;
     }
 
-    instr (sprint) {
+    instr (SPRINT) {
         printf("%s\n", toString(A).str().c_str());
         next;
     }
 
-    instr (smatch) {
+    instr (SMATCHEQ) {
+        auto result = program_->match(B)->evaluate(toStringPtr(A), this);
+        pc = code.data() + result;
+        goto *ops[OP];
+    }
+
+    instr (SMATCHBEG) {
+        auto result = program_->match(B)->evaluate(toStringPtr(A), this);
+        pc = code.data() + result;
+        goto *ops[OP];
+    }
+
+    instr (SMATCHEND) {
+        auto result = program_->match(B)->evaluate(toStringPtr(A), this);
+        pc = code.data() + result;
+        goto *ops[OP];
+    }
+
+    instr (SMATCHR) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
         pc = code.data() + result;
         goto *ops[OP];
     }
     // }}}
     // {{{ ipaddr
-    instr (pconst) { // A = stringConstTable[B]
+    instr (PCONST) { // A = stringConstTable[B]
         data_[A] = (Register) &program->ipaddrs()[B];
         next;
     }
 
-    instr (pcmpeq) {
+    instr (PCMPEQ) {
         data_[A] = toIPAddress(B) == toIPAddress(C);
         next;
     }
 
-    instr (pcmpne) {
+    instr (PCMPNE) {
         data_[A] = toIPAddress(B) != toIPAddress(C);
         next;
     }
 
-    instr (pincidr) {
+    instr (PINCIDR) {
         const IPAddress& ipaddr = toIPAddress(B);
         const Cidr& cidr = toCidr(C);
         data_[A] = cidr.contains(ipaddr);
@@ -606,20 +630,20 @@ bool Runner::run()
     }
     // }}}
     // {{{ cidr
-    instr (cconst) {
+    instr (CCONST) {
         data_[A] = (Register) &program->cidr(B);
         next;
     }
     // }}}
     // {{{ regex
-    instr (sregmatch) { // A = B =~ C
+    instr (SREGMATCH) { // A = B =~ C
         RegExpContext* cx = (RegExpContext*) userdata();
         data_[A] = program_->regularExpression(C)->match(toString(B), cx ? cx->regexMatch() : nullptr);
 
         next;
     }
 
-    instr (sreggroup) { // A = regex.group(B)
+    instr (SREGGROUP) { // A = regex.group(B)
         FlowNumber position = toNumber(B);
         RegExpContext* cx = (RegExpContext*) userdata();
         RegExp::Result* rr = cx->regexMatch();
@@ -631,12 +655,12 @@ bool Runner::run()
     }
     // }}}
     // {{{ conversion
-    instr (s2i) { // A = atoi(B)
+    instr (S2I) { // A = atoi(B)
         data_[A] = toString(B).toInt();
         next;
     }
 
-    instr (i2s) { // A = itoa(B)
+    instr (I2S) { // A = itoa(B)
         char buf[64];
         if (snprintf(buf, sizeof(buf), "%li", (int64_t) data_[B]) > 0) {
             data_[A] = (Register) newString(buf);
@@ -646,36 +670,36 @@ bool Runner::run()
         next;
     }
 
-    instr (p2s) { // A = ip(B).toString()
+    instr (P2S) { // A = ip(B).toString()
         const IPAddress& ipaddr = toIPAddress(B);
         data_[A] = (Register) newString(ipaddr.str());
         next;
     }
 
-    instr (c2s) { // A = cidr(B).toString()
+    instr (C2S) { // A = cidr(B).toString()
         const Cidr& cidr = toCidr(B);
         data_[A] = (Register) newString(cidr.str());
         next;
     }
 
-    instr (r2s) { // A = regex(B).toString()
+    instr (R2S) { // A = regex(B).toString()
         const RegExp& re = toRegExp(B);
         data_[A] = (Register) newString(re.pattern());
         next;
     }
 
-    instr (surlenc) { // A = urlencode(B)
+    instr (SURLENC) { // A = urlencode(B)
         // TODO
         next;
     }
 
-    instr (surldec) { // B = urldecode(B)
+    instr (SURLDEC) { // B = urldecode(B)
         // TODO
         next;
     }
     // }}}
     // {{{ arrays
-    instr (asnew) { // RI
+    instr (ASNEW) { // RI
         GCStringArray* array = new GCStringArray(B);
         garbage_.push_back(array);
         data_[A] = (Register) array;
@@ -683,7 +707,7 @@ bool Runner::run()
         next;
     }
 
-    instr (asinit) { // RIR
+    instr (ASINIT) { // RIR
         GCStringArray* array = (GCStringArray*) data_[A];
         size_t index = B;
         const FlowString& value = toString(C);
@@ -694,7 +718,7 @@ bool Runner::run()
     }
 
     // ANEW(array, size)
-    instr (annew) { // RI
+    instr (ANNEW) { // RI
         GCIntArray* array = new GCIntArray(B);
         garbage_.push_back(array);
         data_[A] = (Register) array;
@@ -703,7 +727,7 @@ bool Runner::run()
     }
 
     // ANINIT(array, index, value)
-    instr (aninit) { // RIR
+    instr (ANINIT) { // RIR
         GCIntArray* array = (GCIntArray*) data_[A];
         size_t index = B;
         FlowNumber value = toNumber(C);
@@ -714,7 +738,7 @@ bool Runner::run()
     }
 
     // ANINITI(array, index, value)
-    instr (aniniti) { // RII
+    instr (ANINITI) { // RII
         GCIntArray* array = (GCIntArray*) data_[A];
         size_t index = B;
         FlowNumber value = C;
@@ -725,7 +749,7 @@ bool Runner::run()
     }
     // }}}
     // {{{ invokation
-    instr (call) { // IIR
+    instr (CALL) { // IIR
         size_t id = A;
         int argc = B;
         Register* argv = &data_[C];
@@ -736,7 +760,7 @@ bool Runner::run()
         next;
     }
 
-    instr (handler) { // IIR
+    instr (HANDLER) { // IIR
         size_t id = A;
         int argc = B;
         Value* argv = &data_[C];

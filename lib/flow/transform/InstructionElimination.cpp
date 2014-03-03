@@ -40,6 +40,8 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb)
 
         return true;
     }
+
+    return false;
 }
 
 bool InstructionElimination::eliminateLinearBr(BasicBlock* bb)
@@ -62,6 +64,8 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb)
 
         return true;
     }
+
+    return false;
 }
 
 } // namespace x0

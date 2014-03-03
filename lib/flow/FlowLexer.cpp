@@ -1,6 +1,7 @@
 #include <x0/flow/FlowLexer.h>
 #include <x0/IPAddress.h>
 #include <x0/DebugLogger.h>
+#include <unordered_map>
 #include <string.h>
 #include <glob.h>
 
@@ -299,10 +300,10 @@ void FlowLexer::processCommand(const std::string& line)
 	glob_t gl;
 	int rv = glob(pattern.c_str(), GLOB_TILDE, nullptr, &gl);
 	if (rv != 0) {
-		static const char* globErrs[] = {
-			[GLOB_NOSPACE] = "No space",
-			[GLOB_ABORTED] = "Aborted",
-			[GLOB_NOMATCH] = "No Match",
+		static std::unordered_map<int, const char*> globErrs = {
+            {GLOB_NOSPACE, "No space"},
+            {GLOB_ABORTED, "Aborted"},
+            {GLOB_NOMATCH, "No Match"},
 		};
 		TRACE(1, "glob() error: %s", globErrs[rv]);
 		return;
@@ -870,7 +871,7 @@ FlowToken FlowLexer::continueCidr(size_t range)
 		nextChar();
 	}
 
-	if (numberValue_ > range) {
+	if (numberValue_ > static_cast<decltype(numberValue_)>(range)) {
 		TRACE(1, "%s[%04zu:%02zu]: CIDR prefix out of range.\n",
 				location_.filename.c_str(), line(), column());
 		return token_ = FlowToken::Unknown;
