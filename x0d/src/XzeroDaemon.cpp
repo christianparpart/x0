@@ -1026,7 +1026,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
         return false;
     }
 
-    if (0) { // optimize
+    if (optimizationLevel > 0) {
         PassManager pm;
         pm.registerPass(std::make_unique<EmptyBlockElimination>());
         pm.registerPass(std::make_unique<InstructionElimination>());
