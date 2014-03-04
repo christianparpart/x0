@@ -405,7 +405,22 @@ void TargetCodeGenerator::visit(CallInstr& instr)
 
 void TargetCodeGenerator::visit(HandlerCallInstr& instr)
 {
-    assert(!"TODO: HandlerCallInstr CG");
+    int argc = instr.operands().size();
+    Register rbase = allocate(argc, instr);
+
+    // emit call args
+    for (int i = 1; i < argc; ++i) {
+        Register tmp = getRegister(instr.operands()[i]);
+        emit(Opcode::MOV, rbase + i, tmp);
+    }
+
+    // emit call
+    Register nativeId = makeNativeHandler(instr.callee());
+    emit(Opcode::HANDLER, nativeId, argc, rbase);
+
+    variables_[&instr] = rbase;
+
+    free(rbase + 1, argc - 1);
 }
 
 FlowVM::Operand TargetCodeGenerator::getConstantInt(Value* value)
