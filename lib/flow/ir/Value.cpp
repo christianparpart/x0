@@ -11,16 +11,28 @@
 
 namespace x0 {
 
+static unsigned long long valueCounter = 1;
+
+Value::Value(const Value& v) :
+    type_(v.type_),
+    name_(),
+    uses_()
+{
+    char buf[256];
+    snprintf(buf, sizeof(buf), "%s%llu", v.name().c_str(), valueCounter);
+    valueCounter++;
+    name_ = buf;
+}
+
 Value::Value(FlowType ty, const std::string& name) :
     type_(ty),
     name_(name),
     uses_()
 {
     if (name_.empty()) {
-        static unsigned long long i = 1;
         char buf[256];
-        snprintf(buf, sizeof(buf), "unnamed%llu", i);
-        i++;
+        snprintf(buf, sizeof(buf), "unnamed%llu", valueCounter);
+        valueCounter++;
         name_ = buf;
         //printf("default-create name: %s\n", name_.c_str());
     }

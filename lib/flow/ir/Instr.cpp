@@ -17,21 +17,80 @@ namespace x0 {
 
 using namespace FlowVM;
 
+Instr::Instr(const Instr& v) :
+    Value(v),
+    parent_(nullptr),
+    operands_(v.operands_)
+{
+    for (Value* op: operands_) {
+        if (op) {
+            op->addUse(this);
+        }
+    }
+}
+
 Instr::Instr(FlowType ty, const std::vector<Value*>& ops, const std::string& name) :
     Value(ty, name),
     parent_(nullptr),
     operands_(ops)
 {
     for (Value* op: operands_) {
-        op->addUse(this);
+        if (op) {
+            op->addUse(this);
+        }
     }
 }
 
 Instr::~Instr()
 {
     for (Value* op: operands_) {
+        if (!op)
+            continue;
+
         op->removeUse(this);
+
+        if (!parent())
+            continue;
+
+        if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(op)) {
+            parent()->unlinkSuccessor(oldBB);
+        }
     }
+}
+
+void Instr::addOperand(Value* value)
+{
+    operands_.push_back(value);
+
+    value->addUse(this);
+
+    if (BasicBlock* newBB = dynamic_cast<BasicBlock*>(value)) {
+        parent()->linkSuccessor(newBB);
+    }
+}
+
+Value* Instr::setOperand(size_t i, Value* value)
+{
+    Value* old = operands_[i];
+    operands_[i] = value;
+
+    if (old) {
+        old->removeUse(this);
+
+        if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(old)) {
+            parent()->unlinkSuccessor(oldBB);
+        }
+    }
+
+    if (value) {
+        value->addUse(this);
+
+        if (BasicBlock* newBB = dynamic_cast<BasicBlock*>(value)) {
+            parent()->linkSuccessor(newBB);
+        }
+    }
+
+    return old;
 }
 
 size_t Instr::replaceOperand(Value* old, Value* replacement)
@@ -40,18 +99,7 @@ size_t Instr::replaceOperand(Value* old, Value* replacement)
 
     for (size_t i = 0, e = operands_.size(); i != e; ++i) {
         if (operands_[i] == old) {
-            operands_[i] = replacement;
-            old->removeUse(this);
-            replacement->addUse(this);
-
-            if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(old)) {
-                parent()->unlinkSuccessor(oldBB);
-            }
-
-            if (BasicBlock* newBB = dynamic_cast<BasicBlock*>(replacement)) {
-                parent()->linkSuccessor(newBB);
-            }
-
+            setOperand(i, replacement);
             ++count;
         }
     }

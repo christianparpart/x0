@@ -32,18 +32,51 @@ class IRBuilder;
 
 class InstructionVisitor;
 
-// NCMPEQ, NADD, SMATCHR, JMP, EXIT, ...
+/**
+ * Base class for native instructions.
+ *
+ * An instruction is derived from base class \c Value because its result can be used
+ * as an operand for other instructions.
+ *
+ * @see IRBuilder
+ * @see BasicBlock
+ * @see IRHandler
+ */
 class X0_API Instr : public Value {
+protected:
+    Instr(const Instr& v);
+
 public:
     Instr(FlowType ty, const std::vector<Value*>& ops = {}, const std::string& name = "");
     ~Instr();
 
+    /**
+     * Retrieves parent basic block this instruction is part of.
+     */
     BasicBlock* parent() const { return parent_; }
-    void setParent(BasicBlock* bb) { parent_ = bb; }
 
+    /**
+     * Read-only access to operands.
+     */
     const std::vector<Value*>& operands() const { return operands_; }
-    std::vector<Value*>& operands() { return operands_; }
+
+    /**
+     * Retrieves n'th operand at given \p index.
+     */
     Value* operand(size_t index) const { return operands_[index]; }
+
+    /**
+     * Adds given operand \p value to the end of the operand list.
+     */
+    void addOperand(Value* value);
+
+    /**
+     * Sets operand at index \p i to given \p value.
+     *
+     * This operation will potentially replace the value that has been at index \p i before,
+     * properly unlinking it from any uses or successor/predecessor links.
+     */
+    Value* setOperand(size_t i, Value* value);
 
     /**
      * Replaces \p old operand with \p replacement.
@@ -55,11 +88,28 @@ public:
      */
     size_t replaceOperand(Value* old, Value* replacement);
 
+    /**
+     * Clones given instruction.
+     *
+     * This will not clone any of its operands but reference them.
+     */
     virtual Instr* clone() = 0;
+
+    /**
+     * Generic extension interface.
+     *
+     * @param v extension to pass this instruction to.
+     *
+     * @see InstructionVisitor
+     */
     virtual void accept(InstructionVisitor& v) = 0;
 
 protected:
     void dumpOne(const char* mnemonic);
+
+    void setParent(BasicBlock* bb) { parent_ = bb; }
+
+    friend class BasicBlock;
 
 private:
     BasicBlock* parent_;

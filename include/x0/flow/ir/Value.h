@@ -22,6 +22,9 @@ class Instr;
  * Defines an immutable IR value.
  */
 class X0_API Value {
+protected:
+    Value(const Value& v);
+
 public:
     Value(FlowType ty, const std::string& name);
     virtual ~Value();

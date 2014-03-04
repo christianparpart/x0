@@ -108,11 +108,12 @@ void TargetCodeGenerator::generate(IRHandler* handler)
 
     // fixiate match jump table
     for (const auto& hint: matchHints_) {
-        MatchInstr* instr = hint.first;
         size_t matchId = hint.second;
+        MatchInstr* instr = hint.first;
+        auto cases = instr->cases();
 
-        for (size_t i = 0, e = instr->cases().size(); i != e; ++i) {
-            matches_[matchId].cases[i].pc = basicBlockEntryPoints[instr->cases()[i].second];
+        for (size_t i = 0, e = cases.size(); i != e; ++i) {
+            matches_[matchId].cases[i].pc = basicBlockEntryPoints[cases[i].second];
         }
 
         if (instr->elseBlock()) {

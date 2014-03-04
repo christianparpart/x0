@@ -247,10 +247,15 @@ public:
 };
 
 class X0_API TerminateInstr : public Instr {
+protected:
+    TerminateInstr(const TerminateInstr& v) :
+        Instr(v)
+    {}
+
 public:
     TerminateInstr(const std::vector<Value*>& ops) :
         Instr(FlowType::Void, ops, "")
-        {}
+    {}
 };
 
 /**
@@ -307,8 +312,16 @@ public:
 
 /**
  * Match instruction, implementing the Flow match-keyword.
+ *
+ * <li>operand[0] - condition</li>
+ * <li>operand[1] - default block</li>
+ * <li>operand[2n+2] - case label</li>
+ * <li>operand[2n+3] - case block</li>
  */
 class X0_API MatchInstr : public TerminateInstr {
+private:
+    MatchInstr(const MatchInstr&);
+
 public:
     MatchInstr(FlowVM::MatchClass op, Value* cond);
 
@@ -317,9 +330,9 @@ public:
     Value* condition() const { return operand(0); }
 
     void addCase(Constant* label, BasicBlock* code);
-    std::vector<std::pair<Constant*, BasicBlock*>>& cases() { return cases_; }
+    std::vector<std::pair<Constant*, BasicBlock*>> cases() const;
 
-    BasicBlock* elseBlock() const { return elseBlock_; }
+    BasicBlock* elseBlock() const;
     void setElseBlock(BasicBlock* code);
 
     void dump() override;
@@ -329,7 +342,6 @@ public:
 private:
     FlowVM::MatchClass op_;
     std::vector<std::pair<Constant*, BasicBlock*>> cases_;
-    BasicBlock* elseBlock_;
 };
 
 } // namespace x0

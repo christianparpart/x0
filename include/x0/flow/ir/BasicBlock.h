@@ -54,18 +54,24 @@ public:
     /**
      * Retrieves the linear ordered list of instructions of instructions in this basic block.
      */
-    std::vector<Instr*>& instructions() { return code_; }
     const std::vector<Instr*>& instructions() const { return code_; }
 
     /**
-     * Removes given instruction from this basic block.
-     */
-    Instr* remove(Instr* childInstr);
-
-    /**
      * Appends a new instruction, \p instr, to this basic block.
+     *
+     * The basic block will take over ownership of the given instruction.
      */
     void push_back(Instr* instr);
+
+    /**
+     * Removes given instruction from this basic block.
+     *
+     * The basic block will pass ownership of the given instruction to the caller.
+     * That means, the caller has to either delete \p childInstr or transfer it to another basic block.
+     *
+     * @see push_back()
+     */
+    Instr* remove(Instr* childInstr);
 
     /**
      * Merges given basic block's instructions into this ones end.

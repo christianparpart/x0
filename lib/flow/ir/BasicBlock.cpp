@@ -65,6 +65,7 @@ Instr* BasicBlock::remove(Instr* instr)
     assert(i != code_.end());
     code_.erase(i);
     instr->setParent(nullptr);
+
     return instr;
 }
 
@@ -137,6 +138,9 @@ bool BasicBlock::isAfter(const BasicBlock* otherBB) const
         return false;
 
     ++i;
+
+    if (i == list.cend())
+        return false;
 
     return *i == otherBB;
 }

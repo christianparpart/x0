@@ -163,27 +163,25 @@ void BrInstr::accept(InstructionVisitor& visitor)
 // }}}
 // {{{ MatchInstr
 MatchInstr::MatchInstr(MatchClass op, Value* cond) :
-    TerminateInstr({cond}),
-    op_(op),
-    cases_(),
-    elseBlock_(nullptr)
+    TerminateInstr({cond, nullptr}),
+    op_(op)
 {
 }
 
 void MatchInstr::addCase(Constant* label, BasicBlock* code)
 {
-    parent()->linkSuccessor(code);
-
-    cases_.push_back(std::make_pair(label, code));
+    addOperand(label);
+    addOperand(code);
 }
 
 void MatchInstr::setElseBlock(BasicBlock* code)
 {
-    assert(elseBlock_ == nullptr);
+    setOperand(1, code);
+}
 
-    parent()->linkSuccessor(code);
-
-    elseBlock_ = code;
+BasicBlock* MatchInstr::elseBlock() const
+{
+    return static_cast<BasicBlock*>(operand(1));
 }
 
 void MatchInstr::dump()
@@ -204,15 +202,31 @@ void MatchInstr::dump()
     }
 }
 
+MatchInstr::MatchInstr(const MatchInstr& v) :
+    TerminateInstr(v),
+    op_(v.op())
+{
+}
+
 Instr* MatchInstr::clone()
 {
-    MatchInstr* match = new MatchInstr(op(), condition());
-    for (const auto& one: cases()) {
-        match->addCase(one.first, one.second);
-    }
-    match->setElseBlock(elseBlock());
+    return new MatchInstr(*this);
+}
 
-    return match;
+std::vector<std::pair<Constant*, BasicBlock*>> MatchInstr::cases() const
+{
+    std::vector<std::pair<Constant*, BasicBlock*>> out;
+
+    size_t caseCount = (operands().size() - 2) / 2;
+
+    for (size_t i = 0; i < caseCount; ++i) {
+        Constant* label = static_cast<Constant*>    (operand(2 + 2 * i + 0));
+        BasicBlock* code = static_cast<BasicBlock*> (operand(2 + 2 * i + 1));
+
+        out.push_back(std::make_pair(label, code));
+    }
+
+    return out;
 }
 
 void MatchInstr::accept(InstructionVisitor& visitor)

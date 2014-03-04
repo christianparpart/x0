@@ -280,7 +280,6 @@ int Flower::run(const char* fileName, const char* handlerName)
         printf("================================================ IR\n");
         IRProgram* program = IRGenerator::generate(unit.get());
 
-
         if (1) {
             PassManager pm;
             pm.registerPass(std::make_unique<EmptyBlockElimination>());
@@ -292,7 +291,7 @@ int Flower::run(const char* fileName, const char* handlerName)
             program->dump();
         }
 
-        printDefUseChain(program);
+        //printDefUseChain(program);
 
         {
             printf("================================================ IR codegen dump\n");
