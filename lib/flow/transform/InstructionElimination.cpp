@@ -21,11 +21,11 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb)
 {
     // attempt to eliminate useless condbr
     if (CondBrInstr* condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
-        printf("rewriteCondBrToSameBranches\n");
-        bb->dump();
-
         if (condbr->trueBlock() != condbr->falseBlock())
             return false;
+
+        //printf("rewriteCondBrToSameBranches\n");
+        //bb->dump();
 
         BasicBlock* nextBB = condbr->trueBlock();
 
