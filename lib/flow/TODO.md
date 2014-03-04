@@ -1,6 +1,7 @@
 
 ### Flow TODO
 
+- FIXME: memory leaks wrt. Flow IR destruction (check valgrind in general)
 - FIXME: cannot dump vm program when not linked
 - parser:
   - FIXME: handler calls w/o arguments and trailing space: `staticfile;`
