@@ -772,6 +772,21 @@ void TargetCodeGenerator::visit(SInInstr& instr)
 {
     emitBinary(instr, Opcode::SCONTAINS);
 }
+
+void TargetCodeGenerator::visit(PCmpEQInstr& instr)
+{
+    emitBinary(instr, Opcode::PCMPEQ);
+}
+
+void TargetCodeGenerator::visit(PCmpNEInstr& instr)
+{
+    emitBinary(instr, Opcode::PCMPNE);
+}
+
+void TargetCodeGenerator::visit(PInCidrInstr& instr)
+{
+    emitBinary(instr, Opcode::PINCIDR);
+}
 // }}}
 
 } // namespace x0

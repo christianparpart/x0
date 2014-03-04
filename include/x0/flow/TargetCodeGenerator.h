@@ -150,6 +150,11 @@ protected:
     void visit(SCmpEndInstr& instr) override;
     void visit(SInInstr& instr) override;
 
+    // ip
+    void visit(PCmpEQInstr& instr) override;
+    void visit(PCmpNEInstr& instr) override;
+    void visit(PInCidrInstr& instr) override;
+
 private:
     struct ConditionalJump {
         size_t pc;

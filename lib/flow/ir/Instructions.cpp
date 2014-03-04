@@ -82,6 +82,10 @@ const char* cstr(BinaryOperator op) // {{{
         [(size_t)BinaryOperator::SCmpBeg] = "scmpbeg",
         [(size_t)BinaryOperator::SCmpEnd] = "scmpend",
         [(size_t)BinaryOperator::SIn] = "sin",
+        // ip
+        [(size_t)BinaryOperator::PCmpEQ] = "pcmpeq",
+        [(size_t)BinaryOperator::PCmpNE] = "pcmpne",
+        [(size_t)BinaryOperator::PInCidr] = "pincidr",
     };
 
     return ops[(size_t)op];

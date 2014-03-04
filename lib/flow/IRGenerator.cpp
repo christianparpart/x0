@@ -231,10 +231,15 @@ void IRGenerator::accept(BinaryExpr& expr)
         { FlowVM::Opcode::SCMPGT, &IRGenerator::createSCmpGT },
         { FlowVM::Opcode::SCMPBEG, &IRGenerator::createSCmpEB },
         { FlowVM::Opcode::SCMPEND, &IRGenerator::createSCmpEE },
-        //{ FlowVM::Opcode::SCONTAINS, &IRGenerator::createSContains },
+        { FlowVM::Opcode::SCONTAINS, &IRGenerator::createSIn },
 
         // regex
         { FlowVM::Opcode::SREGMATCH, &IRGenerator::createSCmpRE },
+
+        // ip
+        { FlowVM::Opcode::PCMPEQ, &IRGenerator::createPCmpEQ },
+        { FlowVM::Opcode::PCMPNE, &IRGenerator::createPCmpNE },
+        { FlowVM::Opcode::PINCIDR, &IRGenerator::createPInCidr },
     };
 
     Value* lhs = codegen(expr.leftExpr());
@@ -244,6 +249,7 @@ void IRGenerator::accept(BinaryExpr& expr)
     if (i != ops.end()) {
         result_ = (this->*i->second)(lhs, rhs, "");
     } else {
+        fprintf(stderr, "BUG: Binary operation `%s` not implemented.\n", mnemonic(expr.op()));
         assert(!"Unimplemented");
         result_ = nullptr;
     }

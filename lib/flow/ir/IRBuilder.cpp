@@ -531,6 +531,43 @@ Value* IRBuilder::createSCmpEE(Value* lhs, Value* rhs, const std::string& name)
 
     return insert(new SCmpEndInstr(lhs, rhs, makeName(name)));
 }
+
+Value* IRBuilder::createSIn(Value* lhs, Value* rhs, const std::string& name)
+{
+    if (auto a = dynamic_cast<ConstantString*>(lhs))
+        if (auto b = dynamic_cast<ConstantString*>(rhs))
+            return get(BufferRef(a->get()).find(b->get()) != Buffer::npos);
+
+    return insert(new SInInstr(lhs, rhs, makeName(name)));
+}
+// }}}
+// {{{ ip ops
+Value* IRBuilder::createPCmpEQ(Value* lhs, Value* rhs, const std::string& name)
+{
+    if (auto a = dynamic_cast<ConstantIP*>(lhs))
+        if (auto b = dynamic_cast<ConstantIP*>(rhs))
+            return get(a->get() == b->get());
+
+    return insert(new PCmpEQInstr(lhs, rhs, makeName(name)));
+}
+
+Value* IRBuilder::createPCmpNE(Value* lhs, Value* rhs, const std::string& name)
+{
+    if (auto a = dynamic_cast<ConstantIP*>(lhs))
+        if (auto b = dynamic_cast<ConstantIP*>(rhs))
+            return get(a->get() != b->get());
+
+    return insert(new PCmpNEInstr(lhs, rhs, makeName(name)));
+}
+
+Value* IRBuilder::createPInCidr(Value* lhs, Value* rhs, const std::string& name)
+{
+    if (auto a = dynamic_cast<ConstantIP*>(lhs))
+        if (auto b = dynamic_cast<ConstantCidr*>(rhs))
+            return get(b->get().contains(a->get()));
+
+    return insert(new PInCidrInstr(lhs, rhs, makeName(name)));
+}
 // }}}
 // {{{ cast ops
 Value* IRBuilder::createB2S(Value* rhs, const std::string& name)

@@ -110,6 +110,18 @@ public:
     Value* createSCmpRE(Value* lhs, Value* rhs, const std::string& name = "");   // =~
     Value* createSCmpEB(Value* lhs, Value* rhs, const std::string& name = "");   // =^
     Value* createSCmpEE(Value* lhs, Value* rhs, const std::string& name = "");   // =$
+    Value* createSIn(Value* lhs, Value* rhs, const std::string& name = "");      // in
+
+    // IP address
+    Value* createPCmpEQ(Value* lhs, Value* rhs, const std::string& name = "");  // ==
+    Value* createPCmpNE(Value* lhs, Value* rhs, const std::string& name = "");  // !=
+    Value* createPInCidr(Value* lhs, Value* rhs, const std::string& name = ""); // in
+
+    // cidr
+    // ...
+
+    // regexp
+    // ...
 
     // cast
     Value* createConvert(FlowType ty, Value* rhs, const std::string& name = ""); // cast<T>()

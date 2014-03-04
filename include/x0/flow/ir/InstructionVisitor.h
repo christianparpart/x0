@@ -23,6 +23,8 @@ enum class BinaryOperator {
     // string
     SAdd, SSubStr,
     SCmpEQ, SCmpNE, SCmpLE, SCmpGE, SCmpLT, SCmpGT, SCmpRE, SCmpBeg, SCmpEnd, SIn,
+    // ip
+    PCmpEQ, PCmpNE, PInCidr,
 };
 
 X0_API const char* cstr(BinaryOperator op);
@@ -92,6 +94,11 @@ typedef BinaryInstr<BinaryOperator::SCmpBeg, FlowType::Boolean> SCmpBegInstr;
 typedef BinaryInstr<BinaryOperator::SCmpEnd, FlowType::Boolean> SCmpEndInstr;
 typedef BinaryInstr<BinaryOperator::SIn,     FlowType::Boolean> SInInstr;
 
+// ip
+typedef BinaryInstr<BinaryOperator::PCmpEQ,  FlowType::Boolean> PCmpEQInstr;
+typedef BinaryInstr<BinaryOperator::PCmpNE,  FlowType::Boolean> PCmpNEInstr;
+typedef BinaryInstr<BinaryOperator::PInCidr, FlowType::Boolean> PInCidrInstr;
+
 class X0_API InstructionVisitor {
 public:
     virtual ~InstructionVisitor() {};
@@ -160,6 +167,11 @@ public:
     virtual void visit(SCmpBegInstr& instr) = 0;
     virtual void visit(SCmpEndInstr& instr) = 0;
     virtual void visit(SInInstr& instr) = 0;
+
+    // ip
+    virtual void visit(PCmpEQInstr& instr) = 0;
+    virtual void visit(PCmpNEInstr& instr) = 0;
+    virtual void visit(PInCidrInstr& instr) = 0;
 };
 
 } // namespace x0
