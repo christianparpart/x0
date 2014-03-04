@@ -702,10 +702,10 @@ void XzeroCore::phys_mimetype(HttpRequest* in, FlowParams& args)
 // {{{ regex
 void XzeroCore::regex_group(HttpRequest* in, FlowParams& args)
 {
-	size_t position = args.get<FlowNumber>(1) >= 0 ? args.get<FlowNumber>(1) : 0;
+	FlowNumber position = args.get<FlowNumber>(1);
 
 	if (const RegExp::Result* rr = in->regexMatch()) {
-		if (position < rr->size()) {
+		if (position >= 0 && position < rr->size()) {
 			const auto& match = rr->at(position);
             FlowString result(match.first, match.second);
 			args.setResult(args.caller()->newString(match.first, match.second));
