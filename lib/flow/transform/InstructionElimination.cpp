@@ -30,12 +30,10 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb)
         BasicBlock* nextBB = condbr->trueBlock();
 
         // remove old terminator
-        bb->remove(condbr);
+        delete bb->remove(condbr);
 
         // create new terminator
-        bb->push_back(new BrInstr(nextBB)); // FIXME causes crash
-
-        delete condbr;
+        bb->push_back(new BrInstr(nextBB));
 
         return true;
     }

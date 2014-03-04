@@ -33,6 +33,7 @@ public:
     void setName(const std::string& n) { name_ = n; }
 
     void addUse(Instr* user);
+    void removeUse(Instr* user);
     const std::vector<Instr*>& uses() const { return uses_; }
 
     virtual void dump() = 0;

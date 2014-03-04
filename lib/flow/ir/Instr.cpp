@@ -29,6 +29,9 @@ Instr::Instr(FlowType ty, const std::vector<Value*>& ops, const std::string& nam
 
 Instr::~Instr()
 {
+    for (Value* op: operands_) {
+        op->removeUse(this);
+    }
 }
 
 size_t Instr::replaceOperand(Value* old, Value* replacement)
@@ -38,6 +41,8 @@ size_t Instr::replaceOperand(Value* old, Value* replacement)
     for (size_t i = 0, e = operands_.size(); i != e; ++i) {
         if (operands_[i] == old) {
             operands_[i] = replacement;
+            old->removeUse(this);
+            replacement->addUse(this);
 
             if (BasicBlock* oldBB = dynamic_cast<BasicBlock*>(old)) {
                 parent()->unlinkSuccessor(oldBB);

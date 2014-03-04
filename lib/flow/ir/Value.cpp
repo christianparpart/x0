@@ -6,6 +6,7 @@
  */
 
 #include <x0/flow/ir/Value.h>
+#include <algorithm>
 #include <assert.h>
 
 namespace x0 {
@@ -32,6 +33,13 @@ Value::~Value()
 void Value::addUse(Instr* user)
 {
     uses_.push_back(user);
+}
+
+void Value::removeUse(Instr* user)
+{
+    auto i = std::find(uses_.begin(), uses_.end(), user);
+    assert (i != uses_.end());
+    uses_.erase(i);
 }
 
 void Value::dump()

@@ -292,7 +292,7 @@ int Flower::run(const char* fileName, const char* handlerName)
             program->dump();
         }
 
-        //printDefUseChain(program);
+        printDefUseChain(program);
 
         {
             printf("================================================ IR codegen dump\n");
