@@ -290,6 +290,26 @@ size_t TargetCodeGenerator::makeNumber(FlowNumber value)
     return numbers_.size() - 1;
 }
 
+size_t TargetCodeGenerator::makeNativeHandler(IRBuiltinHandler* builtin)
+{
+    for (size_t i = 0, e = nativeHandlerSignatures_.size(); i != e; ++i)
+        if (builtin->signature() == nativeHandlerSignatures_[i])
+            return i;
+
+    nativeHandlerSignatures_.push_back(builtin->signature().to_s());
+    return nativeHandlerSignatures_.size() - 1;
+}
+
+size_t TargetCodeGenerator::makeNativeFunction(IRBuiltinFunction* builtin)
+{
+    for (size_t i = 0, e = nativeFunctionSignatures_.size(); i != e; ++i)
+        if (builtin->signature() == nativeFunctionSignatures_[i])
+            return i;
+
+    nativeFunctionSignatures_.push_back(builtin->signature().to_s());
+    return nativeFunctionSignatures_.size() - 1;
+}
+
 void TargetCodeGenerator::visit(StoreInstr& instr)
 {
     Value* lhs = instr.variable();
@@ -375,7 +395,7 @@ void TargetCodeGenerator::visit(CallInstr& instr)
     }
 
     // emit call
-    Register nativeId = 0;// TODO: nativeFunction(static_cast<BuiltinFunction*>(callee));
+    Register nativeId = makeNativeFunction(instr.callee());
     emit(Opcode::CALL, nativeId, argc, rbase);
 
     variables_[&instr] = rbase;

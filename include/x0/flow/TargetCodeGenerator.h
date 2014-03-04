@@ -20,6 +20,8 @@ class Instr;
 class IRProgram;
 class IRHandler;
 class BasicBlock;
+class IRBuiltinHandler;
+class IRBuiltinFunction;
 
 namespace FlowVM {
     class Program;
@@ -37,6 +39,8 @@ protected:
     size_t handlerRef(IRHandler* handler);
 
     size_t makeNumber(FlowNumber value);
+    size_t makeNativeHandler(IRBuiltinHandler* builtin);
+    size_t makeNativeFunction(IRBuiltinFunction* builtin);
 
     size_t emit(FlowVM::Opcode opc) { return emit(FlowVM::makeInstruction(opc)); }
     size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1) { return emit(FlowVM::makeInstruction(opc, op1)); }

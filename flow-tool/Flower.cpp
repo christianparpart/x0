@@ -52,7 +52,8 @@ Flower::Flower() :
 	totalSuccess_(0),
 	totalFailed_(0),
 	dumpAST_(false),
-	dumpIR_(false)
+    dumpIR_(false),
+    dumpTarget_(false)
 {
     // properties
     registerFunction("cwd", FlowType::String).bind(&Flower::flow_getcwd);
@@ -186,8 +187,7 @@ int Flower::runAll(const char *fileName)
         return -1;
     }
 
-    if (dumpIR_) {
-        printf("Dumping IR ...\n");
+    if (dumpTarget_) {
         program_->dump();
     }
 
@@ -276,40 +276,35 @@ int Flower::run(const char* fileName, const char* handlerName)
 	if (dumpAST_)
 		ASTPrinter::print(unit.get());
 
-    {
-        printf("================================================ IR\n");
-        IRProgram* program = IRGenerator::generate(unit.get());
-
-        if (1) {
-            PassManager pm;
-            pm.registerPass(std::make_unique<EmptyBlockElimination>());
-            pm.registerPass(std::make_unique<InstructionElimination>());
-            pm.run(program);
-        }
-
-        if (program) {
-            program->dump();
-        }
-
-        //printDefUseChain(program);
-
-        {
-            printf("================================================ IR codegen dump\n");
-            if (auto vmprogram = TargetCodeGenerator().generate(program)) {
-                vmprogram->dump();
-            }
-        }
-
-        printf("============================================================\n");
-    }
-
 	Handler* handlerSym = unit->findHandler(handlerName);
 	if (!handlerSym) {
 		fprintf(stderr, "No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
 		return -1;
 	}
 
+#if 0
     program_ = FlowAssemblyBuilder::compile(unit.get());
+#else
+    IRProgram* ir = IRGenerator::generate(unit.get());
+    if (!ir) {
+        fprintf(stderr, "IR generation failed. Aborting.\n");
+        return -1;
+    }
+
+    if (1) {
+        PassManager pm;
+        pm.registerPass(std::make_unique<EmptyBlockElimination>());
+        pm.registerPass(std::make_unique<InstructionElimination>());
+        pm.run(ir);
+    }
+
+    if (dumpIR_) {
+        ir->dump();
+    }
+
+    program_ = TargetCodeGenerator().generate(ir);
+#endif
+
     if (!program_) {
         fprintf(stderr, "Code generation failed. Aborting.\n");
         return -1;
@@ -320,8 +315,7 @@ int Flower::run(const char* fileName, const char* handlerName)
         return -1;
     }
 
-    if (dumpIR_) {
-        printf("Dumping IR ...\n");
+    if (dumpTarget_) {
         program_->dump();
     }
 

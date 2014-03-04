@@ -34,6 +34,8 @@ public:
 
     std::string to_s() const;
 
+    operator std::string () const { return to_s(); }
+
     bool operator==(const Signature& v) const { return to_s() == v.to_s(); }
     bool operator!=(const Signature& v) const { return to_s() != v.to_s(); }
     bool operator<(const Signature& v) const { return to_s() < v.to_s(); }

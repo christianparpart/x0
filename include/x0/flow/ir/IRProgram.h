@@ -44,6 +44,8 @@ public:
     const std::vector<ConstantIP*>& ipaddrs() const { return ipaddrs_; }
     const std::vector<ConstantCidr*>& cidrs() const { return cidrs_; }
     const std::vector<ConstantRegExp*>& regularExpressions() const { return regexps_; }
+    const std::vector<IRBuiltinHandler*>& builtinHandlers() const { return builtinHandlers_; }
+    const std::vector<IRBuiltinFunction*>& builtinFunctions() const { return builtinFunctions_; }
 
     IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) { return get<IRBuiltinHandler>(builtinHandlers_, sig); }
     IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) { return get<IRBuiltinFunction>(builtinFunctions_, sig); }

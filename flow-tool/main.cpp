@@ -26,12 +26,13 @@ using namespace x0;
 int usage(const char *program)
 {
 	printf(
-		"usage: %s [-h] [-t] [-l] [-s] [-L] [-e entry_point] filename\n"
+		"usage: %s [-h] [-t] [-l] [-s] [-L] [-A] [-I] [-T] [-e entry_point] filename\n"
 		"\n"
 		"    -h      prints this help\n"
-		"    -I      dumps IR of the compiled module\n"
 		"    -L      Dump lexical output and exit\n"
-		"    -T      Dump AST after parsing process\n"
+		"    -A      Dump AST after parsing process\n"
+		"    -I      dumps IR of the compiled module\n"
+        "    -T      Dump target program code\n"
 		"    -e      entry point to start execution from. if not passed, nothing will be executed.\n"
 		"    -On     set optimization level, with n ranging from 0 (no optimization) to 4 (maximum).\n"
 		"    -t      enables unit-test mode\n"
@@ -114,23 +115,26 @@ int main(int argc, const char *argv[])
 	}
 #endif
 
-	while ((opt = getopt(argc, (char**) argv, "tO:hILTe:")) != -1) {
+	while ((opt = getopt(argc, (char**) argv, "tO:hAILTe:")) != -1) {
 		switch (opt) {
 		case 'h':
 			usage(argv[0]);
 			return 0;
-		case 'I':
-			flower.setDumpIR(true);
+		case 't':
+			testMode = true;
 			break;
 		case 'L':
 			lexMode = true;
 			break;
-		case 'T':
+		case 'A':
 			flower.setDumpAST(true);
 			break;
-		case 't':
-			testMode = true;
+		case 'I':
+			flower.setDumpIR(true);
 			break;
+        case 'T':
+            flower.setDumpTarget(true);
+            break;
 		case 'O':
 			flower.setOptimizationLevel(atoi(optarg));
 			break;

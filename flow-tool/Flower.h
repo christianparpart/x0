@@ -34,6 +34,7 @@ private:
 
 	bool dumpAST_;
 	bool dumpIR_;
+    bool dumpTarget_;
 
 public:
 	Flower();
@@ -46,6 +47,7 @@ public:
 
 	void setDumpAST(bool value) { dumpAST_ = value; }
 	void setDumpIR(bool value) { dumpIR_ = value; }
+    void setDumpTarget(bool value) { dumpTarget_ = value; }
 
 	int run(const char *filename, const char *handler);
 	int runAll(const char *filename);
