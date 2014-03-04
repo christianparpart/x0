@@ -121,6 +121,10 @@ void TargetCodeGenerator::generate(IRHandler* handler)
     matchHints_.clear();
 
     handlers_[handlerId_].second = std::move(code_);
+
+    // cleanup remaining handler-local work vars
+    allocations_.clear();
+    variables_.clear();
 }
 
 /**
