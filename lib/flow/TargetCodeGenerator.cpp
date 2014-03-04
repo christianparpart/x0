@@ -544,7 +544,10 @@ void TargetCodeGenerator::visit(MatchInstr& instr)
         matchDef.cases.push_back(caseDef);
     }
 
-    emit(ops[(size_t) matchDef.op], matchId);
+    Register condition = getRegister(instr.condition());
+
+    emit(ops[(size_t) matchDef.op], condition, matchId);
+
     matches_.push_back(std::move(matchDef));
 }
 
