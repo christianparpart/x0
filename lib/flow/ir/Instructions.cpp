@@ -272,7 +272,7 @@ CallInstr::CallInstr(IRBuiltinFunction* callee, const std::vector<Value*>& args,
 
 void CallInstr::dump()
 {
-    dumpOne("CALL");
+    dumpOne("call");
 }
 
 Instr* CallInstr::clone()
@@ -287,18 +287,19 @@ void CallInstr::accept(InstructionVisitor& visitor)
 // }}}
 // {{{ HandlerCallInstr
 HandlerCallInstr::HandlerCallInstr(const std::vector<Value*>& args) :
-    Instr(FlowType::Boolean, args, "")
+    Instr(FlowType::Void, args, "")
 {
 }
 
 HandlerCallInstr::HandlerCallInstr(IRBuiltinHandler* callee, const std::vector<Value*>& args) :
-    Instr(FlowType::Boolean, join(callee, args), "")
+    Instr(FlowType::Void, join(callee, args), "")
 {
+    // XXX a handler call actually returns a boolean, but that's never used except by the execution engine.
 }
 
 void HandlerCallInstr::dump()
 {
-    dumpOne("hcall");
+    dumpOne("handler");
 }
 
 Instr* HandlerCallInstr::clone()
