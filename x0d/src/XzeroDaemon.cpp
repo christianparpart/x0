@@ -1033,7 +1033,9 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
         pm.run(ir);
     }
 
-    ir->dump();
+    if (dumpIR_) {
+        ir->dump();
+    }
 
     program_ = TargetCodeGenerator().generate(ir);
 #endif
