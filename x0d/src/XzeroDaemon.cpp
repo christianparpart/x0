@@ -15,11 +15,16 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/flow/vm/Runner.h>
 #include <x0/flow/vm/Program.h>
-#include <x0/flow/FlowAssemblyBuilder.h>
 #include <x0/flow/FlowCallVisitor.h>
 #include <x0/flow/FlowParser.h>
 #include <x0/flow/ASTPrinter.h>
 #include <x0/flow/AST.h>
+#include <x0/flow/IRGenerator.h>
+#include <x0/flow/TargetCodeGenerator.h>
+#include <x0/flow/FlowAssemblyBuilder.h>
+#include <x0/flow/ir/PassManager.h>
+#include <x0/flow/transform/EmptyBlockElimination.h>
+#include <x0/flow/transform/InstructionElimination.h>
 #include <x0/io/SyslogSink.h>
 #include <x0/Tokenizer.h>
 #include <x0/Logger.h>
@@ -1012,7 +1017,26 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
     if (dumpAST_)
         ASTPrinter::print(unit_.get());
 
+#if 0
     program_ = FlowAssemblyBuilder::compile(unit_.get());
+#else
+    IRProgram* ir = IRGenerator::generate(unit_.get());
+    if (!ir) {
+        fprintf(stderr, "IR generation failed. Aborting.\n");
+        return false;
+    }
+
+    if (0) { // optimize
+        PassManager pm;
+        pm.registerPass(std::make_unique<EmptyBlockElimination>());
+        pm.registerPass(std::make_unique<InstructionElimination>());
+        pm.run(ir);
+    }
+
+    ir->dump();
+
+    program_ = TargetCodeGenerator().generate(ir);
+#endif
     if (!program_) {
         fprintf(stderr, "Code generation failed. Aborting.\n");
         return false;
