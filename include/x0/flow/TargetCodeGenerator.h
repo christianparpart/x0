@@ -183,5 +183,4 @@ private:
     std::vector<bool> allocations_;
 };
 
-
 } // namespace x0

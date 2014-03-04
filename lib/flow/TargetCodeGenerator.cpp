@@ -438,6 +438,7 @@ FlowVM::Operand TargetCodeGenerator::getRegister(Value* value)
     if (i != variables_.end())
         return i->second;
 
+    // const int
     if (ConstantInt* integer = dynamic_cast<ConstantInt*>(value)) {
         // FIXME this constant initialization should pretty much be done in the entry block
         Register reg = allocate(1, integer);
@@ -445,13 +446,41 @@ FlowVM::Operand TargetCodeGenerator::getRegister(Value* value)
         return reg;
     }
 
+    // const boolean
+    if (auto boolean = dynamic_cast<ConstantBoolean*>(value)) {
+        Register reg = allocate(1, boolean);
+        emit(Opcode::IMOV, reg, boolean->get());
+        return reg;
+    }
+
+    // const string
     if (ConstantString* str = dynamic_cast<ConstantString*>(value)) {
         Register reg = allocate(1, str);
         emit(Opcode::SCONST, reg, str->id());
         return reg;
     }
 
-    // TODO: other const-to-reg implicits (string, ip, cidr, regex)
+    // const ip
+    if (ConstantIP* ip = dynamic_cast<ConstantIP*>(value)) {
+        Register reg = allocate(1, ip);
+        emit(Opcode::PCONST, reg, ip->id());
+        return reg;
+    }
+
+    // const cidr
+    if (ConstantCidr* cidr = dynamic_cast<ConstantCidr*>(value)) {
+        Register reg = allocate(1, cidr);
+        emit(Opcode::CCONST, reg, cidr->id());
+        return reg;
+    }
+
+    // const regex
+    if (ConstantRegExp* re = dynamic_cast<ConstantRegExp*>(value)) {
+        Register reg = allocate(1, re);
+        //emit(Opcode::RCONST, reg, re->id());
+        assert(!"TODO: RCONST opcode");
+        return reg;
+    }
 
     return allocate(1, value);
 }
