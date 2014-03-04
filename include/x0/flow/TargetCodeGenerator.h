@@ -36,6 +36,8 @@ protected:
     void generate(IRHandler* handler);
     size_t handlerRef(IRHandler* handler);
 
+    size_t makeNumber(FlowNumber value);
+
     size_t emit(FlowVM::Opcode opc) { return emit(FlowVM::makeInstruction(opc)); }
     size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1) { return emit(FlowVM::makeInstruction(opc, op1)); }
     size_t emit(FlowVM::Opcode opc, FlowVM::Operand op1, FlowVM::Operand op2) { return emit(FlowVM::makeInstruction(opc, op1, op2)); }
@@ -66,6 +68,7 @@ protected:
     size_t emit(FlowVM::Opcode opcode, BasicBlock* bb);
 
     size_t emitBinaryAssoc(Instr& instr, FlowVM::Opcode rr, FlowVM::Opcode ri);
+    size_t emitBinary(Instr& instr, FlowVM::Opcode rr, FlowVM::Opcode ri);
     size_t emitBinary(Instr& instr, FlowVM::Opcode rr);
     size_t emitUnary(Instr& instr, FlowVM::Opcode r);
 
@@ -155,14 +158,15 @@ private:
         FlowVM::Opcode opcode;
     };
 
-    //!< list of raised errors during code generation.
+    //! list of raised errors during code generation.
     std::vector<std::string> errors_;
 
     std::unordered_map<BasicBlock*, std::list<ConditionalJump>> conditionalJumps_;
     std::unordered_map<BasicBlock*, std::list<UnconditionalJump>> unconditionalJumps_;
-    std::list<std::pair<MatchInstr*, size_t>> matchHints_;
+    std::list<std::pair<MatchInstr*, size_t /*matchId*/>> matchHints_;
 
     // target program output
+    std::vector<FlowNumber> numbers_;
     std::vector<FlowVM::MatchDef> matches_;
     std::vector<std::pair<std::string, std::string>> modules_;
     std::vector<std::string> nativeHandlerSignatures_;

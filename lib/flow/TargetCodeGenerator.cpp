@@ -52,15 +52,13 @@ std::unique_ptr<FlowVM::Program> TargetCodeGenerator::generate(IRProgram* progra
     for (IRHandler* handler: program->handlers())
         generate(handler);
 
-    // FIXME: only include those const ints that actually caused an LOAD from the constant table.
-    std::vector<FlowNumber> numbers(convert<FlowNumber>(program->numbers()));
     std::vector<std::string> strings(convert<std::string>(program->strings()));
     std::vector<IPAddress> ipaddrs(convert<IPAddress>(program->ipaddrs()));
     std::vector<Cidr> cidrs(convert<Cidr>(program->cidrs()));
     std::vector<std::string> regularExpressions(convert<std::string>(program->regularExpressions()));
 
     return std::unique_ptr<FlowVM::Program>(new FlowVM::Program(
-        numbers,
+        numbers_,
         strings,
         ipaddrs,
         cidrs,
@@ -191,6 +189,23 @@ size_t TargetCodeGenerator::emitBinaryAssoc(Instr& instr, Opcode rr, Opcode ri)
     return emit(rr, a, b, c);
 }
 
+size_t TargetCodeGenerator::emitBinary(Instr& instr, Opcode rr, Opcode ri)
+{
+    assert(operandSignature(rr) == InstructionSig::RRR);
+    assert(operandSignature(ri) == InstructionSig::RRI);
+
+    Register a = allocate(1, instr);
+
+    if (auto i = dynamic_cast<ConstantInt*>(instr.operand(1))) {
+        Register b = getRegister(instr.operand(0));
+        return emit(ri, a, b, i->get());
+    }
+
+    Register b = getRegister(instr.operand(0));
+    Register c = getRegister(instr.operand(1));
+    return emit(rr, a, b, c);
+}
+
 size_t TargetCodeGenerator::emitUnary(Instr& instr, FlowVM::Opcode r)
 {
     assert(operandSignature(r) == InstructionSig::RR);
@@ -265,6 +280,16 @@ void TargetCodeGenerator::visit(ArraySetInstr& instr)
     assert(!"TODO: missing implementation of ArraySetInstr sub types");
 }
 
+size_t TargetCodeGenerator::makeNumber(FlowNumber value)
+{
+    for (size_t i = 0, e = numbers_.size(); i != e; ++i)
+        if (numbers_[i] == value)
+            return i;
+
+    numbers_.push_back(value);
+    return numbers_.size() - 1;
+}
+
 void TargetCodeGenerator::visit(StoreInstr& instr)
 {
     Value* lhs = instr.variable();
@@ -274,10 +299,11 @@ void TargetCodeGenerator::visit(StoreInstr& instr)
 
     // const int
     if (auto integer = dynamic_cast<ConstantInt*>(rhs)) {
-        if (integer->get() >= -32768 && integer->get() <= 32767) { // limit to 16bit signed width
-            emit(Opcode::IMOV, lhsReg, integer->get());
+        FlowNumber number = integer->get();
+        if (number >= -32768 && number <= 32767) { // limit to 16bit signed width
+            emit(Opcode::IMOV, lhsReg, number);
         } else {
-            emit(Opcode::NCONST, lhsReg, integer->id());
+            emit(Opcode::NCONST, lhsReg, makeNumber(number));
         }
         return;
     }
@@ -535,7 +561,7 @@ void TargetCodeGenerator::visit(IRemInstr& instr)
 
 void TargetCodeGenerator::visit(IPowInstr& instr)
 {
-    emitBinary(instr, Opcode::NPOW);
+    emitBinary(instr, Opcode::NPOW, Opcode::NIPOW);
 }
 
 void TargetCodeGenerator::visit(IAndInstr& instr)
