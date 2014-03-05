@@ -762,7 +762,15 @@ void TargetCodeGenerator::visit(SCmpGTInstr& instr)
 
 void TargetCodeGenerator::visit(SCmpREInstr& instr)
 {
-    emitBinary(instr, Opcode::SREGMATCH);
+    assert(dynamic_cast<ConstantRegExp*>(instr.operand(1)) && "RHS must be a ConstantRegExp");
+
+    ConstantRegExp* re = static_cast<ConstantRegExp*>(instr.operand(1));
+
+    Register a = allocate(1, instr);
+    Register b = getRegister(instr.operand(0));
+    Operand c = re->id();
+
+    emit(Opcode::SREGMATCH, a, b, c);
 }
 
 void TargetCodeGenerator::visit(SCmpBegInstr& instr)
