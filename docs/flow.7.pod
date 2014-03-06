@@ -136,6 +136,8 @@ Any place you use your variables, they will represent the values assigned to it.
 
 =over 6
 
+=item * Boolean
+
 =item * Integer
 
 =item * String
@@ -146,9 +148,9 @@ Any place you use your variables, they will represent the values assigned to it.
 
 =item * Regular Expression
 
-=item * Array of Strings
-
 =item * Array of Integers
+
+=item * Array of Strings
 
 =back
 
