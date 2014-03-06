@@ -4,7 +4,8 @@ Flow Language Specification
 
 =head1 SYNOPSIS
 
-Flow is a tiny language, designed to control the program flow of some hook of an application,
+Flow is a tiny domain specific language designed to define
+control flow for customizable hooks in an application,
 e.g. an HTTP server's request handling.
 
 =head1 DESCRIPTION
@@ -15,12 +16,12 @@ These handlers may be invoked by the host application (e.g. an HTTP web server)
 on certain events, e.g. an incoming request to be processed.
 The handler then decides - depending on the request properties
 (such as source IP, hostname, or request path) - how to exactly handle this request,
-e.g. either passing it to a fastcgi backend server, the static file handler,
-or just responding with a 403 (access denied) response directly.
+e.g. either passing it to a FastCGI backend server, the static file handler,
+or just responding with a 403 (Access Denied) response directly.
 
-You can define custom sub handlers within your file for common tasks
+You can define custom sub handlers within your control file for common tasks
 frequently handled, e.g. a custom php or cgi handler that may be
-referenced by others.
+invoked by others.
 
 With this in mind, B<Flow> can be used to build up complex decision control
 flows that make it pretty easy to tweak.
@@ -31,8 +32,8 @@ B<Flow> itself is built upon five basic concepts:
 
 =item B<handlers>
 
-define the handlers your backend invokes to actually execute your flow,
-or sub-handlers, a handler that is called by other handlers.
+Handlers define the handlers your application invokes to actually execute your
+customized control flow, or sub-handlers, a handler that is called by other handlers.
 
 A handler is special as it
 B<only returns to the caller if it has not processed the context>
@@ -45,30 +46,28 @@ In pseudo-language, you may describe it as follows:
 
   // else: proceed with the next statement
 
-So the B<Flow> parser will implicitely generate the if-clause after
-every handler-invokation to jump out with a special result state
-as soon as a handler has handled the context.
+So you can understand this as if the B<Flow>-parser would implicitely
+generate an if-clause after every handler-invokation to jump out completely
+with a special result state as soon as a handler has handled the context.
 
 =item B<variables>
 
-mainly provided by your backend to make your control Flow dependant on them,
-e.g. the hostname, a request header or the client IP.
-
-But you can also declare your own local variables for readability purposes.
+Variables can be used to make your decision control flow much more flexible
+dependant on your context.
 
 =item B<functions>
 
-only provided by the backend to aid your control Flow with common tasks,
-e.g. setting the document-root, getting environment variables,
-writing into a log file, etc.
+Functions only provided by the host application to aid your control flow with common tasks,
+e.g. setting the document-root, retrieving environment variables, or the remote IP address
+of the current HTTP client (i.e. the context), or just writing into a log file, etc.
 
 You cannot define a function within a Flow file itself.
-Functions must be provided by the backend.
+Functions must be provided by the host application.
 
 =item B<expressions>
 
-make the flow control actually more useful, as it allows you to composite
-more complex tests or eases the readability
+Expressions make the flow control actually more useful, as it allows you to composite
+more complex tests or eases the readability.
 
 =item B<statements>
 
@@ -82,17 +81,22 @@ even yet another if-statement, etc.
 
 =head1 HANDLERS
 
-A handler is a named group of ordered statements to be invoked by the host program to handle certain events. You may call also handlers within your own handler to devide your big flow into multiple smaller and more comprehensible ones.
+A handler is a named group of ordered statements to be invoked by the host
+program to handle certain events. You may call also handlers within your own
+handler to devide your big flow into multiple smaller and more
+comprehensible ones.
 
 A minimal handler, not doing anything, looks like follows:
 
   handler HANDLER_NAME { }
 
-Every handler starts with the keyword B<handler> followed by its handler name. The next must be a valid statement or a block of statements.
-Statement blocks are embraced by B<{> and B<}>, so, the above handler defines an empty statement block with no statements inside, resulting
-into a no-operation when invoked.
+Every handler starts with the keyword B<handler> followed by its handler name.
+The next must be a valid statement or a block of statements.
+Statement blocks are embraced by B<{> and B<}>, so, the above handler defines
+an empty statement block with no statements inside, resulting into a
+no-operation when invoked. A handler may also invoke other handlers.
 
-A handler may also invoke other handlers. Though, looking at the following example:
+Though, looking at the following example:
 
   handler helper
   {
@@ -107,10 +111,8 @@ The helper handler is doing nothing and the main handler is invoking the helper 
 
 =head1 VARIABLES
 
-Variables are values that are referenced by its well known name but can contain (and even change over time) any arbitary value, depending on the variable's use and origin.
-
-Variables are usually provided by the backend (e.g. a chat or HTTP server) and have a specific use.
-But you may also define your own variables to aid your flow with readability.
+Variables are values that are referenced by its well known name but can contain
+(and even change over time) any arbitary value, depending on the variable's use and origin.
 
 The syntax for defining own variables looks as follows:
 
@@ -134,7 +136,7 @@ Any place you use your variables, they will represent the values assigned to it.
 
 =over 6
 
-=item * Number
+=item * Integer
 
 =item * String
 
@@ -144,24 +146,30 @@ Any place you use your variables, they will represent the values assigned to it.
 
 =item * Regular Expression
 
+=item * Array of Strings
+
+=item * Array of Integers
+
 =back
 
 =head1 FUNCTIONS
 
-Functions are always and thus must be provided by the backend and cannot be defined within B<Flow> itself.
+Functions are always and thus must be provided by the host application
+and cannot be defined within a B<Flow> program itself.
 They help you defining your flow by e.g. configuring the request for post processing,
 a log function to log arbitary data (e.g. strings) to your log file, or communicating with other services.
-The backend is absolutely free in what it does in its functions.
 
-Though, the flowtest-tool defines e.g. the following function:
+The host application is absolutely free in what it does inside its functions.
 
-  __print(value, ...);
+Though, the B<flow-tool> defines e.g. the following function:
 
-that can be used to print any value (or list of values) to your controlling terminal. e.g.:
+  __print(string_value);
 
-  __print(hello, i, value);
-  __print('this is me. the flow');
+that can be used to print any string value (or list of values) to your controlling terminal. e.g.:
 
+  var hello = "Hello, World!";
+  __print(hello);
+  __print("this is me. the flow");
 
 =head1 EXPRESSIONS
 
@@ -176,53 +184,95 @@ and the operator precedence is quite like it, too.
 
 =item LHS B<and> RHS
 
+Logical and-operation.
+
 =item LHS B<or> RHS
+
+Logical or-operation.
 
 =item LHS B<xor> RHS
 
+Logical exclusive-or-operation.
+
 =item LHS B<==> RHS
+
+Both sides must be equal.
 
 =item LHS B<!=> RHS
 
+Both sides must not be equal.
+
 =item LHS B<<=> RHS
+
+Left side must be less or equal than the right side.
 
 =item LHS B<E<gt>=> RHS
 
+Left side must be greater or equal than the right side.
+
+=item LHS B<<> RHS
+
+Left side must be less than the right side.
+
+=item LHS B<E<gt>> RHS
+
+Left side must be greater than the right side.
+
 =item LHS B<in> RHS
+
+Tests if B<LHS> occurs in B<RHS>. That is, if LHS and RHS are both strings, it'll perform a substring match
+that evaluates to true if B<LHS> is a substring of B<RHS>
+
+If B<LHS> is an IP address and B<RHS> is a CIDR network notation, it will test if the given IP is part of the given network.
 
 =item LHS B<shl> RHS
 
+Bit-shift left side by B<RHS> bits to the left.
+
 =item LHS B<shr> RHS
+
+Bit-shift left side by B<RHS> bits to the right.
 
 =item LHS B<=^> RHS
 
+Evaluates to true if the left-side string begins the right-side string (prefix-match).
+
 =item LHS B<=$> RHS
+
+Evaluates to true if the left-side string ends the right-side string (suffix-match).
 
 =item LHS B<=~> RHS
 
+Evaluates to true if the left-side string matches right-side regular expression.
+
 =item LHS B<+> RHS
+
+Arithmetic addition of the two integers.
 
 =item LHS B<-> RHS
 
+Arithmetic substraction of the two integers.
+
 =item LHS B<*> RHS
+
+Arithmetic multiplication of the two integers.
 
 =item LHS B</> RHS
 
+Arithmetic division of the two integers.
+
 =item LHS B<**> RHS
+
+Computes the power of LHS and RHS.
 
 =item B<not> RHS
 
-=item B<+> RHS
-
-B<RHS> must be a number, and does basically do nothing.
-
-=item B<-> RHS
-
-Negates the expression.
+Boolean negation of the given expression - true becomes false and false becomes true.
 
 =item B<(> EXPR B<)>
 
-blah
+Groups an expression together. This helps in order to change precedence rules of the
+language parser, or just to make it very clear to the reader what you mean.
 
 =back
 
@@ -230,9 +280,7 @@ blah
 
 B<Flow> is not meant to run loops but to define paths of decisions.
 
-Though, B<Flow> only supports the if condition.
-
-I<Note, it is planned to later support a switch-alike condition, too.>
+Though, B<Flow> only supports the if and match condition and no loops.
 
 =head2 if-statement
 
@@ -240,12 +288,12 @@ You can branch at any given point with the if-statement to conditionally continu
 The condition expression may or may not be surrounded by round braces, this is up to your own style preferences.
 
   if EXPRESSION
-      STATEMENT    # when expression evaluates to true
+      STATEMENT    # invoked when expression evaluates to true
 
   if EXPRESSION
-      STATEMENT    # when expression evaluates to true
+      STATEMENT    # invoked when expression evaluates to true
   else
-      STATEMENT    # when expression evaluates to false
+      STATEMENT    # invoked when expression evaluates to false
 
 Example:
 
@@ -256,21 +304,68 @@ Example:
   else
     log.debug("World is odd.");
 
+=head2 match-statement
+
+Matches are a very powerful new feature in B<Flow>. The allow you to effeciently match on multiple possible cases,
+and let each distinct case run its own code blocks.
+
+Also, using the match statement makes your source file look clean, easy to read and maintain.
+
+Supported match operations are:
+
+=over 6
+
+=item B<Full Compare>
+
+TODO
+
+=item B<Prefix Match>
+
+TODO
+
+=item B<Suffix Match>
+
+TODO
+
+=item B<Regular Expression Match>
+
+TODO
+
+=back
+
+TODO
+
+ handler main {
+   match req.path {
+     on '/server_status' {
+       status.nginx_compat;
+     }
+     on '/favicon.ico' {
+       respond 404;
+     }
+     else {
+       # ...
+     }
+   }
+ }
+
 =head1 COMMENTS
 
 =over 6
 
-=item C-style comments
+=item C-style comments /* ... */
 
-=item C++-style comments
+=item C++-style comments // ...
 
-=item Shell-style comments
+=item Shell-style comments # ...
 
 =back
 
 =head1 AUTHOR
 
-The B<Flow> language is designed and implemented by Christian Parpart <trapni@gmail.com> for the x0 (Xzero) HTTP web server project.
+The B<Flow> language is designed and implemented by Christian Parpart <trapni@gmail.com> for
+the x0 (Xzero) HTTP web server project to provide a very flexible and runtime-efficient
+configuration syntax.
 
 =head1 SEE ALSO
 
@@ -279,5 +374,3 @@ L<x0d(8)>, L<x0d.conf(5)>
 L<http://github.com/xzero/x0>, x0 Project Management Page
 
 L<http://xzero.io>, x0 Official Website
-
-L<http://perldoc.perl.org/perlpod.html>, POD perldoc documentation
