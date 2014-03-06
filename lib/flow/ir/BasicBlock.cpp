@@ -217,4 +217,15 @@ void BasicBlock::collectIDom(std::vector<BasicBlock*>& output)
     }
 }
 
+void BasicBlock::verify()
+{
+    assert(code_.size() >= 1);
+
+    for (size_t i = 0, e = code_.size() - 1; i != e; ++i) {
+        assert(dynamic_cast<TerminateInstr*>(code_[i]) == nullptr);
+    }
+
+    assert(getTerminator() != nullptr);
+}
+
 } // namespace x0

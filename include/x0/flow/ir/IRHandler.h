@@ -54,6 +54,17 @@ public:
         return TheHandlerPass(args...).run(this);
     }
 
+    /**
+     * Performs sanity checks on internal data structures.
+     *
+     * This call does not return any success or failure as every failure is considered fatal
+     * and will cause the program to exit with diagnostics as this is most likely caused by
+     * an application programming error.
+     *
+     * @note Always call this on completely defined handlers and never on half-contructed ones.
+     */
+    void verify();
+
 private:
     IRProgram* parent_;
     std::list<BasicBlock*> blocks_;

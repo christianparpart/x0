@@ -148,6 +148,20 @@ public:
 
     void dump() override;
 
+
+    /**
+     * Performs sanity checks on internal data structures.
+     *
+     * This call does not return any success or failure as every failure is considered fatal
+     * and will cause the program to exit with diagnostics as this is most likely caused by
+     * an application programming error.
+     *
+     * @note This function is automatically invoked by IRHandler::verify()
+     *
+     * @see IRHandler::verify()
+     */
+    void verify();
+
 private:
     void collectIDom(std::vector<BasicBlock*>& output);
 

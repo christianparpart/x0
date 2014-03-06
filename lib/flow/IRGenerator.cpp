@@ -151,6 +151,9 @@ void IRGenerator::accept(Handler& handler)
     codegen(handler.body());
 
     createRet(get(false));
+
+    this->handler()->verify();
+
 }
 
 void IRGenerator::accept(BuiltinFunction& builtin)

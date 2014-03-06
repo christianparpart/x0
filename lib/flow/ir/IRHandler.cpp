@@ -42,4 +42,11 @@ void IRHandler::remove(BasicBlock* bb)
     blocks_.erase(i);
 }
 
+void IRHandler::verify()
+{
+    for (BasicBlock* bb: blocks_) {
+        bb->verify();
+    }
+}
+
 } // namespace x0
