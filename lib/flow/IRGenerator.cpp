@@ -242,9 +242,6 @@ void IRGenerator::accept(BinaryExpr& expr)
         { FlowVM::Opcode::PINCIDR, &IRGenerator::createPInCidr },
     };
 
-    Value* lhs = codegen(expr.leftExpr());
-    Value* rhs = codegen(expr.rightExpr());
-
     if (expr.op() == FlowVM::Opcode::BOR) {
         // (lhs || rhs)
         //
@@ -254,7 +251,33 @@ void IRGenerator::accept(BinaryExpr& expr)
         //   L = R;
         // end:
         //   result = L;
+
+        BasicBlock* borLeft = createBlock("bor.left");
+        BasicBlock* borRight = createBlock("bor.right");
+        BasicBlock* borCont = createBlock("bor.cont");
+
+        AllocaInstr* result = createAlloca(FlowType::Boolean, get(1), "bor");
+        Value* lhs = codegen(expr.leftExpr());
+        createCondBr(lhs, borLeft, borRight);
+
+        setInsertPoint(borLeft);
+        createStore(result, lhs, "bor.left");
+        createBr(borCont);
+
+        setInsertPoint(borRight);
+        Value* rhs = codegen(expr.rightExpr());
+        createStore(result, rhs, "bor.right");
+        createBr(borCont);
+
+        setInsertPoint(borCont);
+
+        result_ = result;
+
+        return;
     }
+
+    Value* lhs = codegen(expr.leftExpr());
+    Value* rhs = codegen(expr.rightExpr());
 
     auto i = ops.find(expr.op());
     if (i != ops.end()) {
