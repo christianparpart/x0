@@ -43,7 +43,7 @@ public:
  */
 class X0_API AllocaInstr : public Instr {
 private:
-    static FlowType computeType(FlowType elementType, Value* size) {
+    static FlowType computeType(FlowType elementType, Value* size) { // {{{
         if (auto n = dynamic_cast<ConstantInt*>(size)) {
             if (n->get() == 1)
                 return elementType;
@@ -57,19 +57,11 @@ private:
             default:
                 return FlowType::Void;
         }
-    }
+    } // }}}
 
 public:
     AllocaInstr(FlowType ty, Value* n, const std::string& name) :
-        Instr(
-            computeType(ty, n),
-            /*ty == FlowType::Number
-                ? FlowType::IntArray
-                : (ty == FlowType::String
-                    ? FlowType::StringArray
-                    : FlowType::Void),*/
-            {n},
-            name)
+        Instr(ty, {n}, name)
     {
     }
 
@@ -91,29 +83,15 @@ public:
     void accept(InstructionVisitor& v) override;
 };
 
-class X0_API ArraySetInstr : public Instr {
-public:
-    ArraySetInstr(Value* array, Value* index, Value* value, const std::string& name) :
-        Instr(FlowType::Void, {array, index, value}, name)
-        {}
-
-    Value* array() const { return operand(0); }
-    Value* index() const { return operand(1); }
-    Value* value() const { return operand(2); }
-
-    void dump() override;
-    Instr* clone() override;
-    void accept(InstructionVisitor& v) override;
-};
-
 class X0_API StoreInstr : public Instr {
 public:
-    StoreInstr(Value* variable, Value* expression, const std::string& name) :
-        Instr(FlowType::Void, {variable, expression}, name)
+    StoreInstr(Value* variable, ConstantInt* index, Value* expression, const std::string& name) :
+        Instr(FlowType::Void, {variable, index, expression}, name)
         {}
 
     Value* variable() const { return operand(0); }
-    Value* expression() const { return operand(1); }
+    ConstantInt* index() const { return static_cast<ConstantInt*>(operand(1)); }
+    Value* expression() const { return operand(2); }
 
     void dump() override;
     Instr* clone() override;

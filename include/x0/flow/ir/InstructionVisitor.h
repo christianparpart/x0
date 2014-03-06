@@ -32,7 +32,6 @@ X0_API const char* cstr(UnaryOperator op);
 
 class NopInstr;
 class AllocaInstr;
-class ArraySetInstr;
 class StoreInstr;
 class LoadInstr;
 class CallInstr;
@@ -107,7 +106,6 @@ public:
 
     // storage
     virtual void visit(AllocaInstr& instr) = 0;
-    virtual void visit(ArraySetInstr& instr) = 0;
     virtual void visit(StoreInstr& instr) = 0;
     virtual void visit(LoadInstr& instr) = 0;
     virtual void visit(PhiNode& instr) = 0;

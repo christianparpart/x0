@@ -109,7 +109,7 @@ int main(int argc, const char *argv[])
 	// {{{ args parsing
 #if !defined(XZERO_NDEBUG)
 	if (argc == 1) {
-		static const char* debugArgs[] = { argv[0], "-I", "-T", "-e", "main", "./parse.flow", nullptr };
+		static const char* debugArgs[] = { argv[0], "-A", "-I", "-T", "-e", "main", "./parse.flow", nullptr };
 		argc = sizeof(debugArgs) / sizeof(*debugArgs) - 1;
 		argv = debugArgs;
 	}

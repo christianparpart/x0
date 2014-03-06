@@ -76,6 +76,13 @@ protected:
     size_t emitBinary(Instr& instr, FlowVM::Opcode rr);
     size_t emitUnary(Instr& instr, FlowVM::Opcode r);
 
+    /**
+     * Emits call args.
+     *
+     * @returns base register for arguments to be passed to the CALL or HANDLER instruction.
+     */
+    Register emitCallArgs(Instr& instr);
+
     FlowVM::Operand getRegister(Value* value);
     FlowVM::Operand getConstantInt(Value* value);
     size_t getInstructionPointer() const { return code_.size(); }
@@ -89,7 +96,6 @@ protected:
 
     // storage
     void visit(AllocaInstr& instr) override;
-    void visit(ArraySetInstr& instr) override;
     void visit(StoreInstr& instr) override;
     void visit(LoadInstr& instr) override;
     void visit(PhiNode& instr) override;

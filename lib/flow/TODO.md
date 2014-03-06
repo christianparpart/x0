@@ -1,13 +1,25 @@
 
 ### BUGS
 
-- FIXME: array initialization coredumps
-- FIXME: memory leaks wrt. Flow IR destruction (check valgrind in general)
-- FIXME: cannot dump vm program when not linked
+- runtime:
+  - call-args verifier gets invoked on IR-nodes not on AST nodes.
+    this enables us to pre-apply optimizations on each call arg.
+    - requires CallInstr/etc to also provide a source location for diagnostic printing.
+- code generation
+  - array initialization coredumps; test cases:
+    - flow-tool: `handler main { numbers [2, 4]; }`
+    - x0d: `handler setup { workers.affinity [0, 1, 2, 3]; }`
 - parser:
-  - FIXME: handler calls w/o arguments and trailing space: `staticfile;`
-  - FIXME: `var i = 42; i = i / 2;` second stmt fails due to regex parsing attempts.
-  - FIXME: `voidfunc;` parse error, should equal to `voidfunc();` and `voidfunc\n`
+  - handler calls w/o arguments and trailing space: `staticfile;`
+  - `var i = 42; i = i / 2;` second stmt fails due to regex parsing attempts.
+  - `voidfunc;` parse error, should equal to `voidfunc();` and `voidfunc\n`
+- general
+  - memory leaks wrt. Flow IR destruction (check valgrind in general)
+  - cannot dump vm program when not linked
+  - new opcode: ASCONST to reference a string array from the constant pool
+  - new opcode: ANCONST to reference an int array from the constant pool
+  - new opcode: ALOCAL to reference an array from within the local data pool
+    - then rewrite call arg handling to use ALOCAL instead of IMOV on AllocaInstr.arraySize() > 1
 
 ### NEW Features
 

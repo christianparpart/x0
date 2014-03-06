@@ -214,8 +214,8 @@ void XzeroCore::server_advertise(FlowParams& args)
 
 void XzeroCore::server_tags(FlowParams& args)
 {
-    GCStringArray* array = args.get<GCStringArray*>(1);
-    for (const auto& arg: array->data()) {
+    FlowStringArray array = args.get<FlowStringArray>(1);
+    for (const auto& arg: array) {
         daemon().components_.push_back(arg.str());
     }
 }
@@ -330,7 +330,7 @@ void XzeroCore::workers(FlowParams& args)
 // "workers.affinity([I]V"
 void XzeroCore::workers_affinity(FlowParams& args)
 {
-    const auto& affinities = args.get<GCIntArray*>(1)->data();
+    const auto& affinities = args.get<FlowIntArray>(1);
     size_t cur = server_->workers().size();
     size_t count = affinities.size();
 
@@ -463,9 +463,9 @@ void XzeroCore::autoindex(HttpRequest* r, FlowParams& args)
 	if (!r->fileinfo->isDirectory())
 		return;
 
-    GCStringArray* indexfiles = args.get<GCStringArray*>(1);
-	for (size_t i = 1, e = indexfiles->data().size(); i != e; ++i)
-		if (matchIndex(r, indexfiles->data()[i]))
+    FlowStringArray indexfiles = args.get<FlowStringArray>(1);
+	for (size_t i = 1, e = indexfiles.size(); i != e; ++i)
+		if (matchIndex(r, indexfiles[i]))
 			return;
 }
 

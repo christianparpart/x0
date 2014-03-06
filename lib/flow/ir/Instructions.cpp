@@ -339,11 +339,6 @@ void AllocaInstr::accept(InstructionVisitor& visitor)
     visitor.visit(*this);
 }
 
-void ArraySetInstr::accept(InstructionVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 void StoreInstr::accept(InstructionVisitor& visitor)
 {
     visitor.visit(*this);
@@ -364,16 +359,6 @@ Instr* AllocaInstr::clone()
     return new AllocaInstr(type(), operand(0), name());
 }
 
-void ArraySetInstr::dump()
-{
-    dumpOne("ARRAYSET");
-}
-
-Instr* ArraySetInstr::clone()
-{
-    return new ArraySetInstr(array(), index(), value(), name());
-}
-
 void LoadInstr::dump()
 {
     dumpOne("load");
@@ -391,7 +376,7 @@ void StoreInstr::dump()
 
 Instr* StoreInstr::clone()
 {
-    return new StoreInstr(variable(), expression(), name());
+    return new StoreInstr(variable(), index(), expression(), name());
 }
 // }}}
 

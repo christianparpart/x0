@@ -25,7 +25,6 @@ private:
     void* userdata_;        //!< pointer to the currently executed request handler in our case
 
     std::list<Buffer> stringGarbage_;
-    std::list<Object*> garbage_;
 
     Register data_[];
 
@@ -41,6 +40,8 @@ public:
     Program* program() const { return program_; }
     void* userdata() const { return userdata_; }
     void setUserData(void* p) { userdata_ = p; }
+
+    const Register* data() const { return data_; }
 
     FlowString* newString(const std::string& value);
     FlowString* newString(const char* p, size_t n);

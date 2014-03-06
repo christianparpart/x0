@@ -30,8 +30,7 @@ Runner::Runner(Handler* handler) :
     handler_(handler),
     program_(handler->program()),
     userdata_(nullptr),
-    stringGarbage_(),
-    garbage_()
+    stringGarbage_()
 {
     // initialize emptyString()
     t = newString("");
@@ -42,9 +41,6 @@ Runner::Runner(Handler* handler) :
 
 Runner::~Runner()
 {
-    for (Object* obj: garbage_) {
-        delete obj;
-    }
 }
 
 void Runner::operator delete (void* p)
@@ -213,14 +209,6 @@ bool Runner::run()
         label(S2I),
         label(SURLENC),
         label(SURLDEC),
-
-        // arrays
-        label(ASNEW),
-        label(ASINIT),
-
-        label(ANNEW),
-        label(ANINIT),
-        label(ANINITI),
 
         // invokation
         label(CALL),
@@ -695,56 +683,6 @@ bool Runner::run()
 
     instr (SURLDEC) { // B = urldecode(B)
         // TODO
-        next;
-    }
-    // }}}
-    // {{{ arrays
-    instr (ASNEW) { // RI
-        GCStringArray* array = new GCStringArray(B);
-        garbage_.push_back(array);
-        data_[A] = (Register) array;
-
-        next;
-    }
-
-    instr (ASINIT) { // RIR
-        GCStringArray* array = (GCStringArray*) data_[A];
-        size_t index = B;
-        const FlowString& value = toString(C);
-
-        array->data()[index] = value;
-
-        next;
-    }
-
-    // ANEW(array, size)
-    instr (ANNEW) { // RI
-        GCIntArray* array = new GCIntArray(B);
-        garbage_.push_back(array);
-        data_[A] = (Register) array;
-
-        next;
-    }
-
-    // ANINIT(array, index, value)
-    instr (ANINIT) { // RIR
-        GCIntArray* array = (GCIntArray*) data_[A];
-        size_t index = B;
-        FlowNumber value = toNumber(C);
-
-        array->data()[index] = value;
-
-        next;
-    }
-
-    // ANINITI(array, index, value)
-    instr (ANINITI) { // RII
-        GCIntArray* array = (GCIntArray*) data_[A];
-        size_t index = B;
-        FlowNumber value = C;
-
-        array->data()[index] = value;
-
         next;
     }
     // }}}

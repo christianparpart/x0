@@ -87,8 +87,8 @@ template<> X0_API inline std::string Params::get<std::string>(size_t offset) con
 template<> X0_API inline Handler* Params::get<Handler*>(size_t offset) const { return caller_->program()->handler(at(offset)); }
 template<> X0_API inline IPAddress Params::get<IPAddress>(size_t offset) const { return *((IPAddress*) at(offset)); }
 template<> X0_API inline IPAddress* Params::get<IPAddress*>(size_t offset) const { return ((IPAddress*) at(offset)); }
-template<> X0_API inline GCStringArray* Params::get<GCStringArray*>(size_t offset) const { return ((GCStringArray*) at(offset)); }
-template<> X0_API inline GCIntArray* Params::get<GCIntArray*>(size_t offset) const { return ((GCIntArray*) at(offset)); }
+template<> X0_API inline FlowIntArray Params::get<FlowIntArray>(size_t offset) const { return FlowIntArray(&caller_->data()[argv_[offset]]); }
+template<> X0_API inline FlowStringArray Params::get<FlowStringArray>(size_t offset) const { return FlowStringArray(&caller_->data()[argv_[offset]]); }
 
 } // namespace FlowVM
 } // namespace x0

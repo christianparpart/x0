@@ -234,7 +234,7 @@ inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name, Re
 }
 
 template<>
-inline NativeCallback& NativeCallback::param<GCIntArray>(const std::string& name)
+inline NativeCallback& NativeCallback::param<FlowIntArray>(const std::string& name)
 {
     assert(defaults_.size() == names_.size());
 
@@ -246,7 +246,7 @@ inline NativeCallback& NativeCallback::param<GCIntArray>(const std::string& name
 }
 
 template<>
-inline NativeCallback& NativeCallback::param<GCStringArray>(const std::string& name)
+inline NativeCallback& NativeCallback::param<FlowStringArray>(const std::string& name)
 {
     assert(defaults_.size() == names_.size());
 

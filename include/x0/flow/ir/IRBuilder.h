@@ -74,9 +74,9 @@ public:
 
     // values
     AllocaInstr* createAlloca(FlowType ty, Value* arraySize, const std::string& name = "");
-    Instr* createArraySet(Value* array, Value* index, Value* value, const std::string& name = "");
     Value* createLoad(Value* value, const std::string& name = "");
     Instr* createStore(Value* lhs, Value* rhs, const std::string& name = "");
+    Instr* createStore(Value* lhs, ConstantInt* index, Value* rhs, const std::string& name = "");
     Instr* createPhi(const std::vector<Value*>& incomings, const std::string& name = "");
 
     // numerical operations

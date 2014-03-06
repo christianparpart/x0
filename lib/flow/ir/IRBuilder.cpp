@@ -134,14 +134,6 @@ AllocaInstr* IRBuilder::createAlloca(FlowType ty, Value* arraySize, const std::s
 }
 
 /**
- * initializes an array at given index.
- */
-Instr* IRBuilder::createArraySet(Value* array, Value* index, Value* value, const std::string& name)
-{
-    return insert(new ArraySetInstr(array, index, value, makeName(name)));
-}
-
-/**
  * Loads given value
  */
 Value* IRBuilder::createLoad(Value* value, const std::string& name)
@@ -161,11 +153,16 @@ Value* IRBuilder::createLoad(Value* value, const std::string& name)
  */
 Instr* IRBuilder::createStore(Value* lhs, Value* rhs, const std::string& name)
 {
+    return createStore(lhs, get(0), rhs, name);
+}
+
+Instr* IRBuilder::createStore(Value* lhs, ConstantInt* index, Value* rhs, const std::string& name)
+{
     assert(dynamic_cast<AllocaInstr*>(lhs) && "lhs must be of type AllocaInstr in order to STORE to.");
     //assert(lhs->type() == rhs->type() && "Type of lhs and rhs must be equal.");
     //assert(dynamic_cast<IRVariable*>(lhs) && "lhs must be of type Variable.");
 
-    return insert(new StoreInstr(lhs, rhs, makeName(name)));
+    return insert(new StoreInstr(lhs, index, rhs, makeName(name)));
 }
 
 Instr* IRBuilder::createPhi(const std::vector<Value*>& incomings, const std::string& name)

@@ -364,17 +364,15 @@ void IRGenerator::accept(ArrayExpr& arrayExpr)
 {
     FNTRACE();
 
-    // loads a new array of given elements from regs[1] to regs[N], where regs[0] equals N;
-
     Value* array = createAlloca(arrayExpr.getType(), get(1 + arrayExpr.values().size()));
 
     // store array size at array[0]
-    createArraySet(array, get(0), get(arrayExpr.values().size()));
+    createStore(array, get(0), get(arrayExpr.values().size()));
 
-    // store array values at array[1] to array[N]
-    for (size_t i = 1, e = 1 + arrayExpr.values().size(); i != e; ++i) {
+    // store array values at array[1..N]
+    for (size_t i = 0, e = arrayExpr.values().size(); i != e; ++i) {
         Value* element = codegen(arrayExpr.values()[i].get());
-        createArraySet(array, get(i), element);
+        createStore(array, get(i + 1), element);
     }
 
     result_ = array;

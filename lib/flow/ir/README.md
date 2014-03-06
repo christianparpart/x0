@@ -26,9 +26,7 @@
       - IRHandler
   - Instr
     - PhiNode             merge branched values 
-    - VmInstr             generic non-branching VM instruction
-    - AllocaInstr         array allocation
-    - ArraySetInstr       array field initialization
+    - AllocaInstr         field/array allocation
     - StoreInstr          store to variable
     - LoadInstr           load from variable
     - BranchInstr

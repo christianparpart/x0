@@ -102,10 +102,10 @@ private:
 	{
 		contentTypes_.clear();
 
-        const auto& x = *args.get<x0::GCStringArray*>(1);
+        const auto& x = args.get<x0::FlowStringArray>(1);
 
 		for (int i = 0, e = args.size(); i != e; ++i) {
-            contentTypes_[x.data()[i].str()] = 0;
+            contentTypes_[x[i].str()] = 0;
         }
 	}
 

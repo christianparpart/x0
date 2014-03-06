@@ -250,38 +250,7 @@ void TargetCodeGenerator::visit(NopInstr& instr)
 
 void TargetCodeGenerator::visit(AllocaInstr& instr)
 {
-    size_t count = getConstantInt(instr.operands()[0]);
-
-    allocate(count, instr);
-}
-
-void TargetCodeGenerator::visit(ArraySetInstr& instr)
-{
-    assert(dynamic_cast<AllocaInstr*>(instr.array()));
-    assert(dynamic_cast<ConstantInt*>(instr.index()));
-
-    Operand array = getRegister(instr.array());
-    Operand index = getConstantInt(instr.index());
-
-    // array[index] = string_literal;
-    if (auto s = dynamic_cast<ConstantString*>(instr.value())) {
-        emit(Opcode::ASINIT, array, index, s->id());
-        return;
-    }
-
-    // array[index] = integer_literal;
-    if (auto i = dynamic_cast<ConstantInt*>(instr.value())) {
-        emit(Opcode::ANINITI, array, index, i->get());
-        return;
-    }
-
-    // array[index] = integer_variable;
-    if (instr.value()->type() == FlowType::Number) {
-        emit(Opcode::ANINIT, array, index, getRegister(instr.value()));
-        return;
-    };
-
-    assert(!"TODO: missing implementation of ArraySetInstr sub types");
+    allocate(getConstantInt(instr.arraySize()), instr);
 }
 
 size_t TargetCodeGenerator::makeNumber(FlowNumber value)
@@ -317,9 +286,10 @@ size_t TargetCodeGenerator::makeNativeFunction(IRBuiltinFunction* builtin)
 void TargetCodeGenerator::visit(StoreInstr& instr)
 {
     Value* lhs = instr.variable();
+    size_t index = getConstantInt(instr.index());
     Value* rhs = instr.expression();
 
-    Register lhsReg = getRegister(lhs);
+    Register lhsReg = getRegister(lhs) + index;;
 
     // const int
     if (auto integer = dynamic_cast<ConstantInt*>(rhs)) {
@@ -387,16 +357,30 @@ void TargetCodeGenerator::visit(LoadInstr& instr)
     variables_[&instr] = getRegister(instr.variable());
 }
 
-void TargetCodeGenerator::visit(CallInstr& instr)
+Register TargetCodeGenerator::emitCallArgs(Instr& instr)
 {
     int argc = instr.operands().size();
     Register rbase = allocate(argc, instr);
 
-    // emit call args
     for (int i = 1; i < argc; ++i) {
         Register tmp = getRegister(instr.operands()[i]);
+        if (auto alloca = dynamic_cast<AllocaInstr*>(instr.operands()[i])) {
+            if (getConstantInt(alloca->arraySize()) > 1) {
+                emit(Opcode::IMOV, rbase + i, tmp);
+                continue;
+            }
+        }
         emit(Opcode::MOV, rbase + i, tmp);
     }
+
+    return rbase;
+}
+
+void TargetCodeGenerator::visit(CallInstr& instr)
+{
+    int argc = instr.operands().size();
+
+    Register rbase = emitCallArgs(instr);
 
     // emit call
     Register nativeId = makeNativeFunction(instr.callee());
@@ -410,13 +394,8 @@ void TargetCodeGenerator::visit(CallInstr& instr)
 void TargetCodeGenerator::visit(HandlerCallInstr& instr)
 {
     int argc = instr.operands().size();
-    Register rbase = allocate(argc, instr);
 
-    // emit call args
-    for (int i = 1; i < argc; ++i) {
-        Register tmp = getRegister(instr.operands()[i]);
-        emit(Opcode::MOV, rbase + i, tmp);
-    }
+    Register rbase = emitCallArgs(instr);
 
     // emit call
     Register nativeId = makeNativeHandler(instr.callee());

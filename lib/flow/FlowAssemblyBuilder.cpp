@@ -315,6 +315,8 @@ void FlowAssemblyBuilder::accept(CidrExpr& cidr)
 
 void FlowAssemblyBuilder::accept(ArrayExpr& arrayExpr)
 {
+    assert(!"Arrays currently not supported in this builder.");
+#if 0
     Register array = allocate();
     switch (arrayExpr.getType()) {
         case FlowType::StringArray:
@@ -336,6 +338,7 @@ void FlowAssemblyBuilder::accept(ArrayExpr& arrayExpr)
     }
 
     result_ = array;
+#endif
 }
 
 void FlowAssemblyBuilder::accept(ExprStmt& stmt)

@@ -117,15 +117,6 @@ enum Opcode {
     SURLENC,        // A = urlencode(B)
     SURLDEC,        // A = urldecode(B)
 
-    // string arrays [S
-    ASNEW,          // A = new StringArray(B)
-    ASINIT,         // A[imm(B)] = C
-
-    // number arrays [I
-    ANNEW,          // A = new IntArray(B);
-    ANINIT,         // A[imm(B)] = C
-    ANINITI,        // A[imm(B)] = imm(C)
-
     // invokation
     // CALL A = id, B = argc, C = rbase for argv
     CALL,           // [C+0] = functions[A] ([C+1 ... C+B])
