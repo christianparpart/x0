@@ -681,7 +681,7 @@ void TargetCodeGenerator::visit(BAndInstr& instr)
 
 void TargetCodeGenerator::visit(BOrInstr& instr)
 {
-    emitBinary(instr, Opcode::BOR);
+    emitBinary(instr, Opcode::BAND);
 }
 
 void TargetCodeGenerator::visit(BXorInstr& instr)

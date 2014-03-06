@@ -245,6 +245,17 @@ void IRGenerator::accept(BinaryExpr& expr)
     Value* lhs = codegen(expr.leftExpr());
     Value* rhs = codegen(expr.rightExpr());
 
+    if (expr.op() == FlowVM::Opcode::BOR) {
+        // (lhs || rhs)
+        //
+        //   L = lhs();
+        //   if (L) goto end;
+        //   R = rhs();
+        //   L = R;
+        // end:
+        //   result = L;
+    }
+
     auto i = ops.find(expr.op());
     if (i != ops.end()) {
         result_ = (this->*i->second)(lhs, rhs, "");

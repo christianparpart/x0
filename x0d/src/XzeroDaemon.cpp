@@ -21,7 +21,6 @@
 #include <x0/flow/AST.h>
 #include <x0/flow/IRGenerator.h>
 #include <x0/flow/TargetCodeGenerator.h>
-#include <x0/flow/FlowAssemblyBuilder.h>
 #include <x0/flow/ir/PassManager.h>
 #include <x0/flow/transform/EmptyBlockElimination.h>
 #include <x0/flow/transform/InstructionElimination.h>
@@ -1017,9 +1016,6 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
     if (dumpAST_)
         ASTPrinter::print(unit_.get());
 
-#if 0
-    program_ = FlowAssemblyBuilder::compile(unit_.get());
-#else
     IRProgram* ir = IRGenerator::generate(unit_.get());
     if (!ir) {
         fprintf(stderr, "IR generation failed. Aborting.\n");
@@ -1038,7 +1034,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
     }
 
     program_ = TargetCodeGenerator().generate(ir);
-#endif
+
     if (!program_) {
         fprintf(stderr, "Code generation failed. Aborting.\n");
         return false;

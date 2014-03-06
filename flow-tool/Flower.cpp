@@ -9,7 +9,6 @@
 #include <x0/flow/AST.h>
 #include <x0/flow/ASTPrinter.h>
 #include <x0/flow/FlowParser.h>
-#include <x0/flow/FlowAssemblyBuilder.h>
 #include <x0/flow/IRGenerator.h>
 #include <x0/flow/TargetCodeGenerator.h>
 #include <x0/flow/FlowCallVisitor.h>
@@ -176,20 +175,8 @@ int Flower::runAll(const char *fileName)
     if (dumpAST_)
         ASTPrinter::print(unit.get());
 
-    program_ = FlowAssemblyBuilder::compile(unit.get());
-    if (!program_) {
-        fprintf(stderr, "Code generation failed. Aborting.\n");
+    if (!compile(unit.get()))
         return -1;
-    }
-
-    if (!program_->link(this)) {
-        fprintf(stderr, "Program linking failed. Aborting.\n");
-        return -1;
-    }
-
-    if (dumpTarget_) {
-        program_->dump();
-    }
 
     for (auto handler: program_->handlers()) {
         if (strncmp(handler->name().c_str(), "test_", 5) != 0)
@@ -239,6 +226,44 @@ void printDefUseChain(IRProgram* program)
     }
 }
 
+bool Flower::compile(Unit* unit)
+{
+    IRProgram* ir = IRGenerator::generate(unit);
+    if (!ir) {
+        fprintf(stderr, "IR generation failed. Aborting.\n");
+        return false;
+    }
+
+    if (1) {
+        PassManager pm;
+        pm.registerPass(std::make_unique<EmptyBlockElimination>());
+        pm.registerPass(std::make_unique<InstructionElimination>());
+        pm.run(ir);
+    }
+
+    if (dumpIR_) {
+        ir->dump();
+    }
+
+    program_ = TargetCodeGenerator().generate(ir);
+
+    if (!program_) {
+        fprintf(stderr, "Code generation failed. Aborting.\n");
+        return false;
+    }
+
+    if (!program_->link(this)) {
+        fprintf(stderr, "Program linking failed. Aborting.\n");
+        return -1;
+    }
+
+    if (dumpTarget_) {
+        program_->dump();
+    }
+
+    return true;
+}
+
 int Flower::run(const char* fileName, const char* handlerName)
 {
 	if (!handlerName || !*handlerName) {
@@ -282,42 +307,8 @@ int Flower::run(const char* fileName, const char* handlerName)
 		return -1;
 	}
 
-#if 0
-    program_ = FlowAssemblyBuilder::compile(unit.get());
-#else
-    IRProgram* ir = IRGenerator::generate(unit.get());
-    if (!ir) {
-        fprintf(stderr, "IR generation failed. Aborting.\n");
+    if (!compile(unit.get()))
         return -1;
-    }
-
-    if (1) {
-        PassManager pm;
-        pm.registerPass(std::make_unique<EmptyBlockElimination>());
-        pm.registerPass(std::make_unique<InstructionElimination>());
-        pm.run(ir);
-    }
-
-    if (dumpIR_) {
-        ir->dump();
-    }
-
-    program_ = TargetCodeGenerator().generate(ir);
-#endif
-
-    if (!program_) {
-        fprintf(stderr, "Code generation failed. Aborting.\n");
-        return -1;
-    }
-
-    if (!program_->link(this)) {
-        fprintf(stderr, "Program linking failed. Aborting.\n");
-        return -1;
-    }
-
-    if (dumpTarget_) {
-        program_->dump();
-    }
 
     FlowVM::Handler* handler = program_->findHandler(handlerName);
     assert(handler != nullptr);

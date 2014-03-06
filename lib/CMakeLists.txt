@@ -117,7 +117,6 @@ if(ENABLE_XZERO_FLOW)
   set(x0_flow_SRC
     flow/AST.cpp
     flow/ASTPrinter.cpp
-    flow/FlowAssemblyBuilder.cpp
     flow/FlowCallVisitor.cpp
     flow/FlowLexer.cpp
     flow/FlowLocation.cpp

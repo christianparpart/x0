@@ -55,6 +55,7 @@ public:
 
 private:
 	bool onParseComplete(x0::Unit* unit);
+	bool compile(x0::Unit* unit);
 
 	// functions
 	void flow_print(FlowVM::Params& args);
