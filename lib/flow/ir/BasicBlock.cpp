@@ -219,13 +219,24 @@ void BasicBlock::collectIDom(std::vector<BasicBlock*>& output)
 
 void BasicBlock::verify()
 {
-    assert(code_.size() >= 1);
+    return;
 
-    for (size_t i = 0, e = code_.size() - 1; i != e; ++i) {
-        assert(dynamic_cast<TerminateInstr*>(code_[i]) == nullptr);
+    if (code_.size() < 1) {
+        fprintf(stderr, "BasicBlock.verify: Must contain at least one instruction.");
+        abort();
     }
 
-    assert(getTerminator() != nullptr);
+    for (size_t i = 0, e = code_.size() - 1; i != e; ++i) {
+        if (dynamic_cast<TerminateInstr*>(code_[i]) != nullptr) {
+            fprintf(stderr, "BasicBlock.verify: Found a terminate instruction in the middle of the block.");
+            abort();
+        }
+    }
+
+    if (getTerminator() == nullptr) {
+        fprintf(stderr, "BasicBlock.verify: Last instruction must be a terminator instruction.");
+        abort();
+    }
 }
 
 } // namespace x0
