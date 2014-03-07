@@ -17,7 +17,7 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
     - libxzero-http + dev
     - FIXME: source packages
 
-- "GET / HTP/1.1\r\n" already results into a 404, but should report "unsupported protocol"
+- FIXME: "GET / HTP/1.1\r\n" already results into a 404, but should report "unsupported protocol"
 - HttpConnection: try to get rid of start() method, or rename it to setup() / initialize().
 - HttpConnection must get its socket at constructor time to allow setState() (etc)
   to invoke log(), as it would crash otherwise.
@@ -104,35 +104,21 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
     - redis
     - memcached
 - ssl: support different session cache stores:
-  - malloc, memcached, redis
-- core: tcmalloc support (package: google-perftools)
-- flow: named arguments.
-      balancer.member name => 'app01', weight => 1, check => 5 secs
-    translates to
-      balancer.member({'name' => 'app01', 'weight' => 1, 'check' => 5 secs});
+  - malloc, memcached, ...
 - HA: implement feature to load balance backends, to obsolete haproxy infront of x0d.
   - handler: `balancer.manager` to generate balancer manager/status page (`/haproxy/?stats` equivalent)
 
 ===================================================================================================
 
-FIXME x0d.conf: fastcgi/proxy examples use 'bind' but should use 'address'/'host'
-
 0.4:
 
-- vhost: invent new setup method (vhost.auto_include) to
-  allow a more generic virtual hosting, one virtual host per file, and the filename
-  matching the virtual host name (Host-header) with a handler inside, that
-  must match the fully qualified host name (e.g. "www.example.com")
 - ssl: counter BEAST attack by allowing the user to specify cipher priorities and 
 	provide a secure default priority list.
 	- http://www.g-loaded.eu/2011/09/27/mod_gnutls-rc4-cipher-beast/
 - ssl: add configure option to enable/disable SSL renegotiation (counter CVE)
 	- http://www.thc.org/thc-ssl-dos/
-- [plugins] balance: new plugin. initially supporting handler: balance.rr (kind of lighty-style)
-- cgi/fastcgi/proxy: verify to not pass connection-level headers
 - resource management (at least for max_core_size) must be evaluated *after* privilege dropping,
   in case there is some, or they're lost.
-- drop *all* occurences of std::function with raw function pointers+data pairs
 - pool allocator for contexts: [server, worker, connection, request]
   - the allocated memory should be released on destruction, but
     could be passed to the upper layer for later reuse.
@@ -146,11 +132,6 @@ FIXME x0d.conf: fastcgi/proxy examples use 'bind' but should use 'address'/'host
   - bool systemd.booted();
   - bool systemd.controlled(); / bool systemd.supervised();
 - flow: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
-- flow: caseStmt ::=
-            'case' expr
-                ('when' expr stmt)+
-                ['else' stmt]
-            'end'
 
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
