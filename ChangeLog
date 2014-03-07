@@ -1,14 +1,15 @@
 0.8.0 (yet-to-be-released)
 
 	* base: Added Cidr API for general CIDR management.
-	* flow: dropped LLVM-dependency and run Flow on a dedicated VM.
-	* flow: Properly implement power operator's disassociativety.
 	* flow: Added support for nested file parsing (via `#include "path"`), including filename globbing.
 	* flow: Added new keyword `match` for optimized multi-branch pattern matching.
-	* flow: Variables must not change type during lifetime.
 	* flow: Added CIDR notation for IPv4/IPv6 networks as native literal type.
-	* x0d: added --dump-ast parameter to dump Flow's parsed AST.
-	* director: Added response output caching support.
+	* flow: Dropped LLVM-dependency and run Flow on a dedicated VM.
+	* flow: Properly implement power operator's disassociativety.
+	* flow: Variables must not change type during lifetime.
+	* flow: Every handler/function call statement and variable declaration must be followed by a semicolon ';'.
+	* x0d: Added --dump-ast parameter to dump Flow's parsed AST.
+	* director: Added experimental response output caching support.
 	* x0d: plugin "vhost" has been removed in favor of the new match-keyword.
 
 0.7.0 (2013-10-18)
