@@ -260,7 +260,7 @@ void Program::dump()
         printf("\n.handler %-20s ; #%zu (%zu registers, %zu instructions)\n",
                 handler->name().c_str(),
                 i,
-                handler->registerCount() - 1, // r0 is never used
+                handler->registerCount() ? handler->registerCount() - 1 : 0, // r0 is never used
                 handler->code().size()
         );
         handler->disassemble();
