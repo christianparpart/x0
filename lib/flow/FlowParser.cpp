@@ -465,7 +465,7 @@ std::unique_ptr<Symbol> FlowParser::decl()
 	}
 }
 
-// 'var' IDENT ['=' EXPR] [';']
+// 'var' IDENT ['=' EXPR] ';'
 std::unique_ptr<Variable> FlowParser::varDecl()
 {
 	FNTRACE();
@@ -487,7 +487,7 @@ std::unique_ptr<Variable> FlowParser::varDecl()
 		return nullptr;
 
 	loc.update(initializer->location().end);
-	consumeIf(FlowToken::Semicolon);
+	consume(FlowToken::Semicolon);
 
 	return std::make_unique<Variable>(name, std::move(initializer), loc);
 }
@@ -547,7 +547,7 @@ bool FlowParser::importDecl(Unit* unit)
         }
 	}
 
-	consumeIf(FlowToken::Semicolon);
+	consume(FlowToken::Semicolon);
 	return true;
 }
 
@@ -1501,22 +1501,18 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 			break;
 	}
 
+    // postscript statement handling
+
 	switch (token()) {
 		case FlowToken::If:
 		case FlowToken::Unless:
 			return postscriptStmt(std::move(stmt));
-		case FlowToken::Semicolon:
-			// stmt ';'
-			nextToken();
-			stmt->location().update(end());
-			return stmt;
-		default:
-			if (stmt->location().end.line != lexer_->line())
-				return stmt;
+    }
 
-			reportUnexpectedToken();
-			return nullptr;
-	}
+    if (!consume(FlowToken::Semicolon))
+        return nullptr;
+
+    return stmt;
 }
 
 /**
@@ -1547,16 +1543,14 @@ bool FlowParser::callArgs(ASTNode* call, Callable* callee, ParamList& args)
         }
         call->location().end = lastLocation().end;
         consume(FlowToken::RndClose);
-    } else if (lexer_->line() == lastLocation().end.line) {
-        if (token() != FlowToken::If && token() != FlowToken::Unless) {
-            auto ra = paramList();
-            if (!ra) {
-                return false;
-            }
-
-            args = std::move(*ra);
-            call->location().end = args.location().end;
+    } else if (token() != FlowToken::Semicolon && token() != FlowToken::If && token() != FlowToken::Unless) {
+        auto ra = paramList();
+        if (!ra) {
+            return false;
         }
+
+        args = std::move(*ra);
+        call->location().end = args.location().end;
     }
 
     if (args.isNamed()) {
@@ -1725,14 +1719,6 @@ std::unique_ptr<Stmt> FlowParser::postscriptStmt(std::unique_ptr<Stmt> baseStmt)
 {
 	FNTRACE();
 
-	if (token() == FlowToken::Semicolon) {
-		nextToken();
-		return baseStmt;
-	}
-
-	if (baseStmt->location().end.line != lexer_->line())
-		return baseStmt;
-
 	FlowToken op = token();
 	switch (op) {
 		case FlowToken::If:
@@ -1753,8 +1739,6 @@ std::unique_ptr<Stmt> FlowParser::postscriptStmt(std::unique_ptr<Stmt> baseStmt)
 	if (!condExpr)
 		return nullptr;
 
-	consumeIf(FlowToken::Semicolon);
-
 	if (op == FlowToken::Unless) {
         auto opc = makeOperator(FlowToken::Not, condExpr.get());
         if (opc == Opcode::EXIT) {
@@ -1765,6 +1749,9 @@ std::unique_ptr<Stmt> FlowParser::postscriptStmt(std::unique_ptr<Stmt> baseStmt)
 
 		condExpr = std::make_unique<UnaryExpr>(opc, std::move(condExpr), sloc);
     }
+
+	if (!consume(FlowToken::Semicolon))
+        return nullptr;
 
 	return std::make_unique<CondStmt>(std::move(condExpr), std::move(baseStmt), nullptr, sloc.update(end()));
 }
