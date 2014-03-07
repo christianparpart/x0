@@ -11,6 +11,7 @@
 #include <x0/Api.h>
 #include <x0/flow/ASTVisitor.h>
 #include <x0/flow/ir/IRBuilder.h>
+#include <deque>
 
 namespace x0 {
 
@@ -33,6 +34,8 @@ private:
 
     Scope* scope_;
     Value* result_;
+
+    std::deque<Handler*> handlerStack_;
 
 private:
     Value* codegen(Expr* expr);

@@ -12,6 +12,7 @@
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/Instructions.h>
 #include <x0/DebugLogger.h> // XZERO_DEBUG
+#include <algorithm>
 #include <assert.h>
 #include <math.h>
 
@@ -141,6 +142,8 @@ void IRGenerator::accept(Handler& handlerSym)
 {
     FNTRACE();
 
+    assert(handlerStack_.empty());
+
     setHandler(getHandler(handlerSym.name()));
     setInsertPoint(createBlock("EntryPoint"));
 
@@ -149,10 +152,21 @@ void IRGenerator::accept(Handler& handlerSym)
     createRet(get(false));
 
     handler()->verify();
+
+    assert(handlerStack_.empty());
 }
 
 void IRGenerator::codegenInline(Handler& handlerSym)
 {
+    auto i = std::find(handlerStack_.begin(), handlerStack_.end(), &handlerSym);
+    if (i != handlerStack_.end()) {
+        reportError("Cannot recursively call handler %s.", handlerSym.name().c_str());
+
+        return;
+    }
+
+    handlerStack_.push_back(&handlerSym);
+
     // emit local variable declarations
     if (handlerSym.scope()) {
         for (Symbol* symbol: *handlerSym.scope()) {
@@ -162,6 +176,8 @@ void IRGenerator::codegenInline(Handler& handlerSym)
 
     // emit body
     codegen(handlerSym.body());
+
+    handlerStack_.pop_back();
 }
 
 void IRGenerator::accept(BuiltinFunction& builtin)
@@ -518,6 +534,7 @@ void IRGenerator::accept(AssignStmt& stmt)
 void IRGenerator::reportError(const std::string& message)
 {
     fprintf(stderr, "%s\n", message.c_str());
+    // TODO: bubble error-state up
 }
 
 } // namespace x0
