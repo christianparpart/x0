@@ -53,7 +53,6 @@ written in modern C++.
 
 - gcc >= 4.6.0 (for building only)
 - libev >= 4.0
-- LLVM 3.0 or 3.1 or 3.3 (not 3.2 or 3.4)
 - cmake (for building only)
 - tbb, Threading Building Blocks (required)
 - zlib (optional & recommended, for compression)
@@ -98,6 +97,6 @@ written in modern C++.
 
 # How to build with Clang and libc++
 
-You can built x0 with the very latest Clang/LLVM 3.3 branch.
-I tested this against the `libstdc++` of GCC 4.7 and not yet `libc++`.
+You can built x0 with the very latest Clang/LLVM 3.4.
+I tested this against the `libstdc++` of GCC 4.8 and not yet `libc++`.
 

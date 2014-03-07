@@ -1,11 +1,11 @@
 Source: x0
 Section: misc
 Priority: optional
-Maintainer: Christian Parpart <trapni@gentoo.org>
+Maintainer: Christian Parpart <trapni@gmail.com>
 Build-Depends:
   debhelper (>= 9),
   cmake,
-  g++ (>= 4.6),
+  g++ (>= 4.8),
   pkg-config,
   libcppunit-dev,
   libgnutls28-dev,
@@ -14,7 +14,6 @@ Build-Depends:
   libev-dev,
   zlib1g-dev,
   libbz2-dev,
-  llvm-3.1-dev,
   libpcre3-dev,
   libfcgi-dev,
   librrd-dev,

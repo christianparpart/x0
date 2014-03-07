@@ -5,7 +5,7 @@
     -                               __print             __print
     -                               sys.pid             sys.pid
     -                               sys.cwd             sys.cwd
-    -                               sys.env[]           sys.env()
+    -                               sys.env[name]       sys.env(name)
 ---------------------------------------------------------------------------------------
     server.ip                       req.localip         req.localip
     server.port                     req.localport       req.localport
@@ -22,8 +22,8 @@
     -                               req.host            req.host
     -                               req.query           req.query
     -                               req.length          -
-    req.http.header()               req.header[]        req.header()
-    -                               req.env[]           -
+    req.http.header()               req.header[name]    req.header(name)
+    -                               req.env[name]       -
 ---------------------------------------------------------------------------------------
     -                               phys.exists         phys.exists
     -                               phys.path           phys.path
@@ -37,7 +37,7 @@
 ---------------------------------------------------------------------------------------
     resp.proto                      -                   -
     resp.status                     resp.status         req.status
-    -                               resp.header[]       -
+    -                               resp.header[name]   -
     resp.response(status_message)   -                   -
 ---------------------------------------------------------------------------------------
     -                               header.add()        header.add()
