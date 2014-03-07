@@ -91,7 +91,7 @@ public:
 
         setupFunction("ssl.listen", &SslPlugin::add_listener)
             .param<x0::IPAddress>("address", x0::IPAddress("0.0.0.0"))
-            .param<int>("port", 80)
+            .param<int>("port", 443)
             .param<int>("backlog", 128)
             .param<int>("multi_accept", 1)
             .param<bool>("reuse_port", false);
@@ -102,8 +102,8 @@ public:
         setupFunction("ssl.context", &SslPlugin::add_context)
             .param<x0::FlowString>("keyfile")
             .param<x0::FlowString>("certfile")
-            .param<x0::FlowString>("trustfile")
-            .param<x0::FlowString>("priorities");
+            .param<x0::FlowString>("trustfile", "")
+            .param<x0::FlowString>("priorities", "");
 	}
 
 	~SslPlugin()
@@ -197,7 +197,8 @@ private:
 		TRACE("gnutls [%d] %s", level, msg.c_str());
 	}
 
-	// ssl.add(keyfile: PATH,
+	// ssl.context(
+    //         keyfile: PATH,
 	// 	       certfile: PATH,
 	// 	       trustfile: PATH,
 	// 	       priorities: CIPHERS

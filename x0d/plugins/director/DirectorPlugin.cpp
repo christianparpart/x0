@@ -80,11 +80,11 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 
     mainHandler("director.fcgi", &DirectorPlugin::director_fcgi)
         .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port", 80);
+        .param<int>("port");
 
     mainHandler("director.http", &DirectorPlugin::director_http)
         .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port", 80);
+        .param<int>("port");
 
     mainHandler("director.haproxy_stats", &DirectorPlugin::director_haproxy_stats)
         .param<FlowString>("prefix", "/");
