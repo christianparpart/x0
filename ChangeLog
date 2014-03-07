@@ -11,6 +11,7 @@
 	* x0d: Added --dump-ast parameter to dump Flow's parsed AST.
 	* director: Added experimental response output caching support.
 	* x0d: plugin "vhost" has been removed in favor of the new match-keyword.
+	* x0d: Addes --dump-ast and --dump-tc command line options to accompany --dump-ir (for debugging purposes).
 
 0.7.0 (2013-10-18)
 

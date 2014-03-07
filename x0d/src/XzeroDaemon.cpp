@@ -139,6 +139,7 @@ XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
 	doguard_(false),
     dumpAST_(false),
 	dumpIR_(false),
+    dumpTargetCode_(false),
 	optimizationLevel_(2),
 	server_(nullptr),
 	evFlags_(0),
@@ -251,9 +252,6 @@ int XzeroDaemon::run()
 
 	unsetenv("XZERO_LISTEN_FDS");
 
-	if (dumpIR_)
-		dumpIR();
-
 	if (!nofork_)
 		daemonize();
 
@@ -313,6 +311,7 @@ bool XzeroDaemon::parse()
 		{ "instant", required_argument, nullptr, 'i' },
         { "dump-ast", no_argument, &dumpAST_, 1 },
 		{ "dump-ir", no_argument, &dumpIR_, 1 },
+		{ "dump-tc", no_argument, &dumpTargetCode_, 1 },
 		//.
 		{ "splash", no_argument, nullptr, 'S' },
 		{ "version", no_argument, nullptr, 'v' },
@@ -443,6 +442,7 @@ bool XzeroDaemon::parse()
 					<< "  -k,--crash-handler        installs SIGSEGV crash handler to print backtrace onto stderr." << std::endl
                     << "     --dump-ast             dumps parsed AST of the configuration file (for debugging purposes)" << std::endl
 					<< "     --dump-ir              dumps IR of the configuration file (for debugging purposes)" << std::endl
+					<< "     --dump-tc              dumps target code of the configuration file (for debugging purposes)" << std::endl
 					<< "  -v,--version              print software version" << std::endl
 					<< "  -y,--copyright            print software copyright notice / license" << std::endl
 					<< "     --splash               print splash greeter to terminal on startup" << std::endl
@@ -1049,6 +1049,9 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
 		return false;
     }
 
+    if (dumpTargetCode_)
+        program_->dump();
+
 	// run setup
 	TRACE(1, "run 'setup'");
     if (program_->findHandler("setup")->run(nullptr))
@@ -1268,11 +1271,6 @@ bool XzeroDaemon::validate(const std::string& context, const std::vector<CallExp
 		}
 	}
     return true;
-}
-
-void XzeroDaemon::dumpIR() const
-{
-	program_->dump();
 }
 // }}}
 

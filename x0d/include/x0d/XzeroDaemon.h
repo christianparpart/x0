@@ -80,7 +80,6 @@ public:
 
 	bool setup(std::unique_ptr<std::istream>&& settings, const std::string& filename = std::string(), int optimizationLevel = 2);
 	bool setup(const std::string& filename, int optimizationLevel = 2);
-	void dumpIR() const; // for debugging purpose
 
 public: // FlowBackend overrides
     virtual bool import(const std::string& name, const std::string& path, std::vector<x0::FlowVM::NativeCallback*>* builtins);
@@ -126,6 +125,7 @@ private:
 	int doguard_;
     int dumpAST_;
 	int dumpIR_;
+    int dumpTargetCode_;
 	int optimizationLevel_;
 	x0::HttpServer *server_;
 	unsigned evFlags_;
