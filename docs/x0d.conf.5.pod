@@ -23,7 +23,7 @@ x0d.conf - configuration file to x0d, a high performance HTTP web server.
 
 =head1 DESCRIPTION
 
-This I<file> is used to configure B<x0d>.
+The file I<x0d.conf> is used to configure B<x0d>.
 
 =head1 SYNTAX
 
@@ -56,7 +56,8 @@ The I<secret> parameter passed to handlers is their context.
 In our case, this is the HTTP request associated with our B<main>-handler and
 to all descendent handlers being called from here.
 
-The B<setup> handler has no context passed to it
+The B<setup> handler has no context passed to it, and thus, will not serve any
+requests but setup the HTTP server instead.
 
 =head2 FUNCTIONS
 
@@ -95,32 +96,6 @@ must remain of that type "number."
 
 Supported data types are:
 
-=over 3
-
-=item * Boolean
-
-=item * Number
-
-=item * String
-
-=item * IPAddress
-
-=item * CIDR
-
-=back
-
-=head2 STATEMENTS
-
-TODO: statements in flow
-
-=head2 CONTROL FLOW
-
-TODO: control flow (if, switch, postscript-if, ...)
-
-=head2 PLUGINS
-
-TODO: plugin syntax, meaning, use-case, benifits, security thoughts.
-
 =head1 CORE API
 
 The core API covers all handlers, functions, and properties that do not require
@@ -130,33 +105,19 @@ additional plugins (extensions) to be loaded into the server.
 
 =over 6
 
-=item B<log.level> (value)
-
-Gets or sets the global log level.
-
-=item B<log.file> (path)
-
-Gets or sets the log destination.
-
-Example:
-
- handler setup {
-    # ...
-    log.level 5;
-    log.file '/var/log/x0d/error.log';
- }
-
-=item B<workers> (number_or_array)
+=item B<workers> (number)
 
 Gets or sets the number of workers to be spawned.
 Setting this value to 1 (default) will create no additional threads
 except the already existing main thread.
 
+=item B<workers.affinity> (array_of_numbers)
+
 Passing an array of numbers will spawn as many workers as elements in that
 array each worker associated with a processor affinity to
 its related value in the array.
 
-That is, when you use C<workers [0, 1, 4];> it will spawn three workers
+That is, when you use C<workers.affinity [0, 1, 4];> it will spawn three workers
 with the first having a processor affinity of 0 (bound to CPU 0), the second
 worker using the second processor (value 1) and the 3rd worker
 using the fiths processor (value 4).
@@ -176,8 +137,11 @@ Example 1:
 Example 2:
  handler setup {
      # ... (use 4 workers, each bound to its own distinct processor)
-     workers [0, 1, 2, 3];
+     workers.affinity [0, 1, 2, 3];
  }
+
+Also assigning the worker's thread CPU affinity further helps reducing
+the request processing latency.
 
 =item B<mimetypes> (path)
 
@@ -554,8 +518,8 @@ Retrieves the matched group of a regular expression match.
 Example:
 
   # rewrites /assets/SOMETHING.css to /static/SOMETHING.css
-  if (req.path =~ /^/assets/(.*).css$/) {
-    rewrite "/static/" + regex.group(1) + ".css"
+  if (req.path =~ /^/assets/(.*\.css)$/) {
+    rewrite "/static/${regex.group(1)}"
   }
 
 =item B<docroot> (path)
@@ -608,7 +572,7 @@ Example:
     # ...
  }
 
-=item B<alias> (prefix => target)
+=item B<alias> (prefix: string, target: string)
 
 Aliases the given prefix with the matching part of the request path to the given
 physical target.
@@ -616,22 +580,22 @@ physical target.
 Example:
 
  handler main {
-     docroot "/var/www/localhost/htdocs"
-     alias "/distfiles" => "/usr/portage/distfiles"
-     dirlisting
-     staticfile
+     docroot "/var/www/localhost/htdocs";
+     alias "/distfiles", "/usr/portage/distfiles";
+     dirlisting;
+     staticfile;
  }
 
 This is equivalent to:
 
  handler main {
      if (req.path =^ '/distfiles') {
-         docroot '/usr/portage/distfles'
+         docroot '/usr/portage/distfles';
      } else {
-         docroot '/var/www/localhost/htdocs'
+         docroot '/var/www/localhost/htdocs';
      }
-     dirlisting
-     staticfile
+     dirlisting;
+     staticfile;
  }
 
 =item B<rewrite> (path)
@@ -640,9 +604,9 @@ Rewrites the current request to point to another physical file, without redirect
 as if the client has requested another file.
 
  handler main {
-     docroot '/var/www/localhost/htdocs'
-     rewrite '/error.html' if req.path =^ '/something/else'
-     staticfile
+     docroot '/var/www/localhost/htdocs';
+     rewrite '/error.html' if req.path =^ '/something/else';
+     staticfile;
  }
 
 =item B<pathinfo> ()
@@ -695,9 +659,9 @@ Example:
 
  handler main {
     # ...
-    docroot "/var/www/localhost/htdocs"
-    precompressed
-    staticfile
+    docroot "/var/www/localhost/htdocs";
+    precompressed;
+    staticfile;
  }
 
 =item B<redirect> (url)
@@ -771,10 +735,10 @@ is a function to ensure the currently handled request is being
 logged into the given logfile_path.
 
  handler main {
-     accesslog '/var/log/x0d/access.log'
+     accesslog '/var/log/x0d/access.log';
 
-     docroot '/var/www/localhost/htdocs'
-     staticfile
+     docroot '/var/www/localhost/htdocs';
+     staticfile;
  }
 
 =item B<accesslog.sysloc> ()
@@ -783,10 +747,10 @@ is a function to ensure the currently handled request is being
 logged into the local syslog.
 
  handler main {
-     accesslog.syslog
+     accesslog.syslog;
 
-     docroot '/var/www/localhost/htdocs'
-     staticfile
+     docroot '/var/www/localhost/htdocs';
+     staticfile;
  }
 
 =back
@@ -802,13 +766,13 @@ Adds support for HTTP Basic Authentication.
 is a function, that assigns a realm title to the currently being processed
 request.
 
- auth.realm "Secret Area"
+ auth.realm "Secret Area";
 
 =item B<auth.userfile> (htpasswd_filename_string)
 
 is a function, that assigns a user database to this request, to check against.
 
- auth.userfile "/var/www/localhost/.htpasswd"
+ auth.userfile "/var/www/localhost/.htpasswd";
 
 =item B<auth.require> ()
 
@@ -817,12 +781,12 @@ remote client to authenticate with username/password against the
 previousely supplied userfile within the given realm.
 
  handler main {
-     auth.realm "Secret Area"
-     auth.userfile "/var/www/localhost/.htpasswd"
-     auth.require
+     auth.realm "Secret Area";
+     auth.userfile "/var/www/localhost/.htpasswd";
+     auth.require;
 
-     docroot "/var/www/localhost/htdocs"
-     staticfile
+     docroot "/var/www/localhost/htdocs";
+     staticfile;
  }
 
 =back
@@ -857,23 +821,7 @@ The director plugin implements advanced load balancing.
 
 =over 6
 
-=item B<director.create> (name, backend1_name => url [, backend2_name => url, ...])
-
-Statically spawnes a load balancer by given unique name with the passed backends.
-The backend names must be unique within this load balancer instance.
-
-One example might look like:
-
- handler setup {
-     # ...
-     director.create 'app_cluster',
-         'app01' => 'http://192.168.4.1:8080/?capacity=8',
-         'app02' => 'http://192.168.4.2:8080/?capacity=4',
-         'app03' => 'http://192.168.4.3:8080/?capacity=4',
-         'app04' => 'http://192.168.4.4:8080/?capacity=1',
- }
-
-=item B<director.load> (name: path [, ...])
+=item B<director.load> (name: string, path: string)
 
 Spawns a load balancer instance with the given name by loading its
 configuration from a plain-text database file.
@@ -886,14 +834,14 @@ Example:
 
  handler setup {
      # ...
-     
+
      # loads the dynamic cluster with unique name 'app_cluster' from given file:
-     director.load app_cluster: '/var/lib/x0/app_cluster.db'
+     director.load 'app_cluster', '/var/lib/x0/app_cluster.db';
  }
  
  handler main {
      # ...
-     director.pass 'app_cluster'
+     director.pass 'app_cluster';
  }
 
 =item B<director.api> ()
@@ -910,33 +858,35 @@ sync with the live configuration's changes.
 
  handler main {
      if req.path =^ '/x0' {
-         director.api '/x0'
-	 }
+         director.api '/x0';
+	   }
 
      # ...
  }
 
-=item B<director.pass> ()
-
-Passes the request to the one-and-only spawned director.
-This does only work with one director spawned, not two, not three, not zero.
-
-=item B<director.pass> (director_name)
+=item B<director.balance> (director_name: string, bucket_name: string = "")
 
 Passes the request to the director by given name.
 This is usually what you are to use in your configuration file.
 
+You can optionally pass a bucket name if you partitioned your cluster into buckets.
+
 Example:
 
  handler main {
-     director.pass 'app_cluster'
+     if (req.path =^ '/cart') {
+         director.pass 'app_cluster', 'vip';
+     } else {
+         director.pass 'app_cluster';
+     }
  }
 
 =item B<director.pass> (director_name, backend_name)
 
 Passes the request to a specific backend on the given director.
+
 Use this to allow clients to decide (for example via cookie
-or request-header) what backend is to server that request,
+or request-header) what backend is to serve that request,
 which should help you testing code on a single backend before
 rolling out the backend's code change on the full cluster.
 
@@ -947,40 +897,32 @@ Please note, that explicitely specifying a backend does ignore
 any configured capacity limits.
 
  handler main {
-     director.pass 'app_cluster', req.cookie("X-Backend")
+     director.pass 'app_cluster', req.cookie("X-Backend");
  }
 
-=item B<director.fcgi> (path: unix_domain_socket)
+=item B<director.fcgi> (address: IP, port: number)
 
-=item B<director.fcgi> (address: IP, port: PORT)
+Directly proxies a givenr equest to FastCGI backend application.
 
-Directly proxies a givenr equest to FastCGI backend application, either via TCP/IP or via TCP/IP.
+=item B<director.http> (address: IP, port: number)
 
-=item B<director.http> (path: unix_domain_socket)
-
-=item B<director.http> (address: IP, port: PORT)
-
-Directly proxies a givenr equest to FastCGI backend application, either via TCP/IP or via TCP/IP.
+Directly proxies a givenr equest to an HTTP backend application.
 
  handler main {
-     docroot '/var/www/localhost/htdocs'
-     staticfile if req.path =^ '/assets/'
+     docroot '/var/www/localhost/htdocs';
+     staticfile if req.path =^ '/assets/';
 
      director.http address: 127.0.0.1, port: 8081;
  }
 
-=item B<director.haproxy_monitor> (prefix)
+=item B<director.haproxy_monitor> (prefix: string = "/")
 
 Handler that (if prefix matches the requests URI) serves an HAproxy compatible monitor page.
 
-If no prefix a given a prefix of '/' is assumed.
-
-=item B<director.haproxy_stats> (prefix)
+=item B<director.haproxy_stats> (prefix: string = "/")
 
 Handler that (if prefix matches the requests URI) serves an HAproxy compatible stats page.
 Currently only its CSV output is implemented.
-
-If no prefix a given a prefix of '/' is assumed.
 
 =back
 
@@ -996,6 +938,14 @@ requested path (its physical target file) is a directory.
 Responds with an automatically generated directory listing
 if the current rquest points to a physical directory.
 
+=item B<dirlisting.google> ()
+
+Responds with an automatically generated directory listing
+if the current rquest points to a physical directory.
+
+The output is more pretty as it's using the Google API
+for generating tables.
+
 =back
 
 =head2 userdir
@@ -1009,10 +959,6 @@ in their home directories, if available.
 
 setup-function to define the directory name to replace with
 when the request URI is to point to a user directory.
-
-An example use looks as follows:
-
- userdir.name 'public_html';
 
 =item B<userdir> ()
 
@@ -1040,7 +986,7 @@ Adds "Expires" and "Cache-Control" response headers
 
 =over 6
 
-=item B<expire> (value)
+=item B<expire> (value: int)
 
 This function adds "Expires" and "Cache-Control" headers,
 based on the given paramter B<value>, to the response.
@@ -1048,7 +994,7 @@ based on the given paramter B<value>, to the response.
 If B<value> is a timespan, then the expiration
 is set relative to now.
 
-Otherwise (if B<value> is an absolute datetime),
+Otherwise (if B<value> is an absolute date-time),
 an absolute expiration is set.
 
 Examples:
@@ -1083,13 +1029,11 @@ An example use looks as follows:
      ssl.loglevel 6;
  }
 
-=item B<ssl.listen> ('bind' => ADDRESS, 'port' => PORT, 'backlog' => NUMBER)
+=item B<ssl.listen> (bind: IP, port: int, backlog: int = 128, multi_accept: int = 1, reuse_port: bool = true)
 
 This setup-function creates an HTTPS listener.
 Incoming connections will be SSL-encrypted.
 You will also need at least once certificate context.
-
-B<backlog> defaults to system-default (128 usually).
 
 An example use looks as follows:
 
@@ -1098,7 +1042,7 @@ An example use looks as follows:
      ssl.listen bind: 0.0.0.0, port: 443;
  }
 
-=item B<ssl.context> (keyfile: PATH, crtfile: PATH)
+=item B<ssl.context> (keyfile: string, crtfile: string, trustfile: string = "", priorities: string = "")
 
 This setup-function defines a certificate context.
 A certificate context must at least provide a B<keyfile> and
@@ -1150,31 +1094,28 @@ You can use this tool as follows:
 A very abstract example would look like this:
 added a hint on how to convert IDN names
 
- handler setup {
-     # ....
-     vhost.mapping 'www.xn--hsslich-lqa8a.de' => my_idnish_hp
- }
-
  handler main {
-     # ...
-     vhost.map
+     match req.host {
+       on 'www.xn--hsslich-lqa8a.de' { my_idnish_hp; }
+       else { }
+     }
  }
 
  # vhost handler for the IDN domain above
  handler my_idnish_hp {
-     docroot '/srv/www/my_idnish_hp/htdocs'
-     staticfile
+     docroot '/srv/www/my_idnish_hp/htdocs';
+     staticfile;
  }
 
 =head1 BUGS
 
-Whilst I do not know of anything critical (they get fixed the time I find them),
-this software is under early and active development and though
-still considered B<experimental>. Use at your own risk and please provide feedback.
+Whilst I do not know of anything critical (they get fixed by the time I find them),
+this software is under active development and though
+still considered B<experimental>. Please provide feedback.
 
 =head1 AUTHOR
 
-B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <trapni@gentoo.org>
+B<x0d> (daemon, core framework, and plugins) is written by Christian Parpart <trapni@gmail.com>
 
 =head1 SEE ALSO
 

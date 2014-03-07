@@ -4,13 +4,17 @@ x0d - high performance HTTP web server
 
 =head1 SYNOPSIS
 
-x0d [B<-c>|B<--config> PATH] [B<-p>|B<--pid-file> PATH] \
+x0d [B<-c>|B<--config> PATH] [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] [B<--systemd>] \
+    [B<-G>|B<--guard>] [B<-p>|B<--pid-file> PATH] \
     [B<-u>|B<--user> USER] [B<-g>|B<--group> GROUP] \
-    [B<-l>|B<--log-file> PATH] [B<-L>|B<--log-level> VALUE] \
+    [B<-L>|B<--log-severity> error|warning|notice|info|debug] \
+    [B<-l>|B<--log-target> syslog|file|systemd|console] \
+    [B<-l>|B<--log-file> PATH] \
     [B<-i>|B<--instant> PATH[,PORT]] \
-    [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] \
-    [B<-v>|B<--version>] [B<-y>|B<--copyright>] \
-    [B<-h>|B<--help>]
+    [B<-k>|B<--crash-handler>] \
+    [B<--dump-ast>] [B<--dump-ir>] \
+    [B<-v>|B<--version>] [B<-y>|B<--copyright>] [B<--splash>] \
+    [B<-V>|B<--info>] [B<-h>|B<--help>]
 
 =head1 DESCRIPTION
 
@@ -56,18 +60,25 @@ explicitely specified at command line.
 Specifies a group-name to drop group-privileges down to.
 This overrides the standard-group associated with the specified user.
 
+=item B<-l,--log-target=TARGET>
+
+Sets the logging target to one of syslog, file, systemd, or console.
+If log-target "file" is chosen, you must also specify B<--log-file=PATH>
+in order to tell B<x0d> to what file to log.
+
+The logging target B<systemd> actually uses the systemd logging facility,
+which is special formatted output to stdout.
+
 =item B<-l,--log-file=PATH>
 
 Specifies the full path to where the x0d process should log to.
 This log file is ignored when x0d is running in systemd-mode, and thus,
 all log entries will be logged into a special format into stdout.
 
-=item B<-L,--log-level=VALUE>
+=item B<-L,--log-severity=VALUE>
 
-Specifies a log level (between 0 and 9, defaults to 2) where the value
-0 is logging errors only, 1 logs including warnings, 2 logs including
-informational notices, and 3 to 9 will also log debugging information
-with 3 minimum and 9 full debugging informations.
+Specifies the logging severity, one of: error, warning, notice, info, or debug.
+Defaults to "info".
 
 =item B<-i,--instant=PATH[,PORT]>
 
@@ -80,10 +91,13 @@ B<x0d> will by default listen on port 8080 if no port was specified.
 =item B<--systemd>
 
 Explicitely runs in systemd-mode, a new init-system, which is usually
-detected by B<x0d> automatically but there might be reasons for you
-to explicitely state that in the command line.
+detected by B<x0d>. It is not recommended to use this option unless
+you really know what you are doing.
 
-Do not pass this option until you have to.
+=item B<-V,--info>
+
+Prints B<x0d> copyright, version, default plugin loading directory,
+and compile-time feature flags.
 
 =item B<-v,--version>
 
@@ -131,7 +145,7 @@ executs into a new binary for that, and is though, suitable for on the fly execu
 
 =item B<SIGUSR1>
 
-Reopen all log files (for logfile rotation) (TODO)
+Reopen all log files (for logfile rotation).
 
 =back
 
@@ -166,9 +180,7 @@ high performance HTTP web server and framework in modern C++.
 
 =head1 LICENSE
 
-B<x0d> and its standard plugins is licensed under AGPL-3.
-
-The B<x0 core framework> provided by the x0 project is licensed unter AGPL-3.
+B<x0d>, the underlying framework and its standard plugins is licensed under AGPL-3.
 
 =head1 AUTHOR
 

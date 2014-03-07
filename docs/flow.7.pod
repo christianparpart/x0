@@ -55,6 +55,9 @@ with a special result state as soon as a handler has handled the context.
 Variables can be used to make your decision control flow much more flexible
 dependant on your context.
 
+Variables must not change their underlying data type during lifetime, i.e. if
+you assigned it a "string" upon initialization, it must remain a string on mutation.
+
 =item B<functions>
 
 Functions only provided by the host application to aid your control flow with common tasks,
@@ -136,21 +139,48 @@ Any place you use your variables, they will represent the values assigned to it.
 
 =over 6
 
-=item * Boolean
+=item B<*> Boolean
 
-=item * Integer
+Indicating logical state of B<true> or B<false>.
 
-=item * String
+Examples: true, false
 
-=item * IP Address (IPv4, IPv6)
+=item B<*> Integer
 
-=item * CIDR Network Address (IPv4, IPv6)
+64bit signed numbers.
 
-=item * Regular Expression
+Examples: -32767, 0, 26, +42
 
-=item * Array of Integers
+=item B<*> String
 
-=item * Array of Strings
+Strings may be interpolated if enclosed in double-quotes (")
+and will be taken as pure literal when enclosed in single-quotes (').
+
+  handler main {
+    var world = 41;
+    var sample_interpolation = "Hello, ${world + 1}";
+    var raw_string = 'fnord.txt';
+  }
+
+=item B<*> IP Address (IPv4, IPv6)
+
+Examples: 192.168.42.1, 10.26.91.12, ::1, 3ffe:80::4242
+
+=item B<*> CIDR Network Address (IPv4, IPv6)
+
+Examples: 192.168.0.0/16, 127.0.0.0/8, 10.10.48.0/24
+
+=item B<*> Regular Expression
+
+Examples: /^\/foo/(.*).jsp$/ or /^Hel[l]o.*/
+
+=item B<*> Array of Integers
+
+Examples: [26, 4, 91], [12]
+
+=item B<*> Array of Strings
+
+Examples: ['text/plain', 'text/css', 'text/html']
 
 =back
 
@@ -278,16 +308,20 @@ language parser, or just to make it very clear to the reader what you mean.
 
 =back
 
-=head1 CONDITIONS
+=head1 STATEMENTS
 
-B<Flow> is not meant to run loops but to define paths of decisions.
+B<Flow> is not meant to run loops or other complex general purpose logic but to define paths of decisions.
 
 Though, B<Flow> only supports the if and match condition and no loops.
 
 =head2 if-statement
 
-You can branch at any given point with the if-statement to conditionally continue processing depending on certain input data conditions. You may optionally also add an alternative branch that is executed instead if the expression is not evaluated to be true.
-The condition expression may or may not be surrounded by round braces, this is up to your own style preferences.
+You can branch at any given point with the if-statement to conditionally continue processing
+depending on certain input data. You may optionally also add an alternative branch
+that is executed instead if the expression is not evaluated to be true.
+
+The condition expression may or may not be surrounded by round brace symbols,
+this is up to your own style preferences.
 
   if EXPRESSION
       STATEMENT    # invoked when expression evaluates to true
@@ -299,57 +333,118 @@ The condition expression may or may not be surrounded by round braces, this is u
 
 Example:
 
-  var i = 42;
-  
-  if (i > 13)
-    log.debug("that's true");
-  else
-    log.debug("World is odd.");
+  handler main {
+    var i = 42;
+    
+    if (i > 13) {
+      log.debug("that's true");
+    } else {
+      log.debug("World is odd.");
+    }
+  }
 
 =head2 match-statement
 
-Matches are a very powerful new feature in B<Flow>. The allow you to effeciently match on multiple possible cases,
-and let each distinct case run its own code blocks.
+Matches are a very powerful feature in B<Flow>. They allow you to effeciently
+match on multiple possible cases and let each distinct case run its own code blocks.
 
-Also, using the match statement makes your source file look clean, easy to read and maintain.
+Also, using the match statement makes your source file look well structured,
+easy to read and maintain.
 
-Supported match operations are:
+The input value must always be a string.
+
+=head3 Syntax
+
+  matchStmt      ::= 'match' expression [MATCH_OPERATOR] '{' matchCase* ['else' stmt] '}'
+  matchCase      ::= 'on' LITERAL stmt
+  MATCH_OPERATOR ::= '==' | '=^' | '=$' | '=~'
+
+=head3 Supported match operations are:
 
 =over 6
 
-=item B<Full Compare>
+=item == B<Full Compare>
 
-TODO
+Performs a full string match on the input value and the case label.
 
-=item B<Prefix Match>
+This is the default action, i.e. ommitting the match operator will
+always result in a full string compare match.
 
-TODO
+  handler main {
+    match req.path == {
+      on '/server_status' {
+        status.nginx_compat;
+      }
+      on '/favicon.ico' {
+        respond 404;
+      }
+      else {
+        # ...
+      }
+    }
+  }
 
-=item B<Suffix Match>
+=item =^ B<Prefix Match>
 
-TODO
+Selects the branch whose case label "prefix" matches the input value.
+The case label with the longest match will be preferred.
 
-=item B<Regular Expression Match>
+  handler main {
+    match req.path =^ {
+      on '/admin' {
+        admin_stuff;
+      }
+      on '/assets/' {
+        docroot '/srv/website/public';
+        staticfile;
+      }
+      else {
+        # ...
+      }
+    }
+  }
 
-TODO
+=item =$ B<Suffix Match>
+
+Selects the branch whose case label "suffix" matches the input value.
+The case label with the longest match will be preferred.
+
+  handler main {
+    match phys.path  =$ {
+      on '.torrent' {
+        respond 403;
+      }
+      on '.php' {
+        php_fcgi;
+      }
+      else {
+        # ...
+      }
+    }
+  }
+
+=item =~ B<Regular Expression Match>
+
+Iteratively walks through all case label regular expressions in declaration order
+and performs an evaluation against the input value.
+
+The case label that matches the first will be the selected branch of execution.
+
+  handler main {
+    match phys.path =~ {
+      on /^\/admin\/.*$/ {
+        admin_panel;
+      }
+      on /^\/cart\/.*$/ {
+        cart_service;
+      }
+      else {
+        # ...
+      }
+    }
+  }
 
 =back
-
-TODO
-
- handler main {
-   match req.path {
-     on '/server_status' {
-       status.nginx_compat;
-     }
-     on '/favicon.ico' {
-       respond 404;
-     }
-     else {
-       # ...
-     }
-   }
- }
 
 =head1 COMMENTS
 
@@ -360,6 +455,16 @@ TODO
 =item C++-style comments // ...
 
 =item Shell-style comments # ...
+
+=back
+
+=head1 TODO
+
+=over 3
+
+=item B<*> Plugin Loading
+
+=item B<*> Builtin function/handler calls and parameter passing
 
 =back
 
