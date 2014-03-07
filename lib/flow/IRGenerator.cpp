@@ -137,23 +137,31 @@ void IRGenerator::accept(Variable& variable)
     result_ = var;
 }
 
-void IRGenerator::accept(Handler& handler)
+void IRGenerator::accept(Handler& handlerSym)
 {
     FNTRACE();
 
-    setHandler(getHandler(handler.name()));
+    setHandler(getHandler(handlerSym.name()));
     setInsertPoint(createBlock("EntryPoint"));
 
-    for (Symbol* symbol: *handler.scope()) {
-        codegen(symbol);
-    }
-
-    codegen(handler.body());
+    codegenInline(handlerSym);
 
     createRet(get(false));
 
-    this->handler()->verify();
+    handler()->verify();
+}
 
+void IRGenerator::codegenInline(Handler& handlerSym)
+{
+    // emit local variable declarations
+    if (handlerSym.scope()) {
+        for (Symbol* symbol: *handlerSym.scope()) {
+            codegen(symbol);
+        }
+    }
+
+    // emit body
+    codegen(handlerSym.body());
 }
 
 void IRGenerator::accept(BuiltinFunction& builtin)
@@ -297,9 +305,6 @@ void IRGenerator::accept(CallExpr& call)
     FNTRACE();
 
     std::vector<Value*> args;
-
-    Value* callee = codegen(call.callee());
-
     for (Expr* arg: call.args().values()) {
         if (Value* v = codegen(arg)) {
             args.push_back(v);
@@ -309,15 +314,17 @@ void IRGenerator::accept(CallExpr& call)
     }
 
     if (call.callee()->isFunction()) {
+        Value* callee = codegen(call.callee());
         // builtin function
         result_ = createCallFunction(static_cast<IRBuiltinFunction*>(callee), args);
     } else if (call.callee()->isBuiltin()) {
+        Value* callee = codegen(call.callee());
         // builtin handler
         result_ = createInvokeHandler(static_cast<IRBuiltinHandler*>(callee), args);
     } else {
         // source handler
-        assert(!"TODO");
-        result_ = nullptr; // TODO: inline source handler
+        codegenInline(*static_cast<Handler*>(call.callee()));
+        result_ = nullptr;
     }
 }
 

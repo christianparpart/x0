@@ -38,6 +38,7 @@ private:
     Value* codegen(Expr* expr);
     Value* codegen(Stmt* stmt);
     Value* codegen(Symbol* sym);
+    void codegenInline(Handler& handlerSym);
 
     Constant* getConstant(Expr* expr);
 
