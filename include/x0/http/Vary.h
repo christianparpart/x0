@@ -23,6 +23,9 @@ public:
 	explicit Vary(size_t count);
 	~Vary();
 
+    Vary(const Vary&) = delete;
+    Vary& operator=(const Vary&) = delete;
+
 	size_t size() const;
 
 	const std::vector<BufferRef>& names() const;
