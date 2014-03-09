@@ -8,10 +8,10 @@ before_install:
   - sudo apt-get update -qq
 install:
   # gcc 4.8
-  - if [ "$CXX" == "g++" ]; then sudo add-apt-get install -y -qq gcc-4.8; fi
+  - if [ "$CXX" == "g++" ]; then sudo apt-get install -y -qq gcc-4.8; fi
   - if [ "$CXX" == "g++" ]; then export CXX="g++-4.8"; fi
   # clang 3.4
-  - if [ "$CXX" == "clang++" ]; then sudo add-apt-get install -y -qq clang-3.4; fi
+  - if [ "$CXX" == "clang++" ]; then sudo apt-get install -y -qq clang-3.4; fi
   - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.4"; fi
   # x0 dependencies
   - sudo apt-get install -y -qq cmake libgtest-dev libcppunit-dev libgnutls28-dev libgcrypt11-dev libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config libpcre3-dev libfcgi-dev libmagickwand-dev librrd-dev libtbb-dev
