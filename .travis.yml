@@ -7,12 +7,18 @@ before_install:
   - if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm; fi
   - sudo apt-get update -qq
 install:
-  - sudo apt-get install -y -qq clang-3.4
+  # gcc 4.8
+  - if [ "$CXX" == "g++" ]; then sudo add-apt-get install -y -qq gcc-4.8; fi
+  - if [ "$CXX" == "g++" ]; then export CXX="g++-4.8"; fi
+  # clang 3.4
+  - if [ "$CXX" == "clang++" ]; then sudo add-apt-get install -y -qq clang-3.4; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.4"; fi
+  # x0 dependencies
   - sudo apt-get install -y -qq cmake libgtest-dev libcppunit-dev libgnutls28-dev libgcrypt11-dev libmysqlclient-dev libev-dev zlib1g-dev libbz2-dev pkg-config libpcre3-dev libfcgi-dev libmagickwand-dev librrd-dev libtbb-dev
   - mkdir ~/gtest && cd ~/gtest && cmake /usr/src/gtest -DBUILD_SHARED_LIBS=ON && make && sudo cp -vp libgtest*.so /usr/local/lib/ && sudo ldconfig && cd -
-  - cmake -DCMAKE_BUILD_TYPE=debug -DENABLE_{RRD,EXAMPLES,TESTS}=ON
 script:
   - $CXX --version
+  - cmake -DCMAKE_BUILD_TYPE=debug -DENABLE_{RRD,EXAMPLES,TESTS}=ON
   - make
   - ./tests/x0-test
 branches:
