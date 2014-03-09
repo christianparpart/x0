@@ -4,7 +4,7 @@
 
 using namespace x0;
 
-typedef HttpHeader<std::string> Header;
+typedef HttpHeader<BufferRef> Header;
 
 void dump(const Vary& vary)
 {

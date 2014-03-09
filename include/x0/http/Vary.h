@@ -123,12 +123,8 @@ std::unique_ptr<Vary> Vary::create(const U& varyHeader, const std::vector<HttpHe
 //	if (varyHeader.empty())
 //		return std::unique_ptr<Vary>();
 
-	Buffer header;
-	header.push_back(varyHeader);
-
-	std::unique_ptr<Vary> vary;
-	auto tokens = Tokenizer<BufferRef>::tokenize(header.ref(), ", ");
-	vary.reset(new Vary(tokens.size()));
+	auto tokens = Tokenizer<BufferRef>::tokenize(varyHeader, ", ");
+	std::unique_ptr<Vary> vary(new Vary(tokens.size()));
 	for (size_t i = 0, e = tokens.size(); i != e; ++i) {
 		auto name = tokens[i];
 		vary->names_[i] = name;
