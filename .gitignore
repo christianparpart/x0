@@ -36,6 +36,7 @@ tests/queue-bench
 tests/x0-test
 examples/app1
 examples/tcp-echo-server
+examples/tcp-echo-server-splice
 examples/capi-app1
 examples/capi-app2
 examples/capi-post-data
