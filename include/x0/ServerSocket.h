@@ -24,6 +24,15 @@ class SocketSpec;
 class SocketDriver;
 class IPAddress;
 
+/**
+ * Represents a TCP listening socket.
+ *
+ * @example examples/tcp-echo-server.cpp
+ * @example examples/tcp-echo-server-splice.cpp
+ *
+ * @see Socket
+ * @see SocketDriver
+ */
 class X0_API ServerSocket
 #ifndef XZERO_NDEBUG
 	: public Logging
