@@ -9,6 +9,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 class Symbol;
 class SymbolTable;
 class ScopedSymbol;
@@ -75,5 +78,7 @@ public:
 	virtual void accept(MatchStmt& stmt) = 0;
 	virtual void accept(AssignStmt& stmt) = 0;
 };
+
+//!@}
 
 } // namespace x0

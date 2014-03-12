@@ -15,6 +15,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 class Value;
 class Instr;
 class IRProgram;
@@ -193,5 +196,7 @@ private:
     std::unordered_map<Value*, Register> variables_;
     std::vector<bool> allocations_;
 };
+
+//!@}
 
 } // namespace x0

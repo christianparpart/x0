@@ -16,6 +16,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 namespace FlowVM {
     class NativeCallback;
 }
@@ -564,5 +567,7 @@ private:
     std::unique_ptr<Stmt> elseStmt_;
 };
 // }}}
+
+//!@}
 
 } // namespace x0

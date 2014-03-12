@@ -7,6 +7,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 struct X0_API FlowToken
 {
 	enum _
@@ -72,12 +75,20 @@ public:
 	static bool isRelOp(FlowToken t);
 };
 
+//!@}
+
 } // namespace x0
 
 namespace std {
+
+//! \addtogroup Flow
+//@{
+
 	template<> struct hash<x0::FlowToken> {
 		uint32_t operator()(x0::FlowToken v) const {
 			return static_cast<uint32_t>(v.value());
 		}
 	};
+
+//!@}
 }

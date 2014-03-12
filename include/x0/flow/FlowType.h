@@ -8,6 +8,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 enum class FlowType {
 	Void = 0,
 	Boolean = 1,        // bool (int64)
@@ -125,6 +128,8 @@ public:
     iterator end() const { return iterator(data() + size(), data() + size()); }
 };
 // }}}
+
+//!@}
 
 } // namespace x0
 

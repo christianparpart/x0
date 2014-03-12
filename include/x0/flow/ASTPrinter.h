@@ -2,6 +2,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 class ASTNode;
 
 class X0_API ASTPrinter :
@@ -47,5 +50,7 @@ private:
 	virtual void accept(MatchStmt& stmt);
 	virtual void accept(AssignStmt& stmt);
 };
+
+//!@}
 
 } // namespace x0

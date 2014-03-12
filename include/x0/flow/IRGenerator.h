@@ -15,6 +15,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 /**
  * Transforms a Flow-AST into an SSA-conform IR.
  *
@@ -127,5 +130,7 @@ inline void IRGenerator::reportError(const std::string& fmt, Args&&... args)
     }
 }
 // }}}
+
+//!@}
 
 } // namespace x0

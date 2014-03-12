@@ -14,6 +14,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 class X0_API FlowLexer {
 public:
 	FlowLexer();
@@ -116,5 +119,7 @@ inline FlowLexer::Scope* FlowLexer::scope() const
 	return !contexts_.empty() ? contexts_.front().get() : nullptr;
 }
 // }}}
+
+//!@}
 
 } // namespace x0

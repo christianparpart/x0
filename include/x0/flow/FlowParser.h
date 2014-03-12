@@ -22,6 +22,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 namespace FlowVM {
     class Runtime;
     class NativeCallback;
@@ -200,6 +203,8 @@ inline bool FlowParser::testTokens(A1 a1, Args... tokens) const
 }
 
 // }}}
+
+//!@}
 
 } // namespace x0
 

@@ -13,6 +13,9 @@
 
 namespace x0 {
 
+//! \addtogroup Flow
+//@{
+
 struct X0_API FilePos // {{{
 {
 	FilePos() : line(1), column(1), offset(0) {}
@@ -60,5 +63,7 @@ struct X0_API FlowLocation // {{{
 inline FlowLocation operator-(const FlowLocation& end, const FlowLocation& beg) {
 	return FlowLocation(beg.filename, beg.begin, end.end);
 }
+
+//!@}
 
 } // namespace x0

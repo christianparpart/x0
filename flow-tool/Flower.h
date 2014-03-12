@@ -79,6 +79,4 @@ private:
 	// TODO: not ported yet
 //	void flow_mkbuf(FlowVM::Params& args);
 //	void flow_getbuf(FlowVM::Params& args);
-
-//	bool printValue(const x0::FlowValue& value, bool lf);
 };
