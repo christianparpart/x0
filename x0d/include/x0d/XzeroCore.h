@@ -62,7 +62,8 @@ private:
 	void max_request_uri_size(x0::FlowVM::Params& args);
 	void max_request_header_size(x0::FlowVM::Params& args);
 	void max_request_header_count(x0::FlowVM::Params& args);
-	void max_request_body_size(x0::FlowVM::Params& args);
+	void request_header_buffer_size(x0::FlowVM::Params& args);
+	void request_body_buffer_size(x0::FlowVM::Params& args);
 
 	// debugging
 	void dump_ir(x0::FlowVM::Params& args);

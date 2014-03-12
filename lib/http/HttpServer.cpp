@@ -93,9 +93,10 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	tag("x0/" VERSION),
 	advertise(true),
 	maxRequestUriSize(4 * 1024),
-	maxRequestHeaderSize(8 * 1024),
+	maxRequestHeaderSize(1 * 1024),
 	maxRequestHeaderCount(100),
-	maxRequestBodySize(2 * 1024 * 1024)
+    maxRequestHeaderBufferSize(8 * 1024),
+	maxRequestBodyBufferSize(8 * 1024)
 {
 	DebugLogger::get().onLogWrite = [&](const char* msg, size_t n) {
 		LogMessage lm(Severity::debug1, "%s", msg);

@@ -61,7 +61,8 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	id_(id),
 	requestCount_(0),
 	flags_(0),
-	input_(1 * 1024),
+	input_(worker().server().maxRequestHeaderBufferSize()
+         + worker().server().maxRequestBodyBufferSize()),
 	inputOffset_(0),
 	request_(nullptr),
 	output_(),
