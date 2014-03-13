@@ -144,6 +144,7 @@ public:
 
 	// synchronous non-blocking I/O
 	virtual ssize_t read(Buffer& result);
+	virtual ssize_t read(Buffer& result, size_t size);
 	virtual ssize_t read(Pipe* buffer, size_t size);
 	virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 	virtual ssize_t write(const void *buffer, size_t size);

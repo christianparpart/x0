@@ -345,6 +345,23 @@ void Socket::close()
 	fd_ = -1;
 }
 
+ssize_t Socket::read(Buffer& result, size_t size)
+{
+	lastActivityAt_.update(ev_now(loop_));
+	size_t nbytes = std::min(result.capacity() - result.size(), size);
+	ssize_t rv = ::read(fd_, result.end(), nbytes);
+
+	if (rv <= 0) {
+		TRACE(1, "read(): rv=%ld: %s", rv, strerror(errno));
+		return rv;
+	}
+
+	TRACE(1, "read() -> %ld", rv);
+	result.resize(result.size() + rv);
+
+	return rv;
+}
+
 ssize_t Socket::read(Buffer& result)
 {
 	ssize_t nread = 0;
