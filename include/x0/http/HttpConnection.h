@@ -117,8 +117,8 @@ public:
 	bool isAborted() const;
 	bool isClosed() const;
 
-	void ref();
-	void unref();
+	void ref(const char* msg = "");
+	void unref(const char* msg = "");
 
 private:
 	friend class HttpRequest;
