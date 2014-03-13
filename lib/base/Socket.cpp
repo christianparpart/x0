@@ -11,6 +11,7 @@
 #include <x0/Buffer.h>
 #include <x0/Defines.h>
 #include <x0/StackTrace.h>
+#include <x0/DebugLogger.h>
 #include <x0/io/Pipe.h>
 #include <atomic>
 #include <system_error>
@@ -32,14 +33,14 @@
 #include <unistd.h>
 
 #if !defined(XZERO_NDEBUG)
-#	define TRACE(msg...) this->debug(msg)
+#	define TRACE(level, msg...) XZERO_DEBUG("Socket", (level), msg)
 #else
 #	define TRACE(msg...) do { } while (0)
 #endif
 
 #define ERROR(msg...) { \
-	TRACE(msg); \
-	TRACE("Stack Trace:\n%s", StackTrace().c_str()); \
+	TRACE(1, msg); \
+	TRACE(1, "Stack Trace:\n%s", StackTrace().c_str()); \
 }
 
 namespace x0 {
@@ -78,7 +79,7 @@ Socket::Socket(struct ev_loop* loop) :
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
 #endif
-	TRACE("created. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
+	TRACE(1, "created. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
 
 	watcher_.set<Socket, &Socket::io>(this);
 	timer_.set<Socket, &Socket::timeout>(this);
@@ -109,7 +110,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af, State state) :
 	static std::atomic<unsigned long long> id(0);
 	setLoggingPrefix("Socket(%d, %s:%d)", ++id, remoteIP().c_str(), remotePort());
 #endif
-	TRACE("created. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
+	TRACE(1, "created. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
 
 	watcher_.set<Socket, &Socket::io>(this);
 	timer_.set<Socket, &Socket::timeout>(this);
@@ -117,7 +118,7 @@ Socket::Socket(struct ev_loop* loop, int fd, int af, State state) :
 
 Socket::~Socket()
 {
-	TRACE("destroying. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
+	TRACE(1, "destroying. fd:%d, local(%s:%d)", fd_, localIP().c_str(), localPort());
 
 	close();
 }
@@ -261,7 +262,7 @@ bool Socket::setTcpCork(bool enable)
 #if defined(TCP_CORK)
 	int flag = enable ? 1 : 0;
 	bool rv = setsockopt(fd_, IPPROTO_TCP, TCP_CORK, &flag, sizeof(flag)) == 0;
-	TRACE("setTcpCork: %d => %d", enable, rv);
+	TRACE(1, "setTcpCork: %d => %d", enable, rv);
 	tcpCork_ = rv ? enable : false;
 	return rv;
 #else
@@ -290,21 +291,21 @@ bool Socket::setLingering(TimeSpan timeout)
 
 void Socket::setMode(Mode m)
 {
-	TRACE("setMode() %s -> %s", mode_str(mode_), mode_str(m));
+	TRACE(1, "setMode() %s -> %s", mode_str(mode_), mode_str(m));
 	if (isClosed())
 		return;
 
 	if (m != mode_) {
 		if (m != None) {
-			TRACE("setMode: set flags");
+			TRACE(1, "setMode: set flags");
 			watcher_.set(fd_, static_cast<int>(m));
 
 			if (!watcher_.is_active()) {
-				TRACE("setMode: start watcher");
+				TRACE(1, "setMode: start watcher");
 				watcher_.start();
 			}
 		} else {
-			TRACE("stop watcher and timer");
+			TRACE(1, "stop watcher and timer");
 			if (watcher_.is_active()) {
 				watcher_.stop();
 			}
@@ -326,10 +327,10 @@ void Socket::clearReadyCallback()
 
 void Socket::close()
 {
-	TRACE("close: fd=%d (state:%s, timer_active:%s)", fd_, state_str(), timer_.is_active() ? "yes" : "no");
+	TRACE(1, "close: fd=%d (state:%s, timer_active:%s)", fd_, state_str(), timer_.is_active() ? "yes" : "no");
 
 	if (timer_.is_active()) {
-		TRACE("close: stopping active timer");
+		TRACE(1, "close: stopping active timer");
 		timer_.stop();
 	}
 
@@ -359,10 +360,10 @@ ssize_t Socket::read(Buffer& result)
 		size_t nbytes = result.capacity() - result.size();
 		ssize_t rv = ::read(fd_, result.end(), nbytes);
 		if (rv <= 0) {
-			TRACE("read(): rv=%ld -> %ld: %s", rv, result.size(), strerror(errno));
+			TRACE(1, "read(): rv=%ld -> %ld: %s", rv, result.size(), strerror(errno));
 			return nread != 0 ? nread : rv;
 		} else {
-			TRACE("read() -> %ld", rv);
+			TRACE(1, "read() -> %ld", rv);
 			nread += rv;
 			result.resize(result.size() + rv);
 
@@ -398,16 +399,16 @@ ssize_t Socket::write(const void *buffer, size_t size)
 	lastActivityAt_.update(ev_now(loop_));
 
 #if 0 // !defined(XZERO_NDEBUG)
-	//TRACE("write('%s')", Buffer(buffer, size).c_str());
+	//TRACE(1, "write('%s')", Buffer(buffer, size).c_str());
 	ssize_t rv = ::write(fd_, buffer, size);
-	TRACE("write: %ld => %ld", size, rv);
+	TRACE(1, "write: %ld => %ld", size, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write: error (%d): %s", fd_, errno, strerror(errno));
 
 	return rv;
 #else
-	TRACE("write(buffer, size=%ld)", size);
+	TRACE(1, "write(buffer, size=%ld)", size);
 	return size ? ::write(fd_, buffer, size) : 0;
 #endif
 }
@@ -427,7 +428,7 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 #endif
 
 #if !defined(XZERO_NDEBUG)
-	TRACE("write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset_, *offset, nbytes, rv);
+	TRACE(1, "write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset_, *offset, nbytes, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
@@ -464,16 +465,16 @@ void Socket::onConnectComplete()
 	socklen_t vlen = sizeof(val);
 	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &vlen) == 0) {
 		if (val == 0) {
-			TRACE("onConnectComplete: connected");
+			TRACE(1, "onConnectComplete: connected");
 			state_ = Operational;
 		} else {
-			TRACE("onConnectComplete: error(%d): %s", val, strerror(val));
+			TRACE(1, "onConnectComplete: error(%d): %s", val, strerror(val));
 			close();
 			errno = val;
 		}
 	} else {
 		val = errno;
-		TRACE("onConnectComplete: getsocketopt() error: %s", strerror(errno));
+		TRACE(1, "onConnectComplete: getsocketopt() error: %s", strerror(errno));
 		close();
 		errno = val;
 	}
@@ -493,7 +494,7 @@ void Socket::io(ev::io& /*io*/, int revents)
 {
 	lastActivityAt_.update(ev_now(loop_));
 
-	TRACE("io(revents=0x%04X): mode=%s", revents, mode_str(mode_));
+	TRACE(1, "io(revents=0x%04X): mode=%s", revents, mode_str(mode_));
 
 	timer_.stop();
 
@@ -507,7 +508,7 @@ void Socket::io(ev::io& /*io*/, int revents)
 
 void Socket::timeout(ev::timer& timer, int revents)
 {
-	TRACE("timeout(revents=0x%04X): mode=%d", revents, mode_);
+	TRACE(1, "timeout(revents=0x%04X): mode=%d", revents, mode_);
 	setMode(None);
 
 	if (timeoutCallback_)
