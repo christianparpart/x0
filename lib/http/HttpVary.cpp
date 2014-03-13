@@ -1,4 +1,4 @@
-#include <x0/http/Vary.h>
+#include <x0/http/HttpVary.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/Tokenizer.h>
 
@@ -13,22 +13,22 @@ using namespace x0;
 
 namespace x0 {
 
-Vary::Vary(size_t count) :
+HttpVary::HttpVary(size_t count) :
 	names_(count),
 	values_(count)
 {
 }
 
-Vary::~Vary()
+HttpVary::~HttpVary()
 {
 }
 
-std::unique_ptr<Vary> Vary::create(const x0::HttpRequest* r)
+std::unique_ptr<HttpVary> HttpVary::create(const x0::HttpRequest* r)
 {
-	return create(BufferRef(r->responseHeaders["Vary"]), r->requestHeaders);
+	return create(BufferRef(r->responseHeaders["HttpVary"]), r->requestHeaders);
 }
 
-VaryMatch Vary::match(const Vary& other) const
+VaryMatch HttpVary::match(const HttpVary& other) const
 {
 	if (size() != other.size())
 		return VaryMatch::None;
@@ -44,7 +44,7 @@ VaryMatch Vary::match(const Vary& other) const
 	return VaryMatch::Equals;
 }
 
-VaryMatch Vary::match(const x0::HttpRequest* r) const
+VaryMatch HttpVary::match(const x0::HttpRequest* r) const
 {
 	for (size_t i = 0, e = size(); i != e; ++i) {
 		const auto& name = names_[i];

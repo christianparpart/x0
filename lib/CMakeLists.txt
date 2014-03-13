@@ -105,7 +105,7 @@ set(x0_http_SRC
   http/HttpServer.cpp
   http/HttpStatus.cpp
   http/HttpWorker.cpp
-  http/Vary.cpp
+  http/HttpVary.cpp
 )
 add_library(XzeroHttp SHARED ${x0_http_SRC})
 target_link_libraries(XzeroHttp XzeroBase)
