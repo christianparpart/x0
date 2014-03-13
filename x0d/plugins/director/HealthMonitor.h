@@ -16,7 +16,7 @@
 #include <x0/JsonWriter.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/http/HttpWorker.h>
-#include <x0/http/HttpMessageProcessor.h>
+#include <x0/http/HttpMessageParser.h>
 #include <ev++.h>
 
 class Backend;
@@ -40,7 +40,7 @@ inline std::string stringify(HealthState value)
  */
 class HealthMonitor :
 	protected x0::Logging,
-	protected x0::HttpMessageProcessor
+	protected x0::HttpMessageParser
 {
 public:
 	enum class Mode {
@@ -72,7 +72,7 @@ protected:
 	bool processingDone_;
 
 public:
-	explicit HealthMonitor(x0::HttpWorker& worker, HttpMessageProcessor::ParseMode parseMode = HttpMessageProcessor::RESPONSE);
+	explicit HealthMonitor(x0::HttpWorker& worker, HttpMessageParser::ParseMode parseMode = HttpMessageParser::RESPONSE);
 	virtual ~HealthMonitor();
 
 	Mode mode() const { return mode_; }
@@ -113,7 +113,7 @@ protected:
 
 	void recheck();
 
-	// response (HttpMessageProcessor)
+	// response (HttpMessageParser)
 	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const x0::BufferRef& text);
 	virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
 	virtual bool onMessageContent(const x0::BufferRef& chunk);

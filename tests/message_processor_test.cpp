@@ -1,5 +1,5 @@
 #include <x0/Buffer.h>
-#include <x0/http/HttpMessageProcessor.h>
+#include <x0/http/HttpMessageParser.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 
@@ -13,15 +13,15 @@ using namespace x0;
 using namespace std::placeholders;
 
 #if !CC_SUPPORTS_LAMBDA
-#	warning "Compiler does not support lambda expressions. Cannot unit-test HttpMessageProcessor"
+#	warning "Compiler does not support lambda expressions. Cannot unit-test HttpMessageParser"
 #else
 
-class HttpMessageProcessor_component : // {{{
-	public x0::HttpMessageProcessor
+class HttpMessageParser_component : // {{{
+	public x0::HttpMessageParser
 {
 public:
-	HttpMessageProcessor_component(HttpMessageProcessor::ParseMode mode) :
-		HttpMessageProcessor(mode)
+	HttpMessageParser_component(HttpMessageParser::ParseMode mode) :
+		HttpMessageParser(mode)
 	{
 	}
 
@@ -95,11 +95,11 @@ private:
 	}
 }; // }}}
 
-class HttpMessageProcessor_test :
+class HttpMessageParser_test :
 	public CPPUNIT_NS::TestFixture
 {
 public:
-	CPPUNIT_TEST_SUITE(HttpMessageProcessor_test);
+	CPPUNIT_TEST_SUITE(HttpMessageParser_test);
 		CPPUNIT_TEST(request_simple);
 		CPPUNIT_TEST(request_complex_lws_headers);
 		CPPUNIT_TEST(request_no_header);
@@ -117,7 +117,7 @@ public:
 private:
 	void request_complex_lws_headers()
 	{
-		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST);
+		HttpMessageParser_component rp(HttpMessageParser::REQUEST);
 
 		Buffer r(
 			"GET /foo HTTP/1.1\r\n"
@@ -131,7 +131,7 @@ private:
 
 	void request_simple()
 	{
-		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST); // (message_processor::REQUEST);
+		HttpMessageParser_component rp(HttpMessageParser::REQUEST); // (message_processor::REQUEST);
 
 		rp.on_request = [&](const BufferRef& method, const BufferRef& entity, int major, int minor)
 		{
@@ -192,7 +192,7 @@ private:
 			"\r\n"
 		);
 
-		HttpMessageProcessor_component rp(HttpMessageProcessor::RESPONSE);
+		HttpMessageParser_component rp(HttpMessageParser::RESPONSE);
 		bool on_complete_invoked = false;
 
 		rp.on_complete = [&]() -> bool
@@ -211,7 +211,7 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		HttpMessageProcessor_component rp(HttpMessageProcessor::RESPONSE);
+		HttpMessageParser_component rp(HttpMessageParser::RESPONSE);
 
 		rp.on_status = [&](int vmajor, int vminor, int code, const BufferRef& text)
 		{
@@ -268,7 +268,7 @@ private:
 	{
 		int header_count = 0;
 		int body_count = 0;
-		HttpMessageProcessor_component rp(HttpMessageProcessor::RESPONSE);
+		HttpMessageParser_component rp(HttpMessageParser::RESPONSE);
 
 		rp.on_status = [&](int vmajor, int vminor, int code, const BufferRef& text)
 		{
@@ -307,7 +307,7 @@ private:
 
 	void request_no_header()
 	{
-		HttpMessageProcessor_component rp(HttpMessageProcessor::REQUEST);
+		HttpMessageParser_component rp(HttpMessageParser::REQUEST);
 
 		int request_count = 0;
 		rp.on_request = [&](const BufferRef& method, const BufferRef& url, int major, int minor)
@@ -374,7 +374,7 @@ private: // message tests
 			"0\r\n\r\n"
 			"GARBAGE"
 		);
-		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
+		HttpMessageParser_component rp(HttpMessageParser::MESSAGE);
 
 		int chunk_index = 0;
 		rp.on_content = [&](const BufferRef& chunk) -> bool
@@ -403,7 +403,7 @@ private: // message tests
 		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageProcessor::SYNTAX_ERROR);
+		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageParser::SYNTAX_ERROR);
 	}
 
 	void message_chunked_body_fragmented()
@@ -425,7 +425,7 @@ private: // message tests
 		r.push_back("0\r\n\r\n");
 		BufferRef c4(r.ref(c3.offset() + c3.size()));
 
-		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
+		HttpMessageParser_component rp(HttpMessageParser::MESSAGE);
 		std::size_t np = 0;
 		std::error_code ec;
 
@@ -457,7 +457,7 @@ private: // message tests
 			"GARBAGE"
 		);
 
-		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
+		HttpMessageParser_component rp(HttpMessageParser::MESSAGE);
 
 		rp.on_content = [&](const BufferRef& chunk) -> bool
 		{
@@ -472,7 +472,7 @@ private: // message tests
 		std::size_t np = rp.process(r.ref());
 
 		CPPUNIT_ASSERT(np == r.size() - 7);
-		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageProcessor::SYNTAX_ERROR);
+		CPPUNIT_ASSERT(rp.state() == x0::HttpMessageParser::SYNTAX_ERROR);
 	}
 
 	void message_multi()
@@ -488,7 +488,7 @@ private: // message tests
 
 		std::size_t count = 0;
 
-		HttpMessageProcessor_component rp(HttpMessageProcessor::MESSAGE);
+		HttpMessageParser_component rp(HttpMessageParser::MESSAGE);
 		rp.on_complete = [&]() -> bool { ++count; return true; };
 
 		std::size_t np =  rp.process(r.ref());
@@ -498,5 +498,5 @@ private: // message tests
 	}
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(HttpMessageProcessor_test);
+CPPUNIT_TEST_SUITE_REGISTRATION(HttpMessageParser_test);
 #endif

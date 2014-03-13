@@ -502,7 +502,7 @@ void HttpRequest::setHostid(const std::string& value)
 bool HttpRequest::contentAvailable() const
 {
 	return connection.contentLength() > 0;
-	//return connection.state() != HttpMessageProcessor::MESSAGE_BEGIN;
+	//return connection.state() != HttpMessageParser::MESSAGE_BEGIN;
 }
 
 /*! setup request-body consumer callback.

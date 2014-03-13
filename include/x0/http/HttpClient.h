@@ -11,7 +11,7 @@
 #include <x0/Api.h>
 #include <x0/Buffer.h>
 #include <x0/IPAddress.h>
-#include <x0/http/HttpMessageProcessor.h>
+#include <x0/http/HttpMessageParser.h>
 #include <unordered_map>
 #include <functional>
 #include <initializer_list>
@@ -33,7 +33,7 @@ enum class HttpClientError {
 std::string tos(HttpClientError ec);
 
 class X0_API HttpClient :
-	public HttpMessageProcessor
+	public HttpMessageParser
 {
 public:
 	typedef std::unordered_map<std::string, std::string> HeaderMap;

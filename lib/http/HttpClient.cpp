@@ -14,7 +14,7 @@
 namespace x0 {
 
 HttpClient::HttpClient(ev::loop_ref loop, const IPAddress& ipaddr, int port) :
-	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
+	HttpMessageParser(HttpMessageParser::RESPONSE),
 	loop_(loop),
 	ipaddr_(ipaddr),
 	port_(port),
@@ -150,7 +150,7 @@ void HttpClient::readSome()
 	if (rv > 0) {
 		process(readBuffer_.ref(lower_bound, rv));
 
-		if (state() == HttpMessageProcessor::SYNTAX_ERROR) {
+		if (state() == HttpMessageParser::SYNTAX_ERROR) {
 			responseHandler_(HttpClientError::ProtocolError, statusCode_, headers_, content_.ref());
 			stop();
 		} else if (processingDone_) {
@@ -163,7 +163,7 @@ void HttpClient::readSome()
 		stop();
 	} else {
 		stop();
-		if (state() == HttpMessageProcessor::CONTENT || state() == HttpMessageProcessor::CONTENT_ENDLESS || state() == HttpMessageProcessor::MESSAGE_BEGIN)
+		if (state() == HttpMessageParser::CONTENT || state() == HttpMessageParser::CONTENT_ENDLESS || state() == HttpMessageParser::MESSAGE_BEGIN)
 			responseHandler_(HttpClientError::Success, statusCode_, headers_, content_.ref());
 		else {
 			responseHandler_(HttpClientError::ProtocolError, statusCode_, headers_, content_.ref());

@@ -92,7 +92,7 @@ using namespace x0;
 
 // {{{ UrlFetcher API
 class UrlFetcher :
-	public HttpMessageProcessor
+	public HttpMessageParser
 {
 public:
 	static UrlFetcher* fetch(HttpWorker* worker, const Url& url, const std::function<void()>& completionHandler);

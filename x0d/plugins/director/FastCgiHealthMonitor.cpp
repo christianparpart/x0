@@ -26,7 +26,7 @@ using namespace x0;
 #endif
 
 FastCgiHealthMonitor::FastCgiHealthMonitor(HttpWorker& worker) :
-	HealthMonitor(worker, HttpMessageProcessor::MESSAGE),
+	HealthMonitor(worker, HttpMessageParser::MESSAGE),
 	socket_(worker_.loop()),
 	writeBuffer_(),
 	writeOffset_(0),
@@ -64,7 +64,7 @@ static inline std::string hostname()
 
 // {{{ HttpRequestRec
 class HttpRequestRec :
-	public x0::HttpMessageProcessor
+	public x0::HttpMessageParser
 {
 public:
 	x0::BufferRef method;
@@ -82,7 +82,7 @@ public:
 
 private:
 	HttpRequestRec() :
-		HttpMessageProcessor(HttpMessageProcessor::REQUEST),
+		HttpMessageParser(HttpMessageParser::REQUEST),
 		method(),
 		path(),
 		headers()
@@ -408,7 +408,7 @@ void FastCgiHealthMonitor::onEndRequest(int appStatus, FastCgi::ProtocolStatus p
 {
 	TRACE("onEndRequest(appStatus=%d, protocolStatus=%d)", appStatus, (int)protocolStatus);
 
-	// explicitely invoke HttpMessageProcessor hook since ParseMode::MESSAGE doesn't
+	// explicitely invoke HttpMessageParser hook since ParseMode::MESSAGE doesn't
 	// invoke it in this mode.
 
 	// some FastCGI backends (i.e. php-fpm) do not always sent a Status response header

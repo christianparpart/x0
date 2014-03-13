@@ -40,7 +40,7 @@ class HttpBackend::Connection :
 #ifndef XZERO_NDEBUG
 	public Logging,
 #endif
-	public HttpMessageProcessor
+	public HttpMessageParser
 {
 private:
 	HttpBackend* backend_;			//!< owning proxy
@@ -82,7 +82,7 @@ private:
 	void onConnectTimeout(x0::Socket* s);
 	void onTimeout(x0::Socket* s);
 
-	// response (HttpMessageProcessor)
+	// response (HttpMessageParser)
 	virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
 	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
 	virtual bool onMessageHeaderEnd();
@@ -103,7 +103,7 @@ public:
 
 // {{{ HttpBackend::Connection impl
 HttpBackend::Connection::Connection(HttpBackend* proxy, RequestNotes* rn, Socket* socket) :
-	HttpMessageProcessor(HttpMessageProcessor::RESPONSE),
+	HttpMessageParser(HttpMessageParser::RESPONSE),
 	backend_(proxy),
 	refCount_(1),
 	rn_(rn),

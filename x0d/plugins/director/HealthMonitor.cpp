@@ -25,9 +25,9 @@ using namespace x0;
 #	define TRACE(msg...) do { } while (0)
 #endif
 
-HealthMonitor::HealthMonitor(HttpWorker& worker, HttpMessageProcessor::ParseMode parseMode) :
+HealthMonitor::HealthMonitor(HttpWorker& worker, HttpMessageParser::ParseMode parseMode) :
 	Logging("HealthMonitor"),
-	HttpMessageProcessor(parseMode),
+	HttpMessageParser(parseMode),
 	mode_(Mode::Paranoid),
 	backend_(nullptr),
 	worker_(worker),
@@ -148,7 +148,7 @@ void HealthMonitor::setInterval(const TimeSpan& value)
 
 void HealthMonitor::reset()
 {
-	HttpMessageProcessor::reset();
+	HttpMessageParser::reset();
 
 	responseCode_ = HttpStatus::Undefined;
 	processingDone_ = false;

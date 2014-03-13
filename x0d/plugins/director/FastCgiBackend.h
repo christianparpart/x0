@@ -11,7 +11,7 @@
 #include "Backend.h"
 #include "FastCgiProtocol.h"
 
-#include <x0/http/HttpMessageProcessor.h>
+#include <x0/http/HttpMessageParser.h>
 #include <x0/Logging.h>
 #include <x0/SocketSpec.h>
 

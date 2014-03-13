@@ -1,4 +1,4 @@
-/* <HttpMessageProcessor.h>
+/* <HttpMessageParser.h>
  *
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
@@ -25,10 +25,10 @@
 namespace x0 {
 
 /**
- * \class HttpMessageProcessor
+ * \class HttpMessageParser
  * \brief implements an HTTP/1.1 (request/response) message parser and processor
  */
-class X0_API HttpMessageProcessor
+class X0_API HttpMessageParser
 {
 public:
 	//! defines whether to parse HTTP requests, responses, or plain messages.
@@ -121,8 +121,8 @@ public:
 	virtual void log(LogMessage&& msg) = 0;
 
 public:
-	explicit HttpMessageProcessor(ParseMode mode);
-	virtual ~HttpMessageProcessor() {}
+	explicit HttpMessageParser(ParseMode mode);
+	virtual ~HttpMessageParser() {}
 
 	State state() const;
 	const char *state_str() const;
@@ -187,7 +187,7 @@ namespace x0 {
 
 /*! represents the current parser-state this HTTP message processor is in.
  */
-inline enum HttpMessageProcessor::State HttpMessageProcessor::state() const
+inline enum HttpMessageParser::State HttpMessageParser::state() const
 {
 	return state_;
 }
@@ -209,12 +209,12 @@ inline enum HttpMessageProcessor::State HttpMessageProcessor::state() const
  * the length to be processed. (HTTP/1.0 reply messages e.g. do not
  * contain a hint about the content-length.
  */
-inline ssize_t HttpMessageProcessor::contentLength() const
+inline ssize_t HttpMessageParser::contentLength() const
 {
 	return contentLength_;
 }
 
-inline bool HttpMessageProcessor::isProcessingHeader() const
+inline bool HttpMessageParser::isProcessingHeader() const
 {
 	// XXX should we include request-line and status-line here, too?
 	switch (state_) {
@@ -232,7 +232,7 @@ inline bool HttpMessageProcessor::isProcessingHeader() const
 	}
 }
 
-inline bool HttpMessageProcessor::isProcessingBody() const
+inline bool HttpMessageParser::isProcessingBody() const
 {
 	switch (state_) {
 		case CONTENT_BEGIN:
@@ -251,7 +251,7 @@ inline bool HttpMessageProcessor::isProcessingBody() const
 	}
 }
 
-inline bool HttpMessageProcessor::isContentExpected() const
+inline bool HttpMessageParser::isContentExpected() const
 {
 	return contentLength_ > 0
 		|| chunked_

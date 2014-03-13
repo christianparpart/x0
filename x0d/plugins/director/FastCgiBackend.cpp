@@ -65,7 +65,7 @@ class FastCgiTransport : // {{{
 #ifndef XZERO_NDEBUG
 	public x0::Logging,
 #endif
-	public x0::HttpMessageProcessor
+	public x0::HttpMessageParser
 {
 	class ParamReader : public FastCgi::CgiParamStreamReader //{{{
 	{
@@ -168,7 +168,7 @@ private:
 
 // {{{ FastCgiTransport impl
 FastCgiTransport::FastCgiTransport(FastCgiBackend* cx, RequestNotes* rn, uint16_t id, x0::Socket* upstream) :
-	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
+	HttpMessageParser(x0::HttpMessageParser::MESSAGE),
 	transportId_(++transportIds_),
 	refCount_(1),
 	isAborted_(false),

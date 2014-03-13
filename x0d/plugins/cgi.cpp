@@ -28,7 +28,7 @@
 #include <x0d/XzeroPlugin.h>
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
-#include <x0/http/HttpMessageProcessor.h>
+#include <x0/http/HttpMessageParser.h>
 #include <x0/io/BufferRefSource.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
@@ -78,7 +78,7 @@
  * \endcode
  */
 class CgiScript :
-	public x0::HttpMessageProcessor
+	public x0::HttpMessageParser
 {
 public:
 	CgiScript(x0::HttpRequest *in, const std::string& hostprogram = "");
@@ -152,7 +152,7 @@ private:
 };
 
 CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
-	HttpMessageProcessor(x0::HttpMessageProcessor::MESSAGE),
+	HttpMessageParser(x0::HttpMessageParser::MESSAGE),
 	loop_(in->connection.worker().loop()),
 	evChild_(in->connection.worker().server().loop()),
 	evCheckDestroy_(loop_),

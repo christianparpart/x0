@@ -1,4 +1,4 @@
-/* <x0/HttpMessageProcessor.cpp>
+/* <x0/HttpMessageParser.cpp>
  *
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
@@ -6,7 +6,7 @@
  * (c) 2009-2014 Christian Parpart <trapni@gmail.com>
  */
 
-#include <x0/http/HttpMessageProcessor.h>
+#include <x0/http/HttpMessageParser.h>
 
 namespace x0 {
 
@@ -35,7 +35,7 @@ namespace x0 {
  *       a false return code, which means, that processing is to be cancelled
  *       and thus, may imply, that the object itself may have been already deleted.
  */
-HttpMessageProcessor::HttpMessageProcessor(ParseMode mode) :
+HttpMessageParser::HttpMessageParser(ParseMode mode) :
 	mode_(mode),
 	state_(MESSAGE_BEGIN),
 	lwsNext_(),
@@ -54,17 +54,17 @@ HttpMessageProcessor::HttpMessageProcessor(ParseMode mode) :
 {
 }
 
-inline bool HttpMessageProcessor::isChar(char value)
+inline bool HttpMessageParser::isChar(char value)
 {
 	return /* static_cast<unsigned>(value) >= 0 && */ static_cast<unsigned>(value) <= 127;
 }
 
-inline bool HttpMessageProcessor::isControl(char value)
+inline bool HttpMessageParser::isControl(char value)
 {
 	return (value >= 0 && value <= 31) || value == 127;
 }
 
-inline bool HttpMessageProcessor::isSeparator(char value)
+inline bool HttpMessageParser::isSeparator(char value)
 {
 	switch (value)
 	{
@@ -93,18 +93,18 @@ inline bool HttpMessageProcessor::isSeparator(char value)
 	}
 }
 
-inline bool HttpMessageProcessor::isToken(char value)
+inline bool HttpMessageParser::isToken(char value)
 {
 	return isChar(value) && !(isControl(value) || isSeparator(value));
 }
 
-inline bool HttpMessageProcessor::isText(char value)
+inline bool HttpMessageParser::isText(char value)
 {
 	// TEXT = <any OCTET except CTLs but including LWS>
 	return !isControl(value) || value == SP || value == HT;
 }
 
-// {{{ HttpMessageProcessor hook stubs
+// {{{ HttpMessageParser hook stubs
 /** hook, invoked for each HTTP/1.1 Request-Line, that has been fully parsed.
  *
  * \param method the request-method (e.g. GET or POST)
@@ -112,7 +112,7 @@ inline bool HttpMessageProcessor::isText(char value)
  * \param versionMajor HTTP major version (e.g. 0 for 0.9)
  * \param versionMinor HTTP minor version (e.g. 9 for 0.9)
  */
-bool HttpMessageProcessor::onMessageBegin(const BufferRef& method, const BufferRef& uri, int versionMajor, int versionMinor)
+bool HttpMessageParser::onMessageBegin(const BufferRef& method, const BufferRef& uri, int versionMajor, int versionMinor)
 {
 	return true;
 }
@@ -124,21 +124,21 @@ bool HttpMessageProcessor::onMessageBegin(const BufferRef& method, const BufferR
  * \param code HTTP response status code (e.g. 200 or 404)
  * \param text HTTP response status text (e.g. "Ok" or "Not Found")
  */
-bool HttpMessageProcessor::onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text)
+bool HttpMessageParser::onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text)
 {
 	return true;
 }
 
 /** hook, invoked for each generic HTTP Message.
  */
-bool HttpMessageProcessor::onMessageBegin()
+bool HttpMessageParser::onMessageBegin()
 {
 	return true;
 }
 
 /** hook, invoked for each sequentially parsed HTTP header.
  */
-bool HttpMessageProcessor::onMessageHeader(const BufferRef& name, const BufferRef& value)
+bool HttpMessageParser::onMessageHeader(const BufferRef& name, const BufferRef& value)
 {
 	return true;
 }
@@ -150,7 +150,7 @@ bool HttpMessageProcessor::onMessageHeader(const BufferRef& name, const BufferRe
  * \retval true continue processing further content (if any)
  * \retval false abort message processing
  */
-bool HttpMessageProcessor::onMessageHeaderEnd()
+bool HttpMessageParser::onMessageHeaderEnd()
 {
 	return true;
 }
@@ -162,7 +162,7 @@ bool HttpMessageProcessor::onMessageHeaderEnd()
  * \retval true continue processing further content (if any)
  * \retval false abort message processing
  */
-bool HttpMessageProcessor::onMessageContent(const BufferRef& chunk)
+bool HttpMessageParser::onMessageContent(const BufferRef& chunk)
 {
 	return true;
 }
@@ -174,75 +174,75 @@ bool HttpMessageProcessor::onMessageContent(const BufferRef& chunk)
  * \retval true continue processing further content (if any)
  * \retval false abort message processing
  */
-bool HttpMessageProcessor::onMessageEnd()
+bool HttpMessageParser::onMessageEnd()
 {
 	return true;
 }
 // }}}
 
-const char *HttpMessageProcessor::state_str() const
+const char *HttpMessageParser::state_str() const
 {
 	switch (state_) {
 		// artificial
-		case HttpMessageProcessor::SYNTAX_ERROR: return "syntax-error";
-		case HttpMessageProcessor::MESSAGE_BEGIN: return "message-begin";
+		case HttpMessageParser::SYNTAX_ERROR: return "syntax-error";
+		case HttpMessageParser::MESSAGE_BEGIN: return "message-begin";
 
 		// request-line
-		case HttpMessageProcessor::REQUEST_LINE_BEGIN: return "request-line-begin";
-		case HttpMessageProcessor::REQUEST_METHOD: return "request-method";
-		case HttpMessageProcessor::REQUEST_ENTITY_BEGIN: return "request-entity-begin";
-		case HttpMessageProcessor::REQUEST_ENTITY: return "request-entity";
-		case HttpMessageProcessor::REQUEST_PROTOCOL_BEGIN: return "request-protocol-begin";
-		case HttpMessageProcessor::REQUEST_PROTOCOL_T1: return "request-protocol-t1";
-		case HttpMessageProcessor::REQUEST_PROTOCOL_T2: return "request-protocol-t2";
-		case HttpMessageProcessor::REQUEST_PROTOCOL_P: return "request-protocol-p";
-		case HttpMessageProcessor::REQUEST_PROTOCOL_SLASH: return "request-protocol-slash";
-		case HttpMessageProcessor::REQUEST_PROTOCOL_VERSION_MAJOR: return "request-protocol-version-major";
-		case HttpMessageProcessor::REQUEST_PROTOCOL_VERSION_MINOR: return "request-protocol-version-minor";
-		case HttpMessageProcessor::REQUEST_LINE_LF: return "request-line-lf";
+		case HttpMessageParser::REQUEST_LINE_BEGIN: return "request-line-begin";
+		case HttpMessageParser::REQUEST_METHOD: return "request-method";
+		case HttpMessageParser::REQUEST_ENTITY_BEGIN: return "request-entity-begin";
+		case HttpMessageParser::REQUEST_ENTITY: return "request-entity";
+		case HttpMessageParser::REQUEST_PROTOCOL_BEGIN: return "request-protocol-begin";
+		case HttpMessageParser::REQUEST_PROTOCOL_T1: return "request-protocol-t1";
+		case HttpMessageParser::REQUEST_PROTOCOL_T2: return "request-protocol-t2";
+		case HttpMessageParser::REQUEST_PROTOCOL_P: return "request-protocol-p";
+		case HttpMessageParser::REQUEST_PROTOCOL_SLASH: return "request-protocol-slash";
+		case HttpMessageParser::REQUEST_PROTOCOL_VERSION_MAJOR: return "request-protocol-version-major";
+		case HttpMessageParser::REQUEST_PROTOCOL_VERSION_MINOR: return "request-protocol-version-minor";
+		case HttpMessageParser::REQUEST_LINE_LF: return "request-line-lf";
 
 		// Status-Line
-		case HttpMessageProcessor::STATUS_LINE_BEGIN: return "status-line-begin";
-		case HttpMessageProcessor::STATUS_PROTOCOL_BEGIN: return "status-protocol-begin";
-		case HttpMessageProcessor::STATUS_PROTOCOL_T1: return "status-protocol-t1";
-		case HttpMessageProcessor::STATUS_PROTOCOL_T2: return "status-protocol-t2";
-		case HttpMessageProcessor::STATUS_PROTOCOL_P: return "status-protocol-t2";
-		case HttpMessageProcessor::STATUS_PROTOCOL_SLASH: return "status-protocol-t2";
-		case HttpMessageProcessor::STATUS_PROTOCOL_VERSION_MAJOR: return "status-protocol-version-major";
-		case HttpMessageProcessor::STATUS_PROTOCOL_VERSION_MINOR: return "status-protocol-version-minor";
-		case HttpMessageProcessor::STATUS_CODE_BEGIN: return "status-code-begin";
-		case HttpMessageProcessor::STATUS_CODE: return "status-code";
-		case HttpMessageProcessor::STATUS_MESSAGE_BEGIN: return "status-message-begin";
-		case HttpMessageProcessor::STATUS_MESSAGE: return "status-message";
-		case HttpMessageProcessor::STATUS_MESSAGE_LF: return "status-message-lf";
+		case HttpMessageParser::STATUS_LINE_BEGIN: return "status-line-begin";
+		case HttpMessageParser::STATUS_PROTOCOL_BEGIN: return "status-protocol-begin";
+		case HttpMessageParser::STATUS_PROTOCOL_T1: return "status-protocol-t1";
+		case HttpMessageParser::STATUS_PROTOCOL_T2: return "status-protocol-t2";
+		case HttpMessageParser::STATUS_PROTOCOL_P: return "status-protocol-t2";
+		case HttpMessageParser::STATUS_PROTOCOL_SLASH: return "status-protocol-t2";
+		case HttpMessageParser::STATUS_PROTOCOL_VERSION_MAJOR: return "status-protocol-version-major";
+		case HttpMessageParser::STATUS_PROTOCOL_VERSION_MINOR: return "status-protocol-version-minor";
+		case HttpMessageParser::STATUS_CODE_BEGIN: return "status-code-begin";
+		case HttpMessageParser::STATUS_CODE: return "status-code";
+		case HttpMessageParser::STATUS_MESSAGE_BEGIN: return "status-message-begin";
+		case HttpMessageParser::STATUS_MESSAGE: return "status-message";
+		case HttpMessageParser::STATUS_MESSAGE_LF: return "status-message-lf";
 
 		// message header
-		case HttpMessageProcessor::HEADER_NAME_BEGIN: return "header-name-begin";
-		case HttpMessageProcessor::HEADER_NAME: return "header-name";
-		case HttpMessageProcessor::HEADER_COLON: return "header-colon";
-		case HttpMessageProcessor::HEADER_VALUE_BEGIN: return "header-value-begin";
-		case HttpMessageProcessor::HEADER_VALUE: return "header-value";
-		case HttpMessageProcessor::HEADER_VALUE_LF: return "header-value-lf";
-		case HttpMessageProcessor::HEADER_VALUE_END: return "header-value-end";
-		case HttpMessageProcessor::HEADER_END_LF: return "header-end-lf";
+		case HttpMessageParser::HEADER_NAME_BEGIN: return "header-name-begin";
+		case HttpMessageParser::HEADER_NAME: return "header-name";
+		case HttpMessageParser::HEADER_COLON: return "header-colon";
+		case HttpMessageParser::HEADER_VALUE_BEGIN: return "header-value-begin";
+		case HttpMessageParser::HEADER_VALUE: return "header-value";
+		case HttpMessageParser::HEADER_VALUE_LF: return "header-value-lf";
+		case HttpMessageParser::HEADER_VALUE_END: return "header-value-end";
+		case HttpMessageParser::HEADER_END_LF: return "header-end-lf";
 
 		// LWS
-		case HttpMessageProcessor::LWS_BEGIN: return "lws-begin";
-		case HttpMessageProcessor::LWS_LF: return "lws-lf";
-		case HttpMessageProcessor::LWS_SP_HT_BEGIN: return "lws-sp-ht-begin";
-		case HttpMessageProcessor::LWS_SP_HT: return "lws-sp-ht";
+		case HttpMessageParser::LWS_BEGIN: return "lws-begin";
+		case HttpMessageParser::LWS_LF: return "lws-lf";
+		case HttpMessageParser::LWS_SP_HT_BEGIN: return "lws-sp-ht-begin";
+		case HttpMessageParser::LWS_SP_HT: return "lws-sp-ht";
 
 		// message content
-		case HttpMessageProcessor::CONTENT_BEGIN: return "content-begin";
-		case HttpMessageProcessor::CONTENT: return "content";
-		case HttpMessageProcessor::CONTENT_ENDLESS: return "content-endless";
-		case HttpMessageProcessor::CONTENT_CHUNK_SIZE_BEGIN: return "content-chunk-size-begin";
-		case HttpMessageProcessor::CONTENT_CHUNK_SIZE: return "content-chunk-size";
-		case HttpMessageProcessor::CONTENT_CHUNK_LF1: return "content-chunk-lf1";
-		case HttpMessageProcessor::CONTENT_CHUNK_BODY: return "content-chunk-body";
-		case HttpMessageProcessor::CONTENT_CHUNK_LF2: return "content-chunk-lf2";
-		case HttpMessageProcessor::CONTENT_CHUNK_CR3: return "content-chunk-cr3";
-		case HttpMessageProcessor::CONTENT_CHUNK_LF3: return "content-chunk_lf3";
+		case HttpMessageParser::CONTENT_BEGIN: return "content-begin";
+		case HttpMessageParser::CONTENT: return "content";
+		case HttpMessageParser::CONTENT_ENDLESS: return "content-endless";
+		case HttpMessageParser::CONTENT_CHUNK_SIZE_BEGIN: return "content-chunk-size-begin";
+		case HttpMessageParser::CONTENT_CHUNK_SIZE: return "content-chunk-size";
+		case HttpMessageParser::CONTENT_CHUNK_LF1: return "content-chunk-lf1";
+		case HttpMessageParser::CONTENT_CHUNK_BODY: return "content-chunk-body";
+		case HttpMessageParser::CONTENT_CHUNK_LF2: return "content-chunk-lf2";
+		case HttpMessageParser::CONTENT_CHUNK_CR3: return "content-chunk-cr3";
+		case HttpMessageParser::CONTENT_CHUNK_LF3: return "content-chunk_lf3";
 	}
 	return "UNKNOWN";
 }
@@ -253,7 +253,7 @@ const char *HttpMessageProcessor::state_str() const
  *
  * \return        number of bytes actually parsed and processed
  */
-std::size_t HttpMessageProcessor::process(const BufferRef& chunk, size_t* out_nparsed)
+std::size_t HttpMessageParser::process(const BufferRef& chunk, size_t* out_nparsed)
 {
 	/*
 	 * CR               = 0x0D
@@ -1049,7 +1049,7 @@ done:
 	return *nparsed - initialOutOffset;
 }
 
-void HttpMessageProcessor::reset()
+void HttpMessageParser::reset()
 {
 	state_ = MESSAGE_BEGIN;
 }

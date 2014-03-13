@@ -53,7 +53,7 @@ namespace x0 {
  * \note This triggers the onConnectionOpen event.
  */
 HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
-	HttpMessageProcessor(HttpMessageProcessor::REQUEST),
+	HttpMessageParser(HttpMessageParser::REQUEST),
 	refCount_(0),
 	status_(Undefined),
 	listener_(nullptr),
@@ -101,7 +101,7 @@ void HttpConnection::clear()
 	TRACE(1, "clear(): refCount: %zu, conn.status: %s, parser.state: %s", refCount_, status_str(), state_str());
 	//TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
 
-	HttpMessageProcessor::reset();
+	HttpMessageParser::reset();
 
 	if (request_) {
 		request_->clear();
@@ -476,7 +476,7 @@ bool HttpConnection::readSome()
 		setStatus(ReadingRequest);
 	}
 
-	ssize_t rv = socket_->read(input_);
+	ssize_t rv = socket_->read(input_, input_.capacity());
 
 	if (rv < 0) { // error
 		switch (errno) {
@@ -721,7 +721,7 @@ bool HttpConnection::process()
 		TRACE(1, "process: (size: %lu, isHandlingRequest:%d, state:%s status:%s", chunk.size(), isHandlingRequest(), state_str(), status_str());
 		//TRACE(1, "%s", input_.ref(input_.size() - rv).str().c_str());
 
-		size_t rv = HttpMessageProcessor::process(chunk, &inputOffset_);
+		size_t rv = HttpMessageParser::process(chunk, &inputOffset_);
 		TRACE(1, "process: done process()ing; fd=%d, request=%p state:%s status:%s, rv:%d", socket_->handle(), request_, state_str(), status_str(), rv);
 
 		if (isAborted()) {
@@ -737,6 +737,12 @@ bool HttpConnection::process()
 			TRACE(1, "syntax error detected: leaving process()");
 			return false;
 		}
+
+        if (inputOffset_ >= worker().server().maxRequestHeaderBufferSize()) {
+            printf("request too large -> 413 (inputOffset:%zu, input.size:%zu)\n", inputOffset_, input_.size());
+            abort(HttpStatus::RequestHeaderFieldsTooLarge);
+            return false;
+        }
 
 		if (rv < chunk.size()) {
 			request_->log(Severity::debug1, "parser aborted early.");

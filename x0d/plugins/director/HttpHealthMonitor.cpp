@@ -161,9 +161,9 @@ void HttpHealthMonitor::readSome()
 		size_t np = process(response_.ref(lower_bound, rv));
 
 		(void) np;
-		TRACE(1, "readSome(): processed %ld of %ld bytes (%s)", np, rv, HttpMessageProcessor::state_str());
+		TRACE(1, "readSome(): processed %ld of %ld bytes (%s)", np, rv, HttpMessageParser::state_str());
 
-		if (HttpMessageProcessor::state() == HttpMessageProcessor::SYNTAX_ERROR) {
+		if (HttpMessageParser::state() == HttpMessageParser::SYNTAX_ERROR) {
 			TRACE(1, "syntax error");
 			logFailure();
 		} else if (processingDone_) {

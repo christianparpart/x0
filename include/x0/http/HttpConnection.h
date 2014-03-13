@@ -9,7 +9,7 @@
 #ifndef x0_connection_h
 #define x0_connection_h (1)
 
-#include <x0/http/HttpMessageProcessor.h>
+#include <x0/http/HttpMessageParser.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/io/CompositeSource.h>
 #include <x0/io/SocketSink.h>
@@ -43,7 +43,7 @@ class ServerSocket;
  * @see HttpRequest, HttpServer
  */
 class X0_API HttpConnection :
-	public HttpMessageProcessor
+	public HttpMessageParser
 {
 	CUSTOMDATA_API_INLINE
 
@@ -126,7 +126,7 @@ private:
 
 	void reinitialize();
 
-	// overrides from HttpMessageProcessor:
+	// overrides from HttpMessageParser:
 	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
 	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
 	virtual bool onMessageHeaderEnd();

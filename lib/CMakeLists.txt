@@ -100,7 +100,7 @@ set(x0_http_SRC
   http/HttpConnection.cpp
   http/HttpFile.cpp
   http/HttpFileMgr.cpp
-  http/HttpMessageProcessor.cpp
+  http/HttpMessageParser.cpp
   http/HttpRequest.cpp
   http/HttpServer.cpp
   http/HttpStatus.cpp
