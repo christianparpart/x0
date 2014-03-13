@@ -28,23 +28,23 @@ std::unique_ptr<HttpVary> HttpVary::create(const x0::HttpRequest* r)
 	return create(BufferRef(r->responseHeaders["HttpVary"]), r->requestHeaders);
 }
 
-VaryMatch HttpVary::match(const HttpVary& other) const
+HttpVary::Match HttpVary::match(const HttpVary& other) const
 {
 	if (size() != other.size())
-		return VaryMatch::None;
+		return Match::None;
 
 	for (size_t i = 0, e = size(); i != e; ++i) {
 		if (names_[i] != other.names_[i])
-			return VaryMatch::None;
+			return Match::None;
 
 		if (names_[i] != other.names_[i])
-			return VaryMatch::ValuesDiffer;
+			return Match::ValuesDiffer;
 	}
 
-	return VaryMatch::Equals;
+	return Match::Equals;
 }
 
-VaryMatch HttpVary::match(const x0::HttpRequest* r) const
+HttpVary::Match HttpVary::match(const x0::HttpRequest* r) const
 {
 	for (size_t i = 0, e = size(); i != e; ++i) {
 		const auto& name = names_[i];
@@ -52,11 +52,11 @@ VaryMatch HttpVary::match(const x0::HttpRequest* r) const
 		const auto otherValue = r->requestHeader(name);
 
 		if (otherValue != value) {
-			return VaryMatch::ValuesDiffer;
+			return Match::ValuesDiffer;
 		}
 	}
 
-	return VaryMatch::Equals;
+	return Match::Equals;
 }
 
 } // namespace x0

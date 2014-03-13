@@ -11,15 +11,15 @@ namespace x0 {
 
 class HttpRequest;
 
-enum class VaryMatch {
-	None,
-	ValuesDiffer,
-	Equals,
-};
-
 class X0_API HttpVary
 {
 public:
+    enum class Match {
+        None,
+        ValuesDiffer,
+        Equals,
+    };
+
 	explicit HttpVary(size_t count);
 	~HttpVary();
 
@@ -31,8 +31,8 @@ public:
 	const std::vector<BufferRef>& names() const;
 	const std::vector<BufferRef>& values() const;
 
-	VaryMatch match(const x0::HttpRequest* r) const;
-	VaryMatch match(const HttpVary& other) const;
+	Match match(const x0::HttpRequest* r) const;
+	Match match(const HttpVary& other) const;
 
 	/**
 	 * Creates a HttpVary object, based on the Response request header
