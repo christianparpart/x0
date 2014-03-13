@@ -133,10 +133,10 @@ void HttpConnection::reinitialize()
  * \see close(), resume()
  * \see HttpRequest::finish()
  */
-void HttpConnection::ref()
+void HttpConnection::ref(const char* msg)
 {
 	++refCount_;
-	TRACE(1, "ref() %u", refCount_);
+	TRACE(1, "ref() %u %s", refCount_, msg);
 }
 
 /** Decrements the internal reference count, marking the end of the section using this connection.
@@ -147,11 +147,11 @@ void HttpConnection::ref()
  *
  * \see ref()
  */
-void HttpConnection::unref()
+void HttpConnection::unref(const char* msg)
 {
 	--refCount_;
 
-	TRACE(1, "unref() %u (closed:%d, outputPending:%d)", refCount_, isClosed(), isOutputPending());
+	TRACE(1, "unref() %u (closed:%d, outputPending:%d) %s", refCount_, isClosed(), isOutputPending(), msg);
 
 	if (refCount_ == 0) {
 		clear();
@@ -163,7 +163,7 @@ void HttpConnection::io(Socket *, int revents)
 {
 	TRACE(1, "io(revents=%04x) isHandlingRequest:%d", revents, isHandlingRequest());
 
-	ref();
+	ref("io()-guard");
 
 	if (revents & ev::ERROR) {
 		log(Severity::error, "Potential bug in connection I/O watching. Closing.");
@@ -215,7 +215,7 @@ void HttpConnection::io(Socket *, int revents)
 	}
 
 done:
-	unref();
+	unref("io()-guard");
 }
 
 void HttpConnection::timeout(Socket *)
@@ -278,7 +278,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 
 	TRACE(1, "starting (fd=%d)", socket_->handle());
 
-	ref(); // <-- this reference is being decremented in close()
+	ref("conn-create"); // <-- this reference is being decremented in close()
 
 	worker_->server_.onConnectionOpen(this);
 
@@ -292,7 +292,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 	if (!request_)
 		request_ = new HttpRequest(*this);
 
-	ref();
+	ref("initial-read");
 	if (socket_->state() == Socket::Handshake) {
 		TRACE(1, "start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
@@ -310,7 +310,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 		watchInput(worker_->server_.maxReadIdle());
 #endif
 	}
-	unref();
+	unref("initial-read");
 }
 
 void HttpConnection::handshakeComplete(Socket *)
@@ -469,7 +469,7 @@ bool HttpConnection::readSome()
 {
 	TRACE(1, "readSome()");
 
-	ref();
+	ref("readSome");
 
 	if (status() == KeepAliveRead) {
 		TRACE(1, "readSome: status was keep-alive-read. resetting to reading-request");
@@ -500,12 +500,12 @@ bool HttpConnection::readSome()
 		process();
 	}
 
-	unref();
+	unref("readSome");
 	return true;
 
 err:
 	abort();
-	unref();
+	unref("readSome, err'd");
 	return false;
 }
 
@@ -548,7 +548,7 @@ void HttpConnection::flush()
 bool HttpConnection::writeSome()
 {
 	TRACE(1, "writeSome()");
-	ref();
+	ref("writeSome");
 
 	ssize_t rv = output_.sendto(sink_);
 
@@ -675,7 +675,7 @@ void HttpConnection::close()
 	}
 	status_ = Undefined;
 
-	unref(); // <-- this refers to ref() in start()
+	unref("close()"); // <-- this refers to ref() in start()
 }
 
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
