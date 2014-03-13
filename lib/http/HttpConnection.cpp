@@ -172,17 +172,22 @@ void HttpConnection::io(Socket *, int revents)
 	}
 
 	// socket is ready for read?
-	if ((revents & Socket::Read) && !readSome())
+	if ((revents & Socket::Read) && !readSome()) {
+        log(Severity::error, "readSome() failed");
 		goto done;
+    }
 
 	// socket is ready for write?
-	if ((revents & Socket::Write) && !writeSome())
+	if ((revents & Socket::Write) && !writeSome()) {
+        log(Severity::error, "writeSome() failed");
 		goto done;
+    }
 
 	switch (status()) {
 	case ReadingRequest:
+        // we haven't fully received the request headers yet
 		TRACE(1, "io(): status=%s. Watch for read.", status_str());
-		watchInput(worker_->server_.maxReadIdle());
+		wantRead(worker_->server_.maxReadIdle());
 		break;
 	case KeepAliveRead:
 		if (isInputPending()) {
@@ -197,13 +202,13 @@ void HttpConnection::io(Socket *, int revents)
 				// we're still in keep-alive state but no (partial) request in buffer pending
 				// so watch for socket input event.
 				TRACE(1, "io(): status=%s. Watch for read (keep-alive).", status_str());
-				watchInput(worker_->server_.maxKeepAlive());
+				wantRead(worker_->server_.maxKeepAlive());
 			}
 		} else {
 			// we are in keep-alive state and have no (partial) request in buffer pending
 			// so watch for socket input event.
 			TRACE(1, "io(): status=%s. Watch for read (keep-alive).", status_str());
-			watchInput(worker_->server_.maxKeepAlive());
+			wantRead(worker_->server_.maxKeepAlive());
 		}
 		break;
 	case ProcessingRequest:
@@ -248,14 +253,17 @@ bool HttpConnection::isSecure() const
 #endif
 }
 
-/** start first async operation for this HttpConnection.
+/**
+ * Start first non-blocking operation for this HttpConnection.
  *
  * This is done by simply registering the underlying socket to the the I/O service
  * to watch for available input.
  *
- * \note This method must be invoked right after the object construction.
+ * @note This method must be invoked right after the object construction.
  *
- * \see stop()
+ * @see close()
+ * @see abort()
+ * @see abort(HttpStatus)
  */
 void HttpConnection::start(ServerSocket* listener, Socket* client)
 {
@@ -305,9 +313,9 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 
 		TRACE(1, "start: processing input done");
 #else
-		TRACE(1, "start: watchInput.");
+		TRACE(1, "start: wantRead.");
 		// client connected, but we do not yet know if we have data pending
-		watchInput(worker_->server_.maxReadIdle());
+		wantRead(worker_->server_.maxReadIdle());
 #endif
 	}
 	unref("initial-read");
@@ -318,7 +326,7 @@ void HttpConnection::handshakeComplete(Socket *)
 	TRACE(1, "handshakeComplete() socketState=%s", socket_->state_str());
 
 	if (socket_->state() == Socket::Operational)
-		watchInput(worker_->server_.maxReadIdle());
+		wantRead(worker_->server_.maxReadIdle());
 	else
 	{
 		TRACE(1, "handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
@@ -440,19 +448,19 @@ bool HttpConnection::onMessageEnd()
 	return true;
 }
 
-void HttpConnection::watchInput(const TimeSpan& timeout)
+void HttpConnection::wantRead(const TimeSpan& timeout)
 {
-	TRACE(3, "watchInput");
+	TRACE(3, "wantRead");
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
 	socket_->setMode(Socket::Read);
 }
 
-void HttpConnection::watchOutput()
+void HttpConnection::wantWrite()
 {
-	TRACE(3, "watchOutput");
-	TimeSpan timeout = worker_->server_.maxWriteIdle();
+	TRACE(3, "wantWrite");
+	TimeSpan timeout = worker().server().maxWriteIdle();
 
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
@@ -485,7 +493,7 @@ bool HttpConnection::readSome()
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
 		case EWOULDBLOCK:
 #endif
-			watchInput(worker_->server_.maxReadIdle());
+			wantRead(worker_->server_.maxReadIdle());
 			break;
 		default:
 			log(Severity::error, "Failed to read from client. %s", strerror(errno));
@@ -537,7 +545,7 @@ void HttpConnection::flush()
 #if defined(ENABLE_OPPORTUNISTIC_WRITE)
 	writeSome();
 #else
-	watchOutput();
+	wantWrite();
 #endif
 }
 
@@ -562,7 +570,7 @@ bool HttpConnection::writeSome()
 
 	if (rv == 0) {
 		// output fully written
-		watchInput();
+		wantRead();
 
 		if (request_->isFinished()) {
 			// finish() got invoked before reply was fully sent out, thus,
@@ -583,7 +591,7 @@ bool HttpConnection::writeSome()
 	case EWOULDBLOCK:
 #endif
 		// complete write would block, so watch write-ready-event and be called back
-		watchOutput();
+		wantWrite();
 		break;
 	default:
 		log(Severity::error, "Failed to write to client. %s", strerror(errno));

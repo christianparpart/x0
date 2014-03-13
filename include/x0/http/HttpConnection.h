@@ -140,8 +140,8 @@ private:
 
 	void handshakeComplete(Socket *);
 
-	void watchInput(const TimeSpan& timeout = TimeSpan::Zero);
-	void watchOutput();
+	void wantRead(const TimeSpan& timeout = TimeSpan::Zero);
+	void wantWrite();
 
 	bool readSome();
 	bool writeSome();
