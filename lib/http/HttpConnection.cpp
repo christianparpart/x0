@@ -194,7 +194,7 @@ done:
 
 void HttpConnection::timeout(Socket *)
 {
-	TRACE(1, "timeout(): state: %s",  state_str());
+	TRACE(1, "timeout(): cstate:%s, pstate:%s", state_str(), parserStateStr());
 
 	switch (state()) {
 	case Undefined:
@@ -600,7 +600,7 @@ err:
  */
 void HttpConnection::abort()
 {
-	TRACE(1, "abort()");
+	TRACE(1, "abort() %s", isAborted() ? "is already aborted!" : "");
 
 	if (isAborted())
 		return;
@@ -639,6 +639,10 @@ void HttpConnection::abort()
  */
 void HttpConnection::abort(HttpStatus status)
 {
+    TRACE(1, "abort(%d): cstate:%s, pstate:%s", (int)status, state_str(), parserStateStr());
+
+    assert(state() == ReadingRequest);
+
 	++requestCount_;
 
 	flags_ |= IsHandlingRequest;
