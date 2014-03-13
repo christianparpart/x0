@@ -172,15 +172,19 @@ void HttpConnection::io(Socket *, int revents)
 	}
 
 	// socket is ready for read?
-	if ((revents & Socket::Read) && !readSome()) {
-        log(Severity::error, "readSome() failed");
-		goto done;
+	if (revents & Socket::Read) {
+        if (!readSome()) {
+            log(Severity::error, "readSome() failed");
+            goto done;
+        }
     }
 
 	// socket is ready for write?
-	if ((revents & Socket::Write) && !writeSome()) {
-        log(Severity::error, "writeSome() failed");
-		goto done;
+	if (revents & Socket::Write) {
+        if (!writeSome()) {
+            log(Severity::error, "writeSome() failed");
+            goto done;
+        }
     }
 
 	switch (status()) {
@@ -477,6 +481,11 @@ bool HttpConnection::readSome()
 {
 	TRACE(1, "readSome()");
 
+    if (input_.size() == input_.capacity()) {
+        TRACE(1, "readSome() reached request buffer limit, not reading from client.");
+        return true;
+    }
+
 	ref("readSome");
 
 	if (status() == KeepAliveRead) {
@@ -539,6 +548,8 @@ void HttpConnection::write(Source* chunk)
 
 void HttpConnection::flush()
 {
+    TRACE(1, "flush() (isOutputPending:%d)", isOutputPending());
+
 	if (!isOutputPending())
 		return;
 
