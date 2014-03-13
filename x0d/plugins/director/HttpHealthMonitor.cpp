@@ -158,7 +158,7 @@ void HttpHealthMonitor::readSome()
 
 	if (rv > 0) {
 		TRACE(1, "readSome: read %zi bytes", rv);
-		size_t np = process(response_.ref(lower_bound, rv));
+		size_t np = parseFragment(response_.ref(lower_bound, rv));
 
 		(void) np;
 		TRACE(1, "readSome(): processed %ld of %ld bytes (%s)", np, rv, HttpMessageParser::state_str());

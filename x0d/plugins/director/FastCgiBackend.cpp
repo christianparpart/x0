@@ -644,7 +644,7 @@ void FastCgiTransport::onStdOut(const x0::BufferRef& chunk)
 {
 	TRACE(1, "Received %ld bytes from upstream server (state=%s).", chunk.size(), state_str());
 //	TRACE(2, "data: %s", chunk.str().c_str());
-	process(chunk);
+	parseFragment(chunk);
 }
 
 inline std::string chomp(const std::string& value) // {{{

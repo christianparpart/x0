@@ -721,7 +721,7 @@ bool HttpConnection::process()
 		TRACE(1, "process: (size: %lu, isHandlingRequest:%d, state:%s status:%s", chunk.size(), isHandlingRequest(), state_str(), status_str());
 		//TRACE(1, "%s", input_.ref(input_.size() - rv).str().c_str());
 
-		size_t rv = HttpMessageParser::process(chunk, &inputOffset_);
+		size_t rv = HttpMessageParser::parseFragment(chunk, &inputOffset_);
 		TRACE(1, "process: done process()ing; fd=%d, request=%p state:%s status:%s, rv:%d", socket_->handle(), request_, state_str(), status_str(), rv);
 
 		if (isAborted()) {

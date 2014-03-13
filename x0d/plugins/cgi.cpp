@@ -488,7 +488,7 @@ void CgiScript::onStdoutAvailable(ev::io& w, int revents)
 		outbuf_.resize(lower_bound + rv);
 		//printf("%s\n", outbuf_.ref(outbuf_.size() - rv, rv).str().c_str());
 
-		std::size_t np = process(outbuf_.ref(lower_bound, rv));
+		std::size_t np = parseFragment(outbuf_.ref(lower_bound, rv));
 		(void) np;
 
 		TRACE("onStdoutAvailable@process: %ld", np);

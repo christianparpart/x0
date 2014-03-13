@@ -253,7 +253,7 @@ const char *HttpMessageParser::state_str() const
  *
  * \return        number of bytes actually parsed and processed
  */
-std::size_t HttpMessageParser::process(const BufferRef& chunk, size_t* out_nparsed)
+std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out_nparsed)
 {
 	/*
 	 * CR               = 0x0D

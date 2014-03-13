@@ -75,7 +75,7 @@ public:
 	{
 		HttpRequestRec rr;
 
-		rr.process(request);
+		rr.parseFragment(request);
 
 		return rr;
 	}
@@ -396,7 +396,7 @@ bool FastCgiHealthMonitor::processRecord(const FastCgi::Record *record)
 void FastCgiHealthMonitor::onStdOut(const x0::BufferRef& chunk)
 {
 	TRACE("onStdOut: chunk.size=%ld", chunk.size());
-	process(chunk);
+	parseFragment(chunk);
 }
 
 void FastCgiHealthMonitor::onStdErr(const x0::BufferRef& chunk)

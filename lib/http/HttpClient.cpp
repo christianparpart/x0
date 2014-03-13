@@ -148,7 +148,7 @@ void HttpClient::readSome()
 	ssize_t rv = socket_->read(readBuffer_);
 
 	if (rv > 0) {
-		process(readBuffer_.ref(lower_bound, rv));
+		parseFragment(readBuffer_.ref(lower_bound, rv));
 
 		if (state() == HttpMessageParser::SYNTAX_ERROR) {
 			responseHandler_(HttpClientError::ProtocolError, statusCode_, headers_, content_.ref());

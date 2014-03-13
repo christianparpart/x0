@@ -537,9 +537,9 @@ void HttpBackend::Connection::readSome()
 
 	if (rv > 0) {
 		TRACE("read response: %ld bytes", rv);
-		std::size_t np = process(readBuffer_.ref(lower_bound, rv));
+		std::size_t np = parseFragment(readBuffer_.ref(lower_bound, rv));
 		(void) np;
-		TRACE("readSome(): process(): %ld / %ld", np, rv);
+		TRACE("readSome(): parseFragment(): %ld / %ld", np, rv);
 
 		if (processingDone_) {
 			close();
