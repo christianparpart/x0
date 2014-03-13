@@ -48,7 +48,7 @@ class X0_API HttpConnection :
 	CUSTOMDATA_API_INLINE
 
 public:
-	enum Status {
+	enum State {
 		Undefined = 0,			//!< Object got just constructed.
 		ReadingRequest,			//!< Parses HTTP request.
 		ProcessingRequest,		//!< request handler: has taken over but not sent out anythng
@@ -73,9 +73,12 @@ public:
 
 	unsigned requestCount() const { return requestCount_; }
 
-	Status status() const { return status_; }
-	void setStatus(Status value);
-	const char* status_str() const;
+	State state() const { return state_; }
+	void setState(State value);
+	const char* state_str() const;
+
+    HttpMessageParser::State parserState() const { return HttpMessageParser::state(); }
+    const char* parserStateStr() const { return HttpMessageParser::state_str(); }
 
 	void close();
 
@@ -105,10 +108,10 @@ public:
 	const HttpRequest* request() const { return request_; }
 	HttpRequest* request() { return request_; }
 
-	std::size_t inputSize() const { return input_.size(); }
-	std::size_t inputOffset() const { return inputOffset_; }
+	std::size_t requestBufferSize() const { return requestBuffer_.size(); }
+	std::size_t requestParserOffset() const { return requestParserOffset_; }
 
-	bool isInputPending() const { return inputOffset_ < input_.size(); }
+	bool isInputPending() const { return requestParserOffset_ < requestBuffer_.size(); }
 
 	unsigned refCount() const;
 
@@ -140,7 +143,7 @@ private:
 
 	void handshakeComplete(Socket *);
 
-	void wantRead(const TimeSpan& timeout = TimeSpan::Zero);
+	void wantRead(const TimeSpan& timeout);
 	void wantWrite();
 
 	bool readSome();
@@ -157,8 +160,8 @@ private:
 
 	void log(LogMessage&& msg);
 
-	Buffer& inputBuffer() { return input_; }
-	const Buffer& inputBuffer() const { return input_; }
+	Buffer& inputBuffer() { return requestBuffer_; }
+	const Buffer& inputBuffer() const { return requestBuffer_; }
 
 	void setShouldKeepAlive(bool enabled);
 	bool shouldKeepAlive() const { return flags_ & IsKeepAliveEnabled; }
@@ -166,7 +169,7 @@ private:
 private:
 	unsigned refCount_;
 
-	Status status_;
+	State state_;
 
 	ServerSocket* listener_;
 	HttpWorker* worker_;
@@ -183,9 +186,9 @@ private:
 	static const unsigned IsClosed           = 0x0020; //!< closed() invoked, but close-action delayed
 
 	// HTTP HttpRequest
-	Buffer input_;						//!< buffer for incoming data.
-	std::size_t inputOffset_;			//!< number of bytes in input_ successfully processed already.
-	std::size_t inputRequestOffset_;	//!< offset to the first byte of the currently processed request
+	Buffer requestBuffer_;              //!< buffer for incoming data.
+	std::size_t requestParserOffset_;   //!< number of bytes in request buffer successfully processed already.
+	std::size_t requestHeaderEndOffset_;//!< offset to the first byte of the currently processed request
 	HttpRequest* request_;				//!< currently parsed http HttpRequest, may be NULL
 
 	// output
@@ -218,7 +221,7 @@ inline unsigned HttpConnection::refCount() const
 	return refCount_;
 }
 
-inline const char* HttpConnection::status_str() const
+inline const char* HttpConnection::state_str() const
 {
 	static const char* str[] = {
 		"undefined",
@@ -228,7 +231,7 @@ inline const char* HttpConnection::status_str() const
 		"sending-reply-done",
 		"keep-alive-read"
 	};
-	return str[static_cast<size_t>(status_)];
+	return str[static_cast<size_t>(state_)];
 }
 
 inline HttpWorker& HttpConnection::worker() const

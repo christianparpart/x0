@@ -44,7 +44,7 @@ namespace x0 {
  */
 
 /* TODO
- * - should request bodies land in input_? someone with a good line could flood us w/ streaming request bodies.
+ * - should request bodies land in requestBuffer_? someone with a good line could flood us w/ streaming request bodies.
  */
 
 /** initializes a new connection object, created by given listener.
@@ -55,15 +55,15 @@ namespace x0 {
 HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	HttpMessageParser(HttpMessageParser::REQUEST),
 	refCount_(0),
-	status_(Undefined),
+	state_(Undefined),
 	listener_(nullptr),
 	worker_(w),
 	id_(id),
 	requestCount_(0),
 	flags_(0),
-	input_(worker().server().maxRequestHeaderBufferSize()
-         + worker().server().maxRequestBodyBufferSize()),
-	inputOffset_(0),
+	requestBuffer_(worker().server().maxRequestHeaderBufferSize()
+                 + worker().server().maxRequestBodyBufferSize()),
+	requestParserOffset_(0),
 	request_(nullptr),
 	output_(),
 	socket_(nullptr),
@@ -98,7 +98,7 @@ HttpConnection::~HttpConnection()
  */
 void HttpConnection::clear()
 {
-	TRACE(1, "clear(): refCount: %zu, conn.status: %s, parser.state: %s", refCount_, status_str(), state_str());
+	TRACE(1, "clear(): refCount: %zu, conn.state: %s, pstate: %s", refCount_, state_str(), parserStateStr());
 	//TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
 
 	HttpMessageParser::reset();
@@ -114,8 +114,8 @@ void HttpConnection::clear()
 	socket_ = nullptr;
 	requestCount_ = 0;
 
-	inputOffset_ = 0;
-	input_.clear();
+	requestParserOffset_ = 0;
+	requestBuffer_.clear();
 }
 
 void HttpConnection::reinitialize()
@@ -161,9 +161,10 @@ void HttpConnection::unref(const char* msg)
 
 void HttpConnection::io(Socket *, int revents)
 {
-	TRACE(1, "io(revents=%04x) isHandlingRequest:%d", revents, isHandlingRequest());
+	TRACE(1, "io(revents=%04x) %s, %s, isHandlingRequest:%d",
+        revents, state_str(), parserStateStr(), isHandlingRequest());
 
-	ref("io()-guard");
+	ref("io");
 
 	if (revents & ev::ERROR) {
 		log(Severity::error, "Potential bug in connection I/O watching. Closing.");
@@ -187,51 +188,15 @@ void HttpConnection::io(Socket *, int revents)
         }
     }
 
-	switch (status()) {
-	case ReadingRequest:
-        // we haven't fully received the request headers yet
-		TRACE(1, "io(): status=%s. Watch for read.", status_str());
-		wantRead(worker_->server_.maxReadIdle());
-		break;
-	case KeepAliveRead:
-		if (isInputPending()) {
-			do {
-				// we're in keep-alive state but have (partial) request in buffer pending
-				// so do process it right away
-				TRACE(1, "io(): status=%s. Pipelined input pending.", status_str());
-				process();
-			} while (isInputPending() && status() == KeepAliveRead);
-
-			if (status() == KeepAliveRead) {
-				// we're still in keep-alive state but no (partial) request in buffer pending
-				// so watch for socket input event.
-				TRACE(1, "io(): status=%s. Watch for read (keep-alive).", status_str());
-				wantRead(worker_->server_.maxKeepAlive());
-			}
-		} else {
-			// we are in keep-alive state and have no (partial) request in buffer pending
-			// so watch for socket input event.
-			TRACE(1, "io(): status=%s. Watch for read (keep-alive).", status_str());
-			wantRead(worker_->server_.maxKeepAlive());
-		}
-		break;
-	case ProcessingRequest:
-	case SendingReplyDone:
-	case SendingReply:
-	case Undefined: // should never be reached
-		TRACE(1, "io(): status=%s. Do not touch I/O watcher.", status_str());
-		break;
-	}
-
 done:
-	unref("io()-guard");
+	unref("io");
 }
 
 void HttpConnection::timeout(Socket *)
 {
-	TRACE(1, "timedout: status=%s",  status_str());
+	TRACE(1, "timeout(): state: %s",  state_str());
 
-	switch (status()) {
+	switch (state()) {
 	case Undefined:
 	case ReadingRequest:
 	case ProcessingRequest:
@@ -271,7 +236,7 @@ bool HttpConnection::isSecure() const
  */
 void HttpConnection::start(ServerSocket* listener, Socket* client)
 {
-	setStatus(ReadingRequest);
+	setState(ReadingRequest);
 
 	listener_ = listener;
 
@@ -312,8 +277,9 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 #if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
 		TRACE(1, "start: processing input");
 
-		// it is ensured, that we have data pending, so directly start reading
-		io(nullptr, ev::READ);
+        // TCP_DEFER_ACCEPT attempts to let us accept() only when data has arrived.
+        // Thus we can go straight and attempt to read it.
+        readSome();
 
 		TRACE(1, "start: processing input done");
 #else
@@ -413,14 +379,15 @@ bool HttpConnection::onMessageHeader(const BufferRef& name, const BufferRef& val
 
 bool HttpConnection::onMessageHeaderEnd()
 {
-	TRACE(1, "onMessageHeaderEnd()");
+	TRACE(1, "onMessageHeaderEnd() requestParserOffset:%zu", requestParserOffset_);
 
 	if (request_->isFinished())
 		return true;
 
+    requestHeaderEndOffset_ = requestParserOffset_;
 	++requestCount_;
-	flags_ |= IsHandlingRequest; // TODO: remove me, make me obsolete
-	setStatus(ProcessingRequest);
+	flags_ |= IsHandlingRequest; // TODO: remove me, make me obsolete (replaced by state())
+	setState(ProcessingRequest);
 
 	worker_->handleRequest(request_);
 
@@ -429,7 +396,7 @@ bool HttpConnection::onMessageHeaderEnd()
 
 bool HttpConnection::onMessageContent(const BufferRef& chunk)
 {
-	TRACE(1, "onMessageContent(#%lu)", chunk.size());
+	TRACE(1, "onMessageContent(#%lu): cstate:%s pstate:%s", chunk.size(), state_str(), parserStateStr());
 
 	request_->onRequestContent(chunk);
 
@@ -438,7 +405,7 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 
 bool HttpConnection::onMessageEnd()
 {
-	TRACE(1, "onMessageEnd() %s (isHandlingRequest:%d)", status_str(), isHandlingRequest());
+	TRACE(1, "onMessageEnd() %s (isHandlingRequest:%d)", state_str(), isHandlingRequest());
 
 	// marks the request-content EOS, so that the application knows when the request body
 	// has been fully passed to it.
@@ -469,7 +436,7 @@ void HttpConnection::wantWrite()
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
-	socket_->setMode(Socket::ReadWrite);
+	socket_->setMode(Socket::Write);
 }
 
 /**
@@ -479,21 +446,27 @@ void HttpConnection::wantWrite()
  */
 bool HttpConnection::readSome()
 {
-	TRACE(1, "readSome()");
+    TRACE(1, "readSome() state:%s", state_str());
 
-    if (input_.size() == input_.capacity()) {
-        TRACE(1, "readSome() reached request buffer limit, not reading from client.");
+    if (requestBuffer_.size() == requestBuffer_.capacity()) {
+        TRACE(1, "readSome(): reached request buffer limit, not reading from client.");
+        return true;
+    }
+
+	if (state() == KeepAliveRead) {
+		TRACE(1, "readSome: state was keep-alive-read. resetting to reading-request");
+		setState(ReadingRequest);
+	}
+
+    if (requestParserOffset_ < requestBuffer_.size()) {
+        TRACE(1, "readSome(): we have bytes pending, so do not read now but process them right away.");
+        process();
         return true;
     }
 
 	ref("readSome");
 
-	if (status() == KeepAliveRead) {
-		TRACE(1, "readSome: status was keep-alive-read. resetting to reading-request");
-		setStatus(ReadingRequest);
-	}
-
-	ssize_t rv = socket_->read(input_, input_.capacity());
+	ssize_t rv = socket_->read(requestBuffer_, requestBuffer_.capacity());
 
 	if (rv < 0) { // error
 		switch (errno) {
@@ -510,10 +483,10 @@ bool HttpConnection::readSome()
 		}
 	} else if (rv == 0) {
 		// EOF
-		TRACE(1, "readSome: (EOF), status:%s", status_str());
+		TRACE(1, "readSome: (EOF), state:%s", state_str());
 		goto err;
 	} else {
-		TRACE(1, "readSome: read %lu bytes, status:%s", rv, status_str());
+		TRACE(1, "readSome: read %lu bytes, state:%s", rv, state_str());
 		process();
 	}
 
@@ -522,7 +495,7 @@ bool HttpConnection::readSome()
 
 err:
 	abort();
-	unref("readSome, err'd");
+	unref("readSome, errored.");
 	return false;
 }
 
@@ -566,7 +539,7 @@ void HttpConnection::flush()
  */
 bool HttpConnection::writeSome()
 {
-	TRACE(1, "writeSome()");
+    TRACE(1, "writeSome() state: %s", state_str());
 	ref("writeSome");
 
 	ssize_t rv = output_.sendto(sink_);
@@ -580,14 +553,15 @@ bool HttpConnection::writeSome()
 	}
 
 	if (rv == 0) {
-		// output fully written
-		wantRead();
-
+        // output fully written
 		if (request_->isFinished()) {
 			// finish() got invoked before reply was fully sent out, thus,
 			// finalize() was delayed.
 			request_->finalize();
-		}
+		} else {
+            // watch for EOF at least
+            wantRead(TimeSpan::Zero);
+        }
 
 		TRACE(1, "writeSome: output fully written. closed:%d, outputPending:%lu, refCount:%d", isClosed(), output_.size(), refCount_);
 		goto done;
@@ -610,12 +584,12 @@ bool HttpConnection::writeSome()
 	}
 
 done:
-	unref();
+	unref("writeSome");
 	return true;
 
 err:
 	abort();
-	unref();
+	unref("writeSome, err'd");
 	return false;
 }
 
@@ -668,7 +642,7 @@ void HttpConnection::abort(HttpStatus status)
 	++requestCount_;
 
 	flags_ |= IsHandlingRequest;
-	setStatus(ProcessingRequest);
+	setState(ProcessingRequest);
 	setShouldKeepAlive(false);
 
 	request_->status = status;
@@ -688,11 +662,11 @@ void HttpConnection::close()
 
 	flags_ |= IsClosed;
 
-	if (status_ == SendingReplyDone) {
+	if (state() == SendingReplyDone) {
 		// usercode has issued a request->finish() but it didn't come to finalize it yet.
 		request_->finalize();
 	}
-	status_ = Undefined;
+    setState(Undefined);
 
 	unref("close()"); // <-- this refers to ref() in start()
 }
@@ -707,48 +681,60 @@ void HttpConnection::close()
 void HttpConnection::resume()
 {
 	TRACE(1, "resume() shouldKeepAlive:%d)", shouldKeepAlive());
-	TRACE(1, "-- (status:%s, inputOffset:%lu, inputSize:%lu)", status_str(), inputOffset_, input_.size());
+	TRACE(1, "-- (state:%s, requestParserOffset:%lu, requestBufferSize:%lu)", state_str(), requestParserOffset_, requestBuffer_.size());
 
-	setStatus(KeepAliveRead);
+	setState(KeepAliveRead);
 	request_->clear();
 
-	if (socket()->tcpCork())
-		socket()->setTcpCork(false);
+    // move potential pipelined-and-already-read requests to the front.
+    requestBuffer_ = requestBuffer_.ref(requestParserOffset_, requestBuffer_.size() - requestParserOffset_);
+    // and reset parse offset
+	requestParserOffset_ = 0;
+
+    TRACE(1, "-- moved %zu bytes pipelined request fragment data to the front", requestBuffer_.size());
+
+    if (socket()->tcpCork())
+        socket()->setTcpCork(false);
+
+    if (requestBuffer_.empty())
+        wantRead(worker().server().maxKeepAlive());
+    else
+        readSome();
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.
  */
 bool HttpConnection::process()
 {
-	TRACE(2, "process: offset=%lu, size=%lu (before processing) %s, %s", inputOffset_, input_.size(), state_str(), status_str());
+	TRACE(2, "process: offset=%lu, size=%lu (before processing) %s, %s", requestParserOffset_, requestBuffer_.size(), state_str(), state_str());
 
-	while (state() != MESSAGE_BEGIN || status() == ReadingRequest || status() == KeepAliveRead) {
-		BufferRef chunk(input_.ref(inputOffset_));
+	while (parserState() != MESSAGE_BEGIN || state() == ReadingRequest || state() == KeepAliveRead) {
+		BufferRef chunk(requestBuffer_.ref(requestParserOffset_));
 		if (chunk.empty())
 			break;
 
-		// ensure status is up-to-date, in case we came from keep-alive-read
-		if (status_ == KeepAliveRead) {
+		// ensure state is up-to-date, in case we came from keep-alive-read
+		if (state() == KeepAliveRead) {
 			TRACE(1, "process: status=keep-alive-read, resetting to reading-request");
-			setStatus(ReadingRequest);
+			setState(ReadingRequest);
 			if (request_->isFinished()) {
 				TRACE(1, "process: finalizing request");
 				request_->finalize();
 			}
 		}
 
-		TRACE(1, "process: (size: %lu, isHandlingRequest:%d, state:%s status:%s", chunk.size(), isHandlingRequest(), state_str(), status_str());
-		//TRACE(1, "%s", input_.ref(input_.size() - rv).str().c_str());
+		TRACE(1, "process: (size: %lu, isHandlingRequest:%d, cstate:%s pstate:%s", chunk.size(), isHandlingRequest(), state_str(), parserStateStr());
+		//TRACE(1, "%s", requestBuffer_.ref(requestBuffer_.size() - rv).str().c_str());
 
-		size_t rv = HttpMessageParser::parseFragment(chunk, &inputOffset_);
-		TRACE(1, "process: done process()ing; fd=%d, request=%p state:%s status:%s, rv:%d", socket_->handle(), request_, state_str(), status_str(), rv);
+		size_t rv = HttpMessageParser::parseFragment(chunk, &requestParserOffset_);
+		TRACE(1, "process: done process()ing; fd=%d, request=%p cstate:%s pstate:%s, rv:%d", socket_->handle(), request_, state_str(), parserStateStr(), rv);
 
 		if (isAborted()) {
 			TRACE(1, "abort detected");
 			return false;
 		}
 
-		if (state() == SYNTAX_ERROR) {
+		if (parserState() == SYNTAX_ERROR) {
 			TRACE(1, "syntax error detected");
 			if (!request_->isFinished()) {
 				abort(HttpStatus::BadRequest);
@@ -757,8 +743,8 @@ bool HttpConnection::process()
 			return false;
 		}
 
-        if (inputOffset_ >= worker().server().maxRequestHeaderBufferSize()) {
-            printf("request too large -> 413 (inputOffset:%zu, input.size:%zu)\n", inputOffset_, input_.size());
+        if (requestParserOffset_ >= worker().server().maxRequestHeaderBufferSize()) {
+            TRACE(1, "request too large -> 413 (requestParserOffset:%zu, requestBufferSize:%zu)", requestParserOffset_, requestBuffer_.size());
             abort(HttpStatus::RequestHeaderFieldsTooLarge);
             return false;
         }
@@ -770,7 +756,7 @@ bool HttpConnection::process()
 	}
 
 	TRACE(1, "process: offset=%lu, bs=%lu, state=%s (after processing) io.timer:%d",
-			inputOffset_, input_.size(), state_str(), socket_->timerActive());
+			requestParserOffset_, requestBuffer_.size(), state_str(), socket_->timerActive());
 
 	return true;
 }
@@ -795,7 +781,7 @@ void HttpConnection::setShouldKeepAlive(bool enabled)
 		flags_ &= ~IsKeepAliveEnabled;
 }
 
-void HttpConnection::setStatus(Status value)
+void HttpConnection::setState(State value)
 {
 #if !defined(XZERO_NDEBUG)
 	static const char* str[] = {
@@ -807,12 +793,12 @@ void HttpConnection::setStatus(Status value)
 		"keep-alive-read"
 	};
 	(void) str;
-	TRACE(1, "setStatus() %s => %s", str[static_cast<size_t>(status_)], str[static_cast<size_t>(value)]);
+	TRACE(1, "setState() %s => %s", str[static_cast<size_t>(state_)], str[static_cast<size_t>(value)]);
 #endif
 
-	Status lastStatus = status_;
-	status_ = value;
-	worker().server().onConnectionStatusChanged(this, lastStatus);
+    State lastState = state_;
+	state_ = value;
+	worker().server().onConnectionStateChanged(this, lastState);
 }
 
 

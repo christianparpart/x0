@@ -13,19 +13,20 @@
 #include <x0/io/FilterSource.h>
 #include <x0/io/FileSource.h>
 #include <x0/io/ChunkedEncoder.h>
+#include <x0/DebugLogger.h>
 #include <x0/Process.h>                // Process::dumpCore()
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
-#include <strings.h>                   // strcasecmp()
-#include <stdlib.h>                   // realpath()
-#include <limits.h>                   // PATH_MAX
+#include <strings.h>                    // strcasecmp()
+#include <stdlib.h>                     // realpath()
+#include <limits.h>                     // PATH_MAX
 #include <string.h>
 #include <array>
 
 #if !defined(XZERO_NDEBUG)
-#	define TRACE(level, msg...) log(Severity::debug ## level, "http-request: " msg)
+#	define TRACE(level, msg...) XZERO_DEBUG("HttpRequest", (level), msg)
 #else
-#	define TRACE(level, msg...) do { } while (0)
+#	define TRACE(msg...) do { } while (0)
 #endif
 
 namespace x0 {
@@ -679,13 +680,13 @@ void HttpRequest::write(Source* chunk)
 		return;
 	}
 
-	switch (connection.status()) {
+	switch (connection.state()) {
 		case HttpConnection::Undefined:
 		case HttpConnection::ReadingRequest:
 			// XXX bad state
 			break;
 		case HttpConnection::ProcessingRequest:
-			connection.setStatus(HttpConnection::SendingReply);
+			connection.setState(HttpConnection::SendingReply);
 			connection.write(serialize());
 			// fall through
 		case HttpConnection::SendingReply:
@@ -868,18 +869,18 @@ std::string HttpRequest::statusStr(HttpStatus value)
  */
 void HttpRequest::finish()
 {
-	TRACE(2, "finish(): isOutputPending:%s, cstate:%s", connection.isOutputPending() ? "true" : "false", connection.status_str());
+	TRACE(2, "finish(): isOutputPending:%s, cstate:%s", connection.isOutputPending() ? "true" : "false", connection.state_str());
 
 	setAbortHandler(nullptr);
 	setBodyCallback(nullptr);
 
 	if (isAborted()) {
-		connection.setStatus(HttpConnection::SendingReplyDone);
+		connection.setState(HttpConnection::SendingReplyDone);
 		finalize();
 		return;
 	}
 
-	switch (connection.status()) {
+	switch (connection.state()) {
 		case HttpConnection::Undefined:
 			// fall through (should never happen)
 		case HttpConnection::ReadingRequest:
@@ -925,7 +926,7 @@ void HttpRequest::finish()
 				// b/c onRequestEnd isn't invoked, ...
 			}
 
-			connection.setStatus(HttpConnection::SendingReplyDone);
+			connection.setState(HttpConnection::SendingReplyDone);
 
 			if (!connection.isOutputPending()) {
 				// the response body is already fully transmitted, so finalize this request object directly.
@@ -1003,7 +1004,8 @@ void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
 	connection.abortData_ = data;
 
 	if (cb) {
-		connection.wantRead();
+        // get notified on EOF at least (do not care about timeout handling)
+        connection.wantRead(TimeSpan::Zero);
 	}
 }
 

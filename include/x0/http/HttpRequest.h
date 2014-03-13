@@ -343,7 +343,7 @@ public:
 
 	void setAbortHandler(void (*callback)(void *), void *data = NULL);
 	void finish();
-	bool isFinished() const { return connection.status() == HttpConnection::SendingReplyDone; }
+	bool isFinished() const { return connection.state() == HttpConnection::SendingReplyDone; }
 
 	static std::string statusStr(HttpStatus status);
 

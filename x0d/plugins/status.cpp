@@ -79,7 +79,7 @@ private:
 	x0::HttpServer::WorkerHook::Connection onWorkerSpawn_;
 	x0::HttpServer::WorkerHook::Connection onWorkerUnspawn_;
 	x0::HttpServer::ConnectionHook::Connection onConnectionOpen_;
-	x0::HttpServer::ConnectionStatusHook::Connection onConnectionStatusChanged_;
+	x0::HttpServer::ConnectionStateHook::Connection onConnectionStateChanged_;
 	x0::HttpServer::ConnectionHook::Connection onConnectionClose_;
 	x0::HttpServer::RequestHook::Connection onPreProcess_;
 	x0::HttpServer::RequestHook::Connection onPostProcess_;
@@ -95,7 +95,7 @@ public:
 		onWorkerUnspawn_ = server().onWorkerUnspawn.connect<StatusPlugin, &StatusPlugin::onWorkerUnspawn>(this);
 
 		onConnectionOpen_ = server().onConnectionOpen.connect<StatusPlugin, &StatusPlugin::onConnectionOpen>(this);
-		onConnectionStatusChanged_ = server().onConnectionStatusChanged.connect<StatusPlugin, &StatusPlugin::onConnectionStatusChanged>(this);
+		onConnectionStateChanged_ = server().onConnectionStateChanged.connect<StatusPlugin, &StatusPlugin::onConnectionStateChanged>(this);
 		onConnectionClose_ = server().onConnectionClose.connect<StatusPlugin, &StatusPlugin::onConnectionClose>(this);
 
 		onPreProcess_ = server().onPreProcess.connect<StatusPlugin, &StatusPlugin::onPreProcess>(this);
@@ -108,7 +108,7 @@ public:
 		server().onWorkerUnspawn.disconnect(onWorkerUnspawn_);
 
 		server().onConnectionOpen.disconnect(onConnectionOpen_);
-		server().onConnectionStatusChanged.disconnect(onConnectionStatusChanged_);
+		server().onConnectionStateChanged.disconnect(onConnectionStateChanged_);
 		server().onConnectionClose.disconnect(onConnectionClose_);
 
 		server().onPreProcess.disconnect(onPreProcess_);
@@ -133,10 +133,10 @@ private:
 		++stats->active;
 	}
 
-	void onConnectionStatusChanged(x0::HttpConnection* connection, x0::HttpConnection::Status lastStatus) {
+	void onConnectionStateChanged(x0::HttpConnection* connection, x0::HttpConnection::State lastState) {
 		auto stats = connection->worker().customData<Stats>(this);
 
-		switch (lastStatus) {
+		switch (lastState) {
 			case x0::HttpConnection::ReadingRequest:
 				--stats->reading;
 				break;
@@ -147,7 +147,7 @@ private:
 				break;
 		}
 
-		switch (connection->status()) {
+		switch (connection->state()) {
 			case x0::HttpConnection::ReadingRequest:
 				++stats->reading;
 				break;
@@ -162,7 +162,7 @@ private:
 	void onConnectionClose(x0::HttpConnection* connection) {
 		auto stats = connection->worker().customData<Stats>(this);
 
-		switch (connection->status()) {
+		switch (connection->state()) {
 			case x0::HttpConnection::ReadingRequest:
 				--stats->reading;
 				break;
@@ -357,17 +357,17 @@ private:
 		out << "<td class='rn'>" << c->requestCount() << "</td>";
 		out << "<td class='ip'>" << c->remoteIP().str() << "</td>";
 
-		out << "<td class='state'>" << c->status_str();
-		if (c->status() == x0::HttpConnection::ReadingRequest)
+		out << "<td class='state'>" << c->state_str();
+		if (c->state() == x0::HttpConnection::ReadingRequest)
 			out << " (" << c->state_str() << ")";
 		out << "</td>";
 
 		out << "<td class='age'>" << (c->worker().now() - c->socket()->startedAt()).str() << "</td>";
 		out << "<td class='idle'>" << (c->worker().now() - c->socket()->lastActivityAt()).str() << "</td>";
-		out << "<td class='read'>" << c->inputOffset() << "/" << c->inputSize() << "</td>";
+		out << "<td class='read'>" << c->requestParserOffset() << "/" << c->requestBufferSize() << "</td>";
 
 		const x0::HttpRequest* r = c->request();
-		if (r && c->status() != x0::HttpConnection::KeepAliveRead) {
+		if (r && c->state() != x0::HttpConnection::KeepAliveRead) {
 			out << "<td class='written'>" << r->bytesTransmitted() << "</td>";
 			out << "<td class='host'>" << sanitize(r->hostname) << "</td>";
 			out << "<td class='method'>" << sanitize(r->method) << "</td>";
