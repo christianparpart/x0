@@ -665,6 +665,42 @@ Source* HttpRequest::serialize()
 	return new BufferSource(std::move(buffers));
 }
 
+/** write given source to response content and invoke the completion handler when done.
+ *
+ * \param chunk the content (chunk) to push to the client
+ * \param handler completion handler to invoke when source has been fully flushed or if an error occured
+ *
+ * \note this implicitely flushes the response-headers if not yet done, thus, making it impossible to modify them after this write.
+ */
+void HttpRequest::write(Source* chunk)
+{
+	if (unlikely(connection.isAborted())) {
+		delete chunk;
+		return;
+	}
+
+	switch (connection.status()) {
+		case HttpConnection::Undefined:
+		case HttpConnection::ReadingRequest:
+			// XXX bad state
+			break;
+		case HttpConnection::ProcessingRequest:
+			connection.setStatus(HttpConnection::SendingReply);
+			connection.write(serialize());
+			// fall through
+		case HttpConnection::SendingReply:
+			if (outputFilters.empty())
+				connection.write(chunk);
+			else
+				connection.write<FilterSource>(chunk, &outputFilters, false);
+			break;
+		case HttpConnection::SendingReplyDone:
+		case HttpConnection::KeepAliveRead:
+			// XXX bad state
+			break;
+	}
+}
+
 /** populates a default-response content, possibly modifying a few response headers, too.
  *
  * \return the newly created response content or a null ptr if the statuc code forbids content.
