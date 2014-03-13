@@ -381,7 +381,7 @@ ssize_t Socket::read(Pipe* pipe, size_t size)
 		ssize_t rv = pipe->write(fd_, size);
 
 		if (rv >= 0)
-			return 0;
+			return rv;
 
 		if (errno == ENOSYS)
 			setSplicing(false);
