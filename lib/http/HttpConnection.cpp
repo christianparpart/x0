@@ -411,6 +411,17 @@ bool HttpConnection::onMessageEnd()
 	// has been fully passed to it.
 	request_->onRequestContent(BufferRef());
 
+    if (state() != ProcessingRequest) {
+        // we are using the requestBuffer_ only within the ProcessingRequest state,
+        // so we can safely clear it.
+        requestBuffer_ = requestBuffer_.ref(requestParserOffset_, requestBuffer_.size() - requestParserOffset_);
+        requestParserOffset_ = 0;
+    }
+
+    if (isOutputPending()) {
+        wantWrite();
+    }
+
 	// If we are currently procesing a request, then stop parsing at the end of this request.
 	// The next request, if available, is being processed via resume()
 	if (isHandlingRequest())
@@ -432,12 +443,19 @@ void HttpConnection::wantRead(const TimeSpan& timeout)
 void HttpConnection::wantWrite()
 {
 	TRACE(3, "wantWrite(): cstate:%s pstate:%s", state_str(), parserStateStr());
-	TimeSpan timeout = worker().server().maxWriteIdle();
 
-	if (timeout)
-		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
+    if (isContentExpected()) {
+        auto timeout = std::max(worker().server().maxReadIdle().value(),
+                                worker().server().maxWriteIdle().value());
 
-	socket_->setMode(Socket::Write);
+        socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
+        socket_->setMode(Socket::ReadWrite);
+    } else {
+        auto timeout = worker().server().maxWriteIdle().value();
+        socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
+
+        socket_->setMode(Socket::Write);
+    }
 }
 
 /**
@@ -477,7 +495,7 @@ bool HttpConnection::readSome()
 		case EWOULDBLOCK:
 #endif
 			wantRead(worker_->server_.maxReadIdle());
-			break;
+			goto done;
 		default:
 			log(Severity::error, "Failed to read from client. %s", strerror(errno));
 			goto err;
@@ -490,8 +508,17 @@ bool HttpConnection::readSome()
 		TRACE(1, "readSome: read %lu bytes, cstate:%s, pstate:%s", rv, state_str(), parserStateStr());
 
 		process();
+
+        if (isProcessingBody() && requestParserOffset() == requestBufferSize()) {
+            // adjusting buffer for next body-chunk reads
+            TRACE(1, "readSome(): processing body & buffer fully parsed => rewind parse offset to end of headers");
+            TRACE(1, "- from %zu back to %zu", requestParserOffset_, requestHeaderEndOffset_);
+            requestParserOffset_ = requestHeaderEndOffset_;
+            requestBuffer_.resize(requestHeaderEndOffset_);
+        }
 	}
 
+done:
 	unref("readSome");
 	return true;
 
