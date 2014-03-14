@@ -750,7 +750,7 @@ bool HttpConnection::process()
 			return false;
 		}
 
-        if (!request_->isFinished()) {
+        if (isProcessingHeader() && !request_->isFinished()) {
             if (requestParserOffset_ >= worker().server().maxRequestHeaderBufferSize()) {
                 TRACE(1, "request too large -> 413 (requestParserOffset:%zu, requestBufferSize:%zu)", requestParserOffset_, requestBuffer_.size());
                 abort(HttpStatus::RequestHeaderFieldsTooLarge);
