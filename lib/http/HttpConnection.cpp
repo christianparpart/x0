@@ -538,6 +538,8 @@ void HttpConnection::flush()
 /**
  * Writes as much as it wouldn't block of the response stream into the underlying socket.
  *
+ * @see wantWrite()
+ * @see wantRead(), readSome()
  */
 bool HttpConnection::writeSome()
 {
@@ -577,7 +579,6 @@ bool HttpConnection::writeSome()
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
 	case EWOULDBLOCK:
 #endif
-		// complete write would block, so watch write-ready-event and be called back
 		wantWrite();
 		break;
 	default:
