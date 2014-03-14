@@ -405,7 +405,7 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 
 bool HttpConnection::onMessageEnd()
 {
-	TRACE(1, "onMessageEnd() %s (isHandlingRequest:%d)", state_str(), isHandlingRequest());
+    TRACE(1, "onMessageEnd() %s (rfinished:%d, isHandlingRequest:%d)", state_str(), request_->isFinished(), isHandlingRequest());
 
 	// marks the request-content EOS, so that the application knows when the request body
 	// has been fully passed to it.
@@ -421,7 +421,8 @@ bool HttpConnection::onMessageEnd()
 
 void HttpConnection::wantRead(const TimeSpan& timeout)
 {
-	TRACE(3, "wantRead");
+	TRACE(3, "wantRead(): cstate:%s pstate:%s", state_str(), parserStateStr());
+
 	if (timeout)
 		socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
 
@@ -430,7 +431,7 @@ void HttpConnection::wantRead(const TimeSpan& timeout)
 
 void HttpConnection::wantWrite()
 {
-	TRACE(3, "wantWrite");
+	TRACE(3, "wantWrite(): cstate:%s pstate:%s", state_str(), parserStateStr());
 	TimeSpan timeout = worker().server().maxWriteIdle();
 
 	if (timeout)
@@ -486,7 +487,8 @@ bool HttpConnection::readSome()
 		TRACE(1, "readSome: (EOF), state:%s", state_str());
 		goto err;
 	} else {
-		TRACE(1, "readSome: read %lu bytes, state:%s", rv, state_str());
+		TRACE(1, "readSome: read %lu bytes, cstate:%s, pstate:%s", rv, state_str(), parserStateStr());
+
 		process();
 	}
 
@@ -684,8 +686,8 @@ void HttpConnection::close()
  */
 void HttpConnection::resume()
 {
-	TRACE(1, "resume() shouldKeepAlive:%d)", shouldKeepAlive());
-	TRACE(1, "-- (state:%s, requestParserOffset:%lu, requestBufferSize:%lu)", state_str(), requestParserOffset_, requestBuffer_.size());
+	TRACE(1, "resume() shouldKeepAlive:%d, cstate:%s, pstate:%s", shouldKeepAlive(), state_str(), parserStateStr());
+	TRACE(1, "-- (requestParserOffset:%lu, requestBufferSize:%lu)", requestParserOffset_, requestBuffer_.size());
 
 	setState(KeepAliveRead);
 	request_->clear();
