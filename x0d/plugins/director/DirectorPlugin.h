@@ -56,6 +56,4 @@ private:
 	bool director_haproxy_stats(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	bool internalServerError(x0::HttpRequest* r);
-	Director* createDirector(const char* id);
-	Backend* registerBackend(Director* director, const char* name, const char* url);
 };
