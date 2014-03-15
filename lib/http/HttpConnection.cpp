@@ -465,8 +465,6 @@ bool HttpConnection::readSome()
         return true;
     }
 
-	ref();
-
 	ssize_t rv = socket_->read(requestBuffer_, requestBuffer_.capacity());
 
 	if (rv < 0) { // error
@@ -477,37 +475,38 @@ bool HttpConnection::readSome()
 		case EWOULDBLOCK:
 #endif
 			wantRead(worker_->server_.maxReadIdle());
-			goto done;
+            return true;
 		default:
 			log(Severity::error, "Failed to read from client. %s", strerror(errno));
-			goto err;
+            abort();
+            return false;
 		}
-	} else if (rv == 0) {
-		// EOF
-		TRACE(1, "readSome: (EOF), state:%s", state_str());
-		goto err;
-	} else {
-		TRACE(1, "readSome: read %lu bytes, cstate:%s, pstate:%s", rv, state_str(), parserStateStr());
-
-		process();
-
-        if (isProcessingBody() && requestParserOffset() == requestBufferSize()) {
-            // adjusting buffer for next body-chunk reads
-            TRACE(1, "readSome(): processing body & buffer fully parsed => rewind parse offset to end of headers");
-            TRACE(1, "- from %zu back to %zu", requestParserOffset_, requestHeaderEndOffset_);
-            requestParserOffset_ = requestHeaderEndOffset_;
-            requestBuffer_.resize(requestHeaderEndOffset_);
-        }
 	}
 
-done:
-	unref();
-	return true;
+    if (rv == 0) {
+		// EOF
+		TRACE(1, "readSome: (EOF), state:%s", state_str());
+        abort();
+        return false;
+	}
 
-err:
-	abort();
-	unref();
-	return false;
+    TRACE(1, "readSome: read %lu bytes, cstate:%s, pstate:%s", rv, state_str(), parserStateStr());
+
+    ref();
+
+    process();
+
+    if (isProcessingBody() && requestParserOffset() == requestBufferSize()) {
+        // adjusting buffer for next body-chunk reads
+        TRACE(1, "readSome(): processing body & buffer fully parsed => rewind parse offset to end of headers");
+        TRACE(1, "- from %zu back to %zu", requestParserOffset_, requestHeaderEndOffset_);
+        requestParserOffset_ = requestHeaderEndOffset_;
+        requestBuffer_.resize(requestHeaderEndOffset_);
+    }
+
+    unref();
+
+    return true;
 }
 
 /** write source into the connection stream and notifies the handler on completion.
