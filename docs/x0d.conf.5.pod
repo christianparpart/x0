@@ -210,13 +210,13 @@ within a single connection.
 
 Default: 100
 
-=item B<max_request_uri_size> (number)
+=item B<max_request_uri_size> (size)
 
 Gets or sets the number of bytes a request URI must fit into.
 
 Default: 4096 byte
 
-=item B<max_request_header_size> (number)
+=item B<max_request_header_size> (size)
 
 Gets or sets the number of bytes a single request header (name plus value) must fit into.
 
@@ -228,11 +228,11 @@ Gets or sets the maximum count of request headers a client request may sent.
 
 Default: 100
 
-=item B<max_body_size> (number)
+=item B<max_request_body_size> (size)
 
 Gets or sets the maximum number of bytes a request body must fit into.
 
-Default: 2 gbyte
+Default: 4 mbyte
 
 =item B<max_connections> (count)
 
@@ -252,6 +252,23 @@ Gets or sets the memory allocation limit to this process.
 
 Gets or sets the file size limit for possibly generated core files, which are
 required to properly debug the process after it crashed.
+
+=item B<request_header_buffer_size> (size)
+
+Sets the size in bytes for the request headers (plus first line).
+The request headers (plus first line) must fit into this buffer or
+an HTTP error response 413 (Request Header Fields Too Large)
+will be generated instead.
+
+Default: 8 kbyte
+
+=item B<request_body_buffer_size> (size)
+
+Defines the size of the internal body buffer size. This does not constrain
+the maximum request body size but sets a limit on how many bytes
+may be read at most in order to hold the request body before it is processed.
+
+Default: 8 kbyte
 
 =item B<tcp_cork> (boolean)
 

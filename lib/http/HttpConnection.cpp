@@ -61,8 +61,8 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 	id_(id),
 	requestCount_(0),
 	flags_(0),
-	requestBuffer_(worker().server().maxRequestHeaderBufferSize()
-                 + worker().server().maxRequestBodyBufferSize()),
+    requestBuffer_(worker().server().requestHeaderBufferSize()
+                 + worker().server().requestBodyBufferSize()),
 	requestParserOffset_(0),
 	request_(nullptr),
 	output_(),
@@ -778,8 +778,8 @@ bool HttpConnection::process()
 		}
 
         if (isProcessingHeader() && !request_->isFinished()) {
-            if (requestParserOffset_ >= worker().server().maxRequestHeaderBufferSize()) {
-                TRACE(1, "request too large -> 413 (requestParserOffset:%zu, requestBufferSize:%zu)", requestParserOffset_, requestBuffer_.size());
+            if (requestParserOffset_ >= worker().server().requestHeaderBufferSize()) {
+                TRACE(1, "request too large -> 413 (requestParserOffset:%zu, requestBufferSize:%zu)", requestParserOffset_, worker().server().requestHeaderBufferSize());
                 abort(HttpStatus::RequestHeaderFieldsTooLarge);
                 return false;
             }

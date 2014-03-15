@@ -95,8 +95,9 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 	maxRequestUriSize(4 * 1024),
 	maxRequestHeaderSize(1 * 1024),
 	maxRequestHeaderCount(100),
-    maxRequestHeaderBufferSize(8 * 1024),
-	maxRequestBodyBufferSize(8 * 1024)
+    maxRequestBodySize(4 * 1024 * 1024),
+    requestHeaderBufferSize(8 * 1024),
+    requestBodyBufferSize(8 * 1024)
 {
 	DebugLogger::get().onLogWrite = [&](const char* msg, size_t n) {
 		LogMessage lm(Severity::debug1, "%s", msg);
@@ -137,7 +138,6 @@ HttpServer::~HttpServer()
 	DebugLogger::get().reset();
 #endif
 }
-
 
 void HttpServer::onNewConnection(Socket* cs, ServerSocket* ss)
 {

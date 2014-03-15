@@ -94,6 +94,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     setupFunction("max_request_uri_size", &XzeroCore::max_request_uri_size, FlowType::Number);
     setupFunction("max_request_header_size", &XzeroCore::max_request_header_size, FlowType::Number);
     setupFunction("max_request_header_count", &XzeroCore::max_request_header_count, FlowType::Number);
+    setupFunction("max_request_body_size", &XzeroCore::max_request_body_size, FlowType::Number);
     setupFunction("request_header_buffer_size", &XzeroCore::request_header_buffer_size, FlowType::Number);
     setupFunction("request_body_buffer_size", &XzeroCore::request_body_buffer_size, FlowType::Number);
 
@@ -291,14 +292,19 @@ void XzeroCore::max_request_header_count(FlowParams& args)
     server().maxRequestHeaderCount(args.get<FlowNumber>(1));
 }
 
+void XzeroCore::max_request_body_size(FlowParams& args)
+{
+    server().maxRequestBodySize(args.get<FlowNumber>(1));
+}
+
 void XzeroCore::request_header_buffer_size(FlowParams& args)
 {
-    server().maxRequestHeaderBufferSize(args.get<FlowNumber>(1));
+    server().requestHeaderBufferSize(args.get<FlowNumber>(1));
 }
 
 void XzeroCore::request_body_buffer_size(FlowParams& args)
 {
-    server().maxRequestBodyBufferSize(args.get<FlowNumber>(1));
+    server().requestBodyBufferSize(args.get<FlowNumber>(1));
 }
 
 void XzeroCore::listen(FlowParams& args)

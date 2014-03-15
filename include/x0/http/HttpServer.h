@@ -161,8 +161,9 @@ public:
 	ValueProperty<std::size_t> maxRequestUriSize;
 	ValueProperty<std::size_t> maxRequestHeaderSize;
 	ValueProperty<std::size_t> maxRequestHeaderCount;
-	ValueProperty<std::size_t> maxRequestHeaderBufferSize;
-	ValueProperty<std::size_t> maxRequestBodyBufferSize;
+	ValueProperty<std::size_t> maxRequestBodySize;
+	ValueProperty<std::size_t> requestHeaderBufferSize;
+	ValueProperty<std::size_t> requestBodyBufferSize;
 };
 
 // {{{ inlines
