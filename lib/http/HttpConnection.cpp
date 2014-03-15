@@ -159,7 +159,6 @@ void HttpConnection::io(Socket *, int revents)
 	// socket is ready for read?
 	if (revents & Socket::Read) {
         if (!readSome()) {
-            log(Severity::error, "readSome() failed");
             goto done;
         }
     }
@@ -167,7 +166,6 @@ void HttpConnection::io(Socket *, int revents)
 	// socket is ready for write?
 	if (revents & Socket::Write) {
         if (!writeSome()) {
-            log(Severity::error, "writeSome() failed");
             goto done;
         }
     }
