@@ -216,10 +216,9 @@ void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
 	HttpConnection* c;
 	if (likely(freeConnections_ != nullptr)) {
 		c = freeConnections_;
-		c->id_ = connectionCount_;
 		freeConnections_ = c->next_;
 
-		c->reinitialize();
+        c->revive(connectionCount_/*id*/);
 	}
 	else {
 		c = new HttpConnection(this, connectionCount_/*id*/);

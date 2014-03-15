@@ -120,14 +120,17 @@ public:
 	bool isAborted() const;
 	bool isClosed() const;
 
-	void ref(const char* msg = "");
-	void unref(const char* msg = "");
+    template<typename... Args>
+    void log(Severity s, const char* fmt, Args... args);
+
+    void log(LogMessage&& msg);
 
 private:
 	friend class HttpRequest;
 	friend class HttpWorker;
 
-	void reinitialize();
+	void ref(const char* msg = "");
+	void unref(const char* msg = "");
 
 	// overrides from HttpMessageParser:
 	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
@@ -136,10 +139,10 @@ private:
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
 
-	void clear();
-
 	void start(ServerSocket* listener, Socket* client);
 	void resume();
+	void clear();
+    void revive(unsigned long long id);
 
 	void handshakeComplete(Socket *);
 
@@ -154,11 +157,6 @@ private:
 
 	void abort();
 	void abort(HttpStatus status);
-
-	template<typename... Args>
-	void log(Severity s, const char* fmt, Args... args);
-
-	void log(LogMessage&& msg);
 
 	Buffer& inputBuffer() { return requestBuffer_; }
 	const Buffer& inputBuffer() const { return requestBuffer_; }

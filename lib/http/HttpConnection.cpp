@@ -118,8 +118,9 @@ void HttpConnection::clear()
 	requestBuffer_.clear();
 }
 
-void HttpConnection::reinitialize()
+void HttpConnection::revive(unsigned long long id)
 {
+    id_ = id;
 	flags_ = 0;
 	socket_ = nullptr;
 }
@@ -691,7 +692,7 @@ void HttpConnection::close()
 	TRACE(2, "Stack Trace:%s\n", StackTrace().c_str());
 
 	if (isClosed())
-		// XXX should we treat this as a bug?
+        // may happen on double-error checking in different layers, which is not clean, but hey
 		return;
 
 	flags_ |= IsClosed;
