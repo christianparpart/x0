@@ -245,10 +245,11 @@ void FastCgiTransport::close()
 {
 	TRACE(1, "Closing transport connection.");
 
-	if (socket_->isOpen())
+	if (socket_->isOpen()) {
 		socket_->close();
 
-	unref(); // related to the increment in contructer FastCgiTransport()
+        unref(); // related to the increment in contructer FastCgiTransport()
+    }
 }
 
 void FastCgiTransport::ref()
