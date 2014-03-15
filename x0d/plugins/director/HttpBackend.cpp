@@ -187,7 +187,6 @@ void HttpBackend::Connection::close()
 
 void HttpBackend::Connection::onAbort(void *p)
 {
-	printf("HttpBackend::Connection(%p)::onAbort()\n", p);
 	Connection *self = reinterpret_cast<Connection *>(p);
 	self->close();
 }
