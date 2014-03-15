@@ -125,12 +125,30 @@ public:
 
     void log(LogMessage&& msg);
 
+    /** Increments the internal reference count and ensures that this object remains valid until its unref().
+     *
+     * Surround the section using this object by a ref() and unref(), ensuring, that this
+     * object won't be destroyed in between.
+     *
+     * \see unref()
+     * \see close()
+     * \see HttpRequest::finish()
+     */
+	void ref();
+
+    /** Decrements the internal reference count, marking the end of the section using this connection.
+     *
+     * \note After the unref()-call, the connection object MUST NOT be used any more.
+     * If the unref()-call results into a reference-count of zero <b>AND</b> the connection
+     * has been closed during this time, the connection will be released / destructed.
+     *
+     * \see ref()
+     */
+	void unref();
+
 private:
 	friend class HttpRequest;
 	friend class HttpWorker;
-
-	void ref(const char* msg = "");
-	void unref(const char* msg = "");
 
 	// overrides from HttpMessageParser:
 	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);

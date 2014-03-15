@@ -125,34 +125,17 @@ void HttpConnection::revive(unsigned long long id)
 	socket_ = nullptr;
 }
 
-/** Increments the internal reference count and ensures that this object remains valid until its unref().
- *
- * Surround the section using this object by a ref() and unref(), ensuring, that this
- * object won't be destroyed in between.
- *
- * \see unref()
- * \see close(), resume()
- * \see HttpRequest::finish()
- */
-void HttpConnection::ref(const char* msg)
+void HttpConnection::ref()
 {
 	++refCount_;
-	TRACE(1, "ref() %u %s", refCount_, msg);
+	TRACE(1, "ref() %u", refCount_);
 }
 
-/** Decrements the internal reference count, marking the end of the section using this connection.
- *
- * \note After the unref()-call, the connection object MUST NOT be used any more.
- * If the unref()-call results into a reference-count of zero <b>AND</b> the connection
- * has been closed during this time, the connection will be released / destructed.
- *
- * \see ref()
- */
-void HttpConnection::unref(const char* msg)
+void HttpConnection::unref()
 {
 	--refCount_;
 
-	TRACE(1, "unref() %u (closed:%d, outputPending:%d) %s", refCount_, isClosed(), isOutputPending(), msg);
+	TRACE(1, "unref() %u (closed:%d, outputPending:%d)", refCount_, isClosed(), isOutputPending());
 
 	if (refCount_ == 0) {
 		clear();
@@ -165,7 +148,7 @@ void HttpConnection::io(Socket *, int revents)
 	TRACE(1, "io(revents=%04x) %s, %s, isHandlingRequest:%d",
         revents, state_str(), parserStateStr(), isHandlingRequest());
 
-	ref("io");
+	ref();
 
 	if (revents & ev::ERROR) {
 		log(Severity::error, "Potential bug in connection I/O watching. Closing.");
@@ -190,7 +173,7 @@ void HttpConnection::io(Socket *, int revents)
     }
 
 done:
-	unref("io");
+	unref();
 }
 
 void HttpConnection::timeout(Socket *)
@@ -256,7 +239,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 
 	TRACE(1, "starting (fd=%d)", socket_->handle());
 
-	ref("conn-create"); // <-- this reference is being decremented in close()
+	ref(); // <-- this reference is being decremented in close()
 
 	worker_->server_.onConnectionOpen(this);
 
@@ -270,7 +253,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 	if (!request_)
 		request_ = new HttpRequest(*this);
 
-	ref("initial-read");
+	ref();
 	if (socket_->state() == Socket::Handshake) {
 		TRACE(1, "start: handshake.");
 		socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
@@ -289,7 +272,7 @@ void HttpConnection::start(ServerSocket* listener, Socket* client)
 		wantRead(worker_->server_.maxReadIdle());
 #endif
 	}
-	unref("initial-read");
+	unref();
 }
 
 void HttpConnection::handshakeComplete(Socket *)
@@ -484,7 +467,7 @@ bool HttpConnection::readSome()
         return true;
     }
 
-	ref("readSome");
+	ref();
 
 	ssize_t rv = socket_->read(requestBuffer_, requestBuffer_.capacity());
 
@@ -520,12 +503,12 @@ bool HttpConnection::readSome()
 	}
 
 done:
-	unref("readSome");
+	unref();
 	return true;
 
 err:
 	abort();
-	unref("readSome, errored.");
+	unref();
 	return false;
 }
 
@@ -572,7 +555,7 @@ void HttpConnection::flush()
 bool HttpConnection::writeSome()
 {
     TRACE(1, "writeSome() state: %s", state_str());
-	ref("writeSome");
+	ref();
 
 	ssize_t rv = output_.sendto(sink_);
 
@@ -615,12 +598,12 @@ bool HttpConnection::writeSome()
 	}
 
 done:
-	unref("writeSome");
+	unref();
 	return true;
 
 err:
 	abort();
-	unref("writeSome, err'd");
+	unref();
 	return false;
 }
 
@@ -703,7 +686,7 @@ void HttpConnection::close()
 	}
     setState(Undefined);
 
-	unref("close()"); // <-- this refers to ref() in start()
+	unref(); // <-- this refers to ref() in start()
 }
 
 /** Resumes processing the <b>next</b> HTTP request message within this connection.
