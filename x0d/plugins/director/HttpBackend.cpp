@@ -176,11 +176,13 @@ void HttpBackend::Connection::unref()
 
 void HttpBackend::Connection::close()
 {
-	if (socket_)
-		// stop watching on any backend I/O events, if active
-		socket_->close();
+    if (socket_->isOpen()) {
+        // stop watching on any backend I/O events, if active
+        socket_->close();
 
-	unref(); // the one from the constructor
+        // unref the ctor's ref
+        unref();
+    }
 }
 
 void HttpBackend::Connection::onAbort(void *p)
