@@ -1,5 +1,72 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- cookie-bomb test:
+  - ifconfig lo mtu 1500 # lower MTU down from 65536
+  - nc -q600 -v localhost 8080 < tests/cookie-bomb.http
+  - ./tests/cookie-bomb
+- verification:
+  - test pipelined requests (wrt request buffer handling)
+    - so a wantWrite() should not *always* (?) also want to wait for READ event ?
+    - FIXME: request body processing with/without being handled by handlers.
+      - better find a way to skip body
+        - SendingReply: auto-sets to wantReadWrite() to send reply *and* consume body;
+          - when req. body got fully consumed and resp body still pending, set to wantWrite()-only.
+      - last-resort: maybe think about fully consuming body before handling
+    - TODO: while consuming body chunks, the inputOffset should always be set back to the end of the request headers offset (so that header buffer remains preserved while handling)
+    - TODO: remove flag IsHandlingRequest
+- write unittests (or integration tests)
+  - send 3 pipelined GET requests
+  - send 3 pipelined POST requests with body to a non-body-handling URI.
+  - send 3 pipelined POST requests with body to a body-handling URI.
+  - send 1 request in 2 fragments delayed.
+- http integration test server
+  - POST /echo              - sends back post body and received content-type header
+  - GET  /sendfile/64.txt   - static 64byte file
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; HTTP connection lifecycle diagram
+
+entry       ::= (accept* lifecycle*)*
+
+lifecycle   ::= (readSome writeSome)* close;
+
+accept      ::= sys_accept        ; 
+                select_worker     ; select least loaded worker
+                enqueue           ; enqueue client to selected worker
+
+io          ::= handleError?
+                readSome?
+                writeSome?
+
+readSome    ::= sys_read          ;
+                process?          ; if there are bytes to process then parse & process request
+                close?            ; if endpoint closed or fatal error occured
+                wantRead?         ; if we expect more data to read
+
+writeSome   ::= sys_write         ;
+                wantWrite?        ; if we expect more data to write
+                                  ; and there not more data to parse (for next request) already in the buffer
+
+process     ::= parseFragment     ; parse http fragment
+                handleRequest?    ; handle request by Flow "main" handler,
+                                  ; if request headers got fully parsed
+
+close       ::= sys_close
+
+abort(code) ::= resp.status = code
+                resp.serialize
+                writeSome
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; FINDINGS:
+
+- DOCUMENT ALL CHANGES AS WE GO!
+- HttpConnection
+  - process(): verify usefulness of return value (boolean), as it's not used.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - flow: support nested config files (e.g. via #include "file_or_directory_glob" directive)
 
 - provide debian package for: x0 0.7.0

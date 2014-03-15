@@ -9,6 +9,16 @@
 - TokenShaper + Director, does it play nice with multiple backend roles like Active/Standby/Backup ?
 - ensure that the director (including backends?) are executed only from within one worker.
 
+# Director On Demand
+
+- Create a new cluster via `PUT /director/:name?hostname=NAME&port=PORT`.
+- Access ondemand created directors via handler `director.ondemand;`.
+- on-demand managed directors are by default stored in /var/lib/x0d/directors-ondemand/HOSTNAME.db
+  - the base filename is insignificant.
+  - contains the following additional infos that are used for director selection:
+    - [ondemand] hostname
+    - [ondemand] port
+
 ------------------------------------------------------------------------------
 
 # GENERAL
