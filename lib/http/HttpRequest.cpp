@@ -754,9 +754,15 @@ bool HttpRequest::writeCallback(CallbackSource::Callback cb)
 	}
 
 	if (connection.isOutputPending()) {
+        // acquire a ref in order to protect accidental destructions.
+        connection.ref("writeCallback");
+
 		connection.write<CallbackSource>([this, cb]() {
-			post([cb]() {
+			post([this, cb]() {
 				cb();
+
+                // release our prior ref, potentially causing a request/connection destruction here
+                connection.unref("writeCallback");
 			});
 		});
 		return true;
