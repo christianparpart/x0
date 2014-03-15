@@ -295,6 +295,11 @@ void HttpWorker::handleRequest(HttpRequest *r)
 			r->finish();
 			return;
 		}
+        if (r->connection.contentLength() > server().maxRequestBodySize()) {
+			r->status = HttpStatus::RequestEntityTooLarge;
+			r->finish();
+			return;
+        }
 	} else {
 		if (r->contentAvailable()) {
 			r->status = HttpStatus::BadRequest; // FIXME do we have a better status code?
