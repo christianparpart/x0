@@ -189,7 +189,10 @@ bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
 	auto rn = requestNotes(r);
 	rn->manager = director;
 
+#if !defined(NDEBUG)
 	server().log(Severity::debug, "director: passing request to %s [%s].", director->name().c_str(), bucket->name().c_str());
+#endif
+
 	director->schedule(rn, bucket);
 	return true;
 } // }}}
@@ -217,7 +220,9 @@ bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
         }
     }
 
+#if !defined(NDEBUG)
 	server().log(Severity::debug, "director: passing request to %s [backend %s].", director->name().c_str(), backend->name().c_str());
+#endif
 
 	auto rn = requestNotes(r);
 	rn->manager = director;
