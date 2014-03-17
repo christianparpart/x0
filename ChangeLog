@@ -8,10 +8,15 @@
 	* flow: Properly implement power operator's disassociativety.
 	* flow: Variables must not change type during lifetime.
 	* flow: Every handler/function call statement and variable declaration must be followed by a semicolon ';'.
-	* x0d: Added --dump-ast parameter to dump Flow's parsed AST.
+	* http: Fixed a bug that caused a crash when posting to a completion-callback into a connection to crash.
+	* http: Fixed large requests that lead to a timeout or hang forever.
 	* director: Added experimental response output caching support.
+	* director: Fixes 2 bugs (in http-backend and fastcgi backend) with regards to their connection ref-counting.
+	* x0d: Added --dump-ast parameter to dump Flow's parsed AST.
 	* x0d: plugin "vhost" has been removed in favor of the new match-keyword.
-	* x0d: Addes --dump-ast and --dump-tc command line options to accompany --dump-ir (for debugging purposes).
+	* x0d: Adds --dump-ast and --dump-tc command line options to accompany --dump-ir (for debugging purposes).
+	* x0d: Adds `request_header_buffer_size` config setup variable.
+	* x0d: Adds `request_body_buffer_size` config setup variable.
 
 0.7.0 (2013-10-18)
 
