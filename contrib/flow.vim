@@ -123,8 +123,8 @@ if exists("flow_x0")
 	syn match flowCoreFunctions '\<auth\.require\>'
 
 	" upstream plugin: director
-	syn match flowCoreFunctions '\<director\.create\>'
 	syn match flowCoreFunctions '\<director\.load\>'
+	syn match flowCoreFunctions '\<director\.cache\>'
 	syn match flowCoreHandler '\<director\.\(balance\|pass\|api\|fcgi\|http\)\>'
 endif
 

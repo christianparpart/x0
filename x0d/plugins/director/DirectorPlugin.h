@@ -43,8 +43,9 @@ private:
 
 	void director_load(x0::FlowVM::Params& args);
 
+	void director_cache_enabled(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void director_cache_key(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	void director_cache_bypass(x0::HttpRequest* r, x0::FlowVM::Params& args);
+	void director_cache_ttl(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	bool director_balance(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	bool director_pass(x0::HttpRequest* r, x0::FlowVM::Params& args);

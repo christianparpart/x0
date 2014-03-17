@@ -9,6 +9,7 @@
 #include "ApiRequest.h"
 #include "Director.h"
 #include "Backend.h"
+#include "ObjectCache.h"
 #include "HttpBackend.h"
 #include "FastCgiBackend.h"
 
@@ -63,6 +64,12 @@
 // - health-check-host-header
 // - health-check-request-path
 // - health-check-fcgi-script-filename
+//
+// - cache-enabled              BOOL
+// - cache-deliver-active       BOOL
+// - cache-deliver-shadow       BOOL
+// - cache-default-ttl          TIMESPAN
+// - cache-default-shadow-ttl   TIMESPAN
 //
 // - hostname
 // - port
@@ -256,7 +263,7 @@ bool ApiRequest::loadParam(const std::string& key, TimeSpan& result)
 		return false;
 	}
 
-	result = TimeSpan::fromMilliseconds(std::atoll(i->second.c_str()));
+	result = TimeSpan::fromSeconds(std::atoll(i->second.c_str()));
 
 	return true;
 }
@@ -492,6 +499,28 @@ bool ApiRequest::update(Director* director)
 	if (hasParam("health-check-fcgi-script-filename") && !loadParam("health-check-fcgi-script-filename", hcFcgiScriptFileName))
 		return false;
 
+#if defined(X0_DIRECTOR_CACHE)
+    bool cacheEnabled = director->objectCache().enabled();
+    if (hasParam("cache-enabled") && !loadParam("cache-enabled", cacheEnabled))
+        return false;
+
+    bool cacheDeliverActive = director->objectCache().deliverActive();
+    if (hasParam("cache-deliver-active") && !loadParam("cache-deliver-active", cacheDeliverActive))
+        return false;
+
+    bool cacheDeliverShadow = director->objectCache().deliverShadow();
+    if (hasParam("cache-deliver-shadow") && !loadParam("cache-deliver-shadow", cacheDeliverShadow))
+        return false;
+
+    TimeSpan cacheDefaultTTL = director->objectCache().defaultTTL();
+    if (hasParam("cache-default-ttl") && !loadParam("cache-default-ttl", cacheDefaultTTL))
+        return false;
+
+    TimeSpan cacheDefaultShadowTTL = director->objectCache().defaultShadowTTL();
+    if (hasParam("cache-default-shadow-ttl") && !loadParam("cache-default-shadow-ttl", cacheDefaultShadowTTL))
+        return false;
+#endif
+
 	if (!director->isMutable()) {
 		request_->log(Severity::error, "director: Could not update director '%s'. Director immutable.",
 			director->name().c_str());
@@ -515,6 +544,15 @@ bool ApiRequest::update(Director* director)
 	director->setHealthCheckHostHeader(hcHostHeader);
 	director->setHealthCheckRequestPath(hcRequestPath);
 	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);
+
+#if defined(X0_DIRECTOR_CACHE)
+    director->objectCache().setEnabled(cacheEnabled);
+    director->objectCache().setDeliverActive(cacheDeliverActive);
+    director->objectCache().setDeliverShadow(cacheDeliverShadow);
+    director->objectCache().setDefaultTTL(cacheDefaultTTL);
+    director->objectCache().setDefaultShadowTTL(cacheDefaultShadowTTL);
+#endif
+
 	director->save();
 
 	director->post([director]() {

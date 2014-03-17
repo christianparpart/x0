@@ -90,6 +90,5 @@ void RequestNotes::setCacheKey(const char* i, const char* e)
 	}
 
 	cacheKey = result.str();
-	printf("cache key: '%s'\n", cacheKey.c_str());
 }
 #endif

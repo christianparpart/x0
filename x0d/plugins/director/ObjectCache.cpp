@@ -8,6 +8,7 @@
 
 #include "ObjectCache.h"
 #include "RequestNotes.h"
+#include "Director.h"
 #include <x0/io/BufferRefSource.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/DebugLogger.h>
@@ -16,14 +17,18 @@
  * List of messages headers that must be taken into account when checking for freshness.
  *
  * REQUEST HEADERS
- * - If-Modified-Since
+ * - If-Range
+ * - If-Match
  * - If-None-Match
+ * - If-Modified-Since
+ * - If-Unmodified-Since
  *
  * RESPONSE HEADERS
  * - Last-Modified
  * - ETag
  * - Expires
  * - Cache-Control
+ * - Pragma (token: "no-cache")
  * - Vary (list of request headers that make a response unique in addition to its cache key, or "*" for literally all request headers)
  */
 
@@ -32,57 +37,68 @@
 
 using namespace x0;
 
-#define TRACE(r, n, msg...) do { \
-	if (r) { \
+#define TRACE(rn, n, msg...) do { \
+	if ((rn) && (rn)->request != nullptr) { \
 		LogMessage m(Severity::debug ## n, msg); \
 		m.addTag("director-cache"); \
-		r->log(std::move(m)); \
+		rn->request->log(std::move(m)); \
 	} else { \
 		X0_DEBUG("director-cache", (n), msg); \
 	} \
 } while (0)
 
-// {{{ ObjectCache::Object
-ObjectCache::Object::Object(ObjectCache* store, const std::string& cacheKey) :
+// {{{ ObjectCache::ConcreteObject
+ObjectCache::ConcreteObject::ConcreteObject(ObjectCache* store, const std::string& cacheKey) :
+    Object(),
 	store_(store),
 	cacheKey_(cacheKey),
-	request_(nullptr),
+    state_(Spawning),
+    requestNotes_(nullptr),
 	interests_(),
-	state_(Spawning),
 	requestHeaders_(),
 	bufferIndex_()
 {
+    TRACE(requestNotes_, 2, "ConcreteObject(key: '%s')", cacheKey_.c_str());
 }
 
-ObjectCache::Object::~Object()
+ObjectCache::ConcreteObject::~ConcreteObject()
 {
+    TRACE(requestNotes_, 2, "~ConcreteObject()");
 }
 
-std::string ObjectCache::Object::requestHeader(const std::string& name) const
+std::string ObjectCache::ConcreteObject::requestHeader(const std::string& name) const
 {
 	return "";
 }
 
-void ObjectCache::Object::postProcess()
+void ObjectCache::ConcreteObject::postProcess()
 {
-	TRACE(request_, 3, "Object.postProcess() status: %d", request_->status);
+	TRACE(requestNotes_, 3, "ConcreteObject.postProcess() status: %d", requestNotes_->request->status);
 
-	for (auto header: request_->responseHeaders) {
-		TRACE(request_, 3, "Object.postProcess() %s: %s", header.name.c_str(), header.value.c_str());
+	for (auto header: requestNotes_->request->responseHeaders) {
+		TRACE(requestNotes_, 3, "ConcreteObject.postProcess() %s: %s", header.name.c_str(), header.value.c_str());
 		if (unlikely(iequals(header.name, "Set-Cookie"))) {
-			request_->log(Severity::info, "Caching requested but origin server provides uncacheable response header, Set-Cookie. Do not cache.");
+			requestNotes_->request->log(Severity::info, "Caching requested but origin server provides uncacheable response header, Set-Cookie. Do not cache.");
 			destroy();
 			return;
 		}
 
 		if (unlikely(iequals(header.name, "Cache-Control"))) {
 			if (iequals(header.value, "no-cache")) {
-				TRACE(request_, 2, "Cache-Control detected. do not record object then.");
+				TRACE(requestNotes_, 2, "\"Cache-Control: no-cache\" detected. do not record object then.");
 				destroy();
 				return;
 			}
 			// TODO we can actually cache it if it's max-age=N is N > 0 for exact N seconds.
 		}
+
+        if (unlikely(iequals(header.name, "Pragma"))) {
+            if (iequals(header.value, "no-cache")) {
+                TRACE(requestNotes_, 2, "\"Pragma: no-cache\" detected. do not record object then.");
+                destroy();
+                return;
+            }
+        }
 
 		if (unlikely(iequals(header.name, "X-Director-Cache")))
 			continue;
@@ -100,20 +116,20 @@ void ObjectCache::Object::postProcess()
 		}
 	}
 
-	addHeaders(request_, false);
+	addHeaders(requestNotes_->request, false);
 
-	request_->outputFilters.push_back(std::make_shared<Builder>(this));
-	request_->onRequestDone.connect<ObjectCache::Object, &ObjectCache::Object::commit>(this);
-	backBuffer().status = request_->status;
+	requestNotes_->request->outputFilters.push_back(std::make_shared<Builder>(this));
+	requestNotes_->request->onRequestDone.connect<ObjectCache::ConcreteObject, &ObjectCache::ConcreteObject::commit>(this);
+	backBuffer().status = requestNotes_->request->status;
 }
 
-std::string to_s(ObjectCache::Object::State value)
+std::string to_s(ObjectCache::ConcreteObject::State value)
 {
 	static const char* ss[] = { "Spawning", "Active", "Stale", "Updating" };
 	return ss[(size_t)value];
 }
 
-void ObjectCache::Object::addHeaders(HttpRequest* r, bool hit)
+void ObjectCache::ConcreteObject::addHeaders(HttpRequest* r, bool hit)
 {
 	static const char* ss[] = {
 		"miss",  // Spawning
@@ -133,70 +149,73 @@ void ObjectCache::Object::addHeaders(HttpRequest* r, bool hit)
 	r->responseHeaders.push_back("Age", buf);
 }
 
-ObjectCache::Object::State ObjectCache::Object::state() const
-{
-	return state_;
-}
-
-void ObjectCache::Object::append(const x0::BufferRef& ref)
+void ObjectCache::ConcreteObject::append(const x0::BufferRef& ref)
 {
 	backBuffer().body.push_back(ref);
 }
 
-void ObjectCache::Object::commit()
+void ObjectCache::ConcreteObject::commit()
 {
-	TRACE(request_, 2, "Object: commit");
-	backBuffer().ctime = request_->connection.worker().now();
+	TRACE(requestNotes_, 2, "ConcreteObject: commit");
+	backBuffer().ctime = requestNotes_->request->connection.worker().now();
 	swapBuffers();
-	request_ = nullptr;
+	requestNotes_ = nullptr;
 	state_ = Active;
 
 	auto pendingRequests = std::move(interests_);
 	size_t i = 0;
 	(void) i;
-	for (auto request: pendingRequests) {
-		TRACE(request_, 3, "commit: deliver to pending request %zu", ++i);
-		request->post([=]() {
-			deliver(request);
+	for (auto rn: pendingRequests) {
+		TRACE(requestNotes_, 3, "commit: deliver to pending request %zu", ++i);
+		rn->request->post([=]() {
+			deliver(rn);
 		});
 	}
 }
 
-DateTime ObjectCache::Object::ctime() const
+DateTime ObjectCache::ConcreteObject::ctime() const
 {
 	return frontBuffer().ctime;
 }
 
-bool ObjectCache::Object::update(HttpRequest* r)
+ObjectCache::ConcreteObject* ObjectCache::ConcreteObject::select(const RequestNotes* rn) const
 {
-	TRACE(request_, 3, "Object.update() -> %s", to_s(state_).c_str());
+    return const_cast<ConcreteObject*>(this);
+}
+
+bool ObjectCache::ConcreteObject::update(RequestNotes* rn)
+{
+	TRACE(rn, 3, "ConcreteObject.update() -> %s", to_s(state_).c_str());
 
 	if (state_ != Spawning)
 		state_ = Updating;
 
-	if (!request_) {
+	if (!requestNotes_) {
 		// this is the first interest request, so it must be responsible for updating this object, too.
-		request_ = r;
-		r->onPostProcess.connect<Object, &Object::postProcess>(this);
+        requestNotes_ = rn;
+		rn->request->onPostProcess.connect<ConcreteObject, &ConcreteObject::postProcess>(this);
 		return false;
 	} else {
 		// we have already some request that's updating this object, so add us to the interest list
 		// and wait for the response.
-		interests_.push_back(r); // TODO honor updateLockTimeout
+		interests_.push_back(rn); // TODO honor updateLockTimeout
+        TRACE(rn, 3, "Concurrent update detected. Enqueuing interest (%zu).", interests_.size());
 		return true;
 	}
 }
 
-void ObjectCache::Object::deliver(x0::HttpRequest* r)
+void ObjectCache::ConcreteObject::deliver(RequestNotes* rn)
 {
-	internalDeliver(r);
+	internalDeliver(rn);
 }
 
-void ObjectCache::Object::internalDeliver(x0::HttpRequest* r)
+void ObjectCache::ConcreteObject::internalDeliver(RequestNotes* rn)
 {
+    HttpRequest* r = rn->request;
+
 	++frontBuffer().hits;
 
-	TRACE(r, 3, "Object.deliver(): hit %zu, state %s", frontBuffer().hits, to_s(state_).c_str());
+	TRACE(rn, 3, "ConcreteObject.deliver(): hit %zu, state %s", frontBuffer().hits, to_s(state_).c_str());
 
 	r->status = frontBuffer().status;
 
@@ -211,30 +230,42 @@ void ObjectCache::Object::internalDeliver(x0::HttpRequest* r)
 	r->finish();
 }
 
-void ObjectCache::Object::expire()
+void ObjectCache::ConcreteObject::expire()
 {
 	state_ = Stale;
 }
 
-void ObjectCache::Object::destroy()
+void ObjectCache::ConcreteObject::destroy()
 {
+    // reschedule all pending interested clients on this object as we're going to get destroyed.
+    // the reschedule should not include the cache again.
+    auto pendingRequests = std::move(interests_);
+    for (auto rn: pendingRequests) {
+        rn->cacheIgnore = true;
+        store_->director_->reschedule(rn);
+    }
+
 	if (store_->objects_.erase(cacheKey_)) {
 		delete this;
-	}
+	} else {
+        assert(!"Mission impossible engaged on us. Trying to destroy a cached object that is not (anymore?) in the store.");
+    }
 }
 // }}}
 // {{{ ObjectCache::VaryingObject
-ObjectCache::Object* ObjectCache::VaryingObject::select(const x0::HttpRequest* request) const
+ObjectCache::ConcreteObject* ObjectCache::VaryingObject::select(const RequestNotes* rn) const
 {
 	for (const auto& object: objects_)
-		if (testMatch(request, object))
+		if (testMatch(rn, object))
 			return object;
 
 	return nullptr;
 }
 
-bool ObjectCache::VaryingObject::testMatch(const x0::HttpRequest* request, const Object* object) const
+bool ObjectCache::VaryingObject::testMatch(const RequestNotes* rn, const ConcreteObject* object) const
 {
+    HttpRequest* request = rn->request;
+
 	for (const auto& name: requestHeaders_)
 		if (request->requestHeader(name) != object->requestHeader(name))
 			return false;
@@ -243,7 +274,8 @@ bool ObjectCache::VaryingObject::testMatch(const x0::HttpRequest* request, const
 }
 // }}}
 // {{{ ObjectCache
-ObjectCache::ObjectCache() :
+ObjectCache::ObjectCache(Director* director) :
+    director_(director),
 	enabled_(true),
 	deliverActive_(true),
 	deliverShadow_(true),
@@ -283,7 +315,7 @@ bool ObjectCache::acquire(const std::string& cacheKey, const std::function<void(
 	if (enabled()) {
 		ObjectMap::accessor accessor;
 		if (objects_.insert(accessor, cacheKey)) {
-			accessor->second = new Object(this, cacheKey);
+			accessor->second = new ConcreteObject(this, cacheKey);
 			callback(accessor->second, true);
 			return true;
 		} else {
@@ -310,66 +342,70 @@ bool ObjectCache::purge(const std::string& cacheKey)
 	return result;
 }
 
-void ObjectCache::clear(bool physically)
+void ObjectCache::expireAll()
 {
-	if (physically) {
-		for (auto object: objects_) {
-			delete object.second;
-		}
-		cachePurges_ += objects_.size();
-		objects_.clear();
-	} else {
-		for (auto object: objects_) {
-			++cachePurges_;
-			object.second->expire();
-		}
-	}
+    for (auto object: objects_) {
+        ++cachePurges_;
+        object.second->expire();
+    }
 }
 
-bool ObjectCache::deliverActive(x0::HttpRequest* r, const std::string& cacheKey)
+void ObjectCache::purgeAll()
+{
+    for (auto object: objects_) {
+        delete object.second;
+    }
+
+    cachePurges_ += objects_.size();
+    objects_.clear();
+}
+
+bool ObjectCache::deliverActive(RequestNotes* rn)
 {
 	if (!deliverActive())
 		return false;
 
 	bool processed = false;
 
-	acquire(cacheKey, [&](Object* object, bool created) {
+	acquire(rn->cacheKey, [&](Object* someObject, bool created) {
 		if (created) {
 			// cache object did not exist and got just created for by this request
 			//printf("Director.processCacheObject: object created\n");
 			++cacheMisses_;
-			processed = object->update(r);
-		} else if (object) {
-			const DateTime now = r->connection.worker().now();
-			const DateTime expiry = object->ctime() + defaultTTL();
+			processed = someObject->update(rn);
+		} else if (someObject) {
+            ConcreteObject* object = someObject->select(rn);
+
+			const DateTime now = rn->request->connection.worker().now();
+			const DateTime expiry = object->ctime() + rn->cacheTTL;
 
 			if (expiry < now)
 				object->expire();
 
 			switch (object->state()) {
-				case Object::Spawning:
+				case ConcreteObject::Spawning:
 					++cacheHits_;
-					processed = object->update(r);
+					processed = object->update(rn);
 					break;
-				case Object::Updating:
+				case ConcreteObject::Updating:
 					if (lockOnUpdate()) {
 						++cacheHits_;
-						processed = !object->update(r);
+						processed = !object->update(rn);
 					} else {
 						++cacheShadowHits_;
 						processed = true;
-						object->deliver(r);
-						//TRACE(3, "Object.deliver(): deliver shadow object");
+						object->deliver(rn);
+						//TRACE(rn, 3, "ConcreteObject.deliver(): deliver shadow object");
 					}
 					break;
-				case Object::Stale:
+				case ConcreteObject::Stale:
 					++cacheMisses_;
-					processed = object->update(r);
+					processed = object->update(rn);
 					break;
-				case Object::Active:
+				case ConcreteObject::Active:
 					processed = true;
 					++cacheHits_;
-					object->deliver(r);
+					object->deliver(rn);
 					break;
 			}
 		}
@@ -378,16 +414,16 @@ bool ObjectCache::deliverActive(x0::HttpRequest* r, const std::string& cacheKey)
 	return processed;
 }
 
-bool ObjectCache::deliverShadow(x0::HttpRequest* r, const std::string& cacheKey)
+bool ObjectCache::deliverShadow(RequestNotes* rn)
 {
 	if (deliverShadow()) {
-		if (find(cacheKey,
-				[&](Object* object)
+		if (find(rn->cacheKey,
+				[rn, this](Object* object)
 				{
 					if (object) {
 						++cacheShadowHits_;
-						r->responseHeaders.push_back("X-Director-Cache", "shadow");
-						object->deliver(r);
+						rn->request->responseHeaders.push_back("X-Director-Cache", "shadow");
+						object->deliver(rn);
 					}
 				}
 			))
@@ -405,15 +441,19 @@ void ObjectCache::writeJSON(x0::JsonWriter& json) const
 		.name("enabled")(enabled())
 		.name("deliver-active")(deliverActive())
 		.name("deliver-shadow")(deliverShadow())
-		.name("misses")(cacheMisses())
-		.name("hits")(cacheHits())
-		.name("shadow-hits")(cacheShadowHits())
-		.name("purges")(cachePurges())
-		.endObject();
+        .name("default-ttl")(defaultTTL().totalSeconds())
+        .name("default-shadow-ttl")(defaultShadowTTL().totalSeconds())
+        .beginObject("stats")
+            .name("misses")(cacheMisses())
+            .name("hits")(cacheHits())
+            .name("shadow-hits")(cacheShadowHits())
+            .name("purges")(cachePurges())
+        .endObject()
+    .endObject();
 }
 // }}}
 // {{{ ObjectCache::Builder
-ObjectCache::Builder::Builder(Object* object) :
+ObjectCache::Builder::Builder(ConcreteObject* object) :
 	object_(object)
 {
 }
@@ -421,7 +461,7 @@ ObjectCache::Builder::Builder(Object* object) :
 Buffer ObjectCache::Builder::process(const BufferRef& chunk)
 {
 	if (object_) {
-		TRACE(object_->request_, 3, "ObjectCache.Builder.process(): %zu bytes", chunk.size());
+		TRACE(object_->requestNotes_, 3, "ObjectCache.Builder.process(): %zu bytes", chunk.size());
 		if (!chunk.empty()) {
 			object_->backBuffer().body.push_back(chunk);
 		}

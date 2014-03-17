@@ -238,7 +238,12 @@ Retrieves state of only one director, by name.
         -d queue-timeout=10000 \
         -d retry-after=60 \
         -d max-retry-count=3 \
-        -d sticky-offline-mode=false
+        -d sticky-offline-mode=false \
+        -d cache-enabled=true \
+        -d cache-deliver-active=true \
+        -d cache-deliver-shadow=true \
+        -d cache-default-ttl=30000 \
+        -d cache-default-shadow-ttl=360000
 
 You can reconfigure any of the directors parameters
 unless this director has been created statically.
@@ -271,6 +276,11 @@ unless this director has been created statically.
   to avoid serving requests by a backend that potentially has been to long offline, that it 
   might have old backend logig. So setting this value to true might be a wise consideration
   in continuous developing production environments.
+- *cache-enabled*: ... TODO
+- *cache-deliver-active*: ... TODO
+- *cache-deliver-shadow*: ... TODO
+- *cache-default-ttl*: ... TODO
+- *cache-default-shadow-ttl*: ... TODO
 
 ## Retrieving Backend State
 

@@ -941,6 +941,24 @@ Handler that (if prefix matches the requests URI) serves an HAproxy compatible m
 Handler that (if prefix matches the requests URI) serves an HAproxy compatible stats page.
 Currently only its CSV output is implemented.
 
+=item B<director.cache> (enabled: bool = true)
+
+Main function, defining whether or not the generated backend response may be cached inside B<x0d> or not.
+Caching though can still be disabled/enabled on cluster-level via the JSON API, which is evaluated before the
+request-local test.
+
+Use this in order improve user experience by accelerating your backends via this central cache.
+
+ handler myapp {
+   # Serve assets directly.
+   docroot '/srv/myapp/public';
+   precompressed;
+   staticfile;
+
+   # Pass request to the 'myapp'-cluster.
+   director.balance 'myapp';
+ }
+
 =back
 
 =head2 dirlisting

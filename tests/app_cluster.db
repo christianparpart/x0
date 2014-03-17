@@ -4,18 +4,25 @@
 [director]
 enabled=true
 queue-limit=127
-queue-timeout=10000
+queue-timeout=10
 retry-after=60
 max-retry-count=3
 sticky-offline-mode=false
 allow-x-sendfile=false
-connect-timeout=10000
-read-timeout=120000
-write-timeout=10000
+connect-timeout=10
+read-timeout=120
+write-timeout=10
 transfer-mode=blocking
 health-check-host-header=localhost.ialu.de
 health-check-request-path=/health
 health-check-fcgi-script-filename=
+
+[cache]
+enabled=true
+deliver-active=true
+deliver-shadow=true
+default-ttl=300
+default-shadow-ttl=3600
 
 [bucket=main]
 rate=0.5
@@ -32,7 +39,7 @@ enabled=true
 transport=tcp
 protocol=http
 health-check-mode=paranoid
-health-check-interval=2000
+health-check-interval=2
 host=127.0.0.1
 port=3101
 
@@ -43,7 +50,7 @@ enabled=true
 transport=tcp
 protocol=http
 health-check-mode=paranoid
-health-check-interval=2000
+health-check-interval=2
 host=127.0.0.1
 port=3102
 
@@ -54,7 +61,7 @@ enabled=true
 transport=tcp
 protocol=http
 health-check-mode=paranoid
-health-check-interval=2000
+health-check-interval=2
 host=127.0.0.1
 port=3103
 
@@ -65,7 +72,7 @@ enabled=true
 transport=tcp
 protocol=http
 health-check-mode=paranoid
-health-check-interval=5000
+health-check-interval=5
 host=127.0.0.1
 port=3104
 
@@ -76,7 +83,7 @@ enabled=true
 transport=tcp
 protocol=http
 health-check-mode=paranoid
-health-check-interval=5000
+health-check-interval=5
 host=127.0.0.1
 port=3105
 

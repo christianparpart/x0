@@ -1,20 +1,10 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- cookie-bomb test:
-  - ifconfig lo mtu 1500 # lower MTU down from 65536
-  - nc -q600 -v localhost 8080 < tests/cookie-bomb.http
-  - ./tests/cookie-bomb
-- verification:
-  - test pipelined requests (wrt request buffer handling)
-    - so a wantWrite() should not *always* (?) also want to wait for READ event ?
-    - FIXME: request body processing with/without being handled by handlers.
-      - better find a way to skip body
-        - SendingReply: auto-sets to wantReadWrite() to send reply *and* consume body;
-          - when req. body got fully consumed and resp body still pending, set to wantWrite()-only.
-      - last-resort: maybe think about fully consuming body before handling
-    - TODO: while consuming body chunks, the inputOffset should always be set back to the end of the request headers offset (so that header buffer remains preserved while handling)
-    - TODO: remove flag IsHandlingRequest
+- TODO(director): disallow invalid POST args (currently ignored / not detected)
+- FIXME: "unexpected tok <number>" on `blah 14`; where blah is undefined too
+- FIXME: search in docs for "=>"'s and adapt them the the recent changes in the Flow syntax
+- TODO: remove flag IsHandlingRequest
 - write unittests (or integration tests)
   - send 3 pipelined GET requests
   - send 3 pipelined POST requests with body to a non-body-handling URI.

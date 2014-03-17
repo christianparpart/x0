@@ -684,9 +684,11 @@ void TokenShaper<T>::Node::writeJSON(x0::JsonWriter& json) const
 		.name("ceil")(ceilPercent_)
 		.name("token-rate")(rate())
 		.name("token-ceil")(ceil())
-		.name("load")(actualRate_)
-		.name("queued")(queued())
-		.name("dropped")(dropped());
+        .beginObject("stats")
+            .name("load")(actualRate_)
+            .name("queued")(queued())
+            .name("dropped")(dropped())
+        .endObject();
 
 	json.beginArray("children");
 	for (auto n: children_) {

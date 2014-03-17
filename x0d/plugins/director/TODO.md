@@ -1,4 +1,13 @@
 
+# ObjectCache
+
+- Do not cache conditional responses like 304's. those headers must be filtered out to the backend when the object cache is active.
+  - or differently handled.
+- Honor conditional requests to support client-side caching
+  - If-Match
+  - If-None-Match
+  - If-Modified-Since
+  - If-Unmodified-Since
 
 # TokenShaper Integration
 
@@ -24,14 +33,6 @@
 # GENERAL
 
 - Thread Safety at a minimum of lock contention to scale horizontally.
-- ObjectCache:
-  - a new object should be created in background and the first request that caused this creation must be enqueued
-    there, too.
-  - resulting from the first, requests enqueued to a newly created object (those not having a shadow buffer yet)
-    must be fed with the data as they arrive into the object, too (in case those requests have been enqueued
-    *before* the first response chunk has been recorded/written)
-  - when an object becomes stale, *all* requests must be served by shadow buffer, even the one that found it out and
-    triggered the update.
 
 # Director
 

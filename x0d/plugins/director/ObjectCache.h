@@ -25,6 +25,9 @@ namespace x0 {
 	class JsonWriter;
 }
 
+class Director;
+class RequestNotes;
+
 /**
  * Response Message Object Cache.
  *
@@ -39,13 +42,14 @@ namespace x0 {
 class ObjectCache {
 public:
 	class Builder;
-	class ObjectBase;
 	class Object;
+	class ConcreteObject;
 	class VaryingObject;
 
 protected:
 	typedef tbb::concurrent_hash_map<std::string, Object*> ObjectMap;
 
+    Director* director_;
 	bool enabled_;
 	bool deliverActive_;
 	bool deliverShadow_;
@@ -63,7 +67,7 @@ protected:
 	ObjectMap objects_;
 
 public:
-	ObjectCache();
+	explicit ObjectCache(Director* director);
 	~ObjectCache();
 
 	/**
@@ -126,7 +130,7 @@ public:
 	 *
 	 * \see deliverShadow(x0::HttpRequest* r, const std::string& cacheKey);
 	 */
-	bool deliverActive(x0::HttpRequest* r, const std::string& cacheKey);
+	bool deliverActive(RequestNotes* rn);
 
 	/**
 	 * Attempts to serve the request from cache if available, doesn't do anything else otherwise.
@@ -136,7 +140,7 @@ public:
 	 *
 	 * \see deliverActive(x0::HttpRequest* r, const std::string& cacheKey);
 	 */
-	bool deliverShadow(x0::HttpRequest* r, const std::string& cacheKey);
+	bool deliverShadow(RequestNotes* rn);
 
 public:
 	/**
@@ -179,52 +183,33 @@ public:
 	 */
 	bool purge(const std::string& cacheKey);
 
-	/**
-	 *
-	 * Globally purges (expires) the complete cache store.
-	 *
-	 * This does not mean that the cache objects are gone from the store. They are usually
-	 * just flagged as invalid, so they can still be served if stale content is requested.
-	 */
-	void clear(bool physically);
+    /**
+     * Expires all cached objects without freeing their backing store.
+     */
+    void expireAll();
+
+    /**
+     * Purges all cached objects completely and frees up their backing store.
+     */
+    void purgeAll();
 
 	void writeJSON(x0::JsonWriter& json) const;
 };
 
-class ObjectCache::ObjectBase {
-public:
-	virtual ~ObjectBase() {}
-
-	virtual Object* select(const x0::HttpRequest* request) const = 0;
-	virtual bool update(x0::HttpRequest* r) = 0;
-	virtual void deliver(x0::HttpRequest* r) = 0;
-	virtual void expire() = 0;
-};
-
-class ObjectCache::VaryingObject : public ObjectBase {
-public:
-	VaryingObject();
-	~VaryingObject();
-
-	virtual Object* select(const x0::HttpRequest* request) const;
-	virtual bool update(x0::HttpRequest* r);
-	virtual void deliver(x0::HttpRequest* r);
-	virtual void expire(); // expires all sub-objects
-
-private:
-	bool testMatch(const x0::HttpRequest* request, const Object* object) const;
-
-	std::list<std::string> requestHeaders_;
-	std::list<Object*> objects_;
-};
-
 /**
- * A cache-object that contains a response message.
+ * A cache-object that contains an HTTP response message (abstract interface).
+ *
+ * @see VaryingObject
+ * @see Object
  */
 class ObjectCache::Object {
 public:
-	Object(ObjectCache* store, const std::string& cacheKey);
-	~Object();
+	virtual ~Object() {}
+
+    /**
+     * Selects a cache-object based on the request's cache key and Vary header.
+     */
+	virtual ConcreteObject* select(const RequestNotes* rn) const = 0;
 
 	/*!
 	 * Updates given object by hooking into the requests output stream.
@@ -240,25 +225,7 @@ public:
 	 * @retval true This request is not used for updating the object and got just enqueued for the response instead.
 	 * @retval false This request is being used for updating the object. So further processing must occur.
 	 */
-	bool update(x0::HttpRequest* r);
-
-	//! The object's state.
-	enum State {
-		Spawning,  //!< the cache object is just being constructed, and not yet completed.
-		Active,    //!< the cache object is valid and ready to be delivered
-		Stale,     //!< the cache object is stale
-		Updating,  //!< the cache object is stale but is already in progress of being updated.
-	};
-
-	State state() const;
-
-	bool isSpawning() const { return state() == Spawning; }
-	bool isStale() const { return state() == Stale; }
-
-	/**
-	 * creation time of given cache object or the time it was last updated.
-	 */
-	x0::DateTime ctime() const;
+	virtual bool update(RequestNotes* rn) = 0;
 
 	/*!
 	 * Delivers this object to the given HTTP client.
@@ -271,15 +238,70 @@ public:
 	 *
 	 * \param r the request this object should be served as response to.
 	 */
-	void deliver(x0::HttpRequest* r);
+	virtual void deliver(RequestNotes* rn) = 0;
 
 	//! marks object as expired but does not destruct it from the store.
-	void expire();
+	virtual void expire() = 0;
+};
+
+/**
+ * A cache-object containing an HTTP response message, respecting the HTTP <b>Vary</b> response header.
+ */
+class ObjectCache::VaryingObject : public Object {
+public:
+	VaryingObject();
+	~VaryingObject();
+
+	ConcreteObject* select(const RequestNotes* rn) const override;
+	bool update(RequestNotes* rn) override;
+	void deliver(RequestNotes* rn) override;
+	void expire() override;
+
+private:
+    /**
+     * Tests if given request's headers match the object's request headers according to  the Vary list.
+     */
+	bool testMatch(const RequestNotes* rn, const ConcreteObject* object) const;
+
+	std::list<std::string> requestHeaders_; //!< list of all request header names which value may <b>vary</b>.
+	std::list<ConcreteObject*> objects_;    //!< list of objects for each <b>variation</b>.
+};
+
+/**
+ * A cache-object that contains an HTTP response message.
+ */
+class ObjectCache::ConcreteObject : public Object {
+public:
+	//! The object's state.
+	enum State {
+		Spawning,  //!< the cache object is just being constructed, and not yet completed.
+		Active,    //!< the cache object is valid and ready to be delivered
+		Stale,     //!< the cache object is stale
+		Updating,  //!< the cache object is stale but is already in progress of being updated.
+	};
+
+	ConcreteObject(ObjectCache* store, const std::string& cacheKey);
+	~ConcreteObject();
+
+	ConcreteObject* select(const RequestNotes* rn) const override;
+	bool update(RequestNotes* rn) override;
+	void deliver(RequestNotes* rn) override;
+	void expire() override;
+
+	State state() const { return state_; }
+
+	bool isSpawning() const { return state() == Spawning; }
+	bool isStale() const { return state() == Stale; }
+
+	/**
+	 * creation time of given cache object or the time it was last updated.
+	 */
+	x0::DateTime ctime() const;
 
 	std::string requestHeader(const std::string& name) const;
 
 private:
-	inline void internalDeliver(x0::HttpRequest* r);
+	inline void internalDeliver(RequestNotes* rn);
 
 	struct Buffer { // {{{
 		x0::DateTime ctime;
@@ -331,11 +353,10 @@ private:
 private:
 	ObjectCache* store_;
 	std::string cacheKey_;
-
-	x0::HttpRequest* request_;              //!< either NULL or pointer to request currently updating this object.
-	std::list<x0::HttpRequest*> interests_; //!< list of requests that have to deliver this object ASAP.
-
 	State state_;
+
+    RequestNotes* requestNotes_;            //!< either NULL or pointer to request currently updating this object.
+	std::list<RequestNotes*> interests_;    //!< list of requests that have to deliver this object ASAP.
 
 	std::unordered_map<std::string, std::string> requestHeaders_;
 
@@ -345,12 +366,15 @@ private:
 	friend class ObjectCache;
 };
 
+/**
+ * HTTP response filter, used to populate a cache-object with a fresh response.
+ */
 class ObjectCache::Builder : public x0::Filter {
 private:
-	Object* object_;
+	ConcreteObject* object_;
 
 public:
-	explicit Builder(Object* object);
+	explicit Builder(ConcreteObject* object);
 
 	virtual x0::Buffer process(const x0::BufferRef& chunk);
 };
@@ -360,4 +384,4 @@ inline x0::JsonWriter& operator<<(x0::JsonWriter& json, const ObjectCache& cache
 	return json;
 }
 
-std::string to_s(ObjectCache::Object::State value);
+std::string to_s(ObjectCache::ConcreteObject::State value);

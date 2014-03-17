@@ -87,7 +87,9 @@ void Backend::writeJSON(JsonWriter& json) const
 		json.name("path")(socketSpec_.local());
 	}
 
+    json.beginObject("stats");
 	json.name("load")(load_);
+    json.endObject();
 
 	if (healthMonitor_) {
 		json.name("health")(*healthMonitor_);

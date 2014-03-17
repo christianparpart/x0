@@ -9,6 +9,7 @@
 
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
+#include <x0/Buffer.h>
 #include <x0/TokenShaper.h>
 #include <x0/TimeSpan.h>
 #include <x0/sysconfig.h>
@@ -52,7 +53,6 @@ struct RequestNotes :
 
 #if defined(X0_DIRECTOR_CACHE)
 	void setCacheKey(const char* data, const char* eptr);
-	void setCacheKey(const char* data) { setCacheKey(data, data + std::strlen(data)); }
-	void setCacheKey(const std::string& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }
+	void setCacheKey(const x0::BufferRef& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }
 #endif
 };

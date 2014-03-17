@@ -107,7 +107,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	shaper_.setTimeoutHandler(std::bind(&Director::onTimeout, this, std::placeholders::_1));
 
 #if defined(X0_DIRECTOR_CACHE)
-	objectCache_ = new ObjectCache();
+	objectCache_ = new ObjectCache(this);
 #endif
 }
 
@@ -417,22 +417,24 @@ void Director::writeJSON(JsonWriter& json) const
 	json.beginObject()
 		.name("mutable")(isMutable())
 		.name("enabled")(isEnabled())
-		.name("load")(load_)
-		.name("queued")(queued_)
-		.name("dropped")(dropped_)
 		.name("queue-limit")(queueLimit_)
-		.name("queue-timeout")(queueTimeout_.totalMilliseconds())
+		.name("queue-timeout")(queueTimeout_.totalSeconds())
 		.name("retry-after")(retryAfter_.totalSeconds())
 		.name("max-retry-count")(maxRetryCount_)
 		.name("sticky-offline-mode")(stickyOfflineMode_)
 		.name("allow-x-sendfile")(allowXSendfile_)
-		.name("connect-timeout")(connectTimeout_.totalMilliseconds())
-		.name("read-timeout")(readTimeout_.totalMilliseconds())
-		.name("write-timeout")(writeTimeout_.totalMilliseconds())
+		.name("connect-timeout")(connectTimeout_.totalSeconds())
+		.name("read-timeout")(readTimeout_.totalSeconds())
+		.name("write-timeout")(writeTimeout_.totalSeconds())
 		.name("transfer-mode")(transferMode_)
 		.name("health-check-host-header")(healthCheckHostHeader_)
 		.name("health-check-request-path")(healthCheckRequestPath_)
 		.name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
+        .beginObject("stats")
+            .name("load")(load_)
+            .name("queued")(queued_)
+            .name("dropped")(dropped_)
+        .endObject()
 #if defined(X0_DIRECTOR_CACHE)
 		.name("cache")(*objectCache_)
 #endif
@@ -489,7 +491,7 @@ bool Director::load(const std::string& path)
 
 	if (settings.contains("director", "enabled")) {
 		if (!settings.load("director", "enabled", value)) {
-			worker()->log(Severity::error, "director: Could not load settings value director.enabled  in file '%s'", path.c_str());
+			worker()->log(Severity::error, "director: Could not load settings value director.enabled in file '%s'", path.c_str());
 			return false;
 		}
 		enabled_ = value == "true";
@@ -507,7 +509,7 @@ bool Director::load(const std::string& path)
 		worker()->log(Severity::error, "director: Could not load settings value director.queue-timeout in file '%s'", path.c_str());
 		return false;
 	}
-	queueTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+	queueTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
 
 	if (!settings.load("director", "retry-after", value)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.retry-after in file '%s'", path.c_str());
@@ -519,19 +521,19 @@ bool Director::load(const std::string& path)
 		worker()->log(Severity::error, "director: Could not load settings value director.connect-timeout in file '%s'", path.c_str());
 		return false;
 	}
-	connectTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+	connectTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
 
 	if (!settings.load("director", "read-timeout", value)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.read-timeout in file '%s'", path.c_str());
 		return false;
 	}
-	readTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+	readTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
 
 	if (!settings.load("director", "write-timeout", value)) {
 		worker()->log(Severity::error, "director: Could not load settings value director.write-timeout in file '%s'", path.c_str());
 		return false;
 	}
-	writeTimeout_ = TimeSpan::fromMilliseconds(std::atoll(value.c_str()));
+	writeTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
 
 	if (!settings.load("director", "transfer-mode", value)) {
 		worker()->log(Severity::warn, "director: Could not load settings value director.transfer-mode in file '%s'. Defaulting to 'blocking'.", path.c_str());
@@ -575,6 +577,58 @@ bool Director::load(const std::string& path)
 		healthCheckFcgiScriptFilename_ = "";
 	}
 
+#if defined(X0_DIRECTOR_CACHE)
+    if (settings.contains("cache", "enabled")) {
+        if (!settings.load("cache", "enabled", value)) {
+            worker()->log(Severity::error, "director: Could not load settings value cache.enabled in file '%s'", path.c_str());
+            return false;
+        }
+        objectCache().setEnabled(value == "true");
+    } else {
+        ++changed;
+    }
+
+    if (settings.contains("cache", "deliver-active")) {
+        if (!settings.load("cache", "deliver-active", value)) {
+            worker()->log(Severity::error, "director: Could not load settings value cache.deliver-active in file '%s'", path.c_str());
+            return false;
+        }
+        objectCache().setDeliverActive(value == "true");
+    } else {
+        ++changed;
+    }
+
+    if (settings.contains("cache", "deliver-shadow")) {
+        if (!settings.load("cache", "deliver-shadow", value)) {
+            worker()->log(Severity::error, "director: Could not load settings value cache.deliver-shadow in file '%s'", path.c_str());
+            return false;
+        }
+        objectCache().setDeliverShadow(value == "true");
+    } else {
+        ++changed;
+    }
+
+    if (settings.contains("cache", "default-ttl")) {
+        if (!settings.load("cache", "default-ttl", value)) {
+            worker()->log(Severity::error, "director: Could not load settings value cache.default-ttl in file '%s'", path.c_str());
+            return false;
+        }
+        objectCache().setDefaultTTL(TimeSpan::fromSeconds(stoi(value)));
+    } else {
+        ++changed;
+    }
+
+    if (settings.contains("cache", "default-shadow-ttl")) {
+        if (!settings.load("cache", "default-shadow-ttl", value)) {
+            worker()->log(Severity::error, "director: Could not load settings value cache.default-ttl in file '%s'", path.c_str());
+            return false;
+        }
+        objectCache().setDefaultShadowTTL(TimeSpan::fromSeconds(stoi(value)));
+    } else {
+        ++changed;
+    }
+#endif
+
 	for (auto& section: settings) {
 		static const std::string backendSectionPrefix("backend=");
 		static const std::string bucketSectionPrefix("bucket=");
@@ -582,6 +636,9 @@ bool Director::load(const std::string& path)
 		std::string key = section.first;
 		if (key == "director")
 			continue;
+
+        if (key == "cache")
+            continue;
 
 		bool result = false;
 		if (key.find(backendSectionPrefix) == 0)
@@ -694,7 +751,7 @@ bool Director::loadBackend(const IniFile& settings, const std::string& key)
 		worker()->log(Severity::error, "director: Error loading configuration file '%s'. Item 'health-check-interval' not found in section '%s'.", storagePath_.c_str(), key.c_str());
 		return false;
 	}
-	TimeSpan hcInterval = TimeSpan::fromMilliseconds(std::atoll(hcIntervalStr.c_str()));
+	TimeSpan hcInterval = TimeSpan::fromSeconds(std::atoll(hcIntervalStr.c_str()));
 
 	// health-check-mode
 	std::string hcModeStr;
@@ -773,19 +830,29 @@ bool Director::save()
 		<< "[director]\n"
 		<< "enabled=" << (enabled_ ? "true" : "false") << "\n"
 		<< "queue-limit=" << queueLimit_ << "\n"
-		<< "queue-timeout=" << queueTimeout_.totalMilliseconds() << "\n"
+		<< "queue-timeout=" << queueTimeout_.totalSeconds() << "\n"
 		<< "retry-after=" << retryAfter_.totalSeconds() << "\n"
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
 		<< "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
 		<< "allow-x-sendfile=" << (allowXSendfile_ ? "true" : "false") << "\n"
-		<< "connect-timeout=" << connectTimeout_.totalMilliseconds() << "\n"
-		<< "read-timeout=" << readTimeout_.totalMilliseconds() << "\n"
-		<< "write-timeout=" << writeTimeout_.totalMilliseconds() << "\n"
+		<< "connect-timeout=" << connectTimeout_.totalSeconds() << "\n"
+		<< "read-timeout=" << readTimeout_.totalSeconds() << "\n"
+		<< "write-timeout=" << writeTimeout_.totalSeconds() << "\n"
 		<< "transfer-mode=" << tos(transferMode_) << "\n"
 		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
 		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
 		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
 		<< "\n";
+
+#if defined(X0_DIRECTOR_CACHE)
+    out << "[cache]\n"
+		<< "enabled=" << (objectCache().enabled() ? "true" : "false") << "\n"
+		<< "deliver-active=" << (objectCache().deliverActive() ? "true" : "false") << "\n"
+		<< "deliver-shadow=" << (objectCache().deliverShadow() ? "true" : "false") << "\n"
+		<< "default-ttl=" << objectCache().defaultTTL().totalSeconds() << "\n"
+        << "default-shadow-ttl=" << objectCache().defaultShadowTTL().totalSeconds() << "\n"
+        << "\n";
+#endif
 
 	for (auto& bucket: *shaper()->rootNode()) {
 		out << "[bucket=" << bucket->name() << "]\n"
@@ -803,7 +870,7 @@ bool Director::save()
 				<< "transport=" << (b->socketSpec().isLocal() ? "local" : "tcp") << "\n"
 				<< "protocol=" << b->protocol() << "\n"
 				<< "health-check-mode=" << b->healthMonitor()->mode_str() << "\n"
-				<< "health-check-interval=" << b->healthMonitor()->interval().totalMilliseconds() << "\n";
+				<< "health-check-interval=" << b->healthMonitor()->interval().totalSeconds() << "\n";
 
 			if (b->socketSpec().isInet()) {
 				out << "host=" << b->socketSpec().ipaddr().str() << "\n";
@@ -860,12 +927,17 @@ bool Director::processCacheObject(RequestNotes* notes)
 {
 	auto r = notes->request;
 
+    // are we caching at all?
 	if (!objectCache_->enabled())
 		return false;
 
 	if (unlikely(notes->cacheKey.empty()))
 		notes->setCacheKey("%h#%r#%q");
 
+    if (!notes->cacheTTL)
+        notes->cacheTTL = objectCache_->defaultTTL();
+
+    // is this a PURGE request?
 	if (unlikely(equals(r->method, "PURGE"))) {
 		if (objectCache_->purge(notes->cacheKey)) {
 			r->status = HttpStatus::Ok;
@@ -878,9 +950,14 @@ bool Director::processCacheObject(RequestNotes* notes)
 		return true;
 	}
 
-	if (unlikely(notes->cacheIgnore))
+    // should this request be ignored by cache?
+	if (unlikely(notes->cacheIgnore)) {
+        printf("skip object cache\n");
 		return false;
+    }
+    printf("use object cache\n");
 
+    // is the request method allowed for caching?
 	static const char* allowedMethods[] = { "GET", "HEAD" };
 	bool methodFound = false;
 	for (auto& method: allowedMethods) {
@@ -893,7 +970,8 @@ bool Director::processCacheObject(RequestNotes* notes)
 	if (!methodFound)
 		return false;
 
-	return objectCache_->deliverActive(r, notes->cacheKey);
+    // finally actually deliver cache
+	return objectCache_->deliverActive(notes);
 }
 #endif
 
@@ -987,7 +1065,7 @@ void Director::serviceUnavailable(RequestNotes* notes, x0::HttpStatus status)
 	auto r = notes->request;
 
 #if defined(X0_DIRECTOR_CACHE)
-	if (objectCache_->deliverShadow(r, notes->cacheKey))
+	if (objectCache_->deliverShadow(notes))
 		return;
 #endif
 

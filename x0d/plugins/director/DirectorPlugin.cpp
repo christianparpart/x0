@@ -14,10 +14,10 @@
  *     in front of us.
  *
  * setup API:
+ *
  *     function director.load(string director_name_1 => string path_to_db,
  *                            ...);
  *
- *     function director.cache.ttl(timespan, [timespan])
  *     function director.cache.deliver_stale
  *     function director.cache.deliver_active
  *
@@ -29,8 +29,9 @@
  *     handler director.http(socket_spec);
  *
  *     handler director.ondemand();
- *     function director.cache.ttl(timespan ttl);
- *     function director.cache.ttl(timespan ttl, timespan shadow_ttl);
+ *
+ *     function director.cache(bool enabled);
+ *     function director.cache.ttl(timespan ttl, timespan shadow_ttl = 0);
  *     function director.cache.key(string pattern);
  *     function director.cache.bypass();
  */
@@ -63,8 +64,9 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
         .param<FlowString>("path");
 
 #if defined(X0_DIRECTOR_CACHE)
+    mainFunction("director.cache", &DirectorPlugin::director_cache_enabled, FlowType::Boolean);
     mainFunction("director.cache.key", &DirectorPlugin::director_cache_key, FlowType::String);
-    mainFunction("director.cache.bypass", &DirectorPlugin::director_cache_bypass);
+    mainFunction("director.cache.ttl", &DirectorPlugin::director_cache_ttl, FlowType::Number);
 #endif
 
     mainHandler("director.balance", &DirectorPlugin::director_balance)
@@ -132,18 +134,30 @@ void DirectorPlugin::director_load(FlowVM::Params& args)
     directors_[directorName] = director;
 }
 // }}}
-// {{{ function director.cache.bypass()
+// {{{ setup function director.cache.key(string key)
 #if defined(X0_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
 {
 	auto notes = requestNotes(r);
-    notes->setCacheKey(args.get<FlowString>(1).str());
+    notes->setCacheKey(args.get<FlowString>(1));
 }
-
-void DirectorPlugin::director_cache_bypass(HttpRequest* r, FlowVM::Params& args)
+#endif
+// }}}
+// {{{ function director.cache.enabled()
+#if defined(X0_DIRECTOR_CACHE)
+void DirectorPlugin::director_cache_enabled(HttpRequest* r, FlowVM::Params& args)
 {
-	auto notes = requestNotes(r);
-	notes->cacheIgnore = true;
+    auto notes = requestNotes(r);
+    notes->cacheIgnore = !args.get<bool>(1);
+}
+#endif
+// }}}
+// {{{ function director.cache.ttl()
+#if defined(X0_DIRECTOR_CACHE)
+void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args)
+{
+    auto notes = requestNotes(r);
+    notes->cacheTTL = TimeSpan::fromSeconds(args.get<FlowNumber>(1));
 }
 #endif
 // }}}
