@@ -63,7 +63,7 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
         .param<FlowString>("name")
         .param<FlowString>("path");
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
     mainFunction("director.cache", &DirectorPlugin::director_cache_enabled, FlowType::Boolean);
     mainFunction("director.cache.key", &DirectorPlugin::director_cache_key, FlowType::String);
     mainFunction("director.cache.ttl", &DirectorPlugin::director_cache_ttl, FlowType::Number);
@@ -135,7 +135,7 @@ void DirectorPlugin::director_load(FlowVM::Params& args)
 }
 // }}}
 // {{{ setup function director.cache.key(string key)
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
 {
 	auto notes = requestNotes(r);
@@ -144,7 +144,7 @@ void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
 #endif
 // }}}
 // {{{ function director.cache.enabled()
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_enabled(HttpRequest* r, FlowVM::Params& args)
 {
     auto notes = requestNotes(r);
@@ -153,7 +153,7 @@ void DirectorPlugin::director_cache_enabled(HttpRequest* r, FlowVM::Params& args
 #endif
 // }}}
 // {{{ function director.cache.ttl()
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args)
 {
     auto notes = requestNotes(r);

@@ -499,7 +499,7 @@ bool ApiRequest::update(Director* director)
 	if (hasParam("health-check-fcgi-script-filename") && !loadParam("health-check-fcgi-script-filename", hcFcgiScriptFileName))
 		return false;
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
     bool cacheEnabled = director->objectCache().enabled();
     if (hasParam("cache-enabled") && !loadParam("cache-enabled", cacheEnabled))
         return false;
@@ -545,7 +545,7 @@ bool ApiRequest::update(Director* director)
 	director->setHealthCheckRequestPath(hcRequestPath);
 	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
     director->objectCache().setEnabled(cacheEnabled);
     director->objectCache().setDeliverActive(cacheDeliverActive);
     director->objectCache().setDeliverShadow(cacheDeliverShadow);

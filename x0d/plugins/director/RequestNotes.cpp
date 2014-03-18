@@ -27,7 +27,7 @@ RequestNotes::RequestNotes(x0::HttpRequest* r) :
 	tryCount(0),
 	bucket(nullptr),
 	tokens(0)
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	,
 	cacheKey(),
 	cacheTTL(x0::TimeSpan::Zero),
@@ -46,7 +46,7 @@ RequestNotes::~RequestNotes()
 	}
 }
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 void RequestNotes::setCacheKey(const char* i, const char* e)
 {
 	Buffer result;

@@ -14,7 +14,7 @@
 
 #include <x0/sysconfig.h>
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 #  include "ObjectCache.h"
 #endif
 
@@ -95,7 +95,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	shaper_(worker->loop(), 0),
 	queued_(),
 	dropped_(0),
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	objectCache_(nullptr),
 #endif
 	stopHandle_()
@@ -106,7 +106,7 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 
 	shaper_.setTimeoutHandler(std::bind(&Director::onTimeout, this, std::placeholders::_1));
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	objectCache_ = new ObjectCache(this);
 #endif
 }
@@ -122,7 +122,7 @@ Director::~Director()
 		});
 	}
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	delete objectCache_;
 #endif
 }
@@ -435,7 +435,7 @@ void Director::writeJSON(JsonWriter& json) const
             .name("queued")(queued_)
             .name("dropped")(dropped_)
         .endObject()
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 		.name("cache")(*objectCache_)
 #endif
 		.name("shaper")(shaper_)
@@ -577,7 +577,7 @@ bool Director::load(const std::string& path)
 		healthCheckFcgiScriptFilename_ = "";
 	}
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
     if (settings.contains("cache", "enabled")) {
         if (!settings.load("cache", "enabled", value)) {
             worker()->log(Severity::error, "director: Could not load settings value cache.enabled in file '%s'", path.c_str());
@@ -844,7 +844,7 @@ bool Director::save()
 		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
 		<< "\n";
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
     out << "[cache]\n"
 		<< "enabled=" << (objectCache().enabled() ? "true" : "false") << "\n"
 		<< "deliver-active=" << (objectCache().deliverActive() ? "true" : "false") << "\n"
@@ -916,7 +916,7 @@ void Director::schedule(RequestNotes* notes, Backend* backend)
 	}
 }
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 /*!
  * Validates request against a possibly existing cached object and delivers it or requests updating it.
  *
@@ -1000,7 +1000,7 @@ void Director::schedule(RequestNotes* notes, RequestShaper::Node* bucket)
 		return;
 	}
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	if (processCacheObject(notes))
 		return;
 #endif
@@ -1064,7 +1064,7 @@ void Director::serviceUnavailable(RequestNotes* notes, x0::HttpStatus status)
 {
 	auto r = notes->request;
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	if (objectCache_->deliverShadow(notes))
 		return;
 #endif

@@ -11,9 +11,9 @@ if(ENABLE_PLUGIN_DIRECTOR)
     -DSYSCONFDIR="${SYSCONFDIR}"
     -DVERSION="${PACKAGE_VERSION}")
 
-  if(X0_DIRECTOR_CACHE)
+  if(ENABLE_DIRECTOR_CACHE)
     set(director_cache_SRC ObjectCache.cpp)
-  endif(X0_DIRECTOR_CACHE)
+  endif(ENABLE_DIRECTOR_CACHE)
 
   set(director_SRC
     RequestNotes.cpp

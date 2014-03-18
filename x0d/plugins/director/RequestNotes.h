@@ -41,7 +41,7 @@ struct RequestNotes :
 	x0::TokenShaper<RequestNotes>::Node* bucket; //!< the bucket (node) this request is to be scheduled via.
 	size_t tokens; //!< contains the number of currently acquired tokens by this request (usually 0 or 1).
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	std::string cacheKey;
 	x0::TimeSpan cacheTTL;
 	std::list<std::string> cacheHeaderIgnores;
@@ -51,7 +51,7 @@ struct RequestNotes :
 	explicit RequestNotes(x0::HttpRequest* r);
 	~RequestNotes();
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	void setCacheKey(const char* data, const char* eptr);
 	void setCacheKey(const x0::BufferRef& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }
 #endif

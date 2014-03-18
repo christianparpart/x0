@@ -19,14 +19,14 @@ include(CheckLibraryExists)
 include(CheckCSourceCompiles)
 include(CMakeDetermineCCompiler)
 
-#option(BUILD_STATIC "Build with modules statically linked in [default: off]")
 option(ENABLE_TESTS "Build unit tests [default: off]" OFF)
 
-option(ENABLE_EXAMPLES "Includes example plugins and programs" OFF)
+option(ENABLE_EXAMPLES "Includes example plugins and programs [default: off]" OFF)
 
 option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
 option(ENABLE_FLOW_TOOL "Build flow-tool [default: off]" OFF)
 
+# x0d plugins
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
 option(ENABLE_PLUGIN_AUTH_PAM "Build with 'auth' plugin with PAM authentication support [default: on]" ON)
 option(ENABLE_PLUGIN_IMAGEABLE "Includes Image Resizer plugin [default: off]" OFF)
@@ -35,7 +35,8 @@ option(ENABLE_PLUGIN_SSL "Builds with SSL support [default: on]" ON)
 option(ENABLE_PLUGIN_DIRECTOR "Builds director plugin (http/fastcgi proxy+loadbalancer) [default: on]" ON)
 option(ENABLE_PLUGIN_WEBDAV "Includes WebDAV support (plugin) [default: off]" OFF)
 
-option(X0_DIRECTOR_CACHE "Enables response cache accelerator (EXPERIMENTAL) [default: on]" ON)
+# plugin related feature flags
+option(ENABLE_DIRECTOR_CACHE "Enables response cache accelerator [default: on]" ON)
 
 option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
@@ -48,18 +49,6 @@ option(ENABLE_PCRE "With PCRE support [default: off]" ON)
 option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
 option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
 option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
-
-# FIXME this is quite a hack, however, it helps the recommender project (soon to be open-sourced) to compile nicely on OSX, too.
-if (APPLE)
-  set(ENABLE_PLUGIN_SSL OFF)
-  set(ENABLE_XZERO_FLOW OFF)
-  set(ENABLE_FLOW_TOOL OFF)
-  set(ENABLE_PLUGINS OFF)
-  set(ENABLE_PLUGIN_SSL OFF)
-  set(ENABLE_PLUGIN_DIRECTOR OFF)
-  set(ENABLE_PLUGIN_AUTH_PAM OFF)
-  set(ENABLE_MANPAGES OFF)
-endif()
 
 if(ENABLE_PLUGIN_AUTH_PAM)
   CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)
@@ -106,6 +95,7 @@ CHECK_INCLUDE_FILES(pwd.h HAVE_PWD_H)
 CHECK_INCLUDE_FILES(syslog.h HAVE_SYSLOG_H)
 CHECK_INCLUDE_FILES(uuid/uuid.h HAVE_UUID_UUID_H)
 CHECK_INCLUDE_FILES(sys/utsname.h HAVE_SYS_UTSNAME_H)
+CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
 
 CHECK_FUNCTION_EXISTS(fork HAVE_FORK)
 CHECK_FUNCTION_EXISTS(chroot HAVE_CHROOT)
@@ -224,12 +214,6 @@ if(ENABLE_TESTS)
   find_package(FCGI)
   CHECK_INCLUDE_FILES(gtest/gtest.h HAVE_GTEST_GTEST_H)
 endif()
-
-#if(BUILD_STATIC)
-  # ...
-#else(BUILD_STATIC)
-  CHECK_INCLUDE_FILES(dlfcn.h HAVE_DLFCN_H)
-#endif(BUILD_STATIC)
 
 # ---------------------------------------------------------------------------
 macro(x0_plugin_simple ModuleName)

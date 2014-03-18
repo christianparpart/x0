@@ -85,7 +85,7 @@ private:
 	x0::Counter queued_;
 	std::atomic<unsigned long long> dropped_;
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	ObjectCache* objectCache_;	//!< response object cache
 #endif
 
@@ -95,7 +95,7 @@ public:
 	Director(HttpWorker* worker, const std::string& name);
 	~Director();
 
-#if defined(X0_DIRECTOR_CACHE)
+#if defined(ENABLE_DIRECTOR_CACHE)
 	ObjectCache& objectCache() const { return *objectCache_; }
 #endif
 
