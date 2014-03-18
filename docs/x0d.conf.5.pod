@@ -318,7 +318,7 @@ Example 1:
 
  handler setup {
      # listen on IPv4 address 127.0.0.1 with port 8081
-     listen bind: => 127.0.0.1, port: 8081;
+     listen bind: 127.0.0.1, port: 8081;
  }
 
 Example 2:
@@ -564,7 +564,7 @@ Example:
          rewrite '/error.html'
          staticfile
      } else {
-         director.fcgi 'path' => '/var/run/custom-error-generator.socket'
+         director.fcgi address: 127.0.0.1, port: 7500;
      }
  }
 
