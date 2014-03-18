@@ -224,6 +224,10 @@ void ObjectCache::ConcreteObject::internalDeliver(RequestNotes* rn)
 
 	addHeaders(r, true);
 
+    char slen[16];
+    snprintf(slen, sizeof(slen), "%zu", frontBuffer().body.size());
+    r->responseHeaders.overwrite("Content-Length", slen);
+
 	if (!equals(r->method, "HEAD"))
 		r->write<BufferRefSource>(frontBuffer().body);
 
