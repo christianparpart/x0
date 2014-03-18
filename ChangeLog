@@ -10,6 +10,7 @@
 	* flow: Every handler/function call statement and variable declaration must be followed by a semicolon ';'.
 	* http: Fixed a bug that caused a crash when posting to a completion-callback into a connection to crash.
 	* http: Fixed large requests that lead to a timeout or hang forever.
+	* http: Improved client-side caching awareness for GET requests on static files.
 	* director: Added experimental response output caching support.
 	* director: Fixes 2 bugs (in http-backend and fastcgi backend) with regards to their connection ref-counting.
 	* x0d: Added --dump-ast parameter to dump Flow's parsed AST.
