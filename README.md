@@ -42,6 +42,13 @@ written in modern C++.
   - sticky offline mode
   - X-Sendfile support, full static file transmission acceleration
   - HAproxy compatible CSV output
+  - Object Cache
+    - fully runtime configurable
+    - client-cache aware
+    - life JSON stats
+    - supports serving stale objects when no backend is available
+    - Vary-response support.
+    - multiple update strategies (locked, shadowed)
 - request path aliasing (plugin)
 - automatic directory listing generation (plugin)
 - apache-style access log (plugin)
