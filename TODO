@@ -1,6 +1,7 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- TODO(flow-lang): support multi-label match blocks
 - TODO(director): disallow invalid POST args (currently ignored / not detected)
 - FIXME: "unexpected tok <number>" on `blah 14`; where blah is undefined too
 - FIXME: search in docs for "=>"'s and adapt them the the recent changes in the Flow syntax
@@ -13,6 +14,25 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 - http integration test server
   - POST /echo              - sends back post body and received content-type header
   - GET  /sendfile/64.txt   - static 64byte file
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; Multi Label Match Blocks
+
+handler demo {
+  match req.path {
+    on '/fnord/foo',
+    on '/fnord/bar',
+    on '/fnord/by/nature' {
+      your_rocking_fnord;
+    }
+    on '/something/else' {
+      yeah_buddy;
+    }
+    else {
+      not_so_rocking_fnord;
+    }
+  }
+}
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; HTTP connection lifecycle diagram
