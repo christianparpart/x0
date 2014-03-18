@@ -306,7 +306,10 @@ private:
 	struct Buffer { // {{{
 		x0::DateTime ctime;
 		x0::HttpStatus status;
+
 		std::list<std::pair<std::string, std::string>> headers;
+        std::string etag;
+        x0::DateTime mtime;
 		x0::Buffer body;
 		size_t hits;
 
@@ -314,6 +317,8 @@ private:
 			ctime(),
 			status(x0::HttpStatus::Undefined),
 			headers(),
+            etag(),
+            mtime(),
 			body(),
 			hits(0)
 		{
@@ -327,6 +332,7 @@ private:
 		}
 	}; // }}}
 
+    x0::HttpStatus tryProcessClientCache(RequestNotes* rn);
 	void postProcess();
 	void addHeaders(x0::HttpRequest* r, bool hit);
 	void destroy();

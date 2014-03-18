@@ -103,6 +103,12 @@ void ObjectCache::ConcreteObject::postProcess()
 		if (unlikely(iequals(header.name, "X-Director-Cache")))
 			continue;
 
+        if (iequals(header.name, "ETag"))
+            backBuffer().etag = header.value;
+
+        if (iequals(header.name, "Last-Modified"))
+            backBuffer().mtime = DateTime(header.value);
+
 		bool skip = false;
 //		for (auto ignore: notes->cacheHeaderIgnores) {
 //			if (iequals(header.name, ignore)) {
@@ -157,8 +163,14 @@ void ObjectCache::ConcreteObject::append(const x0::BufferRef& ref)
 void ObjectCache::ConcreteObject::commit()
 {
 	TRACE(requestNotes_, 2, "ConcreteObject: commit");
+
 	backBuffer().ctime = requestNotes_->request->connection.worker().now();
+
+    if (backBuffer().mtime.unixtime() == 0)
+        backBuffer().mtime = backBuffer().ctime;
+
 	swapBuffers();
+
 	requestNotes_ = nullptr;
 	state_ = Active;
 
@@ -193,6 +205,11 @@ bool ObjectCache::ConcreteObject::update(RequestNotes* rn)
 	if (!requestNotes_) {
 		// this is the first interest request, so it must be responsible for updating this object, too.
         requestNotes_ = rn;
+
+        // avoid caching conditional GET by removing conditional request headers when sending to backend.
+        if (rn->request->method == "GET")
+            rn->request->removeRequestHeaders({"If-Match", "If-None-Match", "If-Modified-Since", "If-Unmodified-Since"});
+
 		rn->request->onPostProcess.connect<ConcreteObject, &ConcreteObject::postProcess>(this);
 		return false;
 	} else {
@@ -217,6 +234,29 @@ void ObjectCache::ConcreteObject::internalDeliver(RequestNotes* rn)
 
 	TRACE(rn, 3, "ConcreteObject.deliver(): hit %zu, state %s", frontBuffer().hits, to_s(state_).c_str());
 
+    if (equals(r->method, "GET")) {
+        HttpStatus status = tryProcessClientCache(rn);
+        if (status != HttpStatus::Undefined) {
+            r->status = status;
+
+            if (!frontBuffer().etag.empty())
+                r->responseHeaders.push_back("ETag", frontBuffer().etag);
+
+            char buf[256];
+            time_t mtime = frontBuffer().mtime.unixtime();
+            if (struct tm *tm = std::gmtime(&mtime)) {
+                if (std::strftime(buf, sizeof(buf), "%a, %d %b %Y %T GMT", tm) != 0) {
+                    r->responseHeaders.push_back("Last-Modified", buf);
+                }
+            }
+
+            addHeaders(r, true);
+
+            r->finish();
+            return;
+        }
+    }
+
 	r->status = frontBuffer().status;
 
 	for (auto header: frontBuffer().headers)
@@ -232,6 +272,87 @@ void ObjectCache::ConcreteObject::internalDeliver(RequestNotes* rn)
 		r->write<BufferRefSource>(frontBuffer().body);
 
 	r->finish();
+}
+
+/**
+ * Attempts to shortcut request-processing by using the client-side cache.
+ */
+HttpStatus ObjectCache::ConcreteObject::tryProcessClientCache(RequestNotes* rn)
+{
+    HttpRequest* r = rn->request;
+    TRACE(rn, 1, "tryProcessClientCache()");
+
+    // If-None-Match
+    do {
+        BufferRef value = r->requestHeader("If-None-Match");
+        TRACE(rn, 1, "tryProcessClientCache(): If-None-Match: '%s'", value.str().c_str());
+        if (value.empty())
+            continue;
+
+        // XXX: on these entities we probably don't need the token-list support
+        TRACE(rn, 1, " - against etag: '%s'", frontBuffer().etag.c_str());
+        if (value != frontBuffer().etag)
+            continue;
+
+        return HttpStatus::NotModified;
+    }
+    while (0);
+
+    // If-Modified-Since
+    do {
+        BufferRef value = r->requestHeader("If-Modified-Since");
+        TRACE(rn, 1, "tryProcessClientCache(): If-Modified-Since: '%s'", value.str().c_str());
+        if (value.empty())
+            continue;
+
+        DateTime dt(value);
+        if (!dt.valid())
+            continue;
+
+        if (frontBuffer().mtime > dt)
+            continue;
+
+        return HttpStatus::NotModified;
+    }
+    while (0);
+
+    // If-Match
+    do {
+        BufferRef value = r->requestHeader("If-Match");
+        TRACE(rn, 1, "tryProcessClientCache(): If-Match: '%s'", value.str().c_str());
+        if (value.empty())
+            continue;
+
+        if (value == "*")
+            continue;
+
+        // XXX: on static files we probably don't need the token-list support
+        if (value == frontBuffer().etag)
+            continue;
+
+        return HttpStatus::PreconditionFailed;
+    }
+    while (0);
+
+    // If-Unmodified-Since
+    do {
+        BufferRef value = r->requestHeader("If-Unmodified-Since");
+        TRACE(rn, 1, "tryProcessClientCache(): If-Unmodified-Since: '%s'", value.str().c_str());
+        if (value.empty())
+            continue;
+
+        DateTime dt(value);
+        if (!dt.valid())
+            continue;
+
+        if (frontBuffer().mtime <= dt)
+            continue;
+
+        return HttpStatus::PreconditionFailed;
+    }
+    while (0);
+
+    return HttpStatus::Undefined;
 }
 
 void ObjectCache::ConcreteObject::expire()
