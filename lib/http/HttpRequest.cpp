@@ -1092,32 +1092,70 @@ bool HttpRequest::sendfile(const HttpFileRef& transferFile)
  */
 HttpStatus HttpRequest::verifyClientCache(const HttpFileRef& transferFile) const
 {
-	BufferRef value;
+    // If-None-Match
+    do {
+        BufferRef value = requestHeader("If-None-Match");
+        if (value.empty())
+            continue;
 
-	// If-None-Match, If-Modified-Since
-	if ((value = requestHeader("If-None-Match")) != "") {
-		if (value == transferFile->etag()) {
-			if ((value = requestHeader("If-Modified-Since")) != "") { // ETag + If-Modified-Since
-				DateTime date(value);
+        // XXX: on static files we probably don't need the token-list support
+        if (value != transferFile->etag())
+            continue;
 
-				if (!date.valid())
-					return HttpStatus::BadRequest;
+        return HttpStatus::NotModified;
+    }
+    while (0);
 
-				if (transferFile->mtime() <= date.unixtime())
-					return HttpStatus::NotModified;
-			} else { // ETag-only
-				return HttpStatus::NotModified;
-			}
-		}
-	}
-	else if ((value = requestHeader("If-Modified-Since")) != "") {
-		DateTime date(value);
-		if (!date.valid())
-			return HttpStatus::BadRequest;
+    // If-Modified-Since
+    do {
+        BufferRef value = requestHeader("If-Modified-Since");
+        if (value.empty())
+            continue;
 
-		if (transferFile->mtime() <= date.unixtime())
-			return HttpStatus::NotModified;
-	}
+        DateTime dt(value);
+        if (!dt.valid())
+            continue;
+
+        if (transferFile->mtime() > dt.unixtime())
+            continue;
+
+        return HttpStatus::NotModified;
+    }
+    while (0);
+
+    // If-Match
+    do {
+        BufferRef value = requestHeader("If-Match");
+        if (value.empty())
+            continue;
+
+        if (value == "*")
+            continue;
+
+        // XXX: on static files we probably don't need the token-list support
+        if (value == transferFile->etag())
+            continue;
+
+        return HttpStatus::PreconditionFailed;
+    }
+    while (0);
+
+    // If-Unmodified-Since
+    do {
+        BufferRef value = requestHeader("If-Unmodified-Since");
+        if (value.empty())
+            continue;
+
+        DateTime dt(value);
+        if (!dt.valid())
+            continue;
+
+        if (transferFile->mtime() <= dt.unixtime())
+            continue;
+
+        return HttpStatus::PreconditionFailed;
+    }
+    while (0);
 
 	return HttpStatus::Ok;
 }
