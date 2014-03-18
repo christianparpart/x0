@@ -286,6 +286,8 @@ public:
 	BufferRef requestHeader(const BufferRef& name) const;
 	std::string requestHeaderCumulative(const std::string& name) const;
 
+    void removeRequestHeaders(const std::initializer_list<BufferRef>& names);
+
 	std::string cookie(const std::string& name) const;
 
 	void updatePathInfo();

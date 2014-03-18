@@ -17,6 +17,7 @@
 #include <x0/Process.h>                // Process::dumpCore()
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
+#include <algorithm>
 #include <strings.h>                    // strcasecmp()
 #include <stdlib.h>                     // realpath()
 #include <limits.h>                     // PATH_MAX
@@ -450,6 +451,18 @@ std::string HttpRequest::requestHeaderCumulative(const std::string& name) const
 			return result;
 		}
 	}
+}
+
+void HttpRequest::removeRequestHeaders(const std::initializer_list<BufferRef>& names)
+{
+    for (const auto& name: names) {
+        auto i = std::find_if(requestHeaders.begin(), requestHeaders.end(), [&](const HttpRequestHeader& h) {
+            return h.name == name;
+        });
+        if (i != requestHeaders.end()) {
+            requestHeaders.erase(i);
+        }
+    }
 }
 
 std::string HttpRequest::cookie(const std::string& name) const
