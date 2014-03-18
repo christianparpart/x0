@@ -476,7 +476,7 @@ void XzeroCore::autoindex(HttpRequest* r, FlowParams& args)
 		return;
 
     FlowStringArray indexfiles = args.get<FlowStringArray>(1);
-	for (size_t i = 1, e = indexfiles.size(); i != e; ++i)
+	for (size_t i = 0, e = indexfiles.size(); i != e; ++i)
 		if (matchIndex(r, indexfiles[i]))
 			return;
 }
