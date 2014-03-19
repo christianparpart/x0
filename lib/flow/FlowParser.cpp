@@ -1479,7 +1479,12 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 	std::unique_ptr<Stmt> stmt;
 	Symbol* callee = scope()->lookup(name, Lookup::All);
 	if (!callee) {
-        // XXX assume that given symbol is a auto forward-declared handler.
+        // XXX assume that given symbol is a auto forward-declared handler that's being defined later in the source.
+        if (token() != FlowToken::Semicolon) {
+            reportError("Unknown symbol '%s'.", name.c_str());
+            return nullptr;
+        }
+
         callee = (Handler*) globalScope()->appendSymbol(std::make_unique<Handler>(name, loc));
 	}
 
