@@ -356,7 +356,7 @@ The input value must always be a string.
 =head3 Syntax
 
   matchStmt      ::= 'match' expression [MATCH_OPERATOR] '{' matchCase* ['else' stmt] '}'
-  matchCase      ::= 'on' LITERAL stmt
+  matchCase      ::= 'on' LITERAL (',' 'on' LITERAL)* stmt
   MATCH_OPERATOR ::= '==' | '=^' | '=$' | '=~'
 
 =head3 Supported match operations are:
@@ -394,6 +394,7 @@ The case label with the longest match will be preferred.
       on '/admin' {
         admin_stuff;
       }
+      on '/static/',
       on '/assets/' {
         docroot '/srv/website/public';
         staticfile;
@@ -403,6 +404,9 @@ The case label with the longest match will be preferred.
       }
     }
   }
+
+Please note, that we use a multi label case in the above match statement.
+This is the preferred way if you have multiple cases with the same body but different labels.
 
 =item =$ B<Suffix Match>
 
