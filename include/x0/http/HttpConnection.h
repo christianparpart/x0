@@ -197,7 +197,6 @@ private:
 	// we could make these things below flags
 	unsigned flags_;
 	static const unsigned IsHandlingRequest  = 0x0002; //!< is this connection (& request) currently passed to a request handler?
-	static const unsigned IsResuming         = 0x0004; //!< resume() was invoked and we've something in the pipeline (flag needed?)
 	static const unsigned IsKeepAliveEnabled = 0x0008; //!< connection should keep-alive to accept further requests
 	static const unsigned IsAborted          = 0x0010; //!< abort() was invoked, merely meaning, that the client aborted the connection early
 	static const unsigned IsClosed           = 0x0020; //!< closed() invoked, but close-action delayed
