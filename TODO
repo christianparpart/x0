@@ -1,18 +1,16 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- TODO(flow-lang): support multi-label match blocks
-- TODO(director): disallow invalid POST args (currently ignored / not detected)
-- FIXME: "unexpected tok <number>" on `blah 14`; where blah is undefined too
+; RELASE TODO for 0.8.0:
+
 - TODO: remove flag IsHandlingRequest
-- write unittests (or integration tests)
-  - send 3 pipelined GET requests
-  - send 3 pipelined POST requests with body to a non-body-handling URI.
-  - send 3 pipelined POST requests with body to a body-handling URI.
-  - send 1 request in 2 fragments delayed.
-- http integration test server
-  - POST /echo              - sends back post body and received content-type header
-  - GET  /sendfile/64.txt   - static 64byte file
+- provide ubuntu 12.04 and 14.04 packages
+  - binary
+  - source
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- TODO(director): disallow invalid POST args (currently ignored / not detected)
+  - this is QA and can be done *after* the 0.8 release
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Multi Label Match Blocks
