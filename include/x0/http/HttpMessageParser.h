@@ -44,7 +44,7 @@ public:
 	//! defines list of states the parser is in while processing the message.
 	enum State { // {{{
 		// artificial
-		SYNTAX_ERROR = 1,
+		PROTOCOL_ERROR = 1,
 		MESSAGE_BEGIN,
 
 		// Request-Line
@@ -113,6 +113,7 @@ public:
 	virtual bool onMessageHeaderEnd();
 	virtual bool onMessageContent(const BufferRef& chunk);
 	virtual bool onMessageEnd();
+    virtual void onProtocolError(const BufferRef& chunk, size_t offset);
 
 	bool isProcessingHeader() const;
 	bool isProcessingBody() const;

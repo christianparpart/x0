@@ -412,6 +412,11 @@ bool HttpConnection::onMessageEnd()
 	return true;
 }
 
+void HttpConnection::onProtocolError(const BufferRef& chunk, size_t offset)
+{
+    log(Severity::diag, "HTTP protocol error error at chunk offset %zu: %s", offset, parserStateStr());
+}
+
 void HttpConnection::wantRead(const TimeSpan& timeout)
 {
 	TRACE(3, "wantRead(): cstate:%s pstate:%s", state_str(), parserStateStr());
@@ -749,12 +754,10 @@ bool HttpConnection::process()
 			return false;
 		}
 
-		if (parserState() == SYNTAX_ERROR) {
-			TRACE(1, "syntax error detected");
+		if (parserState() == PROTOCOL_ERROR) {
 			if (!request_->isFinished()) {
 				abort(HttpStatus::BadRequest);
 			}
-			TRACE(1, "syntax error detected: leaving process()");
 			return false;
 		}
 

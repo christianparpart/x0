@@ -151,11 +151,12 @@ private:
 	friend class HttpWorker;
 
 	// overrides from HttpMessageParser:
-	virtual bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor);
-	virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
-	virtual bool onMessageHeaderEnd();
-	virtual bool onMessageContent(const BufferRef& chunk);
-	virtual bool onMessageEnd();
+	bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor) override;
+	bool onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+	bool onMessageHeaderEnd() override;
+	bool onMessageContent(const BufferRef& chunk) override;
+	bool onMessageEnd() override;
+    void onProtocolError(const BufferRef& chunk, size_t offset) override;
 
 	void start(ServerSocket* listener, Socket* client);
 	void resume();

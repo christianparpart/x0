@@ -544,8 +544,8 @@ void HttpBackend::Connection::readSome()
 
 		if (processingDone_) {
 			close();
-		} else if (state() == SYNTAX_ERROR) {
-			rn_->request->log(Severity::error, "Reading response from backend %s failed. Syntax Error.", backend_->socketSpec().str().c_str());
+		} else if (state() == PROTOCOL_ERROR) {
+			rn_->request->log(Severity::error, "Reading response from backend %s failed. Protocol Error.", backend_->socketSpec().str().c_str());
 			backend_->setState(HealthState::Offline);
 			close();
 		} else {

@@ -178,13 +178,26 @@ bool HttpMessageParser::onMessageEnd()
 {
 	return true;
 }
+
+void HttpMessageParser::onProtocolError(const BufferRef& chunk, size_t offset)
+{
+#if !defined(XZERO_NDEBUG)
+    TRACE(1, "parse: protocol error at %zu: %s", offset, state_str());
+    if (std::isprint(chunk[offset])) {
+        TRACE(1, "parse: protocol error at nparsed: %ld, character: '%c'", offset, chunk[offset]);
+    } else {
+        TRACE(1, "parse: protocol error at nparsed: %ld, character: 0x%02X", offset, chunk[offset]);
+    }
+    chunk.dump("request chunk");
+#endif
+}
 // }}}
 
 const char *HttpMessageParser::state_str() const
 {
 	switch (state_) {
 		// artificial
-		case HttpMessageParser::SYNTAX_ERROR: return "syntax-error";
+		case HttpMessageParser::PROTOCOL_ERROR: return "protocol-error";
 		case HttpMessageParser::MESSAGE_BEGIN: return "message-begin";
 
 		// request-line
@@ -385,7 +398,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case REQUEST_METHOD:
@@ -394,7 +408,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else if (!isToken(*i)) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					method_.shr();
 					++*nparsed;
@@ -408,9 +423,9 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 
 					++*nparsed;
 					++i;
-				}
-				else {
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case REQUEST_ENTITY:
@@ -422,12 +437,15 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					entity_.shr();
 					++*nparsed;
 					++i;
-				} else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case REQUEST_PROTOCOL_BEGIN:
 				if (*i != 'H') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = REQUEST_PROTOCOL_T1;
 					++*nparsed;
@@ -436,7 +454,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case REQUEST_PROTOCOL_T1:
 				if (*i != 'T') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = REQUEST_PROTOCOL_T2;
 					++*nparsed;
@@ -445,7 +464,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case REQUEST_PROTOCOL_T2:
 				if (*i != 'T') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = REQUEST_PROTOCOL_P;
 					++*nparsed;
@@ -454,7 +474,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case REQUEST_PROTOCOL_P:
 				if (*i != 'P') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = REQUEST_PROTOCOL_SLASH;
 					++*nparsed;
@@ -463,7 +484,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case REQUEST_PROTOCOL_SLASH:
 				if (*i != '/') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = REQUEST_PROTOCOL_VERSION_MAJOR;
 					++*nparsed;
@@ -477,7 +499,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++i;
 				}
 				else if (!std::isdigit(*i)) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					versionMajor_ = versionMajor_ * 10 + *i - '0';
 					++*nparsed;
@@ -505,7 +528,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				}
 #endif
 				else if (!std::isdigit(*i)) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					versionMinor_ = versionMinor_ * 10 + *i - '0';
 					++*nparsed;
@@ -524,14 +548,16 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					if (!onMessageBegin(method_, entity_, versionMajor_, versionMinor_)) {
 						goto done;
 					}
-				}
-				else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case STATUS_LINE_BEGIN:
 			case STATUS_PROTOCOL_BEGIN:
 				if (*i != 'H') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = STATUS_PROTOCOL_T1;
 					++*nparsed;
@@ -540,7 +566,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case STATUS_PROTOCOL_T1:
 				if (*i != 'T') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = STATUS_PROTOCOL_T2;
 					++*nparsed;
@@ -549,7 +576,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case STATUS_PROTOCOL_T2:
 				if (*i != 'T') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = STATUS_PROTOCOL_P;
 					++*nparsed;
@@ -558,7 +586,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case STATUS_PROTOCOL_P:
 				if (*i != 'P') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = STATUS_PROTOCOL_SLASH;
 					++*nparsed;
@@ -567,7 +596,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case STATUS_PROTOCOL_SLASH:
 				if (*i != '/') {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = STATUS_PROTOCOL_VERSION_MAJOR;
 					++*nparsed;
@@ -580,7 +610,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else if (!std::isdigit(*i)) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					versionMajor_ = versionMajor_ * 10 + *i - '0';
 					++*nparsed;
@@ -593,7 +624,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else if (!std::isdigit(*i)) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					versionMinor_ = versionMinor_ * 10 + *i - '0';
 					++*nparsed;
@@ -602,7 +634,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case STATUS_CODE_BEGIN:
 				if (!std::isdigit(*i)) {
-					code_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+					state_ = PROTOCOL_ERROR;
 					break;
 				}
 				state_ = STATUS_CODE;
@@ -621,7 +654,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case STATUS_MESSAGE_BEGIN:
@@ -631,8 +665,10 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				}
-				else
-					state_ = SYNTAX_ERROR;
+				else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case STATUS_MESSAGE:
 				if (isText(*i) && *i != CR && *i != LF) {
@@ -644,7 +680,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case STATUS_MESSAGE_LF:
@@ -657,8 +694,10 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					if (!onMessageBegin(versionMajor_, versionMinor_, code_, message_)) {
 						goto done;
 					}
-				} else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case HEADER_NAME_BEGIN:
 				if (isToken(*i)) {
@@ -672,11 +711,14 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++i;
 				}
 #if defined(X0_HTTP_SUPPORT_SHORT_LF)
-				else if (*i == LF)
+				else if (*i == LF) {
 					state_ = HEADER_END_LF;
+                }
 #endif
-				else
-					state_ = SYNTAX_ERROR;
+				else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case HEADER_NAME:
 				if (isToken(*i)) {
@@ -692,11 +734,13 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				} else if (*i == CR) {
 					state_ = LWS_LF;
 					lwsNext_ = HEADER_COLON;
-					lwsNull_ = SYNTAX_ERROR;
+					lwsNull_ = PROTOCOL_ERROR;
 					++*nparsed;
 					++i;
-				} else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case HEADER_COLON:
 				if (*i == ':') {
@@ -705,8 +749,10 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					lwsNull_ = HEADER_VALUE_END;
 					++*nparsed;
 					++i;
-				} else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case LWS_BEGIN:
 				if (*i == CR) {
@@ -725,16 +771,20 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++i;
 				} else if (std::isprint(*i)) {
 					state_ = lwsNext_;
-				} else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case LWS_LF:
 				if (*i == LF) {
 					state_ = LWS_SP_HT_BEGIN;
 					++*nparsed;
 					++i;
-				} else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case LWS_SP_HT_BEGIN:
 				if (*i == SP || *i == HT) {
@@ -746,6 +796,9 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++i;
 				} else {
 					// only (CF LF) parsed so far and no 1*(SP | HT) found.
+                    if (lwsNull_ == PROTOCOL_ERROR) {
+                        onProtocolError(chunk, *nparsed - initialOutOffset);
+                    }
 					state_ = lwsNull_;
 					// XXX no nparsed/i-update
 				}
@@ -777,7 +830,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++i;
 #endif
 				} else {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case HEADER_VALUE:
@@ -801,8 +855,10 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					value_.shr();
 					++*nparsed;
 					++i;
-				} else
-					state_ = SYNTAX_ERROR;
+				} else {
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
+                }
 				break;
 			case HEADER_VALUE_LF:
 				if (*i == LF) {
@@ -810,7 +866,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case HEADER_VALUE_END: {
@@ -856,7 +913,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 						goto done;
 					}
 				} else {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case CONTENT_BEGIN:
@@ -911,7 +969,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 			}
 			case CONTENT_CHUNK_SIZE_BEGIN:
 				if (!std::isxdigit(*i)) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 					break;
 				}
 				state_ = CONTENT_CHUNK_SIZE;
@@ -935,12 +994,14 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 				} else {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				}
 				break;
 			case CONTENT_CHUNK_LF1:
 				if (*i != LF) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					//TRACE(2, "content_length: %ld", contentLength_);
 					if (contentLength_ != 0)
@@ -975,7 +1036,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case CONTENT_CHUNK_LF2:
 				if (*i != LF) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = CONTENT_CHUNK_SIZE;
 					++*nparsed;
@@ -984,7 +1046,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case CONTENT_CHUNK_CR3:
 				if (*i != CR) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					state_ = CONTENT_CHUNK_LF3;
 					++*nparsed;
@@ -993,7 +1056,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 				break;
 			case CONTENT_CHUNK_LF3:
 				if (*i != LF) {
-					state_ = SYNTAX_ERROR;
+                    onProtocolError(chunk, *nparsed - initialOutOffset);
+                    state_ = PROTOCOL_ERROR;
 				} else {
 					++*nparsed;
 					++i;
@@ -1004,18 +1068,8 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					state_ = MESSAGE_BEGIN;
 				}
 				break;
-			case SYNTAX_ERROR: {
-#if !defined(XZERO_NDEBUG)
-				TRACE(1, "parse: syntax error");
-				if (std::isprint(*i)) {
-					TRACE(1, "parse: syntax error at nparsed: %ld, character: '%c'", *nparsed, *i);
-				} else {
-					TRACE(1, "parse: syntax error at nparsed: %ld, character: 0x%02X", *nparsed, *i);
-				}
-				chunk.dump("request chunk (at syntax error)");
-#endif
+			case PROTOCOL_ERROR:
 				goto done;
-			}
 			default:
 #if !defined(XZERO_NDEBUG)
 				TRACE(1, "parse: unknown state %i", state_);

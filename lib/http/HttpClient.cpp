@@ -150,7 +150,7 @@ void HttpClient::readSome()
 	if (rv > 0) {
 		parseFragment(readBuffer_.ref(lower_bound, rv));
 
-		if (state() == HttpMessageParser::SYNTAX_ERROR) {
+		if (state() == HttpMessageParser::PROTOCOL_ERROR) {
 			responseHandler_(HttpClientError::ProtocolError, statusCode_, headers_, content_.ref());
 			stop();
 		} else if (processingDone_) {

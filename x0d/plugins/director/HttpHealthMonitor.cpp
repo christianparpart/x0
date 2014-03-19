@@ -163,8 +163,8 @@ void HttpHealthMonitor::readSome()
 		(void) np;
 		TRACE(1, "readSome(): processed %ld of %ld bytes (%s)", np, rv, HttpMessageParser::state_str());
 
-		if (HttpMessageParser::state() == HttpMessageParser::SYNTAX_ERROR) {
-			TRACE(1, "syntax error");
+		if (HttpMessageParser::state() == HttpMessageParser::PROTOCOL_ERROR) {
+			TRACE(1, "protcol error");
 			logFailure();
 		} else if (processingDone_) {
 			TRACE(1, "processing done");
