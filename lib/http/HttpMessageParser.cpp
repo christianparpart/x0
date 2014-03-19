@@ -1062,10 +1062,10 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 					++*nparsed;
 					++i;
 
+					state_ = MESSAGE_BEGIN;
+
 					if (!onMessageEnd())
 						goto done;
-
-					state_ = MESSAGE_BEGIN;
 				}
 				break;
 			case PROTOCOL_ERROR:
@@ -1091,11 +1091,11 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 		if (contentLength_ < 0 && !chunked_ && mode_ != MESSAGE) {
 			// and there's no body to come
 
-			if (!onMessageEnd())
-				goto done;
-
 			// subsequent calls to process() parse next request(s).
 			state_ = MESSAGE_BEGIN;
+
+			if (!onMessageEnd())
+				goto done;
 		}
 	}
 
