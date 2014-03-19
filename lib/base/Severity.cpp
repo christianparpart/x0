@@ -29,6 +29,7 @@ const char *Severity::c_str() const
 		case warning: return "warning";
 		case notice: return "notice";
 		case info: return "info";
+        case diag: return "diag";
 		case debug1: return "debug:1";
 		case debug2: return "debug:2";
 		case debug3: return "debug:3";
@@ -47,6 +48,7 @@ bool Severity::set(const char* value)
 		{ "warning", Severity::warn },
 		{ "notice", Severity::notice },
 		{ "info", Severity::info },
+		{ "diag", Severity::diag },
 		{ "debug", Severity::debug },
 		{ "debug1", Severity::debug1 },
 		{ "debug2", Severity::debug2 },
