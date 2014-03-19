@@ -1320,7 +1320,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
 	FNTRACE();
 
     // matchStmt       ::= 'match' expr [MATCH_OP] '{' *matchCase ['else' stmt] '}'
-    // matchCase       ::= 'on' literalExpr stmt
+    // matchCase       ::= 'on' literalExpr *(',' 'on' literalExpr) stmt
     // MATCH_OP        ::= '==' | '=^' | '=$' | '=~'
 
 	FlowLocation sloc(location());
@@ -1372,7 +1372,7 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
     if (!consume(FlowToken::Begin))
         return nullptr;
 
-    // *('on' expr stmt)
+    // *('on' literalExpr *(',' 'on' literalExpr) stmt)
     MatchStmt::CaseList cases;
     do {
         if (!consume(FlowToken::On)) {
@@ -1380,15 +1380,33 @@ std::unique_ptr<Stmt> FlowParser::matchStmt()
         }
 
         MatchCase one;
-        one.first = literalExpr();
-        if (!one.first)
+
+        // first label
+        auto label = literalExpr();
+        if (!label)
             return nullptr;
 
-        FlowType caseType = one.first->getType();
-        if (matchType != caseType) {
-            reportError("Type mismatch in match-on statement. Expected <%s> but got <%s>.",
-                    tos(matchType).c_str(), tos(caseType).c_str());
-            return nullptr;
+        one.first.push_back(std::move(label));
+
+        // any more labels
+        while (consumeIf(FlowToken::Comma)) {
+            if (!consume(FlowToken::On))
+                return nullptr;
+
+            label = literalExpr();
+            if (!label)
+                return nullptr;
+
+            one.first.push_back(std::move(label));
+        }
+
+        for (auto& label: one.first) {
+            FlowType caseType = label->getType();
+            if (matchType != caseType) {
+                reportError("Type mismatch in match-on statement. Expected <%s> but got <%s>.",
+                        tos(matchType).c_str(), tos(caseType).c_str());
+                return nullptr;
+            }
         }
 
         one.second = stmt();

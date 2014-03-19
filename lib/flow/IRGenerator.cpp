@@ -498,14 +498,15 @@ void IRGenerator::accept(MatchStmt& stmt)
     MatchInstr* matchInstr = createMatch(stmt.op(), cond);
 
     for (const MatchCase& one: stmt.cases()) {
-        Constant* label = getConstant(one.first.get());
-
         BasicBlock* bb = createBlock("match.case");
         setInsertPoint(bb);
         codegen(one.second.get());
         createBr(contBlock);
 
-        matchInstr->addCase(label, bb);
+        for (auto& labelNode: one.first) {
+            Constant* label = getConstant(labelNode.get());
+            matchInstr->addCase(label, bb);
+        }
     }
 
     if (stmt.elseStmt()) {

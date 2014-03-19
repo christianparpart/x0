@@ -149,7 +149,9 @@ void FlowCallVisitor::accept(MatchStmt& stmt)
 {
     visit(stmt.condition());
     for (auto& one: stmt.cases()) {
-        visit(one.first.get());
+        for (auto& label: one.first)
+            visit(label.get());
+
         visit(one.second.get());
     }
     visit(stmt.elseStmt());

@@ -234,7 +234,9 @@ void ASTPrinter::accept(MatchStmt& match)
     for (auto& one: match.cases()) {
         printf("  case\n");
         enter();
-        print("on", one.first.get());
+        for (auto& label: one.first) {
+            print("on", label.get());
+        }
         print("stmt", one.second.get());
         leave();
     }

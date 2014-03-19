@@ -539,7 +539,7 @@ public:
 	virtual void visit(ASTVisitor&);
 };
 
-typedef std::pair<std::unique_ptr<Expr>, std::unique_ptr<Stmt>> MatchCase;
+typedef std::pair<std::list<std::unique_ptr<Expr>>, std::unique_ptr<Stmt>> MatchCase;
 
 class X0_API MatchStmt : public Stmt
 {
