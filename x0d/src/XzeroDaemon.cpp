@@ -140,7 +140,7 @@ XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
     dumpAST_(false),
 	dumpIR_(false),
     dumpTargetCode_(false),
-	optimizationLevel_(2),
+	optimizationLevel_(0),
 	server_(nullptr),
 	evFlags_(0),
 	eventHandler_(nullptr),
