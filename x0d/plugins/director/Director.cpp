@@ -987,11 +987,8 @@ bool Director::processCacheObject(RequestNotes* notes)
 	}
 
     // should this request be ignored by cache?
-	if (unlikely(notes->cacheIgnore)) {
-        printf("skip object cache\n");
+	if (unlikely(notes->cacheIgnore))
 		return false;
-    }
-    printf("use object cache\n");
 
     // is the request method allowed for caching?
 	static const char* allowedMethods[] = { "GET", "HEAD" };
