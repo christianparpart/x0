@@ -11,6 +11,14 @@ Features:
 - HAproxy compatibility API
 - Client side routing support
 - Sticky offline mode
+- X-Sendfile support, full static file transmission acceleration
+- Object Cache
+  - fully runtime configurable
+  - client-cache aware
+  - life JSON stats
+  - supports serving stale objects when no backend is available
+  - Vary-response support.
+  - multiple update strategies (locked, shadowed)
 
 
 ## Classes

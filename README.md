@@ -7,7 +7,7 @@
 - ohloh: http://www.ohloh.net/p/x0
 - travis-ci: https://travis-ci.org/xzero/x0
 
-x0 is a low-latency scalable HTTP web server and web service framework
+x0 is a thin low-latency scalable HTTP web server and web service framework
 written in modern C++.
 
 # FEATURES
