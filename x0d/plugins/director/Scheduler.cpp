@@ -21,6 +21,12 @@ Scheduler::~Scheduler()
 }
 
 // ChanceScheduler
+const std::string& ChanceScheduler::name() const
+{
+    static const std::string myName("chance");
+    return myName;
+}
+
 SchedulerStatus ChanceScheduler::schedule(RequestNotes* rn)
 {
 	size_t unavailable = 0;
@@ -43,6 +49,12 @@ SchedulerStatus ChanceScheduler::schedule(RequestNotes* rn)
 }
 
 // RoundRobinScheduler
+const std::string& RoundRobinScheduler::name() const
+{
+    static const std::string myName("rr");
+    return myName;
+}
+
 SchedulerStatus RoundRobinScheduler::schedule(RequestNotes* rn)
 {
 	unsigned unavailable = 0;

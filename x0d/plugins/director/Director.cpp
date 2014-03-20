@@ -430,6 +430,7 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("health-check-host-header")(healthCheckHostHeader_)
 		.name("health-check-request-path")(healthCheckRequestPath_)
 		.name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
+        .name("scheduler")(scheduler())
         .beginObject("stats")
             .name("load")(load_)
             .name("queued")(queued_)
@@ -576,6 +577,16 @@ bool Director::load(const std::string& path)
 	if (!settings.load("director", "health-check-fcgi-script-filename", healthCheckFcgiScriptFilename_)) {
 		healthCheckFcgiScriptFilename_ = "";
 	}
+
+    if (!settings.load("director", "scheduler", value)) {
+        worker()->log(Severity::warn, "director: Could not load configuration value for director.scheduler. Using default scheduler %s.",
+            scheduler().c_str());
+        changed++;
+    } else if (!setScheduler(value)) {
+        worker()->log(Severity::warn, "director: Invalid cluster configuration value %s detected for director.scheduler. Using default scheduler %s.",
+            value.c_str(), scheduler().c_str());
+        changed++;
+    }
 
 #if defined(ENABLE_DIRECTOR_CACHE)
     if (settings.contains("cache", "enabled")) {
@@ -842,6 +853,7 @@ bool Director::save()
 		<< "health-check-host-header=" << healthCheckHostHeader_ << "\n"
 		<< "health-check-request-path=" << healthCheckRequestPath_ << "\n"
 		<< "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"
+        << "scheduler=" << scheduler() << "\n"
 		<< "\n";
 
 #if defined(ENABLE_DIRECTOR_CACHE)
@@ -884,6 +896,30 @@ bool Director::save()
 	}
 
 	return true;
+}
+
+const std::string& Director::scheduler() const
+{
+    // it is safe to just query the first backend-role, as we currently only support one scheduler type for all
+    return backends_[0].scheduler()->name();
+}
+
+bool Director::setScheduler(const std::string& name)
+{
+    if (name == scheduler())
+        return true;
+
+    if (name == "chance") {
+        setScheduler<ChanceScheduler>();
+        return true;
+    }
+
+    if (name == "rr") {
+        setScheduler<RoundRobinScheduler>();
+        return true;
+    }
+
+    return false;
 }
 
 /**

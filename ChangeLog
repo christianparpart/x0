@@ -14,6 +14,7 @@
 	* http: Improved protocol error reporting.
 	* director: Added experimental response output caching support.
 	* director: Fixes 2 bugs (in http-backend and fastcgi backend) with regards to their connection ref-counting.
+	* director: Added support for reconfiguring scheduling algorithm, including at runtime.
 	* x0d: Added --dump-ast parameter to dump Flow's parsed AST.
 	* x0d: plugin "vhost" has been removed in favor of the new match-keyword.
 	* x0d: Adds --dump-ast and --dump-tc command line options to accompany --dump-ir (for debugging purposes).

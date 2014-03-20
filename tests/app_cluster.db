@@ -16,6 +16,7 @@ transfer-mode=blocking
 health-check-host-header=localhost.ialu.de
 health-check-request-path=/health
 health-check-fcgi-script-filename=
+scheduler=chance
 
 [cache]
 enabled=true

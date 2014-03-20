@@ -32,6 +32,7 @@ public:
 	explicit Scheduler(BackendList* backends);
 	virtual ~Scheduler();
 
+    virtual const std::string& name() const = 0;
 	virtual SchedulerStatus schedule(RequestNotes* rn) = 0;
 };
 
@@ -39,14 +40,16 @@ class ChanceScheduler : public Scheduler {
 public:
 	explicit ChanceScheduler(BackendList* backends) : Scheduler(backends) {}
 
-	virtual SchedulerStatus schedule(RequestNotes* rn);
+    const std::string& name() const override;
+	SchedulerStatus schedule(RequestNotes* rn) override;
 };
 
 class RoundRobinScheduler : public Scheduler {
 public:
 	explicit RoundRobinScheduler(BackendList* backends) : Scheduler(backends), next_(0) {}
 
-	virtual SchedulerStatus schedule(RequestNotes* rn);
+    const std::string& name() const override;
+	SchedulerStatus schedule(RequestNotes* rn) override;
 
 private:
 	size_t next_;

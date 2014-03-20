@@ -239,6 +239,7 @@ Retrieves state of only one director, by name.
         -d retry-after=60 \
         -d max-retry-count=3 \
         -d sticky-offline-mode=false \
+        -d scheduler=rr \
         -d cache-enabled=true \
         -d cache-deliver-active=true \
         -d cache-deliver-shadow=true \
@@ -276,6 +277,9 @@ unless this director has been created statically.
   to avoid serving requests by a backend that potentially has been to long offline, that it 
   might have old backend logig. So setting this value to true might be a wise consideration
   in continuous developing production environments.
+- *scheduler*: Defines the request scheduling algorithm. one of:
+  - rr: round-robing scheduling (default algorithm)
+  - chance: schedule by chance, ie. the first backend that can handle the request is used, resulting first fully loading a server before using the next..
 - *cache-enabled*: ... TODO
 - *cache-deliver-active*: ... TODO
 - *cache-deliver-shadow*: ... TODO

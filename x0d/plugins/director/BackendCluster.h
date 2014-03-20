@@ -21,6 +21,7 @@ struct RequestNotes;
  * Manages a set of backends of one role.
  *
  * \see BackendRole
+ * \see Director
  */
 class BackendCluster
 {

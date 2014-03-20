@@ -41,7 +41,7 @@ using namespace x0;
  * Defines the role of a backend.
  */
 enum class BackendRole {
-	Active,    //!< backends that are part potentially getting new requests scheduled.
+	Active,    //!< backends that are potentially getting new requests scheduled.
 	Backup,    //!< backends that are used when the active backends are all down.
 	Terminate, //!< artificial role that contains all backends in termination-progress.
 };
@@ -100,6 +100,10 @@ public:
 #endif
 
 	const x0::Counter& queued() const { return queued_; }
+
+    const std::string& scheduler() const;
+    bool setScheduler(const std::string& name);
+    template<typename T> void setScheduler();
 
 	void schedule(RequestNotes* rn, Backend* backend);
 	void schedule(RequestNotes* rn, RequestShaper::Node* bucket);
@@ -206,6 +210,14 @@ namespace x0 {
 }
 
 // {{{ inlines
+template<typename T>
+inline void Director::setScheduler()
+{
+    for (auto& br: backends_) {
+        br.setScheduler<T>();
+    }
+}
+
 inline const BackendCluster& Director::backendsWith(BackendRole role) const
 {
 	return backends_[static_cast<size_t>(role)];

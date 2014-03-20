@@ -64,6 +64,7 @@
 // - health-check-host-header
 // - health-check-request-path
 // - health-check-fcgi-script-filename
+// - scheduler
 //
 // - cache-enabled              BOOL
 // - cache-deliver-active       BOOL
@@ -499,6 +500,10 @@ bool ApiRequest::update(Director* director)
 	if (hasParam("health-check-fcgi-script-filename") && !loadParam("health-check-fcgi-script-filename", hcFcgiScriptFileName))
 		return false;
 
+    std::string scheduler = director->scheduler();
+    if (hasParam("scheduler") && !loadParam("scheduler", scheduler))
+        return false;
+
 #if defined(ENABLE_DIRECTOR_CACHE)
     bool cacheEnabled = director->objectCache().enabled();
     if (hasParam("cache-enabled") && !loadParam("cache-enabled", cacheEnabled))
@@ -544,6 +549,7 @@ bool ApiRequest::update(Director* director)
 	director->setHealthCheckHostHeader(hcHostHeader);
 	director->setHealthCheckRequestPath(hcRequestPath);
 	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);
+	director->setScheduler(scheduler);
 
 #if defined(ENABLE_DIRECTOR_CACHE)
     director->objectCache().setEnabled(cacheEnabled);
