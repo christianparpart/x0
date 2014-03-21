@@ -621,22 +621,22 @@ bool XzeroDaemon::setupConfig()
 	log(x0::Severity::debug, "listen: addr=%s, port=%d", bind.c_str(), port);
 
 	std::string source(
-		"import compress\n"
-		"import dirlisting\n"
-		"import cgi\n"
+		"import compress;\n"
+		"import dirlisting;\n"
+		"import cgi;\n"
 		"\n"
 		"handler setup {\n"
-		"    mimetypes('/etc/mime.types');\n"
-		"    mimetypes.default('application/octet-stream');\n"
-		"    listen(address: #{bind}, port: #{port});\n"
+		"  mimetypes '/etc/mime.types';\n"
+		"  mimetypes.default 'application/octet-stream';\n"
+		"  listen address: #{bind}, port: #{port};\n"
 		"}\n"
 		"\n"
 		"handler main {\n"
-		"    docroot('#{docroot}');\n"
-		"    autoindex(['index.cgi', 'index.html']);\n"
-		"    cgi.exec() if phys.path =$ '.cgi';\n"
-		"    dirlisting();\n"
-		"    staticfile();\n"
+		"  docroot '#{docroot}';\n"
+		"  autoindex ['index.cgi', 'index.html'];\n"
+		"  cgi.exec() if phys.path =$ '.cgi';\n"
+		"  dirlisting;\n"
+		"  staticfile;\n"
 		"}\n"
 	);
 	gsub(source, "#{docroot}", documentRoot_);
