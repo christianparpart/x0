@@ -17,6 +17,7 @@
 #include <string>
 #include <atomic>
 #include <utility>
+#include <vector>
 #include <list>
 #include <cstdint>
 
@@ -44,7 +45,6 @@ public:
 	class Builder;
 	class Object;
 	class ConcreteObject;
-	class VaryingObject;
 
 protected:
 	typedef tbb::concurrent_hash_map<std::string, Object*> ObjectMap;
@@ -69,6 +69,8 @@ protected:
 public:
 	explicit ObjectCache(Director* director);
 	~ObjectCache();
+
+    Director* director() const { return director_; }
 
 	/**
 	 * Global flag to either enable or disable object caching.
@@ -197,80 +199,40 @@ public:
 };
 
 /**
- * A cache-object that contains an HTTP response message (abstract interface).
- *
- * @see VaryingObject
- * @see Object
+ * A cache-object containing an HTTP response message, respecting the HTTP <b>Vary</b> response header.
  */
 class ObjectCache::Object {
 public:
-	virtual ~Object() {}
+    Object(ObjectCache* store, const std::string& cacheKey);
+    ~Object();
+
+    ObjectCache* store() const { return store_; }
+    const std::string& cacheKey() const { return cacheKey_; }
 
     /**
      * Selects a cache-object based on the request's cache key and Vary header.
      */
-	virtual ConcreteObject* select(const RequestNotes* rn) const = 0;
+    ConcreteObject* select(const RequestNotes* rn);
 
-	/*!
-	 * Updates given object by hooking into the requests output stream.
-	 *
-	 * \param r The request whose response will be used to update this object.
-	 *
-	 * When invoking update with a request while another request is already in progress
-	 * of updating this object, this request will be put onto the interest list instead
-	 * and will get the response once the initial request's response has arrived.
-	 *
-	 * This method must be invoked from within thre requests thread context.
-	 *
-	 * @retval true This request is not used for updating the object and got just enqueued for the response instead.
-	 * @retval false This request is being used for updating the object. So further processing must occur.
-	 */
-	virtual bool update(RequestNotes* rn) = 0;
+    bool update(RequestNotes* rn);
+    void deliver(RequestNotes* rn);
+    void expire();
 
-	/*!
-	 * Delivers this object to the given HTTP client.
-	 *
-	 * It directly serves the object if it is in state \c Active or \c Stale.
-	 * If the object is in state \p Updating or \p Spawning otherwise, it will
-	 * append the HTTP request to the list of pending clients and wait there
-	 * for cache object completion and will be served as sonn as this object
-	 * became ready.
-	 *
-	 * \param r the request this object should be served as response to.
-	 */
-	virtual void deliver(RequestNotes* rn) = 0;
-
-	//! marks object as expired but does not destruct it from the store.
-	virtual void expire() = 0;
-};
-
-/**
- * A cache-object containing an HTTP response message, respecting the HTTP <b>Vary</b> response header.
- */
-class ObjectCache::VaryingObject : public Object {
-public:
-	VaryingObject();
-	~VaryingObject();
-
-	ConcreteObject* select(const RequestNotes* rn) const override;
-	bool update(RequestNotes* rn) override;
-	void deliver(RequestNotes* rn) override;
-	void expire() override;
+    void destroy(ConcreteObject* concreteObject);
 
 private:
-    /**
-     * Tests if given request's headers match the object's request headers according to  the Vary list.
-     */
-	bool testMatch(const RequestNotes* rn, const ConcreteObject* object) const;
+    ObjectCache* store_;
+    std::string cacheKey_;
+    std::list<std::string> requestHeaders_; //!< list of all request header names which value may <b>vary</b>.
+    std::list<ConcreteObject*> objects_;    //!< list of objects for each <b>variation</b>.
 
-	std::list<std::string> requestHeaders_; //!< list of all request header names which value may <b>vary</b>.
-	std::list<ConcreteObject*> objects_;    //!< list of objects for each <b>variation</b>.
+    friend class ConcreteObject;
 };
 
 /**
  * A cache-object that contains an HTTP response message.
  */
-class ObjectCache::ConcreteObject : public Object {
+class ObjectCache::ConcreteObject {
 public:
 	//! The object's state.
 	enum State {
@@ -280,13 +242,44 @@ public:
 		Updating,  //!< the cache object is stale but is already in progress of being updated.
 	};
 
-	ConcreteObject(ObjectCache* store, const std::string& cacheKey);
+	explicit ConcreteObject(Object* objectGroup);
 	~ConcreteObject();
 
-	ConcreteObject* select(const RequestNotes* rn) const override;
-	bool update(RequestNotes* rn) override;
-	void deliver(RequestNotes* rn) override;
-	void expire() override;
+    Object* object() const { return object_; }
+
+    /*!
+     * Updates given object by hooking into the requests output stream.
+     *
+     * \param r The request whose response will be used to update this object.
+     *
+     * When invoking update with a request while another request is already in progress
+     * of updating this object, this request will be put onto the interest list instead
+     * and will get the response once the initial request's response has arrived.
+     *
+     * This method must be invoked from within thre requests thread context.
+     *
+     * @retval true This request is not used for updating the object and got just enqueued for the response instead.
+     * @retval false This request is being used for updating the object. So further processing must occur.
+     */
+	bool update(RequestNotes* rn);
+
+    /*!
+     * Delivers this object to the given HTTP client.
+     *
+     * It directly serves the object if it is in state \c Active or \c Stale.
+     * If the object is in state \p Updating or \p Spawning otherwise, it will
+     * append the HTTP request to the list of pending clients and wait there
+     * for cache object completion and will be served as sonn as this object
+     * became ready.
+     *
+     * \param r the request this object should be served as response to.
+     */
+	void deliver(RequestNotes* rn);
+
+	/**
+     * Marks object as expired but does not destruct it from the store.
+     */
+	void expire();
 
 	State state() const { return state_; }
 
@@ -298,7 +291,18 @@ public:
 	 */
 	x0::DateTime ctime() const;
 
-	std::string requestHeader(const std::string& name) const;
+    /**
+     * Retrieves the value of a given request header.
+     *
+     */
+	const std::string& varyingHeader(const x0::BufferRef& name) const;
+
+    const std::vector<std::pair<x0::BufferRef, std::string>>& varyingHeaders() const { return frontBuffer().varyingHeaders; }
+
+    /**
+     * Tests whether given request matches this concrete cache object, according to the Vary headers.
+     */
+    bool isMatch(const x0::HttpRequest* r) const;
 
 private:
 	inline void internalDeliver(RequestNotes* rn);
@@ -308,6 +312,7 @@ private:
 		x0::HttpStatus status;
 
 		std::list<std::pair<std::string, std::string>> headers;
+        std::vector<std::pair<x0::BufferRef, std::string>> varyingHeaders;
         std::string etag;
         x0::DateTime mtime;
 		x0::Buffer body;
@@ -324,7 +329,7 @@ private:
 		{
 		}
 
-		void reset() {
+		void clear() {
 			status = x0::HttpStatus::Undefined;
 			headers.clear();
 			body.clear();
@@ -353,18 +358,15 @@ private:
 
 	void swapBuffers() {
 		bufferIndex_ = !bufferIndex_;
-		backBuffer().reset();
+		backBuffer().clear();
 	}
 
 private:
-	ObjectCache* store_;
-	std::string cacheKey_;
+    Object* object_;
 	State state_;
 
     RequestNotes* requestNotes_;            //!< either NULL or pointer to request currently updating this object.
 	std::list<RequestNotes*> interests_;    //!< list of requests that have to deliver this object ASAP.
-
-	std::unordered_map<std::string, std::string> requestHeaders_;
 
 	size_t bufferIndex_;
 	Buffer buffer_[2];

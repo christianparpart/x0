@@ -9,6 +9,7 @@
 #include "ObjectCache.h"
 #include "RequestNotes.h"
 #include "Director.h"
+#include <x0/Tokenizer.h>
 #include <x0/io/BufferRefSource.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/DebugLogger.h>
@@ -48,17 +49,14 @@ using namespace x0;
 } while (0)
 
 // {{{ ObjectCache::ConcreteObject
-ObjectCache::ConcreteObject::ConcreteObject(ObjectCache* store, const std::string& cacheKey) :
-    Object(),
-	store_(store),
-	cacheKey_(cacheKey),
+ObjectCache::ConcreteObject::ConcreteObject(Object* object) :
+    object_(object),
     state_(Spawning),
     requestNotes_(nullptr),
 	interests_(),
-	requestHeaders_(),
 	bufferIndex_()
 {
-    TRACE(requestNotes_, 2, "ConcreteObject(key: '%s')", cacheKey_.c_str());
+    TRACE(requestNotes_, 2, "ConcreteObject(key: '%s')", object_->cacheKey().c_str());
 }
 
 ObjectCache::ConcreteObject::~ConcreteObject()
@@ -66,16 +64,25 @@ ObjectCache::ConcreteObject::~ConcreteObject()
     TRACE(requestNotes_, 2, "~ConcreteObject()");
 }
 
-std::string ObjectCache::ConcreteObject::requestHeader(const std::string& name) const
+bool ObjectCache::ConcreteObject::isMatch(const HttpRequest* r) const
 {
-	return "";
+    // TODO: speed me up by pre-hashing before doing the full compare
+
+    for (const auto& header: varyingHeaders())
+        if (!iequals(r->requestHeader(header.first), header.second))
+            return false;
+
+    return true;
 }
 
 void ObjectCache::ConcreteObject::postProcess()
 {
 	TRACE(requestNotes_, 3, "ConcreteObject.postProcess() status: %d", requestNotes_->request->status);
+    HttpRequest* r = requestNotes_->request;
 
-	for (auto header: requestNotes_->request->responseHeaders) {
+    backBuffer().varyingHeaders.clear();
+
+	for (const auto& header: requestNotes_->request->responseHeaders) {
 		TRACE(requestNotes_, 3, "ConcreteObject.postProcess() %s: %s", header.name.c_str(), header.value.c_str());
 		if (unlikely(iequals(header.name, "Set-Cookie"))) {
 			requestNotes_->request->log(Severity::info, "Caching requested but origin server provides uncacheable response header, Set-Cookie. Do not cache.");
@@ -108,6 +115,18 @@ void ObjectCache::ConcreteObject::postProcess()
 
         if (iequals(header.name, "Last-Modified"))
             backBuffer().mtime = DateTime(header.value);
+
+        if (iequals(header.name, "Vary")) {
+            Tokenizer<BufferRef> st(BufferRef(header.value.c_str(), header.value.size()), ", \t\r\n");
+            std::vector<BufferRef> theVaryingHeaders(std::move(st.tokenize()));
+
+            for (const auto& theHeaderName: theVaryingHeaders) {
+                backBuffer().varyingHeaders.push_back(std::make_pair(
+                    theHeaderName,
+                    r->requestHeader(theHeaderName).str()
+                ));
+            }
+        }
 
 		bool skip = false;
 //		for (auto ignore: notes->cacheHeaderIgnores) {
@@ -190,9 +209,14 @@ DateTime ObjectCache::ConcreteObject::ctime() const
 	return frontBuffer().ctime;
 }
 
-ObjectCache::ConcreteObject* ObjectCache::ConcreteObject::select(const RequestNotes* rn) const
+const std::string& ObjectCache::ConcreteObject::varyingHeader(const x0::BufferRef& name) const
 {
-    return const_cast<ConcreteObject*>(this);
+    for (const auto& header: varyingHeaders())
+        if (iequals(name, header.first))
+            return header.second;
+
+    static const std::string none;
+    return none;
 }
 
 bool ObjectCache::ConcreteObject::update(RequestNotes* rn)
@@ -367,35 +391,77 @@ void ObjectCache::ConcreteObject::destroy()
     auto pendingRequests = std::move(interests_);
     for (auto rn: pendingRequests) {
         rn->cacheIgnore = true;
-        store_->director_->reschedule(rn);
+        object()->store()->director()->reschedule(rn);
     }
 
-	if (store_->objects_.erase(cacheKey_)) {
-		delete this;
-	} else {
-        assert(!"Mission impossible engaged on us. Trying to destroy a cached object that is not (anymore?) in the store.");
-    }
+    object()->destroy(this);
+    delete this;
 }
 // }}}
-// {{{ ObjectCache::VaryingObject
-ObjectCache::ConcreteObject* ObjectCache::VaryingObject::select(const RequestNotes* rn) const
+// {{{ ObjectCache::Object
+ObjectCache::Object::Object(ObjectCache* store, const std::string& cacheKey) :
+	store_(store),
+	cacheKey_(cacheKey),
+    requestHeaders_(),
+    objects_()
 {
-	for (const auto& object: objects_)
-		if (testMatch(rn, object))
-			return object;
-
-	return nullptr;
 }
 
-bool ObjectCache::VaryingObject::testMatch(const RequestNotes* rn, const ConcreteObject* object) const
+ObjectCache::Object::~Object()
 {
-    HttpRequest* request = rn->request;
+}
 
-	for (const auto& name: requestHeaders_)
-		if (request->requestHeader(name) != object->requestHeader(name))
-			return false;
+ObjectCache::ConcreteObject* ObjectCache::Object::select(const RequestNotes* rn)
+{
+	for (const auto& object: objects_)
+        if (object->isMatch(rn->request))
+			return object;
 
-	return true;
+    // FIXME: we actually need a tiny an rw-lock to the object-list access (tbb?).
+    // FIXME: ConcreteObject actually needs a ref to its Object parent, so it can update their varying request headers.
+
+    ConcreteObject* co = new ConcreteObject(this);
+    objects_.push_back(co);
+	return co;
+}
+
+bool ObjectCache::Object::update(RequestNotes* rn)
+{
+    if (ConcreteObject* object = select(rn)) {
+        return object->update(rn);
+    }
+
+    return false;
+}
+
+void ObjectCache::Object::deliver(RequestNotes* rn)
+{
+    if (ConcreteObject* object = select(rn)) {
+        object->deliver(rn);
+    }
+}
+
+void ObjectCache::Object::expire()
+{
+    for (ConcreteObject* object: objects_) {
+        object->expire();
+    }
+}
+
+void ObjectCache::Object::destroy(ConcreteObject* concreteObject)
+{
+    // FIXME: locking to local concrete objects list
+
+    auto i = std::find(objects_.begin(), objects_.end(), concreteObject);
+    if (i != objects_.end()) {
+        objects_.erase(i);
+
+		ObjectMap::accessor accessor;
+        if (store_->objects_.find(accessor, cacheKey_)) {
+            store_->objects_.erase(accessor);
+            delete this;
+        }
+    }
 }
 // }}}
 // {{{ ObjectCache
@@ -440,7 +506,7 @@ bool ObjectCache::acquire(const std::string& cacheKey, const std::function<void(
 	if (enabled()) {
 		ObjectMap::accessor accessor;
 		if (objects_.insert(accessor, cacheKey)) {
-			accessor->second = new ConcreteObject(this, cacheKey);
+			accessor->second = new Object(this, cacheKey);
 			callback(accessor->second, true);
 			return true;
 		} else {
