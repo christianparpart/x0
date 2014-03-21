@@ -3,11 +3,15 @@ MAINTAINER Christian Parpart <trapni@gmail.com>
 
 WORKDIR /tmp
 
+ENV DEBIAN_FRONTEND noninteractive
 ENV CXX /usr/bin/g++-4.8
 ENV HOME /root
 
 ENV CXXFLAGS -march=native -mtune=native -O3 -pipe
 ENV CFLAGS -march=native -mtune=native -O3 -pipe
+
+RUN locale-gen en_US.UTF-8 && \
+    update-locale en_US.UTF-8
 
 # base system preps
 RUN dpkg-divert --local --rename --add /sbin/initctl
