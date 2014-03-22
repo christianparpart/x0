@@ -1,3 +1,11 @@
+x0 (0.8.0-4) trusty; urgency=medium
+
+  * fixes demo config file
+  * improved x0d.conf manual page
+  * exports `log.diag(string)` shared function to config API
+
+ -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 10:30:00 -0100
+
 x0 (0.8.0-3) trusty; urgency=medium
 
   * fixes empty package x0d-plugins
