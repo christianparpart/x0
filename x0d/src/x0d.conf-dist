@@ -2,75 +2,66 @@
 # file: x0d.conf
 # description: example x0d web server configuration file
 
-import cgi
-import vhost
-import status
-import expire
-import userdir
-import compress
-import accesslog
-import dirlisting
+import status;
+import expire;
+import userdir;
+import dirlisting;
 
+# This handler is invoked during initialization phase of the server.
+# It will setup all needed TCP listener sockets, workers,
+# and everything else you wish to tweak.
 handler setup
 {
-	max_read_idle 120 sec
-	max_write_idle 30 sec
-	max_keepalive_idle 10 sec
-	max_keepalive_requests 0
+    # mimetypes
+    mimetypes '/etc/mime.types';
+    mimetypes.default 'text/plain';
 
-	max_files 1024
+    # HTTP
+    listen address: 0.0.0.0, port: 8080, backlog: 128;
 
-	max_connections 256
-	max_request_uri_size 2 kbyte
-	max_request_header_size 8 kbyte
-	max_request_header_count 50
-	max_request_body_size 1 mbyte
-
-	# mimetypes
-	mimetypes '/etc/mime.types'
-	mimetypes.default 'text/plain'
-
-	# HTTP
-	listen 'bind' => ::, 'port' => 8080, 'backlog' => 128
-	#listen 'bind' => '/tmp/x0d.sock'
-
-	cgi.mapping '.php' => '/usr/bin/php5-cgi'
-
-	workers 2
+    # sets the number of workers to the number of CPU cores.
+    workers sys.cpu_count;
 }
 
 # the main handler is invoked for *every* incoming request
 handler main
 {
-	if req.path == '/favicon.ico' {
-		expire 30 mins
-		respond 404
-	}
+    if req.path == '/favicon.ico' {
+        expire 30 mins;
+        respond 404;
+    }
 
-	status if req.path == '/server-status'
+    # serves status page if request path matches '/server-status'
+    status if req.path == '/server-status';
 
-	autoindex ['index.html', 'index.txt']
+    # the directory to serve content from
+    docroot '/srv/www/';
 
-	# the directory to serve content from
-	docroot '/srv/www/'
+    # show user directories (~/public_html) on http://$HOST/~username/
+    if (req.remoteip in 127.0.0.0/8) {
+        userdir;
+    } else {
+        log.diag "Access to userdirs denied to: ${req.remoteip}";
+    }
 
-	# show user directories (~/public_html) on http://$HOST/~username/
-	userdir
+    # defines a set of index files to serve by default when a directory got requested
+    autoindex ['index.html', 'index.htm'];
 
-	default
+    # Call a sub-handler with the standard default handlers to invoke.
+    default;
 }
 
 # custom handler "default" to simply serve serve static files
 # and directories not containing any index file (such as index.html)
 handler default
 {
-	# try serving pre-compressed file,
-	# i.e. prefer foo.txt.gz over foo.txt if their mtime match
-	precompressed
+    # try serving pre-compressed file,
+    # i.e. prefer foo.txt.gz over foo.txt if their mtime match
+    precompressed;
 
-	# serve static file, if any
-	staticfile
+    # serve static file, if any
+    staticfile;
 
-	# serve directory listing if requested path points to a directory
-	dirlisting
+    # serve directory listing if requested path points to a directory
+    dirlisting;
 }
