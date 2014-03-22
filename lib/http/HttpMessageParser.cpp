@@ -873,16 +873,22 @@ std::size_t HttpMessageParser::parseFragment(const BufferRef& chunk, size_t* out
 			case HEADER_VALUE_END: {
 				TRACE(2, "header: name='%s', value='%s'", name_.str().c_str(), value_.str().c_str());
 
+                bool rv;
 				if (iequals(name_, "Content-Length")) {
 					contentLength_ = value_.toInt();
 					TRACE(2, "set content length to: %ld", contentLength_);
+                    rv = onMessageHeader(name_, value_);
 				} else if (iequals(name_, "Transfer-Encoding")) {
 					if (iequals(value_, "chunked")) {
 						chunked_ = true;
-					}
-				}
+                        rv = true; // do not pass header to the upper layer if we've processed it
+					} else {
+                        rv = onMessageHeader(name_, value_);
+                    }
+				} else {
+                    rv = onMessageHeader(name_, value_);
+                }
 
-				bool rv = onMessageHeader(name_, value_);
 				name_.clear();
 				value_.clear();
 
