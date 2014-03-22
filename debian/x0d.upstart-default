@@ -1,0 +1,8 @@
+# vim:syntax="sh
+
+CONFFILE="/etc/xzero/x0d.conf"
+PIDFILE="/var/run/xzero/x0d.pid"
+USER="www-data"
+GROUP="www-data"
+LOG_FILE="/var/log/xzero/x0d.log"
+LOG_SEVERITY="warn"
