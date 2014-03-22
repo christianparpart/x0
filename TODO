@@ -3,16 +3,24 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; RELASE TODO for 0.8.0:
 
-- fix x0d.conf-dist to a basic working one
 - get gcc 32bit build working (the i386 PPA builder fails, but Travis-CI didn't?)
+- debian:
+  - add ChangeLog to all packages
 - FINALLY:
   - update version tag in source tree from 0.8.0-dev to 0.8.0
   - PPA: re-release when finally happy with everything
+  - git-tag 0.8.0
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - TODO(director): disallow invalid POST args (currently ignored / not detected)
   - this is QA and can be done *after* the 0.8 release
 - TODO: remove flag IsHandlingRequest
+- FIXME: appearently, we have a bug in parsing the following:
+    handler main {
+      if (req.remoteip in 127.0.0.0/8 or req.remoteip in 192.168.0.0/16 or req.remoteip in 10.0.0.0/8) {
+        # parser error if it's more than two in-expressions.
+      }
+    }
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Multi Label Match Blocks
