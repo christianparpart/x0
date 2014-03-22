@@ -1,3 +1,15 @@
+x0 (0.8.0-3) trusty; urgency=medium
+
+  * fixes empty package x0d-plugins
+
+ -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 09:30:00 -0100
+
+x0 (0.8.0-2) trusty; urgency=medium
+
+  * dependency fixes
+
+ -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 09:30:00 -0100
+
 x0 (0.8.0-1) trusty; urgency=low
 
   * version bump

@@ -289,8 +289,7 @@ add_custom_target(cscope
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-add_custom_target(deb
-  COMMAND dpkg-buildpackage
+add_custom_target(release
+  COMMAND ${CMAKE_SOURCE_DIR}/contrib/release.sh
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
-#dput ppa:trapni/xzero x0_0.8.0-1_amd64.changes

@@ -89,19 +89,19 @@ tags
 cscope.*
 
 # debian packaging temp files
-#debian/*.substvars
-#debian/*.debhelper
-#debian/libxzero-base/
-#debian/libxzero-flow/
-#debian/libxzero-http/
-#debian/libxzero-base-dev/
-#debian/libxzero-flow-dev/
-#debian/libxzero-http-dev/
-#debian/x0-plugins/
-#debian/x0d/
-#debian/x0/
-#debian/tmp/
-#debian/files
-#*-stamp
+debian/*.substvars
+debian/*.debhelper
+debian/libxzero-base/
+debian/libxzero-flow/
+debian/libxzero-http/
+debian/libxzero-base-dev/
+debian/libxzero-flow-dev/
+debian/libxzero-http-dev/
+debian/x0-plugins/
+debian/x0d/
+debian/x0/
+debian/tmp/
+debian/files
+*-stamp
 flow-tool/flow-tool
 lib/libXzeroFlow2.*

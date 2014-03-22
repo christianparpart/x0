@@ -69,7 +69,7 @@ Description: Xzero (x0) HTTP Server Plugins
   This package contains the standard plugins that x0d can load.
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends},
-  libmagickwand4,
+  libmagickwand5,
   libgnutls28,
   libxzero-http (= ${binary:Version}),
   libxzero-flow (= ${binary:Version}),

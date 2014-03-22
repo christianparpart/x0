@@ -4,13 +4,13 @@ author "Christian Parpart <trapni@gmail.com>"
 start on filesystem or runlevel [2345]
 stop on runlevel [!2345]
 
-env CONFFILE=/etc/x0/x0d.conf
-env PIDFILE=/var/run/x0/x0d.pid
+env CONFFILE=/etc/xzero/x0d.conf
+env PIDFILE=/var/run/xzero/x0d.pid
 
-env USER=x0
-env GROUP=x0
+env USER=www-data
+env GROUP=www-data
 
-env LOG_FILE=/var/log/x0d/x0d.log
+env LOG_FILE=/var/log/xzero/x0d.log
 env LOG_SEVERITY=warn
 
 respawn
@@ -19,11 +19,11 @@ respawn
 pre-start script
 	[ -f /etc/default/x0d ] && . /etc/default/x0d
 
-	mkdir -p /var/run/x0
-	chown $USER.$GROUP /var/run/x0
+	mkdir -p /var/run/xzero
+	chown $USER.$GROUP /var/run/xzero
 
-	mkdir -p /var/log/x0
-	chown $USER.$GROUP /var/log/x0
+	mkdir -p /var/log/xzero
+	chown $USER.$GROUP /var/log/xzero
 end script
 
 script

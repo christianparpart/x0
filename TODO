@@ -3,14 +3,16 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; RELASE TODO for 0.8.0:
 
-- TODO: remove flag IsHandlingRequest
-- provide ubuntu 12.04 and 14.04 packages
-  - binary
-  - source
+- fix x0d.conf-dist to a basic working one
+- get gcc 32bit build working (the i386 PPA builder fails, but Travis-CI didn't?)
+- FINALLY:
+  - update version tag in source tree from 0.8.0-dev to 0.8.0
+  - PPA: re-release when finally happy with everything
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - TODO(director): disallow invalid POST args (currently ignored / not detected)
   - this is QA and can be done *after* the 0.8 release
+- TODO: remove flag IsHandlingRequest
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Multi Label Match Blocks
@@ -74,34 +76,21 @@ abort(code) ::= resp.status = code
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- flow: support nested config files (e.g. via #include "file_or_directory_glob" directive)
-
-- provide debian package for: x0 0.7.0
-  - debian mirror behind: http://distfiles.xzero.io/ubuntu/{precise,quantal,raring}/
-    - create new gpg key-pair with primary email: trapni@gmail.com
-    - officially support: >= precise, quantal, raring
-    - automate uploading to and updating the mirror per current distro
+- provide debian package
+  - officially support: >= trusty
+  - automate uploading to and updating the mirror per current distro
   - upstart script (with: postinst->autostart, prerm->autostop)
-  - (5/6): sub packages:
-    - x0d
-    - x0d-dev
-    - x0d-plugins
-    - libxzero-base + dev
-    - libxzero-flow + dev
-    - libxzero-http + dev
-    - FIXME: source packages
 
 - HttpConnection: try to get rid of start() method, or rename it to setup() / initialize().
 - HttpConnection must get its socket at constructor time to allow setState() (etc)
   to invoke log(), as it would crash otherwise.
-- HttpConnection: IsHandlingRequest flag really needed? remove if not.
-- HttpConnection: fix the need/meaning of flags_
 - http: allow the ability to set tcp_nopush / tcp_cork per request (defaults to global setting).
 - director:
   - support for (runtime-configurable) multiple balancer strategies:
     - RR, RoundRobin
     - LL, LeastLoad
-    - CC/FF, Chance / FirstFit
+    - CC, Chance
+    - FF, FirstFit
   - support for bucket filter to partition a cluster into multiple smaller hierarichal buckets
     - support also support the above different balancer strategies
 
@@ -114,7 +103,7 @@ abort(code) ::= resp.status = code
     - in local test it hang at: reading-request (lws-sp-ht-begin), but I can't reproduce again.
 
 - website: new documentation-focusing  website
-  - DONE: bring it online
+  - bring it online
   - write/migrate news(/blog) articles
   - functional download section
   - download section to provide 2 types of builds (aka. target environments / audience):
@@ -134,10 +123,6 @@ abort(code) ::= resp.status = code
 -------------------------------------------------
 
 - director: suppport accelerated backend release
-- DONE: http: pipelining fixes (#52)
-- DONE: http: performance regressions (#52)
-- DONE: flow: extend syntax to allow ruby-1.9 alike named call args
-  - example: `listen bind: 0.0.0.0, port: 80, multi_accept: 4, backlog: 256`
 - flow: bail out on invalid cast of operator+ (for example and at least)
 - flow: bool cast
 - ssl: properly working on real websites (also in threaded mode).
