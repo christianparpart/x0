@@ -15,7 +15,7 @@
 ---------------------------------------------------------------------------------------
     req.request(method)             -                   -
     -                               -                   req.is_secure
-    -                               req.scheme          -
+    -                               req.scheme          req.scheme
     req.url                         -                   req.url
     -                               -                   req.pathinfo
     -                               req.path            req.path
@@ -23,7 +23,7 @@
     -                               req.query           req.query
     -                               req.length          -
     req.http.header()               req.header[name]    req.header(name)
-    -                               req.env[name]       -
+    -                               req.env[name]       sys.env()
 ---------------------------------------------------------------------------------------
     -                               phys.exists         phys.exists
     -                               phys.path           phys.path
