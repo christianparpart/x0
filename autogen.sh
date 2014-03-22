@@ -20,11 +20,16 @@ if [[ "$1" == "clean" ]]; then
 	rm -vf debian/*.debhelper
 	rm -rvf debian/{files,tmp,x0d,x0d-plugins}
 	rm -rvf debian/libxzero-{base,http,flow}{,-dev}
+    rm -rf docs/html
+    rm -f XzeroBase.pc XzeroFlow.pc XzeroHttp.pc
+    rm -f install_manifest.txt
 
 	rm -vf x0d/src/x0d
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
 			-o -name 'Makefile' -o -name cmake_install.cmake \
-			-o -name '*.so' -o -name '*.a' \
+			-o -name '*.so' \
+            -o -name '*.a' \
+			-o -name '*.so.*' \
 			-o -name 'vgcore.*' -o -name core \
 			\) \
 		-exec rm -rf {} \; 2>/dev/null
@@ -36,6 +41,7 @@ else
 		-DCMAKE_BUILD_TYPE="debug" \
 		-DCMAKE_INSTALL_PREFIX="${HOME}/local" \
 		-DENABLE_PLUGIN_{RRD,IMAGEABLE,WEBDAV}=ON \
+		-DENABLE_FLOW_TOOL=ON \
 		-DENABLE_EXAMPLES=ON \
 		-DENABLE_TESTS=ON
 fi
