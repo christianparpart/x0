@@ -211,7 +211,9 @@ const char *FlowToken::c_str() const throw()
         case FlowToken::NamedParam: return "NamedParam";
 		case FlowToken::InterpolatedStringFragment: return "InterpolatedStringFragment";
 		case FlowToken::InterpolatedStringEnd: return "InterpolatedStringEnd";
-		default: assert(!"FIXME: Invalid Token.");
+		default:
+            assert(!"FIXME: Invalid Token.");
+            abort();
 	}
 }
 

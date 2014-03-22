@@ -437,18 +437,20 @@ ssize_t Socket::write(int fd, off_t *offset, size_t nbytes)
 	if (nbytes == 0)
 		return 0;
 
-	auto offset_ = *offset;
+	auto offset0 = *offset;
 #ifdef __APPLE__
-	ssize_t rv = ::sendfile(fd_, fd, offset_, (off_t *) &nbytes, NULL, 0);
+	ssize_t rv = ::sendfile(fd_, fd, offset, (off_t *) &nbytes, NULL, 0);
 #else
 	ssize_t rv = ::sendfile(fd_, fd, offset, nbytes);
 #endif
 
 #if !defined(XZERO_NDEBUG)
-	TRACE(1, "write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset_, *offset, nbytes, rv);
+	TRACE(1, "write(fd=%d, offset=[%ld->%ld], nbytes=%ld) -> %ld", fd, offset0, *offset, nbytes, rv);
 
 	if (rv < 0 && errno != EINTR && errno != EAGAIN)
 		ERROR("Socket(%d).write(): sendfile: rv=%ld (%s)", fd_, rv, strerror(errno));
+#else
+    (void) offset0;
 #endif
 
 	return rv;
