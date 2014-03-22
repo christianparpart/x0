@@ -11,14 +11,15 @@ configure-stamp:
 	cmake \
 		-DCMAKE_BUILD_TYPE=release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DSYSCONFDIR=/etc/x0 \
+		-DSYSCONFDIR=/etc/xzero \
 		-DINCLUDEDIR=/usr/include \
 		-DLIBDIR=/usr/lib \
-		-DPLUGINDIR=/usr/lib/x0 \
-		-DLOGDIR=/var/log/x0 \
+		-DPLUGINDIR=/usr/lib/xzero \
+		-DLOGDIR=/var/log/xzero \
 		\
-		-DBUILD_TESTS=OFF \
+		-DENABLE_TESTS=OFF \
 		-DENABLE_EXAMPLES=OFF \
+		-DENABLE_FLOW_TOOL=OFF \
 		-DENABLE_PLUGIN_WEBDAV=OFF \
 		-DENABLE_PLUGIN_RRD=OFF \
 		-DENABLE_PLUGIN_IMAGEABLE=OFF \
@@ -50,9 +51,9 @@ install-stamp:
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 	mkdir -p $(CURDIR)/debian/tmp/etc/init
-	mkdir -p $(CURDIR)/debian/tmp/var/log/x0
-	mkdir -p $(CURDIR)/debian/tmp/var/run/x0
-	cp $(CURDIR)/debian/x0d.upstart $(CURDIR)/debian/tmp/etc/init/x0d.conf
+	mkdir -p $(CURDIR)/debian/tmp/var/log/xzero
+	mkdir -p $(CURDIR)/debian/tmp/var/run/xzero
+	cp -p $(CURDIR)/debian/x0d.upstart $(CURDIR)/debian/tmp/etc/init/x0d.conf
 	touch $@
 
 binary-indep: build install

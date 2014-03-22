@@ -1,5 +1,5 @@
 Source: x0
-Section: misc
+Section: httpd
 Priority: optional
 Maintainer: Christian Parpart <trapni@gmail.com>
 Build-Depends:
@@ -23,7 +23,7 @@ Standards-Version: 3.9.3
 
 Package: x0d
 Architecture: any
-Section: misc
+Section: httpd
 Priority: optional
 Description: Xzero HTTP Web Server (x0d)
   HTTP web server. This is the main package you want to install.
@@ -34,7 +34,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support,
 
 Package: libxzero-base
 Architecture: any
-Section: misc
+Section: httpd
 Priority: optional
 Description: Xzero (x0) Base Library
   Base framework library for x0.
@@ -43,7 +43,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, libtbb2
 
 Package: libxzero-flow
 Architecture: any
-Section: misc
+Section: httpd
 Priority: optional
 Description: Xzero (x0) Flow Library
   Configuration language framework for x0.
@@ -53,7 +53,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
 
 Package: libxzero-http
 Architecture: any
-Section: misc
+Section: httpd
 Priority: optional
 Description: Xzero (x0) HTTP Library
   HTTP server framework for x0.
@@ -63,7 +63,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
 
 Package: x0d-plugins
 Architecture: any
-Section: misc
+Section: httpd
 Priority: optional
 Description: Xzero (x0) HTTP Server Plugins
   This package contains the standard plugins that x0d can load.
