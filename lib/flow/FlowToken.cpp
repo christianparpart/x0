@@ -1,5 +1,6 @@
 #include <x0/flow/FlowToken.h>
 #include <cstdio>
+#include <cstdlib>
 #include <assert.h>
 
 namespace x0 {
