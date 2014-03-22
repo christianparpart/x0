@@ -3,8 +3,6 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; RELASE TODO for 0.8.0:
 
-- director:
-  - can we get in Vary-support before 0.8.0?
 - TODO: remove flag IsHandlingRequest
 - provide ubuntu 12.04 and 14.04 packages
   - binary
