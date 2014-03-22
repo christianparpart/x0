@@ -717,7 +717,7 @@ void XzeroCore::regex_group(HttpRequest* in, FlowParams& args)
 	FlowNumber position = args.get<FlowNumber>(1);
 
 	if (const RegExp::Result* rr = in->regexMatch()) {
-		if (position >= 0 && position < rr->size()) {
+		if (position >= 0 && position < static_cast<FlowNumber>(rr->size())) {
 			const auto& match = rr->at(position);
             FlowString result(match.first, match.second);
 			args.setResult(args.caller()->newString(match.first, match.second));
