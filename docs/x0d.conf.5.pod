@@ -363,6 +363,30 @@ Global functions are available in setup and main handlers.
 
 =over 6
 
+=item B<log.err> (message)
+
+Logs given message with logging severity: error.
+
+=item B<log.warn> (message)
+
+Logs given message with logging severity: warning.
+
+=item B<log.notice> (message)
+
+Logs given message with logging severity: notice.
+
+=item B<log.info> (message)
+
+Logs given message with logging severity: info.
+
+=item B<log.diag> (message)
+
+Logs given message with logging severity: diag.
+
+=item B<log.debug> (message)
+
+Logs given message with logging severity: debug.
+
 =item B<sys.env> (key)
 
 Retrieves the value of an environment variable.
