@@ -120,6 +120,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     sharedFunction("log.warn", &XzeroCore::log_warn, FlowType::String);
     sharedFunction("log.notice", &XzeroCore::log_notice, FlowType::String);
     sharedFunction("log.info", &XzeroCore::log_info, FlowType::String);
+    sharedFunction("log.diag", &XzeroCore::log_diag, FlowType::String);
     sharedFunction("log", &XzeroCore::log_info, FlowType::String);
     sharedFunction("log.debug", &XzeroCore::log_debug, FlowType::String);
 
@@ -451,6 +452,14 @@ void XzeroCore::log_info(HttpRequest* r, FlowParams& args)
 		r->log(Severity::info, "%s", concat(args).c_str());
 	else
 		server().log(Severity::info, "%s", concat(args).c_str());
+}
+
+void XzeroCore::log_diag(HttpRequest* r, FlowParams& args)
+{
+	if (r)
+		r->log(Severity::diag, "%s", concat(args).c_str());
+	else
+		server().log(Severity::diag, "%s", concat(args).c_str());
 }
 
 void XzeroCore::log_debug(HttpRequest* r, FlowParams& args)
