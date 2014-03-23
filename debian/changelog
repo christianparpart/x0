@@ -1,3 +1,9 @@
+x0 (0.8.0-6) trusty; urgency=medium
+
+  * i386 arch build fix
+
+ -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 12:30:00 -0100
+
 x0 (0.8.0-5) trusty; urgency=medium
 
   * adds /etc/default/x0d file with reasonable defaults for the x0d upstart script
