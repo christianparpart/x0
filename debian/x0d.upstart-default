@@ -1,4 +1,4 @@
-# vim:syntax="sh
+# vim:syntax=sh
 
 CONFFILE="/etc/xzero/x0d.conf"
 PIDFILE="/var/run/xzero/x0d.pid"
