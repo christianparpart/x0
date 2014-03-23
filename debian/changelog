@@ -1,3 +1,9 @@
+x0 (0.8.0-7) trusty; urgency=medium
+
+  * source archive cleanup
+
+ -- Christian Parpart <trapni@gmail.com>  Sat, 22 Mar 2014 13:30:00 -0100
+
 x0 (0.8.0-6) trusty; urgency=medium
 
   * i386 arch build fix

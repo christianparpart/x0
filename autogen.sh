@@ -21,16 +21,38 @@ if [[ "$1" == "clean" ]]; then
 	rm -rvf debian/{files,tmp,x0d,x0d-plugins}
 	rm -rvf debian/libxzero-{base,http,flow}{,-dev}
     rm -rf docs/html
-    rm -f XzeroBase.pc XzeroFlow.pc XzeroHttp.pc
-    rm -f install_manifest.txt
+    rm -vf XzeroBase.pc XzeroFlow.pc XzeroHttp.pc x0d/x0d.pc
+    rm -vf install_manifest.txt
 
-	rm -vf x0d/src/x0d
+	rm -vf "x0d/src/x0d" \
+           "examples/app1" \
+           "flow-tool/flow-tool" \
+           "docs/flow.7" \
+           "docs/x0d.8" \
+           "docs/x0d.conf.5" \
+           "include/x0/sysconfig.h" \
+           "examples/capi-app1" \
+           "examples/capi-app2" \
+           "examples/capi-post-data" \
+           "examples/tcp-echo-server" \
+           "examples/tcp-echo-server-splice" \
+           "tests/fcgi-long-run" \
+           "tests/fcgi-staticfile" \
+           "tests/queue-bench" \
+           "tests/splice_test" \
+           "tests/test_flow_lexer" \
+           "tests/x0cp" \
+           "tests/x0test" \
+           "tests/x0test" \
+           "tests/x0-test"
+
 	find . \( -name 'CMakeCache.txt' -o -name 'CMakeFiles' \
 			-o -name 'Makefile' -o -name cmake_install.cmake \
 			-o -name '*.so' \
             -o -name '*.a' \
 			-o -name '*.so.*' \
 			-o -name 'vgcore.*' -o -name core \
+            -o -name '.directory' \
 			\) \
 		-exec rm -rf {} \; 2>/dev/null
 else
