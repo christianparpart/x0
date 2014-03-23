@@ -35,7 +35,7 @@ handler main
     status if req.path == '/server-status';
 
     # the directory to serve content from
-    docroot '/srv/www/';
+    docroot '/var/www/';
 
     # show user directories (~/public_html) on http://$HOST/~username/
     if (req.remoteip in 127.0.0.0/8) {
