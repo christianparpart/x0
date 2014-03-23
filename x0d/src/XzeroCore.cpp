@@ -390,7 +390,7 @@ void XzeroCore::sys_cpu_count(HttpRequest*, x0::FlowVM::Params& args)
     if (numCPU < 0)
         numCPU = 1;
 
-    args.setResult(numCPU);
+    args.setResult(static_cast<FlowNumber>(numCPU));
 }
 
 void XzeroCore::sys_env(HttpRequest*, FlowParams& args)
