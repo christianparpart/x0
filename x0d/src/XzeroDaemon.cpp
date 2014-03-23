@@ -326,7 +326,7 @@ bool XzeroDaemon::parse()
 	};
 
 	static const char *package_header = 
-		"x0d: Xzero Web Server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
+		"x0d: Xzero HTTP Web Server, version " PACKAGE_VERSION " [" PACKAGE_HOMEPAGE_URL "]";
 	static const char *package_copyright =
 		"Copyright (c) 2009-2014 by Christian Parpart <trapni@gmail.com>";
 	static const char *package_license =
