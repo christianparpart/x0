@@ -6,6 +6,9 @@ cd $(dirname $0)/..
 
 VERSION=`head -n1 debian/changelog | sed 's/^.*(\(.*\)).*$/\1/'`
 
+# always clean before building as dpkg-source will badly include just everything (FIXME: can we provide it a blacklist?)
+./autogen.sh clean
+
 # build source-only
 dpkg-buildpackage -S || exit $?
 
