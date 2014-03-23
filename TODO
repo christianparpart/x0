@@ -1,18 +1,6 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; RELASE TODO for 0.8.0:
-
-- get gcc 32bit build working (the i386 PPA builder fails, but Travis-CI didn't?)
-- debian:
-  - add ChangeLog to all packages
-- FINALLY:
-  - update version tag in source tree from 0.8.0-dev to 0.8.0
-  - PPA: re-release when finally happy with everything
-  - git-tag 0.8.0
-- work on homepage, again :-)
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - TODO(director): disallow invalid POST args (currently ignored / not detected)
   - this is QA and can be done *after* the 0.8 release
 - TODO: remove flag IsHandlingRequest
