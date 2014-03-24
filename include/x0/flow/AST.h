@@ -111,6 +111,7 @@ public:
 	size_t symbolCount() const;
 
 	Symbol* lookup(const std::string& name, Lookup lookupMethod) const;
+    Symbol* lookup(const std::string& name, Lookup lookupMethod, std::list<Symbol*>* result) const;
 
 	template<typename T>
 	T* lookup(const std::string& name, Lookup lookupMethod) { return dynamic_cast<T*>(lookup(name, lookupMethod)); }
@@ -167,22 +168,31 @@ public:
 	virtual void visit(ASTVisitor& v);
 };
 
+class ParamList;
+
 class X0_API Callable : public Symbol {
 protected:
-    FlowVM::Signature signature_;
+    const FlowVM::NativeCallback* nativeCallback_;
 
 public:
-	Callable(Type t, const FlowVM::Signature& signature, const FlowLocation& loc) :
-		Symbol(t, signature.name(), loc),
-        signature_(signature)
-	{
-	}
+    Callable(Type t, const FlowVM::NativeCallback* cb, const FlowLocation& loc);
+    Callable(const std::string& name, const FlowLocation& loc);
 
     bool isHandler() const { return type() == Symbol::Handler || type() == Symbol::BuiltinHandler; }
     bool isFunction() const { return type() == Symbol::BuiltinFunction; }
     bool isBuiltin() const { return type() == Symbol::BuiltinHandler || type() == Symbol::BuiltinFunction; }
 
-    const FlowVM::Signature& signature() const { return signature_; }
+    const FlowVM::Signature& signature() const;
+
+    const FlowVM::NativeCallback* nativeCallback() const { return nativeCallback_; }
+
+    /** checks whether given parameter list is a concrete match (without any completions) to this symbol.
+     */
+    bool isDirectMatch(const ParamList& params) const;
+
+    /** tries to match given parameters against this symbol by using default values or reordering parameters (if named input args)
+     */
+    bool tryMatch(ParamList& params, std::string* errorMessage) const;
 };
 
 class X0_API Handler : public Callable {
@@ -193,7 +203,7 @@ private:
 public:
     /** create forward-declared handler. */
 	Handler(const std::string& name, const FlowLocation& loc) :
-		Callable(Symbol::Handler, FlowVM::Signature(name + "()B"), loc),
+		Callable(name, loc),
 		body_(nullptr /*forward declared*/)
 	{
 	}
@@ -203,7 +213,7 @@ public:
 			std::unique_ptr<SymbolTable>&& scope,
 			std::unique_ptr<Stmt>&& body,
 			const FlowLocation& loc) :
-		Callable(Symbol::Handler, FlowVM::Signature(name + "()B"), loc),
+		Callable(name, loc),
 		scope_(std::move(scope)),
 		body_(std::move(body))
 	{
@@ -222,8 +232,8 @@ public:
 
 class X0_API BuiltinFunction : public Callable {
 public:
-	BuiltinFunction(const FlowVM::Signature& signature) :
-		Callable(Symbol::BuiltinFunction, signature, FlowLocation())
+	explicit BuiltinFunction(const FlowVM::NativeCallback* cb) :
+		Callable(Symbol::BuiltinFunction, cb, FlowLocation())
 	{
 	}
 
@@ -232,8 +242,8 @@ public:
 
 class X0_API BuiltinHandler : public Callable {
 public:
-	explicit BuiltinHandler(const FlowVM::Signature& signature) :
-		Callable(Symbol::BuiltinHandler, signature, FlowLocation())
+	explicit BuiltinHandler(const FlowVM::NativeCallback* cb) :
+		Callable(Symbol::BuiltinHandler, cb, FlowLocation())
 	{
 	}
 

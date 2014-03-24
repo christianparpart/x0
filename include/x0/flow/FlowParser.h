@@ -146,11 +146,9 @@ private:
 	std::unique_ptr<Stmt> ifStmt();
 	std::unique_ptr<Stmt> matchStmt();
 	std::unique_ptr<Stmt> compoundStmt();
-	std::unique_ptr<Stmt> callStmt();
-    bool callArgs(ASTNode* call, Callable* callee, ParamList& args);
-    bool verifyParamsNamed(const Callable* callee, ParamList& args);
-    bool verifyParamsPositional(const Callable* callee, ParamList& args);
-    bool completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name);
+	std::unique_ptr<Stmt> identStmt();
+	std::unique_ptr<CallExpr> callStmt(const std::list<Symbol*>& callables);
+    std::unique_ptr<CallExpr> resolve(const std::list<Callable*>& symbols, ParamList&& params);
 	std::unique_ptr<Stmt> postscriptStmt(std::unique_ptr<Stmt> baseStmt);
 };
 

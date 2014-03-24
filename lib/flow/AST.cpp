@@ -3,6 +3,7 @@
 #include <x0/flow/vm/Signature.h>
 #include <x0/flow/vm/NativeCallback.h>
 #include <x0/Buffer.h>
+#include <x0/Utility.h>
 #include <algorithm>
 
 namespace x0 {
@@ -51,7 +52,6 @@ size_t SymbolTable::symbolCount() const
 
 Symbol* SymbolTable::lookup(const std::string& name, Lookup method) const
 {
-
 	// search local
 	if (method & Lookup::Self)
 		for (auto symbol: symbols_)
@@ -70,8 +70,196 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method) const
     //printf("SymbolTable(%s).lookup: \"%s\" -> not found\n", name_.c_str(), name.c_str());
 	return nullptr;
 }
-// }}}
 
+Symbol* SymbolTable::lookup(const std::string& name, Lookup method, std::list<Symbol*>* result) const
+{
+    assert(result != nullptr);
+
+    // search local
+    if (method & Lookup::Self)
+        for (auto symbol: symbols_)
+            if (symbol->name() == name)
+                result->push_back(symbol);
+
+    // search outer
+    if (method & Lookup::Outer)
+        if (outerTable_)
+            outerTable_->lookup(name, method, result);
+
+    return !result->empty() ? result->front() : nullptr;
+}
+// }}}
+// {{{ Callable
+Callable::Callable(Type t, const FlowVM::NativeCallback* cb, const FlowLocation& loc) :
+    Symbol(t, cb->signature().name(), loc),
+    nativeCallback_(cb)
+{
+}
+
+Callable::Callable(const std::string& name, const FlowLocation& loc) :
+    Symbol(Type::Handler, name, loc),
+    nativeCallback_(nullptr)
+{
+}
+
+const FlowVM::Signature& Callable::signature() const
+{
+    return nativeCallback_->signature();
+}
+
+static inline void completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name) // {{{
+{
+    static const FlowLocation loc;
+
+    switch (type) {
+        case FlowType::Boolean:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<BoolExpr>(*(bool*) defaultValue, loc));
+            else
+                args.push_back(std::make_unique<BoolExpr>(*(bool*) defaultValue, loc));
+            break;
+        case FlowType::Number:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<NumberExpr>(*(FlowNumber*) defaultValue, loc));
+            else
+                args.push_back(std::make_unique<NumberExpr>(*(FlowNumber*) defaultValue, loc));
+            break;
+        case FlowType::String: {
+            const FlowString* s = (FlowString*) defaultValue;
+            //printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n", name.c_str(), tos(type).c_str(), s->str().c_str());
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<StringExpr>(s->str(), loc));
+            else
+                args.push_back(std::make_unique<StringExpr>(s->str(), loc));
+            break;
+        }
+        case FlowType::IPAddress:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue, loc));
+            else
+                args.push_back(std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue, loc));
+            break;
+        case FlowType::Cidr:
+            if (args.isNamed())
+                args.push_back(name, std::make_unique<CidrExpr>(*(Cidr*) defaultValue, loc));
+            else
+                args.push_back(std::make_unique<CidrExpr>(*(Cidr*) defaultValue, loc));
+            break;
+        default:
+            //reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
+            //        name.c_str(), this->name().c_str(), tos(type).c_str());
+            break;
+    }
+} // }}}
+
+bool Callable::isDirectMatch(const ParamList& params) const
+{
+    for (size_t i = 0, e = params.size(); i != e; ++i) {
+        FlowType expectedType = signature().args()[i];
+        FlowType givenType = params.values()[i]->getType();
+        if (givenType != expectedType) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
+{
+    const FlowVM::NativeCallback* native = nativeCallback();
+
+    if (params.empty() && (!native || native->signature().args().empty()))
+        return true;
+
+    if (params.isNamed()) {
+        if (!native->isNamed()) {
+            *errorMessage = Buffer().printf("Callee \"%s\" invoked with named parameters, but no names provided by runtime.",
+                    name().c_str()).str();
+            return false;
+        }
+
+        int argc = signature().args().size();
+        for (int i = 0; i != argc; ++i) {
+            const auto& name = native->getNameAt(i);
+            if (!params.contains(name)) {
+                const void* defaultValue = native->getDefaultAt(i);
+                if (!defaultValue) {
+                    *errorMessage = Buffer().printf("Callee \"%s\" invoked without required named parameter \"%s\".",
+                            this->name().c_str(), name.c_str()).str();
+                    return false;
+                }
+                FlowType type = signature().args()[i];
+                completeDefaultValue(params, type, defaultValue, name);
+            }
+        }
+
+        // reorder params (and detect superfluous params)
+        std::vector<std::string> superfluous;
+        params.reorder(native, &superfluous);
+        if (!superfluous.empty()) {
+            std::string t;
+            for (const auto& s: superfluous) {
+                if (!t.empty()) t += ", ";
+                t += "\"";
+                t += s;
+                t += "\"";
+            }
+            *errorMessage = Buffer().printf("Superfluous arguments passed to callee \"%s\": %s.",
+                this->name().c_str(), t.c_str()).str();
+            return false;
+        }
+
+        return true;
+    }
+    else // verify params positional
+    {
+        if (params.size() > signature().args().size()) {
+            *errorMessage = Buffer().printf("Superfluous parameters to callee %s.", signature().to_s().c_str()).str();
+            return false;
+        }
+
+        for (size_t i = 0, e = params.size(); i != e; ++i) {
+            FlowType expectedType = signature().args()[i];
+            FlowType givenType = params.values()[i]->getType();
+            if (givenType != expectedType) {
+                *errorMessage = Buffer().printf("Type mismatch in positional parameter %d, callee %s.",
+                    i + 1, signature().to_s().c_str()).str();
+                return false;
+            }
+        }
+
+        for (size_t i = params.size(), e = signature().args().size(); i != e; ++i) {
+            const void* defaultValue = native->getDefaultAt(i);
+            if (!defaultValue) {
+                *errorMessage = Buffer().printf("No default value provided for positional parameter %d, callee %s.",
+                    i + 1, signature().to_s().c_str()).str();
+                return false;
+            }
+
+            const std::string& name = native->getNameAt(i);
+            FlowType type = native->signature().args()[i];
+            completeDefaultValue(params, type, defaultValue, name);
+        }
+
+        FlowVM::Signature sig;
+        sig.setName(this->name());
+        sig.setReturnType(signature().returnType()); // XXX cheetah
+        std::vector<FlowType> argTypes;
+        for (const auto& arg: params.values()) {
+            argTypes.push_back(arg->getType());
+        }
+        sig.setArgs(argTypes);
+
+        if (sig != signature()) {
+            *errorMessage = Buffer().printf("Callee parameter type signature mismatch: %s passed, but %s expected.",
+                    sig.to_s().c_str(), signature().to_s().c_str()).str();
+            return false;
+        }
+
+        return true;
+    }
+}
+// }}}
 // {{{ ParamList
 ParamList& ParamList::operator=(ParamList&& v)
 {

@@ -445,9 +445,9 @@ void FlowParser::declareBuiltin(const FlowVM::NativeCallback* native)
     TRACE(1, "declareBuiltin (scope:%p): %s", scope(), native->signature().to_s().c_str());
 
     if (native->isHandler()) {
-        createSymbol<BuiltinHandler>(native->signature());
+        createSymbol<BuiltinHandler>(native);
     } else {
-        createSymbol<BuiltinFunction>(native->signature());
+        createSymbol<BuiltinFunction>(native);
     }
 }
 
@@ -892,7 +892,8 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 			std::string name = stringValue();
 			nextToken();
 
-			Symbol* symbol = scope()->lookup(name, Lookup::All);
+            std::list<Symbol*> symbols;
+			Symbol* symbol = scope()->lookup(name, Lookup::All, &symbols);
 			if (!symbol) {
                 // XXX assume that given symbol is a auto forward-declared handler.
                 Handler* href = (Handler*) globalScope()->appendSymbol(std::make_unique<Handler>(name, loc));
@@ -906,23 +907,32 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
 				return std::make_unique<HandlerRefExpr>(handler, loc);
 
 			if (symbol->type() == Symbol::BuiltinFunction) {
+                std::list<Callable*> callables;
+                for (Symbol* s: symbols) {
+                    if (auto c = dynamic_cast<BuiltinFunction*>(s)) {
+                        callables.push_back(c);
+                    }
+                }
 
-				if (token() != FlowToken::RndOpen)
-					return std::make_unique<CallExpr>(loc, (Callable*) symbol, ParamList());
-
-                consume(FlowToken::RndOpen);
-                std::unique_ptr<ParamList> args;
-                if (token() != FlowToken::RndClose) {
-                    args = paramList();
-                    if (!args) {
+                ParamList params;
+                // {{{ parse call params
+                if (token() == FlowToken::RndOpen) {
+                    nextToken();
+                    if (token() != FlowToken::RndClose) {
+                        auto ra = paramList();
+                        if (!ra) {
+                            return nullptr;
+                        }
+                        params = std::move(*ra);
+                    }
+                    loc.end = lastLocation().end;
+                    if (!consume(FlowToken::RndClose)) {
                         return nullptr;
                     }
-                } else {
-                    args = std::make_unique<ParamList>();
                 }
-				consume(FlowToken::RndClose);
+                // }}}
 
-                return std::make_unique<CallExpr>(loc, (Callable*) symbol, std::move(*args));
+                return resolve(callables, std::move(params));
 			}
 
 			reportError("Unsupported symbol type of \"%s\" in expression.", name.c_str());
@@ -1279,7 +1289,7 @@ std::unique_ptr<Stmt> FlowParser::stmt()
 		case FlowToken::Begin:
 			return compoundStmt();
 		case FlowToken::Ident:
-			return callStmt();
+			return identStmt();
 		case FlowToken::Semicolon: {
 			FlowLocation sloc(location());
 			nextToken();
@@ -1465,22 +1475,23 @@ std::unique_ptr<Stmt> FlowParser::compoundStmt()
 	}
 }
 
-std::unique_ptr<Stmt> FlowParser::callStmt()
+std::unique_ptr<Stmt> FlowParser::identStmt()
 {
-	// callStmt ::= NAME ['(' paramList ')' | paramList] (';' | LF)
-	// 			 | NAME '=' expr [';' | LF]
-	// NAME may be a builtin-function, builtin-handler, handler-name, or variable.
-    //
-    // namedArg ::= NAME ':' expr
+    FNTRACE();
 
-	FNTRACE();
+	// identStmt  ::= callStmt | assignStmt
+    // callStmt   ::= NAME ['(' paramList ')' | paramList] (';' | LF)
+	// assignStmt ::= NAME '=' expr [';' | LF]
+    //
+	// NAME may be a builtin-function, builtin-handler, handler-name, or variable.
 
 	FlowLocation loc(location());
 	std::string name = stringValue();
 	nextToken(); // IDENT
 
 	std::unique_ptr<Stmt> stmt;
-	Symbol* callee = scope()->lookup(name, Lookup::All);
+    std::list<Symbol*> symbols;
+	Symbol* callee = scope()->lookup(name, Lookup::All, &symbols);
 	if (!callee) {
         // XXX assume that given symbol is a auto forward-declared handler that's being defined later in the source.
         if (token() != FlowToken::Semicolon) {
@@ -1489,6 +1500,7 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
         }
 
         callee = (Handler*) globalScope()->appendSymbol(std::make_unique<Handler>(name, loc));
+        symbols.push_back(callee);
 	}
 
 	switch (callee->type()) {
@@ -1514,9 +1526,10 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
 		}
         case Symbol::BuiltinFunction:
         case Symbol::BuiltinHandler: {
-            std::unique_ptr<CallExpr> call = std::make_unique<CallExpr>(loc, (Callable*) callee, ParamList());
-            if (!callArgs(call.get(), call->callee(), call->args()))
+            auto call = callStmt(symbols);
+            if (!call) {
                 return nullptr;
+            }
             stmt = std::make_unique<ExprStmt>(std::move(call));
             break;
         }
@@ -1541,204 +1554,93 @@ std::unique_ptr<Stmt> FlowParser::callStmt()
     return stmt;
 }
 
-/**
- * Parses function/handler call parameters and performs semantic checks.
- *
- * @param loc    Source location of the call.
- * @param callee Pointer to the callee's AST node.
- * @param args   Output argument list to store parsed parameters into.
- *
- * @retval false Parsing or sema checks failed.
- * @retval true  Parsing and sema checks succeed.
- */
-bool FlowParser::callArgs(ASTNode* call, Callable* callee, ParamList& args)
+std::unique_ptr<CallExpr> FlowParser::callStmt(const std::list<Symbol*>& symbols)
 {
-    // callArgs ::= '(' paramList ')'
-    //            | paramList           /* if starting on same line */
-
     FNTRACE();
 
+    // callStmt ::= NAME ['(' paramList ')' | paramList] (';' | LF)
+    // namedArg ::= NAME ':' expr
+
+    std::list<Callable*> callables;
+    printf("callStmt: on %zu options\n", symbols.size());
+    for (Symbol* s: symbols) {
+        if (auto c = dynamic_cast<Callable*>(s)) {
+            printf("  %s\n", c->signature().to_s().c_str());
+            callables.push_back(c);
+        }
+    }
+
+    if (callables.empty()) {
+        reportError("Symbol is not callable."); // XXX should never reach here
+        return nullptr;
+    }
+
+    ParamList params;
+    FlowLocation loc = location();
+
+    // {{{ parse call params
     if (token() == FlowToken::RndOpen) {
         nextToken();
         if (token() != FlowToken::RndClose) {
             auto ra = paramList();
             if (!ra) {
-                return false;
+                return nullptr;
             }
-            args = std::move(*ra);
+            params = std::move(*ra);
         }
-        call->location().end = lastLocation().end;
-        consume(FlowToken::RndClose);
+        loc.end = lastLocation().end;
+        if (!consume(FlowToken::RndClose)) {
+            return nullptr;
+        }
     } else if (token() != FlowToken::Semicolon && token() != FlowToken::If && token() != FlowToken::Unless) {
         auto ra = paramList();
         if (!ra) {
-            return false;
+            return nullptr;
         }
-
-        args = std::move(*ra);
-        call->location().end = args.location().end;
+        params = std::move(*ra);
+        loc.end = params.location().end;
     }
+    // }}}
 
-    if (args.isNamed()) {
-        return verifyParamsNamed(callee, args);
-    } else {
-        return verifyParamsPositional(callee, args);
-    }
+    return resolve(callables, std::move(params));
 }
 
-/**
- * Verify <b>named</b> call-parameters, possibly auto-fill missing defaults and reorder them if needed.
- *
- * @param callee  callee to verify
- * @param args    callees argument list
- *
- * @retval true   Verification succeed.
- * @retval false  Verification failed.
- */
-bool FlowParser::verifyParamsNamed(const Callable* callee, ParamList& args)
+std::unique_ptr<CallExpr> FlowParser::resolve(const std::list<Callable*>& callables, ParamList&& params)
 {
-    // auto-fill missing for defaulted parameters
-    const FlowVM::NativeCallback* native = runtime_->find(callee->signature());
-    if (!native->isNamed()) {
-        reportError("Callee \"%s\" invoked with named parameters, but no names provided by runtime.",
-                callee->name().c_str());
-        return false;
-    }
-
-    int argc = native->signature().args().size();
-    for (int i = 0; i != argc; ++i) {
-        const auto& name = native->getNameAt(i);
-        if (!args.contains(name)) {
-            const void* defaultValue = native->getDefaultAt(i);
-            if (!defaultValue) {
-                reportError("Callee \"%s\" invoked without required named parameter \"%s\".",
-                        callee->name().c_str(), name.c_str());
-                return false;
-            }
-            FlowType type = native->signature().args()[i];
-            if (!completeDefaultValue(args, type, defaultValue, name)) {
-                reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
-                        name.c_str(), callee->name().c_str(), tos(type).c_str());
-                return false;
-            }
+    // attempt to find a full match first
+    for (Callable* callee: callables) {
+        if (callee->isDirectMatch(params)) {
+            return std::make_unique<CallExpr>(callee->location(), callee, std::move(params));
         }
     }
 
-    // reorder args (and detect superfluous args)
-    std::vector<std::string> superfluous;
-    args.reorder(native, &superfluous);
-    if (!superfluous.empty()) {
-        std::string t;
-        for (const auto& s: superfluous) {
-            if (!t.empty()) t += ", ";
-            t += "\"";
-            t += s;
-            t += "\"";
-        }
-        reportError("Superfluous arguments passed to callee \"%s\": %s.",
-            callee->name().c_str(), t.c_str());
-        return false;
-    }
+    // attempt to find something with default values or parameter-reordering (if named args)
+    std::list<Callable*> result;
+    std::list<std::pair<Callable*, std::string>> matchErrors;
 
-    return true;
-}
-
-bool FlowParser::verifyParamsPositional(const Callable* callee, ParamList& args)
-{
-    // get the `native` to actually auto-complete possible default parameters
-    const FlowVM::NativeCallback* native = runtime_->find(callee->signature());
-
-    if (args.size() > native->signature().args().size()) {
-        reportError("Superfluous parameters to callee %s.", callee->signature().to_s().c_str());
-        return false;
-    }
-
-    for (size_t i = 0, e = args.size(); i != e; ++i) {
-        FlowType expectedType = native->signature().args()[i];
-        FlowType givenType = args.values()[i]->getType();
-        if (givenType != expectedType) {
-            reportError("Type mismatch in positional parameter %d, callee %s.",
-                i + 1, callee->signature().to_s().c_str());
-            return false;
+    for (Callable* callee: callables) {
+        std::string msg;
+        if (callee->tryMatch(params, &msg)) {
+            result.push_back(callee);
+        } else {
+            matchErrors.push_back(std::make_pair(callee, msg));
         }
     }
 
-    for (size_t i = args.size(), e = callee->signature().args().size(); i != e; ++i) {
-        const void* defaultValue = native->getDefaultAt(i);
-        if (!defaultValue) {
-            reportError("No default value provided for positional parameter %d, callee %s.",
-                i + 1, callee->signature().to_s().c_str());
-            return false;
+    if (result.empty()) {
+        reportError("No matching signature for %s.", callables.front()->name().c_str());
+        for (const auto& me: matchErrors) {
+            reportError("Possible candidate %s failed. %s", me.first->signature().to_s().c_str(), me.second.c_str());
         }
-        const std::string& name = native->getNameAt(i);
-        FlowType type = native->signature().args()[i];
-        if (!completeDefaultValue(args, type, defaultValue, name)) {
-            reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
-                    name.c_str(), callee->name().c_str(), tos(type).c_str());
-            return false;
-        }
+        return nullptr;
     }
 
-    FlowVM::Signature sig;
-    sig.setName(callee->name());
-    sig.setReturnType(callee->signature().returnType()); // XXX cheetah
-    std::vector<FlowType> argTypes;
-    for (const auto& arg: args.values()) {
-        argTypes.push_back(arg->getType());
-    }
-    sig.setArgs(argTypes);
-
-    if (sig != callee->signature()) {
-        reportError("Callee parameter type signature mismatch: %s passed, but %s expected.",
-                sig.to_s().c_str(), callee->signature().to_s().c_str());
-        return false;
+    if (result.size() > 1) {
+        reportError("Call to builtin is ambiguous.");
+        return nullptr;
     }
 
-    return true;
-}
-
-bool FlowParser::completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name)
-{
-    FlowLocation loc = FlowLocation(location().filename, location().begin, location().begin);
-
-    switch (type) {
-        case FlowType::Boolean:
-            if (args.isNamed())
-                args.push_back(name, std::make_unique<BoolExpr>(*(bool*) defaultValue, loc));
-            else
-                args.push_back(std::make_unique<BoolExpr>(*(bool*) defaultValue, loc));
-            break;
-        case FlowType::Number:
-            if (args.isNamed())
-                args.push_back(name, std::make_unique<NumberExpr>(*(FlowNumber*) defaultValue, loc));
-            else
-                args.push_back(std::make_unique<NumberExpr>(*(FlowNumber*) defaultValue, loc));
-            break;
-        case FlowType::String: {
-            const FlowString* s = (FlowString*) defaultValue;
-            //printf("auto-complete parameter \"%s\" <%s> = \"%s\"\n", name.c_str(), tos(type).c_str(), s->str().c_str());
-            if (args.isNamed())
-                args.push_back(name, std::make_unique<StringExpr>(s->str(), loc));
-            else
-                args.push_back(std::make_unique<StringExpr>(s->str(), loc));
-            break;
-        }
-        case FlowType::IPAddress:
-            if (args.isNamed())
-                args.push_back(name, std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue, loc));
-            else
-                args.push_back(std::make_unique<IPAddressExpr>(*(IPAddress*) defaultValue, loc));
-            break;
-        case FlowType::Cidr:
-            if (args.isNamed())
-                args.push_back(name, std::make_unique<CidrExpr>(*(Cidr*) defaultValue, loc));
-            else
-                args.push_back(std::make_unique<CidrExpr>(*(Cidr*) defaultValue, loc));
-            break;
-        default:
-            return false;
-    }
-    return true;
+    return std::make_unique<CallExpr>(result.front()->location(), result.front(), std::move(params));
 }
 
 std::unique_ptr<Stmt> FlowParser::postscriptStmt(std::unique_ptr<Stmt> baseStmt)
