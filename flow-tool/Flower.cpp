@@ -64,6 +64,18 @@ Flower::Flower() :
         .params(FlowType::String)
         .bind(&Flower::flow_print);
 
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::Number)
+        .bind(&Flower::flow_print_I);
+
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::String, FlowType::Number)
+        .bind(&Flower::flow_print_SI);
+
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::Number, FlowType::String)
+        .bind(&Flower::flow_print_IS);
+
     registerFunction("log", FlowType::Void)
         .param<FlowString>("message", "<whaaaaat!>")
         .param<FlowNumber>("severity", 42)
@@ -325,6 +337,25 @@ void Flower::dump()
 void Flower::flow_print(FlowVM::Params& args)
 {
 	printf("%s\n", args.get<FlowString*>(1)->str().c_str());
+}
+
+void Flower::flow_print_I(FlowVM::Params& args)
+{
+	printf("%li\n", args.get<FlowNumber>(1));
+}
+
+void Flower::flow_print_SI(FlowVM::Params& args)
+{
+	printf("%s %li\n",
+            args.get<FlowString*>(1)->str().c_str(),
+            args.get<FlowNumber>(2));
+}
+
+void Flower::flow_print_IS(FlowVM::Params& args)
+{
+	printf("%li %s\n",
+            args.get<FlowNumber>(1),
+            args.get<FlowString*>(2)->str().c_str());
 }
 
 void Flower::flow_log(FlowVM::Params& args)

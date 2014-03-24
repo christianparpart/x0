@@ -59,6 +59,9 @@ private:
 
 	// functions
 	void flow_print(FlowVM::Params& args);
+	void flow_print_I(FlowVM::Params& args);
+	void flow_print_SI(FlowVM::Params& args);
+	void flow_print_IS(FlowVM::Params& args);
     void flow_log(FlowVM::Params& args);
 
 	// handlers
