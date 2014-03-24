@@ -658,6 +658,7 @@ std::unique_ptr<Expr> FlowParser::logicExpr()
                 }
 
                 lhs = std::make_unique<BinaryExpr>(opc, std::move(lhs), std::move(rhs));
+                break;
             }
             default:
                 return lhs;
