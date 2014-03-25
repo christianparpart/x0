@@ -1562,7 +1562,6 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(const std::list<Symbol*>& symbols
     // namedArg ::= NAME ':' expr
 
     std::list<Callable*> callables;
-    printf("callStmt: on %zu options\n", symbols.size());
     for (Symbol* s: symbols) {
         if (auto c = dynamic_cast<Callable*>(s)) {
             printf("  %s\n", c->signature().to_s().c_str());
