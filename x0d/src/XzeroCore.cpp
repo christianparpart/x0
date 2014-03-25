@@ -71,7 +71,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 
     // setup: properties (write-only)
     setupFunction("workers", &XzeroCore::workers, FlowType::Number);
-    setupFunction("workers.affinity", &XzeroCore::workers_affinity, FlowType::IntArray);
+    setupFunction("workers", &XzeroCore::workers_affinity, FlowType::IntArray);
     setupFunction("mimetypes", &XzeroCore::mimetypes, FlowType::String);
     setupFunction("mimetypes.default", &XzeroCore::mimetypes_default, FlowType::String);
     setupFunction("etag.mtime", &XzeroCore::etag_mtime, FlowType::Boolean);
