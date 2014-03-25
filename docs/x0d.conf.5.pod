@@ -111,13 +111,13 @@ Gets or sets the number of workers to be spawned.
 Setting this value to 1 (default) will create no additional threads
 except the already existing main thread.
 
-=item B<workers.affinity> (array_of_numbers)
+=item B<workers> (array_of_numbers)
 
 Passing an array of numbers will spawn as many workers as elements in that
 array each worker associated with a processor affinity to
 its related value in the array.
 
-That is, when you use C<workers.affinity [0, 1, 4];> it will spawn three workers
+That is, when you use C<workers [0, 1, 4];> it will spawn three workers
 with the first having a processor affinity of 0 (bound to CPU 0), the second
 worker using the second processor (value 1) and the 3rd worker
 using the fiths processor (value 4).
@@ -137,7 +137,7 @@ Example 1:
 Example 2:
  handler setup {
      # ... (use 4 workers, each bound to its own distinct processor)
-     workers.affinity [0, 1, 2, 3];
+     workers [0, 1, 2, 3];
  }
 
 Also assigning the worker's thread CPU affinity further helps reducing
