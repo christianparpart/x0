@@ -158,9 +158,16 @@ static inline void completeDefaultValue(ParamList& args, FlowType type, const vo
 
 bool Callable::isDirectMatch(const ParamList& params) const
 {
+    if (params.size() != nativeCallback_->signature().args().size())
+        return false;
+
     for (size_t i = 0, e = params.size(); i != e; ++i) {
+        if (params.isNamed() && nativeCallback_->getNameAt(i) != params[i].first)
+            return false;
+
         FlowType expectedType = signature().args()[i];
         FlowType givenType = params.values()[i]->getType();
+
         if (givenType != expectedType) {
             return false;
         }
