@@ -5,6 +5,8 @@
 #include <x0/Buffer.h>
 #include <x0/Utility.h>
 #include <algorithm>
+#include <cstdlib>
+#include <cstdio>
 
 namespace x0 {
 
@@ -146,6 +148,8 @@ static inline void completeDefaultValue(ParamList& args, FlowType type, const vo
                 args.push_back(std::make_unique<CidrExpr>(*(Cidr*) defaultValue, loc));
             break;
         default:
+            fprintf(stderr, "Unsupported type in default completion. Please report me. I am a bug.\n");
+            abort();
             //reportError("Cannot complete named paramter \"%s\" in callee \"%s\". Unsupported type <%s>.",
             //        name.c_str(), this->name().c_str(), tos(type).c_str());
             break;
