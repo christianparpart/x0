@@ -340,7 +340,6 @@ void XzeroCore::workers(FlowParams& args)
     }
 }
 
-// "workers.affinity([I]V"
 void XzeroCore::workers_affinity(FlowParams& args)
 {
     const auto& affinities = args.get<FlowIntArray>(1);
