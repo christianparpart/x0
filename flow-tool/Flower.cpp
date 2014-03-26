@@ -76,6 +76,18 @@ Flower::Flower() :
         .params(FlowType::Number, FlowType::String)
         .bind(&Flower::flow_print_IS);
 
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::IntArray)
+        .bind(&Flower::flow_print_i);
+
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::IPAddrArray)
+        .bind(&Flower::flow_print_p);
+
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::CidrArray)
+        .bind(&Flower::flow_print_c);
+
     registerFunction("log", FlowType::Void)
         .param<FlowString>("message", "<whaaaaat!>")
         .param<FlowNumber>("severity", 42)
@@ -356,6 +368,35 @@ void Flower::flow_print_IS(FlowVM::Params& args)
 	printf("%li %s\n",
             args.get<FlowNumber>(1),
             args.get<FlowString*>(2)->str().c_str());
+}
+
+void Flower::flow_print_i(FlowVM::Params& args)
+{
+    FlowIntArray array = args.get<FlowIntArray>(1);
+    printf("int array size: #%zu\n", array.size());
+    //for (FlowNumber number: args.get<FlowIntArray>(1)) {
+    for (FlowNumber number: array) {
+        printf("%li\n", number);
+    }
+    printf("\n");
+}
+
+void Flower::flow_print_p(FlowVM::Params& args)
+{
+    for (const IPAddress& ipaddr: args.get<FlowIPAddrArray>(1)) {
+        printf("%s\n", ipaddr.c_str());
+    }
+    printf("\n");
+}
+
+void Flower::flow_print_c(FlowVM::Params& args)
+{
+    FlowCidrArray array = args.get<FlowCidrArray>(1);
+    printf("cidr array size: #%zu\n", array.size());
+    for (const Cidr& cidr: args.get<FlowCidrArray>(1)) {
+        printf("%s\n", cidr.str().c_str());
+    }
+    printf("\n");
 }
 
 void Flower::flow_log(FlowVM::Params& args)
