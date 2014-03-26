@@ -1613,6 +1613,22 @@ std::unique_ptr<CallExpr> FlowParser::callStmt(const std::list<Symbol*>& symbols
     return resolve(callables, std::move(params));
 }
 
+FlowVM::Signature makeSignature(const Callable* callee, const ParamList& params)
+{
+    FlowVM::Signature sig;
+
+    sig.setName(callee->name());
+
+    std::vector<FlowType> argTypes;
+    for (const Expr* arg: params.values()) {
+        argTypes.push_back(arg->getType());
+    }
+
+    sig.setArgs(argTypes);
+
+    return sig;
+};
+
 std::unique_ptr<CallExpr> FlowParser::resolve(const std::list<Callable*>& callables, ParamList&& params)
 {
     // attempt to find a full match first
@@ -1636,7 +1652,7 @@ std::unique_ptr<CallExpr> FlowParser::resolve(const std::list<Callable*>& callab
     }
 
     if (result.empty()) {
-        reportError("No matching signature for %s.", callables.front()->name().c_str());
+        reportError("No matching signature for %s.", makeSignature(callables.front(), params).to_s().c_str());
         for (const auto& me: matchErrors) {
             reportError("Possible candidate %s failed. %s", me.first->signature().to_s().c_str(), me.second.c_str());
         }
