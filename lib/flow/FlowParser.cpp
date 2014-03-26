@@ -995,6 +995,16 @@ std::unique_ptr<Expr> FlowParser::arrayExpr()
 
     consume(FlowToken::BrClose);
 
+    if (!fields.empty()) {
+        FlowType baseType = fields.front()->getType();
+        for (const auto& e: fields) {
+            if (e->getType() != baseType) {
+                reportError("Mixed element types in array not allowed.");
+                return nullptr;
+            }
+        }
+    }
+
     return std::make_unique<ArrayExpr>(loc.update(end()), std::move(fields));
 }
 
