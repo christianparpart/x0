@@ -8,6 +8,9 @@
 
 namespace x0 {
 
+class IPAddress;
+class Cidr;
+
 //! \addtogroup Flow
 //@{
 
@@ -22,6 +25,8 @@ enum class FlowType {
 	Handler = 8,        // bool (*native_handler)(FlowContext*);
     IntArray = 9,       // array<int>
     StringArray = 10,   // array<string>
+    IPAddrArray = 11,   // array<IPAddress>
+    CidrArray = 12,     // array<Cidr>
 };
 
 typedef uint64_t Register; // FlowVM
@@ -106,6 +111,88 @@ public:
         const FlowString& operator*() const {
             assert(current_ != end_);
             return *reinterpret_cast<const FlowString*>(*current_);
+        }
+
+        iterator& operator++() {
+            if (current_ != end_) {
+                ++current_;
+            }
+            return *this;
+        }
+
+        bool operator==(const iterator& other) const {
+            return current_ == other.current_;
+        }
+
+        bool operator!=(const iterator& other) const {
+            return current_ != other.current_;
+        }
+    }; // }}}
+
+    iterator begin() const { return iterator(data(), data() + size()); }
+    iterator end() const { return iterator(data() + size(), data() + size()); }
+};
+
+class X0_API FlowIPAddrArray : public FlowArray {
+public:
+    explicit FlowIPAddrArray(const Register* base) : FlowArray(base) {}
+
+    const IPAddress& at(size_t i) const { return *reinterpret_cast<const IPAddress*>(getRawAt(i)); }
+    const IPAddress& operator[](size_t i) const { return *reinterpret_cast<const IPAddress*>(getRawAt(i)); }
+
+    class iterator { // {{{
+    private:
+        const Register* current_;
+        const Register* end_;
+
+    public:
+        iterator(const Register* beg, const Register* end) : current_(beg), end_(end) {}
+        iterator(const iterator& v) = default;
+
+        const IPAddress& operator*() const {
+            assert(current_ != end_);
+            return *reinterpret_cast<const IPAddress*>(*current_);
+        }
+
+        iterator& operator++() {
+            if (current_ != end_) {
+                ++current_;
+            }
+            return *this;
+        }
+
+        bool operator==(const iterator& other) const {
+            return current_ == other.current_;
+        }
+
+        bool operator!=(const iterator& other) const {
+            return current_ != other.current_;
+        }
+    }; // }}}
+
+    iterator begin() const { return iterator(data(), data() + size()); }
+    iterator end() const { return iterator(data() + size(), data() + size()); }
+};
+
+class X0_API FlowCidrArray : public FlowArray {
+public:
+    explicit FlowCidrArray(const Register* base) : FlowArray(base) {}
+
+    const Cidr& at(size_t i) const { return *reinterpret_cast<const Cidr*>(getRawAt(i)); }
+    const Cidr& operator[](size_t i) const { return *reinterpret_cast<const Cidr*>(getRawAt(i)); }
+
+    class iterator { // {{{
+    private:
+        const Register* current_;
+        const Register* end_;
+
+    public:
+        iterator(const Register* beg, const Register* end) : current_(beg), end_(end) {}
+        iterator(const iterator& v) = default;
+
+        const Cidr& operator*() const {
+            assert(current_ != end_);
+            return *reinterpret_cast<const Cidr*>(*current_);
         }
 
         iterator& operator++() {

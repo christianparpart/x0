@@ -15,6 +15,8 @@ std::string tos(FlowType type)
 		case FlowType::Handler: return "HandlerRef";
 		case FlowType::IntArray: return "IntArray";
 		case FlowType::StringArray: return "StringArray";
+        case FlowType::IPAddrArray: return "IPAddrArray";
+        case FlowType::CidrArray: return "CidrArray";
 		default:
 			return "";
 	}

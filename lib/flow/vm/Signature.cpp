@@ -1,4 +1,5 @@
 #include <x0/flow/vm/Signature.h>
+#include <cstdlib>
 #include <vector>
 #include <string>
 
@@ -98,7 +99,11 @@ FlowType typeSignature(char ch)
         case 'H': return FlowType::Handler;
         case 's': return FlowType::StringArray;
         case 'i': return FlowType::IntArray;
-        default: return FlowType::Void; //XXX
+        case 'p': return FlowType::IPAddrArray;
+        case 'c': return FlowType::CidrArray;
+        default:
+            abort();
+            return FlowType::Void;
     }
 }
 
@@ -115,7 +120,11 @@ char signatureType(FlowType t)
         case FlowType::Handler: return 'H';
         case FlowType::StringArray: return 's';
         case FlowType::IntArray: return 'i';
-        default: return '?';
+        case FlowType::IPAddrArray: return 'p';
+        case FlowType::CidrArray: return 'c';
+        default:
+            abort();
+            return '?';
     }
 }
 

@@ -596,7 +596,12 @@ FlowType ArrayExpr::getType() const
             return FlowType::IntArray;
         case FlowType::String:
             return FlowType::StringArray;
+        case FlowType::IPAddress:
+            return FlowType::IPAddrArray;
+        case FlowType::Cidr:
+            return FlowType::CidrArray;
         default:
+            abort();
             return FlowType::Void; // XXX error
     }
 }

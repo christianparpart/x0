@@ -89,6 +89,8 @@ template<> X0_API inline IPAddress Params::get<IPAddress>(size_t offset) const {
 template<> X0_API inline IPAddress* Params::get<IPAddress*>(size_t offset) const { return ((IPAddress*) at(offset)); }
 template<> X0_API inline FlowIntArray Params::get<FlowIntArray>(size_t offset) const { return FlowIntArray(&caller_->data()[argv_[offset]]); }
 template<> X0_API inline FlowStringArray Params::get<FlowStringArray>(size_t offset) const { return FlowStringArray(&caller_->data()[argv_[offset]]); }
+template<> X0_API inline FlowIPAddrArray Params::get<FlowIPAddrArray>(size_t offset) const { return FlowIPAddrArray(&caller_->data()[argv_[offset]]); }
+template<> X0_API inline FlowCidrArray Params::get<FlowCidrArray>(size_t offset) const { return FlowCidrArray(&caller_->data()[argv_[offset]]); }
 
 } // namespace FlowVM
 } // namespace x0
