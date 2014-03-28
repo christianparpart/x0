@@ -57,7 +57,8 @@
 #cmakedefine VALGRIND 1
 
 /* x0 features */
-#cmakedefine X0_WORKER_RR 1                /* use RR for worker-select instead of lowest-load */
-#cmakedefine ENABLE_DIRECTOR_CACHE
+#cmakedefine X0_WORKER_RR 1                     /* use RR for worker-select instead of lowest-load */
+#cmakedefine ENABLE_FLOW_DIRECT_THREADED_VM 1   /* use direct threaded interpreter loop over indirect threaded */
+#cmakedefine ENABLE_DIRECTOR_CACHE              /* built director plugin with object cache built in */
 
 #endif

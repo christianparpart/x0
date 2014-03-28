@@ -35,13 +35,13 @@ option(ENABLE_PLUGIN_SSL "Builds with SSL support [default: on]" ON)
 option(ENABLE_PLUGIN_DIRECTOR "Builds director plugin (http/fastcgi proxy+loadbalancer) [default: on]" ON)
 option(ENABLE_PLUGIN_WEBDAV "Includes WebDAV support (plugin) [default: off]" OFF)
 
-# plugin related feature flags
+# x0d plugin feature flags
 option(ENABLE_DIRECTOR_CACHE "Enables response cache accelerator [default: on]" ON)
 
 option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
 
-# feature flags
+# Xzero feature flags
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)
 option(ENABLE_MULTI_ACCEPT "Builds listener acceptor with support for repeative accept() calls  [default: on]" ON)
 option(ENABLE_OPPORTUNISTIC_WRITE "Builds with support for opportunistic write() calls to client sockets [default: off]." OFF)
@@ -49,6 +49,7 @@ option(ENABLE_PCRE "With PCRE support [default: off]" ON)
 option(ENABLE_TCP_DEFER_ACCEPT "Builds with support for TCP_DEFER_ACCEPT, if found [default: on]" ON)
 option(ENABLE_INOTIFY "Build with inotify support [default: on]" ON)
 option(ENABLE_TCMALLOC "Uses tcmalloc for memory allocation [default: off]." OFF)
+option(ENABLE_FLOW_DIRECT_THREADED_VM "Builds with direct threaded (over indirect threaded) interpreter loop [default: on]" ON)
 
 if(ENABLE_PLUGIN_AUTH_PAM)
   CHECK_INCLUDE_FILES(security/pam_appl.h HAVE_SECURITY_PAM_APPL_H)

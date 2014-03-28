@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cmath>
+#include <x0/sysconfig.h>
 
 namespace x0 {
 namespace FlowVM {
@@ -74,14 +75,12 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b)
 bool Runner::run()
 {
     const Program* program = handler_->program();
-    const auto& code = handler_->code();
-    const Instruction* pc = code.data();
     uint64_t ticks = 0;
 
-    #define OP opcode(*pc)
-    #define A  operandA(*pc)
-    #define B  operandB(*pc)
-    #define C  operandC(*pc)
+    #define OP opcode((Instruction) *pc)
+    #define A  operandA((Instruction) *pc)
+    #define B  operandB((Instruction) *pc)
+    #define C  operandC((Instruction) *pc)
 
     #define toString(R)     (*(FlowString*) data_[R])
     #define toIPAddress(R)  (*(IPAddress*) data_[R])
@@ -92,16 +91,32 @@ bool Runner::run()
     #define toStringPtr(R)  ((FlowString*) data_[R])
     #define toCidrPtr(R)    ((Cidr*) data_[R])
 
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    auto& code = handler_->directThreadedCode();
+    const size_t instructionSize = 2;
+
     #define instr(name) \
         l_##name: \
-        /*disassemble(*pc, pc - code.data());*/ \
+        ++pc; \
         ++ticks;
 
+    #define vm_start goto **pc
+    #define next goto **++pc
+#else
+    const auto& code = handler_->code();
+    const size_t instructionSize = 1;
+
+    #define instr(name) \
+        l_##name: \
+        ++ticks;
+
+    #define vm_start goto *ops[OP]
     #define next goto *ops[opcode(*++pc)]
+#endif
 
     // {{{ jump table
     #define label(opcode) && l_##opcode
-    static const void* ops[] = {
+    static const void* const ops[] = {
         // misc
         label(NOP),
 
@@ -221,8 +236,27 @@ bool Runner::run()
         label(HANDLER),
     };
     // }}}
+    // {{{ direct threaded code initialization
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    if (code.empty()) {
+        const auto& source = handler_->code();
+        code.resize(source.size() * instructionSize);
 
-    goto *ops[opcode(*pc)];
+        const void** pc = code.data();
+        for (size_t i = 0, e = source.size(); i != e; ++i) {
+            Instruction instr = source[i];
+
+            *pc++ = ops[opcode(instr)];
+            *pc++ = (void*) instr;
+        }
+    }
+    //const void** pc = code.data();
+#endif
+    // }}}
+
+    const auto* pc = code.data();
+
+    vm_start;
 
     // {{{ misc
     instr (NOP) {
@@ -235,13 +269,13 @@ bool Runner::run()
     }
 
     instr (JMP) {
-        pc = code.data() + A;
+        pc = code.data() + A * instructionSize;
         goto *ops[OP];
     }
 
     instr (JN) {
         if (data_[A] != 0) {
-            pc = code.data() + B;
+            pc = code.data() + B * instructionSize;
             goto *ops[OP];
         } else {
             next;
@@ -250,7 +284,7 @@ bool Runner::run()
 
     instr (JZ) {
         if (data_[A] == 0) {
-            pc = code.data() + B;
+            pc = code.data() + B * instructionSize;
             goto *ops[OP];
         } else {
             next;
@@ -596,25 +630,25 @@ bool Runner::run()
 
     instr (SMATCHEQ) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result;
+        pc = code.data() + result * instructionSize;
         goto *ops[OP];
     }
 
     instr (SMATCHBEG) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result;
+        pc = code.data() + result * instructionSize;
         goto *ops[OP];
     }
 
     instr (SMATCHEND) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result;
+        pc = code.data() + result * instructionSize;
         goto *ops[OP];
     }
 
     instr (SMATCHR) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result;
+        pc = code.data() + result * instructionSize;
         goto *ops[OP];
     }
     // }}}

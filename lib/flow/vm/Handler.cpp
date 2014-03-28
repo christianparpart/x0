@@ -15,6 +15,9 @@ Handler::Handler(Program* program, const std::string& name,
     name_(name),
     registerCount_(computeRegisterCount(code.data(), code.size())),
     code_(code)
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    , directThreadedCode_()
+#endif
 {
 }
 
@@ -23,6 +26,9 @@ Handler::Handler(const Handler& v) :
     name_(v.name_),
     registerCount_(v.registerCount_),
     code_(v.code_)
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    , directThreadedCode_(v.directThreadedCode_)
+#endif
 {
 }
 
@@ -31,6 +37,9 @@ Handler::Handler(Handler&& v) :
     name_(std::move(v.name_)),
     registerCount_(std::move(v.registerCount_)),
     code_(std::move(v.code_))
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    , directThreadedCode_(std::move(v.directThreadedCode_))
+#endif
 {
 }
 
@@ -48,6 +57,10 @@ void Handler::setCode(std::vector<Instruction>&& code)
 {
     code_ = std::move(code);
     registerCount_ = computeRegisterCount(code_.data(), code_.size());
+
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    directThreadedCode_.clear();
+#endif
 }
 
 std::unique_ptr<Runner> Handler::createRunner()

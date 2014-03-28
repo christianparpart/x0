@@ -473,6 +473,12 @@ bool XzeroDaemon::parse()
 				features.push_back("-INOTIFY");
 #endif
 
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+				features.push_back("+FLOW_DIRECT_THREADED");
+#else
+				features.push_back("-FLOW_DIRECT_THREADED");
+#endif
+
 				std::cout
 					<< package_header << std::endl
 					<< package_copyright << std::endl;

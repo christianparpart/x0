@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <cstdint>
+#include <x0/sysconfig.h>
 
 namespace x0 {
 namespace FlowVM {
@@ -34,6 +35,11 @@ public:
     void setCode(const std::vector<Instruction>& code);
     void setCode(std::vector<Instruction>&& code);
 
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    const std::vector<const void*>& directThreadedCode() const { return directThreadedCode_; }
+    std::vector<const void*>& directThreadedCode() { return directThreadedCode_; }
+#endif
+
     std::unique_ptr<Runner> createRunner();
     bool run(void* userdata = nullptr);
 
@@ -44,6 +50,9 @@ private:
     std::string name_;
     size_t registerCount_;
     std::vector<Instruction> code_;
+#if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
+    std::vector<const void*> directThreadedCode_;
+#endif
 };
 
 } // namespace FlowVM
