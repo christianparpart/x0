@@ -46,6 +46,8 @@ public:
 
     size_t makeHandler(const std::string& name);
 
+    void setModules(const std::vector<std::pair<std::string, std::string>>& modules) { modules_ = modules; }
+
     // accessor
     FlowNumber getInteger(size_t id) const { return numbers_[id]; }
     const FlowString& getString(size_t id) const { return strings_[id]; }

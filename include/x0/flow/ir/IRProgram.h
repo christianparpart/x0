@@ -49,9 +49,10 @@ public:
     template<typename T, typename U>
     T* get(std::vector<T*>& table, const U& literal);
 
-    void addImport(const std::string& name, const std::string& path) { imports_.push_back(std::make_pair(name, path)); }
+    void addImport(const std::string& name, const std::string& path) { modules_.push_back(std::make_pair(name, path)); }
+    void setModules(const std::vector<std::pair<std::string, std::string>>& modules) { modules_ = modules; }
 
-	const std::vector<std::pair<std::string, std::string>>& imports() const { return imports_; }
+	const std::vector<std::pair<std::string, std::string>>& imports() const { return modules_; }
     const std::vector<IRHandler*>& handlers() const { return handlers_; }
 
     /**
@@ -69,7 +70,7 @@ public:
     }
 
 private:
-	std::vector<std::pair<std::string, std::string> > imports_;
+	std::vector<std::pair<std::string, std::string> > modules_;
     std::vector<ConstantArray*> constantArrays_;
     std::vector<ConstantInt*> numbers_;
     std::vector<ConstantString*> strings_;

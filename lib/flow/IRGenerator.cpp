@@ -118,6 +118,7 @@ void IRGenerator::accept(Unit& unit)
     FNTRACE();
 
     setProgram(new IRProgram());
+    program()->setModules(unit.imports());
 
     for (const auto sym: *unit.scope()) {
         codegen(sym);
@@ -447,7 +448,6 @@ void IRGenerator::accept(ArrayExpr& arrayExpr)
             constants.push_back(static_cast<Constant*>(value));
 
         result_ = get(constants);
-        printf("generate constant array: %p (%s)\n", result_, tos(result_->type()).c_str());
     } else {
         // TODO: print line:col hint where this exact message occured.
         // via: reportError(arrayExpr, "Variable array elements not allowed.");

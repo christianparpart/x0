@@ -16,7 +16,7 @@ namespace x0 {
 using namespace FlowVM;
 
 IRProgram::IRProgram() :
-    imports_(),
+    modules_(),
     numbers_(),
     strings_(),
     ipaddrs_(),
