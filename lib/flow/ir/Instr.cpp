@@ -7,6 +7,7 @@
 
 #include <x0/flow/ir/Instr.h>
 #include <x0/flow/ir/ConstantValue.h>
+#include <x0/flow/ir/ConstantArray.h>
 #include <x0/flow/ir/IRBuiltinHandler.h>
 #include <x0/flow/ir/IRBuiltinFunction.h>
 #include <x0/flow/ir/BasicBlock.h>
@@ -145,6 +146,44 @@ void Instr::dumpOne(const char* mnemonic)
             }
             if (auto bf = dynamic_cast<IRBuiltinFunction*>(arg)) {
                 printf("%s", bf->get().to_s().c_str());
+                continue;
+            }
+            if (auto ar = dynamic_cast<ConstantArray*>(arg)) {
+                printf("[");
+                size_t i = 0;
+                switch (ar->type()) {
+                    case FlowType::IntArray:
+                        for (const auto& v: ar->get()) {
+                            if (i) printf(", ");
+                            printf("%li", static_cast<ConstantInt*>(v)->get());
+                            ++i;
+                        }
+                        break;
+                    case FlowType::StringArray:
+                        for (const auto& v: ar->get()) {
+                            if (i) printf(", ");
+                            printf("\"%s\"", static_cast<ConstantString*>(v)->get().c_str());
+                            ++i;
+                        }
+                        break;
+                    case FlowType::IPAddrArray:
+                        for (const auto& v: ar->get()) {
+                            if (i) printf(", ");
+                            printf("%s", static_cast<ConstantIP*>(v)->get().str().c_str());
+                            ++i;
+                        }
+                        break;
+                    case FlowType::CidrArray:
+                        for (const auto& v: ar->get()) {
+                            if (i) printf(", ");
+                            printf("\"%s\"", static_cast<ConstantCidr*>(v)->get().str().c_str());
+                            ++i;
+                        }
+                        break;
+                    default:
+                        abort();
+                }
+                printf("]");
                 continue;
             }
         }
