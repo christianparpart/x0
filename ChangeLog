@@ -5,6 +5,7 @@
 	* flow: improved internal constant value handling.
 	* flow: improved array handling, also resulting into runtime performance boosts.
 	* x0d: builtin workers() is now overloaded for workers(I)V and workers(i)V; no workers.affinity(i)V anymore.
+	* plugins: new plugin "access" for basic IP & CIDR network based access control.
 
 0.8.0 (2014-03-23)
 

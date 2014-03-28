@@ -761,6 +761,64 @@ Example:
 
 =back
 
+=head2 access
+
+This plugin provides basic IP and CIDR network based access control.
+
+=over 6
+
+=item B<access.deny> ()
+
+Deny every request that passes this handler.
+
+=item B<access.deny> (remote_ip)
+
+=item B<access.deny> (remote_cidr)
+
+=item B<access.deny> (remote_cidr_array)
+
+=item B<access.deny> (remote_ip_array)
+
+Denies a single remote IP or every IP within a CIDR network either.
+You can also specify an array of IPs or an array of CIDR networks to be denied.
+
+Example:
+
+ handler main {
+   # denies every request coming from within this subnet
+   access.deny 192.168.42.0/24;
+
+   # denies every request coming from within this subnet
+   access.deny [192.168.0.0/16, 10.0.0.0/8];
+
+   # deny a single remote IP
+   access.deny 10.26.91.1;
+
+   # ...
+ }
+
+=item B<access.deny_except> (remote_ip)
+
+=item B<access.deny_except> (remote_cidr)
+
+=item B<access.deny_except> (remote_cidr_array)
+
+=item B<access.deny_except> (remote_ip_array)
+
+Denies every client except those specified. This is the exact opposite from the other B<access.deny>() family handlers.
+
+Example:
+
+ handler main {
+   # denies every access to this site that comes not
+   # from one of these 2 subnets.
+   access.deny_except [10.26.91.0/24, 127.0.0.1];
+
+   # ...
+ }
+
+=back
+
 =head2 accesslog
 
 This plugin provides functionality to log handled requests.

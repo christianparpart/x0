@@ -9,6 +9,7 @@ add_definitions(
 
 # ---------------------------------------------------------------------------
 if(ENABLE_PLUGINS)
+x0_plugin_simple(access)
 x0_plugin_simple(accesslog)
 x0_plugin_simple(browser)
 x0_plugin_simple(cgi)
