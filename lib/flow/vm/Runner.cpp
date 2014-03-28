@@ -92,28 +92,27 @@ bool Runner::run()
 
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
     auto& code = handler_->directThreadedCode();
-    const size_t instructionSize = 2;
 
     #define instr(name) \
         l_##name: \
         ++pc; \
-        /*disassemble((Instruction) *pc, (pc - code.data()) / instructionSize);*/
+        /*disassemble((Instruction) *pc, (pc - code.data()) / 2);*/
 
+    #define set_pc(offset) (pc = code.data() + (offset) * 2)
     #define jump goto **pc
     #define next goto **++pc
 #else
     const auto& code = handler_->code();
-    const size_t instructionSize = 1;
 
     #define instr(name) \
         l_##name: \
-        /*disassemble(*pc, (pc - code.data()) / instructionSize);*/
+        /*disassemble(*pc, pc - code.data());*/
 
+    #define set_pc(offset) (pc = code.data() + (offset))
     #define jump goto *ops[OP]
     #define next goto *ops[opcode(*++pc)]
 #endif
 
-    #define set_pc(offset)  (pc = code.data() + (offset) * instructionSize)
     #define jump_to(offset) goto *set_pc(offset)
 
     // {{{ jump table
@@ -241,7 +240,7 @@ bool Runner::run()
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
     if (code.empty()) {
         const auto& source = handler_->code();
-        code.resize(source.size() * instructionSize);
+        code.resize(source.size() * 2);
 
         const void** pc = code.data();
         for (size_t i = 0, e = source.size(); i != e; ++i) {
@@ -270,7 +269,7 @@ bool Runner::run()
     }
 
     instr (JMP) {
-        pc = code.data() + A * instructionSize;
+        jump_to(A);
         jump;
     }
 
@@ -624,26 +623,22 @@ bool Runner::run()
 
     instr (SMATCHEQ) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result * instructionSize;
-        goto *ops[OP];
+        jump_to(result);
     }
 
     instr (SMATCHBEG) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result * instructionSize;
-        goto *ops[OP];
+        jump_to(result);
     }
 
     instr (SMATCHEND) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result * instructionSize;
-        goto *ops[OP];
+        jump_to(result);
     }
 
     instr (SMATCHR) {
         auto result = program_->match(B)->evaluate(toStringPtr(A), this);
-        pc = code.data() + result * instructionSize;
-        goto *ops[OP];
+        jump_to(result);
     }
     // }}}
     // {{{ ipaddr
