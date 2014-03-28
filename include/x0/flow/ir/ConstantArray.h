@@ -18,8 +18,8 @@ namespace x0 {
 
 class X0_API ConstantArray : public Constant {
 public:
-    ConstantArray(size_t id, const std::vector<Constant*>& elements, const std::string& name = "") :
-        Constant(makeArrayType(elements.front()->type()), id, name),
+    ConstantArray(const std::vector<Constant*>& elements, const std::string& name = "") :
+        Constant(makeArrayType(elements.front()->type()), name),
         elements_(elements)
     {}
 

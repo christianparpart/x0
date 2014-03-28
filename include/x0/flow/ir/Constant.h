@@ -15,15 +15,10 @@ namespace x0 {
 
 class X0_API Constant : public Value {
 public:
-    Constant(FlowType ty, size_t id, const std::string& name) :
-        Value(ty, name), id_(id) {}
-
-    size_t id() const { return id_; }
+    Constant(FlowType ty, const std::string& name) :
+        Value(ty, name)  {}
 
     void dump() override;
-
-private:
-    int64_t id_;
 };
 
 } // namespace x0

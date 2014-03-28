@@ -23,7 +23,7 @@ class IRBuilder;
 
 class X0_API IRHandler : public Constant {
 public:
-    IRHandler(size_t id, const std::string& name);
+    explicit IRHandler(const std::string& name);
     ~IRHandler();
 
     BasicBlock* createBlock(const std::string& name = "");

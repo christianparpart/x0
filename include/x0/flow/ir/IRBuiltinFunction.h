@@ -16,8 +16,8 @@ namespace x0 {
 
 class X0_API IRBuiltinFunction : public Constant {
 public:
-    IRBuiltinFunction(size_t id, const FlowVM::Signature& sig) :
-        Constant(sig.returnType(), id, sig.name()),
+    IRBuiltinFunction(const FlowVM::Signature& sig) :
+        Constant(sig.returnType(), sig.name()),
         signature_(sig)
     {}
 

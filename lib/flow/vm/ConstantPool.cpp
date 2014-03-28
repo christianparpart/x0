@@ -49,9 +49,10 @@ inline size_t ensureValue(std::vector<std::vector<T>>& vv, const U& array)
     // (such as std::string -> Buffer)
 
     vv.push_back(std::vector<T>(array.size()));
+    auto& target = vv.back();
 
     for (size_t i = 0, e = array.size(); i != e; ++i)
-        vv.back()[i] = array[i];
+        target[i] = array[i];
 
     return vv.size() - 1;
 }
@@ -131,7 +132,31 @@ size_t ConstantPool::makeIntegerArray(const std::vector<FlowNumber>& elements)
 
 size_t ConstantPool::makeStringArray(const std::vector<std::string>& elements)
 {
-    return ensureValue(stringArrays_, elements);
+    for (size_t i = 0, e = stringArrays_.size(); i != e; ++i) {
+        const auto& test = stringArrays_[i];
+
+        if (test.second.size() != elements.size())
+            continue;
+
+        if (!equals(test.second, elements))
+            continue;
+
+        return i;
+    }
+
+    stringArrays_.push_back(std::make_pair(
+        std::vector<Buffer>(elements.size()),
+        std::vector<BufferRef>(elements.size())
+    ));
+
+    auto& target = stringArrays_.back();
+
+    for (size_t i = 0, e = elements.size(); i != e; ++i) {
+        target.first[i] = elements[i];
+        target.second[i] = target.first[i].ref();
+    }
+
+    return stringArrays_.size() - 1;
 }
 
 size_t ConstantPool::makeIPaddrArray(const std::vector<IPAddress>& elements)
@@ -176,6 +201,23 @@ size_t ConstantPool::makeHandler(const std::string& name)
     handlers_.resize(i + 1);
     handlers_[i].first = name;
     return i;
+}
+
+void dump(const std::vector<std::vector<Buffer>>& vv, const char* name)
+{
+    if (vv.empty())
+        return;
+
+    std::cout << "\n; Constant " << name << " Arrays\n";
+    for (size_t i = 0, e = vv.size(); i != e; ++i) {
+        const auto& array = vv[i];
+        std::cout << ".const array<" << name << "> " << std::setw(3) << i << " = [";
+        for (size_t k = 0, m = array.size(); k != m; ++k) {
+            if (k) std::cout << ", ";
+            std::cout << '"' << array[k] << '"';
+        }
+        std::cout << "];\n";
+    }
 }
 
 template<typename T>
@@ -232,7 +274,7 @@ void ConstantPool::dump() const
     if (!strings_.empty()) {
         printf("\n; String Constants\n");
         for (size_t i = 0, e = strings_.size(); i != e; ++i) {
-            printf(".const string %6zu = '%s'\n", i, strings_[i].c_str());
+            printf(".const string %6zu = '%s'\n", i, strings_[i].str().c_str());
         }
     }
 
@@ -258,7 +300,20 @@ void ConstantPool::dump() const
     }
 
     x0::FlowVM::dump(intArrays_, "Integer");
-    x0::FlowVM::dump(stringArrays_, "String");
+
+    if (!stringArrays_.empty()) {
+        std::cout << "\n; Constant String Arrays\n";
+        for (size_t i = 0, e = stringArrays_.size(); i != e; ++i) {
+            const auto& array = stringArrays_[i].first;
+            std::cout << ".const array<string> " << std::setw(3) << i << " = [";
+            for (size_t k = 0, m = array.size(); k != m; ++k) {
+                if (k) std::cout << ", ";
+                std::cout << '"' << array[k] << '"';
+            }
+            std::cout << "];\n";
+        }
+    }
+
     x0::FlowVM::dump(ipaddrArrays_, "IPAddress");
     x0::FlowVM::dump(cidrArrays_, "Cidr");
 
@@ -282,7 +337,7 @@ void ConstantPool::dump() const
                 if (def.op == MatchClass::RegExp) {
                     printf("/%s/\n", regularExpressions_[one.label].c_str());
                 } else {
-                    printf("'%s'\n", strings_[one.label].c_str());
+                    printf("'%s'\n", strings_[one.label].str().c_str());
                 }
             }
         }

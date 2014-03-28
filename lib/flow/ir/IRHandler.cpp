@@ -14,8 +14,8 @@ namespace x0 {
 
 using namespace FlowVM;
 
-IRHandler::IRHandler(size_t id, const std::string& name) :
-    Constant(FlowType::Handler, id, name),
+IRHandler::IRHandler(const std::string& name) :
+    Constant(FlowType::Handler, name),
     parent_(nullptr),
     blocks_()
 {
@@ -23,6 +23,9 @@ IRHandler::IRHandler(size_t id, const std::string& name) :
 
 IRHandler::~IRHandler()
 {
+    for (BasicBlock* bb: blocks_) {
+        delete bb;
+    }
 }
 
 void IRHandler::dump()

@@ -21,8 +21,8 @@ namespace x0 {
 template<typename T, const FlowType Ty>
 class X0_API ConstantValue : public Constant {
 public:
-    ConstantValue(size_t id, const T& value, const std::string& name = "") :
-        Constant(Ty, id, name),
+    ConstantValue(const T& value, const std::string& name = "") :
+        Constant(Ty, name),
         value_(value)
         {}
 

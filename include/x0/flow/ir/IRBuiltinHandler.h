@@ -20,8 +20,8 @@ namespace x0 {
 
 class X0_API IRBuiltinHandler : public Constant {
 public:
-    IRBuiltinHandler(size_t id, const FlowVM::Signature& sig) :
-        Constant(FlowType::Boolean, id, sig.name()),
+    IRBuiltinHandler(const FlowVM::Signature& sig) :
+        Constant(FlowType::Boolean, sig.name()),
         signature_(sig)
     {}
 

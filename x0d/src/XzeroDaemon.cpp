@@ -1016,7 +1016,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
     if (dumpAST_)
         ASTPrinter::print(unit_.get());
 
-    IRProgram* ir = IRGenerator::generate(unit_.get());
+    std::unique_ptr<IRProgram> ir = IRGenerator::generate(unit_.get());
     if (!ir) {
         fprintf(stderr, "IR generation failed. Aborting.\n");
         return false;
@@ -1026,14 +1026,16 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
         PassManager pm;
         pm.registerPass(std::make_unique<EmptyBlockElimination>());
         pm.registerPass(std::make_unique<InstructionElimination>());
-        pm.run(ir);
+        pm.run(ir.get());
     }
 
     if (dumpIR_) {
         ir->dump();
     }
 
-    program_ = TargetCodeGenerator().generate(ir);
+    program_ = TargetCodeGenerator().generate(ir.get());
+
+    ir.reset();
 
     if (!program_) {
         fprintf(stderr, "Code generation failed. Aborting.\n");

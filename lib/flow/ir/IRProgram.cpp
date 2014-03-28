@@ -30,12 +30,15 @@ IRProgram::IRProgram() :
 
 IRProgram::~IRProgram()
 {
+    for (auto& value: handlers_) delete value;
+    for (auto& value: constantArrays_) delete value;
     for (auto& value: numbers_) delete value;
     for (auto& value: strings_) delete value;
     for (auto& value: ipaddrs_) delete value;
     for (auto& value: cidrs_) delete value;
     for (auto& value: regexps_) delete value;
-    for (auto& value: handlers_) delete value;
+    for (auto& value: builtinHandlers_) delete value;
+    for (auto& value: builtinFunctions_) delete value;
 }
 
 void IRProgram::dump()
@@ -53,7 +56,7 @@ T* IRProgram::get(std::vector<T*>& table, const U& literal)
         if (table[i]->get() == literal)
             return table[i];
 
-    T* value = new T(table.size(), literal);
+    T* value = new T(literal);
     table.push_back(value);
     return value;
 }

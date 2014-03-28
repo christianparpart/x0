@@ -115,8 +115,7 @@ IRHandler* IRBuilder::getHandler(const std::string& name)
             return item;
     }
 
-    size_t id = program_->handlers_.size();
-    IRHandler* h = new IRHandler(id, name);
+    IRHandler* h = new IRHandler(name);
 
     h->setParent(program_);
     program_->handlers_.push_back(h);

@@ -83,12 +83,12 @@ IRGenerator::~IRGenerator()
     delete scope_;
 }
 
-IRProgram* IRGenerator::generate(Unit* unit)
+std::unique_ptr<IRProgram> IRGenerator::generate(Unit* unit)
 {
     IRGenerator ir;
     ir.codegen(unit);
 
-    return ir.program();
+    return std::unique_ptr<IRProgram>(ir.program());
 }
 
 Value* IRGenerator::codegen(Expr* expr)

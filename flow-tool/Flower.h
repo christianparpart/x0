@@ -63,6 +63,7 @@ private:
 	void flow_print_SI(FlowVM::Params& args);
 	void flow_print_IS(FlowVM::Params& args);
 	void flow_print_i(FlowVM::Params& args);
+	void flow_print_s(FlowVM::Params& args);
 	void flow_print_p(FlowVM::Params& args);
 	void flow_print_c(FlowVM::Params& args);
     void flow_log(FlowVM::Params& args);

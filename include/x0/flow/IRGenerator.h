@@ -30,7 +30,7 @@ public:
     IRGenerator();
     ~IRGenerator();
 
-    static IRProgram* generate(Unit* unit);
+    static std::unique_ptr<IRProgram> generate(Unit* unit);
 
 private:
     class Scope;

@@ -11,7 +11,7 @@ namespace x0 {
 
 void Constant::dump()
 {
-    printf("Constant %zu '%s': %s\n", id_, name().c_str(), tos(type()).c_str());
+    printf("Constant '%s': %s\n", name().c_str(), tos(type()).c_str());
 }
 
 } // namespace x0

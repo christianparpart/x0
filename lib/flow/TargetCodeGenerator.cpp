@@ -529,7 +529,17 @@ void TargetCodeGenerator::visit(MatchInstr& instr)
 
     for (const auto& one: instr.cases()) {
         MatchCaseDef caseDef;
-        caseDef.label = static_cast<Constant*>(one.first)->id();
+        switch (one.first->type()) {
+            case FlowType::String:
+                caseDef.label = cp_.makeString(static_cast<ConstantString*>(one.first)->get());
+                break;
+            case FlowType::RegExp:
+                caseDef.label = cp_.makeRegExp(static_cast<ConstantRegExp*>(one.first)->get());
+                break;
+            default:
+                assert(!"BUG: unsupported label type");
+                abort();
+        }
         caseDef.pc = 0; // XXX to be filled in post-processing the handler
 
         matchDef.cases.push_back(caseDef);
@@ -753,7 +763,7 @@ void TargetCodeGenerator::visit(SCmpREInstr& instr)
 
     Register a = allocate(1, instr);
     Register b = getRegister(instr.operand(0));
-    Operand c = re->id();
+    Operand c = cp_.makeRegExp(re->get());
 
     emit(Opcode::SREGMATCH, a, b, c);
 }

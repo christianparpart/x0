@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <cassert>
 #include <cstring>
+#include <iostream>
 
 using namespace x0;
 
@@ -79,6 +80,10 @@ Flower::Flower() :
     registerFunction("__print", FlowType::Void)
         .params(FlowType::IntArray)
         .bind(&Flower::flow_print_i);
+
+    registerFunction("__print", FlowType::Void)
+        .params(FlowType::StringArray)
+        .bind(&Flower::flow_print_s);
 
     registerFunction("__print", FlowType::Void)
         .params(FlowType::IPAddrArray)
@@ -252,7 +257,7 @@ void printDefUseChain(IRProgram* program)
 
 bool Flower::compile(Unit* unit)
 {
-    IRProgram* ir = IRGenerator::generate(unit);
+    std::unique_ptr<IRProgram> ir = IRGenerator::generate(unit);
     if (!ir) {
         fprintf(stderr, "IR generation failed. Aborting.\n");
         return false;
@@ -262,14 +267,14 @@ bool Flower::compile(Unit* unit)
         PassManager pm;
         pm.registerPass(std::make_unique<EmptyBlockElimination>());
         pm.registerPass(std::make_unique<InstructionElimination>());
-        pm.run(ir);
+        pm.run(ir.get());
     }
 
     if (dumpIR_) {
         ir->dump();
     }
 
-    program_ = TargetCodeGenerator().generate(ir);
+    program_ = TargetCodeGenerator().generate(ir.get());
 
     if (!program_) {
         fprintf(stderr, "Code generation failed. Aborting.\n");
@@ -378,6 +383,19 @@ void Flower::flow_print_i(FlowVM::Params& args)
         printf("%li\n", number);
     }
     printf("\n");
+}
+
+typedef std::vector<FixedBuffer> FixedBufferArray;
+void Flower::flow_print_s(FlowVM::Params& args)
+{
+    const FlowStringArray& array = args.getStringArray(1);
+    std::cout << "string array: (" << array.size() << ") [";
+    size_t i = 0;
+    for (const FlowString& value: array) {
+        if (i++) std::cout << ", ";
+        std::cout << '"' << value << '"';
+    }
+    std::cout << ']' << std::endl;
 }
 
 void Flower::flow_print_p(FlowVM::Params& args)
