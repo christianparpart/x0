@@ -98,6 +98,7 @@ bool Runner::run()
     #define instr(name) \
         l_##name: \
         ++pc; \
+        /*disassemble((Instruction) *pc, (pc - code.data()) / instructionSize);*/ \
         ++ticks;
 
     #define vm_start goto **pc
@@ -108,6 +109,7 @@ bool Runner::run()
 
     #define instr(name) \
         l_##name: \
+        /*disassemble(*pc, (pc - code.data()) / instructionSize);*/ \
         ++ticks;
 
     #define vm_start goto *ops[OP]
