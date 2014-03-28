@@ -23,8 +23,23 @@ IRHandler::IRHandler(const std::string& name) :
 
 IRHandler::~IRHandler()
 {
-    for (BasicBlock* bb: blocks_) {
-        delete bb;
+    while (!blocks_.empty()) {
+        auto i = blocks_.begin();
+        auto e = blocks_.end();
+
+        while (i != e) {
+            BasicBlock* bb = *i;
+
+            if (bb->predecessors().empty()) {
+                delete bb;
+                auto k = i;
+                ++i;
+                blocks_.erase(k);
+            } else {
+                // skip BBs that other BBs still point to (we never point to ourself).
+                ++i;
+            }
+        }
     }
 }
 
