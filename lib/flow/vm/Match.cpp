@@ -24,7 +24,7 @@ MatchSame::MatchSame(const MatchDef& def, Program* program) :
     map_()
 {
     for (const auto& one: def.cases) {
-        map_[program->string(one.label)] = one.pc;
+        map_[program->constants().getString(one.label)] = one.pc;
     }
 }
 
@@ -47,7 +47,7 @@ MatchHead::MatchHead(const MatchDef& def, Program* program) :
     map_()
 {
     for (const auto& one: def.cases) {
-        map_.insert(program->string(one.label), one.pc);
+        map_.insert(program->constants().getString(one.label), one.pc);
     }
 }
 
@@ -70,7 +70,7 @@ MatchTail::MatchTail(const MatchDef& def, Program* program) :
     map_()
 {
     for (const auto& one: def.cases) {
-        map_.insert(program->string(one.label), one.pc);
+        map_.insert(program->constants().getString(one.label), one.pc);
     }
 }
 
@@ -93,7 +93,7 @@ MatchRegEx::MatchRegEx(const MatchDef& def, Program* program) :
     map_()
 {
     for (const auto& one: def.cases) {
-        map_.push_back(std::make_pair(program->regularExpressions()[one.label], one.pc));
+        map_.push_back(std::make_pair(&program->constants().getRegExp(one.label), one.pc));
     }
 }
 

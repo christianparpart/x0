@@ -155,7 +155,7 @@ private:
 
 	void handleRequest(x0::HttpRequest *in, x0::FlowVM::Params& args)
 	{
-		std::string filename(args.get<x0::FlowString>(1).str());
+		std::string filename(args.getString(1).str());
 		auto i = logfiles_.find(filename);
 		if (i != logfiles_.end()) {
 			if (i->second.get()) {

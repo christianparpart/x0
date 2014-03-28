@@ -667,7 +667,7 @@ public:
 private:
 	void set_ttl(x0::FlowVM::Params& args)
 	{
-        ttl_ = args.get<x0::FlowNumber>(1);
+        ttl_ = args.getInt(1);
 	}
 
 	// handler cgi.exec();
@@ -688,7 +688,7 @@ private:
     // handler cgi.run(string executable);
     bool run(x0::HttpRequest* r, x0::FlowVM::Params& args)
     {
-        std::string interpreter = args.get<x0::FlowString*>(1)->str();
+        std::string interpreter = args.getString(1).str();
 
         CgiScript::runAsync(r, interpreter);
         return true;

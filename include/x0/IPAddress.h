@@ -203,5 +203,10 @@ namespace std
 			return *(uint32_t*)(v.data());
 		}
 	};
+
+    inline std::ostream& operator<<(std::ostream& os, const x0::IPAddress& ipaddr) {
+        os << ipaddr.str();
+        return os;
+    }
 }
 #endif

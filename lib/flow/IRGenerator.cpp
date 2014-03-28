@@ -11,6 +11,7 @@
 #include <x0/flow/ir/IRProgram.h>
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/Instructions.h>
+#include <x0/flow/ir/ConstantArray.h>
 #include <x0/DebugLogger.h> // XZERO_DEBUG
 #include <algorithm>
 #include <assert.h>
@@ -420,22 +421,39 @@ void IRGenerator::accept(CidrExpr& literal)
     result_ = get(literal.value());
 }
 
+bool isConstant(const std::vector<Value*>& values)
+{
+    for (const Value* value: values) {
+        if (!dynamic_cast<const Constant*>(value)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void IRGenerator::accept(ArrayExpr& arrayExpr)
 {
     FNTRACE();
 
-    Value* array = createAlloca(arrayExpr.getType(), get(1 + arrayExpr.values().size()));
-
-    // store array size at array[0]
-    createStore(array, get(0), get(arrayExpr.values().size()));
-
-    // store array values at array[1..N]
+    std::vector<Value*> values;
     for (size_t i = 0, e = arrayExpr.values().size(); i != e; ++i) {
         Value* element = codegen(arrayExpr.values()[i].get());
-        createStore(array, get(i + 1), element);
+        values.push_back(element);
     }
 
-    result_ = array;
+    if (isConstant(values)) {
+        std::vector<Constant*> constants;
+        for (Value* value: values)
+            constants.push_back(static_cast<Constant*>(value));
+
+        result_ = get(constants);
+        printf("generate constant array: %p (%s)\n", result_, tos(result_->type()).c_str());
+    } else {
+        // TODO: print line:col hint where this exact message occured.
+        // via: reportError(arrayExpr, "Variable array elements not allowed.");
+        reportError("Variable array elements not allowed.");
+        result_ = nullptr;
+    }
 }
 
 void IRGenerator::accept(ExprStmt& stmt)

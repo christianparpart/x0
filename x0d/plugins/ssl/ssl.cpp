@@ -155,11 +155,11 @@ private:
 	void add_listener(x0::FlowVM::Params& args)
 	{
         x0::SocketSpec socketSpec(
-            args.get<x0::IPAddress>(1),     // bind addr
-            args.get<x0::FlowNumber>(2),    // port
-            args.get<x0::FlowNumber>(3),    // backlog
-            args.get<x0::FlowNumber>(4),    // multi accept
-            args.get<bool>(5)               // reuse port
+            args.getIPAddress(1),   // bind addr
+            args.getInt(2),         // port
+            args.getInt(3),         // backlog
+            args.getInt(4),         // multi accept
+            args.getBool(5)         // reuse port
         );
 
         x0::ServerSocket* listener = server().setupListener(socketSpec);
@@ -172,7 +172,7 @@ private:
 
 	void set_loglevel(x0::FlowVM::Params& args)
 	{
-        setLogLevel(args.get<x0::FlowNumber>(1));
+        setLogLevel(args.getInt(1));
 	}
 
 	void set_priorities(x0::FlowVM::Params& args)
@@ -210,10 +210,10 @@ private:
 
 		cx->setLogger(server().logger());
 
-        cx->keyFile = args.get<std::string>(1);
-        cx->certFile = args.get<std::string>(2);
-        cx->trustFile = args.get<std::string>(3);
-        std::string priorities = args.get<std::string>(4);
+        cx->keyFile = args.getString(1).str();
+        cx->certFile = args.getString(2).str();
+        cx->trustFile = args.getString(3).str();
+        std::string priorities = args.getString(4).str();
 
 		// context setup successful -> put into our ssl context set.
 		contexts_.push_back(cx.release());

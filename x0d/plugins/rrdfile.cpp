@@ -64,7 +64,7 @@ public:
 private:
 	void setup_step(x0::FlowVM::Params& args)
 	{
-        step_ = args.get<x0::FlowNumber>(1);
+        step_ = args.getInt(1);
 
 		if (step_)
 			evTimer_.set(step_, step_);
@@ -74,7 +74,7 @@ private:
 
 	void setup_filename(x0::FlowVM::Params& args)
 	{
-        filename_ = args.get<x0::FlowString>(1);
+        filename_ = args.getString(1);
 
 		checkStart();
 	}

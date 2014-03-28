@@ -682,5 +682,4 @@ Value* IRBuilder::createMatchRegExp(Value* cond)
     return createMatch(MatchClass::RegExp, cond);
 }
 // }}}
-
 } // namespace x0

@@ -25,6 +25,12 @@ enum Opcode {
     // copy
     MOV,            // A = B
 
+    // const arrays
+    ITCONST,        // A = intArray[B]
+    STCONST,        // A = stringArray[B]
+    PTCONST,        // A = ipaddrArray[B]
+    CTCONST,        // A = cidrArray[B]
+
     // numerical
     IMOV,           // A = B/imm
     NCONST,         // A = numberConstants[B]

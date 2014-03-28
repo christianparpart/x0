@@ -117,8 +117,8 @@ RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r)
 // {{{ setup_function director.load(name, path)
 void DirectorPlugin::director_load(FlowVM::Params& args)
 {
-    const auto directorName = args.get<std::string>(1);
-    const auto path = args.get<std::string>(2);
+    const auto directorName = args.getString(1).str();
+    const auto path = args.getString(2).str();
 
     // TODO verify that given director name is still available.
     // TODO verify that no director has been instanciated already by given path.
@@ -139,7 +139,7 @@ void DirectorPlugin::director_load(FlowVM::Params& args)
 void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
 {
 	auto notes = requestNotes(r);
-    notes->setCacheKey(args.get<FlowString>(1));
+    notes->setCacheKey(args.getString(1));
 }
 #endif
 // }}}
@@ -148,7 +148,7 @@ void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
 void DirectorPlugin::director_cache_enabled(HttpRequest* r, FlowVM::Params& args)
 {
     auto notes = requestNotes(r);
-    notes->cacheIgnore = !args.get<bool>(1);
+    notes->cacheIgnore = !args.getBool(1);
 }
 #endif
 // }}}
@@ -157,7 +157,7 @@ void DirectorPlugin::director_cache_enabled(HttpRequest* r, FlowVM::Params& args
 void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args)
 {
     auto notes = requestNotes(r);
-    notes->cacheTTL = TimeSpan::fromSeconds(args.get<FlowNumber>(1));
+    notes->cacheTTL = TimeSpan::fromSeconds(args.getInt(1));
 }
 #endif
 // }}}
@@ -177,8 +177,8 @@ bool DirectorPlugin::internalServerError(HttpRequest* r)
 // handler director.balance(string director_name, string bucket_name = '');
 bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
 {
-	std::string directorName = args.get<FlowString>(1).str();
-	std::string bucketName = args.get<FlowString>(2).str();
+	std::string directorName = args.getString(1).str();
+	std::string bucketName = args.getString(2).str();
 
     auto i = directors_.find(directorName);
     if (i == directors_.end()) {
@@ -213,7 +213,7 @@ bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
 // {{{ handler director.pass(string director_id [, string backend_id ] );
 bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
 {
-    std::string directorName = args.get<FlowString>(1).str();
+    std::string directorName = args.getString(1).str();
     auto i = directors_.find(directorName);
     if (i == directors_.end()) {
         r->log(Severity::error, "director.pass(): No director with name '%s' configured.", directorName.c_str());
@@ -222,7 +222,7 @@ bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
     Director* director = i->second;
 
     // custom backend route
-    std::string backendName = args.get<FlowString>(2).str();
+    std::string backendName = args.getString(2).str();
     Backend* backend = nullptr;
     if (!backendName.empty()) {
         backend = director->findBackend(backendName);
@@ -249,12 +249,12 @@ bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
 // {{{ handler director.api(string prefix);
 bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args)
 {
-    const FlowString* prefix = args.get<FlowString*>(1);
+    const FlowString& prefix = args.getString(1);
 
-    if (!r->path.begins(*prefix))
+    if (!r->path.begins(prefix))
         return false;
 
-    BufferRef path(r->path.ref(prefix->size()));
+    BufferRef path(r->path.ref(prefix.size()));
 
     return ApiRequest::process(&directors_, r, path);
 }
@@ -263,8 +263,8 @@ bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args)
 bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
 {
     SocketSpec socketSpec(
-        args.get<IPAddress>(1),  // bind addr
-        args.get<FlowNumber>(2)  // port
+        args.getIPAddress(1),   // bind addr
+        args.getInt(2)          // port
     );
 
     roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::FCGI);
@@ -275,8 +275,8 @@ bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
 bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
 {
     SocketSpec socketSpec(
-        args.get<IPAddress>(1),  // bind addr
-        args.get<FlowNumber>(2)  // port
+        args.getIPAddress(1),   // bind addr
+        args.getInt(2)          // port
     );
 
     roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
@@ -286,9 +286,9 @@ bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
 // {{{ haproxy compatibility API
 bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r, FlowVM::Params& args)
 {
-	const FlowString* prefix = args.get<FlowString*>(1);
+	const FlowString& prefix = args.getString(1);
 
-	if (!r->path.begins(*prefix) && !r->unparsedUri.begins(*prefix))
+	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
 		return false;
 
 	haproxyApi_->monitor(r);
@@ -297,12 +297,12 @@ bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r, FlowVM::Params& ar
 
 bool DirectorPlugin::director_haproxy_stats(HttpRequest* r, FlowVM::Params& args)
 {
-	const FlowString* prefix = args.get<FlowString*>(1);
+	const FlowString& prefix = args.getString(1);
 
-	if (!r->path.begins(*prefix) && !r->unparsedUri.begins(*prefix))
+	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
 		return false;
 
-	haproxyApi_->stats(r, prefix->str());
+	haproxyApi_->stats(r, prefix.str());
 	return true;
 }
 // }}}

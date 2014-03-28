@@ -129,6 +129,7 @@ if(ENABLE_XZERO_FLOW)
     flow/ir/BasicBlock.cpp
     flow/ir/Constant.cpp
     flow/ir/ConstantValue.cpp
+    flow/ir/ConstantArray.cpp
     flow/ir/Instr.cpp
     flow/ir/Instructions.cpp
     flow/ir/InstructionVisitor.cpp
@@ -141,6 +142,7 @@ if(ENABLE_XZERO_FLOW)
     flow/transform/EmptyBlockElimination.cpp
     flow/transform/InstructionElimination.cpp
 
+    flow/vm/ConstantPool.cpp
     flow/vm/Handler.cpp
     flow/vm/Instruction.cpp
     flow/vm/Match.cpp

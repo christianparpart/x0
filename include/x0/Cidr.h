@@ -49,6 +49,11 @@ namespace std
 			return *(uint32_t*)(v.address().data()) + v.prefix();
 		}
 	};
+
+    inline std::ostream& operator<<(std::ostream& os, const x0::Cidr& cidr) {
+        os << cidr.str();
+        return os;
+    }
 }
 
 #endif

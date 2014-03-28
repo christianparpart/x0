@@ -304,7 +304,7 @@ private:
 		if (!r->customData<AuthBasic>(this))
 			r->setCustomData<AuthBasic>(this);
 
-		r->customData<AuthBasic>(this)->realm = args.get<x0::FlowString>(1).str();
+		r->customData<AuthBasic>(this)->realm = args.getString(1).str();
 	}
 
 	void auth_userfile(x0::HttpRequest* r, x0::FlowVM::Params& args)
@@ -312,7 +312,7 @@ private:
 		if (!r->customData<AuthBasic>(this))
 			r->setCustomData<AuthBasic>(this);
 
-		r->customData<AuthBasic>(this)->setupUserfile(args.get<x0::FlowString>(1).str());
+		r->customData<AuthBasic>(this)->setupUserfile(args.getString(1).str());
 	}
 
 #if defined(HAVE_SECURITY_PAM_APPL_H)
@@ -321,7 +321,7 @@ private:
 		if (!r->customData<AuthBasic>(this))
 			r->setCustomData<AuthBasic>(this);
 
-		r->customData<AuthBasic>(this)->setupPAM(args.get<x0::FlowString>(1).str());
+		r->customData<AuthBasic>(this)->setupPAM(args.getString(1).str());
 	}
 #endif
 

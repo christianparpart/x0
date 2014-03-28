@@ -2,6 +2,7 @@
 
 #include <x0/flow/FlowType.h>
 #include <x0/flow/ir/InstructionVisitor.h>
+#include <x0/flow/vm/ConstantPool.h>
 #include <x0/flow/vm/Match.h>
 #include <x0/IPAddress.h>
 #include <x0/Cidr.h>
@@ -183,18 +184,13 @@ private:
     std::unordered_map<BasicBlock*, std::list<UnconditionalJump>> unconditionalJumps_;
     std::list<std::pair<MatchInstr*, size_t /*matchId*/>> matchHints_;
 
-    // target program output
-    std::vector<FlowNumber> numbers_;
-    std::vector<FlowVM::MatchDef> matches_;
-    std::vector<std::pair<std::string, std::string>> modules_;
-    std::vector<std::string> nativeHandlerSignatures_;
-    std::vector<std::string> nativeFunctionSignatures_;
-    std::vector<std::pair<std::string, std::vector<FlowVM::Instruction>>> handlers_;
+    size_t handlerId_;                                  //!< current handler's ID
+    std::vector<FlowVM::Instruction> code_;             //!< current handler's code 
+    std::unordered_map<Value*, Register> variables_;    //!< variable-to-register assignment-map
+    std::vector<bool> allocations_;                     //!< register allocation map (primitive)
 
-    size_t handlerId_;                          //!< current handler's ID
-    std::vector<FlowVM::Instruction> code_;     //!< current handler's code 
-    std::unordered_map<Value*, Register> variables_;
-    std::vector<bool> allocations_;
+    // target program output
+    FlowVM::ConstantPool cp_;
 };
 
 //!@}

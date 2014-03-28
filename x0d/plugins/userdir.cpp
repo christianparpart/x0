@@ -53,7 +53,7 @@ public:
 
 	void setup_userdir(x0::FlowVM::Params& args)
 	{
-		std::string dirname = args.get<x0::FlowString>(1).str();
+		std::string dirname = args.getString(1).str();
 
 		std::error_code ec = validate(dirname);
 		if (ec) {

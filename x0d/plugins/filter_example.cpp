@@ -77,7 +77,7 @@ public:
 
 	void install_filter(x0::HttpRequest *r, x0::FlowVM::Params& args)
 	{
-        auto algo = args.get<x0::FlowString>(1);
+        auto algo = args.getString(1);
 		if (equals(algo, "identity"))
 			r->outputFilters.push_back(std::make_shared<ExampleFilter>(ExampleFilter::IDENTITY));
 		else if (equals(algo, "upper"))

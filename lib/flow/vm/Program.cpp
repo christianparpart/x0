@@ -1,4 +1,5 @@
 #include <x0/flow/vm/Program.h>
+#include <x0/flow/vm/ConstantPool.h>
 #include <x0/flow/vm/Handler.h>
 #include <x0/flow/vm/Instruction.h>
 #include <x0/flow/vm/Runtime.h>
@@ -36,74 +37,27 @@ namespace FlowVM {
  * {u32, u32, u32}[]    debug source lines segment
  */ // }}}
 
-Program::Program() :
-    numbers_(),
-    strings_(),
-    ipaddrs_(),
-    cidrs_(),
-    regularExpressions_(),
-    matches_(),
-    modules_(),
-    nativeHandlerSignatures_(),
-    nativeFunctionSignatures_(),
-    nativeHandlers_(),
-    nativeFunctions_(),
+Program::Program(ConstantPool&& cp) :
+    cp_(std::move(cp)),
+    runtime_(nullptr),
     handlers_(),
-    runtime_(nullptr)
-{
-}
-
-Program::Program(
-        const std::vector<FlowNumber>& numbers,
-        const std::vector<std::string>& strings,
-        const std::vector<IPAddress>& ipaddrs,
-        const std::vector<Cidr>& cidrs,
-        const std::vector<std::string>& regularExpressions,
-        const std::vector<MatchDef>& matches,
-        const std::vector<std::pair<std::string, std::string>>& modules,
-        const std::vector<std::string>& nativeHandlerSignatures,
-        const std::vector<std::string>& nativeFunctionSignatures,
-        const std::vector<std::pair<std::string, std::vector<Instruction>>>& handlers) :
-    numbers_(numbers),
-    strings_(),
-    ipaddrs_(ipaddrs),
-    cidrs_(cidrs),
-    regularExpressions_(),
     matches_(),
-    modules_(modules),
-    nativeHandlerSignatures_(nativeHandlerSignatures),
-    nativeFunctionSignatures_(nativeFunctionSignatures),
     nativeHandlers_(),
-    nativeFunctions_(),
-    handlers_(),
-    runtime_(nullptr)
+    nativeFunctions_()
 {
-    strings_.resize(strings.size());
-    for (size_t i = 0, e = strings.size(); i != e; ++i) {
-        auto& one = strings_[i];
-        one.first = strings[i];
-        one.second = BufferRef(one.first);
-    }
-
-    for (const auto& s: regularExpressions)
-        regularExpressions_.push_back(new RegExp(s));
-
-    for (const auto& handler: handlers)
+    for (const auto& handler: cp_.getHandlers())
         createHandler(handler.first, handler.second);
 
-    setup(matches);
+    setup(cp_.getMatchDefs());
 }
 
 Program::~Program()
 {
-    for (auto& handler: handlers_)
-        delete handler;
-
-    for (auto re: regularExpressions_)
-        delete re;
-
     for (auto m: matches_)
         delete m;
+
+    for (auto& handler: handlers_)
+        delete handler;
 }
 
 void Program::setup(const std::vector<MatchDef>& matches)
@@ -164,96 +118,7 @@ void Program::dump()
 {
     printf("; Program\n");
 
-    if (!modules_.empty()) {
-        printf("\n; Modules\n");
-        for (size_t i = 0, e = modules_.size(); i != e; ++i) {
-            if (modules_[i].second.empty())
-                printf(".module '%s'\n", modules_[i].first.c_str());
-            else
-                printf(".module '%s' from '%s'\n", modules_[i].first.c_str(), modules_[i].second.c_str());
-        }
-    }
-
-    if (!nativeFunctionSignatures_.empty()) {
-        printf("\n; External Functions\n");
-        for (size_t i = 0, e = nativeFunctionSignatures_.size(); i != e; ++i) {
-            if (nativeFunctions_[i])
-                printf(".extern function %3zu = %-20s ; linked to %p\n", i, nativeFunctionSignatures_[i].c_str(), nativeFunctions_[i]);
-            else
-                printf(".extern function %3zu = %-20s\n", i, nativeFunctionSignatures_[i].c_str());
-        }
-    }
-
-    if (!nativeHandlerSignatures_.empty()) {
-        printf("\n; External Handlers\n");
-        for (size_t i = 0, e = nativeHandlerSignatures_.size(); i != e; ++i) {
-            if (nativeHandlers_[i])
-                printf(".extern handler %4zu = %-20s ; linked to %p\n", i, nativeHandlerSignatures_[i].c_str(), nativeHandlers_[i]);
-            else
-                printf(".extern handler %4zu = %-20s\n", i, nativeHandlerSignatures_[i].c_str());
-        }
-    }
-
-    if (!numbers_.empty()) {
-        printf("\n; Integer Constants\n");
-        for (size_t i = 0, e = numbers_.size(); i != e; ++i) {
-            printf(".const integer %5zu = %li\n", i, (FlowNumber) numbers_[i]);
-        }
-    }
-
-    if (!strings_.empty()) {
-        printf("\n; String Constants\n");
-        for (size_t i = 0, e = strings_.size(); i != e; ++i) {
-            printf(".const string %6zu = '%s'\n", i, strings_[i].first.c_str());
-        }
-    }
-
-    if (!ipaddrs_.empty()) {
-        printf("\n; IP Constants\n");
-        for (size_t i = 0, e = ipaddrs_.size(); i != e; ++i) {
-            printf(".const ipaddr %6zu = %s\n", i, ipaddrs_[i].str().c_str());
-        }
-    }
-
-    if (!cidrs_.empty()) {
-        printf("\n; CIDR Constants\n");
-        for (size_t i = 0, e = cidrs_.size(); i != e; ++i) {
-            printf(".const cidr %8zu = %s\n", i, cidrs_[i].str().c_str());
-        }
-    }
-
-    if (!regularExpressions_.empty()) {
-        printf("\n; Regular Expression Constants\n");
-        for (size_t i = 0, e = regularExpressions_.size(); i != e; ++i) {
-            printf(".const regex %7zu = /%s/\n", i, regularExpressions_[i]->c_str());
-        }
-    }
-
-    if (!matches_.empty()) {
-        printf("\n; Match Table\n");
-        for (size_t i = 0, e = matches_.size(); i != e; ++i) {
-            const MatchDef& def = matches_[i]->def();
-            printf(".const match %7zu = handler %zu, op %s, elsePC %lu ; %s\n",
-                i,
-                def.handlerId,
-                tos(def.op).c_str(),
-                def.elsePC,
-                handler(def.handlerId)->name().c_str()
-            );
-
-            for (size_t k = 0, m = def.cases.size(); k != m; ++k) {
-                const MatchCaseDef& one = def.cases[k];
-
-                printf("                       case %3zu = label %2zu, pc %4zu ; ", k, one.label, one.pc);
-
-                if (def.op == MatchClass::RegExp) {
-                    printf("/%s/\n", regularExpressions_[one.label]->c_str());
-                } else {
-                    printf("'%s'\n", strings_[one.label].first.c_str());
-                }
-            }
-        }
-    }
+    cp_.dump();
 
     for (size_t i = 0, e = handlers_.size(); i != e; ++i) {
         Handler* handler = handlers_[i];
@@ -282,16 +147,16 @@ bool Program::link(Runtime* runtime)
     int errors = 0;
 
     // load runtime modules
-    for (const auto& module: modules_) {
+    for (const auto& module: cp_.getModules()) {
         if (!runtime->import(module.first, module.second, nullptr)) {
             errors++;
         }
     }
 
     // link nattive handlers
-    nativeHandlers_.resize(nativeHandlerSignatures_.size());
+    nativeHandlers_.resize(cp_.getNativeHandlerSignatures().size());
     size_t i = 0;
-    for (const auto& signature: nativeHandlerSignatures_) {
+    for (const auto& signature: cp_.getNativeHandlerSignatures()) {
         // map to nativeHandlers_[i]
         if (NativeCallback* cb = runtime->find(signature)) {
             nativeHandlers_[i] = cb;
@@ -305,9 +170,9 @@ bool Program::link(Runtime* runtime)
     }
 
     // link nattive functions
-    nativeFunctions_.resize(nativeFunctionSignatures_.size());
+    nativeFunctions_.resize(cp_.getNativeFunctionSignatures().size());
     i = 0;
-    for (const auto& signature: nativeFunctionSignatures_) {
+    for (const auto& signature: cp_.getNativeFunctionSignatures()) {
         if (NativeCallback* cb = runtime->find(signature)) {
             nativeFunctions_[i] = cb;
         } else {

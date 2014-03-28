@@ -25,6 +25,7 @@
 namespace x0 {
 
 class IRBuilder;
+class ConstantArray;
 
 class X0_API IRProgram {
 public:
@@ -38,14 +39,9 @@ public:
     ConstantIP* get(const IPAddress& literal) { return get<ConstantIP>(ipaddrs_, literal); }
     ConstantCidr* get(const Cidr& literal) { return get<ConstantCidr>(cidrs_, literal); }
     ConstantRegExp* get(const RegExp& literal) { return get<ConstantRegExp>(regexps_, literal); }
+    ConstantArray* get(const std::vector<Constant*>& elems) { return get<ConstantArray>(constantArrays_, elems); }
 
-    const std::vector<ConstantInt*>& numbers() const { return numbers_; }
-    const std::vector<ConstantString*>& strings() const { return strings_; }
-    const std::vector<ConstantIP*>& ipaddrs() const { return ipaddrs_; }
-    const std::vector<ConstantCidr*>& cidrs() const { return cidrs_; }
-    const std::vector<ConstantRegExp*>& regularExpressions() const { return regexps_; }
-    const std::vector<IRBuiltinHandler*>& builtinHandlers() const { return builtinHandlers_; }
-    const std::vector<IRBuiltinFunction*>& builtinFunctions() const { return builtinFunctions_; }
+    //const std::vector<ConstantArray*>& constantArrays() const { return constantArrays_; }
 
     IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) { return get<IRBuiltinHandler>(builtinHandlers_, sig); }
     IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) { return get<IRBuiltinFunction>(builtinFunctions_, sig); }
@@ -74,6 +70,7 @@ public:
 
 private:
 	std::vector<std::pair<std::string, std::string> > imports_;
+    std::vector<ConstantArray*> constantArrays_;
     std::vector<ConstantInt*> numbers_;
     std::vector<ConstantString*> strings_;
     std::vector<ConstantIP*> ipaddrs_;

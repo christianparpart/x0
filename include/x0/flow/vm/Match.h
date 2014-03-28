@@ -101,7 +101,7 @@ public:
     virtual uint64_t evaluate(const FlowString* condition, Runner* env) const;
 
 private:
-    std::vector<std::pair<RegExp*, uint64_t>> map_;
+    std::vector<std::pair<const RegExp*, uint64_t>> map_;
 };
 
 } // namespace FlowVM

@@ -8,6 +8,7 @@
 #include <x0/flow/ir/IRProgram.h>
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/HandlerPass.h>
+#include <x0/flow/ir/ConstantArray.h>
 #include <assert.h>
 
 namespace x0 {
@@ -58,6 +59,7 @@ T* IRProgram::get(std::vector<T*>& table, const U& literal)
 }
 
 template ConstantInt* IRProgram::get<ConstantInt, int64_t>(std::vector<ConstantInt*>&, const int64_t&);
+template ConstantArray* IRProgram::get<ConstantArray, std::vector<Constant*>>(std::vector<ConstantArray*>&, const std::vector<Constant*>&);
 template ConstantString* IRProgram::get<ConstantString, std::string>(std::vector<ConstantString*>&, const std::string&);
 template ConstantIP* IRProgram::get<ConstantIP, IPAddress>(std::vector<ConstantIP*>&, const IPAddress&);
 template ConstantCidr* IRProgram::get<ConstantCidr, Cidr>(std::vector<ConstantCidr*>&, const Cidr&);

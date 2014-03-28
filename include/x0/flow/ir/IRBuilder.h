@@ -34,6 +34,7 @@ class BasicBlock;
 class IRHandler;
 class IRProgram;
 class IRBuilder;
+class ConstantArray;
 
 class X0_API IRBuilder {
 private:
@@ -71,6 +72,7 @@ public:
     ConstantRegExp* get(const RegExp& literal) { return program_->get(literal); }
     IRBuiltinHandler* getBuiltinHandler(const FlowVM::Signature& sig) { return program_->getBuiltinHandler(sig); }
     IRBuiltinFunction* getBuiltinFunction(const FlowVM::Signature& sig) { return program_->getBuiltinFunction(sig); }
+    ConstantArray* get(const std::vector<Constant*>& arrayElements) { return program_->get(arrayElements); }
 
     // values
     AllocaInstr* createAlloca(FlowType ty, Value* arraySize, const std::string& name = "");

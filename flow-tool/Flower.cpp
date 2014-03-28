@@ -348,33 +348,32 @@ void Flower::dump()
 
 void Flower::flow_print(FlowVM::Params& args)
 {
-	printf("%s\n", args.get<FlowString*>(1)->str().c_str());
+	printf("%s\n", args.getString(1).str().c_str());
 }
 
 void Flower::flow_print_I(FlowVM::Params& args)
 {
-	printf("%li\n", args.get<FlowNumber>(1));
+	printf("%li\n", args.getInt(1));
 }
 
 void Flower::flow_print_SI(FlowVM::Params& args)
 {
 	printf("%s %li\n",
-            args.get<FlowString*>(1)->str().c_str(),
-            args.get<FlowNumber>(2));
+            args.getString(1).str().c_str(),
+            args.getInt(2));
 }
 
 void Flower::flow_print_IS(FlowVM::Params& args)
 {
 	printf("%li %s\n",
-            args.get<FlowNumber>(1),
-            args.get<FlowString*>(2)->str().c_str());
+            args.getInt(1),
+            args.getString(2).str().c_str());
 }
 
 void Flower::flow_print_i(FlowVM::Params& args)
 {
-    FlowIntArray array = args.get<FlowIntArray>(1);
+    const FlowIntArray& array = args.getIntArray(1);
     printf("int array size: #%zu\n", array.size());
-    //for (FlowNumber number: args.get<FlowIntArray>(1)) {
     for (FlowNumber number: array) {
         printf("%li\n", number);
     }
@@ -383,7 +382,7 @@ void Flower::flow_print_i(FlowVM::Params& args)
 
 void Flower::flow_print_p(FlowVM::Params& args)
 {
-    for (const IPAddress& ipaddr: args.get<FlowIPAddrArray>(1)) {
+    for (const IPAddress& ipaddr: args.getIPAddressArray(1)) {
         printf("%s\n", ipaddr.c_str());
     }
     printf("\n");
@@ -391,9 +390,7 @@ void Flower::flow_print_p(FlowVM::Params& args)
 
 void Flower::flow_print_c(FlowVM::Params& args)
 {
-    FlowCidrArray array = args.get<FlowCidrArray>(1);
-    printf("cidr array size: #%zu\n", array.size());
-    for (const Cidr& cidr: args.get<FlowCidrArray>(1)) {
+    for (const Cidr& cidr: args.getCidrArray(1)) {
         printf("%s\n", cidr.str().c_str());
     }
     printf("\n");
@@ -401,21 +398,21 @@ void Flower::flow_print_c(FlowVM::Params& args)
 
 void Flower::flow_log(FlowVM::Params& args)
 {
-    FlowString* message = args.get<FlowString*>(1);
-    FlowNumber severity = args.get<FlowNumber>(2);
+    const FlowString& message = args.getString(1);
+    FlowNumber severity = args.getInt(2);
 
-    printf("<%lu> %s\n", severity, message->str().c_str());
+    printf("<%lu> %s\n", severity, message.str().c_str());
 }
 
 void Flower::flow_assert(FlowVM::Params& args)
 {
-	const FlowString* sourceValue = args.get<FlowString*>(2);
+	const FlowString& sourceValue = args.getString(2);
 
-    if (!args.get<bool>(1)) {
-		printf("[   FAILED ] %s\n", sourceValue->str().c_str());
+    if (!args.getBool(1)) {
+		printf("[   FAILED ] %s\n", sourceValue.str().c_str());
 		args.setResult(true);
 	} else {
-		printf("[       OK ] %s\n", sourceValue->str().c_str());
+		printf("[       OK ] %s\n", sourceValue.str().c_str());
 		++totalSuccess_;
 		args.setResult(false);
 	}
@@ -436,13 +433,13 @@ void Flower::flow_random(FlowVM::Params& args)
 
 void Flower::flow_getenv(FlowVM::Params& args)
 {
-	args.setResult(getenv(args.get<FlowString>(1).str().c_str()));
+	args.setResult(getenv(args.getString(1).str().c_str()));
 }
 
 void Flower::flow_error(FlowVM::Params& args)
 {
     if (args.size() == 2)
-        printf("Error. %s\n", args.get<FlowString>(1).str().c_str());
+        printf("Error. %s\n", args.getString(1).str().c_str());
     else
         printf("Error\n");
 
@@ -466,8 +463,8 @@ void Flower::flow_pass(FlowVM::Params& args)
 
 void Flower::flow_assertFail(FlowVM::Params& args)
 {
-    if (args.get<bool>(1)) {
-        fprintf(stderr, "Assertion failed. %s\n", args.get<FlowString>(2).str().c_str());
+    if (args.getBool(1)) {
+        fprintf(stderr, "Assertion failed. %s\n", args.getString(2).str().c_str());
         args.setResult(true);
     } else {
         args.setResult(false);
@@ -499,7 +496,7 @@ bool Flower::verify_numbers(CallExpr* call)
 
 void Flower::flow_numbers(FlowVM::Params& args)
 {
-    FlowIntArray array = args.get<FlowIntArray>(1);
+    const FlowIntArray& array = args.getIntArray(1);
 
     for (FlowNumber value: array) {
         printf("number: %li\n", value);
@@ -508,7 +505,7 @@ void Flower::flow_numbers(FlowVM::Params& args)
 
 void Flower::flow_names(FlowVM::Params& args)
 {
-    FlowStringArray array = args.get<FlowStringArray>(1);
+    const FlowStringArray& array = args.getStringArray(1);
 
     for (const FlowString& value: array) {
         printf("string: %s\n", value.str().c_str());

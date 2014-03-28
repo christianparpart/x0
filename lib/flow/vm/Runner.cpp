@@ -118,6 +118,12 @@ bool Runner::run()
         // copy
         label(MOV),
 
+        // array
+        label(ITCONST),
+        label(STCONST),
+        label(PTCONST),
+        label(CTCONST),
+
         // numerical
         label(IMOV),
         label(NCONST),
@@ -257,6 +263,24 @@ bool Runner::run()
         next;
     }
     // }}}
+    // {{{ array
+    instr (ITCONST) {
+        data_[A] = reinterpret_cast<Register>(&program->constants().getIntArray(B));
+        next;
+    }
+    instr (STCONST) {
+        data_[A] = reinterpret_cast<Register>(&program->constants().getStringArray(B));
+        next;
+    }
+    instr (PTCONST) {
+        data_[A] = reinterpret_cast<Register>(&program->constants().getIPAddressArray(B));
+        next;
+    }
+    instr (CTCONST) {
+        data_[A] = reinterpret_cast<Register>(&program->constants().getCidrArray(B));
+        next;
+    }
+    // }}}
     // {{{ debug
     instr (NTICKS) {
         data_[A] = ticks;
@@ -280,7 +304,7 @@ bool Runner::run()
     }
 
     instr (NCONST) {
-        data_[A] = program->numbers()[B];
+        data_[A] = program->constants().getInteger(B);
         next;
     }
 
@@ -488,7 +512,7 @@ bool Runner::run()
     // }}}
     // {{{ string
     instr (SCONST) { // A = stringConstTable[B]
-        data_[A] = (Register) &program->string(B);
+        data_[A] = reinterpret_cast<Register>(&program->constants().getString(B));
         next;
     }
 
@@ -595,8 +619,8 @@ bool Runner::run()
     }
     // }}}
     // {{{ ipaddr
-    instr (PCONST) { // A = stringConstTable[B]
-        data_[A] = (Register) &program->ipaddrs()[B];
+    instr (PCONST) {
+        data_[A] = reinterpret_cast<Register>(&program->constants().getIPAddress(B));
         next;
     }
 
@@ -619,14 +643,14 @@ bool Runner::run()
     // }}}
     // {{{ cidr
     instr (CCONST) {
-        data_[A] = (Register) &program->cidr(B);
+        data_[A] = reinterpret_cast<Register>(&program->constants().getCidr(B));
         next;
     }
     // }}}
     // {{{ regex
     instr (SREGMATCH) { // A = B =~ C
         RegExpContext* cx = (RegExpContext*) userdata();
-        data_[A] = program_->regularExpression(C)->match(toString(B), cx ? cx->regexMatch() : nullptr);
+        data_[A] = program_->constants().getRegExp(C).match(toString(B), cx ? cx->regexMatch() : nullptr);
 
         next;
     }

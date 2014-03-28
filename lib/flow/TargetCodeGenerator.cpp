@@ -1,7 +1,9 @@
 #include <x0/flow/TargetCodeGenerator.h>
+#include <x0/flow/vm/ConstantPool.h>
 #include <x0/flow/vm/Program.h>
 #include <x0/flow/ir/BasicBlock.h>
 #include <x0/flow/ir/ConstantValue.h>
+#include <x0/flow/ir/ConstantArray.h>
 #include <x0/flow/ir/Instructions.h>
 #include <x0/flow/ir/IRProgram.h>
 #include <x0/flow/ir/IRHandler.h>
@@ -14,15 +16,21 @@ namespace x0 {
 
 using namespace FlowVM;
 
+template<typename T, typename S>
+std::vector<T> convert(const std::vector<Constant*>& source)
+{
+    std::vector<T> target(source.size());
+
+    for (size_t i = 0, e = source.size(); i != e; ++i)
+        target[i] = static_cast<S*>(source[i])->get();
+
+    return target;
+}
+
 TargetCodeGenerator::TargetCodeGenerator() :
     errors_(),
     conditionalJumps_(),
     unconditionalJumps_(),
-    matches_(),
-    modules_(),
-    nativeHandlerSignatures_(),
-    nativeFunctionSignatures_(),
-    handlers_(),
     handlerId_(0),
     code_(),
     variables_(),
@@ -36,39 +44,15 @@ TargetCodeGenerator::~TargetCodeGenerator()
 {
 }
 
-template<typename T, typename S>
-std::vector<T> convert(const std::vector<S>& source)
-{
-    std::vector<T> target(source.size());
-
-    for (S value: source)
-        target[value->id()] = value->get();
-
-    return target;
-}
-
 std::unique_ptr<FlowVM::Program> TargetCodeGenerator::generate(IRProgram* program)
 {
     for (IRHandler* handler: program->handlers())
         generate(handler);
 
-    std::vector<std::string> strings(convert<std::string>(program->strings()));
-    std::vector<IPAddress> ipaddrs(convert<IPAddress>(program->ipaddrs()));
-    std::vector<Cidr> cidrs(convert<Cidr>(program->cidrs()));
-    std::vector<std::string> regularExpressions(convert<std::string>(program->regularExpressions()));
+    //TODO cp.regularExpressions = program->regularExpressions();
+    //TODO cp.modules = program->imports();
 
-    return std::unique_ptr<FlowVM::Program>(new FlowVM::Program(
-        numbers_,
-        strings,
-        ipaddrs,
-        cidrs,
-        regularExpressions,
-        matches_,
-        program->imports(),
-        nativeHandlerSignatures_,
-        nativeFunctionSignatures_,
-        handlers_
-    ));
+    return std::unique_ptr<FlowVM::Program>(new FlowVM::Program(std::move(cp_)));
 }
 
 void TargetCodeGenerator::generate(IRHandler* handler)
@@ -108,19 +92,20 @@ void TargetCodeGenerator::generate(IRHandler* handler)
     for (const auto& hint: matchHints_) {
         size_t matchId = hint.second;
         MatchInstr* instr = hint.first;
-        auto cases = instr->cases();
+        const auto& cases = instr->cases();
+        MatchDef& def = cp_.getMatchDef(matchId);
 
         for (size_t i = 0, e = cases.size(); i != e; ++i) {
-            matches_[matchId].cases[i].pc = basicBlockEntryPoints[cases[i].second];
+            def.cases[i].pc = basicBlockEntryPoints[cases[i].second];
         }
 
         if (instr->elseBlock()) {
-            matches_[matchId].elsePC = basicBlockEntryPoints[instr->elseBlock()];
+            def.elsePC = basicBlockEntryPoints[instr->elseBlock()];
         }
     }
     matchHints_.clear();
 
-    handlers_[handlerId_].second = std::move(code_);
+    cp_.getHandler(handlerId_).second = std::move(code_);
 
     // cleanup remaining handler-local work vars
     allocations_.clear();
@@ -132,12 +117,7 @@ void TargetCodeGenerator::generate(IRHandler* handler)
  */
 size_t TargetCodeGenerator::handlerRef(IRHandler* handler)
 {
-    for (size_t i = 0, e = handlers_.size(); i != e; ++i)
-        if (handlers_[i].first == handler->name())
-            return i;
-
-    handlers_.push_back(std::make_pair(handler->name(), std::vector<FlowVM::Instruction>()));
-    return handlers_.size() - 1;
+    return cp_.makeHandler(handler->name());
 }
 
 size_t TargetCodeGenerator::emit(FlowVM::Instruction instr)
@@ -255,32 +235,17 @@ void TargetCodeGenerator::visit(AllocaInstr& instr)
 
 size_t TargetCodeGenerator::makeNumber(FlowNumber value)
 {
-    for (size_t i = 0, e = numbers_.size(); i != e; ++i)
-        if (numbers_[i] == value)
-            return i;
-
-    numbers_.push_back(value);
-    return numbers_.size() - 1;
+    return cp_.makeInteger(value);
 }
 
 size_t TargetCodeGenerator::makeNativeHandler(IRBuiltinHandler* builtin)
 {
-    for (size_t i = 0, e = nativeHandlerSignatures_.size(); i != e; ++i)
-        if (builtin->signature() == nativeHandlerSignatures_[i])
-            return i;
-
-    nativeHandlerSignatures_.push_back(builtin->signature().to_s());
-    return nativeHandlerSignatures_.size() - 1;
+    return cp_.makeNativeHandler(builtin->signature().to_s());
 }
 
 size_t TargetCodeGenerator::makeNativeFunction(IRBuiltinFunction* builtin)
 {
-    for (size_t i = 0, e = nativeFunctionSignatures_.size(); i != e; ++i)
-        if (builtin->signature() == nativeFunctionSignatures_[i])
-            return i;
-
-    nativeFunctionSignatures_.push_back(builtin->signature().to_s());
-    return nativeFunctionSignatures_.size() - 1;
+    return cp_.makeNativeFunction(builtin->signature().to_s());
 }
 
 void TargetCodeGenerator::visit(StoreInstr& instr)
@@ -289,7 +254,7 @@ void TargetCodeGenerator::visit(StoreInstr& instr)
     size_t index = getConstantInt(instr.index());
     Value* rhs = instr.expression();
 
-    Register lhsReg = getRegister(lhs) + index;;
+    Register lhsReg = getRegister(lhs) + index;
 
     // const int
     if (auto integer = dynamic_cast<ConstantInt*>(rhs)) {
@@ -297,7 +262,7 @@ void TargetCodeGenerator::visit(StoreInstr& instr)
         if (number >= -32768 && number <= 32767) { // limit to 16bit signed width
             emit(Opcode::IMOV, lhsReg, number);
         } else {
-            emit(Opcode::NCONST, lhsReg, makeNumber(number));
+            emit(Opcode::NCONST, lhsReg, cp_.makeInteger(number));
         }
         return;
     }
@@ -310,19 +275,19 @@ void TargetCodeGenerator::visit(StoreInstr& instr)
 
     // const string
     if (auto string = dynamic_cast<ConstantString*>(rhs)) {
-        emit(Opcode::SCONST, lhsReg, string->id());
+        emit(Opcode::SCONST, lhsReg, cp_.makeString(string->get()));
         return;
     }
 
     // const IP address
     if (auto ip = dynamic_cast<ConstantIP*>(rhs)) {
-        emit(Opcode::PCONST, lhsReg, ip->id());
+        emit(Opcode::PCONST, lhsReg, cp_.makeIPAddress(ip->get()));
         return;
     }
 
     // const Cidr
     if (auto cidr = dynamic_cast<ConstantCidr*>(rhs)) {
-        emit(Opcode::CCONST, lhsReg, cidr->id());
+        emit(Opcode::CCONST, lhsReg, cp_.makeCidr(cidr->get()));
         return;
     }
 
@@ -330,6 +295,26 @@ void TargetCodeGenerator::visit(StoreInstr& instr)
     if (/*auto re =*/ dynamic_cast<ConstantRegExp*>(rhs)) {
         assert(!"TODO store const RegExp");
         return;
+    }
+
+    if (auto array = dynamic_cast<ConstantArray*>(rhs)) {
+        switch (array->type()) {
+            case FlowType::IntArray:
+                emit(Opcode::ITCONST, lhsReg, cp_.makeIntegerArray(convert<FlowNumber, ConstantInt>(array->get())));
+                return;
+            case FlowType::StringArray:
+                emit(Opcode::STCONST, lhsReg, cp_.makeStringArray(convert<std::string, ConstantString>(array->get())));
+                return;
+            case FlowType::IPAddrArray:
+                emit(Opcode::PTCONST, lhsReg, cp_.makeIPaddrArray(convert<IPAddress, ConstantIP>(array->get())));
+                return;
+            case FlowType::CidrArray:
+                emit(Opcode::CTCONST, lhsReg, cp_.makeCidrArray(convert<Cidr, ConstantCidr>(array->get())));
+                return;
+            default:
+                assert(!"BUG: array");
+                abort();
+        }
     }
 
     // var = var
@@ -365,7 +350,8 @@ Register TargetCodeGenerator::emitCallArgs(Instr& instr)
     for (int i = 1; i < argc; ++i) {
         Register tmp = getRegister(instr.operands()[i]);
         if (auto alloca = dynamic_cast<AllocaInstr*>(instr.operands()[i])) {
-            if (getConstantInt(alloca->arraySize()) > 1) {
+            size_t n = getConstantInt(alloca->arraySize());
+            if (n > 1) {
                 emit(Opcode::IMOV, rbase + i, tmp);
                 continue;
             }
@@ -439,21 +425,44 @@ FlowVM::Operand TargetCodeGenerator::getRegister(Value* value)
     // const string
     if (ConstantString* str = dynamic_cast<ConstantString*>(value)) {
         Register reg = allocate(1);
-        emit(Opcode::SCONST, reg, str->id());
+        emit(Opcode::SCONST, reg, cp_.makeString(str->get()));
         return reg;
     }
 
     // const ip
     if (ConstantIP* ip = dynamic_cast<ConstantIP*>(value)) {
         Register reg = allocate(1);
-        emit(Opcode::PCONST, reg, ip->id());
+        emit(Opcode::PCONST, reg, cp_.makeIPAddress(ip->get()));
         return reg;
     }
 
     // const cidr
     if (ConstantCidr* cidr = dynamic_cast<ConstantCidr*>(value)) {
         Register reg = allocate(1);
-        emit(Opcode::CCONST, reg, cidr->id());
+        emit(Opcode::CCONST, reg, cp_.makeCidr(cidr->get()));
+        return reg;
+    }
+
+    // const array<T>
+    if (ConstantArray* array = dynamic_cast<ConstantArray*>(value)) {
+        Register reg = allocate(1);
+        switch (array->type()) {
+            case FlowType::IntArray:
+                emit(Opcode::ITCONST, reg, cp_.makeIntegerArray(convert<FlowNumber, ConstantInt>(array->get())));
+                break;
+            case FlowType::StringArray:
+                emit(Opcode::STCONST, reg, cp_.makeStringArray(convert<std::string, ConstantString>(array->get())));
+                break;
+            case FlowType::IPAddrArray:
+                emit(Opcode::PTCONST, reg, cp_.makeIPaddrArray(convert<IPAddress, ConstantIP>(array->get())));
+                break;
+            case FlowType::CidrArray:
+                emit(Opcode::CTCONST, reg, cp_.makeCidrArray(convert<Cidr, ConstantCidr>(array->get())));
+                break;
+            default:
+                assert(!"BUG: array");
+                abort();
+        }
         return reg;
     }
 
@@ -510,9 +519,9 @@ void TargetCodeGenerator::visit(MatchInstr& instr)
         [(size_t) MatchClass::RegExp] = Opcode::SMATCHR,
     };
 
-    const size_t matchId = matches_.size();
+    const size_t matchId = cp_.makeMatchDef();
+    MatchDef& matchDef = cp_.getMatchDef(matchId);
 
-    MatchDef matchDef;
     matchDef.handlerId = handlerRef(instr.parent()->parent());
     matchDef.op = instr.op();
     matchDef.elsePC = 0; // XXX to be filled in post-processing the handler
@@ -530,8 +539,6 @@ void TargetCodeGenerator::visit(MatchInstr& instr)
     Register condition = getRegister(instr.condition());
 
     emit(ops[(size_t) matchDef.op], condition, matchId);
-
-    matches_.push_back(std::move(matchDef));
 }
 
 void TargetCodeGenerator::visit(CastInstr& instr)

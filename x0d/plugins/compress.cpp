@@ -102,7 +102,7 @@ private:
 	{
 		contentTypes_.clear();
 
-        const auto& x = args.get<x0::FlowStringArray>(1);
+        const auto& x = args.getStringArray(1);
 
 		for (int i = 0, e = args.size(); i != e; ++i) {
             contentTypes_[x[i].str()] = 0;
@@ -111,18 +111,18 @@ private:
 
 	void setup_level(x0::FlowVM::Params& args)
 	{
-		level_ = args.get<x0::FlowNumber>(1);
+		level_ = args.getInt(1);
 		level_ = std::min(std::max(level_, 0), 10);
 	}
 
 	void setup_minsize(x0::FlowVM::Params& args)
 	{
-		minSize_ = args.get<x0::FlowNumber>(1);
+		minSize_ = args.getInt(1);
 	}
 
 	void setup_maxsize(x0::FlowVM::Params& args)
 	{
-		maxSize_ = args.get<x0::FlowNumber>(1);
+		maxSize_ = args.getInt(1);
 	}
 
 private:

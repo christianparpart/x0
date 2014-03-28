@@ -42,7 +42,17 @@ public:
     Register operator[](size_t i) const { return argv_[i]; }
     Register& operator[](size_t i) { return argv_[i]; }
 
-    template<typename T> T get(size_t offset) const;
+    bool getBool(size_t offset) const { return at(offset); }
+    FlowNumber getInt(size_t offset) const { return at(offset); }
+    const FlowString& getString(size_t offset) const { return *(FlowString*) at(offset); }
+    Handler* getHandler(size_t offset) const { return caller_->program()->handler(at(offset)); }
+    const IPAddress& getIPAddress(size_t offset) const { return *(IPAddress*) at(offset); }
+    const Cidr& getCidr(size_t offset) const { return *(Cidr*) at(offset); }
+
+    const FlowIntArray& getIntArray(size_t offset) const { return *(FlowIntArray*) at(offset); }
+    const FlowStringArray& getStringArray(size_t offset) const { return *(FlowStringArray*) at(offset); }
+    const FlowIPAddrArray& getIPAddressArray(size_t offset) const { return *(FlowIPAddrArray*) at(offset); }
+    const FlowCidrArray& getCidrArray(size_t offset) const { return *(FlowCidrArray*) at(offset); }
 
     class iterator { // {{{
     private:
@@ -78,19 +88,6 @@ public:
     iterator begin() { return iterator(this, std::min(1, argc_)); }
     iterator end() { return iterator(this, argc_); }
 };
-
-template<> X0_API inline bool Params::get<bool>(size_t offset) const { return at(offset); }
-template<> X0_API inline FlowNumber Params::get<FlowNumber>(size_t offset) const { return at(offset); }
-template<> X0_API inline FlowString Params::get<FlowString>(size_t offset) const { return *((FlowString*) at(offset)); }
-template<> X0_API inline FlowString* Params::get<FlowString*>(size_t offset) const { return ((FlowString*) at(offset)); }
-template<> X0_API inline std::string Params::get<std::string>(size_t offset) const { return ((FlowString*) at(offset))->str(); }
-template<> X0_API inline Handler* Params::get<Handler*>(size_t offset) const { return caller_->program()->handler(at(offset)); }
-template<> X0_API inline IPAddress Params::get<IPAddress>(size_t offset) const { return *((IPAddress*) at(offset)); }
-template<> X0_API inline IPAddress* Params::get<IPAddress*>(size_t offset) const { return ((IPAddress*) at(offset)); }
-template<> X0_API inline FlowIntArray Params::get<FlowIntArray>(size_t offset) const { return FlowIntArray(&caller_->data()[argv_[offset]]); }
-template<> X0_API inline FlowStringArray Params::get<FlowStringArray>(size_t offset) const { return FlowStringArray(&caller_->data()[argv_[offset]]); }
-template<> X0_API inline FlowIPAddrArray Params::get<FlowIPAddrArray>(size_t offset) const { return FlowIPAddrArray(&caller_->data()[argv_[offset]]); }
-template<> X0_API inline FlowCidrArray Params::get<FlowCidrArray>(size_t offset) const { return FlowCidrArray(&caller_->data()[argv_[offset]]); }
 
 } // namespace FlowVM
 } // namespace x0

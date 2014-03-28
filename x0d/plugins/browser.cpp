@@ -43,15 +43,15 @@ private:
 
 	void setAncient(x0::FlowVM::Params& args)
 	{
-		std::string ident = args.get<x0::FlowString>(1).str();
+		std::string ident = args.getString(1).str();
 
 		ancients_.push_back(ident);
 	}
 
 	void setModern(x0::FlowVM::Params& args)
 	{
-		std::string browser = args.get<x0::FlowString>(1).str();
-		float version = x0::Buffer(args.get<x0::FlowString>(2).str()).toFloat();
+		std::string browser = args.getString(1).str();
+		float version = args.getString(2).toFloat();
 
 		modern_[browser] = version;
 	}

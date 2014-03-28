@@ -72,4 +72,11 @@ private:
 
 } // namespace x0
 
+namespace std {
+    inline std::ostream& operator<<(std::ostream& os, const x0::RegExp& re) {
+        os << re.pattern();
+        return os;
+    }
+}
+
 #endif
