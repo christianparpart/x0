@@ -1726,5 +1726,15 @@ namespace std {
 			return x0::hash(value);
 		}
 	};
+
+    inline ostream& operator<<(ostream& os, const x0::BufferRef& b) {
+        os << b.str();
+        return os;
+    }
+
+    inline ostream& operator<<(ostream& os, const x0::Buffer& b) {
+        os << b.str();
+        return os;
+    }
 }
 // }}}
