@@ -99,7 +99,7 @@ bool Runner::run()
         ++pc; \
         /*disassemble((Instruction) *pc, (pc - code.data()) / instructionSize);*/
 
-    #define vm_start goto **pc
+    #define jump goto **pc
     #define next goto **++pc
 #else
     const auto& code = handler_->code();
@@ -109,9 +109,12 @@ bool Runner::run()
         l_##name: \
         /*disassemble(*pc, (pc - code.data()) / instructionSize);*/
 
-    #define vm_start goto *ops[OP]
+    #define jump goto *ops[OP]
     #define next goto *ops[opcode(*++pc)]
 #endif
+
+    #define set_pc(offset)  (pc = code.data() + (offset) * instructionSize)
+    #define jump_to(offset) goto *set_pc(offset)
 
     // {{{ jump table
     #define label(opcode) && l_##opcode
@@ -254,7 +257,7 @@ bool Runner::run()
 
     const auto* pc = code.data();
 
-    vm_start;
+    jump;
 
     // {{{ misc
     instr (NOP) {
@@ -268,13 +271,12 @@ bool Runner::run()
 
     instr (JMP) {
         pc = code.data() + A * instructionSize;
-        goto *ops[OP];
+        jump;
     }
 
     instr (JN) {
         if (data_[A] != 0) {
-            pc = code.data() + B * instructionSize;
-            goto *ops[OP];
+            jump_to(B);
         } else {
             next;
         }
@@ -282,8 +284,7 @@ bool Runner::run()
 
     instr (JZ) {
         if (data_[A] == 0) {
-            pc = code.data() + B * instructionSize;
-            goto *ops[OP];
+            jump_to(B);
         } else {
             next;
         }
