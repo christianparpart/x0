@@ -33,13 +33,6 @@ BasicBlock::~BasicBlock()
     for (auto i = code_.rbegin(), e = code_.rend(); i != e; ++i) {
         delete *i;
     }
-    /*if (!code_.empty()) {
-        for (size_t i = 1, e = code_.size(); i <= e; ++i) {
-            size_t offset = e - i;
-            code_[offset]->dump();
-            delete code_[offset];
-        }
-    }*/
     code_.clear();
 
     assert(predecessors().empty() && "Cannot remove a basic block that some other basic block still refers to.");
