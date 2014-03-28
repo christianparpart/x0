@@ -328,30 +328,24 @@ public:
 };
 // }}}
 // {{{ FixedBuffer
-class FixedBuffer :
+class X0_API FixedBuffer :
 	public MutableBuffer<immutableEnsure>
 {
 public:
 	FixedBuffer();
+	FixedBuffer(const FixedBuffer& v);
+	FixedBuffer(FixedBuffer&& v);
+	FixedBuffer(const std::string& str);
 	FixedBuffer(char* data, size_t size);
 	FixedBuffer(char* data, size_t capacity, size_t size);
+	~FixedBuffer();
+
+	FixedBuffer& operator=(const FixedBuffer& v);
+	FixedBuffer& operator=(const Buffer& v);
+	FixedBuffer& operator=(const BufferRef& v);
+	FixedBuffer& operator=(const std::string& v);
+	FixedBuffer& operator=(const value_type* v);
 };
-
-inline FixedBuffer::FixedBuffer() :
-	MutableBuffer<immutableEnsure>()
-{
-}
-
-inline FixedBuffer::FixedBuffer(char* data, size_t size) :
-	MutableBuffer<immutableEnsure>(data, size, size)
-{
-	push_back(data, size);
-}
-
-inline FixedBuffer::FixedBuffer(char* data, size_t capacity, size_t size) :
-	MutableBuffer<immutableEnsure>(data, capacity, size)
-{
-}
 // }}}
 // {{{ Buffer
 /**
@@ -1411,6 +1405,81 @@ inline Buffer& operator<<(Buffer& b, typename Buffer::value_type* v)
 {
 	b.push_back(v);
 	return b;
+}
+// }}}
+// {{{ FixedBuffer impl
+inline FixedBuffer::FixedBuffer() :
+	MutableBuffer<immutableEnsure>()
+{
+}
+
+inline FixedBuffer::FixedBuffer(const FixedBuffer& v)
+{
+}
+
+inline FixedBuffer::FixedBuffer(FixedBuffer&& v) :
+    MutableBuffer<immutableEnsure>(v.data(), v.capacity(), v.size())
+{
+    v.data_ = nullptr;
+    v.capacity_ = 0;
+    v.size_ = 0;
+}
+
+inline FixedBuffer::FixedBuffer(const std::string& str) :
+	MutableBuffer<immutableEnsure>(new char[str.size() + 1], str.size() + 1, 0)
+{
+	push_back(str.c_str(), str.size() + 1);
+}
+
+inline FixedBuffer::FixedBuffer(char* data, size_t size) :
+	MutableBuffer<immutableEnsure>(data, size, size)
+{
+	push_back(data, size);
+}
+
+inline FixedBuffer::FixedBuffer(char* data, size_t capacity, size_t size) :
+	MutableBuffer<immutableEnsure>(data, capacity, size)
+{
+}
+
+inline FixedBuffer::~FixedBuffer()
+{
+    delete[] data_;
+}
+
+inline FixedBuffer& FixedBuffer::operator=(const FixedBuffer& v)
+{
+    clear();
+    push_back(v.data(), v.size());
+    return *this;
+}
+
+inline FixedBuffer& FixedBuffer::operator=(const Buffer& v)
+{
+    clear();
+    push_back(v.data(), v.size());
+    return *this;
+}
+
+inline FixedBuffer& FixedBuffer::operator=(const BufferRef& v)
+{
+    clear();
+    push_back(v);
+    return *this;
+}
+
+inline FixedBuffer& FixedBuffer::operator=(const std::string& v)
+{
+    clear();
+    push_back(v);
+    return *this;
+}
+
+inline FixedBuffer& FixedBuffer::operator=(const value_type* v)
+{
+    clear();
+    push_back(v);
+    return *this;
 }
 // }}}
 // {{{ Buffer impl
