@@ -106,7 +106,8 @@ Callable::Callable(const std::string& name, const FlowLocation& loc) :
 
 const FlowVM::Signature& Callable::signature() const
 {
-    return nativeCallback_->signature();
+    static const FlowVM::Signature builtin("()B");
+    return nativeCallback_ ? nativeCallback_->signature() : builtin;
 }
 
 static inline void completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name) // {{{
