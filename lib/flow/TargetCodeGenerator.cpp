@@ -49,8 +49,7 @@ std::unique_ptr<FlowVM::Program> TargetCodeGenerator::generate(IRProgram* progra
     for (IRHandler* handler: program->handlers())
         generate(handler);
 
-    //TODO cp.regularExpressions = program->regularExpressions();
-    cp_.setModules(program->imports());
+    cp_.setModules(program->modules());
 
     return std::unique_ptr<FlowVM::Program>(new FlowVM::Program(std::move(cp_)));
 }

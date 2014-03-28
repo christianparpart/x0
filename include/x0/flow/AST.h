@@ -252,20 +252,20 @@ public:
 
 class X0_API Unit : public ScopedSymbol {
 private:
-	std::vector<std::pair<std::string, std::string> > imports_;
+	std::vector<std::pair<std::string, std::string> > modules_;
 
 public:
 	Unit() :
 		ScopedSymbol(Symbol::Unit, nullptr, "#unit", FlowLocation()),
-		imports_()
+		modules_()
 	{}
 
 	// plugins
 	void import(const std::string& moduleName, const std::string& path) {
-		imports_.push_back(std::make_pair(moduleName, path));
+		modules_.push_back(std::make_pair(moduleName, path));
 	}
 
-    const std::vector<std::pair<std::string, std::string>>& imports() const { return imports_; }
+    const std::vector<std::pair<std::string, std::string>>& modules() const { return modules_; }
 
 	class Handler* findHandler(const std::string& name);
 

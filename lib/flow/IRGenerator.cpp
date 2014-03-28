@@ -118,7 +118,7 @@ void IRGenerator::accept(Unit& unit)
     FNTRACE();
 
     setProgram(new IRProgram());
-    program()->setModules(unit.imports());
+    program()->setModules(unit.modules());
 
     for (const auto sym: *unit.scope()) {
         codegen(sym);

@@ -52,7 +52,7 @@ public:
     void addImport(const std::string& name, const std::string& path) { modules_.push_back(std::make_pair(name, path)); }
     void setModules(const std::vector<std::pair<std::string, std::string>>& modules) { modules_ = modules; }
 
-	const std::vector<std::pair<std::string, std::string>>& imports() const { return modules_; }
+	const std::vector<std::pair<std::string, std::string>>& modules() const { return modules_; }
     const std::vector<IRHandler*>& handlers() const { return handlers_; }
 
     /**
