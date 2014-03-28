@@ -1013,6 +1013,19 @@ std::unique_ptr<Expr> FlowParser::arrayExpr()
                 return nullptr;
             }
         }
+
+        switch (baseType) {
+            case FlowType::Number:
+            case FlowType::String:
+            case FlowType::IPAddress:
+            case FlowType::Cidr:
+                break;
+            default:
+                reportError("Invalid array expression. Element type <%s> is not allowed.", tos(baseType).c_str());
+                return nullptr;
+        }
+    } else {
+        reportError("Empty arrays are not allowed.");
     }
 
     return std::make_unique<ArrayExpr>(loc.update(end()), std::move(fields));
