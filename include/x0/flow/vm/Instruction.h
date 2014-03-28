@@ -19,7 +19,6 @@ enum Opcode {
     JZ,             // JZ reg, imm         ; conditional jump (A == 0)
 
     // debugging
-    NTICKS,         // instruction performance counter
     NDUMPN,         // dump registers range [A .. (B - A)]
 
     // copy

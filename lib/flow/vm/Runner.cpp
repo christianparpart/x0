@@ -75,7 +75,6 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b)
 bool Runner::run()
 {
     const Program* program = handler_->program();
-    uint64_t ticks = 0;
 
     #define OP opcode((Instruction) *pc)
     #define A  operandA((Instruction) *pc)
@@ -98,8 +97,7 @@ bool Runner::run()
     #define instr(name) \
         l_##name: \
         ++pc; \
-        /*disassemble((Instruction) *pc, (pc - code.data()) / instructionSize);*/ \
-        ++ticks;
+        /*disassemble((Instruction) *pc, (pc - code.data()) / instructionSize);*/
 
     #define vm_start goto **pc
     #define next goto **++pc
@@ -109,8 +107,7 @@ bool Runner::run()
 
     #define instr(name) \
         l_##name: \
-        /*disassemble(*pc, (pc - code.data()) / instructionSize);*/ \
-        ++ticks;
+        /*disassemble(*pc, (pc - code.data()) / instructionSize);*/
 
     #define vm_start goto *ops[OP]
     #define next goto *ops[opcode(*++pc)]
@@ -129,7 +126,6 @@ bool Runner::run()
         label(JZ),
 
         // debug
-        label(NTICKS),
         label(NDUMPN),
 
         // copy
@@ -318,11 +314,6 @@ bool Runner::run()
     }
     // }}}
     // {{{ debug
-    instr (NTICKS) {
-        data_[A] = ticks;
-        next;
-    }
-
     instr (NDUMPN) {
         printf("regdump: ");
         for (int i = 0; i < B; ++i) {
