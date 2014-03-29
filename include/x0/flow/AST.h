@@ -192,7 +192,7 @@ public:
 
     /** tries to match given parameters against this symbol by using default values or reordering parameters (if named input args)
      */
-    bool tryMatch(ParamList& params, std::string* errorMessage) const;
+    bool tryMatch(ParamList& params, Buffer* errorMessage) const;
 };
 
 class X0_API Handler : public Callable {

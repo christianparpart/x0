@@ -176,7 +176,7 @@ bool Callable::isDirectMatch(const ParamList& params) const
     return true;
 }
 
-bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
+bool Callable::tryMatch(ParamList& params, Buffer* errorMessage) const
 {
     const FlowVM::NativeCallback* native = nativeCallback();
 
@@ -185,8 +185,8 @@ bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
 
     if (params.isNamed()) {
         if (!native->isNamed()) {
-            *errorMessage = Buffer().printf("Callee \"%s\" invoked with named parameters, but no names provided by runtime.",
-                    name().c_str()).str();
+            errorMessage->printf("Callee \"%s\" invoked with named parameters, but no names provided by runtime.",
+                    name().c_str());
             return false;
         }
 
@@ -196,8 +196,8 @@ bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
             if (!params.contains(name)) {
                 const void* defaultValue = native->getDefaultAt(i);
                 if (!defaultValue) {
-                    *errorMessage = Buffer().printf("Callee \"%s\" invoked without required named parameter \"%s\".",
-                            this->name().c_str(), name.c_str()).str();
+                    errorMessage->printf("Callee \"%s\" invoked without required named parameter \"%s\".",
+                            this->name().c_str(), name.c_str());
                     return false;
                 }
                 FlowType type = signature().args()[i];
@@ -216,8 +216,8 @@ bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
                 t += s;
                 t += "\"";
             }
-            *errorMessage = Buffer().printf("Superfluous arguments passed to callee \"%s\": %s.",
-                this->name().c_str(), t.c_str()).str();
+            errorMessage->printf("Superfluous arguments passed to callee \"%s\": %s.",
+                this->name().c_str(), t.c_str());
             return false;
         }
 
@@ -226,7 +226,7 @@ bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
     else // verify params positional
     {
         if (params.size() > signature().args().size()) {
-            *errorMessage = Buffer().printf("Superfluous parameters to callee %s.", signature().to_s().c_str()).str();
+            errorMessage->printf("Superfluous parameters to callee %s.", signature().to_s().c_str());
             return false;
         }
 
@@ -234,8 +234,8 @@ bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
             FlowType expectedType = signature().args()[i];
             FlowType givenType = params.values()[i]->getType();
             if (givenType != expectedType) {
-                *errorMessage = Buffer().printf("Type mismatch in positional parameter %d, callee %s.",
-                    i + 1, signature().to_s().c_str()).str();
+                errorMessage->printf("Type mismatch in positional parameter %d, callee %s.",
+                    i + 1, signature().to_s().c_str());
                 return false;
             }
         }
@@ -243,8 +243,8 @@ bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
         for (size_t i = params.size(), e = signature().args().size(); i != e; ++i) {
             const void* defaultValue = native->getDefaultAt(i);
             if (!defaultValue) {
-                *errorMessage = Buffer().printf("No default value provided for positional parameter %d, callee %s.",
-                    i + 1, signature().to_s().c_str()).str();
+                errorMessage->printf("No default value provided for positional parameter %d, callee %s.",
+                    i + 1, signature().to_s().c_str());
                 return false;
             }
 
@@ -263,8 +263,8 @@ bool Callable::tryMatch(ParamList& params, std::string* errorMessage) const
         sig.setArgs(argTypes);
 
         if (sig != signature()) {
-            *errorMessage = Buffer().printf("Callee parameter type signature mismatch: %s passed, but %s expected.",
-                    sig.to_s().c_str(), signature().to_s().c_str()).str();
+            errorMessage->printf("Callee parameter type signature mismatch: %s passed, but %s expected.",
+                    sig.to_s().c_str(), signature().to_s().c_str());
             return false;
         }
 

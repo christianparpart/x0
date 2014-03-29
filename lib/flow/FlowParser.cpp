@@ -1653,10 +1653,10 @@ std::unique_ptr<CallExpr> FlowParser::resolve(const std::list<Callable*>& callab
 
     // attempt to find something with default values or parameter-reordering (if named args)
     std::list<Callable*> result;
-    std::list<std::pair<Callable*, std::string>> matchErrors;
+    std::list<std::pair<Callable*, Buffer>> matchErrors;
 
     for (Callable* callee: callables) {
-        std::string msg;
+        Buffer msg;
         if (callee->tryMatch(params, &msg)) {
             result.push_back(callee);
         } else {
