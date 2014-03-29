@@ -107,9 +107,10 @@ bool Runner::run()
         ++pc; \
         TRACE(2, "%s", disassemble((Instruction) *pc, (pc - code.data()) / 2).c_str());
 
-    #define set_pc(offset) (pc = code.data() + (offset) * 2)
-    #define jump goto **pc
-    #define next goto **++pc
+    #define set_pc(offset)  (pc = code.data() + (offset) * 2)
+    #define jump_to(offset) goto **set_pc(offset)
+    #define jump            goto **pc
+    #define next            goto **++pc
 #else
     const auto& code = handler_->code();
 
@@ -117,12 +118,11 @@ bool Runner::run()
         l_##name: \
         TRACE(2, "%s", disassemble(*pc, pc - code.data()).c_str());
 
-    #define set_pc(offset) (pc = code.data() + (offset))
-    #define jump goto *ops[OP]
-    #define next goto *ops[opcode(*++pc)]
+    #define set_pc(offset)  (pc = code.data() + (offset))
+    #define jump_to(offset) pc = code.data() + (offset); goto *ops[OP]
+    #define jump            goto *ops[OP]
+    #define next            goto *ops[opcode(*++pc)]
 #endif
-
-    #define jump_to(offset) goto *set_pc(offset)
 
     // {{{ jump table
     #define label(opcode) && l_##opcode
