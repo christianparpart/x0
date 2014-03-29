@@ -157,8 +157,8 @@ constexpr Instruction makeInstruction(Opcode opc, Operand op1, Operand op2, Oper
 // --------------------------------------------------------------------------
 // decoder
 
-void disassemble(Instruction pc, ImmOperand ip, const char* comment = nullptr);
-void disassemble(const Instruction* program, size_t n);
+Buffer disassemble(Instruction pc, ImmOperand ip, const char* comment = nullptr);
+Buffer disassemble(const Instruction* program, size_t n);
 
 constexpr Opcode opcode(Instruction instr)    { return static_cast<Opcode>(instr          & 0xFF); }
 constexpr Operand operandA(Instruction instr) { return static_cast<Operand>((instr >> 16) & 0xFFFF); }

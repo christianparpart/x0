@@ -333,8 +333,9 @@ FlowType resultType(Opcode opc)
     return map[static_cast<size_t>(opc)];
 }
 
-void disassemble(Instruction pc, ImmOperand ip, const char* comment)
+Buffer disassemble(Instruction pc, ImmOperand ip, const char* comment)
 {
+    Buffer line;
     Opcode opc = opcode(pc);
     Operand A = operandA(pc);
     Operand B = operandB(pc);
@@ -343,23 +344,23 @@ void disassemble(Instruction pc, ImmOperand ip, const char* comment)
     size_t n = 0;
     int rv = 4;
 
-    rv = printf("    %-10s", mnemo);
+    rv = line.printf("  %-10s", mnemo);
     if (rv > 0) {
         n += rv;
     }
 
     switch (operandSignature(opc)) {
         case InstructionSig::None: break;
-        case InstructionSig::R:    rv = printf(" r%d", A); break;
-        case InstructionSig::RR:   rv = printf(" r%d, r%d", A, B); break;
-        case InstructionSig::RRR:  rv = printf(" r%d, r%d, r%d", A, B, C); break;
-        case InstructionSig::RI:   rv = printf(" r%d, %d", A, B); break;
-        case InstructionSig::RII:  rv = printf(" r%d, %d, %d", A, B, C); break;
-        case InstructionSig::RIR:  rv = printf(" r%d, %d, r%d", A, B, C); break;
-        case InstructionSig::RRI:  rv = printf(" r%d, r%d, %d", A, B, C); break;
-        case InstructionSig::IRR:  rv = printf(" %d, r%d, r%d", A, B, C); break;
-        case InstructionSig::IIR:  rv = printf(" %d, %d, r%d", A, B, C); break;
-        case InstructionSig::I:    rv = printf(" %d", A); break;
+        case InstructionSig::R:    rv = line.printf(" r%d", A); break;
+        case InstructionSig::RR:   rv = line.printf(" r%d, r%d", A, B); break;
+        case InstructionSig::RRR:  rv = line.printf(" r%d, r%d, r%d", A, B, C); break;
+        case InstructionSig::RI:   rv = line.printf(" r%d, %d", A, B); break;
+        case InstructionSig::RII:  rv = line.printf(" r%d, %d, %d", A, B, C); break;
+        case InstructionSig::RIR:  rv = line.printf(" r%d, %d, r%d", A, B, C); break;
+        case InstructionSig::RRI:  rv = line.printf(" r%d, r%d, %d", A, B, C); break;
+        case InstructionSig::IRR:  rv = line.printf(" %d, r%d, r%d", A, B, C); break;
+        case InstructionSig::IIR:  rv = line.printf(" %d, %d, r%d", A, B, C); break;
+        case InstructionSig::I:    rv = line.printf(" %d", A); break;
     }
 
     if (rv > 0) {
@@ -367,25 +368,28 @@ void disassemble(Instruction pc, ImmOperand ip, const char* comment)
     }
 
     for (; n < 30; ++n) {
-        printf(" ");
+        line.printf(" ");
     }
 
     const uint8_t* b = (uint8_t*) &pc;
-    printf(";%4hu | %02x %02x %02x %02x %02x %02x %02x %02x", ip, b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
+    line.printf(";%4hu | %02x %02x %02x %02x %02x %02x %02x %02x", ip, b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
 
     if (comment && *comment) {
-        printf("   %s", comment);
+        line.printf("   %s", comment);
     }
 
-    printf("\n");
+    return line;
 }
 
-void disassemble(const Instruction* program, size_t n)
+Buffer disassemble(const Instruction* program, size_t n)
 {
+    Buffer result;
     size_t i = 0;
     for (const Instruction* pc = program; pc < program + n; ++pc) {
-        disassemble(*pc, i++);
+        result.push_back(disassemble(*pc, i++));
+        result.push_back("\n");
     }
+    return result;
 }
 
 /**

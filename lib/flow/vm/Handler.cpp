@@ -77,7 +77,7 @@ bool Handler::run(void* userdata)
 
 void Handler::disassemble()
 {
-    FlowVM::disassemble(code_.data(), code_.size());
+    printf("%s", FlowVM::disassemble(code_.data(), code_.size()).c_str());
 }
 
 } // namespace FlowVM
