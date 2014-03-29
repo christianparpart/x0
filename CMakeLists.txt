@@ -201,7 +201,7 @@ else()
   set(LOGDIR ${CMAKE_INSTALL_PREFIX}/var/log CACHE PATH "log file directory")
 endif()
 
-set(PLUGINDIR "${LIBDIR}/x0" CACHE PATH "path to x0 plugins")
+set(PLUGINDIR "${LIBDIR}/x0d" CACHE PATH "path to x0d plugins")
 # ---------------------------------------------------------------------------
 # }}}
 
