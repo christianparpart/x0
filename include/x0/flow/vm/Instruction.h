@@ -94,7 +94,6 @@ enum Opcode {
     SCONTAINS,      // A = B in C           /* B is contained in C */
     SLEN,           // A = strlen(B)
     SISEMPTY,       // A = strlen(B) == 0
-    SPRINT,         // puts(A)              /* prints string A to stdout */
     SMATCHEQ,       // $pc = MatchSame[A].evaluate(B);
     SMATCHBEG,      // $pc = MatchBegin[A].evaluate(B);
     SMATCHEND,      // $pc = MatchEnd[A].evaluate(B);

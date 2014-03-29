@@ -212,7 +212,6 @@ bool Runner::run()
         label(SCONTAINS),
         label(SLEN),
         label(SISEMPTY),
-        label(SPRINT),
         label(SMATCHEQ),
         label(SMATCHBEG),
         label(SMATCHEND),
@@ -622,11 +621,6 @@ bool Runner::run()
 
     instr (SISEMPTY) {
         data_[A] = toString(B).empty();
-        next;
-    }
-
-    instr (SPRINT) {
-        printf("%s\n", toString(A).str().c_str());
         next;
     }
 
