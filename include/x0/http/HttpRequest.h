@@ -294,7 +294,7 @@ public:
 
 	// accumulated request data
 	std::string username;						///< username this client has authenticated with.
-	std::string documentRoot;					///< the document root directory for this request.
+    Buffer documentRoot;                        ///< the document root directory for this request.
 
 //	std::string if_modified_since;				//!< "If-Modified-Since" request header value, if specified.
 //	std::shared_ptr<range_def> range;			//!< parsed "Range" request header
@@ -412,7 +412,7 @@ inline void HttpRequest::clear()
 	requestHeaders.clear();
 	bytesTransmitted_ = 0;
 	username.clear();
-	documentRoot = "";
+	documentRoot.clear();
 	expectingContinue = false;
 	status = HttpStatus::Undefined;
 	responseHeaders.clear();

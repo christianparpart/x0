@@ -512,7 +512,7 @@ bool XzeroCore::matchIndex(HttpRequest *r, const BufferRef& arg)
 
 bool XzeroCore::docroot(HttpRequest* in, FlowParams& args)
 {
-	in->documentRoot = args.getString(1).str();
+	in->documentRoot = args.getString(1);
 
 	if (in->documentRoot.empty()) {
 		in->log(Severity::error, "Setting empty document root is not allowed.");
@@ -526,7 +526,7 @@ bool XzeroCore::docroot(HttpRequest* in, FlowParams& args)
 	if (in->documentRoot[trailerOffset] == '/')
 		in->documentRoot.resize(trailerOffset);
 
-	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path.str());
+	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path);
 	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
 
 	return redirectOnIncompletePath(in);
@@ -554,7 +554,7 @@ bool XzeroCore::alias(HttpRequest* in, FlowParams& args)
 
 void XzeroCore::rewrite(HttpRequest* in, FlowParams& args)
 {
-    in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args.getString(1).str());
+    in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + args.getString(1));
 
     args.setResult(in->fileinfo ? in->fileinfo->exists() : false);
 }

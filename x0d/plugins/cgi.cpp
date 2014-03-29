@@ -274,7 +274,6 @@ static inline void _loadenv_if(const std::string& name, x0::Process::Environment
 
 inline void CgiScript::runAsync()
 {
-	std::string workdir(request_->documentRoot);
 	x0::Process::ArgumentList params;
 	std::string hostprogram;
 
@@ -367,6 +366,7 @@ inline void CgiScript::runAsync()
 	evStderr_.start(process_.output(), ev::READ);
 
 	// actually start child process
+    std::string workdir(request_->documentRoot.str());
 	process_.start(hostprogram, params, environment, workdir);
 
 	evChild_.set<CgiScript, &CgiScript::onChild>(this);
