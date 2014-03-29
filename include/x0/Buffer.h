@@ -1525,7 +1525,7 @@ inline Buffer::Buffer(const std::string& v) :
 	MutableBuffer<mutableEnsure>()
 {
     reserve(v.size() + 1);
-    push_back(v.c_str(), v.size() + 1);
+    push_back(v.data(), v.size());
 }
 
 inline Buffer::Buffer(const Buffer& v) :
