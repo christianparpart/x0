@@ -50,7 +50,7 @@ _x0d_param() {
 			return 0
 			;;
 		-s|--log-severity)
-			COMPREPLY=( $(compgen -P "${prefix}" -W "emerg alert crit error warning notice info debug debug1 debug2 debug3" -- "${val}" ) )
+			COMPREPLY=( $(compgen -P "${prefix}" -W "emerg alert crit error warning notice info diag debug debug1 debug2 debug3" -- "${val}" ) )
 			COMPREPLY=( "${COMPREPLY[@]/%/ }" )
 			return 0
 			;;
@@ -101,7 +101,8 @@ _x0d() {
 		local replies=( $(compgen -W "-h -f -O -X -G -P -u -g -o -l -s -i -k -v -y -V \
 					--help --config= --optimization-level= --no-fork --systemd \
 					--guard --pid-file= --user= --group= --log-target= --log-file= \
-					--log-severity= --instant= --crash-handler= --dump-ir --version \
+					--log-severity= --instant= --crash-handler= --version \
+                    --dump-ast --dump-ir --dump-tc \
 					--copyright --splash --info" -- "${cur}") )
 		for reply in "${replies[@]}"; do
 			if [[ "${reply}" != *= ]]; then
