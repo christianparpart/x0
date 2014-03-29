@@ -5,6 +5,7 @@
 #include <x0/flow/vm/Program.h>
 #include <x0/flow/vm/Match.h>
 #include <x0/flow/vm/Instruction.h>
+#include <x0/DebugLogger.h>
 #include <vector>
 #include <utility>
 #include <memory>
@@ -14,6 +15,12 @@
 #include <cstdio>
 #include <cmath>
 #include <x0/sysconfig.h>
+
+#if !defined(XZERO_NDEBUG)
+#	define TRACE(level, msg...) XZERO_DEBUG("FlowVM", (level), msg)
+#else
+#	define TRACE(msg...) do { } while (0)
+#endif
 
 namespace x0 {
 namespace FlowVM {
@@ -74,6 +81,8 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b)
 
 bool Runner::run()
 {
+    TRACE(1, "Running handler %s.", handler_->name().c_str());
+
     const Program* program = handler_->program();
 
     #define OP opcode((Instruction) *pc)
@@ -96,7 +105,7 @@ bool Runner::run()
     #define instr(name) \
         l_##name: \
         ++pc; \
-        /*disassemble((Instruction) *pc, (pc - code.data()) / 2);*/
+        TRACE(2, "%s", disassemble((Instruction) *pc, (pc - code.data()) / 2).c_str());
 
     #define set_pc(offset) (pc = code.data() + (offset) * 2)
     #define jump goto **pc
@@ -106,7 +115,7 @@ bool Runner::run()
 
     #define instr(name) \
         l_##name: \
-        /*disassemble(*pc, pc - code.data());*/
+        TRACE(2, "%s", disassemble(*pc, pc - code.data()).c_str());
 
     #define set_pc(offset) (pc = code.data() + (offset))
     #define jump goto *ops[OP]
@@ -740,6 +749,7 @@ bool Runner::run()
         Register* argv = &data_[C];
 
         Params args(argc, argv, this);
+        TRACE(2, "Calling function: %s", handler_->program()->nativeFunction(id)->signature().to_s().c_str());
         handler_->program()->nativeFunction(id)->invoke(args);
 
         next;
@@ -751,6 +761,7 @@ bool Runner::run()
         Value* argv = &data_[C];
 
         Params args(argc, argv, this);
+        TRACE(2, "Calling handler: %s", handler_->program()->nativeHandler(id)->signature().to_s().c_str());
         handler_->program()->nativeHandler(id)->invoke(args);
         const bool handled = (bool) argv[0];
 
