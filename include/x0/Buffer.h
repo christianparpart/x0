@@ -365,7 +365,7 @@ public:
 	explicit Buffer(size_t capacity);
 	explicit Buffer(const char* value);
 	explicit Buffer(const BufferRef& v);
-//	template<typename PodType, size_t N> explicit Buffer(PodType (&value)[N]);
+	template<typename PodType, size_t N> Buffer(PodType (&value)[N]);
 	Buffer(const std::string& v);
 	Buffer(const Buffer& v);
 	Buffer(const BufferRef& v, size_t offset, size_t size);
@@ -1506,6 +1506,14 @@ inline Buffer::Buffer(size_t _capacity) :
 	MutableBuffer<mutableEnsure>()
 {
 	reserve(_capacity);
+}
+
+template<typename PodType, size_t N>
+inline Buffer::Buffer(PodType (&value)[N]) :
+    MutableBuffer<mutableEnsure>()
+{
+    reserve(N);
+    push_back(value, N - 1);
 }
 
 inline Buffer::Buffer(const value_type *value, size_t size) :
