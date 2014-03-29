@@ -18,9 +18,6 @@ enum Opcode {
     JN,             // JN reg, imm         ; conditional jump (A != 0)
     JZ,             // JZ reg, imm         ; conditional jump (A == 0)
 
-    // debugging
-    NDUMPN,         // dump registers range [A .. (B - A)]
-
     // copy
     MOV,            // A = B
 

@@ -18,8 +18,6 @@ InstructionSig operandSignature(Opcode opc)
         {Opcode::JMP, InstructionSig::I},
         {Opcode::JN, InstructionSig::RI},
         {Opcode::JZ, InstructionSig::RI},
-        // debug
-        {Opcode::NDUMPN, InstructionSig::RI},
         // copy
         {Opcode::MOV, InstructionSig::RR},
         // array
@@ -132,8 +130,6 @@ const char* mnemonic(Opcode opc)
         {Opcode::STCONST, "STCONST"},
         {Opcode::PTCONST, "PTCONST"},
         {Opcode::CTCONST, "CTCONST"},
-        // debug
-        {Opcode::NDUMPN, "NDUMPN"},
         // numerical
         {Opcode::IMOV, "IMOV"},
         {Opcode::NCONST, "NCONST"},
@@ -232,8 +228,6 @@ FlowType resultType(Opcode opc)
         {Opcode::JMP, FlowType::Void},
         {Opcode::JN, FlowType::Void},
         {Opcode::JZ, FlowType::Void},
-        // debug
-        {Opcode::NDUMPN, FlowType::Void},
         // copy
         {Opcode::MOV, FlowType::Void},
         // array

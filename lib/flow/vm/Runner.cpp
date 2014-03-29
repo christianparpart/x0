@@ -136,9 +136,6 @@ bool Runner::run()
         label(JN),
         label(JZ),
 
-        // debug
-        label(NDUMPN),
-
         // copy
         label(MOV),
 
@@ -318,17 +315,6 @@ bool Runner::run()
     }
     instr (CTCONST) {
         data_[A] = reinterpret_cast<Register>(&program->constants().getCidrArray(B));
-        next;
-    }
-    // }}}
-    // {{{ debug
-    instr (NDUMPN) {
-        printf("regdump: ");
-        for (int i = 0; i < B; ++i) {
-            if (i) printf(", ");
-            printf("r%d = %li", A + i, (int64_t)data_[A + i]);
-        }
-        if (B) printf("\n");
         next;
     }
     // }}}
