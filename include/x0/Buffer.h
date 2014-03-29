@@ -434,7 +434,9 @@ X0_API Buffer& operator<<(Buffer& b, typename Buffer::value_type* v);
 template<typename PodType, size_t N>
 X0_API Buffer& operator<<(Buffer& b, PodType (&v)[N]);
 // }}}
-
+// {{{ free functions (concatenation) API
+X0_API Buffer operator+(const BufferRef& a, const BufferRef& b);
+// }}}
 //@}
 
 // {{{ BufferTraits helper impl
@@ -1685,7 +1687,15 @@ inline void BufferSlice::shr(ssize_t value)
 	size_ += value;
 }
 // }}}
-
+// {{{ free functions (concatenation) impl
+inline Buffer operator+(const BufferRef& a, const BufferRef& b)
+{
+    Buffer buf(a.size() + b.size() + 1);
+    buf.push_back(a);
+    buf.push_back(b);
+    return buf;
+}
+// }}}
 } // namespace x0
 
 // {{{ std::hash<BufferBase<T>>
