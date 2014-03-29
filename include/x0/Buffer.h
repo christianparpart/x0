@@ -313,12 +313,12 @@ public:
 	void push_back(const void *value, size_t size);
 	template<typename PodType, size_t N> void push_back(PodType (&value)[N]);
 
-	MutableBuffer& vprintf(const char* fmt, va_list args);
+    size_t vprintf(const char* fmt, va_list args);
 
-	MutableBuffer& printf(const char* fmt);
+    size_t printf(const char* fmt);
 
-	template<typename... Args>
-	MutableBuffer& printf(const char* fmt, Args... args);
+    template<typename... Args>
+    size_t printf(const char* fmt, Args... args);
 
 	// random access
 	reference_type operator[](size_t index);
@@ -1255,8 +1255,9 @@ inline void MutableBuffer<ensure>::push_back(const void* value, size_t size)
 }
 
 template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& MutableBuffer<ensure>::vprintf(const char* fmt, va_list args)
+inline size_t MutableBuffer<ensure>::vprintf(const char* fmt, va_list args)
 {
+    size_t initialLength = size();
 	reserve(size() + strlen(fmt) + 1);
 
 	while (true) {
@@ -1281,20 +1282,22 @@ inline MutableBuffer<ensure>& MutableBuffer<ensure>::vprintf(const char* fmt, va
 		}
 	}
 
-	return *this;
+	return size() - initialLength;
 }
 
 template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>& MutableBuffer<ensure>::printf(const char* fmt)
+inline size_t MutableBuffer<ensure>::printf(const char* fmt)
 {
+    const size_t initialLength = size();
 	push_back(fmt);
-	return *this;
+	return size() - initialLength;
 }
 
 template<bool (*ensure)(void*, size_t)>
 template<typename... Args>
-inline MutableBuffer<ensure>& MutableBuffer<ensure>::printf(const char* fmt, Args... args)
+inline size_t MutableBuffer<ensure>::printf(const char* fmt, Args... args)
 {
+    const size_t initialLength = size();
 	reserve(size() + strlen(fmt) + 1);
 
 	while (true) {
@@ -1316,7 +1319,7 @@ inline MutableBuffer<ensure>& MutableBuffer<ensure>::printf(const char* fmt, Arg
 		}
 	}
 
-	return *this;
+	return size() - initialLength;
 }
 
 template<bool (*ensure)(void*, size_t)>
