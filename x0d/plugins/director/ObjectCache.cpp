@@ -467,7 +467,7 @@ void ObjectCache::Object::destroy(ConcreteObject* concreteObject)
 // {{{ ObjectCache
 ObjectCache::ObjectCache(Director* director) :
     director_(director),
-	enabled_(true),
+	enabled_(false),
 	deliverActive_(true),
 	deliverShadow_(true),
 	lockOnUpdate_(true),
