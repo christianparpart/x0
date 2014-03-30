@@ -3,8 +3,11 @@
 	* flow: support builtin handler/function overloading.
 	* flow: support array assignments to variables.
 	* flow: improved internal constant value handling.
-	* flow: improved array handling, also resulting into runtime performance boosts.
+	* flow: improved array handling, also resulting into runtime performance boosts and better semantic verifications.
+	* flow: implements direct threaded interpreter loop (enabled by default).
+	* flow: dropped superfluous opcodes
 	* x0d: builtin workers() is now overloaded for workers(I)V and workers(i)V; no workers.affinity(i)V anymore.
+	* x0d: memory resource leak fixes upon program exit.
 	* plugins: new plugin "access" for basic IP & CIDR network based access control.
 
 0.8.0 (2014-03-23)

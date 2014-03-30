@@ -1,34 +1,12 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- TODO(director): disallow invalid POST args (currently ignored / not detected)
-  - this is QA and can be done *after* the 0.8 release
-- TODO: remove flag IsHandlingRequest
-- FIXME: appearently, we have a bug in parsing the following:
-    handler main {
-      if (req.remoteip in 127.0.0.0/8 or req.remoteip in 192.168.0.0/16 or req.remoteip in 10.0.0.0/8) {
-        # parser error if it's more than two in-expressions.
-      }
-    }
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; Multi Label Match Blocks
-
-handler demo {
-  match req.path {
-    on '/fnord/foo',
-    on '/fnord/bar',
-    on '/fnord/by/nature' {
-      your_rocking_fnord;
-    }
-    on '/something/else' {
-      yeah_buddy;
-    }
-    else {
-      not_so_rocking_fnord;
-    }
-  }
-}
+- QA:
+  - [debian] auto-enable bash completion when installing x0d
+  - [director] disallow invalid POST args (currently ignored / not detected)
+  - [http] remove flag IsHandlingRequest
+  - [flow] how's plugin list info passed from source to vm Program ?
+    - seems like the obvious way is not used (wtf?)
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; HTTP connection lifecycle diagram
@@ -73,11 +51,6 @@ abort(code) ::= resp.status = code
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- provide debian package
-  - officially support: >= trusty
-  - automate uploading to and updating the mirror per current distro
-  - upstart script (with: postinst->autostart, prerm->autostop)
-
 - HttpConnection: try to get rid of start() method, or rename it to setup() / initialize().
 - HttpConnection must get its socket at constructor time to allow setState() (etc)
   to invoke log(), as it would crash otherwise.
@@ -120,8 +93,6 @@ abort(code) ::= resp.status = code
 -------------------------------------------------
 
 - director: suppport accelerated backend release
-- flow: bail out on invalid cast of operator+ (for example and at least)
-- flow: bool cast
 - ssl: properly working on real websites (also in threaded mode).
 - ssl: eliminate deprecation warnings
 - x0d: ensure basic binary upgrade and config reloads.
@@ -183,11 +154,6 @@ abort(code) ::= resp.status = code
 - introduce a specialized speed-optimized String class with an API like BufferRef/Buffer
   - including formatted string building and using external pool-allocator
 
-- core: add runtime functions:
-  - bool systemd.booted();
-  - bool systemd.controlled(); / bool systemd.supervised();
-- flow: rename "print" to "log", with first arg being severity and print to this server's log instead of stdout.
-
 -----------------------------------------------------------------------------
 QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
@@ -206,7 +172,6 @@ QUALITY ASSURANCE TODO:
 -----------------------------------------------------------------------------
 CODE CLEANUP TODO:
 -----------------------------------------------------------------------------
-- [minor] drop C++ exceptions at all.
 - [minor] error management (std::error_code and bool+logger)
 - eliminate the need of File and use just FileSource instead.
 - XxxFilter -> XxxEncoder
