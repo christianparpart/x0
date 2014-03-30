@@ -169,7 +169,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 	mainHandler("alias", &XzeroCore::alias, FlowType::String, FlowType::String);
 	mainHandler("staticfile", &XzeroCore::staticfile);
 	mainHandler("precompressed", &XzeroCore::precompressed);
-	mainHandler("redirect", &XzeroCore::redirect);
+	mainHandler("redirect", &XzeroCore::redirect, FlowType::String);
 	mainHandler("respond", &XzeroCore::respond, FlowType::Number);
 	mainHandler("echo", &XzeroCore::echo, FlowType::String);
 	mainHandler("blank", &XzeroCore::blank);
