@@ -19,7 +19,7 @@ health-check-fcgi-script-filename=
 scheduler=chance
 
 [cache]
-enabled=true
+enabled=false
 deliver-active=true
 deliver-shadow=true
 default-ttl=300
