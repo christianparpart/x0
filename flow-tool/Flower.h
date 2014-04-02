@@ -66,6 +66,7 @@ private:
 	void flow_print_s(FlowVM::Params& args);
 	void flow_print_p(FlowVM::Params& args);
 	void flow_print_c(FlowVM::Params& args);
+    void flow_suspend(FlowVM::Params& args);
     void flow_log(FlowVM::Params& args);
 
 	// handlers

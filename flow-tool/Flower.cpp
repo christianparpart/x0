@@ -93,6 +93,9 @@ Flower::Flower() :
         .params(FlowType::CidrArray)
         .bind(&Flower::flow_print_c);
 
+    registerFunction("suspend", FlowType::Void)
+        .bind(&Flower::flow_suspend);
+
     registerFunction("log", FlowType::Void)
         .param<FlowString>("message", "<whaaaaat!>")
         .param<FlowNumber>("severity", 42)
@@ -343,7 +346,13 @@ int Flower::run(const char* fileName, const char* handlerName)
     assert(handler != nullptr);
 
     printf("Running handler %s ...\n", handlerName);
-    return handler->run(nullptr /*userdata*/ );
+    auto vm = handler->createRunner();
+    bool rv = vm->run();
+    while (vm->isSuspended()) {
+        printf("Handler was suspended. Resuming.\n");
+        rv = vm->resume();
+    }
+    return rv;
 }
 
 void Flower::dump()
@@ -412,6 +421,11 @@ void Flower::flow_print_c(FlowVM::Params& args)
         printf("%s\n", cidr.str().c_str());
     }
     printf("\n");
+}
+
+void Flower::flow_suspend(FlowVM::Params& args)
+{
+    args.caller()->suspend();
 }
 
 void Flower::flow_log(FlowVM::Params& args)
