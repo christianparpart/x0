@@ -38,6 +38,8 @@ Runner::Runner(Handler* handler) :
     handler_(handler),
     program_(handler->program()),
     userdata_(nullptr),
+    state_(Inactive),
+    pc_(0),
     stringGarbage_()
 {
     // initialize emptyString()
@@ -79,11 +81,35 @@ FlowString* Runner::catString(const FlowString& a, const FlowString& b)
     return &stringGarbage_.back();
 }
 
+void Runner::suspend()
+{
+    assert(state_ == Running);
+    TRACE(1, "Suspending handler %s.", handler_->name().c_str());
+
+    state_ = Suspended;
+}
+
+bool Runner::resume()
+{
+    assert(state_ == Suspended);
+    TRACE(1, "Resuming handler %s.", handler_->name().c_str());
+
+    return loop();
+}
+
 bool Runner::run()
 {
+    assert(state_ == Inactive);
     TRACE(1, "Running handler %s.", handler_->name().c_str());
 
+    return loop();
+}
+
+bool Runner::loop()
+{
     const Program* program = handler_->program();
+
+    state_ = Running;
 
     #define OP opcode((Instruction) *pc)
     #define A  operandA((Instruction) *pc)
@@ -108,6 +134,7 @@ bool Runner::run()
         TRACE(2, "%s", disassemble((Instruction) *pc, (pc - code.data()) / 2).c_str());
 
     #define set_pc(offset)  (pc = code.data() + (offset) * 2)
+    #define get_pc()        ((pc - code.data()) / 2)
     #define jump_to(offset) goto **set_pc(offset)
     #define jump            goto **pc
     #define next            goto **++pc
@@ -119,6 +146,7 @@ bool Runner::run()
         TRACE(2, "%s", disassemble(*pc, pc - code.data()).c_str());
 
     #define set_pc(offset)  (pc = code.data() + (offset))
+    #define get_pc()        (pc - code.data())
     #define jump_to(offset) pc = code.data() + (offset); goto *ops[OP]
     #define jump            goto *ops[OP]
     #define next            goto *ops[opcode(*++pc)]
@@ -260,6 +288,7 @@ bool Runner::run()
     // }}}
 
     const auto* pc = code.data();
+    set_pc(pc_);
 
     jump;
 
@@ -732,6 +761,11 @@ bool Runner::run()
         TRACE(2, "Calling function: %s", handler_->program()->nativeFunction(id)->signature().to_s().c_str());
         handler_->program()->nativeFunction(id)->invoke(args);
 
+        if (state_ == Suspended) {
+            pc_ = get_pc() + 1;
+            return false;
+        }
+
         next;
     }
 
@@ -744,6 +778,11 @@ bool Runner::run()
         TRACE(2, "Calling handler: %s", handler_->program()->nativeHandler(id)->signature().to_s().c_str());
         handler_->program()->nativeHandler(id)->invoke(args);
         const bool handled = (bool) argv[0];
+
+        if (state_ == Suspended) {
+            pc_ = get_pc() + 1;
+            return false;
+        }
 
         if (handled) {
             return true;

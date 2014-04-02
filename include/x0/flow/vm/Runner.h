@@ -19,10 +19,19 @@ namespace FlowVM {
 // VM
 class X0_API Runner
 {
+public:
+    enum State {
+        Inactive,           //!< No handler running nor suspended.
+        Running,            //!< Active handler is currently running.
+        Suspended,          //!< Active handler is currently suspended.
+    };
+
 private:
     Handler* handler_;
     Program* program_;
     void* userdata_;        //!< pointer to the currently executed request handler in our case
+    State state_;           //!< current VM state
+    size_t pc_;             //!< last saved program execution offset
 
     std::list<Buffer> stringGarbage_;
 
@@ -35,6 +44,13 @@ public:
     static void operator delete (void* p);
 
     bool run();
+    void suspend();
+    bool resume();
+
+    State state() const { return state_; }
+    bool isInactive() const { return state_ == Inactive; }
+    bool isRunning() const { return state_ == Running; }
+    bool isSuspended() const { return state_ == Suspended; }
 
     Handler* handler() const { return handler_; }
     Program* program() const { return program_; }
@@ -50,6 +66,9 @@ public:
 
 private:
     explicit Runner(Handler* handler);
+
+    inline bool loop();
+
     Runner(Runner&) = delete;
     Runner& operator=(Runner&) = delete;
 };
