@@ -256,6 +256,9 @@ bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args)
 
     BufferRef path(r->path.ref(prefix.size()));
 
+    if (path.empty())
+        path = "/";
+
     return ApiRequest::process(&directors_, r, path);
 }
 // }}}
