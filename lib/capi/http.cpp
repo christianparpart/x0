@@ -69,7 +69,7 @@ x0_server_t* x0_server_create(struct ev_loop* loop)
 
 	auto s = new x0_server_t(loop);
 
-	s->server.requestHandler = [](HttpRequest* r) -> bool {
+	s->server.requestHandler = [](HttpRequest* r) {
 		BufferSource body("Hello, I am lazy to serve anything; I wasn't configured properly\n");
 
 		r->status = HttpStatus::InternalServerError;
@@ -82,8 +82,6 @@ x0_server_t* x0_server_create(struct ev_loop* loop)
 		r->write<BufferSource>(body);
 
 		r->finish();
-
-		return true;
 	};
 
 	return s;
@@ -129,10 +127,9 @@ int x0_setup_worker_count(x0_server_t* server, int count)
 
 void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* userdata)
 {
-	server->server.requestHandler = [=](HttpRequest* r) -> bool {
+	server->server.requestHandler = [=](HttpRequest* r) {
 		auto rr = new x0_request_t(r, server);
 		handler(rr, userdata);
-		return true;
 	};
 }
 
