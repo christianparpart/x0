@@ -204,6 +204,7 @@ public:
     /** create forward-declared handler. */
 	Handler(const std::string& name, const FlowLocation& loc) :
 		Callable(name, loc),
+        scope_(),
 		body_(nullptr /*forward declared*/)
 	{
 	}
