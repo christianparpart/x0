@@ -1072,8 +1072,13 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
     {
         auto main = program_->findHandler("main");
 
-        server_->requestHandler = [=](x0::HttpRequest* r) -> bool {
-            return main->run(r);
+        server_->requestHandler = [=](x0::HttpRequest* r) {
+            auto cx = main->createRunner();
+            cx->setUserData(r);
+            bool handled = cx->run();
+            if (!cx->isSuspended() && !handled) {
+                r->finish();
+            }
         };
     }
 

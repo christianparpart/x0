@@ -60,7 +60,7 @@ public:
 	typedef Signal<void(HttpWorker*)> WorkerHook;
 
 public:
-	std::function<bool(HttpRequest*)> requestHandler;
+	std::function<void(HttpRequest*)> requestHandler;
 
 	explicit HttpServer(struct ::ev_loop* loop, unsigned generation = 1);
 	virtual ~HttpServer();
