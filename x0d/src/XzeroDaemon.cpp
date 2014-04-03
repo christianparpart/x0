@@ -141,7 +141,7 @@ XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
     dumpAST_(false),
 	dumpIR_(false),
     dumpTargetCode_(false),
-	optimizationLevel_(0),
+	optimizationLevel_(1),
 	server_(nullptr),
 	evFlags_(0),
 	eventHandler_(nullptr),
@@ -1036,7 +1036,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
         pm.registerPass(std::make_unique<UnusedBlockPass>());
 
         // optional passes
-        if (optimizationLevel > 0) {
+        if (optimizationLevel >= 1) {
             pm.registerPass(std::make_unique<EmptyBlockElimination>());
             pm.registerPass(std::make_unique<InstructionElimination>());
         }
