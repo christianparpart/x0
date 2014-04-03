@@ -6,6 +6,10 @@
 	* flow: improved array handling, also resulting into runtime performance boosts and better semantic verifications.
 	* flow: implements direct threaded interpreter loop (enabled by default).
 	* flow: dropped superfluous opcodes
+	* flow: added optimization pass: dead code elimination
+	* flow: added optimization pass: constant condition folding
+	* flow: added optimization pass: superfluous branch-to-exit folding
+	* flow: optimizations are now enabled by default
 	* x0d: builtin workers() is now overloaded for workers(I)V and workers(i)V; no workers.affinity(i)V anymore.
 	* x0d: memory resource leak fixes upon program exit.
 	* plugins: new plugin "access" for basic IP & CIDR network based access control.
