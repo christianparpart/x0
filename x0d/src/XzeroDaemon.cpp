@@ -1073,7 +1073,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
         auto main = program_->findHandler("main");
 
         server_->requestHandler = [=](x0::HttpRequest* r) {
-            auto cx = main->createRunner();
+            FlowVM::Runner* cx = static_cast<FlowVM::Runner*>(r->setCustomData(r, main->createRunner()));
             cx->setUserData(r);
             bool handled = cx->run();
             if (!cx->isSuspended() && !handled) {

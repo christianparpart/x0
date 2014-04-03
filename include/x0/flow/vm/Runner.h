@@ -3,6 +3,7 @@
 #include <x0/flow/FlowType.h>
 #include <x0/flow/vm/Handler.h>
 #include <x0/flow/vm/Instruction.h>
+#include <x0/CustomDataMgr.h>
 #include <utility>
 #include <list>
 #include <memory>
@@ -17,7 +18,8 @@ namespace FlowVM {
 
 // ExecutionEngine
 // VM
-class X0_API Runner
+class X0_API Runner :
+    public CustomData
 {
 public:
     enum State {
