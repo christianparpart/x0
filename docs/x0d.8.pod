@@ -12,7 +12,7 @@ x0d [B<-c>|B<--config> PATH] [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] [B<--system
     [B<-l>|B<--log-file> PATH] \
     [B<-i>|B<--instant> PATH[,PORT]] \
     [B<-k>|B<--crash-handler>] \
-    [B<--dump-ast>] [B<--dump-ir>] \
+    [B<--dump-ast>] [B<--dump-ir>] [B<--dump-tc>] \
     [B<-v>|B<--version>] [B<-y>|B<--copyright>] [B<--splash>] \
     [B<-V>|B<--info>] [B<-h>|B<--help>]
 
@@ -106,6 +106,19 @@ Prints version information for this software.
 =item B<-y,--copyright>
 
 Prints copyright information for this software.
+
+=item B<--dump-ast>
+
+Prints the configuration file as Abstract Syntax Tree,
+an intermediate representation form.
+
+=item B<--dump-ir>
+
+Prints the configuration file as backend Intermediate Representation (IR).
+
+=item B<--dump-tc>
+
+Prints the configuration file as generated Target Code as used by the Flow Virtual Machine.
 
 =back
 
