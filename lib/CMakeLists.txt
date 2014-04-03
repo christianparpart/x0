@@ -141,6 +141,7 @@ if(ENABLE_XZERO_FLOW)
 
     flow/transform/EmptyBlockElimination.cpp
     flow/transform/InstructionElimination.cpp
+    flow/transform/UnusedBlockPass.cpp
 
     flow/vm/ConstantPool.cpp
     flow/vm/Handler.cpp
