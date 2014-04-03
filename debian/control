@@ -28,6 +28,8 @@ Priority: optional
 Description: Xzero HTTP Web Server (x0d)
   HTTP web server. This is the main package you want to install.
 Homepage: http://xzero.io/
+Recommends:
+  idn
 Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support,
   x0d-plugins (= ${binary:Version}),
   libxzero-flow (= ${binary:Version}),
