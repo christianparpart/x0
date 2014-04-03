@@ -291,6 +291,6 @@ add_custom_target(cscope
 )
 
 add_custom_target(release
-  COMMAND ${CMAKE_SOURCE_DIR}/contrib/release.sh
+  COMMAND ${CMAKE_SOURCE_DIR}/contrib/ppa-release.sh
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
