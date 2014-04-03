@@ -19,6 +19,8 @@ public:
 private:
     bool rewriteCondBrToSameBranches(BasicBlock* bb);
     bool eliminateLinearBr(BasicBlock* bb);
+    bool foldConstantCondBr(BasicBlock* bb);
+    bool branchToExit(BasicBlock* bb);
 };
 
 } // namespace x0

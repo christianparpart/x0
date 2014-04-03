@@ -7,6 +7,7 @@
 
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/BasicBlock.h>
+#include <x0/flow/ir/Instructions.h>
 #include <algorithm>
 #include <assert.h>
 
@@ -43,9 +44,22 @@ IRHandler::~IRHandler()
     }
 }
 
+void IRHandler::setEntryBlock(BasicBlock* bb)
+{
+    assert(bb->parent() == nullptr || bb->parent() == this);
+
+    if (bb->parent() == this) {
+        auto i = std::find(blocks_.begin(), blocks_.end(), bb);
+        assert(i != blocks_.end());
+        blocks_.erase(i);
+    }
+
+    blocks_.push_front(bb);
+}
+
 void IRHandler::dump()
 {
-    printf(".handler %s %*c; entryPoint = %%%s\n", name().c_str(), 10 - (int)name().size(), ' ', entryPoint()->name().c_str());
+    printf(".handler %s %*c; entryPoint = %%%s\n", name().c_str(), 10 - (int)name().size(), ' ', getEntryBlock()->name().c_str());
 
     for (BasicBlock* bb: blocks_)
         bb->dump();
@@ -58,6 +72,12 @@ void IRHandler::remove(BasicBlock* bb)
     auto i = std::find(blocks_.begin(), blocks_.end(), bb);
     assert(i != blocks_.end() && "Given basic block must be a member of this handler to be removed.");
     blocks_.erase(i);
+
+    if (TerminateInstr* terminator = bb->getTerminator()) {
+        delete bb->remove(terminator);
+    }
+
+    delete bb;
 }
 
 void IRHandler::verify()

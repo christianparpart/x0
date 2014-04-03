@@ -94,20 +94,26 @@ Symbol* SymbolTable::lookup(const std::string& name, Lookup method, std::list<Sy
 // {{{ Callable
 Callable::Callable(Type t, const FlowVM::NativeCallback* cb, const FlowLocation& loc) :
     Symbol(t, cb->signature().name(), loc),
-    nativeCallback_(cb)
+    nativeCallback_(cb),
+    sig_(nativeCallback_->signature())
 {
 }
 
 Callable::Callable(const std::string& name, const FlowLocation& loc) :
     Symbol(Type::Handler, name, loc),
-    nativeCallback_(nullptr)
+    nativeCallback_(nullptr),
+    sig_()
 {
+    sig_.setName(name);
+    sig_.setReturnType(FlowType::Boolean);
 }
 
 const FlowVM::Signature& Callable::signature() const
 {
-    static const FlowVM::Signature builtin("()B");
-    return nativeCallback_ ? nativeCallback_->signature() : builtin;
+    if (nativeCallback_)
+        return nativeCallback_->signature();
+
+    return sig_;
 }
 
 static inline void completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name) // {{{

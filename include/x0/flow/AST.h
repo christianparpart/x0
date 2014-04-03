@@ -173,6 +173,7 @@ class ParamList;
 class X0_API Callable : public Symbol {
 protected:
     const FlowVM::NativeCallback* nativeCallback_;
+    FlowVM::Signature sig_;
 
 public:
     Callable(Type t, const FlowVM::NativeCallback* cb, const FlowLocation& loc);

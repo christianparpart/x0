@@ -12,11 +12,16 @@ bool InstructionElimination::run(IRHandler* handler)
     for (BasicBlock* bb: handler->basicBlocks()) {
         if (rewriteCondBrToSameBranches(bb)) return true;
         if (eliminateLinearBr(bb)) return true;
+        if (foldConstantCondBr(bb)) return true;
+        if (branchToExit(bb)) return true;
     }
 
     return false;
 }
 
+/*
+ * Rewrites CONDBR (%foo, %foo) to BR (%foo) as both target branch pointers point to the same branch.
+ */
 bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb)
 {
     // attempt to eliminate useless condbr
@@ -41,11 +46,19 @@ bool InstructionElimination::rewriteCondBrToSameBranches(BasicBlock* bb)
     return false;
 }
 
+/*
+ * Eliminates BR instructions to basic blocks that are only referenced by one basic block
+ * by eliminating the BR and merging the BR instructions target block at the end
+ * of the current block.
+ */
 bool InstructionElimination::eliminateLinearBr(BasicBlock* bb)
 {
     // attempt to eliminate useless linear br
     if (BrInstr* br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
         if (br->targetBlock()->predecessors().size() != 1)
+            return false;
+
+        if (br->targetBlock()->predecessors().front() != bb)
             return false;
 
         // we are the only predecessor of BR's target block, so merge them
@@ -58,10 +71,58 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb)
         // merge nextBB
         bb->merge_back(nextBB);
 
+        // destroy unused BB
         bb->parent()->remove(nextBB);
-        delete nextBB;
 
         return true;
+    }
+
+    return false;
+}
+
+bool InstructionElimination::foldConstantCondBr(BasicBlock* bb)
+{
+    if (auto condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
+        if (auto cond = dynamic_cast<ConstantInt*>(condbr->condition())) {
+            std::pair<BasicBlock*, BasicBlock*> use;
+
+            if (cond->get()) {
+                //printf("condition is always true\n");
+                use = std::make_pair(condbr->trueBlock(), condbr->falseBlock());
+            } else {
+                //printf("condition is always false\n");
+                use = std::make_pair(condbr->falseBlock(), condbr->trueBlock());
+            }
+
+            bb->remove(condbr);
+            bb->push_back(new BrInstr(use.first));
+            delete condbr;
+            return true;
+        }
+    }
+    return false;
+}
+
+/*
+ * Eliminates a superfluous BR instruction to a basic block that just exits. 
+ *
+ * This will highly increase the number of exit points but reduce
+ * the number of executed instructions for each path.
+ */
+bool InstructionElimination::branchToExit(BasicBlock* bb)
+{
+    if (BrInstr* br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
+        BasicBlock* targetBB = br->targetBlock();
+
+        if (targetBB->instructions().size() != 1)
+            return false;
+
+        if (RetInstr* ret = dynamic_cast<RetInstr*>(targetBB->getTerminator())) {
+            bb->remove(br);
+            bb->push_back(ret->clone());
+
+            return true;
+        }
     }
 
     return false;

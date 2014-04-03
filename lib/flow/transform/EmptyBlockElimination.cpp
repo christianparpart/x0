@@ -14,25 +14,22 @@ bool EmptyBlockElimination::run(IRHandler* handler)
         if (bb->instructions().size() != 1)
             continue;
 
-        if (bb->predecessors().empty())
-            continue;
-
         if (BrInstr* br = dynamic_cast<BrInstr*>(bb->getTerminator())) {
-            //printf("- eliminate single-BR-BB: %s\n", bb->name().c_str());
             BasicBlock* newSuccessor = br->targetBlock();
-            for (BasicBlock* pred: bb->predecessors()) {
-                //printf("  - replace pred(%s)'s succ to %s\n", pred->name().c_str(), newSuccessor->name().c_str());
-                pred->getTerminator()->replaceOperand(bb, newSuccessor);
-                eliminated.push_back(bb);
+            eliminated.push_back(bb);
+            if (bb == handler->getEntryBlock()) {
+                handler->setEntryBlock(bb);
+                break;
+            } else {
+                for (BasicBlock* pred: bb->predecessors()) {
+                    pred->getTerminator()->replaceOperand(bb, newSuccessor);
+                }
             }
-
-            // now, this BB is ideally not referenced by any other BB
         }
     }
 
     for (BasicBlock* bb: eliminated) {
         bb->parent()->remove(bb);
-        delete bb;
     }
 
     return eliminated.size() > 0;

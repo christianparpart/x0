@@ -22,6 +22,7 @@
 #include <x0/flow/IRGenerator.h>
 #include <x0/flow/TargetCodeGenerator.h>
 #include <x0/flow/ir/PassManager.h>
+#include <x0/flow/transform/UnusedBlockPass.h>
 #include <x0/flow/transform/EmptyBlockElimination.h>
 #include <x0/flow/transform/InstructionElimination.h>
 #include <x0/io/SyslogSink.h>
@@ -1028,10 +1029,18 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
         return false;
     }
 
-    if (optimizationLevel > 0) {
+    {
         PassManager pm;
-        pm.registerPass(std::make_unique<EmptyBlockElimination>());
-        pm.registerPass(std::make_unique<InstructionElimination>());
+
+        // mandatory passes
+        pm.registerPass(std::make_unique<UnusedBlockPass>());
+
+        // optional passes
+        if (optimizationLevel > 0) {
+            pm.registerPass(std::make_unique<EmptyBlockElimination>());
+            pm.registerPass(std::make_unique<InstructionElimination>());
+        }
+
         pm.run(ir.get());
     }
 

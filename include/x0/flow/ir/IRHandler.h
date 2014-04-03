@@ -28,8 +28,6 @@ public:
 
     BasicBlock* createBlock(const std::string& name = "");
 
-    BasicBlock* entryPoint() const { return blocks_.front(); }
-
     IRProgram* parent() const { return parent_; }
     void setParent(IRProgram* prog) { parent_ = prog; }
 
@@ -38,9 +36,12 @@ public:
     std::list<BasicBlock*>& basicBlocks() { return blocks_; }
 
     BasicBlock* getEntryBlock() const { return blocks_.front(); }
+    void setEntryBlock(BasicBlock* bb);
 
     /**
-     * Removes given basic block \p bb from handler.
+     * Removes given basic block \p bb from handler and destroys it.
+     *
+     * @note \p bb will be a dangling pointer after this call.
      */
     void remove(BasicBlock* bb);
 

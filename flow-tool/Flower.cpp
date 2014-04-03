@@ -19,6 +19,7 @@
 #include <x0/flow/ir/PassManager.h>
 #include <x0/flow/transform/EmptyBlockElimination.h>
 #include <x0/flow/transform/InstructionElimination.h>
+#include <x0/flow/transform/UnusedBlockPass.h>
 #include <x0/flow/vm/Runtime.h>
 #include <x0/flow/vm/NativeCallback.h>
 #include <x0/flow/vm/Runner.h>
@@ -266,10 +267,15 @@ bool Flower::compile(Unit* unit)
         return false;
     }
 
-    if (1) {
+    {
         PassManager pm;
-        pm.registerPass(std::make_unique<EmptyBlockElimination>());
-        pm.registerPass(std::make_unique<InstructionElimination>());
+        pm.registerPass(std::make_unique<UnusedBlockPass>());
+
+        // optional optimization passes
+        if (1) {
+            pm.registerPass(std::make_unique<EmptyBlockElimination>());
+            pm.registerPass(std::make_unique<InstructionElimination>());
+        }
         pm.run(ir.get());
     }
 
