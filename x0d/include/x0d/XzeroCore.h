@@ -91,6 +91,7 @@ private:
 	void log_info(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void log_diag(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void log_debug(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void sleep(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	void file_exists(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void file_is_reg(x0::HttpRequest* r, x0::FlowVM::Params& args);

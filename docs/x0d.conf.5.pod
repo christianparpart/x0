@@ -395,6 +395,14 @@ Example:
 
  sys.env("PATH")
 
+=item B<sleep> (seconds)
+
+Sleeps for given request processing with the specified number of seconds.
+This function is purely for demonstration use of showing how virtual-machine
+suspend/resume is working in order to implement non-blocking synchronous calls.
+
+It is highly discouraged for production use.
+
 =item B<file.exists> (path)
 
 Determines whether or not given filename path exists.

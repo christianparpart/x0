@@ -12,6 +12,7 @@
 	* flow: optimizations are now enabled by default
 	* x0d: builtin workers() is now overloaded for workers(I)V and workers(i)V; no workers.affinity(i)V anymore.
 	* x0d: memory resource leak fixes upon program exit.
+	* x0d: adds sleep() shared function
 	* plugins: new plugin "access" for basic IP & CIDR network based access control.
 
 0.8.0 (2014-03-23)

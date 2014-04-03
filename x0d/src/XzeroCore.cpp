@@ -116,6 +116,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     sharedFunction("file.is_dir", &XzeroCore::file_is_dir).returnType(FlowType::Boolean);
     sharedFunction("file.is_exe", &XzeroCore::file_is_exe).returnType(FlowType::Boolean);
 
+    // shared functions
     sharedFunction("log.err", &XzeroCore::log_err, FlowType::String);
     sharedFunction("log.warn", &XzeroCore::log_warn, FlowType::String);
     sharedFunction("log.notice", &XzeroCore::log_notice, FlowType::String);
@@ -123,6 +124,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     sharedFunction("log.diag", &XzeroCore::log_diag, FlowType::String);
     sharedFunction("log", &XzeroCore::log_info, FlowType::String);
     sharedFunction("log.debug", &XzeroCore::log_debug, FlowType::String);
+    sharedFunction("sleep", &XzeroCore::sleep, FlowType::Number);
 
 	// main: read-only attributes
 	mainFunction("req.method", &XzeroCore::req_method).returnType(FlowType::String);
@@ -467,6 +469,48 @@ void XzeroCore::log_debug(HttpRequest* r, FlowParams& args)
 		r->log(Severity::debug, "%s", concat(args).c_str());
 	else
 		server().log(Severity::debug, "%s", concat(args).c_str());
+}
+// }}}
+// {{{ void sleep(int seconds)
+class Sleeper {
+public:
+    Sleeper(int seconds, HttpRequest* r, FlowVM::Runner* vm) :
+        n_(seconds),
+        timer_(r->connection.worker().loop()),
+        request_(r),
+        vm_(vm)
+    {
+        r->log(Severity::debug, "Sleeping for %i seconds.", n_);
+        timer_.set<Sleeper, &Sleeper::wakeup>(this);
+        timer_.start(seconds, 0);
+        vm->suspend();
+    }
+
+private:
+    void wakeup(ev::timer& ev, int revents)
+    {
+        request_->log(Severity::debug, "Sleeping for %i seconds. WAKEUP", n_);
+        bool handled = vm_->resume();
+        if (!handled && !vm_->isSuspended()) {
+            request_->finish(); // doh'
+        }
+        delete this;
+    }
+
+    int n_;
+    ev::timer timer_;
+    HttpRequest* request_;
+    FlowVM::Runner* vm_;
+};
+
+void XzeroCore::sleep(HttpRequest* r, FlowParams& args)
+{
+    int n = static_cast<int>(args.getInt(1));
+    if (r) {
+        new Sleeper(n, r, args.caller());
+    } else {
+        ::sleep(args.getInt(1));
+    }
 }
 // }}}
 // {{{ req
