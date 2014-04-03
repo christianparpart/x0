@@ -67,7 +67,7 @@ void IRHandler::dump()
     printf("\n");
 }
 
-void IRHandler::remove(BasicBlock* bb)
+void IRHandler::erase(BasicBlock* bb)
 {
     auto i = std::find(blocks_.begin(), blocks_.end(), bb);
     assert(i != blocks_.end() && "Given basic block must be a member of this handler to be removed.");

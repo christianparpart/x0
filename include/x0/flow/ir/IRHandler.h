@@ -39,11 +39,11 @@ public:
     void setEntryBlock(BasicBlock* bb);
 
     /**
-     * Removes given basic block \p bb from handler and destroys it.
+     * Unlinks and deletes given basic block \p bb from handler.
      *
      * @note \p bb will be a dangling pointer after this call.
      */
-    void remove(BasicBlock* bb);
+    void erase(BasicBlock* bb);
 
     /**
      * Performs given transformation on this handler.

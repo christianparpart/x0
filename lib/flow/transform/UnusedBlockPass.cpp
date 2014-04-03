@@ -22,7 +22,7 @@ bool UnusedBlockPass::run(IRHandler* handler)
     }
 
     for (BasicBlock* bb: unused) {
-        handler->remove(bb);
+        handler->erase(bb);
     }
 
     return !unused.empty();
