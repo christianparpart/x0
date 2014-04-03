@@ -59,8 +59,9 @@ public:                                                                  \
     x0::CustomData* setCustomData(const void* key,                       \
                               std::unique_ptr<x0::CustomData>&& value)   \
     {                                                                    \
+        auto res = value.get();                                          \
         customData_[key] = std::move(value);                             \
-        return value.get();                                              \
+        return res;                                                      \
     }                                                                    \
                                                                          \
 	template<typename T, typename... Args>                               \
