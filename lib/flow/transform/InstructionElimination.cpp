@@ -118,7 +118,7 @@ bool InstructionElimination::branchToExit(BasicBlock* bb)
             return false;
 
         if (RetInstr* ret = dynamic_cast<RetInstr*>(targetBB->getTerminator())) {
-            bb->remove(br);
+            delete bb->remove(br);
             bb->push_back(ret->clone());
 
             return true;
