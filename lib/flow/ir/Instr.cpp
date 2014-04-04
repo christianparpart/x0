@@ -108,6 +108,15 @@ size_t Instr::replaceOperand(Value* old, Value* replacement)
     return count;
 }
 
+void Instr::clearOperands()
+{
+    for (size_t i = 0, e = operands_.size(); i != e; ++i) {
+        setOperand(i, nullptr);
+    }
+
+    operands_.clear();
+}
+
 void Instr::dumpOne(const char* mnemonic)
 {
     if (type() != FlowType::Void) {

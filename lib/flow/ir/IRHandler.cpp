@@ -24,6 +24,12 @@ IRHandler::IRHandler(const std::string& name) :
 
 IRHandler::~IRHandler()
 {
+    for (BasicBlock* bb: blocks_) {
+        for (Instr* instr: bb->instructions()) {
+            instr->clearOperands();
+        }
+    }
+
     while (!blocks_.empty()) {
         auto i = blocks_.begin();
         auto e = blocks_.end();

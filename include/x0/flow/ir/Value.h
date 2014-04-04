@@ -37,6 +37,7 @@ public:
 
     void addUse(Instr* user);
     void removeUse(Instr* user);
+    bool isUsed() const { return !uses_.empty(); }
     const std::vector<Instr*>& uses() const { return uses_; }
 
     virtual void dump() = 0;

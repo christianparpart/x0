@@ -40,6 +40,7 @@ Value::Value(FlowType ty, const std::string& name) :
 
 Value::~Value()
 {
+    assert(!isUsed() && "Value being destroyed is still in use.");
 }
 
 void Value::addUse(Instr* user)
@@ -50,8 +51,12 @@ void Value::addUse(Instr* user)
 void Value::removeUse(Instr* user)
 {
     auto i = std::find(uses_.begin(), uses_.end(), user);
-    assert (i != uses_.end());
-    uses_.erase(i);
+
+    assert(i != uses_.end());
+
+    if (i != uses_.end()) {
+        uses_.erase(i);
+    }
 }
 
 void Value::dump()

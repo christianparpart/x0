@@ -89,6 +89,13 @@ public:
     size_t replaceOperand(Value* old, Value* replacement);
 
     /**
+     * Clears out all operands.
+     *
+     * @see addOperand()
+     */
+    void clearOperands();
+
+    /**
      * Clones given instruction.
      *
      * This will not clone any of its operands but reference them.
