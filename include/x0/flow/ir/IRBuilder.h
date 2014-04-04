@@ -83,6 +83,7 @@ public:
 
     // numerical operations
     Value* createNeg(Value* rhs, const std::string& name = "");                  // -
+    Value* createNot(Value* rhs, const std::string& name = "");                  // ~
     Value* createAdd(Value* lhs, Value* rhs, const std::string& name = "");      // +
     Value* createSub(Value* lhs, Value* rhs, const std::string& name = "");      // -
     Value* createMul(Value* lhs, Value* rhs, const std::string& name = "");      // *

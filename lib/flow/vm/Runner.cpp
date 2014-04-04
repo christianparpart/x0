@@ -177,6 +177,7 @@ bool Runner::loop()
         label(IMOV),
         label(NCONST),
         label(NNEG),
+        label(NNOT),
         label(NADD),
         label(NSUB),
         label(NMUL),
@@ -360,6 +361,11 @@ bool Runner::loop()
 
     instr (NNEG) {
         data_[A] = (Register) (-toNumber(B));
+        next;
+    }
+
+    instr (NNOT) {
+        data_[A] = (Register) (~toNumber(B));
         next;
     }
 

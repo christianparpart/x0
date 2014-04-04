@@ -31,6 +31,7 @@ enum Opcode {
     IMOV,           // A = B/imm
     NCONST,         // A = numberConstants[B]
     NNEG,           // A = -A
+    NNOT,           // A = ~A
     NADD,           // A = B + C
     NSUB,           // A = B - C
     NMUL,           // A = B * C

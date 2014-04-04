@@ -298,6 +298,7 @@ Opcode makeOperator(FlowToken token, Expr* e)
     static const std::unordered_map<FlowType, std::unordered_map<FlowToken, Opcode>> ops = {
         {FlowType::Number, {
             {FlowToken::Not, Opcode::NCMPZ},
+            {FlowToken::BitNot, Opcode::NNOT},
             {FlowToken::Minus, Opcode::NNEG},
             {FlowToken::StringType, Opcode::I2S},
             {FlowToken::BoolType, Opcode::NCMPZ},
@@ -846,11 +847,36 @@ std::unique_ptr<Expr> FlowParser::negExpr()
     FlowLocation loc = location();
 
     if (consumeIf(FlowToken::Minus)) {
-        std::unique_ptr<Expr> e = primaryExpr();
+        std::unique_ptr<Expr> e = negExpr();
         if (!e)
             return nullptr;
 
         FlowVM::Opcode op = makeOperator(FlowToken::Minus, e.get());
+        if (op == Opcode::EXIT) {
+            reportError("Type cast error in unary 'neg'-operator. Invalid source type <%s>.", e->getType());
+            return nullptr;
+        }
+
+        e = std::make_unique<UnaryExpr>(op, std::move(e), loc.update(end()));
+        return e;
+    } else {
+        return bitNotExpr();
+    }
+}
+
+std::unique_ptr<Expr> FlowParser::bitNotExpr()
+{
+    // negExpr ::= ['~'] primaryExpr
+    FNTRACE();
+
+    FlowLocation loc = location();
+
+    if (consumeIf(FlowToken::BitNot)) {
+        std::unique_ptr<Expr> e = bitNotExpr();
+        if (!e)
+            return nullptr;
+
+        FlowVM::Opcode op = makeOperator(FlowToken::BitNot, e.get());
         if (op == Opcode::EXIT) {
             reportError("Type cast error in unary 'not'-operator. Invalid source type <%s>.", e->getType());
             return nullptr;

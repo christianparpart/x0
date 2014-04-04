@@ -30,7 +30,7 @@ struct X0_API FlowToken
 		Equal, UnEqual, Less, Greater, LessOrEqual, GreaterOrEqual,
 		PrefixMatch, SuffixMatch, RegexMatch, In, HashRocket,
 		Plus, Minus, Mul, Div, Mod, Shl, Shr, Comma, Pow,
-		Not, BitOr, BitAnd, BitXor,
+		Not, BitNot, BitOr, BitAnd, BitXor,
 		BrOpen, BrClose, RndOpen, RndClose, Begin, End,
 
 		// keywords

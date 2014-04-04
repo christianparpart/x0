@@ -341,6 +341,9 @@ FlowToken FlowLexer::nextToken()
 	);
 
 	switch (currentChar()) {
+    case '~':
+        nextChar();
+        return token_ = FlowToken::BitNot;
 	case '=':
 		switch (nextChar()) {
 		case '=':

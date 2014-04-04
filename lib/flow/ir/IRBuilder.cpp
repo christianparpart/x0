@@ -180,6 +180,16 @@ Value* IRBuilder::createNeg(Value* rhs, const std::string& name)
     return insert(new INegInstr(rhs, makeName(name)));
 }
 
+Value* IRBuilder::createNot(Value* rhs, const std::string& name)
+{
+    assert(rhs->type() == FlowType::Number);
+
+    if (auto a = dynamic_cast<ConstantInt*>(rhs))
+        return get(~a->get());
+
+    return insert(new INotInstr(rhs, makeName(name)));
+}
+
 Value* IRBuilder::createAdd(Value* lhs, Value* rhs, const std::string& name)
 {
     assert(lhs->type() == rhs->type());

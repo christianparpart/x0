@@ -594,10 +594,9 @@ void TargetCodeGenerator::visit(INegInstr& instr)
 
 void TargetCodeGenerator::visit(INotInstr& instr)
 {
-    assert(!"TODO: ~ operator not yet implemented in VM");
-    //Register a = allocate(1, instr);
-    //Register b = getRegister(instr.operands()[0]);
-    //emit(Opcode::NNOT, a, b);
+    Register a = allocate(1, instr);
+    Register b = getRegister(instr.operands()[0]);
+    emit(Opcode::NNOT, a, b);
 }
 
 void TargetCodeGenerator::visit(IAddInstr& instr)

@@ -86,6 +86,7 @@ bool FlowTokenTraits::isUnaryOp(FlowToken t)
 		case FlowToken::Minus:
 		case FlowToken::Plus:
 		case FlowToken::Not:
+        case FlowToken::BitNot:
 			return true;
 		default:
 			return false;
@@ -179,6 +180,7 @@ const char *FlowToken::c_str() const throw()
 		case FlowToken::Comma: return ",";
 		case FlowToken::Pow: return "**";
 		case FlowToken::Not: return "not";
+		case FlowToken::BitNot: return "~";
 		case FlowToken::BitOr: return "|";
 		case FlowToken::BitAnd: return "&";
 		case FlowToken::BitXor: return "^";

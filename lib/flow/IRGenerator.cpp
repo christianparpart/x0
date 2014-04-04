@@ -210,6 +210,7 @@ void IRGenerator::accept(UnaryExpr& expr)
         { FlowVM::Opcode::R2S, &IRGenerator::createR2S },
         { FlowVM::Opcode::S2I, &IRGenerator::createS2I },
         { FlowVM::Opcode::NNEG, &IRGenerator::createNeg },
+        { FlowVM::Opcode::NNOT, &IRGenerator::createNot },
     };
 
     Value* rhs = codegen(expr.subExpr());

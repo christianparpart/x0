@@ -131,6 +131,7 @@ private:
     std::unique_ptr<Expr> addExpr();            // + -
     std::unique_ptr<Expr> mulExpr();            // * / shl shr
 	std::unique_ptr<Expr> powExpr();            // **
+	std::unique_ptr<Expr> bitNotExpr();         // ~
 	std::unique_ptr<Expr> negExpr();            // -
 	std::unique_ptr<Expr> primaryExpr();
 	std::unique_ptr<Expr> arrayExpr();

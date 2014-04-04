@@ -10,6 +10,7 @@
 	* flow: added optimization pass: constant condition folding
 	* flow: added optimization pass: superfluous branch-to-exit folding
 	* flow: optimizations are now enabled by default
+	* flow: added support for unary bit-wise NOT operator
 	* x0d: builtin workers() is now overloaded for workers(I)V and workers(i)V; no workers.affinity(i)V anymore.
 	* x0d: memory resource leak fixes upon program exit.
 	* x0d: adds sleep() shared function
