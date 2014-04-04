@@ -169,6 +169,39 @@ Instr* IRBuilder::createPhi(const std::vector<Value*>& incomings, const std::str
     return insert(new PhiNode(incomings, makeName(name)));
 }
 // }}}
+// {{{ boolean ops
+Value* IRBuilder::createBNot(Value* rhs, const std::string& name)
+{
+    assert(rhs->type() == FlowType::Boolean);
+
+    if (auto a = dynamic_cast<ConstantBoolean*>(rhs))
+        return getBoolean(!a->get());
+
+    return insert(new BNotInstr(rhs, makeName(name)));
+}
+
+Value* IRBuilder::createBAnd(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(rhs->type() == FlowType::Boolean);
+
+    if (auto a = dynamic_cast<ConstantBoolean*>(lhs))
+        if (auto b = dynamic_cast<ConstantBoolean*>(rhs))
+            return getBoolean(a->get() && b->get());
+
+    return insert(new BAndInstr(lhs, rhs, makeName(name)));
+}
+
+Value* IRBuilder::createBXor(Value* lhs, Value* rhs, const std::string& name)
+{
+    assert(rhs->type() == FlowType::Boolean);
+
+    if (auto a = dynamic_cast<ConstantBoolean*>(lhs))
+        if (auto b = dynamic_cast<ConstantBoolean*>(rhs))
+            return getBoolean(a->get() ^ b->get());
+
+    return insert(new BAndInstr(lhs, rhs, makeName(name)));
+}
+// }}}
 // {{{ numerical ops
 Value* IRBuilder::createNeg(Value* rhs, const std::string& name)
 {

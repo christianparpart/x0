@@ -24,7 +24,9 @@ IRProgram::IRProgram() :
     regexps_(),
     builtinFunctions_(),
     builtinHandlers_(),
-    handlers_()
+    handlers_(),
+    trueLiteral_(new ConstantBoolean(true, "trueLiteral")),
+    falseLiteral_(new ConstantBoolean(false, "falseLiteral"))
 {
 }
 
@@ -39,6 +41,9 @@ IRProgram::~IRProgram()
     for (auto& value: regexps_) delete value;
     for (auto& value: builtinHandlers_) delete value;
     for (auto& value: builtinFunctions_) delete value;
+
+    delete trueLiteral_;
+    delete falseLiteral_;
 }
 
 void IRProgram::dump()

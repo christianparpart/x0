@@ -83,7 +83,7 @@ bool InstructionElimination::eliminateLinearBr(BasicBlock* bb)
 bool InstructionElimination::foldConstantCondBr(BasicBlock* bb)
 {
     if (auto condbr = dynamic_cast<CondBrInstr*>(bb->getTerminator())) {
-        if (auto cond = dynamic_cast<ConstantInt*>(condbr->condition())) {
+        if (auto cond = dynamic_cast<ConstantBoolean*>(condbr->condition())) {
             std::pair<BasicBlock*, BasicBlock*> use;
 
             if (cond->get()) {

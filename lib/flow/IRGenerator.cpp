@@ -211,6 +211,7 @@ void IRGenerator::accept(UnaryExpr& expr)
         { FlowVM::Opcode::S2I, &IRGenerator::createS2I },
         { FlowVM::Opcode::NNEG, &IRGenerator::createNeg },
         { FlowVM::Opcode::NNOT, &IRGenerator::createNot },
+        { FlowVM::Opcode::BNOT, &IRGenerator::createBNot },
     };
 
     Value* rhs = codegen(expr.subExpr());
@@ -232,6 +233,9 @@ void IRGenerator::accept(BinaryExpr& expr)
         int /*FlowVM::Opcode*/,
         Value* (IRGenerator::*)(Value*, Value*, const std::string&)
     > ops = {
+        // boolean
+        { FlowVM::Opcode::BAND, &IRGenerator::createBAnd },
+        { FlowVM::Opcode::BXOR, &IRGenerator::createBXor },
         // numerical
         { FlowVM::Opcode::NADD, &IRGenerator::createAdd },
         { FlowVM::Opcode::NSUB, &IRGenerator::createSub },
@@ -393,7 +397,7 @@ void IRGenerator::accept(BoolExpr& literal)
 
     // loads a boolean literal
 
-    result_ = get(int64_t(literal.value()));
+    result_ = getBoolean(literal.value());
 }
 
 void IRGenerator::accept(RegExpExpr& literal)

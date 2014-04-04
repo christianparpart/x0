@@ -65,6 +65,7 @@ public:
     IRHandler* getHandler(const std::string& name);
 
     // literals
+    ConstantBoolean* getBoolean(bool literal) { return program_->getBoolean(literal); }
     ConstantInt* get(int64_t literal) { return program_->get(literal); }
     ConstantString* get(const std::string& literal) { return program_->get(literal); }
     ConstantIP* get(const IPAddress& literal) { return program_->get(literal); }
@@ -80,6 +81,11 @@ public:
     Instr* createStore(Value* lhs, Value* rhs, const std::string& name = "");
     Instr* createStore(Value* lhs, ConstantInt* index, Value* rhs, const std::string& name = "");
     Instr* createPhi(const std::vector<Value*>& incomings, const std::string& name = "");
+
+    // boolean operations
+    Value* createBNot(Value* rhs, const std::string& name = "");                 // !
+    Value* createBAnd(Value* lhs, Value* rhs, const std::string& name = "");     // &&
+    Value* createBXor(Value* lhs, Value* rhs, const std::string& name = "");     // ||
 
     // numerical operations
     Value* createNeg(Value* rhs, const std::string& name = "");                  // -

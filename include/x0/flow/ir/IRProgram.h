@@ -34,6 +34,7 @@ public:
 
     void dump();
 
+    ConstantBoolean* getBoolean(bool literal) { return literal ? trueLiteral_ : falseLiteral_; }
     ConstantInt* get(int64_t literal) { return get<ConstantInt>(numbers_, literal); }
     ConstantString* get(const std::string& literal) { return get<ConstantString>(strings_, literal); }
     ConstantIP* get(const IPAddress& literal) { return get<ConstantIP>(ipaddrs_, literal); }
@@ -80,6 +81,8 @@ private:
     std::vector<IRBuiltinFunction*> builtinFunctions_;
     std::vector<IRBuiltinHandler*> builtinHandlers_;
     std::vector<IRHandler*> handlers_;
+    ConstantBoolean* trueLiteral_;
+    ConstantBoolean* falseLiteral_;
 
     friend class IRBuilder;
 };
