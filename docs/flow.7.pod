@@ -212,7 +212,7 @@ and the operator precedence is quite like it, too.
 
 =head2 Operators
 
-=over 6
+=over 3
 
 =item LHS B<and> RHS
 
@@ -300,6 +300,14 @@ Computes the power of LHS and RHS.
 =item B<not> RHS
 
 Boolean negation of the given expression - true becomes false and false becomes true.
+
+=item B<-> RHS
+
+Numerical negation of the given expression.
+
+=item B<~> RHS
+
+Numerical bit-wise negation of the given numerical expression.
 
 =item B<(> EXPR B<)>
 
