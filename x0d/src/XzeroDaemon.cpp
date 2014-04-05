@@ -1044,6 +1044,11 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
         pm.run(ir.get());
     }
 
+    if (!verify(ir.get())) {
+        fprintf(stderr, "IR User verification failed.\n");
+        return false;
+    }
+
     if (dumpIR_) {
         ir->dump();
     }
