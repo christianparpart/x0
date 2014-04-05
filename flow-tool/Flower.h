@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 namespace x0 {
+    class Instr;
     namespace FlowVM {
         class Program;
     }
@@ -80,7 +81,7 @@ private:
     void flow_random(FlowVM::Params& args);
     void flow_getenv(FlowVM::Params& args);
 
-    bool verify_numbers(CallExpr* call);
+    bool verify_numbers(Instr* call);
     void flow_numbers(FlowVM::Params& args);
     void flow_names(FlowVM::Params& args);
 

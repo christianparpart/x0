@@ -10,7 +10,7 @@
 
 namespace x0 {
 
-class Unit;
+class IRProgram;
 
 namespace FlowVM {
 
@@ -37,7 +37,7 @@ public:
 
     void invoke(int id, int argc, Value* argv, Runner* cx);
 
-    bool verify(Unit* unit);
+    bool verify(IRProgram* program);
 
 private:
     std::vector<NativeCallback*> builtins_;

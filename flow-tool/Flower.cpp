@@ -16,6 +16,8 @@
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/BasicBlock.h>
 #include <x0/flow/ir/Instr.h>
+#include <x0/flow/ir/ConstantArray.h>
+#include <x0/flow/ir/ConstantValue.h>
 #include <x0/flow/ir/PassManager.h>
 #include <x0/flow/transform/EmptyBlockElimination.h>
 #include <x0/flow/transform/InstructionElimination.h>
@@ -198,11 +200,6 @@ int Flower::runAll(const char *fileName)
         return -1;
     }
 
-    if (!verify(unit.get())) {
-        fprintf(stderr, "User verification failed.\n");
-        return -1;
-    }
-
     onParseComplete(unit.get());
 
     if (dumpAST_)
@@ -283,6 +280,11 @@ bool Flower::compile(Unit* unit)
         ir->dump();
     }
 
+    if (!verify(ir.get())) {
+        fprintf(stderr, "User verification failed.\n");
+        return false;
+    }
+
     program_ = TargetCodeGenerator().generate(ir.get());
 
     if (!program_) {
@@ -328,11 +330,6 @@ int Flower::run(const char* fileName, const char* handlerName)
 		fprintf(stderr, "Failed to parse file: %s\n", fileName);
 		return -1;
 	}
-
-    if (!verify(unit.get())) {
-        fprintf(stderr, "User verification failed.\n");
-        return -1;
-    }
 
     onParseComplete(unit.get());
 
@@ -509,26 +506,19 @@ void Flower::flow_assertFail(FlowVM::Params& args)
     }
 }
 
-bool Flower::verify_numbers(CallExpr* call)
+bool Flower::verify_numbers(Instr* call)
 {
     printf("Verify numbers!\n");
-
-    const ArrayExpr* array = (const ArrayExpr*) call->args()[0].second;
-
-    for (size_t i = 0, e = array->values().size(); i != e; ++i) {
-        const Expr* arg = array->values()[i].get();
-
-        if (const auto e = dynamic_cast<const NumberExpr*>(arg)) {
-            if (e->value() % 2) {
-                printf("Odd numbers not allowed.\n");
-                return false;
-            }
-        } else {
-            printf("call args to numbers() must be literal.\n");
+    ConstantArray* array = static_cast<ConstantArray*>(call->operand(1));
+    assert(array != nullptr);
+    for (size_t i = 0, e = array->get().size(); i != e; ++i) {
+        ConstantInt* arg = static_cast<ConstantInt*>(array->get()[i]);
+        assert(arg != nullptr);
+        if (arg->get() % 2) {
+            printf("Odd numbers not allowed.\n");
             return false;
         }
     }
-
     return true;
 }
 

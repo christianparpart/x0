@@ -12,7 +12,7 @@
 
 namespace x0 {
 
-class CallExpr;
+class Instr;
 
 namespace FlowVM {
 
@@ -25,7 +25,7 @@ class Runtime;
 class X0_API NativeCallback {
 public:
     typedef std::function<void(Params& args)> Functor;
-    typedef std::function<bool(CallExpr*)> Verifier;
+    typedef std::function<bool(Instr*)> Verifier;
 
 private:
     Runtime* runtime_;
@@ -56,9 +56,9 @@ public:
 
     // semantic verifier
     NativeCallback& verifier(const Verifier& vf);
-    template<typename Class> NativeCallback& verifier(bool (Class::*method)(CallExpr*), Class* obj);
-    template<typename Class> NativeCallback& verifier(bool (Class::*method)(CallExpr*));
-    bool verify(CallExpr* call);
+    template<typename Class> NativeCallback& verifier(bool (Class::*method)(Instr*), Class* obj);
+    template<typename Class> NativeCallback& verifier(bool (Class::*method)(Instr*));
+    bool verify(Instr* call);
 
     // bind callback
     NativeCallback& bind(const Functor& cb);
@@ -272,19 +272,19 @@ inline NativeCallback& NativeCallback::verifier(const Verifier& vf)
     return *this;
 }
 
-template<typename Class> inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(CallExpr*), Class* obj)
+template<typename Class> inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(Instr*), Class* obj)
 {
     verifier_ = std::bind(method, obj, std::placeholders::_1);
     return *this;
 }
 
-template<typename Class> inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(CallExpr*))
+template<typename Class> inline NativeCallback& NativeCallback::verifier(bool (Class::*method)(Instr*))
 {
     verifier_ = std::bind(method, static_cast<Class*>(runtime_), std::placeholders::_1);
     return *this;
 }
 
-inline bool NativeCallback::verify(CallExpr* call)
+inline bool NativeCallback::verify(Instr* call)
 {
     if (!verifier_)
         return true;
