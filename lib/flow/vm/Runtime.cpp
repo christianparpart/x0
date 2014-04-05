@@ -1,7 +1,9 @@
 #include <x0/flow/vm/Runtime.h>
 #include <x0/flow/vm/NativeCallback.h>
-#include <x0/flow/FlowCallVisitor.h>
-#include <x0/flow/AST.h>
+#include <x0/flow/ir/IRProgram.h>
+#include <x0/flow/ir/IRHandler.h>
+#include <x0/flow/ir/BasicBlock.h>
+#include <x0/flow/ir/Instructions.h>
 
 namespace x0 {
 namespace FlowVM {
@@ -52,15 +54,30 @@ void Runtime::unregisterNative(const std::string& name)
     }
 }
 
-bool Runtime::verify(Unit* unit)
+bool Runtime::verify(IRProgram* program)
 {
-    FlowCallVisitor cv(unit);
+    std::list<std::pair<Instr*, NativeCallback*>> calls;
 
-    for (auto& call: cv.calls()) {
-        if (FlowVM::NativeCallback* native = find(call->callee()->signature())) {
-            if (!native->verify(call)) {
-                return false;
+    for (IRHandler* handler: program->handlers()) {
+        for (BasicBlock* bb: handler->basicBlocks()) {
+            for (Instr* instr: bb->instructions()) {
+                if (auto ci = dynamic_cast<CallInstr*>(instr)) {
+                    if (auto native = find(ci->callee()->signature())) {
+                        calls.push_back(std::make_pair(instr, native));
+                    }
+                }
+                else if (auto hi = dynamic_cast<HandlerCallInstr*>(instr)) {
+                    if (auto native = find(hi->callee()->signature())) {
+                        calls.push_back(std::make_pair(instr, native));
+                    }
+                }
             }
+        }
+    }
+
+    for (auto call: calls) {
+        if (!call.second->verify(call.first)) {
+            return false;
         }
     }
 

@@ -66,13 +66,13 @@ T* IRProgram::get(std::vector<T*>& table, const U& literal)
     return value;
 }
 
-template ConstantInt* IRProgram::get<ConstantInt, int64_t>(std::vector<ConstantInt*>&, const int64_t&);
-template ConstantArray* IRProgram::get<ConstantArray, std::vector<Constant*>>(std::vector<ConstantArray*>&, const std::vector<Constant*>&);
-template ConstantString* IRProgram::get<ConstantString, std::string>(std::vector<ConstantString*>&, const std::string&);
-template ConstantIP* IRProgram::get<ConstantIP, IPAddress>(std::vector<ConstantIP*>&, const IPAddress&);
-template ConstantCidr* IRProgram::get<ConstantCidr, Cidr>(std::vector<ConstantCidr*>&, const Cidr&);
-template ConstantRegExp* IRProgram::get<ConstantRegExp, RegExp>(std::vector<ConstantRegExp*>&, const RegExp&);
-template IRBuiltinHandler* IRProgram::get<IRBuiltinHandler, Signature>(std::vector<IRBuiltinHandler*>&, const Signature&);
-template IRBuiltinFunction* IRProgram::get<IRBuiltinFunction, Signature>(std::vector<IRBuiltinFunction*>&, const Signature&);
+template X0_API ConstantInt* IRProgram::get<ConstantInt, int64_t>(std::vector<ConstantInt*>&, const int64_t&);
+template X0_API ConstantArray* IRProgram::get<ConstantArray, std::vector<Constant*>>(std::vector<ConstantArray*>&, const std::vector<Constant*>&);
+template X0_API ConstantString* IRProgram::get<ConstantString, std::string>(std::vector<ConstantString*>&, const std::string&);
+template X0_API ConstantIP* IRProgram::get<ConstantIP, IPAddress>(std::vector<ConstantIP*>&, const IPAddress&);
+template X0_API ConstantCidr* IRProgram::get<ConstantCidr, Cidr>(std::vector<ConstantCidr*>&, const Cidr&);
+template X0_API ConstantRegExp* IRProgram::get<ConstantRegExp, RegExp>(std::vector<ConstantRegExp*>&, const RegExp&);
+template X0_API IRBuiltinHandler* IRProgram::get<IRBuiltinHandler, Signature>(std::vector<IRBuiltinHandler*>&, const Signature&);
+template X0_API IRBuiltinFunction* IRProgram::get<IRBuiltinFunction, Signature>(std::vector<IRBuiltinFunction*>&, const Signature&);
 
 } // namespace x0
