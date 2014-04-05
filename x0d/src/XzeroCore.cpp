@@ -8,6 +8,12 @@
 
 #include <x0d/XzeroCore.h>
 #include <x0d/XzeroDaemon.h>
+#include <x0/flow/AST.h>
+#include <x0/flow/ir/Instr.h>
+#include <x0/flow/ir/BasicBlock.h>
+#include <x0/flow/ir/IRHandler.h>
+#include <x0/flow/ir/IRProgram.h>
+#include <x0/flow/ir/ConstantValue.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpRangeDef.h>
 #include <x0/io/CompositeSource.h>
@@ -167,7 +173,8 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 	mainFunction("error.handler", &XzeroCore::error_handler, FlowType::Handler);
 
 	// main: handlers
-	mainHandler("docroot", &XzeroCore::docroot, FlowType::String);
+	mainHandler("docroot", &XzeroCore::docroot, FlowType::String)
+        .verifier(&XzeroCore::verify_docroot, this);
 	mainHandler("alias", &XzeroCore::alias, FlowType::String, FlowType::String);
 	mainHandler("staticfile", &XzeroCore::staticfile);
 	mainHandler("precompressed", &XzeroCore::precompressed);
@@ -554,26 +561,34 @@ bool XzeroCore::matchIndex(HttpRequest *r, const BufferRef& arg)
 	return false;
 }
 
+bool XzeroCore::verify_docroot(Instr* call)
+{
+    if (auto arg = dynamic_cast<ConstantString*>(call->operand(1))) {
+        if (arg->get().empty()) {
+            log(Severity::error, "Setting empty document root is not allowed.");
+            return false;
+        }
+
+        auto program = call->parent()->parent()->parent(); // instr -> BB -> handler -> program
+
+        // cut off trailing slash
+        size_t trailerOffset = arg->get().size() - 1;
+        if (arg->get()[trailerOffset] == '/') {
+            call->replaceOperand(arg, program->get(arg->get().substr(0, trailerOffset)));
+        }
+    }
+
+    return true;
+}
+
 bool XzeroCore::docroot(HttpRequest* in, FlowParams& args)
 {
-	in->documentRoot = args.getString(1);
+    in->documentRoot = args.getString(1);
 
-	if (in->documentRoot.empty()) {
-		in->log(Severity::error, "Setting empty document root is not allowed.");
-		in->status = HttpStatus::InternalServerError;
-		in->finish();
-		return true;
-	}
+    in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path);
+    // XXX; we could autoindex here in case the user told us an autoindex before the docroot.
 
-	// cut off trailing slash
-	size_t trailerOffset = in->documentRoot.size() - 1;
-	if (in->documentRoot[trailerOffset] == '/')
-		in->documentRoot.resize(trailerOffset);
-
-	in->fileinfo = in->connection.worker().fileinfo(in->documentRoot + in->path);
-	// XXX; we could autoindex here in case the user told us an autoindex before the docroot.
-
-	return redirectOnIncompletePath(in);
+    return redirectOnIncompletePath(in);
 }
 
 bool XzeroCore::alias(HttpRequest* in, FlowParams& args)

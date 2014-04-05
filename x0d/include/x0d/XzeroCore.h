@@ -13,6 +13,10 @@
 #include <x0/http/HttpStatus.h>
 #include <x0/Api.h>
 
+namespace x0 {
+    class Instr;
+}
+
 namespace x0d {
 
 //! \addtogroup http
@@ -99,6 +103,7 @@ private:
 	void file_is_exe(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
 	// main handlers
+    bool verify_docroot(x0::Instr* call);
 	bool docroot(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	bool alias(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	bool redirect(x0::HttpRequest *r, x0::FlowVM::Params& args);
