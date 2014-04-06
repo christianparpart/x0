@@ -36,8 +36,8 @@ public:
     void setCode(std::vector<Instruction>&& code);
 
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
-    const std::vector<const void*>& directThreadedCode() const { return directThreadedCode_; }
-    std::vector<const void*>& directThreadedCode() { return directThreadedCode_; }
+    const std::vector<uint64_t>& directThreadedCode() const { return directThreadedCode_; }
+    std::vector<uint64_t>& directThreadedCode() { return directThreadedCode_; }
 #endif
 
     std::unique_ptr<Runner> createRunner();
@@ -51,7 +51,7 @@ private:
     size_t registerCount_;
     std::vector<Instruction> code_;
 #if defined(ENABLE_FLOW_DIRECT_THREADED_VM)
-    std::vector<const void*> directThreadedCode_;
+    std::vector<uint64_t> directThreadedCode_;
 #endif
 };
 

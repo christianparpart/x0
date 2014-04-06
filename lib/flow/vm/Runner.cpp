@@ -134,11 +134,11 @@ bool Runner::loop()
         ++pc; \
         TRACE(2, "%s", disassemble((Instruction) *pc, (pc - code.data()) / 2).c_str());
 
-    #define set_pc(offset)  (pc = code.data() + (offset) * 2)
+    #define set_pc(offset)  ((void*)(pc = code.data() + (offset) * 2))
     #define get_pc()        ((pc - code.data()) / 2)
-    #define jump_to(offset) goto **set_pc(offset)
-    #define jump            goto **pc
-    #define next            goto **++pc
+    #define jump_to(offset) goto *set_pc(offset)
+    #define jump            goto *(void*)*pc
+    #define next            goto *(void*)*++pc
 #else
     const auto& code = handler_->code();
 
@@ -277,12 +277,12 @@ bool Runner::loop()
         const auto& source = handler_->code();
         code.resize(source.size() * 2);
 
-        const void** pc = code.data();
+        uint64_t* pc = code.data();
         for (size_t i = 0, e = source.size(); i != e; ++i) {
             Instruction instr = source[i];
 
-            *pc++ = ops[opcode(instr)];
-            *pc++ = (void*) instr;
+            *pc++ = (uint64_t) ops[opcode(instr)];
+            *pc++ = instr;
         }
     }
     //const void** pc = code.data();
