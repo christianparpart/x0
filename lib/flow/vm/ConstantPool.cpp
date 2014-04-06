@@ -1,6 +1,7 @@
 #include <x0/flow/vm/ConstantPool.h>
 #include <iostream>
 #include <iomanip>
+#include <inttypes.h>
 
 namespace x0 {
 namespace FlowVM {
@@ -267,7 +268,7 @@ void ConstantPool::dump() const
     if (!numbers_.empty()) {
         printf("\n; Integer Constants\n");
         for (size_t i = 0, e = numbers_.size(); i != e; ++i) {
-            printf(".const integer %5zu = %li\n", i, (FlowNumber) numbers_[i]);
+            printf(".const integer %5zu = %" PRIi64 "\n", i, (FlowNumber) numbers_[i]);
         }
     }
 
@@ -321,7 +322,7 @@ void ConstantPool::dump() const
         printf("\n; Match Table\n");
         for (size_t i = 0, e = matchDefs_.size(); i != e; ++i) {
             const MatchDef& def = matchDefs_[i];
-            printf(".const match %7zu = handler %zu, op %s, elsePC %lu ; %s\n",
+            printf(".const match %7zu = handler %zu, op %s, elsePC %" PRIu64 " ; %s\n",
                 i,
                 def.handlerId,
                 tos(def.op).c_str(),
@@ -332,7 +333,7 @@ void ConstantPool::dump() const
             for (size_t k = 0, m = def.cases.size(); k != m; ++k) {
                 const MatchCaseDef& one = def.cases[k];
 
-                printf("                       case %3zu = label %2zu, pc %4zu ; ", k, one.label, one.pc);
+                printf("                       case %3zu = label %2" PRIu64 ", pc %4" PRIu64 " ; ", k, one.label, one.pc);
 
                 if (def.op == MatchClass::RegExp) {
                     printf("/%s/\n", regularExpressions_[one.label].c_str());

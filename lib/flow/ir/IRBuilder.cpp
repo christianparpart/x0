@@ -12,6 +12,7 @@
 #include <x0/flow/ir/Instructions.h>
 #include <x0/DebugLogger.h> // XZERO_DEBUG
 #include <assert.h>
+#include <inttypes.h>
 #include <math.h>
 
 namespace x0 {
@@ -625,7 +626,7 @@ Value* IRBuilder::createI2S(Value* rhs, const std::string& name)
 
     if (auto i = dynamic_cast<ConstantInt*>(rhs)) {
         char buf[64];
-        snprintf(buf, sizeof(buf), "%li", i->get());
+        snprintf(buf, sizeof(buf), "%" PRIi64 "", i->get());
         return get(buf);
     }
 

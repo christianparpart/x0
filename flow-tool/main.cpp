@@ -54,7 +54,7 @@ int lexdump(const char* filename) // {{{
 		FlowLocation location = lexer.location();
 		std::string raw = lexer.location().text();
 
-		printf("[%04ld:%03ld.%04ld - %04ld:%03ld.%04ld] %10s %-30s %s\n",
+		printf("[%04zu:%03zu.%04zu - %04zu:%03zu.%04zu] %10s %-30s %s\n",
 			location.begin.line, location.begin.column, location.begin.offset,
 			location.end.line, location.end.column, location.end.offset,
 			t.c_str(), raw.c_str(),

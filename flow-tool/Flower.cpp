@@ -32,6 +32,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <inttypes.h>
 
 using namespace x0;
 
@@ -370,19 +371,19 @@ void Flower::flow_print(FlowVM::Params& args)
 
 void Flower::flow_print_I(FlowVM::Params& args)
 {
-	printf("%li\n", args.getInt(1));
+	printf("%" PRIi64 "\n", args.getInt(1));
 }
 
 void Flower::flow_print_SI(FlowVM::Params& args)
 {
-	printf("%s %li\n",
+	printf("%s %" PRIi64 "\n",
             args.getString(1).str().c_str(),
             args.getInt(2));
 }
 
 void Flower::flow_print_IS(FlowVM::Params& args)
 {
-	printf("%li %s\n",
+	printf("%" PRIi64 " %s\n",
             args.getInt(1),
             args.getString(2).str().c_str());
 }
@@ -392,7 +393,7 @@ void Flower::flow_print_i(FlowVM::Params& args)
     const FlowIntArray& array = args.getIntArray(1);
     printf("int array size: #%zu\n", array.size());
     for (FlowNumber number: array) {
-        printf("%li\n", number);
+        printf("%" PRIi64 "\n", number);
     }
     printf("\n");
 }
@@ -436,7 +437,7 @@ void Flower::flow_log(FlowVM::Params& args)
     const FlowString& message = args.getString(1);
     FlowNumber severity = args.getInt(2);
 
-    printf("<%lu> %s\n", severity, message.str().c_str());
+    printf("<%" PRIi64 "> %s\n", severity, message.str().c_str());
 }
 
 void Flower::flow_assert(FlowVM::Params& args)
@@ -463,7 +464,7 @@ void Flower::flow_getcwd(FlowVM::Params& args)
 void Flower::flow_random(FlowVM::Params& args)
 {
     srand(time(NULL));
-    args.setResult(random());
+    args.setResult(static_cast<FlowNumber>(random()));
 }
 
 void Flower::flow_getenv(FlowVM::Params& args)
@@ -527,7 +528,7 @@ void Flower::flow_numbers(FlowVM::Params& args)
     const FlowIntArray& array = args.getIntArray(1);
 
     for (FlowNumber value: array) {
-        printf("number: %li\n", value);
+        printf("number: %" PRIi64 "\n", value);
     }
 }
 

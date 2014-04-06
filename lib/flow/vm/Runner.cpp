@@ -14,6 +14,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cmath>
+#include <inttypes.h>
 #include <x0/sysconfig.h>
 
 #if !defined(XZERO_NDEBUG)
@@ -721,7 +722,7 @@ bool Runner::loop()
 
     instr (I2S) { // A = itoa(B)
         char buf[64];
-        if (snprintf(buf, sizeof(buf), "%li", (int64_t) data_[B]) > 0) {
+        if (snprintf(buf, sizeof(buf), "%" PRIi64 "", (int64_t) data_[B]) > 0) {
             data_[A] = (Register) newString(buf);
         } else {
             data_[A] = (Register) emptyString();

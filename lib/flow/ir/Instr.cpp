@@ -13,6 +13,7 @@
 #include <x0/flow/ir/BasicBlock.h>
 #include <utility>
 #include <assert.h>
+#include <inttypes.h>
 
 namespace x0 {
 
@@ -130,7 +131,7 @@ void Instr::dumpOne(const char* mnemonic)
         Value* arg = operands_[i];
         if (dynamic_cast<Constant*>(arg)) {
             if (auto i = dynamic_cast<ConstantInt*>(arg)) {
-                printf("%li", i->get());
+                printf("%" PRIi64  "", i->get());
                 continue;
             }
             if (auto s = dynamic_cast<ConstantString*>(arg)) {
@@ -164,7 +165,7 @@ void Instr::dumpOne(const char* mnemonic)
                     case FlowType::IntArray:
                         for (const auto& v: ar->get()) {
                             if (i) printf(", ");
-                            printf("%li", static_cast<ConstantInt*>(v)->get());
+                            printf("%" PRIi64 "", static_cast<ConstantInt*>(v)->get());
                             ++i;
                         }
                         break;
