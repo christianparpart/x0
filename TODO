@@ -1,12 +1,48 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+ensure 32bit OS compatibility
+
+flow:
+  - do only generate target code for handlers that are flagged as public (or export, and thus no sub-handler).
+  - add `x0d --dump-du` (dump def-use chain)
+  - SSA
+    - mem2reg propagation (pass manager stage: before, one-time)
+    - reg2mem propagation (pass manager stage: after, one-time)
+    - constant propagation (pass manager stage: main)
+
+precompressed handler seems buggy on ialu
+  - maybe response content length bug?
+
+listen bind: 127.0.0.1;
+  trapni@ialu [~/projects/x0] > ./x0d/src/x0d -X -o console -s diag -f ./ialu.conf
+  [0013:34] No matching signature for listen(PIIIBP)V.
+  [0013:34] Possible candidate listen(PIIIB)V failed. Superfluous arguments passed to callee "listen": "bind", "bind", "bind", "bind".
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+accesslog:
+
+accesslog.format id: string, format: string;
+  %%        %
+  %q        query
+  %p        path
+  %h        host
+  %s        sent bytes (content body)
+  %S        sent bytes on transport level
+  %t        timestamp
+  %T        timespan, for the total request handling
+  %c        status code
+  %>{name}  request header value
+  %<{name}  response header value
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - QA:
+  - [cmake] fail configure step when gnutls/gnutls.h is not present. (found on 14.04 ubuntu)
   - [debian] auto-enable bash completion when installing x0d
   - [director] disallow invalid POST args (currently ignored / not detected)
   - [http] remove flag IsHandlingRequest
   - [flow] how's plugin list info passed from source to vm Program ?
     - seems like the obvious way is not used (wtf?)
+  - [director] if all backends are offline, return 503 instantly (do not enqueue).
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; HTTP connection lifecycle diagram
