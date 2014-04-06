@@ -40,6 +40,12 @@ public:
     bool isUsed() const { return !uses_.empty(); }
     const std::vector<Instr*>& uses() const { return uses_; }
 
+    /**
+     * @brief Replaces all uses of \c this value as operand with value \p newUse instead.
+     * @param newUse the new value to be used.
+     */
+    void replaceAllUsesWith(Value* newUse);
+
     virtual void dump() = 0;
 
 private:

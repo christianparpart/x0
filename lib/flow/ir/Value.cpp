@@ -6,6 +6,7 @@
  */
 
 #include <x0/flow/ir/Value.h>
+#include <x0/flow/ir/Instr.h>
 #include <algorithm>
 #include <assert.h>
 
@@ -56,6 +57,15 @@ void Value::removeUse(Instr* user)
 
     if (i != uses_.end()) {
         uses_.erase(i);
+    }
+}
+
+void Value::replaceAllUsesWith(Value* newUse)
+{
+    auto myUsers = uses_;
+
+    for (Instr* user: myUsers) {
+        user->replaceOperand(this, newUse);
     }
 }
 
