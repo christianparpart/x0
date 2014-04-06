@@ -258,7 +258,7 @@ void TargetCodeGenerator::visit(StoreInstr& instr)
     // const int
     if (auto integer = dynamic_cast<ConstantInt*>(rhs)) {
         FlowNumber number = integer->get();
-        if (number >= -32768 && number <= 32767) { // limit to 16bit signed width
+        if (number == int16_t(number)) { // limit to 16bit signed width
             emit(Opcode::IMOV, lhsReg, number);
         } else {
             emit(Opcode::NCONST, lhsReg, cp_.makeInteger(number));
@@ -410,7 +410,12 @@ FlowVM::Operand TargetCodeGenerator::getRegister(Value* value)
     if (ConstantInt* integer = dynamic_cast<ConstantInt*>(value)) {
         // FIXME this constant initialization should pretty much be done in the entry block
         Register reg = allocate(1);
-        emit(Opcode::IMOV, reg, integer->get());
+        FlowNumber number = integer->get();
+        if (number == int16_t(number)) { // limit to 16bit signed width
+            emit(Opcode::IMOV, reg, number);
+        } else {
+            emit(Opcode::NCONST, reg, cp_.makeInteger(number));
+        }
         return reg;
     }
 
