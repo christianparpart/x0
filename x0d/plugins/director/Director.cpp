@@ -1066,13 +1066,15 @@ void Director::schedule(RequestNotes* notes, RequestShaper::Node* bucket)
 		notes->bucket->put(1);
 		notes->tokens = 0;
 
-        if (result1 == SchedulerStatus::Unavailable) {
-            if (enqueueOnUnavailable_ == false) {
-                serviceUnavailable(notes);
-            }
+        if (result1 == SchedulerStatus::Unavailable && enqueueOnUnavailable_ == false) {
+            serviceUnavailable(notes);
             return;
         }
-	}
+    } else if (unlikely(notes->bucket->ceil() == 0 && !enqueueOnUnavailable_)) {
+        // there were no tokens available and we prefer not to enqueue and wait
+        serviceUnavailable(notes);
+        return;
+    }
 
     tryEnqueue(notes);
 }
