@@ -488,6 +488,10 @@ bool ApiRequest::update(Director* director)
 	if (hasParam("allow-x-sendfile") && !loadParam("allow-x-sendfile", allowXSendfile))
 		return false;
 
+	bool enqueueOnUnavailable = director->enqueueOnUnavailable();
+	if (hasParam("enqueue-on-unavailable") && !loadParam("enqueue-on-unavailable", enqueueOnUnavailable))
+		return false;
+
 	std::string hcHostHeader = director->healthCheckHostHeader();
 	if (hasParam("health-check-host-header") && !loadParam("health-check-host-header", hcHostHeader))
 		return false;
@@ -546,6 +550,7 @@ bool ApiRequest::update(Director* director)
 	director->setMaxRetryCount(maxRetryCount);
 	director->setStickyOfflineMode(stickyOfflineMode);
 	director->setAllowXSendfile(allowXSendfile);
+    director->setEnqueueOnUnavailable(enqueueOnUnavailable);
 	director->setHealthCheckHostHeader(hcHostHeader);
 	director->setHealthCheckRequestPath(hcRequestPath);
 	director->setHealthCheckFcgiScriptFilename(hcFcgiScriptFileName);

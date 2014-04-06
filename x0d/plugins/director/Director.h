@@ -71,6 +71,7 @@ private:
 	bool enabled_;				//!< whether this director actually load balances or raises a 503 when being disabled temporarily.
 	bool stickyOfflineMode_;    //!< whether a backend should be marked disabled if it becomes online again
 	bool allowXSendfile_;		//!< whether or not to evaluate the X-Sendfile response header.
+    bool enqueueOnUnavailable_; //!< whether to enqueue or to 503 the request when the request could not be delivered (no backend is UP).
 
 	std::vector<BackendCluster> backends_; //!< set of backends managed by this director.
 
@@ -143,6 +144,9 @@ public:
 
 	bool allowXSendfile() const { return allowXSendfile_; }
 	void setAllowXSendfile(bool value) { allowXSendfile_ = value; }
+
+    bool enqueueOnUnavailable() const { return enqueueOnUnavailable_; }
+    void setEnqueueOnUnavailable(bool value) { enqueueOnUnavailable_ = value; }
 
 	size_t queueLimit() const { return queueLimit_; }
 	void setQueueLimit(size_t value) { queueLimit_ = value; }

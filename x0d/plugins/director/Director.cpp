@@ -86,6 +86,8 @@ Director::Director(HttpWorker* worker, const std::string& name) :
 	healthCheckFcgiScriptFilename_(),
 	enabled_(true),
 	stickyOfflineMode_(false),
+    allowXSendfile_(false),          // disabled by default for security reasons
+    enqueueOnUnavailable_(false),
 	backends_(),
 	queueLimit_(128),
 	queueTimeout_(TimeSpan::fromSeconds(60)),
@@ -423,6 +425,7 @@ void Director::writeJSON(JsonWriter& json) const
 		.name("max-retry-count")(maxRetryCount_)
 		.name("sticky-offline-mode")(stickyOfflineMode_)
 		.name("allow-x-sendfile")(allowXSendfile_)
+		.name("enqueue-on-unavailable")(enqueueOnUnavailable_)
 		.name("connect-timeout")(connectTimeout_.totalSeconds())
 		.name("read-timeout")(readTimeout_.totalSeconds())
 		.name("write-timeout")(writeTimeout_.totalSeconds())
@@ -559,6 +562,14 @@ bool Director::load(const std::string& path)
 	if (!settings.load("director", "allow-x-sendfile", value)) {
 		worker()->log(Severity::warn, "director: Could not load settings value director.x-sendfile in file '%s'", path.c_str());
 		allowXSendfile_ = false;
+		++changed;
+	} else {
+		allowXSendfile_ = value == "true";
+	}
+
+	if (!settings.load("director", "enqueue-on-unavailable", value)) {
+		worker()->log(Severity::warn, "director: Could not load settings value director.enqueue-on-unavailable in file '%s'", path.c_str());
+        enqueueOnUnavailable_ = false;
 		++changed;
 	} else {
 		allowXSendfile_ = value == "true";
@@ -846,6 +857,7 @@ bool Director::save()
 		<< "max-retry-count=" << maxRetryCount_ << "\n"
 		<< "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
 		<< "allow-x-sendfile=" << (allowXSendfile_ ? "true" : "false") << "\n"
+        << "enqueue-on-unavailable=" << (enqueueOnUnavailable_ ? "true" : "false") << "\n"
 		<< "connect-timeout=" << connectTimeout_.totalSeconds() << "\n"
 		<< "read-timeout=" << readTimeout_.totalSeconds() << "\n"
 		<< "write-timeout=" << writeTimeout_.totalSeconds() << "\n"
@@ -1053,9 +1065,16 @@ void Director::schedule(RequestNotes* notes, RequestShaper::Node* bucket)
 		// we could not actually processes the request, so release the token we just received.
 		notes->bucket->put(1);
 		notes->tokens = 0;
+
+        if (result1 == SchedulerStatus::Unavailable) {
+            if (enqueueOnUnavailable_ == false) {
+                serviceUnavailable(notes);
+            }
+            return;
+        }
 	}
 
-	tryEnqueue(notes);
+    tryEnqueue(notes);
 }
 
 /**

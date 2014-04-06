@@ -9,6 +9,7 @@ retry-after=60
 max-retry-count=3
 sticky-offline-mode=false
 allow-x-sendfile=false
+enqueue-on-unavailable=false
 connect-timeout=10
 read-timeout=120
 write-timeout=10

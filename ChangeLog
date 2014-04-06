@@ -18,6 +18,7 @@
 	* x0d: memory resource leak fixes upon program exit.
 	* x0d: adds sleep() shared function
 	* plugins: new plugin "access" for basic IP & CIDR network based access control.
+	* director: Adds an option to directly respond with 503 instead of enqueuing the request when the complete cluster is down.
 
 0.8.0 (2014-03-23)
 
