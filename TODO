@@ -42,7 +42,6 @@ accesslog.format id: string, format: string;
   - [http] remove flag IsHandlingRequest
   - [flow] how's plugin list info passed from source to vm Program ?
     - seems like the obvious way is not used (wtf?)
-  - [director] if all backends are offline, return 503 instantly (do not enqueue).
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; HTTP connection lifecycle diagram
