@@ -456,9 +456,11 @@ void FastCgiTransport::onConnectTimeout(x0::Socket* s)
 void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 {
 	if (s->isClosed()) {
-		log(x0::Severity::error, "connection to upstream server failed. %s", strerror(errno));
+		log(x0::Severity::error, "Connecting to upstream server failed. %s", strerror(errno));
 		rn_->request->status = x0::HttpStatus::ServiceUnavailable;
-		close();
+        // XXX explicit unref instead of close() here, because close() doesn't cover unref(), as it's only unref'ing when socket is open.
+        unref();
+        // FIXME: maybe we've the same issue in http backend, too.
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE(1, "Connected. Flushing pending data.");
 		flushPending_ = false;
