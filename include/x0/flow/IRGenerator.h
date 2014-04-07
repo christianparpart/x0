@@ -12,6 +12,8 @@
 #include <x0/flow/ASTVisitor.h>
 #include <x0/flow/ir/IRBuilder.h>
 #include <deque>
+#include <vector>
+#include <string>
 
 namespace x0 {
 
@@ -30,14 +32,14 @@ public:
     IRGenerator();
     ~IRGenerator();
 
-    static std::unique_ptr<IRProgram> generate(Unit* unit);
+    static std::unique_ptr<IRProgram> generate(Unit* unit, const std::vector<std::string>& exportedHandlers = {});
 
 private:
     class Scope;
 
+    std::vector<std::string> exports_;
     Scope* scope_;
     Value* result_;
-
     std::deque<Handler*> handlerStack_;
 
 private:

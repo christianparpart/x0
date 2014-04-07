@@ -74,7 +74,10 @@ struct fntrace3 {
 IRGenerator::IRGenerator() :
     IRBuilder(),
     ASTVisitor(),
-    scope_(new Scope())
+    exports_(),
+    scope_(new Scope()),
+    result_(nullptr),
+    handlerStack_()
 {
 }
 
@@ -83,9 +86,10 @@ IRGenerator::~IRGenerator()
     delete scope_;
 }
 
-std::unique_ptr<IRProgram> IRGenerator::generate(Unit* unit)
+std::unique_ptr<IRProgram> IRGenerator::generate(Unit* unit, const std::vector<std::string>& exportedHandlers)
 {
     IRGenerator ir;
+    ir.exports_ = exportedHandlers;
     ir.codegen(unit);
 
     return std::unique_ptr<IRProgram>(ir.program());
@@ -145,6 +149,12 @@ void IRGenerator::accept(Handler& handlerSym)
     FNTRACE();
 
     assert(handlerStack_.empty());
+
+    if (!exports_.empty()) {
+        auto i = std::find(exports_.begin(), exports_.end(), handlerSym.name());
+        if (i == exports_.end())
+            return;
+    }
 
     setHandler(getHandler(handlerSym.name()));
     setInsertPoint(createBlock("EntryPoint"));
