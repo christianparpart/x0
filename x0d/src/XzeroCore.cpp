@@ -976,7 +976,10 @@ bool XzeroCore::precompressed(HttpRequest *in, FlowParams& args)
 
 				if (pc->exists() && pc->isRegular() && pc->mtime() == in->fileinfo->mtime()) {
 					in->responseHeaders.push_back("Content-Encoding", encoding.id);
-					return in->sendfile(pc);
+					if (in->sendfile(pc)) {
+                        in->finish();
+                        return true;
+                    }
 				}
 			}
 		}
