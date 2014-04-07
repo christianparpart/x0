@@ -17,6 +17,7 @@
 	* x0d: builtin workers() is now overloaded for workers(I)V and workers(i)V; no workers.affinity(i)V anymore.
 	* x0d: memory resource leak fixes upon program exit.
 	* x0d: adds sleep() shared function
+	* x0d: Fixed precompressed() handler.
 	* plugins: new plugin "access" for basic IP & CIDR network based access control.
 	* director: Adds an option to directly respond with 503 instead of enqueuing the request when the complete cluster is down.
 

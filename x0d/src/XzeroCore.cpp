@@ -975,6 +975,13 @@ bool XzeroCore::precompressed(HttpRequest *in, FlowParams& args)
 				auto pc = in->connection.worker().fileinfo(in->fileinfo->path() + encoding.fileExtension);
 
 				if (pc->exists() && pc->isRegular() && pc->mtime() == in->fileinfo->mtime()) {
+                    // XXX we assign pc to request's fileinfo here, so we preserve a reference until the
+                    // file was fully transmitted to the client.
+                    // otherwise the pc's reference count can go down to zero at the end of this scope
+                    // without having the file fully sent out yet.
+                    // FIXME: sendfile() should accept HttpFileRef instead.
+                    in->fileinfo = pc;
+
 					in->responseHeaders.push_back("Content-Encoding", encoding.id);
 					if (in->sendfile(pc)) {
                         in->finish();
