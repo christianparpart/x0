@@ -1023,7 +1023,7 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
     if (dumpAST_)
         ASTPrinter::print(unit_.get());
 
-    std::unique_ptr<IRProgram> ir = IRGenerator::generate(unit_.get());
+    std::unique_ptr<IRProgram> ir = IRGenerator::generate(unit_.get(), {"setup", "main"});
     if (!ir) {
         fprintf(stderr, "IR generation failed. Aborting.\n");
         return false;
