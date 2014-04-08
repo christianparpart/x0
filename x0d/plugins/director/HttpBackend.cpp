@@ -76,7 +76,7 @@ private:
 	void io(Socket* s, int revents);
 	void onRequestChunk(const BufferRef& chunk);
 
-	static void onAbort(void *p);
+	static void onClientAbort(void *p);
 	void onWriteComplete();
 
 	void onConnectTimeout(x0::Socket* s);
@@ -188,7 +188,7 @@ void HttpBackend::Connection::close()
     }
 }
 
-void HttpBackend::Connection::onAbort(void *p)
+void HttpBackend::Connection::onClientAbort(void *p)
 {
 	Connection *self = reinterpret_cast<Connection *>(p);
 	self->close();
@@ -209,7 +209,7 @@ void HttpBackend::Connection::start()
 
 	TRACE("Connection.start()");
 
-	r->setAbortHandler(&Connection::onAbort, this);
+	r->setAbortHandler(&Connection::onClientAbort, this);
 
 	// request line
 	writeBuffer_.push_back(r->method);
