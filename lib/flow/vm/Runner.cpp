@@ -134,8 +134,8 @@ bool Runner::loop()
         ++pc; \
         TRACE(2, "%s", disassemble((Instruction) *pc, (pc - code.data()) / 2).c_str());
 
-    #define set_pc(offset)  (pc = code.data() + (offset) * 2)
     #define get_pc()        ((pc - code.data()) / 2)
+    #define set_pc(offset)  do { pc = code.data() + (offset) * 2; } while (0)
     #define jump_to(offset) do { set_pc(offset); jump; } while (0)
     #define jump            goto *(void*)*pc
     #define next            goto *(void*)*++pc
@@ -146,9 +146,9 @@ bool Runner::loop()
         l_##name: \
         TRACE(2, "%s", disassemble(*pc, pc - code.data()).c_str());
 
-    #define set_pc(offset)  (pc = code.data() + (offset))
     #define get_pc()        (pc - code.data())
-    #define jump_to(offset) pc = code.data() + (offset); goto *ops[OP]
+    #define set_pc(offset)  do { pc = code.data() + (offset); } while (0)
+    #define jump_to(offset) do { set_pc(offset); jump; } while (0)
     #define jump            goto *ops[OP]
     #define next            goto *ops[opcode(*++pc)]
 #endif
