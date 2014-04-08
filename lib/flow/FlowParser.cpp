@@ -1670,6 +1670,8 @@ FlowVM::Signature makeSignature(const Callable* callee, const ParamList& params)
 
 std::unique_ptr<CallExpr> FlowParser::resolve(const std::list<Callable*>& callables, ParamList&& params)
 {
+    FNTRACE();
+
     // attempt to find a full match first
     for (Callable* callee: callables) {
         if (callee->isDirectMatch(params)) {
