@@ -191,6 +191,7 @@ void HttpBackend::Connection::close()
 void HttpBackend::Connection::onClientAbort(void *p)
 {
 	Connection *self = reinterpret_cast<Connection *>(p);
+	self->log(x0::Severity::diag, "Client closed connection early. Aborting request to upstream HTTP server.");
 	self->close();
 }
 
