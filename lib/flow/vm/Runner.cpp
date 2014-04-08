@@ -301,6 +301,7 @@ bool Runner::loop()
     // }}}
     // {{{ control
     instr (EXIT) {
+        state_ = Inactive;
         return A != 0;
     }
 
@@ -791,6 +792,7 @@ bool Runner::loop()
         }
 
         if (handled) {
+            state_ = Inactive;
             return true;
         }
 
