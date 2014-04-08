@@ -338,7 +338,9 @@ void HttpBackend::Connection::onConnected(Socket* s, int revents)
 		TRACE("onConnected: failed");
 		rn_->request->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
 		backend_->setState(HealthState::Offline);
-		close();
+
+        // XXX explicit unref instead of close() here, because close() doesn't cover unref(), as it's only unref'ing when socket is open.
+        unref();
 	}
 }
 
