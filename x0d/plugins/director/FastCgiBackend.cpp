@@ -460,7 +460,6 @@ void FastCgiTransport::onConnectComplete(x0::Socket* s, int revents)
 		rn_->request->status = x0::HttpStatus::ServiceUnavailable;
         // XXX explicit unref instead of close() here, because close() doesn't cover unref(), as it's only unref'ing when socket is open.
         unref();
-        // FIXME: maybe we've the same issue in http backend, too.
 	} else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
 		TRACE(1, "Connected. Flushing pending data.");
 		flushPending_ = false;
@@ -849,7 +848,7 @@ void FastCgiTransport::onClientAbort(void *p)
 {
 	FastCgiTransport* self = reinterpret_cast<FastCgiTransport*>(p);
 
-	self->log(x0::Severity::error, "Client closed connection early. Aborting request to upstream server.");
+	self->log(x0::Severity::diag, "Client closed connection early. Aborting request to upstream FastCGI server.");
 
 	// notify fcgi app about client abort
 	self->abortRequest();
