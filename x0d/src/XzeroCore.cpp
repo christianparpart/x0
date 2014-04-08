@@ -70,7 +70,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     setupFunction("ir.dump", &XzeroCore::dump_ir);
     setupFunction("listen", &XzeroCore::listen)
         .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port", 80)
+        .param<int>("port")
         .param<int>("backlog", 128)
         .param<int>("multi_accept", 1)
         .param<bool>("reuse_port", false);
