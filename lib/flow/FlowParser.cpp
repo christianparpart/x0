@@ -1672,6 +1672,8 @@ std::unique_ptr<CallExpr> FlowParser::resolve(const std::list<Callable*>& callab
 {
     FNTRACE();
 
+    auto inputSignature = makeSignature(callables.front(), params);
+
     // attempt to find a full match first
     for (Callable* callee: callables) {
         if (callee->isDirectMatch(params)) {
@@ -1693,7 +1695,7 @@ std::unique_ptr<CallExpr> FlowParser::resolve(const std::list<Callable*>& callab
     }
 
     if (result.empty()) {
-        reportError("No matching signature for %s.", makeSignature(callables.front(), params).to_s().c_str());
+        reportError("No matching signature for %s.", inputSignature.to_s().c_str());
         for (const auto& me: matchErrors) {
             reportError("Possible candidate %s failed. %s", me.first->signature().to_s().c_str(), me.second.c_str());
         }
