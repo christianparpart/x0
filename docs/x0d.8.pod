@@ -7,7 +7,7 @@ x0d - high performance HTTP web server
 x0d [B<-c>|B<--config> PATH] [B<-X>|B<--no-fork>] [B<-G>|B<--guard>] [B<--systemd>] \
     [B<-G>|B<--guard>] [B<-p>|B<--pid-file> PATH] \
     [B<-u>|B<--user> USER] [B<-g>|B<--group> GROUP] \
-    [B<-L>|B<--log-severity> error|warning|notice|info|debug] \
+    [B<-L>|B<--log-severity> error|warning|notice|info|diag|debug] \
     [B<-l>|B<--log-target> syslog|file|systemd|console] \
     [B<-l>|B<--log-file> PATH] \
     [B<-i>|B<--instant> PATH[,PORT]] \
@@ -77,7 +77,7 @@ all log entries will be logged into a special format into stdout.
 
 =item B<-L,--log-severity=VALUE>
 
-Specifies the logging severity, one of: error, warning, notice, info, or debug.
+Specifies the logging severity, one of: error, warning, notice, info, diag, or debug.
 Defaults to "info".
 
 =item B<-i,--instant=PATH[,PORT]>
@@ -119,6 +119,43 @@ Prints the configuration file as backend Intermediate Representation (IR).
 =item B<--dump-tc>
 
 Prints the configuration file as generated Target Code as used by the Flow Virtual Machine.
+
+=back
+
+=head1 ERROR SEVERITIES
+
+=over 15
+
+=item B<error>
+
+Unrecoverable exceptions that affect service healthiness, such as socket listening errors,
+too man open file descriptors or disk write errors.
+
+Errors that affect the boot sequence will cause the service to halt.
+Errors that occur during runtime will be logged but will not cause a service shutdown.
+
+=item B<warn>
+
+Recoverable failure events. Such as a backend a failed resource load that provides a default value.
+
+=item B<notice>
+
+Events that cause change in service behaviour, such as backend nodes changing state (from/to online or offline).
+
+=item B<info>
+
+Purely informational messages, such as periodical statistical informations.
+
+=item B<diag>
+
+Diagnostic messages that help the application developer to understand the behaviour of B<x0d> or
+related services.
+
+This includes (but not limited to) logging of early client aborts, or other end-point I/O errors.
+
+=item B<debug>
+
+Only useful when developing/debugging B<x0d>. Not recommended for production use.
 
 =back
 

@@ -22,6 +22,7 @@
 	* plugins: new plugin "access" for basic IP & CIDR network based access control.
 	* director: Adds an option to directly respond with 503 instead of enqueuing the request when the complete cluster is down.
 	* director: Fixed bug in HTTP and FastCGI backends that caused hanging client connections on offline backends.
+	* doc: x0d man-page extended to  describe error severities.
 
 0.8.0 (2014-03-23)
 
