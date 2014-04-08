@@ -91,6 +91,9 @@ private:
 
 	virtual void log(x0::LogMessage&& msg);
 
+    template<typename... Args>
+    void log(Severity severity, const char* fmt, Args&&... args);
+
 	inline void start();
 
 public:
@@ -470,6 +473,12 @@ void HttpBackend::Connection::log(x0::LogMessage&& msg)
 		msg.addTag("http-backend");
 		rn_->request->log(std::move(msg));
 	}
+}
+
+template<typename... Args>
+inline void HttpBackend::Connection::log(Severity severity, const char* fmt, Args&&... args)
+{
+	log(LogMessage(severity, fmt, args...));
 }
 
 void HttpBackend::Connection::io(Socket* s, int revents)
