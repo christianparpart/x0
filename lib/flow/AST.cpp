@@ -388,11 +388,12 @@ void ParamList::reorder(const FlowVM::NativeCallback* native, std::vector<std::s
         }
 
         if (nativeIndex == -1) {
-            superfluous->push_back(localName);
             int other = find(otherName);
             if (other != -1) {
                 // OK: found expected arg at [other].
                 swap(i, other);
+            } else {
+                superfluous->push_back(localName);
             }
             continue;
         }
@@ -401,6 +402,12 @@ void ParamList::reorder(const FlowVM::NativeCallback* native, std::vector<std::s
             int other = find(otherName);
             assert(other != -1);
             swap(i, other);
+        }
+    }
+
+    if (argc < names_.size()) {
+        for (size_t i = argc, e = names_.size(); i != e; ++i) {
+            superfluous->push_back(names_[i]);
         }
     }
 
