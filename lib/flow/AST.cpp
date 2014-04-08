@@ -118,6 +118,8 @@ const FlowVM::Signature& Callable::signature() const
 
 static inline void completeDefaultValue(ParamList& args, FlowType type, const void* defaultValue, const std::string& name) // {{{
 {
+    //printf("completeDefaultValue(type:%s, name:%s)\n", tos(type).c_str(), name.c_str());
+
     static const FlowLocation loc;
 
     switch (type) {
@@ -184,6 +186,8 @@ bool Callable::isDirectMatch(const ParamList& params) const
 
 bool Callable::tryMatch(ParamList& params, Buffer* errorMessage) const
 {
+    //printf("Callable(%s).tryMatch()\n", name().c_str());
+
     const FlowVM::NativeCallback* native = nativeCallback();
 
     if (params.empty() && (!native || native->signature().args().empty()))
@@ -214,6 +218,7 @@ bool Callable::tryMatch(ParamList& params, Buffer* errorMessage) const
         // reorder params (and detect superfluous params)
         std::vector<std::string> superfluous;
         params.reorder(native, &superfluous);
+
         if (!superfluous.empty()) {
             std::string t;
             for (const auto& s: superfluous) {
@@ -298,6 +303,7 @@ ParamList::~ParamList()
 void ParamList::push_back(const std::string& name, std::unique_ptr<Expr>&& arg)
 {
     assert(names_.size() == values_.size() && "Cannot mix named with unnamed parameters.");
+    assert(names_.size() == values_.size());
 
     names_.push_back(name);
     values_.push_back(arg.release());
@@ -321,6 +327,8 @@ void ParamList::replace(size_t index, std::unique_ptr<Expr>&& value)
 bool ParamList::replace(const std::string& name, std::unique_ptr<Expr>&& value)
 {
     assert(!names_.empty() && "Cannot mix unnamed with named parameters.");
+    assert(names_.size() == values_.size());
+
     for (size_t i = 0, e = names_.size(); i != e; ++i) {
         if (names_[i] == name) {
             delete values_[i];
@@ -377,10 +385,14 @@ void ParamList::reorder(const FlowVM::NativeCallback* native, std::vector<std::s
 
     assert(values_.size() >= argc && "Argument count mismatch.");
 
+    //printf("reorder: argc=%zu, names#=%zu\n", argc, names_.size());
     for (size_t i = 0; i != argc; ++i) {
         const std::string& localName = names_[i];
         const std::string& otherName = native->getNameAt(i);
         int nativeIndex = native->find(localName);
+
+        //printf("reorder: localName=%s, otherName=%s, nindex=%i\n", localName.c_str(), otherName.c_str(), nativeIndex);
+        //ASTPrinter::print(values_[i]);
 
         if (static_cast<size_t>(nativeIndex) == i) {
             // OK: argument at correct position
@@ -419,7 +431,7 @@ void ParamList::dump(const char* title)
     if (title && *title) {
         printf("%s\n", title);
     }
-    for (int i = 0, e = names_.size(); i != e; ++i) {
+    for (int i = 0, e = size(); i != e; ++i) {
         printf("%16s: ", names_[i].c_str());
         ASTPrinter::print(values_[i]);
     }
