@@ -306,7 +306,6 @@ bool Runner::loop()
 
     instr (JMP) {
         jump_to(A);
-        jump;
     }
 
     instr (JN) {
