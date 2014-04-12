@@ -31,6 +31,7 @@ set(x0_base_SRC
   base/Library.cpp
   base/Logger.cpp
   base/Logging.cpp
+  base/LogFile.cpp
   base/MemoryPool.cpp
   base/NativeSymbol.cpp
   base/Process.cpp
