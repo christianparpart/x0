@@ -8,6 +8,7 @@
 
 #include <x0/LogFile.h>
 #include <x0/Buffer.h>
+#include <x0/io/SinkVisitor.h>
 #include <x0/Api.h>
 #include <x0/sysconfig.h>
 
@@ -140,6 +141,19 @@ bool LogFile::write(std::unique_ptr<Buffer>&& message)
     return true;
 }
 
+ssize_t LogFile::write(const void *buffer, size_t size)
+{
+    std::unique_ptr<Buffer> msg(new Buffer(size + 1));
+    msg->push_back(buffer, size);
+    write(std::move(msg));
+    return size;
+}
+
+void LogFile::accept(SinkVisitor& v)
+{
+    v.visit(*this);
+}
+
 void* LogFile::start(void* self)
 {
     reinterpret_cast<LogFile*>(self)->main();
@@ -149,7 +163,7 @@ void* LogFile::start(void* self)
 void LogFile::main()
 {
 #if defined(HAVE_PTHREAD_SETNAME_NP)
-    pthread_setname_np(tid_, "xzero-logwriter");
+    pthread_setname_np(tid_, "xzero-logger");
 #endif
 
     while (true) {

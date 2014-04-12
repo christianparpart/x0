@@ -48,6 +48,7 @@ protected:
 	virtual void visit(SocketSink&);
 	virtual void visit(PipeSink&);
 	virtual void visit(SyslogSink&);
+	virtual void visit(LogFile&);
 };
 
 //@}

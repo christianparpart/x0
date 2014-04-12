@@ -9,6 +9,7 @@
 #pragma once
 
 #include <x0/Buffer.h>
+#include <x0/io/Sink.h>
 #include <x0/Api.h>
 #include <memory>
 #include <atomic>
@@ -25,12 +26,15 @@ namespace x0 {
  * used to write synchronously into the log file.
  *
  */
-class X0_API LogFile {
+class X0_API LogFile : public Sink {
 public:
     explicit LogFile(const std::string& path);
     ~LogFile();
 
     bool write(std::unique_ptr<Buffer>&& message);
+
+    ssize_t write(const void *buffer, size_t size) override;
+	void accept(SinkVisitor& v) override;
 
     size_t pending() const { return pending_.load(); }
     size_t dropped() const { return dropped_.load(); }

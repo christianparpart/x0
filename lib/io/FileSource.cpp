@@ -12,6 +12,7 @@
 #include <x0/io/SocketSink.h>
 #include <x0/io/PipeSink.h>
 #include <x0/io/SyslogSink.h>
+#include <x0/LogFile.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -115,6 +116,23 @@ void FileSource::visit(PipeSink& sink)
 }
 
 void FileSource::visit(SyslogSink& sink)
+{
+	char buf[8 * 1024];
+	result_ = pread(handle(), buf, sizeof(buf) - 1, offset_);
+
+	if (result_ <= 0)
+		return;
+
+	result_ = sink.write(buf, result_);
+
+	if (result_ <= 0)
+		return;
+
+	offset_ += result_;
+	count_ -= result_;
+}
+
+void FileSource::visit(LogFile& sink)
 {
 	char buf[8 * 1024];
 	result_ = pread(handle(), buf, sizeof(buf) - 1, offset_);

@@ -18,6 +18,7 @@ class FileSink;
 class SocketSink;
 class PipeSink;
 class SyslogSink;
+class LogFile;
 
 //! \addtogroup io
 //@{
@@ -36,6 +37,7 @@ public:
 	virtual void visit(SocketSink&) = 0;
 	virtual void visit(PipeSink&) = 0;
 	virtual void visit(SyslogSink&) = 0;
+    virtual void visit(LogFile&) = 0;
 };
 
 //@}
