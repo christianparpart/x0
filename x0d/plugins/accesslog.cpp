@@ -25,7 +25,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/SyslogSink.h>
-#include <x0/io/FileSink.h>
+#include <x0/LogFile.h>
 #include <x0/Logger.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
@@ -50,7 +50,7 @@ class AccesslogPlugin :
 	public x0d::XzeroPlugin
 {
 private:
-	typedef std::unordered_map<std::string, std::shared_ptr<x0::FileSink>> LogMap;
+	typedef std::unordered_map<std::string, std::shared_ptr<x0::LogFile>> LogMap;
 
 #if defined(HAVE_SYSLOG_H)
 	x0::SyslogSink syslogSink_;
@@ -71,7 +71,7 @@ private:
 
 		~RequestLogger()
 		{
-			x0::Buffer sstr;
+            x0::Buffer sstr;
 			sstr << hostname(in_);
 			sstr << " - "; // identity as of identd
 			sstr << username(in_) << ' ';
@@ -162,7 +162,7 @@ private:
 				in->setCustomData<RequestLogger>(this, i->second.get(), in);
 			}
 		} else {
-			auto fileSink = new x0::FileSink(filename, O_APPEND | O_WRONLY | O_CREAT | O_LARGEFILE | O_CLOEXEC, 0644);
+			auto fileSink = new x0::LogFile(filename);
 			logfiles_[filename].reset(fileSink);
 			in->setCustomData<RequestLogger>(this, fileSink, in);
 		}
