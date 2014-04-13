@@ -35,7 +35,7 @@ public:
     bool write(std::unique_ptr<Buffer>&& message);
 
     ssize_t write(const void *buffer, size_t size) override;
-	void accept(SinkVisitor& v) override;
+    void accept(SinkVisitor& v) override;
 
     size_t pending() const { return pending_.load(); }
     size_t dropped() const { return dropped_.load(); }

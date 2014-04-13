@@ -55,8 +55,7 @@ LogFile::~LogFile()
     }
 
     // consume read remaining data
-    while (size_t n = readSome()) {
-        printf("post readSome ~> %zu\n", n);
+    while (readSome()) {
         onData(onData_, ev::READ);
     }
 
@@ -218,8 +217,6 @@ void LogFile::onData(ev::io& io, int revents)
     iovec* iov = new iovec[n];
     size_t vcount = 0;
 
-    //printf("onData: %zu\n", n);
-
     for (size_t i = 0; i != n; ++i) {
         Buffer* msg = reinterpret_cast<Buffer**>(readBuffer_.data())[i];
         assert(msg != nullptr);
@@ -273,10 +270,6 @@ retry:
         }
     } else {
         readBuffer_.resize(readBuffer_.size() + rv);
-    }
-
-    if (!onStop_.is_active()) {
-        printf("readSome: rv=%zi, bufsize=%zu\n", rv, readBuffer_.size());
     }
 
     return readBuffer_.size() / sizeof(void*);
