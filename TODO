@@ -1,12 +1,5 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
-flow:
-  - add `x0d --dump-du` (dump def-use chain)
-  - SSA
-    - mem2reg propagation (pass manager stage: before, one-time)
-    - reg2mem propagation (pass manager stage: after, one-time)
-    - constant propagation (pass manager stage: main)
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 accesslog:
 
@@ -24,9 +17,16 @@ accesslog.format id: string, format: string;
   %<{name}  response header value
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+flow:
+  - add `x0d --dump-du` (dump def-use chain)
+  - SSA
+    - mem2reg propagation (pass manager stage: before, one-time)
+    - reg2mem propagation (pass manager stage: after, one-time)
+    - constant propagation (pass manager stage: main)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - QA:
   - [cmake] fail configure step when gnutls/gnutls.h is not present. (found on 14.04 ubuntu)
-  - [debian] auto-enable bash completion when installing x0d
   - [director] disallow invalid POST args (currently ignored / not detected)
   - [http] remove flag IsHandlingRequest
   - [flow] how's plugin list info passed from source to vm Program ?
