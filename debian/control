@@ -7,7 +7,6 @@ Build-Depends:
   cmake,
   g++ (>= 4.8),
   pkg-config,
-  libcppunit-dev,
   libgnutls28-dev,
   libgcrypt11-dev,
   libmysqlclient-dev,
