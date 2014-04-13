@@ -1,3 +1,10 @@
+x0 (0.9.0-1) trusty; urgency=medium
+
+  * package version bump
+  * adds x0d bash completion to x0d .deb
+
+ -- Christian Parpart <trapni@gmail.com>  Sun, 13 Apr 2014 21:45:53 -0100
+
 x0 (0.8.0-8) trusty; urgency=medium
 
   * contain latest fixes in 0.8-branch
