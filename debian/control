@@ -3,9 +3,9 @@ Section: httpd
 Priority: optional
 Maintainer: Christian Parpart <trapni@gmail.com>
 Build-Depends:
-  debhelper (>= 9),
+  debhelper (>=9),
   cmake,
-  g++ (>= 4.8),
+  g++ (>=4.8),
   pkg-config,
   libgnutls28-dev,
   libgcrypt11-dev,
