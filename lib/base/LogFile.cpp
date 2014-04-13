@@ -19,9 +19,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <ev++.h>
 
 namespace x0 {
 
@@ -33,21 +36,35 @@ LogFile::LogFile(const std::string& path) :
     pending_(0),
     dropped_(0),
     writeErrors_(0),
-    tid_()
+    readBuffer_(1024 * sizeof(void*)),
+    tid_(),
+    loop_(ev_loop_new(0)),
+    onData_(loop_),
+    onCycle_(loop_),
+    onStop_(loop_)
 {
     init();
 }
 
 LogFile::~LogFile()
 {
+    onStop_.send();
+
     if (receiverFd_ != -1) {
-        pthread_cancel(tid_);
         pthread_join(tid_, nullptr);
+    }
+
+    // consume read remaining data
+    while (size_t n = readSome()) {
+        printf("post readSome ~> %zu\n", n);
+        onData(onData_, ev::READ);
     }
 
     ::close(fileFd_);
     ::close(senderFd_);
     ::close(receiverFd_);
+
+    ev_loop_destroy(loop_);
 }
 
 void LogFile::init()
@@ -58,6 +75,10 @@ void LogFile::init()
     flags |= SOCK_CLOEXEC;
 #endif
 
+#if defined(SOCK_NONBLOCK)
+    flags |= SOCK_NONBLOCK;
+#endif
+
     int protocol = 0;
     int sockets[2];
     int rv = socketpair(AF_UNIX, SOCK_STREAM | flags, protocol, sockets);
@@ -66,7 +87,10 @@ void LogFile::init()
         senderFd_ = sockets[0];
         receiverFd_ = sockets[1];
 
+#if !defined(SOCK_NONBLOCK)
         fcntl(senderFd_, F_SETFD, fcntl(senderFd_, F_GETFL) | O_NONBLOCK);
+        fcntl(receiverFd_, F_SETFD, fcntl(senderFd_, F_GETFL) | O_NONBLOCK);
+#endif
 
 #if !defined(SOCK_CLOEXEC)
         fcntl(senderFd_, F_SETFD, fcntl(senderFd_, F_GETFL) | FD_CLOEXEC);
@@ -77,6 +101,18 @@ void LogFile::init()
         shutdown(receiverFd_, SHUT_WR);
 
         fileFd_ = open();
+
+        onData_.set<LogFile, &LogFile::onData>(this);
+        onData_.set(receiverFd_, ev::READ);
+        onData_.start();
+
+        onStop_.set<LogFile, &LogFile::onStop>(this);
+        onStop_.start();
+        loop_.unref();
+
+        onCycle_.set<LogFile, &LogFile::onCycle>(this);
+        onCycle_.start();
+        loop_.unref();
 
         pthread_create(&tid_, nullptr, &LogFile::start, this);
     }
@@ -102,41 +138,44 @@ int LogFile::open()
 
 void LogFile::cycle()
 {
-    void* ptr = nullptr;
-    if (::write(senderFd_, &ptr, sizeof(ptr)) == sizeof(ptr)) {
-        printf("triggered async cycle\n");
-        return;
-    }
-
-    cycleNow();
+    onCycle_.send();
 }
 
-bool LogFile::cycleNow()
+void LogFile::onStop(ev::async& async, int revents)
 {
-    printf("cycleNow\n");
+    loop_.ref();
+    onCycle_.stop();
+
+    loop_.ref();
+    onStop_.stop();
+
+    onData_.stop();
+}
+
+void LogFile::onCycle(ev::async& async, int revents)
+{
     int newFd = open();
     if (newFd < 0) {
         std::unique_ptr<Buffer> msg(new Buffer);
         msg->printf("Could not re-open logfile %s. %s\n", path_.c_str(), strerror(errno));
         write(std::move(msg));
-        return false;
     } else {
         int oldFd = fileFd_;
         fileFd_ = newFd;
         ::close(oldFd);
-        return true;
     }
 }
 
 bool LogFile::write(std::unique_ptr<Buffer>&& message)
 {
-    void* ptr = message.get();
-    if (::write(senderFd_, &ptr, sizeof(ptr)) != sizeof(ptr)) {
+    Buffer* buf = message.get();
+
+    if (::write(senderFd_, &buf, sizeof(void*)) != sizeof(void*)) {
         dropped_++;
         return false;
     }
 
-    message.release();
+    message.release(); // transfer message ownership to write-thread
 
     return true;
 }
@@ -166,27 +205,81 @@ void LogFile::main()
     pthread_setname_np(tid_, "xzero-logger");
 #endif
 
-    while (true) {
-        void* ptr = nullptr;
-        ssize_t rv = ::read(receiverFd_, &ptr, sizeof(ptr));
+    loop_.run();
+}
 
-        if (rv < 0) {
-            continue;
-        }
-
-        if (ptr == nullptr) {
-            // cycle() writes a NULL into the stream to notify us to cycleNow().
-            cycleNow();
-            continue;
-        }
-
-        std::unique_ptr<Buffer> msg(reinterpret_cast<Buffer*>(ptr));
-        rv = ::write(fileFd_, msg->data(), msg->size());
-
-        if (rv < 0) {
-            writeErrors_++;
-        }
+void LogFile::onData(ev::io& io, int revents)
+{
+    size_t n = readSome();
+    if (n == 0) {
+        return;
     }
+
+    iovec* iov = new iovec[n];
+    size_t vcount = 0;
+
+    //printf("onData: %zu\n", n);
+
+    for (size_t i = 0; i != n; ++i) {
+        Buffer* msg = reinterpret_cast<Buffer**>(readBuffer_.data())[i];
+        assert(msg != nullptr);
+
+        iov[vcount].iov_base = msg->data();
+        iov[vcount].iov_len = msg->size();
+
+        ++vcount;
+    }
+
+    // move possible valid tail data to the beginning of the read-buffer, and cut the rest
+    readBuffer_ = readBuffer_.ref(n * sizeof(void*));
+
+    ssize_t rv = ::writev(fileFd_, iov, vcount);
+    if (rv < 0) {
+        writeErrors_++;
+    }
+
+    for (size_t i = 0; i != vcount; ++i) {
+        delete reinterpret_cast<Buffer**>(readBuffer_.data())[i];
+    }
+
+    delete[] iov;
+}
+
+/**
+ * reads as some log messages from the transfer buffer.
+ *
+ * @return number of fully read message pointers.
+ */
+size_t LogFile::readSome()
+{
+    // ensure enough free space
+    if (readBuffer_.capacity() - readBuffer_.size() < 8 * sizeof(void*)) {
+        readBuffer_.reserve(readBuffer_.capacity() * 2);
+    }
+
+retry:
+    ssize_t rv = ::read(receiverFd_, readBuffer_.end(), readBuffer_.capacity() - readBuffer_.size());
+
+    if (rv < 0) {
+        switch (errno) {
+            case EINTR:
+                goto retry;
+            case EAGAIN:
+#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
+            case EWOULDBLOCK:
+#endif
+            default:
+                return readBuffer_.size() / sizeof(void*);
+        }
+    } else {
+        readBuffer_.resize(readBuffer_.size() + rv);
+    }
+
+    if (!onStop_.is_active()) {
+        printf("readSome: rv=%zi, bufsize=%zu\n", rv, readBuffer_.size());
+    }
+
+    return readBuffer_.size() / sizeof(void*);
 }
 
 } // namespace x0

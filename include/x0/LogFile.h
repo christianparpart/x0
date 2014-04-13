@@ -16,6 +16,7 @@
 #include <string>
 #include <unistd.h>
 #include <pthread.h>
+#include <ev++.h>
 
 namespace x0 {
 
@@ -41,13 +42,18 @@ public:
     size_t writeErrors() const { return writeErrors_.load(); }
 
     void cycle();
-    bool cycleNow();
 
 private:
     void init();
     int open();
+
     static void* start(void* self);
     void main();
+
+    void onStop(ev::async& async, int revents);
+    void onCycle(ev::async& async, int revents);
+    void onData(ev::io& io, int revents);
+    size_t readSome();
 
 private:
     std::string path_;                  ///< path to log file
@@ -57,7 +63,13 @@ private:
     std::atomic<size_t> pending_;       ///< number of pending messages
     std::atomic<size_t> dropped_;       ///< number of dropped messages (due to overload)
     std::atomic<size_t> writeErrors_;   ///< log-file write error counter
+    Buffer readBuffer_;
     pthread_t tid_;                     ///< writer thread ID
+
+    ev::loop_ref loop_;
+    ev::io onData_;
+    ev::async onCycle_;
+    ev::async onStop_;
 };
 
 } // namespace x0
