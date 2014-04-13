@@ -4,3 +4,4 @@ debian/tmp/usr/share/man/*
 debian/tmp/var/log/xzero
 debian/tmp/etc/init/x0d.conf
 debian/tmp/etc/default/x0d
+debian/tmp/etc/bash_completion.d/x0d

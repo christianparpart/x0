@@ -54,6 +54,8 @@ install-stamp:
 	mkdir -p $(CURDIR)/debian/tmp/etc/default
 	mkdir -p $(CURDIR)/debian/tmp/var/log/xzero
 	mkdir -p $(CURDIR)/debian/tmp/var/run/xzero
+	mkdir -p $(CURDIR)/debian/tmp/etc/bash_completion.d
+	cp -p $(CURDIR)/contrib/x0d.bash-completion.sh $(CURDIR)/debian/tmp/etc/bash_completion.d/x0d
 	cp -p $(CURDIR)/debian/x0d.upstart $(CURDIR)/debian/tmp/etc/init/x0d.conf
 	cp -p ${CURDIR}/debian/x0d.upstart-default ${CURDIR}/debian/tmp/etc/default/x0d
 	touch $@
