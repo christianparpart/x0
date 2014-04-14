@@ -1,4 +1,8 @@
-0.9.0 (YYYY-MM-DD)
+0.10.0 (YYYY-MM-DD)
+
+	* x0d: Adds req.accept_language(string[] supportedLanguages);
+
+0.9.0 (2014-04-13)
 
 	* flow: support builtin handler/function overloading.
 	* flow: support array assignments to variables.

@@ -151,6 +151,9 @@ private:
 	void phys_mimetype(x0::HttpRequest* r, x0::FlowVM::Params& args);
 	void regex_group(x0::HttpRequest* in, x0::FlowVM::Params& args);
 
+    void req_accept_language(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool verify_req_accept_language(x0::Instr* call);
+
 	// {{{ legacy
 private:
 	unsigned long long getrlimit(int resource);

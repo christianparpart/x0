@@ -14,6 +14,7 @@
 #include <x0/flow/ir/IRHandler.h>
 #include <x0/flow/ir/IRProgram.h>
 #include <x0/flow/ir/ConstantValue.h>
+#include <x0/flow/ir/ConstantArray.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpRangeDef.h>
 #include <x0/io/CompositeSource.h>
@@ -157,6 +158,9 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
 	mainFunction("phys.size", &XzeroCore::phys_size).returnType(FlowType::Number);
 	mainFunction("phys.etag", &XzeroCore::phys_etag).returnType(FlowType::String);
 	mainFunction("phys.mimetype", &XzeroCore::phys_mimetype).returnType(FlowType::String);
+
+	mainFunction("req.accept_language", &XzeroCore::req_accept_language, FlowType::StringArray).returnType(FlowType::String)
+        .verifier(&XzeroCore::verify_req_accept_language, this);
 
     // main: getter functions
 	mainFunction("regex.group", &XzeroCore::regex_group, FlowType::Number).returnType(FlowType::String);
@@ -709,6 +713,85 @@ void XzeroCore::req_scheme(HttpRequest* in, FlowParams& args)
 void XzeroCore::req_status_code(HttpRequest* in, FlowParams& args)
 {
 	args.setResult(static_cast<FlowNumber>(in->status));
+}
+
+bool XzeroCore::verify_req_accept_language(x0::Instr* call)
+{
+    auto arg = dynamic_cast<ConstantArray*>(call->operand(1));
+    assert(arg != nullptr);
+
+    // empty-arrays aren't currently supported, but write the test in case I changed my mind on the other side. ;)
+    if (arg->get().size() == 0) {
+        log(Severity::error, "req.accept_language() requires a non-empty array argument.");
+        return false;
+    }
+
+    return true;
+}
+
+// string req.accept_language(string[] filter)
+void XzeroCore::req_accept_language(x0::HttpRequest* r, x0::FlowVM::Params& args)
+{
+    const FlowStringArray& supportedLanguages = args.getStringArray(1);
+    BufferRef acceptLanguage = r->requestHeader("Accept-Language");
+
+    if (acceptLanguage.empty()) {
+        args.setResult(supportedLanguages[0]);
+        return;
+    }
+
+    const char* i = acceptLanguage.data();
+    const char *e = i + acceptLanguage.size();
+
+    auto skipSpaces = [&]() -> bool {
+        while (i != e && std::isspace(*i)) {
+            ++i;
+        }
+        return i != e;
+    };
+
+    auto parseToken = [&]() -> BufferRef {
+        const char* beg = i;
+        while (i != e && (std::isalnum(*i) || *i == '-' || *i == '_')) {
+            ++i;
+        }
+        return BufferRef(beg, i - beg);
+    };
+
+    auto isSupported = [&](const BufferRef& language) -> bool {
+        for (const auto& lang: supportedLanguages) {
+            if (iequals(lang, language)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // AcceptLanguage   ::= Language (',' Language)*
+    // Language         ::= TOKEN [';' Attribs]
+    while (i != e) {
+        if (!skipSpaces())
+            break;
+
+        auto token = parseToken();
+
+        if (isSupported(token)) {
+            args.setResult(args.caller()->newString(token.data(), token.size()));
+            return;
+        }
+
+        // consume until delimiter
+        while (i != e && *i != ',') {
+            ++i;
+        }
+
+        // consume delimiter
+        while (i != e && (*i == ',' || std::isspace(*i))) {
+            ++i;
+        }
+    }
+
+    args.setResult(supportedLanguages[0]);
 }
 // }}}
 // {{{ connection
