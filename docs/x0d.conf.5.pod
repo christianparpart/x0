@@ -457,6 +457,22 @@ Example:
 
 =over 6
 
+=item B<req.accept_language(string[] supportedLanguages)>
+
+Evaluates the B<Accept-Language> request header and matches it against the list of supported languages.
+The supported language that is preferred by the client the most will be the result.
+If no language matches, the first language from the list of supported languages will be the result instead.
+
+Example:
+
+ handler main {
+   var lang = req.accept_language ['de', 'en', 'ja'];
+
+   log.diag ("Preferred client language: '${lang}'");
+
+   # ...
+ }
+
 =item B<req.method>
 
 Retrieves the request method, e.g. GET, POST, etc.
