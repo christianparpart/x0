@@ -1052,6 +1052,7 @@ std::unique_ptr<Expr> FlowParser::arrayExpr()
         }
     } else {
         reportError("Empty arrays are not allowed.");
+        return nullptr;
     }
 
     return std::make_unique<ArrayExpr>(loc.update(end()), std::move(fields));
