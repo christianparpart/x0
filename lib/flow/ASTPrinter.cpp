@@ -76,8 +76,12 @@ void ASTPrinter::print(const std::pair<std::string, Expr*>& node, size_t pos)
 
 void ASTPrinter::accept(Variable& variable)
 {
-	printf("Variable: %s as %s\n", variable.name().c_str(), tos(variable.initializer()->getType()).c_str());
-	print("initializer", variable.initializer());
+    if (variable.initializer()) {
+        printf("Variable: %s as %s\n", variable.name().c_str(), tos(variable.initializer()->getType()).c_str());
+        print("initializer", variable.initializer());
+    } else {
+        printf("Variable: %s (NULL)\n", variable.name().c_str());
+    }
 }
 
 void ASTPrinter::accept(Handler& handler)
