@@ -44,63 +44,63 @@ namespace WebDAV { // {{{
  */
 class Put {
 private:
-	x0::HttpRequest* request_;
-	int fd_;
-	bool created_;
+    x0::HttpRequest* request_;
+    int fd_;
+    bool created_;
 
 public:
-	Put(x0::HttpRequest* r) :
-		request_(r),
-		fd_(-1),
-		created_(false)
-	{
-	}
+    Put(x0::HttpRequest* r) :
+        request_(r),
+        fd_(-1),
+        created_(false)
+    {
+    }
 
-	bool execute()
-	{
-		TRACE("Put.file: %s\n", request_->fileinfo->path().c_str());
+    bool execute()
+    {
+        TRACE("Put.file: %s\n", request_->fileinfo->path().c_str());
 
-		if (request_->contentAvailable()) {
-			created_ = !request_->fileinfo->exists();
+        if (request_->contentAvailable()) {
+            created_ = !request_->fileinfo->exists();
 
-			if (!created_)
-				::unlink(request_->fileinfo->path().c_str());
+            if (!created_)
+                ::unlink(request_->fileinfo->path().c_str());
 
-			fd_ = ::open(request_->fileinfo->path().c_str(), O_WRONLY | O_CREAT, 0666);
-			if (fd_ < 0) {
-				perror("WebDav.Put(open)");
-				request_->status = x0::HttpStatus::Forbidden;
-				request_->finish();
-				delete this;
-				return true;
-			}
+            fd_ = ::open(request_->fileinfo->path().c_str(), O_WRONLY | O_CREAT, 0666);
+            if (fd_ < 0) {
+                perror("WebDav.Put(open)");
+                request_->status = x0::HttpStatus::Forbidden;
+                request_->finish();
+                delete this;
+                return true;
+            }
 
-			request_->setBodyCallback<Put, &Put::onContent>(this);
-		} else {
-			request_->status = x0::HttpStatus::NotImplemented;
-			request_->finish();
-			delete this;
-		}
-		return true;
-	}
+            request_->setBodyCallback<Put, &Put::onContent>(this);
+        } else {
+            request_->status = x0::HttpStatus::NotImplemented;
+            request_->finish();
+            delete this;
+        }
+        return true;
+    }
 
-	void onContent(const x0::BufferRef& chunk)
-	{
-		if (chunk.empty()) {
-			if (created_)
-				request_->status = x0::HttpStatus::Created;
-			else
-				request_->status = x0::HttpStatus::NoContent;
+    void onContent(const x0::BufferRef& chunk)
+    {
+        if (chunk.empty()) {
+            if (created_)
+                request_->status = x0::HttpStatus::Created;
+            else
+                request_->status = x0::HttpStatus::NoContent;
 
-			request_->finish();
-			::close(fd_);
+            request_->finish();
+            ::close(fd_);
 
-			delete this;
-		} else {
-			::write(fd_, chunk.data(), chunk.size());
-			// check return code and possibly early abort request with error code indicating diagnostics
-		}
-	}
+            delete this;
+        } else {
+            ::write(fd_, chunk.data(), chunk.size());
+            // check return code and possibly early abort request with error code indicating diagnostics
+        }
+    }
 };
 
 } // }}}
@@ -110,42 +110,42 @@ public:
  * \brief example content generator plugin
  */
 class WebDAVPlugin :
-	public x0d::XzeroPlugin
+    public x0d::XzeroPlugin
 {
 public:
-	WebDAVPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-		x0d::XzeroPlugin(d, name)
-	{
-		mainHandler("webdav", &WebDAVPlugin::handleRequest);
-	}
+    WebDAVPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+        x0d::XzeroPlugin(d, name)
+    {
+        mainHandler("webdav", &WebDAVPlugin::handleRequest);
+    }
 
-	~WebDAVPlugin()
-	{
-	}
+    ~WebDAVPlugin()
+    {
+    }
 
 private:
-	bool handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
-	{
-		if (r->method == "GET") {
-			return todo(r);
-		} else if (r->method == "PUT") {
-			return (new WebDAV::Put(r))->execute();
-		} else if (r->method == "MKCOL") {
-			return todo(r);
-		} else if (r->method == "DELETE") {
-			return todo(r);
-		} else {
-			r->status = x0::HttpStatus::MethodNotAllowed;
-			r->finish();
-			return true;
-		}
-	}
+    bool handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
+    {
+        if (r->method == "GET") {
+            return todo(r);
+        } else if (r->method == "PUT") {
+            return (new WebDAV::Put(r))->execute();
+        } else if (r->method == "MKCOL") {
+            return todo(r);
+        } else if (r->method == "DELETE") {
+            return todo(r);
+        } else {
+            r->status = x0::HttpStatus::MethodNotAllowed;
+            r->finish();
+            return true;
+        }
+    }
 
-	bool todo(x0::HttpRequest* r) {
-		r->status = x0::HttpStatus::NotImplemented;
-		r->finish();
-		return true;
-	}
+    bool todo(x0::HttpRequest* r) {
+        r->status = x0::HttpStatus::NotImplemented;
+        r->finish();
+        return true;
+    }
 };
 
 X0_EXPORT_PLUGIN_CLASS(WebDAVPlugin)

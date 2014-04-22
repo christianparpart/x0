@@ -19,15 +19,15 @@ namespace x0 {
 /**
  */
 class X0_API ChunkedEncoder :
-	public Filter
+    public Filter
 {
 public:
-	ChunkedEncoder();
+    ChunkedEncoder();
 
-	virtual Buffer process(const BufferRef& data);
+    virtual Buffer process(const BufferRef& data);
 
 private:
-	bool finished_;
+    bool finished_;
 };
 
 //@}

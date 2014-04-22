@@ -23,7 +23,7 @@ inline HttpRangeDef::HttpRangeDef() : ranges_()
 
 inline HttpRangeDef::HttpRangeDef(const BufferRef& spec) : ranges_()
 {
-	parse(spec);
+    parse(spec);
 }
 
 /**
@@ -39,142 +39,142 @@ inline HttpRangeDef::HttpRangeDef(const BufferRef& spec) : ranges_()
  */
 inline bool HttpRangeDef::parse(const BufferRef& value)
 {
-	// ranges-specifier = byte-ranges-specifier
-	// byte-ranges-specifier = bytes-unit "=" byte-range-set
-	// byte-range-set  = 1#( byte-range-spec | suffix-byte-range-spec )
-	// byte-range-spec = first-byte-pos "-" [last-byte-pos]
-	// first-byte-pos  = 1*DIGIT
-	// last-byte-pos   = 1*DIGIT
+    // ranges-specifier = byte-ranges-specifier
+    // byte-ranges-specifier = bytes-unit "=" byte-range-set
+    // byte-range-set  = 1#( byte-range-spec | suffix-byte-range-spec )
+    // byte-range-spec = first-byte-pos "-" [last-byte-pos]
+    // first-byte-pos  = 1*DIGIT
+    // last-byte-pos   = 1*DIGIT
 
-	// suffix-byte-range-spec = "-" suffix-length
-	// suffix-length = 1*DIGIT
+    // suffix-byte-range-spec = "-" suffix-length
+    // suffix-length = 1*DIGIT
 
-	for (Tokenizer<BufferRef> spec(value, "="); !spec.end(); spec.nextToken())
-	{
-		unitName = spec.token();
+    for (Tokenizer<BufferRef> spec(value, "="); !spec.end(); spec.nextToken())
+    {
+        unitName = spec.token();
 
-		if (unitName() == "bytes") {
-			for (auto& range: Tokenizer<BufferRef>::tokenize(spec.nextToken(), ",")) {
-				if (!parseRangeSpec(range))
-					return false;
-			}
-		}
-	}
-	return true;
+        if (unitName() == "bytes") {
+            for (auto& range: Tokenizer<BufferRef>::tokenize(spec.nextToken(), ",")) {
+                if (!parseRangeSpec(range))
+                    return false;
+            }
+        }
+    }
+    return true;
 }
 
 inline bool HttpRangeDef::parseRangeSpec(const BufferRef& spec)
 {
-	std::size_t a, b;
-	const char* i = const_cast<char *>(spec.cbegin());
-	const char* e = spec.cend();
+    std::size_t a, b;
+    const char* i = const_cast<char *>(spec.cbegin());
+    const char* e = spec.cend();
 
-	if (i == e)
-		return false;
+    if (i == e)
+        return false;
 
-	// parse first element
-	char* eptr = const_cast<char*>(i);
-	a = std::isdigit(*i)
-		? strtoul(i, &eptr, 10)
-		: npos;
+    // parse first element
+    char* eptr = const_cast<char*>(i);
+    a = std::isdigit(*i)
+        ? strtoul(i, &eptr, 10)
+        : npos;
 
-	i = eptr;
+    i = eptr;
 
-	if (*i != '-') {
-		// printf("parse error: %s (%s)\n", i, spec.c_str());
-		return false;
-	}
+    if (*i != '-') {
+        // printf("parse error: %s (%s)\n", i, spec.c_str());
+        return false;
+    }
 
-	++i;
+    ++i;
 
-	// parse second element
-	b = std::isdigit(*i)
-		? strtoul(i, &eptr, 10)
-		: npos;
+    // parse second element
+    b = std::isdigit(*i)
+        ? strtoul(i, &eptr, 10)
+        : npos;
 
-	i = eptr;
+    i = eptr;
 
-	if (i != e) // garbage at the end
-		return false;
+    if (i != e) // garbage at the end
+        return false;
 
-	ranges_.push_back(std::make_pair(a, b));
+    ranges_.push_back(std::make_pair(a, b));
 
-	return true;
+    return true;
 }
 
 inline void HttpRangeDef::push_back(std::size_t offset1, std::size_t offset2)
 {
-	ranges_.push_back(std::make_pair(offset1, offset2));
+    ranges_.push_back(std::make_pair(offset1, offset2));
 }
 
 inline void HttpRangeDef::push_back(const std::pair<std::size_t, std::size_t>& range)
 {
-	ranges_.push_back(range);
+    ranges_.push_back(range);
 }
 
 inline std::size_t HttpRangeDef::size() const
 {
-	return ranges_.size();
+    return ranges_.size();
 }
 
 inline bool HttpRangeDef::empty() const
 {
-	return !ranges_.size();
+    return !ranges_.size();
 }
 
 inline const HttpRangeDef::element_type& HttpRangeDef::operator[](std::size_t index) const
 {
-	return ranges_[index];
+    return ranges_[index];
 }
 
 inline HttpRangeDef::iterator HttpRangeDef::begin()
 {
-	return ranges_.begin();
+    return ranges_.begin();
 }
 
 inline HttpRangeDef::iterator HttpRangeDef::end()
 {
-	return ranges_.end();
+    return ranges_.end();
 }
 
 inline HttpRangeDef::const_iterator HttpRangeDef::begin() const
 {
-	return ranges_.begin();
+    return ranges_.begin();
 }
 
 inline HttpRangeDef::const_iterator HttpRangeDef::end() const
 {
-	return ranges_.end();
+    return ranges_.end();
 }
 
 inline std::string HttpRangeDef::str() const
 {
-	std::stringstream sstr;
-	int count = 0;
+    std::stringstream sstr;
+    int count = 0;
 
-	sstr << unitName();
+    sstr << unitName();
 
-	for (const_iterator i = begin(), e = end(); i != e; ++i)
-	{
-		if (count++)
-		{
-			sstr << ", ";
-		}
+    for (const_iterator i = begin(), e = end(); i != e; ++i)
+    {
+        if (count++)
+        {
+            sstr << ", ";
+        }
 
-		if (i->first != npos)
-		{
-			sstr << i->first;
-		}
+        if (i->first != npos)
+        {
+            sstr << i->first;
+        }
 
-		sstr << '-';
+        sstr << '-';
 
-		if (i->second != npos)
-		{
-			sstr << i->second;
-		}
-	}
+        if (i->second != npos)
+        {
+            sstr << i->second;
+        }
+    }
 
-	return sstr.str();
+    return sstr.str();
 }
 
 } // namespace x0

@@ -27,20 +27,20 @@ using namespace x0;
   * \param name unique and descriptive plugin-name.
   */
 XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
-	daemon_(daemon),
-	server_(daemon->server()),
-	name_(name),
+    daemon_(daemon),
+    server_(daemon->server()),
+    name_(name),
     natives_()
 #if !defined(XZERO_NDEBUG)
-	, debugLevel_(9)
+    , debugLevel_(9)
 #endif
 {
     TRACE(1, "initializing %s", name_.c_str());
-	// ensure that it's only the base-name we store
-	// (fixes some certain cases where we've a path prefix supplied.)
-	size_t i = name_.rfind('/');
-	if (i != std::string::npos)
-		name_ = name_.substr(i + 1);
+    // ensure that it's only the base-name we store
+    // (fixes some certain cases where we've a path prefix supplied.)
+    size_t i = name_.rfind('/');
+    if (i != std::string::npos)
+        name_ = name_.substr(i + 1);
 }
 
 /** \brief safely destructs the plugin.
@@ -56,7 +56,7 @@ XzeroPlugin::~XzeroPlugin()
 
 bool XzeroPlugin::post_config()
 {
-	return true;
+    return true;
 }
 
 /** post-check hook, gets invoked after <b>every</b> configuration hook has been proceed successfully.
@@ -66,7 +66,7 @@ bool XzeroPlugin::post_config()
  */
 bool XzeroPlugin::post_check()
 {
-	return true;
+    return true;
 }
 
 /** hook, invoked on log-cycle event, especially <b>SIGUSR</b> signal.

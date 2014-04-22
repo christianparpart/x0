@@ -38,23 +38,23 @@
 using namespace x0;
 
 class AccessPlugin :
-	public x0d::XzeroPlugin
+    public x0d::XzeroPlugin
 {
 public:
-	AccessPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-		x0d::XzeroPlugin(d, name)
-	{
-		mainHandler("access.deny", &AccessPlugin::deny_all);
-		mainHandler("access.deny", &AccessPlugin::deny_ip, FlowType::IPAddress);
-		mainHandler("access.deny", &AccessPlugin::deny_cidr, FlowType::Cidr);
-		mainHandler("access.deny", &AccessPlugin::deny_ipArray, FlowType::IPAddrArray);
-		mainHandler("access.deny", &AccessPlugin::deny_cidrArray, FlowType::CidrArray);
+    AccessPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+        x0d::XzeroPlugin(d, name)
+    {
+        mainHandler("access.deny", &AccessPlugin::deny_all);
+        mainHandler("access.deny", &AccessPlugin::deny_ip, FlowType::IPAddress);
+        mainHandler("access.deny", &AccessPlugin::deny_cidr, FlowType::Cidr);
+        mainHandler("access.deny", &AccessPlugin::deny_ipArray, FlowType::IPAddrArray);
+        mainHandler("access.deny", &AccessPlugin::deny_cidrArray, FlowType::CidrArray);
 
-		mainHandler("access.deny_except", &AccessPlugin::deny_ip, FlowType::IPAddress);
-		mainHandler("access.deny_except", &AccessPlugin::deny_cidr, FlowType::Cidr);
-		mainHandler("access.deny_except", &AccessPlugin::deny_ipArray, FlowType::IPAddrArray);
-		mainHandler("access.deny_except", &AccessPlugin::deny_cidrArray, FlowType::CidrArray);
-	}
+        mainHandler("access.deny_except", &AccessPlugin::deny_ip, FlowType::IPAddress);
+        mainHandler("access.deny_except", &AccessPlugin::deny_cidr, FlowType::Cidr);
+        mainHandler("access.deny_except", &AccessPlugin::deny_ipArray, FlowType::IPAddrArray);
+        mainHandler("access.deny_except", &AccessPlugin::deny_cidrArray, FlowType::CidrArray);
+    }
 
 private:
     // {{{ deny()

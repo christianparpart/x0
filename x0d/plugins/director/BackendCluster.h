@@ -26,35 +26,35 @@ struct RequestNotes;
 class BackendCluster
 {
 public:
-	typedef std::vector<Backend*> List;
+    typedef std::vector<Backend*> List;
 
-	BackendCluster();
-	~BackendCluster();
+    BackendCluster();
+    ~BackendCluster();
 
-	template<typename T>
-	void setScheduler() {
-		auto old = scheduler_;
-		scheduler_ = new T(&cluster_);
-		delete old;
-	}
-	Scheduler* scheduler() const { return scheduler_; }
+    template<typename T>
+    void setScheduler() {
+        auto old = scheduler_;
+        scheduler_ = new T(&cluster_);
+        delete old;
+    }
+    Scheduler* scheduler() const { return scheduler_; }
 
-	SchedulerStatus schedule(RequestNotes* rn);
+    SchedulerStatus schedule(RequestNotes* rn);
 
-	bool empty() const { return cluster_.empty(); }
-	size_t size() const { return cluster_.size(); }
-	size_t capacity() const;
+    bool empty() const { return cluster_.empty(); }
+    size_t size() const { return cluster_.size(); }
+    size_t capacity() const;
 
-	void push_back(Backend* backend);
-	void remove(Backend* backend);
+    void push_back(Backend* backend);
+    void remove(Backend* backend);
 
-	void each(const std::function<void(Backend*)>& cb);
-	void each(const std::function<void(const Backend*)>& cb) const;
-	bool find(const std::string& name, const std::function<void(Backend*)>& cb);
-	Backend* find(const std::string& name);
+    void each(const std::function<void(Backend*)>& cb);
+    void each(const std::function<void(const Backend*)>& cb) const;
+    bool find(const std::string& name, const std::function<void(Backend*)>& cb);
+    Backend* find(const std::string& name);
 
 protected:
-	List cluster_;
-	Scheduler* scheduler_;
+    List cluster_;
+    Scheduler* scheduler_;
 };
 

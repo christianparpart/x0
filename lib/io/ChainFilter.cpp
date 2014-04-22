@@ -12,18 +12,18 @@ namespace x0 {
 
 Buffer ChainFilter::process(const BufferRef& input)
 {
-	auto i = filters_.begin();
-	auto e = filters_.end();
+    auto i = filters_.begin();
+    auto e = filters_.end();
 
-	if (i == e)
-		return Buffer(input);
+    if (i == e)
+        return Buffer(input);
 
-	Buffer result((*i++)->process(input));
+    Buffer result((*i++)->process(input));
 
-	while (i != e)
-		result = (*i++)->process(result.ref());
+    while (i != e)
+        result = (*i++)->process(result.ref());
 
-	return result;
+    return result;
 }
 
 } // namespace x0

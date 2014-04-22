@@ -91,16 +91,16 @@
 #endif
 
 #if defined(__GNUC__)
-	#define GCC_VERSION(major, minor) ( \
-		(__GNUC__ > (major)) || \
-		(__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)) \
-	)
-	#define CC_SUPPORTS_LAMBDA GCC_VERSION(4, 5)
-	#define CC_SUPPORTS_RVALUE_REFERENCES GCC_VERSION(4, 4)
+    #define GCC_VERSION(major, minor) ( \
+        (__GNUC__ > (major)) || \
+        (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)) \
+    )
+    #define CC_SUPPORTS_LAMBDA GCC_VERSION(4, 5)
+    #define CC_SUPPORTS_RVALUE_REFERENCES GCC_VERSION(4, 4)
 #else
-	#define GCC_VERSION(major, minor) (0)
-	#define CC_SUPPORTS_LAMBDA (0)
-	#define CC_SUPPORTS_RVALUE_REFERENCES (0)
+    #define GCC_VERSION(major, minor) (0)
+    #define CC_SUPPORTS_LAMBDA (0)
+    #define CC_SUPPORTS_RVALUE_REFERENCES (0)
 #endif
 
 /// the filename only part of __FILE__ (no leading path)

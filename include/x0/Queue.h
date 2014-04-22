@@ -22,186 +22,186 @@ template<typename T>
 class X0_API Queue
 {
 private:
-	struct NodePtr;
-	struct Node;
+    struct NodePtr;
+    struct Node;
 
-	NodePtr front_;
-	NodePtr back_;
+    NodePtr front_;
+    NodePtr back_;
 
 public:
-	Queue();
-	~Queue();
+    Queue();
+    ~Queue();
 
-	void enqueue(const T& value);
-	bool dequeue(T* result);
+    void enqueue(const T& value);
+    bool dequeue(T* result);
 
-	bool empty() const;
-	const T& front() const;
-	T& front();
+    bool empty() const;
+    const T& front() const;
+    T& front();
 };
 
 // {{{ Queue<T>::NodePtr impl
 template<typename T>
 struct Queue<T>::NodePtr
 {
-	Node* ptr;
-	unsigned count;
+    Node* ptr;
+    unsigned count;
 
-	explicit NodePtr(Node* p = nullptr, unsigned c = 0) : ptr(p), count(c) {}
+    explicit NodePtr(Node* p = nullptr, unsigned c = 0) : ptr(p), count(c) {}
 
-	NodePtr(const NodePtr& np) :
-		ptr(np.ptr),
-		count(np.count)
-	{
-	}
+    NodePtr(const NodePtr& np) :
+        ptr(np.ptr),
+        count(np.count)
+    {
+    }
 
-	NodePtr(const NodePtr* np) :
-		ptr(nullptr),
-		count(0)
-	{
-		if (likely(np != nullptr)) {
-			count = np->count;
-			ptr = np->ptr;
-		}
-	}
+    NodePtr(const NodePtr* np) :
+        ptr(nullptr),
+        count(0)
+    {
+        if (likely(np != nullptr)) {
+            count = np->count;
+            ptr = np->ptr;
+        }
+    }
 
-	Node* get() const {
-		return ptr;
-	}
+    Node* get() const {
+        return ptr;
+    }
 
-	Node* operator->() {
-		return ptr;
-	}
+    Node* operator->() {
+        return ptr;
+    }
 
-	bool compareAndSwap(const NodePtr& expected, const NodePtr& exchange) {
-		if (expected.ptr == __sync_val_compare_and_swap(&ptr, expected.ptr, exchange.ptr)) {
-			__sync_lock_test_and_set(&count, exchange.count);
-			return true;
-		}
-		return false;
-	}
+    bool compareAndSwap(const NodePtr& expected, const NodePtr& exchange) {
+        if (expected.ptr == __sync_val_compare_and_swap(&ptr, expected.ptr, exchange.ptr)) {
+            __sync_lock_test_and_set(&count, exchange.count);
+            return true;
+        }
+        return false;
+    }
 };
 // }}}
 // {{{ Queue<T>::Node impl
 template<typename T>
 struct Queue<T>::Node
 {
-	T value;
-	NodePtr next;
+    T value;
+    NodePtr next;
 
-	Node() : value(), next() {}
-	Node(const T& v) : value(v), next() {}
+    Node() : value(), next() {}
+    Node(const T& v) : value(v), next() {}
 };
 // }}}
 // {{{ Queue<T> impl
 template<typename T>
 Queue<T>::Queue() :
-	front_(new Node()),
-	back_(front_.ptr)
+    front_(new Node()),
+    back_(front_.ptr)
 {
 }
 
 template<typename T>
 Queue<T>::~Queue()
 {
-	// delete dummy-node
-	//delete marker_;
-	delete front_.ptr;
+    // delete dummy-node
+    //delete marker_;
+    delete front_.ptr;
 }
 
 template<typename T>
 void Queue<T>::enqueue(const T& value)
 {
-	Node* n = new Node(value);
+    Node* n = new Node(value);
 
-	while (true) {
-		NodePtr back(back_);
-		NodePtr next(
-			back.get() ? back->next.get() : nullptr,
-			back.get() ? back->next.count : 0);
+    while (true) {
+        NodePtr back(back_);
+        NodePtr next(
+            back.get() ? back->next.get() : nullptr,
+            back.get() ? back->next.count : 0);
 
-		if (back.count == back_.count && back.ptr == back_.ptr) {
-			// back pointing to the last node?
-			if (next.ptr == nullptr) {
-				// try linking node at the end of the list
-				if (back->next.compareAndSwap(next, NodePtr(n, next.count + 1))) {
-					return;
-				}
-			} else {
-				// Tail was not pointing to the last node,
-				// try to swing back to the next node.
-				back_.compareAndSwap(back, NodePtr(next.ptr, back.count + 1));
-			}
-		}
-	}
+        if (back.count == back_.count && back.ptr == back_.ptr) {
+            // back pointing to the last node?
+            if (next.ptr == nullptr) {
+                // try linking node at the end of the list
+                if (back->next.compareAndSwap(next, NodePtr(n, next.count + 1))) {
+                    return;
+                }
+            } else {
+                // Tail was not pointing to the last node,
+                // try to swing back to the next node.
+                back_.compareAndSwap(back, NodePtr(next.ptr, back.count + 1));
+            }
+        }
+    }
 }
 
 template<typename T>
 inline bool Queue<T>::empty() const
 {
-	//return front_.ptr == marker_;
-	return front_.ptr == back_.ptr;
+    //return front_.ptr == marker_;
+    return front_.ptr == back_.ptr;
 }
 
 template<typename T>
 inline const T& Queue<T>::front() const
 {
-	return front_.ptr->value;
+    return front_.ptr->value;
 }
 
 template<typename T>
 inline T& Queue<T>::front()
 {
-	return front_.ptr->value;
+    return front_.ptr->value;
 }
 
 template<typename T>
 bool Queue<T>::dequeue(T* result)
 {
-	NodePtr front;
+    NodePtr front;
 
-	// keep trying dequeuing until succeed or failed (because empty)
-	while (true) {
-		front = front_;
-		NodePtr back(back_);
+    // keep trying dequeuing until succeed or failed (because empty)
+    while (true) {
+        front = front_;
+        NodePtr back(back_);
 
-		if (front.ptr == nullptr) {
-			// Queue empty.
-			return false;
-		}
+        if (front.ptr == nullptr) {
+            // Queue empty.
+            return false;
+        }
 
-		NodePtr next(front->next);
+        NodePtr next(front->next);
 
-		// Are front, back, and next consistent?
-		if (front.count == front_.count && front.ptr == front_.ptr) {
-			// Is back falling behind?
-			if (front.ptr == back.ptr) {
-				// Queue empty?
-				if (next.ptr == nullptr) {
-					return false;
-				}
+        // Are front, back, and next consistent?
+        if (front.count == front_.count && front.ptr == front_.ptr) {
+            // Is back falling behind?
+            if (front.ptr == back.ptr) {
+                // Queue empty?
+                if (next.ptr == nullptr) {
+                    return false;
+                }
 
-				// back_ is falling behind. Try to advance it.
-				back_.compareAndSwap(back, NodePtr(next.ptr, back.count + 1));
-			} else {
-				// no need to deal with back
-				// read value before CAS otherwise another deque might try to free the next node
-				*result = next.ptr->value;
+                // back_ is falling behind. Try to advance it.
+                back_.compareAndSwap(back, NodePtr(next.ptr, back.count + 1));
+            } else {
+                // no need to deal with back
+                // read value before CAS otherwise another deque might try to free the next node
+                *result = next.ptr->value;
 
-				// try to swing Head to the next node
-				if (front_.compareAndSwap(front, NodePtr(next.ptr, front.count + 1))) {
-					// done!
-					break;
-				}
-			}
-		}
-	}
+                // try to swing Head to the next node
+                if (front_.compareAndSwap(front, NodePtr(next.ptr, front.count + 1))) {
+                    // done!
+                    break;
+                }
+            }
+        }
+    }
 
-	// It is now safe to free the old dummy node
-	delete front.ptr;
+    // It is now safe to free the old dummy node
+    delete front.ptr;
 
-	// queue was not empty, deque succeeded
-	return true;
+    // queue was not empty, deque succeeded
+    return true;
 }
 
 } // namespace x0

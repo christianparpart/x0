@@ -51,63 +51,63 @@ class HttpFileMgr;
  * @see CustomData
  */
 class X0_API HttpFile {
-	CUSTOMDATA_API_INLINE
+    CUSTOMDATA_API_INLINE
 private:
-	HttpFileMgr* mgr_;
-	std::string path_;
-	int fd_;
-	struct stat stat_;
-	int refs_;
-	int errno_;
+    HttpFileMgr* mgr_;
+    std::string path_;
+    int fd_;
+    struct stat stat_;
+    int refs_;
+    int errno_;
 
 #if defined(HAVE_SYS_INOTIFY_H)
-	int inotifyId_;
+    int inotifyId_;
 #endif
-	ev::tstamp cachedAt_;
+    ev::tstamp cachedAt_;
 
-	mutable std::string etag_;
-	mutable std::string mtime_;
-	mutable std::string mimetype_;
+    mutable std::string etag_;
+    mutable std::string mtime_;
+    mutable std::string mimetype_;
 
-	HttpFile(const HttpFile&) = delete;
-	HttpFile& operator=(const HttpFile&) = delete;
+    HttpFile(const HttpFile&) = delete;
+    HttpFile& operator=(const HttpFile&) = delete;
 
-	friend class HttpFileMgr;
+    friend class HttpFileMgr;
 
 public:
-	HttpFile(const std::string& path, HttpFileMgr* mgr);
-	~HttpFile();
+    HttpFile(const std::string& path, HttpFileMgr* mgr);
+    ~HttpFile();
 
-	bool open();
-	bool update();
-	void clearCache();
-	void close();
+    bool open();
+    bool update();
+    void clearCache();
+    void close();
 
-	bool isValid() const;
+    bool isValid() const;
 
-	bool exists() const { return errno_ == 0; }
-	int error() const { return errno_; }
+    bool exists() const { return errno_ == 0; }
+    int error() const { return errno_; }
 
-	int handle() const { if (fd_ < 0) const_cast<HttpFile*>(this)->open(); return fd_; }
+    int handle() const { if (fd_ < 0) const_cast<HttpFile*>(this)->open(); return fd_; }
 
-	// property accessors
-	operator const struct stat* () const { return &stat_; }
-	const std::string& path() const { return path_; }
-	std::string filename() const;
-	const std::string& etag() const;
-	const std::string& lastModified() const;
-	const std::string& mimetype() const;
+    // property accessors
+    operator const struct stat* () const { return &stat_; }
+    const std::string& path() const { return path_; }
+    std::string filename() const;
+    const std::string& etag() const;
+    const std::string& lastModified() const;
+    const std::string& mimetype() const;
 
-	std::size_t size() const { return stat_.st_size; }
-	time_t mtime() const { return stat_.st_mtime; }
+    std::size_t size() const { return stat_.st_size; }
+    time_t mtime() const { return stat_.st_mtime; }
 
-	bool isDirectory() const { return S_ISDIR(stat_.st_mode); }
-	bool isRegular() const { return S_ISREG(stat_.st_mode); }
-	bool isExecutable() const { return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH); }
-	const struct stat* operator->() const { return &stat_; }
+    bool isDirectory() const { return S_ISDIR(stat_.st_mode); }
+    bool isRegular() const { return S_ISREG(stat_.st_mode); }
+    bool isExecutable() const { return stat_.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH); }
+    const struct stat* operator->() const { return &stat_; }
 
-	void ref();
-	void unref();
+    void ref();
+    void unref();
 };
 
 } // namespace x0

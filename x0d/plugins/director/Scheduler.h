@@ -20,38 +20,38 @@ struct RequestNotes;
 class Scheduler
 {
 public:
-	typedef std::vector<Backend*> BackendList;
+    typedef std::vector<Backend*> BackendList;
 
 protected:
-	BackendList* backends_;
+    BackendList* backends_;
 
 protected:
-	BackendList& backends() const { return *backends_; }
+    BackendList& backends() const { return *backends_; }
 
 public:
-	explicit Scheduler(BackendList* backends);
-	virtual ~Scheduler();
+    explicit Scheduler(BackendList* backends);
+    virtual ~Scheduler();
 
     virtual const std::string& name() const = 0;
-	virtual SchedulerStatus schedule(RequestNotes* rn) = 0;
+    virtual SchedulerStatus schedule(RequestNotes* rn) = 0;
 };
 
 class ChanceScheduler : public Scheduler {
 public:
-	explicit ChanceScheduler(BackendList* backends) : Scheduler(backends) {}
+    explicit ChanceScheduler(BackendList* backends) : Scheduler(backends) {}
 
     const std::string& name() const override;
-	SchedulerStatus schedule(RequestNotes* rn) override;
+    SchedulerStatus schedule(RequestNotes* rn) override;
 };
 
 class RoundRobinScheduler : public Scheduler {
 public:
-	explicit RoundRobinScheduler(BackendList* backends) : Scheduler(backends), next_(0) {}
+    explicit RoundRobinScheduler(BackendList* backends) : Scheduler(backends), next_(0) {}
 
     const std::string& name() const override;
-	SchedulerStatus schedule(RequestNotes* rn) override;
+    SchedulerStatus schedule(RequestNotes* rn) override;
 
 private:
-	size_t next_;
+    size_t next_;
 };
 

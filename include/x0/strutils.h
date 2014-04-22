@@ -28,9 +28,9 @@ namespace x0 {
 template<typename T, typename U> X0_API T lexical_cast(const U& value);
 
 template<> inline X0_API std::string lexical_cast<std::string, int>(const int& value) {
-	char buf[64];
-	std::snprintf(buf, sizeof(buf), "%d", value);
-	return buf;
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%d", value);
+    return buf;
 }
 
 // {{{ fstringbuilder
@@ -41,58 +41,58 @@ template<> inline X0_API std::string lexical_cast<std::string, int>(const int& v
 class fstringbuilder
 {
 public:
-	/**
-	 * formats given string.
-	 */
+    /**
+     * formats given string.
+     */
 #ifdef BOOST_HAS_VARIADIC_TMPL
-	template<typename... Args>
-	static std::string format(const char *s, Args&&... args)
-	{
-		fstringbuilder fsb;
-		fsb.build(s, args...);
-		return fsb.sstr_.str();
-	}
+    template<typename... Args>
+    static std::string format(const char *s, Args&&... args)
+    {
+        fstringbuilder fsb;
+        fsb.build(s, args...);
+        return fsb.sstr_.str();
+    }
 #else
-	static std::string format(const char *s, ...)
-	{
-		va_list va;
-		char buf[1024];
+    static std::string format(const char *s, ...)
+    {
+        va_list va;
+        char buf[1024];
 
-		va_start(va, s);
-		vsnprintf(buf, sizeof(buf), s, va);
-		va_end(va);
+        va_start(va, s);
+        vsnprintf(buf, sizeof(buf), s, va);
+        va_end(va);
 
-		return buf;
-	}
+        return buf;
+    }
 #endif
 
 #ifdef BOOST_HAS_VARIADIC_TMPL
 private:
-	void build(const char *s)
-	{
-		if (*s == '%' && *++s != '%')
-			throw std::runtime_error("invalid format string: missing arguments");
+    void build(const char *s)
+    {
+        if (*s == '%' && *++s != '%')
+            throw std::runtime_error("invalid format string: missing arguments");
 
-		sstr_ << *s;
-	}
+        sstr_ << *s;
+    }
 
-	template<typename T, typename... Args>
-	void build(const char *s, T&& value, Args&&... args)
-	{
-		while (*s)
-		{
-			if (*s == '%' && *++s != '%')
-			{
-				sstr_ << value;
-				return build(++s, args...);
-			}
-			sstr_ << *s++;
-		}
-		throw std::runtime_error("extra arguments provided to printf");
-	}
+    template<typename T, typename... Args>
+    void build(const char *s, T&& value, Args&&... args)
+    {
+        while (*s)
+        {
+            if (*s == '%' && *++s != '%')
+            {
+                sstr_ << value;
+                return build(++s, args...);
+            }
+            sstr_ << *s++;
+        }
+        throw std::runtime_error("extra arguments provided to printf");
+    }
 
 private:
-	std::stringstream sstr_;
+    std::stringstream sstr_;
 #endif
 };
 // }}}

@@ -27,26 +27,26 @@ namespace x0 {
  * \see Source, Filter
  */
 class X0_API FilterSource :
-	public Source
+    public Source
 {
 public:
-	explicit FilterSource(Filter* filter, bool force = false) :
-		buffer_(), source_(new NullSource()), filter_(filter), force_(force), pos_(0) {}
+    explicit FilterSource(Filter* filter, bool force = false) :
+        buffer_(), source_(new NullSource()), filter_(filter), force_(force), pos_(0) {}
 
-	FilterSource(Source* source, Filter* filter, bool force) :
-		buffer_(), source_(source), filter_(filter), force_(force), pos_(0) {}
+    FilterSource(Source* source, Filter* filter, bool force) :
+        buffer_(), source_(source), filter_(filter), force_(force), pos_(0) {}
 
-	~FilterSource();
+    ~FilterSource();
 
-	virtual ssize_t sendto(Sink& sink);
-	virtual const char* className() const;
+    virtual ssize_t sendto(Sink& sink);
+    virtual const char* className() const;
 
 protected:
-	Buffer buffer_;
-	Source* source_;
-	Filter* filter_;
-	bool force_;
-	size_t pos_;
+    Buffer buffer_;
+    Source* source_;
+    Filter* filter_;
+    bool force_;
+    size_t pos_;
 };
 
 //@}

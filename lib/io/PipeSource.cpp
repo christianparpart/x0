@@ -19,7 +19,7 @@
 namespace x0 {
 
 PipeSource::PipeSource(Pipe* pipe) :
-	pipe_(pipe)
+    pipe_(pipe)
 {
 }
 
@@ -29,43 +29,43 @@ PipeSource::~PipeSource()
 
 ssize_t PipeSource::sendto(Sink& output)
 {
-	output.accept(*this);
-	return result_;
+    output.accept(*this);
+    return result_;
 }
 
 void PipeSource::visit(BufferSink& sink)
 {
-	char buf[8 * 4096];
-	result_ = pipe_->read(buf, sizeof(buf));
+    char buf[8 * 4096];
+    result_ = pipe_->read(buf, sizeof(buf));
 
-	if (result_ > 0) {
-		sink.write(buf, result_);
-	}
+    if (result_ > 0) {
+        sink.write(buf, result_);
+    }
 }
 
 void PipeSource::visit(FileSink& sink)
 {
-	char buf[8 * 1024];
-	result_ = pipe_->read(buf, sizeof(buf));
+    char buf[8 * 1024];
+    result_ = pipe_->read(buf, sizeof(buf));
 
-	if (result_> 0) {
-		sink.write(buf, result_);
-	}
+    if (result_> 0) {
+        sink.write(buf, result_);
+    }
 }
 
 void PipeSource::visit(SocketSink& sink)
 {
-	result_ = sink.write(pipe_, 8 * 1024);
+    result_ = sink.write(pipe_, 8 * 1024);
 }
 
 void PipeSource::visit(PipeSink& sink)
 {
-	result_ = sink.write(pipe_, pipe_->size());
+    result_ = sink.write(pipe_, pipe_->size());
 }
 
 const char* PipeSource::className() const
 {
-	return "PipeSource";
+    return "PipeSource";
 }
 
 } // namespace x0

@@ -12,24 +12,24 @@ namespace x0 {
 
 // {{{ SymbolTable
 SymbolTable::SymbolTable(SymbolTable* outer, const std::string& name) :
-	symbols_(),
-	outerTable_(outer),
+    symbols_(),
+    outerTable_(outer),
     name_(name)
 {
 }
 
 SymbolTable::~SymbolTable()
 {
-	for (auto symbol: symbols_)
-		delete symbol;
+    for (auto symbol: symbols_)
+        delete symbol;
 }
 
 Symbol* SymbolTable::appendSymbol(std::unique_ptr<Symbol> symbol)
 {
     assert(symbol->owner_ == nullptr && "Cannot re-own symbol.");
     symbol->owner_ = this;
-	symbols_.push_back(symbol.get());
-	return symbol.release();
+    symbols_.push_back(symbol.get());
+    return symbol.release();
 }
 
 void SymbolTable::removeSymbol(Symbol* symbol)
@@ -44,33 +44,33 @@ void SymbolTable::removeSymbol(Symbol* symbol)
 
 Symbol* SymbolTable::symbolAt(size_t i) const
 {
-	return symbols_[i];
+    return symbols_[i];
 }
 
 size_t SymbolTable::symbolCount() const
 {
-	return symbols_.size();
+    return symbols_.size();
 }
 
 Symbol* SymbolTable::lookup(const std::string& name, Lookup method) const
 {
-	// search local
-	if (method & Lookup::Self)
-		for (auto symbol: symbols_)
-			if (symbol->name() == name) {
+    // search local
+    if (method & Lookup::Self)
+        for (auto symbol: symbols_)
+            if (symbol->name() == name) {
                 //printf("SymbolTable(%s).lookup: \"%s\" (found)\n", name_.c_str(), name.c_str());
-				return symbol;
+                return symbol;
             }
 
-	// search outer
-	if (method & Lookup::Outer)
-		if (outerTable_) {
+    // search outer
+    if (method & Lookup::Outer)
+        if (outerTable_) {
             //printf("SymbolTable(%s).lookup: \"%s\" (not found, recurse to parent)\n", name_.c_str(), name.c_str());
-			return outerTable_->lookup(name, method);
+            return outerTable_->lookup(name, method);
         }
 
     //printf("SymbolTable(%s).lookup: \"%s\" -> not found\n", name_.c_str(), name.c_str());
-	return nullptr;
+    return nullptr;
 }
 
 Symbol* SymbolTable::lookup(const std::string& name, Lookup method, std::list<Symbol*>* result) const
@@ -460,34 +460,34 @@ FlowLocation ParamList::location() const {
 
 void Variable::visit(ASTVisitor& v)
 {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 Handler* Unit::findHandler(const std::string& name)
 {
-	if (class Handler* handler = dynamic_cast<class Handler*>(scope()->lookup(name, Lookup::Self)))
-		return handler;
+    if (class Handler* handler = dynamic_cast<class Handler*>(scope()->lookup(name, Lookup::Self)))
+        return handler;
 
-	return nullptr;
+    return nullptr;
 }
 
 void Unit::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void Handler::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void UnaryExpr::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 BinaryExpr::BinaryExpr(FlowVM::Opcode op, std::unique_ptr<Expr>&& lhs, std::unique_ptr<Expr>&& rhs) :
-	Expr(rhs->location() - lhs->location()),
-	operator_(op),
-	lhs_(std::move(lhs)),
-	rhs_(std::move(rhs))
+    Expr(rhs->location() - lhs->location()),
+    operator_(op),
+    lhs_(std::move(lhs)),
+    rhs_(std::move(rhs))
 {
 }
 
@@ -502,7 +502,7 @@ ArrayExpr::~ArrayExpr()
 }
 
 void BinaryExpr::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void ArrayExpr::visit(ASTVisitor& v)
@@ -511,45 +511,45 @@ void ArrayExpr::visit(ASTVisitor& v)
 }
 
 void HandlerRefExpr::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void CompoundStmt::push_back(std::unique_ptr<Stmt>&& stmt)
 {
-	location_.update(stmt->location().end);
-	statements_.push_back(std::move(stmt));
+    location_.update(stmt->location().end);
+    statements_.push_back(std::move(stmt));
 }
 
 void CompoundStmt::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void ExprStmt::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void CallExpr::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void BuiltinFunction::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void VariableExpr::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void CondStmt::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void AssignStmt::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void BuiltinHandler::visit(ASTVisitor& v) {
-	v.accept(*this);
+    v.accept(*this);
 }
 
 void Handler::implement(std::unique_ptr<SymbolTable>&& table, std::unique_ptr<Stmt>&& body)

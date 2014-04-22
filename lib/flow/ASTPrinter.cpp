@@ -5,62 +5,62 @@ namespace x0 {
 
 inline std::string escape(char value) // {{{
 {
-	switch (value) {
-		case '\t': return "<TAB>";
-		case '\r': return "<CR>";
-		case '\n': return "<LF>";
-		case ' ': return "<SPACE>";
-		default: break;
-	}
-	if (std::isprint(value)) {
-		std::string s;
-		s += value;
-		return s;
-	} else {
-		char buf[16];
-		snprintf(buf, sizeof(buf), "0x%02X", value);
-		return buf;
-	}
+    switch (value) {
+        case '\t': return "<TAB>";
+        case '\r': return "<CR>";
+        case '\n': return "<LF>";
+        case ' ': return "<SPACE>";
+        default: break;
+    }
+    if (std::isprint(value)) {
+        std::string s;
+        s += value;
+        return s;
+    } else {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "0x%02X", value);
+        return buf;
+    }
 } // }}}
 inline std::string escape(const std::string& value) // {{{
 {
-	std::string result;
+    std::string result;
 
-	for (const char ch: value)
-		result += escape(ch);
+    for (const char ch: value)
+        result += escape(ch);
 
-	return result;
+    return result;
 } // }}}
 
 void ASTPrinter::print(ASTNode* node)
 {
-	ASTPrinter printer;
-	node->visit(printer);
+    ASTPrinter printer;
+    node->visit(printer);
 }
 
 ASTPrinter::ASTPrinter() :
-	depth_(0)
+    depth_(0)
 {
 }
 
 void ASTPrinter::prefix()
 {
-	for (int i = 0; i < depth_; ++i)
-		std::printf("  ");
+    for (int i = 0; i < depth_; ++i)
+        std::printf("  ");
 }
 
 void ASTPrinter::print(const char* title, ASTNode* node)
 {
-	enter();
-	if (node) {
-		printf("%s\n", title);
-		enter();
-		node->visit(*this);
-		leave();
-	} else {
-		printf("%s (nil)\n", title);
-	}
-	leave();
+    enter();
+    if (node) {
+        printf("%s\n", title);
+        enter();
+        node->visit(*this);
+        leave();
+    } else {
+        printf("%s (nil)\n", title);
+    }
+    leave();
 }
 
 void ASTPrinter::print(const std::pair<std::string, Expr*>& node, size_t pos)
@@ -86,9 +86,9 @@ void ASTPrinter::accept(Variable& variable)
 
 void ASTPrinter::accept(Handler& handler)
 {
-	printf("Handler: %s\n", handler.name().c_str());
+    printf("Handler: %s\n", handler.name().c_str());
 
-	enter();
+    enter();
         if (handler.isForwardDeclared()) {
             printf("handler is forward-declared (unresolved)\n");
         } else {
@@ -103,56 +103,56 @@ void ASTPrinter::accept(Handler& handler)
                 handler.body()->visit(*this);
             leave();
         }
-	leave();
+    leave();
 }
 
 void ASTPrinter::accept(BuiltinFunction& symbol)
 {
-	printf("BuiltinFunction: %s\n", symbol.signature().to_s().c_str());
+    printf("BuiltinFunction: %s\n", symbol.signature().to_s().c_str());
 }
 
 void ASTPrinter::accept(BuiltinHandler& symbol)
 {
-	printf("BuiltinHandler: %s\n", symbol.signature().to_s().c_str());
+    printf("BuiltinHandler: %s\n", symbol.signature().to_s().c_str());
 }
 
 void ASTPrinter::accept(Unit& unit)
 {
-	printf("Unit: %s\n", unit.name().c_str());
+    printf("Unit: %s\n", unit.name().c_str());
 
-	enter();
-	for (Symbol* symbol: *unit.scope())
-		symbol->visit(*this);
+    enter();
+    for (Symbol* symbol: *unit.scope())
+        symbol->visit(*this);
 
-	leave();
+    leave();
 }
 
 void ASTPrinter::accept(UnaryExpr& expr)
 {
-	printf("UnaryExpr: %s\n", mnemonic(expr.op()));
-	print("subExpr", expr.subExpr());
+    printf("UnaryExpr: %s\n", mnemonic(expr.op()));
+    print("subExpr", expr.subExpr());
 }
 
 void ASTPrinter::accept(BinaryExpr& expr)
 {
-	printf("BinaryExpr: %s\n", mnemonic(expr.op()));
-	enter();
-		printf("lhs:\n");
-		enter();
-			expr.leftExpr()->visit(*this);
-		leave();
-	leave();
-	enter();
-		printf("rhs:\n");
-		enter();
-			expr.rightExpr()->visit(*this);
-		leave();
-	leave();
+    printf("BinaryExpr: %s\n", mnemonic(expr.op()));
+    enter();
+        printf("lhs:\n");
+        enter();
+            expr.leftExpr()->visit(*this);
+        leave();
+    leave();
+    enter();
+        printf("rhs:\n");
+        enter();
+            expr.rightExpr()->visit(*this);
+        leave();
+    leave();
 }
 
 void ASTPrinter::accept(CallExpr& call)
 {
-	printf("CallExpr: %s\n", call.callee()->signature().to_s().c_str());
+    printf("CallExpr: %s\n", call.callee()->signature().to_s().c_str());
     for (int i = 0, e = call.args().size(); i != e; ++i) {
         print(call.args()[i], i);
     }
@@ -160,42 +160,42 @@ void ASTPrinter::accept(CallExpr& call)
 
 void ASTPrinter::accept(VariableExpr& expr)
 {
-	printf("VariableExpr: %s\n", expr.variable()->name().c_str());
+    printf("VariableExpr: %s\n", expr.variable()->name().c_str());
 }
 
 void ASTPrinter::accept(HandlerRefExpr& handlerRef)
 {
-	printf("HandlerRefExpr: %s\n", handlerRef.handler()->name().c_str());
+    printf("HandlerRefExpr: %s\n", handlerRef.handler()->name().c_str());
 }
 
 void ASTPrinter::accept(StringExpr& string)
 {
-	printf("StringExpr: \"%s\"\n", escape(string.value()).c_str());
+    printf("StringExpr: \"%s\"\n", escape(string.value()).c_str());
 }
 
 void ASTPrinter::accept(NumberExpr& number)
 {
-	printf("NumberExpr: %lli\n", number.value());
+    printf("NumberExpr: %lli\n", number.value());
 }
 
 void ASTPrinter::accept(BoolExpr& boolean)
 {
-	printf("BoolExpr: %s\n", boolean.value() ? "true" : "false");
+    printf("BoolExpr: %s\n", boolean.value() ? "true" : "false");
 }
 
 void ASTPrinter::accept(RegExpExpr& regexp)
 {
-	printf("RegExpExpr: /%s/\n", regexp.value().c_str());
+    printf("RegExpExpr: /%s/\n", regexp.value().c_str());
 }
 
 void ASTPrinter::accept(IPAddressExpr& ipaddr)
 {
-	printf("IPAddressExpr: %s\n", ipaddr.value().str().c_str());
+    printf("IPAddressExpr: %s\n", ipaddr.value().str().c_str());
 }
 
 void ASTPrinter::accept(CidrExpr& cidr)
 {
-	printf("CidrExpr: %s\n", cidr.value().str().c_str());
+    printf("CidrExpr: %s\n", cidr.value().str().c_str());
 }
 
 void ASTPrinter::accept(ArrayExpr& array)
@@ -209,26 +209,26 @@ void ASTPrinter::accept(ArrayExpr& array)
 
 void ASTPrinter::accept(ExprStmt& stmt)
 {
-	printf("ExprStmt\n");
+    printf("ExprStmt\n");
     print("expr", stmt.expression());
 }
 
 void ASTPrinter::accept(CompoundStmt& compoundStmt)
 {
-	printf("CompoundStmt (%d statements)\n", compoundStmt.count());
-	enter();
-	for (auto& stmt: compoundStmt) {
-		stmt->visit(*this);
-	}
-	leave();
+    printf("CompoundStmt (%d statements)\n", compoundStmt.count());
+    enter();
+    for (auto& stmt: compoundStmt) {
+        stmt->visit(*this);
+    }
+    leave();
 }
 
 void ASTPrinter::accept(CondStmt& cond)
 {
-	printf("CondStmt\n");
-	print("condition", cond.condition());
-	print("thenStmt", cond.thenStmt());
-	print("elseStmt", cond.elseStmt());
+    printf("CondStmt\n");
+    print("condition", cond.condition());
+    print("thenStmt", cond.thenStmt());
+    print("elseStmt", cond.elseStmt());
 }
 
 void ASTPrinter::accept(MatchStmt& match)
@@ -244,16 +244,16 @@ void ASTPrinter::accept(MatchStmt& match)
         print("stmt", one.second.get());
         leave();
     }
-	print("else", match.elseStmt());
+    print("else", match.elseStmt());
 }
 
 void ASTPrinter::accept(AssignStmt& assign)
 {
-	printf("AssignStmt\n");
-	enter();
-		printf("lhs(var): %s\n", assign.variable()->name().c_str());
-	leave();
-	print("rhs", assign.expression());
+    printf("AssignStmt\n");
+    enter();
+        printf("lhs(var): %s\n", assign.variable()->name().c_str());
+    leave();
+    print("rhs", assign.expression());
 }
 
 } // namespace x0

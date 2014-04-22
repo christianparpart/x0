@@ -21,34 +21,34 @@ namespace x0 {
 /** file source.
  */
 class X0_API FileSource :
-	public Source,
-	public SinkVisitor
+    public Source,
+    public SinkVisitor
 {
 private:
-	int handle_;
-	off_t offset_;
-	size_t count_;
-	bool autoClose_;
+    int handle_;
+    off_t offset_;
+    size_t count_;
+    bool autoClose_;
 
-	ssize_t result_;
+    ssize_t result_;
 
 public:
-	explicit FileSource(const char *filename);
-	FileSource(int fd, off_t offset, std::size_t count, bool autoClose);
-	~FileSource();
+    explicit FileSource(const char *filename);
+    FileSource(int fd, off_t offset, std::size_t count, bool autoClose);
+    ~FileSource();
 
-	inline int handle() const { return handle_; }
+    inline int handle() const { return handle_; }
 
-	virtual ssize_t sendto(Sink& output);
-	virtual const char* className() const;
+    virtual ssize_t sendto(Sink& output);
+    virtual const char* className() const;
 
 protected:
-	virtual void visit(BufferSink&);
-	virtual void visit(FileSink&);
-	virtual void visit(SocketSink&);
-	virtual void visit(PipeSink&);
-	virtual void visit(SyslogSink&);
-	virtual void visit(LogFile&);
+    virtual void visit(BufferSink&);
+    virtual void visit(FileSink&);
+    virtual void visit(SocketSink&);
+    virtual void visit(PipeSink&);
+    virtual void visit(SyslogSink&);
+    virtual void visit(LogFile&);
 };
 
 //@}

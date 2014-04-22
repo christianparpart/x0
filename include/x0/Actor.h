@@ -26,46 +26,46 @@ template<typename Message>
 class X0_API Actor
 {
 private:
-	bool shutdown_;
-	Queue<Message> messages_;
-	std::vector<std::future<void>> threads_;
+    bool shutdown_;
+    Queue<Message> messages_;
+    std::vector<std::future<void>> threads_;
 
-	std::mutex mutex_;
-	std::unique_lock<std::mutex> lock_;
-	std::condition_variable cond_;
+    std::mutex mutex_;
+    std::unique_lock<std::mutex> lock_;
+    std::condition_variable cond_;
 
 public:
-	explicit Actor(size_t scalability = 1);
-	virtual ~Actor();
+    explicit Actor(size_t scalability = 1);
+    virtual ~Actor();
 
-	bool empty() const;
-	int scalability() const { return threads_.size(); }
+    bool empty() const;
+    int scalability() const { return threads_.size(); }
 
-	void send(const Message& message);
+    void send(const Message& message);
 
-	void push_back(const Message& message) { send(message); }
-	Actor<Message>& operator<<(const Message& message) { send(message); return *this; }
+    void push_back(const Message& message) { send(message); }
+    Actor<Message>& operator<<(const Message& message) { send(message); return *this; }
 
-	void start();
-	void stop();
-	void join();
+    void start();
+    void stop();
+    void join();
 
 protected:
-	virtual void process(Message message) = 0;
+    virtual void process(Message message) = 0;
 
 private:
-	void main();
+    void main();
 };
 
 // {{{ impl
 template<typename Message>
 inline Actor<Message>::Actor(size_t scalability) :
-	shutdown_(false),
-	messages_(),
-	threads_(scalability),
-	mutex_(),
-	lock_(mutex_),
-	cond_()
+    shutdown_(false),
+    messages_(),
+    threads_(scalability),
+    mutex_(),
+    lock_(mutex_),
+    cond_()
 {
 }
 
@@ -77,57 +77,57 @@ inline Actor<Message>::~Actor()
 template<typename Message>
 bool Actor<Message>::empty() const
 {
-	return messages_.empty();
+    return messages_.empty();
 }
 
 template<typename Message>
 inline void Actor<Message>::send(const Message& message)
 {
-	messages_.enqueue(message);
-	cond_.notify_one();
+    messages_.enqueue(message);
+    cond_.notify_one();
 }
 
 template<typename Message>
 void Actor<Message>::start()
 {
-	shutdown_ = false;
+    shutdown_ = false;
 
-	for (auto& thread: threads_) {
-		thread = std::move(std::async(std::bind(&Actor<Message>::main, this)));
-	}
+    for (auto& thread: threads_) {
+        thread = std::move(std::async(std::bind(&Actor<Message>::main, this)));
+    }
 }
 
 template<typename Message>
 inline void Actor<Message>::stop()
 {
-	shutdown_ = true;
-	cond_.notify_all();
+    shutdown_ = true;
+    cond_.notify_all();
 }
 
 template<typename Message>
 inline void Actor<Message>::join()
 {
-	for (auto& thread: threads_) {
-		thread.wait();
-	}
+    for (auto& thread: threads_) {
+        thread.wait();
+    }
 }
 
 template<typename Message>
 void Actor<Message>::main()
 {
-	std::lock_guard<decltype(mutex_)> l(mutex_);
+    std::lock_guard<decltype(mutex_)> l(mutex_);
 
-	for (;;) {
-		cond_.wait(lock_);
+    for (;;) {
+        cond_.wait(lock_);
 
-		if (shutdown_)
-			break;
+        if (shutdown_)
+            break;
 
-		Message message;
-		while (messages_.dequeue(&message)) {
-			process(message);
-		}
-	}
+        Message message;
+        while (messages_.dequeue(&message)) {
+            process(message);
+        }
+    }
 }
 // }}}
 

@@ -33,77 +33,77 @@ template<typename SignatureT> class Signal;
 template<typename... Args>
 class Signal<void(Args...)>
 {
-	Signal(const Signal&) = delete;
-	Signal& operator=(const Signal&) = delete;
+    Signal(const Signal&) = delete;
+    Signal& operator=(const Signal&) = delete;
 
 public:
-	typedef std::pair<void *, void(*)(void *, Args...)> item_type;
-	typedef std::list<item_type> list_type;
+    typedef std::pair<void *, void(*)(void *, Args...)> item_type;
+    typedef std::list<item_type> list_type;
 
-	typedef typename list_type::iterator iterator;
-	typedef typename list_type::const_iterator const_iterator;
+    typedef typename list_type::iterator iterator;
+    typedef typename list_type::const_iterator const_iterator;
 
-	typedef iterator Connection;
+    typedef iterator Connection;
 
 public:
-	Signal() :
-		impl_()
-	{
-	}
+    Signal() :
+        impl_()
+    {
+    }
 
-	~Signal()
-	{
-	}
+    ~Signal()
+    {
+    }
 
-	bool empty() const
-	{
-		return impl_.empty();
-	}
+    bool empty() const
+    {
+        return impl_.empty();
+    }
 
-	std::size_t size() const
-	{
-		return impl_.size();
-	}
+    std::size_t size() const
+    {
+        return impl_.size();
+    }
 
-	template<class K, void (K::*method)(Args...)>
-	static void method_thunk(void *object, Args... args)
-	{
-		(static_cast<K *>(object)->*method)(args...);
-	}
+    template<class K, void (K::*method)(Args...)>
+    static void method_thunk(void *object, Args... args)
+    {
+        (static_cast<K *>(object)->*method)(args...);
+    }
 
-	template<class K, void (K::*method)(Args...)>
-	Connection connect(K *object)
-	{
-		impl_.push_back(std::make_pair(object, &method_thunk<K, method>));
-		auto handle = impl_.end();
-		--handle;
-		return handle;
-	}
+    template<class K, void (K::*method)(Args...)>
+    Connection connect(K *object)
+    {
+        impl_.push_back(std::make_pair(object, &method_thunk<K, method>));
+        auto handle = impl_.end();
+        --handle;
+        return handle;
+    }
 
-	void disconnect(void* p)
-	{
-		std::remove_if(impl_.begin(), impl_.end(), [&](const item_type& i) { return i.first == p; });
-	}
+    void disconnect(void* p)
+    {
+        std::remove_if(impl_.begin(), impl_.end(), [&](const item_type& i) { return i.first == p; });
+    }
 
-	void disconnect(Connection c)
-	{
-		impl_.erase(c);
-	}
+    void disconnect(Connection c)
+    {
+        impl_.erase(c);
+    }
 
-	void operator()(Args... args) const
-	{
-		for (auto i: impl_) {
-			(*i.second)(i.first, args...);
-		}
-	}
+    void operator()(Args... args) const
+    {
+        for (auto i: impl_) {
+            (*i.second)(i.first, args...);
+        }
+    }
 
-	void clear()
-	{
-		impl_.clear();
-	}
+    void clear()
+    {
+        impl_.clear();
+    }
 
 private:
-	list_type impl_;
+    list_type impl_;
 };
 
 //@}

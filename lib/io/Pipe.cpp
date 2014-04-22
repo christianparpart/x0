@@ -21,118 +21,118 @@ namespace x0 {
  * \param flags an OR'ed value of O_NONBLOCK and O_CLOEXEC
  */
 Pipe::Pipe(int flags) :
-	size_(0)
+    size_(0)
 {
 #ifdef __APPLE__
-	if (::pipe(pipe_) < 0) {
-		pipe_[0] = -errno;
-		pipe_[1] = -1;
-	} else {
-		fcntl(pipe_[0], F_SETFL, fcntl(pipe_[0], F_GETFL) | flags);
-		fcntl(pipe_[1], F_SETFL, fcntl(pipe_[1], F_GETFL) | flags);
-	}
+    if (::pipe(pipe_) < 0) {
+        pipe_[0] = -errno;
+        pipe_[1] = -1;
+    } else {
+        fcntl(pipe_[0], F_SETFL, fcntl(pipe_[0], F_GETFL) | flags);
+        fcntl(pipe_[1], F_SETFL, fcntl(pipe_[1], F_GETFL) | flags);
+    }
 #else
-	if (::pipe2(pipe_, flags) < 0) {
-		pipe_[0] = -errno;
-		pipe_[1] = -1;
-	}
+    if (::pipe2(pipe_, flags) < 0) {
+        pipe_[0] = -errno;
+        pipe_[1] = -1;
+    }
 #endif
 }
 
 void Pipe::clear()
 {
-	char buf[4096];
-	ssize_t rv;
+    char buf[4096];
+    ssize_t rv;
 
-	do rv = ::read(readFd(), buf, sizeof(buf));
-	while (rv > 0);
+    do rv = ::read(readFd(), buf, sizeof(buf));
+    while (rv > 0);
 
-	size_ = 0;
+    size_ = 0;
 }
 
 ssize_t Pipe::write(const void* buf, size_t size)
 {
-	ssize_t rv = ::write(writeFd(), buf, size);
+    ssize_t rv = ::write(writeFd(), buf, size);
 
-	if (rv > 0)
-		size_ += rv;
+    if (rv > 0)
+        size_ += rv;
 
-	return rv;
+    return rv;
 }
 
 ssize_t Pipe::write(Socket* socket, size_t size)
 {
-	return socket->write(this, size);
+    return socket->write(this, size);
 }
 
 ssize_t Pipe::write(Pipe* pipe, size_t size)
 {
-	ssize_t rv = 0;
+    ssize_t rv = 0;
 
 #ifdef __APPLE__
-	assert(__APPLE__);
+    assert(__APPLE__);
 #else
-	rv = splice(pipe->readFd(), NULL, writeFd(), NULL, pipe->size_, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
+    rv = splice(pipe->readFd(), NULL, writeFd(), NULL, pipe->size_, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
 #endif
 
-	if (rv > 0) {
-		pipe->size_ -= rv;
-		size_ += rv;
-	}
+    if (rv > 0) {
+        pipe->size_ -= rv;
+        size_ += rv;
+    }
 
-	return rv;
+    return rv;
 }
 
 ssize_t Pipe::write(int fd, off_t* fd_off, size_t size)
 {
-	ssize_t rv = 0;
+    ssize_t rv = 0;
 
 #ifdef __APPLE__
-	assert(__APPLE__);
+    assert(__APPLE__);
 #else
-	rv = splice(fd, fd_off, writeFd(), NULL, size, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
+    rv = splice(fd, fd_off, writeFd(), NULL, size, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
 #endif
 
-	if (rv > 0)
-		size_ += rv;
+    if (rv > 0)
+        size_ += rv;
 
-	return rv;
+    return rv;
 }
 
 ssize_t Pipe::read(void* buf, size_t size)
 {
-	ssize_t rv = ::read(readFd(), buf, size);
+    ssize_t rv = ::read(readFd(), buf, size);
 
-	if (rv > 0)
-		size_ -= rv;
+    if (rv > 0)
+        size_ -= rv;
 
-	return rv;
+    return rv;
 }
 
 ssize_t Pipe::read(Socket* socket, size_t size)
 {
-	return socket->read(this, size);
+    return socket->read(this, size);
 }
 
 ssize_t Pipe::read(Pipe* pipe, size_t size)
 {
-	return pipe->write(this, size);
+    return pipe->write(this, size);
 }
 
 ssize_t Pipe::read(int fd, off_t* fd_off, size_t size)
 {
-	ssize_t rv = 0;
+    ssize_t rv = 0;
 
 #ifdef __APPLE__
-	assert(__APPLE__);
+    assert(__APPLE__);
 #else
-	rv = splice(readFd(), fd_off, fd, NULL, size, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
+    rv = splice(readFd(), fd_off, fd, NULL, size, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
 #endif
 
-	if (rv > 0)
-		size_ -= rv;
+    if (rv > 0)
+        size_ -= rv;
 
-	return rv;
+    return rv;
 }
 
 } // namespace x0

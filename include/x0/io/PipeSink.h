@@ -21,19 +21,19 @@ namespace x0 {
 /** pipe sink.
  */
 class X0_API PipeSink :
-	public Sink
+    public Sink
 {
 private:
-	Pipe* pipe_;
+    Pipe* pipe_;
 
 public:
-	explicit PipeSink(Pipe* pipe);
-	~PipeSink();
+    explicit PipeSink(Pipe* pipe);
+    ~PipeSink();
 
-	Pipe* pipe() const;
+    Pipe* pipe() const;
 
-	virtual void accept(SinkVisitor& v);
-	virtual ssize_t write(const void *buffer, size_t size);
+    virtual void accept(SinkVisitor& v);
+    virtual ssize_t write(const void *buffer, size_t size);
 };
 
 //@}
@@ -41,7 +41,7 @@ public:
 // {{{ inlines
 inline Pipe* PipeSink::pipe() const
 {
-	return pipe_;
+    return pipe_;
 }
 // }}}
 

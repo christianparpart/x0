@@ -23,24 +23,24 @@ namespace x0 {
  * \see Buffer, Source, Sink
  */
 class X0_API BufferSource :
-	public Source
+    public Source
 {
 public:
-	template<typename PodType, std::size_t N> explicit BufferSource(PodType (&value)[N]);
-	explicit BufferSource(const Buffer& data);
-	explicit BufferSource(Buffer&& data);
-	~BufferSource();
+    template<typename PodType, std::size_t N> explicit BufferSource(PodType (&value)[N]);
+    explicit BufferSource(const Buffer& data);
+    explicit BufferSource(Buffer&& data);
+    ~BufferSource();
 
-	std::size_t size() const;
-	bool empty() const;
+    std::size_t size() const;
+    bool empty() const;
 
-	virtual ssize_t sendto(Sink& sink);
+    virtual ssize_t sendto(Sink& sink);
 
-	virtual const char* className() const;
+    virtual const char* className() const;
 
 private:
-	Buffer buffer_;
-	std::size_t pos_;
+    Buffer buffer_;
+    std::size_t pos_;
 };
 
 //@}
@@ -48,18 +48,18 @@ private:
 // {{{ inlines
 template<typename PodType, std::size_t N>
 inline BufferSource::BufferSource(PodType (&value)[N]) :
-	buffer_(), pos_(0)
+    buffer_(), pos_(0)
 {
-	buffer_.push_back(value, N - 1);
+    buffer_.push_back(value, N - 1);
 }
 
 inline BufferSource::BufferSource(const Buffer& data) :
-	buffer_(data), pos_(0)
+    buffer_(data), pos_(0)
 {
 }
 
 inline BufferSource::BufferSource(Buffer&& data) :
-	buffer_(std::move(data)), pos_(0)
+    buffer_(std::move(data)), pos_(0)
 {
 }
 
@@ -69,12 +69,12 @@ inline BufferSource::~BufferSource()
 
 inline std::size_t BufferSource::size() const
 {
-	return buffer_.size() - pos_;
+    return buffer_.size() - pos_;
 }
 
 inline bool BufferSource::empty() const
 {
-	return size() == 0;
+    return size() == 0;
 }
 // }}}
 

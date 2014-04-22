@@ -16,10 +16,10 @@
 #include <x0/SocketSpec.h>
 
 namespace x0 {
-	class HttpServer;
-	class HttpRequest;
-	class Buffer;
-	class Socket;
+    class HttpServer;
+    class HttpRequest;
+    class Buffer;
+    class Socket;
 }
 
 class FastCgiTransport;
@@ -34,22 +34,22 @@ class FastCgiTransport;
  * @see FastCgiTransport
  */
 class FastCgiBackend :
-	public Backend
+    public Backend
 {
 public:
-	static std::atomic<uint16_t> nextID_;
+    static std::atomic<uint16_t> nextID_;
 
 public:
-	FastCgiBackend(BackendManager* manager, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
-	~FastCgiBackend();
+    FastCgiBackend(BackendManager* manager, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
+    ~FastCgiBackend();
 
-	void setup(const x0::SocketSpec& spec);
+    void setup(const x0::SocketSpec& spec);
 
-	virtual const std::string& protocol() const;
-	virtual bool process(RequestNotes* rn);
+    virtual const std::string& protocol() const;
+    virtual bool process(RequestNotes* rn);
 
-	using Backend::release;
-	void release(FastCgiTransport* transport);
+    using Backend::release;
+    void release(FastCgiTransport* transport);
 
-	friend class FastCgiTransport;
+    friend class FastCgiTransport;
 };

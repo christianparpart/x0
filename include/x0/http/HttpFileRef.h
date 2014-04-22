@@ -17,62 +17,62 @@ namespace x0 {
 
 class X0_API HttpFileRef {
 private:
-	HttpFile* object_;
+    HttpFile* object_;
 
 public:
-	HttpFileRef() : object_(nullptr) {}
+    HttpFileRef() : object_(nullptr) {}
 
-	HttpFileRef(HttpFile* f) :
-		object_(f)
-	{
-		if (object_) {
-			object_->ref();
-		}
-	}
+    HttpFileRef(HttpFile* f) :
+        object_(f)
+    {
+        if (object_) {
+            object_->ref();
+        }
+    }
 
-	HttpFileRef(const HttpFileRef& v) :
-		object_(v.object_)
-	{
-		if (object_) {
-			object_->ref();
-		}
-	}
+    HttpFileRef(const HttpFileRef& v) :
+        object_(v.object_)
+    {
+        if (object_) {
+            object_->ref();
+        }
+    }
 
-	HttpFileRef& operator=(const HttpFileRef& v)
-	{
-		HttpFile* old = object_;
+    HttpFileRef& operator=(const HttpFileRef& v)
+    {
+        HttpFile* old = object_;
 
-		object_ = v.object_;
-		object_->ref();
+        object_ = v.object_;
+        object_->ref();
 
-		if (old)
-			old->unref();
+        if (old)
+            old->unref();
 
-		return *this;
-	}
+        return *this;
+    }
 
-	~HttpFileRef()
-	{
-		if (object_) {
-			object_->unref();
-		}
-	}
+    ~HttpFileRef()
+    {
+        if (object_) {
+            object_->unref();
+        }
+    }
 
-	HttpFile* get() const { return object_; }
-		
-	HttpFile* operator->() { return object_; }
-	const HttpFile* operator->() const { return object_; }
+    HttpFile* get() const { return object_; }
 
-	bool operator!() const { return object_ == nullptr; }
-	operator bool() const { return object_ != nullptr; }
+    HttpFile* operator->() { return object_; }
+    const HttpFile* operator->() const { return object_; }
 
-	void reset()
-	{
-		if (object_) {
-			object_->unref();
-		}
-		object_ = nullptr;
-	}
+    bool operator!() const { return object_ == nullptr; }
+    operator bool() const { return object_ != nullptr; }
+
+    void reset()
+    {
+        if (object_) {
+            object_->unref();
+        }
+        object_ = nullptr;
+    }
 };
 
 } // namespace x0

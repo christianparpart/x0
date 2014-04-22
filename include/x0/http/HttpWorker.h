@@ -59,188 +59,188 @@ class HttpRequest;
  */
 class X0_API HttpWorker
 {
-	CUSTOMDATA_API_INLINE
+    CUSTOMDATA_API_INLINE
 
 public:
-	enum State {
-		Inactive = 0,
-		Running = 1,
-		Suspended = 2
-	};
+    enum State {
+        Inactive = 0,
+        Running = 1,
+        Suspended = 2
+    };
 
-	typedef std::list<HttpConnection*> ConnectionList;
-	typedef ConnectionList::iterator ConnectionHandle;
+    typedef std::list<HttpConnection*> ConnectionList;
+    typedef ConnectionList::iterator ConnectionHandle;
 
 private:
-	unsigned id_;
-	State state_;
-	HttpServer& server_;
-	ev::loop_ref loop_;
-	ev_tstamp startupTime_;
-	DateTime now_;
-	std::atomic<int> connectionLoad_;
-	std::atomic<unsigned long long> requestCount_;
-	unsigned long long connectionCount_;
-	pthread_t thread_;
-	Queue<std::pair<Socket*, ServerSocket*>> queue_;
+    unsigned id_;
+    State state_;
+    HttpServer& server_;
+    ev::loop_ref loop_;
+    ev_tstamp startupTime_;
+    DateTime now_;
+    std::atomic<int> connectionLoad_;
+    std::atomic<unsigned long long> requestCount_;
+    unsigned long long connectionCount_;
+    pthread_t thread_;
+    Queue<std::pair<Socket*, ServerSocket*>> queue_;
 
-	pthread_mutex_t resumeLock_;
-	pthread_cond_t resumeCondition_;
+    pthread_mutex_t resumeLock_;
+    pthread_cond_t resumeCondition_;
 
-	PerformanceCounter<15 * 60> performanceCounter_;
+    PerformanceCounter<15 * 60> performanceCounter_;
 
-	std::list<std::function<void()>> stopHandler_;
-	std::list<std::function<void()>> killHandler_;
+    std::list<std::function<void()>> stopHandler_;
+    std::list<std::function<void()>> killHandler_;
 
-	HttpConnection* connections_;
-	HttpConnection* freeConnections_;
+    HttpConnection* connections_;
+    HttpConnection* freeConnections_;
 
-	ev::check evLoopCheck_;
-	ev::async evNewConnection_;
-	ev::async evWakeup_;
+    ev::check evLoopCheck_;
+    ev::async evNewConnection_;
+    ev::async evWakeup_;
 
 #if !defined(X0_WORKER_POST_LIBEV)
-	pthread_mutex_t postLock_;
-	std::deque<std::function<void()>> postQueue_;
+    pthread_mutex_t postLock_;
+    std::deque<std::function<void()>> postQueue_;
 #endif
 
-	friend class HttpPlugin;
-	friend class HttpCore;
-	friend class HttpServer;
-	friend class HttpConnection;
-	friend class HttpRequest;
+    friend class HttpPlugin;
+    friend class HttpCore;
+    friend class HttpServer;
+    friend class HttpConnection;
+    friend class HttpRequest;
 
 public:
-	HttpFileMgr fileinfo;
+    HttpFileMgr fileinfo;
 
 public:
-	HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded);
-	~HttpWorker();
+    HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded);
+    ~HttpWorker();
 
-	void setName(const char* fmt, ...);
+    void setName(const char* fmt, ...);
 
-	ev_tstamp startupTime() const { return startupTime_; }
-	ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
+    ev_tstamp startupTime() const { return startupTime_; }
+    ev_tstamp uptime() const { return ev_now(loop_) - startupTime_; }
 
-	const DateTime& now() const;
+    const DateTime& now() const;
 
-	unsigned id() const;
-	struct ev_loop *loop() const;
-	HttpServer& server() const;
+    unsigned id() const;
+    struct ev_loop *loop() const;
+    HttpServer& server() const;
 
-	bool isInactive() const { return state_ == Inactive; }
-	bool isRunning() const { return state_ == Running; }
-	bool isSuspended() const { return state_ == Suspended; }
+    bool isInactive() const { return state_ == Inactive; }
+    bool isRunning() const { return state_ == Running; }
+    bool isSuspended() const { return state_ == Suspended; }
 
-	template<typename T>
-	bool eachConnection(T cb) {
-		for (HttpConnection* c = connections_; c != nullptr; c = c->next_)
-			if (!cb(c))
-				return false;
+    template<typename T>
+    bool eachConnection(T cb) {
+        for (HttpConnection* c = connections_; c != nullptr; c = c->next_)
+            if (!cb(c))
+                return false;
 
-		return true;
-	}
+        return true;
+    }
 
-	int connectionLoad() const;
-	unsigned long long requestCount() const;
-	unsigned long long connectionCount() const;
+    int connectionLoad() const;
+    unsigned long long requestCount() const;
+    unsigned long long connectionCount() const;
 
-	void fetchPerformanceCounts(double* p1, double* p5, double* p15) const;
+    void fetchPerformanceCounts(double* p1, double* p5, double* p15) const;
 
-	void enqueue(std::pair<Socket*, ServerSocket*>&& handle);
-	void handleRequest(HttpRequest *r);
-	void release(HttpConnection* connection);
+    void enqueue(std::pair<Socket*, ServerSocket*>&& handle);
+    void handleRequest(HttpRequest *r);
+    void release(HttpConnection* connection);
 
-	template<typename... Args>
-	void log(Severity s, const char* fmt, Args... args);
+    template<typename... Args>
+    void log(Severity s, const char* fmt, Args... args);
 
-	void log(LogMessage&& msg);
+    void log(LogMessage&& msg);
 
-	void setAffinity(int cpu);
+    void setAffinity(int cpu);
 
-	void bind(ServerSocket* s);
+    void bind(ServerSocket* s);
 
-	template<class K, void (K::*fn)()>
-	void post(K* object);
+    template<class K, void (K::*fn)()>
+    void post(K* object);
 
-	template<class K, void (K::*fn)(void*)>
-	void post(K* object, void* arg);
+    template<class K, void (K::*fn)(void*)>
+    void post(K* object, void* arg);
 
-	inline void post(const std::function<void()>& callback);
+    inline void post(const std::function<void()>& callback);
 
-	inline void wakeup();
+    inline void wakeup();
 
-	void stop();
-	void kill();
-	void join();
+    void stop();
+    void kill();
+    void join();
 
-	void suspend();
-	void resume();
+    void suspend();
+    void resume();
 
-	std::list<std::function<void()>>::iterator registerStopHandler(std::function<void()> callback);
-	void unregisterStopHandler(std::list<std::function<void()>>::iterator handle);
+    std::list<std::function<void()>>::iterator registerStopHandler(std::function<void()> callback);
+    void unregisterStopHandler(std::list<std::function<void()>>::iterator handle);
 
-	std::list<std::function<void()>>::iterator registerKillHandler(std::function<void()> callback);
-	void unregisterKillHandler(std::list<std::function<void()>>::iterator handle);
+    std::list<std::function<void()>>::iterator registerKillHandler(std::function<void()> callback);
+    void unregisterKillHandler(std::list<std::function<void()>>::iterator handle);
 
-	void freeCache();
+    void freeCache();
 
 private:
-	template<class K, void (K::*fn)()>
-	static void post_thunk(int revents, void* arg);
+    template<class K, void (K::*fn)()>
+    static void post_thunk(int revents, void* arg);
 
-	template<class K, void (K::*fn)(void*)>
-	static void post_thunk2(int revents, void* arg);
+    template<class K, void (K::*fn)(void*)>
+    static void post_thunk2(int revents, void* arg);
 
-	static void post_thunk3(int revents, void* arg);
+    static void post_thunk3(int revents, void* arg);
 
-	void run();
+    void run();
 
-	void onLoopCheck(ev::check& w, int revents);
-	void onNewConnection(ev::async& w, int revents);
-	void onWakeup(ev::async& w, int revents);
-	void spawnConnection(Socket* client, ServerSocket* listener);
-	static void* _run(void*);
-	void _stop();
-	void _kill();
-	void _suspend();
+    void onLoopCheck(ev::check& w, int revents);
+    void onNewConnection(ev::async& w, int revents);
+    void onWakeup(ev::async& w, int revents);
+    void spawnConnection(Socket* client, ServerSocket* listener);
+    static void* _run(void*);
+    void _stop();
+    void _kill();
+    void _suspend();
 };
 //@}
 
 // {{{ inlines
 inline unsigned HttpWorker::id() const
 {
-	return id_;
+    return id_;
 }
 
 inline struct ev_loop *HttpWorker::loop() const
 {
-	return loop_;
+    return loop_;
 }
 
 inline HttpServer& HttpWorker::server() const
 {
-	return server_;
+    return server_;
 }
 
 inline const DateTime& HttpWorker::now() const
 {
-	return now_;
+    return now_;
 }
 
 inline int HttpWorker::connectionLoad() const
 {
-	return connectionLoad_;
+    return connectionLoad_;
 }
 
 inline unsigned long long HttpWorker::requestCount() const
 {
-	return requestCount_;
+    return requestCount_;
 }
 
 inline unsigned long long HttpWorker::connectionCount() const
 {
-	return connectionCount_;
+    return connectionCount_;
 }
 
 /*! Invokes given callback within this worker's thread.
@@ -251,19 +251,19 @@ template<class K, void (K::*fn)()>
 void HttpWorker::post(K* object)
 {
 #if !defined(X0_WORKER_POST_LIBEV)
-	pthread_mutex_lock(&postLock_);
-	postQueue_.push_back(std::bind(fn, object));
-	pthread_mutex_unlock(&postLock_);
+    pthread_mutex_lock(&postLock_);
+    postQueue_.push_back(std::bind(fn, object));
+    pthread_mutex_unlock(&postLock_);
 #else
-	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk<K, fn>, object);
+    ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk<K, fn>, object);
 #endif
-	evWakeup_.send();
+    evWakeup_.send();
 }
 
 template<class K, void (K::*fn)()>
 void HttpWorker::post_thunk(int revents, void* arg)
 {
-	(static_cast<K *>(arg)->*fn)();
+    (static_cast<K *>(arg)->*fn)();
 }
 
 /*! Invokes given callback within this worker's thread.
@@ -275,60 +275,60 @@ template<class K, void (K::*fn)(void*)>
 void HttpWorker::post(K* object, void* arg)
 {
 #if !defined(X0_WORKER_POST_LIBEV)
-	pthread_mutex_lock(&postLock_);
-	postQueue_.push_back(std::bind(fn, object, arg));
-	pthread_mutex_unlock(&postLock_);
+    pthread_mutex_lock(&postLock_);
+    postQueue_.push_back(std::bind(fn, object, arg));
+    pthread_mutex_unlock(&postLock_);
 #else
-	auto priv = std::make_pair(object, arg);
-	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk2<K, fn>, priv);
+    auto priv = std::make_pair(object, arg);
+    ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &post_thunk2<K, fn>, priv);
 #endif
-	evWakeup_.send();
+    evWakeup_.send();
 }
 
 template<class K, void (K::*fn)(void*)>
 void HttpWorker::post_thunk2(int revents, void* arg)
 {
-	auto priv = (std::pair<K*, void*>) arg;
+    auto priv = (std::pair<K*, void*>) arg;
 
-	try {
-		(static_cast<K *>(priv->first)->*fn)(priv->second);
-	} catch (...) {
-		delete priv;
-		throw;
-	}
+    try {
+        (static_cast<K *>(priv->first)->*fn)(priv->second);
+    } catch (...) {
+        delete priv;
+        throw;
+    }
 
-	delete priv;
+    delete priv;
 }
 
 inline void HttpWorker::post(const std::function<void()>& callback)
 {
 #if !defined(X0_WORKER_POST_LIBEV)
-	pthread_mutex_lock(&postLock_);
-	postQueue_.push_back(callback);
-	pthread_mutex_unlock(&postLock_);
+    pthread_mutex_lock(&postLock_);
+    postQueue_.push_back(callback);
+    pthread_mutex_unlock(&postLock_);
 #else
-	auto p = new std::function<void()>(callback);
-	ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
+    auto p = new std::function<void()>(callback);
+    ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
 #endif
-	evWakeup_.send();
+    evWakeup_.send();
 }
 
 inline void HttpWorker::wakeup()
 {
-	evWakeup_.send();
+    evWakeup_.send();
 }
 
 inline void HttpWorker::fetchPerformanceCounts(double* p1, double* p5, double* p15) const
 {
-	*p1 += performanceCounter_.average(60 * 1);
-	*p5 += performanceCounter_.average(60 * 5);
-	*p15 += performanceCounter_.average(60 * 15);
+    *p1 += performanceCounter_.average(60 * 1);
+    *p5 += performanceCounter_.average(60 * 5);
+    *p15 += performanceCounter_.average(60 * 15);
 }
 
 template<typename... Args>
 inline void HttpWorker::log(Severity s, const char* fmt, Args... args)
 {
-	log(LogMessage(s, fmt, args...));
+    log(LogMessage(s, fmt, args...));
 }
 // }}}
 

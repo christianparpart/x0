@@ -12,7 +12,7 @@
 #include <x0/http/HttpWorker.h>
 
 Scheduler::Scheduler(BackendList* backends) :
-	backends_(backends)
+    backends_(backends)
 {
 }
 
@@ -29,23 +29,23 @@ const std::string& ChanceScheduler::name() const
 
 SchedulerStatus ChanceScheduler::schedule(RequestNotes* rn)
 {
-	size_t unavailable = 0;
+    size_t unavailable = 0;
 
-	for (auto backend: backends()) {
-		switch (backend->tryProcess(rn)) {
-		case SchedulerStatus::Success:
-			return SchedulerStatus::Success;
-		case SchedulerStatus::Unavailable:
-			++unavailable;
-			break;
-		case SchedulerStatus::Overloaded:
-			break;
-		}
-	}
+    for (auto backend: backends()) {
+        switch (backend->tryProcess(rn)) {
+        case SchedulerStatus::Success:
+            return SchedulerStatus::Success;
+        case SchedulerStatus::Unavailable:
+            ++unavailable;
+            break;
+        case SchedulerStatus::Overloaded:
+            break;
+        }
+    }
 
-	return unavailable < backends().size()
-		? SchedulerStatus::Overloaded
-		: SchedulerStatus::Unavailable;
+    return unavailable < backends().size()
+        ? SchedulerStatus::Overloaded
+        : SchedulerStatus::Unavailable;
 }
 
 // RoundRobinScheduler
@@ -57,22 +57,22 @@ const std::string& RoundRobinScheduler::name() const
 
 SchedulerStatus RoundRobinScheduler::schedule(RequestNotes* rn)
 {
-	unsigned unavailable = 0;
+    unsigned unavailable = 0;
 
-	for (size_t count = 0, limit = backends().size(); count < limit; ++count, ++next_) {
-		if (next_ >= limit)
-			next_ = 0;
+    for (size_t count = 0, limit = backends().size(); count < limit; ++count, ++next_) {
+        if (next_ >= limit)
+            next_ = 0;
 
-		switch (backends()[next_++]->tryProcess(rn)) {
-		case SchedulerStatus::Success:
-			return SchedulerStatus::Success;
-		case SchedulerStatus::Unavailable:
-			++unavailable;
-			break;
-		case SchedulerStatus::Overloaded:
-			break;
-		}
-	}
+        switch (backends()[next_++]->tryProcess(rn)) {
+        case SchedulerStatus::Success:
+            return SchedulerStatus::Success;
+        case SchedulerStatus::Unavailable:
+            ++unavailable;
+            break;
+        case SchedulerStatus::Overloaded:
+            break;
+        }
+    }
 
-	return backends().size() == unavailable ? SchedulerStatus::Unavailable : SchedulerStatus::Overloaded;
+    return backends().size() == unavailable ? SchedulerStatus::Unavailable : SchedulerStatus::Overloaded;
 }

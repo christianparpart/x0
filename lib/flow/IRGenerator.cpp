@@ -25,43 +25,43 @@ namespace x0 {
 // {{{ trace
 static size_t fnd = 0;
 struct fntrace3 {
-	std::string msg_;
+    std::string msg_;
 
-	fntrace3(const char* msg) : msg_(msg)
-	{
-		size_t i = 0;
-		char fmt[1024];
+    fntrace3(const char* msg) : msg_(msg)
+    {
+        size_t i = 0;
+        char fmt[1024];
 
-		for (i = 0; i < 2 * fnd; ) {
-			fmt[i++] = ' ';
-			fmt[i++] = ' ';
-		}
-		fmt[i++] = '-';
-		fmt[i++] = '>';
-		fmt[i++] = ' ';
-		strcpy(fmt + i, msg_.c_str());
+        for (i = 0; i < 2 * fnd; ) {
+            fmt[i++] = ' ';
+            fmt[i++] = ' ';
+        }
+        fmt[i++] = '-';
+        fmt[i++] = '>';
+        fmt[i++] = ' ';
+        strcpy(fmt + i, msg_.c_str());
 
-		XZERO_DEBUG("IRGenerator", 5, "%s", fmt);
-		++fnd;
-	}
+        XZERO_DEBUG("IRGenerator", 5, "%s", fmt);
+        ++fnd;
+    }
 
-	~fntrace3() {
-		--fnd;
+    ~fntrace3() {
+        --fnd;
 
-		size_t i = 0;
-		char fmt[1024];
+        size_t i = 0;
+        char fmt[1024];
 
-		for (i = 0; i < 2 * fnd; ) {
-			fmt[i++] = ' ';
-			fmt[i++] = ' ';
-		}
-		fmt[i++] = '<';
-		fmt[i++] = '-';
-		fmt[i++] = ' ';
-		strcpy(fmt + i, msg_.c_str());
+        for (i = 0; i < 2 * fnd; ) {
+            fmt[i++] = ' ';
+            fmt[i++] = ' ';
+        }
+        fmt[i++] = '<';
+        fmt[i++] = '-';
+        fmt[i++] = ' ';
+        strcpy(fmt + i, msg_.c_str());
 
-		XZERO_DEBUG("IRGenerator", 5, "%s", fmt);
-	}
+        XZERO_DEBUG("IRGenerator", 5, "%s", fmt);
+    }
 };
 // }}}
 #	define FNTRACE() fntrace3 _(__PRETTY_FUNCTION__)

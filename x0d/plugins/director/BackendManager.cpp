@@ -11,15 +11,15 @@
 
 BackendManager::BackendManager(x0::HttpWorker* worker, const std::string& name) :
 #ifndef XZERO_NDEBUG
-	x0::Logging("BackendManager/%s", name.c_str()),
+    x0::Logging("BackendManager/%s", name.c_str()),
 #endif
-	worker_(worker),
-	name_(name),
-	connectTimeout_(x0::TimeSpan::fromSeconds(10)),
-	readTimeout_(x0::TimeSpan::fromSeconds(120)),
-	writeTimeout_(x0::TimeSpan::fromSeconds(10)),
-	transferMode_(TransferMode::Blocking),
-	load_()
+    worker_(worker),
+    name_(name),
+    connectTimeout_(x0::TimeSpan::fromSeconds(10)),
+    readTimeout_(x0::TimeSpan::fromSeconds(120)),
+    writeTimeout_(x0::TimeSpan::fromSeconds(10)),
+    transferMode_(TransferMode::Blocking),
+    load_()
 {
 }
 
@@ -29,49 +29,49 @@ BackendManager::~BackendManager()
 
 void BackendManager::log(x0::LogMessage&& msg)
 {
-	msg.addTag(name_);
-	worker_->log(std::move(msg));
+    msg.addTag(name_);
+    worker_->log(std::move(msg));
 }
 
 TransferMode makeTransferMode(const std::string& value)
 {
-	if (value == "file")
-		return TransferMode::FileAccel;
+    if (value == "file")
+        return TransferMode::FileAccel;
 
-	if (value == "memory")
-		return TransferMode::MemoryAccel;
+    if (value == "memory")
+        return TransferMode::MemoryAccel;
 
-	if (value == "blocking")
-		return TransferMode::Blocking;
+    if (value == "blocking")
+        return TransferMode::Blocking;
 
-	// default to "blocking" if value is not recognized.
-	return TransferMode::Blocking;
+    // default to "blocking" if value is not recognized.
+    return TransferMode::Blocking;
 }
 
 std::string tos(TransferMode value)
 {
-	static const std::string s[] = {
-		"blocking",
-		"memory",
-		"file"
-	};
-	return s[static_cast<size_t>(value)];
+    static const std::string s[] = {
+        "blocking",
+        "memory",
+        "file"
+    };
+    return s[static_cast<size_t>(value)];
 }
 
 namespace x0 {
-	x0::JsonWriter& operator<<(x0::JsonWriter& json, const TransferMode& mode)
-	{
-		switch (mode) {
-		case TransferMode::FileAccel:
-			json.value("file");
-			break;
-		case TransferMode::MemoryAccel:
-			json.value("memory");
-			break;
-		case TransferMode::Blocking:
-			json.value("blocking");
-			break;
-		}
-		return json;
-	}
+    x0::JsonWriter& operator<<(x0::JsonWriter& json, const TransferMode& mode)
+    {
+        switch (mode) {
+        case TransferMode::FileAccel:
+            json.value("file");
+            break;
+        case TransferMode::MemoryAccel:
+            json.value("memory");
+            break;
+        case TransferMode::Blocking:
+            json.value("blocking");
+            break;
+        }
+        return json;
+    }
 }

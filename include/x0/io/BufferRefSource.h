@@ -23,40 +23,40 @@ namespace x0 {
  * \see BufferRef, Source, Sink
  */
 class X0_API BufferRefSource :
-	public Source
+    public Source
 {
 public:
-	explicit BufferRefSource(const Buffer& data);
-	explicit BufferRefSource(const BufferRef& data);
-	explicit BufferRefSource(BufferRef&& data);
-	~BufferRefSource();
+    explicit BufferRefSource(const Buffer& data);
+    explicit BufferRefSource(const BufferRef& data);
+    explicit BufferRefSource(BufferRef&& data);
+    ~BufferRefSource();
 
-	std::size_t size() const;
-	bool empty() const;
+    std::size_t size() const;
+    bool empty() const;
 
-	virtual ssize_t sendto(Sink& sink);
-	virtual const char* className() const;
+    virtual ssize_t sendto(Sink& sink);
+    virtual const char* className() const;
 
 private:
-	BufferRef buffer_;
-	std::size_t pos_;
+    BufferRef buffer_;
+    std::size_t pos_;
 };
 
 //@}
 
 // {{{ inlines
 inline BufferRefSource::BufferRefSource(const Buffer& data) :
-	buffer_(data.ref()), pos_(0)
+    buffer_(data.ref()), pos_(0)
 {
 }
 
 inline BufferRefSource::BufferRefSource(const BufferRef& data) :
-	buffer_(data), pos_(0)
+    buffer_(data), pos_(0)
 {
 }
 
 inline BufferRefSource::BufferRefSource(BufferRef&& data) :
-	buffer_(std::move(data)), pos_(0)
+    buffer_(std::move(data)), pos_(0)
 {
 }
 
@@ -66,12 +66,12 @@ inline BufferRefSource::~BufferRefSource()
 
 inline std::size_t BufferRefSource::size() const
 {
-	return buffer_.size() - pos_;
+    return buffer_.size() - pos_;
 }
 
 inline bool BufferRefSource::empty() const
 {
-	return size() == 0;
+    return size() == 0;
 }
 // }}}
 

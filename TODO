@@ -7,7 +7,6 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
   - create *two* PPAs:
     - trapni/x0 for main x0 (latest ubuntu)
     - trapni/x0-precise: for 12.04
-- convert all tabs to spaces
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 accesslog:

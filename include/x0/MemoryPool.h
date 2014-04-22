@@ -21,27 +21,27 @@
 class MemoryPool
 {
 public:
-	std::list<void *> pool_;
+    std::list<void *> pool_;
 
 public:
-	MemoryPool();
-	~MemoryPool();
+    MemoryPool();
+    ~MemoryPool();
 
-	void clear();
+    void clear();
 
-	void *allocate(size_t n);
+    void *allocate(size_t n);
 
-	template<typename T>
-	T* allocate()
-	{
-		return static_cast<T*>(allocate(sizeof(T)));
-	}
+    template<typename T>
+    T* allocate()
+    {
+        return static_cast<T*>(allocate(sizeof(T)));
+    }
 
-	char *strdup(const char *value);
-	char *strcat(const char *v1, const char *v2);
+    char *strdup(const char *value);
+    char *strcat(const char *v1, const char *v2);
 
-	void *dup(const void *val, size_t size);
-	void *cat(const void *v1, size_t s1, const void *v2, size_t s2);
+    void *dup(const void *val, size_t size);
+    void *cat(const void *v1, size_t s1, const void *v2, size_t s2);
 };
 
 // {{{ inlines
@@ -51,43 +51,43 @@ inline MemoryPool::MemoryPool()
 
 inline MemoryPool::~MemoryPool()
 {
-	clear();
+    clear();
 }
 
 inline void MemoryPool::clear()
 {
-	for (auto i = pool_.begin(), e = pool_.end(); i != e; ++i)
-		free(*i);
+    for (auto i = pool_.begin(), e = pool_.end(); i != e; ++i)
+        free(*i);
 
-	pool_.clear();
+    pool_.clear();
 }
 
 inline void *MemoryPool::allocate(size_t n)
 {
-	void *result = malloc(n);
-	pool_.push_back(result);
-	return result;
+    void *result = malloc(n);
+    pool_.push_back(result);
+    return result;
 }
 
 inline char *MemoryPool::strdup(const char *value)
 {
-	size_t n = strlen(value);
-	char *result = (char *)(allocate(n + 1));
-	memcpy(result, value, n + 1);
-	return result;
+    size_t n = strlen(value);
+    char *result = (char *)(allocate(n + 1));
+    memcpy(result, value, n + 1);
+    return result;
 }
 
 inline char *MemoryPool::strcat(const char *v1, const char *v2)
 {
-	size_t n1 = strlen(v1);
-	size_t n2 = strlen(v2);
+    size_t n1 = strlen(v1);
+    size_t n2 = strlen(v2);
 
-	char *result = (char *)allocate(n1 + n2 + 1);
+    char *result = (char *)allocate(n1 + n2 + 1);
 
-	memcpy(result, v1, n1);
-	memcpy(result + n1, v2, n2 + 1);
+    memcpy(result, v1, n1);
+    memcpy(result + n1, v2, n2 + 1);
 
-	return result;
+    return result;
 }
 // }}}
 

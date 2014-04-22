@@ -26,37 +26,37 @@ using namespace x0;
 #endif
 
 HealthMonitor::HealthMonitor(HttpWorker& worker, HttpMessageParser::ParseMode parseMode) :
-	Logging("HealthMonitor"),
-	HttpMessageParser(parseMode),
-	mode_(Mode::Paranoid),
-	backend_(nullptr),
-	worker_(worker),
-	interval_(TimeSpan::fromSeconds(2)),
-	state_(HealthState::Undefined),
-	onStateChange_(),
-	expectCode_(HttpStatus::Ok),
-	timer_(worker_.loop()),
-	successThreshold(2),
-	failCount_(0),
-	successCount_(0),
-	responseCode_(HttpStatus::Undefined),
-	processingDone_(false)
+    Logging("HealthMonitor"),
+    HttpMessageParser(parseMode),
+    mode_(Mode::Paranoid),
+    backend_(nullptr),
+    worker_(worker),
+    interval_(TimeSpan::fromSeconds(2)),
+    state_(HealthState::Undefined),
+    onStateChange_(),
+    expectCode_(HttpStatus::Ok),
+    timer_(worker_.loop()),
+    successThreshold(2),
+    failCount_(0),
+    successCount_(0),
+    responseCode_(HttpStatus::Undefined),
+    processingDone_(false)
 {
-	timer_.set<HealthMonitor, &HealthMonitor::onCheckStart>(this);
+    timer_.set<HealthMonitor, &HealthMonitor::onCheckStart>(this);
 }
 
 HealthMonitor::~HealthMonitor()
 {
-	stop();
+    stop();
 }
 
 const std::string& HealthMonitor::mode_str() const
 {
-	static const std::string modeStr[] = {
-		"paranoid", "opportunistic", "lazy"
-	};
+    static const std::string modeStr[] = {
+        "paranoid", "opportunistic", "lazy"
+    };
 
-	return modeStr[static_cast<size_t>(mode_)];
+    return modeStr[static_cast<size_t>(mode_)];
 }
 
 /**
@@ -64,19 +64,19 @@ const std::string& HealthMonitor::mode_str() const
  */
 void HealthMonitor::setMode(Mode value)
 {
-	if (mode_ == value)
-		return;
+    if (mode_ == value)
+        return;
 
-	mode_ = value;
+    mode_ = value;
 }
 
 const std::string& HealthMonitor::state_str() const
 {
-	static const std::string stateStr[] = {
-		"undefined", "offline", "online"
-	};
+    static const std::string stateStr[] = {
+        "undefined", "offline", "online"
+    };
 
-	return stateStr[static_cast<size_t>(state_)];
+    return stateStr[static_cast<size_t>(state_)];
 }
 
 /**
@@ -84,22 +84,22 @@ const std::string& HealthMonitor::state_str() const
  */
 void HealthMonitor::setState(HealthState value)
 {
-	assert(value != HealthState::Undefined && "Setting state to Undefined is not allowed.");
-	if (state_ == value)
-		return;
+    assert(value != HealthState::Undefined && "Setting state to Undefined is not allowed.");
+    if (state_ == value)
+        return;
 
-	HealthState oldState = state_;
-	state_ = value;
+    HealthState oldState = state_;
+    state_ = value;
 
-	TRACE("setState: %s", state_str().c_str());
+    TRACE("setState: %s", state_str().c_str());
 
-	if (onStateChange_) {
-		onStateChange_(this, oldState);
-	}
+    if (onStateChange_) {
+        onStateChange_(this, oldState);
+    }
 
-	if (state_ == HealthState::Offline) {
-		worker_.post<HealthMonitor, &HealthMonitor::start>(this);
-	}
+    if (state_ == HealthState::Offline) {
+        worker_.post<HealthMonitor, &HealthMonitor::start>(this);
+    }
 }
 
 /**
@@ -107,51 +107,51 @@ void HealthMonitor::setState(HealthState value)
  */
 void HealthMonitor::setStateChangeCallback(const std::function<void(HealthMonitor*, HealthState)>& callback)
 {
-	onStateChange_ = callback;
+    onStateChange_ = callback;
 }
 
 void HealthMonitor::setBackend(Backend* backend)
 {
-	backend_ = backend;
+    backend_ = backend;
 
 #ifndef XZERO_NDEBUG
-	setLoggingPrefix("HealthMonitor/%s", backend_->socketSpec().str().c_str());
+    setLoggingPrefix("HealthMonitor/%s", backend_->socketSpec().str().c_str());
 #endif
 
-	update();
+    update();
 
-	start();
+    start();
 }
 
 void HealthMonitor::update()
 {
-	Director* director = static_cast<Director*>(backend_->manager());
+    Director* director = static_cast<Director*>(backend_->manager());
 
-	setRequest(
-		"GET %s HTTP/1.1\r\n"
-		"Host: %s\r\n"
-		"x0-Health-Check: yes\r\n"
-		"x0-Director: %s\r\n"
-		"x0-Backend: %s\r\n"
-		"\r\n",
-		director->healthCheckRequestPath().c_str(),
-		director->healthCheckHostHeader().c_str(),
-		director->name().c_str(),
-		backend_->name().c_str()
-	);
+    setRequest(
+        "GET %s HTTP/1.1\r\n"
+        "Host: %s\r\n"
+        "x0-Health-Check: yes\r\n"
+        "x0-Director: %s\r\n"
+        "x0-Backend: %s\r\n"
+        "\r\n",
+        director->healthCheckRequestPath().c_str(),
+        director->healthCheckHostHeader().c_str(),
+        director->name().c_str(),
+        backend_->name().c_str()
+    );
 }
 
 void HealthMonitor::setInterval(const TimeSpan& value)
 {
-	interval_ = value;
+    interval_ = value;
 }
 
 void HealthMonitor::reset()
 {
-	HttpMessageParser::reset();
+    HttpMessageParser::reset();
 
-	responseCode_ = HttpStatus::Undefined;
-	processingDone_ = false;
+    responseCode_ = HttpStatus::Undefined;
+    processingDone_ = false;
 }
 
 /**
@@ -159,17 +159,17 @@ void HealthMonitor::reset()
  */
 void HealthMonitor::start()
 {
-	TRACE("start()");
+    TRACE("start()");
 
-	reset();
+    reset();
 
-	timer_.start(interval_.value(), 0.0);
+    timer_.start(interval_.value(), 0.0);
 }
 
 void HealthMonitor::onCheckStart()
 {
-	// XXX onCheckStart not overridden,
-	// XXX so health-check is kind of useless.
+    // XXX onCheckStart not overridden,
+    // XXX so health-check is kind of useless.
 }
 
 /**
@@ -177,48 +177,48 @@ void HealthMonitor::onCheckStart()
  */
 void HealthMonitor::stop()
 {
-	TRACE("stop()");
+    TRACE("stop()");
 
-	if (timer_.is_active()) {
-		TRACE("stop: stopping active timer");
-		timer_.stop();
-	}
+    if (timer_.is_active()) {
+        TRACE("stop: stopping active timer");
+        timer_.stop();
+    }
 
-	reset();
+    reset();
 }
 
 void HealthMonitor::recheck()
 {
-	TRACE("recheck()");
-	start();
+    TRACE("recheck()");
+    start();
 }
 
 void HealthMonitor::logSuccess()
 {
-	++successCount_;
+    ++successCount_;
 
-	if (successCount_ >= successThreshold) {
-		TRACE("onMessageEnd: successThreshold reached.");
-		setState(HealthState::Online);
-	}
+    if (successCount_ >= successThreshold) {
+        TRACE("onMessageEnd: successThreshold reached.");
+        setState(HealthState::Online);
+    }
 
-	recheck();
+    recheck();
 }
 
 void HealthMonitor::logFailure()
 {
-	++failCount_;
-	successCount_ = 0;
+    ++failCount_;
+    successCount_ = 0;
 
-	setState(HealthState::Offline);
+    setState(HealthState::Offline);
 
-	recheck();
+    recheck();
 }
 
 void HealthMonitor::log(x0::LogMessage&& msg)
 {
-	msg.addTag("monitor");
-	backend_->manager()->log(std::move(msg));
+    msg.addTag("monitor");
+    backend_->manager()->log(std::move(msg));
 }
 
 /**
@@ -226,11 +226,11 @@ void HealthMonitor::log(x0::LogMessage&& msg)
  */
 bool HealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text)
 {
-	TRACE("onMessageBegin: (HTTP/%d.%d, %d, '%s')", versionMajor, versionMinor, code, text.str().c_str());
+    TRACE("onMessageBegin: (HTTP/%d.%d, %d, '%s')", versionMajor, versionMinor, code, text.str().c_str());
 
-	responseCode_ = static_cast<HttpStatus>(code);
+    responseCode_ = static_cast<HttpStatus>(code);
 
-	return true;
+    return true;
 }
 
 /**
@@ -238,14 +238,14 @@ bool HealthMonitor::onMessageBegin(int versionMajor, int versionMinor, int code,
  */
 bool HealthMonitor::onMessageHeader(const BufferRef& name, const BufferRef& value)
 {
-	TRACE("onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
+    TRACE("onResponseHeader(name:%s, value:%s)", name.str().c_str(), value.str().c_str());
 
-	if (x0::iequals(name, "Status")) {
-		int status = value.ref(0, value.find(' ')).toInt();
-		responseCode_ = static_cast<x0::HttpStatus>(status);
-	}
+    if (x0::iequals(name, "Status")) {
+        int status = value.ref(0, value.find(' ')).toInt();
+        responseCode_ = static_cast<x0::HttpStatus>(status);
+    }
 
-	return true;
+    return true;
 }
 
 /**
@@ -253,8 +253,8 @@ bool HealthMonitor::onMessageHeader(const BufferRef& name, const BufferRef& valu
  */
 bool HealthMonitor::onMessageContent(const BufferRef& chunk)
 {
-	// do nothing with response body chunk
-	return true;
+    // do nothing with response body chunk
+    return true;
 }
 
 /**
@@ -262,26 +262,26 @@ bool HealthMonitor::onMessageContent(const BufferRef& chunk)
  */
 bool HealthMonitor::onMessageEnd()
 {
-	TRACE("onMessageEnd() state:%s", state_str().c_str());
-	processingDone_ = true;
+    TRACE("onMessageEnd() state:%s", state_str().c_str());
+    processingDone_ = true;
 
-	if (responseCode_ == expectCode_) {
-		logSuccess();
-	} else {
-		logFailure();
-	}
+    if (responseCode_ == expectCode_) {
+        logSuccess();
+    } else {
+        logFailure();
+    }
 
-	// stop processing
-	return false;
+    // stop processing
+    return false;
 }
 
 JsonWriter& operator<<(JsonWriter& json, const HealthMonitor& monitor)
 {
-	json.beginObject()
-		.name("mode")(monitor.mode_str())
-		.name("state")(monitor.state_str())
-		.name("interval")(monitor.interval().totalMilliseconds())
-		.endObject();
+    json.beginObject()
+        .name("mode")(monitor.mode_str())
+        .name("state")(monitor.state_str())
+        .name("interval")(monitor.interval().totalMilliseconds())
+        .endObject();
 
-	return json;
+    return json;
 }

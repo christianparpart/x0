@@ -36,45 +36,45 @@ namespace x0 {
  */
 class X0_API Logger
 {
-	Logger& operator=(const Logger&) = delete;
-	Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+    Logger(const Logger&) = delete;
 
 public:
-	Logger();
-	virtual ~Logger();
+    Logger();
+    virtual ~Logger();
 
-	/** reallocates resources used by this logger. */
-	virtual void cycle() = 0;
+    /** reallocates resources used by this logger. */
+    virtual void cycle() = 0;
 
-	/** writes a message into the logger. */
-	virtual void write(LogMessage& message) = 0;
+    /** writes a message into the logger. */
+    virtual void write(LogMessage& message) = 0;
 
-	/** duplicates (clones) this logger. */
-	virtual Logger *clone() const = 0;
+    /** duplicates (clones) this logger. */
+    virtual Logger *clone() const = 0;
 
-	/** retrieves the loggers Severity level */
-	Severity level() const { return severity_; }
+    /** retrieves the loggers Severity level */
+    Severity level() const { return severity_; }
 
-	/** sets the loggers Severity level */
-	void setLevel(Severity value) { severity_ = value; }
+    /** sets the loggers Severity level */
+    void setLevel(Severity value) { severity_ = value; }
 
 #if 0
-	void write(Severity s, const char* txt)
-	{
-		LogMessage msg(s, txt);
-		this->write(msg);
-	}
+    void write(Severity s, const char* txt)
+    {
+        LogMessage msg(s, txt);
+        this->write(msg);
+    }
 
-	template<typename A0, typename... Args>
-	void write(Severity s, const char* fmt, A0&& a0, Args&&... args)
-	{
-		LogMessage msg(s, fmt, a0, args...);
-		this->write(msg);
-	}
+    template<typename A0, typename... Args>
+    void write(Severity s, const char* fmt, A0&& a0, Args&&... args)
+    {
+        LogMessage msg(s, fmt, a0, args...);
+        this->write(msg);
+    }
 #endif
 
 private:
-	Severity severity_;
+    Severity severity_;
 };
 
 typedef std::shared_ptr<Logger> LoggerPtr;
@@ -84,15 +84,15 @@ typedef std::shared_ptr<Logger> LoggerPtr;
  * \see logger, FileLogger
  */
 class X0_API NullLogger :
-	public Logger
+    public Logger
 {
 public:
-	NullLogger();
-	~NullLogger();
+    NullLogger();
+    ~NullLogger();
 
-	virtual void cycle();
-	virtual void write(LogMessage& message);
-	virtual NullLogger *clone() const;
+    virtual void cycle();
+    virtual void write(LogMessage& message);
+    virtual NullLogger *clone() const;
 };
 
 /** implements a file based logger.
@@ -100,34 +100,34 @@ public:
  * \see logger, server
  */
 class X0_API FileLogger :
-	public Logger
+    public Logger
 {
 public:
-	FileLogger(const std::string& filename, std::function<time_t()> now);
-	FileLogger(int fd, std::function<time_t()> now);
-	~FileLogger();
+    FileLogger(const std::string& filename, std::function<time_t()> now);
+    FileLogger(int fd, std::function<time_t()> now);
+    ~FileLogger();
 
-	virtual void cycle();
-	virtual void write(LogMessage& message);
-	virtual FileLogger *clone() const;
+    virtual void cycle();
+    virtual void write(LogMessage& message);
+    virtual FileLogger *clone() const;
 
-	int handle() const;
+    int handle() const;
 
 private:
-	std::string filename_;
-	int fd_;
-	std::function<time_t()> now_;
+    std::string filename_;
+    int fd_;
+    std::function<time_t()> now_;
 };
 
 class X0_API ConsoleLogger :
-	public Logger
+    public Logger
 {
 public:
-	ConsoleLogger();
+    ConsoleLogger();
 
-	virtual void cycle();
-	virtual void write(LogMessage& message);
-	virtual ConsoleLogger* clone() const;
+    virtual void cycle();
+    virtual void write(LogMessage& message);
+    virtual ConsoleLogger* clone() const;
 };
 
 /** implements a file based logger.
@@ -135,15 +135,15 @@ public:
  * \see logger, server
  */
 class X0_API SystemLogger :
-	public Logger
+    public Logger
 {
 public:
-	SystemLogger();
-	~SystemLogger();
+    SystemLogger();
+    ~SystemLogger();
 
-	virtual void cycle();
-	virtual void write(LogMessage& message);
-	virtual SystemLogger *clone() const;
+    virtual void cycle();
+    virtual void write(LogMessage& message);
+    virtual SystemLogger *clone() const;
 };
 
 /** implements a file based logger.
@@ -151,15 +151,15 @@ public:
  * \see logger, server
  */
 class X0_API SystemdLogger :
-	public Logger
+    public Logger
 {
 public:
-	SystemdLogger();
-	~SystemdLogger();
+    SystemdLogger();
+    ~SystemdLogger();
 
-	virtual void cycle();
-	virtual void write(LogMessage& message);
-	virtual SystemdLogger *clone() const;
+    virtual void cycle();
+    virtual void write(LogMessage& message);
+    virtual SystemdLogger *clone() const;
 };
 
 // }}}

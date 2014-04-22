@@ -17,19 +17,19 @@
  */
 class HttpBackend : public Backend {
 private:
-	class Connection;
+    class Connection;
 
 public:
-	HttpBackend(BackendManager* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
-	~HttpBackend();
+    HttpBackend(BackendManager* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
+    ~HttpBackend();
 
-	virtual const std::string& protocol() const;
-	virtual bool process(RequestNotes* rn);
+    virtual const std::string& protocol() const;
+    virtual bool process(RequestNotes* rn);
 
-	const x0::SocketSpec& socketSpec() const { return socketSpec_; }
+    const x0::SocketSpec& socketSpec() const { return socketSpec_; }
 
 private:
-	Connection* acquireConnection();
+    Connection* acquireConnection();
 };
 
 

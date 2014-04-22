@@ -18,38 +18,38 @@
 namespace x0 {
 
 SyslogSink::SyslogSink(int level) :
-	level_(level)
+    level_(level)
 {
 }
 
 void SyslogSink::accept(SinkVisitor& v)
 {
-	v.visit(*this);
+    v.visit(*this);
 }
 
 ssize_t SyslogSink::write(const void *buffer, size_t size)
 {
-	const char* msg = static_cast<const char*>(buffer);
+    const char* msg = static_cast<const char*>(buffer);
 
-	if (msg[size - 1] == '\0') {
-		syslog(level_, "%s", msg);
-	} else {
-		Buffer scratchBuffer;
-		scratchBuffer.push_back(msg, size);
-		syslog(level_, "%s", scratchBuffer.c_str());
-	}
+    if (msg[size - 1] == '\0') {
+        syslog(level_, "%s", msg);
+    } else {
+        Buffer scratchBuffer;
+        scratchBuffer.push_back(msg, size);
+        syslog(level_, "%s", scratchBuffer.c_str());
+    }
 
-	return size;
+    return size;
 }
 
 void SyslogSink::open(const char* ident, int options, int facility)
 {
-	openlog(ident, options, facility);
+    openlog(ident, options, facility);
 }
 
 void SyslogSink::close()
 {
-	closelog();
+    closelog();
 }
 
 } // namespace x0

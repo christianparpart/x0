@@ -102,7 +102,7 @@ inline NativeCallback& NativeCallback::param<bool>(const std::string& name, bool
     *value = defaultValue;
 
     defaults_.push_back((void*) value);
-    
+
     return *this;
 }
 
@@ -126,7 +126,7 @@ inline NativeCallback& NativeCallback::param<FlowNumber>(const std::string& name
     FlowNumber* value = new FlowNumber;
     *value = defaultValue;
     defaults_.push_back(value);
-    
+
     return *this;
 }
 
@@ -149,7 +149,7 @@ inline NativeCallback& NativeCallback::param<int>(const std::string& name, int d
     FlowNumber* value = new FlowNumber;
     *value = defaultValue;
     defaults_.push_back((void*) value);
-    
+
     return *this;
 }
 
@@ -169,7 +169,7 @@ inline NativeCallback& NativeCallback::param<FlowString>(const std::string& name
     signature_.args().push_back(FlowType::String);
     names_.push_back(name);
     defaults_.push_back((void*) new FlowString(defaultValue));
-    
+
     return *this;
 }
 
@@ -189,7 +189,7 @@ inline NativeCallback& NativeCallback::param<IPAddress>(const std::string& name,
     signature_.args().push_back(FlowType::IPAddress);
     names_.push_back(name);
     defaults_.push_back((void*) new IPAddress(defaultValue));
-    
+
     return *this;
 }
 
@@ -209,7 +209,7 @@ inline NativeCallback& NativeCallback::param<Cidr>(const std::string& name, Cidr
     signature_.args().push_back(FlowType::Cidr);
     names_.push_back(name);
     defaults_.push_back((void*) new Cidr(defaultValue));
-    
+
     return *this;
 }
 
@@ -229,7 +229,7 @@ inline NativeCallback& NativeCallback::param<RegExp>(const std::string& name, Re
     signature_.args().push_back(FlowType::RegExp);
     names_.push_back(name);
     defaults_.push_back((void*) new RegExp(defaultValue));
-    
+
     return *this;
 }
 

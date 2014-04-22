@@ -12,12 +12,12 @@ namespace x0 {
 
 ssize_t NullSource::sendto(Sink& sink)
 {
-	return 0;
+    return 0;
 }
 
 const char* NullSource::className() const
 {
-	return "NullSource";
+    return "NullSource";
 }
 
 } // namespace x0

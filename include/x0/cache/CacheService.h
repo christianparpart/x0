@@ -18,15 +18,15 @@ namespace x0 {
 class X0_API CacheService
 {
 public:
-	virtual ~CacheService();
+    virtual ~CacheService();
 
-	virtual bool set(const char* key, const char* value);
-	virtual bool set(const BufferRef& key, const BufferRef& value);
-	virtual bool set(const char* key, size_t keysize, const char* val, size_t valsize) = 0;
+    virtual bool set(const char* key, const char* value);
+    virtual bool set(const BufferRef& key, const BufferRef& value);
+    virtual bool set(const char* key, size_t keysize, const char* val, size_t valsize) = 0;
 
-	virtual bool get(const char* key, Buffer& value);
-	virtual bool get(const BufferRef& key, Buffer& value);
-	virtual bool get(const char* key, size_t keysize, Buffer& val) = 0;
+    virtual bool get(const char* key, Buffer& value);
+    virtual bool get(const BufferRef& key, Buffer& value);
+    virtual bool get(const char* key, size_t keysize, Buffer& val) = 0;
 };
 
 } // namespace x0

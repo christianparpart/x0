@@ -25,41 +25,41 @@ namespace x0 {
 class X0_API SqlConnection
 {
 private:
-	MYSQL handle_;
+    MYSQL handle_;
 
-	std::string username_;
-	std::string passwd_;
-	std::string database_;
-	std::string hostname_;
-	int port_;
+    std::string username_;
+    std::string passwd_;
+    std::string database_;
+    std::string hostname_;
+    int port_;
 
 public:
-	SqlConnection();
-	~SqlConnection();
+    SqlConnection();
+    ~SqlConnection();
 
-	MYSQL *handle();
+    MYSQL *handle();
 
-	bool open(const char *hostname, const char *username, const char *passwd, const char *database, int port = 3306);
-	bool isOpen() const;
-	bool ping();
-	void close();
+    bool open(const char *hostname, const char *username, const char *passwd, const char *database, int port = 3306);
+    bool isOpen() const;
+    bool ping();
+    void close();
 
-	template<typename... Args>
-	SqlResult query(const char *queryStr, Args&&... args);
+    template<typename... Args>
+    SqlResult query(const char *queryStr, Args&&... args);
 
-	template<typename T, typename... Args>
-	T queryScalar(const char* queryStr, Args... args);
+    template<typename T, typename... Args>
+    T queryScalar(const char* queryStr, Args... args);
 
-	operator MYSQL* () const;
+    operator MYSQL* () const;
 
-	template<typename T>
-	T queryField(const char *table, const char *keyName, const char *keyValue, const char *fieldName);
+    template<typename T>
+    T queryField(const char *table, const char *keyName, const char *keyValue, const char *fieldName);
 
-	unsigned long long affectedRows() const;
+    unsigned long long affectedRows() const;
 
 private:
-	std::string makeQuery(const char *s);
-	template<typename Arg1, typename... Args> std::string makeQuery(const char *s, Arg1&& a1, Args&&... args);
+    std::string makeQuery(const char *s);
+    template<typename Arg1, typename... Args> std::string makeQuery(const char *s, Arg1&& a1, Args&&... args);
 };
 
 //@}
@@ -68,42 +68,42 @@ private:
 template<typename... Args>
 SqlResult SqlConnection::query(const char *queryStr, Args&&... args)
 {
-	std::string q(makeQuery(queryStr, args...));
-	unsigned i = 0;
-	int rc;
+    std::string q(makeQuery(queryStr, args...));
+    unsigned i = 0;
+    int rc;
 
-	do {
-		if (i) sleep(i);
-		rc = mysql_real_query(&handle_, q.c_str(), q.size());
-	} while (rc != 0 && mysql_errno(&handle_) != CR_SERVER_GONE_ERROR);
+    do {
+        if (i) sleep(i);
+        rc = mysql_real_query(&handle_, q.c_str(), q.size());
+    } while (rc != 0 && mysql_errno(&handle_) != CR_SERVER_GONE_ERROR);
 
-	return SqlResult(&handle_);
+    return SqlResult(&handle_);
 }
 
 template<typename T, typename... Args>
 T SqlConnection::queryScalar(const char* queryStr, Args... args)
 {
-	SqlResult result(query(queryStr, args...));
-	if (result && result.fetch())
-		return result.at<T>(0);
+    SqlResult result(query(queryStr, args...));
+    if (result && result.fetch())
+        return result.at<T>(0);
 
-	return T();
+    return T();
 }
 
 template<typename Arg1, typename... Args>
 std::string SqlConnection::makeQuery(const char *s, Arg1&& a1, Args&&... args)
 {
-	Buffer result;
-	while (*s) {
-		if (*s == '?' && *(++s) != '?') {
-			result.push_back(a1);
-			result.push_back(makeQuery(s, args...));
-			return result.c_str();
-		}
-		result.push_back(*s++);
-	}
-	fprintf(stderr, "internal error: extra args provided to query\n");
-	return result.c_str();
+    Buffer result;
+    while (*s) {
+        if (*s == '?' && *(++s) != '?') {
+            result.push_back(a1);
+            result.push_back(makeQuery(s, args...));
+            return result.c_str();
+        }
+        result.push_back(*s++);
+    }
+    fprintf(stderr, "internal error: extra args provided to query\n");
+    return result.c_str();
 }
 // }}}
 

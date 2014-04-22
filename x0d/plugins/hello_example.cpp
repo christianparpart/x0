@@ -30,37 +30,37 @@
  * \brief example content generator plugin
  */
 class HelloPlugin :
-	public x0d::XzeroPlugin
+    public x0d::XzeroPlugin
 {
 public:
-	HelloPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-		x0d::XzeroPlugin(d, name)
-	{
-		mainHandler("hello_example", &HelloPlugin::handleRequest);
-	}
+    HelloPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+        x0d::XzeroPlugin(d, name)
+    {
+        mainHandler("hello_example", &HelloPlugin::handleRequest);
+    }
 
-	~HelloPlugin()
-	{
-	}
+    ~HelloPlugin()
+    {
+    }
 
 private:
-	bool handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
-	{
-		// set response status code
-		r->status = x0::HttpStatus::Ok;
+    bool handleRequest(x0::HttpRequest *r, x0::FlowVM::Params& args)
+    {
+        // set response status code
+        r->status = x0::HttpStatus::Ok;
 
-		// set some custom response header
-		r->responseHeaders.push_back("Hello", "World");
+        // set some custom response header
+        r->responseHeaders.push_back("Hello", "World");
 
-		// write some content to the client
-		r->write<x0::BufferSource>("Hello, World\n");
+        // write some content to the client
+        r->write<x0::BufferSource>("Hello, World\n");
 
-		// invoke finish() marking this request as being fully handled (response fully generated).
-		r->finish();
+        // invoke finish() marking this request as being fully handled (response fully generated).
+        r->finish();
 
-		// yes, we are handling this request
-		return true;
-	}
+        // yes, we are handling this request
+        return true;
+    }
 };
 
 X0_EXPORT_PLUGIN_CLASS(HelloPlugin)

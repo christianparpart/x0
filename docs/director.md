@@ -7,7 +7,7 @@
   - FastCGI (via TCP and UNIX domain sockets)
 - active/standby/backup backend modes, where standby backends get only used when all active
   backends are at its capacity limits (and/or offline/disabled).
-- request queue with a per-director limit, used when no active nor standby backend can currently process 
+- request queue with a per-director limit, used when no active nor standby backend can currently process
 - support (per director) connect/read/write timeouts to backend
 - support retrying requests and per-director retry-limits
 - sticky offline mode
@@ -35,7 +35,7 @@ to take over.
 
 If even no *online* *standby* marked backend is available to serve the
 incoming request, it gets queued and is processed either as soon as a backend
-becomes available again, or its client receives a timeout response if 
+becomes available again, or its client receives a timeout response if
 no backend became available in time.
 
 If the queue becomes full, with a per-director set limit, the server responds
@@ -261,7 +261,7 @@ unless this director has been created statically.
   This mechanism is to reduce resource excess.
 - *queue-timeout*: The time-span in milliseconds how long a request may reside in the queue.
   Exceeding this value will result into a 503 (Service Unavailable).
-- *retry-after*: This value will give the client the delta in seconds when to retry 
+- *retry-after*: This value will give the client the delta in seconds when to retry
   the failing request.
   While all time-span values are usually given in milliseconds, this value is not, because
   the HTTP protocol states, that the corresponding response header is given in seconds.
@@ -274,7 +274,7 @@ unless this director has been created statically.
   detected this backend to be online again.
   Now, if this property is set to false, the backend may be included into the set of available backends again,
   but if set to false, it will still become "Online" but also auto-disabled by the health monitor
-  to avoid serving requests by a backend that potentially has been to long offline, that it 
+  to avoid serving requests by a backend that potentially has been to long offline, that it
   might have old backend logig. So setting this value to true might be a wise consideration
   in continuous developing production environments.
 - *scheduler*: Defines the request scheduling algorithm. one of:

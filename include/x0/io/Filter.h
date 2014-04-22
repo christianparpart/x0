@@ -31,14 +31,14 @@ namespace x0 {
 class X0_API Filter
 {
 public:
-	/** processes given input data through this Filter. */
-	virtual Buffer process(const BufferRef& input) = 0;
+    /** processes given input data through this Filter. */
+    virtual Buffer process(const BufferRef& input) = 0;
 
 public:
-	Buffer operator()(const BufferRef& input)
-	{
-		return process(input);
-	}
+    Buffer operator()(const BufferRef& input)
+    {
+        return process(input);
+    }
 };
 
 typedef std::shared_ptr<Filter> FilterPtr;

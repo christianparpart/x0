@@ -18,7 +18,7 @@
 #include <list>
 
 namespace x0 {
-	class HttpRequest;
+    class HttpRequest;
 }
 
 class Backend;
@@ -30,29 +30,29 @@ class BackendManager;
  * @see Director
  */
 struct RequestNotes :
-	public x0::CustomData
+    public x0::CustomData
 {
-	x0::HttpRequest* request;	//!< The actual HTTP request.
-	x0::DateTime ctime;			//!< Request creation time.
-	BackendManager* manager;	//!< Designated cluster to load balance this request.
-	Backend* backend;			//!< Designated backend to serve this request.
-	size_t tryCount;            //!< Number of request schedule attempts.
+    x0::HttpRequest* request;	//!< The actual HTTP request.
+    x0::DateTime ctime;			//!< Request creation time.
+    BackendManager* manager;	//!< Designated cluster to load balance this request.
+    Backend* backend;			//!< Designated backend to serve this request.
+    size_t tryCount;            //!< Number of request schedule attempts.
 
-	x0::TokenShaper<RequestNotes>::Node* bucket; //!< the bucket (node) this request is to be scheduled via.
-	size_t tokens; //!< contains the number of currently acquired tokens by this request (usually 0 or 1).
+    x0::TokenShaper<RequestNotes>::Node* bucket; //!< the bucket (node) this request is to be scheduled via.
+    size_t tokens; //!< contains the number of currently acquired tokens by this request (usually 0 or 1).
 
 #if defined(ENABLE_DIRECTOR_CACHE)
-	std::string cacheKey;
-	x0::TimeSpan cacheTTL;
-	std::list<std::string> cacheHeaderIgnores;
-	bool cacheIgnore; //!< true if cache MUST NOT be preferred over the backend server's successful response.
+    std::string cacheKey;
+    x0::TimeSpan cacheTTL;
+    std::list<std::string> cacheHeaderIgnores;
+    bool cacheIgnore; //!< true if cache MUST NOT be preferred over the backend server's successful response.
 #endif
 
-	explicit RequestNotes(x0::HttpRequest* r);
-	~RequestNotes();
+    explicit RequestNotes(x0::HttpRequest* r);
+    ~RequestNotes();
 
 #if defined(ENABLE_DIRECTOR_CACHE)
-	void setCacheKey(const char* data, const char* eptr);
-	void setCacheKey(const x0::BufferRef& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }
+    void setCacheKey(const char* data, const char* eptr);
+    void setCacheKey(const x0::BufferRef& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }
 #endif
 };

@@ -18,43 +18,43 @@ namespace x0 {
 
 struct X0_API CustomData
 {
-	CustomData(const CustomData&) = delete;
-	CustomData& operator=(const CustomData&) = delete;
-	CustomData() = default;
-	virtual ~CustomData() {}
+    CustomData(const CustomData&) = delete;
+    CustomData& operator=(const CustomData&) = delete;
+    CustomData() = default;
+    virtual ~CustomData() {}
 };
 
 #define CUSTOMDATA_API_INLINE                                            \
 private:                                                                 \
-	std::unordered_map<const void *, std::unique_ptr<x0::CustomData>> customData_; \
+    std::unordered_map<const void *, std::unique_ptr<x0::CustomData>> customData_; \
 public:                                                                  \
-	void clearCustomData()                                               \
-	{                                                                    \
-		customData_.clear();                                             \
-	}                                                                    \
+    void clearCustomData()                                               \
+    {                                                                    \
+        customData_.clear();                                             \
+    }                                                                    \
                                                                          \
-	void clearCustomData(void *key)                                      \
-	{                                                                    \
-		auto i = customData_.find(key);                                  \
-		if (i != customData_.end()) {                                    \
-			customData_.erase(i);                                        \
-		}                                                                \
-	}                                                                    \
+    void clearCustomData(void *key)                                      \
+    {                                                                    \
+        auto i = customData_.find(key);                                  \
+        if (i != customData_.end()) {                                    \
+            customData_.erase(i);                                        \
+        }                                                                \
+    }                                                                    \
                                                                          \
-	x0::CustomData* customData(const void* key) const                    \
-	{                                                                    \
-		auto i = customData_.find(key);                                  \
-		return i != customData_.end() ? i->second.get() : nullptr;       \
-	}                                                                    \
+    x0::CustomData* customData(const void* key) const                    \
+    {                                                                    \
+        auto i = customData_.find(key);                                  \
+        return i != customData_.end() ? i->second.get() : nullptr;       \
+    }                                                                    \
                                                                          \
-	template<typename T>                                                 \
-	T* customData(const void* key) const                                 \
-	{                                                                    \
-		auto i = customData_.find(key);                                  \
-		return i != customData_.end()                                    \
-			? static_cast<T*>(i->second.get())                           \
-			: nullptr;                                                   \
-	}                                                                    \
+    template<typename T>                                                 \
+    T* customData(const void* key) const                                 \
+    {                                                                    \
+        auto i = customData_.find(key);                                  \
+        return i != customData_.end()                                    \
+            ? static_cast<T*>(i->second.get())                           \
+            : nullptr;                                                   \
+    }                                                                    \
                                                                          \
     x0::CustomData* setCustomData(const void* key,                       \
                               std::unique_ptr<x0::CustomData>&& value)   \
@@ -64,17 +64,17 @@ public:                                                                  \
         return res;                                                      \
     }                                                                    \
                                                                          \
-	template<typename T, typename... Args>                               \
-	T* setCustomData(const void *key, Args&&... args)                    \
-	{                                                                    \
-		auto i = customData_.find(key);                                  \
-		if (i != customData_.end())                                      \
-			return static_cast<T*>(i->second.get());                     \
+    template<typename T, typename... Args>                               \
+    T* setCustomData(const void *key, Args&&... args)                    \
+    {                                                                    \
+        auto i = customData_.find(key);                                  \
+        if (i != customData_.end())                                      \
+            return static_cast<T*>(i->second.get());                     \
                                                                          \
-		T* value = new T(args...);                                       \
-		customData_[key].reset(value);                                   \
-		return value;                                                    \
-	}
+        T* value = new T(args...);                                       \
+        customData_[key].reset(value);                                   \
+        return value;                                                    \
+    }
 
 } // namespace x0
 

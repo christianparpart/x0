@@ -19,23 +19,23 @@ class Buffer;
 class X0_API NativeSymbol
 {
 private:
-	const char* symbol_;
+    const char* symbol_;
 
 public:
-	explicit NativeSymbol(const void* address);
+    explicit NativeSymbol(const void* address);
 
-	explicit NativeSymbol(const char* symbol) :
-		symbol_(symbol)
-	{}
+    explicit NativeSymbol(const char* symbol) :
+        symbol_(symbol)
+    {}
 
-	template<typename T>
-	explicit NativeSymbol() :
-		symbol_(typeid(T).name())
-	{}
+    template<typename T>
+    explicit NativeSymbol() :
+        symbol_(typeid(T).name())
+    {}
 
-	const char* native() const { return symbol_; }
+    const char* native() const { return symbol_; }
 
-	Buffer name() const;
+    Buffer name() const;
 };
 
 X0_API Buffer& operator<<(Buffer& b, const NativeSymbol& s);

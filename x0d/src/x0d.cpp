@@ -11,7 +11,7 @@
 
 int main(int argc, char *argv[])
 {
-	x0::DebugLogger::get().configure("XZERO_DEBUG");
-	x0d::XzeroDaemon daemon(argc, argv);
-	return daemon.run();
+    x0::DebugLogger::get().configure("XZERO_DEBUG");
+    x0d::XzeroDaemon daemon(argc, argv);
+    return daemon.run();
 }

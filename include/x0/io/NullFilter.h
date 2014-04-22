@@ -20,15 +20,15 @@ namespace x0 {
 /** simply passes incoming buffers through.
  */
 class X0_API NullFilter :
-	public Filter
+    public Filter
 {
 public:
-	NullFilter() {}
+    NullFilter() {}
 
-	virtual Buffer process(const BufferRef& data)
-	{
-		return Buffer(data);
-	}
+    virtual Buffer process(const BufferRef& data)
+    {
+        return Buffer(data);
+    }
 };
 
 //@}

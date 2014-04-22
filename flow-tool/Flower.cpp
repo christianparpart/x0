@@ -45,17 +45,17 @@ using namespace x0;
 
 void reportError(const char *category, const std::string& msg)
 {
-	printf("%s error: %s\n", category, msg.c_str());
+    printf("%s error: %s\n", category, msg.c_str());
 }
 
 Flower::Flower() :
-	Runtime(),
+    Runtime(),
     filename_(),
     program_(nullptr),
-	totalCases_(0),
-	totalSuccess_(0),
-	totalFailed_(0),
-	dumpAST_(false),
+    totalCases_(0),
+    totalSuccess_(0),
+    totalFailed_(0),
+    dumpAST_(false),
     dumpIR_(false),
     dumpTarget_(false)
 {
@@ -105,7 +105,7 @@ Flower::Flower() :
         .param<FlowNumber>("severity", 42)
         .bind(&Flower::flow_log);
 
-	// unit test aiding handlers
+    // unit test aiding handlers
     registerHandler("error")
         .param<FlowString>("message", "")
         .bind(&Flower::flow_error);
@@ -116,7 +116,7 @@ Flower::Flower() :
         .param<FlowString>("description", "")
         .bind(&Flower::flow_assert);
 
-	registerHandler("assert_fail")
+    registerHandler("assert_fail")
         .param<bool>("condition")
         .param<FlowString>("description", "")
         .bind(&Flower::flow_assertFail);
@@ -147,7 +147,7 @@ Flower::~Flower()
 
 bool Flower::import(const std::string& name, const std::string& path, std::vector<FlowVM::NativeCallback*>* builtins)
 {
-	return false;
+    return false;
 }
 
 bool Flower::onParseComplete(Unit* unit)
@@ -176,7 +176,7 @@ bool Flower::onParseComplete(Unit* unit)
         args.replace(1, std::make_unique<StringExpr>(source, FlowLocation()));
     }
 
-	return true;
+    return true;
 }
 
 int Flower::runAll(const char *fileName)
@@ -307,41 +307,41 @@ bool Flower::compile(Unit* unit)
 
 int Flower::run(const char* fileName, const char* handlerName)
 {
-	if (!handlerName || !*handlerName) {
-		printf("No handler specified.\n");
-		return -1;
-	}
+    if (!handlerName || !*handlerName) {
+        printf("No handler specified.\n");
+        return -1;
+    }
 
-	filename_ = fileName;
+    filename_ = fileName;
 
-	FlowParser parser(this);
+    FlowParser parser(this);
 
     parser.importHandler = [&](const std::string& name, const std::string& basedir, std::vector<FlowVM::NativeCallback*>*) -> bool {
-		fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
-		return false;
-	};
+        fprintf(stderr, "parser.importHandler('%s', '%s')\n", name.c_str(), basedir.c_str());
+        return false;
+    };
 
-	if (!parser.open(fileName)) {
-		fprintf(stderr, "Failed to open file: %s\n", fileName);
-		return -1;
-	}
+    if (!parser.open(fileName)) {
+        fprintf(stderr, "Failed to open file: %s\n", fileName);
+        return -1;
+    }
 
-	std::unique_ptr<Unit> unit = parser.parse();
-	if (!unit) {
-		fprintf(stderr, "Failed to parse file: %s\n", fileName);
-		return -1;
-	}
+    std::unique_ptr<Unit> unit = parser.parse();
+    if (!unit) {
+        fprintf(stderr, "Failed to parse file: %s\n", fileName);
+        return -1;
+    }
 
     onParseComplete(unit.get());
 
-	if (dumpAST_)
-		ASTPrinter::print(unit.get());
+    if (dumpAST_)
+        ASTPrinter::print(unit.get());
 
-	Handler* handlerSym = unit->findHandler(handlerName);
-	if (!handlerSym) {
-		fprintf(stderr, "No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
-		return -1;
-	}
+    Handler* handlerSym = unit->findHandler(handlerName);
+    if (!handlerSym) {
+        fprintf(stderr, "No handler with name '%s' found in unit '%s'.\n", handlerName, fileName);
+        return -1;
+    }
 
     if (!compile(unit.get()))
         return -1;
@@ -366,24 +366,24 @@ void Flower::dump()
 
 void Flower::flow_print(FlowVM::Params& args)
 {
-	printf("%s\n", args.getString(1).str().c_str());
+    printf("%s\n", args.getString(1).str().c_str());
 }
 
 void Flower::flow_print_I(FlowVM::Params& args)
 {
-	printf("%" PRIi64 "\n", args.getInt(1));
+    printf("%" PRIi64 "\n", args.getInt(1));
 }
 
 void Flower::flow_print_SI(FlowVM::Params& args)
 {
-	printf("%s %" PRIi64 "\n",
+    printf("%s %" PRIi64 "\n",
             args.getString(1).str().c_str(),
             args.getInt(2));
 }
 
 void Flower::flow_print_IS(FlowVM::Params& args)
 {
-	printf("%" PRIi64 " %s\n",
+    printf("%" PRIi64 " %s\n",
             args.getInt(1),
             args.getString(2).str().c_str());
 }
@@ -442,16 +442,16 @@ void Flower::flow_log(FlowVM::Params& args)
 
 void Flower::flow_assert(FlowVM::Params& args)
 {
-	const FlowString& sourceValue = args.getString(2);
+    const FlowString& sourceValue = args.getString(2);
 
     if (!args.getBool(1)) {
-		printf("[   FAILED ] %s\n", sourceValue.str().c_str());
-		args.setResult(true);
-	} else {
-		printf("[       OK ] %s\n", sourceValue.str().c_str());
-		++totalSuccess_;
-		args.setResult(false);
-	}
+        printf("[   FAILED ] %s\n", sourceValue.str().c_str());
+        args.setResult(true);
+    } else {
+        printf("[       OK ] %s\n", sourceValue.str().c_str());
+        ++totalSuccess_;
+        args.setResult(false);
+    }
 }
 
 void Flower::flow_getcwd(FlowVM::Params& args)
@@ -469,7 +469,7 @@ void Flower::flow_random(FlowVM::Params& args)
 
 void Flower::flow_getenv(FlowVM::Params& args)
 {
-	args.setResult(getenv(args.getString(1).str().c_str()));
+    args.setResult(getenv(args.getString(1).str().c_str()));
 }
 
 void Flower::flow_error(FlowVM::Params& args)

@@ -30,105 +30,105 @@ using namespace x0;
  * \param healthMonitor specialized health-monitor instanciation, which will be owned by this backend.
  */
 Backend::Backend(BackendManager* bm,
-	const std::string& name, const SocketSpec& socketSpec, size_t capacity, HealthMonitor* healthMonitor) :
+    const std::string& name, const SocketSpec& socketSpec, size_t capacity, HealthMonitor* healthMonitor) :
 #ifndef XZERO_NDEBUG
-	Logging("Backend/%s", name.c_str()),
+    Logging("Backend/%s", name.c_str()),
 #endif
-	manager_(bm),
-	name_(name),
-	capacity_(capacity),
-	terminateProtection_(false),
-	load_(),
-	lock_(),
-	enabled_(true),
-	socketSpec_(socketSpec),
-	healthMonitor_(healthMonitor),
-	enabledCallback_(),
-	jsonWriteCallback_()
+    manager_(bm),
+    name_(name),
+    capacity_(capacity),
+    terminateProtection_(false),
+    load_(),
+    lock_(),
+    enabled_(true),
+    socketSpec_(socketSpec),
+    healthMonitor_(healthMonitor),
+    enabledCallback_(),
+    jsonWriteCallback_()
 {
-	pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
+    pthread_spin_init(&lock_, PTHREAD_PROCESS_PRIVATE);
 }
 
 Backend::~Backend()
 {
-	delete healthMonitor_;
-	pthread_spin_destroy(&lock_);
+    delete healthMonitor_;
+    pthread_spin_destroy(&lock_);
 }
 
 void Backend::log(x0::LogMessage&& msg)
 {
-	msg.addTag(name_);
-	manager_->log(std::move(msg));
+    msg.addTag(name_);
+    manager_->log(std::move(msg));
 }
 
 size_t Backend::capacity() const
 {
-	return capacity_;
+    return capacity_;
 }
 
 void Backend::setCapacity(size_t value)
 {
-	capacity_ = value;
+    capacity_ = value;
 }
 
 void Backend::writeJSON(JsonWriter& json) const
 {
-	json.beginObject()
-		.name("name")(name_)
-		.name("capacity")(capacity_)
-		.name("terminate-protection")(terminateProtection_)
-		.name("enabled")(enabled_)
-		.name("protocol")(protocol());
+    json.beginObject()
+        .name("name")(name_)
+        .name("capacity")(capacity_)
+        .name("terminate-protection")(terminateProtection_)
+        .name("enabled")(enabled_)
+        .name("protocol")(protocol());
 
-	if (socketSpec_.isInet()) {
-		json.name("hostname")(socketSpec_.ipaddr().str())
-			.name("port")(socketSpec_.port());
-	} else {
-		json.name("path")(socketSpec_.local());
-	}
+    if (socketSpec_.isInet()) {
+        json.name("hostname")(socketSpec_.ipaddr().str())
+            .name("port")(socketSpec_.port());
+    } else {
+        json.name("path")(socketSpec_.local());
+    }
 
     json.beginObject("stats");
-	json.name("load")(load_);
+    json.name("load")(load_);
     json.endObject();
 
-	if (healthMonitor_) {
-		json.name("health")(*healthMonitor_);
-	}
+    if (healthMonitor_) {
+        json.name("health")(*healthMonitor_);
+    }
 
-	if (jsonWriteCallback_)
-		jsonWriteCallback_(this, json);
+    if (jsonWriteCallback_)
+        jsonWriteCallback_(this, json);
 
-	json.endObject();
+    json.endObject();
 }
 
 void Backend::setEnabled(bool value)
 {
-	if (enabled_ == value)
-		return;
+    if (enabled_ == value)
+        return;
 
-	enabled_ = value;
+    enabled_ = value;
 
-	if (!enabledCallback_)
-		return;
+    if (!enabledCallback_)
+        return;
 
-	enabledCallback_(this);
+    enabledCallback_(this);
 }
 
 void Backend::setEnabledCallback(const std::function<void(const Backend*)>& callback)
 {
-	enabledCallback_ = callback;
+    enabledCallback_ = callback;
 }
 
 void Backend::setJsonWriteCallback(const std::function<void(const Backend*, JsonWriter&)>& callback)
 {
-	jsonWriteCallback_ = callback;
+    jsonWriteCallback_ = callback;
 }
 
 void Backend::setState(HealthState value)
 {
-	if (healthMonitor_) {
-		healthMonitor_->setState(value);
-	}
+    if (healthMonitor_) {
+        healthMonitor_->setState(value);
+    }
 }
 
 /*!
@@ -144,41 +144,41 @@ void Backend::setState(HealthState value)
  */
 SchedulerStatus Backend::tryProcess(RequestNotes* rn)
 {
-	SchedulerStatus status = SchedulerStatus::Unavailable;
-	pthread_spin_lock(&lock_);
+    SchedulerStatus status = SchedulerStatus::Unavailable;
+    pthread_spin_lock(&lock_);
 
-	if (healthMonitor_ && !healthMonitor_->isOnline())
-		goto done;
+    if (healthMonitor_ && !healthMonitor_->isOnline())
+        goto done;
 
-	if (!isEnabled())
-		goto done;
+    if (!isEnabled())
+        goto done;
 
-	status = SchedulerStatus::Overloaded;
-	if (capacity_ && load_.current() >= capacity_)
-		goto done;
+    status = SchedulerStatus::Overloaded;
+    if (capacity_ && load_.current() >= capacity_)
+        goto done;
 
-	rn->request->log(Severity::debug, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
+    rn->request->log(Severity::debug, "Processing request by director '%s' backend '%s'.", manager()->name().c_str(), name().c_str());
 
-	++load_;
-	++manager_->load_;
+    ++load_;
+    ++manager_->load_;
 
-	rn->backend = this;
-	rn->request->responseHeaders.overwrite("X-Director-Backend", name());
+    rn->backend = this;
+    rn->request->responseHeaders.overwrite("X-Director-Backend", name());
 
-	if (!process(rn)) {
-		setState(HealthState::Offline);
-		rn->backend = nullptr;
-		--manager_->load_;
-		--load_;
-		status = SchedulerStatus::Unavailable;
-		goto done;
-	}
+    if (!process(rn)) {
+        setState(HealthState::Offline);
+        rn->backend = nullptr;
+        --manager_->load_;
+        --load_;
+        status = SchedulerStatus::Unavailable;
+        goto done;
+    }
 
-	status = SchedulerStatus::Success;
+    status = SchedulerStatus::Success;
 
 done:
-	pthread_spin_unlock(&lock_);
-	return status;
+    pthread_spin_unlock(&lock_);
+    return status;
 }
 
 /**
@@ -189,8 +189,8 @@ done:
  */
 void Backend::release(RequestNotes* rn)
 {
-	--load_;
-	manager_->release(rn);
+    --load_;
+    manager_->release(rn);
 }
 
 /**
@@ -201,11 +201,11 @@ void Backend::release(RequestNotes* rn)
  */
 void Backend::reject(RequestNotes* rn)
 {
-	--load_;
+    --load_;
 
-	// and set the backend's health state to offline, since it
-	// doesn't seem to function properly
-	setState(HealthState::Offline);
+    // and set the backend's health state to offline, since it
+    // doesn't seem to function properly
+    setState(HealthState::Offline);
 
-	manager_->reject(rn);
+    manager_->reject(rn);
 }

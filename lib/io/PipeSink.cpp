@@ -13,7 +13,7 @@
 namespace x0 {
 
 PipeSink::PipeSink(Pipe* pipe) :
-	pipe_(pipe)
+    pipe_(pipe)
 {
 }
 
@@ -23,12 +23,12 @@ PipeSink::~PipeSink()
 
 void PipeSink::accept(SinkVisitor& v)
 {
-	v.visit(*this);
+    v.visit(*this);
 }
 
 ssize_t PipeSink::write(const void *buffer, size_t size)
 {
-	return pipe_->write(buffer, size);
+    return pipe_->write(buffer, size);
 }
 
 } // namespace x0

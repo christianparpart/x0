@@ -22,26 +22,26 @@ namespace x0 {
 /** file source.
  */
 class X0_API PipeSource :
-	public Source,
-	public SinkVisitor
+    public Source,
+    public SinkVisitor
 {
 private:
-	Pipe* pipe_;
+    Pipe* pipe_;
 
-	ssize_t result_;
+    ssize_t result_;
 
 public:
-	explicit PipeSource(Pipe* pipe);
-	~PipeSource();
+    explicit PipeSource(Pipe* pipe);
+    ~PipeSource();
 
-	virtual ssize_t sendto(Sink& output);
-	virtual const char* className() const;
+    virtual ssize_t sendto(Sink& output);
+    virtual const char* className() const;
 
 protected:
-	virtual void visit(BufferSink&);
-	virtual void visit(FileSink&);
-	virtual void visit(SocketSink&);
-	virtual void visit(PipeSink&);
+    virtual void visit(BufferSink&);
+    virtual void visit(FileSink&);
+    virtual void visit(SocketSink&);
+    virtual void visit(PipeSink&);
 };
 
 //@}

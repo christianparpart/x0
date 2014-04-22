@@ -23,40 +23,40 @@ namespace x0 {
  * \see sink, source
  */
 class X0_API BufferSink :
-	public Sink
+    public Sink
 {
 public:
-	BufferSink() :
-		buffer_()
-	{
-	}
+    BufferSink() :
+        buffer_()
+    {
+    }
 
-	virtual void accept(SinkVisitor& v);
-	virtual ssize_t write(const void *buffer, size_t size);
+    virtual void accept(SinkVisitor& v);
+    virtual ssize_t write(const void *buffer, size_t size);
 
 public:
-	void clear()
-	{
-		buffer_.clear();
-	}
+    void clear()
+    {
+        buffer_.clear();
+    }
 
-	const Buffer& buffer() const
-	{
-		return buffer_;
-	}
+    const Buffer& buffer() const
+    {
+        return buffer_;
+    }
 
-	std::size_t size() const
-	{
-		return buffer_.size();
-	}
+    std::size_t size() const
+    {
+        return buffer_.size();
+    }
 
-	bool empty() const
-	{
-		return buffer_.empty();
-	}
+    bool empty() const
+    {
+        return buffer_.empty();
+    }
 
 private:
-	Buffer buffer_;
+    Buffer buffer_;
 };
 
 //@}

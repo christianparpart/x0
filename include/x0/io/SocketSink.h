@@ -21,21 +21,21 @@ namespace x0 {
 /** file descriptor stream sink.
  */
 class X0_API SocketSink :
-	public Sink
+    public Sink
 {
 public:
-	explicit SocketSink(Socket *conn);
+    explicit SocketSink(Socket *conn);
 
-	Socket *socket() const;
-	void setSocket(Socket *);
+    Socket *socket() const;
+    void setSocket(Socket *);
 
-	virtual void accept(SinkVisitor& v);
-	virtual ssize_t write(const void *buffer, size_t size);
-	ssize_t write(int fd, off_t *offset, size_t nbytes);
-	ssize_t write(Pipe* pipe, size_t size);
+    virtual void accept(SinkVisitor& v);
+    virtual ssize_t write(const void *buffer, size_t size);
+    ssize_t write(int fd, off_t *offset, size_t nbytes);
+    ssize_t write(Pipe* pipe, size_t size);
 
 protected:
-	Socket *socket_;
+    Socket *socket_;
 };
 
 //@}
@@ -43,22 +43,22 @@ protected:
 // {{{ impl
 inline Socket *SocketSink::socket() const
 {
-	return socket_;
+    return socket_;
 }
 
 inline void SocketSink::setSocket(Socket *value)
 {
-	socket_ = value;
+    socket_ = value;
 }
 
 inline ssize_t SocketSink::write(int fd, off_t *offset, size_t nbytes)
 {
-	return socket_->write(fd, offset, nbytes);
+    return socket_->write(fd, offset, nbytes);
 }
 
 inline ssize_t SocketSink::write(Pipe* pipe, size_t size)
 {
-	return socket_->write(pipe, size);
+    return socket_->write(pipe, size);
 }
 // }}}
 

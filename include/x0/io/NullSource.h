@@ -22,12 +22,12 @@ namespace x0 {
  * \see Buffer, Source, Sink
  */
 class X0_API NullSource :
-	public Source
+    public Source
 {
 public:
-	virtual ssize_t sendto(Sink& sink);
+    virtual ssize_t sendto(Sink& sink);
 
-	virtual const char* className() const;
+    virtual const char* className() const;
 };
 
 //@}

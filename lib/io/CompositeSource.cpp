@@ -13,32 +13,32 @@ namespace x0 {
 
 CompositeSource::~CompositeSource()
 {
-	clear();
+    clear();
 }
 
 ssize_t CompositeSource::sendto(Sink& sink)
 {
-	ssize_t result = 0;
+    ssize_t result = 0;
 
-	while (!empty()) {
-		Source* front = sources_.front();
-		ssize_t rv = front->sendto(sink);
+    while (!empty()) {
+        Source* front = sources_.front();
+        ssize_t rv = front->sendto(sink);
 
-		if (rv < 0) // error in source
-			return result ? result : rv;
-		else if (rv == 0) { // empty source
-			sources_.pop_front();
-			delete front;
-		} else
-			result += rv;
-	}
+        if (rv < 0) // error in source
+            return result ? result : rv;
+        else if (rv == 0) { // empty source
+            sources_.pop_front();
+            delete front;
+        } else
+            result += rv;
+    }
 
-	return result;
+    return result;
 }
 
 const char* CompositeSource::className() const
 {
-	return "CompositeSource";
+    return "CompositeSource";
 }
 
 } // namespace x0

@@ -17,71 +17,71 @@
  * \brief plugin with some debugging/testing helpers
  */
 class DebugPlugin :
-	public x0d::XzeroPlugin
+    public x0d::XzeroPlugin
 {
 public:
-	DebugPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-		x0d::XzeroPlugin(d, name)
-	{
-		mainHandler("debug.slow_response", &DebugPlugin::slowResponse);
-		mainHandler("debug.coredump", &DebugPlugin::dumpCore);
-		mainHandler("debug.coredump.post", &DebugPlugin::dumpCorePost);
-	}
+    DebugPlugin(x0d::XzeroDaemon* d, const std::string& name) :
+        x0d::XzeroPlugin(d, name)
+    {
+        mainHandler("debug.slow_response", &DebugPlugin::slowResponse);
+        mainHandler("debug.coredump", &DebugPlugin::dumpCore);
+        mainHandler("debug.coredump.post", &DebugPlugin::dumpCorePost);
+    }
 
 private:
-	bool dumpCore(x0::HttpRequest* r, x0::FlowVM::Params& args)
-	{
-		r->status = x0::HttpStatus::Ok;
-		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
+    bool dumpCore(x0::HttpRequest* r, x0::FlowVM::Params& args)
+    {
+        r->status = x0::HttpStatus::Ok;
+        r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
 
-		x0::Buffer buf;
-		buf << "Dumping core\n";
-		r->write<x0::BufferSource>(std::move(buf));
+        x0::Buffer buf;
+        buf << "Dumping core\n";
+        r->write<x0::BufferSource>(std::move(buf));
 
-		r->finish();
+        r->finish();
 
-		x0::Process::dumpCore();
+        x0::Process::dumpCore();
 
-		return true;
-	}
+        return true;
+    }
 
-	bool dumpCorePost(x0::HttpRequest* r, x0::FlowVM::Params& args)
-	{
-		r->status = x0::HttpStatus::Ok;
-		r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
+    bool dumpCorePost(x0::HttpRequest* r, x0::FlowVM::Params& args)
+    {
+        r->status = x0::HttpStatus::Ok;
+        r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
 
-		x0::Buffer buf;
-		buf << "Dumping core\n";
-		r->write<x0::BufferSource>(std::move(buf));
+        x0::Buffer buf;
+        buf << "Dumping core\n";
+        r->write<x0::BufferSource>(std::move(buf));
 
-		r->finish();
+        r->finish();
 
-		server().workers()[0]->post<DebugPlugin, &DebugPlugin::_dumpCore>(this);
+        server().workers()[0]->post<DebugPlugin, &DebugPlugin::_dumpCore>(this);
 
-		return true;
-	}
+        return true;
+    }
 
-	void _dumpCore()
-	{
-		x0::Process::dumpCore();
-	}
+    void _dumpCore()
+    {
+        x0::Process::dumpCore();
+    }
 
-	bool slowResponse(x0::HttpRequest* r, x0::FlowVM::Params& args)
-	{
-		const unsigned count = 8;
-		for (unsigned i = 0; i < count; ++i) {
-			x0::Buffer buf;
-			buf << "slow response: " << i << "/" << count << "\n";
+    bool slowResponse(x0::HttpRequest* r, x0::FlowVM::Params& args)
+    {
+        const unsigned count = 8;
+        for (unsigned i = 0; i < count; ++i) {
+            x0::Buffer buf;
+            buf << "slow response: " << i << "/" << count << "\n";
 
-			if (i)
-				sleep(1); // yes! make it slow!
+            if (i)
+                sleep(1); // yes! make it slow!
 
-			printf(": %s", buf.c_str());
-			r->write<x0::BufferSource>(std::move(buf));
-		}
-		r->finish();
-		return true;
-	}
+            printf(": %s", buf.c_str());
+            r->write<x0::BufferSource>(std::move(buf));
+        }
+        r->finish();
+        return true;
+    }
 };
 
 X0_EXPORT_PLUGIN_CLASS(DebugPlugin)

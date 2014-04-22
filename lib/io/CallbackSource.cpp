@@ -12,19 +12,19 @@ namespace x0 {
 
 CallbackSource::~CallbackSource()
 {
-	if (callback_) {
-		callback_();
-	}
+    if (callback_) {
+        callback_();
+    }
 }
 
 ssize_t CallbackSource::sendto(Sink& sink)
 {
-	return 0;
+    return 0;
 }
 
 const char* CallbackSource::className() const
 {
-	return "CallbackSource";
+    return "CallbackSource";
 }
 
 } // namespace x0

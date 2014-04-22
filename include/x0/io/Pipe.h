@@ -22,37 +22,37 @@ class Socket;
 class X0_API Pipe
 {
 private:
-	int pipe_[2];
-	size_t size_; // number of bytes available in pipe
+    int pipe_[2];
+    size_t size_; // number of bytes available in pipe
 
 private:
-	int writeFd() const;
-	int readFd() const;
+    int writeFd() const;
+    int readFd() const;
 
 public:
-	explicit Pipe(int flags = 0);
-	~Pipe();
+    explicit Pipe(int flags = 0);
+    ~Pipe();
 
-	bool isOpen() const;
+    bool isOpen() const;
 
-	size_t size() const;
-	bool isEmpty() const;
+    size_t size() const;
+    bool isEmpty() const;
 
-	void clear();
+    void clear();
 
-	// write to pipe
-	ssize_t write(const void* buf, size_t size);
-	ssize_t write(Socket* socket, size_t size);
-	ssize_t write(Pipe* pipe, size_t size);
-	ssize_t write(int fd, size_t size);
-	ssize_t write(int fd, off_t *fd_off, size_t size);
+    // write to pipe
+    ssize_t write(const void* buf, size_t size);
+    ssize_t write(Socket* socket, size_t size);
+    ssize_t write(Pipe* pipe, size_t size);
+    ssize_t write(int fd, size_t size);
+    ssize_t write(int fd, off_t *fd_off, size_t size);
 
-	// read from pipe
-	ssize_t read(void* buf, size_t size);
-	ssize_t read(Socket* socket, size_t size);
-	ssize_t read(Pipe* socket, size_t size);
-	ssize_t read(int fd, size_t size);
-	ssize_t read(int fd, off_t *fd_off, size_t size);
+    // read from pipe
+    ssize_t read(void* buf, size_t size);
+    ssize_t read(Socket* socket, size_t size);
+    ssize_t read(Pipe* socket, size_t size);
+    ssize_t read(int fd, size_t size);
+    ssize_t read(int fd, off_t *fd_off, size_t size);
 };
 
 //@}
@@ -60,45 +60,45 @@ public:
 // {{{ impl
 inline Pipe::~Pipe()
 {
-	if (isOpen()) {
-		::close(pipe_[0]);
-		::close(pipe_[1]);
-	}
+    if (isOpen()) {
+        ::close(pipe_[0]);
+        ::close(pipe_[1]);
+    }
 }
 
 inline bool Pipe::isOpen() const
 {
-	return pipe_[0] >= 0;
+    return pipe_[0] >= 0;
 }
 
 inline int Pipe::writeFd() const
 {
-	return pipe_[1];
+    return pipe_[1];
 }
 
 inline int Pipe::readFd() const
 {
-	return pipe_[0];
+    return pipe_[0];
 }
 
 inline size_t Pipe::size() const
 {
-	return size_;
+    return size_;
 }
 
 inline bool Pipe::isEmpty() const
 {
-	return size_ == 0;
+    return size_ == 0;
 }
 
 inline ssize_t Pipe::write(int fd, size_t size)
 {
-	return write(fd, NULL, size);
+    return write(fd, NULL, size);
 }
 
 inline ssize_t Pipe::read(int fd, size_t size)
 {
-	return read(fd, NULL, size);
+    return read(fd, NULL, size);
 }
 // }}}
 

@@ -13,13 +13,13 @@ namespace x0 {
 
 void BufferSink::accept(SinkVisitor& v)
 {
-	v.visit(*this);
+    v.visit(*this);
 }
 
 ssize_t BufferSink::write(const void *buffer, size_t size)
 {
-	buffer_.push_back(buffer, size);
-	return size;
+    buffer_.push_back(buffer, size);
+    return size;
 }
 
 } // namespace x0

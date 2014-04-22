@@ -17,14 +17,14 @@ const TimeSpan TimeSpan::Zero(static_cast<size_t>(0));
 
 std::string TimeSpan::str() const
 {
-	int totalMinutes =
-		days() * 24 * 60 +
-		hours() * 60 +
-		minutes();
+    int totalMinutes =
+        days() * 24 * 60 +
+        hours() * 60 +
+        minutes();
 
-	Buffer b(64);
-	b << totalMinutes << "m " << seconds() << "s";
-	return b.str();
+    Buffer b(64);
+    b << totalMinutes << "m " << seconds() << "s";
+    return b.str();
 }
 
 } // namespace x0

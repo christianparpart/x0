@@ -11,45 +11,45 @@
 #include "Backend.h"
 
 BackendCluster::BackendCluster() :
-	cluster_(),
-	scheduler_()
+    cluster_(),
+    scheduler_()
 {
-	// install default scheduler (round-robin)
-	setScheduler<RoundRobinScheduler>();
+    // install default scheduler (round-robin)
+    setScheduler<RoundRobinScheduler>();
 }
 
 BackendCluster::~BackendCluster()
 {
-	delete scheduler_;
+    delete scheduler_;
 }
 
 size_t BackendCluster::capacity() const
 {
-	size_t result = 0;
+    size_t result = 0;
 
-	for (auto backend: cluster_)
-		result += backend->capacity();
+    for (auto backend: cluster_)
+        result += backend->capacity();
 
-	return result;
+    return result;
 }
 
 SchedulerStatus BackendCluster::schedule(RequestNotes* rn)
 {
-	return scheduler_->schedule(rn);
+    return scheduler_->schedule(rn);
 }
 
 void BackendCluster::push_back(Backend* backend)
 {
-	cluster_.push_back(backend);
+    cluster_.push_back(backend);
 }
 
 void BackendCluster::remove(Backend* backend)
 {
-	auto i = std::find(cluster_.begin(), cluster_.end(), backend);
+    auto i = std::find(cluster_.begin(), cluster_.end(), backend);
 
-	if (i != cluster_.end()) {
-		cluster_.erase(i);
-	}
+    if (i != cluster_.end()) {
+        cluster_.erase(i);
+    }
 }
 
 /*!
@@ -57,9 +57,9 @@ void BackendCluster::remove(Backend* backend)
  */
 void BackendCluster::each(const std::function<void(Backend*)>& cb)
 {
-	for (auto& item: cluster_) {
-		cb(item);
-	}
+    for (auto& item: cluster_) {
+        cb(item);
+    }
 }
 
 /*!
@@ -67,30 +67,30 @@ void BackendCluster::each(const std::function<void(Backend*)>& cb)
  */
 void BackendCluster::each(const std::function<void(const Backend*)>& cb) const
 {
-	for (const auto& item: cluster_) {
-		cb(item);
-	}
+    for (const auto& item: cluster_) {
+        cb(item);
+    }
 }
 
 bool BackendCluster::find(const std::string& name, const std::function<void(Backend*)>& cb)
 {
-	for (const auto& item: cluster_) {
-		if (item->name() == name) {
-			cb(item);
-			return true;
-		}
-	}
+    for (const auto& item: cluster_) {
+        if (item->name() == name) {
+            cb(item);
+            return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
 Backend* BackendCluster::find(const std::string& name)
 {
-	for (const auto& item: cluster_) {
-		if (item->name() == name) {
-			return item;
-		}
-	}
+    for (const auto& item: cluster_) {
+        if (item->name() == name) {
+            return item;
+        }
+    }
 
-	return nullptr;
+    return nullptr;
 }

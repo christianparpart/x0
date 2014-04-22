@@ -21,11 +21,11 @@ using namespace x0;
 #endif
 
 HttpHealthMonitor::HttpHealthMonitor(HttpWorker& worker) :
-	HealthMonitor(worker),
-	socket_(worker_.loop()),
-	request_(),
-	writeOffset_(0),
-	response_()
+    HealthMonitor(worker),
+    socket_(worker_.loop()),
+    request_(),
+    writeOffset_(0),
+    response_()
 {
 }
 
@@ -35,12 +35,12 @@ HttpHealthMonitor::~HttpHealthMonitor()
 
 void HttpHealthMonitor::reset()
 {
-	HealthMonitor::reset();
+    HealthMonitor::reset();
 
-	socket_.close();
+    socket_.close();
 
-	writeOffset_ = 0;
-	response_.clear();
+    writeOffset_ = 0;
+    response_.clear();
 }
 
 /**
@@ -48,17 +48,17 @@ void HttpHealthMonitor::reset()
  */
 void HttpHealthMonitor::setRequest(const char* fmt, ...)
 {
-	va_list va;
-	size_t blen = std::min(request_.capacity(), static_cast<size_t>(1023));
+    va_list va;
+    size_t blen = std::min(request_.capacity(), static_cast<size_t>(1023));
 
-	do {
-		request_.reserve(blen + 1);
-		va_start(va, fmt);
-		blen = vsnprintf(const_cast<char*>(request_.data()), request_.capacity(), fmt, va);
-		va_end(va);
-	} while (blen >= request_.capacity());
+    do {
+        request_.reserve(blen + 1);
+        va_start(va, fmt);
+        blen = vsnprintf(const_cast<char*>(request_.data()), request_.capacity(), fmt, va);
+        va_end(va);
+    } while (blen >= request_.capacity());
 
-	request_.resize(blen);
+    request_.resize(blen);
 }
 
 /**
@@ -66,24 +66,24 @@ void HttpHealthMonitor::setRequest(const char* fmt, ...)
  */
 void HttpHealthMonitor::onCheckStart()
 {
-	TRACE(1, "onCheckStart()");
+    TRACE(1, "onCheckStart()");
 
-	socket_.open(backend_->socketSpec(), O_NONBLOCK | O_CLOEXEC);
+    socket_.open(backend_->socketSpec(), O_NONBLOCK | O_CLOEXEC);
 
-	if (!socket_.isOpen()) {
-		//log(LogMessage(Severity::error, "Could not open socket. %s", strerror(errno)));
-		logFailure();
-	} else if (socket_.state() == Socket::Connecting) {
-		TRACE(1, "connecting asynchronously.");
-		socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->connectTimeout());
-		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::onConnectDone>(this);
-		socket_.setMode(Socket::ReadWrite);
-	} else {
-		socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->writeTimeout());
-		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
-		socket_.setMode(Socket::ReadWrite);
-		TRACE(1, "connected.");
-	}
+    if (!socket_.isOpen()) {
+        //log(LogMessage(Severity::error, "Could not open socket. %s", strerror(errno)));
+        logFailure();
+    } else if (socket_.state() == Socket::Connecting) {
+        TRACE(1, "connecting asynchronously.");
+        socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->connectTimeout());
+        socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::onConnectDone>(this);
+        socket_.setMode(Socket::ReadWrite);
+    } else {
+        socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->writeTimeout());
+        socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
+        socket_.setMode(Socket::ReadWrite);
+        TRACE(1, "connected.");
+    }
 }
 
 /**
@@ -91,17 +91,17 @@ void HttpHealthMonitor::onCheckStart()
  */
 void HttpHealthMonitor::onConnectDone(Socket*, int revents)
 {
-	TRACE(1, "onConnectDone(0x%04x)", revents);
+    TRACE(1, "onConnectDone(0x%04x)", revents);
 
-	if (socket_.state() == Socket::Operational) {
-		TRACE(1, "connected");
-		socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->writeTimeout());
-		socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
-		socket_.setMode(Socket::ReadWrite);
-	} else {
-		//log(LogMessage(Severity::error, "Connecting to backend failed. %s", strerror(errno)));
-		logFailure();
-	}
+    if (socket_.state() == Socket::Operational) {
+        TRACE(1, "connected");
+        socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->writeTimeout());
+        socket_.setReadyCallback<HttpHealthMonitor, &HttpHealthMonitor::io>(this);
+        socket_.setMode(Socket::ReadWrite);
+    } else {
+        //log(LogMessage(Severity::error, "Connecting to backend failed. %s", strerror(errno)));
+        logFailure();
+    }
 }
 
 /**
@@ -109,15 +109,15 @@ void HttpHealthMonitor::onConnectDone(Socket*, int revents)
  */
 void HttpHealthMonitor::io(Socket*, int revents)
 {
-	TRACE(1, "io(0x%04x)", revents);
+    TRACE(1, "io(0x%04x)", revents);
 
-	if (revents & ev::WRITE) {
-		writeSome();
-	}
+    if (revents & ev::WRITE) {
+        writeSome();
+    }
 
-	if (revents & ev::READ) {
-		readSome();
-	}
+    if (revents & ev::READ) {
+        readSome();
+    }
 }
 
 /**
@@ -125,22 +125,22 @@ void HttpHealthMonitor::io(Socket*, int revents)
  */
 void HttpHealthMonitor::writeSome()
 {
-	TRACE(1, "writeSome()");
+    TRACE(1, "writeSome()");
 
-	size_t chunkSize = request_.size() - writeOffset_;
-	ssize_t writeCount = socket_.write(request_.data() + writeOffset_, chunkSize);
+    size_t chunkSize = request_.size() - writeOffset_;
+    ssize_t writeCount = socket_.write(request_.data() + writeOffset_, chunkSize);
 
-	if (writeCount < 0) {
-		//log(LogMessage(Severity::error, "Writing to backend failed. %s", strerror(errno)));
-		logFailure();
-	} else {
-		writeOffset_ += writeCount;
+    if (writeCount < 0) {
+        //log(LogMessage(Severity::error, "Writing to backend failed. %s", strerror(errno)));
+        logFailure();
+    } else {
+        writeOffset_ += writeCount;
 
-		if (writeOffset_ == request_.size()) {
-			socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->readTimeout());
-			socket_.setMode(Socket::Read);
-		}
-	}
+        if (writeOffset_ == request_.size()) {
+            socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->readTimeout());
+            socket_.setMode(Socket::Read);
+        }
+    }
 }
 
 /**
@@ -148,53 +148,53 @@ void HttpHealthMonitor::writeSome()
  */
 void HttpHealthMonitor::readSome()
 {
-	TRACE(1, "readSome()");
+    TRACE(1, "readSome()");
 
-	size_t lower_bound = response_.size();
-	if (lower_bound == response_.capacity())
-		response_.setCapacity(lower_bound + 4096);
+    size_t lower_bound = response_.size();
+    if (lower_bound == response_.capacity())
+        response_.setCapacity(lower_bound + 4096);
 
-	ssize_t rv = socket_.read(response_);
+    ssize_t rv = socket_.read(response_);
 
-	if (rv > 0) {
-		TRACE(1, "readSome: read %zi bytes", rv);
-		size_t np = parseFragment(response_.ref(lower_bound, rv));
+    if (rv > 0) {
+        TRACE(1, "readSome: read %zi bytes", rv);
+        size_t np = parseFragment(response_.ref(lower_bound, rv));
 
-		(void) np;
-		TRACE(1, "readSome(): processed %ld of %ld bytes (%s)", np, rv, HttpMessageParser::state_str());
+        (void) np;
+        TRACE(1, "readSome(): processed %ld of %ld bytes (%s)", np, rv, HttpMessageParser::state_str());
 
-		if (HttpMessageParser::state() == HttpMessageParser::PROTOCOL_ERROR) {
-			TRACE(1, "protcol error");
-			logFailure();
-		} else if (processingDone_) {
-			TRACE(1, "processing done");
-			logSuccess();
-		} else {
-			TRACE(1, "resume with io:%d, state:%s", socket_.mode(), state_str().c_str());
-			socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->readTimeout());
-			socket_.setMode(Socket::Read);
-		}
-	} else if (rv == 0) {
-		if (isContentExpected()) {
-			onMessageEnd();
-		} else {
-			TRACE(1, "remote endpoint closed connection.");
-			logFailure();
-		}
-	} else {
-		switch (errno) {
-			case EAGAIN:
-			case EINTR:
+        if (HttpMessageParser::state() == HttpMessageParser::PROTOCOL_ERROR) {
+            TRACE(1, "protcol error");
+            logFailure();
+        } else if (processingDone_) {
+            TRACE(1, "processing done");
+            logSuccess();
+        } else {
+            TRACE(1, "resume with io:%d, state:%s", socket_.mode(), state_str().c_str());
+            socket_.setTimeout<HttpHealthMonitor, &HttpHealthMonitor::onTimeout>(this, backend_->manager()->readTimeout());
+            socket_.setMode(Socket::Read);
+        }
+    } else if (rv == 0) {
+        if (isContentExpected()) {
+            onMessageEnd();
+        } else {
+            TRACE(1, "remote endpoint closed connection.");
+            logFailure();
+        }
+    } else {
+        switch (errno) {
+            case EAGAIN:
+            case EINTR:
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-			case EWOULDBLOCK:
+            case EWOULDBLOCK:
 #endif
-				break;
-			default:
-				TRACE(1, "error reading health-check response from backend. %s", strerror(errno));
-				logFailure();
-				return;
-		}
-	}
+                break;
+            default:
+                TRACE(1, "error reading health-check response from backend. %s", strerror(errno));
+                logFailure();
+                return;
+        }
+    }
 }
 
 /**
@@ -202,8 +202,8 @@ void HttpHealthMonitor::readSome()
  */
 void HttpHealthMonitor::onTimeout(x0::Socket* s)
 {
-	TRACE(1, "onTimeout()");
-	//log(LogMessage(Severity::error, "Backend timed out."));
-	logFailure();
+    TRACE(1, "onTimeout()");
+    //log(LogMessage(Severity::error, "Backend timed out."));
+    logFailure();
 }
 

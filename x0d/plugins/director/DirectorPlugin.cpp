@@ -54,10 +54,10 @@
 using namespace x0;
 
 DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-	x0d::XzeroPlugin(d, name),
-	directors_(),
-	roadWarrior_(),
-	haproxyApi_(new HaproxyApi(&directors_))
+    x0d::XzeroPlugin(d, name),
+    directors_(),
+    roadWarrior_(),
+    haproxyApi_(new HaproxyApi(&directors_))
 {
     setupFunction("director.load", &DirectorPlugin::director_load)
         .param<FlowString>("name")
@@ -99,19 +99,19 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 
 DirectorPlugin::~DirectorPlugin()
 {
-	for (auto director: directors_)
-		delete director.second;
+    for (auto director: directors_)
+        delete director.second;
 
-	delete roadWarrior_;
-	delete haproxyApi_;
+    delete roadWarrior_;
+    delete haproxyApi_;
 }
 
 RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r)
 {
-	if (auto notes = r->customData<RequestNotes>(this))
-		return notes;
+    if (auto notes = r->customData<RequestNotes>(this))
+        return notes;
 
-	return r->setCustomData<RequestNotes>(this, r);
+    return r->setCustomData<RequestNotes>(this, r);
 }
 
 // {{{ setup_function director.load(name, path)
@@ -138,7 +138,7 @@ void DirectorPlugin::director_load(FlowVM::Params& args)
 #if defined(ENABLE_DIRECTOR_CACHE)
 void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
 {
-	auto notes = requestNotes(r);
+    auto notes = requestNotes(r);
     notes->setCacheKey(args.getString(1));
 }
 #endif
@@ -167,27 +167,27 @@ void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args)
  */
 bool DirectorPlugin::internalServerError(HttpRequest* r)
 {
-	if (r->status != HttpStatus::Undefined)
-		r->status = HttpStatus::InternalServerError;
+    if (r->status != HttpStatus::Undefined)
+        r->status = HttpStatus::InternalServerError;
 
-	r->finish();
-	return true;
+    r->finish();
+    return true;
 }
 
 // handler director.balance(string director_name, string bucket_name = '');
 bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
 {
-	std::string directorName = args.getString(1).str();
-	std::string bucketName = args.getString(2).str();
+    std::string directorName = args.getString(1).str();
+    std::string bucketName = args.getString(2).str();
 
     auto i = directors_.find(directorName);
     if (i == directors_.end()) {
         r->log(Severity::error, "director.balance(): No director with name '%s' configured.", directorName.c_str());
         return internalServerError(r);
     }
-	Director* director = i->second;
+    Director* director = i->second;
 
-	RequestShaper::Node* bucket = nullptr;
+    RequestShaper::Node* bucket = nullptr;
     if (!bucketName.empty()) {
         bucket = director->findBucket(bucketName);
         if (!bucket) {
@@ -200,15 +200,15 @@ bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
         bucket = director->rootBucket();
     }
 
-	auto rn = requestNotes(r);
-	rn->manager = director;
+    auto rn = requestNotes(r);
+    rn->manager = director;
 
 #if !defined(NDEBUG)
-	server().log(Severity::debug, "director: passing request to %s [%s].", director->name().c_str(), bucket->name().c_str());
+    server().log(Severity::debug, "director: passing request to %s [%s].", director->name().c_str(), bucket->name().c_str());
 #endif
 
-	director->schedule(rn, bucket);
-	return true;
+    director->schedule(rn, bucket);
+    return true;
 } // }}}
 // {{{ handler director.pass(string director_id [, string backend_id ] );
 bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
@@ -235,15 +235,15 @@ bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
     }
 
 #if !defined(NDEBUG)
-	server().log(Severity::debug, "director: passing request to %s [backend %s].", director->name().c_str(), backend->name().c_str());
+    server().log(Severity::debug, "director: passing request to %s [backend %s].", director->name().c_str(), backend->name().c_str());
 #endif
 
-	auto rn = requestNotes(r);
-	rn->manager = director;
+    auto rn = requestNotes(r);
+    rn->manager = director;
 
-	director->schedule(rn, backend);
+    director->schedule(rn, backend);
 
-	return true;
+    return true;
 }
 // }}}
 // {{{ handler director.api(string prefix);
@@ -289,24 +289,24 @@ bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
 // {{{ haproxy compatibility API
 bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r, FlowVM::Params& args)
 {
-	const FlowString& prefix = args.getString(1);
+    const FlowString& prefix = args.getString(1);
 
-	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
-		return false;
+    if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
+        return false;
 
-	haproxyApi_->monitor(r);
-	return true;
+    haproxyApi_->monitor(r);
+    return true;
 }
 
 bool DirectorPlugin::director_haproxy_stats(HttpRequest* r, FlowVM::Params& args)
 {
-	const FlowString& prefix = args.getString(1);
+    const FlowString& prefix = args.getString(1);
 
-	if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
-		return false;
+    if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
+        return false;
 
-	haproxyApi_->stats(r, prefix.str());
-	return true;
+    haproxyApi_->stats(r, prefix.str());
+    return true;
 }
 // }}}
 X0_EXPORT_PLUGIN_CLASS(DirectorPlugin)

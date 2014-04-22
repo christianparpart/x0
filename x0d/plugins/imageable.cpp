@@ -83,58 +83,58 @@ using namespace x0;
 
 #if 1 //!defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) { \
-		static_assert((level) >= 1 && (level) <= 5, "TRACE()-level must be between 1 and 5, matching Severity::debugN values."); \
-		log(Severity::debug ## level, msg); \
-	}
+        static_assert((level) >= 1 && (level) <= 5, "TRACE()-level must be between 1 and 5, matching Severity::debugN values."); \
+        log(Severity::debug ## level, msg); \
+    }
 #else
 #	define TRACE(msg...) /*!*/
 #endif
 
 // {{{ UrlFetcher API
 class UrlFetcher :
-	public HttpMessageParser
+    public HttpMessageParser
 {
 public:
-	static UrlFetcher* fetch(HttpWorker* worker, const Url& url, const std::function<void()>& completionHandler);
+    static UrlFetcher* fetch(HttpWorker* worker, const Url& url, const std::function<void()>& completionHandler);
 
-	UrlFetcher(HttpWorker* worker, const Url& url, const std::function<void()>& completionHandler);
-
-private:
-	void io(ev::io& io, int revents);
-	void timeout(ev::timer&);
+    UrlFetcher(HttpWorker* worker, const Url& url, const std::function<void()>& completionHandler);
 
 private:
-	Buffer writeBuffer_;
-	size_t writePos_;
+    void io(ev::io& io, int revents);
+    void timeout(ev::timer&);
 
-	Buffer readBuffer_;
-	size_t readPos_;
+private:
+    Buffer writeBuffer_;
+    size_t writePos_;
+
+    Buffer readBuffer_;
+    size_t readPos_;
 };
 // }}}
 // {{{ Imageable API
 class Imageable
 {
 private:
-	HttpRequest* request_;
-	MagickWand* wand_;
+    HttpRequest* request_;
+    MagickWand* wand_;
 
 public:
-	explicit Imageable(HttpRequest* r);
-	~Imageable();
+    explicit Imageable(HttpRequest* r);
+    ~Imageable();
 
-	void perform();
-	void processImage();
+    void perform();
+    void processImage();
 
 private:
-	void wandError();
+    void wandError();
 };
 // }}}
 // {{{ ImageableProcessor Actor API
 class ImageableProcessor :
-	public Actor<Imageable*>
+    public Actor<Imageable*>
 {
 protected:
-	virtual void process(Imageable* imageable);
+    virtual void process(Imageable* imageable);
 };
 // }}}
 
@@ -143,149 +143,149 @@ protected:
 // {{{ Imageable impl
 void Imageable::wandError()
 {
-	ExceptionType severity;
-	char* description = MagickGetException(wand_, &severity);
+    ExceptionType severity;
+    char* description = MagickGetException(wand_, &severity);
 
-	request_->log(Severity::error, "%s %s %lu %s\n", GetMagickModule(), description);
+    request_->log(Severity::error, "%s %s %lu %s\n", GetMagickModule(), description);
 
-	MagickRelinquishMemory(description);
+    MagickRelinquishMemory(description);
 
-	request_->status = HttpStatus::InternalServerError;
-	request_->finish();
+    request_->status = HttpStatus::InternalServerError;
+    request_->finish();
 
-	delete this;
+    delete this;
 }
 
 Imageable::Imageable(HttpRequest* r) :
-	request_(r),
-	wand_(NewMagickWand())
+    request_(r),
+    wand_(NewMagickWand())
 {
 }
 
 Imageable::~Imageable()
 {
-	DestroyMagickWand(wand_);
+    DestroyMagickWand(wand_);
 }
 
 void Imageable::perform()
 {
-	auto args = Url::parseQuery(request_->query);
+    auto args = Url::parseQuery(request_->query);
 #ifndef XZERO_NDEBUG
-	request_->log(Severity::debug1, "url: %s", args["url"].c_str());
-	request_->log(Severity::debug1, "size: %s", args["size"].c_str());
-	request_->log(Severity::debug1, "x: %s", args["x"].c_str());
-	request_->log(Severity::debug1, "y: %s", args["y"].c_str());
+    request_->log(Severity::debug1, "url: %s", args["url"].c_str());
+    request_->log(Severity::debug1, "size: %s", args["size"].c_str());
+    request_->log(Severity::debug1, "x: %s", args["x"].c_str());
+    request_->log(Severity::debug1, "y: %s", args["y"].c_str());
 #endif
 
-	processImage();
+    processImage();
 }
 
 void Imageable::processImage()
 {
-	MagickBooleanType status = MagickReadImage(wand_, request_->fileinfo->path().c_str());
+    MagickBooleanType status = MagickReadImage(wand_, request_->fileinfo->path().c_str());
 
-	if (status == MagickFalse) {
-		wandError();
-		return;
-	}
+    if (status == MagickFalse) {
+        wandError();
+        return;
+    }
 
-	int height = MagickGetImageHeight(wand_);
-	int width = MagickGetImageWidth(wand_);
+    int height = MagickGetImageHeight(wand_);
+    int width = MagickGetImageWidth(wand_);
 //	int iterations = MagickGetImageIterations(wand_);
-	double x, y;
-	MagickGetImageResolution(wand_, &x, &y);
+    double x, y;
+    MagickGetImageResolution(wand_, &x, &y);
 
-	//TRACE(1, "width:%d, height:%d, iters:%d, x:%.2f, y:%.2f", width, height, iterations, x, y);
+    //TRACE(1, "width:%d, height:%d, iters:%d, x:%.2f, y:%.2f", width, height, iterations, x, y);
 
-	MagickResetIterator(wand_);
+    MagickResetIterator(wand_);
 
-	while (MagickNextImage(wand_) != MagickFalse) {
-		//TRACE(1, "Resizing Image ...");
-		printf("image format: %s\n", MagickGetImageFormat(wand_));
-		MagickResizeImage(wand_, width * 1.5, height, LanczosFilter, 1.0);
-	}
+    while (MagickNextImage(wand_) != MagickFalse) {
+        //TRACE(1, "Resizing Image ...");
+        printf("image format: %s\n", MagickGetImageFormat(wand_));
+        MagickResizeImage(wand_, width * 1.5, height, LanczosFilter, 1.0);
+    }
 
-	std::string targetPath("/tmp/image.out");
-	status = MagickWriteImages(wand_, targetPath.c_str(), MagickTrue);
-	if (status == MagickFalse) {
-		wandError();
-		return;
-	}
+    std::string targetPath("/tmp/image.out");
+    status = MagickWriteImages(wand_, targetPath.c_str(), MagickTrue);
+    if (status == MagickFalse) {
+        wandError();
+        return;
+    }
 
-	auto fileinfo = request_->connection.worker().fileinfo(targetPath);
-	if (!fileinfo) {
-		request_->status = HttpStatus::InternalServerError;
-		request_->finish();
-		delete this;
-		return;
-	}
+    auto fileinfo = request_->connection.worker().fileinfo(targetPath);
+    if (!fileinfo) {
+        request_->status = HttpStatus::InternalServerError;
+        request_->finish();
+        delete this;
+        return;
+    }
 
-	request_->responseHeaders.push_back("Content-Type", fileinfo->mimetype());
-	request_->responseHeaders.push_back("Content-Length", x0::lexical_cast<std::string>(fileinfo->size()));
+    request_->responseHeaders.push_back("Content-Type", fileinfo->mimetype());
+    request_->responseHeaders.push_back("Content-Length", x0::lexical_cast<std::string>(fileinfo->size()));
 
-	request_->status = HttpStatus::Ok;
+    request_->status = HttpStatus::Ok;
 
-	int fd = fileinfo->open(O_RDONLY | O_NONBLOCK);
-	if (fd < 0) {
-		request_->log(Severity::error, "Could not open file: '%s': %s", fileinfo->filename().c_str(), strerror(errno));
-		request_->status = HttpStatus::InternalServerError;
-		request_->finish();
-		delete this;
-		return;
-	}
+    int fd = fileinfo->open(O_RDONLY | O_NONBLOCK);
+    if (fd < 0) {
+        request_->log(Severity::error, "Could not open file: '%s': %s", fileinfo->filename().c_str(), strerror(errno));
+        request_->status = HttpStatus::InternalServerError;
+        request_->finish();
+        delete this;
+        return;
+    }
 
-	posix_fadvise(fd, 0, fileinfo->size(), POSIX_FADV_SEQUENTIAL);
-	request_->write<FileSource>(fd, 0, fileinfo->size(), true);
-	request_->finish();
+    posix_fadvise(fd, 0, fileinfo->size(), POSIX_FADV_SEQUENTIAL);
+    request_->write<FileSource>(fd, 0, fileinfo->size(), true);
+    request_->finish();
 
-	delete this;
+    delete this;
 }
 // }}}
 // {{{ ImageableProcessor Actor impl
 void ImageableProcessor::process(Imageable* imageable)
 {
-	// perform the actual resize-fit-crop action, then pass response transfer job back to http worker.
-	imageable->perform();
+    // perform the actual resize-fit-crop action, then pass response transfer job back to http worker.
+    imageable->perform();
 }
 // }}}
 // {{{ ImageablePlugin
 class ImageablePlugin :
-	public XzeroPlugin
+    public XzeroPlugin
 {
 private:
-	ImageableProcessor* processor_;
+    ImageableProcessor* processor_;
 
 public:
-	ImageablePlugin(HttpServer& srv, const std::string& name) :
-		XzeroPlugin(srv, name),
-		processor_(nullptr)
-	{
-		setupFunction("imageable.workers", &ImageablePlugin::setWorkers, FlowType::Number);
-		setupFunction("imageable.ttl", &ImageablePlugin::setTTL, FlowType::Number);
-		mainHandler("imageable", &ImageablePlugin::handleRequest);
+    ImageablePlugin(HttpServer& srv, const std::string& name) :
+        XzeroPlugin(srv, name),
+        processor_(nullptr)
+    {
+        setupFunction("imageable.workers", &ImageablePlugin::setWorkers, FlowType::Number);
+        setupFunction("imageable.ttl", &ImageablePlugin::setTTL, FlowType::Number);
+        mainHandler("imageable", &ImageablePlugin::handleRequest);
 
-		MagickWandGenesis();
-	}
+        MagickWandGenesis();
+    }
 
-	~ImageablePlugin()
-	{
-		MagickWandTerminus();
-	}
+    ~ImageablePlugin()
+    {
+        MagickWandTerminus();
+    }
 
 private:
-	void setWorkers(FlowParams& args)
-	{
-	}
+    void setWorkers(FlowParams& args)
+    {
+    }
 
-	void setTTL(FlowParams& args)
-	{
-	}
+    void setTTL(FlowParams& args)
+    {
+    }
 
-	bool handleRequest(HttpRequest* r, const FlowParams& args)
-	{
-		processor_->push_back(new Imageable(r));
-		return true;
-	}
+    bool handleRequest(HttpRequest* r, const FlowParams& args)
+    {
+        processor_->push_back(new Imageable(r));
+        return true;
+    }
 };
 X0_EXPORT_PLUGIN_CLASS(ImageablePlugin)
 // }}}

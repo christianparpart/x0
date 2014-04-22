@@ -15,8 +15,8 @@
 #include <unordered_map>
 
 namespace x0 {
-	class HttpServer;
-	class HttpRequest;
+    class HttpServer;
+    class HttpRequest;
 }
 
 class Director;
@@ -26,35 +26,35 @@ class HaproxyApi;
 struct RequestNotes;
 
 class DirectorPlugin :
-	public x0d::XzeroPlugin
+    public x0d::XzeroPlugin
 {
 private:
-	std::unordered_map<std::string, Director*> directors_;
-	RoadWarrior* roadWarrior_;
-	HaproxyApi* haproxyApi_;
-	x0::HttpServer::RequestHook::Connection postProcess_;
+    std::unordered_map<std::string, Director*> directors_;
+    RoadWarrior* roadWarrior_;
+    HaproxyApi* haproxyApi_;
+    x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
-	DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name);
-	~DirectorPlugin();
+    DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name);
+    ~DirectorPlugin();
 
 private:
-	RequestNotes* requestNotes(x0::HttpRequest* r);
+    RequestNotes* requestNotes(x0::HttpRequest* r);
 
-	void director_load(x0::FlowVM::Params& args);
+    void director_load(x0::FlowVM::Params& args);
 
-	void director_cache_enabled(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	void director_cache_key(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	void director_cache_ttl(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void director_cache_enabled(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void director_cache_key(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void director_cache_ttl(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
-	bool director_balance(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	bool director_pass(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	bool director_api(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	bool director_fcgi(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	bool director_http(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool director_balance(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool director_pass(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool director_api(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool director_fcgi(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool director_http(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
-	bool director_haproxy_monitor(x0::HttpRequest* r, x0::FlowVM::Params& args);
-	bool director_haproxy_stats(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool director_haproxy_monitor(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    bool director_haproxy_stats(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
-	bool internalServerError(x0::HttpRequest* r);
+    bool internalServerError(x0::HttpRequest* r);
 };

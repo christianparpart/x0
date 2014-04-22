@@ -21,27 +21,27 @@ class BufferRef;
 class X0_API RegExp
 {
 private:
-	std::string pattern_;
-	pcre *re_;
+    std::string pattern_;
+    pcre *re_;
 
 public:
-	typedef std::vector<std::pair<const char*, size_t>> Result;
+    typedef std::vector<std::pair<const char*, size_t>> Result;
 
 public:
-	explicit RegExp(const std::string& pattern);
-	RegExp();
-	RegExp(const RegExp& v);
-	~RegExp();
+    explicit RegExp(const std::string& pattern);
+    RegExp();
+    RegExp(const RegExp& v);
+    ~RegExp();
 
-	RegExp(RegExp&& v);
-	RegExp& operator=(RegExp&& v);
+    RegExp(RegExp&& v);
+    RegExp& operator=(RegExp&& v);
 
-	bool match(const char *buffer, size_t size, Result* result = nullptr) const;
-	bool match(const BufferRef& buffer, Result* result = nullptr) const;
-	bool match(const char *cstring, Result* result = nullptr) const;
+    bool match(const char *buffer, size_t size, Result* result = nullptr) const;
+    bool match(const BufferRef& buffer, Result* result = nullptr) const;
+    bool match(const char *cstring, Result* result = nullptr) const;
 
-	const std::string& pattern() const { return pattern_; }
-	const char *c_str() const;
+    const std::string& pattern() const { return pattern_; }
+    const char *c_str() const;
 
     operator const std::string& () const { return pattern_; }
 
@@ -56,18 +56,18 @@ public:
 class X0_API RegExpContext
 {
 public:
-	RegExpContext();
-	virtual ~RegExpContext();
+    RegExpContext();
+    virtual ~RegExpContext();
 
-	RegExp::Result* regexMatch() {
-		if (!regexMatch_)
-			regexMatch_ = new RegExp::Result();
+    RegExp::Result* regexMatch() {
+        if (!regexMatch_)
+            regexMatch_ = new RegExp::Result();
 
-		return regexMatch_;
-	}
+        return regexMatch_;
+    }
 
 private:
-	RegExp::Result* regexMatch_;
+    RegExp::Result* regexMatch_;
 };
 
 } // namespace x0

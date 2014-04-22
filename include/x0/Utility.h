@@ -13,19 +13,19 @@
 #include <memory>
 
 namespace std {
-	/**
-	 * Creates a std::unqiue_ptr<>.
-	 *
-	 * \note This method will most definitely make it into the next standard.
-	 * \link http://herbsutter.com/gotw/_102/
-	 */
-	/*
-	template<typename T, typename... Args>
-	unique_ptr<T> make_unique(Args&& ...args)
-	{
-		return unique_ptr<T>(new T(forward<Args>(args)...));
-	}
-	*/
+    /**
+     * Creates a std::unqiue_ptr<>.
+     *
+     * \note This method will most definitely make it into the next standard.
+     * \link http://herbsutter.com/gotw/_102/
+     */
+    /*
+    template<typename T, typename... Args>
+    unique_ptr<T> make_unique(Args&& ...args)
+    {
+        return unique_ptr<T>(new T(forward<Args>(args)...));
+    }
+    */
 template <typename T, typename... Args>
 std::unique_ptr<T> make_unique_helper(std::false_type, Args&&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
@@ -72,7 +72,7 @@ template<int...> struct index_list { };
 template<typename, int> struct index_list_add;
 
 template<int... List, int N> struct index_list_add<index_list<List...>, N> {
-	typedef index_list<List..., N> type;
+    typedef index_list<List..., N> type;
 };
 
 /** build_indexes<N>::type()
@@ -85,11 +85,11 @@ template<int... List, int N> struct index_list_add<index_list<List...>, N> {
  *   - build_indexes<N>::type - the index_list<...> of N indices.
  */
 template<int N> struct build_indexes {
-	typedef typename index_list_add<typename build_indexes<N - 1>::type, N - 1>::type type;
+    typedef typename index_list_add<typename build_indexes<N - 1>::type, N - 1>::type type;
 };
 
 template<> struct build_indexes<0> {
-	typedef index_list<> type;
+    typedef index_list<> type;
 };
 
 // --------------------------------------------------------------------
@@ -99,7 +99,7 @@ template<> struct build_indexes<0> {
 template<typename Functor, typename... Args, int... Indexes>
 inline void call_impl(Functor functor, std::tuple<Args...>&& args, index_list<Indexes...>)
 {
-	functor(std::get<Indexes>(std::move(args))...);
+    functor(std::get<Indexes>(std::move(args))...);
 }
 
 /** 
@@ -115,7 +115,7 @@ inline void call_impl(Functor functor, std::tuple<Args...>&& args, index_list<In
 template<typename Functor, typename... Args>
 inline void call_unpacked(Functor functor, std::tuple<Args...>&& args)
 {
-	call_impl(functor, std::move(args), typename build_indexes<sizeof...(Args)>::type());
+    call_impl(functor, std::move(args), typename build_indexes<sizeof...(Args)>::type());
 }
 
 //@}

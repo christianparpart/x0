@@ -30,13 +30,13 @@ class LogFile;
 class X0_API SinkVisitor
 {
 public:
-	virtual ~SinkVisitor() {}
+    virtual ~SinkVisitor() {}
 
-	virtual void visit(BufferSink&) = 0;
-	virtual void visit(FileSink&) = 0;
-	virtual void visit(SocketSink&) = 0;
-	virtual void visit(PipeSink&) = 0;
-	virtual void visit(SyslogSink&) = 0;
+    virtual void visit(BufferSink&) = 0;
+    virtual void visit(FileSink&) = 0;
+    virtual void visit(SocketSink&) = 0;
+    virtual void visit(PipeSink&) = 0;
+    virtual void visit(SyslogSink&) = 0;
     virtual void visit(LogFile&) = 0;
 };
 

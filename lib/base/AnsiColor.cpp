@@ -23,46 +23,46 @@ namespace x0 {
  */
 std::string AnsiColor::make(Type AColor)
 {
-	Buffer sb;
-	int i = 0;
+    Buffer sb;
+    int i = 0;
 
-	sb.push_back("\x1B["); // XXX: '\e' = 0x1B
+    sb.push_back("\x1B["); // XXX: '\e' = 0x1B
 
-	if (AColor)
-	{
-		// special flags
-		if (AColor & AllFlags)
-		{
-			for (int k = 0; k < 8; ++k)
-			{
-				if (AColor & (1 << k)) // FIXME
-				{
-					if (i++) sb.push_back(';');
-					sb.push_back(k + 1);
-				}
-			}
-		}
+    if (AColor)
+    {
+        // special flags
+        if (AColor & AllFlags)
+        {
+            for (int k = 0; k < 8; ++k)
+            {
+                if (AColor & (1 << k)) // FIXME
+                {
+                    if (i++) sb.push_back(';');
+                    sb.push_back(k + 1);
+                }
+            }
+        }
 
-		// forground color
-		if (AColor & AnyFg)
-		{
-			if (i++) sb.push_back(';');
-			sb.push_back(((AColor >> 8) & 0x0F) + 29);
-		}
+        // forground color
+        if (AColor & AnyFg)
+        {
+            if (i++) sb.push_back(';');
+            sb.push_back(((AColor >> 8) & 0x0F) + 29);
+        }
 
-		// background color
-		if (AColor & AnyBg)
-		{
-			if (i++) sb.push_back(';');
-			sb.push_back(((AColor >> 12) & 0x0F) + 39);
-		}
-	}
-	else
-		sb.push_back('0'); // Clear
+        // background color
+        if (AColor & AnyBg)
+        {
+            if (i++) sb.push_back(';');
+            sb.push_back(((AColor >> 12) & 0x0F) + 39);
+        }
+    }
+    else
+        sb.push_back('0'); // Clear
 
-	sb.push_back("m");
+    sb.push_back("m");
 
-	return sb.str();
+    return sb.str();
 }
 
 /**
@@ -72,7 +72,7 @@ std::string AnsiColor::make(Type AColor)
  * \return the given text colourized in the expected colours/flags.
  */
 std::string AnsiColor::colorize(Type AColor, const std::string& AText) {
-	return make(AColor) + AText + make(Clear);
+    return make(AColor) + AText + make(Clear);
 }
 
 }

@@ -16,37 +16,37 @@ namespace x0 {
 
 FilterSource::~FilterSource()
 {
-	delete source_;
+    delete source_;
 }
 
 ssize_t FilterSource::sendto(Sink& sink)
 {
-	if (buffer_.empty()) {
-		BufferSink input;
+    if (buffer_.empty()) {
+        BufferSink input;
 
-		ssize_t rv = source_->sendto(input);
-		if (rv < 0 || (rv == 0 && !force_))
-			return rv;
+        ssize_t rv = source_->sendto(input);
+        if (rv < 0 || (rv == 0 && !force_))
+            return rv;
 
-		buffer_ = (*filter_)(input.buffer().ref());
-	}
+        buffer_ = (*filter_)(input.buffer().ref());
+    }
 
-	ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);
+    ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);
 
-	if (result > 0) {
-		pos_ += result;
-		if (pos_ == buffer_.size()) {
-			pos_ = 0;
-			buffer_.clear();
-		}
-	}
+    if (result > 0) {
+        pos_ += result;
+        if (pos_ == buffer_.size()) {
+            pos_ = 0;
+            buffer_.clear();
+        }
+    }
 
-	return result;
+    return result;
 }
 
 const char* FilterSource::className() const
 {
-	return "FilterSource";
+    return "FilterSource";
 }
 
 } // namespace x0

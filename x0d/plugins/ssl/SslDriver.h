@@ -18,51 +18,51 @@ struct SslCacheItem;
 class SslContext;
 
 class SslDriver :
-	public x0::SocketDriver
+    public x0::SocketDriver
 {
 private:
-	gnutls_priority_t priorities_;
+    gnutls_priority_t priorities_;
 
-	SslContextSelector *selector_;
+    SslContextSelector *selector_;
 
-	SslCacheItem *items_;
-	std::size_t size_;
-	std::size_t ptr_;
+    SslCacheItem *items_;
+    std::size_t size_;
+    std::size_t ptr_;
 
-	friend class SslSocket;
-	friend class SslContext;
+    friend class SslSocket;
+    friend class SslContext;
 
 public:
-	SslDriver(SslContextSelector *selector);
-	virtual ~SslDriver();
+    SslDriver(SslContextSelector *selector);
+    virtual ~SslDriver();
 
-	virtual bool isSecure() const;
+    virtual bool isSecure() const;
 
-	virtual SslSocket *create(struct ev_loop *loop, int handle, int af);
-	virtual void destroy(x0::Socket *);
+    virtual SslSocket *create(struct ev_loop *loop, int handle, int af);
+    virtual void destroy(x0::Socket *);
 
-	void setPriorities(const std::string& value);
+    void setPriorities(const std::string& value);
 
-	void initialize(SslSocket* socket);
+    void initialize(SslSocket* socket);
 
-	SslContext *selectContext(const std::string& dnsName) const;
+    SslContext *selectContext(const std::string& dnsName) const;
 
-	const SslContextSelector *selector() const;
+    const SslContextSelector *selector() const;
 
 private:
-	bool store(const gnutls_datum_t& key, const gnutls_datum_t& value);
-	gnutls_datum_t retrieve(const gnutls_datum_t& key) const;
-	bool remove(gnutls_datum_t key);
+    bool store(const gnutls_datum_t& key, const gnutls_datum_t& value);
+    gnutls_datum_t retrieve(const gnutls_datum_t& key) const;
+    bool remove(gnutls_datum_t key);
 
-	static int _store(void *dbf, gnutls_datum_t key, gnutls_datum_t value);
-	static gnutls_datum_t _retrieve(void *dbf, gnutls_datum_t key);
-	static int _remove(void *dbf, gnutls_datum_t key);
+    static int _store(void *dbf, gnutls_datum_t key, gnutls_datum_t value);
+    static gnutls_datum_t _retrieve(void *dbf, gnutls_datum_t key);
+    static int _remove(void *dbf, gnutls_datum_t key);
 };
 
 // {{{ inlines
 inline const SslContextSelector *SslDriver::selector() const
 {
-	return selector_;
+    return selector_;
 }
 // }}}
 

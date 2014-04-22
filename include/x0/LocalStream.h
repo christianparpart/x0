@@ -25,98 +25,98 @@ namespace x0 {
  */
 class X0_API LocalStream
 {
-	LocalStream& operator=(const LocalStream& v) = delete;
-	LocalStream(const LocalStream&) = delete;
+    LocalStream& operator=(const LocalStream& v) = delete;
+    LocalStream(const LocalStream&) = delete;
 
 public:
-	LocalStream();
-	~LocalStream();
+    LocalStream();
+    ~LocalStream();
 
-	int local();
-	int remote();
+    int local();
+    int remote();
 
-	void closeAll();
-	void closeLocal();
-	void closeRemote();
+    void closeAll();
+    void closeLocal();
+    void closeRemote();
 
 private:
-	int pfd_[2];
+    int pfd_[2];
 };
 
 // {{{ inlines
 inline LocalStream::LocalStream()
 {
-	// TODO consider using pipe2() instead of socketpair() - what's the diff?
-	int opts = 0;
+    // TODO consider using pipe2() instead of socketpair() - what's the diff?
+    int opts = 0;
 
 #if defined(SOCK_NONBLOCK)
-	opts |= SOCK_NONBLOCK;
+    opts |= SOCK_NONBLOCK;
 #endif
 
 #if defined(SOCK_CLOEXEC)
-	opts |= SOCK_CLOEXEC;
+    opts |= SOCK_CLOEXEC;
 #endif
 
-	if (socketpair(AF_UNIX, SOCK_STREAM | opts, 0, pfd_) < 0)
-	{
-		pfd_[0] = pfd_[1] = -1;
-	}
-	else
-	{
+    if (socketpair(AF_UNIX, SOCK_STREAM | opts, 0, pfd_) < 0)
+    {
+        pfd_[0] = pfd_[1] = -1;
+    }
+    else
+    {
 #if !defined(SOCK_NONBLOCK)
-		fcntl(pfd_[0], F_SETFD, fcntl(pfd_[0], F_GETFL) | O_NONBLOCK);
-		fcntl(pfd_[1], F_SETFD, fcntl(pfd_[1], F_GETFL) | O_NONBLOCK);
+        fcntl(pfd_[0], F_SETFD, fcntl(pfd_[0], F_GETFL) | O_NONBLOCK);
+        fcntl(pfd_[1], F_SETFD, fcntl(pfd_[1], F_GETFL) | O_NONBLOCK);
 #endif
 
 #if !defined(SOCK_CLOEXEC)
-		fcntl(pfd_[0], F_SETFD, fcntl(pfd_[0], F_GETFL) | FD_CLOEXEC);
-		fcntl(pfd_[1], F_SETFD, fcntl(pfd_[1], F_GETFL) | FD_CLOEXEC);
+        fcntl(pfd_[0], F_SETFD, fcntl(pfd_[0], F_GETFL) | FD_CLOEXEC);
+        fcntl(pfd_[1], F_SETFD, fcntl(pfd_[1], F_GETFL) | FD_CLOEXEC);
 #endif
-	}
+    }
 }
 
 inline LocalStream::~LocalStream()
 {
-	closeAll();
+    closeAll();
 }
 
 inline int LocalStream::local()
 {
-	return pfd_[0];
+    return pfd_[0];
 }
 
 inline int LocalStream::remote()
 {
-	return pfd_[1];
+    return pfd_[1];
 }
 
 inline void LocalStream::closeAll()
 {
-	if (pfd_[0] != -1) {
-		::close(pfd_[0]);
-		pfd_[0] = -1;
-	}
+    if (pfd_[0] != -1) {
+        ::close(pfd_[0]);
+        pfd_[0] = -1;
+    }
 
-	if (pfd_[1] != -1) {
-		::close(pfd_[1]);
-		pfd_[1] = -1;
-	}
+    if (pfd_[1] != -1) {
+        ::close(pfd_[1]);
+        pfd_[1] = -1;
+    }
 }
 
 inline void LocalStream::closeLocal()
 {
-	if (pfd_[0] != -1) {
-		::close(pfd_[0]);
-		pfd_[0] = -1;
-	}
+    if (pfd_[0] != -1) {
+        ::close(pfd_[0]);
+        pfd_[0] = -1;
+    }
 }
 
 inline void LocalStream::closeRemote()
 {
-	if (pfd_[1] != -1) {
-		::close(pfd_[1]);
-		pfd_[1] = -1;
-	}
+    if (pfd_[1] != -1) {
+        ::close(pfd_[1]);
+        pfd_[1] = -1;
+    }
 }
 // }}}
 

@@ -29,28 +29,28 @@ namespace x0 {
 /** simply transforms all letters into upper-case letters (test filter).
  */
 class X0_API CompressFilter :
-	public Filter
+    public Filter
 {
 public:
-	explicit CompressFilter(int level);
+    explicit CompressFilter(int level);
 
-	int level() const;
+    int level() const;
 
 private:
-	int level_;
+    int level_;
 };
 
 // {{{ CompressFilter impl
 inline CompressFilter::CompressFilter(int level) :
-	Filter(),
-	level_(level)
+    Filter(),
+    level_(level)
 {
-	assert(level >= 0 && level <= 9);
+    assert(level >= 0 && level <= 9);
 }
 
 inline int CompressFilter::level() const
 {
-	return level_;
+    return level_;
 }
 // }}}
 
@@ -59,37 +59,37 @@ inline int CompressFilter::level() const
 /** deflate compression filter.
  */
 class X0_API DeflateFilter :
-	public CompressFilter
+    public CompressFilter
 {
 protected:
-	DeflateFilter(int level, bool gzip);
+    DeflateFilter(int level, bool gzip);
 
 private:
-	void initialize();
+    void initialize();
 
 public:
-	explicit DeflateFilter(int level);
-	~DeflateFilter();
+    explicit DeflateFilter(int level);
+    ~DeflateFilter();
 
-	virtual Buffer process(const BufferRef& data);
+    virtual Buffer process(const BufferRef& data);
 
 private:
-	z_stream z_;
-	bool raw_;
+    z_stream z_;
+    bool raw_;
 };
 // }}}
 // {{{ GZipFilter
 /** gzip compression filter.
  */
 class X0_API GZipFilter :
-	public DeflateFilter
+    public DeflateFilter
 {
 public:
-	GZipFilter(int level);
+    GZipFilter(int level);
 };
 
 inline GZipFilter::GZipFilter(int level) :
-	DeflateFilter(level, false)
+    DeflateFilter(level, false)
 {
 }
 // }}}
@@ -98,15 +98,15 @@ inline GZipFilter::GZipFilter(int level) :
 #if defined(HAVE_BZLIB_H)
 // {{{ BZip2Filter
 class X0_API BZip2Filter :
-	public CompressFilter
+    public CompressFilter
 {
 public:
-	explicit BZip2Filter(int level);
+    explicit BZip2Filter(int level);
 
-	virtual Buffer process(const BufferRef& data);
+    virtual Buffer process(const BufferRef& data);
 
 private:
-	bz_stream bz_;
+    bz_stream bz_;
 };
 // }}}
 #endif
