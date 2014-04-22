@@ -1,6 +1,7 @@
 0.10.0 (YYYY-MM-DD)
 
 	* x0d: Adds req.accept_language(string[] supportedLanguages);
+	* flow: fixes crash on empty arrays
 
 0.9.0 (2014-04-13)
 
