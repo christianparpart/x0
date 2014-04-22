@@ -2,6 +2,7 @@
 
 	* x0d: Adds req.accept_language(string[] supportedLanguages);
 	* flow: fixes crash on empty arrays
+	* flow: allow parsing function call args in expressions without round braces.
 
 0.9.0 (2014-04-13)
 

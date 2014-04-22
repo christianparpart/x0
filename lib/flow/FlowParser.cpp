@@ -955,6 +955,14 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
                     if (!consume(FlowToken::RndClose)) {
                         return nullptr;
                     }
+                } else if (token() != FlowToken::Semicolon
+                        && token() != FlowToken::RndClose) {
+                    auto ra = paramList();
+                    if (!ra) {
+                        return nullptr;
+                    }
+                    params = std::move(*ra);
+                    loc.end = params.location().end;
                 }
                 // }}}
 
