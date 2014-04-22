@@ -955,8 +955,11 @@ std::unique_ptr<Expr> FlowParser::primaryExpr()
                     if (!consume(FlowToken::RndClose)) {
                         return nullptr;
                     }
-                } else if (token() != FlowToken::Semicolon
-                        && token() != FlowToken::RndClose) {
+                } else if (FlowTokenTraits::isUnaryOp(token())
+                        || FlowTokenTraits::isLiteral(token())
+                        || token() == FlowToken::Ident
+                        || token() == FlowToken::BrOpen
+                        || token() == FlowToken::RndOpen) {
                     auto ra = paramList();
                     if (!ra) {
                         return nullptr;
