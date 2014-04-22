@@ -1,6 +1,15 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+0.10.0 PRE-TODO
+
+- find a way to ppa.dep for 12.04 (x32/64)
+  - create *two* PPAs:
+    - trapni/x0 for main x0 (latest ubuntu)
+    - trapni/x0-precise: for 12.04
+- convert all tabs to spaces
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 accesslog:
 
 accesslog.format id: string, format: string;
