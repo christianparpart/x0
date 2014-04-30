@@ -70,12 +70,12 @@ class FastCgiTransport : // {{{
     class ParamReader : public FastCgi::CgiParamStreamReader //{{{
     {
     private:
-        FastCgiTransport *tx_;
+        FastCgiTransport* tx_;
 
     public:
-        explicit ParamReader(FastCgiTransport *tx) : tx_(tx) {}
+        explicit ParamReader(FastCgiTransport* tx) : tx_(tx) {}
 
-        virtual void onParam(const char *nameBuf, size_t nameLen, const char *valueBuf, size_t valueLen)
+        void onParam(const char* nameBuf, size_t nameLen, const char* valueBuf, size_t valueLen) override
         {
             std::string name(nameBuf, nameLen);
             std::string value(valueBuf, valueLen);
