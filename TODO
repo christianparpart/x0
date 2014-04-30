@@ -9,6 +9,14 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
     - trapni/x0-precise: for 12.04
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+flow:
+  - add `x0d --dump-du` (dump def-use chain)
+  - SSA
+    - mem2reg propagation (pass manager stage: before, one-time)
+    - reg2mem propagation (pass manager stage: after, one-time)
+    - constant propagation (pass manager stage: main)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 accesslog:
 
 accesslog.format id: string, format: string;
