@@ -1,0 +1,23 @@
+# vim:syntax=markdown
+
+### Dead Request Connections
+
+proxy-request results into an endless living connection
+
+    "GET http://blah/foo HTTP/1.1\r\n....", at: reading-request (header-name-begin)
+    "refcount:1, outputState:unhandled, fd:58, timer:0, io.x0:None"
+
+in local test it hang at: reading-request (lws-sp-ht-begin), but I can't reproduce again.
+
+As of 2014-04-30, I found this in the logs:
+
+    reading-request (reading-request)
+    2239m 1s
+    2239m 1s
+    1460/14600
+    www.baidu.com                           (host header)
+    HEAD                                    (request method)
+    http://www.baidu.com/                   (request path)
+    Undefined                               (HTTP response status)
+    refcount:1, fd:19, timer:0 io.x0:None
+
