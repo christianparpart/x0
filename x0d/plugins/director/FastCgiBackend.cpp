@@ -125,14 +125,9 @@ public:
     // server-to-application
     void abortRequest();
 
-    // application-to-server
-    void onStdOut(const x0::BufferRef& chunk);
-    void onStdErr(const x0::BufferRef& chunk);
-    void onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus);
-
     FastCgiBackend& backend() const { return *backend_; }
 
-public:
+private:
     template<typename T, typename... Args> void write(Args&&... args);
     void write(FastCgi::Type type, int requestId, x0::Buffer&& content);
     void write(FastCgi::Type type, int requestId, const char *buf, size_t len);
@@ -140,29 +135,34 @@ public:
     void flush();
 
 private:
-    void processRequestBody(const x0::BufferRef& chunk);
-
-    virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
-    virtual bool onMessageHeaderEnd();
-    virtual bool onMessageContent(const x0::BufferRef& content);
-
-    virtual void log(x0::LogMessage&& msg);
+    void log(x0::LogMessage&& msg) override;
 
     template<typename... Args>
     void log(Severity severity, const char* fmt, Args&&... args);
 
+    // client handling
+    void processRequestBody(const x0::BufferRef& chunk);
     void onWriteComplete();
     static void onClientAbort(void *p);
 
+    // backend processing (FastCGI)
     void onConnectComplete(x0::Socket* s, int revents);
     void onConnectTimeout(x0::Socket* s);
-
     void io(x0::Socket* s, int revents);
     void onTimeout(x0::Socket* s);
 
     inline bool processRecord(const FastCgi::Record *record);
     void onParam(const std::string& name, const std::string& value);
+    void onStdOut(const x0::BufferRef& chunk);
+    void onStdErr(const x0::BufferRef& chunk);
+    void onEndRequest(int appStatus, FastCgi::ProtocolStatus protocolStatus);
 
+    // backend processing (HTTP message)
+    bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value) override;
+    bool onMessageHeaderEnd() override;
+    bool onMessageContent(const x0::BufferRef& content) override;
+
+    // debugging
     void inspect(x0::Buffer& out);
 }; // }}}
 
