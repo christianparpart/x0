@@ -228,6 +228,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
                         state = UriState::Slash;
                         path << ch;
                         ch = *i++;
+                        break;
                     case '.':
                         // "/.."
                         state = UriState::DotDot;
@@ -244,6 +245,7 @@ bool HttpRequest::setUri(const BufferRef& uri)
                         state = UriState::QueryStart;
                         ch = *i++;
                         ++depth;
+                        break;
                     default:
                         state = UriState::Content;
                         path << ch;
