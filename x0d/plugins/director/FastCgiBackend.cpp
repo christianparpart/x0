@@ -212,9 +212,6 @@ FastCgiTransport::~FastCgiTransport()
     TRACE(1, "closing transport connection to upstream server.");
 
     if (socket_) {
-        if (socket_->isOpen())
-            socket_->close();
-
         delete socket_;
     }
 
@@ -569,6 +566,7 @@ done:
         TRACE(1, "Registering client-write-complete-callback.");
         writeCount_ = 0;
         socket_->setMode(x0::Socket::None);
+
         ref(); // will be unref'd in completion-handler, onWriteComplete().
         rn_->request->writeCallback<FastCgiTransport, &FastCgiTransport::onWriteComplete>(this);
     }
@@ -856,9 +854,10 @@ void FastCgiTransport::onClientAbort(void *p)
 
 void FastCgiTransport::inspect(x0::Buffer& out)
 {
-    //out << "Hello, World<br/>";
     out << "fcgi.refcount:" << refCount_ << ", ";
     out << "aborted:" << isAborted_ << ", ";
+    out << "isOutputPending:" << rn_->request->connection.isOutputPending() << ", ";
+
     socket_->inspect(out);
 }
 // }}}
