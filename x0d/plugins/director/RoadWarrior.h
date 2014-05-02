@@ -3,6 +3,7 @@
 #include "BackendManager.h"
 #include <x0/SocketSpec.h>
 #include <unordered_map>
+#include <memory>
 #include <mutex>
 
 namespace x0 {
@@ -38,5 +39,5 @@ private:
 
 private:
     std::mutex backendsLock_;
-    std::unordered_map<x0::SocketSpec, Backend*> backends_;
+    std::unordered_map<x0::SocketSpec, std::unique_ptr<Backend>> backends_;
 };

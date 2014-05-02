@@ -14,9 +14,6 @@ RoadWarrior::RoadWarrior(x0::HttpWorker* worker) :
 
 RoadWarrior::~RoadWarrior()
 {
-    for (auto backend: backends_) {
-        delete backend.second;
-    }
 }
 
 Backend* RoadWarrior::acquireBackend(const x0::SocketSpec& spec, Type type)
@@ -25,22 +22,18 @@ Backend* RoadWarrior::acquireBackend(const x0::SocketSpec& spec, Type type)
 
     auto bi = backends_.find(spec);
     if (bi != backends_.end()) {
-        return bi->second;
+        return bi->second.get();
     }
 
-    Backend* backend;
+    Backend* backend = nullptr;
     switch (type) {
         case HTTP:
-            backend = new HttpBackend(this, spec.str(), spec, 0, false);
+            backends_[spec].reset(backend = new HttpBackend(this, spec.str(), spec, 0, false));
             break;
         case FCGI:
-            backend = new FastCgiBackend(this, spec.str(), spec, 0, false);
+            backends_[spec].reset(backend = new FastCgiBackend(this, spec.str(), spec, 0, false));
             break;
-        default:
-            return nullptr;
     }
-
-    backends_[spec] = backend;
     return backend;
 }
 
@@ -78,7 +71,7 @@ void RoadWarrior::writeJSON(x0::JsonWriter& json) const
 {
     json.beginObject(name());
     json.beginArray("members");
-    for (auto backend: backends_) {
+    for (const auto& backend: backends_) {
         json.value(*backend.second);
     }
     json.endArray();
