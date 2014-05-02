@@ -153,9 +153,7 @@ HttpWorker *HttpServer::spawnWorker()
 {
     bool isMainWorker = workers_.empty();
 
-    struct ev_loop *loop = isMainWorker ? loop_ : ev_loop_new(0);
-
-    HttpWorker *worker = new HttpWorker(*this, loop, workerIdPool_++, !isMainWorker);
+    HttpWorker *worker = new HttpWorker(*this, isMainWorker ? loop_ : nullptr, workerIdPool_++, !isMainWorker);
 
     workers_.push_back(worker);
 
