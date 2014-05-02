@@ -212,10 +212,6 @@ int XzeroDaemon::run()
     // Load core plugins
     registerPlugin(core_ = new XzeroCore(this));
 
-#ifndef XZERO_NDEBUG
-    server_->logLevel(x0::Severity::debug3);
-#endif
-
     if (systemd_) {
         nofork_ = true;
         server_->setLogger(std::make_shared<x0::SystemdLogger>());
@@ -244,7 +240,7 @@ int XzeroDaemon::run()
         }
     }
 
-    server_->logger()->setLevel(logLevel_);
+    server_->setLogLevel(logLevel_);
 
     if (!setupConfig()) {
         log(x0::Severity::error, "Could not start x0d.");

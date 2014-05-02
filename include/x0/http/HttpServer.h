@@ -112,7 +112,7 @@ public:
     void log(LogMessage&& msg);
 
     Severity logLevel() const;
-    void logLevel(Severity value);
+    void setLogLevel(Severity value);
 
     ServerSocket* setupListener(const std::string& bindAddress, int port, int backlog = 0 /*default*/);
     ServerSocket* setupUnixListener(const std::string& path, int backlog = 0 /*default*/);
@@ -196,12 +196,6 @@ inline std::list<ServerSocket*>& HttpServer::listeners()
 inline Severity HttpServer::logLevel() const
 {
     return logLevel_;
-}
-
-inline void HttpServer::logLevel(Severity value)
-{
-    logLevel_ = value;
-    logger()->setLevel(value);
 }
 // }}}
 
