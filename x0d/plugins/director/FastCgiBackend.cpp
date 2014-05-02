@@ -35,6 +35,7 @@
 #include <system_error>
 #include <unordered_map>
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <deque>
 #include <cctype>
@@ -91,7 +92,7 @@ public:
 
     uint16_t id_;
     std::string backendName_;
-    x0::Socket* socket_;
+    std::unique_ptr<x0::Socket> socket_;
 
     x0::Buffer readBuffer_;
     size_t readOffset_;
@@ -113,7 +114,7 @@ public:
     std::string sendfile_;
 
 public:
-    explicit Connection(FastCgiBackend* cx, RequestNotes* rn, uint16_t id, x0::Socket* backend);
+    explicit Connection(FastCgiBackend* cx, RequestNotes* rn, uint16_t id, std::unique_ptr<x0::Socket>&& backend);
     ~Connection();
 
     void ref();
@@ -166,7 +167,7 @@ private:
     void inspect(x0::Buffer& out);
 }; // }}}
 // {{{ FastCgiBackend::Connection impl
-FastCgiBackend::Connection::Connection(FastCgiBackend* cx, RequestNotes* rn, uint16_t id, x0::Socket* upstream) :
+FastCgiBackend::Connection::Connection(FastCgiBackend* cx, RequestNotes* rn, uint16_t id, std::unique_ptr<x0::Socket>&& upstream) :
     HttpMessageParser(x0::HttpMessageParser::MESSAGE),
     transportId_(++transportIds_),
     refCount_(1),
@@ -174,7 +175,7 @@ FastCgiBackend::Connection::Connection(FastCgiBackend* cx, RequestNotes* rn, uin
     backend_(cx),
     id_(id),
     backendName_(upstream->remote()),
-    socket_(upstream),
+    socket_(std::move(upstream)),
     readBuffer_(),
     readOffset_(0),
     writeBuffer_(),
@@ -209,10 +210,6 @@ FastCgiBackend::Connection::Connection(FastCgiBackend* cx, RequestNotes* rn, uin
 FastCgiBackend::Connection::~Connection()
 {
     TRACE(1, "closing transport connection to upstream server.");
-
-    if (socket_) {
-        delete socket_;
-    }
 
     if (!(transferHandle_ < 0)) {
         ::close(transferHandle_);
@@ -895,8 +892,10 @@ bool FastCgiBackend::process(RequestNotes* rn)
 {
     //TRACE(1, "process()");
 
-    if (x0::Socket* socket = x0::Socket::open(rn->request->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
-        new FastCgiBackend::Connection(this, rn, 1 /*transport-local requestID*/, socket);
+    std::unique_ptr<x0::Socket> socket(x0::Socket::open(rn->request->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC));
+
+    if (socket) {
+        new Connection(this, rn, 1 /*transport-local requestID*/, std::move(socket));
         return true;
     } else {
         rn->request->log(x0::Severity::notice, "fastcgi: connection to backend %s failed (%d). %s", socketSpec_.str().c_str(), errno, strerror(errno));
