@@ -3,6 +3,7 @@
 #include "BackendManager.h"
 #include <x0/SocketSpec.h>
 #include <unordered_map>
+#include <mutex>
 
 namespace x0 {
     class JsonWriter;
@@ -33,5 +34,9 @@ public:
     void writeJSON(x0::JsonWriter& output) const;
 
 private:
+    Backend* acquireBackend(const x0::SocketSpec& spec, Type type);
+
+private:
+    std::mutex backendsLock_;
     std::unordered_map<x0::SocketSpec, Backend*> backends_;
 };
