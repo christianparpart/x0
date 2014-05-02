@@ -10,6 +10,12 @@
 
 #include <x0/Api.h>
 #include <x0/Defines.h>
+#include <x0/sysconfig.h>
+
+#if !defined(X0_QUEUE_LOCKFREE)
+#include <mutex>
+#include <deque>
+#endif
 
 namespace x0 {
 
@@ -22,11 +28,16 @@ template<typename T>
 class X0_API Queue
 {
 private:
+#if defined(X0_QUEUE_LOCKFREE)
     struct NodePtr;
     struct Node;
 
     NodePtr front_;
     NodePtr back_;
+#else
+    std::mutex lock_;
+    std::deque<T> impl_;
+#endif
 
 public:
     Queue();
@@ -40,6 +51,7 @@ public:
     T& front();
 };
 
+#if defined(X0_QUEUE_LOCKFREE)
 // {{{ Queue<T>::NodePtr impl
 template<typename T>
 struct Queue<T>::NodePtr
@@ -203,5 +215,63 @@ bool Queue<T>::dequeue(T* result)
     // queue was not empty, deque succeeded
     return true;
 }
+// }}}
+#else
+// {{{
+template<typename T>
+Queue<T>::Queue() :
+    lock_(),
+    impl_()
+{
+}
+
+template<typename T>
+Queue<T>::~Queue()
+{
+}
+
+template<typename T>
+void Queue<T>::enqueue(const T& value)
+{
+    std::lock_guard<std::mutex> _l(lock_);
+    impl_.push_back(value);
+}
+
+template<typename T>
+inline bool Queue<T>::empty() const
+{
+    std::lock_guard<std::mutex> _l(lock_);
+    return impl_.empty();
+}
+
+template<typename T>
+inline const T& Queue<T>::front() const
+{
+    std::lock_guard<std::mutex> _l(lock_);
+    return impl_.front();
+}
+
+template<typename T>
+inline T& Queue<T>::front()
+{
+    std::lock_guard<std::mutex> _l(lock_);
+    return impl_.front();
+}
+
+template<typename T>
+bool Queue<T>::dequeue(T* result)
+{
+    std::lock_guard<std::mutex> _l(lock_);
+
+    if (!impl_.empty()) {
+        *result = impl_.front();
+        impl_.pop_front();
+        return true;
+    } else {
+        return false;
+    }
+}
+// }}}
+#endif
 
 } // namespace x0

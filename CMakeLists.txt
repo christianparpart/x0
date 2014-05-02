@@ -26,6 +26,8 @@ option(ENABLE_EXAMPLES "Includes example plugins and programs [default: off]" OF
 option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
 option(ENABLE_FLOW_TOOL "Build flow-tool [default: off]" OFF)
 
+option(X0_QUEUE_LOCKFREE "Build Queue<T> API as lock-free data structure [default: on]" ON)
+
 # x0d plugins
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
 option(ENABLE_PLUGIN_AUTH_PAM "Build with 'auth' plugin with PAM authentication support [default: on]" ON)
