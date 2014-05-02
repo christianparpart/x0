@@ -197,6 +197,14 @@ executs into a new binary for that, and is though, suitable for on the fly execu
 
 Reopen all log files (for logfile rotation).
 
+=item B<SIGTTIN>
+
+Increases logging level (decreasing severity).
+
+=item B<SIGTTOU>
+
+Decreases logging level (increasing severity).
+
 =back
 
 =head1 ENVIRONMENT VARIABLES

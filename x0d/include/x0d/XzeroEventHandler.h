@@ -43,6 +43,9 @@ private:
     void quickShutdownHandler(ev::sig& sig, int);
     void quickShutdownTimeout(ev::timer&, int);
 
+    void logLevelInc(ev::sig& sig, int);
+    void logLevelDec(ev::sig& sig, int);
+
 private:
     XzeroDaemon* daemon_;
     ev::loop_ref loop_;
@@ -54,6 +57,8 @@ private:
     ev::sig hupSignal_;
     ev::sig suspendSignal_;
     ev::sig resumeSignal_;
+    ev::sig logLevelIncSignal_;
+    ev::sig logLevelDecSignal_;
     ev::timer terminationTimeout_;
     ev::child child_;
 };

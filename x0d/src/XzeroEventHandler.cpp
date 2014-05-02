@@ -108,6 +108,11 @@ XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon, ev::loop_ref loop) :
     quitSignal_(loop_),
     user1Signal_(loop_),
     hupSignal_(loop_),
+    suspendSignal_(loop_),
+    resumeSignal_(loop_),
+    logLevelIncSignal_(loop_),
+    logLevelDecSignal_(loop_),
+
     terminationTimeout_(loop_),
     child_(loop_)
 {
@@ -139,6 +144,14 @@ XzeroEventHandler::XzeroEventHandler(XzeroDaemon* daemon, ev::loop_ref loop) :
 
     resumeSignal_.set<XzeroEventHandler, &XzeroEventHandler::resumeHandler>(this);
     resumeSignal_.start(SIG_X0_RESUME);
+    ev_unref(loop_);
+
+    logLevelIncSignal_.set<XzeroEventHandler, &XzeroEventHandler::logLevelInc>(this);
+    logLevelIncSignal_.start(SIGTTIN);
+    ev_unref(loop_);
+
+    logLevelDecSignal_.set<XzeroEventHandler, &XzeroEventHandler::logLevelDec>(this);
+    logLevelDecSignal_.start(SIGTTOU);
     ev_unref(loop_);
 }
 
@@ -182,6 +195,16 @@ XzeroEventHandler::~XzeroEventHandler()
     if (resumeSignal_.is_active()) {
         ev_ref(loop_);
         resumeSignal_.stop();
+    }
+
+    if (logLevelIncSignal_.is_active()) {
+        ev_ref(loop_);
+        logLevelIncSignal_.stop();
+    }
+
+    if (logLevelDecSignal_.is_active()) {
+        ev_ref(loop_);
+        logLevelDecSignal_.stop();
     }
 }
 
@@ -380,6 +403,24 @@ void XzeroEventHandler::onChild(ev::child&, int)
     for (x0::HttpWorker* worker: server()->workers()) {
         worker->resume();
     }
+}
+
+void XzeroEventHandler::logLevelInc(ev::sig& sig, int)
+{
+    Severity s = server()->logLevel();
+    if (s > 0)
+        s = s - 1;
+
+    server()->setLogLevel(s);
+}
+
+void XzeroEventHandler::logLevelDec(ev::sig& sig, int)
+{
+    Severity s = server()->logLevel();
+    if (s < Severity::emerg)
+        s = s + 1;
+
+    server()->setLogLevel(s);
 }
 
 } // namespace x0d
