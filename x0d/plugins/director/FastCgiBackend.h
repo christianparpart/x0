@@ -22,20 +22,19 @@ namespace x0 {
     class Socket;
 }
 
-class FastCgiTransport;
-
 /**
  * @brief implements the handling of one FCGI backend.
  *
  * A FCGI backend may manage multiple transport connections,
  * each either idle, or serving one or more currently active
  * HTTP client requests.
- *
- * @see FastCgiTransport
  */
 class FastCgiBackend :
     public Backend
 {
+private:
+    class Connection;
+
 public:
     FastCgiBackend(BackendManager* manager, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
     ~FastCgiBackend();
@@ -46,7 +45,5 @@ public:
     bool process(RequestNotes* rn) override;
 
     using Backend::release;
-    void release(FastCgiTransport* transport);
-
-    friend class FastCgiTransport;
+    void release(Connection* transport);
 };
