@@ -56,7 +56,7 @@ using namespace x0;
 DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
     x0d::XzeroPlugin(d, name),
     directors_(),
-    roadWarrior_(),
+    roadWarrior_(new RoadWarrior(server().selectWorker())),
     haproxyApi_(new HaproxyApi(&directors_))
 {
     setupFunction("director.load", &DirectorPlugin::director_load)
@@ -93,17 +93,10 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
 
     mainHandler("director.haproxy_monitor", &DirectorPlugin::director_haproxy_monitor)
         .param<FlowString>("prefix", "/");
-
-    roadWarrior_ = new RoadWarrior(server().selectWorker());
 }
 
 DirectorPlugin::~DirectorPlugin()
 {
-    for (auto director: directors_)
-        delete director.second;
-
-    delete roadWarrior_;
-    delete haproxyApi_;
 }
 
 RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r)
@@ -125,13 +118,13 @@ void DirectorPlugin::director_load(FlowVM::Params& args)
 
     server().log(Severity::debug, "director: Loading director %s from %s.", directorName.c_str(), path.c_str());
 
-    Director* director = new Director(server().nextWorker(), directorName);
+    std::unique_ptr<Director> director(new Director(server().nextWorker(), directorName));
     if (!director)
         return;
 
     director->load(path);
 
-    directors_[directorName] = director;
+    directors_[directorName] = director.release();
 }
 // }}}
 // {{{ setup function director.cache.key(string key)

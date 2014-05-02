@@ -12,6 +12,7 @@
 #include <x0/http/HttpServer.h>
 
 #include <string>
+#include <memory>
 #include <unordered_map>
 
 namespace x0 {
@@ -30,8 +31,8 @@ class DirectorPlugin :
 {
 private:
     std::unordered_map<std::string, Director*> directors_;
-    RoadWarrior* roadWarrior_;
-    HaproxyApi* haproxyApi_;
+    std::unique_ptr<RoadWarrior> roadWarrior_;
+    std::unique_ptr<HaproxyApi> haproxyApi_;
     x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
