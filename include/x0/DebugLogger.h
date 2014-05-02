@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <functional>
+#include <mutex>
 
 namespace x0 {
 
@@ -94,6 +95,8 @@ public:
 
     Instance* operator[](const std::string& tag)
     {
+        std::lock_guard<std::mutex> _l(mutex_);
+
         auto i = map_.find(tag);
         if (i != map_.end())
             return i->second;
@@ -109,7 +112,14 @@ public:
      * @param yield a callback function that is invoked for each tag instance currently registered.
      */
     template<typename T>
-    void each(const T& yield) { for (auto& item: map_) yield(item.second); }
+    void each(const T& yield)
+    {
+        std::lock_guard<std::mutex> _l(mutex_);
+
+        for (auto& item: map_) {
+            yield(item.second);
+        }
+    }
 
     /**
      * Enables a given instance.
@@ -138,6 +148,7 @@ public:
 
 private:
     bool configured_;
+    std::mutex mutex_;
     std::unordered_map<std::string, Instance*> map_;
     bool colored_;
 };
