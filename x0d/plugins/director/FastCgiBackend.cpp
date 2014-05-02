@@ -84,10 +84,10 @@ class FastCgiTransport : // {{{
         }
     }; //}}}
 public:
-    unsigned long long transportId_;
-    int refCount_;
-    bool isAborted_; //!< just for debugging right now.
-    FastCgiBackend *backend_;
+    unsigned long long transportId_;            //!< unique backend connection ID
+    int refCount_;                              //!< number of references to this object
+    bool isAborted_;                            //!< just for debugging right now.
+    FastCgiBackend *backend_;                   //!< object owner
 
     uint16_t id_;
     std::string backendName_;
@@ -863,8 +863,6 @@ void FastCgiTransport::inspect(x0::Buffer& out)
 // }}}
 
 // {{{ FastCgiBackend impl
-std::atomic<uint16_t> FastCgiBackend::nextID_(0);
-
 FastCgiBackend::FastCgiBackend(BackendManager* bm, const std::string& name, const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
     Backend(bm, name, socketSpec, capacity, healthChecks ? new FastCgiHealthMonitor(*bm->worker()->server().nextWorker()) : nullptr)
 {
@@ -900,10 +898,7 @@ bool FastCgiBackend::process(RequestNotes* rn)
     //TRACE(1, "process()");
 
     if (x0::Socket* socket = x0::Socket::open(rn->request->connection.worker().loop(), socketSpec_, O_NONBLOCK | O_CLOEXEC)) {
-        if (++nextID_ == 0)
-            ++nextID_;
-
-        new FastCgiTransport(this, rn, nextID_, socket);
+        new FastCgiTransport(this, rn, 1 /*transport-local requestID*/, socket);
         return true;
     } else {
         rn->request->log(x0::Severity::notice, "fastcgi: connection to backend %s failed (%d). %s", socketSpec_.str().c_str(), errno, strerror(errno));
