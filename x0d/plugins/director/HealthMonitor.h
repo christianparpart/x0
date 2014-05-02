@@ -98,7 +98,7 @@ public:
     void setStateChangeCallback(const std::function<void(HealthMonitor*, HealthState)>& callback);
 
     virtual void setRequest(const char* fmt, ...) = 0;
-    virtual void reset();
+    void reset() override;
 
     void start();
     void stop();
@@ -114,12 +114,11 @@ protected:
     void recheck();
 
     // response (HttpMessageParser)
-    virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const x0::BufferRef& text);
-    virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
-    virtual bool onMessageContent(const x0::BufferRef& chunk);
-    virtual bool onMessageEnd();
-
-    virtual void log(x0::LogMessage&& msg);
+    bool onMessageBegin(int versionMajor, int versionMinor, int code, const x0::BufferRef& text) override;
+    bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value) override;
+    bool onMessageContent(const x0::BufferRef& chunk) override;
+    bool onMessageEnd() override;
+    void log(x0::LogMessage&& msg) override;
 };
 
 x0::JsonWriter& operator<<(x0::JsonWriter& json, const HealthMonitor& monitor);

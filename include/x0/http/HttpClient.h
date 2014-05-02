@@ -59,7 +59,7 @@ public:
         const std::unordered_map<std::string, std::string>& headers, const Buffer& content,
         ResponseHandler callback);
 
-    virtual void log(LogMessage&& msg);
+    void log(LogMessage&& msg) override;
 
 protected:
     void reportError(HttpClientError ec);
@@ -68,11 +68,11 @@ protected:
     void readSome();
     void writeSome();
 
-    virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
-    virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
-    virtual bool onMessageHeaderEnd();
-    virtual bool onMessageContent(const BufferRef& chunk);
-    virtual bool onMessageEnd();
+    bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text) override;
+    bool onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+    bool onMessageHeaderEnd() override;
+    bool onMessageContent(const BufferRef& chunk) override;
+    bool onMessageEnd() override;
 
 protected:
     ev::loop_ref loop_;

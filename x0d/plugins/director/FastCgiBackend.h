@@ -42,8 +42,8 @@ public:
 
     void setup(const x0::SocketSpec& spec);
 
-    virtual const std::string& protocol() const;
-    virtual bool process(RequestNotes* rn);
+    const std::string& protocol() const override;
+    bool process(RequestNotes* rn) override;
 
     using Backend::release;
     void release(FastCgiTransport* transport);

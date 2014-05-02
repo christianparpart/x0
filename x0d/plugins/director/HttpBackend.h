@@ -23,8 +23,8 @@ public:
     HttpBackend(BackendManager* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
     ~HttpBackend();
 
-    virtual const std::string& protocol() const;
-    virtual bool process(RequestNotes* rn);
+    const std::string& protocol() const override;
+    bool process(RequestNotes* rn) override;
 
     const x0::SocketSpec& socketSpec() const { return socketSpec_; }
 

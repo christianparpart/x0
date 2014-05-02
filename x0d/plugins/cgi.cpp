@@ -92,8 +92,8 @@ public:
 
 private:
     // CGI program's response message processor hooks
-    virtual bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value);
-    virtual bool onMessageContent(const x0::BufferRef& content);
+    bool onMessageHeader(const x0::BufferRef& name, const x0::BufferRef& value) override;
+    bool onMessageContent(const x0::BufferRef& content) override;
 
     // CGI program's I/O callback handlers
     void onStdinReady(ev::io& w, int revents);
