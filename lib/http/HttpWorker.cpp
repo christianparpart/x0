@@ -31,6 +31,18 @@
 
 namespace x0 {
 
+void HttpWorker::loop_acquire(struct ev_loop* loop) throw()
+{
+    HttpWorker* self = reinterpret_cast<HttpWorker*>(ev_userdata(loop));
+    self->loopLock_.lock();
+}
+
+void HttpWorker::loop_release(struct ev_loop* loop) throw()
+{
+    HttpWorker* self = reinterpret_cast<HttpWorker*>(ev_userdata(loop));
+    self->loopLock_.unlock();
+}
+
 /*!
  * Creates an HTTP worker instance.
  *
@@ -43,7 +55,8 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
     id_(id),
     state_(Inactive),
     server_(server),
-    loop_(loop),
+    loopLock_(),
+    loop_(loop ? loop : ev_loop_new(0)),
     startupTime_(ev_now(loop_)),
     now_(),
     connectionLoad_(0),
@@ -67,6 +80,9 @@ HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id
 #endif
     fileinfo(loop_, &server_.fileinfoConfig_)
 {
+    ev_set_userdata(loop_, this);
+    ev_set_loop_release_cb(loop_, &HttpWorker::loop_release, &HttpWorker::loop_acquire);
+
 #if !defined(X0_WORKER_POST_LIBEV)
     pthread_mutex_init(&postLock_, nullptr);
 #endif
@@ -127,7 +143,10 @@ void HttpWorker::run()
     server_.onWorkerSpawn(this);
 
     TRACE(1, "enter loop");
+
+    loopLock_.lock();
     ev_loop(loop_, 0);
+    loopLock_.unlock();
 
     while (connections_)
         _kill();

@@ -22,6 +22,7 @@
 
 #include <deque>
 #include <list>
+#include <mutex>
 #include <atomic>
 #include <utility>
 #include <functional>
@@ -75,6 +76,7 @@ private:
     unsigned id_;
     State state_;
     HttpServer& server_;
+    std::mutex loopLock_;
     ev::loop_ref loop_;
     ev_tstamp startupTime_;
     DateTime now_;
@@ -204,6 +206,10 @@ private:
     void _stop();
     void _kill();
     void _suspend();
+
+    // libev helpers
+    static void loop_acquire(struct ev_loop* loop) throw();
+    static void loop_release(struct ev_loop* loop) throw();
 };
 //@}
 
