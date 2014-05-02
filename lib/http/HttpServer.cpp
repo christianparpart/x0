@@ -357,10 +357,10 @@ void HttpServer::destroyListener(ServerSocket* listener)
 
 void HttpServer::setLogLevel(Severity s)
 {
-    //printf("Setting log level from %d (%s) to %d (%s)\n", logLevel_.value(), logLevel_.c_str(), s.value(), s.c_str());
-
     logLevel_ = s;
     logger()->setLevel(s);
+
+    log(s > Severity::info ? s : Severity::info, "Logging level set to: %s", s.c_str());
 }
 
 } // namespace x0
