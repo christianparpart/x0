@@ -104,7 +104,6 @@ public:
     static Connection* create(HttpBackend* owner, RequestNotes* rn);
 };
 // }}}
-
 // {{{ HttpBackend::Connection impl
 HttpBackend::Connection::Connection(HttpBackend* proxy, RequestNotes* rn, Socket* socket) :
     HttpMessageParser(HttpMessageParser::RESPONSE),
@@ -588,7 +587,6 @@ void HttpBackend::Connection::readSome()
     }
 }
 // }}}
-
 // {{{ HttpBackend impl
 HttpBackend::HttpBackend(BackendManager* bm, const std::string& name,
         const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
