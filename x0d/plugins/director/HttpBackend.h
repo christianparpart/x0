@@ -26,8 +26,6 @@ public:
     const std::string& protocol() const override;
     bool process(RequestNotes* rn) override;
 
-    const x0::SocketSpec& socketSpec() const { return socketSpec_; }
-
 private:
     Connection* acquireConnection();
 };
