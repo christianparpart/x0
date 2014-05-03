@@ -115,7 +115,7 @@ public:
 
     unsigned refCount() const;
 
-    void post(const std::function<void()>& function);
+    void post(std::function<void()> function);
 
     bool isAborted() const;
     bool isClosed() const;
