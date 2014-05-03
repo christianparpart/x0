@@ -49,7 +49,7 @@ private:
     int refCount_;
 
     RequestNotes* rn_;			//!< client request
-    Socket* socket_;			//!< connection to backend app
+    std::unique_ptr<Socket> socket_;    //!< connection to backend app
 
     Buffer writeBuffer_;
     size_t writeOffset_;
@@ -98,19 +98,19 @@ private:
     inline void start();
 
 public:
-    inline explicit Connection(HttpBackend* proxy, RequestNotes* rn, Socket* socket);
+    inline explicit Connection(HttpBackend* proxy, RequestNotes* rn, std::unique_ptr<Socket>&& socket);
     ~Connection();
 
     static Connection* create(HttpBackend* owner, RequestNotes* rn);
 };
 // }}}
 // {{{ HttpBackend::Connection impl
-HttpBackend::Connection::Connection(HttpBackend* proxy, RequestNotes* rn, Socket* socket) :
+HttpBackend::Connection::Connection(HttpBackend* proxy, RequestNotes* rn, std::unique_ptr<Socket>&& socket) :
     HttpMessageParser(HttpMessageParser::RESPONSE),
     backend_(proxy),
     refCount_(1),
     rn_(rn),
-    socket_(socket),
+    socket_(std::move(socket)),
 
     writeBuffer_(),
     writeOffset_(0),
@@ -132,10 +132,6 @@ HttpBackend::Connection::Connection(HttpBackend* proxy, RequestNotes* rn, Socket
 HttpBackend::Connection::~Connection()
 {
     TRACE("~Connection()");
-
-    if (socket_) {
-        delete socket_;
-    }
 
     if (!(transferHandle_ < 0)) {
         ::close(transferHandle_);
@@ -197,11 +193,11 @@ void HttpBackend::Connection::onClientAbort(void *p)
 
 HttpBackend::Connection* HttpBackend::Connection::create(HttpBackend* owner, RequestNotes* rn)
 {
-    Socket* socket = Socket::open(rn->request->connection.worker().loop(), owner->socketSpec(), O_NONBLOCK | O_CLOEXEC);
+    std::unique_ptr<Socket> socket(Socket::open(rn->request->connection.worker().loop(), owner->socketSpec(), O_NONBLOCK | O_CLOEXEC));
     if (!socket)
         return nullptr;
 
-    return new Connection(owner, rn, socket);
+    return new Connection(owner, rn, std::move(socket));
 }
 
 void HttpBackend::Connection::start()
