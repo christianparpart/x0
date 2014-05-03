@@ -71,7 +71,7 @@ public:                                                                  \
         if (i != customData_.end())                                      \
             return static_cast<T*>(i->second.get());                     \
                                                                          \
-        T* value = new T(args...);                                       \
+        T* value = new T(std::forward<Args>(args)...);                   \
         customData_[key].reset(value);                                   \
         return value;                                                    \
     }
