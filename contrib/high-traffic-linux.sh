@@ -8,7 +8,7 @@ sysctl net.ipv4.tcp_fin_timeout=5
 # XXX Enable *ONLY* if you're not working with NAT
 sysctl net.ipv4.tcp_tw_recycle=1
 
-# XXX The following certainly fixes the "Cannot assign requested address." issue,
+# XXX The following certainly fixes the "Cannot assign requested address." (EADDRNOTAVAIL) issue,
 # but try to avoid this setting on public servers.
 sysctl net.ipv4.tcp_tw_reuse=1
 
