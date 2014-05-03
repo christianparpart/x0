@@ -25,9 +25,6 @@ public:
 
     const std::string& protocol() const override;
     bool process(RequestNotes* rn) override;
-
-private:
-    Connection* acquireConnection();
 };
 
 
