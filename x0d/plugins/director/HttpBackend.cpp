@@ -17,6 +17,7 @@
 #include <x0/io/FileSource.h>
 #include <x0/SocketSpec.h>
 #include <x0/strutils.h>
+#include <x0/Utility.h>
 #include <x0/Url.h>
 #include <x0/Types.h>
 
@@ -591,7 +592,7 @@ void HttpBackend::Connection::readSome()
 // {{{ HttpBackend impl
 HttpBackend::HttpBackend(BackendManager* bm, const std::string& name,
         const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
-    Backend(bm, name, socketSpec, capacity, healthChecks ? new HttpHealthMonitor(*bm->worker()->server().nextWorker()) : nullptr)
+    Backend(bm, name, socketSpec, capacity, healthChecks ? std::make_unique<HttpHealthMonitor>(*bm->worker()->server().nextWorker()) : nullptr)
 {
 #ifndef XZERO_NDEBUG
     setLoggingPrefix("HttpBackend/%s", name.c_str());

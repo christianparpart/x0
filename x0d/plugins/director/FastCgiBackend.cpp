@@ -31,6 +31,7 @@
 #include <x0/Buffer.h>
 #include <x0/Types.h>
 #include <x0/StackTrace.h>
+#include <x0/Utility.h>
 #include <x0/sysconfig.h>
 
 #include <system_error>
@@ -829,7 +830,7 @@ void FastCgiBackend::Connection::inspect(x0::Buffer& out)
 // }}}
 // {{{ FastCgiBackend impl
 FastCgiBackend::FastCgiBackend(BackendManager* bm, const std::string& name, const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
-    Backend(bm, name, socketSpec, capacity, healthChecks ? new FastCgiHealthMonitor(*bm->worker()->server().nextWorker()) : nullptr)
+    Backend(bm, name, socketSpec, capacity, healthChecks ? std::make_unique<FastCgiHealthMonitor>(*bm->worker()->server().nextWorker()) : nullptr)
 {
 #ifndef XZERO_NDEBUG
     setLoggingPrefix("FastCgiBackend/%s", name.c_str());

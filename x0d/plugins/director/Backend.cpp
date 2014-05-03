@@ -30,7 +30,7 @@ using namespace x0;
  * \param healthMonitor specialized health-monitor instanciation, which will be owned by this backend.
  */
 Backend::Backend(BackendManager* bm,
-    const std::string& name, const SocketSpec& socketSpec, size_t capacity, HealthMonitor* healthMonitor) :
+    const std::string& name, const SocketSpec& socketSpec, size_t capacity, std::unique_ptr<HealthMonitor>&& healthMonitor) :
 #ifndef XZERO_NDEBUG
     Logging("Backend/%s", name.c_str()),
 #endif
@@ -42,7 +42,7 @@ Backend::Backend(BackendManager* bm,
     lock_(),
     enabled_(true),
     socketSpec_(socketSpec),
-    healthMonitor_(healthMonitor),
+    healthMonitor_(std::move(healthMonitor)),
     enabledCallback_(),
     jsonWriteCallback_()
 {
@@ -51,7 +51,6 @@ Backend::Backend(BackendManager* bm,
 
 Backend::~Backend()
 {
-    delete healthMonitor_;
     pthread_spin_destroy(&lock_);
 }
 

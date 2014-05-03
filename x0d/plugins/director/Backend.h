@@ -17,7 +17,7 @@
 #include <x0/SocketSpec.h>
 #include <x0/JsonWriter.h>
 #include <x0/CustomDataMgr.h>
-
+#include <memory>
 #include <pthread.h>
 
 class BackendManager;
@@ -48,7 +48,7 @@ protected:
 
     bool enabled_; //!< whether or not this backend is enabled (default) or disabled (for example for maintenance reasons)
     x0::SocketSpec socketSpec_; //!< Backend socket spec.
-    HealthMonitor* healthMonitor_; //!< health check timer
+    std::unique_ptr<HealthMonitor> healthMonitor_; //!< health check timer
 
     std::function<void(const Backend*)> enabledCallback_;
     std::function<void(const Backend*, x0::JsonWriter&)> jsonWriteCallback_;
@@ -56,7 +56,7 @@ protected:
     friend class Director;
 
 public:
-    Backend(BackendManager* bm, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, HealthMonitor* healthMonitor);
+    Backend(BackendManager* bm, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, std::unique_ptr<HealthMonitor>&& healthMonitor);
     virtual ~Backend();
 
     void log(x0::LogMessage&& msg);
@@ -86,8 +86,8 @@ public:
     void disable() { setEnabled(false); }
 
     // health monitoring
-    HealthMonitor* healthMonitor() { return healthMonitor_; }
-    const HealthMonitor* healthMonitor() const { return healthMonitor_; }
+    HealthMonitor* healthMonitor() { return healthMonitor_.get(); }
+    const HealthMonitor* healthMonitor() const { return healthMonitor_.get(); }
     HealthState healthState() const { return healthMonitor_->state(); }
 
     SchedulerStatus tryProcess(RequestNotes* rn);
