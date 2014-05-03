@@ -773,12 +773,9 @@ bool HttpRequest::writeCallback(CallbackSource::Callback cb)
         connection.ref();
 
         connection.write<CallbackSource>([this, cb]() {
-            post([this, cb]() {
-                cb();
-
-                // release our prior ref, potentially causing a request/connection destruction here
-                connection.unref();
-            });
+            // XXX we are already invoked from within the connection's worker thread, so no need to re-post us into the same thread.
+            cb();
+            connection.unref();
         });
         return true;
     } else {
