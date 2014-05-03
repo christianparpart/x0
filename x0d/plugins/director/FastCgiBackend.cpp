@@ -478,7 +478,7 @@ void FastCgiBackend::Connection::io(x0::Socket* s, int revents)
                 if (isAborted_) {
                     exitSuccess();
                 } else {
-                    log(x0::Severity::error, "Connection to backend lost.");
+                    log(x0::Severity::error, "Reading from backend %s failed: %s.", backendName_.c_str(), strerror(errno));
                     exitFailure(HttpStatus::ServiceUnavailable);
                 }
                 return;
