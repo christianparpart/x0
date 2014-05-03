@@ -84,13 +84,13 @@ private:
     void onTimeout(x0::Socket* s);
 
     // response (HttpMessageParser)
-    virtual bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text);
-    virtual bool onMessageHeader(const BufferRef& name, const BufferRef& value);
-    virtual bool onMessageHeaderEnd();
-    virtual bool onMessageContent(const BufferRef& chunk);
-    virtual bool onMessageEnd();
+    bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text) override;
+    bool onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+    bool onMessageHeaderEnd() override;
+    bool onMessageContent(const BufferRef& chunk) override;
+    bool onMessageEnd() override;
 
-    virtual void log(x0::LogMessage&& msg);
+    void log(x0::LogMessage&& msg) override;
 
     template<typename... Args>
     void log(Severity severity, const char* fmt, Args&&... args);
