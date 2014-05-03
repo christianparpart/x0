@@ -665,7 +665,9 @@ void FastCgiBackend::Connection::onEndRequest(int appStatus, FastCgi::ProtocolSt
     if (!r->status) {
         switch (protocolStatus) {
             case FastCgi::ProtocolStatus::RequestComplete:
-                r->status = HttpStatus::Ok;
+                if (!r->status) {
+                    r->status = HttpStatus::Ok;
+                }
                 break;
             case FastCgi::ProtocolStatus::CannotMpxConnection:
                 log(Severity::error, "Backend appliation terminated request because it says it cannot multiplex connections.");
