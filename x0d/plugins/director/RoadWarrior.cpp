@@ -57,7 +57,10 @@ void RoadWarrior::reject(RequestNotes* rn)
     // this request couldn't be served by the backend, so finish it with a 503 (Service Unavailable).
 
     auto r = rn->request;
-    r->status = x0::HttpStatus::ServiceUnavailable;
+
+    if (!r->status)
+        r->status = x0::HttpStatus::ServiceUnavailable;
+
     r->finish();
 }
 
