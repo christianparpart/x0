@@ -39,11 +39,6 @@ public:
     FastCgiBackend(BackendManager* manager, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
     ~FastCgiBackend();
 
-    void setup(const x0::SocketSpec& spec);
-
     const std::string& protocol() const override;
     bool process(RequestNotes* rn) override;
-
-    using Backend::release;
-    void release(Connection* transport);
 };
