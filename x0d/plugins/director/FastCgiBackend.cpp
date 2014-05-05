@@ -607,11 +607,15 @@ void FastCgiBackend::Connection::onParam(const std::string& name, const std::str
 
 void FastCgiBackend::Connection::abortRequest()
 {
-    // TODO: install deadline-timer to actually close the connection if not done by the backend.
     isAborted_ = true;
-
+#if 0
+    // TODO: install deadline-timer to actually close the connection if not done by the backend.
     write<FastCgi::AbortRequestRecord>(id_);
     flush();
+#else
+    socket_->close();
+    exitSuccess();
+#endif
 }
 
 void FastCgiBackend::Connection::onStdOut(const x0::BufferRef& chunk)
