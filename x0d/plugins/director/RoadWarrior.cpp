@@ -10,6 +10,8 @@ RoadWarrior::RoadWarrior(x0::HttpWorker* worker) :
     backendsLock_(),
     backends_()
 {
+    // so let's do a little test
+    setTransferMode(TransferMode::MemoryAccel);
 }
 
 RoadWarrior::~RoadWarrior()
