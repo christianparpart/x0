@@ -110,7 +110,7 @@ public:
     void schedule(RequestNotes* rn, RequestShaper::Node* bucket);
     void reschedule(RequestNotes* rn);
 
-    virtual void reject(RequestNotes* rn);
+    virtual void reject(RequestNotes* rn, HttpStatus status);
     virtual void release(RequestNotes* rn);
 
     bool isMutable() const { return mutable_; }

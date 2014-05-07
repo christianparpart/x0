@@ -140,8 +140,6 @@ void HttpBackend::Connection::exitFailure(HttpStatus status)
     Backend* backend = backend_;
     RequestNotes* rn = rn_;
 
-    rn->request->status = status;
-
     // We failed processing this request, so reschedule
     // this request within the director and give it the chance
     // to be processed by another backend,
@@ -150,7 +148,7 @@ void HttpBackend::Connection::exitFailure(HttpStatus status)
 
     socket_->close();
     rn->request->clearCustomData(backend);
-    backend->reject(rn);
+    backend->reject(rn, status);
 }
 
 void HttpBackend::Connection::exitSuccess()

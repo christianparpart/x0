@@ -194,6 +194,7 @@ void FastCgiBackend::Connection::exitSuccess()
 {
     TRACE(1, "exitSuccess()");
 
+    // XXX keep a copy on those variables on the stack as we are potentially destroyed on the release()-call
     Backend* backend = backend_;
     RequestNotes* rn = rn_;
 
@@ -216,15 +217,13 @@ void FastCgiBackend::Connection::exitFailure(HttpStatus status)
     // or give up when the director's request processing
     // timeout has been reached.
 
+    // XXX keep a copy on those variables on the stack as we are potentially destroyed in the middle of the call
     Backend* backend = backend_;
     RequestNotes* rn = rn_;
 
-    if (!rn->request->status) {
-        rn->request->status = status; // TODO: pass status to reject() instead
-    }
-
+    // XXX explicitely clear custom data, also potentially destroying us
     rn->request->clearCustomData(backend);
-    backend->manager()->reject(rn);
+    backend->reject(rn, status);
 }
 
 FastCgiBackend::Connection::~Connection()

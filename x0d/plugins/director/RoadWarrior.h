@@ -29,7 +29,7 @@ public:
 
     void handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Type type);
 
-    virtual void reject(RequestNotes* rn);
+    virtual void reject(RequestNotes* rn, x0::HttpStatus status);
     virtual void release(RequestNotes* rn);
 
     void writeJSON(x0::JsonWriter& output) const;

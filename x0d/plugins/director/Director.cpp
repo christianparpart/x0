@@ -118,9 +118,8 @@ Director::~Director()
     worker()->unregisterStopHandler(stopHandle_);
 
     for (auto& backendRole: backends_) {
-        backendRole.each([&](Backend* b) -> bool {
+        backendRole.each([&](Backend* b) {
             delete b;
-            return true;
         });
     }
 
@@ -194,16 +193,11 @@ void Director::onBackendStateChanged(Backend* backend, HealthMonitor* healthMoni
     }
 }
 
-/**
- * The currently associated backend has rejected processing the given request.
- *
- * So put it back to the cluster try rescheduling it to another backend.
- *
- * \see schedule()
- * \see reschedule()
- */
-void Director::reject(RequestNotes* rn)
+void Director::reject(RequestNotes* rn, HttpStatus /*status*/)
 {
+    // we ignore the reject-status here, as we attempt to reschedule the request.
+    // if rescheduling fails, a more appropriate response status will be chosen instead.
+
     reschedule(rn);
 }
 
@@ -446,9 +440,8 @@ void Director::writeJSON(JsonWriter& json) const
         .beginArray("members");
 
     for (auto& br: backends_) {
-        br.each([&](const Backend* backend) -> bool {
+        br.each([&](const Backend* backend) {
             json.value(*backend);
-            return true;
         });
     }
 

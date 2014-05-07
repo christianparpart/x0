@@ -198,7 +198,7 @@ void Backend::release(RequestNotes* rn)
  * This decrements the load-statistics and potentially
  * reschedules the request.
  */
-void Backend::reject(RequestNotes* rn)
+void Backend::reject(RequestNotes* rn, HttpStatus status)
 {
     --load_;
 
@@ -206,5 +206,5 @@ void Backend::reject(RequestNotes* rn)
     // doesn't seem to function properly
     setState(HealthState::Offline);
 
-    manager_->reject(rn);
+    manager_->reject(rn, status);
 }

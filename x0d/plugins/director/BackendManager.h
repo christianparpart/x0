@@ -74,10 +74,26 @@ public:
 
     template<typename T> inline void post(T function) { worker()->post(function); }
 
-    //! Invoked internally when the passed request failed processing.
-    virtual void reject(RequestNotes* rn) = 0;
+    /**
+     * Used to notify the backend manager that the associated backend will has rejected processing this request.
+     *
+     * The backend manager can put it back to the cluster try rescheduling it to another backend,
+     * or send an appropriate response status back to the client, directly terinating this request.
+     *
+     * @param rn request that was rejected.
+     * @param status reject status, reason why this request got rejected.
+     *
+     * @see release(RequestNotes*)
+     * @see Director::schedule()
+     * @see Director::reschedule()
+     */
+    virtual void reject(RequestNotes* rn, x0::HttpStatus status) = 0;
 
-    //! Invoked internally when a request has been fully processed in success.
+    /**
+     * Invoked internally when a request has been fully processed in success.
+     *
+     * @see reject(RequestNotes*)
+     */
     virtual void release(RequestNotes* rn) = 0;
 };
 

@@ -52,14 +52,13 @@ void RoadWarrior::handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Ty
     }
 }
 
-void RoadWarrior::reject(RequestNotes* rn)
+void RoadWarrior::reject(RequestNotes* rn, x0::HttpStatus status)
 {
     // this request couldn't be served by the backend, so finish it with a 503 (Service Unavailable).
 
     auto r = rn->request;
 
-    if (!r->status)
-        r->status = x0::HttpStatus::ServiceUnavailable;
+    r->status = status;
 
     r->finish();
 }

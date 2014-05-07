@@ -92,7 +92,7 @@ public:
 
     SchedulerStatus tryProcess(RequestNotes* rn);
     void release(RequestNotes* rn);
-    void reject(RequestNotes* rn);
+    void reject(RequestNotes* rn, x0::HttpStatus status);
 
     virtual void writeJSON(x0::JsonWriter& json) const;
 
