@@ -114,8 +114,6 @@ public:
     explicit Connection(RequestNotes* rn, std::unique_ptr<x0::Socket>&& backend);
     ~Connection();
 
-    void bind(RequestNotes* rn);
-
     void exitSuccess();
     void exitFailure(HttpStatus status);
 
@@ -125,6 +123,8 @@ public:
     FastCgiBackend& backend() const { return *backend_; }
 
 private:
+    void initialize();
+
     template<typename T, typename... Args> void write(Args&&... args);
     void write(FastCgi::Type type, int requestId, x0::Buffer&& content);
     void write(FastCgi::Type type, int requestId, const char *buf, size_t len);
@@ -179,7 +179,7 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
     flushPending_(false),
     configured_(false),
 
-    rn_(nullptr),
+    rn_(rn),
     writeCount_(0),
     transferHandle_(-1),
     transferOffset_(0),
@@ -187,7 +187,7 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
 {
     TRACE(1, "create");
 
-    bind(rn);
+    initialize();
 }
 
 void FastCgiBackend::Connection::exitSuccess()
@@ -244,9 +244,8 @@ FastCgiBackend::Connection::~Connection()
  * Requests bound to a FastCGI transport will be passed to the connected 
  * transport backend and served by it.
  */
-void FastCgiBackend::Connection::bind(RequestNotes* rn)
+void FastCgiBackend::Connection::initialize()
 {
-    rn_ = rn;
     auto r = rn_->request;
 
     // initialize object
@@ -302,15 +301,15 @@ void FastCgiBackend::Connection::bind(RequestNotes* rn)
         params.encode("HTTPS", "on");
 
     // HTTP request headers
-    for (auto& i: r->requestHeaders) {
+    for (const auto& header: r->requestHeaders) {
         std::string key;
-        key.reserve(5 + i.name.size());
+        key.reserve(5 + header.name.size());
         key += "HTTP_";
 
-        for (auto p = i.name.begin(), q = i.name.end(); p != q; ++p)
+        for (auto p = header.name.begin(), q = header.name.end(); p != q; ++p)
             key += std::isalnum(*p) ? std::toupper(*p) : '_';
 
-        params.encode(key, i.value);
+        params.encode(key, header.value);
     }
     params.encode("DOCUMENT_ROOT", r->documentRoot);
 
