@@ -3,7 +3,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
 if(ENABLE_PLUGIN_DIRECTOR)
   add_definitions(
     -pthread
-    -std=c++0x
     -fvisibility=hidden
     -DPACKAGE_NAME="${PACKAGE_NAME}"
     -DPACKAGE_VERSION="${PACKAGE_VERSION}"

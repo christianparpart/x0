@@ -1,18 +1,4 @@
 if(ENABLE_EXAMPLES)
-  add_definitions(
-    -pthread
-    -DPACKAGE_NAME="${PACKAGE_NAME}"
-    -DPACKAGE_VERSION="${PACKAGE_VERSION}"
-    -DPACKAGE_HOMEPAGE_URL="${PACKAGE_HOMEPAGE_URL}"
-    -DSYSCONFDIR="${SYSCONFDIR}"
-    -DVERSION="${PACKAGE_VERSION}")
-
-  #not supported on GCC 4.6 (Ubuntu 12.04?)
-  #set(CMAKE_C_FLAGS "-std=c11")
-
-  set(CMAKE_CXX_FLAGS "-std=c++0x")
-
-  # FIXME: temporarily disabled, due to major restructurings in API composition
   add_executable(app1 app1.cpp)
   target_link_libraries(app1 XzeroBase XzeroHttp)
 

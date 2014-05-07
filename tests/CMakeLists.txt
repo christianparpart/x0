@@ -1,8 +1,3 @@
-add_definitions(
-  -pthread
-  -std=c++0x
-)
-
 if(ENABLE_TESTS)
 
 add_executable(x0-test x0-test.cpp

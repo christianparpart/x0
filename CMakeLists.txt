@@ -69,6 +69,9 @@ if(ENABLE_PLUGIN_SSL)
   pkg_check_modules(GNUTLS REQUIRED gnutls>=2.0.0)
 endif()
 
+# XXX do not use -std=c++11 here, as it's not supported on GCC 4.6 (default on Ubuntu 12.04)
+set(CMAKE_CXX_FLAGS "-std=c++0x")
+
 add_definitions(-Wall -Wno-variadic-macros)
 
 # temporary workaround for: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=56627

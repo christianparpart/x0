@@ -1,7 +1,6 @@
 if(ENABLE_PLUGIN_SSL)
   add_definitions(
     -pthread
-    -std=c++0x
     -fvisibility=hidden
     -DPACKAGE_NAME="${PACKAGE_NAME}"
     -DPACKAGE_VERSION="${PACKAGE_VERSION}"
