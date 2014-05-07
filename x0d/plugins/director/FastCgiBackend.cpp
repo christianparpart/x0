@@ -25,7 +25,6 @@
 #include <x0/io/BufferSource.h>
 #include <x0/io/BufferRefSource.h>
 #include <x0/io/FileSource.h>
-#include <x0/Logging.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
 #include <x0/Buffer.h>
@@ -65,9 +64,6 @@ using x0::LogMessage;
 std::atomic<unsigned long long> transportIds_(0);
 
 class FastCgiBackend::Connection : // {{{
-#ifndef XZERO_NDEBUG
-    public x0::Logging,
-#endif
     public x0::CustomData,
     public x0::HttpMessageParser
 {
@@ -189,10 +185,6 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
     transferOffset_(0),
     sendfile_()
 {
-#ifndef XZERO_NDEBUG
-    static std::atomic<int> mi(0);
-    setLoggingPrefix("FastCgiConnection/%d", ++mi);
-#endif
     TRACE(1, "create");
 
     // stream management record: GetValues
@@ -836,10 +828,6 @@ void FastCgiBackend::Connection::inspect(x0::Buffer& out)
 FastCgiBackend::FastCgiBackend(BackendManager* bm, const std::string& name, const SocketSpec& socketSpec, size_t capacity, bool healthChecks) :
     Backend(bm, name, socketSpec, capacity, healthChecks ? std::make_unique<FastCgiHealthMonitor>(*bm->worker()->server().nextWorker()) : nullptr)
 {
-#ifndef XZERO_NDEBUG
-    setLoggingPrefix("FastCgiBackend/%s", name.c_str());
-#endif
-
     if (healthChecks) {
         healthMonitor()->setBackend(this);
     }
