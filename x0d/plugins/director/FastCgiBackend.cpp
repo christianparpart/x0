@@ -187,15 +187,6 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
 {
     TRACE(1, "create");
 
-    // stream management record: GetValues
-#if 0
-    FastCgi::CgiParamStreamWriter mr;
-    mr.encode("FCGI_MPXS_CONNS", "");   // defaults to 1
-    mr.encode("FCGI_MAX_CONNS", "");    // defaults to 1
-    mr.encode("FCGI_MAX_REQS", "");     // defaults to 1
-    write(FastCgi::Type::GetValues, 0, mr.output());
-#endif
-
     bind(rn);
 }
 
