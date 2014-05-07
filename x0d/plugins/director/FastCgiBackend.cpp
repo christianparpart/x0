@@ -89,7 +89,6 @@ public:
     FastCgiBackend *backend_;                   //!< object owner
 
     uint16_t id_;
-    std::string backendName_;
     std::unique_ptr<x0::Socket> socket_;
 
     x0::Buffer readBuffer_;
@@ -133,6 +132,8 @@ private:
     void flush();
 
 private:
+    std::string backendName() const { return socket_->remote(); }
+
     void log(x0::LogMessage&& msg) override;
 
     template<typename... Args>
@@ -170,7 +171,6 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
     isAborted_(false),
     backend_(static_cast<FastCgiBackend*>(rn->backend)),
     id_(1),
-    backendName_(upstream->remote()),
     socket_(std::move(upstream)),
     readBuffer_(),
     readOffset_(0),
@@ -470,7 +470,7 @@ void FastCgiBackend::Connection::io(x0::Socket* s, int revents)
                 if (isAborted_) {
                     exitSuccess();
                 } else {
-                    log(x0::Severity::error, "Reading from backend %s failed: %s.", backendName_.c_str(), strerror(errno));
+                    log(x0::Severity::error, "Reading from backend %s failed: %s.", backendName().c_str(), strerror(errno));
                     exitFailure(HttpStatus::ServiceUnavailable);
                 }
                 return;
@@ -478,7 +478,7 @@ void FastCgiBackend::Connection::io(x0::Socket* s, int revents)
 
             if (rv < 0) {
                 if (errno != EINTR && errno != EAGAIN) { // TODO handle EWOULDBLOCK
-                    log(x0::Severity::error, "Read from backend %s failed: %s", backendName_.c_str(), strerror(errno));
+                    log(x0::Severity::error, "Read from backend %s failed: %s", backendName().c_str(), strerror(errno));
                     exitFailure(HttpStatus::ServiceUnavailable);
                     return;
                 }
@@ -512,7 +512,7 @@ void FastCgiBackend::Connection::io(x0::Socket* s, int revents)
 
         if (rv < 0) {
             if (errno != EINTR && errno != EAGAIN) {
-                log(x0::Severity::error, "Writing to backend %s failed: %s", backendName_.c_str(), strerror(errno));
+                log(x0::Severity::error, "Writing to backend %s failed: %s", backendName().c_str(), strerror(errno));
                 exitFailure(HttpStatus::ServiceUnavailable);
                 return;
             }
@@ -548,7 +548,7 @@ done:
 
 void FastCgiBackend::Connection::onTimeout(x0::Socket* s)
 {
-    log(x0::Severity::error, "I/O timeout to backend %s: %s", backendName_.c_str(), strerror(errno));
+    log(x0::Severity::error, "I/O timeout to backend %s: %s", backendName().c_str(), strerror(errno));
 
     backend_->setState(HealthState::Offline);
 
@@ -582,7 +582,7 @@ bool FastCgiBackend::Connection::processRecord(const FastCgi::Record *record)
         default:
             log(x0::Severity::error,
                 "Unknown transport record received from backend %s. type:%d, payload-size:%ld",
-                backendName_.c_str(), record->type(), record->contentLength());
+                backendName().c_str(), record->type(), record->contentLength());
 #if 1
             x0::Buffer::dump(record, sizeof(record), "fcgi packet header");
             x0::Buffer::dump(record->content(), std::min(record->contentLength() + record->paddingLength(), 512), "fcgi packet payload");
