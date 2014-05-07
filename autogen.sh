@@ -3,6 +3,7 @@
 if [[ -z "$CXX" ]]; then
 	if which clang++ &>/dev/null; then
 		export CXX=$(which clang++)
+        export CXXFLAGS="$CXXFLAGS -stdlib=libc++"
 	else
 		export CXX=$(which g++)
 	fi
@@ -57,10 +58,8 @@ if [[ "$1" == "clean" ]]; then
 		-exec rm -rf {} \; 2>/dev/null
 else
 	cmake "$(dirname $0)" \
-		-DCMAKE_CXX_COMPILER="${CXX}" \
-		-DCMAKE_C_COMPILER="${CC}" \
-		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g3" \
 		-DCMAKE_BUILD_TYPE="debug" \
+		-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g3" \
 		-DCMAKE_INSTALL_PREFIX="${HOME}/local" \
 		-DENABLE_PLUGIN_{RRD,IMAGEABLE,WEBDAV}=ON \
 		-DENABLE_FLOW_TOOL=ON \
