@@ -13,4 +13,4 @@ VERSION=`head -n1 debian/changelog | sed 's/^.*(\(.*\)).*$/\1/'`
 dpkg-buildpackage -S || exit $?
 
 # upload to PPA
-dput -f ppa:trapni/xzero ../x0_${VERSION}_source.changes || exit $?
+dput -f ppa:trapni/xzero-dev ../x0_${VERSION}_source.changes || exit $?
