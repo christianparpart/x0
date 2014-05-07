@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "SchedulerStatus.h"
-
+#include <vector>
 #include <x0/Counter.h>
 #include <x0/Severity.h>
 #include <x0/LogMessage.h>
+#include "SchedulerStatus.h"
 
 class Backend;
 struct RequestNotes;

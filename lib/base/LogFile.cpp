@@ -23,6 +23,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <poll.h>
 #include <ev++.h>
 
