@@ -16,7 +16,7 @@ RoadWarrior::~RoadWarrior()
 {
 }
 
-Backend* RoadWarrior::acquireBackend(const x0::SocketSpec& spec, Type type)
+Backend* RoadWarrior::acquireBackend(const x0::SocketSpec& spec, Protocol protocol)
 {
     std::lock_guard<std::mutex> _l(backendsLock_);
 
@@ -26,7 +26,7 @@ Backend* RoadWarrior::acquireBackend(const x0::SocketSpec& spec, Type type)
     }
 
     Backend* backend = nullptr;
-    switch (type) {
+    switch (protocol) {
         case HTTP:
             backends_[spec].reset(backend = new HttpBackend(this, spec.str(), spec, 0, false));
             break;
@@ -37,9 +37,9 @@ Backend* RoadWarrior::acquireBackend(const x0::SocketSpec& spec, Type type)
     return backend;
 }
 
-void RoadWarrior::handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Type type)
+void RoadWarrior::handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Protocol protocol)
 {
-    Backend* backend = acquireBackend(spec, type);
+    Backend* backend = acquireBackend(spec, protocol);
     if (!backend) {
         rn->request->status = x0::HttpStatus::InternalServerError;
         rn->request->finish();

@@ -18,7 +18,7 @@ class Backend;
 class RoadWarrior : public BackendManager
 {
 public:
-    enum Type {
+    enum Protocol {
         HTTP = 1,
         FCGI = 2,
     };
@@ -27,7 +27,7 @@ public:
     explicit RoadWarrior(x0::HttpWorker* worker);
     ~RoadWarrior();
 
-    void handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Type type);
+    void handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Protocol protocol);
 
     virtual void reject(RequestNotes* rn, x0::HttpStatus status);
     virtual void release(RequestNotes* rn);
@@ -35,7 +35,7 @@ public:
     void writeJSON(x0::JsonWriter& output) const;
 
 private:
-    Backend* acquireBackend(const x0::SocketSpec& spec, Type type);
+    Backend* acquireBackend(const x0::SocketSpec& spec, Protocol protocol);
 
 private:
     std::mutex backendsLock_;
