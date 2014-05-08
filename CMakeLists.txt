@@ -141,7 +141,7 @@ endif(HAVE_BZLIB_H)
 # TODO dynamic check for tbb
 # tbb is required for director plugin and for base's TimeoutScheduler (needed?)
 if(ENABLE_PLUGIN_DIRECTOR)
-  CHECK_INCLUDE_FILE_CXX("tbb/tbb.h" HAVE_TBB_TBB_H)
+  CHECK_INCLUDE_FILE_CXX(tbb/tbb.h HAVE_TBB_TBB_H)
   set(TBB_LIBRARIES tbb)
   if(NOT HAVE_TBB_TBB_H)
     message(FATAL_ERROR "Can't find <tbb/tbb.h> include file.\nPlease install Threading Building Blocks (e.g. libtbb-dev).")
