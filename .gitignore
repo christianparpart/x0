@@ -78,9 +78,9 @@ XzeroHttp.pc
 x0d.pc
 
 lib/libXzeroBase.so.*
-lib/libXzeroFlow.so.*
-lib/libXzeroHttp.so.*
-lib/libx0capi.so.*
+lib/flow/libXzeroFlow.so.*
+lib/http/libXzeroHttp.so.*
+lib/capi/libx0capi.so.*
 
 # CTags file
 tags
