@@ -3,7 +3,6 @@
 if [[ -z "$CXX" ]]; then
 	if which clang++ &>/dev/null; then
 		export CXX=$(which clang++)
-        export CXXFLAGS="$CXXFLAGS -stdlib=libc++"
 	else
 		export CXX=$(which g++)
 	fi
