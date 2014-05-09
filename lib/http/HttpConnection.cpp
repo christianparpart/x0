@@ -449,7 +449,7 @@ void HttpConnection::onProtocolError(const BufferRef& chunk, size_t offset)
         offset, chunk[offset], parserStateStr());
 
     log(Severity::debug, "Request parser offset: %zu", requestParserOffset_);
-    log(Severity::debug, "Request Buffer: \"%s\"", escapeChunk(requestBuffer_).c_str());
+    log(Severity::debug, "Request Buffer: \"%s\"", escapeChunk(requestBuffer_.ref(0, std::min(requestParserOffset_ + 1, requestBuffer_.size()))).c_str());
 }
 
 void HttpConnection::wantRead(const TimeSpan& timeout)
