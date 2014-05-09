@@ -44,11 +44,15 @@ public:
     ~Queue();
 
     void enqueue(const T& value);
+    void enqueue(T&& value);
     bool dequeue(T* result);
 
     bool empty() const;
     const T& front() const;
     T& front();
+
+private:
+    void enqueue(Node* value);
 };
 
 #if defined(X0_QUEUE_LOCKFREE)
@@ -102,7 +106,8 @@ struct Queue<T>::Node
     NodePtr next;
 
     Node() : value(), next() {}
-    Node(const T& v) : value(v), next() {}
+    explicit Node(const T& v) : value(v), next() {}
+    explicit Node(T&& v) : value(std::move(v)), next() {}
 };
 // }}}
 // {{{ Queue<T> impl
@@ -124,8 +129,18 @@ Queue<T>::~Queue()
 template<typename T>
 void Queue<T>::enqueue(const T& value)
 {
-    Node* n = new Node(value);
+    enqueue(new Node(value));
+}
 
+template<typename T>
+void Queue<T>::enqueue(T&& value)
+{
+    enqueue(new Node(std::move(value)));
+}
+
+template<typename T>
+void Queue<T>::enqueue(Node* n)
+{
     while (true) {
         NodePtr back(back_);
         NodePtr next(
@@ -198,7 +213,7 @@ bool Queue<T>::dequeue(T* result)
             } else {
                 // no need to deal with back
                 // read value before CAS otherwise another deque might try to free the next node
-                *result = next.ptr->value;
+                *result = std::move(next.ptr->value);
 
                 // try to swing Head to the next node
                 if (front_.compareAndSwap(front, NodePtr(next.ptr, front.count + 1))) {
