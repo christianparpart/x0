@@ -16,7 +16,7 @@ public:
     void stop();
 
 private:
-    void incoming(Socket* client, ServerSocket* server);
+    void incoming(std::unique_ptr<Socket>&& client, ServerSocket* server);
 
     struct ev_loop* loop_;
     ServerSocket* ss_;
@@ -63,9 +63,9 @@ void EchoServer::stop()
     ss_->stop();
 }
 
-void EchoServer::incoming(Socket* client, ServerSocket* /*server*/)
+void EchoServer::incoming(std::unique_ptr<Socket>&& client, ServerSocket* /*server*/)
 {
-    new Session(client);
+    new Session(client.release());
 }
 
 EchoServer::Session::Session(Socket* client) :

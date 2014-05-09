@@ -129,7 +129,7 @@ public:
     friend class XzeroCore; // FIXME: make needed functions public instead
 
 private:
-    void onNewConnection(Socket*, ServerSocket*);
+    void onNewConnection(std::unique_ptr<Socket>&&, ServerSocket*);
 
     unsigned generation_;
 

@@ -139,10 +139,10 @@ HttpServer::~HttpServer()
 #endif
 }
 
-void HttpServer::onNewConnection(Socket* cs, ServerSocket* ss)
+void HttpServer::onNewConnection(std::unique_ptr<Socket>&& cs, ServerSocket* ss)
 {
     if (cs) {
-        selectWorker()->enqueue(std::make_pair(cs, ss));
+        selectWorker()->enqueue(std::make_pair(std::move(cs), ss));
     } else {
         log(Severity::error, "Accepting incoming connection failed. %s", strerror(errno));
     }

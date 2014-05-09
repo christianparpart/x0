@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <ev++.h>
+#include <memory>
 #include <sys/socket.h> // for isLocal() and isTcp()
 
 namespace x0 {
@@ -51,7 +52,7 @@ private:
     SocketDriver* socketDriver_;
     std::string errorText_;
 
-    void (*callback_)(Socket*, ServerSocket*);
+    void (*callback_)(std::unique_ptr<Socket>&&, ServerSocket*);
     void* callbackData_;
 
     std::string address_;
@@ -96,7 +97,7 @@ public:
     SocketDriver* socketDriver() { return socketDriver_; }
     const SocketDriver* socketDriver() const { return socketDriver_; }
 
-    template<typename K, void (K::*cb)(Socket*, ServerSocket*)>
+    template<typename K, void (K::*cb)(std::unique_ptr<Socket>&&, ServerSocket*)>
     void set(K* object);
 
     const std::string& errorText() const { return errorText_; }
@@ -108,8 +109,8 @@ public:
     static std::vector<int> getInheritedSocketList();
 
 private:
-    template<typename K, void (K::*cb)(Socket*, ServerSocket*)>
-    static void callback_thunk(Socket* cs, ServerSocket* ss);
+    template<typename K, void (K::*cb)(std::unique_ptr<Socket>&&, ServerSocket*)>
+    static void callback_thunk(std::unique_ptr<Socket>&& cs, ServerSocket* ss);
 
     void accept(ev::io&, int);
 
@@ -117,17 +118,17 @@ private:
 };
 
 // {{{
-template<typename K, void (K::*cb)(Socket*, ServerSocket*)>
+template<typename K, void (K::*cb)(std::unique_ptr<Socket>&&, ServerSocket*)>
 void ServerSocket::set(K* object)
 {
     callback_ = &callback_thunk<K, cb>;
     callbackData_ = object;
 }
 
-template<typename K, void (K::*cb)(Socket*, ServerSocket*)>
-void ServerSocket::callback_thunk(Socket* cs, ServerSocket* ss)
+template<typename K, void (K::*cb)(std::unique_ptr<Socket>&&, ServerSocket*)>
+void ServerSocket::callback_thunk(std::unique_ptr<Socket>&& cs, ServerSocket* ss)
 {
-    (static_cast<K*>(ss->callbackData_)->*cb)(cs, ss);
+    (static_cast<K*>(ss->callbackData_)->*cb)(std::move(cs), ss);
 }
 // }}}
 

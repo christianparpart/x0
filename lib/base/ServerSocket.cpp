@@ -702,7 +702,7 @@ inline bool ServerSocket::acceptOne()
         goto err;
 
     TRACE("accept(): %d", cfd);
-    callback_(socketDriver_->create(loop_, cfd, addressFamily_), this);
+    callback_(std::unique_ptr<Socket>(socketDriver_->create(loop_, cfd, addressFamily_)), this);
 
     return true;
 

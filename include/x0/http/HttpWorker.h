@@ -24,6 +24,7 @@
 #include <list>
 #include <mutex>
 #include <atomic>
+#include <memory>
 #include <utility>
 #include <functional>
 #include <ev++.h>
@@ -84,7 +85,7 @@ private:
     std::atomic<unsigned long long> requestCount_;
     unsigned long long connectionCount_;
     pthread_t thread_;
-    Queue<std::pair<Socket*, ServerSocket*>> queue_;
+    Queue<std::pair<std::unique_ptr<Socket>, ServerSocket*>> queue_;
 
     pthread_mutex_t resumeLock_;
     pthread_cond_t resumeCondition_;
@@ -149,7 +150,7 @@ public:
 
     void fetchPerformanceCounts(double* p1, double* p5, double* p15) const;
 
-    void enqueue(std::pair<Socket*, ServerSocket*>&& handle);
+    void enqueue(std::pair<std::unique_ptr<Socket>, ServerSocket*>&& handle);
     void handleRequest(HttpRequest *r);
     void release(HttpConnection* connection);
 
@@ -201,7 +202,7 @@ private:
     void onLoopCheck(ev::check& w, int revents);
     void onNewConnection(ev::async& w, int revents);
     void onWakeup(ev::async& w, int revents);
-    void spawnConnection(Socket* client, ServerSocket* listener);
+    void spawnConnection(std::unique_ptr<Socket>&& client, ServerSocket* listener);
     static void* _run(void*);
     void _stop();
     void _kill();

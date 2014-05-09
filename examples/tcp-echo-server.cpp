@@ -19,7 +19,7 @@ public:
     Logger* logger() const { return logger_; }
 
 private:
-    void incoming(Socket* client, ServerSocket* server);
+    void incoming(std::unique_ptr<Socket>&& client, ServerSocket* server);
 
     template<typename... Args>
     void log(Severity severity, const char* fmt, Args... args);
@@ -82,9 +82,9 @@ void EchoServer::stop()
     ss_->stop();
 }
 
-void EchoServer::incoming(Socket* client, ServerSocket* /*server*/)
+void EchoServer::incoming(std::unique_ptr<Socket>&& client, ServerSocket* /*server*/)
 {
-    new Session(this, client);
+    new Session(this, client.release());
 }
 
 EchoServer::Session::Session(EchoServer* service, Socket* client) :

@@ -83,9 +83,6 @@ HttpConnection::~HttpConnection()
     TRACE(1, "%d: destructing", id_);
     if (request_)
         delete request_;
-
-    if (socket_)
-        delete socket_;
 }
 
 /**
@@ -110,8 +107,7 @@ void HttpConnection::clear()
     clearCustomData();
 
     worker_->server_.onConnectionClose(this);
-    delete socket_;
-    socket_ = nullptr;
+    socket_.reset(nullptr);
     requestCount_ = 0;
 
     requestParserOffset_ = 0;
@@ -122,7 +118,6 @@ void HttpConnection::revive(unsigned long long id)
 {
     id_ = id;
     flags_ = 0;
-    socket_ = nullptr;
 }
 
 void HttpConnection::ref()
@@ -216,16 +211,16 @@ bool HttpConnection::isSecure() const
  * @see abort()
  * @see abort(HttpStatus)
  */
-void HttpConnection::start(ServerSocket* listener, Socket* client)
+void HttpConnection::start(std::unique_ptr<Socket>&& client, ServerSocket* listener)
 {
     setState(ReadingRequest);
 
     listener_ = listener;
 
-    socket_ = client;
+    socket_ = std::move(client);
     socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
 
-    sink_.setSocket(socket_);
+    sink_.setSocket(socket_.get());
 
 #if defined(TCP_NODELAY)
     if (worker_->server().tcpNoDelay())

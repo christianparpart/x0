@@ -158,7 +158,7 @@ private:
     bool onMessageEnd() override;
     void onProtocolError(const BufferRef& chunk, size_t offset) override;
 
-    void start(ServerSocket* listener, Socket* client);
+    void start(std::unique_ptr<Socket>&& client, ServerSocket* listener);
     void resume();
     void clear();
     void revive(unsigned long long id);
@@ -171,8 +171,8 @@ private:
     bool readSome();
     bool writeSome();
     bool process();
-    void io(Socket *socket, int revents);
-    void timeout(Socket *socket);
+    void io(Socket* socket, int revents);
+    void timeout(Socket* socket);
 
     void abort();
     void abort(HttpStatus status);
@@ -209,7 +209,7 @@ private:
 
     // output
     CompositeSource output_;			//!< pending write-chunks
-    Socket* socket_;					//!< underlying communication socket
+    std::unique_ptr<Socket> socket_;    //!< underlying communication socket
     SocketSink sink_;					//!< sink wrapper for socket_
     bool autoFlush_;					//!< true if flush() is invoked automatically after every write()
 
@@ -224,7 +224,7 @@ private:
 // {{{ inlines
 inline Socket* HttpConnection::socket() const
 {
-    return socket_;
+    return socket_.get();
 }
 
 inline unsigned long long HttpConnection::id() const

@@ -182,9 +182,9 @@ void HttpWorker::log(LogMessage&& msg)
 
 /** enqueues/assigns/registers given client connection information to this worker.
  */
-void HttpWorker::enqueue(std::pair<Socket*, ServerSocket*>&& client)
+void HttpWorker::enqueue(std::pair<std::unique_ptr<Socket>, ServerSocket*>&& client)
 {
-    queue_.enqueue(client);
+    queue_.enqueue(std::move(client));
     evNewConnection_.send();
 }
 
@@ -192,10 +192,10 @@ void HttpWorker::enqueue(std::pair<Socket*, ServerSocket*>&& client)
  */
 void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 {
-    std::pair<Socket*, ServerSocket*> client;
+    std::pair<std::unique_ptr<Socket>, ServerSocket*> client;
 
     while (queue_.dequeue(&client)) {
-        spawnConnection(client.first, client.second);
+        spawnConnection(std::move(client.first), client.second);
     }
 }
 
@@ -221,7 +221,7 @@ out:
     pthread_mutex_unlock(&postLock_);
 }
 
-void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
+void HttpWorker::spawnConnection(std::unique_ptr<Socket>&& client, ServerSocket* listener)
 {
     TRACE(1, "client connected; fd:%d", client->handle());
 
@@ -249,7 +249,7 @@ void HttpWorker::spawnConnection(Socket* client, ServerSocket* listener)
     c->next_ = connections_;
     connections_ = c;
 
-    c->start(listener, client);
+    c->start(std::move(client), listener);
 }
 
 /** releases/unregisters given (and to-be-destroyed) connection from this worker.
