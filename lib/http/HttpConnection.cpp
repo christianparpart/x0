@@ -445,7 +445,7 @@ static inline Buffer escapeChunk(const BufferRef& chunk)
 void HttpConnection::onProtocolError(const BufferRef& chunk, size_t offset)
 {
     log(Severity::diag,
-        "HTTP protocol error error at chunk offset %zu (0x%02x): %s",
+        "HTTP protocol error at chunk offset %zu (0x%02x): %s",
         offset, chunk[offset], parserStateStr());
 
     log(Severity::debug, "Request parser offset: %zu", requestParserOffset_);
