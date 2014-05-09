@@ -412,9 +412,44 @@ bool HttpConnection::onMessageEnd()
     return true;
 }
 
+static inline Buffer escapeChunk(const BufferRef& chunk)
+{
+    Buffer result;
+
+    for (char ch: chunk) {
+        switch (ch) {
+            case '\r':
+                result.push_back("\\r");
+                break;
+            case '\n':
+                result.push_back("\\n");
+                break;
+            case '\t':
+                result.push_back("\\t");
+                break;
+            case '"':
+                result.push_back("\\\"");
+                break;
+            default:
+                if (std::isprint(ch) || std::isspace(ch)) {
+                    result.push_back(ch);
+                } else {
+                    result.printf("\\x%02x", ch);
+                }
+        }
+    }
+
+    return result;
+}
+
 void HttpConnection::onProtocolError(const BufferRef& chunk, size_t offset)
 {
-    log(Severity::diag, "HTTP protocol error error at chunk offset %zu: %s", offset, parserStateStr());
+    log(Severity::diag,
+        "HTTP protocol error error at chunk offset %zu (0x%02x): %s",
+        offset, chunk[offset], parserStateStr());
+
+    log(Severity::debug, "Request parser offset: %zu", requestParserOffset_);
+    log(Severity::debug, "Request Buffer: \"%s\"", escapeChunk(requestBuffer_).c_str());
 }
 
 void HttpConnection::wantRead(const TimeSpan& timeout)
