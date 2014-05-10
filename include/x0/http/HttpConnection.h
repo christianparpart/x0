@@ -93,7 +93,7 @@ public:
 
     bool isSecure() const;
 
-    void write(Source* buffer);
+    void write(std::unique_ptr<Source>&& source);
     template<class T, class... Args> void write(Args&&... args);
 
     void flush();
@@ -251,7 +251,7 @@ inline HttpWorker& HttpConnection::worker() const
 template<class T, class... Args>
 inline void HttpConnection::write(Args&&... args)
 {
-    write(new T(args...));
+    write(std::unique_ptr<T>(new T(args...)));
 }
 
 inline const ServerSocket& HttpConnection::listener() const

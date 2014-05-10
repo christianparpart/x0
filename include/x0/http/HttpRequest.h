@@ -31,6 +31,7 @@
 #include <vector>
 #include <list>
 #include <utility>
+#include <memory>
 #include <cassert>
 
 namespace x0 {
@@ -335,11 +336,11 @@ public:
     bool sendfile(const HttpFileRef& transferFile);
 
     // dynamic response writer
-    void write(Source* chunk);
-    template<class K, void (K::*Callback)()>
-    bool writeCallback(K* object);
-    bool writeCallback(CallbackSource::Callback cb);
+    void write(std::unique_ptr<Source>&& chunk);
     template<class T, class... Args> void write(Args&&... args);
+
+    template<class K, void (K::*Callback)()> bool writeCallback(K* object);
+    bool writeCallback(CallbackSource::Callback cb);
 
     void setAbortHandler(const std::function<void()>& cb);
     void finish();
@@ -380,7 +381,7 @@ private:
     bool processRangeRequest(const HttpFileRef& transferFile, int fd);
 
     // response write helper
-    Source* serialize();
+    std::unique_ptr<Source> serialize();
     void writeDefaultResponseContent();
     void finalize();
 
@@ -486,7 +487,7 @@ bool HttpRequest::writeCallback(K* object)
 template<class T, class... Args>
 inline void HttpRequest::write(Args&&... args)
 {
-    write(new T(std::move(args)...));
+    write(std::unique_ptr<T>(new T(std::move(args)...)));
 }
 
 /*! retrieves the number of bytes successfully transmitted within this very request.

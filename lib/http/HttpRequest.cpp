@@ -574,7 +574,7 @@ void HttpRequest::onRequestContent(const BufferRef& chunk)
  *
  * \note this does not serialize the message body.
  */
-Source* HttpRequest::serialize()
+std::unique_ptr<Source> HttpRequest::serialize()
 {
     Buffer buffers;
 
@@ -678,7 +678,7 @@ Source* HttpRequest::serialize()
     if (connection.worker().server().tcpCork())
         connection.socket()->setTcpCork(true);
 
-    return new BufferSource(std::move(buffers));
+    return std::unique_ptr<BufferSource>(new BufferSource(std::move(buffers)));
 }
 
 /** write given source to response content and invoke the completion handler when done.
@@ -688,10 +688,9 @@ Source* HttpRequest::serialize()
  *
  * \note this implicitely flushes the response-headers if not yet done, thus, making it impossible to modify them after this write.
  */
-void HttpRequest::write(Source* chunk)
+void HttpRequest::write(std::unique_ptr<Source>&& chunk)
 {
     if (unlikely(!connection.isOpen())) {
-        delete chunk;
         return;
     }
 
@@ -706,9 +705,9 @@ void HttpRequest::write(Source* chunk)
             // fall through
         case HttpConnection::SendingReply:
             if (outputFilters.empty())
-                connection.write(chunk);
+                connection.write(std::move(chunk));
             else
-                connection.write<FilterSource>(chunk, &outputFilters, false);
+                connection.write<FilterSource>(chunk.release(), &outputFilters, false);
             break;
         case HttpConnection::SendingReplyDone:
         case HttpConnection::KeepAliveRead:
@@ -1199,7 +1198,7 @@ bool HttpRequest::processRangeRequest(const HttpFileRef& transferFile, int fd) /
     if (range.size() > 1) {
         // generate a multipart/byteranged response, as we've more than one range to serve
 
-        CompositeSource* content = new CompositeSource();
+        std::unique_ptr<CompositeSource> content(new CompositeSource());
         Buffer buf;
         std::string boundary(generateBoundaryID());
         std::size_t contentLength = 0;
@@ -1252,7 +1251,7 @@ bool HttpRequest::processRangeRequest(const HttpFileRef& transferFile, int fd) /
         responseHeaders.push_back("Content-Length", slen);
 
         if (fd >= 0) {
-            write(content);
+            write(std::move(content));
         }
     } else { // generate a simple (single) partial response
         std::pair<std::size_t, std::size_t> offsets(makeOffsets(range[0], transferFile->size()));

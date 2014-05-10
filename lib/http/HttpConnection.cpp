@@ -550,18 +550,17 @@ bool HttpConnection::readSome()
  * \param buffer the buffer of bytes to be written into the connection.
  * \param handler the completion handler to invoke once the buffer has been either fully written or an error occured.
  */
-void HttpConnection::write(Source* chunk)
+void HttpConnection::write(std::unique_ptr<Source>&& chunk)
 {
     if (isOpen()) {
         TRACE(1, "write() chunk (%s)", chunk->className());
-        output_.push_back(chunk);
+        output_.push_back(chunk.release());
 
         if (autoFlush_) {
             flush();
         }
     } else {
         TRACE(1, "write() ignore chunk (%s) - (connection aborted)", chunk->className());
-        delete chunk;
     }
 }
 
