@@ -5,7 +5,7 @@
 </form>
 
 <?php
-  if ($_FILES['uploadedfile']) { // FIXME this generates a PHP warning - but how to check else?
+  if (isset($_FILES['uploadedfile']) && $_FILES['uploadedfile']) {
     // Where the file is going to be placed 
     $target_path = "/tmp/";
 
