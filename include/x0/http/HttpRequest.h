@@ -327,8 +327,6 @@ public:
     ChainFilter outputFilters;  //!< response content filters
     bool isResponseContentForbidden() const;
 
-    bool isAborted() const;
-
     unsigned long long bytesTransmitted() const;
 
     // full response writer - but do not invoke finish()
@@ -395,10 +393,6 @@ private:
 // {{{ request impl
 inline void HttpRequest::clear()
 {
-    // XXX custom data is to be cleared in finish() already. clear() is invoked in resume() to clear up
-    // XXX the remaining properties and prepare for the next request
-    // clearCustomData();
-
     onPostProcess.clear();
     onRequestDone.clear();
     method.clear();
@@ -492,9 +486,7 @@ bool HttpRequest::writeCallback(K* object)
 template<class T, class... Args>
 inline void HttpRequest::write(Args&&... args)
 {
-    if (!isAborted()) {
-        write(new T(std::move(args)...));
-    }
+    write(new T(std::move(args)...));
 }
 
 /*! retrieves the number of bytes successfully transmitted within this very request.
@@ -511,13 +503,6 @@ inline unsigned long long HttpRequest::bytesTransmitted() const
 inline bool HttpRequest::isResponseContentForbidden() const
 {
     return x0::content_forbidden(status);
-}
-
-/*! Tests whether or not the given request and underlying connection is already aborted or not.
- */
-inline bool HttpRequest::isAborted() const
-{
-    return connection.isAborted();
 }
 
 template<typename T, void (T::*cb)(Buffer& output)>

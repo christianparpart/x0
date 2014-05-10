@@ -690,7 +690,7 @@ Source* HttpRequest::serialize()
  */
 void HttpRequest::write(Source* chunk)
 {
-    if (unlikely(connection.isAborted())) {
+    if (unlikely(!connection.isOpen())) {
         delete chunk;
         return;
     }
@@ -763,7 +763,7 @@ void HttpRequest::writeDefaultResponseContent()
  */
 bool HttpRequest::writeCallback(CallbackSource::Callback cb)
 {
-    if (connection.isAborted()) {
+    if (!connection.isOpen()) {
         cb();
         return false;
     }
@@ -892,7 +892,7 @@ void HttpRequest::finish()
     setAbortHandler(nullptr);
     setBodyCallback(nullptr);
 
-    if (isAborted()) {
+    if (!connection.isOpen()) {
         connection.setState(HttpConnection::SendingReplyDone);
         finalize();
         return;
@@ -979,18 +979,17 @@ void HttpRequest::finalize()
 
     onRequestDone();
     connection.worker().server().onRequestDone(this);
-
-    onPostProcess.clear();
-    onRequestDone.clear();
     clearCustomData();
 
-    if (isAborted() || !connection.shouldKeepAlive()) {
-        TRACE(2, "finalize: closing");
-        connection.close();
-    } else {
-        TRACE(2, "finalize: resuming");
-        clear();
-        connection.resume();
+    if (connection.isOpen()) {
+        if (connection.shouldKeepAlive()) {
+            TRACE(2, "finalize: resuming");
+            clear();
+            connection.resume();
+        } else {
+            TRACE(2, "finalize: closing");
+            connection.close();
+        }
     }
 }
 
@@ -1018,8 +1017,8 @@ void HttpRequest::initialize()
  */
 void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
 {
-    connection.abortHandler_ = cb;
-    connection.abortData_ = data;
+    connection.clientAbortHandler_ = cb;
+    connection.clientAbortData_ = data;
 
     if (cb) {
         // get notified on EOF at least (do not care about timeout handling)

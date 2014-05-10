@@ -69,8 +69,8 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
     socket_(nullptr),
     sink_(nullptr),
     autoFlush_(true),
-    abortHandler_(nullptr),
-    abortData_(nullptr),
+    clientAbortHandler_(nullptr),
+    clientAbortData_(nullptr),
     prev_(nullptr),
     next_(nullptr)
 {
@@ -130,7 +130,7 @@ void HttpConnection::unref()
 {
     --refCount_;
 
-    TRACE(1, "unref() %u (closed:%d, outputPending:%d)", refCount_, isClosed(), isOutputPending());
+    TRACE(1, "unref() %u (conn:%s, outputPending:%d)", refCount_, isOpen() ? "open" : "closed", isOutputPending());
 
     if (refCount_ == 0) {
         clear();
@@ -140,8 +140,7 @@ void HttpConnection::unref()
 
 void HttpConnection::io(Socket *, int revents)
 {
-    TRACE(1, "io(revents=%04x) %s, %s, isHandlingRequest:%d",
-        revents, state_str(), parserStateStr(), isHandlingRequest());
+    TRACE(1, "io(revents=%04x) %s, %s", revents, state_str(), parserStateStr());
 
     ref();
 
@@ -182,10 +181,8 @@ void HttpConnection::timeout(Socket *)
         break;
     case SendingReply:
     case SendingReplyDone:
-        abort();
-        break;
     case KeepAliveRead:
-        close();
+        abort();
         break;
     }
 }
@@ -234,13 +231,17 @@ void HttpConnection::start(std::unique_ptr<Socket>&& client, ServerSocket* liste
 
     ref(); // <-- this reference is being decremented in close()
 
-    worker_->server_.onConnectionOpen(this);
+    {
+        ref();
+        worker_->server_.onConnectionOpen(this);
 
-    if (isAborted()) {
-        // The connection got directly closed (aborted) upon connection instance creation (e.g. within the onConnectionOpen-callback),
-        // so delete the object right away.
-        close();
-        return;
+        if (!isOpen()) {
+            // The connection got directly closed within the onConnectionOpen-callback,
+            // so delete the object right away.
+            unref();
+            return;
+        }
+        unref();
     }
 
     if (!request_)
@@ -272,12 +273,11 @@ void HttpConnection::handshakeComplete(Socket *)
 {
     TRACE(1, "handshakeComplete() socketState=%s", socket_->state_str());
 
-    if (socket_->state() == Socket::Operational)
+    if (socket_->state() == Socket::Operational) {
         wantRead(worker_->server_.maxReadIdle());
-    else
-    {
+    } else {
         TRACE(1, "handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
-        close();
+        abort();
     }
 }
 
@@ -363,7 +363,6 @@ bool HttpConnection::onMessageHeaderEnd()
 
     requestHeaderEndOffset_ = requestParserOffset_;
     ++requestCount_;
-    flags_ |= IsHandlingRequest; // TODO: remove me, make me obsolete (replaced by state())
     setState(ProcessingRequest);
 
     worker_->handleRequest(request_);
@@ -382,7 +381,7 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 
 bool HttpConnection::onMessageEnd()
 {
-    TRACE(1, "onMessageEnd() %s (rfinished:%d, isHandlingRequest:%d)", state_str(), request_->isFinished(), isHandlingRequest());
+    TRACE(1, "onMessageEnd() %s (rfinished:%d)", state_str(), request_->isFinished());
 
     // marks the request-content EOS, so that the application knows when the request body
     // has been fully passed to it.
@@ -399,12 +398,9 @@ bool HttpConnection::onMessageEnd()
         wantWrite();
     }
 
-    // If we are currently procesing a request, then stop parsing at the end of this request.
+    // We are currently procesing a request, so stop parsing at the end of this request.
     // The next request, if available, is being processed via resume()
-    if (isHandlingRequest())
-        return false;
-
-    return true;
+    return false;
 }
 
 static inline Buffer escapeChunk(const BufferRef& chunk)
@@ -518,10 +514,16 @@ bool HttpConnection::readSome()
         }
     }
 
-    if (rv == 0) {
-        // EOF
-        TRACE(1, "readSome: (EOF), state:%s", state_str());
-        abort();
+    if (rv == 0) { // EOF
+        TRACE(1, "readSome: (EOF), state:%s, clientAbortHandler:%s", state_str(), clientAbortHandler_ ? "yes" : "no");
+
+        if (clientAbortHandler_) {
+            socket_->close();
+            clientAbortHandler_(clientAbortData_);
+        } else {
+            abort();
+        }
+
         return false;
     }
 
@@ -551,7 +553,7 @@ bool HttpConnection::readSome()
  */
 void HttpConnection::write(Source* chunk)
 {
-    if (!isAborted()) {
+    if (isOpen()) {
         TRACE(1, "write() chunk (%s)", chunk->className());
         output_.push_back(chunk);
 
@@ -610,7 +612,9 @@ bool HttpConnection::writeSome()
             wantRead(TimeSpan::Zero);
         }
 
-        TRACE(1, "writeSome: output fully written. closed:%d, outputPending:%lu, refCount:%d", isClosed(), output_.size(), refCount_);
+        TRACE(1, "writeSome: output fully written. conn:%s, outputPending:%lu, refCount:%d",
+                isOpen() ? "open" : "closed", output_.size(), refCount_);
+
         goto done;
     }
 
@@ -639,41 +643,8 @@ err:
     return false;
 }
 
-/*! Invokes the abort-callback (if set) and closes/releases this connection.
- *
- * \see close()
- * \see HttpRequest::finish()
- */
-void HttpConnection::abort()
-{
-    TRACE(1, "abort() %s", isAborted() ? "is already aborted!" : "");
-
-    if (isAborted())
-        return;
-
-    //assert(!isAborted() && "The connection may be only aborted once.");
-
-    flags_ |= IsAborted;
-
-    if (isOutputPending()) {
-        TRACE(1, "abort: clearing pending output (%lu)", output_.size());
-        output_.clear();
-    }
-
-    if (abortHandler_) {
-        assert(request_ != nullptr);
-
-        // the client aborted the connection, so close the client-socket right away to safe resources
-        socket_->close();
-
-        abortHandler_(abortData_);
-    } else {
-        close();
-    }
-}
-
 /**
- * Aborts processing current request with given HTTP status code.
+ * Aborts processing current request with given HTTP status code and closes the connection.
  *
  * This method is supposed to be invoked within the Request parsing state.
  * It will reply the current request with the given \p status code and close the connection.
@@ -691,7 +662,6 @@ void HttpConnection::abort(HttpStatus status)
 
     ++requestCount_;
 
-    flags_ |= IsHandlingRequest;
     setState(ProcessingRequest);
     setShouldKeepAlive(false);
 
@@ -699,23 +669,42 @@ void HttpConnection::abort(HttpStatus status)
     request_->finish();
 }
 
+/**
+ * Internally invoked on I/O errors to prematurely close the connection without any further processing.
+ *
+ * Invoked from within the following states:
+ * <ul>
+ *   <li> client read operation error
+ *   <li> client write operation error
+ *   <li> client read/write timeout
+ *   <li> client closed connection
+ * </ul>
+ */
+void HttpConnection::abort()
+{
+    if (request_) {
+        request_->onRequestDone();
+        request_->connection.worker().server().onRequestDone(request_);
+        request_->clearCustomData();
+    }
+
+    close();
+}
+
 /** Closes this HttpConnection, possibly deleting this object (or propagating delayed delete).
  */
 void HttpConnection::close()
 {
-    TRACE(1, "close()");
+    TRACE(1, "close() (state:%s)", state_str());
     TRACE(2, "Stack Trace:%s\n", StackTrace().c_str());
 
-    if (isClosed())
-        // may happen on double-error checking in different layers, which is not clean, but hey
-        return;
+    socket_->close();
 
-    flags_ |= IsClosed;
-
-    if (state() == SendingReplyDone) {
-        // usercode has issued a request->finish() but it didn't come to finalize it yet.
-        request_->finalize();
+    if (isOutputPending()) {
+        TRACE(1, "abort: clearing pending output (%lu)", output_.size());
+        output_.clear();
     }
+
     setState(Undefined);
 
     unref(); // <-- this refers to ref() in start()
@@ -734,7 +723,6 @@ void HttpConnection::resume()
     TRACE(1, "-- (requestParserOffset:%lu, requestBufferSize:%lu)", requestParserOffset_, requestBuffer_.size());
 
     setState(KeepAliveRead);
-    request_->clear();
 
     // move potential pipelined-and-already-read requests to the front.
     requestBuffer_ = requestBuffer_.ref(requestParserOffset_, requestBuffer_.size() - requestParserOffset_);
@@ -773,13 +761,13 @@ bool HttpConnection::process()
             }
         }
 
-        TRACE(1, "process: (size: %lu, isHandlingRequest:%d, cstate:%s pstate:%s", chunk.size(), isHandlingRequest(), state_str(), parserStateStr());
+        TRACE(1, "process: (size: %lu, cstate:%s pstate:%s", chunk.size(), state_str(), parserStateStr());
         //TRACE(1, "%s", requestBuffer_.ref(requestBuffer_.size() - rv).str().c_str());
 
         size_t rv = HttpMessageParser::parseFragment(chunk, &requestParserOffset_);
         TRACE(1, "process: done process()ing; fd=%d, request=%p cstate:%s pstate:%s, rv:%d", socket_->handle(), request_, state_str(), parserStateStr(), rv);
 
-        if (isAborted()) {
+        if (!isOpen()) {
             TRACE(1, "abort detected");
             return false;
         }
@@ -854,7 +842,7 @@ void HttpConnection::setState(State value)
 
 void HttpConnection::log(LogMessage&& msg)
 {
-    msg.addTag(!isClosed() ? remoteIP().c_str() : "(null)");
+    msg.addTag(isOpen() ? remoteIP().c_str() : "(null)");
 
     worker().log(std::forward<LogMessage>(msg));
 }

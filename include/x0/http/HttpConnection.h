@@ -80,8 +80,6 @@ public:
     HttpMessageParser::State parserState() const { return HttpMessageParser::state(); }
     const char* parserStateStr() const { return HttpMessageParser::state_str(); }
 
-    void close();
-
     Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
     HttpWorker& worker() const;					//!< Retrieves a reference to the owning worker.
 
@@ -103,7 +101,6 @@ public:
     void setAutoFlush(bool value) { autoFlush_ = value; if (value) { flush(); } }
 
     bool isOutputPending() const { return !output_.empty(); }
-    bool isHandlingRequest() const { return flags_ & IsHandlingRequest; }
 
     const HttpRequest* request() const { return request_; }
     HttpRequest* request() { return request_; }
@@ -117,8 +114,7 @@ public:
 
     void post(std::function<void()> function);
 
-    bool isAborted() const;
-    bool isClosed() const;
+    bool isOpen() const;
 
     template<typename... Args>
     void log(Severity s, const char* fmt, Args... args);
@@ -163,6 +159,10 @@ private:
     void clear();
     void revive(unsigned long long id);
 
+    void abort(HttpStatus status);
+    void abort();
+    void close();
+
     void handshakeComplete(Socket *);
 
     void wantRead(const TimeSpan& timeout);
@@ -173,9 +173,6 @@ private:
     bool process();
     void io(Socket* socket, int revents);
     void timeout(Socket* socket);
-
-    void abort();
-    void abort(HttpStatus status);
 
     Buffer& inputBuffer() { return requestBuffer_; }
     const Buffer& inputBuffer() const { return requestBuffer_; }
@@ -196,10 +193,7 @@ private:
 
     // we could make these things below flags
     unsigned flags_;
-    static const unsigned IsHandlingRequest  = 0x0002; //!< is this connection (& request) currently passed to a request handler?
     static const unsigned IsKeepAliveEnabled = 0x0008; //!< connection should keep-alive to accept further requests
-    static const unsigned IsAborted          = 0x0010; //!< abort() was invoked, merely meaning, that the client aborted the connection early
-    static const unsigned IsClosed           = 0x0020; //!< closed() invoked, but close-action delayed
 
     // HTTP HttpRequest
     Buffer requestBuffer_;              //!< buffer for incoming data.
@@ -214,8 +208,8 @@ private:
     bool autoFlush_;					//!< true if flush() is invoked automatically after every write()
 
     // connection abort callback
-    void (*abortHandler_)(void*);
-    void* abortData_;
+    void (*clientAbortHandler_)(void*);
+    void* clientAbortData_;
 
     HttpConnection* prev_;
     HttpConnection* next_;
@@ -258,9 +252,7 @@ inline HttpWorker& HttpConnection::worker() const
 template<class T, class... Args>
 inline void HttpConnection::write(Args&&... args)
 {
-    if (!isAborted()) {
-        write(new T(args...));
-    }
+    write(new T(args...));
 }
 
 inline const ServerSocket& HttpConnection::listener() const
@@ -268,16 +260,9 @@ inline const ServerSocket& HttpConnection::listener() const
     return *listener_;
 }
 
-/*! Tests whether if the connection to the client (remote end-point) has * been aborted early.
- */
-inline bool HttpConnection::isAborted() const
+inline bool HttpConnection::isOpen() const
 {
-    return (flags_ & IsAborted) || isClosed();
-}
-
-inline bool HttpConnection::isClosed() const
-{
-    return !socket_ || (flags_ & IsClosed);
+    return socket_->isOpen();
 }
 
 template<typename... Args>
