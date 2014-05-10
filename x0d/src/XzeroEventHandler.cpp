@@ -31,6 +31,7 @@
 #include <vector>
 #include <cstdio>
 #include <cstdarg>
+#include <cstring>
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -42,58 +43,6 @@
 
 #define SIG_X0_SUSPEND (SIGRTMIN+4)
 #define SIG_X0_RESUME (SIGRTMIN+5)
-
-// {{{ helper
-static std::string sig2str(int sig)
-{
-    static const char* sval[_NSIG + 1] = {
-        nullptr,		// 0
-        "SIGHUP",		// 1
-        "SIGINT",		// 2
-        "SIGQUIT",		// 3
-        "SIGILL",		// 4
-        "SIGTRAP",		// 5
-        "SIGIOT",		// 6
-        "SIGBUS",		// 7
-        "SIGFPE",		// 8
-        "SIGKILL",		// 9
-
-        "SIGUSR1",		// 10
-        "SIGSEGV",		// 11
-        "SIGUSR2",		// 12
-        "SIGPIPE",		// 13
-        "SIGALRM",		// 14
-        "SIGTERM",		// 15
-        "SIGSTKFLT",	// 16
-        "SIGCHLD",		// 17
-        "SIGCONT",		// 18
-        "SIGSTOP",		// 19
-
-        "SIGTSTP",		// 20
-        "SIGTTIN",		// 21
-        "SIGTTOU",		// 22
-        "SIGURG	",		// 23
-        "SIGXCPU",		// 24
-        "SIGXFSZ",		// 25
-        "SIGVTALRM",	// 26
-        "SIGPROF",		// 27
-        "SIGWINCH",		// 28
-        "SIGIO",		// 29
-
-        "SIGPWR",		// 30
-        "SIGSYS",		// 31
-        nullptr
-    };
-
-    char buf[64];
-    if (sig >= SIGRTMIN && sig <= SIGRTMAX) {
-        snprintf(buf, sizeof(buf), "SIGRTMIN+%d (%d)", sig - SIGRTMIN, sig);
-    } else {
-        snprintf(buf, sizeof(buf), "%s (%d)", sval[sig], sig);
-    }
-    return buf;
-}
-// }}}
 
 namespace x0d {
 
@@ -301,7 +250,7 @@ void XzeroEventHandler::suspendHandler(ev::sig& sig, int)
  */
 void XzeroEventHandler::resumeHandler(ev::sig& sig, int)
 {
-    server()->log(x0::Severity::debug, "Siganl %s received.", sig2str(sig.signum).c_str());
+    server()->log(x0::Severity::debug, "Siganl %s received.", strsignal(sig.signum));
 
     server()->log(x0::Severity::debug, "Resuming worker threads.");
     for (x0::HttpWorker* worker: server()->workers()) {
@@ -312,7 +261,7 @@ void XzeroEventHandler::resumeHandler(ev::sig& sig, int)
 // stage-1 termination handler
 void XzeroEventHandler::gracefulShutdownHandler(ev::sig& sig, int)
 {
-    server()->log(x0::Severity::info, "%s received. Shutting down gracefully.", sig2str(sig.signum).c_str());
+    server()->log(x0::Severity::info, "%s received. Shutting down gracefully.", strsignal(sig.signum));
 
     for (x0::ServerSocket* listener: server()->listeners())
         listener->close();
@@ -334,7 +283,7 @@ void XzeroEventHandler::gracefulShutdownHandler(ev::sig& sig, int)
 // stage-2 termination handler
 void XzeroEventHandler::quickShutdownHandler(ev::sig& sig, int)
 {
-    daemon_->log(x0::Severity::info, "%s received. shutting down NOW.", sig2str(sig.signum).c_str());
+    daemon_->log(x0::Severity::info, "%s received. shutting down NOW.", strsignal(sig.signum));
 
     if (state_ != XzeroState::Upgrading) {
         // we are no garbage parent process
