@@ -19,6 +19,7 @@
 #include <x0/LogMessage.h>
 #include <x0/PerformanceCounter.h>
 #include <x0/Queue.h>
+#include <x0/sysconfig.h>
 
 #include <deque>
 #include <list>

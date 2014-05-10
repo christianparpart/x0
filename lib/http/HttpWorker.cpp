@@ -201,6 +201,7 @@ void HttpWorker::onNewConnection(ev::async& /*w*/, int /*revents*/)
 
 void HttpWorker::onWakeup(ev::async& w, int revents)
 {
+#if !defined(X0_WORKER_POST_LIBEV)
     std::function<void()> fn;
 
     while (true) {
@@ -219,6 +220,7 @@ void HttpWorker::onWakeup(ev::async& w, int revents)
 
 out:
     pthread_mutex_unlock(&postLock_);
+#endif
 }
 
 void HttpWorker::spawnConnection(std::unique_ptr<Socket>&& client, ServerSocket* listener)
