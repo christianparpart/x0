@@ -290,7 +290,9 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 {
     // validate backlog against system's hard limit
     SocketSpec spec(_spec);
-    int somaxconn = readFile("/proc/sys/net/core/somaxconn").toInt();
+    int somaxconn = SOMAXCONN;
+#if defined(__linux__)
+    somaxconn = readFile("/proc/sys/net/core/somaxconn").toInt();
     if (spec.backlog() > 0) {
         if (somaxconn && spec.backlog() > somaxconn) {
             log(Severity::error,
@@ -301,6 +303,7 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
             return nullptr;
         }
     }
+#endif
 
     // create a new listener
     ServerSocket* lp = new ServerSocket(loop_);
