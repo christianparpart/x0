@@ -7,8 +7,6 @@
  */
 
 #include <x0/http/HttpStatus.h>
-#include <x0/Defines.h>
-#include <string>
 
 namespace x0 {
 
