@@ -10,6 +10,10 @@
 
 namespace x0 {
 
+BufferRefSource::~BufferRefSource()
+{
+}
+
 ssize_t BufferRefSource::sendto(Sink& sink)
 {
     if (pos_ == buffer_.size())
