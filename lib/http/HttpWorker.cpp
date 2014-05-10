@@ -314,7 +314,7 @@ void HttpWorker::handleRequest(HttpRequest *r)
             r->finish();
             return;
         }
-        if (r->connection.contentLength() > server().maxRequestBodySize()) {
+        if (static_cast<size_t>(r->connection.contentLength()) > server().maxRequestBodySize()) {
             r->status = HttpStatus::RequestEntityTooLarge;
             r->finish();
             return;
