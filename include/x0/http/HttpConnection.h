@@ -208,8 +208,7 @@ private:
     bool autoFlush_;					//!< true if flush() is invoked automatically after every write()
 
     // connection abort callback
-    void (*clientAbortHandler_)(void*);
-    void* clientAbortData_;
+    std::function<void()> clientAbortHandler_;
 
     HttpConnection* prev_;
     HttpConnection* next_;

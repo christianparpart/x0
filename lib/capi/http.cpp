@@ -54,13 +54,6 @@ struct x0_request_s
             body_cb(this, ref.data(), ref.size(), body_userdata);
         }
     }
-
-    static void abortCallback(void* p) {
-        x0_request_s* self = (x0_request_s*) p;
-        if (self->abort_cb) {
-            self->abort_cb(self->abort_userdata);
-        }
-    }
 };
 
 x0_server_t* x0_server_create(struct ev_loop* loop)
@@ -177,9 +170,11 @@ void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void*
 
 void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handler, void* userdata)
 {
-    r->request->setAbortHandler(&x0_request_t::abortCallback, r);
-    r->abort_cb = handler;
-    r->abort_userdata = userdata;
+    r->request->setAbortHandler([r]() {
+        if (r->abort_cb) {
+            r->abort_cb(r->abort_userdata);
+        }
+    });
 }
 
 void x0_request_post(x0_request_t* r, x0_request_post_fn fn, void* userdata)

@@ -69,8 +69,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
     socket_(nullptr),
     sink_(nullptr),
     autoFlush_(true),
-    clientAbortHandler_(nullptr),
-    clientAbortData_(nullptr),
+    clientAbortHandler_(),
     prev_(nullptr),
     next_(nullptr)
 {
@@ -519,7 +518,7 @@ bool HttpConnection::readSome()
 
         if (clientAbortHandler_) {
             socket_->close();
-            clientAbortHandler_(clientAbortData_);
+            clientAbortHandler_();
         } else {
             abort();
         }

@@ -103,7 +103,6 @@ private:
 
     // client's I/O completion handlers
     void onStdoutWritten();
-    static void onAbort(void *p);
 
     // child exit watcher
     void onChild(ev::child&, int revents);
@@ -178,7 +177,9 @@ CgiScript::CgiScript(x0::HttpRequest *in, const std::string& hostprogram) :
     evStdout_.set<CgiScript, &CgiScript::onStdoutAvailable>(this);
     evStderr_.set<CgiScript, &CgiScript::onStderrAvailable>(this);
 
-    request_->setAbortHandler(&CgiScript::onAbort, this);
+    request_->setAbortHandler([this]() {
+        process_.terminate();
+    });
 }
 
 CgiScript::~CgiScript()
@@ -629,16 +630,6 @@ void CgiScript::onStdoutWritten()
         TRACE("stdout: watch");
         evStdout_.start();
     }
-}
-
-void CgiScript::onAbort(void *p)
-{
-    CgiScript *self = (CgiScript *) p;
-
-    TRACE("onAbort()");
-
-    // SIGTERM will also implicitely cause the request to be finish()ed - immediately.
-    self->process_.terminate();
 }
 // }}}
 

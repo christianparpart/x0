@@ -76,7 +76,7 @@ private:
     void io(Socket* s, int revents);
     void onRequestChunk(const BufferRef& chunk);
 
-    static void onClientAbort(void *p);
+    void onClientAbort();
     void onWriteComplete();
 
     void onConnectTimeout(x0::Socket* s);
@@ -166,11 +166,10 @@ void HttpBackend::Connection::exitSuccess()
     backend->release(rn);
 }
 
-void HttpBackend::Connection::onClientAbort(void *p)
+void HttpBackend::Connection::onClientAbort()
 {
-    Connection *self = reinterpret_cast<Connection *>(p);
-    self->log(x0::Severity::diag, "Client closed connection early. Aborting request to upstream HTTP server.");
-    self->exitSuccess();
+    log(x0::Severity::diag, "Client closed connection early. Aborting request to upstream HTTP server.");
+    exitSuccess();
 }
 
 HttpBackend::Connection* HttpBackend::Connection::create(HttpBackend* owner, RequestNotes* rn)
@@ -188,7 +187,7 @@ void HttpBackend::Connection::start()
 
     TRACE("Connection.start()");
 
-    r->setAbortHandler(&Connection::onClientAbort, this);
+    r->setAbortHandler(std::bind(&Connection::onClientAbort, this));
 
     // request line
     writeBuffer_.push_back(r->method);

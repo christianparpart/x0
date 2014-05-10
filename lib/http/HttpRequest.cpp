@@ -1015,10 +1015,9 @@ void HttpRequest::initialize()
  *
  * \see HttpRequest::finish()
  */
-void HttpRequest::setAbortHandler(void (*cb)(void *), void *data)
+void HttpRequest::setAbortHandler(const std::function<void()>& cb)
 {
     connection.clientAbortHandler_ = cb;
-    connection.clientAbortData_ = data;
 
     if (cb) {
         // get notified on EOF at least (do not care about timeout handling)

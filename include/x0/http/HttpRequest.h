@@ -341,7 +341,7 @@ public:
     bool writeCallback(CallbackSource::Callback cb);
     template<class T, class... Args> void write(Args&&... args);
 
-    void setAbortHandler(void (*callback)(void *), void *data = NULL);
+    void setAbortHandler(const std::function<void()>& cb);
     void finish();
     bool isFinished() const { return connection.state() == HttpConnection::SendingReplyDone; }
 

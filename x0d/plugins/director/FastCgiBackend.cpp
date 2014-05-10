@@ -96,7 +96,6 @@ private:
     void exitSuccess();
     void exitFailure(HttpStatus status);
     void onClientAbort();
-    static void onClientAbort(void *p);
     void processRequestBody(const x0::BufferRef& chunk);
 
     // backend write ops
@@ -202,7 +201,7 @@ void FastCgiBackend::Connection::initialize()
     auto r = rn_->request;
 
     // initialize object
-    r->setAbortHandler(&FastCgiBackend::Connection::onClientAbort, this);
+    r->setAbortHandler(std::bind(&FastCgiBackend::Connection::onClientAbort, this));
 
     r->registerInspectHandler<FastCgiBackend::Connection, &FastCgiBackend::Connection::inspect>(this);
 
@@ -341,6 +340,9 @@ void FastCgiBackend::Connection::exitFailure(HttpStatus status)
     backend->reject(rn, status);
 }
 
+/**
+ * Invoked when remote client connected before the response has been fully transmitted.
+ */
 void FastCgiBackend::Connection::onClientAbort()
 {
     log(x0::Severity::diag, "Client closed connection early. Aborting request to backend FastCGI server.");
@@ -348,16 +350,6 @@ void FastCgiBackend::Connection::onClientAbort()
     isAborted_ = true;
 
     exitSuccess();
-}
-
-/**
- * Invoked when remote client connected before the response has been fully transmitted.
- */
-void FastCgiBackend::Connection::onClientAbort(void *p)
-{
-    FastCgiBackend::Connection* self = reinterpret_cast<FastCgiBackend::Connection*>(p);
-
-    self->onClientAbort();
 }
 
 void FastCgiBackend::Connection::processRequestBody(const x0::BufferRef& chunk)
