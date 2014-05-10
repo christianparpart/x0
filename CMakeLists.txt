@@ -42,6 +42,7 @@ option(ENABLE_DIRECTOR_CACHE "Enables response cache accelerator [default: on]" 
 
 option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
+option(ENABLE_STATIC "Build libraries and x0d as a static version in addition to the dynamic [default: OFF]" OFF)
 
 # Xzero feature flags
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)

@@ -43,9 +43,17 @@ set(x0_flow_SRC
 
 add_library(XzeroFlow SHARED ${x0_flow_SRC})
 set_target_properties(XzeroFlow PROPERTIES LINK_FLAGS "${LDFLAGS}")
-target_link_libraries(XzeroFlow LINK_PRIVATE XzeroBase dl pthread)
 set_target_properties(XzeroFlow PROPERTIES VERSION ${PACKAGE_VERSION})
+set_target_properties(XzeroFlow PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1")
+target_link_libraries(XzeroFlow LINK_PRIVATE XzeroBase dl pthread)
 install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
 
-#endif(ENABLE_XZERO_FLOW)
+if(ENABLE_STATIC)
+add_library(XzeroFlow_static STATIC ${x0_flow_SRC})
+target_link_libraries(XzeroFlow_static LINK_PRIVATE XzeroBase dl pthread)
+set_target_properties(XzeroFlow_static PROPERTIES LINK_FLAGS "${LDFLAGS}")
+set_target_properties(XzeroFlow_static PROPERTIES VERSION ${PACKAGE_VERSION})
+install(TARGETS XzeroFlow DESTINATION ${LIBDIR})
 endif()
+
+endif(ENABLE_XZERO_FLOW)

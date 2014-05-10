@@ -49,8 +49,6 @@
 #cmakedefine HAVE_PTHREAD_SETNAME_NP
 #cmakedefine HAVE_PTHREAD_SETAFFINITY_NP
 
-#cmakedefine BUILD_STATIC
-
 #cmakedefine SYSCONFDIR "@SYSCONFDIR@"
 #cmakedefine PLUGINDIR "@PLUGINDIR@"
 
