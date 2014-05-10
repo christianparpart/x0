@@ -286,27 +286,6 @@ ServerSocket *HttpServer::setupUnixListener(const std::string& path, int backlog
     return setupListener(SocketSpec::fromLocal(path, backlog));
 }
 
-namespace {
-    static inline Buffer readFile(const char* path)
-    {
-        FILE* fp = fopen(path, "r");
-        if (!fp)
-            return Buffer();
-
-        Buffer result;
-        char buf[4096];
-
-        while (!feof(fp)) {
-            size_t n = fread(buf, 1, sizeof(buf), fp);
-            result.push_back(buf, n);
-        }
-
-        fclose(fp);
-
-        return result;
-    }
-}
-
 ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 {
     // validate backlog against system's hard limit

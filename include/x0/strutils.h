@@ -9,8 +9,9 @@
 #ifndef x0_strutils_hpp
 #define x0_strutils_hpp (1)
 
-#include <x0/Types.h>
 #include <x0/Api.h>
+#include <x0/Types.h>
+#include <x0/Buffer.h>
 #include <cstdio>
 #include <string>
 #include <sstream>
@@ -100,7 +101,8 @@ private:
 /**
  * retrieves contents of given file.
  */
-X0_API std::string read_file(const std::string& filename);
+X0_API Buffer readFile(const std::string& filename);
+
 
 /**
  * trims leading and trailing spaces off the value.
