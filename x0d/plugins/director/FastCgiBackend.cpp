@@ -346,14 +346,8 @@ void FastCgiBackend::Connection::onClientAbort()
     log(x0::Severity::diag, "Client closed connection early. Aborting request to backend FastCGI server.");
 
     isAborted_ = true;
-#if 0
-    // TODO: install deadline-timer to actually close the connection if not done by the backend.
-    write<FastCgi::AbortRequestRecord>(id_);
-    flush();
-#else
-    socket_->close();
+
     exitSuccess();
-#endif
 }
 
 /**
