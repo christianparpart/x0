@@ -159,11 +159,11 @@ void HttpBackend::Connection::exitSuccess()
 
     socket_->close();
 
-    // We actually served ths request, so finish() it.
-    rn->request->finish();
-
     // Notify director that this backend has just completed a request,
     backend->release(rn);
+
+    // We actually served ths request, so finish() it.
+    rn->request->finish();
 }
 
 void HttpBackend::Connection::onClientAbort()
