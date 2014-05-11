@@ -274,13 +274,10 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
     request_->httpVersionMajor = versionMajor;
     request_->httpVersionMinor = versionMinor;
 
-    if (request_->supportsProtocol(1, 1))
-        // FIXME? HTTP/1.1 is keeping alive by default. pass "Connection: close" to close explicitely
-        setShouldKeepAlive(true);
-    else
-        setShouldKeepAlive(false);
+    // HTTP/1.1 is keeping alive by default. pass "Connection: close" to close explicitely
+    setShouldKeepAlive(request_->supportsProtocol(1, 1));
 
-    // limit request uri length
+    // limit request URI length
     if (request_->unparsedUri.size() > worker().server().maxRequestUriSize()) {
         request_->status = HttpStatus::RequestUriTooLong;
         request_->finish();
