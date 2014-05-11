@@ -57,6 +57,26 @@ public:
         KeepAliveRead			//!< Waiting for next HTTP request in keep-alive state.
     };
 
+    class ScopedRef {
+    public:
+        ScopedRef& operator=(const ScopedRef&) = delete;
+        ScopedRef(const ScopedRef&) = delete;
+
+        explicit ScopedRef(HttpConnection* c) :
+            c_(c)
+        {
+            c_->ref();
+        }
+
+        ~ScopedRef()
+        {
+            c_->unref();
+        }
+
+    private:
+        HttpConnection* c_;
+    };
+
 public:
     HttpConnection& operator=(const HttpConnection&) = delete;
     HttpConnection(const HttpConnection&) = delete;
