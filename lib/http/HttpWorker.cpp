@@ -51,7 +51,7 @@ void HttpWorker::loop_release(struct ev_loop* loop) throw()
  * \param id       unique ID within the server instance
  * \param threaded whether or not to spawn a thread to actually run this worker
  */
-HttpWorker::HttpWorker(HttpServer& server, struct ev_loop *loop, unsigned int id, bool threaded) :
+HttpWorker::HttpWorker(HttpServer& server, struct ev_loop* loop, unsigned int id, bool threaded) :
     id_(id),
     state_(Inactive),
     server_(server),
@@ -239,7 +239,7 @@ void HttpWorker::spawnConnection(std::unique_ptr<Socket>&& client, ServerSocket*
         c = freeConnections_;
         freeConnections_ = c->next_;
 
-        c->revive(connectionCount_/*id*/);
+        c->reinit(connectionCount_/*id*/);
     }
     else {
         c = new HttpConnection(this, connectionCount_/*id*/);
@@ -302,7 +302,7 @@ void HttpWorker::freeCache()
     TRACE(1, "cleared %zu free-connections items", i);
 }
 
-void HttpWorker::handleRequest(HttpRequest *r)
+void HttpWorker::handleRequest(HttpRequest* r)
 {
     ++requestCount_;
     performanceCounter_.touch(now_.value());
