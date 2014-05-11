@@ -510,4 +510,14 @@ void HttpWorker::post_thunk3(int revents, void* arg)
     delete callback;
 }
 
+bool HttpWorker::eachConnection(const std::function<bool(HttpConnection*)>& cb)
+{
+    for (HttpConnection* c = connections_; c != nullptr; c = c->next_) {
+        if (!cb(c)) {
+            return false;
+        }
+    }
+
+    return true;
+}
 } // namespace x0

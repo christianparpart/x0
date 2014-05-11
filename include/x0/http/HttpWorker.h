@@ -11,7 +11,6 @@
 
 #include <x0/Api.h>
 #include <x0/http/Types.h>
-#include <x0/http/HttpConnection.h>
 #include <x0/http/HttpFileMgr.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/DateTime.h>
@@ -43,8 +42,6 @@ class ServerSocket;
 class HttpServer;
 class HttpConnection;
 class HttpRequest;
-
-//#define X0_WORKER_POST_LIBEV
 
 /**
  * \brief thread-local worker.
@@ -136,14 +133,7 @@ public:
     bool isRunning() const { return state_ == Running; }
     bool isSuspended() const { return state_ == Suspended; }
 
-    template<typename T>
-    bool eachConnection(T cb) {
-        for (HttpConnection* c = connections_; c != nullptr; c = c->next_)
-            if (!cb(c))
-                return false;
-
-        return true;
-    }
+    bool eachConnection(const std::function<bool(HttpConnection*)>& cb);
 
     int connectionLoad() const;
     unsigned long long requestCount() const;
