@@ -9,6 +9,7 @@
 #pragma once
 
 #include <x0/http/HttpWorker.h>
+#include <x0/http/HttpStatus.h>
 #include <x0/Counter.h>
 #include <x0/Logging.h>
 #include <x0/TimeSpan.h>
