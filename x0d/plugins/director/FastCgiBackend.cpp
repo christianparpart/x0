@@ -792,7 +792,11 @@ inline void FastCgiBackend::Connection::log(Severity severity, const char* fmt, 
 void FastCgiBackend::Connection::inspect(x0::Buffer& out)
 {
     out << "aborted:" << isAborted_ << ", ";
-    out << "isOutputPending:" << rn_->request->connection.isOutputPending() << ", ";
+	if (rn_) {
+		out << "isOutputPending:" << rn_->request->connection.isOutputPending() << ", ";
+	} else {
+		out << "no-request-bound, ";
+	}
 
     socket_->inspect(out);
 }
