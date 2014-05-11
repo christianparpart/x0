@@ -27,6 +27,7 @@ option(ENABLE_XZERO_FLOW "Build libXzeroFlow [default: on]" ON)
 option(ENABLE_FLOW_TOOL "Build flow-tool [default: off]" OFF)
 
 option(X0_QUEUE_LOCKFREE "Build Queue<T> API as lock-free data structure [default: on]" ON)
+option(X0_WORKER_POST_LIBEV "Use libev's async method to post into HTTP workers instead of a locking queue [default: on]" ON)
 
 # x0d plugins
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
@@ -42,6 +43,7 @@ option(ENABLE_DIRECTOR_CACHE "Enables response cache accelerator [default: on]" 
 
 option(ENABLE_X0D "Compile x0d HTTP server daemon [default: on]" ON)
 option(ENABLE_MANPAGES "Build manual pages [default: on]" ON)
+option(ENABLE_STATIC "Build libraries and x0d as a static version in addition to the dynamic [default: OFF]" OFF)
 
 # Xzero feature flags
 option(ENABLE_ACCEPT4 "Builds with support for accept4() system-call, if found [default: on]" ON)

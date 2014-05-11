@@ -49,8 +49,6 @@
 #cmakedefine HAVE_PTHREAD_SETNAME_NP
 #cmakedefine HAVE_PTHREAD_SETAFFINITY_NP
 
-#cmakedefine BUILD_STATIC
-
 #cmakedefine SYSCONFDIR "@SYSCONFDIR@"
 #cmakedefine PLUGINDIR "@PLUGINDIR@"
 
@@ -58,6 +56,7 @@
 
 /* x0 features */
 #cmakedefine X0_QUEUE_LOCKFREE 1                /* make Queue<T> lock-free (use mutex+deque otherwise) */
+#cmakedefine X0_WORKER_POST_LIBEV 1             /* HttpWorker to use libev's ev_async (over locking queue) for its post API */
 #cmakedefine X0_WORKER_RR 1                     /* use RR for worker-select instead of lowest-load */
 #cmakedefine ENABLE_FLOW_DIRECT_THREADED_VM 1   /* use direct threaded interpreter loop over indirect threaded */
 #cmakedefine ENABLE_DIRECTOR_CACHE              /* built director plugin with object cache built in */

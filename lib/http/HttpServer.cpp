@@ -286,32 +286,13 @@ ServerSocket *HttpServer::setupUnixListener(const std::string& path, int backlog
     return setupListener(SocketSpec::fromLocal(path, backlog));
 }
 
-namespace {
-    static inline Buffer readFile(const char* path)
-    {
-        FILE* fp = fopen(path, "r");
-        if (!fp)
-            return Buffer();
-
-        Buffer result;
-        char buf[4096];
-
-        while (!feof(fp)) {
-            size_t n = fread(buf, 1, sizeof(buf), fp);
-            result.push_back(buf, n);
-        }
-
-        fclose(fp);
-
-        return result;
-    }
-}
-
 ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
 {
     // validate backlog against system's hard limit
     SocketSpec spec(_spec);
-    int somaxconn = readFile("/proc/sys/net/core/somaxconn").toInt();
+    int somaxconn = SOMAXCONN;
+#if defined(__linux__)
+    somaxconn = readFile("/proc/sys/net/core/somaxconn").toInt();
     if (spec.backlog() > 0) {
         if (somaxconn && spec.backlog() > somaxconn) {
             log(Severity::error,
@@ -322,6 +303,7 @@ ServerSocket* HttpServer::setupListener(const SocketSpec& _spec)
             return nullptr;
         }
     }
+#endif
 
     // create a new listener
     ServerSocket* lp = new ServerSocket(loop_);

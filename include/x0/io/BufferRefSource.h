@@ -34,8 +34,8 @@ public:
     std::size_t size() const;
     bool empty() const;
 
-    virtual ssize_t sendto(Sink& sink);
-    virtual const char* className() const;
+    ssize_t sendto(Sink& sink) override;
+    const char* className() const override;
 
 private:
     BufferRef buffer_;
@@ -57,10 +57,6 @@ inline BufferRefSource::BufferRefSource(const BufferRef& data) :
 
 inline BufferRefSource::BufferRefSource(BufferRef&& data) :
     buffer_(std::move(data)), pos_(0)
-{
-}
-
-inline BufferRefSource::~BufferRefSource()
 {
 }
 

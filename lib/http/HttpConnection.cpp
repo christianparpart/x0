@@ -60,7 +60,7 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
     worker_(w),
     id_(id),
     requestCount_(0),
-    flags_(0),
+    shouldKeepAlive_(false),
     requestBuffer_(worker().server().requestHeaderBufferSize()
                  + worker().server().requestBodyBufferSize()),
     requestParserOffset_(0),
@@ -84,39 +84,13 @@ HttpConnection::~HttpConnection()
         delete request_;
 }
 
-/**
- * Frees up any resources and resets state of this connection.
- *
- * This method is invoked only after the connection has been closed and
- * this resource may now either be physically destructed or put into
- * a list of free connection objects for later use of newly incoming
- * connections (to avoid too many memory allocations).
- */
-void HttpConnection::clear()
-{
-    TRACE(1, "clear(): refCount: %zu, conn.state: %s, pstate: %s", refCount_, state_str(), parserStateStr());
-    //TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
-
-    HttpMessageParser::reset();
-
-    if (request_) {
-        request_->clear();
-    }
-
-    clearCustomData();
-
-    worker_->server_.onConnectionClose(this);
-    socket_.reset(nullptr);
-    requestCount_ = 0;
-
-    requestParserOffset_ = 0;
-    requestBuffer_.clear();
-}
-
-void HttpConnection::revive(unsigned long long id)
+void HttpConnection::reinit(unsigned long long id)
 {
     id_ = id;
-    flags_ = 0;
+    shouldKeepAlive_ = false;
+    requestCount_ = 0;
+
+    HttpMessageParser::reset();
 }
 
 void HttpConnection::ref()
@@ -129,45 +103,56 @@ void HttpConnection::unref()
 {
     --refCount_;
 
-    TRACE(1, "unref() %u (conn:%s, outputPending:%d)", refCount_, isOpen() ? "open" : "closed", isOutputPending());
+    TRACE(1, "unref() %u (conn:%s, outputPending:%d, cstate:%s, pstate:%s)", refCount_, isOpen() ? "open" : "closed", isOutputPending(), state_str(), parserStateStr());
+    //TRACE(1, "Stack Trace:\n%s", StackTrace().c_str());
 
-    if (refCount_ == 0) {
-        clear();
-        worker_->release(this);
-    }
+    if (refCount_ > 0)
+        return;
+
+    // XXX connection is to be closed and its resources potentially reused later.
+
+    if (request_)
+        request_->clear();
+
+    clearCustomData();
+
+    worker_->server_.onConnectionClose(this);
+    socket_.reset(nullptr);
+
+    requestParserOffset_ = 0;
+    requestBuffer_.clear();
+
+    worker_->release(this);
 }
 
-void HttpConnection::io(Socket *, int revents)
+void HttpConnection::onReadWriteReady(Socket*, int revents)
 {
     TRACE(1, "io(revents=%04x) %s, %s", revents, state_str(), parserStateStr());
 
-    ref();
+    ScopedRef _r(this);
 
     if (revents & ev::ERROR) {
         log(Severity::error, "Potential bug in connection I/O watching. Closing.");
         abort();
-        goto done;
+        return;
     }
 
     // socket is ready for read?
     if (revents & Socket::Read) {
         if (!readSome()) {
-            goto done;
+            return;
         }
     }
 
     // socket is ready for write?
     if (revents & Socket::Write) {
         if (!writeSome()) {
-            goto done;
+            return;
         }
     }
-
-done:
-    unref();
 }
 
-void HttpConnection::timeout(Socket *)
+void HttpConnection::onReadWriteTimeout(Socket*)
 {
     TRACE(1, "timeout(): cstate:%s, pstate:%s", state_str(), parserStateStr());
 
@@ -214,7 +199,7 @@ void HttpConnection::start(std::unique_ptr<Socket>&& client, ServerSocket* liste
     listener_ = listener;
 
     socket_ = std::move(client);
-    socket_->setReadyCallback<HttpConnection, &HttpConnection::io>(this);
+    socket_->setReadyCallback<HttpConnection, &HttpConnection::onReadWriteReady>(this);
 
     sink_.setSocket(socket_.get());
 
@@ -230,26 +215,22 @@ void HttpConnection::start(std::unique_ptr<Socket>&& client, ServerSocket* liste
 
     ref(); // <-- this reference is being decremented in close()
 
-    {
-        ref();
-        worker_->server_.onConnectionOpen(this);
+    ScopedRef _r(this);
 
-        if (!isOpen()) {
-            // The connection got directly closed within the onConnectionOpen-callback,
-            // so delete the object right away.
-            unref();
-            return;
-        }
-        unref();
+    worker_->server_.onConnectionOpen(this);
+
+    if (!isOpen()) {
+        // The connection got directly closed within the onConnectionOpen-callback,
+        // so delete the object right away.
+        return;
     }
 
     if (!request_)
         request_ = new HttpRequest(*this);
 
-    ref();
     if (socket_->state() == Socket::Handshake) {
         TRACE(1, "start: handshake.");
-        socket_->handshake<HttpConnection, &HttpConnection::handshakeComplete>(this);
+        socket_->handshake<HttpConnection, &HttpConnection::onHandshakeComplete>(this);
     } else {
 #if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
         TRACE(1, "start: processing input");
@@ -265,17 +246,16 @@ void HttpConnection::start(std::unique_ptr<Socket>&& client, ServerSocket* liste
         wantRead(worker_->server_.maxReadIdle());
 #endif
     }
-    unref();
 }
 
-void HttpConnection::handshakeComplete(Socket *)
+void HttpConnection::onHandshakeComplete(Socket*)
 {
-    TRACE(1, "handshakeComplete() socketState=%s", socket_->state_str());
+    TRACE(1, "onHandshakeComplete() socketState=%s", socket_->state_str());
 
     if (socket_->state() == Socket::Operational) {
         wantRead(worker_->server_.maxReadIdle());
     } else {
-        TRACE(1, "handshakeComplete(): handshake failed\n%s", StackTrace().c_str());
+        TRACE(1, "onHandshakeComplete(): handshake failed\n%s", StackTrace().c_str());
         abort();
     }
 }
@@ -447,7 +427,7 @@ void HttpConnection::wantRead(const TimeSpan& timeout)
     TRACE(3, "wantRead(): cstate:%s pstate:%s", state_str(), parserStateStr());
 
     if (timeout)
-        socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout.value());
+        socket_->setTimeout<HttpConnection, &HttpConnection::onReadWriteTimeout>(this, timeout.value());
 
     socket_->setMode(Socket::Read);
 }
@@ -460,11 +440,11 @@ void HttpConnection::wantWrite()
         auto timeout = std::max(worker().server().maxReadIdle().value(),
                                 worker().server().maxWriteIdle().value());
 
-        socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
+        socket_->setTimeout<HttpConnection, &HttpConnection::onReadWriteTimeout>(this, timeout);
         socket_->setMode(Socket::ReadWrite);
     } else {
         auto timeout = worker().server().maxWriteIdle().value();
-        socket_->setTimeout<HttpConnection, &HttpConnection::timeout>(this, timeout);
+        socket_->setTimeout<HttpConnection, &HttpConnection::onReadWriteTimeout>(this, timeout);
 
         socket_->setMode(Socket::Write);
     }
@@ -477,10 +457,10 @@ void HttpConnection::wantWrite()
  */
 bool HttpConnection::readSome()
 {
-    TRACE(1, "readSome() state:%s", state_str());
+    TRACE(1, "readSome: state=%s", state_str());
 
     if (requestBuffer_.size() == requestBuffer_.capacity()) {
-        TRACE(1, "readSome(): reached request buffer limit, not reading from client.");
+        TRACE(1, "readSome: reached request buffer limit, not reading from client.");
         return true;
     }
 
@@ -490,7 +470,7 @@ bool HttpConnection::readSome()
     }
 
     if (requestParserOffset_ < requestBuffer_.size()) {
-        TRACE(1, "readSome(): we have bytes pending, so do not read now but process them right away.");
+        TRACE(1, "readSome: we have bytes pending, so do not read now but process them right away.");
         process();
         return true;
     }
@@ -528,19 +508,19 @@ bool HttpConnection::readSome()
 
     TRACE(1, "readSome: read %lu bytes, cstate:%s, pstate:%s", rv, state_str(), parserStateStr());
 
-    ref();
+    {
+        //ScopedRef _r(this);
 
-    process();
+        process();
 
-    if (isProcessingBody() && requestParserOffset() == requestBufferSize()) {
-        // adjusting buffer for next body-chunk reads
-        TRACE(1, "readSome(): processing body & buffer fully parsed => rewind parse offset to end of headers");
-        TRACE(1, "- from %zu back to %zu", requestParserOffset_, requestHeaderEndOffset_);
-        requestParserOffset_ = requestHeaderEndOffset_;
-        requestBuffer_.resize(requestHeaderEndOffset_);
+        if (isProcessingBody() && requestParserOffset() == requestBufferSize()) {
+            // adjusting buffer for next body-chunk reads
+            TRACE(1, "readSome: processing body & buffer fully parsed => rewind parse offset to end of headers");
+            TRACE(1, "- from %zu back to %zu", requestParserOffset_, requestHeaderEndOffset_);
+            requestParserOffset_ = requestHeaderEndOffset_;
+            requestBuffer_.resize(requestHeaderEndOffset_);
+        }
     }
-
-    unref();
 
     return true;
 }
@@ -587,7 +567,6 @@ void HttpConnection::flush()
 bool HttpConnection::writeSome()
 {
     TRACE(1, "writeSome() state: %s", state_str());
-    ref();
 
     ssize_t rv = output_.sendto(sink_);
 
@@ -596,7 +575,7 @@ bool HttpConnection::writeSome()
     if (rv > 0) {
         // output chunk written
         request_->bytesTransmitted_ += rv;
-        goto done;
+        return true;
     }
 
     if (rv == 0) {
@@ -613,7 +592,7 @@ bool HttpConnection::writeSome()
         TRACE(1, "writeSome: output fully written. conn:%s, outputPending:%lu, refCount:%d",
                 isOpen() ? "open" : "closed", output_.size(), refCount_);
 
-        goto done;
+        return true;
     }
 
     // sendto() failed
@@ -628,17 +607,11 @@ bool HttpConnection::writeSome()
         break;
     default:
         log(Severity::error, "Failed to write to client. %s", strerror(errno));
-        goto err;
+        abort();
+        return false;
     }
 
-done:
-    unref();
     return true;
-
-err:
-    abort();
-    unref();
-    return false;
 }
 
 /**
@@ -797,24 +770,11 @@ bool HttpConnection::process()
     return true;
 }
 
-unsigned int HttpConnection::remotePort() const
-{
-    return socket_->remotePort();
-}
-
-unsigned int HttpConnection::localPort() const
-{
-    return listener_->port();
-}
-
 void HttpConnection::setShouldKeepAlive(bool enabled)
 {
     TRACE(1, "setShouldKeepAlive: %d", enabled);
 
-    if (enabled)
-        flags_ |= IsKeepAliveEnabled;
-    else
-        flags_ &= ~IsKeepAliveEnabled;
+    shouldKeepAlive_ = enabled;
 }
 
 void HttpConnection::setState(State value)

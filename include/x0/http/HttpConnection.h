@@ -57,6 +57,26 @@ public:
         KeepAliveRead			//!< Waiting for next HTTP request in keep-alive state.
     };
 
+    class ScopedRef {
+    public:
+        ScopedRef& operator=(const ScopedRef&) = delete;
+        ScopedRef(const ScopedRef&) = delete;
+
+        explicit ScopedRef(HttpConnection* c) :
+            c_(c)
+        {
+            c_->ref();
+        }
+
+        ~ScopedRef()
+        {
+            c_->unref();
+        }
+
+    private:
+        HttpConnection* c_;
+    };
+
 public:
     HttpConnection& operator=(const HttpConnection&) = delete;
     HttpConnection(const HttpConnection&) = delete;
@@ -80,14 +100,14 @@ public:
     HttpMessageParser::State parserState() const { return HttpMessageParser::state(); }
     const char* parserStateStr() const { return HttpMessageParser::state_str(); }
 
-    Socket *socket() const;						//!< Retrieves a pointer to the connection socket.
+    Socket* socket() const;						//!< Retrieves a pointer to the connection socket.
     HttpWorker& worker() const;					//!< Retrieves a reference to the owning worker.
 
     const IPAddress& remoteIP() const { return socket_->remoteIP(); }
-    unsigned int remotePort() const;			//!< Retrieves the TCP port numer of the remote end point (client).
+    unsigned int remotePort() const { return socket_->remotePort(); } //!< Retrieves the TCP port numer of the remote end point (client).
 
     const IPAddress& localIP() const { return socket_->localIP(); }
-    unsigned int localPort() const;
+    unsigned int localPort() const { return socket_->localPort(); }
 
     const ServerSocket& listener() const;
 
@@ -146,6 +166,24 @@ private:
     friend class HttpRequest;
     friend class HttpWorker;
 
+    void reinit(unsigned long long id);
+    void start(std::unique_ptr<Socket>&& client, ServerSocket* listener);
+    void resume();
+
+    void abort(HttpStatus status);
+    void abort();
+    void close();
+
+    void onHandshakeComplete(Socket*);
+    bool readSome();
+    bool writeSome();
+    bool process();
+    void onReadWriteReady(Socket* socket, int revents);
+    void onReadWriteTimeout(Socket* socket);
+
+    void wantRead(const TimeSpan& timeout);
+    void wantWrite();
+
     // overrides from HttpMessageParser:
     bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor) override;
     bool onMessageHeader(const BufferRef& name, const BufferRef& value) override;
@@ -154,31 +192,11 @@ private:
     bool onMessageEnd() override;
     void onProtocolError(const BufferRef& chunk, size_t offset) override;
 
-    void start(std::unique_ptr<Socket>&& client, ServerSocket* listener);
-    void resume();
-    void clear();
-    void revive(unsigned long long id);
-
-    void abort(HttpStatus status);
-    void abort();
-    void close();
-
-    void handshakeComplete(Socket *);
-
-    void wantRead(const TimeSpan& timeout);
-    void wantWrite();
-
-    bool readSome();
-    bool writeSome();
-    bool process();
-    void io(Socket* socket, int revents);
-    void timeout(Socket* socket);
-
     Buffer& inputBuffer() { return requestBuffer_; }
     const Buffer& inputBuffer() const { return requestBuffer_; }
 
     void setShouldKeepAlive(bool enabled);
-    bool shouldKeepAlive() const { return flags_ & IsKeepAliveEnabled; }
+    bool shouldKeepAlive() const { return shouldKeepAlive_; }
 
 private:
     unsigned refCount_;
@@ -190,10 +208,7 @@ private:
 
     unsigned long long id_;				//!< the worker-local connection-ID
     unsigned requestCount_;				//!< the number of requests already processed or currently in process
-
-    // we could make these things below flags
-    unsigned flags_;
-    static const unsigned IsKeepAliveEnabled = 0x0008; //!< connection should keep-alive to accept further requests
+    bool shouldKeepAlive_;              //!< indication whether or not connection should keep-alive after current request
 
     // HTTP HttpRequest
     Buffer requestBuffer_;              //!< buffer for incoming data.
@@ -210,6 +225,7 @@ private:
     // connection abort callback
     std::function<void()> clientAbortHandler_;
 
+    // intrusive links for the free-list cache
     HttpConnection* prev_;
     HttpConnection* next_;
 };

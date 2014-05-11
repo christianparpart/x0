@@ -258,7 +258,19 @@ void XzeroCore::max_keepalive_requests(FlowParams& args)
 
 void XzeroCore::max_conns(FlowParams& args)
 {
-    server().maxConnections(args.getInt(1));
+    int desiredLimit = args.getInt(1);
+
+#if defined(__linux__)
+    int systemMaxUserWatches = readFile("/proc/sys/fs/inotify/max_user_watches").toInt();
+    if (desiredLimit / 2 > systemMaxUserWatches) {
+        server().log(Severity::warn,
+                "Possible performance penalty detected in relation to the maximum number of inotify watches. "
+                "The system's limit is configurable at /proc/sys/fs/inotify/max_user_watches (currently %ld, should be at least %ld).",
+                systemMaxUserWatches, desiredLimit / 2);
+    }
+#endif
+
+    server().maxConnections(desiredLimit);
 }
 
 void XzeroCore::max_files(FlowParams& args)

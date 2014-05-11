@@ -7,6 +7,7 @@
  */
 
 #include <x0/strutils.h>
+#include <x0/Buffer.h>
 #include <sstream>
 #include <fstream>
 #include <cstdio>
@@ -20,42 +21,26 @@
 
 namespace x0 {
 
-std::string read_file(const std::string& filename)
+Buffer readFile(const std::string& filename)
 {
-#if 0
-    // XXX gcc 4.4.0: ld error, can't resolv fstream.constructor or fstream.open - wtf?
-    std::ifstream ifs(filename);
-    std::stringstream sstr;
-    sstr << ifs.rdbuf();
-    std::string str(sstr.str());
-    return str;
-#else
-    struct stat st;
-    if (stat(filename.c_str(), &st) != -1)
-    {
-        int fd = open(filename.c_str(), O_RDONLY);
-        if (fd != -1)
-        {
-            char *buf = new char[st.st_size + 1];
-            ssize_t nread = ::read(fd, buf, st.st_size);
-            if (nread != -1)
-            {
-                buf[nread] = '\0';
-                std::string str(buf, 0, nread);
-                delete[] buf;
-                ::close(fd);
-                return str;
-            }
-            delete[] buf;
-            ::close(fd);
-        }
-        throw std::runtime_error(fstringbuilder::format("cannot open file: %s (%s)", filename.c_str(), strerror(errno)));
+    Buffer result;
+
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd < 0)
+        return result;
+
+    for (;;) {
+        char buf[4096];
+        ssize_t nread = ::read(fd, buf, sizeof(buf));
+        if (nread <= 0)
+            break;
+
+        result.push_back(buf, nread);
     }
-    else
-    {
-        throw std::runtime_error(fstringbuilder::format("cannot open file: %s (%s)", filename.c_str(), strerror(errno)));
-    }
-#endif
+
+    ::close(fd);
+
+    return result;
 }
 
 std::string trim(const std::string& value)

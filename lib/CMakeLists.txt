@@ -8,8 +8,6 @@ add_definitions(
   -DLOGDIR="${LOGDIR}"
   -DVERSION="${PACKAGE_VERSION}")
 
-add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1)
-
 # {{{ XzeroBase
 set(x0_base_SRC
   base/AnsiColor.cpp
@@ -75,19 +73,42 @@ if(ENABLE_MYSQL)
   add_definitions(${MYSQL_CFLAGS})
 endif()
 
-add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
+add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC} $<TARGET_OBJECTS:sd-daemon>)
+
+if(ENABLE_STATIC)
+  add_library(XzeroBase_static STATIC ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC} $<TARGET_OBJECTS:sd-daemon>)
+endif()
 
 if(APPLE)
   target_link_libraries(XzeroBase -stdlib=libc++)
+  if(ENABLE_STATIC)
+    target_link_libraries(XzeroBase_static -stdlib=libc++)
+  endif()
+else()
+  target_link_libraries(XzeroBase rt)
+  if(ENABLE_STATIC)
+    target_link_libraries(XzeroBase_static rt)
+  endif()
 endif()
 
 if(ENABLE_MYSQL)
   target_link_libraries(XzeroBase ${MYSQL_LDFLAGS})
+  if(ENABLE_STATIC)
+    target_link_libraries(XzeroBase_static ${MYSQL_LDFLAGS})
+  endif()
 endif()
 
-target_link_libraries(XzeroBase dl pthread ${SD_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES} ${EV_LIBRARIES})
 set_target_properties(XzeroBase PROPERTIES VERSION ${PACKAGE_VERSION})
+set_target_properties(XzeroBase PROPERTIES COMPILE_FLAGS "-fvisibility=hidden -fvisibility-inlines-hidden -DBUILD_X0=1")
+target_link_libraries(XzeroBase dl pthread ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES} ${EV_LIBRARIES})
 install(TARGETS XzeroBase DESTINATION ${LIBDIR})
+
+if(ENABLE_STATIC)
+set_target_properties(XzeroBase_static PROPERTIES VERSION ${PACKAGE_VERSION})
+set_target_properties(XzeroBase PROPERTIES COMPILE_FLAGS "-DBUILD_X0=1")
+target_link_libraries(XzeroBase_static dl pthread ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PCRE_LIBRARIES} ${EV_LIBRARIES})
+install(TARGETS XzeroBase_static DESTINATION ${LIBDIR})
+endif()
 # }}}
 
 add_subdirectory(http)

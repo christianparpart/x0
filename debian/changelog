@@ -4,6 +4,12 @@ x0 (0.10.0-1snapshot-ubuntu-trusty) trusty; urgency=medium
 
  -- Christian Parpart <trapni@gmail.com>  Mon, 05 May 2014 09:41:00 -0100
 
+x0 (0.10.0-0snapshot-ubuntu-trusty) trusty; urgency=medium
+
+  * snapshot
+
+ -- Christian Parpart <trapni@gmail.com>  Thu, 1 May 2014 09:41:00 -0100
+
 x0 (0.9.0-0ubuntu-precise6) precise; urgency=medium
 
   * initial version for precise.

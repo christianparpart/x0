@@ -2,8 +2,6 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/Tokenizer.h>
 
-using namespace x0;
-
 /*
  * net read request
  * parse request, populate request struct
