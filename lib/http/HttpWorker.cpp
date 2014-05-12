@@ -520,4 +520,5 @@ bool HttpWorker::eachConnection(const std::function<bool(HttpConnection*)>& cb)
 
     return true;
 }
+
 } // namespace x0
