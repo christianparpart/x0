@@ -194,6 +194,8 @@ public:
     BufferRef chomp() const;
     BufferRef trim() const;
 
+    Buffer replaceAll(const char* src, const char* dst) const;
+
     // STL string
     std::string str() const;
     std::string substr(size_t offset) const;
@@ -780,6 +782,29 @@ inline BufferRef BufferBase<T>::trim() const
         --right;
 
     return ref(left, 1 + right - left);
+}
+
+template<typename T>
+Buffer BufferBase<T>::replaceAll(const char* src, const char* dst) const
+{
+    Buffer out;
+    size_t lpos = 0;
+    size_t slen = std::strlen(src);
+
+    for (;;) {
+        size_t rpos = find(src, lpos);
+        if (rpos != npos) {
+            out.push_back(ref(lpos, rpos - lpos));
+            out.push_back(dst);
+            lpos = rpos + slen;
+        } else {
+            break;
+        }
+    }
+
+    out.push_back(ref(lpos));
+
+    return out;
 }
 
 template<typename T>
