@@ -380,10 +380,15 @@ private:
         if (debug) {
             out << "<td class='debug'>";
             out << "refcount:" << c->refCount() << ", ";
-            c->socket()->inspect(out);
+
+            x0::Buffer inspectBuffer;
+            c->socket()->inspect(inspectBuffer);
             if (c->request()) {
-                c->request()->inspect(out);
+                c->request()->inspect(inspectBuffer);
             }
+
+            out << inspectBuffer.replaceAll("\n", "<br/>");
+
             out << "</td>";
         }
 
