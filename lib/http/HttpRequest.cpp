@@ -979,6 +979,7 @@ void HttpRequest::finalize()
     onRequestDone();
     connection.worker().server().onRequestDone(this);
     clearCustomData();
+    inspectHandlers_.clear();
 
     if (connection.isOpen()) {
         if (connection.shouldKeepAlive()) {
