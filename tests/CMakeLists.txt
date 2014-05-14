@@ -1,6 +1,7 @@
 if(ENABLE_TESTS)
 
 add_executable(x0-test x0-test.cpp
+  Buffer-test.cpp
   Cidr-test.cpp
   TokenShaper-test.cpp
   Tokenizer-test.cpp
