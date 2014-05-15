@@ -1,5 +1,11 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- director: introduce an option (per director cluster) to tweak behavior on-client-abort (ignore, close, notify) with default to "close"
+- director: use O_TMPFILE in open() for tmp files if available (3.11+), fall back to ~O_TMPFILE if not.
+  - make this feature runtime configurable (for debugging) and compile-time configurable.
+- director: raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
+- director: support {file,mem-accel} for request body, too.
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 0.10.0 PRE-TODO
 
