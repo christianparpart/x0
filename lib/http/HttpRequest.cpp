@@ -981,15 +981,13 @@ void HttpRequest::finalize()
     clearCustomData();
     inspectHandlers_.clear();
 
-    if (connection.isOpen()) {
-        if (connection.shouldKeepAlive()) {
-            TRACE(2, "finalize: resuming");
-            clear();
-            connection.resume();
-        } else {
-            TRACE(2, "finalize: closing");
-            connection.close();
-        }
+    if (connection.isOpen() && connection.shouldKeepAlive()) {
+        TRACE(2, "finalize: resuming");
+        clear();
+        connection.resume();
+    } else {
+        TRACE(2, "finalize: closing");
+        connection.close();
     }
 }
 
