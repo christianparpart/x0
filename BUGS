@@ -1,6 +1,17 @@
-# vim:syntax=markdown
+vim:syntax=markdown
 
-### Dead Request Connections
+## Dead Request Connections
+
+### Possibly fixed
+
+in a8508e79db43dabc3be01700913626622b8ed941
+
+### Possibly reproducable
+
+load test on `GET /sleepy.php` -c64 -n10000 and abort in the middle.
+all in-the-middle request will still hang.
+
+### first investigation
 
 proxy-request results into an endless living connection
 
