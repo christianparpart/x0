@@ -51,6 +51,8 @@ struct RequestNotes :
     explicit RequestNotes(x0::HttpRequest* r);
     ~RequestNotes();
 
+    void inspect(x0::Buffer& out);
+
 #if defined(ENABLE_DIRECTOR_CACHE)
     void setCacheKey(const char* data, const char* eptr);
     void setCacheKey(const x0::BufferRef& fmt) { setCacheKey(fmt.data(), fmt.data() + fmt.size()); }

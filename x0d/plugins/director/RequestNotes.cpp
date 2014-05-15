@@ -35,6 +35,7 @@ RequestNotes::RequestNotes(x0::HttpRequest* r) :
     cacheIgnore(false)
 #endif
 {
+    r->registerInspectHandler<RequestNotes, &RequestNotes::inspect>(this);
 }
 
 RequestNotes::~RequestNotes()
@@ -46,7 +47,16 @@ RequestNotes::~RequestNotes()
     }
 }
 
-#if defined(ENABLE_DIRECTOR_CACHE)
+void RequestNotes::inspect(x0::Buffer& out)
+{
+    if (backend) {
+        out.printf("backend: %s\n", backend->name().c_str());
+    } else {
+        out.printf("backend: null\n");
+    }
+}
+
+#if defined(ENABLE_DIRECTOR_CACHE) // {{{
 void RequestNotes::setCacheKey(const char* i, const char* e)
 {
     Buffer result;
@@ -91,4 +101,4 @@ void RequestNotes::setCacheKey(const char* i, const char* e)
 
     cacheKey = result.str();
 }
-#endif
+#endif // }}}
