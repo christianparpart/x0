@@ -7,12 +7,8 @@
  */
 
 /*
- * todo:
- *     - error handling, including:
- *       - XXX early http client abort (raises EndRequestRecord-submission to application)
- *       - log stream parse errors,
- *       - transport level errors (connect/read/write errors)
- *       - timeouts
+ * TODO:
+ * - respondWith(BadGateway) on backend message protocol errors,
  */
 
 #include "FastCgiBackend.h"
@@ -301,7 +297,7 @@ void FastCgiBackend::Connection::initialize()
  */
 void FastCgiBackend::Connection::exitSuccess()
 {
-    TRACE(1, "exitSuccess()");
+    TRACE(1, "exitSuccess() aborted:%s\n", isAborted_ ? "yes" : "no");
 
     // XXX keep a copy on those variables on the stack as we are potentially destroyed on the release()-call
     Backend* backend = backend_;
@@ -349,6 +345,7 @@ void FastCgiBackend::Connection::onClientAbort()
 
     isAborted_ = true;
 
+    // TODO: introduce an option (per director cluster) to tweak behavior on-client-abort (ignore, close, notify) with default to "close"
     exitSuccess();
 }
 
@@ -588,7 +585,9 @@ void FastCgiBackend::Connection::onWriteComplete()
         }
     }
 #endif //}}}
-    TRACE(1, "onWriteComplete: output flushed. resume watching on app I/O (read)");
+    TRACE(1, "onWriteComplete: output flushed. resume watching on read events. isAborted: %s, sockOpen: %s",
+            isAborted_ ? "yes" : "no",
+            socket_->isOpen() ? "yes" : "no");
 
     if (!socket_->isOpen())
         return;
