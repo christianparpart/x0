@@ -51,6 +51,14 @@ public:
         return *this;
     }
 
+    Option(Option<T>&& other) : state_(other.state_), value_(std::move(other.value_)) { other.state_ = NONE; }
+    Option<T>& operator=(Option<T>&& other) {
+        state_ = other.state_;
+        value_ = std::move(other.value_);
+        other.state_ = NONE;
+        return *this;
+    }
+
     bool isNone() const { return state_ == NONE; }
     bool isSome() const { return state_ == SOME; }
 
