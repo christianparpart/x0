@@ -62,6 +62,7 @@ public:
     bool isNone() const { return state_ == NONE; }
     bool isSome() const { return state_ == SOME; }
 
+    T& get() { assert(isSome()); return value_; }
     const T& get() const { assert(isSome()); return value_; }
     const T& getOrElse(const T& alt) const { return isSome() ? value_ : alt; }
 
@@ -93,7 +94,7 @@ public:
         if (state_ != other.state_)
             return false;
 
-        return state_ == SOME && *self_ == *other.self_;
+        return true; //state_ == SOME && *self_ == *other.self_;
     }
 
     bool operator!=(const iterator& other) const {
@@ -114,8 +115,8 @@ public:
 }; // }}}
 
 template<typename T> bool operator==(const Option<T>& a, const Option<T>& b) {
-    return a.isNone() && b.isNone()
-       || (a.isSome() && b.isSome() && a.get() == b.get());
+    return (a.isNone() && b.isNone())
+        || (a.isSome() && b.isSome() && a.get() == b.get());
 }
 
 template<typename T> bool operator!=(const Option<T>& a, const Option<T>& b) {
