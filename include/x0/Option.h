@@ -42,10 +42,10 @@ template<typename T>
 class Option {
 public:
     Option() : state_(NONE), value_() {}
-    explicit Option(const T& value) : state_(SOME), value_(std::move(value)) {}
+    explicit Option(const T& value) : state_(SOME), value_(value) {}
 
     Option(const None& n) : state_(NONE), value_() {}
-    Option(const _Some<T>& some) : state_(SOME), value_(std::move(some.value)) {}
+    Option(const _Some<T>& some) : state_(SOME), value_(some.value) {}
 
     Option<T>& operator=(const Option<T>& other) {
         state_ = other.state_;
