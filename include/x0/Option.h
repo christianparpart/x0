@@ -41,9 +41,7 @@ _Some<T> Some(T v) {
 template<typename T>
 class Option {
 public:
-    Option() : state_(NONE), value_() {}
     explicit Option(const T& value) : state_(SOME), value_(value) {}
-
     Option(const None& n) : state_(NONE), value_() {}
     Option(const _Some<T>& some) : state_(SOME), value_(some.value) {}
 
@@ -59,10 +57,53 @@ public:
     const T& get() const { assert(isSome()); return value_; }
     const T& getOrElse(const T& alt) const { return isSome() ? value_ : alt; }
 
+    // collection support
+    bool empty() const { return isNone(); }
+    size_t size() const { return isSome() ? 1 : 0; }
+
+    T& operator[](size_t i) { assert(i == 0); return get(); }
+    const T& operator[](size_t i) const { assert(i == 0); return get(); }
+
+    class iterator;
+    iterator begin() { return iterator(this); }
+    iterator end() { return iterator(); }
+
 private:
     enum State { SOME, NONE } state_ ;
     T value_;
 };
+
+template<typename T> class Option<T>::iterator { // {{{
+    State state_;
+    Option<T>* self_;
+
+public:
+    iterator(Option<T>* self) : state_(self->state_), self_(self) {}
+    iterator() : state_(NONE), self_(nullptr) {}
+
+    bool operator==(const iterator& other) const {
+        if (state_ != other.state_)
+            return false;
+
+        return state_ == SOME && *self_ == *other.self_;
+    }
+
+    bool operator!=(const iterator& other) const {
+        return !(*this == other);
+    }
+
+    T& operator*() { return self_->get(); }
+    const T& operator*() const { return self_->get(); }
+
+    T& operator->() { return self_->get(); }
+    const T& operator->() const { return self_->get(); }
+
+    iterator& operator++() {
+        state_ = NONE;
+        self_ = nullptr;
+        return *this;
+    }
+}; // }}}
 
 template<typename T> bool operator==(const Option<T>& a, const Option<T>& b) {
     return a.isNone() && b.isNone()
