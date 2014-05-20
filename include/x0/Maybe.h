@@ -128,6 +128,16 @@ public:
 
     class Block;
 
+    template<typename U>
+    Block maybe(U trueBlock) const {
+        if (isSome()) {
+            trueBlock(get());
+            return Block(true);
+        } else {
+            return Block(false);
+        }
+    }
+
 private:
     T* value_;
     uint8_t storage_[sizeof(T)];
@@ -192,14 +202,9 @@ private:
 /**
  * Invokes given lambda if value contains something.
  */
-template<typename T>
-inline typename Maybe<T>::Block maybe_if(const Maybe<T>& value, std::function<void()> trueBlock) {
-    if (value.isSome()) {
-        trueBlock();
-        return typename Maybe<T>::Block(true);
-    } else {
-        return typename Maybe<T>::Block(false);
-    }
+template<typename T, typename U>
+inline typename Maybe<T>::Block maybe_if(const Maybe<T>& value, U trueBlock) {
+    return value.maybe(trueBlock);
 }
 
 } // namespace x0

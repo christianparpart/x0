@@ -124,23 +124,27 @@ TEST(Maybe, maybe_if)
     Maybe<int> m = 42;
     int inner = 0;
 
-    bool result = maybe_if(m, [&]() {
-        inner = 1;
+    bool result = maybe_if(m, [&](int i) {
+        inner = i;
     }).otherwise([&]() {
         inner = 2;
     }).get();
 
     ASSERT_TRUE(result);
-    ASSERT_EQ(1, inner);
+    ASSERT_EQ(42, inner);
+}
 
-    m.clear();
+TEST(Maybe, maybe_if_not)
+{
+    Maybe<int> m;
+    int inner = 0;
 
-    result = maybe_if(m, [&]() {
-        inner = 1;
+    bool result = maybe_if(m, [&](int i) {
+        inner = -i;
     }).otherwise([&]() {
-        inner = 2;
+        inner = 42;
     }).get();
 
     ASSERT_FALSE(result);
-    ASSERT_EQ(2, inner);
+    ASSERT_EQ(42, inner);
 }
