@@ -202,18 +202,4 @@ inline typename Maybe<T>::Block maybe_if(const Maybe<T>& value, std::function<vo
     }
 }
 
-/* === Example:
-
-    Maybe<int> si = Some(42);
-    assert(si.isSome());
-
-    printf("si.get = %d\n", si.get());
-
-    Maybe<int> ni = None();
-    assert(ni.isNone());
-
-    printf("ni.getOrElse = %d\n", ni.getOrElse(-1));
-
-*/
-
 } // namespace x0
