@@ -159,7 +159,8 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     mainFunction("phys.etag", &XzeroCore::phys_etag).returnType(FlowType::String);
     mainFunction("phys.mimetype", &XzeroCore::phys_mimetype).returnType(FlowType::String);
 
-    mainFunction("req.accept_language", &XzeroCore::req_accept_language, FlowType::StringArray).returnType(FlowType::String)
+    mainFunction("req.accept_language", &XzeroCore::req_accept_language, FlowType::StringArray)
+        .returnType(FlowType::String)
         .verifier(&XzeroCore::verify_req_accept_language, this);
 
     // main: getter functions
