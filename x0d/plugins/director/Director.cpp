@@ -415,6 +415,7 @@ void Director::writeJSON(JsonWriter& json) const
         .name("enabled")(isEnabled())
         .name("queue-limit")(queueLimit_)
         .name("queue-timeout")(queueTimeout_.totalSeconds())
+        .name("on-client-abort")(tos(clientAbortAction()))
         .name("retry-after")(retryAfter_.totalSeconds())
         .name("max-retry-count")(maxRetryCount_)
         .name("sticky-offline-mode")(stickyOfflineMode_)
@@ -538,6 +539,21 @@ bool Director::load(const std::string& path)
         ++changed;
     } else {
         transferMode_ = makeTransferMode(value);
+    }
+
+    if (!settings.load("director", "on-client-abort", value)) {
+        clientAbortAction_ = ClientAbortAction::Close;
+        worker()->log(Severity::warn, "director: Could not load settings value director.on-client-abort  in file '%s'. Defaulting to '%s'.", path.c_str(), tos(clientAbortAction_).c_str());
+        ++changed;
+    } else {
+        Try<ClientAbortAction> t = parseClientAbortAction(value);
+        if (t) {
+            clientAbortAction_ = t.get();
+        } else {
+            clientAbortAction_ = ClientAbortAction::Close;
+            worker()->log(Severity::warn, "director: Could not load settings value director.on-client-abort  in file '%s'. %s Defaulting to '%s'.", path.c_str(), t.errorMessage(), tos(clientAbortAction_).c_str());
+            ++changed;
+        }
     }
 
     if (!settings.load("director", "max-retry-count", value)) {
@@ -846,6 +862,7 @@ bool Director::save()
         << "enabled=" << (enabled_ ? "true" : "false") << "\n"
         << "queue-limit=" << queueLimit_ << "\n"
         << "queue-timeout=" << queueTimeout_.totalSeconds() << "\n"
+        << "on-client-abort=" << tos(clientAbortAction_) << "\n"
         << "retry-after=" << retryAfter_.totalSeconds() << "\n"
         << "max-retry-count=" << maxRetryCount_ << "\n"
         << "sticky-offline-mode=" << (stickyOfflineMode_ ? "true" : "false") << "\n"
