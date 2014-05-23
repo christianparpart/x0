@@ -57,5 +57,7 @@ private:
     bool director_haproxy_monitor(x0::HttpRequest* r, x0::FlowVM::Params& args);
     bool director_haproxy_stats(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
+    bool director_roadwarrior_verify(x0::Instr* instr);
+
     bool internalServerError(x0::HttpRequest* r);
 };

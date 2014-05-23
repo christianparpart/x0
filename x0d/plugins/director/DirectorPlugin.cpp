@@ -44,9 +44,12 @@
 #include "RoadWarrior.h"
 #include "HaproxyApi.h"
 #include "ObjectCache.h"
+#include "ClientAbortAction.h"
 
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
+#include <x0/flow/ir/ConstantValue.h>
+#include <x0/flow/ir/Instr.h>
 #include <x0/SocketSpec.h>
 #include <x0/Url.h>
 #include <x0/Types.h>
@@ -81,12 +84,16 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
         .param<FlowString>("prefix", "/");
 
     mainHandler("director.fcgi", &DirectorPlugin::director_fcgi)
+        .verifier(&DirectorPlugin::director_roadwarrior_verify, this)
         .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port");
+        .param<int>("port")
+        .param<FlowString>("on_client_abort", "close");
 
     mainHandler("director.http", &DirectorPlugin::director_http)
+        .verifier(&DirectorPlugin::director_roadwarrior_verify, this)
         .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port");
+        .param<int>("port")
+        .param<FlowString>("on_client_abort", "close");
 
     mainHandler("director.haproxy_stats", &DirectorPlugin::director_haproxy_stats)
         .param<FlowString>("prefix", "/");
@@ -255,19 +262,46 @@ bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args)
     return ApiRequest::process(&directors_, r, path);
 }
 // }}}
-// {{{ handler director.fcgi(socketspec);
+// {{{ handler director.fcgi(string hostname, int port, string onClientAbort = "close");
 bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
 {
+    RequestNotes* rn = requestNotes(r);
+
     SocketSpec socketSpec(
         args.getIPAddress(1),   // bind addr
         args.getInt(2)          // port
     );
 
-    roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::FCGI);
+    Try<ClientAbortAction> value = parseClientAbortAction(args.getString(3));
+    if (!value.isError()) {
+        rn->onClientAbort = value.get();
+        goto done;
+    }
+
+    roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
+
+done:
     return true;
 }
 // }}}
-// {{{ handler director.http(socketspec);
+// {{{ handler director.http(address, port, on_client_abort);
+bool DirectorPlugin::director_roadwarrior_verify(Instr* instr)
+{
+    if (auto s = dynamic_cast<ConstantString*>(instr->operand(3))) {
+        Try<ClientAbortAction> op = parseClientAbortAction(s->get());
+        if (op) {
+            // okay: XXX we could hard-replace the 3rd arg here, as we pre-parsed it, kinda
+            return true;
+        } else {
+            log(Severity::error, "on_client_abort argument must a literal value of value 'close', 'notify', 'ignore'.");
+            return false;
+        }
+    } else {
+        log(Severity::error, "on_client_abort argument must be a literal.");
+        return false;
+    }
+}
+
 bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
 {
     SocketSpec socketSpec(

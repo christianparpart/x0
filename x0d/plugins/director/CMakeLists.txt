@@ -15,6 +15,7 @@ if(ENABLE_PLUGIN_DIRECTOR)
   endif(ENABLE_DIRECTOR_CACHE)
 
   set(director_SRC
+    ClientAbortAction.cpp
     RequestNotes.cpp
     DirectorPlugin.cpp
     HealthMonitor.cpp
