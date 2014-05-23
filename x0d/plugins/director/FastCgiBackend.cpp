@@ -341,12 +341,25 @@ void FastCgiBackend::Connection::exitFailure(HttpStatus status)
  */
 void FastCgiBackend::Connection::onClientAbort()
 {
-    log(x0::Severity::diag, "Client closed connection early. Aborting request to backend FastCGI server.");
-
     isAborted_ = true;
 
-    // TODO: introduce an option (per director cluster) to tweak behavior on-client-abort (ignore, close, notify) with default to "close"
-    exitSuccess();
+    switch (backend_->manager()->clientAbortAction()) {
+        case ClientAbortAction::Ignore:
+            log(x0::Severity::diag, "Client closed connection early. Ignored.");
+            break;
+        case ClientAbortAction::Close:
+            log(x0::Severity::diag, "Client closed connection early. Aborting request to backend FastCGI server.");
+            exitSuccess();
+            break;
+        case ClientAbortAction::Notify:
+            log(x0::Severity::diag, "Client closed connection early. Notifying backend FastCGI server.");
+            write<FastCgi::AbortRequestRecord>(id_);
+            flush();
+            break;
+        default:
+            // BUG: internal server error
+            break;
+    }
 }
 
 void FastCgiBackend::Connection::processRequestBody(const x0::BufferRef& chunk)
