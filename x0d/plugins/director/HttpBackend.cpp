@@ -73,14 +73,14 @@ private:
     bool writeSome();
 
     void onConnected(Socket* s, int revents);
-    void io(Socket* s, int revents);
+    void onReadWriteReady(Socket* s, int revents);
     void onRequestChunk(const BufferRef& chunk);
 
     void onClientAbort();
     void onWriteComplete();
 
     void onConnectTimeout(x0::Socket* s);
-    void onTimeout(x0::Socket* s);
+    void onReadWriteTimeout(x0::Socket* s);
 
     // response (HttpMessageParser)
     bool onMessageBegin(int versionMajor, int versionMinor, int code, const BufferRef& text) override;
@@ -265,8 +265,8 @@ void HttpBackend::Connection::start()
         socket_->setReadyCallback<Connection, &Connection::onConnected>(this);
     } else { // connected
         TRACE("start: flushing");
-        socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->writeTimeout());
-        socket_->setReadyCallback<Connection, &Connection::io>(this);
+        socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
+        socket_->setReadyCallback<Connection, &Connection::onReadWriteReady>(this);
         socket_->setMode(Socket::ReadWrite);
     }
 
@@ -301,7 +301,7 @@ void HttpBackend::Connection::onConnectTimeout(x0::Socket* s)
  * This callback is invoked from within the requests associated thread to notify about
  * a timed out read/write operation.
  */
-void HttpBackend::Connection::onTimeout(x0::Socket* s)
+void HttpBackend::Connection::onReadWriteTimeout(x0::Socket* s)
 {
     rn_->request->log(x0::Severity::error, "http-proxy: Failed to perform I/O on backend %s. Timed out", backend_->name().c_str());
     backend_->setState(HealthState::Offline);
@@ -316,8 +316,8 @@ void HttpBackend::Connection::onConnected(Socket* s, int revents)
 
     if (socket_->state() == Socket::Operational) {
         TRACE("onConnected: flushing");
-        socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->writeTimeout());
-        socket_->setReadyCallback<Connection, &Connection::io>(this);
+        socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
+        socket_->setReadyCallback<Connection, &Connection::onReadWriteReady>(this);
         socket_->setMode(Socket::ReadWrite); // flush already serialized request
     } else {
         TRACE("onConnected: failed");
@@ -334,7 +334,7 @@ void HttpBackend::Connection::onRequestChunk(const BufferRef& chunk)
     writeBuffer_.push_back(chunk);
 
     if (socket_->state() == Socket::Operational) {
-        socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->writeTimeout());
+        socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
         socket_->setMode(Socket::ReadWrite);
     }
 }
@@ -443,7 +443,7 @@ void HttpBackend::Connection::onWriteComplete()
         return;
 
     TRACE("chunk write complete: %s", state_str());
-    socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->readTimeout());
+    socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->readTimeout());
     socket_->setMode(Socket::Read);
 }
 
@@ -468,7 +468,7 @@ inline void HttpBackend::Connection::log(Severity severity, const char* fmt, Arg
     log(LogMessage(severity, fmt, args...));
 }
 
-void HttpBackend::Connection::io(Socket* s, int revents)
+void HttpBackend::Connection::onReadWriteReady(Socket* s, int revents)
 {
     TRACE("io(0x%04x)", revents);
 
@@ -506,7 +506,7 @@ bool HttpBackend::Connection::writeSome()
             writeBuffer_.clear();
             socket_->setMode(Socket::Read);
         } else {
-            socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->writeTimeout());
+            socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
         }
     } else if (rv < 0) {
         switch (errno) {
@@ -515,7 +515,7 @@ bool HttpBackend::Connection::writeSome()
 #endif
         case EAGAIN:
         case EINTR:
-            socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->writeTimeout());
+            socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
             socket_->setMode(Socket::ReadWrite);
             break;
         default:
@@ -555,7 +555,7 @@ bool HttpBackend::Connection::readSome()
             return false;
         } else {
             TRACE("resume with io:%d, state:%s", socket_->mode(), socket_->state_str());
-            socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->readTimeout());
+            socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->readTimeout());
             socket_->setMode(Socket::Read);
         }
     } else if (rv == 0) {
@@ -574,7 +574,7 @@ bool HttpBackend::Connection::readSome()
 #endif
         case EAGAIN:
         case EINTR:
-            socket_->setTimeout<Connection, &Connection::onTimeout>(this, backend_->manager()->readTimeout());
+            socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->readTimeout());
             socket_->setMode(Socket::Read);
             break;
         default:

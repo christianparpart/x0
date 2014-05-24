@@ -104,8 +104,8 @@ private:
     // backend I/O events
     void onConnectTimeout(x0::Socket* s);
     void onConnectComplete(x0::Socket* s, int revents);
-    void onTimeout(x0::Socket* s);
-    void io(x0::Socket* s, int revents);
+    void onReadWriteTimeout(x0::Socket* s);
+    void onReadWriteReady(x0::Socket* s, int revents);
     void onWriteComplete();
 
     // backend response handlers
@@ -273,7 +273,7 @@ void FastCgiBackend::Connection::initialize()
         socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onConnectTimeout>(this, backend_->manager()->connectTimeout());
         socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onConnectComplete>(this);
     } else {
-        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::io>(this);
+        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteReady>(this);
     }
 
     // flush out
@@ -425,7 +425,7 @@ void FastCgiBackend::Connection::flush()
 {
     if (socket_->state() == x0::Socket::Operational) {
         TRACE(1, "flushing pending data to backend server.");
-        socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onTimeout>(this, backend_->manager()->writeTimeout());
+        socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
         socket_->setMode(x0::Socket::ReadWrite);
     } else {
         TRACE(1, "mark pending data to be flushed to backend server.");
@@ -453,19 +453,19 @@ void FastCgiBackend::Connection::onConnectComplete(x0::Socket* s, int revents)
     } else if (writeBuffer_.size() > writeOffset_ && flushPending_) {
         TRACE(1, "Connected. Flushing pending data.");
         flushPending_ = false;
-        socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onTimeout>(this, backend_->manager()->writeTimeout());
-        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::io>(this);
+        socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
+        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteReady>(this);
         socket_->setMode(x0::Socket::ReadWrite);
     } else {
         TRACE(1, "Connected.");
         // do not install a timeout handler here, even though, we're watching for ev::READ, because all we're to
         // get is an EOF detection (remote end-point will not sent data unless we did).
-        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::io>(this);
+        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteReady>(this);
         socket_->setMode(x0::Socket::Read);
     }
 }
 
-void FastCgiBackend::Connection::onTimeout(x0::Socket* s)
+void FastCgiBackend::Connection::onReadWriteTimeout(x0::Socket* s)
 {
     log(x0::Severity::error, "I/O timeout to backend %s: %s", backendName().c_str(), strerror(errno));
 
@@ -474,7 +474,7 @@ void FastCgiBackend::Connection::onTimeout(x0::Socket* s)
     exitFailure(HttpStatus::GatewayTimeout);
 }
 
-void FastCgiBackend::Connection::io(x0::Socket* s, int revents)
+void FastCgiBackend::Connection::onReadWriteReady(x0::Socket* s, int revents)
 {
     TRACE(1, "Received I/O activity on backend socket. revents=0x%04x", revents);
 
@@ -611,7 +611,7 @@ void FastCgiBackend::Connection::onWriteComplete()
     // the backend server already, even though not all data has been flushed out to the client yet.
 
     TRACE(1, "Writing to client completed. Resume watching on app I/O for read.");
-    socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onTimeout>(this, backend_->manager()->readTimeout());
+    socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteTimeout>(this, backend_->manager()->readTimeout());
     socket_->setMode(x0::Socket::Read);
 }
 
