@@ -2,9 +2,11 @@
 
 	* x0d: Adds req.accept_language(string[] supportedLanguages);
 	* x0d: Adds SIGTTIN/SIGTTOU signal handling for incrementing/decrementing log level
+	* x0d: Fixes to req.header(S)S and req.cookie(S)S signatures
 	* http: fixes to request path decoding
 	* flow: fixes crash on empty arrays
 	* flow: allow parsing function call args in expressions without round braces.
+	* director: support different modes how to react on early client aborts.
 
 0.9.0 (2014-04-13)
 

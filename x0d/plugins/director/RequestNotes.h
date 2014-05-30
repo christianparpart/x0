@@ -17,6 +17,8 @@
 #include <string>
 #include <list>
 
+#include "ClientAbortAction.h"
+
 namespace x0 {
     class HttpRequest;
 }
@@ -37,6 +39,7 @@ struct RequestNotes :
     BackendManager* manager;	//!< Designated cluster to load balance this request.
     Backend* backend;			//!< Designated backend to serve this request.
     size_t tryCount;            //!< Number of request schedule attempts.
+    ClientAbortAction onClientAbort;
 
     x0::TokenShaper<RequestNotes>::Node* bucket; //!< the bucket (node) this request is to be scheduled via.
     size_t tokens; //!< contains the number of currently acquired tokens by this request (usually 0 or 1).

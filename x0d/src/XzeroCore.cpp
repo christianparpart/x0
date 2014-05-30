@@ -138,8 +138,8 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     mainFunction("req.url", &XzeroCore::req_url).returnType(FlowType::String);
     mainFunction("req.path", &XzeroCore::req_path).returnType(FlowType::String);
     mainFunction("req.query", &XzeroCore::req_query).returnType(FlowType::String);
-    mainFunction("req.header", &XzeroCore::req_header).returnType(FlowType::String);
-    mainFunction("req.cookie", &XzeroCore::req_cookie).returnType(FlowType::String);
+    mainFunction("req.header", &XzeroCore::req_header, FlowType::String).returnType(FlowType::String);
+    mainFunction("req.cookie", &XzeroCore::req_cookie, FlowType::String).returnType(FlowType::String);
     mainFunction("req.host", &XzeroCore::req_host).returnType(FlowType::String);
     mainFunction("req.pathinfo", &XzeroCore::req_pathinfo).returnType(FlowType::String);
     mainFunction("req.is_secure", &XzeroCore::req_is_secure).returnType(FlowType::Boolean);
@@ -159,7 +159,8 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     mainFunction("phys.etag", &XzeroCore::phys_etag).returnType(FlowType::String);
     mainFunction("phys.mimetype", &XzeroCore::phys_mimetype).returnType(FlowType::String);
 
-    mainFunction("req.accept_language", &XzeroCore::req_accept_language, FlowType::StringArray).returnType(FlowType::String)
+    mainFunction("req.accept_language", &XzeroCore::req_accept_language, FlowType::StringArray)
+        .returnType(FlowType::String)
         .verifier(&XzeroCore::verify_req_accept_language, this);
 
     // main: getter functions

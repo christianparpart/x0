@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "ClientAbortAction.h"
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/Counter.h>
@@ -46,6 +47,7 @@ protected:
     x0::TimeSpan readTimeout_;
     x0::TimeSpan writeTimeout_;
     TransferMode transferMode_;		//!< Mode how response payload is transferred.
+    ClientAbortAction clientAbortAction_;
     x0::Counter load_;
 
     friend class Backend;
@@ -70,6 +72,9 @@ public:
 
     TransferMode transferMode() const { return transferMode_; }
     void setTransferMode(TransferMode value) { transferMode_ = value; }
+
+    ClientAbortAction clientAbortAction() const { return clientAbortAction_; }
+    void setClientAbortAction(ClientAbortAction value) { clientAbortAction_ = value; }
 
     const x0::Counter& load() const { return load_; }
 

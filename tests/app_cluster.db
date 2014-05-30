@@ -5,6 +5,7 @@
 enabled=true
 queue-limit=127
 queue-timeout=10
+on-client-abort=close
 retry-after=60
 max-retry-count=3
 sticky-offline-mode=false

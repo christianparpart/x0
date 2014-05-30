@@ -1023,11 +1023,18 @@ any configured capacity limits.
      director.pass 'app_cluster', req.cookie("X-Backend");
  }
 
-=item B<director.fcgi> (address: IP, port: number)
+=item B<director.fcgi> (address: IP, port: number, string: on_client_abort = "close")
 
 Directly proxies a givenr equest to FastCGI backend application.
 
-=item B<director.http> (address: IP, port: number)
+The parameter I<on_client_abort> defines how to proceed with the backend connection
+when the client has aborted the connection to this server too early.
+It can either directly close the connection to the backend server,
+send a notification to the backend, that the client has aborted early, or
+ignore the event, so that the backend does not notice whether or not the
+client is still alive.
+
+=item B<director.http> (address: IP, port: number, string: on_client_abort = "close")
 
 Directly proxies a givenr equest to an HTTP backend application.
 

@@ -29,8 +29,8 @@ public:
 
     void handleRequest(RequestNotes* rn, const x0::SocketSpec& spec, Protocol protocol);
 
-    virtual void reject(RequestNotes* rn, x0::HttpStatus status);
-    virtual void release(RequestNotes* rn);
+    void reject(RequestNotes* rn, x0::HttpStatus status) override;
+    void release(RequestNotes* rn) override;
 
     void writeJSON(x0::JsonWriter& output) const;
 

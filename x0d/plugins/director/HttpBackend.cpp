@@ -168,8 +168,22 @@ void HttpBackend::Connection::exitSuccess()
 
 void HttpBackend::Connection::onClientAbort()
 {
-    log(x0::Severity::diag, "Client closed connection early. Aborting request to upstream HTTP server.");
-    exitSuccess();
+    switch (backend_->manager()->clientAbortAction()) {
+        case ClientAbortAction::Ignore:
+            log(x0::Severity::diag, "Client closed connection early. Ignored.");
+            break;
+        case ClientAbortAction::Close:
+            log(x0::Severity::diag, "Client closed connection early. Aborting request to backend HTTP server.");
+            exitSuccess();
+            break;
+        case ClientAbortAction::Notify:
+            log(x0::Severity::diag, "Client closed connection early. Notifying backend HTTP server by abort.");
+            exitSuccess();
+            break;
+        default:
+            // BUG: internal server error
+            break;
+    }
 }
 
 HttpBackend::Connection* HttpBackend::Connection::create(HttpBackend* owner, RequestNotes* rn)

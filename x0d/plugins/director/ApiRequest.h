@@ -71,6 +71,7 @@ protected:
     bool loadParam(const std::string& key, HealthMonitor::Mode& result);
     bool loadParam(const std::string& key, std::string& result);
     bool loadParam(const std::string& key, TransferMode& result);
+    bool loadParam(const std::string& key, ClientAbortAction& result);
 
 private:
     HttpMethod requestMethod() const { return method_; }

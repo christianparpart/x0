@@ -25,6 +25,7 @@ RequestNotes::RequestNotes(x0::HttpRequest* r) :
     manager(nullptr),
     backend(nullptr),
     tryCount(0),
+    onClientAbort(ClientAbortAction::Close),
     bucket(nullptr),
     tokens(0)
 #if defined(ENABLE_DIRECTOR_CACHE)

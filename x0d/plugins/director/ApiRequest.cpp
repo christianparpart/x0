@@ -54,6 +54,7 @@
 // POST args (director):
 // - enabled
 // - queue-limit
+// - on-client-abort
 // - retry-after
 // - connect-timeout
 // - read-timeout
@@ -333,6 +334,24 @@ bool ApiRequest::loadParam(const std::string& key, TransferMode& result)
     return true;
 }
 
+bool ApiRequest::loadParam(const std::string& key, ClientAbortAction& result)
+{
+    auto i = args_.find(key);
+    if (i == args_.end()) {
+        request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        return false;
+    }
+
+    Try<ClientAbortAction> t = parseClientAbortAction(i->second);
+    if (t.isError()) {
+        request_->log(Severity::error, "Request parameter '%s' is invalid. %s", key.c_str(), t.errorMessage());
+        return false;
+    }
+
+    result = t.get();
+    return true;
+}
+
 bool ApiRequest::process()
 {
     switch (tokens_.size()) {
@@ -456,6 +475,10 @@ bool ApiRequest::update(Director* director)
     if (hasParam("queue-timeout") && !loadParam("queue-timeout", queueTimeout))
         return false;
 
+    ClientAbortAction clientAbortAction = director->clientAbortAction();
+    if (hasParam("on-client-abort") && !loadParam("on-client-abort", clientAbortAction))
+        return false;
+
     TimeSpan retryAfter = director->retryAfter();
     if (hasParam("retry-after") && !loadParam("retry-after", retryAfter))
         return false;
@@ -542,6 +565,7 @@ bool ApiRequest::update(Director* director)
     director->setEnabled(enabled);
     director->setQueueLimit(queueLimit);
     director->setQueueTimeout(queueTimeout);
+    director->setClientAbortAction(clientAbortAction);
     director->setRetryAfter(retryAfter);
     director->setConnectTimeout(connectTimeout);
     director->setReadTimeout(readTimeout);
