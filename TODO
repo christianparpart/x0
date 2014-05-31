@@ -1,11 +1,15 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- cmake: get rid of OBJECT again, to revive Travis CI tests (or upgrade cmake there)
+- logging: rename debug to trace and diag to debug
 - director: introduce an option (per director cluster) to tweak behavior on-client-abort (ignore, close, notify) with default to "close"
 - director: use O_TMPFILE in open() for tmp files if available (3.11+), fall back to ~O_TMPFILE if not.
   - make this feature runtime configurable (for debugging) and compile-time configurable.
 - director: raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
 - director: support {file,mem-accel} for request body, too.
 - [BUG] x0d: `autoindex STRING` reports signature error but continues in x0d. should abort startup.
+- status: support different output models: HTML, CSV, JSON
+  - gather status infos via JSON or as key/value array and transform that into different the output formats
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 0.10.0 PRE-TODO
@@ -18,28 +22,34 @@ for a long-term todo list, see ticket system at https://github.com/xzero/x0/issu
 - QA: prefer posix_spawn() over vfork() to exec child processes
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-flow:
-  - add `x0d --dump-du` (dump def-use chain)
-  - SSA
-    - mem2reg propagation (pass manager stage: before, one-time)
-    - reg2mem propagation (pass manager stage: after, one-time)
-    - constant propagation (pass manager stage: main)
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 accesslog:
 
-accesslog.format id: string, format: string;
+  void accesslog.format(literal string name, literal string format);
+  void accesslog(literal string filename, literal string format);
+
+accesslog format:
+
   %%        %
-  %q        query
+  %m        request method
   %p        path
+  %q        query args (without the leading '?')
+  %u        request URI
+  %r        request line
   %h        host
   %s        sent bytes (content body)
   %S        sent bytes on transport level
   %t        timestamp
   %T        timespan, for the total request handling
   %c        status code
-  %>{name}  request header value
-  %<{name}  response header value
+  %>{name}  request header value, i.e. %>{Referrer}
+  %<{name}  response header value, i.e. %<{Content-Type}
+  %C{name}  request cookie value, i.e. %C{login-session}
+  %R        remote address
+
+examples:
+
+- "%c|%r|%S|%t|%T|%>{User-Agent:|\}|%C{login-session:|\}"
+- "%R %t %r %>{User-Agent}"
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 flow:
