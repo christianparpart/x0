@@ -34,7 +34,7 @@ public:
     int hours() const { return ((int)value_ / ticksPerHour()) - 24 * ((int)value_ / ticksPerDay()); }
     int minutes() const { return ((int)value_ / 60) - 60 * ((int)value_ / 3600); }
     int seconds() const { return static_cast<int>(value_) % 60; }
-    int milliseconds() const;
+    int milliseconds() const { return static_cast<int>(value_ * 1000) % 1000; }
 
     static inline int ticksPerDay() { return 86400; }
     static inline int ticksPerHour() { return 3600; }
