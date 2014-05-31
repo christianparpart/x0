@@ -10,6 +10,7 @@
 #include <x0/Buffer.h>
 #include <string>
 #include <cstdint>
+#include <cstdio>
 
 namespace x0 {
 
@@ -27,4 +28,13 @@ std::string TimeSpan::str() const
     return b.str();
 }
 
+Buffer& operator<<(Buffer& buf, const TimeSpan& ts)
+{
+    char tmp[64];
+    int n = snprintf(tmp, sizeof(tmp), "%d.%02d:%02d:%02d.%03d",
+        ts.days(), ts.hours(), ts.minutes(), ts.seconds(),
+        ts.milliseconds());
+    buf.push_back(tmp, n);
+    return buf;
+}
 } // namespace x0

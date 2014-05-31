@@ -98,13 +98,7 @@ inline TimeSpan operator-(const TimeSpan& a, const TimeSpan& b)
     return TimeSpan(a() - b());
 }
 
-inline Buffer& operator<<(Buffer& buf, const TimeSpan& ts)
-{
-    char tmp[64];
-    int n = snprintf(tmp, sizeof(tmp), "%d.%02d:%02d:%02d", ts.days(), ts.hours(), ts.minutes(), ts.seconds());
-    buf.push_back(tmp, n);
-    return buf;
-}
+X0_API Buffer& operator<<(Buffer& buf, const TimeSpan& ts);
 
 } // namespace x0
 
