@@ -30,6 +30,8 @@ FlowType ConstantArray::makeArrayType(FlowType elementType)
         case FlowType::CidrArray:
         case FlowType::Void:
             abort();
+        default:
+            abort();
     }
 }
 
