@@ -63,7 +63,7 @@ const Buffer& DateTime::htlog_str() const
         if (struct tm *tm = localtime(&ts)) {
             char buf[256];
 
-            if (strftime(buf, sizeof(buf), "%m/%d/%Y:%T %z", tm) != 0) {
+            if (strftime(buf, sizeof(buf), "%d/%b/%Y:%T %z", tm) != 0) {
                 htlog_ = buf;
             } else {
                 htlog_ = "-";
