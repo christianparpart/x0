@@ -266,6 +266,7 @@ private:
             "#conn-table {"
                 "border: 1px solid #ccc;"
                 "font-size: 11px;"
+                "font-family: Helvetica, Arial, freesans, clean, sans-serif;"
             "}"
             "#conn-table th {"
                 "border: 1px solid #ccc;"
