@@ -353,6 +353,9 @@ public:
     // security advisory
     bool testDirectoryTraversal();
 
+    DateTime timeStart() const { return timeStart_; }
+    TimeSpan duration() const { return connection.worker().now() - timeStart_; }
+
 private:
     std::list<std::pair<void*, void (*)(void*, Buffer&)> > inspectHandlers_;
 
@@ -389,6 +392,9 @@ private:
 
     friend class HttpServer;
     friend class HttpConnection;
+
+private:
+    DateTime timeStart_;
 };
 
 // {{{ request impl

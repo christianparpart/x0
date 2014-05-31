@@ -265,6 +265,7 @@ bool HttpConnection::onMessageBegin(const BufferRef& method, const BufferRef& ur
     TRACE(1, "onMessageBegin: '%s', '%s', HTTP/%d.%d", method.str().c_str(), uri.str().c_str(), versionMajor, versionMinor);
 
     request_->method = method;
+    request_->timeStart_ = worker().now();
 
     if (!request_->setUri(uri)) {
         abort(HttpStatus::BadRequest);

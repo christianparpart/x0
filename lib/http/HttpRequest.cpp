@@ -98,7 +98,8 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
     directoryDepth_(0),
     bodyCallback_(nullptr),
     bodyCallbackData_(nullptr),
-    errorHandler_(nullptr)
+    errorHandler_(nullptr),
+    timeStart_()
 {
 #ifndef XZERO_NDEBUG
     static std::atomic<unsigned long long> rid(0);
