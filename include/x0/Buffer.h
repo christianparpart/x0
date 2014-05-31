@@ -193,7 +193,7 @@ public:
     // mutation
     BufferRef chomp() const;
     BufferRef trim() const;
-
+    Buffer replaceAll(char src, char dst) const;
     Buffer replaceAll(const char* src, const char* dst) const;
 
     // STL string
@@ -782,6 +782,30 @@ inline BufferRef BufferBase<T>::trim() const
         --right;
 
     return ref(left, 1 + right - left);
+}
+
+template<typename T>
+Buffer BufferBase<T>::replaceAll(char src, char dst) const
+{
+    Buffer out;
+    size_t lpos = 0;
+
+    out.reserve(size());
+
+    for (;;) {
+        size_t rpos = find(src, lpos);
+        if (rpos != npos) {
+            out.push_back(ref(lpos, rpos - lpos));
+            out.push_back(dst);
+            lpos = rpos + 1;
+        } else {
+            break;
+        }
+    }
+
+    out.push_back(ref(lpos));
+
+    return out;
 }
 
 template<typename T>

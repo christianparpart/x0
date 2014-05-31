@@ -47,7 +47,15 @@ TEST(BufferBase, find_cstr)
     ASSERT_EQ(BufferRef::npos, ref.find("11"));
 }
 
-TEST(BufferBase, replaceAll)
+TEST(BufferBase, replaceAll1)
+{
+    Buffer source("foo|bar|com");
+    Buffer escaped = source.replaceAll('|', ':');
+
+    ASSERT_EQ("foo:bar:com", escaped);
+}
+
+TEST(BufferBase, replaceAll2)
 {
     Buffer source("hello\nworld\n");
     Buffer replaced = source.replaceAll("\n", "<br/>");
