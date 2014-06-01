@@ -25,5 +25,7 @@ std::string tos(ClientAbortAction value)
             return "close";
         case ClientAbortAction::Notify:
             return "notify";
+        default:
+            abort();
     }
 }
