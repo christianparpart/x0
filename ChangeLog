@@ -1,4 +1,4 @@
-0.10.0 (YYYY-MM-DD)
+0.10.0 (2014-MM-DD)
 
 	* x0d: Adds req.accept_language(string[] supportedLanguages);
 	* x0d: Adds SIGTTIN/SIGTTOU signal handling for incrementing/decrementing log level
@@ -7,6 +7,7 @@
 	* flow: fixes crash on empty arrays
 	* flow: allow parsing function call args in expressions without round braces.
 	* director: support different modes how to react on early client aborts.
+	* accesslog: support custom log format lines
 
 0.9.0 (2014-04-13)
 

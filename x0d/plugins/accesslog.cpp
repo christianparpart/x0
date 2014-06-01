@@ -13,11 +13,11 @@
  *     Logs incoming requests to a local file.
  *
  * setup API:
- *     none
+ *     void accesslog.format(string format_id, string format);
  *
  * request processing API:
- *     void accesslog(string logfilename);
- *     void accesslog.syslog();
+ *     void accesslog(string file, string format = "main");
+ *     void accesslog.syslog(string format = "main");
  */
 
 #include <x0d/XzeroPlugin.h>
@@ -28,6 +28,7 @@
 #include <x0/LogFile.h>
 #include <x0/Logger.h>
 #include <x0/strutils.h>
+#include <x0/Try.h>
 #include <x0/Types.h>
 
 #include <sys/types.h>
@@ -41,6 +42,233 @@
 #include <unordered_map>
 #include <string>
 #include <cerrno>
+
+using namespace x0;
+
+template<typename iterator>
+inline Try<BufferRef> getFormatName(iterator& i, iterator e)
+{
+    // FormatName ::= '{' NAME '}'
+
+    if (i != e && *i == '{') {
+        ++i;
+    } else {
+        return Error("Expected '{' token.");
+    }
+
+    iterator beg = i;
+
+    for (;;) {
+        if (i == e) {
+            return Error("Expected '}' token.");
+        }
+
+        if (*i == '}') {
+            ++i;
+            break;
+        }
+
+        ++i;
+    }
+
+    return BufferRef(beg, i - beg - 1);
+}
+
+Try<Buffer> formatLog(x0::HttpRequest* r, const BufferRef& format) // {{{
+{
+    Buffer result;
+
+    auto i = format.begin();
+    auto e = format.end();
+
+    while (i != e) {
+        if (*i != '%') {
+            result.push_back(*i);
+            ++i;
+            continue;
+        }
+
+        ++i;
+
+        if (i == e) {
+            break;
+        }
+
+        switch (*i) {
+            case '%': // %
+                result.push_back(*i);
+                ++i;
+                break;
+            case '>': { // request header %>{name}
+                ++i;
+                if (Try<BufferRef> fn = getFormatName(i, e)) {
+                    BufferRef value = r->requestHeader(fn.get());
+                    if (value) {
+                        result.push_back(r->requestHeader(fn.get()));
+                    } else {
+                        result.push_back('-');
+                    }
+                } else {
+                    return Error(fn.errorMessage());
+                }
+                break;
+            }
+            case '<': // response header %<{name}
+                ++i;
+                if (Try<BufferRef> fn = getFormatName(i, e)) {
+                    if (auto header = r->responseHeaders.findHeader(fn.get().str())) {
+                        result.push_back(header->value);
+                    } else {
+                        result.push_back('-');
+                    }
+                } else {
+                    return Error(fn.errorMessage());
+                }
+                break;
+            case 'C': // request cookie %C{name}
+                ++i;
+                if (Try<BufferRef> fn = getFormatName(i, e)) {
+                    std::string value = r->cookie(fn.get().str());
+                    if (!value.empty()) {
+                        result.push_back(value);
+                    } else {
+                        result.push_back('-');
+                    }
+                } else {
+                    return Error(fn.errorMessage());
+                }
+                break;
+            case 'c': // response status code
+                result.push_back(static_cast<int>(r->status));
+                ++i;
+                break;
+            case 'h': // request vhost
+                result.push_back(r->hostname);
+                ++i;
+                break;
+            case 'I': // received bytes (transport level)
+                // TODO
+                result.push_back("-");
+                ++i;
+                break;
+            case 'm': // request method
+                result.push_back(r->method);
+                ++i;
+                break;
+            case 'O': // sent bytes (transport level)
+                result.push_back(r->bytesTransmitted());
+                ++i;
+                break;
+            case 'o': // sent bytes (response body)
+                // TODO
+                result.push_back('-');
+                ++i;
+                break;
+            case 'p': // request path
+                result.push_back(r->path);
+                ++i;
+                break;
+            case 'q': // query args
+                result.push_back(r->query);
+                ++i;
+                break;
+            case 'R': // remote addr
+                result.push_back(r->connection.remoteIP().c_str());
+                ++i;
+                break;
+            case 'r': // request line
+                result.push_back(r->method);
+                result.push_back(' ');
+                result.push_back(r->unparsedUri);
+                result.push_back(' ');
+                result.push_back("HTTP/");
+                result.push_back(r->httpVersionMajor);
+                result.push_back('.');
+                result.push_back(r->httpVersionMinor);
+                ++i;
+                break;
+            case 'T': { // request time duration
+                TimeSpan duration = r->duration();
+                result.printf("%d.%03d", duration.totalSeconds(), duration.milliseconds());
+                ++i;
+                break;
+            }
+            case 't': // local time
+                result.push_back(r->connection.worker().now().htlog_str());
+                ++i;
+                break;
+            case 'U': // username
+                ++i;
+                if (!r->username.empty()) {
+                    result.push_back(r->username);
+                } else {
+                    result.push_back('-');
+                }
+                break;
+            case 'u': // request uri
+                result.push_back(r->unparsedUri);
+                ++i;
+                break;
+            default:
+                return Error("Unknown format identifier.");
+        }
+    }
+
+    result.push_back('\n');
+    return result;
+} // }}}
+
+struct RequestLogger // {{{
+    : public x0::CustomData
+{
+    x0::Sink* log_;
+    x0::HttpRequest* request_;
+    FlowString format_;
+
+    RequestLogger(x0::Sink* log, x0::HttpRequest* r, const FlowString& format) :
+        log_(log), request_(r), format_(format)
+    {
+    }
+
+    ~RequestLogger()
+    {
+        Try<Buffer> result = formatLog(request_, format_);
+
+        if (result.isError()) {
+            request_->log(Severity::error, "Accesslog format error. %s", result.errorMessage());
+        }
+        else if (log_->write(result.get().c_str(), result.get().size()) < static_cast<ssize_t>(result.get().size())) {
+            request_->log(Severity::error, "Could not write to accesslog target. %s", strerror(errno));
+        }
+    }
+
+    inline std::string hostname(x0::HttpRequest* r)
+    {
+        std::string name = r->connection.remoteIP().str();
+        return !name.empty() ? name : "-";
+    }
+
+    inline std::string username(x0::HttpRequest* r)
+    {
+        return !r->username.empty() ? r->username : "-";
+    }
+
+    inline std::string request_line(x0::HttpRequest* r)
+    {
+        x0::Buffer buf;
+
+        buf << r->method << ' ' << r->unparsedUri
+            << " HTTP/" << r->httpVersionMajor << '.' << r->httpVersionMinor;
+
+        return buf.str();
+    }
+
+    inline std::string getheader(const x0::HttpRequest* r, const std::string& name)
+    {
+        x0::BufferRef value(r->requestHeader(name));
+        return !value.empty() ? value.str() : "-";
+    }
+}; // }}}
 
 /**
  * \ingroup plugins
@@ -56,65 +284,8 @@ private:
     x0::SyslogSink syslogSink_;
 #endif
 
+    std::unordered_map<FlowString, FlowString> formats_;
     LogMap logfiles_; // map of file's name-to-fd
-
-    struct RequestLogger // {{{
-        : public x0::CustomData
-    {
-        x0::Sink* log_;
-        x0::HttpRequest *in_;
-
-        RequestLogger(x0::Sink* log, x0::HttpRequest *in) :
-            log_(log), in_(in)
-        {
-        }
-
-        ~RequestLogger()
-        {
-            x0::Buffer sstr;
-            sstr << hostname(in_);
-            sstr << " - "; // identity as of identd
-            sstr << username(in_) << ' ';
-            sstr << in_->connection.worker().now().htlog_str().c_str() << " \"";
-            sstr << request_line(in_) << "\" ";
-            sstr << static_cast<int>(in_->status) << ' ';
-            sstr << in_->bytesTransmitted() << ' ';
-            sstr << '"' << getheader(in_, "Referer") << "\" ";
-            sstr << '"' << getheader(in_, "User-Agent") << '"';
-            sstr << '\n';
-
-            if (log_->write(sstr.c_str(), sstr.size()) < static_cast<ssize_t>(sstr.size())) {
-                in_->log(x0::Severity::error, "Could not write to accesslog target. %s", strerror(errno));
-            }
-        }
-
-        inline std::string hostname(x0::HttpRequest *in)
-        {
-            std::string name = in->connection.remoteIP().str();
-            return !name.empty() ? name : "-";
-        }
-
-        inline std::string username(x0::HttpRequest *in)
-        {
-            return !in->username.empty() ? in->username : "-";
-        }
-
-        inline std::string request_line(x0::HttpRequest *in)
-        {
-            x0::Buffer buf;
-
-            buf << in->method << ' ' << in->unparsedUri
-                << " HTTP/" << in->httpVersionMajor << '.' << in->httpVersionMinor;
-
-            return buf.str();
-        }
-
-        inline std::string getheader(const x0::HttpRequest *in, const std::string& name)
-        {
-            x0::BufferRef value(in->requestHeader(name));
-            return !value.empty() ? value.str() : "-";
-        }
-    }; // }}}
 
 public:
     AccesslogPlugin(x0d::XzeroDaemon* d, const std::string& name) :
@@ -122,10 +293,21 @@ public:
 #if defined(HAVE_SYSLOG_H)
         syslogSink_(LOG_INFO),
 #endif
+        formats_(),
         logfiles_()
     {
-        mainFunction("accesslog", &AccesslogPlugin::handleRequest, x0::FlowType::String);
-        mainFunction("accesslog.syslog", &AccesslogPlugin::syslogHandler);
+        formats_["main"] = "%R - [%t] \"%r\" %c %O \"%>{User-Agent}\" \"%>{Referer}\"";
+
+        setupFunction("accesslog.format", &AccesslogPlugin::accesslog_format)
+            .param<FlowString>("id")
+            .param<FlowString>("format");
+
+        mainFunction("accesslog", &AccesslogPlugin::accesslog_file)
+            .param<FlowString>("file")
+            .param<FlowString>("format", "main");
+
+        mainFunction("accesslog.syslog", &AccesslogPlugin::accesslog_syslog)
+            .param<FlowString>("format", "main");
     }
 
     ~AccesslogPlugin()
@@ -146,26 +328,70 @@ public:
     }
 
 private:
-    void syslogHandler(x0::HttpRequest *in, x0::FlowVM::Params& args)
+    // accesslog.format(literal string id, literal string format);
+    void accesslog_format(FlowVM::Params& args)
+    {
+        FlowString id = args.getString(1);
+        FlowString format = args.getString(2);
+        formats_[id] = format;
+    }
+
+    // accesslog(filename, format = "main");
+    void accesslog_file(HttpRequest* r, x0::FlowVM::Params& args)
+    {
+        std::string filename(args.getString(1).str());
+        FlowString id = args.getString(2);
+
+        Try<FlowString> format = lookupFormat(id);
+        if (format.isError()) {
+            r->log(Severity::error,
+                "Could not write to accesslog '%s' with format id '%s'. %s",
+                filename.c_str(), id.str().c_str(), format.errorMessage());
+            return;
+        }
+
+        LogFile* logFile = getLogFile(filename);
+
+        r->setCustomData<RequestLogger>(this, logFile, r, format.get());
+    }
+
+    void accesslog_syslog(x0::HttpRequest* r, x0::FlowVM::Params& args)
     {
 #if defined(HAVE_SYSLOG_H)
-        in->setCustomData<RequestLogger>(this, &syslogSink_, in);
+        FlowString id = args.getString(1);
+
+        Try<FlowString> format = lookupFormat(id);
+        if (format.isError()) {
+            r->log(Severity::error,
+                "Could not write to accesslog (syslog) with format id '%s'. %s",
+                id.str().c_str(), format.errorMessage());
+            return;
+        }
+
+        r->setCustomData<RequestLogger>(this, &syslogSink_, r, format.get());
 #endif
     }
 
-    void handleRequest(x0::HttpRequest *in, x0::FlowVM::Params& args)
+    Try<FlowString> lookupFormat(const FlowString& id) const
     {
-        std::string filename(args.getString(1).str());
-        auto i = logfiles_.find(filename);
-        if (i != logfiles_.end()) {
-            if (i->second.get()) {
-                in->setCustomData<RequestLogger>(this, i->second.get(), in);
-            }
-        } else {
-            auto fileSink = new x0::LogFile(filename);
-            logfiles_[filename].reset(fileSink);
-            in->setCustomData<RequestLogger>(this, fileSink, in);
+        auto i = formats_.find(id);
+        if (i != formats_.end()) {
+            return i->second;
         }
+
+        return Error("accesslog format not found.");
+    }
+
+    LogFile* getLogFile(const FlowString& filename)
+    {
+        auto i = logfiles_.find(filename.str());
+        if (i != logfiles_.end()) {
+            return i->second.get();
+        }
+
+        auto fileSink = new x0::LogFile(filename.str());
+        logfiles_[filename.str()].reset(fileSink);
+        return fileSink;
     }
 };
 

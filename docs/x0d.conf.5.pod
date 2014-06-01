@@ -845,14 +845,113 @@ Example:
 
 =head2 accesslog
 
-This plugin provides functionality to log handled requests.
+This plugin provides functionality for logging handled requests.
 
-The accesslog line format is currently non-configurably set
-to the standard Apache accesslog style.
+You can define custom accesslog format strings within the setup handler.
+If no custom handler is defined nor used, a default accesslog format (named "main") will be used.
 
 =over 6
 
-=item B<accesslog> (logfile_path)
+=item B<accesslog.format> (string id, string format)
+
+is a setup function that defines a new accesslog format
+to be later referenced by given id.
+
+The accesslog format is a text string that can contain
+substitution IDs (starting with a %-sign followed by the ID)
+that will be replaced with their meaning during the logging phase.
+
+Substitution IDs can be the following:
+
+=over 9
+
+=item B<%%>
+
+a single % sign
+
+=item B<%E<gt>{NAME}>
+
+HTTP request header value
+
+=item B<%E<lt>{NAME}>
+
+HTTP response header value
+
+=item B<%C{NAME}>
+
+request cookie value
+
+=item B<%c>
+
+HTTP response status code
+
+=item B<%h>
+
+HTTP Host header
+
+=item B<%i>
+
+Number of bytes received from the client (transport level)
+
+=item B<%m>
+
+HTTP request method
+
+=item B<%o>
+
+Number of bytes trnasmitted (response body)
+
+=item B<%O>
+
+Number of bytes transmitted (trnasport level)
+
+=item B<%p>
+
+HTTP request path
+
+=item B<%q>
+
+HTTP request query
+
+=item B<%R>
+
+Remote address
+
+=item B<%r>
+
+HTTP request line
+
+=item B<%t>
+
+human readable timestamp
+
+=item B<%T>
+
+request time, the time in "seconds.milliseconds" it took to serve the request
+from the first byte read to the last byte transmitted.
+
+=item B<%U>
+
+HTTP authenticated username
+
+=item B<%u>
+
+HTTP Request URI
+
+=back
+
+Example:
+
+ handler setup {
+   accesslog.format 'custom', "%c|%t|%T|%r|%h|%>{User-Agent}";
+ }
+
+ handler main {
+   accesslog file: '/var/log/access.log', format: 'custom';
+   # ...
+ }
+
+=item B<accesslog> (string file, string format = "main")
 
 is a function to ensure the currently handled request is being
 logged into the given logfile_path.
@@ -864,7 +963,7 @@ logged into the given logfile_path.
      staticfile;
  }
 
-=item B<accesslog.sysloc> ()
+=item B<accesslog.sysloc> (string format = "main")
 
 is a function to ensure the currently handled request is being
 logged into the local syslog.
