@@ -850,6 +850,9 @@ This plugin provides functionality for logging handled requests.
 You can define custom accesslog format strings within the setup handler.
 If no custom handler is defined nor used, a default accesslog format (named "main") will be used.
 
+There is also a pre-defined "combined" log format that is identically compatible
+to the Apache's combined log format.
+
 =over 6
 
 =item B<accesslog.format> (string id, string format)

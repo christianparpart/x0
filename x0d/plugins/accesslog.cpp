@@ -296,6 +296,7 @@ public:
         formats_(),
         logfiles_()
     {
+        formats_["combined"] = "%R - %U [%t] \"%r\" %c %O \"%>{Referer}\" \"%>{User-Agent}\"";
         formats_["main"] = "%R - [%t] \"%r\" %c %O \"%>{User-Agent}\" \"%>{Referer}\"";
 
         setupFunction("accesslog.format", &AccesslogPlugin::accesslog_format)
