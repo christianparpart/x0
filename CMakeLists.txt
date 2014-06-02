@@ -142,13 +142,16 @@ endif(HAVE_BZLIB_H)
 
 # TODO dynamic check for tbb
 # tbb is required for director plugin and for base's TimeoutScheduler (needed?)
-if(ENABLE_PLUGIN_DIRECTOR)
-  CHECK_INCLUDE_FILE_CXX(tbb/tbb.h HAVE_TBB_TBB_H)
-  set(TBB_LIBRARIES tbb)
-  if(NOT HAVE_TBB_TBB_H)
-    message(FATAL_ERROR "Can't find <tbb/tbb.h> include file.\nPlease install Threading Building Blocks (e.g. libtbb-dev).")
+# However, onn Ubuntu 14.04, the standard clang++ causes this test to fail.
+if(NOT ("${CMAKE_CXX_COMPILER}" MATCHES "clang"))
+  if(ENABLE_PLUGIN_DIRECTOR)
+    CHECK_INCLUDE_FILE_CXX(tbb/tbb.h HAVE_TBB_TBB_H)
+    if(NOT HAVE_TBB_TBB_H)
+      message(FATAL_ERROR "Can't find <tbb/tbb.h> include file.\nPlease install Threading Building Blocks (e.g. libtbb-dev).")
+    endif()
   endif()
 endif()
+set(TBB_LIBRARIES tbb)
 
 # ---------------------------------------------------------------------------
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
