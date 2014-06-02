@@ -73,10 +73,11 @@ if(ENABLE_MYSQL)
   add_definitions(${MYSQL_CFLAGS})
 endif()
 
-add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC} $<TARGET_OBJECTS:sd-daemon>)
+add_library(XzeroBase SHARED ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC})
+target_link_libraries(XzeroBase sd-daemon)
 
 if(ENABLE_STATIC)
-  add_library(XzeroBase_static STATIC ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC} $<TARGET_OBJECTS:sd-daemon>)
+  add_library(XzeroBase_static STATIC ${x0_base_SRC} ${x0_io_SRC} ${x0_sql_SRC} sd-daemon_static)
 endif()
 
 if(APPLE)
