@@ -8,6 +8,7 @@
 	* flow: allow parsing function call args in expressions without round braces.
 	* director: support different modes how to react on early client aborts.
 	* accesslog: support custom log format lines
+	* accesslog: support logging into multiple log targets
 
 0.9.0 (2014-04-13)
 

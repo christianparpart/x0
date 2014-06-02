@@ -853,6 +853,8 @@ If no custom handler is defined nor used, a default accesslog format (named "mai
 There is also a pre-defined "combined" log format that is identically compatible
 to the Apache's combined log format.
 
+You can generally log into more than one log target, each with its own log formats.
+
 =over 6
 
 =item B<accesslog.format> (string id, string format)

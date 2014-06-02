@@ -221,24 +221,31 @@ Try<Buffer> formatLog(x0::HttpRequest* r, const BufferRef& format) // {{{
 struct RequestLogger // {{{
     : public x0::CustomData
 {
-    x0::Sink* log_;
     x0::HttpRequest* request_;
-    FlowString format_;
+    std::list<std::pair<FlowString /*format*/, Sink* /*log*/>> targets_;
 
-    RequestLogger(x0::Sink* log, x0::HttpRequest* r, const FlowString& format) :
-        log_(log), request_(r), format_(format)
+    RequestLogger(x0::HttpRequest* r, const FlowString& format, Sink* log) :
+        request_(r), targets_()
     {
+        addTarget(format, log);
+    }
+
+    void addTarget(const FlowString& format, Sink* log)
+    {
+        targets_.push_back(std::make_pair(format, log));
     }
 
     ~RequestLogger()
     {
-        Try<Buffer> result = formatLog(request_, format_);
+        for (const auto& target: targets_) {
+            Try<Buffer> result = formatLog(request_, target.first);
 
-        if (result.isError()) {
-            request_->log(Severity::error, "Accesslog format error. %s", result.errorMessage());
-        }
-        else if (log_->write(result.get().c_str(), result.get().size()) < static_cast<ssize_t>(result.get().size())) {
-            request_->log(Severity::error, "Could not write to accesslog target. %s", strerror(errno));
+            if (result.isError()) {
+                request_->log(Severity::error, "Accesslog format error. %s", result.errorMessage());
+            }
+            else if (target.second->write(result.get().c_str(), result.get().size()) < static_cast<ssize_t>(result.get().size())) {
+                request_->log(Severity::error, "Could not write to accesslog target. %s", strerror(errno));
+            }
         }
     }
 
@@ -353,7 +360,11 @@ private:
 
         LogFile* logFile = getLogFile(filename);
 
-        r->setCustomData<RequestLogger>(this, logFile, r, format.get());
+        if (auto rl = r->customData<RequestLogger>(this)) {
+            rl->addTarget(format.get(), logFile);
+        } else {
+            r->setCustomData<RequestLogger>(this, r, format.get(), logFile);
+        }
     }
 
     void accesslog_syslog(x0::HttpRequest* r, x0::FlowVM::Params& args)
@@ -369,7 +380,11 @@ private:
             return;
         }
 
-        r->setCustomData<RequestLogger>(this, &syslogSink_, r, format.get());
+        if (auto rl = r->customData<RequestLogger>(this)) {
+            rl->addTarget(format.get(), &syslogSink_);
+        } else {
+            r->setCustomData<RequestLogger>(this, r, format.get(), &syslogSink_);
+        }
 #endif
     }
 
