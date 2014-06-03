@@ -768,7 +768,7 @@ as described below:
 
 =item B<status> ()
 
-is a handler-function that generates a server status page.
+is a handler that generates a server status page.
 
 Example:
 
@@ -776,7 +776,7 @@ Example:
 
 =item B<status.nginx_compat> ()
 
-is a handler-function that generates a server status page
+is a handler that generates a server status page
 almost compatible to the one Nginx produces.
 
 Example:
@@ -1214,7 +1214,7 @@ when the request URI is to point to a user directory.
 
 =item B<userdir> ()
 
-handler-function to map the request URI to the userdir's 
+handler to map the request URI to the userdir's
 physical directory.
 
 The following example maps the request URI C</~trapni/welcome.html>
