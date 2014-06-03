@@ -101,29 +101,34 @@ if exists("flow_x0")
 	syn keyword flowCoreVar max_request_uri_size max_request_header_size max_request_header_count max_request_body_size request_header_buffer_size request_body_buffer_size
 	syn keyword flowCoreFunctions header rewrite
 	syn keyword flowCoreFunctions expire
+	syn keyword flowCoreFunctions docroot alias
 
 	" core handlers
 	syn keyword flowCoreHandler redirect respond echo blank
 
-	" upstream plugin handlers
+	" plugin handlers
 	syn keyword flowCoreHandler fastcgi precompressed staticfile
 	syn match flowCoreHandler '\<dirlisting\(.google\)\?\>'
-	syn keyword flowCoreFunctions docroot alias
-	syn match flowCoreHandler '\<access\.\(deny\|allow\)\>'
-	syn keyword flowCoreFunctions accesslog autoindex
 
-	" upstream plugin: status
+    " plugin: access
+	syn match flowCoreHandler '\<access\.\(deny\|deny_except\)\>'
+
+    " plugin: accesslog
+	syn keyword flowCoreFunctions accesslog autoindex
+	syn match flowCoreFunctions '\<accesslog\.\(format\)\>'
+
+	" plugin: status
 	syn match flowCoreHandler '\<status\>'
 	syn match flowCoreHandler '\<status\.json\>'
 	syn match flowCoreHandler '\<status\.nginx_compat\>'
 
-	" upstream plugin: auth
+	" plugin: auth
 	syn match flowCoreFunctions '\<auth\.realm\>'
 	syn match flowCoreFunctions '\<auth\.userfile\>'
 	syn match flowCoreFunctions '\<auth\.pam\>'
 	syn match flowCoreFunctions '\<auth\.require\>'
 
-	" upstream plugin: director
+	" plugin: director
 	syn match flowCoreFunctions '\<director\.load\>'
 	syn match flowCoreFunctions '\<director\.cache\>'
 	syn match flowCoreHandler '\<director\.\(balance\|pass\|api\|fcgi\|http\|haproxy_stats\|haproxy_monitor\)\>'
