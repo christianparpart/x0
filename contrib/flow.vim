@@ -114,6 +114,7 @@ if exists("flow_x0")
 
 	" upstream plugin: status
 	syn match flowCoreHandler '\<status\>'
+	syn match flowCoreHandler '\<status\.json\>'
 	syn match flowCoreHandler '\<status\.nginx_compat\>'
 
 	" upstream plugin: auth

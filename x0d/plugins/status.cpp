@@ -12,6 +12,7 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
+#include <x0/JsonWriter.h>
 #include <x0/TimeSpan.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
@@ -26,6 +27,17 @@
 #include <dirent.h>
 
 #define TRACE(msg...) DEBUG("status: " msg)
+
+using namespace x0;
+
+namespace x0 {
+    JsonWriter& operator<<(JsonWriter& json, double value)
+    {
+        json.buffer().printf("%.2f", value);
+        json.postValue();
+        return json;
+    }
+}
 
 struct Stats :
     public x0::CustomData
@@ -90,6 +102,7 @@ public:
     {
         mainHandler("status", &StatusPlugin::handleRequest);
         mainHandler("status.nginx_compat", &StatusPlugin::nginx_compat);
+        mainHandler("status.json", &StatusPlugin::status_json);
 
         onWorkerSpawn_ = server().onWorkerSpawn.connect<StatusPlugin, &StatusPlugin::onWorkerSpawn>(this);
         onWorkerUnspawn_ = server().onWorkerUnspawn.connect<StatusPlugin, &StatusPlugin::onWorkerUnspawn>(this);
@@ -184,6 +197,66 @@ private:
     void onPostProcess(x0::HttpRequest* r) {
         auto stats = r->connection.worker().customData<Stats>(this);
         ++stats->requestsProcessed;
+    }
+
+    bool status_json(x0::HttpRequest* r, x0::FlowVM::Params& args)
+    {
+        Buffer buf;
+        JsonWriter json(buf);
+
+        writeJSON(json);
+        buf.push_back('\n');
+
+        char slen[32];
+        snprintf(slen, sizeof(slen), "%zu", buf.size());
+        r->responseHeaders.overwrite("Content-Length", slen);
+        r->responseHeaders.push_back("Content-Type", "application/json");
+        r->responseHeaders.push_back("Access-Control-Allow-Origin", "*");
+        r->responseHeaders.push_back("Cache-Control", "no-cache");
+        r->write<BufferSource>(buf);
+
+        r->finish();
+
+        return true;
+    }
+
+    void writeJSON(JsonWriter& response)
+    {
+        Stats sum;
+        double r1 = 0, r5 = 0, r15 = 0;
+
+        for (std::size_t i = 0, e = server().workers().size(); i != e; ++i) {
+            const HttpWorker* w = server().workers()[i];
+            const Stats* stats = w->customData<Stats>(this);
+            sum += *stats;
+            w->fetchPerformanceCounts(&r1, &r5, &r15);
+        }
+
+        response
+            .beginObject()
+                .name("software-name")("x0d")
+                .name("software-version")(PACKAGE_VERSION)
+                .name("process-generation")(server().generation())
+                .name("process-uptime")(TimeSpan(server().uptime()).str())
+                .name("thread-count")(server().workers().size())
+                .beginObject("connections")
+                    .name("accepted")(sum.connectionsAccepted)
+                    .name("active")(sum.active)
+                    .name("reading")(sum.reading)
+                    .name("writing")(sum.writing)
+                    .name("waiting")(sum.active - (sum.reading + sum.writing))
+                .endObject()
+                .beginObject("requests")
+                    .name("handled")(sum.requestsProcessed)
+                    .beginObject("load-avg")
+                        .name("m1")(r1)
+                        .name("m5")(r5)
+                        .name("m15")(r15)
+                    .endObject()
+                    // TODO: provide response status code counts as key "status-%d"
+                .endObject()
+            .endObject()
+            ;
     }
 
     bool nginx_compat(x0::HttpRequest* r, x0::FlowVM::Params& args)

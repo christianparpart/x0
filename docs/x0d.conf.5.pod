@@ -766,6 +766,25 @@ as described below:
 
 =over 6
 
+=item B<status.json> ()
+
+is a handler that responds with the server status information in JSON format.
+
+Example:
+
+ handler main {
+   match req.path {
+     on '/status.json' {
+       access.deny_except [127.0.0.1/8];
+       status.json;
+     }
+     else {
+       # ...
+     }
+   }
+   # ...
+ }
+
 =item B<status> ()
 
 is a handler that generates a server status page.
