@@ -21,7 +21,9 @@ add_custom_target(test
   COMMAND ./x0-test ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(quickie quickie.cpp)
-target_link_libraries(quickie XzeroBase XzeroHttp)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/quickie.cpp)
+  add_executable(quickie quickie.cpp)
+  target_link_libraries(quickie XzeroBase XzeroHttp)
+endif()
 
 endif()
