@@ -32,7 +32,17 @@ public:
     IRGenerator();
     ~IRGenerator();
 
-    static std::unique_ptr<IRProgram> generate(Unit* unit, const std::vector<std::string>& exportedHandlers = {});
+    static std::unique_ptr<IRProgram> generate(Unit* unit, const std::vector<std::string>& exportedHandlers);
+
+    void setErrorCallback(std::function<void(const std::string&)>&& handler) {
+        onError_ = std::move(handler);
+    }
+
+    void setExports(const std::vector<std::string>& exports) {
+        exports_ = exports;
+    }
+
+    std::unique_ptr<IRProgram> generate(Unit* unit);
 
 private:
     class Scope;
@@ -41,6 +51,9 @@ private:
     Scope* scope_;
     Value* result_;
     std::deque<Handler*> handlerStack_;
+
+    size_t errorCount_;
+    std::function<void(const std::string&)> onError_;
 
 private:
     Value* codegen(Expr* expr);

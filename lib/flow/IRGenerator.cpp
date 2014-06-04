@@ -77,7 +77,9 @@ IRGenerator::IRGenerator() :
     exports_(),
     scope_(new Scope()),
     result_(nullptr),
-    handlerStack_()
+    handlerStack_(),
+    errorCount_(0),
+    onError_()
 {
 }
 
@@ -89,10 +91,18 @@ IRGenerator::~IRGenerator()
 std::unique_ptr<IRProgram> IRGenerator::generate(Unit* unit, const std::vector<std::string>& exportedHandlers)
 {
     IRGenerator ir;
-    ir.exports_ = exportedHandlers;
-    ir.codegen(unit);
+    ir.setExports(exportedHandlers);
+    return ir.generate(unit);
+}
 
-    return std::unique_ptr<IRProgram>(ir.program());
+std::unique_ptr<IRProgram> IRGenerator::generate(Unit* unit)
+{
+    codegen(unit);
+
+    if (errorCount_ > 0)
+        return nullptr;
+
+    return std::unique_ptr<IRProgram>(program());
 }
 
 Value* IRGenerator::codegen(Expr* expr)
@@ -184,6 +194,10 @@ void IRGenerator::codegenInline(Handler& handlerSym)
         for (Symbol* symbol: *handlerSym.scope()) {
             codegen(symbol);
         }
+    }
+
+    if (handlerSym.body() == nullptr) {
+        reportError("Forward declared handler '%s' is missing implementation.", handlerSym.name().c_str());
     }
 
     // emit body
@@ -567,8 +581,14 @@ void IRGenerator::accept(AssignStmt& stmt)
 
 void IRGenerator::reportError(const std::string& message)
 {
-    fprintf(stderr, "%s\n", message.c_str());
-    // TODO: bubble error-state up
+    ++errorCount_;
+
+    if (onError_) {
+        onError_(message);
+    } else {
+        // default to print to stderr instead
+        fprintf(stderr, "%s\n", message.c_str());
+    }
 }
 
 } // namespace x0

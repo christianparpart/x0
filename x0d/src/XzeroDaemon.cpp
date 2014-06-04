@@ -1019,9 +1019,15 @@ bool XzeroDaemon::setup(std::unique_ptr<std::istream>&& settings, const std::str
     if (dumpAST_)
         ASTPrinter::print(unit_.get());
 
-    std::unique_ptr<IRProgram> ir = IRGenerator::generate(unit_.get(), {"setup", "main"});
+    IRGenerator irgen;
+    irgen.setExports({"setup", "main"});
+    irgen.setErrorCallback([this](const std::string& message) {
+        log(Severity::error, "[IR Generator] %s", message.c_str());
+    });
+
+    std::unique_ptr<IRProgram> ir = irgen.generate(unit_.get());
     if (!ir) {
-        fprintf(stderr, "IR generation failed. Aborting.\n");
+        log(Severity::error, "IR Generator failed. Aborting.");
         return false;
     }
 

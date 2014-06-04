@@ -259,7 +259,7 @@ void printDefUseChain(IRProgram* program)
 
 bool Flower::compile(Unit* unit)
 {
-    std::unique_ptr<IRProgram> ir = IRGenerator::generate(unit);
+    std::unique_ptr<IRProgram> ir = IRGenerator::generate(unit, {});
     if (!ir) {
         fprintf(stderr, "IR generation failed. Aborting.\n");
         return false;
