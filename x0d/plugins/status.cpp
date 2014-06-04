@@ -102,7 +102,7 @@ public:
     {
         mainHandler("status", &StatusPlugin::handleRequest);
         mainHandler("status.nginx_compat", &StatusPlugin::nginx_compat);
-        mainHandler("status.json", &StatusPlugin::status_json);
+        mainHandler("status.api", &StatusPlugin::status_api);
 
         onWorkerSpawn_ = server().onWorkerSpawn.connect<StatusPlugin, &StatusPlugin::onWorkerSpawn>(this);
         onWorkerUnspawn_ = server().onWorkerUnspawn.connect<StatusPlugin, &StatusPlugin::onWorkerUnspawn>(this);
@@ -199,7 +199,7 @@ private:
         ++stats->requestsProcessed;
     }
 
-    bool status_json(x0::HttpRequest* r, x0::FlowVM::Params& args)
+    bool status_api(x0::HttpRequest* r, x0::FlowVM::Params& args)
     {
         Buffer buf;
         JsonWriter json(buf);

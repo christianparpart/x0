@@ -118,9 +118,8 @@ if exists("flow_x0")
 	syn match flowCoreFunctions '\<accesslog\.\(format\)\>'
 
 	" plugin: status
-	syn match flowCoreHandler '\<status\>'
-	syn match flowCoreHandler '\<status\.json\>'
-	syn match flowCoreHandler '\<status\.nginx_compat\>'
+	syn match flowCoreHandler '\<status\(\.\(api\|nginx_compat\)\)\?\>'
+	"syn keyword flowCoreHandler status
 
 	" plugin: auth
 	syn match flowCoreFunctions '\<auth\.realm\>'

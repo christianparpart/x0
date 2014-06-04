@@ -766,7 +766,7 @@ as described below:
 
 =over 6
 
-=item B<status.json> ()
+=item B<status.api> ()
 
 is a handler that responds with the server status information in JSON format.
 
@@ -776,7 +776,7 @@ Example:
    match req.path {
      on '/status.json' {
        access.deny_except [127.0.0.1/8];
-       status.json;
+       status.api;
      }
      else {
        # ...

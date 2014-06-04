@@ -9,7 +9,7 @@
 	* director: support different modes how to react on early client aborts.
 	* accesslog: support custom log format lines
 	* accesslog: support logging into multiple log targets
-	* status: adds a `status.json()` handler that generates a JSON formatted server status response
+	* status: adds a `status.api()` handler that generates a JSON formatted server status response
 
 0.9.0 (2014-04-13)
 
