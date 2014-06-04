@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <memory>
 
 #include <x0/Api.h>
