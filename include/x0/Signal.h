@@ -13,6 +13,7 @@
 #include <x0/Api.h>
 #include <list>
 #include <algorithm>
+#include <functional>
 
 namespace x0 {
 
@@ -37,8 +38,7 @@ class Signal<void(Args...)>
     Signal& operator=(const Signal&) = delete;
 
 public:
-    typedef std::pair<void *, void(*)(void *, Args...)> item_type;
-    typedef std::list<item_type> list_type;
+    typedef std::list<std::function<void(Args...)>> list_type;
 
     typedef typename list_type::iterator iterator;
     typedef typename list_type::const_iterator const_iterator;
@@ -47,7 +47,7 @@ public:
 
 public:
     Signal() :
-        impl_()
+        listeners_()
     {
     }
 
@@ -55,55 +55,72 @@ public:
     {
     }
 
+    /**
+     * Tests whether this signal contains any listeners.
+     */
     bool empty() const
     {
-        return impl_.empty();
+        return listeners_.empty();
     }
 
+    /**
+     * Retrieves the number of listeners to this signal.
+     */
     std::size_t size() const
     {
-        return impl_.size();
+        return listeners_.size();
     }
 
-    template<class K, void (K::*method)(Args...)>
-    static void method_thunk(void *object, Args... args)
-    {
-        (static_cast<K *>(object)->*method)(args...);
-    }
-
+    /**
+     * Connects a listener with this signal.
+     */
     template<class K, void (K::*method)(Args...)>
     Connection connect(K *object)
     {
-        impl_.push_back(std::make_pair(object, &method_thunk<K, method>));
-        auto handle = impl_.end();
+        return connect([=](Args... args) {
+            (static_cast<K *>(object)->*method)(args...);
+        });
+    }
+
+    /**
+     * Connects a listener with this signal.
+     */
+    Connection connect(std::function<void(Args...)>&& cb)
+    {
+        listeners_.push_back(std::move(cb));
+        auto handle = listeners_.end();
         --handle;
         return handle;
     }
 
-    void disconnect(void* p)
-    {
-        std::remove_if(impl_.begin(), impl_.end(), [&](const item_type& i) { return i.first == p; });
-    }
-
+    /**
+     * Disconnects a listener from this signal.
+     */
     void disconnect(Connection c)
     {
-        impl_.erase(c);
+        listeners_.erase(c);
     }
 
+    /**
+     * Triggers this signal and notifies all listeners via their registered callback each with the given arguments passed.
+     */
     void operator()(Args... args) const
     {
-        for (auto i: impl_) {
-            (*i.second)(i.first, args...);
+        for (auto listener: listeners_) {
+            listener(args...);
         }
     }
 
+    /**
+     * Clears all listeners to this signal.
+     */
     void clear()
     {
-        impl_.clear();
+        listeners_.clear();
     }
 
 private:
-    list_type impl_;
+    list_type listeners_;
 };
 
 //@}
