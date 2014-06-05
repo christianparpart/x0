@@ -1,4 +1,4 @@
-/* <x0/plugins/echo_example.cpp>
+/* <x0d/plugins/echo_example.cpp>
  *
  * This file is part of the x0 web server project and is released under AGPL-3.
  * http://www.xzero.io/
