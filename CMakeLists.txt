@@ -215,6 +215,8 @@ else()
 endif()
 
 set(PLUGINDIR "${LIBDIR}/x0d" CACHE PATH "path to x0d plugins")
+
+set(X0_TMPDIR "${CMAKE_INSTALL_PREFIX}/tmp" CACHE PATH "path prefix for temporary files")
 # ---------------------------------------------------------------------------
 # }}}
 

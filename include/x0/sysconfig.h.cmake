@@ -51,6 +51,7 @@
 
 #cmakedefine SYSCONFDIR "@SYSCONFDIR@"
 #cmakedefine PLUGINDIR "@PLUGINDIR@"
+#cmakedefine X0_TMPDIR "@X0_TMPDIR@"
 
 #cmakedefine VALGRIND 1
 
