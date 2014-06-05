@@ -28,6 +28,7 @@ option(ENABLE_FLOW_TOOL "Build flow-tool [default: off]" OFF)
 
 option(X0_QUEUE_LOCKFREE "Build Queue<T> API as lock-free data structure [default: on]" ON)
 option(X0_WORKER_POST_LIBEV "Use libev's async method to post into HTTP workers instead of a locking queue [default: on]" ON)
+option(X0_ENABLE_O_TMPFILE "Try to open temporary files with O_TMPFILE flag before falling back to standard behaviour [default: on]" ON)
 
 # x0d plugins
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)

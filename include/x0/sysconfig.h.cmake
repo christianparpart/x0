@@ -53,6 +53,8 @@
 #cmakedefine PLUGINDIR "@PLUGINDIR@"
 #cmakedefine X0_TMPDIR "@X0_TMPDIR@"
 
+#cmakedefine X0_ENABLE_O_TMPFILE
+
 #cmakedefine VALGRIND 1
 
 /* x0 features */
