@@ -1,3 +1,10 @@
+# Backend "slow-start"
+
+`slow-start` is by default set to 0, which means, that as soon as this backend is marked online, it'll be hit with
+the `min(backendCapacity,pendingRequests)`.
+A slow start value greater than 0 allows the backend to warm up, e.g. JIT compile and populate other caches.
+
+The question  whether we want this parameter per backend or per cluster.
 
 # ObjectCache
 
