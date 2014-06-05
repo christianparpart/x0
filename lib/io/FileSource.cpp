@@ -45,6 +45,26 @@ FileSource::FileSource(int fd, off_t offset, std::size_t count, bool autoClose) 
 {
 }
 
+FileSource::FileSource(const FileSource& other) :
+    handle_(other.handle_ >= 0 ? dup(other.handle_) : -1),
+    offset_(other.offset_),
+    count_(other.count_),
+    autoClose_(handle_ >= 0)
+{
+}
+
+FileSource::FileSource(FileSource&& other) :
+    handle_(other.handle_),
+    offset_(other.offset_),
+    count_(other.count_),
+    autoClose_(other.autoClose_)
+{
+    other.handle_ = -1;
+    other.offset_ = 0;
+    other.count_ = 0;
+    other.autoClose_ = false;
+}
+
 FileSource::~FileSource()
 {
     if (autoClose_)

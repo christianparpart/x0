@@ -35,9 +35,13 @@ private:
 public:
     explicit FileSource(const char *filename);
     FileSource(int fd, off_t offset, std::size_t count, bool autoClose);
+    FileSource(FileSource&& other);
+    FileSource(const FileSource& other);
     ~FileSource();
 
     inline int handle() const { return handle_; }
+    inline off_t offset() const { return offset_; }
+    inline size_t count() const { return count_; }
 
     virtual ssize_t sendto(Sink& output);
     virtual const char* className() const;
