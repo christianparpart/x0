@@ -18,11 +18,15 @@
 #include <x0/strutils.h>
 #include <x0/sysconfig.h>
 #include <algorithm>
+#include <array>
 #include <strings.h>                    // strcasecmp()
 #include <stdlib.h>                     // realpath()
 #include <limits.h>                     // PATH_MAX
 #include <string.h>
-#include <array>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 #if !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) XZERO_DEBUG("HttpRequest", (level), msg)
@@ -553,6 +557,86 @@ void HttpRequest::onRequestContent(const BufferRef& chunk)
     } else {
         TRACE(2, "onRequestContent(chunkSize=%ld) discard", chunk.size());
     }
+}
+
+struct BodyConsumer // {{{
+{
+    BodyConsumer(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb) :
+        request_(r),
+        path_(),
+        fd_(-1),
+        size_(0),
+        onComplete_(cb)
+    {
+        int flags = O_RDWR;
+
+#if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
+        static bool otmpfileSupported = true;
+        if (otmpfileSupported) {
+            fd_ = open(X0_TMPDIR, flags | O_TMPFILE);
+            if (fd_ >= 0) {
+                path_[0] = '\0'; // explicitely mark it as O_TMPFILE-opened
+            } else {
+                // do not attempt to try it again
+                otmpfileSupported = false;
+            }
+        }
+#endif
+        if (fd_ < 0) {
+            snprintf(path_, sizeof(path_), X0_TMPDIR "/x0d-request-body-XXXXXX");
+            fd_ = mkostemp(path_, flags);
+        }
+
+        r->setBodyCallback<BodyConsumer, &BodyConsumer::consume>(this);
+        r->onRequestDone.connect([this]() { delete this; });
+    }
+
+    ~BodyConsumer()
+    {
+        if (path_[0] != '\0') {
+            unlink(path_);
+        }
+
+        if (fd_ >= 0) {
+            close(fd_);
+        }
+    }
+
+    void consume(const BufferRef& chunk)
+    {
+        if (chunk.empty()) {
+            // EOF reached
+            std::unique_ptr<Source> source(new FileSource(fd_, 0, size_, true));
+            onComplete_(std::move(source));
+            fd_ = -1; // passed fd ownership to FileSource
+            return;
+        }
+
+        if (fd_ < 0) {
+            return;
+        }
+
+        ssize_t rv = write(fd_, chunk.data(), chunk.size());
+        if (rv > 0) {
+            size_ += rv;
+        }
+    }
+
+    HttpRequest* request_;
+    char path_[64];
+    int fd_;
+    size_t size_;
+    std::function<void(std::unique_ptr<Source>&&)> onComplete_;
+}; // }}}
+
+/** Fully consumes the HTTP request body into and invokes the callback one completed.
+ *
+ * This method consumes the request body of this request from the connection stream
+ * and stores it into a temporary location that is freed up afterwards.
+ */
+void HttpRequest::consumeBody(std::function<void(std::unique_ptr<Source>&&)>&& callback)
+{
+    new BodyConsumer(this, std::move(callback));
 }
 
 /** serializes the HTTP response status line plus headers into a byte-stream.

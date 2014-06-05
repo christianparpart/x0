@@ -15,6 +15,7 @@
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpStatus.h>
 #include <x0/http/HttpFileRef.h>
+#include <x0/io/Source.h>
 #include <x0/io/FilterSource.h>
 #include <x0/io/CallbackSource.h>
 #include <x0/CustomDataMgr.h>
@@ -316,6 +317,13 @@ public:
     bool contentAvailable() const;
     template<typename K, void (K::*cb)(const BufferRef&)> void setBodyCallback(K* object);
     void setBodyCallback(void (*callback)(const BufferRef&, void*), void* data = nullptr);
+    void consumeBody(std::function<void(std::unique_ptr<Source>&&)>&& callback);
+
+    std::function<void(std::function<void(std::unique_ptr<Source>&&)>&&)> consumeBody() {
+        return [=](std::function<void(std::unique_ptr<Source>&&)>&& cb) {
+            return consumeBody(std::move(cb));
+        };
+    }
 
     template<typename... Args>
     void log(Severity s, Args&&... args);
