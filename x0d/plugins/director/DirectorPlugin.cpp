@@ -273,11 +273,11 @@ bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
     );
 
     Try<ClientAbortAction> value = parseClientAbortAction(args.getString(3));
-    if (!value.isError()) {
-        rn->onClientAbort = value.get();
+    if (value.isError()) {
         goto done;
     }
 
+    rn->onClientAbort = value.get();
     roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
 
 done:
