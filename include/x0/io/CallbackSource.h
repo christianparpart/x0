@@ -36,8 +36,9 @@ public:
     ~CallbackSource();
 
 public:
-    virtual ssize_t sendto(Sink& sink);
-    virtual const char* className() const;
+    ssize_t size() const override;
+    ssize_t sendto(Sink& sink) override;
+    const char* className() const override;
 };
 //@}
 

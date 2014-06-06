@@ -21,16 +21,16 @@ ssize_t CompositeSource::sendto(Sink& sink)
     ssize_t result = 0;
 
     while (!empty()) {
-        Source* front = sources_.front();
+        Source* front = sources_.front().get();
         ssize_t rv = front->sendto(sink);
 
-        if (rv < 0) // error in source
+        if (rv < 0) { // error in source
             return result ? result : rv;
-        else if (rv == 0) { // empty source
+        } else if (rv == 0) { // empty source
             sources_.pop_front();
-            delete front;
-        } else
+        } else {
             result += rv;
+        }
     }
 
     return result;

@@ -31,7 +31,7 @@ public:
     explicit BufferRefSource(BufferRef&& data);
     ~BufferRefSource();
 
-    std::size_t size() const;
+    ssize_t size() const override;
     bool empty() const;
 
     ssize_t sendto(Sink& sink) override;
@@ -60,7 +60,7 @@ inline BufferRefSource::BufferRefSource(BufferRef&& data) :
 {
 }
 
-inline std::size_t BufferRefSource::size() const
+inline ssize_t BufferRefSource::size() const
 {
     return buffer_.size() - pos_;
 }

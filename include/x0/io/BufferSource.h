@@ -31,7 +31,7 @@ public:
     explicit BufferSource(Buffer&& data);
     ~BufferSource();
 
-    std::size_t size() const;
+    ssize_t size() const override;
     bool empty() const;
 
     ssize_t sendto(Sink& sink) override;
@@ -62,7 +62,7 @@ inline BufferSource::BufferSource(Buffer&& data) :
 {
 }
 
-inline std::size_t BufferSource::size() const
+inline ssize_t BufferSource::size() const
 {
     return buffer_.size() - pos_;
 }

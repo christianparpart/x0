@@ -28,7 +28,7 @@ class X0_API CompositeSource :
     public Source
 {
 private:
-    typedef Source* value_type;
+    typedef std::unique_ptr<Source> value_type;
     typedef std::deque<value_type> list_type;
     typedef list_type::iterator iterator;
     typedef list_type::const_iterator const_iterator;
@@ -41,8 +41,8 @@ public:
     ~CompositeSource();
 
     bool empty() const;
-    std::size_t size() const;
-    void push_back(Source* s);
+    ssize_t size() const override;
+    void push_back(std::unique_ptr<Source>&& s);
     template<typename T, typename... Args> T* push_back(Args... args);
     void clear();
 
@@ -67,35 +67,32 @@ inline bool CompositeSource::empty() const
     return sources_.empty();
 }
 
-inline std::size_t CompositeSource::size() const
+inline ssize_t CompositeSource::size() const
 {
     return sources_.size();
 }
 
-inline void CompositeSource::push_back(Source* s)
+inline void CompositeSource::push_back(std::unique_ptr<Source>&& s)
 {
-    sources_.push_back(s);
+    sources_.push_back(std::move(s));
 }
 
 template<typename T, typename... Args>
 T* CompositeSource::push_back(Args... args)
 {
     T* chunk = new T(std::move(args)...);
-    sources_.push_back(chunk);
+    sources_.push_back(std::unique_ptr<T>(chunk));
     return chunk;
 }
 
 inline void CompositeSource::clear()
 {
-    for (auto i: sources_)
-        delete i;
-
     sources_.clear();
 }
 
 inline Source* CompositeSource::front() const
 {
-    return sources_.front();
+    return sources_.front().get();
 }
 
 inline void CompositeSource::pop_front()

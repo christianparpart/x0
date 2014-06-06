@@ -44,6 +44,11 @@ ssize_t FilterSource::sendto(Sink& sink)
     return result;
 }
 
+ssize_t FilterSource::size() const
+{
+    return source_->size();
+}
+
 const char* FilterSource::className() const
 {
     return "FilterSource";

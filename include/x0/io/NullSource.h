@@ -25,7 +25,8 @@ class X0_API NullSource :
     public Source
 {
 public:
-    virtual ssize_t sendto(Sink& sink);
+    ssize_t sendto(Sink& sink);
+    ssize_t size() const override;
 
     virtual const char* className() const;
 };

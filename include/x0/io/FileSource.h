@@ -41,7 +41,7 @@ public:
 
     inline int handle() const { return handle_; }
     inline off_t offset() const { return offset_; }
-    inline size_t count() const { return count_; }
+    ssize_t size() const override { return count_; }
 
     virtual ssize_t sendto(Sink& output);
     virtual const char* className() const;

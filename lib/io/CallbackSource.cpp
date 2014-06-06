@@ -17,6 +17,11 @@ CallbackSource::~CallbackSource()
     }
 }
 
+ssize_t CallbackSource::size() const
+{
+    return 0;
+}
+
 ssize_t CallbackSource::sendto(Sink& sink)
 {
     return 0;

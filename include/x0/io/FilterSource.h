@@ -38,8 +38,9 @@ public:
 
     ~FilterSource();
 
-    virtual ssize_t sendto(Sink& sink);
-    virtual const char* className() const;
+    ssize_t sendto(Sink& sink) override;
+    ssize_t size() const override;
+    const char* className() const override;
 
 protected:
     Buffer buffer_;

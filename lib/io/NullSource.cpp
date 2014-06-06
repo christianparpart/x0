@@ -15,6 +15,11 @@ ssize_t NullSource::sendto(Sink& sink)
     return 0;
 }
 
+ssize_t NullSource::size() const
+{
+    return 0;
+}
+
 const char* NullSource::className() const
 {
     return "NullSource";
