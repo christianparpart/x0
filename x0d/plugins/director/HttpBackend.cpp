@@ -15,6 +15,7 @@
 #include <x0/io/BufferSource.h>
 #include <x0/io/BufferRefSource.h>
 #include <x0/io/FileSource.h>
+#include <x0/io/SocketSink.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/SocketSpec.h>
 #include <x0/strutils.h>
@@ -51,9 +52,8 @@ private:
     RequestNotes* rn_;			//!< client request
     std::unique_ptr<Socket> socket_;    //!< connection to backend app
 
-    Buffer writeBuffer_;
-    size_t writeOffset_;
-    size_t writeProgress_;
+    CompositeSource writeSource_;
+    SocketSink writeSink_;
 
     Buffer readBuffer_;
     bool processingDone_;
@@ -71,10 +71,10 @@ private:
 
     bool readSome();
     bool writeSome();
+    bool writeSomeBody();
 
     void onConnected(Socket* s, int revents);
     void onReadWriteReady(Socket* s, int revents);
-    void onRequestChunk(const BufferRef& chunk);
 
     void onClientAbort();
     void onWriteComplete();
@@ -95,6 +95,7 @@ private:
     void log(Severity severity, const char* fmt, Args&&... args);
 
     inline void start();
+    inline void serializeRequest();
 
 public:
     inline explicit Connection(RequestNotes* rn, std::unique_ptr<Socket>&& socket);
@@ -110,9 +111,9 @@ HttpBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<Socket>&& 
     rn_(rn),
     socket_(std::move(socket)),
 
-    writeBuffer_(),
-    writeOffset_(0),
-    writeProgress_(0),
+    writeSource_(),
+    writeSink_(socket_.get()),
+
     readBuffer_(),
     processingDone_(false),
 
@@ -197,67 +198,13 @@ HttpBackend::Connection* HttpBackend::Connection::create(HttpBackend* owner, Req
 
 void HttpBackend::Connection::start()
 {
-    auto r = rn_->request;
+    HttpRequest* r = rn_->request;
 
     TRACE("Connection.start()");
 
     r->setAbortHandler(std::bind(&Connection::onClientAbort, this));
 
-    // request line
-    writeBuffer_.push_back(r->method);
-    writeBuffer_.push_back(' ');
-    writeBuffer_.push_back(r->unparsedUri);
-    writeBuffer_.push_back(" HTTP/1.1\r\n");
-
-    BufferRef forwardedFor;
-
-    // request headers
-    for (auto& header: r->requestHeaders) {
-        if (iequals(header.name, "X-Forwarded-For")) {
-            forwardedFor = header.value;
-            continue;
-        }
-        else if (iequals(header.name, "Content-Transfer")
-                || iequals(header.name, "Expect")
-                || iequals(header.name, "Connection")) {
-            TRACE("skip requestHeader(%s: %s)", header.name.str().c_str(), header.value.str().c_str());
-            continue;
-        }
-
-        TRACE("pass requestHeader(%s: %s)", header.name.str().c_str(), header.value.str().c_str());
-        writeBuffer_.push_back(header.name);
-        writeBuffer_.push_back(": ");
-        writeBuffer_.push_back(header.value);
-        writeBuffer_.push_back("\r\n");
-    }
-
-    // additional headers to add
-    writeBuffer_.push_back("Connection: closed\r\n");
-
-    // X-Forwarded-For
-    writeBuffer_.push_back("X-Forwarded-For: ");
-    if (forwardedFor) {
-        writeBuffer_.push_back(forwardedFor);
-        writeBuffer_.push_back(", ");
-    }
-    writeBuffer_.push_back(r->connection.remoteIP().str());
-    writeBuffer_.push_back("\r\n");
-
-    // X-Forwarded-Proto
-    if (r->requestHeader("X-Forwarded-Proto").empty()) {
-        if (r->connection.isSecure())
-            writeBuffer_.push_back("X-Forwarded-Proto: https\r\n");
-        else
-            writeBuffer_.push_back("X-Forwarded-Proto: http\r\n");
-    }
-
-    // request headers terminator
-    writeBuffer_.push_back("\r\n");
-
-    if (r->contentAvailable()) {
-        TRACE("start: request content available: reading.");
-        r->setBodyCallback<Connection, &Connection::onRequestChunk>(this);
-    }
+    serializeRequest();
 
     if (socket_->state() == Socket::Connecting) {
         TRACE("start: connect in progress");
@@ -278,6 +225,69 @@ void HttpBackend::Connection::start()
         if (transferHandle_ < 0) {
             r->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
         }
+    }
+}
+
+void HttpBackend::Connection::serializeRequest()
+{
+    HttpRequest* r = rn_->request;
+    Buffer writeBuffer(8192);
+
+    // request line
+    writeBuffer.push_back(r->method);
+    writeBuffer.push_back(' ');
+    writeBuffer.push_back(r->unparsedUri);
+    writeBuffer.push_back(" HTTP/1.1\r\n");
+
+    BufferRef forwardedFor;
+
+    // request headers
+    for (auto& header: r->requestHeaders) {
+        if (iequals(header.name, "X-Forwarded-For")) {
+            forwardedFor = header.value;
+            continue;
+        }
+        else if (iequals(header.name, "Content-Transfer")
+                || iequals(header.name, "Expect")
+                || iequals(header.name, "Connection")) {
+            TRACE("skip requestHeader(%s: %s)", header.name.str().c_str(), header.value.str().c_str());
+            continue;
+        }
+
+        TRACE("pass requestHeader(%s: %s)", header.name.str().c_str(), header.value.str().c_str());
+        writeBuffer.push_back(header.name);
+        writeBuffer.push_back(": ");
+        writeBuffer.push_back(header.value);
+        writeBuffer.push_back("\r\n");
+    }
+
+    // additional headers to add
+    writeBuffer.push_back("Connection: closed\r\n");
+
+    // X-Forwarded-For
+    writeBuffer.push_back("X-Forwarded-For: ");
+    if (forwardedFor) {
+        writeBuffer.push_back(forwardedFor);
+        writeBuffer.push_back(", ");
+    }
+    writeBuffer.push_back(r->connection.remoteIP().str());
+    writeBuffer.push_back("\r\n");
+
+    // X-Forwarded-Proto
+    if (r->requestHeader("X-Forwarded-Proto").empty()) {
+        if (r->connection.isSecure())
+            writeBuffer.push_back("X-Forwarded-Proto: https\r\n");
+        else
+            writeBuffer.push_back("X-Forwarded-Proto: http\r\n");
+    }
+
+    // request headers terminator
+    writeBuffer.push_back("\r\n");
+
+    writeSource_.push_back<BufferSource>(std::move(writeBuffer));
+
+    if (rn_->body) {
+        writeSource_.push_back(std::move(rn_->body));
     }
 }
 
@@ -311,8 +321,7 @@ void HttpBackend::Connection::onReadWriteTimeout(x0::Socket* s)
 
 void HttpBackend::Connection::onConnected(Socket* s, int revents)
 {
-    TRACE("onConnected: content? %d", rn_->request->contentAvailable());
-    //TRACE("onConnected.pending:\n%s\n", writeBuffer_.c_str());
+    TRACE("onConnected");
 
     if (socket_->state() == Socket::Operational) {
         TRACE("onConnected: flushing");
@@ -324,18 +333,6 @@ void HttpBackend::Connection::onConnected(Socket* s, int revents)
         rn_->request->log(Severity::error, "HTTP proxy: Could not connect to backend: %s", strerror(errno));
         backend_->setState(HealthState::Offline);
         exitFailure(HttpStatus::ServiceUnavailable);
-    }
-}
-
-/** transferres a request body chunk to the origin server.  */
-void HttpBackend::Connection::onRequestChunk(const BufferRef& chunk)
-{
-    TRACE("onRequestChunk(nb:%ld)", chunk.size());
-    writeBuffer_.push_back(chunk);
-
-    if (socket_->state() == Socket::Operational) {
-        socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
-        socket_->setMode(Socket::ReadWrite);
     }
 }
 
@@ -488,26 +485,16 @@ void HttpBackend::Connection::onReadWriteReady(Socket* s, int revents)
 bool HttpBackend::Connection::writeSome()
 {
     auto r = rn_->request;
-    TRACE("writeSome() - %s (%d)", state_str(), r->contentAvailable());
+    TRACE("writeSome() - %s (%s)", state_str(), rn_->body ? "with-body" : "without-body");
 
-    ssize_t rv = socket_->write(writeBuffer_.data() + writeOffset_, writeBuffer_.size() - writeOffset_);
+    ssize_t rv = writeSource_.sendto(writeSink_);
+    TRACE("write request: wrote %ld bytes", rv);
 
-    if (rv > 0) {
-        TRACE("write request: %ld (of %ld) bytes", rv, writeBuffer_.size() - writeOffset_);
-
-        writeOffset_ += rv;
-        writeProgress_ += rv;
-
-        if (writeOffset_ == writeBuffer_.size()) {
-            TRACE("writeOffset == writeBuffser.size (%ld) p:%ld, ca: %d, clr:%ld", writeOffset_,
-                writeProgress_, r->contentAvailable(), r->connection.contentLength());
-
-            writeOffset_ = 0;
-            writeBuffer_.clear();
-            socket_->setMode(Socket::Read);
-        } else {
-            socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
-        }
+    if (rv == 0) {
+        socket_->setMode(Socket::Read);
+    }
+    else if (rv > 0) {
+        socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
     } else if (rv < 0) {
         switch (errno) {
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)

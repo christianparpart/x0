@@ -21,6 +21,7 @@
 
 namespace x0 {
     class HttpRequest;
+    class Source;
 }
 
 class Backend;
@@ -34,11 +35,12 @@ class BackendManager;
 struct RequestNotes :
     public x0::CustomData
 {
-    x0::HttpRequest* request;	//!< The actual HTTP request.
-    x0::DateTime ctime;			//!< Request creation time.
-    BackendManager* manager;	//!< Designated cluster to load balance this request.
-    Backend* backend;			//!< Designated backend to serve this request.
-    size_t tryCount;            //!< Number of request schedule attempts.
+    x0::HttpRequest* request;         //!< The actual HTTP request.
+    std::unique_ptr<x0::Source> body; //!< HTTP request body
+    x0::DateTime ctime;               //!< Request creation time.
+    BackendManager* manager;          //!< Designated cluster to load balance this request.
+    Backend* backend;                 //!< Designated backend to serve this request.
+    size_t tryCount;                  //!< Number of request schedule attempts.
     ClientAbortAction onClientAbort;
 
     x0::TokenShaper<RequestNotes>::Node* bucket; //!< the bucket (node) this request is to be scheduled via.

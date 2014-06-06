@@ -21,6 +21,7 @@
 #include <x0/io/BufferSource.h>
 #include <x0/io/BufferRefSource.h>
 #include <x0/io/FileSource.h>
+#include <x0/io/BufferSink.h>
 #include <x0/strutils.h>
 #include <x0/Process.h>
 #include <x0/Buffer.h>
@@ -89,10 +90,10 @@ private:
 
     // client-request management
     void initialize();
+    inline void serializeRequest();
     void exitSuccess();
     void exitFailure(HttpStatus status);
     void onClientAbort();
-    void processRequestBody(const x0::BufferRef& chunk);
 
     // backend write ops
     template<typename T, typename... Args> void write(Args&&... args);
@@ -137,8 +138,10 @@ public:
 
     x0::Buffer readBuffer_;                 //!< backend response buffer
     size_t readOffset_;
+
     x0::Buffer writeBuffer_;                //!< backend request buffer
     size_t writeOffset_;                    //!< write offset into the backend request buffer
+
     bool flushPending_;                     //!< true if "pending" bytes shall be flushed, false if not.
 
     RequestNotes* rn_;                      //!< current client request to proxy for
@@ -198,8 +201,35 @@ void FastCgiBackend::Connection::initialize()
 
     // initialize object
     r->setAbortHandler(std::bind(&FastCgiBackend::Connection::onClientAbort, this));
-
     r->registerInspectHandler<FastCgiBackend::Connection, &FastCgiBackend::Connection::inspect>(this);
+
+    serializeRequest();
+
+    // setup I/O callback
+    if (socket_->state() == x0::Socket::Connecting) {
+        socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onConnectTimeout>(this, backend_->manager()->connectTimeout());
+        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onConnectComplete>(this);
+    } else {
+        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteReady>(this);
+    }
+
+    // flush out
+    flush();
+
+    if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
+        char path[1024];
+        snprintf(path, sizeof(path), "/tmp/x0d-director-%d", socket_->handle());
+
+        transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        if (transferHandle_ < 0) {
+            r->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+        }
+    }
+}
+
+void FastCgiBackend::Connection::serializeRequest()
+{
+    auto r = rn_->request;
 
     // initialize stream
     write<FastCgi::BeginRequestRecord>(FastCgi::Role::Responder, id_, true);
@@ -238,11 +268,9 @@ void FastCgiBackend::Connection::initialize()
     //params.encode("REMOTE_USER", "");
     //params.encode("REMOTE_IDENT", "");
 
-    if (r->contentAvailable()) {
+    if (rn_->body) {
         params.encode("CONTENT_TYPE", r->requestHeader("Content-Type"));
         params.encode("CONTENT_LENGTH", r->requestHeader("Content-Length"));
-
-        r->setBodyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::processRequestBody>(this);
     }
 
     if (r->connection.isSecure())
@@ -268,26 +296,14 @@ void FastCgiBackend::Connection::initialize()
     write(FastCgi::Type::Params, id_, params.output());
     write(FastCgi::Type::Params, id_, "", 0); // EOS
 
-    // setup I/O callback
-    if (socket_->state() == x0::Socket::Connecting) {
-        socket_->setTimeout<FastCgiBackend::Connection, &FastCgiBackend::Connection::onConnectTimeout>(this, backend_->manager()->connectTimeout());
-        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onConnectComplete>(this);
-    } else {
-        socket_->setReadyCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onReadWriteReady>(this);
-    }
-
-    // flush out
-    flush();
-
-    if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
-        char path[1024];
-        snprintf(path, sizeof(path), "/tmp/x0d-director-%d", socket_->handle());
-
-        transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-        if (transferHandle_ < 0) {
-            r->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+    if (rn_->body) {
+        BufferSink sink;
+        while (rn_->body->sendto(sink) > 0) {
+            write(FastCgi::Type::StdIn, id_, sink.buffer().data(), sink.buffer().size());
+            sink.clear();
         }
     }
+    write(FastCgi::Type::StdIn, id_, "", 0); // EOS
 }
 
 /**
@@ -360,17 +376,6 @@ void FastCgiBackend::Connection::onClientAbort()
             // BUG: internal server error
             break;
     }
-}
-
-void FastCgiBackend::Connection::processRequestBody(const x0::BufferRef& chunk)
-{
-    TRACE(1, "Received %ld / %ld bytes from client body.",
-        chunk.size(), rn_->request->connection.contentLength());
-
-    // if chunk.size() is 0, this also marks the fcgi stdin stream's end. so just pass it.
-    write(FastCgi::Type::StdIn, id_, chunk.data(), chunk.size());
-
-    flush();
 }
 
 template<typename T, typename... Args>

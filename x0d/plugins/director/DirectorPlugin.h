@@ -49,7 +49,11 @@ private:
     void director_cache_ttl(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
     bool director_balance(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void balance(x0::HttpRequest* r, const std::string& directorName, const std::string& bucketName, std::unique_ptr<x0::Source>&& body);
+
     bool director_pass(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void pass(x0::HttpRequest* r, const std::string& directorName, const std::string& backendName, std::unique_ptr<x0::Source>&& body);
+
     bool director_api(x0::HttpRequest* r, x0::FlowVM::Params& args);
     bool director_fcgi(x0::HttpRequest* r, x0::FlowVM::Params& args);
     bool director_http(x0::HttpRequest* r, x0::FlowVM::Params& args);
