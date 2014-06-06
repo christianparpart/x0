@@ -354,6 +354,11 @@ public:
     void finish();
     bool isFinished() const { return connection.state() == HttpConnection::SendingReplyDone; }
 
+    /**
+     * Abnormally aborts given request and immediately closes the underlying connection.
+     */
+    void abort() { connection.abort(); }
+
     static std::string statusStr(HttpStatus status);
 
     template<typename T> inline void post(T function) { connection.post(function); }
