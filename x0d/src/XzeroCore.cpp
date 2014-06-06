@@ -183,8 +183,8 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     mainHandler("alias", &XzeroCore::alias, FlowType::String, FlowType::String);
     mainHandler("staticfile", &XzeroCore::staticfile);
     mainHandler("precompressed", &XzeroCore::precompressed);
-    mainHandler("redirect", &XzeroCore::redirect, FlowType::String);
-    mainHandler("respond", &XzeroCore::respond, FlowType::Number);
+    mainHandler("return", &XzeroCore::redirect_with_to, FlowType::Number, FlowType::String);
+    mainHandler("return", &XzeroCore::return_with, FlowType::Number);
     mainHandler("echo", &XzeroCore::echo, FlowType::String);
     mainHandler("blank", &XzeroCore::blank);
 }
@@ -945,20 +945,34 @@ void XzeroCore::file_is_exe(HttpRequest* in, FlowParams& args)
     }
 }
 // }}}
-// {{{ handler
-bool XzeroCore::redirect(HttpRequest *in, FlowParams& args)
+// {{{ redirection/termination
+bool XzeroCore::redirect_with_to(HttpRequest* r, FlowParams& args)
 {
-    in->status = HttpStatus::MovedTemporarily;
-    in->responseHeaders.overwrite("Location", args.getString(1).str());
-    in->finish();
+    int status = args.getInt(1);
+    FlowString location = args.getString(2);
+
+    if (status >= 300 && status <= 308) {
+        r->status = static_cast<HttpStatus>(status);
+        r->responseHeaders.push_back("Location", location.str());
+    } else {
+        r->status = HttpStatus::InternalServerError;
+        r->log(Severity::error, "Status code is out of range. %s should be between 300 and 308.", status);
+    }
+    r->finish();
 
     return true;
 }
 
-bool XzeroCore::respond(HttpRequest *in, FlowParams& args)
+bool XzeroCore::return_with(HttpRequest* r, FlowParams& args)
 {
-    in->status = static_cast<HttpStatus>(args.getInt(1));
-    in->finish();
+    int status = args.getInt(1);
+    r->status = static_cast<HttpStatus>(status);
+
+    if (status == 444) {
+        r->abort();
+    } else {
+        r->finish();
+    }
 
     return true;
 }

@@ -729,29 +729,31 @@ Example:
     staticfile;
  }
 
-=item B<redirect> (url)
+=item B<return> (code: int, url: string)
 
 Redirects current request to another URL.
+
+The redirect code must be between 300 and 308.
 
 Example:
 
  handler main {
     # ...
     if (req.path == '/home') {
-        redirect 'http://xzero.io/';
+        return 301, 'http://xzero.io/';
     } else {
-        redirect '/home/local';
+        return 302, '/home/local';
     }
  }
 
-=item B<respond> (http_code)
+=item B<return> (http_code)
 
 Generate a simple response to the current request.
 
 Example:
 
  handler main {
-    respond 404 if req.path == '/favicon.ico';
+    return 404 if req.path == '/favicon.ico';
     # ...
  }
 

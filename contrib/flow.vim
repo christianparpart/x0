@@ -104,7 +104,7 @@ if exists("flow_x0")
 	syn keyword flowCoreFunctions docroot alias
 
 	" core handlers
-	syn keyword flowCoreHandler redirect respond echo blank
+	syn keyword flowCoreHandler return echo blank
 
 	" plugin handlers
 	syn keyword flowCoreHandler fastcgi precompressed staticfile

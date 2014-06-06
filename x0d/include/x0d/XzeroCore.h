@@ -106,8 +106,8 @@ private:
     bool verify_docroot(x0::Instr* call);
     bool docroot(x0::HttpRequest* r, x0::FlowVM::Params& args);
     bool alias(x0::HttpRequest* r, x0::FlowVM::Params& args);
-    bool redirect(x0::HttpRequest *r, x0::FlowVM::Params& args);
-    bool respond(x0::HttpRequest *r, x0::FlowVM::Params& args);
+    bool redirect_with_to(x0::HttpRequest *r, x0::FlowVM::Params& args);
+    bool return_with(x0::HttpRequest *r, x0::FlowVM::Params& args);
     bool echo(x0::HttpRequest *r, x0::FlowVM::Params& args);
     bool blank(x0::HttpRequest *r, x0::FlowVM::Params& args);
     bool staticfile(x0::HttpRequest *r, x0::FlowVM::Params& args);
