@@ -58,6 +58,7 @@ private:
     Buffer readBuffer_;
     bool processingDone_;
 
+    char transferPath_[1024];
     int transferHandle_;
     size_t transferOffset_;
 
@@ -117,9 +118,12 @@ HttpBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<Socket>&& 
     readBuffer_(),
     processingDone_(false),
 
+    transferPath_(),
     transferHandle_(-1),
     transferOffset_(0)
 {
+    transferPath_[0] = '\0';
+
 #ifndef XZERO_NDEBUG
     setLoggingPrefix("Connection/%p", this);
 #endif
@@ -130,6 +134,10 @@ HttpBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<Socket>&& 
 
 HttpBackend::Connection::~Connection()
 {
+    if (transferPath_[0] != '\0') {
+        unlink(transferPath_);
+    }
+
     if (!(transferHandle_ < 0)) {
         ::close(transferHandle_);
     }
@@ -218,12 +226,26 @@ void HttpBackend::Connection::start()
     }
 
     if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
-        char path[1024];
-        snprintf(path, sizeof(path), "/tmp/x0d-director-%d", socket_->handle());
+#if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
+        static bool otmpfileSupported = true;
+        if (otmpfileSupported) {
+            transferHandle_ = open(X0_TMPDIR, O_RDWR | O_TMPFILE);
+            if (transferHandle_ < 0) {
+                // do not attempt to try it again
+                otmpfileSupported = false;
+            }
+        }
+#endif
 
-        transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
         if (transferHandle_ < 0) {
-            r->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+            snprintf(transferPath_, sizeof(transferPath_), X0_TMPDIR "/x0d-director-%d", socket_->handle());
+
+            transferHandle_ = ::open(transferPath_, O_RDWR | O_CREAT | O_TRUNC, 0666);
+
+            if (transferHandle_ < 0) {
+                transferPath_[0] = '\0';
+                r->log(Severity::error, "Could not open temporary file %s. %s", transferPath_, strerror(errno));
+            }
         }
     }
 }
