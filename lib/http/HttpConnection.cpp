@@ -532,7 +532,7 @@ void HttpConnection::write(std::unique_ptr<Source>&& chunk)
 {
     if (isOpen()) {
         TRACE(1, "write() chunk (%s)", chunk->className());
-        output_.push_back(chunk.release());
+        output_.push_back(std::move(chunk));
 
         if (autoFlush_) {
             flush();
