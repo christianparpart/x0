@@ -559,74 +559,121 @@ void HttpRequest::onRequestContent(const BufferRef& chunk)
     }
 }
 
-struct BodyConsumer // {{{
-{
-    BodyConsumer(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb) :
-        request_(r),
-        path_(),
-        fd_(-1),
-        size_(0),
-        onComplete_(cb)
+class BodyConsumer { // {{{
+public:
+    static void tmpfile(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb)
     {
-        int flags = O_RDWR;
+        new TmpfileBuilder(r, std::move(cb));
+    }
+
+    static void buffer(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb)
+    {
+        new BufferBuilder(r, std::move(cb));
+    }
+
+private:
+    struct TmpfileBuilder // {{{
+    {
+        TmpfileBuilder(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb) :
+            request_(r),
+            path_(),
+            fd_(-1),
+            size_(0),
+            onComplete_(cb)
+        {
+            int flags = O_RDWR;
 
 #if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
-        static bool otmpfileSupported = true;
-        if (otmpfileSupported) {
-            fd_ = open(X0_TMPDIR, flags | O_TMPFILE);
+            static bool otmpfileSupported = true;
+            if (otmpfileSupported) {
+                fd_ = open(X0_TMPDIR, flags | O_TMPFILE);
+                if (fd_ >= 0) {
+                    path_[0] = '\0'; // explicitely mark it as O_TMPFILE-opened
+                } else {
+                    // do not attempt to try it again
+                    otmpfileSupported = false;
+                }
+            }
+#endif
+            if (fd_ < 0) {
+                snprintf(path_, sizeof(path_), X0_TMPDIR "/x0d-request-body-XXXXXX");
+                fd_ = mkostemp(path_, flags);
+            }
+
+            r->setBodyCallback<TmpfileBuilder, &TmpfileBuilder::consume>(this);
+            r->onRequestDone.connect([this]() { delete this; });
+        }
+
+        ~TmpfileBuilder()
+        {
+            if (path_[0] != '\0') {
+                unlink(path_);
+            }
+
             if (fd_ >= 0) {
-                path_[0] = '\0'; // explicitely mark it as O_TMPFILE-opened
-            } else {
-                // do not attempt to try it again
-                otmpfileSupported = false;
+                close(fd_);
             }
         }
-#endif
-        if (fd_ < 0) {
-            snprintf(path_, sizeof(path_), X0_TMPDIR "/x0d-request-body-XXXXXX");
-            fd_ = mkostemp(path_, flags);
+
+        void consume(const BufferRef& chunk)
+        {
+            if (chunk.empty()) {
+                // EOF reached
+                std::unique_ptr<Source> source(new FileSource(fd_, 0, size_, true));
+                onComplete_(std::move(source));
+                fd_ = -1; // passed fd ownership to FileSource
+                return;
+            }
+
+            if (fd_ < 0) {
+                return;
+            }
+
+            ssize_t rv = write(fd_, chunk.data(), chunk.size());
+            if (rv > 0) {
+                size_ += rv;
+            }
         }
 
-        r->setBodyCallback<BodyConsumer, &BodyConsumer::consume>(this);
-        r->onRequestDone.connect([this]() { delete this; });
-    }
-
-    ~BodyConsumer()
+        HttpRequest* request_;
+        char path_[64];
+        int fd_;
+        size_t size_;
+        std::function<void(std::unique_ptr<Source>&&)> onComplete_;
+    }; // }}}
+    struct BufferBuilder // {{{
     {
-        if (path_[0] != '\0') {
-            unlink(path_);
+        BufferBuilder(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb) :
+            request_(r),
+            buffer_(),
+            onComplete_(cb)
+        {
+            buffer_.reserve(r->connection.contentLength());
+
+            r->setBodyCallback<BufferBuilder, &BufferBuilder::consume>(this);
+            r->onRequestDone.connect([this]() { delete this; });
         }
 
-        if (fd_ >= 0) {
-            close(fd_);
-        }
-    }
-
-    void consume(const BufferRef& chunk)
-    {
-        if (chunk.empty()) {
-            // EOF reached
-            std::unique_ptr<Source> source(new FileSource(fd_, 0, size_, true));
-            onComplete_(std::move(source));
-            fd_ = -1; // passed fd ownership to FileSource
-            return;
+        ~BufferBuilder()
+        {
         }
 
-        if (fd_ < 0) {
-            return;
+        void consume(const BufferRef& chunk)
+        {
+            if (chunk.empty()) {
+                // EOF reached
+                std::unique_ptr<BufferSource> source(new BufferSource(std::move(buffer_)));
+                onComplete_(std::move(source));
+                return;
+            }
+
+            buffer_.push_back(chunk);
         }
 
-        ssize_t rv = write(fd_, chunk.data(), chunk.size());
-        if (rv > 0) {
-            size_ += rv;
-        }
-    }
-
-    HttpRequest* request_;
-    char path_[64];
-    int fd_;
-    size_t size_;
-    std::function<void(std::unique_ptr<Source>&&)> onComplete_;
+        HttpRequest* request_;
+        Buffer buffer_;
+        std::function<void(std::unique_ptr<Source>&&)> onComplete_;
+    }; // }}}
 }; // }}}
 
 /** Fully consumes the HTTP request body into and invokes the callback one completed.
@@ -636,7 +683,15 @@ struct BodyConsumer // {{{
  */
 void HttpRequest::consumeBody(std::function<void(std::unique_ptr<Source>&&)>&& callback)
 {
-    new BodyConsumer(this, std::move(callback));
+    const bool useTmpFile =
+        connection.isChunked() ||
+        connection.contentLength() > connection.worker().server().requestBodyBufferSize();
+
+    if (useTmpFile) {
+        BodyConsumer::tmpfile(this, std::move(callback));
+    } else {
+        BodyConsumer::buffer(this, std::move(callback));
+    }
 }
 
 /** serializes the HTTP response status line plus headers into a byte-stream.
