@@ -1003,23 +1003,45 @@ bool XzeroCore::blank(HttpRequest* in, FlowParams& args)
 // {{{ response's header.* functions
 void XzeroCore::header_add(HttpRequest* r, FlowParams& args)
 {
-    r->responseHeaders.push_back(args.getString(1).str(), args.getString(2).str());
+
+    std::string name = args.getString(1).str();
+    std::string value = args.getString(2).str();
+
+    r->onPostProcess.connect([r, name, value]() {
+        r->responseHeaders.push_back(name, value);
+    });
 }
 
 // header.append(headerName, appendValue)
 void XzeroCore::header_append(HttpRequest* r, FlowParams& args)
 {
+    std::string name = args.getString(1).str();
+    std::string value = args.getString(2).str();
+
     r->responseHeaders[args.getString(1).str()] += args.getString(2).str();
+
+    r->onPostProcess.connect([r, name, value]() {
+        r->responseHeaders[name] += value;
+    });
 }
 
 void XzeroCore::header_overwrite(HttpRequest* r, FlowParams& args)
 {
-    r->responseHeaders.overwrite(args.getString(1).str(), args.getString(2).str());
+    std::string name = args.getString(1).str();
+    std::string value = args.getString(2).str();
+
+    r->onPostProcess.connect([r, name, value]() {
+        r->responseHeaders.overwrite(name, value);
+    });
 }
 
 void XzeroCore::header_remove(HttpRequest* r, FlowParams& args)
 {
-    r->responseHeaders.remove(args.getString(1).str());
+    std::string name = args.getString(1).str();
+
+    r->onPostProcess.connect([r, name]() {
+        r->responseHeaders.remove(name);
+    });
 }
 // }}}
 bool XzeroCore::staticfile(HttpRequest *in, FlowParams& args) // {{{

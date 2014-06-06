@@ -4,6 +4,7 @@
 	* x0d: Adds SIGTTIN/SIGTTOU signal handling for incrementing/decrementing log level
 	* x0d: Fixes to req.header(S)S and req.cookie(S)S signatures
 	* x0d: redirect() and respond() have been both redesigned and renamed into return() to be more familiar with nginx configuration
+	* x0d: header.*() methods improved to apply their actions right before the headers get serialized
 	* http: fixes to request path decoding
 	* flow: fixes crash on empty arrays
 	* flow: allow parsing function call args in expressions without round braces.
