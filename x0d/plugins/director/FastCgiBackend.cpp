@@ -264,9 +264,11 @@ void FastCgiBackend::Connection::serializeRequest()
     params.encode("REMOTE_ADDR", r->connection.remoteIP().str());
     params.encode("REMOTE_PORT", x0::lexical_cast<std::string>(r->connection.remotePort()));
 
-    //params.encode("AUTH_TYPE", ""); // TODO
-    //params.encode("REMOTE_USER", "");
     //params.encode("REMOTE_IDENT", "");
+    //params.encode("AUTH_TYPE", ""); // TODO
+
+    if (!r->username.empty())
+        params.encode("REMOTE_USER", r->username);
 
     if (rn_->body) {
         params.encode("CONTENT_TYPE", r->requestHeader("Content-Type"));
