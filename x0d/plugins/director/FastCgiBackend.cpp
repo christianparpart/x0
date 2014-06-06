@@ -148,6 +148,7 @@ public:
 
     int writeCount_;                        //!< number of write chunks written within a single io() callback.
 
+    char transferPath_[1024];
     int transferHandle_;                    //!< file descriptor to temporary response body handle
     int transferOffset_;                    //!< offset of the last client-write operatin into the @p transferHandle_.
 
@@ -169,10 +170,15 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
 
     rn_(rn),
     writeCount_(0),
+
+    transferPath_(),
     transferHandle_(-1),
     transferOffset_(0),
+
     sendfile_()
 {
+    transferPath_[0] = '\0';
+
     TRACE(1, "create");
 
     initialize();
@@ -181,6 +187,10 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
 FastCgiBackend::Connection::~Connection()
 {
     //TRACE(1, "closing transport connection to backend server.");
+
+    if (transferPath_[0] != '\0') {
+        unlink(transferPath_);
+    }
 
     if (!(transferHandle_ < 0)) {
         ::close(transferHandle_);
@@ -217,12 +227,26 @@ void FastCgiBackend::Connection::initialize()
     flush();
 
     if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
-        char path[1024];
-        snprintf(path, sizeof(path), "/tmp/x0d-director-%d", socket_->handle());
+#if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
+        static bool otmpfileSupported = true;
+        if (otmpfileSupported) {
+            transferHandle_ = open(X0_TMPDIR, O_RDWR | O_TMPFILE);
+            if (transferHandle_ < 0) {
+                // do not attempt to try it again
+                otmpfileSupported = false;
+            }
+        }
+#endif
 
-        transferHandle_ = ::open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
         if (transferHandle_ < 0) {
-            r->log(Severity::error, "Could not open temporary file %s. %s", path, strerror(errno));
+            snprintf(transferPath_, sizeof(transferPath_), X0_TMPDIR "/x0d-director-%d", socket_->handle());
+
+            transferHandle_ = ::open(transferPath_, O_RDWR | O_CREAT | O_TRUNC, 0666);
+
+            if (transferHandle_ < 0) {
+                transferPath_[0] = '\0';
+                r->log(Severity::error, "Could not open temporary file %s. %s", transferPath_, strerror(errno));
+            }
         }
     }
 }
