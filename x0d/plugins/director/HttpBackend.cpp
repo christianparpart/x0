@@ -98,6 +98,8 @@ private:
     inline void start();
     inline void serializeRequest();
 
+    void inspect(x0::Buffer& out);
+
 public:
     inline explicit Connection(RequestNotes* rn, std::unique_ptr<Socket>&& socket);
     ~Connection();
@@ -211,6 +213,7 @@ void HttpBackend::Connection::start()
     TRACE("Connection.start()");
 
     r->setAbortHandler(std::bind(&Connection::onClientAbort, this));
+    r->registerInspectHandler<HttpBackend::Connection, &HttpBackend::Connection::inspect>(this);
 
     serializeRequest();
 
@@ -594,6 +597,22 @@ bool HttpBackend::Connection::readSome()
         }
     }
     return true;
+}
+
+void HttpBackend::Connection::inspect(x0::Buffer& out)
+{
+    out << "processingDone:" << (processingDone_ ? "yes" : "no") << ", ";
+
+	if (rn_) {
+		out << "isOutputPending:" << rn_->request->connection.isOutputPending();
+	} else {
+		out << "no-request-bound";
+	}
+
+    if (socket_) {
+        out << ", ";
+        socket_->inspect(out);
+    }
 }
 // }}}
 // {{{ HttpBackend impl
