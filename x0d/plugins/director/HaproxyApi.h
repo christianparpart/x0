@@ -22,7 +22,7 @@ class HaproxyApi :
     public x0::CustomData
 {
 private:
-    typedef std::unordered_map<std::string, Director*> DirectorMap;
+    typedef std::unordered_map<std::string, std::unique_ptr<Director>> DirectorMap;
 
     DirectorMap* directors_;
 

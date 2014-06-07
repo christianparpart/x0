@@ -131,7 +131,7 @@ void DirectorPlugin::director_load(FlowVM::Params& args)
 
     director->load(path);
 
-    directors_[directorName] = director.release();
+    directors_[directorName] = std::move(director);
 }
 // }}}
 // {{{ setup function director.cache.key(string key)
@@ -199,7 +199,7 @@ void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName, co
         internalServerError(r);
         return;
     }
-    Director* director = i->second;
+    Director* director = i->second.get();
 
     RequestShaper::Node* bucket = nullptr;
     if (!bucketName.empty()) {
@@ -248,7 +248,7 @@ void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName, const
         internalServerError(r);
         return;
     }
-    Director* director = i->second;
+    Director* director = i->second.get();
 
     // custom backend route
     Backend* backend = nullptr;

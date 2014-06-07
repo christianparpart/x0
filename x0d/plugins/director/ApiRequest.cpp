@@ -191,7 +191,7 @@ Director* ApiRequest::findDirector(const x0::BufferRef& name)
     auto i = directors_->find(name.str());
 
     if (i != directors_->end())
-        return i->second;
+        return i->second.get();
 
     request_->log(Severity::error, "Director '%s' not found.", name.str().c_str());
 
@@ -400,8 +400,8 @@ bool ApiRequest::index()
     JsonWriter json(result);
 
     json.beginObject();
-    for (auto di: *directors_) {
-        Director* director = di.second;
+    for (auto& di: *directors_) {
+        Director* director = di.second.get();
         json.name(director->name()).value(*director);
     }
     json.endObject();
