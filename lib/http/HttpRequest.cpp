@@ -685,7 +685,7 @@ void HttpRequest::consumeBody(std::function<void(std::unique_ptr<Source>&&)>&& c
 {
     const bool useTmpFile =
         connection.isChunked() ||
-        connection.contentLength() > connection.worker().server().requestBodyBufferSize();
+        connection.contentLength() > static_cast<ssize_t>(connection.worker().server().requestBodyBufferSize());
 
     if (useTmpFile) {
         BodyConsumer::tmpfile(this, std::move(callback));
