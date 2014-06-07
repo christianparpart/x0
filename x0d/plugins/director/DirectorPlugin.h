@@ -30,7 +30,7 @@ class DirectorPlugin :
     public x0d::XzeroPlugin
 {
 private:
-    std::unordered_map<std::string, Director*> directors_;
+    std::unordered_map<std::string, std::unique_ptr<Director>> directors_;
     std::unique_ptr<RoadWarrior> roadWarrior_;
     std::unique_ptr<HaproxyApi> haproxyApi_;
     x0::HttpServer::RequestHook::Connection postProcess_;

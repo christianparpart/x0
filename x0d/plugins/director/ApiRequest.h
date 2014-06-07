@@ -20,7 +20,7 @@
 class DirectorPlugin;
 class Director;
 
-typedef std::unordered_map<std::string, Director*> DirectorMap;
+typedef std::unordered_map<std::string, std::unique_ptr<Director>> DirectorMap;
 
 enum class HttpMethod
 {
