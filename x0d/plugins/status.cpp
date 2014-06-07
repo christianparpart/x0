@@ -433,7 +433,7 @@ private:
 
         out << "<td class='state'>" << c->state_str();
         if (c->state() == x0::HttpConnection::ReadingRequest)
-            out << " (" << c->state_str() << ")";
+            out << " (" << c->parserStateStr() << ")";
         out << "</td>";
 
         out << "<td class='age'>" << (c->worker().now() - c->socket()->startedAt()).str() << "</td>";
