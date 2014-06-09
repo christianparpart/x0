@@ -26,9 +26,8 @@ class X0_API BufferRefSource :
     public Source
 {
 public:
-    explicit BufferRefSource(const Buffer& data);
-    explicit BufferRefSource(const BufferRef& data);
-    explicit BufferRefSource(BufferRef&& data);
+    BufferRefSource(const BufferRef& data);
+    BufferRefSource(BufferRef&& data);
     ~BufferRefSource();
 
     ssize_t size() const override;
@@ -45,11 +44,6 @@ private:
 //@}
 
 // {{{ inlines
-inline BufferRefSource::BufferRefSource(const Buffer& data) :
-    buffer_(data.ref()), pos_(0)
-{
-}
-
 inline BufferRefSource::BufferRefSource(const BufferRef& data) :
     buffer_(data), pos_(0)
 {
