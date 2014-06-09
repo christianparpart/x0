@@ -32,27 +32,16 @@ struct x0_request_s
     x0_server_t* server;
     HttpRequest* request;
 
-    x0_request_body_fn body_cb;
-    void* body_userdata;
-
     x0_request_abort_fn abort_cb;
     void* abort_userdata;
 
     x0_request_s(HttpRequest* r, x0_server_t* s) :
         server(s),
         request(r),
-        body_cb(nullptr),
-        body_userdata(nullptr),
         abort_cb(nullptr),
         abort_userdata(nullptr)
     {
         request->connection.setAutoFlush(server->autoflush);
-    }
-
-    void bodyCallback(const BufferRef& ref) {
-        if (body_cb) {
-            body_cb(this, ref.data(), ref.size(), body_userdata);
-        }
     }
 };
 
@@ -160,13 +149,6 @@ void x0_server_tcp_nodelay_set(x0_server_t* server, int flag)
 
 // --------------------------------------------------------------------------
 // REQUEST SETUP
-
-void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata)
-{
-    r->request->setBodyCallback<x0_request_t, &x0_request_t::bodyCallback>(r);
-    r->body_cb = handler;
-    r->body_userdata = userdata;
-}
 
 void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handler, void* userdata)
 {

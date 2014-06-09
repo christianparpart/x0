@@ -38,7 +38,6 @@ typedef struct x0_server_s x0_server_t;
 typedef struct x0_request_s x0_request_t;
 
 typedef void (*x0_request_handler_fn)(x0_request_t*, void* userdata);
-typedef void (*x0_request_body_fn)(x0_request_t*, const char* buf, size_t size, void* userdata);
 typedef void (*x0_request_abort_fn)(void* userdata);
 typedef void (*x0_request_post_fn)(x0_request_t* r, void* userdata);
 
@@ -145,15 +144,6 @@ X0_API void x0_server_tcp_nodelay_set(x0_server_t* server, int flag);
 
 // }}}
 // {{{ request management
-/**
- * Installs a request body handler for given request.
- *
- * @param r request to install the request body handler for
- * @param handler callback for handling the request body
- * @param userdata custom userdata pointer to be passed to the handler
- */
-X0_API void x0_request_body_callback(x0_request_t* r, x0_request_body_fn handler, void* userdata);
-
 /**
  * Installs a client abort handler for given request.
  *
