@@ -1,22 +1,20 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- FIXME: recent Signal<>-changes maybe causes shutdown to SEGV
+- director:
+  - raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
+- status:
+  - create a status.html that performs live polling on the its JSON API
 - logging: rename debug to trace and diag to debug
-- director: use O_TMPFILE in open() for tmp files if available (3.11+), fall back to ~O_TMPFILE if not.
-  - make this feature runtime configurable (for debugging) and compile-time configurable.
-- director: raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
-- director: support {file,mem-accel} for request body, too.
-- status: support different output models: HTML, CSV, JSON
-  - gather status infos via JSON or as key/value array and transform that into different the output formats
+- QA: prefer posix_spawn() over vfork() to exec child processes
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-0.10.0 PRE-TODO
+0.10.0 RELEASE-PREPS
 
 - find a way to ppa.dep for 12.04 (x32/64)
   - create *two* PPAs:
     - trapni/x0 for main x0 (latest ubuntu)
     - trapni/x0-precise: for 12.04
-
-- QA: prefer posix_spawn() over vfork() to exec child processes
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 flow:
