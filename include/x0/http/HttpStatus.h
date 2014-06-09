@@ -76,6 +76,7 @@ enum class HttpStatus // {{{
     TooManyRequests = 429, // RFC 6585
     RequestHeaderFieldsTooLarge = 431, // RFC 6585
     NoResponse = 444, // nginx ("Used in Nginx logs to indicate that the server has returned no information to the client and closed the connection")
+    Hangup = 499,     // Used in Nginx to indicate that the client has aborted the connection before the server could serve the response.
 
     // server error
     InternalServerError = 500,
