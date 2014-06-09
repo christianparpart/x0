@@ -21,7 +21,7 @@ ssize_t CompositeSource::sendto(Sink& sink)
     ssize_t result = 0;
 
     while (!empty()) {
-        Source* front = sources_.front().get();
+        std::unique_ptr<Source>& front = sources_.front();
         ssize_t rv = front->sendto(sink);
 
         if (rv < 0) { // error in source
