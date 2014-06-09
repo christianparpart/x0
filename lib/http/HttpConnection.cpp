@@ -9,6 +9,9 @@
 #include <x0/http/HttpConnection.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpWorker.h>
+#include <x0/io/BufferRefSource.h>
+#include <x0/io/BufferSource.h>
+#include <x0/io/FileSource.h>
 #include <x0/ServerSocket.h>
 #include <x0/SocketDriver.h>
 #include <x0/StackTrace.h>
@@ -19,11 +22,15 @@
 
 #include <functional>
 #include <cstdarg>
+#include <cstdlib>
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 
 #if !defined(XZERO_NDEBUG)
 #	define TRACE(level, msg...) XZERO_DEBUG("HttpConnection", (level), msg)
@@ -61,18 +68,27 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
     id_(id),
     requestCount_(0),
     shouldKeepAlive_(false),
+    clientAbortHandler_(),
+
     requestBuffer_(worker().server().requestHeaderBufferSize()
                  + worker().server().requestBodyBufferSize()),
     requestParserOffset_(0),
+
     request_(nullptr),
+    requestBodyBufferSize_(0),
+    requestBodyPath_(),
+    requestBodyFd_(-1),
+    requestBodyFileSize_(0),
+
     output_(),
     socket_(nullptr),
     sink_(nullptr),
     autoFlush_(true),
-    clientAbortHandler_(),
+
     prev_(nullptr),
     next_(nullptr)
 {
+    requestBodyPath_[0] = '\0';
 }
 
 /** releases all connection resources  and triggers the onConnectionClose event.
@@ -80,8 +96,10 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
 HttpConnection::~HttpConnection()
 {
     TRACE(1, "%d: destructing", id_);
-    if (request_)
+    if (request_) {
         delete request_;
+    }
+    clearRequestBody();
 }
 
 void HttpConnection::reinit(unsigned long long id)
@@ -90,7 +108,25 @@ void HttpConnection::reinit(unsigned long long id)
     shouldKeepAlive_ = false;
     requestCount_ = 0;
 
+    requestBuffer_.clear();
+    requestParserOffset_ = 0;
+
     HttpMessageParser::reset();
+}
+
+void HttpConnection::clearRequestBody()
+{
+    requestBodyBufferSize_ = 0;
+
+    if (requestBodyFd_ >= 0) {
+        ::close(requestBodyFd_);
+        requestBodyFd_ = -1;
+    }
+
+    if (requestBodyPath_[0] != '\0') {
+        unlink(requestBodyPath_);
+        requestBodyPath_[0] = '\0';
+    }
 }
 
 void HttpConnection::ref()
@@ -157,15 +193,14 @@ void HttpConnection::onReadWriteTimeout(Socket*)
     TRACE(1, "timeout(): cstate:%s, pstate:%s", state_str(), parserStateStr());
 
     switch (state()) {
-    case Undefined:
     case ReadingRequest:
-    case ProcessingRequest:
-        // we do not want further out-timing requests on this conn: just close it.
+    case KeepAliveRead:
         abort(HttpStatus::RequestTimeout);
         break;
+    case ProcessingRequest:
     case SendingReply:
     case SendingReplyDone:
-    case KeepAliveRead:
+    case Undefined:
         abort();
         break;
     }
@@ -335,14 +370,71 @@ bool HttpConnection::onMessageHeaderEnd()
 {
     TRACE(1, "onMessageHeaderEnd() requestParserOffset:%zu", requestParserOffset_);
 
-    if (request_->isFinished())
+    if (request_->isFinished()) // FIXME should never happen (anymore?)
         return true;
 
-    requestHeaderEndOffset_ = requestParserOffset_;
     ++requestCount_;
-    setState(ProcessingRequest);
+    requestHeaderEndOffset_ = requestParserOffset_;
 
-    worker_->handleRequest(request_);
+    const bool contentRequired = request_->method == "POST" || request_->method == "PUT";
+
+    if (contentRequired) {
+        if (request_->connection.contentLength() == -1 && !request_->connection.isChunked()) {
+            abort(HttpStatus::LengthRequired);
+            return false;
+        }
+        if (static_cast<size_t>(request_->connection.contentLength()) > worker().server().maxRequestBodySize()) {
+            request_->expectingContinue = false; // do not submit a '100-continue'
+            abort(HttpStatus::RequestEntityTooLarge);
+            return false;
+        }
+    } else {
+        if (request_->contentAvailable()) {
+            abort(HttpStatus::BadRequest); // FIXME do we have a better status code?
+            return false;
+        }
+    }
+
+    const BufferRef expectHeader = request_->requestHeader("Expect");
+
+    if (expectHeader) {
+        request_->expectingContinue = equals(expectHeader, "100-continue");
+
+        if (!request_->expectingContinue || !request_->supportsProtocol(1, 1)) {
+            abort(HttpStatus::ExpectationFailed);
+            return false;
+        }
+    }
+
+    if (isContentExpected()) {
+        if (request_->expectingContinue) {
+            write<BufferRefSource>("HTTP/1.1 100 Continue\r\n\r\n");
+            request_->expectingContinue = false;
+        }
+
+        const bool useTmpFile = isChunked() || contentLength() > static_cast<ssize_t>(worker().server().requestBodyBufferSize());
+
+        if (useTmpFile) {
+            const int flags = O_RDWR;
+
+#if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
+            static bool otmpfileSupported = true;
+            if (otmpfileSupported) {
+                requestBodyFd_ = open(X0_TMPDIR, flags | O_TMPFILE);
+                if (requestBodyFd_ >= 0) {
+                    requestBodyPath_[0] = '\0'; // explicitely mark it as O_TMPFILE-opened
+                } else {
+                    // do not attempt to try it again
+                    otmpfileSupported = false;
+                }
+            }
+#endif
+            if (requestBodyFd_ < 0) {
+                snprintf(requestBodyPath_, sizeof(requestBodyPath_), X0_TMPDIR "/x0d-request-body-XXXXXX");
+                requestBodyFd_ = mkostemp(requestBodyPath_, flags);
+            }
+        }
+    }
 
     return true;
 }
@@ -351,7 +443,35 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 {
     TRACE(1, "onMessageContent(#%lu): cstate:%s pstate:%s", chunk.size(), state_str(), parserStateStr());
 
-    request_->onRequestContent(chunk);
+    if (!request_->body_) {
+        request_->body_.reset(new CompositeSource());
+    }
+
+    if (requestBodyBufferSize_ + chunk.size() < worker().server().requestBodyBufferSize()) {
+        request_->body_->push_back<BufferSource>(Buffer(chunk));
+        requestBodyBufferSize_ += chunk.size();
+        return true;
+    }
+
+    if (requestBodyFd_ >= 0) {
+        TRACE(1, "onMessageContent: write to fd %d", requestBodyFd_);
+        ssize_t rv = ::write(requestBodyFd_, chunk.data(), chunk.size());
+        if (rv < 0) {
+            if (requestBodyPath_[0] != '\0') {
+                log(Severity::error, "Failed to write %zu bytes to temporary request body file (%s). %s",
+                    chunk.size(), requestBodyPath_, strerror(errno));
+            } else {
+                log(Severity::error, "Failed to write %zu bytes to temporary request body file. %s",
+                    chunk.size(), strerror(errno));
+            }
+            abort(HttpStatus::InternalServerError);
+            return false;
+        }
+        requestBodyFileSize_ += rv;
+    } else {
+        TRACE(1, "onMessageContent: write as buffer (fd failed)");
+        request_->body_->push_back<BufferSource>(Buffer(chunk));
+    }
 
     return true;
 }
@@ -360,20 +480,12 @@ bool HttpConnection::onMessageEnd()
 {
     TRACE(1, "onMessageEnd() %s (rfinished:%d)", state_str(), request_->isFinished());
 
-    // marks the request-content EOS, so that the application knows when the request body
-    // has been fully passed to it.
-    request_->onRequestContent(BufferRef());
-
-    if (state() != ProcessingRequest) {
-        // we are using the requestBuffer_ only within the ProcessingRequest state,
-        // so we can safely clear it.
-        requestBuffer_ = requestBuffer_.ref(requestParserOffset_, requestBuffer_.size() - requestParserOffset_);
-        requestParserOffset_ = 0;
+    if (requestBodyFd_ >= 0) {
+        request_->body_->push_back<FileSource>(requestBodyFd_, 0, requestBodyFileSize_, false);
     }
 
-    if (isOutputPending()) {
-        wantWrite();
-    }
+    setState(ProcessingRequest);
+    worker_->handleRequest(request_);
 
     // We are currently procesing a request, so stop parsing at the end of this request.
     // The next request, if available, is being processed via resume()
@@ -455,7 +567,9 @@ void HttpConnection::wantWrite()
  */
 bool HttpConnection::readSome()
 {
-    TRACE(1, "readSome: state=%s", state_str());
+    TRACE(1, "readSome: cstate=%s pstate=%s, parserOffset=%zu, requestBuffer.size=%zu/%zu",
+            state_str(), parserStateStr(), 
+            requestParserOffset_, requestBuffer_.size(), requestBuffer_.capacity());
 
     if (requestBuffer_.size() == requestBuffer_.capacity()) {
         TRACE(1, "readSome: reached request buffer limit, not reading from client.");
@@ -467,57 +581,54 @@ bool HttpConnection::readSome()
         setState(ReadingRequest);
     }
 
-    if (requestParserOffset_ < requestBuffer_.size()) {
-        TRACE(1, "readSome: we have bytes pending, so do not read now but process them right away.");
-        process();
-        return true;
-    }
+    if (requestParserOffset_ == requestBuffer_.size()) {
+        ssize_t rv = socket_->read(requestBuffer_, requestBuffer_.capacity());
+        TRACE(1, "readSome: read %lu bytes", rv);
 
-    ssize_t rv = socket_->read(requestBuffer_, requestBuffer_.capacity());
-
-    if (rv < 0) { // error
-        switch (errno) {
-        case EINTR:
-        case EAGAIN:
+        if (rv < 0) { // error
+            switch (errno) {
+            case EINTR:
+            case EAGAIN:
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-        case EWOULDBLOCK:
+            case EWOULDBLOCK:
 #endif
-            wantRead(worker_->server_.maxReadIdle());
-            return true;
-        default:
-            log(Severity::error, "Failed to read from client. %s", strerror(errno));
-            abort();
+                wantRead(worker_->server_.maxReadIdle());
+                return true;
+            default:
+                log(Severity::error, "Failed to read from client. %s", strerror(errno));
+                request_->status = HttpStatus::Hangup;
+                abort();
+                return false;
+            }
+        } else if (rv == 0) { // EOF
+            TRACE(1, "readSome: (EOF), state:%s, clientAbortHandler:%s", state_str(), clientAbortHandler_ ? "yes" : "no");
+
+            if (clientAbortHandler_) {
+                socket_->close();
+                clientAbortHandler_();
+            } else {
+                request_->status = HttpStatus::Hangup;
+                abort();
+            }
+
             return false;
         }
     }
-
-    if (rv == 0) { // EOF
-        TRACE(1, "readSome: (EOF), state:%s, clientAbortHandler:%s", state_str(), clientAbortHandler_ ? "yes" : "no");
-
-        if (clientAbortHandler_) {
-            socket_->close();
-            clientAbortHandler_();
-        } else {
-            abort();
-        }
-
-        return false;
-    }
-
-    TRACE(1, "readSome: read %lu bytes, cstate:%s, pstate:%s", rv, state_str(), parserStateStr());
 
     {
         //ScopedRef _r(this);
 
         process();
 
-        if (isProcessingBody() && requestParserOffset() == requestBuffer_.size()) {
+        if (isProcessingBody() && requestParserOffset_ > requestHeaderEndOffset_) {
             // adjusting buffer for next body-chunk reads
-            TRACE(1, "readSome: processing body & buffer fully parsed => rewind parse offset to end of headers");
-            TRACE(1, "- from %zu back to %zu", requestParserOffset_, requestHeaderEndOffset_);
+            TRACE(1, "readSome: rewind requestBuffer end from %zu to %zu", requestParserOffset_, requestHeaderEndOffset_);
+
             requestParserOffset_ = requestHeaderEndOffset_;
             requestBuffer_.resize(requestHeaderEndOffset_);
         }
+
+        wantRead(worker_->server_.maxReadIdle());
     }
 
     return true;
@@ -605,6 +716,7 @@ bool HttpConnection::writeSome()
         break;
     default:
         log(Severity::error, "Failed to write to client. %s", strerror(errno));
+        request_->status = HttpStatus::Hangup;
         abort();
         return false;
     }
@@ -691,29 +803,29 @@ void HttpConnection::resume()
     TRACE(1, "resume() shouldKeepAlive:%d, cstate:%s, pstate:%s", shouldKeepAlive(), state_str(), parserStateStr());
     TRACE(1, "-- (requestParserOffset:%lu, requestBufferSize:%lu)", requestParserOffset_, requestBuffer_.size());
 
-    setState(KeepAliveRead);
-
-    // move potential pipelined-and-already-read requests to the front.
+    // move potential pipelined-and-already-read requests to the front and reset parser offset
     requestBuffer_ = requestBuffer_.ref(requestParserOffset_, requestBuffer_.size() - requestParserOffset_);
-    // and reset parse offset
     requestParserOffset_ = 0;
-
     TRACE(1, "-- moved %zu bytes pipelined request fragment data to the front", requestBuffer_.size());
 
     if (socket()->tcpCork())
         socket()->setTcpCork(false);
 
-    if (requestBuffer_.empty())
+    if (requestBuffer_.empty()) {
+        setState(KeepAliveRead);
         wantRead(worker().server().maxKeepAlive());
-    else
+    } else {
+        // pipelined request
+        setState(ReadingRequest);
         readSome();
+    }
 }
 
 /** processes a (partial) request from buffer's given \p offset of \p count bytes.
  */
 bool HttpConnection::process()
 {
-    TRACE(2, "process: offset=%lu, size=%lu (before processing) %s, %s", requestParserOffset_, requestBuffer_.size(), state_str(), state_str());
+    TRACE(2, "process: offset=%lu, size=%lu (before processing) %s, %s", requestParserOffset_, requestBuffer_.size(), state_str(), parserStateStr());
 
     while (parserState() != MESSAGE_BEGIN || state() == ReadingRequest || state() == KeepAliveRead) {
         BufferRef chunk(requestBuffer_.ref(requestParserOffset_));

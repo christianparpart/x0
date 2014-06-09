@@ -100,8 +100,6 @@ HttpRequest::HttpRequest(HttpConnection& conn) :
 
     hostid_(),
     directoryDepth_(0),
-    bodyCallback_(nullptr),
-    bodyCallbackData_(nullptr),
     errorHandler_(nullptr),
     timeStart_()
 {
@@ -515,185 +513,6 @@ void HttpRequest::setHostid(const std::string& value)
     hostid_ = value;
 }
 
-/** Reports true whenever content is still in queue to be read (even if not yet received).
- *
- * @retval true there is still more content in the queue to be processed.
- * @retval false no content expected anymore, thus, request fully parsed.
- */
-bool HttpRequest::contentAvailable() const
-{
-    return connection.contentLength() > 0;
-    //return connection.state() != HttpMessageParser::MESSAGE_BEGIN;
-}
-
-/*! setup request-body consumer callback.
- *
- * \note This function must be invoked within the request handler before it passes control back to the caller.
- * \warning Only register a callback, if you're to serve the request's reply.
- *
- * \param callback the callback to invoke on request-body chunks.
- * \param data a custom data pointer being also passed to the callback.
- */
-void HttpRequest::setBodyCallback(void (*callback)(const BufferRef&, void*), void* data)
-{
-    bodyCallback_ = callback;
-    bodyCallbackData_ = data;
-
-    if (expectingContinue) {
-        connection.write<BufferSource>("HTTP/1.1 100 Continue\r\n\r\n");
-        expectingContinue = false;
-    }
-}
-
-/** Passes the request body chunk to the applications registered callback.
- *
- * \see setBodyCallback()
- */
-void HttpRequest::onRequestContent(const BufferRef& chunk)
-{
-    if (bodyCallback_) {
-        TRACE(2, "onRequestContent(chunkSize=%ld) pass to callback", chunk.size());
-        bodyCallback_(chunk, bodyCallbackData_);
-    } else {
-        TRACE(2, "onRequestContent(chunkSize=%ld) discard", chunk.size());
-    }
-}
-
-class BodyConsumer { // {{{
-public:
-    static void tmpfile(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb)
-    {
-        new TmpfileBuilder(r, std::move(cb));
-    }
-
-    static void buffer(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb)
-    {
-        new BufferBuilder(r, std::move(cb));
-    }
-
-private:
-    struct TmpfileBuilder // {{{
-    {
-        TmpfileBuilder(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb) :
-            request_(r),
-            path_(),
-            fd_(-1),
-            size_(0),
-            onComplete_(cb)
-        {
-            int flags = O_RDWR;
-
-#if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
-            static bool otmpfileSupported = true;
-            if (otmpfileSupported) {
-                fd_ = open(X0_TMPDIR, flags | O_TMPFILE);
-                if (fd_ >= 0) {
-                    path_[0] = '\0'; // explicitely mark it as O_TMPFILE-opened
-                } else {
-                    // do not attempt to try it again
-                    otmpfileSupported = false;
-                }
-            }
-#endif
-            if (fd_ < 0) {
-                snprintf(path_, sizeof(path_), X0_TMPDIR "/x0d-request-body-XXXXXX");
-                fd_ = mkostemp(path_, flags);
-            }
-
-            r->setBodyCallback<TmpfileBuilder, &TmpfileBuilder::consume>(this);
-            r->onRequestDone.connect([this]() { delete this; });
-        }
-
-        ~TmpfileBuilder()
-        {
-            if (path_[0] != '\0') {
-                unlink(path_);
-            }
-
-            if (fd_ >= 0) {
-                close(fd_);
-            }
-        }
-
-        void consume(const BufferRef& chunk)
-        {
-            if (chunk.empty()) {
-                // EOF reached
-                std::unique_ptr<Source> source(new FileSource(fd_, 0, size_, true));
-                onComplete_(std::move(source));
-                fd_ = -1; // passed fd ownership to FileSource
-                return;
-            }
-
-            if (fd_ < 0) {
-                return;
-            }
-
-            ssize_t rv = write(fd_, chunk.data(), chunk.size());
-            if (rv > 0) {
-                size_ += rv;
-            }
-        }
-
-        HttpRequest* request_;
-        char path_[64];
-        int fd_;
-        size_t size_;
-        std::function<void(std::unique_ptr<Source>&&)> onComplete_;
-    }; // }}}
-    struct BufferBuilder // {{{
-    {
-        BufferBuilder(HttpRequest* r, std::function<void(std::unique_ptr<Source>&&)>&& cb) :
-            request_(r),
-            buffer_(),
-            onComplete_(cb)
-        {
-            buffer_.reserve(r->connection.contentLength());
-
-            r->setBodyCallback<BufferBuilder, &BufferBuilder::consume>(this);
-            r->onRequestDone.connect([this]() { delete this; });
-        }
-
-        ~BufferBuilder()
-        {
-        }
-
-        void consume(const BufferRef& chunk)
-        {
-            if (chunk.empty()) {
-                // EOF reached
-                std::unique_ptr<BufferSource> source(new BufferSource(std::move(buffer_)));
-                onComplete_(std::move(source));
-                return;
-            }
-
-            buffer_.push_back(chunk);
-        }
-
-        HttpRequest* request_;
-        Buffer buffer_;
-        std::function<void(std::unique_ptr<Source>&&)> onComplete_;
-    }; // }}}
-}; // }}}
-
-/** Fully consumes the HTTP request body into and invokes the callback one completed.
- *
- * This method consumes the request body of this request from the connection stream
- * and stores it into a temporary location that is freed up afterwards.
- */
-void HttpRequest::consumeBody(std::function<void(std::unique_ptr<Source>&&)>&& callback)
-{
-    const bool useTmpFile =
-        connection.isChunked() ||
-        connection.contentLength() > static_cast<ssize_t>(connection.worker().server().requestBodyBufferSize());
-
-    if (useTmpFile) {
-        BodyConsumer::tmpfile(this, std::move(callback));
-    } else {
-        BodyConsumer::buffer(this, std::move(callback));
-    }
-}
-
 /** serializes the HTTP response status line plus headers into a byte-stream.
  *
  * This method is invoked right before the response content is written or the
@@ -1019,7 +838,6 @@ std::string HttpRequest::statusStr(HttpStatus value)
  * \note We might also trigger the custom error page handler, if no content was given.
  * \note This also queues the underlying connection for processing the next request (on keep-alive).
  * \note This also clears out the client abort callback, as set with \p setAbortHandler().
- * \note This also clears the body content chunk callback, as set with \p setBodyCallback().
  *
  * \see HttpConnection::write(), HttpConnection::isOutputPending()
  * \see finalize()
@@ -1029,7 +847,6 @@ void HttpRequest::finish()
     TRACE(2, "finish(): isOutputPending:%s, cstate:%s", connection.isOutputPending() ? "true" : "false", connection.state_str());
 
     setAbortHandler(nullptr);
-    setBodyCallback(nullptr);
 
     if (!connection.isOpen()) {
         connection.setState(HttpConnection::SendingReplyDone);
@@ -1118,6 +935,7 @@ void HttpRequest::finalize()
 
     onRequestDone();
     connection.worker().server().onRequestDone(this);
+    connection.clearRequestBody();
     clearCustomData();
     inspectHandlers_.clear();
 

@@ -180,18 +180,12 @@ bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
     std::string directorName = args.getString(1).str();
     std::string bucketName = args.getString(2).str();
 
-    if (r->contentAvailable()) {
-        r->consumeBody([=](std::unique_ptr<Source>&& body) {
-            balance(r, directorName, bucketName, std::move(body));
-        });
-    } else {
-        balance(r, directorName, bucketName, nullptr);
-    }
+    balance(r, directorName, bucketName);
 
     return true;
 }
 
-void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName, const std::string& bucketName, std::unique_ptr<Source>&& body)
+void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName, const std::string& bucketName)
 {
     auto i = directors_.find(directorName);
     if (i == directors_.end()) {
@@ -216,7 +210,6 @@ void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName, co
 
     auto rn = requestNotes(r);
     rn->manager = director;
-    rn->body = std::move(body);
 
 #if !defined(NDEBUG)
     server().log(Severity::debug, "director: passing request to %s [%s].", director->name().c_str(), bucket->name().c_str());
@@ -230,17 +223,11 @@ bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
     std::string directorName = args.getString(1).str();
     std::string backendName = args.getString(2).str();
 
-    if (r->contentAvailable()) {
-        r->consumeBody([=](std::unique_ptr<Source>&& body) {
-            pass(r, directorName, backendName, std::move(body));
-        });
-    } else {
-        pass(r, directorName, backendName, nullptr);
-    }
+    pass(r, directorName, backendName);
     return true;
 }
 
-void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName, const std::string& backendName, std::unique_ptr<Source>&& body)
+void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName, const std::string& backendName)
 {
     auto i = directors_.find(directorName);
     if (i == directors_.end()) {
@@ -269,7 +256,6 @@ void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName, const
 
     auto rn = requestNotes(r);
     rn->manager = director;
-    rn->body = std::move(body);
 
     director->schedule(rn, backend);
 
@@ -309,14 +295,7 @@ bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
 
     rn->onClientAbort = value.get();
 
-    if (r->contentAvailable()) {
-        r->consumeBody([=](std::unique_ptr<Source>&& body) {
-            rn->body = std::move(body);
-            roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
-        });
-    } else {
-        roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
-    }
+    roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
 
 done:
     return true;
@@ -347,15 +326,8 @@ bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
         args.getInt(2)          // port
     );
 
-    if (r->contentAvailable()) {
-        r->consumeBody([=](std::unique_ptr<Source>&& body) {
-            RequestNotes* rn = requestNotes(r);
-            rn->body = std::move(body);
-            roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::HTTP);
-        });
-    } else {
-        roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
-    }
+    roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
+
     return true;
 }
 // }}}

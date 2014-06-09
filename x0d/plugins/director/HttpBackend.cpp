@@ -136,6 +136,10 @@ HttpBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<Socket>&& 
 
 HttpBackend::Connection::~Connection()
 {
+    // TODO: kill possible pending writeCallback handle (there can be only 0, or 1 if the client aborted early, same for fcgi-backend)
+    // XXX alternatively kick off blocking/memaccel modes and support file-cached response only. makes things easier.
+    // XXX with the first N bytes kept in memory always, and everything else in file-cache
+
     if (transferPath_[0] != '\0') {
         unlink(transferPath_);
     }
@@ -311,8 +315,8 @@ void HttpBackend::Connection::serializeRequest()
 
     writeSource_.push_back<BufferSource>(std::move(writeBuffer));
 
-    if (rn_->body) {
-        writeSource_.push_back(std::move(rn_->body));
+    if (r->contentAvailable()) {
+        writeSource_.push_back(std::move(r->consumeBody()));
     }
 }
 
@@ -510,7 +514,7 @@ void HttpBackend::Connection::onReadWriteReady(Socket* s, int revents)
 bool HttpBackend::Connection::writeSome()
 {
     auto r = rn_->request;
-    TRACE("writeSome() - %s (%s)", state_str(), rn_->body ? "with-body" : "without-body");
+    TRACE("writeSome() - %s", state_str());
 
     ssize_t rv = writeSource_.sendto(writeSink_);
     TRACE("write request: wrote %ld bytes", rv);

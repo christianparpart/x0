@@ -15,6 +15,7 @@
 
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
+#include <x0/io/BufferSink.h>
 #include <x0/Tokenizer.h>
 #include <x0/Url.h>
 #include <cstdlib>
@@ -133,8 +134,7 @@ ApiRequest::ApiRequest(DirectorMap* directors, HttpRequest* r, const BufferRef& 
     request_(r),
     method_(::requestMethod(request_->method)),
     path_(path),
-    tokens_(tokenize(path_.ref(1), "/")),
-    body_()
+    tokens_(tokenize(path_.ref(1), "/"))
 {
 }
 
@@ -151,39 +151,29 @@ ApiRequest::~ApiRequest()
  */
 bool ApiRequest::process(DirectorMap* directors, HttpRequest* r, const BufferRef& path)
 {
-    ApiRequest* ar = new ApiRequest(directors, r, path);
-    ar->start();
-    return true;
+    ApiRequest ar(directors, r, path);
+    return ar.run();
 }
 
-/**
- * Internal function, used to start processing the request.
- */
-void ApiRequest::start()
+bool ApiRequest::run()
 {
-    request_->setBodyCallback<ApiRequest, &ApiRequest::onBodyChunk>(this);
-}
+    BufferSink sink;
 
-void ApiRequest::onBodyChunk(const BufferRef& chunk)
-{
-    body_ << chunk;
+    while (request_->body()->sendto(sink) > 0)
+        ;
 
-    if (chunk.empty()) {
-        parseBody();
+    args_ = Url::parseQuery(sink.buffer());
 
-        if (!process()) {
-            request_->log(Severity::error, "Error parsing request body.");
-            if (!request_->status)
-                request_->status = HttpStatus::BadRequest;
-
-            request_->finish();
+    if (!process()) {
+        request_->log(Severity::error, "Error parsing request body.");
+        if (!request_->status) {
+            request_->status = HttpStatus::BadRequest;
         }
-    }
-}
 
-void ApiRequest::parseBody()
-{
-    args_ = Url::parseQuery(body_);
+        request_->finish();
+    }
+
+    return true;
 }
 
 Director* ApiRequest::findDirector(const x0::BufferRef& name)

@@ -16,7 +16,7 @@
 #include <x0/http/HttpStatus.h>
 #include <x0/http/HttpFileRef.h>
 #include <x0/io/Source.h>
-#include <x0/io/FilterSource.h>
+#include <x0/io/CompositeSource.h>
 #include <x0/io/CallbackSource.h>
 #include <x0/CustomDataMgr.h>
 #include <x0/RegExp.h>
@@ -314,16 +314,9 @@ public:
     void setHostid(const std::string& custom);
 
     // content management
-    bool contentAvailable() const;
-    template<typename K, void (K::*cb)(const BufferRef&)> void setBodyCallback(K* object);
-    void setBodyCallback(void (*callback)(const BufferRef&, void*), void* data = nullptr);
-    void consumeBody(std::function<void(std::unique_ptr<Source>&&)>&& callback);
-
-    std::function<void(std::function<void(std::unique_ptr<Source>&&)>&&)> consumeBody() {
-        return [=](std::function<void(std::unique_ptr<Source>&&)>&& cb) {
-            return consumeBody(std::move(cb));
-        };
-    }
+    bool contentAvailable() const { return body_ && body_->size() > 0; }
+    std::unique_ptr<CompositeSource>&& consumeBody() { return std::move(body_); }
+    std::unique_ptr<CompositeSource>& body() { return body_; }
 
     template<typename... Args>
     void log(Severity s, Args&&... args);
@@ -375,17 +368,9 @@ private:
     mutable std::string hostid_;
     int directoryDepth_;
 
-    void (*bodyCallback_)(const BufferRef&, void*);
-    void* bodyCallbackData_;
-
     std::function<bool(HttpRequest*)> errorHandler_;
 
     bool setUri(const BufferRef& uri);
-
-    void onRequestContent(const BufferRef& chunk);
-
-    template<class K, void (K::*cb)(const BufferRef&)>
-    static void body_cb_thunk(const BufferRef& chunk, void* data);
 
     template<typename T, void (T::*cb)(Buffer&)>
     static void inspect_thunk(void* object, Buffer& output);
@@ -408,6 +393,7 @@ private:
 
 private:
     DateTime timeStart_;
+    std::unique_ptr<CompositeSource> body_;
 };
 
 // {{{ request impl
@@ -434,9 +420,11 @@ inline void HttpRequest::clear()
     inspectHandlers_.clear();
     hostid_.clear();
     directoryDepth_ = 0;
-    bodyCallback_ = nullptr;
-    bodyCallbackData_ = nullptr;
     errorHandler_ = std::function<bool(HttpRequest*)>();;
+
+    if (body_) {
+        body_->clear();
+    }
 }
 
 inline bool HttpRequest::supportsProtocol(int major, int minor) const
@@ -448,18 +436,6 @@ inline bool HttpRequest::supportsProtocol(int major, int minor) const
         return true;
 
     return false;
-}
-
-template<typename K, void (K::*cb)(const BufferRef&)>
-inline void HttpRequest::setBodyCallback(K* object)
-{
-    setBodyCallback(&body_cb_thunk<K, cb>, object);
-}
-
-template<class K, void (K::*cb)(const BufferRef&)>
-void HttpRequest::body_cb_thunk(const BufferRef& chunk, void* data)
-{
-    (static_cast<K*>(data)->*cb)(chunk);
 }
 
 template<class K, void (K::*cb)()>
@@ -497,7 +473,7 @@ bool HttpRequest::writeCallback(K* object)
  * \param args a list of arguments being passed to the source chunk.
  *
  * \code
- *   request->write<BufferSource>("Hello, World\r\n");
+ *   request->write<BufferRefSource>("Hello, World\r\n");
  *   request->write<FileSource>("/var/www/notes.html");
  * \endcode
  *

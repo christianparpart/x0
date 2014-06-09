@@ -307,39 +307,6 @@ void HttpWorker::handleRequest(HttpRequest* r)
     ++requestCount_;
     performanceCounter_.touch(now_.value());
 
-    BufferRef expectHeader = r->requestHeader("Expect");
-    bool contentRequired = r->method == "POST" || r->method == "PUT";
-
-    if (contentRequired) {
-        if (r->connection.contentLength() == -1 && !r->connection.isChunked()) {
-            r->status = HttpStatus::LengthRequired;
-            r->finish();
-            return;
-        }
-        if (static_cast<size_t>(r->connection.contentLength()) > server().maxRequestBodySize()) {
-            r->status = HttpStatus::RequestEntityTooLarge;
-            r->expectingContinue = false; // do not submit a '100-continue'
-            r->finish();
-            return;
-        }
-    } else {
-        if (r->contentAvailable()) {
-            r->status = HttpStatus::BadRequest; // FIXME do we have a better status code?
-            r->finish();
-            return;
-        }
-    }
-
-    if (expectHeader) {
-        r->expectingContinue = equals(expectHeader, "100-continue");
-
-        if (!r->expectingContinue || !r->supportsProtocol(1, 1)) {
-            r->status = HttpStatus::ExpectationFailed;
-            r->finish();
-            return;
-        }
-    }
-
     server_.onPreProcess(r);
 
     server_.requestHandler(r);

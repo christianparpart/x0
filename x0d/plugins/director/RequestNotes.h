@@ -36,7 +36,6 @@ struct RequestNotes :
     public x0::CustomData
 {
     x0::HttpRequest* request;         //!< The actual HTTP request.
-    std::unique_ptr<x0::Source> body; //!< HTTP request body
     x0::DateTime ctime;               //!< Request creation time.
     BackendManager* manager;          //!< Designated cluster to load balance this request.
     Backend* backend;                 //!< Designated backend to serve this request.

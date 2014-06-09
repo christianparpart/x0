@@ -50,7 +50,6 @@ private:
     HttpMethod method_;
     x0::BufferRef path_;
     std::vector<BufferRef> tokens_;
-    x0::Buffer body_;
     std::unordered_map<std::string, std::string> args_;
 
 public:
@@ -76,9 +75,7 @@ protected:
 private:
     HttpMethod requestMethod() const { return method_; }
 
-    void start();
-    void onBodyChunk(const x0::BufferRef& chunk);
-    void parseBody();
+    bool run();
     bool process();
 
     // index

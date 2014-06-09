@@ -294,7 +294,7 @@ void FastCgiBackend::Connection::serializeRequest()
     if (!r->username.empty())
         params.encode("REMOTE_USER", r->username);
 
-    if (rn_->body) {
+    if (r->body()) {
         params.encode("CONTENT_TYPE", r->requestHeader("Content-Type"));
         params.encode("CONTENT_LENGTH", r->requestHeader("Content-Length"));
     }
@@ -322,9 +322,9 @@ void FastCgiBackend::Connection::serializeRequest()
     write(FastCgi::Type::Params, id_, params.output());
     write(FastCgi::Type::Params, id_, "", 0); // EOS
 
-    if (rn_->body) {
+    if (r->body()) {
         BufferSink sink;
-        while (rn_->body->sendto(sink) > 0) {
+        while (r->body()->sendto(sink) > 0) {
             write(FastCgi::Type::StdIn, id_, sink.buffer().data(), sink.buffer().size());
             sink.clear();
         }

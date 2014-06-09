@@ -163,6 +163,8 @@ private:
     friend class HttpRequest;
     friend class HttpWorker;
 
+    void clearRequestBody();
+
     void reinit(unsigned long long id);
     void start(std::unique_ptr<Socket>&& client, ServerSocket* listener);
     void resume();
@@ -204,24 +206,27 @@ private:
     ServerSocket* listener_;
     HttpWorker* worker_;
 
-    unsigned long long id_;				//!< the worker-local connection-ID
-    unsigned requestCount_;				//!< the number of requests already processed or currently in process
-    bool shouldKeepAlive_;              //!< indication whether or not connection should keep-alive after current request
+    unsigned long long id_;				        //!< the worker-local connection-ID
+    unsigned requestCount_;				        //!< the number of requests already processed or currently in process
+    bool shouldKeepAlive_;                      //!< indication whether or not connection should keep-alive after current request
+    std::function<void()> clientAbortHandler_;  //!< connection abort callback
 
     // HTTP HttpRequest
-    Buffer requestBuffer_;              //!< buffer for incoming data.
-    std::size_t requestParserOffset_;   //!< number of bytes in request buffer successfully processed already.
-    std::size_t requestHeaderEndOffset_;//!< offset to the first byte of the currently processed request
-    HttpRequest* request_;				//!< currently parsed http HttpRequest, may be NULL
+    Buffer requestBuffer_;                      //!< buffer for incoming data.
+    std::size_t requestParserOffset_;           //!< number of bytes in request buffer successfully processed already.
+    std::size_t requestHeaderEndOffset_;        //!< offset to the first byte of the currently processed request
+    HttpRequest* request_;				        //!< currently parsed http HttpRequest, may be NULL
+
+    size_t requestBodyBufferSize_;              //!< number of bytes of the request body that is part of \p requestBuffer_.
+    char requestBodyPath_[1024];                //!< full path to temporary stored request body, if available
+    int requestBodyFd_;                         //!< file handle to temporary stored request body, if available
+    size_t requestBodyFileSize_;                //!< size of the temporary request body file in bytes, if available, 0 otherwise.
 
     // output
-    CompositeSource output_;			//!< pending write-chunks
-    std::unique_ptr<Socket> socket_;    //!< underlying communication socket
-    SocketSink sink_;					//!< sink wrapper for socket_
-    bool autoFlush_;					//!< true if flush() is invoked automatically after every write()
-
-    // connection abort callback
-    std::function<void()> clientAbortHandler_;
+    CompositeSource output_;			        //!< pending write-chunks
+    std::unique_ptr<Socket> socket_;            //!< underlying communication socket
+    SocketSink sink_;					        //!< sink wrapper for socket_
+    bool autoFlush_;					        //!< true if flush() is invoked automatically after every write()
 
     // intrusive links for the free-list cache
     HttpConnection* prev_;
