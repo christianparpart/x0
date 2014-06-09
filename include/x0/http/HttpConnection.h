@@ -125,9 +125,6 @@ public:
     const HttpRequest* request() const { return request_; }
     HttpRequest* request() { return request_; }
 
-    std::size_t requestBufferSize() const { return requestBuffer_.size(); }
-    std::size_t requestParserOffset() const { return requestParserOffset_; }
-
     bool isInputPending() const { return requestParserOffset_ < requestBuffer_.size(); }
 
     unsigned refCount() const;
@@ -192,11 +189,12 @@ private:
     bool onMessageEnd() override;
     void onProtocolError(const BufferRef& chunk, size_t offset) override;
 
-    Buffer& inputBuffer() { return requestBuffer_; }
-    const Buffer& inputBuffer() const { return requestBuffer_; }
-
     void setShouldKeepAlive(bool enabled);
     bool shouldKeepAlive() const { return shouldKeepAlive_; }
+
+public:
+    const Buffer& requestBuffer() const { return requestBuffer_; }
+    std::size_t requestParserOffset() const { return requestParserOffset_; }
 
 private:
     unsigned refCount_;

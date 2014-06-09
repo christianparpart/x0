@@ -55,6 +55,10 @@ void RequestNotes::inspect(x0::Buffer& out)
     } else {
         out.printf("backend: null\n");
     }
+
+    if (body) {
+        out.printf("req-body-size: %zu\n", body->size());
+    }
 }
 
 #if defined(ENABLE_DIRECTOR_CACHE) // {{{

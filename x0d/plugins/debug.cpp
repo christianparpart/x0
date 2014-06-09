@@ -12,6 +12,8 @@
 #include <x0/io/BufferSource.h>
 #include <x0/Process.h>
 
+using namespace x0;
+
 /**
  * \ingroup plugins
  * \brief plugin with some debugging/testing helpers
@@ -26,9 +28,45 @@ public:
         mainHandler("debug.slow_response", &DebugPlugin::slowResponse);
         mainHandler("debug.coredump", &DebugPlugin::dumpCore);
         mainHandler("debug.coredump.post", &DebugPlugin::dumpCorePost);
+        mainHandler("debug.dump_request_buffers", &DebugPlugin::dumpRequestBuffers);
     }
 
 private:
+    bool dumpRequestBuffers(HttpRequest* r, FlowVM::Params& args)
+    {
+        r->status = HttpStatus::NotFound;
+
+        unsigned long long cid = r->query.toInt();
+
+        for (auto worker: server().workers()) {
+            worker->eachConnection([=](HttpConnection* connection) -> bool {
+                if (connection->id() == cid) {
+                    if (connection->requestBuffer().empty()) {
+                        r->status = HttpStatus::NoContent;
+                    } else {
+                        r->status = HttpStatus::Ok;
+                        r->responseHeaders.push_back("Content-Type", "text/plain; charset=utf8");
+
+                        char buf[128];
+
+                        snprintf(buf, sizeof(buf), "%zu", connection->requestBuffer().size());
+                        r->responseHeaders.push_back("Content-Length", buf);
+
+                        snprintf(buf, sizeof(buf), "%zu", connection->requestParserOffset());
+                        r->responseHeaders.push_back("X-RequestParser-Offset", buf);
+
+                        r->write<BufferSource>(connection->requestBuffer());
+                    }
+                }
+                return true;
+            });
+        }
+
+        r->finish();
+
+        return true;
+    }
+
     bool dumpCore(x0::HttpRequest* r, x0::FlowVM::Params& args)
     {
         r->status = x0::HttpStatus::Ok;

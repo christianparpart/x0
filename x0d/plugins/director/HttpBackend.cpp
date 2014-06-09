@@ -47,9 +47,9 @@ class HttpBackend::Connection :
     public HttpMessageParser
 {
 private:
-    HttpBackend* backend_;			//!< owning proxy
+    HttpBackend* backend_;              //!< owning proxy
 
-    RequestNotes* rn_;			//!< client request
+    RequestNotes* rn_;                  //!< client request
     std::unique_ptr<Socket> socket_;    //!< connection to backend app
 
     CompositeSource writeSource_;
@@ -58,11 +58,11 @@ private:
     Buffer readBuffer_;
     bool processingDone_;
 
-    char transferPath_[1024];
-    int transferHandle_;
-    size_t transferOffset_;
+    char transferPath_[1024];           //!< full path to the temporary file storing the response body
+    int transferHandle_;                //!< handle to the response body
+    size_t transferOffset_;             //!< number of bytes already passed to the client
 
-    std::string sendfile_;
+    std::string sendfile_;              //!< value of the X-Sendfile backend response header
 
 private:
     HttpBackend* proxy() const { return backend_; }
@@ -601,18 +601,19 @@ bool HttpBackend::Connection::readSome()
 
 void HttpBackend::Connection::inspect(x0::Buffer& out)
 {
-    out << "processingDone:" << (processingDone_ ? "yes" : "no") << ", ";
-
-	if (rn_) {
-		out << "isOutputPending:" << rn_->request->connection.isOutputPending();
-	} else {
-		out << "no-request-bound";
-	}
+    out << "processingDone:" << (processingDone_ ? "yes" : "no") << "\n";
 
     if (socket_) {
-        out << ", ";
+        out << "backend-socket: ";
         socket_->inspect(out);
     }
+
+	if (rn_) {
+        rn_->inspect(out);
+		out << "client.isOutputPending:" << rn_->request->connection.isOutputPending() << '\n';
+	} else {
+		out << "no-client-request-bound!\n";
+	}
 }
 // }}}
 // {{{ HttpBackend impl

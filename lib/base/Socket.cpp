@@ -658,17 +658,17 @@ void Socket::inspect(Buffer& out)
 {
     // only complain about potential bugs...
 
-    out << "fd:" << fd_ << ", " << "timer:" << timer_.is_active() << "<br/>";
+    out << "fd:" << fd_ << ", " << "timer:" << timer_.is_active() << ", ";
 
     if (watcher_.is_active() && mode_ != watcher_.events) {
-        out << "<b>backend events differ from watcher mask</b><br/>";
+        out << "<b>backend events differ from watcher mask</b>\n";
     }
 
     out << "io.x0:" << mode_str(mode_);
     if (watcher_.is_active()) {
         out << ", io.ev:" << mode_str(static_cast<Mode>(watcher_.events));
     }
-    out << "<br/>";
+    out << "\n";
 
     struct stat st;
     if (fstat(fd_, &st) < 0) {

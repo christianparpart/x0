@@ -511,7 +511,7 @@ bool HttpConnection::readSome()
 
         process();
 
-        if (isProcessingBody() && requestParserOffset() == requestBufferSize()) {
+        if (isProcessingBody() && requestParserOffset() == requestBuffer_.size()) {
             // adjusting buffer for next body-chunk reads
             TRACE(1, "readSome: processing body & buffer fully parsed => rewind parse offset to end of headers");
             TRACE(1, "- from %zu back to %zu", requestParserOffset_, requestHeaderEndOffset_);

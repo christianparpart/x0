@@ -438,7 +438,7 @@ private:
 
         out << "<td class='age'>" << (c->worker().now() - c->socket()->startedAt()).str() << "</td>";
         out << "<td class='idle'>" << (c->worker().now() - c->socket()->lastActivityAt()).str() << "</td>";
-        out << "<td class='read'>" << c->requestParserOffset() << "/" << c->requestBufferSize() << "</td>";
+        out << "<td class='read'>" << c->requestParserOffset() << "/" << c->requestBuffer().size() << "</td>";
 
         const x0::HttpRequest* r = c->request();
         if (r && c->state() != x0::HttpConnection::KeepAliveRead) {
@@ -453,7 +453,7 @@ private:
 
         if (debug) {
             out << "<td class='debug'>";
-            out << "refcount:" << c->refCount() << ", ";
+            out << "refs:" << c->refCount() << ", ";
 
             x0::Buffer inspectBuffer;
             c->socket()->inspect(inspectBuffer);
