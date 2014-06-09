@@ -563,6 +563,8 @@ void IRGenerator::accept(MatchStmt& stmt)
         createBr(contBlock);
 
         matchInstr->setElseBlock(elseBlock);
+    } else {
+        matchInstr->setElseBlock(contBlock);
     }
 
     setInsertPoint(contBlock);
