@@ -632,14 +632,12 @@ bool ApiRequest::processBackend()
     }
 }
 
-// GET /:director/:backend
+// GET /:director/backends/:backend
 bool ApiRequest::show(Backend* backend)
 {
     Buffer result;
     JsonWriter json(result);
-    json.beginObject()
-        .value(*backend)
-        .endObject();
+    json << *backend;
 
     request_->status = x0::HttpStatus::Ok;
     request_->write<x0::BufferSource>(result);
