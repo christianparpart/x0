@@ -157,12 +157,13 @@ bool ApiRequest::process(DirectorMap* directors, HttpRequest* r, const BufferRef
 
 bool ApiRequest::run()
 {
-    BufferSink sink;
+    if (request_->contentAvailable()) {
+        BufferSink sink;
+        while (request_->body()->sendto(sink) > 0)
+            ;
 
-    while (request_->body()->sendto(sink) > 0)
-        ;
-
-    args_ = Url::parseQuery(sink.buffer());
+        args_ = Url::parseQuery(sink.buffer());
+    }
 
     if (!process()) {
         request_->log(Severity::error, "Error parsing request body.");
