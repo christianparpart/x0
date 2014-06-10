@@ -739,7 +739,7 @@ void HttpConnection::abort(HttpStatus status)
 {
     TRACE(1, "abort(%d): cstate:%s, pstate:%s", (int)status, state_str(), parserStateStr());
 
-    assert(state() == ReadingRequest);
+    assert(state() == ReadingRequest || state() == KeepAliveRead);
 
     ++requestCount_;
 
