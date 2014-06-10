@@ -26,6 +26,7 @@ class X0_API BufferSource :
     public Source
 {
 public:
+    BufferSource();
     template<typename PodType, std::size_t N> explicit BufferSource(PodType (&value)[N]);
     explicit BufferSource(const Buffer& data);
     explicit BufferSource(Buffer&& data);
@@ -37,6 +38,9 @@ public:
     ssize_t sendto(Sink& sink) override;
     const char* className() const override;
 
+    Buffer& buffer() { return buffer_; }
+    const Buffer& buffer() const { return buffer_; }
+
 private:
     Buffer buffer_;
     std::size_t pos_;
@@ -45,6 +49,11 @@ private:
 //@}
 
 // {{{ inlines
+inline BufferSource::BufferSource() :
+    buffer_(), pos_(0)
+{
+}
+
 template<typename PodType, std::size_t N>
 inline BufferSource::BufferSource(PodType (&value)[N]) :
     buffer_(), pos_(0)
