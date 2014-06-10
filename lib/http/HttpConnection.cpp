@@ -274,7 +274,11 @@ void HttpConnection::start(std::unique_ptr<Socket>&& client, ServerSocket* liste
         // Thus we can go straight and attempt to read it.
         readSome();
 
-        TRACE(1, "start: processing input done");
+        if (state() == ReadingRequest || state() == KeepAliveRead) {
+            wantRead(worker_->server_.maxReadIdle());
+        }
+
+        TRACE(1, "start: processing input done (state: %s)", state_str());
 #else
         TRACE(1, "start: wantRead.");
         // client connected, but we do not yet know if we have data pending
@@ -627,8 +631,6 @@ bool HttpConnection::readSome()
             requestParserOffset_ = requestHeaderEndOffset_;
             requestBuffer_.resize(requestHeaderEndOffset_);
         }
-
-        wantRead(worker_->server_.maxReadIdle());
     }
 
     return true;
