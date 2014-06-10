@@ -270,13 +270,12 @@ void HttpConnection::start(std::unique_ptr<Socket>&& client, ServerSocket* liste
 #if defined(TCP_DEFER_ACCEPT) && defined(ENABLE_TCP_DEFER_ACCEPT)
         TRACE(1, "start: processing input");
 
+        // initialize I/O watching state to READ
+        wantRead(worker_->server_.maxReadIdle());
+
         // TCP_DEFER_ACCEPT attempts to let us accept() only when data has arrived.
         // Thus we can go straight and attempt to read it.
         readSome();
-
-        if (state() == ReadingRequest || state() == KeepAliveRead) {
-            wantRead(worker_->server_.maxReadIdle());
-        }
 
         TRACE(1, "start: processing input done (state: %s)", state_str());
 #else
