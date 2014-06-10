@@ -679,48 +679,50 @@ bool HttpConnection::writeSome()
 {
     TRACE(1, "writeSome() state: %s", state_str());
 
-    ssize_t rv = output_.sendto(sink_);
+    for (;;) {
+        ssize_t rv = output_.sendto(sink_);
 
-    TRACE(1, "writeSome(): sendto().rv=%lu %s", rv, rv < 0 ? strerror(errno) : "");
+        TRACE(1, "writeSome(): sendto().rv=%lu %s", rv, rv < 0 ? strerror(errno) : "");
 
-    if (rv > 0) {
-        // output chunk written
-        request_->bytesTransmitted_ += rv;
-        return true;
-    }
-
-    if (rv == 0) {
-        // output fully written
-        if (request_->isFinished()) {
-            // finish() got invoked before reply was fully sent out, thus,
-            // finalize() was delayed.
-            request_->finalize();
-        } else {
-            // watch for EOF at least
-            wantRead(TimeSpan::Zero);
+        if (rv > 0) {
+            // output chunk written
+            request_->bytesTransmitted_ += rv;
+            continue;
         }
 
-        TRACE(1, "writeSome: output fully written. conn:%s, outputPending:%lu, refCount:%d",
-                isOpen() ? "open" : "closed", output_.size(), refCount_);
+        if (rv == 0) {
+            // output fully written
+            if (request_->isFinished()) {
+                // finish() got invoked before reply was fully sent out, thus,
+                // finalize() was delayed.
+                request_->finalize();
+            } else {
+                // watch for EOF at least
+                wantRead(TimeSpan::Zero);
+            }
 
-        return true;
-    }
+            TRACE(1, "writeSome: output fully written. conn:%s, outputPending:%lu, refCount:%d",
+                    isOpen() ? "open" : "closed", output_.size(), refCount_);
 
-    // sendto() failed
-    switch (errno) {
-    case EINTR:
-        break;
-    case EAGAIN:
+            return true;
+        }
+
+        // sendto() failed
+        switch (errno) {
+        case EINTR:
+            break;
+        case EAGAIN:
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-    case EWOULDBLOCK:
+        case EWOULDBLOCK:
 #endif
-        wantWrite();
-        break;
-    default:
-        log(Severity::error, "Failed to write to client. %s", strerror(errno));
-        request_->status = HttpStatus::Hangup;
-        abort();
-        return false;
+            wantWrite();
+            break;
+        default:
+            log(Severity::error, "Failed to write to client. %s", strerror(errno));
+            request_->status = HttpStatus::Hangup;
+            abort();
+            return false;
+        }
     }
 
     return true;
