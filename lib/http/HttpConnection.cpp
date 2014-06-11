@@ -75,7 +75,6 @@ HttpConnection::HttpConnection(HttpWorker* w, unsigned long long id) :
     requestParserOffset_(0),
 
     request_(nullptr),
-    requestBodyBufferSize_(0),
     requestBodyPath_(),
     requestBodyFd_(-1),
     requestBodyFileSize_(0),
@@ -116,8 +115,6 @@ void HttpConnection::reinit(unsigned long long id)
 
 void HttpConnection::clearRequestBody()
 {
-    requestBodyBufferSize_ = 0;
-
     if (requestBodyFd_ >= 0) {
         ::close(requestBodyFd_);
         requestBodyFd_ = -1;
@@ -411,13 +408,18 @@ bool HttpConnection::onMessageHeaderEnd()
 
     if (isContentExpected()) {
         if (request_->expectingContinue) {
+            TRACE(1, "onMessageHeaderEnd() sending 100-continue");
             write<BufferRefSource>("HTTP/1.1 100 Continue\r\n\r\n");
+            flush();
+            // FIXME: call request handler only after this one has been sent out (successfully).
             request_->expectingContinue = false;
         }
 
         const bool useTmpFile = isChunked() || contentLength() > static_cast<ssize_t>(worker().server().requestBodyBufferSize());
 
-        if (useTmpFile) {
+        if (!useTmpFile) {
+            request_->body_.reset(new BufferSource());
+        } else {
             const int flags = O_RDWR;
 
 #if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
@@ -446,18 +448,8 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
 {
     TRACE(1, "onMessageContent(#%lu): cstate:%s pstate:%s", chunk.size(), state_str(), parserStateStr());
 
-    if (!request_->body_) {
-        request_->body_.reset(new CompositeSource());
-    }
-
-    if (requestBodyBufferSize_ + chunk.size() < worker().server().requestBodyBufferSize()) {
-        request_->body_->push_back<BufferSource>(Buffer(chunk));
-        requestBodyBufferSize_ += chunk.size();
-        return true;
-    }
-
     if (requestBodyFd_ >= 0) {
-        TRACE(1, "onMessageContent: write to fd %d", requestBodyFd_);
+        TRACE(1, "onMessageContent: write to fd %d (%zu bytes)", requestBodyFd_, chunk.size());
         ssize_t rv = ::write(requestBodyFd_, chunk.data(), chunk.size());
         if (rv < 0) {
             if (requestBodyPath_[0] != '\0') {
@@ -471,9 +463,15 @@ bool HttpConnection::onMessageContent(const BufferRef& chunk)
             return false;
         }
         requestBodyFileSize_ += rv;
+    } else if (request_->body_.get()) {
+        TRACE(1, "onMessageContent: write buf chunk (%zu bytes)", chunk.size());
+        static_cast<BufferSource*>(request_->body_.get())->buffer().push_back(chunk);
+        return true;
     } else {
-        TRACE(1, "onMessageContent: write as buffer (fd failed)");
-        request_->body_->push_back<BufferSource>(Buffer(chunk));
+        TRACE(1, "onMessageContent: ignore chunk (%zu bytes)", chunk.size());
+        // probably something blased up on the host, so don't push it
+        // and ignore the rquest body. the app has to deal with this case,
+        // and the admin should be aware of the log entries.
     }
 
     return true;
@@ -484,7 +482,8 @@ bool HttpConnection::onMessageEnd()
     TRACE(1, "onMessageEnd() %s (rfinished:%d)", state_str(), request_->isFinished());
 
     if (requestBodyFd_ >= 0) {
-        request_->body_->push_back<FileSource>(requestBodyFd_, 0, requestBodyFileSize_, false);
+        request_->body_.reset(new FileSource(requestBodyFd_, 0, requestBodyFileSize_, true));
+        requestBodyFd_ = -1;
     }
 
     setState(ProcessingRequest);
@@ -643,7 +642,7 @@ bool HttpConnection::readSome()
 void HttpConnection::write(std::unique_ptr<Source>&& chunk)
 {
     if (isOpen()) {
-        TRACE(1, "write() chunk (%s)", chunk->className());
+        TRACE(1, "write() chunk (%s) autoFlush:%s", chunk->className(), autoFlush_ ? "yes" : "no");
         output_.push_back(std::move(chunk));
 
         if (autoFlush_) {

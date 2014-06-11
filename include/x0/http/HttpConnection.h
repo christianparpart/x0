@@ -217,7 +217,6 @@ private:
     std::size_t requestHeaderEndOffset_;        //!< offset to the first byte of the currently processed request
     HttpRequest* request_;				        //!< currently parsed http HttpRequest, may be NULL
 
-    size_t requestBodyBufferSize_;              //!< number of bytes of the request body that is part of \p requestBuffer_.
     char requestBodyPath_[1024];                //!< full path to temporary stored request body, if available
     int requestBodyFd_;                         //!< file handle to temporary stored request body, if available
     size_t requestBodyFileSize_;                //!< size of the temporary request body file in bytes, if available, 0 otherwise.

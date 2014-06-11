@@ -315,8 +315,8 @@ public:
 
     // content management
     bool contentAvailable() const { return body_ && body_->size() > 0; }
-    std::unique_ptr<CompositeSource>&& consumeBody() { return std::move(body_); }
-    std::unique_ptr<CompositeSource>& body() { return body_; }
+    std::unique_ptr<Source>&& consumeBody() { return std::move(body_); }
+    std::unique_ptr<Source>& body() { return body_; }
 
     template<typename... Args>
     void log(Severity s, Args&&... args);
@@ -393,7 +393,7 @@ private:
 
 private:
     DateTime timeStart_;
-    std::unique_ptr<CompositeSource> body_;
+    std::unique_ptr<Source> body_;
 };
 
 // {{{ request impl
@@ -422,9 +422,7 @@ inline void HttpRequest::clear()
     directoryDepth_ = 0;
     errorHandler_ = std::function<bool(HttpRequest*)>();;
 
-    if (body_) {
-        body_->clear();
-    }
+    body_.reset(nullptr);
 }
 
 inline bool HttpRequest::supportsProtocol(int major, int minor) const
