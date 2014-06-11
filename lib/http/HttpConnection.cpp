@@ -714,7 +714,7 @@ bool HttpConnection::writeSome()
         case EWOULDBLOCK:
 #endif
             wantWrite();
-            break;
+            return true;
         default:
             log(Severity::error, "Failed to write to client. %s", strerror(errno));
             request_->status = HttpStatus::Hangup;
@@ -722,8 +722,6 @@ bool HttpConnection::writeSome()
             return false;
         }
     }
-
-    return true;
 }
 
 /**
