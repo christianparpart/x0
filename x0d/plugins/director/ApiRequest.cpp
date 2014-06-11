@@ -134,7 +134,9 @@ ApiRequest::ApiRequest(DirectorMap* directors, HttpRequest* r, const BufferRef& 
     request_(r),
     method_(::requestMethod(request_->method)),
     path_(path),
-    tokens_(tokenize(path_.ref(1), "/"))
+    tokens_(tokenize(path_.ref(1), "/")),
+    args_(),
+    errorCount_(0)
 {
 }
 
@@ -199,13 +201,23 @@ bool ApiRequest::loadParam(const std::string& key, bool& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
-    result = i->second == "true"
-        || i->second == "1";
+    if (i->second == "true" || i->second == "1") {
+        result = true;
+        return true;
+    }
 
-    return true;
+    if (i->second == "false" || i->second == "0") {
+        result = false;
+        return true;
+    }
+
+    request_->log(Severity::error, "Request parameter '%s' contains an invalid value.", key.c_str());
+    errorCount_++;
+    return false;
 }
 
 bool ApiRequest::loadParam(const std::string& key, int& result)
@@ -213,6 +225,7 @@ bool ApiRequest::loadParam(const std::string& key, int& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
@@ -226,6 +239,7 @@ bool ApiRequest::loadParam(const std::string& key, size_t& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
@@ -239,6 +253,7 @@ bool ApiRequest::loadParam(const std::string& key, float& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
@@ -253,6 +268,7 @@ bool ApiRequest::loadParam(const std::string& key, TimeSpan& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
@@ -266,15 +282,18 @@ bool ApiRequest::loadParam(const std::string& key, BackendRole& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
-    if (i->second == "active")
+    if (i->second == "active") {
         result = BackendRole::Active;
-    else if (i->second == "backup")
+    } else if (i->second == "backup") {
         result = BackendRole::Backup;
-    else
+    } else {
+        errorCount_++;
         return false;
+    }
 
     return true;
 }
@@ -284,17 +303,21 @@ bool ApiRequest::loadParam(const std::string& key, HealthMonitor::Mode& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
-    if (i->second == "paranoid")
+    if (i->second == "paranoid") {
         result = HealthMonitor::Mode::Paranoid;
-    else if (i->second == "opportunistic")
+    } else if (i->second == "opportunistic") {
         result = HealthMonitor::Mode::Opportunistic;
-    else if (i->second == "lazy")
+    } else if (i->second == "lazy") {
         result = HealthMonitor::Mode::Lazy;
-    else
+    } else {
+        request_->log(Severity::error, "Request parameter '%s' contains an invalid value.", key.c_str());
+        errorCount_++;
         return false;
+    }
 
     return true;
 }
@@ -304,6 +327,7 @@ bool ApiRequest::loadParam(const std::string& key, std::string& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
@@ -317,6 +341,7 @@ bool ApiRequest::loadParam(const std::string& key, TransferMode& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
@@ -330,12 +355,14 @@ bool ApiRequest::loadParam(const std::string& key, ClientAbortAction& result)
     auto i = args_.find(key);
     if (i == args_.end()) {
         request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
+        errorCount_++;
         return false;
     }
 
     Try<ClientAbortAction> t = parseClientAbortAction(i->second);
     if (t.isError()) {
         request_->log(Severity::error, "Request parameter '%s' is invalid. %s", key.c_str(), t.errorMessage());
+        errorCount_++;
         return false;
     }
 
@@ -360,7 +387,7 @@ bool ApiRequest::process()
                 else if (tokens_[1] == "backends") // PUT /:director_id/backends
                     return createBackend(findDirector(tokens_[0]));
             }
-            return badRequest();
+            return badRequest("Invalid request URI");
         case 1:                                   // /:director_id
             return processDirector();
         case 0:                                   // /
@@ -753,39 +780,57 @@ bool ApiRequest::update(Backend* backend, Director* director)
     }
 
     BackendRole role = director->backendRole(backend);
-    loadParam("role", role);
+    if (hasParam("role"))
+        loadParam("role", role);
 
     bool enabled = backend->isEnabled();
-    loadParam("enabled", enabled);
+    if (hasParam("enabled"))
+        loadParam("enabled", enabled);
 
     size_t capacity = backend->capacity();
-    loadParam("capacity", capacity);
+    if (hasParam("capacity"))
+        loadParam("capacity", capacity);
 
     bool terminateProtection = backend->terminateProtection();
     if (hasParam("terminate-protection"))
         loadParam("terminate-protection", terminateProtection);
 
     TimeSpan hcInterval = backend->healthMonitor()->interval();
-    loadParam("health-check-interval", hcInterval);
+    if (hasParam("health-check-interval"))
+        loadParam("health-check-interval", hcInterval);
 
     HealthMonitor::Mode hcMode = backend->healthMonitor()->mode();
-    loadParam("health-check-mode", hcMode);
+    if (hasParam("health-check-mode"))
+        loadParam("health-check-mode", hcMode);
 
-    if (!enabled)
-        backend->setEnabled(false);
+    if (errorCount_ > 0) {
+        return badRequest();
+    }
 
-    size_t oldCapacity = backend->capacity();
-    if (oldCapacity != capacity)
-        director->shaper()->resize(director->shaper()->size() - oldCapacity + capacity);
+    // update backend
 
-    director->setBackendRole(backend, role);
-    backend->setCapacity(capacity);
-    backend->setTerminateProtection(terminateProtection);
-    backend->healthMonitor()->setInterval(hcInterval);
-    backend->healthMonitor()->setMode(hcMode);
+    if (hasParam("capacity")) {
+        size_t oldCapacity = backend->capacity();
+        if (oldCapacity != capacity) {
+            director->shaper()->resize(director->shaper()->size() - oldCapacity + capacity);
+            backend->setCapacity(capacity);
+        }
+    }
 
-    if (enabled)
-        backend->setEnabled(true);
+    if (hasParam("role"))
+        director->setBackendRole(backend, role);
+
+    if (hasParam("terminate-protection"))
+        backend->setTerminateProtection(terminateProtection);
+
+    if (hasParam("health-check-interval"))
+        backend->healthMonitor()->setInterval(hcInterval);
+
+    if (hasParam("health-check-mode"))
+        backend->healthMonitor()->setMode(hcMode);
+
+    if (hasParam("enabled"))
+        backend->setEnabled(enabled);
 
     director->save();
 
@@ -1048,7 +1093,7 @@ bool ApiRequest::resourceNotFound(const std::string& name, const std::string& va
 
 bool ApiRequest::badRequest(const char* msg)
 {
-    request_->post([&]() {
+    request_->post([=]() {
         if (msg && *msg)
             request_->log(Severity::error, "%s", msg);
 

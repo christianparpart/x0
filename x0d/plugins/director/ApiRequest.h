@@ -51,6 +51,7 @@ private:
     x0::BufferRef path_;
     std::vector<BufferRef> tokens_;
     std::unordered_map<std::string, std::string> args_;
+    int errorCount_;
 
 public:
     ApiRequest(DirectorMap* directors, x0::HttpRequest* r, const x0::BufferRef& path);
