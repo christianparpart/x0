@@ -315,7 +315,7 @@ public:
 
     // content management
     bool contentAvailable() const { return body_ && body_->size() > 0; }
-    std::unique_ptr<Source>&& consumeBody() { return std::move(body_); }
+    std::unique_ptr<Source>&& takeBody() { return std::move(body_); }
     std::unique_ptr<Source>& body() { return body_; }
 
     template<typename... Args>

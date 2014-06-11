@@ -36,7 +36,7 @@ private:
         r->status = HttpStatus::Ok;
 
         if (r->contentAvailable()) {
-            r->write(std::move(r->consumeBody()));
+            r->write(std::move(r->takeBody()));
             r->finish();
         } else {
             r->write<BufferRefSource>(BufferRef("I'm an HTTP echo-server, dude.\n"));

@@ -316,7 +316,7 @@ void HttpBackend::Connection::serializeRequest()
     writeSource_.push_back<BufferSource>(std::move(writeBuffer));
 
     if (r->contentAvailable()) {
-        writeSource_.push_back(std::move(r->consumeBody()));
+        writeSource_.push_back(std::move(r->takeBody()));
     }
 }
 
