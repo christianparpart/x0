@@ -84,14 +84,13 @@ public:
     void kill();
     // }}}
 
-    // {{{ signals raised on request in order
+    // signals raised on request in order
     ConnectionHook onConnectionOpen;	//!< This hook is invoked once a new client has connected.
     RequestHook onPreProcess; 			//!< is called at the very beginning of a request.
     RequestHook onPostProcess;			//!< gets invoked right before serializing headers
     RequestHook onRequestDone;			//!< this hook is invoked once the request has been <b>fully</b> served to the client.
     ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.
     ConnectionStateHook onConnectionStateChanged; //!< is invoked whenever a the connection status changes.
-    // }}}
 
     WorkerHook onWorkerSpawn;
     WorkerHook onWorkerUnspawn;
