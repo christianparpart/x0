@@ -30,6 +30,7 @@ XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
     daemon_(daemon),
     server_(daemon->server()),
     name_(name),
+    cleanups_(),
     natives_()
 #if !defined(XZERO_NDEBUG)
     , debugLevel_(9)
@@ -48,6 +49,10 @@ XzeroPlugin::XzeroPlugin(XzeroDaemon* daemon, const std::string& name) :
 XzeroPlugin::~XzeroPlugin()
 {
     TRACE(1, "destructing %s", name_.c_str());
+
+    for (auto cleanup: cleanups_) {
+        cleanup();
+    }
 
     for (auto native: natives_) {
         daemon_->unregisterNative(native->name());

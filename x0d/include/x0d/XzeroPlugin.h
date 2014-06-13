@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 #include <system_error>
 
 namespace x0 {
@@ -68,10 +69,52 @@ public:
     x0::HttpServer& server() const;
 
 protected:
+    // flow configuration API
     template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& setupFunction(const std::string& name, void (Class::*method)(x0::FlowVM::Params&), ArgTypes... argTypes);
     template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& sharedFunction(const std::string& name, void (Class::*method)(x0::HttpRequest* r, x0::FlowVM::Params&), ArgTypes... argTypes);
     template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& mainFunction(const std::string& name, void (Class::*method)(x0::HttpRequest* r, x0::FlowVM::Params&), ArgTypes... argTypes);
     template<typename Class, typename... ArgTypes> x0::FlowVM::NativeCallback& mainHandler(const std::string& name, bool (Class::*method)(x0::HttpRequest* r, x0::FlowVM::Params&), ArgTypes... argTypes);
+
+    // hook setup API
+    void onWorkerSpawn(std::function<void(x0::HttpWorker*)>&& callback) {
+        auto handle = server().onWorkerSpawn.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onWorkerSpawn.disconnect(handle); });
+    }
+
+    void onWorkerUnspawn(std::function<void(x0::HttpWorker*)>&& callback) {
+        auto handle = server().onWorkerUnspawn.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onWorkerUnspawn.disconnect(handle); });
+    }
+
+    void onConnectionOpen(std::function<void(x0::HttpConnection*)>&& callback) {
+        auto handle = server().onConnectionOpen.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onConnectionOpen.disconnect(handle); });
+    }
+
+    void onConnectionStateChanged(std::function<void(x0::HttpConnection*, x0::HttpConnection::State)>&& callback) {
+        auto handle = server().onConnectionStateChanged.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onConnectionStateChanged.disconnect(handle); });
+    }
+
+    void onConnectionClose(std::function<void(x0::HttpConnection*)>&& callback) {
+        auto handle = server().onConnectionClose.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onConnectionClose.disconnect(handle); });
+    }
+
+    void onPreProcess(std::function<void(x0::HttpRequest*)>&& callback) {
+        auto handle = server().onPreProcess.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onPreProcess.disconnect(handle); });
+    }
+
+    void onPostProcess(std::function<void(x0::HttpRequest*)>&& callback) {
+        auto handle = server().onPostProcess.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onPostProcess.disconnect(handle); });
+    }
+
+    void onRequestDone(std::function<void(x0::HttpRequest*)>&& callback) {
+        auto handle = server().onRequestDone.connect(std::move(callback));
+        cleanups_.push_back([=]() { server().onRequestDone.disconnect(handle); });
+    }
 
 private:
     x0::FlowVM::NativeCallback& addNative(x0::FlowVM::NativeCallback& cb);
@@ -80,6 +123,7 @@ protected:
     XzeroDaemon* daemon_;
     x0::HttpServer* server_;
     std::string name_;
+    std::list<std::function<void()>> cleanups_;
     std::vector<x0::FlowVM::NativeCallback*> natives_;
 
 #if !defined(XZERO_NDEBUG)
