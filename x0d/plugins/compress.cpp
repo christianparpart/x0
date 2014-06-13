@@ -69,8 +69,6 @@ private:
         return contentTypes_.find(value) != contentTypes_.end();
     }
 
-    x0::HttpServer::RequestHook::Connection postProcess_;
-
 public:
     compress_plugin(x0d::XzeroDaemon* d, const std::string& name) :
         x0d::XzeroPlugin(d, name),
@@ -85,16 +83,12 @@ public:
         contentTypes_["application/xml"] = 0;
         contentTypes_["application/xhtml+xml"] = 0;
 
-        postProcess_ = server().onPostProcess.connect<compress_plugin, &compress_plugin::postProcess>(this);
+        onPostProcess(std::bind(&compress_plugin::postProcess, this, std::placeholders::_1));
 
         setupFunction("compress.types", &compress_plugin::setup_types, x0::FlowType::StringArray);
         setupFunction("compress.level", &compress_plugin::setup_level, x0::FlowType::Number);
         setupFunction("compress.min", &compress_plugin::setup_minsize, x0::FlowType::Number);
         setupFunction("compress.max", &compress_plugin::setup_maxsize, x0::FlowType::Number);
-    }
-
-    ~compress_plugin() {
-        server().onPostProcess.disconnect(postProcess_);
     }
 
 private:
