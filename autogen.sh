@@ -1,7 +1,7 @@
 #! /bin/bash
 
 if [[ -z "$CXX" ]]; then
-	if which _clang++ &>/dev/null; then
+	if which clang++ &>/dev/null; then
 		export CXX=$(which clang++)
 	else
 		export CXX=$(which g++)
