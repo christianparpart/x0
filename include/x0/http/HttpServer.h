@@ -87,8 +87,6 @@ public:
     // {{{ signals raised on request in order
     ConnectionHook onConnectionOpen;	//!< This hook is invoked once a new client has connected.
     RequestHook onPreProcess; 			//!< is called at the very beginning of a request.
-    RequestHook onResolveDocumentRoot;	//!< resolves document_root to use for this request.
-    RequestHook onResolveEntity;		//!< maps the request URI into local physical path.
     RequestHook onPostProcess;			//!< gets invoked right before serializing headers
     RequestHook onRequestDone;			//!< this hook is invoked once the request has been <b>fully</b> served to the client.
     ConnectionHook onConnectionClose;	//!< is called before a connection gets closed / or has been closed by remote point.

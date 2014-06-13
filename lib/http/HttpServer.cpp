@@ -62,8 +62,6 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
 
     onConnectionOpen(),
     onPreProcess(),
-    onResolveDocumentRoot(),
-    onResolveEntity(),
     onPostProcess(),
     onRequestDone(),
     onConnectionClose(),
