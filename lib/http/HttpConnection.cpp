@@ -781,6 +781,8 @@ void HttpConnection::close()
 
     socket_->close();
 
+    clientAbortHandler_ = std::function<void()>();
+
     if (isOutputPending()) {
         TRACE(1, "abort: clearing pending output (%lu)", output_.size());
         output_.clear();
