@@ -16,6 +16,7 @@
 	* accesslog: support custom log format lines
 	* accesslog: support logging into multiple log targets
 	* status: adds a `status.api()` handler that generates a JSON formatted server status response
+	* cgi: adds `cgi.max_scripts(I)` setup function to constraing maximum number of concurrently running CGI scripts.
 
 0.9.0 (2014-04-13)
 

@@ -1045,6 +1045,19 @@ Adds support for CGI/1.1 scripts.
 
 =over 6
 
+=item B<cgi.max_scripts> (limit: int)
+
+defines the maximum number of concurrently running CGI scripts allowed.
+
+Default is 128.
+
+Example:
+
+ handler setup {
+   # ...
+   cgi.max_scripts 20;
+ }
+
 =item B<cgi.exec> ()
 
 is a handler that tests whether the underlying physical file is a
