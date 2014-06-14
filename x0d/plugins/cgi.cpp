@@ -324,7 +324,7 @@ inline void CgiScript::runAsync()
 
     //environment["REMOTE_HOST"] = "";  // optional
     environment["REMOTE_ADDR"] = request_->connection.remoteIP().str();
-    environment["REMOTE_PORT"] = lexical_cast<std::string>(request_->connection.remotePort());
+    environment["REMOTE_PORT"] = std::to_string(request_->connection.remotePort());
 
     //environment["AUTH_TYPE"] = "";
     //environment["REMOTE_USER"] = "";

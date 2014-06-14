@@ -120,7 +120,7 @@ private:
 
         in->status = x0::HttpStatus::Ok;
         in->responseHeaders.push_back("Content-Type", "text/html");
-        in->responseHeaders.push_back("Content-Length", x0::lexical_cast<std::string>(sstr.size()));
+        in->responseHeaders.push_back("Content-Length", std::to_string(sstr.size()));
 
         in->write<x0::BufferSource>(std::move(sstr));
         in->finish();

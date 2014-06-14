@@ -56,22 +56,4 @@ std::string trim(const std::string& value)
     return value.substr(left, 1 + right - left);
 }
 
-template<> std::string lexical_cast<std::string, unsigned int>(const unsigned int& value) {
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%u", value);
-    return buf;
-}
-
-template<> X0_API std::string lexical_cast<std::string, unsigned long>(const unsigned long& value) {
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%lu", value);
-    return buf;
-}
-
-template<> X0_API std::string lexical_cast<std::string, unsigned long long>(const unsigned long long& value) {
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%llu", value);
-    return buf;
-}
-
 } // namespace x0

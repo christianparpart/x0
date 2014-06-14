@@ -1038,7 +1038,7 @@ bool HttpRequest::sendfile(const HttpFileRef& transferFile)
     if (!processRangeRequest(transferFile, fd)) {
         responseHeaders.push_back("Accept-Ranges", "bytes");
         responseHeaders.push_back("Content-Type", transferFile->mimetype());
-        responseHeaders.push_back("Content-Length", lexical_cast<std::string>(transferFile->size()));
+        responseHeaders.push_back("Content-Length", std::to_string(transferFile->size()));
 
         if (fd >= 0) { // GET request
 #if defined(HAVE_POSIX_FADVISE)

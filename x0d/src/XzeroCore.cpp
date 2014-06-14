@@ -1065,7 +1065,7 @@ bool XzeroCore::staticfile(HttpRequest *in, FlowParams& args) // {{{
         in->responseHeaders.push_back("ETag", in->fileinfo->etag());
 
         in->responseHeaders.push_back("Content-Type", in->fileinfo->mimetype());
-        in->responseHeaders.push_back("Content-Length", lexical_cast<std::string>(in->fileinfo->size()));
+        in->responseHeaders.push_back("Content-Length", std::to_string(in->fileinfo->size()));
 
         int fd = in->fileinfo->handle();
         if (fd < 0) {

@@ -265,7 +265,7 @@ void FastCgiBackend::Connection::serializeRequest()
 
     params.encode("SERVER_PROTOCOL", "1.1");
     params.encode("SERVER_ADDR", r->connection.localIP().str());
-    params.encode("SERVER_PORT", x0::lexical_cast<std::string>(r->connection.localPort()));// TODO this should to be itoa'd only ONCE
+    params.encode("SERVER_PORT", std::to_string(r->connection.localPort())); // TODO this should to be itoa'd only ONCE
 
     params.encode("REQUEST_METHOD", r->method);
     params.encode("REDIRECT_STATUS", "200"); // for PHP configured with --force-redirect (Gentoo/Linux e.g.)
@@ -286,7 +286,7 @@ void FastCgiBackend::Connection::serializeRequest()
 
     //params.encode("REMOTE_HOST", "");  // optional
     params.encode("REMOTE_ADDR", r->connection.remoteIP().str());
-    params.encode("REMOTE_PORT", x0::lexical_cast<std::string>(r->connection.remotePort()));
+    params.encode("REMOTE_PORT", std::to_string(r->connection.remotePort()));
 
     //params.encode("REMOTE_IDENT", "");
     //params.encode("AUTH_TYPE", ""); // TODO

@@ -221,7 +221,7 @@ void Imageable::processImage()
     }
 
     request_->responseHeaders.push_back("Content-Type", fileinfo->mimetype());
-    request_->responseHeaders.push_back("Content-Length", x0::lexical_cast<std::string>(fileinfo->size()));
+    request_->responseHeaders.push_back("Content-Length", std::to_string(fileinfo->size()));
 
     request_->status = HttpStatus::Ok;
 

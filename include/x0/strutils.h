@@ -26,14 +26,6 @@ namespace x0 {
 //! \addtogroup base
 //@{
 
-template<typename T, typename U> X0_API T lexical_cast(const U& value);
-
-template<> inline X0_API std::string lexical_cast<std::string, int>(const int& value) {
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%d", value);
-    return buf;
-}
-
 // {{{ fstringbuilder
 
 /**
