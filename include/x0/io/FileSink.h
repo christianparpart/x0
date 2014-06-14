@@ -31,9 +31,11 @@ private:
     int flags_;
     int mode_;
     int handle_;
+    bool autoClose_;
 
 public:
     explicit FileSink(const std::string& filename, int flags = O_WRONLY | O_CREAT, int mode = 0666);
+    FileSink(int fd, bool autoClose);
     ~FileSink();
 
     int handle() const;
