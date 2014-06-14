@@ -411,6 +411,12 @@ skip:
 
 bool HttpBackend::Connection::onMessageHeaderEnd()
 {
+    TRACE("onMessageHeaderEnd()");
+
+    if (rn_->request->method == "HEAD") {
+        processingDone_ = true;
+    }
+
     if (unlikely(!sendfile_.empty())) {
         auto r = rn_->request;
         r->responseHeaders.remove("Content-Type");
