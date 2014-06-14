@@ -578,11 +578,6 @@ bool HttpConnection::readSome()
         return true;
     }
 
-    if (state() == KeepAliveRead) {
-        TRACE(1, "readSome: state was keep-alive-read. resetting to reading-request");
-        setState(ReadingRequest);
-    }
-
     if (requestParserOffset_ == requestBuffer_.size()) {
         ssize_t rv = socket_->read(requestBuffer_, requestBuffer_.capacity());
         TRACE(1, "readSome: read %lu bytes", rv);
@@ -597,8 +592,10 @@ bool HttpConnection::readSome()
                 wantRead(worker_->server_.maxReadIdle());
                 return true;
             default:
-                log(Severity::error, "Failed to read from client. %s", strerror(errno));
-                request_->status = HttpStatus::Hangup;
+                if (state() != KeepAliveRead) {
+                    log(Severity::error, "(%s) Failed to read from client. %s", parserStateStr(), strerror(errno));
+                    request_->status = HttpStatus::Hangup;
+                }
                 abort();
                 return false;
             }
@@ -615,6 +612,11 @@ bool HttpConnection::readSome()
 
             return false;
         }
+    }
+
+    if (state() == KeepAliveRead) {
+        TRACE(1, "readSome: state was keep-alive-read. resetting to reading-request");
+        setState(ReadingRequest);
     }
 
     {
