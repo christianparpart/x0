@@ -180,6 +180,8 @@ public:
     void freeCache();
 
 private:
+    HttpWorker* current();
+
     template<class K, void (K::*fn)()>
     static void post_thunk(int revents, void* arg);
 
@@ -248,6 +250,13 @@ inline unsigned long long HttpWorker::connectionCount() const
 template<class K, void (K::*fn)()>
 void HttpWorker::post(K* object)
 {
+#if defined(X0_ENABLE_POST_FN_OPTIMIZATION)
+    if (current() == this) {
+        (object->*fn)();
+        return;
+    }
+#endif
+
 #if !defined(X0_WORKER_POST_LIBEV)
     pthread_mutex_lock(&postLock_);
     postQueue_.push_back(std::bind(fn, object));
@@ -272,6 +281,13 @@ void HttpWorker::post_thunk(int revents, void* arg)
 template<class K, void (K::*fn)(void*)>
 void HttpWorker::post(K* object, void* arg)
 {
+#if defined(X0_ENABLE_POST_FN_OPTIMIZATION)
+    if (current() == this) {
+        (object->*fn)(arg);
+        return;
+    }
+#endif
+
 #if !defined(X0_WORKER_POST_LIBEV)
     pthread_mutex_lock(&postLock_);
     postQueue_.push_back(std::bind(fn, object, arg));

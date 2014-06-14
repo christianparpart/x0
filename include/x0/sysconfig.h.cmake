@@ -54,6 +54,7 @@
 #cmakedefine X0_TMPDIR "@X0_TMPDIR@"
 
 #cmakedefine X0_ENABLE_O_TMPFILE
+#cmakedefine X0_ENABLE_POST_FN_OPTIMIZATION
 
 #cmakedefine VALGRIND 1
 

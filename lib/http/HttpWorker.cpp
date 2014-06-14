@@ -128,6 +128,11 @@ HttpWorker::~HttpWorker()
     freeCache();
 }
 
+HttpWorker* HttpWorker::current()
+{
+    return server().currentWorker();
+}
+
 void* HttpWorker::_run(void* p)
 {
     reinterpret_cast<HttpWorker*>(p)->run();
@@ -479,6 +484,13 @@ void HttpWorker::post_thunk3(int revents, void* arg)
 
 void HttpWorker::post(std::function<void()>&& callback)
 {
+#if defined(X0_ENABLE_POST_FN_OPTIMIZATION)
+    if (current() == this) {
+        callback();
+        return;
+    }
+#endif
+
 #if !defined(X0_WORKER_POST_LIBEV)
     pthread_mutex_lock(&postLock_);
     postQueue_.push_back(std::move(callback));

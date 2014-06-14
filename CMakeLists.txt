@@ -31,6 +31,7 @@ option(ENABLE_CAPI "Build Xzero C-API [default: on]" ON)
 option(X0_QUEUE_LOCKFREE "Build Queue<T> API as lock-free data structure [default: on]" ON)
 option(X0_WORKER_POST_LIBEV "Use libev's async method to post into HTTP workers instead of a locking queue [default: on]" ON)
 option(X0_ENABLE_O_TMPFILE "Try to open temporary files with O_TMPFILE flag before falling back to standard behaviour [default: on]" ON)
+option(X0_ENABLE_POST_FN_OPTIMIZATION "Optimize code path for post()'ing code blocks into current worker threads [default: OFF]" OFF)
 
 # x0d plugins
 option(ENABLE_PLUGINS "Compile x0d plugins [default: on]" ON)
