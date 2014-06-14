@@ -758,7 +758,7 @@ bool FastCgiBackend::Connection::onMessageHeader(const x0::BufferRef& name, cons
 
 bool FastCgiBackend::Connection::onMessageHeaderEnd()
 {
-    TRACE("onMessageHeaderEnd()");
+    TRACE(1, "onMessageHeaderEnd()");
 
     if (unlikely(!sendfile_.empty())) {
         auto r = rn_->request;
