@@ -69,16 +69,33 @@ public:
             Header(const std::string& _name, const std::string& _value, Header *_prev, Header *_next) :
                 name(_name), value(_value), prev(_prev), next(_next)
             {
-                if (prev)
-                    prev->next = this;
-
-                if (next)
-                    next->prev = this;
+                link(prev, next);
             }
 
-            ~Header()
+            Header(const BufferRef& _name, const BufferRef& _value, Header *_prev, Header *_next) :
+                name(_name.str()), value(_value.str()), prev(_prev), next(_next)
             {
+                link(prev, next);
             }
+
+            Header(const char* _name, const char* _value, Header *_prev, Header *_next) :
+                name(_name), value(_value), prev(_prev), next(_next)
+            {
+                link(prev, next);
+            }
+
+        private:
+            void link(Header* prev, Header* next)
+            {
+                if (prev) {
+                    prev->next = this;
+                }
+
+                if (next) {
+                    next->prev = this;
+                }
+            }
+
         };
         // }}}
 
@@ -165,7 +182,8 @@ public:
             return const_cast<HeaderList*>(this)->findHeader(name) != nullptr;
         }
 
-        void push_back(const std::string& name, const std::string& value)
+        template<typename Key, typename Value>
+        void push_back(const Key& name, const Value& value)
         {
             last_ = new Header(name, value, last_, NULL);
 
