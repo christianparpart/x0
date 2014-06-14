@@ -160,7 +160,7 @@ public:
     template<class K, void (K::*fn)(void*)>
     void post(K* object, void* arg);
 
-    inline void post(std::function<void()>&& callback);
+    void post(std::function<void()>&& callback);
 
     inline void wakeup();
 
@@ -296,19 +296,6 @@ void HttpWorker::post_thunk2(int revents, void* arg)
     }
 
     delete priv;
-}
-
-inline void HttpWorker::post(std::function<void()>&& callback)
-{
-#if !defined(X0_WORKER_POST_LIBEV)
-    pthread_mutex_lock(&postLock_);
-    postQueue_.push_back(std::move(callback));
-    pthread_mutex_unlock(&postLock_);
-#else
-    auto p = new std::function<void()>(std::move(callback));
-    ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
-#endif
-    evWakeup_.send();
 }
 
 inline void HttpWorker::wakeup()

@@ -477,6 +477,19 @@ void HttpWorker::post_thunk3(int revents, void* arg)
     delete callback;
 }
 
+void HttpWorker::post(std::function<void()>&& callback)
+{
+#if !defined(X0_WORKER_POST_LIBEV)
+    pthread_mutex_lock(&postLock_);
+    postQueue_.push_back(std::move(callback));
+    pthread_mutex_unlock(&postLock_);
+#else
+    auto p = new std::function<void()>(std::move(callback));
+    ev_once(loop_, /*fd*/ -1, /*events*/ 0, /*timeout*/ 0, &HttpWorker::post_thunk3, (void*)p);
+#endif
+    evWakeup_.send();
+}
+
 bool HttpWorker::eachConnection(const std::function<bool(HttpConnection*)>& cb)
 {
     for (HttpConnection* c = connections_; c != nullptr; c = c->next_) {
