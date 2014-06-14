@@ -605,11 +605,11 @@ bool HttpConnection::readSome()
         } else if (rv == 0) { // EOF
             TRACE(1, "readSome: (EOF), state:%s, clientAbortHandler:%s", state_str(), clientAbortHandler_ ? "yes" : "no");
 
+            request_->status = HttpStatus::Hangup;
             if (clientAbortHandler_) {
                 socket_->close();
                 clientAbortHandler_();
             } else {
-                request_->status = HttpStatus::Hangup;
                 abort();
             }
 
