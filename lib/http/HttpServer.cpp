@@ -58,11 +58,10 @@ namespace x0 {
  * \see HttpServer::run()
  */
 HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
-    requestHandler(),
-
     onConnectionOpen(),
     onPreProcess(),
     onPostProcess(),
+    requestHandler(),
     onRequestDone(),
     onConnectionClose(),
     onConnectionStateChanged(),
@@ -118,7 +117,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
         maxConnections = std::max(int(rlim.rlim_cur / 3) - 5, 1);
 
     // Spawn main-thread worker
-    spawnWorker();
+    createWorker();
 }
 
 HttpServer::~HttpServer()
@@ -148,7 +147,7 @@ void HttpServer::onNewConnection(std::unique_ptr<Socket>&& cs, ServerSocket* ss)
 }
 
 // {{{ worker mgnt
-HttpWorker *HttpServer::spawnWorker()
+HttpWorker *HttpServer::createWorker()
 {
     bool isMainWorker = workers_.empty();
 

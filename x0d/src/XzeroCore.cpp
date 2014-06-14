@@ -356,7 +356,7 @@ void XzeroCore::workers(FlowParams& args)
         count = 1;
 
     while (cur < count) {
-        server_->spawnWorker();
+        server_->createWorker();
         ++cur;
     }
 
@@ -376,7 +376,7 @@ void XzeroCore::workers_affinity(FlowParams& args)
         // spawn or set affinity of a set of workers as passed via input array
         for (size_t i = 1, e = affinities.size(); i < e; ++i) {
             if (i >= cur)
-                server_->spawnWorker();
+                server_->createWorker();
 
             server_->workers()[i]->setAffinity(affinities[i]);
         }

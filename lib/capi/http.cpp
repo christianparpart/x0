@@ -101,7 +101,7 @@ int x0_setup_worker_count(x0_server_t* server, int count)
 {
     ssize_t current = server->server.workers().size();
     while (current < count) {
-        server->server.spawnWorker();
+        server->server.createWorker();
         current = server->server.workers().size();
     }
     return 0;
