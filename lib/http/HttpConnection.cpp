@@ -580,7 +580,7 @@ bool HttpConnection::readSome()
 
     if (requestParserOffset_ == requestBuffer_.size()) {
         ssize_t rv = socket_->read(requestBuffer_, requestBuffer_.capacity());
-        TRACE(1, "readSome: read %lu bytes", rv);
+        TRACE(1, "readSome: read %li bytes", rv);
 
         if (rv < 0) { // error
             switch (errno) {
