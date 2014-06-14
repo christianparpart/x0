@@ -633,8 +633,9 @@ void FastCgiBackend::Connection::onWriteComplete()
             isAborted_ ? "yes" : "no",
             socket_->isOpen() ? "yes" : "no");
 
-    if (!socket_->isOpen())
+    if (!socket_->isOpen()) {
         return;
+    }
 
     // the connection to the backend may already have been closed here when
     // we sent out BIG data to the client and the backend server has issued an EndRequest-event already,
@@ -757,6 +758,8 @@ bool FastCgiBackend::Connection::onMessageHeader(const x0::BufferRef& name, cons
 
 bool FastCgiBackend::Connection::onMessageHeaderEnd()
 {
+    TRACE("onMessageHeaderEnd()");
+
     if (unlikely(!sendfile_.empty())) {
         auto r = rn_->request;
         r->responseHeaders.remove("Content-Type");
@@ -775,9 +778,10 @@ bool FastCgiBackend::Connection::onMessageContent(const x0::BufferRef& chunk)
     TRACE(1, "Parsed HTTP message content of %ld bytes from backend server.", chunk.size());
     //TRACE(2, "Message content chunk: %s", chunk.str().c_str());
 
-    if (unlikely(!sendfile_.empty()))
+    if (unlikely(!sendfile_.empty())) {
         // we ignore the backend's message body as we've replaced it with the file contents of X-Sendfile's file.
         return true;
+    }
 
     switch (backend_->manager()->transferMode()) {
     case TransferMode::FileAccel:
@@ -809,8 +813,9 @@ bool FastCgiBackend::Connection::onMessageContent(const x0::BufferRef& chunk)
         // all (possibly proceeding write operations) have been
         // finished within a single io()-callback run.
 
-        if (r->connection.isOutputPending())
+        if (r->connection.isOutputPending()) {
             ++writeCount_;
+        }
 
         break;
     }
