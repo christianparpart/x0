@@ -129,7 +129,7 @@ public:
 
     unsigned refCount() const;
 
-    void post(std::function<void()> function);
+    void post(std::function<void()>&& function);
 
     bool isOpen() const;
 

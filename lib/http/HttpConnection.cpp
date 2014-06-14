@@ -917,7 +917,7 @@ void HttpConnection::log(LogMessage&& msg)
     worker().log(std::forward<LogMessage>(msg));
 }
 
-void HttpConnection::post(std::function<void()> function)
+void HttpConnection::post(std::function<void()>&& function)
 {
     ref();
     worker_->post([=]() {
