@@ -74,6 +74,7 @@ public:
     HttpWorker* nextWorker();
     HttpWorker* spawnWorker();
     HttpWorker* selectWorker();
+    HttpWorker* currentWorker() const;
     HttpWorker* mainWorker() const { return workers_[0]; }
     const std::vector<HttpWorker*>& workers() const { return workers_; }
     void destroyWorker(HttpWorker* worker);
@@ -138,6 +139,7 @@ private:
     bool colored_log_;
     std::atomic<unsigned int> workerIdPool_;
     std::vector<HttpWorker*> workers_;
+    std::unordered_map<pthread_t, HttpWorker*> workerMap_;
     size_t lastWorker_;
 
 public:

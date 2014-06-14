@@ -79,6 +79,7 @@ HttpServer::HttpServer(struct ::ev_loop *loop, unsigned generation) :
     colored_log_(false),
     workerIdPool_(0),
     workers_(),
+    workerMap_(),
     lastWorker_(0),
     maxConnections(512),
     maxKeepAlive(TimeSpan::fromSeconds(60)),
@@ -154,6 +155,7 @@ HttpWorker *HttpServer::spawnWorker()
     HttpWorker *worker = new HttpWorker(*this, isMainWorker ? loop_ : nullptr, workerIdPool_++, !isMainWorker);
 
     workers_.push_back(worker);
+    workerMap_[worker->thread_] = worker;
 
     return worker;
 }
@@ -198,6 +200,18 @@ HttpWorker *HttpServer::selectWorker()
 #endif
 }
 
+/**
+ * @brief retrieves a pointer to the current's thread HTTP worker or \c nullptr if none available.
+ */
+HttpWorker* HttpServer::currentWorker() const
+{
+    auto i = workerMap_.find(pthread_self());
+    if (i != workerMap_.end())
+        return i->second;
+
+    return nullptr;
+}
+
 void HttpServer::destroyWorker(HttpWorker *worker)
 {
     auto i = std::find(workers_.begin(), workers_.end(), worker);
@@ -208,7 +222,9 @@ void HttpServer::destroyWorker(HttpWorker *worker)
     if (worker != workers_.front())
         worker->join();
 
+    workerMap_.erase(workerMap_.find(worker->thread_));
     workers_.erase(i);
+
     delete worker;
 }
 // }}}
