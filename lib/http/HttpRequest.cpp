@@ -971,11 +971,11 @@ void HttpRequest::initialize()
  *
  * \see HttpRequest::finish()
  */
-void HttpRequest::setAbortHandler(const std::function<void()>& cb)
+void HttpRequest::setAbortHandler(std::function<void()>&& cb)
 {
-    connection.clientAbortHandler_ = cb;
+    connection.clientAbortHandler_ = std::move(cb);
 
-    if (cb) {
+    if (connection.clientAbortHandler_) {
         // get notified on EOF at least (do not care about timeout handling)
         connection.wantRead(TimeSpan::Zero);
     }

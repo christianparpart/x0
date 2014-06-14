@@ -343,7 +343,7 @@ public:
     template<class K, void (K::*Callback)()> bool writeCallback(K* object);
     bool writeCallback(CallbackSource::Callback cb);
 
-    void setAbortHandler(const std::function<void()>& cb);
+    void setAbortHandler(std::function<void()>&& cb);
     void finish();
     bool isFinished() const { return connection.state() == HttpConnection::SendingReplyDone; }
 
