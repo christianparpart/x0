@@ -880,7 +880,9 @@ void HttpRequest::finish()
             if (isResponseContentForbidden()) {
                 connection.write(serialize());
             } else if (status == HttpStatus::Ok) {
-                responseHeaders.overwrite("Content-Length", "0");
+                if (method != "HEAD") {
+                    responseHeaders.overwrite("Content-Length", "0");
+                }
                 connection.write(serialize());
             } else {
                 writeDefaultResponseContent();
