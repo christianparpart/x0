@@ -542,8 +542,6 @@ std::unique_ptr<Source> HttpRequest::serialize()
     else if (status == static_cast<HttpStatus>(0))
         status = HttpStatus::Ok;
 
-    bool hasServerHeader = responseHeaders.contains("Server");
-
     // post-response hook
     onPostProcess();
     connection.worker().server().onPostProcess(this);
@@ -587,10 +585,13 @@ std::unique_ptr<Source> HttpRequest::serialize()
     buffers.push_back("\r\n");
 
     bool dateFound = false;
+    bool hasServerHeader = false;
 
     for (auto& i: responseHeaders) {
         if (unlikely(iequals(i.name, "Date")))
             dateFound = true;
+        else if (unlikely(iequals(i.name, "Server")))
+            hasServerHeader = true;
 
         buffers.push_back(i.name.data(), i.name.size());
         buffers.push_back(": ");
