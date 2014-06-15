@@ -25,10 +25,6 @@ public:
         sigint_(loop_),
         http_()
     {
-    }
-
-    int run()
-    {
         std::clog << "Initializing ..." << std::endl;
 
         sigterm_.set<MyServer, &MyServer::terminateHandler>(this);
@@ -47,10 +43,10 @@ public:
         while (http_->workers().size() < 4) {
             http_->createWorker();
         }
+    }
 
-        std::clog << "Listening on http://0.0.0.0:3000 ..." << std::endl;
-        int rv = http_->run();
-
+    ~MyServer()
+    {
         std::clog << "Quitting ..." << std::endl;
 
         if (sigterm_.is_active()) {
@@ -62,8 +58,12 @@ public:
             ev_ref(loop_);
             sigint_.stop();
         }
+    }
 
-        return rv;
+    int run()
+    {
+        std::clog << "Listening on http://0.0.0.0:3000 ..." << std::endl;
+        return http_->run();
     }
 
 private:
