@@ -39,19 +39,6 @@ public:
         }
     }
 
-    bool requestHandler(x0::HttpRequest* r)
-    {
-        x0::Buffer body;
-        body.push_back("Hello, World\n");
-
-        r->status = x0::HttpStatus::Ok;
-        r->responseHeaders.push_back("Content-Type", "text/plain");
-        r->write<x0::BufferSource>(body);
-        r->finish();
-
-        return true;
-    }
-
     int run()
     {
         std::clog << "Initializing ..." << std::endl;
@@ -76,6 +63,19 @@ public:
     }
 
 private:
+    bool requestHandler(x0::HttpRequest* r)
+    {
+        x0::Buffer body;
+        body.push_back("Hello, World\n");
+
+        r->status = x0::HttpStatus::Ok;
+        r->responseHeaders.push_back("Content-Type", "text/plain");
+        r->write<x0::BufferSource>(body);
+        r->finish();
+
+        return true;
+    }
+
     void terminateHandler(ev::sig& sig, int)
     {
         std::clog << "Signal (" << sig.signum << ") received. Terminating." << std::endl;
