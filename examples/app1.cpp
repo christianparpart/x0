@@ -7,6 +7,7 @@
 #include <x0/io/BufferSource.h>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <memory>
 #include <ev++.h>
 
@@ -26,19 +27,6 @@ public:
     {
     }
 
-    ~MyServer()
-    {
-        if (sigterm_.is_active()) {
-            ev_ref(loop_);
-            sigterm_.stop();
-        }
-
-        if (sigint_.is_active()) {
-            ev_ref(loop_);
-            sigint_.stop();
-        }
-    }
-
     int run()
     {
         std::clog << "Initializing ..." << std::endl;
@@ -55,22 +43,50 @@ public:
         http_->requestHandler = std::bind(&MyServer::requestHandler, this, std::placeholders::_1);
         http_->setupListener("0.0.0.0", 3000);
 
+        // run HTTP with 4 worker threads (1 main thread + 3 posix threads)
+        while (http_->workers().size() < 4) {
+            http_->createWorker();
+        }
+
         std::clog << "Listening on http://0.0.0.0:3000 ..." << std::endl;
         int rv = http_->run();
 
         std::clog << "Quitting ..." << std::endl;
+
+        if (sigterm_.is_active()) {
+            ev_ref(loop_);
+            sigterm_.stop();
+        }
+
+        if (sigint_.is_active()) {
+            ev_ref(loop_);
+            sigint_.stop();
+        }
+
         return rv;
     }
 
 private:
     bool requestHandler(x0::HttpRequest* r)
     {
+        if (r->method != "HEAD" && r->method != "GET") {
+            r->status = x0::HttpStatus::MethodNotAllowed;
+            r->finish();
+            return true;
+        }
+
         x0::Buffer body;
-        body.push_back("Hello, World\n");
+        body.push_back("Hello, World!\n");
 
         r->status = x0::HttpStatus::Ok;
         r->responseHeaders.push_back("Content-Type", "text/plain");
-        r->write<x0::BufferSource>(body);
+        r->responseHeaders.push_back("Content-Length", std::to_string(body.size()));
+        r->responseHeaders.push_back("X-Worker-ID", std::to_string(http_->currentWorker()->id()));
+
+        if (r->method != "HEAD") {
+            r->write<x0::BufferSource>(std::move(body));
+        }
+
         r->finish();
 
         return true;
