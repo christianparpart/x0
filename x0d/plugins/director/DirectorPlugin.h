@@ -33,7 +33,6 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Director>> directors_;
     std::unique_ptr<RoadWarrior> roadWarrior_;
     std::unique_ptr<HaproxyApi> haproxyApi_;
-    x0::HttpServer::RequestHook::Connection postProcess_;
 
 public:
     DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name);
