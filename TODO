@@ -1,5 +1,8 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- tests:
+  - add suite for FileSource
+  - add suite for PipeSource
 - FIXME: recent Signal<>-changes maybe causes shutdown to SEGV
 - director:
   - raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
