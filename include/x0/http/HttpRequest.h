@@ -172,16 +172,28 @@ public:
         iterator begin() { return iterator(first_); }
         iterator end() { return iterator(); }
 
+        /**
+         * Retrieves the number of headers in the header table.
+         */
         std::size_t size() const
         {
             return size_;
         }
 
+        /**
+         * Tests whether at least one header with the given name exists.
+         */
         bool contains(const std::string& name) const
         {
             return const_cast<HeaderList*>(this)->findHeader(name) != nullptr;
         }
 
+        /**
+         * Adds a new header with the given name/value-pair.
+         *
+         * @param name the header name.
+         * @param value the header value.
+         */
         template<typename Key, typename Value>
         void push_back(const Key& name, const Value& value)
         {
@@ -208,6 +220,18 @@ public:
             return NULL;
         }
 
+        /**
+         * Creates or overwrites a header with the given name.
+         *
+         * If the header with the given name does exist already, its value
+         * value will be overwritten with the passed value.
+         *
+         * If the header with the given name doesn't exist yet,
+         * a new header with the given name/value pair will be created.
+         *
+         * @param name the header name to write.
+         * @param value the header value to write.
+         */
         void overwrite(const std::string& name, const std::string& value)
         {
             if (Header *item = findHeader(name))
@@ -236,6 +260,18 @@ public:
             return not_found;
         }
 
+        /**
+         * Appends a value to an already existing key.
+         *
+         * If the header with the given name does not exist yet, a new header with
+         * the given name/value pair will be created.
+         *
+         * If a header with the given name does exist, its value will be extended
+         * with a comma and the passed value.
+         *
+         * @param name the header's name to append the value to its value field to.
+         * @param value the value to append to the header.
+         */
         void append(const std::string& name, const std::string& value)
         {
             // TODO append value to the header with name or create one if not yet available.
