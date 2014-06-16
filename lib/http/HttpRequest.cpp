@@ -588,10 +588,11 @@ std::unique_ptr<Source> HttpRequest::serialize()
     bool hasServerHeader = false;
 
     for (auto& i: responseHeaders) {
-        if (unlikely(iequals(i.name, "Date")))
+        if (unlikely(iequals(i.name, "Date"))) {
             dateFound = true;
-        else if (unlikely(iequals(i.name, "Server")))
+        } else if (unlikely(iequals(i.name, "Server"))) {
             hasServerHeader = true;
+        }
 
         buffers.push_back(i.name.data(), i.name.size());
         buffers.push_back(": ");
@@ -606,10 +607,9 @@ std::unique_ptr<Source> HttpRequest::serialize()
     }
 
     if (connection.worker().server().advertise() && !connection.worker().server().tag().empty()) {
-        if (hasServerHeader)
-            buffers.push_back("Via: ");
-        else
+        if (!hasServerHeader) {
             buffers.push_back("Server: ");
+        }
         buffers.push_back(connection.worker().server().tag());
         buffers.push_back("\r\n");
     }
