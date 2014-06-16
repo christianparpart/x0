@@ -261,6 +261,28 @@ public:
         }
 
         /**
+         * Prepends a value to an already existing key.
+         *
+         * If the header with the given name does not exist yet, a new header with
+         * the given name/value pair will be created.
+         *
+         * If a header with the given name does exist, the new value and a comma will be
+         * prepended to the already existing value.
+         *
+         * @param name the header's name to prepend the value to its value field to.
+         * @param value the value to prepend to the header.
+         */
+        void prepend(const std::string& name, const std::string& value)
+        {
+            Header* item = findHeader(name);
+            if (item) {
+                item->value = value + ", " + item->value;
+            } else {
+                push_back(name, value);
+            }
+        }
+
+        /**
          * Appends a value to an already existing key.
          *
          * If the header with the given name does not exist yet, a new header with
