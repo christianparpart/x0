@@ -385,7 +385,7 @@ bool HttpConnection::onMessageHeaderEnd()
         }
         if (static_cast<size_t>(request_->connection.contentLength()) > worker().server().maxRequestBodySize()) {
             request_->expectingContinue = false; // do not submit a '100-continue'
-            abort(HttpStatus::RequestEntityTooLarge);
+            abort(HttpStatus::PayloadTooLarge);
             return false;
         }
     } else {

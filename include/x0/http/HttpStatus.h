@@ -61,7 +61,7 @@ enum class HttpStatus // {{{
     Gone = 410,
     LengthRequired = 411,
     PreconditionFailed = 412,
-    RequestEntityTooLarge = 413,
+    PayloadTooLarge = 413,
     RequestUriTooLong = 414,
     UnsupportedMediaType = 415,
     RequestedRangeNotSatisfiable = 416,

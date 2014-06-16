@@ -786,7 +786,7 @@ std::array<std::string, 600> initialize_codes()
     set(HttpStatus::Gone, "Gone");
     set(HttpStatus::LengthRequired, "Length Required");
     set(HttpStatus::PreconditionFailed, "Precondition Failed");
-    set(HttpStatus::RequestEntityTooLarge, "Request Entity Too Large");
+    set(HttpStatus::PayloadTooLarge, "Payload Too Large");
     set(HttpStatus::RequestUriTooLong, "Request URI Too Long");
     set(HttpStatus::UnsupportedMediaType, "Unsupported Media Type");
     set(HttpStatus::RequestedRangeNotSatisfiable, "Requested Range Not Satisfiable");
