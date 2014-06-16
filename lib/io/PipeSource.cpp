@@ -9,6 +9,7 @@
 #include <x0/io/PipeSource.h>
 #include <x0/io/BufferSink.h>
 #include <x0/io/FileSink.h>
+#include <x0/io/FixedBufferSink.h>
 #include <x0/io/SocketSink.h>
 #include <x0/io/PipeSink.h>
 
@@ -51,6 +52,13 @@ void PipeSource::visit(FileSink& sink)
     if (result_> 0) {
         sink.write(buf, result_);
     }
+}
+
+void PipeSource::visit(FixedBufferSink& v)
+{
+    result_ = pipe_->read(
+        v.buffer().data() + v.buffer().size(),
+        v.buffer().capacity() - v.buffer().size());
 }
 
 void PipeSource::visit(SocketSink& sink)

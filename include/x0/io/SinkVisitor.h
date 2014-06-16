@@ -15,6 +15,7 @@ namespace x0 {
 
 class BufferSink;
 class FileSink;
+class FixedBufferSink;
 class SocketSink;
 class PipeSink;
 class SyslogSink;
@@ -34,6 +35,7 @@ public:
 
     virtual void visit(BufferSink&) = 0;
     virtual void visit(FileSink&) = 0;
+    virtual void visit(FixedBufferSink&) = 0;
     virtual void visit(SocketSink&) = 0;
     virtual void visit(PipeSink&) = 0;
     virtual void visit(SyslogSink&) = 0;

@@ -8,6 +8,7 @@
 
 #include <x0/io/FileSource.h>
 #include <x0/io/BufferSink.h>
+#include <x0/io/FixedBufferSink.h>
 #include <x0/io/FileSink.h>
 #include <x0/io/SocketSink.h>
 #include <x0/io/PipeSink.h>
@@ -115,6 +116,20 @@ void FileSource::visit(FileSink& v)
 
     offset_ += result_;
     count_ -= result_;
+}
+
+void FileSource::visit(FixedBufferSink& v)
+{
+    result_ = pread(handle(),
+        v.buffer().data() + v.buffer().size(),
+        v.buffer().capacity() - v.buffer().size(),
+        offset_);
+
+    if (result_ > 0) {
+        v.buffer().resize(v.buffer().size() + result_);
+        offset_ += result_;
+        count_ -= result_;
+    }
 }
 
 void FileSource::visit(SocketSink& v)

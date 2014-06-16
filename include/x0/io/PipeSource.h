@@ -40,6 +40,7 @@ public:
 protected:
     virtual void visit(BufferSink&);
     virtual void visit(FileSink&);
+    virtual void visit(FixedBufferSink&);
     virtual void visit(SocketSink&);
     virtual void visit(PipeSink&);
 };
