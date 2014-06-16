@@ -55,6 +55,7 @@ set(x0_io_SRC
   io/FileSource.cpp
   io/Filter.cpp
   io/FilterSource.cpp
+  io/FixedBufferSink.cpp
   io/NullFilter.cpp
   io/NullSource.cpp
   io/Pipe.cpp
