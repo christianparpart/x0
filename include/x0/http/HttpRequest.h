@@ -274,7 +274,13 @@ public:
          */
         void append(const std::string& name, const std::string& value)
         {
-            // TODO append value to the header with name or create one if not yet available.
+            Header* item = findHeader(name);
+            if (item) {
+                item->value += ", ";
+                item->value += value;
+            } else {
+                push_back(name, value);
+            }
         }
 
         Header *unlinkHeader(Header *item)
