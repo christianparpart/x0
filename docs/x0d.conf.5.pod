@@ -395,6 +395,14 @@ Example:
 
  sys.env("PATH")
 
+=item B<sys.hostname> ()
+
+Retrieves hosts hostname this process is running on.
+
+Example:
+
+ log.info("Running on: " + sys.hostname);
+
 =item B<sleep> (seconds)
 
 Sleeps for given request processing with the specified number of seconds.

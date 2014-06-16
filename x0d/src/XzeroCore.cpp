@@ -117,6 +117,7 @@ XzeroCore::XzeroCore(XzeroDaemon* d) :
     sharedFunction("sys.pid", &XzeroCore::sys_pid).returnType(FlowType::String);
     sharedFunction("sys.now", &XzeroCore::sys_now).returnType(FlowType::String);
     sharedFunction("sys.now_str", &XzeroCore::sys_now_str).returnType(FlowType::String);
+    sharedFunction("sys.hostname", &XzeroCore::sys_hostname).returnType(FlowType::String);
 
     sharedFunction("file.exists", &XzeroCore::file_exists).returnType(FlowType::Boolean);
     sharedFunction("file.is_reg", &XzeroCore::file_is_reg).returnType(FlowType::Boolean);
@@ -448,6 +449,17 @@ void XzeroCore::sys_now_str(HttpRequest* r, FlowParams& args)
 {
     const auto& s = r->connection.worker().now().http_str();
     args.setResult(s.c_str());
+}
+
+void XzeroCore::sys_hostname(HttpRequest*, FlowParams& args)
+{
+    char buf[256];
+    if (gethostname(buf, sizeof(buf)) == 0) {
+        args.setResult(buf);
+    } else {
+        log(Severity::error, "gethostname() failed. %s", strerror(errno));
+        args.setResult("");
+    }
 }
 // }}}
 // {{{ log.*

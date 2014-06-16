@@ -87,6 +87,7 @@ private:
     void sys_pid(x0::HttpRequest* r, x0::FlowVM::Params& args);
     void sys_now(x0::HttpRequest* r, x0::FlowVM::Params& args);
     void sys_now_str(x0::HttpRequest* r, x0::FlowVM::Params& args);
+    void sys_hostname(x0::HttpRequest* r, x0::FlowVM::Params& args);
 
     // shared functions
     void log_err(x0::HttpRequest* r, x0::FlowVM::Params& args);
