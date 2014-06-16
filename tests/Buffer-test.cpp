@@ -154,7 +154,53 @@ TEST(MutableBuffer, capacity)
 }
 // }}}
 // {{{ FixedBuffer
-TEST(FixedBuffer, ctor)
+TEST(FixedBuffer, ctorVoid)
+{
+    FixedBuffer obj;
+
+    ASSERT_EQ(0, obj.size());
+    ASSERT_EQ(0, obj.capacity());
+}
+
+TEST(FixedBuffer, ctorCopy)
+{
+    char buf[8] = { "Hello" };
+    FixedBuffer source(buf, sizeof(buf), 5);
+    FixedBuffer target(source);
+
+    // source should be empty
+    ASSERT_EQ(5, source.size());
+    ASSERT_EQ(sizeof(buf), source.capacity());
+    ASSERT_EQ("Hello", source);
+    ASSERT_EQ(buf, source.data());
+
+    // target should contain the data
+    ASSERT_EQ(5, target.size());
+    ASSERT_EQ(sizeof(buf), target.capacity());
+    ASSERT_EQ("Hello", target);
+    ASSERT_EQ(buf, target.data());
+}
+
+TEST(FixedBuffer, ctorMove)
+{
+    char buf[8] = { "Hello" };
+    FixedBuffer source(buf, sizeof(buf), 5);
+    FixedBuffer target(std::move(source));
+
+    // source should be empty
+    ASSERT_EQ(0, source.size());
+    ASSERT_EQ(0, source.capacity());
+    ASSERT_EQ("", source);
+    ASSERT_EQ(nullptr, source.data());
+
+    // target should contain the data
+    ASSERT_EQ(5, target.size());
+    ASSERT_EQ(sizeof(buf), target.capacity());
+    ASSERT_EQ("Hello", target);
+    ASSERT_EQ(buf, target.data());
+}
+
+TEST(FixedBuffer, ctorBuf)
 {
     char buf[8];
     FixedBuffer obj(buf, sizeof(buf), 0);
@@ -163,7 +209,7 @@ TEST(FixedBuffer, ctor)
     ASSERT_EQ(sizeof(buf), obj.capacity());
 }
 
-TEST(FixedBuffer, inbound)
+TEST(FixedBuffer, mutateInbound)
 {
     char buf[8];
     FixedBuffer obj(buf, sizeof(buf), 0);
@@ -175,7 +221,7 @@ TEST(FixedBuffer, inbound)
     ASSERT_EQ(0, strcmp("012", obj.c_str()));
 }
 
-TEST(FixedBuffer, doNotOverflow)
+TEST(FixedBuffer, mutateOverflow)
 {
     char buf[8];
     FixedBuffer obj(buf, sizeof(buf), 0);
