@@ -64,4 +64,7 @@ private:
     bool director_roadwarrior_verify(x0::Instr* instr);
 
     bool internalServerError(x0::HttpRequest* r);
+
+    void addVia(x0::HttpRequest* r);
+
 };

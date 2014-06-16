@@ -114,6 +114,18 @@ RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r)
     return r->setCustomData<RequestNotes>(this, r);
 }
 
+void DirectorPlugin::addVia(x0::HttpRequest* r)
+{
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%d.%d %s",
+            r->httpVersionMajor,
+            r->httpVersionMinor,
+            "x0d");
+
+    // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the front of the Via-list.
+    r->responseHeaders.prepend("Via", buf);
+}
+
 // {{{ setup_function director.load(name, path)
 void DirectorPlugin::director_load(FlowVM::Params& args)
 {
@@ -211,6 +223,8 @@ void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName, co
     auto rn = requestNotes(r);
     rn->manager = director;
 
+    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
+
 #if !defined(NDEBUG)
     server().log(Severity::debug, "director: passing request to %s [%s].", director->name().c_str(), bucket->name().c_str());
 #endif
@@ -257,6 +271,8 @@ void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName, const
     auto rn = requestNotes(r);
     rn->manager = director;
 
+    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
+
     director->schedule(rn, backend);
 
     return;
@@ -295,6 +311,8 @@ bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
 
     rn->onClientAbort = value.get();
 
+    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
+
     roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
 
 done:
@@ -325,6 +343,8 @@ bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
         args.getIPAddress(1),   // bind addr
         args.getInt(2)          // port
     );
+
+    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
 
     roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
 
