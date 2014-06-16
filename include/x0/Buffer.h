@@ -351,7 +351,6 @@ public:
     FixedBuffer(const FixedBuffer& v);
     FixedBuffer(FixedBuffer&& v);
     FixedBuffer(char* data, size_t capacity, size_t size);
-    ~FixedBuffer();
 
     FixedBuffer& operator=(const FixedBuffer& v);
     FixedBuffer& operator=(const Buffer& v);
@@ -1502,10 +1501,6 @@ inline FixedBuffer::FixedBuffer(FixedBuffer&& v) :
 
 inline FixedBuffer::FixedBuffer(char* data, size_t capacity, size_t size) :
     MutableBuffer<immutableEnsure>(data, capacity, size)
-{
-}
-
-inline FixedBuffer::~FixedBuffer()
 {
 }
 
