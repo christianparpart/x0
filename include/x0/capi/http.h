@@ -250,6 +250,16 @@ X0_API int x0_request_header_count(x0_request_t* r);
 X0_API int x0_request_header_value_geti(x0_request_t* r, off_t index, char* buf, size_t size);
 
 X0_API int x0_request_header_name_geti(x0_request_t* r, off_t index, char* buf, size_t size);
+
+/**
+ * Retrieves a chunk of the request body into the given buffer.
+ * @param r the request to retrieve the request buffer chunk for.
+ * @param buf the output buffer to store the request body chunk to.
+ * @param capacity the number of bytes that can be safely written to in \p buf.
+ *
+ * @return number of bytes written into \p buf or 0 if the request body has been fully consumed (or there was never one).
+ */
+X0_API size_t x0_request_body_get(x0_request_t* r, char* buf, size_t capacity);
 // }}}
 // {{{ response creation
 

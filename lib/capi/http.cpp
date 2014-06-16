@@ -11,6 +11,7 @@
 #include <x0/http/HttpWorker.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>
+#include <x0/io/BufferSink.h>
 #include <x0/DebugLogger.h>
 #include <cstdarg>
 
@@ -317,6 +318,21 @@ int x0_request_header_value_geti(x0_request_t* r, off_t index, char* buf, size_t
         return len;
     }
     return 0;
+}
+
+size_t x0_request_body_get(x0_request_t* r, char* buf, size_t capacity)
+{
+    std::unique_ptr<Source>& body = r->request->body();
+
+    // TODO: ideally use something that directly points to (buf, capacity). (FixedBufferSink)
+    BufferSink sink;
+
+    body->sendto(sink);
+
+    size_t size = std::min(sink.size(), capacity);
+    memcpy(buf, sink.buffer().data(), size);
+
+    return size;
 }
 
 // --------------------------------------------------------------------------
