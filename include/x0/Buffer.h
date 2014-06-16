@@ -288,7 +288,7 @@ protected:
 
 public:
     MutableBuffer();
-    MutableBuffer(char* value, size_t capacity);
+    MutableBuffer(const MutableBuffer& other);
     MutableBuffer(char* value, size_t capacity, size_t size);
     MutableBuffer(MutableBuffer&& v);
 
@@ -330,6 +330,19 @@ public:
 };
 // }}}
 // {{{ FixedBuffer
+/**
+ * Fixed-width unmanaged mutable buffer.
+ *
+ * Use this class in order to have all features of a mutable buffer
+ * on an externally managed memory region.
+ *
+ * @code
+ *    char raw[32];
+ *    FixedBuffer obj(raw, sizeof(raw), 0);
+ *    obj.push_back("Hello, World");
+ *    printf("result: '%s'\n", obj.c_str());
+ * @endcode
+ */
 class X0_API FixedBuffer :
     public MutableBuffer<immutableEnsure>
 {
@@ -337,8 +350,6 @@ public:
     FixedBuffer();
     FixedBuffer(const FixedBuffer& v);
     FixedBuffer(FixedBuffer&& v);
-    FixedBuffer(const std::string& str);
-    FixedBuffer(char* data, size_t size);
     FixedBuffer(char* data, size_t capacity, size_t size);
     ~FixedBuffer();
 
@@ -383,8 +394,6 @@ public:
 
     BufferSlice slice(size_t offset = 0) const;
     BufferSlice slice(size_t offset, size_t size) const;
-
-    const char* c_str() const;
 
     bool setCapacity(size_t value);
 
@@ -1129,6 +1138,13 @@ inline MutableBuffer<ensure>::MutableBuffer() :
 }
 
 template<bool (*ensure)(void*, size_t)>
+inline MutableBuffer<ensure>::MutableBuffer(const MutableBuffer& v) :
+    BufferRef(v),
+    capacity_(v.capacity_)
+{
+}
+
+template<bool (*ensure)(void*, size_t)>
 inline MutableBuffer<ensure>::MutableBuffer(MutableBuffer&& v) :
     BufferRef(std::move(v)),
     capacity_(std::move(v.capacity_))
@@ -1136,13 +1152,6 @@ inline MutableBuffer<ensure>::MutableBuffer(MutableBuffer&& v) :
     v.data_ = nullptr;
     v.size_ = 0;
     v.capacity_ = 0;
-}
-
-template<bool (*ensure)(void*, size_t)>
-inline MutableBuffer<ensure>::MutableBuffer(char* value, size_t size) :
-    BufferRef(value, size),
-    capacity_(size)
-{
 }
 
 template<bool (*ensure)(void*, size_t)>
@@ -1296,10 +1305,10 @@ template<bool (*ensure)(void*, size_t)>
 inline void MutableBuffer<ensure>::push_back(const void* value, size_t size)
 {
     if (size) {
-        if (reserve(size_ + size)) {
-            std::memcpy(end(), value, size);
-            size_ += size;
-        }
+        reserve(size_ + size);
+        const size_t minsize = std::min(capacity_ - size_, size);
+        std::memcpy(end(), value, minsize);
+        size_ += minsize;
     }
 }
 
@@ -1386,6 +1395,17 @@ inline typename MutableBuffer<ensure>::const_reference_type MutableBuffer<ensure
 
     return data_[index];
 }
+
+template<bool (*ensure)(void*, size_t)>
+inline const Buffer::value_type *MutableBuffer<ensure>::c_str() const
+{
+    if (const_cast<MutableBuffer<ensure>*>(this)->reserve(size_ + 1)) {
+        const_cast<MutableBuffer<ensure>*>(this)->data_[size_] = '\0';
+        return data_;
+    } else {
+        return nullptr;
+    }
+}
 // }}}
 // {{{ Buffer& operator<<() impl
 inline Buffer& operator<<(Buffer& b, Buffer::value_type v)
@@ -1467,7 +1487,8 @@ inline FixedBuffer::FixedBuffer() :
 {
 }
 
-inline FixedBuffer::FixedBuffer(const FixedBuffer& v)
+inline FixedBuffer::FixedBuffer(const FixedBuffer& v) :
+    MutableBuffer<immutableEnsure>(v)
 {
 }
 
@@ -1479,18 +1500,6 @@ inline FixedBuffer::FixedBuffer(FixedBuffer&& v) :
     v.size_ = 0;
 }
 
-inline FixedBuffer::FixedBuffer(const std::string& str) :
-    MutableBuffer<immutableEnsure>(new char[str.size() + 1], str.size() + 1, 0)
-{
-    push_back(str.c_str(), str.size() + 1);
-}
-
-inline FixedBuffer::FixedBuffer(char* data, size_t size) :
-    MutableBuffer<immutableEnsure>(data, size, size)
-{
-    push_back(data, size);
-}
-
 inline FixedBuffer::FixedBuffer(char* data, size_t capacity, size_t size) :
     MutableBuffer<immutableEnsure>(data, capacity, size)
 {
@@ -1498,7 +1507,6 @@ inline FixedBuffer::FixedBuffer(char* data, size_t capacity, size_t size) :
 
 inline FixedBuffer::~FixedBuffer()
 {
-    delete[] data_;
 }
 
 inline FixedBuffer& FixedBuffer::operator=(const FixedBuffer& v)
@@ -1667,14 +1675,6 @@ inline BufferSlice Buffer::slice(size_t offset, size_t count) const
     return count != npos
         ? BufferSlice(*(Buffer*) this, offset, count)
         : BufferSlice(*(Buffer*) this, offset, size() - offset);
-}
-
-inline const Buffer::value_type *Buffer::c_str() const
-{
-    if (const_cast<Buffer*>(this)->reserve(size_ + 1))
-        const_cast<Buffer*>(this)->data_[size_] = '\0';
-
-    return data_;
 }
 
 inline Buffer Buffer::fromCopy(const value_type *data, size_t count)
