@@ -71,6 +71,7 @@ private:
     {
         if (r->method != "HEAD" && r->method != "GET") {
             r->status = x0::HttpStatus::MethodNotAllowed;
+            r->responseHeaders.push_back("Allow", "GET, HEAD");
             r->finish();
             return true;
         }
