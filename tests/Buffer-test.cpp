@@ -153,7 +153,40 @@ TEST(MutableBuffer, capacity)
     ASSERT_EQ("hell", buf);
 }
 // }}}
+// {{{ FixedBuffer
+TEST(FixedBuffer, ctor)
+{
+    char buf[8];
+    FixedBuffer obj(buf, sizeof(buf), 0);
 
+    ASSERT_EQ(0, obj.size());
+    ASSERT_EQ(sizeof(buf), obj.capacity());
+}
+
+TEST(FixedBuffer, inbound)
+{
+    char buf[8];
+    FixedBuffer obj(buf, sizeof(buf), 0);
+
+    obj.push_back("012");
+
+    ASSERT_EQ(3, obj.size());
+    ASSERT_EQ("012", obj);
+    ASSERT_EQ(0, strcmp("012", obj.c_str()));
+}
+
+TEST(FixedBuffer, doNotOverflow)
+{
+    char buf[8];
+    FixedBuffer obj(buf, sizeof(buf), 0);
+
+    obj.push_back("0123456789");
+
+    ASSERT_EQ(8, obj.size());
+    ASSERT_EQ("01234567", obj);
+    ASSERT_EQ(nullptr, obj.c_str());
+}
+// }}}
 #if 0 // {{{ legacy tests not yet ported to gtest
 // {{{ debug helper
 void print(const x0::Buffer& b, const char *msg = 0)
