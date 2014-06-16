@@ -33,6 +33,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Director>> directors_;
     std::unique_ptr<RoadWarrior> roadWarrior_;
     std::unique_ptr<HaproxyApi> haproxyApi_;
+    std::string pseudonym_;
 
 public:
     DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name);
@@ -46,6 +47,8 @@ private:
     void director_cache_enabled(x0::HttpRequest* r, x0::FlowVM::Params& args);
     void director_cache_key(x0::HttpRequest* r, x0::FlowVM::Params& args);
     void director_cache_ttl(x0::HttpRequest* r, x0::FlowVM::Params& args);
+
+    void director_pseudonym(x0::FlowVM::Params& args);
 
     bool director_balance(x0::HttpRequest* r, x0::FlowVM::Params& args);
     void balance(x0::HttpRequest* r, const std::string& directorName, const std::string& bucketName);

@@ -60,11 +60,14 @@ DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
     x0d::XzeroPlugin(d, name),
     directors_(),
     roadWarrior_(new RoadWarrior(server().selectWorker())),
-    haproxyApi_(new HaproxyApi(&directors_))
+    haproxyApi_(new HaproxyApi(&directors_)),
+    pseudonym_("x0d")
 {
     setupFunction("director.load", &DirectorPlugin::director_load)
         .param<FlowString>("name")
         .param<FlowString>("path");
+
+    setupFunction("director.pseudonym", &DirectorPlugin::director_pseudonym, FlowType::String);
 
 #if defined(ENABLE_DIRECTOR_CACHE)
     mainFunction("director.cache", &DirectorPlugin::director_cache_enabled, FlowType::Boolean);
@@ -120,10 +123,15 @@ void DirectorPlugin::addVia(x0::HttpRequest* r)
     snprintf(buf, sizeof(buf), "%d.%d %s",
             r->httpVersionMajor,
             r->httpVersionMinor,
-            "x0d");
+            pseudonym_.c_str());
 
     // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the front of the Via-list.
     r->responseHeaders.prepend("Via", buf);
+}
+
+void DirectorPlugin::director_pseudonym(x0::FlowVM::Params& args)
+{
+    pseudonym_ = args.getString(1).str();
 }
 
 // {{{ setup_function director.load(name, path)
