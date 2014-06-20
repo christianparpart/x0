@@ -1030,6 +1030,24 @@ is a function, that assigns a user database to this request, to check against.
 
  auth.userfile "/var/www/localhost/.htpasswd";
 
+=item B<auth.pam> (service_name: string)
+
+main function that tells the authentication underlying system to authenticate
+the user based on a PAM service.
+
+Example:
+
+ handler main {
+   # ...
+   if req.path =^ '/secret' {
+     auth.realm "Secret Area";
+     auth.pam "www";
+     auth.require;
+     # ...
+   }
+   # ...
+ }
+
 =item B<auth.require> ()
 
 is the handler, actually glueing everything together, demanding the
