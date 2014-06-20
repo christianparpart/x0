@@ -36,10 +36,6 @@
 #include <security/pam_appl.h>
 #endif
 
-#ifdef HAVE_LDAP_H
-#include <ldap.h>
-#endif
-
 class AuthBackend // {{{
 {
 public:
@@ -48,7 +44,6 @@ public:
     virtual bool authenticate(const std::string& username, const std::string& passwd) = 0;
 };
 // }}}
-
 // {{{ PAM support
 #if defined(HAVE_SECURITY_PAM_APPL_H)
 class AuthPAM : public AuthBackend
@@ -146,43 +141,6 @@ int AuthPAM::callback(int num_msg, const struct pam_message **msg, struct pam_re
 }
 #endif
 // }}}
-
-#if 0
-class AuthLDAP // {{{
-{
-public:
-    AuthLDAP();
-    ~AuthLDAP();
-    bool setup();
-    virtual bool authenticate(const std::string& username, const std::string& passwd) = 0;
-};
-// }}}
-// {{{AuthLDAP
-bool AuthLDAP::setup()
-{
-    LDAPURLDesc* urlDescription;
-    LDAP* ldap;
-    std::string url("dc=trapni,dc=de");
-
-    int rv = ldap_url_parse(url.c_str(), &urlDescription);
-    if (rv != LDAP_SUCCESS) {
-        return false;
-    }
-
-    int ldapVersion = LDAP_VERSION3;
-    ldap_set_option(nullptr, LDAP_OPT_PROTOCOL_VERSION, &ldapVersion);
-
-    timeval timeout = { 10, 0 };
-    ldap_set_option(nullptr, LDAP_OPT_NETWORK_TIMEOUT, &timeout);
-
-    int reqcert = LDAP_OPT_X_TLS_ALLOW;
-    ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &reqcert);
-
-    rv = ldap_initialize(&ldap, url.c_str());
-}
-// }}}
-#endif
-
 class AuthUserFile : // {{{
     public AuthBackend
 {
@@ -200,7 +158,6 @@ private:
     bool readFile();
 };
 // }}}
-
 // {{{ AuthUserFile impl
 AuthUserFile::AuthUserFile(const std::string& filename) :
     filename_(filename),
@@ -245,7 +202,6 @@ bool AuthUserFile::authenticate(const std::string& username, const std::string& 
     return false;
 }
 // }}}
-
 struct AuthBasic : public x0::CustomData { // {{{
     std::string realm;
     std::shared_ptr<AuthBackend> backend;
@@ -276,7 +232,6 @@ struct AuthBasic : public x0::CustomData { // {{{
     };
 };
 // }}}
-
 class AuthPlugin : // {{{
     public x0d::XzeroPlugin
 {
