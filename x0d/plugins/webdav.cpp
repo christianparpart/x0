@@ -20,6 +20,7 @@
 #include <x0/http/HttpRequest.h>
 #include <x0/http/HttpHeader.h>
 #include <x0/io/BufferSource.h>
+#include <x0/io/FileSink.h>
 #include <x0/strutils.h>
 #include <x0/Types.h>
 
@@ -75,31 +76,16 @@ public:
                 return true;
             }
 
-            request_->setBodyCallback<Put, &Put::onContent>(this);
+            x0::FileSink sink(fd_, true);
+            request_->body()->sendto(sink);
+            request_->finish();
+            delete this;
         } else {
             request_->status = x0::HttpStatus::NotImplemented;
             request_->finish();
             delete this;
         }
         return true;
-    }
-
-    void onContent(const x0::BufferRef& chunk)
-    {
-        if (chunk.empty()) {
-            if (created_)
-                request_->status = x0::HttpStatus::Created;
-            else
-                request_->status = x0::HttpStatus::NoContent;
-
-            request_->finish();
-            ::close(fd_);
-
-            delete this;
-        } else {
-            ::write(fd_, chunk.data(), chunk.size());
-            // check return code and possibly early abort request with error code indicating diagnostics
-        }
     }
 };
 
