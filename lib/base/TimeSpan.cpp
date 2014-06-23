@@ -25,11 +25,36 @@ std::string TimeSpan::str() const
 
 Buffer& operator<<(Buffer& buf, const TimeSpan& ts)
 {
-    char tmp[64];
-    int n = snprintf(tmp, sizeof(tmp), "%d.%02d:%02d:%02d.%03d",
-        ts.days(), ts.hours(), ts.minutes(), ts.seconds(),
-        ts.milliseconds());
-    buf.push_back(tmp, n);
+    bool green = false;
+
+    // "5 days 5h 20m 33s"
+    //        "5h 20m 33s"
+    //           "20m 33s"
+    //               "33s"
+
+    if (ts.days()) {
+        buf << ts.days() << "days";
+        green = true;
+    }
+
+    if (green || ts.hours()) {
+        if (green) buf << ' ';
+        buf << ts.hours() << "h";
+        green = true;
+    }
+
+    if (green || ts.minutes()) {
+        if (green) buf << ' ';
+        buf << ts.minutes() << "m";
+        green = true;
+    }
+
+    if (green || ts.seconds()) {
+        if (green) buf << ' ';
+        buf << ts.seconds() << "s";
+    }
+
     return buf;
 }
+
 } // namespace x0
