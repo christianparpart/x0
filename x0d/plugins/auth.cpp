@@ -1,13 +1,11 @@
-/* <x0/plugins/auth.cpp>
- *
- * This file is part of the x0 web server project and is released under AGPL-3.
- * http://www.xzero.io/
- *
- * (c) 2009-2014 Christian Parpart <trapni@gmail.com>
- *
- * --------------------------------------------------------------------------
- *
- * plugin type: basic authentication
+// This file is part of the "x0" project, http://xzero.io/
+//   (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
+
+/* plugin type: basic authentication
  *
  * description:
  *     Implements HTTP Basic Auth

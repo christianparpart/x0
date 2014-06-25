@@ -1,7 +1,15 @@
+// This file is part of the "x0" project, http://xzero.io/
+//   (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
+
 /*! \brief Very simple HTTP server. Everything's done for you.
  *
  * It just serves static pages.
  */
+
 #include <x0/http/HttpServer.h>
 #include <x0/http/HttpRequest.h>
 #include <x0/io/BufferSource.h>

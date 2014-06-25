@@ -1,13 +1,11 @@
-/* <x0/plugins/userdir.cpp>
- *
- * This file is part of the x0 web server project and is released under AGPL-3.
- * http://www.xzero.io/
- *
- * (c) 2009-2014 Christian Parpart <trapni@gmail.com>
- *
- * --------------------------------------------------------------------------
- *
- * plugin type: mapper
+// This file is part of the "x0" project, http://xzero.io/
+//   (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
+
+/* plugin type: mapper
  *
  * description:
  *     Maps request path to a local file within the user's home directory.

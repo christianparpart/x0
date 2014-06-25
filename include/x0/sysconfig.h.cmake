@@ -1,9 +1,9 @@
-/* <x0/sysconfig.h.cmake>
- *
- * This file is part of the x0 web server project and is released under AGPL-3.
- *
- * (c) 2009-2010 Chrisitan Parpart <trapni@gentoo.org>
- */
+// This file is part of the "x0" project, http://xzero.io/
+//   (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+//
+// Licensed under the MIT License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of
+// the License at: http://opensource.org/licenses/MIT
 
 #ifndef sw_x0_sysconfig_h
 #define sw_x0_sysconfig_h (1)
