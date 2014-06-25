@@ -238,7 +238,13 @@ high performance HTTP web server and framework in modern C++.
 
 =head1 LICENSE
 
-B<x0d>, the underlying framework and its standard plugins is licensed under AGPL-3.
+B<x0d> is part of the "x0" project, L<http://xzero.io/>
+
+ (c) 2009-2014 Christian Parpart <trapni@gmail.com>
+
+Licensed under the MIT License (the "License"); you may not use this
+file except in compliance with the License. You may obtain a copy of
+the License at: http://opensource.org/licenses/MIT
 
 =head1 AUTHOR
 

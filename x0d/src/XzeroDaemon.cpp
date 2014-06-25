@@ -326,7 +326,9 @@ bool XzeroDaemon::parse()
     static const char *package_copyright =
         "Copyright (c) 2009-2014 by Christian Parpart <trapni@gmail.com>";
     static const char *package_license =
-        "Licensed under AGPL-3 [http://gnu.org/licenses/agpl-3.0.txt]";
+        "Licensed under the MIT License (the \"License\"); you may not use this\n"
+        "file except in compliance with the License. You may obtain a copy of\n"
+        "the License at: http://opensource.org/licenses/MIT";
 
     for (;;) {
         int long_index = 0;
@@ -415,6 +417,7 @@ bool XzeroDaemon::parse()
                 std::cout
                     << package_header << std::endl
                     << package_copyright << std::endl
+                    << std::endl
                     << package_license << std::endl
                     << std::endl
                     << "usage:" << std::endl
