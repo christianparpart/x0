@@ -238,8 +238,8 @@ void FastCgiBackend::Connection::initialize()
             transferHandle_ = ::open(transferPath_, O_RDWR | O_CREAT | O_TRUNC, 0666);
 
             if (transferHandle_ < 0) {
-                transferPath_[0] = '\0';
                 r->log(Severity::error, "Could not open temporary file %s. %s", transferPath_, strerror(errno));
+                transferPath_[0] = '\0';
             }
         }
     }
