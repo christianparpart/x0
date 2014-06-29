@@ -423,7 +423,6 @@ void Director::writeJSON(JsonWriter& json) const
         .name("connect-timeout")(connectTimeout_.totalSeconds())
         .name("read-timeout")(readTimeout_.totalSeconds())
         .name("write-timeout")(writeTimeout_.totalSeconds())
-        .name("transfer-mode")(transferMode_)
         .name("health-check-host-header")(healthCheckHostHeader_)
         .name("health-check-request-path")(healthCheckRequestPath_)
         .name("health-check-fcgi-script-name")(healthCheckFcgiScriptFilename_)
@@ -531,14 +530,6 @@ bool Director::load(const std::string& path)
         return false;
     }
     writeTimeout_ = TimeSpan::fromSeconds(std::atoll(value.c_str()));
-
-    if (!settings.load("director", "transfer-mode", value)) {
-        worker()->log(Severity::warn, "director: Could not load settings value director.transfer-mode in file '%s'. Defaulting to 'blocking'.", path.c_str());
-        transferMode_ = TransferMode::Blocking;
-        ++changed;
-    } else {
-        transferMode_ = makeTransferMode(value);
-    }
 
     if (!settings.load("director", "on-client-abort", value)) {
         clientAbortAction_ = ClientAbortAction::Close;
@@ -870,7 +861,6 @@ bool Director::save()
         << "connect-timeout=" << connectTimeout_.totalSeconds() << "\n"
         << "read-timeout=" << readTimeout_.totalSeconds() << "\n"
         << "write-timeout=" << writeTimeout_.totalSeconds() << "\n"
-        << "transfer-mode=" << tos(transferMode_) << "\n"
         << "health-check-host-header=" << healthCheckHostHeader_ << "\n"
         << "health-check-request-path=" << healthCheckRequestPath_ << "\n"
         << "health-check-fcgi-script-filename=" << healthCheckFcgiScriptFilename_ << "\n"

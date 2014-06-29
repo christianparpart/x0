@@ -18,15 +18,6 @@
 class Backend;
 struct RequestNotes;
 
-enum class TransferMode {
-    Blocking = 0,
-    MemoryAccel = 1,
-    FileAccel = 2,
-};
-
-TransferMode makeTransferMode(const std::string& value);
-std::string tos(TransferMode value);
-
 /**
  * Core interface for a backend manager.
  *
@@ -45,7 +36,6 @@ protected:
     x0::TimeSpan connectTimeout_;
     x0::TimeSpan readTimeout_;
     x0::TimeSpan writeTimeout_;
-    TransferMode transferMode_;		//!< Mode how response payload is transferred.
     ClientAbortAction clientAbortAction_;
     x0::Counter load_;
 
@@ -68,9 +58,6 @@ public:
 
     x0::TimeSpan writeTimeout() const { return writeTimeout_; }
     void setWriteTimeout(x0::TimeSpan value) { writeTimeout_ = value; }
-
-    TransferMode transferMode() const { return transferMode_; }
-    void setTransferMode(TransferMode value) { transferMode_ = value; }
 
     ClientAbortAction clientAbortAction() const { return clientAbortAction_; }
     void setClientAbortAction(ClientAbortAction value) { clientAbortAction_ = value; }
@@ -101,9 +88,3 @@ public:
      */
     virtual void release(RequestNotes* rn) = 0;
 };
-
-namespace x0 {
-    class JsonWriter;
-    JsonWriter& operator<<(JsonWriter& json, const TransferMode& mode);
-}
-

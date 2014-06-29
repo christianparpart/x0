@@ -335,20 +335,6 @@ bool ApiRequest::loadParam(const std::string& key, std::string& result)
     return true;
 }
 
-bool ApiRequest::loadParam(const std::string& key, TransferMode& result)
-{
-    auto i = args_.find(key);
-    if (i == args_.end()) {
-        request_->log(Severity::error, "Request parameter '%s' not found.", key.c_str());
-        errorCount_++;
-        return false;
-    }
-
-    result = makeTransferMode(i->second);
-
-    return true;
-}
-
 bool ApiRequest::loadParam(const std::string& key, ClientAbortAction& result)
 {
     auto i = args_.find(key);
@@ -512,10 +498,6 @@ bool ApiRequest::update(Director* director)
     if (hasParam("write-timeout") && !loadParam("write-timeout", writeTimeout))
         return false;
 
-    TransferMode transferMode = director->transferMode();
-    if (hasParam("transfer-mode") && !loadParam("transfer-mode", transferMode))
-        return false;
-
     size_t maxRetryCount = director->maxRetryCount();
     if (hasParam("max-retry-count") && !loadParam("max-retry-count", maxRetryCount))
         return false;
@@ -587,7 +569,6 @@ bool ApiRequest::update(Director* director)
     director->setConnectTimeout(connectTimeout);
     director->setReadTimeout(readTimeout);
     director->setWriteTimeout(writeTimeout);
-    director->setTransferMode(transferMode);
     director->setMaxRetryCount(maxRetryCount);
     director->setStickyOfflineMode(stickyOfflineMode);
     director->setAllowXSendfile(allowXSendfile);

@@ -145,8 +145,6 @@ public:
 
     RequestNotes* rn_;                      //!< current client request to proxy for
 
-    int writeCount_;                        //!< number of write chunks written within a single io() callback.
-
     char transferPath_[1024];
     int transferHandle_;                    //!< file descriptor to temporary response body handle
     int transferOffset_;                    //!< offset of the last client-write operatin into the @p transferHandle_.
@@ -166,10 +164,7 @@ FastCgiBackend::Connection::Connection(RequestNotes* rn, std::unique_ptr<x0::Soc
     writeBuffer_(),
     writeOffset_(0),
     flushPending_(false),
-
     rn_(rn),
-    writeCount_(0),
-
     transferPath_(),
     transferHandle_(-1),
     transferOffset_(0),
@@ -225,7 +220,7 @@ void FastCgiBackend::Connection::initialize()
     // flush out
     flush();
 
-    if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
+    if (true) {
 #if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
         static bool otmpfileSupported = true;
         if (otmpfileSupported) {
@@ -574,10 +569,9 @@ void FastCgiBackend::Connection::onReadWriteReady(x0::Socket* s, int revents)
             if (errno != EINTR && errno != EAGAIN) {
                 log(x0::Severity::error, "Writing to backend %s failed: %s", backendName().c_str(), strerror(errno));
                 exitFailure(HttpStatus::ServiceUnavailable);
-                return;
             }
 
-            goto done;
+            return;
         }
 
         writeOffset_ += rv;
@@ -591,18 +585,6 @@ void FastCgiBackend::Connection::onReadWriteReady(x0::Socket* s, int revents)
             writeBuffer_.clear();
             writeOffset_ = 0;
         }
-    }
-
-done:
-    // if we have written something to the client withing this callback and there
-    // are still data chunks pending, then we must be called back on its completion,
-    // so we can continue receiving more data from the backend fcgi node.
-    if (writeCount_) {
-        TRACE(1, "Registering client-write-complete-callback.");
-        writeCount_ = 0;
-        socket_->setMode(x0::Socket::None);
-
-        rn_->request->writeCallback<FastCgiBackend::Connection, &FastCgiBackend::Connection::onWriteComplete>(this);
     }
 }
 
@@ -782,44 +764,23 @@ bool FastCgiBackend::Connection::onMessageContent(const x0::BufferRef& chunk)
         return true;
     }
 
-    switch (backend_->manager()->transferMode()) {
-    case TransferMode::FileAccel:
-        if (!(transferHandle_ < 0)) {
-            ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
-            if (rv > 0) { // something written?
-                r->write<FileSource>(transferHandle_, transferOffset_, rv, false);
-                transferOffset_ += rv;
+    if (!(transferHandle_ < 0)) {
+        ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
+        if (rv > 0) { // something written?
+            r->write<FileSource>(transferHandle_, transferOffset_, rv, false);
+            transferOffset_ += rv;
 
-                if (rv != static_cast<ssize_t>(chunk.size())) {
-                    // partial disk-write, so complete it with a memory-write fallback
-                    r->write<x0::BufferRefSource>(chunk.ref(rv));
-                }
-
-                break;
+            if (rv != static_cast<ssize_t>(chunk.size())) {
+                // partial disk-write, so complete it with a memory-write fallback
+                r->write<x0::BufferRefSource>(chunk.ref(rv));
             }
+
+            return true;
         }
-        // fall through
-        break;
-    case TransferMode::MemoryAccel:
-        r->write<x0::BufferRefSource>(chunk);
-        break;
-    case TransferMode::Blocking:
-        r->write<x0::BufferRefSource>(chunk);
-
-        // if the above write() operation did not complete and thus
-        // we have data pending to be sent out to the client,
-        // we need to install a completion callback once
-        // all (possibly proceeding write operations) have been
-        // finished within a single io()-callback run.
-
-        if (r->connection.isOutputPending()) {
-            ++writeCount_;
-        }
-
-        break;
     }
 
-    return false;
+    r->write<x0::BufferRefSource>(chunk);
+    return true;
 }
 
 void FastCgiBackend::Connection::log(x0::LogMessage&& msg)
