@@ -77,7 +77,6 @@ private:
     void onReadWriteReady(Socket* s, int revents);
 
     void onClientAbort();
-    void onWriteComplete();
 
     void onConnectTimeout(x0::Socket* s);
     void onReadWriteTimeout(x0::Socket* s);
@@ -231,7 +230,7 @@ void HttpBackend::Connection::start()
         socket_->setMode(Socket::ReadWrite);
     }
 
-    if (backend_->manager()->transferMode() == TransferMode::FileAccel) {
+    if (true) {
 #if defined(O_TMPFILE) && defined(X0_ENABLE_O_TMPFILE)
         static bool otmpfileSupported = true;
         if (otmpfileSupported) {
@@ -436,46 +435,20 @@ bool HttpBackend::Connection::onMessageContent(const BufferRef& chunk)
         // we ignore the backend's message body as we've replaced it with the file contents of X-Sendfile's file.
         return true;
 
-    switch (backend_->manager()->transferMode()) {
-    case TransferMode::FileAccel:
-        if (!(transferHandle_ < 0)) {
-            ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
-            if (rv == static_cast<ssize_t>(chunk.size())) {
-                rn_->request->write<FileSource>(transferHandle_, transferOffset_, rv, false);
-                transferOffset_ += rv;
-                break;
-            } else if (rv > 0) {
-                // partial write to disk (is this possible?) -- TODO: investigate if that case is possible
-                transferOffset_ += rv;
-            }
+    if (!(transferHandle_ < 0)) {
+        ssize_t rv = ::write(transferHandle_, chunk.data(), chunk.size());
+        if (rv == static_cast<ssize_t>(chunk.size())) {
+            rn_->request->write<FileSource>(transferHandle_, transferOffset_, rv, false);
+            transferOffset_ += rv;
+            return true;
+        } else if (rv > 0) {
+            // partial write to disk (is this possible?) -- TODO: investigate if that case is possible
+            transferOffset_ += rv;
         }
-        // fall through
-    case TransferMode::MemoryAccel:
-        rn_->request->write<BufferRefSource>(chunk);
-        break;
-    case TransferMode::Blocking:
-        // stop watching for more input
-        socket_->setMode(Socket::None);
-
-        // transfer response-body chunk to client
-        rn_->request->write<BufferRefSource>(chunk);
-
-        // start listening on backend I/O when chunk has been fully transmitted
-        rn_->request->writeCallback<Connection, &Connection::onWriteComplete>(this);
-        break;
     }
 
+    rn_->request->write<BufferRefSource>(chunk);
     return true;
-}
-
-void HttpBackend::Connection::onWriteComplete()
-{
-    if (!socket_->isOpen())
-        return;
-
-    TRACE("chunk write complete: %s", state_str());
-    socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->readTimeout());
-    socket_->setMode(Socket::Read);
 }
 
 bool HttpBackend::Connection::onMessageEnd()
@@ -525,11 +498,13 @@ bool HttpBackend::Connection::writeSome()
     TRACE("write request: wrote %ld bytes", rv);
 
     if (rv == 0) {
+        // output fully flushed. continue to read response
         socket_->setMode(Socket::Read);
-    }
-    else if (rv > 0) {
+    } else if (rv > 0) {
+        // we wrote something
         socket_->setTimeout<Connection, &Connection::onReadWriteTimeout>(this, backend_->manager()->writeTimeout());
     } else if (rv < 0) {
+        // upstream write error
         switch (errno) {
 #if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
         case EWOULDBLOCK:
