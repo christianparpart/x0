@@ -57,6 +57,9 @@
 #include <execinfo.h> // backtrace(), backtrace_symbols_fd()
 #include <ucontext.h> // ucontext
 #include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #if defined(HAVE_ZLIB_H)
 #	include <zlib.h>
@@ -202,7 +205,7 @@ int XzeroDaemon::run()
     x0::SyslogSink::open("x0d", LOG_PID | LOG_NDELAY, LOG_DAEMON);
 #endif
 
-    if (!parse())
+    if (!parseCommandLineArgs())
         return 1;
 
     eventHandler_ = new XzeroEventHandler(this, ev::default_loop(evFlags_));
@@ -246,6 +249,14 @@ int XzeroDaemon::run()
         return -1;
     }
 
+    if (!drop_privileges(user_, group_))
+        return -1;
+
+    if (!verifyEnv()) {
+        log(x0::Severity::error, "Could not start x0d.");
+        return -1;
+    }
+
     unsetenv("XZERO_LISTEN_FDS");
 
     if (!nofork_)
@@ -256,9 +267,6 @@ int XzeroDaemon::run()
 
     if (group_.empty())
         group_ = user_;
-
-    if (!drop_privileges(user_, group_))
-        return -1;
 
     if (showGreeter_) {
         printf("\n\n"
@@ -290,7 +298,7 @@ int XzeroDaemon::run()
     return rv;
 }
 
-bool XzeroDaemon::parse()
+bool XzeroDaemon::parseCommandLineArgs()
 {
     struct option long_options[] = {
         { "no-fork", no_argument, &nofork_, 1 },
@@ -588,6 +596,32 @@ void XzeroDaemon::log(Severity severity, const char *msg, ...)
     va_end(va);
 
     server_->log(severity, "%s", buf);
+}
+
+/**
+ * @brief perform some sanity checks to ensure a proper runtime environment.
+ */
+bool XzeroDaemon::verifyEnv()
+{
+    struct stat st;
+    if (stat(X0_TMPDIR, &st) < 0) {
+        log(Severity::error, "Could not stat temp dir %s. %s",
+            X0_TMPDIR, strerror(errno));
+        return false;
+    }
+
+    if (!S_ISDIR(st.st_mode)) {
+        log(Severity::error, "Temp dir \"%s\" must be a directory.", X0_TMPDIR);
+        return false;
+    }
+
+    if (access(X0_TMPDIR, W_OK) < 0) {
+        log(Severity::error, "Could no access temp dir %s. %s",
+            X0_TMPDIR, strerror(errno));
+        return false;
+    }
+
+    return true;
 }
 
 bool XzeroDaemon::setupConfig()

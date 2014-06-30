@@ -103,7 +103,8 @@ private:
     bool validate(const std::string& context, const std::vector<x0::CallExpr*>& calls, const std::vector<std::string>& api);
 
     bool createPidFile();
-    bool parse();
+    bool parseCommandLineArgs();
+    bool verifyEnv();
     bool setupConfig();
     void daemonize();
     bool drop_privileges(const std::string& username, const std::string& groupname);
