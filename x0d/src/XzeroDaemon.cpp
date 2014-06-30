@@ -124,7 +124,6 @@ void wrap_log_error(XzeroDaemon* d, const char* cat, const std::string& msg)
 XzeroDaemon* XzeroDaemon::instance_ = nullptr;
 
 XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
-    state_(XzeroState::Inactive),
     argc_(argc),
     argv_(argv),
     showGreeter_(false),
@@ -725,7 +724,7 @@ bool XzeroDaemon::createPidFile()
  */
 void XzeroDaemon::reexec()
 {
-    if (state_ != XzeroState::Running) {
+    if (eventHandler_->state() != XzeroState::Running) {
         server_->log(x0::Severity::info, "Reexec requested again?. Ignoring.");
         return;
     }

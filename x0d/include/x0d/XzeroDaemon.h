@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include <x0d/XzeroState.h>
 #include <x0/sysconfig.h>
 #include <x0/flow/vm/NativeCallback.h>
 #include <x0/Api.h>
@@ -112,7 +111,6 @@ private:
     void installCrashHandler();
 
 private:
-    XzeroState state_;
     int argc_;
     char** argv_;
     bool showGreeter_;
