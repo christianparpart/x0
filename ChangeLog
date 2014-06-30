@@ -14,6 +14,7 @@
 	* x0d: Fixes sys.env(string name).
 	* x0d: Fixes to req.header(S)S and req.cookie(S)S signatures.
 	* x0d: Fixes header.*() methods to apply their actions right before the headers get serialized.
+	* x0d: Fixes SIGHUP handler.
 	* x0d: redirect() and respond() have been both redesigned and renamed into return() to be more familiar with nginx configuration.
 	* director: Adds support different modes how to react on early client aborts.
 	* director: Adds the ability to tweak the Via response header's pseudonym name, that defaults to "x0d".
