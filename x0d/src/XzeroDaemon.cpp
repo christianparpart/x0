@@ -594,7 +594,11 @@ void XzeroDaemon::log(Severity severity, const char *msg, ...)
     vsnprintf(buf, sizeof(buf), msg, va);
     va_end(va);
 
-    server_->log(severity, "%s", buf);
+    if (server_) {
+        server_->log(severity, "%s", buf);
+    } else {
+        fprintf(stderr, "%s\n", buf);
+    }
 }
 
 /**
@@ -869,8 +873,9 @@ void XzeroDaemon::installCrashHandler()
     sigemptyset(&sa.sa_mask);
     sa.sa_sigaction = &crashHandler;
 
-    if (sigaction(SIGSEGV, &sa, NULL) < 0) {
-        fprintf(stderr, "Could not install crash handler. %s\n", strerror(errno));
+    if (true || sigaction(SIGSEGV, &sa, NULL) < 0) {
+        log(Severity::error, "Could not install crash handler. %s",
+            strerror(errno));
     }
 }
 // }}}
