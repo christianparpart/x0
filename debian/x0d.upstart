@@ -17,27 +17,29 @@ respawn
 #respawn limit 10 5
 
 pre-start script
-	[ -f /etc/default/x0d ] && . /etc/default/x0d
+  [ -f /etc/default/x0d ] && . /etc/default/x0d
 
-	mkdir -p /var/run/xzero
-	chown $USER.$GROUP /var/run/xzero
+  RUNDIR=`dirname $PIDFILE`
+  mkdir -p $RUNDIR
+  chown $USER.$GROUP $RUNDIR
 
-	mkdir -p /var/log/xzero
-	chown $USER.$GROUP /var/log/xzero
+  LOGDIR=`dirname $LOG_FILE`
+  mkdir -p $LOGDIR
+  chown $USER.$GROUP $LOGDIR
 end script
 
 script
-	[ -f /etc/default/x0d ] && . /etc/default/x0d
+  [ -f /etc/default/x0d ] && . /etc/default/x0d
 
-	exec /usr/sbin/x0d \
-		--log-severity $LOG_SEVERITY \
-		--log-target file \
-		--log-file $LOG_FILE \
-		--user $USER \
-		--group $GROUP \
-		--no-fork \
-		--pid-file $PIDFILE \
-		--config $CONFFILE
+  exec /usr/sbin/x0d \
+    --log-severity $LOG_SEVERITY \
+    --log-target file \
+    --log-file $LOG_FILE \
+    --user $USER \
+    --group $GROUP \
+    --no-fork \
+    --pid-file $PIDFILE \
+    --config $CONFFILE
 end script
 
-# vim:syntax=upstart
+# vim:syntax=upstart:ts=2:sw=2
