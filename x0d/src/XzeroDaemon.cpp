@@ -138,7 +138,6 @@ XzeroDaemon::XzeroDaemon(int argc, char *argv[]) :
     documentRoot_(),
     nofork_(false),
     systemd_(getppid() == 1 && sd_booted()),
-    doguard_(false),
     dumpAST_(false),
     dumpIR_(false),
     dumpTargetCode_(false),
@@ -303,7 +302,6 @@ bool XzeroDaemon::parseCommandLineArgs()
         { "no-fork", no_argument, &nofork_, 1 },
         { "fork", no_argument, &nofork_, 0 },
         { "systemd", no_argument, &systemd_, 1 },
-        { "guard", no_argument, &doguard_, 'G' },
         { "pid-file", required_argument, nullptr, 'p' },
         { "user", required_argument, nullptr, 'u' },
         { "group", required_argument, nullptr, 'g' },
@@ -339,7 +337,7 @@ bool XzeroDaemon::parseCommandLineArgs()
 
     for (;;) {
         int long_index = 0;
-        switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:s:i:e:khXGV", long_options, &long_index)) {
+        switch (getopt_long(argc_, argv_, "vyf:O:p:u:g:o:l:s:i:e:khXV", long_options, &long_index)) {
             case 'e': {
                 char* saveptr = nullptr;
                 char* input = optarg;
@@ -436,7 +434,6 @@ bool XzeroDaemon::parseCommandLineArgs()
                     << "  -O,--optimization-level=N sets the configuration optimization level [" << optimizationLevel_ << "]" << std::endl
                     << "  -X,--no-fork              do not fork into background" << std::endl
                     << "     --systemd              force systemd-mode, which is auto-detected otherwise" << std::endl
-                    << "  -G,--guard                do run service as child of a special guard process to watch for crashes" << std::endl
                     << "  -p,--pid-file=PATH        PID file to create" << std::endl
                     << "  -u,--user=NAME            user to drop privileges to" << std::endl
                     << "  -g,--group=NAME           group to drop privileges to" << std::endl
@@ -501,9 +498,6 @@ bool XzeroDaemon::parseCommandLineArgs()
             }
             case 'X':
                 nofork_ = true;
-                break;
-            case 'G':
-                doguard_ = true;
                 break;
             case 0: // long option with (val!=nullptr && flag=0)
                 break;

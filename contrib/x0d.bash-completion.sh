@@ -98,9 +98,9 @@ _x0d() {
 	esac
 
 	if [[ "${cur}" == -* ]] || [[ "${cur}" == "" ]]; then
-		local replies=( $(compgen -W "-h -f -O -X -G -P -u -g -o -l -s -i -k -v -y -V \
+		local replies=( $(compgen -W "-h -f -O -X -P -u -g -o -l -s -i -k -v -y -V \
 					--help --config= --optimization-level= --no-fork --systemd \
-					--guard --pid-file= --user= --group= --log-target= --log-file= \
+					--pid-file= --user= --group= --log-target= --log-file= \
 					--log-severity= --instant= --crash-handler= --version \
                     --dump-ast --dump-ir --dump-tc \
 					--copyright --splash --info" -- "${cur}") )

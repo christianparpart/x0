@@ -128,7 +128,6 @@ private:
 
     int nofork_;
     int systemd_;
-    int doguard_;
     int dumpAST_;
     int dumpIR_;
     int dumpTargetCode_;
