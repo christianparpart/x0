@@ -78,6 +78,7 @@
 #endif
 
 #if !defined(XZERO_NDEBUG)
+using x0::DebugLogger;
 #	define TRACE(n, msg...) XZERO_DEBUG("XzeroDaemon", (n), msg)
 #else
 #	define TRACE(n, msg...) /*!*/ ((void)0)
