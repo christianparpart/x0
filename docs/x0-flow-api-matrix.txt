@@ -1,52 +1,52 @@
 .:Request Property Matrix:.
 
-    Varnish Cache                   | Lighttpd 2        | x0
-======================================================================================
-    -                               __print             __print
-    -                               sys.pid             sys.pid
-    -                               sys.cwd             sys.cwd
-    -                               sys.env[name]       sys.env(name)
----------------------------------------------------------------------------------------
-    server.ip                       req.localip         req.localip
-    server.port                     req.localport       req.localport
----------------------------------------------------------------------------------------
-    client.ip                       req.remoteip        req.remoteip
-    client.port                     req.remoteport      req.remoteport
----------------------------------------------------------------------------------------
-    req.request(method)             -                   -
-    -                               -                   req.is_secure
-    -                               req.scheme          req.scheme
-    req.url                         -                   req.url
-    -                               -                   req.pathinfo
-    -                               req.path            req.path
-    -                               req.host            req.host
-    -                               req.query           req.query
-    -                               req.length          -
-    req.http.header()               req.header[name]    req.header(name)
-    -                               req.env[name]       sys.env()
----------------------------------------------------------------------------------------
-    -                               phys.exists         phys.exists
-    -                               phys.path           phys.path
-    -                               phys.is_file        phys.is_reg
-    -                               phys.is_dir         phys.is_dir
-    -                               -                   phys.is_exe
-    -                               phys.size           phys.size
-    -                               -                   phys.mtime
-    -                               -                   phys.etag
-    -                               -                   phys.mimetype
----------------------------------------------------------------------------------------
-    resp.proto                      -                   -
-    resp.status                     resp.status         req.status
-    -                               resp.header[name]   -
-    resp.response(status_message)   -                   -
----------------------------------------------------------------------------------------
-    -                               header.add()        header.add()
-    -                               header.append()     header.append()
-    -                               header.overwrite()  header.overwrite()
-    -                               header.remove()     header.remove()
----------------------------------------------------------------------------------------
-    -                               server.name         -
-    -                               server.tag          server.tag
-=======================================================================================
+ Varnish Cache        | Lighttpd 2        | x0                | nginx
+==============================================================================
+ -                    __print             __print             ?
+ -                    sys.pid             sys.pid             ?
+ -                    sys.cwd             sys.cwd             ?
+ -                    sys.env[name]       sys.env(name)       ?
+------------------------------------------------------------------------------
+ server.ip            req.localip         req.localip         ?
+ server.port          req.localport       req.localport       ?
+------------------------------------------------------------------------------
+ client.ip            req.remoteip        req.remoteip        ?
+ client.port          req.remoteport      req.remoteport      ?
+------------------------------------------------------------------------------
+ req.request(method)  -                   req.method          ?
+ -                    -                   req.is_secure       ?
+ -                    req.scheme          req.scheme          ?
+ req.url              -                   req.url             ?
+ -                    -                   req.pathinfo        ?
+ -                    req.path            req.path            ?
+ -                    req.host            req.host            ?
+ -                    req.query           req.query           ?
+ -                    req.length          -                   ?
+ req.http.header()    req.header[name]    req.header(name)    ?
+ -                    req.env[name]       sys.env()           ?
+------------------------------------------------------------------------------
+ -                    phys.exists         phys.exists         if (-f $file)
+ -                    phys.path           phys.path           ?
+ -                    phys.is_file        phys.is_reg         ?
+ -                    phys.is_dir         phys.is_dir         ?
+ -                    -                   phys.is_exe         ?
+ -                    phys.size           phys.size           ?
+ -                    -                   phys.mtime          ?
+ -                    -                   phys.etag           ?
+ -                    -                   phys.mimetype       ?
+------------------------------------------------------------------------------
+ resp.proto           -                   -                   $scheme
+ resp.status          resp.status         req.status          ?
+ -                    resp.header[name]   -
+ resp.response(msg)   -                   return(code, msg);  return code, msg;
+------------------------------------------------------------------------------
+ -                    header.add()        header.add()        ?
+ -                    header.append()     header.append()     ?
+ -                    header.overwrite()  header.overwrite()  ?
+ -                    header.remove()     header.remove()     ?
+------------------------------------------------------------------------------
+ -                    server.name         -                   ?
+ -                    server.tag          server.tag          ?
+==============================================================================
 
-# vim:et:ts=4:nowrap:syntax=asciidoc
+# vim:et:ts=2:nowrap:syntax=asciidoc
