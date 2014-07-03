@@ -9,6 +9,8 @@ set(x0_http_SRC
   HttpStatus.cpp
   HttpWorker.cpp
   HttpVary.cpp
+  http2.cpp
+  hpack.cpp
 )
 
 add_library(XzeroHttp SHARED ${x0_http_SRC})
