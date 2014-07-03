@@ -13,7 +13,6 @@ x0_plugin_simple(accesslog)
 x0_plugin_simple(browser)
 x0_plugin_simple(cgi)
 x0_plugin_simple(compress)
-x0_plugin_simple(debug)
 x0_plugin_simple(expire)
 x0_plugin_simple(dirlisting)
 x0_plugin_simple(userdir)
@@ -31,6 +30,9 @@ if(ENABLE_PLUGIN_RRD)
   target_link_libraries(rrdfile ${RRD_LIBRARY_PATH})
 endif()
 
+if(ENABLE_PLUGIN_DEBUG)
+x0_plugin_simple(debug)
+endif()
 
 # XXX Disabled until Ubuntu 14.04 comes out, as it (should) support a newer
 # XXX cmake version that actually supports this way of linking (or tell me how to

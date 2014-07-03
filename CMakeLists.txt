@@ -41,6 +41,7 @@ option(ENABLE_PLUGIN_RRD "Includes RRD support (plugin) [default: off]" OFF)
 option(ENABLE_PLUGIN_SSL "Builds with SSL support [default: on]" ON)
 option(ENABLE_PLUGIN_DIRECTOR "Builds director plugin (http/fastcgi proxy+loadbalancer) [default: on]" ON)
 option(ENABLE_PLUGIN_WEBDAV "Includes WebDAV support (plugin) [default: off]" OFF)
+option(ENABLE_PLUGIN_DEBUG "Includes x0d debugging support (plugin) [default: off]" OFF)
 
 # x0d plugin feature flags
 option(ENABLE_DIRECTOR_CACHE "Enables response cache accelerator [default: on]" ON)
