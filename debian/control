@@ -30,8 +30,11 @@ Homepage: http://xzero.io/
 Recommends:
   idn
 Depends: ${shlibs:Depends}, ${misc:Depends}, mime-support,
-  x0d-plugins (= ${binary:Version}),
+  libmagickwand5,
+  libgnutls28,
+  libxzero-http (= ${binary:Version}),
   libxzero-flow (= ${binary:Version}),
+  libxzero-base (= ${binary:Version})
 
 Package: libxzero-base
 Architecture: any
@@ -61,20 +64,6 @@ Description: Xzero (x0) HTTP Library
 Homepage: http://xzero.io/
 Depends: ${shlibs:Depends}, ${misc:Depends},
   libxzero-base (= ${binary:Version}),
-
-Package: x0d-plugins
-Architecture: any
-Section: httpd
-Priority: optional
-Description: Xzero (x0) HTTP Server Plugins
-  This package contains the standard plugins that x0d can load.
-Homepage: http://xzero.io/
-Depends: ${shlibs:Depends}, ${misc:Depends},
-  libmagickwand5,
-  libgnutls28,
-  libxzero-http (= ${binary:Version}),
-  libxzero-flow (= ${binary:Version}),
-  libxzero-base (= ${binary:Version})
 
 Package: libxzero-base-dev
 Architecture: any

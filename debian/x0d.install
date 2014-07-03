@@ -1,5 +1,6 @@
 debian/tmp/etc/xzero/*
 debian/tmp/usr/sbin/x0d
+debian/tmp/usr/lib/xzero/*
 debian/tmp/usr/share/man/*
 debian/tmp/var/log/xzero
 debian/tmp/etc/init/x0d.conf
