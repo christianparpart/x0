@@ -8,11 +8,12 @@
   - Ubuntu 14.04, 32-bit (gcc, clang)
   - Ubuntu 14.04, 64-bit (gcc, clang)
 
-2. git-tag release and push tag to github
+2. update VERSION in $root/CMakeLists.txt
+3. git-tag release and push tag to github
 
 ## POST RELEASE
 
-1. upload to PPA
-  - trapni/x0 for latest Ubuntu
-  - trapni/x0-precise for Ubuntu 12.04
+1. upload to PPA via `$root/contrib/ppa-release.sh`
+  - `trapni/xzero` (for latest Ubuntu)
+  - `trapni/xzero-precise` (for Ubuntu 12.04)
 2. update website to point to the newest release and changelog on front-page.

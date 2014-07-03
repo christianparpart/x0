@@ -1,4 +1,4 @@
-0.10.0 (2014-MM-DD)
+0.10.0 (2014-07-03)
 
 	* project: changed from AGPL-3 license to MIT license.
 	* flow: Fixes infinite loop in match-statements without else block.

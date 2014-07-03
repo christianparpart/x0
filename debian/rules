@@ -16,6 +16,7 @@ configure-stamp:
 		-DLIBDIR=/usr/lib \
 		-DPLUGINDIR=/usr/lib/xzero \
 		-DLOGDIR=/var/log/xzero \
+		-DX0_TMPDIR=/var/run/xzero \
 		\
 		-DCMAKE_CXX_COMPILER=/usr/bin/g++-4.8 \
 		-DCMAKE_C_COMPILER=/usr/bin/gcc-4.8 \
@@ -26,6 +27,7 @@ configure-stamp:
 		-DENABLE_PLUGIN_WEBDAV=OFF \
 		-DENABLE_PLUGIN_RRD=OFF \
 		-DENABLE_PLUGIN_IMAGEABLE=OFF \
+		-DENABLE_PLUGIN_DEBUG=OFF \
 		-DENABLE_PLUGIN_SSL=ON \
 		\
 		-DENABLE_ACCEPT4=ON \

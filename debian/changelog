@@ -1,3 +1,33 @@
+x0 (0.10.0-3release4-ubuntu-trusty) trusty; urgency=medium
+
+  * release, tmpdir path fixed, #2
+
+ -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 11:41:00 -0100
+
+x0 (0.10.0-3release3-ubuntu-trusty) trusty; urgency=medium
+
+  * release, tmpdir path fixed
+
+ -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 10:41:00 -0100
+
+x0 (0.10.0-3release2-ubuntu-trusty) trusty; urgency=medium
+
+  * release, version fixed
+
+ -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 09:41:00 -0100
+
+x0 (0.10.0-3release1-ubuntu-trusty) trusty; urgency=medium
+
+  * release
+
+ -- Christian Parpart <trapni@gmail.com>  Wed, 03 Jun 2014 09:41:00 -0100
+
+x0 (0.10.0-2snapshot-ubuntu-trusty) trusty; urgency=medium
+
+  * snapshot update
+
+ -- Christian Parpart <trapni@gmail.com>  Wed, 02 Jun 2014 09:41:00 -0100
+
 x0 (0.10.0-1snapshot-ubuntu-trusty) trusty; urgency=medium
 
   * snapshot update
