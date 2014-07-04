@@ -20,7 +20,7 @@ written in modern C++.
 - zero-copy networking optimization through sendfile() system call
 - transmitting of static files with partial response support and cache-friendly
 
-# x0d, Dedicated HTTP Application Gatway Server
+# x0d, HTTP Application Gatway Server
 
 `x0d` is the dedicated HTTP web server that is built ontop of the
 Xzero Framework.
