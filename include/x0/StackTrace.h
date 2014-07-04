@@ -15,27 +15,26 @@
 
 namespace x0 {
 
-class X0_API StackTrace
-{
-private:
-    Buffer buffer_;
-    void **addresses_;
-    std::vector<BufferRef> symbols_;
-    int skip_;
-    int count_;
+class X0_API StackTrace {
+ private:
+  Buffer buffer_;
+  void **addresses_;
+  std::vector<BufferRef> symbols_;
+  int skip_;
+  int count_;
 
-public:
-    explicit StackTrace(int numSkipFrames = 0, int numMaxFrames = 64);
-    ~StackTrace();
+ public:
+  explicit StackTrace(int numSkipFrames = 0, int numMaxFrames = 64);
+  ~StackTrace();
 
-    void generate(bool verbose);
+  void generate(bool verbose);
 
-    int length() const;
-    const BufferRef& at(int index) const;
+  int length() const;
+  const BufferRef &at(int index) const;
 
-    const char *c_str() const;
+  const char *c_str() const;
 };
 
-} // namespace x0
+}  // namespace x0
 
 #endif

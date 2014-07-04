@@ -13,15 +13,9 @@
 namespace x0 {
 namespace FlowVM {
 
-enum class MatchClass {
-    Same,
-    Head,
-    Tail,
-    RegExp,
-};
+enum class MatchClass { Same, Head, Tail, RegExp, };
 
 X0_API std::string tos(MatchClass c);
 
-} // namespace FlowVM
-} // namespace x0
-
+}  // namespace FlowVM
+}  // namespace x0

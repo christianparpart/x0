@@ -15,54 +15,61 @@ namespace x0 {
 //! \addtogroup Flow
 //@{
 
-struct X0_API FilePos // {{{
-{
-    FilePos() : line(1), column(1), offset(0) {}
-    FilePos(size_t r, size_t c, size_t o) : line(r), column(c), offset(o) {}
-
-    FilePos& set(size_t r, size_t c, size_t o)
+struct X0_API FilePos  // {{{
     {
-        line = r;
-        column = c;
-        offset = o;
+  FilePos() : line(1), column(1), offset(0) {}
+  FilePos(size_t r, size_t c, size_t o) : line(r), column(c), offset(o) {}
 
-        return *this;
-    }
+  FilePos& set(size_t r, size_t c, size_t o) {
+    line = r;
+    column = c;
+    offset = o;
 
-    size_t line;
-    size_t column;
-    size_t offset;
+    return *this;
+  }
+
+  size_t line;
+  size_t column;
+  size_t offset;
 };
 
-inline X0_API size_t operator-(const FilePos& a, const FilePos& b)
-{
-    if (b.offset > a.offset)
-        return 1 + b.offset - a.offset;
-    else
-        return 1 + a.offset - b.offset;
+inline X0_API size_t operator-(const FilePos& a, const FilePos& b) {
+  if (b.offset > a.offset)
+    return 1 + b.offset - a.offset;
+  else
+    return 1 + a.offset - b.offset;
 }
 // }}}
-struct X0_API FlowLocation // {{{
-{
-    FlowLocation() : filename(), begin(), end() {}
-    FlowLocation(const std::string& _fileName) : filename(_fileName), begin(), end() {}
-    FlowLocation(const std::string& _fileName, FilePos _beg, FilePos _end) : filename(_fileName), begin(_beg), end(_end) {}
+struct X0_API FlowLocation  // {{{
+    {
+  FlowLocation() : filename(), begin(), end() {}
+  FlowLocation(const std::string& _fileName)
+      : filename(_fileName), begin(), end() {}
+  FlowLocation(const std::string& _fileName, FilePos _beg, FilePos _end)
+      : filename(_fileName), begin(_beg), end(_end) {}
 
-    std::string filename;
-    FilePos begin;
-    FilePos end;
+  std::string filename;
+  FilePos begin;
+  FilePos end;
 
-    FlowLocation& update(const FilePos& endPos) { end = endPos; return *this; }
-    FlowLocation& update(const FlowLocation& endLocation) { end = endLocation.end; return *this; }
+  FlowLocation& update(const FilePos& endPos) {
+    end = endPos;
+    return *this;
+  }
+  FlowLocation& update(const FlowLocation& endLocation) {
+    end = endLocation.end;
+    return *this;
+  }
 
-    std::string str() const;
-    std::string text() const;
-}; // }}}
+  std::string str() const;
+  std::string text() const;
+};  // }}}
 
-inline FlowLocation operator-(const FlowLocation& end, const FlowLocation& beg) {
-    return FlowLocation(beg.filename, beg.begin, end.end);
+inline FlowLocation operator-(const FlowLocation& end,
+                              const FlowLocation& beg) {
+  return FlowLocation(beg.filename, beg.begin, end.end);
 }
 
 //!@}
 
-} // namespace x0
+}  // namespace x0

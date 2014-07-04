@@ -11,44 +11,33 @@
 #include <x0/sysconfig.h>
 
 #if defined(HAVE_SYSLOG_H)
-#	include <syslog.h>
+#include <syslog.h>
 #endif
 
 namespace x0 {
 
-SyslogSink::SyslogSink(int level) :
-    level_(level)
-{
+SyslogSink::SyslogSink(int level) : level_(level) {}
+
+void SyslogSink::accept(SinkVisitor& v) { v.visit(*this); }
+
+ssize_t SyslogSink::write(const void* buffer, size_t size) {
+  const char* msg = static_cast<const char*>(buffer);
+
+  if (msg[size - 1] == '\0') {
+    syslog(level_, "%s", msg);
+  } else {
+    Buffer scratchBuffer;
+    scratchBuffer.push_back(msg, size);
+    syslog(level_, "%s", scratchBuffer.c_str());
+  }
+
+  return size;
 }
 
-void SyslogSink::accept(SinkVisitor& v)
-{
-    v.visit(*this);
+void SyslogSink::open(const char* ident, int options, int facility) {
+  openlog(ident, options, facility);
 }
 
-ssize_t SyslogSink::write(const void *buffer, size_t size)
-{
-    const char* msg = static_cast<const char*>(buffer);
+void SyslogSink::close() { closelog(); }
 
-    if (msg[size - 1] == '\0') {
-        syslog(level_, "%s", msg);
-    } else {
-        Buffer scratchBuffer;
-        scratchBuffer.push_back(msg, size);
-        syslog(level_, "%s", scratchBuffer.c_str());
-    }
-
-    return size;
-}
-
-void SyslogSink::open(const char* ident, int options, int facility)
-{
-    openlog(ident, options, facility);
-}
-
-void SyslogSink::close()
-{
-    closelog();
-}
-
-} // namespace x0
+}  // namespace x0

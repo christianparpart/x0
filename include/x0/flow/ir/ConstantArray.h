@@ -16,20 +16,20 @@
 namespace x0 {
 
 class X0_API ConstantArray : public Constant {
-public:
-    ConstantArray(const std::vector<Constant*>& elements, const std::string& name = "") :
-        Constant(makeArrayType(elements.front()->type()), name),
-        elements_(elements)
-    {}
+ public:
+  ConstantArray(const std::vector<Constant*>& elements,
+                const std::string& name = "")
+      : Constant(makeArrayType(elements.front()->type()), name),
+        elements_(elements) {}
 
-    const std::vector<Constant*>& get() const { return elements_; }
+  const std::vector<Constant*>& get() const { return elements_; }
 
-    FlowType elementType() const { return elements_[0]->type(); }
+  FlowType elementType() const { return elements_[0]->type(); }
 
-private:
-    std::vector<Constant*> elements_;
+ private:
+  std::vector<Constant*> elements_;
 
-    FlowType makeArrayType(FlowType elementType);
+  FlowType makeArrayType(FlowType elementType);
 };
 
-} // namespace x0
+}  // namespace x0

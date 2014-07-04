@@ -15,36 +15,30 @@ using namespace x0;
  * \ingroup plugins
  * \brief echo content generator plugin
  */
-class EchoPlugin :
-    public x0d::XzeroPlugin
-{
-public:
-    EchoPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-        x0d::XzeroPlugin(d, name)
-    {
-        mainHandler("echo_example", &EchoPlugin::handleRequest);
+class EchoPlugin : public x0d::XzeroPlugin {
+ public:
+  EchoPlugin(x0d::XzeroDaemon* d, const std::string& name)
+      : x0d::XzeroPlugin(d, name) {
+    mainHandler("echo_example", &EchoPlugin::handleRequest);
+  }
+
+  ~EchoPlugin() {}
+
+ private:
+  virtual bool handleRequest(HttpRequest* r, FlowVM::Params& args) {
+    r->status = HttpStatus::Ok;
+
+    if (r->contentAvailable()) {
+      r->write(std::move(r->takeBody()));
+      r->finish();
+    } else {
+      r->write<BufferRefSource>(BufferRef("I'm an HTTP echo-server, dude.\n"));
+      r->finish();
     }
 
-    ~EchoPlugin()
-    {
-    }
-
-private:
-    virtual bool handleRequest(HttpRequest* r, FlowVM::Params& args)
-    {
-        r->status = HttpStatus::Ok;
-
-        if (r->contentAvailable()) {
-            r->write(std::move(r->takeBody()));
-            r->finish();
-        } else {
-            r->write<BufferRefSource>(BufferRef("I'm an HTTP echo-server, dude.\n"));
-            r->finish();
-        }
-
-        // yes, we are handling this request
-        return true;
-    }
+    // yes, we are handling this request
+    return true;
+  }
 };
 
 X0_EXPORT_PLUGIN_CLASS(EchoPlugin)

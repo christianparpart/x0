@@ -11,23 +11,21 @@
 namespace x0 {
 namespace FlowVM {
 
-std::string tos(MatchClass mc)
-{
-    switch (mc) {
-        case MatchClass::Same:
-            return "Same";
-        case MatchClass::Head:
-            return "Head";
-        case MatchClass::Tail:
-            return "Tail";
-        case MatchClass::RegExp:
-            return "RegExp";
-        default:
-            assert(!"FIXME: NOT IMPLEMENTED");
-            return "<FIXME>";
-    }
+std::string tos(MatchClass mc) {
+  switch (mc) {
+    case MatchClass::Same:
+      return "Same";
+    case MatchClass::Head:
+      return "Head";
+    case MatchClass::Tail:
+      return "Tail";
+    case MatchClass::RegExp:
+      return "RegExp";
+    default:
+      assert(!"FIXME: NOT IMPLEMENTED");
+      return "<FIXME>";
+  }
 }
 
-} // namespace FlowVM
-} // namespace x0
-
+}  // namespace FlowVM
+}  // namespace x0

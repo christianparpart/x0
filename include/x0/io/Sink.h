@@ -26,18 +26,17 @@ class SinkVisitor;
  *
  * \see file_sink, buffer_sink, asio_sink, source
  */
-class X0_API Sink
-{
-public:
-    virtual ~Sink() {}
+class X0_API Sink {
+ public:
+  virtual ~Sink() {}
 
-    virtual void accept(SinkVisitor& v) = 0;
+  virtual void accept(SinkVisitor& v) = 0;
 
-    virtual ssize_t write(const void *buffer, size_t size) = 0;
+  virtual ssize_t write(const void* buffer, size_t size) = 0;
 };
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

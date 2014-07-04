@@ -7,6 +7,4 @@
 
 #include <x0/flow/ir/InstructionVisitor.h>
 
-namespace x0 {
-
-} // namespace x0
+namespace x0 {}  // namespace x0

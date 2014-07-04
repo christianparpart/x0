@@ -6,5 +6,3 @@
 // the License at: http://opensource.org/licenses/MIT
 
 #include <x0/MemoryPool.h>
-
-

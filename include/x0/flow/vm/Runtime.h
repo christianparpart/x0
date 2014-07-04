@@ -26,29 +26,30 @@ typedef uint64_t Value;
 class Runner;
 class NativeCallback;
 
-class X0_API Runtime
-{
-public:
-    virtual ~Runtime();
+class X0_API Runtime {
+ public:
+  virtual ~Runtime();
 
-    virtual bool import(const std::string& name, const std::string& path, std::vector<FlowVM::NativeCallback*>* builtins) = 0;
+  virtual bool import(const std::string& name, const std::string& path,
+                      std::vector<FlowVM::NativeCallback*>* builtins) = 0;
 
-    bool contains(const std::string& signature) const;
-    NativeCallback* find(const std::string& signature);
-    NativeCallback* find(const Signature& signature);
-    const std::vector<NativeCallback*>& builtins() const { return builtins_; }
+  bool contains(const std::string& signature) const;
+  NativeCallback* find(const std::string& signature);
+  NativeCallback* find(const Signature& signature);
+  const std::vector<NativeCallback*>& builtins() const { return builtins_; }
 
-    NativeCallback& registerHandler(const std::string& name);
-    NativeCallback& registerFunction(const std::string& name, FlowType returnType);
-    void unregisterNative(const std::string& name);
+  NativeCallback& registerHandler(const std::string& name);
+  NativeCallback& registerFunction(const std::string& name,
+                                   FlowType returnType);
+  void unregisterNative(const std::string& name);
 
-    void invoke(int id, int argc, Value* argv, Runner* cx);
+  void invoke(int id, int argc, Value* argv, Runner* cx);
 
-    bool verify(IRProgram* program);
+  bool verify(IRProgram* program);
 
-private:
-    std::vector<NativeCallback*> builtins_;
+ private:
+  std::vector<NativeCallback*> builtins_;
 };
 
-} // FlowVM
-} // x0
+}  // FlowVM
+}  // x0

@@ -9,7 +9,8 @@
  * plugin type: content generator
  *
  * description:
- *     Implements basic load balancing, ideally taking out the need of an HAproxy
+ *     Implements basic load balancing, ideally taking out the need of an
+ *HAproxy
  *     in front of us.
  *
  * setup API:
@@ -55,128 +56,123 @@
 
 using namespace x0;
 
-DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-    x0d::XzeroPlugin(d, name),
-    directors_(),
-    roadWarrior_(new RoadWarrior(server().selectWorker())),
-    haproxyApi_(new HaproxyApi(&directors_)),
-    pseudonym_("x0d")
-{
-    setupFunction("director.load", &DirectorPlugin::director_load)
-        .param<FlowString>("name")
-        .param<FlowString>("path");
+DirectorPlugin::DirectorPlugin(x0d::XzeroDaemon* d, const std::string& name)
+    : x0d::XzeroPlugin(d, name),
+      directors_(),
+      roadWarrior_(new RoadWarrior(server().selectWorker())),
+      haproxyApi_(new HaproxyApi(&directors_)),
+      pseudonym_("x0d") {
+  setupFunction("director.load", &DirectorPlugin::director_load)
+      .param<FlowString>("name")
+      .param<FlowString>("path");
 
-    setupFunction("director.pseudonym", &DirectorPlugin::director_pseudonym, FlowType::String);
+  setupFunction("director.pseudonym", &DirectorPlugin::director_pseudonym,
+                FlowType::String);
 
 #if defined(ENABLE_DIRECTOR_CACHE)
-    mainFunction("director.cache", &DirectorPlugin::director_cache_enabled, FlowType::Boolean);
-    mainFunction("director.cache.key", &DirectorPlugin::director_cache_key, FlowType::String);
-    mainFunction("director.cache.ttl", &DirectorPlugin::director_cache_ttl, FlowType::Number);
+  mainFunction("director.cache", &DirectorPlugin::director_cache_enabled,
+               FlowType::Boolean);
+  mainFunction("director.cache.key", &DirectorPlugin::director_cache_key,
+               FlowType::String);
+  mainFunction("director.cache.ttl", &DirectorPlugin::director_cache_ttl,
+               FlowType::Number);
 #endif
 
-    mainHandler("director.balance", &DirectorPlugin::director_balance)
-        .param<FlowString>("director")
-        .param<FlowString>("bucket", "");
+  mainHandler("director.balance", &DirectorPlugin::director_balance)
+      .param<FlowString>("director")
+      .param<FlowString>("bucket", "");
 
-    mainHandler("director.pass", &DirectorPlugin::director_pass)
-        .param<FlowString>("director")
-        .param<FlowString>("backend");
+  mainHandler("director.pass", &DirectorPlugin::director_pass)
+      .param<FlowString>("director")
+      .param<FlowString>("backend");
 
-    mainHandler("director.api", &DirectorPlugin::director_api)
-        .param<FlowString>("prefix", "/");
+  mainHandler("director.api", &DirectorPlugin::director_api)
+      .param<FlowString>("prefix", "/");
 
-    mainHandler("director.fcgi", &DirectorPlugin::director_fcgi)
-        .verifier(&DirectorPlugin::director_roadwarrior_verify, this)
-        .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port")
-        .param<FlowString>("on_client_abort", "close");
+  mainHandler("director.fcgi", &DirectorPlugin::director_fcgi)
+      .verifier(&DirectorPlugin::director_roadwarrior_verify, this)
+      .param<IPAddress>("address", IPAddress("0.0.0.0"))
+      .param<int>("port")
+      .param<FlowString>("on_client_abort", "close");
 
-    mainHandler("director.http", &DirectorPlugin::director_http)
-        .verifier(&DirectorPlugin::director_roadwarrior_verify, this)
-        .param<IPAddress>("address", IPAddress("0.0.0.0"))
-        .param<int>("port")
-        .param<FlowString>("on_client_abort", "close");
+  mainHandler("director.http", &DirectorPlugin::director_http)
+      .verifier(&DirectorPlugin::director_roadwarrior_verify, this)
+      .param<IPAddress>("address", IPAddress("0.0.0.0"))
+      .param<int>("port")
+      .param<FlowString>("on_client_abort", "close");
 
-    mainHandler("director.haproxy_stats", &DirectorPlugin::director_haproxy_stats)
-        .param<FlowString>("prefix", "/");
+  mainHandler("director.haproxy_stats", &DirectorPlugin::director_haproxy_stats)
+      .param<FlowString>("prefix", "/");
 
-    mainHandler("director.haproxy_monitor", &DirectorPlugin::director_haproxy_monitor)
-        .param<FlowString>("prefix", "/");
+  mainHandler("director.haproxy_monitor",
+              &DirectorPlugin::director_haproxy_monitor)
+      .param<FlowString>("prefix", "/");
 }
 
-DirectorPlugin::~DirectorPlugin()
-{
+DirectorPlugin::~DirectorPlugin() {}
+
+RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r) {
+  if (auto notes = r->customData<RequestNotes>(this)) return notes;
+
+  return r->setCustomData<RequestNotes>(this, r);
 }
 
-RequestNotes* DirectorPlugin::requestNotes(HttpRequest* r)
-{
-    if (auto notes = r->customData<RequestNotes>(this))
-        return notes;
+void DirectorPlugin::addVia(x0::HttpRequest* r) {
+  char buf[128];
+  snprintf(buf, sizeof(buf), "%d.%d %s", r->httpVersionMajor,
+           r->httpVersionMinor, pseudonym_.c_str());
 
-    return r->setCustomData<RequestNotes>(this, r);
+  // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the
+  // front of the Via-list.
+  r->responseHeaders.prepend("Via", buf);
 }
 
-void DirectorPlugin::addVia(x0::HttpRequest* r)
-{
-    char buf[128];
-    snprintf(buf, sizeof(buf), "%d.%d %s",
-            r->httpVersionMajor,
-            r->httpVersionMinor,
-            pseudonym_.c_str());
-
-    // RFC 7230, section 5.7.1: makes it clear, that we put ourselfs into the front of the Via-list.
-    r->responseHeaders.prepend("Via", buf);
-}
-
-void DirectorPlugin::director_pseudonym(x0::FlowVM::Params& args)
-{
-    pseudonym_ = args.getString(1).str();
+void DirectorPlugin::director_pseudonym(x0::FlowVM::Params& args) {
+  pseudonym_ = args.getString(1).str();
 }
 
 // {{{ setup_function director.load(name, path)
-void DirectorPlugin::director_load(FlowVM::Params& args)
-{
-    const auto directorName = args.getString(1).str();
-    const auto path = args.getString(2).str();
+void DirectorPlugin::director_load(FlowVM::Params& args) {
+  const auto directorName = args.getString(1).str();
+  const auto path = args.getString(2).str();
 
-    // TODO verify that given director name is still available.
-    // TODO verify that no director has been instanciated already by given path.
+  // TODO verify that given director name is still available.
+  // TODO verify that no director has been instanciated already by given path.
 
-    server().log(Severity::debug, "director: Loading director %s from %s.", directorName.c_str(), path.c_str());
+  server().log(Severity::debug, "director: Loading director %s from %s.",
+               directorName.c_str(), path.c_str());
 
-    std::unique_ptr<Director> director(new Director(server().nextWorker(), directorName));
-    if (!director)
-        return;
+  std::unique_ptr<Director> director(
+      new Director(server().nextWorker(), directorName));
+  if (!director) return;
 
-    director->load(path);
+  director->load(path);
 
-    directors_[directorName] = std::move(director);
+  directors_[directorName] = std::move(director);
 }
 // }}}
 // {{{ setup function director.cache.key(string key)
 #if defined(ENABLE_DIRECTOR_CACHE)
-void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args)
-{
-    auto notes = requestNotes(r);
-    notes->setCacheKey(args.getString(1));
+void DirectorPlugin::director_cache_key(HttpRequest* r, FlowVM::Params& args) {
+  auto notes = requestNotes(r);
+  notes->setCacheKey(args.getString(1));
 }
 #endif
 // }}}
 // {{{ function director.cache.enabled()
 #if defined(ENABLE_DIRECTOR_CACHE)
-void DirectorPlugin::director_cache_enabled(HttpRequest* r, FlowVM::Params& args)
-{
-    auto notes = requestNotes(r);
-    notes->cacheIgnore = !args.getBool(1);
+void DirectorPlugin::director_cache_enabled(HttpRequest* r,
+                                            FlowVM::Params& args) {
+  auto notes = requestNotes(r);
+  notes->cacheIgnore = !args.getBool(1);
 }
 #endif
 // }}}
 // {{{ function director.cache.ttl()
 #if defined(ENABLE_DIRECTOR_CACHE)
-void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args)
-{
-    auto notes = requestNotes(r);
-    notes->cacheTTL = TimeSpan::fromSeconds(args.getInt(1));
+void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args) {
+  auto notes = requestNotes(r);
+  notes->cacheTTL = TimeSpan::fromSeconds(args.getInt(1));
 }
 #endif
 // }}}
@@ -184,201 +180,201 @@ void DirectorPlugin::director_cache_ttl(HttpRequest* r, FlowVM::Params& args)
 /**
  * \returns always true.
  */
-bool DirectorPlugin::internalServerError(HttpRequest* r)
-{
-    if (r->status != HttpStatus::Undefined)
-        r->status = HttpStatus::InternalServerError;
+bool DirectorPlugin::internalServerError(HttpRequest* r) {
+  if (r->status != HttpStatus::Undefined)
+    r->status = HttpStatus::InternalServerError;
 
-    r->finish();
-    return true;
+  r->finish();
+  return true;
 }
 
 // handler director.balance(string director_name, string bucket_name = '');
-bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args)
-{
-    std::string directorName = args.getString(1).str();
-    std::string bucketName = args.getString(2).str();
+bool DirectorPlugin::director_balance(HttpRequest* r, FlowVM::Params& args) {
+  std::string directorName = args.getString(1).str();
+  std::string bucketName = args.getString(2).str();
 
-    balance(r, directorName, bucketName);
+  balance(r, directorName, bucketName);
 
-    return true;
+  return true;
 }
 
-void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName, const std::string& bucketName)
-{
-    auto i = directors_.find(directorName);
-    if (i == directors_.end()) {
-        r->log(Severity::error, "director.balance(): No director with name '%s' configured.", directorName.c_str());
-        internalServerError(r);
-        return;
-    }
-    Director* director = i->second.get();
-
-    RequestShaper::Node* bucket = nullptr;
-    if (!bucketName.empty()) {
-        bucket = director->findBucket(bucketName);
-        if (!bucket) {
-            // explicit bucket specified, but not found -> ignore.
-            bucket = director->rootBucket();
-            r->log(Severity::error, "director: Requested bucket '%s' not found in director '%s'. Assigning root bucket.",
-                bucketName.c_str(), directorName.c_str());
-        }
-    } else {
-        bucket = director->rootBucket();
-    }
-
-    auto rn = requestNotes(r);
-    rn->manager = director;
-
-    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
-
-#if !defined(NDEBUG)
-    server().log(Severity::debug, "director: passing request to %s [%s].", director->name().c_str(), bucket->name().c_str());
-#endif
-
-    director->schedule(rn, bucket);
-} // }}}
-// {{{ handler director.pass(string director_id [, string backend_id ] );
-bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args)
-{
-    std::string directorName = args.getString(1).str();
-    std::string backendName = args.getString(2).str();
-
-    pass(r, directorName, backendName);
-    return true;
-}
-
-void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName, const std::string& backendName)
-{
-    auto i = directors_.find(directorName);
-    if (i == directors_.end()) {
-        r->log(Severity::error, "director.pass(): No director with name '%s' configured.", directorName.c_str());
-        internalServerError(r);
-        return;
-    }
-    Director* director = i->second.get();
-
-    // custom backend route
-    Backend* backend = nullptr;
-    if (!backendName.empty()) {
-        backend = director->findBackend(backendName);
-
-        if (!backend) {
-            // explicit backend specified, but not found -> do not serve.
-            r->log(Severity::error, "director: Requested backend '%s' not found.", backendName.c_str());
-            internalServerError(r);
-            return;
-        }
-    }
-
-#if !defined(NDEBUG)
-    server().log(Severity::debug, "director: passing request to %s [backend %s].", director->name().c_str(), backend->name().c_str());
-#endif
-
-    auto rn = requestNotes(r);
-    rn->manager = director;
-
-    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
-
-    director->schedule(rn, backend);
-
+void DirectorPlugin::balance(HttpRequest* r, const std::string& directorName,
+                             const std::string& bucketName) {
+  auto i = directors_.find(directorName);
+  if (i == directors_.end()) {
+    r->log(Severity::error,
+           "director.balance(): No director with name '%s' configured.",
+           directorName.c_str());
+    internalServerError(r);
     return;
+  }
+  Director* director = i->second.get();
+
+  RequestShaper::Node* bucket = nullptr;
+  if (!bucketName.empty()) {
+    bucket = director->findBucket(bucketName);
+    if (!bucket) {
+      // explicit bucket specified, but not found -> ignore.
+      bucket = director->rootBucket();
+      r->log(Severity::error,
+             "director: Requested bucket '%s' not found in director '%s'. "
+             "Assigning root bucket.",
+             bucketName.c_str(), directorName.c_str());
+    }
+  } else {
+    bucket = director->rootBucket();
+  }
+
+  auto rn = requestNotes(r);
+  rn->manager = director;
+
+  r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
+
+#if !defined(NDEBUG)
+  server().log(Severity::debug, "director: passing request to %s [%s].",
+               director->name().c_str(), bucket->name().c_str());
+#endif
+
+  director->schedule(rn, bucket);
+}  // }}}
+// {{{ handler director.pass(string director_id [, string backend_id ] );
+bool DirectorPlugin::director_pass(HttpRequest* r, FlowVM::Params& args) {
+  std::string directorName = args.getString(1).str();
+  std::string backendName = args.getString(2).str();
+
+  pass(r, directorName, backendName);
+  return true;
+}
+
+void DirectorPlugin::pass(HttpRequest* r, const std::string& directorName,
+                          const std::string& backendName) {
+  auto i = directors_.find(directorName);
+  if (i == directors_.end()) {
+    r->log(Severity::error,
+           "director.pass(): No director with name '%s' configured.",
+           directorName.c_str());
+    internalServerError(r);
+    return;
+  }
+  Director* director = i->second.get();
+
+  // custom backend route
+  Backend* backend = nullptr;
+  if (!backendName.empty()) {
+    backend = director->findBackend(backendName);
+
+    if (!backend) {
+      // explicit backend specified, but not found -> do not serve.
+      r->log(Severity::error, "director: Requested backend '%s' not found.",
+             backendName.c_str());
+      internalServerError(r);
+      return;
+    }
+  }
+
+#if !defined(NDEBUG)
+  server().log(Severity::debug, "director: passing request to %s [backend %s].",
+               director->name().c_str(), backend->name().c_str());
+#endif
+
+  auto rn = requestNotes(r);
+  rn->manager = director;
+
+  r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
+
+  director->schedule(rn, backend);
+
+  return;
 }
 // }}}
 // {{{ handler director.api(string prefix);
-bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args)
-{
-    const FlowString& prefix = args.getString(1);
+bool DirectorPlugin::director_api(HttpRequest* r, FlowVM::Params& args) {
+  const FlowString& prefix = args.getString(1);
 
-    if (!r->path.begins(prefix))
-        return false;
+  if (!r->path.begins(prefix)) return false;
 
-    BufferRef path(r->path.ref(prefix.size()));
+  BufferRef path(r->path.ref(prefix.size()));
 
-    if (path.empty())
-        path = "/";
+  if (path.empty()) path = "/";
 
-    return ApiRequest::process(&directors_, r, path);
+  return ApiRequest::process(&directors_, r, path);
 }
 // }}}
-// {{{ handler director.fcgi(string hostname, int port, string onClientAbort = "close");
-bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args)
-{
-    RequestNotes* rn = requestNotes(r);
+// {{{ handler director.fcgi(string hostname, int port, string onClientAbort =
+// "close");
+bool DirectorPlugin::director_fcgi(HttpRequest* r, FlowVM::Params& args) {
+  RequestNotes* rn = requestNotes(r);
 
-    SocketSpec socketSpec(
-        args.getIPAddress(1),   // bind addr
-        args.getInt(2)          // port
-    );
+  SocketSpec socketSpec(args.getIPAddress(1),  // bind addr
+                        args.getInt(2)         // port
+                        );
 
-    Try<ClientAbortAction> value = parseClientAbortAction(args.getString(3));
-    if (value.isError()) {
-        goto done;
-    }
+  Try<ClientAbortAction> value = parseClientAbortAction(args.getString(3));
+  if (value.isError()) {
+    goto done;
+  }
 
-    rn->onClientAbort = value.get();
+  rn->onClientAbort = value.get();
 
-    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
+  r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
 
-    roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
+  roadWarrior_->handleRequest(rn, socketSpec, RoadWarrior::FCGI);
 
 done:
-    return true;
+  return true;
 }
 // }}}
 // {{{ handler director.http(address, port, on_client_abort);
-bool DirectorPlugin::director_roadwarrior_verify(Instr* instr)
-{
-    if (auto s = dynamic_cast<ConstantString*>(instr->operand(3))) {
-        Try<ClientAbortAction> op = parseClientAbortAction(s->get());
-        if (op) {
-            // okay: XXX we could hard-replace the 3rd arg here, as we pre-parsed it, kinda
-            return true;
-        } else {
-            log(Severity::error, "on_client_abort argument must a literal value of value 'close', 'notify', 'ignore'.");
-            return false;
-        }
+bool DirectorPlugin::director_roadwarrior_verify(Instr* instr) {
+  if (auto s = dynamic_cast<ConstantString*>(instr->operand(3))) {
+    Try<ClientAbortAction> op = parseClientAbortAction(s->get());
+    if (op) {
+      // okay: XXX we could hard-replace the 3rd arg here, as we pre-parsed it,
+      // kinda
+      return true;
     } else {
-        log(Severity::error, "on_client_abort argument must be a literal.");
-        return false;
+      log(Severity::error,
+          "on_client_abort argument must a literal value of value 'close', "
+          "'notify', 'ignore'.");
+      return false;
     }
+  } else {
+    log(Severity::error, "on_client_abort argument must be a literal.");
+    return false;
+  }
 }
 
-bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args)
-{
-    SocketSpec socketSpec(
-        args.getIPAddress(1),   // bind addr
-        args.getInt(2)          // port
-    );
+bool DirectorPlugin::director_http(HttpRequest* r, FlowVM::Params& args) {
+  SocketSpec socketSpec(args.getIPAddress(1),  // bind addr
+                        args.getInt(2)         // port
+                        );
 
-    r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
+  r->onPostProcess.connect(std::bind(&DirectorPlugin::addVia, this, r));
 
-    roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
+  roadWarrior_->handleRequest(requestNotes(r), socketSpec, RoadWarrior::HTTP);
 
-    return true;
+  return true;
 }
 // }}}
 // {{{ haproxy compatibility API
-bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r, FlowVM::Params& args)
-{
-    const FlowString& prefix = args.getString(1);
+bool DirectorPlugin::director_haproxy_monitor(HttpRequest* r,
+                                              FlowVM::Params& args) {
+  const FlowString& prefix = args.getString(1);
 
-    if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
-        return false;
+  if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix)) return false;
 
-    haproxyApi_->monitor(r);
-    return true;
+  haproxyApi_->monitor(r);
+  return true;
 }
 
-bool DirectorPlugin::director_haproxy_stats(HttpRequest* r, FlowVM::Params& args)
-{
-    const FlowString& prefix = args.getString(1);
+bool DirectorPlugin::director_haproxy_stats(HttpRequest* r,
+                                            FlowVM::Params& args) {
+  const FlowString& prefix = args.getString(1);
 
-    if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix))
-        return false;
+  if (!r->path.begins(prefix) && !r->unparsedUri.begins(prefix)) return false;
 
-    haproxyApi_->stats(r, prefix.str());
-    return true;
+  haproxyApi_->stats(r, prefix.str());
+  return true;
 }
 // }}}
 X0_EXPORT_PLUGIN_CLASS(DirectorPlugin)

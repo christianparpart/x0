@@ -51,39 +51,34 @@
  * \ingroup plugins
  * \brief adds Expires and Cache-Control response header
  */
-class ExpirePlugin :
-    public x0d::XzeroPlugin
-{
-public:
-    ExpirePlugin(x0d::XzeroDaemon* d, const std::string& name) :
-        x0d::XzeroPlugin(d, name)
-    {
-        mainFunction("expire", &ExpirePlugin::expire).params(x0::FlowType::Number);
-    }
+class ExpirePlugin : public x0d::XzeroPlugin {
+ public:
+  ExpirePlugin(x0d::XzeroDaemon* d, const std::string& name)
+      : x0d::XzeroPlugin(d, name) {
+    mainFunction("expire", &ExpirePlugin::expire).params(x0::FlowType::Number);
+  }
 
-private:
-    // void expire(datetime / timespan)
-    void expire(x0::HttpRequest *r, x0::FlowVM::Params& args)
-    {
-        time_t now = r->connection.worker().now().unixtime();
-        time_t mtime = r->fileinfo ? r->fileinfo->mtime() : now;
-        time_t value = args.getInt(1);
+ private:
+  // void expire(datetime / timespan)
+  void expire(x0::HttpRequest* r, x0::FlowVM::Params& args) {
+    time_t now = r->connection.worker().now().unixtime();
+    time_t mtime = r->fileinfo ? r->fileinfo->mtime() : now;
+    time_t value = args.getInt(1);
 
-        // passed a timespan
-        if (value < mtime)
-            value = value + now;
+    // passed a timespan
+    if (value < mtime) value = value + now;
 
-        // (mtime+span) points to past?
-        if (value < now)
-            value = now;
+    // (mtime+span) points to past?
+    if (value < now) value = now;
 
-        r->responseHeaders.overwrite("Expires", x0::DateTime(value).http_str().str());
+    r->responseHeaders.overwrite("Expires",
+                                 x0::DateTime(value).http_str().str());
 
-        x0::Buffer cc(20);
-        cc << "max-age=" << (value - now);
+    x0::Buffer cc(20);
+    cc << "max-age=" << (value - now);
 
-        r->responseHeaders.overwrite("Cache-Control", cc.str());
-    }
+    r->responseHeaders.overwrite("Cache-Control", cc.str());
+  }
 };
 
 X0_EXPORT_PLUGIN_CLASS(ExpirePlugin)

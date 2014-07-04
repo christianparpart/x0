@@ -18,44 +18,39 @@ class SslContext;
 
 /** \brief SSL socket.
  */
-class SslSocket :
-    public x0::Socket
-{
-private:
+class SslSocket : public x0::Socket {
+ private:
 #ifndef XZERO_NDEBUG
-    ev_tstamp ctime_;
+  ev_tstamp ctime_;
 #endif
 
-    SslDriver *driver_;
-    const SslContext *context_;
-    gnutls_session_t session_;		//!< SSL (GnuTLS) session handle
+  SslDriver *driver_;
+  const SslContext *context_;
+  gnutls_session_t session_;  //!< SSL (GnuTLS) session handle
 
-    friend class SslDriver;
-    friend class SslContext;
+  friend class SslDriver;
+  friend class SslContext;
 
-    static int onClientHello(gnutls_session_t session);
+  static int onClientHello(gnutls_session_t session);
 
-public:
-    explicit SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af);
-    virtual ~SslSocket();
+ public:
+  explicit SslSocket(SslDriver *driver, struct ev_loop *loop, int fd, int af);
+  virtual ~SslSocket();
 
-    const SslContext *context() const;
+  const SslContext *context() const;
 
-public:
-    // synchronous non-blocking I/O
-    virtual ssize_t read(x0::Buffer& result);
-    virtual ssize_t write(const void *buffer, size_t size);
-    virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
+ public:
+  // synchronous non-blocking I/O
+  virtual ssize_t read(x0::Buffer &result);
+  virtual ssize_t write(const void *buffer, size_t size);
+  virtual ssize_t write(int fd, off_t *offset, size_t nbytes);
 
-protected:
-    virtual void handshake(int revents);
+ protected:
+  virtual void handshake(int revents);
 };
 
 // {{{ inlines
-inline const SslContext *SslSocket::context() const
-{
-    return context_;
-}
+inline const SslContext *SslSocket::context() const { return context_; }
 // }}}
 
 #endif

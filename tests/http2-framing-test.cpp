@@ -5,14 +5,14 @@
 using namespace x0;
 using namespace x0::framing;
 
-void dumpFrames(const BufferRef& buf) // {{{
+void dumpFrames(const BufferRef& buf)  // {{{
 {
   size_t i = 0;
 
-  while (i + sizeof(framing::Frame) <= buf.size()
-      && i + ((framing::Frame*)buf.data() + i)->payloadLength() <= buf.size()) {
+  while (i + sizeof(framing::Frame) <= buf.size() &&
+         i + ((framing::Frame*)buf.data() + i)->payloadLength() <= buf.size()) {
 
-    const framing::Frame* frame = (framing::Frame*) (buf.data() + i);
+    const framing::Frame* frame = (framing::Frame*)(buf.data() + i);
 
     switch (frame->type()) {
       case framing::FrameType::DATA:
@@ -52,75 +52,66 @@ void dumpFrames(const BufferRef& buf) // {{{
 
     i += sizeof(*frame) + frame->payloadLength();
   }
-} // }}}
+}  // }}}
 
-TEST(Http2_SettingsFrame, encode)
-{
-  static const std::vector<std::pair<framing::SettingsFrame::Parameter::Type, uint32_t>> settings = {
-    {framing::SettingsFrame::Parameter::HeaderTableSize, 100},
-    {framing::SettingsFrame::Parameter::EnablePush, 0x123456},
-    {framing::SettingsFrame::Parameter::MaxConcurrentStreams, 100},
-    {framing::SettingsFrame::Parameter::InitialWindowSize, 65535},
-  };
+TEST(Http2_SettingsFrame, encode) {
+  static const std::vector<
+      std::pair<framing::SettingsFrame::Parameter::Type, uint32_t>> settings =
+      {{framing::SettingsFrame::Parameter::HeaderTableSize, 100},
+       {framing::SettingsFrame::Parameter::EnablePush, 0x123456},
+       {framing::SettingsFrame::Parameter::MaxConcurrentStreams, 100},
+       {framing::SettingsFrame::Parameter::InitialWindowSize, 65535}, };
 
   Buffer buf;
   framing::SettingsFrame::encode(&buf, settings);
-//  buf.dump("blob");
-//  dumpFrames(buf);
+  //  buf.dump("blob");
+  //  dumpFrames(buf);
 }
 
-TEST(Http2_SettingsFrame, encodeAck)
-{
+TEST(Http2_SettingsFrame, encodeAck) {
   Buffer buf;
   framing::SettingsFrame::encodeAck(&buf);
 }
 
-TEST(Http2_DataFrame, encode)
-{
+TEST(Http2_DataFrame, encode) {
   Buffer buf;
   framing::DataFrame::encode(&buf, true, true, 42, BufferRef("56789"));
 }
 
-TEST(Http2_DataFrame, encodePadded)
-{
+TEST(Http2_DataFrame, encodePadded) {
   Buffer buf;
-  framing::DataFrame::encode(&buf, true, true, 42, BufferRef("Hello"), BufferRef(" World!"));
+  framing::DataFrame::encode(&buf, true, true, 42, BufferRef("Hello"),
+                             BufferRef(" World!"));
 }
 
-TEST(Http2_PingFrame, encode)
-{
+TEST(Http2_PingFrame, encode) {
   Buffer buf;
   framing::PingFrame::encode(&buf, 0x0123456789abcdef);
 }
 
-TEST(Http2_PingFrame, encodeAck)
-{
+TEST(Http2_PingFrame, encodeAck) {
   Buffer buf;
   framing::PingFrame::encodeAck(&buf, 0x0123456789abcdef);
 }
 
-TEST(Http2_PriorityFrame, encode)
-{
+TEST(Http2_PriorityFrame, encode) {
   Buffer buf;
   framing::PriorityFrame::encode(&buf, false, 26, 4, 91);
 }
 
-TEST(Http2_ResetStreamFrame, encode)
-{
+TEST(Http2_ResetStreamFrame, encode) {
   Buffer buf;
   framing::ResetStreamFrame::encode(&buf, framing::ErrorCode::StreamClosed, 42);
 }
 
-TEST(Http2_GoAwayFrame, encode)
-{
+TEST(Http2_GoAwayFrame, encode) {
   Buffer buf;
   framing::GoAwayFrame::encode(&buf, 42, framing::ErrorCode::ProtocolError);
 }
 
-TEST(Http2_WindowUpdateFrame, encode)
-{
+TEST(Http2_WindowUpdateFrame, encode) {
   Buffer buf;
   framing::WindowUpdateFrame::encode(&buf, 0x7FFF);
-  //buf.dump("blob");
-  //dumpFrames(buf);
+  // buf.dump("blob");
+  // dumpFrames(buf);
 }

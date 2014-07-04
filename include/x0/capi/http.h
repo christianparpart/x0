@@ -5,7 +5,7 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-/* 
+/*
  * THIS C API IS EXPERIMENTAL AND SUBJECT TO CHANGE WHENEVER IT FEELS TO BE
  * AN IMPROVEMENT.
  */
@@ -30,10 +30,10 @@ extern "C" {
 #define X0_HTTP_VERSION_2_0 4
 
 #define X0_REQUEST_METHOD_UNKNOWN 0
-#define X0_REQUEST_METHOD_GET     1
-#define X0_REQUEST_METHOD_POST    2
-#define X0_REQUEST_METHOD_PUT     3
-#define X0_REQUEST_METHOD_DELETE  4
+#define X0_REQUEST_METHOD_GET 1
+#define X0_REQUEST_METHOD_POST 2
+#define X0_REQUEST_METHOD_PUT 3
+#define X0_REQUEST_METHOD_DELETE 4
 
 typedef struct x0_server_s x0_server_t;
 typedef struct x0_request_s x0_request_t;
@@ -55,14 +55,16 @@ X0_API x0_server_t* x0_server_create(struct ev_loop* loop);
  * Destroys an HTTP server object and all its dependant handles.
  *
  * @param server
- * @param kill 1 means it'll hard-kill all currently running connections; with 0 it'll wait until all requests have been fully served.
+ * @param kill 1 means it'll hard-kill all currently running connections; with 0
+ *it'll wait until all requests have been fully served.
  */
 X0_API void x0_server_destroy(x0_server_t* server, int kill);
 
 /**
  * Runs given server's main worker until stopped.
  *
- * @note It is highly recommended to us this call instead of libev's ev_run() as this call is doing a little more management stuff around that call.
+ * @note It is highly recommended to us this call instead of libev's ev_run() as
+ *this call is doing a little more management stuff around that call.
  */
 X0_API void x0_server_run(x0_server_t* server);
 
@@ -72,13 +74,15 @@ X0_API void x0_server_run(x0_server_t* server);
 X0_API void x0_server_stop(x0_server_t* server);
 
 /**
- * Creates a listener to accept incoming HTTP connections on this server instance.
+ * Creates a listener to accept incoming HTTP connections on this server
+ *instance.
  *
  * @param port TODO
  * @param bind TODO
  * @param backlog TODO
  */
-X0_API int x0_listener_add(x0_server_t* server, const char* bind, int port, int backlog);
+X0_API int x0_listener_add(x0_server_t* server, const char* bind, int port,
+                           int backlog);
 
 /**
  * Initializes that many workers to serve the requests on given server.
@@ -93,9 +97,11 @@ X0_API int x0_setup_worker_count(x0_server_t* server, int count);
 /**
  * @param server Server handle.
  * @param handler Callback handler to be invoked on every fully parsed request.
- * @param userdata Userdata to be passed to every callback in addition to the request.
+ * @param userdata Userdata to be passed to every callback in addition to the
+ * request.
  */
-X0_API void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler, void* userdata);
+X0_API void x0_setup_handler(x0_server_t* server, x0_request_handler_fn handler,
+                             void* userdata);
 
 /**
  * Configures maximum number of concurrent connections.
@@ -114,8 +120,10 @@ X0_API void x0_setup_timeouts(x0_server_t* server, int read, int write);
  * Configures HTTP keepalive.
  *
  * @param server Server handle.
- * @param count maximum number of requests that may be served via one connection.
- * @param timeout timeout in seconds to wait in maximum for the next request before terminating the connection.
+ * @param count maximum number of requests that may be served via one
+ *connection.
+ * @param timeout timeout in seconds to wait in maximum for the next request
+ *before terminating the connection.
  */
 X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
 
@@ -128,7 +136,8 @@ X0_API void x0_setup_keepalive(x0_server_t* server, int count, int timeout);
 X0_API void x0_setup_autoflush(x0_server_t* s, int value);
 
 /**
- * Sets whether or not to enable \c TCP_CORK on HTTP client connections when writing the response.
+ * Sets whether or not to enable \c TCP_CORK on HTTP client connections when
+ *writing the response.
  *
  * @param s HTTP server to set the flag for.
  * @param value boolean indicating whether or not to set this flag.
@@ -136,7 +145,8 @@ X0_API void x0_setup_autoflush(x0_server_t* s, int value);
 X0_API void x0_server_tcp_cork_set(x0_server_t* server, int flag);
 
 /**
- * Sets whether or not to enable \c TCP_NODELAY on HTTP client connections when writing the response.
+ * Sets whether or not to enable \c TCP_NODELAY on HTTP client connections when
+ *writing the response.
  *
  * @param s HTTP server to set the flag for.
  * @param value boolean indicating whether or not to set this flag.
@@ -152,18 +162,23 @@ X0_API void x0_server_tcp_nodelay_set(x0_server_t* server, int flag);
  * @param handler callback for handling the client aborts
  * @param userdata custom userdata pointer to be passed to the handler
  */
-X0_API void x0_request_abort_callback(x0_request_t* r, x0_request_abort_fn handler, void* userdata);
+X0_API void x0_request_abort_callback(x0_request_t* r,
+                                      x0_request_abort_fn handler,
+                                      void* userdata);
 
 /**
- * Pushes a callback into the request's corresponding worker thread for execution.
+ * Pushes a callback into the request's corresponding worker thread for
+ *execution.
  *
- * It is ensured that given callback is invoked from within the request's worker thread.
+ * It is ensured that given callback is invoked from within the request's worker
+ *thread.
  *
  * @param r Request to enqueue the post handler to.
  * @param fn Callback to be invoked from within the request's worker thread.
  * @param userdata Userdata to be passed additionally to the callback.
  */
-X0_API void x0_request_post(x0_request_t* r, x0_request_post_fn fn, void* userdata);
+X0_API void x0_request_post(x0_request_t* r, x0_request_post_fn fn,
+                            void* userdata);
 
 X0_API void x0_request_ref(x0_request_t* r);
 X0_API void x0_request_unref(x0_request_t* r);
@@ -183,7 +198,8 @@ X0_API int x0_request_method_id(x0_request_t* r);
 /**
  * Retrieves the request method.
  *
- * @param buf buffer to write the method string into (including trailing zero-byte)
+ * @param buf buffer to write the method string into (including trailing
+ *zero-byte)
  * @param size buffer capacity.
  *
  * @return number of bytes written to the output buffer.
@@ -196,7 +212,8 @@ X0_API size_t x0_request_method(x0_request_t* r, char* buf, size_t size);
  * @param buf Target buffer to store the request path in.
  * @param size Capacity of the given buffer.
  *
- * @return the number of bytes stored in the target buffer, excluding trailing zero-byte.
+ * @return the number of bytes stored in the target buffer, excluding trailing
+ *zero-byte.
  */
 X0_API size_t x0_request_path(x0_request_t* r, char* buf, size_t size);
 
@@ -206,7 +223,8 @@ X0_API size_t x0_request_path(x0_request_t* r, char* buf, size_t size);
  * @param buf Target buffer to store the request query in.
  * @param size Capacity of the given buffer.
  *
- * @return the number of bytes stored in the target buffer, excluding trailing zero-byte.
+ * @return the number of bytes stored in the target buffer, excluding trailing
+ *zero-byte.
  */
 X0_API size_t x0_request_query(x0_request_t* r, char* buf, size_t size);
 
@@ -231,9 +249,11 @@ X0_API int x0_request_header_exists(x0_request_t* r, const char* name);
 
 /**
  */
-X0_API int x0_request_header_get(x0_request_t* r, const char* header_name, char* buf, size_t size);
+X0_API int x0_request_header_get(x0_request_t* r, const char* header_name,
+                                 char* buf, size_t size);
 
-X0_API int x0_request_cookie(x0_request_t* r, const char* cookie, char* buf, size_t size);
+X0_API int x0_request_cookie(x0_request_t* r, const char* cookie, char* buf,
+                             size_t size);
 
 /**
  * Retrieves the total number request headers.
@@ -244,13 +264,17 @@ X0_API int x0_request_header_count(x0_request_t* r);
  * Retrieves a request header at given offset.
  *
  * @param index the offset the request header to query at.
- * @param buf result buffer to store the request header's value into, including trailing zero-byte.
- * @param size total size of the buffer in bytes that can be used to store the value, including trailing zero-byte.
+ * @param buf result buffer to store the request header's value into, including
+ *trailing zero-byte.
+ * @param size total size of the buffer in bytes that can be used to store the
+ *value, including trailing zero-byte.
  * @return actual size of the request header (excluding trailing zero-byte)
  */
-X0_API int x0_request_header_value_geti(x0_request_t* r, off_t index, char* buf, size_t size);
+X0_API int x0_request_header_value_geti(x0_request_t* r, off_t index, char* buf,
+                                        size_t size);
 
-X0_API int x0_request_header_name_geti(x0_request_t* r, off_t index, char* buf, size_t size);
+X0_API int x0_request_header_name_geti(x0_request_t* r, off_t index, char* buf,
+                                       size_t size);
 
 /**
  * Retrieves a chunk of the request body into the given buffer.
@@ -258,7 +282,8 @@ X0_API int x0_request_header_name_geti(x0_request_t* r, off_t index, char* buf, 
  * @param buf the output buffer to store the request body chunk to.
  * @param capacity the number of bytes that can be safely written to in \p buf.
  *
- * @return number of bytes written into \p buf or 0 if the request body has been fully consumed (or there was never one).
+ * @return number of bytes written into \p buf or 0 if the request body has been
+ *fully consumed (or there was never one).
  */
 X0_API size_t x0_request_body_get(x0_request_t* r, char* buf, size_t capacity);
 // }}}
@@ -275,14 +300,18 @@ X0_API void x0_response_flush(x0_request_t* r);
 X0_API void x0_response_status_set(x0_request_t* r, int code);
 
 /**
- * Sets a new response header, possibly overwriting an existing one, if the header name equals.
+ * Sets a new response header, possibly overwriting an existing one, if the
+ * header name equals.
  */
-X0_API void x0_response_header_set(x0_request_t* r, const char* header, const char* value);
+X0_API void x0_response_header_set(x0_request_t* r, const char* header,
+                                   const char* value);
 
 /**
- * Appends a value to an existing header or creates a new header if it doesn't exist yet.
+ * Appends a value to an existing header or creates a new header if it doesn't
+ * exist yet.
  */
-X0_API void x0_response_header_append(x0_request_t* r, const char* header, const char* value);
+X0_API void x0_response_header_append(x0_request_t* r, const char* header,
+                                      const char* value);
 
 /**
  * Writes one chunk of the response body.
@@ -291,8 +320,10 @@ X0_API void x0_response_header_append(x0_request_t* r, const char* header, const
  * @param buf Buffer chunk to append.
  * @param size Number of bytes in \p buf.
  *
- * When writing the body, the response headers <b>MUST</b> be fully set up already,
- * as the first write will automatically flush the response status line and response headers.
+ * When writing the body, the response headers <b>MUST</b> be fully set up
+ *already,
+ * as the first write will automatically flush the response status line and
+ *response headers.
  */
 X0_API void x0_response_write(x0_request_t* r, const char* buf, size_t size);
 
@@ -307,7 +338,8 @@ X0_API void x0_response_vprintf(x0_request_t* r, const char* fmt, va_list args);
  * the response in case it hasn't been sent out yet and allows possibly
  * pending (pipelined) requests to be processed, too.
  *
- * @note This implies, that the request handle becomes invalid right after this call.
+ * @note This implies, that the request handle becomes invalid right after this
+ *call.
  */
 X0_API void x0_response_finish(x0_request_t* r);
 

@@ -25,34 +25,32 @@ namespace x0 {
 /**
  * \brief represents an HTTP header (name/value pair).
  */
-template<typename T>
+template <typename T>
 struct X0_API HttpHeader {
-    T name;			//!< header name field
-    T value;		//!< header value field
+  T name;   //!< header name field
+  T value;  //!< header value field
 
-    HttpHeader() : name(), value() { }
-    HttpHeader(const HttpHeader& v) : name(v.name), value(v.value) { }
-    HttpHeader(const T& name, const T& value) : name(name), value(value) { }
+  HttpHeader() : name(), value() {}
+  HttpHeader(const HttpHeader& v) : name(v.name), value(v.value) {}
+  HttpHeader(const T& name, const T& value) : name(name), value(value) {}
 
-    HttpHeader(const std::initializer_list<T>& pair) :
-        name(), value()
-    {
-        assert(pair.size() == 2 && "Expects a pair of 2 elements.");
-        size_t i = 0;
-        for (const auto& item: pair) {
-            if (!i)
-                name = item;
-            else
-                value = item;
-            ++i;
-        }
+  HttpHeader(const std::initializer_list<T>& pair) : name(), value() {
+    assert(pair.size() == 2 && "Expects a pair of 2 elements.");
+    size_t i = 0;
+    for (const auto& item : pair) {
+      if (!i)
+        name = item;
+      else
+        value = item;
+      ++i;
     }
+  }
 };
 
 typedef HttpHeader<BufferRef> HttpRequestHeader;
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

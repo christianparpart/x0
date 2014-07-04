@@ -19,87 +19,85 @@
 
 using namespace x0;
 
-RequestNotes::RequestNotes(x0::HttpRequest* r) :
-    request(r),
-    ctime(r->connection.worker().now()),
-    manager(nullptr),
-    backend(nullptr),
-    tryCount(0),
-    onClientAbort(ClientAbortAction::Close),
-    bucket(nullptr),
-    tokens(0)
+RequestNotes::RequestNotes(x0::HttpRequest* r)
+    : request(r),
+      ctime(r->connection.worker().now()),
+      manager(nullptr),
+      backend(nullptr),
+      tryCount(0),
+      onClientAbort(ClientAbortAction::Close),
+      bucket(nullptr),
+      tokens(0)
 #if defined(ENABLE_DIRECTOR_CACHE)
-    ,
-    cacheKey(),
-    cacheTTL(x0::TimeSpan::Zero),
-    cacheHeaderIgnores(),
-    cacheIgnore(false)
+      ,
+      cacheKey(),
+      cacheTTL(x0::TimeSpan::Zero),
+      cacheHeaderIgnores(),
+      cacheIgnore(false)
 #endif
 {
-    r->registerInspectHandler<RequestNotes, &RequestNotes::inspect>(this);
+  r->registerInspectHandler<RequestNotes, &RequestNotes::inspect>(this);
 }
 
-RequestNotes::~RequestNotes()
-{
-    if (bucket && tokens) {
-        // XXX We should never reach here, because tokens must have been put back by Director::release() already.
-        bucket->put(tokens);
-        tokens = 0;
-    }
+RequestNotes::~RequestNotes() {
+  if (bucket && tokens) {
+    // XXX We should never reach here, because tokens must have been put back by
+    // Director::release() already.
+    bucket->put(tokens);
+    tokens = 0;
+  }
 }
 
-void RequestNotes::inspect(x0::Buffer& out)
-{
-    if (backend) {
-        out.printf("backend: %s\n", backend->name().c_str());
-    } else {
-        out.printf("backend: null\n");
-    }
+void RequestNotes::inspect(x0::Buffer& out) {
+  if (backend) {
+    out.printf("backend: %s\n", backend->name().c_str());
+  } else {
+    out.printf("backend: null\n");
+  }
 }
 
-#if defined(ENABLE_DIRECTOR_CACHE) // {{{
-void RequestNotes::setCacheKey(const char* i, const char* e)
-{
-    Buffer result;
+#if defined(ENABLE_DIRECTOR_CACHE)  // {{{
+void RequestNotes::setCacheKey(const char* i, const char* e) {
+  Buffer result;
 
-    while (i != e) {
-        if (*i == '%') {
-            ++i;
-            if (i != e) {
-                switch (*i) {
-                    case 's': // scheme
-                        if (!request->connection.isSecure())
-                            result.push_back("http");
-                        else
-                            result.push_back("https");
-                        break;
-                    case 'h': // host header
-                        result.push_back(request->requestHeader("Host"));
-                        break;
-                    case 'r': // request path
-                        result.push_back(request->path);
-                        break;
-                    case 'q': // query args
-                        result.push_back(request->query);
-                        break;
-                    case '%':
-                        result.push_back(*i);
-                        break;
-                    default:
-                        result.push_back('%');
-                        result.push_back(*i);
-                }
-                ++i;
-            } else {
-                result.push_back('%');
-                break;
-            }
-        } else {
+  while (i != e) {
+    if (*i == '%') {
+      ++i;
+      if (i != e) {
+        switch (*i) {
+          case 's':  // scheme
+            if (!request->connection.isSecure())
+              result.push_back("http");
+            else
+              result.push_back("https");
+            break;
+          case 'h':  // host header
+            result.push_back(request->requestHeader("Host"));
+            break;
+          case 'r':  // request path
+            result.push_back(request->path);
+            break;
+          case 'q':  // query args
+            result.push_back(request->query);
+            break;
+          case '%':
             result.push_back(*i);
-            ++i;
+            break;
+          default:
+            result.push_back('%');
+            result.push_back(*i);
         }
+        ++i;
+      } else {
+        result.push_back('%');
+        break;
+      }
+    } else {
+      result.push_back(*i);
+      ++i;
     }
+  }
 
-    cacheKey = result.str();
+  cacheKey = result.str();
 }
-#endif // }}}
+#endif  // }}}

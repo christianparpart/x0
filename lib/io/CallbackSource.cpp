@@ -9,26 +9,16 @@
 
 namespace x0 {
 
-CallbackSource::~CallbackSource()
-{
-    if (callback_) {
-        callback_();
-    }
+CallbackSource::~CallbackSource() {
+  if (callback_) {
+    callback_();
+  }
 }
 
-ssize_t CallbackSource::size() const
-{
-    return 0;
-}
+ssize_t CallbackSource::size() const { return 0; }
 
-ssize_t CallbackSource::sendto(Sink& sink)
-{
-    return 0;
-}
+ssize_t CallbackSource::sendto(Sink& sink) { return 0; }
 
-const char* CallbackSource::className() const
-{
-    return "CallbackSource";
-}
+const char* CallbackSource::className() const { return "CallbackSource"; }
 
-} // namespace x0
+}  // namespace x0

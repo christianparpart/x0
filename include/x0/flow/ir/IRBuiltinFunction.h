@@ -14,17 +14,15 @@
 namespace x0 {
 
 class X0_API IRBuiltinFunction : public Constant {
-public:
-    IRBuiltinFunction(const FlowVM::Signature& sig) :
-        Constant(sig.returnType(), sig.name()),
-        signature_(sig)
-    {}
+ public:
+  IRBuiltinFunction(const FlowVM::Signature& sig)
+      : Constant(sig.returnType(), sig.name()), signature_(sig) {}
 
-    const FlowVM::Signature& signature() const { return signature_; }
-    const FlowVM::Signature& get() const { return signature_; }
+  const FlowVM::Signature& signature() const { return signature_; }
+  const FlowVM::Signature& get() const { return signature_; }
 
-private:
-    FlowVM::Signature signature_;
+ private:
+  FlowVM::Signature signature_;
 };
 
-} // namespace x0
+}  // namespace x0

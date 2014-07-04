@@ -14,45 +14,39 @@
 
 namespace x0 {
 
-std::string FlowLocation::str() const
-{
-    char buf[256];
-    std::size_t n = snprintf(buf, sizeof(buf), "{ %zu:%zu.%zu - %zu:%zu.%zu }",
-        begin.line, begin.column, begin.offset,
-        end.line, end.column, end.offset);
-    return std::string(buf, n);
+std::string FlowLocation::str() const {
+  char buf[256];
+  std::size_t n =
+      snprintf(buf, sizeof(buf), "{ %zu:%zu.%zu - %zu:%zu.%zu }", begin.line,
+               begin.column, begin.offset, end.line, end.column, end.offset);
+  return std::string(buf, n);
 }
 
-std::string FlowLocation::text() const
-{
-    std::string result;
-    char* buf = nullptr;
-    ssize_t size;
-    ssize_t n;
-    int fd;
+std::string FlowLocation::text() const {
+  std::string result;
+  char* buf = nullptr;
+  ssize_t size;
+  ssize_t n;
+  int fd;
 
-    fd = open(filename.c_str(), O_RDONLY);
-    if (fd < 0)
-        return std::string();
+  fd = open(filename.c_str(), O_RDONLY);
+  if (fd < 0) return std::string();
 
-    size = 1 + end.offset - begin.offset;
-    if (size <= 0)
-        goto out;
+  size = 1 + end.offset - begin.offset;
+  if (size <= 0) goto out;
 
-    if (lseek(fd, begin.offset, SEEK_SET) < 0)
-        goto out;
+  if (lseek(fd, begin.offset, SEEK_SET) < 0) goto out;
 
-    buf = new char[size + 1];
-    n = read(fd, buf, size); 
-    if (n < 0)
-        goto out;
+  buf = new char[size + 1];
+  n = read(fd, buf, size);
+  if (n < 0) goto out;
 
-    result = std::string(buf, n);
+  result = std::string(buf, n);
 
 out:
-    delete[] buf;
-    close(fd);
-    return result;
+  delete[] buf;
+  close(fd);
+  return result;
 }
 
-} // namespace
+}  // namespace

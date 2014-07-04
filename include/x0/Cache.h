@@ -9,7 +9,7 @@
  * http://en.wikipedia.org/wiki/Cache_algorithms#Most_Recently_Used
  * http://en.wikipedia.org/wiki/Cache_algorithms
  *
- * TODO Implement something more effective than the current one, 
+ * TODO Implement something more effective than the current one,
  *      or even provide different implementations for different goals.
  */
 
@@ -26,77 +26,76 @@ namespace x0 {
 //! \addtogroup base
 //@{
 
-template<class Key, class Value>
-class Cache
-{
-private:
-    Cache(const Cache&) = delete;
-    Cache& operator=(const Cache&) = delete;
+template <class Key, class Value>
+class Cache {
+ private:
+  Cache(const Cache &) = delete;
+  Cache &operator=(const Cache &) = delete;
 
-    struct Node
-    {
-        const Key *key_ptr;
-        Value *value_ptr;
-        std::size_t cost;
-        Node *previous;
-        Node *next;
+  struct Node {
+    const Key *key_ptr;
+    Value *value_ptr;
+    std::size_t cost;
+    Node *previous;
+    Node *next;
 
-        Node() : key_ptr(0), value_ptr(0), cost(), previous(), next() {}
-        Node(Value *value, std::size_t _cost) : key_ptr(0), value_ptr(value), cost(_cost), previous(), next() {}
-    };
+    Node() : key_ptr(0), value_ptr(0), cost(), previous(), next() {}
+    Node(Value *value, std::size_t _cost)
+        : key_ptr(0), value_ptr(value), cost(_cost), previous(), next() {}
+  };
 
-    typedef typename std::map<Key, Node> hash;
+  typedef typename std::map<Key, Node> hash;
 
-public:
-    typedef typename hash::iterator iterator;
-    typedef typename hash::const_iterator const_iterator;
+ public:
+  typedef typename hash::iterator iterator;
+  typedef typename hash::const_iterator const_iterator;
 
-public:
-    explicit Cache(std::size_t maxcost);
-    ~Cache();
+ public:
+  explicit Cache(std::size_t maxcost);
+  ~Cache();
 
-    // method based access
-    bool insert(const Key&& key, Value *value, std::size_t cost = 1);
-    bool contains(const Key&& key) const;
-    iterator find(const Key&& key);
-    Value *get(const Key&& key) const;
-    void remove(const Key&& key);
-    void erase(const iterator&& i);
-    void clear();
+  // method based access
+  bool insert(const Key &&key, Value *value, std::size_t cost = 1);
+  bool contains(const Key &&key) const;
+  iterator find(const Key &&key);
+  Value *get(const Key &&key) const;
+  void remove(const Key &&key);
+  void erase(const iterator &&i);
+  void clear();
 
-    // index based access
-    Value *operator[](const Key&& key) const;
+  // index based access
+  Value *operator[](const Key &&key) const;
 
-    // function object based acces
-    Value *operator()(const Key&& key) const;
-    bool operator()(const Key&& key, Value *value, std::size_t cost = 1);
+  // function object based acces
+  Value *operator()(const Key &&key) const;
+  bool operator()(const Key &&key, Value *value, std::size_t cost = 1);
 
-    // properties
-    std::size_t max_cost() const;
-    void max_cost(std::size_t value);
+  // properties
+  std::size_t max_cost() const;
+  void max_cost(std::size_t value);
 
-    std::size_t cost() const;
+  std::size_t cost() const;
 
-    std::size_t size() const;
-    bool empty() const;
-    std::vector<Key> keys() const;
+  std::size_t size() const;
+  bool empty() const;
+  std::vector<Key> keys() const;
 
-private:
-    void trim(std::size_t limit);
-    void unlink(Node& n);
-    Value *relink(const Key&& n);
+ private:
+  void trim(std::size_t limit);
+  void unlink(Node &n);
+  Value *relink(const Key &&n);
 
-private:
-    hash hash_;
-    Node *first_;
-    Node *last_;
-    std::size_t max_cost_;
-    std::size_t cur_cost_;
+ private:
+  hash hash_;
+  Node *first_;
+  Node *last_;
+  std::size_t max_cost_;
+  std::size_t cur_cost_;
 };
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #include <x0/Cache.cc>
 

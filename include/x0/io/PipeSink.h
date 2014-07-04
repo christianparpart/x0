@@ -19,31 +19,26 @@ namespace x0 {
 
 /** pipe sink.
  */
-class X0_API PipeSink :
-    public Sink
-{
-private:
-    Pipe* pipe_;
+class X0_API PipeSink : public Sink {
+ private:
+  Pipe* pipe_;
 
-public:
-    explicit PipeSink(Pipe* pipe);
-    ~PipeSink();
+ public:
+  explicit PipeSink(Pipe* pipe);
+  ~PipeSink();
 
-    Pipe* pipe() const;
+  Pipe* pipe() const;
 
-    virtual void accept(SinkVisitor& v);
-    virtual ssize_t write(const void *buffer, size_t size);
+  virtual void accept(SinkVisitor& v);
+  virtual ssize_t write(const void* buffer, size_t size);
 };
 
 //@}
 
 // {{{ inlines
-inline Pipe* PipeSink::pipe() const
-{
-    return pipe_;
-}
+inline Pipe* PipeSink::pipe() const { return pipe_; }
 // }}}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

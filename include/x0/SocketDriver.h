@@ -18,18 +18,17 @@ namespace x0 {
 class Socket;
 class IPAddress;
 
-class X0_API SocketDriver
-{
-public:
-    SocketDriver();
-    virtual ~SocketDriver();
+class X0_API SocketDriver {
+ public:
+  SocketDriver();
+  virtual ~SocketDriver();
 
-    virtual bool isSecure() const;
-    virtual Socket *create(struct ev_loop *loop, int handle, int af);
-    virtual Socket *create(struct ev_loop *loop, IPAddress* ipaddr, int port);
-    virtual void destroy(Socket *);
+  virtual bool isSecure() const;
+  virtual Socket *create(struct ev_loop *loop, int handle, int af);
+  virtual Socket *create(struct ev_loop *loop, IPAddress *ipaddr, int port);
+  virtual void destroy(Socket *);
 };
 
-} // namespace x0
+}  // namespace x0
 
 #endif

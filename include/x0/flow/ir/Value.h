@@ -21,37 +21,39 @@ class Instr;
  * Defines an immutable IR value.
  */
 class X0_API Value {
-protected:
-    Value(const Value& v);
+ protected:
+  Value(const Value& v);
 
-public:
-    Value(FlowType ty, const std::string& name);
-    virtual ~Value();
+ public:
+  Value(FlowType ty, const std::string& name);
+  virtual ~Value();
 
-    FlowType type() const { return type_; }
-    void setType(FlowType ty) { type_ = ty; }
+  FlowType type() const { return type_; }
+  void setType(FlowType ty) { type_ = ty; }
 
-    const std::string& name() const { return name_; }
-    void setName(const std::string& n) { name_ = n; }
+  const std::string& name() const { return name_; }
+  void setName(const std::string& n) { name_ = n; }
 
-    void addUse(Instr* user);
-    void removeUse(Instr* user);
-    bool isUsed() const { return !uses_.empty(); }
-    const std::vector<Instr*>& uses() const { return uses_; }
+  void addUse(Instr* user);
+  void removeUse(Instr* user);
+  bool isUsed() const { return !uses_.empty(); }
+  const std::vector<Instr*>& uses() const { return uses_; }
 
-    /**
-     * @brief Replaces all uses of \c this value as operand with value \p newUse instead.
-     * @param newUse the new value to be used.
-     */
-    void replaceAllUsesWith(Value* newUse);
+  /**
+   * @brief Replaces all uses of \c this value as operand with value \p newUse
+   * instead.
+   * @param newUse the new value to be used.
+   */
+  void replaceAllUsesWith(Value* newUse);
 
-    virtual void dump() = 0;
+  virtual void dump() = 0;
 
-private:
-    FlowType type_;
-    std::string name_;
+ private:
+  FlowType type_;
+  std::string name_;
 
-    std::vector<Instr*> uses_; //! list of instructions that <b>use</b> this value.
+  std::vector<Instr*> uses_;  //! list of instructions that <b>use</b> this
+                              //value.
 };
 
-} // namespace x0
+}  // namespace x0

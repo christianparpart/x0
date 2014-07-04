@@ -8,26 +8,23 @@
 #include "BackendManager.h"
 #include <x0/JsonWriter.h>
 
-BackendManager::BackendManager(x0::HttpWorker* worker, const std::string& name) :
+BackendManager::BackendManager(x0::HttpWorker* worker, const std::string& name)
+    :
 #ifndef XZERO_NDEBUG
-    x0::Logging("BackendManager/%s", name.c_str()),
+      x0::Logging("BackendManager/%s", name.c_str()),
 #endif
-    worker_(worker),
-    name_(name),
-    connectTimeout_(x0::TimeSpan::fromSeconds(10)),
-    readTimeout_(x0::TimeSpan::fromSeconds(120)),
-    writeTimeout_(x0::TimeSpan::fromSeconds(10)),
-    clientAbortAction_(ClientAbortAction::Close),
-    load_()
-{
+      worker_(worker),
+      name_(name),
+      connectTimeout_(x0::TimeSpan::fromSeconds(10)),
+      readTimeout_(x0::TimeSpan::fromSeconds(120)),
+      writeTimeout_(x0::TimeSpan::fromSeconds(10)),
+      clientAbortAction_(ClientAbortAction::Close),
+      load_() {
 }
 
-BackendManager::~BackendManager()
-{
-}
+BackendManager::~BackendManager() {}
 
-void BackendManager::log(x0::LogMessage&& msg)
-{
-    msg.addTag(name_);
-    worker_->log(std::move(msg));
+void BackendManager::log(x0::LogMessage&& msg) {
+  msg.addTag(name_);
+  worker_->log(std::move(msg));
 }

@@ -15,11 +15,11 @@
 namespace x0d {
 
 enum class XzeroState {
-    Inactive,
-    Initializing,
-    Running,
-    Upgrading,
-    GracefullyShuttingdown
+  Inactive,
+  Initializing,
+  Running,
+  Upgrading,
+  GracefullyShuttingdown
 };
 
-} // namespace x0
+}  // namespace x0

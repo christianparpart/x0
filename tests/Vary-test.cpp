@@ -13,94 +13,84 @@ using namespace x0;
 
 typedef HttpHeader<BufferRef> Header;
 
-void dump(const HttpVary& vary)
-{
-    printf("HttpVary fields (%zu):\n", vary.size());
-    for (size_t i = 0, e = vary.size(); i != e; ++i) {
-        printf("%20s: %s\n", vary.names()[i].str().c_str(),
-                vary.values()[i].str().c_str());
-    }
+void dump(const HttpVary& vary) {
+  printf("HttpVary fields (%zu):\n", vary.size());
+  for (size_t i = 0, e = vary.size(); i != e; ++i) {
+    printf("%20s: %s\n", vary.names()[i].str().c_str(),
+           vary.values()[i].str().c_str());
+  }
 }
 
 auto requestHeaders() -> const std::vector<Header>& {
-    static const std::vector<Header> headers = {
-        { "Accept-Encoding", "gzip" },
-        { "X-Test", "42" },
-        { "User-Agent", "gtest" },
-    };
-    return headers;
+  static const std::vector<Header> headers = {
+      {"Accept-Encoding", "gzip"}, {"X-Test", "42"}, {"User-Agent", "gtest"}, };
+  return headers;
 }
 
-TEST(HttpVary, Create0)
-{
-    auto vary = HttpVary::create("", requestHeaders());
-    ASSERT_TRUE(vary.get() != nullptr);
-    ASSERT_EQ(0, vary->size());
+TEST(HttpVary, Create0) {
+  auto vary = HttpVary::create("", requestHeaders());
+  ASSERT_TRUE(vary.get() != nullptr);
+  ASSERT_EQ(0, vary->size());
 
-    auto i = vary->begin();
-    auto e = vary->end();
-    ASSERT_EQ(true, i == e);
+  auto i = vary->begin();
+  auto e = vary->end();
+  ASSERT_EQ(true, i == e);
 }
 
-TEST(HttpVary, Create1)
-{
-    auto vary = HttpVary::create("Accept-Encoding", requestHeaders());
+TEST(HttpVary, Create1) {
+  auto vary = HttpVary::create("Accept-Encoding", requestHeaders());
 
-    ASSERT_EQ(1, vary->size());
-    ASSERT_EQ("Accept-Encoding", vary->names()[0]);
-    ASSERT_EQ("gzip", vary->values()[0]);
+  ASSERT_EQ(1, vary->size());
+  ASSERT_EQ("Accept-Encoding", vary->names()[0]);
+  ASSERT_EQ("gzip", vary->values()[0]);
 }
 
-TEST(HttpVary, Create2)
-{
-    auto vary = HttpVary::create("Accept-Encoding,User-Agent", requestHeaders());
+TEST(HttpVary, Create2) {
+  auto vary = HttpVary::create("Accept-Encoding,User-Agent", requestHeaders());
 
-    ASSERT_EQ(2, vary->size());
+  ASSERT_EQ(2, vary->size());
 
-    ASSERT_EQ("Accept-Encoding", vary->names()[0]);
-    ASSERT_EQ("gzip", vary->values()[0]);
+  ASSERT_EQ("Accept-Encoding", vary->names()[0]);
+  ASSERT_EQ("gzip", vary->values()[0]);
 
-    ASSERT_EQ("User-Agent", vary->names()[1]);
-    ASSERT_EQ("gtest", vary->values()[1]);
+  ASSERT_EQ("User-Agent", vary->names()[1]);
+  ASSERT_EQ("gtest", vary->values()[1]);
 }
 
-TEST(HttpVary, Foreach0)
-{
-    auto vary = HttpVary::create("", requestHeaders());
-    ASSERT_TRUE(vary.get() != nullptr);
-    auto i = vary->begin();
-    auto e = vary->end();
-    ASSERT_EQ(true, i == e);
+TEST(HttpVary, Foreach0) {
+  auto vary = HttpVary::create("", requestHeaders());
+  ASSERT_TRUE(vary.get() != nullptr);
+  auto i = vary->begin();
+  auto e = vary->end();
+  ASSERT_EQ(true, i == e);
 }
 
-TEST(HttpVary, Foreach1)
-{
-    auto vary = HttpVary::create("Accept-Encoding", requestHeaders());
+TEST(HttpVary, Foreach1) {
+  auto vary = HttpVary::create("Accept-Encoding", requestHeaders());
 
-    auto i = vary->begin();
-    auto e = vary->end();
+  auto i = vary->begin();
+  auto e = vary->end();
 
-    ASSERT_TRUE(i != e);
-    ASSERT_EQ("Accept-Encoding", i.name());
-    ASSERT_EQ("gzip", i.value());
+  ASSERT_TRUE(i != e);
+  ASSERT_EQ("Accept-Encoding", i.name());
+  ASSERT_EQ("gzip", i.value());
 
-    ++i;
-    ASSERT_TRUE(i == e);
+  ++i;
+  ASSERT_TRUE(i == e);
 }
 
-TEST(HttpVary, Foreach2)
-{
-    auto vary = HttpVary::create("Accept-Encoding,User-Agent", requestHeaders());
+TEST(HttpVary, Foreach2) {
+  auto vary = HttpVary::create("Accept-Encoding,User-Agent", requestHeaders());
 
-    auto i = vary->begin();
-    auto e = vary->end();
-    ASSERT_EQ("Accept-Encoding", i.name());
-    ASSERT_EQ("gzip", i.value());
+  auto i = vary->begin();
+  auto e = vary->end();
+  ASSERT_EQ("Accept-Encoding", i.name());
+  ASSERT_EQ("gzip", i.value());
 
-    ++i;
-    ASSERT_EQ("User-Agent", i.name());
-    ASSERT_EQ("gtest", i.value());
+  ++i;
+  ASSERT_EQ("User-Agent", i.name());
+  ASSERT_EQ("gtest", i.value());
 
-    ++i;
-    ASSERT_EQ(true, i == e);
+  ++i;
+  ASSERT_EQ(true, i == e);
 }

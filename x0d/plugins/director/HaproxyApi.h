@@ -16,24 +16,21 @@
 #include <x0/CustomDataMgr.h>
 #include <x0/http/HttpRequest.h>
 
+class HaproxyApi : public x0::CustomData {
+ private:
+  typedef std::unordered_map<std::string, std::unique_ptr<Director>>
+  DirectorMap;
 
-class HaproxyApi :
-    public x0::CustomData
-{
-private:
-    typedef std::unordered_map<std::string, std::unique_ptr<Director>> DirectorMap;
+  DirectorMap* directors_;
 
-    DirectorMap* directors_;
+ public:
+  explicit HaproxyApi(DirectorMap* directors);
+  ~HaproxyApi();
 
-public:
-    explicit HaproxyApi(DirectorMap* directors);
-    ~HaproxyApi();
+  void monitor(x0::HttpRequest* r);
+  void stats(x0::HttpRequest* r, const std::string& prefix);
 
-    void monitor(x0::HttpRequest* r);
-    void stats(x0::HttpRequest* r, const std::string& prefix);
-
-private:
-    void csv(x0::HttpRequest* r);
-    void buildFrontendCSV(Buffer& buf, Director* director);
+ private:
+  void csv(x0::HttpRequest* r);
+  void buildFrontendCSV(Buffer& buf, Director* director);
 };
-

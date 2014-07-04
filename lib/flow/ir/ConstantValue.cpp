@@ -16,4 +16,4 @@ template class X0_EXPORT ConstantValue<IPAddress, FlowType::IPAddress>;
 template class X0_EXPORT ConstantValue<Cidr, FlowType::Cidr>;
 template class X0_EXPORT ConstantValue<RegExp, FlowType::RegExp>;
 
-} // namespace x0
+}  // namespace x0

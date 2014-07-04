@@ -17,7 +17,8 @@ namespace x0 {
 
 /**
  * @defgroup base
- * @brief common base APIs that are x0 neutral but developed within and for the x0 web server and framework.
+ * @brief common base APIs that are x0 neutral but developed within and for the
+ * x0 web server and framework.
  */
 
 /**
@@ -27,12 +28,14 @@ namespace x0 {
 
 /**
  * @defgroup http
- * @brief HTTP web server APIs (like HttpRequest, HttpConnection, HttpServer, ...)
+ * @brief HTTP web server APIs (like HttpRequest, HttpConnection, HttpServer,
+ * ...)
  */
 
 /**
  * @defgroup sql
- * @brief module for managing SQL connections, results and prepared statements to mySQL.
+ * @brief module for managing SQL connections, results and prepared statements
+ *to mySQL.
  *
  * This is an abstract high-level interface to mySQL.
  */
@@ -42,6 +45,6 @@ namespace x0 {
  * @brief x0 web server plugins.
  */
 
-} // namespace x0
+}  // namespace x0
 
 #endif

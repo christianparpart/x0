@@ -15,10 +15,10 @@
 #include <x0/SocketSpec.h>
 
 namespace x0 {
-    class HttpServer;
-    class HttpRequest;
-    class Buffer;
-    class Socket;
+class HttpServer;
+class HttpRequest;
+class Buffer;
+class Socket;
 }
 
 /**
@@ -28,16 +28,16 @@ namespace x0 {
  * each either idle, or serving one or more currently active
  * HTTP client requests.
  */
-class FastCgiBackend :
-    public Backend
-{
-private:
-    class Connection;
+class FastCgiBackend : public Backend {
+ private:
+  class Connection;
 
-public:
-    FastCgiBackend(BackendManager* manager, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
-    ~FastCgiBackend();
+ public:
+  FastCgiBackend(BackendManager* manager, const std::string& name,
+                 const x0::SocketSpec& socketSpec, size_t capacity,
+                 bool healthChecks);
+  ~FastCgiBackend();
 
-    const std::string& protocol() const override;
-    bool process(RequestNotes* rn) override;
+  const std::string& protocol() const override;
+  bool process(RequestNotes* rn) override;
 };

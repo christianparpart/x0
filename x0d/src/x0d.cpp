@@ -8,9 +8,8 @@
 #include <x0d/XzeroDaemon.h>
 #include <x0/DebugLogger.h>
 
-int main(int argc, char *argv[])
-{
-    x0::DebugLogger::get().configure("XZERO_DEBUG");
-    x0d::XzeroDaemon daemon(argc, argv);
-    return daemon.run();
+int main(int argc, char *argv[]) {
+  x0::DebugLogger::get().configure("XZERO_DEBUG");
+  x0d::XzeroDaemon daemon(argc, argv);
+  return daemon.run();
 }

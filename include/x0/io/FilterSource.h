@@ -20,37 +20,40 @@ namespace x0 {
 
 /** puts a filter layer infront of the actual source.
  *
- * A filter might e.g. compress the source, embedd each chunk into chunked-encoding
+ * A filter might e.g. compress the source, embedd each chunk into
+ *chunked-encoding
  * or replace all FOOs with BARs.
  *
  * \see Source, Filter
  */
-class X0_API FilterSource :
-    public Source
-{
-public:
-    explicit FilterSource(Filter* filter, bool force = false) :
-        buffer_(), source_(new NullSource()), filter_(filter), force_(force), pos_(0) {}
+class X0_API FilterSource : public Source {
+ public:
+  explicit FilterSource(Filter* filter, bool force = false)
+      : buffer_(),
+        source_(new NullSource()),
+        filter_(filter),
+        force_(force),
+        pos_(0) {}
 
-    FilterSource(Source* source, Filter* filter, bool force) :
-        buffer_(), source_(source), filter_(filter), force_(force), pos_(0) {}
+  FilterSource(Source* source, Filter* filter, bool force)
+      : buffer_(), source_(source), filter_(filter), force_(force), pos_(0) {}
 
-    ~FilterSource();
+  ~FilterSource();
 
-    ssize_t sendto(Sink& sink) override;
-    ssize_t size() const override;
-    const char* className() const override;
+  ssize_t sendto(Sink& sink) override;
+  ssize_t size() const override;
+  const char* className() const override;
 
-protected:
-    Buffer buffer_;
-    Source* source_;
-    Filter* filter_;
-    bool force_;
-    size_t pos_;
+ protected:
+  Buffer buffer_;
+  Source* source_;
+  Filter* filter_;
+  bool force_;
+  size_t pos_;
 };
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

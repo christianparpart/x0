@@ -5,7 +5,6 @@
 // file except in compliance with the License. You may obtain a copy of
 // the License at: http://opensource.org/licenses/MIT
 
-
 #include <gtest/gtest.h>
 #include <x0/http/hpack.h>
 
@@ -112,8 +111,6 @@ TEST(hpack_Encoder, encodeInt_1337_5bit) {
   ASSERT_EQ(3, nb);
 }
 
-TEST(hpack_Decoder, example_2)
-{
-}
+TEST(hpack_Decoder, example_2) {}
 
 // vim:ts=2:sw=2

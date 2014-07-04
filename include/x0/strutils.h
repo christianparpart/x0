@@ -17,7 +17,7 @@
 #include <vector>
 
 #if !defined(BOOST_HAS_VARIADIC_TMPL)
-# include <cstdarg>
+#include <cstdarg>
 #endif
 
 namespace x0 {
@@ -30,61 +30,54 @@ namespace x0 {
 /**
  * a safe printf string builder.
  */
-class fstringbuilder
-{
-public:
-    /**
-     * formats given string.
-     */
+class fstringbuilder {
+ public:
+/**
+ * formats given string.
+ */
 #ifdef BOOST_HAS_VARIADIC_TMPL
-    template<typename... Args>
-    static std::string format(const char *s, Args&&... args)
-    {
-        fstringbuilder fsb;
-        fsb.build(s, args...);
-        return fsb.sstr_.str();
-    }
+  template <typename... Args>
+  static std::string format(const char* s, Args&&... args) {
+    fstringbuilder fsb;
+    fsb.build(s, args...);
+    return fsb.sstr_.str();
+  }
 #else
-    static std::string format(const char *s, ...)
-    {
-        va_list va;
-        char buf[1024];
+  static std::string format(const char* s, ...) {
+    va_list va;
+    char buf[1024];
 
-        va_start(va, s);
-        vsnprintf(buf, sizeof(buf), s, va);
-        va_end(va);
+    va_start(va, s);
+    vsnprintf(buf, sizeof(buf), s, va);
+    va_end(va);
 
-        return buf;
-    }
+    return buf;
+  }
 #endif
 
 #ifdef BOOST_HAS_VARIADIC_TMPL
-private:
-    void build(const char *s)
-    {
-        if (*s == '%' && *++s != '%')
-            throw std::runtime_error("invalid format string: missing arguments");
+ private:
+  void build(const char* s) {
+    if (*s == '%' && *++s != '%')
+      throw std::runtime_error("invalid format string: missing arguments");
 
-        sstr_ << *s;
+    sstr_ << *s;
+  }
+
+  template <typename T, typename... Args>
+  void build(const char* s, T&& value, Args&&... args) {
+    while (*s) {
+      if (*s == '%' && *++s != '%') {
+        sstr_ << value;
+        return build(++s, args...);
+      }
+      sstr_ << *s++;
     }
+    throw std::runtime_error("extra arguments provided to printf");
+  }
 
-    template<typename T, typename... Args>
-    void build(const char *s, T&& value, Args&&... args)
-    {
-        while (*s)
-        {
-            if (*s == '%' && *++s != '%')
-            {
-                sstr_ << value;
-                return build(++s, args...);
-            }
-            sstr_ << *s++;
-        }
-        throw std::runtime_error("extra arguments provided to printf");
-    }
-
-private:
-    std::stringstream sstr_;
+ private:
+  std::stringstream sstr_;
 #endif
 };
 // }}}
@@ -94,7 +87,6 @@ private:
  */
 X0_API Buffer readFile(const std::string& filename);
 
-
 /**
  * trims leading and trailing spaces off the value.
  */
@@ -103,23 +95,24 @@ X0_API std::string trim(const std::string& value);
 /**
  * splits a string into pieces
  */
-template<typename T, typename U>
-X0_API std::vector<T> split(const std::basic_string<U>& list, const std::basic_string<U>& sep);
+template <typename T, typename U>
+X0_API std::vector<T> split(const std::basic_string<U>& list,
+                            const std::basic_string<U>& sep);
 
 /**
  * splits a string into pieces
  */
-template<typename T, typename U>
-X0_API std::vector<T> split(const std::basic_string<U>& list, const U *sep);
+template <typename T, typename U>
+X0_API std::vector<T> split(const std::basic_string<U>& list, const U* sep);
 
-template<typename T, typename U>
-X0_API inline bool hex2int(const T *begin, const T *end, U& result);
+template <typename T, typename U>
+X0_API inline bool hex2int(const T* begin, const T* end, U& result);
 
 /*! compares two strings for case insensitive equality. */
-X0_API bool iequals(const char *a, const char *b);
+X0_API bool iequals(const char* a, const char* b);
 
 /*! compares the first n bytes of two strings for case insensitive equality. */
-X0_API bool iequals(const char *a, const char *b, std::size_t n);
+X0_API bool iequals(const char* a, const char* b, std::size_t n);
 
 //@}
 
@@ -127,13 +120,16 @@ X0_API bool iequals(const char *a, const char *b, std::size_t n);
 //@{
 
 X0_API std::string make_hostid(const std::string& hostname);
-template<typename String> X0_API std::string make_hostid(const String& hostname, int port);
+
+template <typename String>
+X0_API std::string make_hostid(const String& hostname, int port);
+
 X0_API int extract_port_from_hostid(const std::string& hostid);
 X0_API std::string extract_host_from_hostid(const std::string& hostid);
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #include <x0/strutils.cc>
 

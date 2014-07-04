@@ -14,25 +14,22 @@
 
 namespace x0 {
 
-bool UnusedBlockPass::run(IRHandler* handler)
-{
-    std::list<BasicBlock*> unused;
+bool UnusedBlockPass::run(IRHandler* handler) {
+  std::list<BasicBlock*> unused;
 
-    for (BasicBlock* bb: handler->basicBlocks()) {
-        if (bb == handler->getEntryBlock())
-            continue;
+  for (BasicBlock* bb : handler->basicBlocks()) {
+    if (bb == handler->getEntryBlock()) continue;
 
-        if (!bb->predecessors().empty())
-            continue;
+    if (!bb->predecessors().empty()) continue;
 
-        unused.push_back(bb);
-    }
+    unused.push_back(bb);
+  }
 
-    for (BasicBlock* bb: unused) {
-        handler->erase(bb);
-    }
+  for (BasicBlock* bb : unused) {
+    handler->erase(bb);
+  }
 
-    return !unused.empty();
+  return !unused.empty();
 }
 
-} // namespace x0
+}  // namespace x0

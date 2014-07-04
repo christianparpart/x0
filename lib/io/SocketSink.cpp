@@ -11,19 +11,12 @@
 
 namespace x0 {
 
-SocketSink::SocketSink(Socket *s) :
-    socket_(s)
-{
+SocketSink::SocketSink(Socket *s) : socket_(s) {}
+
+void SocketSink::accept(SinkVisitor &v) { v.visit(*this); }
+
+ssize_t SocketSink::write(const void *buffer, size_t size) {
+  return socket_->write(buffer, size);
 }
 
-void SocketSink::accept(SinkVisitor& v)
-{
-    v.visit(*this);
-}
-
-ssize_t SocketSink::write(const void *buffer, size_t size)
-{
-    return socket_->write(buffer, size);
-}
-
-} // namespace x0
+}  // namespace x0

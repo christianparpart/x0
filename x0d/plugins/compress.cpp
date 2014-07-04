@@ -46,128 +46,121 @@
 #include <time.h>
 
 #if !defined(HAVE_BZLIB_H) && !defined(HAVE_ZLIB_H)
-#	warning No compression headers available!
+#warning No compression headers available!
 #endif
 
 /**
  * \ingroup plugins
  * \brief serves static files from server's local filesystem to client.
  */
-class compress_plugin :
-    public x0d::XzeroPlugin
-{
-private:
-    std::unordered_map<std::string, int> contentTypes_;
-    int level_;
-    long long minSize_;
-    long long maxSize_;
+class compress_plugin : public x0d::XzeroPlugin {
+ private:
+  std::unordered_map<std::string, int> contentTypes_;
+  int level_;
+  long long minSize_;
+  long long maxSize_;
 
-    bool containsMime(const std::string& value) const
-    {
-        return contentTypes_.find(value) != contentTypes_.end();
+  bool containsMime(const std::string& value) const {
+    return contentTypes_.find(value) != contentTypes_.end();
+  }
+
+ public:
+  compress_plugin(x0d::XzeroDaemon* d, const std::string& name)
+      : x0d::XzeroPlugin(d, name),
+        contentTypes_(),             // no types
+        level_(9),                   // best compression
+        minSize_(256),               // 256 byte
+        maxSize_(128 * 1024 * 1024)  // 128 MB
+  {
+    contentTypes_["text/html"] = 0;
+    contentTypes_["text/css"] = 0;
+    contentTypes_["text/plain"] = 0;
+    contentTypes_["application/xml"] = 0;
+    contentTypes_["application/xhtml+xml"] = 0;
+
+    onPostProcess(
+        std::bind(&compress_plugin::postProcess, this, std::placeholders::_1));
+
+    setupFunction("compress.types", &compress_plugin::setup_types,
+                  x0::FlowType::StringArray);
+    setupFunction("compress.level", &compress_plugin::setup_level,
+                  x0::FlowType::Number);
+    setupFunction("compress.min", &compress_plugin::setup_minsize,
+                  x0::FlowType::Number);
+    setupFunction("compress.max", &compress_plugin::setup_maxsize,
+                  x0::FlowType::Number);
+  }
+
+ private:
+  void setup_types(x0::FlowVM::Params& args) {
+    contentTypes_.clear();
+
+    const auto& x = args.getStringArray(1);
+
+    for (int i = 0, e = args.size(); i != e; ++i) {
+      contentTypes_[x[i].str()] = 0;
     }
+  }
 
-public:
-    compress_plugin(x0d::XzeroDaemon* d, const std::string& name) :
-        x0d::XzeroPlugin(d, name),
-        contentTypes_(),			// no types
-        level_(9),					// best compression
-        minSize_(256),				// 256 byte
-        maxSize_(128 * 1024 * 1024)	// 128 MB
-    {
-        contentTypes_["text/html"] = 0;
-        contentTypes_["text/css"] = 0;
-        contentTypes_["text/plain"] = 0;
-        contentTypes_["application/xml"] = 0;
-        contentTypes_["application/xhtml+xml"] = 0;
+  void setup_level(x0::FlowVM::Params& args) {
+    level_ = args.getInt(1);
+    level_ = std::min(std::max(level_, 0), 10);
+  }
 
-        onPostProcess(std::bind(&compress_plugin::postProcess, this, std::placeholders::_1));
+  void setup_minsize(x0::FlowVM::Params& args) { minSize_ = args.getInt(1); }
 
-        setupFunction("compress.types", &compress_plugin::setup_types, x0::FlowType::StringArray);
-        setupFunction("compress.level", &compress_plugin::setup_level, x0::FlowType::Number);
-        setupFunction("compress.min", &compress_plugin::setup_minsize, x0::FlowType::Number);
-        setupFunction("compress.max", &compress_plugin::setup_maxsize, x0::FlowType::Number);
-    }
+  void setup_maxsize(x0::FlowVM::Params& args) { maxSize_ = args.getInt(1); }
 
-private:
-    void setup_types(x0::FlowVM::Params& args)
-    {
-        contentTypes_.clear();
+ private:
+  void postProcess(x0::HttpRequest* in) {
+    if (in->responseHeaders.contains("Content-Encoding"))
+      return;  // do not double-encode content
 
-        const auto& x = args.getStringArray(1);
+    long long size = 0;
+    if (in->responseHeaders.contains("Content-Length"))
+      size = std::atoll(in->responseHeaders["Content-Length"].c_str());
 
-        for (int i = 0, e = args.size(); i != e; ++i) {
-            contentTypes_[x[i].str()] = 0;
-        }
-    }
+    bool chunked = in->responseHeaders["Transfer->Encoding"] == "chunked";
 
-    void setup_level(x0::FlowVM::Params& args)
-    {
-        level_ = args.getInt(1);
-        level_ = std::min(std::max(level_, 0), 10);
-    }
+    if (size < minSize_ && !(size <= 0 && chunked)) return;
 
-    void setup_minsize(x0::FlowVM::Params& args)
-    {
-        minSize_ = args.getInt(1);
-    }
+    if (size > maxSize_) return;
 
-    void setup_maxsize(x0::FlowVM::Params& args)
-    {
-        maxSize_ = args.getInt(1);
-    }
+    if (!containsMime(in->responseHeaders["Content-Type"])) return;
 
-private:
-    void postProcess(x0::HttpRequest *in)
-    {
-        if (in->responseHeaders.contains("Content-Encoding"))
-            return; // do not double-encode content
-
-        long long size = 0;
-        if (in->responseHeaders.contains("Content-Length"))
-            size = std::atoll(in->responseHeaders["Content-Length"].c_str());
-
-        bool chunked = in->responseHeaders["Transfer->Encoding"] == "chunked";
-
-        if (size < minSize_ && !(size <= 0 && chunked))
-            return;
-
-        if (size > maxSize_)
-            return;
-
-        if (!containsMime(in->responseHeaders["Content-Type"]))
-            return;
-
-        if (x0::BufferRef r = in->requestHeader("Accept-Encoding")) {
-            auto items = x0::Tokenizer<x0::BufferRef, x0::BufferRef>::tokenize(r, ", ");
+    if (x0::BufferRef r = in->requestHeader("Accept-Encoding")) {
+      auto items =
+          x0::Tokenizer<x0::BufferRef, x0::BufferRef>::tokenize(r, ", ");
 
 #if defined(HAVE_BZLIB_H)
-            if (std::find(items.begin(), items.end(), "bzip2") != items.end()) {
-                in->responseHeaders.push_back("Content-Encoding", "bzip2");
-                in->outputFilters.push_back(std::make_shared<x0::BZip2Filter>(level_));
-            } else
+      if (std::find(items.begin(), items.end(), "bzip2") != items.end()) {
+        in->responseHeaders.push_back("Content-Encoding", "bzip2");
+        in->outputFilters.push_back(std::make_shared<x0::BZip2Filter>(level_));
+      } else
 #endif
 #if defined(HAVE_ZLIB_H)
-            if (std::find(items.begin(), items.end(), "gzip") != items.end()) {
-                in->responseHeaders.push_back("Content-Encoding", "gzip");
-                in->outputFilters.push_back(std::make_shared<x0::GZipFilter>(level_));
-            } else if (std::find(items.begin(), items.end(), "deflate") != items.end()) {
-                in->responseHeaders.push_back("Content-Encoding", "deflate");
-                in->outputFilters.push_back(std::make_shared<x0::DeflateFilter>(level_));
-            } else
+          if (std::find(items.begin(), items.end(), "gzip") != items.end()) {
+        in->responseHeaders.push_back("Content-Encoding", "gzip");
+        in->outputFilters.push_back(std::make_shared<x0::GZipFilter>(level_));
+      } else if (std::find(items.begin(), items.end(), "deflate") !=
+                 items.end()) {
+        in->responseHeaders.push_back("Content-Encoding", "deflate");
+        in->outputFilters.push_back(
+            std::make_shared<x0::DeflateFilter>(level_));
+      } else
 #endif
-                return;
+        return;
 
-            // response might change according to Accept-Encoding
-            if (!in->responseHeaders.contains("Vary"))
-                in->responseHeaders.push_back("Vary", "Accept-Encoding");
-            else
-                in->responseHeaders.append("Vary", ",Accept-Encoding");
+      // response might change according to Accept-Encoding
+      if (!in->responseHeaders.contains("Vary"))
+        in->responseHeaders.push_back("Vary", "Accept-Encoding");
+      else
+        in->responseHeaders.append("Vary", ",Accept-Encoding");
 
-            // removing content-length implicitely enables chunked encoding
-            in->responseHeaders.remove("Content-Length");
-        }
+      // removing content-length implicitely enables chunked encoding
+      in->responseHeaders.remove("Content-Length");
     }
+  }
 };
 
 X0_EXPORT_PLUGIN(compress)

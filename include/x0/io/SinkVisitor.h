@@ -27,22 +27,21 @@ class LogFile;
  *
  * \see source
  */
-class X0_API SinkVisitor
-{
-public:
-    virtual ~SinkVisitor() {}
+class X0_API SinkVisitor {
+ public:
+  virtual ~SinkVisitor() {}
 
-    virtual void visit(BufferSink&) = 0;
-    virtual void visit(FileSink&) = 0;
-    virtual void visit(FixedBufferSink&) = 0;
-    virtual void visit(SocketSink&) = 0;
-    virtual void visit(PipeSink&) = 0;
-    virtual void visit(SyslogSink&) = 0;
-    virtual void visit(LogFile&) = 0;
+  virtual void visit(BufferSink&) = 0;
+  virtual void visit(FileSink&) = 0;
+  virtual void visit(FixedBufferSink&) = 0;
+  virtual void visit(SocketSink&) = 0;
+  virtual void visit(PipeSink&) = 0;
+  virtual void visit(SyslogSink&) = 0;
+  virtual void visit(LogFile&) = 0;
 };
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

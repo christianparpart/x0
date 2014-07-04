@@ -18,24 +18,24 @@ class IRHandler;
 class IRProgram;
 
 class X0_API PassManager {
-public:
-    PassManager();
-    ~PassManager();
+ public:
+  PassManager();
+  ~PassManager();
 
-    /** registers given pass to the pass manager.
-     */
-    void registerPass(std::unique_ptr<HandlerPass>&& handlerPass);
+  /** registers given pass to the pass manager.
+   */
+  void registerPass(std::unique_ptr<HandlerPass>&& handlerPass);
 
-    /** runs passes on a complete program.
-     */
-    void run(IRProgram* program);
+  /** runs passes on a complete program.
+   */
+  void run(IRProgram* program);
 
-    /** runs passes on given handler.
-     */
-    void run(IRHandler* handler);
+  /** runs passes on given handler.
+   */
+  void run(IRHandler* handler);
 
-private:
-    std::list<std::unique_ptr<HandlerPass>> handlerPasses_;
+ private:
+  std::list<std::unique_ptr<HandlerPass>> handlerPasses_;
 };
 
-} // namespace x0
+}  // namespace x0

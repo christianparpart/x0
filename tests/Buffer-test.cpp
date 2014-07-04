@@ -20,227 +20,210 @@
 using namespace x0;
 
 // {{{ BufferBase<>
-TEST(BufferBase, ctor0)
-{
-    Buffer a;
+TEST(BufferBase, ctor0) {
+  Buffer a;
 
-    ASSERT_EQ(0, a.size());
-    ASSERT_TRUE(a.empty());
-    ASSERT_TRUE(!a);
-    ASSERT_TRUE(!static_cast<bool>(a));
+  ASSERT_EQ(0, a.size());
+  ASSERT_TRUE(a.empty());
+  ASSERT_TRUE(!a);
+  ASSERT_TRUE(!static_cast<bool>(a));
 }
 
-TEST(BufferBase, begins)
-{
-    ConstBuffer b("hello");
-    BufferRef v(b.ref());
+TEST(BufferBase, begins) {
+  ConstBuffer b("hello");
+  BufferRef v(b.ref());
 
-    ASSERT_TRUE(v.begins(nullptr));
-    ASSERT_TRUE(v.begins(""));
-    ASSERT_TRUE(v.begins("hello"));
+  ASSERT_TRUE(v.begins(nullptr));
+  ASSERT_TRUE(v.begins(""));
+  ASSERT_TRUE(v.begins("hello"));
 }
 
-TEST(BufferBase, find_cstr)
-{
-    ConstBuffer buf("012345");
-    BufferRef ref = buf.ref(1);
+TEST(BufferBase, find_cstr) {
+  ConstBuffer buf("012345");
+  BufferRef ref = buf.ref(1);
 
-    int i = ref.find("34");
-    ASSERT_EQ(2, i);
+  int i = ref.find("34");
+  ASSERT_EQ(2, i);
 
-    ASSERT_EQ(0, ref.find("1"));
-    ASSERT_EQ(0, ref.find("12"));
-    ASSERT_EQ(0, ref.find("12345"));
-    ASSERT_EQ(BufferRef::npos, ref.find("11"));
+  ASSERT_EQ(0, ref.find("1"));
+  ASSERT_EQ(0, ref.find("12"));
+  ASSERT_EQ(0, ref.find("12345"));
+  ASSERT_EQ(BufferRef::npos, ref.find("11"));
 }
 
-TEST(BufferBase, replaceAll1)
-{
-    Buffer source("foo|bar|com");
-    Buffer escaped = source.replaceAll('|', ':');
+TEST(BufferBase, replaceAll1) {
+  Buffer source("foo|bar|com");
+  Buffer escaped = source.replaceAll('|', ':');
 
-    ASSERT_EQ("foo:bar:com", escaped);
+  ASSERT_EQ("foo:bar:com", escaped);
 }
 
-TEST(BufferBase, replaceAll2)
-{
-    Buffer source("hello\nworld\n");
-    Buffer replaced = source.replaceAll("\n", "<br/>");
+TEST(BufferBase, replaceAll2) {
+  Buffer source("hello\nworld\n");
+  Buffer replaced = source.replaceAll("\n", "<br/>");
 
-    ASSERT_EQ("hello<br/>world<br/>", replaced.str());
+  ASSERT_EQ("hello<br/>world<br/>", replaced.str());
 }
 
-TEST(BufferBase, toBool)
-{
-    // true
-    ASSERT_TRUE(ConstBuffer("true").toBool());
-    ASSERT_TRUE(ConstBuffer("TRUE").toBool());
-    ASSERT_TRUE(ConstBuffer("True").toBool());
-    ASSERT_TRUE(ConstBuffer("1").toBool());
+TEST(BufferBase, toBool) {
+  // true
+  ASSERT_TRUE(ConstBuffer("true").toBool());
+  ASSERT_TRUE(ConstBuffer("TRUE").toBool());
+  ASSERT_TRUE(ConstBuffer("True").toBool());
+  ASSERT_TRUE(ConstBuffer("1").toBool());
 
-    // false
-    ASSERT_TRUE(!ConstBuffer("false").toBool());
-    ASSERT_TRUE(!ConstBuffer("FALSE").toBool());
-    ASSERT_TRUE(!ConstBuffer("False").toBool());
-    ASSERT_TRUE(!ConstBuffer("0").toBool());
+  // false
+  ASSERT_TRUE(!ConstBuffer("false").toBool());
+  ASSERT_TRUE(!ConstBuffer("FALSE").toBool());
+  ASSERT_TRUE(!ConstBuffer("False").toBool());
+  ASSERT_TRUE(!ConstBuffer("0").toBool());
 
-    // invalid cast results into false
-    ASSERT_TRUE(!x0::ConstBuffer("BLAH").toBool());
+  // invalid cast results into false
+  ASSERT_TRUE(!x0::ConstBuffer("BLAH").toBool());
 }
 // }}}
 // {{{ MutableBuffer<>
-TEST(MutableBuffer, resize)
-{
-    // test modifying buffer size
-    Buffer buf;
-    buf.push_back("hello");
-    ASSERT_EQ(5, buf.size());
+TEST(MutableBuffer, resize) {
+  // test modifying buffer size
+  Buffer buf;
+  buf.push_back("hello");
+  ASSERT_EQ(5, buf.size());
 
-    buf.resize(4);
-    ASSERT_EQ(4, buf.size());
-    ASSERT_EQ("hell", buf);
+  buf.resize(4);
+  ASSERT_EQ(4, buf.size());
+  ASSERT_EQ("hell", buf);
 
-    //! \todo should not be resizable (const_buffer)
-    //ConstBuffer cbuf("hello");
-    //cbuf.size(4);
+  //! \todo should not be resizable (const_buffer)
+  // ConstBuffer cbuf("hello");
+  // cbuf.size(4);
 }
 
-TEST(MutableBuffer, swap)
-{
-    Buffer a("hello");
-    Buffer b("world");
+TEST(MutableBuffer, swap) {
+  Buffer a("hello");
+  Buffer b("world");
 
-    a.swap(b);
-    ASSERT_EQ("world", a);
-    ASSERT_EQ("hello", b);
+  a.swap(b);
+  ASSERT_EQ("world", a);
+  ASSERT_EQ("hello", b);
 
-    std::swap(a, b);
-    ASSERT_EQ("hello", a);
-    ASSERT_EQ("world", b);
+  std::swap(a, b);
+  ASSERT_EQ("hello", a);
+  ASSERT_EQ("world", b);
 }
 
-TEST(MutableBuffer, reserve)
-{
-    Buffer buf;
+TEST(MutableBuffer, reserve) {
+  Buffer buf;
 
-    buf.reserve(1);
-    ASSERT_EQ(0, buf.size());
-    ASSERT_EQ(1, buf.capacity());
+  buf.reserve(1);
+  ASSERT_EQ(0, buf.size());
+  ASSERT_EQ(1, buf.capacity());
 
-    buf.reserve(2);
-    ASSERT_EQ(0, buf.size());
-    ASSERT_EQ(Buffer::CHUNK_SIZE, buf.capacity());
+  buf.reserve(2);
+  ASSERT_EQ(0, buf.size());
+  ASSERT_EQ(Buffer::CHUNK_SIZE, buf.capacity());
 }
 
-TEST(MutableBuffer, clear)
-{
-    Buffer buf("hello");
+TEST(MutableBuffer, clear) {
+  Buffer buf("hello");
 
-    const std::size_t capacity = buf.capacity();
+  const std::size_t capacity = buf.capacity();
 
-    buf.clear();
-    ASSERT_TRUE(buf.empty());
-    ASSERT_EQ(0, buf.size());
+  buf.clear();
+  ASSERT_TRUE(buf.empty());
+  ASSERT_EQ(0, buf.size());
 
-    // shouldn't have changed internal buffer
-    ASSERT_EQ(capacity, buf.capacity());
+  // shouldn't have changed internal buffer
+  ASSERT_EQ(capacity, buf.capacity());
 }
 
-TEST(MutableBuffer, capacity)
-{
-    Buffer buf;
-    ASSERT_EQ(0, buf.capacity());
+TEST(MutableBuffer, capacity) {
+  Buffer buf;
+  ASSERT_EQ(0, buf.capacity());
 
-    buf.push_back("hello");
-    ASSERT_GE(5, buf.capacity());
+  buf.push_back("hello");
+  ASSERT_GE(5, buf.capacity());
 
-    buf.setCapacity(4);
-    ASSERT_GE(4, buf.capacity());
-    ASSERT_EQ(4, buf.size());
-    ASSERT_EQ("hell", buf);
+  buf.setCapacity(4);
+  ASSERT_GE(4, buf.capacity());
+  ASSERT_EQ(4, buf.size());
+  ASSERT_EQ("hell", buf);
 }
 // }}}
 // {{{ FixedBuffer
-TEST(FixedBuffer, ctorVoid)
-{
-    FixedBuffer obj;
+TEST(FixedBuffer, ctorVoid) {
+  FixedBuffer obj;
 
-    ASSERT_EQ(0, obj.size());
-    ASSERT_EQ(0, obj.capacity());
+  ASSERT_EQ(0, obj.size());
+  ASSERT_EQ(0, obj.capacity());
 }
 
-TEST(FixedBuffer, ctorCopy)
-{
-    char buf[8] = { "Hello" };
-    FixedBuffer source(buf, sizeof(buf), 5);
-    FixedBuffer target(source);
+TEST(FixedBuffer, ctorCopy) {
+  char buf[8] = {"Hello"};
+  FixedBuffer source(buf, sizeof(buf), 5);
+  FixedBuffer target(source);
 
-    // source should be empty
-    ASSERT_EQ(5, source.size());
-    ASSERT_EQ(sizeof(buf), source.capacity());
-    ASSERT_EQ("Hello", source);
-    ASSERT_EQ(buf, source.data());
+  // source should be empty
+  ASSERT_EQ(5, source.size());
+  ASSERT_EQ(sizeof(buf), source.capacity());
+  ASSERT_EQ("Hello", source);
+  ASSERT_EQ(buf, source.data());
 
-    // target should contain the data
-    ASSERT_EQ(5, target.size());
-    ASSERT_EQ(sizeof(buf), target.capacity());
-    ASSERT_EQ("Hello", target);
-    ASSERT_EQ(buf, target.data());
+  // target should contain the data
+  ASSERT_EQ(5, target.size());
+  ASSERT_EQ(sizeof(buf), target.capacity());
+  ASSERT_EQ("Hello", target);
+  ASSERT_EQ(buf, target.data());
 }
 
-TEST(FixedBuffer, ctorMove)
-{
-    char buf[8] = { "Hello" };
-    FixedBuffer source(buf, sizeof(buf), 5);
-    FixedBuffer target(std::move(source));
+TEST(FixedBuffer, ctorMove) {
+  char buf[8] = {"Hello"};
+  FixedBuffer source(buf, sizeof(buf), 5);
+  FixedBuffer target(std::move(source));
 
-    // source should be empty
-    ASSERT_EQ(0, source.size());
-    ASSERT_EQ(0, source.capacity());
-    ASSERT_EQ("", source);
-    ASSERT_EQ(nullptr, source.data());
+  // source should be empty
+  ASSERT_EQ(0, source.size());
+  ASSERT_EQ(0, source.capacity());
+  ASSERT_EQ("", source);
+  ASSERT_EQ(nullptr, source.data());
 
-    // target should contain the data
-    ASSERT_EQ(5, target.size());
-    ASSERT_EQ(sizeof(buf), target.capacity());
-    ASSERT_EQ("Hello", target);
-    ASSERT_EQ(buf, target.data());
+  // target should contain the data
+  ASSERT_EQ(5, target.size());
+  ASSERT_EQ(sizeof(buf), target.capacity());
+  ASSERT_EQ("Hello", target);
+  ASSERT_EQ(buf, target.data());
 }
 
-TEST(FixedBuffer, ctorBuf)
-{
-    char buf[8];
-    FixedBuffer obj(buf, sizeof(buf), 0);
+TEST(FixedBuffer, ctorBuf) {
+  char buf[8];
+  FixedBuffer obj(buf, sizeof(buf), 0);
 
-    ASSERT_EQ(0, obj.size());
-    ASSERT_EQ(sizeof(buf), obj.capacity());
+  ASSERT_EQ(0, obj.size());
+  ASSERT_EQ(sizeof(buf), obj.capacity());
 }
 
-TEST(FixedBuffer, mutateInbound)
-{
-    char buf[8];
-    FixedBuffer obj(buf, sizeof(buf), 0);
+TEST(FixedBuffer, mutateInbound) {
+  char buf[8];
+  FixedBuffer obj(buf, sizeof(buf), 0);
 
-    obj.push_back("012");
+  obj.push_back("012");
 
-    ASSERT_EQ(3, obj.size());
-    ASSERT_EQ("012", obj);
-    ASSERT_EQ(0, strcmp("012", obj.c_str()));
+  ASSERT_EQ(3, obj.size());
+  ASSERT_EQ("012", obj);
+  ASSERT_EQ(0, strcmp("012", obj.c_str()));
 }
 
-TEST(FixedBuffer, mutateOverflow)
-{
-    char buf[8];
-    FixedBuffer obj(buf, sizeof(buf), 0);
+TEST(FixedBuffer, mutateOverflow) {
+  char buf[8];
+  FixedBuffer obj(buf, sizeof(buf), 0);
 
-    obj.push_back("0123456789");
+  obj.push_back("0123456789");
 
-    ASSERT_EQ(8, obj.size());
-    ASSERT_EQ("01234567", obj);
-    ASSERT_EQ(nullptr, obj.c_str());
+  ASSERT_EQ(8, obj.size());
+  ASSERT_EQ("01234567", obj);
+  ASSERT_EQ(nullptr, obj.c_str());
 }
 // }}}
-#if 0 // {{{ legacy tests not yet ported to gtest
+#if 0   // {{{ legacy tests not yet ported to gtest
 // {{{ debug helper
 void print(const x0::Buffer& b, const char *msg = 0)
 {
@@ -430,4 +413,4 @@ void ref_hex()
     CPPUNIT_ASSERT(x0::ConstBuffer("G").hex<int>() == 0);
 }
 // }}}
-#endif // }}}
+#endif  // }}}

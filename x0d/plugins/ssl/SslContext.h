@@ -23,116 +23,109 @@
 
 class SslSocket;
 
-class SslContext
-{
-public:
-    SslContext();
-    ~SslContext();
+class SslContext {
+ public:
+  SslContext();
+  ~SslContext();
 
-    void setLogger(x0::Logger *logger);
+  void setLogger(x0::Logger* logger);
 
-    template<typename... Args>
-    void log(x0::Severity severity, const char* fmt, Args... args);
+  template <typename... Args>
+  void log(x0::Severity severity, const char* fmt, Args... args);
 
-    void setCertFile(const std::string& filename);
-    void setKeyFile(const std::string& filename);
-    void setCrlFile(const std::string& filename);
-    void setTrustFile(const std::string& filename);
+  void setCertFile(const std::string& filename);
+  void setKeyFile(const std::string& filename);
+  void setCrlFile(const std::string& filename);
+  void setTrustFile(const std::string& filename);
 
-    std::string commonName() const;
+  std::string commonName() const;
 
-    bool isValidDnsName(const std::string& dnsName) const;
+  bool isValidDnsName(const std::string& dnsName) const;
 
-    bool post_config();
+  bool post_config();
 
-    void bind(SslSocket *socket);
+  void bind(SslSocket* socket);
 
-    friend class SslSocket;
+  friend class SslSocket;
 
-public:
-    bool enabled;
-    x0::WriteProperty<std::string, SslContext, &SslContext::setCertFile> certFile;
-    x0::WriteProperty<std::string, SslContext, &SslContext::setKeyFile> keyFile;
-    x0::WriteProperty<std::string, SslContext, &SslContext::setCrlFile> crlFile;
-    x0::WriteProperty<std::string, SslContext, &SslContext::setTrustFile> trustFile;
+ public:
+  bool enabled;
+  x0::WriteProperty<std::string, SslContext, &SslContext::setCertFile> certFile;
+  x0::WriteProperty<std::string, SslContext, &SslContext::setKeyFile> keyFile;
+  x0::WriteProperty<std::string, SslContext, &SslContext::setCrlFile> crlFile;
+  x0::WriteProperty<std::string, SslContext, &SslContext::setTrustFile>
+  trustFile;
 
-    static int onRetrieveCert(gnutls_session_t session, gnutls_retr_st *ret);
+  static int onRetrieveCert(gnutls_session_t session, gnutls_retr_st* ret);
 
-private:
-    static bool imatch(const std::string& pattern, const std::string& value);
+ private:
+  static bool imatch(const std::string& pattern, const std::string& value);
 
-    std::error_code error_;
-    x0::Logger *logger_;
+  std::error_code error_;
+  x0::Logger* logger_;
 
-    // GNU TLS specific properties
-    gnutls_certificate_credentials_t certs_;
-    gnutls_anon_server_credentials_t anonCreds_;
-    gnutls_srp_server_credentials_t srpCreds_;
-    std::string certCN_;
-    std::vector<std::string> dnsNames_;
+  // GNU TLS specific properties
+  gnutls_certificate_credentials_t certs_;
+  gnutls_anon_server_credentials_t anonCreds_;
+  gnutls_srp_server_credentials_t srpCreds_;
+  std::string certCN_;
+  std::vector<std::string> dnsNames_;
 
-    // x509
-    gnutls_x509_privkey_t x509PrivateKey_;
-    gnutls_x509_crt_t x509Certs_[8];
-    unsigned numX509Certs_;
-    gnutls_certificate_request_t clientVerifyMode_;
+  // x509
+  gnutls_x509_privkey_t x509PrivateKey_;
+  gnutls_x509_crt_t x509Certs_[8];
+  unsigned numX509Certs_;
+  gnutls_certificate_request_t clientVerifyMode_;
 
-    // OpenPGP
-    gnutls_openpgp_crt_t pgpCert_; // a chain, too.
-    gnutls_openpgp_privkey_t pgpPrivateKey_;
+  // OpenPGP
+  gnutls_openpgp_crt_t pgpCert_;  // a chain, too.
+  gnutls_openpgp_privkey_t pgpPrivateKey_;
 
-    // general
-    gnutls_rsa_params_t rsaParams_;
-    gnutls_dh_params_t dhParams_;
-    gnutls_x509_crt_t *caList_;
+  // general
+  gnutls_rsa_params_t rsaParams_;
+  gnutls_dh_params_t dhParams_;
+  gnutls_x509_crt_t* caList_;
 };
 
 // {{{ inlines
-template<typename... Args>
-void SslContext::log(x0::Severity severity, const char* fmt, Args... args)
-{
-    if (logger_) {
-        x0::LogMessage msg(severity, fmt, args...);
-        logger_->write(msg);
-    }
+template <typename... Args>
+void SslContext::log(x0::Severity severity, const char* fmt, Args... args) {
+  if (logger_) {
+    x0::LogMessage msg(severity, fmt, args...);
+    logger_->write(msg);
+  }
 }
 
-inline bool SslContext::isValidDnsName(const std::string& dnsName) const
-{
-    if (imatch(commonName(), dnsName))
-        return true;
+inline bool SslContext::isValidDnsName(const std::string& dnsName) const {
+  if (imatch(commonName(), dnsName)) return true;
 
-    for (auto i = dnsNames_.begin(), e = dnsNames_.end(); i != e; ++i)
-        if (imatch(*i, dnsName))
-            return true;
+  for (auto i = dnsNames_.begin(), e = dnsNames_.end(); i != e; ++i)
+    if (imatch(*i, dnsName)) return true;
 
-    return false;
+  return false;
 }
 
-inline bool SslContext::imatch(const std::string& pattern, const std::string& value)
-{
-    int s = pattern.size() - 1;
-    int t = value.size() - 1;
+inline bool SslContext::imatch(const std::string& pattern,
+                               const std::string& value) {
+  int s = pattern.size() - 1;
+  int t = value.size() - 1;
 
-    for (; s > 0 && t > 0 && pattern[s] == value[t]; --s, --t)
-        ;
+  for (; s > 0 && t > 0 && pattern[s] == value[t]; --s, --t)
+    ;
 
-    if (!s && !t)
-        return true;
+  if (!s && !t) return true;
 
-    if (pattern[s] == '*')
-        return true;
+  if (pattern[s] == '*') return true;
 
-    return false;
+  return false;
 }
 // }}}
 
-class SslContextSelector
-{
-public:
-    virtual ~SslContextSelector() {}
+class SslContextSelector {
+ public:
+  virtual ~SslContextSelector() {}
 
-    virtual SslContext *select(const std::string& dnsName) const = 0;
+  virtual SslContext* select(const std::string& dnsName) const = 0;
 };
 
 #endif

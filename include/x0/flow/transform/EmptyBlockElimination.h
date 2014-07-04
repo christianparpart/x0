@@ -16,10 +16,10 @@ namespace x0 {
  * Eliminates empty blocks, that are just jumping to the next block.
  */
 class X0_API EmptyBlockElimination : public HandlerPass {
-public:
-    EmptyBlockElimination() : HandlerPass("EmptyBlockElimination") {}
+ public:
+  EmptyBlockElimination() : HandlerPass("EmptyBlockElimination") {}
 
-    bool run(IRHandler* handler) override;
+  bool run(IRHandler* handler) override;
 };
 
-} // namespace x0
+}  // namespace x0

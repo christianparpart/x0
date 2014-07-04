@@ -21,66 +21,51 @@ namespace x0 {
  *
  * \see Buffer, Source, Sink
  */
-class X0_API BufferSource :
-    public Source
-{
-public:
-    BufferSource();
-    template<typename PodType, std::size_t N> explicit BufferSource(PodType (&value)[N]);
-    explicit BufferSource(const Buffer& data);
-    explicit BufferSource(Buffer&& data);
-    ~BufferSource();
+class X0_API BufferSource : public Source {
+ public:
+  BufferSource();
+  template <typename PodType, std::size_t N>
+  explicit BufferSource(PodType (&value)[N]);
+  explicit BufferSource(const Buffer& data);
+  explicit BufferSource(Buffer&& data);
+  ~BufferSource();
 
-    ssize_t size() const override;
-    bool empty() const;
+  ssize_t size() const override;
+  bool empty() const;
 
-    ssize_t sendto(Sink& sink) override;
-    const char* className() const override;
+  ssize_t sendto(Sink& sink) override;
+  const char* className() const override;
 
-    Buffer& buffer() { return buffer_; }
-    const Buffer& buffer() const { return buffer_; }
+  Buffer& buffer() { return buffer_; }
+  const Buffer& buffer() const { return buffer_; }
 
-private:
-    Buffer buffer_;
-    std::size_t pos_;
+ private:
+  Buffer buffer_;
+  std::size_t pos_;
 };
 
 //@}
 
 // {{{ inlines
-inline BufferSource::BufferSource() :
-    buffer_(), pos_(0)
-{
+inline BufferSource::BufferSource() : buffer_(), pos_(0) {}
+
+template <typename PodType, std::size_t N>
+inline BufferSource::BufferSource(PodType (&value)[N])
+    : buffer_(), pos_(0) {
+  buffer_.push_back(value, N - 1);
 }
 
-template<typename PodType, std::size_t N>
-inline BufferSource::BufferSource(PodType (&value)[N]) :
-    buffer_(), pos_(0)
-{
-    buffer_.push_back(value, N - 1);
-}
+inline BufferSource::BufferSource(const Buffer& data)
+    : buffer_(data), pos_(0) {}
 
-inline BufferSource::BufferSource(const Buffer& data) :
-    buffer_(data), pos_(0)
-{
-}
+inline BufferSource::BufferSource(Buffer&& data)
+    : buffer_(std::move(data)), pos_(0) {}
 
-inline BufferSource::BufferSource(Buffer&& data) :
-    buffer_(std::move(data)), pos_(0)
-{
-}
+inline ssize_t BufferSource::size() const { return buffer_.size() - pos_; }
 
-inline ssize_t BufferSource::size() const
-{
-    return buffer_.size() - pos_;
-}
-
-inline bool BufferSource::empty() const
-{
-    return size() == 0;
-}
+inline bool BufferSource::empty() const { return size() == 0; }
 // }}}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

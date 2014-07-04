@@ -90,7 +90,6 @@ class X0_API EncoderHelper {
   static void encodeIndexedLiteral(Buffer* output, unsigned index,
                                    const BufferRef& value, bool huffman);
   static void encodeTableSizeChange(Buffer* output, unsigned newSize);
-  static void encodeTableSizeChange(Buffer* output, unsigned newSize)
 };
 
 class X0_API Encoder : private EncoderHelper {

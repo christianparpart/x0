@@ -29,62 +29,70 @@ class BackendManager
 #ifndef XZERO_NDEBUG
     : public x0::Logging
 #endif
-{
-protected:
-    x0::HttpWorker* worker_;
-    std::string name_;
-    x0::TimeSpan connectTimeout_;
-    x0::TimeSpan readTimeout_;
-    x0::TimeSpan writeTimeout_;
-    ClientAbortAction clientAbortAction_;
-    x0::Counter load_;
+      {
+ protected:
+  x0::HttpWorker* worker_;
+  std::string name_;
+  x0::TimeSpan connectTimeout_;
+  x0::TimeSpan readTimeout_;
+  x0::TimeSpan writeTimeout_;
+  ClientAbortAction clientAbortAction_;
+  x0::Counter load_;
 
-    friend class Backend;
+  friend class Backend;
 
-public:
-    BackendManager(x0::HttpWorker* worker, const std::string& name);
-    virtual ~BackendManager();
+ public:
+  BackendManager(x0::HttpWorker* worker, const std::string& name);
+  virtual ~BackendManager();
 
-    void log(x0::LogMessage&& msg);
+  void log(x0::LogMessage&& msg);
 
-    x0::HttpWorker* worker() const { return worker_; }
-    const std::string name() const { return name_; }
+  x0::HttpWorker* worker() const { return worker_; }
+  const std::string name() const { return name_; }
 
-    x0::TimeSpan connectTimeout() const { return connectTimeout_; }
-    void setConnectTimeout(x0::TimeSpan value) { connectTimeout_ = value; }
+  x0::TimeSpan connectTimeout() const { return connectTimeout_; }
+  void setConnectTimeout(x0::TimeSpan value) { connectTimeout_ = value; }
 
-    x0::TimeSpan readTimeout() const { return readTimeout_; }
-    void setReadTimeout(x0::TimeSpan value) { readTimeout_ = value; }
+  x0::TimeSpan readTimeout() const { return readTimeout_; }
+  void setReadTimeout(x0::TimeSpan value) { readTimeout_ = value; }
 
-    x0::TimeSpan writeTimeout() const { return writeTimeout_; }
-    void setWriteTimeout(x0::TimeSpan value) { writeTimeout_ = value; }
+  x0::TimeSpan writeTimeout() const { return writeTimeout_; }
+  void setWriteTimeout(x0::TimeSpan value) { writeTimeout_ = value; }
 
-    ClientAbortAction clientAbortAction() const { return clientAbortAction_; }
-    void setClientAbortAction(ClientAbortAction value) { clientAbortAction_ = value; }
+  ClientAbortAction clientAbortAction() const { return clientAbortAction_; }
+  void setClientAbortAction(ClientAbortAction value) {
+    clientAbortAction_ = value;
+  }
 
-    const x0::Counter& load() const { return load_; }
+  const x0::Counter& load() const { return load_; }
 
-    template<typename T> inline void post(T function) { worker()->post(function); }
+  template <typename T>
+  inline void post(T function) {
+    worker()->post(function);
+  }
 
-    /**
-     * Used to notify the backend manager that the associated backend will has rejected processing this request.
-     *
-     * The backend manager can put it back to the cluster try rescheduling it to another backend,
-     * or send an appropriate response status back to the client, directly terinating this request.
-     *
-     * @param rn request that was rejected.
-     * @param status reject status, reason why this request got rejected.
-     *
-     * @see release(RequestNotes*)
-     * @see Director::schedule()
-     * @see Director::reschedule()
-     */
-    virtual void reject(RequestNotes* rn, x0::HttpStatus status) = 0;
+  /**
+   * Used to notify the backend manager that the associated backend will has
+   *rejected processing this request.
+   *
+   * The backend manager can put it back to the cluster try rescheduling it to
+   *another backend,
+   * or send an appropriate response status back to the client, directly
+   *terinating this request.
+   *
+   * @param rn request that was rejected.
+   * @param status reject status, reason why this request got rejected.
+   *
+   * @see release(RequestNotes*)
+   * @see Director::schedule()
+   * @see Director::reschedule()
+   */
+  virtual void reject(RequestNotes* rn, x0::HttpStatus status) = 0;
 
-    /**
-     * Invoked internally when a request has been fully processed in success.
-     *
-     * @see reject(RequestNotes*)
-     */
-    virtual void release(RequestNotes* rn) = 0;
+  /**
+   * Invoked internally when a request has been fully processed in success.
+   *
+   * @see reject(RequestNotes*)
+   */
+  virtual void release(RequestNotes* rn) = 0;
 };

@@ -34,7 +34,7 @@
 #include <fcntl.h>
 
 #if defined(HAVE_SYSLOG_H)
-#	include <syslog.h>
+#include <syslog.h>
 #endif
 
 #include <unordered_map>
@@ -43,370 +43,355 @@
 
 using namespace x0;
 
-template<typename iterator>
-inline Try<BufferRef> getFormatName(iterator& i, iterator e)
-{
-    // FormatName ::= '{' NAME '}'
+template <typename iterator>
+inline Try<BufferRef> getFormatName(iterator& i, iterator e) {
+  // FormatName ::= '{' NAME '}'
 
-    if (i != e && *i == '{') {
-        ++i;
-    } else {
-        return Error("Expected '{' token.");
+  if (i != e && *i == '{') {
+    ++i;
+  } else {
+    return Error("Expected '{' token.");
+  }
+
+  iterator beg = i;
+
+  for (;;) {
+    if (i == e) {
+      return Error("Expected '}' token.");
     }
 
-    iterator beg = i;
-
-    for (;;) {
-        if (i == e) {
-            return Error("Expected '}' token.");
-        }
-
-        if (*i == '}') {
-            ++i;
-            break;
-        }
-
-        ++i;
+    if (*i == '}') {
+      ++i;
+      break;
     }
 
-    return BufferRef(beg, i - beg - 1);
+    ++i;
+  }
+
+  return BufferRef(beg, i - beg - 1);
 }
 
-Try<Buffer> formatLog(x0::HttpRequest* r, const BufferRef& format) // {{{
+Try<Buffer> formatLog(x0::HttpRequest* r, const BufferRef& format)  // {{{
 {
-    Buffer result;
+  Buffer result;
 
-    auto i = format.begin();
-    auto e = format.end();
+  auto i = format.begin();
+  auto e = format.end();
 
-    while (i != e) {
-        if (*i != '%') {
-            result.push_back(*i);
-            ++i;
-            continue;
-        }
+  while (i != e) {
+    if (*i != '%') {
+      result.push_back(*i);
+      ++i;
+      continue;
+    }
 
+    ++i;
+
+    if (i == e) {
+      break;
+    }
+
+    switch (*i) {
+      case '%':  // %
+        result.push_back(*i);
         ++i;
-
-        if (i == e) {
-            break;
+        break;
+      case '>': {  // request header %>{name}
+        ++i;
+        if (Try<BufferRef> fn = getFormatName(i, e)) {
+          BufferRef value = r->requestHeader(fn.get());
+          if (value) {
+            result.push_back(r->requestHeader(fn.get()));
+          } else {
+            result.push_back('-');
+          }
+        } else {
+          return Error(fn.errorMessage());
         }
-
-        switch (*i) {
-            case '%': // %
-                result.push_back(*i);
-                ++i;
-                break;
-            case '>': { // request header %>{name}
-                ++i;
-                if (Try<BufferRef> fn = getFormatName(i, e)) {
-                    BufferRef value = r->requestHeader(fn.get());
-                    if (value) {
-                        result.push_back(r->requestHeader(fn.get()));
-                    } else {
-                        result.push_back('-');
-                    }
-                } else {
-                    return Error(fn.errorMessage());
-                }
-                break;
-            }
-            case '<': // response header %<{name}
-                ++i;
-                if (Try<BufferRef> fn = getFormatName(i, e)) {
-                    if (auto header = r->responseHeaders.findHeader(fn.get().str())) {
-                        result.push_back(header->value);
-                    } else {
-                        result.push_back('-');
-                    }
-                } else {
-                    return Error(fn.errorMessage());
-                }
-                break;
-            case 'C': // request cookie %C{name}
-                ++i;
-                if (Try<BufferRef> fn = getFormatName(i, e)) {
-                    std::string value = r->cookie(fn.get().str());
-                    if (!value.empty()) {
-                        result.push_back(value);
-                    } else {
-                        result.push_back('-');
-                    }
-                } else {
-                    return Error(fn.errorMessage());
-                }
-                break;
-            case 'c': // response status code
-                result.push_back(static_cast<int>(r->status));
-                ++i;
-                break;
-            case 'h': // request vhost
-                result.push_back(r->hostname);
-                ++i;
-                break;
-            case 'I': // received bytes (transport level)
-                // TODO
-                result.push_back("-");
-                ++i;
-                break;
-            case 'm': // request method
-                result.push_back(r->method);
-                ++i;
-                break;
-            case 'O': // sent bytes (transport level)
-                result.push_back(r->bytesTransmitted());
-                ++i;
-                break;
-            case 'o': // sent bytes (response body)
-                // TODO
-                result.push_back('-');
-                ++i;
-                break;
-            case 'p': // request path
-                result.push_back(r->path);
-                ++i;
-                break;
-            case 'q': // query args
-                result.push_back(r->query);
-                ++i;
-                break;
-            case 'R': // remote addr
-                result.push_back(r->connection.remoteIP().c_str());
-                ++i;
-                break;
-            case 'r': // request line
-                result.push_back(r->method);
-                result.push_back(' ');
-                result.push_back(r->unparsedUri);
-                result.push_back(' ');
-                result.push_back("HTTP/");
-                result.push_back(r->httpVersionMajor);
-                result.push_back('.');
-                result.push_back(r->httpVersionMinor);
-                ++i;
-                break;
-            case 'T': { // request time duration
-                TimeSpan duration = r->duration();
-                result.printf("%d.%03d", duration.totalSeconds(), duration.milliseconds());
-                ++i;
-                break;
-            }
-            case 't': // local time
-                result.push_back(r->connection.worker().now().htlog_str());
-                ++i;
-                break;
-            case 'U': // username
-                ++i;
-                if (!r->username.empty()) {
-                    result.push_back(r->username);
-                } else {
-                    result.push_back('-');
-                }
-                break;
-            case 'u': // request uri
-                result.push_back(r->unparsedUri);
-                ++i;
-                break;
-            default:
-                return Error("Unknown format identifier.");
+        break;
+      }
+      case '<':  // response header %<{name}
+        ++i;
+        if (Try<BufferRef> fn = getFormatName(i, e)) {
+          if (auto header = r->responseHeaders.findHeader(fn.get().str())) {
+            result.push_back(header->value);
+          } else {
+            result.push_back('-');
+          }
+        } else {
+          return Error(fn.errorMessage());
         }
-    }
-
-    result.push_back('\n');
-    return result;
-} // }}}
-
-struct RequestLogger // {{{
-    : public x0::CustomData
-{
-    x0::HttpRequest* request_;
-    std::list<std::pair<FlowString /*format*/, Sink* /*log*/>> targets_;
-
-    RequestLogger(x0::HttpRequest* r, const FlowString& format, Sink* log) :
-        request_(r), targets_()
-    {
-        addTarget(format, log);
-    }
-
-    void addTarget(const FlowString& format, Sink* log)
-    {
-        targets_.push_back(std::make_pair(format, log));
-    }
-
-    ~RequestLogger()
-    {
-        for (const auto& target: targets_) {
-            Try<Buffer> result = formatLog(request_, target.first);
-
-            if (result.isError()) {
-                request_->log(Severity::error, "Accesslog format error. %s", result.errorMessage());
-            }
-            else if (target.second->write(result.get().c_str(), result.get().size()) < static_cast<ssize_t>(result.get().size())) {
-                request_->log(Severity::error, "Could not write to accesslog target. %s", strerror(errno));
-            }
+        break;
+      case 'C':  // request cookie %C{name}
+        ++i;
+        if (Try<BufferRef> fn = getFormatName(i, e)) {
+          std::string value = r->cookie(fn.get().str());
+          if (!value.empty()) {
+            result.push_back(value);
+          } else {
+            result.push_back('-');
+          }
+        } else {
+          return Error(fn.errorMessage());
         }
+        break;
+      case 'c':  // response status code
+        result.push_back(static_cast<int>(r->status));
+        ++i;
+        break;
+      case 'h':  // request vhost
+        result.push_back(r->hostname);
+        ++i;
+        break;
+      case 'I':  // received bytes (transport level)
+        // TODO
+        result.push_back("-");
+        ++i;
+        break;
+      case 'm':  // request method
+        result.push_back(r->method);
+        ++i;
+        break;
+      case 'O':  // sent bytes (transport level)
+        result.push_back(r->bytesTransmitted());
+        ++i;
+        break;
+      case 'o':  // sent bytes (response body)
+        // TODO
+        result.push_back('-');
+        ++i;
+        break;
+      case 'p':  // request path
+        result.push_back(r->path);
+        ++i;
+        break;
+      case 'q':  // query args
+        result.push_back(r->query);
+        ++i;
+        break;
+      case 'R':  // remote addr
+        result.push_back(r->connection.remoteIP().c_str());
+        ++i;
+        break;
+      case 'r':  // request line
+        result.push_back(r->method);
+        result.push_back(' ');
+        result.push_back(r->unparsedUri);
+        result.push_back(' ');
+        result.push_back("HTTP/");
+        result.push_back(r->httpVersionMajor);
+        result.push_back('.');
+        result.push_back(r->httpVersionMinor);
+        ++i;
+        break;
+      case 'T': {  // request time duration
+        TimeSpan duration = r->duration();
+        result.printf("%d.%03d", duration.totalSeconds(),
+                      duration.milliseconds());
+        ++i;
+        break;
+      }
+      case 't':  // local time
+        result.push_back(r->connection.worker().now().htlog_str());
+        ++i;
+        break;
+      case 'U':  // username
+        ++i;
+        if (!r->username.empty()) {
+          result.push_back(r->username);
+        } else {
+          result.push_back('-');
+        }
+        break;
+      case 'u':  // request uri
+        result.push_back(r->unparsedUri);
+        ++i;
+        break;
+      default:
+        return Error("Unknown format identifier.");
     }
+  }
 
-    inline std::string hostname(x0::HttpRequest* r)
-    {
-        std::string name = r->connection.remoteIP().str();
-        return !name.empty() ? name : "-";
+  result.push_back('\n');
+  return result;
+}  // }}}
+
+struct RequestLogger  // {{{
+    : public x0::CustomData {
+  x0::HttpRequest* request_;
+  std::list<std::pair<FlowString /*format*/, Sink* /*log*/>> targets_;
+
+  RequestLogger(x0::HttpRequest* r, const FlowString& format, Sink* log)
+      : request_(r), targets_() {
+    addTarget(format, log);
+  }
+
+  void addTarget(const FlowString& format, Sink* log) {
+    targets_.push_back(std::make_pair(format, log));
+  }
+
+  ~RequestLogger() {
+    for (const auto& target : targets_) {
+      Try<Buffer> result = formatLog(request_, target.first);
+
+      if (result.isError()) {
+        request_->log(Severity::error, "Accesslog format error. %s",
+                      result.errorMessage());
+      } else if (target.second->write(result.get().c_str(),
+                                      result.get().size()) <
+                 static_cast<ssize_t>(result.get().size())) {
+        request_->log(Severity::error,
+                      "Could not write to accesslog target. %s",
+                      strerror(errno));
+      }
     }
+  }
 
-    inline std::string username(x0::HttpRequest* r)
-    {
-        return !r->username.empty() ? r->username : "-";
-    }
+  inline std::string hostname(x0::HttpRequest* r) {
+    std::string name = r->connection.remoteIP().str();
+    return !name.empty() ? name : "-";
+  }
 
-    inline std::string request_line(x0::HttpRequest* r)
-    {
-        x0::Buffer buf;
+  inline std::string username(x0::HttpRequest* r) {
+    return !r->username.empty() ? r->username : "-";
+  }
 
-        buf << r->method << ' ' << r->unparsedUri
-            << " HTTP/" << r->httpVersionMajor << '.' << r->httpVersionMinor;
+  inline std::string request_line(x0::HttpRequest* r) {
+    x0::Buffer buf;
 
-        return buf.str();
-    }
+    buf << r->method << ' ' << r->unparsedUri << " HTTP/" << r->httpVersionMajor
+        << '.' << r->httpVersionMinor;
 
-    inline std::string getheader(const x0::HttpRequest* r, const std::string& name)
-    {
-        x0::BufferRef value(r->requestHeader(name));
-        return !value.empty() ? value.str() : "-";
-    }
-}; // }}}
+    return buf.str();
+  }
+
+  inline std::string getheader(const x0::HttpRequest* r,
+                               const std::string& name) {
+    x0::BufferRef value(r->requestHeader(name));
+    return !value.empty() ? value.str() : "-";
+  }
+};  // }}}
 
 /**
  * \ingroup plugins
- * \brief implements an accesslog log facility - in spirit of "combined" mode of apache's accesslog logs.
+ * \brief implements an accesslog log facility - in spirit of "combined" mode of
+ * apache's accesslog logs.
  */
-class AccesslogPlugin :
-    public x0d::XzeroPlugin
-{
-private:
-    typedef std::unordered_map<std::string, std::shared_ptr<x0::LogFile>> LogMap;
+class AccesslogPlugin : public x0d::XzeroPlugin {
+ private:
+  typedef std::unordered_map<std::string, std::shared_ptr<x0::LogFile>> LogMap;
 
 #if defined(HAVE_SYSLOG_H)
-    x0::SyslogSink syslogSink_;
+  x0::SyslogSink syslogSink_;
 #endif
 
-    std::unordered_map<FlowString, FlowString> formats_;
-    LogMap logfiles_; // map of file's name-to-fd
+  std::unordered_map<FlowString, FlowString> formats_;
+  LogMap logfiles_;  // map of file's name-to-fd
 
-public:
-    AccesslogPlugin(x0d::XzeroDaemon* d, const std::string& name) :
-        x0d::XzeroPlugin(d, name),
+ public:
+  AccesslogPlugin(x0d::XzeroDaemon* d, const std::string& name)
+      : x0d::XzeroPlugin(d, name),
 #if defined(HAVE_SYSLOG_H)
         syslogSink_(LOG_INFO),
 #endif
         formats_(),
-        logfiles_()
-    {
-        formats_["combined"] = "%R - %U [%t] \"%r\" %c %O \"%>{Referer}\" \"%>{User-Agent}\"";
-        formats_["main"] = "%R - [%t] \"%r\" %c %O \"%>{User-Agent}\" \"%>{Referer}\"";
+        logfiles_() {
+    formats_["combined"] =
+        "%R - %U [%t] \"%r\" %c %O \"%>{Referer}\" \"%>{User-Agent}\"";
+    formats_["main"] =
+        "%R - [%t] \"%r\" %c %O \"%>{User-Agent}\" \"%>{Referer}\"";
 
-        setupFunction("accesslog.format", &AccesslogPlugin::accesslog_format)
-            .param<FlowString>("id")
-            .param<FlowString>("format");
+    setupFunction("accesslog.format", &AccesslogPlugin::accesslog_format)
+        .param<FlowString>("id")
+        .param<FlowString>("format");
 
-        mainFunction("accesslog", &AccesslogPlugin::accesslog_file)
-            .param<FlowString>("file")
-            .param<FlowString>("format", "main");
+    mainFunction("accesslog", &AccesslogPlugin::accesslog_file)
+        .param<FlowString>("file")
+        .param<FlowString>("format", "main");
 
-        mainFunction("accesslog.syslog", &AccesslogPlugin::accesslog_syslog)
-            .param<FlowString>("format", "main");
+    mainFunction("accesslog.syslog", &AccesslogPlugin::accesslog_syslog)
+        .param<FlowString>("format", "main");
+  }
+
+  ~AccesslogPlugin() { clear(); }
+
+  virtual void cycleLogs() {
+    for (auto& i : logfiles_) {
+      i.second->cycle();
+    }
+  }
+
+  void clear() { logfiles_.clear(); }
+
+ private:
+  // accesslog.format(literal string id, literal string format);
+  void accesslog_format(FlowVM::Params& args) {
+    FlowString id = args.getString(1);
+    FlowString format = args.getString(2);
+    formats_[id] = format;
+  }
+
+  // accesslog(filename, format = "main");
+  void accesslog_file(HttpRequest* r, x0::FlowVM::Params& args) {
+    std::string filename(args.getString(1).str());
+    FlowString id = args.getString(2);
+
+    Try<FlowString> format = lookupFormat(id);
+    if (format.isError()) {
+      r->log(Severity::error,
+             "Could not write to accesslog '%s' with format id '%s'. %s",
+             filename.c_str(), id.str().c_str(), format.errorMessage());
+      return;
     }
 
-    ~AccesslogPlugin()
-    {
-        clear();
+    LogFile* logFile = getLogFile(filename);
+
+    if (auto rl = r->customData<RequestLogger>(this)) {
+      rl->addTarget(format.get(), logFile);
+    } else {
+      r->setCustomData<RequestLogger>(this, r, format.get(), logFile);
     }
+  }
 
-    virtual void cycleLogs()
-    {
-        for (auto& i: logfiles_) {
-            i.second->cycle();
-        }
-    }
-
-    void clear()
-    {
-        logfiles_.clear();
-    }
-
-private:
-    // accesslog.format(literal string id, literal string format);
-    void accesslog_format(FlowVM::Params& args)
-    {
-        FlowString id = args.getString(1);
-        FlowString format = args.getString(2);
-        formats_[id] = format;
-    }
-
-    // accesslog(filename, format = "main");
-    void accesslog_file(HttpRequest* r, x0::FlowVM::Params& args)
-    {
-        std::string filename(args.getString(1).str());
-        FlowString id = args.getString(2);
-
-        Try<FlowString> format = lookupFormat(id);
-        if (format.isError()) {
-            r->log(Severity::error,
-                "Could not write to accesslog '%s' with format id '%s'. %s",
-                filename.c_str(), id.str().c_str(), format.errorMessage());
-            return;
-        }
-
-        LogFile* logFile = getLogFile(filename);
-
-        if (auto rl = r->customData<RequestLogger>(this)) {
-            rl->addTarget(format.get(), logFile);
-        } else {
-            r->setCustomData<RequestLogger>(this, r, format.get(), logFile);
-        }
-    }
-
-    void accesslog_syslog(x0::HttpRequest* r, x0::FlowVM::Params& args)
-    {
+  void accesslog_syslog(x0::HttpRequest* r, x0::FlowVM::Params& args) {
 #if defined(HAVE_SYSLOG_H)
-        FlowString id = args.getString(1);
+    FlowString id = args.getString(1);
 
-        Try<FlowString> format = lookupFormat(id);
-        if (format.isError()) {
-            r->log(Severity::error,
-                "Could not write to accesslog (syslog) with format id '%s'. %s",
-                id.str().c_str(), format.errorMessage());
-            return;
-        }
+    Try<FlowString> format = lookupFormat(id);
+    if (format.isError()) {
+      r->log(Severity::error,
+             "Could not write to accesslog (syslog) with format id '%s'. %s",
+             id.str().c_str(), format.errorMessage());
+      return;
+    }
 
-        if (auto rl = r->customData<RequestLogger>(this)) {
-            rl->addTarget(format.get(), &syslogSink_);
-        } else {
-            r->setCustomData<RequestLogger>(this, r, format.get(), &syslogSink_);
-        }
+    if (auto rl = r->customData<RequestLogger>(this)) {
+      rl->addTarget(format.get(), &syslogSink_);
+    } else {
+      r->setCustomData<RequestLogger>(this, r, format.get(), &syslogSink_);
+    }
 #endif
+  }
+
+  Try<FlowString> lookupFormat(const FlowString& id) const {
+    auto i = formats_.find(id);
+    if (i != formats_.end()) {
+      return i->second;
     }
 
-    Try<FlowString> lookupFormat(const FlowString& id) const
-    {
-        auto i = formats_.find(id);
-        if (i != formats_.end()) {
-            return i->second;
-        }
+    return Error("accesslog format not found.");
+  }
 
-        return Error("accesslog format not found.");
+  LogFile* getLogFile(const FlowString& filename) {
+    auto i = logfiles_.find(filename.str());
+    if (i != logfiles_.end()) {
+      return i->second.get();
     }
 
-    LogFile* getLogFile(const FlowString& filename)
-    {
-        auto i = logfiles_.find(filename.str());
-        if (i != logfiles_.end()) {
-            return i->second.get();
-        }
-
-        auto fileSink = new x0::LogFile(filename.str());
-        logfiles_[filename.str()].reset(fileSink);
-        return fileSink;
-    }
+    auto fileSink = new x0::LogFile(filename.str());
+    logfiles_[filename.str()].reset(fileSink);
+    return fileSink;
+  }
 };
 
 X0_EXPORT_PLUGIN_CLASS(AccesslogPlugin)

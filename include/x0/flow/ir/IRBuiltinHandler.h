@@ -18,17 +18,15 @@
 namespace x0 {
 
 class X0_API IRBuiltinHandler : public Constant {
-public:
-    IRBuiltinHandler(const FlowVM::Signature& sig) :
-        Constant(FlowType::Boolean, sig.name()),
-        signature_(sig)
-    {}
+ public:
+  IRBuiltinHandler(const FlowVM::Signature& sig)
+      : Constant(FlowType::Boolean, sig.name()), signature_(sig) {}
 
-    const FlowVM::Signature& signature() const { return signature_; }
-    const FlowVM::Signature& get() const { return signature_; }
+  const FlowVM::Signature& signature() const { return signature_; }
+  const FlowVM::Signature& get() const { return signature_; }
 
-private:
-    FlowVM::Signature signature_;
+ private:
+  FlowVM::Signature signature_;
 };
 
-} // namespace x0
+}  // namespace x0

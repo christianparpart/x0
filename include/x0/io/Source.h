@@ -24,19 +24,18 @@ namespace x0 {
  *
  * \see FileSource, Sink, Filter
  */
-class X0_API Source
-{
-public:
-    virtual ~Source() {}
+class X0_API Source {
+ public:
+  virtual ~Source() {}
 
-    virtual ssize_t sendto(Sink& output) = 0;
-    virtual ssize_t size() const = 0;
+  virtual ssize_t sendto(Sink& output) = 0;
+  virtual ssize_t size() const = 0;
 
-    virtual const char* className() const = 0;
+  virtual const char* className() const = 0;
 };
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

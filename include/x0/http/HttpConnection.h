@@ -41,255 +41,252 @@ class ServerSocket;
  * @brief HTTP client connection object.
  * @see HttpRequest, HttpServer
  */
-class X0_API HttpConnection :
-    public HttpMessageParser
-{
-    CUSTOMDATA_API_INLINE
+class X0_API HttpConnection : public HttpMessageParser {
+  CUSTOMDATA_API_INLINE
 
-public:
-    enum State {
-        Undefined = 0,			//!< Object got just constructed.
-        ReadingRequest,			//!< Parses HTTP request.
-        ProcessingRequest,		//!< request handler: has taken over but not sent out anythng
-        SendingReply,			//!< request handler: response headers written, sending body
-        SendingReplyDone,		//!< request handler: populating message done, still pending data to sent.
-        KeepAliveRead			//!< Waiting for next HTTP request in keep-alive state.
-    };
+ public:
+  enum State {
+    Undefined = 0,      //!< Object got just constructed.
+    ReadingRequest,     //!< Parses HTTP request.
+    ProcessingRequest,  //!< request handler: has taken over but not sent out
+                        //anythng
+    SendingReply,  //!< request handler: response headers written, sending body
+    SendingReplyDone,  //!< request handler: populating message done, still
+                       //pending data to sent.
+    KeepAliveRead      //!< Waiting for next HTTP request in keep-alive state.
+  };
 
-    class ScopedRef {
-    public:
-        ScopedRef& operator=(const ScopedRef&) = delete;
-        ScopedRef(const ScopedRef&) = delete;
+  class ScopedRef {
+   public:
+    ScopedRef& operator=(const ScopedRef&) = delete;
+    ScopedRef(const ScopedRef&) = delete;
 
-        explicit ScopedRef(HttpConnection* c) :
-            c_(c)
-        {
-            c_->ref();
-        }
+    explicit ScopedRef(HttpConnection* c) : c_(c) { c_->ref(); }
 
-        ~ScopedRef()
-        {
-            c_->unref();
-        }
+    ~ScopedRef() { c_->unref(); }
 
-    private:
-        HttpConnection* c_;
-    };
+   private:
+    HttpConnection* c_;
+  };
 
-public:
-    HttpConnection& operator=(const HttpConnection&) = delete;
-    HttpConnection(const HttpConnection&) = delete;
+ public:
+  HttpConnection& operator=(const HttpConnection&) = delete;
+  HttpConnection(const HttpConnection&) = delete;
 
-    /**
-     * creates an HTTP connection object.
-     * \param srv a ptr to the server object this connection belongs to.
-     */
-    HttpConnection(HttpWorker* worker, unsigned long long id);
+  /**
+   * creates an HTTP connection object.
+   * \param srv a ptr to the server object this connection belongs to.
+   */
+  HttpConnection(HttpWorker* worker, unsigned long long id);
 
-    ~HttpConnection();
+  ~HttpConnection();
 
-    unsigned long long id() const;				//!< returns the (mostly) unique, worker-local, ID to this connection
+  unsigned long long id() const;  //!< returns the (mostly) unique,
+                                  //worker-local, ID to this connection
 
-    unsigned requestCount() const { return requestCount_; }
+  unsigned requestCount() const { return requestCount_; }
 
-    State state() const { return state_; }
-    void setState(State value);
-    const char* state_str() const;
+  State state() const { return state_; }
+  void setState(State value);
+  const char* state_str() const;
 
-    HttpMessageParser::State parserState() const { return HttpMessageParser::state(); }
-    const char* parserStateStr() const { return HttpMessageParser::state_str(); }
+  HttpMessageParser::State parserState() const {
+    return HttpMessageParser::state();
+  }
+  const char* parserStateStr() const { return HttpMessageParser::state_str(); }
 
-    Socket* socket() const;						//!< Retrieves a pointer to the connection socket.
-    HttpWorker& worker() const;					//!< Retrieves a reference to the owning worker.
+  Socket* socket() const;  //!< Retrieves a pointer to the connection socket.
+  HttpWorker& worker() const;  //!< Retrieves a reference to the owning worker.
 
-    const IPAddress& remoteIP() const { return socket_->remoteIP(); }
-    unsigned int remotePort() const { return socket_->remotePort(); } //!< Retrieves the TCP port numer of the remote end point (client).
+  const IPAddress& remoteIP() const { return socket_->remoteIP(); }
+  unsigned int remotePort() const {
+    return socket_->remotePort();
+  }  //!< Retrieves the TCP port numer of the remote end point (client).
 
-    const IPAddress& localIP() const { return socket_->localIP(); }
-    unsigned int localPort() const { return socket_->localPort(); }
+  const IPAddress& localIP() const { return socket_->localIP(); }
+  unsigned int localPort() const { return socket_->localPort(); }
 
-    const ServerSocket& listener() const;
+  const ServerSocket& listener() const;
 
-    bool isSecure() const;
+  bool isSecure() const;
 
-    void write(std::unique_ptr<Source>&& source);
-    template<class T, class... Args> void write(Args&&... args);
+  void write(std::unique_ptr<Source>&& source);
+  template <class T, class... Args>
+  void write(Args&&... args);
 
-    void flush();
-    bool autoFlush() const { return autoFlush_; }
-    void setAutoFlush(bool value) { autoFlush_ = value; if (value) { flush(); } }
+  void flush();
+  bool autoFlush() const { return autoFlush_; }
+  void setAutoFlush(bool value) {
+    autoFlush_ = value;
+    if (value) {
+      flush();
+    }
+  }
 
-    bool isOutputPending() const { return !output_.empty(); }
+  bool isOutputPending() const { return !output_.empty(); }
 
-    const HttpRequest* request() const { return request_; }
-    HttpRequest* request() { return request_; }
+  const HttpRequest* request() const { return request_; }
+  HttpRequest* request() { return request_; }
 
-    bool isInputPending() const { return requestParserOffset_ < requestBuffer_.size(); }
+  bool isInputPending() const {
+    return requestParserOffset_ < requestBuffer_.size();
+  }
 
-    unsigned refCount() const;
+  unsigned refCount() const;
 
-    void post(std::function<void()>&& function);
+  void post(std::function<void()>&& function);
 
-    bool isOpen() const;
+  bool isOpen() const;
 
-    template<typename... Args>
-    void log(Severity s, const char* fmt, Args... args);
+  template <typename... Args>
+  void log(Severity s, const char* fmt, Args... args);
 
-    void log(LogMessage&& msg);
+  void log(LogMessage&& msg);
 
-    /** Increments the internal reference count and ensures that this object remains valid until its unref().
-     *
-     * Surround the section using this object by a ref() and unref(), ensuring, that this
-     * object won't be destroyed in between.
-     *
-     * \see unref()
-     * \see close()
-     * \see HttpRequest::finish()
-     */
-    void ref();
+  /** Increments the internal reference count and ensures that this object
+   *remains valid until its unref().
+   *
+   * Surround the section using this object by a ref() and unref(), ensuring,
+   *that this
+   * object won't be destroyed in between.
+   *
+   * \see unref()
+   * \see close()
+   * \see HttpRequest::finish()
+   */
+  void ref();
 
-    /** Decrements the internal reference count, marking the end of the section using this connection.
-     *
-     * \note After the unref()-call, the connection object MUST NOT be used any more.
-     * If the unref()-call results into a reference-count of zero <b>AND</b> the connection
-     * has been closed during this time, the connection will be released / destructed.
-     *
-     * \see ref()
-     */
-    void unref();
+  /** Decrements the internal reference count, marking the end of the section
+   *using this connection.
+   *
+   * \note After the unref()-call, the connection object MUST NOT be used any
+   *more.
+   * If the unref()-call results into a reference-count of zero <b>AND</b> the
+   *connection
+   * has been closed during this time, the connection will be released /
+   *destructed.
+   *
+   * \see ref()
+   */
+  void unref();
 
-private:
-    friend class HttpRequest;
-    friend class HttpWorker;
+ private:
+  friend class HttpRequest;
+  friend class HttpWorker;
 
-    void clearRequestBody();
+  void clearRequestBody();
 
-    void reinit(unsigned long long id);
-    void start(std::unique_ptr<Socket>&& client, ServerSocket* listener);
-    void resume();
+  void reinit(unsigned long long id);
+  void start(std::unique_ptr<Socket>&& client, ServerSocket* listener);
+  void resume();
 
-    void abort(HttpStatus status);
-    void abort();
-    void close();
+  void abort(HttpStatus status);
+  void abort();
+  void close();
 
-    void onHandshakeComplete(Socket*);
-    bool readSome();
-    bool writeSome();
-    bool process();
-    void onReadWriteReady(Socket* socket, int revents);
-    void onReadWriteTimeout(Socket* socket);
+  void onHandshakeComplete(Socket*);
+  bool readSome();
+  bool writeSome();
+  bool process();
+  void onReadWriteReady(Socket* socket, int revents);
+  void onReadWriteTimeout(Socket* socket);
 
-    void wantRead(const TimeSpan& timeout);
-    void wantWrite();
+  void wantRead(const TimeSpan& timeout);
+  void wantWrite();
 
-    // overrides from HttpMessageParser:
-    bool onMessageBegin(const BufferRef& method, const BufferRef& entity, int versionMajor, int versionMinor) override;
-    bool onMessageHeader(const BufferRef& name, const BufferRef& value) override;
-    bool onMessageHeaderEnd() override;
-    bool onMessageContent(const BufferRef& chunk) override;
-    bool onMessageEnd() override;
-    void onProtocolError(const BufferRef& chunk, size_t offset) override;
+  // overrides from HttpMessageParser:
+  bool onMessageBegin(const BufferRef& method, const BufferRef& entity,
+                      int versionMajor, int versionMinor) override;
+  bool onMessageHeader(const BufferRef& name, const BufferRef& value) override;
+  bool onMessageHeaderEnd() override;
+  bool onMessageContent(const BufferRef& chunk) override;
+  bool onMessageEnd() override;
+  void onProtocolError(const BufferRef& chunk, size_t offset) override;
 
-    void setShouldKeepAlive(bool enabled);
-    bool shouldKeepAlive() const { return shouldKeepAlive_; }
+  void setShouldKeepAlive(bool enabled);
+  bool shouldKeepAlive() const { return shouldKeepAlive_; }
 
-public:
-    const Buffer& requestBuffer() const { return requestBuffer_; }
-    std::size_t requestParserOffset() const { return requestParserOffset_; }
+ public:
+  const Buffer& requestBuffer() const { return requestBuffer_; }
+  std::size_t requestParserOffset() const { return requestParserOffset_; }
 
-private:
-    unsigned refCount_;
+ private:
+  unsigned refCount_;
 
-    State state_;
+  State state_;
 
-    ServerSocket* listener_;
-    HttpWorker* worker_;
+  ServerSocket* listener_;
+  HttpWorker* worker_;
 
-    unsigned long long id_;				        //!< the worker-local connection-ID
-    unsigned requestCount_;				        //!< the number of requests already processed or currently in process
-    bool shouldKeepAlive_;                      //!< indication whether or not connection should keep-alive after current request
-    std::function<void()> clientAbortHandler_;  //!< connection abort callback
+  unsigned long long id_;  //!< the worker-local connection-ID
+  unsigned requestCount_;  //!< the number of requests already processed or
+                           //currently in process
+  bool shouldKeepAlive_;   //!< indication whether or not connection should
+                           //keep-alive after current request
+  std::function<void()> clientAbortHandler_;  //!< connection abort callback
 
-    // HTTP HttpRequest
-    Buffer requestBuffer_;                      //!< buffer for incoming data.
-    std::size_t requestParserOffset_;           //!< number of bytes in request buffer successfully processed already.
-    std::size_t requestHeaderEndOffset_;        //!< offset to the first byte of the currently processed request
-    HttpRequest* request_;				        //!< currently parsed http HttpRequest, may be NULL
+  // HTTP HttpRequest
+  Buffer requestBuffer_;                //!< buffer for incoming data.
+  std::size_t requestParserOffset_;     //!< number of bytes in request buffer
+                                        //successfully processed already.
+  std::size_t requestHeaderEndOffset_;  //!< offset to the first byte of the
+                                        //currently processed request
+  HttpRequest* request_;  //!< currently parsed http HttpRequest, may be NULL
 
-    char requestBodyPath_[1024];                //!< full path to temporary stored request body, if available
-    int requestBodyFd_;                         //!< file handle to temporary stored request body, if available
-    size_t requestBodyFileSize_;                //!< size of the temporary request body file in bytes, if available, 0 otherwise.
+  char requestBodyPath_[1024];  //!< full path to temporary stored request body,
+                                //if available
+  int requestBodyFd_;  //!< file handle to temporary stored request body, if
+                       //available
+  size_t requestBodyFileSize_;  //!< size of the temporary request body file in
+                                //bytes, if available, 0 otherwise.
 
-    // output
-    CompositeSource output_;			        //!< pending write-chunks
-    std::unique_ptr<Socket> socket_;            //!< underlying communication socket
-    SocketSink sink_;					        //!< sink wrapper for socket_
-    bool autoFlush_;					        //!< true if flush() is invoked automatically after every write()
+  // output
+  CompositeSource output_;          //!< pending write-chunks
+  std::unique_ptr<Socket> socket_;  //!< underlying communication socket
+  SocketSink sink_;                 //!< sink wrapper for socket_
+  bool autoFlush_;  //!< true if flush() is invoked automatically after every
+                    //write()
 
-    // intrusive links for the free-list cache
-    HttpConnection* prev_;
-    HttpConnection* next_;
+  // intrusive links for the free-list cache
+  HttpConnection* prev_;
+  HttpConnection* next_;
 };
 
 // {{{ inlines
-inline Socket* HttpConnection::socket() const
-{
-    return socket_.get();
+inline Socket* HttpConnection::socket() const { return socket_.get(); }
+
+inline unsigned long long HttpConnection::id() const { return id_; }
+
+inline unsigned HttpConnection::refCount() const { return refCount_; }
+
+inline const char* HttpConnection::state_str() const {
+  static const char* str[] = {"undefined",          "reading-request",
+                              "processing-request", "sending-reply",
+                              "sending-reply-done", "keep-alive-read"};
+  return str[static_cast<size_t>(state_)];
 }
 
-inline unsigned long long HttpConnection::id() const
-{
-    return id_;
+inline HttpWorker& HttpConnection::worker() const { return *worker_; }
+
+template <class T, class... Args>
+inline void HttpConnection::write(Args&&... args) {
+  write(std::unique_ptr<T>(new T(args...)));
 }
 
-inline unsigned HttpConnection::refCount() const
-{
-    return refCount_;
+inline const ServerSocket& HttpConnection::listener() const {
+  return *listener_;
 }
 
-inline const char* HttpConnection::state_str() const
-{
-    static const char* str[] = {
-        "undefined",
-        "reading-request",
-        "processing-request",
-        "sending-reply",
-        "sending-reply-done",
-        "keep-alive-read"
-    };
-    return str[static_cast<size_t>(state_)];
-}
+inline bool HttpConnection::isOpen() const { return socket_->isOpen(); }
 
-inline HttpWorker& HttpConnection::worker() const
-{
-    return *worker_;
-}
-
-template<class T, class... Args>
-inline void HttpConnection::write(Args&&... args)
-{
-    write(std::unique_ptr<T>(new T(args...)));
-}
-
-inline const ServerSocket& HttpConnection::listener() const
-{
-    return *listener_;
-}
-
-inline bool HttpConnection::isOpen() const
-{
-    return socket_->isOpen();
-}
-
-template<typename... Args>
-inline void HttpConnection::log(Severity s, const char* fmt, Args... args)
-{
-    log(LogMessage(s, fmt, args...));
+template <typename... Args>
+inline void HttpConnection::log(Severity s, const char* fmt, Args... args) {
+  log(LogMessage(s, fmt, args...));
 }
 // }}}
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

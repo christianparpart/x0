@@ -29,8 +29,10 @@ size_t x0_inifile_section_size(x0_inifile_t* ini, const char* title);
 int x0_inifile_section_contains(x0_inifile_t* ini, const char* title);
 void x0_inifile_section_remove(x0_inifile_t* ini, const char* title);
 
-void x0_inifile_value_set(x0_inifile_t* ini, const char* title, const char* key, const char* value);
-ssize_t x0_inifile_value_get(x0_inifile_t* ini, const char* title, const char* key, char* value, size_t size);
+void x0_inifile_value_set(x0_inifile_t* ini, const char* title, const char* key,
+                          const char* value);
+ssize_t x0_inifile_value_get(x0_inifile_t* ini, const char* title,
+                             const char* key, char* value, size_t size);
 
 #if defined(__cplusplus)
 }

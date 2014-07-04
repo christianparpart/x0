@@ -10,15 +10,13 @@
 
 namespace x0 {
 
-void FixedBufferSink::accept(SinkVisitor& v)
-{
-    ;// TODO v.visit(*this);
+void FixedBufferSink::accept(SinkVisitor& v) {
+  ;  // TODO v.visit(*this);
 }
 
-ssize_t FixedBufferSink::write(const void *buffer, size_t size)
-{
-    buffer_.push_back(buffer, size);
-    return size;
+ssize_t FixedBufferSink::write(const void* buffer, size_t size) {
+  buffer_.push_back(buffer, size);
+  return size;
 }
 
-} // namespace x0
+}  // namespace x0

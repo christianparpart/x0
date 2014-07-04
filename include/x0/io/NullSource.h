@@ -20,18 +20,16 @@ namespace x0 {
  *
  * \see Buffer, Source, Sink
  */
-class X0_API NullSource :
-    public Source
-{
-public:
-    ssize_t sendto(Sink& sink);
-    ssize_t size() const override;
+class X0_API NullSource : public Source {
+ public:
+  ssize_t sendto(Sink& sink);
+  ssize_t size() const override;
 
-    virtual const char* className() const;
+  virtual const char* className() const;
 };
 
 //@}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

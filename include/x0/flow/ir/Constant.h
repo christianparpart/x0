@@ -13,11 +13,10 @@
 namespace x0 {
 
 class X0_API Constant : public Value {
-public:
-    Constant(FlowType ty, const std::string& name) :
-        Value(ty, name)  {}
+ public:
+  Constant(FlowType ty, const std::string& name) : Value(ty, name) {}
 
-    void dump() override;
+  void dump() override;
 };
 
-} // namespace x0
+}  // namespace x0

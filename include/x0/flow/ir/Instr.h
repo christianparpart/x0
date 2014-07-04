@@ -34,7 +34,8 @@ class InstructionVisitor;
 /**
  * Base class for native instructions.
  *
- * An instruction is derived from base class \c Value because its result can be used
+ * An instruction is derived from base class \c Value because its result can be
+ *used
  * as an operand for other instructions.
  *
  * @see IRBuilder
@@ -42,84 +43,86 @@ class InstructionVisitor;
  * @see IRHandler
  */
 class X0_API Instr : public Value {
-protected:
-    Instr(const Instr& v);
+ protected:
+  Instr(const Instr& v);
 
-public:
-    Instr(FlowType ty, const std::vector<Value*>& ops = {}, const std::string& name = "");
-    ~Instr();
+ public:
+  Instr(FlowType ty, const std::vector<Value*>& ops = {},
+        const std::string& name = "");
+  ~Instr();
 
-    /**
-     * Retrieves parent basic block this instruction is part of.
-     */
-    BasicBlock* parent() const { return parent_; }
+  /**
+   * Retrieves parent basic block this instruction is part of.
+   */
+  BasicBlock* parent() const { return parent_; }
 
-    /**
-     * Read-only access to operands.
-     */
-    const std::vector<Value*>& operands() const { return operands_; }
+  /**
+   * Read-only access to operands.
+   */
+  const std::vector<Value*>& operands() const { return operands_; }
 
-    /**
-     * Retrieves n'th operand at given \p index.
-     */
-    Value* operand(size_t index) const { return operands_[index]; }
+  /**
+   * Retrieves n'th operand at given \p index.
+   */
+  Value* operand(size_t index) const { return operands_[index]; }
 
-    /**
-     * Adds given operand \p value to the end of the operand list.
-     */
-    void addOperand(Value* value);
+  /**
+   * Adds given operand \p value to the end of the operand list.
+   */
+  void addOperand(Value* value);
 
-    /**
-     * Sets operand at index \p i to given \p value.
-     *
-     * This operation will potentially replace the value that has been at index \p i before,
-     * properly unlinking it from any uses or successor/predecessor links.
-     */
-    Value* setOperand(size_t i, Value* value);
+  /**
+   * Sets operand at index \p i to given \p value.
+   *
+   * This operation will potentially replace the value that has been at index \p
+   *i before,
+   * properly unlinking it from any uses or successor/predecessor links.
+   */
+  Value* setOperand(size_t i, Value* value);
 
-    /**
-     * Replaces \p old operand with \p replacement.
-     *
-     * @param old value to replace
-     * @param replacement new value to put at the offset of \p old.
-     *
-     * @returns number of actual performed replacements.
-     */
-    size_t replaceOperand(Value* old, Value* replacement);
+  /**
+   * Replaces \p old operand with \p replacement.
+   *
+   * @param old value to replace
+   * @param replacement new value to put at the offset of \p old.
+   *
+   * @returns number of actual performed replacements.
+   */
+  size_t replaceOperand(Value* old, Value* replacement);
 
-    /**
-     * Clears out all operands.
-     *
-     * @see addOperand()
-     */
-    void clearOperands();
+  /**
+   * Clears out all operands.
+   *
+   * @see addOperand()
+   */
+  void clearOperands();
 
-    /**
-     * Clones given instruction.
-     *
-     * This will not clone any of its operands but reference them.
-     */
-    virtual Instr* clone() = 0;
+  /**
+   * Clones given instruction.
+   *
+   * This will not clone any of its operands but reference them.
+   */
+  virtual Instr* clone() = 0;
 
-    /**
-     * Generic extension interface.
-     *
-     * @param v extension to pass this instruction to.
-     *
-     * @see InstructionVisitor
-     */
-    virtual void accept(InstructionVisitor& v) = 0;
+  /**
+   * Generic extension interface.
+   *
+   * @param v extension to pass this instruction to.
+   *
+   * @see InstructionVisitor
+   */
+  virtual void accept(InstructionVisitor& v) = 0;
 
-protected:
-    void dumpOne(const char* mnemonic);
+ protected:
+  void dumpOne(const char* mnemonic);
 
-    void setParent(BasicBlock* bb) { parent_ = bb; }
+  void setParent(BasicBlock* bb) { parent_ = bb; }
 
-    friend class BasicBlock;
+  friend class BasicBlock;
 
-private:
-    BasicBlock* parent_;
-    std::vector<Value*> operands_;
+ private:
+  BasicBlock* parent_;
+  std::vector<Value*> operands_;
 };
 
-} // namespace x0
+}  // namespace x0

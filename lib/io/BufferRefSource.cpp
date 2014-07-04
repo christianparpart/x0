@@ -9,26 +9,18 @@
 
 namespace x0 {
 
-BufferRefSource::~BufferRefSource()
-{
+BufferRefSource::~BufferRefSource() {}
+
+ssize_t BufferRefSource::sendto(Sink& sink) {
+  if (pos_ == buffer_.size()) return 0;
+
+  ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);
+
+  if (result > 0) pos_ += result;
+
+  return result;
 }
 
-ssize_t BufferRefSource::sendto(Sink& sink)
-{
-    if (pos_ == buffer_.size())
-        return 0;
+const char* BufferRefSource::className() const { return "BufferRefSource"; }
 
-    ssize_t result = sink.write(buffer_.data() + pos_, buffer_.size() - pos_);
-
-    if (result > 0)
-        pos_ += result;
-
-    return result;
-}
-
-const char* BufferRefSource::className() const
-{
-    return "BufferRefSource";
-}
-
-} // namespace x0
+}  // namespace x0

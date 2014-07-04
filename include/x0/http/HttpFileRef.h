@@ -12,66 +12,59 @@
 
 namespace x0 {
 
-// XXX I may consider replacing this with std::shared_ptr<> if performance is appropriate in a single threaded context.
+// XXX I may consider replacing this with std::shared_ptr<> if performance is
+// appropriate in a single threaded context.
 
 class X0_API HttpFileRef {
-private:
-    HttpFile* object_;
+ private:
+  HttpFile* object_;
 
-public:
-    HttpFileRef() : object_(nullptr) {}
+ public:
+  HttpFileRef() : object_(nullptr) {}
 
-    HttpFileRef(HttpFile* f) :
-        object_(f)
-    {
-        if (object_) {
-            object_->ref();
-        }
+  HttpFileRef(HttpFile* f) : object_(f) {
+    if (object_) {
+      object_->ref();
     }
+  }
 
-    HttpFileRef(const HttpFileRef& v) :
-        object_(v.object_)
-    {
-        if (object_) {
-            object_->ref();
-        }
+  HttpFileRef(const HttpFileRef& v) : object_(v.object_) {
+    if (object_) {
+      object_->ref();
     }
+  }
 
-    HttpFileRef& operator=(const HttpFileRef& v)
-    {
-        HttpFile* old = object_;
+  HttpFileRef& operator=(const HttpFileRef& v) {
+    HttpFile* old = object_;
 
-        object_ = v.object_;
-        object_->ref();
+    object_ = v.object_;
+    object_->ref();
 
-        if (old)
-            old->unref();
+    if (old) old->unref();
 
-        return *this;
+    return *this;
+  }
+
+  ~HttpFileRef() {
+    if (object_) {
+      object_->unref();
     }
+  }
 
-    ~HttpFileRef()
-    {
-        if (object_) {
-            object_->unref();
-        }
+  HttpFile* get() const { return object_; }
+
+  HttpFile* operator->() { return object_; }
+  const HttpFile* operator->() const { return object_; }
+
+  bool operator!() const { return object_ == nullptr; }
+  operator bool() const { return object_ != nullptr; }
+
+  void reset() {
+    if (object_) {
+      object_->unref();
     }
-
-    HttpFile* get() const { return object_; }
-
-    HttpFile* operator->() { return object_; }
-    const HttpFile* operator->() const { return object_; }
-
-    bool operator!() const { return object_ == nullptr; }
-    operator bool() const { return object_ != nullptr; }
-
-    void reset()
-    {
-        if (object_) {
-            object_->unref();
-        }
-        object_ = nullptr;
-    }
+    object_ = nullptr;
+  }
 };
 
-} // namespace x0
+}  // namespace x0

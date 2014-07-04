@@ -12,20 +12,19 @@
 
 namespace x0 {
 
-class X0_API SyslogSink :
-    public Sink
-{
-private:
-    int level_;
+class X0_API SyslogSink : public Sink {
+ private:
+  int level_;
 
-public:
-    explicit SyslogSink(int level);
+ public:
+  explicit SyslogSink(int level);
 
-    virtual void accept(SinkVisitor& v);
-    virtual ssize_t write(const void *buffer, size_t size);
+  virtual void accept(SinkVisitor& v);
+  virtual ssize_t write(const void* buffer, size_t size);
 
-    static void open(const char* ident = nullptr, int options = 0, int facility = 0);
-    static void close();
+  static void open(const char* ident = nullptr, int options = 0,
+                   int facility = 0);
+  static void close();
 };
 
-} // namespace x0
+}  // namespace x0

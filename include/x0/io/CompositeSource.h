@@ -23,83 +23,61 @@ namespace x0 {
  * This source represents a sequential set of sub sources.
  * \see source
  */
-class X0_API CompositeSource :
-    public Source
-{
-private:
-    typedef std::unique_ptr<Source> value_type;
-    typedef std::deque<value_type> list_type;
-    typedef list_type::iterator iterator;
-    typedef list_type::const_iterator const_iterator;
+class X0_API CompositeSource : public Source {
+ private:
+  typedef std::unique_ptr<Source> value_type;
+  typedef std::deque<value_type> list_type;
+  typedef list_type::iterator iterator;
+  typedef list_type::const_iterator const_iterator;
 
-private:
-    list_type sources_;
+ private:
+  list_type sources_;
 
-public:
-    CompositeSource();
-    ~CompositeSource();
+ public:
+  CompositeSource();
+  ~CompositeSource();
 
-    bool empty() const;
-    ssize_t size() const override;
-    void push_back(std::unique_ptr<Source>&& s);
-    template<typename T, typename... Args> T* push_back(Args... args);
-    void clear();
+  bool empty() const;
+  ssize_t size() const override;
+  void push_back(std::unique_ptr<Source>&& s);
+  template <typename T, typename... Args>
+  T* push_back(Args... args);
+  void clear();
 
-    Source* front() const;
-    void pop_front();
+  Source* front() const;
+  void pop_front();
 
-public:
-    virtual ssize_t sendto(Sink& sink);
-    virtual const char* className() const;
+ public:
+  virtual ssize_t sendto(Sink& sink);
+  virtual const char* className() const;
 };
 //@}
 
 // {{{ inlines
-inline CompositeSource::CompositeSource() :
-    Source(),
-    sources_()
-{
+inline CompositeSource::CompositeSource() : Source(), sources_() {}
+
+inline bool CompositeSource::empty() const { return sources_.empty(); }
+
+inline ssize_t CompositeSource::size() const { return sources_.size(); }
+
+inline void CompositeSource::push_back(std::unique_ptr<Source>&& s) {
+  sources_.push_back(std::move(s));
 }
 
-inline bool CompositeSource::empty() const
-{
-    return sources_.empty();
+template <typename T, typename... Args>
+T* CompositeSource::push_back(Args... args) {
+  T* chunk = new T(std::move(args)...);
+  sources_.push_back(std::unique_ptr<T>(chunk));
+  return chunk;
 }
 
-inline ssize_t CompositeSource::size() const
-{
-    return sources_.size();
-}
+inline void CompositeSource::clear() { sources_.clear(); }
 
-inline void CompositeSource::push_back(std::unique_ptr<Source>&& s)
-{
-    sources_.push_back(std::move(s));
-}
+inline Source* CompositeSource::front() const { return sources_.front().get(); }
 
-template<typename T, typename... Args>
-T* CompositeSource::push_back(Args... args)
-{
-    T* chunk = new T(std::move(args)...);
-    sources_.push_back(std::unique_ptr<T>(chunk));
-    return chunk;
-}
-
-inline void CompositeSource::clear()
-{
-    sources_.clear();
-}
-
-inline Source* CompositeSource::front() const
-{
-    return sources_.front().get();
-}
-
-inline void CompositeSource::pop_front()
-{
-    sources_.pop_front();
-}
+inline void CompositeSource::pop_front() { sources_.pop_front(); }
 // }}}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

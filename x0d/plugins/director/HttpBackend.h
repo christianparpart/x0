@@ -15,15 +15,15 @@
  * \see FastCgiBackend
  */
 class HttpBackend : public Backend {
-private:
-    class Connection;
+ private:
+  class Connection;
 
-public:
-    HttpBackend(BackendManager* director, const std::string& name, const x0::SocketSpec& socketSpec, size_t capacity, bool healthChecks);
-    ~HttpBackend();
+ public:
+  HttpBackend(BackendManager* director, const std::string& name,
+              const x0::SocketSpec& socketSpec, size_t capacity,
+              bool healthChecks);
+  ~HttpBackend();
 
-    const std::string& protocol() const override;
-    bool process(RequestNotes* rn) override;
+  const std::string& protocol() const override;
+  bool process(RequestNotes* rn) override;
 };
-
-

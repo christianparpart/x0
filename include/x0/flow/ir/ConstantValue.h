@@ -17,18 +17,16 @@
 
 namespace x0 {
 
-template<typename T, const FlowType Ty>
+template <typename T, const FlowType Ty>
 class X0_API ConstantValue : public Constant {
-public:
-    ConstantValue(const T& value, const std::string& name = "") :
-        Constant(Ty, name),
-        value_(value)
-        {}
+ public:
+  ConstantValue(const T& value, const std::string& name = "")
+      : Constant(Ty, name), value_(value) {}
 
-    T get() const { return value_; }
+  T get() const { return value_; }
 
-private:
-    T value_;
+ private:
+  T value_;
 };
 
 typedef ConstantValue<int64_t, FlowType::Number> ConstantInt;
@@ -38,4 +36,4 @@ typedef ConstantValue<IPAddress, FlowType::IPAddress> ConstantIP;
 typedef ConstantValue<Cidr, FlowType::Cidr> ConstantCidr;
 typedef ConstantValue<RegExp, FlowType::RegExp> ConstantRegExp;
 
-} // namespace x0
+}  // namespace x0

@@ -14,4 +14,4 @@ namespace x0 {
 template class Tokenizer<BufferRef, Buffer>;
 template class Tokenizer<BufferRef, BufferRef>;
 
-} // namespace x0
+}  // namespace x0

@@ -22,38 +22,34 @@ namespace x0 {
 
 /** file sink.
  */
-class X0_API FileSink :
-    public Sink
-{
-private:
-    std::string path_;
-    int flags_;
-    int mode_;
-    int handle_;
-    bool autoClose_;
+class X0_API FileSink : public Sink {
+ private:
+  std::string path_;
+  int flags_;
+  int mode_;
+  int handle_;
+  bool autoClose_;
 
-public:
-    explicit FileSink(const std::string& filename, int flags = O_WRONLY | O_CREAT, int mode = 0666);
-    FileSink(int fd, bool autoClose);
-    ~FileSink();
+ public:
+  explicit FileSink(const std::string& filename, int flags = O_WRONLY | O_CREAT,
+                    int mode = 0666);
+  FileSink(int fd, bool autoClose);
+  ~FileSink();
 
-    int handle() const;
+  int handle() const;
 
-    virtual void accept(SinkVisitor& v);
-    virtual ssize_t write(const void *buffer, size_t size);
+  virtual void accept(SinkVisitor& v);
+  virtual ssize_t write(const void* buffer, size_t size);
 
-    bool cycle();
+  bool cycle();
 };
 
 //@}
 
 // {{{ inlines
-inline int FileSink::handle() const
-{
-    return handle_;
-}
+inline int FileSink::handle() const { return handle_; }
 // }}}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

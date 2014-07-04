@@ -13,52 +13,49 @@
 
 namespace x0 {
 
-NativeSymbol::NativeSymbol(const void* address) :
-    symbol_()
-{
-    Dl_info info;
-    if (dladdr(address, &info))
-        symbol_ = info.dli_sname;
+NativeSymbol::NativeSymbol(const void* address) : symbol_() {
+  Dl_info info;
+  if (dladdr(address, &info))
+    symbol_ = info.dli_sname;
+  else
+    symbol_ = nullptr;
+}
+
+Buffer NativeSymbol::name() const {
+  Buffer buf;
+  buf << *this;
+  return buf;
+}
+
+inline auto stripLeftOf(const char* value, char ch) -> const char* {
+  const char* p = value;
+
+  for (auto i = value; *i; ++i)
+    if (*i == ch) p = i;
+
+  return p != value ? p + 1 : p;
+}
+
+Buffer& operator<<(Buffer& result, const NativeSymbol& s) {
+  if (!s.native() || !*s.native())
+    result.push_back("<invalid symbol>");
+  else {
+    char* rv = 0;
+    int status = 0;
+    std::size_t len = 2048;
+
+    result.reserve(result.size() + len);
+
+    try {
+      rv = abi::__cxa_demangle(s.native(), result.end(), &len, &status);
+    }
+    catch (...) {
+    }
+
+    if (status < 0)
+      result.push_back(s.native());
     else
-        symbol_ = nullptr;
-}
-
-Buffer NativeSymbol::name() const
-{
-    Buffer buf;
-    buf << *this;
-    return buf;
-}
-
-inline auto stripLeftOf(const char *value, char ch) -> const char *
-{
-    const char *p = value;
-
-    for (auto i = value; *i; ++i)
-        if (*i == ch)
-            p = i;
-
-    return p != value ? p + 1 : p;
-}
-
-Buffer& operator<<(Buffer& result, const NativeSymbol& s)
-{
-    if (!s.native() || !*s.native())
-        result.push_back("<invalid symbol>");
-    else {
-        char *rv = 0;
-        int status = 0;
-        std::size_t len = 2048;
-
-        result.reserve(result.size() + len);
-
-        try { rv = abi::__cxa_demangle(s.native(), result.end(), &len, &status); }
-        catch (...) {}
-
-        if (status < 0)
-            result.push_back(s.native());
-        else
-            result.resize(result.size() + strlen(rv));
+      result.resize(result.size() + strlen(rv));
 
 #if 0
         if (s.verbose()) {
@@ -66,8 +63,8 @@ Buffer& operator<<(Buffer& result, const NativeSymbol& s)
             result.push_back(stripLeftOf(info.dli_fname, '/'));
         }
 #endif
-    }
-    return result;
+  }
+  return result;
 }
 
-} // namespace x0
+}  // namespace x0

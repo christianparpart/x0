@@ -21,34 +21,28 @@ namespace x0 {
  *
  * \see Source
  */
-class X0_API CallbackSource :
-    public Source
-{
-public:
-    typedef std::function<void()> Callback;
+class X0_API CallbackSource : public Source {
+ public:
+  typedef std::function<void()> Callback;
 
-private:
-    Callback callback_;
+ private:
+  Callback callback_;
 
-public:
-    explicit CallbackSource(Callback cb);
-    ~CallbackSource();
+ public:
+  explicit CallbackSource(Callback cb);
+  ~CallbackSource();
 
-public:
-    ssize_t size() const override;
-    ssize_t sendto(Sink& sink) override;
-    const char* className() const override;
+ public:
+  ssize_t size() const override;
+  ssize_t sendto(Sink& sink) override;
+  const char* className() const override;
 };
 //@}
 
 // {{{ inlines
-inline CallbackSource::CallbackSource(Callback cb) :
-    Source(),
-    callback_(cb)
-{
-}
+inline CallbackSource::CallbackSource(Callback cb) : Source(), callback_(cb) {}
 // }}}
 
-} // namespace x0
+}  // namespace x0
 
 #endif

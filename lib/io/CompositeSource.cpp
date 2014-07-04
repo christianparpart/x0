@@ -10,34 +10,27 @@
 
 namespace x0 {
 
-CompositeSource::~CompositeSource()
-{
-    clear();
-}
+CompositeSource::~CompositeSource() { clear(); }
 
-ssize_t CompositeSource::sendto(Sink& sink)
-{
-    ssize_t result = 0;
+ssize_t CompositeSource::sendto(Sink& sink) {
+  ssize_t result = 0;
 
-    while (!empty()) {
-        std::unique_ptr<Source>& front = sources_.front();
-        ssize_t rv = front->sendto(sink);
+  while (!empty()) {
+    std::unique_ptr<Source>& front = sources_.front();
+    ssize_t rv = front->sendto(sink);
 
-        if (rv < 0) { // error in source
-            return result ? result : rv;
-        } else if (rv == 0) { // empty source
-            sources_.pop_front();
-        } else {
-            result += rv;
-        }
+    if (rv < 0) {  // error in source
+      return result ? result : rv;
+    } else if (rv == 0) {  // empty source
+      sources_.pop_front();
+    } else {
+      result += rv;
     }
+  }
 
-    return result;
+  return result;
 }
 
-const char* CompositeSource::className() const
-{
-    return "CompositeSource";
-}
+const char* CompositeSource::className() const { return "CompositeSource"; }
 
-} // namespace x0
+}  // namespace x0

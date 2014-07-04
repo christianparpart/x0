@@ -14,36 +14,36 @@
 
 namespace x0 {
 
-/** This class is to be inherited by classes that need deeper inspections when logging.
+/** This class is to be inherited by classes that need deeper inspections when
+ * logging.
  */
-class X0_API Logging
-{
-private:
-    static std::vector<char*> env_;
+class X0_API Logging {
+ private:
+  static std::vector<char *> env_;
 
-    std::string prefix_;
-    std::string className_;
-    bool enabled_;
+  std::string prefix_;
+  std::string className_;
+  bool enabled_;
 
-    void updateClassName();
-    bool checkEnabled();
+  void updateClassName();
+  bool checkEnabled();
 
-public:
-    Logging();
-    explicit Logging(const char *prefix, ...);
+ public:
+  Logging();
+  explicit Logging(const char *prefix, ...);
 
-    void setLoggingPrefix(const char *prefix, ...);
-    void setLogging(bool enable);
+  void setLoggingPrefix(const char *prefix, ...);
+  void setLogging(bool enable);
 
-    const std::string& loggingPrefix() const { return prefix_; }
+  const std::string &loggingPrefix() const { return prefix_; }
 
-    void debug(const char *fmt, ...);
+  void debug(const char *fmt, ...);
 
-private:
-    static void initialize();
-    static void finalize();
+ private:
+  static void initialize();
+  static void finalize();
 };
 
-} // namespace x0
+}  // namespace x0
 
 #endif

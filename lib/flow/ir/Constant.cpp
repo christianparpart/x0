@@ -9,9 +9,8 @@
 
 namespace x0 {
 
-void Constant::dump()
-{
-    printf("Constant '%s': %s\n", name().c_str(), tos(type()).c_str());
+void Constant::dump() {
+  printf("Constant '%s': %s\n", name().c_str(), tos(type()).c_str());
 }
 
-} // namespace x0
+}  // namespace x0

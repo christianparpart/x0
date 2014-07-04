@@ -13,8 +13,6 @@
 
 #include <list>
 
-namespace x0 {
-
-} // namespace x0
+namespace x0 {}  // namespace x0
 
 #endif

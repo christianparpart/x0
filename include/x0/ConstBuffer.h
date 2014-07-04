@@ -12,36 +12,33 @@
 
 namespace x0 {
 
-class X0_API ConstBuffer : public Buffer
-{
-public:
-    template<typename PodType, std::size_t N>
-    explicit ConstBuffer(PodType (&value)[N]);
+class X0_API ConstBuffer : public Buffer {
+ public:
+  template <typename PodType, std::size_t N>
+  explicit ConstBuffer(PodType (&value)[N]);
 
-    ConstBuffer(const value_type *value, std::size_t n);
+  ConstBuffer(const value_type *value, std::size_t n);
 
-    virtual bool setCapacity(std::size_t n);
+  virtual bool setCapacity(std::size_t n);
 };
 
 // {{{ ConstBuffer impl
-template<typename PodType, std::size_t N>
-inline ConstBuffer::ConstBuffer(PodType (&value)[N]) :
-    Buffer()
-{
-    data_ = const_cast<char*>(value);
-    size_ = N - 1;
-    capacity_ = 0;
+template <typename PodType, std::size_t N>
+inline ConstBuffer::ConstBuffer(PodType (&value)[N])
+    : Buffer() {
+  data_ = const_cast<char *>(value);
+  size_ = N - 1;
+  capacity_ = 0;
 }
 
-inline ConstBuffer::ConstBuffer(const value_type *value, std::size_t n) :
-    Buffer(value, n)
-{
-    data_ = const_cast<char*>(value);
-    size_ = n;
-    capacity_ = 0;
+inline ConstBuffer::ConstBuffer(const value_type *value, std::size_t n)
+    : Buffer(value, n) {
+  data_ = const_cast<char *>(value);
+  size_ = n;
+  capacity_ = 0;
 }
 // }}}
 
-} // namespace x0
+}  // namespace x0
 
 #endif
