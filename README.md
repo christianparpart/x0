@@ -43,7 +43,7 @@ a number of standard plugins to become *your* web application gateway.
   - Advanced Health Monitoring
   - JSON API for retrieving state, stats,
     and reconfiguring clusters (including adding/updating/removing backends).
-  - [Client Side Routing support](http://xzero.io/#!/article/client-side-routing)
+  - [Client Side Routing support](http://xzero.io/#/article/client-side-routing)
   - Sticky Offline Mode
   - X-Sendfile support, full static file transmission acceleration
   - HAproxy compatible CSV output
