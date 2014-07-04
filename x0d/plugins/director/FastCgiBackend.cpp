@@ -8,6 +8,10 @@
 /*
  * TODO:
  * - respondWith(BadGateway) on backend message protocol errors,
+   - FIXME: hanging connection in read state without idle timer for over 1day already
+     - hanging in reading-request (header-value)
+     - GET /chat/stats (fastcgi), refs:1, fd:95, timer:none, io.watcher:read
+     - [01/Jul/2014:11:15:46 +0000] [error] [worker/0] [77.22.104.71] (message-begin) Failed to read from client. Connection reset by peer
  */
 
 #include "FastCgiBackend.h"

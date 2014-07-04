@@ -1,15 +1,25 @@
 for a long-term todo list, see ticket system at https://github.com/xzero/x0/issues/
 
+- clang-format'ify
+- ssl: test plugin to run safely at least in single-threaded mode
+- director:
+  - FIXME: hanging connection in read state without idle timer for over 1day already
+    - hanging in reading-request (header-value)
+    - GET /chat/stats (fastcgi), refs:1, fd:95, timer:none, io.watcher:read
+    - [01/Jul/2014:11:15:46 +0000] [error] [worker/0] [77.22.104.71] (message-begin) Failed to read from client. Connection reset by peer
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- x0d: stdout/stderr to point to log stream/handler directly,
+  so that printf() and friends work, too.
 - tests:
   - add suite for FileSource
   - add suite for PipeSource
 - FIXME: recent Signal<>-changes maybe causes shutdown to SEGV
 - director:
   - raise 504 (gateway timeout) if backend page load takes too long and no result has been sent to the client yet (close connection directly otherwise).
-- logging: rename debug to trace and diag to debug
+- logging: consider rename debug to trace and diag to debug ?
 - QA: prefer posix_spawn() over vfork() to exec child processes
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 flow:
   - add `x0d --dump-du` (dump def-use chain)
   - SSA
