@@ -30,24 +30,21 @@ a number of standard plugins to become *your* web application gateway.
 
 ### x0d Features
 
-- automatic directory indexing
-- customizable error pages
+- Customizable Error Pages
+- Automatic Directory Indexing
 - on-the-fly executable upgrade with gracefully finishing currently active requests.
-- extensible via the powerful plugin system
-- CGI/1.1 support
+- Easily Extensible via the Powerful Plugin System
 - SSL connection encryption
   - SSL Server Name Indication (SNI) extension
 - dynamic content compression
-- basic authentication
-- advanced dynamic load balancer
-  - supporting different backend transports (TCP/IP, and UNIX Domain Sockets).
-  - supporting different backend protocols (HTTP and FastCGI)
-  - supporting different backend acceleration strategies (memory, disk)
-  - advanced health monitoring
+- Advanced Dynamic Load Balancer
+  - Supporting different backend transports (TCP/IP, and UNIX Domain Sockets).
+  - Supporting different backend protocols (HTTP and FastCGI)
+  - Advanced Health Monitoring
   - JSON API for retrieving state, stats,
     and reconfiguring clusters (including adding/updating/removing backends).
-  - client side routing support
-  - sticky offline mode
+  - [Client Side Routing support](http://xzero.io/#!/article/client-side-routing)
+  - Sticky Offline Mode
   - X-Sendfile support, full static file transmission acceleration
   - HAproxy compatible CSV output
   - Object Cache
@@ -55,15 +52,18 @@ a number of standard plugins to become *your* web application gateway.
     - client-cache aware
     - life JSON stats
     - supports serving stale objects when no backend is available
-    - Vary-response support.
+    - `Vary` response-header Support.
     - multiple update strategies (locked, shadowed)
-- request path aliasing
-- automatic directory listing generation
-- apache-style access log
-- user-directory support
-- browser match support
-- customized Expires and Cache-Control response header control
+- Basic Authentication
+  - including PAM authentication
+- Request Path Aliasing
+- Automatic Directory Listing
+- Apache-style access logging
+- User-directory Support
+- Browser Match Support
+- Customizable Expires & Cache-Control Response Header Control
 - instant mode (configuration-less basic HTTP serving)
+- CGI/1.1 Support
 
 # INSTALLATION REQUIREMENTS:
 
